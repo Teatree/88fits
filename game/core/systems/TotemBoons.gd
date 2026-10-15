@@ -79,9 +79,13 @@ static func roll(e: Dictionary, r: RandomNumberGenerator) -> Dictionary:
 	if step > 0.0:
 		v = snappedf(v, step)
 	v = clampf(v, minf(lo, hi), maxf(lo, hi))
-	return {"id": str(e.get("id", e.get("stat", ""))), "name": str(e.get("name", "")), "animal": str(e.get("animal", "")),
+	var out := {"id": str(e.get("id", e.get("stat", ""))), "name": str(e.get("name", "")), "animal": str(e.get("animal", "")),
 		"stat": str(e.get("stat", "")), "op": str(e.get("op", "add")), "value": v, "min": lo, "max": hi,
 		"quality": quality(v, lo, hi)}
+	# pass 82 (lane TOTEM): a pool entry's own icon path rides along (icon_of); without one the spirit's slot is used
+	if str(e.get("icon", "")) != "":
+		out["icon"] = str(e["icon"])
+	return out
 
 
 ## How big an amount is within its range, in thirds of its size: 1 (the smallest third) .. 3 (the biggest). A range
@@ -124,3 +128,95 @@ static func title(boon: Dictionary) -> String:
 ## The sheet's source name of a taken boon.
 static func source(boon: Dictionary) -> String:
 	return SOURCE % str(boon.get("name", boon.get("id", "?")))
+
+
+# ---------------------------------------------------------------- the Spirit Pole screen's data (pass 82, lane TOTEM)
+## Pass 82 (lane TOTEM, design_handoff_88fits_totem, direction 1b "The Spirit Pole"): what each element of the gift
+## screen reads, from the rolled boon and its pool entry. Nothing here changes a roll: the weights, ranges and steps are
+## the pole's JSON as before.
+
+## The texture slot every spirit has (256 px square, carved face, thick dark outline, in the pole's paint style): an
+## artist fills one by dropping art/ui/totem/spirit_<boon id>.png in; a pool entry's own `icon` path wins over it. Until
+## one is there the screen shows the empty plate with the spirit's word.
+const ICON_SLOT := "res://art/ui/totem/spirit_%s.png"
+static var _icons: Dictionary = {}
+
+
+## The spirit's word ("Le-loo", "Frog").
+static func word(boon: Dictionary) -> String:
+	return str(boon.get("name", boon.get("id", "")))
+
+
+## The spirit's animal ("the Wolf"), "" when the spirit has none (the Frog, the Raven, the Thunderbird).
+static func animal(boon: Dictionary) -> String:
+	return str(boon.get("animal", ""))
+
+
+## Which third of its own range the roll landed in, 1..3 (the gauge's filled notches; `quality` as rolled, worked out
+## again from value, min and max when a boon comes without it).
+static func roll_third(boon: Dictionary) -> int:
+	if boon.has("quality"):
+		return clampi(int(boon["quality"]), 1, 3)
+	var lo := float(boon.get("min", boon.get("value", 0.0)))
+	var hi := float(boon.get("max", lo))
+	return quality(float(boon.get("value", 0.0)), lo, hi)
+
+
+## The range's two ends written like the amount ("+1%", "+3%"; "+2", "+6"; "+0.1", "+0.3"), the smaller size first, so
+## the gauge fills from the left as a gift grows whatever its sign (the Thunderbird's cooldown: "−2%" ... "−4%").
+static func range_texts(boon: Dictionary) -> Array:
+	var lo := float(boon.get("min", boon.get("value", 0.0)))
+	var hi := float(boon.get("max", lo))
+	if absf(lo) > absf(hi):
+		var t := lo
+		lo = hi
+		hi = t
+	var a := boon.duplicate()
+	a["value"] = lo
+	var b := boon.duplicate()
+	b["value"] = hi
+	return [amount_text(a), amount_text(b)]
+
+
+## The path of the spirit's icon: the pool entry's `icon` when it names one, else its slot (ICON_SLOT by the boon's id).
+static func icon_path(boon: Dictionary) -> String:
+	var own := str(boon.get("icon", ""))
+	if own != "":
+		return own if own.begins_with("res://") else "res://" + own
+	return ICON_SLOT % str(boon.get("id", ""))
+
+
+## The spirit's carved face, null when its slot is still empty (the screen then shows the plate with the word).
+static func icon_of(boon: Dictionary) -> Texture2D:
+	var p := icon_path(boon)
+	if not _icons.has(p):
+		_icons[p] = load(p) as Texture2D if ResourceLoader.exists(p) else null
+	return _icons[p]
+
+
+## The toast once a gift is taken: "Le-loo · +2% move speed".
+static func toast_text(boon: Dictionary) -> String:
+	return "%s · %s" % [word(boon), text(boon)]
+
+
+## The screen's label: "★ TOTEM 4 OF 11 ★" read as "TOTEM 4 OF 11" (the stars are drawn), or "4TH TOTEM" when the map's
+## count of poles is unknown (`total` 0 or less). A count past the total (a pole the arena stood) raises the total.
+static func pole_label(index: int, total: int) -> String:
+	var n := maxi(index, 1)
+	if total <= 0:
+		return "%s TOTEM" % ordinal(n)
+	return "TOTEM %d OF %d" % [n, maxi(total, n)]
+
+
+## 1ST, 2ND, 3RD, 4TH ... 11TH, 12TH, 13TH ... 21ST.
+static func ordinal(n: int) -> String:
+	var suf := "TH"
+	if n % 100 < 11 or n % 100 > 13:
+		match n % 10:
+			1:
+				suf = "ST"
+			2:
+				suf = "ND"
+			3:
+				suf = "RD"
+	return "%d%s" % [n, suf]

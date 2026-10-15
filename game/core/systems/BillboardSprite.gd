@@ -303,6 +303,12 @@ func set_tint(c: Color) -> void:
 	_param("tint", c)
 
 
+## How far the painting is drained of its colour, 0..1 (pass 82, lane TOTEM: a used Totem Pole greys over 0.4 s).
+func set_desat(v: float) -> void:
+	_ensure()
+	_mat.set_shader_parameter("desat", clampf(v, 0.0, 1.0))
+
+
 func set_height(h: float) -> void:
 	_param("height", h)
 

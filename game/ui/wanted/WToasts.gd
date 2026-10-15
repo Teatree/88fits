@@ -7,8 +7,12 @@ extends Control
 const HOLD := 1.2
 const FADE := 0.2
 const PX := 40
+## Pass 82 (lane TOTEM): a toast may carry an icon (a Totem spirit's face, flown there from its screen): ICON px square,
+## ICON_GAP before the words, the pair centred; its line is as tall as the icon.
+const ICON := 72.0
+const ICON_GAP := 14.0
 
-var _queue: Array = []      # [text, colour]
+var _queue: Array = []      # [text, colour, icon or null]
 var _shown: Array = []      # [WText, age]
 var _hint: WText
 var _gap := 0.0
@@ -27,8 +31,8 @@ static func tone(c: Color) -> Color:
 	return W.PAPER
 
 
-func push(t: String, c: Color = W.PAPER) -> void:
-	_queue.append([t, tone(c)])
+func push(t: String, c: Color = W.PAPER, icon: Texture2D = null) -> void:
+	_queue.append([t, tone(c), icon])
 	# a burst of news: keep only the newest few waiting
 	while _queue.size() > 4:
 		_queue.pop_front()
@@ -63,6 +67,8 @@ func tick(delta: float) -> void:
 	if not _queue.is_empty() and (_shown.is_empty() or _gap <= 0.0):
 		var q: Array = _queue.pop_front()
 		var w := _make(str(q[0]), q[1])
+		if q.size() > 2 and q[2] is Texture2D:
+			_add_icon(w, q[2])
 		add_child(w)
 		_shown.push_front([w, 0.0])
 		_gap = 0.45
@@ -95,6 +101,41 @@ func _layout() -> void:
 		y += lh + 6.0
 	for s in _shown:
 		var w: WText = s[0]
-		w.position = Vector2(0, y)
-		w.size = Vector2(size.x, lh)
+		var ic := w.get_node_or_null("Icon") as TextureRect
+		if ic:
+			# pass 82: an icon toast's line is the icon's height, the words centred in it and moved over by half the icon
+			var h := maxf(lh, ICON)
+			var shift := (ICON + ICON_GAP) * 0.5
+			w.position = Vector2(shift, y + (h - lh) * 0.5)
+			w.size = Vector2(size.x, lh)
+			ic.position = Vector2((size.x - w.text_width()) * 0.5 - ICON_GAP - ICON, (lh - ICON) * 0.5)
+			y += h + 6.0
+		else:
+			w.position = Vector2(0, y)
+			w.size = Vector2(size.x, lh)
+			y += lh + 6.0
+
+
+## Pass 82 (lane TOTEM): the icon of an icon toast, a child of its words (it fades with them).
+func _add_icon(w: WText, icon: Texture2D) -> void:
+	var ic := TextureRect.new()
+	ic.name = "Icon"
+	ic.texture = icon
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size = Vector2(ICON, ICON)
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	w.add_child(ic)
+
+
+## Where the middle of an icon toast's icon lands when a toast saying `t` is pushed now (in this node's coordinates):
+## the newest toast is always the top line, under a hint while one shows. The Totem screen flies the face there.
+func icon_spot(t: String) -> Vector2:
+	var lh := W.normal_height(W.slab(), PX)
+	var y := 0.0
+	if _hint and _hint.visible:
 		y += lh + 6.0
+	var tw := W.slab().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, PX).x
+	var shift := (ICON + ICON_GAP) * 0.5
+	var x := shift + (size.x - tw) * 0.5 - ICON_GAP - ICON * 0.5
+	return Vector2(x, y + maxf(lh, ICON) * 0.5)

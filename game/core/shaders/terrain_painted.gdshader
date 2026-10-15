@@ -16,6 +16,9 @@ uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;
 uniform vec3 rock_flat : source_color = vec3(0.47, 0.36, 0.37);
 uniform float rock_tex_lum = 0.184;
 uniform float tiles_per_metre = 0.09;
+// pass 82 (lane SAND): the sand painting's own size on the ground, x the tiling above (the map's sand choice sets it,
+// RedCanyon.SANDS; 1 = 11 m a tile like pass 81's): only the sand's, the river bed and the rock keep theirs
+uniform float sand_scale = 1.0;
 uniform float tint_strength = 0.6;
 // how far the painted texture is flattened towards a plain colour: busy dunes fight the sprites, so 0.4 by default
 uniform float calm : hint_range(0.0, 1.0) = 0.4;
@@ -55,7 +58,7 @@ void vertex() {
 
 void fragment() {
 	vec2 uv = v_world.xz * tiles_per_metre;
-	vec3 s = texture(sand_tex, uv).rgb;
+	vec3 s = texture(sand_tex, uv * sand_scale).rgb;
 	vec3 c = texture(cracked_tex, uv * 0.8).rgb;
 	float mixw = smoothstep(0.15, 0.85, v_col.r);
 	float rockw = smoothstep(0.2, 0.9, v_col.b);

@@ -126,7 +126,11 @@ params = {
 "spacing": 14.0
 },
 "per_sign": 1.0,
-"spent": "grey"
+"spent": "grey",
+"spent_motion": {
+"fade": 0.4,
+"flash": 0.12
+}
 }
 radius = 1.2
 color = Color(0.18431373, 0.70980394, 0.65882355, 1)

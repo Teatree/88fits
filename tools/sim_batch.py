@@ -91,7 +91,8 @@ LIMIT_MIN, LIMIT_MAX = 30, 3 * 3600
 # the first row) or a rate of that second (0 before the first row)
 LEVEL_SERIES = ("hp", "hp_max", "est", "alive", "cap", "press_hp", "press_dmg", "boss_hp", "boss_hp_abs", "level", "clock", "stage",
                 "phase", "gold", "near3", "near6", "mult_hp", "mult_dmg")
-CUM_SERIES = ("gold_total", "kills", "xp_total", "deaths", "dmg_total")
+# pass 82 (lane STATS): chests, powerups, totems: sim_run.gd's pickups so far (its pickup_kind(); sim_model.js pickupKind())
+CUM_SERIES = ("gold_total", "kills", "xp_total", "deaths", "dmg_total", "chests", "powerups", "totems")
 RATE_SERIES = ("dps", "took", "healed", "hits", "spawned")
 BAND_SERIES = ("hp", "dps", "level", "press_hp", "press_dmg", "danger", "near3", "near6")
 # ratios (a crowd over a DPS) blow up where the DPS is small: their middle value and band, never a mean
@@ -224,6 +225,7 @@ BOT_KEYS = [  # (key, kind, lo/choices, hi, label, help)
     ("shop", "bool", None, None, "Shop", "uses the Travelling Shop (buys a ware worth its price)"),
     ("stranger", "bool", None, None, "Stranger", "deals with the Stranger (max HP for a ware) while healthy"),
     ("cards", "enum", ("tier", "score"), None, "Cards", "score: every card scored (DPS, survival, plan, gold); tier: pass 77's fixed order"),
+    ("specials", "bool", None, None, "Specials", "pass 82: goes to find a glowing special that stays out of reach (known 5 s, past 9 m or off the screen; not while a boss lives)"),
 ]
 BOT_KEY_NAMES = [k[0] for k in BOT_KEYS]
 _BOT_PRESETS_CACHE = {}
@@ -1686,7 +1688,8 @@ def aggregate(players, settings, meta=None, game_dir=None):
                       "level": at_end("level"), "kills": at_end("kills"), "gold": at_end("gold_total"), "xp": at_end("xp_total"),
                       "dmg": _r(sum(_bd_end(g, "dmg_by", i) for i in g[3].get("dmg_by", {}))) if g else None,
                       "fps": m.get("fps"), "build": str(m.get("build_text") or ""), "assists": m.get("assists"),
-                      "end_stage": m.get("end_stage"), "endless_wave": m.get("endless_wave"), "talents": m.get("talents") or {}})
+                      "end_stage": m.get("end_stage"), "endless_wave": m.get("endless_wave"), "talents": m.get("talents") or {},
+                      "chests": at_end("chests"), "powerups": at_end("powerups"), "totems": at_end("totems")})
     mk = markers([d for _, d, _ in ok])
     names = content_names(game_dir or snap_game(), set(all_ids) | {b["id"] for b in mk["bosses"]} | {s["hero"]})
     reached = sum(1 for p in plist if p["ok"] and _num(p["end_t"]) >= limit - 1.5)
@@ -1699,6 +1702,7 @@ def aggregate(players, settings, meta=None, game_dir=None):
                "median_end_t": _r(_medians([_num(p["end_t"]) for p in plist if p["ok"]])),
                "deaths_mean": end_mean("deaths"), "revives_mean": end_mean("revives"), "kills_mean": end_mean("kills"),
                "level_mean": end_mean("level"), "gold_mean": end_mean("gold"), "xp_mean": end_mean("xp"), "dmg_mean": end_mean("dmg"),
+               "chests_mean": end_mean("chests"), "powerups_mean": end_mean("powerups"), "totems_mean": end_mean("totems"),
                "bosses": [{"id": b["id"], "occurrence": b["occurrence"], "reached": b["n"], "beaten": b["beaten"], "fight_s": b["fight_s"],
                            "mult": b.get("mult")} for b in mk["bosses"]]}
     res = {"schema": SCHEMA, "meta": dict(meta or {}), "settings": s, "names": names, "t": list(range(T + 1)), "playing": playing,
@@ -1738,6 +1742,10 @@ def synthetic_player(k, seed, settings, creatures=None):
             "gold", "dmg_total", "kills", "level", "xp_total", "took", "healed", "deaths", "near3", "near6", "hits", "spawned", "mult_hp",
             "mult_dmg", "boss_hp_abs")
     out = {k_: [] for k_ in keys}
+    # pass 82 (lane STATS): chests, power-ups and totems so far, on dice of their own (the stream above stays as it was)
+    rng_pk = random.Random(int(seed) * 104729 + 82)
+    pk = {"chests": 0, "powerups": 0, "totems": 0}
+    out.update({k_: [] for k_ in pk})
     alive_by = {c: [] for c in creatures}
     kills_by = {c: [] for c in creatures}
     dmg_by = {w: [] for w in weapons + ["revive"]}
@@ -1859,6 +1867,14 @@ def synthetic_player(k, seed, settings, creatures=None):
                "boss_hp_abs": round(boss_abs, 1)}
         for k_ in keys:
             out[k_].append(row[k_])
+        if rng_pk.random() < 0.006 or (phase == 1 and boss_left == 0):
+            pk["chests"] += 1
+        if rng_pk.random() < 0.008:
+            pk["powerups"] += 1
+        if phase == 0 and pk["totems"] < 11 and clock >= 70 * (pk["totems"] + 1) and rng_pk.random() < 0.05:
+            pk["totems"] += 1
+        for k_ in pk:
+            out[k_].append(pk[k_])
         if end_reason == "death":
             break
     end_t = float(out["t"][-1])

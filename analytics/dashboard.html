@@ -44,6 +44,10 @@
   details.where summary { cursor: pointer; color: var(--ink-2); }
   details.where ul { margin: 6px 0 0; padding-left: 20px; }
   details.where li { margin: 3px 0; }
+  details.where ol { margin: 6px 0 0; padding-left: 22px; }
+  details.howto { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; margin: 4px 0 10px; }
+  details.howto summary { color: var(--ink); font-weight: 600; }
+  details.howto ol li { margin: 5px 0; }
   code { color: var(--ink); background: var(--surface-2); padding: 1px 6px; border-radius: 4px; font-size: 0.88em; word-break: break-all; }
   .empty { margin: 32px auto; max-width: 620px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; color: var(--ink-2); }
   .empty h2 { margin: 0 0 8px; color: var(--ink); font-size: 1.1rem; }
@@ -83,6 +87,7 @@
   .mkey { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.78rem; margin-top: 6px; }
   .mkey span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; background: var(--k); }
   .mkey span.round::before { border-radius: 50%; }
+  .mkey span.diamond::before { border-radius: 1px; transform: rotate(45deg) scale(0.82); }
   .tbl { display: none; overflow-x: auto; max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
   .tbl.always { display: block; }
   .card.table .tbl { display: block; }
@@ -214,6 +219,7 @@
     <li><b>The phone, and every other player</b> (pass 78): each run's whole record goes to PostHog (<code>run_record</code>, with the player's consent). <code>python tools/posthog_runs.py</code> downloads them into <code>analytics/remote/&lt;player&gt;/</code> (with your personal key in <code>tools/posthog_personal_key.txt</code>); the <i>Remote runs</i> switch shows them by player: one run with every card, a player's average, several players' average. The how-to: <code>analytics/howto/03_remote_runs.md</code>.</li>
     <li><b>Averages</b>: open several run files (or a whole folder) and pick <i>Average</i>: every second of play averaged the way the Level Editor's Sim tab averages its runs, on the Sim's own charts.</li>
     <li><b>Every CSV for a whole folder at once</b>: <code>python tools/analytics_csv.py</code> (add <code>--tools</code> for the tool runs, or <code>--runs &lt;folder&gt;</code> for the PC build's folder).</li>
+    <li><b>Every how-to, by the question it answers</b> (pass 82): <a href="README.md">analytics/README.md</a>. Players' runs step by step: <i>Remote runs</i>, then <i>How do I get players' runs?</i>, or <a href="howto/03_remote_runs.md">analytics/howto/03_remote_runs.md</a>.</li>
   </ul>
 </details>
 
@@ -246,6 +252,10 @@
   const CARRY = ['mults', 'stats', 'weapons', 'passives', 'lines', 'perks'];
   const WEAPON_FIELDS = ['level', 'dmg', 'cd', 'amount', 'pierce', 'area', 'est', 'mut'];
   const EVENT_FIRST = ['t', 'clock', 'kind', 'id', 'name', 'level'];
+  // pass 82 (lane STATS): chests, power-ups and totems picked up so far, three columns after the row's own (counted from
+  // the events by sim_model.js pickupCounts: the Sim's rule; tools/analytics_csv.py pickup_counts the same)
+  const PICKUPS = ['chests', 'powerups', 'totems'];
+  const SM = typeof SimModel !== 'undefined' ? SimModel : root.SimModel;
   const HISTORY_FIRST = ['file', 'stamp', 'started', 'version', 'schema', 'tool', 'headless', 'hero', 'hero_name', 'hero_look',
     'map', 'map_rev', 'seed', 'result', 'length', 'clock', 'stage', 'endless_wave', 'level', 'kills', 'gold', 'strongbox',
     'revives', 'gold_before', 'damage', 'top_source', 'dps_end', 'hp_lost', 'hits_taken', 'bosses', 'specials_killed',
@@ -310,6 +320,8 @@
     const mapCols = maps.map((g) => [g, sorted(mapKeys[g])]);
     const wf = WEAPON_FIELDS.filter((f) => wfields.has(f)).concat(sorted(wfields).filter((f) => !WEAPON_FIELDS.includes(f)));
     const cols = baseCols.concat(extraCols);
+    const pk = SM && rows.length ? SM.pickupCounts(run.events, rows.map((r) => (typeof r.t === 'number' && isFinite(r.t) ? r.t : 0))) : null;
+    if (pk) for (const k of PICKUPS) cols.push(k);
     for (const [g, ks] of mapCols) for (const k of ks) cols.push(g + '.' + k);
     const multsK = sorted(carry.mults), statsK = sorted(carry.stats), passK = sorted(carry.passives), linesK = sorted(carry.lines);
     for (const k of multsK) cols.push('mults.' + k);
@@ -322,11 +334,12 @@
     if (!cols.length) return { columns: ['t'], rows: [] };
     const st = { mults: null, stats: null, weapons: null, passives: null, lines: null, perks: null };
     const pick = (o, k) => (isObj(o) && has(o, k) && o[k] !== null) ? o[k] : '';
-    const out = rows.map((r) => {
+    const out = rows.map((r, ri) => {
       for (const g of CARRY) if (has(r, g)) st[g] = r[g];
       const line = [];
       for (const k of baseCols) line.push(has(r, k) && r[k] !== null ? r[k] : (EMPTY_WHEN_MISSING.includes(k) ? '' : 0));
       for (const k of extraCols) line.push(has(r, k) && r[k] !== null ? r[k] : '');
+      if (pk) for (const k of PICKUPS) line.push(pk[k][ri]);
       for (const [g, ks] of mapCols) for (const k of ks) line.push(isObj(r[g]) && has(r[g], k) && r[g][k] !== null ? r[g][k] : 0);
       for (const k of multsK) line.push(pick(st.mults, k));
       for (const k of statsK) line.push(pick(st.stats, k));
@@ -366,7 +379,7 @@
     return { columns: cols, rows: list.map((r) => cols.map((k) => has(r, k) && r[k] !== null ? r[k] : '')) };
   }
 
-  root.RunCSV = { BOM, cell, text, toCSV, rowsTable, eventsTable, historyTable, BASE, MAPS, CARRY, HISTORY_FIRST };
+  root.RunCSV = { BOM, cell, text, toCSV, rowsTable, eventsTable, historyTable, BASE, MAPS, CARRY, HISTORY_FIRST, PICKUPS };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 
@@ -463,9 +476,17 @@
           if (e.label && px > lastRight + 4) { const w = ctx.measureText(e.label).width; if (px + 6 + w < a.right) { ctx.fillStyle = COL.ink2; ctx.fillText(e.label, px + 6, a.top + 9); lastRight = px + 6 + w; } }
         }
         for (const d of o.dots || []) {
-          const px = x.getPixelForValue(d.t);
-          ctx.fillStyle = COL.surface; ctx.beginPath(); ctx.arc(px, a.bottom - 6, 5.5, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(px, a.bottom - 6, 3.5, 0, Math.PI * 2); ctx.fill();
+          const px = x.getPixelForValue(d.t), py = a.bottom - 6;
+          // pass 82: a dot may be a square (a chest) or a diamond (a totem); a circle otherwise
+          const mark = (rr) => {
+            ctx.beginPath();
+            if (d.shape === 'square') ctx.rect(px - rr, py - rr, 2 * rr, 2 * rr);
+            else if (d.shape === 'diamond') { const q = rr * 1.35; ctx.moveTo(px, py - q); ctx.lineTo(px + q, py); ctx.lineTo(px, py + q); ctx.lineTo(px - q, py); ctx.closePath(); }
+            else ctx.arc(px, py, rr, 0, Math.PI * 2);
+            ctx.fill();
+          };
+          ctx.fillStyle = COL.surface; mark(5.5);
+          ctx.fillStyle = d.color; mark(3.5);
         }
         ctx.restore();
       },
@@ -694,7 +715,7 @@
   // small multiples: a titled box with its own canvas
   function multiBox(m, title, h) { const b = el('div'); b.appendChild(el('h3', null, title)); const p = el('div', 'plot'); if (h) p.style.height = h + 'px'; const cv = document.createElement('canvas'); p.appendChild(cv); b.appendChild(p); m.appendChild(b); return cv; }
   function tileIn(wrap, lbl, val, sub, cls) { const t = el('div', 'tile' + (cls ? ' ' + cls : '')); t.appendChild(el('div', 'lbl', lbl)); const v = el('div', 'val'); if (val instanceof Node) v.appendChild(val); else v.textContent = val; t.appendChild(v); if (sub) t.appendChild(el('div', 'sub', sub)); wrap.appendChild(t); return t; }
-  function mkey(c, pairs) { const key = el('div', 'mkey'); for (const [k, v, round] of pairs) { const s = el('span', round ? 'round' : null, k); s.style.setProperty('--k', v); key.appendChild(s); } c.appendChild(key); }
+  function mkey(c, pairs) { const key = el('div', 'mkey'); for (const [k, v, round] of pairs) { const s = el('span', round === true ? 'round' : (round || null), k); s.style.setProperty('--k', v); key.appendChild(s); } c.appendChild(key); }
 
   function render() {
     for (const ch of CHARTS) ch.destroy(); CHARTS = []; $main.textContent = '';
@@ -717,7 +738,7 @@
     renderSim($main, S);
     const grid = el('div', 'grid'); $main.appendChild(grid);
     const steps = [renderFacts, renderPower, renderPressure, renderRatio, renderHealth, renderEnemies, renderHitLog, renderBosses, renderSpecials,
-      renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderTotems, renderHealing, renderSurvival, renderStats,
+      renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderPickups, renderTotems, renderHealing, renderSurvival, renderStats,
       renderMults, renderStacks, renderCrowd, renderRates, renderProgress, renderGold, renderQuests];
     for (const f of steps) {
       try { f(grid, S); } catch (err) { const c = card(f.name.replace(/^render/, ''), 'This card could not be drawn for this file: ' + err.message); grid.appendChild(c); console.error(err); }
@@ -1116,6 +1137,55 @@
   }
 
   // ------------------------------------------------------------ 10 the Totem Poles and the Stranger
+  // ------------------------------------------------------------ pass 82 (lane STATS): chests, power-ups and totems
+  // Garry: "a chart for Chests Picked up, Power-ups and Totems through a run ... add the same to the local analytics
+  // dashboard". What counts is the Sim's rule (sim_model.js pickupKind); the Sim's charts below the summary draw the same
+  // three lines for this run and for averages.
+  const PK = typeof SimModel !== 'undefined' && SimModel.pickupKind ? SimModel : null;
+  const PK_SHAPE = { chests: 'square', powerups: null, totems: 'diamond' };
+  const pkSeries = (S) => PK.pickupCounts(S.run.events, Array.from({ length: S.n }, (_, i) => i));
+  const pkInfo = (k) => PK.PICKUP_SERIES.find((p) => p.key === k) || { label: k, color: COL.gray };
+  const PK_ONE = { chests: 'chest', powerups: 'power-up', totems: 'totem' };
+  function pkDots(S) {
+    if (!PK) return [];
+    return S.events.filter((e) => PK.pickupKind(e)).map((e) => { const k = PK.pickupKind(e); return { t: e.t, color: pkInfo(k).color, shape: PK_SHAPE[k] }; });
+  }
+  function pkKey(c) { mkey(c, PK.PICKUP_SERIES.map((p) => [PK_ONE[p.key] || p.label, p.color, PK_SHAPE[p.key] === null ? true : PK_SHAPE[p.key]])); }
+  function pkWhat(S, e) {
+    if (e.kind === 'chest') return (e.boss ? 'boss chest' : 'chest') + ': ' + (e.skip ? 'skipped' + (e.id ? ' (' + S.name(e.id) + ')' : '') : (!e.id || e.roll === 'gold') ? 'gold' : S.name(e.id) + (e.level ? ' ' + e.level : '') + (e.roll ? ' (' + e.roll + ')' : ''));
+    if (e.kind === 'pickup') return S.name(e.id) + (e.effect ? ' (' + e.effect + ')' : '');
+    if (e.kind === 'totem') return S.name(e.id) + (e.stat ? ': ' + S.statName(e.stat) + ' ' + ((+e.value || 0) >= 0 ? '+' : '') + (+(+e.value || 0).toFixed(3)) : '');
+    return '';
+  }
+  function renderPickups(grid, S) {
+    if (!PK) return;
+    const list = S.events.filter((e) => PK.pickupKind(e));
+    if (!list.length) return;
+    const of = (k) => list.filter((e) => PK.pickupKind(e) === k);
+    const ch = of('chests'), pu = of('powerups'), to = of('totems');
+    const c = card('Chests, power-ups and totems', 'Chests opened (taken or skipped, boss chests too), power-ups picked up (every pickup but the small ones underfoot: cake slices, coin bags, pollen) and Totem Pole gifts taken, counted through the run. Each one is marked at the bottom: a square a chest, a dot a power-up, a diamond a totem.', { wide: true, slug: 'pickups' });
+    const tl = el('div', 'tiles');
+    const byName = (arr) => { const m = new Map(); for (const e of arr) { const n = S.name(e.id) || '?'; m.set(n, (m.get(n) || 0) + 1); } return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).map(([n, k]) => n + (k > 1 ? ' ×' + k : '')).join(' · '); };
+    const bossN = ch.filter((e) => e.boss).length, skipN = ch.filter((e) => e.skip).length;
+    tileIn(tl, 'Chests', String(ch.length), ch.length ? [bossN + ' boss', skipN + ' skipped', ch.filter((e) => !e.skip && (!e.id || e.roll === 'gold')).length + ' gold'].join(' · ') : 'none opened');
+    tileIn(tl, 'Power-ups', String(pu.length), pu.length ? byName(pu) : 'none picked up');
+    tileIn(tl, 'Totems', String(to.length), to.length ? byName(to) : 'no gift taken');
+    c.appendChild(tl);
+    const cnt = pkSeries(S);
+    if (chartReady()) {
+      const ds = PK.PICKUP_SERIES.map((p) => line(p.label, cnt[p.key], p.color, { stepped: true, d: 0 }));
+      OVERLAYS.forEach((o, i) => { const oc = pkSeries(o); PK.PICKUP_SERIES.forEach((p) => ds.push(line('overlay ' + (i + 1) + ' ' + p.label, oc[p.key], p.color, { stepped: true, borderDash: [6, 4], borderWidth: 1.5, d: 0 }))); });
+      const mk = markerOpts(S, { portal: true });
+      mk.events = mk.events.filter((e) => e.line); mk.dots = pkDots(S);
+      timeChart(plot(c), S, ds, { markers: mk, y: { ticks: { precision: 0, maxTicksLimit: 6, callback: (v) => (Number.isInteger(v) ? fmtI(v) : '') } } });
+      pkKey(c);
+    }
+    timeTable(c, S, PK.PICKUP_SERIES.map((p) => ({ label: p.label + ' so far', data: cnt[p.key], d: 0 })));
+    tableView(c, [colT('play'), colT('clock'), { label: 'kind' }, { label: 'what', wrap: true }, { label: 'id' }],
+      list.map((e) => [e.t, e.clock, PK_ONE[PK.pickupKind(e)], pkWhat(S, e), e.id || '']), { always: true, name: 'each', title: 'Each one, in order' });
+    grid.appendChild(c);
+  }
+
   function renderTotems(grid, S) {
     const to = evs(S, 'totem_offer'), tk = evs(S, 'totem'), st = evs(S, 'stranger'), sd = evs(S, 'stranger_decline');
     const viaStranger = S.items.filter((e) => e.via === 'stranger');
@@ -1240,12 +1310,15 @@
     grid.appendChild(c);
   }
   function renderProgress(grid, S) {
-    const c = card('Progression', 'Level, gold in the purse and kills over play time, each on its own scale.', { wide: true });
+    const c = card('Progression', 'Level, gold in the purse and kills over play time, each on its own scale; the marks under the level are the chests, power-ups and totems picked up.', { wide: true });
     if (chartReady()) {
       const m = el('div', 'multi');
-      const one = (title, arr, color, extra) => timeChart(multiBox(m, title), S, [line(title, arr, color, Object.assign({ fill: true }, extra || {}))], { markers: { stages: markerOpts(S, {}).stages } });
-      one('level', S.level, ROLE.level, { stepped: true }); one('gold', S.gold, ROLE.gold); one('kills', S.kills, ROLE.kills);
+      const one = (title, arr, color, extra, dots) => timeChart(multiBox(m, title), S, [line(title, arr, color, Object.assign({ fill: true }, extra || {}))], { markers: { stages: markerOpts(S, {}).stages, dots: dots || [] } });
+      // pass 82: the level chart marks each chest, power-up and totem picked up (the Watch's Level and XP chart the same)
+      const dots = pkDots(S);
+      one('level', S.level, ROLE.level, { stepped: true }, dots); one('gold', S.gold, ROLE.gold); one('kills', S.kills, ROLE.kills);
       c.appendChild(m);
+      if (dots.length) pkKey(c);
     }
     timeTable(c, S, [{ label: 'level', data: S.level, d: 0 }, { label: 'xp to next', data: S.xpFrac, d: 2 }, { label: 'gold', data: S.gold, d: 0 }, { label: 'banked', data: S.banked, d: 0 }, { label: 'kills', data: S.kills, d: 0 }]);
     grid.appendChild(c);
@@ -1415,14 +1488,15 @@
     const box = el('div'); root.appendChild(box);
     drawSim(box, res, CMP ? CMP.res : null, 'average');
     // the runs one by one (each opens with every card)
-    const c = card(entries.length === 1 ? 'The run' : 'The ' + entries.length + ' runs one by one', 'Each run as the average counted it: its end, its level, kills and coins at its own end. Open shows it alone with every card.', { wide: true, slug: 'average-runs' });
+    const c = card(entries.length === 1 ? 'The run' : 'The ' + entries.length + ' runs one by one', 'Each run as the average counted it: its end, its level, kills, coins, chests, power-ups and totems at its own end. Open shows it alone with every card.', { wide: true, slug: 'average-runs' });
     const tb = document.createElement('table'); const thead = document.createElement('thead'); const tr = document.createElement('tr');
-    for (const h of ['player', 'started', 'hero', 'ended', 'at', 'deaths', 'level', 'kills', 'coins', 'build', '']) tr.appendChild(el('th', null, h));
+    for (const h of ['player', 'started', 'hero', 'ended', 'at', 'deaths', 'level', 'kills', 'coins', 'chests · power-ups · totems', 'build', '']) tr.appendChild(el('th', null, h));
     thead.appendChild(tr); tb.appendChild(thead); const body = document.createElement('tbody');
     res.players.forEach((p, i) => {
       const e = entries[i]; const r = e.run; const row = document.createElement('tr');
-      const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), fmtN(p.kills), fmtN(p.gold), r.build_text || ''];
-      cells.forEach((v, j) => row.appendChild(el('td', j === 9 ? 'wrap' : (j >= 5 && j <= 8 ? 'num' : null), v)));
+      const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), fmtN(p.kills), fmtN(p.gold),
+        p.chests == null ? '–' : p.chests + ' · ' + p.powerups + ' · ' + p.totems, r.build_text || ''];
+      cells.forEach((v, j) => row.appendChild(el('td', j === 10 ? 'wrap' : (j >= 5 && j <= 9 ? 'num' : null), v)));
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button'; b.disabled = !Array.isArray(r.samples); b.onclick = () => openRun(r); td.appendChild(b); row.appendChild(td);
       body.appendChild(row);
     });
@@ -1504,10 +1578,45 @@
     const rows = (SRC.remote.runs || []).filter((r) => PLAYERS.has(r.player) && !(NO_DEV && isDevRow(r)));
     return rows.slice().sort((a, b) => String(b.started || '').localeCompare(String(a.started || '')));
   }
+  // pass 82 (lane STATS; Garry: "Remind me how do I go about viewing this information ... There should be a step by step
+  // of how I can save the data from real Players posted to posthog and 'convert it' into the local dashboard"): the steps
+  // of analytics/howto/03_remote_runs.md on the page itself, open until a download is here
+  const HOWTO_STEPS = [
+    ['Download the runs.', 'Open a terminal in the repo folder (D:\\_projects\\88fits) and run the line below. It fetches every run of the last 30 days that is not on this PC yet, one line a run, using your personal key in tools/posthog_personal_key.txt.', 'python tools/posthog_runs.py'],
+    ['Reload this page', '(F5) and press Remote runs at the top.'],
+    ['Tick the players.', 'Every player is a chip: their name, how many runs they sent, when they last played.'],
+    ['One run:', 'press Open on its row: every card of this page for that run, as if it was played here, and the Sim\'s charts for it.'],
+    ['One player\'s average:', 'tick only that player, then press Average every run of the ticked player: the Sim\'s charts, each second averaged over their runs.'],
+    ['Several players\' average:', 'tick those players, then the same button.'],
+    ['Hand-picked runs:', 'tick runs in the list, then press Average the ticked runs.'],
+    ['Back to one run:', 'Open in the list under the average, or One run at the top.'],
+  ];
+  function remoteHowto(c, open) {
+    const det = el('details', 'where howto'); det.open = !!open;
+    det.appendChild(el('summary', null, 'How do I get players\' runs? (step by step)'));
+    const ol = el('ol');
+    for (const st of HOWTO_STEPS) {
+      const li = el('li'); li.appendChild(el('b', null, st[0])); li.appendChild(document.createTextNode(' ' + st[1]));
+      if (st[2]) { li.appendChild(document.createElement('br')); li.appendChild(el('code', null, st[2])); }
+      ol.appendChild(li);
+    }
+    det.appendChild(ol);
+    const more = el('ul');
+    const tip = (html) => { const li = el('li'); li.innerHTML = html; more.appendChild(li); };
+    tip('Only runs from <b>v0.64 on</b> come this way, and only from players who said yes on the play-data card. Older builds sent the per-minute summary only.');
+    tip('Fetch less or more: <code>--player "Name"</code> (repeat it for several), <code>--since 2026-10-01</code>, <code>--all</code> (everything ever sent), <code>--list</code> (look without downloading), <code>--force</code> (fetch again).');
+    tip('<b>dev</b> marks your own runs (the editor binary, debug builds, debug mode): tick <i>leave out developer runs</i> to average real players only.');
+    tip('The files land in <code>analytics/remote/&lt;player&gt;/</code>, one <code>.json</code> a run (the same file a run played here writes): every second in <code>samples</code>, every event, the build, the gold. The CSV buttons above save any open run for Excel.');
+    tip('Compare with the bot: <i>Compare with a sim</i> above, then a sim\'s <code>result.json</code> (<code>tools/dl/sim/runs/&lt;sim&gt;/</code>).');
+    tip('The whole how-to: <a href="howto/03_remote_runs.md">analytics/howto/03_remote_runs.md</a> · every how-to and what it answers: <a href="README.md">analytics/README.md</a> · every key of a run file: <a href="SCHEMA.md">analytics/SCHEMA.md</a>.');
+    det.appendChild(more);
+    c.appendChild(det);
+  }
   function renderRemotePicker(root) {
     const idx = SRC.remote.index;
     const c = card('Runs from PostHog', '', { wide: true, slug: 'remote' });
     c.classList.add('picker');
+    remoteHowto(c, !idx);
     if (!idx) {
       c.appendChild(el('p', 'note', 'No runs downloaded yet. In a terminal at the repo, run:'));
       c.appendChild(el('p', null)).appendChild(el('code', null, 'python tools/posthog_runs.py'));

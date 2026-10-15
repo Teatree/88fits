@@ -1,7 +1,9 @@
 ## One of the Watch's charts (pass 80, lane WATCH): a dark plot drawn in _draw from what the panel hands it once a
 ## second (points already cut to the window and bucketed to the plot's width): lines on a left and a right axis, a
 ## lower band with its own axis (HP over Danger), stacked areas (the damage share), the Sim's average as a grey line,
-## and vertical marks (the falls, a boss). Nothing here reads the game. Tools only.
+## and vertical marks (the falls, a boss); pass 82: small shaped marks at moments along the plot's foot (the chests,
+## power-ups and totems picked up), one lane each, and legend items with those shapes. Nothing here reads the game.
+## Tools only.
 extends Control
 
 const BG := Color(0.105, 0.115, 0.14)
@@ -14,6 +16,10 @@ const PAD_L := 46.0
 const PAD_R := 46.0
 const PAD_T := 22.0
 const PAD_B := 16.0
+## pass 82: the marks' size (px, half their width) and the step between their lanes
+const POINT_R := 3.5
+const LANE_H := 9.0
+const POINT_EDGE := Color(0.05, 0.05, 0.07, 0.9)
 
 var title := ""
 var x0 := 0.0
@@ -29,7 +35,10 @@ var series: Array = []
 var bands: Array = []
 ## vertical marks: {x, color}
 var marks: Array = []
-## [[text, color], ...] in the title row
+## pass 82: marks at moments, along the upper plot's foot: {x, lane (0 the lowest), shape: "square" | "circle" |
+## "triangle", color}
+var points: Array = []
+## [[text, color], ...] in the title row; pass 82: [text, color, shape] draws that shape instead of the square
 var legend: Array = []
 ## a line under the title (the window's words, "no data yet")
 var note := ""
@@ -97,7 +106,10 @@ func _draw_all() -> void:
 		lx -= w
 		draw_string(font, Vector2(lx, 15), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, TEXT)
 		lx -= 12.0
-		draw_rect(Rect2(lx, 7, 8, 8), item[1])
+		if item.size() > 2:
+			_shape(Vector2(lx + 4.0, 11.0), str(item[2]), item[1], 4.0)
+		else:
+			draw_rect(Rect2(lx, 7, 8, 8), item[1])
 		lx -= 10.0
 	var rr := _rects()
 	var up: Rect2 = rr[0]
@@ -145,6 +157,36 @@ func _draw_all() -> void:
 				draw_line(px[i], px[i + 1], col, w, true)
 		else:
 			draw_polyline(px, col, w, true)
+	_draw_points(up)
+
+
+## Pass 82: the moments' marks on the upper plot's foot, each kind its lane (`lane` 0 the lowest), drawn last (on top).
+func _draw_points(up: Rect2) -> void:
+	for p in points:
+		var x := to_px(Vector2(float(p["x"]), 0.0), 0).x
+		if x < up.position.x - 0.5 or x > up.end.x + 0.5:
+			continue
+		var y := up.end.y - POINT_R - 2.0 - float(int(p.get("lane", 0))) * LANE_H
+		_shape(Vector2(x, y), str(p.get("shape", "circle")), p["color"], POINT_R)
+
+
+## A mark: a square, a circle or a triangle of half-width `r` at `c`, with a dark rim so it reads over a line or a fill.
+func _shape(c: Vector2, shape: String, col: Color, r: float) -> void:
+	match shape:
+		"square":
+			draw_rect(Rect2(c - Vector2(r + 1.0, r + 1.0), Vector2(r + 1.0, r + 1.0) * 2.0), POINT_EDGE)
+			draw_rect(Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), col)
+		"triangle":
+			draw_colored_polygon(triangle(c, r + 1.5), POINT_EDGE)
+			draw_colored_polygon(triangle(c, r), col)
+		_:
+			draw_circle(c, r + 1.0, POINT_EDGE)
+			draw_circle(c, r, col)
+
+
+## A triangle pointing up round `c`, half-width about `r`.
+static func triangle(c: Vector2, r: float) -> PackedVector2Array:
+	return PackedVector2Array([c + Vector2(0.0, -r * 1.2), c + Vector2(r * 1.15, r * 0.9), c + Vector2(-r * 1.15, r * 0.9)])
 
 
 func _grid(font: Font, box: Rect2, left_axis: int, right_axis: int) -> void:

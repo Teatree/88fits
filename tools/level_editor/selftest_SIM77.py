@@ -721,13 +721,14 @@ def _page_checks(check, run_node, SB, tmp):
         return
     if not out:
         return
+    # pass 82 (lane STATS): "pickups" (chests, power-ups, totems) after the kills
     check(out["ids"] == ["dps", "hp", "playing", "deaths", "danger", "keep_up", "near", "alive_by", "trouble", "hurt", "hits", "heal", "cap", "flow",
-                         "strength", "gold", "dmg", "kills", "level", "xp", "build"],
+                         "strength", "gold", "dmg", "kills", "pickups", "level", "xp", "build"],
           "page: the charts in Garry's order, the difficulty ones round 2's (made-up runs carry every field): %s" % out["ids"])
     check(out["sections"] == ["hero", "death", "difficulty", "rewards", "growth"] and out["secOf"] == {"dps": "hero", "playing": "death", "danger": "difficulty",
                                                                                                        "gold": "rewards", "build": "growth"},
           "page: the five sections: %s" % out["sections"])
-    check(out["lacking"] == [] and len(out["lackingBare"]) == 9 and out["idsBare"] == ["dps", "hp", "playing", "deaths", "alive_by", "gold", "dmg", "kills", "level", "xp"],
+    check(out["lacking"] == [] and len(out["lackingBare"]) == 9 and out["idsBare"] == ["dps", "hp", "playing", "deaths", "alive_by", "gold", "dmg", "kills", "pickups", "level", "xp"],
           "page: a result without round 2's data draws the rest and names what is missing: %s" % out["idsBare"])
     check(out["range"][0] < 0 and 0 in out["range"][2] and out["range"][2][0] == out["range"][0] and out["range"][2][-1] == out["range"][1],
           "page: an axis below 0 for the net danger, with 0 a tick: %s" % out["range"])

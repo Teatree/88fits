@@ -87,6 +87,7 @@ bash tools/release.sh "note"                                      # upload the A
 python tools/make_win_icon.py [--if-stale] && python tools/exe_info.py game/export/88fits.exe --expect-version 0.59   # pass 73: game/icon.ico (16..256, framed per size) for the PC exe; Godot 4.5+ embeds the icon and version itself (rcedit is obsolete); exe_info reads the exe's version resource
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/sign_exe.ps1 -Exe game/export/88fits.exe   # pass 73: signs the PC exe only when tools/keys/codesign.env exists (git-ignored; a .pfx, a store certificate or a signing service); ship.sh calls it and keeps a failed signing out of Drive; why Windows warns and what fixes cost: docs/pc_build_trust.md
 python tools/gen_textures.py && python tools/gen_music.py && python tools/paint_pass.py   # art + music regeneration (see docs/RUNNING.md)
+python tools/gen_sand.py   # pass 82: the four new sands (Klein paintings, seam repainted in three passes, today's mean colour) -> game/art/env/sand_<id>.png, sources tools/art_src/sand_<id>_src.png; the map key timeline_data.sand picks one (default pass81 = sand.png), the Level Editor's World card and the arena's WORLD tab switch it
 python tools/make_pipeline_figs.py && python tools/make_bible.py   # bible section 15b's step-by-step art pictures (from tools/dl/ intermediates), then the bible
 python tools/ai_sfx.py [--dry-run | --gen-only | --auto | --bind | --report | --docs | --only ids | --cands N | --pick id=k | --volume id=dB]   # pass 60: every sound effect from Stable Audio (Garry's app at http://127.0.0.1:7861/, AudioGen on 7860 as the alternate) -> content/sounds/real/<id>.wav + the soundmap rows; then --import + import_json -- only=sounds; python tools/make_sfx_review.py -> docs/sfx_review.html + tools/dl/sfx60/sfx_review.zip (the voice barks are gone; gen_voice.py lives in tools/dl/backup/)
 python tools/icon_sand.py [--gamma 0.8] [--splash] [--compare out.png]   # pass 61: the launcher icon's sand a touch lighter (only the sand; the old source tools/dl/app_icon/icon_src_v046.png), then gen_art.app_icon and make_splash
@@ -250,7 +251,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-15, pass 81, version 0.67)
+## Status (2026-10-16, pass 82, version 0.68)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -260,7 +261,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.67). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.68). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -312,6 +313,13 @@ Pass 81: the lakes are a cheap water shader (core/shaders/water_lake.gdshader) w
 may be paced as waves (`pace`, `every`, `count`, `offset`, `respect_cap`, `trickle`; yellow etches in the editor);
 the bees draw dashed flight paths (`missile.trail_style` "dash"); the Vulture Raider's rocket flies at 0.85 of the
 hero's top speed; the Saiga Sniper walks in to 16 m and holds (no flee; a hit still spoils its aim).
+Pass 82: the hero's hurt jiggles the HP bar (HUD `shake_hp_bar`), never the screen; every kill throws its body
+(EnemyManager `_corpse_follow`: a floor push and toss along the hit, heavier for big hits and crits); five sands
+(map `sand`: pass81 default, dunes, dunes_pebbles, ripples, ripples_pebbles); the Totem gift screen is the Spirit
+Pole (ui/TotemScreen.gd from design_handoff_88fits_totem/, WNotches, WNail, toasts with an icon); the XP a level
+needs follows `xp_curve` {type quadratic|linear|exponential|power|table} x xp_need_mult (core/data/XpCurve.gd; absent
+= today's); the bot hunts specials (option `specials`); the Sim, the Watch and the dashboard chart chests, power-ups
+and totems (SimModel.pickupKind).
 
 **Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
@@ -376,7 +384,8 @@ scene tree's teardown after its result is printed; results are unaffected.
 personal `phx_` key only in git-ignored `tools/posthog_personal_key.txt`, never in the game or a commit; Garry's email is
 never sent anywhere). Consent card first, persons named by `Save.player_name()`, `run_summary` per-minute curves, gold
 sources/sinks, surveys from PostHog Surveys with `[after N]` / `[run N]` name tags. Boards: `python tools/posthog_boards.py
-[--check]` (nine boards, ids kept on a rerun, SQL tiles follow dashboard filters). How-tos for Garry: `analytics/howto/`.
+[--check]` (nine boards, ids kept on a rerun, SQL tiles follow dashboard filters). How-tos for Garry: `analytics/howto/`, indexed in `analytics/README.md` ("Start here"; pass 82; the dashboard's
+Remote runs view shows the step-by-step).
 Plan: `docs/analytics_plan.html` (artifact AK53A8KLchrSUFXxZo4kSu). Pass 78: every run that sends analytics also
 sends its whole record (`run_record`, gzip+base64 parts of at most 100,000 characters, about 140 KB for 25 minutes;
 never from tools, headless runs, the sim or without consent); `tools/posthog_runs.py` downloads them into the

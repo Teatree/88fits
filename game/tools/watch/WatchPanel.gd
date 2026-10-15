@@ -5,7 +5,9 @@
 ## strip of when each item came, 6 the threat (what hurt the hero in the last 10 s, the falls and their last hits, the
 ## bot's intent), 7 after the run, where the record and the decision log were saved. Plain Godot controls in a dark
 ## tool style (the Level Editor's), refreshed once a second by Watch.gd; the charts when new rows came (at most twice a
-## wall second). Tools only.
+## wall second). Pass 82: the Live tiles "Chests", "Power-ups", "Totems" (the run's totals so far, lane STATS' meaning;
+## each value in its mark's colour) and "Specials" (killed / came), and on the Level and XP chart a mark at each pickup's
+## moment, a shape and colour per kind, with the totals in its legend. Tools only.
 extends PanelContainer
 
 const CHART := preload("res://tools/watch/WatchChart.gd")
@@ -29,6 +31,9 @@ const SHARE_COLS := [Color(0.98, 0.62, 0.3), Color(0.43, 0.71, 1.0), Color(0.47,
 	Color(0.98, 0.85, 0.35), Color(0.4, 0.85, 0.85), Color(0.5, 0.52, 0.58)]
 ## the window the charts scroll over, seconds of play
 const WINDOW_S := 180.0
+## pass 82: the pickups' marks on the Level and XP chart: [kind, word, colour, shape, lane]
+const PICKUP_MARKS := [["chests", "Chests", Color(0.98, 0.8, 0.3), "square", 2], ["powerups", "Power-ups", Color(0.42, 0.88, 0.62), "circle", 1],
+	["totems", "Totems", Color(0.95, 0.55, 0.8), "triangle", 0]]
 ## the decision log shows at most this many entries, newest first
 const LOG_MAX := 60
 
@@ -100,7 +105,8 @@ func build(w: Node) -> void:
 	grid.add_theme_constant_override("v_separation", 6)
 	a.add_child(grid)
 	for spec in [["dps", "Real DPS"], ["est", "Estimated DPS"], ["hp", "HP"], ["danger", "Danger"], ["keep", "Keeping up"],
-			["close", "Creatures close"], ["kills", "Kills"], ["level", "Level"], ["gold", "Gold"], ["crowd", "Crowd"]]:
+			["close", "Creatures close"], ["kills", "Kills"], ["level", "Level"], ["gold", "Gold"], ["crowd", "Crowd"],
+			["chests", "Chests"], ["powerups", "Power-ups"], ["totems", "Totems"], ["specials", "Specials"]]:
 		grid.add_child(_tile(str(spec[0]), str(spec[1])))
 	# 3: the charts
 	var ch_head := HBoxContainer.new()
@@ -397,6 +403,20 @@ func _live(w: Node, data, run: Node, game: Node) -> void:
 		cap = int(game.director.current_cap())
 	_set_tile("crowd", ("%d / %d" % [data.alive[i], cap]) if cap > 0 else "%d" % data.alive[i], "%s HP alive%s" % [_num(data.crowd[i]),
 		" · the cap now" if cap > 0 else ""], PURPLE)
+	_pickup_tiles(data)
+
+
+## Pass 82: the run's chests, power-ups and totems so far (each in its mark's colour), and the specials killed of those
+## that came.
+func _pickup_tiles(data) -> void:
+	var tot: Dictionary = data.pickup_totals()
+	var subs := {"chests": "opened, skips too", "powerups": "taken, not the small", "totems": "gifts taken"}
+	for m in PICKUP_MARKS:
+		var k := str(m[0])
+		_set_tile(k, "%d" % int(tot[k]), str(subs[k]), m[2])
+	var sc := int(data.special_chests)
+	_set_tile("specials", "%d / %d" % [int(data.specials_killed), int(data.specials_came)], "killed / came%s" % (
+		(" · %d chest%s" % [sc, "" if sc == 1 else "s"]) if sc > 0 else ""), Color(0.95, 0.55, 0.8) if int(data.specials_came) > int(data.specials_killed) else TEXT)
 
 
 ## The per-second rate of a running count over its newest `secs` rows.
@@ -564,8 +584,10 @@ func _threat_text(w: Node, data, game: Node) -> void:
 	var gtxt := ""
 	if goal is Dictionary and not (goal as Dictionary).is_empty():
 		gtxt = str(goal.get("what", ""))
-		if str(goal.get("why", "")) != "":
-			gtxt += ": " + str(goal["why"])
+		var why := str(goal.get("why", ""))
+		if why != "":
+			# (pass 82: a special's why already says so: "a special: Red Goblin")
+			gtxt = why if why.begins_with("a %s" % gtxt) else gtxt + ": " + why
 	lines.append("[color=#%s]Intent[/color]  [color=#%s]%s[/color]%s" % [_hex(DIM), _hex(ACCENT), _esc(intent), ("   [color=#%s]goal[/color] %s" % [_hex(DIM), _esc(gtxt)]) if gtxt != "" else ""])
 	var th: Array = data.threat(DATA.THREAT_S)
 	if th.is_empty():
@@ -676,10 +698,31 @@ func update_charts() -> void:
 	c3.legend = [["Level", BLUE], ["XP to next (right)", Color(BLUE.r, BLUE.g, BLUE.b, 0.6)]]
 	if not ref_lv.is_empty():
 		c3.legend.append(["Sim avg", GREY])
+	_pickup_marks(c3, data)
 	# 4: the damage share, stacked, over columns of the window
 	_share_chart(_charts[3], data, x0, x1, mini(cols, 240))
 	for c in _charts:
 		c.queue_redraw()
+
+
+## Pass 82: a mark at each chest, power-up and totem gift picked up (PICKUP_MARKS: one lane, shape and colour a kind) on
+## the Level and XP chart, the totals first in its legend.
+func _pickup_marks(c, data) -> void:
+	c.points = pickup_points(data.pickups)
+	var tot: Dictionary = data.pickup_totals()
+	var items: Array = []
+	for m in PICKUP_MARKS:
+		items.append(["%s %d" % [str(m[1]), int(tot[str(m[0])])], m[2], str(m[3])])
+	c.legend = items + c.legend
+
+
+## The marks of `pickups` ({kind: [play seconds]}): [{x, lane, shape, color}] (pure; tested).
+static func pickup_points(pickups: Dictionary) -> Array:
+	var out: Array = []
+	for m in PICKUP_MARKS:
+		for t in pickups.get(str(m[0]), []):
+			out.append({"x": float(t), "lane": int(m[4]), "shape": str(m[3]), "color": m[2]})
+	return out
 
 
 func _share_chart(c, data, x0: float, x1: float, ncols: int) -> void:

@@ -17,6 +17,7 @@
     },
     "per_sign": 1,
     "spent": "grey",
+    "spent_motion": {"flash": 0.12, "fade": 0.4},
     "glow": false,
     "choices": 3,
     "boons": [

@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="preview.css">
 <link rel="stylesheet" href="boss.css">
+<link rel="stylesheet" href="xp.css">
 <link rel="stylesheet" href="sim.css">
 </head>
 <body>
@@ -110,6 +111,10 @@
 <!-- pass 72 (lane BOSS): the boss HP scaling card (Settings) and the Boss attacks tab, on their page-free maths -->
 <script src="boss_model.js"></script>
 <script src="boss_scaling.js"></script>
+<!-- pass 82 (lane XP): the XP growth types (Settings -> XP per level), on their page-free maths (xp_model.js, also run under
+     Node by selftest_XP82.py) -->
+<script src="xp_model.js"></script>
+<script src="xp_card.js"></script>
 <script src="boss_attacks.js"></script>
 <!-- pass 77 (lane SIMUI): the Sim tab, on its page-free maths (sim_model.js, also run under Node by selftest_SIM77.py) -->
 <script src="sim_model.js"></script>

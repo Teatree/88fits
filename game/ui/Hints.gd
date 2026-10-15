@@ -34,6 +34,22 @@ func begin() -> void:
 		_show("gems", "The purple is XP")
 
 
+## Pass 82 (lane TOTEM; the Spirit Pole handoff: "Subline: a rule, taught by the first-play hint system, not here"): the
+## first Totem gift taken, once its toast has been read (TOTEM_HINT_AFTER on the run's clock), the rule the old screen
+## said under its title, once per save.
+const TOTEM_HINT_AFTER := 1.6
+const TOTEM_HINT := "Totem gifts last the whole run"
+
+
+func totem_taken() -> void:
+	if not Settings.show_hints or game == null or Save.hint_seen("totem"):
+		return
+	Save.mark_hint("totem")
+	get_tree().create_timer(TOTEM_HINT_AFTER, false).timeout.connect(func() -> void:
+		if game and is_instance_valid(game):
+			game.toast(TOTEM_HINT, W.PAPER))
+
+
 ## "He shoots by himself", in the hero's words.
 func _shoots() -> String:
 	var p := Run.character.pronoun if Run.character else "they"

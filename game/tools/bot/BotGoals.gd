@@ -66,13 +66,37 @@ const V_TELEPORT := 60.0
 ## the style's word on each kind of goal (a factor on its utility; missing = 1)
 const STYLE_GOALS := {
 	"balanced": {},
-	"damage": {"structure:war_drum": 1.5, "totem": 1.1, "explore": 0.9},
-	"safety": {"structure:healing_well": 1.5, "powerup:heal": 1.5, "explore": 0.7, "barrel": 0.8},
-	"greedy": {"barrel": 1.5, "chest": 1.3, "structure:loot_cache": 1.5, "gems": 1.3, "structure:uber_magnet": 1.4, "structure:shop": 0.6},
+	"damage": {"structure:war_drum": 1.5, "totem": 1.1, "explore": 0.9, "special": 1.2},
+	"safety": {"structure:healing_well": 1.5, "powerup:heal": 1.5, "explore": 0.7, "barrel": 0.8, "special": 0.7},
+	"greedy": {"barrel": 1.5, "chest": 1.3, "structure:loot_cache": 1.5, "gems": 1.3, "structure:uber_magnet": 1.4, "structure:shop": 0.6,
+		"special": 1.3},
 }
 ## he stands still for a structure's use within this share of its ring's radius
 const STAND_FRAC := 0.55
 const KINDS := ["explore", "totem", "barrel", "powerup", "structure", "chest", "gems"]
+## Pass 82 (lane WATCH; Garry: "Bot should try to find the Special Enemies when they appear"): a variance special (the
+## glowing one: EnemyManager.vspecial; many times the HP, a chest at its chest_chance) is a goal of kind "special" with
+## the option `specials` on. Specials chase the hero and the weapons take them first within 10 m (target_priority): the
+## bot that never hunts kills 97.6% of them anyway (10 sims), and a hunt of every one cost him 6 to 8 levels at 25:00 and
+## half again the falls. So he goes to find one that does not come: one he has known SPECIAL_WAIT s (known: within
+## SPECIAL_SEE m of him; specials spawn 19-24 m off, at the screen's edge) that is still out of reach (past IN_REACH m or
+## off the screen). The one he hunts stays known up to SPECIAL_KEEP m; once it is in reach the hunt ends (Bot.gd) and he
+## plays on while the weapons take it. No hunt while a boss lives (the boss is the fight), none new under SPECIAL_HP of his
+## health, the one under way goes on down to SPECIAL_HP_HELD (a gap: a health hovering at one line does not flip him
+## between goals every half second); the far limit by health and danger cuts the reach as for every goal. Its value
+## V_SPECIAL (below a chest's and a Totem Pole's, above the gems' cap) has no taste and no mood (always wanted), only the
+## jitter and the style's word; the utility shrinks with the distance as every goal's. Bot.gd leans him into reach
+## (HUNT_NEAR).
+const SPECIAL_SEE := 30.0
+const SPECIAL_KEEP := 45.0
+const SPECIAL_HP := 0.5
+const SPECIAL_HP_HELD := 0.4
+const SPECIAL_WAIT := 5.0
+## in reach: within this many metres and on the screen (= Bot.HUNT_FAR)
+const IN_REACH := 9.0
+const V_SPECIAL := 60.0
+## seconds a hunt's patience allows on top of a walk's (the lean is slower than a walk; Bot.SPECIAL_MAX_S caps the hunt)
+const SPECIAL_FIGHT_S := 20.0
 
 var seed := 1
 var arena_r := 66.0
@@ -88,6 +112,8 @@ var seen_struct: Dictionary = {}
 var seen_barrel := PackedByteArray()
 ## a thing's key -> the play second it may be a goal again (given up on)
 var resting: Dictionary = {}
+## pass 82: a special's key -> the play second he first knew it
+var special_seen: Dictionary = {}
 var taste: Dictionary = {}
 
 
@@ -372,5 +398,62 @@ func candidates(game: Node, run, c: Dictionary) -> Array:
 			"why": "the gems lying %d m off" % roundi(Vector2(lat.x - me.x, lat.z - me.z).length())}
 		g["u"] = gv * float(taste.get("gems", 1.0)) * style_mult(str(c["style"]), "gems", "gems")
 		out.append(g)
+	# pass 82: the specials he knows of (special_candidates)
+	if bool(o.get("specials", false)):
+		out.append_array(special_candidates(game, c, far))
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["u"]) > float(b["u"]))
 	return out
+
+
+## Pass 82: the variance specials alive that he knows of and that do not come (see SPECIAL_WAIT above; SPECIAL_KEEP and in
+## reach too for the one held: `c.held_key`), each a candidate of kind "special" ({..., index, serial, sid (its creature
+## id), name, fight (SPECIAL_FIGHT_S)}); none while a boss lives, none new under SPECIAL_HP of his health (the one held:
+## SPECIAL_HP_HELD), none past the far limit `far`.
+func special_candidates(game: Node, c: Dictionary, far: float) -> Array:
+	var out: Array = []
+	var em = game.get("enemies")
+	var hp := float(c["hp_frac"])
+	if em == null or hp < SPECIAL_HP_HELD or c["boss"] != Vector3.INF:
+		return out
+	var vs = em.get("vspecial")
+	if not (vs is PackedByteArray):
+		return out
+	var me: Vector3 = c["me"]
+	var t := float(c["t"])
+	var held := str(c.get("held_key", ""))
+	var dying := int(em.STATE_DYING)
+	var spd = em.get("special_defaults")
+	var os = em.get("onscreen")
+	for i in range(mini(int(em.MAX), (vs as PackedByteArray).size())):
+		if vs[i] != 1 or em.alive[i] != 1 or int(em.state[i]) == dying:
+			continue
+		var key := special_key(i, int(em.serial[i]))
+		if float(resting.get(key, -1.0)) > t or (hp < SPECIAL_HP and key != held):
+			continue
+		var at: Vector3 = em.pos[i]
+		var d := Vector2(at.x - me.x, at.z - me.z).length()
+		if d > minf(far, SPECIAL_KEEP if key == held else SPECIAL_SEE):
+			continue
+		# known since when; one in reach (or not known long enough) is the weapons', unless he hunts it already
+		if not special_seen.has(key):
+			special_seen[key] = t
+		var on: bool = not (os is PackedByteArray) or i >= (os as PackedByteArray).size() or (os as PackedByteArray)[i] == 1
+		if key != held and (t - float(special_seen[key]) < SPECIAL_WAIT or (d <= IN_REACH and on)):
+			continue
+		var def = em.types[em.type_idx[i]]["def"]
+		var nm := str(def.display_name)
+		var chest := ""
+		if def.has_method("special_value") and def.get("variance") is Dictionary:
+			var cc := float(def.special_value((def.variance as Dictionary).get("special", {}), spd if spd is Dictionary else {}, "chest_chance"))
+			if cc > 0.0:
+				chest = ", a %d%% chest" % roundi(cc * 100.0)
+		var u := V_SPECIAL * jitter(key) * style_mult(str(c["style"]), "special", "special") / (1.0 + d / DIST_SCALE)
+		out.append({"kind": "special", "what": "special", "key": key, "at": at, "value": V_SPECIAL, "u": u, "d": d,
+			"why": "a special: %s%s, out of reach %d s" % [nm, chest, roundi(t - float(special_seen[key]))], "index": i, "serial": int(em.serial[i]), "sid": str(def.id), "name": nm,
+			"fight": SPECIAL_FIGHT_S})
+	return out
+
+
+## A special's key: its slot and its serial (a slot is used again by the next creature).
+static func special_key(i: int, serial: int) -> String:
+	return "sp:%d:%d" % [i, serial]

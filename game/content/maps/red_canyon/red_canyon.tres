@@ -163,6 +163,7 @@ roster = [{
 "pattern": "ring",
 "stats": {
 "hp": 20.0,
+"hp_mult": 2.0,
 "size": 1.4
 },
 "t": 368.0,
@@ -174,7 +175,7 @@ roster = [{
 "pack": 2.0,
 "pattern": "scatter",
 "stats": {
-"hp_mult": 0.27,
+"hp_mult": 1.0,
 "max_alive": 3.0
 },
 "t": 431.0,
@@ -185,7 +186,7 @@ roster = [{
 "id": "r20",
 "pack": 6.0,
 "stats": {
-"hp_mult": 0.27
+"hp_mult": 1.0
 },
 "t": 431.0,
 "until": 536.0,
@@ -193,9 +194,6 @@ roster = [{
 }, {
 "enemy": "blue_slime",
 "id": "r18",
-"stats": {
-"hp": 40.0
-},
 "t": 430.0,
 "until": 536.0,
 "weights": [[430.0, 6.0], [535.0, 4.0]]
@@ -205,7 +203,6 @@ roster = [{
 "pack": 100.0,
 "pattern": "in_front",
 "stats": {
-"hp_mult": 0.5,
 "size": [1.0, 1.35]
 },
 "t": 536.0,
@@ -215,9 +212,6 @@ roster = [{
 "enemy": "skeleton",
 "id": "r23",
 "pack": 6.0,
-"stats": {
-"hp_mult": 0.68
-},
 "t": 585.0,
 "until": 720.0,
 "variant": "SK-E",
@@ -228,7 +222,7 @@ roster = [{
 "pack": 4.0,
 "pattern": "scatter",
 "stats": {
-"hp_mult": 0.68
+"hp_mult": 2.0
 },
 "t": 585.0,
 "until": 720.0,
@@ -239,9 +233,6 @@ roster = [{
 "id": "r25",
 "pack": 2.0,
 "pattern": "scatter",
-"stats": {
-"hp_mult": 0.73
-},
 "t": 600.0,
 "until": 860.0,
 "weights": [[600.0, 0.8], [700.0, 1.4], [860.0, 1.4]]
@@ -251,7 +242,6 @@ roster = [{
 "pack": 2.0,
 "pattern": "scatter",
 "stats": {
-"hp_mult": 0.73,
 "max_alive": 4.0
 },
 "t": 600.0,

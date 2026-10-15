@@ -22,6 +22,8 @@ uniform float height = 1.6;      // sprite height in metres
 uniform float face_camera : hint_range(0.0, 1.0) = 1.0;
 uniform float alpha_cut = 0.5;
 uniform vec4 tint : source_color = vec4(1.0);
+// pass 82 (lane TOTEM): how far the painting is drained of its colour (a used Totem Pole greying over 0.4 s)
+uniform float desat : hint_range(0.0, 1.0) = 0.0;
 
 varying vec2 v_uv;
 
@@ -58,7 +60,7 @@ void fragment() {
 	if (c.a < alpha_cut) {
 		discard;
 	}
-	vec3 col = c.rgb * tint.rgb;
+	vec3 col = mix(c.rgb, vec3(dot(c.rgb, vec3(0.299, 0.587, 0.114))), desat) * tint.rgb;
 	col = mix(col, vec3(1.0), flash);
 	ALBEDO = col;
 }

@@ -670,6 +670,57 @@ var _over_frac := 0.0
 const OVERHEAL_PINK := Color("e86aa8")
 
 
+# ---------------------------------------------------------------- pass 82 (lane FEEL): the hurt shakes the HP bar
+## Garry: "Don't shake the screen when hero is damaged. Shake the hp bar instead. But do that a little bit." A hit on his
+## health (Game._feel_hurt_bar_shake) jiggles the hero's bars sideways instead of kicking the camera: HP_SHAKE_PX +
+## HP_SHAKE_PX_PER_HP pixels for every whole max HP the hit took, at most HP_SHAKE_MAX_PX, HP_SHAKE_SWINGS swings over
+## HP_SHAKE_TIME seconds dying away as (1 - u)^2, so the bars end exactly where they were; a hit while one runs starts it
+## again at the larger of the new size and what is left of the old. Canvas pixels (the 1080-wide canvas).
+const HP_SHAKE_PX := 4.0
+const HP_SHAKE_PX_PER_HP := 40.0
+const HP_SHAKE_MAX_PX := 10.0
+const HP_SHAKE_TIME := 0.25
+const HP_SHAKE_SWINGS := 3.0
+## seconds since the hurt (-1 at rest), its size in px, and the bars' sideways offset now (px; 0 at rest)
+var _hp_shake_t := -1.0
+var _hp_shake_amp := 0.0
+var hp_shake_x := 0.0
+
+
+## A hit that took `frac` of the hero's max HP: the bars jiggle (no allocation; the offset is drawn by _draw_hero_bars).
+func shake_hp_bar(frac: float) -> void:
+	var left := 0.0
+	if _hp_shake_t >= 0.0:
+		var u := clampf(_hp_shake_t / HP_SHAKE_TIME, 0.0, 1.0)
+		left = _hp_shake_amp * (1.0 - u) * (1.0 - u)
+	_hp_shake_amp = maxf(hp_shake_amp_for(frac), left)
+	_hp_shake_t = 0.0
+
+
+## The jiggle's size (px) for a hit of `frac` of max HP.
+static func hp_shake_amp_for(frac: float) -> float:
+	return minf(HP_SHAKE_PX + HP_SHAKE_PX_PER_HP * maxf(frac, 0.0), HP_SHAKE_MAX_PX)
+
+
+## The bars' offset (px) `t` seconds into a jiggle of `amp` px: 0 before it and from HP_SHAKE_TIME on.
+static func hp_shake_at(t: float, amp: float) -> float:
+	if t < 0.0 or t >= HP_SHAKE_TIME:
+		return 0.0
+	var u := t / HP_SHAKE_TIME
+	return amp * (1.0 - u) * (1.0 - u) * sin(u * HP_SHAKE_SWINGS * TAU)
+
+
+func _tick_hp_shake(delta: float) -> void:
+	if _hp_shake_t < 0.0:
+		return
+	_hp_shake_t += delta
+	if _hp_shake_t >= HP_SHAKE_TIME:
+		_hp_shake_t = -1.0
+		hp_shake_x = 0.0
+		return
+	hp_shake_x = hp_shake_at(_hp_shake_t, _hp_shake_amp)
+
+
 func _tick_hero_bars() -> void:
 	if game == null or game.player == null or game.camera == null or not game.camera.has_method("hero_anchor"):
 		return
@@ -690,7 +741,8 @@ func _draw_hero_bars() -> void:
 	if not _hero_bars or _bar_w <= 0.0 or (game and game.player and game.player.dead):
 		return
 	var hh := _bar_h + 4.0
-	var r := Rect2(_bar_c - Vector2(_bar_w * 0.5, hh * 0.5), Vector2(_bar_w, hh))
+	# pass 82 (lane FEEL): the hurt's jiggle moves the bars sideways (0 at rest)
+	var r := Rect2(_bar_c + Vector2(hp_shake_x, 0.0) - Vector2(_bar_w * 0.5, hh * 0.5), Vector2(_bar_w, hh))
 	# Snake Oil's overheal (pass 69): the ink track runs on past full by its share of the bar, the extra drawn pink
 	var ext := _bar_w * _over_frac
 	draw_rect(Rect2(r.position, Vector2(_bar_w + ext, hh)) if ext >= 1.0 else r, W.INK)
@@ -722,8 +774,14 @@ func flash(col: Color, seconds: float) -> void:
 	tw.tween_callback(func(): _flash_rect.visible = false)
 
 
-func toast(text: String, color: Color = W.PAPER) -> void:
-	_toasts.push(text, color)
+func toast(text: String, color: Color = W.PAPER, icon: Texture2D = null) -> void:
+	_toasts.push(text, color, icon)
+
+
+## Pass 82 (lane TOTEM): where an icon toast saying `text` would show its icon if pushed now, on the canvas (the Totem
+## screen flies the chosen spirit's face there).
+func toast_icon_spot(text: String) -> Vector2:
+	return _toasts.get_global_transform() * _toasts.icon_spot(text)
 
 
 ## A first-play hint: it sits in the toast slot until cleared.
@@ -1060,6 +1118,7 @@ func tick(delta: float) -> void:
 		_boss_warned = false
 		_boss_ten = false
 	_tick_hero_bars()
+	_tick_hp_shake(delta)
 	_tick_xp_popup(delta)
 	_tick_gold_popup(delta)
 	_tick_arrow()

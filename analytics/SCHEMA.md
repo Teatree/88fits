@@ -52,7 +52,7 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 | `talents` *(2)* | the Upgrade board as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
 | `talent_forms` *(2)* | `{talent id: [first form's name, second form's name]}` for those talents |
 | `settings` *(2)* | `{pierce_falloff, debug_mode, dev}`: pierce drop-off, the player's debug mode, and whether the run counts as a developer's (`Analytics.is_dev`) |
-| `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80) |
+| `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80), `xp_curve` (the growth type played and its numbers, defaults filled in; pass 82) |
 | `stat_names` *(2)* | `{stat: the pause screen's words}` (TextGen) for every stat a snapshot carries |
 | `trait` *(2)* | the hero's trait as the run ended: `name`, `text` (its line), `level`, `stats` {stat: value at that level}, `words` (those numbers in words) |
 | `totems` *(2)* | the Totem Poles' gifts taken: `[{id, name, stat, op, value, quality (1-3), words}]` |
@@ -164,6 +164,31 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `death` | `id` (the last creature whose hit the hero took), `hit` (melee/ranged/boss) |
 | `revive` | `id` = `gold`, `ad`, `debug` or `phoenix` |
 | `unlock` | `id` (the quest completed) |
+
+## Chests, power-ups and totems (pass 82)
+
+Garry: "a chart for Chests Picked up, Power-ups and Totems through a run". They are counted from the events above, the
+same rule everywhere (`tools/level_editor/sim_model.js` `pickupKind`, `game/tools/sim_run.gd` `pickup_kind`,
+`tools/analytics_csv.py` `pickup_kind`):
+
+| count | the events |
+|---|---|
+| `chests` | every `chest` event: one per chest opened, taken or skipped (a skip spends the stage's skip and the game counts the chest as opened), a boss chest too; a banish re-rolls the same chest and adds none |
+| `powerups` | every `pickup` event whose `small` is not set: Heart, Magnet Pulse, Nuke, Berserk, Shield, Sprint, Timeout today; not the small things underfoot (Cake Slice, Coin Bag, the pollen flowers: `params.small` in their content JSON). The game's own count of power-ups (the `pickups` total) is the same |
+| `totems` | every `totem` event: a Totem Pole's gift taken |
+
+An event counts from the first row whose `t` reaches it (`event.t <= row.t + 0.001`, as the deaths do). Where they show:
+
+- the run sim's player files (`game/tools/sim_run.gd` series(); `tools/dl/p77/keys_SIMRUN.md`): `chests`, `powerups`,
+  `totems`, one count a row as long as `t`; a sim's `result.json`: `series.chests|powerups|totems` (the mean over the runs
+  still playing, like kills), `players[].chests|powerups|totems` (each run's own at its end) and
+  `summary.chests_mean|powerups_mean|totems_mean`. A sim from before pass 82 has none (its chart is left out);
+- the Sim's chart **Chests, power-ups, totems** (the Level Editor's Sim tab and the dashboard's Sim charts: one run, an
+  average, a compared sim dashed grey);
+- the dashboard's own card **Chests, power-ups and totems** (the three counts as steps, each one marked at the bottom and
+  listed), and the marks under the level in **Progression**;
+- the rows CSV: three columns `chests`, `powerups`, `totems` after the row's own keys;
+- the Watch (game/tools/watch): the run's totals so far and a mark on its Level and XP chart at each one.
 
 ## Gold (pass 61)
 
@@ -308,7 +333,8 @@ byte): UTF-8 with a BOM (Excel), comma-separated, numbers with a dot, CR LF line
 
 - **rows** (`88fits_<stamp>_rows.csv`): one line per row (a second of play). The row's plain keys first in the table's
   order above (only those the run has; pass 78 put pass 77's `xp_total`, `hp_lost`, `hp_healed`, `boss_now`, `near3`,
-  `near6` among them), a key the row leaves out written as 0 (`boss_hp`, `boss_now` empty: no boss up); then each
+  `near6` among them), a key the row leaves out written as 0 (`boss_hp`, `boss_now` empty: no boss up); (pass 82) then
+  `chests`, `powerups`, `totems`, picked up so far (counted from the events: *Chests, power-ups and totems*); then each
   per-second map flattened as `group.key` (`dmg.revolver`, `took.goblin`, `healed_by.Heart`, ...; missing = 0); then the
   carried snapshots, filled forward to every second until the next: `mults.*`, `stats.*`,
   `weapons.<id>.level|dmg|cd|amount|pierce|area|est|mut`, `passives.<id>`, `lines.<id>`, `perks`. A list of plain

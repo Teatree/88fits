@@ -94,7 +94,8 @@ func test_every_level_asks_five_percent_more_xp() -> void:
 	var mult := float(Registry.map("red_canyon").timeline.xp_need_mult)
 	assert_float(mult).is_greater(0.0)
 	for lv: int in [1, 5, 10, 25]:
-		var base: float = 15.0 + 6.0 * lv + 0.5 * lv * lv
+		# pass 82 re-pin (lane XP): the map's growth type (XpCurve; none = 15 + 6L + 0.5L^2)
+		var base: float = XpCurve.need(Registry.map("red_canyon").timeline.xp_curve, lv)
 		assert_float(Run.xp_to_next(lv)).is_equal_approx(base * mult, 0.001)
 
 

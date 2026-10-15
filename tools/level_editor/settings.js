@@ -28,6 +28,8 @@ const Settings = (() => {
           if (blocks.has(def.block)) continue;
           blocks.add(def.block);
           if (def.block === 'spawn_sides') card.appendChild(el('div', { class: 'block-row' }, el('h3', { class: 'block-title', text: 'Spawn sides' }), Forms.spawnSidesBlock(tl)));
+          // pass 82 (lane XP): the XP card's growth type, its numbers, XP needed × and the two charts (xp_card.js)
+          else if (def.block === 'xp_curve' && typeof XpCard !== 'undefined') { card.classList.add('xpc-card'); card.appendChild(XpCard.block(tl)); }
           continue;
         }
         if (def.type === 'points') { card.appendChild(Forms.row(def, Forms.pointsBlock(tl))); continue; }
@@ -36,6 +38,14 @@ const Settings = (() => {
         // pass 79 (lane WORLD): a colour of the map's sides shows the game's default faded while its box is empty
         const swatch = def.type === 'swatch' ? { placeholder: def.def, own: 'the game\'s' } : {};
         card.appendChild(Forms.fieldRow(def, tl, Object.assign({ labels: def.type === 'list' ? (i) => `stage ${i + 1}` : undefined }, swatch)));
+        // pass 82 (lane SAND): the chosen sand as the phone shows it (sand_previews.png: one 300 px shot a sand, in the
+        // order of the row's options; `python tools/gen_sand.py --previews <dir>` from game/tools/_p82_SAND_shots.gd's shots)
+        if (def.key === 'sand') {
+          const k = Math.max(0, def.options.findIndex((o) => o.v === (tl.sand || def.def)));
+          card.appendChild(el('figure', { class: 'sand-preview', style: 'margin:4px 0 10px' },
+            el('div', { role: 'img', title: def.options[k].label, style: `width:200px;height:200px;border-radius:6px;background:url(/sand_previews.png) ${def.options.length > 1 ? (k * 100) / (def.options.length - 1) : 0}% 0 / ${def.options.length * 100}% 100% no-repeat` }),
+            el('figcaption', { class: 'muted small', text: `${def.options[k].label}, in the game at phone size: the hero on open sand` })));
+        }
       }
       if (group === 'Stages') card.appendChild(el('p', { class: 'muted small', text: `Stage 1 ${fmtT(0)}–${fmtT(App.stageLength())}, stage 2 to ${fmtT(App.stageLength() * 2)}, stage 3 to ${fmtT(App.stageLength() * 3)}; the run clock stands still through boss fights and portals.` }));
       // pass 69 (lane EN)

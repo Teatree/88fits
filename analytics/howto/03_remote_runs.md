@@ -31,6 +31,11 @@ per-minute summary, so they cannot be downloaded this way.
 
 ## Good to know
 
+- **The same steps on the page** (pass 82): press **Remote runs** on the dashboard, then **How do I get players'
+  runs?** at the top of *Runs from PostHog*. Every how-to and the question it answers: `analytics/README.md`, at the top.
+- **Chests, power-ups and totems** (pass 82): one run has the card *Chests, power-ups and totems* (each one listed and
+  marked) and the marks under the level in *Progression*; an average has the Sim's chart *Chests, power-ups, totems*
+  and the tile "Chests · power-ups · totems a run". What counts: `analytics/SCHEMA.md`, *Chests, power-ups and totems*.
 - **Only new runs are fetched.** Run the command again whenever you like; it skips what is already on your PC.
   `--force` fetches everything again.
 - **Choose what to fetch:**

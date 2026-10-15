@@ -15,6 +15,8 @@
 'use strict';
 
 const SimAvg = (() => {
+  // pass 82 (lane STATS): the chests / power-ups / totems rule lives in sim_model.js (one copy for every page)
+  const SM = typeof SimModel !== 'undefined' ? SimModel : (typeof require === 'function' ? require('./sim_model.js') : null);
   // ------------------------------------------------------------------ sim_batch.py's constants
   const SCHEMA = 1;
   const DPS_WINDOW = 5;
@@ -23,7 +25,8 @@ const SimAvg = (() => {
   const FOLD_DEFAULT = 7;
   const LEVEL_SERIES = ['hp', 'hp_max', 'est', 'alive', 'cap', 'press_hp', 'press_dmg', 'boss_hp', 'boss_hp_abs', 'level', 'clock', 'stage',
     'phase', 'gold', 'near3', 'near6', 'mult_hp', 'mult_dmg'];
-  const CUM_SERIES = ['gold_total', 'kills', 'xp_total', 'deaths', 'dmg_total'];
+  // pass 82: chests, powerups, totems (sim_run.gd's counts so far, like deaths but averaged over the runs still playing)
+  const CUM_SERIES = ['gold_total', 'kills', 'xp_total', 'deaths', 'dmg_total', 'chests', 'powerups', 'totems'];
   const RATE_SERIES = ['dps', 'took', 'healed', 'hits', 'spawned'];
   const BAND_SERIES = ['hp', 'dps', 'level', 'press_hp', 'press_dmg', 'danger', 'near3', 'near6'];
   const MEDIAN_SERIES = ['keep_up', 'boss_s'];
@@ -464,7 +467,8 @@ const SimAvg = (() => {
         deaths: atEnd('deaths'), revives: ev.filter((e) => isObj(e) && e.kind === 'revive').length,
         level: atEnd('level'), kills: atEnd('kills'), gold: atEnd('gold_total'), xp: atEnd('xp_total'), dmg,
         fps: own(m, 'fps') ? m.fps : null, build: String(m.build_text || ''), assists: own(m, 'assists') ? m.assists : null,
-        end_stage: own(m, 'end_stage') ? m.end_stage : null, endless_wave: own(m, 'endless_wave') ? m.endless_wave : null, talents: m.talents || {} });
+        end_stage: own(m, 'end_stage') ? m.end_stage : null, endless_wave: own(m, 'endless_wave') ? m.endless_wave : null, talents: m.talents || {},
+        chests: atEnd('chests'), powerups: atEnd('powerups'), totems: atEnd('totems') });
     }
     const mk = markers(ok.map((p) => p.d));
     const nm = {};
@@ -481,6 +485,7 @@ const SimAvg = (() => {
       median_end_t: r(median(plist.filter((p) => p.ok).map((p) => num(p.end_t)))),
       deaths_mean: endMean('deaths'), revives_mean: endMean('revives'), kills_mean: endMean('kills'),
       level_mean: endMean('level'), gold_mean: endMean('gold'), xp_mean: endMean('xp'), dmg_mean: endMean('dmg'),
+      chests_mean: endMean('chests'), powerups_mean: endMean('powerups'), totems_mean: endMean('totems'),
       bosses: mk.bosses.map((b) => ({ id: b.id, occurrence: b.occurrence, reached: b.n, beaten: b.beaten, fight_s: b.fight_s, mult: b.mult })) };
     const tt = [];
     for (let s = 0; s <= T; s++) tt.push(s);
@@ -633,6 +638,8 @@ const SimAvg = (() => {
     out.sums = { rows: rows.length, deaths: fallT.length, gold_total: gsum };
     Object.assign(out, { took_by: tookBy, healed_by: healedBy, held_by: heldBy, alive_by: aliveBy, gold_total: goldTotal, gold, gold_by: goldBy,
       dmg_total: dmgTotal, dmg_by: dmgBy, kills, kills_by: killsBy, level, xp_total: xpTotal, took, healed, deaths });
+    // pass 82 (lane STATS): chests, power-ups and totems so far at each row (sim_run.gd series()'s pickup counts)
+    Object.assign(out, SM.pickupCounts(rec, rows.map((r0) => fl(isObj(r0) ? r0.t : 0))));
     out.events = eventsOut(rec, toolEvents, endEv);
     return out;
   }

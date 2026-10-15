@@ -1364,6 +1364,9 @@ func _world_tab() -> void:
 	_choice("Camera zoom", [[0.0, "Auto"], [1.0, "1x"], [1.5, "1.5x"], [2.0, "2x"], [2.6, "2.6x"]], _zoom, func(v):
 		_zoom = float(v)
 		game.camera.zoom_override = _zoom)
+	# pass 82 (lane SAND): the five sands on the spot for this visit (a run plays the map file's: the Level Editor's World card)
+	if game.map and game.map.has_method("set_sand"):
+		_choice("Sand", sand_options(), str(game.map.get("sand_id")), func(v): game.map.call("set_sand", str(v))).name = "SandChoice"
 	_choice("Stats overlay", [[false, "Off"], [true, "On"]], bool(game.debug_panel.visible), func(v): game.debug_panel.visible = bool(v))
 	# the training dummies (pass 48): the developer menu's two settings, and laying the field out again with them; pass 49
 	# (Garry's arena list): the field's patrol, the attacking dummies, the Elite dummy and the Boss dummy. Each row is named
@@ -1404,6 +1407,15 @@ func _world_tab() -> void:
 	_section("Leave")
 	_note("Back to the title. Nothing done in the arena is kept.")
 	_buttons([["Leave the arena", _ask_leave]], 90, 28)
+
+
+## The WORLD tab's Sand row (pass 82): every sand the map knows (RedCanyon.SANDS) as [id, short label].
+func sand_options() -> Array:
+	var out: Array = []
+	var sands: Dictionary = game.map.call("sands") if game.map and game.map.has_method("sands") else {}
+	for id: String in sands:
+		out.append([id, str((sands[id] as Dictionary).get("short", id))])
+	return out
 
 
 ## The training dummies laid out again (pass 48): Settings.dummy_count of them at Settings.dummy_hp (Game.arena_dummies),

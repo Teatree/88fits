@@ -45,6 +45,34 @@ const FIELDS = (() => {
     { v: 'continuous', label: 'Continuous', help: 'drawn into the cap by its weight at every spawn check, as every row always was (a yellow line on its bar)' },
     { v: 'waves', label: 'Waves every N s', help: 'a wave of Per wave creatures every Every seconds from From (+ Offset) while the row is open (a yellow tick on its bar at each wave)' },
   ];
+  // pass 82 (lane XP; Garry: "types of EXP growth displayed in a dropdown, each one with it's own 2 charts for cumulative
+  // and per level EXP requirements"): the growth types of `xp_curve` and their numbers (game/core/data/XpCurve.gd TYPES /
+  // DEFAULTS; xp_model.js has the maths, xp_card.js draws the Settings card; selftest_XP82.py keeps the three equal).
+  // L = the hero's level: level 1 needs the curve at L = 1 to reach level 2. Every type is times XP needed ×.
+  const XP_TYPES = [
+    { v: 'quadratic', label: 'Today\'s: quadratic', formula: 'base + linear × L + quad × L²', help: 'the curve every run has played so far (15 + 6L + L²/2): the L² part makes each level need a little more than the step before, so late levels climb steadily. Level 10 needs 125, level 30 645, level 60 2,175 (before XP needed ×)', params: [
+      { key: 'base', label: 'Base', type: 'number', min: 0, step: 1, def: 15, help: 'the XP every level needs at the least (the constant part)' },
+      { key: 'linear', label: 'Per level', type: 'number', min: 0, step: 0.5, def: 6, help: 'the XP added for every level (× L)' },
+      { key: 'quad', label: 'Per level²', type: 'number', min: 0, step: 0.05, def: 0.5, help: 'the L² part: what makes late levels climb (0 = a straight line)' },
+    ] },
+    { v: 'linear', label: 'Linear', formula: 'base + step × (L − 1)', help: 'every level needs the same amount more than the one before: the gaps never widen. With the defaults the first levels are dearer than today\'s and the late ones cheaper (the same total by level 30)', params: [
+      { key: 'base', label: 'Level 1 needs', type: 'number', min: 0, step: 1, def: 21.5, help: 'the XP level 1 needs to reach level 2' },
+      { key: 'step', label: 'Step', type: 'number', min: 0, step: 0.5, def: 16.5, help: 'the XP each level needs more than the one before' },
+    ] },
+    { v: 'exponential', label: 'Exponential', formula: 'base × growth^(L − 1), at most cap', help: 'every level needs Growth times the one before (1.11 = 11% more each level): gentle early, a wall late. With the defaults level 60 needs 18,900 (today\'s 2,175, before XP needed ×): a cap flattens the climb', params: [
+      { key: 'base', label: 'Level 1 needs', type: 'number', min: 0, step: 1, def: 40, help: 'the XP level 1 needs to reach level 2' },
+      { key: 'growth', label: 'Growth', type: 'number', min: 1, step: 0.01, def: 1.11, help: 'each level needs this many times the one before: 1.11 = 11% more a level, 1 = every level the same' },
+      { key: 'cap', label: 'Cap', type: 'number', min: 0, step: 50, def: 0, help: 'the most XP any one level needs (before XP needed ×); past it every level needs the cap. 0 = no cap' },
+    ] },
+    { v: 'power', label: 'Power', formula: 'base × L^power', help: 'the XP grows as a power of the level: 1 = a straight line, 2 = a parabola like today\'s L² part, in between the climb eases off as the levels rise', params: [
+      { key: 'base', label: 'Level 1 needs', type: 'number', min: 0, step: 0.5, def: 6.5, help: 'the XP level 1 needs to reach level 2' },
+      { key: 'power', label: 'Power', type: 'number', min: 0, step: 0.01, def: 1.33, help: 'how steeply the need climbs with the level: 1 = straight, 2 = a parabola' },
+    ] },
+    { v: 'table', label: 'Table (your levels)', formula: 'your [level, XP] points, straight between them', help: 'you set the XP for the levels you list; the levels between are filled in on a straight line, the levels before the first need the first\'s XP, and past the last listed level each level needs the last amount grown by After the table', params: [
+      { key: 'points', label: 'Levels', type: 'xp_points', def: [[1, 21.5], [5, 57.5], [10, 125], [20, 335], [30, 645], [40, 1055], [50, 1565], [60, 2175]], help: 'a list of [level, XP the level needs]: straight between two listed levels; empty = this default (today\'s curve at those levels)' },
+      { key: 'after_growth', label: 'After the table', type: 'percent', min: 0, def: 0.025, help: 'past the last listed level, each level needs this much more than the one before (2.5% = 1.025 times; 0 = the last amount repeats)' },
+    ] },
+  ];
 
   // ------------------------------------------------------------------ roster rows
   const roster = [
@@ -242,7 +270,11 @@ const FIELDS = (() => {
     { key: 'level_damage_per_level', group: 'Scaling', label: 'Damage per hero level', type: 'number', min: 0, step: 0.01, def: 0, help: 'creatures gain this share of damage per hero level above 1' },
     { key: 'contact_cap', group: 'Scaling', label: 'Contact cap', type: 'number', min: 0, max: 1, step: 0.01, def: 0, help: 'a cap on one touch\'s damage as a share of the hero\'s max HP (0 = off; never a boss)' },
     { key: 'move_pace', group: 'Scaling', label: 'Move pace', type: 'number', min: 0.1, step: 0.05, def: 1, help: 'everyone\'s speed (hero and creatures): 0.8 = 20% slower, wind-ups last 1/pace as long' },
-    { key: 'xp_need_mult', group: 'Scaling', label: 'XP needed ×', type: 'number', min: 0.1, step: 0.05, def: 1, help: 'every hero level needs this many times the XP curve\'s amount (15 + 6L + L²/2 XP for level L). Pass 79: mutation offers come as level-ups, so levels come faster to keep the same three-card picks by any minute plus the mutation level-ups on top: Red Canyon 1.65 (it was 3.1 with mutations on the clock)' },
+    // pass 82 (lane XP): the XP card (xp_card.js draws these rows, the charts and the pace with them)
+    { key: 'xp_curve.type', group: 'XP per level', label: 'Growth', type: 'select', options: XP_TYPES.map((t) => ({ v: t.v, label: t.label, help: t.help })), def: 'quadratic', block: 'xp_curve', help: 'how the XP a level needs grows with the level: today\'s quadratic (the default: absent = exactly the curve every run has played), linear, exponential, power, or a table of your own. Each type keeps its own numbers in the file (switching back keeps them); only the chosen one is played. Every type is times XP needed ×' },
+    // (the table's default list is named in its help rather than the Instructions tab's Default column, which it would swamp)
+    ...XP_TYPES.flatMap((t) => t.params.map((p) => Object.assign({}, p, { key: `xp_curve.${t.v}.${p.key}`, group: 'XP per level', label: `${t.label}: ${p.label}`, block: 'xp_curve', help: `${p.help} (${t.formula})` }, p.type === 'xp_points' ? { def: undefined, help: `${p.help}: ${JSON.stringify(p.def)}` } : {}))),
+    { key: 'xp_need_mult', group: 'XP per level', label: 'XP needed ×', type: 'number', min: 0.1, step: 0.05, def: 1, block: 'xp_curve', help: 'every hero level needs this many times the growth curve\'s amount, whatever its type (today\'s: 15 + 6L + L²/2 XP for level L). Pass 79: mutation offers come as level-ups, so levels come faster to keep the same three-card picks by any minute plus the mutation level-ups on top: Red Canyon 1.65 (it was 3.1 with mutations on the clock)' },
     // pass 79 (lane MUT): whether mutation level-ups count for what grows with the hero's level (Run.card_level)
     { key: 'mutation_levels_scale', group: 'Scaling', label: 'Mutation levels scale', type: 'bool', def: false, help: 'off: what grows with the hero\'s level (the HP and damage per hero level above, his trait, Barrel Rush\'s gems, Ram, Supply Drop) counts only his card levels, his level less the level-ups that were mutation offers, so a minute brings the same scaling as before mutations came as level-ups; on: every level-up counts. Empty = the game\'s: off' },
     { key: 'endless_wave_seconds', group: 'Endless', label: 'Endless wave (s)', type: 'number', min: 1, step: 1, def: 60, help: 'in endless, a new wave this often' },
@@ -272,6 +304,15 @@ const FIELDS = (() => {
     { key: 'oases.max', group: 'World', label: 'Oases (at most)', type: 'int', min: 1, max: 6, def: 3, help: 'the most oases a run rolls; past the least, each one more comes with the chance below (empty = the game\'s 3)' },
     { key: 'oases.extra_chance', group: 'World', label: 'Chance of one more oasis', type: 'number', min: 0, max: 1, step: 0.05, def: 0.35, help: 'the chance of each oasis past the least, up to the most: with 2 to 3, 0.35 = a third oasis in about a third of the runs (empty = the game\'s 0.35)' },
     { key: 'oases.gap', group: 'World', label: 'Oasis spacing (m)', type: 'number', min: 0, step: 1, def: 10, help: 'the least open ground between two oases\' dips (each dip reaches 1.6 times its lake\'s radius). Every oasis also keeps 8 m past its lake off the flats and 5 m off the dry river. A larger spacing can leave a run an oasis short where the map has no room (empty = the game\'s 10 m)' },
+    // pass 82 (lane SAND; Garry: "Add the previous sand texture as the 5th variant as well. I want to be able to switch
+    // between them easily. Maybe in the LevelEditor"): WaveTimeline.sand, an id of RedCanyon.SANDS (SAND_DEFAULT = 'pass81')
+    { key: 'sand', group: 'World', label: 'Sand', type: 'select', def: 'pass81', options: [
+      { v: 'pass81', label: 'Pass 81 sand (today\'s)', help: 'the sand played since pass 81: calm, soft blotches, a few small pebbles and dark grains' },
+      { v: 'dunes', label: 'Soft dunes', help: 'broad soft wavy dune shading over a fine grain, no stones' },
+      { v: 'dunes_pebbles', label: 'Soft dunes + pebbles', help: 'the soft dune shading with small grey pebbles scattered far apart' },
+      { v: 'ripples', label: 'Wind ripples', help: 'smaller, more irregular wind ripples over a fine grain, no stones: livelier' },
+      { v: 'ripples_pebbles', label: 'Wind ripples + pebbles', help: 'the wind ripples with small grey pebbles scattered far apart' },
+    ], help: 'the painting the open ground is drawn with (the river bed, the oases\' wet ground, the rock outside the wall and every colour stay as they are: all five sands share one mean colour). The four new ones (pass 82) follow Garry\'s reference: soft wavy dune shading and a fine grain; two keep little rocks. Pick one, Save, play: the next run is drawn with it. The arena\'s WORLD tab switches them on the spot to compare. The default stays the pass 81 sand until you pick' },
     // pass 79 (lane WORLD; Garry: "Map the sides are too orange"): the colours of the map's sides (WaveTimeline.rock_color,
     // wall_colors; RedCanyon.ROCK_COLOR / WALL_COLORS are the game's defaults, the def here)
     { key: 'rock_color', group: 'World', label: 'Rock colour', type: 'swatch', def: '#785C5E', help: 'the red-rock rim the ground rises into towards the wall (the painting is recoloured to it, its bands and cracks kept as light and dark). The sun and the sky light are warm and push every colour towards orange on the screen, so pick a touch rosier than you want to see. Empty = the game\'s #785C5E (pass 79; it was the orange #9E573D)' },
@@ -303,7 +344,7 @@ const FIELDS = (() => {
     { key: 'spawn_rise.targetable', group: 'Spawning', label: 'Targetable from', type: 'number', min: 0, max: 1, step: 0.05, def: 0.7, help: 'the share of the way up from which a weapon may choose a rising creature as its target (below it no weapon picks it, nothing aims at it; area damage, blasts, patches, beams and rings still hit it); a burrower sinking out of sight is passed over below it too. It bites and attacks only once it is all the way up' },
     { key: 'spawn_rise.dust', group: 'Spawning', label: 'Rise dust ×', type: 'number', min: 0, step: 0.1, def: 1, help: 'the size of the dust puff a rising creature throws up, × its size (0 = none; only drawn on the screen)' },
   ];
-  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'Coloured specials', 'Boss HP', 'Targeting', 'Endless', 'Items', 'World'];
+  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'XP per level', 'Coloured specials', 'Boss HP', 'Targeting', 'Endless', 'Items', 'World'];
 
   // the two curves' own fields (the HP x / ATK x inspectors and the Settings block)
   const CURVE = [
@@ -339,5 +380,5 @@ const FIELDS = (() => {
     { id: 'paths', name: 'Mutations', text: 'When each stage\'s mutation offers fall due (seconds into the stage): each comes at the hero\'s next level-up, in place of the three cards (pass 79). Edit in Settings.' },
   ];
 
-  return { roster, wave, alt, event, EVENT_TYPES, OVERRIDES, OVERRIDE_GROUPS, OVERRIDE_GROUP_HELP, SCALARS, SCALAR_GROUPS, CURVE, CURVE_KINDS, SIDE_MODES, SPECIALS, PICKUP_ROW, PATTERNS, SWARM_PATTERNS, CHANNELS, LANES, PACES };
+  return { XP_TYPES, roster, wave, alt, event, EVENT_TYPES, OVERRIDES, OVERRIDE_GROUPS, OVERRIDE_GROUP_HELP, SCALARS, SCALAR_GROUPS, CURVE, CURVE_KINDS, SIDE_MODES, SPECIALS, PICKUP_ROW, PATTERNS, SWARM_PATTERNS, CHANNELS, LANES, PACES };
 })();

@@ -1,347 +1,746 @@
-## The Totem Pole's gifts (pass 73, Garry: "When activated a menu pops up offering Players a choice between 3 small stats
-## improvements for that run ... Use thematical language and visuals for this menu, but also write the stats as simple
-## numbers"). A dark cedar dim, "★ CARVED SPIRITS ★ / THE TOTEM", the pole's own painting with a glow behind it, and
-## three carved planks, one gift each: the gift's amount big on a paper disc ("+6%"), the spirit's word in slab
-## ("LE-LOO"), its animal in italic ("the Wolf") and the gift as a plain line ("+6% move speed", TextGen). One to three
-## feathers hang from a plank's corner: how big its amount rolled within its range (TotemBoons.quality). A tap on a
-## plank takes it (raw touch, WTap); the screen closes at once and the run goes on. Nothing to buy, nothing to refuse.
+## The Totem Pole's gifts: "The Spirit Pole" (pass 82, lane TOTEM; design_handoff_88fits_totem, direction 1b, after
+## pass 73's carved planks). The offer builds a pole on the left of the screen: the thunderbird crest on top, the three
+## offered spirits as carved segments stacked under it (the kit's item plate in rock with a carved inset, the spirit's
+## face on it), a paper tag nailed beside each: the amount big in slab with its stat ("+2%" "move speed"), the spirit
+## ("Le-loo, the Wolf"), and the roll gauge (the range's two ends and three notches: which third of that gift's own range
+## the roll landed in; the number turns brass dark on a top third). Over the paused world in the modal dim, the HUD
+## hidden. "★ TOTEM 4 OF 11 ★" over it all (this gift's count of the map's poles). No title, no buttons, no way out:
+## each gift row (its segment and its tag) is one tap target; anywhere else does nothing.
+## Motion (the README's): open 460 ms (the in-world ring flashes first, Game/StructureManager), press 60 ms, a drag out
+## cancels in 90 ms, close 420 ms: the chosen face flies to the toast slot and shrinks, the rest drops and fades, the run
+## goes on at 300 ms (`closed`) with the toast "Le-loo · +2% move speed" carrying the face.
 class_name TotemScreen
 extends WModal
 
 signal closed(boon: Dictionary)
-
-## the dim: a dark cedar brown, a shade deeper than the other modals' sepia, so the planks stand out
-const DIM_TOTEM := Color(34 / 255.0, 20 / 255.0, 12 / 255.0, 0.86)
-## the planks' wood, its carved grooves and grain, the held plank's darker wood
-const WOOD := Color("9a5733")
-const WOOD_DARK := Color("6a361c")
-const WOOD_HELD := Color("7e4426")
-const GRAIN := Color(0.35, 0.17, 0.08, 0.32)
-## the feathers: paper vanes, a rock-red band, an ink tip, a turquoise wrap at the quill
-const FEATHER := Color("f3e6c8")
-const FEATHER_BAND := Color("b4472b")
-const FEATHER_WRAP := Color("3f8f8a")
-## sizes (canvas px at 1080 x 1920)
-const SIDE := 48.0
-const PLANK_GAP := 30.0
-const PLANK_PAD := Vector4(30, 26, 132, 26)   # left, top, right (room for the feathers), bottom
-const DISC_R := 86.0
-## the pole's painting between the header and the planks: as tall as the room there allows, between ART_MIN and ART_MAX
-const ART_MIN := 140.0
-const ART_MAX := 380.0
-const ART_GAP := 14.0
-const WORD_PX := 62
-const ANIMAL_PX := 30
-const LINE_PX := 34
-const AMOUNT_PX := 54
-## the gap under the header; the planks sit low, in the thumb's reach (a one-thumb game), the last one's foot FOOT over
-## the screen's bottom edge
-const BODY_GAP := 18.0
-const FOOT := 150.0
-const FOOT_MIN := 60.0
+## The gift is taken and the screen starts to close (the in-world pole greys from here).
+signal closing(boon: Dictionary)
 
 ## core/systems/TotemBoons.gd, by path (a new script's class name is unknown until the editor imports it)
 const BOONS := preload("res://core/systems/TotemBoons.gd")
+const CREST_PATH := "res://art/ui/totem/crest.png"
 
-var _art: Control
-var _art_tex: Texture2D
-var _list: Control
-var _planks: Array = []
+# --- layout: canvas px at 1080 x 1920, top-anchored (a taller phone adds room under the base) -------------------------
+## The design keeps the top SAFE_DESIGN px empty; a camera cutout deeper than that moves everything down by the rest.
+const SAFE_DESIGN := 130.0
+const LABEL_AT := Vector2(60, 300)
+const LABEL_PX := 30
+## The mock sets "★ TOTEM 4 OF 11 ★" as one string tracked +35 % (10.5 px). Godot tracks in whole px (10) and does not
+## track a space, so a space is LABEL_SPACE wider (its tracking and the half px the glyphs lose): every glyph lands within
+## 2 px of the mock's over the line. Bitter has no ★: the stars are drawn (WMarks.star, as WStarLine draws them).
+const LABEL_TRACK := 10
+const LABEL_SPACE := 12
+## the right star sits this much further out than a tracked space and the left star's inset (the mock's ★ is a fallback
+## glyph that advances wider than its ink; measured on screens/01)
+const LABEL_STAR_PAD := 22.0
+const LABEL_STAR_R := 12.0
+## the left star's middle and the words' box in the label (canvas: the star at 72, 323; the T's ink at 112)
+const LABEL_STAR_L := Vector2(12, 23)
+const LABEL_TEXT_X := 50.0
+## the words' baseline under the label's top: the mock's line box is pushed 3 px down by its ★ (a fallback face with a
+## taller ascent), so its baseline sits at 331, not at the 328 Bitter alone would give
+const LABEL_BASELINE := 31.0
+const CREST_AT := Vector2(0, 372)
+const CREST_W := 420.0
+const SEG_X := 60.0
+const SEG := 300.0
+const SEG_Y: Array = [500.0, 840.0, 1180.0]
+const SEG_BORDER := 6
+const SEG_RADIUS := 10
+## the carved inset: `box-shadow: inset 0 0 0 8px rgba(0,0,0,.18)` (WPlate's inner ring)
+const CARVE := 8
+const CARVE_COLOR := Color(0, 0, 0, 0.18)
+const FACE := 240.0
+const WORD_PX := 40
+## the room a word keeps from the plate's border on either side before it shrinks
+const WORD_CLEAR := 4.0
+## the tag: x 390 on the canvas, 30 px under its segment's top (centred on it); TAG_AT is where that is in a gift row
+## (whose origin is its segment's top-left)
+const TAG_X := 390.0
+const TAG_AT := Vector2(TAG_X - SEG_X, 30)
+const TAG := Vector2(630, 240)
+const TAG_BORDER := 5
+const TAG_SHADOW := 8
+## padding inside the border: 40 left, 30 right; the three lines centred top to bottom, LINE_GAP apart
+const TAG_PAD_L := 40.0
+const TAG_PAD_R := 30.0
+const LINE_GAP := 10.0
+const AMOUNT_PX := 48
+const STAT_PX := 30
+const AMOUNT_GAP := 14.0
+const SPIRIT_PX := 26
+## the nail's middle: 2 px right of the tag's left edge (CSS left -19 px on the padding box, 32 px wide)
+const NAIL_DX := 2.0
+const BASE_AT := Vector2(30, 1510)
+const BASE := Vector2(360, 64)
+const BASE_RADIUS := 6
+
+# --- states ------------------------------------------------------------------------------------------------------------
+const PRESS_SEG_X := 14.0
+const PRESS_TAG := Vector2(8, 8)
+const PRESS_INNER := 6
+const GLOW_PX := 44
+## CSS `0 0 44px` is a Gaussian (half strength at the plate's edge, a fifth at 20 px out); StyleBoxFlat's shadow fades
+## linearly over its size, so a third of the colour at the edge matches it from 15 px out
+const GLOW_COLOR := Color(0x3f / 255.0, 0x8f / 255.0, 0x8a / 255.0, 0.36)
+const OTHERS_ALPHA := 0.6
+const T_PRESS := 0.06
+const T_CANCEL := 0.09
+
+# --- motion (seconds) --------------------------------------------------------------------------------------------------
+## open: the ring's flash (the world, StructureManager.flash_ring), then the dim, the crest, the segments and tags, the base
+const T_FLASH := 0.12
+const T_DIM_IN := 0.16
+const T_CREST := 0.22
+const CREST_FROM_Y := -80.0
+const T_SEG := 0.18
+const SEG_STAGGER := 0.06
+const SEG_RISE := 60.0
+const TAG_AFTER := 0.04
+const T_TAG := 0.16
+const TAG_SLIDE := 40.0
+const T_BASE := 0.12
+const T_OPEN := 0.46
+## close: the face's flight, the others dropping, the fades, the dim lifting last; the run goes on at T_CONTROL
+const T_FLY := 0.30
+const FLY_TO := 72.0
+const T_DROP := 0.2
+const DROP_PX := 140.0
+const T_FADE := 0.15
+const T_DIM_OUT := 0.15
+const T_CONTROL := 0.30
+const T_CLOSE := 0.42
+## where the face flies when no HUD says where its toast's icon goes (the README's toast slot)
+const TOAST_SLOT := Vector2(540, 300)
+
 var _offer: Array = []
+var _rows: Array = []
 var _done := false
-var _t := 0.0
+var _label: Control
+var _label_text: WText
+var _crest: TextureRect
+var _base: Control
+var _flyer: TextureRect
+var _held_row: GiftRow
+var _tweens: Array = []
+var _dy := 0.0
+var _index := 0
+var _total := 0
 
 
-## One carved plank: a WTap whose box is the cedar, drawn over with its grooves, grain and feathers.
-class Plank:
+## One gift: its carved segment and its nailed tag, one tap target (a WTap, so the kit's audits find it). Its pieces sit
+## in `body` (a plain Control), free-placed as the mock places them, inside `group` (a CanvasGroup: the row fades as one
+## picture, as CSS opacity does; faded piece by piece, the tag's shadow showed through its paper).
+class GiftRow:
 	extends WTap
+
+	signal hold_changed(on: bool)
+
 	var boon: Dictionary = {}
+	## the roll's third (1..3): the gauge's filled notches (the bot's "feathers" since pass 73)
 	var feathers := 1
-	var sway := 0.0
-	var disc: Control
-	var amount: WText
+	var group: CanvasGroup
+	var body: Control
+	var seg: Control
+	var glow: Panel
+	var glow_holder: Node2D
+	var plate: WPlate
 	var word: WText
-	var animal: WText
-	var line: WText
+	var tag: Panel
+	var tag_box: HardBox
+	var tag_box_down: HardBox
+	var nail: WNail
+	var amount: WText
+	var stat: WText
+	var spirit: WText
+	var gauge: WNotches
+	var seg_home := Vector2.ZERO
+	var tag_home := Vector2.ZERO
+	## taking a finger: set once its open motion has landed (a tap on a piece still moving is not a choice)
+	var arrived := false
+	var held := false
+	var screen: Node
+	var _touching := false
+	var _finger := -1
+	var _tw: Tween
 
-	func held_offset() -> Vector2:
-		return Vector2(box.shadow, box.shadow) if _held_look and box else Vector2.ZERO
+	func _ready() -> void:
+		super._ready()
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 
-	func _draw() -> void:
-		var o := held_offset()
-		var r := Rect2(o, size)
-		# the grain: a few long wavy lines across the wood, inside the border
-		var inner := r.grow(-12.0)
-		for k in range(5):
-			var y := inner.position.y + inner.size.y * (0.14 + 0.18 * k)
-			var pts := PackedVector2Array()
-			var steps := 24
-			for s in range(steps + 1):
-				var x := inner.position.x + inner.size.x * float(s) / float(steps)
-				pts.append(Vector2(x, y + sin(float(s) * 0.7 + k * 1.9) * 3.0))
-			draw_polyline(pts, GRAIN, 2.0)
-		# the carved groove: a frame cut a little inside the ink border
-		draw_rect(r.grow(-15.0), WOOD_DARK, false, 4.0)
-		# formline corners: small turquoise ovoids in the groove's corners
-		for c in [r.position + Vector2(15, 15), Vector2(r.end.x - 15, r.position.y + 15), Vector2(r.position.x + 15, r.end.y - 15), r.end - Vector2(15, 15)]:
-			draw_circle(c, 7.0, W.INK)
-			draw_circle(c, 4.5, FEATHER_WRAP)
-		# the feathers, hung from pegs along the plank's top right, swaying a little
-		for k in range(feathers):
-			var peg := Vector2(r.end.x - 44.0 - 34.0 * k, r.position.y + 24.0)
-			var ang := deg_to_rad(8.0 + 7.0 * k) + sway * (1.0 + 0.3 * k)
-			TotemScreen.draw_feather(self, peg, ang, minf(size.y - 46.0, 170.0), 30.0)
+	## The segment (where it sits held, too) and the tag with its nail and shadow: a finger on either is this gift's; the
+	## gap beside the nail, between the segment and the tag, is nobody's.
+	func _has_point(p: Vector2) -> bool:
+		if Rect2(Vector2.ZERO, Vector2(SEG + PRESS_SEG_X, SEG)).has_point(p):
+			return true
+		var nail := WNail.SIDE * 0.5 - NAIL_DX
+		return Rect2(TAG_AT - Vector2(nail, 0), TAG + Vector2(TAG_SHADOW + nail, TAG_SHADOW)).has_point(p)
+
+	func _gui_input(e: InputEvent) -> void:
+		var pos := Vector2.ZERO
+		var idx := 0
+		var kind := ""
+		if e is InputEventScreenTouch:
+			var t := e as InputEventScreenTouch
+			pos = t.position
+			idx = t.index
+			kind = "press" if t.pressed else "release"
+		elif e is InputEventScreenDrag:
+			var d := e as InputEventScreenDrag
+			pos = d.position
+			idx = d.index
+			kind = "move"
+		elif e is InputEventMouseButton:
+			var m := e as InputEventMouseButton
+			if m.button_index != MOUSE_BUTTON_LEFT:
+				return
+			pos = m.position
+			idx = -2
+			kind = "press" if m.pressed else "release"
+		elif e is InputEventMouseMotion:
+			pos = (e as InputEventMouseMotion).position
+			idx = -2
+			kind = "move"
+		else:
+			return
+		match kind:
+			"press":
+				if not _touching and _can_press():
+					_touching = true
+					_finger = idx
+					_set_held(true)
+					accept_event()
+			"move":
+				if _touching and idx == _finger and not _has_point(pos):
+					# dragged out: no choice; back in 90 ms
+					_touching = false
+					_finger = -1
+					_set_held(false)
+			"release":
+				if _touching and idx == _finger:
+					_touching = false
+					_finger = -1
+					accept_event()
+					if _has_point(pos):
+						W.sfx("ui_tap")
+						pressed.emit()
+						# nobody took it (a muted audit): the row stands up again
+						if screen == null or not bool(screen.get("_done")):
+							_set_held(false)
+					else:
+						_set_held(false)
+
+	func _can_press() -> bool:
+		if not arrived or screen == null or bool(screen.get("_done")):
+			return false
+		var other = screen.get("_held_row")
+		return other == null or other == self
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree() and _touching:
+			_touching = false
+			_finger = -1
+			_set_held(false)
+
+	## The pressed look without a finger (the capture tools; the kit's show_held).
+	func show_held(on: bool) -> void:
+		_set_held(on)
+
+	func _set_held(on: bool) -> void:
+		if held == on:
+			return
+		held = on
+		hold_changed.emit(on)
+		if _tw:
+			_tw.kill()
+		var secs := T_PRESS if on else T_CANCEL
+		tag.add_theme_stylebox_override("panel", tag_box_down if on else tag_box)
+		_tw = create_tween().set_parallel(true)
+		_tw.tween_property(seg, "position", seg_home + (Vector2(PRESS_SEG_X, 0) if on else Vector2.ZERO), secs)
+		_tw.tween_property(glow_holder, "position", seg_home + (Vector2(PRESS_SEG_X, 0) if on else Vector2.ZERO), secs)
+		_tw.tween_property(tag, "position", tag_home + (PRESS_TAG if on else Vector2.ZERO), secs)
+		_tw.tween_property(glow, "modulate:a", 1.0 if on else 0.0, secs)
 
 
 func _ready() -> void:
-	build_dim(DIM_TOTEM)
-	build_header("Carved spirits", "THE TOTEM", "Choose one gift. It stays with you all run.", 120, W.PAPER)
-	_art = Control.new()
-	_art.name = "Art"
-	_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_art.draw.connect(_draw_art)
-	add_child(_art)
-	_list = Control.new()
-	_list.name = "Planks"
-	_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_list)
+	build_dim(W.DIM)
+	_label = Control.new()
+	_label.name = "Label"
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_label)
+	_label_text = W.text("TOTEM", label_font(), LABEL_PX, W.PAPER)
+	_label_text.name = "Words"
+	_label.add_child(_label_text)
+	_label.draw.connect(_draw_label_stars)
+	_crest = TextureRect.new()
+	_crest.name = "Crest"
+	_crest.texture = load(CREST_PATH) if ResourceLoader.exists(CREST_PATH) else null
+	_crest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_crest.stretch_mode = TextureRect.STRETCH_SCALE
+	_crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_crest)
+	_base = Control.new()
+	_base.name = "Base"
+	_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_base.draw.connect(func() -> void: carved(_base, Rect2(Vector2.ZERO, _base.size), BASE_RADIUS))
+	add_child(_base)
 
 
-## `offer`: the gifts (TotemBoons.offer), `def` the pole (its painting is drawn at the top).
-func open(offer: Array, def: StructureDef = null) -> void:
-	_offer = offer
+## A rock plate with its ink border and carved inset in `rect` of `ci` (the base; the segments are WPlates).
+static func carved(ci: CanvasItem, rect: Rect2, radius: int) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = W.ROCK
+	sb.set_corner_radius_all(radius)
+	sb.set_border_width_all(SEG_BORDER)
+	sb.border_color = W.INK
+	sb.anti_aliasing = true
+	ci.draw_style_box(sb, rect)
+	var inset := StyleBoxFlat.new()
+	inset.draw_center = false
+	inset.set_corner_radius_all(maxi(radius - SEG_BORDER, 0))
+	inset.set_border_width_all(CARVE)
+	inset.border_color = CARVE_COLOR
+	ci.draw_style_box(inset, rect.grow(-SEG_BORDER))
+
+
+## `offer`: the gifts (TotemBoons.offer); `def` the pole; `index` this gift's count this run (1-based) and `total` the
+## map's poles (0: unknown, the label says "4TH TOTEM").
+func open(p_offer: Array, _def: StructureDef = null, index: int = 0, total: int = 0) -> void:
+	_kill_tweens()
+	_offer = p_offer
 	_done = false
-	var path := "res://art/sprites/props/st_%s.png" % (def.id if def else "totem_pole")
-	_art_tex = load(path) if ResourceLoader.exists(path) else null
-	for p in _planks:
-		(p as Node).queue_free()
-	_planks.clear()
-	for b in _offer:
-		var pl := _make_plank(b as Dictionary)
-		_list.add_child(pl)
-		_planks.append(pl)
+	_held_row = null
+	_index = index if index > 0 else _run_index()
+	_total = total
+	for r in _rows:
+		(r as Node).queue_free()
+	_rows.clear()
+	if _flyer:
+		_flyer.queue_free()
+		_flyer = null
+	var n := mini(_offer.size(), SEG_Y.size())
+	for k in range(n):
+		var row := _make_row(_offer[k] as Dictionary, k)
+		add_child(row)
+		_rows.append(row)
+	_label_text.text = BOONS.pole_label(_index, _total)
+	if not is_in_group("wanted_modal"):
+		add_to_group("wanted_modal")
 	modulate.a = 1.0
+	visible = true
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	_layout()
-	var stagger: Array = [_art]
-	stagger.append_array(_planks)
-	enter(stagger)
+	_open_motion()
 	Audio.play("ui_pause")
 
 
-## The planks low on the screen, in the thumb's reach: the last one's foot FOOT over the bottom edge, one over another at
-## their own heights (nothing on a plank wraps, so its size is known at once, before the slide-in reads the positions);
-## the pole's painting in the room between the header's real foot (it carries W.safe_top() already) and the first
-## plank, as tall as fits between ART_MIN and ART_MAX, in the middle of it. A short screen pushes the planks down to
-## FOOT_MIN over the edge, then squeezes their gaps.
+## Gifts taken so far this run + 1 (when the caller gives no count).
+func _run_index() -> int:
+	var run := W.node("Run")
+	return (run.get("totem_boons") as Array).size() + 1 if run and run.get("totem_boons") is Array else 1
+
+
+## The label's words as shown (tests, tools): "TOTEM 4 OF 11" or "4TH TOTEM", between the drawn stars.
+func label_text() -> String:
+	return _label_text.text if _label_text else ""
+
+
 func _layout() -> void:
-	var vp := get_viewport_rect().size if is_inside_tree() else Vector2(1080, 1920)
-	var top := header.offset_top + header.get_combined_minimum_size().y + BODY_GAP
-	var w := vp.x - SIDE * 2.0
-	var heights: Array = []
-	var total := 0.0
-	for p: Plank in _planks:
-		p.size.x = w
-		var h := maxf(p.get_combined_minimum_size().y, DISC_R * 2.0 + PLANK_PAD.y + PLANK_PAD.w)
-		heights.append(h)
-		total += h
-	var n := _planks.size()
-	var gap := PLANK_GAP
-	var block := total + gap * maxf(n - 1, 0)
-	var foot := vp.y - FOOT
-	var first := foot - block
-	# too little room for the painting: the planks go down first, then their gaps close up
-	if first - ART_GAP - top < ART_MIN:
-		foot = minf(vp.y - FOOT_MIN, top + ART_MIN + ART_GAP + block)
-		first = foot - block
-		if first - ART_GAP - top < ART_MIN and n > 1:
-			gap = maxf(gap - (top + ART_MIN + ART_GAP - first) / float(n - 1), 12.0)
-			block = total + gap * (n - 1)
-			first = foot - block
-	var room := maxf(first - ART_GAP - top, 0.0)
-	var art_h := clampf(room, minf(ART_MIN, room), ART_MAX)
-	_art.position = Vector2(0, top + (room - art_h) * 0.5)
-	_art.size = Vector2(vp.x, art_h)
-	_art.queue_redraw()
-	var y := first
-	for k in range(n):
-		var p: Plank = _planks[k]
-		p.position = Vector2(SIDE, y)
-		p.size = Vector2(w, heights[k])
-		y += float(heights[k]) + gap
+	_dy = maxf(W.safe_top() - SAFE_DESIGN, 0.0)
+	_label.position = LABEL_AT + Vector2(0, _dy)
+	var lf := label_font()
+	_label_text.position = Vector2(LABEL_TEXT_X, LABEL_BASELINE - _baseline_in(lf, LABEL_PX, W.normal_height(lf, LABEL_PX)))
+	_label_text.size = _label_text.get_combined_minimum_size()
+	_label.size = Vector2(label_star_r().x + LABEL_STAR_R, 46)
+	_label.queue_redraw()
+	if _crest.texture:
+		var ts := _crest.texture.get_size()
+		_crest.size = Vector2(CREST_W, roundf(CREST_W * ts.y / maxf(ts.x, 1.0)))
+	_crest.position = CREST_AT + Vector2(0, _dy)
+	for k in range(_rows.size()):
+		var row: GiftRow = _rows[k]
+		row.position = Vector2(SEG_X, float(SEG_Y[k]) + _dy)
+		row.size = Vector2(TAG_AT.x + TAG.x + TAG_SHADOW, SEG)
+	_base.position = BASE_AT + Vector2(0, _dy)
+	_base.size = BASE
+	_base.queue_redraw()
 
 
-func _make_plank(b: Dictionary) -> Plank:
-	var p := Plank.new()
-	p.name = "Plank_%s" % str(b.get("id", ""))
-	p.boon = b
-	p.feathers = clampi(int(b.get("quality", 1)), 1, 3)
-	var hb := W.box(WOOD, 5, 10).pad(PLANK_PAD.x, PLANK_PAD.y, PLANK_PAD.z, PLANK_PAD.w)
-	p.box = hb
-	var down := hb.pressed(WOOD_HELD)
-	down.inner = 5
+## The label's face: Bitter 600 tracked LABEL_TRACK, its spaces LABEL_SPACE wider (made once).
+static var _label_font: FontVariation
+
+
+static func label_font() -> Font:
+	if _label_font == null:
+		_label_font = FontVariation.new()
+		_label_font.base_font = load(W.SERIF_PATH) if ResourceLoader.exists(W.SERIF_PATH) else ThemeDB.fallback_font
+		_label_font.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 600.0}
+		_label_font.spacing_glyph = LABEL_TRACK
+		_label_font.spacing_space = LABEL_SPACE
+	return _label_font
+
+
+## The right star's middle in the label: after the words' advance (its trailing tracking included), a tracked space,
+## then the star as far in as the left one sits from the label's edge.
+func label_star_r() -> Vector2:
+	var f := label_font()
+	var words := f.get_string_size(_label_text.text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_PX).x
+	var space := f.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_PX).x
+	return Vector2(LABEL_TEXT_X + words + space + LABEL_STAR_L.x + LABEL_STAR_PAD, LABEL_STAR_L.y)
+
+
+func _draw_label_stars() -> void:
+	WMarks.star(_label, LABEL_STAR_L, LABEL_STAR_R, W.PAPER)
+	WMarks.star(_label, label_star_r(), LABEL_STAR_R, W.PAPER)
+
+
+func _make_row(b: Dictionary, k: int) -> GiftRow:
+	var row := GiftRow.new()
+	row.name = "Gift_%s" % str(b.get("id", k))
+	row.boon = b
+	row.screen = self
+	row.feathers = BOONS.roll_third(b)
+	# the glow behind the segment while it is held: outside the group (a see-through glow drawn into the group's buffer
+	# came out darker), in a Node2D so the row (a container) leaves its size alone; it moves with the segment
+	var glow_holder := Node2D.new()
+	glow_holder.name = "GlowHolder"
+	row.add_child(glow_holder)
+	row.glow_holder = glow_holder
+	var group := CanvasGroup.new()
+	group.name = "Group"
+	group.fit_margin = 12.0
+	row.add_child(group)
+	row.group = group
+	var body := Control.new()
+	body.name = "Body"
+	body.size = Vector2(TAG_AT.x + TAG.x + TAG_SHADOW, SEG)
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	group.add_child(body)
+	row.body = body
+	# the segment: the plate, the word when the spirit has no face yet
+	var seg := Control.new()
+	seg.name = "Segment"
+	seg.size = Vector2(SEG, SEG)
+	body.add_child(seg)
+	row.seg = seg
+	var glow := Panel.new()
+	glow.name = "Glow"
+	var gs := StyleBoxFlat.new()
+	gs.bg_color = W.ROCK
+	gs.set_corner_radius_all(SEG_RADIUS)
+	gs.shadow_color = GLOW_COLOR
+	gs.shadow_size = GLOW_PX
+	gs.anti_aliasing = true
+	glow.add_theme_stylebox_override("panel", gs)
+	glow.size = Vector2(SEG, SEG)
+	glow.modulate.a = 0.0
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow_holder.add_child(glow)
+	row.glow = glow
+	var plate := WPlate.new()
+	plate.name = "Plate"
+	plate.side = SEG
+	plate.size = Vector2(SEG, SEG)
+	plate.fill = W.ROCK
+	plate.border = SEG_BORDER
+	plate.radius = SEG_RADIUS
+	plate.ring = CARVE
+	plate.ring_color = CARVE_COLOR
+	plate.icon_frac = FACE / SEG
+	plate.tex = BOONS.icon_of(b)
+	seg.add_child(plate)
+	row.plate = plate
+	if plate.tex == null:
+		var wd := W.slab_text(BOONS.word(b), WORD_PX, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER)
+		wd.name = "Word"
+		wd.valign = VERTICAL_ALIGNMENT_CENTER
+		wd.size = Vector2(SEG, SEG)
+		# Alfa Slab 40 as the README says (Thunderbird, the longest word, is 273 px: inside the border, a pixel into the
+		# carved band); a longer word one day shrinks rather than touch the border
+		var room := SEG - 2.0 * (SEG_BORDER + WORD_CLEAR)
+		if wd.text_width() > room:
+			wd.font_size = int(floor(WORD_PX * room / wd.text_width()))
+		seg.add_child(wd)
+		row.word = wd
+	# the tag: the kit's paper box with its hard shadow; pressed it sits on its shadow with the brass inner outline
+	var tag := Panel.new()
+	tag.name = "Tag"
+	tag.size = TAG
+	row.tag_box = W.box(W.PAPER, TAG_BORDER, TAG_SHADOW)
+	var down := W.box(W.PAPER, TAG_BORDER, 0)
+	down.inner = PRESS_INNER
 	down.inner_color = W.BRASS
-	p.box_down = down
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 30)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(row)
-	# the disc: the amount big on paper
-	var disc := Control.new()
-	disc.custom_minimum_size = Vector2(DISC_R * 2.0 + 10.0, DISC_R * 2.0 + 10.0)
-	disc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	disc.draw.connect(func() -> void:
-		var c := Vector2(DISC_R, DISC_R) + Vector2(2, 2)
-		disc.draw_circle(c + Vector2(8, 8), DISC_R, W.INK)
-		disc.draw_circle(c, DISC_R, W.INK)
-		disc.draw_circle(c, DISC_R - 5.0, W.PAPER)
-		disc.draw_arc(c, DISC_R - 16.0, 0.0, TAU, 48, Color(W.INK, 0.25), 3.0))
-	row.add_child(disc)
-	p.disc = disc
-	var amount := W.slab_text(BOONS.amount_text(b), AMOUNT_PX, W.INK, HORIZONTAL_ALIGNMENT_CENTER)
+	row.tag_box_down = down
+	tag.add_theme_stylebox_override("panel", row.tag_box)
+	body.add_child(tag)
+	row.tag = tag
+	_fill_tag(row, b)
+	row.seg_home = Vector2.ZERO
+	row.tag_home = TAG_AT
+	seg.position = row.seg_home
+	tag.position = row.tag_home
+	W.pass_through(row)
+	row.pressed.connect(func() -> void: _pick(row))
+	row.hold_changed.connect(func(on: bool) -> void: _on_hold(row, on))
+	return row
+
+
+## The tag's three lines, centred top to bottom inside its border: the effect (amount and stat on one baseline), the
+## spirit, the gauge; and the nail on its left edge.
+func _fill_tag(row: GiftRow, b: Dictionary) -> void:
+	var top3 := BOONS.roll_third(b) >= 3
+	var amount := W.slab_text(BOONS.amount_text(b), AMOUNT_PX, W.BRASS_DARK if top3 else W.INK)
 	amount.name = "Amount"
-	amount.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	amount.valign = VERTICAL_ALIGNMENT_CENTER
-	amount.position = Vector2(2, 2)
-	amount.size = Vector2(DISC_R * 2.0, DISC_R * 2.0)
-	amount.custom_minimum_size = Vector2(DISC_R * 2.0, DISC_R * 2.0)
-	disc.add_child(amount)
-	p.amount = amount
-	# the words
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	col.add_theme_constant_override("separation", 6)
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(col)
-	var word := W.slab_text(str(b.get("name", "")).to_upper(), WORD_PX, W.PAPER)
-	word.name = "Word"
-	word.shadow = 5
-	col.add_child(word)
-	p.word = word
-	var animal := W.serif_text(str(b.get("animal", "")), ANIMAL_PX, W.AGED, 400, true)
-	animal.name = "Animal"
-	animal.visible = str(b.get("animal", "")) != ""
-	col.add_child(animal)
-	p.animal = animal
-	var line := W.serif_text(BOONS.text(b), LINE_PX, W.PAPER, 600, false, HORIZONTAL_ALIGNMENT_LEFT, -1.0, true)
-	line.name = "Line"
-	line.shadow = 3
-	col.add_child(line)
-	p.line = line
-	W.pass_through(p)
-	p.pressed.connect(func() -> void: _pick(p))
-	return p
+	var stat := W.serif_text(BOONS.stat_text(b), STAT_PX, W.INK, 600, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
+	stat.name = "Stat"
+	var spirit := W.serif_text(BOONS.title(b), SPIRIT_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
+	spirit.name = "Spirit"
+	var ends := BOONS.range_texts(b)
+	var gauge := WNotches.make(str(ends[0]), str(ends[1]), BOONS.roll_third(b))
+	gauge.name = "Gauge"
+	for c in [amount, stat, spirit, gauge]:
+		row.tag.add_child(c)
+	row.amount = amount
+	row.stat = stat
+	row.spirit = spirit
+	row.gauge = gauge
+	# the effect line: two faces on one baseline (CSS align-items: baseline); its box is the taller part above the
+	# baseline and the taller part below it
+	var a_up := _baseline_in(W.slab(), AMOUNT_PX, AMOUNT_PX)
+	var a_dn := float(AMOUNT_PX) - a_up
+	var s_lh := W.normal_height(W.serif(600), STAT_PX)
+	var s_up := _baseline_in(W.serif(600), STAT_PX, s_lh)
+	var s_dn := s_lh - s_up
+	var up := maxf(a_up, s_up)
+	var effect_h := up + maxf(a_dn, s_dn)
+	var spirit_h := W.normal_height(W.serif(400, true), SPIRIT_PX)
+	var gauge_h := gauge.line_h()
+	var block := effect_h + LINE_GAP + spirit_h + LINE_GAP + gauge_h
+	var inner_h := TAG.y - 2.0 * TAG_BORDER
+	var y := TAG_BORDER + (inner_h - block) * 0.5
+	var x := TAG_BORDER + TAG_PAD_L
+	amount.position = Vector2(x, y + up - a_up)
+	amount.size = amount.get_combined_minimum_size()
+	stat.position = Vector2(x + amount.text_width() + AMOUNT_GAP, y + up - s_up)
+	stat.size = stat.get_combined_minimum_size()
+	y += effect_h + LINE_GAP
+	spirit.position = Vector2(x, y)
+	spirit.size = spirit.get_combined_minimum_size()
+	y += spirit_h + LINE_GAP
+	gauge.position = Vector2(x, y)
+	gauge.size = gauge.get_combined_minimum_size()
+	var nail := WNail.at_center(Vector2(NAIL_DX, TAG.y * 0.5))
+	nail.name = "Nail"
+	row.tag.add_child(nail)
+	row.nail = nail
 
 
-func _process(delta: float) -> void:
-	if not visible:
+## Where the baseline sits from the top of a line box `lh` tall of `f` at `px` (CSS half-leading round the face's own
+## ascent and descent).
+static func _baseline_in(f: Font, px: int, lh: float) -> float:
+	return (lh - (f.get_ascent(px) + f.get_descent(px))) * 0.5 + f.get_ascent(px)
+
+
+# ---------------------------------------------------------------- motion
+
+func _tw() -> Tween:
+	var t := create_tween()
+	_tweens.append(t)
+	return t
+
+
+func _kill_tweens() -> void:
+	for t in _tweens:
+		if t is Tween and (t as Tween).is_valid():
+			(t as Tween).kill()
+	_tweens.clear()
+
+
+## Open (460 ms): the ring's flash (the world's, first T_FLASH), the dim in, the crest dropping from above, the segments
+## rising one after another, each tag sliding in after its segment, the base last. A run sim shows it all at once.
+func _open_motion() -> void:
+	var sim := _instant()
+	dim.color = Color(dim_color.r, dim_color.g, dim_color.b, dim_color.a if sim else 0.0)
+	for k in range(_rows.size()):
+		var row: GiftRow = _rows[k]
+		row.arrived = sim
+	if sim:
+		for row: GiftRow in _rows:
+			row.arrived = true
 		return
-	_t += delta
-	for k in range(_planks.size()):
-		var p: Plank = _planks[k]
-		if is_instance_valid(p):
-			p.sway = 0.05 * sin(_t * 1.7 + k * 1.3)
-			p.queue_redraw()
+	var td := _tw()
+	td.tween_interval(T_FLASH)
+	td.tween_property(dim, "color:a", dim_color.a, T_DIM_IN)
+	_label.modulate.a = 0.0
+	var tl := _tw()
+	tl.tween_interval(T_FLASH)
+	tl.tween_property(_label, "modulate:a", 1.0, T_DIM_IN)
+	var crest_y := _crest.position.y
+	_crest.position.y = CREST_FROM_Y
+	_crest.modulate.a = 0.0
+	var tc := _tw()
+	tc.tween_interval(T_FLASH)
+	tc.tween_property(_crest, "modulate:a", 1.0, 0.0)
+	tc.tween_property(_crest, "position:y", crest_y, T_CREST).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	for k in range(_rows.size()):
+		var row: GiftRow = _rows[k]
+		var at := T_FLASH + SEG_STAGGER * k
+		row.seg.position = row.seg_home + Vector2(0, SEG_RISE)
+		row.seg.modulate.a = 0.0
+		var ts := _tw()
+		ts.tween_interval(at)
+		ts.set_parallel(true)
+		ts.chain().tween_property(row.seg, "position", row.seg_home, T_SEG).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		ts.tween_property(row.seg, "modulate:a", 1.0, T_SEG * 0.6)
+		row.tag.position = row.tag_home + Vector2(TAG_SLIDE, 0)
+		row.tag.modulate.a = 0.0
+		var tt := _tw()
+		tt.tween_interval(at + TAG_AFTER)
+		tt.set_parallel(true)
+		tt.chain().tween_property(row.tag, "position", row.tag_home, T_TAG).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tt.tween_property(row.tag, "modulate:a", 1.0, T_TAG * 0.6)
+		tt.chain().tween_callback(func() -> void: row.arrived = true)
+	_base.modulate.a = 0.0
+	var tb := _tw()
+	tb.tween_interval(T_OPEN - T_BASE)
+	tb.tween_property(_base, "modulate:a", 1.0, T_BASE)
 
 
-## The pole's own painting at the top, a soft turquoise glow behind it and a feather either side.
-func _draw_art() -> void:
-	var r := Rect2(Vector2.ZERO, _art.size)
-	var c := Vector2(r.size.x * 0.5, r.size.y * 0.52)
-	WMarks.glow(_art, c, r.size.y * 0.62, Color(FEATHER_WRAP, 0.42))
-	if _art_tex:
-		var ts := _art_tex.get_size()
-		var k := r.size.y / maxf(ts.y, 1.0)
-		var sz := ts * k
-		_art.draw_texture_rect(_art_tex, Rect2(Vector2((r.size.x - sz.x) * 0.5, 0.0), sz), false)
-	var h := r.size.y * 0.62
-	draw_feather(_art, Vector2(c.x - r.size.y * 0.62, c.y - h * 0.1), deg_to_rad(28.0), h, 34.0)
-	draw_feather(_art, Vector2(c.x + r.size.y * 0.62, c.y - h * 0.1), deg_to_rad(-28.0), h, 34.0)
+## No motion in a run sim (Run.sim_mode: a headless run played fast).
+func _instant() -> bool:
+	var run := W.node("Run")
+	return run != null and bool(run.get("sim_mode"))
 
 
-## A feather hung from `peg`, `ang` radians off straight down (positive leans it left), `length` and `width` px: the
-## quill and its turquoise wrap, a paper vane with two notches, a rock-red band and an ink tip, all in an ink line.
-static func draw_feather(ci: CanvasItem, peg: Vector2, ang: float, length: float, width: float) -> void:
-	var dir := Vector2(-sin(ang), cos(ang))
-	var n := Vector2(-dir.y, dir.x)
-	var cord_end := peg + dir * 10.0
-	ci.draw_line(peg, cord_end, W.INK, 3.0)
-	var base := cord_end
-	# the vane: a long leaf from 0.12 to 1.0 of the length
-	var left := PackedVector2Array()
-	var right := PackedVector2Array()
-	var steps := 14
-	for s in range(steps + 1):
-		var t := 0.12 + 0.88 * float(s) / float(steps)
-		var half := width * 0.5 * pow(sin(PI * minf(t * 1.08, 1.0)), 0.7)
-		if t > 0.96:
-			half *= 0.4
-		var p := base + dir * (length * t)
-		left.append(p + n * half)
-		right.append(p - n * half)
-	var vane := PackedVector2Array()
-	vane.append_array(left)
-	var rev := right.duplicate()
-	rev.reverse()
-	vane.append_array(rev)
-	ci.draw_colored_polygon(vane, FEATHER)
-	# the band and the tip: the vane's last part in red, then ink
-	var band := _vane_part(left, right, 0.62, 0.78)
-	if band.size() >= 3:
-		ci.draw_colored_polygon(band, FEATHER_BAND)
-	var tip := _vane_part(left, right, 0.86, 1.0)
-	if tip.size() >= 3:
-		ci.draw_colored_polygon(tip, W.INK)
-	var closed := vane.duplicate()
-	closed.append(vane[0])
-	ci.draw_polyline(closed, W.INK, 3.0, true)
-	# the quill down the middle and its wrap at the root
-	ci.draw_line(base, base + dir * length * 0.98, Color(W.INK, 0.8), 2.5)
-	ci.draw_line(base + dir * length * 0.04, base + dir * length * 0.16, FEATHER_WRAP, 7.0)
-	# two notches cut into the vane's edge
-	for t in [0.42, 0.55]:
-		var i := int(round(float(steps) * (t - 0.12) / 0.88))
-		i = clampi(i, 1, steps - 1)
-		ci.draw_line(left[i], left[i].lerp(base + dir * (length * t), 0.55) + dir * 6.0, W.INK, 2.5)
+## A row held: the other two fade to 60 % (60 ms), back when it is let go (90 ms).
+func _on_hold(row: GiftRow, on: bool) -> void:
+	if on:
+		_held_row = row
+	elif _held_row == row:
+		_held_row = null
+	if _done:
+		return
+	for r: GiftRow in _rows:
+		if r == row:
+			continue
+		var t := _tw()
+		t.tween_property(r.group, "self_modulate:a", OTHERS_ALPHA if on else 1.0, T_PRESS if on else T_CANCEL)
 
 
-## The stretch of the vane between `a` and `b` (fractions of its points) as one polygon.
-static func _vane_part(left: PackedVector2Array, right: PackedVector2Array, a: float, b: float) -> PackedVector2Array:
-	var n := left.size()
-	var i0 := clampi(int(round(a * float(n - 1))), 0, n - 1)
-	var i1 := clampi(int(round(b * float(n - 1))), 0, n - 1)
-	var out := PackedVector2Array()
-	for i in range(i0, i1 + 1):
-		out.append(left[i])
-	for i in range(i1, i0 - 1, -1):
-		out.append(right[i])
-	return out
-
-
-func _pick(p: Plank) -> void:
-	if _done or not visible:
+func _pick(row: GiftRow) -> void:
+	if _done or not visible or row == null:
 		return
 	_done = true
 	W.sfx_first(["ui_totem", "ui_card_pick"])
-	p.show_held(true)
-	var tw := create_tween()
-	tw.tween_interval(0.16)
-	tw.tween_callback(func() -> void: _finish(p.boon))
+	var boon: Dictionary = row.boon
+	closing.emit(boon)
+	if _instant():
+		_finish(boon)
+		_hide()
+		return
+	row.show_held(true)
+	_close_motion(row)
 
 
-## The gifts on the planks as offered (tests, tools).
+## Close (420 ms): the chosen face lifts off its plate and flies to its toast's icon (shrinking 240 -> 72), the other two
+## gifts drop out, the chosen tag and plate, the crest, the label and the base fade, the dim lifts last. The run goes on at
+## T_CONTROL; the screen hides at T_CLOSE.
+func _close_motion(row: GiftRow) -> void:
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tex: Texture2D = row.plate.tex
+	if tex:
+		var from := _face_rect(row)
+		_flyer = TextureRect.new()
+		_flyer.name = "Face"
+		_flyer.texture = tex
+		_flyer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_flyer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_flyer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_flyer.position = from.position
+		_flyer.size = from.size
+		add_child(_flyer)
+		row.plate.tex = null
+		row.plate.queue_redraw()
+		var to_c := face_target(row.boon)
+		var to := Rect2(to_c - Vector2(FLY_TO, FLY_TO) * 0.5, Vector2(FLY_TO, FLY_TO))
+		var tf := _tw().set_parallel(true)
+		tf.tween_property(_flyer, "position", to.position, T_FLY).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		tf.tween_property(_flyer, "size", to.size, T_FLY).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	for r: GiftRow in _rows:
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var t := _tw().set_parallel(true)
+		if r == row:
+			t.tween_property(r.group, "self_modulate:a", 0.0, T_FADE)
+			t.tween_property(r.glow, "modulate:a", 0.0, T_FADE)
+		else:
+			t.tween_property(r, "position:y", r.position.y + DROP_PX, T_DROP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			t.tween_property(r.group, "self_modulate:a", 0.0, T_DROP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	for c: Control in [_crest, _base, _label]:
+		var tc := _tw()
+		tc.tween_property(c, "modulate:a", 0.0, T_FADE)
+	var td := _tw()
+	td.tween_interval(T_CLOSE - T_DIM_OUT)
+	td.tween_property(dim, "color:a", 0.0, T_DIM_OUT)
+	var boon: Dictionary = row.boon
+	var tq := _tw()
+	tq.tween_interval(T_CONTROL)
+	tq.tween_callback(func() -> void:
+		# the run goes on: the HUD comes back under the last of the motion
+		if is_in_group("wanted_modal"):
+			remove_from_group("wanted_modal")
+		_finish(boon))
+	tq.tween_interval(T_CLOSE - T_CONTROL)
+	tq.tween_callback(_hide)
+
+
+## Where the chosen face's icon lands: its toast's icon on the HUD (HUD.toast_icon_spot), else the README's slot.
+func face_target(boon: Dictionary) -> Vector2:
+	var g := get_tree().current_scene if is_inside_tree() else null
+	var hud = g.get("hud") if g else null
+	if hud != null and is_instance_valid(hud) and hud.has_method("toast_icon_spot"):
+		return hud.toast_icon_spot(BOONS.toast_text(boon))
+	return TOAST_SLOT + Vector2(0, _dy)
+
+
+## The face as the plate draws it, on the canvas: the texture fitted into FACE px in the plate's middle.
+func _face_rect(row: GiftRow) -> Rect2:
+	var tex: Texture2D = row.plate.tex
+	var inner := SEG * row.plate.icon_frac
+	var ts := tex.get_size() if tex else Vector2(inner, inner)
+	var k := inner / maxf(maxf(ts.x, ts.y), 1.0)
+	var sz := ts * k
+	var at := row.plate.get_global_transform() * ((Vector2(SEG, SEG) - sz) * 0.5)
+	return Rect2(get_global_transform().affine_inverse() * at, sz)
+
+
+## The gifts as offered (tests, tools).
 func offer() -> Array:
 	return _offer
 
 
-## The planks in order (tests, tools).
+## The gift rows in order (tests, tools; the bot reads each one's `boon` and `feathers`).
 func planks() -> Array:
-	return _planks
+	return _rows
+
+
+func rows() -> Array:
+	return _rows
 
 
 func _finish(boon: Dictionary) -> void:
 	if not visible:
 		return
-	visible = false
 	closed.emit(boon)
+
+
+func _hide() -> void:
+	_kill_tweens()
+	visible = false
+	if _flyer:
+		_flyer.queue_free()
+		_flyer = null
+	if not is_in_group("wanted_modal"):
+		add_to_group("wanted_modal")
+	modulate.a = 1.0
+	dim.color = dim_color
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP

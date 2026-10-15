@@ -636,3 +636,80 @@ the shader files) and RedCanyon constants.
 | SAND_SRC | tools/art_src/sand_klein_s8102.png, the painting sand() starts from |
 | SAND_CONTRAST | 0.06: the painting's light and dark per standard deviation |
 | sand_tileable(a), sand_procedural(size) | the painting made tileable; the old sand (its mean = the colour; the fallback) |
+
+## Pass 82: the sand and the XP curve
+
+### The sand (lane SAND)
+
+#### content/maps/red_canyon/red_canyon.json (timeline_data)
+| key | type | default | meaning |
+|---|---|---|---|
+| sand | String | "" (= "pass81") | which sand the open ground is painted with: "pass81" (pass 81's, today's), "dunes" (Soft dunes), "dunes_pebbles" (Soft dunes + pebbles), "ripples" (Wind ripples), "ripples_pebbles" (Wind ripples + pebbles). An unknown id plays pass81. Not in the file today (Garry picks). |
+
+Read by JsonContent.timeline_from_dict -> WaveTimeline.sand (`@export var sand: String = ""`) -> RedCanyon.map_sand_id.
+Level Editor: Settings tab, World card, row "Sand" (fields.js, type select, def 'pass81', the five named in words with
+help); under it a preview of the chosen sand in the game (tools/level_editor/sand_previews.png, settings.js).
+
+#### world/maps/red_canyon/RedCanyon.gd
+| name | type | value | meaning |
+|---|---|---|---|
+| SANDS | const Dictionary | id -> {file, scale, name, short} | the five sands; `scale` = the painting's size on the ground against pass 81's (sand_scale) |
+| SAND_DEFAULT | const String | "pass81" | the sand for none / an unknown id / a missing painting |
+| sand_id | var String | | the sand the terrain is painted with now |
+| map_sand_id() -> String | func | | the map file's sand, or the default |
+| sand_or_default(id) -> String | static func | | `id` when SANDS has it and its painting exists, else SAND_DEFAULT |
+| sands() -> Dictionary | func | | SANDS (the arena lists it) |
+| set_sand(id) | func | | paints the built terrain with sand `id` on the spot (the arena's WORLD tab) |
+
+#### core/shaders/terrain_painted.gdshader
+| uniform | type | default | meaning |
+|---|---|---|---|
+| sand_scale | float | 1.0 | the sand painting's tiling x tiles_per_metre (below 1 = bigger on the ground); the river bed and the rock keep theirs |
+
+#### ui/ArenaPanel.gd
+WORLD tab: a "Sand" row (node SandChoice) with the five by their `short` labels (Pass 81, Dunes, Dunes+P, Ripples,
+Rip+P); `sand_options() -> Array` ([id, short] for every sand). For the visit only.
+
+#### tools/gen_sand.py (new)
+| command | what |
+|---|---|
+| `--paint [--prompts dunes,pebbles,drift,drift_pebbles] [--seeds 8201,...]` | Klein paintings -> tools/dl/p82/SAND/ai/raw_<prompt>_s<seed>.png (comfy lock) |
+| `--seam [--only <stem>,...] [--force]` | the three-repaint tiling -> ai/tile_<stem>.png (model outputs kept as fixA/B/C_<stem>.png) |
+| `--cands [--only ..] [--band --fine --chroma --scale --tag --no-proc]` | candidates at today's colour + a list for the shots tool |
+| `--keep [--only <id>,...]` | the picked tiles -> tools/art_src/sand_<id>_src.png |
+| (no flag) `[--only <id>,...]` | writes game/art/env/sand_<id>.png from SANDS (prompt, seed, band, fine, chroma) |
+| `--previews <shots dir>` | tools/level_editor/sand_previews.png from the shots tool's sand_<id>.png |
+
+#### game/tools/_p82_SAND_shots.gd (new, a capture tool)
+`-- out=<dir> list=<txt "name path [scale]"> [seed=5] [spots=sand,lake,crowd,far] [key=<sand id>] [vp=864x1920]`:
+the candidates swapped onto the terrain at the same spots in one run, shot through an 864x1920 SubViewport (the phone's
+3D canvas) whatever the desktop allows; `key=` builds the map with that sand as the file would and shoots it.
+`game/tools/_p82_SAND_arena_shot.gd`: the arena's WORLD tab and its Sand row.
+
+### The XP curve (lane XP)
+
+All in `timeline_data` of a map JSON. Read by JsonContent.timeline_from_dict into `WaveTimeline.xp_curve` (Dictionary,
+read as it is), played by `XpCurve.need` (game/core/data/XpCurve.gd) through `Run.xp_to_next`. The Level Editor's
+Settings tab draws them in the **XP per level** card (with `xp_need_mult`, which moved there from Scaling).
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `xp_curve` | block | absent | the XP growth: `{"type": <type>, <type>: {numbers}}`. Absent / `{}` / unknown type = today's quadratic exactly. Every type × `xp_need_mult` |
+| `xp_curve.type` | `quadratic` \| `linear` \| `exponential` \| `power` \| `table` | `quadratic` | which block is played; the others are kept in the file, not played |
+| `xp_curve.quadratic.base` | number | 15 | base + linear × L + quad × L² |
+| `xp_curve.quadratic.linear` | number | 6 | the XP added per level |
+| `xp_curve.quadratic.quad` | number | 0.5 | the L² part |
+| `xp_curve.linear.base` | number | 21.5 | base + step × (L − 1): what level 1 needs |
+| `xp_curve.linear.step` | number | 16.5 | what each level needs more than the one before |
+| `xp_curve.exponential.base` | number | 40 | base × growth^(L − 1): what level 1 needs |
+| `xp_curve.exponential.growth` | number | 1.11 | each level needs this many times the one before |
+| `xp_curve.exponential.cap` | number | 0 | the most any level needs (before × xp_need_mult); 0 = no cap |
+| `xp_curve.power.base` | number | 6.5 | base × L^power: what level 1 needs |
+| `xp_curve.power.power` | number | 1.33 | the exponent |
+| `xp_curve.table.points` | [[level, XP], ...] | today's curve at 1, 5, 10, 20, 30, 40, 50, 60 | straight between listed levels; before the first: the first's XP; levels rounded, the last listed for a level wins; no readable point = the default |
+| `xp_curve.table.after_growth` | number (fraction) | 0.025 | past the last listed level each level needs this much more than the one before (0 = repeats) |
+
+Example: `"xp_curve": {"type": "exponential", "exponential": {"base": 40, "growth": 1.1, "cap": 4000}}`.
+
+Run record (analytics/SCHEMA.md, lane STATS's file): `map_settings.xp_curve` = `{"type": ..., <that type's numbers with
+the defaults filled in>}` (RunAnalytics.map_settings), beside `xp_need_mult`.

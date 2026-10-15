@@ -75,6 +75,56 @@
   "variants": {
     "ARM-0": {
       "note": "the top-level strip, before the Level Editor's looks"
+    },
+    "ARM-B": {
+      "recipe": {
+        "method": "creature_proc",
+        "painter": {
+          "model": "dev",
+          "steps": 32,
+          "guidance": 0.0,
+          "turbo": true
+        },
+        "stills": "b",
+        "seed_offset": 486,
+        "art_prompt": "a chunky desert armadillo walking on four stubby clawed legs, a big domed shell of overlapping sandy brown armour bands with darker seams, a long pointed snout, small beady black eyes, big upright pointed ears, a thick banded armoured tail, cute but tough, standing on the ground, not rolled up",
+        "motion": "trotting in place on four short stubby legs like on a treadmill, the domed armoured shell bobbing, the tail swaying",
+        "dead_hint": "lying on its back on the ground, dead: the four little legs sticking up in the air, eyes shut, the banded shell underneath it",
+        "back_hint": "Seen from behind: the domed banded shell, the thick armoured tail and the two big ears poking up over it, no face visible.",
+        "screen": "green"
+      }
+    },
+    "ARM-C": {
+      "recipe": {
+        "dead_hint": "lying on its stomach on the ground, dead: the four little legs sticking out, eyes shut, the banded shell underneath it",
+        "art_prompt": "a chunky desert armadillo walking on four stubby clawed legs, a big domed shell of overlapping sandy brown armour bands with darker seams, a long pointed snout, small beady black eyes, big upright pointed ears, a thick banded armoured tail, cute but tough, standing on the ground, not rolled up. 1 tail, No multiple tails, No too many limbs",
+        "method": "creature_proc",
+        "painter": {
+          "model": "klein",
+          "steps": 32
+        },
+        "stills": "c",
+        "seed_offset": 9771,
+        "motion": "trotting in place on four short stubby legs like on a treadmill, the domed armoured shell bobbing, the tail swaying",
+        "back_hint": "Seen from behind: the domed banded shell, the thick armoured tail and the two big ears poking up over it, no face visible.",
+        "screen": "green"
+      }
+    },
+    "ARM-D": {
+      "recipe": {
+        "dead_hint": "lying on its stomach on the ground, dead: the four little legs sticking out, eyes shut, the banded shell underneath it",
+        "art_prompt": "a chunky desert armadillo walking on four stubby clawed legs, a big domed shell of overlapping sandy brown armour bands with darker seams, a long pointed snout, small beady black eyes, big upright pointed ears, a thick banded armoured tail, cute but tough, standing on the ground, not rolled up. 1 tail, No multiple tails, No too many limbs",
+        "method": "creature_proc",
+        "painter": {
+          "model": "klein",
+          "steps": 32
+        },
+        "stills": "d",
+        "seed_offset": 9661,
+        "motion": "trotting in place on four short stubby legs like on a treadmill, the domed armoured shell bobbing, the tail swaying",
+        "back_hint": "Seen from behind: the domed banded shell, the thick armoured tail and the two big ears poking up over it, no face visible.",
+        "screen": "green"
+      }
     }
   }
 }

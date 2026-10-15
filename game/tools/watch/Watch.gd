@@ -9,8 +9,10 @@
 ##       [numbers=1] [autoquit=0] [wall=0] [shots=<dir> shots_at=30,120] [log_speed=30] [w=1920 h=1080]
 ## (tools/dl/p80/keys_WATCH.md lists them). How it lives with the game:
 ## - The Game scene sits in a SubViewport (own World3D, size_2d_override = the phone's canvas, 1080 wide), drawn through
-##   a TextureRect: no window input reaches it (the bot writes the hero's PlayerInput as sim_pilot does; the panel's
-##   clicks and keys never steer him). Nothing in the game changes: every system reads get_viewport().
+##   a TextureRect: no window input reaches it but the mouse on the phone view, turned into a finger (pass 82: the
+##   game's own Pause button, its pause screen and its options work as on the phone; _on_view_input). The bot writes
+##   the hero's PlayerInput as sim_pilot does; the hero's input is switched off for touches and keys (PlayerInput.enabled),
+##   so neither a click nor WASD ever steers him. Nothing in the game changes: every system reads get_viewport().
 ## - The tree's current scene stays empty (watch_main.gd is a SceneTree script): the run's end is caught the frame
 ##   Game._ended turns true, the record already written (RunAnalytics.finish in end_run), and the Game is freed before
 ##   its 1.2 s wait ends (the pending await goes with it: no Results scene, no scene change); a Results scene or the
@@ -289,7 +291,9 @@ func _build() -> void:
 	view.texture = sub.get_texture()
 	view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	view.stretch_mode = TextureRect.STRETCH_SCALE
-	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# pass 82: the mouse on the phone view is a finger on the game's screen (_on_view_input)
+	view.mouse_filter = Control.MOUSE_FILTER_STOP
+	view.gui_input.connect(_on_view_input)
 	add_child(view)
 	# the speed over the phone's view: PAUSED, a step, the run to a level-up, or the speed when it is not 1x
 	badge = Label.new()
@@ -340,6 +344,10 @@ func badge_words() -> String:
 		return "RUN OVER"
 	if clock.paused:
 		return "PAUSED"
+	# (pass 82: the game's own pause screen says PAUSED and its RESUME sits where the badge would; the header says
+	# "paused (in game)")
+	if clock.game_hold:
+		return ""
 	if clock.mode == "step":
 		return "STEP 1 s"
 	if clock.mode == "level":
@@ -468,6 +476,8 @@ func _on_frame() -> void:
 		else:
 			_prof_sim_us += work
 			_prof_sim_n += 1
+	# pass 82: the game's own pause screen up: the frames come as at 1x for it (WatchClock.game_hold)
+	clock.game_hold = _attached and not ended and game_pause_up()
 	var wait := clock.pace(enter, ended or not _attached)
 	if wait > 0:
 		OS.delay_usec(wait)
@@ -482,6 +492,7 @@ func _on_frame() -> void:
 		end_now()
 	_take_shot_if_due()
 	_run_actions()
+	_drive_clicks()
 	if ended or not _game_ok():
 		_tick_panel(wall_dt)
 		return
@@ -558,6 +569,8 @@ func _attach() -> void:
 	if game.get("damage_numbers") != null and game.damage_numbers and not numbers_on:
 		game.damage_numbers.suppressed = true
 	_make_bot()
+	# pass 82: a click in the phone view never steers the hero, nor do the keys (the bot's writes still drive him)
+	_mute_hero_input()
 	if hdr is Dictionary:
 		hdr["watch"]["bot"] = bot_kind
 		var o := {}
@@ -624,6 +637,11 @@ func _apply_engine(now_us: int) -> void:
 ## a watcher sees the cards; one left up STUCK_S is reported, and Down! is answered by `death` then.
 func _tick_bot(wall_dt: float) -> void:
 	if bot == null:
+		return
+	# pass 82: the game paused by its own screen (the player's): the bot neither answers it nor plays; no stuck count
+	if game_pause_up():
+		_screen_key = ""
+		_screen_up = 0.0
 		return
 	var key := screen_key()
 	if key != "":
@@ -917,7 +935,11 @@ func _release_lock() -> void:
 ## shots=<dir> shots_at=<play seconds>: the whole window as PNGs at those moments and at the end (three frames after
 ## the panel's refresh, the frames drawn whatever the speed). actions=<when>:<what>,... (checks): <when> is p<play s>
 ## or w<wall s after the action before it (the first: after the run came up)>; <what> is pause, go, step, level, speed=<x>, shot=<name>, end or say; each done
-## once, in order, with a line in the log saying the run's state then.
+## once, in order, with a line in the log saying the run's state then. Pass 82: also `click=<x>/<y>` (a click at that
+## point of the game's 1080-wide canvas), `gamepause` (a click on the HUD's pause disc), `gametab=<0|1|2>` (a click on
+## the pause screen's tab), `gameslider=<i>/<0..1>` (the pause screen's i-th slider dragged from its thumb to that share
+## of its track), `gameresume` (a click on its RESUME) and `whole` (the charts' whole run / last 3 minutes): the clicks
+## and drags go through the window's own input (Input.parse_input_event), the whole way the mouse goes.
 func _take_shot_if_due() -> void:
 	if _shots_dir == "":
 		return
@@ -999,6 +1021,8 @@ func _run_actions() -> void:
 				set_speed(float(what.substr(6)))
 			elif what.begins_with("shot="):
 				_shot_wanted = what.substr(5)
+			else:
+				_game_action(what)
 	print("watch: action %s at %s %.1f: play %.2f, level %d, %s, mode '%s', speed %s, cards up %s, screens '%s', reached %.2fx" % [what,
 		"wall" if bool(a["wall"]) else "play", float(a["at"]), play_t(), int(run_node().level), "paused" if clock.paused else "running",
 		clock.mode, CLOCK.label(clock.speed), str(level_cards_up()), screen_key(), clock.reached])
@@ -1087,14 +1111,16 @@ func status_words() -> String:
 	if ended:
 		parts.append("run over")
 	elif clock.paused:
-		parts.append("paused")
+		parts.append("paused" + (" (and in game)" if clock.game_hold else ""))
+	elif clock.game_hold:
+		parts.append("paused (in game): Resume there goes on at " + CLOCK.label(clock.speed))
 	elif clock.mode == "step":
 		parts.append("stepping 1 s")
 	elif clock.mode == "level":
 		parts.append("to the next level-up")
 	else:
 		parts.append("running " + CLOCK.label(clock.speed))
-	if not ended and not clock.paused and clock.reached > 0.0:
+	if not ended and not clock.paused and not clock.game_hold and clock.reached > 0.0:
 		parts.append("reached %.1fx%s" % [clock.reached, " (short)" if clock.short() else ""])
 	parts.append("panel %.2f ms, bot %.2f ms a frame" % [panel_ms, bot_ms])
 	for p in problems:
@@ -1120,3 +1146,204 @@ func _short(p: String) -> String:
 	if repo != "" and p.begins_with(repo):
 		return p.substr(repo.length() + 1)
 	return p
+
+
+# ---------------------------------------------------------------- the game's own screens under the mouse (pass 82)
+
+## A check's click: pressed now, let go this many frames later.
+const CLICK_FRAMES := 3
+
+## the finger the mouse makes on the phone view: down, and where (the SubViewport's pixels)
+var _finger_down := false
+var _finger_at := Vector2.ZERO
+## the checks' clicks waiting for their release: [{at: window position, frames}]
+var _clicks: Array = []
+
+
+## Whether the game's own pause screen is up (the player paused from the HUD's disc in the phone view).
+func game_pause_up() -> bool:
+	if not _game_ok():
+		return false
+	var ps = game.get("pause_screen")
+	return ps != null and is_instance_valid(ps) and (ps as CanvasItem).visible
+
+
+## The hero's input deaf to touches and keys (PlayerInput.enabled off: no stick from a click in the thumb zone, no WASD);
+## the bot's writes (wants_move, origin, touch_pos) still drive him.
+func _mute_hero_input() -> void:
+	var p = game.get("player") if _game_ok() else null
+	var inp = p.get("input") if p != null else null
+	if inp != null and inp.get("enabled") != null:
+		inp.set("enabled", false)
+
+
+## The mouse on the phone view (its gui_input): a left press, the drag while it is held and the release become the touch
+## the phone sends (finger_event), pushed into the game's SubViewport, whose stretch puts it on the game's canvas. The
+## window's own touches (emulated from the mouse) and every other button are swallowed: one finger, no doubles.
+func _on_view_input(e: InputEvent) -> void:
+	view.accept_event()
+	if not _game_ok() or ended or sub == null:
+		return
+	var f := finger_event(e, view.size, Vector2(sub.size), _finger_down, _finger_at)
+	if f.is_empty():
+		return
+	_finger_down = bool(f["down"])
+	_finger_at = f["at"]
+	sub.push_input(f["event"])
+
+
+## The touch a mouse event on the phone view makes (pure; tests/pass82_watch_test.gd): {event: an InputEventScreenTouch
+## (a left press or release) or InputEventScreenDrag (the mouse moving while held), finger 0, at the view's local position
+## x sub_size / view_size (the SubViewport's pixels); down: the finger after it; at: that position}. {} for anything else
+## (another button, a move with nothing held, a release with nothing held, the window's emulated touches).
+static func finger_event(e: InputEvent, view_size: Vector2, sub_size: Vector2, down: bool, last: Vector2) -> Dictionary:
+	if view_size.x <= 0.0 or view_size.y <= 0.0:
+		return {}
+	var k := sub_size / view_size
+	if e is InputEventMouseButton:
+		var mb := e as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT or mb.pressed == down:
+			return {}
+		var at := mb.position * k
+		var t := InputEventScreenTouch.new()
+		t.index = 0
+		t.position = at
+		t.pressed = mb.pressed
+		t.double_tap = mb.pressed and mb.double_click
+		return {"event": t, "down": mb.pressed, "at": at}
+	if e is InputEventMouseMotion and down:
+		var mm := e as InputEventMouseMotion
+		var at2 := mm.position * k
+		var d := InputEventScreenDrag.new()
+		d.index = 0
+		d.position = at2
+		d.relative = at2 - last
+		d.screen_relative = d.relative
+		d.velocity = mm.velocity * k
+		d.screen_velocity = d.velocity
+		return {"event": d, "down": true, "at": at2}
+	return {}
+
+
+## The window position of a point `p` of the game's canvas (1080 wide; Control.get_global_transform_with_canvas's
+## space), through the phone view's place and size.
+func canvas_to_window(p: Vector2) -> Vector2:
+	var cs := Vector2(sub.size_2d_override) if sub != null and sub.size_2d_override.x > 0 else Vector2(CANVAS_W, CANVAS_W * ASPECT.y / ASPECT.x)
+	return view.global_position + p * view.size / cs
+
+
+## The middle of a game control in its canvas's space (its CanvasLayer's transform included).
+static func canvas_middle(c: Control) -> Vector2:
+	return c.get_global_transform_with_canvas() * (c.size * 0.5)
+
+
+## A check's click at `p` on the game's canvas: the mouse pressed there now and let go CLICK_FRAMES frames later, both
+## through the window's own input (the whole way a click goes: the view, finger_event, the SubViewport).
+func click_canvas(p: Vector2) -> void:
+	var w := canvas_to_window(p)
+	_send_mouse(w, true)
+	_clicks.append({"at": w, "frames": CLICK_FRAMES})
+
+
+## A check's drag on the game's canvas from `a` to `b`: pressed at `a`, moved there over `frames` frames, let go at `b`.
+func drag_canvas(a: Vector2, b: Vector2, frames: int = 10) -> void:
+	var wa := canvas_to_window(a)
+	_send_mouse(wa, true)
+	_clicks.append({"at": canvas_to_window(b), "from": wa, "last": wa, "frames": frames, "n": frames})
+
+
+func _drive_clicks() -> void:
+	if _clicks.is_empty():
+		return
+	var left: Array = []
+	for c in _clicks:
+		c["frames"] = int(c["frames"]) - 1
+		if c.has("from"):
+			# a drag: the mouse moves on with the button held, the last step on the end itself
+			var f := 1.0 - float(maxi(int(c["frames"]), 0)) / float(maxi(int(c["n"]), 1))
+			var w: Vector2 = (c["from"] as Vector2).lerp(c["at"], f)
+			_send_motion(w, w - (c["last"] as Vector2))
+			c["last"] = w
+		if int(c["frames"]) <= 0:
+			_send_mouse(c["at"], false)
+		else:
+			left.append(c)
+	_clicks = left
+
+
+func _send_motion(w: Vector2, rel: Vector2) -> void:
+	var mm := InputEventMouseMotion.new()
+	mm.position = w
+	mm.global_position = w
+	mm.relative = rel
+	mm.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(mm)
+
+
+func _send_mouse(w: Vector2, pressed: bool) -> void:
+	var mb := InputEventMouseButton.new()
+	mb.button_index = MOUSE_BUTTON_LEFT
+	mb.pressed = pressed
+	mb.position = w
+	mb.global_position = w
+	mb.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+	Input.parse_input_event(mb)
+
+
+## The checks' game actions (actions=): click=<x>/<y>, gamepause, gametab=<i>, gameresume, gameslider=<i>/<0..1>,
+## whole.
+func _game_action(what: String) -> void:
+	if what == "whole":
+		toggle_window()
+		return
+	if not _game_ok():
+		return
+	if what.begins_with("click="):
+		var xy := what.substr(6).split("/")
+		if xy.size() == 2:
+			click_canvas(Vector2(float(xy[0]), float(xy[1])))
+		return
+	var ps = game.get("pause_screen")
+	if what == "gamepause":
+		var hud = game.get("hud")
+		var b = hud.get("_pause_btn") if hud != null else null
+		if b is Control:
+			click_canvas(canvas_middle(b))
+	elif what.begins_with("gametab=") and ps != null:
+		var tabs = ps.get("_tabs")
+		var list = tabs.get("_tabs") if tabs != null else null
+		var i := int(what.substr(8))
+		if list is Array and i >= 0 and i < (list as Array).size():
+			click_canvas(canvas_middle(list[i]))
+	elif what.begins_with("gameslider=") and ps != null:
+		# the i-th slider on the pause screen (the Options tab: Sound, Music) dragged from its thumb to that share of it
+		var bits := what.substr(11).split("/")
+		var sliders: Array = []
+		_collect_sliders(ps, sliders)
+		var i := int(bits[0])
+		if bits.size() == 2 and i >= 0 and i < sliders.size():
+			var sl: Range = sliders[i]
+			var xf: Transform2D = (sl as Control).get_global_transform_with_canvas()
+			var w := (sl as Control).size.x
+			var span := maxf(sl.max_value - sl.min_value, 0.0001)
+			var y := (sl as Control).size.y * 0.5
+			var a := xf * Vector2(w * clampf((sl.value - sl.min_value) / span, 0.0, 1.0), y)
+			var b := xf * Vector2(w * clampf(float(bits[1]), 0.0, 1.0), y)
+			drag_canvas(a, b)
+	elif what == "gameresume" and ps != null:
+		# RESUME: the lowest button on the pause screen
+		var best: Control = null
+		for c in (ps as Node).get_children():
+			if c is Control and (c as Control).visible and c.has_signal("pressed"):
+				if best == null or canvas_middle(c).y > canvas_middle(best).y:
+					best = c
+		if best != null:
+			click_canvas(canvas_middle(best))
+
+
+## The game's sliders (TouchSlider: the kit's WSlider) under `n`, in tree order.
+static func _collect_sliders(n: Node, out: Array) -> void:
+	for c in n.get_children():
+		if c is TouchSlider and (c as Control).is_visible_in_tree():
+			out.append(c)
+		_collect_sliders(c, out)

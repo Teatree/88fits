@@ -123,7 +123,8 @@ func _ready() -> void:
 	camera.snap_to(player)
 	player.died.connect(_on_player_died)
 	player.damaged.connect(func(hp, mx): if hud: hud.set_hp(hp, mx))
-	player.hit.connect(func(): camera.shake(0.9))
+	# pass 82 (lane FEEL): a hurt shakes the HP bar, not the camera (it was camera.shake(0.9))
+	player.hit.connect(_feel_hurt_bar_shake)
 	player.hit.connect(_on_player_hit)
 	# Evade and the Energy Shield say so where the hero stands
 	player.evaded.connect(func():
@@ -2146,7 +2147,10 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 	if RunAnalytics.I: RunAnalytics.I.event("structure", def.id, 0, {"effect": def.effect_kind})
 	Audio.play("pk_chest_open", at)
 	fx.burst(at + Vector3(0, 1.0, 0), def.color, 2.0)
-	telegraphs.flash_ring(at, def.radius + 0.5, def.color, 0.5)
+	# pass 82 (lane TOTEM): a structure with `spent_motion` (the Totem Pole) flashes its own ring as its screen opens
+	# (StructureManager.flash_ring); this one froze under the paused screen and played out after the gift was taken
+	if not (def.params.get("spent_motion") is Dictionary):
+		telegraphs.flash_ring(at, def.radius + 0.5, def.color, 0.5)
 	camera.shake(0.4)
 	match def.effect_kind:
 		"bank":
@@ -2227,7 +2231,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 		"dice":
 			_roll_dice(def, at)
 		"totem":
-			_use_totem(def)
+			_use_totem(def, at)
 		_:
 			hud.toast(def.display_name, def.color)
 
@@ -2236,25 +2240,39 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 ## one-screen rule, the offer rolled when the menu opens (core/systems/TotemBoons.gd, the pole's `params.boons`); the
 ## gift picked stays on the hero for the run (Run.take_totem_boon) and a toast says it. A pole with nothing to offer only
 ## says its name.
-func _use_totem(def: StructureDef) -> void:
+## Pass 82 (lane TOTEM, the Spirit Pole screen): `at` is where the pole stands; its ring flashes as the screen opens and
+## it greys as the gift is taken (StructureManager.flash_ring / spend_slowly); the screen says which gift of the map's
+## poles this is ("TOTEM 4 OF 11"); the toast reads "Le-loo · +2% move speed" with the spirit's face, in paper.
+func _use_totem(def: StructureDef, at: Vector3 = Vector3.INF) -> void:
 	_request_modal(Modal.TOTEM, func() -> bool:
 		# (pass 77, lane SIMRUN: a run sim's own dice for the gifts, Run.totem_rng; null in play: random as ever)
 		var offer: Array = TOTEM_SCREEN.BOONS.offer(def, Run.totem_rng)
 		if offer.is_empty():
 			hud.toast(def.display_name, def.color)
+			_totem_spend(at, 0.0)
 			return false
 		_modal = Modal.TOTEM
 		set_paused(true)
-		totem_screen.open(offer, def)
+		if structures and at != Vector3.INF:
+			structures.flash_ring(at)
+		totem_screen.open(offer, def, Run.totem_boons.size() + 1, structures.count_of(def.id) if structures else 0)
+		totem_screen.closing.connect(func(_b: Dictionary) -> void: _totem_spend(at), CONNECT_ONE_SHOT)
 		totem_screen.closed.connect(func(boon: Dictionary) -> void:
 			if RunAnalytics.I: RunAnalytics.I.totem_offer(offer, boon)
 			if not boon.is_empty():
-				var words := Run.take_totem_boon(boon)
+				var _words := Run.take_totem_boon(boon)
 				player.refresh_stats()
-				var title := TOTEM_SCREEN.BOONS.title(boon)
-				hud.toast("%s: %s" % [title.to_upper(), words], def.color)
+				hud.toast(TOTEM_SCREEN.BOONS.toast_text(boon), W.PAPER, TOTEM_SCREEN.BOONS.icon_of(boon))
+				if hints:
+					hints.totem_taken()
 			_modal_done({}, false), CONNECT_ONE_SHOT)
 		return true)
+
+
+## The pole at `at` greys (pass 82, lane TOTEM): over its `spent_motion` fade (`seconds` -1) or at once (0).
+func _totem_spend(at: Vector3, seconds: float = -1.0) -> void:
+	if structures and at != Vector3.INF:
+		structures.spend_slowly(at, seconds)
 
 
 ## The Strongbox's purse (use_structure's "bank"; out of it in pass 58, so the deposit's coins can show it leaving): every
@@ -3175,7 +3193,8 @@ func rocket_blast(at: Vector3, r: float, damage: float, info: Dictionary, blast:
 	fx.explosion(ground, maxf(r, 1.2) * (1.3 if caught else 1.0))
 	telegraphs.flash_ring(ground, tr, Color(1.0, 0.55, 0.2), 0.45)
 	_scorch(ground, maxf(r, 1.2) * 1.2)
-	camera.shake(2.6 if caught else 1.3)
+	# pass 82 (Garry: "Don't shake the screen when hero is damaged"): the blast shakes the same whether it caught him
+	camera.shake(1.3)
 	if caught:
 		hud.flash(Color(1.0, 0.45, 0.12, 0.45), 0.4)
 	Audio.play("en_rocket_boom", at)
@@ -3287,7 +3306,8 @@ func boulder_land(at: Vector3, cfg: Dictionary, info: Dictionary, thrower: int =
 		fx.sand(ground + Vector3(cos(a), 0.1, sin(a)) * r * 0.5, 1.4)
 	telegraphs.flash_ring(ground, tr, Color(0.9, 0.7, 0.45), 0.45)
 	_scorch(ground, r * 0.55)
-	camera.shake(2.4 if caught else 1.6)
+	# pass 82: the same shake whether it caught him (his hurt jiggles the HP bar instead)
+	camera.shake(1.6)
 	if caught:
 		hud.flash(Color(0.75, 0.6, 0.45, 0.35), 0.3)
 	Audio.play("en_boulder_land", ground)
@@ -3821,8 +3841,8 @@ func tether_start(shooter: int, cfg: Dictionary) -> void:
 	enemies.tethered_i = shooter
 	_harpoon_proj = -1
 	_tether_dust = 0.0
-	# the hit has to be noticed: red round the screen, a shake, a red burst on him and a ring at his feet, and a word
-	camera.shake(1.0)
+	# the hit has to be noticed: red round the screen, a red burst on him and a ring at his feet, and a word (pass 82,
+	# lane FEEL: no camera shake, it was the hurt's; the hit itself shakes his HP bar, _feel_hurt_bar_shake)
 	hud.flash(Color(0.85, 0.05, 0.03, 0.42), 0.5)
 	fx.burst(player.global_position + Vector3(0, 1.0, 0), Color(1.0, 0.18, 0.1), 1.3)
 	telegraphs.flash_ring(player.global_position, 1.3, Color(1.0, 0.15, 0.1), 0.45)
@@ -3999,6 +4019,21 @@ func fx_burst(at: Vector3, color: Color, size: float) -> void:
 func fx_sand(at: Vector3, size: float = 1.0) -> void:
 	if fx:
 		fx.sand(at, size)
+
+
+# ---------------------------------------------------------------- pass 82 (lane FEEL): the hurt shakes the HP bar
+## Garry: "Don't shake the screen when hero is damaged. Shake the hp bar instead. But do that a little bit." Every hit on
+## the hero's health (Player.hit) jiggles his HP bar (HUD.shake_hp_bar) by the hit's share of his max HP; the camera is
+## left alone (it shook 0.9 on every hit, and 1.0 more on a harpoon's hook). Every other shake (blasts, a rocket or a
+## boulder that catches him, slams, the Gila's rumble, a boss down) is as it was.
+func _feel_hurt_bar_shake() -> void:
+	if hud == null or player == null or not hud.has_method("shake_hp_bar"):
+		return
+	var dealt := 0.0
+	var hits: Array = player.damage_log
+	if not hits.is_empty():
+		dealt = float((hits[hits.size() - 1] as Dictionary).get("dealt", 0.0))
+	hud.shake_hp_bar(dealt / maxf(float(player.max_hp), 1.0))
 
 
 ## The Gila's rumble passing (pass 43): a brief orange ring where the sand heaves, so the wave's front reads.

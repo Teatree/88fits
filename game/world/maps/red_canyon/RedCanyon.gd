@@ -69,6 +69,22 @@ const OASIS_REACH_PER_R := 0.45
 const OASIS_WOBBLE := 2.2
 ## The smooth noises (r, g, b) the water and the ground read (pass 81, tools/gen_textures.py noise_rgb)
 const NOISE_TEX := "res://art/env/noise_rgb.png"
+## The sands (pass 82, lane SAND; Garry: "Sand Texture is still not very good ... maybe a couple (4) variants to try out
+## ... I like the little rocks in the texture though, can you keep them in 2 out of the 4 variants. Add the previous sand
+## texture as the 5th variant as well. I want to be able to switch between them easily."): the map file's `sand`
+## (timeline_data; WaveTimeline.sand; the Level Editor's World card, the arena's WORLD tab) picks one: its painting
+## (tools/gen_sand.py; every one at the same mean colour) and `scale`, the painting's size on the ground against pass
+## 81's 11 m a tile (the shader's sand_scale: below 1 = bigger). "" or an id not here plays SAND_DEFAULT.
+const SANDS := {
+	"pass81": {"file": "res://art/env/sand.png", "scale": 1.0, "name": "Pass 81 sand (today's)", "short": "Pass 81"},
+	"dunes": {"file": "res://art/env/sand_dunes.png", "scale": 0.8, "name": "Soft dunes", "short": "Dunes"},
+	"dunes_pebbles": {"file": "res://art/env/sand_dunes_pebbles.png", "scale": 1.0, "name": "Soft dunes + pebbles", "short": "Dunes+P"},
+	"ripples": {"file": "res://art/env/sand_ripples.png", "scale": 1.0, "name": "Wind ripples", "short": "Ripples"},
+	"ripples_pebbles": {"file": "res://art/env/sand_ripples_pebbles.png", "scale": 1.0, "name": "Wind ripples + pebbles", "short": "Rip+P"},
+}
+const SAND_DEFAULT := "pass81"
+## the sand the terrain is painted with (an id of SANDS; set as the terrain builds, and by set_sand)
+var sand_id := ""
 var _rng := RandomNumberGenerator.new()
 var run_seed := 0
 ## the rim: the ground rises towards the wall from this radius out (pass 80: the sand climbs to the wall's foot, drifted
@@ -260,6 +276,39 @@ func _read_colours() -> void:
 		wall_colors[k] = WaveTimeline.color_of(tl.wall_colors.get(k), WALL_COLORS[k])
 
 
+## The sand the map file names (pass 82: timeline_data `sand`), SAND_DEFAULT for none, an id not in SANDS, or a painting
+## that is missing.
+func map_sand_id() -> String:
+	var tl: WaveTimeline = Run.map.timeline if Run.map else null
+	return sand_or_default(str(tl.get("sand")) if tl and tl.get("sand") != null else "")
+
+
+## `id` when SANDS has it and its painting is there, else SAND_DEFAULT (pass 82).
+static func sand_or_default(id: String) -> String:
+	if SANDS.has(id) and ResourceLoader.exists(str((SANDS[id] as Dictionary)["file"])):
+		return id
+	return SAND_DEFAULT
+
+
+## Every sand the map knows (pass 82): SANDS (the arena's WORLD tab lists them).
+func sands() -> Dictionary:
+	return SANDS
+
+
+## The terrain painted with sand `id` (pass 82): its painting and its size on the ground. The arena's WORLD tab switches it
+## for a visit; a run plays the map file's.
+func set_sand(id: String) -> void:
+	if _terrain_mat:
+		_apply_sand(_terrain_mat, sand_or_default(id))
+
+
+func _apply_sand(mat: ShaderMaterial, id: String) -> void:
+	var s: Dictionary = SANDS[id]
+	mat.set_shader_parameter("sand_tex", load(str(s["file"])))
+	mat.set_shader_parameter("sand_scale", float(s.get("scale", 1.0)))
+	sand_id = id
+
+
 func river_points() -> Array:
 	return _river
 
@@ -416,7 +465,8 @@ func _build_terrain() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = preload("res://core/shaders/terrain_painted.gdshader")
 	if ResourceLoader.exists("res://art/env/sand.png") and ResourceLoader.exists("res://art/env/cracked.png"):
-		mat.set_shader_parameter("sand_tex", load("res://art/env/sand.png"))
+		# pass 82: the map file's sand (SANDS), pass 81's when it names none
+		_apply_sand(mat, map_sand_id())
 		mat.set_shader_parameter("cracked_tex", load("res://art/env/cracked.png"))
 		if ResourceLoader.exists("res://art/env/redrock.png"):
 			mat.set_shader_parameter("rock_tex", load("res://art/env/redrock.png"))

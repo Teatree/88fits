@@ -50,16 +50,16 @@ const LURE_EVERY := 6
 const PRESETS := {
 	"sim77": {"skill": 1.0, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.0,
 		"totems": false, "barrels": false, "powerups": true, "structures": false, "shop": false, "stranger": false, "boss": "leash",
-		"cards": "tier"},
+		"cards": "tier", "specials": false},
 	"explorer": {"skill": 0.9, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.6,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score"},
+		"cards": "score", "specials": true},
 	"careless": {"skill": 0.4, "style": "balanced", "reaction": 0.6, "dodge": 0.5, "daring": 0.8, "stray": 60.0, "explore": 0.4,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "free",
-		"cards": "score"},
+		"cards": "score", "specials": true},
 	"expert": {"skill": 1.0, "style": "balanced", "reaction": 0.1, "dodge": 1.0, "daring": 0.45, "stray": 60.0, "explore": 0.7,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score"},
+		"cards": "score", "specials": true},
 }
 const DEFAULT_PRESET := "explorer"
 ## The planner (BotGoals; on whenever explore > 0 or totems, barrels or structures are on): a new plan every PLAN_EVERY
@@ -100,14 +100,27 @@ const STRANGER_MIN := 5.0
 ## SHOP_MIN or more and he can pay.
 const GOLD_PTS := 0.03
 const SHOP_MIN := 6.0
+## The hunt (pass 82, lane WATCH: a special goal, BotGoals.special_candidates): the kite leans towards the special
+## (BotLegs.steer_sweep with it as the lure: the sweep's lean, whole while the way is clear, a little while a creature
+## stands in it, none with a big one close, less the more he is hurt) until it is within HUNT_NEAR m and on the screen
+## (EnemyManager.onscreen: the weapons take it first there, within their range and the map's target_priority reach of
+## 10 m); that ends the hunt ("found") and he plays on as he would. The hold (the crowd on him, a big one's push, hurt)
+## still wins, and a hunt is no commitment (anything better takes over at once). Patience as every goal's (plus
+## BotGoals.SPECIAL_FIGHT_S of slack: the lean is slower than a walk); a hunt ends after SPECIAL_MAX_S play seconds
+## whatever (the special rests REST_S then). What the sims showed on the way: walking straight at every special, or
+## keeping the hunt as the goal while the weapons fought it, killed no larger share and cost levels and falls.
+const HUNT_NEAR := 6.0
+## (a special in reach by the planner's word, BotGoals.IN_REACH: no hunt starts for one within it and on the screen)
+const HUNT_FAR := GOALS.IN_REACH
+const SPECIAL_MAX_S := 60.0
 const STYLES := ["balanced", "damage", "safety", "greedy"]
-const BOOL_KEYS := ["totems", "barrels", "powerups", "structures", "shop", "stranger"]
+const BOOL_KEYS := ["totems", "barrels", "powerups", "structures", "shop", "stranger", "specials"]
 
 var game: Node
 ## the options as resolved (resolve_opts): every key has its value
 var opts: Dictionary = {}
 ## what the legs do now: kite | sweep | explore | totem | barrel | powerup | structure:<id> | chest | boss | boss_chest |
-## portal | dodge | down
+## portal | dodge | down | special (pass 82: hunting one)
 var intent := "kite"
 ## {} or {what, key, at: Vector3, why: String}
 var goal: Dictionary = {}
@@ -160,6 +173,11 @@ var gave_up := 0
 var _last_pos := Vector3.INF
 ## the kind of the goal just reached (one explore cell after another is one decision)
 var _last_kind := ""
+## pass 82: the hunts of the specials (summary's `specials`): those that brought it in reach, those that ended with it down
+## before that, those given up
+var specials_found := 0
+var specials_down := 0
+var specials_gave_up := 0
 
 
 func _init(p_game: Node, p_opts: Dictionary = {}) -> void:
@@ -192,9 +210,10 @@ func _init(p_game: Node, p_opts: Dictionary = {}) -> void:
 			planner.setup_map(game.map)
 
 
-## Whether the planner runs: the map's things are wanted (explore, totems, barrels or structures).
+## Whether the planner runs: the map's things are wanted (explore, totems, barrels or structures; pass 82: or the specials).
 static func planner_on(o: Dictionary) -> bool:
-	return float(o.get("explore", 0.0)) > 0.0 or bool(o.get("totems", false)) or bool(o.get("barrels", false)) or bool(o.get("structures", false))
+	return float(o.get("explore", 0.0)) > 0.0 or bool(o.get("totems", false)) or bool(o.get("barrels", false)) or bool(o.get("structures", false)) \
+		or bool(o.get("specials", false))
 
 
 ## The options in full: the preset's values (opts.preset, else DEFAULT_PRESET), every known key given over them, coerced
@@ -747,15 +766,25 @@ func _drive_planned(dt: float) -> void:
 		intent = "dodge" if legs.seen_ring != Vector3.ZERO or legs.seen_danger > 0.4 else mode
 		goal = {} if _cur.is_empty() else goal
 		return
+	# pass 82: a special is followed where it is now, frame by frame (the plan's place is half a second old)
+	var hunting := str(_cur["kind"]) == "special"
+	if hunting:
+		_cur["at"] = _special_at(_cur)
 	var at: Vector3 = _cur["at"]
 	var me: Vector3 = game.player.global_position
 	var d := Vector2(at.x - me.x, at.z - me.z).length()
 	_update_hold(dt, d)
+	if hunting:
+		_cur["hunt_t"] = float(_cur.get("hunt_t", 0.0)) + dt
+		if float(_cur["hunt_t"]) > SPECIAL_MAX_S:
+			_cur["t"] = float(_cur["patience"]) + 1.0
 	if _hold:
 		legs.steer_sweep(game, dt, _t, Vector3.INF)
 		intent = "dodge" if legs.seen_ring != Vector3.ZERO or legs.seen_danger > 0.4 else "kite"
 		mode_frames["hold"] = int(mode_frames.get("hold", 0)) + 1
 		_cur["t"] = float(_cur["t"]) + dt * HOLD_PATIENCE
+	elif hunting:
+		_hunt_step(dt, d)
 	else:
 		var stand := float(_cur.get("stand", 0.0))
 		if stand > 0.0 and d < stand:
@@ -768,8 +797,10 @@ func _drive_planned(dt: float) -> void:
 	if float(_cur["t"]) > float(_cur["patience"]):
 		planner.resting[str(_cur["key"])] = now + REST_S
 		gave_up += 1
+		if hunting:
+			specials_gave_up += 1
 		_decide("goal", [{"id": str(_cur["key"]), "name": str(_cur["what"]), "score": snappedf(float(_cur["u"]), 0.1), "parts": {"dist": snappedf(d, 0.1)}}], "",
-			"gave up on %s after %d s" % [str(_cur["why"]), roundi(float(_cur["t"]))], {"what": str(_cur["what"]), "runner_up": ""})
+			"gave up on %s after %d s" % [str(_cur["why"]), roundi(float(_cur.get("hunt_t", _cur["t"])))], {"what": str(_cur["what"]), "runner_up": ""})
 		_cur = {}
 		goal = {}
 		_plan_at = 0.0
@@ -820,7 +851,8 @@ func _update_hold(dt: float, d: float) -> void:
 	var s = instance_from_id(int(_cur.get("ref", 0))) if _cur.has("ref") else null
 	if s != null and is_instance_valid(s) and s.get("progress") != null and float(_cur.get("stand", 0.0)) > 0.0:
 		using = d < float(s.def.radius) and float(s.progress) >= HOLD_KEEP_USE and hp_frac() >= HOLD_KEEP_HP
-	if (d < HOLD_GRAB and float(_cur.get("stand", 0.0)) <= 0.0) or using:
+	# (pass 82: a special is never grabbed: he keeps it in range, the kite keeps him off it)
+	if (d < HOLD_GRAB and float(_cur.get("stand", 0.0)) <= 0.0 and str(_cur.get("kind", "")) != "special") or using:
 		_hold = false
 		return
 	var hurt := hp_frac() < HOLD_HURT
@@ -865,7 +897,7 @@ func _replan(now: float) -> void:
 	var lying := Vector2.ZERO
 	var c := {"me": me, "t": now, "hp_frac": hp_frac(), "danger": danger(), "style": str(opts["style"]), "opts": opts,
 		"boss": _boss_at(), "leash": str(opts["boss"]) == "leash", "lure_s": _lure_s, "lure_at": _lure_at,
-		"xp_need": float(_run.xp_to_next()) if _run else 1.0}
+		"xp_need": float(_run.xp_to_next()) if _run else 1.0, "held_key": str(_cur.get("key", ""))}
 	if pk != null and _uber_standing():
 		lying = xp_lying(game)
 	c["xp_lying"] = lying.x
@@ -886,7 +918,8 @@ func _replan(now: float) -> void:
 			_cur["u"] = float(held["u"])
 			_cur["at"] = held["at"]
 			# a goal held is kept unless one SWITCH_K times better turns up; the sweep is no commitment
-			var k := 1.0 if str(_cur["kind"]) == "gems" else SWITCH_K
+			# (pass 82: nor is a special's hunt: a heal or a chest that beats it takes over at once)
+			var k := 1.0 if str(_cur["kind"]) in ["gems", "special"] else SWITCH_K
 			if str(best["key"]) == str(_cur["key"]) or float(best["u"]) <= float(held["u"]) * k:
 				return
 	if float(best["u"]) < U_MIN:
@@ -914,8 +947,12 @@ func _commit(best: Dictionary, runner: Dictionary) -> void:
 	_last_kind = ""
 	_cur = best.duplicate()
 	_cur["t"] = 0.0
-	_cur["patience"] = PATIENCE_BASE + float(best["d"]) * PATIENCE_PER_M + float(best.get("interact", 0.0))
+	_cur["patience"] = PATIENCE_BASE + float(best["d"]) * PATIENCE_PER_M + float(best.get("interact", 0.0)) + float(best.get("fight", 0.0))
 	_hold = false
+	if str(best["kind"]) == "special":
+		_cur["hunt_t"] = 0.0
+		var em = game.get("enemies") if game != null else null
+		_cur["chests0"] = int(em.get("special_chests")) if em != null and em.get("special_chests") != null else 0
 	var kind := str(best["kind"])
 	goals_by[kind] = int(goals_by.get(kind, 0)) + 1
 	goal = {"what": str(best["what"]), "key": str(best["key"]), "at": best["at"], "why": str(best["why"])}
@@ -952,11 +989,19 @@ func _goal_done(g: Dictionary) -> bool:
 		"explore":
 			var ci := int(g.get("cell", -1))
 			return ci < 0 or ci >= planner.visited.size() or planner.visited[ci] == 1
+		"special":
+			var em = game.get("enemies")
+			if not special_standing(em, int(g.get("index", -1)), int(g.get("serial", -1))):
+				return true
+			return special_in_reach(em, int(g["index"]), game.player.global_position)
 	return false
 
 
 ## A goal reached: a structure used is a "structure" decision entry (what it gave is the next screen's, or its effect).
 func _goal_finished(g: Dictionary) -> void:
+	if str(g["kind"]) == "special":
+		_special_found(g)
+		return
 	if str(g["kind"]) in ["structure", "totem"]:
 		var o = instance_from_id(int(g.get("ref", 0)))
 		if o != null and is_instance_valid(o) and bool(o.get("used")):
@@ -1005,7 +1050,8 @@ func summary() -> Dictionary:
 	var o := opts.duplicate()
 	o.erase("t0")
 	return {"opts": o, "metres": roundi(metres), "goals": goals_by.duplicate(), "gave_up": gave_up, "decisions": by,
-		"seen": snappedf(planner.seen_share(), 0.01) if planner != null else 0.0, "shop_bought": bought, "stranger_taken": dealt}
+		"seen": snappedf(planner.seen_share(), 0.01) if planner != null else 0.0, "shop_bought": bought, "stranger_taken": dealt,
+		"specials": special_tallies()}
 
 
 ## The goal shown (bot.goal) and, when it is a new one, a "goal" decision entry with why.
@@ -1200,3 +1246,92 @@ func _boss_chest_lying() -> bool:
 		if is_instance_valid(c) and bool(c.boss) and not bool(c.opened):
 			return true
 	return false
+
+
+# ---------------------------------------------------------------- the specials (pass 82, lane WATCH)
+
+## Whether the special in slot `i` with `serial` still stands (alive, the same creature, not dying) in the crowd `em`.
+static func special_standing(em, i: int, serial: int) -> bool:
+	if em == null or i < 0 or i >= int(em.MAX):
+		return false
+	return em.alive[i] == 1 and int(em.serial[i]) == serial and int(em.state[i]) != int(em.STATE_DYING)
+
+
+## The hunted special's place now (its last known one once it is gone).
+func _special_at(g: Dictionary) -> Vector3:
+	var em = game.get("enemies")
+	var i := int(g.get("index", -1))
+	if special_standing(em, i, int(g.get("serial", -1))):
+		return em.pos[i]
+	return g["at"]
+
+
+## Whether the special in slot `i` is in reach of the hero at `me`: within HUNT_NEAR m and on the screen (a crowd without
+## an onscreen list counts it on the screen).
+static func special_in_reach(em, i: int, me: Vector3) -> bool:
+	var at: Vector3 = em.pos[i]
+	if Vector2(at.x - me.x, at.z - me.z).length() > HUNT_NEAR:
+		return false
+	var os = em.get("onscreen")
+	return not (os is PackedByteArray) or i >= (os as PackedByteArray).size() or (os as PackedByteArray)[i] == 1
+
+
+## One frame of a hunt: the kite leans towards the special (never straight into it); the hunt's patience runs.
+func _hunt_step(dt: float, _d: float) -> void:
+	legs.steer_sweep(game, dt, _t, _cur["at"])
+	_cur["t"] = float(_cur["t"]) + dt
+	intent = "special"
+	mode_frames[intent] = int(mode_frames.get(intent, 0)) + 1
+
+
+## A hunt has ended: the special in reach ("found": a "special" decision entry, the weapons take it first now; its clock
+## of being out of reach starts again), or down before that (with whether its death dropped a chest).
+func _special_found(g: Dictionary) -> void:
+	var em = game.get("enemies")
+	var nm := str(g.get("name", "the special"))
+	var sid := str(g.get("sid", ""))
+	var hunt_s := float(g.get("hunt_t", 0.0))
+	var row := [{"id": sid, "name": nm, "score": snappedf(float(g["u"]), 0.1), "parts": {"value": snappedf(float(g["value"]), 0.1),
+		"hunt_s": snappedf(hunt_s, 0.1)}}]
+	if special_standing(em, int(g.get("index", -1)), int(g.get("serial", -1))):
+		specials_found += 1
+		# the weapons have it: it is hunted again only once it has kept out of reach SPECIAL_WAIT s more (no find, lose,
+		# find again every half second when it hovers at the screen's edge)
+		if planner != null:
+			planner.special_seen[str(g.get("key", ""))] = play_t()
+		_decide("special", row, sid, "found the special %s after %d s: in reach, the weapons take it first" % [nm, roundi(hunt_s)])
+		return
+	specials_down += 1
+	var dropped: bool = em != null and em.get("special_chests") != null and int(em.special_chests) > int(g.get("chests0", 0))
+	_decide("special", row, sid, "the special %s is down after %d s of the hunt%s" % [nm, roundi(hunt_s), ", a chest dropped" if dropped else ""])
+
+
+## The specials of the run (the run sim's meta.bot.specials): from the recorder's events the specials that came, those
+## killed and the chests their deaths dropped, and `life_s`, the mean play seconds a special stood (the sum of the kills'
+## times less the sum of the comings', a special still standing counted to now: no pairing needed, a special leaves the
+## field only by dying); from the bot, the hunts (goals of kind special), those that brought it in reach (found), those
+## that ended with it down before that, and those given up.
+func special_tallies() -> Dictionary:
+	var came := 0
+	var killed := 0
+	var chests := 0
+	var t_in := 0.0
+	var t_out := 0.0
+	var ra := game.get_node_or_null("RunAnalytics") if game != null and is_instance_valid(game) else null
+	var evs = ra.get("events") if ra != null else null
+	if evs is Array:
+		for e in evs:
+			if not (e is Dictionary):
+				continue
+			var k := str(e.get("kind", ""))
+			if k == "special":
+				came += 1
+				t_in += float(e.get("t", 0.0))
+			elif k == "special_kill":
+				killed += 1
+				t_out += float(e.get("t", 0.0))
+				if bool(e.get("chest", false)):
+					chests += 1
+	var life := (t_out + float(maxi(came - killed, 0)) * play_t() - t_in) / float(came) if came > 0 else 0.0
+	return {"came": came, "killed": killed, "chests": chests, "life_s": snappedf(maxf(life, 0.0), 0.1), "hunted": int(goals_by.get("special", 0)),
+		"found": specials_found, "hunted_down": specials_down, "gave_up": specials_gave_up}

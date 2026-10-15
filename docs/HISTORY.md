@@ -2067,3 +2067,198 @@ CLAUDE.md commands line:
 ```
 bash tools/ship_prod.sh [--no-drive] [--quick] [--no-pc] [--no-android]   # pass 81: the PRODUCTION build, only when Garry asks (skill ship-prod): a pruned, optimised staging copy (tools/dl/prod/stage/game; tools/prod_stage.py, game/tools/prod_plan.gd + prod_reach.gd, tools/prod_prune.py [--selftest], tools/prod_optimise.py), its checks (game/tools/prod_check.gd, smoke_run, prod_run_check.gd), presets "Android Prod" (com.eightyeightfits.game.prod) + "Windows Desktop Prod" (feature `prod` -> Settings.is_prod(): no debug surfaces), tools/prod_probe.py (the exe's cold start), report tools/dl/prod/out/report.md, Drive 88fits-prod.apk/.exe
 ```
+
+**Pass 82 (2026-10-16, v0.68): the HP bar shakes, every kill throws its body, five sands, the Spirit Pole, XP growth types, chests/power-ups/totems charts.** Garry: "Don't shake the screen when hero is damaged. Shake the hp bar instead"; "Sand Texture is still not very good" (his reference tools/dl/uploads/2d/sand-texture.webp, four variants, two with the little rocks, the previous as a fifth, switchable in the Level Editor); "The explosion thing that affects the enemy's corpses with knockback should come from all weapons"; in the Watch "Bot should try to find the Special Enemies" and "access to Pause button in the game"; the Totem UI from Claude Design's handoff ("Design critique and verdict.zip", direction 1b "The Spirit Pole"); "types of EXP growth displayed in a dropdown, each one with it's own 2 charts"; a Sim chart of "Chests Picked up, Power-ups and Totems", marks in the Watch, the same in the dashboard, and where the step-by-step for players' runs lives (answered in chat: analytics/howto/03_remote_runs.md, now indexed in analytics/README.md and shown on the dashboard). Six lanes (tools/dl/p82/INTERFACES.md): FEEL, SAND, WATCH, TOTEM, XP, STATS. The lead made the blasts shake the same whether they catch the hero.
+
+**Lane FEEL (pass 82): the HP bar shakes instead of the screen; every kill throws its body.** Garry: "Don't shake the
+screen when hero is damaged. Shake the hp bar instead. But do that a little bit." The hero's hurt shook the camera 0.9
+on every `Player.hit` (Game.gd's one-line connect) and a harpoon's hook 1.0 more; both are gone. `Game._feel_hurt_bar_shake`
+reads the hit's dealt damage off `player.damage_log` and calls `HUD.shake_hp_bar(dealt / max_hp)`: the hero's bars
+(HP and the shield bar under it, drawn by `_draw_hero_bars`) jiggle sideways by `hp_shake_x`, 4 px + 40 px per whole
+max HP, at most 10 px, three swings over 0.25 s dying as (1 - u)^2 (`HP_SHAKE_*`, `hp_shake_amp_for`, `hp_shake_at`,
+`_tick_hp_shake` from `HUD.tick`), no allocation, exactly 0 at the end; a hit during one keeps the larger. Every other
+shake stays (blasts, slams, rumbles, bosses down). "The explosion thing that affects the enemy's corpses with knockback
+should come from all weapons. I think currently it's just the dynamite": pass 79's follow-through threw a body up only
+for a `damage_radius` kill with a push, and most weapons push little, so their kills barely moved. Now `damage()` notes
+the killing hit (`_corpse_note_kill`: its own direction, else away from the hero; its weight = damage over 4 max HPs,
++0.35 for a crit) right before `_die`, and `_corpse_begin` gives every such kill `_corpse_follow`: the push along the
+hit raised to a floor (4 m/s, up to 5.5 for the heaviest hit, times a heft for big bodies, 1.5 / size, at least 0.5)
+and a toss (0.4 m, up to 0.8, + 0.1 m per m/s of its own push, at most 1.6; a blast's pass-79 throw when higher). The
+boss, big game, a launched body and one still rising (below `rise_targetable`; one nearly up is shown whole and thrown)
+are as before; nothing changes for the living. Captures (tools/dl/p82/FEEL/sheets: hurt, rev, tommy, saws, beam, laser,
+dyn) checked by eye: a chip kill throws a goblin 0.4 m up and ~1.5 m back, a one-shot 0.8 m and ~2.4 m, the saws fling
+the ring outwards, the dynamite as before. Cost: A/B in one run (`game/tools/_p82_FEEL_bench.gd`, a kill every frame in
+a crowd of 180) +0.19 ms enemies.sim and +0.08 ms fx per frame; perf_late build=six within noise. Tests
+`pass82_feel_test.gd` (11); pass79_fx's corpse tests re-pinned on purpose (a non-blast kill and a no-push blast kill
+are now thrown; the blast's height is the higher of the two rules; the falling body's flight is longer).
+
+**Lane SAND (pass 82): five sands to choose from.** Garry: "Sand Texture is still not very good. I added a reference
+called sand-texture.webp let's try generating something like that, and maybe a couple (4) variants to try out, see which
+feels most natural. I like the little rocks in the texture though, can you keep them in 2 out of the 4 variants. Add the
+previous sand texture as the 5th variant as well. I want to be able to switch between them easily. Maybe in the
+LevelEditor". The reference (a watermarked stock photo, used only as words: soft broad wavy dune shading, a fine even
+grain, warm golden tan; measured, its broad shading is about 5% of its brightness and its grain about 1%, where pass
+81's sand is 3.5% and 4.7%: busy where the reference is calm) was never sent to the AI server or traced.
+**Four new sands** (tools/gen_sand.py, new): 16 Flux.2 Klein paintings on the AI server (one job at a time under the
+comfy lock; four prompts describing the reference in words, with and without sparse grey pebbles, broad dunes and
+smaller wind ripples, four seeds each). Pass 81's way of making a painting tileable (a half-offset copy cross-faded in)
+doubles every pebble and flattens bands where the copies cross, so the new ones are made tileable by repainting the
+seam: the painting rolled half a tile, the cross where its old edges meet repainted by Klein under a grey latent noise
+mask with differential diffusion (fully on the seam, less and less out to 256 px), which grows the repaint out of the
+painting round it. Two defects found in the game captures and fixed: the repaint's slightly different colour cast
+showed as a soft rectangle (fixed: each repaint brought to the painting's cast before blending), and the cross's arms,
+repainted up to the tile's edges, broke the wrap there (a faint straight step every 11 m; fixed: three repaints, none
+touching an edge: the cross with its arms stopping short, then each seam's two ends after rolling half a tile down and
+across). Each sand is laid over pass 81's exact mean colour (the pins of passes 54 and 61 hold; the river, the oases and
+the walls match): its broad shading normalised to 5.5% of the colour per SD, the fine rest (grain, pebbles) at 70% of
+its painted contrast, and on the pebble sands half of a pebble's own local colour (it stays a little grey). Picked by eye
+in four rounds of real game captures at the phone's 3D canvas (864x1920 through a SubViewport, the desktop window being
+too short; the open sand, a crowd, a lake, pulled out): Soft dunes (dunes s8201, drawn 0.8 the scale: broader bands, the
+closest to the reference), Soft dunes + pebbles (pebbles s8201), Wind ripples (drift s8203, livelier), Wind ripples +
+pebbles (drift_pebbles s8202). Sources kept in tools/art_src/sand_<id>_src.png.
+**The switch**: timeline_data `sand` (WaveTimeline.sand, JsonContent) picks one of RedCanyon.SANDS as the terrain
+builds (its painting and `scale`, the terrain shader's new `sand_scale`, so the river bed and the rock keep their
+tiling); "" or an unknown id plays pass 81's sand, which stays the default until Garry picks (the map file has no `sand`
+key). The Level Editor's World card has a "Sand" select with the five named in words, help, and a preview of the chosen
+one in the game (tools/level_editor/sand_previews.png); the arena's WORLD tab switches them on the spot (Sand row,
+RedCanyon.set_sand), for the visit only.
+**Pick**: Soft dunes, the plain option and the closest to the reference, calm under a crowd; Soft dunes + pebbles if he
+wants the little rocks.
+Tests: game/tests/pass82_sand_test.gd (7: five sands, the default pass 81's, every new one tiles at its edges and its
+middle lines and wears pass 81's mean colour, the pebble two keep greyer pebbles and the plain two none, the map's key
+paints the terrain, "" / "pass81" / an unknown id play pass 81's, the arena switches and lists them, the key read from
+the file, the shader's sand_scale, the editor's row); tools/level_editor/selftest_SAND82.py. The colour pins (pass54_world,
+pass61_map, pass79_world, pass81_map) pass unchanged. Captures: tools/dl/p82/SAND/sheet_five_{sand,crowd,lake,far}.png,
+final/, detail_<id>.png, the rounds g1-g4, arena/. Tools: tools/gen_sand.py, game/tools/_p82_SAND_shots.gd,
+game/tools/_p82_SAND_arena_shot.gd.
+
+**Lane WATCH (pass 82): the bot goes to find the specials; the game's own Pause in the Watch; chests, power-ups and
+totems in the Watch.** Garry: "Bot should try to find the Special Enemies when they appear", "Allow me access to Pause
+button in the game, it also pauses the game, but I can access settings and such", and for the Watch "just mark the
+totals somewhere and mark the times that these items were picked up on the chart of Level and XP".
+- *The specials* (game/tools/bot/BotGoals.gd `special_candidates`, `special_seen`; Bot.gd `_hunt_step`, `_special_at`,
+  `special_in_reach`, `_special_found`, `special_tallies`): the sims came first. Specials chase the hero and the weapons
+  take them first within 10 m (pass 73), so the bot that never hunts already killed 98.4% of the ~160 specials of a
+  25-minute run (30 runs). Hunting every one (walking straight at it; then leaning the kite at it and keeping it as the
+  goal while the weapons fought it) killed no larger share and cost 3 to 8 levels at 25:00 and half again to twice the
+  falls, most in stages 2-3 and at the bosses. The rule kept: go and find a glowing special that does not come (known 5 s
+  within 30 m and still past 9 m or off the screen), leaning the kite towards it (the gems' sweep rules: clear way,
+  health) until it is within 6 m and on screen ("found": he plays on while the weapons take it; that special waits 5 s
+  more out of reach before another hunt); no hunt while a boss lives, none new under 50% health (one under way on to
+  40%), worth 60 with no commitment (a heal or a chest that beats it takes over at once). Option `specials` (on but in
+  sim77; sim_batch.py BOT_KEYS and sim_run.gd BOT_ARGS one entry each, so the Level Editor's Sim tab shows a "Specials"
+  switch). The log: "a special: Red Goblin, a 35% chest, out of reach 6 s (14 m)", "found the special Red Goblin after 4 s:
+  in reach, the weapons take it first" (kind `special`). meta.bot.specials {came, killed, chests, life_s (the mean
+  seconds a special stood), hunted, found, hunted_down, gave_up}. Measured (20 runs against 30): the same share killed,
+  falls 10.5 (median 6) against 9.3 (4), the level within half a level at 10-20 minutes and 2.7 lower at 25:00 (the
+  batch noise is about 4). pass80_bot_test re-pinned on purpose (intent `special`; its no-planner bot has specials off).
+  A finding for the bot's owner: BotGoals' per-thing jitter is keyed by object instance ids, so any code change
+  reshuffles later choices (two batches of the same behaviour and seeds differed by 3.6 levels): compare sims by many
+  runs, not seed by seed.
+- *The game's Pause in the Watch* (Watch.gd, WatchClock.gd): the phone view takes the mouse and turns a left press, drag
+  and release into the ScreenTouch / ScreenDrag of finger 0 the phone sends (no mouse events, so nothing that reads both
+  fires twice), pushed into the SubViewport (its stretch maps it onto the 1080 canvas; `finger_event`, tested against a
+  real SubViewport). The hero's PlayerInput is switched off for touches and keys in the Watch (no stick from a click, no
+  WASD; the bot still drives). With the game's own pause screen up the bot is not ticked, nothing counts as stuck, and
+  the clock runs the frames as at 1x (`game_hold`: 60 a second, all drawn, time scale 1, sound) so the screen and its
+  Options work as on the phone; RESUME goes on at the Watch's speed; the header says "paused (in game)" and the speed
+  badge hides (RESUME sits there). New check actions `click=x/y`, `gamepause`, `gametab=i`, `gameslider=i/f`,
+  `gameresume`, `whole`, sent through the window's own input.
+- *Totals and marks* (WatchData, WatchPanel, WatchChart): lane STATS' rule (sim_run.gd `pickup_kind`: every `chest`
+  event, every `pickup` not small, every `totem`) read live from the recorder's events; Live tiles Chests, Power-ups,
+  Totems (each in its mark's colour) and Specials (killed / came); on the Level and XP chart a gold square, a green
+  circle or a pink triangle at each pickup's second, one lane a kind along the plot's foot, the totals leading its
+  legend; last 3 minutes and whole run both.
+- Checks: tests/pass82_watch_test.gd (11), the pass 80 bot and Watch tests, pass77 simrun, pass78 dash and pass82 stats
+  green (70); check_scripts 535 files clean; LE selftest 18,873 green. Windowed Watch runs (Drifter, 4x, 5:00): the HUD's
+  disc, the Options tab, a Music slider drag (3 to 1) and RESUME clicked through the window's input
+  (tools/dl/p82/WATCH/shots1, shots2); the record's events match the tiles and the legend.
+
+**Lane TOTEM (pass 82): the Spirit Pole.** Claude Design's answer to pass 76's brief (design_handoff_88fits_totem/,
+direction 1b) replaces the Totem Pole's gift screen (`ui/TotemScreen.gd`, rewritten; pass 73's planks, feathers and
+painting gone). The offer builds a pole on the left over the modal dim (W.DIM, the HUD hidden): the thunderbird crest
+(art/ui/totem/crest.png, 420x126 at (0, 372)), three carved segments (WPlate in rock #B4472B, 300 px at x 60, y
+500/840/1180, a 6 px ink border, radius 10, the carved inset as its 8 px ring of black at .18, the spirit's face 240 px)
+and beside each a paper tag (the kit's HardBox paper, 5 px ink, 8 px hard shadow, 630x240 at x 390) nailed on (new kit
+piece `ui/wanted/WNail.gd`) with the amount in Alfa Slab 48 and the stat in Bitter 600 30 on one baseline, the spirit
+"Le-loo, the Wolf" in italic 26, and the roll gauge (new kit piece `ui/wanted/WNotches.gd`: both range ends, three
+56x18 notches filled by the roll's third of its own range; the number brass dark on a top third), the base 360x64 at
+(30, 1510), the label "★ TOTEM 4 OF 11 ★" at (60, 300) (Bitter 600 tracked 10 px with spaces 12 px wider, drawn stars,
+so each glyph lands within 2 px of the mock's 10.5 px CSS tracking). Each gift row is one WTap target (segment, nail,
+tag; `_has_point`), held 60 ms (the segment +14 px with a 44 px turquoise StyleBoxFlat glow, the tag on its shadow with
+the 6 px brass inner outline, the other rows to 60 % as one picture through a CanvasGroup each: faded piece by piece the
+tag's shadow had shown through its paper), dragged off 90 ms back, taken on release. Motion with tweens: open 460 ms
+(ring flash, dim, crest from y -80, segments rising, tags sliding, base), close 420 ms (the face flies to the HUD's toast
+icon and shrinks 240 -> 72, the rest drops and fades, the dim lifts last; the run goes on at 300 ms with the toast
+"Le-loo · +2% move speed" carrying the face: WToasts icon toasts, `HUD.toast(text, colour, icon)`, `toast_icon_spot`).
+Data (TotemBoons): word, animal, roll third, range ends (the smaller size first), the icon slot
+art/ui/totem/spirit_<id>.png (the handoff's four stand-in faces for the Wolf, Bear, Frog and Serpent; the other seven
+show their word in Alfa Slab 40), the label (gifts taken + 1 of the map's poles, StructureManager.count_of; "4TH TOTEM"
+without a total). The pole in the world (`params.spent_motion {flash 0.12, fade 0.4}`): it keeps its paint and ring under
+the screen, its ring flashes as the screen opens (StructureManager.flash_ring), it drains to grey over 0.4 s once the gift
+is taken (spend_slowly; a `desat` uniform in sprite_billboard.gdshader) and ends in pass 73's grey painting; use_structure's
+generic flash ring is skipped for it (it froze under the paused screen and played after the pick). Hints teaches "Totem
+gifts last the whole run" once. Gameplay untouched (weights, ranges, charge, safety, analytics). Captures
+(game/tools/_p82_TOTEM_shots.gd, a real run and a white backdrop for the pixel compare) match screens/01 and 02 within 1 px
+on every element; tests pass82_totem_test (12), pass73_struct re-pinned on purpose (the menu's fields, the grey after the
+pick, the top-anchored fit), touch_audit's totem states (taps off the rows, a drag off a gift, inset 130 and 200).
+
+**Lane XP (pass 82): XP growth types.** Garry: "EXP requirements - I feel like we don't have enough settings for EXP
+requirements. Say I want to make the EXP requirements exponential instead of linear, it doesn't look like I can. I want
+that section to include types of EXP growth displayed in a dropdown, each one with it's own 2 charts for cumulative and
+per level EXP requirements." The XP a level needs is now a map key with a growth type: `timeline_data.xp_curve` =
+`{"type": <type>, <type>: {numbers}}`, read by the new `game/core/data/XpCurve.gd` (static: TYPES, DEFAULTS, type_of,
+params_of, need, total) through `WaveTimeline.xp_curve` (JsonContent reads it as it is) and `Run.xp_to_next` =
+`XpCurve.need(Run.xp_curve(), L) * xp_need_mult()` (the arena and a run without a map: today's curve × 1). Five types,
+each times xp_need_mult: quadratic (today's, base + linear L + quad L², 15 / 6 / 0.5: absent, `{}` or an unknown type
+plays it to the bit), linear (base + step (L − 1), 21.5 / 16.5), exponential (base × growth^(L − 1) under an optional
+cap, 40 / 1.11 / 0), power (base × L^power, 6.5 / 1.33) and table ([[level, XP]] straight between listed levels, the
+last grown by after_growth past it; default today's curve at 1, 5, 10 ... 60, +2.5%). The defaults land within 5% of
+today's total XP by level 30 (7,322.5 before the multiplier: 100 / 100 / 97.5 / 101 / 102.5%) so switching type does not
+wreck a run; each type keeps its own numbers in its own block, so switching back keeps them. Guards: a level needs 0.01
+to 1e12 XP (NaN / infinity = 1e12). The run record's `map_settings.xp_curve` names the type played and its numbers.
+Red Canyon names no curve (Garry's 1.65 kept): nothing changes until he picks one.
+The Level Editor's Settings tab has a new **XP per level** card (after Scaling; `xp_need_mult` moved into it): the
+Growth dropdown, the formula, the chosen type's numbers (an empty box shows the game's default in grey, "the game's N"
+beside it), a table editor for the table type ("Edit a copy" of the default, + level, Default table), XP needed ×, the
+page's checks (errors block Save: an unknown type, a level needing 0 XP or less, a non-number, a table with no readable
+point, a negative cap; warnings: a curve passing 1e12 before level 150, a growth under 1, a level needing less than the
+one before, stray keys), and two charts for the chosen type (the XP each level needs; the XP to reach a level in all),
+levels 1-30 / 1-60 / 1-100, a log scale, today's curve as a faint dashed line, one crosshair across both with a readout
+(this curve, today's, the ratio), a table of the values at levels 5-100, all times the map's xp_need_mult. Typing in a
+box previews the charts at once (yellow-edged), Enter or leaving the box keeps it (one undo step). Under the charts: when
+a run gaining XP as the latest sim of the map did (its mean `xp_total` a second) reaches levels 10, 20 and 30 with this
+curve and with today's (a rough guide; the curve changes the cards and so the kills). Files: tools/level_editor/
+xp_model.js (the page-free maths, a copy of XpCurve.gd), xp_card.js (the card), xp.css; fields.js `XP_TYPES` and the
+card's rows (the Instructions tab documents every key); settings.js, app.js and index.html small hooks; the check group
+selftest_XP82.py (the JS maths equal a Python copy of XpCurve.gd for 29 blocks × levels 0-150, the defaults' totals,
+the readers, 16 check cases, the rows, the wiring). Tests: game/tests/pass82_xp_test.gd (absent = today's exactly for
+levels 1-100 through XpCurve and Run.xp_to_next, each type's formula by hand, the defaults' totals, the guards, the
+reader, the multiplier, the arena, levels by the chosen curve through add_xp, the run record); pass46_passives,
+pass52 and pass79_mut re-pinned on purpose to read the map's curve through XpCurve (Garry picking a type would have
+turned them red).
+
+**Lane STATS (pass 82): chests, power-ups and totems through a run; the how-to made findable.** Garry: "In the Sim add a
+chart for Chests Picked up, Power-ups and Totems though a run ... add the same to the local analytics dashboard" and
+"Remind me how do I go about viewing this information ... a step by step of how I can save the data from real Players
+posted to posthog and 'convert it' into the local dashboard". One rule counts them from a run's events, written once per
+language and pinned to one fixture (tools/level_editor/testdata/stats82_pickups.json): a `chest` event is a chest
+(taken or skipped, a boss's too), a `pickup` without `small` a power-up (the game's own rule: Heart, Magnet Pulse, Nuke,
+Berserk, Shield, Sprint, Timeout; not cake slices, coin bags, pollen), a `totem` event a totem (sim_model.js
+`pickupKind`, game/tools/sim_run.gd `pickup_kind` (the Watch uses it), tools/analytics_csv.py `pickup_kind`). The run
+sim's player files carry `chests`, `powerups`, `totems` counts a row (sim_run.gd series(), its page twin sim_avg.js
+series(); the dash78 fixture regenerated); sim_batch.py and sim_avg.js average them like kills (CUM_SERIES, the runs one
+by one, the summary's means; made-up runs roll them on dice of their own so older pins hold). The Sim tab gained the
+chart "Chests, power-ups, totems" (section Rewards, after Kills: amber, blue, magenta, validated as a set; the compared
+sim's three lines dashed grey; `missing()` names it for an older sim), a tile "Chests · power-ups · totems a run" and a
+"picked up" column in the runs table (SIM77's chart-id pins re-pinned on purpose). The dashboard (analytics/dashboard.html)
+draws the same Sim chart for one run, an average or a remote run, plus its own card "Chests, power-ups and totems"
+(tiles with what each was, step lines with overlays, each one marked at the bottom: a square a chest, a dot a power-up,
+a diamond a totem; the list of each one) and the same marks under the level in Progression; the rows CSV gained the
+three columns (the page's csv-lib and analytics_csv.py byte for byte, now checked). The how-to is findable: an index at
+the top of analytics/README.md (each question, in Garry's words, and the page that answers it), a "How do I get players'
+runs? (step by step)" panel on the dashboard's Remote runs view (open until a download exists; links to
+howto/03_remote_runs.md, README.md, SCHEMA.md), a line in "Where the runs come from"; SCHEMA.md has a section on the
+three counts. Checks: selftest_STATS82 (rule, series, JS = Python averages, the chart, the CSV twins, the page and the
+README), game/tests/pass82_stats_test.gd, a real 3-run sim (tools/dl/sim/runs/p82-stats-check) seen in the Sim tab, the
+dashboard in Chrome with local runs, three opened runs averaged and the remote run.

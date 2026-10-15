@@ -195,6 +195,66 @@ const SimModel = (() => {
     return out;
   }
 
+  // ------------------------------------------------------------------ chests, power-ups, totems (pass 82, lane STATS)
+
+  // Garry (pass 82): "a chart for Chests Picked up, Power-ups and Totems through a run". What each one counts, from a
+  // run's events (analytics/SCHEMA.md). The same rule, line for line, in game/tools/sim_run.gd pickup_kind() (the sim's
+  // series; the Watch's totals and marks) and tools/analytics_csv.py pickup_kind() (the rows CSV); selftest_STATS82 and
+  // game/tests/pass82_stats_test.gd pin the three to one fixture. The colours: the palette's amber, blue and magenta,
+  // checked as a set on the dark surface (the dataviz validator: every pair apart for colour-blind eyes, worst dE 13).
+  const PICKUP_SERIES = [
+    { key: 'chests', label: 'chests', color: SLOTS[3], words: 'chests opened (taken or skipped, boss chests too)' },
+    { key: 'powerups', label: 'power-ups', color: SLOTS[0], words: 'power-ups picked up (every pickup but the small ones underfoot: cake slices, coin bags, pollen)' },
+    { key: 'totems', label: 'totems', color: SLOTS[4], words: 'Totem Pole gifts taken' },
+  ];
+  const PICKUP_KEYS = PICKUP_SERIES.map((p) => p.key);
+
+  /** A pickup's `small` as the game wrote it: true, or a number other than 0 (GDScript's bool()). */
+  function isSmall(v) { return v === true || (typeof v === 'number' && v !== 0); }
+
+  /** What an event counts towards: 'chests' (a `chest` event: one per chest opened, taken or skipped, a boss chest
+   *  too), 'powerups' (a `pickup` whose `small` is not set: Heart, Magnet Pulse, Nuke, Berserk, Shield, Sprint,
+   *  Timeout), 'totems' (a `totem` event: a Totem Pole's gift taken); '' for anything else. */
+  function pickupKind(e) {
+    if (e === null || typeof e !== 'object' || Array.isArray(e)) return '';
+    const kind = String(e.kind != null ? e.kind : '');
+    if (kind === 'chest') return 'chests';
+    if (kind === 'pickup') return isSmall(e.small) ? '' : 'powerups';
+    if (kind === 'totem') return 'totems';
+    return '';
+  }
+
+  /** An event's play second (0 when it is not a number, as GDScript's float(e.get("t")) of a number reads it). */
+  function evT(e) { return e && typeof e.t === 'number' && isFinite(e.t) ? e.t : 0; }
+
+  /** {chests, powerups, totems}: each kind's event times, in order. */
+  function pickupTimes(events) {
+    const out = { chests: [], powerups: [], totems: [] };
+    for (const e of Array.isArray(events) ? events : []) { const k = pickupKind(e); if (k) out[k].push(evT(e)); }
+    for (const k of PICKUP_KEYS) out[k].sort((a, b) => a - b);
+    return out;
+  }
+
+  /** {chests, powerups, totems}: how many so far at each of the rows' play seconds `ts` (an event counts from the
+   *  first row whose t reaches it: e.t <= t + 0.001, as the deaths do). */
+  function pickupCounts(events, ts) {
+    const times = pickupTimes(events);
+    const out = {};
+    for (const k of PICKUP_KEYS) {
+      const tk = times[k], arr = [];
+      let i = 0;
+      for (const t of ts || []) { const tt = Number(t) || 0; while (i < tk.length && tk[i] <= tt + 0.001) i++; arr.push(i); }
+      out[k] = arr;
+    }
+    return out;
+  }
+
+  /** {chests, powerups, totems}: the run's totals (every event, the ones after its last row too). */
+  function pickupTotals(events) {
+    const times = pickupTimes(events);
+    return { chests: times.chests.length, powerups: times.powerups.length, totems: times.totems.length };
+  }
+
   // ------------------------------------------------------------------ the charts
 
   const ser = (res, key, field) => (res && res.series && res.series[key] ? res.series[key][field || 'mean'] : null);
@@ -330,6 +390,13 @@ const SimModel = (() => {
       stack: killFold, lines: [], overlay: ov('kills', 'mean', `${cmpName}: kills`) });
     else push('rewards', { id: 'kills', title: 'Kills', fmt: 'int', unit: 'kills', how: `Creatures killed so far, ${playingNote}.`,
       lines: [{ key: 'kills', label: 'kills', color: SLOTS[1], values: ser(res, 'kills') || [] }], overlay: ov('kills', 'mean', `${cmpName}: kills`) });
+    // pass 82 (lane STATS): chests, power-ups and totems picked up so far
+    const pk = PICKUP_SERIES.filter((p) => has(p.key));
+    if (pk.length) push('rewards', { id: 'pickups', title: 'Chests, power-ups, totems', fmt: 'level', unit: 'picked up',
+      how: `${PICKUP_SERIES.map((p) => p.words).join(', ').replace(/, ([^,]*)$/, ' and $1').replace(/^./, (c) => c.toUpperCase())} so far, ${playingNote}.` +
+        (one ? ' Each step is one picked up.' : ''),
+      lines: pk.map((p) => ({ key: p.key, label: p.label, color: p.color, values: ser(res, p.key) || [] })),
+      overlay: [].concat(...pk.map((p) => ov(p.key, 'mean', `${cmpName}: ${p.label}`))) });
 
     // ---- growth
     push('growth', { id: 'level', title: 'Hero level', fmt: 'level', unit: 'level',
@@ -375,6 +442,7 @@ const SimModel = (() => {
     if (!s.spawned_ps) out.push('Spawned (needs spawned)');
     if (!s.mult_hp) out.push('How strong a creature spawned now is (needs mult_hp)');
     if (!b.held_by) out.push('The build (needs held_by)');
+    if (!s.chests) out.push('Chests, power-ups, totems (needs chests, powerups, totems: a sim from pass 82 on)');
     return out;
   }
 
@@ -532,6 +600,11 @@ const SimModel = (() => {
     out.push({ label: 'Level at the end', value: fmtNum(s.level_mean), note: 'mean of each run\'s last level' });
     out.push({ label: 'Kills a run', value: fmtNum(s.kills_mean), note: 'by each run\'s end' });
     out.push({ label: 'Coins a run', value: fmtNum(s.gold_mean), note: 'gained by each run\'s end' });
+    // pass 82: chests, power-ups, totems a run (a result from before pass 82 has none)
+    if (s.chests_mean != null || s.powerups_mean != null || s.totems_mean != null) {
+      out.push({ label: 'Chests · power-ups · totems a run', value: [s.chests_mean, s.powerups_mean, s.totems_mean].map((v) => fmtNum(v)).join(' · '),
+        note: 'picked up by each run\'s end' });
+    }
     for (const b of s.bosses || []) {
       const nm = names[b.id] || b.id;
       out.push({ label: `${nm}${b.occurrence > 1 ? ' #' + b.occurrence : ''}`, value: `${b.beaten} of ${b.reached}`,
@@ -618,6 +691,7 @@ const SimModel = (() => {
     SECTIONS, missing, chartRange, yTicksRange, TALENT_ORDER, MAX_RANK, boardRanks, boardWords, setRank, presetOf, picksWords,
     runsIn, fmtT, parseT, fmtNum, fmtVal, boardLabel, niceStep, niceMax, yTicks, timeTicks, smooth, fold, totalOf, charts, chartMax,
     readout, table, csv, settingsLine, tiles, cleanSettings, speedAt, etaSeconds, fmtDuration, maxOf, firstSeen,
+    PICKUP_SERIES, PICKUP_KEYS, isSmall, pickupKind, pickupTimes, pickupCounts, pickupTotals,
   };
 })();
 

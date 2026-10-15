@@ -165,7 +165,8 @@ func test_the_xp_curve_reads_the_map_and_the_switch_defaults_off() -> void:
 	# Run.xp_to_next follows the map's pace (read from the map, never pinned: Garry tunes it in the Level Editor)
 	var mt: WaveTimeline = Run.map.timeline
 	for L: int in [1, 5, 20, 60]:
-		var want := (15.0 + 6.0 * L + 0.5 * L * L) * mt.xp_need_mult
+		# pass 82 re-pin (lane XP): the map's growth type (XpCurve; none = 15 + 6L + 0.5L^2)
+		var want := XpCurve.need(mt.xp_curve, L) * mt.xp_need_mult
 		assert_float(Run.xp_to_next(L)).is_equal_approx(want, 0.001)
 	# the arena keeps the plain curve
 	Run.arena = true

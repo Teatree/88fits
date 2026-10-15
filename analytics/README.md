@@ -3,6 +3,20 @@
 The game records every real run (never the debug arena) as one JSON file: a row a second of the hero's power against
 the crowd's pressure, plus every build change and notable moment as an event. `dashboard.html` draws it.
 
+## Start here: which page answers which question (pass 82)
+
+| You want to... | Open |
+|---|---|
+| See **real players' runs** (your phone, friends) second by second, one run at a time or **averaged** for one player or several: download them from PostHog and open them in `dashboard.html` | [howto/03_remote_runs.md](howto/03_remote_runs.md), step by step. The same steps are on the dashboard itself: press **Remote runs**, then **How do I get players' runs?** |
+| See **one player's progress** on the PostHog boards (every chart filtered to them) | [howto/01_one_players_data.md](howto/01_one_players_data.md) |
+| Choose **when a survey appears**, add one for a given run, test it on the phone | [howto/02_surveys.md](howto/02_surveys.md) |
+| Look at **a run you played on this PC** (the editor binary) | double-click `dashboard.html`: it opens your newest run. Other files: **Open run files** or drop them on the page (below: *The dashboard*) |
+| **Average several runs** you have as files (a folder of runs, a sim's player files) | `dashboard.html`, **Open a folder** or **Open run files**, tick them, **Average** (below: *The Sim's charts and averages*) |
+| Put the **bot's sim beside real players** | `dashboard.html`, **Compare with a sim**, then a sim's `result.json` from `tools/dl/sim/runs/<sim>/` |
+| Get **Excel / Google Sheets** files | the dashboard's **Download CSV** buttons, or `python tools/analytics_csv.py` for every run at once (below: *The dashboard*) |
+| See **chests, power-ups and totems** through a run | the dashboard's card *Chests, power-ups and totems* (one run) and the Sim's chart of the same name (one run, averages, the Level Editor's Sim tab); what counts is in [SCHEMA.md](SCHEMA.md), *Chests, power-ups and totems* |
+| Know **what a key in a run file means** | [SCHEMA.md](SCHEMA.md) |
+
 ## Where the runs land
 
 - **Always:** `user://analytics/runs/<stamp>.json` (Windows: `%APPDATA%/Godot/app_userdata/88fits/analytics/runs/`;
@@ -30,7 +44,7 @@ open): the run (hero and the look played, trait, map and its settings, version, 
 was the build strong enough, crowd pressure, when did the crowd outgrow me, health, what hurt me, the last 30
 seconds, how hard did each boss scale, specials and Elites, which weapon carried, estimate against real, how did the
 build grow (the lines, i.e. the fortune cards, apart), the picks, how did I choose (decision time, skips, rerolls,
-banishes), totems and the Stranger, where did my healing come from, survivability per minute, how did his numbers
+banishes), chests, power-ups and totems (pass 82: the three counted through the run, each one marked and listed), totems and the Stranger, where did my healing come from, survivability per minute, how did his numbers
 grow, how strong did the creatures get, stacking bonuses, the crowd against the cap, spawned against killed,
 progression, gold, quest progress and the history. Every card has a table view.
 

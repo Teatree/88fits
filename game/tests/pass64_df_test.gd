@@ -74,30 +74,17 @@ func test_still_a_step_up_stage_by_stage_in_play() -> void:
 
 
 func test_rows_are_softer_than_pass_62_and_still_ramp() -> void:
+	# pass 82 re-pin: Garry retuned stage 2's rows himself in the Level Editor (2026-10-16 01:25: several HP x raised to
+	# 1.0-2.0, some overrides removed), so pass 64's "softer than pass 62" and "a 3x ramp" are his to change; what stays
+	# pinned is the shape any tuning keeps: every stage-2 / stage-3 row that names an HP x names a sane, positive one
+	# (P62_HP_AVG / P62_HP_MAX are kept as the record of pass 62's numbers)
 	var tl: Dictionary = _json()["timeline_data"]
 	for s: int in [1, 2]:
 		var hp := _row_hp(tl, s)
-		assert_int(hp.size()).is_greater(10)
-		var sum := 0.0
-		var most := 0.0
+		assert_int(hp.size()).override_failure_message("stage %d rows with an HP x" % (s + 1)).is_greater(0)
 		for v: float in hp:
-			sum += v
-			most = maxf(most, v)
-		assert_float(sum / hp.size()).override_failure_message("stage %d average HP x" % (s + 1)).is_less(float(P62_HP_AVG[s - 1]))
-		assert_float(most).is_less(P62_HP_MAX)
-		# the ramp: a stage's first rows start softer than its last ones
-		var early := INF
-		var late := 0.0
-		for r in tl["roster"]:
-			var t := float(r.get("t", 0.0))
-			var st = r.get("stats", {})
-			if not (st is Dictionary and (st as Dictionary).has("hp_mult")):
-				continue
-			if t > STAGE * s and t < STAGE * s + 60.0:
-				early = minf(early, float(st["hp_mult"]))
-			if t > STAGE * s + 280.0 and t < STAGE * (s + 1) + 1.0:
-				late = maxf(late, float(st["hp_mult"]))
-		assert_float(late).is_greater(early * 3.0)
+			assert_float(v).override_failure_message("stage %d row HP x" % (s + 1)).is_greater(0.0)
+			assert_float(v).override_failure_message("stage %d row HP x" % (s + 1)).is_less(20.0)
 
 
 func test_the_elite_events_are_softer_than_pass_62() -> void:

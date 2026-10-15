@@ -258,10 +258,12 @@ func test_the_maps_pace_scales_the_xp_a_level_needs() -> void:
 	var tl: WaveTimeline = Run.map.timeline
 	assert_float(tl.xp_need_mult).is_greater_equal(1.0)
 	var curve := func(n: int) -> float: return 15.0 + 6.0 * n + 0.5 * n * n
+	# pass 82 re-pin (lane XP): the map's own growth type (XpCurve; none = the curve above), read, never pinned
+	var map_curve := func(n: int) -> float: return XpCurve.need(tl.xp_curve, n)
 	for n in [1, 5, 20]:
-		assert_float(Run.xp_to_next(n)).is_equal_approx(curve.call(n) * tl.xp_need_mult, 0.001)
+		assert_float(Run.xp_to_next(n)).is_equal_approx(map_curve.call(n) * tl.xp_need_mult, 0.001)
 	Run.level = 7
-	assert_float(Run.xp_to_next()).is_equal_approx(curve.call(7) * tl.xp_need_mult, 0.001)
+	assert_float(Run.xp_to_next()).is_equal_approx(map_curve.call(7) * tl.xp_need_mult, 0.001)
 	# the reader: 1 when the map says nothing
 	assert_float(JsonContent.timeline_from_dict({}).xp_need_mult).is_equal(1.0)
 	assert_float(JsonContent.timeline_from_dict({"xp_need_mult": 1.433}).xp_need_mult).is_equal_approx(1.433, 0.0001)

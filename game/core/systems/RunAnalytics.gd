@@ -1408,10 +1408,13 @@ static func map_settings(tl: WaveTimeline) -> Dictionary:
 	# pass 80: the water's slow and the oases block, the game's defaults under the map's keys
 	var oa: Dictionary = WaveTimeline.OASES_DEFAULTS.duplicate()
 	oa.merge(tl.oases, true)
+	# pass 82 (lane XP): the XP growth type as played, its numbers with XpCurve's defaults filled in
+	var xc: Dictionary = {"type": XpCurve.type_of(tl.xp_curve)}
+	xc.merge(XpCurve.params_of(tl.xp_curve), true)
 	return {"hero_knockback_mult": tl.hero_knockback_mult, "special_defaults": sd, "boss_hp_scaling": bs,
 		"target_priority": tp, "spawn_rise": sr, "creature_hp_mult": tl.creature_hp_mult,
 		"creature_damage_mult": tl.creature_damage_mult, "creature_speed_mult": tl.creature_speed_mult,
-		"move_pace": tl.move_pace, "xp_need_mult": tl.xp_need_mult, "water_slow": tl.water_slow, "oases": oa}
+		"move_pace": tl.move_pace, "xp_need_mult": tl.xp_need_mult, "xp_curve": xc, "water_slow": tl.water_slow, "oases": oa}
 
 
 ## id -> display name for everything the record mentions, so the dashboard needs no content folder.

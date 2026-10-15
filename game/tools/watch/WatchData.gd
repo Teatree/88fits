@@ -7,6 +7,10 @@
 ## headless (tests/pass80_watch_test.gd). Tools only.
 extends RefCounted
 
+## Pass 82 (lane STATS' rule, one definition for the Sim, the dashboard and the Watch): sim_run.gd pickup_kind(e) names
+## what an event picked up: "chests", "powerups", "totems" or "".
+const SIM := preload("res://tools/sim_run.gd")
+const PICKUP_KEYS := ["chests", "powerups", "totems"]
 const DPS_WINDOW := 5
 const AFTER_S := 30.0
 const BEFORE_S := 30.0
@@ -49,6 +53,12 @@ var falls: Array = []
 ## the bot's decisions as it logged them, each with the Watch's fill: real_before, real_after (-1 = n/a), real_change
 ## (NAN = n/a)
 var decisions: Array = []
+## pass 82: the play seconds of each pickup by kind (lane STATS' rule: SIM.pickup_kind), oldest first; the specials that
+## came (the recorder's "special"), fell ("special_kill") and the chests their deaths dropped
+var pickups: Dictionary = {"chests": [], "powerups": [], "totems": []}
+var specials_came := 0
+var specials_killed := 0
+var special_chests := 0
 
 var _rows_read := 0
 var _events_read := 0
@@ -120,13 +130,29 @@ func read_events(events: Array, last_hits: Array = []) -> int:
 			arrivals.append({"t": float(e.get("t", 0.0)), "clock": float(e.get("clock", 0.0)), "kind": kind,
 				"id": str(e.get("id", "")), "level": int(e.get("level", 0)), "via": str(e.get("via", "")),
 				"line": bool(e.get("line", false))})
+		elif kind == "special":
+			specials_came += 1
+		elif kind == "special_kill":
+			specials_killed += 1
+			if bool(e.get("chest", false)):
+				special_chests += 1
 		elif kind == "death":
 			var last: Array = []
 			for i in range(last_hits.size() - 1, maxi(last_hits.size() - 6, 0) - 1, -1):
 				last.append(last_hits[i])
 			falls.append({"t": float(e.get("t", 0.0)), "clock": float(e.get("clock", 0.0)), "killer": str(e.get("id", "")),
 				"hit": str(e.get("hit", "")), "last": last})
+		# pass 82: a chest, a power-up or a totem gift (the same event may be nothing else above: chest, pickup, totem)
+		var pk := str(SIM.pickup_kind(e))
+		if pk != "":
+			(pickups[pk] as Array).append(float(e.get("t", 0.0)))
 	return _events_read - n0
+
+
+## Pass 82: the run's totals so far {chests, powerups, totems}.
+func pickup_totals() -> Dictionary:
+	return {"chests": (pickups["chests"] as Array).size(), "powerups": (pickups["powerups"] as Array).size(),
+		"totems": (pickups["totems"] as Array).size()}
 
 
 ## A decision entry from the bot (INTERFACES.md), kept with the Watch's fill fields (real_before / real_after: -1 until
@@ -149,8 +175,8 @@ func fill_decisions(now: float, final: bool = false) -> int:
 	for d in decisions:
 		if bool(d.get("filled", false)):
 			continue
-		# a walking goal changes no build: no DPS change of its own
-		if str(d.get("kind", "")) == "goal":
+		# a walking goal (pass 82: or a hunt's end) changes no build: no DPS change of its own
+		if str(d.get("kind", "")) in ["goal", "special"]:
 			d["filled"] = true
 			continue
 		var at := float(d.get("t", 0.0))

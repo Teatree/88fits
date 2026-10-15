@@ -503,7 +503,8 @@
         "until": 430,
         "stats": {
           "hp": 20,
-          "size": 1.4
+          "size": 1.4,
+          "hp_mult": 2
         },
         "pattern": "ring",
         "pack": 35
@@ -526,7 +527,7 @@
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.27,
+          "hp_mult": 1.0,
           "max_alive": 3
         }
       },
@@ -547,7 +548,7 @@
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 0.27
+          "hp_mult": 1.0
         }
       },
       {
@@ -564,10 +565,7 @@
             4.0
           ]
         ],
-        "until": 536,
-        "stats": {
-          "hp": 40
-        }
+        "until": 536
       },
       {
         "id": "r22",
@@ -587,7 +585,6 @@
         "pack": 100,
         "pattern": "in_front",
         "stats": {
-          "hp_mult": 0.5,
           "size": [
             1.0,
             1.35
@@ -610,10 +607,7 @@
             5.0
           ]
         ],
-        "pack": 6,
-        "stats": {
-          "hp_mult": 0.68
-        }
+        "pack": 6
       },
       {
         "id": "r24",
@@ -634,7 +628,7 @@
         "pack": 4,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.68
+          "hp_mult": 2.0
         }
       },
       {
@@ -657,10 +651,7 @@
           ]
         ],
         "pack": 2,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.73
-        }
+        "pattern": "scatter"
       },
       {
         "id": "r26",
@@ -680,7 +671,6 @@
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.73,
           "max_alive": 4
         }
       },

@@ -167,6 +167,9 @@ const HERO_KNOCKBACK_DEFAULT := 0.5
 ## than the cap, so the longer stage pays more XP; measured with smoke_run perf=1 (pass 46), 2.0 brings the hero to the
 ## first boss at about level 22 after 7:10 where pass 45's reached level 21 after 5:00, levelling at about 0.7 times the pace.
 @export var xp_need_mult: float = 1.0
+## Pass 82 (lane XP): the XP growth type and its numbers (XpCurve): {"type": "quadratic" | "linear" | "exponential" |
+## "power" | "table", <type>: {its numbers}}; {} = today's quadratic 15 + 6L + 0.5L^2. Every type times xp_need_mult.
+@export var xp_curve: Dictionary = {}
 ## Pass 79 (lane MUT): whether a mutation level-up counts as a level for what grows with the hero's level (the creatures'
 ## level factor, his trait, Barrel Rush, Ram, Supply Drop; Run.card_level). False: they count the card levels only, so
 ## the same minute brings the same scaling as the curve before mutations came as level-ups.
@@ -240,6 +243,10 @@ func spawn_rise_value(key: String) -> float:
 ## roofs, "riser" its shaded sides, "beams" (was "boulders") its vigas.
 @export var rock_color: String = ""
 @export var wall_colors: Dictionary = {}
+## Pass 82 (lane SAND; Garry: "I want to be able to switch between them easily. Maybe in the LevelEditor"): which sand
+## the ground is painted with, an id of RedCanyon.SANDS (its file and scale); "" or an id the map does not know plays
+## RedCanyon.SAND_DEFAULT (pass 81's painting, art/env/sand.png).
+@export var sand: String = ""
 
 
 ## A colour key's value as a Color (pass 79): "#RRGGBB" (or "RRGGBB", or [r, g, b] 0..1), else `fallback`.

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+html{background:#1c1a17}body{margin:0;background:#1c1a17;color:#f3e6c8;font-family:Bitter,serif}
+a{color:#c9932f}a:hover{color:#f3e6c8}
+</style>
+</helmet>
+
+<section style="padding:48px;display:flex;flex-direction:column;gap:40px;background:#1c1a17;min-width:max-content">
+<div style="display:flex;align-items:baseline;gap:20px;flex-wrap:wrap">
+  <div style="font:400 14px 'Alfa Slab One',serif;letter-spacing:.2em;color:#c9932f">TURN 1 · THE TOTEM</div>
+  <div style="font:400 22px Bitter,serif;color:#e2cfa4;max-width:1500px">Three directions, all in the Wanted kit so the screen matches the rest of the UI; they differ in what the screen is. 1080×1920 at half size. The pole is cut from today's screen; the carved faces are low-res crops standing in for painted spirit icons.</div>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start">
+
+<!-- ═══════ 1a THE SHRINE SHEET ═══════ -->
+<div id="1a" style="display:flex;flex-direction:column;gap:16px;width:1720px">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <a href="#1a" style="font:400 14px 'Alfa Slab One',serif;background:#c9932f;color:#241b14;padding:6px 12px;text-decoration:none">1a</a>
+    <div style="font:400 36px 'Alfa Slab One',serif;color:#f3e6c8">The Shrine Sheet</div>
+    <div style="font:400 20px Bitter,serif;color:#e2cfa4">A sheet rises over the lower third; the world, the pole and the hero stay in view. No title: the glowing pole is the giver. Reads in two seconds, gone in one.</div>
+  </div>
+  <div style="display:flex;gap:24px;align-items:flex-start">
+    <div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+    <div data-screen-label="1a Totem sheet" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(totem/bg-totem.png) center/cover;font-family:Bitter,serif;color:#241b14">
+      <div style="position:absolute;top:0;left:0;right:0;height:22px;background:#241b14"></div>
+      <div style="position:absolute;top:4px;left:0;width:61%;height:14px;background:#8a4fb0"></div>
+      <div style="position:absolute;top:44px;left:36px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14">LV 9</div>
+      <div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);font:400 72px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:0 40px;line-height:1.15;box-shadow:5px 5px 0 #241b14">02:30</div>
+      <div style="position:absolute;top:44px;right:150px;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>47</div>
+      <div style="position:absolute;top:40px;right:36px;width:88px;height:88px;border-radius:50%;background:#c9932f;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center"><div style="display:flex;gap:10px"><span style="width:12px;height:38px;background:#241b14"></span><span style="width:12px;height:38px;background:#241b14"></span></div></div>
+      <div style="position:absolute;top:170px;left:36px;display:flex;gap:14px;align-items:flex-start">
+        <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/peashooter.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">4</span></div>
+        <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span></div>
+        <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">2</span></div>
+        <div style="width:20px"></div>
+        <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/magnet.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">2</span></div>
+        <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/energyshield.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">1</span></div>
+      </div>
+      <div style="position:absolute;top:0;left:0;right:0;height:1220px;background:rgba(48,30,14,.5)"></div>
+      <div style="position:absolute;left:150px;top:880px;width:540px;height:540px;background:radial-gradient(circle,rgba(63,143,138,.55) 0%,rgba(63,143,138,0) 62%)"></div>
+      <div style="position:absolute;top:1220px;left:0;right:0;bottom:0;background:#e2cfa4;border-top:6px solid #241b14"></div>
+      <img src="totem/crest.png" style="position:absolute;left:380px;top:1130px;width:320px">
+      <div style="position:absolute;top:1258px;left:48px;font:600 26px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">TOTEM 4 OF 11</div>
+      <div style="position:absolute;top:1258px;right:48px;font:italic 400 26px Bitter,serif;color:#5a4a3a">Pick one. It stays all run.</div>
+      <div style="position:absolute;left:48px;top:1330px;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 32px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4;box-sizing:content-box"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span>+3%</span></div></div>
+      </div>
+      <div style="position:absolute;left:48px;top:1520px;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-bear.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+6%</span><span style="font:600 32px Bitter,serif">attack damage</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Chet-woot, the Bear</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span>+6%</span></div></div>
+      </div>
+      <div style="position:absolute;left:48px;top:1710px;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-frog.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 32px Bitter,serif">XP gain</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Frog</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14"></div><div style="flex:1;border-left:3px solid #241b14"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span>+4%</span></div></div>
+      </div>
+    </div></div>
+
+    <div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+    <div data-screen-label="1a Totem sheet pressed" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(totem/bg-totem.png) center/cover;font-family:Bitter,serif;color:#241b14">
+      <div style="position:absolute;top:0;left:0;right:0;height:22px;background:#241b14"></div>
+      <div style="position:absolute;top:4px;left:0;width:61%;height:14px;background:#8a4fb0"></div>
+      <div style="position:absolute;top:44px;left:36px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14">LV 9</div>
+      <div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);font:400 72px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:0 40px;line-height:1.15;box-shadow:5px 5px 0 #241b14">02:30</div>
+      <div style="position:absolute;top:44px;right:150px;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>47</div>
+      <div style="position:absolute;top:40px;right:36px;width:88px;height:88px;border-radius:50%;background:#c9932f;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center"><div style="display:flex;gap:10px"><span style="width:12px;height:38px;background:#241b14"></span><span style="width:12px;height:38px;background:#241b14"></span></div></div>
+      <div style="position:absolute;top:170px;left:36px;display:flex;gap:14px;align-items:flex-start">
+        <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/peashooter.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">4</span></div>
+        <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span></div>
+        <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">2</span></div>
+        <div style="width:20px"></div>
+        <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/magnet.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">2</span></div>
+        <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/energyshield.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">1</span></div>
+      </div>
+      <div style="position:absolute;top:0;left:0;right:0;height:1220px;background:rgba(48,30,14,.5)"></div>
+      <div style="position:absolute;left:150px;top:880px;width:540px;height:540px;background:radial-gradient(circle,rgba(63,143,138,.75) 0%,rgba(63,143,138,0) 62%)"></div>
+      <div style="position:absolute;top:1220px;left:0;right:0;bottom:0;background:#e2cfa4;border-top:6px solid #241b14"></div>
+      <img src="totem/crest.png" style="position:absolute;left:380px;top:1130px;width:320px">
+      <div style="position:absolute;top:1258px;left:48px;font:600 26px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">TOTEM 4 OF 11</div>
+      <div style="position:absolute;left:48px;top:1330px;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px;opacity:.6">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 32px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span>+3%</span></div></div>
+      </div>
+      <div style="position:absolute;left:48px;top:1520px;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;display:flex;align-items:center;gap:24px;padding:0 24px;transform:translate(6px,6px);outline:6px solid #c9932f;outline-offset:-10px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center;box-shadow:0 0 34px #3f8f8a"><img src="totem/face-bear.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+6%</span><span style="font:600 32px Bitter,serif">attack damage</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Chet-woot, the Bear</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span>+6%</span></div></div>
+      </div>
+      <div style="position:absolute;left:48px;top:1710px;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px;opacity:.6">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-frog.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 32px Bitter,serif">XP gain</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Frog</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14"></div><div style="flex:1;border-left:3px solid #241b14"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span>+4%</span></div></div>
+      </div>
+    </div></div>
+
+    <div style="width:560px;flex:none;background:#f3e6c8;border:5px solid #241b14;box-shadow:10px 10px 0 #241b14;padding:24px;display:flex;flex-direction:column;gap:18px;color:#241b14">
+      <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">ONE GIFT · THREE ROLLS · AT HALF SIZE</div>
+      <div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">LOW · bottom third of +1% to +3%</div>
+      <div style="width:492px;height:85px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1">+1%</span><span style="font:600 32px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14"></div><div style="flex:1;border-left:3px solid #241b14"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span>+3%</span></div></div>
+      </div></div>
+      <div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">MIDDLE</div>
+      <div style="width:492px;height:85px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 32px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span>+3%</span></div></div>
+      </div></div>
+      <div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">TOP · the number turns brass</div>
+      <div style="width:492px;height:85px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+3%</span><span style="font:600 32px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14;background:#c9932f"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span>+3%</span></div></div>
+      </div></div>
+      <div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a;margin-top:6px">THE LONGEST TEXTS FIT WITHOUT SHRINKING</div>
+      <div style="width:492px;height:85px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:984px;height:170px;box-sizing:border-box;background:#f3e6c8;border:4px solid #241b14;box-shadow:6px 6px 0 #241b14;display:flex;align-items:center;gap:24px;padding:0 24px">
+        <div style="width:120px;height:120px;flex:none;box-sizing:border-box;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="totem/face-seasnake.png" style="width:96px"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 52px 'Alfa Slab One',serif;line-height:1">+0.1</span><span style="font:600 32px Bitter,serif">regen per second</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Se-sook, the Two-headed Serpent</div></div>
+        <div style="width:220px;flex:none;display:flex;flex-direction:column;gap:6px"><div style="display:flex;height:14px;border:3px solid #241b14;background:#e2cfa4"><div style="flex:1;background:#c9932f"></div><div style="flex:1;border-left:3px solid #241b14"></div><div style="flex:1;border-left:3px solid #241b14"></div></div><div style="display:flex;justify-content:space-between;font:600 18px Bitter,serif;color:#5a4a3a"><span>+0.1</span><span>+0.3</span></div></div>
+      </div></div>
+      <div style="font:400 17px Bitter,serif;color:#5a4a3a;line-height:1.45">The gauge shows the roll inside its own range with both ends written, so it cannot be read as rarity. The italic hint shows on the first totem of a run only. The pole in the world pulses turquoise while the sheet is up, then greys when it closes.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 1b THE SPIRIT POLE ═══════ -->
+<div id="1b" style="display:flex;flex-direction:column;gap:16px;width:1720px">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <a href="#1b" style="font:400 14px 'Alfa Slab One',serif;background:#c9932f;color:#241b14;padding:6px 12px;text-decoration:none">1b</a>
+    <div style="font:400 36px 'Alfa Slab One',serif;color:#f3e6c8">The Spirit Pole</div>
+    <div style="font:400 20px Bitter,serif;color:#e2cfa4">The offer builds a pole: the thunderbird on top, the three offered spirits carved under it, a tag nailed beside each. Tap a face or its tag.</div>
+  </div>
+  <div style="display:flex;gap:24px;align-items:flex-start">
+    <div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+    <div data-screen-label="1b Spirit pole" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(totem/bg-totem.png) center/cover;font-family:Bitter,serif;color:#241b14">
+      <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+      <div style="position:absolute;top:300px;left:60px;font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ TOTEM 4 OF 11 ★</div>
+      <img src="totem/crest.png" style="position:absolute;left:0;top:372px;width:420px">
+      <div style="position:absolute;left:60px;top:500px;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:240px"></div>
+      <div style="position:absolute;left:390px;top:530px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px">
+        <div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+        <div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 30px Bitter,serif">move speed</span></div>
+        <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div>
+        <div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span>+3%</span></div>
+      </div>
+      <div style="position:absolute;left:60px;top:840px;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center"><img src="totem/face-bear.png" style="width:240px"></div>
+      <div style="position:absolute;left:390px;top:870px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px">
+        <div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+        <div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+6%</span><span style="font:600 30px Bitter,serif">attack damage</span></div>
+        <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Chet-woot, the Bear</div>
+        <div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span>+6%</span></div>
+      </div>
+      <div style="position:absolute;left:60px;top:1180px;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center"><img src="totem/face-frog.png" style="width:240px"></div>
+      <div style="position:absolute;left:390px;top:1210px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px">
+        <div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+        <div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 30px Bitter,serif">XP gain</span></div>
+        <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Frog</div>
+        <div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span>+4%</span></div>
+      </div>
+      <div style="position:absolute;left:30px;top:1510px;width:360px;height:64px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:6px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18)"></div>
+    </div></div>
+
+    <div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+    <div data-screen-label="1b Spirit pole pressed" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(totem/bg-totem.png) center/cover;font-family:Bitter,serif;color:#241b14">
+      <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+      <div style="position:absolute;top:300px;left:60px;font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ TOTEM 4 OF 11 ★</div>
+      <img src="totem/crest.png" style="position:absolute;left:0;top:372px;width:420px">
+      <div style="position:absolute;left:60px;top:500px;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center;opacity:.6"><img src="totem/face-wolf.png" style="width:240px"></div>
+      <div style="position:absolute;left:390px;top:530px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px;opacity:.6">
+        <div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+        <div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 30px Bitter,serif">move speed</span></div>
+        <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div>
+        <div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span>+3%</span></div>
+      </div>
+      <div style="position:absolute;left:60px;top:840px;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18),0 0 44px #3f8f8a;display:grid;place-items:center;transform:translateX(14px)"><img src="totem/face-bear.png" style="width:240px"></div>
+      <div style="position:absolute;left:390px;top:870px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px;transform:translate(8px,8px);outline:6px solid #c9932f;outline-offset:-11px">
+        <div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+        <div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+6%</span><span style="font:600 30px Bitter,serif">attack damage</span></div>
+        <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Chet-woot, the Bear</div>
+        <div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span>+6%</span></div>
+      </div>
+      <div style="position:absolute;left:60px;top:1180px;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center;opacity:.6"><img src="totem/face-frog.png" style="width:240px"></div>
+      <div style="position:absolute;left:390px;top:1210px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px;opacity:.6">
+        <div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+        <div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 30px Bitter,serif">XP gain</span></div>
+        <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Frog</div>
+        <div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+2%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span>+4%</span></div>
+      </div>
+      <div style="position:absolute;left:30px;top:1510px;width:360px;height:64px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:6px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18)"></div>
+    </div></div>
+
+    <div style="width:560px;flex:none;background:#f3e6c8;border:5px solid #241b14;box-shadow:10px 10px 0 #241b14;padding:24px;display:flex;flex-direction:column;gap:18px;color:#241b14">
+      <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">ONE GIFT · THREE ROLLS · AT HALF SIZE</div>
+      <div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">LOW</div>
+      <div style="width:496px;height:150px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:992px;height:300px">
+        <div style="position:absolute;left:0;top:0;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:240px"></div>
+        <div style="position:absolute;left:330px;top:30px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px"><div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1">+1%</span><span style="font:600 30px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div><div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span>+3%</span></div></div>
+      </div></div>
+      <div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">MIDDLE</div>
+      <div style="width:496px;height:150px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:992px;height:300px">
+        <div style="position:absolute;left:0;top:0;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:240px"></div>
+        <div style="position:absolute;left:330px;top:30px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px"><div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1">+2%</span><span style="font:600 30px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div><div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#e2cfa4;border:3px solid #241b14"></span><span>+3%</span></div></div>
+      </div></div>
+      <div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">TOP</div>
+      <div style="width:496px;height:150px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:992px;height:300px">
+        <div style="position:absolute;left:0;top:0;width:300px;height:300px;box-sizing:border-box;background:#b4472b;border:6px solid #241b14;border-radius:10px;box-shadow:inset 0 0 0 8px rgba(0,0,0,.18);display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:240px"></div>
+        <div style="position:absolute;left:330px;top:30px;width:630px;height:240px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:0 30px 0 40px;display:flex;flex-direction:column;justify-content:center;gap:10px"><div style="position:absolute;left:-19px;top:50%;margin-top:-16px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 48px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+3%</span><span style="font:600 30px Bitter,serif">move speed</span></div><div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Le-loo, the Wolf</div><div style="display:flex;align-items:center;gap:8px;font:600 18px Bitter,serif;color:#5a4a3a"><span>+1%</span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span style="width:56px;height:18px;box-sizing:border-box;background:#c9932f;border:3px solid #241b14"></span><span>+3%</span></div></div>
+      </div></div>
+      <div style="font:400 17px Bitter,serif;color:#5a4a3a;line-height:1.45">Strongest sense of the spirits; the pole is the screen. Costs 11 carved-face segments of art and 1,100 px of height, and the whole run is hidden behind the dim. The notches carry the range ends like 1a.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 1c THE TRIPTYCH ═══════ -->
+<div id="1c" style="display:flex;flex-direction:column;gap:16px;width:1720px">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <a href="#1c" style="font:400 14px 'Alfa Slab One',serif;background:#c9932f;color:#241b14;padding:6px 12px;text-decoration:none">1c</a>
+    <div style="font:400 36px 'Alfa Slab One',serif;color:#f3e6c8">The Triptych</div>
+    <div style="font:400 20px Bitter,serif;color:#e2cfa4">Three carved medallions side by side, the roll painted on each ring, a plaque under each, a line of voice from the spirit you press. The ceremonial one.</div>
+  </div>
+  <div style="display:flex;gap:24px;align-items:flex-start">
+    <div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+    <div data-screen-label="1c Triptych" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(totem/bg-totem.png) center/cover;font-family:Bitter,serif;color:#241b14">
+      <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+      <div style="position:absolute;top:110px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+        <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ CARVED SPIRITS ★</div>
+        <div style="font:400 150px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">THE TOTEM</div>
+        <div style="font:italic 400 30px Bitter,serif;color:#e2cfa4;margin-top:10px">Three spirits lean in. Take one gift.</div>
+      </div>
+      <img src="totem/crest.png" style="position:absolute;left:360px;top:440px;width:360px">
+      <div style="position:absolute;left:48px;top:640px;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px">
+        <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#3f8f8a 123deg 237deg,#241b14 237deg 243deg,#e2cfa4 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:170px"></div></div>
+        <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px">
+          <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+          <div style="font:400 84px 'Alfa Slab One',serif;line-height:1">+2%</div><div style="font:600 30px Bitter,serif">move speed</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +1% to +3%</div>
+          <div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Le-loo</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">the Wolf</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:384px;top:640px;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px">
+        <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#3f8f8a 123deg 237deg,#241b14 237deg 243deg,#3f8f8a 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-bear.png" style="width:170px"></div></div>
+        <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px">
+          <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+          <div style="font:400 84px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+6%</div><div style="font:600 30px Bitter,serif">attack damage</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +2% to +6%</div>
+          <div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Chet-woot</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">the Bear</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:720px;top:640px;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px">
+        <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#e2cfa4 123deg 237deg,#241b14 237deg 243deg,#e2cfa4 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-frog.png" style="width:170px"></div></div>
+        <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px">
+          <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+          <div style="font:400 84px 'Alfa Slab One',serif;line-height:1">+2%</div><div style="font:600 30px Bitter,serif">XP gain</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +2% to +4%</div>
+          <div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Frog</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">&nbsp;</div>
+        </div>
+      </div>
+    </div></div>
+
+    <div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+    <div data-screen-label="1c Triptych pressed" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(totem/bg-totem.png) center/cover;font-family:Bitter,serif;color:#241b14">
+      <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+      <div style="position:absolute;top:110px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+        <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ CARVED SPIRITS ★</div>
+        <div style="font:400 150px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">THE TOTEM</div>
+        <div style="font:italic 400 30px Bitter,serif;color:#e2cfa4;margin-top:10px">Three spirits lean in. Take one gift.</div>
+      </div>
+      <img src="totem/crest.png" style="position:absolute;left:360px;top:440px;width:360px">
+      <div style="position:absolute;left:48px;top:640px;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px;opacity:.55">
+        <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#3f8f8a 123deg 237deg,#241b14 237deg 243deg,#e2cfa4 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:170px"></div></div>
+        <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px">
+          <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+          <div style="font:400 84px 'Alfa Slab One',serif;line-height:1">+2%</div><div style="font:600 30px Bitter,serif">move speed</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +1% to +3%</div>
+          <div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Le-loo</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">the Wolf</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:384px;top:640px;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px">
+        <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#3f8f8a 123deg 237deg,#241b14 237deg 243deg,#3f8f8a 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center;transform:translateY(-16px);box-shadow:0 0 50px #3f8f8a"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-bear.png" style="width:170px"></div></div>
+        <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px;transform:translate(8px,8px);outline:6px solid #c9932f;outline-offset:-11px">
+          <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+          <div style="font:400 84px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+6%</div><div style="font:600 30px Bitter,serif">attack damage</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +2% to +6%</div>
+          <div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Chet-woot</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">the Bear</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:720px;top:640px;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px;opacity:.55">
+        <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#e2cfa4 123deg 237deg,#241b14 237deg 243deg,#e2cfa4 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-frog.png" style="width:170px"></div></div>
+        <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px">
+          <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+          <div style="font:400 84px 'Alfa Slab One',serif;line-height:1">+2%</div><div style="font:600 30px Bitter,serif">XP gain</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +2% to +4%</div>
+          <div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Frog</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">&nbsp;</div>
+        </div>
+      </div>
+      <div style="position:absolute;top:1500px;left:0;right:0;text-align:center;font:italic 400 34px Bitter,serif;color:#f3e6c8;text-shadow:2px 2px 0 #241b14">“The Bear does not ask twice.”</div>
+    </div></div>
+
+    <div style="width:560px;flex:none;background:#f3e6c8;border:5px solid #241b14;box-shadow:10px 10px 0 #241b14;padding:24px;display:flex;flex-direction:column;gap:18px;color:#241b14">
+      <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">ONE GIFT · THREE ROLLS · AT HALF SIZE</div>
+      <div style="display:flex;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">LOW</div><div style="width:160px;height:400px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px">
+          <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#e2cfa4 123deg 237deg,#241b14 237deg 243deg,#e2cfa4 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:170px"></div></div>
+          <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px"><div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div><div style="font:400 84px 'Alfa Slab One',serif;line-height:1">+1%</div><div style="font:600 30px Bitter,serif">move speed</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +1% to +3%</div><div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div><div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Le-loo</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">the Wolf</div></div>
+        </div></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">MIDDLE</div><div style="width:160px;height:400px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px">
+          <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#3f8f8a 123deg 237deg,#241b14 237deg 243deg,#e2cfa4 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:170px"></div></div>
+          <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px"><div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div><div style="font:400 84px 'Alfa Slab One',serif;line-height:1">+2%</div><div style="font:600 30px Bitter,serif">move speed</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +1% to +3%</div><div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div><div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Le-loo</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">the Wolf</div></div>
+        </div></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="font:600 13px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">TOP</div><div style="width:160px;height:400px;position:relative"><div style="position:absolute;left:0;top:0;transform:scale(.5);transform-origin:0 0;width:312px;display:flex;flex-direction:column;align-items:center;gap:30px">
+          <div style="width:280px;height:280px;box-sizing:border-box;border-radius:50%;border:5px solid #241b14;background:conic-gradient(from -90deg,#241b14 0 3deg,#3f8f8a 3deg 117deg,#241b14 117deg 123deg,#3f8f8a 123deg 237deg,#241b14 237deg 243deg,#3f8f8a 243deg 357deg,#241b14 357deg 360deg);display:grid;place-items:center"><div style="width:214px;height:214px;box-sizing:border-box;border-radius:50%;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center"><img src="totem/face-wolf.png" style="width:170px"></div></div>
+          <div style="position:relative;width:312px;height:480px;box-sizing:border-box;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 20px"><div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;box-sizing:border-box;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div><div style="font:400 84px 'Alfa Slab One',serif;line-height:1;color:#a8792a">+3%</div><div style="font:600 30px Bitter,serif">move speed</div><div style="font:400 22px Bitter,serif;color:#5a4a3a">of +1% to +3%</div><div style="width:60px;height:4px;background:#e2cfa4;margin:10px 0"></div><div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Le-loo</div><div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">the Wolf</div></div>
+        </div></div></div>
+      </div>
+      <div style="font:400 17px Bitter,serif;color:#5a4a3a;line-height:1.45">The most ceremony and the most character: a voice line per spirit (33 lines to write). The ring reads as rarity at a glance, so the plaque spells the range out under the stat. Costs the full screen and a level-up's weight, eleven times a run.</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ═══════ THE PICK ═══════ -->
+<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+<div style="width:1000px;display:flex;flex-direction:column;gap:14px">
+  <div style="font:400 30px 'Alfa Slab One',serif;color:#f3e6c8">The pick: <a href="#1a">1a</a>, the Shrine Sheet</div>
+  <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:32px;color:#241b14;font:400 18px Bitter,serif;line-height:1.5;display:flex;flex-direction:column;gap:16px">
+    <div>It is the only one of the three sized to the reward. Eleven times a run, a tenth of a level-up's value: a sheet that rises, reads in two seconds and drops. The pole and the hero stay in view, so the giver is the real pole glowing in the world, not a painting of it. Nothing on the sheet is a title. It needs the least new art (eleven carved-face icons, which <a href="#1b">1b</a> and <a href="#1c">1c</a> need too) and it is the one that still works on a 20:9 phone, where it simply shows more world.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 36px">
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">THE SHEET</b><br>Full width, y 1220–1920 (700 tall, bottom-anchored; taller phones add world above, never sheet). Fill #E2CFA4, top border 6 px #241B14. Crest: the pole's thunderbird painting, 320 wide, centred, top at y 1130 so it straddles the edge. Label "TOTEM 4 OF 11": Bitter 600 26, tracking +15 %, #5A4A3A, at (48, 1258). First-totem hint "Pick one. It stays all run.": Bitter italic 26, #5A4A3A, right-aligned at x 1032, same line; never shown again that run.</div>
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5A4A3A">THE WORLD</b><br>Dim rgba(48,30,14,.5) over everything above the sheet, HUD included. The HUD root offsets by the safe-area inset, so on cutout phones the rail and plates start at y 130; the sheet is bottom-anchored and unaffected. The pole gets a turquoise glow (#3F8F8A, radius 270, alpha .35 → .6, 1.6 s loop) while the sheet is up; the ring on the sand holds full. On close the glow dies in 400 ms and the pole desaturates to grey over the same 400 ms.</div>
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">THE ROW · the whole row is the button</b><br>984 × 170 at x 48; y 1330, 1520, 1710 (gap 20). Fill #F3E6C8, border 4 px #241B14, hard shadow 6 px #241B14, no radius, padding 0 24. Plate 120 × 120: #3F8F8A, border 4 px ink, radius 10, carved-face icon 96 inside. Text column from x 192: number Alfa Slab One 52 #241B14 (#A8792A on a top-third roll) and stat Bitter 600 32 #241B14 on one baseline, 14 px apart; under it the spirit, Bitter italic 26 #5A4A3A: "Le-loo, the Wolf" (word, comma, animal; word alone when there is none). Gauge 220 wide at the right edge: track 14 tall, #E2CFA4, 3 px ink border, split in three by 3 px ink lines, filled thirds #C9932F; range ends under it in Bitter 600 18 #5A4A3A.</div>
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">THE ROLL</b><br>Thirds of the gift's own range: 1, 2 or 3 segments. The ends are always written (+1% … +3%), so a full gauge on speed never outranks an empty one on damage. On a top-third roll the number turns brass dark. No feathers, no stars, no seal: the gifts have no rarity and the screen must not invent one.</div>
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">OPEN · 420 ms</b><br>Pie completes → ring flashes turquoise 120 ms → dim 0 → .5 over 150 ms while the sheet slides up from y 1920 to 1220 in 260 ms (cubic ease-out) → rows slide in from +40 px, 180 ms each, staggered 50 ms → crest drops 24 px into place, 200 ms, 8 % overshoot. The glow loop starts with the sheet.</div>
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">PRESS · 60 ms</b><br>Row translates (6, 6), shadow to 0, 6 px #C9932F inner outline, plate glow 0 0 34 #3F8F8A; the other two rows fade to 60 %. Release inside the row takes it; drag out cancels (90 ms back). A tap anywhere else does nothing: there is no way out without a pick.</div>
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">CLOSE · 380 ms</b><br>The plate lifts off the row and flies to the toast slot (540, 300) in 300 ms ease-in-out, shrinking 120 → 72; the sheet slides down 220 ms (cubic ease-in); dim lifts 150 ms. The toast "Le-loo · +2% move speed" with the face holds 1.2 s. Control returns at 300 ms; the hero is safe for 1 s as today.</div>
+      <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">CUT, AND WHY</b><br>Eyebrow and title: the pole and the label say "totem" already. Subline: a rule, taught once. The painting: replaced by the real pole glowing. The disc: the number moved into the line. The feathers: replaced by the gauge. The two decorative feathers: gone. Added: the count, so eleven small gifts read as one accumulating thing.</div>
+    </div>
+  </div>
+</div>
+<div style="width:680px;display:flex;flex-direction:column;gap:14px">
+  <div style="font:400 30px 'Alfa Slab One',serif;color:#f3e6c8">Critique, in short</div>
+  <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:32px;color:#241b14;font:400 17px Bitter,serif;line-height:1.45;display:flex;flex-direction:column;gap:12px">
+    <div style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">VERDICT PER ELEMENT</div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 18px">
+      <b style="font:400 17px 'Alfa Slab One',serif">The dim</b><span>Keep, lighter (50 %) and only above the sheet.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The eyebrow</b><span>Cut. Merged with the count into one label.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The title</b><span>Cut. The glowing pole and the label name the screen.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The subline</b><span>Cut, except on the first totem of a run.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The painting</b><span>Rework: the real pole glows; the thunderbird becomes the sheet's crest.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The planks</b><span>Rework into paper rows in the kit.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The disc</b><span>Merge into the line: the number leads it.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The word</b><span>Keep, smaller, second: "Le-loo, the Wolf".</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The animal</b><span>Merge onto the same line as the word.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The line</b><span>Rework as the headline: number slab, stat bold.</span>
+      <b style="font:400 17px 'Alfa Slab One',serif">The feathers</b><span>Cut. A range gauge with both ends written.</span>
+    </div>
+    <div style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a;margin-top:8px">FROM THE GENRE</div>
+    <div>Megabonk: the shrine stays in the world and the pick is a panel, not a screen. Hades: the giver is present and the effect is one line. Vampire Survivors: icon, name, one line, read in a glance. Archero: a smaller moment than a level-up, scaled to the favour. Brotato: the number is the headline. Not taken from any of them: rarity frames, because these rolls are not rarity.</div>
+  </div>
+</div>
+</div>
+</section>
+</x-dc>
+</body>
+</html>

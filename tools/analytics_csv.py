@@ -46,6 +46,9 @@ HISTORY_FIRST = ["file", "stamp", "started", "version", "schema", "tool", "headl
 # RunAnalytics.INDEX_SKIP: the header blocks the index leaves out
 INDEX_SKIP = ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents", "talent_forms",
               "totems", "stat_names", "build_text"]
+# pass 82 (lane STATS): chests, power-ups and totems picked up so far, three columns after the row's own; the rule is
+# game/tools/sim_run.gd pickup_kind() and tools/level_editor/sim_model.js pickupKind() (the page's csv-lib counts with it)
+PICKUP_KEYS = ["chests", "powerups", "totems"]
 
 _MISSING = object()
 
@@ -155,6 +158,51 @@ def _t(r):
     return float(t) if is_num(t) and math.isfinite(t) else 0.0
 
 
+# ---------------------------------------------------------------- chests, power-ups, totems (pass 82)
+
+def is_small(v):
+    """A pickup's `small` as the game wrote it: true, or a number other than 0."""
+    return v is True or (is_num(v) and math.isfinite(v) and v != 0)
+
+
+def pickup_kind(e):
+    """What an event counts towards: "chests" (a `chest` event: one per chest opened, taken or skipped, a boss chest
+    too), "powerups" (a `pickup` whose `small` is not set), "totems" (a `totem` event: a Totem Pole's gift taken), else
+    ""."""
+    if not isinstance(e, dict):
+        return ""
+    kind = e.get("kind")
+    kind = "" if kind is None else (kind if isinstance(kind, str) else js_str(kind))
+    if kind == "chest":
+        return "chests"
+    if kind == "pickup":
+        return "" if is_small(e.get("small")) else "powerups"
+    if kind == "totem":
+        return "totems"
+    return ""
+
+
+def pickup_counts(events, ts):
+    """{chests, powerups, totems}: how many so far at each of the play seconds `ts` (an event counts from the first one
+    that reaches it: e.t <= t + 0.001)."""
+    times = {k: [] for k in PICKUP_KEYS}
+    for e in events or []:
+        k = pickup_kind(e)
+        if k:
+            t = e.get("t")
+            times[k].append(float(t) if is_num(t) and math.isfinite(t) else 0.0)
+    out = {}
+    for k in PICKUP_KEYS:
+        tk = sorted(times[k])
+        i, arr = 0, []
+        for t in ts:
+            while i < len(tk) and tk[i] <= t + 0.001:
+                i += 1
+            arr.append(i)
+        out[k] = arr
+    return out
+
+
 # ---------------------------------------------------------------- the three tables (dashboard.html's csv-lib)
 
 def rows_table(run):
@@ -199,6 +247,9 @@ def rows_table(run):
     map_cols = [(g, sorted(map_keys[g])) for g in maps]
     wf = [f for f in WEAPON_FIELDS if f in wfields] + sorted(f for f in wfields if f not in WEAPON_FIELDS)
     cols = base_cols + extra_cols
+    pk = pickup_counts(run.get("events") if isinstance(run.get("events"), list) else [], [_t(r) for r in rows]) if rows else None
+    if pk:
+        cols += PICKUP_KEYS
     for g, ks in map_cols:
         cols += [g + "." + k for k in ks]
     mults_k, stats_k = sorted(carry["mults"]), sorted(carry["stats"])
@@ -218,7 +269,7 @@ def rows_table(run):
         return o[k] if isinstance(o, dict) and k in o and o[k] is not None else ""
 
     out = []
-    for r in rows:
+    for ri, r in enumerate(rows):
         for g in CARRY:
             if g in r:
                 st[g] = r[g]
@@ -227,6 +278,8 @@ def rows_table(run):
             line.append(r[k] if k in r and r[k] is not None else ("" if k in EMPTY_WHEN_MISSING else 0))
         for k in extra_cols:
             line.append(r[k] if k in r and r[k] is not None else "")
+        if pk:
+            line += [pk[k][ri] for k in PICKUP_KEYS]
         for g, ks in map_cols:
             m = r.get(g)
             for k in ks:

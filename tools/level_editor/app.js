@@ -728,6 +728,8 @@ const App = (() => {
     if (d.hard_cap != null && d.cap_max != null && Number(d.hard_cap) < Number(d.cap_max)) mark('cap', 'warn', `hard_cap (${d.hard_cap}) is under cap_max (${d.cap_max}): the hard cap wins`);
     validateCurve('hp', d.hp_curve, mark, 'the HP curve');
     validateCurve('dmg', d.damage_curve, mark, 'the damage curve');
+    // pass 82 (lane XP): the XP growth type's checks (xp_model.js: a level needing 0 XP or less, an unknown type, ...)
+    if (typeof XpModel !== 'undefined') for (const m of XpModel.issues(d)) mark('settings', m.level, `XP per level: ${m.msg}`);
     const ss = d.spawn_sides;
     if (ss != null) {
       if (!U.isObj(ss)) mark('settings', 'error', 'spawn_sides must be a block {mode, top, bottom, left, right, ...}');

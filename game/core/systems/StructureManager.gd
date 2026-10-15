@@ -592,6 +592,11 @@ func _tick_portal(s: Structure, delta: float, inside: bool, dist: float) -> void
 func _use(s: Structure) -> void:
 	s.used = true
 	s.pie.visible = false
+	# pass 82 (lane TOTEM): a structure with `params.spent_motion` (the Totem Pole) keeps its paint and its ring while its
+	# screen is up; the game greys it when the gift is taken (spend_slowly), as the screen closes
+	if s.def.params.get("spent_motion") is Dictionary and str(s.def.params.get("spent", "")) == "grey":
+		game.use_structure(s.def, s.global_position)
+		return
 	s.ring.visible = false
 	if s.portal:
 		s.portal.visible = false
@@ -900,6 +905,82 @@ func _grey_out(n: Node) -> void:
 		(n as MeshInstance3D).material_override = SceneryStencil.mark(mat)
 	for c in n.get_children():
 		_grey_out(c)
+
+
+# ---------------------------------------------------------------- a Totem Pole's motion (pass 82, lane TOTEM)
+## design_handoff_88fits_totem (README "Motion"): the pie completes, the in-world ring flashes turquoise (`spent_motion`
+## `flash` seconds) and the gift screen comes up over the pole still in its paint; the gift taken, the pole drains to
+## grey over `fade` seconds and its ring fades, ending in the grey painting it has stood in since pass 73. Run while the
+## game is paused behind the screen (the tweens process through the pause).
+
+## The flash on the ring of the structure standing at `at` (the gift screen opening).
+func flash_ring(at: Vector3) -> void:
+	var s := _structure_at(at)
+	if s == null or s.ring == null:
+		return
+	var secs := float((s.def.params.get("spent_motion", {}) as Dictionary).get("flash", 0.12))
+	var rm := s.ring.material_override as StandardMaterial3D
+	if rm == null or secs <= 0.0:
+		return
+	s.ring.visible = true
+	var base := Color(s.def.color.r, s.def.color.g, s.def.color.b, 0.75)
+	var hot := Color(s.def.color.lerp(Color.WHITE, 0.55), 1.0)
+	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_property(rm, "albedo_color", hot, secs * 0.4)
+	tw.tween_property(rm, "albedo_color", base, secs * 0.6)
+
+
+## The structure standing at `at` spent: its painting drained to grey over `seconds` (spent_motion `fade` when -1; 0 at
+## once), its ring faded, then the grey painting and tint of a used pole (the end state is pass 73's).
+func spend_slowly(at: Vector3, seconds: float = -1.0) -> void:
+	var s := _structure_at(at)
+	if s == null:
+		return
+	var secs := seconds
+	if secs < 0.0:
+		secs = float((s.def.params.get("spent_motion", {}) as Dictionary).get("fade", 0.4))
+	var bs := s.visual as BillboardSprite
+	var grey := grey_painting(s.def)
+	var rm: StandardMaterial3D = null
+	if s.ring:
+		rm = s.ring.material_override as StandardMaterial3D
+	var finish := func() -> void:
+		if not is_instance_valid(s):
+			return
+		if s.ring:
+			s.ring.visible = false
+		if bs and grey:
+			bs.set_texture(grey)
+			bs.set_desat(0.0)
+			bs.set_tint(SPENT_GREY_TINT)
+		elif s.visual:
+			_grey_out(s.visual)
+	if secs <= 0.0 or bs == null:
+		finish.call()
+		return
+	# drained of colour and darkened towards the grey painting's brightness, then the painting itself
+	var end_tint := Color(SPENT_GREY_TINT.r * SPENT_GREY_BRIGHTNESS, SPENT_GREY_TINT.g * SPENT_GREY_BRIGHTNESS,
+		SPENT_GREY_TINT.b * SPENT_GREY_BRIGHTNESS, 1.0)
+	var tw := create_tween().set_parallel(true)
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_method(func(v: float) -> void:
+		if is_instance_valid(bs):
+			bs.set_desat(v)
+			bs.set_tint(Color.WHITE.lerp(end_tint, v)), 0.0, 1.0, secs)
+	if rm:
+		var from := rm.albedo_color
+		tw.tween_property(rm, "albedo_color", Color(from.r, from.g, from.b, 0.0), secs)
+	tw.chain().tween_callback(finish)
+
+
+## How many structures of kind `id` stand on the map (the Totem screen's "TOTEM 4 OF 11").
+func count_of(id: String) -> int:
+	var n := 0
+	for s: Structure in items:
+		if s.def and s.def.id == id:
+			n += 1
+	return n
 
 
 func used_count() -> int:

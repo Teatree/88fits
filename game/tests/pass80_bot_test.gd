@@ -13,7 +13,9 @@ const GOALS := preload("res://tools/bot/BotGoals.gd")
 const LEGS := preload("res://tools/bot/BotLegs.gd")
 const SIM := preload("res://tools/sim_run.gd")
 
-const ALLOWED_INTENTS := ["kite", "sweep", "explore", "totem", "barrel", "powerup", "chest", "boss", "boss_chest", "portal", "dodge", "down"]
+# (pass 82, lane WATCH, re-pinned on purpose: "special", the hunt of a special)
+const ALLOWED_INTENTS := ["kite", "sweep", "explore", "totem", "barrel", "powerup", "chest", "boss", "boss_chest", "portal", "dodge", "down",
+	"special"]
 
 
 func after_test() -> void:
@@ -578,7 +580,9 @@ func test_the_bot_plays_a_real_run() -> void:
 	var me := g.player.global_position
 	bf.pos[0] = Vector3(me.x + 6.0, bf.pos[0].y, me.z)
 	bf.light[0] = 1
-	var off = BOT.new(g, {"seed": 9, "preset": "explorer", "barrels": false, "totems": false, "structures": false, "explore": 0.0, "powerups": false})
+	# (pass 82, re-pinned on purpose: the specials are a map goal too, so they are off here)
+	var off = BOT.new(g, {"seed": 9, "preset": "explorer", "barrels": false, "totems": false, "structures": false, "explore": 0.0, "powerups": false,
+		"specials": false})
 	# the barrels=0 bot runs no planner (no map goal is on): it never makes a barrel a goal
 	assert_object(off.planner).is_null()
 	var bot = BOT.new(g, {"seed": 9, "preset": "explorer", "explore": 0.0})

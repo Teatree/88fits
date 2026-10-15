@@ -174,6 +174,8 @@ func _inst(id: String, muts: Array = [], level := 1) -> WeaponInstance:
 # ---------------------------------------------------------------- corpses
 
 func test_a_body_keeps_the_killing_push_and_slides_on_like_a_live_one() -> void:
+	# pass 82 (lane FEEL, re-pinned on purpose): every kill now follows through like a blast's (EnemyManager._corpse_follow,
+	# pass82_feel_test): the push along the hit is raised to the floor for the hit's weight and the body is thrown up
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var i := _creature(em, Vector3(0, 0, -6))
@@ -182,24 +184,21 @@ func test_a_body_keeps_the_killing_push_and_slides_on_like_a_live_one() -> void:
 	var p0: Vector3 = em.pos[i]
 	assert_bool(em.damage(i, 99999.0, "revolver", Vector3(0, 0, -1), 10.0)).is_true()
 	assert_int(em.state[i]).is_equal(EnemyManager.STATE_DYING)
-	# the push is kept, flat, along the hit
-	assert_float(em.kb[i].length()).is_equal_approx(push, 0.001)
+	# the push is kept, flat, along the hit, at least a heavy kill's floor
+	var fp := EnemyManager.corpse_floor_push(1.0, em.size[i])
+	assert_float(em.kb[i].length()).is_equal_approx(maxf(push, fp), 0.001)
 	assert_float(em.kb[i].z).is_less(0.0)
 	assert_float(em.kb[i].y).is_equal(0.0)
-	# not a blast: no throw
-	assert_int(em.corpse_tosses).is_equal(0)
-	assert_bool(em._corpse_air.has(i)).is_false()
-	# one tick: moved by the push, which dies away as a live one's does
-	em._physics_process(DT)
-	assert_float(em.kb[i].length()).is_equal_approx(push * (1.0 - DT * EnemyManager.CORPSE_GROUND_DECAY), 0.001)
-	for k in range(40):
+	# thrown up as a blast's kill is (pass 82)
+	assert_int(em.corpse_tosses).is_equal(1)
+	assert_bool(em._corpse_air.has(i)).is_true()
+	for k in range(80):
 		em._physics_process(DT)
 	var went := _flat(em.pos[i]).distance_to(_flat(p0))
-	# about push / decay (an exponential's whole run), never more
-	assert_float(went).is_greater(push / EnemyManager.CORPSE_GROUND_DECAY * 0.6)
-	assert_float(went).is_less(push / EnemyManager.CORPSE_GROUND_DECAY * 1.2)
+	# further than the push alone slides a body over the sand
+	assert_float(went).is_greater(maxf(push, fp) / EnemyManager.CORPSE_GROUND_DECAY)
 	assert_float(em.pos[i].z).is_less(p0.z)
-	# on the ground the whole way
+	# on the ground at the end
 	assert_float(em.lift_h[i]).is_equal(0.0)
 	assert_float(em.pos[i].y).is_equal_approx(em._height(em.pos[i].x, em.pos[i].z), 0.0001)
 
@@ -211,7 +210,8 @@ func test_a_blast_kill_throws_the_body_up_and_away_and_it_lands() -> void:
 	var i := _creature(em, centre + Vector3(1.0, 0, 0))
 	var force := 14.0
 	var push := _push_of(em, i, force)
-	var h := EnemyManager.corpse_toss_height(push)
+	# pass 82 (re-pinned): the kill's own follow-through when it is higher (a heavy kill, the push all along the blast)
+	var h := maxf(EnemyManager.corpse_toss_height(push), EnemyManager.corpse_kill_toss(1.0, push))
 	assert_float(h).is_greater(0.0)
 	var p0: Vector3 = em.pos[i]
 	em.damage_radius(centre, 2.5, 99999.0, "lob_grenade", force)
@@ -247,15 +247,17 @@ func test_a_blast_kill_throws_the_body_up_and_away_and_it_lands() -> void:
 	assert_int(em.alive[i]).is_equal(0)
 
 
-func test_a_blast_without_a_push_or_a_survivor_is_not_thrown() -> void:
+func test_a_blast_without_a_push_throws_by_the_floor_and_a_survivor_is_not_thrown() -> void:
+	# pass 82 (lane FEEL, re-pinned on purpose): a kill with no push follows through too, by the floor, out of the blast
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var centre := Vector3(0, 0, -6)
 	var a := _creature(em, centre + Vector3(0.8, 0, 0))
 	em.damage_radius(centre, 2.5, 99999.0, "zone", 0.0)
 	assert_int(em.state[a]).is_equal(EnemyManager.STATE_DYING)
-	assert_int(em.corpse_tosses).is_equal(0)
-	assert_bool(em._corpse_air.has(a)).is_false()
+	assert_int(em.corpse_tosses).is_equal(1)
+	assert_bool(em._corpse_air.has(a)).is_true()
+	assert_float(em.kb[a].x).is_greater(0.0)
 	# a tough one lives through the blast: shoved as before, its feet on the ground (nothing changes for the living)
 	var b := _creature(em, centre + Vector3(-0.8, 0, 0), "skeleton", 500.0)
 	var push := _push_of(em, b, 14.0)
@@ -263,7 +265,7 @@ func test_a_blast_without_a_push_or_a_survivor_is_not_thrown() -> void:
 	assert_int(em.state[b]).is_not_equal(EnemyManager.STATE_DYING)
 	assert_float(em.kb[b].length()).is_equal_approx(push, 0.001)
 	assert_float(em.lift_h[b]).is_equal(0.0)
-	assert_int(em.corpse_tosses).is_equal(0)
+	assert_int(em.corpse_tosses).is_equal(1)
 
 
 func test_a_small_push_is_no_throw_and_a_big_one_is_capped() -> void:
@@ -336,7 +338,8 @@ func test_a_body_left_up_in_the_air_falls() -> void:
 	em.damage(i, 99999.0, "")
 	assert_int(em.state[i]).is_equal(EnemyManager.STATE_DYING)
 	assert_bool(em._corpse_air.has(i)).is_true()
-	var fall := EnemyManager.corpse_air_time(0.0, 2.0)
+	# pass 82 (re-pinned): the kill throws it a little higher first (at most CORPSE_HIT_TOSS_MAX)
+	var fall := EnemyManager.corpse_air_time(sqrt(2.0 * EnemyManager.CORPSE_G * EnemyManager.CORPSE_HIT_TOSS_MAX), 2.0)
 	for k in range(int((fall + 0.1) / DT)):
 		em._physics_process(DT)
 	assert_float(em.lift_h[i]).is_equal(0.0)

@@ -66,6 +66,8 @@
 ## Pass 73 (lane STRUCT): totem: a Totem Pole used in the run opens its menu of gifts through the one-screen rule; every
 ## plank answers a finger (muted), a real tap on one takes its gift (the menu closes, the gift is on the run, the run goes
 ## on); then a menu built under a 130 px camera cutout (totem_inset130): its planks answer and a real tap takes one.
+## Pass 82 (lane TOTEM, the Spirit Pole): each gift row (segment and tag) is one target; taps off the rows and a finger
+## dragged off a gift take nothing; totem_inset200 as well (the screen 70 px lower).
 ## Pass 76 (lane LOOKS): arena_item_looks (run with arena): a real tap on a weapon family's look chip on ITEMS keeps that
 ## look on the phone, the family wears it and a held weapon of it is made again in it; JSON gives its own look back.
 extends SceneTree
@@ -1447,43 +1449,64 @@ func _totem(g) -> void:
 		_fail("totem", "the menu", "using a pole did not open it")
 		return
 	await _audit("totem", ts)
+	# pass 82 (lane TOTEM, the Spirit Pole): taps anywhere off the gift rows (the dim, the label, the crest, the base, the
+	# gaps between rows and beside a nail) take nothing; a finger laid on a gift and dragged off it takes nothing
 	var planks: Array = ts.planks()
+	for at in [Vector2(900, 200), Vector2(200, 320), Vector2(210, 430), Vector2(210, 1540), Vector2(700, 820),
+			Vector2(540, 1800), Vector2(375, 515)]:
+		await _tap(at)
+	await _wait(0.3)
+	var still: bool = ts.visible and run.totem_boons.size() == before
+	_count("totem", still)
+	if not still:
+		_fail("totem", "the dim", "a tap off the gift rows took a gift or closed the menu")
+	var from: Vector2 = (planks[0].tag as Control).get_global_rect().get_center()
+	await _swipe(from, Vector2(540, 1800), 8)
+	await _wait(0.3)
+	var kept: bool = ts.visible and run.totem_boons.size() == before and not bool(planks[0].held)
+	_count("totem", kept)
+	if not kept:
+		_fail("totem", "a gift", "a finger dragged off it took it (or left it held)")
 	await _tap((planks[0] as Control).get_global_rect().get_center())
 	await _wait(0.6)
 	var took: bool = not ts.visible and run.totem_boons.size() == before + 1 and not g.paused
 	_count("totem", took)
 	if not took:
-		_fail("totem", "a plank", "a real tap did not take its gift and close the menu")
+		_fail("totem", "a gift", "a real tap did not take its gift and close the menu")
 		ts.visible = false
 		g.modal_reset()
 		g.set_paused(false)
-	# under a camera cutout: a menu built at a 130 px inset, its planks under real fingers
+	# under a camera cutout: a menu built at a 130 px inset (the design's own empty top) and one at 200 (the screen moved
+	# down by the 70 px past it), its gifts under real fingers
 	var st = root.get_node("Settings")
 	var was: int = st.top_inset
-	st.top_inset = 130
-	var scr = load("res://ui/TotemScreen.gd").new()
-	g.ui.add_child(scr)
-	var took2 := [{}]
-	scr.closed.connect(func(b: Dictionary) -> void: took2[0] = b)
-	g.set_paused(true)
-	scr.open(load("res://core/systems/TotemBoons.gd").offer(d), d)
-	await _wait(0.8)
-	await _audit("totem_inset130", scr)
-	var pl2: Array = scr.planks()
-	var top_ok: bool = (pl2[0] as Control).get_global_rect().position.y > scr.header.offset_top
-	_count("totem_inset130", top_ok)
-	if not top_ok:
-		_fail("totem_inset130", "the planks", "a plank sits over the header")
-	await _tap((pl2[2] as Control).get_global_rect().get_center())
-	await _wait(0.6)
-	var ok2: bool = not scr.visible and str((took2[0] as Dictionary).get("id", "")) == str(pl2[2].boon.get("id", "?"))
-	_count("totem_inset130", ok2)
-	if not ok2:
-		_fail("totem_inset130", "a plank", "a real tap did not take its gift")
-	scr.queue_free()
+	for inset in [130, 200]:
+		st.top_inset = inset
+		var screen := "totem_inset%d" % inset
+		var scr = load("res://ui/TotemScreen.gd").new()
+		g.ui.add_child(scr)
+		var took2 := [{}]
+		scr.closed.connect(func(b: Dictionary) -> void: took2[0] = b)
+		g.set_paused(true)
+		scr.open(load("res://core/systems/TotemBoons.gd").offer(d), d, 4, 11)
+		await _wait(0.8)
+		await _audit(screen, scr)
+		var pl2: Array = scr.planks()
+		var label: Rect2 = (scr.get_node("Label") as Control).get_global_rect()
+		var top_ok: bool = label.position.y >= float(inset) and (pl2[0] as Control).get_global_rect().position.y > label.end.y
+		_count(screen, top_ok)
+		if not top_ok:
+			_fail(screen, "the label", "it sits in the cutout or under the first gift")
+		await _tap((pl2[2] as Control).get_global_rect().get_center())
+		await _wait(0.6)
+		var ok2: bool = not scr.visible and str((took2[0] as Dictionary).get("id", "")) == str(pl2[2].boon.get("id", "?"))
+		_count(screen, ok2)
+		if not ok2:
+			_fail(screen, "a gift", "a real tap did not take its gift")
+		scr.queue_free()
+		g.set_paused(false)
+		await _wait(0.3)
 	st.top_inset = was
-	g.set_paused(false)
-	await _wait(0.3)
 
 
 func _gate_strip(g) -> void:

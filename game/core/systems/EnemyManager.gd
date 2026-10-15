@@ -1780,7 +1780,10 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		return false
 	if hp[i] <= 0.0:
 		var overflow: float = -hp[i]
+		# pass 82 (lane FEEL): the killing hit's way and weight, for the body's throw (_corpse_begin)
+		_corpse_note_kill(i, kb_dir, dealt, crit, mini)
 		_die(i, weapon_id)
+		_corpse_kill_i = -1
 		# Overkill: the damage past the kill splashes onto whatever stood next to it (once, no chains)
 		var ok: float = Run.player_sheet.get_stat("overkill", 0.0)
 		if ok > 0.0 and overflow > 0.5 and weapon_id != "" and not _splashing:
@@ -6739,9 +6742,90 @@ var _corpse_air: Dictionary = {}
 var corpse_tosses := 0
 var corpse_landings := 0
 
+# ---------------------------------------------------------------- pass 82 (lane FEEL): every kill throws its body
+## Garry: "The explosion thing that affects the enemy's corpses with knockback should come from all weapons. I think
+## currently it's just the dynamite." Every kill by a hit (damage(): any weapon, its burns and poisons, a blast, the
+## revive) now follows through like a blast's: the body is driven along the killing hit (the hit's own direction: the
+## shot's travel, the blade's swing, out of the blast; for a hit with none, away from the hero) at no less than
+## CORPSE_FLOOR_PUSH m/s, and thrown up CORPSE_FLOOR_TOSS m. Both grow with the hit's weight w (0..1: its damage over
+## CORPSE_HEAVY_RATIO times the creature's max HP, CORPSE_CRIT_WEIGHT more for a crit, half that for a mini crit) up to
+## CORPSE_HEAVY_PUSH / CORPSE_HEAVY_TOSS; the push the body already had along the hit adds CORPSE_HIT_TOSS_PER m of
+## height per m/s, the height capped at CORPSE_HIT_TOSS_MAX (a blast's own throw, corpse_toss_height, still applies when
+## it is higher, up to CORPSE_TOSS_MAX). The floor push shrinks for a heavy body: x CORPSE_HEFT_SIZE / its size, never
+## under CORPSE_HEFT_MIN. Never the boss, big game (an Elite, an elite-modded creature: it slides on its push as before),
+## a body in a launch (as before), or one still coming up out of the sand below rise_targetable (it sinks where it is;
+## one nearly up is shown whole and thrown); nothing changes for the living. A kill with no hit behind it (kill_all, a
+## walking bomb going off) is as before.
+const CORPSE_FLOOR_PUSH := 4.0
+const CORPSE_FLOOR_TOSS := 0.4
+const CORPSE_HEAVY_PUSH := 5.5
+const CORPSE_HEAVY_TOSS := 0.8
+const CORPSE_HEAVY_RATIO := 4.0
+const CORPSE_CRIT_WEIGHT := 0.35
+const CORPSE_HIT_TOSS_PER := 0.1
+const CORPSE_HIT_TOSS_MAX := 1.6
+const CORPSE_HEFT_SIZE := 1.5
+const CORPSE_HEFT_MIN := 0.5
+## The creature damage() is killing now (-1 outside a kill), the killing hit's flat way (unit) and its weight (0..1).
+var _corpse_kill_i := -1
+var _corpse_kill_dir := Vector3.FORWARD
+var _corpse_kill_w := 0.0
+
+
+## damage() calls it right before _die: remembers the killing hit's way (`hit_dir` flattened, else away from the hero,
+## else any way) and weight for _corpse_begin.
+func _corpse_note_kill(i: int, hit_dir: Vector3, dealt: float, crit: bool, mini_crit: bool) -> void:
+	var d := Vector3(hit_dir.x, 0.0, hit_dir.z)
+	if d.length_squared() < 0.0001 and player != null:
+		d = pos[i] - player.global_position
+		d.y = 0.0
+	if d.length_squared() < 0.0001:
+		d = Vector3(_rng.randf_range(-1.0, 1.0), 0.0, _rng.randf_range(-1.0, 1.0))
+	_corpse_kill_dir = d.normalized() if d.length_squared() > 0.0001 else Vector3.FORWARD
+	_corpse_kill_w = corpse_kill_weight(dealt / maxf(max_hp[i], 1.0), crit, mini_crit)
+	_corpse_kill_i = i
+
+
+## A killing hit's weight (0..1) from its damage over the creature's max HP (`ratio`) and whether it was a crit.
+static func corpse_kill_weight(ratio: float, crit: bool, mini_crit: bool = false) -> float:
+	var w := clampf(ratio / CORPSE_HEAVY_RATIO, 0.0, 1.0)
+	if crit:
+		w += CORPSE_CRIT_WEIGHT
+	elif mini_crit:
+		w += CORPSE_CRIT_WEIGHT * 0.5
+	return clampf(w, 0.0, 1.0)
+
+
+## The least push (m/s) along the killing hit a body of `body_size` m gets from a hit of weight `w`.
+static func corpse_floor_push(w: float, body_size: float = 1.0) -> float:
+	var heft := clampf(CORPSE_HEFT_SIZE / maxf(body_size, 0.8), CORPSE_HEFT_MIN, 1.0)
+	return lerpf(CORPSE_FLOOR_PUSH, CORPSE_HEAVY_PUSH, clampf(w, 0.0, 1.0)) * heft
+
+
+## How high (m) a kill of weight `w` throws a body that had `push` m/s along the hit.
+static func corpse_kill_toss(w: float, push: float) -> float:
+	return minf(lerpf(CORPSE_FLOOR_TOSS, CORPSE_HEAVY_TOSS, clampf(w, 0.0, 1.0)) + maxf(push, 0.0) * CORPSE_HIT_TOSS_PER, CORPSE_HIT_TOSS_MAX)
+
+
+## The follow-through of the kill _corpse_note_kill remembered: the body's push raised to the floor along the hit (its
+## push across the hit kept) and the height it is thrown (0: none, as for big game and a body still rising).
+func _corpse_follow(i: int, push: Vector3) -> float:
+	if is_big_game(i) or rise_t[i] < rise_targetable:
+		return 0.0
+	if rise_t[i] < 1.0:
+		# killed nearly up (a target already): thrown clear of the sand, its whole body shown
+		rise_t[i] = 1.0
+		rise_v[i] = 0.0
+	var along := push.dot(_corpse_kill_dir)
+	var fp := corpse_floor_push(_corpse_kill_w, size[i])
+	if along < fp:
+		kb[i] = push + _corpse_kill_dir * (fp - along)
+	return corpse_kill_toss(_corpse_kill_w, along)
+
 
 ## A body starts its follow-through (_die calls it once the creature is STATE_DYING): its push kept (flat), the boss's
-## zeroed; a blast's kill thrown up by its push; a body up in the air falling from there.
+## zeroed; a blast's kill thrown up by its push; a body up in the air falling from there. Pass 82: every kill by a hit
+## driven along it and thrown up (_corpse_follow).
 func _corpse_begin(i: int) -> void:
 	var def: EnemyDef = types[type_idx[i]]["def"]
 	if i == boss_index or def.archetype == "boss":
@@ -6756,11 +6840,13 @@ func _corpse_begin(i: int) -> void:
 		return
 	kb[i] = push
 	var vy := 0.0
+	# pass 82 (lane FEEL): the killing hit's follow-through (a blast's own throw when that is higher)
+	var h := _corpse_follow(i, push) if _corpse_kill_i == i else 0.0
 	if _corpse_blast_i == i and not is_big_game(i):
-		var h := minf(push.length() * CORPSE_TOSS_PER, CORPSE_TOSS_MAX)
-		if h >= CORPSE_TOSS_MIN:
-			vy = sqrt(2.0 * CORPSE_G * h)
-			corpse_tosses += 1
+		h = maxf(h, corpse_toss_height(push.length()))
+	if h > 0.0:
+		vy = sqrt(2.0 * CORPSE_G * h)
+		corpse_tosses += 1
 	if vy <= 0.0 and lift_h[i] <= 0.0:
 		return
 	_corpse_air[i] = {"serial": serial[i], "vy": vy}

@@ -51,6 +51,11 @@ var reached := 0.0
 ## steps get the time; tried again at the full rate after LOW_DRAW_RETRY_S wall seconds of play (or a new speed)
 var low_draw := false
 var _low_t := 0.0
+## Pass 82 (lane WATCH; Garry: "Allow me access to Pause button in the game"): the game's own pause screen is up (paused
+## from the HUD's disc in the phone view). The run plays nothing then, and the frames come as at 1x (running_speed 1: 60 a
+## wall second, every one drawn, the time scale 1, the sound as set) so the game's screens move as on the phone; the
+## speed asked comes back when the game goes on. Watch.gd sets it every frame.
+var game_hold := false
 
 var _last_draw_us := -1
 var _pace_us := -1
@@ -121,6 +126,8 @@ func compose(observed: float) -> float:
 
 ## The speed the run goes at now: the fastest in "level" mode, the step's own speed in "step" mode, else `speed`.
 func running_speed() -> float:
+	if game_hold:
+		return 1.0
 	if mode == "level":
 		return FASTEST
 	if mode == "step":
@@ -184,7 +191,7 @@ func pace(now_us: int, idle: bool = false) -> int:
 ## Whether this frame is drawn (wall clock `now_us`): every frame up to 1x; above it, one each 1/DRAW_HZ s, one each
 ## 1/DRAW_HZ_FAST s from 4x on; at any speed one each 1/DRAW_HZ_FAST s once the run has fallen short (low_draw).
 func draw_due(now_us: int) -> bool:
-	if paused or (running_speed() <= 1.0 and not low_draw):
+	if paused or game_hold or (running_speed() <= 1.0 and not low_draw):
 		_last_draw_us = now_us
 		return true
 	var hz := DRAW_HZ_FAST if (running_speed() >= 4.0 or low_draw) else DRAW_HZ

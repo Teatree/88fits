@@ -1379,3 +1379,103 @@ sniper brain's option text; vocab.py BLOCKS["sniper"] (flee_range 0.0, spoil_on_
 | tools/ship_prod.sh | the whole route (`--no-drive`, `--quick`, `--no-pc`, `--no-android`, `--out`) |
 | .claude/skills/ship-prod/SKILL.md | the skill |
 | Drive | `E:/My Drive/88fits builds/88fits-prod.apk`, `88fits-prod.exe` (only from ship_prod.sh without --no-drive) |
+
+## Pass 82: new keys
+
+### The HP bar's shake, the bodies (lane FEEL)
+
+None. Both changes are code constants (named in balancing_FEEL.md): `HUD.HP_SHAKE_*` (ui/HUD.gd) and
+`EnemyManager.CORPSE_FLOOR_* / CORPSE_HEAVY_* / CORPSE_HIT_TOSS_* / CORPSE_HEFT_* / CORPSE_CRIT_WEIGHT` (core/systems/
+EnemyManager.gd). No content JSON, no map key, no new stat.
+
+### The Spirit Pole (lane TOTEM)
+
+#### Content (JSON)
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `content/structures/<id>.params.spent_motion` | `{flash: float s, fade: float s}` | absent (pass 73's instant grey) | With `params.spent "grey"`: the structure keeps its paint and ring once used, flashes its ring `flash` s when its screen opens (StructureManager.flash_ring) and drains to grey over `fade` s when the screen's gift is taken (spend_slowly). The Totem Pole: `{"flash": 0.12, "fade": 0.4}`. |
+| `params.boons[].icon` (Totem Pole pool entry) | string path (`res://...` or relative to res://) | absent | The spirit's carved face. Without it the slot `res://art/ui/totem/spirit_<entry id>.png` is used (256 px square, transparent, thick dark outline); an empty slot shows the plate with the spirit's word. Today: wolf, bear, frog, serpent hold the handoff's low-res stand-ins; whale, thunderbird, seal, salmon, killer_whale, bullhead, raven are empty. |
+
+#### Art
+`game/art/ui/totem/crest.png` (the thunderbird crest, 360x108, from the handoff), `spirit_wolf.png`, `spirit_bear.png`,
+`spirit_frog.png`, `spirit_serpent.png` (96x96 letterboxed stand-ins, the handoff's face-*.png). An artist fills a slot
+by dropping `spirit_<id>.png` in and running --import.
+
+#### Code (new primitives)
+| Symbol | Meaning |
+|---|---|
+| `TotemBoons.word / animal / roll_third / range_texts / icon_path / icon_of / toast_text / pole_label / ordinal` | the screen's data from a rolled boon |
+| `TotemScreen.open(offer, def, index, total)`, signal `closing(boon)` (at the pick) and `closed(boon)` (300 ms later), `planks()` / `rows()` (each `boon`, `feathers` = roll third, `plate`, `tag`, `amount`, `stat`, `spirit`, `gauge`, `nail`, `group`), `label_text()`, `_pick(row)`, `_done` | the screen (tools' API kept) |
+| `WNotches` (ui/wanted) | the roll gauge: `low`, `high`, `filled`, `count`; 56x18 notches, 3 px ink, 8 apart, Bitter 600 18 ends |
+| `WNail` (ui/wanted) | a 32 px brass nail head in a 4 px ink ring |
+| `WToasts.push(t, c, icon)`, `WToasts.icon_spot(t)`, `HUD.toast(text, color, icon)`, `HUD.toast_icon_spot(text)` | a toast may carry a 72 px icon before its words |
+| `StructureManager.flash_ring(at)`, `spend_slowly(at, seconds = -1)`, `count_of(id)` | the in-world pole's motion; the map's count of a kind |
+| `sprite_billboard.gdshader` uniform `desat` (0..1), `BillboardSprite.set_desat(v)` | a painting drained of its colour |
+| `Hints.totem_taken()` | the once-per-save totem hint |
+
+### The bot and the Watch (lane WATCH)
+
+#### The bot's option (game/tools/bot/Bot.gd PRESETS / resolve_opts; tools/sim_batch.py BOT_KEYS; sim_run.gd BOT_ARGS)
+| key | type | default | meaning |
+|---|---|---|---|
+| `specials` | bool | on (explorer, careless, expert), off (sim77) | goes to find a glowing special that does not come: known 5 s (within 30 m) and still out of reach (past 9 m or off the screen); leans the kite in until it is within 6 m and on screen ("found"), then plays on while the weapons take it; not while a boss lives, none new under 50% health |
+
+Taken as `specials=0|1` by the run sim (sim_run.gd arg), `--bot "specials=0"` by tools/sim_batch.py, the Level Editor's
+Sim tab ("Bot" group: a new switch "Specials", from BOT_KEYS), `--bot specials=0` by tools/watch.py.
+
+#### The bot's outputs
+- New intent `special` (hunting one).
+- Decision entries: the goal `{"kind": "goal", "what": "special", "reason": "a special: Red Goblin, a 35% chest (14 m)"}`;
+  the end `{"kind": "special", "taken": <creature id>, "offered": [{id, name, score, parts {value, hunt_s}}], "reason":
+  "found the special Red Goblin after 4 s: in reach, the weapons take it first"}` (or "... is down after 7 s of the
+  hunt, a chest dropped" when it fell before he reached it); a give-up is the usual goal entry, taken "".
+- `meta.bot.goals.special` (hunts started) and `meta.bot.specials` (Bot.summary, the run sim's output): `{came, killed,
+  chests, life_s, hunted, found, hunted_down, gave_up}` (came / killed / chests from the recorder's `special` and
+  `special_kill` events, life_s the mean play seconds a special stood; hunted = hunts started, found = brought in reach,
+  hunted_down = fell before that, gave_up; the rest of the hunts were overtaken by a better goal).
+- BotGoals candidates of kind `special` carry `index`, `serial`, `sid`, `name`, `fight`; `BotGoals.special_key(i, serial)`
+  = "sp:<i>:<serial>", `BotGoals.special_seen` {key: play s first known}; `Bot.special_standing(em, i, serial)`,
+  `Bot.special_in_reach(em, i, me)` (static).
+
+#### The Watch (game/tools/watch/)
+- The mouse on the phone view is a finger in the game (no option: always on). `Watch.finger_event(e, view_size, sub_size,
+  down, last)` (static) turns a mouse event into the touch pushed into the SubViewport.
+- New `--actions` words (tools/watch.py `--actions`, Watch.gd `actions=`): `click=<x>/<y>` (a click at that point of the
+  game's 1080-wide canvas), `gamepause` (a click on the HUD's pause disc), `gametab=<0|1|2>` (Build, Stats, Options of the
+  pause screen), `gameslider=<i>/<0..1>` (the i-th slider on the pause screen, 0 Sound, 1 Music on the Options tab,
+  dragged from its thumb to that share of its track over 10 frames), `gameresume` (its RESUME), `whole` (the charts'
+  whole run / last 3 minutes, as the G key). The clicks go through the window's input (Input.parse_input_event): pressed,
+  let go 3 frames later.
+- WatchClock `game_hold` (bool): the game's own pause screen is up; the frames come as at 1x.
+- WatchData: `pickups {chests, powerups, totems: [play s]}`, `pickup_totals()`, `specials_came`, `specials_killed`,
+  `special_chests`. WatchPanel: `PICKUP_MARKS`, `pickup_points(pickups)` (static). WatchChart: `points [{x, lane, shape,
+  color}]`, legend items `[text, color, shape]`.
+- The panel: Live tiles "Chests", "Power-ups", "Totems" and "Specials" (14 tiles, three rows of five), the Level and XP
+  chart's marks and legend; the speed badge is hidden while the game's own pause screen is up (its RESUME sits there).
+
+### The pickups series (lane STATS)
+
+No content JSON key, param, special or stat. New keys in the analytics outputs:
+
+| where | key | type | meaning |
+|---|---|---|---|
+| run sim player file (`game/tools/sim_run.gd` series(); `tools/dl/p77/keys_SIMRUN.md`) | `chests`, `powerups`, `totems` | int array, as long as `t` | picked up so far at each row (rules: balancing_STATS.md) |
+| sim `result.json` (`tools/sim_batch.py` aggregate(), `sim_avg.js` aggregate()) | `series.chests|powerups|totems.mean` | number array (0..T) | the mean over the runs still playing |
+| sim `result.json` | `players[].chests|powerups|totems` | int or null | each run's count at its own end (null: a runner before pass 82) |
+| sim `result.json` | `summary.chests_mean|powerups_mean|totems_mean` | number or null | the mean of those over the runs |
+| rows CSV (dashboard and `tools/analytics_csv.py`) | `chests`, `powerups`, `totems` | int | three columns after the row's own keys, before the maps |
+| Sim chart | id `pickups`, title "Chests, power-ups, totems", section `rewards` | | after Kills |
+
+Functions (the one rule, three languages):
+
+| file | names |
+|---|---|
+| `tools/level_editor/sim_model.js` | `SimModel.PICKUP_SERIES` ({key, label, color, words}), `PICKUP_KEYS`, `isSmall(v)`, `pickupKind(e)`, `pickupTimes(events)`, `pickupCounts(events, ts)`, `pickupTotals(events)` |
+| `game/tools/sim_run.gd` (static) | `PICKUP_KEYS`, `pickup_kind(e)`, `pickup_times(events)`, `pickup_totals(events)` (the Watch can call them through `preload("res://tools/sim_run.gd")`) |
+| `tools/analytics_csv.py` | `PICKUP_KEYS`, `is_small(v)`, `pickup_kind(e)`, `pickup_counts(events, ts)` |
+
+#### SCHEMA.md lines (already written into analytics/SCHEMA.md by this lane)
+- a new section **Chests, power-ups and totems (pass 82)** after *Events*: the three counts, the rule, when an event
+  counts, where they show (sim player files and result.json, the Sim chart, the dashboard card and Progression marks,
+  the rows CSV, the Watch);
+- *CSV (pass 74)*, rows: "(pass 82) then `chests`, `powerups`, `totems`, picked up so far".

@@ -3703,3 +3703,294 @@ Settings if reached); `user://debug_launch.json` and `Run.launch_override` are i
   in tools/dl/p81/lead/save_dirty_2119.json).
 - **Two builds from now on**: the dev build (tools/ship.sh) after every user-facing change; the prod build
   (tools/ship_prod.sh, skill ship-prod) only when Garry asks.
+
+## 29. Pass 82 (v0.68): the HP bar shakes, bodies fly from every weapon, sands, the Spirit Pole, XP growth, pickups charts
+
+Garry's request (2026-10-16, tools/dl/p82/REQUEST.md). Each lane's rules as it wrote them.
+
+### 29.FEEL The HP bar shakes instead of the screen; every kill throws its body
+
+#### The hurt shakes the HP bar, not the screen
+Garry: "Don't shake the screen when hero is damaged. Shake the hp bar instead. But do that a little bit."
+- A hit that reaches the hero's health (Player.hit) no longer shakes the camera (it was `camera.shake(0.9)` on every
+  hit). A harpoon's hook no longer adds its own `camera.shake(1.0)` (the hook's hit shakes the bar like any other).
+- Instead the hero's bars (HP, with the shield bar under it) jiggle sideways: `HP_SHAKE_PX` 4 px +
+  `HP_SHAKE_PX_PER_HP` 40 px for every whole max HP the hit took (`dealt / max_hp`), at most `HP_SHAKE_MAX_PX` 10 px,
+  `HP_SHAKE_SWINGS` 3 swings over `HP_SHAKE_TIME` 0.25 s, dying away as (1 - u)^2, so the bars end exactly where they
+  were. Canvas pixels (the 1080-wide canvas): a 10% hit is 8 px, 15% and over 10 px. A hit while one runs starts it
+  again at the larger of the new size and what is left of the old one. (`ui/HUD.gd`, `Game._feel_hurt_bar_shake`.)
+- Unchanged: a hit on the Energy Shield or the shield power-up, an evade, an immune hit: no jiggle (they never shook
+  the camera either). Every other shake is as it was: blasts (a rocket or a boulder that catches the hero still shakes
+  2.6 / 2.4 against 1.3 / 1.6 when it misses: the blast's, not the hurt's), slams, the Gila's rumble, a boss or an Elite
+  down, an evolution, the spawn's landing, structures.
+
+#### Every kill throws its body
+Garry: "The explosion thing that affects the enemy's corpses with knockback should come from all weapons. I think
+currently it's just the dynamite."
+- Every kill by a hit (EnemyManager.damage: any weapon, its burn and poison ticks, a blast, Overkill's splash, the
+  revive's blast, a hostile blast on its own crowd) now follows through like a blast's (`_corpse_follow`):
+  - the body is driven along the killing hit (the hit's own direction: the shot's travel, the blade's swing, out of
+    the blast, along the laser; a hit with none, e.g. a burn or poison tick, the Zap Beam, the salt, the Guitarra's
+    wave, away from the hero) at no less than the floor push, and thrown up the floor toss;
+  - the hit's weight w = (the hit's damage / the creature's max HP) / `CORPSE_HEAVY_RATIO` 4, + `CORPSE_CRIT_WEIGHT`
+    0.35 for a crit (half for a mini crit), clamped 0..1;
+  - floor push = lerp(`CORPSE_FLOOR_PUSH` 4 m/s, `CORPSE_HEAVY_PUSH` 5.5 m/s, w) x heft, heft = clamp(`CORPSE_HEFT_SIZE`
+    1.5 / the body's size, `CORPSE_HEFT_MIN` 0.5, 1) (a goblin 1, a skeleton 0.86, the Hammer Giant 0.5); the push it
+    already had along the hit is kept when bigger, its push across the hit kept;
+  - toss height = lerp(`CORPSE_FLOOR_TOSS` 0.4 m, `CORPSE_HEAVY_TOSS` 0.8 m, w) + `CORPSE_HIT_TOSS_PER` 0.1 m per m/s of
+    the push it had along the hit, at most `CORPSE_HIT_TOSS_MAX` 1.6 m; a blast's own throw (pass 79:
+    `CORPSE_TOSS_PER` 0.3 m per m/s, `CORPSE_TOSS_MIN` 0.3, `CORPSE_TOSS_MAX` 2.5) wins when it is higher.
+  - What that looks like (gravity `CORPSE_G` 22, air drag 1.5, ground decay 6, as pass 79): a chip of a kill throws a
+    goblin 0.4 m up and ~1.5 m back; a one-shot many times over (w 1) 0.8 m up and ~2.4 m back; the dynamite as before
+    (1.4-2.1 m up, 2.3-3.4 m out in the capture).
+- Never: the boss (his death as before: no slide, no throw); big game (an Elite, an elite-modded creature: slides on
+  the push it had, never thrown, as before); a body in a launch (Alley-Oop, Bucking Bronco: as before); a body still
+  coming up out of the sand below `rise_targetable` (0.7: sinks where it is); a kill with no hit behind it (kill_all,
+  a walking bomb's own blow-up). A body killed nearly up (rise_t >= rise_targetable) is shown whole and thrown.
+- Nothing changes for the living. Bodies stay inside the arena, on or above the ground, off the rocks (pass 79's
+  rules), and land in a little sand.
+- Cost (A/B in the same run, 180 creatures, a kill every frame = 60 kills a second, PC): enemies.sim +0.19 ms/frame,
+  fx +0.08 ms/frame; perf_late build=six shows no change beyond its noise.
+
+### 29.SAND Five sands to choose from
+
+Nothing here changes play: every number below is a look.
+
+#### The five sands (RedCanyon.SANDS; the map file's `sand`)
+- The map file's `timeline_data.sand` (WaveTimeline.sand) picks the painting the open ground is drawn with, as the
+  terrain builds: `pass81` (art/env/sand.png, pass 81's, unchanged), `dunes`, `dunes_pebbles`, `ripples`,
+  `ripples_pebbles` (art/env/sand_<id>.png). "" (no key), an id not in SANDS, or a painting that is missing plays
+  SAND_DEFAULT = `pass81`. **The default stays pass 81's until Garry picks** (red_canyon.json has no `sand` key).
+- Each sand's size on the ground: `scale` x the terrain's tiles_per_metre 0.09 (the shader's `sand_scale`; below 1 =
+  bigger): pass81 1.0 (11.1 m a tile), dunes **0.8** (13.9 m a tile: its bands a little broader, like the reference's),
+  dunes_pebbles 1.0, ripples 1.0, ripples_pebbles 1.0. Only the sand: the river bed (uv x 0.8) and the rock (uv x 0.7)
+  keep their own tiling.
+- Every new sand is laid over pass 81's exact mean colour (214.5, 188.3, 145.5) (within a level of 255; the pins of
+  passes 54 and 61 hold: value > 0.835, saturation < 0.36, hue 33-40 degrees), so the river bed, the oases' ground and
+  the walls still match; only its light and dark (and a pebble's own grey) come from the painting.
+- The arena's WORLD tab switches the sand on the spot for the visit (RedCanyon.set_sand); a run plays the map file's.
+
+#### How the four were made (tools/gen_sand.py)
+- Flux.2 Klein paintings (1024 px, 4 steps), the reference (a watermarked stock photo) described in words only, never
+  sent to the server or traced: PROMPTS "dunes" (soft broad wind-shaped wavy bands, a fine even grain, warm golden
+  tan), "pebbles" (the same with a few small grey-brown pebbles far apart), "drift" (softer, irregular wind ripples),
+  "drift_pebbles". Four seeds each (8201-8204); picked by eye in the game at phone size: dunes = dunes s8201,
+  dunes_pebbles = pebbles s8201, ripples = drift s8203, ripples_pebbles = drift_pebbles s8202.
+- Tileable by three repaints that never touch the tile's edges (seam_inpaint): the painting rolled half a tile, the
+  cross where its old edges meet repainted by the model under a grey differential-diffusion mask (fully on the seam,
+  less and less out to 256 px), the arms stopping 40-200 px short of the edges; then the two seams' ends repainted
+  after rolling half a tile down and across. Each repaint is brought to the painting's cast (the mean difference over
+  the barely-touched ring, then a 48 px smooth map of the rest) before it is blended in by the mask itself. Seeds:
+  painting seed + 500, + 501, + 502.
+- palette_from: the luminance split into the broad shading (blurred 6 px), normalised to **band 0.055** of the colour
+  per SD (the reference's broad shading is about 5% of its brightness), and the fine rest kept as its ratio to the
+  shading x **fine 0.7** (grain and pebbles keep 70% of their painted contrast); **chroma 0.5** of the painting's local
+  colour (against its own 6 px blur) on the two pebble sands (a pebble stays a little grey; a broad cast never shows),
+  0 on the plain two; then moved to the mean exactly.
+- Sources kept in the repo: tools/art_src/sand_<id>_src.png (the tileable paintings before the palette).
+
+#### Cost
+One sand texture is loaded at a time, the same 1024 px, the same import as pass 81's (lossy WebP 0.85, mipmaps): no
+change in memory or draw cost; the shader's only addition is one multiply (uv x sand_scale). The four new files add
+about 0.6 MB of imported textures to a build (the dev and the prod build both ship all five: the switch is a map
+setting).
+
+### 29.WATCH The bot hunts specials; the game's Pause in the Watch; totals and marks
+
+Everything here is the TOOLS' (game/tools/bot/, game/tools/watch/; never exported): the run sim's and the Watch's
+player and the Watch's window. No game rule changed.
+
+#### The bot hunts the specials (Bot.gd, BotGoals.gd; Garry: "Bot should try to find the Special Enemies when they appear")
+- Option **`specials`** (bool): on in the Explorer, Careless and Expert presets, off in `sim77` (pass 77's bot stays
+  itself). The planner runs whenever it is on (as for explore, totems, barrels, structures).
+- **What the sims taught** (10-run batches, see Measured): specials chase the hero and the weapons take them first within
+  10 m, so the bot that never hunts already kills 98.4% of the ~160 specials of a 25-minute run. Hunting every one
+  (walking at it, or leaning the kite at it) killed no larger share and cost levels and half again to twice the falls
+  (most in stages 2-3 and at the bosses); keeping the hunt as his goal while the weapons fought it still cost falls
+  (blocking a heal or a chest). So the rule: **go and find the special that does not come, until it is in reach**.
+- **Known**: a variance special (the glowing one, EnemyManager.vspecial) within **SPECIAL_SEE = 30 m** of him (specials
+  spawn 19-24 m off at the screen's edge, so in practice the moment one comes); the one he hunts stays known up to
+  **SPECIAL_KEEP = 45 m**. The Saiga Sniper's kind of "special" (a gear badge) is not one of them.
+- **A goal** once he has known it **SPECIAL_WAIT = 5 s** and it is still **out of reach**: farther than **IN_REACH = 9 m**
+  or off the screen (EnemyManager.onscreen). One in reach is the weapons' (they take it first).
+- **When not**: while a boss lives (the boss is the fight); a new hunt needs **SPECIAL_HP = 50%** of his health, the one
+  under way goes on down to **SPECIAL_HP_HELD = 40%** (a gap, so a health hovering at one line does not flip the goal
+  every half second); the far limit by health and danger (12..75 m) cuts the reach as for every goal.
+- **Its worth**: **V_SPECIAL = 60** points (a Totem Pole 80, a chest 70, the gems at most 45), no taste and no mood (always
+  wanted), the thing's jitter (0.85..1.15) and the style's word: damage x1.2, greedy x1.3 (the chest), safety x0.7;
+  divided by (1 + distance / 18 m) as every goal. **No commitment**: anything better (a heal, a chest) takes over at once
+  (as the gems' sweep; other goals keep theirs unless one 1.4 times better turns up).
+- **The hunt**: the kite leans towards the special (the gems' sweep rules with the special as the lure: the lean whole
+  while the way is clear, 0.3 of it while a creature stands in the way, none with a big one or a rocket close, less the
+  more he is hurt, none under 35%) until it is within **HUNT_NEAR = 6 m** and on the screen: **found**, the hunt ends and
+  he plays on while the weapons take it; that special can be a hunt again only after SPECIAL_WAIT s more out of reach. The hold still wins (5 or more within 3 m, a big one's push, hurt with one inside
+  the flee distance); a special is never "grabbed".
+- **Patience**: 8 s + 0.55 s a metre + **SPECIAL_FIGHT_S = 20 s** of slack (the lean is slower than a walk; half while the
+  kite holds); a hunt ends after **SPECIAL_MAX_S = 60 s** of play whatever; given up = the special rests 40 s.
+- **The log**: the goal "a special: Red Goblin, a 35% chest, out of reach 6 s (14 m)" (its chest chance as the creature
+  and the map's special_defaults say); its end "found the special Red Goblin after 4 s: in reach, the weapons take it
+  first" or "the special Red Goblin is down after 7 s of the hunt, a chest dropped" (kind `special`); a give-up "gave up
+  on a special: ... after N s".
+
+#### The game's own Pause in the Watch (Watch.gd, WatchClock.gd; Garry: "Allow me access to Pause button in the game")
+- The mouse on the phone view is a finger: a left press, the drag while held and the release become ScreenTouch /
+  ScreenDrag of finger 0 (what the phone sends; no mouse events reach the game, so nothing that reads both fires twice),
+  pushed into the game's SubViewport at the view's position x its pixels; the SubViewport's stretch puts it on the
+  1080-wide canvas. The window's own touches emulated from the mouse are swallowed. Other buttons do nothing.
+- Clicks never steer: the hero's PlayerInput is switched off for touches and keys in the Watch (`enabled` false; no stick
+  from a click in the thumb zone, no WASD). The bot's writes drive him.
+- The game's pause screen up (paused from the HUD's disc or its top strip) = "paused (in game)": the bot is not ticked
+  (it answers only the run's own screens: cards, chests, totems, the Stranger, the shop, the portal, Down!, the gate), no
+  stuck count, and the Watch runs the frames as at 1x (60 a wall second, every one drawn, time scale 1, the sound as
+  set) so the screen and its Options work as on the phone; RESUME there goes on at the Watch's speed. The Watch's own
+  pause still holds over it. The header's status says "paused (in game): Resume there goes on at 4x"; the speed badge
+  over the phone view hides meanwhile (the screen says PAUSED and its RESUME sits where the badge would).
+
+#### The totals and the marks (WatchData.gd, WatchPanel.gd, WatchChart.gd)
+- The meaning is lane STATS' (sim_run.gd `pickup_kind`, the same as the Sim's chart and the dashboard): **chests** = every
+  `chest` event (a chest opened: taken or skipped, a boss's too), **power-ups** = every `pickup` whose `small` is not
+  set (Game.apply_pickup's own count), **totems** = every `totem` event (a Totem Pole's gift taken).
+- Live tiles: **Chests**, **Power-ups**, **Totems** (the totals so far, each value in its mark's colour); **Specials** "killed / came" (the recorder's `special`
+  and `special_kill`) with the chests their deaths dropped.
+- The Level and XP chart: a mark at each pickup's play second along the plot's foot, one lane a kind: chests a gold
+  square (top lane), power-ups a green circle, totems a pink triangle (bottom lane); the legend leads with "Chests N,
+  Power-ups N, Totems N". In the last-3-minutes view and the whole run (G) both.
+
+#### Measured (the specials hunt)
+Drifter, a quarter board, 25:00, death=keep (every fall counted, every run to the end), the Explorer preset with
+`specials=0` (off) or `1`; all on one private snapshot of game/ (tools/dl/p82/WATCH/simsnap), only the bot's files
+changed between batches. Folders: tools/dl/p82/WATCH/sim/<name>/ (players/pNN.json; meta.bot.specials), the table
+from tools/dl/p82/WATCH/sim_table.py.
+
+| bot | runs | specials came / killed (share) | special chests | hunts (ended down) | a special stood, s | falls mean / median | first fall median | level 10 / 25 min | kills |
+|---|---|---|---|---|---|---|---|---|---|
+| off (A, seeds 1-10) | 10 | 175 / 172 (98.3%) | 60 | 0 (0) | - | 8.9 / 4.0 | 9:11 | 28.6 / 72.3 | 20.0k |
+| off (A3, seeds 1-10, final code) | 10 | 146 / 143 (98.4%) | 50 | 0 (0) | 32 | 11.3 / 4.0 | 12:18 | 29.3 / 68.7 | 18.4k |
+| off (A5, seeds 11-20) | 10 | 168 / 165 (98.4%) | 62 | 0 (0) | 26 | 7.6 / 3.0 | 8:04 | 29.7 / 72.1 | 19.9k |
+| first cut: straight at every one (B) | 10 | 163 / 160 (98.3%) | 56 | 138 (99) | - | 13.3 / 6.5 | 9:28 | 26.8 / 66.3 | 16.6k |
+| second cut: leaning at every one (B3) | 10 | 145 / 142 (98.0%) | 49 | 109 (64) | 39 | 18.3 / 8.5 | 8:17 | 27.4 / 64.1 | 15.6k |
+| third cut: the ones that do not come, held in reach (B4, seeds 1-10) | 10 | 143 / 140 (98.4%) | 51 | 71 (39) | 31 | 18.6 / 14.0 | 8:08 | 26.7 / 68.7 | 16.3k |
+| third cut (B5, seeds 11-20) | 10 | 154 / 152 (98.4%) | 54 | 86 (53) | 28 | 10.5 / 6.0 | 9:03 | 28.1 / 71.1 | 18.0k |
+| final: the ones that do not come, until found (B6, seeds 1-10) | 10 | 144 / 142 (98.4%) | 47 | 141 (26) | 29 | 8.4 / 5.0 | 9:57 | 29.9 / 65.8 | 16.8k |
+| final (B7, seeds 11-20) | 10 | 167 / 164 (98.4%) | 59 | 153 (28) | 25 | 12.6 / 6.0 | 9:01 | 28.9 / 70.8 | 18.5k |
+| final + the re-hunt wait (B8, seeds 1-10) | 10 | 186 / 184 (98.5%) | 65 | 128 (33) | 28 | 9.5 / 4.5 | 11:06 | 30.3 / 70.9 | 19.7k |
+| off, all 30 | 30 | 163 / 160 (98.4%) | 57 | 0 (0) | 29 | 9.3 / 4.0 | 9:19 | 29.2 / 71.0 | 19.4k |
+| third cut, all 20 | 20 | 149 / 146 (98.4%) | 53 | 78 (46) | 29 | 14.6 / 8.0 | 8:31 | 27.4 / 69.9 | 17.1k |
+| final, all 20 | 20 | 155 / 153 (98.4%) | 53 | 147 (27) | 27 | 10.5 / 6.0 | 9:09 | 29.4 / 68.3 | 17.6k |
+
+- "hunts (ended down)": hunts started a run (the specials that fell before he reached them). Final (B8): 128 hunts a run,
+  42 found (brought into reach), 33 fell first, none given up, the rest overtaken by a better goal (no commitment).
+- "a special stood": the mean play seconds from a special's coming to its fall (Bot.special_tallies life_s).
+- **The finding**: the bot that never hunts already kills 98.4% of the specials (they chase him, the weapons take them
+  first within 10 m), so no rule raised that share; hunting every special cost levels and falls (B, B3), and keeping
+  the hunt as the goal in reach still cost falls (B4/B5). The final rule (go for the one that does not come, until it is
+  in reach; B8) plays at the baseline: falls 9.5 (median 4.5) against 9.3 (4), level 70.9 against 71.0 at 25:00.
+- **Noise**: A and A3 are the same behaviour on the same seeds yet differ by 3.6 levels and 2.4 falls: BotGoals' per-thing
+  jitter is keyed by object instance ids ("st:<id>", "chest:<id>"), so any code change in the run reshuffles later goal
+  choices (pass 80's design, lane BOT). A 10-run batch is good to about +-4 levels and +-3 falls; compare by 20-30 runs.
+
+### 29.TOTEM The Spirit Pole gift screen
+
+No gift number changed: weights, ranges, steps, the 3 s charge (`interact_time`), the choices (3), the 1 s safety after
+the pick and the analytics events are pass 76's. What the screen and the pole now do:
+
+| Rule | Number | Where |
+|---|---|---|
+| The roll gauge: which third of **that gift's own range** the roll landed in (pass 73's `quality`: by size, the smaller end to the bigger), 1, 2 or 3 of 3 notches filled | thirds | TotemBoons.roll_third / quality |
+| The number turns brass dark (#A8792A) on a top-third roll only; no rarity colour, stars, seals or feathers | third 3 | ui/TotemScreen.gd `_fill_tag` |
+| Both range ends are written, the **smaller size first** whatever the sign (the Thunderbird's cooldown: "−2% ■■□ −4%") | | TotemBoons.range_texts |
+| The label counts the gifts: "★ TOTEM n OF t ★", n = gifts taken this run + 1, t = Totem Poles standing on the map; t unknown (0): "★ nTH TOTEM ★"; n past t raises t to n | | Game._use_totem, TotemBoons.pole_label, StructureManager.count_of |
+| One tap target per gift: its segment (and where it sits held) and its tag with the nail and the shadow; the gap beside the nail and everything else take nothing; a finger dragged off a gift cancels it (90 ms back); release on the gift takes it | | TotemScreen.GiftRow |
+| A gift takes a finger only once its row has landed in the open motion (a tap on a piece still moving is not a choice) | 0.30-0.44 s after opening | TotemScreen `_open_motion` (`arrived`) |
+| The run goes on 300 ms after the pick (pass 73: 160 ms); the screen is gone at 420 ms; the hero's 1 s safety as before | 0.30 / 0.42 s | TotemScreen T_CONTROL / T_CLOSE |
+| A run sim (Run.sim_mode) plays no motion: the pick hands the gift back at once | | TotemScreen `_instant` |
+| The toast "{Word} · {amount} {stat}" ("Le-loo · +2% move speed") with the spirit's face (72 px), in paper (it was the pole's turquoise, which the toast kit turned green, the health colour), 1.2 s as every toast | | Game._use_totem, WToasts icon toasts |
+| The in-world pole keeps its paint and its ring while its screen is up; its ring flashes 0.12 s as the screen opens; once the gift is taken it drains to grey over 0.4 s and its ring fades, ending in pass 73's grey painting | `spent_motion {flash 0.12, fade 0.4}` | content/structures/totem_pole, StructureManager.flash_ring / spend_slowly |
+| A structure with `spent_motion` skips use_structure's generic 0.5 s flash ring (it froze under the paused screen and played out after the pick) | | Game.use_structure |
+| First-play hint: "Totem gifts last the whole run", once per save, 1.6 s on the run's clock after the first gift is taken (the rule the old screen's subline said) | 1.6 s | ui/Hints.gd totem_taken (Save hint id "totem") |
+| A spirit with no painted face shows its word in Alfa Slab 40 on the empty plate; a word wider than the plate's border less 4 px a side (280 px) shrinks to fit (none does today: Thunderbird is 273 px) | 40 px, 280 px | TotemScreen WORD_PX / WORD_CLEAR |
+
+### 29.XP XP growth types
+
+Garry (2026-10-15): "EXP requirements - I feel like we don't have enough settings for EXP requirements. Say I want to make
+the EXP requirements exponential instead of linear, it doesn't look like I can. I want that section to include types of
+EXP growth displayed in a dropdown, each one with it's own 2 charts for cumulative and per level EXP requirements."
+
+#### The rule
+
+The XP the hero needs to go from level L to L + 1 is **curve(L) × the map's `xp_need_mult`** (Run.xp_to_next). The curve
+is the map's `timeline_data.xp_curve` = `{"type": <type>, <type>: {its numbers}}` (game/core/data/XpCurve.gd). **Absent,
+`{}` or an unknown type = today's quadratic 15 + 6L + 0.5L², to the bit** (the same float maths as every pass before).
+Red Canyon names no curve (Garry's 1.65 stands): nothing changes until he picks a type in the Level Editor.
+
+| type | curve(L), before xp_need_mult | defaults | by level 30 vs today's 7,322.5 |
+|---|---|---|---|
+| `quadratic` (today's) | base + linear × L + quad × L² | 15, 6, 0.5 | 100% |
+| `linear` | base + step × (L − 1) (base = what level 1 needs) | 21.5, 16.5 | 100% |
+| `exponential` | base × growth^(L − 1), never above `cap` (0 = no cap) | 40, 1.11, 0 | 97.5% |
+| `power` | base × L^power | 6.5, 1.33 | 101% |
+| `table` | `points` [[level, XP], ...]: straight between listed levels; levels before the first need the first's XP; past the last listed level each needs the last XP × (1 + `after_growth`)^(levels past it) (0 = it repeats) | today's curve at 1, 5, 10, 20, 30, 40, 50, 60 (21.5, 57.5, 125, 335, 645, 1055, 1565, 2175), +2.5% after | 102.5% |
+
+- Each type keeps its own numbers in its own block (switching type in the editor keeps the others; only `type`'s is
+  played). A number the block leaves out, or holds as a non-number, is the default above.
+- The defaults were fitted so the total XP to level 30 is within 5% of today's: switching type does not wreck the first
+  20 minutes. They differ elsewhere (before the multiplier; totals to the level, today's in brackets):
+  - linear: 788 by 10 (548), 29,500 by 60 (46,610): dearer early, cheaper late.
+  - exponential: 567 by 10, 20,931 by 40 (15,535), 171,318 by 60: a wall late; level 60 alone needs 18,900 (2,175).
+  - power: 528 by 10, 38,033 by 60: close to today's to 40, cheaper late.
+  - table: within 3% of today's to 60 (straight lines between today's own values).
+- **Guards** (every type): a level needs at least 0.01 and at most 1e12 XP before the multiplier (XpCurve.MIN_NEED,
+  MAX_NEED); NaN / infinity = 1e12 (the hero stops levelling there). The new types read a level below 1 as 1.
+- **The arena** (levels by the button) and a run without a map keep today's curve × 1, whatever the map says.
+- What the curve does not change: the level-up flow, the mutation level-ups (pass 79: a due mutation offer is the next
+  level-up), the card levels (Run.card_level), the HUD, Field Notes (`xp_gain` scales the XP gained, not the need).
+- The run record's `map_settings.xp_curve` names the type played and its numbers with the defaults filled in
+  (RunAnalytics.map_settings).
+
+#### The Level Editor's checks (tools/level_editor/xp_model.js `issues`, listed in the inspector and on the card)
+
+Errors (block Save): `xp_curve` not a block; an unknown type; the type's numbers not a block; a number that is not a
+number; a level 1-300 whose curve is 0 or less (the game would make it 0.01: levelling on nothing); a table with no
+readable [level, XP] point; a negative exponential cap.
+Warnings: a level under 150 whose need passes 1e12 (the hero stops levelling there); an exponential growth under 1; a
+level that needs less than the one before (the first one named); a table point that is not [level, XP] (skipped); two
+points on one level (the last counts); a block for something that is not a type, a key the type does not know.
+
+#### The "when does a run get there" line (an estimate, not a rule)
+
+Under the charts: the latest finished sim of the map (or the result the Sim tab shows): its mean `xp_total` a second,
+fed to the chosen curve × the current xp_need_mult: the first second the XP reaches levels 10, 20 and 30, and the same
+for today's curve. It assumes the same XP a second; a different curve changes the cards and so the kills.
+
+### 29.STATS Chests, power-ups and totems through a run
+
+No game number changed. The rules below are what the analytics count (they decide what Garry reads on the charts).
+
+- **Chests picked up** = every recorder `chest` event: one per chest opened, taken or skipped (a skip spends the stage's
+  skip and the game itself counts the chest as opened, `Run.chests_opened`), boss chests too. A banish re-rolls the same
+  chest and adds no second count.
+- **Power-ups** = every `pickup` event whose `small` is not set (true, or a number other than 0). This is the game's own
+  definition (Game.apply_pickup: "the small things underfoot are not power-ups"; the `pickups` save total and the bot's
+  `powerups` tally use it). Today: Heart, Magnet Pulse, Nuke, Berserk (`rage`), Shield, Sprint, Timeout (Fadeaway's
+  perk). Not: Cake Slice, Coin Bag, Desert Poppy / Lupine / Marigold (`params.small: true`). A new pickup follows its
+  JSON's `params.small`: no list to keep up.
+- **Totems** = every `totem` event: a Totem Pole's gift taken (not the pole's `structure` use, not the `totem_offer`).
+- **When it counts**: an event counts from the first row (a second of play) whose `t` reaches it: `event.t <= row.t +
+  0.001`, the same as the deaths. A pickup in the run's last partial second, after its last row, is in the totals
+  (`pickupTotals`, the dashboard's tiles and list) but not on the per-second line.
+- **The Sim's average**: the mean over the runs still playing at that second (like kills and coins, not like deaths,
+  which count every run); a run's own count at its end gives `players[].chests|powerups|totems` and the summary's
+  `chests_mean|powerups_mean|totems_mean` (the tile "Chests · power-ups · totems a run").
+- **Colours** (the Sim chart, the dashboard card and marks): chests amber `#c98500`, power-ups blue `#3987e5`, totems
+  magenta `#d55181` (the palette's slots 4, 1, 5; checked as a set on the dark surface: every pair apart for colour-blind
+  eyes, worst dE 13). Marks: a square a chest, a dot a power-up, a diamond a totem.
+- **Made-up sims** (`sim_batch.py --synthetic`, a page test only) roll chests, power-ups and totems on dice of their own
+  (seed x 104729 + 82), so the made-up numbers the older checks pin stay as they were.
+
+### 29.LEAD The lead's changes in this pass
+
+- **Blasts shake the same whether they catch the hero** (Garry: "Don't shake the screen when hero is damaged"): the
+  Vulture Raider's rocket 1.3 and the boulder 1.6 always (they were 2.6 / 2.4 when they caught him); his hurt jiggles
+  the HP bar (29.FEEL). Their hot flash on the screen when caught stays.
+- **The design handoff** `design_handoff_88fits_totem/` sits at the repo root beside `design_handoff_88fits_wanted/`
+  (the zip in tools/dl/p82/).

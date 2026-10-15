@@ -1,0 +1,56 @@
+{
+  "note": "pass 82 (lane STATS): chests, power-ups and totems. A small run record; `kinds` is what each event counts towards (sim_model.js pickupKind, game/tools/sim_run.gd pickup_kind, tools/analytics_csv.py pickup_kind) and `expect` the counts so far at each row (sim_run.gd series(), sim_avg.js series(), the rows CSV) and the totals. Checked by selftest_STATS82.py and game/tests/pass82_stats_test.gd.",
+  "record": {
+    "schema": 2,
+    "version": "0.68",
+    "hero": "drifter",
+    "hero_name": "Drifter",
+    "map": "red_canyon",
+    "result": "end",
+    "length": 12.5,
+    "clock": 12.5,
+    "stage": 1,
+    "level": 2,
+    "kills": 9,
+    "names": {"cake": "Cake", "heart": "Heart", "cake_slice": "Cake Slice", "nuke": "Nuke", "coin_bag": "Coin Bag", "rage": "Berserk", "wolf": "Wolf", "mend": "Mend", "shield": "Shield", "raven": "Raven", "sprint": "Sprint"},
+    "samples": [
+      {"t": 1.02, "clock": 1.02, "stage": 1, "level": 1, "hp": 100, "hp_max": 100, "kills": 0},
+      {"t": 2.01, "clock": 2.01, "stage": 1, "level": 1, "hp": 100, "hp_max": 100, "kills": 1},
+      {"t": 3.0, "clock": 3.0, "stage": 1, "level": 1, "hp": 98, "hp_max": 100, "kills": 2},
+      {"t": 4.0, "clock": 4.0, "stage": 1, "level": 1, "hp": 98, "hp_max": 100, "kills": 3},
+      {"t": 5.03, "clock": 5.03, "stage": 1, "level": 2, "hp": 98, "hp_max": 102, "kills": 4},
+      {"t": 6.0, "clock": 6.0, "stage": 1, "level": 2, "hp": 99, "hp_max": 102, "kills": 5},
+      {"t": 7.0, "clock": 7.0, "stage": 1, "level": 2, "hp": 99, "hp_max": 102, "kills": 6},
+      {"t": 8.0, "clock": 8.0, "stage": 1, "level": 2, "hp": 99, "hp_max": 102, "kills": 7},
+      {"t": 9.0, "clock": 9.0, "stage": 1, "level": 2, "hp": 99, "hp_max": 102, "kills": 8},
+      {"t": 10.0, "clock": 10.0, "stage": 1, "level": 2, "hp": 99, "hp_max": 102, "kills": 9}
+    ],
+    "events": [
+      {"t": 0.5, "clock": 0.5, "kind": "chest", "id": "cake", "level": 1, "roll": "passive", "take": true, "boss": false},
+      {"t": 2.01, "clock": 2.01, "kind": "pickup", "id": "heart", "small": false, "effect": "heal"},
+      {"t": 2.5, "clock": 2.5, "kind": "pickup", "id": "cake_slice", "small": true, "effect": "heal"},
+      {"t": 3.0005, "clock": 3.0005, "kind": "pickup", "id": "nuke", "effect": "nuke"},
+      {"t": 3.5, "clock": 3.5, "kind": "pickup", "id": "coin_bag", "small": 1, "effect": "gold"},
+      {"t": 3.6, "clock": 3.6, "kind": "pickup", "id": "rage", "small": 0, "effect": "buff"},
+      {"t": 4.2, "clock": 4.2, "kind": "structure", "id": "totem_pole", "effect": "totem"},
+      {"t": 4.3, "clock": 4.3, "kind": "totem_offer", "id": "wolf", "offered": ["wolf"]},
+      {"t": 4.3, "clock": 4.3, "kind": "totem", "id": "wolf", "level": 1, "stat": "move_speed", "value": 0.05},
+      {"t": 4.9, "clock": 4.9, "kind": "level", "level": 2},
+      {"t": 6.5, "clock": 6.5, "kind": "chest", "id": "", "level": 0, "roll": "gold", "take": true, "boss": true},
+      {"t": 7.2, "clock": 7.2, "kind": "chest", "id": "mend", "level": 0, "roll": "passive", "take": false, "skip": true, "left": 0, "boss": false},
+      {"t": 8.0, "clock": 8.0, "kind": "Chest", "id": "case"},
+      {"t": 9.9, "clock": 9.9, "kind": "pickup", "id": "shield", "small": "true", "effect": "shield"},
+      {"t": 12.0, "clock": 12.0, "kind": "totem", "id": "raven", "level": 2, "stat": "luck", "value": 0.1},
+      {"kind": "chest", "id": "no_time", "roll": "passive", "take": true},
+      {"t": "5", "clock": 5, "kind": "pickup", "id": "sprint", "small": false, "effect": "buff"},
+      42
+    ]
+  },
+  "kinds": ["chests", "powerups", "", "powerups", "", "powerups", "", "", "totems", "", "chests", "chests", "", "powerups", "totems", "chests", "powerups", ""],
+  "expect": {
+    "chests": [2, 2, 2, 2, 2, 2, 3, 4, 4, 4],
+    "powerups": [1, 2, 3, 4, 4, 4, 4, 4, 4, 5],
+    "totems": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+    "totals": {"chests": 4, "powerups": 5, "totems": 2}
+  }
+}

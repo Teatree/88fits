@@ -1509,7 +1509,16 @@ func rebuild_sheets() -> void:
 ## arena, where levels come by the button).
 func xp_to_next(l: int = -1) -> float:
 	var L := level if l < 0 else l
-	return (15.0 + 6.0 * L + 0.5 * L * L) * xp_need_mult()
+	# pass 82 (lane XP): the map's growth type (XpCurve; no xp_curve = 15 + 6L + 0.5L^2, the same maths as before)
+	return XpCurve.need(xp_curve(), L) * xp_need_mult()
+
+
+## Pass 82 (lane XP): the map's XP growth type and numbers (WaveTimeline.xp_curve, read by XpCurve); {} (today's curve)
+## without a map and in the arena, where levels come by the button.
+func xp_curve() -> Dictionary:
+	if arena or map == null or map.timeline == null:
+		return {}
+	return map.timeline.xp_curve
 
 
 ## The map's pace for levels: its timeline's xp_need_mult, 1 without one or in the arena.

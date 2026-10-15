@@ -380,6 +380,14 @@ func test_a_used_pole_stands_grey_and_is_not_used_again() -> void:
 	var n := sm.items.size()
 	sm._use(s)
 	await get_tree().create_timer(0.1).timeout
+	# (pass 82, lane TOTEM, re-pinned on purpose: the Spirit Pole screen's motion: the pole keeps its paint and its ring
+	# while its gift screen is up and greys once the gift is taken; the end state below is pass 73's)
+	assert_bool(s.used).is_true()
+	assert_bool(s.ring.visible).is_true()
+	# the menu it opened, closed by a pick
+	assert_bool(g.totem_screen.visible).is_true()
+	g.totem_screen._pick(g.totem_screen.planks()[0])
+	await get_tree().create_timer(0.8).timeout
 	# still standing, grey, its ring gone
 	assert_bool(is_instance_valid(s) and s.is_inside_tree()).is_true()
 	assert_int(sm.items.size()).is_equal(n)
@@ -401,10 +409,6 @@ func test_a_used_pole_stands_grey_and_is_not_used_again() -> void:
 					coloured += 1
 		assert_int(coloured).is_equal(0)
 		assert_object(mat.get_shader_parameter("sprite")).is_same(grey)
-	# the menu it opened, closed by a pick
-	assert_bool(g.totem_screen.visible).is_true()
-	g.totem_screen._pick(g.totem_screen.planks()[0])
-	await get_tree().create_timer(0.5).timeout
 	# standing in it again does nothing
 	g.player.global_position = here
 	for k in range(40):
@@ -429,13 +433,16 @@ func test_the_game_opens_the_menu_and_the_pick_stays() -> void:
 	var planks: Array = g.totem_screen.planks()
 	assert_int(planks.size()).is_equal(3)
 	var offer: Array = g.totem_screen.offer()
+	# (pass 82, lane TOTEM, re-pinned on purpose: the Spirit Pole's tags: the amount and the stat, the spirit "Word, the
+	# Animal" (the word alone without an animal), the roll gauge with its third filled; pass82_totem_test has the rest)
 	for k in range(3):
 		var p = planks[k]
 		var b: Dictionary = offer[k]
-		assert_str(p.word.text).is_equal(str(b["name"]).to_upper())
-		assert_str(p.line.text).is_equal(BOONS.text(b))
 		assert_str(p.amount.text).is_equal(BOONS.amount_text(b))
-		assert_bool(p.animal.visible).is_equal(str(b["animal"]) != "")
+		assert_str(p.stat.text).is_equal(BOONS.stat_text(b))
+		assert_str(p.spirit.text).is_equal(BOONS.title(b))
+		assert_bool(p.spirit.text.contains(",")).is_equal(str(b["animal"]) != "")
+		assert_int(p.gauge.filled).is_equal(int(b["quality"]))
 		assert_int(p.feathers).is_equal(int(b["quality"]))
 	# a press on the second plank takes its gift; the run goes on
 	planks[1].pressed.emit()
@@ -454,22 +461,24 @@ func test_the_game_opens_the_menu_and_the_pick_stays() -> void:
 
 
 func test_the_menu_fits_the_screen_with_and_without_a_cutout() -> void:
-	for inset in [0, 130]:
+	# (pass 82, lane TOTEM, re-pinned on purpose: the Spirit Pole screen is top-anchored, its label at y 300 under a cutout
+	# of up to 130 px and moved down by the rest of a deeper one; its rows inside the screen, one under another, the words
+	# inside their tags)
+	for inset in [0, 130, 200]:
 		Settings.top_inset = inset
 		var scr = auto_free(SCREEN.new())
 		add_child(scr)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = inset + 3
 		scr.open(BOONS.offer(_pole(), rng), _pole())
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(0.6).timeout
 		var vp: Vector2 = scr.get_viewport_rect().size
-		var header_foot: float = scr.header.offset_top + scr.header.get_combined_minimum_size().y
-		assert_float(scr.header.offset_top).is_greater_equal(float(inset))
+		var label: Rect2 = (scr.get_node("Label") as Control).get_global_rect()
+		assert_float(label.position.y).is_greater_equal(float(inset))
+		assert_float(label.position.y).is_equal(300.0 + maxf(float(inset) - 130.0, 0.0))
 		var planks: Array = scr.planks()
 		assert_int(planks.size()).is_equal(3)
-		var art: Control = scr._art
-		assert_float(art.position.y).is_greater_equal(header_foot)
-		var prev_bottom: float = art.position.y + art.size.y
+		var prev_bottom: float = label.end.y
 		for p in planks:
 			var r: Rect2 = (p as Control).get_global_rect()
 			assert_float(r.position.y).is_greater_equal(prev_bottom)
@@ -477,9 +486,8 @@ func test_the_menu_fits_the_screen_with_and_without_a_cutout() -> void:
 			assert_float(r.end.x).is_less_equal(vp.x)
 			assert_float(r.end.y).is_less_equal(vp.y)
 			prev_bottom = r.end.y
-			# the words fit the plank
-			for t in [p.word, p.line]:
-				assert_float((t as Control).get_global_rect().end.x).is_less_equal(r.end.x)
-		# the planks sit low: the last one's foot in the screen's bottom fifth
-		assert_float(prev_bottom).is_greater(vp.y * 0.8)
+			# the words fit the tag
+			var tag: Rect2 = (p.tag as Control).get_global_rect()
+			for t in [p.stat, p.spirit, p.gauge]:
+				assert_float((t as Control).get_global_rect().end.x).is_less_equal(tag.end.x)
 		scr.visible = false

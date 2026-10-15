@@ -63,7 +63,7 @@ var _trace_n := 0
 ## the bot's options as given (args; Bot.resolve_opts fills in the rest from the preset); lure_r is stray's old name
 var _bot_raw: Dictionary = {}
 const BOT_ARGS := ["preset", "skill", "style", "reaction", "dodge", "daring", "stray", "explore", "totems", "barrels", "powerups",
-	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close"]
+	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "specials"]
 
 var _game: Node
 var _run: Node
@@ -562,6 +562,49 @@ static func bot_tallies(rec: Array, barrels) -> Dictionary:
 		"barrels": int(barrels.broken) if barrels != null else 0}
 
 
+## Pass 82 (lane STATS): chests, power-ups and totems picked up, the Sim's chart and the Watch's totals and marks. The
+## same rule, line for line, as tools/level_editor/sim_model.js pickupKind() (the Sim tab, the dashboard) and
+## tools/analytics_csv.py pickup_kind() (the rows CSV): "chests" for a `chest` event (one per chest opened, taken or
+## skipped, a boss chest too), "powerups" for a `pickup` whose `small` is not set (the game's own count of power-ups:
+## Game.apply_pickup), "totems" for a `totem` event (a Totem Pole's gift taken); "" for anything else.
+const PICKUP_KEYS := ["chests", "powerups", "totems"]
+
+
+static func pickup_kind(e) -> String:
+	if not (e is Dictionary):
+		return ""
+	var kind := str(e.get("kind", ""))
+	if kind == "chest":
+		return "chests"
+	if kind == "pickup":
+		var s = e.get("small", false)
+		var small: bool = (s is bool and s) or ((s is int or s is float) and float(s) != 0.0)
+		return "" if small else "powerups"
+	if kind == "totem":
+		return "totems"
+	return ""
+
+
+## {chests, powerups, totems}: each kind's event times (play seconds), in order.
+static func pickup_times(rec: Array) -> Dictionary:
+	var out := {"chests": [], "powerups": [], "totems": []}
+	for e in rec:
+		var k := pickup_kind(e)
+		if k != "":
+			var tv = e.get("t", 0.0)
+			(out[k] as Array).append(float(tv) if (tv is int or tv is float) else 0.0)
+	for k in PICKUP_KEYS:
+		(out[k] as Array).sort()
+	return out
+
+
+## {chests, powerups, totems}: the run's totals so far (every event given).
+static func pickup_totals(rec: Array) -> Dictionary:
+	var times := pickup_times(rec)
+	return {"chests": (times["chests"] as Array).size(), "powerups": (times["powerups"] as Array).size(),
+		"totems": (times["totems"] as Array).size()}
+
+
 ## The series of keys_SIMRUN.md from the recorder's `rows` (RunAnalytics samples) and events `rec`, with the tool's own
 ## events and the end's: every series one entry a row, aligned with `t`; the breakdowns one such array per id, zero
 ## before it first appears; "events" in time order; "sums" {rows, deaths, gold_total} for the meta.
@@ -617,6 +660,10 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 		if e is Dictionary and str(e.get("kind", "")) == "death":
 			fall_t.append(float(e.get("t", 0.0)))
 	var fi := 0
+	# pass 82 (lane STATS): chests, power-ups and totems picked up so far (pickup_kind), counted like the falls
+	var pk_times := pickup_times(rec)
+	var pk_i := {"chests": 0, "powerups": 0, "totems": 0}
+	var pk_out := {"chests": [], "powerups": [], "totems": []}
 	var gsum := 0
 	var dsum := 0.0
 	var last_t := 0
@@ -713,6 +760,13 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 		while fi < fall_t.size() and float(fall_t[fi]) <= rt + 0.001:
 			fi += 1
 		deaths.append(fi)
+		for k in PICKUP_KEYS:
+			var pk_tk: Array = pk_times[k]
+			var j: int = pk_i[k]
+			while j < pk_tk.size() and float(pk_tk[j]) <= rt + 0.001:
+				j += 1
+			pk_i[k] = j
+			(pk_out[k] as Array).append(j)
 	out["sums"] = {"rows": rows.size(), "deaths": fall_t.size(), "gold_total": gsum}
 	out["t"] = t
 	out["clock"] = clock
@@ -750,6 +804,8 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 	out["took"] = took
 	out["healed"] = healed
 	out["deaths"] = deaths
+	for k in PICKUP_KEYS:
+		out[k] = pk_out[k]
 	out["events"] = events_out(rec, tool_events, end_ev)
 	return out
 

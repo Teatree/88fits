@@ -688,7 +688,7 @@ const Sim = (() => {
   function emptyCard() {
     return el('section', { class: 'card sim-empty' },
       el('h2', { text: 'No sim to show yet' }),
-      el('p', { text: 'Choose the settings above and press Run sim. The game plays the saved map that many times with a bot (it kites the crowd, gathers gems, steps out of warning rings, picks cards as a sensible player would, takes chests, walks to the boss\'s chest and the portal; as the Explorer, the default, it also explores the map, takes the Totem Poles\' gifts, breaks barrels, chases power-ups and uses the structures, the Shop and the Stranger: the Bot group above), and these charts show the average of every second of play: DPS, HP, deaths, how hard each second is (health lost, keeping up with the crowd, what is close, what hurts), coins, damage by source, kills by creature, level, XP and the build.' }),
+      el('p', { text: 'Choose the settings above and press Run sim. The game plays the saved map that many times with a bot (it kites the crowd, gathers gems, steps out of warning rings, picks cards as a sensible player would, takes chests, walks to the boss\'s chest and the portal; as the Explorer, the default, it also explores the map, takes the Totem Poles\' gifts, breaks barrels, chases power-ups and uses the structures, the Shop and the Stranger: the Bot group above), and these charts show the average of every second of play: DPS, HP, deaths, how hard each second is (health lost, keeping up with the crowd, what is close, what hurts), coins, damage by source, kills by creature, chests, power-ups and totems picked up, level, XP and the build.' }),
       el('p', { class: 'muted small', text: 'The sim copies the game into its own folder first, so you can keep editing and saving while it runs: it plays what was saved when it started.' }));
   }
 
@@ -745,7 +745,7 @@ const Sim = (() => {
     const r = S.current;
     const det = el('details', { class: 'card sim-runs' }, el('summary', { text: `The ${r.players.length} runs one by one` }));
     const tb = el('table', { class: 'sim-table' });
-    tb.appendChild(el('thead', {}, el('tr', {}, ...['run', 'seed', 'ended', 'at', 'deaths', 'revives', 'level', 'kills', 'coins', 'the map', 'build at the end'].map((h) => el('th', { text: h })))));
+    tb.appendChild(el('thead', {}, el('tr', {}, ...['run', 'seed', 'ended', 'at', 'deaths', 'revives', 'level', 'kills', 'coins', 'picked up', 'the map', 'build at the end'].map((h) => el('th', { text: h })))));
     const body = el('tbody');
     const bots = {};
     for (const b of ((r.bot || {}).players || [])) bots[b.k] = b;
@@ -755,6 +755,8 @@ const Sim = (() => {
         el('td', { text: p.ok ? endWords(p.end_reason) : `failed: ${p.problem || '?'}` }), el('td', { text: M.fmtT(p.end_t) }),
         el('td', { text: p.deaths == null ? '–' : String(p.deaths) }), el('td', { text: String(p.revives || 0) }),
         el('td', { text: p.level == null ? '–' : String(p.level) }), el('td', { text: M.fmtNum(p.kills) }), el('td', { text: M.fmtNum(p.gold) }),
+        // pass 82 (lane STATS): chests, power-ups and totems by the run's end (none before pass 82)
+        el('td', { text: p.chests == null ? '–' : `${p.chests} chest${p.chests === 1 ? '' : 's'} · ${p.powerups} power-up${p.powerups === 1 ? '' : 's'} · ${p.totems} totem${p.totems === 1 ? '' : 's'}` }),
         el('td', { text: bots[p.k] ? `${bots[p.k].totems} totems · ${bots[p.k].barrels} barrels · ${bots[p.k].structures} structures · ${bots[p.k].powerups} power-ups` : '–' }),
         el('td', { class: 'build', text: p.build || '' })));
     }
