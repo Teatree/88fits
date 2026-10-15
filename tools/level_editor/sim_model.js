@@ -212,11 +212,13 @@ const SimModel = (() => {
    *  [{id, section, title, how, fmt, lines, bands, stack, overlay, yMax, yMin}]. A line: {key, label, color, values,
    *  width, dash}; a band {label, lo, hi, color}; a stack {items, other} (bottom to top); overlay: the compared sim's
    *  lines. A chart whose data the runs do not carry is left out (missing() names it). `opts.raw` shows the DPS per
-   *  second unsmoothed. Plain data in and out: the run dashboard can reuse it. */
+   *  second unsmoothed. Plain data in and out: the run dashboard reuses it (pass 78). A result of ONE run (the
+   *  dashboard's open run, a one-player sim) draws no bands, says "this run" and leaves out the share of runs playing. */
   function charts(res, cmp, opts) {
     const o = opts || {};
     if (!res || !res.series) return [];
     const n = runsIn(res);   // the runs in this result (a partial one has fewer than were asked for)
+    const one = n === 1;     // pass 78: one run (the run dashboard's open run): no bands, no "averaged over"
     const win = (res.rules || {}).dps_window || 5;
     const rwin = (res.rules || {}).rate_window || 10;
     const names = res.names || {};
@@ -224,20 +226,23 @@ const SimModel = (() => {
     const out = [];
     const has = (key) => !!(res.series[key] && (res.series[key].mean || res.series[key].median));
     const ov = (key, field, label) => (cmp && cmp.series && cmp.series[key] && cmp.series[key][field || 'mean'] ? [{ label: label || cmpName, values: cmp.series[key][field || 'mean'] }] : []);
-    const playingNote = `averaged over the runs still playing at that second (${n} at the start)`;
-    const band = (key, color, label, field) => (res.series[key] && res.series[key].p10 ? [{ label: label || 'middle 80% of runs', lo: res.series[key].p10, hi: res.series[key].p90, color }] : []);
+    const playingNote = one ? 'for this run' : `averaged over the runs still playing at that second (${n} at the start)`;
+    const band = (key, color, label, field) => (!one && res.series[key] && res.series[key].p10 ? [{ label: label || 'middle 80% of runs', lo: res.series[key].p10, hi: res.series[key].p90, color }] : []);
+    const bandNote = one ? '' : ' The band holds the middle 80% of the runs.';
+    const bandTail = one ? '' : '; the band is the middle 80%';
     const push = (section, c) => { c.section = section; out.push(c); };
 
     // ---- the hero
     const dpsKey = o.raw ? 'dps_raw' : 'dps';
     push('hero', { id: 'dps', title: 'Player DPS', fmt: 'num', unit: 'damage a second',
       how: o.raw ? `Damage dealt each second by every source (weapons, perks, blasts), per second as played, ${playingNote}. The dashed line is the build's own promise (the pause screen's estimate).`
+        : one ? `Damage dealt each second by every source (weapons, perks, blasts), smoothed over ${win} s, ${playingNote}. The dashed line is the build's own promise (the pause screen's estimate).`
         : `Damage dealt each second by every source (weapons, perks, blasts), each run smoothed over ${win} s first, then ${playingNote}. The band holds the middle 80% of the runs (10th to 90th percentile). The dashed line is the build's own promise (the pause screen's estimate).`,
       lines: [{ key: dpsKey, label: o.raw ? 'real DPS (per second)' : `real DPS (${win} s)`, color: SLOTS[0], values: ser(res, dpsKey) || [] },
         { key: 'est', label: 'estimated DPS', color: SLOTS[6], values: ser(res, 'est') || [], dash: SHORT_DASH, width: 1.5 }],
       bands: o.raw ? [] : band('dps', SLOTS[0]), overlay: ov(dpsKey, 'mean', `${cmpName}: real DPS`) });
     push('hero', { id: 'hp', title: 'Player HP', fmt: 'num', unit: 'HP',
-      how: `The hero's health at each second and his max health (dashed), ${playingNote}. The band holds the middle 80% of the runs.`,
+      how: `The hero's health at each second and his max health (dashed), ${playingNote}.${bandNote}`,
       lines: [{ key: 'hp', label: 'HP', color: SLOTS[2], values: ser(res, 'hp') || [] },
         { key: 'hp_max', label: 'max HP', color: SLOTS[2], values: ser(res, 'hp_max') || [], dash: SHORT_DASH, width: 1.25 }],
       bands: band('hp', SLOTS[2]), overlay: ov('hp', 'mean', `${cmpName}: HP`) });
@@ -245,13 +250,14 @@ const SimModel = (() => {
     // ---- death: the runs still playing, the deaths so far
     const pct = (arr, total) => (arr || []).map((v) => (v == null ? null : (100 * v) / Math.max(1, total)));
     const cmpN = cmp ? runsIn(cmp) || 1 : 1;
-    push('death', { id: 'playing', title: 'Runs still playing', fmt: 'pct', unit: '% of runs', yMax: 100,
+    if (!one) push('death', { id: 'playing', title: 'Runs still playing', fmt: 'pct', unit: '% of runs', yMax: 100,
       how: `The share of the ${n} runs still going at each second: a run stops at its end (a death it could not get up from, or the stop time). With "keep playing" every run goes to the stop.`,
       lines: [{ key: 'playing', label: 'still playing', color: SLOTS[0], values: pct(res.playing, n) }],
       overlay: cmp ? [{ label: `${cmpName}: still playing`, values: pct(cmp.playing, cmpN) }] : [] });
     push('death', { id: 'deaths', title: 'Deaths so far', fmt: 'num', unit: 'deaths a run',
-      how: `How many times a run has gone down by each second (revived or not), averaged over all ${n} runs: a run that ended keeps its count to the right.`,
-      lines: [{ key: 'deaths', label: 'deaths a run (mean)', color: SLOTS[7], values: ser(res, 'deaths') || [] }],
+      how: one ? 'How many times the hero has gone down by each second (revived or not), for this run: a fall the run ended at counts too.'
+        : `How many times a run has gone down by each second (revived or not), averaged over all ${n} runs: a run that ended keeps its count to the right.`,
+      lines: [{ key: 'deaths', label: one ? 'deaths' : 'deaths a run (mean)', color: SLOTS[7], values: ser(res, 'deaths') || [] }],
       overlay: ov('deaths', 'mean', `${cmpName}: deaths`) });
 
     // ---- difficulty: how hard is each second for the hero?
@@ -261,31 +267,32 @@ const SimModel = (() => {
     const aliveFold = fold(bds.alive_by, names, FOLD, creatureColors);
     const hurtFold = fold(bds.took_by, names, FOLD, creatureColors);
     if (has('danger')) push('difficulty', { id: 'danger', title: 'Danger: health lost a second', fmt: 'pct1', unit: '% of max HP a second',
-      how: `How much of his max health the hero loses each second before healing (the line), and after it (dashed: below 0 = healing more than he loses). 2% means a full bar lasts 50 s at that rate. Each run over ${win} s, ${playingNote}; the band is the middle 80%.`,
+      how: `How much of his max health the hero loses each second before healing (the line), and after it (dashed: below 0 = healing more than he loses). 2% means a full bar lasts 50 s at that rate. ${one ? 'Over' : 'Each run over'} ${win} s, ${playingNote}${bandTail}.`,
       lines: [{ key: 'danger', label: 'lost (before healing)', color: SLOTS[7], values: ser(res, 'danger') || [] },
         { key: 'danger_net', label: 'net (after healing)', color: SLOTS[7], values: ser(res, 'danger_net') || [], dash: SHORT_DASH, width: 1.5 }],
       bands: band('danger', SLOTS[7]), overlay: ov('danger', 'mean', `${cmpName}: lost`) });
     if (has('keep_up')) push('difficulty', { id: 'keep_up', title: 'Keeping up with the crowd', fmt: 'sec', unit: 'seconds of his damage',
-      how: 'How many seconds of his own damage the hero would need to kill every creature alive, the boss left out: rising = falling behind the crowd, flat or falling = keeping up. Dashed: the boss alone, seconds of his damage to kill it. The middle run at each second (a crowd over a DPS jumps where the DPS is small), the band the middle 80%.',
+      how: 'How many seconds of his own damage the hero would need to kill every creature alive, the boss left out: rising = falling behind the crowd, flat or falling = keeping up. Dashed: the boss alone, seconds of his damage to kill it.' +
+        (one ? ' For this run (blank where his damage is under 1 a second).' : ' The middle run at each second (a crowd over a DPS jumps where the DPS is small), the band the middle 80%.'),
       lines: [{ key: 'keep_up', label: 'to clear the crowd (no boss)', color: SLOTS[1], values: ser(res, 'keep_up', 'median') || [] },
         { key: 'boss_s', label: 'to kill the boss', color: SLOTS[4], values: ser(res, 'boss_s', 'median') || [], dash: SHORT_DASH, width: 1.5 }],
       bands: band('keep_up', SLOTS[1]), overlay: ov('keep_up', 'median', `${cmpName}: to clear the crowd`) });
     if (has('near3')) push('difficulty', { id: 'near', title: 'Close crowd', fmt: 'num', unit: 'creatures',
-      how: `Creatures within 3 m of the hero: the ones that can reach him now${has('near6') ? ' (dashed: within 6 m)' : ''}, ${playingNote}; the band is the middle 80%.`,
+      how: `Creatures within 3 m of the hero: the ones that can reach him now${has('near6') ? ' (dashed: within 6 m)' : ''}, ${playingNote}${bandTail}.`,
       lines: [{ key: 'near3', label: 'within 3 m', color: SLOTS[1], values: ser(res, 'near3') || [] }]
         .concat(has('near6') ? [{ key: 'near6', label: 'within 6 m', color: SLOTS[1], values: ser(res, 'near6') || [], dash: SHORT_DASH, width: 1.5 }] : []),
       bands: band('near3', SLOTS[1]), overlay: ov('near3', 'mean', `${cmpName}: within 3 m`) });
     if (aliveFold) push('difficulty', { id: 'alive_by', title: 'Who is alive', fmt: 'num', unit: 'creatures',
       how: `How many of each creature are alive at that second (the biggest ${FOLD}, the rest as Other), ${playingNote}. The top edge is the whole crowd.`,
       stack: aliveFold, lines: [], overlay: ov('alive', 'mean', `${cmpName}: crowd`) });
-    if (has('trouble')) push('difficulty', { id: 'trouble', title: 'Runs in trouble', fmt: 'pct', unit: '% of runs', yMax: 100,
-      how: `The share of the runs still playing whose hero is under 30% of his max health at that second.`,
+    if (has('trouble')) push('difficulty', { id: 'trouble', title: one ? 'In trouble' : 'Runs in trouble', fmt: 'pct', unit: one ? '%' : '% of runs', yMax: 100,
+      how: one ? 'Whether the hero is under 30% of his max health at that second: 100% while he is, 0% while he is not.' : `The share of the runs still playing whose hero is under 30% of his max health at that second.`,
       lines: [{ key: 'trouble', label: 'under 30% health', color: SLOTS[7], values: ser(res, 'trouble') || [] }], overlay: ov('trouble', 'mean', `${cmpName}: in trouble`) });
     if (hurtFold) push('difficulty', { id: 'hurt', title: 'What hurt the hero', fmt: 'num', unit: 'HP lost',
       how: `Health lost so far to each creature or attack (after shields and armour; the biggest ${FOLD}, the rest as Other), ${playingNote}. The top edge is all the health lost.`,
       stack: hurtFold, lines: [], overlay: [] });
     if (has('hits_ps')) push('difficulty', { id: 'hits', title: 'Hits taken', fmt: 'num', unit: 'hits a second',
-      how: `Hits that reached the hero each second (shielded and evaded ones too), each run over ${rwin} s, ${playingNote}.`,
+      how: `Hits that reached the hero each second (shielded and evaded ones too), ${one ? '' : 'each run '}over ${rwin} s, ${playingNote}.`,
       lines: [{ key: 'hits_ps', label: 'hits a second', color: SLOTS[4], values: ser(res, 'hits_ps') || [] }], overlay: ov('hits_ps', 'mean', `${cmpName}: hits`) });
     const healFold = fold(bds.healed_by, names, FOLD);
     if (healFold) push('difficulty', { id: 'heal', title: 'Healing', fmt: 'num', unit: 'HP healed',
@@ -297,7 +304,7 @@ const SimModel = (() => {
         { key: 'cap', label: 'cap', color: SLOTS[3], values: ser(res, 'cap') || [], dash: SHORT_DASH, width: 1.5 }],
       overlay: ov('alive', 'mean', `${cmpName}: alive`) });
     if (has('kills_ps')) push('difficulty', { id: 'flow', title: 'Spawned and killed', fmt: 'num', unit: 'creatures a second',
-      how: `Creatures killed${has('spawned_ps') ? ' and spawned' : ''} each second, each run over ${rwin} s, ${playingNote}.${has('spawned_ps') ? ' Kills above spawns = the hero is winning the room.' : ''}`,
+      how: `Creatures killed${has('spawned_ps') ? ' and spawned' : ''} each second, ${one ? '' : 'each run '}over ${rwin} s, ${playingNote}.${has('spawned_ps') ? ' Kills above spawns = the hero is winning the room.' : ''}`,
       lines: [{ key: 'kills_ps', label: 'killed a second', color: SLOTS[2], values: ser(res, 'kills_ps') || [] }]
         .concat(has('spawned_ps') ? [{ key: 'spawned_ps', label: 'spawned a second', color: SLOTS[1], values: ser(res, 'spawned_ps') || [], dash: SHORT_DASH, width: 1.5 }] : []),
       overlay: ov('kills_ps', 'mean', `${cmpName}: killed`) });
@@ -326,7 +333,7 @@ const SimModel = (() => {
 
     // ---- growth
     push('growth', { id: 'level', title: 'Hero level', fmt: 'level', unit: 'level',
-      how: `The hero's level at each second, ${playingNote}. The band holds the middle 80% of the runs.`,
+      how: `The hero's level at each second, ${playingNote}.${bandNote}`,
       lines: [{ key: 'level', label: 'level', color: SLOTS[6], values: ser(res, 'level') || [] }],
       bands: band('level', SLOTS[6]), overlay: ov('level', 'mean', `${cmpName}: level`) });
     push('growth', { id: 'xp', title: 'Total XP gained', fmt: 'num', unit: 'XP',

@@ -137,8 +137,37 @@
     .meter-row { grid-template-columns: 1fr; gap: 2px; }
     .meter-row .nums { text-align: left; }
   }
+  /* pass 78: the Sim's charts (drawn by ../tools/level_editor/sim_plot.js, styled by its sim.css), the averages, the
+     runs from PostHog */
+  :root { --border-2: rgba(255,255,255,0.18); --surface-3: #2c2c2a; }
+  .btn.ghost { background: none; border-color: transparent; color: var(--muted); }
+  .seg button:disabled { color: var(--muted); cursor: default; opacity: 0.6; }
+  .btn.ghost:hover { color: var(--ink); background: var(--surface-2); }
+  .sim .muted, .picker .muted { color: var(--muted); }
+  .sim .small, .picker .small { font-size: 0.8rem; }
+  details.simview { margin: 4px 0 18px; }
+  details.simview > summary { cursor: pointer; padding: 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+  details.simview > summary b { font-size: 1.02rem; }
+  .simview .sim { gap: 10px; }
+  .sim-tiles-wrap { margin: 2px 0 12px; }
+  .picker { margin: 0 0 14px; }
+  .picker .plist { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; }
+  .picker table td, .picker table th { padding: 4px 8px; }
+  .picker tr.dev td { color: var(--ink-2); }
+  .picker .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .picker .players { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .picker .players label { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 0.84rem; cursor: pointer; }
+  .picker .players label.on { border-color: rgba(57,135,229,0.75); }
+  .note { color: var(--ink-2); font-size: 0.86rem; margin: 6px 0; }
+  .warnline { background: rgba(250,178,25,0.08); border: 1px solid rgba(250,178,25,0.35); border-radius: 8px; padding: 6px 10px; font-size: 0.84rem; margin: 8px 0; }
 </style>
+<!-- pass 78: the Sim tab's own chart definitions (sim_model.js), averaging (sim_avg.js), drawing (sim_plot.js) and
+     styles (sim.css), from the Level Editor beside this folder: one copy for both pages -->
+<link rel="stylesheet" href="../tools/level_editor/sim.css">
 <script src="lib/chart.umd.js" onerror="this.remove(); var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'; document.head.appendChild(s)"></script>
+<script src="../tools/level_editor/sim_model.js"></script>
+<script src="../tools/level_editor/sim_avg.js"></script>
+<script src="../tools/level_editor/sim_plot.js"></script>
 <script src="runs/index.js"></script>
 <script src="runs/latest.js"></script>
 </head>
@@ -152,10 +181,22 @@
   <div class="seg" id="source" role="group" aria-label="Which runs">
     <button type="button" data-src="played" class="on">Played runs</button>
     <button type="button" data-src="tools">Tool runs</button>
+    <button type="button" data-src="remote" title="the runs downloaded from PostHog by python tools/posthog_runs.py (analytics/remote/)">Remote runs</button>
   </div>
-  <label>Open a run file <input id="file" type="file" accept=".json,.js" multiple></label>
-  <div class="drop" id="drop">or drop run files here: the first is the run, any more are drawn dashed over it to compare</div>
+  <label>Open run files <input id="file" type="file" accept=".json,.js" multiple></label>
+  <label title="every run file in a folder (analytics/runs, the PC build's folder, a player's folder under analytics/remote)">Open a folder <input id="folder" type="file" webkitdirectory multiple></label>
+  <div class="drop" id="drop">or drop run files here: one opens it; several can be averaged or drawn dashed over the first</div>
   <span id="loaded"></span>
+</div>
+<div class="toolbar" id="viewbar" hidden>
+  <span class="lbl">Show:</span>
+  <div class="seg" id="view" role="group" aria-label="How to show the runs">
+    <button type="button" data-view="one" class="on">One run</button>
+    <button type="button" data-view="overlay" title="the first run's cards with the others dashed over them">Overlay</button>
+    <button type="button" data-view="average" title="the runs picked below averaged second by second, the Sim's way">Average</button>
+  </div>
+  <label title="a sim's result.json (tools/dl/sim/runs/&lt;sim&gt;/result.json): its lines dashed grey on the Sim's charts">Compare with a sim <input id="cmpfile" type="file" accept=".json"></label>
+  <span id="cmpchip"></span>
 </div>
 <div class="toolbar">
   <span class="lbl">Download CSV:</span>
@@ -170,7 +211,8 @@
     <li><b>Played from the editor binary</b> (the Godot editor, or the game started from it): every run lands in <code>analytics/runs/</code> beside this page, and this page opens the newest one by itself.</li>
     <li><b>Tool runs</b> (smoke_run, perf_late, hell_check, captures: anything headless or started with <code>--script</code>): <code>analytics/runs/tools/</code>, shown with the <i>Tool runs</i> switch above.</li>
     <li><b>The PC build</b> (<code>88fits.exe</code>): <code>%APPDATA%\Godot\app_userdata\88fits\analytics\runs\</code> (paste that into Explorer's address bar), then drop a file here. The PC keeps every run file.</li>
-    <li><b>The phone</b>: only PostHog (the boards). The phone keeps its newest 50 run files, out of reach.</li>
+    <li><b>The phone, and every other player</b> (pass 78): each run's whole record goes to PostHog (<code>run_record</code>, with the player's consent). <code>python tools/posthog_runs.py</code> downloads them into <code>analytics/remote/&lt;player&gt;/</code> (with your personal key in <code>tools/posthog_personal_key.txt</code>); the <i>Remote runs</i> switch shows them by player: one run with every card, a player's average, several players' average. The how-to: <code>analytics/howto/03_remote_runs.md</code>.</li>
+    <li><b>Averages</b>: open several run files (or a whole folder) and pick <i>Average</i>: every second of play averaged the way the Level Editor's Sim tab averages its runs, on the Sim's own charts.</li>
     <li><b>Every CSV for a whole folder at once</b>: <code>python tools/analytics_csv.py</code> (add <code>--tools</code> for the tool runs, or <code>--runs &lt;folder&gt;</code> for the PC build's folder).</li>
   </ul>
 </details>
@@ -191,11 +233,13 @@
 (function (root) {
   'use strict';
   const BOM = '﻿';
-  // the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp empty (no boss up)
-  const BASE = ['t', 'clock', 'stage', 'phase', 'wave', 'level', 'xp', 'xp_next', 'hp', 'hp_max', 'shield', 'invuln', 'gold',
+  // the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp and boss_now empty (no boss
+  // up). Pass 78: the pass-77 keys xp_total, hp_lost, hp_healed, boss_now, near3, near6 (tools/analytics_csv.py the same)
+  const BASE = ['t', 'clock', 'stage', 'phase', 'wave', 'level', 'xp', 'xp_next', 'xp_total', 'hp', 'hp_max', 'shield', 'invuln', 'gold',
     'banked', 'kills', 'adren', 'cresc', 'desp', 'steady', 'est_total', 'took_raw', 'hits', 'evaded', 'shielded', 'healed',
-    'regen', 'elite_kills', 'alive', 'cap', 'load', 'hard_cap', 'press', 'press_hp', 'press_dmg', 'boss_hp', 'specials_alive'];
-  const EMPTY_WHEN_MISSING = ['boss_hp'];
+    'regen', 'hp_lost', 'hp_healed', 'elite_kills', 'alive', 'cap', 'load', 'hard_cap', 'press', 'press_hp', 'press_dmg',
+    'boss_hp', 'boss_now', 'specials_alive', 'near3', 'near6'];
+  const EMPTY_WHEN_MISSING = ['boss_hp', 'boss_now'];
   // the second's tallies by id, flattened as group.key; a missing one is 0
   const MAPS = ['est', 'dmg', 'took', 'took_kind', 'hits_by', 'healed_by', 'killed', 'spawned', 'alive_by', 'gold_in', 'gold_out'];
   // the build's snapshots: on a row only when they changed; carried forward to every second until the next one
@@ -512,7 +556,9 @@
   const evs = (S, kind) => S.events.filter((e) => e.kind === kind);
 
   // ------------------------------------------------------------ the page
-  const SRC = { played: { run: (window.RUN && window.RUN.samples) ? window.RUN : null, runs: Array.isArray(window.RUNS) ? window.RUNS : [], loaded: true }, tools: { run: null, runs: [], loaded: false } };
+  const SRC = { played: { run: (window.RUN && window.RUN.samples) ? window.RUN : null, runs: Array.isArray(window.RUNS) ? window.RUNS : [], loaded: true }, tools: { run: null, runs: [], loaded: false },
+    // pass 78: the runs downloaded from PostHog (analytics/remote/index.js and one .js a run, from tools/posthog_runs.py)
+    remote: { run: null, runs: [], loaded: false, index: null } };
   let SOURCE = 'played', MAIN = null, OVERLAYS = [], CHARTS = [], SHOW_HEADLESS = false;
   const $main = document.getElementById('main'), $empty = document.getElementById('empty'), $loaded = document.getElementById('loaded');
 
@@ -652,15 +698,23 @@
 
   function render() {
     for (const ch of CHARTS) ch.destroy(); CHARTS = []; $main.textContent = '';
+    SV.drawn = [];
+    if (VIEW === 'average' && !AVG) VIEW = 'one';
+    if (VIEW === 'overlay' && !OVERLAYS.length) VIEW = 'one';
     renderLoaded();
-    document.getElementById('csv-rows').disabled = !MAIN;
-    document.getElementById('csv-events').disabled = !MAIN;
+    renderViewbar();
+    document.getElementById('csv-rows').disabled = !MAIN || VIEW === 'average';
+    document.getElementById('csv-events').disabled = !MAIN || VIEW === 'average';
     document.getElementById('csv-history').disabled = !currentRuns().length;
-    if (!MAIN) { $empty.hidden = false; renderHistory($main); return; }
+    // pass 78: the pickers (the runs from PostHog, the runs opened from files) over the view
+    renderPickers($main);
+    if (VIEW === 'average') { $empty.hidden = true; renderAverage($main); renderHistory($main); return; }
+    if (!MAIN) { $empty.hidden = SOURCE === 'remote' || LOADED.length > 0; renderHistory($main); return; }
     $empty.hidden = true;
     if (!chartReady()) $main.appendChild(el('p', 'desc', 'Chart.js did not load (lib/chart.umd.js missing and no internet): the tables still work.'));
     const S = MAIN;
     renderSummary($main, S);
+    renderSim($main, S);
     const grid = el('div', 'grid'); $main.appendChild(grid);
     const steps = [renderFacts, renderPower, renderPressure, renderRatio, renderHealth, renderEnemies, renderHitLog, renderBosses, renderSpecials,
       renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderTotems, renderHealing, renderSurvival, renderStats,
@@ -673,6 +727,7 @@
 
   function renderLoaded() {
     $loaded.textContent = '';
+    if (VIEW === 'average' && AVG) { const c = el('span', 'chip'); c.appendChild(el('b', null, 'average')); c.appendChild(document.createTextNode(' of ' + AVG.entries.length + ' runs')); $loaded.appendChild(c); return; }
     if (MAIN) { const c = el('span', 'chip'); c.appendChild(el('b', null, MAIN.run.hero_name || MAIN.run.hero || 'run')); c.appendChild(document.createTextNode(' ' + (MAIN.run.stamp || ''))); $loaded.appendChild(c); }
     OVERLAYS.forEach((o, i) => { const c = el('span', 'chip'); c.appendChild(document.createTextNode('overlay ' + (i + 1) + ': ')); c.appendChild(el('b', null, (o.run.hero_name || o.run.hero || '') + ' ' + (o.run.stamp || ''))); const x = el('span', 'x', '✕'); x.title = 'remove'; x.onclick = () => { OVERLAYS.splice(i, 1); render(); }; c.appendChild(x); $loaded.appendChild(c); });
   }
@@ -682,7 +737,7 @@
     const r = S.run, wrap = el('div', 'summary');
     const tile = (lbl, val, sub, cls) => tileIn(wrap, lbl, val, sub, cls);
     const res = el('span', 'result-' + (r.result || 'end'), RESULT_WORDS[r.result] || r.result || '?');
-    const origin = r.tool ? 'a tool\'s run' : (r.headless ? 'a headless tool run' : 'played');
+    const origin = r.remote ? 'from PostHog: ' + (r.remote.label || r.remote.player || 'a player') + (r.remote.dev ? ' (a developer run)' : '') : (r.tool ? 'a tool\'s run' : (r.headless ? 'a headless tool run' : 'played'));
     const heroTile = tile((r.hero_name || r.hero || '?') + (r.hero_look ? ' (' + r.hero_look + ')' : '') + ' · ' + titleCase(r.map || ''), res, 'v' + (r.version || '?') + ' · seed ' + (r.seed || '?') + ' · ' + (r.started || '').replace('T', ' ') + ' · ' + origin + (r.device ? ' · ' + r.device : ''));
     heroTile.querySelector('.val').classList.add('hero'); heroTile.classList.add('wide');
     tile('Play time', fmtT(r.length || S.n), 'stage clock ' + fmtT(r.clock || 0) + ' (it stops for bosses and portals)');
@@ -747,6 +802,8 @@
     if (ge) add('Gold', 'earned ' + fmtI(ge.gold_earned) + (ge.gold_greed ? ' (greed ' + fmtI(ge.gold_greed) + ')' : '') + ' · spent ' + fmtI(ge.gold_spent) + ' · banked ' + fmtI(ge.gold_banked) + (ge.gold_strongbox ? ' (Strongbox ' + fmtI(ge.gold_strongbox) + ')' : '') + ' · lost ' + fmtI(ge.gold_lost) + ' · saved gold ' + fmtI(ge.gold_before) + ' → ' + fmtI(ge.gold_after));
     else if (r.gold_before != null) add('Gold', 'saved gold as it began ' + fmtI(r.gold_before));
     add('Run id', r.run_id ? r.run_id + ' (the same id on its PostHog events)' : '');
+    // pass 78: a run downloaded from PostHog (tools/posthog_runs.py) says whose it is and when it came
+    if (r.remote) add('From PostHog', (r.remote.label ? r.remote.label + ' · ' : '') + (r.remote.player || '?') + ' · install ' + String(r.remote.distinct_id || '').slice(0, 8) + ' · received ' + String(r.remote.received || '').replace('T', ' ').slice(0, 19) + ' · ' + (r.remote.parts || 1) + ' part' + ((r.remote.parts || 1) > 1 ? 's' : '') + ' · sent by v' + (r.remote.app_version || r.version || '?') + (r.remote.dev ? ' · a developer run' : '') + (r.remote.recovered ? ' · sent at the next launch (the app was closed mid-run)' : ''));
     const c = card('The run', 'Who played what, where, with which upgrades and switches, and the map\'s numbers as this run played them.', { wide: true });
     const dl = el('dl', 'facts');
     for (const [k, v] of facts) { dl.appendChild(el('dt', null, k)); dl.appendChild(el('dd', null, v)); }
@@ -1238,20 +1295,325 @@
     grid.appendChild(c);
   }
 
+  // ------------------------------------------------------------ pass 78: the Sim's charts, averages, remote runs
+  // Garry: "Add those charts to our Local Run Analytics dashboard so their formats match" and "I want to see it for one
+  // player in particular or as an average for several players". Every run here (played, a tool's, opened from a file or
+  // a folder, downloaded from PostHog) maps onto the Sim's per-player schema (SimAvg.fromRecord, the same mapping as
+  // game/tools/sim_run.gd), is averaged the Sim's way (SimAvg.aggregate = tools/sim_batch.py aggregate) and drawn by the
+  // Sim tab's own code (SimPlot, SimModel): the same charts, names, units, colours and explanations.
+  const SIMOK = typeof SimModel !== 'undefined' && typeof SimAvg !== 'undefined' && typeof SimPlot !== 'undefined';
+  let VIEW = 'one';            // one | overlay | average
+  let LOADED = [];             // runs opened from files or a folder: [{key, label, run}]
+  let AVG = null;              // the average on screen: {res, entries, title}
+  let CMP = null;              // a sim's result.json to compare with: {res, name}
+  let PICK = new Set();        // the keys checked in the pickers (loaded runs: 'f:<i>', remote runs: 'r:<file>')
+  let PLAYERS = new Set();     // the remote players checked
+  let NO_DEV = false;          // leave developer runs out of the remote lists
+  let SIM_OPEN = true;
+  try { SIM_OPEN = localStorage.getItem('runwatch.sim') !== 'closed'; NO_DEV = localStorage.getItem('runwatch.nodev') === '1'; } catch (e) { /* defaults */ }
+  const REMOTE_CACHE = new Map();   // remote file -> its record, once loaded
+  const SV = { current: null, compare: null, hover: null, raw: false, tables: new Set(), drawn: [], stamp: '',
+    toggleRaw() { SV.raw = !SV.raw; keepScroll(render); },
+    toggleTable(id) { if (SV.tables.has(id)) SV.tables.delete(id); else SV.tables.add(id); keepScroll(render); },
+    download(name, text) { download(name, text); },
+    csvName(c) { return fileName(SV.stamp || nowStamp(), 'sim-' + c.id); } };
+  function keepScroll(f) { const y = window.scrollY; f(); window.scrollTo(0, y); }
+
+  /** A record as an entry the Sim's maths takes: its player (the Sim's schema), its names, a label. */
+  function entryOf(run, key, label) {
+    const names = Object.assign({}, run.names || {});
+    if (run.hero && run.hero_name) names[run.hero] = run.hero_name;
+    const player = SimAvg.fromRecord(run, { player: run.remote ? run.remote.player : '' });
+    return { key, label: label || runLabel(run), run, player, names };
+  }
+  function runLabel(r) {
+    return (r.remote && r.remote.player ? r.remote.player + ' · ' : '') + (r.started || r.stamp || '').replace('T', ' ') + ' · ' + (r.hero_name || r.hero || '?') + ' · ' + (RESULT_WORDS[r.result] || r.result || '?') + ' · ' + fmtT(r.length || 0);
+  }
+  /** SimAvg.aggregate over the entries: the result the Sim's charts draw. */
+  function resultOf(entries, title) {
+    let limit = 1;
+    for (const e of entries) { const t = e.player.t; if (t.length) limit = Math.max(limit, t[t.length - 1] + 1); }
+    const heroes = Array.from(new Set(entries.map((e) => e.player.meta.hero)));
+    const names = Object.assign({}, ...entries.map((e) => e.names));
+    const res = SimAvg.aggregate(entries.map((e, i) => ({ k: i + 1, d: e.player, rec: { seed: e.key } })),
+      { hero: heroes.length === 1 ? heroes[0] : '', limit, players: entries.length }, { title }, names);
+    if (heroes.length !== 1) res.meta.hero_name = 'mixed heroes';
+    return res;
+  }
+  function simReady(root) {
+    if (SIMOK) return true;
+    root.appendChild(el('p', 'warnline', 'The Sim\'s charts did not load: they come from tools/level_editor/sim_model.js, sim_avg.js, sim_plot.js and sim.css next to this folder (open the page from the repo).'));
+    return false;
+  }
+  function drawSim(box, res, cmp, stamp) {
+    SV.current = res; SV.compare = cmp; SV.hover = null; SV.stamp = stamp || '';
+    const wrap = el('div', 'sim');
+    box.appendChild(wrap);
+    const sections = el('div', 'sim-sections');
+    wrap.appendChild(sections);
+    SimPlot.drawCharts(sections, SV, { lackingWords: 'Not in these records (a run from before v0.63 has no close crowd, no boss HP, no XP total)' });
+  }
+  function simTiles(res, first) {
+    const row = el('div', 'sim-tiles');
+    const tiles = SimModel.tiles(res);
+    tiles[0] = first;
+    for (const t of tiles) { const d = el('div', 'sim-tile'); d.appendChild(el('div', 'sim-tile-label', t.label)); d.appendChild(el('div', 'sim-tile-value', t.value)); d.appendChild(el('div', 'sim-tile-note', t.note)); row.appendChild(d); }
+    return row;
+  }
+
+  // the open run's Sim charts (one run: no bands), folded under the summary; drawn when open
+  function renderSim(root, S) {
+    if (!simReady(root)) return;
+    const det = document.createElement('details'); det.className = 'simview'; det.open = SIM_OPEN;
+    const sum = el('summary'); sum.appendChild(el('b', null, 'The Sim\'s charts for this run'));
+    sum.appendChild(el('span', 'muted', ' · the Level Editor\'s Sim tab, the same charts, words and colours' + (CMP ? ' · dashed grey: ' + CMP.name : (VIEW === 'overlay' && OVERLAYS.length ? ' · dashed grey: the first overlay' : ''))));
+    det.appendChild(sum);
+    const body = el('div'); det.appendChild(body);
+    let drawn = false;
+    const draw = () => {
+      if (drawn) return; drawn = true;
+      try {
+        const res = resultOf([entryOf(S.run, 'main')], 'this run');
+        let cmp = CMP ? CMP.res : null;
+        if (!cmp && VIEW === 'overlay' && OVERLAYS.length) cmp = resultOf([entryOf(OVERLAYS[0].run, 'o1')], 'overlay 1');
+        drawSim(body, res, cmp, S.run.stamp);
+      } catch (err) { body.appendChild(el('p', 'warnline', 'The Sim\'s charts could not be drawn for this file: ' + err.message)); console.error(err); }
+    };
+    det.addEventListener('toggle', () => { SIM_OPEN = det.open; try { localStorage.setItem('runwatch.sim', det.open ? 'open' : 'closed'); } catch (e) { /* fine */ } if (det.open) draw(); });
+    if (det.open) draw();
+    root.appendChild(det);
+  }
+
+  // the average view: whose runs, the tiles, the Sim's charts, the runs one by one
+  function renderAverage(root) {
+    if (!simReady(root)) return;
+    if (!AVG) { root.appendChild(el('p', 'note', 'Tick the runs to average below, then press Average.')); return; }
+    const res = AVG.res, entries = AVG.entries;
+    const head = card(AVG.title, 'Every second of play averaged the way the Level Editor\'s Sim tab averages its runs (tools/sim_batch.py): a series is the mean over the runs still playing at that second, the bands hold the middle 80 %, deaths count every run, the stage and boss marks are medians. The readout under each chart says how many runs are behind that second.', { wide: true, slug: 'average' });
+    const facts = [];
+    const whose = (r) => (r.remote && (r.remote.label || r.remote.player)) || (r.sim ? 'a sim' : 'this PC');
+    const players = Array.from(new Set(entries.map((e) => whose(e.run))));
+    const heroes = Array.from(new Set(entries.map((e) => e.run.hero_name || e.run.hero)));
+    const starts = entries.map((e) => e.run.started || '').filter(Boolean).sort();
+    const versions = Array.from(new Set(entries.map((e) => e.run.version).filter(Boolean))).sort();
+    const results = {}; for (const e of entries) { const k = RESULT_WORDS[e.run.result] || e.run.result || '?'; results[k] = (results[k] || 0) + 1; }
+    const devs = entries.filter((e) => (e.run.remote && e.run.remote.dev) || (e.run.settings && e.run.settings.dev)).length;
+    facts.push(['Runs', entries.length + (devs ? ' (' + devs + ' developer run' + (devs > 1 ? 's' : '') + ')' : '')]);
+    facts.push(['Players', players.join(', ')]);
+    facts.push(['Heroes', heroes.join(', ')]);
+    if (starts.length) facts.push(['Played', starts[0].replace('T', ' ') + (starts.length > 1 ? ' to ' + starts[starts.length - 1].replace('T', ' ') : '')]);
+    facts.push(['Game versions', versions.map((v) => 'v' + v).join(', ') || '?']);
+    facts.push(['How they ended', Object.entries(results).map(([k, v]) => v + ' ' + k.toLowerCase()).join(' · ')]);
+    if (CMP) facts.push(['Dashed grey', CMP.name]);
+    const dl = el('dl', 'facts');
+    for (const [k, v] of facts) { dl.appendChild(el('dt', null, k)); dl.appendChild(el('dd', null, v)); }
+    head.appendChild(dl);
+    const tw = el('div', 'sim-tiles-wrap sim');
+    tw.appendChild(simTiles(res, { label: 'Runs averaged', value: String(res.summary.ok), note: players.length > 1 ? players.length + ' players' : 'one player: ' + players[0] }));
+    head.appendChild(tw);
+    root.appendChild(head);
+    const box = el('div'); root.appendChild(box);
+    drawSim(box, res, CMP ? CMP.res : null, 'average');
+    // the runs one by one (each opens with every card)
+    const c = card(entries.length === 1 ? 'The run' : 'The ' + entries.length + ' runs one by one', 'Each run as the average counted it: its end, its level, kills and coins at its own end. Open shows it alone with every card.', { wide: true, slug: 'average-runs' });
+    const tb = document.createElement('table'); const thead = document.createElement('thead'); const tr = document.createElement('tr');
+    for (const h of ['player', 'started', 'hero', 'ended', 'at', 'deaths', 'level', 'kills', 'coins', 'build', '']) tr.appendChild(el('th', null, h));
+    thead.appendChild(tr); tb.appendChild(thead); const body = document.createElement('tbody');
+    res.players.forEach((p, i) => {
+      const e = entries[i]; const r = e.run; const row = document.createElement('tr');
+      const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), fmtN(p.kills), fmtN(p.gold), r.build_text || ''];
+      cells.forEach((v, j) => row.appendChild(el('td', j === 9 ? 'wrap' : (j >= 5 && j <= 8 ? 'num' : null), v)));
+      const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button'; b.disabled = !Array.isArray(r.samples); b.onclick = () => openRun(r); td.appendChild(b); row.appendChild(td);
+      body.appendChild(row);
+    });
+    tb.appendChild(body); const wrap = el('div', 'tbl always'); wrap.appendChild(tb); c.appendChild(wrap);
+    root.appendChild(c);
+  }
+
+  function openRun(run) {
+    MAIN = prep(run); OVERLAYS = []; VIEW = 'one'; render(); window.scrollTo(0, 0);
+  }
+  function averageOf(list, title) {
+    if (!list.length) return;
+    AVG = { entries: list, res: resultOf(list, title), title }; VIEW = 'average'; render(); window.scrollTo(0, 0);
+  }
+
+  // the runs opened from files or a folder: tick some, then open one, overlay them or average them
+  function renderLoadedPicker(root) {
+    if (LOADED.length < 2) return;
+    const c = card('Runs you opened (' + LOADED.length + ')', 'Tick the runs to average (or to draw dashed over the first with Overlay). Open shows one alone with every card.', { wide: true, slug: 'opened' });
+    c.classList.add('picker');
+    const acts = el('div', 'acts');
+    const all = el('button', 'btn small', 'Tick all'); all.type = 'button'; all.onclick = () => { LOADED.forEach((x) => PICK.add(x.key)); render(); };
+    const none = el('button', 'btn small', 'Tick none'); none.type = 'button'; none.onclick = () => { LOADED.forEach((x) => PICK.delete(x.key)); render(); };
+    const ticked = LOADED.filter((x) => PICK.has(x.key));
+    const avg = el('button', 'btn', 'Average the ' + ticked.length + ' ticked'); avg.type = 'button'; avg.disabled = !SIMOK || !ticked.length;
+    avg.onclick = () => averageOf(ticked.map(loadedEntry), 'Average of ' + ticked.length + ' run' + (ticked.length > 1 ? 's' : '') + ' you opened');
+    const recs = ticked.filter((x) => x.run && Array.isArray(x.run.samples));
+    const ov = el('button', 'btn', 'Overlay the ticked on the first'); ov.type = 'button'; ov.disabled = recs.length < 2;
+    ov.title = 'the classic cards: the first ticked run with up to three more dashed over it';
+    ov.onclick = () => { MAIN = prep(recs[0].run); OVERLAYS = recs.slice(1, 4).map((x) => prep(x.run)); VIEW = 'overlay'; render(); };
+    acts.append(all, none, avg, ov);
+    c.appendChild(acts);
+    const list = el('div', 'plist'); const t = document.createElement('table'); const tb = document.createElement('tbody');
+    for (const x of LOADED) {
+      const tr = document.createElement('tr');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = PICK.has(x.key); cb.onchange = () => { if (cb.checked) PICK.add(x.key); else PICK.delete(x.key); render(); };
+      const td0 = el('td'); td0.appendChild(cb); tr.appendChild(td0);
+      tr.appendChild(el('td', null, x.label));
+      tr.appendChild(el('td', 'num', 'Lv ' + Math.round(x.run.level || 1) + ' · ' + fmtN(x.run.kills || 0) + ' kills'));
+      const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button'; b.disabled = !Array.isArray(x.run.samples);
+      b.title = b.disabled ? 'a sim player file has no run record to open: average it' : 'this run alone, every card'; b.onclick = () => openRun(x.run); td.appendChild(b); tr.appendChild(td);
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb); list.appendChild(t); c.appendChild(list);
+    root.appendChild(c);
+  }
+
+  // ---- the runs from PostHog (analytics/remote/, written by tools/posthog_runs.py)
+  async function loadRemote() {
+    if (SRC.remote.loaded) return;
+    const keep = window.REMOTE; window.REMOTE = undefined;
+    await loadScript('remote/index.js');
+    const idx = window.REMOTE && Array.isArray(window.REMOTE.runs) ? window.REMOTE : null;
+    window.REMOTE = keep;
+    SRC.remote.index = idx; SRC.remote.runs = idx ? idx.runs : []; SRC.remote.loaded = true;
+    if (idx) for (const p of idx.players || []) if (!PLAYERS.size) PLAYERS.add(p.key);
+  }
+  async function remoteRecord(row) {
+    if (REMOTE_CACHE.has(row.file)) return REMOTE_CACHE.get(row.file);
+    window.RUN_FILES = window.RUN_FILES || {};
+    await loadScript('remote/' + row.js);
+    const rec = window.RUN_FILES[row.file] || null;
+    delete window.RUN_FILES[row.file];
+    if (rec) REMOTE_CACHE.set(row.file, rec);
+    return rec;
+  }
+  async function remoteEntries(rows, onProgress) {
+    const out = [], missing = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (onProgress) onProgress(i, rows.length);
+      const rec = await remoteRecord(rows[i]);
+      if (rec && Array.isArray(rec.samples)) out.push(entryOf(rec, 'r:' + rows[i].file)); else missing.push(rows[i].file);
+    }
+    if (missing.length) alert(missing.length + ' run file(s) did not load (download again with tools/posthog_runs.py): ' + missing.slice(0, 5).join(', '));
+    return out;
+  }
+  const isDevRow = (r) => !!(r.dev || r['settings.dev']);
+  function remoteRows() {
+    const rows = (SRC.remote.runs || []).filter((r) => PLAYERS.has(r.player) && !(NO_DEV && isDevRow(r)));
+    return rows.slice().sort((a, b) => String(b.started || '').localeCompare(String(a.started || '')));
+  }
+  function renderRemotePicker(root) {
+    const idx = SRC.remote.index;
+    const c = card('Runs from PostHog', '', { wide: true, slug: 'remote' });
+    c.classList.add('picker');
+    if (!idx) {
+      c.appendChild(el('p', 'note', 'No runs downloaded yet. In a terminal at the repo, run:'));
+      c.appendChild(el('p', null)).appendChild(el('code', null, 'python tools/posthog_runs.py'));
+      c.appendChild(el('p', 'note', 'It fetches every run_record the game sent to PostHog (the last 30 days; --all for everything, --player "Name" for one player) into analytics/remote/, then reload this page. The steps: analytics/howto/03_remote_runs.md.'));
+      root.appendChild(c); return;
+    }
+    const desc = c.querySelector('.desc') || c.appendChild(el('p', 'desc'));
+    desc.textContent = 'Downloaded ' + String(idx.made || '?').replace('T', ' ') + ' by tools/posthog_runs.py: ' + (idx.runs || []).length + ' runs of ' + (idx.players || []).length + ' players. Tick players, then open one run, average the ticked runs, or average every run of the ticked players.';
+    const pl = el('div', 'players');
+    for (const p of idx.players || []) {
+      const lab = el('label', PLAYERS.has(p.key) ? 'on' : null);
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = PLAYERS.has(p.key);
+      cb.onchange = () => { if (cb.checked) PLAYERS.add(p.key); else PLAYERS.delete(p.key); render(); };
+      lab.appendChild(cb);
+      lab.appendChild(el('b', null, p.label ? p.label + ' (' + p.name + ')' : p.name));
+      lab.appendChild(el('span', 'muted', ' · ' + p.runs + ' run' + (p.runs === 1 ? '' : 's') + (p.last ? ' · last ' + String(p.last).slice(0, 10) : '') + (p.dev_runs ? ' · ' + p.dev_runs + ' dev' : '')));
+      pl.appendChild(lab);
+    }
+    c.appendChild(pl);
+    const rows = remoteRows();
+    const acts = el('div', 'acts');
+    const devl = el('label'); const dev = document.createElement('input'); dev.type = 'checkbox'; dev.checked = NO_DEV;
+    dev.onchange = () => { NO_DEV = dev.checked; try { localStorage.setItem('runwatch.nodev', NO_DEV ? '1' : '0'); } catch (e) { /* fine */ } render(); };
+    devl.appendChild(dev); devl.appendChild(document.createTextNode(' leave out developer runs (the editor binary, debug builds, debug mode)'));
+    const ticked = rows.filter((r) => PICK.has('r:' + r.file));
+    const status = el('span', 'muted');
+    const run = (list, title) => async () => {
+      if (!list.length) return;
+      status.textContent = 'loading ' + list.length + ' run' + (list.length > 1 ? 's' : '') + '…';
+      const entries = await remoteEntries(list, (i, n) => { status.textContent = 'loading ' + (i + 1) + ' of ' + n + '…'; });
+      status.textContent = '';
+      if (entries.length) averageOf(entries, title);
+    };
+    const who = Array.from(PLAYERS).map((k) => { const p = (idx.players || []).find((x) => x.key === k); return p ? (p.label || p.name) : k; });
+    const b1 = el('button', 'btn', 'Average the ' + ticked.length + ' ticked run' + (ticked.length === 1 ? '' : 's')); b1.type = 'button'; b1.disabled = !SIMOK || !ticked.length;
+    b1.onclick = run(ticked, 'Average of ' + ticked.length + ' run' + (ticked.length > 1 ? 's' : '') + ' (' + Array.from(new Set(ticked.map((r) => r.player_name || r.player))).join(', ') + ')');
+    const b2 = el('button', 'btn', 'Average every run of the ticked player' + (PLAYERS.size === 1 ? '' : 's') + ' (' + rows.length + ')'); b2.type = 'button'; b2.disabled = !SIMOK || !rows.length;
+    b2.onclick = run(rows, (PLAYERS.size === 1 ? 'Every run of ' : 'Every run of ') + who.join(', ') + ' (' + rows.length + ')');
+    const tall = el('button', 'btn small', 'Tick all shown'); tall.type = 'button'; tall.onclick = () => { rows.forEach((r) => PICK.add('r:' + r.file)); render(); };
+    const tnone = el('button', 'btn small', 'Tick none'); tnone.type = 'button'; tnone.onclick = () => { rows.forEach((r) => PICK.delete('r:' + r.file)); render(); };
+    acts.append(b1, b2, tall, tnone, devl, status);
+    c.appendChild(acts);
+    const list = el('div', 'plist'); const t = document.createElement('table');
+    const th = document.createElement('thead'); const htr = document.createElement('tr');
+    for (const h of ['', 'player', 'started', 'hero', 'ended', 'play', 'stage', 'level', 'kills', 'version', '']) htr.appendChild(el('th', null, h));
+    th.appendChild(htr); t.appendChild(th);
+    const tb = document.createElement('tbody');
+    for (const r of rows) {
+      const tr = document.createElement('tr'); if (isDevRow(r)) tr.className = 'dev';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = PICK.has('r:' + r.file);
+      cb.onchange = () => { if (cb.checked) PICK.add('r:' + r.file); else PICK.delete('r:' + r.file); render(); };
+      const td0 = el('td'); td0.appendChild(cb); tr.appendChild(td0);
+      const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), String(Math.round(r.stage || 1)), String(Math.round(r.level || 1)), fmtN(r.kills || 0), 'v' + (r.version || '?')];
+      cells.forEach((v, j) => tr.appendChild(el('td', j >= 4 && j <= 7 ? 'num' : null, v)));
+      const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button';
+      b.onclick = async () => { b.disabled = true; const rec = await remoteRecord(r); b.disabled = false; if (rec && rec.samples) openRun(rec); else alert('Could not load ' + r.file + ' (download again with tools/posthog_runs.py).'); };
+      td.appendChild(b); tr.appendChild(td);
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb); list.appendChild(t);
+    if (!rows.length) c.appendChild(el('p', 'note', PLAYERS.size ? 'No runs for the ticked players' + (NO_DEV ? ' (developer runs left out)' : '') + '.' : 'Tick a player above.'));
+    else c.appendChild(list);
+    root.appendChild(c);
+  }
+
+  function renderPickers(root) {
+    if (SOURCE === 'remote') renderRemotePicker(root);
+    renderLoadedPicker(root);
+  }
+  function renderViewbar() {
+    const bar = document.getElementById('viewbar');
+    bar.hidden = !SIMOK;
+    for (const b of document.querySelectorAll('#view button')) {
+      b.classList.toggle('on', b.dataset.view === VIEW);
+      b.disabled = (b.dataset.view === 'average' && !AVG) || (b.dataset.view === 'overlay' && !OVERLAYS.length) || (b.dataset.view === 'one' && !MAIN);
+    }
+    const chip = document.getElementById('cmpchip'); chip.textContent = '';
+    if (CMP) { const c = el('span', 'chip'); c.appendChild(document.createTextNode('dashed grey: ')); c.appendChild(el('b', null, CMP.name)); const x = el('span', 'x', '✕'); x.title = 'stop comparing'; x.onclick = () => { CMP = null; document.getElementById('cmpfile').value = ''; render(); }; c.appendChild(x); chip.appendChild(c); }
+  }
+  for (const b of document.querySelectorAll('#view button')) b.addEventListener('click', () => { if (b.disabled) return; VIEW = b.dataset.view; render(); });
+  document.getElementById('cmpfile').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    f.text().then((t) => {
+      let j = null; try { j = JSON.parse(t.replace(/^﻿/, '')); } catch (err) { alert('Could not read ' + f.name + ': ' + err.message); return; }
+      if (!j || !j.series || !Array.isArray(j.t)) { alert(f.name + ' is not a sim result (result.json of tools/dl/sim/runs/<sim>/).'); return; }
+      const st = j.settings || {};
+      CMP = { res: j, name: 'the sim ' + (SimModel.settingsLine ? SimModel.settingsLine(st, (j.meta || {}).hero_name) : f.name) };
+      render();
+    });
+  });
+
   // ------------------------------------------------------------ 14 the history
   function currentRuns() { return SRC[SOURCE].runs || []; }
   function renderHistory(root) {
     const all = currentRuns().slice();
     if (!all.length) return;
-    const c = card('Run history', (SOURCE === 'tools' ? 'Every tool run in runs/tools/' : 'Every played run in runs/') + ' (index.js), oldest to newest; the open run is highlighted. Old headless rows (before v0.60 tool runs had their own folder) are hidden unless shown.', { wide: true, slug: 'history' });
-    const ctl = el('div', 'hist-row'); const lab = el('label'); const sw = document.createElement('input'); sw.type = 'checkbox'; sw.name = 'show-headless'; sw.checked = SHOW_HEADLESS; sw.onchange = () => { SHOW_HEADLESS = sw.checked; render(); }; lab.appendChild(sw); lab.appendChild(document.createTextNode(' show headless tool runs')); ctl.appendChild(lab);
+    const c = card('Run history', SOURCE === 'remote' ? 'Every run downloaded from PostHog (remote/index.js, every player), oldest to newest; the open run is highlighted.'
+      : (SOURCE === 'tools' ? 'Every tool run in runs/tools/' : 'Every played run in runs/') + ' (index.js), oldest to newest; the open run is highlighted. Old headless rows (before v0.60 tool runs had their own folder) are hidden unless shown.', { wide: true, slug: 'history' });
+    const ctl = el('div', 'hist-row'); const lab = el('label'); const sw = document.createElement('input'); sw.type = 'checkbox'; sw.name = 'show-headless'; sw.checked = SHOW_HEADLESS; sw.onchange = () => { SHOW_HEADLESS = sw.checked; render(); }; lab.appendChild(sw); lab.appendChild(document.createTextNode(' show headless tool runs')); ctl.appendChild(lab); if (SOURCE === 'remote') lab.hidden = true;
     if (SOURCE === 'tools') lab.hidden = true;
     const runs = all.filter((r) => SHOW_HEADLESS || SOURCE === 'tools' || !r.headless); ctl.appendChild(el('span', null, runs.length + ' of ' + all.length + ' runs'));
     const sel = document.createElement('select'); sel.name = 'history-run'; const o0 = document.createElement('option'); o0.textContent = 'pick a run to see its row'; o0.value = ''; sel.appendChild(o0);
     runs.slice().reverse().forEach((r) => { const o = document.createElement('option'); o.value = r.file; o.textContent = (r.started || r.stamp || '').replace('T', ' ') + ' · ' + (r.hero_name || r.hero) + ' · ' + (r.result || '') + ' · ' + fmtT(r.length || 0) + ' · Lv ' + Math.round(r.level || 0) + ' · ' + Math.round(r.kills || 0) + ' kills' + (r.headless ? ' · headless' : ''); sel.appendChild(o); });
     ctl.appendChild(sel); c.appendChild(ctl);
     const pick = el('div', 'hist-pick'); c.appendChild(pick);
-    const showPick = (file) => { const r = runs.find((x) => x.file === file); if (!r) { pick.style.display = 'none'; return; } pick.textContent = ''; pick.appendChild(el('b', null, (r.hero_name || r.hero) + ' · ' + (RESULT_WORDS[r.result] || r.result || ''))); pick.appendChild(document.createTextNode(' · ' + (r.started || '').replace('T', ' ') + ' · play ' + fmtT(r.length || 0) + ', clock ' + fmtT(r.clock || 0) + ' · stage ' + Math.round(r.stage || 1) + ' · level ' + Math.round(r.level || 1) + ' · ' + Math.round(r.kills || 0) + ' kills · ' + Math.round(r.gold || 0) + ' gold' + (r.build ? ' · ' + r.build : '') + ' · v' + (r.version || '') + ' · ')); pick.appendChild(el('code', null, (SOURCE === 'tools' ? 'runs/tools/' : 'runs/') + r.file)); pick.appendChild(document.createTextNode(' — open it with the file input above (a page opened from a file cannot read it by itself)')); pick.style.display = 'block'; };
+    const showPick = (file) => { const r = runs.find((x) => x.file === file); if (!r) { pick.style.display = 'none'; return; } pick.textContent = ''; pick.appendChild(el('b', null, (r.hero_name || r.hero) + ' · ' + (RESULT_WORDS[r.result] || r.result || ''))); pick.appendChild(document.createTextNode(' · ' + (r.started || '').replace('T', ' ') + ' · play ' + fmtT(r.length || 0) + ', clock ' + fmtT(r.clock || 0) + ' · stage ' + Math.round(r.stage || 1) + ' · level ' + Math.round(r.level || 1) + ' · ' + Math.round(r.kills || 0) + ' kills · ' + Math.round(r.gold || 0) + ' gold' + (r.build ? ' · ' + r.build : '') + ' · v' + (r.version || '') + ' · ')); pick.appendChild(el('code', null, (SOURCE === 'tools' ? 'runs/tools/' : SOURCE === 'remote' ? 'remote/' : 'runs/') + r.file)); pick.appendChild(document.createTextNode(SOURCE === 'remote' ? ' — open it from the list above' : ' — open it with the file input above (a page opened from a file cannot read it by itself)')); pick.style.display = 'block'; };
     sel.onchange = () => showPick(sel.value);
     if (chartReady() && runs.length) {
       const m = el('div', 'multi');
@@ -1279,16 +1641,50 @@
   document.getElementById('csv-history').onclick = downloadHistory;
 
   // ------------------------------------------------------------ loading
-  function loadFiles(files) {
-    const list = Array.from(files || []).filter((f) => /\.(json|js)$/i.test(f.name));
-    if (!list.length) return;
-    Promise.all(list.map((f) => f.text().then((t) => { try { return parseRunText(t); } catch (e) { alert('Could not read ' + f.name + ': ' + e.message); return null; } }))).then((runs) => {
-      runs = runs.filter((r) => r && r.samples);
-      if (!runs.length) return;
-      MAIN = prep(runs[0]); OVERLAYS = runs.slice(1).map(prep); render();
-    });
+  // pass 78: run records open as before (one: it; several: the first with the others dashed over it), and every one of
+  // them lands in the "Runs you opened" picker, which averages any of them; a sim's player file (tools/dl/sim/runs/<sim>/
+  // players/pNN.json, the Sim's schema) can be averaged too; a sim's result.json becomes the dashed comparison. A folder
+  // (the folder input) opens the newest run and lists the rest.
+  function readFiles(files, quiet) {
+    const list = Array.from(files || []).filter((f) => /\.(json|js)$/i.test(f.name) && !/^(index|latest|settings|head|progress)\./i.test(f.name) && !/\.progress$/i.test(f.name));
+    return Promise.all(list.map((f) => f.text().then((t) => { try { return { name: f.webkitRelativePath || f.name, data: parseRunText(t) }; } catch (e) { if (!quiet) alert('Could not read ' + f.name + ': ' + e.message); return null; } })))
+      .then((got) => got.filter((g) => g && g.data && typeof g.data === 'object'));
   }
+  function simPlayerEntry(name, d, i) {
+    const m = d.meta || {};
+    const run = { hero: m.hero, hero_name: m.hero_name || m.hero, version: m.version, started: m.started, result: m.end_reason, length: m.end_t, level: m.end_level, kills: m.kills, build_text: m.build_text, sim: name };
+    return { key: 'f:' + i, label: 'sim player ' + name.replace(/^.*[\\/]/, '') + ' · ' + (m.hero_name || m.hero || '?') + ' · seed ' + m.seed + ' · ' + (m.end_reason || '?') + ' at ' + fmtT(m.end_t || 0), run, player: d, names: {} };
+  }
+  function takeLoaded(got, folder) {
+    const recs = [], sims = [];
+    let cmp = null;
+    for (const g of got) {
+      if (Array.isArray(g.data.samples)) recs.push(g);
+      else if (g.data.series && Array.isArray(g.data.t) && Array.isArray(g.data.playing)) cmp = g;
+      else if (Array.isArray(g.data.t) && Array.isArray(g.data.hp) && g.data.meta) sims.push(g);
+    }
+    if (cmp && SIMOK) CMP = { res: cmp.data, name: 'the sim ' + SimModel.settingsLine(cmp.data.settings || {}, (cmp.data.meta || {}).hero_name) };
+    if (folder) recs.sort((a, b) => String(b.data.stamp || b.name).localeCompare(String(a.data.stamp || a.name)));
+    LOADED = recs.map((g, i) => ({ key: 'f:' + i, label: runLabel(g.data), run: g.data, player: null, names: null }));
+    sims.forEach((g, j) => LOADED.push(simPlayerEntry(g.name, g.data, recs.length + j)));
+    PICK = new Set(folder ? [] : LOADED.map((x) => x.key));
+    AVG = null;
+    if (recs.length) {
+      MAIN = prep(recs[0].data);
+      OVERLAYS = folder ? [] : recs.slice(1, 4).map((g) => prep(g.data));
+      VIEW = OVERLAYS.length ? 'overlay' : 'one';
+    } else if (sims.length && SIMOK) {
+      MAIN = null; OVERLAYS = [];
+      averageOf(LOADED.map(loadedEntry), 'Average of ' + sims.length + ' sim player file' + (sims.length > 1 ? 's' : ''));
+      return;
+    }
+    render();
+  }
+  function loadedEntry(x) { return x.player ? x : entryOf(x.run, x.key, x.label); }
+  function loadFiles(files) { readFiles(files, false).then((got) => { if (got.length) takeLoaded(got, false); }); }
+  function loadFolder(files) { readFiles(files, true).then((got) => { if (got.length) takeLoaded(got, true); else alert('No run files in that folder.'); }); }
   document.getElementById('file').addEventListener('change', (e) => loadFiles(e.target.files));
+  document.getElementById('folder').addEventListener('change', (e) => loadFolder(e.target.files));
   const drop = document.getElementById('drop');
   for (const ev of ['dragenter', 'dragover']) document.body.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
   for (const ev of ['dragleave', 'drop']) document.body.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); });
@@ -1307,10 +1703,11 @@
   async function setSource(src, remember) {
     if (!SRC[src]) src = 'played';
     if (src === 'tools') await loadTools();
+    if (src === 'remote') await loadRemote();
     SOURCE = src;
     for (const b of document.querySelectorAll('#source button')) b.classList.toggle('on', b.dataset.src === src);
     if (remember) { try { localStorage.setItem('runwatch.source', src); } catch (e) { /* no storage: fine */ } }
-    MAIN = SRC[src].run ? prep(SRC[src].run) : null; OVERLAYS = [];
+    MAIN = SRC[src].run ? prep(SRC[src].run) : null; OVERLAYS = []; LOADED = []; AVG = null; VIEW = 'one';
     render();
   }
   for (const b of document.querySelectorAll('#source button')) b.addEventListener('click', () => setSource(b.dataset.src, true));
@@ -1319,8 +1716,8 @@
     if (chartReady()) setupChart();
     let src = 'played';
     try { src = localStorage.getItem('runwatch.source') || 'played'; } catch (e) { src = 'played'; }
-    // the played folder first unless the viewer chose the tools last time, or there is no played run at all
-    if (src !== 'tools' && !SRC.played.run && !SRC.played.runs.length) src = 'tools';
+    // the played folder first unless the viewer chose the tools or the remote runs last time, or there is no played run
+    if (src === 'played' && !SRC.played.run && !SRC.played.runs.length) src = 'tools';
     setSource(src, false);
   }
   if (chartReady()) boot(); else window.addEventListener('load', boot);

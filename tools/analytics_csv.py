@@ -26,11 +26,13 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BOM = "﻿"
-# the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp empty (no boss up)
-BASE = ["t", "clock", "stage", "phase", "wave", "level", "xp", "xp_next", "hp", "hp_max", "shield", "invuln", "gold",
+# the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp and boss_now empty (no boss
+# up). Pass 78: the pass-77 keys xp_total, hp_lost, hp_healed, boss_now, near3, near6 (the page's list is the same)
+BASE = ["t", "clock", "stage", "phase", "wave", "level", "xp", "xp_next", "xp_total", "hp", "hp_max", "shield", "invuln", "gold",
         "banked", "kills", "adren", "cresc", "desp", "steady", "est_total", "took_raw", "hits", "evaded", "shielded", "healed",
-        "regen", "elite_kills", "alive", "cap", "load", "hard_cap", "press", "press_hp", "press_dmg", "boss_hp", "specials_alive"]
-EMPTY_WHEN_MISSING = ["boss_hp"]
+        "regen", "hp_lost", "hp_healed", "elite_kills", "alive", "cap", "load", "hard_cap", "press", "press_hp", "press_dmg",
+        "boss_hp", "boss_now", "specials_alive", "near3", "near6"]
+EMPTY_WHEN_MISSING = ["boss_hp", "boss_now"]
 # the second's tallies by id, flattened as group.key; a missing one is 0
 MAPS = ["est", "dmg", "took", "took_kind", "hits_by", "healed_by", "killed", "spawned", "alive_by", "gold_in", "gold_out"]
 # the build's snapshots: on a row only when they changed; carried forward to every second until the next one

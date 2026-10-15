@@ -2808,3 +2808,72 @@ the runner's sim mode on. Ranges: runs 1-100, stop 0:30-3:00:00, a talent 0-6 ra
 - **The Totem brief** (docs/ui_review/totem/, Drive totem_ui_brief, artifact YbXF7fMNgFJDZ7SdjKNhVf) carries only the
   totem screen and the pole in the game, with the screen explained element by element (Garry: "We only need the totem
   one").
+
+## 25. Pass 78 (v0.64): run records through PostHog (not balance: named so they are not surprises)
+
+Garry's request (2026-10-15, tools/dl/p78/REQUEST.md). The lane's rules as it wrote them.
+
+### 25.DASH What a run sends, when, and how runs are averaged
+
+No game number changed. The rules this pass adds, with where each lives:
+
+## What a run sends to PostHog: `run_record` (core/autoload/Analytics.gd)
+- **What**: the run's record file exactly as the game writes it (`user://analytics/runs/<stamp>.json`: header, a row a
+  second, events; RunAnalytics schema 2), its UTF-8 gzipped (Godot's `COMPRESSION_GZIP`, zlib's default level), base64,
+  cut into parts of at most **RECORD_PART_MAX = 100,000 characters**; one `run_record` event a part, with `part`, `parts`,
+  `data`, `enc` (`gzip+base64`), `format` (**RECORD_FORMAT = 1**), `raw_bytes`, `gz_bytes`, `md5` (of the JSON's UTF-8),
+  the run's properties (run_id, hero, hero_look, map, map_rev) and the usual super properties (install id, dev,
+  app_version, device, ...).
+- **Size budget** (PostHog: an event over 1 MB is discarded, posthog.com/docs/data/ingestion-warnings; a /batch/ request
+  under 20 MB, docs/api/capture): a part is ~102 KB as an event, a tenth of the limit. Measured: a 25-minute record (real
+  tool-run rows to 1500 s) is 1,016,069 characters of JSON -> 106,221 bytes gzipped -> 141,628 characters of base64 =
+  **2 parts** (pass78_dash_test); the sims' per-player files would be ~140 KB the same way, so the whole record costs
+  about what the Sim's schema would. A 1000-s run played on the PC: 908 KB -> 86 KB gz -> 115 KB base64.
+- **Cap**: at most **RECORD_PARTS_MAX = 24 parts** (~2.4 MB of base64, a run of about five hours); past it the record goes
+  without its rows (`samples` empty, `rows_left_out: true` on the record and on each part).
+- **One request** carries at most **REQUEST_MAX = 400,000 characters** of events (at least one event; a run_record part
+  counts its data + 2,048) besides the old BATCH_MAX = 50, so a phone uploads a part or two at a time
+  (`Analytics.request_count`).
+- **When**: at the run's end (RunAnalytics.finish -> Analytics.run_record before run_finish, then the queue is sent at
+  once); a **quit** (the app closed mid-run): queued and saved on the way out, sent at the next launch (as run_end
+  already was); a **killed** run (Android drops the app in the background after the run's checkpoint): the checkpoint
+  leaves `user://analytics_pending_run.json` {file, the run's properties}; the next launch (Analytics._ready ->
+  send_pending) sends that checkpoint's record with `result: "killed"` and `recovered: true`, unless the run ended after
+  all (its file is no longer `in_progress`) or the file is gone; a crash without a checkpoint sends **nothing**. Any end
+  of a run clears the note.
+- **Never**: from a tool's script, a headless run or the test runner (`runtime_block`), the arena or the save's sandbox,
+  with the Settings switch off, a missing/empty/non-phc_ key or `"enabled": false`; the run sim writes no record
+  (`memory_only`). Before the play-data card is answered the parts wait in memory like every event; "No thanks"
+  deletes them. Garry's email is in no record (no field holds it; the test checks no "@" in the event).
+- **The queue cap still applies**: past QUEUE_CAP = 2000 waiting events the oldest go, a run_record part included (a run
+  then stays "parts missing" in the download: weeks offline only).
+
+## What the download does (tools/posthog_runs.py)
+- Lists the run_record events since `--since` (default the last **30 days**; `--all` from 2026-01-01) with the query
+  API (HogQL, keyset pages of **10,000** rows on the timestamp; no OFFSET: PostHog refuses it for personal keys), reading
+  only uuid, timestamp, distinct_id and the person's player_name/label; then fetches the payloads **12 parts a query**,
+  each query bounded by its parts' timestamps, of the runs not already in the folder (by event uuid).
+- A run is written only when all its parts are there and check (the base64 reads, `gz_bytes`, `raw_bytes`, `md5`); a run
+  with a part missing waits for the next download, a broken one is named and skipped.
+- Player folders: the person's `player_name` made safe for a folder; a second install with the same name gets
+  `_<first 6 of its install id>`; an install without a name is `id_<first 8 of its install id>`. `--player` matches the
+  name, Garry's label or the install id (any case).
+- PostHog's hourly read budget for personal keys answers 429 when spent: the download stops politely, keeps what came,
+  and says when to try again. The e2e proof read 1.2 MB in 2 queries.
+
+## The averages (tools/level_editor/sim_avg.js, the dashboard)
+- `SimAvg.aggregate` is tools/sim_batch.py `aggregate()` line for line: every series the mean over the runs still playing
+  at that second; DPS smoothed over 5 s per run first; p10/p90 bands for hp, dps, level, crowd HP/attack, danger, near3,
+  near6 (linear between the nearest ranks); keep_up and boss_s as medians; deaths averaged over EVERY run (an ended run
+  keeps its count); the breakdowns' means over the runs still playing (an id a run never had counts 0); the stage and boss
+  marks as medians over the runs that reached them; values rounded as Python rounds (`round`, half to even on the exact
+  binary value: `pyRound`). selftest_DASH78 checks it equal to the Python on made-up runs and a real 10-player sim.
+- A run record becomes a Sim player by `SimAvg.fromRecord` = game/tools/sim_run.gd `series()` (the same per-second
+  mapping, Godot's snappedf included; a committed fixture pins the two equal) with a meta in the runner's words
+  (`end_reason` = the record's `result`, `end_t` = its `length`). A key an older record never wrote is left out so its
+  chart hides instead of drawing zeros: `xp_total`, `near3`, `near6`, `boss_now` (pass 77), `lines` (schema 2), `gold_in`
+  (pass 61). The evolutions among the weapons are the record's own evolution events' ids (the sim asks the Registry).
+- A result of ONE run (the dashboard's open run, a one-player sim) draws no bands, no "Runs still playing" chart, and says
+  "for this run" (sim_model.js; the Sim tab's 1-player sims read the same way now).
+- The dashboard's averaged runs: whatever is ticked (files, a folder, remote runs); the time axis runs to the longest
+  run; "the runs one by one" lists each run's own end.

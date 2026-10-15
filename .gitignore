@@ -34,6 +34,8 @@ docs/ui_review/*.zip
 
 # the run recorder's output (pass 45): one JSON per run, latest.js and the index; dashboard.html and lib/ stay tracked
 analytics/runs/
+# pass 78: the players' runs downloaded from PostHog by tools/posthog_runs.py (their records, never committed)
+analytics/remote/
 
 # the PostHog personal API key for tools/posthog_boards.py (a secret: never commit, never ship)
 tools/posthog_personal_key.txt

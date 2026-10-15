@@ -49,6 +49,8 @@ python tools/puppet.py may [--stage apose|shape|rig|anim|guides|looks|compare] [
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_hold frames=12 arms=hold_r   # a walk whose right hand holds something up at the shoulder (the Vulture Raider's launcher, pass 48)
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
+python tools/posthog_runs.py [--player <name>]... [--since YYYY-MM-DD | --all] [--list] [--force] [--out analytics/remote]   # pass 78: every player's runs (run_record) from PostHog into analytics/remote/ for analytics/dashboard.html's Remote runs (personal key; analytics/howto/03_remote_runs.md)
+bash tools/godot.sh --headless --path D:/_projects/88fits/game --script res://tools/series_fixture.gd   # pass 78: the fixtures sim_avg.js / posthog_runs.py are checked against
 python tools/gen_icon_cands.py [--only spear,cake] [--seeds 4] && python tools/gen_icon_cands.py --pick spear=0   # icon candidates (renders as references), picked by eye
 tools\level_editor.cmd                                           # pass 53: the Level Editor (a local page: waves, roster, events, overrides per map; Save writes the JSON + imports it); schema docs/waves_schema.md
 tools\ship.cmd [--quick] [--no-install]                          # pass 53: ship.sh from a double-click (Git Bash)
@@ -245,7 +247,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-15, pass 77, version 0.63)
+## Status (2026-10-15, pass 78, version 0.64)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -255,7 +257,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.63). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.64). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
@@ -353,7 +355,11 @@ personal `phx_` key only in git-ignored `tools/posthog_personal_key.txt`, never 
 never sent anywhere). Consent card first, persons named by `Save.player_name()`, `run_summary` per-minute curves, gold
 sources/sinks, surveys from PostHog Surveys with `[after N]` / `[run N]` name tags. Boards: `python tools/posthog_boards.py
 [--check]` (nine boards, ids kept on a rerun, SQL tiles follow dashboard filters). How-tos for Garry: `analytics/howto/`.
-Plan: `docs/analytics_plan.html` (artifact AK53A8KLchrSUFXxZo4kSu). Local runs: `analytics/dashboard.html` (pass 74: the
+Plan: `docs/analytics_plan.html` (artifact AK53A8KLchrSUFXxZo4kSu). Pass 78: every run that sends analytics also
+sends its whole record (`run_record`, gzip+base64 parts of at most 100,000 characters, about 140 KB for 25 minutes;
+never from tools, headless runs, the sim or without consent); `tools/posthog_runs.py` downloads them into the
+git-ignored analytics/remote/, and the dashboard opens one run or averages runs and players (the sim's rules in
+tools/level_editor/sim_avg.js). Local runs: `analytics/dashboard.html` (pass 74: the
 record is schema 2, `core/systems/RunAnalytics.gd`, documented in `analytics/SCHEMA.md`: the look, trait, talents,
 settings, the map's settings, totems and their offers, the Stranger, specials and Elite modifiers, the bosses' HP
 scaling, healing by source, the run's timeline, quest progress, FPS; tool runs go to `analytics/runs/tools/`; a phone

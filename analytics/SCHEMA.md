@@ -43,7 +43,7 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 | `headless`, `platform`, `device`, `pid` | `DisplayServer` headless, `OS.get_name()`, `OS.get_model_name()`, the process id (tools find their own file by it) |
 | `tool` *(2)* | a tool's process (headless or `--script`): its copy goes to `analytics/runs/tools/` |
 | `launch` *(2)* | the debug launch file the run started from (a tool's, or the editor's content dock test launch): its plain values, e.g. `{character, weapon, level, map, map_seed, spawn}`; absent for a run from the title |
-| `result` | `in_progress` (a checkpoint), `extract`, `death` (Down!'s give up or its timeout), `abandon` (give up from the pause menu), `end`, `quit` |
+| `result` | `in_progress` (a checkpoint), `extract`, `death` (Down!'s give up or its timeout), `abandon` (give up from the pause menu), `end`, `quit`; (pass 78) `killed` only in a copy PostHog got at the next launch: the app was closed after the run's checkpoint and before its end (the local file still says `in_progress`) |
 | `length` | play seconds (unpaused; the x axis of every chart) |
 | `clock` | `Run.elapsed`, the stage clock, which freezes during a boss fight and at a portal |
 | `stage`, `endless_wave`, `level`, `kills`, `gold`, `strongbox`, `revives` | the end state (`gold` = the purse at the end, `strongbox` = gold a Strongbox banked, `revives` = revives bought) |
@@ -67,6 +67,7 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 | `hit_log` | the hero's last 30 s of hits as the Down! screen shows them: `{t (the stage clock), by, id (the creature), kind (melee/ranged/boss/heal), role, colour, fx, raw, dealt, shield, note (evaded, shield, broke, star, ...), hp, fatal}`; a named heal has `kind: heal` and `amount`; only on a finished run |
 | `samples` | the rows below |
 | `events` | the events below |
+| `remote` | (pass 78) only in a run downloaded from PostHog by `tools/posthog_runs.py` (`analytics/remote/<player>/`): `player` (the person's `player_name`, or `id <install id>`), `label` (Garry's own label in PostHog), `distinct_id` (the install id), `run_id`, `received` (the run_record's timestamp, UTC), `parts`, `uuids` (the events'), `dev`, `app_version`, `device`, `os`, `format`; `recovered` (sent at the next launch), `rows_left_out` (a record past the parts' cap) |
 
 ## Sample row (one a second of play)
 
@@ -85,6 +86,7 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `phase` | the director's phase: 0 normal, 1 boss, 2 portal |
 | `wave` | the endless wave, 1-based (missing before endless) |
 | `level`, `xp`, `xp_next` | the hero's level, XP into it, XP the level needs |
+| `xp_total` | (pass 77) every XP point gained so far (`Run.xp_gained`, after Field Notes), cumulative |
 | `hp`, `hp_max`, `shield`, `invuln` | health, max, Energy Shield points, 1 while invulnerable |
 | `gold`, `banked` | the purse and what a Strongbox banked |
 | `gold_in`, `gold_out` | (pass 61) `{source: gold that came in this second}` and `{sink: gold spent this second}` (see *Gold*); gold that came while the game was paused lands on the next row, and what no row took by the end goes into the last one, so the rows sum to the run's totals |
@@ -102,6 +104,7 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `hits_by` *(2)* | `{creature id: hits it landed this second}` (keyed like `took`; sums to `hits`) |
 | `healed_by` *(2)* | `{source: HP healed this second}`: the name `Player.heal` was given (a pickup's or a structure's: Heart, Cake Slice, Healing Well; Vulture), `lifesteal`, `level_up` (the hero's level patch) and `other` (a heal nothing named); sums to `healed` (each value snapped to 0.1) |
 | `regen` *(2)* | HP regenerated this second (regen, Siesta, Deep Breath; not in `healed`) |
+| `hp_lost`, `hp_healed` | (pass 77) the second's HP lost (`took` summed, before any healing) and HP healed (`healed` + `regen`) |
 | `killed` | `{creature id: kills this second}` |
 | `elite_kills` | Elites (and elite-modified creatures) killed this second |
 | `spawned` | `{creature id: spawned this second}` |
@@ -111,6 +114,8 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `press_hp`, `press_dmg` | Σ current HP, Σ damage per hit |
 | `alive_by` | `{creature id: up now}` |
 | `boss_hp` | the boss's health as a fraction while one is up |
+| `boss_now` | (pass 77) the boss's current HP itself while one is up (`boss_hp` stays its share) |
+| `near3`, `near6` | (pass 77) creatures up within 3 m / 6 m of the hero (flat; `RunAnalytics.NEAR_CLOSE`, `NEAR_WIDE`) |
 | `stats` | the player sheet: max_hp, damage_reduction, regen, move_speed, might, cooldown, area, projectile_speed, duration, amount, magnet, luck, greed, xp_gain, lifesteal, evade, crit_chance, crit_damage, thorns, execute_frac, overkill, haste, shield_max, ricochet, cooldown_on_kill; pass 47 adds still_regen, still_might, barrel_speed, barrel_seconds, xp_drop_chance, elite_damage, debuff_duration, difficulty, skips, banishes (the stage's); pass 62 adds powerup_duration, powerup_chance (`RunAnalytics.STAT_KEYS`; their words in the header's `stat_names`) |
 | `weapons` | `[{id, level, mut: [mutation ids], dmg, cd, amount, pierce, area, est}]` from each weapon's folded sheet |
 | `passives`, `lines` *(2)*, `perks` | `{id: level}` (the passive items; *(2)* the lines apart), `[ids]` (before pass 46 also `lines`, `{id: rank}`) |
@@ -222,7 +227,44 @@ Every recorder event whose kind is in `Analytics.KIND_EVENTS` goes out renamed a
 `wave`, `portal_wait`, `portal`, `death`, `revive`, `unlock`, `debug_item`; *(2)* `totem` as `totem_taken` and
 `special_kill` as `special_killed`. Plus `run_start`, `run_end` and `run_summary`. The rest stays in the local file only:
 `level`, `skip`, `reroll` (the offer carries them), *(2)* `special`, `elite_mod`, `elite_kill`, `stranger`,
-`stranger_decline`, `totem_offer`, and every row.
+`stranger_decline`, `totem_offer`, and every row; since pass 78 all of it also travels inside `run_record` (below).
+
+### run_record (pass 78): the whole record
+
+Garry: "save raw data in some kind of JSON ... make it so that I'm able to download it". At the end of every run that
+sends analytics (`Analytics.run_record`, from `RunAnalytics.finish` and from a quit, before `run_end`), the record file
+itself (this schema: header, `samples`, `events`, exactly the text of `user://analytics/runs/<stamp>.json`) goes as
+`run_record` events: the JSON's UTF-8 gzipped, base64, cut into parts of at most `Analytics.RECORD_PART_MAX` (100,000)
+characters, one event a part, each with the run's properties (`run_id`, `hero`, `hero_look`, `map`, `map_rev`) and the
+super properties (the install's `distinct_id`, `dev`, `app_version`, `device`, ...).
+
+| property | meaning |
+|---|---|
+| `part`, `parts` | this part's number (from 1) and how many the run has |
+| `data` | this part's slice of the base64 text |
+| `enc`, `format` | `gzip+base64`, 1 (`Analytics.RECORD_FORMAT`) |
+| `raw_bytes`, `gz_bytes`, `md5` | the record's UTF-8 size, its gzipped size, the md5 of its UTF-8 (the download checks all three) |
+| `recovered` | sent at the next launch: the app was closed after the run's checkpoint (it went to the background) and before the run ended; the record is the checkpoint's, its `result` `killed` |
+| `rows_left_out` | the record needed more than `Analytics.RECORD_PARTS_MAX` (24) parts: it went without its rows (header and events only) |
+
+- **The budget.** PostHog discards an event over 1 MB (posthog.com/docs/data/ingestion-warnings) and takes a `/batch/`
+  request under 20 MB (docs/api/capture). A part is at most ~102 KB as an event; a request carries at most
+  `Analytics.REQUEST_MAX` (400,000 characters) of events (at least one), so a phone uploads a part or two at a time. A
+  25-minute run is about 1 MB of JSON, ~110 KB gzipped, ~145 KB of base64: two parts. 24 parts hold ~2.4 MB of base64,
+  a run of about five hours.
+- **When.** At the run's end (with `run_end`, then sent at once); a quit (the window closed mid-run): queued on disk,
+  sent at the next launch; the app closed by the phone after a checkpoint: the checkpoint leaves
+  `user://analytics_pending_run.json` and the next launch sends that record (`Analytics.send_pending`, `recovered`,
+  `result` `killed`); a crash without a checkpoint sends nothing.
+- **Never** from a tool, a headless run or the test runner (`Analytics.runtime_block`), the arena, the run sim
+  (`memory_only`), with the Settings switch off or no key; and nothing leaves before the play-data card is answered yes
+  (a "No thanks" deletes what waited).
+- **Downloading.** `python tools/posthog_runs.py` (the personal key in `tools/posthog_personal_key.txt`) finds the parts
+  with the query API, joins and checks them, and writes `analytics/remote/<player>/<stamp>_<run id>.json` (this schema,
+  plus the `remote` block of the header table) with a `.js` twin and `analytics/remote/index.js` / `index.json`
+  (`window.REMOTE = {made, host, players: [{key, name, label, distinct_ids, runs, dev_runs, first, last, play_s}], runs:
+  [the index row of each run + player, player_name, player_label, distinct_id, file, js, received, uuids, run_id, dev,
+  parts]}`); the dashboard's *Remote runs* switch reads them. How-to: `analytics/howto/03_remote_runs.md`.
 
 ## Surveys (pass 59, pass 62)
 
@@ -264,7 +306,8 @@ byte): UTF-8 with a BOM (Excel), comma-separated, numbers with a dot, CR LF line
 `88fits_<stamp>_<what>.csv`.
 
 - **rows** (`88fits_<stamp>_rows.csv`): one line per row (a second of play). The row's plain keys first in the table's
-  order above (only those the run has), a key the row leaves out written as 0 (`boss_hp` empty: no boss up); then each
+  order above (only those the run has; pass 78 put pass 77's `xp_total`, `hp_lost`, `hp_healed`, `boss_now`, `near3`,
+  `near6` among them), a key the row leaves out written as 0 (`boss_hp`, `boss_now` empty: no boss up); then each
   per-second map flattened as `group.key` (`dmg.revolver`, `took.goblin`, `healed_by.Heart`, ...; missing = 0); then the
   carried snapshots, filled forward to every second until the next: `mults.*`, `stats.*`,
   `weapons.<id>.level|dmg|cd|amount|pierce|area|est|mut`, `passives.<id>`, `lines.<id>`, `perks`. A list of plain

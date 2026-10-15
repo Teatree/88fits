@@ -1499,3 +1499,64 @@ full sim in 9:42 instead of 10:23). The same seeds 1-10 with the sim mode on (22
 round-2 fields) levelled differently: at 10:00 the mode-off run was higher in 9 of 9 untied pairs (38.5 against 31.9
 on average, kills 18.0K against 15.7K at the end); the runner changed between the two, so this alone does not say the
 sim mode changes the game, but lane SIMRUN's same-seed A/B is the check that settles it.
+
+**Pass 78 (2026-10-15, v0.64): run records through PostHog, the Sim's charts in the dashboard, averages.** Garry: "I want to see the equivalent of this local dashboard ... for one player in particular or as an average for several players ... save raw data in some kind of JSON ... download it ... dress it up into one of my HTML reports", and the Sim's charts in the local dashboard with matching formats. One lane (tools/dl/p78/INTERFACES.md): every run that sends analytics now sends its whole record as gzip+base64 `run_record` parts; tools/posthog_runs.py downloads them into analytics/remote/; analytics/dashboard.html opens them (Remote runs: one run, the ticked runs averaged, every run of the ticked players), shows the Sim's charts for any run from the Level Editor's own modules (sim_model.js, sim_avg.js, sim_plot.js) and averages with the sim's rules ported to JS (equal to tools/sim_batch.py). Shipped once after passes 77 and 78, as Garry asked.
+
+Garry: "Add those charts [the Sim tab's] to our Local Run Analytics dashboard so their formats match", and "Looking at
+Posthog I'm realizing that the dashboards have a very distinct limit ... I want to see the equivalent of this local
+dashboard ... for one player in particular or as an average for several players ... save raw data in some kind of JSON
+... make it so that I'm able to download it. Then take that data and basically dress it up into one of my HTML reports."
+
+**The Sim's charts in analytics/dashboard.html.** The Sim tab's drawing moved out of tools/level_editor/sim.js into
+tools/level_editor/sim_plot.js (SimPlot: the sections, the cards with Table and CSV, the SVG plot with the boss crowns,
+stage lines, stacks, bands, the compared run dashed grey, one hover cursor and the readouts), unchanged; sim.js hands it
+its state. The dashboard loads sim_model.js (the definitions), the new sim_avg.js, sim_plot.js and sim.css from
+../tools/level_editor/ (one copy for both pages), and draws them for the open run in a folded section under the summary,
+"The Sim's charts for this run": the same names, units, colours and explanations. sim_model.js words a ONE-run result
+("for this run", no bands, no "Runs still playing"); a record without a key (before v0.63) hides that chart.
+
+**One schema for sims, local runs and remote runs.** tools/level_editor/sim_avg.js: `fromRecord` maps any run record
+(schema 1 or 2, played, a tool's, downloaded) onto the Sim's per-player schema with game/tools/sim_run.gd `series()`'s
+own mapping (JS == GDScript exactly on a committed fixture: tools/level_editor/testdata/dash78_series_in.json ->
+game/tools/series_fixture.gd -> dash78_series_out.json; pass78_dash_test re-checks the GDScript, selftest_DASH78 the
+JS); `aggregate` is tools/sim_batch.py `aggregate()` in JS (Python's rounding as pyRound: equal to round() on 160,000
+values; the whole result equal to the Python's on made-up runs and on the four real p77 sims, 10 players x 1500 s).
+
+**Averages.** The dashboard opens several files or a whole folder (new *Open a folder*); "Runs you opened" ticks them:
+Average (the Sim's charts over the ticked runs, every readout saying how many runs are behind that second, tiles, the
+runs one by one with Open), Overlay (the old cards, the first run with up to three dashed; the Sim's charts compare with
+the first overlay). *Compare with a sim* lays a sim's result.json dashed grey over any view; a sim's player files average
+like runs. A view switch One run / Overlay / Average.
+
+**Every player's runs from PostHog.** The game sends each run's whole record at its end as `run_record` events
+(Analytics.record_parts: gzip + base64, parts of at most 100,000 characters; a 25-minute run is 2 parts, ~142 KB), with
+the run's properties and the dev flag, only with the play-data card answered yes and never from a tool, the test runner,
+the arena or the switch off; a quit sends it at the next launch; a run the phone kills after its checkpoint is sent at
+the next launch as "killed" (user://analytics_pending_run.json); a request carries at most 400,000 characters.
+`python tools/posthog_runs.py [--player <name>]... [--since <day> | --all] [--list] [--force] [--out <dir>]` lists the
+parts with HogQL (cheap: no payloads), fetches the new ones, joins and checks them (sizes, md5), and writes
+analytics/remote/<player>/<stamp>_<run id>.json (the record exactly as sent, plus a `remote` block: player, label,
+install, received, parts, dev, recovered) with a .js twin and analytics/remote/index.js (window.REMOTE: players and the
+index rows). The dashboard's new *Remote runs* switch lists the players and their runs: Open one (every card), Average
+the ticked runs, Average every run of the ticked players, leave out developer runs. analytics/remote/ is git-ignored;
+the personal key stays in tools/posthog_personal_key.txt (never printed or written). How-to:
+analytics/howto/03_remote_runs.md.
+
+**Checked end to end.** A windowed dev run of the editor binary (Astro, the Game scene from a debug launch, 31 s of
+play until the first level-up screen waited, then the window closed by --quit-after): the record queued on the way out,
+sent by the next launch (HTTP 200), `posthog_runs.py` fetched it (1 part, 1.2 MB read) and wrote a file identical to the
+local one (header, 31 rows, events), and the dashboard opened it under Remote runs with every card and the Sim's charts,
+and averaged it. Full-size parts through PostHog: a 25-minute record's two parts (100,000 + 33,256 characters) sent as
+`run_record_probe` events (a name nothing reads) came back identical.
+
+**Also**: tools/analytics_csv.py and the page's CSV columns gained pass 77's row keys (xp_total, hp_lost, hp_healed,
+boss_now (empty without a boss), near3, near6), still byte for byte the same; analytics/SCHEMA.md (the pass-77 row keys,
+`result: killed`, the `remote` block, the run_record event), analytics/README.md and two lines of docs/analytics_plan.html
+(a run's whole record now goes to PostHog) brought up to date.
+
+Tests: game/tests/pass78_dash_test.gd (9: the parts' keys and a 25-minute record in 2 parts, the round trip in any order,
+refusals, the run's properties on run_record, only with consent, never from the test runner / switch off / arena / no
+key, the killed run at the next launch, the request cap, the recorder's wiring, the series fixture);
+tools/level_editor/selftest_DASH78.py (54: rounding, JS == Python averaging, JS == GDScript series, fromRecord, Python
+joins the game's own parts, the downloader on recorded API answers, the page's wiring); selftest.py 18,634 green;
+pass45/57/59/60_lead/61_an/74_analytics/77_simrun green; check_scripts 0 errors; smoke_run OK; the CSV compare OK.

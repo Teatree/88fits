@@ -48,6 +48,22 @@ const BACKOFF_MAX := 300.0
 const SESSION_GAP := 300.0
 ## Every event stays under ~32 KB (the biggest is the run summary, a few KB for a twenty-minute run).
 const EVENT_MAX := 32000
+## Pass 78 (lane DASH, Garry: "save raw data in some kind of JSON ... make it so that I'm able to download it"): the run's
+## whole record (RunAnalytics' file: header, rows, events) goes to PostHog at the run's end as `run_record` events,
+## gzip + base64, cut into parts of at most RECORD_PART_MAX characters. PostHog discards an event over 1 MB
+## (posthog.com/docs/data/ingestion-warnings) and takes a /batch/ request under 20 MB (docs/api/capture): a part is a
+## tenth of the first; a 25-minute run is about 180 KB, two parts. Past RECORD_PARTS_MAX parts (a ~5 hour run) the rows
+## stay home and the header and events go (rows_left_out). tools/posthog_runs.py downloads and joins them.
+const RECORD_PART_MAX := 100000
+const RECORD_PARTS_MAX := 24
+## The run_record format (its properties and the encoding); the record inside keeps its own schema (RunAnalytics.SCHEMA).
+const RECORD_FORMAT := 1
+## One request carries events up to this many characters of JSON (at least one event), so a phone uploads a run_record
+## part or two at a time.
+const REQUEST_MAX := 400000
+## Pass 78: a run left mid-way when the app went to the background (its checkpoint's file): sent at the next launch with
+## result "killed" when the app was closed before the run ended (send_pending).
+const PENDING_PATH := "user://analytics_pending_run.json"
 ## The first send after launch waits this long, so last time's queue and this app_open go together.
 const LAUNCH_SEND_MS := 3000
 const HTTP_TIMEOUT := 20.0
@@ -90,6 +106,8 @@ var config_enabled := false
 # ---------------------------------------------------------------- the queue and the wire
 var queue: Array = []
 var queue_path := QUEUE_PATH
+## pass 78: where the note of a run left at a checkpoint lives (a test names its own)
+var pending_path := PENDING_PATH
 ## Events PostHog took this session, events dropped (the cap, or a batch it refused as malformed), Send now taps.
 var sent_session := 0
 var dropped := 0
@@ -173,6 +191,8 @@ func _ready() -> void:
 	new_session()
 	track("app_open", {"cold": true, "first_launch": first, "runs": Save.total("runs"), "gold": Save.gold(),
 		"$set": person_properties(), "$set_once": {"first_app_version": str(ProjectSettings.get_setting("application/config/version", ""))}})
+	# pass 78: a run the app was closed in (after its checkpoint) goes now, as far as it was recorded
+	send_pending()
 	_next_flush_ms = Time.get_ticks_msec() + LAUNCH_SEND_MS
 	if Save.consent() == "yes":
 		fetch_surveys.call_deferred()
@@ -312,7 +332,8 @@ func track(event: String, props: Dictionary = {}) -> bool:
 	var p := super_properties()
 	p.merge(props, true)
 	var e := {"event": event, "distinct_id": str(p["distinct_id"]), "uuid": uuid7(), "timestamp": iso_now(), "properties": p}
-	if JSON.stringify(e).length() > EVENT_MAX:
+	# pass 78: a run_record part is sized by record_parts (RECORD_PART_MAX), never shrunk
+	if event != "run_record" and JSON.stringify(e).length() > EVENT_MAX:
 		_shrink(e)
 	queue.append(e)
 	_trim()
@@ -557,6 +578,154 @@ func run_finish(end: Dictionary, summary: Dictionary) -> void:
 	_run_small = {}
 
 
+# ---------------------------------------------------------------- pass 78: the run's whole record
+
+## A run record's JSON (the file RunAnalytics writes) as run_record parts: gzip, base64, cut every `part_max`
+## characters: [{part (1-based), parts, data, enc, format, raw_bytes, gz_bytes, md5 (of the JSON's UTF-8)}]; [] when it
+## needs more than `parts_max` parts.
+static func record_parts(json: String, part_max: int = RECORD_PART_MAX, parts_max: int = RECORD_PARTS_MAX) -> Array:
+	var raw := json.to_utf8_buffer()
+	var gz := raw.compress(FileAccess.COMPRESSION_GZIP)
+	var b64 := Marshalls.raw_to_base64(gz)
+	var size := maxi(part_max, 1)
+	var n := maxi(ceili(float(b64.length()) / float(size)), 1)
+	if n > parts_max:
+		return []
+	var sum := json.md5_text()
+	var out: Array = []
+	for i in range(n):
+		out.append({"part": i + 1, "parts": n, "data": b64.substr(i * size, size), "enc": "gzip+base64", "format": RECORD_FORMAT,
+			"raw_bytes": raw.size(), "gz_bytes": gz.size(), "md5": sum})
+	return out
+
+
+## The record's JSON back from its parts, in any order ("" when one is missing, a size is wrong or the md5 differs):
+## what tools/posthog_runs.py does with the downloaded events.
+static func record_join(parts: Array) -> String:
+	if parts.is_empty():
+		return ""
+	var by := {}
+	var n := 0
+	for p in parts:
+		if p is Dictionary:
+			by[int(p.get("part", 0))] = p
+			n = int(p.get("parts", 0))
+	if n <= 0 or by.size() != n:
+		return ""
+	var b64 := ""
+	for i in range(1, n + 1):
+		if not by.has(i):
+			return ""
+		b64 += str(by[i].get("data", ""))
+	var first: Dictionary = by[1]
+	var gz := Marshalls.base64_to_raw(b64)
+	if gz.size() != int(first.get("gz_bytes", -1)):
+		return ""
+	var raw := gz.decompress(int(first.get("raw_bytes", 0)), FileAccess.COMPRESSION_GZIP)
+	var json := raw.get_string_from_utf8()
+	if json.md5_text() != str(first.get("md5", "")):
+		return ""
+	return json
+
+
+## The run's record to PostHog: one run_record event a part, each with the run's properties (and `extra`), from
+## RunAnalytics at the run's end (a quit too) and from send_pending. Returns the parts queued (0: nothing goes from here:
+## a tool, the test runner, the arena, the switch off, no key). Past RECORD_PARTS_MAX parts the rows are left out.
+func run_record(json: String, extra: Dictionary = {}) -> int:
+	# the run ended: its checkpoint note goes (a tool or the test runner never touches the player's files)
+	if runtime_block() == "":
+		_pending_clear()
+	if json == "" or not active():
+		return 0
+	var parts := record_parts(json)
+	var cut := false
+	if parts.is_empty():
+		var j := JSON.new()
+		if j.parse(json) != OK or not (j.data is Dictionary):
+			return 0
+		var doc: Dictionary = j.data
+		doc["samples"] = []
+		doc["rows_left_out"] = true
+		parts = record_parts(JSON.stringify(doc))
+		cut = true
+	var n := 0
+	for part in parts:
+		var props: Dictionary = (part as Dictionary).duplicate()
+		props.merge(extra, true)
+		if cut:
+			props["rows_left_out"] = true
+		if track("run_record", props):
+			n += 1
+	if n > 0:
+		save_queue()
+	return n
+
+
+## RunAnalytics.checkpoint (the app left the screen mid-run): the file its record so far is in and the run's
+## properties, so a run the app is then closed in goes at the next launch (send_pending). Nothing from where nothing
+## is sent.
+func note_checkpoint(path: String) -> void:
+	if not active() or run_props.is_empty():
+		return
+	var f := FileAccess.open(pending_path, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify({"file": path, "props": run_props.duplicate(), "at": int(Time.get_unix_time_from_system())}))
+	f.close()
+
+
+func _pending_clear() -> void:
+	_remove(pending_path)
+
+
+## At launch: a run the app was closed in after its checkpoint (a phone drops an app in the background) goes as
+## run_record with result "killed" and `recovered`, as far as the checkpoint recorded it. A run that ended (a later
+## write) or a file gone sends nothing. Returns the parts queued.
+func send_pending() -> int:
+	if not FileAccess.file_exists(pending_path):
+		return 0
+	var nj := JSON.new()
+	var ok := nj.parse(FileAccess.get_file_as_string(pending_path)) == OK and nj.data is Dictionary
+	_pending_clear()
+	if not ok or not active():
+		return 0
+	var note: Dictionary = nj.data
+	var file := str(note.get("file", ""))
+	if file == "" or not FileAccess.file_exists(file):
+		return 0
+	var j := JSON.new()
+	if j.parse(FileAccess.get_file_as_string(file)) != OK or not (j.data is Dictionary):
+		return 0
+	var doc: Dictionary = j.data
+	if str(doc.get("result", "")) != "in_progress":
+		return 0
+	doc["result"] = "killed"
+	var props: Dictionary = (note.get("props", {}) as Dictionary).duplicate() if note.get("props") is Dictionary else {}
+	props["recovered"] = true
+	return run_record(JSON.stringify(doc), props)
+
+
+## How many of the queue's first events one request takes: at most `most`, and while they stay under `max_chars` of
+## JSON (a run_record part is ~100 KB), never fewer than one.
+static func request_count(q: Array, most: int, max_chars: int) -> int:
+	var n := mini(q.size(), most)
+	var total := 0
+	for i in range(n):
+		var size := _event_chars(q[i])
+		if i > 0 and total + size > max_chars:
+			return i
+		total += size
+	return n
+
+
+## An event's size in characters of JSON (a run_record part: its data and a margin for its properties).
+static func _event_chars(e) -> int:
+	if e is Dictionary and str(e.get("event", "")) == "run_record":
+		var p = e.get("properties", {})
+		return str(p.get("data", "")).length() + 2048 if p is Dictionary else 2048
+	return JSON.stringify(e).length()
+
+
 ## One move of the saved gold (pass 61, Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)";
 ## Save.gold_moved): gold_meta {delta (signed), reason (run_bank, strongbox, talent, talent_refund, wipe, ...),
 ## balance_after, in_run} plus what it was for (a talent's `talent`, `rank`, `form`; a refund's `ranks`, `spent`). In a
@@ -675,7 +844,7 @@ func flush() -> bool:
 		return false
 	if Time.get_ticks_msec() < _retry_at_ms:
 		return false
-	var n := mini(queue.size(), BATCH_MAX)
+	var n := request_count(queue, BATCH_MAX, REQUEST_MAX)
 	var body := JSON.stringify({"api_key": key, "batch": queue.slice(0, n), "sent_at": iso_now()})
 	_in_flight = n
 	_requesting = true

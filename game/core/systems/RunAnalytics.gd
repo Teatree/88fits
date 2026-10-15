@@ -90,6 +90,8 @@ var mirror_root := ""
 var memory_only := false
 ## Pass 77 (lane SIMRUN): every XP point the run gained so far (Run.xp_gained, after Field Notes), each row's `xp_total`
 var xp_total := 0.0
+## Pass 78 (lane DASH): the record's JSON as _write last wrote it: the same text goes to PostHog as run_record at the end
+var last_json := ""
 ## Pass 77 (lane SIMRUN, Garry: the crowd's whole HP and attack "meaningless": the hero is never attacked by all of it):
 ## each row's `near3` / `near6` count the creatures up within these many metres of the hero (flat)
 const NEAR_CLOSE := 3.0
@@ -262,6 +264,8 @@ func _exit_tree() -> void:
 		_fill_end(false, 0)
 		_write(true)
 		_send_held()
+		# pass 78: the whole record as well (the queue is on disk; it goes at the next launch)
+		Analytics.run_record(last_json)
 		Analytics.run_finish(_end_props(0), _summary_props())
 
 
@@ -854,6 +858,8 @@ func finish() -> void:
 	_fill_end(true, banked)
 	_write(true)
 	_send_held()
+	# pass 78 (lane DASH): the whole record to PostHog (run_record parts), with the run's properties still on
+	Analytics.run_record(last_json)
 	Analytics.run_finish(_end_props(banked), _summary_props())
 
 
@@ -884,6 +890,9 @@ func checkpoint() -> void:
 		return
 	_fill_end(false, 0)
 	_write(false)
+	# pass 78 (lane DASH): where this run's record so far is, sent at the next launch if the app is closed before the end
+	if not memory_only:
+		Analytics.note_checkpoint("user://analytics/runs/" + str(header.get("stamp", "run")) + ".json")
 
 
 ## The header's end state. `banked` is what the run's end brought home (gold_end; 0 before the end and for a quit).
@@ -1488,6 +1497,7 @@ func _write(index: bool) -> String:
 	doc["samples"] = samples
 	doc["events"] = events
 	var json := JSON.stringify(doc)
+	last_json = json
 	var fname := str(header.get("stamp", "run")) + ".json"
 	DirAccess.make_dir_recursive_absolute("user://analytics/runs")
 	var out := "user://analytics/runs/" + fname

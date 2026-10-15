@@ -42,11 +42,34 @@ Excel and Google Sheets open them as they are. For every run at once:
 
 Chart.js is vendored at `lib/chart.umd.js` (4.4.1) with a cdnjs fallback, so the page works offline.
 
-## Phone runs
+## The Sim's charts and averages (pass 78)
 
-A release-signed APK keeps `user://` private: `adb` cannot pull it and scoped storage blocks a copy to Downloads. For
-now the dashboard is for runs played on the PC. The follow-up is a developer-menu "copy the last run" (the hit log
-already goes to the clipboard that way) with a paste box on the dashboard, or a POST to the PC over the hotspot.
+Garry: "Add those charts to our Local Run Analytics dashboard so their formats match." Under the summary, **The Sim's
+charts for this run** draws the open run with the Level Editor's Sim tab's own charts (DPS, HP, deaths, danger, keeping
+up, close crowd, who is alive, what hurt, hits, healing, the cap, spawned and killed, creature strength, coins, damage
+by source, kills by creature, level, XP, the build): the same definitions (`tools/level_editor/sim_model.js`), drawing
+(`sim_plot.js`) and styles (`sim.css`), loaded from `../tools/level_editor/`, so a real run and a sim read alike. A
+record without a key (before v0.63: no close crowd, no boss HP, no XP total) leaves that chart out.
+
+**Averages.** Open several run files (or a whole folder: *Open a folder*), tick runs in *Runs you opened*, press
+*Average*: every second of play averaged exactly the way the Sim tab averages its runs (`sim_avg.js` = `tools/sim_batch.py`
+`aggregate()`, checked equal by `selftest_DASH78`): a series is the mean over the runs still playing at that second, the
+bands the middle 80 %, the deaths over every run, the stage and boss marks medians; every readout says how many runs
+are behind that second. *Compare with a sim* lays a sim's `result.json` dashed grey over any view; a sim's player files
+(`tools/dl/sim/runs/<sim>/players/pNN.json`) can be averaged like runs.
+
+## Phone runs and other players: Remote runs (pass 78)
+
+A release-signed APK keeps `user://` private (`adb` cannot pull it). Since v0.64 every run that sends analytics also
+sends its whole record to PostHog (`run_record`, see `SCHEMA.md`). Download them:
+
+    python tools/posthog_runs.py                  # the last 30 days, new runs only
+    python tools/posthog_runs.py --player "Name"  # one player (repeat for several); --since 2026-10-01; --all; --list
+
+They land in `analytics/remote/<player>/` (git-ignored) with `analytics/remote/index.js`. The dashboard's **Remote
+runs** switch lists the players and their runs: *Open* one (every card, as if it were played here), *Average the
+ticked runs*, or *Average every run of the ticked players* (several players at once); *leave out developer runs* hides
+the editor binary's and debug builds' runs. The how-to in plain words: `howto/03_remote_runs.md`.
 
 ## The record
 
@@ -70,5 +93,8 @@ and the debug arena never send. The plan, the boards and the setup steps are in 
 Pass 59: every install is a Person in PostHog named by the game (`player_name`, shown in Settings), nothing is sent before the
 play-data card on the first launch is answered, and end-of-run surveys come from PostHog Surveys (API presentation). The
 how-to (the first survey, editing questions, following a friend) is in `docs/analytics_plan.html`.
+
+Pass 78: `run_record` carries the whole record (gzip + base64 parts, at most 100,000 characters each; a 25-minute run is
+two parts, ~145 KB), downloaded by `tools/posthog_runs.py` into `analytics/remote/` for this dashboard (above).
 
 Pass 60: `run_summary` carries the rest of this dashboard's curves (`m_hp_max`, `m_shield`, `m_took_raw`, `m_evaded`, `m_shielded`, `m_healed`, `m_shield_s`, `m_invuln_s`, `m_load`, `m_hard_cap`, `m_xp`, `m_banked`, `m_kills`, `m_phase`, `dmg_by_minute` for the top eight weapons, `kills_by_weapon`, `took_kind`, the final `build` / `build_text` and `est_end`), and `tools/posthog_boards.py` draws them on the Run curves board and the new Run health & weapons board, keeping every board's id when it reruns.
