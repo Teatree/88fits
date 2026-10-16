@@ -54,6 +54,8 @@
   <span class="spacer"></span>
   <span id="zoom-box" class="zoom-box">
     <button id="snap-toggle" class="btn small toggle on" type="button" aria-pressed="true" title="Snapping (S): a start, an end or a point you drag drops onto a time within 8 px: the cap's points first, then the other rows' and waves' starts and ends, the events, the stage marks, whole and half minutes last. Hold Alt while dragging to place it freely. Typed numbers never snap.">Snap on</button>
+    <!-- pass 83 (lane TIMELINE): the window of the readout's shares, in seconds -->
+    <label class="win-box" title="Past N seconds: hovering the timeline, the readout and the cards show each roster row's and wave's share of all the creatures spawned in the N seconds before the pointer (a wave's tick: the N seconds from it), read off the Spawned so far estimate (the cap, the weights, the spawn checks and the rows' own Draw every, the waves, the kill rate). Bars that spawned nothing in it dim. The browser remembers it.">past <input id="win-secs" type="number" min="1" max="120" step="1" value="5"> s</label>
     <button id="zoom-out" class="btn small" type="button" title="zoom out (−, or Ctrl + wheel)">−</button>
     <span id="zoom-label" class="zoom-label"></span>
     <button id="zoom-in" class="btn small" type="button" title="zoom in (+, or Ctrl + wheel)">+</button>
@@ -111,6 +113,8 @@
 <!-- pass 72 (lane BOSS): the boss HP scaling card (Settings) and the Boss attacks tab, on their page-free maths -->
 <script src="boss_model.js"></script>
 <script src="boss_scaling.js"></script>
+<script src="power_model.js"></script>
+<script src="power_card.js"></script>
 <!-- pass 82 (lane XP): the XP growth types (Settings -> XP per level), on their page-free maths (xp_model.js, also run under
      Node by selftest_XP82.py) -->
 <script src="xp_model.js"></script>

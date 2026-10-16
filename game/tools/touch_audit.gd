@@ -1443,6 +1443,12 @@ func _totem(g) -> void:
 	var before: int = run.totem_boons.size()
 	g.use_structure(d, g.player.global_position)
 	await _wait(0.8)
+	# pass 83 (lane TOTEM): and until every gift has landed (bounded): a hit's hit-stop (Engine.time_scale 0.08 set mid
+	# frame) makes an unscaled timer run fast, so the 0.8 s above could end 60 ms after the open, the gifts still moving
+	for k in range(30):
+		if g.totem_screen.planks().all(func(r) -> bool: return bool(r.arrived)):
+			break
+		await _wait(0.1)
 	var ts = g.totem_screen
 	_count("totem", ts.visible)
 	if not ts.visible:

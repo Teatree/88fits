@@ -77,7 +77,7 @@ func _main() -> void:
 	_save = root.get_node("Save")
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
-	var in_run := ["backdrop", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results"]
+	var in_run := ["backdrop", "backdrop_arena", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results"]
 	var any_run := false
 	for n in in_run:
 		if _want(n):
@@ -99,7 +99,12 @@ func _main() -> void:
 
 
 ## The still of the desert behind every menu (art/ui/wanted/menu_backdrop.jpg): the arena with no HUD and no hero.
+## Pass 83 (lane SCENE): the still is the live title's composed scene now, written by tools/menu_backdrop.gd; this
+## writes the old arena still only when asked by name (only=backdrop_arena), so a full run no longer overwrites it.
 func _backdrop() -> void:
+	if not _only.has("backdrop_arena"):
+		print("wanted_shots: backdrop is tools/menu_backdrop.gd since pass 83 (only=backdrop_arena for the old still)")
+		return
 	var was_white := false
 	for c in g.get_children():
 		if c is CanvasLayer and (c as CanvasLayer).layer == g.ui.layer - 1:
@@ -362,7 +367,7 @@ func _in_run() -> void:
 	# the arena opens with its own banner: let it pass
 	g.set_paused(false)
 	await _wait(3.2)
-	if _want("backdrop"):
+	if _want("backdrop") or _want("backdrop_arena"):
 		await _backdrop()
 	if _want("hud"):
 		await _hud_basic()

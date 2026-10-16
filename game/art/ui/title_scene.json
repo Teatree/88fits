@@ -1,0 +1,96 @@
+{
+ "red_canyon": {
+  "clear": {
+   "x": [
+    -14,
+    14
+   ],
+   "z": [
+    -32,
+    6
+   ]
+  },
+  "props": [
+   {
+    "id": "boulder_b",
+    "x": -2.6,
+    "z": -10.8,
+    "scale": 0.75
+   },
+   {
+    "id": "joshua_tree",
+    "x": 2.2,
+    "z": -11.5,
+    "scale": 0.7,
+    "sway": 0.02
+   },
+   {
+    "id": "joshua_tree_b",
+    "x": -3.5,
+    "z": -7.4,
+    "scale": 0.75,
+    "sway": 0.02
+   },
+   {
+    "id": "saguaro_big",
+    "x": 3.5,
+    "z": -6.8,
+    "scale": 0.9,
+    "sway": 0.02
+   },
+   {
+    "id": "agave_b",
+    "x": -2.0,
+    "z": -2.8,
+    "scale": 0.85,
+    "sway": 0.03
+   },
+   {
+    "id": "rock_small",
+    "x": -1.3,
+    "z": -3.6,
+    "scale": 0.8
+   },
+   {
+    "id": "barrel_cactus_b",
+    "x": 2.1,
+    "z": -2.6,
+    "scale": 0.85
+   },
+   {
+    "id": "ocotillo_b",
+    "x": 3.0,
+    "z": -4.6,
+    "scale": 0.6,
+    "sway": 0.04
+   },
+   {
+    "id": "dead_shrub_b",
+    "x": 1.1,
+    "z": -3.9,
+    "scale": 0.7,
+    "sway": 0.03
+   },
+   {
+    "id": "skull_small",
+    "x": -0.9,
+    "z": -2.7,
+    "scale": 1.0
+   },
+   {
+    "id": "brittlebush",
+    "x": -2.2,
+    "z": 0.4,
+    "scale": 1.0,
+    "sway": 0.05
+   },
+   {
+    "id": "desert_bush_b",
+    "x": 2.7,
+    "z": 0.0,
+    "scale": 0.9,
+    "sway": 0.05
+   }
+  ]
+ }
+}

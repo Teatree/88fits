@@ -42,6 +42,18 @@ const LABEL_TEXT_X := 50.0
 const LABEL_BASELINE := 31.0
 const CREST_AT := Vector2(0, 372)
 const CREST_W := 420.0
+## Pass 83 (lane TOTEM): the crest is the pole's top: centred on the column, at most CREST_MAX_H tall (it never reaches
+## the label), its foot CREST_SINK px down behind the top segment so the bird sits on the column.
+const CREST_MAX_H := 150.0
+const CREST_SINK := 12.0
+## Pass 83: the cedar post behind the segments, from under the crest to the base, so the gaps between the plates read as
+## the same pole (POST_W wide, centred on the column; the plates' rock darkened, ink sides, the carved inset).
+const POST_W := 200.0
+const POST_FILL := Color(0x7a / 255.0, 0x34 / 255.0, 0x1f / 255.0)
+## The pole's bare cedar (the wood every painted segment is laid on, tools/gen_totem_icons.py): the post (shaded by
+## POST_SHADE, it stands back) and the base are cut from it; without the file they are POST_FILL and rock.
+const CEDAR_PATH := "res://art/ui/totem/cedar.png"
+const POST_SHADE := Color(0.72, 0.72, 0.72)
 const SEG_X := 60.0
 const SEG := 300.0
 const SEG_Y: Array = [500.0, 840.0, 1180.0]
@@ -50,7 +62,9 @@ const SEG_RADIUS := 10
 ## the carved inset: `box-shadow: inset 0 0 0 8px rgba(0,0,0,.18)` (WPlate's inner ring)
 const CARVE := 8
 const CARVE_COLOR := Color(0, 0, 0, 0.18)
-const FACE := 240.0
+## Pass 83 (lane TOTEM): the carved segment fills its plate inside the ink border (the painted segments are opaque
+## squares of the pole), the carved inset and the border drawn again over it (GiftRow.carve)
+const FACE := SEG - 2.0 * SEG_BORDER
 const WORD_PX := 40
 ## the room a word keeps from the plate's border on either side before it shrinks
 const WORD_CLEAR := 4.0
@@ -120,6 +134,7 @@ var _label: Control
 var _label_text: WText
 var _crest: TextureRect
 var _base: Control
+var _post: Control
 var _flyer: TextureRect
 var _held_row: GiftRow
 var _tweens: Array = []
@@ -145,6 +160,8 @@ class GiftRow:
 	var glow: Panel
 	var glow_holder: Node2D
 	var plate: WPlate
+	## pass 83: the carved inset and the ink border over the face (the face fills the plate inside its border)
+	var carve: Control
 	var word: WText
 	var tag: Panel
 	var tag_box: HardBox
@@ -158,6 +175,9 @@ class GiftRow:
 	var tag_home := Vector2.ZERO
 	## taking a finger: set once its open motion has landed (a tap on a piece still moving is not a choice)
 	var arrived := false
+	## pass 83 (lane TOTEM): when its open motion should have landed (Time.get_ticks_msec), so a slow frame at the open
+	## (the motion's chained steps each wait a frame) never leaves a landed-looking gift deaf to a finger; -1 = not set
+	var arrive_ms := -1
 	var held := false
 	var screen: Node
 	var _touching := false
@@ -231,7 +251,9 @@ class GiftRow:
 						_set_held(false)
 
 	func _can_press() -> bool:
-		if not arrived or screen == null or bool(screen.get("_done")):
+		if screen == null or bool(screen.get("_done")):
+			return false
+		if not arrived and (arrive_ms < 0 or Time.get_ticks_msec() < arrive_ms):
 			return false
 		var other = screen.get("_held_row")
 		return other == null or other == self
@@ -272,6 +294,11 @@ func _ready() -> void:
 	_label_text.name = "Words"
 	_label.add_child(_label_text)
 	_label.draw.connect(_draw_label_stars)
+	_post = Control.new()
+	_post.name = "Post"
+	_post.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_post.draw.connect(_draw_post)
+	add_child(_post)
 	_crest = TextureRect.new()
 	_crest.name = "Crest"
 	_crest.texture = load(CREST_PATH) if ResourceLoader.exists(CREST_PATH) else null
@@ -282,7 +309,7 @@ func _ready() -> void:
 	_base = Control.new()
 	_base.name = "Base"
 	_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_base.draw.connect(func() -> void: carved(_base, Rect2(Vector2.ZERO, _base.size), BASE_RADIUS))
+	_base.draw.connect(_draw_base)
 	add_child(_base)
 
 
@@ -301,6 +328,85 @@ static func carved(ci: CanvasItem, rect: Rect2, radius: int) -> void:
 	inset.set_border_width_all(CARVE)
 	inset.border_color = CARVE_COLOR
 	ci.draw_style_box(inset, rect.grow(-SEG_BORDER))
+
+
+## Pass 83: the carved inset and the ink border drawn over a segment's face (only while it has one).
+static func carved_over(ci: CanvasItem, plate: WPlate) -> void:
+	if plate == null or plate.tex == null:
+		return
+	var rect := Rect2(Vector2.ZERO, Vector2(SEG, SEG))
+	var inset := StyleBoxFlat.new()
+	inset.draw_center = false
+	inset.set_corner_radius_all(maxi(SEG_RADIUS - SEG_BORDER, 0))
+	inset.set_border_width_all(CARVE)
+	inset.border_color = CARVE_COLOR
+	ci.draw_style_box(inset, rect.grow(-SEG_BORDER))
+	var edge := StyleBoxFlat.new()
+	edge.draw_center = false
+	edge.set_corner_radius_all(SEG_RADIUS)
+	edge.set_border_width_all(SEG_BORDER)
+	edge.border_color = W.INK
+	edge.anti_aliasing = true
+	ci.draw_style_box(edge, rect)
+
+
+static var _cedar: Texture2D
+static var _cedar_tried := false
+
+
+## The bare cedar texture (null when the file is missing).
+static func cedar() -> Texture2D:
+	if not _cedar_tried:
+		_cedar_tried = true
+		_cedar = load(CEDAR_PATH) as Texture2D if ResourceLoader.exists(CEDAR_PATH) else null
+	return _cedar
+
+
+## The base: the pole's foot, a cedar plinth in its ink border with the carved inset (rock without the cedar).
+func _draw_base() -> void:
+	var r := Rect2(Vector2.ZERO, _base.size)
+	carved(_base, r, BASE_RADIUS)
+	var tex := cedar()
+	if tex == null:
+		return
+	var inner := r.grow(-SEG_BORDER)
+	_base.draw_texture_rect_region(tex, inner, Rect2(Vector2.ZERO, Vector2(tex.get_size().x, tex.get_size().x * inner.size.y / inner.size.x)))
+	var inset := StyleBoxFlat.new()
+	inset.draw_center = false
+	inset.set_border_width_all(CARVE)
+	inset.border_color = CARVE_COLOR
+	_base.draw_style_box(inset, inner)
+
+
+## Pass 83: the cedar post behind the segments (the pole between its carved plates): darker than the plates, ink sides,
+## the carved inset down both sides.
+## Drawn only between the segments (behind a faded gift the post would show through it).
+func _draw_post() -> void:
+	var spans: Array = []
+	var y := 0.0
+	for k in range(mini(_rows.size(), SEG_Y.size())):
+		var top := float(SEG_Y[k]) + _dy - _post.position.y + SEG_BORDER
+		if top > y:
+			spans.append(Vector2(y, top))
+		y = top + SEG - 2.0 * SEG_BORDER
+	if _post.size.y > y:
+		spans.append(Vector2(y, _post.size.y))
+	var w := _post.size.x
+	var tex := cedar()
+	for sp: Vector2 in spans:
+		var h := sp.y - sp.x
+		_post.draw_rect(Rect2(0, sp.x, w, h), W.INK)
+		var wood := Rect2(SEG_BORDER, sp.x, w - 2.0 * SEG_BORDER, h)
+		if tex:
+			# the grain runs on down the pole: the texture's middle columns, its rows by where the span sits
+			var ts := tex.get_size()
+			var k := ts.x / (SEG - 2.0 * SEG_BORDER)
+			var src := Rect2((ts.x - wood.size.x * k) * 0.5, fmod(sp.x * k, maxf(ts.y - h * k, 1.0)), wood.size.x * k, minf(h * k, ts.y))
+			_post.draw_texture_rect_region(tex, wood, src, POST_SHADE)
+		else:
+			_post.draw_rect(wood, POST_FILL)
+		_post.draw_rect(Rect2(SEG_BORDER, sp.x, CARVE, h), CARVE_COLOR)
+		_post.draw_rect(Rect2(w - SEG_BORDER - CARVE, sp.x, CARVE, h), CARVE_COLOR)
 
 
 ## `offer`: the gifts (TotemBoons.offer); `def` the pole; `index` this gift's count this run (1-based) and `total` the
@@ -353,10 +459,14 @@ func _layout() -> void:
 	_label_text.size = _label_text.get_combined_minimum_size()
 	_label.size = Vector2(label_star_r().x + LABEL_STAR_R, 46)
 	_label.queue_redraw()
-	if _crest.texture:
-		var ts := _crest.texture.get_size()
-		_crest.size = Vector2(CREST_W, roundf(CREST_W * ts.y / maxf(ts.x, 1.0)))
-	_crest.position = CREST_AT + Vector2(0, _dy)
+	var col_x := SEG_X + SEG * 0.5
+	_crest.size = crest_size()
+	# the pole's top: centred on the column, its foot CREST_SINK behind the top segment
+	_crest.position = Vector2(col_x - _crest.size.x * 0.5, float(SEG_Y[0]) + CREST_SINK - _crest.size.y + _dy)
+	var post_top := _crest.position.y + _crest.size.y * 0.5
+	_post.position = Vector2(col_x - POST_W * 0.5, post_top)
+	_post.size = Vector2(POST_W, BASE_AT.y + _dy + SEG_BORDER - post_top)
+	_post.queue_redraw()
 	for k in range(_rows.size()):
 		var row: GiftRow = _rows[k]
 		row.position = Vector2(SEG_X, float(SEG_Y[k]) + _dy)
@@ -364,6 +474,17 @@ func _layout() -> void:
 	_base.position = BASE_AT + Vector2(0, _dy)
 	_base.size = BASE
 	_base.queue_redraw()
+
+
+## The crest's size on the canvas: CREST_W wide at its painting's aspect, no taller than CREST_MAX_H (then narrower).
+func crest_size() -> Vector2:
+	if _crest == null or _crest.texture == null:
+		return Vector2(CREST_W, 0)
+	var ts := _crest.texture.get_size()
+	var sz := Vector2(CREST_W, CREST_W * ts.y / maxf(ts.x, 1.0))
+	if sz.y > CREST_MAX_H:
+		sz *= CREST_MAX_H / sz.y
+	return Vector2(roundf(sz.x), roundf(sz.y))
 
 
 ## The label's face: Bitter 600 tracked LABEL_TRACK, its spaces LABEL_SPACE wider (made once).
@@ -450,6 +571,13 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	plate.tex = BOONS.icon_of(b)
 	seg.add_child(plate)
 	row.plate = plate
+	var carve := Control.new()
+	carve.name = "Carve"
+	carve.size = Vector2(SEG, SEG)
+	carve.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	carve.draw.connect(func() -> void: carved_over(carve, plate))
+	plate.add_child(carve)
+	row.carve = carve
 	if plate.tex == null:
 		var wd := W.slab_text(BOONS.word(b), WORD_PX, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER)
 		wd.name = "Word"
@@ -585,6 +713,7 @@ func _open_motion() -> void:
 	for k in range(_rows.size()):
 		var row: GiftRow = _rows[k]
 		var at := T_FLASH + SEG_STAGGER * k
+		row.arrive_ms = Time.get_ticks_msec() + int(ceilf((at + TAG_AFTER + T_TAG) * 1000.0))
 		row.seg.position = row.seg_home + Vector2(0, SEG_RISE)
 		row.seg.modulate.a = 0.0
 		var ts := _tw()
@@ -600,6 +729,10 @@ func _open_motion() -> void:
 		tt.chain().tween_property(row.tag, "position", row.tag_home, T_TAG).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tt.tween_property(row.tag, "modulate:a", 1.0, T_TAG * 0.6)
 		tt.chain().tween_callback(func() -> void: row.arrived = true)
+	_post.modulate.a = 0.0
+	var tp := _tw()
+	tp.tween_interval(T_FLASH)
+	tp.tween_property(_post, "modulate:a", 1.0, T_DIM_IN)
 	_base.modulate.a = 0.0
 	var tb := _tw()
 	tb.tween_interval(T_OPEN - T_BASE)
@@ -661,6 +794,7 @@ func _close_motion(row: GiftRow) -> void:
 		add_child(_flyer)
 		row.plate.tex = null
 		row.plate.queue_redraw()
+		row.carve.queue_redraw()
 		var to_c := face_target(row.boon)
 		var to := Rect2(to_c - Vector2(FLY_TO, FLY_TO) * 0.5, Vector2(FLY_TO, FLY_TO))
 		var tf := _tw().set_parallel(true)
@@ -675,7 +809,7 @@ func _close_motion(row: GiftRow) -> void:
 		else:
 			t.tween_property(r, "position:y", r.position.y + DROP_PX, T_DROP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 			t.tween_property(r.group, "self_modulate:a", 0.0, T_DROP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	for c: Control in [_crest, _base, _label]:
+	for c: Control in [_crest, _base, _label, _post]:
 		var tc := _tw()
 		tc.tween_property(c, "modulate:a", 0.0, T_FADE)
 	var td := _tw()

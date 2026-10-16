@@ -27,6 +27,8 @@ const LAST_KICK := 1.8
 const LAST_SHINE := 0.5
 ## The beat between the last coin in and the balloon lifting the box off (the lift's own wait before, pass 33)
 const LIFT_BEAT := 0.35
+## Pass 83: a Strongbox coming down has its whole shadow under it once it is this many metres up
+const SHADOW_IN := 6.0
 ## A structure stands at least this far from any bush of the map's bush patches (pass 61, RedCanyon.bush_patches): a
 ## bush has no collider and so no obstacle circle to keep a ring off it, and a patch is a stretch of open ground the
 ## structures would otherwise favour
@@ -117,6 +119,8 @@ class Structure:
 	var rest := Vector3.ZERO
 	var drift := Vector3.ZERO
 	var flown := false
+	## pass 83 (lane SCENE): its ground shadow in the map's scenery shadows (PropField.add_shadow), -1 for none
+	var shadow := -1
 
 
 func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
@@ -434,6 +438,7 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 		SceneryStencil.mark_tree(s.visual)
 		s.add_child(s.visual)
 		s.visual.rotation.y = _rng.randf() * TAU
+	_add_shadow(s, def, at)
 	# the ring on the ground, in the structure's colour, always visible until used
 	var tg: Telegraphs = game.telegraphs
 	s.ring = MeshInstance3D.new()
@@ -486,6 +491,31 @@ func _add_portal(s: Structure, cfg: Dictionary, side: float, color: Color) -> vo
 	s.add_child(q)
 	s.portal = q
 	s.portal_mat = m
+
+
+## Pass 83 (lane SCENE; Garry: "barrels, signs, and structures too. Want them to feel like they are part of the world"):
+## a structure stands on a ground shadow in the map's scenery shadows (PropField.add_shadow), measured from its painting
+## like a prop's (props.json `st_<id>` `shadow`, shares of the drawn painting's height, def.height x 1.15), or the default
+## shares for a model; it shrinks away as the Strongbox lifts off and grows back under one coming down (shadow_k).
+func _add_shadow(s: Structure, def: StructureDef, at: Vector3) -> void:
+	var props = map.get("props") if map else null
+	if not props is PropField:
+		return
+	var pf := props as PropField
+	var h := def.height * 1.15
+	var sh := pf.shadow_of("st_" + def.id)
+	s.shadow = pf.add_shadow(at + Vector3(float(sh["x"]) * h, 0.0, float(sh["z"]) * h), float(sh["w"]) * h, float(sh["d"]) * h, float(sh["a"]), h)
+
+
+## Structure `s`'s shadow at `k` of its size (1 standing, 0 gone) under where it stands.
+func shadow_k(s: Structure, k: float) -> void:
+	var props = map.get("props") if map else null
+	if s.shadow < 0 or not props is PropField:
+		return
+	var pf := props as PropField
+	var h := s.def.height * 1.15
+	var sh := pf.shadow_of("st_" + s.def.id)
+	pf.move_shadow(s.shadow, s.global_position + Vector3(float(sh["x"]) * h, 0.0, float(sh["z"]) * h), clampf(k, 0.0, 1.0))
 
 
 func _mat(color: Color, alpha: float) -> StandardMaterial3D:
@@ -648,6 +678,10 @@ func _lift(s: Structure) -> void:
 	tw.parallel().tween_property(v, "rotation:y", v.rotation.y + 1.4, 4.5)
 	tw.tween_callback(v.hide)
 	tw.tween_callback(func() -> void: _on_flown(s))
+	# pass 83: its shadow shrinks away as it rises
+	var stw := s.create_tween()
+	stw.tween_interval(0.45)
+	stw.tween_method(func(k: float) -> void: shadow_k(s, k), 1.0, 0.0, 2.2).set_ease(Tween.EASE_IN)
 
 
 # ---------------------------------------------------------------- the Strongbox comes back (pass 64)
@@ -719,6 +753,7 @@ func _descend(s: Structure) -> void:
 		s.rest = s.visual.position
 		s.drift = Vector3(_rng.randf_range(-2.5, 2.5), DESCEND_HEIGHT, _rng.randf_range(-6.0, -3.0))
 		s.visual.position = descend_offset(s, 0.0)
+	shadow_k(s, 0.0)
 
 
 ## Where the box's visual hangs `t` seconds into its arrival (its resting position at the end): DESCEND_TIME coming down
@@ -748,6 +783,9 @@ func _tick_descend(s: Structure, delta: float) -> void:
 		v.position = descend_offset(s, s.arrive_t)
 		if v is BillboardSprite:
 			(v as BillboardSprite).set_roll(descend_roll(s.arrive_t))
+	# pass 83: the shadow grows in under it as it comes down (full by the time it is SHADOW_IN metres up)
+	if v:
+		shadow_k(s, 1.0 - clampf((v.position.y - s.rest.y) / SHADOW_IN, 0.0, 1.0))
 	if s.arrive_t >= DESCEND_TIME + SETTLE_TIME:
 		_land(s)
 
@@ -759,6 +797,7 @@ func _land(s: Structure) -> void:
 		s.visual.position = s.rest
 		if s.visual is BillboardSprite:
 			(s.visual as BillboardSprite).set_roll(0.0)
+	shadow_k(s, 1.0)
 	s.ring.visible = true
 	s.bounce_v -= BOUNCE_KICK * 1.4
 	s.reacting = true

@@ -465,7 +465,8 @@ func test_recent_dps_counts_the_last_window_of_the_clock() -> void:
 func test_a_boss_spawns_with_hp_pegged_to_the_heros_dps() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	# (lane INTEG: the Brander's 0 = never scaled; a boss left out would take its measured default)
-	tl.boss_hp_scaling = {"enabled": true, "exponent": 0.5, "window": 45, "min": 0.75, "max": 3.0, "ref_dps": {"gila_grande": 500, "brander": 0}}
+	# (pass 83, lane SCALE: the seconds mode is the game's default now; this test pins the pegged mode by name)
+	tl.boss_hp_scaling = {"enabled": true, "mode": "dps", "exponent": 0.5, "window": 45, "min": 0.75, "max": 3.0, "ref_dps": {"gila_grande": 500, "brander": 0}}
 	var w := _world(Vector3(0, 0, 30))
 	var em: EnemyManager = w["em"]
 	var dir := WaveDirector.new()
@@ -505,7 +506,8 @@ func test_a_boss_spawns_with_hp_pegged_to_the_heros_dps() -> void:
 
 func test_endless_grows_the_reference_with_the_boss() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
-	tl.boss_hp_scaling = {"enabled": true, "exponent": 0.5, "window": 45, "min": 0.75, "max": 3.0, "ref_dps": {"tumbleweed_king": 300}}
+	# (pass 83, lane SCALE: the pegged mode by name)
+	tl.boss_hp_scaling = {"enabled": true, "mode": "dps", "exponent": 0.5, "window": 45, "min": 0.75, "max": 3.0, "ref_dps": {"tumbleweed_king": 300}}
 	var dir := WaveDirector.new()
 	dir.timeline = tl
 	auto_free(dir)

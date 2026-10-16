@@ -15,12 +15,12 @@
   "forms": [
     {
       "name": "Thorns",
-      "text": "+5 thorns a rank.",
+      "text": "+2 thorns a rank.",
       "effects": [
         {
           "stat": "thorns",
           "op": "add",
-          "value": 5.0,
+          "value": 2.0,
           "target": "player"
         }
       ]

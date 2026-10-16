@@ -89,8 +89,13 @@ func test_the_layout_is_the_readmes_at_1080_by_1920() -> void:
 	var label: Control = scr.get_node("Label")
 	assert_vector(label.get_global_rect().position).is_equal(Vector2(60, 300))
 	assert_str(scr.label_text()).is_equal("TOTEM 4 OF 11")
-	# the crest, 420 wide at (0, 372), its painting's aspect (360:108 -> 126 tall)
-	_near((scr.get_node("Crest") as Control).get_global_rect(), Rect2(0, 372, 420, 126), "crest")
+	# the crest (pass 83 re-pin: the repainted thunderbird, the pole's top): 420 wide at its painting's aspect (at most
+	# 150 tall), centred on the column (x 210), its foot 12 px behind the top segment
+	var crest_r: Rect2 = (scr.get_node("Crest") as Control).get_global_rect()
+	assert_float(crest_r.size.x).is_equal_approx(420.0, 0.6)
+	assert_float(crest_r.size.y).is_less_equal(150.0)
+	assert_float(crest_r.get_center().x).is_equal_approx(210.0, 0.6)
+	assert_float(crest_r.end.y).is_equal_approx(512.0, 0.6)
 	# three segments 300 px at x 60, y 500 / 840 / 1180; tags 630 x 240 at x 390, 30 px under each segment's top
 	var rows: Array = scr.planks()
 	assert_int(rows.size()).is_equal(3)
@@ -105,7 +110,8 @@ func test_the_layout_is_the_readmes_at_1080_by_1920() -> void:
 		assert_int(row.plate.radius).is_equal(10)
 		assert_int(row.plate.ring).is_equal(8)
 		assert_bool(row.plate.ring_color.is_equal_approx(Color(0, 0, 0, 0.18))).is_true()
-		assert_float(row.plate.icon_frac * 300.0).is_equal_approx(240.0, 0.01)
+		# pass 83 re-pin: the painted segment fills the plate inside its 6 px border (288), not 240
+		assert_float(row.plate.icon_frac * 300.0).is_equal_approx(288.0, 0.01)
 		# the tag: the kit's paper box, 5 px ink, an 8 px hard shadow
 		var box: HardBox = row.tag_box
 		assert_bool(box.fill.is_equal_approx(W.PAPER)).is_true()
@@ -223,18 +229,19 @@ func test_the_spirit_line_and_the_label_with_and_without_a_total() -> void:
 	assert_str(rows[2].spirit.text).is_equal("Frog")
 
 
+## Pass 83 re-pin: every spirit has its painted segment now; the empty plate with the word is for a spirit added without
+## a picture (an id with no file).
 func test_the_four_faces_fill_their_slots_and_the_rest_show_their_word() -> void:
-	for id in ["wolf", "bear", "frog", "serpent"]:
+	for id in ["wolf", "bear", "frog", "serpent", "whale", "thunderbird", "seal", "salmon", "killer_whale", "bullhead", "raven"]:
 		assert_object(BOONS.icon_of({"id": id})).override_failure_message(id).is_not_null()
 		var tex: Texture2D = BOONS.icon_of({"id": id})
 		assert_bool(BOONS.icon_path({"id": id}).begins_with("res://art/ui/totem/spirit_")).is_true()
 		assert_float(tex.get_size().x).is_greater(0.0)
-	for id in ["whale", "thunderbird", "seal", "salmon", "killer_whale", "bullhead", "raven"]:
-		assert_object(BOONS.icon_of({"id": id})).override_failure_message(id).is_null()
+	assert_object(BOONS.icon_of({"id": "p83_no_picture"})).is_null()
 	# a pool entry's own icon wins over its slot
 	assert_str(BOONS.icon_path({"id": "raven", "icon": "art/ui/totem/spirit_wolf.png"})).is_equal("res://art/ui/totem/spirit_wolf.png")
 	var scr := _open([
-		{"id": "thunderbird", "name": "Thunderbird", "animal": "", "stat": "cooldown", "op": "mul", "value": -0.03, "min": -0.04, "max": -0.02, "quality": 2},
+		{"id": "p83_no_picture", "name": "Thunderbird", "animal": "", "stat": "cooldown", "op": "mul", "value": -0.03, "min": -0.04, "max": -0.02, "quality": 2},
 		_mock()[0]])
 	await get_tree().create_timer(0.6).timeout
 	var rows: Array = scr.planks()

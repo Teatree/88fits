@@ -11,7 +11,9 @@ minutes. `--klein` uses Flux.2 Klein 9B (20 s a render).
   python tools/gen_props.py [--only id,id] [--force] [--dev]
 
 Output: game/art/sprites/props/<id>.png (cell x cell, base on the floor) and game/art/sprites/props/props.json
-  {"<id>": {"file": "<id>.png", "height": metres, "radius": collider metres (0 = walk through), "cell": px}}"""
+  {"<id>": {"file": "<id>.png", "height": metres, "radius": collider metres (0 = walk through), "cell": px}}
+An entry's other keys are kept (pass 83: `shadow`, measured by tools/prop_shadows.py; the variants' `variant_of` and
+`weight`, painted by tools/gen_prop_variants.py, which this table does not list)."""
 import io
 import json
 import os

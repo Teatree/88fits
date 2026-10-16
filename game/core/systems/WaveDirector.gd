@@ -84,6 +84,8 @@ func start(p_map: MapDef) -> void:
 	_roll_waves()
 	# pass 81 (lane PACE): the waves rows' schedule starts afresh
 	_row_waves.clear()
+	# pass 83 (lane TIMELINE): the own-interval rows' clocks start afresh
+	_row_draw_left.clear()
 	running = true
 	var em: EnemyManager = game.enemies
 	for a in map.skins.keys():
@@ -110,7 +112,8 @@ func _apply_mults() -> void:
 	em.hp_time_mult = timeline.hp_mult_at(Run.elapsed)
 	# pass 79 (lane MUT): the card levels (Run.card_level, M5)
 	var lv := float(maxi(Run.card_level() - 1, 0))
-	em.level_hp_mult = 1.0 + timeline.level_hp_per_level * lv
+	# pass 83 (lane SCALE): times the HP factor of the hero's power (power_hp_mult; 1 at the map's default scaling 1)
+	em.level_hp_mult = (1.0 + timeline.level_hp_per_level * lv) * power_hp_mult()
 	em.level_dmg_mult = 1.0 + timeline.level_damage_per_level * lv
 	# pass 46: beefier creatures (never a boss), colour only after the run's first kills (the arena shows it from the
 	# first spawn: it is there to look at the art), and a cap on what one touch takes
@@ -206,6 +209,8 @@ func _process(delta: float) -> void:
 	if _spawn_t <= 0.0:
 		_spawn_t = timeline.spawn_interval
 		_spawn_burst()
+	# pass 83 (lane TIMELINE): the continuous rows with their own `interval` draw on their own clocks
+	_tick_row_intervals(delta)
 	_cull_t -= delta
 	if _cull_t <= 0.0:
 		_cull_t = 0.5
@@ -351,8 +356,13 @@ func _start_boss(id: String, where: Vector3 = Vector3.INF, variant := "", stats 
 	var en := event_numbers(id, variant, stats)
 	# pass 72 (lane BOSS): its HP pegged to the hero's DPS (boss_dps_scale), held around the spawn only
 	em.set("boss_hp_scale", boss_dps_scale(id))
+	# pass 83 (lane SCALE): the seconds mode's floor on its HP (boss_seconds_target; 0 = none), held around the spawn too
+	em.set("boss_hp_target", boss_seconds_target(id, variant, en["stats"]))
 	em.spawn_boss(id, at, variant, en["stats"], en["src"])
 	em.set("boss_hp_scale", 1.0)
+	em.set("boss_hp_target", 0.0)
+	if not last_boss_scale.is_empty() and em.boss_index >= 0:
+		last_boss_scale["hp"] = float(em.max_hp[em.boss_index])
 	boss_started.emit(def)
 	game.toast(def.display_name.to_upper(), Color(0.93, 0.29, 0.36))
 
@@ -370,6 +380,9 @@ func boss_dps_scale(id: String) -> float:
 	last_boss_scale = {}
 	# (pass 72, lane INTEG: an empty block plays WaveTimeline's defaults, on; enabled false turns it off)
 	if Run.arena or timeline == null or not bool(timeline.boss_hp_scaling.get("enabled", WaveTimeline.BOSS_HP_SCALING_DEFAULTS["enabled"])):
+		return 1.0
+	# pass 83 (lane SCALE): the seconds mode (the game's default) sets a floor on the HP instead (boss_seconds_target)
+	if timeline.boss_hp_mode() == "seconds":
 		return 1.0
 	var ref: float = timeline.boss_ref_dps(id)
 	if ref <= 0.0:
@@ -399,6 +412,38 @@ func boss_stage_of(id: String) -> int:
 		if str(ev.get("type", "")) == "boss" and str(ev.get("enemy", "")) == id:
 			return maxi(int(ceil(float(ev.get("t", 0.0)) / maxf(timeline.stage_length, 1.0))) - 1, 0)
 	return -1
+
+
+## Pass 83 (lane SCALE; Garry: "at least 25 seconds of Player's FULL DPS on Tumbleweed king ... 40s for the next and a
+## full minute to the last one"): in boss_hp_scaling's "seconds" mode (WaveTimeline.boss_hp_mode, the game's default)
+## the HP boss `id` must at least come with: the hero's full DPS on it now (HeroPower.full_dps, boss = true) x its
+## seconds (WaveTimeline.boss_seconds) x (1 - its damage reduction); EnemyManager takes max(its data HP, this). 0 = no
+## floor: the debug arena, scaling off, the "dps" mode, a boss without seconds. Fills last_boss_scale.
+func boss_seconds_target(id: String, variant := "", stats := {}) -> float:
+	if Run.arena or timeline == null or not bool(timeline.boss_hp_scaling.get("enabled", WaveTimeline.BOSS_HP_SCALING_DEFAULTS["enabled"])):
+		return 0.0
+	if timeline.boss_hp_mode() != "seconds":
+		return 0.0
+	var secs: float = timeline.boss_seconds(id)
+	var def: EnemyDef = Registry.enemy_with(id, variant, stats)
+	if secs <= 0.0 or def == null:
+		return 0.0
+	var dps: float = HeroPower.boss_dps_now()
+	var base: float = def.hp * pow(float(def.boss.get("hp_mult_per_stage", 1.6)), float(Run.stage)) * maxf(Run.stage_mult(), 1.0)
+	var target: float = WaveTimeline.boss_seconds_hp(0.0, dps, secs, def.damage_reduction)
+	last_boss_scale = {"id": id, "mode": "seconds", "full_dps": dps, "seconds": secs, "base": base, "target": target,
+		"mult": maxf(target, base) / maxf(base, 0.0001), "dps": dps, "stage": Run.stage}
+	print("boss hp seconds: %s full dps %.0f x %.0f s = %.0f, data hp %.0f -> HP %.0f" % [id, dps, secs, target, base, maxf(target, base)])
+	return target
+
+
+## Pass 83 (lane SCALE): every ordinary creature's HP factor from the hero's power now (WaveTimeline.power_hp_factor of
+## the map's power_hp_scaling and power_hp_max, HeroPower.current); 1 in the arena, without a timeline or at scaling 1
+## (the power is not even worked out then). Folded into the hero-level factor (lv_hp) where a row fixes its numbers.
+func power_hp_mult() -> float:
+	if Run.arena or timeline == null or absf(timeline.power_hp_scaling - 1.0) < 0.000001:
+		return 1.0
+	return WaveTimeline.power_hp_factor(timeline.power_hp_scaling, timeline.power_hp_max, HeroPower.current())
 
 
 ## The mini-boss: one big creature near the hero, a toast and nothing else. Its chest comes from its drops.
@@ -500,7 +545,8 @@ func fixed_numbers(t0: float, stats: Dictionary = {}) -> Dictionary:
 	return {"t0": t0,
 		"hp_time": 1.0 if stats.has("hp") else tl.hp_mult_at(t0),
 		"dmg_time": 1.0 if stats.has("damage") else tl.damage_mult_at(t0),
-		"lv_hp": 1.0 + tl.level_hp_per_level * lv,
+		# pass 83 (lane SCALE): times the hero-power HP factor, fixed with the row like the level (power_hp_mult)
+		"lv_hp": (1.0 + tl.level_hp_per_level * lv) * power_hp_mult(),
 		"lv_dmg": 1.0 + tl.level_damage_per_level * lv}
 
 
@@ -855,9 +901,11 @@ func continue_to_next_stage() -> void:
 	stage_started.emit(Run.stage)
 
 
-func _spawn_burst() -> void:
-	# pass 81 (lane PACE): what a waves row's last wave still owes takes the room first
-	_row_waves_owed()
+func _spawn_burst(due: Array = []) -> void:
+	# pass 81 (lane PACE): what a waves row's last wave still owes takes the room first (pass 83: at the spawn check, not
+	# at an own-interval row's draw, `due`)
+	if due.is_empty():
+		_row_waves_owed()
 	var em: EnemyManager = game.enemies
 	var cap := current_cap()
 	if cap <= 0:
@@ -876,19 +924,26 @@ func _spawn_burst() -> void:
 		return
 	var regular: Array = all.filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) != "hell")
 	if room > 0.0:
-		bodies = _burst_from(_roster_open(regular), room, bodies)
+		bodies = _burst_from(_roster_open(regular), room, bodies, due)
 	var hell_room: float = timeline.hell_cap_at(Run.stage) * float(cap) - hell_load
 	if hell_room > 0.0 and bodies > 0 and not hell_rows.is_empty():
-		_burst_from(_roster_open(hell_rows), hell_room, bodies)
+		_burst_from(_roster_open(hell_rows), hell_room, bodies, due)
 
 
 ## One burst from `roster` (weighted rows) into `room` of cap and `bodies` of the hard cap; returns the bodies left.
-func _burst_from(roster: Array, room: float, bodies: int) -> int:
+func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> int:
 	# pass 81 (lane PACE): a row paced as waves is not in the continuous draw unless it trickles
 	roster = roster.filter(func(r) -> bool: return not (r is Dictionary) or WaveTimeline.row_drawn(r))
+	# pass 83 (lane TIMELINE): a row with its own `interval` draws on its own clock (`due`), the others at the spawn check;
+	# either way the burst is cut to the drawing rows' share of the channel's weight (_interval_part)
+	var frac := 1.0
+	if not due.is_empty() or roster.any(func(r) -> bool: return row_has_interval(r)):
+		var part := _interval_part(roster, due)
+		roster = part[0]
+		frac = float(part[1])
 	if roster.is_empty():
 		return bodies
-	var burst: float = minf(float(_rng.randi_range(timeline.burst_min, timeline.burst_max)), room)
+	var burst: float = minf(float(_rng.randi_range(timeline.burst_min, timeline.burst_max)) * frac, room)
 	var total_w := 0.0
 	var ws: Array = []
 	for r in roster:
@@ -913,6 +968,10 @@ func _burst_from(roster: Array, room: float, bodies: int) -> int:
 		if def == null:
 			return bodies
 		var share: float = maxf(def.cap_share, 0.05)
+		# pass 83 (lane TIMELINE): a cut burst holding less than one creature brings one with that chance (the expected
+		# count kept: a light row on its own clock is not rounded up to a creature at every draw)
+		if frac < 1.0 and burst < share and _rng.randf() * share >= burst:
+			break
 		# the row's `pack` and `pattern` (pass 53): a pack at one point, a scatter each at its own, a single one a draw;
 		# a ring (pass 57) is the pack round the hero and in_front the pack from the top of the screen, counted as a pack
 		var pattern := str(chosen.get("pattern", "pack"))
@@ -1161,6 +1220,79 @@ func _channel_room(channel: String) -> float:
 	if channel == "hell":
 		return timeline.hell_cap_at(Run.stage) * float(cap) - hell_load
 	return float(cap) - (em.cap_load() - hell_load)
+
+
+# ---------------------------------------------------------------- a continuous row's own interval (pass 83, lane TIMELINE)
+
+## Garry (2026-10-16): "for Continuous spawning, I would still like to control the interval of continuous spawning, the
+## 0.7s can be a default." A roster row in the continuous draw (a continuous row, or a waves row that trickles) may carry
+## `interval` (seconds): it is then drawn on its own clock, every `interval` real seconds from the frame it opens (through
+## boss fights and the portal wait, like the spawn check), instead of at the director's spawn check (`spawn_interval`).
+## Every draw (the spawn check for the rows without the key, a row's own clock for a row with it) takes
+## randi(burst_min..burst_max) load units x the drawing rows' weight / the weight of every open drawn row of the channel,
+## so a row's expected rate is a burst x (its weight / the channel's) / its interval: the map's spawn_interval draws as
+## often as today, half of it twice as often, at the same size. A map where no open row has the key plays exactly as
+## before (the same dice). Below ROW_INTERVAL_MIN counts as it.
+const ROW_INTERVAL_MIN := 0.1
+
+## Seconds until each own-interval row's next draw (pass 83; key: _row_key_at), on the real clock; a row seen open for
+## the first time draws at once. Cleared when a run starts.
+var _row_draw_left: Dictionary = {}
+
+
+## Whether roster row `r` carries its own continuous interval (`interval`, a number above 0).
+static func row_has_interval(r) -> bool:
+	if not (r is Dictionary) or not (r as Dictionary).has("interval"):
+		return false
+	var v = r["interval"]
+	return (v is float or v is int) and float(v) > 0.0
+
+
+## Seconds between roster row `r`'s continuous draws: its `interval` (at least ROW_INTERVAL_MIN), else `spawn_interval`.
+static func row_draw_interval(r: Dictionary, spawn_interval: float) -> float:
+	if row_has_interval(r):
+		return maxf(float(r["interval"]), ROW_INTERVAL_MIN)
+	return spawn_interval
+
+
+## The own-interval rows' clocks (pass 83), every frame after the spawn check: the open drawn rows with `interval` whose
+## clock ran out draw together (_spawn_burst with them as `due`), each clock then set to its interval again.
+func _tick_row_intervals(delta: float) -> void:
+	if timeline == null or game == null or game.player == null:
+		return
+	# the rows open as the spawn check reckons them (the frozen clock a second back, _spawn_burst)
+	var tr := Run.elapsed if phase == Phase.NORMAL else Run.elapsed - 1.0
+	var due: Array = []
+	for k in range(timeline.roster.size()):
+		var r = timeline.roster[k]
+		if not row_has_interval(r) or not WaveTimeline.row_drawn(r):
+			continue
+		if tr < float(r.get("t", 0.0)) or tr >= float(r.get("until", 1e9)):
+			continue
+		var key := _row_key_at(r, k)
+		var left: float = float(_row_draw_left.get(key, 0.0)) - delta
+		if left <= 0.0:
+			due.append(r)
+			left = row_draw_interval(r, timeline.spawn_interval)
+		_row_draw_left[key] = left
+	if not due.is_empty():
+		_spawn_burst(due)
+
+
+## The rows of `roster` that draw now and their share of its weight (pass 83): the `due` ones (an own-interval draw), or
+## with `due` empty the ones without their own interval (the spawn check). [rows, frac].
+func _interval_part(roster: Array, due: Array) -> Array:
+	var total := 0.0
+	var part := 0.0
+	var rows: Array = []
+	for r in roster:
+		var w := _roster_weight(r, Run.elapsed)
+		total += w
+		var mine := due.any(func(d) -> bool: return is_same(d, r)) if not due.is_empty() else not row_has_interval(r)
+		if mine:
+			rows.append(r)
+			part += w
+	return [rows, part / total if total > 0.0 else 0.0]
 
 
 # ---------------------------------------------------------------- a roster row paced as waves (pass 81, lane PACE)

@@ -618,6 +618,8 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 	var hp_max: Array = []
 	var dps: Array = []
 	var est: Array = []
+	# pass 83 (lane SCALE): the hero's power level (the row's `power`, HeroPower; 0 in a record before pass 83)
+	var power: Array = []
 	var alive: Array = []
 	var cap: Array = []
 	var press_hp: Array = []
@@ -688,6 +690,7 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 		dmg_total.append(snappedf(dsum, 0.1))
 		_step(dmg_by, dmg_acc, dm if dm is Dictionary else {}, i, true, true)
 		est.append(snappedf(float(r.get("est_total", 0.0)), 0.1))
+		power.append(snappedf(float(r.get("power", 0.0)), 0.01))
 		alive.append(int(r.get("alive", 0)))
 		cap.append(int(r.get("cap", 0)))
 		press_hp.append(snappedf(float(r.get("press_hp", 0.0)), 0.1))
@@ -776,6 +779,7 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 	out["hp_max"] = hp_max
 	out["dps"] = dps
 	out["est"] = est
+	out["power"] = power
 	out["alive"] = alive
 	out["cap"] = cap
 	out["press_hp"] = press_hp

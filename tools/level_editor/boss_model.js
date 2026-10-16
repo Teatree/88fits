@@ -40,6 +40,36 @@ const BossModel = (() => {
     return clamp(Math.pow(Math.max(dps, 0) / ref, cfg.exponent), lo, hi);
   }
 
+  // pass 83 (lane SCALE; Garry: "at least 25 seconds of Player's FULL DPS on Tumbleweed king ... 40s for the next and a
+  // full minute to the last one"): WaveTimeline.BOSS_HP_MODE_DEFAULT, BOSS_SECONDS_DEFAULTS, boss_seconds_hp
+  const MODE_DEFAULT = 'seconds';
+  const SECONDS_DEFAULTS = { tumbleweed_king: 25, gila_grande: 40, brander: 60 };
+  /** The full DPS on a boss of the probe's tuned builds when it arrives (game/tools/_p83_SCALE_boss_probe.gd, pass 83:
+   *  Calavera and the Drifter on difficulty_probe's b1 / b2 / b3): the "a typical build" mark on the seconds chart. */
+  const TYPICAL_FULL_DPS = { tumbleweed_king: 170, gila_grande: 500, brander: 2000 };
+
+  /** The mode the block plays: 'seconds' or 'dps' (WaveTimeline.boss_hp_mode). */
+  function modeOf(tl) {
+    const b = isObj(tl && tl.boss_hp_scaling) ? tl.boss_hp_scaling : {};
+    return b.mode === 'seconds' || b.mode === 'dps' ? b.mode : MODE_DEFAULT;
+  }
+
+  /** Every boss's seconds (the map's, else SECONDS_DEFAULTS'; WaveTimeline.boss_seconds). */
+  function secondsOf(tl) {
+    const b = isObj(tl && tl.boss_hp_scaling) ? tl.boss_hp_scaling : {};
+    return Object.assign({}, SECONDS_DEFAULTS, isObj(b.seconds) ? b.seconds : {});
+  }
+
+  /** WaveTimeline.boss_seconds_hp: max(the data HP, full DPS x seconds x (1 - damage reduction)); the data HP when the
+   *  seconds or the DPS is 0. */
+  function secondsHp(base, fullDps, seconds, dr) {
+    if (!(seconds > 0) || !(fullDps > 0)) return base;
+    return Math.max(base, fullDps * (1 - clamp(dr || 0, 0, 0.95)) * seconds);
+  }
+
+  /** The DPS at which full DPS x seconds passes the data HP (below it the boss keeps its data HP). */
+  const secondsCross = (base, seconds) => (seconds > 0 ? base / seconds : Infinity);
+
   /** The DPS at which the multiplier reaches `m` (the clamp's corners on the chart). */
   function dpsForMult(cfg, ref, m) {
     if (!(cfg.exponent > 0)) return ref;
@@ -359,7 +389,7 @@ const BossModel = (() => {
   }
 
   const api = {
-    SCALING_DEFAULTS, REF_DEFAULTS, scalingOf, hpMult, dpsForMult, bossEvents, stageMult, bossBaseHp, chartSeries, fightRel,
+    SCALING_DEFAULTS, REF_DEFAULTS, MODE_DEFAULT, SECONDS_DEFAULTS, TYPICAL_FULL_DPS, modeOf, secondsOf, secondsHp, secondsCross, scalingOf, hpMult, dpsForMult, bossEvents, stageMult, bossBaseHp, chartSeries, fightRel,
     KINDS, SHAPES, LOOKS, ORDERS, AIMS, CENTERS, TELEGRAPHS, SCRIPTS, DEFAULTS, TOP_DEFAULTS, HERO_RADIUS, LANDING_MODES,
     val, patternFull, topVal, rng, points, smallestGap, landTimes, rainLayout, volleyDirs, ringFront, hitDamage, issues, blank, num,
     isVolley, litAtOnce, windupSeconds, volleyTimes,

@@ -28,7 +28,7 @@ const SimAvg = (() => {
   // pass 82: chests, powerups, totems (sim_run.gd's counts so far, like deaths but averaged over the runs still playing)
   const CUM_SERIES = ['gold_total', 'kills', 'xp_total', 'deaths', 'dmg_total', 'chests', 'powerups', 'totems'];
   const RATE_SERIES = ['dps', 'took', 'healed', 'hits', 'spawned'];
-  const BAND_SERIES = ['hp', 'dps', 'level', 'press_hp', 'press_dmg', 'danger', 'near3', 'near6'];
+  const BAND_SERIES = ['hp', 'dps', 'level', 'press_hp', 'press_dmg', 'danger', 'near3', 'near6', 'power'];
   const MEDIAN_SERIES = ['keep_up', 'boss_s'];
   const BREAKDOWNS = { dmg_by: 'cum', kills_by: 'cum', gold_by: 'cum', took_by: 'cum', healed_by: 'cum', alive_by: 'level', held_by: 'level' };
   const SOURCE_WORDS = { blast: 'Blast', revive: 'Revive blast', grand_finale: 'Grand Finale', powder_keg: 'Powder Keg',
@@ -549,7 +549,7 @@ const SimAvg = (() => {
   /** sim_run.gd series(rows, rec, tool_events, end_ev, evo_ids): the per-player series of keys_SIMRUN.md. */
   function series(rows, rec, toolEvents, endEv, evoIds) {
     const evo = evoIds || {};
-    const S = { t: [], clock: [], stage: [], phase: [], hp: [], hp_max: [], dps: [], est: [], alive: [], cap: [], press_hp: [], press_dmg: [],
+    const S = { t: [], clock: [], stage: [], phase: [], hp: [], hp_max: [], dps: [], est: [], power: [], alive: [], cap: [], press_hp: [], press_dmg: [],
       boss_hp: [], boss_hp_abs: [], near3: [], near6: [], hits: [], spawned: [], mult_hp: [], mult_dmg: [] };
     const tookBy = {}, healedBy = {}, tookAcc = {}, healedAcc = {};
     const heldBy = { weapons: [], evolutions: [], lines: [], passives: [], perks: [] };
@@ -579,6 +579,8 @@ const SimAvg = (() => {
       dmgTotal.push(snapped(dsum, 0.1));
       step(dmgBy, dmgAcc, dm, i, true, true);
       S.est.push(snapped(fl(row.est_total), 0.1));
+      // pass 83 (lane SCALE): the hero's power level (the row's `power`; 0 in a record before pass 83), sim_run.gd's twin
+      S.power.push(snapped(fl(row.power), 0.01));
       S.alive.push(int(row.alive));
       S.cap.push(int(row.cap));
       S.press_hp.push(snapped(fl(row.press_hp), 0.1));

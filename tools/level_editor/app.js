@@ -19,7 +19,7 @@ const App = (() => {
     maps: [], mapId: '', map: null, tl: null,
     saved: '',                  // JSON of the map as loaded (in the pass-54 shape) / last saved: the dirty check
     history: [], future: [],
-    sel: null,                  // {kind: 'roster'|'wave'|'event'|'cap'|'hp'|'dmg'|'share'|'specials'|'paths'|'pickups', i}
+    sel: null,                  // {kind: 'roster'|'wave'|'event'|'cap'|'hp'|'dmg'|'specials'|'paths'|'pickups', i}
     tab: 'timeline',
     enemies: [], byId: {}, elites: [], pickups: [], schema: '',
     issues: { errors: [], warnings: [], marks: {} },
@@ -625,6 +625,18 @@ const App = (() => {
     else if (!M.rowEtchTimes(r, Math.max(viewEnd(), t + 1), lateT()).length && M.rowWaveTimes(r, Math.max(viewEnd(), t + 1)).length) mark(key, 'warn', 'its presence is 0 at every wave: no wave comes');
   }
 
+  /** A continuous row's own interval (pass 83, lane TIMELINE): not a number above 0 blocks Save (the game would draw the
+   *  row at the spawn check); under ROW_INTERVAL_MIN, on a row not in the continuous draw (the game ignores it) and a
+   *  draw much faster than the spawn check are warnings. */
+  function intervalIssues(r, key, mark) {
+    if (r.interval == null || r.interval === '') return;
+    if (!M.rowHasInterval(r)) { mark(key, 'error', `draw every must be a number of seconds above 0 (got ${JSON.stringify(r.interval)}; the game would draw the row at the spawn check)`); return; }
+    if (!M.rowDrawn(r)) mark(key, 'warn', 'draw every means nothing on a row paced as waves that is not Also continuous: the game ignores it');
+    if (r.interval < M.ROW_INTERVAL_MIN) mark(key, 'warn', `a draw every ${r.interval} s counts as ${M.ROW_INTERVAL_MIN} s`);
+    const si = tl().spawn_interval == null ? 0.5 : Number(tl().spawn_interval);
+    if (si > 0 && M.rowDrawInterval(r, si) * 4 < si) mark(key, 'warn', `a draw every ${M.rowDrawInterval(r, si)} s is over 4× as often as the spawn check (${si} s): this row brings over 4× what its weight says`);
+  }
+
   /** A stats block's size and colour ranges (pass 58, R2 / R3; Garry's "0 < min <= max"): errors block Save. */
   function statsIssues(st, key, mark, prefix) {
     if (!U.isObj(st)) return;
@@ -666,6 +678,7 @@ const App = (() => {
       if (r.channel === 'hell' && !(d.hell_cap || []).some((h) => Number(h) > 0)) mark(key, 'warn', 'a hell row, but hell_cap is 0 on every stage: it never spawns');
       statsIssues(r.stats, key, mark, '');
       paceIssues(r, key, mark, hard);
+      intervalIssues(r, key, mark);
     });
     (d.waves || []).forEach((w, i) => {
       const key = `wave:${i}`;

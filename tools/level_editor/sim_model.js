@@ -306,6 +306,11 @@ const SimModel = (() => {
       lines: [{ key: 'hp', label: 'HP', color: SLOTS[2], values: ser(res, 'hp') || [] },
         { key: 'hp_max', label: 'max HP', color: SLOTS[2], values: ser(res, 'hp_max') || [], dash: SHORT_DASH, width: 1.25 }],
       bands: band('hp', SLOTS[2]), overlay: ov('hp', 'mean', `${cmpName}: HP`) });
+    // pass 83 (lane SCALE): the hero's power level (HeroPower; a run recorded before pass 83 has none: no chart)
+    if (has('power') && (ser(res, 'power') || []).some((v) => v > 0)) push('hero', { id: 'power', title: 'Hero power', fmt: 'num', unit: 'power (fresh Drifter = 1)',
+      how: `The hero's power level at each second, ${playingNote}: √((full DPS ÷ 20.4) × (effective HP ÷ 100)). Full DPS = every weapon's damage a second on ONE target that every shot hits (the pause screen's estimate without its crowd guess, burns kept up, average crits); effective HP = (max HP + shield + 30 s of regen and lifesteal) ÷ ((1 − armour) × (1 − evade)). A fresh level-1 Drifter with the Revolver is 1; twice the DPS alone is 1.41, twice both is 2.${bandNote}`,
+      lines: [{ key: 'power', label: 'power', color: SLOTS[4], values: ser(res, 'power') || [] }],
+      bands: band('power', SLOTS[4]), overlay: ov('power', 'mean', `${cmpName}: power`) });
 
     // ---- death: the runs still playing, the deaths so far
     const pct = (arr, total) => (arr || []).map((v) => (v == null ? null : (100 * v) / Math.max(1, total)));

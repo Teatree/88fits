@@ -11,7 +11,8 @@ extends GdUnitTestSuite
 const SIGNS := preload("res://core/systems/SignField.gd")
 const RED_CANYON := preload("res://world/maps/red_canyon/RedCanyon.gd")
 const SEEDS := [3, 5, 7, 11, 54]
-const BUSHES := ["desert_bush", "creosote_bush", "dead_shrub"]
+# (pass 83, lane SCENE: the brittlebush joined the patches)
+const BUSHES := ["desert_bush", "creosote_bush", "dead_shrub", "brittlebush"]
 
 ## The river's waypoints Red Canyon rolled for map seed 7 before pass 61 (v0.46), to the centimetre: the course is
 ## Garry's "topology", which the colour change must not move.

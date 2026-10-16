@@ -45,7 +45,6 @@ const Inspector = (() => {
     else if (sel.kind === 'cap') capForm(container);
     else if (sel.kind === 'hp') curveForm(container, 'hp_curve');
     else if (sel.kind === 'dmg') curveForm(container, 'damage_curve');
-    else if (sel.kind === 'share') shareForm(container);
     else if (sel.kind === 'specials') blockForm(container, 'Specials', 'the specials\' clock: one at a time, a random interval after the last one dies', Forms.specialsBlock(App.tl()), 'specials');
     else if (sel.kind === 'paths') blockForm(container, 'Mutation offers', 'when each stage\'s mutation offers fall due: each comes at the hero\'s next level-up, in place of the three cards', Forms.pathTimesBlock(App.tl()), 'paths');
     else if (sel.kind === 'pickups') blockForm(container, 'Power-up drops', 'what kills drop and how often', Forms.pickupsBlock(App.tl()), 'pickups');
@@ -766,6 +765,8 @@ const Inspector = (() => {
       if (def.key === 'id') continue;
       // pass 81 (lane PACE): the Pacing select, and its waves-only fields while it says Waves
       if (def.paced && !Model.rowPaced(r)) continue;
+      // pass 83 (lane TIMELINE): a row's own draw interval, while it is in the continuous draw
+      if (def.drawn && !Model.rowDrawn(r)) continue;
       if (def.key === 'pace') { form.appendChild(paceRow(def, r, c)); continue; }
       if (def.type === 'weights') {
         // the Presence boxes follow a dragged bar or point (the review of pass 58: the time stayed put until the drop)
@@ -774,7 +775,7 @@ const Inspector = (() => {
         form.appendChild(Forms.row(def, pres, { cls: 'wide-ctl' }));
         continue;
       }
-      form.appendChild(fieldFor(def, r, Object.assign({ enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '', count: Model.rowWaveCount({ pack: r.pack, stats: r.stats }, c) }, note: def.key === 'pattern' ? patternNote('roster', r) : null }, octx)));
+      form.appendChild(fieldFor(def, r, Object.assign({ enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '', count: Model.rowWaveCount({ pack: r.pack, stats: r.stats }, c), interval: spawnCheck() }, note: def.key === 'pattern' ? patternNote('roster', r) : def.key === 'interval' ? intervalNote(r) : null }, octx)));
       // pass 58 review: the row's HP and ATK under From / Until, in sight with Overrides closed, following a dragged bar
       if (def.key === 'until' && c) form.appendChild(numbersLine(c, () => (U.isObj(r.stats) ? r.stats : {}), () => r.t, 'row', null, '', () => (r.until == null || r.until === '' ? Infinity : Number(r.until))));
     }
@@ -826,7 +827,9 @@ const Inspector = (() => {
     if (!Model.rowPaced(r)) {
       const si = tl.spawn_interval == null ? 0.5 : Number(tl.spawn_interval);
       const lo = tl.burst_min == null ? 5 : Number(tl.burst_min), hi = tl.burst_max == null ? 20 : Number(tl.burst_max);
-      return [b('Continuous: '), `drawn by its weight at every spawn check (every ${fmtN(si, 2)} s, a burst of ${lo}–${hi} load units shared by the open rows, Settings → Spawning) while the cap has room. A yellow line along its bar.`];
+      // pass 83 (lane TIMELINE): its draws are notches now, at the spawn check or on its own clock (Draw every)
+      if (Model.rowHasInterval(r)) return [b('Continuous: '), `drawn by its weight on its own clock, every ${fmtN(Model.rowDrawInterval(r, si), 2)} s (Draw every below), a burst of ${lo}–${hi} load units cut to its share, while the cap has room. A yellow tick along its bar at each draw.`];
+      return [b('Continuous: '), `drawn by its weight at every spawn check (every ${fmtN(si, 2)} s, a burst of ${lo}–${hi} load units shared by the open rows, Settings → Spawning) while the cap has room. A yellow tick along its bar at each check (dotted where they are under 3 px apart; Draw every below gives it its own clock).`];
     }
     const name = c ? U.plural(c.name) : 'creatures';
     const n = Model.rowWaveCount(r, c);
@@ -843,6 +846,33 @@ const Inspector = (() => {
     out.push('. ');
     out.push(r.respect_cap === false ? 'On top of the cap, all at once (the hard cap still holds).' : 'Into the free room under the cap; the rest comes first as room frees, until its next wave.');
     out.push(r.trickle ? ' Also drawn continuously between its waves.' : ' Not in the continuous draw between its waves.');
+    return out;
+  }
+
+  /** The map's spawn check (seconds): Settings → Spawning → Spawn check every (pass 83: a row's Draw every placeholder). */
+  function spawnCheck() {
+    const si = App.tl().spawn_interval;
+    return si == null || si === '' ? 0.5 : Number(si);
+  }
+
+  /** The words under a row's Draw every (pass 83, lane TIMELINE; Garry: "for Continuous spawning, I would still like to
+   *  control the interval of continuous spawning, the 0.7s can be a default"): at the spawn check with the other rows,
+   *  or on its own clock, with what a draw holds at the row's start and how that compares with the spawn check. */
+  function intervalNote(r) {
+    const tl = App.tl();
+    const si = spawnCheck();
+    const lo = tl.burst_min == null ? 5 : Number(tl.burst_min), hi = tl.burst_max == null ? 20 : Number(tl.burst_max);
+    const t0 = Math.max(Number(r.t) || 0, 0);
+    const i = (tl.roster || []).indexOf(r);
+    const open = App.rosterAt(t0).find((o) => o.i === i);
+    const sh = open ? open.norm : 0;
+    const per = ((lo + hi) / 2) * sh;
+    const shTxt = `${Math.round(sh * 100)}% of the open rows' weight at ${fmtT(t0)}`;
+    if (!Model.rowHasInterval(r)) return [b('At the spawn check: '), `drawn every ${fmtN(si, 2)} s together with the other rows (Settings → Spawning), ${shTxt}: about ${fmtN(per, 1)} load units a draw while the cap has room. Type a number to give it its own clock.`];
+    const iv = Model.rowDrawInterval(r, si);
+    const out = [b('Own clock: '), `a draw every ${fmtN(iv, 2)} s from ${fmtT(t0)}${Number(r.interval) < Model.ROW_INTERVAL_MIN ? ` (${r.interval} counts as ${Model.ROW_INTERVAL_MIN})` : ''}, each about ${fmtN(per, 1)} load units (a burst of ${lo}–${hi} × ${shTxt}), `];
+    out.push(Math.abs(iv - si) < 1e-9 ? 'as often as the spawn check: the same amount, on its own beat.' : `${fmtN(si / iv, 2)}× as often as at the spawn check (every ${fmtN(si, 2)} s), so about ${fmtN(si / iv, 2)}× the creatures while the cap has room.`);
+    out.push(' Clear the box to draw it at the spawn check again.');
     return out;
   }
 
@@ -1065,38 +1095,6 @@ const Inspector = (() => {
     }
     container.appendChild(ta);
     container.appendChild(el('p', { class: 'muted small', text: `A row keeps the ${isHp ? 'HP' : 'damage'} curve of its own start for its whole life (Garry: "a single wave of those enemies will stay consistent for the duration of their spawns"), so a long row lags the curve and a row with its own ${isHp ? 'HP' : 'damage'} sits wherever that puts it. "–": nothing of the roster or the waves spawns round that second (swarms, coloured elites and the specials are not counted: each takes the curves at the second it comes, or the numbers of a row or wave bringing the same creature then). The average weighs each row by what it spawns (the Spawned so far estimate). The Actual lane shares this curve's scale while the rows fit under it; higher multiples give it its own, up to ${fmtN(Model.ACTUAL_CLAMP, 1)} times as tall, and a ▲ marks anything past its top.` }));
-  }
-
-  /** The Share band's table: each creature's share of its channel's draw at the stage marks and halfway through. */
-  function shareForm(container) {
-    const lane = FIELDS.LANES.find((l) => l.id === 'share');
-    header(container, 'Share', 'each creature\'s share of the draw', 'share', []);
-    container.appendChild(el('p', { class: 'insp-help', text: lane ? lane.text : '' }));
-    const SL = App.stageLength();
-    const times = [];
-    for (let k = 0; k < App.stages(); k++) { times.push(k * SL + 1); times.push(k * SL + SL / 2); }
-    const rows = App.tl().roster || [];
-    const seen = [];
-    for (const r of rows.slice().sort((a, b) => (Number(a.t) || 0) - (Number(b.t) || 0))) {
-      const k = `${r.channel === 'hell' ? 'hell' : 'reg'}:${r.enemy}`;
-      if (!seen.find((s) => s.k === k)) seen.push({ k, id: r.enemy, hell: r.channel === 'hell' });
-    }
-    const shareAt = (t) => {
-      const out = {};
-      for (const o of App.rosterAt(t)) { const k = `${o.hell ? 'hell' : 'reg'}:${o.row.enemy}`; out[k] = (out[k] || 0) + o.norm; }
-      return out;
-    };
-    const cols = times.map(shareAt);
-    const tbl = el('table', { class: 'share-table' });
-    tbl.appendChild(el('tr', {}, el('th', { text: 'creature' }), times.map((t) => el('th', { text: fmtT(t) }))));
-    for (const s of seen) {
-      const c = App.creature(s.id);
-      tbl.appendChild(el('tr', { class: s.hell ? 'hell' : '' },
-        el('td', { class: 'sh-name' }, el('span', { class: 'sh-sw', style: `background:${App.creatureColor(s.id)}` }), c ? el('img', { src: App.iconFor(s.id), width: 18, height: 18 }) : null, el('span', { text: App.creatureName(s.id) + (s.hell ? ' (hell)' : '') })),
-        cols.map((col) => el('td', { class: 'sh-pct', text: col[s.k] ? `${Math.round(col[s.k] * 100)}%` : '' }))));
-    }
-    container.appendChild(tbl);
-    container.appendChild(el('p', { class: 'muted small', text: 'Each column sums to 100% per channel (the regular crowd, the hell channel). Hover the band for any other second.' }));
   }
 
   function blockForm(container, title, help, block, key) {

@@ -901,7 +901,7 @@ func _physics_process(delta: float) -> void:
 		# pass 67: a ball whose way-home touches are spent flies on to his hand and hits nothing more
 		if extra[i].has("spent"):
 			continue
-		var hits := enemies.indices_in_radius(pos[i], radius[i] + 0.35)
+		var hits := enemies.indices_touching(pos[i], radius[i], 0.35)  # pass 83: a big body is hit where it is drawn
 		if extra[i].has("rebound"):
 			# pass 67: the rebound, the creature the ball turned at (if it still stands, the same one: its spawn serial)
 			var rb: Array = extra[i]["rebound"]
@@ -1949,7 +1949,7 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 			# a seeker's line: dark, thin
 			_drop_trail(pos[i], Color(0.32, 0.2, 0.08, 0.6), 0.8)
 	# contact
-	var hits := enemies.indices_in_radius(pos[i], radius[i] + 0.4)
+	var hits := enemies.indices_touching(pos[i], radius[i], 0.4)  # pass 83: a big body is hit where it is drawn
 	if hits.is_empty():
 		return
 	if area[i] > 0.01:

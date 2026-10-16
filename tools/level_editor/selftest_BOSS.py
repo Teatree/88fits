@@ -177,8 +177,9 @@ def checks(check, run_node, server):
     check(all(f[3] for f in res["fields"]) and all(set(f[2]) <= set(t["KINDS"]) for f in res["fields"]), "BOSS: every row is explained and names real kinds")
     check(set(res["sections"]) == {f[0] for f in res["fields"]}, "BOSS: every group has its section")
     sc = {s[0]: s for s in res["scalars"]}
-    check(set(sc) == {"boss_hp_scaling." + k for k in ("enabled", "exponent", "window", "min", "max")} and all(s[1] == "Boss HP" and s[3] for s in sc.values())
-          and "Boss HP" in res["groups"], "BOSS: fields.js has the Boss HP card's five rows, explained: %s" % list(sc))
+    # (pass 83, lane SCALE: the mode row on top; selftest_SCALE83.py checks it)
+    check(set(sc) == {"boss_hp_scaling." + k for k in ("mode", "enabled", "exponent", "window", "min", "max")} and all(s[1] == "Boss HP" and s[3] for s in sc.values())
+          and "Boss HP" in res["groups"], "BOSS: fields.js has the Boss HP card's rows, explained: %s" % list(sc))
     check(all(_close(sc["boss_hp_scaling." + k][2], gd_scaling[k]) for k in ("exponent", "window", "min", "max")) and sc["boss_hp_scaling.enabled"][2] == gd_scaling["enabled"],
           "BOSS: the rows' grey defaults are the game's")
     # the content: Red Canyon's block (Garry tunes it: shapes only; lane INTEG: a key it leaves out plays the default)

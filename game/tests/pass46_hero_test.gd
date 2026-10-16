@@ -164,11 +164,11 @@ func test_no_breath_without_the_perk() -> void:
 func test_the_hit_invulnerability_comes_from_the_sheet() -> void:
 	var p := _hero("astro")
 	p.take_damage(5.0, Vector3.ZERO, {"by": "Goblin", "kind": "melee"})
-	assert_float(p.invuln).is_equal_approx(0.5, 0.0001)
+	assert_float(p.invuln).is_equal_approx(0.25, 0.0001)  # pass 83: halved (Garry)
 	Run.player_sheet.add_effects([Effect.make("hit_invuln", "add", 0.25, "player")], "test")
 	p.invuln = 0.0
 	p.take_damage(5.0, Vector3.ZERO, {"by": "Goblin", "kind": "melee"})
-	assert_float(p.invuln).is_equal_approx(0.75, 0.0001)
+	assert_float(p.invuln).is_equal_approx(0.5, 0.0001)
 	Run.player_sheet.remove_source("test")
 	Run.end()
 

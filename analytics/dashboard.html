@@ -515,11 +515,11 @@
     const rows = (run.samples || []).slice().sort((p, q) => p.t - q.t);
     const n = rows.length ? Math.round(rows[rows.length - 1].t) + 1 : 0;
     const A = () => new Float64Array(n);
-    const S = { run, n, schema: +run.schema || 1, has: new Uint8Array(n), hp: A(), hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), regen: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(), specials: A(), hpMult: A(), dmgMult: A(), timeScale: A(), adren: A(), cresc: A(), desp: A(), steady: A(),
+    const S = { run, n, schema: +run.schema || 1, has: new Uint8Array(n), hp: A(), hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), regen: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(), specials: A(), hpMult: A(), dmgMult: A(), timeScale: A(), adren: A(), cresc: A(), desp: A(), steady: A(), power: A(), fullDps: A(), ehp: A(),
       dmgBy: {}, estBy: {}, tookBy: {}, hitsBy: {}, healedBy: {}, killedBy: {}, spawnedBy: {}, aliveBy: {}, tookKind: { melee: A(), ranged: A(), boss: A() }, snaps: [] };
     const byAdd = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] += +obj[k] || 0; } };
     const bySet = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] = +obj[k] || 0; } };
-    const STATE = ['hp', 'hpMax', 'shield', 'est', 'alive', 'cap', 'load', 'hardCap', 'press', 'pressHp', 'pressDmg', 'level', 'xpFrac', 'gold', 'banked', 'kills', 'stage', 'phase', 'bossHp', 'clock', 'specials', 'hpMult', 'dmgMult', 'timeScale'];
+    const STATE = ['hp', 'hpMax', 'shield', 'est', 'alive', 'cap', 'load', 'hardCap', 'press', 'pressHp', 'pressDmg', 'level', 'xpFrac', 'gold', 'banked', 'kills', 'stage', 'phase', 'bossHp', 'clock', 'specials', 'hpMult', 'dmgMult', 'timeScale', 'power', 'fullDps', 'ehp'];
     let hpMax = 0, curM = null;
     for (const r of rows) {
       const s = Math.min(n - 1, Math.max(0, Math.round(r.t)));
@@ -531,6 +531,8 @@
       S.level[s] = r.level || 1; S.xpFrac[s] = r.xp_next ? Math.min(1, (r.xp || 0) / r.xp_next) : 0; S.gold[s] = r.gold || 0; S.banked[s] = r.banked || 0; S.kills[s] = r.kills || 0;
       S.stage[s] = r.stage || 1; S.phase[s] = r.phase || 0; S.bossHp[s] = r.boss_hp || 0; S.clock[s] = r.clock || 0; S.specials[s] = r.specials_alive || 0;
       S.adren[s] = r.adren || 0; S.cresc[s] = r.cresc || 0; S.desp[s] = r.desp || 0; S.steady[s] = r.steady || 0;
+      // pass 83 (lane SCALE): the hero's power level and what it is made of (HeroPower; none in a record before pass 83)
+      S.power[s] = r.power || 0; S.fullDps[s] = r.full_dps || 0; S.ehp[s] = r.ehp || 0;
       if (r.mults) curM = r.mults;
       if (curM) { S.hpMult[s] = (curM.stage || 1) * (curM.hp_t || 1) * (curM.lvl_hp || 1); S.dmgMult[s] = (curM.stage || 1) * (curM.dmg_t || 1) * (curM.lvl_dmg || 1); S.timeScale[s] = curM.time_scale || 1; }
       S.real[s] += sum(r.dmg); S.tookRaw[s] += r.took_raw || 0; S.took[s] += sum(r.took); S.hits[s] += r.hits || 0; S.evaded[s] += r.evaded || 0;
@@ -737,7 +739,7 @@
     renderSummary($main, S);
     renderSim($main, S);
     const grid = el('div', 'grid'); $main.appendChild(grid);
-    const steps = [renderFacts, renderPower, renderPressure, renderRatio, renderHealth, renderEnemies, renderHitLog, renderBosses, renderSpecials,
+    const steps = [renderFacts, renderPower, renderHeroPower, renderPressure, renderRatio, renderHealth, renderEnemies, renderHitLog, renderBosses, renderSpecials,
       renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderPickups, renderTotems, renderHealing, renderSurvival, renderStats,
       renderMults, renderStacks, renderCrowd, renderRates, renderProgress, renderGold, renderQuests];
     for (const f of steps) {
@@ -841,6 +843,16 @@
     if (chartReady()) timeChart(plot(c, 'tall'), S, ds, { markers: markerOpts(S, { items: true, portal: true, kills: true }) });
     mkey(c, [['pick', COL.ink2], ['evolution', COL.s[3]], ['boss fight', alpha(COL.s[7], 0.5)], ['down', COL.crit], ['revived', COL.good], ['portal', COL.s[2]], ['special killed', ROLE.special, true], ['Elite killed', ROLE.elite, true]]);
     timeTable(c, S, [{ label: 'estimated dps', data: S.est }, { label: 'real dps (10 s)', data: S.realR10 }, { label: 'real this second', data: S.real }]);
+    grid.appendChild(c);
+  }
+  // pass 83 (lane SCALE): the hero's power level each second (Settings > Hero power in the Level Editor explains it)
+  function renderHeroPower(grid, S) {
+    if (!S.power.some((v) => v > 0)) return;
+    const c = card('Hero power', 'The hero\'s power level: √((full DPS ÷ 20.4) × (effective HP ÷ 100)); a fresh level-1 Drifter with the Revolver is 1. Full DPS = every weapon\'s damage a second on one target every shot hits (the estimate without its crowd guess, burns kept up, average crits); effective HP = (max HP + shield + 30 s of regen and lifesteal) ÷ ((1 − armour) × (1 − evade)). Twice the DPS alone is 1.41, twice both is 2.', { wide: true, slug: 'hero-power' });
+    const ds = [line('power', S.power, ROLE.special, { fill: true, d: 2 })];
+    OVERLAYS.forEach((o, i) => { if (o.power) ds.push(line('overlay ' + (i + 1) + ' power', o.power, ROLE.special, { borderDash: [6, 4], borderWidth: 1.5 })); });
+    if (chartReady()) timeChart(plot(c, 'short'), S, ds, { markers: markerOpts(S, { items: true, portal: true }) });
+    timeTable(c, S, [{ label: 'power', data: S.power, d: 2 }, { label: 'full dps', data: S.fullDps }, { label: 'effective hp', data: S.ehp }]);
     grid.appendChild(c);
   }
   function renderPressure(grid, S) {

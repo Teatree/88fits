@@ -2,22 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://blfb8e4ktj4jn"
-path="res://.godot/imported/unlock_ironwood_icon.png-239facd0fc879f41c1bc105ffda76778.ctex"
+uid="uid://pch0mty2njjs"
+path="res://.godot/imported/spirit_whale.png-d41361e433bf4e65cd50c3feba042ecb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/quests/unlock_ironwood/unlock_ironwood_icon.png"
-dest_files=["res://.godot/imported/unlock_ironwood_icon.png-239facd0fc879f41c1bc105ffda76778.ctex"]
+source_file="res://art/ui/totem/spirit_whale.png"
+dest_files=["res://.godot/imported/spirit_whale.png-d41361e433bf4e65cd50c3feba042ecb.ctex"]
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
-compress/lossy_quality=0.75
+compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

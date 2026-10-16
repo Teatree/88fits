@@ -253,11 +253,14 @@ func test_the_unlocks_brought_closer_are_the_counted_ones_that_grew_nearest_firs
 	Save.data["totals"]["kills"] = 380
 	Save.data["totals"]["chests"] = 2
 	Save.mark_quest("unlock_turret_buddy")
-	var before := {"unlock_adrenaline": 120, "unlock_ironwood": 120, "unlock_rocket_pod": 2, "unlock_turret_buddy": 8}
+	# pass 83 (lane META, re-pinned): Ironwood's 2,500-kill quest is retired; the Tumbleweed's 150 Skeletons grew in its
+	# place (100 of 150, behind Adrenaline's 380 of 400)
+	Save.data["totals"]["kills_of_enemy"]["skeleton"] = 100
+	var before := {"unlock_adrenaline": 120, "unlock_tumbleweed": 20, "unlock_rocket_pod": 2, "unlock_turret_buddy": 8}
 	var list: Array = RESULTS.progress_list(before)
 	var ids: Array = list.map(func(c): return (c["q"] as QuestDef).id)
 	# the chests' did not grow, the Turret Buddy's is done (it lands as an unlock): neither is here
-	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_ironwood"])
+	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_tumbleweed"])
 	assert_int(int(list[0]["before"])).is_equal(120)
 	assert_int(int(list[0]["after"])).is_equal(380)
 	assert_int(int(list[0]["need"])).is_equal(400)

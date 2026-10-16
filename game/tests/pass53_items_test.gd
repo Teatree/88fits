@@ -369,11 +369,18 @@ func test_three_perks_are_hidden_but_kept() -> void:
 	for c: CharacterDef in Registry.sorted_characters():
 		assert_int(Registry.perks_of(c.id).size()).override_failure_message(c.id).is_greater_equal(1)
 	# the Collection's Perks tab leaves them out
+	# pass 83 (lane META, re-pinned): a hero's perks show only while the save owns him (Supply Drop is Astro's, on sale):
+	# every hero on sale owned for this check, the list put back after
+	var owned_keep: Array = Save.heroes_owned().duplicate()
+	for hc: CharacterDef in Registry.characters.values():
+		if hc.availability == "purchase" and not Save.owns_hero(hc.id):
+			Save.heroes_owned().append(hc.id)
 	var cs: Control = auto_free(load("res://ui/CollectionScreen.tscn").instantiate())
 	var tab: Array = cs._items(3)
 	for d: ContentDef in tab:
 		assert_bool(["suit_seals", "serenade", "bounty_hunter"].has(d.id)).override_failure_message(d.id).is_false()
 	assert_bool(tab.any(func(d: ContentDef) -> bool: return d.id == "supply_drop")).is_true()
+	Save.data["heroes_owned"] = owned_keep
 
 
 func test_supply_drop_leaves_a_heart_or_a_magnet_pulse_over_a_halved_blast() -> void:

@@ -713,3 +713,49 @@ Example: `"xp_curve": {"type": "exponential", "exponential": {"base": 40, "growt
 
 Run record (analytics/SCHEMA.md, lane STATS's file): `map_settings.xp_curve` = `{"type": ..., <that type's numbers with
 the defaults filled in>}` (RunAnalytics.map_settings), beside `xp_need_mult`.
+
+## Pass 83: boss HP, power, a row's draw interval
+
+### Boss HP by seconds and the hero's power (lane SCALE)
+
+| Key | Where | Type | Default | Meaning |
+|---|---|---|---|---|
+| `boss_hp_scaling.mode` | map `timeline_data` | "seconds" \| "dps" | "seconds" (WaveTimeline.BOSS_HP_MODE_DEFAULT) | how a boss's HP is set when it arrives: seconds of the hero's full DPS, or pass 72's peg to the recent real DPS |
+| `boss_hp_scaling.seconds` | map `timeline_data` | {boss id: number} | {tumbleweed_king 25, gila_grande 40, brander 60} (BOSS_SECONDS_DEFAULTS) | seconds of full DPS the boss lasts at least; 0 = its data HP |
+| `power_hp_scaling` | map `timeline_data` | number | 1 | creature HP × power ^ (this − 1); 1 = none |
+| `power_hp_max` | map `timeline_data` | number | 10 | the cap on that factor (1 ÷ it the least) |
+| row `power` | run record samples | number (0.01) | — | the hero's power level (HeroPower) |
+| row `full_dps` | run record samples | number (0.1) | — | full DPS on one target (HeroPower.full_dps) |
+| row `ehp` | run record samples | number (0.1) | — | effective HP (HeroPower.ehp) |
+| row `power_hp` | run record samples | number (0.001) | missing = 1 | the creatures' HP factor the power gives |
+| `boss_start` `mode`, `seconds`, `full_dps` | run record events | — | — | the seconds mode's numbers when a boss came |
+| `map_settings.boss_hp_scaling.mode/.seconds`, `map_settings.power_hp_scaling/.power_hp_max` | run record header | — | — | as played |
+| sim series `power` | sim_run.gd / sim_avg.js / sim_batch.py | level series (band) | — | the Sim's and the dashboard's Hero power chart |
+
+Code: `HeroPower` (core/systems/HeroPower.gd: full_dps, ehp, power_from, measure, now, current, boss_dps_now, forget,
+crowd_of, element_dps, weapon_dps, crit_factor); WaveTimeline.boss_hp_mode / boss_seconds / boss_seconds_hp /
+power_hp_factor; WaveDirector.boss_seconds_target / power_hp_mult; EnemyManager.boss_hp_target.
+Level Editor: fields.js rows may carry `showIf(tl)` (settings.js skips a row whose showIf is false).
+
+### A row's draw interval (lane TIMELINE)
+
+| Key | Where | Type | Default | Meaning |
+|---|---|---|---|---|
+| `interval` | a roster row (`timeline_data.roster[]`) | number (s) | none (= the map's `spawn_interval`, the spawn check) | A row in the continuous draw (a continuous row, or a waves row with `trickle`) is drawn on its own clock: a draw at the frame it opens, then every `interval` real seconds (through boss fights and the portal wait, like the spawn check), instead of at the director's spawn check. Each draw is a burst of randi(burst_min..burst_max) load units x the row's weight / the weight of every open drawn row of its channel. Below 0.1 counts as 0.1. Not a number above 0 (0, negative, a string, a bool) = no own clock. Ignored on a waves row that does not trickle. |
+
+Read by WaveDirector as the plain dictionary (JsonContent and the .tres carry it unchanged; no new export on
+WaveTimeline). The editor's field: FIELDS.roster in tools/level_editor/fields.js, label "Draw every (s)", `drawn: true`
+(shown while the row is in the continuous draw), placeholder the map's spawn_interval.
+
+GDScript: `WaveDirector.ROW_INTERVAL_MIN` (0.1), `row_has_interval(r)`, `row_draw_interval(r, spawn_interval)` (static),
+`_tick_row_intervals(delta)`, `_interval_part(roster, due)`, `_spawn_burst(due := [])`, `_burst_from(roster, room,
+bodies, due := [])`, `_row_draw_left` (row key -> seconds to its next draw).
+
+model.js: `ROW_INTERVAL_MIN`, `rowHasInterval`, `rowDrawInterval`, `rowDrawTimes(r, t0, t1, si, lateT, limit)`,
+`windowShares(est, t0, t1)` -> {t0, t1, all, src, share, other}; `burstAvg(rows, room, lo, hi, frac)`.
+
+Page settings (the browser's, never the map): the window box `#win-secs` next to Snap on, seconds 1..120, default 5,
+localStorage `88fits-editor-window`; `Timeline.setWindow(n)`, `Timeline.winSecs`.
+
+Removed: the Timeline's Share lane (FIELDS.LANES `share`, timeline.js renderShare / shareCard, inspector.js shareForm,
+App.select kind `share`, its CSS).

@@ -2101,6 +2101,44 @@ func _counterpunch_fx() -> void:
 	Audio.play("it_counterpunch", player.global_position)
 
 
+## Thorns (pass 83, lane META): the spines' reach round the hero, their push, and the least time between two bursts
+## (a hit inside it brings no burst: thorns answer at most two hits a second, the rate the 0.5 s invulnerability
+## after a hit allowed before pass 83 halved it).
+const THORNS_RADIUS := 2.3
+const THORNS_KNOCK := 6.0
+const THORNS_COOLDOWN := 0.5
+var _thorns_last := -1000.0
+
+
+## Thorns (Bristle, Cactus Hide, the Upgrade board's Spite/Thorns): a hit on the hero strikes everything within
+## THORNS_RADIUS for his `thorns`, at most once every THORNS_COOLDOWN seconds of the run's clock. What it takes off them
+## is recorded as the damage id "thorns" (pass 83: the Results' Thorns row, the run record, the DPS window), never
+## through Run.add_damage, so no life steal comes of it (as before).
+func _thorns_burst() -> void:
+	var th: float = Run.player_sheet.get_stat("thorns", 0.0)
+	if th <= 0.0 or player == null or player.dead or enemies == null:
+		return
+	var now: float = Run.buff_clock()
+	if now - _thorns_last < THORNS_COOLDOWN:
+		return
+	_thorns_last = now
+	var at: Vector3 = player.global_position
+	var near: Array = Array(enemies.indices_in_radius(at, THORNS_RADIUS))
+	var before := 0.0
+	for i: int in near:
+		before += maxf(float(enemies.hp[i]), 0.0)
+	enemies.damage_radius(at, THORNS_RADIUS, th, "", THORNS_KNOCK)
+	var after := 0.0
+	for i: int in near:
+		after += maxf(float(enemies.hp[i]), 0.0)
+	var dealt := maxf(before - after, 0.0)
+	if dealt > 0.0:
+		Run.damage_by_weapon["thorns"] = float(Run.damage_by_weapon.get("thorns", 0.0)) + dealt
+		Run.dps_note(dealt)
+		if RunAnalytics.I: RunAnalytics.I.dealt("thorns", dealt)
+	fx.burst(at + Vector3(0, 0.6, 0), Color(0.45, 0.8, 0.35), 1.2)
+
+
 ## Cactus Coat: whatever hits the hero gets a face full of spines, along with anything else standing close.
 func _on_player_hit() -> void:
 	# Crescendo (pass 43): a hit ends the song (pass 49: Hot Streak's kills are kept whatever hits him)
@@ -2121,10 +2159,7 @@ func _on_player_hit() -> void:
 		var e2 := Effect.make("area", "mul", Run.perk_param("tough_love", "area", 0.15), "player")
 		Run.add_timed_effects("tough_love", "Tough Love", [e1, e2], Run.perk_param("tough_love", "seconds", 4.0))
 		player.refresh_stats()
-	var th: float = Run.player_sheet.get_stat("thorns", 0.0)
-	if th > 0.0 and player and not player.dead:
-		enemies.damage_radius(player.global_position, 2.3, th, "", 6.0)
-		fx.burst(player.global_position + Vector3(0, 0.6, 0), Color(0.45, 0.8, 0.35), 1.2)
+	_thorns_burst()
 	# the hit is felt (pass 54, Garry: a hit on his health had only a number and a shake): a red rim round the screen
 	# (HUD.vignette, else a faint red flash), sand kicked up at his feet, and a 45 ms hit-stop, the world's clock nearly
 	# held and given back on a real-time timer; never in the arena, never while the run is paused, never on top of one

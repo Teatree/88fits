@@ -502,11 +502,27 @@ input.sw-color.ph { opacity: 0.45; }
 .etch-line { stroke: #ffe03d; stroke-width: 3; stroke-linecap: butt; }
 .etch-line.trickle { stroke-width: 1.6; opacity: 0.75; }
 .etch-tick { stroke: #ffe03d; stroke-width: 2; stroke-linecap: butt; }
+/* pass 83 (lane TIMELINE): a continuous row's draws (a short tick each; dotted where under 3 px apart), the ticks' hover
+   strip, the lane's highlight (bars that spawned nothing in the past N seconds dim), the window box, the readout's rows */
+.etch-draw { fill: none; stroke: #ffe03d; stroke-width: 1.5; stroke-linecap: butt; }
+.etch-draw.trickle { stroke-width: 1.2; opacity: 0.75; }
+.etch-dots { stroke: #ffe03d; stroke-width: 3; stroke-linecap: butt; stroke-dasharray: 1 2; }
+.etch-dots.trickle { stroke-width: 1.6; opacity: 0.75; }
+.etch-hit { fill: transparent; pointer-events: all; }
+.bar { transition: opacity 0.12s; }
+.bar.win-zero { opacity: 0.32; }
+.win-box { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: 0.78rem; cursor: help; }
+.win-box input { width: 3.2em; padding: 1px 3px; font-size: 0.78rem; background: var(--panel, #1b1b1b); color: var(--ink); border: 1px solid var(--grid); border-radius: 4px; text-align: right; }
+.ro-row.zero > * { opacity: 0.38; }
+.ro-row.other .ro-name { color: var(--muted); font-style: italic; }
+.ro-name small { color: var(--muted); }
+.ro-title small { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.win-line small { color: var(--muted); }
 .chip-pace rect { fill: rgba(255,224,61,0.26); stroke: rgba(255,224,61,0.65); }
 .pace-note b { color: #ffe03d; }
 
 /* the HP x / ATK x lanes */
-.lane-hp .lane-label, .lane-dmg .lane-label, .lane-share .lane-label { cursor: pointer; }
+.lane-hp .lane-label, .lane-dmg .lane-label { cursor: pointer; }
 .grid.one { stroke: var(--axis); }
 .curve-line { fill: none; stroke-width: 2; }
 .curve-line.hp { stroke: var(--s3); }
@@ -520,27 +536,6 @@ input.sw-color.ph { opacity: 0.45; }
 .curve-point:hover circle { fill: #fff; }
 .curve-point.saved circle { fill: none; stroke: var(--muted); stroke-width: 1.2; cursor: default; }
 .curve-point.saved .pt-text { display: none; }
-
-/* the Share band */
-.share { cursor: pointer; }
-.share-bg { fill: rgba(255,255,255,0.025); }
-.share-bg.hell { fill: rgba(184,55,43,0.08); }
-.share-area { opacity: 0.85; stroke: rgba(13,13,13,0.35); stroke-width: 0.5; }
-.share-tag { fill: var(--ink-2); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; pointer-events: none; paint-order: stroke; stroke: rgba(13,13,13,0.8); stroke-width: 3px; stroke-linejoin: round; }
-.share-legend { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
-.share-legend .lg { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; }
-.share-legend .lg img { width: 18px; height: 18px; object-fit: contain; }
-.share-legend .lg i { display: block; width: 18px; height: 3px; border-radius: 2px; }
-.share-legend .lg.hell i { outline: 1px solid var(--hell); }
-.share-table { border-collapse: collapse; width: 100%; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-.share-table th { color: var(--muted); font-weight: 500; font-size: 0.72rem; text-align: right; padding: 2px 4px; }
-.share-table th:first-child { text-align: left; }
-.share-table td { padding: 2px 4px; border-bottom: 1px solid var(--grid); }
-.share-table tr.hell .sh-name span:last-child { color: #ff9d8f; }
-.sh-name { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
-.sh-name img { object-fit: contain; }
-.sh-sw { width: 4px; height: 16px; border-radius: 2px; flex: 0 0 auto; }
-.sh-pct { text-align: right; color: var(--ink-2); }
 
 /* hover cards */
 .hovercard { position: fixed; z-index: 55; pointer-events: none; background: rgba(13,13,13,0.97); border: 1px solid var(--axis); border-radius: 9px; padding: 8px 10px; font-size: 12px; min-width: 260px; max-width: 400px; box-shadow: 0 8px 28px rgba(0,0,0,0.6); }

@@ -17,7 +17,7 @@ cap_start = 10
 cap_per_minute = 7.81
 cap_max = 150
 hard_cap = 260
-cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 45.0], [123.0, 80.0], [176.0, 80.0], [176.0, 45.0], [213.0, 56.0], [232.0, 84.0], [306.0, 79.0], [306.0, 132.0], [337.0, 132.0], [337.0, 73.0], [368.0, 72.0], [430.0, 100.0], [430.0, 54.0], [490.0, 70.0], [535.0, 84.0], [536.0, 140.0], [585.0, 140.0], [585.0, 74.0], [645.0, 92.0], [719.0, 100.0], [720.0, 150.0], [755.0, 150.0], [755.0, 88.0], [800.0, 96.0], [860.0, 112.0], [860.0, 64.0], [920.0, 86.0], [964.0, 100.0], [965.0, 150.0], [1015.0, 150.0], [1015.0, 92.0], [1075.0, 104.0], [1149.0, 100.0], [1150.0, 150.0], [1185.0, 150.0], [1185.0, 100.0], [1240.0, 112.0], [1289.0, 120.0], [1290.0, 150.0]]
+cap_curve = [[0.0, 181.0], [60.0, 145.0], [122.0, 135.0], [122.0, 159.0], [176.0, 80.0], [176.0, 45.0], [213.0, 56.0], [232.0, 84.0], [306.0, 79.0], [306.0, 132.0], [337.0, 132.0], [337.0, 73.0], [368.0, 72.0], [430.0, 100.0], [430.0, 54.0], [490.0, 70.0], [535.0, 84.0], [536.0, 140.0], [585.0, 140.0], [585.0, 74.0], [645.0, 92.0], [719.0, 100.0], [720.0, 150.0], [755.0, 150.0], [755.0, 88.0], [800.0, 96.0], [860.0, 112.0], [860.0, 64.0], [920.0, 86.0], [964.0, 100.0], [965.0, 150.0], [1015.0, 150.0], [1015.0, 92.0], [1075.0, 104.0], [1149.0, 100.0], [1150.0, 150.0], [1185.0, 150.0], [1185.0, 100.0], [1240.0, 112.0], [1289.0, 120.0], [1290.0, 150.0]]
 boss_cap_frac = 0.6
 portal_cap = -1
 portal_spawn_seconds = -1.0
@@ -59,8 +59,11 @@ burst_min = 3
 burst_max = 12
 spawn_interval = 0.7
 roster = [{
+"count": 100.0,
 "enemy": "red_goblin",
+"every": 15.0,
 "id": "r1",
+"pace": "waves",
 "stats": {
 "drops": {
 "medium": 0.0
@@ -77,6 +80,8 @@ roster = [{
 }, {
 "enemy": "goblin_runt",
 "id": "r2",
+"pack": 12.0,
+"pattern": "scatter",
 "stats": {
 "can_be_elite": false,
 "speed": 3.0
@@ -85,8 +90,11 @@ roster = [{
 "until": 200.0,
 "weights": [[141.0, 3.0], [201.0, 3.7]]
 }, {
+"count": 100.0,
 "enemy": "lesser_scorpion",
+"every": 10.0,
 "id": "r21",
+"pace": "waves",
 "pack": 30.0,
 "pattern": "ring",
 "stats": {
@@ -104,20 +112,43 @@ roster = [{
 "until": 347.0,
 "weights": [[245.0, 5.4], [306.0, 10.1], [337.0, 10.6]]
 }, {
+"count": 30.0,
 "enemy": "lesser_scorpion",
+"every": 10.0,
 "id": "r3",
+"offset": 3.0,
+"pace": "waves",
 "pack": 6.0,
 "pattern": "ring",
 "stats": {
 "hp_mult": 1.2,
 "speed": 1.5
 },
-"t": 0.0,
+"t": 47.0,
 "until": 53.0,
+"weights": [[47.0, 8.0], [98.0, 7.6]]
+}, {
+"count": 10.0,
+"enemy": "lesser_scorpion",
+"every": 5.0,
+"id": "r5",
+"pace": "waves",
+"pack": 10.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.2,
+"speed": 1.75
+},
+"t": 0.0,
+"until": 47.0,
 "weights": [[0.0, 8.0], [51.0, 7.6]]
 }, {
+"count": 50.0,
 "enemy": "skeleton",
+"every": 10.0,
 "id": "r12",
+"pace": "waves",
+"pack": 3.0,
 "stats": {
 "hp": 20.0
 },
@@ -127,6 +158,7 @@ roster = [{
 }, {
 "enemy": "skeleton_knight",
 "id": "r13",
+"pack": 10.0,
 "pattern": "scatter",
 "stats": {
 "hp": 35.0
@@ -718,16 +750,21 @@ special_defaults = {
 "max_alive": 3.0
 }
 spawn_sides = {
-"bottom": 15.0,
+"bottom": 20.0,
 "facing_share": 0.7,
 "facing_spread_deg": 60.0,
-"left": 15.0,
-"mode": "facing",
-"right": 15.0,
-"top": 55.0
+"left": 20.0,
+"mode": "sides",
+"right": 20.0,
+"top": 30.0
 }
 contact_cap = 0.22
 xp_need_mult = 1.65
+xp_curve = {
+"quadratic": {
+"quad": 0.9
+}
+}
 move_pace = 0.9
 portal_wave = {
 "count": 12.0
@@ -737,10 +774,16 @@ boss_hp_scaling = {
 "exponent": 0.5,
 "max": 3.0,
 "min": 0.75,
+"mode": "seconds",
 "ref_dps": {
 "brander": 200000.0,
 "gila_grande": 45000.0,
 "tumbleweed_king": 6000.0
+},
+"seconds": {
+"brander": 60.0,
+"gila_grande": 40.0,
+"tumbleweed_king": 25.0
 },
 "window": 45.0
 }
@@ -771,6 +814,7 @@ wall_colors = {
 "riser": "#7A604E",
 "stone": "#C59E7B"
 }
+sand = "ripples_pebbles"
 
 [resource]
 script = ExtResource("3_nmc8t")

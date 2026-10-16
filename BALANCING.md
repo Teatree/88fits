@@ -3994,3 +3994,309 @@ No game number changed. The rules below are what the analytics count (they decid
   the HP bar (29.FEEL). Their hot flash on the screen when caught stays.
 - **The design handoff** `design_handoff_88fits_totem/` sits at the repo root beside `design_handoff_88fits_wanted/`
   (the zip in tools/dl/p82/).
+
+## 30. Pass 83 (v0.69): totem segments, heroes' prices, Thorns, shadows, boss HP by seconds, power, who spawns
+
+Garry's request (2026-10-16, tools/dl/p83/REQUEST.md). Each lane's rules as it wrote them.
+
+### 30.TOTEM Carved segments for every gift, a clean crest
+
+No gift, weight, range or step changed (content/structures/totem_pole `params.boons` as Garry left it).
+
+- **The Spirit Pole's art** (ui/TotemScreen.gd): every spirit's segment is an opaque 256 px carved square
+  (game/art/ui/totem/spirit_<id>.png, 11 of 11 painted) drawn over its whole plate inside the 6 px ink border (288 px,
+  was a 240 px face on the rock plate); the carved inset (8 px, black at 18 %) and the border are drawn again over it.
+  A spirit added without a picture still shows its word on the empty rock plate.
+- **The column**: a cedar post (200 px wide, game/art/ui/totem/cedar.png at 72 % light) shows between the segments,
+  from the crest down into the base; the base is a cedar plinth (same size as before). The crest is centred on the
+  column, at most 150 px tall, its foot 12 px behind the top segment (was a fixed 420 x 126 at (0, 372)).
+- **A gift takes a finger** once its open motion has landed: by the motion itself or, if a slow frame held the motion
+  back, by the clock (the moment its tag should have landed, about 0.3-0.44 s after the open). A tap before that is
+  still no choice.
+
+### 30.META Heroes' requirements and prices, the Collection, Thorns
+
+#### 30.META.1 Heroes: requirements and prices (replaces §16.UI "The numbers")
+
+Garry: "Most of the locked [heroes] have requirements - 2 are only unlocked for money".
+
+Rule: the Drifter is the only free hero. Every other hero on the title is `availability: "purchase"`. Exactly **two**
+are sold for gold alone (no unlock quest): **Ironwood and Astro**, the two heroes right after the Drifter in the title
+order. Every other one is **locked** until his quest `unlock_<hero>` is done, then **on sale** for his price. Nobody is
+"free after a quest" any more (Ironwood was, passes 73-82).
+
+Why those two: the first runs' purse buys them (a first run that dies in stage 1 banks about 300-1,000; one that sees
+the King about 3,700), so a new player learns the drawer's BUY and that gold buys heroes before any quest gates the rest.
+The later heroes each ask for a step of the run first, and then cost about a quarter to a third of the run that unlocks
+them, so they compete with the Upgrade board's ranks (500-4,500) without stalling it.
+
+| hero (title order) | availability | requirement (quest) | kind | price (gold) | was |
+|---|---|---|---|---|---|
+| Drifter (1) | available | none | - | 0 | 0 |
+| Ironwood (2) | purchase | **none (gold only)** | - | **300** | free after 2,500 kills (price 1,000 never charged) |
+| Astro (3) | purchase | none (gold only) | - | 300 | 300 |
+| Calavera (4) | purchase | kill the stage 1 boss on Red Canyon (the Tumbleweed King, 7:10) | kill_boss | 300 | 300 |
+| Solenne (5) | purchase | extract after stage 2 on Red Canyon (the second portal, 14:20+) | extract_after_stage | 1,500 | 1,500 |
+| Fadeaway (6) | purchase | **kill 3 Saiga Snipers, all time** (the special from 3:35, the beam he must dodge) | kills_of_enemy | **1,750** | none, 1,000 |
+| Jeżyk / buck (7) | purchase | survive 15 minutes in one run (into stage 3) | survive_minutes | **2,000** | 1,250 |
+| May (8) | purchase | reach level 30 in one run (late stage 2) | reach_level | **2,500** | 1,750 |
+| Mira (9) | hidden | kill 99,999,999 creatures (unchanged, out of play) | kills_total | 9,999 | 9,999 |
+| Dad | hidden | (unlock_dad kept, not shown or tracked) | - | - | - |
+
+The early three keep Garry's 300 (he lowered Astro and Calavera to 300 himself on 2026-10-13). Six heroes on sale cost
+8,650 in all (was 7,100). Prices never decrease along the title order (pass83_meta_test pins it).
+
+What a run banks (sim, Drifter, no board, explorer bot, means of the players still playing: p77/p82 sims): about 1,000
+by 7:10, 3,700-4,100 by 10:00 (the King's purse in), 6,700 by 14:20, 21,000 by 21:30. Saiga Snipers killed a run: about
+0.7 by 7:10 and 1.3 by 10:00, so Fadeaway's three take two to four runs that pass stage 1's middle.
+
+**Saves.** A save that had done `unlock_ironwood` (Ironwood was free then) owns him: `Save.FREED_BY_QUEST`
+{"ironwood": "unlock_ironwood"}, checked at every load (idempotent: he is added to `heroes_owned`, nothing spent). A save
+that bought Fadeaway keeps him (bought heroes stay bought); one that had not finds him locked behind the three Snipers
+(kills counted before pass 83 count: kills_of_enemy is a lifetime total).
+
+#### 30.META.2 Items: unlock requirements (reviewed, unchanged)
+
+Items are never bought with gold (only heroes and the Upgrade board are; the in-run Shop's prices are §StructureShop),
+so "prices for items" applies to heroes only. Every weapon/card/passive quest was checked against the timeline (a
+creature's first arrival) and the sims' per-run kills; none needs an item locked behind itself (the only weapon-kill
+quest is hidden Dad's), none is out of reach, and a hero's favourite or start weapon is offered to him whatever its
+quest (CardPool.offer_weapons/offer_passives, Registry.start_weapon_for), so no hero is short of his own. No change.
+
+| item | kind | requirement |
+|---|---|---|
+| Adrenaline (`adrenaline`) | passive | 400 kills, all time (the first run) |
+| Big Mouth (`big_mouth`) | weapon | 300 Armadillos, all time (stage 2 from 8:56; ~350 a run by 10:00) |
+| The Eye (`deadeye`) | card | evolve any weapon once |
+| The Guardian (`energy_shield`) | card | survive 10 minutes in one run |
+| The Ghost (`evade`) | card | reach stage 3 (Fadeaway's favourite: his whatever) |
+| The Sage (`field_notes`) | card | play 3 runs |
+| Guillotine (`guillotine`) | passive | kill the stage 2 boss (Gila Grande) |
+| Hammer (`hammer`) | weapon | kill the stage 1 boss (the King; the same moment as Calavera's quest) |
+| The Tower (`haste`) | card | 30 Bull Beetles, all time (from 5:06) |
+| Killer Bees (`hornet_nest`) | weapon | 40 Armadillos, all time |
+| Land Mine (`land_mine`) | weapon | 120 Fire Ants, all time (from 7:11) |
+| Lob Grenade (`lob_grenade`) | weapon | 200 Fire Ants in one run (~250 a run by 10:00; the Drifter's favourite: his whatever) |
+| Overkill (`overkill`) | passive | kill the Dune Scorpion (the 3:35 Elite in about a third of runs) |
+| Spear (`pike`) | weapon | survive 4 minutes in one run (Ironwood lands with it whatever) |
+| Quickdraw (`quickdraw`) | passive | reach level 10 in one run |
+| Ricochet (`ricochet`) | passive | 30 Spit Cactuses, all time (from 4:17) |
+| Rocket Pod (`rocket_pod`) | weapon | open 3 chests |
+| Sabre (`sabre`) | weapon | 40 Skeleton Knights, all time (from 1:23; ~28 a run by 7:10) |
+| The Chariot (`stride`) | card | survive 2 minutes without lifting the thumb |
+| Death (`thirst`) | card | 60 Dust Mummies, all time (from 10:00; ~70 a run by 14:20) |
+| Tumbleweed (`tumbleweed`) | weapon | 150 Skeletons, all time (from 0:53; 100-150 a run by 7:10) |
+| Turret Buddy (`turret_buddy`) | weapon | open 10 chests |
+| Zap Beam (`zap_beam`) | weapon | reach level 20 in one run |
+
+#### 30.META.3 The Collection hides a hero's own items until he is owned
+
+Garry: "Items that are hero specific should be hidden in the Collections Menu if that hero is not unlocked."
+An item belongs to a hero when it is his own weapon (`WeaponDef.hero`: Revolver, Gravity Gun, Guitarra, Sun Scepter,
+Basketball) or that weapon's evolution, a hero mutation (`MutationDef.hero`) or a perk (`PerkDef.hero`). While the save
+does not own the hero (Registry.hero_state other than "owned": locked or on sale; a quest done but not bought is not
+owned) the item is **left out** of the Collection: no tile (not a silhouette), not in the tab's count, not on a weapon
+page's mutation list. It appears once he is owned. A favourite or a start weapon anyone may take (the Frisbee, the
+Spear, Big Mouth, the Tommy Gun...) is nobody's own and always shows. The developer's Hidden list is never filtered.
+
+#### 30.META.4 Thorns (the Upgrade board's Spite/Thorns nerfed)
+
+Garry: "The Thorn Mirror Upgrade is way too OP, nerf it".
+
+**Why it was too strong.** Thorns are a flat burst (`thorns` damage, unscaled by might, crits or the stage) to every
+creature within 2.3 m each time a hit lands on the hero. Spite/Thorns gave +5 a rank, 30 at six ranks: as much as a
+Thorn card at level 4 (8 a level, which costs 4 % cooldown a level), free from second 0 of every run. Stage-1 creatures
+have about 16-30 HP in the first four minutes (skeleton 10 x 1.3 x the HP curve x the level factor) and 50-90 by 7:10,
+so 30 thorns kill everything round him in one or two bursts: a hero who stands in the crowd wears an AoE aura of
+30 x 2 bursts a second (the 0.5 s invulnerability between hits) = 60 damage a second on every creature touching him,
+more than his starting Revolver. Pass 83's halved invulnerability (0.25 s) would have doubled it again (4 bursts a
+second). It fades in stage 2 (x2.2 HP), which is why it reads as OP in the part of the run everyone plays most.
+
+**The nerf.**
+1. Spite/Thorns: **+2 thorns a rank** (was +5): 12 at six ranks, a Thorn card's level and a half. The text says "+2
+   thorns a rank." (`content/talents/spite` form 0).
+2. **Thorns answer at most one hit every 0.5 s** (`Game.THORNS_COOLDOWN`, the run's clock): the rate the 0.5 s
+   invulnerability allowed until pass 83, so halving the invulnerability does not double thorns. It applies to every
+   thorns source (the Thorn card, Cactus Hide, the talent): their per-second strength is exactly what it was in pass 82.
+   Radius 2.3 m (`THORNS_RADIUS`) and push 6 (`THORNS_KNOCK`) unchanged, now named.
+3. Thorns damage is recorded as the damage id **"thorns"** (the Results' Thorns row with the Thorn card's icon, the
+   run record's damage sources, the DPS window), never through Run.add_damage, so it still feeds no life steal.
+
+**Before / after** (Drifter, Revolver start, the board's Spite/Thorns only, `game/tools/_p83_META_thorns.gd`: he
+stands still in the crowd from 0:00, HP refilled below 40 %, first card taken at each level-up; thorns' share of all
+damage dealt, cumulative):
+
+| Thorns ranks | thorns | 1:00 | 2:00 | 3:00 | 5:00 | thorns damage by 5:00 |
+|---|---|---|---|---|---|---|
+| 3 (half board) before | 15 | 58 % | 75 % | 79 % | 66 % | 53,262 |
+| 3 after | 6 | 44 % | 54 % | 48 % | 20 % | 17,080 |
+| 6 (full) before | 30 | 41 % | 38 % | 50 % | 35 % | 34,688 |
+| 6 after | 12 | 55 % | 30 % | 24 % | 19 % | 17,400 |
+
+Run sims (Drifter, 6 players, 10 minutes, `--bot daring=1 --death keep`: the explorer bot letting the crowd close in;
+the board a quarter / half / full in the probe's forms with Spite as Thorns; thorns' share of damage, cumulative):
+
+| board | 2:00 before / after | 4:00 | 7:10 | 10:00 |
+|---|---|---|---|---|
+| quarter (Thorns 1 rank) | 5.6 % / 4.1 % | 2.9 / 2.6 | 2.8 / 1.7 | 1.9 / 1.0 |
+| half (3 ranks) | 10.5 % / 6.5 % | 4.9 / 3.1 | 2.6 / 1.4 | 1.9 / 0.7 |
+| full (6 ranks) | 6.6 % / 5.0 % | 3.8 / 3.0 | 1.9 / 1.5 | 1.1 / 0.9 |
+
+The bot keeps moving, so thorns stay a small share for it; the face-tank probe is the play the talent invited, where
+thorns were half of all damage and now fall to about a fifth by 5:00 (thorns damage halved to a third).
+
+### 30.SCENE Prop variants, ground shadows, the title scene
+
+- **Prop variants** (props.json `variant_of`, `weight` default 1): wherever the map places a kind, its painting is the
+  kind's own or one of its variants, picked by a hash of the spot (PropField.pick_look), weighted; the map's roll is never
+  used, so a seed lays out the same spots, colliders and obstacle circles as before (the kind's `radius` makes the
+  collider). Variants in play: agave_b, barrel_cactus_b, ocotillo_b, boulder_b, desert_bush_b, dead_shrub_b,
+  joshua_tree_b, joshua_tree_c (each kind's own painting and its variants weigh 1: half the agaves are agave_b, a third
+  of the joshua trees each look; desert_bush_b, the purple one, weighs 0.5: a third of the desert bushes).
+- **Brittlebush**, a new bush kind (radius 0, walked through): in the bush patches' table at weight 2 (desert bush 3,
+  creosote 3, dead shrub 2), the oasis greenery at 1 (of 13, the hidden yucca's 2 left out: 1 of 11), the tree stands' undergrowth at 1.5
+  (desert bush 3, creosote 3, ocotillo 1, agave 1; the yucca hidden). A pick
+  draws once whatever its table, so every seed keeps its spots; only which bush stands on some of them changes.
+- **Ground shadows**: every painted prop, structure, barrel and sign post lies on one soft ellipse in the creatures' blob
+  colour, drawn see-through at the creatures' shadow priority (under the gems and coins; a figure standing on one is
+  drawn over it). Size per painting from its manifest `shadow` {w, d, x, z, a} (shares of the drawn quad's height:
+  measured from the painting by tools/prop_shadows.py as 1.45 x a blend of the foot's width (0.45) and the lower body's
+  (0.55), 0.7 of that deep, centred under the painted foot); darkness 0.55 solid things (rocks, the barrel cactus, every
+  structure), 0.48 most plants, 0.40 airy ones (dead shrubs and trees, creosote, ocotillo, palo verde, brittlebush),
+  0.28-0.30 the bones and skulls with their painted sand (0.40 the signpost painting). Barrels 0.95 x 0.66 m at 0.5;
+  sign posts 1.25 x 0.8 m at 0.42. Each leans right (and a touch back) away from the paintings' upper-left light by
+  0.08 (and 0.02) m per metre of the thing's height, at most 0.3 m. A broken barrel's shadow goes with it; a Strongbox's
+  shrinks away over 2.2 s as its balloon lifts it (after the lift's 0.45 s beat) and grows back under one coming down
+  (full by 6 m up).
+- **The title's scene** (art/ui/title_scene.json): the map's own scatter is taken away within x -14..14, z -32..6 m of
+  the hero's title spot and 12 paintings are laid by hand (a joshua tree and a saguaro framing the title, a low group
+  either side of the hero, a dry shrub between them, a bush at each corner of his feet, faint shapes on the horizon);
+  nothing within 1.3 m of his feet. The menus' backdrop still (art/ui/wanted/menu_backdrop.jpg) is that scene without
+  the hero (tools/menu_backdrop.gd).
+
+### 30.SCALE Boss HP by seconds of full DPS; the hero's power
+
+#### Boss HP by seconds of full DPS (Garry: "at least 25 seconds of Player's FULL DPS on Tumbleweed king ... 40s for the next and a full minute to the last one")
+- **Where**: map JSON `timeline_data.boss_hp_scaling.mode` ("seconds" | "dps") and `boss_hp_scaling.seconds` {boss id: s};
+  WaveTimeline.BOSS_HP_MODE_DEFAULT "seconds", BOSS_SECONDS_DEFAULTS {tumbleweed_king 25, gila_grande 40, brander 60}.
+  Red Canyon names them (mode "seconds", 25 / 40 / 60). Level Editor: Settings → Boss HP ("Boss HP is set by", one row of
+  seconds a boss, the HP-against-full-DPS chart, the "How it works" box).
+- **Rule**: when a boss arrives through the director (WaveDirector._start_boss), its HP = max(its data HP as before
+  (hp × hp_mult_per_stage^stage × max(stage mult, 1)), the hero's FULL DPS on it right then × its seconds × (1 − its
+  damage_reduction)) (WaveTimeline.boss_seconds_hp, WaveDirector.boss_seconds_target, EnemyManager.boss_hp_target held
+  around the spawn). The HP bar shows that HP.
+- **The game's default changed**: a map without `mode` (or without the block) now plays "seconds" (was pass 72's peg to
+  the recent real DPS). The peg stays one choice away (`"mode": "dps"`); its exponent, window, floor, ceiling and ref_dps do
+  nothing in the seconds mode. `enabled: false` = every boss at its data HP in either mode.
+- **Never**: the debug arena, a boss of 0 seconds (or one neither the map nor the defaults name), Elites (by kind or
+  modded), a boss spawned by hand outside the director.
+- **Endless**: a returning boss takes its seconds of the full DPS the hero has then (the data HP grows with the stage as
+  before; the larger wins).
+- **FULL DPS** (HeroPower.full_dps, boss = true): Σ weapons (WeaponInstance.dps_estimate ÷ its crowd guess + its burn or
+  poison kept up on one target) × the average crit (1 + crit_chance × (crit_damage − 1)) × (1 + elite_damage, Big Game
+  Hunter). Crowd guesses taken out: Smasher, GravityGun, ConeWave ÷3; MineLayer, LaserBeam ÷2; SunScepter ÷1.6
+  (WeaponInstance.SUN_CATCH); Frisbee ÷ frisbee_catch (2.57); Beam ÷ (1 + chains); a gun with a `blast` ÷ its blast_catch;
+  ricochets are kept (measured: the Golden Revolver lands its whole estimate on a lone boss). Burn = fire_damage / 0.6 s,
+  poison = poison_damage × stacks / 2 s. Left out: perks' own hits, thorns, Powder Keg, Overkill, marks, Sunburn.
+- **Measured** (game/tools/_p83_SCALE_boss_probe.gd: difficulty_probe's builds, the boss held still 1.5 m beyond its radius
+  in front of the hero, no crowd, no boss attacks; tools/dl/p83/SCALE/boss_b.log): every kill took at least the seconds:
+  King 25 s → 29-42 s (Calavera 42.2, Drifter 36.0, Jeżyk 29.2, Fadeaway 32.6), Gila 40 s → 45-94 s (Calavera 50.9 (data
+  HP won), Drifter 44.9, Jeżyk 93.6), Brander 60 s → 81-239 s (Calavera 80.7 (data HP won), Drifter 81.8, Fadeaway 93.8,
+  Jeżyk 239.3: the Salt lands only where the boss walks). Real fights with the crowd and the kiting bot
+  (difficulty_probe boss=1, tools/dl/p83/SCALE/real_a.log) run far longer (Gila 126-135 s, Brander 99 s+, the King 343 s
+  or unfinished): the bot kites away from bosses and its weapons pick the crowd (pass 72's caution: bot fight lengths say
+  little about a player's).
+
+#### The hero's power level (Garry: "You will write how you calculate the hero power level")
+- **power = √((full DPS ÷ 20.4) × (effective HP ÷ 100))** (HeroPower.power_from; BASE_DPS 20.4 = a fresh level-1 Drifter's
+  Revolver (20.0) × his 1% crit, BASE_EHP 100 = his max HP): a fresh level-1 Drifter on a clean save is 1.0. Twice the DPS
+  alone = 1.41, twice the DPS and twice the HP = 2.
+- **Full DPS** as above without Big Game Hunter (boss = false).
+- **Effective HP** = (max HP + shield_max + 30 s × (regen + lifesteal a second)) ÷ ((1 − damage_reduction, ≤ 0.8) ×
+  (1 − evade, ≤ 0.9)); lifesteal a second = min(lifesteal × full DPS, max HP × lifesteal_cap) (HeroPower.ehp,
+  SUSTAIN_SECONDS 30).
+- **Why the root**: a fight's length against the hero grows with DPS × HP; the root keeps the number readable. Measured
+  on difficulty_probe's builds: King (7:10) 3.0-4.7, Gila (14:20) 6.0-23.9, Brander (21:30) 14.3-49.4; heroes at level 1
+  with their own weapon: Astro 0.83, Calavera 0.92, Jeżyk 1.0, Solenne 1.04, Ironwood 1.19, the Drifter 1.0 (by
+  definition; 1.30 before the constant was set), May 1.63, Fadeaway 2.02 (no talents, the Drifter's sheet).
+- Recorded every second in the run record (`power`, `full_dps`, `ehp`; `power_hp` when the map scales by it).
+
+#### Enemy HP by power (Garry: "the higher the Player power level the higher the HP. Default scaling is 1, meaning no scaling at all")
+- **Where**: map JSON `timeline_data.power_hp_scaling` (default 1 = none) and `power_hp_max` (default 10);
+  WaveTimeline.POWER_HP_SCALING_DEFAULT / POWER_HP_MAX_DEFAULT. Level Editor: Settings → Hero power.
+- **Rule**: every ordinary creature's HP × clamp(power ^ (scaling − 1), 1 ÷ max, max) (WaveTimeline.power_hp_factor):
+  1 = ×1 at any power; 2 = the HP in step with the power (power 4: ×4); 1.5 = with its root (power 4: ×2); below 1 the
+  creatures soften as he grows. Power 1 is ×1 at any scaling.
+- **When it is read**: with the hero-level factor (folded into `lv_hp`): a roster row or a wave fixes it at its first
+  spawn (pass 58's "the same wave does not change on the fly"; in endless at each endless wave), an event at its moment,
+  a creature spawned by hand live. Never a boss (Boss HP has its own rule) nor an Elite by its kind; Elite-modded
+  creatures yes. The debug arena: ×1. At scaling 1 the power is not even worked out.
+- Red Canyon: not set (1, no scaling).
+
+### 30.TIMELINE Who spawns: the window shares, a row's draw interval
+
+Garry (2026-10-16): "for Continuous spawning, I would still like to control the interval of continuous spawning, the
+0.7s can be a default. And since continuous spawning has these inevitable intervals the notches on the enemy node should
+reflect that."
+
+#### The game (WaveDirector._tick_row_intervals / _interval_part / _burst_from)
+- A roster row in the continuous draw (a continuous row, or a waves row with `trickle`) may carry **`interval`**
+  (seconds). Without it the row is drawn at the director's spawn check (`spawn_interval`, Red Canyon 0.7 s) exactly as
+  before. **A map where no open row has the key plays exactly as before (the same code path and the same dice).**
+- With it the row has **its own clock**: a draw on the frame it opens (its `t`), then every `interval` seconds while it
+  is open (`t` <= clock < `until`). The clock runs in real seconds through boss fights and the portal wait, like the spawn
+  check (the run clock stands still there).
+- **What a draw holds**: every draw (the spawn check for the rows without the key, a row's own clock for a row with
+  it) takes randi(`burst_min`..`burst_max`) load units **x frac**, frac = the drawing rows' weight / the weight of every
+  open drawn row of the same channel (regular or hell) at that second. So a row's expected rate is a burst x (its
+  weight / the channel's) / its interval: an interval equal to the spawn check brings what the spawn check did; **half the
+  interval brings about twice as much, double about half**, a little at a time; the other rows keep their own rate (the
+  spawn check draws them with their share only).
+- **A cut burst below one creature** (load left < the creature's cap_share) brings one creature with that chance
+  (load / cap_share), so a light row on its own clock is not rounded up to a creature at every draw. Only for a cut
+  burst (frac < 1); a whole burst keeps today's rule (the last draw brings up to what the burst holds, rounded up).
+- **Least interval 0.1 s** (`ROW_INTERVAL_MIN`): a smaller one counts as 0.1. Not a number above 0 = no own clock.
+- Unchanged: the cap, the hell cap, the hard cap and `max_alive` (a row at its max_alive is out of the draw and out of
+  the weights), the pack and pattern rules, a waves row's waves and what they owe (those come first at the spawn check,
+  not at an own-clock draw), the numbers (pass 58), the portal wave.
+- Red Canyon: no row was given an interval (Garry sets it in the Level Editor).
+
+#### The Level Editor
+- **Draw every (s)** on the row form (after the pacing fields), shown while the row is in the continuous draw; empty
+  shows the map's spawn check as its grey number. The note under it says at the spawn check / own clock, about how many
+  load units a draw holds at the row's start and how often against the spawn check. The Pacing note says the same.
+- **Validation**: not a number above 0 (error: the game draws it at the spawn check); on a waves row that does not
+  trickle (warning: ignored); under 0.1 (warning: counts as 0.1); faster than a quarter of the spawn check (warning: over
+  4x what its weight says).
+- **The yellow etches** of a continuous row are now **ticks**, a short one at each draw (the spawn check's rhythm k x
+  spawn_interval from 0:00, or the row's own t + k x interval) where its weight is above 0; where they would be under
+  **3 px** apart at the zoom they are drawn as a **dotted line** (never solid), with a note on hover. The waves rows' tall
+  ticks are as in pass 81. (The spawn check runs on through boss fights, so later in a run a default row's ticks are its
+  rhythm rather than its exact seconds: the hover says so.)
+- **The window** ("past N s", the box next to Snap on; 1..120, default **5**, the browser remembers it; its tooltip and
+  the readout title's explain it): every share the page shows is the **% of all creatures spawned in the past N seconds**
+  before the pointer, read off the Spawned so far estimate (the cap and its room, the weights, the spawn check and the
+  rows' own clocks, the waves and what they owe, the kill rate), on its whole-second points.
+  - The readout ("the highlight") lists every roster row open now or spawning in the window and every waves[] block
+    spawning in it with its share, largest first; rows open but at 0% dimmed; a waves row says its next wave; the rest
+    (swarms, the elite-modified, specials, Elites, bosses, a boss's minions, the portal wave) as one "other" line.
+  - On the lane, the roster bars that spawned nothing in the window **dim** while the pointer is on the timeline.
+  - Hover a bar: its share of the past N s (and the old weight share, muted). Hover a wave tick (within 8 px): the
+    wave's count and its share of the **N seconds from it** (with how many the cap let in by then). Hover a draw tick:
+    how often, the load a draw holds (the average burst x its weight share), its share of the past N s. Hover a waves[]
+    block's tick: the burst and its share of the N s from it.
+- **The Share lane is removed** (its band, card, table, legend and the select kind).
+
+### 30.LEAD The lead's changes in this pass
+
+- **Invulnerability after a hit halved** (Garry): `hit_invuln` 0.5 -> **0.25 s** (StatSheet.PLAYER_DEFAULTS, Player's
+  fallbacks, the Level Editor's vocab copies).
+- **The sand**: Red Canyon plays `ripples_pebbles` (`timeline_data.sand`, Garry's pick "Rip+P"); the other four stay
+  switchable in the Level Editor's World card and the arena's WORLD tab (dev).
+- **A round hits a body where it is drawn** (lane SCALE found the King's 2.2 m body let scattered rounds through): a
+  round of radius r touches a creature within r + max(pad, the creature's radius - 0.15 m) of its centre
+  (`EnemyManager.indices_touching`; pad 0.35 for shots, 0.4 for missiles, as before), so an ordinary creature (radius up
+  to 0.5 m) is hit exactly as before and a big one wherever it is drawn. Calavera's King kill with every shot able to
+  land: 42.2 s -> 25.2 s (25 asked).
+- **Garry's map edits re-pinned**: his cap curve (starts at 181) and side weights (30/20/20/20) are read from the file
+  by content_test, pass17 and pass54_waves.

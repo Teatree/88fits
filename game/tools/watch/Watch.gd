@@ -400,7 +400,7 @@ static func ref_from(doc) -> Dictionary:
 		ts.append(float(x))
 	var out := {"t": ts}
 	var series: Dictionary = doc["series"]
-	for pair in [["dps", "dps"], ["hp", "hp"], ["level", "level"], ["crowd", "press_hp"], ["danger", "danger"]]:
+	for pair in [["dps", "dps"], ["hp", "hp"], ["level", "level"], ["crowd", "press_hp"], ["danger", "danger"], ["power", "power"]]:
 		var s = series.get(pair[1])
 		if not (s is Dictionary) or not (s.get("mean") is Array):
 			continue
@@ -767,6 +767,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			run_to_level()
 		KEY_G:
 			toggle_window()
+		KEY_P:
+			toggle_power()
 		KEY_M:
 			toggle_sound()
 		_:
@@ -800,6 +802,14 @@ func run_to_level() -> void:
 
 func toggle_window() -> void:
 	panel.whole_run = not panel.whole_run
+	_charts_dirty = true
+	_chart_left = 0.0
+	_refresh_left = 0.0
+
+
+## Pass 83 (lane SCALE): the first chart shows the DPS or the hero's power (P, or its button).
+func toggle_power() -> void:
+	panel.show_power = not panel.show_power
 	_charts_dirty = true
 	_chart_left = 0.0
 	_refresh_left = 0.0
@@ -1291,10 +1301,13 @@ func _send_mouse(w: Vector2, pressed: bool) -> void:
 
 
 ## The checks' game actions (actions=): click=<x>/<y>, gamepause, gametab=<i>, gameresume, gameslider=<i>/<0..1>,
-## whole.
+## whole, power (pass 83: the first chart's DPS | Power).
 func _game_action(what: String) -> void:
 	if what == "whole":
 		toggle_window()
+		return
+	if what == "power":
+		toggle_power()
 		return
 	if not _game_ok():
 		return

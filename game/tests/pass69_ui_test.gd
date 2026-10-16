@@ -117,8 +117,10 @@ func test_every_purchase_hero_has_a_price_and_a_requirement_the_quests_can_check
 		if c.availability == "purchase":
 			var want := "locked" if Registry.quest_for("character", c.id) else "buyable"
 			assert_str(Registry.hero_state(c)).override_failure_message(c.id).is_equal(want)
-	assert_str(_hero("fadeaway").availability).is_equal("purchase")
-	assert_object(Registry.quest_for("character", "fadeaway")).is_null()
+	# pass 83 (lane META, re-pinned): Garry's "2 are only unlocked for money": Astro and Ironwood are on sale with no
+	# requirement (Fadeaway, the money-only hero these tests used, has one now: pass83_meta_test pins the pair)
+	assert_str(_hero("astro").availability).is_equal("purchase")
+	assert_object(Registry.quest_for("character", "astro")).is_null()
 	var mq := Registry.quest_for("character", "mira")
 	assert_object(mq).is_not_null()
 	if mq:
@@ -143,7 +145,7 @@ func test_hero_state_for_each_case() -> void:
 		if c.availability == "available" and Registry.quest_for("character", c.id) == null:
 			assert_str(Registry.hero_state(c)).override_failure_message(c.id).is_equal("owned")
 	# on sale with no requirement
-	assert_str(Registry.hero_state(_hero("fadeaway"))).is_equal("buyable")
+	assert_str(Registry.hero_state(_hero("astro"))).is_equal("buyable")
 	# a requirement not met: locked; met: on sale; bought: owned
 	var cal := _hero("calavera")
 	assert_str(Registry.hero_state(cal)).is_equal("locked")
@@ -188,21 +190,21 @@ func test_the_drawer_order_is_owned_then_on_sale_then_locked() -> void:
 # ---------------------------------------------------------------- buying
 
 func test_buying_spends_the_gold_once_and_owns_him() -> void:
-	var fad := _hero("fadeaway")
+	var fad := _hero("astro")
 	Save.data["gold"] = fad.price + 30
 	var moved: Array = []
 	var probe := func(d: int, why: String, _bal: int, extra: Dictionary): moved.append([d, why, str(extra.get("hero", ""))])
 	Save.gold_moved.connect(probe)
 	assert_bool(Save.buy_hero(fad)).is_true()
 	assert_int(Save.gold()).is_equal(30)
-	assert_bool(Save.owns_hero("fadeaway")).is_true()
+	assert_bool(Save.owns_hero("astro")).is_true()
 	assert_str(Registry.hero_state(fad)).is_equal("owned")
 	# a second buy: nothing, the gold stays
 	assert_bool(Save.buy_hero(fad)).is_false()
 	assert_int(Save.gold()).is_equal(30)
-	assert_int((Save.data["heroes_owned"] as Array).count("fadeaway")).is_equal(1)
+	assert_int((Save.data["heroes_owned"] as Array).count("astro")).is_equal(1)
 	Save.gold_moved.disconnect(probe)
-	assert_array(moved).is_equal([[-fad.price, "hero", "fadeaway"]])
+	assert_array(moved).is_equal([[-fad.price, "hero", "astro"]])
 
 
 func test_no_buy_without_the_requirement_or_the_gold() -> void:
@@ -211,11 +213,11 @@ func test_no_buy_without_the_requirement_or_the_gold() -> void:
 	assert_bool(Save.buy_hero(cal)).is_false()
 	assert_int(Save.gold()).is_equal(100000)
 	assert_bool(Save.owns_hero("calavera")).is_false()
-	var fad := _hero("fadeaway")
+	var fad := _hero("astro")
 	Save.data["gold"] = fad.price - 1
 	assert_bool(Save.buy_hero(fad)).is_false()
 	assert_int(Save.gold()).is_equal(fad.price - 1)
-	assert_bool(Save.owns_hero("fadeaway")).is_false()
+	assert_bool(Save.owns_hero("astro")).is_false()
 	# free and hidden heroes are never bought
 	Save.data["gold"] = 100000
 	assert_bool(Save.buy_hero(_hero("drifter"))).is_false()
@@ -225,9 +227,9 @@ func test_no_buy_without_the_requirement_or_the_gold() -> void:
 
 func test_a_save_from_before_owns_only_the_free_heroes_and_the_developer_owns_them_all() -> void:
 	Save.data = Save._default()
-	Save._merge_file({"gold": 12, "last_character": "fadeaway"})
+	Save._merge_file({"gold": 12, "last_character": "astro"})
 	assert_array(Save.heroes_owned()).is_empty()
-	assert_str(Registry.hero_state(_hero("fadeaway"))).is_not_equal("owned")
+	assert_str(Registry.hero_state(_hero("astro"))).is_not_equal("owned")
 	var n := Save.own_every_hero()
 	assert_int(n).is_greater(0)
 	for c: CharacterDef in Registry.sorted_characters():
@@ -239,15 +241,15 @@ func test_a_save_from_before_owns_only_the_free_heroes_and_the_developer_owns_th
 
 func test_a_save_whose_last_hero_is_not_owned_opens_on_the_drifter() -> void:
 	var f := FileAccess.open(Save.path(), FileAccess.WRITE)
-	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "fadeaway"}))
+	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "astro"}))
 	f.close()
 	Save.load_save()
 	assert_str(str(Save.data["last_character"])).is_equal("drifter")
 	f = FileAccess.open(Save.path(), FileAccess.WRITE)
-	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "fadeaway", "heroes_owned": ["fadeaway"]}))
+	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "astro", "heroes_owned": ["astro"]}))
 	f.close()
 	Save.load_save()
-	assert_str(str(Save.data["last_character"])).is_equal("fadeaway")
+	assert_str(str(Save.data["last_character"])).is_equal("astro")
 	DirAccess.remove_absolute(Save.path())
 
 
@@ -258,7 +260,7 @@ func test_the_title_shows_a_hero_not_owned_as_unknown_and_play_refuses_him() -> 
 	# it opens on an owned hero
 	assert_bool(t._is_locked(t._heroes[t._index])).is_false()
 	# on sale: Unknown, the BUY over him, no requirement card, PLAY locked, the black mask, mystery plates
-	_show(t, "fadeaway")
+	_show(t, "astro")
 	assert_str(t._name.text).is_equal("Unknown")
 	assert_bool(t._buy_col.visible).is_true()
 	assert_bool(t._req.visible).is_false()
@@ -274,7 +276,7 @@ func test_the_title_shows_a_hero_not_owned_as_unknown_and_play_refuses_him() -> 
 	Save.data["last_map"] = "p69_sentinel"
 	t._on_play()
 	assert_str(str(Save.data["last_map"])).is_equal("p69_sentinel")
-	assert_str(str(Save.data["last_character"])).is_not_equal("fadeaway")
+	assert_str(str(Save.data["last_character"])).is_not_equal("astro")
 	# locked: the requirement over the plaque, no BUY, the padlock (the first locked hero in Garry's order: Mira until
 	# he hid her again on 2026-10-13)
 	var locked := _first_in("locked")
@@ -298,15 +300,15 @@ func test_the_title_shows_a_hero_not_owned_as_unknown_and_play_refuses_him() -> 
 
 func test_buying_on_the_title_reveals_him_and_opens_play() -> void:
 	# pass 70 (re-pinned): his price is 1,000 now (x2.5 of every unlock), so the purse holds it and 500 more
-	Save.data["gold"] = _hero("fadeaway").price + 500
+	Save.data["gold"] = _hero("astro").price + 500
 	var t := await _title("live")
-	_show(t, "fadeaway")
-	t._buy_now(_hero("fadeaway"))
-	assert_bool(Save.owns_hero("fadeaway")).is_true()
+	_show(t, "astro")
+	t._buy_now(_hero("astro"))
+	assert_bool(Save.owns_hero("astro")).is_true()
 	assert_int(Save.gold()).is_equal(500)
-	assert_object(t._heroes[t._index]).is_same(_hero("fadeaway"))
+	assert_object(t._heroes[t._index]).is_same(_hero("astro"))
 	assert_bool(t._play.locked).is_false()
-	assert_str(t._name.text).is_equal("Fadeaway")
+	assert_str(t._name.text).is_equal(_hero("astro").display_name)
 	assert_bool(t._buy_col.visible).is_false()
 	# the gold plate says what is left
 	var amount: WText = t._gold_plate.find_children("Amount", "", true, false)[0]
@@ -317,9 +319,9 @@ func test_buying_on_the_title_reveals_him_and_opens_play() -> void:
 	assert_bool(tint.is_equal_approx(Color.WHITE)).is_true()
 	# short of gold: the BUY is locked and says by how much; a tap only refuses
 	Save.data["gold"] = 10
-	_show(t, "fadeaway")
+	_show(t, "astro")
 	Save.heroes_owned().clear()
-	_show(t, "fadeaway")
+	_show(t, "astro")
 	assert_bool(t._buy.locked).is_true()
 	assert_bool(t._buy_note_box.visible).is_true()
 	t.ask_buy()
@@ -341,7 +343,7 @@ func test_the_drawer_lists_every_hero_not_hidden_and_a_tile_selects_him() -> voi
 	# two rows
 	assert_int((d.get("grid") as GridContainer).columns).is_equal(int(ceil(Registry.sorted_characters().size() / 2.0)))
 	# a hero not owned: his badge a mystery; an owned one's in colour
-	var fad_tile: Control = d.call("tile_of", "fadeaway")
+	var fad_tile: Control = d.call("tile_of", "astro")
 	assert_bool((fad_tile.find_child("Badge", true, false) as WPlate).mystery).is_true()
 	var dr_tile: Control = d.call("tile_of", "drifter")
 	assert_bool((dr_tile.find_child("Badge", true, false) as WPlate).mystery).is_false()
@@ -390,7 +392,7 @@ func test_the_drawer_scrolls_sideways_when_the_tiles_do_not_fit() -> void:
 
 func test_the_hero_sheet_of_a_hero_not_owned_is_unknown() -> void:
 	var t := await _title("live")
-	_show(t, "fadeaway")
+	_show(t, "astro")
 	t.open_sheet()
 	await get_tree().process_frame
 	var s: Control = t._sheet

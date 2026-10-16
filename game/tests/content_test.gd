@@ -32,10 +32,12 @@ func test_json_roundtrip_effects() -> void:
 
 func test_timeline_cap_grows() -> void:
 	var m: MapDef = Registry.map("red_canyon")
-	# the numbers are data (dozens, not hundreds): the cap starts at cap_start, grows, and saturates at cap_max
-	assert_int(m.timeline.cap_at(0.0)).is_equal(m.timeline.cap_start)
-	assert_bool(m.timeline.cap_at(5 * 60.0) > m.timeline.cap_start).is_true()
-	assert_int(m.timeline.cap_at(60 * 60.0)).is_equal(m.timeline.cap_max)
+	# pass 83 re-pin: the cap is Garry's to shape in the Level Editor (his cap_curve starts at 181 and steps down and up
+	# again since 2026-10-16), so only its shape is pinned: positive all through the run, never past the hard cap
+	for t: float in [0.0, 60.0, 300.0, 600.0, 1200.0, 3600.0]:
+		assert_int(m.timeline.cap_at(t)).is_greater(0)
+		if m.timeline.hard_cap > 0:
+			assert_int(m.timeline.cap_at(t)).is_less_equal(m.timeline.hard_cap)
 	# pass 29: six times the start by the end (150), never the hundreds the first timeline had
 	assert_bool(m.timeline.cap_max <= 200).is_true()
 

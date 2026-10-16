@@ -235,8 +235,9 @@ func _build_map() -> void:
 	map.name = "Map"
 	world.add_child(map)
 	Run.map_seed = keep
-	build_ms = float(Time.get_ticks_usec() - t0) / 1000.0
 	_feet = _spot_on(map)
+	compose()
+	build_ms = float(Time.get_ticks_usec() - t0) / 1000.0
 	if hero:
 		hero.place(_feet)
 	_reframe()
@@ -256,6 +257,47 @@ func _spot_on(m: Node3D) -> Vector3:
 			s = Vector2.ZERO
 	var y: float = m.height_at(s.x, s.y) if m.has_method("height_at") else 0.0
 	return Vector3(s.x, y, s.y)
+
+
+## Pass 83 (lane SCENE; Garry: "Main Menu background scene, looks barren. Can you place the cactuses and other environment
+## art that we have in a way that present a nicely composed scene to look at"): the title's own vignette, laid by hand
+## round the hero's spot from SCENE_FILE (per map: `clear`, the box round the spot, metres across x and along z (+ towards
+## the camera), from which the map's own scatter is taken away; `props`, each {id (the very painting: a kind's own or a
+## variant, never picked by the spot), x, z (metres from the spot), scale, flip, sway}), every painting with its ground
+## shadow. Laid once a world is built (a kept
+## world keeps it). Returns how many paintings it laid.
+const SCENE_FILE := "res://art/ui/title_scene.json"
+var composed: Array = []
+
+
+func compose() -> int:
+	composed.clear()
+	var props = map.get("props") if map else null
+	if not props is PropField or not FileAccess.file_exists(SCENE_FILE):
+		return 0
+	var data = JSON.parse_string(FileAccess.get_file_as_string(SCENE_FILE))
+	if not data is Dictionary or not (data as Dictionary).get(map_id) is Dictionary:
+		return 0
+	var sc: Dictionary = data[map_id]
+	var pf := props as PropField
+	var c := _feet
+	var box = sc.get("clear")
+	if box is Dictionary:
+		var bx: Array = (box as Dictionary).get("x", [0, 0])
+		var bz: Array = (box as Dictionary).get("z", [0, 0])
+		pf.remove_where(func(row: Dictionary) -> bool:
+			var p: Vector3 = row["pos"]
+			return p.x - c.x >= float(bx[0]) and p.x - c.x <= float(bx[1]) and p.z - c.z >= float(bz[0]) and p.z - c.z <= float(bz[1]))
+	for e in sc.get("props", []):
+		if not e is Dictionary:
+			continue
+		var d: Dictionary = e
+		var x := c.x + float(d.get("x", 0.0))
+		var z := c.z + float(d.get("z", 0.0))
+		var at := Vector3(x, map.height_at(x, z) if map.has_method("height_at") else c.y, z)
+		if pf.add(str(d.get("id", "")), at, float(d.get("scale", 1.0)), bool(d.get("flip", false)), float(d.get("sway", 0.0)), true):
+			composed.append(str(d.get("id", "")))
+	return composed.size()
 
 
 ## The spot the hero stands on, in the world (tests, captures).

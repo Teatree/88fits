@@ -702,6 +702,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 72 (lane BOSS): boss HP pegged to the hero's DPS (read as it is; WaveTimeline.boss_hp_mult)
 	var bhs = t.get("boss_hp_scaling", {})
 	w.boss_hp_scaling = bhs if bhs is Dictionary else {}
+	# pass 83 (lane SCALE): enemy HP by the hero's power (WaveTimeline.power_hp_factor; 1 = none)
+	w.power_hp_scaling = float(t.get("power_hp_scaling", WaveTimeline.POWER_HP_SCALING_DEFAULT))
+	w.power_hp_max = float(t.get("power_hp_max", WaveTimeline.POWER_HP_MAX_DEFAULT))
 	# pass 73 (lane SNIPER): the weapons' target priority (read as it is; WaveTimeline.TARGET_PRIORITY_DEFAULTS fill gaps)
 	var tpr = t.get("target_priority", {})
 	w.target_priority = tpr if tpr is Dictionary else {}

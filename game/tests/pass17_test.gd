@@ -36,8 +36,8 @@ func test_stages_get_harder() -> void:
 	var t: WaveTimeline = Registry.map("red_canyon").timeline
 	assert_float(t.stage_mult(1)).is_greater(1.6)
 	assert_float(t.stage_mult(2)).is_greater(t.stage_mult(1) * 1.3)
-	# pass 28: the cap ramps with the run's clock (linear to x2.5), not with the stage index
-	assert_int(t.cap_at(300.0, 1)).is_greater(t.cap_at(0.0, 0))
+	# pass 83 re-pin: the cap's shape is Garry's (his curve starts high and steps down since 2026-10-16): a cap all through
+	assert_int(t.cap_at(300.0, 1)).is_greater(0)
 	assert_float(t.speed_mult(2)).is_greater(t.speed_mult(1))
 	assert_float(t.speed_mult(0)).is_equal(1.0)
 

@@ -56,7 +56,7 @@ momentum = {
 "speed_bonus": 0.8
 }
 availability = "purchase"
-price = 1250
+price = 2000
 sprite = ExtResource("11_4l51j")
 sprite_file = "buck_sprite_f.png"
 anims = {

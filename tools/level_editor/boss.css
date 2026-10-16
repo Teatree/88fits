@@ -100,3 +100,8 @@
 @media (max-width: 900px) { .batk-grid { grid-template-columns: 1fr; } .batk-list { position: static; } }
 .bs-tick.dim { fill: #6b6a65; font-size: 9.5px; }
 .bs-tick.ref { fill: var(--sel); }
+/* pass 83 (lane SCALE): the Boss HP card's "How it works" box and the Hero power card */
+.bscale-how { margin: 4px 0 10px; padding: 8px 12px; border: 1px solid var(--border); border-left: 3px solid var(--sel); border-radius: 8px; background: var(--surface-2); }
+.bscale-how p { margin: 5px 0; color: var(--ink-2); }
+.bscale-how b { color: var(--ink); }
+.pcard .bscale-words { margin-top: 0; border-top: 0; }

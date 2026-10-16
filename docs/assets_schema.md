@@ -1479,3 +1479,51 @@ Functions (the one rule, three languages):
   counts, where they show (sim player files and result.json, the Sim chart, the dashboard card and Progression marks,
   the rows CSV, the Watch);
 - *CSV (pass 74)*, rows: "(pass 82) then `chests`, `powerups`, `totems`, picked up so far".
+
+## Pass 83: new keys
+
+### The totem segments (lane TOTEM)
+
+No new JSON key, param, special or stat. The art slots are pass 82's: `res://art/ui/totem/spirit_<boon id>.png`
+(TotemBoons.ICON_SLOT; a pool entry's own `icon` path still wins) and `res://art/ui/totem/crest.png`. Since pass 83 a
+spirit's picture is an OPAQUE 256 px square (a carved segment of the pole that fills its plate inside the ink border);
+a new spirit added to `params.boons` without a picture still shows its word on the empty plate.
+
+Layout constants (ui/TotemScreen.gd, code, not data): CREST_MAX_H 150, CREST_SINK 12, POST_W 200, POST_FILL #7A341F,
+FACE = SEG - 2 x SEG_BORDER (288), CEDAR_PATH res://art/ui/totem/cedar.png (the post and the base), POST_SHADE 0.72.
+
+### Heroes and quests (lane META)
+
+No new JSON key, param, special or stat. What the Level Editor already writes covers it:
+
+- `content/characters/<id>.json` `availability` / `price`: Ironwood `available` -> `purchase`; prices changed (see
+  balancing_META.md). A hero's requirement is still the quest `unlock_<hero>`: new `content/quests/unlock_fadeaway`
+  (`kills_of_enemy`, `saiga_sniper`, 3); `unlock_ironwood` retired (moved to tools/level_editor/backups/deleted/).
+- `content/talents/spite` form Thorns: `effects[0].value` 5 -> 2, `text` follows.
+
+Code constants (not data):
+- `Game.THORNS_RADIUS` 2.3 m, `Game.THORNS_KNOCK` 6.0 (unchanged numbers, named), `Game.THORNS_COOLDOWN` 0.5 s (new).
+- Damage id `"thorns"` in `Run.damage_by_weapon` / the run record's damage sources (the Results already named it).
+- `Save.FREED_BY_QUEST` {"ironwood": "unlock_ironwood"}: a save that had done the hero's old quest owns him.
+- `CollectionScreen.item_hero(def)` / `hero_item_hidden(def)` (static).
+
+### Props: variants and shadows (lane SCENE)
+
+#### game/art/sprites/props/props.json (per painting)
+| key | type | default | meaning |
+|---|---|---|---|
+| `variant_of` | string (a painting id) | absent | this painting is another look of that kind: wherever the map places the kind, PropField.add draws the kind's own painting or one of its variants, chosen by a hash of the spot (PropField.pick_look), never by the map's roll, so a seed's layout, colliders and obstacle circles are unchanged; the `placed` row keeps the kind's id, `look` names the painting. A variant keeps its own `height`, `cell` and `shadow`; its `radius` is unused while the map asks for the kind (the kind's radius makes the collider). |
+| `weight` | float >= 0 | 1 | the painting's share in its kind's pick (the kind's own entry counts too). 0 keeps a variant out of the scatter while it can still be placed by name (the title's vignette). |
+| `shadow` | {w, d, x, z, a} | PropField.SHADOW_DEFAULT {0.5, 0.24, 0, 0, 0.35} | the painting's ground shadow, in shares of its drawn quad's height (props: `height` x the placed scale; structures: StructureDef.height x 1.15): `w` across, `d` deep (an ellipse), `x` the foot's offset right of the quad's middle (mirrors with a flipped painting), `z` the painted foot's offset (negative = back, up the screen: the foot stands a little up its leaning quad), `a` its darkness 0..1 (0 = no shadow). Measured from the painting by `python tools/prop_shadows.py` (kept unless `--force`); tune by hand. |
+
+#### game/art/ui/title_scene.json (new file: the live title's vignette, per map id)
+| key | type | meaning |
+|---|---|---|
+| `<map>.clear` | {x: [min, max], z: [min, max]} metres | the box round the hero's title spot (TitleStage.SPOTS) from which the map's own scatter is taken away (x right, z towards the camera) |
+| `<map>.props[]` | {id, x, z, scale = 1, flip = false, sway = 0} | each painting laid by hand: the very painting named (a kind's own or a variant; never picked by the spot), x/z metres from the hero's spot, with its ground shadow |
+
+#### Constants (code)
+- PropField.SUN_SHIFT (0.08, -0.02) metres per metre of height, capped at SUN_SHIFT_MAX 0.3 m: the shadows lean right (and a touch back), away from the paintings' upper-left light.
+- BarrelField.SHADOW_W/D/A/TALL 0.95 / 0.66 / 0.5 / 0.9; SignField.SHADOW_W/D/A 1.25 / 0.8 / 0.42 (shifted for the drawn post's 5.3 m); StructureManager.SHADOW_IN 6 m (a Strongbox coming down has its whole shadow under it from that height).
+- core/shaders/ground_shadow.gdshader uniforms: tint (the blob colour), inner 0.45, soft 0.9 (falloff), strength (a lone mesh's).
+- perf_late.gd: `shadows=0` hides the scenery shadows (the A/B).

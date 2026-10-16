@@ -293,7 +293,9 @@ func test_a_hero_on_sale_reads_for_sale_and_one_owned_does_not() -> void:
 
 
 func test_unlocked_this_run_is_never_stale() -> void:
-	var q: QuestDef = Registry.quest_for("character", "ironwood")
+	# pass 83 (lane META, re-pinned): Ironwood's 2,500-kill quest is retired (he is sold for gold alone); Adrenaline's
+	# 400 kills are the same kind of quest (kills_total)
+	var q: QuestDef = Registry.quests.get("unlock_adrenaline")
 	assert_object(q).is_not_null()
 	# a run's start empties it
 	QT.just_completed = ["unlock_something_old"]

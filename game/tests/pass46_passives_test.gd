@@ -332,6 +332,12 @@ func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	assert_bool(CollectionScreen.TABS.has("Cards")).is_true()
 	assert_bool(CollectionScreen.TABS.has("Passives")).is_true()
 	assert_bool(CollectionScreen.TABS.has("Perks")).is_true()
+	# pass 83 (lane META, re-pinned): a hero's own shows on the page only while the save owns him
+	# (CollectionScreen.hero_item_hidden): every hero on sale owned for these checks, the list put back after
+	var owned_keep: Array = Save.heroes_owned().duplicate()
+	for hc: CharacterDef in Registry.characters.values():
+		if hc.availability == "purchase" and not Save.owns_hero(hc.id):
+			Save.heroes_owned().append(hc.id)
 	var rain: Array = CollectionScreen.page_mutations(Registry.weapon("skull_rain")).map(func(m: MutationDef) -> String: return m.id)
 	assert_int(rain.size()).is_equal(4)
 	assert_str(str(rain[3])).is_equal("danza_macabra")
@@ -368,6 +374,7 @@ func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	var w0: float = (col.get_child(0).get_child(0) as Control).custom_minimum_size.x
 	assert_float((col.get_child(1).get_child(0) as Control).custom_minimum_size.x).is_equal(w0)
 	col.free()
+	Save.data["heroes_owned"] = owned_keep
 
 
 func test_a_stance_sorts_after_the_motion() -> void:

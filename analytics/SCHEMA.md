@@ -52,7 +52,7 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 | `talents` *(2)* | the Upgrade board as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
 | `talent_forms` *(2)* | `{talent id: [first form's name, second form's name]}` for those talents |
 | `settings` *(2)* | `{pierce_falloff, debug_mode, dev}`: pierce drop-off, the player's debug mode, and whether the run counts as a developer's (`Analytics.is_dev`) |
-| `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80), `xp_curve` (the growth type played and its numbers, defaults filled in; pass 82) |
+| `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80), `xp_curve` (the growth type played and its numbers, defaults filled in; pass 82), and since pass 83 `boss_hp_scaling.mode` ("seconds" or "dps") and `boss_hp_scaling.seconds` {boss: seconds of full DPS}, `power_hp_scaling` (1 = off) and `power_hp_max` |
 | `stat_names` *(2)* | `{stat: the pause screen's words}` (TextGen) for every stat a snapshot carries |
 | `trait` *(2)* | the hero's trait as the run ended: `name`, `text` (its line), `level`, `stats` {stat: value at that level}, `words` (those numbers in words) |
 | `totems` *(2)* | the Totem Poles' gifts taken: `[{id, name, stat, op, value, quality (1-3), words}]` |
@@ -96,6 +96,10 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `desp` | Desperado's attack damage bonus right now (0.36 = +36%; pass 46) |
 | `est` | `{weapon id: estimated DPS}` from each weapon's sheet (`WeaponInstance.dps_estimate`, the pause screen's "dps") |
 | `est_total` | their sum: the build's promise |
+| `power` | (pass 83) the hero's power level (`HeroPower`): sqrt((full DPS / 20.4) x (effective HP / 100)); a fresh level-1 Drifter with the Revolver on a clean save is 1.0 |
+| `full_dps` | (pass 83) the full DPS the power reads: every weapon's damage a second on ONE target every shot hits (the estimate with its crowd guess taken out, its burn or poison kept up, times the average crit) |
+| `ehp` | (pass 83) the effective HP the power reads: (max HP + shield + 30 s of regen and lifesteal) / ((1 - damage reduction) x (1 - evade)) |
+| `power_hp` | (pass 83) the creatures' HP factor the power gives on this map (`power_hp_scaling`, `WaveTimeline.power_hp_factor`); missing = 1 (off) |
 | `dmg` | `{weapon id: damage dealt this second}` (after crits and reduction, so it sums to `totals.damage_by_weapon`; also `blast`, `revive`, `grand_finale`, `powder_keg`, `loose_rocket`) |
 | `took` | `{creature id: HP the hero lost this second}` (a hit with no creature id is keyed by its name, e.g. `the ring of fire`) |
 | `took_raw` | the damage thrown at the hero before reduction, shields and evasion |
@@ -145,7 +149,7 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `level` | `level` (the new level) |
 | `stage` | `level` = the stage that began (1-based) |
 | `wave` | `level` = the endless wave that began |
-| `boss_start` | `id` (the boss); *(2)* `hp` (its max HP as it came), and its HP pegging when it had one: `dps` (the hero's damage a second over the window), `ref` (the DPS the boss expects), `mult` (its HP multiplier), `window` (seconds) |
+| `boss_start` | `id` (the boss); *(2)* `hp` (its max HP as it came), and its HP pegging when it had one: `dps` (the hero's damage a second over the window), `ref` (the DPS the boss expects), `mult` (its HP multiplier), `window` (seconds); since pass 83 in the seconds mode (`boss_hp_scaling.mode`) also `mode` "seconds", `seconds` (the seconds of full DPS it was given) and `full_dps` (the hero's full DPS on it then; `dps` is the same number, `ref` and `window` 0) |
 | `boss_end` | `id` (the boss) |
 | `elite` | `id` (an Elite by its kind spawned) |
 | `elite_mod` *(2)* | `id`, `mod`: a creature wearing an Elite modifier came |

@@ -29,6 +29,8 @@ const Timeline = (() => {
   };
   // pass 57: the "Spawned so far" lane under the cap
   const SPAWN_H = 132;
+  // pass 83 (lane TIMELINE): what the window box and the readout's shares mean
+  const WIN_HELP = 'The window (seconds) of the readout and the hover cards: hovering the timeline, each roster row and wave shows its share of all the creatures spawned in the past N seconds before the pointer (a wave\'s tick: in the N seconds from it). It is read off the Spawned so far estimate, which plays the director\'s rules second by second: the cap and its room, each row\'s weight, the spawn check and the rows\' own Draw every, the waves and what they owe, the kill rate. So a row paced as waves counts what its waves bring, and a row the cap starves counts little. Roster bars that spawned nothing in the window dim on the lane. 5 s by default; the browser remembers it.';
   const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the hero kills, so it assumes the hero kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers.';
   let spp = 1.0;                       // seconds per pixel
   let root = null, scrollBox = null, content = null, cursorEl = null, readout = null, card = null, menu = null;
@@ -44,6 +46,13 @@ const Timeline = (() => {
   let snapOn = true;
   try { if (localStorage.getItem(SNAP_KEY) === '0') snapOn = false; } catch (_) { /* no storage: on */ }
   let snapEl = null;                   // the guide line (a div over the lanes) with its tag
+  // pass 83 (lane TIMELINE; Garry: "let's make it so the highlight actually just shows the share of roster draw as the % of
+  // enemies that spawned in the past 5 seconds (controllable value next to 'snap on')"): the readout's window in seconds,
+  // a page setting the browser remembers (never written to the map)
+  const WIN_KEY = '88fits-editor-window';
+  const WIN_DEF = 5, WIN_MIN = 1, WIN_MAX = 120;
+  let winSecs = WIN_DEF;
+  try { const v = Number(localStorage.getItem(WIN_KEY)); if (v >= WIN_MIN && v <= WIN_MAX) winSecs = v; } catch (_) { /* no storage: 5 s */ }
   let hovers = {};                     // data-hover key -> (t) => card content (rebuilt every render)
 
   // ------------------------------------------------------------------ DOM
@@ -63,7 +72,6 @@ const Timeline = (() => {
       ['dmg_act', 'Actual ATK ×', null, '', ACT_HELP.dmg],
       ['dmg', 'ATK ×', null, '', 'Creature damage over the run clock (damage_curve): click to edit, drag its points, double-click to add or remove one. Since pass 58 a row reads it once, at its start.'],
       ['roster', 'Roster', { text: '+ Row', title: 'Add a roster row at the view\'s centre', onclick: () => App.newRow(null, viewCenter()) }, '', ''],
-      ['share', 'Share', null, '', 'Each creature\'s share of the draw over time, stacked, normalised per channel; click for the table.'],
       ['waves', 'Waves', { text: '+ Wave', title: 'Add a wave at the view\'s centre', onclick: () => App.newWave(null, viewCenter()) }, '', ''],
       ['events', 'Events', { text: '+ Event', title: 'Add an event at the view\'s centre', onclick: (e) => eventMenu(e.currentTarget) }, '', ''],
       ['specials', 'Specials', null, '', ''],
@@ -73,14 +81,14 @@ const Timeline = (() => {
       const head = name === 'roster' ? el('div', { class: 'lane-head' }, el('div', {}, el('div', { class: 'lane-name', text: title }), el('div', { class: 'lane-sub' }))) : null;
       const label = head
         ? el('div', { class: 'lane-label roster-label' }, head, el('div', { class: 'gutter' }))
-        : el('div', { class: 'lane-label', title: help }, el('div', { class: 'lane-name', text: title }), el('div', { class: 'lane-sub' }), name === 'share' ? el('div', { class: 'share-legend' }) : null);
+        : el('div', { class: 'lane-label', title: help }, el('div', { class: 'lane-name', text: title }), el('div', { class: 'lane-sub' }));
       if (plus) (head || label).appendChild(el('button', { class: 'btn small plus', text: plus.text, title: plus.title, onclick: plus.onclick }));
       if (name === 'spawned') label.appendChild(spawnControls());
       const s = svg('svg', { class: 'lane-svg', height: 10 });
       const row = el('div', { class: 'lane lane-' + name + (cls ? ' ' + cls : '') }, label, s);
       label.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON' || e.target.closest('.gutter')) return;
-        if (['cap', 'hp', 'dmg', 'share', 'specials', 'paths'].includes(name)) App.select({ kind: name });
+        if (['cap', 'hp', 'dmg', 'specials', 'paths'].includes(name)) App.select({ kind: name });
         // an Actual lane opens its curve's inspector, which compares the two (pass 58)
         if (name === 'hp_act' || name === 'dmg_act') App.select({ kind: name === 'hp_act' ? 'hp' : 'dmg' });
       });
@@ -92,6 +100,7 @@ const Timeline = (() => {
     snapEl = el('div', { class: 'tl-snap', hidden: true }, el('span', { class: 'tl-snap-tag' }));
     content.appendChild(snapEl);
     syncSnapButton();
+    wireWindow();
     readout = el('div', { class: 'readout', hidden: true });
     document.body.appendChild(readout);
     card = el('div', { class: 'hovercard', hidden: true });
@@ -99,6 +108,7 @@ const Timeline = (() => {
     root.appendChild(scrollBox);
     scrollBox.addEventListener('pointermove', onHover);
     scrollBox.addEventListener('pointerleave', () => { if (!drag) hideCursor(); });
+    scrollBox.addEventListener('scroll', () => { if (lastHover) lightRows(null); });
     scrollBox.addEventListener('wheel', onWheel, { passive: false });
     scrollBox.addEventListener('pointerdown', (e) => { if (e.target === content || e.target === scrollBox || e.target.classList.contains('lane-svg')) { if (e.button === 0) App.select(null); } });
     window.addEventListener('resize', () => { if (App.S.map && App.S.tab === 'timeline') render(); });
@@ -216,13 +226,12 @@ const Timeline = (() => {
     renderActual(w, 'dmg_act', false);
     renderCurve(w, 'dmg', 'damage_curve');
     renderRoster(w);
-    renderShare(w);
     renderWaves(w);
     renderEvents(w);
     renderSpecials(w);
     renderPaths(w);
     const selKey = App.selKey();
-    for (const name of ['cap', 'hp', 'dmg', 'share', 'specials', 'paths']) lanes[name].row.classList.toggle('selected', selKey === name);
+    for (const name of ['cap', 'hp', 'dmg', 'specials', 'paths']) lanes[name].row.classList.toggle('selected', selKey === name);
     lanes.hp_act.row.classList.toggle('selected', selKey === 'hp');
     lanes.dmg_act.row.classList.toggle('selected', selKey === 'dmg');
     updateZoomLabel();
@@ -872,6 +881,9 @@ const Timeline = (() => {
       // pass 81 (lane PACE): the yellow etches along the bar's foot, when its creatures come
       rowEtches(inner, r, t, tEnd, y0 + bh);
       g.appendChild(inner);
+      // pass 83 (lane TIMELINE): the foot of the bar, where the ticks are, hovers as the tick nearest the pointer
+      g.appendChild(svg('rect', { x: x0, y: y0 + bh - 11, width: Math.max(0, x1 - x0 - HANDLE), height: 11, class: 'etch-hit', 'data-hover': `etch:${i}` }));
+      hovers[`etch:${i}`] = (tt) => etchCard(i, tt);
       if (open) g.appendChild(svg('text', { x: x1 - 12, y: y0 + 14, class: 'inf', text: '∞' }));
       // keyframes outside the bar (the row ends before them, or starts after them): a faint dashed tail, still draggable
       const after = ws.filter((p) => p.t > tEnd);
@@ -927,7 +939,17 @@ const Timeline = (() => {
     const paced = Model.rowPaced(r);
     const g = svg('g', { class: 'etches' + (paced ? ' paced' : '') });
     if (Model.rowDrawn(r)) {
-      for (const [a, b] of Model.presenceSpans(r, t0, t1, lateT)) g.appendChild(svg('line', { x1: x(a), x2: x(b), y1: yf - 2.5, y2: yf - 2.5, class: 'etch-line' + (paced ? ' trickle' : '') }));
+      // pass 83 (lane TIMELINE; Garry: "since continuous spawning has these inevitable intervals the notches on the enemy
+      // node should reflect that"): a short tick at each draw (the spawn check's rhythm, or the row's own Draw every)
+      // where its weight is above 0; a dotted line where the ticks would be under ETCH_MIN_PX apart (never solid)
+      const si = spawnCheck();
+      const dense = Model.rowDrawInterval(r, si) < Model.ETCH_MIN_PX * spp;
+      for (const [a, b] of Model.presenceSpans(r, t0, t1, lateT)) {
+        if (dense) { g.appendChild(svg('line', { x1: x(a), x2: x(b), y1: yf - 2.5, y2: yf - 2.5, class: 'etch-dots' + (paced ? ' trickle' : '') })); continue; }
+        let d = '';
+        for (const tk of Model.rowDrawTimes(r, a, b, si, lateT)) d += `M${x(tk).toFixed(1)},${yf}v-${paced ? 4 : 6}`;
+        if (d) g.appendChild(svg('path', { d, class: 'etch-draw' + (paced ? ' trickle' : '') }));
+      }
     }
     if (paced) {
       const thin = Model.thinTimes(Model.rowEtchTimes(r, t1, lateT), Model.ETCH_MIN_PX * spp);
@@ -1056,62 +1078,6 @@ const Timeline = (() => {
     return tx + w + 5;
   }
 
-  // ------------------------------------------------------------------ share (pass 54)
-
-  /** Each creature's share of its channel's draw over time, stacked (regular crowd above, the hell channel below), one
-   *  colour per creature; the legend is the creatures' icons in the label column. */
-  function renderShare(w) {
-    const s = clear(lanes.share.svg);
-    const rows = App.tl().roster || [];
-    const order = { reg: [], hell: [] };
-    for (const r of rows.map((r, i) => ({ r, i })).sort((a, b) => (Number(a.r.t) || 0) - (Number(b.r.t) || 0) || a.i - b.i)) {
-      const ch = r.r.channel === 'hell' ? 'hell' : 'reg';
-      if (!order[ch].includes(r.r.enemy)) order[ch].push(r.r.enemy);
-    }
-    const legendN = order.reg.length + order.hell.length;
-    const hasHell = order.hell.length > 0;
-    const REG = 58, HELL = hasHell ? 32 : 0, GAP = hasHell ? 5 : 0;
-    const need = 26 + Math.ceil(legendN / 6) * 22;
-    const h = Math.max(6 + REG + GAP + HELL + 6, need);
-    setHeight('share', h);
-    stageShade(s, h);
-    const end = App.viewEnd();
-    const bands = [{ ch: 'reg', top: 6, H: REG }];
-    if (hasHell) bands.push({ ch: 'hell', top: 6 + REG + GAP, H: HELL });
-    const g = svg('g', { class: 'share' + (App.selKey() === 'share' ? ' selected' : ''), 'data-hover': 'share' });
-    for (const b of bands) {
-      g.appendChild(svg('rect', { x: 0, y: b.top, width: w, height: b.H, class: 'share-bg' + (b.ch === 'hell' ? ' hell' : '') }));
-      const ids = order[b.ch];
-      const acc = ids.map(() => []);
-      const step = 3;
-      for (let px = 0; px <= x(end) + step; px += step) {
-        const t = Math.min(end, px * spp);
-        const by = {};
-        for (const o of App.rosterAt(t)) if ((o.hell ? 'hell' : 'reg') === b.ch) by[o.row.enemy] = (by[o.row.enemy] || 0) + o.norm;
-        let yb = b.top + b.H;
-        ids.forEach((id, k) => { const yt = yb - (by[id] || 0) * b.H; acc[k].push([Math.min(px, x(end)), yb, yt]); yb = yt; });
-      }
-      ids.forEach((id, k) => {
-        const pts = acc[k];
-        if (!pts.some(([, y0, y1]) => y0 - y1 > 0.05)) return;
-        const d = pts.map(([px, , yt]) => `${px},${yt}`).join(' ') + ' ' + pts.slice().reverse().map(([px, yb]) => `${px},${yb}`).join(' ');
-        g.appendChild(svg('polygon', { points: d, fill: App.creatureColor(id), class: 'share-area' }));
-      });
-      g.appendChild(svg('text', { x: 4, y: b.top + 10, class: 'share-tag', text: b.ch === 'hell' ? 'hell' : 'regular' }));
-    }
-    g.addEventListener('pointerdown', (e) => { if (e.button === 0) { e.stopPropagation(); App.select({ kind: 'share' }); } });
-    hovers.share = (t) => shareCard(t);
-    s.appendChild(g);
-    // the legend: the creatures' icons over their colours
-    const lg = lanes.share.label.querySelector('.share-legend');
-    clear(lg);
-    for (const ch of ['reg', 'hell']) for (const id of order[ch]) {
-      lg.appendChild(el('span', { class: 'lg' + (ch === 'hell' ? ' hell' : ''), title: `${App.creatureName(id)}${ch === 'hell' ? ' (hell channel)' : ''}` },
-        el('img', { src: App.iconFor(id), width: 18, height: 18, alt: '' }), el('i', { style: `background:${App.creatureColor(id)}` })));
-    }
-    lanes.share.label.querySelector('.lane-sub').textContent = `${order.reg.length} creatures${hasHell ? ` + ${order.hell.length} hell` : ''}`;
-  }
-
   // ------------------------------------------------------------------ waves
 
   function renderWaves(w) {
@@ -1174,6 +1140,9 @@ const Timeline = (() => {
       // pass 81 (lane PACE): a tick at each burst along the block's foot
       waveEtches(inner, wv, Math.min(b.e, end), y0 + b.h);
       g.appendChild(inner);
+      // pass 83 (lane TIMELINE): hovering the ticks names the burst nearest the pointer
+      g.appendChild(svg('rect', { x: b.x0, y: y0 + b.h - 10, width: Math.max(0, b.x1 - b.x0 - HANDLE), height: 10, class: 'etch-hit', 'data-hover': `wetch:${b.i}` }));
+      hovers[`wetch:${b.i}`] = (tt) => burstCard(b.i, tt);
       if (!wide) g.appendChild(svg('text', { x: b.x1 + 4, y: y0 + 14, class: 'block-out', text: head }));
       const handle = svg('rect', { x: b.x1 - HANDLE, y: y0, width: HANDLE, height: b.h, class: 'handle' });
       handle.appendChild(svg('title', {}, 'drag to set `until`'));
@@ -1647,8 +1616,10 @@ const Timeline = (() => {
       const gap = Model.rowWaveEvery(r) / Math.max(spp, 1e-9);
       if (Model.rowWaveEvery(r) > 0 && gap < Model.ETCH_MIN_PX) box.appendChild(el('div', { class: 'hc-line muted', text: `its waves are ${fmtN(gap, 1)} px apart at this zoom: every ${Math.ceil(Model.ETCH_MIN_PX / gap)}th tick is drawn; zoom in to see each` }));
     }
-    if (!open || open.drawn) box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: share }), open ? ` · weight ${fmtN(open.w, 2)}` : ''));
-    else box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: 'not in the continuous draw' }), ` · weight ${fmtN(open.w, 2)}${open.w > 0 ? '' : ' (holds its waves)'}`));
+    // pass 83 (lane TIMELINE): what this row made of everything spawned in the past N seconds (the estimate)
+    box.appendChild(windowLine(winAt(t), `roster:${i}`, 'this row'));
+    if (!open || open.drawn) box.appendChild(el('div', { class: 'hc-line muted' }, `${share}${open ? ` · weight ${fmtN(open.w, 2)}` : ''}${open ? ` · ${drawWords(r)}` : ''}`));
+    else box.appendChild(el('div', { class: 'hc-line muted' }, `not in the continuous draw · weight ${fmtN(open.w, 2)}${open.w > 0 ? '' : ' (holds its waves)'}`));
     return box;
   }
 
@@ -1659,6 +1630,8 @@ const Timeline = (() => {
     const flags = [wv.respect_cap === false ? 'no cap' : '', wv.elite ? `elite ${wv.elite}` : '', wv.channel === 'hell' ? 'hell' : '', wv.toast ? `"${wv.toast}"` : ''].filter(Boolean).join(' · ');
     const box = el('div', {}, cardHead(waveHead(wv), t, `${fmtT(wv.t)} → ${end === Infinity ? 'no end' : fmtT(end)}${flags ? ' · ' + flags : ''}`));
     for (const a of App.waveAlts(wv).slice(0, 6)) box.appendChild(creatureBlock(a.alt.enemy, a.alt.variant, a.alt.stats, t, { small: true, share: `${Math.round(a.share * 100)}%`, t0: Number(wv.t) || 0, from: 'wave' }));
+    // pass 83 (lane TIMELINE): what the wave made of everything spawned in the past N seconds
+    box.appendChild(windowLine(winAt(t), `wave:${i}:`, 'this wave'));
     const from = Model.fixedFrom(App.tl(), wv.t, t);
     box.appendChild(el('div', { class: 'hc-line fixed', text: from > (Number(wv.t) || 0) + 1e-9
       ? `Its numbers are fixed afresh from ${fmtT(from)}, the start of this endless wave: in endless every row and wave takes the curves again at each wave.`
@@ -1702,27 +1675,151 @@ const Timeline = (() => {
     return box;
   }
 
-  function shareCard(t) {
-    const open = App.rosterAt(t);
-    const box = el('div', {}, cardHead('Share of the draw', t));
-    if (!open.length) { box.appendChild(el('div', { class: 'hc-line muted', text: 'no roster row open' })); return box; }
-    for (const ch of [false, true]) {
-      const by = {};
-      for (const o of open.filter((x) => x.hell === ch && x.drawn)) by[o.row.enemy] = (by[o.row.enemy] || 0) + o.norm;
-      const ids = Object.keys(by).sort((a, b) => by[b] - by[a]);
-      if (!ids.length) continue;
-      box.appendChild(el('div', { class: 'ro-title', text: ch ? 'hell channel' : 'regular crowd' }));
-      const chart = el('div', { class: 'ro-chart' });
-      for (const id of ids) {
-        chart.appendChild(el('div', { class: 'ro-row' + (ch ? ' hell' : '') },
-          el('img', { src: App.iconFor(id), width: 16, height: 16, alt: '' }),
-          el('span', { class: 'ro-name', text: App.creatureName(id) }),
-          el('span', { class: 'ro-bar' }, el('i', { style: `width:${Math.round(by[id] * 100)}%;background:${App.creatureColor(id)}` })),
-          el('span', { class: 'ro-pct', text: `${Math.round(by[id] * 100)}%` })));
+  // ------------------------------------------------------------------ the window's shares (pass 83, lane TIMELINE)
+
+  // Garry (2026-10-16): "if I hover over enemies and specifically over those yellow notches it actually shows the % of
+  // enemies that will be spawning ... the highlight actually just shows the share of roster draw as the % of enemies that
+  // spawned in the past 5 seconds (controllable value next to 'snap on') with a hint explaining what that value is.
+  // Remove the 'Share section'". Every share here is read off the Spawned so far estimate (Model.windowShares): the
+  // director's rules played second by second (the cap, the weights, the spawn check and the rows' own clocks, the waves,
+  // the kill rate), so a waves row counts what its waves really bring and a row the cap starves counts little.
+
+  /** The map's spawn check in seconds (Settings → Spawning). */
+  function spawnCheck() {
+    const si = App.tl().spawn_interval;
+    return si == null || si === '' ? 0.5 : Number(si);
+  }
+
+  /** The window box next to Snap on: whole seconds WIN_MIN..WIN_MAX, remembered by the browser. */
+  function wireWindow() {
+    const inp = document.getElementById('win-secs');
+    if (!inp || inp.dataset.wired) return;
+    inp.dataset.wired = '1';
+    inp.value = String(winSecs);
+    inp.addEventListener('change', () => setWindow(inp.value));
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); e.stopPropagation(); });
+  }
+  function setWindow(v) {
+    const n = Math.round(Number(v));
+    winSecs = n >= WIN_MIN ? Math.min(n, WIN_MAX) : WIN_DEF;
+    try { localStorage.setItem(WIN_KEY, String(winSecs)); } catch (_) { /* fine */ }
+    const inp = document.getElementById('win-secs');
+    if (inp) inp.value = String(winSecs);
+    return winSecs;
+  }
+
+  /** The estimate's shares in the `winSecs` before run second t, or in the `winSecs` from t (`ahead`: a wave's tick,
+   *  read from the second before it so its own second counts); null before the estimate is drawn. */
+  function winAt(t, ahead) {
+    const est = lastSpawn ? lastSpawn.est : null;
+    if (!est) return null;
+    return ahead ? Model.windowShares(est, t - 1e-6, t + winSecs - 1e-6) : Model.windowShares(est, t - winSecs, t);
+  }
+  /** A key's spawns in a window: an exact key ('roster:3'), or every key under a prefix ending in ':' ('wave:2:'). */
+  function winCount(win, key) {
+    if (!win) return 0;
+    if (!key.endsWith(':')) return win.src[key] || 0;
+    let n = 0;
+    for (const k of Object.keys(win.src)) if (k.startsWith(key)) n += win.src[k];
+    return n;
+  }
+  const pctText = (f) => (f > 0 && f < 0.005 ? '<1%' : `${Math.round(f * 100)}%`);
+  /** "34% of the 52 creatures spawned in the past 5 s (2:00–2:05), ≈18 from this row". */
+  function windowLine(win, key, who) {
+    if (!win) return el('div', { class: 'hc-line muted', text: 'the share of what spawns comes from the Spawned so far estimate (not drawn yet)' });
+    const n = winCount(win, key);
+    const f = win.all > 0 ? n / win.all : 0;
+    return el('div', { class: 'hc-line win-line' }, el('b', { text: `${pctText(f)} of the creatures spawned` }),
+      ` in ${fmtT(win.t0)}–${fmtT(win.t1)}: ≈${fmtCount(n)} from ${who} of ≈${fmtCount(win.all)} in all`,
+      el('small', { text: ` (the past ${winSecs} s, the box next to Snap; an estimate)` }));
+  }
+  /** How a drawn row's draws come: at the spawn check, or on its own clock. */
+  function drawWords(r) {
+    if (!Model.rowDrawn(r)) return 'comes as waves only';
+    const si = spawnCheck();
+    return Model.rowHasInterval(r) ? `drawn on its own clock every ${fmtN(Model.rowDrawInterval(r, si), 2)} s` : `drawn at the spawn check every ${fmtN(si, 2)} s`;
+  }
+
+  /** The tick nearest `t` within 8 px in `times`, or null. */
+  function nearestTick(times, t) {
+    let best = null;
+    for (const tk of times) if (Math.abs(tk - t) <= 8 * spp && (best == null || Math.abs(tk - t) < Math.abs(best - t))) best = tk;
+    return best;
+  }
+
+  /** A roster bar's foot (pass 83): the wave tick nearest the pointer (its count and its share of the N s from it), else
+   *  the draw nearest it (how often, what a draw holds, the share of the past N s), else the row's card. */
+  function etchCard(i, t) {
+    const r = (App.tl().roster || [])[i];
+    if (!r) return null;
+    const lateT = App.tl().weight_late_t;
+    const end = r.until == null || r.until === '' ? App.viewEnd() : Number(r.until);
+    const c = App.creature(r.enemy);
+    const name = c ? c.name : r.enemy;
+    if (Model.rowPaced(r)) {
+      const tw = nearestTick(Model.rowEtchTimes(r, Math.min(end, t + 8 * spp), lateT).filter((tk) => tk >= t - 8 * spp), t);
+      if (tw != null) {
+        const n = Model.rowWaveCount(r, c);
+        const pc = paceChip(r, c);
+        const box = el('div', {}, cardHead('Wave', tw, `${name} · ${pc.text} · row ${i + 1}`));
+        box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: `${n} × ${name}` }), r.respect_cap === false ? ' at once, on top of the cap' : ' into the free room under the cap; the rest as room frees, until the next wave'));
+        const win = winAt(tw, true);
+        if (win) {
+          const came = winCount(win, `roster:${i}`);
+          const f = win.all > 0 ? came / win.all : 0;
+          box.appendChild(el('div', { class: 'hc-line win-line' }, el('b', { text: `${pctText(f)} of the creatures spawned in the ${winSecs} s from ${fmtT(tw)}` }), `: ≈${fmtCount(came)} from this row of ≈${fmtCount(win.all)} in all${r.respect_cap !== false && came < n - 0.5 ? ` (the cap let ≈${fmtCount(came)} of its ${n} in by then)` : ''}`));
+        }
+        return box;
       }
-      box.appendChild(chart);
+    }
+    if (Model.rowDrawn(r)) {
+      const si = spawnCheck();
+      const iv = Model.rowDrawInterval(r, si);
+      const td = nearestTick(Model.rowDrawTimes(r, Math.max(0, t - 8 * spp), Math.min(end, t + 8 * spp), si, lateT), t);
+      if (td != null) {
+        const tl = App.tl();
+        const lo = tl.burst_min == null ? 5 : Number(tl.burst_min), hi = tl.burst_max == null ? 20 : Number(tl.burst_max);
+        const open = App.rosterAt(td).find((o) => o.i === i);
+        const sh = open ? open.norm : 0;
+        const box = el('div', {}, cardHead('Draw', td, `${name} · ${drawWords(r)} · row ${i + 1}`));
+        box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: `≈${fmtN(((lo + hi) / 2) * sh, 1)} load units a draw` }), ` while the cap has room: a burst of ${lo}–${hi} × its ${pctText(sh)} of the open rows' weight${Model.rowHasInterval(r) ? '' : ', shared at the spawn check with the other rows'}`));
+        box.appendChild(windowLine(winAt(td), `roster:${i}`, 'this row'));
+        const gap = iv / Math.max(spp, 1e-9);
+        if (gap < Model.ETCH_MIN_PX) box.appendChild(el('div', { class: 'hc-line muted', text: `its draws are ${fmtN(gap, 1)} px apart at this zoom: drawn as a dotted line; zoom in (+) past ${fmtN(Model.ETCH_MIN_PX / iv, 1)} px a second to see each tick` }));
+        if (!Model.rowHasInterval(r)) box.appendChild(el('div', { class: 'hc-line muted', text: 'the spawn check runs on through boss fights, so later in a run its ticks are its rhythm rather than its exact seconds' }));
+        return box;
+      }
+    }
+    return rosterCard(i, t);
+  }
+
+  /** A waves block's foot (pass 83): the burst nearest the pointer, its size and its share of the N s from it. */
+  function burstCard(i, t) {
+    const wv = (App.tl().waves || [])[i];
+    if (!wv) return null;
+    const tb = nearestTick(Model.waveBurstTimes(wv, t + 8 * spp).filter((tk) => tk >= t - 8 * spp), t);
+    if (tb == null) return waveCard(i, t);
+    const box = el('div', {}, cardHead('Burst', tb, `${waveHead(wv)} · ${Math.max(1, Number(wv.burst) || 5)} a burst${Number(wv.count) > 0 ? ` of ${wv.count}` : ''}`));
+    const win = winAt(tb, true);
+    if (win) {
+      const n = winCount(win, `wave:${i}:`);
+      box.appendChild(el('div', { class: 'hc-line win-line' }, el('b', { text: `${pctText(win.all > 0 ? n / win.all : 0)} of the creatures spawned in the ${winSecs} s from ${fmtT(tb)}` }), `: ≈${fmtCount(n)} from this wave of ≈${fmtCount(win.all)} in all`));
     }
     return box;
+  }
+
+  /** The highlight on the lane (pass 83): while the pointer is on the timeline, the roster bars that spawned nothing in
+   *  the past N seconds dim, so the ones bright are the ones spawning. `t` null clears it. */
+  let lastHover = null;
+  function lightRows(t) {
+    lastHover = t;
+    const svgEl = lanes.roster ? lanes.roster.svg : null;
+    if (!svgEl) return;
+    const win = t == null ? null : winAt(t);
+    for (const g of svgEl.querySelectorAll('g.bar[data-key^="roster:"]')) {
+      const key = g.getAttribute('data-key');
+      g.classList.toggle('win-zero', !!win && !(winCount(win, key) > 1e-6));
+    }
   }
 
   // ------------------------------------------------------------------ cursor, readout, cards
@@ -1734,6 +1831,7 @@ const Timeline = (() => {
     cursorEl.hidden = false;
     cursorEl.style.left = `${LABEL_W + x(t)}px`;
     App.setClock(t);
+    lightRows(Math.max(0, t));
     const target = e.target && e.target.closest ? e.target.closest('[data-hover]') : null;
     const key = target ? target.getAttribute('data-hover') : null;
     if (raf) cancelAnimationFrame(raf);
@@ -1756,6 +1854,7 @@ const Timeline = (() => {
   }
 
   function hideCursor() {
+    lightRows(null);
     cursorEl.hidden = true;
     readout.hidden = true;
     hideCard();
@@ -1780,26 +1879,7 @@ const Timeline = (() => {
     if (ser && si >= 0 && ser.hp.avg[si] != null) {
       readout.appendChild(el('div', { class: 'ro-line' }, `actual HP ${fmtX(ser.hp.avg[si])} · ${fmtX(ser.hp.max[si])} max`, el('small', { text: ` · ATK ${fmtX(ser.atk.avg[si])} · ${fmtX(ser.atk.max[si])} max (the rows spawning now, each fixed from its start)` })));
     }
-    const all = App.rosterAt(t);
-    // pass 81 (lane PACE): the rows paced as waves are not in the draw: a line each, with the next wave
-    const rows = all.filter((o) => o.drawn);
-    for (const o of all.filter((x) => x.paced)) {
-      const nx = nextRowWave(o.row, t);
-      readout.appendChild(el('div', { class: 'ro-line' }, el('b', { text: `${App.creatureName(o.row.enemy)} ` }), `waves ${paceChip(o.row, App.creature(o.row.enemy)).text}`, el('small', { text: nx != null ? ` · next ${fmtT(nx)}` : ' · no wave to come' })));
-    }
-    if (rows.length) {
-      readout.appendChild(el('div', { class: 'ro-title', text: 'Roster drawn now' }));
-      const chart = el('div', { class: 'ro-chart' });
-      for (const o of rows.sort((a, b) => a.hell - b.hell || b.norm - a.norm)) {
-        const c = App.creature(o.row.enemy);
-        chart.appendChild(el('div', { class: 'ro-row' + (o.hell ? ' hell' : '') },
-          c ? el('img', { src: App.iconFor(o.row.enemy, o.row.variant), width: 16, height: 16 }) : el('span', { class: 'ro-ico' }),
-          el('span', { class: 'ro-name', text: App.creatureName(o.row.enemy) }),
-          el('span', { class: 'ro-bar' }, el('i', { style: `width:${Math.round(o.norm * 100)}%;background:${App.creatureColor(o.row.enemy)}` })),
-          el('span', { class: 'ro-pct', text: `${Math.round(o.norm * 100)}%` })));
-      }
-      readout.appendChild(chart);
-    } else readout.appendChild(el('div', { class: 'ro-line muted', text: all.length ? 'no row in the continuous draw' : 'no roster row open' }));
+    readoutShares(t);
     const ws = App.wavesAt(t);
     if (ws.length) {
       readout.appendChild(el('div', { class: 'ro-title', text: 'Waves running' }));
@@ -1810,5 +1890,49 @@ const Timeline = (() => {
     place(readout, cx, cy);
   }
 
-  return { mount, render, fit, zoom, viewCenter, scrollToSelection, hideCard, LABEL_W, ALT_COLORS, get spp() { return spp; }, setSnap, toggleSnap, get snapOn() { return snapOn; } };
+  /** The readout's roster block (pass 83, lane TIMELINE): every roster row's and wave's share of the creatures spawned in
+   *  the past N seconds (the estimate), largest first; the rows open now that spawned nothing there dimmed, with their
+   *  next wave when they come as waves; then everything else (swarms, Elites, specials, bosses). */
+  function readoutShares(t) {
+    const win = winAt(t);
+    const rowsAll = App.tl().roster || [];
+    const open = App.rosterAt(t);
+    readout.appendChild(el('div', { class: 'ro-title', title: WIN_HELP }, `Spawned in the past ${winSecs} s`, el('small', { text: win ? ` ${fmtT(win.t0)}–${fmtT(win.t1)} · ≈${fmtCount(win.all)} creatures` : '' })));
+    if (!win) { readout.appendChild(el('div', { class: 'ro-line muted', text: 'the estimate is not drawn yet' })); return; }
+    const items = [];
+    const seen = new Set();
+    rowsAll.forEach((r, i) => {
+      const n = winCount(win, `roster:${i}`);
+      const o = open.find((x) => x.i === i);
+      if (!(n > 1e-6) && !o) return;
+      seen.add(i);
+      items.push({ n, id: r.enemy, variant: r.variant, hell: r.channel === 'hell', paced: Model.rowPaced(r), r, label: App.creatureName(r.enemy) });
+    });
+    (App.tl().waves || []).forEach((wv, i) => {
+      const n = winCount(win, `wave:${i}:`);
+      if (n > 1e-6) items.push({ n, id: wv.enemy || ((wv.alts || [])[0] || {}).enemy, wave: true, label: waveHead(wv) });
+    });
+    items.sort((p, q) => q.n - p.n || (p.label < q.label ? -1 : 1));
+    const chart = el('div', { class: 'ro-chart' });
+    for (const it of items) {
+      const f = win.all > 0 ? it.n / win.all : 0;
+      const nx = it.paced ? nextRowWave(it.r, t) : null;
+      const tag = it.wave ? ' (wave)' : it.paced ? (nx != null ? ` · waves, next ${fmtT(nx)}` : ' · waves') : '';
+      chart.appendChild(el('div', { class: 'ro-row' + (it.hell ? ' hell' : '') + (it.n > 1e-6 ? '' : ' zero'), title: `≈${fmtCount(it.n)} of ≈${fmtCount(win.all)}` },
+        it.id && App.creature(it.id) ? el('img', { src: App.iconFor(it.id, it.variant), width: 16, height: 16 }) : el('span', { class: 'ro-ico' }),
+        el('span', { class: 'ro-name' }, it.label, el('small', { text: tag })),
+        el('span', { class: 'ro-bar' }, el('i', { style: `width:${Math.round(f * 100)}%;background:${it.id ? App.creatureColor(it.id) : '#888'}` })),
+        el('span', { class: 'ro-pct', text: pctText(f) })));
+    }
+    if (win.other > 0.05) {
+      const f = win.all > 0 ? win.other / win.all : 0;
+      chart.appendChild(el('div', { class: 'ro-row other', title: 'swarms, the elite-modified, specials, Elites, bosses, a boss\'s minions and the portal wave' },
+        el('span', { class: 'ro-ico' }), el('span', { class: 'ro-name', text: 'swarms, Elites, specials …' }),
+        el('span', { class: 'ro-bar' }, el('i', { style: `width:${Math.round(f * 100)}%;background:#888` })), el('span', { class: 'ro-pct', text: pctText(f) })));
+    }
+    if (items.length || win.other > 0.05) readout.appendChild(chart);
+    else readout.appendChild(el('div', { class: 'ro-line muted', text: open.length ? 'nothing spawned in that window' : 'no roster row open' }));
+  }
+
+  return { mount, render, fit, zoom, viewCenter, scrollToSelection, hideCard, LABEL_W, ALT_COLORS, get spp() { return spp; }, setSnap, toggleSnap, get snapOn() { return snapOn; }, setWindow, get winSecs() { return winSecs; } };
 })();

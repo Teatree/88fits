@@ -6,7 +6,8 @@
 ##   args: seconds= (measured, default 40), warm= (seconds before measuring, 15), build=six|six_b|none, t= (the clock; by
 ##         default a third of the way into stage 3: 700 s of 300 s stages, 1003 s of Red Canyon's 430 s stages since pass
 ##         46, the same crowd), level= (45), analytics=0, numbers=0 (no damage numbers: the game's DamageNumbers is
-##         suppressed, Settings never touched, so the save keeps the player's switch; pass 47). Headless works too, without
+##         suppressed, Settings never touched, so the save keeps the player's switch; pass 47), shadows=0 (the scenery's
+##         ground shadows hidden, pass 83). Headless works too, without
 ##         the draw calls.
 ## Autoloads are reached through the tree: SceneTree scripts compile before they exist.
 extends SceneTree
@@ -35,6 +36,8 @@ var _frames := 0
 var _analytics := true   # analytics=0: no run recorder (pass 45), the A/B of its cost
 var _numbers := true     # numbers=0: no damage numbers (pass 46), the A/B of their cost (never through Settings: pass 47)
 var _sum := {}
+## shadows=0 (pass 83): the scenery's ground shadows hidden (PropField's GroundShadows), the A/B of their cost
+var _shadows := true
 
 
 func _init() -> void:
@@ -53,6 +56,8 @@ func _init() -> void:
 			_analytics = false
 		elif a == "numbers=0":
 			_numbers = false
+		elif a == "shadows=0":
+			_shadows = false
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -83,6 +88,10 @@ func _tick() -> void:
 		# next save and left the PC without numbers (pass 47)
 		if not _numbers and _game.get("damage_numbers") != null:
 			_game.damage_numbers.suppressed = true
+		if not _shadows and _game.map and _game.map.get("props") != null:
+			var gs: Node = _game.map.get("props").get_node_or_null("GroundShadows")
+			if gs:
+				gs.visible = false
 	var inp = _game.player.input
 	if inp and not _game.paused:
 		inp.wants_move = true

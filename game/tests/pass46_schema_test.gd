@@ -364,12 +364,12 @@ func test_a_variant_may_turn_its_own_way() -> void:
 # ---------------------------------------------------------------- the stats, their names and the stubs
 
 func test_the_new_player_stats_have_defaults_and_names() -> void:
-	assert_float(float(StatSheet.PLAYER_DEFAULTS["hit_invuln"])).is_equal_approx(0.5, 0.0001)
+	assert_float(float(StatSheet.PLAYER_DEFAULTS["hit_invuln"])).is_equal_approx(0.25, 0.0001)  # pass 83: halved
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["revive_hp"])).is_equal_approx(0.5, 0.0001)
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["desperado"])).is_equal(0.0)
 	var sheet := StatSheet.new()
 	sheet.set_bases(StatSheet.PLAYER_DEFAULTS)
-	assert_float(sheet.get_stat("hit_invuln")).is_equal_approx(0.5, 0.0001)
+	assert_float(sheet.get_stat("hit_invuln")).is_equal_approx(0.25, 0.0001)
 	assert_str(TextGen.describe_effect(Effect.make("desperado", "add", 0.3, "player"))).is_equal("up to +30% attack damage as health falls")
 	assert_str(TextGen.describe_effect(Effect.make("revive_hp", "add", 0.25, "player"))).is_equal("+25% health on revive")
 	assert_str(TextGen.describe_effect(Effect.make("hit_invuln", "add", 0.2, "player"))).is_equal("+0.2 s invulnerability after a hit")

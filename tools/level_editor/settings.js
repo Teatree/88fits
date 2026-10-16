@@ -32,6 +32,8 @@ const Settings = (() => {
           else if (def.block === 'xp_curve' && typeof XpCard !== 'undefined') { card.classList.add('xpc-card'); card.appendChild(XpCard.block(tl)); }
           continue;
         }
+        // pass 83 (lane SCALE): a row that only counts in another mode stays out of sight (the pegged Boss HP numbers)
+        if (typeof def.showIf === 'function' && !def.showIf(tl)) continue;
         if (def.type === 'points') { card.appendChild(Forms.row(def, Forms.pointsBlock(tl))); continue; }
         if (def.type === 'path_times') { card.appendChild(Forms.row(def, Forms.pathTimesBlock(tl))); continue; }
         if (def.type === 'curve') { card.appendChild(Forms.row(def, Forms.curveBlock(tl, def.key), { cls: 'wide-ctl' })); continue; }
@@ -52,6 +54,8 @@ const Settings = (() => {
       if (group === 'Coloured specials') card.appendChild(el('p', { class: 'muted small', text: 'The numbers of a coloured special (the rarer, bigger, tougher, glowing one) wherever a creature\'s own Special block (Enemies tab) leaves a box empty; a creature\'s own number always wins, an empty box here is the game\'s default (the grey number). Every creature names its own size, HP and ATK; none names a glow, so Glow here sets all of them.' }));
       // pass 72 (lane BOSS): the references, the chart and the thinking under the Boss HP card's five rows
       if (group === 'Boss HP' && typeof BossScaling !== 'undefined') card.appendChild(BossScaling.block(tl));
+      // pass 83 (lane SCALE): the power formula box, the chart of HP × by power and where the power is charted
+      if (group === 'Hero power' && typeof PowerCard !== 'undefined') { card.classList.add('tall'); card.appendChild(PowerCard.block(tl)); }
       if (group === 'Scaling') card.appendChild(el('p', { class: 'muted small', text: 'An ordinary creature spawns with HP = its hp × the stage multiplier × the HP curve at that second × the hero-level factor × creature_hp_mult, and bites for its damage × the stage multiplier × the damage curve × the hero-level factor × creature_damage_mult. The hover cards on the Timeline show both for any second.' }));
       grid.appendChild(card);
     }

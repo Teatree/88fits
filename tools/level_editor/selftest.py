@@ -417,12 +417,14 @@ def burst_once(rows, start):
     return out
 
 
-def burst_avg(rows, room, lo, hi):
+def burst_avg(rows, room, lo, hi, frac=None):
+    # pass 83 (lane TIMELINE): model.js burstAvg's `frac`, the drawing rows' share of their channel's weight
+    f = 1 if frac is None else frac
     acc = [0.0] * len(rows)
     nb = 0
     last_start, last = None, None
     for b in range(lo, hi + 1):
-        start = min(b, room)
+        start = min(b if f == 1 else b * f, room)
         if start != last_start:
             last = burst_once(rows, start)
             last_start = start
@@ -498,6 +500,19 @@ def row_wave_times_py(r, end, limit=10000):
         if not every > 0:
             break
     return out
+
+
+ROW_INTERVAL_MIN = 0.1
+
+
+def row_has_interval_py(r):
+    """Pass 83 (lane TIMELINE), model.js rowHasInterval / WaveDirector.row_has_interval: `interval` a number above 0."""
+    v = r.get("interval") if is_obj(r) else None
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v > 0
+
+
+def row_draw_interval_py(r, si):
+    return max(float(r["interval"]), ROW_INTERVAL_MIN) if row_has_interval_py(r) else si
 
 
 def stage_length(tl):
@@ -601,7 +616,10 @@ def spawn_estimate(tl, creatures, opts=None):
             roster.append({"r": r, "d": d, "key": "roster:%d" % ri, "t": numv(r.get("t"), 0), "until": until, "hell": r.get("channel") == "hell",
                            "pack": max(trunc(numv(r.get("pack"), d["pack"])), 1), "single": r.get("pattern") == "single",
                            # pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves
-                           "paced": row_paced_py(r), "drawn": row_drawn_py(r), "wk": -1, "owed": 0})
+                           "paced": row_paced_py(r), "drawn": row_drawn_py(r), "wk": -1, "owed": 0,
+                           # pass 83 (lane TIMELINE): a row with its own continuous interval, its clock in steps
+                           "own": row_has_interval_py(r),
+                           "iv_steps": max(1, js_round(row_draw_interval_py(r, 0) * EST_HZ)) if row_has_interval_py(r) else 0, "left": 0})
 
     alive = {}
     sp_live = []
@@ -1052,11 +1070,11 @@ def spawn_estimate(tl, creatures, opts=None):
         sp_live.append({"share": share, "die": S["play"] + life})
         marks.append({"t": clock(), "kind": "special", "id": "/".join(pool), "n": 1})
 
-    def burst_rows(lst, room, left):
+    def burst_rows(lst, room, left, frac=None):
         t = now()
         rows = [{"w": roster_weight(c["x"]["r"], t, late_t), "s": max(c["x"]["d"]["share"], 0.05), "pack": c["x"]["pack"],
                  "single": c["x"]["single"], "room": c["room"]} for c in lst]
-        got = burst_avg(rows, room, b_lo, b_hi)
+        got = burst_avg(rows, room, b_lo, b_hi, frac)
         s = 0.0
         for n in got:
             s += n
@@ -1069,8 +1087,23 @@ def spawn_estimate(tl, creatures, opts=None):
             used += n
         return left - used
 
-    def spawn_burst():
-        row_waves_owed()  # pass 81 (lane PACE)
+    def interval_part(lst, due):
+        # pass 83 (lane TIMELINE): model.js intervalPart
+        t = now()
+        W = P = 0.0
+        sel = []
+        for c in lst:
+            w = roster_weight(c["x"]["r"], t, late_t)
+            W += w
+            mine = any(c["x"] is d for d in due) if due is not None else not c["x"]["own"]
+            if mine:
+                sel.append(c)
+                P += w
+        return sel, (1 if len(sel) == len(lst) else (P / W if W > 0 else 0))
+
+    def spawn_burst(due=None):
+        if due is None:
+            row_waves_owed()  # pass 81 (lane PACE); pass 83: at the spawn check only
         cap = cap_now()
         if cap <= 0:
             return
@@ -1081,14 +1114,28 @@ def spawn_estimate(tl, creatures, opts=None):
         left = hard - bodies()
         if left <= 0:
             return
-        regular = [c for c in open_rows(rows_at(tr, False)) if c["x"]["drawn"]]
+        regular, rf = interval_part([c for c in open_rows(rows_at(tr, False)) if c["x"]["drawn"]], due)
         if room > 0 and regular:
-            left = burst_rows(regular, room, left)
+            left = burst_rows(regular, room, left, rf)
         hell_room = hell_frac() * cap - hl
         if hell_room > 0 and left > 0 and hell_rows:
-            ho = [c for c in open_rows(hell_rows) if c["x"]["drawn"]]
+            ho, hf = interval_part([c for c in open_rows(hell_rows) if c["x"]["drawn"]], due)
             if ho:
-                burst_rows(ho, hell_room, left)
+                burst_rows(ho, hell_room, left, hf)
+
+    def tick_row_intervals():
+        # pass 83 (lane TIMELINE): model.js tickRowIntervals
+        tr = now() if S["phase"] == 0 else now() - 1
+        due = None
+        for x in roster:
+            if not x["own"] or not x["drawn"] or not (x["t"] <= tr < x["until"]):
+                continue
+            x["left"] -= 1
+            if x["left"] <= 0:
+                due = (due or []) + [x]
+                x["left"] = x["iv_steps"]
+        if due:
+            spawn_burst(due)
 
     def portal_wave():
         if portal_wave_count <= 0:
@@ -1163,6 +1210,7 @@ def spawn_estimate(tl, creatures, opts=None):
         if S["spawn_step"] <= 0:
             S["spawn_step"] = burst_every
             spawn_burst()
+        tick_row_intervals()
         if S["phase"] == 2 and S["phase_left"] <= 0:
             S["stage"] += 1
             if S["stage"] >= NST:

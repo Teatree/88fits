@@ -400,6 +400,11 @@ func _on_boss_started(def: EnemyDef) -> void:
 		extra["ref"] = snappedf(float(sc.get("ref", 0.0)), 0.1)
 		extra["mult"] = snappedf(float(sc.get("mult", 1.0)), 0.01)
 		extra["window"] = snappedf(float(sc.get("window", 0.0)), 0.1)
+		# pass 83 (lane SCALE): the seconds mode's numbers (dps is then the hero's full DPS on the boss)
+		if (sc as Dictionary).has("seconds"):
+			extra["mode"] = "seconds"
+			extra["seconds"] = snappedf(float(sc.get("seconds", 0.0)), 0.1)
+			extra["full_dps"] = snappedf(float(sc.get("full_dps", 0.0)), 0.1)
 	var em = game.get("enemies") if game != null and is_instance_valid(game) else null
 	if em != null:
 		var bi = em.get("boss_index")
@@ -684,6 +689,16 @@ func _sample() -> void:
 	if not est.is_empty():
 		row["est"] = est
 	_putf(row, "est_total", est_total)
+	# pass 83 (lane SCALE): the hero's power level and what it is made of (HeroPower: the full DPS on one target, the
+	# effective HP), and the creatures' HP factor it gives on this map (1 = power_hp_scaling off; left off the row at 1)
+	var hpw: Dictionary = HeroPower.measure(Run.weapons, Run.player_sheet)
+	_putf(row, "power", float(hpw["power"]), 0.01)
+	_putf(row, "full_dps", float(hpw["dps"]))
+	_putf(row, "ehp", float(hpw["ehp"]))
+	var pdir = game.get("director") if game != null and is_instance_valid(game) else null
+	var pmul: float = float(pdir.power_hp_mult()) if pdir != null and pdir.has_method("power_hp_mult") else 1.0
+	if absf(pmul - 1.0) > 0.0005:
+		row["power_hp"] = snappedf(pmul, 0.001)
 	# what the second did
 	_put_map(row, "dmg", _dmg, true)
 	_put_map(row, "took", _took, true)
@@ -1401,6 +1416,13 @@ static func map_settings(tl: WaveTimeline) -> Dictionary:
 	if mr is Dictionary:
 		refs.merge(mr, true)
 	bs["ref_dps"] = refs
+	# pass 83 (lane SCALE): the mode as played and every boss's seconds (the defaults under the map's)
+	bs["mode"] = tl.boss_hp_mode()
+	var secs: Dictionary = WaveTimeline.BOSS_SECONDS_DEFAULTS.duplicate()
+	var ms = tl.boss_hp_scaling.get("seconds", {})
+	if ms is Dictionary:
+		secs.merge(ms, true)
+	bs["seconds"] = secs
 	var tp: Dictionary = WaveTimeline.TARGET_PRIORITY_DEFAULTS.duplicate()
 	tp.merge(tl.target_priority, true)
 	var sr: Dictionary = WaveTimeline.SPAWN_RISE_DEFAULTS.duplicate()
@@ -1414,7 +1436,8 @@ static func map_settings(tl: WaveTimeline) -> Dictionary:
 	return {"hero_knockback_mult": tl.hero_knockback_mult, "special_defaults": sd, "boss_hp_scaling": bs,
 		"target_priority": tp, "spawn_rise": sr, "creature_hp_mult": tl.creature_hp_mult,
 		"creature_damage_mult": tl.creature_damage_mult, "creature_speed_mult": tl.creature_speed_mult,
-		"move_pace": tl.move_pace, "xp_need_mult": tl.xp_need_mult, "xp_curve": xc, "water_slow": tl.water_slow, "oases": oa}
+		"move_pace": tl.move_pace, "xp_need_mult": tl.xp_need_mult, "xp_curve": xc, "water_slow": tl.water_slow, "oases": oa,
+		"power_hp_scaling": tl.power_hp_scaling, "power_hp_max": tl.power_hp_max}
 
 
 ## id -> display name for everything the record mentions, so the dashboard needs no content folder.

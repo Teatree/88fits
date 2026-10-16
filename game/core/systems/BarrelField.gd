@@ -38,6 +38,14 @@ var _body_light: MultiMesh
 var _hoops: MultiMesh          # the common barrels' iron hoops
 var _hoops_light: MultiMesh    # the rare barrels' brass hoops (pass 48)
 var _index_in: PackedInt32Array = PackedInt32Array()   # a barrel's instance index inside its body (and hoop) MultiMesh
+## Pass 83 (lane SCENE; Garry: "barrels, signs, and structures too. Want them to feel like they are part of the world"):
+## each barrel stands on a ground shadow in the scenery's shadow MultiMesh (PropField.add_shadow, the map's props), this
+## wide and deep (metres), this dark, shifted by the sun for a thing SHADOW_TALL high; gone when the barrel breaks.
+const SHADOW_W := 0.95
+const SHADOW_D := 0.66
+const SHADOW_A := 0.5
+const SHADOW_TALL := 0.9
+var shadows: PackedInt32Array = PackedInt32Array()
 var _part_xf: Dictionary = {}   # "body" / "hoops" -> Transform3D: where each part stands inside the model (pass 53)
 
 
@@ -72,6 +80,15 @@ func setup(p_game: Node, p_map: MapBase) -> void:
 			_hoops_light.set_instance_transform(kl, instance_transform(i, "hoops"))
 			_index_in.append(kl)
 			kl += 1
+	_add_shadows()
+
+
+## The barrels' ground shadows (pass 83), one each in the map's scenery shadows; none on a map without props.
+func _add_shadows() -> void:
+	shadows.clear()
+	var props = map.get("props") if map else null
+	for i in pos.size():
+		shadows.append(props.add_shadow(pos[i], SHADOW_W, SHADOW_D, SHADOW_A, SHADOW_TALL) if props is PropField else -1)
 
 
 ## A barrel's own place on the map: turned by its index (no two face the same way), standing on its spot.
@@ -305,6 +322,8 @@ func _break(i: int) -> void:
 		_body_light.set_instance_transform(_index_in[i], gone)
 		if _hoops_light:
 			_hoops_light.set_instance_transform(_index_in[i], gone)
+	if i < shadows.size() and shadows[i] >= 0 and map and map.get("props") is PropField:
+		(map.get("props") as PropField).hide_shadow(shadows[i])
 	var wood := LIGHT if light[i] == 1 else DARK
 	if game.fx:
 		# staves, hoop pieces and a cloud of dust, big enough to read from the camera's height (a rare one's are black

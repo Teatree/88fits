@@ -135,6 +135,8 @@ func load_save() -> void:
 		_dirty = true
 		_due_ms = 0
 	_migrate()
+	# pass 83 (lane META): a hero this save had freed by his quest, who is bought now, stays its own
+	_keep_freed_heroes()
 	# content can disappear between versions (heroes come and go): never point at a missing id
 	if not Registry.characters.has(str(data.get("last_character", ""))):
 		data["last_character"] = DEFAULT_HERO if Registry.characters.has(DEFAULT_HERO) else (Registry.sorted_characters()[0].id if not Registry.characters.is_empty() else DEFAULT_HERO)
@@ -624,6 +626,22 @@ func heroes_owned() -> Array:
 ## Whether hero `id` has been bought (Registry.hero_state says whether he is owned: a free one always is).
 func owns_hero(id: String) -> bool:
 	return heroes_owned().has(id)
+
+
+## Heroes who were free once their quest was done and are bought now (pass 83, lane META): hero id -> the quest that
+## freed him. Ironwood was free after 2,500 kills until pass 83 made him one of the two heroes sold for gold alone (his
+## quest retired): a save that had done it owns him (listed in heroes_owned, nothing spent). Idempotent, every load.
+const FREED_BY_QUEST := {"ironwood": "unlock_ironwood"}
+
+
+func _keep_freed_heroes() -> void:
+	var done = data.get("quests_done")
+	if not (done is Array):
+		return
+	for id: String in FREED_BY_QUEST.keys():
+		if (done as Array).has(FREED_BY_QUEST[id]) and not owns_hero(id):
+			heroes_owned().append(id)
+			request_save(true)
 
 
 ## Buys hero `c` (pass 69, Garry: "After the requirements are met the heroes will become available to unlock by buying

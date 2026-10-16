@@ -24,7 +24,7 @@ const AssetsModel = (() => {
     freeze_chance: 0, crit_heal_chance: 0, gold_on_hit: 0, greed: 1, lifesteal: 0, revives: 0, turn_rate: 180, rerolls: 1, skips: 2, banishes: 1,
     crit_chance: 0.01, crit_damage: 2, execute_frac: 0, thorns: 0, adrenaline_speed: 0, adrenaline_might: 0, overkill: 0, cooldown_on_kill: 0, xp_gain: 1, ricochet: 0, homing_turn: 1, haste: 1,
     evade: 0, evade_invuln: 0, shield_max: 0, shield_delay: 3, shield_rate: 0.5, regen_delay: 3, lifesteal_cap: 0.04, heal_drop: 0, coin_drop: 0,
-    hit_invuln: 0.5, revive_hp: 0.5, desperado: 0, debuff_duration: 1, difficulty: 0, still_regen: 0, still_might: 0, barrel_speed: 0, barrel_seconds: 0, xp_drop_chance: 0, elite_damage: 0,
+    hit_invuln: 0.25, revive_hp: 0.5, desperado: 0, debuff_duration: 1, difficulty: 0, still_regen: 0, still_might: 0, barrel_speed: 0, barrel_seconds: 0, xp_drop_chance: 0, elite_damage: 0,
     phoenix_revive: 0, hurt_speed: 0, hurt_speed_seconds: 0, powder_keg_chance: 0, coin_on_hit: 0, gas_mask_cap: 0, kill_might: 0, buff_duration: 1, heal_mult: 1, powerup_duration: 1, powerup_chance: 1,
     // pass 69 (lane PAS): Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand, the Magnet's EXP pulls
     counter_damage: 0, counter_haste: 0, counter_speed: 0, counter_seconds: 0, heavyweight: 0, overheal: 0, heal_pulse: 0, last_stand: 0, xp_pull_radius: 0, xp_pull_rate: 0,

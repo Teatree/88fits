@@ -120,6 +120,12 @@ var _poll_t := 0.0
 var _mats: Dictionary = {}
 var _sign_mats: Dictionary = {}
 var _font: Font
+## Pass 83 (lane SCENE): each post stands on a ground shadow in the map's scenery shadows (PropField.add_shadow): this wide
+## and deep (metres: the post and the boards' reach over it), this dark, shifted by the sun for the drawn post's height.
+const SHADOW_W := 1.25
+const SHADOW_D := 0.8
+const SHADOW_A := 0.42
+var shadows: PackedInt32Array = PackedInt32Array()
 
 
 ## A field named "Signs" under `p_game`, set up on `p_map` (the one line Game._ready calls, through preload).
@@ -335,6 +341,10 @@ func _build_sign(k: int, meshes: Dictionary) -> void:
 	var obstacles = map.get("obstacles")
 	if obstacles is Array:
 		(obstacles as Array).append(Vector3(at.x, at.z, OBSTACLE_R))
+	# pass 83: its ground shadow (no draw of the field's own, no roll: the layout is the seed's as before)
+	var props = map.get("props")
+	if props is PropField:
+		shadows.append((props as PropField).add_shadow(at, SHADOW_W, SHADOW_D, SHADOW_A, POST_H * SCALE * STRETCH))
 	var want := _rng.randi_range(1, MAX_ARMS)
 	var targets := nearest_unused(at, want, ARM_APART_DEG)
 	var lean := 1.0

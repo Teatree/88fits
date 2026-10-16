@@ -94,7 +94,7 @@ LEVEL_SERIES = ("hp", "hp_max", "est", "alive", "cap", "press_hp", "press_dmg", 
 # pass 82 (lane STATS): chests, powerups, totems: sim_run.gd's pickups so far (its pickup_kind(); sim_model.js pickupKind())
 CUM_SERIES = ("gold_total", "kills", "xp_total", "deaths", "dmg_total", "chests", "powerups", "totems")
 RATE_SERIES = ("dps", "took", "healed", "hits", "spawned")
-BAND_SERIES = ("hp", "dps", "level", "press_hp", "press_dmg", "danger", "near3", "near6")
+BAND_SERIES = ("hp", "dps", "level", "press_hp", "press_dmg", "danger", "near3", "near6", "power")
 # ratios (a crowd over a DPS) blow up where the DPS is small: their middle value and band, never a mean
 MEDIAN_SERIES = ("keep_up", "boss_s")
 RATE_WINDOW = 10   # seconds the per-second counts (kills, spawns, hits) are smoothed over, as the run dashboard's 10 s means

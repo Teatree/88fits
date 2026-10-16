@@ -38,7 +38,7 @@ favourite_bonus = {
 }
 start_weapon = "big_mouth"
 availability = "purchase"
-price = 1750
+price = 2500
 sprite = ExtResource("7_tlaal")
 sprite_file = "may_sprite_p.png"
 anims = {

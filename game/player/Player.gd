@@ -911,7 +911,7 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	# point for every poisoned creature alive, up to its cap (Run.gas_mask_dr), under the same cap
 	var dr := clampf(sheet.get_stat("damage_reduction", 0.0) + Run.gas_mask_dr(), 0.0, 0.8)
 	var dealt: float = amount * (1.0 - dr)
-	invuln = sheet.get_stat("hit_invuln", 0.5)
+	invuln = sheet.get_stat("hit_invuln", 0.25)
 	# Unbroken (pass 46, Ironwood): a hit never stops his healing (Siesta's either, pass 47)
 	if not Run.has_perk("unbroken"):
 		# never under the floor (pass 61: Ironwood's delay shrinks every level; the sheet floors it as well)
@@ -984,7 +984,7 @@ func _star_guard_sync() -> void:
 func _star_block(amount: float, info: Dictionary) -> bool:
 	if star_guard == null or not star_guard.try_block():
 		return false
-	invuln = maxf(invuln, sheet.get_stat("hit_invuln", 0.5))
+	invuln = maxf(invuln, sheet.get_stat("hit_invuln", 0.25))
 	_log_hit(amount, 0.0, 0.0, info, "star")
 	last_outcome = "shield"
 	if DamageNumbers.I: DamageNumbers.I.hero_block()

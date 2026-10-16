@@ -9,7 +9,7 @@
 [sub_resource type="Resource" id="Resource_txfy4"]
 script = ExtResource("1_nmbfl")
 stat = "thorns"
-value = 5.0
+value = 2.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_s1lxg"]
@@ -28,7 +28,7 @@ forms = [{
 "icon": ExtResource("2_txfy4"),
 "icon_file": "spite_0_icon.png",
 "name": "Thorns",
-"text": "+5 thorns a rank."
+"text": "+2 thorns a rank."
 }, {
 "effects": [SubResource("Resource_s1lxg")],
 "icon": ExtResource("3_s1lxg"),

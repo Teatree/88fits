@@ -2262,3 +2262,140 @@ howto/03_remote_runs.md, README.md, SCHEMA.md), a line in "Where the runs come f
 three counts. Checks: selftest_STATS82 (rule, series, JS = Python averages, the chart, the CSV twins, the page and the
 README), game/tests/pass82_stats_test.gd, a real 3-run sim (tools/dl/sim/runs/p82-stats-check) seen in the Sim tab, the
 dashboard in Chrome with local runs, three opened runs averaged and the remote run.
+
+**Pass 83 (2026-10-16, v0.69): carved totem segments, heroes' requirements, Thorns nerfed, a composed title scene with shadows under everything, boss HP by seconds of full DPS, the hero's power, who spawns in the Timeline.** Garry: icons for every totem gift as parts of the column and a clean top; "Most of the locked [heroes] have requirements, 2 are only unlocked for money"; hero items hidden in the Collection until the hero is unlocked; "The Thorn Mirror Upgrade is way too OP"; the main menu "looks barren", variants of the environment art and "a simple shadow underneath" everything; "Sand - I am choosing Rip+P"; invulnerability after a hit halved; boss HP "at least 25 seconds of Player's FULL DPS on Tumbleweed king ... 40s ... a full minute"; enemy HP scaled by the hero's power level (defined, charted, explained in the Level Editor, 1 = none); in the Timeline the % of who spawns on hover and on the notches, a continuous row's interval, the highlight as the share of the past N seconds, the Share lane removed; and a critique of the spawning system with a Timeline redesign (answered in chat; built in pass 84). Five lanes (tools/dl/p83/INTERFACES.md): TOTEM, META, SCENE, SCALE, TIMELINE. The lead halved the invulnerability, set the sand, made rounds hit big bodies where they are drawn and re-pinned three tests to Garry's map edits.
+
+Lane TOTEM (pass 83; Garry: "generate (with local AI, without creating a method for it in LevelEditor) icons for each
+of the types of Upgrades that the Totem can give ... The icons should make sense as a part of the column. The top bit
+... should have it's transparency fixed and look better. The idea is that the buttons represent parts of the column"):
+all eleven Totem gifts (wolf, whale, bear, thunderbird, seal, salmon, frog, killer whale, bullhead, raven, two-headed
+serpent) have a carved segment painted with Flux.2 Klein by the scratch generator tools/gen_totem_icons.py (no Level
+Editor method): each spirit's carved, painted head on a green screen in the in-play pole painting's style (reference
+tools/dl/icons_le_j20261014-005810-ba60/totem_pole_c2.png), keyed with clean alpha and laid on ONE shared cedar block
+(the grain of a painted bare log on a symmetric cylinder shade with a carved groove top and bottom), so every segment
+has the same wood, edges and depth; a motif says the gift (claw marks for damage, wind streaks for speed, a heart for
+HP, lightning for cooldown, a horseshoe magnet for pickup radius, water drops and hearts for regen, a gem for XP, a
+dorsal blade for crit, a shield for damage reduction, a golden sun for luck, rings for area). Lessons: whole-square
+paintings gave plank fences, barrels and neighbouring faces round the head (keyed heads on one block fixed it); a
+picked head used as a second reference made every animal a bear (round ears on the thunderbird), so the heads were
+painted from the pole alone with "NO EARS ... not a bear" words. The crest was repainted (green screen, keyed clean,
+the bare post under the wings cut off). The Spirit Pole screen: the segment fills its plate inside the ink border with
+the carved inset over it, a cedar post between the segments and a cedar plinth make one column, the crest sits centred
+on it. touch_audit's totem state waits for the gifts to land (a hit-stop's time scale made its 0.8 s timer end 60 ms
+after the open) and a gift also takes a finger by the clock once its motion should have landed.
+
+Lane META (pass 83): heroes' requirements and prices, hero items hidden in the Collection, Thorns nerfed. Garry: "Most of
+the locked [heroes] have requirements - 2 are only unlocked for money" -> the Drifter is the only free hero; Ironwood
+(availability available -> purchase, his 2,500-kill quest retired to tools/level_editor/backups/deleted/) and Astro are
+sold for gold alone (300 each: the first runs' purse buys them), every later hero needs his quest then his price:
+Calavera the King (300), Solenne extract after stage 2 (1,500), Fadeaway a new quest unlock_fadeaway "Kill 3 Saiga
+Snipers" (1,750, was money only at 1,000), Jeżyk 15 minutes (2,000, was 1,250), May level 30 (2,500, was 1,750). A save
+that had done unlock_ironwood keeps him (Save.FREED_BY_QUEST, every load). Item quests reviewed against the timeline and
+the sims' per-run kills: no change (items are never bought; a hero's favourite and start weapon ignore quests). "Items
+that are hero specific should be hidden in the Collections Menu if that hero is not unlocked" ->
+CollectionScreen.item_hero / hero_item_hidden: a hero weapon and its evolution, hero mutations and perks are left out
+(tiles, counts, a weapon page's hero mutations) until the hero is owned. "The Thorn Mirror Upgrade is way too OP" ->
+Spite/Thorns +5 -> +2 thorns a rank; Game._thorns_burst: thorns at most once every 0.5 s (THORNS_COOLDOWN, pass 82's
+rate, so the halved invulnerability does not double them), the damage recorded as "thorns" (Results row, run record,
+DPS window; no life steal). Face-tank probe (game/tools/_p83_META_thorns.gd): thorns' share of damage by 5:00 at three
+ranks 66 % -> 20 %, at six 35 % -> 19 %. Tests pass83_meta_test (8); re-pinned pass69_ui_test (Astro is the money-only
+hero the purchase tests use), pass76_ui_test and pass72_results_test (Adrenaline / the Tumbleweed's quests in place of
+Ironwood's), pass46_passives_test and pass53_items_test (the heroes owned around the Collection checks).
+
+**Lane SCENE (pass 83): a composed title scene, eight prop variants and a new bush, ground shadows under all the
+scenery.** Garry: "Main Menu background scene, looks barren ... add some variation to our environment art ... add a
+simple shadow underneath the environment 2.5d things ... barrels, signs, and structures too." *Variants*: tools/gen_prop_variants.py
+paints candidates with Flux.2 Klein from two references (the style anchor and the original prop's own raw render),
+finishes them exactly as gen_props does (fit, warm thin outline, mute) and writes review sheets (on sand, at run size
+and 2x); picks by eye after three rounds for the weak ones (the first agaves curled into spiders, the first boulders and
+"young" joshua trees copied the reference's silhouette, the first dead shrubs grew trunks): agave_b (a compact silvery
+blue rosette), barrel_cactus_b (a pair with red hooked spines and yellow crowns), ocotillo_b (a sparse open V in leaf,
+red tips on two stems),
+boulder_b (a balanced rock on a pedestal), desert_bush_b (sage in full purple bloom, weight 0.5), dead_shrub_b (a low wide mound of
+dry twigs), joshua_tree_b (open, spreading) and joshua_tree_c (dense crown, a hanging branch; both from the "old wide"
+prompt, the Y-shaped young tree looked like a slingshot), and the new kind brittlebush (silver leaves, yellow daisies;
+a bunchgrass was painted too and read as wheat). props.json `variant_of` (+ `weight`) registers a variant;
+PropField.add(kind) draws the kind or a variant by a hash of the spot (pick_look), never the map's roll, so every seed's
+layout, colliders and the tests that pin it stand; `placed` rows keep the kind's id and gain `look`; add(..., exact)
+draws the named painting itself (the title, captures). A run-size sheet of each original beside its variant sent the
+ocotillo and the desert bush back for a fourth round (orange tips and lavender dots vanished at run size). The brittlebush
+joined the bush patches, the oasis greenery and the tree stands' undergrowth (pass61_map_test's BUSHES re-pinned on
+purpose). *Shadows*: core/shaders/ground_shadow.gdshader (a soft ellipse in the creatures' blob colour) in one MultiMesh
+per PropField ("GroundShadows", draped on the slopes with EnemyManager.drape, the creatures' SHADOW_PRIORITY so gems and
+coins draw over it); each painting's size from props.json `shadow` {w, d, x, z, a}, measured by tools/prop_shadows.py
+(foot and lower-body widths; z puts the centre under the painted foot, which stands ~6% up its quad, over sin 46 deg)
+and tuned by eye over three sheets (too faint and hidden behind the paintings at first: 1.45x the measured width, 0.7
+deep, a flatter core). Shadows lean right away from the paintings' upper-left light (SUN_SHIFT). The barrels
+(BarrelField.shadows, hidden on a break), the sign posts (SignField.shadows) and the structures (Structure.shadow; the
+Strongbox's shrinks as it lifts and grows in as one comes down, StructureManager.shadow_k) add theirs to the map's same
+MultiMesh through PropField.add_shadow: all the scenery's shadows are one draw. The shadow data is kept CPU-side
+(a MultiMesh's buffer is never read back). *Title*: TitleStage.compose() reads art/ui/title_scene.json (per map: a box
+round the hero's spot whose scatter is removed, PropField.remove_where, and the paintings laid by hand), composed by eye
+over five rounds at 1080x1920, with the 130 px camera inset and at a 9:20 phone (the capture sets the phone's "expand"
+stretch): a joshua tree and a saguaro framing the title, a low group either side of the hero, a dry shrub between them
+for depth clear of the tagline even with the inset, a bush at each corner of his feet, faint shapes on the horizon under
+the wash. The menus' backdrop jpg is that scene without the hero (new tools/menu_backdrop.gd; wanted_shots' arena still
+only with only=backdrop_arena). perf_late (build six, 504x1122, fixed 60): 10.70 ms a frame without the shadows against
+11.00 with them over four samples each, inside each run's own spread (10.1-11.3), render CPU +0.03 ms, +1 draw call.
+
+**Boss HP by seconds of full DPS, the hero's power, enemy HP by power (lane SCALE).** Garry: "Fix the Boss HP. I want it
+to take at least 25 seconds of Player's FULL DPS on Tumbleweed king to kill it. Then 40s for the next and a full minute
+to the last one" and "add a modifier for the enemy HP scaling with the power level of the Player". What had gone wrong:
+pass 72 pegged a boss to the hero's recent real DPS against a reference (King 600, Gila 4,500, Brander 20,000); the map
+had references ten times those (6,000 / 45,000 / 200,000), and in that rule a bigger reference makes a boss softer, so
+every boss came at the floor (×0.75: a 1,080-HP King). New `core/systems/HeroPower.gd`: full DPS (every weapon's estimate
+with its crowd guess divided out, burns kept up, the average crit; on a boss Big Game Hunter too), effective HP ((max HP +
+shield + 30 s of regen and lifesteal) ÷ ((1 − armour)(1 − evade))) and power = √(full DPS ÷ 20.4 × effective HP ÷ 100),
+a fresh level-1 Drifter = 1. `boss_hp_scaling.mode` "seconds" (the game's default now; "dps" keeps pass 72's rule) with
+`seconds` per boss (25 / 40 / 60, in red_canyon.json): HP = max(data HP, full DPS × seconds × (1 − damage reduction))
+(WaveDirector.boss_seconds_target, EnemyManager.boss_hp_target). `power_hp_scaling` (1 = none) and `power_hp_max` (10):
+creature HP × power^(s − 1), folded into the hero-level factor a row fixes at its first spawn. The power is recorded
+every second (`power`, `full_dps`, `ehp`, `power_hp`; SCHEMA.md) and charted: the run dashboard's "Hero power" card,
+the Sim's and the averages' / Remote runs' "Hero power" chart (sim_run.gd / sim_avg.js / sim_model.js series `power`,
+a band series), the Watch (a Power button over its first chart, or P). Level Editor: the Boss HP card rewritten (the
+mode on top, a "How it works" box with the King worked through and the reference trap named, a row of seconds a boss
+with its data HP and a tuned build's HP, a chart of boss HP against full DPS; the pegged numbers show only in that mode
+via a new `showIf` on fields), a new Hero power card (the two numbers, "How power is calculated", a chart of the HP ×
+against the power) and an Instructions section. Measured with game/tools/_p83_SCALE_boss_probe.gd (difficulty_probe's
+builds, the boss held still in front of the hero): every kill took at least its seconds (King 29-42 s, Gila 45-94 s,
+Brander 81-239 s); the extra is shots that miss a big body (a projectile hits only within its radius + 0.35 m of a
+creature's centre, so the Tommy Gun's scattered rounds land 10-25% on a boss), blades and orbits out of reach, the
+Salt where the boss never walks. Tests pass83_scale_test.gd; pass72_boss_test / pass72_integ_test name the pegged mode;
+selftest_SCALE83.py and selftest_BOSS (the mode row).
+
+#### How to set it up in the Level Editor (for Garry)
+Open **Settings** and find the **Boss HP** card. "Boss HP is set by" should say **seconds of full DPS** (it is the default
+now). Under "Seconds of full DPS (each boss)" each boss has one number: the King 25, the Gila 40, the Brander 60. That
+number is how many seconds the boss lasts if every single shot of the hero lands on it: when the boss arrives, the game
+takes the hero's full DPS at that moment and multiplies it by the seconds, and that is the boss's HP (never less than its
+normal HP). Want a tougher boss? Raise its seconds. A real fight always lasts longer than the number, because nobody lands
+every shot. The "How it works" box at the top of the card works the King through (a 300-full-DPS hero meets a 7,500-HP
+King), and the chart under the rows shows the boss's HP for any full DPS (hover it). The old numbers (exponent, window,
+floor, ceiling and the reference DPS) belong to the other choice, "pegged to recent DPS", and only show when you pick it;
+there, a bigger reference made the boss softer, which is why the King died in seconds with 6,000. Next to it, the
+**Hero power** card explains how the hero's power is calculated and holds "Enemy HP by power": leave it at 1 for no
+scaling, 1.5 makes creatures' HP grow with the square root of his power, 2 in step with it.
+
+**Lane TIMELINE (pass 83): who spawns, on the Timeline.** Garry: "now that we added waves the highlight doesn't seem to
+show which enemies are going to be spawning ... if I hover over enemies and specifically over those yellow notches it
+actually shows the % of enemies that will be spawning. And for Continuous spawning, I would still like to control the
+interval ... the notches on the enemy node should reflect that ... the highlight actually just shows the share of roster
+draw as the % of enemies that spawned in the past 5 seconds (controllable value next to 'snap on') ... Remove the 'Share
+section'". The readout's "Roster drawn now" had shown only the continuous rows' weight shares (pass 81 left the waves rows
+out of the draw), so with Red Canyon's rows mostly paced as waves it named Goblin Runt 100% while the Red Goblin waves
+brought most of the crowd. Now: a roster row may carry `interval` (the row form's **Draw every (s)**; absent = the map's
+spawn check, today's path and dice): WaveDirector draws it on its own real-time clock from its start
+(`_tick_row_intervals`), each draw a burst cut to its share of the channel's weight (`_interval_part`; a cut burst below
+one creature brings one with that chance), so half the interval brings about twice as much and the other rows keep their
+rate; least 0.1 s. A continuous row's etches are ticks at each draw (the spawn check's rhythm or its own clock), dotted
+where under 3 px apart. Every share the page shows is the % of all creatures spawned in the **past N seconds** (a box
+next to Snap on, default 5, remembered by the browser) read off the Spawned so far estimate (`Model.windowShares`; the
+estimate and its Python copy in selftest.py play the own clocks): the readout lists every row and wave with its share
+(0% dimmed, swarms/Elites/specials/bosses as "other"), the roster bars that spawned nothing in the window dim on the lane,
+a bar's card gives its share, a wave tick its count and its share of the N seconds from it (how many the cap let in), a
+draw tick how often and how much. The Share lane, its table, its legend and its CSS are gone. Files: WaveDirector.gd
+(new section + hooks in `_process`, `start`, `_spawn_burst`, `_burst_from`), model.js, selftest.py (the Python
+estimate), timeline.js, index.html, fields.js, inspector.js, app.js, style.css, instructions.js; tests
+`game/tests/pass83_timeline_test.gd` (7), `tools/level_editor/selftest_TIMELINE83.py` (47 checks). docs/level_editor.md
+needs: the Timeline tab's Share lane paragraph out; the roster lane's etches (draw ticks, dotted under 3 px); the window
+box; the readout's "Spawned in the past N s"; the cards; the row form's Draw every; waves_schema.md: `interval` (keys_TIMELINE.md).

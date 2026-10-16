@@ -24,7 +24,7 @@ const PLAYER_DEFAULTS := {
 	"regen_delay": 3.0, "lifesteal_cap": 0.04, "heal_drop": 0.0, "coin_drop": 0.0,
 	# pass 46: the untouchable seconds after a hit, the share of max HP a revive stands up with, and Desperado (up to
 	# this much more attack damage as health falls)
-	"hit_invuln": 0.5, "revive_hp": 0.5, "desperado": 0.0,
+	"hit_invuln": 0.25, "revive_hp": 0.5, "desperado": 0.0,
 	# pass 47, the new lines and passive items (each read by the system it names): Ducktape's longer burns, poison, slows,
 	# marks and pins (a multiplier); Hot Sauce's difficulty (coloured creatures more often, better paid); Siesta's regen
 	# and Steady Hand's attack damage a second while the hero stands still (Run.note_still); Barrel Rush's speed and its

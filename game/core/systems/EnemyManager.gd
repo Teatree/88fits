@@ -1230,6 +1230,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		hp[i] = def.hp * extra * max(stage_mult, 1.0)
 		# pass 72 (lane BOSS): pegged to the hero's DPS (the director holds boss_hp_scale around the spawn, else 1)
 		hp[i] *= boss_hp_scale
+		# pass 83 (lane SCALE): the seconds mode's floor, the hero's full DPS x the boss's seconds (0 = none)
+		hp[i] = maxf(hp[i], boss_hp_target)
 		max_hp[i] = hp[i]
 		boss_spawned.emit(def)
 		boss_hp_changed.emit(hp[i], max_hp[i])
@@ -2780,6 +2782,35 @@ func indices_in_radius(center: Vector3, r: float) -> PackedInt32Array:
 				var dx := pos[i].x - center.x
 				var dz := pos[i].z - center.z
 				if dx * dx + dz * dz <= r2:
+					out.append(i)
+				i = _g_next[i]
+	return out
+
+
+## A round's touch (pass 83, the lead; lane SCALE found the King's 2.2 m body let scattered rounds through): the creatures
+## whose BODY a round of radius `r` at `center` touches, the reach being r + max(`pad`, the creature's radius - BODY_SLACK).
+## For an ordinary creature (radius up to pad + BODY_SLACK = 0.5 m) this is exactly indices_in_radius(center, r + pad), as
+## before; a bigger body (a boss, a beetle, a golem) is hit wherever it is drawn.
+const BODY_SLACK := 0.15
+
+
+func indices_touching(center: Vector3, r: float, pad: float) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	if _gw == 0:
+		return out
+	var reach := r + maxf(pad, _max_r - BODY_SLACK)
+	var x0 := _gcol(center.x - reach)
+	var x1 := _gcol(center.x + reach)
+	var z0 := _gcol(center.z - reach)
+	var z1 := _gcol(center.z + reach)
+	for cx in range(x0, x1 + 1):
+		for cz in range(z0, z1 + 1):
+			var i := _g_head[cz * _gw + cx]
+			while i >= 0:
+				var dx := pos[i].x - center.x
+				var dz := pos[i].z - center.z
+				var ri := r + maxf(pad, radius[i] - BODY_SLACK)
+				if dx * dx + dz * dz <= ri * ri:
 					out.append(i)
 				i = _g_next[i]
 	return out
@@ -5732,6 +5763,9 @@ func _sniper_fx_node() -> SniperFx:
 ## Boss HP pegged to the hero's DPS (pass 72): the multiplier the next boss spawn takes, held by the director around it
 ## (WaveDirector.boss_dps_scale), 1 otherwise.
 var boss_hp_scale := 1.0
+## Pass 83 (lane SCALE): the least HP the next boss spawn comes with (WaveDirector.boss_seconds_target, held around
+## the spawn), 0 otherwise.
+var boss_hp_target := 0.0
 var _custom_runs: Array = []
 var _custom_cache: Dictionary = {}     # a def's instance id -> [its attacks list, the resolved list]
 var _custom_aim: Dictionary = {}       # creature -> {serial, aim, center}: what the wind-up showed, fixed for the fire

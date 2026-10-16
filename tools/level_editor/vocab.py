@@ -188,7 +188,7 @@ PLAYER_DEFAULTS = {
     "execute_frac": 0.0, "thorns": 0.0, "adrenaline_speed": 0.0, "adrenaline_might": 0.0, "overkill": 0.0,
     "cooldown_on_kill": 0.0, "xp_gain": 1.0, "ricochet": 0.0, "homing_turn": 1.0, "haste": 1.0, "evade": 0.0,
     "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5, "regen_delay": 3.0,
-    "lifesteal_cap": 0.04, "heal_drop": 0.0, "coin_drop": 0.0, "hit_invuln": 0.5, "revive_hp": 0.5, "desperado": 0.0,
+    "lifesteal_cap": 0.04, "heal_drop": 0.0, "coin_drop": 0.0, "hit_invuln": 0.25, "revive_hp": 0.5, "desperado": 0.0,
     "debuff_duration": 1.0, "difficulty": 0.0, "still_regen": 0.0, "still_might": 0.0, "barrel_speed": 0.0,
     "barrel_seconds": 0.0, "xp_drop_chance": 0.0, "elite_damage": 0.0, "phoenix_revive": 0.0, "hurt_speed": 0.0,
     "hurt_speed_seconds": 0.0, "powder_keg_chance": 0.0, "coin_on_hit": 0.0, "gas_mask_cap": 0.0, "kill_might": 0.0,

@@ -286,6 +286,60 @@ func boss_dps_window() -> float:
 	return float(boss_hp_scaling.get("window", BOSS_HP_SCALING_DEFAULTS["window"]))
 
 
+## Pass 83 (lane SCALE; Garry: "I want it to take at least 25 seconds of Player's FULL DPS on Tumbleweed king to kill
+## it. Then 40s for the next and a full minute to the last one"): boss_hp_scaling.mode "seconds" (the game's default
+## now) gives a boss arriving through the director HP = max(its data HP as before, the hero's FULL DPS on it x its
+## `seconds`), FULL DPS = HeroPower.full_dps(boss = true): every weapon's damage a second on one target every shot hits,
+## crits and Big Game Hunter in (WaveDirector.boss_seconds_target). "dps" plays pass 72's peg to the recent real DPS
+## (exponent, window, min, max, ref_dps); those keys do nothing in "seconds". A boss with no `seconds` (0) keeps its
+## data HP. The debug arena never scales.
+const BOSS_HP_MODE_DEFAULT := "seconds"
+const BOSS_SECONDS_DEFAULTS := {"tumbleweed_king": 25.0, "gila_grande": 40.0, "brander": 60.0}
+
+
+## The mode boss_hp_scaling plays: "seconds" or "dps" (anything else, or none, = BOSS_HP_MODE_DEFAULT).
+func boss_hp_mode() -> String:
+	var m := str(boss_hp_scaling.get("mode", BOSS_HP_MODE_DEFAULT))
+	return m if m == "seconds" or m == "dps" else BOSS_HP_MODE_DEFAULT
+
+
+## The seconds of full DPS boss `id` should take (boss_hp_scaling.seconds, else BOSS_SECONDS_DEFAULTS', else 0 = never).
+func boss_seconds(id: String) -> float:
+	var s = boss_hp_scaling.get("seconds", {})
+	if s is Dictionary and (s as Dictionary).has(id):
+		return maxf(float(s[id]), 0.0)
+	return float(BOSS_SECONDS_DEFAULTS.get(id, 0.0))
+
+
+## The seconds mode's HP: max(the data HP `base`, `full_dps` x `seconds` x (1 - the boss's damage reduction `dr`), so the
+## kill takes `seconds` of full DPS after its armour); `base` when seconds or the DPS is 0.
+static func boss_seconds_hp(base: float, full_dps: float, seconds: float, dr: float = 0.0) -> float:
+	if seconds <= 0.0 or full_dps <= 0.0:
+		return base
+	return maxf(base, full_dps * (1.0 - clampf(dr, 0.0, 0.95)) * seconds)
+
+
+## Pass 83 (lane SCALE; Garry: "add a modifier for the enemy HP scaling with the power level of the Player ... the higher
+## the Player power level the higher the HP. Default scaling is 1, meaning no scaling at all"): every ordinary creature's
+## HP (never a boss nor an Elite by its kind; Elite-modded creatures yes) times power_hp_factor(power_hp_scaling,
+## power_hp_max, the hero's power (HeroPower)), read when a roster row, a wave or an event fixes its numbers (with the
+## hero-level factor: pass 58's "the same wave does not change on the fly"). 1 = no scaling.
+const POWER_HP_SCALING_DEFAULT := 1.0
+const POWER_HP_MAX_DEFAULT := 10.0
+@export var power_hp_scaling: float = POWER_HP_SCALING_DEFAULT
+@export var power_hp_max: float = POWER_HP_MAX_DEFAULT
+
+
+## HP x power ^ (scaling - 1), held between 1 / ceiling and the ceiling: scaling 1 = x1 at any power; 2 = the HP grows in
+## step with the power (power 4: x4); 1.5 = with its square root (power 4: x2); below 1 the creatures soften as he grows.
+## Power 1 (a fresh level-1 Drifter) is x1 at any scaling.
+static func power_hp_factor(scaling: float, ceiling: float, power: float) -> float:
+	if absf(scaling - 1.0) < 0.000001:
+		return 1.0
+	var hi := maxf(ceiling, 1.0)
+	return clampf(pow(maxf(power, 0.01), scaling - 1.0), 1.0 / hi, hi)
+
+
 func stage_mult(stage_index: int, seconds_into_endless: float = 0.0) -> float:
 	if stage_mults.is_empty():
 		return 1.0

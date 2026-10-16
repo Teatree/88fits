@@ -34,7 +34,9 @@ const BUSH_PER_PATCH := Vector2i(4, 6)
 const BUSH_PATCH_R := 7.0
 const BUSH_SPACING := 1.9
 const BUSH_PATCH_APART := 18.0
-const BUSH_IDS := [["desert_bush", 3.0], ["creosote_bush", 3.0], ["dead_shrub", 2.0]]
+## Pass 83 (lane SCENE; Garry: "another small bushlike thing"): the brittlebush joins them (a pick draws once whatever
+## the table, so every seed keeps its spots; only which bush stands on one changes).
+const BUSH_IDS := [["desert_bush", 3.0], ["creosote_bush", 3.0], ["dead_shrub", 2.0], ["brittlebush", 2.0]]
 ## Pass 80 (lane OASIS): a patch keeps its centre 11 m + 0.6 of its radius off every lake's water (clear of the oasis's
 ## greenery); past BUSH_LAKE_RELAX of its 300 tries only BUSH_LAKE_NEAR m + 0.6 of its radius; a map still short of
 ## BUSH_PATCHES.x patches gets BUSH_EXTRA_TRIES more for each, out to 10 m inside the wall and the regions 0.6 of
@@ -881,6 +883,8 @@ func _scatter_sprites() -> void:
 	props = PropField.new()
 	props.name = "Props"
 	add_child(props)
+	# pass 83: the ground shadows lie on the slopes
+	props.height_fn = height_at
 	props.setup()
 	if not props.has("saguaro_big"):
 		return
@@ -957,7 +961,7 @@ func _scatter_sprites() -> void:
 	# --- the oasis: palms right at the shore, green a little further out, a rock or two at the water (pass 80: round
 	# every lake in turn, the first one's draws first, so its greenery stands where it did)
 	var greens: Array = []
-	var oasis_low: Array = [["desert_bush", 3], ["creosote_bush", 2], ["agave", 2], ["yucca", 2], ["ocotillo", 1], ["mesquite_tree", 1], ["rock_small", 1]]
+	var oasis_low: Array = [["desert_bush", 3], ["creosote_bush", 2], ["agave", 2], ["yucca", 2], ["ocotillo", 1], ["mesquite_tree", 1], ["rock_small", 1], ["brittlebush", 1]]
 	for lk in range(maxi(_lake_cs.size(), 1)):
 		var lc: Vector2 = _lake_cs[lk] if lk < _lake_cs.size() else _lake_c
 		var lr: float = _lake_rs[lk] if lk < _lake_rs.size() else _lake_r
@@ -1000,7 +1004,7 @@ func _scatter_sprites() -> void:
 				var pt: Vector2 = around.call(centre, 0.0, 6.0, 2.0)
 				if pt != Vector2.INF:
 					place.call(pick.call(trees), pt, rng.randf_range(0.85, 1.15), 0.03)
-			var under: Array = [["desert_bush", 3], ["creosote_bush", 3], ["yucca", 1.5], ["ocotillo", 1], ["agave", 1]]
+			var under: Array = [["desert_bush", 3], ["creosote_bush", 3], ["yucca", 1.5], ["ocotillo", 1], ["agave", 1], ["brittlebush", 1.5]]
 			for k in range(rng.randi_range(7, 10)):
 				var pt: Vector2 = around.call(centre, 1.0, 9.0, 0.6)
 				if pt != Vector2.INF:

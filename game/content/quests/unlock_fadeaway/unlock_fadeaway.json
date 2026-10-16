@@ -1,0 +1,18 @@
+{
+  "id": "unlock_fadeaway",
+  "name": "Fadeaway",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "saiga_sniper",
+    "count": 3
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "fadeaway"
+  },
+  "art_prompt": "a glass jar with an orange basketball inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

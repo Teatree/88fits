@@ -628,9 +628,10 @@ func test_red_canyon_in_the_pass_54_shape() -> void:
 	var mode := str(tl.spawn_sides.get("mode", ""))
 	assert_bool(["sides", "facing"].has(mode)).is_true()
 	assert_str(mode).is_equal(str(((d["timeline_data"] as Dictionary)["spawn_sides"] as Dictionary).get("mode", "")))
-	assert_int(int(tl.spawn_sides.get("top", 0))).is_equal(55)
-	for s in ["bottom", "left", "right"]:
-		assert_int(int(tl.spawn_sides.get(s, 0))).is_equal(15)
+	# pass 83 re-pin: the side weights are Garry's (30/20/20/20 since 2026-10-16): the game reads the file's
+	var sides: Dictionary = (d["timeline_data"] as Dictionary)["spawn_sides"]
+	for s in ["top", "bottom", "left", "right"]:
+		assert_int(int(tl.spawn_sides.get(s, 0))).is_equal(int(sides.get(s, 0)))
 	# the HP curve's formula is the old ramp (the pair is kept beside it), and its points agree at the stage marks
 	assert_str(str(tl.hp_curve.get("mode", ""))).is_equal("formula")
 	for t: float in [0.0, 300.0, 430.0, 900.0, 1290.0]:

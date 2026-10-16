@@ -75,7 +75,7 @@ python tools/recolour_strip.py --src <strip> --dst <strip> --mode tint --ranges 
 python tools/posthog_boards.py [--check]   # pass 59/60: (re)builds the eight PostHog dashboards from HogQL/Trends queries (personal phx_ key in tools/posthog_personal_key.txt, git-ignored; never in the game); a rerun keeps every board's id and replaces its tiles; every SQL tile gets PostHog's `{filters}` placeholder (`scoped()`), so a dashboard filter such as person property player_name reaches it (pass 62; how-tos for Garry's analytics questions live in analytics/howto/*.md)
 # analytics/dashboard.html: open in a browser after a run played from the editor binary (played runs land in analytics/runs/, tool runs in analytics/runs/tools/, each with latest.js + index.js; pass 74: record schema 2, CSV buttons); analytics/SCHEMA.md documents the record
 python tools/analytics_csv.py [--runs analytics/runs] [--tools] [--out <dir>]   # pass 74: every run file as CSVs (rows a second, events, the history) for Excel/Sheets; default out analytics/runs/csv/
-"$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/wanted_shots.gd -- out=<dir> [only=title,hud,...] [white=1] [inset=130]   # every Wanted screen state as the handoff's PNGs show it (only=backdrop rewrites art/ui/wanted/menu_backdrop.jpg; inset=N shows the screens under a camera cutout)
+"$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/wanted_shots.gd -- out=<dir> [only=title,hud,...] [white=1] [inset=130]   # every Wanted screen state as the handoff's PNGs show it (only=backdrop_arena rewrites art/ui/wanted/menu_backdrop.jpg the old way; since pass 83 tools/menu_backdrop.gd makes it from the composed title scene; inset=N shows the screens under a camera cutout)
 python tools/wanted_compare.py <dir>/<state>.png <mock-name> [--diff] [--crop=x,y,w,h]   # a render beside its PNG in design_handoff_88fits_wanted/screens/
 "$GODOT" --audio-driver Dummy --resolution 504x1122 --fixed-fps 60 --path D:/_projects/88fits/game --script res://tools/perf_late.gd -- build=six   # late-game benchmark: ms per system and draw calls (--fixed-fps 30 = a phone at 30)
 "$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/screenshot_run.gd -- out=<dir>   # windowed, silent, ~60 PNGs for the bible (make_bible.py --shots=<dir>); without --resolution the window override gives 432x768
@@ -88,6 +88,8 @@ python tools/make_win_icon.py [--if-stale] && python tools/exe_info.py game/expo
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/sign_exe.ps1 -Exe game/export/88fits.exe   # pass 73: signs the PC exe only when tools/keys/codesign.env exists (git-ignored; a .pfx, a store certificate or a signing service); ship.sh calls it and keeps a failed signing out of Drive; why Windows warns and what fixes cost: docs/pc_build_trust.md
 python tools/gen_textures.py && python tools/gen_music.py && python tools/paint_pass.py   # art + music regeneration (see docs/RUNNING.md)
 python tools/gen_sand.py   # pass 82: the four new sands (Klein paintings, seam repainted in three passes, today's mean colour) -> game/art/env/sand_<id>.png, sources tools/art_src/sand_<id>_src.png; the map key timeline_data.sand picks one (default pass81 = sand.png), the Level Editor's World card and the arena's WORLD tab switch it
+python tools/gen_prop_variants.py && python tools/prop_shadows.py   # pass 83: painted prop variants (Klein, the style anchor + the original's raw render; props.json `variant_of`, `weight`; PropField picks by a hash of the spot) and every painting's ground shadow (props.json `shadow`: width, depth, offsets, strength); bash tools/godot.sh ... --script res://tools/menu_backdrop.gd rewrites art/ui/wanted/menu_backdrop.jpg from the composed title scene (art/ui/title_scene.json)
+python tools/gen_totem_icons.py   # pass 83: the totem gifts' carved segments (a head painted on green in the pole's style, keyed and laid on one cedar block) and the crest -> game/art/ui/totem/spirit_<id>.png, crest.png (usage in its header)
 python tools/make_pipeline_figs.py && python tools/make_bible.py   # bible section 15b's step-by-step art pictures (from tools/dl/ intermediates), then the bible
 python tools/ai_sfx.py [--dry-run | --gen-only | --auto | --bind | --report | --docs | --only ids | --cands N | --pick id=k | --volume id=dB]   # pass 60: every sound effect from Stable Audio (Garry's app at http://127.0.0.1:7861/, AudioGen on 7860 as the alternate) -> content/sounds/real/<id>.wav + the soundmap rows; then --import + import_json -- only=sounds; python tools/make_sfx_review.py -> docs/sfx_review.html + tools/dl/sfx60/sfx_review.zip (the voice barks are gone; gen_voice.py lives in tools/dl/backup/)
 python tools/icon_sand.py [--gamma 0.8] [--splash] [--compare out.png]   # pass 61: the launcher icon's sand a touch lighter (only the sand; the old source tools/dl/app_icon/icon_src_v046.png), then gen_art.app_icon and make_splash
@@ -251,7 +253,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-16, pass 82, version 0.68)
+## Status (2026-10-16, pass 83, version 0.69)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -261,7 +263,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.68). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.69). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -320,8 +322,17 @@ Pole (ui/TotemScreen.gd from design_handoff_88fits_totem/, WNotches, WNail, toas
 needs follows `xp_curve` {type quadratic|linear|exponential|power|table} x xp_need_mult (core/data/XpCurve.gd; absent
 = today's); the bot hunts specials (option `specials`); the Sim, the Watch and the dashboard chart chests, power-ups
 and totems (SimModel.pickupKind).
+Pass 83: bosses come with at least `boss_hp_scaling.seconds` (King 25, Gila 40, Brander 60) of the hero's full DPS
+(mode "seconds", the default; "dps" is pass 72's peg); the hero's **power** (core/systems/HeroPower.gd: sqrt of full
+DPS and effective HP against a fresh Drifter = 1.0) is recorded, charted and can scale creature HP
+(`power_hp_scaling`, 1 = none); a round hits a body where it is drawn (`EnemyManager.indices_touching`);
+`hit_invuln` 0.25 s; the sand plays ripples_pebbles; every prop, structure, barrel and sign stands on a ground
+shadow (PropField GroundShadows) and props have painted variants; the title is a composed scene
+(art/ui/title_scene.json); the totem's segments are carved faces per gift; a roster row in the continuous draw may
+carry its own `interval`; the Timeline's shares are "% of the past N s" (the Share lane is gone).
 
-**Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
+**Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
+then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
 trampoline perk Hang Time, Buzzer Beater), Jeżyk (id `buck`: a bald blue Slav in a tracksuit, starts with the Frisbee, favourite the
 Salt, momentum, Salt Flats), May (renamed from Mamy in pass 69: attack speed, Trigger Happy on the Tommy Gun, the

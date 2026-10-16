@@ -97,12 +97,49 @@ func _items(tab: int) -> Array:
 			out = Registry.perks.values()
 		4:
 			out = Registry.enemies.values()
-	out = out.filter(func(d: ContentDef) -> bool: return not Registry.is_hidden(d) and not (d is EnemyDef and (d as EnemyDef).retired))
+	out = out.filter(func(d: ContentDef) -> bool: return not Registry.is_hidden(d) and not (d is EnemyDef and (d as EnemyDef).retired) and not hero_item_hidden(d))
 	out.sort_custom(func(a: ContentDef, b: ContentDef) -> bool:
 		if a is PerkDef and b is PerkDef and (a as PerkDef).hero != (b as PerkDef).hero:
 			return (a as PerkDef).hero < (b as PerkDef).hero
 		return a.display_name < b.display_name)
 	return out
+
+
+## The hero an item belongs to (pass 83, lane META): a hero's own weapon (WeaponDef.hero) and its evolution, a hero
+## mutation (MutationDef.hero), a perk (PerkDef.hero); "" for an item anyone may take (a favourite is anyone's too).
+static func item_hero(def: ContentDef) -> String:
+	if def is PerkDef:
+		return (def as PerkDef).hero
+	if def is MutationDef:
+		return (def as MutationDef).hero
+	if def is WeaponDef:
+		var w := def as WeaponDef
+		if w.hero != "":
+			return w.hero
+		if w.is_evolution:
+			var src: WeaponDef = Registry.weapon(w.evolved_from) if w.evolved_from != "" else null
+			if src == null:
+				for b: WeaponDef in Registry.weapons.values():
+					if not b.is_evolution and b.evolves_into == w.id:
+						src = b
+						break
+			if src:
+				return src.hero
+	return ""
+
+
+## Pass 83 (lane META, Garry: "Items that are hero specific should be hidden in the Collections Menu if that hero is
+## not unlocked"): an item of a hero this save does not own (Registry.hero_state other than "owned": locked, on sale)
+## is left out of the Collection (its tile, its tab's count, a weapon page's hero mutations), not drawn as a silhouette;
+## it appears once the hero is owned. The developer's Hidden list shows everything.
+static func hero_item_hidden(def: ContentDef) -> bool:
+	if hidden_only or def == null:
+		return false
+	var h := item_hero(def)
+	if h == "":
+		return false
+	var c: CharacterDef = Registry.character(h)
+	return c != null and Registry.hero_state(c) != "owned"
 
 
 ## Everything the game keeps but does not play (the developer menu's list).
@@ -520,7 +557,8 @@ static func evolve_needs(w: WeaponDef) -> String:
 ## What a weapon's page lists under Mutations (pass 46): its path, then every hero's own mutation for it, the heroes in
 ## play only (Danza Macabra on the Skull Rain, Fan the Hammer on the Peashooter, Gyro Saws on the Orbit Saws).
 static func page_mutations(w: WeaponDef) -> Array:
-	return Registry.mutations_of(w.id) + Registry.weapon_hero_mutations(w.id)
+	# pass 83 (lane META): a hero's own only while he is owned (hero_item_hidden)
+	return Registry.mutations_of(w.id) + Registry.weapon_hero_mutations(w.id).filter(func(m: MutationDef) -> bool: return not hero_item_hidden(m))
 
 
 ## The words over a hero's own mutation on the weapon's page ("CALAVERA ONLY"); empty for a path mutation.

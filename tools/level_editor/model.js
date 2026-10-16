@@ -283,6 +283,64 @@ const Model = (() => {
     return { times: out, thinned: out.length < times.length };
   }
 
+  // ------------------------------------------------------------------ a continuous row's own interval (pass 83)
+
+  // Garry (2026-10-16): "for Continuous spawning, I would still like to control the interval of continuous spawning, the
+  // 0.7s can be a default. And since continuous spawning has these inevitable intervals the notches on the enemy node
+  // should reflect that." A row in the continuous draw may carry `interval` (seconds): it draws on its own clock from
+  // the moment it opens, a burst cut to its share of the channel's weight; without it, at the director's spawn check
+  // (spawn_interval). The game's rule: WaveDirector.row_has_interval / _tick_row_intervals / _interval_part.
+
+  /** The least own interval (WaveDirector.ROW_INTERVAL_MIN): a smaller one counts as this. */
+  const ROW_INTERVAL_MIN = 0.1;
+  /** Whether a row carries its own continuous interval (a number above 0). */
+  const rowHasInterval = (r) => isObj(r) && typeof r.interval === 'number' && isFinite(r.interval) && r.interval > 0;
+  /** Seconds between a row's continuous draws: its own interval, else the map's spawn check `si`. */
+  const rowDrawInterval = (r, si) => (rowHasInterval(r) ? Math.max(r.interval, ROW_INTERVAL_MIN) : si);
+
+  /** The seconds a drawn row may draw from `t0` to `t1` (its draw opportunities, the notches of a continuous row): with
+   *  its own interval its start + k x interval, else the spawn check's rhythm k x `si` from 0:00 (the game's check runs
+   *  on through boss fights, so later in the run it is the rhythm, not the exact seconds); only before its `until` and
+   *  where its weight is above 0; [] for a row not in the draw. At most `limit` (20000). */
+  function rowDrawTimes(r, t0, t1, si, lateT, limit) {
+    const out = [];
+    if (!isObj(r) || !rowDrawn(r)) return out;
+    const iv = rowDrawInterval(r, si);
+    if (!(iv > 0)) return out;
+    const start = num(r.t, 0);
+    const until = r.until == null || r.until === '' ? Infinity : num(r.until, Infinity);
+    const base = rowHasInterval(r) ? start : 0;
+    const lo = Math.max(t0, start), hi = Math.min(t1, until);
+    const lim = limit == null ? 20000 : limit;
+    for (let k = Math.max(0, Math.ceil((lo - base) / iv - 1e-9)); out.length < lim; k++) {
+      const t = base + k * iv;
+      if (t > hi || t >= until) break;
+      if (rowWeight(r, t, lateT) > 0) out.push(t);
+    }
+    return out;
+  }
+
+  /** What each roster row ('roster:<i>') and wave alternative ('wave:<i>:<k>') spawned from `t0` to `t1` in the Spawned
+   *  so far estimate `est`, and its share of everything spawned then (pass 83: the readout's "past N seconds" and the
+   *  hover cards). {t0, t1, all (every creature spawned then: the roster, the waves, swarms, Elites, specials, bosses),
+   *  src {key: n}, share {key: n / all}, other (all less the rows' and the waves': swarms, the elite-modified, specials,
+   *  Elites, bosses, a boss's minions, the portal wave)}; null without an estimate. The estimate keeps a point a second
+   *  (estimateAt: the last one at or before a time), so the window is read on whole seconds. */
+  function windowShares(est, t0, t1) {
+    const a = estimateAt(est, t0), b = estimateAt(est, t1);
+    if (!a || !b) return null;
+    const all = Math.max(b.all - a.all, 0);
+    const src = {}, share = {};
+    let sum = 0;
+    const bs = b.src || {}, as = a.src || {};
+    for (const k of Object.keys(bs)) {
+      const n = Math.max((bs[k] || 0) - (as[k] || 0), 0);
+      if (n > 1e-9) { src[k] = n; sum += n; }
+    }
+    for (const k of Object.keys(src)) share[k] = all > 0 ? src[k] / all : 0;
+    return { t0: Math.max(0, t0), t1, all, src, share, other: Math.max(all - sum, 0) };
+  }
+
   // ------------------------------------------------------------------ one creature's numbers at a time
 
   const getPath = (o, path) => {
@@ -858,12 +916,15 @@ const Model = (() => {
     return out;
   }
 
-  /** One burst averaged over its size: randi_range(burst_min, burst_max), each cut to the room. */
-  function burstAvg(rows, room, lo, hi) {
+  /** One burst averaged over its size: randi_range(burst_min, burst_max), each cut to the room. Pass 83 (lane TIMELINE):
+   *  `frac` (default 1) the drawing rows' share of their channel's weight: each burst is that much of its size
+   *  (WaveDirector._burst_from with a row's own interval). */
+  function burstAvg(rows, room, lo, hi, frac) {
     const acc = rows.map(() => 0);
+    const f = frac == null ? 1 : frac;
     let nb = 0, lastStart = null, last = null;
     for (let b = lo; b <= hi; b++) {
-      const start = Math.min(b, room);
+      const start = Math.min(f === 1 ? b : b * f, room);
       if (start !== lastStart) { last = burstOnce(rows, start); lastStart = start; }
       for (let k = 0; k < rows.length; k++) acc[k] += last[k];
       nb++;
@@ -986,7 +1047,9 @@ const Model = (() => {
       const d = defOf(String(r.enemy == null ? '' : r.enemy), r.stats);
       if (d) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d.pack)), 1), single: r.pattern === 'single',
         // pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves' state
-        paced: rowPaced(r), drawn: rowDrawn(r), wk: -1, owed: 0 });
+        paced: rowPaced(r), drawn: rowDrawn(r), wk: -1, owed: 0,
+        // pass 83 (lane TIMELINE): a row with its own continuous interval draws on its own clock (`left` steps to go)
+        own: rowHasInterval(r), ivSteps: rowHasInterval(r) ? Math.max(1, Math.round(rowDrawInterval(r, 0) * EST_HZ)) : 0, left: 0 });
     });
 
     // ---- the crowd: expected bodies per type (an id and its load per body)
@@ -1360,10 +1423,10 @@ const Model = (() => {
     }
 
     // ---- the roster's burst (WaveDirector._spawn_burst / _burst_from) and the portal's one wave
-    function burstRows(list, room, left) {
+    function burstRows(list, room, left, frac) {
       const t = now();
       const rows = list.map((c) => ({ w: rowWeight(c.x.r, t, lateT), s: Math.max(c.x.d.share, 0.05), pack: c.x.pack, single: c.x.single, room: c.room }));
-      const got = burstAvg(rows, room, bLo, bHi);
+      const got = burstAvg(rows, room, bLo, bHi, frac);
       let sum = 0;
       for (const n of got) sum += n;
       const scale = sum > left ? left / sum : 1;
@@ -1371,9 +1434,23 @@ const Model = (() => {
       for (let i = 0; i < list.length; i++) { const n = got[i] * scale; add(list[i].x.d, n, 'reg'); bump(srcCum, list[i].x.key, n); used += n; }
       return left - used;
     }
-    function spawnBurst() {
+    /** Pass 83 (lane TIMELINE), WaveDirector._interval_part: of a channel's open drawn rows, the ones drawing now (the
+     *  `due` own-interval rows, or at the spawn check the rows without an interval) and their share of the weight. */
+    function intervalPart(list, due) {
+      const t = now();
+      let W = 0, P = 0;
+      const sel = [];
+      for (const c of list) {
+        const w = rowWeight(c.x.r, t, lateT);
+        W += w;
+        if (due ? due.includes(c.x) : !c.x.own) { sel.push(c); P += w; }
+      }
+      return { list: sel, frac: sel.length === list.length ? 1 : W > 0 ? P / W : 0 };
+    }
+    function spawnBurst(due) {
       // pass 81 (lane PACE): a waves row's rest first, then the continuous draw without the waves rows that do not trickle
-      rowWavesOwed();
+      // (pass 83: at the spawn check only, not at an own-interval row's draw)
+      if (!due) rowWavesOwed();
       const cap = capNow();
       if (cap <= 0) return;
       const tr = phase === 0 ? now() : now() - 1;
@@ -1382,13 +1459,25 @@ const Model = (() => {
       const room = cap - (loadAll() - hl);
       let left = hard - bodies();
       if (left <= 0) return;
-      const regular = openRows(rowsAt(tr, false)).filter((c) => c.x.drawn);
-      if (room > 0 && regular.length) left = burstRows(regular, room, left);
+      const regular = intervalPart(openRows(rowsAt(tr, false)).filter((c) => c.x.drawn), due);
+      if (room > 0 && regular.list.length) left = burstRows(regular.list, room, left, regular.frac);
       const hellRoom = hellFrac() * cap - hl;
       if (hellRoom > 0 && left > 0 && hellRows.length) {
-        const ho = openRows(hellRows).filter((c) => c.x.drawn);
-        if (ho.length) burstRows(ho, hellRoom, left);
+        const ho = intervalPart(openRows(hellRows).filter((c) => c.x.drawn), due);
+        if (ho.list.length) burstRows(ho.list, hellRoom, left, ho.frac);
       }
+    }
+    /** Pass 83 (lane TIMELINE), WaveDirector._tick_row_intervals: every step after the spawn check, the open drawn rows
+     *  with their own interval count down; the ones at 0 draw together, then wait their interval again. */
+    function tickRowIntervals() {
+      const tr = phase === 0 ? now() : now() - 1;
+      let due = null;
+      for (const x of roster) {
+        if (!x.own || !x.drawn || !(tr >= x.t && tr < x.until)) continue;
+        x.left--;
+        if (x.left <= 0) { (due || (due = [])).push(x); x.left = x.ivSteps; }
+      }
+      if (due) spawnBurst(due);
     }
     /** WaveDirector.spawn_portal_wave: `count` bodies of the regular rows as the stage ended, by weight, a pack a draw. */
     function portalWave() {
@@ -1449,6 +1538,7 @@ const Model = (() => {
       if (phase !== 2) tickSpecials();
       spawnStep--;
       if (spawnStep <= 0) { spawnStep = burstEvery; spawnBurst(); }
+      tickRowIntervals();
       if (phase === 2 && phaseLeft <= 0) {
         // the hero walks through: the next stage (or endless, its clocks set again at every portal) at the same second
         stage++;
@@ -1615,6 +1705,8 @@ const Model = (() => {
     // pass 81 (lane PACE): a roster row's pacing and the yellow etches
     ROW_PACES, ROW_WAVE_EVERY_DEF, ROW_WAVE_KEYS, ETCH_MIN_PX, rowPaced, rowDrawn, rowWaveEvery, rowWaveStart, rowWaveTimes,
     rowEtchTimes, rowWaveCount, waveBurstTimes, presenceSpans, thinTimes,
+    // pass 83 (lane TIMELINE): a continuous row's own interval, the window's shares
+    ROW_INTERVAL_MIN, rowHasInterval, rowDrawInterval, rowDrawTimes, windowShares,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

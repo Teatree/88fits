@@ -69,8 +69,10 @@ func test_the_bosses_are_pegged_to_dps_on_a_map_without_the_block() -> void:
 	assert_float(WaveTimeline.boss_hp_mult(tl.boss_hp_scaling, 2400.0, 600.0)).is_equal_approx(2.0, 0.0001)
 	assert_float(WaveTimeline.boss_hp_mult(tl.boss_hp_scaling, 0.0, 600.0)).is_equal_approx(0.75, 0.0001)
 	assert_float(WaveTimeline.boss_hp_mult(tl.boss_hp_scaling, 1.0e9, 600.0)).is_equal_approx(3.0, 0.0001)
-	# the director scales the King: 2,400 a second over the window against his 600 is twice the HP
+	# the director scales the King: 2,400 a second over the window against his 600 is twice the HP (pass 83, lane SCALE:
+	# in the pegged mode, named; a map without the block plays the seconds mode now, pass83_scale_test)
 	var dir: WaveDirector = auto_free(WaveDirector.new())
+	tl.boss_hp_scaling = {"mode": "dps"}
 	dir.timeline = tl
 	Run.stage = 0
 	Run.dps_reset()

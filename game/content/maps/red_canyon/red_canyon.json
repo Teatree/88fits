@@ -44,19 +44,19 @@
     "cap_curve": [
       [
         0,
-        10
+        181
       ],
       [
-        63,
-        27
+        60,
+        145
       ],
       [
         122,
-        45
+        135
       ],
       [
-        123,
-        80
+        122,
+        159
       ],
       [
         176,
@@ -298,11 +298,11 @@
     "burst_max": 12,
     "spawn_interval": 0.7,
     "spawn_sides": {
-      "mode": "facing",
-      "top": 55,
-      "bottom": 15,
-      "left": 15,
-      "right": 15,
+      "mode": "sides",
+      "top": 30,
+      "bottom": 20,
+      "left": 20,
+      "right": 20,
       "facing_share": 0.7,
       "facing_spread_deg": 60
     },
@@ -339,7 +339,10 @@
           "hp_mult": 1.5
         },
         "until": 245,
-        "variant": "RG-B"
+        "variant": "RG-B",
+        "pace": "waves",
+        "every": 15,
+        "count": 100
       },
       {
         "id": "r2",
@@ -359,7 +362,9 @@
         "stats": {
           "speed": 3,
           "can_be_elite": false
-        }
+        },
+        "pack": 12,
+        "pattern": "scatter"
       },
       {
         "id": "r21",
@@ -395,19 +400,22 @@
           "size": 2,
           "damage_mult": 1.25
         },
-        "pattern": "ring"
+        "pattern": "ring",
+        "pace": "waves",
+        "every": 10,
+        "count": 100
       },
       {
         "id": "r3",
-        "t": 0,
+        "t": 47,
         "enemy": "lesser_scorpion",
         "weights": [
           [
-            0,
+            47,
             8
           ],
           [
-            51,
+            98,
             7.6
           ]
         ],
@@ -417,7 +425,36 @@
         "stats": {
           "speed": 1.5,
           "hp_mult": 1.2
-        }
+        },
+        "pace": "waves",
+        "every": 10,
+        "count": 30,
+        "offset": 3
+      },
+      {
+        "id": "r5",
+        "t": 0,
+        "enemy": "lesser_scorpion",
+        "weights": [
+          [
+            0,
+            8.0
+          ],
+          [
+            51,
+            7.6
+          ]
+        ],
+        "until": 47,
+        "pattern": "scatter",
+        "pack": 10,
+        "stats": {
+          "speed": 1.75,
+          "hp_mult": 1.2
+        },
+        "pace": "waves",
+        "every": 5,
+        "count": 10
       },
       {
         "id": "r12",
@@ -432,7 +469,11 @@
         "until": 123,
         "stats": {
           "hp": 20
-        }
+        },
+        "pace": "waves",
+        "every": 10,
+        "count": 50,
+        "pack": 3
       },
       {
         "id": "r13",
@@ -448,7 +489,8 @@
         "stats": {
           "hp": 35
         },
-        "pattern": "scatter"
+        "pattern": "scatter",
+        "pack": 10
       },
       {
         "id": "r14",
@@ -1545,6 +1587,12 @@
     "move_pace": 0.9,
     "boss_hp_scaling": {
       "enabled": true,
+      "mode": "seconds",
+      "seconds": {
+        "tumbleweed_king": 25,
+        "gila_grande": 40,
+        "brander": 60
+      },
       "exponent": 0.5,
       "window": 45,
       "min": 0.75,
@@ -1566,11 +1614,17 @@
       "dust": 1.0
     },
     "water_slow": 0.1,
+    "sand": "ripples_pebbles",
     "oases": {
       "min": 2,
       "max": 3,
       "extra_chance": 0.35,
       "gap": 10
+    },
+    "xp_curve": {
+      "quadratic": {
+        "quad": 0.9
+      }
     }
   },
   "placeholder": {

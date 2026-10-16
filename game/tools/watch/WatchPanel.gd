@@ -39,6 +39,9 @@ const LOG_MAX := 60
 
 var watch: Node
 var whole_run := false
+## pass 83 (lane SCALE): the first chart shows the hero's power instead of the DPS (Watch.toggle_power, P)
+var show_power := false
+var _power_btn: Button
 var show_goals := true
 
 var _title: Label
@@ -106,7 +109,7 @@ func build(w: Node) -> void:
 	a.add_child(grid)
 	for spec in [["dps", "Real DPS"], ["est", "Estimated DPS"], ["hp", "HP"], ["danger", "Danger"], ["keep", "Keeping up"],
 			["close", "Creatures close"], ["kills", "Kills"], ["level", "Level"], ["gold", "Gold"], ["crowd", "Crowd"],
-			["chests", "Chests"], ["powerups", "Power-ups"], ["totems", "Totems"], ["specials", "Specials"]]:
+			["chests", "Chests"], ["powerups", "Power-ups"], ["totems", "Totems"], ["specials", "Specials"], ["power", "Power"]]:
 		grid.add_child(_tile(str(spec[0]), str(spec[1])))
 	# 3: the charts
 	var ch_head := HBoxContainer.new()
@@ -116,6 +119,8 @@ func build(w: Node) -> void:
 	ch_head.add_child(sp)
 	_window_btn = _button("Whole run", "show the whole run instead of the last 3 minutes (G)", func() -> void: watch.toggle_window())
 	ch_head.add_child(_window_btn)
+	_power_btn = _button("Power", "the first chart: the DPS, or the hero's power level (P): sqrt((full DPS / 20.4) x (effective HP / 100)), a fresh level-1 Drifter = 1", func() -> void: watch.toggle_power())
+	ch_head.add_child(_power_btn)
 	a.add_child(ch_head)
 	for t in ["DPS against the crowd", "HP, and Danger beneath", "Level and XP", "Damage share by source"]:
 		var c = CHART.new()
@@ -341,6 +346,7 @@ func refresh() -> void:
 		var bt: Button = _speed_btns[s]
 		bt.set_pressed_no_signal(not clk.paused and clk.mode == "" and absf(float(s) - clk.speed) < 0.001)
 	_window_btn.text = "Last 3 min" if whole_run else "Whole run"
+	_power_btn.text = "DPS" if show_power else "Power"
 	_goals_btn.text = "Goals shown" if show_goals else "Goals hidden"
 	_sound_btn.text = "Sound on" if w.sound_on else "Sound off"
 	_end_btn.disabled = w.ended
@@ -377,6 +383,8 @@ func _live(w: Node, data, run: Node, game: Node) -> void:
 			_set_tile(k, "-")
 		return
 	_set_tile("dps", _num(data.dps5[i]), "%s this second · 5 s mean" % _num(data.dps[i]), ACCENT)
+	# pass 83 (lane SCALE): the hero's power level (HeroPower)
+	_set_tile("power", "%.2f" % data.power[i] if data.power[i] > 0.0 else "-", "fresh Drifter = 1")
 	var est: float = data.est[i]
 	var ratio := "%d%% of it real" % int(roundf(100.0 * data.dps5[i] / est)) if est >= 1.0 else ""
 	_set_tile("est", _num(est), ratio)
@@ -660,6 +668,20 @@ func update_charts() -> void:
 	c1.legend = [["Real DPS (5 s)", ACCENT], ["Estimate", Color(0.98, 0.85, 0.35)], ["Crowd HP (right)", PURPLE]]
 	if not ref_dps.is_empty():
 		c1.legend.append(["Sim avg", GREY])
+	c1.title = "DPS against the crowd"
+	if show_power:
+		# pass 83 (lane SCALE): the hero's power level in its place (the P key, the Power button)
+		c1.title = "Hero power (fresh Drifter = 1)"
+		var pw_pts: PackedVector2Array = DATA.bucket(data.t, data.power, x0, x1, cols)
+		var ref_pw := _ref_pts(ref, "power", x0, x1, cols)
+		c1.series = []
+		if not ref_pw.is_empty():
+			c1.series.append({"pts": ref_pw, "color": GREY, "width": 1.5, "axis": 0})
+		c1.series.append({"pts": pw_pts, "color": Color(0.55, 0.8, 1.0), "width": 2.0, "axis": 0, "fill": true})
+		c1.axes = [{"max": DATA.nice_max(maxf(maxf(_max_y(pw_pts), _max_y(ref_pw)), 1.0)), "fmt": "%.1f", "unit": ""}, {"max": 0.0}, {"max": 0.0}]
+		c1.legend = [["Power: sqrt(full DPS / 20.4 x eff. HP / 100)", Color(0.55, 0.8, 1.0)]]
+		if not ref_pw.is_empty():
+			c1.legend.append(["Sim avg", GREY])
 	# 2: HP, Danger beneath
 	var c2 = _charts[1]
 	var hp_pts: PackedVector2Array = DATA.bucket(data.t, data.hp, x0, x1, cols)

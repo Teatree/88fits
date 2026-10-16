@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_fadeaway/unlock_fadeaway_icon.png" id="1_ebxbk"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_fq2us"]
+
+[resource]
+script = ExtResource("2_fq2us")
+condition = {
+"count": 3.0,
+"enemy": "saiga_sniper",
+"type": "kills_of_enemy"
+}
+unlocks = {
+"id": "fadeaway",
+"type": "character"
+}
+id = "unlock_fadeaway"
+display_name = "Fadeaway"
+icon = ExtResource("1_ebxbk")
+icon_file = "unlock_fadeaway_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}
