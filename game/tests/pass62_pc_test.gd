@@ -57,8 +57,13 @@ func test_stage_one_is_garrys_as_he_left_it() -> void:
 		var id := str(r.get("id", ""))
 		assert_bool(id != "" and not ids.has(id)).override_failure_message("row id " + id).is_true()
 		ids[id] = true
-		assert_object(Registry.enemy(str(r.get("enemy", "")))).override_failure_message(id + ": " + str(r.get("enemy", ""))).is_not_null()
+		if str(r.get("enemy", "")) != WaveTimeline.ROW_ENEMY_ROSTER:
+			assert_object(Registry.enemy(str(r.get("enemy", "")))).override_failure_message(id + ": " + str(r.get("enemy", ""))).is_not_null()
 		assert_bool((r.get("weights", []) as Array).is_empty()).override_failure_message(id + " weights").is_false()
+		# pass 84 (lane SPAWN, re-pinned): the converted events are rows with no end (a once row fires once; the
+		# Elites-every row runs into endless as its event did); only the continuous and waves rows end in the stage
+		if str(r.get("pace", "")) == "once" or str(r.get("elite", "")) != "":
+			continue
 		# no stage-1 row was stretched past 7:10
 		assert_float(float(r.get("until", 1e9))).override_failure_message(id + " until").is_less_equal(STAGE)
 		assert_float(float(r.get("until", 1e9))).override_failure_message(id + " until").is_greater(float(r.get("t", 0.0)))
@@ -193,8 +198,13 @@ func test_non_melee_creatures_come_in_small_numbers() -> void:
 func test_every_row_plays_a_creature_that_is_in_play() -> void:
 	var tl := _tl()
 	for r in tl.roster:
+		# pass 84 (lane SPAWN, re-pinned): the Elites-every row names "roster" (the coloured-elite draw of the rows open)
+		if str(r.get("enemy", "")) == WaveTimeline.ROW_ENEMY_ROSTER:
+			continue
 		var d: EnemyDef = Registry.enemy(str(r.get("enemy", "")))
 		assert_object(d).override_failure_message("unknown creature " + str(r.get("enemy", ""))).is_not_null()
+		if d == null:
+			continue
 		assert_bool(d.retired or d.hidden).override_failure_message(d.id + " is retired or hidden").is_false()
 		var v := str(r.get("variant", ""))
 		if v != "":

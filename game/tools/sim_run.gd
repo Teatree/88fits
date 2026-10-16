@@ -17,6 +17,7 @@
 ## balancing_SIMRUN.md). The portal is always continued, Down! answered by `death`. A watchdog writes what it has with
 ## end_reason "stuck:<what>" when a screen stays up more than STUCK_S seconds or the wall clock passes `wall`.
 ## Autoloads are reached through the tree (SceneTree scripts compile before they exist); no game class is named here.
+## Pass 84 (lane SIMVIEW): a sampler of its own adds the Timeline overlay's series (the `_sv_*` functions at the end).
 extends SceneTree
 
 const BOT := preload("res://tools/bot/Bot.gd")
@@ -301,6 +302,8 @@ func _tick() -> void:
 		_bot = BOT.new(_game, o)
 		_say("game up: hero %s seed %d board %.1f death %s limit %.0f map %s view %s (boot %.1f s) | bot %s" % [_hero, _seed, _board, _death,
 			_limit, _map, str(root.get_visible_rect().size), _boot_s, str(_bot.opts["preset"])])
+		# pass 84 (lane SIMVIEW): the Timeline overlay's own sampler
+		_sv_start()
 		return
 	if not is_instance_valid(_game) or current_scene != _game or bool(_game.get("_ended")):
 		_finish(_end_reason())
@@ -314,6 +317,7 @@ func _tick() -> void:
 	_bot.tick(dt)
 	_bot_us += Time.get_ticks_usec() - us
 	_bot_frames += 1
+	_sv_frame()
 	if bool(_game.get("_ended")):
 		_finish(_end_reason())
 		return
@@ -531,6 +535,8 @@ func build_output(ra: Node, reason: String) -> Dictionary:
 		b["tallies"] = bot_tallies(ra.get("events"), _game.get("barrels"))
 		meta["bot"] = b
 		out["bot_decisions"] = _bot.decisions
+	# pass 84 (lane SIMVIEW): the overlay's series, life_by and the roster as played
+	_sv_output(out, meta, (ra.get("samples") as Array).size())
 	out["meta"] = meta
 	return out
 
@@ -991,3 +997,389 @@ func _store(path: String, text: String) -> bool:
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
 	return DirAccess.rename_absolute(tmp, path) == OK
+
+
+# ---------------------------------------------------------------- pass 84 (lane SIMVIEW): the Timeline overlay's data
+
+## Garry's Timeline (pass 84) overlays the Sim on the map's clock: how many creatures were alive on each channel, how
+## full the cap was, which roster rows wanted to spawn and could not, the crowd's threat against the hero's power, and
+## how long each creature lives. This sampler reads the game (never changes it) and adds, one entry per recorder row
+## (aligned with `t`): alive_hell, load, load_hell, cap_hell, hard_cap, cap_full, threat, hero_dps, hero_ehp, challenge;
+## the breakdowns alive_hell_by and starving_by; the top-level life_by; meta.rows and meta.simview_ms. Definitions:
+## tools/dl/p84/balancing_SIMVIEW.md (and status_SIMVIEW.md "OVERLAY READY").
+## Seconds of play between two cap checks (cap_full and starving are shares of a second's checks).
+const SV_CHECK_S := 0.2
+## life_by's stage slots: stage 1, 2, 3 and everything after (endless)
+const SV_STAGES := 4
+
+var _sv_on := false
+var _sv_rows := 0
+var _sv: Dictionary = {}
+var _sv_hell_by: Dictionary = {}
+var _sv_starve_by: Dictionary = {}
+var _sv_checks := 0
+var _sv_full := 0
+var _sv_starve_n: Dictionary = {}
+var _sv_check_t := 0.0
+var _sv_serial := -1
+var _sv_born_serial := PackedInt32Array()
+var _sv_born_t := PackedFloat32Array()
+var _sv_open := PackedByteArray()
+var _sv_born_id: Array = []
+var _sv_life: Dictionary = {}
+var _sv_us := 0
+var _sv_rows_meta: Array = []
+const SV_KEYS := ["alive_hell", "load", "load_hell", "cap_hell", "hard_cap", "cap_full", "threat", "hero_dps", "hero_ehp", "challenge"]
+
+
+## The sampler's start, when the game is up: the deaths heard, the slots' births tracked, the roster as played noted.
+func _sv_start() -> void:
+	var em = _game.get("enemies")
+	var dir = _game.get("director")
+	if em == null or dir == null or dir.get("timeline") == null:
+		_say("simview: no enemies or director: the overlay's series are left out")
+		return
+	_sv_on = true
+	for k in SV_KEYS:
+		_sv[k] = []
+	var n: int = int(em.MAX)
+	_sv_born_serial.resize(n)
+	_sv_born_serial.fill(0)
+	_sv_born_t.resize(n)
+	_sv_open.resize(n)
+	_sv_open.fill(0)
+	_sv_born_id.resize(n)
+	_sv_born_id.fill("")
+	if em.has_signal("creature_dying"):
+		em.creature_dying.connect(_sv_on_dying)
+	_sv_rows_meta = roster_rows(dir.timeline.roster, dir)
+	_sv_check_t = _play_t()
+
+
+## The roster as the run plays it: [{key, k, id, enemy, t, until, channel, pace}] (key: the director's row key).
+static func roster_rows(roster: Array, dir = null) -> Array:
+	var out: Array = []
+	for k in range(roster.size()):
+		var r = roster[k]
+		if not (r is Dictionary):
+			continue
+		var en = r.get("enemy", "")
+		out.append({"key": row_key(r, k, dir), "k": k, "id": str(r.get("id", "")), "enemy": en if (en is String or en is Array) else str(en),
+			"t": float(r.get("t", 0.0)), "until": float(r["until"]) if r.get("until") != null else null,
+			"channel": str(r.get("channel", "")), "pace": str(r.get("pace", "continuous"))})
+	return out
+
+
+## A roster row's key as the director keys its state (WaveDirector._row_key_at: "row:<id>#<index>", else "row#<index>").
+static func row_key(r: Dictionary, k: int, dir = null) -> String:
+	if dir != null and dir.has_method("_row_key_at"):
+		return str(dir._row_key_at(r, k))
+	var id := str(r.get("id", ""))
+	return ("row:%s#%d" % [id, k]) if id != "" else "row#%d" % k
+
+
+## Every frame: births (a slot's spawn number moved), the cap checks every SV_CHECK_S of play, and one sample a recorder
+## row.
+func _sv_frame() -> void:
+	if not _sv_on:
+		return
+	var us := Time.get_ticks_usec()
+	var em = _game.enemies
+	var ser := int(em.get("_serial"))
+	if ser != _sv_serial:
+		_sv_serial = ser
+		_sv_births(em)
+	var pt := _play_t()
+	if pt >= _sv_check_t:
+		_sv_check(em, _game.director)
+		_sv_check_t = maxf(_sv_check_t + SV_CHECK_S, pt)
+	var ra := _ra()
+	if ra != null:
+		var rows: Array = ra.get("samples")
+		while _sv_rows < rows.size():
+			_sv_sample(em, _game.director, rows[_sv_rows] if rows[_sv_rows] is Dictionary else {})
+			_sv_rows += 1
+	_sv_us += Time.get_ticks_usec() - us
+
+
+## The slots whose creature is new since the last look: its spawn noted (a creature still open there left without dying:
+## `gone`).
+func _sv_births(em) -> void:
+	var alive: PackedByteArray = em.alive
+	var serial: PackedInt32Array = em.serial
+	var tidx: PackedInt32Array = em.type_idx
+	var types: Array = em.types
+	var now := _play_t()
+	for i in range(mini(alive.size(), _sv_born_serial.size())):
+		if alive[i] == 0 or serial[i] == _sv_born_serial[i]:
+			continue
+		if _sv_open[i] == 1:
+			life_gone(_sv_life, str(_sv_born_id[i]))
+		_sv_born_serial[i] = serial[i]
+		_sv_born_t[i] = now
+		_sv_open[i] = 1
+		var ti := tidx[i]
+		_sv_born_id[i] = str((types[ti]["def"] as Resource).get("id")) if ti >= 0 and ti < types.size() else ""
+
+
+## A creature falls (EnemyManager.creature_dying): its life from its spawn to now, counted in its stage's slot.
+func _sv_on_dying(i: int, _weapon_id: String) -> void:
+	var em = _game.enemies if _game != null and is_instance_valid(_game) else null
+	if em == null or i < 0 or i >= _sv_born_serial.size():
+		return
+	var now := _play_t()
+	var s: int = int(em.serial[i])
+	if _sv_born_serial[i] != s:
+		# born and fallen between two looks (one frame): a life of 0
+		if _sv_open[i] == 1:
+			life_gone(_sv_life, str(_sv_born_id[i]))
+		_sv_born_serial[i] = s
+		_sv_born_t[i] = now
+		var ti: int = int(em.type_idx[i])
+		_sv_born_id[i] = str((em.types[ti]["def"] as Resource).get("id")) if ti >= 0 and ti < em.types.size() else ""
+		_sv_open[i] = 1
+	if _sv_open[i] == 0:
+		return
+	_sv_open[i] = 0
+	life_add(_sv_life, str(_sv_born_id[i]), int(_run.stage), now - _sv_born_t[i])
+
+
+## life_by's bookkeeping: {id: {n: [a stage], s: [seconds a stage], gone, open}}.
+static func life_entry(life: Dictionary, id: String) -> Dictionary:
+	if not life.has(id):
+		var n: Array = []
+		var s: Array = []
+		for _k in range(SV_STAGES):
+			n.append(0)
+			s.append(0.0)
+		life[id] = {"n": n, "s": s, "gone": 0, "open": 0}
+	return life[id]
+
+
+static func life_add(life: Dictionary, id: String, stage: int, secs: float) -> void:
+	if id == "":
+		return
+	var e := life_entry(life, id)
+	var k := clampi(stage, 0, SV_STAGES - 1)
+	(e["n"] as Array)[k] = int(e["n"][k]) + 1
+	(e["s"] as Array)[k] = float(e["s"][k]) + maxf(secs, 0.0)
+
+
+static func life_gone(life: Dictionary, id: String) -> void:
+	if id == "":
+		return
+	var e := life_entry(life, id)
+	e["gone"] = int(e["gone"]) + 1
+
+
+## The creature ids the hell channel brings now, as the director reckons its hell load (its hell rows and hell waves).
+static func hell_ids(dir) -> Dictionary:
+	var out := {}
+	if dir == null:
+		return out
+	var rows: Array = dir.hell_rows() if dir.has_method("hell_rows") else []
+	for r in rows:
+		if r is Dictionary:
+			out[str(r.get("enemy", ""))] = true
+	if dir.has_method("_hell_wave_ids"):
+		for id in dir._hell_wave_ids():
+			out[str(id)] = true
+	return out
+
+
+## The crowd now, in one pass over the slots: {alive, alive_hell, load, load_hell, threat, hell_by}. Dying creatures are
+## not counted; the boss is counted in alive but left out of threat.
+static func crowd_now(em, hell: Dictionary) -> Dictionary:
+	var alive: PackedByteArray = em.alive
+	var state: PackedInt32Array = em.state
+	var tidx: PackedInt32Array = em.type_idx
+	var mx: PackedFloat32Array = em.max_hp
+	var dmg: PackedFloat32Array = em.dmg
+	var ccd: PackedFloat32Array = em.get("_t_ccd") if em.get("_t_ccd") is PackedFloat32Array else PackedFloat32Array()
+	var types: Array = em.types
+	var dying: int = int(em.STATE_DYING)
+	var boss: int = int(em.boss_index)
+	var n := 0
+	var nh := 0
+	var load := 0.0
+	var load_h := 0.0
+	var threat := 0.0
+	var by := {}
+	for i in range(alive.size()):
+		if alive[i] == 0 or state[i] == dying:
+			continue
+		var ti := tidx[i]
+		if ti < 0 or ti >= types.size():
+			continue
+		var t: Dictionary = types[ti]
+		var id := str((t["def"] as Resource).get("id"))
+		var share := float(t.get("share", 1.0))
+		n += 1
+		if hell.has(id):
+			nh += 1
+			load_h += share
+			by[id] = int(by.get(id, 0)) + 1
+		else:
+			load += share
+		if i != boss:
+			var cd: float = ccd[ti] if ti < ccd.size() else 0.6
+			threat += threat_of(mx[i], dmg[i], cd)
+	return {"alive": n, "alive_hell": nh, "load": load, "load_hell": load_h, "threat": threat, "hell_by": by}
+
+
+## One creature's threat: its max HP x its bite's damage a second (the bite / its cadence, at least 0.05 s).
+static func threat_of(max_hp: float, bite: float, cadence: float) -> float:
+	return maxf(max_hp, 0.0) * maxf(bite, 0.0) / maxf(cadence, 0.05)
+
+
+## The crowd's threat against the hero's full DPS x effective HP (0 when he has none).
+static func challenge_of(threat: float, hero_dps: float, hero_ehp: float) -> float:
+	var p := hero_dps * hero_ehp
+	return threat / p if p > 0.0 else 0.0
+
+
+## One cap check: whether the regular channel had room, and which rows wanted to spawn and could not (`starving`, the
+## rule in balancing_SIMVIEW.md).
+func _sv_check(em, dir) -> void:
+	var tl = dir.timeline
+	if tl == null:
+		return
+	_sv_checks += 1
+	var cap: int = int(dir.current_cap())
+	var hell := hell_ids(dir)
+	var c := crowd_now(em, hell)
+	var bodies_full: bool = int(em.alive_count()) >= int(tl.hard_cap)
+	var reg_full: bool = cap > 0 and (float(c["load"]) >= float(cap) or bodies_full)
+	var hell_full: bool = cap > 0 and (float(c["load_hell"]) >= float(tl.hell_cap_at(int(_run.stage))) * float(cap) or bodies_full)
+	if reg_full:
+		_sv_full += 1
+	var normal: bool = int(dir.phase) == 0
+	var t: float = float(_run.elapsed) if normal else float(_run.elapsed) - 1.0
+	var row_waves = dir.get("_row_waves")
+	for k in range(tl.roster.size()):
+		var r = tl.roster[k]
+		if not (r is Dictionary):
+			continue
+		if starving(r, k, t, reg_full, hell_full, dir, em, row_waves):
+			var key := row_key(r, k, dir)
+			_sv_starve_n[key] = int(_sv_starve_n.get(key, 0)) + 1
+
+
+## Whether roster row `r` (index k) starves now: (a) in the continuous draw, open at `t`, weighing above 0, its creature
+## under its max_alive, and its channel full; or (b) paced (waves / once) with its last wave still owing creatures.
+static func starving(r: Dictionary, k: int, t: float, reg_full: bool, hell_full: bool, dir, em, row_waves) -> bool:
+	var paced: bool = str(r.get("pace", "continuous")) != "continuous"
+	var drawn: bool = not paced or bool(r.get("trickle", false))
+	if dir != null and dir.get("timeline") != null and dir.timeline.has_method("row_drawn"):
+		drawn = bool(dir.timeline.row_drawn(r))
+	if paced and row_waves is Dictionary:
+		var st = (row_waves as Dictionary).get(row_key(r, k, dir))
+		if st is Dictionary and int((st as Dictionary).get("owed", 0)) > 0:
+			return true
+	if not drawn:
+		return false
+	var full: bool = hell_full if str(r.get("channel", "")) == "hell" else reg_full
+	if not full:
+		return false
+	if t < float(r.get("t", 0.0)) or (r.get("until") != null and t >= float(r["until"])):
+		return false
+	var w := float(r.get("weight", 1.0))
+	if dir != null and dir.has_method("_roster_weight"):
+		w = float(dir._roster_weight(r, t))
+	if w <= 0.0:
+		return false
+	if dir != null and em != null and dir.has_method("_row_def") and r.get("enemy") is String:
+		var def = dir._row_def(r)
+		if def != null and int(def.max_alive) > 0 and int(em.alive_of(str(def.id))) >= int(def.max_alive):
+			return false
+	return true
+
+
+## One recorder row's entry of every overlay series (the shares over the checks since the last row).
+func _sv_sample(em, dir, row: Dictionary) -> void:
+	var i: int = (_sv["load"] as Array).size()
+	var tl = dir.timeline
+	var c := crowd_now(em, hell_ids(dir))
+	var cap: int = int(dir.current_cap())
+	var dps := float(row.get("full_dps", 0.0))
+	var ehp := float(row.get("ehp", 0.0))
+	_sv["alive_hell"].append(int(c["alive_hell"]))
+	_sv["load"].append(snappedf(float(c["load"]), 0.1))
+	_sv["load_hell"].append(snappedf(float(c["load_hell"]), 0.1))
+	_sv["cap_hell"].append(snappedf(float(tl.hell_cap_at(int(_run.stage))) * float(cap), 0.1))
+	_sv["hard_cap"].append(int(tl.hard_cap))
+	_sv["cap_full"].append(snappedf(float(_sv_full) / float(_sv_checks), 0.01) if _sv_checks > 0 else 0.0)
+	_sv["threat"].append(snappedf(float(c["threat"]), 1.0))
+	_sv["hero_dps"].append(snappedf(dps, 0.1))
+	_sv["hero_ehp"].append(snappedf(ehp, 0.1))
+	_sv["challenge"].append(snappedf(challenge_of(float(c["threat"]), dps, ehp), 0.001))
+	put_by(_sv_hell_by, c["hell_by"], i, 1.0)
+	var shares := {}
+	for key in _sv_starve_n:
+		shares[key] = float(_sv_starve_n[key]) / float(maxi(_sv_checks, 1))
+	put_by(_sv_starve_by, shares, i, 0.01)
+	_sv_checks = 0
+	_sv_full = 0
+	_sv_starve_n.clear()
+
+
+## One row of a level breakdown: every id seen so far gets this row's value (0 when absent now), a new id zeros for the
+## rows before it; values snapped to `step` (1.0: whole numbers).
+static func put_by(by_id: Dictionary, vals: Dictionary, i: int, step: float) -> void:
+	for k in vals:
+		var id := str(k)
+		if not by_id.has(id):
+			var a: Array = []
+			a.resize(i)
+			a.fill(0)
+			by_id[id] = a
+	for id in by_id:
+		var v := float(vals.get(id, 0))
+		(by_id[id] as Array).append(int(v) if step >= 1.0 else snappedf(v, step))
+
+
+## The overlay's output: every series cut or padded to the recorder's `n` rows (a row the sampler never saw repeats the
+## last), the breakdowns, life_by (the creatures still up at the end counted as open), meta.rows, meta.simview_ms.
+func _sv_output(out: Dictionary, meta: Dictionary, n: int) -> void:
+	if not _sv_on:
+		return
+	# the rows the recorder wrote since the last frame
+	if _game != null and is_instance_valid(_game):
+		var ra := _ra()
+		var rows: Array = ra.get("samples") if ra else []
+		while _sv_rows < rows.size():
+			_sv_sample(_game.enemies, _game.director, rows[_sv_rows] if rows[_sv_rows] is Dictionary else {})
+			_sv_rows += 1
+	for k in SV_KEYS:
+		out[k] = fit_len(_sv[k], n)
+	var hb := {}
+	for id in _sv_hell_by:
+		hb[id] = fit_len(_sv_hell_by[id], n)
+	out["alive_hell_by"] = hb
+	var sb := {}
+	for id in _sv_starve_by:
+		sb[id] = fit_len(_sv_starve_by[id], n)
+	out["starving_by"] = sb
+	for i in range(_sv_open.size()):
+		if _sv_open[i] == 1:
+			var e := life_entry(_sv_life, str(_sv_born_id[i]))
+			e["open"] = int(e["open"]) + 1
+	_sv_life.erase("")
+	for id in _sv_life:
+		var e: Dictionary = _sv_life[id]
+		var s: Array = e["s"]
+		for k in range(s.size()):
+			s[k] = snappedf(float(s[k]), 0.1)
+	out["life_by"] = _sv_life
+	meta["rows_played"] = _sv_rows_meta
+	var pt := maxf(_play_t(), 1.0)
+	meta["simview_ms"] = snappedf(float(_sv_us) / 1000.0 / pt, 0.01)
+
+
+## `a` cut to `n` entries, or padded with its last entry (0 when empty).
+static func fit_len(a: Array, n: int) -> Array:
+	var out: Array = a.slice(0, n)
+	var last = out[out.size() - 1] if not out.is_empty() else 0
+	while out.size() < n:
+		out.append(last)
+	return out

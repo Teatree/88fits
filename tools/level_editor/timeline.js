@@ -57,43 +57,40 @@ const Timeline = (() => {
 
   // ------------------------------------------------------------------ DOM
 
+  // pass 84 (lane TIMELINE): every lane's title, its "+" button, its class and its tooltip; the sections (FIELDS.SECTIONS)
+  // say which lanes each holds, in order
+  const LANE_SPEC = {
+    ruler: ['Time', null, 'ruler', ''],
+    alive: ['On screen', null, '', 'creatures alive at each second: the estimate, the Sim, the cap in bodies, the floor (FIELDS.LANES: alive)'],
+    challenge: ['To clear', null, '', 'seconds of the hero\'s damage to clear the screen (FIELDS.LANES: challenge)'],
+    composition: ['Composition', null, '', 'who the crowd is made of, % (FIELDS.LANES: composition)'],
+    cap: ['Cap', null, '', CAP_HELP],
+    floor: ['Floor', { text: '+ Floor', title: 'start a floor curve (the least creatures alive) at 20 from 0:00', onclick: () => addFloor() }, '', 'the floor curve: the least creatures alive on the regular channel (floor_curve); click to edit, drag its points, double-click to add or remove one'],
+    spawned: ['Spawned so far', null, '', SPAWN_HELP],
+    hp_act: ['Actual HP ×', null, '', ACT_HELP.hp],
+    hp: ['HP ×', null, '', 'Creature health over the run clock (hp_curve): click to edit the curve, drag its points, double-click to add or remove one. Since pass 58 a row reads it once, at its start.'],
+    dmg_act: ['Actual ATK ×', null, '', ACT_HELP.dmg],
+    dmg: ['ATK ×', null, '', 'Creature damage over the run clock (damage_curve): click to edit, drag its points, double-click to add or remove one. Since pass 58 a row reads it once, at its start.'],
+    roster: ['Rows', { text: '+ Row', title: 'Add a spawn row at the view\'s centre: continuous, waves, once (a swarm), a coloured elite, Elites every…', onclick: (e) => rowMenu(e.currentTarget) }, '', ''],
+    waves: ['Waves (old)', { text: '+ Wave', title: 'Add a wave block at the view\'s centre (the old waves[] list; a row paced as Waves does the same)', onclick: () => App.newWave(null, viewCenter()) }, '', ''],
+    events: ['Events', { text: '+ Event', title: 'Add a boss or an Elite mini-boss at the view\'s centre', onclick: (e) => eventMenu(e.currentTarget) }, '', ''],
+    specials: ['Specials', null, '', ''],
+    paths: ['Mutations', null, '', 'When each stage\'s mutation offers fall due; each comes at the hero\'s next level-up (pass 79).'],
+  };
+  const sections = {};                 // id -> {root, head, bar, body, sum, ctl}
+
   function mount(container) {
     root = container;
     clear(root);
     scrollBox = el('div', { class: 'tl-scroll' });
     content = el('div', { class: 'tl-content' });
     scrollBox.appendChild(content);
-    const spec = [
-      ['ruler', 'Time', null, 'ruler', ''],
-      ['cap', 'Cap', null, '', CAP_HELP],
-      ['spawned', 'Spawned so far', null, '', SPAWN_HELP],
-      ['hp_act', 'Actual HP ×', null, '', ACT_HELP.hp],
-      ['hp', 'HP ×', null, '', 'Creature health over the run clock (hp_curve): click to edit the curve, drag its points, double-click to add or remove one. Since pass 58 a row reads it once, at its start.'],
-      ['dmg_act', 'Actual ATK ×', null, '', ACT_HELP.dmg],
-      ['dmg', 'ATK ×', null, '', 'Creature damage over the run clock (damage_curve): click to edit, drag its points, double-click to add or remove one. Since pass 58 a row reads it once, at its start.'],
-      ['roster', 'Roster', { text: '+ Row', title: 'Add a roster row at the view\'s centre', onclick: () => App.newRow(null, viewCenter()) }, '', ''],
-      ['waves', 'Waves', { text: '+ Wave', title: 'Add a wave at the view\'s centre', onclick: () => App.newWave(null, viewCenter()) }, '', ''],
-      ['events', 'Events', { text: '+ Event', title: 'Add an event at the view\'s centre', onclick: (e) => eventMenu(e.currentTarget) }, '', ''],
-      ['specials', 'Specials', null, '', ''],
-      ['paths', 'Mutations', null, '', 'When each stage\'s mutation offers fall due; each comes at the hero\'s next level-up (pass 79).'],
-    ];
-    for (const [name, title, plus, cls, help] of spec) {
-      const head = name === 'roster' ? el('div', { class: 'lane-head' }, el('div', {}, el('div', { class: 'lane-name', text: title }), el('div', { class: 'lane-sub' }))) : null;
-      const label = head
-        ? el('div', { class: 'lane-label roster-label' }, head, el('div', { class: 'gutter' }))
-        : el('div', { class: 'lane-label', title: help }, el('div', { class: 'lane-name', text: title }), el('div', { class: 'lane-sub' }));
-      if (plus) (head || label).appendChild(el('button', { class: 'btn small plus', text: plus.text, title: plus.title, onclick: plus.onclick }));
-      if (name === 'spawned') label.appendChild(spawnControls());
-      const s = svg('svg', { class: 'lane-svg', height: 10 });
-      const row = el('div', { class: 'lane lane-' + name + (cls ? ' ' + cls : '') }, label, s);
-      label.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON' || e.target.closest('.gutter')) return;
-        if (['cap', 'hp', 'dmg', 'specials', 'paths'].includes(name)) App.select({ kind: name });
-        // an Actual lane opens its curve's inspector, which compares the two (pass 58)
-        if (name === 'hp_act' || name === 'dmg_act') App.select({ kind: name === 'hp_act' ? 'hp' : 'dmg' });
-      });
-      content.appendChild(row);
-      lanes[name] = { row, label, svg: s };
+    // the ruler first and always (sticky at the top); then the sections, each a header bar and its lanes
+    addLane(content, 'ruler');
+    for (const sec of FIELDS.SECTIONS) {
+      const s = buildSection(sec);
+      content.appendChild(s.root);
+      for (const name of sec.lanes) addLane(s.body, name);
     }
     cursorEl = el('div', { class: 'tl-cursor', hidden: true });
     content.appendChild(cursorEl);
@@ -106,12 +103,95 @@ const Timeline = (() => {
     card = el('div', { class: 'hovercard', hidden: true });
     document.body.appendChild(card);
     root.appendChild(scrollBox);
+    // pass 84: the inspector folds to a slim bar at the right (its own state, remembered by the browser)
+    wireInspectorFold();
     scrollBox.addEventListener('pointermove', onHover);
     scrollBox.addEventListener('pointerleave', () => { if (!drag) hideCursor(); });
     scrollBox.addEventListener('scroll', () => { if (lastHover) lightRows(null); });
     scrollBox.addEventListener('wheel', onWheel, { passive: false });
     scrollBox.addEventListener('pointerdown', (e) => { if (e.target === content || e.target === scrollBox || e.target.classList.contains('lane-svg')) { if (e.button === 0) App.select(null); } });
     window.addEventListener('resize', () => { if (App.S.map && App.S.tab === 'timeline') render(); });
+  }
+
+  /** One lane: its sticky label (an eye on a view-only lane, a pencil on an editing one; pass 84) and its SVG. */
+  function addLane(parent, name) {
+    const [title, plus, cls, help] = LANE_SPEC[name];
+    const kind = name === 'ruler' ? '' : FIELDS.VIEW_LANES.includes(name) ? 'view' : 'edit';
+    const head = name === 'roster' ? el('div', { class: 'lane-head' }, el('div', {}, el('div', { class: 'lane-name' }, kindMark(kind, true), title), el('div', { class: 'lane-sub' }))) : null;
+    const label = head
+      ? el('div', { class: 'lane-label roster-label' }, head, el('div', { class: 'gutter' }))
+      : el('div', { class: 'lane-label', title: help }, el('div', { class: 'lane-name' }, kind ? kindMark(kind, true) : null, title), el('div', { class: 'lane-sub' }));
+    if (plus) (head || label).appendChild(el('button', { class: 'btn small plus', text: plus.text, title: plus.title, onclick: plus.onclick }));
+    const s = svg('svg', { class: 'lane-svg', height: 10 });
+    const row = el('div', { class: 'lane lane-' + name + (cls ? ' ' + cls : '') + (kind ? ' lane-' + kind : '') }, label, s);
+    label.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('.gutter') || e.target.closest('.sp-ctl')) return;
+      if (['cap', 'floor', 'hp', 'dmg', 'specials', 'paths'].includes(name)) App.select({ kind: name });
+      // an Actual lane opens its curve's inspector, which compares the two (pass 58)
+      if (name === 'hp_act' || name === 'dmg_act') App.select({ kind: name === 'hp_act' ? 'hp' : 'dmg' });
+    });
+    parent.appendChild(row);
+    lanes[name] = { row, label, svg: s };
+  }
+
+  // ------------------------------------------------------------------ sections (pass 84)
+
+  // Garry (2026-10-16): "allow for the option to collapse some sections so they don't get in the way. Make sure that this
+  // functionality uses good ui so it's easy to tell where a section was collapsed. Mark somehow (in a subtle way) which
+  // sections are view only, and which are tools for editing things." Each section is a header bar (a chevron, the mark,
+  // the name, what it is, its own controls) over its lanes; collapsed, the bar stays where the section was, hatched, with
+  // a summary of what it holds and "collapsed: click to open". The browser remembers each map's sections.
+  const SEC_KEY = (map) => `88fits-editor-sections-${map || ''}`;
+  let secState = {};                   // id -> true when collapsed ('group:<key>' for the spawn rows' groups too)
+  let secMap = null;
+
+  function loadSecState() {
+    const id = App.S.mapId || '';
+    if (secMap === id) return;
+    secMap = id;
+    secState = {};
+    try { const v = JSON.parse(localStorage.getItem(SEC_KEY(id)) || 'null'); if (v && typeof v === 'object') secState = v; } catch (_) { /* fresh */ }
+  }
+  function saveSecState() { try { localStorage.setItem(SEC_KEY(secMap), JSON.stringify(secState)); } catch (_) { /* fine */ } }
+  const isCollapsed = (id) => !!secState[id];
+  function setCollapsed(id, on) {
+    if (on) secState[id] = true; else delete secState[id];
+    saveSecState();
+    render();
+  }
+  /** Collapse or open every section (and every group of the spawn rows). */
+  function setAll(on) {
+    for (const sec of FIELDS.SECTIONS) if (on) secState[sec.id] = true; else delete secState[sec.id];
+    if (!on) for (const k of Object.keys(secState)) if (k.startsWith('group:')) delete secState[k];
+    saveSecState();
+    render();
+  }
+
+  /** The kind mark: an eye (view only) or a pencil (editing); `small` for a lane's label. */
+  function kindMark(kind, small) {
+    if (!kind) return null;
+    const words = kind === 'view' ? 'view only: drawn from the map, the estimate and the Sim; nothing here changes the map' : 'editing: drag, click and type here to change the map';
+    return el('span', { class: 'kmark kmark-' + kind + (small ? ' small' : ''), title: words }, U.glyph(kind === 'view' ? 'eye' : 'pencil'));
+  }
+
+  function buildSection(sec) {
+    const sum = el('span', { class: 'tl-sec-sum' });
+    const ctl = el('span', { class: 'tl-sec-ctl' });
+    const hint = el('span', { class: 'tl-sec-hint' });
+    const bar = el('div', { class: 'tl-sec-bar' },
+      el('span', { class: 'tl-chev', text: '▾' }), kindMark(sec.kind),
+      el('b', { class: 'tl-sec-name', text: sec.name }), el('span', { class: 'tl-sec-what', text: sec.what }), sum,
+      el('span', { class: 'spacer' }), ctl, hint);
+    const head = el('div', { class: 'tl-sec-head', role: 'button', tabindex: 0, 'aria-expanded': 'true', title: `${sec.name}: click to collapse or open` }, bar);
+    const toggle = () => setCollapsed(sec.id, !isCollapsed(sec.id));
+    head.addEventListener('click', (e) => { if (e.target.closest('.tl-sec-ctl')) return; toggle(); });
+    head.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('.tl-sec-ctl')) { e.preventDefault(); toggle(); } });
+    const body = el('div', { class: 'tl-sec-body' });
+    const rootEl = el('div', { class: `tl-sec tl-sec-${sec.id} kind-${sec.kind}`, 'data-sec': sec.id }, head, body);
+    const s = { sec, root: rootEl, head, bar, body, sum, ctl, hint };
+    sections[sec.id] = s;
+    buildSectionControls(s);
+    return s;
   }
 
   // A double-click is detected by hand (same key, under 450 ms, within 8 px): the first click re-renders the lane, so the
@@ -181,8 +261,15 @@ const Timeline = (() => {
     const visible = scrollBox.clientWidth - LABEL_W;
     if (px < scrollBox.scrollLeft + 20 || px > scrollBox.scrollLeft + visible - 20) scrollBox.scrollLeft = Math.max(0, px - visible / 3);
     if (sel.kind === 'roster') {
-      // a row low on a long roster: bring it into view vertically too
-      const top = lanes.roster.row.offsetTop + ROSTER_HEAD + sel.i * ROW_H;
+      // a row low on a long roster: bring it into view vertically too (pass 84: its section and its group opened first)
+      const r = (App.tl().roster || [])[sel.i];
+      if (r && (isCollapsed('rows') || isCollapsed('group:' + groupOf(r, prefs.group).key))) {
+        delete secState.rows; delete secState['group:' + groupOf(r, prefs.group).key];
+        saveSecState();
+        render();
+      }
+      const yy = rosterLay && rosterLay.yOf[sel.i] != null ? rosterLay.yOf[sel.i] : ROSTER_HEAD + sel.i * ROW_H;
+      const top = lanes.roster.row.getBoundingClientRect().top - content.getBoundingClientRect().top + yy;
       if (top < scrollBox.scrollTop + RULER_H || top + ROW_H > scrollBox.scrollTop + scrollBox.clientHeight) scrollBox.scrollTop = Math.max(0, top - scrollBox.clientHeight / 3);
     }
   }
@@ -192,9 +279,13 @@ const Timeline = (() => {
   function eventMenu(anchor) {
     closeMenu();
     menu = el('div', { class: 'menu' });
+    // pass 84 (lane TIMELINE): one spawning language: swarms, coloured elites and Elites every are spawn rows now (+ Row);
+    // the events keep the bosses and the Elite mini-bosses
     for (const [type, info] of Object.entries(FIELDS.EVENT_TYPES)) {
+      if (type !== 'boss' && type !== 'elite_boss') continue;
       menu.appendChild(el('button', { class: 'menu-item', onclick: () => { closeMenu(); App.newEvent(type, viewCenter()); } }, glyph(info.glyph), el('span', { text: info.label }), el('small', { text: info.help })));
     }
+    menu.appendChild(el('div', { class: 'menu-note', text: 'Swarms, coloured elites and Elites every are spawn rows now: + Row in Spawn rows.' }));
     document.body.appendChild(menu);
     // under the button, or above it when the window's bottom is too close (the Events lane sits low on the page)
     const r = anchor.getBoundingClientRect();
@@ -210,28 +301,39 @@ const Timeline = (() => {
 
   function render() {
     if (!root || !App.S.map) return;
+    loadSecState();
     hovers = {};
     if (!drag) hideCard();
     const w = contentWidth();
     content.style.width = `${LABEL_W + w}px`;
+    // the section bars, the controls strip and the warnings stay in view while the lanes scroll sideways (pass 84)
+    content.style.setProperty('--vis-w', `${Math.max(320, scrollBox.clientWidth)}px`);
     for (const name of Object.keys(lanes)) lanes[name].svg.setAttribute('width', w);
     renderRuler(w);
-    renderCap(w);
-    // the estimate once a render: the Spawned so far lane and the Actual lanes' weights (pass 58)
+    // the estimate once a render: every view lane, the Spawned so far lane and the Actual lanes' weights (pass 58)
     const res = App.spawned(!!drag);
+    lastSpawn = res;
     lastActual = App.actual(res);
-    renderSpawned(w, res);
-    renderActual(w, 'hp_act', true);
-    renderCurve(w, 'hp', 'hp_curve');
-    renderActual(w, 'dmg_act', false);
-    renderCurve(w, 'dmg', 'damage_curve');
-    renderRoster(w);
-    renderWaves(w);
-    renderEvents(w);
-    renderSpecials(w);
-    renderPaths(w);
+    view = viewOf(res);
+    const open = (id) => !isCollapsed(id);
+    if (open('onscreen')) renderAlive(w);
+    if (open('challenge')) renderChallenge(w);
+    if (open('composition')) renderComposition(w);
+    if (open('spawned')) renderSpawned(w, res); else syncSpawnControls();
+    if (open('rows')) { renderRoster(w); renderWaves(w); }
+    if (open('events')) { renderEvents(w); renderSpecials(w); renderPaths(w); }
+    if (open('curves')) {
+      renderCap(w);
+      renderFloor(w);
+      renderActual(w, 'hp_act', true);
+      renderCurve(w, 'hp', 'hp_curve');
+      renderActual(w, 'dmg_act', false);
+      renderCurve(w, 'dmg', 'damage_curve');
+    }
+    if (open('warnings')) renderWarnings();
+    syncSections();
     const selKey = App.selKey();
-    for (const name of ['cap', 'hp', 'dmg', 'specials', 'paths']) lanes[name].row.classList.toggle('selected', selKey === name);
+    for (const name of ['cap', 'floor', 'hp', 'dmg', 'specials', 'paths']) lanes[name].row.classList.toggle('selected', selKey === name);
     lanes.hp_act.row.classList.toggle('selected', selKey === 'hp');
     lanes.dmg_act.row.classList.toggle('selected', selKey === 'dmg');
     updateZoomLabel();
@@ -250,6 +352,1053 @@ const Timeline = (() => {
   }
 
   const issueClass = (key) => { const m = App.issuesFor(key); return m ? ' has-' + m.level : ''; };
+
+  // ------------------------------------------------------------------ the sections' controls and words (pass 84)
+
+  let view = null;                     // viewOf(): the view lanes' numbers for the estimate drawn last
+  /** The Challenge lane's zones for the measure shown. */
+  const zonesNow = () => zoneSets[prefs.chal === 'bars' ? 'bars' : 'seconds'];
+  // the Challenge lane's zone limits per measure (seconds to clear the screen; health bars lost clearing it): a page
+  // setting the browser remembers
+  const ZONE_KEY = '88fits-editor-zones84';
+  const zoneSets = { seconds: Object.assign({}, TimelineModel.ZONES), bars: Object.assign({}, TimelineModel.BAR_ZONES) };
+  try {
+    const z = JSON.parse(localStorage.getItem(ZONE_KEY) || 'null');
+    if (z && typeof z === 'object') for (const k of ['seconds', 'bars']) if (z[k] && z[k].easy > 0 && z[k].hard > z[k].easy) zoneSets[k] = { easy: Number(z[k].easy), hard: Number(z[k].hard) };
+  } catch (_) { /* the defaults */ }
+  // how the spawn rows are grouped and coloured, the Composition lane's mode and source: page settings
+  const PREF_KEY = '88fits-editor-tlprefs';
+  const prefs = { group: 'stage', colour: 'role', comp: 'alive', compSrc: 'est', chal: 'seconds' };
+  try { const v = JSON.parse(localStorage.getItem(PREF_KEY) || 'null'); if (v && typeof v === 'object') for (const k of Object.keys(prefs)) if (typeof v[k] === 'string') prefs[k] = v[k]; } catch (_) { /* the defaults */ }
+  function setPref(k, v) {
+    prefs[k] = v;
+    try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (_) { /* fine */ }
+    render();
+  }
+  const GROUP_MODES = [
+    { v: 'stage', label: 'by stage', help: 'a group per stage the row starts in' },
+    { v: 'role', label: 'by role', help: 'a group per role (the row form\'s Role; untagged rows together)' },
+    { v: 'stage_role', label: 'by stage and role', help: 'a group per stage and role' },
+    { v: 'none', label: 'no groups', help: 'every row in the file\'s order (the grip at the left reorders them)' },
+  ];
+  const COLOUR_MODES = [
+    { v: 'role', label: 'by role', help: 'each bar in its role\'s colour (the legend in the section; untagged = grey)' },
+    { v: 'creature', label: 'by creature', help: 'each bar in its creature\'s colour (the same colours as the Composition lane)' },
+  ];
+
+  /** A small <select> for the section bars: `opts` [{v, label, help}], the current value, the change. */
+  function miniSelect(opts, value, onChange, title) {
+    const sel = el('select', { class: 'mini-sel', title: title || '' });
+    for (const o of opts) sel.appendChild(el('option', { value: o.v, text: o.label, title: o.help || '' }));
+    sel.value = value;
+    sel.addEventListener('change', () => onChange(sel.value));
+    sel.addEventListener('click', (e) => e.stopPropagation());
+    return sel;
+  }
+  /** A swatch and its words for a legend. */
+  const lg = (cls, text, title) => el('span', { class: 'lg-item', title: title || '' }, el('i', { class: 'lg-sw ' + cls }), text);
+
+  /** The "What is this?" strip of a view section (pass 84; Garry: "I won't know what intensity means unless there is
+   *  some way for me to clearly read somewhere what it consists of"): one line, a legend naming every line, and a box with
+   *  the exact recipe and units (TimelineModel.RECIPES). */
+  function explainStrip(id, legend) {
+    const R = TimelineModel.RECIPES[id === 'challenge' && prefs.chal === 'bars' ? 'challenge_bars' : id];
+    const lines = el('div', { class: 'tl-recipe' });
+    for (const [name, text] of R.lines) lines.appendChild(el('div', { class: 'tl-recipe-line' }, el('b', { text: `${name}: ` }), text));
+    const det = el('details', { class: 'tl-how', 'data-how': id }, el('summary', { text: 'How it is worked out (the recipe and the units)' }), lines);
+    if (secState['how:' + id]) det.open = true;
+    det.addEventListener('toggle', () => { if (det.open) secState['how:' + id] = true; else delete secState['how:' + id]; saveSecState(); });
+    return el('div', { class: 'tl-strip tl-explain', 'data-explain': id },
+      el('div', { class: 'tl-what' }, el('b', { text: 'What is this? ' }), el('span', { text: R.what })),
+      el('div', { class: 'tl-legend-line' }, legend), det);
+  }
+
+  let simSelect = null, simNote = null, groupSel = null;
+  function buildSectionControls(s) {
+    const id = s.sec.id;
+    const stop = (e) => e.stopPropagation();
+    if (id === 'controls') {
+      const strip = el('div', { class: 'tl-strip tl-controls' });
+      strip.appendChild(el('div', { class: 'tl-legend' },
+        el('span', { class: 'tl-legend-item' }, kindMark('view'), el('span', { text: 'view only: drawn from the map, the estimate and the Sim, nothing to drag (a recessed background)' })),
+        el('span', { class: 'tl-legend-item' }, kindMark('edit'), el('span', { text: 'editing: drag, click and type here to change the map' }))));
+      const row = el('div', { class: 'tl-ctl-row' });
+      row.appendChild(el('span', { class: 'tl-ctl-group' }, el('b', { text: 'Sections' }),
+        el('button', { class: 'btn small', type: 'button', text: 'Collapse all', title: 'fold every section to its bar (the ruler stays)', onclick: () => setAll(true) }),
+        el('button', { class: 'btn small', type: 'button', text: 'Open all', title: 'open every section and every group of spawn rows', onclick: () => setAll(false) })));
+      row.appendChild(el('span', { class: 'tl-ctl-group', title: 'what the estimate assumes (On screen, Challenge, Composition, Spawned so far, the Actual lanes and the warnings read it): the share of the living crowd the hero kills a second, how long a boss fight and its portal wait last. Empty = the numbers from your runs (the grey ones); ↺ goes back to them' }, el('b', { text: 'Estimate' }), spawnControls(), simLifeBox()));
+      simSelect = el('select', { class: 'tl-sim-pick', title: 'the finished Sim whose real numbers the On screen, Challenge and Composition lanes show beside the estimate (the Sim tab runs one); none = the estimate alone' });
+      simSelect.appendChild(el('option', { value: '', text: 'none' }));
+      simSelect.addEventListener('change', () => pickSim(simSelect.value));
+      simNote = el('span', { class: 'muted small tl-sim-note' });
+      row.appendChild(el('span', { class: 'tl-ctl-group' }, el('b', { text: 'Sim to show' }), simSelect, simNote));
+      strip.appendChild(row);
+      s.body.appendChild(strip);
+      return;
+    }
+    if (id === 'onscreen') {
+      s.body.appendChild(explainStrip('onscreen', [lg('sw-alive', 'estimate (regular channel)'), lg('sw-hell', 'hell channel'), lg('sw-sim', 'Sim'), lg('sw-capb', 'cap in bodies'), lg('sw-floor', 'floor'), lg('sw-hard', 'hard cap'), lg('sw-full', 'cap full: rows starve')]));
+      return;
+    }
+    if (id === 'challenge') {
+      s.ctl.appendChild(miniSelect([{ v: 'seconds', label: 'seconds to clear the screen', help: 'the crowd\'s HP on screen ÷ the hero\'s damage a second' }, { v: 'bars', label: 'health bars lost clearing it', help: '(seconds to clear) × (the crowd\'s bite a second ÷ his effective HP) = HP × ATK of the crowd ÷ (DPS × EHP): the Sim\'s "challenge"' }], prefs.chal, (v) => setPref('chal', v), 'what the lane measures'));
+      const box = (k, label, help) => {
+        const inp = el('input', { type: 'number', class: 'num tiny', min: 0.1, step: 'any', title: help, 'data-zone': k });
+        inp.addEventListener('click', stop);
+        inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') inp.blur(); });
+        inp.addEventListener('change', () => {
+          const v = Number(inp.value);
+          const set = prefs.chal === 'bars' ? 'bars' : 'seconds';
+          const z = Object.assign({}, zoneSets[set]);
+          if (v > 0) z[k] = v;
+          if (z.hard <= z.easy) { inp.value = zoneSets[set][k]; App.toast('The hard limit must be above the easy one'); return; }
+          zoneSets[set] = z;
+          try { localStorage.setItem(ZONE_KEY, JSON.stringify(zoneSets)); } catch (_) { /* fine */ }
+          render();
+        });
+        return el('label', { class: 'tl-zone', title: help }, label, inp, el('span', { class: 'tl-zone-unit' }));
+      };
+      s.ctl.appendChild(box('easy', 'easy under', 'under this the lane is green (a page setting, one pair per measure)'));
+      s.ctl.appendChild(box('hard', 'hard over', 'over this the lane is red (a page setting, one pair per measure)'));
+      s.body.appendChild(explainStrip('challenge', [lg('sw-easy', 'easy'), lg('sw-fair', 'fair'), lg('sw-hardz', 'hard'), lg('sw-chal', 'the estimate'), lg('sw-sim', 'the Sim'), lg('sw-death', 'a Sim death')]));
+      return;
+    }
+    if (id === 'composition') {
+      s.ctl.appendChild(miniSelect([{ v: 'alive', label: 'on screen', help: 'shares of the creatures alive' }, { v: 'spawned', label: 'spawned in the past N s', help: 'shares of what spawned in the past N seconds (the "past" box in the top bar)' }], prefs.comp, (v) => setPref('comp', v), 'what the shares are of'));
+      s.ctl.appendChild(miniSelect([{ v: 'est', label: 'estimate', help: 'the Spawned so far estimate' }, { v: 'sim', label: 'Sim', help: 'the Sim picked in Ruler and controls (on screen only)' }], prefs.compSrc, (v) => setPref('compSrc', v), 'whose numbers'));
+      s.body.appendChild(explainStrip('composition', [lg('sw-comp', 'one colour per creature: hover for the names, the counts and the shares')]));
+      return;
+    }
+    if (id === 'rows') {
+      s.ctl.appendChild(el('span', { class: 'muted small', text: 'group' }));
+      groupSel = miniSelect(GROUP_MODES, prefs.group, (v) => setPref('group', v), 'how the rows are grouped on this page (the game ignores it)');
+      s.ctl.appendChild(groupSel);
+      s.ctl.appendChild(el('span', { class: 'muted small', text: 'colour' }));
+      s.ctl.appendChild(miniSelect(COLOUR_MODES, prefs.colour, (v) => setPref('colour', v), 'what the bars\' colour says'));
+      s.ctl.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Suggest roles', title: 'give every untagged row a role from its keys and its creature (special, elite, once / off the cap = swarm, a ranged creature, a heavy one = tank, else fodder); one undo step; rows with a role keep it', onclick: (e) => { e.stopPropagation(); suggestRoles(); } }));
+      s.ctl.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: 'Fold groups', title: 'fold every group of rows to its bar', onclick: (e) => { e.stopPropagation(); foldGroups(true); } }));
+      s.ctl.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: 'Open groups', onclick: (e) => { e.stopPropagation(); foldGroups(false); } }));
+      const roles = el('div', { class: 'tl-legend-line' }, el('span', { class: 'muted small', text: 'Roles: ' }), TimelineModel.ROLES.map((r) => lg('', r.label, r.help)));
+      for (const [k, r] of TimelineModel.ROLES.entries()) roles.querySelectorAll('.lg-sw')[k].style.background = r.color;
+      s.body.appendChild(el('div', { class: 'tl-strip tl-rows-legend' }, roles,
+        el('div', { class: 'muted small', text: 'On each bar: the creature, how many and how often (≈ per minute for a continuous row: the estimate over its life), its HP and ATK in play at its start, the presence weight, then badges: ★ elite modifier, ◆ special, ⚑ banner, the pattern, hell, the art variant, a wrench for overrides. Yellow ticks: when its creatures come.' })));
+      return;
+    }
+    if (id === 'warnings') {
+      s.body.appendChild(el('div', { class: 'tl-strip tl-warn', 'data-warnings': '1' }));
+    }
+  }
+
+  /** "lifetimes from the Sim": the estimate lets each creature the shown Sim measured live its measured seconds (lane
+   *  SPAWN's opts.life) instead of the kill rate (pass 84). */
+  let simLifeInput = null;
+  function simLifeBox() {
+    simLifeInput = el('input', { type: 'checkbox' });
+    simLifeInput.checked = !!App.S.useSimLife;
+    simLifeInput.addEventListener('change', () => App.setUseSimLife(simLifeInput.checked));
+    return el('label', { class: 'tl-check', title: 'ticked: in the estimate each creature the shown Sim measured leaves the crowd after its measured lifetime (life_by in the Sim: seconds from spawn to death), the rest by the kill rate; unticked: every creature by the kill rate. Needs a Sim with lifetimes (pass 84 on)' }, simLifeInput, 'lifetimes from the Sim');
+  }
+
+  function foldGroups(on) {
+    const rows = App.tl().roster || [];
+    const keys = new Set(rows.map((r) => groupOf(r, prefs.group).key));
+    for (const k of keys) if (on) secState['group:' + k] = true; else delete secState['group:' + k];
+    saveSecState();
+    render();
+  }
+
+  /** Every untagged row gets TimelineModel.suggestRole's role (one undo step). */
+  function suggestRoles() {
+    const rows = App.tl().roster || [];
+    const todo = rows.map((r, i) => ({ i, role: TimelineModel.roleOf(r) ? '' : TimelineModel.suggestRole(r, App.creature(firstEnemy(r))) })).filter((x) => x.role);
+    if (!todo.length) { App.toast('Every row has a role already'); return; }
+    App.apply((tl) => { for (const x of todo) tl.roster[x.i].role = x.role; });
+    App.toast(`Gave ${todo.length} row${todo.length === 1 ? '' : 's'} a role (Ctrl+Z undoes)`, { undo: true });
+  }
+
+  /** The first creature a row names ('' for the roster draw). */
+  function firstEnemy(r) {
+    if (!r) return '';
+    if (Array.isArray(r.enemy)) return String(r.enemy[0] || '');
+    return r.enemy === 'roster' ? '' : String(r.enemy || '');
+  }
+  /** How a row names its creatures, in words: "Skeleton", "Skeleton +2", "the roster draw". */
+  function enemyWords(r) {
+    if (Array.isArray(r.enemy)) return r.enemy.length > 1 ? `${App.creatureName(r.enemy[0])} +${r.enemy.length - 1}` : App.creatureName(r.enemy[0]);
+    if (r.enemy === 'roster') return 'roster draw';
+    return App.creatureName(r.enemy);
+  }
+
+  /** Each section's bar: collapsed or open, its chevron and words. */
+  function syncSections() {
+    for (const s of Object.values(sections)) {
+      const c = isCollapsed(s.sec.id);
+      s.root.classList.toggle('collapsed', c);
+      s.head.setAttribute('aria-expanded', String(!c));
+      s.bar.querySelector('.tl-chev').textContent = c ? '▸' : '▾';
+      s.sum.textContent = c ? sectionSummary(s.sec.id) : '';
+      s.hint.textContent = c ? 'collapsed: click to open' : '';
+      s.head.title = c ? `${s.sec.name} is collapsed: click to open it` : `${s.sec.name}: click the bar to collapse it`;
+    }
+    if (simNote) simNote.textContent = simOv ? simOv.note : (simList.length ? '' : 'no finished Sim of this map yet');
+  }
+
+  /** A collapsed section's summary: what it holds, in a line. */
+  function sectionSummary(id) {
+    const tl = App.tl();
+    const v = view;
+    const SL = App.stageLength();
+    try {
+      if (id === 'controls') return `the ruler stays · kill rate from ${App.turnoverSource()} · Sim: ${simOv ? simOv.label : 'none'}`;
+      if (id === 'onscreen' && v) {
+        let pk = 0;
+        for (let j = 1; j < v.n; j++) if (v.alive[j] > v.alive[pk]) pk = j;
+        const runs = fullRuns(v);
+        return `peak ${Math.round(v.alive[pk])} alive at ${fmtT(v.t[pk])} · cap full ${runs.length} time${runs.length === 1 ? '' : 's'}${runs.length ? ` (first ${fmtT(runs[0].a)})` : ''}`;
+      }
+      if (id === 'challenge' && v) {
+        let pk = -1;
+        for (let j = 0; j < v.n; j++) if (v.clear[j] != null && (pk < 0 || v.clear[j] > v.clear[pk])) pk = j;
+        const deaths = simOv ? simOv.deaths.length : 0;
+        return pk >= 0 ? `hardest: ${fmtN(v.clear[pk], 1)} s to clear the screen at ${fmtT(v.t[pk])} (${TimelineModel.zoneOf(v.clear[pk], zoneSets.seconds)})${simOv ? ` · ${deaths} Sim death${deaths === 1 ? '' : 's'}` : ''}` : 'nothing alive';
+      }
+      if (id === 'composition' && v) {
+        const tot = {};
+        let all = 0;
+        for (const [cid, arr] of Object.entries(v.ser.id)) { let s2 = 0; for (let j = 0; j < v.n; j++) s2 += arr[j]; tot[cid] = s2; all += s2; }
+        const top = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        return top.length ? `most on screen over the run: ${top.map(([cid, n2]) => `${App.creatureName(cid)} ${Math.round(all > 0 ? (n2 / all) * 100 : 0)}%`).join(', ')}` : 'nobody';
+      }
+      if (id === 'spawned' && lastSpawn) { const p = Model.estimateAt(lastSpawn.est, SL, true); return `≈${fmtCount(p ? p.all : 0)} spawned by ${fmtT(SL)}`; }
+      if (id === 'rows') {
+        const rows = tl.roster || [];
+        const n = (p) => rows.filter((r) => TimelineModel.paceOf(r) === p).length;
+        return `${rows.length} rows: ${n('continuous')} continuous, ${n('waves')} waves, ${n('once')} once · ${rows.filter((r) => r.stats && Object.keys(r.stats).length).length} with overrides${(tl.waves || []).length ? ` · ${(tl.waves || []).length} old wave blocks` : ''}`;
+      }
+      if (id === 'events') {
+        const evs = tl.events || [];
+        const sp = tl.specials || {};
+        let offers = 0;
+        for (let st = 0; st < App.stages() && (tl.path_times || []).length; st++) offers += ((tl.path_times[Math.min(st, tl.path_times.length - 1)]) || []).length;
+        return `${evs.filter((e) => e.type === 'boss').length} bosses · ${evs.filter((e) => e.type === 'elite_boss').length} Elites${evs.filter((e) => !['boss', 'elite_boss'].includes(e.type)).length ? ` · ${evs.filter((e) => !['boss', 'elite_boss'].includes(e.type)).length} old events` : ''} · specials ${sp.pool ? `from ${fmtT(sp.from)}` : 'none'} · ${offers} mutation offers`;
+      }
+      if (id === 'curves') {
+        const fc = Array.isArray(tl.floor_curve) ? tl.floor_curve : [];
+        return `cap ${App.capAt(0)} → ${App.capAt(App.runEnd() - 1)} · floor ${fc.length ? `${fc.length} points` : 'none'} · HP ×${fmtN(App.hpTimeMult(0), 2)} → ×${fmtN(App.hpTimeMult(App.runEnd()), 2)} · ATK ×${fmtN(App.dmgTimeMult(0), 2)} → ×${fmtN(App.dmgTimeMult(App.runEnd()), 2)}`;
+      }
+      if (id === 'warnings') { const ws = warningsOf(); return ws.length ? `${ws.length} found: ${ws.slice(0, 2).map((x) => x.short || x.text).join(' · ')}${ws.length > 2 ? ' …' : ''}` : 'nothing found'; }
+    } catch (e) { console.error('section summary', id, e); }
+    return '';
+  }
+
+  // ------------------------------------------------------------------ the inspector's fold (pass 84)
+
+  const INSP_KEY = '88fits-editor-insp-folded';
+  function wireInspectorFold() {
+    const panel = document.getElementById('tab-timeline');
+    const insp = document.getElementById('inspector');
+    if (!panel || !insp || document.getElementById('insp-fold')) return;
+    const btn = el('button', { id: 'insp-fold', class: 'insp-fold', type: 'button', text: '⇥', title: 'fold the inspector to a slim bar (the timeline gets the room)' });
+    const barEl = el('button', { id: 'insp-folded-bar', class: 'insp-folded-bar', type: 'button', title: 'the inspector is folded: click to open it' },
+      el('span', { class: 'ifb-chev', text: '◂' }), el('span', { class: 'ifb-text', text: 'Inspector · folded: click to open' }));
+    const set = (on) => {
+      panel.classList.toggle('insp-folded', on);
+      try { localStorage.setItem(INSP_KEY, on ? '1' : '0'); } catch (_) { /* fine */ }
+      if (App.S.map) render();
+    };
+    btn.addEventListener('click', () => set(true));
+    barEl.addEventListener('click', () => set(false));
+    panel.appendChild(btn);
+    panel.appendChild(barEl);
+    let on = false;
+    try { on = localStorage.getItem(INSP_KEY) === '1'; } catch (_) { /* open */ }
+    panel.classList.toggle('insp-folded', on);
+  }
+
+  // ------------------------------------------------------------------ the Sim overlay (pass 84)
+
+  // The newest finished Sim of this map (or the one picked) as the view lanes' second opinion, from lane SIMVIEW's route
+  // GET /api/sim/overlay?map=<map>&id=<sim> (every series by the map clock: index c = run second c; boss fights and the
+  // portal wait left out, their seconds in `bosses`): alive (both channels, the regular and the hell apart), load and the
+  // cap, cap_full, starving rows, threat, the hero's full DPS, effective HP and power, challenge, who was alive, its
+  // deaths and each creature's lifetime. Its keep_up (seconds of his own damage to clear the crowd, per play second) comes
+  // from the result itself for the Challenge lane's seconds. An older server without the route: the result alone.
+  const SIM_KEY = (map) => `88fits-editor-sim-${map || ''}`;
+  let simOv = null, simList = [], simFor = null, simBusy = false;
+  async function loadSimList(force) {
+    const mapId = App.S.mapId || '';
+    if (!force && simFor === mapId) return;
+    simFor = mapId;
+    simList = []; simOv = null;
+    try {
+      const r = await fetch('/api/sim/history', { cache: 'no-store' });
+      const h = r.ok ? await r.json() : {};
+      simList = (h.sims || []).filter((x) => x && x.has_result && !x.synthetic && !x.partial && (((x.settings || {}).map) || 'red_canyon') === mapId);
+    } catch (_) { simList = []; }
+    if (simSelect) {
+      clear(simSelect);
+      simSelect.appendChild(el('option', { value: '', text: 'none (the estimate alone)' }));
+      for (const x of simList) simSelect.appendChild(el('option', { value: x.id, text: `${x.id} · ${x.hero_name || ''} · ${x.players_done || '?'} runs · ${String(x.started || '').replace('T', ' ').slice(0, 16)}` }));
+    }
+    let want = '';
+    try { want = localStorage.getItem(SIM_KEY(mapId)) || ''; } catch (_) { /* the newest */ }
+    const pick = want === '-' ? '' : ((simList.find((x) => x.id === want) || simList[0] || {}).id || '');
+    if (simSelect) simSelect.value = pick;
+    if (pick) await pickSim(pick, true); else render();
+  }
+
+  async function pickSim(id, quiet) {
+    try { localStorage.setItem(SIM_KEY(App.S.mapId), id || '-'); } catch (_) { /* fine */ }
+    if (!id) { simOv = null; App.setSimLife(null); render(); return; }
+    if (simBusy) return;
+    simBusy = true;
+    let ov = null;
+    try {
+      const r = await fetch(`/api/sim/overlay?map=${encodeURIComponent(App.S.mapId)}&id=${encodeURIComponent(id)}&top=14`, { cache: 'no-store' });
+      const d = r.ok ? await r.json() : null;
+      if (d && d.ok && d.overlay) ov = fromOverlay(d, id);
+      else if (d && d.reason && !quiet) App.toast(`The Sim's overlay: ${d.reason}`);
+    } catch (_) { /* the result alone */ }
+    let res = null;
+    try { const r = await fetch(`/api/sim/result/${encodeURIComponent(id)}`, { cache: 'no-store' }); if (r.ok) res = await r.json(); } catch (_) { /* no keep_up */ }
+    if (!ov && res) ov = fromResult(res, simList.find((x) => x.id === id) || { id });
+    if (ov && res) addKeepUp(ov, res);
+    simOv = ov;
+    if (!simOv && !quiet) App.toast(`The Sim ${id} has no series to show`);
+    App.setSimLife(simOv && simOv.life ? simOv.life : null);
+    simBusy = false;
+    render();
+  }
+
+  /** The overlay route's answer, every series by the clock second. */
+  function fromOverlay(d, id) {
+    const o = d.overlay, sim = d.sim || {};
+    const se = o.series || {};
+    const pick = (k, f) => { const x = se[k]; if (!x) return null; for (const g of [f, 'mean', 'median']) if (Array.isArray(x[g])) return x[g]; return null; };
+    const C = Number(o.C) || (pick('alive', 'mean') || []).length;
+    const clock = Array.from({ length: C + 1 }, (_, c) => c);
+    const aliveBy = {};
+    const ab = o.alive_by && o.alive_by.mean ? o.alive_by.mean : {};
+    for (const [cid, arr] of Object.entries(ab)) if (Array.isArray(arr)) aliveBy[cid] = arr;
+    const life = {};
+    for (const [cid, L] of Object.entries(o.life_by || {})) if (L && Number(L.mean_s) > 0) life[cid] = Number(L.mean_s);
+    // the Sim's starving rows by this map's roster index (its `rows` say which row each key was, as simulated)
+    const rowsSim = Array.isArray(o.rows) ? o.rows : [];
+    const starving = {};
+    for (const [key, arr] of Object.entries((o.starving || {}).share || {})) {
+      const rr = rowsSim.find((x) => x.key === key);
+      starving[rr && rr.k != null ? `roster:${rr.k}` : key] = arr;
+    }
+    const runs = sim.ok_players || sim.players || 0;
+    return {
+      id, label: `${id} (${runs} run${runs === 1 ? '' : 's'})`,
+      note: `${sim.hero_name || sim.hero || ''} · ${runs} runs${sim.board_words ? ` · board ${sim.board_words}` : ''} · ${String(sim.started || '').replace('T', ' ').slice(0, 16)}${sim.stale ? ' · the map changed since' : ''}`,
+      stale: !!sim.stale, clock, n: C + 1, has: o.has || [],
+      alive: pick('alive', 'mean'), aliveReg: pick('alive_reg', 'mean'), aliveHell: pick('alive_hell', 'mean'), load: pick('load', 'mean'), cap: pick('cap', 'mean'),
+      capFull: pick('cap_full', 'mean'), threat: pick('threat', 'mean'), power: pick('power', 'mean'), dps: pick('hero_dps', 'mean'), ehp: pick('hero_ehp', 'mean'),
+      level: pick('level', 'mean'), challenge: pick('challenge', 'median'), keep: null, playing: o.playing || null,
+      deaths: (o.deaths || []).map((x) => Number(x.clock) || 0), aliveBy, life, starving, names: o.names || {}, rules: o.rules || {},
+    };
+  }
+
+  /** A Sim from before the route (its result.json): the play-second series placed on the clock. */
+  function fromResult(res, entry) {
+    const s = res.series || {};
+    const pick = (k, f) => { const x = s[k]; if (!x) return null; if (Array.isArray(x)) return x; for (const g of [f, 'mean', 'median']) if (x && Array.isArray(x[g])) return x[g]; return null; };
+    const clock = pick('clock', 'median') || res.t || [];
+    const n = clock.length;
+    if (!n) return null;
+    const end = Math.ceil(Math.max(...clock.map((c) => Number(c) || 0))) + 1;
+    const byClock = (arr) => {
+      if (!arr) return null;
+      const out = new Array(end + 1).fill(null);
+      for (let i = 0; i < n; i++) { const c = Math.round(Number(clock[i]) || 0); const v = arr[i]; if (v != null && isFinite(v)) out[c] = Number(v); }
+      return out;
+    };
+    const ab = ((res.breakdowns || {}).alive_by || {}).mean || {};
+    const aliveBy = {};
+    for (const [cid, arr] of Object.entries(ab)) if (Array.isArray(arr)) aliveBy[cid] = byClock(arr);
+    const meta = res.meta || {};
+    const runs = meta.players_done || entry.players_done || 0;
+    return {
+      id: entry.id || meta.id || '', label: `${entry.id || meta.id || 'sim'} (${runs} run${runs === 1 ? '' : 's'})`,
+      note: `${entry.hero_name || meta.hero_name || ''} · ${runs} runs · ${String(meta.started || entry.started || '').replace('T', ' ').slice(0, 16)} · an older Sim (alive, cap, power only)`,
+      clock: Array.from({ length: end + 1 }, (_, c) => c), n: end + 1, has: ['alive', 'cap', 'power'],
+      alive: byClock(pick('alive', 'mean')), aliveReg: null, aliveHell: null, load: null, cap: byClock(pick('cap', 'mean')), capFull: null, threat: null,
+      power: byClock(pick('power', 'mean')), dps: null, ehp: null, level: byClock(pick('level', 'mean')), challenge: null, keep: null,
+      deaths: ((res.markers || {}).deaths || []).map((pt) => Number(clock[Math.max(0, Math.min(n - 1, Math.round(Number(pt) || 0)))]) || 0),
+      aliveBy, life: null, starving: {}, names: res.names || {}, rules: {},
+    };
+  }
+
+  /** The Sim's keep_up (seconds of his own damage over 5 s to clear the crowd, the boss left out; the middle run) on the
+   *  clock, from its result. */
+  function addKeepUp(ov, res) {
+    const s = res.series || {};
+    const clock = s.clock && Array.isArray(s.clock.median) ? s.clock.median : null;
+    const ku = s.keep_up && Array.isArray(s.keep_up.median) ? s.keep_up.median : null;
+    if (!clock || !ku) return;
+    const out = new Array(ov.n).fill(null);
+    const phase = s.phase && Array.isArray(s.phase.mean) ? s.phase.mean : null;
+    for (let i = 0; i < clock.length && i < ku.length; i++) {
+      if (phase && phase[i] > 0.5) continue;
+      const c = Math.round(Number(clock[i]) || 0);
+      if (c >= 0 && c < out.length && ku[i] != null && isFinite(ku[i])) out[c] = Number(ku[i]);
+    }
+    ov.keep = out;
+    // an older Sim has no full DPS: its real damage a second (5 s) stands in for the hero's damage
+    const dm = s.dps && Array.isArray(s.dps.mean) ? s.dps.mean : null;
+    if (dm && !ov.dps) {
+      const d2 = new Array(ov.n).fill(null);
+      for (let i = 0; i < clock.length && i < dm.length; i++) {
+        if (phase && phase[i] > 0.5) continue;
+        const c = Math.round(Number(clock[i]) || 0);
+        if (c >= 0 && c < d2.length && dm[i] != null && isFinite(dm[i])) d2[c] = Number(dm[i]);
+      }
+      ov.dpsReal = d2;
+    }
+  }
+
+  /** The Sim's value of a clock series at run second t (the nearest second that has one, within 3). */
+  function simAt(arr, t) {
+    if (!arr) return null;
+    const k = Math.round(t);
+    for (let d = 0; d <= 3; d++) {
+      if (k - d >= 0 && k - d < arr.length && arr[k - d] != null) return arr[k - d];
+      if (k + d < arr.length && arr[k + d] != null) return arr[k + d];
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------ the view lanes' numbers (pass 84)
+
+  /** The view lanes' numbers for an estimate, kept while nothing they read changes. */
+  let viewCache = { est: null, key: '', v: null };
+  function viewOf(res) {
+    const est = res.est;
+    const key = [App.S.level, simOv ? simOv.id : '', App.S.enemiesRev].join('|');
+    if (viewCache.est === est && viewCache.key === key && viewCache.v) return viewCache.v;
+    let v = null;
+    try { v = computeView(est); } catch (e) { console.error('the view lanes could not be worked out', e); }
+    viewCache = { est, key, v };
+    warnCache = null;
+    return v;
+  }
+
+  /** The source key's creature: a row's (or a list row's when the estimate names it: 'roster:3:skeleton'), a wave
+   *  alternative's; '' when the source brings several (the estimate files those under their creatures). */
+  function srcCreatureOf(k) {
+    const tl = App.tl();
+    const parts = k.split(':');
+    if (parts[0] === 'roster') {
+      const r = (tl.roster || [])[Number(parts[1])];
+      if (!r) return '';
+      if (parts.length > 2) return parts.slice(2).join(':');
+      return typeof r.enemy === 'string' && r.enemy !== 'roster' ? r.enemy : '';
+    }
+    if (parts[0] === 'wave') {
+      const w = (tl.waves || [])[Number(parts[1])];
+      const a = w ? App.waveAlts(w)[Number(parts[2])] : null;
+      return a ? String(a.alt.enemy || '') : '';
+    }
+    return '';
+  }
+
+  function computeView(est) {
+    const tl = App.tl();
+    const rows = tl.roster || [], waves = tl.waves || [];
+    const ser = TimelineModel.aliveSeries(est, srcCreatureOf, App.stageAt);
+    const n = ser.n;
+    const isHellKey = (k) => {
+      const p = k.split(':');
+      if (p[0] === 'roster') { const r = rows[Number(p[1])]; return !!r && r.channel === 'hell'; }
+      if (p[0] === 'wave') { const w = waves[Number(p[1])]; return !!w && w.channel === 'hell'; }
+      return false;
+    };
+    const shareOf = (id) => { const c = App.creature(id); return c && c.cap_share != null && c.cap_share !== '' ? Number(c.cap_share) : 1; };
+    const dflt = U.isObj(tl.special_defaults) ? tl.special_defaults : {};
+    const runEnd = App.runEnd();
+    const ews = Math.max(1, Number(tl.endless_wave_seconds) || 60);
+    const cache = new Map();
+    function numbersOf(key, t) {
+      const parts = key.split(':');
+      let c = null, stats = null, t0 = null;
+      if (parts[0] === 'roster') { const r = rows[Number(parts[1])]; if (r) { c = App.creature(ser.keyId[key]); stats = r.stats; t0 = Number(r.t) || 0; } }
+      else if (parts[0] === 'wave') { const w = waves[Number(parts[1])]; const a = w ? App.waveAlts(w)[Number(parts[2])] : null; if (a) { c = App.creature(a.alt.enemy); stats = a.alt.stats; t0 = Number(w.t) || 0; } }
+      else c = App.creature(parts.slice(1).join(':'));
+      if (!c) return null;
+      // a row's numbers are fixed from its start: only the stage (and an endless wave) moves them; the others (swarms,
+      // Elites, specials) take the curves at the second they come: read every 10 s
+      const stg = App.stageAt(t);
+      const enW = t >= runEnd ? Math.floor((t - runEnd) / ews) : -1;
+      const ck = `${key}|${stg}|${enW}|${t0 == null ? Math.floor(t / 10) : ''}`;
+      if (cache.has(ck)) return cache.get(ck);
+      const st = U.isObj(stats) ? stats : {};
+      const at = App.creatureAt(c, st, t, t0 == null ? t : t0);
+      const vs = Model.varianceSpecial(c, st, dflt);
+      const x = { hp: at.hp, atk: at.atk, bite: Number(st.contact_cd != null ? st.contact_cd : (c.contact_cd != null ? c.contact_cd : 0.6)) || 0.6, boss: at.arch === 'boss', spHp: vs.chance > 0 ? Model.specialValue(vs.sp, dflt, 'hp') : 1 };
+      cache.set(ck, x);
+      return x;
+    }
+    const SL = App.stageLength();
+    const marks = typeof PowerModel !== 'undefined' ? PowerModel.TYPICAL.map((m, k) => ({ t: k * SL, power: m.power })) : [{ t: 0, power: 1 }];
+    const baseDps = typeof PowerModel !== 'undefined' ? PowerModel.BASE_DPS : 20.4;
+    const baseEhp = typeof PowerModel !== 'undefined' ? PowerModel.BASE_EHP : 100;
+    const v = { n, ser, t: ser.t, alive: ser.alive, reg: new Float64Array(n), hell: new Float64Array(n), cap: new Float64Array(n), capB: new Float64Array(n), full: new Uint8Array(n),
+      hp: new Float64Array(n), bite: new Float64Array(n), threat: new Float64Array(n), dps: new Float64Array(n), dpsSim: new Uint8Array(n), ehp: new Float64Array(n), ehpSim: new Uint8Array(n), clear: new Array(n).fill(null), bars: new Array(n).fill(null), crowd: new Array(n) };
+    for (let j = 0; j < n; j++) {
+      const t = ser.t[j];
+      const L = TimelineModel.loadAt(ser, j, shareOf, isHellKey);
+      const pt = est.points[j] || {};
+      // lane SPAWN's estimate carries the director's cap (a boss fight's share in it), the regular load and the share of
+      // that second's checks that found no room (pass 84); an older estimate: the curve and the sources' load
+      const cap = pt.cap != null ? Number(pt.cap) : App.capAt(t);
+      const load = pt.load != null ? Number(pt.load) : L.load;
+      v.reg[j] = L.bodies; v.hell[j] = L.hellBodies; v.cap[j] = cap;
+      v.capB[j] = TimelineModel.capBodies(cap, load, L.bodies, 1);
+      v.full[j] = pt.full != null ? (Number(pt.full) >= 0.5 ? 1 : 0) : (cap > 0 && load >= cap * TimelineModel.FULL_AT ? 1 : 0);
+      const cr = TimelineModel.crowdAt(ser, j, numbersOf);
+      v.crowd[j] = cr;
+      v.hp[j] = cr.hp; v.bite[j] = cr.bite; v.threat[j] = cr.threat;
+      // the Sim's hero: his full DPS and effective HP (pass 84 Sims), else his real damage a second (an older Sim); else
+      // a typical hero from the power curve
+      let sd = simOv ? simAt(simOv.dps, t) : null;
+      let dsrc = sd != null && sd >= 1 ? 1 : 0;
+      if (!dsrc && simOv) { sd = simAt(simOv.dpsReal, t); dsrc = sd != null && sd >= 1 ? 2 : 0; }
+      const se = simOv ? simAt(simOv.ehp, t) : null;
+      const typ = TimelineModel.typicalHero(t, marks, baseDps, baseEhp);
+      const dps = dsrc ? sd : typ.dps;
+      const ehp = se != null && se >= 1 ? se : typ.ehp;
+      v.dps[j] = dps; v.dpsSim[j] = dsrc; v.ehp[j] = ehp; v.ehpSim[j] = se != null && se >= 1 ? 1 : 0;
+      v.clear[j] = dps > 0 && cr.n >= 0.5 ? cr.hp / dps : null;
+      v.bars[j] = dps > 0 && ehp > 0 && cr.n >= 0.5 ? cr.threat / (dps * ehp) : null;
+    }
+    v.rowsInfo = rows.map((r, i) => ({ key: `roster:${i}`, drawn: Model.rowDrawn(r) && r.channel !== 'hell' && TimelineModel.paceOf(r) === 'continuous' || (Model.rowDrawn(r) && r.channel !== 'hell' && !!r.trickle),
+      open: (t) => t >= (Number(r.t) || 0) && t < (r.until == null || r.until === '' ? Infinity : Number(r.until)), weight: (t) => App.rowWeight(r, t) }));
+    v.starving = (j) => TimelineModel.starvingAt(est, ser, j, v.rowsInfo, (jj) => !!v.full[jj]);
+    return v;
+  }
+
+  /** The stretches where the cap is full: [{a, b, j0, j1}] in run seconds. */
+  function fullRuns(v) {
+    const out = [];
+    let j0 = -1;
+    for (let j = 0; j <= v.n; j++) {
+      const on = j < v.n && v.full[j];
+      if (on && j0 < 0) j0 = j;
+      if (!on && j0 >= 0) { out.push({ a: v.t[j0], b: v.t[Math.min(j, v.n - 1)], j0, j1: j - 1 }); j0 = -1; }
+    }
+    return out;
+  }
+
+  /** The source keys' words for a card: "Skeleton (row r5)". */
+  function srcWords(key) {
+    const tl = App.tl();
+    const p = key.split(':');
+    if (p[0] === 'roster') { const r = (tl.roster || [])[Number(p[1])]; return r ? `${r.name ? r.name + ': ' : ''}${enemyWords(r)} (row ${r.id || Number(p[1]) + 1})` : key; }
+    if (p[0] === 'wave') { const w = (tl.waves || [])[Number(p[1])]; return w ? `${w.name || w.id || 'wave'}` : key; }
+    return App.creatureName(p.slice(1).join(':'));
+  }
+
+  // ------------------------------------------------------------------ On screen (pass 84)
+
+  const ALIVE_H = 156;
+  function renderAlive(w) {
+    const s = clear(lanes.alive.svg);
+    setHeight('alive', ALIVE_H);
+    stageShade(s, ALIVE_H);
+    const v = view;
+    if (!v || !v.n) { s.appendChild(svg('text', { x: 8, y: 24, class: 'hint-text', text: 'no estimate yet' })); return; }
+    const tl = App.tl();
+    const hard = Number(tl.hard_cap) || 0;
+    const fc = Array.isArray(tl.floor_curve) ? tl.floor_curve.filter((p) => Array.isArray(p)).slice().sort((a, b) => a[0] - b[0]) : [];
+    const floorAt = (t) => (fc.length ? Model.samplePoints(fc, t) : 0);
+    let maxV = 10;
+    for (let j = 0; j < v.n; j++) { maxV = Math.max(maxV, v.alive[j]); if (isFinite(v.capB[j])) maxV = Math.max(maxV, Math.min(v.capB[j], hard || Infinity)); }
+    for (const p of fc) maxV = Math.max(maxV, Number(p[1]) || 0);
+    if (simOv && simOv.alive) for (const a of simOv.alive) if (a != null) maxV = Math.max(maxV, a);
+    if (hard > 0) maxV = Math.min(maxV, hard * 1.05);
+    maxV *= 1.1;
+    const top = 12, bottom = ALIVE_H - 8;
+    const y = (val) => bottom - (Math.min(Math.max(0, val), maxV) / maxV) * (bottom - top);
+    const g = svg('g', { class: 'alive-lane', 'data-hover': 'alive' });
+    g.appendChild(svg('rect', { x: 0, y: 0, width: w, height: ALIVE_H, class: 'sp-hit' }));
+    // red where the cap is full (rows starve there)
+    for (const r of fullRuns(v)) g.appendChild(svg('rect', { x: x(r.a), y: top - 4, width: Math.max(2, x(r.b) - x(r.a)), height: bottom - top + 4, class: 'full-band' }));
+    const gstep = countStep(maxV);
+    for (let val = gstep; val < maxV; val += gstep) {
+      g.appendChild(svg('line', { x1: 0, x2: w, y1: y(val), y2: y(val), class: 'grid' }));
+      g.appendChild(svg('text', { x: 4, y: y(val) - 2, class: 'grid-text', text: fmtCount(val) }));
+    }
+    if (hard > 0 && hard <= maxV) {
+      g.appendChild(svg('line', { x1: 0, x2: w, y1: y(hard), y2: y(hard), class: 'hard-cap' }));
+      g.appendChild(svg('text', { x: 4, y: y(hard) - 3, class: 'hard-cap-text', text: `hard cap ${hard} bodies` }));
+    }
+    // the estimate: the regular channel's bodies, the hell channel's on top
+    const xs = Array.from(v.t, (t) => x(t));
+    const regUp = xs.map((px, j) => `${px},${y(v.reg[j])}`);
+    const base = xs.map((px) => `${px},${bottom}`).reverse();
+    g.appendChild(svg('polygon', { points: regUp.concat(base).join(' '), class: 'alive-area' }));
+    if (v.hell.some((h) => h > 0.05)) {
+      const hellUp = xs.map((px, j) => `${px},${y(v.reg[j] + v.hell[j])}`);
+      g.appendChild(svg('polygon', { points: hellUp.concat(regUp.slice().reverse()).join(' '), class: 'alive-hell' }));
+    }
+    g.appendChild(svg('polyline', { points: xs.map((px, j) => `${px},${y(v.alive[j])}`).join(' '), class: 'alive-line' }));
+    // the cap in bodies at the crowd's mix
+    g.appendChild(svg('polyline', { points: xs.map((px, j) => `${px},${y(isFinite(v.capB[j]) ? v.capB[j] : maxV)}`).join(' '), class: 'capb-line' }));
+    // the floor
+    if (fc.length) {
+      let pts = '';
+      for (let px = 0; px <= x(App.viewEnd()); px += 3) pts += `${px},${y(floorAt(px * spp))} `;
+      g.appendChild(svg('polyline', { points: pts, class: 'floor-line' }));
+    }
+    // the Sim's real count
+    if (simOv && simOv.alive) {
+      const pts = [];
+      for (let i = 0; i < simOv.clock.length; i++) if (simOv.alive[i] != null) pts.push(`${x(simOv.clock[i])},${y(simOv.alive[i])}`);
+      g.appendChild(svg('polyline', { points: pts.join(' '), class: 'sim-line' }));
+    }
+    hovers.alive = (t) => aliveCard(t);
+    s.appendChild(g);
+    let pk = 0;
+    for (let j = 1; j < v.n; j++) if (v.alive[j] > v.alive[pk]) pk = j;
+    lanes.alive.label.querySelector('.lane-sub').textContent = `peak ${Math.round(v.alive[pk])} at ${fmtT(v.t[pk])}${simOv ? ' · Sim dashed' : ''}`;
+  }
+
+  function aliveCard(t) {
+    const v = view;
+    if (!v) return null;
+    const j = TimelineModel.indexAt(v.ser, t);
+    if (j < 0) return null;
+    const tl = App.tl();
+    const box = el('div', { class: 'view-card' });
+    box.appendChild(cardHead('On screen', v.t[j], 'creatures alive (bodies), the estimate'));
+    box.appendChild(el('div', { class: 'vc-big' }, el('b', { text: fmtCount(v.alive[j]) }), ` alive${v.hell[j] > 0.5 ? ` (${fmtCount(v.reg[j])} regular, ${fmtCount(v.hell[j])} hell)` : ''}`,
+      simOv && simAt(simOv.alive, v.t[j]) != null ? el('span', { class: 'muted' }, ` · the Sim: ${fmtCount(simAt(simOv.alive, v.t[j]))}${simOv.capFull && simAt(simOv.capFull, v.t[j]) > 0.05 ? `, its cap full ${Math.round(simAt(simOv.capFull, v.t[j]) * 100)}% of the second` : ''}`) : null));
+    const fc = Array.isArray(tl.floor_curve) && tl.floor_curve.length ? Model.samplePoints(tl.floor_curve.slice().sort((a, b) => a[0] - b[0]), v.t[j]) : null;
+    box.appendChild(el('div', { class: 'hc-line' }, `cap ${v.cap[j]} load units ≈ `, el('b', { text: `${fmtCount(v.capB[j])} bodies` }), ' at this mix', fc != null ? ` · floor ${Math.round(fc)}` : ' · no floor'));
+    if (v.full[j]) {
+      const st = v.starving(j);
+      box.appendChild(el('div', { class: 'hc-line bad-line' }, el('b', { text: 'The cap is full here: ' }), st.length ? `waiting for room: ${st.slice(0, 6).map(srcWords).join(', ')}${st.length > 6 ? ` and ${st.length - 6} more` : ''}` : 'every row open now still came in the past 5 s'));
+    }
+    // the Sim's own starving rows at that second (SIMVIEW's starving shares, by this map's roster index)
+    if (simOv && simOv.starving) {
+      const sv = Object.keys(simOv.starving).filter((k) => (simAt(simOv.starving[k], v.t[j]) || 0) >= TimelineModel.STARVE_SHARE);
+      if (sv.length) box.appendChild(el('div', { class: 'hc-line muted' }, 'In the Sim, waiting for room: ', sv.slice(0, 5).map((k) => (k.startsWith('roster:') ? srcWords(k) : k)).join(', '), sv.length > 5 ? ` and ${sv.length - 5} more` : ''));
+    }
+    const comp = TimelineModel.compositionAt(v.ser, j).slice(0, 6);
+    if (comp.length) {
+      const grid = el('div', { class: 'vc-grid' });
+      for (const cpt of comp) grid.appendChild(el('div', { class: 'vc-r' }, el('i', { class: 'vc-sw', style: `background:${App.creatureColor(cpt.id)}` }), el('span', { text: App.creatureName(cpt.id) }), el('b', { text: fmtCount(cpt.n) }), el('span', { class: 'muted', text: `${Math.round(cpt.share * 100)}%` })));
+      box.appendChild(grid);
+    }
+    box.appendChild(el('div', { class: 'sp-note', text: `An estimate: the director's rules second by second, the hero killing ${App.turnoverSource() === 'your number' ? 'your' : 'the'} kill rate's share of the crowd each second (Ruler and controls). The cap counts load units (cap_share), so it is shown as the bodies it holds at the crowd's mix.` }));
+    return box;
+  }
+
+  // ------------------------------------------------------------------ Challenge (pass 84)
+
+  const CH_H = 132;
+  /** The measure shown: {key 'seconds'|'bars', est (the view's array), sim (the Sim's clock array), unit, words}. */
+  function chalMeasure() {
+    const bars = prefs.chal === 'bars';
+    const v = view;
+    return { key: bars ? 'bars' : 'seconds', est: v ? (bars ? v.bars : v.clear) : [], sim: simOv ? (bars ? simOv.challenge : simOv.keep) : null,
+      unit: bars ? '' : ' s', fmt: (val) => (bars ? fmtN(val, 2) : `${fmtN(val, 1)} s`), words: bars ? 'health bars lost clearing the screen' : 'seconds to clear the screen' };
+  }
+
+  function renderChallenge(w) {
+    const s = clear(lanes.challenge.svg);
+    setHeight('challenge', CH_H);
+    const v = view;
+    syncZoneBoxes();
+    if (!v || !v.n) return;
+    const m = chalMeasure();
+    const zones = zonesNow();
+    let mx = zones.hard * 1.5;
+    for (let j = 0; j < v.n; j++) if (m.est[j] != null) mx = Math.max(mx, m.est[j]);
+    if (m.sim) for (const k of m.sim) if (k != null) mx = Math.max(mx, k);
+    const maxV = Math.min(mx, zones.hard * 3) * 1.08;
+    const top = 12, bottom = CH_H - 10;
+    const y = (val) => bottom - (Math.min(Math.max(0, val), maxV) / maxV) * (bottom - top);
+    const g = svg('g', { class: 'challenge', 'data-hover': 'challenge' });
+    // the zones, full width, then the stages over them
+    g.appendChild(svg('rect', { x: 0, y: y(zones.easy), width: w, height: bottom - y(zones.easy), class: 'zone-easy' }));
+    g.appendChild(svg('rect', { x: 0, y: y(zones.hard), width: w, height: y(zones.easy) - y(zones.hard), class: 'zone-fair' }));
+    g.appendChild(svg('rect', { x: 0, y: top, width: w, height: Math.max(0, y(zones.hard) - top), class: 'zone-hard' }));
+    s.appendChild(g);
+    stageShade(g, CH_H);
+    g.appendChild(svg('rect', { x: 0, y: 0, width: w, height: CH_H, class: 'sp-hit' }));
+    for (const [val, word] of [[zones.easy, `easy under ${m.fmt(zones.easy)}`], [zones.hard, `hard over ${m.fmt(zones.hard)}`]]) {
+      g.appendChild(svg('line', { x1: 0, x2: w, y1: y(val), y2: y(val), class: 'zone-line' }));
+      g.appendChild(svg('text', { x: 4, y: y(val) - 3, class: 'grid-text', text: word }));
+    }
+    // the estimate, ▲ with its number where it runs off the top
+    let pts = [], clipped = 0;
+    const flush = () => { if (pts.length > 1) g.appendChild(svg('polyline', { points: pts.join(' '), class: 'chal-line' })); pts = []; };
+    for (let j = 0; j < v.n; j++) {
+      const c = m.est[j];
+      if (c == null) { flush(); continue; }
+      pts.push(`${x(v.t[j])},${y(c)}`);
+      if (c > maxV && (j === 0 || !(m.est[j - 1] > maxV)) && clipped < 40) { clipped++; g.appendChild(svg('text', { x: Math.min(x(v.t[j]) + 2, w - 60), y: top + 9, class: 'act-clip hp', text: `▲ ${m.fmt(c)}` })); }
+    }
+    flush();
+    if (m.sim) {
+      let sp = [];
+      const flushS = () => { if (sp.length > 1) g.appendChild(svg('polyline', { points: sp.join(' '), class: 'sim-line' })); sp = []; };
+      for (let c = 0; c < m.sim.length; c++) { if (m.sim[c] == null) { flushS(); continue; } sp.push(`${x(c)},${y(m.sim[c])}`); }
+      flushS();
+    }
+    if (simOv) for (const dt of simOv.deaths) g.appendChild(svg('circle', { cx: x(dt), cy: bottom - 3, r: 3.2, class: 'death-dot' }, svg('title', {}, `a Sim death at ${fmtT(dt)}`)));
+    hovers.challenge = (t) => challengeCard(t);
+    lanes.challenge.label.querySelector('.lane-sub').textContent = `${m.key === 'bars' ? 'health bars' : 'seconds to clear'} · ${simOv && (simOv.dps || simOv.dpsReal) ? 'the Sim\'s hero' : 'a typical hero'}`;
+  }
+
+  /** The zone boxes show the limits of the measure picked. */
+  function syncZoneBoxes() {
+    const sec = sections.challenge;
+    if (!sec) return;
+    const z = zonesNow();
+    for (const inp of sec.ctl.querySelectorAll('input[data-zone]')) {
+      if (document.activeElement !== inp) inp.value = z[inp.dataset.zone];
+      const unit = inp.parentElement.querySelector('.tl-zone-unit');
+      if (unit) unit.textContent = prefs.chal === 'bars' ? ' bars' : ' s';
+    }
+    const det = sec.body.querySelector('.tl-explain');
+    if (det && det.dataset.measure !== prefs.chal) {
+      const fresh = explainStrip('challenge', [lg('sw-easy', 'easy'), lg('sw-fair', 'fair'), lg('sw-hardz', 'hard'), lg('sw-chal', 'the estimate'), lg('sw-sim', 'the Sim'), lg('sw-death', 'a Sim death')]);
+      fresh.dataset.measure = prefs.chal;
+      det.replaceWith(fresh);
+    }
+  }
+
+  function challengeCard(t) {
+    const v = view;
+    if (!v) return null;
+    const j = TimelineModel.indexAt(v.ser, t);
+    if (j < 0) return null;
+    const cr = v.crowd[j];
+    const m = chalMeasure();
+    const zones = zonesNow();
+    const box = el('div', { class: 'view-card' });
+    box.appendChild(cardHead('Challenge', v.t[j], m.words));
+    const c = m.est[j];
+    const zone = TimelineModel.zoneOf(c, zones);
+    const sv = m.sim ? simAt(m.sim, v.t[j]) : null;
+    box.appendChild(el('div', { class: 'vc-big' }, el('b', { class: 'zone-' + zone, text: c == null ? '–' : m.fmt(c) }), c == null ? ' nothing alive' : ` ${m.words}: ${zone}`,
+      sv != null ? el('span', { class: 'muted' }, ` · the Sim: ${m.fmt(sv)}`) : null));
+    const clearS = v.clear[j];
+    box.appendChild(el('div', { class: 'hc-line' }, 'Seconds to clear = the crowd\'s HP ', el('b', { text: fmtCount(cr.hp) }), ` (${fmtCount(cr.n)} creatures, bosses left out) ÷ the hero's damage `, el('b', { text: `${fmtCount(v.dps[j])} a second` }), v.dpsSim[j] === 1 ? ' (the Sim\'s full DPS)' : v.dpsSim[j] === 2 ? ' (the Sim\'s real damage a second: an older Sim)' : ' (typical: 20.4 × power²)', ` = ${clearS == null ? '–' : fmtN(clearS, 1) + ' s'}.`));
+    box.appendChild(el('div', { class: 'hc-line' }, 'Health bars = the crowd\'s HP × bite ', el('b', { text: fmtCount(cr.threat) }), ` ÷ (his damage a second × his effective HP ${fmtCount(v.ehp[j])}${v.ehpSim[j] ? ', the Sim\'s' : ', typical: 100'}) = ${v.bars[j] == null ? '–' : fmtN(v.bars[j], 2)}: what clearing the screen would cost him if every creature on it bit him the whole time.`));
+    if (cr.top.length) {
+      const grid = el('div', { class: 'vc-grid' });
+      for (const o of cr.top.slice(0, 5)) grid.appendChild(el('div', { class: 'vc-r' }, el('i', { class: 'vc-sw', style: `background:${App.creatureColor(o.id)}` }), el('span', { text: App.creatureName(o.id) }), el('b', { text: `${fmtCount(o.hp)} HP` }), el('span', { class: 'muted', text: `${fmtCount(o.n)} × ${fmtN(o.n > 0 ? o.hp / o.n : 0, 1)} · bite ${fmtCount(o.bite)}/s` })));
+      box.appendChild(grid);
+    }
+    if (simOv) {
+      const pw = simAt(simOv.power, v.t[j]);
+      const near = simOv.deaths.filter((d) => Math.abs(d - v.t[j]) <= 15);
+      const th = simAt(simOv.threat, v.t[j]);
+      box.appendChild(el('div', { class: 'hc-line muted', text: `The Sim's hero: power ${pw == null ? '–' : fmtN(pw, 2)} (a fresh level-1 Drifter = 1)${th != null ? ` · its crowd's HP × bite ${fmtCount(th)}` : ''}${near.length ? ` · ${near.length} death${near.length === 1 ? '' : 's'} within 15 s` : ''}` }));
+    }
+    box.appendChild(el('div', { class: 'sp-note', text: `Zones: green under ${m.fmt(zones.easy)}, amber to ${m.fmt(zones.hard)}, red past it (the boxes in the section's bar). HP in play: each creature's row HP fixed from its start × the stage × creature_hp_mult × hero level ${App.S.level}.` }));
+    return box;
+  }
+
+  // ------------------------------------------------------------------ Composition (pass 84)
+
+  const COMP_H = 112, COMP_TOP = 9;
+  /** The shares at run second t: [{id, n, share}] by the section's mode and source. */
+  function compAt(t) {
+    const v = view;
+    if (prefs.compSrc === 'sim' && simOv && Object.keys(simOv.aliveBy).length) {
+      const out = [];
+      let all = 0;
+      for (const [id, arr] of Object.entries(simOv.aliveBy)) { const a = simAt(arr, t); if (a != null && a > 1e-6) { out.push({ id, n: a, share: 0 }); all += a; } }
+      for (const o of out) o.share = all > 0 ? o.n / all : 0;
+      return out.sort((a, b) => b.n - a.n);
+    }
+    if (prefs.comp === 'spawned' && lastSpawn) return TimelineModel.spawnedBetween(lastSpawn.est, Model.estimateAt(lastSpawn.est, t - winSecs), Model.estimateAt(lastSpawn.est, t));
+    if (!v) return [];
+    return TimelineModel.compositionAt(v.ser, TimelineModel.indexAt(v.ser, t));
+  }
+
+  function renderComposition(w) {
+    const s = clear(lanes.composition.svg);
+    setHeight('composition', COMP_H);
+    stageShade(s, COMP_H);
+    const end = App.viewEnd();
+    const step = Math.max(1, Math.round(3 * spp));
+    const ts = [];
+    for (let t = 0; t <= end; t += step) ts.push(t);
+    const samples = ts.map((t) => compAt(t));
+    // the ten largest over the view, the rest as "others"
+    const tot = {};
+    for (const sm of samples) for (const o of sm) tot[o.id] = (tot[o.id] || 0) + o.share;
+    const ids = Object.keys(tot).sort((a, b) => tot[b] - tot[a]);
+    const shown = ids.slice(0, 10);
+    const top = COMP_TOP, bottom = COMP_H - 6;
+    const y = (f) => bottom - f * (bottom - top);
+    const g = svg('g', { class: 'comp', 'data-hover': 'composition' });
+    g.appendChild(svg('rect', { x: 0, y: 0, width: w, height: COMP_H, class: 'sp-hit' }));
+    const acc = samples.map(() => 0);
+    const layers = shown.concat(ids.length > 10 ? ['__other'] : []);
+    for (const id of layers) {
+      const lower = acc.slice();
+      samples.forEach((sm, k) => {
+        if (id === '__other') acc[k] = sm.reduce((a, o) => a + o.share, 0);
+        else { const o = sm.find((q) => q.id === id); acc[k] += o ? o.share : 0; }
+      });
+      const up = ts.map((t, k) => `${x(t)},${y(Math.min(acc[k], 1))}`);
+      const dn = ts.map((t, k) => `${x(t)},${y(Math.min(lower[k], 1))}`).reverse();
+      g.appendChild(svg('polygon', { points: up.concat(dn).join(' '), class: 'comp-area', fill: id === '__other' ? '#5a5955' : App.creatureColor(id) }, svg('title', {}, id === '__other' ? 'every other creature' : App.creatureName(id))));
+    }
+    for (const f of [0.25, 0.5, 0.75]) {
+      g.appendChild(svg('line', { x1: 0, x2: w, y1: y(f), y2: y(f), class: 'grid' }));
+      g.appendChild(svg('text', { x: 4, y: y(f) - 2, class: 'grid-text', text: `${f * 100}%` }));
+    }
+    hovers.composition = (t) => compCard(t);
+    s.appendChild(g);
+    const what = prefs.compSrc === 'sim' && simOv ? 'the Sim, on screen' : prefs.comp === 'spawned' ? `spawned in the past ${winSecs} s` : 'on screen, the estimate';
+    lanes.composition.label.querySelector('.lane-sub').textContent = what;
+  }
+
+  function compCard(t) {
+    const all0 = compAt(t);
+    // the creatures under half a body and under half a percent are counted, not listed
+    const list = all0.filter((o) => o.n >= 0.5 || o.share >= 0.005);
+    const box = el('div', { class: 'view-card' });
+    const what = prefs.compSrc === 'sim' && simOv ? `alive in the Sim ${simOv.id}` : prefs.comp === 'spawned' ? `spawned ${fmtT(Math.max(0, t - winSecs))}–${fmtT(t)} (the past ${winSecs} s)` : 'alive (the estimate)';
+    box.appendChild(cardHead('Composition', t, what));
+    if (!list.length) { box.appendChild(el('div', { class: 'hc-line muted', text: 'nobody' })); return box; }
+    const all = all0.reduce((a, o) => a + o.n, 0);
+    box.appendChild(el('div', { class: 'vc-big' }, el('b', { text: fmtCount(all) }), ` creatures, ${list.length} kind${list.length === 1 ? '' : 's'}`));
+    const grid = el('div', { class: 'vc-grid' });
+    for (const o of list.slice(0, 14)) grid.appendChild(el('div', { class: 'vc-r' }, el('img', { src: App.iconFor(o.id), alt: '' }), el('span', { text: App.creatureName(o.id) }), el('b', { text: `${Math.round(o.share * 100)}%` }), el('span', { class: 'muted', text: fmtCount(o.n) })));
+    box.appendChild(grid);
+    if (list.length > 14 || all0.length > list.length) box.appendChild(el('div', { class: 'hc-line muted', text: `… and ${Math.max(0, list.length - 14) + (all0.length - list.length)} more under one each` }));
+    return box;
+  }
+
+  // ------------------------------------------------------------------ the floor curve's lane (pass 84)
+
+  const FLOOR_H = 70;
+  /** "+ Floor": a floor curve starting at 20 alive from 0:00 (one undo step). */
+  function addFloor() {
+    const tl = App.tl();
+    if (Array.isArray(tl.floor_curve) && tl.floor_curve.length) { App.select({ kind: 'floor' }); return; }
+    App.apply((d) => { d.floor_curve = [[0, 20], [App.stageLength(), 40]]; App.S.sel = { kind: 'floor' }; });
+    App.toast('Started a floor curve: 20 alive at 0:00, 40 at the first boss (drag its points)', { undo: true });
+  }
+
+  function renderFloor(w) {
+    const s = clear(lanes.floor.svg);
+    setHeight('floor', FLOOR_H);
+    stageShade(s, FLOOR_H);
+    const tl = App.tl();
+    const fc = Array.isArray(tl.floor_curve) ? tl.floor_curve : [];
+    let maxV = 40;
+    for (const p of fc) maxV = Math.max(maxV, Number(p[1]) || 0);
+    maxV *= 1.2;
+    const top = 8, bottom = FLOOR_H - 10;
+    const y = (val) => bottom - (Math.max(0, val) / maxV) * (bottom - top);
+    const end = App.viewEnd();
+    const sorted = fc.filter((p) => Array.isArray(p)).slice().sort((a, b) => a[0] - b[0]);
+    let pts = '';
+    if (sorted.length) {
+      for (let px = 0; px <= x(end); px += 3) pts += `${px},${y(Model.samplePoints(sorted, px * spp))} `;
+      s.appendChild(svg('polyline', { points: pts, class: 'floor-edit-line' + issueClass('floor') }));
+      const hit = svg('polyline', { points: pts, class: 'cap-hit' }, svg('title', {}, 'the floor curve: click to edit; double-click to add a point here'));
+      hit.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        if (!isDoubleTap('floor-line', e)) { App.select({ kind: 'floor' }); return; }
+        e.preventDefault();
+        const t = Math.max(0, Math.round(tAt(e.clientX)));
+        const r = lanes.floor.svg.getBoundingClientRect();
+        const val = Math.max(0, Math.round(((bottom - (e.clientY - r.top)) / (bottom - top)) * maxV));
+        App.apply((d) => { d.floor_curve.push([t, val]); App.sortPoints(d.floor_curve); App.S.sel = { kind: 'floor' }; });
+        App.toast(`Added a floor point: ${fmtT(t)} → ${val} alive`);
+      });
+      s.appendChild(hit);
+    } else {
+      s.appendChild(svg('text', { x: 8, y: 26, class: 'hint-text', text: 'no floor: the director never spawns to keep a least number alive ("+ Floor" in the label starts one; the game as before pass 84)' }));
+    }
+    fc.forEach((p, k) => {
+      if (!Array.isArray(p)) return;
+      const c = svg('g', { class: 'cap-point floor-point', transform: `translate(${x(Number(p[0]) || 0)}, ${y(Number(p[1]) || 0)})` },
+        svg('title', {}, `${fmtT(p[0])} → at least ${p[1]} alive (drag; double-click to remove)`),
+        svg('circle', { r: 5.5 }), svg('text', { x: 8, y: -6, class: 'pt-text', text: String(p[1]) }));
+      c.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        if (!isDoubleTap(`floor-point:${p[0]}:${p[1]}`, e)) { startDrag(e, { kind: 'floor', k, y, maxV, top, bottom }); return; }
+        e.stopPropagation(); e.preventDefault();
+        App.apply((d) => { d.floor_curve.splice(k, 1); if (!d.floor_curve.length) delete d.floor_curve; App.S.sel = { kind: 'floor' }; });
+        App.toast('Removed a floor point', { undo: true });
+      });
+      s.appendChild(c);
+    });
+    const b = issueBadge('floor', 14, 14);
+    if (b) s.appendChild(b);
+    lanes.floor.label.querySelector('.lane-sub').textContent = fc.length ? `${plural(fc.length, 'point')} · creatures alive at least` : 'none';
+  }
+
+  // ------------------------------------------------------------------ warnings (pass 84)
+
+  let warnCache = null;
+  /** What the estimate and the checks found: [{level 'warn'|'info', kind, text, short, t, key}]. */
+  function warningsOf() {
+    if (warnCache) return warnCache;
+    const out = [];
+    const v = view;
+    const tl = App.tl();
+    const rows = tl.roster || [];
+    const est = lastSpawn ? lastSpawn.est : null;
+    try {
+      if (v && est) {
+        // the cap full, and who starves there
+        for (const r of fullRuns(v)) {
+          if (r.b - r.a < 3) continue;
+          const who = new Set();
+          for (let j = r.j0; j <= r.j1; j += 2) for (const k of v.starving(j)) who.add(k);
+          const list = [...who];
+          out.push({ level: list.length ? 'warn' : 'info', kind: 'cap full', t: r.a, key: list[0] || null,
+            text: `The cap is full from ${fmtT(r.a)} to ${fmtT(r.b)} (${fmtN(r.b - r.a, 0)} s)${list.length ? `: ${list.slice(0, 5).map(srcWords).join(', ')}${list.length > 5 ? ` and ${list.length - 5} more` : ''} wanted to spawn and starved` : ': every open row still got some in'}.`,
+            short: `cap full ${fmtT(r.a)}–${fmtT(r.b)}` });
+        }
+        // rows the estimate never draws, and rows that never make 1% of what spawns
+        const last = est.points[est.points.length - 1];
+        rows.forEach((r, i) => {
+          const key = `roster:${i}`;
+          // a row the estimate files under no source of its own (an elite or roster-draw row: counted with the
+          // elite-modified) is not judged here
+          if (!(key in ((last || {}).src || {})) && (r.elite || r.enemy === 'roster' || Array.isArray(r.enemy))) return;
+          const n = Number(((last || {}).src || {})[key]) || 0;
+          if (n < 0.5) {
+            out.push({ level: 'warn', kind: 'never spawns', t: Number(r.t) || 0, key, text: `${srcWords(key)} spawns nothing in the estimate (its presence, the cap, Max alive or its schedule hold it back).`, short: `${enemyWords(r)} never spawns` });
+            return;
+          }
+          const t0 = Number(r.t) || 0, t1 = Math.min(r.until == null || r.until === '' ? App.viewEnd() : Number(r.until), App.viewEnd());
+          let best = 0;
+          // 10 s windows every 5 s from the second before its start (a point counts what came up to its second)
+          for (let a = t0 - 1; a < t1; a += 5) { const ws = Model.windowShares(est, a, Math.min(a + 10, t1 + 1)); if (ws && ws.share[key] > best) best = ws.share[key]; }
+          if (best < 0.01 && TimelineModel.paceOf(r) !== 'once') out.push({ level: 'info', kind: 'tiny share', t: t0, key, text: `${srcWords(key)} never makes 1% of what spawns in any 10 s of its life (≈${fmtCount(n)} in all).`, short: `${enemyWords(r)} under 1%` });
+        });
+        // the crowd's HP on screen more than doubling in a second
+        const jumps = [];
+        for (let j = 1; j < v.n; j++) {
+          if (v.t[j] - v.t[j - 1] > 1.5 || v.t[j] === v.t[j - 1]) continue;
+          if (v.alive[j - 1] < 10 || !(v.hp[j - 1] > 0)) continue;
+          if (v.hp[j] > v.hp[j - 1] * 2) jumps.push({ j, f: v.hp[j] / v.hp[j - 1] });
+        }
+        jumps.sort((a, b) => b.f - a.f);
+        for (const jp of jumps.slice(0, 6)) {
+          const j = jp.j;
+          const a = est.points[Math.max(0, j - 1)], b = est.points[j];
+          let topKey = null, topN = 0;
+          for (const k of Object.keys((b || {}).src || {})) { const d = (b.src[k] || 0) - ((a.src || {})[k] || 0); if (d > topN) { topN = d; topKey = k; } }
+          out.push({ level: 'warn', kind: 'difficulty jump', t: v.t[j], key: topKey,
+            text: `The crowd's HP on screen jumps ×${fmtN(jp.f, 1)} in one second at ${fmtT(v.t[j])} (${fmtCount(v.hp[j - 1])} → ${fmtCount(v.hp[j])} HP)${topKey ? `: mostly ${srcWords(topKey)} (≈${fmtCount(topN)})` : ''}.`, short: `×${fmtN(jp.f, 1)} jump at ${fmtT(v.t[j])}` });
+        }
+        // the floor above the cap
+        const fc = Array.isArray(tl.floor_curve) ? tl.floor_curve.filter((p) => Array.isArray(p)).slice().sort((a, b) => a[0] - b[0]) : [];
+        if (fc.length) {
+          const fo = TimelineModel.floorOverCap((t) => Model.samplePoints(fc, t), (t) => v.capB[Math.max(0, TimelineModel.indexAt(v.ser, t))], App.viewEnd(), 5);
+          if (fo) out.push({ level: 'warn', kind: 'floor over cap', t: fo.t, key: 'floor', text: `The floor (${Math.round(fo.floor)} alive) is above the cap at ${fmtT(fo.t)} (it holds about ${Math.round(fo.cap)} bodies at the crowd's mix): the director can never reach it.`, short: `floor over the cap at ${fmtT(fo.t)}` });
+        }
+      }
+      // overlapping identical rows
+      for (const [i, k] of TimelineModel.overlappingTwins(rows, App.viewEnd())) {
+        out.push({ level: 'warn', kind: 'twin rows', t: Math.max(Number(rows[i].t) || 0, Number(rows[k].t) || 0), key: `roster:${k}`,
+          text: `Rows ${rows[i].id || i + 1} and ${rows[k].id || k + 1} are the same (${enemyWords(rows[i])}, the same schedule, look and overrides) and overlap: one row with the two weights added does the same.`, short: `rows ${rows[i].id || i + 1} = ${rows[k].id || k + 1}` });
+      }
+    } catch (e) { console.error('warnings', e); }
+    out.sort((a, b) => (a.level === b.level ? (a.t || 0) - (b.t || 0) : a.level === 'warn' ? -1 : 1));
+    warnCache = out;
+    return out;
+  }
+
+  /** Go to a warning: open its section and group, select its row (or the floor), bring its second into view. */
+  function goTo(wn) {
+    if (wn.key && wn.key.startsWith('roster:')) {
+      const i = Number(wn.key.split(':')[1]);
+      const r = (App.tl().roster || [])[i];
+      if (r) { delete secState.rows; delete secState['group:' + groupOf(r, prefs.group).key]; saveSecState(); }
+      App.select({ kind: 'roster', i }, { scroll: true });
+    } else if (wn.key === 'floor') { delete secState.curves; saveSecState(); App.select({ kind: 'floor' }); }
+    if (wn.t != null) scrollToTime(wn.t);
+  }
+
+  function scrollToTime(t) {
+    if (!scrollBox) return;
+    const visible = scrollBox.clientWidth - LABEL_W;
+    const px = x(Number(t) || 0);
+    if (px < scrollBox.scrollLeft + 20 || px > scrollBox.scrollLeft + visible - 20) scrollBox.scrollLeft = Math.max(0, px - visible / 3);
+  }
+
+  function renderWarnings() {
+    const host = sections.warnings ? sections.warnings.body.querySelector('.tl-warn') : null;
+    if (!host) return;
+    clear(host);
+    const ws = warningsOf();
+    const iss = App.S.issues || { errors: [], warnings: [] };
+    host.appendChild(el('div', { class: 'tl-warn-head' },
+      el('b', { text: ws.length ? `${ws.length} found by the estimate` : 'The estimate finds nothing to warn about' }),
+      el('span', { class: 'muted small', text: 'What it looks for: the cap full with rows starving, rows that never spawn or never make 1% of what spawns, the crowd\'s HP more than doubling in a second, a floor above the cap, two identical rows overlapping. An estimate: check a doubt with the Sim.' }),
+      el('span', { class: 'spacer' }),
+      iss.errors.length || iss.warnings.length ? el('button', { class: 'btn small', type: 'button', text: `The checks: ${iss.errors.length} error${iss.errors.length === 1 ? '' : 's'}, ${iss.warnings.length} warning${iss.warnings.length === 1 ? '' : 's'}`, title: 'the map\'s checks (errors block Save) in the inspector', onclick: () => App.select(null) }) : el('span', { class: 'muted small', text: 'the map\'s checks: no issues' })));
+    const list = el('div', { class: 'tl-warn-list' });
+    for (const wn of ws.slice(0, 40)) {
+      list.appendChild(el('div', { class: 'tl-warn-row ' + wn.level },
+        U.glyph(wn.level === 'warn' ? 'warn' : 'flag'), el('span', { class: 'tl-warn-kind', text: wn.kind }), el('span', { class: 'tl-warn-text', text: wn.text }),
+        el('button', { class: 'btn small', type: 'button', text: 'Go to', title: `select it and scroll to ${fmtT(wn.t)}`, onclick: () => goTo(wn) })));
+    }
+    if (ws.length > 40) list.appendChild(el('div', { class: 'muted small', text: `… and ${ws.length - 40} more` }));
+    host.appendChild(list);
+  }
+
+  /** A row's spawns a second over its life and its HP in play each second (the inspector's mini-chart, pass 84):
+   *  {ts, n, hp} from the estimate drawn last; null before it is. */
+  function rowSpawnsPerSecond(i) {
+    const est = lastSpawn ? lastSpawn.est : null;
+    const r = (App.tl().roster || [])[i];
+    if (!est || !r) return null;
+    const key = `roster:${i}`;
+    const t0 = Math.max(0, Math.floor(Number(r.t) || 0));
+    const t1 = Math.min(Math.ceil(rowBarEnd(r, App.viewEnd())), Math.floor(App.viewEnd()));
+    const c = App.creature(firstEnemy(r));
+    const ts = [], n = [], hp = [];
+    let prev = Number(((Model.estimateAt(est, t0 - 1) || {}).src || {})[key]) || 0;
+    for (let t = t0; t <= Math.max(t0, t1); t++) {
+      const cur = Number(((Model.estimateAt(est, t) || {}).src || {})[key]) || 0;
+      ts.push(t); n.push(Math.max(0, cur - prev)); prev = cur;
+      hp.push(c ? App.creatureAt(c, r.stats || {}, t, Number(r.t) || 0).hp : null);
+    }
+    return { ts, n, hp };
+  }
+
+  // ------------------------------------------------------------------ "+ Row" (pass 84)
+
+  /** The "+ Row" menu: a row of each kind at the view's centre (App.newRowPreset). */
+  function rowMenu(anchor) {
+    closeMenu();
+    menu = el('div', { class: 'menu' });
+    const items = [
+      ['continuous', 'Continuous', 'drawn into the cap by its weight at every spawn check (the plain crowd)'],
+      ['waves', 'Waves every N s', 'a wave of Per wave creatures every Every seconds while it is open'],
+      ['once', 'Once: a swarm', 'one burst of 30 on top of the cap, on a ring 16 m out, with a SWARM! banner (what the swarm events were)'],
+      ['elite', 'Once: a coloured elite', 'one creature from the roster draw wearing a random elite modifier (what the coloured-elite events were)'],
+      ['elite_every', 'Elites every', 'a coloured elite from the roster draw every 110-150 s from here on (what the Elites-every event was)'],
+      ['special', 'Once: a special', 'one creature as its coloured special, from the top of the screen (the special Goblin at 2:00)'],
+    ];
+    for (const [kind, label, help] of items) menu.appendChild(el('button', { class: 'menu-item', onclick: () => { closeMenu(); App.newRowPreset(kind, viewCenter()); } }, glyph(kind === 'elite' || kind === 'elite_every' ? 'star' : kind === 'once' ? 'ring' : kind === 'waves' ? 'repeat' : 'flag'), el('span', { text: label }), el('small', { text: help })));
+    document.body.appendChild(menu);
+    const r = anchor.getBoundingClientRect();
+    const mh = menu.offsetHeight, mw = menu.offsetWidth;
+    menu.style.left = `${Math.max(4, Math.min(r.left, window.innerWidth - mw - 8))}px`;
+    menu.style.top = `${r.bottom + 4 + mh <= window.innerHeight - 8 ? r.bottom + 4 : Math.max(4, r.top - 4 - mh)}px`;
+    setTimeout(() => document.addEventListener('pointerdown', onDocDown, { once: true }), 0);
+  }
 
   // ------------------------------------------------------------------ ruler
 
@@ -817,13 +1966,96 @@ const Timeline = (() => {
 
   // ------------------------------------------------------------------ roster
 
+  // pass 84 (lane TIMELINE): the spawn rows grouped (by stage, role, both or none; each group folds to a bar), coloured
+  // by role (or by creature), each bar saying how many and how often, its HP and ATK at its start and its badges
+  const GROUP_H = 22;
+  let rosterLay = null;               // the layout drawn last: {items, yOf, height}
+
+  /** A row's group under `mode`: {key, label, order, role}. */
+  function groupOf(r, mode) {
+    const st = App.stageAt(Number(r.t) || 0);
+    const stName = st >= App.stages() ? 'Endless' : `Stage ${st + 1}`;
+    const role = TimelineModel.roleOf(r);
+    const ri = Math.max(0, TimelineModel.ROLES.findIndex((x) => x.v === role));
+    const rl = TimelineModel.roleInfo(role).label;
+    if (mode === 'role') return { key: 'r' + role, label: `${rl}`, order: ri, role };
+    if (mode === 'stage_role') return { key: `s${st}r${role}`, label: `${stName} · ${rl}`, order: st * 100 + ri, role };
+    return { key: 's' + st, label: stName, order: st * 100, role: null };
+  }
+
+  /** Where each row and group header sits on the lane. */
+  function rosterLayout(rows) {
+    const mode = prefs.group;
+    const items = [];
+    const yOf = {};
+    let y = ROSTER_HEAD;
+    if (mode === 'none') {
+      rows.forEach((r, i) => { items.push({ type: 'row', i, y }); yOf[i] = y; y += ROW_H; });
+      return { items, yOf, height: y, mode };
+    }
+    const groups = new Map();
+    rows.forEach((r, i) => {
+      const g = groupOf(r, mode);
+      if (!groups.has(g.key)) groups.set(g.key, Object.assign(g, { rows: [] }));
+      groups.get(g.key).rows.push(i);
+    });
+    const order = [...groups.values()].sort((a, b) => a.order - b.order || (a.key < b.key ? -1 : 1));
+    for (const g of order) {
+      // the rows of a group in the order of their start (the file's order breaks a tie)
+      g.rows.sort((a, b) => (Number(rows[a].t) || 0) - (Number(rows[b].t) || 0) || a - b);
+      const collapsed = isCollapsed('group:' + g.key);
+      items.push({ type: 'group', g, y, collapsed });
+      y += GROUP_H;
+      if (!collapsed) for (const i of g.rows) { items.push({ type: 'row', i, y }); yOf[i] = y; y += ROW_H; }
+    }
+    return { items, yOf, height: y, mode };
+  }
+
+  /** A row's numbers in play at its start (HP, ATK), from lane SPAWN's shown difficulty when the model has it
+   *  (Model.creatureDifficulty: a once row its own second, the mix row it joins), else the page's creatureAt (the stage, creature_*_mult and the hero level box on top of the
+   *  row's numbers fixed from its start). Null for the roster draw. */
+  function startNumbers(r) {
+    const id = firstEnemy(r);
+    const c = App.creature(id);
+    if (!c) return null;
+    const t0 = Number(r.t) || 0;
+    if (typeof Model.creatureDifficulty === 'function') {
+      try { const d = Model.creatureDifficulty(App.tl(), c, r, TimelineModel.paceOf(r) === 'once' ? Model.rowWaveStart(r) : t0, { level: App.S.level, byId: App.S.byId }); if (d && d.hp != null) return { hp: d.hp, atk: d.atk }; } catch (_) { /* the page's own */ }
+    }
+    const at = App.creatureAt(c, r.stats || {}, t0, t0);
+    return { hp: at.hp, atk: at.atk };
+  }
+
+  /** Spawns a minute of a continuous row over its open life (the estimate), null before it is drawn. */
+  function perMinute(i, r) {
+    const est = lastSpawn ? lastSpawn.est : null;
+    if (!est) return null;
+    const t0 = Number(r.t) || 0;
+    const t1 = Math.min(r.until == null || r.until === '' ? App.runEnd() : Number(r.until), App.viewEnd());
+    if (!(t1 > t0 + 1)) return null;
+    const a = Model.estimateAt(est, t0, true), b = Model.estimateAt(est, t1);
+    const nb = Number(((b && b.src) || {})[`roster:${i}`]) || 0, na = Number(((a && a.src) || {})[`roster:${i}`]) || 0;
+    const n = Math.max(0, nb - na);
+    return n / ((t1 - t0) / 60);
+  }
+
+  /** The bar's end on the lane: its until, the view's end when open; a once row with no until is a short block. */
+  function rowBarEnd(r, end) {
+    const t = Number(r.t) || 0;
+    if (r.until != null && r.until !== '') return Math.max(t, Math.min(Number(r.until), end));
+    if (TimelineModel.paceOf(r) === 'once') return Math.min(end, Model.rowWaveStart(r) + Math.max(10, 46 * spp));
+    return end;
+  }
+
   function renderRoster(w) {
     const s = clear(lanes.roster.svg);
     const rows = App.tl().roster || [];
-    const h = ROSTER_HEAD + Math.max(1, rows.length) * ROW_H + PAD;
-    setHeight('roster', h);
+    const lay = rosterLayout(rows);
+    rosterLay = lay;
+    const h = lay.height + PAD;
+    setHeight('roster', Math.max(h, ROSTER_HEAD + ROW_H));
     const end = App.viewEnd();
-    stageShade(s, h);
+    stageShade(s, Math.max(h, ROSTER_HEAD + ROW_H));
     // one weight scale for every row, so their areas compare (held while a presence point is dragged)
     let maxW = 1;
     for (const r of rows) {
@@ -833,20 +2065,44 @@ const Timeline = (() => {
     if (frozenMax != null) maxW = frozenMax;
     s.appendChild(svg('text', { x: 6, y: 25, class: 'hint-text', text: `a bar's filled height is its presence weight (full bar = ${fmtN(maxW, 2)}); drag a point, double-click the bar to add one, a point to remove it` }));
     const bh = ROW_H - 6, span = bh - 6;
-    rows.forEach((r, i) => {
+    // the group bars: a band across the lane (hatched when folded, with each row's span as a thin line)
+    for (const it of lay.items) {
+      if (it.type !== 'group') continue;
+      const gcol = it.g.role != null ? TimelineModel.roleColor(it.g.role) : '#8a8880';
+      const band = svg('g', { class: 'grp-band' + (it.collapsed ? ' collapsed' : '') });
+      band.appendChild(svg('rect', { x: 0, y: it.y, width: w, height: GROUP_H, class: 'grp-bg' }));
+      band.appendChild(svg('rect', { x: 0, y: it.y + GROUP_H - 2, width: w, height: 2, fill: gcol, opacity: 0.55 }));
+      if (it.collapsed) {
+        it.g.rows.forEach((i, k) => {
+          const r = rows[i];
+          const t = Number(r.t) || 0;
+          const x0 = x(t), x1 = Math.max(x0 + 3, x(rowBarEnd(r, end)));
+          const yy = it.y + 4 + (k % 7) * 2;
+          band.appendChild(svg('line', { x1: x0, x2: x1, y1: yy, y2: yy, class: 'grp-span', stroke: prefs.colour === 'creature' ? App.creatureColor(firstEnemy(r)) : TimelineModel.roleColor(TimelineModel.roleOf(r)) }));
+        });
+      }
+      s.appendChild(band);
+    }
+    for (const it of lay.items) {
+      if (it.type !== 'row') continue;
+      const i = it.i;
+      const r = rows[i];
       const key = `roster:${i}`;
       const t = Number(r.t) || 0;
-      const open = r.until == null || r.until === '';
-      const until = open ? end : Number(r.until);
-      const tEnd = Math.max(t, Math.min(until, end));
+      const open = (r.until == null || r.until === '') && TimelineModel.paceOf(r) !== 'once';
+      const tEnd = Math.max(t, rowBarEnd(r, end));
       const x0 = x(t), x1 = Math.max(x0 + 4, x(tEnd));
-      const y0 = ROSTER_HEAD + i * ROW_H + 3;
-      const c = App.creature(r.enemy);
-      const col = App.creatureColor(r.enemy);
+      const y0 = it.y + 3;
+      const fid = firstEnemy(r);
+      const c = App.creature(fid);
+      const role = TimelineModel.roleOf(r);
+      const col = prefs.colour === 'creature' ? App.creatureColor(fid || 'roster') : TimelineModel.roleColor(role);
       const yb = y0 + bh - 3;
-      const yW = (v) => yb - (Math.max(0, v) / maxW) * span;
-      const g = svg('g', { class: 'bar' + (r.channel === 'hell' ? ' hell' : '') + (App.selKey() === key ? ' selected' : '') + (snapIs('roster', i) ? ' snap-target' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
-      g.appendChild(svg('rect', { x: x0, y: y0, width: x1 - x0, height: bh, rx: 4, class: 'bar-body' }));
+      const yW = (val) => yb - (Math.max(0, val) / maxW) * span;
+      const pace = TimelineModel.paceOf(r);
+      const g = svg('g', { class: 'bar pace-' + pace + (r.channel === 'hell' ? ' hell' : '') + (role ? ' role-' + role : ' untagged') + (App.selKey() === key ? ' selected' : '') + (snapIs('roster', i) ? ' snap-target' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
+      g.appendChild(svg('rect', { x: x0, y: y0, width: x1 - x0, height: bh, rx: 4, class: 'bar-body', style: `stroke:${col}` }));
+      g.appendChild(svg('rect', { x: x0, y: y0, width: 3, height: bh, class: 'bar-role', fill: col }));
       const clipId = `clip-r${i}`;
       g.appendChild(svg('clipPath', { id: clipId }, svg('rect', { x: x0, y: y0, width: Math.max(0, x1 - x0), height: bh })));
       const inner = svg('g', { 'clip-path': `url(#${clipId})` });
@@ -857,26 +2113,39 @@ const Timeline = (() => {
       verts.push([x(tEnd), yW(App.rowWeight(r, tEnd))]);
       inner.appendChild(svg('path', { d: `M${x0},${yb} ${verts.map(([vx, vy]) => `L${vx},${vy}`).join(' ')} L${x(tEnd)},${yb} Z`, class: 'w-area', fill: col }));
       inner.appendChild(svg('polyline', { points: verts.map(([vx, vy]) => `${vx},${vy}`).join(' '), class: 'w-edge', stroke: col }));
-      if (c) inner.appendChild(svg('image', { href: App.iconFor(r.enemy, r.variant), x: x0 + 3, y: y0 + 1.5, width: 17, height: 17, preserveAspectRatio: 'xMidYMid meet' }));
-      let tx = x0 + 24;
-      inner.appendChild(svg('text', { x: tx, y: y0 + 13, class: 'bar-text', text: App.creatureName(r.enemy) }));
-      tx += textWidth(App.creatureName(r.enemy), 12) + 8;
+      if (c) inner.appendChild(svg('image', { href: App.iconFor(fid, r.variant), x: x0 + 5, y: y0 + 1.5, width: 17, height: 17, preserveAspectRatio: 'xMidYMid meet' }));
+      let tx = x0 + 26;
+      const nm = `${r.name ? r.name + ' · ' : ''}${enemyWords(r)}`;
+      inner.appendChild(svg('text', { x: tx, y: y0 + 13, class: 'bar-text', text: nm }));
+      tx += textWidth(nm, 12) + 8;
+      // how many and how often, then the numbers at its start
+      const qty = TimelineModel.quantityText(r, Model.rowWaveCount(r, c), pace === 'continuous' ? perMinute(i, r) : null);
+      tx = chip(inner, tx, y0 + 2, { text: qty, cls: 'chip-qty' + (pace !== 'continuous' ? ' paced' : ''), title: `${pace === 'continuous' ? 'continuous: spawned a minute over its open life (the estimate)' : pace === 'once' ? 'one wave' : 'paced as waves'}${r.respect_cap === false ? ', on top of the cap' : ''}` });
+      const sn = startNumbers(r);
+      if (sn) {
+        const nt = `HP ${fmtN(sn.hp, sn.hp >= 100 ? 0 : 1)} · ATK ${fmtN(sn.atk, 1)}`;
+        inner.appendChild(svg('text', { x: tx, y: y0 + 13, class: 'bar-num', text: nt }, svg('title', {}, `in play at its start (${fmtT(t)}): the row's numbers fixed there × the stage × creature_hp_mult / creature_damage_mult × hero level ${App.S.level}`)));
+        tx += textWidth(nt, 11) + 8;
+      }
       const first = ws.length ? ws[0].w : App.rowWeight(r, t), last = ws.length ? ws[ws.length - 1].w : first;
       const wt = ws.length > 2 ? `w ${fmtN(first)} → … → ${fmtN(last)}` : first !== last ? `w ${fmtN(first)} → ${fmtN(last)}` : `w ${fmtN(first)}`;
       inner.appendChild(svg('text', { x: tx, y: y0 + 13, class: 'bar-sub', text: wt }));
       tx += textWidth(wt, 11) + 8;
       const chips = [];
+      if (r.elite != null && r.elite !== '') chips.push({ text: `★ ${r.elite === 'random' ? 'elite' : r.elite}`, cls: 'chip-elite', title: `every creature wears ${r.elite === 'random' ? 'a random elite modifier' : `the ${r.elite} modifier`} (after Colour after kills)` });
+      if (r.special === true) chips.push({ text: '◆ special', cls: 'chip-special', title: 'every creature comes as its coloured special' });
+      if (r.banner) chips.push({ text: `⚑ ${r.banner}`, cls: 'chip-toast', title: 'the banner the player reads when it fires' });
+      if (r.channel === 'hell') chips.push({ text: 'hell', cls: 'chip-hell', title: 'the hell channel: its own cap' });
       if (r.variant) chips.push({ text: r.variant, cls: 'chip-variant' });
       if (r.pack != null) chips.push({ text: `×${r.pack}`, cls: 'chip-pack' });
-      if (r.pattern && r.pattern !== 'pack') chips.push({ text: patternLabel(r.pattern), cls: 'chip-pattern' });
+      if (r.pattern && r.pattern !== 'pack') chips.push({ text: patternLabel(r.pattern) + (r.pattern === 'ring' && r.ring_radius != null ? ` ${fmtN(r.ring_radius, 1)} m` : ''), cls: 'chip-pattern' });
+      if (r.respect_cap === false && pace !== 'continuous') chips.push({ text: 'no cap', cls: 'chip-nocap', title: 'on top of the cap (the hard cap still holds)' });
       // pass 58: a size range and a swatch of the colour range
       const sr = Model.sizeRange(r.stats && r.stats.size);
       if (sr && sr.range) chips.push(sr.min === sr.max ? { text: `${fmtN(sr.min, 2)} m`, cls: 'chip-size', title: 'every creature of the row this size (a list of one size: no spread)' } : { text: `${fmtN(sr.min, 2)}–${fmtN(sr.max, 2)} m`, cls: 'chip-size', title: 'each creature of the row its own size in this range' });
       const tr = Model.tintRange(r.stats && r.stats.tint);
       if (tr) chips.push({ hue: tr, cls: 'chip-hue', title: `coloured ${Math.round(tr.h0)}°–${Math.round(tr.h1)}° at ${Math.round(tr.amount * 100)}%` });
       if (r.stats && Object.keys(r.stats).length) chips.push({ glyph: 'wrench', cls: 'chip-wrench' });
-      // pass 81 (lane PACE): a row paced as waves says how often and how many
-      if (Model.rowPaced(r)) chips.push(paceChip(r, c));
       for (const ch of chips) tx = chip(inner, tx, y0 + 2, ch);
       // pass 81 (lane PACE): the yellow etches along the bar's foot, when its creatures come
       rowEtches(inner, r, t, tEnd, y0 + bh);
@@ -922,10 +2191,11 @@ const Timeline = (() => {
       if (b) g.appendChild(b);
       hovers[key] = (tt) => rosterCard(i, tt);
       s.appendChild(g);
-    });
-    if (!rows.length) s.appendChild(svg('text', { x: 8, y: ROSTER_HEAD + 18, class: 'hint-text', text: 'no roster rows: "+ Row" adds one at the view\'s centre' }));
-    lanes.roster.label.querySelector('.lane-sub').textContent = `${plural(rows.length, 'row')} · ${rows.filter((r) => r.channel === 'hell').length} hell`;
-    renderGutter(rows);
+    }
+    if (!rows.length) s.appendChild(svg('text', { x: 8, y: ROSTER_HEAD + 18, class: 'hint-text', text: 'no spawn rows: "+ Row" adds one at the view\'s centre' }));
+    const hell = rows.filter((r) => r.channel === 'hell').length;
+    lanes.roster.label.querySelector('.lane-sub').textContent = `${plural(rows.length, 'row')}${hell ? ` · ${hell} hell` : ''}`;
+    renderGutter(rows, lay);
   }
 
   /** The yellow etches (pass 81, lane PACE; Garry: "on top of the enemy node in the rows you should etch the yellow etches
@@ -954,6 +2224,10 @@ const Timeline = (() => {
     if (paced) {
       const thin = Model.thinTimes(Model.rowEtchTimes(r, t1, lateT), Model.ETCH_MIN_PX * spp);
       for (const tk of thin.times) g.appendChild(svg('line', { x1: x(tk), x2: x(tk), y1: yf - 1, y2: yf - 11, class: 'etch-tick' }));
+    } else if (TimelineModel.paceOf(r) === 'once') {
+      // pass 84: a once row's one wave (the model plays it when lane SPAWN's rowEtchTimes knows `once`)
+      const tk = Model.rowWaveStart(r);
+      if (tk >= t0 && tk <= t1 + 1e-9 && App.rowWeight(r, tk) > 0) g.appendChild(svg('line', { x1: x(tk), x2: x(tk), y1: yf - 1, y2: yf - 11, class: 'etch-tick once' }));
     }
     parent.appendChild(g);
   }
@@ -997,23 +2271,44 @@ const Timeline = (() => {
     App.toast(`Added a presence point: ${fmtT(t)} → weight ${w}`);
   }
 
-  /** The roster's gutter in the sticky label column: per row a grip to drag it up or down, ▲ / ▼, its icon and name (a
-   *  click selects the row). The order is for this page only: the game draws by weight. */
-  function renderGutter(rows) {
+  /** The roster's gutter in the sticky label column (pass 84: grouped): a bar per group (its chevron, name and count; a
+   *  click folds or opens it), per row a grip to drag it up or down (with no groups), ▲ / ▼ (within its group), its icon
+   *  and name (a click selects the row). The order is for this page only: the game draws by weight. */
+  function renderGutter(rows, lay) {
     const gut = lanes.roster.label.querySelector('.gutter');
     clear(gut);
-    rows.forEach((r, i) => {
+    const L = lay || rosterLayout(rows);
+    const grouped = L.mode !== 'none';
+    // the visible order inside each group, for ▲ / ▼
+    const order = L.items.filter((it) => it.type === 'row').map((it) => it.i);
+    for (const it of L.items) {
+      if (it.type === 'group') {
+        const gcol = it.g.role != null ? TimelineModel.roleColor(it.g.role) : '';
+        const head = el('div', { class: 'gut-group' + (it.collapsed ? ' collapsed' : ''), style: `top:${it.y}px;height:${GROUP_H}px`, title: it.collapsed ? `${it.g.label}: folded, click to open` : `${it.g.label}: click to fold` },
+          el('span', { class: 'gut-chev', text: it.collapsed ? '▸' : '▾' }), gcol ? el('i', { class: 'gut-sw', style: `background:${gcol}` }) : null,
+          el('b', { text: it.g.label }), el('span', { class: 'muted', text: ` ${it.g.rows.length}${it.collapsed ? ' · folded' : ''}` }));
+        head.addEventListener('click', (e) => { e.stopPropagation(); setCollapsed('group:' + it.g.key, !it.collapsed); });
+        gut.appendChild(head);
+        continue;
+      }
+      const i = it.i;
+      const r = rows[i];
       const sel = App.selKey() === `roster:${i}`;
-      const grip = el('span', { class: 'grip', title: 'drag up or down to reorder (the order is for this page only)', text: '⠿' });
-      grip.addEventListener('pointerdown', (e) => startReorder(e, i, rows.length));
+      const k = order.indexOf(i);
+      const same = (j) => j >= 0 && j < order.length && (!grouped || groupOf(rows[order[j]], L.mode).key === groupOf(r, L.mode).key);
+      const up = same(k - 1) ? order[k - 1] : -1, down = same(k + 1) ? order[k + 1] : -1;
+      const grip = grouped ? el('span', { class: 'grip off', title: 'reordering by dragging works with no groups (Spawn rows: group "no groups"); ▲ / ▼ move the row', text: '·' }) : el('span', { class: 'grip', title: 'drag up or down to reorder (the order is for this page only)', text: '⠿' });
+      if (!grouped) grip.addEventListener('pointerdown', (e) => startReorder(e, i, rows.length));
       const pick = () => App.select({ kind: 'roster', i }, { scroll: true });
-      gut.appendChild(el('div', { class: 'gut-row' + (sel ? ' selected' : '') + (r.channel === 'hell' ? ' hell' : ''), style: `top:${ROSTER_HEAD + i * ROW_H}px;height:${ROW_H}px` },
+      const role = TimelineModel.roleOf(r);
+      const fid = firstEnemy(r);
+      gut.appendChild(el('div', { class: 'gut-row' + (sel ? ' selected' : '') + (r.channel === 'hell' ? ' hell' : ''), style: `top:${it.y}px;height:${ROW_H}px;box-shadow:inset 3px 0 0 ${TimelineModel.roleColor(role)}` },
         grip,
-        el('button', { class: 'gut-btn', type: 'button', text: '▲', title: 'move up (Alt+↑)', disabled: i === 0, onclick: (e) => { e.stopPropagation(); App.moveRow(i, -1); } }),
-        el('button', { class: 'gut-btn', type: 'button', text: '▼', title: 'move down (Alt+↓)', disabled: i === rows.length - 1, onclick: (e) => { e.stopPropagation(); App.moveRow(i, 1); } }),
-        el('img', { src: App.iconFor(r.enemy, r.variant), width: 18, height: 18, alt: '', onclick: pick }),
-        el('span', { class: 'gut-name', text: App.creatureName(r.enemy), title: `${App.creatureName(r.enemy)}${r.id ? ` (${r.id})` : ''}: click to select`, onclick: pick })));
-    });
+        el('button', { class: 'gut-btn', type: 'button', text: '▲', title: grouped ? 'move up within its group (the file\'s order changes; the game ignores it)' : 'move up (Alt+↑)', disabled: grouped ? up < 0 : i === 0, onclick: (e) => { e.stopPropagation(); if (grouped) App.moveRowTo(i, up); else App.moveRow(i, -1); } }),
+        el('button', { class: 'gut-btn', type: 'button', text: '▼', title: grouped ? 'move down within its group' : 'move down (Alt+↓)', disabled: grouped ? down < 0 : i === rows.length - 1, onclick: (e) => { e.stopPropagation(); if (grouped) App.moveRowTo(i, down); else App.moveRow(i, 1); } }),
+        fid ? el('img', { src: App.iconFor(fid, r.variant), width: 18, height: 18, alt: '', onclick: pick }) : el('span', { class: 'gut-ico', text: '★', onclick: pick }),
+        el('span', { class: 'gut-name', text: r.name || enemyWords(r), title: `${r.name ? r.name + ': ' : ''}${enemyWords(r)}${r.id ? ` (${r.id})` : ''}${role ? ` · ${role}` : ''}: click to select`, onclick: pick })));
+    }
   }
 
   /** Drag a row's grip: a line shows where it lands, the drop moves it there. */
@@ -1226,7 +2521,29 @@ const Timeline = (() => {
       hovers[key] = () => eventCard(e.i);
       s.appendChild(g);
     }
-    lanes.events.label.querySelector('.lane-sub').textContent = plural(evs.length, 'event');
+    // pass 84 (lane TIMELINE): the portal after each boss: its wave (portal_wave.count) or its cap for a while
+    const tl84 = App.tl();
+    const pw = Number(((tl84.portal_wave || {}).count) || 0);
+    const pcap = tl84.portal_cap == null ? 10 : Number(tl84.portal_cap), psec = tl84.portal_spawn_seconds == null ? 30 : Number(tl84.portal_spawn_seconds);
+    for (const e of evs) {
+      if (e.ev.type !== 'boss') continue;
+      const px = x(e.t) + 14;
+      const words = pw > 0 ? `portal wave ${pw}` : pcap === 0 ? 'portal: nothing' : `portal: cap ${pcap < 0 ? 'as the stage ended' : pcap}${psec >= 0 ? ` for ${psec} s` : ''}`;
+      const pg = svg('g', { class: 'portal-mark' + (App.selKey() === 'portal' ? ' selected' : ''), 'data-hover': 'portal' },
+        svg('rect', { x: px - 2, y: EV_H - 22, width: textWidth(words, 10.5) + 24, height: 18, rx: 9, class: 'portal-bg' }),
+        svg('use', { href: '#g-ring', x: px + 2, y: EV_H - 20, width: 14, height: 14, fill: '#b28cff' }),
+        svg('text', { x: px + 19, y: EV_H - 9, class: 'portal-text', text: words }));
+      pg.addEventListener('pointerdown', (ev2) => { if (ev2.button !== 0) return; ev2.stopPropagation(); App.select({ kind: 'portal' }); });
+      s.appendChild(pg);
+    }
+    hovers.portal = () => {
+      const box = el('div', {}, el('div', { class: 'hc-head' }, el('b', { text: 'The portal after a boss' })));
+      box.appendChild(el('div', { class: 'hc-line', text: pw > 0 ? `One wave of ${pw} creatures of the rows open as the stage ended, round the hero as the portal opens; then nothing until he steps through.` : `The crowd is kept up to ${pcap < 0 ? 'the stage-end cap' : pcap} load units ${psec >= 0 ? `for ${psec} s after the boss dies` : 'while the portal waits'}; no specials.` }));
+      box.appendChild(el('div', { class: 'hc-line muted', text: 'Click to edit (portal_wave.count, portal_cap, portal_spawn_seconds).' }));
+      return box;
+    };
+    const olds = evs.filter((e) => !['boss', 'elite_boss'].includes(e.ev.type)).length;
+    lanes.events.label.querySelector('.lane-sub').textContent = plural(evs.length, 'event') + (olds ? ` · ${olds} old (convert: Save)` : '');
   }
 
   /** Pass 69 (lane EN): a swarm set to Special is drawn in its creature's special colour at full brightness (the glow's
@@ -1332,7 +2649,7 @@ const Timeline = (() => {
       t0: item ? Number(item.t) || 0 : 0,
       until0: item && item.until != null && item.until !== '' ? Number(item.until) : null,
       end0: item && spec.kind === 'wave' ? App.waveEnd(item) : null,
-      p0: spec.kind === 'cap' ? pair(tl.cap_curve[spec.k]) : spec.kind === 'curve' ? pair(tl[spec.key].points[spec.k]) : spec.kind === 'weight' ? pair(item.weights[spec.k]) : null,
+      p0: spec.kind === 'cap' ? pair(tl.cap_curve[spec.k]) : spec.kind === 'floor' ? pair(tl.floor_curve[spec.k]) : spec.kind === 'curve' ? pair(tl[spec.key].points[spec.k]) : spec.kind === 'weight' ? pair(item.weights[spec.k]) : null,
       w0: spec.kind === 'roster' && item && Array.isArray(item.weights) ? item.weights.map(pair) : null,
       targets: Model.snapTargets(tl, self), snap: null, last: null,
     };
@@ -1366,16 +2683,16 @@ const Timeline = (() => {
     // the lanes can ring the target
     const snapOpts = { spp, on: snapOn, alt: !!e.altKey, targets: drag.targets };
     const snapTo = (edges) => { drag.snap = Model.snapDrag(tl, edges, snapOpts); return drag.snap; };
-    if (sp.kind === 'cap' || sp.kind === 'curve') {
-      const p = sp.kind === 'cap' ? tl.cap_curve[sp.k] : tl[sp.key].points[sp.k];
+    if (sp.kind === 'cap' || sp.kind === 'curve' || sp.kind === 'floor') {
+      const p = sp.kind === 'cap' ? tl.cap_curve[sp.k] : sp.kind === 'floor' ? tl.floor_curve[sp.k] : tl[sp.key].points[sp.k];
       const raw = Math.max(0, drag.p0[0] + dt);
       const sn = snapTo([{ t: raw, edge: 'point', min: 0 }]);
       p[0] = sn ? sn.t : raw;
       const dv = -((e.clientY - drag.y0) / (sp.bottom - sp.top)) * sp.maxV;
-      p[1] = sp.kind === 'cap' ? Math.max(0, Math.round(drag.p0[1] + dv)) : Math.max(0, Model.round(drag.p0[1] + dv, 2));
+      p[1] = sp.kind === 'cap' || sp.kind === 'floor' ? Math.max(0, Math.round(drag.p0[1] + dv)) : Math.max(0, Model.round(drag.p0[1] + dv, 2));
       render();
       showSnap(sn, e);
-      App.setClock(p[0], (sp.kind === 'cap' ? `cap ${p[1]}` : `×${p[1]}`) + snapText(sn));
+      App.setClock(p[0], (sp.kind === 'cap' ? `cap ${p[1]}` : sp.kind === 'floor' ? `floor ${p[1]} alive` : `×${p[1]}`) + snapText(sn));
       return;
     }
     if (sp.kind === 'weight') {
@@ -1442,10 +2759,11 @@ const Timeline = (() => {
     // an Alt still held as the button comes up: its keyup must not open the browser's menu either
     if (d.last && d.last.altKey) window.addEventListener('keyup', (ev) => { if (ev.key === 'Alt') ev.preventDefault(); }, { once: true });
     const sp = d.spec;
-    const sel = sp.kind === 'cap' ? { kind: 'cap' } : sp.kind === 'curve' ? { kind: sp.lane } : sp.kind === 'weight' ? { kind: 'roster', i: sp.i } : { kind: sp.kind, i: sp.i };
+    const sel = sp.kind === 'cap' ? { kind: 'cap' } : sp.kind === 'floor' ? { kind: 'floor' } : sp.kind === 'curve' ? { kind: sp.lane } : sp.kind === 'weight' ? { kind: 'roster', i: sp.i } : { kind: sp.kind, i: sp.i };
     if (d.moved) {
       const tl = App.tl();
       if (sp.kind === 'cap') App.sortPoints(tl.cap_curve);
+      if (sp.kind === 'floor') App.sortPoints(tl.floor_curve);
       if (sp.kind === 'curve') App.sortPoints(tl[sp.key].points);
       if (sp.kind === 'weight') App.sortPoints(tl.roster[sp.i].weights);
       App.S.sel = sel;
@@ -1606,8 +2924,14 @@ const Timeline = (() => {
     if (!r) return null;
     const open = App.rosterAt(t).find((o) => o.i === i);
     const share = open ? `${Math.round(open.norm * 100)}% of the ${r.channel === 'hell' ? 'hell channel\'s' : 'regular'} draw` : 'not drawn at this second';
-    const box = el('div', {}, cardHead('Roster row', t, `${fmtT(r.t)} → ${r.until == null || r.until === '' ? 'end' : fmtT(r.until)}${r.id ? ` · ${r.id}` : ''}`));
-    box.appendChild(creatureBlock(r.enemy, r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row' }));
+    const box = el('div', {}, cardHead(r.name ? `Spawn row: ${r.name}` : 'Spawn row', t, `${fmtT(r.t)} → ${r.until == null || r.until === '' ? 'end' : fmtT(r.until)}${r.id ? ` · ${r.id}` : ''}`));
+    // pass 84 (lane TIMELINE): how many, how often, who and what it wears, in one line; the creature (the first of a list)
+    const c84 = App.creature(firstEnemy(r));
+    const pace84 = TimelineModel.paceOf(r);
+    const flags84 = [r.elite ? `every one wears ${r.elite === 'random' ? 'a random elite modifier' : r.elite}` : '', r.special ? 'every one its coloured special' : '', r.banner ? `banner "${r.banner}"` : '', r.channel === 'hell' ? 'hell channel' : '', r.respect_cap === false && pace84 !== 'continuous' ? 'on top of the cap' : '', TimelineModel.roleOf(r) ? `role ${TimelineModel.roleOf(r)}` : ''].filter(Boolean);
+    box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: TimelineModel.quantityText(r, Model.rowWaveCount(r, c84), pace84 === 'continuous' ? perMinute(i, r) : null) }), ` · ${enemyWords(r)}${Array.isArray(r.enemy) && r.enemy.length > 1 ? ` (one of ${r.enemy.map((id) => App.creatureName(id)).join(', ')})` : ''}${flags84.length ? ' · ' + flags84.join(' · ') : ''}`));
+    if (r.enemy === 'roster') box.appendChild(el('div', { class: 'hc-line muted', text: 'each creature drawn from the rows open then by their Elite weight, with that row\'s HP and ATK' }));
+    else box.appendChild(creatureBlock(firstEnemy(r), r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row', modded: !!r.elite, forced: !!r.special }));
     // pass 81 (lane PACE): a row paced as waves: its waves, the next one, whether it is in the draw at all
     if (Model.rowPaced(r)) {
       const pc = paceChip(r, App.creature(r.enemy));
@@ -1824,10 +3148,12 @@ const Timeline = (() => {
 
   // ------------------------------------------------------------------ cursor, readout, cards
 
+  let lastCursorT = null;             // pass 84: the second under the pointer last (the inspector's Split at cursor)
   function onHover(e) {
     if (drag || !App.S.map) return;
     const t = tAt(e.clientX);
     if (t < 0 || e.clientX < svgLeft()) { hideCursor(); return; }
+    lastCursorT = Math.max(0, Math.round(t));
     cursorEl.hidden = false;
     cursorEl.style.left = `${LABEL_W + x(t)}px`;
     App.setClock(t);
@@ -1934,5 +3260,8 @@ const Timeline = (() => {
     else readout.appendChild(el('div', { class: 'ro-line muted', text: open.length ? 'nothing spawned in that window' : 'no roster row open' }));
   }
 
-  return { mount, render, fit, zoom, viewCenter, scrollToSelection, hideCard, LABEL_W, ALT_COLORS, get spp() { return spp; }, setSnap, toggleSnap, get snapOn() { return snapOn; }, setWindow, get winSecs() { return winSecs; } };
+  return { mount, render, fit, zoom, viewCenter, scrollToSelection, hideCard, LABEL_W, ALT_COLORS, get spp() { return spp; }, setSnap, toggleSnap, get snapOn() { return snapOn; }, setWindow, get winSecs() { return winSecs; },
+    // pass 84 (lane TIMELINE): the cursor's last second (split at cursor), the sections, the Sim overlay, the warnings
+    get cursorT() { return lastCursorT; }, isCollapsed, setCollapsed, setAll, loadSimList, warningsOf, get view() { return view; }, get sim() { return simOv; },
+    rowSpawnsPerSecond, firstEnemy, enemyWords, startNumbers };
 })();

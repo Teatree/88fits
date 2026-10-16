@@ -4300,3 +4300,273 @@ reflect that."
   land: 42.2 s -> 25.2 s (25 asked).
 - **Garry's map edits re-pinned**: his cap curve (starts at 181) and side weights (30/20/20/20) are read from the file
   by content_test, pass17 and pass54_waves.
+
+## 31. Pass 84 (v0.70): one spawning language, the Timeline tab, the Sim's overlay, shadows
+
+Garry's request (2026-10-16, tools/dl/p84/REQUEST.md). Each lane's rules as it wrote them.
+
+### 31.SPAWN One spawning language: rows that do everything
+
+Every number and condition below is new in pass 84 (keys: keys_SPAWN.md; code: WaveTimeline.gd "one spawning
+language", WaveDirector.gd "one spawning language (pass 84)", model.js spawnEstimate / convertLegacy).
+
+#### The row is the one way to spawn
+1. **A swarm is a "once" row.** Red Canyon's five swarm events (the Special Goblin 2:00, the ant swarm 10:10, the
+   armadillo charge 13:20, the imp swarm 17:20, the ants 20:04) and its Elites-every (5:01, every 129 s) are rows now
+   (tools/migrate_timeline.py, ids r6 r7 r8 r9 r17 r53, appended after the old rows). Their numbers are the events'.
+2. **A once row** fires one wave at `t` + `offset`: `count` creatures (default its `pack`, else the creature's).
+3. **The mix** (WaveTimeline.row_in_mix): a row that names one creature by id, with no `elite`, no `special`, not
+   `once`. Only the mix is read for: the portal wave (12 bodies from the rows open at the stage's end), a coloured
+   Elite's candidates and the "roster" creature (drawn by elite_weight), and the pass 58 join (an event's or once row's
+   numbers from the mix row that brings the same creature and look then). So a swarm that became a row never feeds the
+   portal wave or the Elites, as its event never did.
+4. **Numbers** (pass 58's R1 kept): a mix row's creatures fixed from its start (unchanged); each creature of a list row
+   from the row's start (its own key `row:<id>#<k>|<creature>`); a "roster" creature plays the numbers of the row it was
+   drawn from (or this row's own stats when it sets some); a **once** row takes the event rule: the moment's numbers, or
+   the mix row's that brings the same creature and look then (what the swarm events did).
+5. **`enemy` lists and "roster"**: a list draws one creature per wave (a continuous row per draw) by `enemy_weights`
+   (an entry past their end weighs 1, a 0 never comes); "roster" draws each creature from the mix rows live at that
+   second by their creature's elite_weight (only creatures that can be Elites), grouped by the row drawn.
+6. **`every` [min, max]**: a fresh gap drawn inside it after each wave (a timer: the next wave counts from the wave it
+   fired, not from a fixed grid). A plain number keeps pass 81's fixed rhythm t + offset + k x every.
+7. **Elite rows** (`elite` "random" or a modifier id):
+   - without a `pattern`: each of `count` (default 1) is one coloured-elite arrival (WaveDirector._spawn_elite: alone, as
+     its pack or a ring of 12 m by the creature's elite_formats, the "MOD NAME" toast); like the events they ignore the
+     cap and the hard cap (respect_cap is not read for them);
+   - with a `pattern`: `count` creatures in that pattern, every one wearing the modifier, under respect_cap;
+   - **colour**: an elite wave waits for colour_after_kills (50 on Red Canyon), asking again every second; a
+     continuous elite row is out of the draw until then;
+   - **Hot Sauce**: an elite paced row's gap is divided by elite_pace() = 1 + 0.5 x the hero's `difficulty` (as the
+     elite_every timers and endless's were; pass 47's rule, now on the rows too).
+8. **`special`**: every creature of the row comes as its coloured variance special (force_special), colour or not, with
+   no banner unless `banner` says. The specials' cap (special_defaults.max_alive 3) never stops a forced one.
+9. **`banner`**: a toast in the swarm orange the first time a wave brings anything (once per wave).
+10. **`ring_radius`**: pattern "ring" with a radius is the classic even ring at that radius (EnemyManager.spawn_ring: no
+    jitter, a 0.1 rad slide); without it a ring row is pass 57's thick band at 11.7 m. Converted swarms: 16 m.
+11. **`chance` / `t_jitter`** (once and waves rows): rolled once a run at start (the row's jitter first, then its chance,
+    the events' order); a failed chance skips the row for the run; the jitter moves the whole row (its window and its
+    waves) by a draw inside +- t_jitter, never before 0 s. Rows without them take no dice (an old map's dice unchanged).
+12. **A once row whose second the clock jumped past by more than 2 s** (ROW_STALE_S: smoke_run, hell_check, the
+    arena's clock) is dropped, as the jumped-over events were; in a run the rows tick every frame, so it never is.
+13. **Differences from the events** (named, all rare):
+    - **`respect_hard_cap`** (new, default true): false lets a paced row's waves past the map's hard_cap (260 on Red
+      Canyon), stopped only by the 320 body limit, as the swarm events were; the converted swarms carry false. Found by
+      the first sim: the Red Canyon crowd sits at the hard cap (259-260 alive) round 2:00, and a converted Special Goblin
+      that kept the hard cap came 17-24 s late in half the runs. What the body limit cuts stays owed (the event dropped it).
+    - a once row honours its creature's max_alive (the swarm event did not; no swarm creature of Red Canyon has one).
+    - an elite once row that falls due before colour asks again every second instead of joining the held list (one
+      released a second): the same second, give or take one.
+    - a waves[] entry converted (no map has one): its last burst brings a full `burst`, not the remainder; several
+      alternatives roll apart (each its share as its chance) instead of one per run; its elite creatures wait for colour
+      instead of coming plain before it. The converter prints these as notes.
+
+#### The density floor
+14. `floor_curve` [[t, n], ...] (linear between points, flat outside; absent = none, today's play): every frame, while
+    fewer than floor(n) creatures are alive on the regular channel (everything but the creatures the hell rows open then
+    bring), the director draws the regular continuous rows (row_drawn; an elite row only once colour is open) at once:
+    a row by its weight now, its pack (a "single" row one) at a time, each cut to the lack, the cap's room in load units
+    (cap less the regular load) and the hard cap, until the floor is met, the room is gone or 64 came (FLOOR_FILL_MAX);
+    at most 32 draws a frame. In boss fights and the portal wait too, never past their cap (0 after a portal wave).
+    Red Canyon has none.
+
+#### The estimate (model.js spawnEstimate == selftest.py spawn_estimate)
+15. **Lifetime model**: by default a share `turnover` of the crowd dies a second (the old rule: an exponential lifetime
+    of 1 / turnover s); with `opts.life` {id: seconds} (the Sim's life_by mean) that creature leaves at 1 / life a
+    second instead.
+16. once rows as their wave (count x chance, cut by the hard cap and, with respect_cap, the channel's room; a mark
+    "swarm"); `every` ranges at their middle; list creatures by enemy_weights shares, "roster" by the mix rows'
+    elite_weight shares, the load per body the shares' mean; elite rows without a pattern as coloured-elite arrivals
+    (`mod`), with a pattern as `mod` creatures; special rows as `col` (forced); chance multiplies the count; jitter is
+    ignored (it averages out, as for events); Hot Sauce is not modelled (no hero).
+17. **The floor in the estimate**: each step after the draws, the lack is shared out over the open drawn regular rows by
+    weight (each cut to its max_alive room), the whole scaled to the cap's room in load units and the hard cap.
+18. **Full and starving** (per point, over the second's director spawn checks): `full` = the share of the checks at
+    which the regular channel had no room (cap load or hard cap); `starve[row]` = the share of the checks at which an
+    open drawn row weighing above 0 found its channel full, or a paced row still owed creatures.
+
+#### The shown difficulty (model.js creatureDifficulty == WaveDirector.shown_numbers)
+19. One HP and ATK per row and second: the creature's JSON hp (or the row's `stats.hp`) x hp_mult x the HP curve at the
+    row's start (none when stats.hp is set; a once row: its own second) x the stage multiplier at the second x
+    (1 + level_hp_per_level x (level - 1)) x creature_hp_mult; ATK the same with damage, damage_mult, the damage curve,
+    level_damage_per_level and creature_damage_mult; the hero-power factor at power 1 (= 1). An Elite by its kind:
+    elite.hp_mult_per_stage^stage x the stage x creature_hp_mult; a boss: boss.hp_mult_per_stage^stage x the stage. The
+    level: the page's `level`, else a Sim's level curve, else DEFAULT_LEVEL_CURVE (the pass 84 baseline sim: the
+    Drifter with a quarter of the board, the median level by the clock).
+
+#### Proof: Red Canyon before and after (20-run sims each, private snapshots)
+Private sims (tools/dl/p84/SPAWN/psim.py: tools/sim_batch.py with its own lock folder, user folder and snapshot, so
+the shared Sim tab was never blocked): the Drifter, a quarter of the Upgrade board, the explorer bot, death "keep" (the
+hero plays on to 25:00, every down counted), seeds 1-20, 60 fps. **head** = HEAD e158f49 (code and map as they were);
+**old** = this pass's code with the old map (the events' own code path); **new** = this pass's code with the migrated
+map (the rows). Mean +- standard deviation over the 20 runs; the swarm and Elite counts come from the director's own
+`spawn84` log lines (head has none). Same-seed runs part ways within a few minutes whatever changes (they do between
+head and old too), so the proof is statistical: every difference is well inside one standard error of the difference
+(about sd x 0.32), and the director's lines show the converted rows fire exactly as the events did: every swarm whole
+at its second in every run that reached it, the Elites at 5:01 and every 129 s after.
+
+| measure                       | head              | old               | new               |
+|-------------------------------|-------------------|-------------------|-------------------|
+| runs                          | 20                | 20                | 20                |
+| deaths a run                  | 28.9 +- 14.8      | 25.8 +- 17.1      | 24.4 +- 16.5      |
+| end level                     | 46.6 +- 11.4      | 45.4 +- 11.5      | 48.7 +- 11.5      |
+| kills a run                   | 11805.4 +- 6209.1 | 10921.1 +- 5687.8 | 12781.0 +- 6685.0 |
+| level at 3:35                 | 7.7 +- 2.2        | 8.2 +- 2.8        | 7.8 +- 2.8        |
+| level at 7:10                 | 18.9 +- 5.0       | 17.8 +- 6.1       | 18.6 +- 5.3       |
+| level at 10:45                | 28.5 +- 4.6       | 26.9 +- 5.2       | 28.4 +- 5.3       |
+| level at 14:20                | 33.2 +- 5.7       | 31.8 +- 6.7       | 34.1 +- 6.5       |
+| level at 17:55                | 40.5 +- 7.1       | 39.2 +- 8.1       | 41.5 +- 7.8       |
+| level at 21:30                | 46.2 +- 10.8      | 44.2 +- 11.3      | 48.4 +- 11.3      |
+| kills red_goblin              | 871.0 +- 314.1    | 854.2 +- 424.1    | 924.5 +- 383.6    |
+| kills fire_ant                | 739.2 +- 421.2    | 655.6 +- 306.4    | 775.7 +- 423.6    |
+| kills armadillo               | 1059.2 +- 735.4   | 1017.9 +- 582.9   | 1186.8 +- 677.3   |
+| kills imp                     | 1577.0 +- 1081.1  | 1467.0 +- 1073.8  | 1860.7 +- 1373.2  |
+| kills skeleton                | 1341.5 +- 507.3   | 1201.8 +- 465.8   | 1373.6 +- 653.6   |
+| kills lesser_scorpion         | 823.5 +- 170.8    | 733.1 +- 186.4    | 778.9 +- 211.5    |
+| kills dune_scorpion           | 0.9 +- 0.7        | 1.0 +- 0.7        | 0.8 +- 0.9        |
+| kills sun_prophet             | 0.7 +- 0.8        | 0.8 +- 0.9        | 1.1 +- 0.9        |
+| kills stone_golem             | 1.2 +- 0.8        | 0.8 +- 0.8        | 0.8 +- 0.9        |
+| kills fire_ant min 10-11      | 29.6 +- 10.1      | 25.3 +- 6.5       | 25.4 +- 7.4       |
+| kills armadillo min 13-14     | 21.5 +- 2.9       | 25.4 +- 13.2      | 22.0 +- 4.0       |
+| kills imp min 17-18           | 373.6 +- 224.3    | 382.1 +- 256.7    | 491.9 +- 353.2    |
+| kills fire_ant min 20-21      | 215.1 +- 222.2    | 194.9 +- 201.5    | 246.3 +- 230.8    |
+| swarm/once spawns a run (log) | n/a               | 4.8 +- 0.4        | 4.8 +- 0.4        |
+| swarm creatures a run (log)   | n/a               | 95.4 +- 8.8       | 94.2 +- 9.8       |
+| elite arrivals a run (log)    | n/a               | 8.3 +- 1.3        | 8.1 +- 1.1        |
+| elite creatures a run (log)   | n/a               | 8.3 +- 1.3        | 8.1 +- 1.1        |
+
+swarm spawns seen (old): red_goblin x1 @ 120 in 20 runs, fire_ant x24 @ 610 in 20 runs, armadillo x20 @ 800 in 20 runs, imp x30 @ 1040 in 20 runs, fire_ant x24 @ 1204 in 17 runs
+swarm spawns seen (new): red_goblin x1 @ 120 in 20 runs, fire_ant x24 @ 610 in 20 runs, armadillo x20 @ 800 in 20 runs, imp x30 @ 1040 in 20 runs, fire_ant x24 @ 1204 in 16 runs
+elite arrival clocks, first runs (old): 301,430,559,688,817,946 | 301,430,545,659,774,889 | 301,430,559,688,817,946 | 301,430,559,688,817,946 | 301,430,559,688,817,946
+elite arrival clocks, first runs (new): 301,430,559,688,817,946 | 301,430,559,688,817,946 | 301,430,559,688,817,946 | 301,430,559,688,817,946 | 301,430,559,688,817,946
+
+The first "new" sim (before `respect_hard_cap`) had the Special Goblin 17-24 s late in half the runs: the crowd sits at
+the hard cap (259-260) round 2:00 and the row then kept the hard cap; with respect_hard_cap false on the converted
+swarms (the events' rule) it comes at 2:00 in all 20 runs.
+
+### 31.TIMELINE The Timeline tab: sections, marks, plain charts, the inspector
+
+Nothing here changes play: these are the Level Editor's own numbers (tools/level_editor/timeline_model.js and
+timeline.js). Page settings live in the browser (localStorage), never in the map.
+
+#### On screen
+- Alive = the estimate's crowd at each run second (model.js spawnEstimate, lane SPAWN; its `aliveBy` per creature when
+  given). Split by source with a recurrence: alive_k(t) = alive_k(t-1) x (1 - kill rate)^dt + spawned_k since, then each
+  creature's sources scaled to the estimate's count for that creature (only the split between rows of one creature
+  comes from the recurrence). A source that brings several creatures (a list, the roster draw) is filed under its
+  creatures.
+- Regular vs hell: a source of a row / wave on channel "hell" is hell.
+- The cap in bodies = cap ÷ (regular load ÷ regular bodies); load = Σ alive × cap_share (default 1). With nobody alive:
+  the cap ÷ 1. The cap and the load come from the estimate's point (`cap`, `load`) when it has them, else the curve and
+  the sources.
+- Cap full = the estimate's `full` (share of the second's spawn checks with no room) ≥ 0.5; an estimate without it:
+  load ≥ 97% of the cap (FULL_AT).
+- Starving rows: the estimate's `starve` share ≥ 0.25 (STARVE_SHARE); without it: open, in the continuous draw,
+  weight > 0, nothing spawned in the 5 s before (STARVE_S) while the cap was full all that time.
+
+#### Challenge (two measures, a switch in the section bar)
+- Seconds to clear = crowd HP ÷ hero DPS. Crowd HP = Σ over living creatures (bosses left out) of their HP in play: the
+  row's HP fixed from its start (the creature × the HP curve there, or the row's own) × the stage multiplier ×
+  creature_hp_mult × the hero-level box; non-row creatures (swarms, Elites, specials) at the curve of their second (read
+  every 10 s); a coloured special counts its special HP (× special hp, the map's default 15) for the share of that
+  creature's alive that is coloured.
+- Health bars = Σ HP × ATK ÷ bite interval (contact_cd, default 0.6) ÷ (hero DPS × hero EHP) — SIMVIEW's `challenge`.
+- Hero DPS / EHP: the Sim's `hero_dps` / `hero_ehp` (pass 84 Sims); an older Sim: its real damage a second (`dps`, 5 s
+  window) and EHP 100; no Sim: a typical hero: power on PowerModel.TYPICAL at the stage marks (1, 3.5, 9, 23), straight
+  between on a log scale and growing on after the last; DPS = 20.4 × power², EHP = 100 (the p83 Sim: EHP barely grows).
+- Zones: seconds easy < 10, hard > 30; bars easy < 1, hard > 3 (page settings, one pair per measure; "fair" includes the
+  hard limit itself).
+- The Sim's line: seconds = its keep_up (median run, from result.json, normal phase only); bars = its `challenge` median.
+
+#### Composition
+- On screen: each creature's share of the alive count (estimate or the Sim's `alive_by`); spawned: its share of what
+  spawned in the past N s (the top bar's "past" box). The ten largest over the view drawn, the rest grey "others"; the
+  hover lists creatures with half a body or 0.5% and more.
+
+#### Spawn rows
+- Quantity: continuous "≈N/min" = what the estimate says the row spawned over its open life ÷ its open minutes (to the
+  run's end when open); waves "C every E s" (or "E1–E2 s", "+ drawn" when it trickles); once "once C".
+- HP / ATK on the bar: in play at the row's start (Model.shownDifficulty when lane SPAWN provides it, else the page's
+  creatureAt with t0 = the row's start).
+- A once row with no until is drawn as a short block (46 px or 10 s, whichever is longer).
+- Suggest roles (only untagged rows, one undo step): special → special; an elite modifier → elite; once or off the cap
+  → swarm; a creature with a ranged / artillery / sniper block → ranged; HP ≥ 60 or cap_share > 1 → tank; else fodder.
+
+#### Warnings
+- Cap full: every full stretch of 3 s or more, with the rows starving in it (sampled every 2 points).
+- Never spawns: a row whose estimate total is under 0.5 (rows the estimate files under no source of their own, an
+  elite or roster-draw or list row, are not judged).
+- Tiny share: a continuous or waves row (not a once row: its share is its one wave) that never makes 1% of what spawned in any 10 s window (windows every 5 s from its start − 1 s).
+- Difficulty jump: the crowd's HP on screen more than doubling from one run second to the next while 10 or more are
+  alive (the 6 largest, with the row that spawned most then).
+- Floor above the cap: the first second (every 5 s) the floor asks more bodies than the cap holds at the crowd's mix.
+- Identical rows overlapping: the same creature, look, pacing, channel, pattern, every, count, elite, special and
+  overrides, their spans overlapping.
+
+#### Validation (app.js, errors block Save)
+- Errors: pace not continuous / waves / once; every as a range not [min, max] with 0 ≤ min ≤ max; an unknown elite
+  modifier; special not true/false; ring radius under 1 m; an empty creature list or an unknown creature in it; a floor
+  point not [seconds, creatures] or negative.
+- Warnings: a banner on a continuous row; a ring radius without the Ring pattern; an unknown role; special with an elite
+  modifier; the roster draw with no elite modifier; a range's minimum under 1 s; a floor above the hard cap; a variant on
+  the roster draw.
+
+#### Split at cursor
+- Row i at second t (inside its span): the row ends at t; a copy with a fresh id starts at t; the presence points before
+  t stay with the first part, those after t go to the copy, both get the presence at t as a point; a once row's copy
+  becomes continuous (it would fire again).
+
+### 31.SIMVIEW The Sim's per-second data for the Timeline
+
+Nothing here changes play: the sampler in game/tools/sim_run.gd only reads the game. These are the exact definitions
+of the numbers the Timeline shows from a Sim (the same words are in overlay.json's `rules` for the page).
+
+#### Per run, per second of play (game/tools/sim_run.gd, one entry per recorder row)
+- **alive_hell**: creatures alive (not dying) whose creature id the hell channel brings at that moment (the director's
+  own rule, WaveDirector._hell_load: an id is hell while a hell roster row or hell wave of the moment brings it).
+  `alive_hell_by` the same by id.
+- **load** / **load_hell**: the regular / hell channel's crowd in cap units: each creature alive (not dying) its type's
+  `cap_share` (the fodder 0.5). The director spawns the regular rows while load < cap.
+- **cap_hell** = hell_cap_at(stage) x current_cap(); **hard_cap**: the map's body limit.
+- **cap_full** (0..1): checked every **0.2 s of play** (SV_CHECK_S): full when current_cap() > 0 and (load >= cap or
+  alive_count() >= hard_cap); the value is the share of the second's checks that were full.
+- **starving_by[row key]** (0..1): the share of the second's checks at which the row starved. A row starves at a check
+  when (a) it is in the continuous draw (WaveTimeline.row_drawn: continuous, or waves + trickle), open at the director's
+  clock (Run.elapsed, a second early outside the normal phase, as _spawn_burst reads it), weighs above 0
+  (_roster_weight), its creature is under its max_alive, and its channel is full (regular: load >= cap; hell: load_hell
+  >= cap_hell; either: alive >= hard_cap) while the cap is above 0; or (b) it is paced (pace other than continuous:
+  waves, SPAWN's once) and the director's state for it (_row_waves[key].owed) still owes creatures. Keys:
+  "row:<id>#<index>" or "row#<index>" (WaveDirector._row_key_at). Not covered: an old map's waves[] block (Red Canyon
+  has none) and old swarm events with respect_cap (SPAWN migrates them to rows).
+- **threat**: the sum over every creature alive (not dying; the boss left out) of max_hp x dmg / contact_cd (its bite's
+  damage a second; the cadence at least 0.05 s). Both numbers are the creature's own as spawned (all multipliers in).
+  The bite's 1.5x on a charge and the contact cap (contact_cap x his max HP) are not applied.
+- **hero_dps**, **hero_ehp**: HeroPower's full DPS and effective HP (the recorder row's full_dps, ehp).
+- **challenge** = threat / (hero_dps x hero_ehp); 0 when that product is 0.
+- **life_by[id]**: per stage slot (stage 1, 2, 3, then everything after), deaths `n` and the seconds of play they lived
+  `s` (spawn = the first frame the slot's spawn number is seen, death = EnemyManager.creature_dying); `gone` = freed
+  without dying (a stage's clear: the slot reused or the run ended with it empty), `open` = still alive at the end.
+  Neither gone nor open is in the mean (a censored mean: the longest-lived creatures are under-counted a little).
+
+#### Averaged
+- **Per play second** (result.json, sim_batch.py aggregate() and its twin sim_avg.js aggregate()): the new series are
+  levels (mean over the runs still playing); `threat` banded (p10/p90); `challenge` a MEDIAN series (middle run and
+  p10/p90, never a mean); alive_hell_by and starving_by level breakdowns (mean over the runs still playing).
+- **Per clock second** (overlay.json, sim_batch.py overlay() and its twin sim_avg.js overlay()): each run's rows in the
+  normal phase binned to c = floor(clock + 0.5), the later row winning, a skipped second inside a run carrying the row
+  before; boss and portal rows left out. Means over the runs at that clock second; bands (p10/p90) for alive, threat,
+  power; challenge a median; alive_by = the regular channel (alive_by - alive_hell_by per id); breakdown means count a
+  run without the id as 0; ids whose sum is 0 dropped; life_by summed over runs (mean = total seconds / total deaths).
+- **The route** (GET /api/sim/overlay): the newest sim of the map that is finished (not running, not partial, a run
+  ok) and real (not --synthetic); creatures past the top N (default 8, 1..30) summed into "__other".
+
+### 31.LEAD The lead's changes in this pass
+
+- **Every creature on screen casts its shadow** (Garry: "The shadows on the enemies seem to have started to break. At
+  certain angles and at certain distances they don't render"): with more than SHADOW_BUDGET (70) alive, only the first 70
+  within 10 m of the hero had a shadow, so with Garry's crowd (cap from 181) the creatures up the portrait screen lost
+  theirs. Now a creature casts one when the whole crowd is under the budget, within 10 m of the hero, or seen by the
+  camera (`is_position_in_frustum` at its feet); its draped transform is reused until it moves 0.08 m, changes type or
+  its shrink in the air (`EnemyManager._shadow_xform_cached`); the shadows' MultiMesh has a fixed box (never culled
+  stale). Cost on the PC at 250 creatures: enemies.render about 1.4-1.7 ms (was about 0.9-1.0).
+- **Hard cap and summons**: splits and boss summons are not held by the director's hard cap (SIMVIEW saw 262 / 260 once);
+  unchanged, named here.

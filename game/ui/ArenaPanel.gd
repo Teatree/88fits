@@ -613,7 +613,8 @@ func crowd(n: int) -> void:
 
 func _crowd_now(n: int, t: float) -> void:
 	var tl: WaveTimeline = Run.map.timeline
-	var rows: Array = tl.roster_at(t)
+	# pass 84 (lane SPAWN): the mix rows only (a once row, a list or "roster" row, an elite or special row is an event)
+	var rows: Array = WaveTimeline.mix_rows(tl.roster_at(t))
 	if rows.is_empty():
 		return
 	var weights: Array = []

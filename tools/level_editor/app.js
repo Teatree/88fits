@@ -28,6 +28,8 @@ const App = (() => {
     enemiesRev: 0,              // bumped whenever the creature list is read again (the estimate's cache key)
     fit: null,                  // pass 57: the server's kill rate, boss fight and portal wait from the run records
     assume: { turnover: null, bossSeconds: null, portalSeconds: null },  // pass 57: the page's own numbers (null = the fit)
+    simLife: null,              // pass 84: the shown Sim's lifetimes {creature id: mean seconds alive} (Timeline's overlay)
+    useSimLife: false,          // pass 84: the estimate takes them (Ruler and controls: "lifetimes from the Sim")
   };
 
   // ------------------------------------------------------------------ loading
@@ -83,6 +85,10 @@ const App = (() => {
       if (!map.timeline_data) map.timeline_data = {};
       // pass 54: the roster in the new shape in memory (presence keyframes, row ids); Save writes it so
       const conv = M.normaliseRoster(map.timeline_data);
+      // pass 84 (lane TIMELINE): one spawning language: swarm, coloured-elite and Elites-every events and the waves[]
+      // blocks become spawn rows on load (lane SPAWN's converter; the game still plays an old file as before), and Save
+      // writes the rows. A map with none of them is left exactly as it is (no churn)
+      const legacy = legacyConvert(map.timeline_data);
       S.mapId = id; S.map = map; S.tl = map.timeline_data;
       S.saved = JSON.stringify(map);
       S.history = []; S.future = []; S.sel = null;
@@ -92,14 +98,35 @@ const App = (() => {
       const m = S.maps.find((x) => x.id === id);
       document.getElementById('map-file').textContent = m ? m.file : '';
       const note = conv.converted || conv.ided ? ` · ${conv.converted ? `${conv.converted} roster rows read from weight / weight_late as presence keyframes` : ''}${conv.converted && conv.ided ? ', ' : ''}${conv.ided ? `${conv.ided} rows given an id` : ''} (the next Save writes the new shape)` : '';
-      status(`Loaded ${m ? m.file : id}${note}`);
+      status(`Loaded ${m ? m.file : id}${note}${legacy}`);
       loadAssume(id);
       S.fit = null;
       fetchFit(id);
       render('all');
       if (Timeline.fit) Timeline.fit();
+      // pass 84: the newest finished Sim of this map for the view lanes (Ruler and controls picks another)
+      if (Timeline.loadSimList) Timeline.loadSimList(true);
     } catch (e) {
       status('Could not load the map: ' + e.message, 'bad');
+    }
+  }
+
+  /** Pass 84 (lane TIMELINE): the old ways to spawn (swarm, elite, elite_every events, the waves[] list) as spawn rows,
+   *  through lane SPAWN's Model.convertLegacy (it changes `tl` in place and says what it did); nothing when the model has
+   *  no converter yet or the map has nothing old. Returns the status line's words. */
+  function legacyConvert(tld) {
+    const old = (Array.isArray(tld.events) ? tld.events : []).filter((e) => e && ['swarm', 'elite', 'elite_every'].includes(e.type)).length + (Array.isArray(tld.waves) ? tld.waves.length : 0);
+    if (!old || typeof M.convertLegacy !== 'function') return '';
+    try {
+      const before = JSON.stringify(tld);
+      const skins = S.map && U.isObj(S.map.skins) ? Object.values(S.map.skins) : [];
+      const res = M.convertLegacy(tld, { skin: skins.length ? String(skins[0]) : '' });
+      if (JSON.stringify(tld) === before) return '';
+      const n = res && typeof res === 'object' && res.converted != null ? res.converted : old;
+      return ` · ${n} old swarm / elite events and wave blocks read as spawn rows (the next Save writes them; the game plays both alike)`;
+    } catch (e) {
+      console.error('convertLegacy', e);
+      return ' · the old events could not be converted (they still play)';
     }
   }
 
@@ -344,6 +371,9 @@ const App = (() => {
     else turnover = f.turnover != null ? f.turnover : M.EST_DEF.turnover;
     const skins = S.map && U.isObj(S.map.skins) ? Object.values(S.map.skins) : [];
     return {
+      // pass 84 (lane SPAWN's estimate): the creatures the Sim measured leave the crowd after their measured lifetime,
+      // the rest by the kill rate (only when "lifetimes from the Sim" is ticked)
+      life: S.useSimLife && S.simLife ? S.simLife : null,
       turnover,
       bossSeconds: a.bossSeconds != null ? a.bossSeconds : (f.boss_seconds != null ? f.boss_seconds : M.EST_DEF.bossSeconds),
       portalSeconds: a.portalSeconds != null ? a.portalSeconds : (f.portal_seconds != null ? f.portal_seconds : M.EST_DEF.portalSeconds),
@@ -353,10 +383,23 @@ const App = (() => {
     };
   }
 
+  /** Pass 84: the Timeline's Sim overlay hands its measured lifetimes ({id: seconds}, null without a Sim). */
+  function setSimLife(life) {
+    S.simLife = life && Object.keys(life).length ? life : null;
+  }
+  /** Pass 84: whether the estimate takes the Sim's lifetimes (a page setting the browser remembers). */
+  function setUseSimLife(on) {
+    S.useSimLife = !!on;
+    try { localStorage.setItem('88fits-editor-simlife', S.useSimLife ? '1' : '0'); } catch (_) { /* fine */ }
+    render('all');
+  }
+  try { S.useSimLife = localStorage.getItem('88fits-editor-simlife') === '1'; } catch (_) { /* off */ }
+
   /** Where the kill rate comes from, in words (the lane's label and its card). */
   function turnoverSource() {
     const f = S.fit;
     if (S.assume.turnover != null) return 'your number';
+    if (S.useSimLife && S.simLife) return `the Sim's lifetimes (${Object.keys(S.simLife).length} creatures) and ${f && f.source === 'records' ? 'your runs' : 'the default'} for the rest`;
     if (!f || f.source !== 'records') return f ? 'the default (no runs on this map yet)' : 'the default (reading your runs…)';
     const n = (f.runs || []).length;
     return `your ${n} run${n === 1 ? '' : 's'}`;
@@ -499,6 +542,73 @@ const App = (() => {
     toast(`Added a roster row at ${fmtT(at)}`);
   }
 
+  /** Pass 84 (lane TIMELINE): "+ Row"'s kinds: a continuous row, a waves row, once (a swarm), a coloured elite (once,
+   *  from the roster draw), Elites every (waves from the roster draw), a special (once). Each with a presence that holds
+   *  its waves and the keys of INTERFACES.md, at the view's centre. */
+  function newRowPreset(kind, t) {
+    const id = firstCreatureId();
+    const at = Math.max(0, Math.round(t == null ? Timeline.viewCenter() : t));
+    const SL = stageLength();
+    const presets = {
+      continuous: () => ({ enemy: id, weights: [[at, 5], [at + Math.round(SL / 2), 5]] }),
+      waves: () => ({ enemy: id, weights: [[at, 5], [at + Math.round(SL / 2), 5]], until: at + Math.round(SL / 2), pace: 'waves', every: 30, count: 10, role: 'fodder' }),
+      once: () => ({ name: `${creatureName(id)} swarm`, enemy: id, weights: [[at, 1], [at + 30, 1]], until: at + 30, pace: 'once', count: 30, respect_cap: false, pattern: 'ring', ring_radius: 16, banner: 'SWARM!', role: 'swarm' }),
+      elite: () => ({ name: 'Coloured elite', enemy: 'roster', weights: [[at, 1], [at + 30, 1]], until: at + 30, pace: 'once', count: 1, elite: 'random', role: 'elite' }),
+      elite_every: () => ({ name: 'Elites every', enemy: 'roster', weights: [[at, 1], [at + SL, 1]], pace: 'waves', every: [110, 150], count: 1, elite: 'random', role: 'elite' }),
+      special: () => ({ name: `Special ${creatureName(id)}`, enemy: id, weights: [[at, 1], [at + 30, 1]], until: at + 30, pace: 'once', count: 1, pattern: 'in_front', special: true, role: 'special' }),
+    };
+    const make = presets[kind] || presets.continuous;
+    apply((d) => {
+      if (!Array.isArray(d.roster)) d.roster = [];
+      d.roster.push(Object.assign({ id: M.newRowId(d), t: at }, make()));
+      S.sel = { kind: 'roster', i: d.roster.length - 1 };
+    });
+    toast(`Added a ${kind === 'elite_every' ? 'Elites-every' : kind === 'elite' ? 'coloured-elite' : kind} row at ${fmtT(at)}`);
+  }
+
+  /** Pass 84: split row i at run second t: this row ends at t, a copy (a fresh id) starts there with the presence points
+   *  at and after t (the presence at t as its first point), so its numbers are fixed afresh from t. One undo step. */
+  function splitRow(i, t) {
+    const r = (tl().roster || [])[i];
+    if (!r || t == null) return;
+    const at = Math.round(Number(t));
+    const t0 = Number(r.t) || 0, end = r.until == null || r.until === '' ? Infinity : Number(r.until);
+    if (!(at > t0 && at < end)) { toast('Split where the row runs: hover its span first'); return; }
+    apply((d) => {
+      const row = d.roster[i];
+      const copy = clone(row);
+      copy.id = M.newRowId(d);
+      copy.t = at;
+      if (Array.isArray(row.weights) && row.weights.length) {
+        const wAt = M.round(rowWeight(row, at), 2);
+        copy.weights = [[at, wAt]].concat(row.weights.filter((p) => Number(p[0]) > at).map((p) => p.slice()));
+        row.weights = row.weights.filter((p) => Number(p[0]) < at).map((p) => p.slice()).concat([[at, wAt]]);
+        if (row.weights.length < 2) row.weights.unshift([t0, M.round(rowWeight(row, t0), 2)]);
+        if (copy.weights.length < 2) copy.weights.push([Math.min(end === Infinity ? at + 60 : end, at + 60), wAt]);
+      }
+      row.until = at;
+      if (String(copy.pace) === 'once') delete copy.pace;
+      d.roster.splice(i + 1, 0, copy);
+      S.sel = { kind: 'roster', i: i + 1 };
+    });
+    toast(`Split at ${fmtT(at)}: the second part's numbers are fixed from ${fmtT(at)}`, { undo: true });
+  }
+
+  /** Pass 84: a row paced another way: once (one wave at its start + offset), waves (every 30 s unless it has an Every),
+   *  continuous (the waves keys go). One undo step. */
+  function convertRow(i, pace) {
+    const r = (tl().roster || [])[i];
+    if (!r) return;
+    apply(() => {
+      if (pace === 'continuous') { delete r.pace; for (const k of M.ROW_WAVE_KEYS) delete r[k]; delete r.banner; delete r.chance; delete r.t_jitter; return; }
+      r.pace = pace;
+      if (pace === 'waves' && r.every == null) r.every = M.ROW_WAVE_EVERY_DEF;
+      if (pace === 'once') delete r.every;
+      if (r.count == null) r.count = M.rowWaveCount(r, creature(Array.isArray(r.enemy) ? r.enemy[0] : r.enemy));
+    });
+    toast(`Row ${r.id || i + 1} is ${pace === 'once' ? 'one wave now' : pace === 'waves' ? 'paced as waves now' : 'continuous now'}`, { undo: true });
+  }
+
   function newEvent(type, t) {
     const at = Math.max(0, Math.round(t == null ? Timeline.viewCenter() : t));
     apply((d) => {
@@ -607,15 +717,21 @@ const App = (() => {
    *  first wave after the row's end, a wave faster than a second, a big wave off the cap, and the waves-only keys on a
    *  continuous row (the game ignores them) are warnings. */
   function paceIssues(r, key, mark, hard) {
-    if (r.pace != null && !M.ROW_PACES.includes(String(r.pace))) mark(key, 'error', `unknown pacing "${r.pace}" (continuous or waves; the game plays it continuous)`);
-    if (!M.rowPaced(r)) {
+    if (r.pace != null && !M.ROW_PACES.includes(String(r.pace)) && String(r.pace) !== 'once') mark(key, 'error', `unknown pacing "${r.pace}" (continuous, waves or once; the game plays it continuous)`);
+    // pass 84: a once row carries the waves keys too (its one wave)
+    if (!M.rowPaced(r) && String(r.pace) !== 'once') {
       const stray = M.ROW_WAVE_KEYS.filter((k) => r[k] != null);
       if (stray.length) mark(key, 'warn', `${stray.join(', ')} ${stray.length > 1 ? 'mean' : 'means'} nothing on a continuous row (Pacing): the game ignores ${stray.length > 1 ? 'them' : 'it'}`);
       return;
     }
     const t = Number(r.t) || 0;
-    if (r.every != null && !(Number(r.every) >= 0)) mark(key, 'error', 'every must be 0 (one wave) or more seconds');
-    else if (r.every != null && Number(r.every) > 0 && Number(r.every) < 1) mark(key, 'warn', `a wave every ${r.every} s reads as continuous: use Continuous, or a longer Every`);
+    // pass 84: every may be [min, max] (a fresh random gap each wave)
+    if (Array.isArray(r.every)) {
+      const lo = Number(r.every[0]), hi = Number(r.every[r.every.length - 1]);
+      if (r.every.length !== 2 || !(lo >= 0) || !(hi >= lo)) mark(key, 'error', 'every as a range is [min, max] seconds, min 0 or more and max at least min');
+      else if (hi > 0 && lo < 1) mark(key, 'warn', `a wave as soon as every ${lo} s reads as continuous: use a longer minimum`);
+    } else if (r.every != null && !(Number(r.every) >= 0)) mark(key, 'error', 'every must be 0 (one wave) or more seconds');
+    else if (!Array.isArray(r.every) && r.every != null && Number(r.every) > 0 && Number(r.every) < 1) mark(key, 'warn', `a wave every ${r.every} s reads as continuous: use Continuous, or a longer Every`);
     if (r.offset != null && !(Number(r.offset) >= 0)) mark(key, 'error', 'offset must be 0 or more seconds');
     if (r.count != null && !(Number(r.count) >= 1)) mark(key, 'error', 'a wave brings at least 1 (Per wave)');
     const n = M.rowWaveCount(r, creature(r.enemy));
@@ -635,6 +751,23 @@ const App = (() => {
     if (r.interval < M.ROW_INTERVAL_MIN) mark(key, 'warn', `a draw every ${r.interval} s counts as ${M.ROW_INTERVAL_MIN} s`);
     const si = tl().spawn_interval == null ? 0.5 : Number(tl().spawn_interval);
     if (si > 0 && M.rowDrawInterval(r, si) * 4 < si) mark(key, 'warn', `a draw every ${M.rowDrawInterval(r, si)} s is over 4× as often as the spawn check (${si} s): this row brings over 4× what its weight says`);
+  }
+
+  /** Pass 84 (lane TIMELINE; INTERFACES.md): a row's elite, special, banner, ring radius and role. An unknown modifier and a
+   *  ring radius under 1 m block Save; a banner or the wave keys on a continuous row, a ring radius without a ring, an
+   *  unknown role and an elite special are warnings (the game ignores or overrides them). */
+  function rowKeyIssues(r, key, mark) {
+    const pace = String(r.pace || 'continuous');
+    if (r.elite != null && r.elite !== '' && r.elite !== 'random' && !elite(r.elite)) mark(key, 'error', `unknown elite modifier "${r.elite}"`);
+    if (r.special != null && typeof r.special !== 'boolean') mark(key, 'error', 'special is on or off (true / false)');
+    if (r.special === true && r.elite) mark(key, 'warn', 'special and an elite modifier: an elite-modified creature never comes as its special');
+    if (r.banner != null && pace !== 'waves' && pace !== 'once') mark(key, 'warn', 'a banner shows only when a wave fires: this row is continuous');
+    if (r.ring_radius != null) {
+      if (!(Number(r.ring_radius) >= 1)) mark(key, 'error', 'the ring radius is at least 1 m');
+      else if (r.pattern !== 'ring') mark(key, 'warn', 'a ring radius means nothing unless Pattern is Ring');
+    }
+    if (r.role != null && r.role !== '' && !['fodder', 'swarm', 'tank', 'ranged', 'elite', 'special'].includes(String(r.role))) mark(key, 'warn', `unknown role "${r.role}" (drawn untagged)`);
+    if (r.enemy === 'roster' && !r.elite) mark(key, 'warn', 'the roster draw without an elite modifier: plain creatures drawn by Elite weight (set Elite modifier for coloured elites)');
   }
 
   /** A stats block's size and colour ranges (pass 58, R2 / R3; Garry's "0 < min <= max"): errors block Save. */
@@ -658,8 +791,17 @@ const App = (() => {
     const ids = new Map();
     (d.roster || []).forEach((r, i) => {
       const key = `roster:${i}`;
-      if (!creature(r.enemy)) mark(key, 'error', `unknown creature "${r.enemy || ''}"`);
+      // pass 84 (INTERFACES.md): `enemy` may be "roster" (the coloured-elite draw) or a list with weights
+      if (r.enemy === 'roster') {
+        if (r.variant) mark(key, 'warn', 'an art variant means nothing on the roster draw (each creature comes in its own row\'s look)');
+      } else if (Array.isArray(r.enemy)) {
+        if (!r.enemy.length) mark(key, 'error', 'an empty list of creatures');
+        for (const id of r.enemy) if (!creature(id)) mark(key, 'error', `unknown creature "${id || ''}"`);
+        if (r.variant && !r.enemy.every((id) => variantOk(id, r.variant))) mark(key, 'error', `art variant "${r.variant}" is not one of every listed creature's`);
+        if (r.weights_list != null && (!Array.isArray(r.weights_list) || r.weights_list.length !== r.enemy.length)) mark(key, 'warn', 'the list\'s weights do not match its creatures');
+      } else if (!creature(r.enemy)) mark(key, 'error', `unknown creature "${r.enemy || ''}"`);
       else if (!variantOk(r.enemy, r.variant)) mark(key, 'error', `${U.theName(creatureName(r.enemy))} has no art variant "${r.variant}"`);
+      rowKeyIssues(r, key, mark);
       if (r.until != null && Number(r.until) <= (Number(r.t) || 0)) mark(key, 'error', `until (${fmtT(r.until)}) is not after t (${fmtT(r.t)})`);
       if ((Number(r.t) || 0) < 0) mark(key, 'error', 't is negative');
       if (r.weight != null && Number(r.weight) < 0) mark(key, 'error', 'a negative weight');
@@ -739,6 +881,17 @@ const App = (() => {
     if (!inOrder(cc.filter(isPair))) mark('cap', 'warn', 'the cap curve is not in time order (Save sorts it)');
     if (cc.some((p) => !isPair(p))) mark('cap', 'error', 'a cap point is not [seconds, cap]');
     if (d.hard_cap != null && d.cap_max != null && Number(d.hard_cap) < Number(d.cap_max)) mark('cap', 'warn', `hard_cap (${d.hard_cap}) is under cap_max (${d.cap_max}): the hard cap wins`);
+    // pass 84: the floor curve (the least creatures alive)
+    if (d.floor_curve != null) {
+      const fc = d.floor_curve;
+      if (!Array.isArray(fc) || fc.some((p) => !isPair(p))) mark('floor', 'error', 'a floor point is not [seconds, creatures]');
+      else {
+        if (!inOrder(fc)) mark('floor', 'warn', 'the floor curve is not in time order (Save sorts it)');
+        if (fc.some((p) => Number(p[1]) < 0)) mark('floor', 'error', 'a negative floor');
+        const hardN = Number(d.hard_cap) || Infinity;
+        if (fc.some((p) => Number(p[1]) > hardN)) mark('floor', 'warn', `a floor above the hard cap (${d.hard_cap} bodies): it is never met`);
+      }
+    }
     validateCurve('hp', d.hp_curve, mark, 'the HP curve');
     validateCurve('dmg', d.damage_curve, mark, 'the damage curve');
     // pass 82 (lane XP): the XP growth type's checks (xp_model.js: a level needing 0 XP or less, an unknown type, ...)
@@ -776,6 +929,7 @@ const App = (() => {
   function tidy(d) {
     const before = JSON.stringify(d);
     sortPoints(d.cap_curve);
+    if (Array.isArray(d.floor_curve)) sortPoints(d.floor_curve);
     for (const r of d.roster || []) {
       if (Array.isArray(r.weights) && r.weights.length) { sortPoints(r.weights); delete r.weight; delete r.weight_late; }
     }
@@ -1014,8 +1168,8 @@ const App = (() => {
     tl, stageLength, stages, runEnd, viewEnd, stageAt, stageName, stageMult, samplePoints, capAt, hellCapAt,
     hpTimeMult, dmgTimeMult, hpMultAt, dmgMultAt, creatureAt, rowNumbers, eventNumbers, sourceName, actual, actualAt, knockbackOf, rowWeight, rosterAt, waveEnd, wavesAt, nextEvent,
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
-    newRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,
+    newRow, newRowPreset, splitRow, convertRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,
     issuesFor, save, revert, exportJson, render, status, setClock, toast, switchTab, BOSS_WINDOW,
-    spawned, spawnOpts, setAssume, turnoverSource,
+    spawned, spawnOpts, setAssume, turnoverSource, setSimLife, setUseSimLife,
   };
 })();

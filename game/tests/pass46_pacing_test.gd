@@ -145,6 +145,12 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	var old_events := [150, 210, 300]
 	# (pass 69, lane EN, re-pinned: the special Goblin's event at 2:00 is not one of the stretched ones)
 	var stretched: Array = tl.events.filter(func(e: Dictionary) -> bool: return not bool(e.get("special", false)))
+	# (pass 84, lane SPAWN, re-pinned: Elites every is a row now, its event's second and interval kept; the swarms too)
+	for r: Dictionary in tl.roster:
+		if str(r.get("elite", "")) != "":
+			stretched.append(r)
+			assert_float(float(r.get("every", 0.0))).is_equal(129.0)
+	stretched.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.get("t", 0.0)) < float(b.get("t", 0.0)))
 	for k in range(old_events.size()):
 		assert_float(float(stretched[k]["t"])).is_equal(roundf(old_events[k] * K))
 	for r in tl.roster:

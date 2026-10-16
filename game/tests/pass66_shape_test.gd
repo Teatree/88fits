@@ -270,6 +270,14 @@ func test_every_roster_row_plays_a_creature_in_play_in_a_look_it_has() -> void:
 			continue
 		for r in tl.roster:
 			var id := str(r.get("enemy", ""))
+			# pass 84 (lane SPAWN, re-pinned): "roster" is the coloured-elite draw of the rows open (no creature of its own);
+			# a list's creatures are each checked
+			if id == WaveTimeline.ROW_ENEMY_ROSTER:
+				continue
+			if r.get("enemy") is Array:
+				for lid in r.get("enemy"):
+					assert_object(Registry.enemy(str(lid))).override_failure_message("%s: unknown creature %s" % [m.id, str(lid)]).is_not_null()
+				continue
 			var d: EnemyDef = Registry.enemy(id)
 			assert_object(d).override_failure_message("%s: unknown creature %s" % [m.id, id]).is_not_null()
 			if d == null:

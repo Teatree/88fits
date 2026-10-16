@@ -465,8 +465,8 @@ def boss_brood(script, cooldown, seconds, pace):
 
 
 def row_paced_py(r):
-    """Pass 81 (lane PACE): WaveTimeline.row_paced."""
-    return isinstance(r, dict) and str(r.get("pace", "continuous")) == "waves"
+    """Pass 81 (lane PACE): WaveTimeline.row_paced (pass 84: "once" too)."""
+    return isinstance(r, dict) and str(r.get("pace", "continuous")) in ("waves", "once")
 
 
 def row_drawn_py(r):
@@ -475,9 +475,34 @@ def row_drawn_py(r):
 
 
 def row_wave_every_py(r):
-    """WaveTimeline.row_wave_every: `every`, default 30."""
+    """WaveTimeline.row_wave_every: `every`, default 30 (pass 84: a once row 0, [min, max] its middle)."""
+    if str(r.get("pace", "")) == "once":
+        return 0.0
     v = r.get("every", 30)
+    if isinstance(v, list) and v:
+        return (numv(v[0], 30) + numv(v[-1], 30)) / 2
     return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else 30.0
+
+
+# pass 84 (lane SPAWN): model.js rowSingleEnemy / rowElite / rowInMix / rowTimer
+ROW_ENEMY_ROSTER = "roster"
+
+
+def row_single_enemy_py(r):
+    return isinstance(r, dict) and not isinstance(r.get("enemy"), list) and str("" if r.get("enemy") is None else r.get("enemy")) != ROW_ENEMY_ROSTER
+
+
+def row_elite_py(r):
+    e = r.get("elite") if isinstance(r, dict) else None
+    return "" if e is None or isinstance(e, bool) else str(e)
+
+
+def row_in_mix_py(r):
+    return row_single_enemy_py(r) and row_elite_py(r) == "" and not r.get("special") and str(r.get("pace")) != "once"
+
+
+def row_timer_py(r):
+    return row_paced_py(r) and (isinstance(r.get("every"), list) or row_elite_py(r) != "")
 
 
 def row_wave_start_py(r):
@@ -542,6 +567,17 @@ def spawn_estimate(tl, creatures, opts=None):
         if isinstance(tin, list) and tin and isinstance(tin[0], list) else None
     tv_stages = [max(numv(v, EST_DEF["turnover"]), 0) for v in tin] if tv_curve is None and isinstance(tin, list) and tin else None
     tv_flat = max(numv(None if isinstance(tin, list) else tin, EST_DEF["turnover"]), 0)
+    # pass 84 (lane SPAWN): opts.life, the floor curve, the second's spawn-check tallies
+    life_kd = {}
+    life_on = False
+    if is_obj(o.get("life")):
+        for lid in o["life"].keys():
+            L = numv(o["life"][lid], 0)
+            if L > 0:
+                life_kd[lid] = min(1 / (L * EST_HZ), 1)
+                life_on = True
+    floor_curve = tl.get("floor_curve") if isinstance(tl.get("floor_curve"), list) else []
+    T = {"checks": 0, "full": 0, "starve": {}}
     boss_steps = max(1, js_round(min(max(numv(o.get("bossSeconds"), EST_DEF["bossSeconds"]), 0), 1800) * EST_HZ))
     portal_steps = max(1, js_round(min(max(numv(o.get("portalSeconds"), EST_DEF["portalSeconds"]), 0), 1800) * EST_HZ))
     burst_every = max(1, js_round(g("spawn_interval") * EST_HZ))
@@ -610,11 +646,23 @@ def spawn_estimate(tl, creatures, opts=None):
     for ri, r in enumerate(tl.get("roster") if isinstance(tl.get("roster"), list) else []):
         if not is_obj(r):
             continue
-        d = def_of(str("" if r.get("enemy") is None else r.get("enemy")), r.get("stats"))
-        if d:
+        # pass 84 (lane SPAWN): model.js's list / "roster" rows
+        one = row_single_enemy_py(r)
+        if one:
+            picks = None
+        elif r.get("enemy") == ROW_ENEMY_ROSTER:
+            picks = []
+        else:
+            picks = [{"d": def_of(pk["id"], r.get("stats")), "share": pk["share"]} for pk in pick_shares(r.get("enemy"), r.get("enemy_weights"))]
+            picks = [pk for pk in picks if pk["d"]]
+        d = def_of(str("" if r.get("enemy") is None else r.get("enemy")), r.get("stats")) if one else (picks[0]["d"] if picks else None)
+        if d or (not one and (r.get("enemy") == ROW_ENEMY_ROSTER or picks)):
             until = 1e9 if r.get("until") is None or r.get("until") == "" else numv(r.get("until"), 1e9)
             roster.append({"r": r, "d": d, "key": "roster:%d" % ri, "t": numv(r.get("t"), 0), "until": until, "hell": r.get("channel") == "hell",
-                           "pack": max(trunc(numv(r.get("pack"), d["pack"])), 1), "single": r.get("pattern") == "single",
+                           "pack": max(trunc(numv(r.get("pack"), d["pack"] if d else 1)), 1), "single": r.get("pattern") == "single",
+                           "one": one, "picks": picks, "mix": row_in_mix_py(r), "once": str(r.get("pace")) == "once", "timer": row_timer_py(r),
+                           "elite": row_elite_py(r), "special": bool(r.get("special")), "next": None,
+                           "p": min(max(numv(r.get("chance"), 1), 0), 1) if row_paced_py(r) else 1,
                            # pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves
                            "paced": row_paced_py(r), "drawn": row_drawn_py(r), "wk": -1, "owed": 0,
                            # pass 83 (lane TIMELINE): a row with its own continuous interval, its clock in steps
@@ -747,7 +795,7 @@ def spawn_estimate(tl, creatures, opts=None):
         out = []
         for x in rows:
             room = INF
-            if x["d"]["maxAlive"] > 0:
+            if x["one"] and x["d"]["maxAlive"] > 0:
                 room = x["d"]["maxAlive"] - alive_of(x["d"]["id"])
                 if not room > 1e-9:
                     continue
@@ -777,7 +825,11 @@ def spawn_estimate(tl, creatures, opts=None):
     def hell_ids(rows):
         s = set()
         for x in rows:
-            s.add(x["d"]["id"])
+            if x["one"]:
+                s.add(x["d"]["id"])
+            elif x["picks"]:
+                for pk in x["picks"]:
+                    s.add(pk["d"]["id"])
         t = clock()
         for w in waves:
             if not w["hell"] or t < w["t"] or (w["until"] is not None and t >= w["until"]):
@@ -839,35 +891,83 @@ def spawn_estimate(tl, creatures, opts=None):
     # pass 81 (lane PACE): WaveDirector._row_wave_spawn / _tick_row_waves / _row_waves_owed
     def row_wave_spawn(x):
         n = x["owed"]
-        n = min(n, math.floor(hard - bodies()))
-        if x["d"]["maxAlive"] > 0:
+        n = min(n, max(MAX_BODIES - bodies(), 0)) if x["r"].get("respect_hard_cap") is False else min(n, math.floor(hard - bodies()))
+        picks = row_picks(x, clock())
+        if not picks:
+            return
+        if x["one"] and x["d"]["maxAlive"] > 0:
             n = min(n, x["d"]["maxAlive"] - alive_of(x["d"]["id"]))
         if n > 0 and x["r"].get("respect_cap", True) is not False:
             room = channel_room(x["hell"])
             if not room > 0:
                 return
-            n = min(n, max(math.ceil(room / max(x["d"]["share"], 0.05)), 1))
+            n = min(n, max(math.ceil(room / max(picks_share(picks), 0.05)), 1))
         if not n > 0:
             return
-        add(x["d"], n, "reg")
+        kind = "forced" if x["special"] else ("mod" if x["elite"] and colour_open() else "reg")
+        for pk in picks:
+            add(pk["d"], n * pk["share"], kind)
         bump(src_cum, x["key"], n)
         x["owed"] = max(x["owed"] - n, 0)
+        if x["once"]:
+            marks.append({"t": clock(), "kind": "swarm", "id": picks[0]["d"]["id"], "n": n})
+
+    def row_picks(x, t):
+        if x["one"]:
+            return [{"d": x["d"], "share": 1}]
+        if x["r"].get("enemy") != ROW_ENEMY_ROSTER:
+            return x["picks"]
+        st = x["r"]["stats"] if is_obj(x["r"].get("stats")) and len(x["r"]["stats"]) else None
+        cands = [c for c in open_rows(rows_at(t, None)) if c["x"]["mix"] and c["x"]["d"]["canBeElite"] and c["x"]["d"]["eliteWeight"] > 0]
+        s = 0.0
+        for c in cands:
+            s += c["x"]["d"]["eliteWeight"]
+        out = []
+        for c in cands:
+            d = def_of(c["x"]["d"]["id"], st) if st else c["x"]["d"]
+            if d:
+                out.append({"d": d, "share": c["x"]["d"]["eliteWeight"] / s})
+        return out
+
+    def picks_share(picks):
+        s = 0.0
+        for pk in picks:
+            s += pk["share"] * pk["d"]["share"]
+        return s
 
     def tick_row_waves():
         t = clock()
         for x in roster:
             if not x["paced"] or not (x["t"] <= t < x["until"]):
                 continue
+            if not x["p"] > 0:
+                continue
             start, every = row_wave_start_py(x["r"]), row_wave_every_py(x["r"])
             if t < start:
                 continue
-            i = math.floor((t - start) / every + 1e-6) if every > 0 else 0
-            if i <= x["wk"]:
-                continue
+            if x["timer"]:
+                if x["next"] is None:
+                    x["next"] = start
+                if t < x["next"]:
+                    continue
+                if x["elite"] and not colour_open():
+                    x["next"] = t + 1
+                    continue
+                i, wt = x["wk"] + 1, t
+                x["next"] = t + every if every > 0 else INF
+            else:
+                i = math.floor((t - start) / every + 1e-6) if every > 0 else 0
+                if i <= x["wk"]:
+                    continue
+                wt = start + (i * every if every > 0 else 0)
             x["wk"], x["owed"] = i, 0
-            if not roster_weight(x["r"], start + (i * every if every > 0 else 0), late_t) > 0:
+            if not roster_weight(x["r"], wt, late_t) > 0:
                 continue
-            x["owed"] = max(trunc(numv(x["r"].get("count"), x["pack"])), 1)
+            if x["elite"] and "pattern" not in x["r"]:
+                en = "" if x["r"].get("enemy") == ROW_ENEMY_ROSTER else x["r"].get("enemy")
+                spawn_elite(en, x["r"].get("enemy_weights"), x["r"]["stats"] if is_obj(x["r"].get("stats")) else {}, x["p"] * max(trunc(numv(x["r"].get("count"), 1)), 1))
+                continue
+            x["owed"] = max(trunc(numv(x["r"].get("count"), x["pack"])), 1) * x["p"]
             row_wave_spawn(x)
 
     def row_waves_owed():
@@ -892,7 +992,7 @@ def spawn_estimate(tl, creatures, opts=None):
         n, cid = 0.0, ""
         picks = pick_shares(enemy, weights)
         if not picks:
-            cands = [c for c in open_rows(rows_at(clock(), None)) if c["x"]["d"]["canBeElite"] and c["x"]["d"]["eliteWeight"] > 0]
+            cands = [c for c in open_rows(rows_at(clock(), None)) if c["x"]["mix"] and c["x"]["d"]["canBeElite"] and c["x"]["d"]["eliteWeight"] > 0]
             s = 0.0
             for c in cands:
                 s += c["x"]["d"]["eliteWeight"]
@@ -1067,13 +1167,15 @@ def spawn_estimate(tl, creatures, opts=None):
             bump(cum, cid, 1 / len(pool))
             share += def_of(cid, None)["share"] / len(pool)
         cat["special"] += 1
-        sp_live.append({"share": share, "die": S["play"] + life})
+        sp_live.append({"share": share, "die": S["play"] + life, "ids": pool})
         marks.append({"t": clock(), "kind": "special", "id": "/".join(pool), "n": 1})
 
     def burst_rows(lst, room, left, frac=None):
         t = now()
-        rows = [{"w": roster_weight(c["x"]["r"], t, late_t), "s": max(c["x"]["d"]["share"], 0.05), "pack": c["x"]["pack"],
-                 "single": c["x"]["single"], "room": c["room"]} for c in lst]
+        pk = [row_picks(c["x"], t) for c in lst]
+        rows = [{"w": roster_weight(c["x"]["r"], t, late_t) if pk[i] else 0,
+                 "s": max(c["x"]["d"]["share"] if c["x"]["one"] else picks_share(pk[i]), 0.05), "pack": c["x"]["pack"],
+                 "single": c["x"]["single"], "room": c["room"]} for i, c in enumerate(lst)]
         got = burst_avg(rows, room, b_lo, b_hi, frac)
         s = 0.0
         for n in got:
@@ -1082,8 +1184,14 @@ def spawn_estimate(tl, creatures, opts=None):
         used = 0.0
         for i, c in enumerate(lst):
             n = got[i] * scale
-            add(c["x"]["d"], n, "reg")
-            bump(src_cum, c["x"]["key"], n)
+            x = c["x"]
+            kind = "forced" if x["special"] else ("mod" if x["elite"] else "reg")
+            if x["one"]:
+                add(x["d"], n, kind)
+            else:
+                for q in pk[i]:
+                    add(q["d"], n * q["share"], kind)
+            bump(src_cum, x["key"], n)
             used += n
         return left - used
 
@@ -1113,13 +1221,20 @@ def spawn_estimate(tl, creatures, opts=None):
         room = cap - (load_all() - hl)
         left = hard - bodies()
         if left <= 0:
+            if due is None:
+                starve_check(tr, room, left, hell_frac() * cap - hl)
             return
-        regular, rf = interval_part([c for c in open_rows(rows_at(tr, False)) if c["x"]["drawn"]], due)
+
+        def drawn_now(c):
+            return c["x"]["drawn"] and (not c["x"]["elite"] or colour_open())
+        if due is None:
+            starve_check(tr, room, left, hell_frac() * cap - hl)
+        regular, rf = interval_part([c for c in open_rows(rows_at(tr, False)) if drawn_now(c)], due)
         if room > 0 and regular:
             left = burst_rows(regular, room, left, rf)
         hell_room = hell_frac() * cap - hl
         if hell_room > 0 and left > 0 and hell_rows:
-            ho, hf = interval_part([c for c in open_rows(hell_rows) if c["x"]["drawn"]], due)
+            ho, hf = interval_part([c for c in open_rows(hell_rows) if drawn_now(c)], due)
             if ho:
                 burst_rows(ho, hell_room, left, hf)
 
@@ -1140,7 +1255,7 @@ def spawn_estimate(tl, creatures, opts=None):
     def portal_wave():
         if portal_wave_count <= 0:
             return
-        lst = open_rows(rows_at(now() - 1, False))
+        lst = [c for c in open_rows(rows_at(now() - 1, False)) if c["x"]["mix"]]
         if not lst:
             return
         left = min(portal_wave_count, math.floor(hard - bodies()))
@@ -1152,13 +1267,95 @@ def spawn_estimate(tl, creatures, opts=None):
         for i, c in enumerate(lst):
             add(c["x"]["d"], got[i], "reg")
 
+    def starve_check(tr, room, left, hell_room):
+        T["checks"] += 1
+        reg_full = not room > 0 or left <= 0
+        hell_full = not hell_room > 0 or left <= 0
+        if reg_full:
+            T["full"] += 1
+        t = now()
+        for c in open_rows(rows_at(tr, None)):
+            x = c["x"]
+            if not x["drawn"] or (not hell_full if x["hell"] else not reg_full):
+                continue
+            if not roster_weight(x["r"], t, late_t) > 0:
+                continue
+            T["starve"][x["key"]] = T["starve"].get(x["key"], 0) + 1
+        for x in roster:
+            if x["paced"] and x["owed"] > 1e-9:
+                T["starve"][x["key"]] = T["starve"].get(x["key"], 0) + 1
+
+    def floor_fill():
+        if not floor_curve:
+            return
+        fl = math.floor(sample_points(floor_curve, now()))
+        if not fl > 0:
+            return
+        tr = now() if S["phase"] == 0 else now() - 1
+        hrows = rows_at(tr, True)
+        hids = set()
+        for x in hrows:
+            if x["one"]:
+                hids.add(x["d"]["id"])
+        hell_n = 0.0
+        for a in alive.values():
+            if a["id"] in hids:
+                hell_n += a["n"]
+        lack = fl - (bodies() - hell_n)
+        if not lack > 1e-9:
+            return
+        cap = cap_now()
+        room = cap - (load_all() - load_of(hell_ids(hrows)))
+        left = hard - bodies()
+        if not room > 0 or not left > 0:
+            return
+        t = now()
+        lst = [c for c in open_rows(rows_at(tr, False)) if c["x"]["drawn"] and (not c["x"]["elite"] or colour_open())]
+        ws = [roster_weight(c["x"]["r"], t, late_t) for c in lst]
+        W = 0.0
+        for w in ws:
+            W += w
+        if not W > 0:
+            return
+        pk = [row_picks(c["x"], t) for c in lst]
+        need = 0.0
+        want = []
+        for i, c in enumerate(lst):
+            n = min(lack * ws[i] / W, c["room"])
+            need += n * max(c["x"]["d"]["share"] if c["x"]["one"] else picks_share(pk[i]), 0.05)
+            want.append(n)
+        scale = min(1, room / need, left / lack)
+        for i, c in enumerate(lst):
+            n = want[i] * scale
+            if not n > 0 or not pk[i]:
+                continue
+            x = c["x"]
+            kind = "forced" if x["special"] else ("mod" if x["elite"] else "reg")
+            if x["one"]:
+                add(x["d"], n, kind)
+            else:
+                for q in pk[i]:
+                    add(q["d"], n * q["share"], kind)
+            bump(src_cum, x["key"], n)
+
     points = []
 
     def record(after):
         by = {cid: [cum[cid], col.get(cid, 0), mod.get(cid, 0)] for cid in cum}
+        alive_by = {}
+        for a in alive.values():
+            alive_by[a["id"]] = alive_by.get(a["id"], 0) + a["n"]
+        for sp in sp_live:
+            for sid in sp["ids"]:
+                alive_by[sid] = alive_by.get(sid, 0) + 1 / len(sp["ids"])
+        starve = {key: (T["starve"][key] / T["checks"] if T["checks"] > 0 else 0) for key in T["starve"]}
+        hl = load_of(hell_ids(rows_at(now() if S["phase"] == 0 else now() - 1, True)))
         points.append({"t": clock(), "after": after, "all": total(), "reg": cat["reg"], "col": cat["col"], "mod": cat["mod"],
                        "elite": cat["elite"], "special": cat["special"], "boss": cat["boss"], "minion": cat["minion"], "kills": S["kills"], "alive": bodies(), "by": by,
-                       "src": dict(src_cum)})
+                       "src": dict(src_cum), "cap": cap_now(), "load": load_all() - hl,
+                       "floor": sample_points(floor_curve, now()) if floor_curve else 0,
+                       "full": T["full"] / T["checks"] if T["checks"] > 0 else 0, "aliveBy": alive_by, "starve": starve})
+        T["checks"], T["full"], T["starve"] = 0, 0, {}
 
     record(False)
     end_k = js_round(end * EST_HZ)
@@ -1167,11 +1364,14 @@ def spawn_estimate(tl, creatures, opts=None):
         guard += 1
         S["play"] += 1
         kd = turnover_now() / EST_HZ
-        if kd > 0:
+        if kd > 0 or life_on:
             for a in alive.values():
-                dn = a["n"] * kd
-                a["n"] -= dn
-                S["kills"] += dn
+                kl = life_kd[a["id"]] if life_on and a["id"] in life_kd else kd
+                if kl > 0:
+                    dn = a["n"] * kl
+                    a["n"] -= dn
+                    S["kills"] += dn
+        if kd > 0:
             S["col_alive"] -= S["col_alive"] * kd
         for i in range(len(sp_live) - 1, -1, -1):
             if sp_live[i]["die"] <= S["play"]:
@@ -1211,6 +1411,7 @@ def spawn_estimate(tl, creatures, opts=None):
             S["spawn_step"] = burst_every
             spawn_burst()
         tick_row_intervals()
+        floor_fill()
         if S["phase"] == 2 and S["phase_left"] <= 0:
             S["stage"] += 1
             if S["stage"] >= NST:

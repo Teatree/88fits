@@ -24,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass84Timeline(root);   // pass 84 (lane TIMELINE): the Timeline in sections, one spawning language
     // pass 83 (lane SCALE): boss HP by seconds of full DPS, the hero's power level (power_card.js writes the section)
     if (typeof PowerCard !== 'undefined' && PowerCard.instructions) PowerCard.instructions(root);
     pass77Sim(root);   // pass 77 (lane SIMUI): the Sim tab
@@ -67,6 +68,33 @@ const Instructions = (() => {
       li('<b>Settings</b> holds every number of the timeline in a form, each with a one-line help. <b>Creatures</b> is the palette: what every creature is made of, with a button that starts a wave or a row with it, its looks as pictures (a click on one, and a yes, makes it the creature\'s default look) and its blood colour (the death splash). <b>Instructions</b> is this page.'),
       li(`<b>Save</b> (${kbd('Ctrl+S')}) writes the JSON (after a backup) and runs the JSON → .tres import, so the next launch of the game from the editor binary plays it. The JSON is what goes into git. Errors (red) block the save; warnings (yellow) never do.`)));
     root.appendChild(p('The loop Garry asked for: look at the long map of the run, pick the snippets of time when creatures appear, set their count, their bursts, their numbers, their look, save, play, come back. Every change is one undo step.'));
+  }
+
+  // ------------------------------------------------------------------ pass 84 (lane TIMELINE)
+
+  /** Pass 84: the Timeline in sections, the marks, the view lanes and what they are made of, the spawn rows, the warnings. */
+  function pass84Timeline(root) {
+    root.appendChild(el('h2', { text: 'Pass 84: the Timeline in sections, one way to spawn' }));
+    root.appendChild(p('The Timeline tab is a stack of <b>sections</b>, each a bar with its name, a line of what it is and its own controls. <b>Click a bar to collapse it</b>: it stays where the section was, hatched, with a dashed frame, a summary of what it holds and <i>collapsed: click to open</i> in yellow, so you always see where it went. Each map remembers its sections in this browser; <b>Collapse all</b> / <b>Open all</b> are in Ruler and controls (the ruler itself always stays at the top). The inspector folds too: ⇥ at its top right, a hatched strip to open it again.'));
+    const marks = el('ul', {},
+      li('<b>The marks.</b> An <b>eye</b> on a section or a lane (and a darker, recessed background) means <b>view only</b>: worked out from the map, the estimate and the Sim, nothing there changes the map. A <b>pencil</b> (and the normal surface) means <b>editing</b>: drag, click and type there to change the map. The inspector\'s groups carry the same marks.'));
+    root.appendChild(marks);
+    const list = el('div', { class: 'lanes-list' });
+    for (const sec of FIELDS.SECTIONS) list.appendChild(el('div', { class: 'lane-card' }, el('b', { text: `${sec.kind === 'view' ? 'view only' : 'editing'} · ${sec.name}` }), sec.what));
+    root.appendChild(list);
+    root.appendChild(p('<b>Charts you can read.</b> Every view section starts with <i>What is this?</i>, a legend naming each line, and <i>How it is worked out</i>: the exact recipe and units. In short:'));
+    root.appendChild(el('ul', {},
+      li('<b>On screen</b>: creatures alive each second (a count of bodies). The estimate fills the lane (the hell channel red on top), the Sim\'s real count is dashed, the cap is drawn in bodies (the cap counts load units: a skeleton is half a unit, so cap ÷ the average load per body alive), the floor dotted green. Red behind the lane: the cap is full there and rows that wanted to spawn starve; hover it for which.'),
+      li('<b>Challenge</b>: <b>seconds of the hero\'s damage to clear the screen</b> = the crowd\'s HP on screen ÷ his damage a second (the Sim\'s hero when a Sim is shown, else a typical hero from the power curve). The switch in its bar shows the second measure, <b>health bars lost clearing the screen</b> = the crowd\'s HP × bite ÷ (his damage × his effective HP), the Sim\'s "challenge". Green, amber and red are under the easy limit, up to the hard limit, past it (the two boxes in the bar; each measure keeps its own). Red dots: the Sim\'s deaths.'),
+      li('<b>Composition</b>: each creature\'s share of the crowd on screen (or of what spawned in the past N seconds), stacked to 100%; the estimate\'s or the Sim\'s.'),
+      li('<b>Ruler and controls</b> holds what every chart assumes: the estimate\'s kill rate, boss fight and portal wait (empty = from your runs), <b>Sim to show</b> (the newest finished Sim of this map by default) and <b>lifetimes from the Sim</b> (the estimate lets each creature the Sim measured live its measured seconds).')));
+    root.appendChild(p('<b>One way to spawn.</b> Swarms, coloured elites and Elites every are <b>spawn rows</b> now, with every option they had and more: a row is <b>Continuous</b> (drawn into the cap), <b>Waves every N s</b> (Every may be two numbers: a fresh random gap each time) or <b>Once</b> (one wave at its start + Offset). Its creatures are one creature, a list drawn by weight, or <b>the roster draw</b> (the coloured-elite draw by the rows\' Elite weight). It may wear an elite modifier, come as its special, show a banner, spawn on a ring of its own radius, roll a chance and a jitter, carry a role and a name. The events keep the bosses and the Elite mini-bosses; the portal after each boss is marked on the Events lane (click it). An old map\'s swarm, elite and Elites-every events are read as rows when it loads (the game plays both alike); Save writes the rows.'));
+    root.appendChild(el('ul', {},
+      li('<b>+ Row</b> offers each kind: continuous, waves, once (a swarm), a coloured elite, Elites every, a special.'),
+      li('<b>Spawn rows</b> are grouped by stage (or role, both, none: the bar\'s <i>group</i> box), each group folding to a hatched band with its rows as thin lines. Bars are coloured by role (or by creature). On a bar: who, how many and how often (≈ per minute for a continuous row: the estimate over its life), its HP and ATK in play at its start, its weight, then badges (★ elite modifier, ◆ special, ⚑ banner, the pattern, hell, the look, a wrench for overrides). <b>Suggest roles</b> gives every untagged row a role from its keys and its creature (one undo step).'),
+      li('<b>The inspector</b> holds every option of a row in groups that fold (Schedule, Creature, Where and how, Presence, In the estimate with a mini-chart of what it spawns each second and its HP over its life, Overrides with every group: Body, Colour, Attacks, Ranged, Charge, Kamikaze, Artillery, Sniper, Flee on hit, Spawning, Drops, Power-ups, Elite, Mini-boss, Boss). <b>Split at …</b> cuts the row at the second under the pointer (the second part\'s numbers fixed afresh there); <b>→ once / → waves / → continuous</b> repace it.'),
+      li('<b>The floor</b> (Curves → Floor; + Floor starts one): the least creatures alive; while fewer are alive the director draws the continuous rows at once, within the cap.'),
+      li('<b>Warnings</b> lists what the estimate finds, each with <b>Go to</b>: the cap full and which rows starve (when), rows that never spawn or never make 1% of what spawns in any 10 s of their life, the crowd\'s HP more than doubling in a second, a floor above the cap, two identical rows overlapping. The map\'s own checks (errors block Save) stay in the inspector when nothing is selected.')));
   }
 
   // ------------------------------------------------------------------ what pass 54 added
@@ -312,6 +340,7 @@ const Instructions = (() => {
       case 'alts': return 'list of alternatives (below)';
       case 'list': return 'list of numbers';
       case 'points': return '[[seconds, cap], …]';
+      case 'floor_points': return '[[seconds, creatures], …]';
       case 'weights': return '[[seconds, weight], …]';
       case 'curve': return '{mode, points, formula}';
       case 'swatch': return 'colour #RRGGBB';

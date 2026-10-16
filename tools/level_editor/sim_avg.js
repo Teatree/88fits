@@ -28,9 +28,11 @@ const SimAvg = (() => {
   // pass 82: chests, powerups, totems (sim_run.gd's counts so far, like deaths but averaged over the runs still playing)
   const CUM_SERIES = ['gold_total', 'kills', 'xp_total', 'deaths', 'dmg_total', 'chests', 'powerups', 'totems'];
   const RATE_SERIES = ['dps', 'took', 'healed', 'hits', 'spawned'];
-  const BAND_SERIES = ['hp', 'dps', 'level', 'press_hp', 'press_dmg', 'danger', 'near3', 'near6', 'power'];
-  const MEDIAN_SERIES = ['keep_up', 'boss_s'];
-  const BREAKDOWNS = { dmg_by: 'cum', kills_by: 'cum', gold_by: 'cum', took_by: 'cum', healed_by: 'cum', alive_by: 'level', held_by: 'level' };
+  const BAND_SERIES = ['hp', 'dps', 'level', 'press_hp', 'press_dmg', 'danger', 'near3', 'near6', 'power', 'threat'];
+  // pass 84 (lane SIMVIEW): challenge (a threat over the hero's product), alive_hell_by and starving_by
+  const MEDIAN_SERIES = ['keep_up', 'boss_s', 'challenge'];
+  const BREAKDOWNS = { dmg_by: 'cum', kills_by: 'cum', gold_by: 'cum', took_by: 'cum', healed_by: 'cum', alive_by: 'level', held_by: 'level',
+    alive_hell_by: 'level', starving_by: 'level' };
   const SOURCE_WORDS = { blast: 'Blast', revive: 'Revive blast', grand_finale: 'Grand Finale', powder_keg: 'Powder Keg',
     loose_rocket: 'Loose rocket', thorns: 'Thorns', other: 'Other' };
 
@@ -696,9 +698,261 @@ const SimAvg = (() => {
     return out;
   }
 
+
+  // ------------------------------------------------------------------ the Timeline's overlay (pass 84, lane SIMVIEW)
+  // sim_batch.py overlay() line by line: the runs averaged by CLOCK second (the map's clock, the Timeline's ruler) into
+  // overlay.json; selftest_SIMVIEW84.py runs both on the same player files and compares them.
+  const OVERLAY_SCHEMA = 1;
+  const OVERLAY_SERIES = ['alive', 'alive_reg', 'alive_hell', 'load', 'load_hell', 'cap', 'cap_hell', 'hard_cap', 'cap_full', 'threat',
+    'power', 'hero_dps', 'hero_ehp', 'level'];
+  const OVERLAY_BANDS = ['alive', 'threat', 'power'];
+  const OVERLAY_MEDIANS = ['challenge'];
+  const OVERLAY_STAGES = 4;
+  const OVERLAY_RULES = {
+    bin: "Each run's seconds in the normal phase (the stage clock running) placed on the map clock: clock second c = " +
+      'round(clock); two rows on one second: the later; a skipped second inside a run: the row before. Boss fights and ' +
+      'the portal wait stop the clock and are left out (see bosses). Every value is the mean over the runs that have ' +
+      'that clock second (playing); a run that died stops counting.',
+    alive: 'Creatures alive at that second, both channels (dying ones not counted, the boss counted). alive_hell: those ' +
+      'whose creature the hell channel brings now (an id is hell while a hell row or hell wave of the moment brings ' +
+      'it); alive_reg = alive - alive_hell.',
+    load: "The regular channel's crowd in cap units, as the director counts it against the cap: each creature its " +
+      "cap_share (the fodder counts half), hell creatures left out. load_hell: the hell channel's. Compare load, not " +
+      'alive, with the cap.',
+    cap: "The director's cap at that second (the cap curve; boss and portal fractions). cap_hell = the stage's hell_cap " +
+      "x cap. hard_cap: the map's limit on bodies (a count).",
+    cap_full: 'The share of the second (0..1) the regular channel had no room: checked every 0.2 s of play, full when ' +
+      'the cap is above 0 and load >= cap or alive >= hard_cap. Averaged over runs: 0.5 = half the runs full the ' +
+      'whole second, or every run half of it.',
+    threat: "The crowd's HP x bite a second: the sum over every creature alive (not dying, the boss left out) of its " +
+      "max HP x its bite's damage / its bite cadence (contact_cd, 0.6 s for most). Both are the creature's own as " +
+      "spawned: stage, HP and damage curves, hero level, creature multipliers, the row's stats, Elite and special.",
+    power: "The hero's power level (fresh level-1 Drifter = 1): sqrt((full DPS / 20.4) x (effective HP / 100)). hero_dps: " +
+      'his full DPS on one target every shot hits; hero_ehp: (max HP + shield + 30 s of regen and lifesteal) / ' +
+      '((1 - armour) x (1 - evade)).',
+    challenge: 'threat / (hero_dps x hero_ehp) for each run at each second, then the middle run (median) and the 10th ' +
+      'to 90th percentile: for one creature, (seconds he needs to kill it) x (its damage a second / his ' +
+      'effective HP), summed over the crowd. 0 when the hero\'s product is 0.',
+    starving: "For each roster row (the director's key: row:<id>#<index>, else row#<index>), the share of the second " +
+      '(0..1, mean over runs) it wanted to spawn and could not, checked every 0.2 s of play: a row in the ' +
+      'continuous draw, open, weighing above 0, its creature under its max_alive, while its channel had no room ' +
+      "(the cap above 0 and load >= cap, the hell channel's load >= cap_hell, or alive >= hard_cap); or a paced " +
+      'row (waves, once) whose last wave still owes creatures the cap cut.',
+    life_by: 'Seconds a creature lived from its spawn to its death (a kill), over every run: n deaths, mean_s; per stage ' +
+      '(1, 2, 3, endless) stage_n and stage_mean_s. gone: freed without dying (a stage\'s clear); open: still ' +
+      'alive when its run ended; neither is in the mean.',
+  };
+
+  /** sim_batch._overlay_rows: a Map clock second -> row index for one run's rows in the normal phase. */
+  function overlayRows(d) {
+    const t = Array.isArray(d.t) ? d.t : [];
+    const n = t.length;
+    const clock = d.clock, phase = d.phase;
+    const out = new Map();
+    if (!Array.isArray(clock) || clock.length !== n || n === 0) return out;
+    const phOk = Array.isArray(phase) && phase.length === n;
+    const m = new Map();
+    for (let i = 0; i < n; i++) {
+      if (phOk && Math.trunc(num(phase[i])) !== 0) continue;
+      const c = Math.floor(clockS(clock[i]) + 0.5);
+      if (c < 0) continue;
+      m.set(c, i);
+    }
+    if (!m.size) return out;
+    let lo = Infinity, hi = -Infinity;
+    for (const c of m.keys()) { if (c < lo) lo = c; if (c > hi) hi = c; }
+    let prev = null;
+    for (let c = lo; c <= hi; c++) {
+      if (m.has(c)) prev = m.get(c);
+      out.set(c, prev);
+    }
+    return out;
+  }
+
+  /** sim_batch._overlay_value. */
+  function overlayValue(d, key, i) {
+    const n = (Array.isArray(d.t) ? d.t : []).length;
+    if (key === 'alive_reg') {
+      const a = d.alive, h = d.alive_hell;
+      if (!(Array.isArray(a) && Array.isArray(h) && a.length === n && h.length === n)) return null;
+      return Math.max(0, num(a[i]) - num(h[i]));
+    }
+    const arr = d[key];
+    if (!Array.isArray(arr) || arr.length !== n) return null;
+    return num(arr[i]);
+  }
+
+  /** sim_batch._overlay_by. */
+  function overlayBy(d, name, i) {
+    const n = (Array.isArray(d.t) ? d.t : []).length;
+    const out = {};
+    const bd = d[name];
+    if (!isObj(bd)) return out;
+    const hell = name === 'alive_by' ? d.alive_hell_by : null;
+    for (const k of Object.keys(bd)) {
+      const arr = bd[k];
+      if (!Array.isArray(arr) || arr.length !== n) continue;
+      let v = num(arr[i]);
+      if (isObj(hell)) {
+        const h = hell[k];
+        if (Array.isArray(h) && h.length === n) v = Math.max(0, v - num(h[i]));
+      }
+      out[String(k)] = v;
+    }
+    return out;
+  }
+
+  /** sim_batch.overlay. `players`: [{k, d (or null), rec}]; null when no run has a clock. */
+  function overlay(players) {
+    const runs = [];
+    for (const p of players || []) {
+      if (!isObj(p.d)) continue;
+      const m = overlayRows(p.d);
+      if (m.size) runs.push({ k: p.k, d: p.d, m });
+    }
+    if (!runs.length) return null;
+    let C = -Infinity;
+    for (const ru of runs) for (const c of ru.m.keys()) if (c > C) C = c;
+    const playing = [];
+    for (let c = 0; c <= C; c++) playing.push(runs.filter((ru) => ru.m.has(c)).length);
+    const has = [];
+    const series = {};
+    for (const key of OVERLAY_SERIES.concat(OVERLAY_MEDIANS)) {
+      if (!runs.some((ru) => overlayValue(ru.d, key, 0) !== null)) continue;
+      has.push(key);
+      const med = OVERLAY_MEDIANS.includes(key);
+      const band = OVERLAY_BANDS.includes(key) || med;
+      const mean = [], p10 = [], p90 = [];
+      for (let c = 0; c <= C; c++) {
+        const vals = [];
+        for (const ru of runs) {
+          if (!ru.m.has(c)) continue;
+          const v = overlayValue(ru.d, key, ru.m.get(c));
+          if (v !== null) vals.push(v);
+        }
+        if (!vals.length) {
+          mean.push(null);
+          if (band) { p10.push(null); p90.push(null); }
+          continue;
+        }
+        const sv = sortNum(vals);
+        if (med) mean.push(r(pct(sv, 0.5)));
+        else { let s = 0; for (const v of vals) s += v; mean.push(r(s / vals.length)); }
+        if (band) { p10.push(r(pct(sv, 0.1))); p90.push(r(pct(sv, 0.9))); }
+      }
+      const rec = {};
+      rec[med ? 'median' : 'mean'] = mean;
+      if (band) { rec.p10 = p10; rec.p90 = p90; }
+      series[key] = rec;
+    }
+    const bds = {};
+    for (const [name, outName, field] of [['alive_by', 'alive_by', 'mean'], ['alive_hell_by', 'alive_hell_by', 'mean'], ['starving_by', 'starving', 'share']]) {
+      const idSet = new Set();
+      for (const ru of runs) if (isObj(ru.d[name])) for (const x of Object.keys(ru.d[name])) idSet.add(String(x));
+      if (!idSet.size) continue;
+      has.push(outName);
+      const ids = Array.from(idSet);
+      const arrs = {};
+      for (const i of ids) arrs[i] = [];
+      for (let c = 0; c <= C; c++) {
+        const tot = {};
+        for (const i of ids) tot[i] = 0;
+        let n = 0;
+        for (const ru of runs) {
+          if (!ru.m.has(c)) continue;
+          n += 1;
+          const vals = overlayBy(ru.d, name, ru.m.get(c));
+          for (const i of Object.keys(vals)) tot[i] += vals[i];
+        }
+        for (const i of ids) arrs[i].push(n ? r(tot[i] / n) : null);
+      }
+      const score = {};
+      for (const i of ids) { let s = 0; for (const v of arrs[i]) if (v != null) s += v; score[i] = s; }
+      const order = ids.filter((i) => score[i] > 0).sort((a, b) => (score[b] - score[a]) || cmpStr(a, b));
+      const vals = {};
+      for (const i of order) vals[i] = arrs[i];
+      bds[outName] = { order };
+      bds[outName][field] = vals;
+    }
+    // life_by: summed over the runs
+    const life = {};
+    for (const ru of runs) {
+      const lb = ru.d.life_by;
+      if (!isObj(lb)) continue;
+      for (const i of Object.keys(lb)) {
+        const e = lb[i];
+        if (!isObj(e)) continue;
+        const id = String(i);
+        if (!own(life, id)) life[id] = { n: new Array(OVERLAY_STAGES).fill(0), s: new Array(OVERLAY_STAGES).fill(0), gone: 0, open: 0 };
+        const acc = life[id];
+        const ns = Array.isArray(e.n) ? e.n : [], ss = Array.isArray(e.s) ? e.s : [];
+        for (let st = 0; st < OVERLAY_STAGES; st++) {
+          acc.n[st] += Math.trunc(num(st < ns.length ? ns[st] : 0));
+          acc.s[st] += num(st < ss.length ? ss[st] : 0);
+        }
+        acc.gone += Math.trunc(num(e.gone, 0));
+        acc.open += Math.trunc(num(e.open, 0));
+      }
+    }
+    const lifeOut = {};
+    for (const i of Object.keys(life).sort(cmpStr)) {
+      const a = life[i];
+      let n = 0, s = 0;
+      for (const v of a.n) n += v;
+      for (const v of a.s) s += v;
+      lifeOut[i] = { n, mean_s: n ? r(s / n) : null, stage_n: a.n,
+        stage_mean_s: a.n.map((nn, st) => (nn ? r(a.s[st] / nn) : null)), gone: a.gone, open: a.open };
+    }
+    if (Object.keys(lifeOut).length) has.push('life_by');
+    // every fall, the bosses' clock and fights
+    const deaths = [];
+    const bosses = new Map();
+    for (const ru of runs) {
+      const occ = new Map(), cur = new Map();
+      for (const e of Array.isArray(ru.d.events) ? ru.d.events : []) {
+        if (!isObj(e)) continue;
+        const kind = String(e.kind != null ? e.kind : '');
+        if (kind === 'death') deaths.push({ clock: r(clockS(e.clock)), t: r(num(e.t)), killer: String(e.killer || ''), run: ru.k });
+        else if (kind === 'boss_start') {
+          const bid = String(e.id || 'boss');
+          const nn = occ.get(bid) || 0;
+          occ.set(bid, nn + 1);
+          cur.set(bid, [nn, num(e.t)]);
+          const key = bid + '\u0000' + nn;
+          if (!bosses.has(key)) bosses.set(key, { id: bid, nn, clock: [], fights: [], n: 0, beaten: 0 });
+          const b = bosses.get(key);
+          b.clock.push(clockS(e.clock));
+          b.n += 1;
+        } else if (kind === 'boss_end') {
+          const bid = String(e.id || 'boss');
+          if (cur.has(bid)) {
+            const [nn, t0] = cur.get(bid);
+            cur.delete(bid);
+            const key = bid + '\u0000' + nn;
+            if (!bosses.has(key)) bosses.set(key, { id: bid, nn, clock: [], fights: [], n: 0, beaten: 0 });
+            const b = bosses.get(key);
+            b.beaten += 1;
+            b.fights.push(num(e.t) - t0);
+          }
+        }
+      }
+    }
+    deaths.sort((a, b) => (a.clock - b.clock) || (a.run - b.run));
+    const blist = Array.from(bosses.values()).map((b) => ({ id: b.id, occurrence: b.nn + 1, clock: r(median(b.clock)), fight_s: r(median(b.fights)),
+      n: b.n, beaten: b.beaten }));
+    const bk = (b) => (b.clock != null ? b.clock : 1e9);
+    blist.sort((a, b) => (bk(a) - bk(b)) || cmpStr(a.id, b.id) || (a.occurrence - b.occurrence));
+    let rows = [];
+    for (const ru of runs) { const m0 = isObj(ru.d.meta) ? ru.d.meta : {}; if (Array.isArray(m0.rows_played)) { rows = m0.rows_played; break; } }
+    return { schema: OVERLAY_SCHEMA, C, runs: runs.length, has, playing, series,
+      alive_by: bds.alive_by || { order: [], mean: {} }, alive_hell_by: bds.alive_hell_by || { order: [], mean: {} },
+      starving: bds.starving || { order: [], share: {} }, rows, life_by: lifeOut, deaths, bosses: blist, rules: Object.assign({}, OVERLAY_RULES) };
+  }
+
   return { SCHEMA, DPS_WINDOW, RATE_WINDOW, TROUBLE_FRAC, LEVEL_SERIES, CUM_SERIES, RATE_SERIES, BAND_SERIES, MEDIAN_SERIES, BREAKDOWNS,
     pyRound, fracBits, num, clockS, r, pct, median, rolling, playerGrid, markers, aggregate, nameOf,
-    snapped, step, eventsOut, series, evoIdsOf, fromRecord };
+    snapped, step, eventsOut, series, evoIdsOf, fromRecord,
+    OVERLAY_SCHEMA, OVERLAY_SERIES, OVERLAY_BANDS, OVERLAY_MEDIANS, OVERLAY_RULES, overlayRows, overlay };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = SimAvg;

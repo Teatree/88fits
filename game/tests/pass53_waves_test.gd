@@ -1125,7 +1125,12 @@ func test_red_canyon_still_loads_and_its_roster_is_whole() -> void:
 	assert_int(tl.waves.size()).is_equal((jw as Array).size() if jw is Array else 0)
 	assert_bool(tl.roster.size() >= 1).is_true()
 	for r in tl.roster:
-		assert_object(Registry.enemy(str(r.get("enemy", "")))).override_failure_message("roster row names a missing creature: " + str(r.get("enemy", ""))).is_not_null()
+		# pass 84 (lane SPAWN, re-pinned): a row may name a list or "roster" (the coloured-elite draw)
+		var e = r.get("enemy", "")
+		if str(e) == WaveTimeline.ROW_ENEMY_ROSTER:
+			continue
+		for id in (e if e is Array else [e]):
+			assert_object(Registry.enemy(str(id))).override_failure_message("roster row names a missing creature: " + str(id)).is_not_null()
 	# the director rolls it and ticks it without a word
 	var w := _world(Vector3.ZERO)
 	var dir := _director(w, tl)

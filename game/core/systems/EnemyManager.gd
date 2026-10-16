@@ -843,6 +843,8 @@ func _build_shadows() -> void:
 	mat.render_priority = SHADOW_PRIORITY
 	_shadow_mmi.material_override = mat
 	_shadow_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# pass 84: never culled by a stale MultiMesh box (the shadows move every frame), as the scenery's (PropField)
+	_shadow_mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
 	add_child(_shadow_mmi)
 
 
@@ -4921,6 +4923,38 @@ func shadow_xform(i: int, scf: Vector3, scr: Vector3) -> Transform3D:
 	return drape(Transform3D(Basis(scr * (shs * 0.55 * _t_sh[sb]), Vector3.UP, -scf * (shs * 0.34 * _t_sh[sb + 1])), at), height_fn)
 
 
+## shadow_xform, reused while creature `i` stands within SHADOW_CACHE_MOVE m of where it was draped, with the same type,
+## the same shrink in the air and the same camera axes (pass 84: draping is five height samples; a crowd of 260 on
+## screen re-drapes only the ones that moved).
+const SHADOW_CACHE_MOVE := 0.08
+var _shc_pos := PackedVector3Array()
+var _shc_key := PackedFloat32Array()
+var _shc_xf: Array[Transform3D] = []
+var _shc_cf := Vector3.ZERO
+
+
+func _shadow_xform_cached(i: int, scf: Vector3, scr: Vector3) -> Transform3D:
+	if _shc_xf.size() != pos.size():
+		_shc_pos.resize(pos.size())
+		_shc_key.resize(pos.size() * 2)
+		_shc_xf.resize(pos.size())
+		_shc_key.fill(-1.0)
+	if not scf.is_equal_approx(_shc_cf):
+		_shc_cf = scf
+		_shc_key.fill(-1.0)
+	var shs: float = size[i] / (1.0 + lift_h[i] * 0.5)
+	var k := i * 2
+	if _shc_key[k] == float(type_idx[i]) and absf(_shc_key[k + 1] - shs) < 0.002 \
+			and _shc_pos[i].distance_squared_to(pos[i]) < SHADOW_CACHE_MOVE * SHADOW_CACHE_MOVE:
+		return _shc_xf[i]
+	var xf := shadow_xform(i, scf, scr)
+	_shc_pos[i] = pos[i]
+	_shc_key[k] = float(type_idx[i])
+	_shc_key[k + 1] = shs
+	_shc_xf[i] = xf
+	return xf
+
+
 ## A flat blob quad (`extent` metres square, scaled by `xf.basis`, lying at `xf.origin` on the ground) laid on the ground under it
 ## (pass 65: on any slope the flat quad cut into the sand and lost half its disc): tilted to the plane through the
 ## ground under its four edge midpoints (`h`, the map's height_at; the normal over the blob's own extent, not a point),
@@ -5214,17 +5248,19 @@ func _render() -> void:
 					bmm.set_instance_custom_data(bn, Color(s * maxf(float(td["head"]) * rise_k - drop, 0.0) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
 					badge_n[bk] = bn + 1
 		# shadow (stays on the ground and shrinks while the creature is in the air; none over the water, pass 54 and 56)
-		if shadow_all or shadow_n < SHADOW_BUDGET:
-			var d2: float = pos[i].distance_squared_to(ppos2)
-			if shadow_all or d2 < shadow_r2:
-				var sxf := shadow_xform(i, scf, scr)
-				if rise < 1.0:
-					# the shadow grows in under a figure rising out of the sand (pass 60; the blob has no alpha of its own)
-					var sk := lerpf(0.35, 1.0, rise_k)
-					sxf.basis = sxf.basis.scaled(Vector3(sk, 1.0, sk))
-				if not (lake and _near_water(pos[i]) and shadow_wet(i, sxf, eye)):
-					_shadow_mm.set_instance_transform(shadow_n, sxf)
-					shadow_n += 1
+		# pass 84 (the lead; Garry: "The shadows on the enemies ... at certain angles and at certain distances they don't
+		# render"): with a crowd over SHADOW_BUDGET only the first 70 within 10 m of the hero had a shadow, so the creatures
+		# up the portrait screen lost theirs; now every creature the camera sees (or within 10 m) casts one, its draped
+		# transform reused until it moves (_shadow_xform_cached)
+		if shadow_all or pos[i].distance_squared_to(ppos2) < shadow_r2 or (eye_cam != null and eye_cam.is_position_in_frustum(pos[i])):
+			var sxf := _shadow_xform_cached(i, scf, scr)
+			if rise < 1.0:
+				# the shadow grows in under a figure rising out of the sand (pass 60; the blob has no alpha of its own)
+				var sk := lerpf(0.35, 1.0, rise_k)
+				sxf.basis = sxf.basis.scaled(Vector3(sk, 1.0, sk))
+			if not (lake and _near_water(pos[i]) and shadow_wet(i, sxf, eye)):
+				_shadow_mm.set_instance_transform(shadow_n, sxf)
+				shadow_n += 1
 	for t in range(types.size()):
 		if _warm_at != Vector3.INF:
 			var mm: MultiMesh = types[t]["mm"]

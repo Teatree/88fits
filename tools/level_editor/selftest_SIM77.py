@@ -336,7 +336,7 @@ def _round2_checks(check, SB, tmp):
     res = SB.aggregate([(k, SB.synthetic_player(k, k, {"limit": 300, "death": "keep"}), {"seed": k}) for k in range(1, 5)], {"players": 4, "limit": 300, "death": "keep"},
                        game_dir=os.path.join(tmp, "nogame"))
     ku = res["series"]["keep_up"]
-    check(set(ku) == {"median", "p10", "p90", "n"} and "mean" not in ku and ku["n"][100] == 4 and res["rules"]["medians"] == ["keep_up", "boss_s"],
+    check(set(ku) == {"median", "p10", "p90", "n"} and "mean" not in ku and ku["n"][100] == 4 and res["rules"]["medians"] == ["keep_up", "boss_s", "challenge"],   # pass 84 (lane SIMVIEW): challenge
           "r2: the ratios as a middle value with its band and its count of runs")
     check({"took_by", "healed_by", "held_by"} <= set(res["breakdowns"]) and res["breakdowns"]["held_by"]["kind"] == "level", "r2: the new breakdowns")
     res2 = SB.aggregate([(1, dict(SB.synthetic_player(1, 1, {"limit": 120, "talents": {"grit": "AAA"}}), meta=dict(SB.synthetic_player(1, 1, {"limit": 120})["meta"], talents={"grit": 1})), {"seed": 1})],

@@ -488,6 +488,8 @@ const Forms = (() => {
       case 'pickup': return pickupSelect(value, write, { path: ctl.path, all: o.allPickups });
       case 'swatch': return swatchInput(value, write, ctl);
       case 'swatches': return swatchesInput(value, write, ctl);
+      // pass 84 (lane TIMELINE): the density floor's points (Settings -> Cap, the Floor lane's inspector)
+      case 'floor_points': return floorBlock(obj);
       default: return el('span', { class: 'muted', text: `(${def.type})` });
     }
   }
@@ -547,6 +549,15 @@ const Forms = (() => {
     return pointsTable(() => (Array.isArray(tl.cap_curve) ? tl.cap_curve : []), {
       path: 'cap_curve', valueLabel: 'cap', int: true, step: 1, first: [0, Number(tl.cap_start) || 10],
       ensure: () => { if (!Array.isArray(tl.cap_curve)) tl.cap_curve = []; return tl.cap_curve; },
+    });
+  }
+
+  /** The floor curve's points (pass 84, lane TIMELINE): [seconds, creatures alive at the least]; "+ point" starts the
+   *  curve at 0:00 with 20 when the map has none. */
+  function floorBlock(tl) {
+    return pointsTable(() => (Array.isArray(tl.floor_curve) ? tl.floor_curve : []), {
+      path: 'floor_curve', valueLabel: 'alive at least', int: true, step: 1, first: [0, 20],
+      ensure: () => { if (!Array.isArray(tl.floor_curve)) tl.floor_curve = []; return tl.floor_curve; },
     });
   }
 
@@ -748,7 +759,7 @@ const Forms = (() => {
   return {
     row, numberInput, secondsInput, textInput, textareaInput, select, boolInput, bool3Input, percentInput, iconSelect, closePop, creatureGroups, inheritable,
     creatureSummary, enemyPick, variantSelect, eliteSelect, pickupSelect, intervalInput, numberList, numbersLine, normHex,
-    swatchInput, swatchesInput, control, fieldRow, pointsTable, pointsBlock, weightsBlock, curveBlock, spawnSidesBlock,
+    swatchInput, swatchesInput, control, fieldRow, pointsTable, pointsBlock, floorBlock, weightsBlock, curveBlock, spawnSidesBlock,
     specialsBlock, pathTimesBlock, pickupsBlock,
   };
 })();

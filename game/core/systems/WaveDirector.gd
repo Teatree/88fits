@@ -86,6 +86,9 @@ func start(p_map: MapDef) -> void:
 	_row_waves.clear()
 	# pass 83 (lane TIMELINE): the own-interval rows' clocks start afresh
 	_row_draw_left.clear()
+	# pass 84 (lane SPAWN): the once and waves rows' chance and t_jitter, rolled once for this run (no dice without them)
+	_roll_rows()
+	_starve84.clear()
 	running = true
 	var em: EnemyManager = game.enemies
 	for a in map.skins.keys():
@@ -211,6 +214,8 @@ func _process(delta: float) -> void:
 		_spawn_burst()
 	# pass 83 (lane TIMELINE): the continuous rows with their own `interval` draw on their own clocks
 	_tick_row_intervals(delta)
+	# pass 84 (lane SPAWN): the density floor (floor_curve; nothing without one)
+	_floor_fill()
 	_cull_t -= delta
 	if _cull_t <= 0.0:
 		_cull_t = 0.5
@@ -336,6 +341,7 @@ func _run_event(ev: Dictionary) -> void:
 			em.force_special = false
 			if not forced:
 				game.toast("SWARM!", SWARM_COLOR)
+			_log84("swarm", id, count)
 		"boss":
 			_start_boss(_pick_id(ev.get("enemy", map.boss), ev.get("weights", [])), Vector3.INF, variant, stats)
 		"elite_boss":
@@ -666,7 +672,8 @@ func open_source_of(id: String, variant: String) -> Dictionary:
 	var look := _look_of(id, variant)
 	var best: Dictionary = {}
 	var best_w := 0.0
-	for r in timeline.roster_at(t):
+	# pass 84 (lane SPAWN): the mix rows only (a once row, a list or "roster" row, an elite or special row is an event)
+	for r in WaveTimeline.mix_rows(timeline.roster_at(t)):
 		if not (r is Dictionary) or str(r.get("enemy", "")) != id or _look_of(id, str(r.get("variant", ""))) != look:
 			continue
 		var w := _roster_weight(r, t)
@@ -829,7 +836,8 @@ func spawn_portal_wave() -> int:
 	if not running or not has_portal_wave() or game == null or game.player == null:
 		return 0
 	var em: EnemyManager = game.enemies
-	var rows: Array = _roster_open(timeline.roster_at(Run.elapsed - 1.0).filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) != "hell"))
+	# pass 84 (lane SPAWN): the mix rows only (WaveTimeline.row_in_mix)
+	var rows: Array = _roster_open(WaveTimeline.mix_rows(timeline.roster_at(Run.elapsed - 1.0)).filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) != "hell"))
 	if rows.is_empty():
 		return 0
 	var left: int = mini(int(timeline.portal_wave.get("count", 0)), timeline.hard_cap - em.alive_count())
@@ -934,6 +942,9 @@ func _spawn_burst(due: Array = []) -> void:
 func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> int:
 	# pass 81 (lane PACE): a row paced as waves is not in the continuous draw unless it trickles
 	roster = roster.filter(func(r) -> bool: return not (r is Dictionary) or WaveTimeline.row_drawn(r))
+	# pass 84 (lane SPAWN): a continuous elite row waits for colour (colour_after_kills), as every coloured Elite does
+	if not colour_open():
+		roster = roster.filter(func(r) -> bool: return not (r is Dictionary) or WaveTimeline.row_elite(r) == "")
 	# pass 83 (lane TIMELINE): a row with its own `interval` draws on its own clock (`due`), the others at the spawn check;
 	# either way the burst is cut to the drawing rows' share of the channel's weight (_interval_part)
 	var frac := 1.0
@@ -963,8 +974,9 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 			pick -= float(ws[k])
 			if pick <= 0.0:
 				break
-		# the row's creature with its overrides (pass 53): its cap_share, pack and numbers may be the row's own
-		var def: EnemyDef = _row_def(chosen)
+		# the row's creature with its overrides (pass 53): its cap_share, pack and numbers may be the row's own; pass 84
+		# (lane SPAWN): a list or "roster" row's creature is drawn here (_row_pick84, kept in _pick84 for the spawn)
+		var def: EnemyDef = _row_def(chosen) if WaveTimeline.row_single_enemy(chosen) else _row_pick_def84(chosen)
 		if def == null:
 			return bodies
 		var share: float = maxf(def.cap_share, 0.05)
@@ -979,8 +991,12 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 		var n: int = mini(mini(pack, maxi(int(ceil(burst / share)), 1)), bodies)
 		if pattern == "single":
 			n = 1
-		# the row's numbers as its first spawn of the run fixed them (pass 58, R1)
-		_spawn_group(def.id, n, pattern, pack, null, str(chosen.get("variant", "")), _stats_of(chosen), Callable(), _row_src(chosen))
+		# the row's numbers as its first spawn of the run fixed them (pass 58, R1); pass 84: a row with the new keys
+		# spawns through _spawn_drawn84 (its pick, elite, special, ring_radius, banner)
+		if _row_new84(chosen, -1):
+			_spawn_drawn84(chosen, def, n)
+		else:
+			_spawn_group(def.id, n, pattern, pack, null, str(chosen.get("variant", "")), _stats_of(chosen), Callable(), _row_src(chosen))
 		burst -= float(n) * share
 		bodies -= n
 	return bodies
@@ -1318,6 +1334,11 @@ func _tick_row_waves() -> void:
 		var r = timeline.roster[k]
 		if not (r is Dictionary) or not WaveTimeline.row_paced(r):
 			continue
+		# pass 84 (lane SPAWN): a row with the new keys (once, a timer, a list or "roster" creature, elite, special,
+		# banner, ring_radius, chance, t_jitter) runs its own schedule; a plain waves row plays pass 81's below, unchanged
+		if _row_new84(r, k):
+			_tick_row84(r, k, t)
+			continue
 		if t < float(r.get("t", 0.0)) or (r.get("until") != null and t >= float(r["until"])):
 			continue
 		var i := WaveTimeline.row_wave_index(r, t)
@@ -1347,7 +1368,9 @@ func _tick_row_waves() -> void:
 func _row_wave_spawn(r: Dictionary, st: Dictionary, def: EnemyDef) -> int:
 	var em: EnemyManager = game.enemies
 	var n := int(st["owed"])
-	n = mini(n, timeline.hard_cap - em.alive_count())
+	# pass 84 (lane SPAWN): respect_hard_cap false = only the body limit (EnemyManager.MAX), as a swarm event was
+	if bool(r.get("respect_hard_cap", true)):
+		n = mini(n, timeline.hard_cap - em.alive_count())
 	if def.max_alive > 0:
 		n = mini(n, def.max_alive - em.alive_of(def.id))
 	if n > 0 and bool(r.get("respect_cap", true)):
@@ -1374,6 +1397,10 @@ func _row_waves_owed() -> void:
 	for k in range(timeline.roster.size()):
 		var r = timeline.roster[k]
 		if not (r is Dictionary) or not WaveTimeline.row_paced(r):
+			continue
+		# pass 84 (lane SPAWN): the new rows' leftovers (_row_owed84)
+		if _row_new84(r, k):
+			_row_owed84(r, k)
 			continue
 		var st = _row_waves.get(_row_key_at(r, k))
 		if not (st is Dictionary) or int(st["owed"]) <= 0:
@@ -1757,7 +1784,8 @@ func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}) 
 	var row: Dictionary = {}
 	var row_stats := false
 	if enemy_id == "":
-		var roster := elite_candidates(_roster_open(timeline.roster_at(Run.elapsed)))
+		# pass 84 (lane SPAWN): drawn from the mix rows only (WaveTimeline.row_in_mix)
+		var roster := elite_candidates(_roster_open(WaveTimeline.mix_rows(timeline.roster_at(Run.elapsed))))
 		if roster.is_empty():
 			return
 		# a roster creature comes as its row spawns it (pass 53: the row's variant and overrides)
@@ -1801,6 +1829,7 @@ func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}) 
 	if came > 0:
 		var title := ("%s %s" % [mod.display_name, def.display_name]).to_upper()
 		game.toast(title if came == 1 else "%s ×%d" % [title, came], mod.outline)
+		_log84("elite", enemy_id, came)
 
 
 func _cull_behind() -> void:
@@ -1817,3 +1846,470 @@ func _cull_behind() -> void:
 		if d.length() > 30.0 and d.normalized().dot(fwd) < -0.3:
 			var p := _spawn_point()
 			em.pos[i] = Vector3(p.x, em._height(p.x, p.z), p.z)
+
+
+# ---------------------------------------------------------------- one spawning language (pass 84, lane SPAWN)
+
+## Garry (2026-10-16): "spawning options are important to me ... But I do agree that there are too many ways of spawning
+## an enemy right now". Every spawn a map makes is a roster row now (WaveTimeline "Pass 84" keys, docs/waves_schema.md):
+## a swarm is a "once" row (respect_cap false, pattern ring with ring_radius 16, its count, banner "SWARM!"), a coloured
+## elite a "once" row with `elite`, Elites-every a waves row of the "roster" creature, count 1, elite "random", `every`
+## its interval. An old map's swarm / elite / elite_every events and waves[] still play through their own code above.
+## Rows that use none of the new keys play exactly as before (the same functions, the same dice).
+
+## Each once / waves row's roll for this run (key _row_key_at): {skip: its `chance` failed, shift: its draw inside
+## +- `t_jitter` (the whole row moves by it)}. Only rows that carry either key are here (no dice for the others).
+var _row_roll: Dictionary = {}
+## The creature a list or "roster" row drew for the continuous draw in hand (_row_pick_def84 -> _spawn_drawn84).
+var _pick84: Dictionary = {}
+## A "once" row's wave found more than this many seconds past its second is dropped (the clock jumped: smoke_run,
+## hell_check, the arena's clock); in a run the rows tick every frame of the normal phase, so it never is.
+const ROW_STALE_S := 2.0
+## The rows that wanted to spawn and could not (the cap or the hard cap full), key -> the run clock it last happened
+## (lane SIMVIEW's starving series may read it; the tests).
+var _starve84: Dictionary = {}
+
+
+## The once and waves rows' chance and t_jitter for this run (start()), in the roster's order, a row's jitter before its
+## chance (the events' order, _roll_events). A shift never moves a row before the run's start.
+func _roll_rows() -> void:
+	_row_roll.clear()
+	if timeline == null:
+		return
+	for k in range(timeline.roster.size()):
+		var r = timeline.roster[k]
+		if not (r is Dictionary) or not WaveTimeline.row_paced(r):
+			continue
+		var chance := float(r.get("chance", 1.0))
+		var jitter := float(r.get("t_jitter", 0.0))
+		if chance >= 1.0 and jitter <= 0.0:
+			continue
+		var roll := {"skip": false, "shift": 0.0}
+		if jitter > 0.0:
+			roll["shift"] = maxf(_rng.randf_range(-jitter, jitter), -float(r.get("t", 0.0)))
+		if chance < 1.0 and _rng.randf() >= chance:
+			roll["skip"] = true
+		_row_roll[_row_key_at(r, k)] = roll
+
+
+## A row's roll this run (_roll_rows), {} when it has none (the tests, the arena).
+func row_roll(k: int) -> Dictionary:
+	if timeline == null or k < 0 or k >= timeline.roster.size() or not (timeline.roster[k] is Dictionary):
+		return {}
+	var v = _row_roll.get(_row_key_at(timeline.roster[k], k))
+	return (v as Dictionary).duplicate() if v is Dictionary else {}
+
+
+## Whether row `r` (at roster index `k`, -1 = unknown) uses the pass 84 path: outside the mix (once, a list or "roster"
+## creature, elite, special), a timer (every [min, max], an elite row), a ring_radius or a banner, or a roll this run.
+func _row_new84(r: Dictionary, k: int) -> bool:
+	if not WaveTimeline.row_in_mix(r) or WaveTimeline.row_timer(r) or r.has("ring_radius") or r.has("banner"):
+		return true
+	return k >= 0 and _row_roll.has(_row_key_at(r, k))
+
+
+## A waves row's gap to its next wave (pass 84): `every` [min, max] a fresh draw inside it, a number as it is; 0 or less
+## (and a once row) = no next wave.
+func _row_every_draw(r: Dictionary) -> float:
+	if str(r.get("pace", "")) == "once":
+		return 0.0
+	var v = r.get("every", WaveTimeline.ROW_WAVE_EVERY_DEFAULT)
+	if v is Array and not (v as Array).is_empty():
+		return _interval_of(v)
+	return WaveTimeline.row_wave_every(r)
+
+
+## One pass 84 paced row's tick (from _tick_row_waves, the normal phase): on its own clock (the run clock less its
+## t_jitter shift), inside its window (t <= clock < until), its next wave falls due on the fixed rhythm (t + offset +
+## k x every, pass 81's rule) or, for a timer row (every [min, max], an elite row), a gap after the wave it last fired (a
+## fresh draw; an elite row's gap shortened by Hot Sauce, elite_pace, as elite_every's was; while colour is closed an
+## elite wave waits, asking again a second later). A wave due while the row weighs 0 does not come (pass 81). An elite
+## row without a `pattern` brings `count` arrivals through the coloured-elite spawn (_row_elite_wave); every other row
+## owes `count` creatures (default its pack, else the creature's pack size) and spawns what fits (_row_spawn84), the
+## rest as room frees until its next wave or its end (_row_owed84).
+func _tick_row84(r: Dictionary, k: int, t: float) -> void:
+	var key := _row_key_at(r, k)
+	var roll: Dictionary = _row_roll.get(key, {})
+	if bool(roll.get("skip", false)):
+		return
+	var rt := t - float(roll.get("shift", 0.0))
+	if rt < float(r.get("t", 0.0)) or (r.get("until") != null and rt >= float(r["until"])):
+		return
+	var st: Dictionary = _row_waves.get(key, {"k": -1, "owed": 0, "came": 0, "waves": 0})
+	_row_waves[key] = st
+	var elite := WaveTimeline.row_elite(r)
+	var wave_t := rt
+	if WaveTimeline.row_timer(r):
+		if not st.has("next"):
+			st["next"] = WaveTimeline.row_wave_start(r)
+		if rt < float(st["next"]):
+			return
+		if elite != "" and not colour_open():
+			st["next"] = rt + 1.0
+			return
+		st["k"] = int(st["k"]) + 1
+		var gap := _row_every_draw(r)
+		st["next"] = rt + gap / (elite_pace() if elite != "" else 1.0) if gap > 0.0 else INF
+	else:
+		var i := WaveTimeline.row_wave_index(r, rt)
+		if i < 0 or i <= int(st["k"]):
+			return
+		st["k"] = i
+		wave_t = WaveTimeline.row_wave_time(r, i)
+		if str(r.get("pace", "")) == "once" and rt - wave_t > ROW_STALE_S:
+			# the clock jumped past it (a tool, the arena): dropped, as a skipped event was
+			return
+	st["owed"] = 0
+	st["bannered"] = false
+	if _roster_weight(r, wave_t) <= 0.0:
+		return
+	st["waves"] = int(st["waves"]) + 1
+	if elite != "" and not r.has("pattern"):
+		_row_elite_wave(r, st)
+		return
+	var pick: Dictionary = {}
+	if str(r.get("enemy", "")) != WaveTimeline.ROW_ENEMY_ROSTER or r.get("enemy") is Array:
+		pick = _row_pick84(r)
+		if pick.is_empty():
+			return
+	st["pick"] = pick
+	var pdef: EnemyDef = null
+	if not pick.is_empty():
+		pdef = Registry.enemy_with(str(pick["id"]), str(pick["variant"]), pick["stats"])
+	st["owed"] = WaveTimeline.row_wave_count(r, pdef.pack_size if pdef else 1)
+	_row_spawn84(r, k, st)
+
+
+## A pass 84 row's leftovers (from _row_waves_owed: first thing at every spawn check of the normal phase).
+func _row_owed84(r: Dictionary, k: int) -> void:
+	var key := _row_key_at(r, k)
+	var st = _row_waves.get(key)
+	if not (st is Dictionary) or int(st["owed"]) <= 0:
+		return
+	var roll: Dictionary = _row_roll.get(key, {})
+	var rt := Run.elapsed - float(roll.get("shift", 0.0))
+	if r.get("until") != null and rt >= float(r["until"]):
+		st["owed"] = 0
+		return
+	_row_spawn84(r, k, st)
+
+
+## An elite row's wave (pass 84; the coloured-elite events' way): `count` arrivals (default 1), each through _spawn_elite
+## with the row's creature (a list drawn by enemy_weights; "roster" = the mix rows' elite_weight draw), its modifier
+## ("random" = any), variant and stats: alone, as its pack or a ring by the creature's elite_formats, with its toast. Like
+## the events it ignores the cap and the hard cap (respect_cap is not read); the row's banner shows once a wave.
+func _row_elite_wave(r: Dictionary, st: Dictionary) -> void:
+	var n := maxi(int(r.get("count", 1)), 1)
+	var el := WaveTimeline.row_elite(r)
+	var mod_id := "" if el == "random" else el
+	var e = r.get("enemy", "")
+	for a in range(n):
+		var id := ""
+		if e is Array:
+			id = _pick_id(e, r.get("enemy_weights", []))
+		elif str(e) != WaveTimeline.ROW_ENEMY_ROSTER:
+			id = str(e)
+		_spawn_elite(id, mod_id, str(r.get("variant", "")), _stats_of(r))
+	st["came"] = int(st["came"]) + n
+	_row_banner84(r, st)
+
+
+## The creature a row brings now (pass 84): {id, variant, stats, row (the row whose numbers it takes)} for its own
+## creature, a list's draw by `enemy_weights` (an entry past their end weighs 1, a 0 never comes), or the "roster"
+## creature: a mix row open now drawn by its elite_weight (elite_candidates), coming as that row spawns it unless this row
+## sets its own variant or stats; {} when nothing can come.
+func _row_pick84(r: Dictionary) -> Dictionary:
+	var e = r.get("enemy", "")
+	var variant := str(r.get("variant", ""))
+	var stats := _stats_of(r)
+	if e is Array:
+		var lid := _pick_id(e, r.get("enemy_weights", []))
+		return {} if Registry.enemy(lid) == null else {"id": lid, "variant": variant, "stats": stats, "row": r}
+	if str(e) == WaveTimeline.ROW_ENEMY_ROSTER:
+		var t := Run.elapsed if phase == Phase.NORMAL else Run.elapsed - 1.0
+		var cands := elite_candidates(_roster_open(WaveTimeline.mix_rows(timeline.roster_at(t))))
+		if cands.is_empty():
+			return {}
+		var drawn := _weighted_elite_row(cands)
+		var own := not stats.is_empty()
+		return {"id": str(drawn.get("enemy", "")), "variant": variant if variant != "" else str(drawn.get("variant", "")),
+			"stats": stats if own else _stats_of(drawn), "row": r if own else drawn}
+	return {} if Registry.enemy(str(e)) == null else {"id": str(e), "variant": variant, "stats": stats, "row": r}
+
+
+## The fixed numbers a pass 84 pick plays (pass 58's R1 kept): a "once" row's are the moment's, or a mix row's that brings
+## the same creature and look then (event_numbers, a swarm's rule: {stats, src}); a drawn mix row's are that row's; a
+## row's own creature (one, or each of a list's) is fixed from the row's start.
+func _pick_numbers84(r: Dictionary, pick: Dictionary) -> Dictionary:
+	var id := str(pick["id"])
+	var variant := str(pick["variant"])
+	var stats: Dictionary = pick["stats"]
+	if str(r.get("pace", "")) == "once":
+		return event_numbers(id, variant, stats)
+	var row: Dictionary = pick["row"]
+	if not is_same(row, r):
+		return {"stats": stats, "src": _row_src(row)}
+	if WaveTimeline.row_single_enemy(r):
+		return {"stats": stats, "src": _row_src(r)}
+	return {"stats": stats, "src": source_for(row_key(r) + "|" + id, float(r.get("t", 0.0)), stats)}
+
+
+## What a pass 84 row's wave still owes, now: cut to the hard cap's room (unless respect_hard_cap is false: the body limit
+## only, the swarm events' rule), the creature's max_alive and, with respect_cap
+## (the default), its channel's room (at least one while there is any: pass 81's rule); a "roster" row draws each
+## creature (grouped by the row drawn). The rest stays owed. Returns how many came.
+func _row_spawn84(r: Dictionary, k: int, st: Dictionary) -> int:
+	var em: EnemyManager = game.enemies
+	var key := _row_key_at(r, k) if k >= 0 else row_key(r)
+	var n := int(st["owed"])
+	# respect_hard_cap false: only the body limit (EnemyManager.MAX: em.spawn stops there), as the swarm events were
+	if bool(r.get("respect_hard_cap", true)):
+		n = mini(n, timeline.hard_cap - em.alive_count())
+	var pick: Dictionary = st.get("pick", {})
+	var def: EnemyDef = null
+	if not pick.is_empty():
+		def = Registry.enemy_with(str(pick["id"]), str(pick["variant"]), pick["stats"])
+		if def == null:
+			st["owed"] = 0
+			return 0
+		if def.max_alive > 0:
+			n = mini(n, def.max_alive - em.alive_of(def.id))
+	if n > 0 and bool(r.get("respect_cap", true)):
+		var room := _channel_room(str(r.get("channel", "regular")))
+		if room <= 0.0:
+			_starve84[key] = Run.elapsed
+			return 0
+		n = mini(n, maxi(int(ceil(room / maxf(def.cap_share if def else 1.0, 0.05))), 1))
+	if n <= 0:
+		if int(st["owed"]) > 0:
+			_starve84[key] = Run.elapsed
+		return 0
+	var came := 0
+	if pick.is_empty():
+		# the "roster" creature, drawn creature by creature, each group as its row spawns it
+		var groups: Array = []
+		for j in range(n):
+			var p := _row_pick84(r)
+			if p.is_empty():
+				break
+			var g: Dictionary = {}
+			for x: Dictionary in groups:
+				if is_same(x["pick"]["row"], p["row"]) and str(x["pick"]["id"]) == str(p["id"]):
+					g = x
+					break
+			if g.is_empty():
+				g = {"pick": p, "n": 0}
+				groups.append(g)
+			g["n"] = int(g["n"]) + 1
+		for g: Dictionary in groups:
+			came += _spawn_pick84(r, g["pick"], int(g["n"]))
+	else:
+		came = _spawn_pick84(r, pick, n)
+	st["owed"] = maxi(int(st["owed"]) - came, 0)
+	st["came"] = int(st["came"]) + came
+	if came > 0:
+		_row_banner84(r, st)
+	return came
+
+
+## `n` of a pick in row `r`'s pattern (pass 84): its numbers (_pick_numbers84), every one wearing the row's `elite`
+## modifier when it has a pattern and colour is open ("random" = any), every one its coloured special with `special`;
+## pattern "ring" with a `ring_radius` is the classic even ring of that radius round the hero (the swarm's, 16 m on the
+## converted swarms; EnemyManager.spawn_ring, or the elite ring with a modifier), else the row's pattern as always
+## (_spawn_group: the rows' ring is RING_RADIUS). Returns how many came.
+func _spawn_pick84(r: Dictionary, pick: Dictionary, n: int) -> int:
+	var em: EnemyManager = game.enemies
+	var id := str(pick["id"])
+	var variant := str(pick["variant"])
+	var en := _pick_numbers84(r, pick)
+	var stats: Dictionary = en["stats"]
+	var src: Dictionary = en["src"]
+	var def: EnemyDef = Registry.enemy_with(id, variant, stats)
+	if def == null or n <= 0:
+		return 0
+	var mod: EliteModDef = null
+	var el := WaveTimeline.row_elite(r)
+	if el != "" and colour_open():
+		mod = Registry.elites.get(el) if el != "random" else null
+		if mod == null:
+			var list := Registry.elites_list()
+			if not list.is_empty():
+				mod = list[_rng.randi() % list.size()]
+	var pattern := str(r.get("pattern", "pack"))
+	var pack: int = maxi(int(r.get("pack", def.pack_size)), 1)
+	em.force_special = bool(r.get("special", false))
+	var came := 0
+	if pattern == "ring" and r.has("ring_radius"):
+		var radius := maxf(float(r.get("ring_radius", RING_RADIUS)), 1.0)
+		if mod == null:
+			came = em.spawn_ring(id, n, game.player.global_position, radius, variant, stats, src)
+		else:
+			came = _spawn_elite_ring_at(id, n, mod, variant, stats, src, radius)
+	else:
+		came = _spawn_group(id, n, pattern, pack, mod, variant, stats, Callable(), src)
+	em.force_special = false
+	_log84("row", id, came)
+	return came
+
+
+## The elite ring (_spawn_elite_ring) at `radius` (pass 84: an elite row with pattern ring and a ring_radius).
+func _spawn_elite_ring_at(id: String, n: int, mod: EliteModDef, variant: String, stats: Dictionary, src: Dictionary, radius: float) -> int:
+	var em: EnemyManager = game.enemies
+	var mb: MapBase = game.map
+	var came := 0
+	var turn := _rng.randf() * TAU
+	var slide := 0.1 / (TAU / float(maxi(n, 1)))
+	for p: Vector3 in EnemyManager.ring_spots(game.player.global_position, radius, n, _spawn_lim(), _rng, turn, slide, 0.0, mb):
+		if em.spawn(id, mb.clamp_to_arena(p) if mb else p, mod, 1.0, 1.0, variant, stats, src) >= 0:
+			came += 1
+	return came
+
+
+## The row's `banner` as a toast, once a wave (the first time it brings anything).
+func _row_banner84(r: Dictionary, st: Dictionary) -> void:
+	var b := str(r.get("banner", ""))
+	if b == "" or bool(st.get("bannered", false)):
+		return
+	st["bannered"] = true
+	game.toast(b, SWARM_COLOR)
+
+
+## The continuous draw's creature for a list or "roster" row (pass 84): drawn now (_row_pick84) and kept in _pick84 for
+## _spawn_drawn84; null when nothing can come.
+func _row_pick_def84(r: Dictionary) -> EnemyDef:
+	_pick84 = _row_pick84(r)
+	if _pick84.is_empty():
+		return null
+	return Registry.enemy_with(str(_pick84["id"]), str(_pick84["variant"]), _pick84["stats"])
+
+
+## `n` of a continuous pass 84 row's draw (from _burst_from and the floor): its own creature or the pick in hand.
+func _spawn_drawn84(r: Dictionary, def: EnemyDef, n: int) -> void:
+	var pick: Dictionary = _pick84
+	if WaveTimeline.row_single_enemy(r):
+		pick = {"id": def.id, "variant": str(r.get("variant", "")), "stats": _stats_of(r), "row": r}
+	if pick.is_empty():
+		return
+	_spawn_pick84(r, pick, n)
+	_pick84 = {}
+
+
+## The rows that could not spawn since run second `since` (_starve84 keys; the cap or the hard cap was full).
+func starving_since(since: float) -> Array:
+	var out: Array = []
+	for key: String in _starve84.keys():
+		if float(_starve84[key]) >= since:
+			out.append(key)
+	return out
+
+
+# ---------------------------------------------------------------- the density floor (pass 84, lane SPAWN)
+
+## The most creatures one frame's floor fill brings (a limit on a floor typed far above the cap).
+const FLOOR_FILL_MAX := 64
+
+
+## The lead's design ("a density floor (minimum alive) beside the cap"): while fewer creatures than `floor_curve` says
+## are alive on the regular channel (everything the hell channel does not bring), the director draws the regular
+## continuous rows at once, every frame, instead of waiting for the spawn check: a row by its weight now, its pack (a
+## single row one) at a time, each cut to what the floor still lacks, the cap's room (load units) and the hard cap, until
+## the floor is met, the room is gone or FLOOR_FILL_MAX came. Through a boss fight and the portal wait too, never past
+## the cap (0 in the portal wait after a portal wave). No floor_curve: nothing (today's play).
+func _floor_fill() -> void:
+	if timeline == null or timeline.floor_curve.is_empty() or game == null or game.player == null:
+		return
+	var em: EnemyManager = game.enemies
+	var floor_n := int(floor(timeline.floor_at(Run.elapsed)))
+	if floor_n <= 0:
+		return
+	var tr := Run.elapsed if phase == Phase.NORMAL else Run.elapsed - 1.0
+	var all := timeline.roster_at(tr)
+	var hell: Array = all.filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) == "hell")
+	var hell_n := 0
+	var seen: Dictionary = {}
+	for r: Dictionary in hell:
+		var hid := str(r.get("enemy", ""))
+		if not seen.has(hid):
+			seen[hid] = true
+			hell_n += em.alive_of(hid)
+	var lack := floor_n - (em.alive_count() - hell_n)
+	if lack <= 0:
+		return
+	var cap := current_cap()
+	var room: float = float(cap) - (em.cap_load() - _hell_load(hell))
+	var bodies: int = timeline.hard_cap - em.alive_count()
+	var rows: Array = _roster_open(all.filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) != "hell" and WaveTimeline.row_drawn(r) and (WaveTimeline.row_elite(r) == "" or colour_open())))
+	var guard := 0
+	var brought := 0
+	while lack > 0 and room > 0.0 and bodies > 0 and brought < FLOOR_FILL_MAX and guard < 32 and not rows.is_empty():
+		guard += 1
+		var row := _weighted_row(rows)
+		if row.is_empty():
+			break
+		var def: EnemyDef = _row_def(row) if WaveTimeline.row_single_enemy(row) else _row_pick_def84(row)
+		if def == null:
+			break
+		var share: float = maxf(def.cap_share, 0.05)
+		var pack: int = maxi(int(row.get("pack", def.pack_size)), 1)
+		var n: int = mini(mini(mini(pack, lack), bodies), maxi(int(ceil(room / share)), 1))
+		if str(row.get("pattern", "pack")) == "single":
+			n = 1
+		var before := em.alive_count()
+		if _row_new84(row, -1):
+			_spawn_drawn84(row, def, n)
+		else:
+			_spawn_group(def.id, n, str(row.get("pattern", "pack")), pack, null, str(row.get("variant", "")), _stats_of(row), Callable(), _row_src(row))
+		var came := maxi(em.alive_count() - before, 0)
+		if came <= 0:
+			break
+		lack -= came
+		room -= float(came) * share
+		bodies -= came
+		brought += came
+
+
+# ---------------------------------------------------------------- one creature's shown numbers (pass 84, lane SPAWN)
+
+## The HP and ATK a creature of roster row `r` plays at run second `t` with the hero at `level` (the Level Editor's one
+## shown difficulty number, model.js creatureDifficulty / creatureAt, the same rule): a regular creature's row numbers
+## fixed from the row's start (its `stats.hp` / `damage`, else the creature's JSON number x the HP / damage curve at the
+## row's `t`; x hp_mult / damage_mult), x the stage multiplier at t, x the hero-level factor (1 + level_*_per_level x
+## (level - 1)), x creature_hp_mult / creature_damage_mult, x the hero-power factor at power 1 (= 1); an Elite by its
+## kind: elite.hp_mult_per_stage^stage x the stage x creature_hp_mult; a boss: boss.hp_mult_per_stage^stage x the stage
+## (their ATK the live damage curve at t). {hp, atk, stage, stage_mult, hp_time, dmg_time, lv_hp, lv_dmg}; {} for an
+## unknown creature or a row that names none.
+static func shown_numbers(tl: WaveTimeline, r: Dictionary, t: float, level: int) -> Dictionary:
+	if tl == null or not WaveTimeline.row_single_enemy(r):
+		return {}
+	var stats := _stats_of(r)
+	var def: EnemyDef = Registry.enemy_with(str(r.get("enemy", "")), "", stats)
+	if def == null:
+		return {}
+	var s := maxi(int(floor(t / maxf(tl.stage_length, 1.0))), 0)
+	var sm := tl.stage_mult(s, maxf(t - tl.stage_length * float(tl.stages), 0.0))
+	var lv := float(maxi(level - 1, 0))
+	var lv_hp := 1.0 + tl.level_hp_per_level * lv
+	var lv_dmg := 1.0 + tl.level_damage_per_level * lv
+	var t0 := maxf(float(r.get("t", t)), 0.0)
+	var out := {"stage": s, "stage_mult": sm, "lv_hp": lv_hp, "lv_dmg": lv_dmg, "hp_time": 1.0, "dmg_time": 1.0}
+	if def.archetype == "boss" or def.archetype == "elite":
+		var per := float(def.boss.get("hp_mult_per_stage", 1.6)) if def.archetype == "boss" else float(def.elite.get("hp_mult_per_stage", 1.8))
+		out["hp"] = def.hp * pow(per, float(s)) * maxf(sm, 1.0) * (1.0 if def.archetype == "boss" else tl.creature_hp_mult)
+		out["dmg_time"] = tl.damage_mult_at(t)
+		out["atk"] = def.damage * sm * lv_dmg * tl.creature_damage_mult * float(out["dmg_time"])
+		return out
+	var hp_time := 1.0 if stats.has("hp") else tl.hp_mult_at(t0)
+	var dmg_time := 1.0 if stats.has("damage") else tl.damage_mult_at(t0)
+	out["hp_time"] = hp_time
+	out["dmg_time"] = dmg_time
+	out["hp"] = def.hp * hp_time * sm * lv_hp * tl.creature_hp_mult
+	out["atk"] = def.damage * dmg_time * sm * lv_dmg * tl.creature_damage_mult
+	return out
+
+
+## A line in a headless run's log for each swarm, coloured elite and pass 84 row spawn (lane SPAWN's sims count them):
+## "spawn84 <kind> <id> <n> <clock>". Never on a phone (only a headless display prints it).
+func _log84(kind: String, id: String, n: int) -> void:
+	if n <= 0 or DisplayServer.get_name() != "headless":
+		return
+	print("spawn84 %s %s %d %.1f" % [kind, id, n, Run.elapsed])

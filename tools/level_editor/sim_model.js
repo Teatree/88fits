@@ -363,11 +363,24 @@ const SimModel = (() => {
     if (healFold) push('difficulty', { id: 'heal', title: 'Healing', fmt: 'num', unit: 'HP healed',
       how: `Health healed so far, by what gave it (regen, life steal, pickups, the level-up patch...), ${playingNote}.`,
       stack: healFold, lines: [], overlay: [] });
+    // pass 84 (lane SIMVIEW): the regular channel's load (what the cap counts: each creature its cap share) beside the count
+    const hasLoad = has('load');
     if (has('cap')) push('difficulty', { id: 'cap', title: 'The crowd against the cap', fmt: 'num', unit: 'creatures',
-      how: `Creatures alive and the director's cap at that second (the timeline's cap curve as it played), ${playingNote}.`,
+      how: `Creatures alive and the director's cap at that second (the timeline's cap curve as it played), ${playingNote}.` +
+        (hasLoad ? ' The cap counts load, not heads: each creature its cap share (the fodder counts half), the hell channel apart (the dotted line is that load); the director spawns while the load is under the cap.' : ''),
       lines: [{ key: 'alive', label: 'alive', color: SLOTS[0], values: ser(res, 'alive') || [] },
-        { key: 'cap', label: 'cap', color: SLOTS[3], values: ser(res, 'cap') || [], dash: SHORT_DASH, width: 1.5 }],
+        { key: 'cap', label: 'cap', color: SLOTS[3], values: ser(res, 'cap') || [], dash: SHORT_DASH, width: 1.5 }]
+        .concat(hasLoad ? [{ key: 'load', label: 'load (counted against the cap)', color: SLOTS[0], values: ser(res, 'load') || [], dash: '1 3', width: 1.5 }] : []),
       overlay: ov('alive', 'mean', `${cmpName}: alive`) });
+    if (has('cap_full')) push('difficulty', { id: 'cap_full', title: 'Cap full', fmt: 'pct', unit: '% of the second', yMax: 100,
+      how: `How much of each second the director had no room for the regular rows (checked every 0.2 s: the load at or over the cap, or the bodies at the hard cap), ${playingNote}. 100% = full all second${one ? '' : ' in every run'}; while it is full no continuous row spawns, so a weak build starves the new rows.`,
+      lines: [{ key: 'cap_full', label: 'cap full', color: SLOTS[7], values: (ser(res, 'cap_full') || []).map((v) => (v == null ? null : 100 * v)) }],
+      overlay: cmp && cmp.series && cmp.series.cap_full ? [{ label: `${cmpName}: cap full`, values: cmp.series.cap_full.mean.map((v) => (v == null ? null : 100 * v)) }] : [] });
+    if (has('challenge')) push('difficulty', { id: 'challenge', title: 'The crowd against the hero', fmt: 'num', unit: '× (threat ÷ his DPS × effective HP)',
+      how: "The crowd's threat over the hero's strength at each second: threat = the sum over every creature alive (the boss left out) of its max HP × its bite a second (its bite's damage ÷ its bite cadence); his strength = his full DPS on one target × his effective HP (the Hero power chart's two parts). For one creature it is the seconds he needs to kill it × the share of his effective HP it bites off a second. Rising = the crowd outgrows him." +
+        (one ? ' For this run.' : ' The middle run at each second (a ratio jumps where his numbers are small), the band the middle 80%.'),
+      lines: [{ key: 'challenge', label: 'threat ÷ strength', color: SLOTS[1], values: ser(res, 'challenge', 'median') || [] }],
+      bands: band('challenge', SLOTS[1]), overlay: ov('challenge', 'median', `${cmpName}: threat ÷ strength`) });
     if (has('kills_ps')) push('difficulty', { id: 'flow', title: 'Spawned and killed', fmt: 'num', unit: 'creatures a second',
       how: `Creatures killed${has('spawned_ps') ? ' and spawned' : ''} each second, ${one ? '' : 'each run '}over ${rwin} s, ${playingNote}.${has('spawned_ps') ? ' Kills above spawns = the hero is winning the room.' : ''}`,
       lines: [{ key: 'kills_ps', label: 'killed a second', color: SLOTS[2], values: ser(res, 'kills_ps') || [] }]

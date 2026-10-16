@@ -1262,3 +1262,50 @@ routes; the page's maths under Node, its sections and its wiring).
 ## Pass 81: pacing a row
 
 A roster row's **Pacing** (the row form): Continuous (as before: drawn into the cap by its weight) or Waves every N s (`every`, `count` per wave, `offset`, Respect the cap, Also continuous). The Timeline draws yellow etches on every row: a line where it is drawn continuously, a tick at each wave; a `waves[]` block shows a tick at each burst; ticks under 3 px apart are thinned. Keys and rules: docs/waves_schema.md "Pass 81", BALANCING.md §28.PACE.
+
+## Pass 84: the Timeline in sections, one way to spawn
+
+Garry (2026-10-16): "spawning options are important to me ... better add too many controls than too few"; "I would
+prefer the charts ... to be not too abstract"; "allow for the option to collapse some sections ... easy to tell where a
+section was collapsed"; "Mark somehow (in a subtle way) which sections are view only, and which are tools for editing".
+
+**Sections.** The Timeline tab is a stack of sections, each a bar (a chevron, its mark, its name, a line of what it is,
+its own controls). A click on the bar collapses it: the bar stays where the section was, hatched with a dashed frame, a
+summary of what it holds ("On screen · peak 260 alive at 1:53 · cap full 15 times") and *collapsed: click to open* in
+yellow. Each map remembers its sections in the browser; **Collapse all / Open all** sit in Ruler and controls; the ruler
+always stays. The inspector folds to a hatched strip (⇥ at its top right).
+
+| Section | Mark | What it holds |
+|---|---|---|
+| Ruler and controls | pencil | the ruler (always shown), the marks' legend, collapse all / open all, the estimate's kill rate / boss / portal boxes, **lifetimes from the Sim**, **Sim to show** |
+| On screen | eye | creatures alive per second: the estimate (the hell channel red on top), the Sim dashed, the cap in bodies, the floor dotted; red where the cap is full (hover: who starves) |
+| Challenge | eye | seconds of the hero's damage to clear the screen (crowd HP ÷ his DPS), or health bars lost clearing it (HP × bite ÷ (DPS × EHP), the Sim's `challenge`); zones easy / fair / hard (two boxes per measure); the Sim's line and its deaths |
+| Composition | eye | % of the crowd by creature (on screen, or spawned in the past N s; estimate or Sim) |
+| Spawned so far | eye | the pass 57 running total |
+| Spawn rows | pencil | every row, grouped by stage / role / both / none (each group folds), coloured by role or creature; quantity, HP / ATK at the start, badges |
+| Events | pencil | bosses, Elite mini-bosses, the portal after each boss (click: its settings), specials, mutation offers |
+| Curves | pencil | cap, **Floor** (new), Actual HP × (eye), HP ×, Actual ATK × (eye), ATK × |
+| Warnings | eye | the estimate's findings with **Go to**: cap full and who starves, rows that never spawn or never make 1% of what spawns, the crowd's HP doubling in a second, a floor above the cap, identical rows overlapping |
+
+**The marks.** An eye and a darker, recessed background: view only (worked out from the map, the estimate, the Sim).
+A pencil and the normal surface: editing. Lanes carry the same marks on their labels; the inspector's groups too.
+
+**The charts say what they are.** Each view section starts with *What is this?*, a legend naming every line and a box
+*How it is worked out* with the recipe and the units (tools/level_editor/timeline_model.js `RECIPES`).
+
+**One way to spawn.** Swarms, coloured elites and Elites every are spawn rows (lane SPAWN plays them in the game and the
+sims; keys in docs/waves_schema.md "Pass 84"): Pacing Continuous / Waves every N s (Every may be [min, max]) / Once;
+Creature one / a list with pick weights (`enemy_weights`) / the roster draw; Elite modifier, Special, Banner, Ring
+radius, Chance, Jitter, Role, Name. An old map's swarm / elite / elite_every events and `waves[]` blocks are read as rows
+when the map loads (Model.convertLegacy; the game plays both alike) and Save writes the rows. **+ Row** offers each kind
+(continuous, waves, once: a swarm, a coloured elite, Elites every, a special); **+ Event** the bosses and Elites.
+
+**The inspector** shows a row in groups that fold (each remembered): Schedule, Creature, Where and how, Presence, In
+the estimate (its numbers at its start and a mini-chart: its spawns each second and its HP over its life), Overrides
+(Body with Size × / Radius ×, Colour, Attacks, Ranged and Charge with every key of their blocks, and new: Kamikaze,
+Artillery, Sniper, Flee on hit). Header: Duplicate, Delete, **Split at <cursor>** (the second part's numbers fixed
+afresh there), **→ once / → waves / → continuous**. Not overridable per row (the game reads them from the creature
+only): the brain, the death burst, a caster's spells.
+
+Self-test: `selftest_TIMELINE84.py` (the view maths under Node against the estimate, the fields and their help, the
+conversion on load and no churn, the page's words).

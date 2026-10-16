@@ -463,14 +463,16 @@ func roster_at(t: float) -> Array:
 ## open (t <= clock < until), each `count` of them (default the row's `pack`, else the creature's pack size) in the row's
 ## pattern; `respect_cap` (default true) and `trickle` (default false: not in the continuous draw between its waves).
 ## The schedule's maths is here (the tests and the editor's etches read the same rule); WaveDirector spawns it.
-const ROW_PACES := ["continuous", "waves"]
+const ROW_PACES := ["continuous", "waves", "once"]
 ## A waves row's `every` when it names none (seconds).
 const ROW_WAVE_EVERY_DEFAULT := 30.0
 
 
-## Whether roster row `r` comes as waves (`pace` "waves"); any other value, or none, is continuous.
+## Whether roster row `r` comes as waves (`pace` "waves", or pass 84's "once": one wave); any other value, or none, is
+## continuous.
 static func row_paced(r: Dictionary) -> bool:
-	return str(r.get("pace", "continuous")) == "waves"
+	var p := str(r.get("pace", "continuous"))
+	return p == "waves" or p == "once"
 
 
 ## Whether roster row `r` is in the director's continuous draw: a continuous row, or a waves row that trickles.
@@ -478,9 +480,16 @@ static func row_drawn(r: Dictionary) -> bool:
 	return not row_paced(r) or bool(r.get("trickle", false))
 
 
-## A waves row's seconds between waves (`every`, default ROW_WAVE_EVERY_DEFAULT); 0 or less = one wave only.
+## A waves row's seconds between waves (`every`, default ROW_WAVE_EVERY_DEFAULT); 0 or less = one wave only. Pass 84: a
+## "once" row is 0 (its one wave), and `every` [min, max] reads as its middle here (the schedule's expected rhythm: the
+## etches, the estimate); the director draws a fresh gap inside it at every wave (row_every_draw).
 static func row_wave_every(r: Dictionary) -> float:
+	if str(r.get("pace", "")) == "once":
+		return 0.0
 	var v = r.get("every", ROW_WAVE_EVERY_DEFAULT)
+	if v is Array and not (v as Array).is_empty():
+		var a: Array = v
+		return (float(a[0]) + float(a[a.size() - 1])) * 0.5
 	return float(v) if (v is float or v is int) else ROW_WAVE_EVERY_DEFAULT
 
 
@@ -533,3 +542,61 @@ static func row_wave_times(r: Dictionary, end: float, limit: int = 10000) -> Arr
 ## overrides), at least 1.
 static func row_wave_count(r: Dictionary, pack_size: int) -> int:
 	return maxi(int(r.get("count", r.get("pack", pack_size))), 1)
+
+
+# ---------------------------------------------------------------- one spawning language (pass 84, lane SPAWN)
+
+## Garry (2026-10-16): "there are too many ways of spawning an enemy right now" but "spawning options are important to
+## me ... better add too many controls than too few". Every spawn the map makes is a roster row: the swarm, the coloured
+## elite and the Elites-every events became rows (tools/migrate_timeline.py, the editor's Model.convertLegacy); an old
+## map's events and waves[] still play through their own code. The row keys (docs/waves_schema.md "Pass 84"):
+## `pace` "once" (one wave at t + offset), `every` [min, max] (a fresh gap each wave), `enemy` a list (with
+## `enemy_weights`) or "roster" (each creature drawn from the mix rows live then by their elite_weight), `elite`
+## ("random" | a modifier id: the coloured-elite spawn), `special` (every one its coloured special), `banner` (a toast as
+## a wave first brings something), `ring_radius` (pattern ring: the classic even ring of that radius), `chance` and
+## `t_jitter` (a once or waves row's roll and shift for the run), `role` and `name` (the editor's; the game ignores them).
+## The density floor `floor_curve` [[t, n], ...]: the least creatures alive on the regular channel (WaveDirector
+## _floor_fill); [] = none.
+@export var floor_curve: Array = []
+
+## The "roster" creature: drawn from the mix rows live at the second (WaveDirector._row_roster_pick).
+const ROW_ENEMY_ROSTER := "roster"
+
+
+## The density floor at run second `t` (sample_points of floor_curve), 0 without one.
+func floor_at(t: float) -> float:
+	return sample_points(floor_curve, t) if not floor_curve.is_empty() else 0.0
+
+
+## Whether roster row `r` names one creature by its id (not a list, not "roster").
+static func row_single_enemy(r: Dictionary) -> bool:
+	var e = r.get("enemy", "")
+	return not (e is Array) and str(e) != ROW_ENEMY_ROSTER
+
+
+## The elite modifier a row's creatures wear: "" none, "random", or a modifier id.
+static func row_elite(r: Dictionary) -> String:
+	var e = r.get("elite", "")
+	return "" if e == null or e is bool else str(e)
+
+
+## Whether roster row `r` is in the mix (pass 84): a row that names one creature by its id, wears no elite modifier, is
+## not all specials and is not a "once" row. Only the mix is read where the director asks "who is on the roster now":
+## the portal wave, a coloured Elite's candidates, a "roster" row's draw and the pass 58 join (an event's numbers from
+## the row bringing the same creature), so a swarm or an Elite that became a row plays as its event did.
+static func row_in_mix(r: Dictionary) -> bool:
+	return row_single_enemy(r) and row_elite(r) == "" and not bool(r.get("special", false)) and str(r.get("pace", "")) != "once"
+
+
+## Whether a paced row runs on a timer (pass 84) instead of the fixed rhythm t + offset + k x every (pass 81): an
+## `every` given as [min, max] (a fresh gap each wave) or an elite row (its clock runs faster with Hot Sauce, as the
+## elite_every timers did). A timer's next wave is that gap after the wave it fired.
+static func row_timer(r: Dictionary) -> bool:
+	if not row_paced(r):
+		return false
+	return r.get("every") is Array or row_elite(r) != ""
+
+
+## The mix rows of `rows` (row_in_mix).
+static func mix_rows(rows: Array) -> Array:
+	return rows.filter(func(r) -> bool: return r is Dictionary and row_in_mix(r))

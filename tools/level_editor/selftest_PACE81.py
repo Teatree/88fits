@@ -238,7 +238,8 @@ def checks(check, run_node, server):
     check(any(r.get("pace") == "WAVES" for r in flag_q) and all(not p for r, (p, _d, _e, _s) in zip(flag_q, res["flags"]) if r.get("pace") == "WAVES"),
           "PACE: only \"waves\" paces a row (\"WAVES\" plays continuous, as the game reads it)")
     c = res["consts"]
-    check(c["paces"] == ["continuous", "waves"] and c["every"] == 30 and c["keys"] == ["every", "count", "offset", "respect_cap", "trickle"] and c["px"] == 3,
+    # pass 84 (lane SPAWN, re-pinned on purpose): "once" joined the paces (WaveTimeline.ROW_PACES)
+    check(c["paces"] == ["continuous", "waves", "once"] and c["every"] == 30 and c["keys"] == ["every", "count", "offset", "respect_cap", "trickle"] and c["px"] == 3,
           "PACE: the constants match WaveTimeline (ROW_PACES, ROW_WAVE_EVERY_DEFAULT 30) and the brief (3 px): %s" % c)
     # ---------------------------------------------------------------- fields.js
     fl = res["fields"]
@@ -247,10 +248,12 @@ def checks(check, run_node, server):
     check(all(k in by for k in ["pace", "every", "count", "offset", "respect_cap", "trickle"]), "PACE: fields.js has the row's Pacing and its five fields: %s" % keys)
     if all(k in by for k in ["pace", "every", "count", "offset", "respect_cap", "trickle"]):
         p = by["pace"]
-        check(p["type"] == "select" and p["options"] == ["continuous", "waves"] and p["def"] == "continuous" and not p["paced"] and fl["paces"] == ["continuous", "waves"],
-              "PACE: Pacing is a select Continuous / Waves, Continuous by default, always shown: %s" % p)
+        # pass 84 (lane TIMELINE, re-pinned on purpose): the row form's Pacing gained Once (INTERFACES.md)
+        check(p["type"] == "select" and p["options"] == ["continuous", "waves", "once"] and p["def"] == "continuous" and not p["paced"] and fl["paces"] == ["continuous", "waves", "once"],
+              "PACE: Pacing is a select Continuous / Waves / Once, Continuous by default, always shown: %s" % p)
         check("continuous yellow line" in p["help"] or "yellow line" in p["help"], "PACE: Pacing's help names the yellow line and ticks: %s" % p["help"][:120])
-        want = {"every": ("number", 30), "count": ("int", None), "offset": ("number", 0), "respect_cap": ("bool", True), "trickle": ("bool", False)}
+        # pass 84 (lane TIMELINE, re-pinned on purpose): Every may be [min, max] (an interval box)
+        want = {"every": ("interval", 30), "count": ("int", None), "offset": ("number", 0), "respect_cap": ("bool", True), "trickle": ("bool", False)}
         for k, (typ, dflt) in want.items():
             d = by[k]
             check(d["paced"] and d["type"] == typ and d["def"] == dflt and len(d["help"]) > 40, "PACE: %s is a waves-only %s field, default %s, with help: %s" % (k, typ, dflt, d))

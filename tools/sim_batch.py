@@ -34,6 +34,8 @@ What it does, in order:
     boss times as medians. result.json is written again after every finished player (`partial` until the end), so a
     cancelled sim keeps what finished.
  5. The history: tools/dl/sim/runs/ keeps the newest 10 sims plus every kept one (a `kept` file).
+ 6. Pass 84 (lane SIMVIEW): overlay.json beside result.json (overlay(): the runs averaged by the map's CLOCK second for
+    the Level Editor's Timeline; sim_avg.js overlay() is its twin; served by sim_io.py GET /api/sim/overlay).
 
 Standard library only (the Level Editor imports this module for its paths, the settings and the history).
 """
@@ -94,13 +96,13 @@ LEVEL_SERIES = ("hp", "hp_max", "est", "alive", "cap", "press_hp", "press_dmg", 
 # pass 82 (lane STATS): chests, powerups, totems: sim_run.gd's pickups so far (its pickup_kind(); sim_model.js pickupKind())
 CUM_SERIES = ("gold_total", "kills", "xp_total", "deaths", "dmg_total", "chests", "powerups", "totems")
 RATE_SERIES = ("dps", "took", "healed", "hits", "spawned")
-BAND_SERIES = ("hp", "dps", "level", "press_hp", "press_dmg", "danger", "near3", "near6", "power")
+BAND_SERIES = ("hp", "dps", "level", "press_hp", "press_dmg", "danger", "near3", "near6", "power", "threat")
 # ratios (a crowd over a DPS) blow up where the DPS is small: their middle value and band, never a mean
-MEDIAN_SERIES = ("keep_up", "boss_s")
+MEDIAN_SERIES = ("keep_up", "boss_s", "challenge")   # pass 84 (lane SIMVIEW): challenge, a threat over the hero's product
 RATE_WINDOW = 10   # seconds the per-second counts (kills, spawns, hits) are smoothed over, as the run dashboard's 10 s means
 TROUBLE_FRAC = 0.30   # "in trouble": under this share of max HP (the run dashboard's survivability card)
 BREAKDOWNS = {"dmg_by": "cum", "kills_by": "cum", "gold_by": "cum", "took_by": "cum", "healed_by": "cum", "alive_by": "level",
-              "held_by": "level"}
+              "held_by": "level", "alive_hell_by": "level", "starving_by": "level"}   # pass 84 (lane SIMVIEW): the last two
 # the damage sources that are no content item (RunAnalytics.SOURCE_NAMES: "blast" = creatures caught in a hostile blast,
 # a boss's slam or a creature's grenade; "revive" = the Down! revive's blast)
 SOURCE_WORDS = {"blast": "Blast", "revive": "Revive blast", "grand_finale": "Grand Finale", "powder_keg": "Powder Keg",
@@ -1564,6 +1566,264 @@ def bot_block(players):
     return {"summary": {key: _r(sum(_num(b.get(key)) for b in rows) / len(rows)) for key in BOT_TALLIES}, "players": rows}
 
 
+# ---------------------------------------------------------------- the Timeline's overlay (pass 84, lane SIMVIEW)
+# Garry's Timeline (pass 84) draws the Sim on the map's clock: overlay() averages the runs by CLOCK second (not play
+# second) into overlay.json beside result.json; tools/level_editor/sim_io.py serves it (GET /api/sim/overlay) and
+# tools/level_editor/sim_avg.js overlay() is its twin line by line (selftest_SIMVIEW84.py compares them).
+OVERLAY_SCHEMA = 1
+# the per-second series (sim_run.gd's, pass 84 and older): means over the runs at that clock second
+OVERLAY_SERIES = ("alive", "alive_reg", "alive_hell", "load", "load_hell", "cap", "cap_hell", "hard_cap", "cap_full", "threat",
+                  "power", "hero_dps", "hero_ehp", "level")
+# with a 10th-90th percentile band
+OVERLAY_BANDS = ("alive", "threat", "power")
+# ratios: the middle run and its band, never a mean
+OVERLAY_MEDIANS = ("challenge",)
+OVERLAY_STAGES = 4
+OVERLAY_RULES = {
+    "bin": "Each run's seconds in the normal phase (the stage clock running) placed on the map clock: clock second c = "
+           "round(clock); two rows on one second: the later; a skipped second inside a run: the row before. Boss fights and "
+           "the portal wait stop the clock and are left out (see bosses). Every value is the mean over the runs that have "
+           "that clock second (playing); a run that died stops counting.",
+    "alive": "Creatures alive at that second, both channels (dying ones not counted, the boss counted). alive_hell: those "
+             "whose creature the hell channel brings now (an id is hell while a hell row or hell wave of the moment brings "
+             "it); alive_reg = alive - alive_hell.",
+    "load": "The regular channel's crowd in cap units, as the director counts it against the cap: each creature its "
+            "cap_share (the fodder counts half), hell creatures left out. load_hell: the hell channel's. Compare load, not "
+            "alive, with the cap.",
+    "cap": "The director's cap at that second (the cap curve; boss and portal fractions). cap_hell = the stage's hell_cap "
+           "x cap. hard_cap: the map's limit on bodies (a count).",
+    "cap_full": "The share of the second (0..1) the regular channel had no room: checked every 0.2 s of play, full when "
+                "the cap is above 0 and load >= cap or alive >= hard_cap. Averaged over runs: 0.5 = half the runs full the "
+                "whole second, or every run half of it.",
+    "threat": "The crowd's HP x bite a second: the sum over every creature alive (not dying, the boss left out) of its "
+              "max HP x its bite's damage / its bite cadence (contact_cd, 0.6 s for most). Both are the creature's own as "
+              "spawned: stage, HP and damage curves, hero level, creature multipliers, the row's stats, Elite and special.",
+    "power": "The hero's power level (fresh level-1 Drifter = 1): sqrt((full DPS / 20.4) x (effective HP / 100)). hero_dps: "
+             "his full DPS on one target every shot hits; hero_ehp: (max HP + shield + 30 s of regen and lifesteal) / "
+             "((1 - armour) x (1 - evade)).",
+    "challenge": "threat / (hero_dps x hero_ehp) for each run at each second, then the middle run (median) and the 10th "
+                 "to 90th percentile: for one creature, (seconds he needs to kill it) x (its damage a second / his "
+                 "effective HP), summed over the crowd. 0 when the hero's product is 0.",
+    "starving": "For each roster row (the director's key: row:<id>#<index>, else row#<index>), the share of the second "
+                "(0..1, mean over runs) it wanted to spawn and could not, checked every 0.2 s of play: a row in the "
+                "continuous draw, open, weighing above 0, its creature under its max_alive, while its channel had no room "
+                "(the cap above 0 and load >= cap, the hell channel's load >= cap_hell, or alive >= hard_cap); or a paced "
+                "row (waves, once) whose last wave still owes creatures the cap cut.",
+    "life_by": "Seconds a creature lived from its spawn to its death (a kill), over every run: n deaths, mean_s; per stage "
+               "(1, 2, 3, endless) stage_n and stage_mean_s. gone: freed without dying (a stage's clear); open: still "
+               "alive when its run ended; neither is in the mean.",
+}
+
+
+def _overlay_rows(d):
+    """{clock second: row index} for one run's rows in the normal phase (phase 0), binned by floor(clock + 0.5), the later
+    row winning a second two share, a skipped second between two of its rows carrying the row before."""
+    t = d.get("t") or []
+    n = len(t)
+    clock = d.get("clock")
+    phase = d.get("phase")
+    if not isinstance(clock, list) or len(clock) != n or n == 0:
+        return {}
+    ph_ok = isinstance(phase, list) and len(phase) == n
+    m = {}
+    for i in range(n):
+        if ph_ok and int(_num(phase[i])) != 0:
+            continue
+        c = int(math.floor(_clock_s(clock[i]) + 0.5))
+        if c < 0:
+            continue
+        m[c] = i
+    if not m:
+        return {}
+    out = {}
+    prev = None
+    for c in range(min(m), max(m) + 1):
+        if c in m:
+            prev = m[c]
+        out[c] = prev
+    return out
+
+
+def _overlay_value(d, key, i):
+    """A run's value of an overlay series at row i (alive_reg = alive - alive_hell); None when the run has no such series."""
+    n = len(d.get("t") or [])
+    if key == "alive_reg":
+        a, h = d.get("alive"), d.get("alive_hell")
+        if not (isinstance(a, list) and isinstance(h, list) and len(a) == n and len(h) == n):
+            return None
+        return max(0.0, _num(a[i]) - _num(h[i]))
+    arr = d.get(key)
+    if not isinstance(arr, list) or len(arr) != n:
+        return None
+    return _num(arr[i])
+
+
+def _overlay_by(d, name, i):
+    """A run's breakdown at row i as {id: value}: alive_by is the regular channel's (alive_by - alive_hell_by)."""
+    n = len(d.get("t") or [])
+    out = {}
+    bd = d.get(name)
+    if not isinstance(bd, dict):
+        return out
+    hell = d.get("alive_hell_by") if name == "alive_by" else None
+    for k, arr in bd.items():
+        if not isinstance(arr, list) or len(arr) != n:
+            continue
+        v = _num(arr[i])
+        if isinstance(hell, dict):
+            h = hell.get(k)
+            if isinstance(h, list) and len(h) == n:
+                v = max(0.0, v - _num(h[i]))
+        out[str(k)] = v
+    return out
+
+
+def overlay(players):
+    """The Timeline's overlay from the runs `players` [(k, data or None, record)]: every OVERLAY_SERIES, the breakdowns
+    alive_by (regular channel), alive_hell_by and starving (starving_by) and the challenge median on the map's clock
+    seconds 0..C (OVERLAY_RULES["bin"]), life_by summed over the runs, every fall with its clock, the bosses' clock and
+    fight. None when no run has a clock."""
+    runs = []
+    for k, d, rec in players:
+        if not isinstance(d, dict):
+            continue
+        m = _overlay_rows(d)
+        if m:
+            runs.append((k, d, m))
+    if not runs:
+        return None
+    C = max(max(m) for _, _, m in runs)
+    playing = [sum(1 for _, _, m in runs if c in m) for c in range(C + 1)]
+    has = []
+    series = {}
+    for key in OVERLAY_SERIES + OVERLAY_MEDIANS:
+        if not any(_overlay_value(d, key, 0) is not None for _, d, _ in runs):
+            continue
+        has.append(key)
+        med = key in OVERLAY_MEDIANS
+        band = key in OVERLAY_BANDS or med
+        mean, p10, p90 = [], [], []
+        for c in range(C + 1):
+            vals = []
+            for _, d, m in runs:
+                if c in m:
+                    v = _overlay_value(d, key, m[c])
+                    if v is not None:
+                        vals.append(v)
+            if not vals:
+                mean.append(None)
+                if band:
+                    p10.append(None)
+                    p90.append(None)
+                continue
+            sv = sorted(vals)
+            mean.append(_r(pct(sv, 0.5)) if med else _r(sum(vals) / len(vals)))
+            if band:
+                p10.append(_r(pct(sv, 0.1)))
+                p90.append(_r(pct(sv, 0.9)))
+        rec = {"median" if med else "mean": mean}
+        if band:
+            rec["p10"], rec["p90"] = p10, p90
+        series[key] = rec
+    bds = {}
+    for name, out_name, field in (("alive_by", "alive_by", "mean"), ("alive_hell_by", "alive_hell_by", "mean"), ("starving_by", "starving", "share")):
+        ids = set()
+        for _, d, _ in runs:
+            bd = d.get(name)
+            if isinstance(bd, dict):
+                ids.update(str(x) for x in bd.keys())
+        if not ids:
+            continue
+        has.append(out_name)
+        arrs = {i: [] for i in ids}
+        for c in range(C + 1):
+            tot = {i: 0.0 for i in ids}
+            n = 0
+            for _, d, m in runs:
+                if c not in m:
+                    continue
+                n += 1
+                for i, v in _overlay_by(d, name, m[c]).items():
+                    tot[i] += v
+            for i in ids:
+                arrs[i].append(_r(tot[i] / n) if n else None)
+        score = {i: sum(v for v in arrs[i] if v is not None) for i in ids}
+        order = sorted((i for i in ids if score[i] > 0), key=lambda i: (-score[i], i))
+        bds[out_name] = {"order": order, field: {i: arrs[i] for i in order}}
+    # life_by: summed over the runs
+    life = {}
+    for _, d, _ in runs:
+        lb = d.get("life_by")
+        if not isinstance(lb, dict):
+            continue
+        for i, e in lb.items():
+            if not isinstance(e, dict):
+                continue
+            acc = life.setdefault(str(i), {"n": [0] * OVERLAY_STAGES, "s": [0.0] * OVERLAY_STAGES, "gone": 0, "open": 0})
+            ns, ss = e.get("n") or [], e.get("s") or []
+            for st in range(OVERLAY_STAGES):
+                acc["n"][st] += int(_num(ns[st] if st < len(ns) else 0))
+                acc["s"][st] += _num(ss[st] if st < len(ss) else 0)
+            acc["gone"] += int(_num(e.get("gone"), 0))
+            acc["open"] += int(_num(e.get("open"), 0))
+    life_out = {}
+    for i in sorted(life):
+        a = life[i]
+        n = sum(a["n"])
+        life_out[i] = {"n": n, "mean_s": _r(sum(a["s"]) / n) if n else None, "stage_n": a["n"],
+                       "stage_mean_s": [_r(a["s"][st] / a["n"][st]) if a["n"][st] else None for st in range(OVERLAY_STAGES)],
+                       "gone": a["gone"], "open": a["open"]}
+    if life_out:
+        has.append("life_by")
+    # every fall, the bosses' clock and fights
+    deaths = []
+    bosses = {}
+    for k, d, _ in runs:
+        occ, cur = {}, {}
+        for e in d.get("events") or []:
+            if not isinstance(e, dict):
+                continue
+            kind = str(e.get("kind", ""))
+            if kind == "death":
+                deaths.append({"clock": _r(_clock_s(e.get("clock"))), "t": _r(_num(e.get("t"))), "killer": str(e.get("killer") or ""), "run": k})
+            elif kind == "boss_start":
+                bid = str(e.get("id") or "boss")
+                nn = occ.get(bid, 0)
+                occ[bid] = nn + 1
+                cur[bid] = (nn, _num(e.get("t")))
+                b = bosses.setdefault((bid, nn), {"clock": [], "fights": [], "n": 0, "beaten": 0})
+                b["clock"].append(_clock_s(e.get("clock")))
+                b["n"] += 1
+            elif kind == "boss_end":
+                bid = str(e.get("id") or "boss")
+                if bid in cur:
+                    nn, t0 = cur.pop(bid)
+                    b = bosses.setdefault((bid, nn), {"clock": [], "fights": [], "n": 0, "beaten": 0})
+                    b["beaten"] += 1
+                    b["fights"].append(_num(e.get("t")) - t0)
+    deaths.sort(key=lambda x: (x["clock"], x["run"]))
+    blist = [{"id": bid, "occurrence": nn + 1, "clock": _r(_medians(b["clock"])), "fight_s": _r(_medians(b["fights"])),
+              "n": b["n"], "beaten": b["beaten"]} for (bid, nn), b in bosses.items()]
+    blist.sort(key=lambda b: (b["clock"] if b["clock"] is not None else 1e9, b["id"], b["occurrence"]))
+    rows = next((d.get("meta", {}).get("rows_played") for _, d, _ in runs if isinstance(d.get("meta", {}).get("rows_played"), list)), [])
+    return {"schema": OVERLAY_SCHEMA, "C": C, "runs": len(runs), "has": has, "playing": playing, "series": series,
+            "alive_by": bds.get("alive_by", {"order": [], "mean": {}}), "alive_hell_by": bds.get("alive_hell_by", {"order": [], "mean": {}}),
+            "starving": bds.get("starving", {"order": [], "share": {}}), "rows": rows, "life_by": life_out, "deaths": deaths,
+            "bosses": blist, "rules": dict(OVERLAY_RULES)}
+
+
+def write_overlay(folder, players):
+    """overlay.json beside result.json (overlay(); removed when no run has a clock): the Timeline's data."""
+    path = os.path.join(folder, "overlay.json")
+    ov = overlay(players)
+    if ov is None:
+        if os.path.isfile(path):
+            os.remove(path)
+        return None
+    write_json(path, ov)
+    return ov
+
+
 def aggregate(players, settings, meta=None, game_dir=None):
     """`players`: [(k, data or None, record)] (record: {k, seed, end_reason, end_t, wall_s, problem}). The result dict
     (the rules: the module doc, balancing_SIMUI.md)."""
@@ -2153,6 +2413,7 @@ class Batch:
             res["bot"] = bb
         write_json(os.path.join(self.out, "result.json"), res)
         write_json(os.path.join(self.out, "head.json"), head_of(res))
+        write_overlay(self.out, ps)   # pass 84 (lane SIMVIEW): the Timeline's overlay
         self.result_players = len(ps)
         self.say("sim: result.json written (%s%d of %d runs)" % ("partial: " if partial else "", len(ps), len(self.players)))
         return res
@@ -2249,6 +2510,7 @@ def reaggregate(folder, log=print):
         res["bot"] = bb
     write_json(os.path.join(folder, "result.json"), res)
     write_json(os.path.join(folder, "head.json"), head_of(res))
+    write_overlay(folder, ps)   # pass 84 (lane SIMVIEW)
     log("sim: result.json written again from %d players" % len(ps))
     return res
 

@@ -660,6 +660,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 53: explicit wave windows on top of the roster (docs/waves_schema.md), read by WaveDirector as plain dictionaries
 	var wv = t.get("waves", [])
 	w.waves = wv if wv is Array else []
+	# pass 84 (lane SPAWN): the density floor [[t, n], ...] (WaveDirector._floor_fill; [] = none)
+	var flc = t.get("floor_curve", [])
+	w.floor_curve = flc if flc is Array else []
 	var pk = t.get("pickups", {})
 	w.pickups = pk if pk is Dictionary else {}
 	var stc = t.get("structures", {})

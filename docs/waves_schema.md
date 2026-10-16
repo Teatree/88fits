@@ -759,3 +759,134 @@ localStorage `88fits-editor-window`; `Timeline.setWindow(n)`, `Timeline.winSecs`
 
 Removed: the Timeline's Share lane (FIELDS.LANES `share`, timeline.js renderShare / shareCard, inspector.js shareForm,
 App.select kind `share`, its CSS).
+
+## Pass 84: one spawning language
+
+### Rows, the floor, the converter (lane SPAWN)
+
+#### Roster row (`timeline_data.roster[]`): new keys (every older key unchanged)
+| key | type | default | meaning |
+|---|---|---|---|
+| `pace` | "continuous" \| "waves" \| **"once"** | "continuous" | "once": one wave at `t` + `offset`, `count` creatures (default `pack`, else the creature's pack size). Once rows stay out of the mix (see below). |
+| `every` | number \| **[min, max]** | 30 | waves row's gap. [min, max]: a fresh random gap each wave (a timer: the next wave is that gap after the one it fired). The editor's etches and the estimate use the middle. |
+| `enemy` | id \| **[ids]** \| **"roster"** | | a list: one creature per wave (per draw for a continuous row) drawn by `enemy_weights`; "roster": each creature drawn from the mix rows live at that second by their creature's `elite_weight` (the coloured-elite draw), coming with that row's variant, stats and fixed numbers unless this row sets its own `variant` / `stats`. |
+| `enemy_weights` | [numbers] | evenly | the list's pick weights, parallel to `enemy` (an entry past their end weighs 1, 0 never comes). **Not `weights`**: on a row `weights` is the presence keyframes [[t, w], ...] (pass 54), so the events' pick list is `enemy_weights` on a row. |
+| `elite` | "" \| "random" \| modifier id | "" | every creature of the row wears it. Without a `pattern`: each of `count` is one coloured-elite *arrival* (WaveDirector._spawn_elite: alone, as its pack or a ring by the creature's `elite_formats`, the "MOD NAME" toast), ignoring the cap and the hard cap like the events. With a `pattern`: `count` creatures in that pattern, each wearing it, under the row's respect_cap. Waits for colour (`colour_after_kills`): an elite wave asks again each second; a continuous elite row is out of the draw until then. An elite paced row is a timer whose gap Hot Sauce shortens (elite_pace). |
+| `special` | bool | false | every creature comes as its coloured variance special (EnemyManager.force_special), colour or not; no banner unless `banner`. |
+| `banner` | text | "" | a toast (the swarm orange) the first time a wave brings anything ("SWARM!"). |
+| `ring_radius` | m | none | pattern "ring" with a radius: the classic even ring of that radius round the hero (EnemyManager.spawn_ring, the swarm event's; converted swarms 16). Without it a ring row is the thick band at 11.7 m (pass 57). |
+| `respect_hard_cap` | bool | true | false: the row's waves come on top of the map's hard_cap too, stopped only by the body limit (EnemyManager.MAX 320), as the swarm events did. Read by every paced row (pass 81's too). Converted swarms carry false. |
+| `chance` | 0..1 | 1 | a once or waves row's roll per run (skipped when it fails), as an event's chance. |
+| `t_jitter` | s | 0 | a once or waves row moves by a draw inside +- this per run (never before 0), as an event's. |
+| `role` | "fodder" \| "swarm" \| "tank" \| "ranged" \| "elite" \| "special" \| "" | "" | the editor's colour and grouping only; the game ignores it. |
+| `name` | text | | a label; the game ignores it. |
+
+**The mix**: a row that names one creature by its id, has no `elite`, no `special` and is not `once`
+(WaveTimeline.row_in_mix). Only the mix is read where the game asks "who is on the roster now": the portal wave, a
+coloured Elite's candidates (the "roster" draw), and the pass 58 join (an event's / once row's numbers from the row that
+brings the same creature then).
+
+**Numbers** (pass 58's R1 kept): a mix row's creatures are fixed from its start (as before); a list row's each creature
+from the row's start (key `row:<id>#<k>|<creature>`); a "roster" creature plays its drawn row's numbers; a **once** row
+takes the event rule (the moment it fires, or a mix row's that brings the same creature and look then: what a swarm did).
+
+#### Map keys
+| key | type | default | meaning |
+|---|---|---|---|
+| `floor_curve` | [[t, n], ...] | [] (none) | the density floor: while fewer than n creatures are alive on the regular channel the director draws the regular continuous rows at once, every frame (not waiting for the spawn check), a pack at a time by weight, each cut to the lack, the cap's room and the hard cap; at most 64 a frame. Absent = today's play. Linear between points, flat outside (sample_points). |
+
+#### Events
+Events keep only `boss` and `elite_boss`. An old map's `swarm` / `elite` / `elite_every` events and `waves[]` still play
+in the game exactly as before; the Level Editor converts them to rows on load (Model.convertLegacy) and saves rows;
+`python tools/migrate_timeline.py --map <id> [--write | --check]` does the same to a file.
+
+#### Conversion (Model.convertLegacy == migrate_timeline.convert_legacy)
+- swarm -> {name (event's, else "Swarm"), t, enemy (a list keeps `enemy_weights` from the event's `weights`), variant,
+  weights [[t, 1]], pace "once", count (default 40), pattern (pack / scatter / in_front as given, else "ring" +
+  ring_radius 16), pack (pattern pack: the event's pack, else the count: one point), respect_cap false,
+  respect_hard_cap false, special true or
+  banner "SWARM!", chance, t_jitter, role "special" | "swarm", stats}
+- elite -> {name "Coloured elite", t, enemy (or "roster"), weights, pace "once", count 1, respect_cap false, elite (mod or
+  "random"), role "elite", stats ...}
+- elite_every -> as elite with pace "waves", every = interval (number or [min, max]; default 90), name "Elites every".
+- waves[] entry -> one row per alternative: pace "waves" (every > 0: every, count = burst, until = t + every x
+  ceil(count / burst) and/or its until) or "once" (count = burst, cut to its count), pattern, pack, respect_cap,
+  channel, elite, banner = toast, chance = the alternative's share when it has several, stats. Notes say what differs.
+- Rows appended after the roster with fresh ids r<n>; a map with nothing to convert is untouched.
+
+#### Model.js API (lane TIMELINE)
+See status_SPAWN.md "FORMAT READY".
+
+### The Timeline tab (lane TIMELINE)
+
+No new game keys of its own: the row keys are lane SPAWN's (keys_SPAWN.md); the Level Editor edits all of them.
+
+#### Map keys the editor now edits
+| key | type | default | where |
+|---|---|---|---|
+| `floor_curve` | [[seconds, creatures], ...] | none | Settings → Cap (field type `floor_points`), the Curves → Floor lane (drag, double-click), its inspector |
+| roster row `pace` "once", `every` [min, max], `enemy` list / "roster", `enemy_weights`, `elite`, `special`, `banner`, `ring_radius`, `chance`, `t_jitter`, `role`, `name` | see keys_SPAWN.md | | the row form (inspector groups Schedule, Creature, Where and how) |
+
+#### Overrides the row form gained (all read by EnemyDef.with_overrides already)
+`size_mult`, `radius_mult`; `ranged.keep_distance|telegraph|damage|splash|count|cone_deg|knockback`;
+`charge.windup|duration|trigger_range|knockback`; `kamikaze.trigger|windup|radius|damage|knockback`;
+`artillery.stand_off|windup|reload|missile.speed|missile.turn|missile.damage|missile.area`;
+`sniper.stand_off|first|aim|lock|interval|spoil_on_hit`; `flee_on_hit.seconds|speed_mult|interrupts`.
+Not overridable per row (the game reads them from the creature only): `brain`, `death_burst`, `caster`, burrowing.
+
+#### Page settings (localStorage, never written to the map)
+| key | what |
+|---|---|
+| `88fits-editor-sections-<map>` | collapsed sections, spawn-row groups (`group:<key>`) and open recipe boxes (`how:<id>`) |
+| `88fits-editor-tlprefs` | group rows by, colour rows by, composition mode and source, challenge measure |
+| `88fits-editor-zones84` | the Challenge zone limits per measure |
+| `88fits-editor-sim-<map>` | the Sim shown ('-' = none) |
+| `88fits-editor-simlife` | the estimate takes the Sim's lifetimes |
+| `88fits-editor-insp-folded` | the inspector folded |
+| `88fits-editor-igroups` | the row form's open groups |
+
+#### New files
+- tools/level_editor/timeline_model.js (page-free; `TimelineModel`), loaded after model.js, before timeline.js.
+- tools/level_editor/selftest_TIMELINE84.py.
+
+### The Sim's overlay (lane SIMVIEW)
+
+No content or map key: everything is tool output. Definitions: balancing_SIMVIEW.md. The route's shape:
+status_SIMVIEW.md "OVERLAY READY".
+
+#### A player's JSON (game/tools/sim_run.gd; schema stays 1, additions only; tools/dl/p77/keys_SIMRUN.md's table grows)
+| Key | Type | Meaning |
+|---|---|---|
+| `alive_hell` | series int | creatures alive on the hell channel |
+| `load`, `load_hell` | series float 0.1 | the regular / hell channel's crowd in cap units (each its cap_share) |
+| `cap_hell` | series float 0.1 | hell_cap_at(stage) x the cap |
+| `hard_cap` | series int | the map's body limit |
+| `cap_full` | series 0..1 (0.01) | share of the second's checks (every 0.2 s of play) the regular channel had no room |
+| `threat` | series float 1 | sum of max_hp x bite / contact_cd over the creatures alive, the boss left out |
+| `hero_dps`, `hero_ehp` | series float 0.1 | HeroPower full DPS and effective HP |
+| `challenge` | series float 0.001 | threat / (hero_dps x hero_ehp) |
+| `alive_hell_by` | {id: [int]} | alive on the hell channel by creature |
+| `starving_by` | {row key: [0..1 (0.01)]} | share of the second's checks the row starved |
+| `life_by` | {id: {n: [4 ints], s: [4 floats], gone, open}} | deaths and seconds lived per stage slot (1, 2, 3, after) |
+| `meta.rows_played` | [{key, k, id, enemy, t, until, channel, pace}] | the roster as played (`meta.rows` stays the row count) |
+| `meta.simview_ms` | float | the sampler's cost, ms of wall time a second of play |
+
+#### A sim folder
+| File | Meaning |
+|---|---|
+| `overlay.json` | sim_batch.py overlay(): the runs by clock second (status_SIMVIEW.md's `overlay` block, without `names`/`top`) |
+
+#### result.json (sim_batch.py aggregate(), sim_avg.js aggregate())
+`series.threat` gains p10/p90; `series.challenge` is {median, p10, p90, n}; `breakdowns.alive_hell_by` and
+`breakdowns.starving_by` (kind "level"); the other new series are plain means.
+
+#### Route
+`GET /api/sim/overlay?map=<id>[&id=<sim>][&top=N]` (tools/level_editor/sim_io.py overlay_record): always 200;
+`{ok: true, sim: {...}, overlay: {...}}` or `{ok: false, reason}`.
+
+#### Page modules
+- tools/level_editor/sim_avg.js: `SimAvg.overlay(players)` (players [{k, d, rec}]), `SimAvg.overlayRows(d)`,
+  `OVERLAY_SERIES`, `OVERLAY_BANDS`, `OVERLAY_MEDIANS`, `OVERLAY_RULES` (the definitions' text).
+- tools/level_editor/sim_model.js: the Sim tab's "The crowd against the cap" draws `load` (dotted) when the sim has
+  it; new charts `cap_full` ("Cap full", % of the second) and `challenge` ("The crowd against the hero", median + band)
+  when the sim has them (older sims: unchanged chart list).

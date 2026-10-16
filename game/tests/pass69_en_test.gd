@@ -270,14 +270,23 @@ func test_the_glow_is_the_creatures_or_the_maps_and_reaches_the_shader() -> void
 ## The map's forced-special events (read from the file: Garry may move it in the Level Editor).
 func _special_events() -> Array:
 	var tl: Dictionary = _json("res://content/maps/red_canyon/red_canyon.json")["timeline_data"]
-	return (tl["events"] as Array).filter(func(e: Dictionary) -> bool: return bool(e.get("special", false)))
+	# pass 84 (lane SPAWN, re-pinned): the special Goblin is a "once" row with `special` now (an old map's event still counts)
+	var out: Array = (tl["events"] as Array).filter(func(e: Dictionary) -> bool: return bool(e.get("special", false)))
+	out.append_array((tl["roster"] as Array).filter(func(r: Dictionary) -> bool: return bool(r.get("special", false)) and str(r.get("pace", "")) == "once"))
+	return out
+
+
+## The director's events and its rows' waves (an event or a once row), at the clock as it stands.
+func _tick(d: WaveDirector) -> void:
+	d._process_events()
+	d._tick_row_waves()
 
 
 func test_red_canyon_has_one_special_goblin_at_the_end_of_the_first_wave() -> void:
 	var evs := _special_events()
 	assert_int(evs.size()).is_equal(1)
 	var ev: Dictionary = evs[0]
-	assert_str(str(ev["type"])).is_equal("swarm")
+	assert_bool(str(ev.get("type", "")) == "swarm" or str(ev.get("pace", "")) == "once").is_true()
 	assert_str(str(ev["enemy"])).is_equal("red_goblin")
 	assert_int(int(ev["count"])).is_equal(1)
 	# (pass 72, lane SPEC, re-pinned: Garry rebuilt stage 1 in the Level Editor (the red goblins' row now 2:03-4:05, a
@@ -288,6 +297,7 @@ func test_red_canyon_has_one_special_goblin_at_the_end_of_the_first_wave() -> vo
 	assert_float(float(ev["t"])).is_less_equal(float(tl.get("stage_length", 430.0)))
 	# the .tres the game plays carries it
 	var played: Array = Registry.map("red_canyon").timeline.events.filter(func(e: Dictionary) -> bool: return bool(e.get("special", false)))
+	played.append_array(Registry.map("red_canyon").timeline.roster.filter(func(r: Dictionary) -> bool: return bool(r.get("special", false)) and str(r.get("pace", "")) == "once"))
 	assert_int(played.size()).is_equal(1)
 
 
@@ -299,7 +309,11 @@ func test_the_forced_special_spawns_once_at_its_second_x10_x2_x125_without_a_ban
 	var ev: Dictionary = (_special_events()[0] as Dictionary).duplicate(true)
 	var at := float(ev["t"])
 	var tl: WaveTimeline = real.duplicate(true)
-	tl.events = [ev]
+	if ev.has("pace"):
+		tl.roster = [ev]
+		tl.events = []
+	else:
+		tl.events = [ev]
 	tl.waves = []
 	var d: WaveDirector = auto_free(WaveDirector.new())
 	d.game = g
@@ -314,12 +328,12 @@ func test_the_forced_special_spawns_once_at_its_second_x10_x2_x125_without_a_ban
 	d._apply_mults()
 	em.colour_after_kills = 50
 	Run.elapsed = at - 1.0
-	d._process_events()
+	_tick(d)
 	assert_int(em.count_alive).is_equal(0)
 	Run.elapsed = at
 	d._apply_mults()
 	em.colour_after_kills = 50
-	d._process_events()
+	_tick(d)
 	assert_int(em.count_alive).is_equal(1)
 	var i := -1
 	for k in range(EnemyManager.MAX):
@@ -343,12 +357,11 @@ func test_the_forced_special_spawns_once_at_its_second_x10_x2_x125_without_a_ban
 	assert_bool(em.force_special).is_false()
 	# once: a second later nothing more comes
 	Run.elapsed = at + 1.0
-	d._process_events()
+	_tick(d)
 	assert_int(em.count_alive).is_equal(1)
 	# and the same event without the flag is a plain swarm again: no special, a banner
-	var plain_ev := ev.duplicate(true)
-	plain_ev.erase("special")
-	plain_ev["count"] = 3
+	var plain_ev := {"t": at, "type": "swarm", "enemy": ev["enemy"], "variant": ev.get("variant", ""), "count": 3,
+		"pattern": ev.get("pattern", "in_front")}
 	em.kill_all(false)
 	d._run_event(plain_ev)
 	var specials := 0

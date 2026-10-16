@@ -5,7 +5,11 @@ func test_desert_roster_has_seven_creatures_and_the_elite() -> void:
 	var m: MapDef = Registry.map("red_canyon")
 	var ids: Array = []
 	for r in m.timeline.roster:
-		ids.append(str(r["enemy"]))
+		# pass 84 (lane SPAWN, re-pinned): a row may name a list of creatures or "roster" (the Elites-every row)
+		if r["enemy"] is Array:
+			ids.append_array(r["enemy"])
+		elif str(r["enemy"]) != WaveTimeline.ROW_ENEMY_ROSTER:
+			ids.append(str(r["enemy"]))
 	# the sand lizard is hidden since pass 34 (its row went to the runts, ants and armadillos); pass 45: the skeletons
 	# took the goblins' two rows; pass 54: on the roster or in a swarm (Garry's placement in the Level Editor brings the
 	# fire ants in the swarms only)

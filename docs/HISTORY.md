@@ -2399,3 +2399,107 @@ estimate), timeline.js, index.html, fields.js, inspector.js, app.js, style.css, 
 `game/tests/pass83_timeline_test.gd` (7), `tools/level_editor/selftest_TIMELINE83.py` (47 checks). docs/level_editor.md
 needs: the Timeline tab's Share lane paragraph out; the roster lane's etches (draw ticks, dotted under 3 px); the window
 box; the readout's "Spawned in the past N s"; the cards; the row form's Draw every; waves_schema.md: `interval` (keys_TIMELINE.md).
+
+**Pass 84 (2026-10-16, v0.70): the Timeline change, every creature's shadow.** Garry approved the lead's critique of the spawning system and asked to build it (tools/dl/p84/REQUEST.md), with his notes: keep every spawning option and add controls rather than remove them, every per-row override editable in the Timeline, charts that say plainly what they are made of, collapsible sections with an obvious collapsed state, a subtle mark for view-only vs editing sections, and every spawning change in the game and the sims. The commit before is e158f49 "before LevelEditor Timeline change". Three lanes (tools/dl/p84/INTERFACES.md): SPAWN (rows learn the events' tricks, Red Canyon migrated and proven with 20-run sims), TIMELINE (the tab rebuilt), SIMVIEW (the Sim's per-second overlay). Then Garry: "The shadows on the enemies seem to have started to break": the lead found the pass-60s budget (70 shadows within 10 m) that Garry's bigger crowd had exposed, and gave every creature on screen its shadow.
+
+**Lane SPAWN: one spawning language.** Garry agreed there were too many ways to spawn the same thing (continuous rows,
+rows paced as waves, waves[], swarm events, coloured elites, Elites every, the specials clock, the portal wave, the hell
+channel) but wanted every option kept ("better add too many controls than too few"). The roster row became the one
+way: `pace` gained "once" (one wave at t + offset), `every` may be [min, max] (a timer: a fresh gap after each wave),
+`enemy` may be a list (with `enemy_weights`: a row's `weights` were already its presence keyframes) or "roster" (each
+creature drawn from the rows live then by elite_weight, the coloured-elite draw), and a row may carry `elite` (the
+coloured-elite arrivals, waiting for colour, Hot Sauce on their clock), `special` (all forced specials), `banner` (a
+toast as a wave comes), `ring_radius` (the swarm's classic even ring), `chance` and `t_jitter` (rolled once a run), and
+the editor's `role` and `name`. Rows that are not "the mix" (one creature by id, no elite, no special, not once) stay out
+of the portal wave, the Elites' candidates and the pass 58 join, so a swarm that became a row plays as its event did
+(the same spots, numbers and dice: pass84_spawn_test plays both side by side). A map may set `floor_curve`, the density
+floor: the regular continuous rows are drawn at once while the crowd is under it, within the cap and the hard cap.
+Old maps' swarm / elite / elite_every events and waves[] still play through their own code; `Model.convertLegacy`
+(the page converts on load) and `tools/migrate_timeline.py` (files) turn them into rows, and Red Canyon was migrated
+(its five swarms and Elites every are rows r6 r7 r8 r9 r17 r53; a backup in tools/level_editor/backups/). The editor's
+estimate (model.js spawnEstimate and its Python twin in selftest.py) plays every new key, takes the Sim's creature
+lifetimes (`opts.life`), and gives per second the cap, the load, the floor, the share of spawn checks the cap was full,
+who is alive by creature and which rows starved (`Model.estimateSeries`); `Model.creatureDifficulty` (GDScript twin
+WaveDirector.shown_numbers) is the one HP / ATK shown per row and second. Lessons: a row's `weights` already meant
+presence, so the events' pick weights could not keep their name; a jumped clock (smoke_run, hell_check) would have fired
+every once row it skipped, so a once row more than 2 s late is dropped like a skipped event; same-seed sims are not
+bit-identical (they part within a few minutes whatever changed), so the proof is statistical (20 runs each), with the
+director's own `spawn84` log lines to count the swarms and Elites exactly.
+
+**Pass 84, lane TIMELINE: the Timeline in sections.** Garry asked for the lead's Timeline design with his notes: keep and
+add controls ("better add too many controls than too few"), charts that say plainly what they are made of, collapsible
+sections whose collapsed state is obvious, a subtle mark for view-only vs editing sections, every per-row option
+(stats, colour, behaviour) editable in the Timeline. The tab is now a stack of nine sections (Ruler and controls, On
+screen, Challenge, Composition, Spawned so far, Spawn rows, Events, Curves, Warnings; FIELDS.SECTIONS), each a bar with
+a chevron, an eye (view only, a recessed darker background) or a pencil (editing), its name, a line of what it is and
+its controls; collapsed, the bar stays in place hatched with a dashed frame, a summary ("peak 260 alive at 1:53 · cap
+full 15 times") and "collapsed: click to open" in yellow; per-map state in the browser, Collapse all / Open all; the
+inspector folds to a hatched strip. New view lanes from the estimate (lane SPAWN's per-second aliveBy / cap / load /
+full / starve) and the Sim (lane SIMVIEW's /api/sim/overlay plus result.json's keep_up): On screen (alive per second,
+the hell channel on top, the cap turned into bodies at the crowd's mix, the floor, red where the cap is full with the
+starving rows on hover), Challenge (seconds of the hero's damage to clear the screen = crowd HP ÷ his DPS, or health bars
+lost clearing it = HP × bite ÷ (DPS × EHP), the Sim's `challenge`; zones per measure; the Sim's line and deaths; with no
+Sim a typical hero 20.4 × power², EHP 100, because the Sims show his effective HP barely grows), Composition (% of the
+crowd by creature, on screen or spawned in the past N s, estimate or Sim). Each has "What is this?", a legend naming
+every line and a "How it is worked out" box (tools/level_editor/timeline_model.js RECIPES, page-free and Node-tested).
+Spawn rows are grouped by stage / role / both / none (each group folds to a band with its rows as thin lines), coloured
+by role (or creature), and say how many and how often (≈N/min from the estimate, "12 every 60–90 s", "once 24"), their HP
+and ATK in play at the start (Model.creatureDifficulty) and badges (elite, special, banner, pattern, ring radius, hell,
+no cap); + Row offers continuous, waves, once (a swarm), a coloured elite, Elites every, a special; Suggest roles fills
+untagged rows. The inspector shows a row in folding groups (Schedule, Creature with one / list with enemy_weights /
+roster draw, Where and how, Presence, In the estimate with a mini-chart of its spawns a second and its HP over its life,
+Overrides with every block the game deep-merges: Body + Size × / Radius ×, Ranged and Charge in full, Kamikaze,
+Artillery, Sniper, Flee on hit), with Split at <cursor> and → once / waves / continuous. Events keep bosses and Elites,
+with the portal after each boss marked (its settings on a click). Curves gain the Floor lane (floor_curve: drag, double-
+click, + Floor). Warnings list the estimate's findings with Go to (cap full and who starves, rows that never spawn or
+never make 1% in any 10 s, the crowd's HP doubling in a second, a floor above the cap, identical rows overlapping). The
+map converts an old file's swarm / elite / Elites-every events and waves[] to rows on load (lane SPAWN's convertLegacy);
+a map with nothing old is left byte for byte (no churn). Validation learned the new keys. Tests: selftest_TIMELINE84.py
+(113 checks), PACE81 re-pinned (Pacing offers Once, Every is an interval).
+
+#### docs/level_editor.md
+Added the section "Pass 84: the Timeline in sections, one way to spawn" (written by the lane; the lead may trim).
+
+Garry's new Timeline (lane TIMELINE) draws what a Sim really did on the map's own clock: how many creatures were up on
+each channel against the cap, how full the cap was and which roster rows wanted to spawn and could not, the crowd's
+threat against the hero, and how long each creature lives (lane SPAWN's estimate reads that).
+
+- **game/tools/sim_run.gd**: a sampler of its own (the `_sv_*` functions at the end, three hook lines), reading the game
+  without changing it: one entry per recorder row of alive_hell, load, load_hell, cap_hell, hard_cap, cap_full (a share
+  of the second, checked every 0.2 s of play), threat (sum of max HP x bite a second, the boss left out), hero_dps,
+  hero_ehp, challenge (threat / (DPS x effective HP)); the breakdowns alive_hell_by and starving_by (rows by the
+  director's keys); life_by (deaths and seconds lived per creature and stage: births from EnemyManager.serial, deaths
+  from creature_dying); meta.rows_played (the roster as played) and meta.simview_ms (its cost).
+- **tools/sim_batch.py** and its twin **tools/level_editor/sim_avg.js**: the play-second aggregate keeps the new series
+  (threat banded, challenge a median, the two breakdowns); overlay() averages the runs by CLOCK second (the boss fight
+  and the portal wait, which freeze the clock, left out) into overlay.json beside result.json.
+- **tools/level_editor/sim_io.py**: GET /api/sim/overlay?map=<id>[&id=<sim>][&top=N]: the newest finished real Sim of the
+  map (or one by id) for the Timeline; an older sim is worked out from its players' files (alive, cap, power, level and
+  who is alive); creatures past the top N folded into Other; `stale` when the map was saved since.
+- **tools/level_editor/sim_model.js**: the Sim tab's "The crowd against the cap" also draws the load the cap counts
+  (dotted); new charts "Cap full" and "The crowd against the hero" for sims that carry them.
+- Tests: tools/level_editor/selftest_SIMVIEW84.py, game/tests/pass84_simview_test.gd.
+
+For docs/level_editor.md (the lead): a short "Pass 84: the Sim on the Timeline" paragraph: what the overlay's lines
+mean (status_SIMVIEW.md "What each one is"), that it shows the newest finished Sim of the map and says when the map was
+saved after it, and that a Sim from before pass 84 shows only the alive count, the cap, the hero's power and who is
+alive.
+
+#### The proof (2026-10-16)
+10 runs of Red Canyon (the map as saved before SPAWN's migration, sha 979fcc8ee483), Drifter, a quarter of the board,
+death keep, 25:00 of play, on a private snapshot: 25:31 wall, 2.5 s of play a second a run at 6 at once.
+- Alive never above the hard cap (260) but for ONE second in one run (262): splits and summons are not under the
+  director's hard cap (a game fact, not the sampler's).
+- cap_full: 200 to 894 of ~1,150-1,310 normal seconds a run sat full at least half the second; of those only 1-51 had
+  the load under 90 % of the cap at the sample (they were full on BODIES: early in stage 1 the 260-body hard cap binds
+  before the 135 load cap, the fodder counting half). Seconds at the cap with 0 % full: 0-2 a run.
+- Starving: the rows starving most are r25 (index 17), r29-r34 (stage 2-3 rows); a strong run (level 57-68) starves
+  mostly r1 (index 0, the opening goblins).
+- life_by (mean seconds from spawn to death, stage 1 / 2 / 3 / after): werewolf 23.8 / 17.7 / 7.8 / 6.9, skeleton
+  55.1 / 20.4 / 14.1, skeleton knight 58.1 / 38.5 / 12.0 / 8.7, red goblin 28.5 / 18.4 / 24.2, imp (hell) 9.4 / 5.8,
+  hellhound 12.7 / 7.6, armadillo 40.9 / 18.3, Tumbleweed King 87.5 (includes his walk-in); the long-range ones live
+  long (rocketeer ~690 s: they sit off-screen).
+- Bosses on the clock: King 430 (fight 71 s median, 10/10 beaten), Gila 860 (129.6 s, 10/10), Brander 1290 (48.2 s,
+  5 reached, 2 beaten by 25:00).
+- challenge (median over the run): 2.1 to 48; threat peaks 30-76 million (HP x damage a second).
+- The sampler's cost: 3.5 to 4.9 ms of wall time a second of play (about 1 % of a run's wall time).

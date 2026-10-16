@@ -45,6 +45,9 @@ const Inspector = (() => {
     else if (sel.kind === 'cap') capForm(container);
     else if (sel.kind === 'hp') curveForm(container, 'hp_curve');
     else if (sel.kind === 'dmg') curveForm(container, 'damage_curve');
+    // pass 84 (lane TIMELINE): the floor curve and the portal after a boss
+    else if (sel.kind === 'floor') floorForm(container);
+    else if (sel.kind === 'portal') portalForm(container);
     else if (sel.kind === 'specials') blockForm(container, 'Specials', 'the specials\' clock: one at a time, a random interval after the last one dies', Forms.specialsBlock(App.tl()), 'specials');
     else if (sel.kind === 'paths') blockForm(container, 'Mutation offers', 'when each stage\'s mutation offers fall due: each comes at the hero\'s next level-up, in place of the three cards', Forms.pathTimesBlock(App.tl()), 'paths');
     else if (sel.kind === 'pickups') blockForm(container, 'Power-up drops', 'what kills drop and how often', Forms.pickupsBlock(App.tl()), 'pickups');
@@ -748,37 +751,82 @@ const Inspector = (() => {
 
   // ------------------------------------------------------------------ roster
 
+  // pass 84 (lane TIMELINE; Garry: "spawning options are important to me ... better add too many controls than too few";
+  // "I really like the ability to modify the enemy by the stats that they have, the colouring, the behaviour, the
+  // everything in the timeline itself"): a spawn row's form in groups that fold (each remembered), every field with its
+  // help: Schedule, Creature, Where and how, Presence, In the estimate (its numbers and a mini-chart), Overrides.
+  const ROW_GROUPS = [
+    { id: 'schedule', name: 'Schedule', kind: 'edit', keys: ['t', 'until', 'pace', 'every', 'count', 'offset', 'respect_cap', 'trickle', 'interval', 'chance', 't_jitter'], help: 'when its creatures come: continuous (drawn into the cap), waves every N s, or once' },
+    { id: 'creature', name: 'Creature', kind: 'edit', keys: ['name', 'enemy', 'variant', 'role', 'elite', 'special'], help: 'who comes: one creature, a list, or the roster draw; its look, its role, an elite modifier, special' },
+    { id: 'where', name: 'Where and how', kind: 'edit', keys: ['pattern', 'ring_radius', 'channel', 'pack', 'banner'], help: 'where they spawn round the hero, which cap they count against, the banner' },
+    { id: 'presence', name: 'Presence', kind: 'edit', keys: ['weights'], help: 'its weight over the run clock (the filled area on its bar)' },
+    { id: 'estimate', name: 'In the estimate', kind: 'view', keys: [], help: 'its numbers at its start and what the estimate says it brings' },
+  ];
+  const IGROUP_KEY = '88fits-editor-igroups';
+  let igroupState = {};
+  try { const v = JSON.parse(localStorage.getItem(IGROUP_KEY) || 'null'); if (v && typeof v === 'object') igroupState = v; } catch (_) { /* all open */ }
+
+  /** A foldable group of the row form: its mark (eye: shows; pencil: edits), its name, a line of what it holds. */
+  function igroup(g, sub) {
+    const det = el('details', { class: `igroup kind-${g.kind}`, 'data-igroup': g.id });
+    det.open = igroupState[g.id] !== false;
+    det.addEventListener('toggle', () => { igroupState[g.id] = det.open; try { localStorage.setItem(IGROUP_KEY, JSON.stringify(igroupState)); } catch (_) { /* fine */ } });
+    det.appendChild(el('summary', { title: g.help }, el('span', { class: `kmark kmark-${g.kind} small`, title: g.kind === 'view' ? 'view only: worked out from the map and the estimate' : 'editing' }, U.glyph(g.kind === 'view' ? 'eye' : 'pencil')), g.name, el('span', { class: 'igroup-sub', text: sub || g.help })));
+    const body = el('div', { class: 'igroup-body' });
+    det.appendChild(body);
+    return { det, body };
+  }
+
   function rosterForm(container, r, i) {
     const key = `roster:${i}`;
     const rows = App.tl().roster || [];
-    const title = () => `${App.creatureName(r.enemy)} · ${fmtT(r.t)} → ${r.until == null ? 'end' : fmtT(r.until)}`;
-    const titleEl = header(container, 'Roster row', title(), key, [
+    const pace = TimelineModel.paceOf(r);
+    const title = () => `${r.name ? r.name + ': ' : ''}${Timeline.enemyWords(r)} · ${fmtT(r.t)} → ${r.until == null ? 'end' : fmtT(r.until)}`;
+    const cutT = Timeline.cursorT;
+    const tEnd = r.until == null || r.until === '' ? App.viewEnd() : Number(r.until);
+    const canSplit = cutT != null && cutT > (Number(r.t) || 0) && cutT < tEnd;
+    const titleEl = header(container, 'Spawn row', title(), key, [
       { text: '▲', title: 'move the row up (Alt+↑): the order is for this page only, the game draws by weight', disabled: i === 0, cls: 'order', onclick: () => App.moveRow(i, -1) },
       { text: '▼', title: 'move the row down (Alt+↓)', disabled: i >= rows.length - 1, cls: 'order', onclick: () => App.moveRow(i, 1) },
       ...listActions(),
-    ], `${r.id ? `id ${r.id} · ` : ''}row ${i + 1} of ${rows.length}`);
-    const c = App.creature(r.enemy);
+      { text: canSplit ? `Split at ${fmtT(cutT)}` : 'Split at cursor', title: canSplit ? `two rows: this one until ${fmtT(cutT)}, a copy from ${fmtT(cutT)} (its numbers fixed afresh there: the HP curve steps up)` : 'hover the timeline over this row\'s span first: the second under the pointer is where it splits', disabled: !canSplit, onclick: () => App.splitRow(i, cutT) },
+      pace !== 'once' ? { text: '→ once', title: 'pace it as one wave at its start (+ Offset): Per wave creatures, then nothing', onclick: () => App.convertRow(i, 'once') } : null,
+      pace !== 'waves' ? { text: '→ waves', title: 'pace it as waves every 30 s (Every)', onclick: () => App.convertRow(i, 'waves') } : null,
+      pace !== 'continuous' ? { text: '→ continuous', title: 'draw it into the cap by its weight at every spawn check (the waves keys go)', onclick: () => App.convertRow(i, 'continuous') } : null,
+    ].filter(Boolean), `${r.id ? `id ${r.id} · ` : ''}row ${i + 1} of ${rows.length} · ${TimelineModel.quantityText(r, Model.rowWaveCount(r, App.creature(Timeline.firstEnemy(r))), null)}${TimelineModel.roleOf(r) ? ` · ${TimelineModel.roleOf(r)}` : ''}`);
+    const c = App.creature(Timeline.firstEnemy(r));
     const form = el('div', { class: 'form' });
     // pass 58: the row's numbers are fixed from its start; its look (its own variant, else the default) for the colours
-    const octx = { t0: () => r.t, from: 'row', look: () => r.variant };
+    const octx = { t0: () => r.t, from: 'row', look: () => r.variant, modded: !!r.elite };
+    const groups = {};
+    for (const g of ROW_GROUPS) { groups[g.id] = igroup(g); form.appendChild(groups[g.id].det); }
+    const groupOfKey = (k) => (ROW_GROUPS.find((g) => g.keys.includes(k)) || ROW_GROUPS[1]).id;
     for (const def of FIELDS.roster) {
       if (def.key === 'id') continue;
-      // pass 81 (lane PACE): the Pacing select, and its waves-only fields while it says Waves
-      if (def.paced && !Model.rowPaced(r)) continue;
+      // pass 84: a field for some pacings only (paceIn); pass 81 (lane PACE): the waves-only fields while it says Waves
+      if (def.paceIn) { if (!def.paceIn.includes(TimelineModel.paceOf(r))) continue; }
+      else if (def.paced && !Model.rowPaced(r)) continue;
       // pass 83 (lane TIMELINE): a row's own draw interval, while it is in the continuous draw
       if (def.drawn && !Model.rowDrawn(r)) continue;
-      if (def.key === 'pace') { form.appendChild(paceRow(def, r, c)); continue; }
+      if (def.ring && r.pattern !== 'ring') continue;
+      const host = groups[groupOfKey(def.key)].body;
+      if (def.key === 'pace') { host.appendChild(paceRow(def, r, c)); continue; }
+      if (def.key === 'enemy') { host.appendChild(Forms.row(def, rowEnemyControl(r), { cls: 'wide-ctl' })); continue; }
+      if (def.key === 'variant' && r.enemy === 'roster') continue;
       if (def.type === 'weights') {
         // the Presence boxes follow a dragged bar or point (the review of pass 58: the time stayed put until the drop)
         const pres = Forms.weightsBlock(r);
         if (pres.refresh) liveFns.push(pres.refresh);
-        form.appendChild(Forms.row(def, pres, { cls: 'wide-ctl' }));
+        host.appendChild(Forms.row(def, pres, { cls: 'wide-ctl' }));
         continue;
       }
-      form.appendChild(fieldFor(def, r, Object.assign({ enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '', count: Model.rowWaveCount({ pack: r.pack, stats: r.stats }, c), interval: spawnCheck() }, note: def.key === 'pattern' ? patternNote('roster', r) : def.key === 'interval' ? intervalNote(r) : null }, octx)));
-      // pass 58 review: the row's HP and ATK under From / Until, in sight with Overrides closed, following a dragged bar
-      if (def.key === 'until' && c) form.appendChild(numbersLine(c, () => (U.isObj(r.stats) ? r.stats : {}), () => r.t, 'row', null, '', () => (r.until == null || r.until === '' ? Infinity : Number(r.until))));
+      if (def.type === 'overrides') continue;
+      host.appendChild(fieldFor(def, r, Object.assign({ enemyId: Timeline.firstEnemy(r), placeholders: { pack: c ? c.pack_size : '', count: Model.rowWaveCount({ pack: r.pack, stats: r.stats }, c), interval: spawnCheck() }, note: def.key === 'pattern' ? patternNote('roster', r) : def.key === 'interval' ? intervalNote(r) : def.key === 'special' ? rowSpecialNote(r, c) : null }, octx)));
     }
+    // the row's HP and ATK (pass 58 review: in sight with Overrides closed, following a dragged bar) and its mini-chart
+    const est = groups.estimate.body;
+    if (c) est.appendChild(numbersLine(c, () => (U.isObj(r.stats) ? r.stats : {}), () => r.t, 'row', null, '', () => (r.until == null || r.until === '' ? Infinity : Number(r.until))));
+    est.appendChild(miniChart(i, r));
     const facts = el('div', { class: 'row-facts' });
     const fill = () => {
       clear(facts);
@@ -786,28 +834,126 @@ const Inspector = (() => {
       const open = App.rosterAt(t0).find((o) => o.i === i);
       const lines = [];
       // pass 81 (lane PACE): a waves row is not in the draw (unless it trickles): its weight only gates its waves
-      if (open && !open.drawn) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: it comes as waves, not in the draw (a weight of 0 holds its waves).`);
+      if (open && !open.drawn) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: it comes as ${TimelineModel.paceOf(r) === 'once' ? 'one wave' : 'waves'}, not in the draw (a weight of 0 holds its waves).`);
       else if (open) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: ${Math.round(open.norm * 100)}% of its channel's draw.`);
       lines.push('The order of the rows is for this page only: the game draws a burst by the weights, whatever the order.');
       for (const l of lines) facts.appendChild(el('p', { class: 'muted small', text: l }));
     };
     fill();
-    form.appendChild(facts);
+    est.appendChild(facts);
+    // every override group (Body, Colour, Attacks, Ranged, Charge, Kamikaze, Artillery, Sniper, Flee on hit, Spawning,
+    // Drops, Power-ups, Elite, Mini-boss, Boss), each with its help
+    const ovDef = FIELDS.roster.find((d) => d.key === 'stats');
+    form.appendChild(fieldFor(ovDef, r, Object.assign({ enemyId: Timeline.firstEnemy(r) }, octx)));
     container.appendChild(form);
     liveTimes(container, titleEl, title, r, ['t', 'until']);
     liveFns.push(fill);
     jsonPeek(container, r);
   }
 
+  /** Who a row brings (pass 84; INTERFACES.md / keys_SPAWN.md): one creature, a list drawn at random by `enemy_weights`,
+   *  or "roster" (the coloured-elite draw by the open rows' Elite weight). The switch keeps the first creature. */
+  function rowEnemyControl(r) {
+    const mode = r.enemy === 'roster' ? 'roster' : Array.isArray(r.enemy) ? 'list' : 'one';
+    const wrap = el('div', { class: 'enemy-mode' });
+    const first = Timeline.firstEnemy(r) || firstCreature();
+    wrap.appendChild(Forms.select(FIELDS.ENEMY_MODES, mode, (v) => App.apply(() => {
+      if (v === 'roster') { r.enemy = 'roster'; delete r.enemy_weights; delete r.variant; }
+      else if (v === 'list') { r.enemy = [first]; delete r.enemy_weights; }
+      else { r.enemy = first; delete r.enemy_weights; }
+    }), { path: 'enemy.mode' }));
+    if (mode === 'one') {
+      wrap.appendChild(Forms.enemyPick(r.enemy, (v) => App.apply(() => {
+        U.setKey(r, 'enemy', v);
+        if (r.variant && !App.variantOk(v, r.variant)) delete r.variant;
+      }), { path: 'enemy' }));
+    } else if (mode === 'list') {
+      const ids = r.enemy.slice();
+      const ws = Array.isArray(r.enemy_weights) ? r.enemy_weights.map(Number) : null;
+      const total = ids.reduce((a, _, k) => a + (ws && ws[k] != null ? ws[k] : 1), 0) || 1;
+      const write = (ids2, ws2) => App.apply(() => {
+        if (!ids2.length) { r.enemy = first; delete r.enemy_weights; return; }
+        r.enemy = ids2;
+        if (ws2 && ws2.some((x) => x != null && x !== 1)) r.enemy_weights = ws2.map((x) => (x == null ? 1 : x)); else delete r.enemy_weights;
+        if (r.variant && !ids2.every((id) => App.variantOk(id, r.variant))) delete r.variant;
+      });
+      ids.forEach((id, k) => {
+        const sel = Forms.iconSelect(Forms.creatureGroups('creature'), id, (v) => { const n = ids.slice(); n[k] = v || ''; write(n.filter(Boolean), ws); }, { path: `enemy.${k}`, popWidth: 330, cls: 'grow' });
+        const w = el('input', { type: 'number', class: 'num short', min: 0, step: 'any', value: ws && ws[k] != null ? ws[k] : '', placeholder: '1', title: 'its pick weight (enemy_weights; equal when empty; 0 never comes)', 'data-path': `enemy_weights.${k}` });
+        w.addEventListener('change', () => { const n = (ws || ids.map(() => 1)).slice(); n[k] = U.parseNum(w.value) == null ? 1 : U.parseNum(w.value); write(ids, n); });
+        const share = ((ws && ws[k] != null ? ws[k] : 1) / total) * 100;
+        wrap.appendChild(el('div', { class: 'enemy-row' }, sel, el('span', { class: 'with-hint' }, w, el('span', { class: 'hint', text: `${Math.round(share)}%` })),
+          el('button', { class: 'x', type: 'button', text: '×', title: 'remove', onclick: () => { const n = ids.slice(); n.splice(k, 1); const nw = ws ? ws.slice() : null; if (nw) nw.splice(k, 1); write(n, nw); } })));
+      });
+      wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: '+ another', onclick: () => {
+        const groups = Forms.creatureGroups('creature');
+        const nx = groups.length && groups[0].options.length ? (groups[0].options.find((o) => !ids.includes(o.v)) || groups[0].options[0]).v : first;
+        write(ids.concat([nx]), ws ? ws.concat([1]) : null);
+      } }));
+    } else {
+      wrap.appendChild(el('div', { class: 'muted small', text: 'each creature drawn from the rows open at that second by their Elite weight (each row\'s Overrides -> Elite -> Elite weight), with that row\'s look and HP and ATK: the coloured-elite draw. Set an Elite modifier below for coloured elites.' }));
+    }
+    return wrap;
+  }
+
+  /** The first creature of the roster (a new list's first entry). */
+  function firstCreature() {
+    const rows = App.tl().roster || [];
+    for (const r of rows) { const id = Timeline.firstEnemy(r); if (App.creature(id)) return id; }
+    const c = App.S.enemies.find((x) => x.kind === 'enemy' && !x.hidden);
+    return c ? c.id : '';
+  }
+
+  /** A row set to Special, in words (pass 84; the swarm event's note, pass 69). */
+  function rowSpecialNote(r, c) {
+    if (!r.special) return null;
+    if (!c) return [b('Special: '), 'each creature of the list or the draw comes as its own coloured special.'];
+    return specialNote({ special: true, enemy: c.id, stats: r.stats });
+  }
+
+  /** The row's own mini-chart (pass 84): what the estimate says it spawns each second over its life (yellow bars) and
+   *  a creature's HP in play each second (the line: fixed from its start, stepping with the stage and the hero level). */
+  function miniChart(i, r) {
+    const d = Timeline.rowSpawnsPerSecond(i);
+    const W = 380, H = 110, L = 34, R = 40, T = 10, B = 18;
+    const box = el('div', { class: 'mini-wrap' });
+    if (!d || !d.ts.length) { box.appendChild(el('div', { class: 'mc-note', text: 'the estimate is not drawn yet' })); return box; }
+    const s = U.svg('svg', { class: 'mini-chart', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' });
+    const t0 = d.ts[0], t1 = d.ts[d.ts.length - 1] || t0 + 1;
+    const xx = (t) => L + ((t - t0) / Math.max(t1 - t0, 1)) * (W - L - R);
+    const nMax = Math.max(1, ...d.n);
+    const hps = d.hp.filter((v) => v != null);
+    const hMax = hps.length ? Math.max(...hps) * 1.1 : 1;
+    const yn = (v) => H - B - (v / nMax) * (H - T - B);
+    const yh = (v) => H - B - (v / hMax) * (H - T - B);
+    s.appendChild(U.svg('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, class: 'mc-grid' }));
+    const bw = Math.max(1, (W - L - R) / Math.max(d.ts.length, 1) - 0.3);
+    let total = 0;
+    d.ts.forEach((t, k) => { total += d.n[k]; if (d.n[k] > 0.01) s.appendChild(U.svg('rect', { x: xx(t), y: yn(d.n[k]), width: bw, height: Math.max(0.5, H - B - yn(d.n[k])), class: 'mc-bar' })); });
+    if (hps.length) s.appendChild(U.svg('polyline', { points: d.ts.map((t, k) => (d.hp[k] == null ? '' : `${xx(t)},${yh(d.hp[k])}`)).filter(Boolean).join(' '), class: 'mc-hp' }));
+    s.appendChild(U.svg('text', { x: 2, y: T + 8, class: 'mc-axis', text: `${fmtN(nMax, 1)}/s` }));
+    s.appendChild(U.svg('text', { x: 2, y: H - B, class: 'mc-axis', text: '0' }));
+    if (hps.length) s.appendChild(U.svg('text', { x: W - R + 3, y: T + 8, class: 'mc-axis', text: `HP ${fmtN(hMax / 1.1, 0)}` }));
+    s.appendChild(U.svg('text', { x: L, y: H - 4, class: 'mc-axis', text: fmtT(t0) }));
+    s.appendChild(U.svg('text', { x: W - R - 26, y: H - 4, class: 'mc-axis', text: fmtT(t1) }));
+    box.appendChild(s);
+    box.appendChild(el('div', { class: 'mc-note', text: `Yellow bars: what it spawns each second in the estimate (≈${Math.round(total)} over ${fmtT(t1 - t0)}${Number(r.until) > App.viewEnd() || r.until == null ? ', to the view\'s end' : ''}). Line: a creature's HP in play each second (fixed from its start; the stage multiplier steps it up, the hero level box ${App.S.level}).` }));
+    return box;
+  }
+
   /** A roster row's Pacing select (pass 81, lane PACE; Garry: "the frequency at which enemy waves come"): Continuous drops
    *  the waves-only keys (the game ignores them on a continuous row); Waves sets Every to 30 when the row has none, so its
-   *  ticks show at once. The note under it says when the row's creatures come, kept up to date while the bar is dragged. */
+   *  ticks show at once; Once (pass 84) drops Every. The note under it says when the row's creatures come, kept up to date
+   *  while the bar is dragged. */
   function paceRow(def, r, c) {
     const value = r.pace == null || r.pace === '' ? 'continuous' : String(r.pace);
     const ctl = Forms.select(def.options, value, (v) => App.apply(() => {
       if (v === 'waves') {
         r.pace = 'waves';
         if (r.every == null) r.every = Model.ROW_WAVE_EVERY_DEF;
+      } else if (v === 'once') {
+        r.pace = 'once';
+        delete r.every;
       } else {
         delete r.pace;
         for (const k of Model.ROW_WAVE_KEYS) delete r[k];
@@ -833,6 +979,14 @@ const Inspector = (() => {
     }
     const name = c ? U.plural(c.name) : 'creatures';
     const n = Model.rowWaveCount(r, c);
+    // pass 84: a once row: its one wave
+    if (TimelineModel.paceOf(r) === 'once') {
+      const at = Model.rowWaveStart(r);
+      const held = !(App.rowWeight(r, at) > 0);
+      return [b('Once: '), `${n} ${name} at ${fmtT(at)}${held ? ' (its presence is 0 then: it does not come)' : ''}. `,
+        r.respect_cap === false ? 'On top of the cap, all at once (the hard cap still holds).' : 'Into the free room under the cap; the rest as room frees, until its Until (or the end).',
+        r.trickle ? ' Also drawn continuously while it is open.' : ''];
+    }
     const every = Model.rowWaveEvery(r);
     const end = r.until == null || r.until === '' ? App.viewEnd() : Number(r.until);
     const all = Model.rowWaveTimes(r, end);
@@ -1095,6 +1249,37 @@ const Inspector = (() => {
     }
     container.appendChild(ta);
     container.appendChild(el('p', { class: 'muted small', text: `A row keeps the ${isHp ? 'HP' : 'damage'} curve of its own start for its whole life (Garry: "a single wave of those enemies will stay consistent for the duration of their spawns"), so a long row lags the curve and a row with its own ${isHp ? 'HP' : 'damage'} sits wherever that puts it. "–": nothing of the roster or the waves spawns round that second (swarms, coloured elites and the specials are not counted: each takes the curves at the second it comes, or the numbers of a row or wave bringing the same creature then). The average weighs each row by what it spawns (the Spawned so far estimate). The Actual lane shares this curve's scale while the rows fit under it; higher multiples give it its own, up to ${fmtN(Model.ACTUAL_CLAMP, 1)} times as tall, and a ▲ marks anything past its top.` }));
+  }
+
+  /** The floor curve (pass 84): its points, what it does, how it compares with the cap. */
+  function floorForm(container) {
+    const tl = App.tl();
+    header(container, 'Floor', 'the least creatures alive', 'floor', Array.isArray(tl.floor_curve) && tl.floor_curve.length ? [{ text: 'Remove the floor', danger: true, title: 'no floor: the game as before pass 84', onclick: () => App.apply((d) => { delete d.floor_curve; }) }] : []);
+    const def = FIELDS.SCALARS.find((d) => d.key === 'floor_curve');
+    container.appendChild(el('p', { class: 'insp-help', text: def ? def.help : '' }));
+    container.appendChild(el('p', { class: 'insp-help', text: 'Drag a point on the Floor lane (Curves), double-click the line to add one, a point to remove it. The On screen lane draws it dotted green against the creatures alive and the cap in bodies; the Warnings say when it sits above the cap.' }));
+    const form = el('div', { class: 'form' });
+    form.appendChild(Forms.floorBlock(tl));
+    const fc = Array.isArray(tl.floor_curve) ? tl.floor_curve.filter((p) => Array.isArray(p)).slice().sort((a, b2) => a[0] - b2[0]) : [];
+    if (fc.length) {
+      const SL = App.stageLength();
+      const samples = [0, SL / 2, SL, SL * 1.5, SL * 2, SL * 2.5, App.runEnd() - 1].map((t) => `${fmtT(t)} → ${Math.round(Model.samplePoints(fc, t))}`);
+      form.appendChild(el('p', { class: 'muted small', text: 'Floor by time: ' + samples.join(' · ') }));
+    }
+    container.appendChild(form);
+  }
+
+  /** The portal after a boss (pass 84: its mark on the Events lane): the portal wave, or the portal cap for a while. */
+  function portalForm(container) {
+    const tl = App.tl();
+    header(container, 'Portal', 'what the portal after a boss brings', 'portal', []);
+    container.appendChild(el('p', { class: 'insp-help', text: 'When a boss dies its portal opens; until the hero steps through, either one wave of Portal wave count creatures of the rows open as the stage ended comes round him (then nothing), or the crowd is kept up to Portal cap load units for Portal spawns for seconds. No specials come while it waits.' }));
+    const form = el('div', { class: 'form' });
+    for (const k of ['portal_wave.count', 'portal_cap', 'portal_spawn_seconds']) {
+      const def = FIELDS.SCALARS.find((d) => d.key === k);
+      if (def) form.appendChild(Forms.fieldRow(def, tl, {}));
+    }
+    container.appendChild(form);
   }
 
   function blockForm(container, title, help, block, key) {

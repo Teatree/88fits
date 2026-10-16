@@ -189,7 +189,7 @@ const Model = (() => {
   // row is open, `count` a wave; the game's rule is WaveTimeline.row_* / WaveDirector._tick_row_waves.
 
   /** The values of a row's `pace` (WaveTimeline.ROW_PACES) and a waves row's `every` when it names none. */
-  const ROW_PACES = ['continuous', 'waves'];
+  const ROW_PACES = ['continuous', 'waves', 'once'];
   const ROW_WAVE_EVERY_DEF = 30;
   /** The keys only a waves row reads (the form drops them when the row goes back to continuous). */
   const ROW_WAVE_KEYS = ['every', 'count', 'offset', 'respect_cap', 'trickle'];
@@ -197,13 +197,20 @@ const Model = (() => {
    *  so a fast waves row still reads as ticks and only a continuous row as a line. */
   const ETCH_MIN_PX = 3;
 
-  /** Whether a row comes as waves (WaveTimeline.row_paced): `pace` "waves"; anything else is continuous. */
-  const rowPaced = (r) => isObj(r) && String(r.pace) === 'waves';
+  /** Whether a row comes as waves (WaveTimeline.row_paced): `pace` "waves" or pass 84's "once" (one wave); anything else
+   *  is continuous. */
+  const rowPaced = (r) => isObj(r) && (String(r.pace) === 'waves' || String(r.pace) === 'once');
   /** Whether a row is in the director's continuous draw (WaveTimeline.row_drawn): a continuous row, or a waves row that
    *  trickles. */
   const rowDrawn = (r) => !rowPaced(r) || !!r.trickle;
-  /** A waves row's seconds between waves (default 30); 0 or less = one wave only. */
-  const rowWaveEvery = (r) => num(r && r.every, ROW_WAVE_EVERY_DEF);
+  /** A waves row's seconds between waves (default 30); 0 or less = one wave only. Pass 84: a "once" row 0; `every`
+   *  [min, max] its middle (the game draws a fresh gap inside it each wave). */
+  const rowWaveEvery = (r) => {
+    if (r && String(r.pace) === 'once') return 0;
+    const v = r && r.every;
+    if (Array.isArray(v) && v.length) return (num(v[0], ROW_WAVE_EVERY_DEF) + num(v[v.length - 1], ROW_WAVE_EVERY_DEF)) / 2;
+    return num(v, ROW_WAVE_EVERY_DEF);
+  };
   /** A waves row's first wave: its `t` plus its `offset` (never below 0). */
   const rowWaveStart = (r) => num(r && r.t, 0) + Math.max(num(r && r.offset, 0), 0);
 
@@ -981,6 +988,15 @@ const Model = (() => {
       ? tin.filter((q) => Array.isArray(q) && q.length >= 2).map((q) => [num(q[0], 0), Math.max(num(q[1], 0), 0)]) : null;
     const tvStages = !tvCurve && Array.isArray(tin) && tin.length ? tin.map((v) => Math.max(num(v, EST_DEF.turnover), 0)) : null;
     const tvFlat = Math.max(num(Array.isArray(tin) ? null : tin, EST_DEF.turnover), 0);
+    // pass 84 (lane SPAWN): {id: mean seconds alive} (the Sim's life_by): that creature leaves the crowd at 1 / life a
+    // second (an exponential lifetime), never more than all of it a step
+    const lifeKd = {};
+    let lifeOn = false;
+    if (isObj(o.life)) for (const id of Object.keys(o.life)) { const L = num(o.life[id], 0); if (L > 0) { lifeKd[id] = Math.min(1 / (L * EST_HZ), 1); lifeOn = true; } }
+    const floorCurve = Array.isArray(tl.floor_curve) ? tl.floor_curve : [];
+    // the spawn checks of the second in hand: how many, how many found the regular channel full, each row's starving
+    let checks = 0, fullChecks = 0;
+    let starveN = {};
     // a fight or a wait is kept under half an hour, so a typo cannot hang the page
     const bossSteps = Math.max(1, Math.round(clamp(num(o.bossSeconds, EST_DEF.bossSeconds), 0, 1800) * EST_HZ));
     const portalSteps = Math.max(1, Math.round(clamp(num(o.portalSeconds, EST_DEF.portalSeconds), 0, 1800) * EST_HZ));
@@ -1044,8 +1060,14 @@ const Model = (() => {
     const roster = [];
     (Array.isArray(tl.roster) ? tl.roster : []).forEach((r, ri) => {
       if (!isObj(r)) return;
-      const d = defOf(String(r.enemy == null ? '' : r.enemy), r.stats);
-      if (d) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d.pack)), 1), single: r.pattern === 'single',
+      // pass 84 (lane SPAWN): a list row's creatures by their enemy_weights shares (defOf each); a "roster" row draws
+      // from the mix rows live at the moment (rowPicks), so it has no def of its own
+      const one = rowSingleEnemy(r);
+      const picks = one ? null : r.enemy === ROW_ENEMY_ROSTER ? [] : pickShares(r.enemy, r.enemy_weights).map((pk) => ({ d: defOf(pk.id, r.stats), share: pk.share })).filter((pk) => pk.d);
+      const d = one ? defOf(String(r.enemy == null ? '' : r.enemy), r.stats) : picks.length ? picks[0].d : null;
+      if (d || (!one && (r.enemy === ROW_ENEMY_ROSTER || picks.length))) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d ? d.pack : 1)), 1), single: r.pattern === 'single',
+        one, picks, mix: rowInMix(r), once: String(r.pace) === 'once', timer: rowTimer(r), elite: rowElite(r), special: !!r.special, next: null,
+        p: rowPaced(r) ? clamp(num(r.chance, 1), 0, 1) : 1,
         // pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves' state
         paced: rowPaced(r), drawn: rowDrawn(r), wk: -1, owed: 0,
         // pass 83 (lane TIMELINE): a row with its own continuous interval draws on its own clock (`left` steps to go)
@@ -1140,7 +1162,7 @@ const Model = (() => {
       const out = [];
       for (const x of rows) {
         let room = Infinity;
-        if (x.d.maxAlive > 0) { room = x.d.maxAlive - aliveOf(x.d.id); if (!(room > 1e-9)) continue; }
+        if (x.one && x.d.maxAlive > 0) { room = x.d.maxAlive - aliveOf(x.d.id); if (!(room > 1e-9)) continue; }
         out.push({ x, room });
       }
       return out;
@@ -1169,7 +1191,7 @@ const Model = (() => {
     });
     function hellIds(rows) {
       const s = new Set();
-      for (const x of rows) s.add(x.d.id);
+      for (const x of rows) { if (x.one) s.add(x.d.id); else if (x.picks) for (const pk of x.picks) s.add(pk.d.id); }
       const t = clock();
       for (const w of waves) {
         if (!w.hell || t < w.t || (w.until != null && t >= w.until)) continue;
@@ -1218,30 +1240,73 @@ const Model = (() => {
      *  creature's max_alive and (respect_cap) its channel's room, at least one while there is any room. */
     function rowWaveSpawn(x) {
       let n = x.owed;
-      n = Math.min(n, Math.floor(hard - bodies()));
-      if (x.d.maxAlive > 0) n = Math.min(n, x.d.maxAlive - aliveOf(x.d.id));
+      // pass 84 (lane SPAWN): respect_hard_cap false = the body limit only (MAX_BODIES), as a swarm event was
+      n = x.r.respect_hard_cap === false ? Math.min(n, Math.max(MAX_BODIES - bodies(), 0)) : Math.min(n, Math.floor(hard - bodies()));
+      // pass 84 (lane SPAWN): a list or "roster" row's creatures by their shares (rowPicks), their load per body the
+      // shares' mean
+      const picks = rowPicks(x, clock());
+      if (!picks.length) return;
+      if (x.one && x.d.maxAlive > 0) n = Math.min(n, x.d.maxAlive - aliveOf(x.d.id));
       if (n > 0 && x.r.respect_cap !== false) {
         const room = channelRoom(x.hell);
         if (!(room > 0)) return;
-        n = Math.min(n, Math.max(Math.ceil(room / Math.max(x.d.share, 0.05)), 1));
+        n = Math.min(n, Math.max(Math.ceil(room / Math.max(picksShare(picks), 0.05)), 1));
       }
       if (!(n > 0)) return;
-      add(x.d, n, 'reg'); bump(srcCum, x.key, n);
+      const kind = x.special ? 'forced' : x.elite && colourOpen() ? 'mod' : 'reg';
+      for (const pk of picks) add(pk.d, n * pk.share, kind);
+      bump(srcCum, x.key, n);
       x.owed = Math.max(x.owed - n, 0);
+      if (x.once) marks.push({ t: clock(), kind: 'swarm', id: picks[0].d.id, n });
     }
+    /** Pass 84 (lane SPAWN): what a row brings, as [{d, share}]: its own creature, a list's by enemy_weights, or the
+     *  "roster" creature: the mix rows open at t whose creature can be an Elite, by elite_weight (the row's own stats
+     *  on them when it has some). */
+    function rowPicks(x, t) {
+      if (x.one) return [{ d: x.d, share: 1 }];
+      if (x.r.enemy !== ROW_ENEMY_ROSTER) return x.picks;
+      const st = isObj(x.r.stats) && Object.keys(x.r.stats).length ? x.r.stats : null;
+      const cands = openRows(rowsAt(t, null)).filter((c) => c.x.mix && c.x.d.canBeElite && c.x.d.eliteWeight > 0);
+      let sum = 0;
+      for (const c of cands) sum += c.x.d.eliteWeight;
+      const out = [];
+      for (const c of cands) { const d = st ? defOf(c.x.d.id, st) : c.x.d; if (d) out.push({ d, share: c.x.d.eliteWeight / sum }); }
+      return out;
+    }
+    const picksShare = (picks) => { let s = 0; for (const pk of picks) s += pk.share * pk.d.share; return s; };
     /** WaveDirector._tick_row_waves: wave k of a waves row as the clock passes t + offset + k × every while the row is
      *  open, `count` of it when the row weighs above 0 then; a new wave drops what the last one owed. */
     function tickRowWaves() {
       const t = clock();
       for (const x of roster) {
         if (!x.paced || !(t >= x.t && t < x.until)) continue;
+        // pass 84 (lane SPAWN): a chance of 0 never comes; a timer row (every [min, max], an elite row) fires its gap
+        // (the middle of a range: the expected rhythm) after the wave it fired, an elite one waiting a second at a time
+        // for colour
+        if (!(x.p > 0)) continue;
         const start = rowWaveStart(x.r), every = rowWaveEvery(x.r);
         if (t < start) continue;
-        const i = every > 0 ? Math.floor((t - start) / every + 1e-6) : 0;
-        if (i <= x.wk) continue;
+        let i, wt;
+        if (x.timer) {
+          if (x.next == null) x.next = start;
+          if (t < x.next) continue;
+          if (x.elite && !colourOpen()) { x.next = t + 1; continue; }
+          i = x.wk + 1; wt = t;
+          x.next = every > 0 ? t + every : Infinity;
+        } else {
+          i = every > 0 ? Math.floor((t - start) / every + 1e-6) : 0;
+          if (i <= x.wk) continue;
+          wt = start + (every > 0 ? i * every : 0);
+        }
         x.wk = i; x.owed = 0;
-        if (!(rowWeight(x.r, start + (every > 0 ? i * every : 0), lateT) > 0)) continue;
-        x.owed = Math.max(trunc(num(x.r.count, x.pack)), 1);
+        if (!(rowWeight(x.r, wt, lateT) > 0)) continue;
+        if (x.elite && !('pattern' in x.r)) {
+          // the coloured-elite arrivals (WaveDirector._row_elite_wave -> _spawn_elite), `count` of them x the chance
+          const en = x.r.enemy === ROW_ENEMY_ROSTER ? '' : x.r.enemy;
+          spawnElite(en, x.r.enemy_weights, isObj(x.r.stats) ? x.r.stats : {}, x.p * Math.max(trunc(num(x.r.count, 1)), 1));
+          continue;
+        }
+        x.owed = Math.max(trunc(num(x.r.count, x.pack)), 1) * x.p;
         rowWaveSpawn(x);
       }
     }
@@ -1268,7 +1333,7 @@ const Model = (() => {
       let n = 0, id = '';
       const picks = pickShares(enemy, weights);
       if (!picks.length) {
-        const cands = openRows(rowsAt(clock(), null)).filter((c) => c.x.d.canBeElite && c.x.d.eliteWeight > 0);
+        const cands = openRows(rowsAt(clock(), null)).filter((c) => c.x.mix && c.x.d.canBeElite && c.x.d.eliteWeight > 0);
         let sum = 0;
         for (const c of cands) sum += c.x.d.eliteWeight;
         for (const c of cands) {
@@ -1418,20 +1483,28 @@ const Model = (() => {
       let share = 0;
       for (const id of pool) { bump(cum, id, 1 / pool.length); share += defOf(id, null).share / pool.length; }
       cat.special += 1;
-      spLive.push({ share, die: play + life });
+      spLive.push({ share, die: play + life, ids: pool });
       marks.push({ t: clock(), kind: 'special', id: pool.join('/'), n: 1 });
     }
 
     // ---- the roster's burst (WaveDirector._spawn_burst / _burst_from) and the portal's one wave
     function burstRows(list, room, left, frac) {
       const t = now();
-      const rows = list.map((c) => ({ w: rowWeight(c.x.r, t, lateT), s: Math.max(c.x.d.share, 0.05), pack: c.x.pack, single: c.x.single, room: c.room }));
+      // pass 84 (lane SPAWN): a list or "roster" row draws its picks (their load per body the shares' mean)
+      const pk = list.map((c) => rowPicks(c.x, t));
+      const rows = list.map((c, i) => ({ w: pk[i].length ? rowWeight(c.x.r, t, lateT) : 0, s: Math.max(c.x.one ? c.x.d.share : picksShare(pk[i]), 0.05), pack: c.x.pack, single: c.x.single, room: c.room }));
       const got = burstAvg(rows, room, bLo, bHi, frac);
       let sum = 0;
       for (const n of got) sum += n;
       const scale = sum > left ? left / sum : 1;
       let used = 0;
-      for (let i = 0; i < list.length; i++) { const n = got[i] * scale; add(list[i].x.d, n, 'reg'); bump(srcCum, list[i].x.key, n); used += n; }
+      for (let i = 0; i < list.length; i++) {
+        const n = got[i] * scale;
+        const x = list[i].x;
+        const kind = x.special ? 'forced' : x.elite ? 'mod' : 'reg';
+        if (x.one) add(x.d, n, kind); else for (const q of pk[i]) add(q.d, n * q.share, kind);
+        bump(srcCum, x.key, n); used += n;
+      }
       return left - used;
     }
     /** Pass 83 (lane TIMELINE), WaveDirector._interval_part: of a channel's open drawn rows, the ones drawing now (the
@@ -1458,12 +1531,16 @@ const Model = (() => {
       const hl = loadOf(hellIds(hellRows));
       const room = cap - (loadAll() - hl);
       let left = hard - bodies();
-      if (left <= 0) return;
-      const regular = intervalPart(openRows(rowsAt(tr, false)).filter((c) => c.x.drawn), due);
+      if (left <= 0) { if (!due) starveCheck(tr, room, left, hellFrac() * cap - hl); return; }
+      const drawnNow = (c) => c.x.drawn && (!c.x.elite || colourOpen());
+      // pass 84 (lane SPAWN): the director's spawn check (not an own-interval draw) is counted: full when the regular
+      // channel has no room, and each open drawn row weighing above 0 on a full channel starves
+      if (!due) starveCheck(tr, room, left, hellFrac() * cap - hl);
+      const regular = intervalPart(openRows(rowsAt(tr, false)).filter(drawnNow), due);
       if (room > 0 && regular.list.length) left = burstRows(regular.list, room, left, regular.frac);
       const hellRoom = hellFrac() * cap - hl;
       if (hellRoom > 0 && left > 0 && hellRows.length) {
-        const ho = intervalPart(openRows(hellRows).filter((c) => c.x.drawn), due);
+        const ho = intervalPart(openRows(hellRows).filter(drawnNow), due);
         if (ho.list.length) burstRows(ho.list, hellRoom, left, ho.frac);
       }
     }
@@ -1482,7 +1559,7 @@ const Model = (() => {
     /** WaveDirector.spawn_portal_wave: `count` bodies of the regular rows as the stage ended, by weight, a pack a draw. */
     function portalWave() {
       if (portalWaveCount <= 0) return;
-      const list = openRows(rowsAt(now() - 1, false));
+      const list = openRows(rowsAt(now() - 1, false)).filter((c) => c.x.mix);
       if (!list.length) return;
       const left = Math.min(portalWaveCount, Math.floor(hard - bodies()));
       if (left <= 0) return;
@@ -1492,12 +1569,78 @@ const Model = (() => {
       for (let i = 0; i < list.length; i++) add(list[i].x.d, got[i], 'reg');
     }
 
+    /** Pass 84 (lane SPAWN): one director spawn check's tally: the check, whether the regular channel was full (no
+     *  room in the cap or the hard cap), and every row that wanted to spawn and could not: an open drawn row weighing
+     *  above 0 whose channel was full, a paced row still owed creatures. */
+    function starveCheck(tr, room, left, hellRoom) {
+      checks++;
+      const regFull = !(room > 0) || left <= 0;
+      const hellFull = !(hellRoom > 0) || left <= 0;
+      if (regFull) fullChecks++;
+      const t = now();
+      for (const c of openRows(rowsAt(tr, null))) {
+        const x = c.x;
+        if (!x.drawn || (x.hell ? !hellFull : !regFull)) continue;
+        if (!(rowWeight(x.r, t, lateT) > 0)) continue;
+        starveN[x.key] = (starveN[x.key] || 0) + 1;
+      }
+      for (const x of roster) if (x.paced && x.owed > 1e-9) starveN[x.key] = (starveN[x.key] || 0) + 1;
+    }
+    /** Pass 84 (lane SPAWN), WaveDirector._floor_fill: while the regular crowd is under floor_curve, the open drawn
+     *  regular rows fill the lack at once, each its weight's share of it, the whole cut to the cap's room (load units),
+     *  the hard cap and each row's max_alive. */
+    function floorFill() {
+      if (!floorCurve.length) return;
+      const fl = Math.floor(samplePoints(floorCurve, now()));
+      if (!(fl > 0)) return;
+      const tr = phase === 0 ? now() : now() - 1;
+      const hellRows = rowsAt(tr, true);
+      const hids = new Set();
+      for (const x of hellRows) if (x.one) hids.add(x.d.id);
+      let hellN = 0;
+      for (const a of alive.values()) if (hids.has(a.id)) hellN += a.n;
+      const lack = fl - (bodies() - hellN);
+      if (!(lack > 1e-9)) return;
+      const cap = capNow();
+      const room = cap - (loadAll() - loadOf(hellIds(hellRows)));
+      const left = hard - bodies();
+      if (!(room > 0) || !(left > 0)) return;
+      const t = now();
+      const list = openRows(rowsAt(tr, false)).filter((c) => c.x.drawn && (!c.x.elite || colourOpen()));
+      const ws = list.map((c) => rowWeight(c.x.r, t, lateT));
+      let W = 0;
+      for (const w of ws) W += w;
+      if (!(W > 0)) return;
+      const pk = list.map((c) => rowPicks(c.x, t));
+      let need = 0;
+      const want = list.map((c, i) => { const n = Math.min(lack * ws[i] / W, c.room); need += n * Math.max(c.x.one ? c.x.d.share : picksShare(pk[i]), 0.05); return n; });
+      const scale = Math.min(1, room / need, left / lack);
+      for (let i = 0; i < list.length; i++) {
+        const n = want[i] * scale;
+        if (!(n > 0) || !pk[i].length) continue;
+        const x = list[i].x;
+        const kind = x.special ? 'forced' : x.elite ? 'mod' : 'reg';
+        if (x.one) add(x.d, n, kind); else for (const q of pk[i]) add(q.d, n * q.share, kind);
+        bump(srcCum, x.key, n);
+      }
+    }
+
     // ---- the points: one a run second, and one after each boss fight
     const points = [];
     function record(after) {
       const by = {};
       for (const id of Object.keys(cum)) by[id] = [cum[id], col[id] || 0, mod[id] || 0];
-      points.push({ t: clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion, kills, alive: bodies(), by, src: Object.assign({}, srcCum) });
+      // pass 84 (lane SPAWN): the cap, the regular load, the floor, the share of the second's checks the channel was
+      // full, who is alive by creature (the specials by their pool's share), each row's starving share
+      const aliveBy = {};
+      for (const a of alive.values()) aliveBy[a.id] = (aliveBy[a.id] || 0) + a.n;
+      for (const sp of spLive) for (const id of sp.ids) aliveBy[id] = (aliveBy[id] || 0) + 1 / sp.ids.length;
+      const starve = {};
+      for (const key of Object.keys(starveN)) starve[key] = checks > 0 ? starveN[key] / checks : 0;
+      const hl = loadOf(hellIds(rowsAt(phase === 0 ? now() : now() - 1, true)));
+      points.push({ t: clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion, kills, alive: bodies(), by, src: Object.assign({}, srcCum),
+        cap: capNow(), load: loadAll() - hl, floor: floorCurve.length ? samplePoints(floorCurve, now()) : 0, full: checks > 0 ? fullChecks / checks : 0, aliveBy, starve });
+      checks = 0; fullChecks = 0; starveN = {};
     }
     record(false);
 
@@ -1508,7 +1651,8 @@ const Model = (() => {
       play++;
       // the hero kills `turnover` of the crowd a second; a special goes at the end of its expected life
       const kd = turnoverNow() / EST_HZ;
-      if (kd > 0) for (const a of alive.values()) { const dn = a.n * kd; a.n -= dn; kills += dn; }
+      // pass 84 (lane SPAWN): a creature with a measured lifetime (opts.life) leaves at 1 / life a second instead
+      if (kd > 0 || lifeOn) for (const a of alive.values()) { const kl = lifeOn && lifeKd[a.id] != null ? lifeKd[a.id] : kd; if (kl > 0) { const dn = a.n * kl; a.n -= dn; kills += dn; } }
       if (kd > 0) colAlive -= colAlive * kd;
       for (let i = spLive.length - 1; i >= 0; i--) if (spLive[i].die <= play) { spLive.splice(i, 1); kills += 1; }
       if (colourAt == null && colourOpen()) colourAt = clock();
@@ -1539,6 +1683,7 @@ const Model = (() => {
       spawnStep--;
       if (spawnStep <= 0) { spawnStep = burstEvery; spawnBurst(); }
       tickRowIntervals();
+      floorFill();
       if (phase === 2 && phaseLeft <= 0) {
         // the hero walks through: the next stage (or endless, its clocks set again at every portal) at the same second
         stage++;
@@ -1576,6 +1721,240 @@ const Model = (() => {
     let i = lo;
     if (beforeFight && pts[i].t === t) while (i > 0 && pts[i - 1].t === pts[i].t) i--;
     return pts[i];
+  }
+
+  // ------------------------------------------------------------------ one spawning language (pass 84, lane SPAWN)
+  //
+  // Garry (2026-10-16): "spawning options are important to me ... But I do agree that there are too many ways of
+  // spawning an enemy right now." Every spawn is a roster row: a swarm event is a "once" row, a coloured elite a "once"
+  // row with `elite`, Elites-every a waves row of the "roster" creature; waves[] entries are rows too. The game still
+  // plays an old map's events and waves[] (WaveDirector), the page converts them on load (convertLegacy) and saves rows;
+  // tools/migrate_timeline.py is the same converter for files (selftest_SPAWN84.py checks the two agree).
+
+  /** The row keys pass 84 adds (WaveTimeline "Pass 84", docs/waves_schema.md "Pass 84"). */
+  const ROW84_KEYS = ['enemy_weights', 'elite', 'special', 'banner', 'ring_radius', 'respect_hard_cap', 'chance', 't_jitter', 'role', 'name'];
+  const ROW_ROLES = ['fodder', 'swarm', 'tank', 'ranged', 'elite', 'special', ''];
+  /** The "roster" creature (each one drawn from the mix rows live then by their elite_weight). */
+  const ROW_ENEMY_ROSTER = 'roster';
+  /** A swarm event's own ring (WaveDirector: em.spawn_ring at 16 m); the rows' ring without a ring_radius is 11.7 m. */
+  const SWARM_RING_RADIUS = 16;
+  const SWARM_COUNT_DEF = 40;
+  const ELITE_EVERY_DEF = 90;
+  const WAVE_BURST_DEF = 5;
+  /** The order a converted row's keys are written in (the rest after, as they came). */
+  const ROW84_ORDER = ['id', 'name', 't', 'until', 'enemy', 'enemy_weights', 'variant', 'weights', 'pace', 'every', 'offset', 'count',
+    'pattern', 'ring_radius', 'pack', 'respect_cap', 'respect_hard_cap', 'channel', 'elite', 'special', 'banner', 'chance', 't_jitter', 'role', 'stats'];
+
+  const rowSingleEnemy = (r) => isObj(r) && !Array.isArray(r.enemy) && String(r.enemy == null ? '' : r.enemy) !== ROW_ENEMY_ROSTER;
+  const rowElite = (r) => (isObj(r) && r.elite != null && r.elite !== false && r.elite !== true ? String(r.elite) : '');
+  /** WaveTimeline.row_in_mix: one creature by id, no elite, not all specials, not once. Only the mix is read where the
+   *  game asks "who is on the roster now" (the portal wave, an Elite's candidates, the "roster" draw, the pass 58 join). */
+  const rowInMix = (r) => rowSingleEnemy(r) && rowElite(r) === '' && !r.special && String(r.pace) !== 'once';
+  /** WaveTimeline.row_timer: a paced row with `every` [min, max] or an elite row (a gap after each wave it fires). */
+  const rowTimer = (r) => rowPaced(r) && (Array.isArray(r.every) || rowElite(r) !== '');
+
+  function ordered84(o) {
+    const out = {};
+    for (const k of ROW84_ORDER) if (k in o && o[k] !== undefined) out[k] = o[k];
+    for (const k of Object.keys(o)) if (!(k in out) && o[k] !== undefined) out[k] = o[k];
+    return out;
+  }
+  const deep = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+  const hasKey = (o, k) => isObj(o) && Object.prototype.hasOwnProperty.call(o, k) && o[k] !== undefined && o[k] !== null && o[k] !== '';
+
+  /** The row an old event stands for (null for a boss or an Elite mini-boss: they stay events). */
+  function eventToRow(ev, skin) {
+    if (!isObj(ev)) return null;
+    const type = String(ev.type == null ? '' : ev.type);
+    if (type !== 'swarm' && type !== 'elite' && type !== 'elite_every') return null;
+    const t = ev.t == null ? 0 : ev.t;
+    const r = { t };
+    // a label for the row (the game ignores it): the event's name, else what it was
+    r.name = hasKey(ev, 'name') ? ev.name : type === 'swarm' ? 'Swarm' : type === 'elite' ? 'Coloured elite' : 'Elites every';
+    let enemy = hasKey(ev, 'enemy') && !(Array.isArray(ev.enemy) && !ev.enemy.length) ? deep(ev.enemy) : '';
+    if (type === 'swarm' && enemy === '' && skin) enemy = String(skin);
+    if (type !== 'swarm' && enemy === '') enemy = ROW_ENEMY_ROSTER;
+    r.enemy = enemy;
+    if (Array.isArray(enemy) && Array.isArray(ev.weights) && ev.weights.length) r.enemy_weights = deep(ev.weights);
+    if (hasKey(ev, 'variant')) r.variant = ev.variant;
+    r.weights = [[t, 1]];
+    if (hasKey(ev, 'chance')) r.chance = ev.chance;
+    if (hasKey(ev, 't_jitter')) r.t_jitter = ev.t_jitter;
+    if (type === 'swarm') {
+      const count = ev.count == null || ev.count === '' ? SWARM_COUNT_DEF : trunc(num(ev.count, SWARM_COUNT_DEF));
+      const p = String(ev.pattern == null ? '' : ev.pattern);
+      const pattern = p === 'pack' || p === 'scatter' || p === 'in_front' ? p : 'ring';
+      Object.assign(r, { pace: 'once', count, pattern });
+      if (pattern === 'ring') r.ring_radius = SWARM_RING_RADIUS;
+      // a swarm's "pack" with no pack (or 0) put the whole count at one point
+      if (pattern === 'pack') r.pack = num(ev.pack, 0) > 0 ? trunc(num(ev.pack, 0)) : count;
+      r.respect_cap = false;
+      // a swarm came on top of the hard cap too (only the body limit stopped it)
+      r.respect_hard_cap = false;
+      if (ev.special) r.special = true;
+      else r.banner = 'SWARM!';
+      r.role = ev.special ? 'special' : 'swarm';
+    } else {
+      r.pace = type === 'elite' ? 'once' : 'waves';
+      if (type === 'elite_every') r.every = ev.interval == null || ev.interval === '' ? ELITE_EVERY_DEF : deep(ev.interval);
+      r.count = 1;
+      r.respect_cap = false;
+      r.elite = hasKey(ev, 'mod') ? String(ev.mod) : 'random';
+      r.role = 'elite';
+    }
+    if (isObj(ev.stats) && Object.keys(ev.stats).length) r.stats = deep(ev.stats);
+    return r;
+  }
+
+  /** The rows an old waves[] entry stands for: one per alternative (a wave without alts is its own); notes say what a
+   *  row cannot say exactly. */
+  function waveToRows(w, notes) {
+    if (!isObj(w)) return [];
+    const t = w.t == null ? 0 : w.t;
+    const burst = Math.max(trunc(num(w.burst, WAVE_BURST_DEF)), 1);
+    const every = num(w.every, 0);
+    const total = Math.max(trunc(num(w.count, 0)), 0);
+    const label = hasKey(w, 'name') ? w.name : hasKey(w, 'id') ? w.id : '';
+    const alts = Array.isArray(w.alts) ? w.alts.filter(isObj) : [];
+    const list = alts.length ? alts : [w];
+    let sum = 0;
+    for (const a of alts) sum += Math.max(num(a.chance, 1), 0);
+    const out = [];
+    for (const a of list) {
+      const r = { t };
+      if (label !== '') r.name = label;
+      if (every > 0) {
+        let until = total > 0 ? num(t, 0) + every * Math.ceil(total / burst) : null;
+        if (hasKey(w, 'until')) until = until == null ? num(w.until, 0) : Math.min(until, num(w.until, 0));
+        if (until != null) r.until = until;
+      } else if (hasKey(w, 'until')) r.until = w.until;
+      r.enemy = hasKey(a, 'enemy') ? deep(a.enemy) : '';
+      if (hasKey(a, 'variant')) r.variant = a.variant;
+      r.weights = [[t, 1]];
+      if (every > 0) Object.assign(r, { pace: 'waves', every, count: burst });
+      else { r.pace = 'once'; r.count = total > 0 ? Math.min(burst, total) : burst; }
+      if (hasKey(w, 'pattern')) r.pattern = w.pattern;
+      if (hasKey(a, 'pack')) r.pack = a.pack;
+      if (w.respect_cap === false) r.respect_cap = false;
+      if (w.channel === 'hell') r.channel = 'hell';
+      if (hasKey(w, 'elite')) r.elite = String(w.elite);
+      if (hasKey(w, 'toast')) r.banner = w.toast;
+      if (alts.length > 1) r.chance = sum > 0 ? Math.max(num(a.chance, 1), 0) / sum : 0;
+      if (isObj(a.stats) && Object.keys(a.stats).length) r.stats = deep(a.stats);
+      out.push(r);
+    }
+    if (alts.length > 1) notes.push(`wave ${label || '@' + t}: its ${alts.length} alternatives became ${alts.length} rows, each with its share as its chance (rolled apart now, not one of them)`);
+    if (every > 0 && total > 0 && total % burst) notes.push(`wave ${label || '@' + t}: its last burst brought ${total % burst}, the row's last wave brings ${burst}`);
+    if (hasKey(w, 'elite')) notes.push(`wave ${label || '@' + t}: its elite creatures wait for colour now (they came plain before it)`);
+    return out;
+  }
+
+  /** Pass 84: an old map's swarm / elite / elite_every events and waves[] entries as roster rows, in place (the page
+   *  calls it on load and saves rows; tools/migrate_timeline.py is the same for files). Each row is appended after the
+   *  roster (the old rows keep their places, so their fixed numbers' keys stay), a fresh id each (r<n>), in the order
+   *  the events stood, then the waves. Bosses and Elite mini-bosses stay events; a map with nothing to convert is left
+   *  exactly as it was. `opts.skin`: the creature a swarm that names none brings (the map's first skin). Returns
+   *  {converted (rows made), events (events converted), waves (waves converted), ids, notes}. */
+  function convertLegacy(tl, opts) {
+    const o = isObj(opts) ? opts : {};
+    const res = { converted: 0, events: 0, waves: 0, ids: [], notes: [] };
+    if (!isObj(tl)) return res;
+    const evs = Array.isArray(tl.events) ? tl.events : [];
+    const wvs = Array.isArray(tl.waves) ? tl.waves : [];
+    const rows = [];
+    const keep = [];
+    for (const ev of evs) {
+      const r = eventToRow(ev, o.skin);
+      if (r) { rows.push(r); res.events++; } else keep.push(ev);
+    }
+    for (const w of wvs) {
+      const rs = waveToRows(w, res.notes);
+      if (rs.length) { for (const r of rs) rows.push(r); res.waves++; }
+    }
+    if (!rows.length) return res;
+    if (!Array.isArray(tl.roster)) tl.roster = [];
+    const used = new Set(tl.roster.map((r) => (isObj(r) ? r.id : null)));
+    let n = 1;
+    for (const r of rows) {
+      while (used.has('r' + n)) n++;
+      r.id = 'r' + n;
+      used.add(r.id);
+      tl.roster.push(ordered84(r));
+      res.ids.push(r.id);
+    }
+    if (res.events) tl.events = keep;
+    if (res.waves) tl.waves = [];
+    res.converted = rows.length;
+    return res;
+  }
+
+  /** Whether a timeline still has something convertLegacy would turn into rows. */
+  /** The hero's level the page assumes at run second t when there is no Sim (lane SPAWN's HEAD baseline: the Drifter with
+   *  a quarter of the Upgrade board, 20 runs, the median level by the clock; DEFAULT_LEVEL_CURVE_SOURCE says which). */
+  const DEFAULT_LEVEL_CURVE = [[0, 1], [60, 4], [120, 5], [215, 8], [300, 11], [430, 18], [645, 28], [860, 32.5], [1075, 38.5], [1290, 44.5]];
+  const DEFAULT_LEVEL_CURVE_SOURCE = 'pass 84 baseline: 20 sim runs, the Drifter, a quarter of the Upgrade board, the explorer bot, the median level by the clock';
+
+  /** The level the page assumes at t: opts.level (a number), else opts.levelCurve [[t, level], ...] (a Sim's), else
+   *  DEFAULT_LEVEL_CURVE; whole levels, at least 1. */
+  function levelAt(opts, t) {
+    const o = isObj(opts) ? opts : {};
+    if (o.level != null && o.level !== '' && isFinite(Number(o.level))) return Math.max(1, Math.round(Number(o.level)));
+    const curve = Array.isArray(o.levelCurve) && o.levelCurve.length ? o.levelCurve : DEFAULT_LEVEL_CURVE;
+    return Math.max(1, Math.round(samplePoints(curve, num(t, 0))));
+  }
+
+  /** Pass 84 (lane SPAWN): the one shown difficulty of a row's creature at run second t (the Timeline's rows and hover;
+   *  GDScript twin WaveDirector.shown_numbers): creatureAt with the row's start as the second its numbers are fixed from
+   *  (a "once" row: its own second, and with opts.byId the mix row it joins, eventNumbers: what a swarm did), the hero
+   *  at levelAt(opts, t), the hero-power factor 1. {hp, atk, level, t0, arch, stage, stageMult, hpParts, atkParts,
+   *  special} (the parts name every factor, for the "what is it made of" boxes); null without a creature. */
+  function creatureDifficulty(tl, c, row, t, opts) {
+    if (!c) return null;
+    const o = isObj(opts) ? opts : {};
+    const r = isObj(row) ? row : {};
+    const at = num(t, 0);
+    const lv = levelAt(o, at);
+    const once = String(r.pace) === 'once';
+    const stats = isObj(r.stats) ? r.stats : {};
+    let given = null;
+    if (once && isObj(o.byId)) given = eventNumbers(tl, o.byId, String(c.id), r.variant, stats, at);
+    const ca = creatureAt(tl, c, stats, at, lv, once ? at : num(r.t, at), given);
+    return { hp: ca.hp, atk: ca.atk, level: lv, t0: ca.t0, arch: ca.arch, stage: ca.stage, stageMult: ca.stageMult, hpParts: ca.hpParts, atkParts: ca.atkParts, special: ca.special };
+  }
+
+  /** Pass 84 (lane SPAWN): the estimate as per-second arrays (the On screen and Composition lanes, the warnings): index
+   *  = the whole run second (a boss fight's second keeps the point after the fight). spawnedBy / spawnedRow: what came in
+   *  that second (the cumulative tallies' steps); aliveBy / starve as the points carry them. */
+  function estimateSeries(est) {
+    const pts = est && Array.isArray(est.points) ? est.points : [];
+    const last = new Map();
+    for (const p of pts) last.set(Math.round(p.t), p);
+    const secs = [...last.keys()].sort((a, b) => a - b);
+    const out = { t: [], alive: [], cap: [], floor: [], load: [], full: [], spawnedBy: {}, spawnedRow: {}, aliveBy: {}, starve: {} };
+    const n = secs.length;
+    const arr = (o, k) => (o[k] || (o[k] = new Array(n).fill(0)));
+    let prev = null;
+    secs.forEach((s, i) => {
+      const p = last.get(s);
+      out.t.push(s);
+      out.alive.push(p.alive);
+      out.cap.push(p.cap == null ? 0 : p.cap);
+      out.floor.push(p.floor == null ? 0 : p.floor);
+      out.load.push(p.load == null ? 0 : p.load);
+      out.full.push(p.full == null ? 0 : p.full);
+      for (const id of Object.keys(p.by || {})) arr(out.spawnedBy, id)[i] = p.by[id][0] - (prev && prev.by && prev.by[id] ? prev.by[id][0] : 0);
+      for (const key of Object.keys(p.src || {})) arr(out.spawnedRow, key)[i] = p.src[key] - (prev && prev.src && prev.src[key] != null ? prev.src[key] : 0);
+      for (const id of Object.keys(p.aliveBy || {})) arr(out.aliveBy, id)[i] = p.aliveBy[id];
+      for (const key of Object.keys(p.starve || {})) arr(out.starve, key)[i] = p.starve[key];
+      prev = p;
+    });
+    return out;
+  }
+
+  function hasLegacy(tl) {
+    if (!isObj(tl)) return false;
+    if (Array.isArray(tl.waves) && tl.waves.some(isObj)) return true;
+    return (Array.isArray(tl.events) ? tl.events : []).some((ev) => isObj(ev) && ['swarm', 'elite', 'elite_every'].includes(String(ev.type)));
   }
 
   // ------------------------------------------------------------------ snapping (pass 61)
@@ -1708,6 +2087,12 @@ const Model = (() => {
     // pass 83 (lane TIMELINE): a continuous row's own interval, the window's shares
     ROW_INTERVAL_MIN, rowHasInterval, rowDrawInterval, rowDrawTimes, windowShares,
   };
+  // pass 84 (lane SPAWN): one spawning language (the converter, the row keys, the shown difficulty)
+  Object.assign(api, {
+    ROW84_KEYS, ROW_ROLES, ROW_ENEMY_ROSTER, SWARM_RING_RADIUS, rowSingleEnemy, rowElite, rowInMix, rowTimer,
+    eventToRow, waveToRows, convertLegacy, hasLegacy,
+    DEFAULT_LEVEL_CURVE, DEFAULT_LEVEL_CURVE_SOURCE, levelAt, creatureDifficulty, estimateSeries,
+  });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;
 })();

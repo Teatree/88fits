@@ -148,7 +148,9 @@ def checks(check, run_node, server):
     with open(os.path.join(CONTENT, "maps", "red_canyon", "red_canyon.json"), encoding="utf-8") as f:
         tl = json.load(f)["timeline_data"]
     sp_events = [e for e in tl.get("events", []) if e.get("special")]
-    check(len(sp_events) == 1 and sp_events[0].get("type") == "swarm" and int(sp_events[0].get("count", 0)) == 1,
+    # pass 84 (lane SPAWN, re-pinned): the special Goblin is a "once" row with `special` now (an old map's event still counts)
+    sp_events += [r for r in tl.get("roster", []) if r.get("special") and r.get("pace") == "once"]
+    check(len(sp_events) == 1 and (sp_events[0].get("type") == "swarm" or sp_events[0].get("pace") == "once") and int(sp_events[0].get("count", 0)) == 1,
           "Red Canyon: one special swarm event of one creature: %s" % sp_events)
     if sp_events:
         ev = sp_events[0]

@@ -16,6 +16,9 @@ kind "sim" (jobs.py: their own lane, never the Godot lock); this module lists th
     POST /api/sim/unlock          {force}: the sim lock released when its owner is gone (force: whoever holds it)
     POST /api/sim/watch           {settings}: the Watch (pass 80, tools/watch.py) started with the tab's hero, board, seed
                                   and bot, not waited for (409 while a Watch is open)
+    GET  /api/sim/overlay?map=<id>[&id=<sim>][&top=N]   pass 84 (lane SIMVIEW): the newest finished Sim of the map (or the
+                                  one asked for) on the map's clock for the Timeline (overlay.json, or worked out from an
+                                  older sim's players); always 200: {ok: false, reason} when there is none
 """
 import json
 import os
@@ -393,6 +396,150 @@ def watch(srv, raw):
                  "message": "the Watch is starting (its snapshot refreshes first; the window opens in a few seconds)"}
 
 
+# ---------------------------------------------------------------- the Timeline's overlay (pass 84, lane SIMVIEW)
+
+OVERLAY_TOP = 8          # creatures kept by name in alive_by / alive_hell_by; the rest folded into "__other"
+OVERLAY_TOP_MAX = 30
+_OV_CACHE = {}
+
+
+def _player_files(folder):
+    pdir = os.path.join(folder, "players")
+    if not os.path.isdir(pdir):
+        return []
+    return sorted(f for f in os.listdir(pdir) if re.match(r"^p\d+\.json$", f))
+
+
+def overlay_of(folder):
+    """(overlay, how) of a sim folder: its overlay.json ("result"), else worked out from its players' files ("players":
+    a sim from before pass 84), cached until a file changes; (None, "") when there is nothing to show."""
+    p = os.path.join(folder, "overlay.json")
+    files = _player_files(folder)
+    try:
+        stamp = (os.path.getmtime(p) if os.path.isfile(p) else 0.0,
+                 tuple((f, os.path.getmtime(os.path.join(folder, "players", f))) for f in files))
+    except OSError:
+        stamp = None
+    hit = _OV_CACHE.get(folder)
+    if hit is not None and stamp is not None and hit[0] == stamp:
+        return hit[1], hit[2]
+    ov, how = None, ""
+    if os.path.isfile(p):
+        ov = SB.read_json(p, tries=3)
+        how = "result" if isinstance(ov, dict) else ""
+    if not isinstance(ov, dict) and files:
+        ps = []
+        for f in files:
+            d, _ = SB.load_player(os.path.join(folder, "players", f))
+            ps.append((int(f[1:-5]), d, {}))
+        ov = SB.overlay(ps)
+        how = "players" if ov else ""
+    if stamp is not None:
+        _OV_CACHE[folder] = (stamp, ov, how)
+    return ov, how
+
+
+def fold_by(block, field, top):
+    """A breakdown {order, <field>: {id: [values]}} cut to its first `top` ids, the rest summed second by second into
+    "__other" (their ids in other_ids)."""
+    order = list((block or {}).get("order") or [])
+    vals = (block or {}).get(field) or {}
+    keep, rest = order[:top], order[top:]
+    out = {"order": list(keep), field: {i: vals.get(i) for i in keep}, "other_ids": rest}
+    if rest:
+        n = max(len(vals.get(i) or []) for i in rest)
+        other = []
+        for c in range(n):
+            s = None
+            for i in rest:
+                a = vals.get(i) or []
+                if c < len(a) and a[c] is not None:
+                    s = (s or 0.0) + a[c]
+            other.append(SB._r(s))
+        out["order"].append("__other")
+        out[field]["__other"] = other
+    return out
+
+
+def _finished(r):
+    """A sim folder's head.json when it is a finished sim (not running, not partial, at least one run), else None."""
+    if r.get("running"):
+        return None
+    head = SB.read_json(os.path.join(r["path"], "head.json"), tries=2)
+    if not isinstance(head, dict):
+        return None
+    meta = head.get("meta") or {}
+    if meta.get("partial") or not (head.get("summary") or {}).get("ok"):
+        return None
+    return head
+
+
+def overlay_record(srv, query):
+    """GET /api/sim/overlay?map=<id>[&id=<sim>][&top=N]: the newest finished, real (not made-up) Sim of the map, or the
+    sim asked for, as the Timeline's overlay (status_SIMVIEW.md "OVERLAY READY"); {ok: false, reason} when none."""
+    q = query or {}
+    map_id = str((q.get("map") or ["red_canyon"])[0] or "red_canyon")
+    sid = str((q.get("id") or [""])[0] or "")
+    try:
+        top = max(1, min(OVERLAY_TOP_MAX, int((q.get("top") or [OVERLAY_TOP])[0])))
+    except (TypeError, ValueError):
+        top = OVERLAY_TOP
+    pick = None
+    if sid:
+        folder = _sim_path(sid)
+        if folder is None:
+            return {"ok": False, "reason": "no sim %s" % sid}
+        r = next((x for x in SB.list_sims() if x["id"] == sid), {"id": sid, "path": folder, "running": False})
+        head = SB.read_json(os.path.join(folder, "head.json"), tries=2)
+        if r.get("running"):
+            return {"ok": False, "reason": "sim %s is still running" % sid}
+        if not isinstance(head, dict):
+            return {"ok": False, "reason": "sim %s has no result yet" % sid}
+        pick = (r, head)
+    else:
+        for r in SB.list_sims():
+            head = _finished(r)
+            if head is None:
+                continue
+            st = head.get("settings") or {}
+            if str(st.get("map") or "red_canyon") != map_id or (head.get("meta") or {}).get("synthetic"):
+                continue
+            pick = (r, head)
+            break
+        if pick is None:
+            return {"ok": False, "reason": "no finished Sim of %s yet: run one from the Sim tab" % map_id}
+    r, head = pick
+    ov, how = overlay_of(r["path"])
+    if not ov:
+        return {"ok": False, "reason": "sim %s has no runs with a clock to show" % r["id"]}
+    meta = head.get("meta") or {}
+    st = head.get("settings") or {}
+    summ = head.get("summary") or {}
+    smap = str(st.get("map") or "red_canyon")
+    rev = meta.get("map_rev") or {}
+    now = SB.map_rev(_game(srv), smap)
+    sha = rev.get("sha", "") if isinstance(rev, dict) else ""
+    sim = {"id": r["id"], "started": meta.get("started", ""), "hero": st.get("hero", ""), "hero_name": head.get("hero_name") or st.get("hero", ""),
+           "players": summ.get("players"), "ok_players": summ.get("ok"), "board_words": _board_words(st),
+           "bot_words": SB.bot_words(st.get("bot")) if st.get("bot") else "", "death": st.get("death", ""), "limit": st.get("limit"),
+           "map": smap, "map_rev": sha, "map_rev_now": now.get("sha", ""), "stale": bool(sha) and sha != now.get("sha", ""),
+           "map_saved": rev.get("saved", "") if isinstance(rev, dict) else "", "version": meta.get("version", ""),
+           "synthetic": bool(meta.get("synthetic")), "partial": bool(meta.get("partial")), "computed": how}
+    out = dict(ov)
+    out["alive_by"] = fold_by(ov.get("alive_by"), "mean", top)
+    out["alive_hell_by"] = fold_by(ov.get("alive_hell_by"), "mean", top)
+    ids = set(ov.get("life_by", {}).keys()) | set((ov.get("alive_by") or {}).get("order") or []) | set((ov.get("alive_hell_by") or {}).get("order") or [])
+    ids |= {b.get("id") for b in ov.get("bosses") or []} | {d.get("killer") for d in ov.get("deaths") or []}
+    for row in ov.get("rows") or []:
+        if isinstance(row.get("enemy"), str):
+            ids.add(row["enemy"])
+    names = SB.content_names(_game(srv), {i for i in ids if i})
+    names["__other"] = "Other"
+    out["names"] = names
+    out["top"] = top
+    return {"ok": True, "sim": sim, "overlay": out}
+
+
 # ---------------------------------------------------------------- the routes
 
 def api_get(h, srv, parts, query):
@@ -402,6 +549,8 @@ def api_get(h, srv, parts, query):
         return h._send(200, status_record(srv))
     if parts == ["history"]:
         return h._send(200, history_record(srv))
+    if parts == ["overlay"]:   # pass 84 (lane SIMVIEW): the Timeline's overlay
+        return h._send(200, overlay_record(srv, query))
     if len(parts) == 2 and parts[0] == "result":
         p = _sim_path(parts[1])
         f = os.path.join(p, "result.json") if p else None

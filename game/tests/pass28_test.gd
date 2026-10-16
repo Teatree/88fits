@@ -71,8 +71,11 @@ func test_the_late_swarm_is_fodder() -> void:
 	# pass 33.2: the crab left the rotation; its 14:00 swarm is forty fire ants (at 20:04 since pass 46 stretched the clock)
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	var found := false
-	for ev in tl.events:
-		if str(ev.get("type", "")) == "swarm" and float(ev.get("t", 0.0)) == 1204.0:
+	# pass 84 (lane SPAWN, re-pinned): the swarm is a "once" row now (tools/migrate_timeline.py), an old map's event still counts
+	var swarms: Array = tl.events.filter(func(e: Dictionary) -> bool: return str(e.get("type", "")) == "swarm")
+	swarms.append_array(tl.roster.filter(func(r: Dictionary) -> bool: return str(r.get("pace", "")) == "once"))
+	for ev in swarms:
+		if float(ev.get("t", 0.0)) == 1204.0:
 			found = true
 			assert_str(str(ev.get("enemy", ""))).is_equal("fire_ant")
 			# pass 53: the ants are 0.6 of a mummy now (Garry), so the late swarm sends 24 of them, not 40
