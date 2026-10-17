@@ -150,6 +150,10 @@ var tint_range: Dictionary = {}
 ## Pass 73: "front_back" = the `attack` strip's first half is painted from the front and its second half from the back
 ## (the Saiga Sniper's aiming pose; EnemyManager._attack_view_frame); "" = every attack frame faces the camera.
 @export var attack_views: String = ""
+## Pass 85 (lane BANDIT): true = each view's half of the `attack` strip is a throw: its first half the wind-up (shown
+## while the creature winds up) and its second half the release (shown while it holds the throw, ranged.release_hold;
+## EnemyManager._throw_frame). A look entry may carry its own `attack_views` / `attack_throw` (apply_art).
+@export var attack_throw: bool = false
 ## Boss: {"attacks": [ {"name":"roll", ...}, ... ], "hp_mult_per_stage": 1.0 }
 @export var boss: Dictionary = {}
 ## Mini-boss tuning: {"hp_mult_per_stage": 1.8}
@@ -191,6 +195,15 @@ func apply_art(a: Dictionary) -> void:
 		back_faces = str(a["back_faces"])
 	if a.get("shadow") is Dictionary:
 		shadow = a["shadow"]
+	apply_attack_layout(a)
+
+
+## Pass 85 (lane BANDIT): a look's attack strip layout (`attack_views`, `attack_throw`) when its entry names one.
+func apply_attack_layout(a: Dictionary) -> void:
+	if a.has("attack_views"):
+		attack_views = str(a["attack_views"])
+	if a.has("attack_throw"):
+		attack_throw = bool(a["attack_throw"])
 
 
 ## This creature with another art variant (a copy; itself for its own code or an unknown one).

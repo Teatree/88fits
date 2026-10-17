@@ -62,8 +62,8 @@ func test_every_variant_is_painted_and_registered_with_its_kind() -> void:
 		assert_array(pf.looks_of(base)).contains([base, id])
 		# a variant walks like its kind: a bush or an agave is walked through, a rock is not
 		assert_bool(float(man[id]["radius"]) == 0.0).is_equal(float(man[base]["radius"]) == 0.0)
-	# two more joshua trees
-	assert_array(pf.looks_of("joshua_tree")).has_size(3)
+	# two more joshua trees (pass 85, re-pinned: and a third, joshua_tree_d)
+	assert_array(pf.looks_of("joshua_tree")).has_size(4)
 
 
 func test_the_brittlebush_is_a_new_bush_in_the_patches() -> void:
@@ -218,8 +218,10 @@ func test_the_title_scene_is_composed_round_the_hero() -> void:
 	assert_object(stage).is_not_null()
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(STAGE.SCENE_FILE))
 	var sc: Dictionary = data["red_canyon"]
-	# every painting of the vignette laid (a variant by name too), each on its shadow
-	assert_int(stage.composed.size()).is_equal((sc["props"] as Array).size())
+	# every painting of the vignette laid (a variant by name too), each on its shadow (pass 85, re-pinned: the vignette
+	# is one of the map's presets, drawn at random each visit)
+	var laid_props: Array = STAGE.presets_of(sc)[stage.preset_index]["props"]
+	assert_int(stage.composed.size()).is_equal(laid_props.size())
 	var pf: PropField = stage.map.get("props")
 	var feet: Vector3 = stage.feet()
 	var bx: Array = sc["clear"]["x"]
@@ -234,5 +236,6 @@ func test_the_title_scene_is_composed_round_the_hero() -> void:
 	# inside the box only the vignette stands (the map's own scatter there is gone)
 	assert_int(laid).is_equal(stage.composed.size())
 	# the hero's spot is clear: nothing within 1.3 m of his feet
-	for e: Dictionary in sc["props"]:
-		assert_float(Vector2(float(e["x"]), float(e["z"])).length()).is_greater(1.3)
+	for pr: Dictionary in STAGE.presets_of(sc):
+		for e: Dictionary in pr["props"]:
+			assert_float(Vector2(float(e["x"]), float(e["z"])).length()).is_greater(1.3)

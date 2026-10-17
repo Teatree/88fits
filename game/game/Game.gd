@@ -2344,6 +2344,9 @@ func teleport_hero(def: StructureDef) -> void:
 					break
 			if clear and map.has_method("in_water") and map.in_water(q):
 				clear = false
+		# pass 85 (lane WORLD): never out next to a Teleport (params.land_clear)
+		if clear and structures != null and not structures.teleport_landing_ok(def, q):
+			clear = false
 		if not clear:
 			continue
 		var dd := Vector2(q.x - from.x, q.z - from.z).length()

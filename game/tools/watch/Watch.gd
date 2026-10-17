@@ -29,6 +29,9 @@ const DATA := preload("res://tools/watch/WatchData.gd")
 const PANEL := preload("res://tools/watch/WatchPanel.gd")
 const RING := preload("res://tools/watch/WatchRing.gd")
 const STUB := preload("res://tools/watch/BotStub.gd")
+## pass 85 (lane TOOLS): the Hero Settings pop-up and the bot's goal plaque
+const SETUP := preload("res://tools/watch/WatchSetup.gd")
+const PLAQUE := preload("res://tools/watch/WatchPlaque.gd")
 const BOT_PATH := "res://tools/bot/Bot.gd"
 const GAME_SCENE := "res://game/Game.tscn"
 const RESULTS_SCENE := "res://ui/ResultsScreen.tscn"
@@ -54,7 +57,8 @@ var limit := 0.0
 var death := "end"
 var bot_opts: Dictionary = {}
 var repo := ""
-var sound_on := true
+## pass 85 (lane TOOLS; Garry: "Make Sound Off by default")
+var sound_on := false
 var numbers_on := true
 var autoquit := false
 ## skip_draw=0 keeps the drawing work on the frames that are not drawn (above 1x); 1 (the default) skips it there
@@ -122,6 +126,22 @@ var _fixed_checked := 0
 var _limit_called := false
 var _was_paused := false
 
+## Pass 85 (lane TOOLS): the run's settings (WatchSetup's shape: the command line's at first, then the pop-up's), the
+## setup file watch.py wrote (the board presets, the Sim results), the pop-up and the plaque; a restart waiting for the
+## run it ends to be gone; how many runs this window has started.
+var run_settings: Dictionary = {}
+var setup_doc: Dictionary = {}
+var setup
+var plaque
+var look := ""
+var talents_text := "none"
+var board_label := ""
+var unlocks := "all"
+var runs := 0
+var _pending: Dictionary = {}
+var _restart_frame := -1
+var _setup_was_paused := false
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -131,8 +151,7 @@ func _ready() -> void:
 	_setup_window()
 	_setup_save()
 	_build()
-	_load_ref()
-	_start_game()
+	_load_setup_doc()
 	var tree := get_tree()
 	tree.process_frame.connect(_on_frame)
 	tree.physics_frame.connect(_on_physics)
@@ -140,8 +159,13 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit)
 	_fit()
 	_last_us = Time.get_ticks_usec()
-	print("watch: %s seed %d map %s board %s limit %s speed %s bot %s ref %s" % [hero, run_seed, map_id, str(args.get("board_label", "")),
-		DATA.mmss(limit) if limit > 0.0 else "none", CLOCK.label(clock.speed), str(args.get("bot", "auto")), ref_label if ref_label != "" else "none"])
+	_attach_wall = float(Time.get_ticks_msec()) / 1000.0
+	# pass 85: the Hero Settings pop-up first, filled with the command line's settings; go=1 (--go, --autoquit: the
+	# checks) starts at once, as before (the instant start unless spawn=1)
+	if str(args.get("go", "0")) == "1":
+		_begin_run(run_settings, str(args.get("spawn", "0")) == "1")
+	else:
+		open_setup(false)
 
 
 # ---------------------------------------------------------------- the start
@@ -155,7 +179,7 @@ func _read_args() -> void:
 	limit = maxf(float(args.get("limit", "0")), 0.0)
 	death = str(args.get("death", "end"))
 	repo = str(args.get("repo", ""))
-	sound_on = str(args.get("sound", "1")) != "0"
+	sound_on = str(args.get("sound", "0")) == "1"
 	numbers_on = str(args.get("numbers", "1")) != "0"
 	autoquit = str(args.get("autoquit", "0")) == "1"
 	skip_draw_work = str(args.get("skip_draw", "1")) != "0"
@@ -175,6 +199,10 @@ func _read_args() -> void:
 			_shots.append(float(part))
 	_shots.sort()
 	_read_actions()
+	run_settings = SETUP.defaults_from_args(args)
+	talents_text = str(run_settings["talents"])
+	board_label = str(run_settings["board_label"])
+	unlocks = str(run_settings["unlocks"])
 
 
 ## A command line's value typed: true/false/on/off a bool, a number a float (an int when whole), else the text.
@@ -247,16 +275,6 @@ func _setup_save() -> void:
 	save.set("_dirty", false)
 	save.begin_sandbox()
 	save.data["runs_started"] = 1
-	var tal := talents_from(str(args.get("talents", "none")), (reg.get("talents") as Dictionary).keys())
-	if tal.has("error"):
-		problems.append(str(tal["error"]) + ": the board is empty")
-		tal = {}
-	save.data["talents"] = tal
-	if str(args.get("unlocks", "all")) == "all":
-		var done: Array = []
-		for qid in (reg.get("quests") as Dictionary).keys():
-			done.append(str(qid))
-		save.data["quests_done"] = done
 	if settings:
 		settings.camera_mode = 0
 		settings.ranged_on_screen = true
@@ -264,6 +282,37 @@ func _setup_save() -> void:
 		settings.show_hints = false
 		settings.damage_numbers = numbers_on
 		settings.debug_mode = false
+	# (pass 85: the board, the unlocks and the look are each run's own: _apply_save)
+	if reg == null:
+		problems.append("no Registry")
+
+
+## Pass 85: what the save holds for this run (in the sandbox; nothing reaches the disk): the Upgrade board talent by
+## talent, the unlocks (every quest done, or the Watch save's), the hero's look, the damage numbers.
+func _apply_save() -> void:
+	var save := get_node("/root/Save")
+	var reg := get_node("/root/Registry")
+	var gs := get_node_or_null("/root/Settings")
+	var tal := talents_from(talents_text, (reg.get("talents") as Dictionary).keys())
+	if tal.has("error"):
+		problems.append(str(tal["error"]) + ": the board is empty")
+		tal = {}
+	save.data["talents"] = tal
+	if unlocks == "all":
+		var done: Array = []
+		for qid in (reg.get("quests") as Dictionary).keys():
+			done.append(str(qid))
+		save.data["quests_done"] = done
+	else:
+		save.data["quests_done"] = []
+	if not (save.data.get("hero_look") is Dictionary):
+		save.data["hero_look"] = {}
+	if look != "":
+		(save.data["hero_look"] as Dictionary)[hero] = look
+	else:
+		(save.data["hero_look"] as Dictionary).erase(hero)
+	if gs:
+		gs.damage_numbers = numbers_on
 	if reg.character(hero) == null:
 		problems.append("no hero '%s': the save's hero plays" % hero)
 	if reg.map(map_id) == null:
@@ -315,6 +364,16 @@ func _build() -> void:
 	panel.name = "Panel"
 	add_child(panel)
 	panel.build(self)
+	# pass 85: the bot's goal over the phone view, and the Hero Settings pop-up over everything
+	plaque = PLAQUE.new()
+	plaque.name = "GoalPlaque"
+	add_child(plaque)
+	setup = SETUP.new()
+	setup.name = "HeroSettings"
+	setup.visible = false
+	add_child(setup)
+	setup.started.connect(_on_setup_started)
+	setup.cancelled.connect(_on_setup_cancelled)
 
 
 ## The phone on the left at 9:20, as tall as the window (at most half its width), the panel on the right.
@@ -333,6 +392,8 @@ func _fit() -> void:
 	panel.position = Vector2(w, 0)
 	panel.size = Vector2(win.x - w, win.y)
 	_place_badge()
+	if plaque != null:
+		plaque.place(view.position, view.size)
 	if sub:
 		sub.size = Vector2i(maxi(int(w), 64), maxi(int(h), 128))
 		sub.size_2d_override = Vector2i(CANVAS_W, int(roundf(float(CANVAS_W) * h / maxf(w, 1.0))))
@@ -372,9 +433,33 @@ func _place_badge() -> void:
 	badge.position = Vector2(view.position.x + (view.size.x - sz.x) * 0.5, view.position.y + view.size.y - sz.y - 18.0)
 
 
-func _load_ref() -> void:
-	var p := str(args.get("ref", ""))
-	ref_label = str(args.get("ref_label", ""))
+## Pass 85: the charts' grey line for this run: the command line's Sim result while the run is the one it was found for
+## (the same hero, board and map), else the newest of the setup file's Sim results that matches, else none.
+func _pick_ref() -> void:
+	ref = {}
+	ref_label = ""
+	var same := hero == str(args.get("hero", "drifter")) and map_id == str(args.get("map", "red_canyon")) \
+		and SETUP.same_board(SETUP.picks_from(talents_text), SETUP.picks_from(str(args.get("talents", "none"))))
+	if same:
+		_load_ref(str(args.get("ref", "")), str(args.get("ref_label", "")))
+		return
+	var r := SETUP.ref_for(setup_doc.get("refs", []) if setup_doc.get("refs") is Array else [], hero, map_id, SETUP.picks_from(talents_text))
+	if not r.is_empty():
+		_load_ref(str(r["path"]), str(r["label"]))
+
+
+## The setup file watch.py wrote (setup=): the board presets and the Sim results; {} without one.
+func _load_setup_doc() -> void:
+	var p := str(args.get("setup", ""))
+	if p == "" or not FileAccess.file_exists(p):
+		return
+	var d = JSON.parse_string(FileAccess.get_file_as_string(p))
+	if d is Dictionary:
+		setup_doc = d
+
+
+func _load_ref(p: String, label: String) -> void:
+	ref_label = label
 	if p == "" or p == "none":
 		return
 	if not FileAccess.file_exists(p):
@@ -414,11 +499,102 @@ static func ref_from(doc) -> Dictionary:
 	return out if out.size() > 2 else {}
 
 
-func _start_game() -> void:
+## The launch a run of the Watch starts from (Run.launch_override): the hero, the map and its seed, the run's own clock;
+## `spawn` the game's own start (the hero comes down in the spawn beam, pass 85's Start Run) instead of the tools' instant
+## one.
+static func launch_of(p_hero: String, p_map: String, p_seed: int, spawn: bool) -> Dictionary:
+	return {"character": p_hero, "map": p_map, "map_seed": p_seed, "sim_clock": true, "sim_fast": false, "watch": true, "spawn": spawn}
+
+
+## Pass 85: a run from settings `s` (WatchSetup's shape): everything the last run left is cleared, the settings taken,
+## the save made for it, the grey line found, and the game started (`spawn`: down the spawn beam, as the game starts).
+func _begin_run(s: Dictionary, spawn: bool) -> void:
+	_pending = {}
+	_restart_frame = -1
+	run_settings = s.duplicate(true)
+	take_settings(s)
+	_reset_run_state()
+	_apply_save()
+	_pick_ref()
+	runs += 1
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.window_set_title("88fits Watch: %s, seed %d" % [hero, run_seed])
+	_start_game(spawn)
+	_refresh_left = 0.0
+	print("watch: %s seed %d map %s board %s limit %s speed %s bot %s ref %s%s" % [hero, run_seed, map_id, board_label if board_label != "" else talents_text,
+		DATA.mmss(limit) if limit > 0.0 else "none", CLOCK.label(clock.speed), str(args.get("bot", "auto")), ref_label if ref_label != "" else "none",
+		" (run %d of this window, the spawn beam)" % runs if spawn else ""])
+
+
+## The Watch's fields from settings `s`: the hero, his look, the map, the seed (a new one when random), the limit, Down!,
+## the sound, the numbers, the unlocks, the board, the bot and its options, the speed.
+func take_settings(s: Dictionary) -> void:
+	hero = str(s.get("hero", hero))
+	look = str(s.get("look", ""))
+	map_id = str(s.get("map", map_id))
+	run_seed = maxi(int(s.get("seed", run_seed)), 1)
+	if bool(s.get("seed_random", false)):
+		run_seed = randi_range(1, 99999)
+		s["seed"] = run_seed
+		run_settings["seed"] = run_seed
+	limit = maxf(float(s.get("limit", 0.0)), 0.0)
+	death = str(s.get("death", death))
+	sound_on = bool(s.get("sound", false))
+	numbers_on = bool(s.get("numbers", true))
+	unlocks = str(s.get("unlocks", "all"))
+	talents_text = str(s.get("talents", "none"))
+	board_label = str(s.get("board_label", ""))
+	args["bot"] = str(s.get("bot", "auto"))
+	bot_opts = (s.get("bot_opts", {}) as Dictionary).duplicate()
+	clock = CLOCK.new()
+	clock.set_speed(float(s.get("speed", 1.0)))
+	clock.paused = false
+
+
+## What a run leaves behind, cleared for the next: the data, the end, the problems, the bot, the screens' timers, the
+## clock's measure, the view's last frame, the panel's per-run state.
+func _reset_run_state() -> void:
+	data = DATA.new()
+	ended = false
+	end_info = {}
+	problems = []
+	bot = null
+	bot_kind = ""
+	ra = null
+	_attached = false
+	_seeded = {}
+	_last_play = 0.0
+	_screen_key = ""
+	_screen_held = 0.0
+	_screen_up = 0.0
+	_forced_pause = false
+	_refresh_left = 0.0
+	_chart_left = 0.0
+	_charts_dirty = true
+	_limit_called = false
+	_was_paused = false
+	_fixed_checked = 0
+	_end_shot = false
+	_finger_down = false
+	_clicks = []
+	if view != null and sub != null:
+		view.texture = sub.get_texture()
+		view.modulate = Color(1, 1, 1)
+	if panel != null and panel.has_method("reset_run"):
+		panel.reset_run()
+	if plaque != null:
+		plaque.reset()
+	get_tree().paused = false
+
+
+func _start_game(spawn: bool = false) -> void:
 	var run := run_node()
 	run.seed_dice(run_seed)
 	# the creatures' and the pickups' own dice, seeded right after their _ready randomizes them (sim_run.gd's way)
-	run.launch_override = {"character": hero, "map": map_id, "map_seed": run_seed, "sim_clock": true, "sim_fast": false, "watch": true}
+	run.launch_override = launch_of(hero, map_id, run_seed, spawn)
+	# (tests: the record kept in memory, nothing written)
+	if str(args.get("analytics", "")) == "memory":
+		run.launch_override["analytics_memory"] = true
 	var scene = load(GAME_SCENE)
 	if scene == null:
 		problems.append("the Game scene did not load")
@@ -493,6 +669,14 @@ func _on_frame() -> void:
 	_take_shot_if_due()
 	_run_actions()
 	_drive_clicks()
+	if not _pending.is_empty() and ended and _restart_frame >= 0 and Engine.get_process_frames() >= _restart_frame:
+		_begin_run(_pending, true)
+		return
+	if plaque != null:
+		plaque.show_words(plaque_words())
+	# (pass 85: no run yet, the pop-up up: the phone view is dark, not the empty viewport's colour)
+	if view != null:
+		view.visible = _game_ok() or ended
 	if ended or not _game_ok():
 		_tick_panel(wall_dt)
 		return
@@ -564,8 +748,7 @@ func _attach() -> void:
 		ra.set("mirror_root", repo.path_join("analytics"))
 	var hdr = ra.get("header")
 	if hdr is Dictionary:
-		hdr["watch"] = {"bot": "", "board": str(args.get("board_label", "")), "talents": str(args.get("talents", "none")),
-			"ref": ref_label}
+		hdr["watch"] = {"bot": "", "board": board_label, "talents": talents_text, "ref": ref_label, "look": look, "run": runs}
 	if game.get("damage_numbers") != null and game.damage_numbers and not numbers_on:
 		game.damage_numbers.suppressed = true
 	_make_bot()
@@ -642,6 +825,9 @@ func _tick_bot(wall_dt: float) -> void:
 	if game_pause_up():
 		_screen_key = ""
 		_screen_up = 0.0
+		return
+	# pass 85: the hero is coming down the spawn beam (Start Run): nothing to steer yet
+	if bool(game.get("spawning")):
 		return
 	var key := screen_key()
 	if key != "":
@@ -750,6 +936,8 @@ func _say_profile() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		return
+	if setup != null and setup.visible:
+		return
 	var k := (event as InputEventKey).keycode
 	var handled := true
 	match k:
@@ -771,6 +959,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_power()
 		KEY_M:
 			toggle_sound()
+		KEY_R:
+			open_setup(true)
 		_:
 			handled = false
 	if handled:
@@ -820,6 +1010,63 @@ func toggle_sound() -> void:
 	_refresh_left = 0.0
 
 
+## Pass 85 (lane TOOLS): the Hero Settings pop-up, filled with the run's settings now (the command line's at the start).
+## `mid_run`: opened from the header's "Restart run" (or R): the run waits paused behind it, Cancel goes back to it.
+func open_setup(mid_run: bool) -> void:
+	if setup == null or setup.visible:
+		return
+	_setup_was_paused = clock.paused
+	var cancel_ok := mid_run and (_game_ok() or ended)
+	if cancel_ok and not ended:
+		clock.paused = true
+	var s := run_settings.duplicate(true)
+	s["look"] = look if runs > 0 else str(s.get("look", ""))
+	setup.open(s, setup_doc, cancel_ok)
+	_refresh_left = 0.0
+
+
+func _on_setup_cancelled() -> void:
+	clock.paused = _setup_was_paused
+	_refresh_left = 0.0
+
+
+## Start Run: a run up now ends first (recorded as a tool run, its decision log beside it) and the new one starts once
+## that game is gone (_finish_run, _on_frame); otherwise it starts now. Both come down the spawn beam.
+func _on_setup_started(s: Dictionary) -> void:
+	if _game_ok() and not ended:
+		_pending = s
+		print("watch: Restart run: this run ends here, the next starts with the new settings")
+		end_now()
+		return
+	_begin_run(s, true)
+
+
+## Whether the pop-up is up (the panel's header and the plaque say so).
+func setup_open() -> bool:
+	return setup != null and setup.visible
+
+
+## What the plaque says now (WatchPlaque.words_of reads it): the run's state, the screen up, the bot's intent and goal.
+func plaque_words() -> Dictionary:
+	var info := {"ended": ended, "setup": setup_open(), "started": _game_ok() or ended, "screens": "", "path": false,
+		"spawning": false, "intent": "", "goal": {}, "hold": false, "nearest": INF, "flee_d": 0.0, "bot": bot_kind, "death": death}
+	if _game_ok() and not ended:
+		info["screens"] = screen_key()
+		info["spawning"] = bool(game.get("spawning"))
+		var cs = game.get("cards")
+		info["path"] = cs != null and cs.visible and bool(cs.get("path_mode"))
+	if bot != null:
+		info["intent"] = str(bot.get("intent"))
+		var g = bot.get("goal")
+		info["goal"] = g if g is Dictionary else {}
+		info["hold"] = bool(bot.get("_hold")) if bot.get("_hold") != null else false
+		var legs = bot.get("legs")
+		if legs != null:
+			info["nearest"] = float(legs.get("seen_nearest"))
+			info["flee_d"] = float(legs.get("flee_d"))
+	return PLAQUE.words_of(info)
+
+
 ## Ends the run now (the End run button, the limit, the wall cap): the record and the decision log are saved.
 func end_now() -> void:
 	if ended or not _game_ok():
@@ -860,15 +1107,17 @@ func _finish_run() -> void:
 		rec = dir.path_join(stamp + ".json")
 	end_info["record"] = rec
 	var csv := dir.path_join(stamp + "_decisions.csv")
-	var f := FileAccess.open(csv, FileAccess.WRITE)
+	# (tests, analytics=memory: nothing written anywhere)
+	var f := FileAccess.open(csv, FileAccess.WRITE) if str(args.get("analytics", "")) != "memory" else null
 	if f:
 		f.store_string(data.decisions_csv(_names_for_csv()))
 		f.close()
 		end_info["csv"] = csv
 	else:
-		problems.append("could not write %s" % csv)
+		if str(args.get("analytics", "")) != "memory":
+			problems.append("could not write %s" % csv)
 	# the last frame stays on the left; the game goes before its wait for the Results screen ends
-	var img: Image = sub.get_texture().get_image() if sub else null
+	var img: Image = sub.get_texture().get_image() if sub and DisplayServer.get_name() != "headless" else null
 	if img != null and not img.is_empty():
 		view.texture = ImageTexture.create_from_image(img)
 		view.modulate = Color(0.55, 0.55, 0.6)
@@ -888,6 +1137,10 @@ func _finish_run() -> void:
 	print("watch: END %s at %s of play (clock %s) level %d kills %d | record %s | decisions %s (%d) | panel %.2f ms a frame" % [
 		end_info["result"], DATA.mmss(float(end_info["t"])), DATA.mmss(float(end_info["clock"])), int(end_info["level"]),
 		int(end_info["kills"]), rec, str(end_info.get("csv", "not written")), data.decisions.size(), panel_ms])
+	# pass 85: Start Run in the pop-up mid-run: the next run once this game is gone (two frames on)
+	if not _pending.is_empty():
+		_restart_frame = Engine.get_process_frames() + 2
+		return
 	if autoquit:
 		_quit_soon()
 
@@ -1001,9 +1254,12 @@ func _read_actions() -> void:
 
 
 func _run_actions() -> void:
-	if _actions.is_empty() or not _attached:
+	if _actions.is_empty():
 		return
 	var a: Dictionary = _actions[0]
+	# pass 85: the pop-up's actions (and shots) also run before a run is up; the rest wait for one
+	if not _attached and not is_setup_action(str(a["what"])):
+		return
 	var now := (float(Time.get_ticks_msec()) / 1000.0 - _attach_wall) if bool(a["wall"]) else play_t()
 	if now < float(a["at"]):
 		return
@@ -1026,8 +1282,21 @@ func _run_actions() -> void:
 			end_now()
 		"say":
 			pass
+		"setup":
+			open_setup(true)
+		"start":
+			if setup != null and setup.visible:
+				setup._on_start()
+		"quit":
+			_quit_soon()
+		"cancel":
+			if setup != null and setup.visible and setup.can_cancel:
+				setup.visible = false
+				_on_setup_cancelled()
 		_:
-			if what.begins_with("speed="):
+			if what.begins_with("setup.") and setup != null and setup.visible:
+				setup_action(what.substr(6))
+			elif what.begins_with("speed="):
 				set_speed(float(what.substr(6)))
 			elif what.begins_with("shot="):
 				_shot_wanted = what.substr(5)
@@ -1036,6 +1305,52 @@ func _run_actions() -> void:
 	print("watch: action %s at %s %.1f: play %.2f, level %d, %s, mode '%s', speed %s, cards up %s, screens '%s', reached %.2fx" % [what,
 		"wall" if bool(a["wall"]) else "play", float(a["at"]), play_t(), int(run_node().level), "paused" if clock.paused else "running",
 		clock.mode, CLOCK.label(clock.speed), str(level_cards_up()), screen_key(), clock.reached])
+
+
+## Pass 85: the actions that may run while no run is up (the pop-up's, a shot, say).
+static func is_setup_action(what: String) -> bool:
+	return what in ["setup", "start", "cancel", "say", "quit"] or what.begins_with("setup.") or what.begins_with("shot=")
+
+
+## Pass 85: a check's hand on the pop-up: `hero=<id>`, `look=<code>`, `board=<preset>` (none, quarter, half, full,
+## save), `seed=<n>`, `speed=<x>`, `limit=<m:ss>`, `bot=<preset>`, `sound=<0|1>`, `slot=<talent>/<rank 1..6>` (a click).
+func setup_action(what: String) -> void:
+	var i := what.find("=")
+	if i <= 0:
+		return
+	var k := what.substr(0, i)
+	var v := what.substr(i + 1)
+	match k:
+		"hero":
+			var hi: int = setup._hero_ids.find(v)
+			if hi >= 0:
+				setup._hero.select(hi)
+				setup._hero_changed("")
+		"look":
+			var li: int = setup._look_codes.find(v)
+			if li >= 0:
+				setup._look.select(li)
+				setup._show_hero()
+		"board":
+			setup._use_preset(v)
+		"seed":
+			setup._seed_random.button_pressed = false
+			setup._seed.value = float(int(v))
+		"speed":
+			setup._speed.select(maxi(CLOCK.SPEEDS.find(CLOCK.nearest(float(v))), 0))
+		"limit":
+			setup._limit.text = v
+		"bot":
+			var bi: int = setup._bot_preset_ids.find(v)
+			if bi >= 0:
+				setup._bot_preset.select(bi)
+				setup._preset_to_fields()
+		"sound":
+			setup._sound.button_pressed = v == "1"
+		"slot":
+			var bits := v.split("/")
+			if bits.size() == 2:
+				setup._slot_clicked(bits[0], int(bits[1]) - 1)
 
 
 # ---------------------------------------------------------------- words for the panel
@@ -1086,8 +1401,9 @@ func hero_name() -> String:
 
 func header_words() -> String:
 	var parts := PackedStringArray()
-	var board := str(args.get("board_label", ""))
-	parts.append("board %s" % (board if board != "" else str(args.get("talents", "none"))))
+	parts.append("board %s" % (board_label if board_label != "" else talents_text))
+	if look != "":
+		parts.append("look %s" % look)
 	parts.append("seed %d" % run_seed)
 	parts.append("map %s" % map_id.replace("_", " "))
 	parts.append("bot: " + bot_words())

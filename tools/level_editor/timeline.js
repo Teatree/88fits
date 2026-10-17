@@ -110,7 +110,56 @@ const Timeline = (() => {
     scrollBox.addEventListener('scroll', () => { if (lastHover) lightRows(null); });
     scrollBox.addEventListener('wheel', onWheel, { passive: false });
     scrollBox.addEventListener('pointerdown', (e) => { if (e.target === content || e.target === scrollBox || e.target.classList.contains('lane-svg')) { if (e.button === 0) App.select(null); } });
+    // pass 85 (lane TOOLS): the right button pans the Spawn rows (capture: no bar ever sees it), no context menu there
+    scrollBox.addEventListener('pointerdown', onPanDown, true);
+    scrollBox.addEventListener('contextmenu', (e) => { if (inPanArea(e.target) || pan || performance.now() - panEndT < 400) e.preventDefault(); });
     window.addEventListener('resize', () => { if (App.S.map && App.S.tab === 'timeline') render(); });
+  }
+
+  // ------------------------------------------------------------------ the right-button pan (pass 85)
+
+  // Garry (2026-10-17): "Timeline - make it possible to pan around with right click when inside the Rows area." Inside the
+  // Spawn rows section (its lanes and their labels), holding the right mouse button and dragging moves the view with the
+  // pointer, both ways: time left and right, the rows up and down (the scroll box's own scroll, so the ruler and the
+  // sections' bars stay where they are). A grab cursor while it lasts; no context menu there; it never edits a bar (the
+  // press is taken in the capture phase, before any bar's handler); a click without a drag does nothing.
+  const PAN_AREA = '.tl-sec-rows .tl-sec-body';
+  let pan = null;                      // {id, x, y, left, top, moved} while the right button pans
+  let panEndT = 0;
+  function inPanArea(t) { return !!(t && t.closest && t.closest(PAN_AREA)); }
+  /** The scroll a pan that started at `p` (its pointer and its scroll) asks for with the pointer at (cx, cy): the content
+   *  follows the pointer (pure; the selftest reads it). */
+  function panTo(p, cx, cy) { return { left: Math.max(0, p.left - (cx - p.x)), top: Math.max(0, p.top - (cy - p.y)) }; }
+  function onPanDown(e) {
+    if (e.button !== 2 || drag || pan || !inPanArea(e.target)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    hideCursor();
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY, left: scrollBox.scrollLeft, top: scrollBox.scrollTop, moved: false };
+    try { scrollBox.setPointerCapture(e.pointerId); } catch (_) { /* the window's listeners still follow */ }
+    document.body.classList.add('tl-panning');
+    window.addEventListener('pointermove', onPanMove, true);
+    window.addEventListener('pointerup', onPanUp, true);
+    window.addEventListener('pointercancel', onPanUp, true);
+  }
+  function onPanMove(e) {
+    if (!pan || e.pointerId !== pan.id) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (Math.abs(e.clientX - pan.x) + Math.abs(e.clientY - pan.y) > 2) pan.moved = true;
+    const to = panTo(pan, e.clientX, e.clientY);
+    scrollBox.scrollLeft = to.left;
+    scrollBox.scrollTop = to.top;
+  }
+  function onPanUp(e) {
+    if (!pan || e.pointerId !== pan.id) return;
+    try { scrollBox.releasePointerCapture(pan.id); } catch (_) { /* gone already */ }
+    pan = null;
+    panEndT = performance.now();
+    document.body.classList.remove('tl-panning');
+    window.removeEventListener('pointermove', onPanMove, true);
+    window.removeEventListener('pointerup', onPanUp, true);
+    window.removeEventListener('pointercancel', onPanUp, true);
   }
 
   /** One lane: its sticky label (an eye on a view-only lane, a pencil on an editing one; pass 84) and its SVG. */
@@ -3150,7 +3199,7 @@ const Timeline = (() => {
 
   let lastCursorT = null;             // pass 84: the second under the pointer last (the inspector's Split at cursor)
   function onHover(e) {
-    if (drag || !App.S.map) return;
+    if (drag || pan || !App.S.map) return;
     const t = tAt(e.clientX);
     if (t < 0 || e.clientX < svgLeft()) { hideCursor(); return; }
     lastCursorT = Math.max(0, Math.round(t));
@@ -3263,5 +3312,7 @@ const Timeline = (() => {
   return { mount, render, fit, zoom, viewCenter, scrollToSelection, hideCard, LABEL_W, ALT_COLORS, get spp() { return spp; }, setSnap, toggleSnap, get snapOn() { return snapOn; }, setWindow, get winSecs() { return winSecs; },
     // pass 84 (lane TIMELINE): the cursor's last second (split at cursor), the sections, the Sim overlay, the warnings
     get cursorT() { return lastCursorT; }, isCollapsed, setCollapsed, setAll, loadSimList, warningsOf, get view() { return view; }, get sim() { return simOv; },
-    rowSpawnsPerSecond, firstEnemy, enemyWords, startNumbers };
+    rowSpawnsPerSecond, firstEnemy, enemyWords, startNumbers,
+    // pass 85 (lane TOOLS): the right-button pan of the Spawn rows
+    panTo, get panning() { return !!pan; } };
 })();

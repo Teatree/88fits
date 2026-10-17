@@ -618,6 +618,34 @@ def attack_stills(d, sk, subject, bg, front_ref, img, back_img, seed, info):
     return aim, aim_b
 
 
+def windup_stills(d, sk, subject, bg, front_ref, back_img, seed, info):
+    """Pass 85 (lane BANDIT, the Dynamite Bandit's throw): a wind-up pose before the attack pose, for a creature whose
+    recipe or JSON names one in words (`windup_hint`; from behind `windup_back_hint`, else the same words). The front is an
+    edit of the front still (<sk>_windup_front), the back of the back still (<sk>_windup_back, with attack_views
+    "front_back"), cached like every still (a lane may paint candidates and copy its pick into those keys). None without
+    `windup_hint`. attack_frames then packs each view's half as the wind-up, then the attack pose (EnemyDef.attack_throw)."""
+    hint = str(d.get("windup_hint") or "").strip()
+    if not hint:
+        return None
+    tail = (" " + STYLE + ". Full body, the whole creature and everything it holds inside the picture, one of each thing it holds, no "
+            "ground, no shadow. " + bg + ".")
+    h = None
+    prompt = ("The reference image shows this exact creature: keep its face, clothes, colors and proportions exactly, and redraw it full "
+              "body " + hint + "." + tail)
+    wf, inf = render(sk + "_windup_front", prompt, [front_ref], {"subject": subject, "view": None, "subjects_max": 1, "ref_h": h}, seed + 13)
+    info["renders"]["windup_front"] = inf
+    if str(d.get("attack_views", "")) != "front_back":
+        return wf, None
+    back_up = comfy.upload_pil(back_img, sk + "_back.png")
+    bhint = str(d.get("windup_back_hint") or hint).strip()
+    bprompt = ("The reference image shows this exact creature seen from behind: keep it seen directly from behind, no face visible, "
+               "keep its colors and proportions, and redraw it full body " + bhint + "." + tail)
+    wb, inf = render(sk + "_windup_back", bprompt, [back_up], {"subject": "the same creature seen from behind", "view": None,
+                     "subjects_max": 1, "ref_h": h}, seed + 14)
+    info["renders"]["windup_back"] = inf
+    return wf, wb
+
+
 def _warm_stats(rgba, lo, hi, min_s):
     """Mean hue (degrees) and saturation of a figure's pixels in a hue band (saturated past min_s)."""
     arr = np.asarray(rgba.convert("RGBA"))
@@ -647,7 +675,7 @@ def match_band(pose_rgba, ref_rgba, lo=0.0, hi=60.0, min_s=0.25):
     return out
 
 
-def pose_cell(still_rgb, stand_cell, cell, outline_frac, outline_color, fit=1.0, pad_bottom=0.06, match=None):
+def pose_cell(still_rgb, stand_cell, cell, outline_frac, outline_color, fit=1.0, pad_bottom=0.06, match=None, lift=0.0):
     """A painted pose (an attack still) placed like the standing figure: its height the standing figure's x `fit` (1 when
     the pose stands as tall as the standing painting: the Saiga Sniper's aim), its lower body centred where the standing
     figure's is (lower_center_x) and its soles on the cell's floor line, slid back inside the cell when what it holds
@@ -678,11 +706,13 @@ def pose_cell(still_rgb, stand_cell, cell, outline_frac, outline_color, fit=1.0,
     # the soles on the standing figure's floor line (its outline counted), else the cell's
     floor = (int(ty.max()) - px) if len(ty) else cell - int(cell * pad_bottom)
     canvas = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
-    canvas.alpha_composite(small, (x, max(0, floor - (h - bottom_pad) + 1)))
+    # pass 85 (lane BANDIT): `lift` (a share of the cell) raises the pose off the floor line: a throw's hop
+    y = floor - (h - bottom_pad) + 1 - int(round(cell * float(lift or 0.0)))
+    canvas.alpha_composite(small, (x, max(0, y)))
     return artkit.add_outline(canvas, px, outline_color), x - want
 
 
-def attack_frames(aim, aim_b, stand_cell, back_cell, cell, outline_frac, outline_color, d, info):
+def attack_frames(aim, aim_b, stand_cell, back_cell, cell, outline_frac, outline_color, d, info, wind=None):
     """The `attack` frames from the painted poses (attack_stills): the front pose held, a still and a breath (the aim
     "cannot move a muscle"); with the creature's "attack_views": "front_back" (lane SNIPER, pass 73: the game shows the
     first half while the aim points towards the camera, the second while it points away) the pose from behind follows
@@ -691,12 +721,26 @@ def attack_frames(aim, aim_b, stand_cell, back_cell, cell, outline_frac, outline
     fit = float(d.get("aim_fit", 1.0) or 1.0)
     match = d.get("aim_match", {"lo": 0, "hi": 60})
     match = match if isinstance(match, dict) else None
-    a, slid = pose_cell(aim, stand_cell, cell, outline_frac, outline_color, fit, match=match)
+    # pass 85 (lane BANDIT): `aim_lift` raises the attack pose off the floor (a share of the cell: the throw's hop); a
+    # wind-up (`wind`, windup_stills) comes first in each view's half at its own `windup_fit`
+    lift = float(d.get("aim_lift", 0.0) or 0.0)
+    wfit = float(d.get("windup_fit", 1.0) or 1.0)
+    a, slid = pose_cell(aim, stand_cell, cell, outline_frac, outline_color, fit, match=match, lift=lift)
     breath = cell / 160.0
-    frames = [a, artkit.transform(a, bob=breath, sy=0.996, sx=1.002)]
-    info["attack_slid_px"] = {"front": slid}
+    frames = []
+    info["attack_slid_px"] = {}
+    if wind and wind[0] is not None:
+        wa, wslid = pose_cell(wind[0], stand_cell, cell, outline_frac, outline_color, wfit, match=match)
+        frames += [wa, artkit.transform(wa, bob=breath, sy=0.996, sx=1.002)]
+        info["attack_slid_px"]["windup_front"] = wslid
+    frames += [a, artkit.transform(a, bob=breath, sy=0.996, sx=1.002)]
+    info["attack_slid_px"]["front"] = slid
     if str(d.get("attack_views", "")) == "front_back" and aim_b is not None:
-        b, slid_b = pose_cell(aim_b, back_cell, cell, outline_frac, outline_color, fit, match=match)
+        if wind and len(wind) > 1 and wind[1] is not None:
+            wb, wslid_b = pose_cell(wind[1], back_cell, cell, outline_frac, outline_color, wfit, match=match)
+            frames += [wb, artkit.transform(wb, bob=breath, sy=0.996, sx=1.002)]
+            info["attack_slid_px"]["windup_back"] = wslid_b
+        b, slid_b = pose_cell(aim_b, back_cell, cell, outline_frac, outline_color, fit, match=match, lift=lift)
         frames += [b, artkit.transform(b, bob=breath, sy=0.996, sx=1.002)]
         info["attack_slid_px"]["back"] = slid_b
     return {"attack": frames}
@@ -1458,7 +1502,9 @@ def process(type_, folder, id_):
         # pass 73 (lane ART, the Saiga Sniper's aim): painted attack poses (aim_hint / aim_ref) instead of the leans
         atk = attack_stills(d, sk, subject, bg, front_ref, img, back_img, seed, info)
         if atk:
-            frames.update(attack_frames(atk[0], atk[1], base, back_cell, cell, CF, CO, d, info))
+            # pass 85 (lane BANDIT): a wind-up pose before it (windup_hint: the Dynamite Bandit's throw)
+            wind = windup_stills(d, sk, subject, bg, front_ref, back_img, seed, info)
+            frames.update(attack_frames(atk[0], atk[1], base, back_cell, cell, CF, CO, d, info, wind))
         # the death: a painted "dead" still edited from the front, and three frames of the standing painting tipping over into it
         # a creature JSON may carry "dead_hint": the death pose in its own words (the generic "limbs sprawled, tongue out" turned
         # the centipede into a goblin with arms)

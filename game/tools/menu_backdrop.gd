@@ -7,12 +7,15 @@
 extends SceneTree
 
 var _out := "res://art/ui/wanted/menu_backdrop.jpg"
+var _preset := 0
 
 
 func _initialize() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):
 			_out = a.substr(4)
+		elif a.begins_with("preset="):
+			_preset = int(a.substr(7))
 	create_timer(60.0, true, false, true).timeout.connect(func() -> void:
 		push_error("menu_backdrop: watchdog")
 		quit(3))
@@ -27,6 +30,9 @@ func _main() -> void:
 	var save = root.get_node("Save")
 	save.begin_sandbox()
 	root.get_node("Settings").menu_style = "live"
+	# pass 85: the title draws one of its presets at random; the backdrop is always the first (preset=<k> for another)
+	var stage_script = load("res://ui/TitleStage.gd")
+	stage_script.force_preset = _preset
 	change_scene_to_file("res://ui/TitleScreen.tscn")
 	await _wait(1.6)
 	var t = current_scene

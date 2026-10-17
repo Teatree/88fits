@@ -36,8 +36,32 @@
     "telegraph": 0.7,
     "splash": 1.2,
     "land_only": true,
+    "shot": "dynamite",
+    "release_hold": 0.35,
+    "dynamite": {
+      "speed": 9.0,
+      "fuse": 1.0,
+      "out_before": 0.5,
+      "lead": 0.35,
+      "lead_max": 2.5,
+      "model": "res://art/props/dynamite_b_stick_red.glb",
+      "scale": 0.6,
+      "halo_r": 0.2,
+      "hand": {
+        "up": 1.3,
+        "side": 0.25,
+        "forward": 0.1
+      },
+      "blast": {
+        "radius": 2.0,
+        "knockback": 7.0,
+        "lift": 2.0,
+        "push": 10.0,
+        "push_radius": 1.2
+      }
+    },
     "trail": {
-      "color": "#3E9E2C",
+      "color": "#6B625C",
       "alpha": 0.4,
       "size": 0.7,
       "life": 0.45,
@@ -48,12 +72,12 @@
       "size": 0.12,
       "glow": 0.35,
       "halo": 1.7,
-      "color": "#8CFF4A"
+      "color": "#FF2A1F"
     }
   },
   "sfx": {
-    "attack": "en_cactus_spit",
-    "die": "en_cactus_die",
+    "attack": "w_lob_throw",
+    "die": "en_goblin_die",
     "hit": "en_goblin_hit"
   },
   "placeholder": {
@@ -92,5 +116,53 @@
   },
   "doc": "The first ranged creature: keeps 5 m off and lobs a spit that lands in a red ring. Teaches sidestepping.",
   "head": 0.981,
-  "can_be_elite": false
+  "can_be_elite": false,
+  "variant_base": "SC-0",
+  "variants": {
+    "SC-0": {
+      "note": "the top-level strip, before the Level Editor's looks: the green walking cactus"
+    },
+    "SC-A": {
+      "note": "pass 85 (lane BANDIT): the Dynamite Bandit from Garry's tools/dl/uploads/2d/Dynamite_Bandit.png, cut into its four figures (tools/dl/p85/BANDIT/ref_*.png): the front redrawn from his standing front figure (front_from_picture c2), the back from his back figure (c6), the release poses from his two throwing figures, the wind-ups as edits of our front and back stills, all picked by eye; free Wan walks front and back like the Bandit and the Saiga (the walk_hold driver's thin Mixamo legs lost his stocky stance), the attack a throw (wind-up | release, front and back)",
+      "recipe": {
+        "stills": "sca",
+        "art_prompt": "a short stocky old masked desert bandit: a big floppy dark brown cowboy hat with a red band, bushy white hair and white sideburns, stern narrow eyes, a black cloth mask over his nose and mouth, a mustard-yellow shirt with rolled sleeves, a ragged dark brown leather vest with a torn hem, a dark brown belt with a big silver buckle, red trousers with a torn patch on one knee, white bandages round his shins, big brown leather boots, bundles of red dynamite sticks with black bands hanging at his belt and a pale grey cloth pouch at his hip, holding one red stick of dynamite with a short fuse upright in his right fist at chest height, his left hand a fist at his side, standing with his legs apart and knees bent",
+        "motion": "an old masked bandit walking in place with short heavy steps, the red stick of dynamite held up in his right fist at his chest the whole time, the big floppy hat bobbing",
+        "back_hint": "seen from behind: the back of his huge floppy dark brown hat with its red band, his white hair, the knot of the black mask, the back of the ragged brown vest with its yellow zigzag hem, the dynamite bundles on the back of his belt, the red trousers and the big boots, the red stick of dynamite in his right fist on the right of the picture, no face",
+        "dead_hint": "lying flat on his back sideways across the picture, his head on the left and his boots on the right, knocked out with his eyes shut, his big floppy hat fallen off beside his head, the red stick of dynamite dropped beside his open hand; no ground, no sand, no shadow",
+        "aim_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head with the hand open and empty, his head tipped back looking up after the stick he just threw, his left arm thrown out low to the side, both boots off the ground",
+        "aim_back_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head with the hand open and empty, his left arm thrown out low to the side, both boots off the ground with the soles showing",
+        "windup_hint": "winding up to throw: his right arm drawn back and up with the elbow high beside his head, the red stick of dynamite in his right fist held up behind his shoulder, its fuse lit with a small spark, his left arm stretched forward, legs apart, both boots on the ground",
+        "attack_views": "front_back",
+        "attack_throw": true,
+        "aim_fit": 1.08,
+        "aim_lift": 0.03,
+        "cell_fill": 0.8,
+        "screen": "green",
+        "anim_negative": "extra arms, a third arm, extra legs, two sticks of dynamite in his hand, the stick of dynamite disappearing, an explosion, fire, smoke, a gun",
+        "method": "creature_free2"
+      },
+      "attack_views": "front_back",
+      "attack_throw": true,
+      "sprite": "spit_cactus_sprite_a.png",
+      "icon": "spit_cactus_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 8,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 46,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.956,
+      "fresh": true
+    }
+  },
+  "variant": "SC-A"
 }

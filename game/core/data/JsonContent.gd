@@ -312,7 +312,8 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 			all[base_code] = {"sprite": e.sprite, "sprite_file": e.sprite_file, "anims": e.anims, "fps": e.fps, "strip_cols": e.strip_cols,
 				"head": e.head, "icon": base_icon, "note": str(bn.get("note", "")),
 				"front_faces": str(bn.get("front_faces", e.front_faces)), "back_faces": str(bn.get("back_faces", e.back_faces)),
-				"shadow": bn["shadow"] if bn.get("shadow") is Dictionary else e.shadow, "shelved": bool(bn.get("shelved", false))}
+				"shadow": bn["shadow"] if bn.get("shadow") is Dictionary else e.shadow, "shelved": bool(bn.get("shelved", false)),
+				"attack_views": str(bn.get("attack_views", d.get("attack_views", ""))), "attack_throw": bool(bn.get("attack_throw", d.get("attack_throw", false)))}
 		for code in vs.keys():
 			var v = vs[code]
 			if code == base_code or not v is Dictionary or not v.has("sprite"):
@@ -331,7 +332,9 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 				"fps": vfp if vfp is Dictionary else e.fps, "strip_cols": int(v.get("strip_cols", 0)), "head": float(v.get("head", e.head)),
 				"icon": vicon if vicon else base_icon, "note": str(v.get("note", "")),
 				"front_faces": str(v.get("front_faces", e.front_faces)), "back_faces": str(v.get("back_faces", e.back_faces)),
-				"shadow": v["shadow"] if v.get("shadow") is Dictionary else e.shadow, "shelved": bool(v.get("shelved", false))}
+				"shadow": v["shadow"] if v.get("shadow") is Dictionary else e.shadow, "shelved": bool(v.get("shelved", false)),
+				# pass 85 (lane BANDIT): its attack strip's layout (EnemyDef.apply_attack_layout), else the creature's
+				"attack_views": str(v.get("attack_views", d.get("attack_views", ""))), "attack_throw": bool(v.get("attack_throw", d.get("attack_throw", false)))}
 		e.variants = all
 		var use := str(d.get("variant", base_code))
 		e.variant = use if all.has(use) else base_code
@@ -353,6 +356,10 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	var foh = d.get("flee_on_hit", {})
 	e.flee_on_hit = foh if foh is Dictionary else {}
 	e.attack_views = str(d.get("attack_views", ""))
+	# pass 85 (lane BANDIT): a throw's attack strip (wind-up | release per view), and the played look's own layout
+	e.attack_throw = bool(d.get("attack_throw", false))
+	if e.variants.has(e.variant):
+		e.apply_attack_layout(e.variants[e.variant])
 	var am = d.get("ambush", {})
 	e.ambush = am if am is Dictionary else {}
 	var su = d.get("support", {})

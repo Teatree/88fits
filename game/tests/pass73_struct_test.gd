@@ -302,7 +302,8 @@ func test_a_map_stands_ten_to_twelve_poles_spread_out_beside_the_draw() -> void:
 		for s in sm.items:
 			if s.def.id == "totem_pole":
 				poles.append(s.global_position)
-			else:
+			elif StructureManager.per_map_range(s.def) == Vector2i(-1, -1):
+				# pass 85 (re-pinned): the Teleports stand their own count too (params.per_map), beside the draw
 				others += 1
 		# the draw as before, the poles on top
 		assert_int(others).is_equal(maxi(int(plan.get("count", 0)), drawn_kinds.size()))

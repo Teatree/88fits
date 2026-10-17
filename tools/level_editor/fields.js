@@ -470,7 +470,7 @@ const FIELDS = (() => {
     { id: 'challenge', kind: 'view', name: 'Challenge', what: 'seconds of the hero\'s damage it takes to clear the screen (the crowd\'s HP ÷ his damage a second)', lanes: ['challenge'] },
     { id: 'composition', kind: 'view', name: 'Composition', what: 'who the crowd is made of, as % of it', lanes: ['composition'] },
     { id: 'spawned', kind: 'view', name: 'Spawned so far', what: 'every creature a run has spawned by each second (a running total, the estimate)', lanes: ['spawned'] },
-    { id: 'rows', kind: 'edit', name: 'Spawn rows', what: 'every creature group with its schedule (continuous, waves, once): drag a bar, click it to edit everything about it', lanes: ['roster', 'waves'] },
+    { id: 'rows', kind: 'edit', name: 'Spawn rows', what: 'every creature group with its schedule (continuous, waves, once): drag a bar, click it to edit everything about it; hold the right mouse button and drag to pan', lanes: ['roster', 'waves'] },
     { id: 'events', kind: 'edit', name: 'Events', what: 'bosses, Elite mini-bosses, the specials\' clock, the portal waves and the mutation offers', lanes: ['events', 'specials', 'paths'] },
     { id: 'curves', kind: 'edit', name: 'Curves', what: 'the cap, the floor, the HP × and ATK × curves (drag their points; the Actual lanes show what the rows really carry)', lanes: ['cap', 'floor', 'hp_act', 'hp', 'dmg_act', 'dmg'] },
     { id: 'warnings', kind: 'view', name: 'Warnings', what: 'what the estimate and the checks found, each with a link to the second and the row', lanes: [] },

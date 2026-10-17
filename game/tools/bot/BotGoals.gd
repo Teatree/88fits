@@ -95,6 +95,34 @@ const SPECIAL_WAIT := 5.0
 ## in reach: within this many metres and on the screen (= Bot.HUNT_FAR)
 const IN_REACH := 9.0
 const V_SPECIAL := 60.0
+## Pass 85 (lane TOOLS; Garry: "Bot should also sometimes strive to pick up pick-up power-ups. Right now it feels like he
+## is ignoring them"): a power-up lying is seen from PU_SEE m (a portrait screen round him; pass 80's POWERUP_SEE 18 m was
+## less than the screen) and is worth what it gives now (powerup_value): a heart by how hurt he is (PU_HEAL x (1 - health)
+## below PU_HEAL_ABOVE), the vacuum by the XP lying on the map (PU_VACUUM + XP lying / the next level's XP x
+## PU_VACUUM_PER_LEVEL, at most PU_VACUUM_MAX), the nuke by the crowd within PU_CROWD_R m (PU_NUKE + PU_NUKE_PER a
+## creature, at most PU_NUKE_MAX), a buff (rage, sprint) and the shield more while he fights (PU_BUFF / PU_SHIELD +
+## PU_FIGHT x fight, fight = the crowd near / PU_FIGHT_CROWD, at most 1; the shield also by how hurt he is), the rest
+## PU_OTHER. The run's taste and the spell's mood for power-ups are floored at PU_TASTE_FLOOR (a run of the lowest rolls
+## still wants them; the jitter, the distance and every other goal still decide). Bot.gd commits: within PU_GRAB m of one
+## he takes it whatever the crowd does.
+const PU_SEE := 28.0
+const PU_HEAL := 130.0
+const PU_HEAL_ABOVE := 0.85
+const PU_VACUUM := 30.0
+const PU_VACUUM_PER_LEVEL := 70.0
+const PU_VACUUM_MAX := 120.0
+const PU_NUKE := 28.0
+const PU_NUKE_PER := 3.0
+const PU_NUKE_MAX := 90.0
+const PU_BUFF := 32.0
+const PU_SHIELD := 30.0
+const PU_FIGHT := 30.0
+const PU_FIGHT_CROWD := 8.0
+const PU_CROWD_R := 8.0
+const PU_GOLD := 20.0
+const PU_OTHER := 15.0
+const PU_TASTE_FLOOR := 0.85
+const PU_GRAB := 5.0
 ## seconds a hunt's patience allows on top of a walk's (the lean is slower than a walk; Bot.SPECIAL_MAX_S caps the hunt)
 const SPECIAL_FIGHT_S := 20.0
 
@@ -241,7 +269,11 @@ static func _with(d: Dictionary, extra: Dictionary) -> Dictionary:
 func _cand(c: Dictionary, kind: String, what: String, key: String, at: Vector3, value: float, why: String, sub: String = "") -> Dictionary:
 	var me: Vector3 = c["me"]
 	var d := Vector2(at.x - me.x, at.z - me.z).length()
-	var u := value * float(taste.get(kind, 1.0)) * mood(kind, float(c["t"])) * jitter(key) \
+	var tm := float(taste.get(kind, 1.0)) * mood(kind, float(c["t"]))
+	# pass 85: a run's taste for power-ups never falls under PU_TASTE_FLOOR
+	if kind == "powerup":
+		tm = maxf(tm, PU_TASTE_FLOOR)
+	var u := value * tm * jitter(key) \
 		* style_mult(str(c["style"]), kind, sub if sub != "" else kind) / (1.0 + d / DIST_SCALE)
 	return {"kind": kind, "what": what, "key": key, "at": at, "value": value, "u": u, "why": why, "d": d}
 
@@ -317,7 +349,7 @@ func candidates(game: Node, run, c: Dictionary) -> Array:
 					why = "the %s" % nm
 			if v > 0.0 and reach.call(at, lim):
 				out.append(_with(_cand(c, "structure", "structure:" + sid, key, at, v, why, "structure:" + sid), {"ref": s.get_instance_id(),
-					"stand": float(s.def.radius) * STAND_FRAC, "interact": float(s.def.interact_time), "sid": sid}))
+					"stand": float(s.def.radius) * STAND_FRAC, "interact": float(s.def.interact_time), "sid": sid, "name": nm}))
 	# barrels seen
 	var bf = game.get("barrels")
 	if bf != null and bool(o["barrels"]):
@@ -344,21 +376,17 @@ func candidates(game: Node, run, c: Dictionary) -> Array:
 			if float(resting.get(key, -1.0)) > t:
 				continue
 			var eff := str(sp.def.effect_kind)
-			var v := 0.0
-			var lim := minf(far, POWERUP_SEE)
-			if eff == "heal":
-				if hp < HEAL_ABOVE:
-					v = HEAL_VALUE * (1.0 - hp)
-					lim = POWERUP_SEE
-			else:
-				v = float(V_POWERUP.get(eff, V_POWERUP_OTHER))
+			# pass 85: worth what it gives now (powerup_value), seen from PU_SEE m (a heart from there whatever the far limit)
+			var v := powerup_value(eff, c)
+			var lim := PU_SEE if eff == "heal" else minf(far, PU_SEE)
 			var d := Vector2(at.x - me.x, at.z - me.z).length()
 			# it must still lie there when he arrives (Powerup.life)
 			if sp.get("life") != null and float(sp.life) < d / 3.6 + 1.0:
 				continue
 			if v > 0.0 and reach.call(at, lim):
-				out.append(_with(_cand(c, "powerup", "powerup", key, at, v, "a %s lying %d m off" % [str(sp.def.display_name), roundi(d)], "powerup:" + eff),
-					{"ref": sp.get_instance_id()}))
+				var pname := str(sp.def.display_name)
+				out.append(_with(_cand(c, "powerup", "powerup", key, at, v, "a %s lying %d m off%s" % [pname, roundi(d), powerup_why(eff, c)], "powerup:" + eff),
+					{"ref": sp.get_instance_id(), "name": pname}))
 	# chests in sight
 	if pk != null:
 		for ch in pk.chests:
@@ -457,3 +485,40 @@ func special_candidates(game: Node, c: Dictionary, far: float) -> Array:
 ## A special's key: its slot and its serial (a slot is used again by the next creature).
 static func special_key(i: int, serial: int) -> String:
 	return "sp:%d:%d" % [i, serial]
+
+
+## Pass 85: what a power-up of effect `eff` is worth now (see PU_* above); `c` the planner's view (hp_frac, crowd: the
+## creatures within PU_CROWD_R m, xp_lying, xp_need). 0 = no goal (a heart while he is well).
+static func powerup_value(eff: String, c: Dictionary) -> float:
+	var hp := float(c.get("hp_frac", 1.0))
+	var crowd := float(c.get("crowd", 0.0))
+	var fight := clampf(crowd / PU_FIGHT_CROWD, 0.0, 1.0)
+	match eff:
+		"heal":
+			return PU_HEAL * (1.0 - hp) if hp < PU_HEAL_ABOVE else 0.0
+		"vacuum":
+			var need := maxf(float(c.get("xp_need", 1.0)), 1.0)
+			return minf(PU_VACUUM + float(c.get("xp_lying", 0.0)) / need * PU_VACUUM_PER_LEVEL, PU_VACUUM_MAX)
+		"nuke":
+			return minf(PU_NUKE + PU_NUKE_PER * crowd, PU_NUKE_MAX)
+		"buff":
+			return PU_BUFF + PU_FIGHT * fight
+		"shield":
+			return PU_SHIELD + PU_FIGHT * maxf(fight, 1.0 - hp)
+		"gold":
+			return PU_GOLD
+	return PU_OTHER
+
+
+## Pass 85: why a power-up is worth it now, for the goal's reason (", hurt (40% HP)", ", 12 creatures close", ...).
+static func powerup_why(eff: String, c: Dictionary) -> String:
+	var crowd := int(c.get("crowd", 0))
+	match eff:
+		"heal":
+			return ", hurt (%d%% HP)" % roundi(float(c.get("hp_frac", 1.0)) * 100.0)
+		"vacuum":
+			return ", %d XP lying" % roundi(float(c.get("xp_lying", 0.0)))
+		"nuke", "buff", "shield":
+			if crowd > 0:
+				return ", %d creature%s close" % [crowd, "" if crowd == 1 else "s"]
+	return ""

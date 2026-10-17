@@ -388,7 +388,9 @@ func _creature_look(i: int, arcing: bool) -> void:
 		extra[i]["pulse_t"] = randf()
 	if arcing and bool(rg.get("land_only", false)):
 		extra[i]["land_only"] = true
-		_land_ring(i)
+		# pass 85 (lane BANDIT): a creature's dynamite rings its spot through the flight AND the fuse (_dynamite_ring)
+		if not extra[i].has("dynamite"):
+			_land_ring(i)
 
 
 ## Where arcing shot `i` comes down and after how long on the creatures' clock: its arc stepped at 60 Hz under the tick's
@@ -461,6 +463,9 @@ func _draw_pulse_halos(n: int) -> int:
 		var kd: Dictionary = kinds[kind[i]]
 		var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
 		var r0: float = (mesh.get_aabb().size.x * 0.5 if mesh else 0.3) * float(kd["scale"]) * psize[i]
+		# pass 85 (lane BANDIT): a long shot (a creature's dynamite) names the radius its halo counts from
+		if extra[i].has("halo_r0"):
+			r0 = float(extra[i]["halo_r0"]) * psize[i]
 		var s: float = r0 * float(pl.get("halo", 1.6)) / HALO_BEAD_R
 		var ph := pulse_phase(i)
 		var c := Color(str(pl.get("color", "#9CFF6E")))
@@ -654,6 +659,10 @@ func _physics_process(delta: float) -> void:
 		if hostile[i] == 0 and extra[i].has("lie_t"):
 			_tick_lying(i, delta)
 			continue
+		# pass 85 (lane BANDIT): a creature's dynamite lying on the sand burns its fuse on the creatures' clock, then blows
+		if hostile[i] == 1 and extra[i].has("lie_t"):
+			_tick_dynamite_lying(i, dt)
+			continue
 		if homing[i] == 1:
 			if life[i] <= 0.0:
 				_explode(i)
@@ -760,6 +769,9 @@ func _physics_process(delta: float) -> void:
 			# pass 76 (lane DYN, params.fuse): a fused shot nothing caught lies where it landed and blows when its fuse is out
 			if _fuse_lie(i, ground):
 				continue
+			# pass 85 (lane BANDIT): a creature's dynamite lies where it came down too (_dynamite_lie)
+			if _dynamite_lie(i, ground):
+				continue
 			_explode(i)
 			_free(i)
 			continue
@@ -786,6 +798,9 @@ func _physics_process(delta: float) -> void:
 			# pass 62: a spit that breathes (ranged.pulse), on the creatures' clock like its flight
 			if extra[i].has("pulse"):
 				_tick_pulse(i, dt)
+			# pass 85 (lane BANDIT): a creature's dynamite tumbles end over end as it flies
+			if extra[i].has("dynamite"):
+				spin[i] += dt * DYN_TUMBLE
 			_trail_t[i] -= delta
 			if _trail_t[i] <= 0.0:
 				_trail_t[i] = TRAIL_STEP
@@ -2711,7 +2726,7 @@ func draw_basis(i: int) -> Basis:
 	var v := vel[i]
 	if hostile[i] == 0 and extra[i].has("planted"):
 		bs = extra[i]["planted"]
-	elif hostile[i] == 0 and extra[i].has("lie_b"):
+	elif (hostile[i] == 0 or extra[i].has("dynamite")) and extra[i].has("lie_b"):
 		# pass 76 (lane DYN): a fused shot lying on the sand (_fuse_lie), still
 		bs = extra[i]["lie_b"]
 	elif v.length_squared() > 0.01:
@@ -2752,7 +2767,7 @@ func _render() -> void:
 		if stuck[i] >= 0 and extra[i].has("blink"):
 			_blink_list.append(i)
 		# pass 76 (lane DYN): a fused shot's spark (_render_sparks)
-		if hostile[i] == 0 and extra[i].has("fz"):
+		if (hostile[i] == 0 or extra[i].has("dynamite")) and extra[i].has("fz"):
 			_spark_list.append(i)
 		# pass 62: a spit that breathes gets its halo in the trail's MultiMesh (_tick_trail, after this)
 		if hostile[i] == 1 and extra[i].has("pulse"):
@@ -3281,7 +3296,7 @@ func _lie_lift(i: int) -> float:
 func fuse_lit(i: int) -> bool:
 	if i < 0 or i >= MAX or alive[i] == 0 or not (extra[i] is Dictionary) or not (extra[i] as Dictionary).has("fz"):
 		return false
-	var ob := float(fuse_of(weapon[i]).get("out_before", FUSE_OUT_BEFORE))
+	var ob := float((extra[i] as Dictionary).get("fz_ob", fuse_of(weapon[i]).get("out_before", FUSE_OUT_BEFORE)))
 	if (extra[i] as Dictionary).has("lie_t"):
 		return float(extra[i]["lie_t"]) > ob
 	if stuck[i] >= 0:
@@ -3849,3 +3864,167 @@ func rocket_ground_speed(i: int) -> float:
 	var em = game.get("enemies") if game != null else null
 	var k: float = (em as EnemyManager).hostile_clock() if em is EnemyManager else 1.0
 	return vel[i].length() * k
+
+
+# ---------------------------------------------------------------- pass 85 (lane BANDIT): a creature's dynamite
+## Garry (pass 85): the Spit Cactus's Dynamite Bandit "Throw Dynamite Sticks instead of Cactus things - and they explode
+## like the Player's ones, after a 1 second delay ... they can fly faster ... The Dynamite projectiles will always be red
+## and will still pulsate". A creature's `ranged.shot: "dynamite"` throws hostile_dynamite: the hero's red Dynamite
+## Stick model (`ranged.dynamite.model`, its fuse tip `tip`) tumbling along an arc to its spot, the creature's own pulse
+## and trail (ranged.pulse / trail), harmless in the air (land_only), a red ring on the spot from the throw to the blast
+## (_dynamite_ring); it lies there `fuse` seconds on the creatures' clock with its spark lit (out `out_before` seconds
+## before the blast, the hero's spark), then blows like the hero's stick (_dynamite_blast: the burst, its ring and the
+## camera's kick, w_lob_boom): it hurts the hero within its radius (the ring) + his body, throws him back `blast.knockback`
+## with `blast.lift` unless he evaded, and pushes the crowd within `blast.push_radius` x the radius by `blast.push`
+## without hurting it.
+
+## How fast a creature's dynamite turns end over end in the air, radians a second.
+const DYN_TUMBLE := 11.0
+const DYN_MODEL := "res://art/props/dynamite_b_stick_red.glb"
+const DYN_TIP := [0.3589, 0.1171, -0.0229]
+## The radius a creature's dynamite's pulse halo counts from (the stick is long: its length would make a disc of it).
+const DYN_HALO_R := 0.2
+## Diagnostics and tests: dynamite thrown, lying down, and blown (and how many of those caught the hero).
+var dynamite_thrown := 0
+var dynamite_lain := 0
+var dynamite_blasts := 0
+var dynamite_hits := 0
+## The kinds the creatures' dynamite models were registered as, by model path.
+var _dyn_kinds: Dictionary = {}
+
+
+## The kind a creature's dynamite of model `path` is drawn with at `scale` (registered once per model and scale: the
+## model's first mesh, its vertex colours lit like the hero's stick: metallic 0, roughness 0.85); the spit's kind when the
+## model is missing.
+func dynamite_kind(path: String, scale: float = 1.0) -> int:
+	var key := "%s|%s" % [path, scale]
+	if _dyn_kinds.has(key):
+		return int(_dyn_kinds[key])
+	var k := -1
+	if ResourceLoader.exists(path):
+		var scn = load(path)
+		if scn is PackedScene:
+			var root: Node = (scn as PackedScene).instantiate()
+			var mesh: Mesh = null
+			for c in root.find_children("*", "MeshInstance3D", true, false):
+				if (c as MeshInstance3D).mesh:
+					mesh = (c as MeshInstance3D).mesh
+					break
+			root.free()
+			if mesh:
+				var mat := StandardMaterial3D.new()
+				mat.vertex_color_use_as_albedo = true
+				mat.albedo_color = Color.WHITE
+				mat.metallic = 0.0
+				mat.roughness = 0.85
+				k = register_kind(mesh, mat, scale)
+	if k < 0 and game != null and game.get("_spit_kind") != null and int(game.get("_spit_kind")) >= 0:
+		k = int(game.get("_spit_kind"))
+	_dyn_kinds[key] = k
+	return k
+
+
+## A creature throws a stick of dynamite from `from` to land at `target` (its feet on the sand there), flying at `speed`
+## (the spit's arc: flat distance / speed seconds, 0.4..2.0, under the tick's gravity), `damage` and a blast of `radius`
+## when it blows; `dy` is the creature's ranged.dynamite block, `info` its hit info. The shot's index, -1 when the pool is full.
+func hostile_dynamite(from: Vector3, target: Vector3, speed: float, damage: float, radius: float, dy: Dictionary, info: Dictionary = {}) -> int:
+	var flat := Vector3(target.x - from.x, 0, target.z - from.z)
+	var dist: float = maxf(flat.length(), 0.5)
+	var t: float = clampf(dist / maxf(speed, 1.0), 0.4, 2.0)
+	var vy := ((target.y - from.y) + 0.5 * 24.0 * t * t) / t
+	var tip = dy.get("tip", DYN_TIP)
+	var params := {"info": info, "dynamite": dy, "land_only": true, "fz": Lobber._vec3(tip, Vector3.INF), "fz_lit": true, "fz_t": 0.0,
+		"fz_ob": float(dy.get("out_before", FUSE_OUT_BEFORE)), "halo_r0": float(dy.get("halo_r", DYN_HALO_R))}
+	var i := hostile_shot(dynamite_kind(str(dy.get("model", DYN_MODEL)), float(dy.get("scale", 1.0))), from, flat / t + Vector3(0, vy, 0), damage, radius, t + 2.0, true, params)
+	if i < 0:
+		return i
+	extra[i]["land_only"] = true
+	dynamite_thrown += 1
+	_dynamite_ring(i)
+	return i
+
+
+## The red ring on a creature's dynamite's spot: its blast radius, from the throw to the blast (the flight and the fuse,
+## on the creatures' clock), filling as the wind-up rings do.
+func _dynamite_ring(i: int) -> void:
+	if game == null:
+		return
+	var l := landing_of(i)
+	var at := Vector3(l.x, l.y, l.z)
+	extra[i]["land_at"] = at
+	var clock_k: float = game.enemies.hostile_clock() if game.get("enemies") else 1.0
+	var dy: Dictionary = extra[i].get("dynamite", {})
+	var secs: float = (l.w + maxf(float(dy.get("fuse", FUSE_SECONDS)), 0.0)) / maxf(clock_k, 0.05)
+	var red := Color(0.93, 0.29, 0.36)
+	if game.has_method("telegraph_ring"):
+		game.telegraph_ring(at, area[i], secs, red)
+	elif game.get("telegraphs"):
+		game.telegraphs.ring(at, area[i], secs, red, true)
+	land_rings += 1
+
+
+## A creature's dynamite that came down lies there (true): on its side along its throw, still, its fuse burning down
+## (`fuse` seconds, else FUSE_SECONDS). False for anything else, or a fuse of 0 (it blows at once).
+func _dynamite_lie(i: int, ground: float) -> bool:
+	if hostile[i] == 0 or not (extra[i] as Dictionary).has("dynamite"):
+		return false
+	var dy: Dictionary = extra[i]["dynamite"]
+	var secs := float(dy.get("fuse", FUSE_SECONDS))
+	if secs <= 0.0:
+		return false
+	extra[i]["lie_t"] = secs
+	extra[i]["lie_b"] = _lie_basis(i, {})
+	vel[i] = Vector3.ZERO
+	spin[i] = 0.0
+	pos[i].y = ground + _lie_lift(i)
+	dynamite_lain += 1
+	return true
+
+
+## A lying dynamite stick: it keeps breathing (its pulse) and blows when its fuse is out.
+func _tick_dynamite_lying(i: int, dt: float) -> void:
+	if extra[i].has("pulse"):
+		_tick_pulse(i, dt)
+	var t: float = float(extra[i]["lie_t"]) - dt
+	extra[i]["lie_t"] = t
+	if t <= 0.0:
+		_dynamite_blast(i)
+		_free(i)
+
+
+## A creature's dynamite blows (see the section's head): the hero hurt and thrown within the radius, the crowd pushed,
+## the hero's stick's burst, ring, camera kick and boom.
+func _dynamite_blast(i: int) -> void:
+	dynamite_blasts += 1
+	if game == null:
+		return
+	var dy: Dictionary = extra[i].get("dynamite", {})
+	var bl: Dictionary = dy.get("blast", {}) if dy.get("blast") is Dictionary else {}
+	var r: float = area[i]
+	var at: Vector3 = pos[i]
+	var map = game.map if game.get("map") else null
+	var ground := Vector3(at.x, map.height_at(at.x, at.z) if map else at.y, at.z)
+	var player = game.get("player")
+	if player and not player.dead:
+		var d: Vector3 = player.global_position - at
+		d.y = 0.0
+		if d.length() <= r + 0.4:
+			var einfo: Dictionary = (extra[i].get("info", {}) as Dictionary).duplicate(true)
+			if not einfo.get("fx") is Array:
+				einfo["fx"] = []
+			(einfo["fx"] as Array).append("dynamite blast")
+			player.take_damage(dmg[i], at, einfo)
+			dynamite_hits += 1
+			var kn := float(bl.get("knockback", 0.0))
+			if kn > 0.0 and player.has_method("blast") and str(player.get("last_outcome")) != "evaded":
+				var away: Vector3 = d if d.length_squared() > 0.01 else Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
+				player.blast(away.normalized() * kn, float(bl.get("lift", 0.0)))
+	var push := float(bl.get("push", 0.0))
+	if push > 0.0 and game.get("enemies"):
+		game.enemies.throw_radius(ground, r * float(bl.get("push_radius", 1.0)), push)
+	# the hero's Dynamite Stick's blast (_explode): the burst with its ground ring and kick, and the camera's shake
+	if game.has_method("fx_burst"):
+		game.fx_burst(at, Color(1.0, 0.7, 0.3), r)
+	if game.get("camera") and game.camera.has_method("shake"):
+		game.camera.shake(float(bl.get("shake", 0.5)))
+	Audio.play(str(bl.get("sfx", "w_lob_boom")), at)

@@ -16,8 +16,7 @@ speed_per_stage = 0.1
 cap_start = 10
 cap_per_minute = 7.81
 cap_max = 150
-hard_cap = 260
-cap_curve = [[0.0, 181.0], [60.0, 145.0], [122.0, 135.0], [122.0, 159.0], [176.0, 80.0], [176.0, 45.0], [213.0, 56.0], [232.0, 84.0], [306.0, 79.0], [306.0, 132.0], [337.0, 132.0], [337.0, 73.0], [368.0, 72.0], [430.0, 100.0], [430.0, 54.0], [490.0, 70.0], [535.0, 84.0], [536.0, 140.0], [585.0, 140.0], [585.0, 74.0], [645.0, 92.0], [719.0, 100.0], [720.0, 150.0], [755.0, 150.0], [755.0, 88.0], [800.0, 96.0], [860.0, 112.0], [860.0, 64.0], [920.0, 86.0], [964.0, 100.0], [965.0, 150.0], [1015.0, 150.0], [1015.0, 92.0], [1075.0, 104.0], [1149.0, 100.0], [1150.0, 150.0], [1185.0, 150.0], [1185.0, 100.0], [1240.0, 112.0], [1289.0, 120.0], [1290.0, 150.0]]
+cap_curve = [[0.0, 200.0], [1290.0, 300.0]]
 boss_cap_frac = 0.6
 portal_cap = -1
 portal_spawn_seconds = -1.0
@@ -59,9 +58,9 @@ burst_min = 3
 burst_max = 12
 spawn_interval = 0.7
 roster = [{
-"count": 100.0,
+"count": 30.0,
 "enemy": "red_goblin",
-"every": 15.0,
+"every": 5.0,
 "id": "r1",
 "pace": "waves",
 "stats": {
@@ -71,7 +70,7 @@ roster = [{
 "elite": {
 "hp_mult_per_stage": 0.0
 },
-"hp_mult": 1.5
+"hp_mult": 2.0
 },
 "t": 123.0,
 "until": 245.0,
@@ -97,14 +96,15 @@ roster = [{
 "pace": "waves",
 "pack": 30.0,
 "pattern": "ring",
+"ring_radius": 18.0,
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 2.0,
+"hp_mult": 1.7,
 "size": 2.0,
 "tint": {
 "amount": 0.4,
 "hue": [350.0, 12.0],
-"sat": 0.85,
+"sat": 0.95,
 "val": 0.8
 }
 },
@@ -143,12 +143,13 @@ roster = [{
 "until": 47.0,
 "weights": [[0.0, 8.0], [51.0, 7.6]]
 }, {
-"count": 50.0,
+"count": 15.0,
 "enemy": "skeleton",
-"every": 10.0,
+"every": 5.0,
 "id": "r12",
 "pace": "waves",
-"pack": 3.0,
+"pack": 1.0,
+"pattern": "scatter",
 "stats": {
 "hp": 20.0
 },
@@ -158,8 +159,9 @@ roster = [{
 }, {
 "enemy": "skeleton_knight",
 "id": "r13",
-"pack": 10.0,
-"pattern": "scatter",
+"interval": 1.0,
+"pack": 5.0,
+"pattern": "pack",
 "stats": {
 "hp": 35.0
 },
@@ -177,6 +179,7 @@ roster = [{
 }, {
 "enemy": "bull_beetle",
 "id": "r15",
+"interval": 3.0,
 "pattern": "scatter",
 "t": 306.0,
 "until": 347.0,
@@ -184,19 +187,24 @@ roster = [{
 }, {
 "enemy": "bull_beetle",
 "id": "r4",
+"interval": 3.0,
 "pattern": "scatter",
 "t": 389.0,
 "until": 430.0,
 "weights": [[389.0, 1.0]]
 }, {
+"count": 40.0,
 "enemy": "werewolf",
+"every": 5.0,
 "id": "r16",
-"pack": 35.0,
-"pattern": "ring",
+"pace": "waves",
+"pack": 40.0,
+"pattern": "scatter",
 "stats": {
 "hp": 20.0,
 "hp_mult": 2.0,
-"size": 1.4
+"size": 1.4,
+"speed": 2.1
 },
 "t": 368.0,
 "until": 430.0,

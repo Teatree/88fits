@@ -4570,3 +4570,133 @@ of the numbers the Timeline shows from a Sim (the same words are in overlay.json
   stale). Cost on the PC at 250 creatures: enemies.render about 1.4-1.7 ms (was about 0.9-1.0).
 - **Hard cap and summons**: splits and boss summons are not held by the director's hard cap (SIMVIEW saw 262 / 260 once);
   unchanged, named here.
+
+## 32. Pass 85 (v0.71): Fadeaway's puppet, the title, tints, trees, teleports, the Watch, the Dynamite Bandit
+
+Garry's request (2026-10-17, tools/dl/p85/REQUEST.md). Each lane's rules as it wrote them.
+
+### 32.FADE Fadeaway's Puppet look FAD-D
+
+No game rule changed: no game code, no number. Fadeaway gained one art look, FAD-D (`variants.FAD-D`, `fresh: true`);
+his played look stays FAD-C (`variant`) until Garry picks.
+
+Art-pipeline facts worth a line in the Puppet method's section (§13 / pass 71):
+- **FAD-D's recipe** (hero_puppet on FAD-C's stills `c`, seeds as FAD-C: seed_offset 2243; anim_seed 2): guides
+  `fadeaway_puppet_run` (OpenPose, framed by the soles, face = nose) and `fadeaway_puppet_run_depth`; depth views
+  **fd and back** only (`puppet.depth_views` ["fd","back"], `ctl_drivers` the same), front, side and bd on the stick
+  figure; `run_fit` tools/dl/drivers/fadeaway_puppet_run/silhouette.json (run/idle medians: front 0.980, fd 0.947,
+  side 0.938, bd 0.978, back 1.023); `fringe_remap` on.
+- **Depth on a purple jersey**: Wan 2.2 Fun Control on the depth video painted his side and bd jerseys a dull
+  grey-purple on two seed sets (the raw clip frames, not the fringe clean); the stick figure kept the still's purple.
+  The default depth views (fd, side, bd, back) are not safe for a saturated purple outfit: check the side.
+- **The rig's hand finder** (puppet_blender.find_joints) takes the hand's tip as the arm-side vertex farthest along
+  the forearm down to 12 % of the height under the separated rows; wide flared shorts put that vertex on the hem
+  (knee height) and the hand bones ran into the shorts (spikes in bendtest.png). Fixed for Fadeaway by
+  tools/dl/p85/FADE/rig_fix.py: the tip = the farthest vertex within max(2.5 x arm radius, 5 % of the height) of the
+  forearm's line, the wrist 0.095 x height before it. Not fixed in puppet_blender.py itself (not this lane's file): a
+  candidate for the lead.
+
+### 32.WORLD The title's sand and presets, natural tints, two trees, the teleports
+
+- **The title's map** is built with the map's own file standing in for Run.map, so it wears the map's chosen sand
+  (Red Canyon `ripples_pebbles`), its oases block and its rock and wall colours, as a run does (before, the title showed
+  the pass 81 default sand until a run had started). The menus' backdrop still (art/ui/wanted/menu_backdrop.jpg) is
+  re-shot from preset 0 on that sand.
+- **Title presets**: art/ui/title_scene.json holds six arrangements for Red Canyon (Saguaro stand = pass 83's, Palm
+  hollow, Boulder garden, Joshua grove, Ocotillo flats, Dead wood), 7 to 12 paintings each, one drawn at random each
+  time the title opens (a kept world takes its last preset off and lays the new one in the same slots). Every painting
+  stands more than 1.3 m from the hero's feet, inside the cleared box x -14..14, z -32..6 m.
+- **Natural tints**: every painted prop kind varies its colour a little per placed prop, rolled from its spot (the same
+  for a map seed): plants' greens (hue window 0.17-0.45) up to 0.03 yellower / 0.02 bluer, saturation x0.85-1.12, value
+  x0.86-1.05; the agave's blue-greens similar (x0.84-1.05); trunks and dry wood (window 0.95-0.13) +-0.01 hue,
+  x0.85-1.1 saturation, x0.92-1.05 value; dead shrubs and the dead tree greyer or browner (saturation x0.75-1.2); rocks
+  and boulders barely (hue +-0.008, saturation x0.92-1.06, value x0.95-1.04); bones and skulls bleached or yellowed
+  (saturation x0.8-1.15); flowers a little in hue (the purple sage +-0.02, brittlebush and palo verde yellows +-0.015,
+  the ocotillo's red tips +-0.02). Greys and the dark outline are never tinted. Bounds for any rule: hue +-0.08,
+  saturation x0.6-1.4, value x0.75-1.2. Structures, barrels and signs are not tinted.
+- **Two trees**: fan_palm_b (a twin palm) is a variant of the fan palm (weight 1: half the palms); joshua_tree_d (a
+  lopsided, leaning joshua tree, drawn 0.8 of the others' size in its 4.6 m quad, centred on its trunk) a fourth look
+  of the joshua tree (a quarter of them). Both keep the kind's collider (radius 0.2 / 0.22).
+- **Teleports**: the trigger ring 1.8 m (was 2.2), the painting 2.7 m (was 3.2; the portal swirl scales with it).
+  3 per run, 4 in a third of the runs (`per_map.max_chance` 0.33), standing apart from the weighted draw like the Totem
+  Poles: each the farthest of 16 fair spots within 0.24-0.88 of the arena's radius, 22 m (the map's spacing) from every
+  other structure, off the river bed, out of the paintings' cover, and 40 m from another Teleport (`kin_spacing`; only
+  when the last fifth of the tries finds nothing may that close to 30 m). The weighted draw keeps its count (9) without
+  the Teleport, so the other kinds fill its old slot (two extra weighted picks instead of one).
+- **Teleport landing**: the hero never comes out within 15 m of any Teleport (`land_clear`) nor within 2 m of the water
+  (`land_water`), on top of the old rules (at least 0.6 of the arena's radius from where he stood, 1.5 m clear of the
+  rocks, inside 0.82 of the arena's radius, where the crowd is thinnest of 40 spots tried).
+
+### 32.TOOLS The Timeline's pan; the Watch's run setup, build icons, sound, the bot's goal
+
+#### The bot and the power-ups (game/tools/bot/BotGoals.gd PU_*, Bot.gd)
+Garry: "Bot should also sometimes strive to pick up pick-up power-ups. Right now it feels like he is ignoring them."
+- A power-up lying is a goal candidate from **28 m** (`PU_SEE`; pass 80's `POWERUP_SEE` 18 m), within the far limit as
+  before (a heart from 28 m whatever the far limit).
+- Its worth now (`powerup_value`, replaces pass 80's flat `V_POWERUP` table, which stays for reference):
+  heart **130 x (1 - health)** below **85%** health (none above); vacuum **30 + XP lying on the map / next level's XP x 70**,
+  at most **120**; nuke **28 + 3 a creature within 8 m**, at most **90**; buff (rage, sprint) **32 + 30 x fight**; shield
+  **30 + 30 x max(fight, 1 - health)**; gold **20**; any other **15**. fight = creatures within **8 m** (`PU_CROWD_R`) / **8**,
+  at most 1.
+- The run's taste x the spell's mood for power-ups is floored at **0.85** (`PU_TASTE_FLOOR`; other kinds keep 0.6..1.4 x
+  0.7..1.3). Jitter, distance (/ (1 + d / 18)) and the other goals still decide: "sometimes, not always".
+- Commit: within **5 m** (`PU_GRAB`; other goals 2.5 m) of a power-up goal the kite's hold never wins: he takes it.
+- The XP lying on the map is now also counted while a vacuum power-up lies within 28 m (it was only for a standing Uber
+  Magnet).
+- Measured (tools/dl/p85/TOOLS/sim_before_keep vs sim_after_keep: 16 Drifter runs, a quarter board, 15:00, Down! = keep,
+  seeds 1..16, explorer bot): power-ups taken **13.3 -> 32.5** a run (2.4x; 28% of the 115 a run that lay on the map),
+  power-up goals **12.6 -> 46.3**, falls **11.4 -> 10.3**, level at 10:00 **32.9 -> 35.6**, at 15:00 **39.3 -> 43.3**, kills
+  **5,995 -> 7,236**.
+
+#### The Watch (game/tools/watch)
+- The sound is **off** by default (watch.py `--sound` turns it on; the pop-up's Sound box; M in the window).
+- The window opens with the **Hero Settings** pop-up (unless `--go`/`--autoquit`). Start Run starts the run the way the
+  game does (the spawn beam; the bot does nothing until he lands). A random seed is drawn at every Start Run when Random
+  is ticked.
+- **Restart run** (header button, R): the run is held paused behind the pop-up; Start Run ends it (recorded as a tool run,
+  with its decision log) and the new run starts two frames after that game is gone; Cancel goes back to it as it was.
+- The charts' grey line for a run from the pop-up: the command line's Sim result while hero, board and map are the ones
+  it was found for, else the newest finished Sim result of the same hero, board and map (setup.json refs), else none.
+- The goal plaque: a new goal shows after it has held **0.35 s** of wall time (no flicker as the kite flips), fading in
+  over **0.3 s**; it sits at the phone view's bottom middle, above the speed badge.
+
+#### The Level Editor
+- Timeline: holding the right mouse button inside the Spawn rows section (its lanes and labels) and dragging pans the
+  view both ways; no context menu there (nor for 0.4 s after a pan); it never selects or moves a bar.
+
+### 32.BANDIT The Spit Cactus's Dynamite Bandit look and his dynamite
+
+**The Spit Cactus's dynamite** (content/enemies/spit_cactus `ranged`, EnemyManager._throw_dynamite,
+ProjectileManager.hostile_dynamite; Garry: "Throw Dynamite Sticks instead of Cactus things - and they explode like the
+Player's ones, after a 1 second delay ... they can fly faster ... aim a little in front of the Player (not like the
+Harpooner) ... The throw should be in place ... always red and will still pulsate"):
+- `ranged.shot: "dynamite"`: every lob of the kite brain is a stick of dynamite (the old spit is gone for every look of
+  the cactus; the cactus look SC-0 throws it too).
+- Wind-up: `telegraph` 0.7 s (unchanged) standing still, no ring while he winds up (the raised arm is the tell); the
+  stick leaves his hand at the end of it from `dynamite.hand` {up 1.3, side 0.25, forward 0.1} m.
+- Release hold: `release_hold` 0.35 s (x 1/pace) standing in the release pose, then he walks again.
+- Aim: the hero's feet + `lead` 0.35 x his flat velocity x the stick's flight time (flat distance / speed, 0.4..2.0 s,
+  on the creatures' clock), at most `lead_max` 2.5 m. A standing hero is aimed at his feet. (The harpooner leads with
+  the whole velocity over the flight and half the wind-up.)
+- Flight: `speed` 9.0 m/s (the spit flew at 5.4), the spit's arc, tumbling; the hero's red stick model at `scale` 0.6
+  (0.52 m long), its halo counted from `halo_r` 0.2 m; harmless in the air (land_only); the cactus's
+  `pulse` kept, its colour now red #FF2A1F; its `trail` now a faint smoke grey #6B625C (was green).
+- The red ring: on the landing spot, the blast's radius, from the throw until the blast (flight + fuse).
+- Fuse: lies `fuse` 1.0 s on the creatures' clock (High Noon and the pace stretch it), the hero's spark lit until
+  `out_before` 0.5 s before the blast.
+- Blast: radius `blast.radius` 2.0 m (the spit's splash was 1.2); the hero takes the creature's damage (unchanged:
+  base 8 x the stage, curve and level multipliers) when he stands within radius + 0.4 m, and is thrown back
+  `blast.knockback` 7 with `blast.lift` 2 unless he evaded; the crowd within 1.2 x the radius is thrown by
+  `blast.push` 10 (no damage: throw_radius); the look and sound of the hero's Dynamite Stick blast (burst in
+  #FFB34D, ground ring, camera kick 0.5, w_lob_boom).
+- Sounds: the throw is w_lob_throw (was en_cactus_spit), the death en_goblin_die (was en_cactus_die).
+- Difficulty probe (quarter board): see the lane report / history_BANDIT.md.
+
+### 32.LEAD The lead's notes in this pass
+
+- **Garry's map edits re-pinned** (2026-10-17: the hard cap 300, a flat stage-1 cap, no cap rushes in stages 2-3):
+  pass332 and pass62_pc read his map (a positive cap all through every stage; the hard cap at least cap_max).
+- **More structures**: the Teleports (3, 4 a third of the time) now come on top of the map's weighted structures count
+  (9), so a map holds about 12-13 structures plus the Totem Poles (32.WORLD); Garry tunes the count in the Level Editor.
+- **The puppet's hand finder**: lane FADE wrapped tools/puppet_blender.py's rig in tools/dl/p85/FADE/rig_fix.py (the
+  hand tip = the farthest vertex near the forearm's line); folding it into the tool is open.

@@ -2503,3 +2503,117 @@ death keep, 25:00 of play, on a private snapshot: 25:31 wall, 2.5 s of play a se
   5 reached, 2 beaten by 25:00).
 - challenge (median over the run): 2.1 to 48; threat peaks 30-76 million (HP x damage a second).
 - The sampler's cost: 3.5 to 4.9 ms of wall time a second of play (about 1 % of a run's wall time).
+
+**Pass 85 (2026-10-17, v0.71): Fadeaway's Puppet look, the title on the chosen sand with presets, natural tints, two trees, three or four teleports, the Watch's run setup, the Dynamite Bandit.** Garry: "Redo Fadeaway art asset with the new puppet method"; the title "still features the old sand texture" and its arrangement "from a bunch of presets"; "slight random colour variations to the 2.5d environment assets ... natural for that element"; another palm and Joshua tree; smaller teleports, at least 3 (33% 4), spaced and never landing by another; the Timeline's right-drag pan in Rows; in the Watch the bot after power-ups, a Hero Settings pop-up to start and restart a run with the descent, build icons, sound off, the bot's goal plaque; the Cactus's "Cactus Bandito Look" from Dynamite_Bandit.png throwing red pulsing dynamite in place, a little ahead, faster, a 1 s fuse, blasts like the hero's. Four lanes (tools/dl/p85/INTERFACES.md): FADE, WORLD, TOOLS, BANDIT. The lead re-pinned two tests to Garry's map edits.
+
+**Lane FADE (pass 85): Fadeaway redone with the Puppet method, look FAD-D (fresh).** Garry: "Redo Fadeaway art
+asset with the new puppet method". No Level Editor ran the queue (the jobs lock's owner was dead), so the stages ran
+from the shell as the hero_puppet job runs them: `tools/puppet.py fadeaway` on FAD-C's stills (screen blue, Klein):
+four arms-out fronts (only c0 held the arms clear; c1-c3 hung them against the body), three sides (c2 held an arm
+forward) and three backs (all with the arms higher than the front; c1 the closest): front c0, side c0, back c1;
+Hunyuan3D-2mv two tries (about 2 min under the comfy lock, nearly identical, arms free): try 0; Blender clean, rig,
+running.fbx retarget, colours, guides. The first rig put both hand tips on the flared hem of his wide shorts at knee
+height (the finder's lowest arm-side vertex along the forearm), so the hand bones ran into the shorts and the bend
+test spiked the hem; rebuilt by hand with tools/dl/p85/FADE/rig_fix.py (puppet_blender's rig, the tip the farthest
+vertex near the forearm's line, the wrist a hand before it; the first rig and its guides moved to
+tools/dl/puppet/fadeaway/old/20261017-020429/), bend test clean. Guides tools/dl/drivers/fadeaway_puppet_run (+ _depth,
+silhouette.json, run/idle ratios within 0.015 of May's). The look entry was written with the Level Editor's line
+writer (content_io: FAD-C's words, stills and seeds, method hero_puppet, every puppet setting recorded, FAD-C's badge
+and cut-out, fresh) and walked by gen_art with the sidecar (merged by content_io, layout kept). The first walks: front
+(stick figure), fd and back (depth) good; side and bd on depth came out with a dull grey-purple jersey, twice on new
+seeds (anim_seed 1 -> 2, "vivid bright purple" in anim_hint): the raw Fun Control frames were dull, not the fringe
+clean. Side and bd were walked on the puppet's stick figure instead (depth_views fd, back): the still's purple, bd
+turned away throughout. Against FAD-C: the run's head size matches the idle's better (side 1.05 vs 1.11, back 1.07,
+bd 0.97), the back run strides clearly instead of crossing its legs, each view at the puppet's own run/idle height.
+In game (game/tools/_p85_FADE_shot.gd, look forced through Save.set_hero_look, sandboxed by godot.sh): eight
+directions and the Basketball thrown at goblins, beside FAD-C: same size class, the ball unchanged. Sheets:
+tools/dl/p85/FADE/fadd_vs_fadc_sheet.png, phone_size.png, fadd_vs_fadc.gif, ingame_*.png, zoom_run_<view>.png,
+tools/dl/puppet/fadeaway/compare/. Tests: pass85_FADE_test (3), pass66_shape, pass69_hero, pass67_fadeaway,
+pass76_looks green; check_scripts; selftest 13,051 passed.
+
+**Lane WORLD (pass 85): the title on the chosen sand from six presets, natural tints for every prop, a twin palm and a
+lopsided joshua tree, smaller Teleports, three or four of them.** Garry: "the Main Menu background still features the old
+sand texture ... random but from a bunch of presets", "slight random colour variations ... natural for that element",
+"another variant of a palm tree and joshua tree", "the teleport area a bit smaller ... at least 3 ... 33% of the time 4
+... never teleport the Player next to another teleport ... never spawn close to each other". *Sand*: RedCanyon reads its
+sand, oases and colours from Run.map, null on the title until a run starts, so the title always drew pass 81's default;
+TitleStage._build_map now lets the map's def stand in for Run.map while the map builds (put back after), and
+menu_backdrop.jpg was re-shot (tools/menu_backdrop.gd, preset 0 unless `preset=`). *Presets*: art/ui/title_scene.json
+`presets` (six, each composed by eye at 1080x1920 and with the 130 px inset: the framing pair moved in to z -5..-7 so
+their trunks show under the title wash); one drawn per title visit (TitleStage.force_preset for captures); a kept world
+takes the last preset off with PropField.mark/truncate (the slots and shadows given back) before laying the next.
+*Tints*: props.json `tint` per kind (hue window, sat_min, h/s/v ranges, link; up to two parts, the second on the first's
+result), three rolls per prop from a hash of its spot packed into INSTANCE_CUSTOM.w (integers under 2048, safe in the
+compatibility renderer's half floats), applied in prop_billboard.gdshader from the painting's own material uniforms, so
+no draw call is added; outlines and greys untouched. Sheets of every painting untinted and at eight rolls (the corners
+of the roll cube) checked by eye; the purple sage's hue range halved after the first sheet (one roll read magenta).
+*Trees*: tools/gen_prop_variants.py (rows fan_palm_b/c, joshua_tree_d/e, `--cands`); the curving palm kept the original's
+crown and lost its trunk texture, the twin palm (fan_palm_c c2) won and is registered as fan_palm_b; the joshua trees
+painted from the original's raw copied its silhouette again (as in pass 83), so they were painted again without the
+reference: the lopsided leaning tree (joshua_tree_d c3) won (the clump of three read as lollipops); its trunk stood 0.19
+of the quad left of centre, so the painting was scaled to 0.8 about its foot and centred on it (the collider is the
+spot) and its shadow measured again. *Teleports*: radius 1.8, height 2.7; `params.per_map` {3, 4, max_chance 0.33,
+kin_spacing 40} (StructureManager.per_map_count, kin_spacing, KIN_RELAX 0.75 only in the last fifth of the tries),
+`land_clear` 15 and `land_water` 2 checked by StructureManager.teleport_landing_ok from Game.teleport_hero (one hook).
+Top-down captures of six seeds (tools/dl/p85/WORLD/teleports/): 3-4 Teleports, closest pairs 35.7-56 m, forty landings
+each never nearer than 15.1 m to a Teleport, never wet.
+
+Lane TOOLS (pass 85; Garry's "LevelEditor" and "Watch Tool" requests). **The Timeline pans** with the right mouse button
+inside the Spawn rows section (timeline.js `onPanDown`/`panTo`, a capture-phase press so no bar ever sees it, a grab
+cursor `body.tl-panning`, no context menu there; words in the Instructions and the section's help; selftest group
+`selftest_TOOLS85.py`). **The Watch opens with a Hero Settings pop-up** (game/tools/watch/WatchSetup.gd, the panel's dark
+tool style): the hero and his look (with his badge), the map, the seed (Random or a number), the speed, the time limit,
+Down!, the sound, the damage numbers, the unlocks, the bot's preset and every option, and the Upgrade board talent by
+talent (six rank slots each: a free slot buys up to it in form A, A turns to B, B sells it and the ranks above) with the
+presets none / a quarter / half / full and the PC save's board (tools/watch.py writes tools/dl/watch/setup.json with the
+presets, the save's board and the finished Sim results for the grey line). Start Run starts the run down the spawn beam
+(Watch.gd `_begin_run`, `launch_of(..., spawn)`; the bot waits until he lands); the header's **Restart run** (R) opens
+it mid-run with the run paused behind it: Start Run ends the run (recorded with its decision log) and starts the chosen
+one once that game is gone (`_pending`, two frames), Cancel goes back. `--go` (or `--autoquit`) keeps the old instant
+start for checks; new `--actions` words `setup`, `start`, `cancel`, `quit`, `setup.<field>=`. **The sound is off by
+default** (`--sound`). **The Build shows the game's icons**: chips with the icon, the name and the level, a weapon's
+mutations as smaller purple-edged chips after it, rows Weapons / Evolutions / Cards / Items / Perks, wrapping
+(WatchPanel `build_rows`, `_chip`). **The bot's goal plaque** (WatchPlaque.gd) over the phone view's bottom, above the
+speed badge: "Kiting", "Running away", "Dodging", "Exploring the map", "Going to a Totem Pole", "Grabbing a power-up:
+Heart", "Hunting a special: Red Goblin", "Going to the shop", "Picking a level-up", "Choosing a mutation", "At a Totem
+Pole", "Coming down"... with the goal's reason beneath, switching with a short fade (a word must hold 0.35 s). **The
+bot strives for power-ups** (BotGoals PU_*: seen from 28 m, worth what they give now: a heart by how hurt he is, the
+vacuum by the XP lying, the nuke, buffs and the shield by the crowd near; the run's taste floored at 0.85; grabbed from
+5 m): 16-run sims (Drifter, a quarter, 15:00, Down! keep) took 13.3 -> 32.5 power-ups a run with fewer falls (11.4 ->
+10.3) and higher levels (39.3 -> 43.3 at 15:00); `Bot.summary().powerups` {lying, goals, reached}. Tests
+game/tests/pass85_tools_test.gd (10). Lesson: a test that starts a Watch must keep its record in memory and write no
+decision CSV (`analytics=memory`): without a repo the CSV fell back to the PC's user://analytics/runs.
+
+Lane BANDIT (pass 85): the Spit Cactus's Dynamite Bandit look (SC-A) and his dynamite. Garry: "Cactus Bandito Look ...
+There is a reference file called Dynamite_Bandit.png. Throw Dynamite Sticks instead of Cactus things - and they explode
+like the Player's ones, after a 1 second delay ... they can fly faster ... aim a little in front of the Player (not like
+the Harpooner), just a bit. The throw should be in place, based on the ref. The Dynamite projectiles will always be red
+and will still pulsate". **The look**: his picture cut into its four figures (tools/dl/p85/BANDIT/ref_*.png); every
+painting picked by eye from Klein candidates (tools/dl/p85/BANDIT/cands.py, review sheets cands_*.png): the front
+redrawn from his standing front figure (front_from_picture, 5 seeds, c2), the back from our front with his back figure
+as a second reference (8 seeds over two rounds: the first round's hats were small and round, the second's words "huge
+floppy ... tilted" gave c6), the walks are free Wan clips front and back (a first build on the walk_hold driver, the Vulture Raider's, put his
+stocky painting on thin Mixamo legs: he changed body between standing and walking), the release poses (the hop with the arm flung up, the hand empty) from our front / back with
+his two throwing figures (c1 each; c2 front painted a stick in the air and a shadow), the wind-ups as edits of our front
+and back (front c1: the stick up behind his shoulder with a lit spark, the other hand pointing; back c1: one stick, the
+others painted a second stick in the free hand). gen_art gained default-off keys: `windup_hint` / `windup_back_hint`
+(a wind-up pose painted before the `aim_hint` pose, cache <sk>_windup_front/_back), `windup_fit`, `aim_lift` (the
+attack pose raised off the floor: the throw's hop); the attack strip is wind-up, breath, release, breath from the front,
+then the same from behind. The game reads `attack_throw` (EnemyDef, top level or a look entry; JsonContent and
+apply_art now also take `attack_views` from a look entry): each view's half of the attack strip is wind-up | release,
+the wind-up frames while he winds up, the release frames while he holds the throw (EnemyManager._throw_frame). **The
+dynamite** (`ranged.shot: "dynamite"`, `ranged.dynamite`, `ranged.release_hold`; EnemyManager._throw_dynamite,
+dynamite_aim, _throw_hold_start/_tick; ProjectileManager.hostile_dynamite, _dynamite_ring, _dynamite_lie,
+_tick_dynamite_lying, _dynamite_blast): he stands to wind up (no ring at the hero any more), the stick leaves his hand
+(`dynamite.hand`, muzzle_point's terms; muzzle_point takes the point as an optional argument now) aimed at the hero's
+feet plus 0.35 of his velocity over the flight (at most 2.5 m), flies at 9 m/s (the spit 5.4) tumbling, harmless, the
+hero's red Dynamite Stick model (art/props/dynamite_b_stick_red.glb, at 0.6 of its size: at full size it was as long
+as his arm; the pulse halo counts from 0.2 m, the stick's length had made a disc of it) with the cactus's pulse in red and a smoke-grey
+trail; a red ring of the blast's radius marks the spot from the throw to the blast; it lies 1 s with the hero's fuse
+spark (out 0.5 s before), then blows like the hero's stick (burst, ground ring, camera kick, w_lob_boom): the hero
+inside radius 2.0 + 0.4 takes the cactus's damage and is thrown back 7 (lift 2) unless he evaded, the crowd within 2.4 m
+is pushed (10) and not hurt. He holds the release pose 0.35 s, then walks again. Sounds: the throw w_lob_throw, the
+death en_goblin_die. Difficulty probe (quarter board, Calavera, seeds 11-13, scratch game/tools/_p85_bandit_probe.gd
+with old=1 for the spit): stage 1 at 4:17-5:15, the cactus's share 2.34 maxHP a minute before, 2.17 after (145, 136,
+104 sticks thrown, 13-18 % of them caught him); stage 2 at 10:00-11:40 too few cacti to read (0.60 before, 0.33 after).
+Tests game/tests/pass85_bandit_test.gd.

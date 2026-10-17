@@ -20,6 +20,10 @@ What it does, in order:
 The board: --board none|quarter|half|full|save|<ranks a talent> (save = the PC save's Upgrade board), or --talents
 grit:AAB,drive:A,... talent by talent (A the first form, B the second). --ref auto finds the newest Sim result
 (tools/dl/sim/runs/) of the same hero and board for the charts' grey line. The arguments: tools/dl/p80/keys_WATCH.md.
+Pass 85: the window opens with the Hero Settings pop-up, filled with these options (Start Run starts the run down the
+spawn beam; the header's "Restart run" opens it again); --go (or --autoquit) starts at once as before. The sound is off
+unless --sound. watch.py writes tools/dl/watch/setup.json for the pop-up (the board presets, the PC save's board, the Sim
+results for the grey line: write_setup).
 Standard library only (the Level Editor's Sim tab starts it: sim_io.py POST /api/sim/watch).
 """
 import argparse
@@ -165,12 +169,21 @@ def find_ref(hero, talents, map_id):
     return None, "no Sim result of %s with this board yet" % hero
 
 
-def build_args(a, talents, label, ref, ref_label, lock_path):
-    """The Watch's command line after "--" (Watch.gd reads them)."""
+def build_args(a, talents, label, ref, ref_label, lock_path, setup=None):
+    """The Watch's command line after "--" (Watch.gd reads them). Pass 85: the sound is off unless --sound (--mute still
+    means off); the Hero Settings pop-up opens first unless --go (or --autoquit, a check that closes itself); `setup` is
+    the pop-up's file (write_setup)."""
+    sound = bool(getattr(a, "sound", False)) and not bool(getattr(a, "mute", False))
     out = ["hero=" + a.hero, "seed=%d" % a.seed, "map=" + a.map, "talents=" + SB.talents_arg(talents),
            "board_label=" + SB.board_text(talents, label), "limit=%d" % parse_limit(a.limit), "speed=%g" % float(a.speed),
            "death=" + a.death, "unlocks=" + a.unlocks, "repo=" + ROOT.replace("\\", "/"), "lock=" + lock_path.replace("\\", "/"),
-           "sound=%d" % (0 if a.mute else 1), "numbers=%d" % (0 if a.no_numbers else 1), "log_speed=%g" % float(a.log_speed)]
+           "sound=%d" % (1 if sound else 0), "numbers=%d" % (0 if a.no_numbers else 1), "log_speed=%g" % float(a.log_speed)]
+    if bool(getattr(a, "go", False)) or bool(getattr(a, "autoquit", False)):
+        out.append("go=1")
+    if bool(getattr(a, "seed_random", False)):
+        out.append("seed_random=1")
+    if setup:
+        out.append("setup=" + os.path.abspath(setup).replace("\\", "/"))
     if a.paused:
         out.append("paused=1")
     if ref:
@@ -200,6 +213,49 @@ def build_args(a, talents, label, ref, ref_label, lock_path):
         w, h = a.size.lower().split("x")
         out += ["w=%d" % int(w), "h=%d" % int(h)]
     return out
+
+
+# ---------------------------------------------------------------- the Hero Settings pop-up's file (pass 85)
+
+def ref_entries():
+    """The finished Sim results the pop-up may draw as the charts' grey line, newest first: [{hero, map, talents, path,
+    label}] (talents as the runner's text, "grit:AAB,..." or "none"); the pop-up takes the first of the run's hero, board
+    and map (find_ref's rule)."""
+    out = []
+    for r in SB.list_sims():
+        res = os.path.join(r["path"], "result.json")
+        if not os.path.isfile(res) or r.get("running"):
+            continue
+        head = SB.read_json(os.path.join(r["path"], "head.json"), tries=2)
+        s = (head or {}).get("settings") if isinstance(head, dict) else None
+        if not isinstance(s, dict):
+            whole = SB.read_json(res, tries=2) or {}
+            s = whole.get("settings") or {}
+        out.append({"hero": str(s.get("hero", "")), "map": str(s.get("map", "red_canyon")), "talents": SB.talents_arg(sim_talents(s)),
+                    "path": res.replace("\\", "/"), "label": r["id"]})
+    return out
+
+
+def write_setup(path):
+    """What the Watch's Hero Settings pop-up needs that only Python knows: the board presets talent by talent (none,
+    quarter, half, full as the Sim's; save = the PC save's board, read only, or null with why in save_note) and the Sim
+    results for the grey line. {presets: {name: {id: letters}}, labels: {name: words}, save_note, refs: ref_entries()}."""
+    presets = {}
+    labels = {}
+    for name, m in SB.PRESETS:
+        presets[name] = SB.board_talents(m)
+        labels[name] = SB.board_label(m)
+    t, note = SB.save_board()
+    presets["save"] = t
+    labels["save"] = "my save"
+    try:
+        refs = ref_entries()
+    except Exception as e:  # a broken sim folder never stops the Watch
+        refs = []
+        note = (note + "; " if note else "") + "the Sim results: %s" % e
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    SB.write_json(path, {"presets": presets, "labels": labels, "save_note": note or "", "refs": refs})
+    return path
 
 
 # ---------------------------------------------------------------- the snapshot
@@ -250,7 +306,9 @@ def main(argv=None):
     ap.add_argument("--bot", action="append", default=[], help="a bot option key=value (repeatable): skill=0.6, style=greedy, totems=off ...")
     ap.add_argument("--bot-preset", default="", help="the bot's preset (lane BOT's names: sim77, explorer, careless, expert)")
     ap.add_argument("--stub", action="store_true", help="the Watch's stand-in bot instead of tools/bot/Bot.gd")
-    ap.add_argument("--mute", action="store_true", help="start with the sound off")
+    ap.add_argument("--sound", action="store_true", help="start with the sound on (pass 85: off by default)")
+    ap.add_argument("--mute", action="store_true", help="start with the sound off (the default since pass 85)")
+    ap.add_argument("--go", action="store_true", help="start the run at once, no Hero Settings pop-up first (--autoquit implies it)")
     ap.add_argument("--no-numbers", action="store_true", help="no floating damage numbers")
     ap.add_argument("--size", default="", help="the window, WxH (default 1920x1080, fitted to the screen)")
     ap.add_argument("--no-sync", action="store_true", help="play the snapshot as it is")
@@ -266,7 +324,8 @@ def main(argv=None):
     ap.add_argument("--skip-draw", default="1", help="1 (default): above 1x the frames not drawn skip the drawing work; 0 keeps it")
     ap.add_argument("--log", default="", help="Godot's log file (default tools/dl/watch/logs/watch_<time>.log)")
     a = ap.parse_args(argv)
-    a.seed = random.randint(1, 99999) if str(a.seed).lower() in ("random", "", "0") else int(a.seed)
+    a.seed_random = str(a.seed).lower() in ("random", "", "0")
+    a.seed = random.randint(1, 99999) if a.seed_random else int(a.seed)
     talents, label, probs = board_of(a)
     for p in probs:
         say("board: " + p)
@@ -293,8 +352,13 @@ def main(argv=None):
         logs = os.path.join(WATCH_DIR, "logs")
         os.makedirs(logs, exist_ok=True)
         log = os.path.abspath(a.log) if a.log else os.path.join(logs, "watch_%s.log" % time.strftime("%Y%m%d-%H%M%S"))
+        setup = None
+        try:
+            setup = write_setup(os.path.join(WATCH_DIR, "setup.json"))
+        except Exception as e:  # the pop-up then offers the command line's board and no presets
+            say("setup: %s" % e)
         cmd = [locks.GODOT, "--fixed-fps", "60", "--path", snap, "--log-file", log, "--script", SCRIPT, "--"] + \
-            build_args(a, talents, label, ref, ref_label, LOCK)
+            build_args(a, talents, label, ref, ref_label, LOCK, setup)
         flags = 0
         if os.name == "nt" and not a.wait:
             flags = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "DETACHED_PROCESS", 0x8)

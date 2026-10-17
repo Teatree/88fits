@@ -8,16 +8,25 @@ script = ExtResource("1_xjour")
 effect_kind = "teleport"
 params = {
 "invuln": 1.2,
+"land_clear": 15.0,
+"land_water": 2.0,
 "min_distance": 0.6,
+"per_map": {
+"kin_spacing": 40.0,
+"max": 4.0,
+"max_chance": 0.33,
+"min": 3.0
+},
 "portal": {
 "r": 0.207,
 "x": 0.504,
 "y": 0.428
 }
 }
+radius = 1.8
 interact_time = 1.5
 color = Color(1, 0.30980393, 0.84705883, 1)
-height = 3.2
+height = 2.7
 id = "teleport"
 display_name = "Teleport"
 flavour = "Step in. Come out somewhere quieter."

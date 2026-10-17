@@ -982,6 +982,8 @@ func register_type(def: EnemyDef) -> int:
 	_t_dummy.append(1 if def.brain == "dummy" else 0)
 	# pass 73 (lane SNIPER): an attack strip painted front and back (EnemyDef.attack_views)
 	_t_atkv.append(1 if def.attack_views == "front_back" else 0)
+	# pass 85 (lane BANDIT): a throw's attack strip (EnemyDef.attack_throw, _throw_frame)
+	_t_throw.append(1 if def.attack_throw else 0)
 	_t_sh.append_array(shadow_numbers(def))
 	_t_cv.append_array(charge_numbers(def))
 	return types.size() - 1
@@ -3653,6 +3655,8 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					# a ranged training dummy's spit too (pass 49): the only wind-up a dummy has
 					_do_attack(i, def, ppos)
 					state[i] = STATE_MOVE
+					# pass 85 (lane BANDIT): a thrower holds its release pose a moment (ranged.release_hold)
+					_throw_hold_start(i, def)
 				else:
 					# the charge runs along the line that was telegraphed at the start of the wind-up; the hero
 					# moving in the meantime is exactly what the telegraph is for
@@ -3665,6 +3669,8 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					_launch(i)
 		STATE_ATTACK:
 			desired = Vector3.ZERO
+			# pass 85 (lane BANDIT): a thrower's release hold runs out here (_throw_hold_tick)
+			_throw_hold_tick(i, def, dt)
 		STATE_CHARGE:
 			if def.brain == "boss":
 				# a scripted roll (the King, the Gila, the Brander): _update_attacks owns its clock and its end. This branch
@@ -4035,6 +4041,10 @@ func _do_attack(i: int, def: EnemyDef, ppos: Vector3) -> void:
 	Audio.play(str(def.sfx.get("attack", "")), pos[i])
 	if game == null:
 		return
+	# pass 85 (lane BANDIT): a stick of dynamite from the hand, a little ahead of the hero (_throw_dynamite)
+	if throws_dynamite(def):
+		_throw_dynamite(i, def, ppos)
+		return
 	var from := pos[i] + Vector3(0, size[i] * 0.6, 0)
 	if def.ranged.has("cone_deg"):
 		# a cone of pellets across the wedge, each its own short straight shot
@@ -4084,9 +4094,10 @@ func _fire_artillery(i: int, def: EnemyDef, ppos: Vector3) -> void:
 ## render would draw him with this tick); `forward` is along `aim` (towards the hero), out of the painting's plane, so the
 ## rocket starts in front of a figure facing the camera and behind one walking away. Without a muzzle, 0.8 of his size
 ## straight up, as it was.
-func muzzle_point(i: int, aim: Vector3 = Vector3.ZERO) -> Vector3:
+func muzzle_point(i: int, aim: Vector3 = Vector3.ZERO, mz_in: Dictionary = {}) -> Vector3:
 	var def: EnemyDef = types[type_idx[i]]["def"]
-	var mz = def.artillery.get("muzzle", {})
+	# pass 85 (lane BANDIT): or the point a caller names in the same terms (the Dynamite Bandit's hand)
+	var mz = mz_in if not mz_in.is_empty() else def.artillery.get("muzzle", {})
 	if not (mz is Dictionary) or (mz as Dictionary).is_empty():
 		return pos[i] + Vector3(0, size[i] * 0.8, 0)
 	var k: float = size[i] / maxf(def.size, 0.01)
@@ -4178,6 +4189,10 @@ func _telegraph_shot(i: int, def: EnemyDef, ppos: Vector3, dir: Vector3, dist: f
 				aim = to.normalized()
 		charge_dir[i] = aim
 		game.telegraph_line(pos[i], aim, minf(dist + 4.0, float(def.ranged.get("range", 9.0)) + 4.0), timer[i], Color(0.93, 0.29, 0.36))
+	elif throws_dynamite(def):
+		# pass 85 (lane BANDIT): no ring while he winds up (the raised arm is the tell): the stick's own ring marks the spot
+		# it will land on from the throw to the blast (ProjectileManager._dynamite_ring)
+		charge_dir[i] = dir
 	else:
 		game.telegraph_ring(ppos, float(def.ranged.get("splash", 1.2)), timer[i], Color(0.93, 0.29, 0.36))
 
@@ -5183,6 +5198,9 @@ func _render() -> void:
 		if strip == A_ATTACK and _t_atkv[t] == 1:
 			# pass 73 (lane SNIPER): the front or the back half of an attack strip painted both ways (the sniper's aim)
 			frame = _attack_view_frame(i, t)
+		if strip == A_ATTACK and _t_throw[t] == 1:
+			# pass 85 (lane BANDIT): a throw's wind-up or release frames (_throw_frame)
+			frame = _throw_frame(i, t)
 		var sq := squash[i]
 		# procedural bob while moving
 		if strip == A_RUN:
@@ -6970,3 +6988,102 @@ func _corpse_tick(i: int, delta: float) -> void:
 		if into < 0.0:
 			k -= n * into
 	kb[i] = k.lerp(Vector3.ZERO, clampf(delta * (CORPSE_AIR_DRAG if air else CORPSE_GROUND_DECAY), 0.0, 1.0))
+
+
+# ---------------------------------------------------------------- pass 85 (lane BANDIT): the Dynamite Bandit's throw
+## Garry (pass 85): the Spit Cactus's Dynamite Bandit throws dynamite "in place, based on the ref" and "needs to aim a
+## little in front of the Player (not like the Harpooner), just a bit". A creature whose `ranged.shot` is "dynamite"
+## winds up where it stands (the kite brain's wind-up, `telegraph` seconds: the attack strip's wind-up frames), throws at
+## the end of it from its hand (`ranged.dynamite.hand` {up, side, forward}, muzzle_point's metres) and holds the release
+## (`ranged.release_hold` seconds in STATE_ATTACK, the release frames) before it walks again. Its aim (dynamite_aim) is the
+## hero's feet now plus a small lead: `lead` (a share) x his flat velocity x the stick's flight time, at most `lead_max`
+## metres; the harpooner's lead is the whole velocity over the whole flight and the wind-up.
+
+## per type: 1 when its attack strip is a throw (EnemyDef.attack_throw: wind-up | release in each view's half)
+var _t_throw := PackedByteArray()
+## Diagnostics and tests: throws made, and the last one's aim and lead (metres).
+var dynamite_throws := 0
+var last_dynamite_aim := Vector3.ZERO
+var last_dynamite_lead := 0.0
+
+
+## Whether def `def` throws dynamite.
+static func throws_dynamite(def: EnemyDef) -> bool:
+	return def != null and str(def.ranged.get("shot", "")) == "dynamite"
+
+
+## Where creature `i` (of `def`) throws its dynamite at the hero standing at `ppos` moving at `hero_v`: his feet plus
+## `lead` x his flat velocity x the stick's flight (the spit's arc time, on the creatures' clock: 1/hostile_clock as long),
+## the lead at most `lead_max` metres.
+func dynamite_aim(i: int, def: EnemyDef, ppos: Vector3, hero_v: Vector3) -> Vector3:
+	var dy: Dictionary = def.ranged.get("dynamite", {})
+	var spd := float(dy.get("speed", def.ranged.get("projectile_speed", 9.0)))
+	var flat := Vector3(ppos.x - pos[i].x, 0.0, ppos.z - pos[i].z)
+	var t: float = clampf(maxf(flat.length(), 0.5) / maxf(spd, 1.0), 0.4, 2.0) / maxf(hostile_clock(), 0.05)
+	var v := Vector3(hero_v.x, 0.0, hero_v.z)
+	var lead := v * t * float(dy.get("lead", 0.35))
+	var lm := float(dy.get("lead_max", 2.5))
+	if lead.length() > lm:
+		lead = lead.normalized() * lm
+	last_dynamite_lead = lead.length()
+	var at := ppos + lead
+	at.y = _height(at.x, at.z)
+	return at
+
+
+## The throw: the stick leaves creature `i`'s hand for dynamite_aim's spot (ProjectileManager.hostile_dynamite).
+func _throw_dynamite(i: int, def: EnemyDef, ppos: Vector3) -> void:
+	var dy: Dictionary = def.ranged.get("dynamite", {})
+	var hv: Vector3 = player.velocity if player != null and "velocity" in player else Vector3.ZERO
+	var at := dynamite_aim(i, def, ppos, hv)
+	last_dynamite_aim = at
+	dynamite_throws += 1
+	var hand_mz = dy.get("hand", {})
+	var from := muzzle_point(i, ppos - pos[i], hand_mz if hand_mz is Dictionary else {})
+	var pm = game.get("projectiles") if game != null else null
+	if pm != null and pm.has_method("hostile_dynamite"):
+		var bl = dy.get("blast", {})
+		var r := float((bl as Dictionary).get("radius", def.ranged.get("splash", 1.2))) if bl is Dictionary else float(def.ranged.get("splash", 1.2))
+		pm.hostile_dynamite(from, at, float(dy.get("speed", def.ranged.get("projectile_speed", 9.0))), dmg[i], r, dy, hit_info(i, "ranged", ["dynamite"]))
+	elif game != null and game.has_method("enemy_spit"):
+		game.enemy_spit(from, at, float(dy.get("speed", 9.0)), dmg[i], float(def.ranged.get("splash", 1.2)), hit_info(i, "ranged", ["dynamite"]))
+
+
+## After a throw (the wind-up ran out and the shot is gone) a creature with `ranged.release_hold` stands in its release
+## pose that long (STATE_ATTACK, its timer) before it walks again.
+func _throw_hold_start(i: int, def: EnemyDef) -> void:
+	var hold := float(def.ranged.get("release_hold", 0.0))
+	if hold <= 0.0 or state[i] != STATE_MOVE or def.brain != "kite" or not (def.boss.get("attacks", []) as Array).is_empty():
+		return
+	state[i] = STATE_ATTACK
+	timer[i] = hold / maxf(pace, 0.05)
+	anim_t[i] = 0.0
+
+
+## The release hold's clock (from _steer's STATE_ATTACK branch): back to walking when it runs out. Only a creature
+## holding a throw (a kite brain with `ranged.release_hold`) is touched; a scripted attack's STATE_ATTACK is its script's.
+func _throw_hold_tick(i: int, def: EnemyDef, dt: float) -> void:
+	if def.brain != "kite" or float(def.ranged.get("release_hold", 0.0)) <= 0.0 or not (def.boss.get("attacks", []) as Array).is_empty():
+		return
+	timer[i] -= dt * attack_clock(i)
+	if timer[i] <= 0.0:
+		state[i] = STATE_MOVE
+
+
+## The frame of a throw's `attack` strip creature `i` shows (pass 85, EnemyDef.attack_throw): the view's half (front, or
+## back with attack_views "front_back") split in two, the wind-up frames while it winds up and the release frames while it
+## holds the throw, each set at the attack's pace.
+func _throw_frame(i: int, t: int) -> int:
+	var n := _t_cnt[t * N_ANIMS + A_ATTACK]
+	var off := _t_off[t * N_ANIMS + A_ATTACK]
+	var half := n
+	if _t_atkv[t] == 1 and n >= 2:
+		half = n >> 1
+		if away[i] == 1:
+			off += half
+	var q := half >> 1
+	if q < 1:
+		return off + (int(anim_t[i]) % maxi(half, 1))
+	if state[i] == STATE_ATTACK:
+		return off + q + (int(anim_t[i]) % maxi(half - q, 1))
+	return off + (int(anim_t[i]) % q)

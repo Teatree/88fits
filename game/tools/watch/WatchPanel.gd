@@ -56,7 +56,10 @@ var _status: Label
 var _tiles: Dictionary = {}
 var _charts: Array = []
 var _log: RichTextLabel
-var _build: RichTextLabel
+## pass 85 (lane TOOLS): the build as chips with the game's icons (weapons and their mutations, evolutions, cards, items,
+## perks), wrapping in rows
+var _build_box: VBoxContainer
+var _restart_btn: Button
 var _strip
 var _threat: RichTextLabel
 var _end_box: PanelContainer
@@ -145,12 +148,17 @@ func build(w: Node) -> void:
 	_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_log.size_flags_stretch_ratio = 2.2
 	b.add_child(_card(_log, true))
-	# 5: the build
+	# 5: the build (pass 85: icons and names, wrapping)
 	b.add_child(_section("Build"))
-	_build = _rich(13)
-	_build.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_build.size_flags_stretch_ratio = 0.9
-	b.add_child(_card(_build, true))
+	var bsc := ScrollContainer.new()
+	bsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	bsc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	bsc.size_flags_stretch_ratio = 0.9
+	_build_box = VBoxContainer.new()
+	_build_box.add_theme_constant_override("separation", 4)
+	_build_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bsc.add_child(_build_box)
+	b.add_child(_card(bsc, true))
 	_strip = STRIP.new()
 	_strip.custom_minimum_size = Vector2(0, 80)
 	b.add_child(_strip)
@@ -303,6 +311,10 @@ func _header() -> Control:
 	row.add_child(_status)
 	_end_btn = _button("End run", "end the run now: the record and the decision log are saved", func() -> void: watch.end_now())
 	row.add_child(_end_btn)
+	# pass 85: the Hero Settings pop-up again (the run ends when the new one starts) (R)
+	_restart_btn = _button("Restart run", "choose the next run's settings (hero, look, board, seed, bot ...): Start Run ends this run (recorded) and starts that one down the spawn beam (R)",
+		func() -> void: watch.open_setup(true))
+	row.add_child(_restart_btn)
 	return v
 
 
@@ -322,6 +334,20 @@ func take_draw_us() -> int:
 	return us
 
 
+## Pass 85: a new run in this window: the per-run memory goes (the log's and the build's keys, the share chart's colours,
+## the build's chips).
+func reset_run() -> void:
+	_log_key = ""
+	_build_key = ""
+	_share_cols = {}
+	if _build_box != null:
+		for c in _build_box.get_children():
+			_build_box.remove_child(c)
+			c.queue_free()
+	if _strip != null:
+		_strip.arrivals = []
+
+
 # ---------------------------------------------------------------- once a second
 
 func refresh() -> void:
@@ -339,7 +365,7 @@ func refresh() -> void:
 		if game and game.get("director") != null:
 			ph = ["", " · boss", " · portal"][clampi(int(game.director.phase), 0, 2)] if int(game.director.phase) <= 2 else " · phase %d" % int(game.director.phase)
 		stage_txt = "stage %d%s · clock %s · played %s" % [int(run.stage) + 1, ph, DATA.mmss(float(run.elapsed)), DATA.mmss(w.play_t())]
-	_title.text = "%s  ·  %s" % [w.hero_name(), stage_txt if stage_txt != "" else "starting…"]
+	_title.text = "%s  ·  %s" % [w.hero_name(), stage_txt if stage_txt != "" else ("Hero Settings: choose the run, then Start Run" if w.setup_open() and game == null else "starting…")]
 	_sub.text = w.header_words()
 	_pause_btn.text = "Go on" if clk.paused else "Pause"
 	for s in _speed_btns:
@@ -349,7 +375,8 @@ func refresh() -> void:
 	_power_btn.text = "DPS" if show_power else "Power"
 	_goals_btn.text = "Goals shown" if show_goals else "Goals hidden"
 	_sound_btn.text = "Sound on" if w.sound_on else "Sound off"
-	_end_btn.disabled = w.ended
+	_end_btn.disabled = w.ended or game == null
+	_restart_btn.disabled = w.setup_open()
 	_status.text = w.status_words()
 	_status.tooltip_text = _status.text
 	_status.add_theme_color_override("font_color", BAD if clk.short() else DIM)
@@ -537,51 +564,149 @@ static func _esc(s: String) -> String:
 func _build_text(w: Node, data, run: Node) -> void:
 	if run == null:
 		return
-	var parts := PackedStringArray()
-	var ws := PackedStringArray()
-	var evos := PackedStringArray()
-	for wi in run.weapons:
-		var muts := PackedStringArray()
-		for m in wi.mutations:
-			muts.append(str(m.display_name))
-		var txt := "%s [color=#%s]%d[/color]" % [_esc(str(wi.def.display_name)), _hex(ACCENT), int(wi.level)]
-		if not muts.is_empty():
-			txt += " [color=#%s](%s)[/color]" % [_hex(PURPLE), _esc(", ".join(muts))]
-		if bool(wi.def.is_evolution):
-			evos.append(txt)
-		else:
-			ws.append(txt)
-	var lines := PackedStringArray()
-	var cards := PackedStringArray()
-	var items := PackedStringArray()
-	for id in run.passives:
-		var nm: String = w.name_of(str(id))
-		var pd = w.passive_def(str(id))
-		var txt := "%s %d" % [_esc(nm), int(run.passives[id])]
-		if pd != null and pd.has_method("is_line") and bool(pd.is_line()):
-			cards.append(txt)
-		else:
-			items.append(txt)
-	var perks := PackedStringArray()
-	for p in run.perks:
-		perks.append(_esc(w.name_of(str(p))))
-	lines.append("[color=#%s]Weapons[/color]  %s" % [_hex(DIM), " · ".join(ws) if not ws.is_empty() else "-"])
-	if not evos.is_empty():
-		lines.append("[color=#%s]Evolutions[/color]  %s" % [_hex(DIM), " · ".join(evos)])
-	lines.append("[color=#%s]Cards[/color]  %s" % [_hex(DIM), " · ".join(cards) if not cards.is_empty() else "-"])
-	lines.append("[color=#%s]Items[/color]  %s" % [_hex(DIM), " · ".join(items) if not items.is_empty() else "-"])
-	if not perks.is_empty():
-		lines.append("[color=#%s]Perks[/color]  %s" % [_hex(DIM), " · ".join(perks)])
-	var txt := "\n".join(lines)
-	if txt != _build_key:
-		_build_key = txt
-		_build.text = txt
+	var key := build_key(run)
+	if key != _build_key:
+		_build_key = key
+		_build_chips(w, run)
 	_strip.arrivals = data.arrivals
 	_strip.now = maxf(w.play_t(), 60.0)
 	for a in data.arrivals:
 		w.name_of(str(a["id"]))
 	_strip.names = w.names
 	_strip.queue_redraw()
+
+
+## What the build holds, as a key (the chips are made again only when it changes): each weapon, its level and
+## mutations, each card and item and its level, each perk.
+static func build_key(run) -> String:
+	var parts := PackedStringArray()
+	for wi in run.weapons:
+		var ms := PackedStringArray()
+		for m in wi.mutations:
+			ms.append(str(m.id))
+		parts.append("%s:%d:%s" % [str(wi.def.id), int(wi.level), ",".join(ms)])
+	for id in run.passives:
+		parts.append("%s=%d" % [str(id), int(run.passives[id])])
+	for p in run.perks:
+		parts.append("perk:" + str(p))
+	return "|".join(parts)
+
+
+## The build as rows of chips, one row a kind (Weapons, Evolutions, Cards, Items, Perks): each chip the game's icon, the
+## name and the level; a weapon's mutations follow it as smaller chips edged in purple. [[icon, name, level, mutation]]
+## a group (a weapon and its mutations), the groups a row: build_rows (pure).
+func _build_chips(w: Node, run: Node) -> void:
+	for c in _build_box.get_children():
+		_build_box.remove_child(c)
+		c.queue_free()
+	for r in build_rows(w, run):
+		var list: Array = r[1]
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 6)
+		_build_box.add_child(line)
+		var l := Label.new()
+		l.text = str(r[0])
+		l.custom_minimum_size = Vector2(74, 28)
+		l.add_theme_color_override("font_color", DIM)
+		l.add_theme_font_size_override("font_size", 12)
+		l.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		line.add_child(l)
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 4)
+		flow.add_theme_constant_override("v_separation", 4)
+		flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.add_child(flow)
+		if list.is_empty():
+			var none := Label.new()
+			none.text = "-"
+			none.custom_minimum_size = Vector2(0, 28)
+			none.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			none.add_theme_color_override("font_color", DIM)
+			flow.add_child(none)
+			continue
+		for group in list:
+			for c in group:
+				flow.add_child(_chip(c[0], str(c[1]), int(c[2]), bool(c[3])))
+
+
+## The build's rows: [[word, [group, ...]], ...] for Weapons, Evolutions (when any), Cards, Items, Perks (when any); a
+## group [[icon, name, level, mutation?], ...] (a weapon first, then its mutations, level -1).
+static func build_rows(w: Node, run) -> Array:
+	var weapons: Array = []
+	var evos: Array = []
+	for wi in run.weapons:
+		var group: Array = [[wi.def.icon, str(wi.def.display_name), int(wi.level), false]]
+		for m in wi.mutations:
+			group.append([m.icon, str(m.display_name), -1, true])
+		if bool(wi.def.is_evolution):
+			evos.append(group)
+		else:
+			weapons.append(group)
+	var cards: Array = []
+	var items: Array = []
+	for id in run.passives:
+		var pd = w.passive_def(str(id))
+		var chip: Array = [[pd.icon if pd != null else null, w.name_of(str(id)), int(run.passives[id]), false]]
+		if pd != null and pd.has_method("is_line") and bool(pd.is_line()):
+			cards.append(chip)
+		else:
+			items.append(chip)
+	var perks: Array = []
+	var reg: Node = w.get_node_or_null("/root/Registry")
+	for p in run.perks:
+		var pk = reg.perk(str(p)) if reg != null else null
+		perks.append([[pk.icon if pk != null else null, w.name_of(str(p)), -1, false]])
+	var rows: Array = [["Weapons", weapons]]
+	if not evos.is_empty():
+		rows.append(["Evolutions", evos])
+	rows.append(["Cards", cards])
+	rows.append(["Items", items])
+	if not perks.is_empty():
+		rows.append(["Perks", perks])
+	return rows
+
+
+## One chip: the icon (or the name's first letter), the name and the level (-1: none); `mut` a mutation's smaller chip.
+func _chip(icon, nm_text: String, level: int, mut: bool) -> Control:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _box(Color(0.13, 0.14, 0.17) if not mut else Color(0.14, 0.12, 0.19), 5, 4, PURPLE if mut else EDGE))
+	p.tooltip_text = nm_text + ((" · level %d" % level) if level >= 0 else (" (mutation)" if mut else ""))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 4)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	var px := 18 if mut else 24
+	if icon is Texture2D:
+		var t := TextureRect.new()
+		t.texture = icon
+		t.custom_minimum_size = Vector2(px, px)
+		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(t)
+	else:
+		var ph := Label.new()
+		ph.text = nm_text.substr(0, 1)
+		ph.custom_minimum_size = Vector2(px, px)
+		ph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		ph.add_theme_color_override("font_color", DIM)
+		h.add_child(ph)
+	var nm := Label.new()
+	nm.text = nm_text
+	nm.add_theme_font_size_override("font_size", 11 if mut else 13)
+	nm.add_theme_color_override("font_color", Color(0.85, 0.8, 0.95) if mut else TEXT)
+	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(nm)
+	if level >= 0:
+		var lv := Label.new()
+		lv.text = str(level)
+		lv.add_theme_font_size_override("font_size", 13)
+		lv.add_theme_color_override("font_color", ACCENT)
+		lv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(lv)
+	return p
 
 
 func _threat_text(w: Node, data, game: Node) -> void:

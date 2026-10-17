@@ -1,6 +1,6 @@
 {
   "id": "teleport",
-  "radius": 2.2,
+  "radius": 1.8,
   "interact_time": 1.5,
   "name": "Teleport",
   "flavour": "Step in. Come out somewhere quieter.",
@@ -8,6 +8,14 @@
   "weight": 2,
   "params": {
     "min_distance": 0.6,
+    "per_map": {
+      "min": 3,
+      "max": 4,
+      "max_chance": 0.33,
+      "kin_spacing": 40
+    },
+    "land_clear": 15,
+    "land_water": 2,
     "invuln": 1.2,
     "portal": {
       "x": 0.504,
@@ -17,6 +25,6 @@
   },
   "color": "#FF4FD8",
   "prop": "",
-  "height": 3.2,
+  "height": 2.7,
   "art_prompt": "an ancient round stone ring gate with pale pink runes, the middle of the ring open"
 }

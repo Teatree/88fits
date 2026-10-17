@@ -38,6 +38,8 @@ var _numbers := true     # numbers=0: no damage numbers (pass 46), the A/B of th
 var _sum := {}
 ## shadows=0 (pass 83): the scenery's ground shadows hidden (PropField's GroundShadows), the A/B of their cost
 var _shadows := true
+## tints=0 (pass 85): the props' natural tints off (every painting's tint uniforms), the A/B of their cost
+var _tints := true
 
 
 func _init() -> void:
@@ -58,6 +60,8 @@ func _init() -> void:
 			_numbers = false
 		elif a == "shadows=0":
 			_shadows = false
+		elif a == "tints=0":
+			_tints = false
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -92,6 +96,11 @@ func _tick() -> void:
 			var gs: Node = _game.map.get("props").get_node_or_null("GroundShadows")
 			if gs:
 				gs.visible = false
+		if not _tints and _game.map and _game.map.get("props") != null:
+			for c in _game.map.get("props").get_children():
+				if c is MultiMeshInstance3D and c.material_override is ShaderMaterial:
+					(c.material_override as ShaderMaterial).set_shader_parameter("tint_v_0", Vector4(1, 1, 0.5, 0))
+					(c.material_override as ShaderMaterial).set_shader_parameter("tint_v_1", Vector4(1, 1, 0.5, 0))
 	var inp = _game.player.input
 	if inp and not _game.paused:
 		inp.wants_move = true

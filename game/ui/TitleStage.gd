@@ -111,6 +111,8 @@ func _ready() -> void:
 		camera.make_current()
 		reused = true
 		_feet = _spot_on(map)
+		# pass 85: a fresh preset each time the title opens
+		compose()
 	else:
 		forget()
 		_build_view()
@@ -231,10 +233,17 @@ func _build_map() -> void:
 	var t0 := Time.get_ticks_usec()
 	var keep: int = Run.map_seed
 	Run.map_seed = layout_seed
+	# pass 85 (lane WORLD; Garry: "the Main Menu background still features the old sand texture"): the map reads its own
+	# file's choices (the sand, the oases, the rock and wall colours) from Run.map, which is null until a run starts, so
+	# the title is built with this map's def standing in for the length of its _ready
+	var keep_map: MapDef = Run.map
+	if def:
+		Run.map = def
 	map = scene.instantiate()
 	map.name = "Map"
 	world.add_child(map)
 	Run.map_seed = keep
+	Run.map = keep_map
 	_feet = _spot_on(map)
 	compose()
 	build_ms = float(Time.get_ticks_usec() - t0) / 1000.0
@@ -264,31 +273,71 @@ func _spot_on(m: Node3D) -> Vector3:
 ## round the hero's spot from SCENE_FILE (per map: `clear`, the box round the spot, metres across x and along z (+ towards
 ## the camera), from which the map's own scatter is taken away; `props`, each {id (the very painting: a kind's own or a
 ## variant, never picked by the spot), x, z (metres from the spot), scale, flip, sway}), every painting with its ground
-## shadow. Laid once a world is built (a kept
-## world keeps it). Returns how many paintings it laid.
+## shadow. Laid once a world is built.
+## Pass 85 (lane WORLD; Garry: "The arrangement of environment assets can be random but it should be from a bunch of
+## presets"): the map's entry holds `presets`, each {name, props} (a file with a bare `props` list is one preset); every
+## time the title opens one is drawn at random (force_preset picks one for a capture or a test). The box is cleared
+## once per built world; a kept world, taken back, takes its last preset's paintings off (PropField.mark / truncate,
+## so no slot is spent twice) and lays the newly drawn one. Returns how many paintings it laid.
 const SCENE_FILE := "res://art/ui/title_scene.json"
 var composed: Array = []
+## the preset laid (its index in the map's `presets`) and its name
+var preset_index := -1
+var preset_name := ""
+## a capture or a test: the preset to lay instead of a random one (-1: random)
+static var force_preset := -1
+
+
+## The map's title scene from SCENE_FILE ({} when it has none).
+static func scene_of(map_name: String) -> Dictionary:
+	if not FileAccess.file_exists(SCENE_FILE):
+		return {}
+	var data = JSON.parse_string(FileAccess.get_file_as_string(SCENE_FILE))
+	if not data is Dictionary or not (data as Dictionary).get(map_name) is Dictionary:
+		return {}
+	return data[map_name]
+
+
+## A scene's presets: its `presets` list, or its bare `props` as the one preset.
+static func presets_of(sc: Dictionary) -> Array:
+	var out: Array = []
+	for p in sc.get("presets", []):
+		if p is Dictionary and (p as Dictionary).get("props") is Array:
+			out.append(p)
+	if out.is_empty() and sc.get("props") is Array:
+		out.append({"name": "", "props": sc["props"]})
+	return out
 
 
 func compose() -> int:
 	composed.clear()
 	var props = map.get("props") if map else null
-	if not props is PropField or not FileAccess.file_exists(SCENE_FILE):
+	if not props is PropField:
 		return 0
-	var data = JSON.parse_string(FileAccess.get_file_as_string(SCENE_FILE))
-	if not data is Dictionary or not (data as Dictionary).get(map_id) is Dictionary:
+	var sc := scene_of(map_id)
+	var presets := presets_of(sc)
+	if presets.is_empty():
 		return 0
-	var sc: Dictionary = data[map_id]
 	var pf := props as PropField
 	var c := _feet
-	var box = sc.get("clear")
-	if box is Dictionary:
-		var bx: Array = (box as Dictionary).get("x", [0, 0])
-		var bz: Array = (box as Dictionary).get("z", [0, 0])
-		pf.remove_where(func(row: Dictionary) -> bool:
-			var p: Vector3 = row["pos"]
-			return p.x - c.x >= float(bx[0]) and p.x - c.x <= float(bx[1]) and p.z - c.z >= float(bz[0]) and p.z - c.z <= float(bz[1]))
-	for e in sc.get("props", []):
+	if map.has_meta("title_mark"):
+		# a kept world: the last visit's preset comes off first
+		pf.truncate(map.get_meta("title_mark"))
+	else:
+		var box = sc.get("clear")
+		if box is Dictionary:
+			var bx: Array = (box as Dictionary).get("x", [0, 0])
+			var bz: Array = (box as Dictionary).get("z", [0, 0])
+			pf.remove_where(func(row: Dictionary) -> bool:
+				var p: Vector3 = row["pos"]
+				return p.x - c.x >= float(bx[0]) and p.x - c.x <= float(bx[1]) and p.z - c.z >= float(bz[0]) and p.z - c.z <= float(bz[1]))
+		map.set_meta("title_mark", pf.mark())
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	preset_index = force_preset if force_preset >= 0 and force_preset < presets.size() else rng.randi_range(0, presets.size() - 1)
+	var pr: Dictionary = presets[preset_index]
+	preset_name = str(pr.get("name", ""))
+	for e in pr.get("props", []):
 		if not e is Dictionary:
 			continue
 		var d: Dictionary = e

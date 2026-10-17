@@ -1,7 +1,9 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_icon_a.png" id="1_gfchg"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_n38pk"]
 [ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_icon.png" id="1_wvjsf"]
+[ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_sprite_a.png" id="3_a0u32"]
 [ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_sprite.png" id="3_e6v1d"]
 
 [resource]
@@ -22,7 +24,7 @@ drops = {
 "small": 1.0
 }
 anims = {
-"attack": 2.0,
+"attack": 8.0,
 "die": 5.0,
 "hit": 1.0,
 "idle": 4.0,
@@ -30,44 +32,127 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("3_e6v1d")
-sprite_file = "spit_cactus_sprite.png"
+sprite = ExtResource("3_a0u32")
+sprite_file = "spit_cactus_sprite_a.png"
 frame_px = 160
-strip_cols = 40
+strip_cols = 46
 fps = {
 "die": 8.0,
 "run": 15.0
 }
 ranged = {
 "cooldown": 2.6,
+"dynamite": {
+"blast": {
+"knockback": 7.0,
+"lift": 2.0,
+"push": 10.0,
+"push_radius": 1.2,
+"radius": 2.0
+},
+"fuse": 1.0,
+"halo_r": 0.2,
+"hand": {
+"forward": 0.1,
+"side": 0.25,
+"up": 1.3
+},
+"lead": 0.35,
+"lead_max": 2.5,
+"model": "res://art/props/dynamite_b_stick_red.glb",
+"out_before": 0.5,
+"scale": 0.6,
+"speed": 9.0
+},
 "keep_distance": 5.5,
 "land_only": true,
 "projectile_speed": 5.4,
 "pulse": {
-"color": "#8CFF4A",
+"color": "#FF2A1F",
 "glow": 0.35,
 "halo": 1.7,
 "hz": 3.0,
 "size": 0.12
 },
 "range": 8.0,
+"release_hold": 0.35,
+"shot": "dynamite",
 "splash": 1.2,
 "telegraph": 0.7,
 "trail": {
 "alpha": 0.4,
-"color": "#3E9E2C",
+"color": "#6B625C",
 "life": 0.45,
 "size": 0.7,
 "step": 0.02
 }
 }
 knockback = 4.81
-head = 0.981
+head = 0.956
 blood = Color(0.29411766, 0.77254903, 0.12156863, 1)
+variants = {
+"SC-0": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.981,
+"icon": ExtResource("1_wvjsf"),
+"note": "the top-level strip, before the Level Editor's looks: the green walking cactus",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("3_e6v1d"),
+"sprite_file": "spit_cactus_sprite.png",
+"strip_cols": 40
+},
+"SC-A": {
+"anims": {
+"attack": 8.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": true,
+"attack_views": "front_back",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.956,
+"icon": ExtResource("1_gfchg"),
+"note": "pass 85 (lane BANDIT): the Dynamite Bandit from Garry's tools/dl/uploads/2d/Dynamite_Bandit.png, cut into its four figures (tools/dl/p85/BANDIT/ref_*.png): the front redrawn from his standing front figure (front_from_picture c2), the back from his back figure (c6), the release poses from his two throwing figures, the wind-ups as edits of our front and back stills, all picked by eye; free Wan walks front and back like the Bandit and the Saiga (the walk_hold driver's thin Mixamo legs lost his stocky stance), the attack a throw (wind-up | release, front and back)",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("3_a0u32"),
+"sprite_file": "spit_cactus_sprite_a.png",
+"strip_cols": 46
+}
+}
+variant = "SC-A"
 can_be_elite = false
+attack_views = "front_back"
+attack_throw = true
 sfx = {
-"attack": "en_cactus_spit",
-"die": "en_cactus_die",
+"attack": "w_lob_throw",
+"die": "en_goblin_die",
 "hit": "en_goblin_hit"
 }
 xp_mult = 3.0
@@ -89,7 +174,7 @@ variance = {
 id = "spit_cactus"
 display_name = "Spit Cactus"
 flavour = "The only cactus that walks. Sadly."
-icon = ExtResource("1_wvjsf")
+icon = ExtResource("1_gfchg")
 icon_file = "spit_cactus_icon.png"
 placeholder = {
 "color": "#5FA35A",

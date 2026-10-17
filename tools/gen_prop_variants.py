@@ -67,6 +67,22 @@ VARIANTS = {
     "brittlebush": (None, "desert_bush_34.png",
                     "a small round brittlebush: a low dome of soft silvery grey-green leaves, covered on top by many bright yellow daisy "
                     "flowers on thin bare stems" + NO_FACE, 1.0, 0.0, 192, 8381, "blue"),
+    # pass 85 (lane WORLD; Garry: "Add another variant of a palm tree and joshua tree"); candidates go to
+    # tools/dl/p85/WORLD/variants (--cands <dir>)
+    "fan_palm_b": ("fan_palm", "fan_palm_36.png",
+                   "a desert fan palm leaning to one side: a long slender trunk curving gently, its top crowned by a round spray of big "
+                   "fan-shaped green leaves drooping outwards, a thick skirt of dry straw-coloured dead fronds hanging under the crown"
+                   + NO_FACE, 5.2, 0.2, 384, 8701, "blue"),
+    "fan_palm_c": ("fan_palm", "fan_palm_36.png",
+                   "two desert fan palm trees growing from one base, one tall and one shorter, rough brown trunks, each crowned by "
+                   "green fan-shaped leaves over a shaggy skirt of dead brown fronds" + NO_FACE, 5.2, 0.2, 384, 8711, "blue"),
+    "joshua_tree_d": ("joshua_tree", None,
+                      "a lopsided joshua tree: a shaggy trunk leaning and bending to the left, two long crooked arms reaching far out to "
+                      "the right, each forking into two smaller arms that end in spiky round green leaf balls, an irregular uneven "
+                      "silhouette, dry dead leaves hanging on the trunk" + NO_FACE, 4.6, 0.22, 384, 8741, "blue"),
+    "joshua_tree_e": ("joshua_tree", None,
+                      "a clump of three young joshua trees growing together from one spot, different heights, each a shaggy trunk "
+                      "with one or two short arms ending in spiky round green leaf balls" + NO_FACE, 4.6, 0.22, 384, 8751, "blue"),
 }
 
 ARGS = sys.argv[1:]
@@ -82,6 +98,9 @@ if "--only" in ARGS:
     ONLY = ARGS[ARGS.index("--only") + 1].split(",")
 if "--seeds" in ARGS:
     SEEDS = int(ARGS[ARGS.index("--seeds") + 1])
+# pass 85: where the candidates and review sheets go (pass 83's folder by default)
+if "--cands" in ARGS:
+    CANDS = os.path.abspath(ARGS[ARGS.index("--cands") + 1])
 
 
 def finish(img, cell):

@@ -178,6 +178,11 @@ var _last_kind := ""
 var specials_found := 0
 var specials_down := 0
 var specials_gave_up := 0
+## pass 85 (lane TOOLS): the creatures within BotGoals.PU_CROWD_R m (the power-ups' worth while he fights); the power-ups
+## that lay on the map (instance id -> true, seen anywhere) and those he walked to and took (summary's `powerups`)
+var _crowd_near := 0
+var pu_lying: Dictionary = {}
+var pu_reached := 0
 
 
 func _init(p_game: Node, p_opts: Dictionary = {}) -> void:
@@ -828,6 +833,8 @@ func _observe(dt: float) -> void:
 		var em = game.enemies
 		var nearest := INF
 		var nn := 0
+		var nc := 0
+		var cr2 := GOALS.PU_CROWD_R * GOALS.PU_CROWD_R
 		for i in range(em.MAX):
 			if em.alive[i] != 1:
 				continue
@@ -837,12 +844,21 @@ func _observe(dt: float) -> void:
 			nearest = minf(nearest, l2)
 			if l2 < HOLD_NEAR * HOLD_NEAR:
 				nn += 1
+			if l2 < cr2:
+				nc += 1
 		_nearest = sqrt(nearest) if nearest < INF else INF
 		_near_n = nn
+		_crowd_near = nc
 	if _scan_k % 3 == 0:
 		_dpush = legs.danger_push(game, me).length()
 	if _scan_k % 15 == 0:
 		planner.observe(game, me)
+		# pass 85: every power-up that lay on the map (the share he took: summary's powerups)
+		var pk = game.pickups
+		if pk != null:
+			for sp in pk.specials:
+				if is_instance_valid(sp):
+					pu_lying[sp.get_instance_id()] = true
 
 
 ## The kite wins while the crowd is on him (HOLD_*); the hold lifts once it has thinned.
@@ -851,8 +867,10 @@ func _update_hold(dt: float, d: float) -> void:
 	var s = instance_from_id(int(_cur.get("ref", 0))) if _cur.has("ref") else null
 	if s != null and is_instance_valid(s) and s.get("progress") != null and float(_cur.get("stand", 0.0)) > 0.0:
 		using = d < float(s.def.radius) and float(s.progress) >= HOLD_KEEP_USE and hp_frac() >= HOLD_KEEP_HP
-	# (pass 82: a special is never grabbed: he keeps it in range, the kite keeps him off it)
-	if (d < HOLD_GRAB and float(_cur.get("stand", 0.0)) <= 0.0 and str(_cur.get("kind", "")) != "special") or using:
+	# (pass 82: a special is never grabbed: he keeps it in range, the kite keeps him off it; pass 85: a power-up is grabbed
+	# from BotGoals.PU_GRAB m)
+	var grab := GOALS.PU_GRAB if str(_cur.get("kind", "")) == "powerup" else HOLD_GRAB
+	if (d < grab and float(_cur.get("stand", 0.0)) <= 0.0 and str(_cur.get("kind", "")) != "special") or using:
 		_hold = false
 		return
 	var hurt := hp_frac() < HOLD_HURT
@@ -897,8 +915,9 @@ func _replan(now: float) -> void:
 	var lying := Vector2.ZERO
 	var c := {"me": me, "t": now, "hp_frac": hp_frac(), "danger": danger(), "style": str(opts["style"]), "opts": opts,
 		"boss": _boss_at(), "leash": str(opts["boss"]) == "leash", "lure_s": _lure_s, "lure_at": _lure_at,
-		"xp_need": float(_run.xp_to_next()) if _run else 1.0, "held_key": str(_cur.get("key", ""))}
-	if pk != null and _uber_standing():
+		"xp_need": float(_run.xp_to_next()) if _run else 1.0, "held_key": str(_cur.get("key", "")), "crowd": _crowd_near}
+	# (pass 85: the XP lying also prices a vacuum power-up in sight)
+	if pk != null and (_uber_standing() or _vacuum_lying(pk, me)):
 		lying = xp_lying(game)
 	c["xp_lying"] = lying.x
 	var cands: Array = planner.candidates(game, _run, c)
@@ -930,6 +949,17 @@ func _replan(now: float) -> void:
 	_commit(best, cands[1] if cands.size() > 1 else {})
 
 
+## Pass 85: whether a vacuum power-up lies within BotGoals.PU_SEE m of `me` (the XP lying is counted for it then).
+static func _vacuum_lying(pk, me: Vector3) -> bool:
+	for sp in pk.specials:
+		if not is_instance_valid(sp) or bool(sp.taken) or sp.def == null or str(sp.def.effect_kind) != "vacuum":
+			continue
+		var at: Vector3 = (sp as Node3D).global_position
+		if Vector2(at.x - me.x, at.z - me.z).length() <= GOALS.PU_SEE:
+			return true
+	return false
+
+
 ## Whether an Uber Magnet stands unused where he has seen it (only then is the XP lying counted for it).
 func _uber_standing() -> bool:
 	var sm = game.get("structures")
@@ -955,7 +985,7 @@ func _commit(best: Dictionary, runner: Dictionary) -> void:
 		_cur["chests0"] = int(em.get("special_chests")) if em != null and em.get("special_chests") != null else 0
 	var kind := str(best["kind"])
 	goals_by[kind] = int(goals_by.get(kind, 0)) + 1
-	goal = {"what": str(best["what"]), "key": str(best["key"]), "at": best["at"], "why": str(best["why"])}
+	goal = {"what": str(best["what"]), "key": str(best["key"]), "at": best["at"], "why": str(best["why"]), "name": str(best.get("name", ""))}
 	# the sweep after nothing, and one cell after another while exploring, are no new decision
 	if (kind == "gems" and (was_kind == "" or was_kind == "gems")) or (kind == "explore" and was_kind == "explore"):
 		return
@@ -1001,6 +1031,11 @@ func _goal_done(g: Dictionary) -> bool:
 func _goal_finished(g: Dictionary) -> void:
 	if str(g["kind"]) == "special":
 		_special_found(g)
+		return
+	if str(g["kind"]) == "powerup":
+		var pu = instance_from_id(int(g.get("ref", 0)))
+		if pu != null and is_instance_valid(pu) and bool(pu.get("taken")):
+			pu_reached += 1
 		return
 	if str(g["kind"]) in ["structure", "totem"]:
 		var o = instance_from_id(int(g.get("ref", 0)))
@@ -1051,7 +1086,9 @@ func summary() -> Dictionary:
 	o.erase("t0")
 	return {"opts": o, "metres": roundi(metres), "goals": goals_by.duplicate(), "gave_up": gave_up, "decisions": by,
 		"seen": snappedf(planner.seen_share(), 0.01) if planner != null else 0.0, "shop_bought": bought, "stranger_taken": dealt,
-		"specials": special_tallies()}
+		"specials": special_tallies(),
+		# pass 85: the power-ups that lay on the map, the goals made of them, those walked to and taken
+		"powerups": {"lying": pu_lying.size(), "goals": int(goals_by.get("powerup", 0)), "reached": pu_reached}}
 
 
 ## The goal shown (bot.goal) and, when it is a new one, a "goal" decision entry with why.

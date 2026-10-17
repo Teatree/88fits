@@ -1527,3 +1527,128 @@ Code constants (not data):
 - BarrelField.SHADOW_W/D/A/TALL 0.95 / 0.66 / 0.5 / 0.9; SignField.SHADOW_W/D/A 1.25 / 0.8 / 0.42 (shifted for the drawn post's 5.3 m); StructureManager.SHADOW_IN 6 m (a Strongbox coming down has its whole shadow under it from that height).
 - core/shaders/ground_shadow.gdshader uniforms: tint (the blob colour), inner 0.45, soft 0.9 (falloff), strength (a lone mesh's).
 - perf_late.gd: `shadows=0` hides the scenery shadows (the A/B).
+
+## Pass 85: new keys
+
+### Props, the title, teleports (lane WORLD)
+
+#### game/art/sprites/props/props.json (per painting; a variant without its own takes its kind's)
+| key | type | default | meaning |
+|---|---|---|---|
+| `tint` | one rule {..} or a list of up to 2 (PropField.TINT_PARTS) | absent = no tint | the painting's natural colour variation. Each rule: `hue` [lo, hi] turns (the pixels it touches; lo > hi wraps through red; absent = every hue), `sat_min` (0.1: greyer pixels, outlines and bleached bone are left alone; the darkest lines always are), `h` [min, max] (added to the hue, turns, at most +-0.08), `s` [min, max] (times the saturation, within 0.6..1.4), `v` [min, max] (times the value, within 0.75..1.2), `link` 0..1 (0.5; how much the s and v rolls follow the h roll, so a plant is drier or lusher as a whole). The second rule works on the first's result. |
+
+Per instance: three rolls from a hash of the spot (PropField.tint_code: 12 levels each, packed in INSTANCE_CUSTOM.w as
+r1 + 12 r2 + 144 r3 < 2048), so a map seed always tints the same; the painting's rules are its material's uniforms
+(prop_billboard.gdshader `tint_hue_k`, `tint_hs_k`, `tint_v_k`). No new draw call.
+
+#### game/art/ui/title_scene.json (per map)
+| key | type | meaning |
+|---|---|---|
+| `<map>.presets[]` | {name, props: [...]} | the live title's arrangements, one drawn at random each time the title opens; `props` as before ({id, x, z, scale, flip, sway}). A bare `<map>.props` (the pass 83 file) still reads as one preset. `clear` is shared by every preset. |
+
+#### content/structures/<id>.json `params`
+| key | type | default | meaning |
+|---|---|---|---|
+| `per_map.max_chance` | float 0..1 | absent | with it, `max` stands that share of the runs and otherwise a count in min..max-1 (StructureManager.per_map_count); without it, min..max evenly (pass 73) |
+| `per_map.kin_spacing` | metres | 0 (none) | how far apart two of this structure stand (kept in full; only in the last fifth of the tries may it close to StructureManager.KIN_RELAX 0.75 of itself) |
+| `land_clear` | metres | 0 (none) | the Teleport: the hero never comes out within this of any Teleport (StructureManager.teleport_landing_ok) |
+| `land_water` | metres | 0 (none) | the Teleport: nor within this of the water (on top of Game.teleport_hero's own: obstacles + 1.5 m, not in the water) |
+
+Teleport now: radius 1.8 (was 2.2), height 2.7 (was 3.2), per_map {min 3, max 4, max_chance 0.33, kin_spacing 40},
+land_clear 15, land_water 2 (out of the weighted draw: `weight` 2 is unused while per_map is set).
+
+#### Code
+- TitleStage.force_preset (static, -1 = random), TitleStage.scene_of(map), presets_of(scene), preset_index, preset_name.
+- PropField.mark() / truncate(mark), tint_rules(id), tint_code(at), tint_rolls(code), TINT_MAX_H, TINT_S_RANGE, TINT_V_RANGE.
+- StructureManager.per_map_count(def, a, b), kin_spacing(def), teleport_spots(), teleport_landing_ok(def, q), KIN_RELAX.
+- tools: gen_prop_variants.py `--cands <dir>` and rows fan_palm_b/c, joshua_tree_d/e; menu_backdrop.gd `preset=<k>` (0 by default);
+  perf_late.gd `tints=0`; captures game/tools/_p85_world_title.gd, _p85_world_tints.gd, _p85_world_teleports.gd.
+
+### The bandit's dynamite (lane BANDIT)
+
+#### Creature JSON (content/enemies/<id>/<id>.json)
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `ranged.shot` | string | "" | `"dynamite"`: the kite brain's lob is a stick of dynamite (EnemyManager._throw_dynamite) instead of the spit. |
+| `ranged.release_hold` | float s | 0 | After the throw the creature stands in its release pose this long (STATE_ATTACK, the attack strip's release frames), divided by the pace knob. Kite brain only. |
+| `ranged.dynamite.speed` | float m/s | ranged.projectile_speed | The stick's flight speed (the spit's arc: flat distance / speed, 0.4..2.0 s). |
+| `ranged.dynamite.fuse` | float s | 1.0 | How long it lies on its spot before it blows (creatures' clock). |
+| `ranged.dynamite.out_before` | float s | 0.5 | Its spark goes out this long before the blast. |
+| `ranged.dynamite.lead` | float share | 0.35 | The aim: the hero's feet + lead x his flat velocity x the flight time. |
+| `ranged.dynamite.lead_max` | float m | 2.5 | The most the lead may be. |
+| `ranged.dynamite.model` | res path | res://art/props/dynamite_b_stick_red.glb | The stick's model (its first mesh, vertex colours). |
+| `ranged.dynamite.scale` | float | 1.0 | The model's size (the kind registered at it; the cactus 0.6: the hero's 0.87 m stick dwarfed a 1.5 m bandit). |
+| `ranged.dynamite.halo_r` | float m | 0.2 | The radius the pulse's halo counts from (the long stick's length made a disc of it). |
+| `ranged.dynamite.tip` | [x,y,z] | the B stick's tip | The fuse spark's place in the model's own space. |
+| `ranged.dynamite.hand` | {up, side, forward} m | {} (0.8 x size up) | Where the stick leaves his hand (muzzle_point's terms: up the painting, toward his right hand, toward the hero). |
+| `ranged.dynamite.blast.radius` | float m | ranged.splash | The blast (and its red ring): the hero is hit within radius + 0.4. |
+| `ranged.dynamite.blast.knockback` / `lift` | float | 0 / 0 | The hero thrown back (Player.blast) unless he evaded. |
+| `ranged.dynamite.blast.push` / `push_radius` | float / share | 0 / 1 | The crowd within radius x push_radius thrown by `push` (EnemyManager.throw_radius: no damage). |
+| `ranged.dynamite.blast.shake` / `sfx` | float / sound id | 0.5 / w_lob_boom | The camera's kick and the boom. |
+| `attack_throw` (top level or a look entry) | bool | false | The attack strip is a throw: each view's half = wind-up frames (shown winding up) then release frames (shown holding the release). |
+| `attack_views` (now also in a look entry) | string | the creature's | As pass 73, per look. |
+
+#### Look recipe (gen_art.py, enemies)
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `windup_hint` / `windup_back_hint` | words | "" | A wind-up pose painted before the `aim_hint` pose (cache <sk>_windup_front / _back); needs `aim_hint`. |
+| `windup_fit` | float | 1.0 | The wind-up pose's height against the standing figure. |
+| `aim_lift` | float share of the cell | 0 | The attack pose raised off the floor line (a throw's hop). |
+
+### The Watch and the bot (lane TOOLS)
+
+#### tools/watch.py (new and changed options)
+| Option | Default | Meaning |
+|---|---|---|
+| `--sound` | off | start with the sound on (pass 85: the sound is OFF by default; `--mute` is still accepted and means off) |
+| `--go` | off | start the run at once (no Hero Settings pop-up; the tools' instant start). `--autoquit` implies it |
+| (seed `random`) | | now also passes `seed_random=1`, so the pop-up's "Random" box starts ticked |
+
+watch.py writes `tools/dl/watch/setup.json` before each launch (`write_setup`): `{presets: {none, quarter, half, full,
+save}: {talent: letters} (save null when no PC save), labels: {name: words}, save_note, refs: [{hero, map, talents,
+path, label}] (finished Sim results, newest first)}`.
+
+#### The Godot side (Watch.gd args after `--`)
+| Arg | Default | Meaning |
+|---|---|---|
+| `sound=` | `0` (was 1) | the sound at the start |
+| `go=1` | absent | skip the pop-up, start at once (instant start unless `spawn=1`) |
+| `spawn=1` | absent | with `go=1`: start down the spawn beam |
+| `seed_random=1` | absent | the pop-up's Random box ticked (a new seed every Start Run) |
+| `setup=<path>` | absent | the setup file above |
+| `analytics=memory` | absent | tests: the record kept in memory and no decision CSV written |
+
+#### New `--actions` words (Watch.gd `_run_actions`; these also run before a run is up)
+`setup` (open the pop-up; mid-run = Restart run), `start` (press Start Run), `cancel` (press Cancel), `quit` (close the
+window), `setup.hero=<id>`, `setup.look=<code>`, `setup.board=<none|quarter|half|full|save>`, `setup.seed=<n>`,
+`setup.speed=<x>`, `setup.limit=<m:ss>`, `setup.bot=<preset|stub>`, `setup.sound=<0|1>`, `setup.slot=<talent>/<rank 1..6>`
+(a click on that rank slot).
+
+#### Keys in the window
+`R` opens the Hero Settings pop-up (Restart run). In the pop-up: `Enter` = Start Run, `Esc` = Cancel (mid-run only).
+
+#### The run settings (WatchSetup.gd; `Watch.run_settings`)
+`{hero, look ("" = his own), map, seed, seed_random, speed, limit (play s, 0 none), death, sound, numbers, unlocks ("all" |
+"save"), talents ("grit:AAB,..." | "none"), board_label, bot ("auto" | "stub"), bot_opts ({preset} + every option that
+differs from the preset)}`. The record's `header.watch` gained `look` and `run` (the window's run number).
+
+#### The bot (game/tools/bot)
+- `bot.goal` gained `name` (the thing's name: a power-up's, a structure's; "" otherwise).
+- BotGoals candidates of kind `powerup` and `structure` carry `name`.
+- `Bot.summary().powerups` = `{lying (power-ups that lay on the map), goals (power-up goals), reached (walked to and taken)}`.
+- BotGoals statics: `powerup_value(eff, c)`, `powerup_why(eff, c)`; the planner's view `c` gained `crowd` (creatures within
+  `PU_CROWD_R` m).
+
+#### The plaque (WatchPlaque.gd)
+`WatchPlaque.words_of(info) -> {text, sub, tone}`; `Watch.plaque_words()` builds `info` from the screens, the bot's intent,
+goal, hold and legs.
+
+#### The Level Editor
+Timeline: right-button drag inside the Spawn rows section pans (timeline.js `onPanDown`, `panTo`; `Timeline.panning`).
+
+### Fadeaway's puppet look (lane FADE)
+
+No new JSON key, param, special or stat. FAD-D uses the Puppet method's existing recipe keys (pass 71):
+`method: hero_puppet`, `pose_drivers`, `ctl_drivers`, `run_fit`, `fringe_remap`, `puppet{...}` with
+`depth_views: ["fd", "back"]` (a per-view choice the job form already offers), plus the look-entry keys `fresh`,
+`icon` (FAD-C's badge), `icon_picked`, `title` (FAD-C's cut-out).

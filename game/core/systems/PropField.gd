@@ -73,6 +73,7 @@ func setup(manifest_path: String = "res://art/sprites/props/props.json") -> void
 		var mat := ShaderMaterial.new()
 		mat.shader = _shader
 		mat.set_shader_parameter("sprite", tex)
+		_set_tint_uniforms(mat, str(id))
 		mmi.material_override = mat
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
@@ -194,7 +195,7 @@ func add(id: String, at: Vector3, scale: float = 1.0, flip: bool = false, sway: 
 	var h: float = float(t["height"]) * scale
 	# a hair above the ground so the base never sinks into a slope
 	mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(h, h, h)), at + Vector3(0, 0.06, 0)))
-	mm.set_instance_custom_data(n, Color(1.0 if flip else 0.0, sway, randf() * TAU, 0.0))
+	mm.set_instance_custom_data(n, Color(1.0 if flip else 0.0, sway, randf() * TAU, tint_code(at)))
 	t["n"] = n + 1
 	mm.visible_instance_count = n + 1
 	var s := -1
@@ -314,3 +315,101 @@ func count() -> int:
 	for t in _types.values():
 		c += int(t["n"])
 	return c
+
+
+## Pass 85 (lane WORLD): the live title lays a fresh preset each visit on a world it keeps: mark() before laying,
+## truncate(mark) takes everything added since off again (the paintings, their shadows, their `placed` rows), giving the
+## slots back, so a hundred visits never fill a kind's MultiMesh.
+func mark() -> Dictionary:
+	var ns := {}
+	for id in _types.keys():
+		ns[id] = int(_types[id]["n"])
+	return {"n": ns, "shadows": _shadow_n, "placed": placed.size()}
+
+
+func truncate(m: Dictionary) -> void:
+	var ns: Dictionary = m.get("n", {})
+	for id in _types.keys():
+		var t: Dictionary = _types[id]
+		var keep := mini(int(ns.get(id, t["n"])), int(t["n"]))
+		t["n"] = keep
+		(t["mm"] as MultiMesh).visible_instance_count = keep
+	var sk := mini(int(m.get("shadows", _shadow_n)), _shadow_n)
+	_shadow_n = sk
+	_shadow_c.resize(sk)
+	_shadow_k.resize(sk)
+	_shadow_at.resize(sk)
+	if _shadow_mm:
+		_shadow_mm.visible_instance_count = sk
+	placed.resize(mini(int(m.get("placed", placed.size())), placed.size()))
+
+
+## Pass 85 (lane WORLD; Garry: "Add slight random colour variations to the 2.5d environment assets. The colours should be
+## natural for that element ... a slightly more dark green agave plant, but not so much for the boulder"): every kind's
+## manifest entry has a `tint`: one rule or a list of up to TINT_PARTS, each {hue [lo, hi] (turns; the pixels it
+## touches, lo > hi wraps through red; absent = every hue), sat_min (pixels greyer than this are left alone: outlines,
+## bleached bone), h [min, max] (added to the hue, turns), s [min, max] and v [min, max] (times the saturation and the
+## value), link (0..1: how much the s and v rolls follow the h roll, so a plant is drier or lusher as a whole)}. A variant
+## without its own takes its kind's. Each placed prop rolls three numbers from a hash of its spot (stable for a map
+## seed), packed into INSTANCE_CUSTOM.w (tint_code: TINT_STEPS levels each, an integer under 2048 so a half float keeps
+## it); core/shaders/prop_billboard.gdshader applies the painting's rules (its material's uniforms): no extra draw.
+const TINT_PARTS := 2
+const TINT_STEPS := 12
+## the bounds every rule keeps inside (tests): the hue moves at most this far, s and v within these factors
+const TINT_MAX_H := 0.08
+const TINT_S_RANGE := Vector2(0.6, 1.4)
+const TINT_V_RANGE := Vector2(0.75, 1.2)
+
+
+## A painting's tint rules ([] for none): its own `tint`, else its kind's.
+func tint_rules(id: String) -> Array:
+	var row = manifest.get(id)
+	var t = (row as Dictionary).get("tint") if row is Dictionary else null
+	if t == null and kind_of(id) != id:
+		var krow = manifest.get(kind_of(id))
+		t = (krow as Dictionary).get("tint") if krow is Dictionary else null
+	if t is Dictionary:
+		return [t]
+	if t is Array:
+		return (t as Array).filter(func(r) -> bool: return r is Dictionary).slice(0, TINT_PARTS)
+	return []
+
+
+## The three rolls (0..1 each, TINT_STEPS levels) for a prop at `at`, packed: r1 + STEPS r2 + STEPS^2 r3.
+static func tint_code(at: Vector3) -> float:
+	var h := hash([roundi(at.x * 64.0), roundi(at.z * 64.0), "tint"])
+	var q1 := h % TINT_STEPS
+	var q2 := (h / TINT_STEPS) % TINT_STEPS
+	var q3 := (h / (TINT_STEPS * TINT_STEPS)) % TINT_STEPS
+	return float(q1 + TINT_STEPS * q2 + TINT_STEPS * TINT_STEPS * q3)
+
+
+## The rolls a code holds (tests, sheets): Vector3(r1, r2, r3), each 0..1.
+static func tint_rolls(code: float) -> Vector3:
+	var w := roundi(code)
+	var s := float(TINT_STEPS - 1)
+	return Vector3(float(w % TINT_STEPS) / s, float((w / TINT_STEPS) % TINT_STEPS) / s, float(w / (TINT_STEPS * TINT_STEPS)) / s)
+
+
+static func _pair(r: Dictionary, key: String, dflt: Vector2) -> Vector2:
+	var a = r.get(key)
+	if a is Array and (a as Array).size() >= 2:
+		return Vector2(float(a[0]), float(a[1]))
+	return dflt
+
+
+## The painting's material gets its rules: part k's tint_hue_k (lo, hi, sat_min, all hues 1/0), tint_hs_k (h min, h
+## max, s min, s max), tint_v_k (v min, v max, link, on 1/0).
+func _set_tint_uniforms(mat: ShaderMaterial, id: String) -> void:
+	var rules := tint_rules(id)
+	for k in TINT_PARTS:
+		var on := k < rules.size()
+		var r: Dictionary = rules[k] if on else {}
+		var hue := _pair(r, "hue", Vector2(-1, -1))
+		var all := 1.0 if hue.x < 0.0 else 0.0
+		mat.set_shader_parameter("tint_hue_%d" % k, Vector4(maxf(hue.x, 0.0), maxf(hue.y, 0.0), float(r.get("sat_min", 0.1)), all))
+		var h := _pair(r, "h", Vector2.ZERO)
+		var sv := _pair(r, "s", Vector2.ONE)
+		mat.set_shader_parameter("tint_hs_%d" % k, Vector4(h.x, h.y, sv.x, sv.y))
+		var v := _pair(r, "v", Vector2.ONE)
+		mat.set_shader_parameter("tint_v_%d" % k, Vector4(v.x, v.y, float(r.get("link", 0.5)), 1.0 if on else 0.0))

@@ -100,6 +100,8 @@ main { flex: 1 1 auto; min-height: 0; display: flex; }
 .block.snap-target .block-body { stroke: #2fbf8a; stroke-width: 2.4; }
 .marker.snap-target .marker-bg { stroke: var(--ink); stroke-width: 2.2; }
 body.dragging, body.dragging * { cursor: grabbing !important; user-select: none; }
+/* pass 85 (lane TOOLS): the right-button pan of the Spawn rows (timeline.js onPanDown) */
+body.tl-panning, body.tl-panning * { cursor: grabbing !important; user-select: none; }
 
 svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; user-select: none; }
 .band.stage-1 { fill: #1f3a5c; }

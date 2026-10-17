@@ -169,6 +169,115 @@
       "icon": "fadeaway_icon_c.png",
       "icon_picked": true,
       "title": "hero_fadeaway_c.png"
+    },
+    "FAD-D": {
+      "recipe": {
+        "art_prompt": "a tall athletic young Black man with a short rounded afro, a thin goatee and sharp angular features, heavy-lidded confident eyes and a sly half-smile, a sleeveless purple basketball jersey with gold trim and a big gold number 88, loose knee-length bright white basketball shorts with a purple and gold stripe down the outside of each leg and a purple waistband, white high-top sneakers, a white sweatband on his forehead and white wristbands, standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+        "back_hint": "He faces away from the viewer: only the back of the afro and the sweatband, the back of the purple jersey with the gold number 88, the bright white shorts with their purple and gold side stripes and the heels of the sneakers are visible; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands, both shoulders level and square.",
+        "side_hint": "a clean side profile facing right: the afro, the goatee, the jersey's side, the bright white shorts with the purple and gold stripe down the side, one arm hanging relaxed beside the torso, empty hands, both shoulders level, the near shoulder never raised above the far one",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "reused",
+          "reused": [
+            "fadeaway_c_front",
+            "fadeaway_c_back",
+            "fadeaway_c_side",
+            "fadeaway_c_fd",
+            "fadeaway_c_bd",
+            "fadeaway_c_cheer",
+            "fadeaway_c_hurt_front",
+            "fadeaway_c_hurt_back",
+            "fadeaway_c_hurt_side",
+            "fadeaway_c_hurt_fd",
+            "fadeaway_c_hurt_bd",
+            "fadeaway_c_dead"
+          ]
+        },
+        "stills": "c",
+        "seed_offset": 2243,
+        "anim_seed": 2,
+        "method": "hero_puppet",
+        "anim_hint": "a tall athletic young Black man in a sleeveless vivid bright purple basketball jersey with a gold number 88 and bright white knee-length shorts, his short rounded black afro with a white sweatband, black hair all round the back of his head, dark brown skin; where his face shows it is a clean simple anime face: dark eyes, a thin black goatee, a sly half-smile",
+        "anim_negative": "no basketball, no extra arms or legs, no face on the back view, no text, crosshatching, hatching lines, a grid or mesh pattern, a veil over the face, a distorted face, a bald head, the back of the head without hair, skin-coloured hair",
+        "pose_drivers": {
+          "front": "fadeaway_puppet_run",
+          "fd": "fadeaway_puppet_run",
+          "side": "fadeaway_puppet_run",
+          "bd": "fadeaway_puppet_run",
+          "back": "fadeaway_puppet_run"
+        },
+        "ctl_drivers": {
+          "fd": "fadeaway_puppet_run_depth",
+          "back": "fadeaway_puppet_run_depth"
+        },
+        "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+        "fringe_remap": true,
+        "puppet": {
+          "source": "FAD-C",
+          "stills": "reuse",
+          "refs": {
+            "front": "paint",
+            "side": "paint",
+            "back": "paint"
+          },
+          "painter": "klein",
+          "steps": 0,
+          "turbo": true,
+          "seeds": 4,
+          "words": {
+            "front": "",
+            "side": "",
+            "back": ""
+          },
+          "screen": "",
+          "tries": 2,
+          "faces": 60000,
+          "reuse": "auto",
+          "fbx": "",
+          "clip": "running.fbx",
+          "idle": "",
+          "frame": "soles",
+          "face": "nose",
+          "depth_views": [
+            "fd",
+            "back"
+          ],
+          "run_fit": true,
+          "fringe": true
+        }
+      },
+      "note": "pass 85: the Puppet method on FAD-C's stills: his arms-out paintings (front c0, side c0, back c1) made into a 3D puppet (Hunyuan3D-2mv try 0, Mixamo bones, the hands rigged by hand: the finder had put them on the shorts' hem, running.fbx); fd and back walked on its depth video, front, side and bd on its stick figure (fadeaway_puppet_run; on depth the side and bd jerseys came out grey-purple twice); size from the 3D model (run_fit); colour fringes cleaned",
+      "icon": "fadeaway_icon_c.png",
+      "icon_picked": true,
+      "title": "hero_fadeaway_c.png",
+      "sprite": "fadeaway_sprite_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true
     }
   },
   "anim_negative": "no basketball, no extra arms or legs, no face on the back view, no text"

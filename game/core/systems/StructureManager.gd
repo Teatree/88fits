@@ -62,6 +62,9 @@ const PER_MAP_CANDIDATES := 16
 const PER_MAP_BAND := Vector2(0.24, 0.88)
 const PER_MAP_TRIES := 500
 const RIVER_CLEAR := 1.5
+## Pass 85: a per-map structure's `kin_spacing` (two Teleports apart) is kept in full; only when the last fifth of the
+## tries finds nothing does it close to this share of itself.
+const KIN_RELAX := 0.75
 ## the spent painting of a structure with `params.spent "grey"` (pass 73, the Totem Pole, Garry: "When used they turn
 ## gray as well, but they don't get 'destroyed'"): its own painting with the colour taken out, this much darker, a
 ## little flatter, and tinted by SPENT_GREY_TINT; made once per structure kind (_grey_cache)
@@ -215,8 +218,11 @@ func place_apart(def: StructureDef, placed: Array) -> int:
 	var rng := per_map_range(def)
 	if rng.y <= 0:
 		return 0
-	var n := _rng.randi_range(rng.x, rng.y)
+	var n := per_map_count(def, _rng.randf(), _rng.randf())
 	var spacing := own_spacing(def)
+	# pass 85: `kin_spacing` keeps two of this structure apart (the Teleports), whatever the spacing from the rest
+	var kin_d := kin_spacing(def)
+	var kin: Array = []
 	var covers: Array = BarrelField.covers_of(game, map) if game else []
 	var made := 0
 	for k in range(n):
@@ -234,6 +240,9 @@ func place_apart(def: StructureDef, placed: Array) -> int:
 				continue
 			if BarrelField.in_cover(covers, Vector2(p.x, p.z), 1.0):
 				continue
+			# the kin's spacing holds in full; only the last fifth of the tries may close it to KIN_RELAX of itself
+			if kin_d > 0.0 and nearest_distance(p, kin) < kin_d * (1.0 if tries < PER_MAP_TRIES * 0.8 else KIN_RELAX):
+				continue
 			found += 1
 			var dmin := nearest_distance(p, placed)
 			if dmin > best_d:
@@ -243,6 +252,7 @@ func place_apart(def: StructureDef, placed: Array) -> int:
 			break
 		best.y = map.height_at(best.x, best.z)
 		placed.append(best)
+		kin.append(best)
 		var s := _spawn(def, best)
 		# its own painting's cover band, so the next one keeps out of it
 		covers.append(Vector4(best.x, best.z, BarrelField.STRUCTURE_HALF_W, def.height / tan(deg_to_rad(BarrelField.CAMERA_PITCH_DEG))))
@@ -251,6 +261,48 @@ func place_apart(def: StructureDef, placed: Array) -> int:
 	if made < rng.x:
 		push_warning("StructureManager: placed %d of %d %s" % [made, rng.x, def.id])
 	return made
+
+
+## How many of a per-map structure stand this run (pass 85): `params.per_map` {min, max, max_chance}: with
+## `max_chance` set, max stands that share of the runs (roll `a` under it) and otherwise a count in min..max-1 (roll `b`);
+## without it, any count in min..max alike (pass 73).
+static func per_map_count(d: StructureDef, a: float, b: float) -> int:
+	var rng := per_map_range(d)
+	if rng.y <= 0:
+		return 0
+	var pm: Dictionary = d.params.get("per_map", {})
+	if pm.has("max_chance") and rng.y > rng.x:
+		if a < float(pm["max_chance"]):
+			return rng.y
+		return rng.x + mini(int(b * float(rng.y - rng.x)), rng.y - rng.x - 1)
+	return rng.x + mini(int(b * float(rng.y - rng.x + 1)), rng.y - rng.x)
+
+
+## How far apart two of a per-map structure stand (pass 85: `params.per_map.kin_spacing`), 0 for no rule of its own.
+static func kin_spacing(d: StructureDef) -> float:
+	var pm = d.params.get("per_map") if d != null else null
+	return float((pm as Dictionary).get("kin_spacing", 0.0)) if pm is Dictionary else 0.0
+
+
+## Where every Teleport stands (pass 85), used or not.
+func teleport_spots() -> Array:
+	var out: Array = []
+	for st: Structure in items:
+		if is_instance_valid(st) and st.def and st.def.effect_kind == "teleport":
+			out.append(st.global_position)
+	return out
+
+
+## Whether the hero may come out of a Teleport at `q` (pass 85, Garry: "make sure that they never teleport the Player
+## next to another teleport"): no closer than the Teleport's `params.land_clear` metres to any Teleport, and not within
+## `params.land_water` metres of the water (the rocks and the arena's edge are Game.teleport_hero's own rules).
+func teleport_landing_ok(def: StructureDef, q: Vector3) -> bool:
+	if def == null:
+		return true
+	if float(def.params.get("land_water", 0.0)) > 0.0 and map != null and _wet(q, float(def.params["land_water"])):
+		return false
+	var clear := float(def.params.get("land_clear", 0.0))
+	return clear <= 0.0 or nearest_distance(q, teleport_spots()) >= clear
 
 
 ## A per-map structure's own spacing (`params.per_map.spacing`), the map's when it names none.

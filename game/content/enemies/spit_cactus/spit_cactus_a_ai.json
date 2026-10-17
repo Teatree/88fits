@@ -1,0 +1,241 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a short stocky old masked desert bandit: a big floppy dark brown cowboy hat with a red band, bushy white hair and white sideburns, stern narrow eyes, a black cloth mask over his nose and mouth, a mustard-yellow shirt with rolled sleeves, a ragged dark brown leather vest with a torn hem, a dark brown belt with a big silver buckle, red trousers with a torn patch on one knee, white bandages round his shins, big brown leather boots, bundles of red dynamite sticks with black bands hanging at his belt and a pale grey cloth pouch at his hip, holding one red stick of dynamite with a short fuse upright in his right fist at chest height, his left hand a fist at his side, standing with his legs apart and knees bent",
+ "renders": {
+  "front": {
+   "seed": 2020250,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of a short stocky old masked desert bandit: a big floppy dark brown cowboy hat with a red band, bushy white hair and white sideburns, stern narrow eyes, a black cloth mask over his nose and mouth, a mustard-yellow shirt with rolled sleeves, a ragged dark brown leather vest with a torn hem, a dark brown belt with a big silver buckle, red trousers with a torn patch on one knee, white bandages round his shins, big brown leather boots, bundles of red dynamite sticks with black bands hanging at his belt and a pale grey cloth pouch at his hip, holding one red stick of dynamite with a short fuse upright in his right fist at chest height, his left hand a fist at his side, standing with his legs apart and knees bent. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep the black mask, the big brown hat, the white hair, the red dynamite in his right fist, the dynamite bundles on his belt. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/spit_cactus_sca_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 170,
+     "right": 181,
+     "top": 44,
+     "bottom": 47,
+     "height": 932,
+     "width": 672
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 6035074,
+   "prompt": "The second reference image shows this same bandit seen from behind: copy its back view from it: the back of his huge floppy battered dark brown hat, as wide as his shoulders, its wide brim bent and drooping and the whole hat tilted to the left of the picture, a red band on it, the white hair at the back of his head with the knot of the black mask, the back of the ragged dark brown vest with its yellow zigzag hem, the dynamite bundles on the back of his belt, the red trousers and the big boots, legs apart, his left arm hanging with a fist on the left of the picture and the red stick of dynamite in his right fist on the right of the picture; drawn in exactly the art style, colors and proportions of the first reference image, which shows him from the front. Full-body back view seen directly from behind, no face visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_sca_front.png",
+    "88fits/sca_ref_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 188,
+     "right": 188,
+     "top": 40,
+     "bottom": 58,
+     "height": 925,
+     "width": 647
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "attack_front": {
+   "seed": 1061024,
+   "prompt": "Show the bandit of the first reference image in the pose of the second reference image: hopping up off the ground as he throws, his right arm flung straight up high above his head with the hand open and empty, the fingers spread, having just let go of the stick of dynamite, his head tipped back looking up after it, his left arm thrown out low to the side with the hand open, both boots off the ground with the knees bent. Copy the pose and the angle from the second reference image, but draw this exact old masked bandit: keep his big floppy dark brown hat with the red band, his white hair, the black mask over his nose and mouth, his mustard-yellow shirt, the ragged dark brown vest, the belt with the silver buckle and the red dynamite bundles, the grey pouch, the red trousers with the torn patch, the white shin bandages and the big brown boots, exactly the same colors and proportions of the first reference image. Nothing in his hands. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_sca_front.png",
+    "88fits/sca_ref_throw_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 198,
+     "right": 149,
+     "top": 36,
+     "bottom": 49,
+     "height": 938,
+     "width": 676
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "attack_back": {
+   "seed": 1055950,
+   "prompt": "Show the bandit of the first reference image, seen directly from behind, in the pose of the second reference image: hopping up off the ground as he throws, his right arm flung straight up high above his head on the right of the picture with the hand open and empty, his left arm thrown out low to the left side, both boots off the ground with the soles showing, seen from behind with no face visible. Copy the pose from the second reference image, but draw it in exactly the art style, colors and proportions of the first reference image: the back of his big hat, the vest with the yellow zigzag hem, the dynamite on his belt, the red trousers, the white bandages and the boots. Nothing in his hands. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_sca_back.png",
+    "88fits/sca_ref_throw_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 148,
+     "right": 268,
+     "top": 50,
+     "bottom": 81,
+     "height": 892,
+     "width": 607
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "windup_front": {
+   "seed": 1061820,
+   "prompt": "The reference image shows this exact old masked bandit: keep his big floppy dark brown hat with the red band, his white hair, the black mask over his nose and mouth, his mustard-yellow shirt, the ragged dark brown vest, the belt with the silver buckle and the red dynamite bundles, the grey pouch, the red trousers with the torn patch, the white shin bandages and the big brown boots, exactly the same colors and proportions. Redraw him full body winding up to throw: his right arm drawn back and up with the elbow high beside his head, the red stick of dynamite in his right fist held up behind his shoulder by his ear, its short fuse lit with a small bright spark, his left arm stretched forward and down toward the viewer to aim, his body leaning back a little, legs apart and knees bent, both boots on the ground, facing the viewer, one single stick of dynamite in his hand. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_sca_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 170,
+     "right": 75,
+     "top": 34,
+     "bottom": 47,
+     "height": 942,
+     "width": 778
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "windup_back": {
+   "seed": 1056746,
+   "prompt": "The reference image shows this exact old bandit seen from behind. Keep him seen directly from behind, no face visible, keep his colors and proportions, and redraw him full body winding up to throw: his right arm drawn back and up on the right of the picture with the elbow high beside his head, the red stick of dynamite in his right fist held up beside his hat, its short fuse lit with a small bright spark, his left arm stretched forward and down, legs apart and knees bent, both boots on the ground, one single stick of dynamite in his hand. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_sca_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 190,
+     "right": 204,
+     "top": 28,
+     "bottom": 58,
+     "height": 937,
+     "width": 629
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 14362,
+   "prompt": "This exact creature lying flat on his back sideways across the picture, his head on the left and his boots on the right, knocked out with his eyes shut, his big floppy hat fallen off beside his head, the red stick of dynamite dropped beside his open hand; no ground, no sand, no shadow, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_sca_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 44,
+     "right": 51,
+     "top": 233,
+     "bottom": 233,
+     "height": 557,
+     "width": 928
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "stills": "sca",
+  "art_prompt": "a short stocky old masked desert bandit: a big floppy dark brown cowboy hat with a red band, bushy white hair and white sideburns, stern narrow eyes, a black cloth mask over his nose and mouth, a mustard-yellow shirt with rolled sleeves, a ragged dark brown leather vest with a torn hem, a dark brown belt with a big silver buckle, red trousers with a torn patch on one knee, white bandages round his shins, big brown leather boots, bundles of red dynamite sticks with black bands hanging at his belt and a pale grey cloth pouch at his hip, holding one red stick of dynamite with a short fuse upright in his right fist at chest height, his left hand a fist at his side, standing with his legs apart and knees bent",
+  "motion": "an old masked bandit walking in place with short heavy steps, the red stick of dynamite held up in his right fist at his chest the whole time, the big floppy hat bobbing",
+  "back_hint": "seen from behind: the back of his huge floppy dark brown hat with its red band, his white hair, the knot of the black mask, the back of the ragged brown vest with its yellow zigzag hem, the dynamite bundles on the back of his belt, the red trousers and the big boots, the red stick of dynamite in his right fist on the right of the picture, no face",
+  "dead_hint": "lying flat on his back sideways across the picture, his head on the left and his boots on the right, knocked out with his eyes shut, his big floppy hat fallen off beside his head, the red stick of dynamite dropped beside his open hand; no ground, no sand, no shadow",
+  "aim_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head with the hand open and empty, his head tipped back looking up after the stick he just threw, his left arm thrown out low to the side, both boots off the ground",
+  "aim_back_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head with the hand open and empty, his left arm thrown out low to the side, both boots off the ground with the soles showing",
+  "windup_hint": "winding up to throw: his right arm drawn back and up with the elbow high beside his head, the red stick of dynamite in his right fist held up behind his shoulder, its fuse lit with a small spark, his left arm stretched forward, legs apart, both boots on the ground",
+  "attack_views": "front_back",
+  "attack_throw": true,
+  "aim_fit": 1.08,
+  "aim_lift": 0.03,
+  "cell_fill": 0.8,
+  "screen": "green",
+  "anim_negative": "extra arms, a third arm, extra legs, two sticks of dynamite in his hand, the stick of dynamite disappearing, an explosion, fire, smoke, a gun",
+  "method": "creature_free2"
+ },
+ "clip_kind": {
+  "front": "free",
+  "back": "free",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ },
+ "attack_slid_px": {
+  "windup_front": 0,
+  "front": 0,
+  "windup_back": 0,
+  "back": 0
+ },
+ "qa_online": null
+}
