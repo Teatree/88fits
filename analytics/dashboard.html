@@ -191,6 +191,8 @@
   <label>Open run files <input id="file" type="file" accept=".json,.js" multiple></label>
   <label title="every run file in a folder (analytics/runs, the PC build's folder, a player's folder under analytics/remote)">Open a folder <input id="folder" type="file" webkitdirectory multiple></label>
   <div class="drop" id="drop">or drop run files here: one opens it; several can be averaged or drawn dashed over the first</div>
+  <!-- pass 87 (lane STOOLS): every list of runs by the stage they played -->
+  <label title="pass 87: a run plays one stage (the Stages menu). Shows only the runs of that stage in the lists below (the history, the runs you opened, the runs from PostHog). A run from before pass 87 went through the stages: its stage is the one it ended in.">Stage <select id="stagefilter"><option value="">every stage</option></select></label>
   <span id="loaded"></span>
 </div>
 <div class="toolbar" id="viewbar" hidden>
@@ -397,6 +399,40 @@
   const ITEM_KINDS = ['weapon', 'passive', 'mutation', 'perk', 'evolution', 'passive_evolution', 'line', 'line_evolution'];
   const EVO_KINDS = ['evolution', 'passive_evolution', 'line_evolution'];
   const RESULT_WORDS = { extract: 'Extracted', death: 'Died', abandon: 'Gave up', quit: 'Quit', in_progress: 'In progress', end: 'Ended' };
+  // pass 87 (lane STOOLS): how a stage run ended (the header's outcome), and the stage a run played
+  const OUTCOME_WORDS = { extracted: 'extracted', died_endless: 'fell in Endless', died_after_boss: 'fell after the boss', died: 'fell before the boss', quit: 'quit' };
+  /** The stage's key a run is filed under: its stage_id (pass 87), else "s<stage>" (an older run: the stage it ended in). */
+  function stageKey(r) { return r && r.stage_id ? String(r.stage_id) : 's' + Math.max(1, Math.round((r && r.stage) || 1)); }
+  /** "Stage 2 · Dusk" (the name when the map gave one). */
+  function stageWords(r) {
+    const n = Math.max(1, Math.round((r && r.stage) || 1));
+    const nm = r && r.stage_name && r.stage_name !== 'Stage ' + n ? ' · ' + r.stage_name : '';
+    return 'Stage ' + n + nm;
+  }
+  /** How the stage run ended, in words ('' for a run from before pass 87). */
+  function outcomeWords(r) {
+    if (!r || !r.outcome) return '';
+    return (OUTCOME_WORDS[r.outcome] || r.outcome) + (r.endless_s ? ' after ' + fmtT(r.endless_s) + ' of Endless' + (r.endless_wave ? ' (wave ' + r.endless_wave + ')' : '') : '');
+  }
+  let STAGE = '';              // pass 87: the stage filter ('' = every stage)
+  try { STAGE = localStorage.getItem('runwatch.stage') || ''; } catch (e) { /* fine */ }
+  const stageOk = (r) => !STAGE || stageKey(r) === STAGE;
+  /** The stage filter's choices from the runs at hand (every list the page shows), the current one kept. */
+  function syncStageFilter() {
+    const sel = document.getElementById('stagefilter');
+    if (!sel) return;
+    const seen = new Map();
+    const take = (r) => { if (r && (r.stage != null || r.stage_id)) { const k = stageKey(r); if (!seen.has(k)) seen.set(k, { k, words: stageWords(r), n: 0 }); seen.get(k).n++; } };
+    for (const r of currentRuns()) take(r);
+    for (const x of LOADED) take(x.run);
+    if (SRC.remote && SRC.remote.runs && SOURCE === 'remote') for (const r of SRC.remote.runs) take(r);
+    if (STAGE && !seen.has(STAGE)) seen.set(STAGE, { k: STAGE, words: STAGE, n: 0 });
+    const keys = Array.from(seen.values()).sort((a, b) => a.k.localeCompare(b.k, undefined, { numeric: true }));
+    sel.textContent = '';
+    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'every stage'; sel.appendChild(o0);
+    for (const x of keys) { const o = document.createElement('option'); o.value = x.k; o.textContent = x.words + ' (' + x.n + ')'; sel.appendChild(o); }
+    sel.value = STAGE;
+  }
   // the pause screen's words for the stats (TextGen); a schema 2 file carries its own (stat_names)
   const STAT_WORDS = { max_hp: 'max HP', damage_reduction: 'damage reduction', regen: 'regen per second', move_speed: 'move speed', might: 'attack damage', cooldown: 'cooldown', area: 'area of effect', projectile_speed: 'projectile speed', duration: 'duration', amount: 'projectiles', magnet: 'pickup radius', luck: 'luck', greed: 'coin gain', xp_gain: 'XP gain', lifesteal: 'life steal', evade: 'evade chance', crit_chance: 'crit chance', crit_damage: 'crit damage', thorns: 'thorns damage', execute_frac: 'execute threshold', overkill: 'overkill splash', haste: 'weapon speed', shield_max: 'shield', ricochet: 'ricochet chance', cooldown_on_kill: 'cooldown cut per kill', still_regen: 'regen per second standing still', still_might: 'attack damage per second standing still', barrel_speed: 'move speed after a barrel', barrel_seconds: 'barrel boost', xp_drop_chance: 'extra XP gem chance', elite_damage: 'damage to Elites and bosses', debuff_duration: 'debuff duration', difficulty: 'difficulty', skips: 'skips', banishes: 'banishes', powerup_duration: 'power-up duration', powerup_chance: 'power-up drop chance' };
   const HEAL_WORDS = { lifesteal: 'life steal', level_up: 'level-up patch', other: 'unnamed heals', regen: 'regen (and Siesta, Deep Breath)' };
@@ -722,6 +758,7 @@
   function render() {
     for (const ch of CHARTS) ch.destroy(); CHARTS = []; $main.textContent = '';
     SV.drawn = [];
+    syncStageFilter();
     if (VIEW === 'average' && !AVG) VIEW = 'one';
     if (VIEW === 'overlay' && !OVERLAYS.length) VIEW = 'one';
     renderLoaded();
@@ -763,8 +800,10 @@
     const origin = r.remote ? 'from PostHog: ' + (r.remote.label || r.remote.player || 'a player') + (r.remote.dev ? ' (a developer run)' : '') : (r.tool ? 'a tool\'s run' : (r.headless ? 'a headless tool run' : 'played'));
     const heroTile = tile((r.hero_name || r.hero || '?') + (r.hero_look ? ' (' + r.hero_look + ')' : '') + ' · ' + titleCase(r.map || ''), res, 'v' + (r.version || '?') + ' · seed ' + (r.seed || '?') + ' · ' + (r.started || '').replace('T', ' ') + ' · ' + origin + (r.device ? ' · ' + r.device : ''));
     heroTile.querySelector('.val').classList.add('hero'); heroTile.classList.add('wide');
-    tile('Play time', fmtT(r.length || S.n), 'stage clock ' + fmtT(r.clock || 0) + ' (it stops for bosses and portals)');
-    tile('Stage', String(r.stage || 1) + (r.endless_wave ? ' · wave ' + r.endless_wave : ''), evs(S, 'boss_start').map((e) => S.name(e.id)).join(', ') || 'no boss met');
+    // pass 87: a stage run's own clock (0:00 at its window's start; the map's clock is r.clock)
+    tile('Play time', fmtT(r.length || S.n), r.stage_clock != null ? fmtT(r.stage_clock) + ' into the stage (its clock stops at the boss: the fight, the portal countdown and Endless count on in play time)' : 'stage clock ' + fmtT(r.clock || 0) + ' (it stops for bosses and portals)');
+    // pass 87 (lane STOOLS): the stage the run played, how it ended, its Endless
+    tile('Stage', stageWords(r) + (r.endless_wave ? ' · Endless wave ' + r.endless_wave : ''), (outcomeWords(r) ? outcomeWords(r) + ' · ' : '') + (evs(S, 'boss_start').map((e) => S.name(e.id)).join(', ') || 'no boss met'));
     tile('Level', String(r.level || 1), S.items.length + ' picks');
     const sk = evs(S, 'special_kill').length, ek = evs(S, 'elite_kill').length;
     tile('Kills', fmtN(r.kills || 0), S.schema >= 2 ? (ek + ' Elites · ' + sk + ' specials') : (evs(S, 'elite').length + ' Elites met'));
@@ -798,6 +837,9 @@
     add('Game version', 'v' + (r.version || '?') + ' · record schema ' + S.schema);
     add('Started', (r.started || '').replace('T', ' '));
     add('Result', (RESULT_WORDS[r.result] || r.result || '?') + (S.killer ? ' · last down to ' + S.name(S.killer.id) : '') + (r.revives ? ' · ' + r.revives + ' revive' + (r.revives > 1 ? 's' : '') + ' bought' : ''));
+    // pass 87 (lane STOOLS): the stage run
+    if (r.stage_id) add('Stage', stageWords(r) + ' (' + r.stage_id + ', ' + (r.stage_index != null ? r.stage_index + 1 : r.stage) + ' of ' + (r.stage_count || '?') + ') · ' + fmtT(r.stage_length || 0) + ' to its boss, ' + fmtT(r.stage_start || 0) + ' on the map\'s clock');
+    if (r.outcome) add('How it ended', outcomeWords(r) + (r.boss_killed ? ' · the boss fell' : ' · the boss did not fall') + ' · ' + fmtT(r.stage_clock || 0) + ' into the stage · ' + fmtT(r.run_time || r.length || 0) + ' played');
     add('Length', 'play ' + fmtT(r.length || S.n) + ' · stage clock ' + fmtT(r.clock || 0));
     add('Reached', 'stage ' + (r.stage || 1) + (r.endless_wave ? ', endless wave ' + r.endless_wave : '') + ' · level ' + (r.level || 1) + ' · ' + fmtN(r.kills || 0) + ' kills');
     add('Played on', (r.tool ? 'a tool (' + (r.headless ? 'headless' : 'windowed') + ')' : (r.headless ? 'a headless tool' : 'played')) + ' · ' + (r.platform || '?') + (r.device ? ' · ' + r.device : ''));
@@ -1527,12 +1569,14 @@
   // the runs opened from files or a folder: tick some, then open one, overlay them or average them
   function renderLoadedPicker(root) {
     if (LOADED.length < 2) return;
+    // pass 87: the stage filter (the ticks of runs it hides stay)
+    const SHOWN = LOADED.filter((x) => stageOk(x.run));
     const c = card('Runs you opened (' + LOADED.length + ')', 'Tick the runs to average (or to draw dashed over the first with Overlay). Open shows one alone with every card.', { wide: true, slug: 'opened' });
     c.classList.add('picker');
     const acts = el('div', 'acts');
-    const all = el('button', 'btn small', 'Tick all'); all.type = 'button'; all.onclick = () => { LOADED.forEach((x) => PICK.add(x.key)); render(); };
+    const all = el('button', 'btn small', 'Tick all'); all.type = 'button'; all.onclick = () => { SHOWN.forEach((x) => PICK.add(x.key)); render(); };
     const none = el('button', 'btn small', 'Tick none'); none.type = 'button'; none.onclick = () => { LOADED.forEach((x) => PICK.delete(x.key)); render(); };
-    const ticked = LOADED.filter((x) => PICK.has(x.key));
+    const ticked = SHOWN.filter((x) => PICK.has(x.key));
     const avg = el('button', 'btn', 'Average the ' + ticked.length + ' ticked'); avg.type = 'button'; avg.disabled = !SIMOK || !ticked.length;
     avg.onclick = () => averageOf(ticked.map(loadedEntry), 'Average of ' + ticked.length + ' run' + (ticked.length > 1 ? 's' : '') + ' you opened');
     const recs = ticked.filter((x) => x.run && Array.isArray(x.run.samples));
@@ -1542,11 +1586,12 @@
     acts.append(all, none, avg, ov);
     c.appendChild(acts);
     const list = el('div', 'plist'); const t = document.createElement('table'); const tb = document.createElement('tbody');
-    for (const x of LOADED) {
+    for (const x of SHOWN) {
       const tr = document.createElement('tr');
       const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = PICK.has(x.key); cb.onchange = () => { if (cb.checked) PICK.add(x.key); else PICK.delete(x.key); render(); };
       const td0 = el('td'); td0.appendChild(cb); tr.appendChild(td0);
       tr.appendChild(el('td', null, x.label));
+      tr.appendChild(el('td', null, stageWords(x.run) + (outcomeWords(x.run) ? ' · ' + outcomeWords(x.run) : '')));
       tr.appendChild(el('td', 'num', 'Lv ' + Math.round(x.run.level || 1) + ' · ' + fmtN(x.run.kills || 0) + ' kills'));
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button'; b.disabled = !Array.isArray(x.run.samples);
       b.title = b.disabled ? 'a sim player file has no run record to open: average it' : 'this run alone, every card'; b.onclick = () => openRun(x.run); td.appendChild(b); tr.appendChild(td);
@@ -1587,7 +1632,7 @@
   }
   const isDevRow = (r) => !!(r.dev || r['settings.dev']);
   function remoteRows() {
-    const rows = (SRC.remote.runs || []).filter((r) => PLAYERS.has(r.player) && !(NO_DEV && isDevRow(r)));
+    const rows = (SRC.remote.runs || []).filter((r) => PLAYERS.has(r.player) && !(NO_DEV && isDevRow(r)) && stageOk(r));
     return rows.slice().sort((a, b) => String(b.started || '').localeCompare(String(a.started || '')));
   }
   // pass 82 (lane STATS; Garry: "Remind me how do I go about viewing this information ... There should be a step by step
@@ -1681,7 +1726,7 @@
       const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = PICK.has('r:' + r.file);
       cb.onchange = () => { if (cb.checked) PICK.add('r:' + r.file); else PICK.delete('r:' + r.file); render(); };
       const td0 = el('td'); td0.appendChild(cb); tr.appendChild(td0);
-      const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), String(Math.round(r.stage || 1)), String(Math.round(r.level || 1)), fmtN(r.kills || 0), 'v' + (r.version || '?')];
+      const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (r.outcome ? ' · ' + (OUTCOME_WORDS[r.outcome] || r.outcome) : '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), stageWords(r), String(Math.round(r.level || 1)), fmtN(r.kills || 0), 'v' + (r.version || '?')];
       cells.forEach((v, j) => tr.appendChild(el('td', j >= 4 && j <= 7 ? 'num' : null, v)));
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button';
       b.onclick = async () => { b.disabled = true; const rec = await remoteRecord(r); b.disabled = false; if (rec && rec.samples) openRun(rec); else alert('Could not load ' + r.file + ' (download again with tools/posthog_runs.py).'); };
@@ -1689,7 +1734,7 @@
       tb.appendChild(tr);
     }
     t.appendChild(tb); list.appendChild(t);
-    if (!rows.length) c.appendChild(el('p', 'note', PLAYERS.size ? 'No runs for the ticked players' + (NO_DEV ? ' (developer runs left out)' : '') + '.' : 'Tick a player above.'));
+    if (!rows.length) c.appendChild(el('p', 'note', PLAYERS.size ? 'No runs for the ticked players' + (NO_DEV ? ' (developer runs left out)' : '') + (STAGE ? ' in ' + STAGE + ' (the Stage filter at the top)' : '') + '.' : 'Tick a player above.'));
     else c.appendChild(list);
     root.appendChild(c);
   }
@@ -1709,6 +1754,8 @@
     if (CMP) { const c = el('span', 'chip'); c.appendChild(document.createTextNode('dashed grey: ')); c.appendChild(el('b', null, CMP.name)); const x = el('span', 'x', '✕'); x.title = 'stop comparing'; x.onclick = () => { CMP = null; document.getElementById('cmpfile').value = ''; render(); }; c.appendChild(x); chip.appendChild(c); }
   }
   for (const b of document.querySelectorAll('#view button')) b.addEventListener('click', () => { if (b.disabled) return; VIEW = b.dataset.view; render(); });
+  // pass 87 (lane STOOLS): the stage filter (the browser remembers it)
+  document.getElementById('stagefilter').addEventListener('change', (e) => { STAGE = e.target.value || ''; try { localStorage.setItem('runwatch.stage', STAGE); } catch (err) { /* fine */ } render(); });
   document.getElementById('cmpfile').addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     f.text().then((t) => {
@@ -1729,9 +1776,9 @@
       : (SOURCE === 'tools' ? 'Every tool run in runs/tools/' : 'Every played run in runs/') + ' (index.js), oldest to newest; the open run is highlighted. Old headless rows (before v0.60 tool runs had their own folder) are hidden unless shown.', { wide: true, slug: 'history' });
     const ctl = el('div', 'hist-row'); const lab = el('label'); const sw = document.createElement('input'); sw.type = 'checkbox'; sw.name = 'show-headless'; sw.checked = SHOW_HEADLESS; sw.onchange = () => { SHOW_HEADLESS = sw.checked; render(); }; lab.appendChild(sw); lab.appendChild(document.createTextNode(' show headless tool runs')); ctl.appendChild(lab); if (SOURCE === 'remote') lab.hidden = true;
     if (SOURCE === 'tools') lab.hidden = true;
-    const runs = all.filter((r) => SHOW_HEADLESS || SOURCE === 'tools' || !r.headless); ctl.appendChild(el('span', null, runs.length + ' of ' + all.length + ' runs'));
+    const runs = all.filter((r) => (SHOW_HEADLESS || SOURCE === 'tools' || !r.headless) && stageOk(r)); ctl.appendChild(el('span', null, runs.length + ' of ' + all.length + ' runs' + (STAGE ? ' (' + STAGE + ' only: the Stage filter at the top)' : '')));
     const sel = document.createElement('select'); sel.name = 'history-run'; const o0 = document.createElement('option'); o0.textContent = 'pick a run to see its row'; o0.value = ''; sel.appendChild(o0);
-    runs.slice().reverse().forEach((r) => { const o = document.createElement('option'); o.value = r.file; o.textContent = (r.started || r.stamp || '').replace('T', ' ') + ' · ' + (r.hero_name || r.hero) + ' · ' + (r.result || '') + ' · ' + fmtT(r.length || 0) + ' · Lv ' + Math.round(r.level || 0) + ' · ' + Math.round(r.kills || 0) + ' kills' + (r.headless ? ' · headless' : ''); sel.appendChild(o); });
+    runs.slice().reverse().forEach((r) => { const o = document.createElement('option'); o.value = r.file; o.textContent = (r.started || r.stamp || '').replace('T', ' ') + ' · ' + (r.hero_name || r.hero) + ' · ' + stageWords(r) + ' · ' + (r.result || '') + ' · ' + fmtT(r.length || 0) + ' · Lv ' + Math.round(r.level || 0) + ' · ' + Math.round(r.kills || 0) + ' kills' + (r.headless ? ' · headless' : ''); sel.appendChild(o); });
     ctl.appendChild(sel); c.appendChild(ctl);
     const pick = el('div', 'hist-pick'); c.appendChild(pick);
     const showPick = (file) => { const r = runs.find((x) => x.file === file); if (!r) { pick.style.display = 'none'; return; } pick.textContent = ''; pick.appendChild(el('b', null, (r.hero_name || r.hero) + ' · ' + (RESULT_WORDS[r.result] || r.result || ''))); pick.appendChild(document.createTextNode(' · ' + (r.started || '').replace('T', ' ') + ' · play ' + fmtT(r.length || 0) + ', clock ' + fmtT(r.clock || 0) + ' · stage ' + Math.round(r.stage || 1) + ' · level ' + Math.round(r.level || 1) + ' · ' + Math.round(r.kills || 0) + ' kills · ' + Math.round(r.gold || 0) + ' gold' + (r.build ? ' · ' + r.build : '') + ' · v' + (r.version || '') + ' · ')); pick.appendChild(el('code', null, (SOURCE === 'tools' ? 'runs/tools/' : SOURCE === 'remote' ? 'remote/' : 'runs/') + r.file)); pick.appendChild(document.createTextNode(SOURCE === 'remote' ? ' — open it from the list above' : ' — open it with the file input above (a page opened from a file cannot read it by itself)')); pick.style.display = 'block'; };
@@ -1747,8 +1794,8 @@
       for (const ch of [ch1, ch2, ch3]) ch.options.onClick = (ev, items) => { if (items.length) { sel.value = runs[items[0].index].file; showPick(sel.value); } };
       c.appendChild(m);
     }
-    tableView(c, [{ label: 'started' }, { label: 'hero' }, { label: 'result' }, colT('play'), colT('clock'), { label: 'stage', num: true, d: 0 }, { label: 'level', num: true, d: 0 }, { label: 'kills', num: true, d: 0 }, { label: 'gold', num: true, d: 0 }, { label: 'damage', num: true, d: 0 }, { label: 'version' }, { label: 'file' }],
-      runs.slice().reverse().map((r) => [(r.started || '').replace('T', ' '), r.hero_name || r.hero, (r.result || '') + (r.headless ? ' (headless)' : ''), r.length || 0, r.clock || 0, r.stage || 1, r.level || 1, r.kills || 0, r.gold || 0, r.damage != null ? r.damage : '', r.version, r.file]));
+    tableView(c, [{ label: 'started' }, { label: 'hero' }, { label: 'result' }, colT('play'), colT('clock'), { label: 'stage', num: true, d: 0 }, { label: 'stage name' }, { label: 'outcome' }, colT('endless'), { label: 'level', num: true, d: 0 }, { label: 'kills', num: true, d: 0 }, { label: 'gold', num: true, d: 0 }, { label: 'damage', num: true, d: 0 }, { label: 'version' }, { label: 'file' }],
+      runs.slice().reverse().map((r) => [(r.started || '').replace('T', ' '), r.hero_name || r.hero, (r.result || '') + (r.headless ? ' (headless)' : ''), r.length || 0, r.clock || 0, r.stage || 1, r.stage_name || '', OUTCOME_WORDS[r.outcome] || r.outcome || '', r.endless_s || 0, r.level || 1, r.kills || 0, r.gold || 0, r.damage != null ? r.damage : '', r.version, r.file]));
     // its CSV is the full one: every field of every run (the toolbar's button)
     c._tables[0].full = true;
     c._csv.onclick = () => downloadHistory();

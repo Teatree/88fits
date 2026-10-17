@@ -32,6 +32,50 @@
   "timeline_data": {
     "stage_length": 430,
     "stages": 3,
+    "stage_list": [
+      {
+        "id": "s1",
+        "name": "Sundown",
+        "length": 430,
+        "boss": "tumbleweed_king",
+        "description": "The canyon at sundown: goblins, scorpions and the walking dead, then the Tumbleweed King.",
+        "difficulty": "Gentle: learn the creatures",
+        "filter": {
+          "color": "#000000",
+          "strength": 0.0
+        },
+        "hell": false,
+        "shot": "res://art/ui/stages/red_canyon_s1.jpg"
+      },
+      {
+        "id": "s2",
+        "name": "Nightfall",
+        "length": 600,
+        "boss": "gila_grande",
+        "description": "Night falls on the canyon: ants, armadillos, mummies and werewolves, and the Gila Grande at the end.",
+        "difficulty": "Hard: a tougher crowd, for longer",
+        "filter": {
+          "color": "#3D55C8",
+          "strength": 0.48
+        },
+        "hell": false,
+        "shot": "res://art/ui/stages/red_canyon_s2.jpg"
+      },
+      {
+        "id": "s3",
+        "name": "Blood Moon",
+        "length": 780,
+        "boss": "brander",
+        "description": "Hell opens under a blood moon: imps and hellhounds join the crowd before the Brander.",
+        "difficulty": "Brutal: hell, then the Brander",
+        "filter": {
+          "color": "#6A1A28",
+          "strength": 0.6
+        },
+        "hell": true,
+        "shot": "res://art/ui/stages/red_canyon_s3.jpg"
+      }
+    ],
     "stage_mults": [
       1.0,
       2.2,
@@ -47,7 +91,31 @@
         200
       ],
       [
-        1290,
+        430,
+        233.3
+      ],
+      [
+        431,
+        25.0
+      ],
+      [
+        670,
+        246.7
+      ],
+      [
+        1030,
+        266.7
+      ],
+      [
+        1031,
+        35.0
+      ],
+      [
+        1230,
+        275.2
+      ],
+      [
+        1810,
         300
       ]
     ],
@@ -96,12 +164,12 @@
           1.9414
         ],
         [
-          860,
-          2.9878
+          1030,
+          3.4245
         ],
         [
-          1290,
-          4.1143
+          1810,
+          5.5638
         ]
       ]
     },
@@ -122,19 +190,27 @@
         ],
         [
           430,
-          1.44
+          0.36
         ],
         [
-          860,
-          1.39
+          900,
+          0.95
         ],
         [
-          860,
-          1.54
+          1030,
+          0.8
         ],
         [
-          1290,
-          1.58
+          1030,
+          0.28
+        ],
+        [
+          1700,
+          0.72
+        ],
+        [
+          1810,
+          0.56
         ]
       ]
     },
@@ -407,7 +483,7 @@
       {
         "id": "r19",
         "t": 431,
-        "until": 575,
+        "until": 632,
         "enemy": "buckshot_dwarf",
         "weights": [
           [
@@ -415,21 +491,21 @@
             1.0
           ],
           [
-            575,
+            632,
             1.4
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 1.0,
+          "hp_mult": 0.26,
           "max_alive": 3
         }
       },
       {
         "id": "r20",
         "t": 431,
-        "until": 536,
+        "until": 578,
         "enemy": "fire_ant",
         "weights": [
           [
@@ -437,18 +513,18 @@
             5.0
           ],
           [
-            536,
+            578,
             6.0
           ]
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 1.0
+          "hp_mult": 0.26
         }
       },
       {
         "id": "r18",
-        "t": 430,
+        "t": 431,
         "enemy": "blue_slime",
         "weights": [
           [
@@ -456,24 +532,27 @@
             6.0
           ],
           [
-            535,
+            577,
             4.0
           ]
         ],
-        "until": 536
+        "until": 578,
+        "stats": {
+          "hp_mult": 0.26
+        }
       },
       {
         "id": "r22",
-        "t": 536,
-        "until": 585,
+        "t": 578,
+        "until": 646,
         "enemy": "armadillo",
         "weights": [
           [
-            536,
+            578,
             8.0
           ],
           [
-            585,
+            646,
             8.0
           ]
         ],
@@ -483,163 +562,171 @@
           "size": [
             1.0,
             1.35
-          ]
+          ],
+          "hp_mult": 0.54
         }
       },
       {
         "id": "r23",
-        "t": 585,
-        "until": 720,
+        "t": 646,
+        "until": 835,
         "enemy": "skeleton",
         "variant": "SK-E",
         "weights": [
           [
-            585,
+            646,
             6.0
           ],
           [
-            720,
+            835,
             5.0
           ]
         ],
-        "pack": 6
+        "pack": 6,
+        "stats": {
+          "hp_mult": 0.67
+        }
       },
       {
         "id": "r24",
-        "t": 585,
-        "until": 720,
+        "t": 646,
+        "until": 835,
         "enemy": "skeleton_knight",
         "variant": "KN-E",
         "weights": [
           [
-            585,
+            646,
             2.5
           ],
           [
-            720,
+            835,
             3.0
           ]
         ],
         "pack": 4,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 2.0
+          "hp_mult": 1.34
         }
       },
       {
         "id": "r25",
-        "t": 600,
-        "until": 860,
+        "t": 667,
+        "until": 1030,
         "enemy": "dust_mummy",
         "weights": [
           [
-            600,
+            667,
             0.8
           ],
           [
-            700,
+            807,
             1.4
           ],
           [
-            860,
+            1030,
             1.4
           ]
         ],
         "pack": 2,
-        "pattern": "scatter"
+        "pattern": "scatter",
+        "stats": {
+          "hp_mult": 0.71
+        }
       },
       {
         "id": "r26",
-        "t": 600,
-        "until": 700,
+        "t": 667,
+        "until": 807,
         "enemy": "spit_cactus",
         "weights": [
           [
-            600,
+            667,
             1.2
           ],
           [
-            700,
+            807,
             1.2
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "max_alive": 4
+          "max_alive": 4,
+          "hp_mult": 0.71
         }
       },
       {
         "id": "r27",
-        "t": 640,
-        "until": 860,
+        "t": 723,
+        "until": 1030,
         "enemy": "bull_beetle",
         "weights": [
           [
-            640,
+            723,
             0.8
           ],
           [
-            860,
+            1030,
             1.0
           ]
         ],
         "pack": 1,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.94,
+          "hp_mult": 0.77,
           "max_alive": 2
         }
       },
       {
         "id": "r28",
-        "t": 645,
-        "until": 860,
+        "t": 730,
+        "until": 1030,
         "enemy": "buckshot_dwarf",
         "weights": [
           [
-            645,
+            730,
             0.8
           ],
           [
-            860,
+            1030,
             1.2
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.96,
+          "hp_mult": 0.8,
           "max_alive": 3
         }
       },
       {
         "id": "r29",
-        "t": 720,
-        "until": 860,
+        "t": 835,
+        "until": 1030,
         "enemy": "werewolf",
         "weights": [
           [
-            720,
+            835,
             8.0
           ],
           [
-            755,
+            883,
             8.0
           ],
           [
-            756,
+            884,
             4.0
           ],
           [
-            860,
+            1030,
             4.0
           ]
         ],
         "pack": 36,
         "pattern": "ring",
         "stats": {
-          "hp_mult": 1.44,
+          "hp_mult": 1.48,
           "size": [
             1.4,
             1.9
@@ -657,183 +744,183 @@
       },
       {
         "id": "r30",
-        "t": 755,
-        "until": 860,
+        "t": 883,
+        "until": 1030,
         "enemy": "red_goblin",
         "variant": "RG-B",
         "weights": [
           [
-            755,
+            883,
             5.0
           ],
           [
-            860,
+            1030,
             6.0
           ]
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 1.46
+          "hp_mult": 1.64
         }
       },
       {
         "id": "r31",
-        "t": 755,
-        "until": 860,
+        "t": 883,
+        "until": 1030,
         "enemy": "red_goblin_runt",
         "variant": "RR-B",
         "weights": [
           [
-            755,
+            883,
             3.0
           ],
           [
-            860,
+            1030,
             3.0
           ]
         ],
         "pack": 5,
         "stats": {
-          "hp_mult": 1.46
+          "hp_mult": 1.64
         }
       },
       {
         "id": "r51",
-        "t": 760,
-        "until": 860,
+        "t": 890,
+        "until": 1030,
         "enemy": "spit_cactus",
         "weights": [
           [
-            760,
+            890,
             1.0
           ],
           [
-            860,
+            1030,
             1.4
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 1.46,
+          "hp_mult": 1.66,
           "max_alive": 4
         }
       },
       {
         "id": "r32",
-        "t": 775,
-        "until": 860,
+        "t": 911,
+        "until": 1030,
         "enemy": "hammer_giant",
         "weights": [
           [
-            775,
+            911,
             0.6
           ],
           [
-            860,
+            1030,
             0.8
           ]
         ],
         "pack": 1,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.72,
+          "hp_mult": 0.85,
           "max_alive": 2,
           "damage_mult": 0.7
         }
       },
       {
         "id": "r10",
-        "t": 861,
-        "until": 1075,
+        "t": 1031,
+        "until": 1420,
         "enemy": "imp",
         "weights": [
           [
-            861,
+            1031,
             9.0
           ],
           [
-            1075,
+            1420,
             9.0
           ]
         ],
         "pack": 6,
         "channel": "hell",
         "stats": {
-          "hp_mult": 0.39
+          "hp_mult": 0.12
         }
       },
       {
         "id": "r11",
-        "t": 920,
-        "until": 1075,
+        "t": 1139,
+        "until": 1420,
         "enemy": "hellhound",
         "weights": [
           [
-            920,
+            1139,
             4.0
           ],
           [
-            1075,
+            1420,
             6.0
           ]
         ],
         "pack": 4,
         "channel": "hell",
         "stats": {
-          "hp_mult": 0.5
+          "hp_mult": 0.17
         }
       },
       {
         "id": "r33",
-        "t": 1075,
+        "t": 1420,
         "enemy": "imp",
         "weights": [
           [
-            1075,
+            1420,
             9.0
           ]
         ],
         "pack": 6,
         "channel": "hell",
         "stats": {
-          "hp_mult": 1.02
+          "hp_mult": 0.46
         }
       },
       {
         "id": "r34",
-        "t": 1075,
+        "t": 1420,
         "enemy": "hellhound",
         "weights": [
           [
-            1075,
+            1420,
             7.0
           ]
         ],
         "pack": 4,
         "channel": "hell",
         "stats": {
-          "hp_mult": 1.02
+          "hp_mult": 0.46
         }
       },
       {
         "id": "r35",
-        "t": 861,
-        "until": 964,
+        "t": 1031,
+        "until": 1219,
         "enemy": "skeleton",
         "weights": [
           [
-            861,
+            1031,
             6.0
           ],
           [
-            964,
+            1219,
             6.0
           ]
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 0.39,
+          "hp_mult": 0.12,
           "tint": {
             "hue": [
               8,
@@ -847,95 +934,95 @@
       },
       {
         "id": "r36",
-        "t": 861,
-        "until": 964,
+        "t": 1031,
+        "until": 1219,
         "enemy": "fire_ant",
         "variant": "ANT-B",
         "weights": [
           [
-            861,
+            1031,
             4.0
           ],
           [
-            964,
+            1219,
             5.0
           ]
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 0.39
+          "hp_mult": 0.12
         }
       },
       {
         "id": "r37",
-        "t": 900,
-        "until": 1150,
+        "t": 1103,
+        "until": 1556,
         "enemy": "horned_toad",
         "weights": [
           [
-            900,
+            1103,
             1.0
           ],
           [
-            1150,
+            1556,
             1.4
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.46
+          "hp_mult": 0.15
         }
       },
       {
         "id": "r38",
-        "t": 900,
-        "until": 1075,
+        "t": 1103,
+        "until": 1420,
         "enemy": "buckshot_dwarf",
         "weights": [
           [
-            900,
+            1103,
             1.0
           ],
           [
-            1075,
+            1420,
             1.0
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.46,
+          "hp_mult": 0.15,
           "max_alive": 3
         }
       },
       {
         "id": "r39",
-        "t": 965,
-        "until": 1075,
+        "t": 1220,
+        "until": 1420,
         "enemy": "skeleton_knight",
         "weights": [
           [
-            965,
+            1220,
             8.0
           ],
           [
-            1015,
+            1311,
             8.0
           ],
           [
-            1016,
+            1312,
             3.0
           ],
           [
-            1075,
+            1420,
             3.0
           ]
         ],
         "pack": 60,
         "pattern": "ring",
         "stats": {
-          "hp_mult": 0.62,
+          "hp_mult": 0.23,
           "tint": {
             "hue": [
               8,
@@ -949,22 +1036,22 @@
       },
       {
         "id": "r40",
-        "t": 1015,
-        "until": 1150,
+        "t": 1311,
+        "until": 1556,
         "enemy": "armadillo",
         "weights": [
           [
-            1015,
+            1311,
             5.0
           ],
           [
-            1150,
+            1556,
             4.0
           ]
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 0.78,
+          "hp_mult": 0.32,
           "tint": {
             "hue": [
               40,
@@ -978,96 +1065,96 @@
       },
       {
         "id": "r41",
-        "t": 1015,
-        "until": 1150,
+        "t": 1311,
+        "until": 1556,
         "enemy": "dust_mummy",
         "variant": "DM-B",
         "weights": [
           [
-            1015,
+            1311,
             1.5
           ],
           [
-            1150,
+            1556,
             1.5
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.78
+          "hp_mult": 0.32
         }
       },
       {
         "id": "r42",
-        "t": 1015,
+        "t": 1311,
         "enemy": "dust_shaman",
         "weights": [
           [
-            1015,
+            1311,
             0.5
           ],
           [
-            1150,
+            1556,
             0.7
           ]
         ],
         "pack": 1,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.78,
+          "hp_mult": 0.32,
           "max_alive": 2
         }
       },
       {
         "id": "r43",
-        "t": 1040,
-        "until": 1185,
+        "t": 1357,
+        "until": 1620,
         "enemy": "bull_beetle",
         "weights": [
           [
-            1040,
+            1357,
             0.8
           ],
           [
-            1185,
+            1620,
             0.8
           ]
         ],
         "pack": 1,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.87,
+          "hp_mult": 0.37,
           "max_alive": 2
         }
       },
       {
         "id": "r44",
-        "t": 1150,
-        "until": 1290,
+        "t": 1556,
+        "until": 1810,
         "enemy": "werewolf",
         "weights": [
           [
-            1150,
+            1556,
             7.0
           ],
           [
-            1185,
+            1620,
             7.0
           ],
           [
-            1186,
+            1621,
             3.0
           ],
           [
-            1290,
+            1810,
             3.0
           ]
         ],
         "pack": 40,
         "pattern": "ring",
         "stats": {
-          "hp_mult": 1.4,
+          "hp_mult": 0.7,
           "size": [
             1.5,
             2.0
@@ -1085,39 +1172,39 @@
       },
       {
         "id": "r45",
-        "t": 1150,
-        "until": 1185,
+        "t": 1556,
+        "until": 1620,
         "enemy": "hellhound",
         "weights": [
           [
-            1150,
+            1556,
             4.0
           ],
           [
-            1185,
+            1620,
             4.0
           ]
         ],
         "pack": 6,
         "pattern": "in_front",
         "stats": {
-          "hp_mult": 1.4
+          "hp_mult": 0.7
         }
       },
       {
         "id": "r46",
-        "t": 1185,
+        "t": 1620,
         "enemy": "skeleton_knight",
         "variant": "KN-E",
         "weights": [
           [
-            1185,
+            1620,
             5.0
           ]
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 1.42,
+          "hp_mult": 0.75,
           "tint": {
             "hue": [
               8,
@@ -1131,34 +1218,34 @@
       },
       {
         "id": "r47",
-        "t": 1185,
+        "t": 1620,
         "enemy": "fire_ant",
         "variant": "ANT-B",
         "weights": [
           [
-            1185,
+            1620,
             4.0
           ]
         ],
         "pack": 6,
         "stats": {
-          "hp_mult": 1.42
+          "hp_mult": 0.75
         }
       },
       {
         "id": "r48",
-        "t": 1185,
+        "t": 1620,
         "enemy": "werewolf",
         "weights": [
           [
-            1185,
+            1620,
             3.0
           ]
         ],
         "pack": 3,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 1.42,
+          "hp_mult": 0.75,
           "size": [
             1.4,
             1.8
@@ -1167,59 +1254,59 @@
       },
       {
         "id": "r52",
-        "t": 1185,
-        "until": 1290,
+        "t": 1620,
+        "until": 1810,
         "enemy": "spit_cactus",
         "weights": [
           [
-            1185,
+            1620,
             1.2
           ],
           [
-            1290,
+            1810,
             1.2
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 1.42,
+          "hp_mult": 0.75,
           "max_alive": 4
         }
       },
       {
         "id": "r49",
-        "t": 1185,
+        "t": 1620,
         "enemy": "hammer_giant",
         "variant": "HG-C",
         "weights": [
           [
-            1185,
+            1620,
             0.6
           ]
         ],
         "pack": 1,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.56,
+          "hp_mult": 0.3,
           "max_alive": 2,
           "damage_mult": 0.55
         }
       },
       {
         "id": "r50",
-        "t": 1185,
+        "t": 1620,
         "enemy": "buckshot_dwarf",
         "weights": [
           [
-            1185,
+            1620,
             1.0
           ]
         ],
         "pack": 2,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 1.42,
+          "hp_mult": 0.75,
           "max_alive": 3
         }
       },
@@ -1264,11 +1351,11 @@
       {
         "id": "r8",
         "name": "Ant swarm",
-        "t": 610,
+        "t": 681,
         "enemy": "fire_ant",
         "weights": [
           [
-            610,
+            681,
             1
           ]
         ],
@@ -1281,17 +1368,17 @@
         "banner": "SWARM!",
         "role": "swarm",
         "stats": {
-          "hp_mult": 0.78
+          "hp_mult": 0.57
         }
       },
       {
         "id": "r9",
         "name": "Armadillo charge",
-        "t": 800,
+        "t": 946,
         "enemy": "armadillo",
         "weights": [
           [
-            800,
+            946,
             1
           ]
         ],
@@ -1303,17 +1390,17 @@
         "banner": "SWARM!",
         "role": "swarm",
         "stats": {
-          "hp_mult": 1.48
+          "hp_mult": 1.84
         }
       },
       {
         "id": "r17",
         "name": "Imp swarm",
-        "t": 1040,
+        "t": 1357,
         "enemy": "imp",
         "weights": [
           [
-            1040,
+            1357,
             1
           ]
         ],
@@ -1324,16 +1411,19 @@
         "respect_cap": false,
         "respect_hard_cap": false,
         "banner": "SWARM!",
-        "role": "swarm"
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.43
+        }
       },
       {
         "id": "r53",
         "name": "Swarm",
-        "t": 1204,
+        "t": 1654,
         "enemy": "fire_ant",
         "weights": [
           [
-            1204,
+            1654,
             1
           ]
         ],
@@ -1344,7 +1434,10 @@
         "respect_cap": false,
         "respect_hard_cap": false,
         "banner": "SWARM!",
-        "role": "swarm"
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.54
+        }
       }
     ],
     "events": [
@@ -1363,7 +1456,7 @@
         "enemy": "tumbleweed_king"
       },
       {
-        "t": 645,
+        "t": 730,
         "type": "elite_boss",
         "enemy": [
           "dune_scorpion",
@@ -1371,16 +1464,19 @@
           "stone_golem"
         ],
         "stats": {
-          "hp_mult": 0.94
+          "hp_mult": 0.8
         }
       },
       {
-        "t": 860,
+        "t": 1030,
         "type": "boss",
-        "enemy": "gila_grande"
+        "enemy": "gila_grande",
+        "stats": {
+          "hp_mult": 0.3
+        }
       },
       {
-        "t": 1075,
+        "t": 1420,
         "type": "elite_boss",
         "enemy": [
           "dune_scorpion",
@@ -1388,13 +1484,16 @@
           "stone_golem"
         ],
         "stats": {
-          "hp_mult": 1.33
+          "hp_mult": 0.45
         }
       },
       {
-        "t": 1290,
+        "t": 1810,
         "type": "boss",
-        "enemy": "brander"
+        "enemy": "brander",
+        "stats": {
+          "hp_mult": 0.15
+        }
       }
     ],
     "pickups": {
@@ -1449,7 +1548,7 @@
     },
     "cap_per_stage": 0,
     "speed_per_stage": 0.1,
-    "weight_late_t": 860,
+    "weight_late_t": 1030,
     "weapon_cap": [
       5,
       5,
@@ -1466,30 +1565,48 @@
         405
       ],
       [
-        50,
-        105,
-        160,
-        215,
-        270,
-        325,
-        380,
-        410
+        70,
+        147,
+        223,
+        300,
+        377,
+        453,
+        530,
+        572
       ],
       [
-        50,
-        105,
-        160,
-        215,
-        270,
-        325,
-        380,
-        410
+        91,
+        190,
+        290,
+        390,
+        490,
+        590,
+        689,
+        744
       ]
     ],
     "level_hp_per_level": 0.05,
     "level_damage_per_level": 0.03,
     "endless_wave_seconds": 86,
     "endless_wave_mult": 1.12,
+    "endless": {
+      "portal_seconds": 60,
+      "every": 10,
+      "first_wave": 60,
+      "wave_size": 30,
+      "wave_growth": 2,
+      "cap": 1.0,
+      "hp": 1.15,
+      "atk": 1.0,
+      "speed": 1.1,
+      "hp_growth": 0.11,
+      "atk_growth": 0.07,
+      "speed_growth": 0.015,
+      "speed_max": 1.6,
+      "xp_share": 0.35,
+      "coin_chance": 0.05,
+      "roster_window": 60
+    },
     "hell_cap": [
       0.0,
       0.3,

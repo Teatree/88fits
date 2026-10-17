@@ -9,7 +9,11 @@
 ## none / a quarter / half / full (the Sim's, from watch.py's setup file) and the PC save's board. "Start Run" hands the
 ## settings to Watch.gd (signal `started`), which starts the run the way the game does: the hero comes down in the spawn
 ## beam. Opened mid-run from the header's "Restart run", "Cancel" leaves the run as it was.
-## The settings (a Dictionary; defaults_from_args, collect): hero, look ("" = his own), map, seed, seed_random, speed,
+## Pass 87 (lane STOOLS; Garry: "Watch Tool should give me a choice to which Stage bot will be playing in"): the Stage
+## row under the map: every stage of the map with its name, length and boss; with "Every unlock" on (tool mode) every
+## stage may be chosen, off (the save's mode) only the stages the PC save has unlocked (watch.py's setup file:
+## save_stages, the save's stages beaten); the row's note says which. The run starts that stage (the launch's `stage`).
+## The settings (a Dictionary; defaults_from_args, collect): hero, look ("" = his own), map, stage (1-based), seed, seed_random, speed,
 ## limit (play seconds, 0 none), death, sound, numbers, unlocks ("all" | "save"), talents (the command line's text,
 ## "grit:AAB,drive:A" or "none"), board_label, bot ("auto" | "stub"), bot_opts ({preset, and every option that differs
 ## from the preset's}). Tools only.
@@ -31,7 +35,7 @@ const BOT_NUMBERS := [["skill", "Skill", 0.0, 1.0, 0.05, "how well he picks card
 	["explore", "Explore", 0.0, 1.0, 0.05, "how much he wants to see the map"]]
 ## the bot's choice options: [key, label, choices]
 const BOT_CHOICES := [["style", "Style", ["balanced", "damage", "safety", "greedy"]], ["boss", "Boss", ["leash", "free"]],
-	["cards", "Cards", ["tier", "score"]]]
+	["cards", "Cards", ["tier", "score"]], ["portal", "Portal", ["endless", "extract"]]]
 const BOOL_WORDS := {"totems": "Totem Poles", "barrels": "Barrels", "powerups": "Power-ups", "structures": "Structures",
 	"shop": "Shop", "stranger": "Stranger", "specials": "Specials"}
 const DEATHS := [["end", "end the run at the first fall"], ["ad", "the ad revive once, then end"], ["keep", "stand up at once, count every fall"]]
@@ -58,6 +62,10 @@ var _look: OptionButton
 var _hero_pic: TextureRect
 var _hero_note: Label
 var _map: OptionButton
+## pass 87 (lane STOOLS): the stage the run plays and its words; the stage index (0-based) of each item
+var _stage: OptionButton
+var _stage_note: Label
+var _stage_idx: Array = []
 var _seed_random: CheckBox
 var _seed: SpinBox
 var _speed: OptionButton
@@ -82,6 +90,7 @@ var _err: Label
 ## The settings the command line asks for (Watch.gd's args): the pop-up's defaults, and a `--go` run's settings.
 static func defaults_from_args(args: Dictionary) -> Dictionary:
 	var s := {"hero": str(args.get("hero", "drifter")), "look": str(args.get("look", "")), "map": str(args.get("map", "red_canyon")),
+		"stage": maxi(int(args.get("stage", "1")), 1),
 		"seed": maxi(int(args.get("seed", "1")), 1), "seed_random": str(args.get("seed_random", "0")) == "1",
 		"speed": CLOCK.nearest(float(args.get("speed", "1"))), "limit": maxf(float(args.get("limit", "0")), 0.0),
 		"death": str(args.get("death", "end")), "sound": str(args.get("sound", "0")) == "1", "numbers": str(args.get("numbers", "1")) != "0",
@@ -259,9 +268,13 @@ static func bot_diff(preset: String, preset_vals: Dictionary, cur: Dictionary) -
 
 ## The Sim result for the charts' grey line: the first of the setup's refs (newest first) with the run's hero, map and
 ## board. {path, label} or {}.
-static func ref_for(refs: Array, hero: String, map_id: String, p: Dictionary) -> Dictionary:
+static func ref_for(refs: Array, hero: String, map_id: String, p: Dictionary, stage: int = 1) -> Dictionary:
 	for r in refs:
 		if not (r is Dictionary):
+			continue
+		# pass 87 (lane STOOLS): a Sim of the same stage (a whole-run Sim from before pass 87 only for stage 1)
+		var rs := int(r.get("stage", 0))
+		if not (rs == stage or (rs == 0 and stage == 1)):
 			continue
 		if str(r.get("hero", "")) == hero and str(r.get("map", "red_canyon")) == map_id and same_board(picks_from(str(r.get("talents", "none"))), p):
 			return {"path": str(r.get("path", "")), "label": str(r.get("label", ""))}
@@ -441,6 +454,19 @@ func _build_run(parent: Control) -> void:
 	_map = OptionButton.new()
 	_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_row(g, "Map", _map, "the map")
+	# pass 87 (lane STOOLS): the stage the run plays (each stage is its own run)
+	var stage_box := VBoxContainer.new()
+	stage_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_stage = OptionButton.new()
+	_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stage_box.add_child(_stage)
+	_stage_note = Label.new()
+	_stage_note.add_theme_color_override("font_color", PANEL.DIM)
+	_stage_note.add_theme_font_size_override("font_size", 12)
+	_stage_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	stage_box.add_child(_stage_note)
+	_row(g, "Stage", stage_box, "the stage the run plays: a fresh hero at its start, its boss at its end, then the portal's countdown and Endless")
+	_map.item_selected.connect(func(_i: int) -> void: _fill_stages(_stage_selected() + 1))
 	var seed_row := HBoxContainer.new()
 	_seed_random = CheckBox.new()
 	_seed_random.text = "Random"
@@ -479,7 +505,8 @@ func _build_run(parent: Control) -> void:
 	sw.add_child(_numbers)
 	_unlocks = CheckBox.new()
 	_unlocks.text = "Every unlock"
-	_unlocks.tooltip_text = "every unlock quest done: the whole content in the card pool (off: the Watch save's, none)"
+	_unlocks.tooltip_text = "every unlock quest done: the whole content in the card pool, every stage open (off: the Watch save's quests, none; the PC save's stages)"
+	_unlocks.toggled.connect(func(_on: bool) -> void: _fill_stages(_stage_selected() + 1))
 	sw.add_child(_unlocks)
 	_row(g, "", sw, "")
 
@@ -748,6 +775,7 @@ func _fill(s: Dictionary) -> void:
 	_sound.button_pressed = bool(s.get("sound", false))
 	_numbers.button_pressed = bool(s.get("numbers", true))
 	_unlocks.button_pressed = str(s.get("unlocks", "all")) == "all"
+	_fill_stages(int(s.get("stage", 1)))
 	# the bot: its preset's values, the options given laid over
 	var opts: Dictionary = s.get("bot_opts", {})
 	var pre := "stub" if str(s.get("bot", "auto")) == "stub" else str(opts.get("preset", _bot_consts.get("DEFAULT_PRESET", "explorer")))
@@ -816,6 +844,7 @@ func collect() -> Dictionary:
 	var s := {"hero": _hero_ids[hi] if hi >= 0 and hi < _hero_ids.size() else "drifter",
 		"look": _look_codes[li] if li >= 0 and li < _look_codes.size() else "",
 		"map": _map_ids[_map.selected] if _map.selected >= 0 and _map.selected < _map_ids.size() else "red_canyon",
+		"stage": _stage_selected() + 1,
 		"seed": int(_seed.value), "seed_random": _seed_random.button_pressed,
 		"speed": float(CLOCK.SPEEDS[maxi(_speed.selected, 0)]), "limit": limit_secs(_limit.text),
 		"death": str(DEATHS[maxi(_death.selected, 0)][0]), "sound": _sound.button_pressed, "numbers": _numbers.button_pressed,
@@ -824,6 +853,67 @@ func collect() -> Dictionary:
 		"bot": "stub" if preset == "stub" else "auto"}
 	s["bot_opts"] = {} if preset == "stub" else bot_diff(preset, _bot_presets().get(preset, {}), _bot_values())
 	return s
+
+
+# ---------------------------------------------------------------- the stage row (pass 87, lane STOOLS)
+
+## Whether stage `k` (0-based) may be chosen: every stage in tool mode (`all`), else stage 1 and each one whose stage
+## before is beaten in `beaten` (the PC save's flags for the map, as Save.stage_unlocked).
+static func stage_open(beaten: Array, k: int, all: bool) -> bool:
+	if all or k <= 0:
+		return true
+	return k - 1 < beaten.size() and bool(beaten[k - 1])
+
+
+## The stage the row shows (0-based; 0 before it is filled).
+func _stage_selected() -> int:
+	if _stage == null or _stage.selected < 0 or _stage.selected >= _stage_idx.size():
+		return 0
+	return int(_stage_idx[_stage.selected])
+
+
+## The map's stages into the row (its name, length and boss), the locked ones greyed in the save's mode; `want` (1-based)
+## chosen when it may be, else the last open stage before it.
+func _fill_stages(want: int) -> void:
+	if _stage == null:
+		return
+	_stage.clear()
+	_stage_idx.clear()
+	var map_id: String = _map_ids[_map.selected] if _map.selected >= 0 and _map.selected < _map_ids.size() else "red_canyon"
+	var mdef = _reg.map(map_id) if _reg != null else null
+	var tl = mdef.timeline if mdef != null else null
+	var n := 1
+	if tl != null:
+		n = int(tl.call("stage_count")) if tl.has_method("stage_count") else maxi(int(tl.stages), 1)
+	var all := _unlocks == null or _unlocks.button_pressed
+	var saved: Dictionary = doc.get("save_stages", {}) if doc.get("save_stages") is Dictionary else {}
+	var beaten: Array = saved.get(map_id, []) if saved.get(map_id) is Array else []
+	var pick := 0
+	var opened: Array = []
+	for k in range(n):
+		var nm := "Stage %d" % (k + 1)
+		var words := ""
+		if tl != null and tl.has_method("stage_name"):
+			nm = str(tl.call("stage_name", k))
+			var boss := str(tl.call("stage_boss", k))
+			var bdef = _reg.enemy(boss) if _reg != null and boss != "" else null
+			var secs := int(round(float(tl.call("stage_len", k))))
+			words = " (%d:%02d%s)" % [secs / 60, secs % 60, (", " + (str(bdef.display_name) if bdef != null else boss)) if boss != "" else ""]
+		var ok := stage_open(beaten, k, all)
+		_stage.add_item("Stage %d%s%s%s" % [k + 1, (" · " + nm) if nm != "Stage %d" % (k + 1) else "", words, "" if ok else " · locked"])
+		_stage_idx.append(k)
+		_stage.set_item_disabled(_stage.item_count - 1, not ok)
+		if ok:
+			opened.append(k + 1)
+			if k + 1 <= maxi(want, 1):
+				pick = k
+	_stage.select(pick)
+	if all:
+		_stage_note.text = "tool mode (Every unlock on): every stage"
+	elif str(doc.get("save_stages_note", "")).begins_with("no save"):
+		_stage_note.text = "the save's mode: no PC save read, stage 1 only"
+	else:
+		_stage_note.text = "the save's mode: the stages the PC save has unlocked (%s)" % ", ".join(PackedStringArray(opened.map(func(x) -> String: return str(x))))
 
 
 func _on_start() -> void:

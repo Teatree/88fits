@@ -165,7 +165,8 @@ func _on_gold(run_gold: int) -> void:
 
 
 func _on_stage(s: int) -> void:
-	if s > 0:
+	# pass 87 (lane SGAME): a stage run starts on its own stage (no mark for it at 0:00)
+	if s > 0 and t > 0.0:
 		stages.append([t, s])
 
 

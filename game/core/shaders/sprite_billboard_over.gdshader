@@ -36,6 +36,8 @@ uniform float pull = 0.08;
 uniform vec4 water = vec4(0.0, -1000.0, 0.0, 0.0);
 // how far the disc's rim reaches under its top face (the Oasis is a cylinder this thick)
 uniform float water_thick = 0.08;
+// pass 87 (lane FIXES): the hero's evade: this pass alone draws him, at this alpha (his first pass steps aside below 1)
+uniform float fade_alpha = 1.0;
 
 varying vec2 v_uv;
 // the point on his painting in the world, before the pull: the very point his first pass draws at this pixel
@@ -99,5 +101,5 @@ void fragment() {
 	vec3 col = c.rgb * tint.rgb;
 	col = mix(col, vec3(1.0), flash);
 	ALBEDO = col;
-	ALPHA = 1.0;
+	ALPHA = fade_alpha;
 }

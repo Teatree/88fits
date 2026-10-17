@@ -615,14 +615,16 @@ func test_the_mouth_winds_up_then_snaps_wide_open() -> void:
 	assert_bool(lb._fire()).is_true()
 	# nothing pours yet: the wind-up first
 	assert_float(lb._beam_t).is_equal(0.0)
-	assert_float(lb._windup_t).is_equal_approx(LaserBeam.WINDUP, 0.0001)
+	assert_float(lb._windup_t).is_equal_approx(lb.windup_seconds(), 0.0001)
 	assert_int(lb.beams).is_equal(0)
-	lb._tick(LaserBeam.WINDUP * 0.6)
-	# clamped shut and squashed
-	assert_float(lb._jaw.rotation.x).is_greater(-deg_to_rad(4.0))
-	assert_float(lb._model.scale.y).is_less(lb._model_scale * 0.95)
+	lb._tick(lb.windup_seconds() * 0.6)
+	# pass 87 (re-pinned on purpose, lane BIGMOUTH): the wind-up is a breath now, not a clamp: the jaw gapes a little, the
+	# lips rear up and the mouth swells (it was clamped shut and squashed)
+	assert_float(lb._jaw.rotation.x).is_less(-deg_to_rad(8.0))
+	assert_float(lb._jaw.rotation.x).is_greater(-deg_to_rad(LaserBeam.JAW_OPEN_DEG))
+	assert_float(lb._model.rotation.x).is_greater(deg_to_rad(32.0) + 0.15)
 	assert_float(lb._model.scale.x).is_greater(lb._model_scale * 1.03)
-	lb._tick(LaserBeam.WINDUP * 0.5)
+	lb._tick(lb.windup_seconds() * 0.5)
 	# it pours, with a kick of the camera
 	assert_float(lb._beam_t).is_greater(0.0)
 	assert_int(lb.beams).is_equal(1)

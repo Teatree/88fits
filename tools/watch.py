@@ -150,8 +150,16 @@ def sim_talents(settings):
         return {}
 
 
-def find_ref(hero, talents, map_id):
-    """The newest Sim result of the same hero, board and map (tools/dl/sim/runs/*/result.json): (path, label) or (None, why)."""
+def ref_stage_ok(sim_stage, stage):
+    """Pass 87 (lane STOOLS): whether a Sim of `sim_stage` (0 = before pass 87: the whole run through the stages) may be
+    the grey line of a run of `stage`: the same stage, or an old whole-run Sim for stage 1 (its start is stage 1)."""
+    st = int(sim_stage or 0)
+    return st == int(stage or 1) or (st == 0 and int(stage or 1) == 1)
+
+
+def find_ref(hero, talents, map_id, stage=1):
+    """The newest Sim result of the same hero, board, map and stage (tools/dl/sim/runs/*/result.json): (path, label) or
+    (None, why)."""
     for r in SB.list_sims():
         res = os.path.join(r["path"], "result.json")
         if not os.path.isfile(res) or r.get("running"):
@@ -165,8 +173,10 @@ def find_ref(hero, talents, map_id):
             continue
         if sim_talents(s) != (talents or {}):
             continue
+        if not ref_stage_ok(s.get("stage"), stage):
+            continue
         return res, r["id"]
-    return None, "no Sim result of %s with this board yet" % hero
+    return None, "no Sim result of %s with this board on stage %d yet" % (hero, int(stage or 1))
 
 
 def build_args(a, talents, label, ref, ref_label, lock_path, setup=None):
@@ -177,6 +187,7 @@ def build_args(a, talents, label, ref, ref_label, lock_path, setup=None):
     out = ["hero=" + a.hero, "seed=%d" % a.seed, "map=" + a.map, "talents=" + SB.talents_arg(talents),
            "board_label=" + SB.board_text(talents, label), "limit=%d" % parse_limit(a.limit), "speed=%g" % float(a.speed),
            "death=" + a.death, "unlocks=" + a.unlocks, "repo=" + ROOT.replace("\\", "/"), "lock=" + lock_path.replace("\\", "/"),
+           "stage=%d" % max(1, int(getattr(a, "stage", 1) or 1)),
            "sound=%d" % (1 if sound else 0), "numbers=%d" % (0 if a.no_numbers else 1), "log_speed=%g" % float(a.log_speed)]
     if bool(getattr(a, "go", False)) or bool(getattr(a, "autoquit", False)):
         out.append("go=1")
@@ -232,7 +243,7 @@ def ref_entries():
             whole = SB.read_json(res, tries=2) or {}
             s = whole.get("settings") or {}
         out.append({"hero": str(s.get("hero", "")), "map": str(s.get("map", "red_canyon")), "talents": SB.talents_arg(sim_talents(s)),
-                    "path": res.replace("\\", "/"), "label": r["id"]})
+                    "path": res.replace("\\", "/"), "label": r["id"], "stage": int(s.get("stage") or 0)})
     return out
 
 
@@ -248,13 +259,19 @@ def write_setup(path):
     t, note = SB.save_board()
     presets["save"] = t
     labels["save"] = "my save"
+    # pass 87 (lane STOOLS): the stages the PC save has beaten, per map (the pop-up's Stage row in the save's mode)
+    try:
+        stages, stage_note = SB.save_stages()
+    except Exception as e:  # a broken save never stops the Watch
+        stages, stage_note = {}, "the save's stages: %s" % e
     try:
         refs = ref_entries()
     except Exception as e:  # a broken sim folder never stops the Watch
         refs = []
         note = (note + "; " if note else "") + "the Sim results: %s" % e
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    SB.write_json(path, {"presets": presets, "labels": labels, "save_note": note or "", "refs": refs})
+    SB.write_json(path, {"presets": presets, "labels": labels, "save_note": note or "", "refs": refs, "save_stages": stages,
+                         "save_stages_note": stage_note})
     return path
 
 
@@ -302,6 +319,7 @@ def main(argv=None):
     ap.add_argument("--paused", action="store_true", help="start paused")
     ap.add_argument("--death", default="end", help="Down! answered by the bot: end (the default), ad, keep (as the Sim)")
     ap.add_argument("--unlocks", default="all", choices=("all", "save"))
+    ap.add_argument("--stage", type=int, default=1, help="pass 87: the stage the run plays (1-based; each stage is its own run)")
     ap.add_argument("--ref", default="auto", help="a Sim result.json for the charts' grey line, auto (the newest of this hero and board) or none")
     ap.add_argument("--bot", action="append", default=[], help="a bot option key=value (repeatable): skill=0.6, style=greedy, totems=off ...")
     ap.add_argument("--bot-preset", default="", help="the bot's preset (lane BOT's names: sim77, explorer, careless, expert)")
@@ -339,7 +357,7 @@ def main(argv=None):
     try:
         ref, ref_label = None, ""
         if str(a.ref).lower() == "auto":
-            ref, why = find_ref(a.hero, talents, a.map)
+            ref, why = find_ref(a.hero, talents, a.map, getattr(a, "stage", 1))
             if ref:
                 ref_label = why
                 say("ref: %s" % os.path.relpath(ref, ROOT))

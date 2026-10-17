@@ -70,6 +70,13 @@
 ## dragged off a gift take nothing; totem_inset200 as well (the screen 70 px lower).
 ## Pass 76 (lane LOOKS): arena_item_looks (run with arena): a real tap on a weapon family's look chip on ITEMS keeps that
 ## look on the phone, the family wears it and a held weapon of it is made again in it; JSON gives its own look back.
+## Pass 87 (lane SUI, the stages): stages (run alone with only=stages): with Red Canyon's stage 1 beaten a real tap on
+## PLAY opens the Stages menu; every card and the back square answer a finger; a real tap on a locked card starts nothing
+## and leaves the screen where it is; a real tap on each open card starts its stage (held on the screen); the back square
+## goes to the title for real. stages_play: a real tap on stage 2's card starts a run there (Run.stage 1, a fresh hero,
+## the HUD's clock at the stage's own 00:00). portal_expire (run with portal): the stage clear's countdown running out
+## closes it by itself (`expired`, no decision); endless_banner (run with hud): Endless shows its banner and the clock's
+## WAVE tag, and a finger on the tag still pauses (the strip takes it).
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -516,6 +523,8 @@ func _run() -> void:
 		await _audit("mirror_sheet", current_scene._sheet_root)
 	if _want("spawn"):
 		await _spawn_skip()
+	if _want("stages") or _want("stages_play"):
+		await _stages_menu()
 	await _in_game()
 	_report()
 
@@ -1334,6 +1343,10 @@ func _in_game() -> void:
 		await _portal_not_yet(g)
 		g.portal_dialog.visible = false
 		g.set_paused(false)
+	if _want("portal") or _want("portal_expire"):
+		await _portal_expire(g)
+	if _want("hud") or _want("endless_banner"):
+		await _endless_banner(g)
 	if _want("stranger"):
 		var offer: Dictionary = run.stranger_offer()
 		if not offer.is_empty():
@@ -1568,6 +1581,171 @@ func _gate_strip(g) -> void:
 
 
 ## The stage clear's NOT YET (pass 48) under a real finger: the dialog closes, `declined` is heard and nothing is decided.
+## Pass 87 (lane SUI): the Stages menu under real fingers (see the header). The save's stages, hero and map go back after.
+func _stages_menu() -> void:
+	var save = root.get_node("Save")
+	var keep_beaten: Dictionary = (save.data.get("stages_beaten", {}) as Dictionary).duplicate(true)
+	var keep_map = save.data.get("last_map", "red_canyon")
+	save.data["last_map"] = "red_canyon"
+	save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
+	change_scene_to_file("res://ui/TitleScreen.tscn")
+	await _wait(1.4)
+	var play: Control = current_scene.get("_play")
+	if play and not bool(play.get("locked")):
+		await _tap(play.get_global_rect().get_center())
+		await _wait(1.0)
+	var on_menu: bool = current_scene != null and current_scene.scene_file_path == "res://ui/StagesScreen.tscn"
+	_count("stages", on_menu)
+	if not on_menu:
+		_fail("stages", "PLAY", "with stage 1 beaten a tap did not open the Stages menu")
+		change_scene_to_file("res://ui/StagesScreen.tscn")
+		await _wait(1.2)
+	var menu = current_scene
+	if _want("stages"):
+		await _audit("stages", menu)
+		var cards: Array = menu.call("cards")
+		var opened := 0
+		for c: Control in cards:
+			var at: Vector2 = await _spot(c)
+			if at == Vector2.INF:
+				_fail("stages", _name_of(c), "not on screen")
+				continue
+			var open := bool(c.get_meta("open", false))
+			var i := int(c.get_meta("stage", -1))
+			menu.set("started", -1)
+			menu.set("hold_start", true)
+			await _tap(at)
+			await _wait(0.5)
+			var still: bool = current_scene == menu
+			var got := int(menu.get("started"))
+			var ok: bool = still and (got == i if open else got == -1)
+			_count("stages", ok)
+			if not ok:
+				_fail("stages", _name_of(c), ("an open card did not start its stage (%d)" % got) if open else "a locked card started something or left the screen")
+			if open:
+				opened += 1
+		if opened != 2:
+			_fail("stages", "cards", "stage 1 beaten should open two stages, %d open" % opened)
+		menu.set("hold_start", false)
+		menu.set("started", -1)
+		# the back square for real: the title
+		var back: Control = menu.get("header").get("back_button")
+		await _tap(back.get_global_rect().get_center())
+		await _wait(1.0)
+		var home: bool = current_scene != null and current_scene.scene_file_path == "res://ui/TitleScreen.tscn"
+		_count("stages", home)
+		if not home:
+			_fail("stages", "back square", "a tap did not go back to the title")
+	if _want("stages_play"):
+		if current_scene == null or current_scene.scene_file_path != "res://ui/StagesScreen.tscn":
+			change_scene_to_file("res://ui/StagesScreen.tscn")
+			await _wait(1.2)
+		var c2: Control = null
+		for c in current_scene.call("cards"):
+			if int(c.get_meta("stage", -1)) == 1:
+				c2 = c
+		if c2 == null:
+			_fail("stages_play", "Stage 2", "no card")
+		else:
+			var at2: Vector2 = await _spot(c2)
+			await _tap(at2)
+			var w := 0.0
+			while w < 8.0 and not (current_scene and current_scene.scene_file_path == "res://game/Game.tscn" and current_scene.get("hud") != null):
+				await _wait(0.2)
+				w += 0.2
+			await _wait(1.0)
+			var run = root.get_node("Run")
+			var g = current_scene
+			var in_game: bool = g != null and g.scene_file_path == "res://game/Game.tscn"
+			var ok2: bool = in_game and int(run.stage) == 1 and int(run.level) == 1
+			_count("stages_play", ok2)
+			if not ok2:
+				_fail("stages_play", "Stage 2", "the run did not start at stage 2 with a fresh hero (in game %s, stage %d, level %d)" % [in_game, int(run.stage) + 1, int(run.level)])
+			elif g.get("hud"):
+				var clock: String = str(g.hud.get("_timer").text)
+				var fresh: bool = clock == "00:00" or clock == "00:01" or clock == "00:02"
+				_count("stages_play", fresh)
+				if not fresh:
+					_fail("stages_play", "HUD clock", "a stage run's clock reads %s, not the stage's own 00:00" % clock)
+			if in_game:
+				g.player.god = true
+				change_scene_to_file("res://ui/TitleScreen.tscn")
+				await _wait(1.0)
+	save.data["stages_beaten"] = keep_beaten
+	save.data["last_map"] = keep_map
+	root.get_node("Run").set("stage_next", 0)
+	save.request_save()
+	save.flush()
+
+
+## Pass 87 (lane SUI): the stage clear's countdown runs out with it up: it closes by itself, says `expired`, decides
+## nothing and declines nothing.
+func _portal_expire(g) -> void:
+	var pd = g.portal_dialog
+	var left := [1.0]
+	pd.seconds_source = func() -> float: return left[0]
+	var heard := {"expired": 0, "declined": 0, "decided": 0}
+	var on_exp := func(): heard["expired"] += 1
+	var on_no := func(): heard["declined"] += 1
+	var on_yes := func(_x): heard["decided"] += 1
+	# Game's own answers unplugged while the dialog is tried on its own (it was opened here, not through the one-screen rule)
+	var saved_exp := _mute(pd.expired)
+	var saved_no := _mute(pd.declined)
+	var saved_yes := _mute(pd.decided)
+	pd.expired.connect(on_exp)
+	pd.declined.connect(on_no)
+	pd.decided.connect(on_yes)
+	g.set_paused(true)
+	pd.open(1, true, false)
+	await _wait(0.6)
+	var counting: String = str(pd.get("_count").text)
+	left[0] = 0.0
+	await _wait(0.3)
+	pd.expired.disconnect(on_exp)
+	pd.declined.disconnect(on_no)
+	pd.decided.disconnect(on_yes)
+	_unmute(pd.expired, saved_exp)
+	_unmute(pd.declined, saved_no)
+	_unmute(pd.decided, saved_yes)
+	pd.seconds_source = Callable()
+	var ok: bool = counting == "00:01" and not pd.visible and heard["expired"] == 1 and heard["declined"] == 0 and heard["decided"] == 0
+	_count("portal_expire", ok)
+	if not ok:
+		_fail("portal_expire", "countdown", "showed %s; at 0 visible=%s expired=%d declined=%d decided=%d" % [counting, pd.visible, heard["expired"], heard["declined"], heard["decided"]])
+	pd.visible = false
+	g.set_paused(false)
+
+
+## Pass 87 (lane SUI): Endless on the HUD: the ENDLESS banner, the clock's WAVE tag, and the tag lets a finger through to
+## the strip (which pauses).
+func _endless_banner(g) -> void:
+	var hud = g.hud
+	hud.set("test_stage_clock", {"endless": true, "endless_wave": 2, "endless_seconds": 12.0})
+	hud.tick(0.0)
+	await _wait(0.4)
+	var said: String = hud.banner_text()
+	var tag: String = hud.stage_tag_text()
+	var ok: bool = said == "ENDLESS" and tag == "WAVE 2" and hud.clock_mode() == "endless"
+	_count("endless_banner", ok)
+	if not ok:
+		_fail("endless_banner", "banner", "banner '%s', tag '%s', clock %s" % [said, tag, hud.clock_mode()])
+	var st: Control = hud.get("_stage_tag")
+	if st and st.is_visible_in_tree():
+		var asked := [false]
+		var saved := _mute(hud.pause_requested)
+		var probe := func(): asked[0] = true
+		hud.pause_requested.connect(probe)
+		await _tap(st.get_global_rect().get_center())
+		hud.pause_requested.disconnect(probe)
+		_unmute(hud.pause_requested, saved)
+		_count("endless_banner", asked[0])
+		if not asked[0]:
+			_fail("endless_banner", "WAVE tag", "a finger on it did not reach the strip (no pause)")
+	hud.set("test_stage_clock", {})
+	hud.tick(0.0)
+	await _wait(0.2)
+
+
 func _portal_not_yet(g) -> void:
 	var pd = g.portal_dialog
 	if not pd.visible:

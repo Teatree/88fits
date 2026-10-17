@@ -1,0 +1,384 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a tall, lean, athletic young Black man of about twenty with long arms and long legs, broad square shoulders held level, a straight upright back and his chest up; dark brown skin; a short rounded black afro with a white terry-cloth sweatband across his forehead; sharp angular features, a thin black goatee, heavy-lidded confident eyes and a sly half-smile; a sleeveless vivid royal-purple basketball jersey with gold trim round the neck and the armholes and a big gold number 88 printed in the middle of the chest; loose knee-length bright white basketball shorts with a purple waistband and a purple and gold stripe down the outside of each leg; white wristbands on both wrists; short white socks and white high-top sneakers with purple accents; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+ "renders": {
+  "front": {
+   "seed": 242108940,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a tall, lean, athletic young Black man of about twenty with long arms and long legs, broad square shoulders held level, a straight upright back and his chest up; dark brown skin; a short rounded black afro with a white terry-cloth sweatband across his forehead; sharp angular features, a thin black goatee, heavy-lidded confident eyes and a sly half-smile; a sleeveless vivid royal-purple basketball jersey with gold trim round the neck and the armholes and a big gold number 88 printed in the middle of the chest; loose knee-length bright white basketball shorts with a purple waistband and a purple and gold stripe down the outside of each leg; white wristbands on both wrists; short white socks and white high-top sneakers with purple accents; standing straight and facing the viewer with his arms relaxed at his sides, empty hands. Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 360,
+     "right": 368,
+     "top": 27,
+     "bottom": 26,
+     "height": 970,
+     "width": 295
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 242061427,
+   "prompt": "Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing straight with arms relaxed. standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball He faces away from the viewer: only the back of his rounded black afro with the white sweatband's band round the back of his head, the back of his neck, and the back of the vivid purple jersey with a big gold number 88 printed across the middle of his upper back between the shoulder blades, as big as the 88 on the front; both shoulders broad, square and level, his back straight and upright, never hunched or slouched; the bright white shorts with their purple and gold side stripes, the backs of his calves and the heels of the white high-tops; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 361,
+     "right": 367,
+     "top": 27,
+     "bottom": 29,
+     "height": 967,
+     "width": 295
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 242037675,
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball a clean side profile facing right: the rounded afro and the sweatband, the goatee, the jersey's side with its gold armhole trim, the bright white shorts with the purple and gold stripe down the side, standing tall with his back straight and both shoulders level, the near shoulder never raised above the far one, one arm hanging relaxed beside the torso, empty hands isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 425,
+     "right": 425,
+     "top": 31,
+     "bottom": 28,
+     "height": 964,
+     "width": 173
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 242037676,
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 385,
+     "right": 368,
+     "top": 32,
+     "bottom": 27,
+     "height": 964,
+     "width": 270
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 242037677,
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so he faces the upper right of the frame, his back and his right shoulder towards us, the back of his head with no face visible, standing straight and tall with his arms relaxed at his sides, empty hands. The second reference image shows his back: the back of his purple jersey carries the big gold number 88 across his upper back, so in this three-quarter view both gold digits 8 8 show clearly on his back, seen at an angle, as big as on the back view. Both shoulders square, level and upright, his back straight. Keep the same outfit, colors, proportions and art style as the references. standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_front.png",
+    "88fits/fadeaway_e_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 370,
+     "right": 371,
+     "top": 29,
+     "bottom": 27,
+     "height": 967,
+     "width": 282
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 242037679,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 314,
+     "right": 312,
+     "top": 23,
+     "bottom": 69,
+     "height": 931,
+     "width": 397
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 242062456,
+   "prompt": "One single figure alone in the frame: the exact same character seen directly from behind, flinching in pain from a hit: leaning back a little, shoulders hunched up, both elbows pulled in and one hand raised towards his chest in front of him, his head still facing away from the viewer: only the back of his afro and the sweatband show, no face, no eyes. The back of his purple jersey keeps the big gold number 88 exactly as in the reference. Still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 316,
+     "right": 319,
+     "top": 27,
+     "bottom": 30,
+     "height": 966,
+     "width": 388
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 242037700,
+   "prompt": "One single figure alone in the frame: the exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_front_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 365,
+     "right": 355,
+     "top": 36,
+     "bottom": 27,
+     "height": 960,
+     "width": 303
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 242037701,
+   "prompt": "One single figure alone in the frame: the exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_side_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 425,
+     "right": 405,
+     "top": 31,
+     "bottom": 27,
+     "height": 965,
+     "width": 193
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 242037702,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_bd88_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 376,
+     "right": 372,
+     "top": 34,
+     "bottom": 26,
+     "height": 963,
+     "width": 275
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 242037703,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_fd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 386,
+     "right": 369,
+     "top": 33,
+     "bottom": 28,
+     "height": 962,
+     "width": 268
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 242038681,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. flinching back with a grimace, one arm raised across the chest. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_e_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 52,
+     "right": 133,
+     "top": 253,
+     "bottom": 175,
+     "height": 595,
+     "width": 838
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "art_prompt": "a tall, lean, athletic young Black man of about twenty with long arms and long legs, broad square shoulders held level, a straight upright back and his chest up; dark brown skin; a short rounded black afro with a white terry-cloth sweatband across his forehead; sharp angular features, a thin black goatee, heavy-lidded confident eyes and a sly half-smile; a sleeveless vivid royal-purple basketball jersey with gold trim round the neck and the armholes and a big gold number 88 printed in the middle of the chest; loose knee-length bright white basketball shorts with a purple waistband and a purple and gold stripe down the outside of each leg; white wristbands on both wrists; short white socks and white high-top sneakers with purple accents; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+  "pose_hint": "standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball",
+  "back_hint": "He faces away from the viewer: only the back of his rounded black afro with the white sweatband's band round the back of his head, the back of his neck, and the back of the vivid purple jersey with a big gold number 88 printed across the middle of his upper back between the shoulder blades, as big as the 88 on the front; both shoulders broad, square and level, his back straight and upright, never hunched or slouched; the bright white shorts with their purple and gold side stripes, the backs of his calves and the heels of the white high-tops; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
+  "side_hint": "a clean side profile facing right: the rounded afro and the sweatband, the goatee, the jersey's side with its gold armhole trim, the bright white shorts with the purple and gold stripe down the side, standing tall with his back straight and both shoulders level, the near shoulder never raised above the far one, one arm hanging relaxed beside the torso, empty hands",
+  "anim_hint": "a tall athletic young Black man with dark brown skin and a short rounded black afro with a white sweatband, in a sleeveless vivid royal-purple basketball jersey with gold trim and a big gold number 88 on the front and on the back, bright white knee-length shorts with purple and gold side stripes, white wristbands and white high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level",
+  "anim_negative": "a basketball, a ball in his hands, extra arms or legs, a face on the back of his head, hunched shoulders, slouching, sloping shoulders, a plain jersey back without its number, a dull greyish jersey",
+  "stills": "e",
+  "seed_offset": 2311,
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "pose_drivers": {
+   "front": "fadeaway_puppet_run_up",
+   "fd": "fadeaway_puppet_run_up",
+   "side": "fadeaway_puppet_run_up",
+   "bd": "fadeaway_puppet_run_up",
+   "back": "fadeaway_puppet_run_up"
+  },
+  "still_keys": {
+   "bd": "fadeaway_e_bd88",
+   "hurt_back": "fadeaway_e_hurt_back88"
+  },
+  "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+  "fringe_remap": true,
+  "run_scale": {
+   "front": 0.885,
+   "fd": 0.905,
+   "side": 0.905,
+   "bd": 0.91,
+   "back": 0.915
+  }
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "fringe_remap": true,
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

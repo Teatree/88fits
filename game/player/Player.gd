@@ -503,6 +503,8 @@ func _animate(delta: float, moving: bool, on_floor: bool) -> void:
 	sprite.set_squash(1.0 - jump_stretch * 0.5 + land * 0.6, 1.0 + bob * 0.5 + jump_stretch - land)
 	sprite.set_roll(-_tilt * 0.14)
 	sprite.set_flash(_flash)
+	# pass 87 (lane FIXES): an evade's see-through second fading back
+	_tick_evade_ghost(delta)
 	if quiet_invuln and invuln <= 0.0:
 		quiet_invuln = false
 	if invuln > 0.0 and not god and not quiet_invuln:
@@ -903,6 +905,8 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 		evaded.emit()
 		last_outcome = "evaded"
 		if DamageNumbers.I: DamageNumbers.I.hero_dodge()
+		# pass 87 (lane FIXES): he turns see-through for a second
+		_evade_ghost_start()
 		return
 	# Marshal's Star (pass 70, lane LINES): a ready star takes the whole hit
 	if _star_block(amount, info):
@@ -965,6 +969,51 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 			damage_log[damage_log.size() - 1]["fatal"] = true
 			damage_log[damage_log.size() - 1]["hp"] = 0.0
 		_die()
+
+
+# ---------------------------------------------------------------- pass 87 (lane FIXES): the evade shows
+## Garry: "How do we show Player Evading? Should be that there is a text 'Evade' that flies out of the hero (just like
+## with the 'Block') and hero should become half transparent for a second". An evaded hit says EVADE over him
+## (DamageNumbers.hero_dodge) and turns him see-through: EVADE_GHOST_ALPHA for EVADE_GHOST_HOLD seconds, then easing back
+## to whole by EVADE_GHOST_TIME (BillboardSprite.set_fade). Another evade starts the second again from the top; it never
+## adds up, so he is never fainter than EVADE_GHOST_ALPHA. The blink after a hit (invuln) still hides him on its beats.
+const EVADE_GHOST_TIME := 1.0
+const EVADE_GHOST_HOLD := 0.7
+const EVADE_GHOST_ALPHA := 0.5
+## Seconds of the see-through left (0: whole).
+var evade_ghost_t := 0.0
+
+
+## How opaque he is with `left` seconds of the see-through to go: EVADE_GHOST_ALPHA through the hold, then a smooth way
+## back to 1 over the rest of EVADE_GHOST_TIME.
+static func evade_ghost_alpha(left: float) -> float:
+	if left <= 0.0:
+		return 1.0
+	var since := EVADE_GHOST_TIME - minf(left, EVADE_GHOST_TIME)
+	if since <= EVADE_GHOST_HOLD:
+		return EVADE_GHOST_ALPHA
+	var k := clampf((since - EVADE_GHOST_HOLD) / maxf(EVADE_GHOST_TIME - EVADE_GHOST_HOLD, 0.001), 0.0, 1.0)
+	return lerpf(EVADE_GHOST_ALPHA, 1.0, smoothstep(0.0, 1.0, k))
+
+
+func _evade_ghost_start() -> void:
+	evade_ghost_t = EVADE_GHOST_TIME
+	if sprite:
+		sprite.set_fade(EVADE_GHOST_ALPHA)
+
+
+func _tick_evade_ghost(delta: float) -> void:
+	if evade_ghost_t <= 0.0:
+		return
+	evade_ghost_t = maxf(evade_ghost_t - delta, 0.0)
+	if sprite:
+		sprite.set_fade(evade_ghost_alpha(evade_ghost_t))
+
+
+func _evade_ghost_clear() -> void:
+	evade_ghost_t = 0.0
+	if sprite:
+		sprite.set_fade(1.0)
 
 
 # ---------------------------------------------------------------- pass 70 (lane LINES): Marshal's Star
@@ -1191,6 +1240,7 @@ func _die() -> void:
 	sprite.set_roll(0.0)
 	sprite.set_flash(0.0)
 	sprite.visible = true
+	_evade_ghost_clear()
 	sprite.play("die")
 	Audio.play("pl_death")
 	died.emit()

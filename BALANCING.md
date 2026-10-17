@@ -4709,3 +4709,506 @@ Garry (2026-10-17): "Make the Cactus jump up a little bit when he throws the Dyn
   The Spit Cactus: `throw_jump` **0.45 m**.
 - **Bigger**: the Spit Cactus `size` 1.5 -> **1.85** (+23%) and its body `radius` 0.45 -> **0.55** with it (so rounds
   still hit where he is drawn).
+
+## 34. Pass 87 (v0.73): stages separated, Endless, stage looks, the Big Mouth, new looks, evade, black barrels
+
+Garry's request (2026-10-17, tools/dl/p87/REQUEST.md, REQUEST_STAGES.md). Each lane's rules as it wrote them.
+
+### 34.SGAME Stages as their own runs: windows, the portal's timer, Endless, unlocks
+
+Garry (2026-10-17): "Now Player Unlocks Stages and is only able to enter them after having completed the previous one.
+They differ in how long it takes to complete them as well." His answers: a stage picked from the menu is a fresh run;
+lengths 7:10 / 10:00 / 13:00; the Stages menu opens on every Play once stage 1 is beaten; a death in Endless banks
+everything.
+
+**The windows.** The map keeps one timeline on the run clock (rows, events, curves as before); `timeline_data.stage_list`
+cuts it into windows: stage k starts at the sum of the earlier `length`s. Red Canyon: Sundown 0..430, Nightfall
+430..1030, Blood Moon 1030..1810 (WaveTimeline.stage_window). A map without the list keeps `stages` windows of
+`stage_length` (the fallback).
+
+**A stage run** (Run.start_stage, the Stages menu's Run.choose_stage, the launch's `stage`, 1-based): a fresh run (level
+1, the hero's start weapon, the Upgrade board, nothing taken) whose run clock starts at the window's start. Everything
+that reads the run clock reads it there: the stage multiplier of its index, the HP / damage curves, the cap curve, the
+roster rows open then (a stage-2 run starts with the rows of 7:10), the path slots from the stage's first.
+- What the timeline dated before the window never comes: every event before it, and a boss event on its first second
+  (the stage before's boss). An `elite_every` event before it keeps its timer on its own rhythm; a timeline wave
+  (`waves`) that began before it keeps its rhythm from the window's start; a "once" row past its second is dropped; a
+  waves row fires only its latest wave due (pass 81's jumped-clock rule): Red Canyon's "Elites every" row (301 s, every
+  129 s) brings its Elite at a stage-2 run's first second, as it did when stage 2 began after the portal.
+- The specials' clock waits for `specials.from` (215 s) in stage 1 only; in a later stage run it runs from the start.
+- The clock never passes the window's end: there the stage's boss comes (its boss event; with none, or one whose
+  t_jitter moved it past, the boss the entry names, else the boss event at the end; a boss event whose `chance` failed
+  means no boss this run); a stage with no boss at all opens its portal where the hero stands.
+- The clock shown is the stage's: the HUD, the pause screen and Down! read 0:00 at the stage's start (Run.stage_clock).
+- No going on to the next stage: there is no Continue any more (WaveDirector.continue_to_next_stage is gone).
+
+**The boss down.** The stage is beaten (Save.mark_stage_beaten: the next stage unlocks), the boss's chest, the portal
+and its one wave as before (portal_wave 12, then nothing), and the portal's countdown: `endless.portal_seconds` (60) on
+the run clock. It stands still behind every screen (the level cards, a chest, the pause menu) except the portal dialog,
+which keeps it running (Game.tick_portal_countdown). The dialog has only EXTRACT (and "not yet": the portal waits, the
+countdown runs on). EXTRACT ends the run (extracted). At 0 the portal closes (its dialog too) and Endless starts.
+
+**Endless** (WaveTimeline.endless block; a stage entry's own `endless` block wins key by key):
+- A wave every `every` (10) s of Endless's own clock (the run clock stays at the window's end): wave 1 = `first_wave`
+  (120) creatures, wave k >= 2 = `wave_size` (30) + `wave_growth` (2) x (k - 2), in packs of their row's pack (1..12)
+  from all round the hero, past the live cap (the hard cap 300 holds).
+- Between the waves the crowd is kept up to `cap` (1.0) x the stage-end cap, a burst (burst_min..burst_max) a spawn check.
+- The creatures: the stage's late roster (the mix rows open in its last `roster_window` (60) s, at their weight there).
+  Each wave fixes each row's numbers afresh: the row's own HP / damage curve value at its start and the hero's level at
+  its first creature in the wave, times the wave's multipliers: HP x `hp` (1.5) x (1 + `hp_growth` (0.15))^(k-1) and
+  damage x `atk` (1.2) x (1 + `atk_growth` (0.1))^(k-1), both COMPOUNDING; speed x `speed` (1.15) x (1 + `speed_growth`
+  (0.02) x (k-1)), LINEAR, at most `speed_max` (1.6), fixed per creature at its spawn.
+- No bosses, Elites or specials in Endless (the old endless's boss a stage and Elite every 0.15 stage are gone).
+- A kill's XP is `xp_share` (0.35) of what it would drop (its gems, Prospector's, Eureka's); a creature's coin roll
+  happens only `coin_chance` (0.05) of the time. Power-ups and creature chests drop as before.
+- It goes until the hero falls; a death banks the purse as every end does (pass 70).
+
+**Unlocks** (Save.stages_beaten {map: [bool]}): stage 1 always open; stage i once stage i-1 is beaten; the Stages menu
+opens on Play once stage 1 is beaten. A save from before (once, "stages_migrated"): a stage counts as beaten when the
+save holds the stage's "boss_<map>_<k>" flag or a kill of the stage's boss in its totals (King: stage 1, Gila: stage 2,
+Brander: stage 3).
+
+**What reads time now.** "Survive N minutes" quests count every second of the run played (Run.run_time: the stage's
+clock, its boss fight, the portal countdown and Endless); the no-lift quest the stage's clock; the quest check runs
+every 5 s of run_time; the Collection's stage hint for a survive quest is the first stage at least that long (else the
+last). The best time (best_runs.time) and Results' time are run_time (an old save's best time, its run clock up to
+21:30 and more, stays as it was). The boss DPS window (pass 72's "dps" mode) spans at most the run's own seconds.
+Analytics: a "not yet" at the portal records portal_wait only (the "portal" event, PostHog's stage_cleared, is EXTRACT
+now); Endless's start records an "endless" event (lane STOOLS maps it).
+
+**Red Canyon migrated** (tools/dl/p87/SGAME/migrate_stages.py, backup red_canyon.pre87.json): stage 1 untouched; every
+time of stage 2 (430..860) stretched x600/430 into 430..1030 and of stage 3 (860..1290) x780/430 into 1030..1810 (a
+time within 1 s of a window's start keeps its offset, a 1-second step stays one): rows' t / until / weights, events,
+weight_late_t (1030), the damage curve's points, the cap curve (points added at the old boundaries first, so stage 1's cap
+is unchanged: [[0,200],[430,233.3],[1030,266.7],[1810,300]]), path_times of stages 2 and 3 (x600/430, x780/430). The
+HP curve stays in "formula" mode on the run clock (a formula cannot be stretched): stage 2 now reads it to x3.42 at its
+end (was x2.99) and stage 3 to x5.56 (was x4.11); its points block is the formula at the new stage marks. Lane TUNE
+retunes stages 2-3 for a fresh hero.
+
+### 34.TUNE Stages 2 and 3 for a fresh hero; Endless tuned
+
+Garry: "Stages 2 and 3 retuned so a fresh hero can clear them, clearly harder than Stage 1" (a stage picked from the
+Stages menu is a fresh run: level 1, the hero's start weapon). All numbers are in
+`game/content/maps/red_canyon/red_canyon.json` `timeline_data` (the Level Editor edits every one of them); no code.
+
+#### What stays
+
+- Garry's stage 1 (0..430 s): every row, event, cap point, the ATK x points up to and including [430, 1.21], the HP
+  curve (the power formula, pinned by pass62_pc_test through 7:10).
+- `stage_mults` [1, 2.2, 3.34]: still the stages' multiplier on HP, ATK and the coins' worth (a coin pays
+  x round(stage mult): stage 2 x2, stage 3 x3 as before). Lowering them would have cut stage 2's and 3's pay in half
+  and a third; the fresh-hero numbers are made with the knobs below instead.
+- The HP curve (formula, run clock): stage 2 reads it from 1.94 to 3.42, stage 3 from 3.42 to 5.56; the rows' HP x
+  below absorb it.
+
+#### The rules (new numbers)
+
+1. **Stage-2 / stage-3 rows' HP x** (`roster[].stats.hp_mult`, every row and once-row starting in the window; the
+   "Elites every" row draws its numbers from the rows): the migrated number (pass 62/64's and Garry's 2026-10-16 edits,
+   kept in tools/dl/p87/TUNE/backup/red_canyon.migrated.json) x a factor that ramps linearly with the row's start
+   through its window: **stage 2 x0.26 at 7:10 -> x1.4 at 17:10**, **stage 3 x0.30 at 17:10 -> x0.60 at 30:10**
+   (2 decimals). What a creature of the rows carries on average (tools/dl/p87/TUNE/est.py, before the hero-level
+   factor, which is the same in every stage): stage 1 HP 16 at 0:30 -> 57 at its end, ATK 4.5-6.3; stage 2 HP 45 ->
+   262, ATK 7.3 -> 12.2; stage 3 HP 31 -> 279, ATK 6.4 -> 15.1 (before this lane: stage 2 HP 173 -> 254, ATK 27 -> 21;
+   stage 3 HP 102 -> 558, ATK 35 -> 40, made for a hero arriving at level 22 / 33). Per row (stage 2): r18 / r19 / r20 0.26,
+   r22 0.54, r23 0.67, r24 1.34, r25 / r26 0.71, r27 0.77, r28 0.80, r8 0.57, r29 1.48, r30 / r31 1.64, r51 1.66,
+   r32 0.85, r9 1.84; (stage 3) r10 / r35 / r36 0.12, r37 / r38 0.15, r11 0.17, r39 0.23, r40 / r41 / r42 0.32, r43 0.37,
+   r17 0.43, r33 / r34 0.46, r53 0.54, r44 / r45 0.70, r46 / r47 / r48 / r50 / r52 0.75, r49 0.30.
+2. **ATK x curve after 7:10** (`damage_curve.points`): [430, 0.36], [900, 0.95], [1030, 0.80] | [1030, 0.28],
+   [1700, 0.72], [1810, 0.56]. With the stage multiplier: stage 2's bites x0.79 at its start (stage 1: x1.21; stage 2's
+   creatures bite 2-3x harder by nature: fire ants 8, slimes 7 against skeletons' 3) rising to x2.09 at 900 s (7:50
+   into the stage); stage 3's x0.94 rising to x2.4 at 1700 s (11:10 into it). The last point of each window is the boss's own (a boss reads the live curve at the
+   frozen clock): the Gila fights at x1.76 (was 3.06), the Brander at x1.87 (was 5.28); the rows starting after the knee
+   keep the knee's value. Rows read the curve at their own start (pass 58), so the knee shapes the late rows, the end
+   point only the boss (and anything spawned at the boss's second).
+3. **r18** (blue slimes) starts at 431 instead of 430: a row starting on the boundary second read stage 1's side of the
+   7:10 steps (ATK x 1.21 instead of stage 2's 0.36); stage 2's other openers start at 431 already.
+4. **A soft start in each window** (`cap_curve`): [431, 25] then back on Garry's line at [670, 246.7] (stage 2) and
+   [1031, 35] -> [1230, 275.2] (stage 3); the cap_max 150 still holds, so the live cap climbs from 25 to 150 in about
+   two minutes (stage 2) and from 35 in about a minute and a half (stage 3), as stage 1's paced waves let the crowd
+   build. The boss seconds (430, 1030) keep their old values (the King's and the Gila's fights read the cap there).
+   The hell channel (stage 3, 0.4 of the cap) follows.
+5. **The Elites** (elite_boss events, 5:00 into stages 2 and 3): HP x 0.8 (730 s, was 0.94) and 0.45 (1420 s, was 1.33).
+   An Elite by its kind is elite.hp_mult_per_stage^stage x the stage multiplier x creature_hp_mult: a stage-2 stone golem
+   ~2,140 HP, a stage-3 one ~3,290, against a fresh hero at level ~18-24 there.
+6. **The bosses' data-HP floor** (boss events' `stats.hp_mult`, new on these events): Gila Grande x0.3 (floor 3,168 HP,
+   was 10,560), the Brander x0.15 (floor 10,900, was 72,678). The seconds mode (pass 83: 40 s / 60 s of the hero's full
+   DPS) rules as it does for the King; the old floors, made for a level-33/43 hero, held a weak fresh build's Brander at
+   72,678 HP (2 to 10 minutes of fight in the sims).
+7. **Endless** (`endless`, lane SGAME's block): first_wave **60** (was 120), hp **1.15** (1.5), atk **1.0** (1.2; Garry's
+   first wave is "higher speed and HP"), speed **1.1** (1.15), hp_growth **0.11** (0.15), atk_growth **0.07** (0.1),
+   speed_growth **0.015** (0.02); every 10, wave_size 30, wave_growth 2, cap 1.0, speed_max 1.6, xp_share 0.35,
+   coin_chance 0.05, roster_window 60, portal_seconds 60 unchanged. Wave k: HP x1.15 x 1.11^(k-1), ATK x1.07^(k-1),
+   speed x1.1 x (1 + 0.015 (k-1)): after 1 minute (wave 7) HP x2.15 / ATK x1.5, after 2 (wave 13) x4.0 / x2.25, after 3
+   x7.5 / x3.4, after 4 x14 / x5.1.
+
+#### How it was measured
+
+The run sim (tools/sim_batch.py --stage k, lane STOOLS'), Drifter and Ironwood, the explorer bot (the Sim tab's
+default), death=keep (stood up at full health, every fall counted; the first fall in Endless is its "death"), on a
+private snapshot (tools/dl/p87/TUNE/sim). The bots are far weaker than a player: with death=end the explorer cleared
+stage 1 with a quarter of the board 1 time in 10 and the expert 0 (both fall at ~1:40 to the skeleton knights), while
+Garry cleared it at level 30 with a third of the board. So the targets are relative, as pass 64's were: **stage 2 with
+a quarter of the board and stage 3 with half about as hard as stage 1 with none** (the stage every first-time player
+clears; a bit harder is fine), and **each stage clearly harder than the one before at the same board**. Falls are split
+by phase (the stage, the boss fight, the portal, Endless) from the run's phase series. Scripts and runs:
+tools/dl/p87/TUNE (table.py builds the table, fallsmin.py the minute profile, est.py the rows' numbers by stage minute,
+bake.py writes the numbers).
+
+| sim | stage | hero | board | runs | clean clear | falls in the stage mean (median) | falls a minute | falls in the boss fight | damage taken a minute (x max HP) | under half HP | level 2:00 / 5:00 / end | boss fight s (n) | Endless: first fall s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **before** (migrated numbers) | S2 | drifter | quarter | 10 | 0% | 35.6 (38) | 3.56 | 19.1 | 4.99 | 44% | 2.5 / 7.5 / 16.5 | 128 (4) | - |
+| **before** (migrated numbers) | S3 | drifter | half | 10 | 0% | 63.7 (67) | 4.90 | 34.0 | 7.32 | 41% | 3 / 7.5 / 18 | 147 (10) | 9 |
+| anchor | S1 | drifter | none | 20 | 0% | 10.1 (9) | 1.41 | 6.0 | 1.80 | 44% | 5 / 10.5 / 17 | 84 (20) | 80 * |
+| anchor | S1 | ironwood | none | 20 | 0% | 10.9 (11.5) | 1.53 | 7.5 | 1.94 | 41% | 5 / 9.5 / 15.5 | 125 (20) | 84 * |
+| anchor | S1 | drifter | quarter | 10 | 10% | 3.1 (2.5) | 0.43 | 1.8 | 1.36 | 22% | 5 / 11 / 15 | 71 (10) | 28 * |
+| anchor | S1 | drifter | half | 10 | 10% | 1.3 (1) | 0.18 | 1.0 | 1.19 | 6% | 5.5 / 11 / 14.5 | 77 (10) | 156 * |
+| **after** | S2 | drifter | quarter | 20 | 5% | 9.3 (9.5) | 0.93 | 6.2 | 2.41 | 29% | 6 / 17.5 / 26 | 116 (20) | 68 |
+| after (same numbers, seeds 301 again earlier) | S2 | drifter | quarter | 20 | 0% | 8.1 (7.5) | 0.81 | 6.3 | 2.25 | 29% | 6 / 19.5 / 26 | 130 (20) | 62 * |
+| **after** | S2 | ironwood | quarter | 20 | 0% | 8.5 (7.5) | 0.85 | 11.9 | 2.60 | 25% | 7.5 / 21 / 28 | 194 (20) | 38 * |
+| **after** | S3 | drifter | half | 20 | 5% | 13.4 (8.5) | 1.03 | 4.6 | 2.69 | 20% | 7 / 24.5 / 35.5 | 84 (19) | 38 * |
+| after (same numbers, earlier) | S3 | drifter | half | 20 | 10% | 11.3 (4.5) | 0.87 | 3.9 | 2.39 | 19% | 7 / 23 / 40.5 | 93 (20) | 134 * |
+| **after** | S3 | ironwood | half | 20 | 0% | 17.9 (15.5) | 1.37 | 5.2 | 3.80 | 24% | 7 / 20 / 35.5 | 132 (19) | 64 * |
+| Endless check (seeds 401) | S1 | drifter | quarter | 10 | 10% | 3.3 (3) | 0.46 | 1.6 | 1.40 | 17% | 5 / 13.5 / 19 | 67 (10) | 141 (6 fell; 4 never, 283-327 s played) |
+| **after**, Endless check (seeds 401) | S3 | ironwood | half | 10 | 0% | 12.5 (12) | 0.96 | 4.6 | 3.33 | 16% | 8.5 / 18.5 / 36 | 148 (10) | 65 (7 fell; 3 never, 153-260 s played) |
+| harder than S1 at the same board | S2 | drifter | none | 10 | 0% | 24.3 (25.5) | 2.43 | 15.6 | 3.18 | 46% | 6.5 / 18 / 24 | 104 (4) | - |
+| harder than S2 at the same board | S3 | drifter | quarter | 10 | 0% | 31.0 (30) | 2.38 | 5.5 | 4.37 | 38% | 5.5 / 17 / 28.5 | 96 (9) | - |
+
+\* Endless measured with an earlier set of its keys (before rule 7's final numbers): SGAME's defaults for the "before"
+rows and the S1 @ quarter / half anchors, then 1.0 / 0.12 / 0.08 (S1 @ none Drifter), 1.25-1.2 first wave x90-80 (the
+others). "clean clear" = no fall at all before the boss died (what death=end counts); the bot rarely manages it even on
+stage 1.
+
+**Reading it.** Falls before the boss died (stage + boss fight), the two heroes averaged: stage 1 with no board 17.3 (16.1 / 18.4);
+**stage 2 with a quarter 14.4-20.4 (mean 17.7)**; **stage 3 with half 15.2-23.1 (mean 19.9)**: each about stage 1's
+first-time difficulty, stage 3 a little above it. At the same board each stage is far harder than the one before:
+stage 2 with no board 40 falls (and only 4 of 10 had beaten the Gila by the
+run's limit) against stage 1's 16-18; stage 3 with a quarter 36.5 against stage 2's 15.5. Time under
+pressure follows: the damage taken a minute rises stage by stage at the intended boards (1.8-1.9 / 2.3-2.6 / 2.4-3.8 x
+max HP), and each stage's profile has stage 1's shape (a calm first minute, the worst in its last third: stage 2 2.8-4.2
+x max HP a minute in its last four minutes, stage 3 3.7-6.2 in its last three). The fresh hero levels faster than in stage
+1 (stage 2's creatures drop 1.6-2.7x the XP of stage 1's): level ~6 at 2:00, ~18-20 at 5:00, ~26-28 at the Gila and
+~35 at the Brander (stage 1: 5 / 10 / 16).
+
+**The bosses.** The Gila's fight is the longest part of stage 2 (116-194 s in the sims; 40 s of full DPS by Garry's rule)
+and about as deadly a second as the King's at no board; Ironwood (the spear, kited by the bot) has it hardest. The
+Brander fights 84-132 s.
+
+**Endless** (target: a typical hero dies within a few minutes; with the bot so much weaker than a player, who clears
+a stage 1 the bot falls ten times in, the target in bot terms is a median first fall of about 1-3 minutes). With the
+final keys (rule 7), the median first fall counting the runs that never fell: **after stage 1 with a quarter ~3 min**
+(181 s), **after stage 2 with a quarter ~1.1 min** (68 s), **after stage 3 with half ~1.6 min** (96 s). Before (SGAME's
+defaults: 120 at x1.5 HP, x1.2 ATK, +15% / +10% a wave) a third of the stage-2 heroes fell inside the first wave's 15 s
+and the median was 47 s. A hero ends stage 2 at his limit (its last minutes take 3-4x his max HP a minute), so Endless
+after stage 2 is the quickest; a stage's own `endless` block (stage_list[k].endless, lane SGAME's) can make one stage's
+Endless gentler without touching the others. The slow brutes and spitters of the late roster (hammer giants, bull
+beetles, spit cacti) do most of the killing: Endless's waves do not respect a row's max_alive (lane SGAME's rule), so
+they pile up.
+
+#### Where to nudge (in the Level Editor)
+
+- A stage too hard / too soft overall: its rows' HP x together (the factor's two ends), or the ATK x knee.
+- Its opening (the first two minutes decide a fresh run: a hero who falls behind early never levels out of it): the
+  first ATK x point (0.36 / 0.28) and the cap's soft start (25 / 35). +30% HP and ATK on stage 3 took its falls from 4 to
+  14 a run in one step; move a tenth at a time.
+- The Gila / the Brander: their ATK x end points (0.80 / 0.56); their HP is Garry's 40 s / 60 s of full DPS.
+- Endless: first_wave and hp for its opening; hp_growth / atk_growth for how long a strong hero lasts.
+
+### 34.SUI The Stages menu, the portal's countdown, Endless on screen
+
+Rules the screens follow (numbers are UI constants in the named files, not balance):
+
+- **PLAY on the title** opens the Stages menu once stage 1 of the shown map is beaten (`Save.stages_menu_open`, and the
+  map has more than one stage); before that PLAY starts stage 1 as always (`Run.choose_stage(0)`). The menu opens on
+  every PLAY after that (Garry). ui/TitleScreen.gd `_on_play`.
+- **The Stages menu** (ui/StagesScreen.gd): one card per entry of the map's `stage_list` (WaveTimeline.stage_entry). A
+  card is open when `Save.stage_unlocked(map, i)` (stage 1 always; stage i once stage i-1 is beaten). An open card's
+  tap starts that stage at once as a fresh run with the hero chosen on the title (`Run.choose_stage(i)`, Game.tscn). A
+  locked card is aged, its picture under an ink wash at 62 % with a padlock, its line "To unlock: Beat <the boss of the
+  stage before>"; a tap plays the locked sound, shakes the card (14 px, 0.32 s) and starts nothing. A beaten stage wears
+  a sage BEATEN stamp.
+- **The difficulty line's colour**: sage for the first stage, rock for the last stage and every `hell` stage, brass
+  between (StagesScreen.tone).
+- **The picture**: the entry's `shot` if it exists, else `art/ui/stages/<map>_s<k>.jpg`, covering a 972 x 374 box
+  (2.6 : 1); striped placeholder until the file exists.
+- **PLAY AGAIN** on the Results replays the same stage (`Run.choose_stage(Run.stage)`); Main Menu -> PLAY opens the menu.
+- **The stage clear** (ui/PortalDialog.gd): one road, EXTRACT (the run's gold banked), and the Endless card counting
+  down from the game's portal timer (`Game.portal_seconds_left`, whole seconds rounded up); the count turns rock and
+  swells once a second in its last 10 s (ENDLESS_WARN). While the dialog is up it keeps the game's countdown running
+  (`Game.tick_portal_countdown`, lane SGAME: the run is paused behind it); at 0 the game starts Endless and closes it.
+  NOT YET / Esc / back close it with no decision, the countdown goes on. The Endless card's line takes the wave interval
+  from the map (`endless.every`, the stage's own first).
+- **The HUD's clock plate** (ui/HUD.gd `_tick_stage_clock`): paper with the stage's own clock (`Run.stage_clock`, 00:00
+  at the stage's start) in play; rock with the seconds left and an ENDLESS IN tag hanging under it while the portal
+  counts down (the tag swells each second of the last 10); ink with the time survived in Endless (`Run.endless_time`)
+  and a WAVE n tag (rock) in Endless, the tag swelling on each new wave. The ENDLESS banner (rock) shows once as Endless
+  starts. No toast per wave.
+- **The Results' head** (ui/ResultsScreen.gd `stage_story`): the star line says Extracted (extracted), Fell in Endless
+  (died in Endless) or Run over (anything else, a quit too); under it "STAGE k · <name> · BEATEN" in the stage's colour
+  (BEATEN once its boss died: `Run.stage_beaten`, or extracted, or in Endless); the big time is the run's time
+  (`Run.run_time`, as the best runs count it); an Endless line "Endless mm:ss · wave n" in rock when Endless ran.
+
+### 34.SLOOK Nightfall and the Blood Moon; the stage pictures
+
+- **A stage's filter** (`timeline_data.stage_list[k].filter`, StageLook): the world is drawn x white.lerp(`color`,
+  `strength`) per channel on the screen (a coloured glass: 0 = none, the quads not drawn). The creatures, the hero,
+  power-ups and flowers take `actors` x the strength (default **0.35**, `StageLook.ACTORS_DEFAULT`), so they stay brighter
+  than the ground.
+- **Not tinted** (drawn on top of the filter, so they read on any stage): every ground mark (telegraph rings, discs,
+  lines, cones, spills, scorches, the Salt's patches, the structures' rings), ground shadows, gems, coins and glints,
+  the outlines of creatures behind scenery, every effect, tracer and projectile, badges, damage numbers, the HUD and all
+  screens. Tinted with the world: the sand, the water, the sky, props, structures, barrels, signs, the fort wall, the
+  cliffs, lit 3D (weapon models, tumbleweeds), the dust gusts and the dust devil (now drawn before the filter:
+  render priority -8, was 2 / 0).
+- **Red Canyon** (tuned by eye on the phone's canvas, side by side; tools/dl/p87/SLOOK/read*_s*.png):
+  - Stage 1 "Sundown": none (strength 0), as before.
+  - Stage 2 "Nightfall": **#3D55C8 at 0.48** (the sand a slate blue-grey, about 0.63 / 0.68 / 0.89 of its red / green /
+    blue), creatures at 0.35 of it.
+  - Stage 3 "Blood Moon": **#6A1A28 at 0.6** over pass 43's hell ground (a dark crimson, about 0.65 / 0.46 / 0.49);
+    a dark red reads the red warnings by brightness: a bright red filter (SGAME's first #B0303A 0.3, or #B02A2A 0.35)
+    flattened the filled danger disc into the ground.
+- **Hell** now comes from the stage's `hell` (true for Red Canyon's stage 3); a map without a stage list keeps pass 43's
+  rule (the third stage on). The look is there at once when a stage run starts (no 3 s fade: a run is one stage now);
+  a later change (the old flow) fades over 3 s.
+- Cost: two fullscreen multiply quads (one draw each) only on a stage with a filter; nothing on stage 1. perf_late
+  (504 x 1122, 60 fps, the stage-3 crowd, this PC): within noise with and without (GPU 0.52-0.75 ms either way, frame
+  10.1-11.8 ms either way, +2 draw calls).
+- The debug arena's WORLD tab: "Stage look" shows each stage's look on the spot (a run shows its own stage's).
+
+### 34.STOOLS Stages in the Level Editor, the Sim, the Watch and the analytics
+
+No game number changed in this lane; these are the rules of the Level Editor, the estimate, the Sim, the Watch and the
+analytics, so they are not surprises.
+
+#### The Level Editor's stage edits (tools/level_editor/stage_model.js)
+- **A stage's length changed**: the later stages' windows move by the difference, and every time in them moves with
+  them (rows' starts, ends and presence keyframes; the old waves; events; the cap, floor, HP and ATK curves' points;
+  specials' `from`). The stage's own things: **Keep its times** (growing: its rows that ran to its old end run to the
+  new end; shrinking: what starts past the new end is cut, ends past it come back to it, keyframes and curve points past
+  it drop; the confirm names what is cut) or **Stretch** (its own times scale by new / old length from its start, rounded
+  to 0.1 s; nothing is cut: the rule lane SGAME's migration used). The boss at its end goes with the end. Mutation
+  offers (`path_times`) are seconds into a stage, so they never move.
+- **+ Stage**: a copy of the last stage's settings (its length, boss, filter, hell; a new id `s<n>` and the name
+  "Stage n"; no words), its boss event at its end (a copy of the last stage's), and the per-stage lists (stage_mults,
+  hell_cap, path_times, weapon_cap, passive_cap) one entry longer (a copy of the last stage's) where they had one per
+  stage. No rows.
+- **Delete stage**: what lies wholly in its window goes (rows, waves, events, its boss); a row or wave spanning into it
+  ends at its start (or, starting in it and running past it, starts at its start); keyframes and curve points strictly
+  inside it drop (a step at its edges keeps the stage before's last value and the stage after's first); the later
+  stages move back by its length; its entry in the per-stage lists goes; a special that came "from stage N" past it
+  comes from N - 1. The last remaining stage cannot go. In the last stage, a row starting in it goes even when it has no
+  end.
+- **The first stage edit on a map without a stage list** writes one from the old windows (stage_length x stages): ids
+  s1.., names "Stage k", each boss from its boss event, no filter, `hell` from the third stage (Game.gd's old rule).
+- **Checks**: a length under 1 s or an id used twice is an error (blocks Save); no id, a filter colour that is not
+  #rrggbb, a strength outside 0..1, or a stage with no boss at its end is a warning.
+
+#### The estimate of a stage run (model.js spawnEstimate opts.stage; its twin in selftest.py)
+- The clock starts at the window's start with an empty crowd and the stage's index; only the events inside the window
+  play (none before its start, the previous stage's boss at its start left out, none after its end; the stage's boss
+  at its end from its entry when no boss event is there); a once row more than 2 s before the start is dropped; the old
+  waves[] blocks start no earlier than the window. The kill-rate curve (fitted on runs from 0:00) is read at the seconds
+  the fresh hero has played. A window that ends with no boss fight opens its portal there.
+- After the boss: the portal's countdown (`endless.portal_seconds`, the stage's own block first, 60) with the director's
+  clock held at the window's end (the portal wave, then nothing); then Endless to the view's end: wave 1 (`first_wave`)
+  at once, a wave every `every` s (`wave_size` + `wave_growth` x (k - 2)), past the cap and under the hard cap, drawn
+  from the late roster (the mix rows open in the last `roster_window` s, by their weight at their last second there) by
+  weight; between the waves the crowd kept up to the stage-end cap x `endless.cap` (a burst the mean of burst_min..max
+  load at each spawn check); no specials, no own-interval rows, no floor in Endless.
+- The "All" tab stitches every stage's run on the clock (each window's points from its own run: the counts start again
+  at each window; an earlier stage's run is cut at its window's end, the last one runs on into its portal and Endless).
+  The typical hero of the Challenge lane starts at power 1 at each window's start.
+- `stageAt` past the run's end is the last stage on a map with a stage list (WaveTimeline.stage_at), and a row's numbers
+  are never refixed by the old endless there (`fixedFrom`).
+
+#### The Sim and the Watch
+- A sim's `stage` (1-based, default 1) must be one of the map's stages. The bot never extracts (it answers the portal
+  "not yet"), so a run goes on into Endless until the stop or its death; result.json's `summary.stage_run` counts the
+  boss kills, the outcomes and the median seconds survived in Endless over the runs that reached it (a run the
+  sim stopped in Endless counts its seconds so far: a floor, not its end). A run's outcome is Run.outcome() when it
+  ended by itself (a death, an extraction); a run the sim stopped says `stopped`, `stopped_after_boss` or
+  `stopped_endless`.
+- The Watch's Stage row: with Every unlock on (tool mode) every stage may be chosen; off (the save's mode) only stage 1
+  and each stage whose stage before the PC save has beaten (its `stages_beaten`; a save the game has not migrated yet:
+  its old `boss_<map>_<k>` flags or a kill of the stage's boss in its totals, as Save._migrate_stages). The run's
+  sandbox save gets every stage beaten (tool mode) or the PC save's flags.
+- The Watch's grey line: the newest Sim of the same hero, board, map and stage; a whole-run Sim from before pass 87
+  only for stage 1.
+
+#### Analytics
+- A run's `outcome`: Run.outcome() (extracted | died_endless | died_after_boss | died), "quit" for a run left from the
+  pause menu or the app (result abandon / quit).
+- PostHog's stage of an event (the boards' `STAGE`): its `stage_id`, else "s" + its `stage` (an event from before
+  pass 87: the stage the run was in). The dashboard files a run from before pass 87 under the stage it ended in.
+- The portal's `choice` is `extract` or `not_yet` (no going on to the next stage).
+
+### 34.BIGMOUTH The Big Mouth without its tongue: the glow, the breath, the punch
+
+- **Big Mouth wind-up** (`params.beam.windup.seconds`, 0.24 s on the Big Mouth and the Loudmouth; it was a fixed 0.12 s):
+  each beam pours at the end of its wind-up. The cooldown clock starts at the pull (as before), so the wind-up is
+  taken from the cooldown: the time between beams is unchanged (3.2 s at level 1), the first damage tick comes 0.24 s
+  after the pull instead of 0.12 s. Damage, duration, tick and range are untouched.
+- **A pull while the beam still pours** (a cooldown shorter than the beam: level 5 with cooldown cuts): the beam is
+  re-aimed and pours on at once for a fresh `duration`, with a fresh punch, no wind-up (it used to wind up for 0.12 s
+  with the old beam still pouring). A pull during a wind-up only re-aims it.
+- **The punch** (visual only, `params.beam.punch`): as the beam leaves, the mouth kicks back along its aim `back` m
+  (0.36; Loudmouth 0.45), its lips climb `climb` rad (0.2) and it swells by `pop` (0.2), then springs past rest and
+  settles: amp x e^(-7.5 t) x cos(2 pi 2.8 t), gone in about 0.6 s. Every pulse while it pours (0.28 s) kicks again at
+  `pulse` (0.3) of that; a kick on a mouth still settling adds half of what is left, 1.6 at most. The beam's line
+  starts at the lips where they are, so the damage line moves with the punch by at most 0.36 m (0.45).
+- **The throat glow** (visual only, `params.beam.throat`): 0 at rest; through the wind-up 0.2 + 0.6 f^2 (f = how far
+  into it); 1 while it pours (a flicker of +-7%); it dies in about 0.1 s after. The flare fades as the mouth turns its
+  back on the camera (dot of its facing and the camera direction, from -0.35 to 0.25).
+- The beam's flash bursts sit 0.6 m and 0.9 m out along the line (were 0.25 m and 0.45 m) and the pulse's puff 0.7 m
+  (was 0.3 m), so the lips, the throat and the punch show through them.
+
+### 34.SOL Solenne on the Puppet method, catwalking (SOL-F, SOL-G)
+
+No game rule changed: no game code, no number. Solenne gained two art looks, SOL-F (precise words) and SOL-G (loose
+words), both `fresh: true`; her played look stays SOL-B (`variant`) until Garry picks.
+
+Art-pipeline facts worth a line in the Puppet method's section (§13 / pass 71):
+- **A walk clip other than the run**: the Puppet method takes any Mixamo clip (`puppet.clip`, `--clip
+  catwalk_walking.fbx`): retargeted whole (36 frames, one stride), guides named `<hero>_puppet_catwalk_walking`
+  (+ `_depth`), silhouette run/idle medians front 1.026, fd 0.969, side 0.941, bd 0.939, back 0.960.
+- **The shoulder finder and a high collar**: puppet_blender.find_joints takes the shoulders' top as the first slab
+  below the neck 1.6x the neck's width; Solenne's flared catsuit collar is that slab, so the arm roots landed at the
+  collar's tips (x +-0.06 m on a body 0.20 m wide). Fixed for her by tools/dl/p87/SOL/rig_fix.py: the shoulder joint on
+  the straight A-pose arm's own axis, an arm's radius below where the shoulder's round top pulls the body's edge in
+  (+-0.087 m at 1.093 m), the elbow half way to the wrist. Not changed in puppet_blender.py (not this lane's file): a
+  candidate for the lead, with pass 85's hand fix.
+- **The far arm in the side view**: with the game's camera 25 degrees above, the far arm's hand (behind her on the back
+  swing, in front on the forward swing) projects up to her upper chest; Wan Animate painted it as a hand at the back
+  of her neck. tools/dl/p87/SOL/far_arm.py drops the far elbow, wrist and hand from the side guide in the frames where
+  the far wrist sits above the middle of the torso (14 of 25 frames) -> `<guides>_farhide`, used for the side only.
+- **Depth on glossy black**: Wan Fun Control on the depth guide painted a black glossy reflection pooled under her
+  feet in every frame of the three-quarter back walk (SOL-F's first bd); the stick figure did not. Both looks walk only
+  the back on depth (`puppet.depth_views ["back"]`), the rest on the stick figure (whose face points carry the face's
+  direction).
+- **Repainted stills, her own kept**: `puppet.stills "repaint"` with `still_keys` keeping her front, back, cheer, death
+  and front/back hurts: only side, fd, bd and their hurts are the look's own (`solenne_f_*`, `solenne_g_*`), painted
+  as 4 candidates on gen_art's own view prompts plus the look's words and picked by eye (tools/dl/p87/SOL/still_cands.py).
+
+### 34.FADE Fadeaway fixed (FAD-E, FAD-F)
+
+No game rule changed: no game code, no gameplay number. Fadeaway gained two art looks, FAD-E and FAD-F (`variants`,
+`fresh: true`); his played look stays FAD-C (`variant`) until Garry picks.
+
+Art-pipeline facts worth a line (§13 / the Puppet method's notes):
+- **One size across the animations is the body's, not the box's.** A run frame with bent knees and a foot toward the
+  camera stands lower for the same body: FAD-D's front run stood at 0.99 of its stand's height with its head 1.12-1.18x
+  the stand's. The measure that sees it: the head's width (the widest row, alpha over half, in the top 23 px of the
+  figure) or the standing head template-matched in each frame. FAD-E and FAD-F's runs: head within 1-2 % of the stand in
+  every view; their median boxes then stand at 0.86-0.95 of the stand (the run crouches). pass87_FADE_test pins: run
+  head within 5 %, run median box at most 5 % over the stand, the hit's box within 5 %.
+- **Sizes per view** (recipe `run_scale`, multiplied on the puppet's `run_fit`): FAD-E front 0.885, fd 0.905, side
+  0.905, bd 0.91, back 0.915; FAD-F front 0.91, fd 0.895, side 0.905, bd 0.93, back 0.88.
+- **The puppet guide's neck** (tools/puppet.py guides): the puppet's Neck bone sits 0.18 of the torso above the shoulder
+  line in the back views (an inverted V: sagging, slouched shoulders) and the running puppet's face only 0.13 torso
+  above the shoulders in the front (a sunk head that inflates the fitted body). Fixed for Fadeaway in a copy of the
+  guide (tools/dl/drivers/fadeaway_puppet_run_up, by tools/dl/p87/FADE/driver_fix.py): neck on the shoulder line +
+  0.03 torso; face lifted to front/fd nose 0.29, side ears 0.36, bd ears 0.50, back ears 0.56 torso above the shoulder
+  line. Not fixed in puppet.py itself (not this lane's file): every puppet look (MAY-P/Q/R, SOL's new ones, FAD-D)
+  shares the cause; a candidate for the lead.
+- **The back-diagonal's 88**: gen_art paints the bd still from the front still only, with no back words, so a back
+  print never reaches it; a look that needs one paints bd from the front and the back still and names it in
+  `still_keys.bd`. The Running clip also swings the bd shoulder line from square (0.113 of the frame) to edge-on
+  (0.019) and the near arm's backswing crosses the back: the guide's bd shoulder width is held at 0.08 + 0.2 x (w -
+  mean) (0.069-0.088) and its elbow and wrist kept at least 0.6 of the half shoulder width out on their own side.
+- **Negative prompts take plain nouns**: the hero's `anim_negative` "no basketball, no extra arms ..." reads as a double
+  negative; FAD-F's first back walk painted a ball in his hand. FAD-E/F say "a basketball, a ball in his hands, ...".
+  Fadeaway's top-level anim_negative (FAD-B/C/D) still says "no ...": left as it was (Garry's looks).
+
+### 34.MUMMY Four new mummies (DM-F..DM-I)
+
+No gameplay number changed: the Dust Mummy's stats (hp 60, speed 0.85, damage 14, ...) are untouched and DM-0 stays the
+look the game plays. The four new looks are art only (dust_mummy `variants`, all `fresh`); what they carry that a
+player could notice once Garry picks one:
+
+- Walk cadence per look (`fps.run`, from the recipe's `run_fps`; EnemyManager scales it by the creature's pace as for
+  every creature): DM-F 10 (a slow shuffle), DM-G 15, DM-H 15, DM-I 12. The ground speed is the creature's own (0.85)
+  whichever look plays.
+- Death per look (`fps.die` in brackets): DM-F and DM-I fall on their backs (first-last-frame clips, 8 frames [12];
+  the Falling Back Death driver was tried for DM-F and failed on the raised arms), DM-G falls back and rolls onto its
+  face (clip, 8 frames [12], `anim_seed` 1), DM-H unravels into a heap of bandages (`death: collapse`: the painting
+  drops apart in slices into the painted heap, 5 frames [8]).
+- The look's size in the cell is the painting's (cell_fill 0.86 default); the creature's `size` 1.9 is unchanged.
+
+### 34.FIXES The bandit's facing, the evade, the black barrels' coins
+
+#### The Dynamite Bandit's facing (no numbers)
+- The Spit Cactus's look SC-A: `variants.SC-A.back_faces: "left"` (its back walk, stand and throw were painted from
+  Garry's back figure, which turns up-left: the back wind-up's free fist points left), `front_faces` stays "right".
+- Rule: a look whose attack strip is painted both ways (`attack_views: "front_back"`) mirrors the attack's back half by
+  `back_faces` (it read `front_faces` before), and its hand (`ranged.dynamite.hand.side`, muzzle_point) sits on the back
+  set's side there (EnemyManager._face_strip). The Saiga Sniper has no facing keys: unchanged.
+
+#### The evade shows
+- An evaded hit's word (the hero's damage numbers, beside BLOCK): **EVADE** (was DODGE), colour **#cdb8ff** (lavender;
+  BLOCK stays pale #e8f2ff), same size (PX_WORD 44) and merge window (WORD_MERGE 0.3 s); shown only with the damage
+  numbers on, like BLOCK.
+- The hero turns see-through: alpha **0.5** (Player.EVADE_GHOST_ALPHA) for **0.7 s** (EVADE_GHOST_HOLD), then a smooth
+  ease back to whole by **1.0 s** (EVADE_GHOST_TIME). Another evade restarts the second (never adds up: never under 0.5).
+  Cleared when he goes down. The hit blink (invuln) still hides him on its beats; the trampoline flight shows him
+  see-through as on the ground. While see-through his legs in an oasis are not drawn under the water (his second pass
+  leaves the water's part out) for that second.
+
+#### The black barrels' coins (Garry: "The darker barrels should now give between 1-5 coins")
+- "Darker" = the rare **black** barrels (matte black with brass hoops since pass 48; `light` in BarrelField's code, it
+  was a light wood before pass 48), not the common brown ones: they are the darker barrels on the sand, and theirs is
+  the "random number" (each spot rolls LIGHT_FRAC 0.22).
+- BarrelField.COUNT **35** (was 33): the first 33 spots roll LIGHT_FRAC **0.22** as before, the last **2**
+  (EXTRA_DARK) are always black. Black barrels a map: 33 x 0.22 + 2 = **9.26** on average (7.26 before).
+- A black barrel bursts into **1-5 coins** (COIN_MIN 1, COIN_MAX 5, uniform whole numbers, mean 3), each worth
+  **1** (COIN_VALUE; times the stage when taken, like every coin; greed applies), besides its 10 small + 4 medium gems
+  (unchanged). Gold source "barrel". Brown barrels: gems only, as before.
+- Each black barrel's count is rolled once per map, on the run's seed (BarrelField.coins, its own dice after the
+  spots); all black barrels of a map hold 9.26 x 3 = **27.8 coins** on average.
+- **The creatures' coins pay it back** (PickupManager.coin_debt, COIN_DEBT_SHARE **0.4**): when the barrels are laid
+  out, the run owes the coins all its black barrels hold (BarrelField.coins_total, broken or not). While anything is
+  owed, each coin a creature would drop (drops.gold, luck as before, Elites' and bosses' too) goes to the bill 40% of
+  the time: the bill takes its value (1-3, x5 for the big ones, before the stage and greed) and it does not drop (the
+  last one drops what is left of it once the bill is paid); the other 60% drop as ever. Once paid, the kills drop their
+  coins as before. Purses, chests, boss showers, Loose Change, Gold Dust and the rest are untouched.
+- What that makes: a run that breaks every black barrel ends with the coins it had before (the kills give the barrels'
+  ~28 coins to the barrels); one that breaks none has ~28 coins less; a short run gives up only its share (40% of its
+  kills' coins, at most the bill). 0.4 = the bill over a whole stage-1 run's kill coins (27.8 / 71.5 coin gold in the
+  sim below, 0.39), so a stage-1 run pays it off about when the stage ends; in stages 2-3 (8x the coins a kill) it is
+  paid in the first minute or two.
+- Why not a multiplier on drops.gold (the brief's first idea): the creatures' coins a kill grow eightfold after stage 1
+  (0.03 gold a kill in stage 1, 0.23-0.27 in stages 2-3, sim below), and with the stages as their own runs (pass 87
+  SGAME) a run is 7-13 minutes of one stage: a multiplier fitted to a stage-1 run (about 0.6) would take about 400 gold
+  from a stage-2 run and 1,300 from a stage-3 one while the barrels give back 56 / 83; fitted to today's whole 25-minute
+  run it is 0.99 (nothing). The bill is capped at what the barrels hold whatever the run.
+
+#### The numbers (run sim, Drifter, explorer bot (breaks the barrels it sees), a quarter board, seed 1, 10 runs each;
+#### tools/dl/p87/FIXES/sim_*; the after runs on the same snapshot with only this lane's barrel/pickup code swapped in)
+| | before | after |
+|---|---|---|
+| black barrels a map (expected / in the 10 after maps) | 7.26 | 9.26 / coins held 30.5 a map (18-40) |
+| short runs (`--death end`, die at ~2-5 min): kills' coin gold a run | 13.5 (all ten died, 4:05 on average) | 476.9 with one 24-min survivor (4,731); the nine that died (2:00-4:48): 4.2 kill coins + 9.3 barrel gold = 13.5 |
+| short runs: the bill paid / the barrels' coins picked up (mean of 10) | - | 10.4 / 11.5 (net about +1) |
+| full 25-min runs (`--death keep`): kills | 16,493 | 16,521 |
+| full runs: kills' coin gold in stage 1 (0-7:10) | 71.5 (sd 64) | 76.0 (sd 43) |
+| full runs: kills' coin gold, whole run | 4,230 | 4,203 |
+| full runs: barrel gold | 0 | 36.8 (bot broke 23.5 of 35 barrels; 22.8 of the 30.5 black coins) |
+| full runs: the bill paid | - | 30.5 of 30.5 in every run (all paid) |
+| full runs: all gold | 24,739 (sd ~7,000) | 23,620 |
+- Coins a kill (before): 0.032 gold in stage 1, 0.23 in stage 2, 0.27 in stage 3 (stage multiplier, bigger drops.gold).
+- What the sim can and cannot show: a run's kill coins swing 18-214 gold in stage 1 alone (an Elite's coin is x5), so
+  ten runs cannot see a 28-coin shift in the totals; the accounting (the runner's P87DEBT line in each player's log,
+  snapshot-only instrumentation) shows the rule doing what it says: every full run paid its whole bill (= the coins its
+  black barrels held), the nine short runs paid 71 of their 109 would-be kill coins (65%, not 40%: few coins, and an
+  Elite's x5 coin goes whole), and the bot's barrels gave back about what it paid
+  (+1 short runs, +6 gold full runs: it breaks ~75% of the black barrels, some in later stages where coins count x2-3).
+- An earlier after run with the bill taking every coin until paid (sim_after_keep) paid in full too; the 0.4 share was
+  chosen so a short run gives up its share instead of all its first coins.
+
+### 34.LEAD The lead's changes in this pass
+
+- **Endless respects a creature's live limit** (lane TUNE found hammer giants, bull beetles and spit cacti piling up in
+  Endless): a row whose creature is at its `max_alive` is left out of Endless's draw, and a wave or the fill brings only
+  what is left of that limit (WaveDirector `_endless_pick`, `_endless_room`), as the roster's draw does (`_roster_open`).
+- **Garry's answers** (2026-10-17): a stage picked from the menu is a fresh run, retuned; lengths 7:10 / 10:00 / 13:00;
+  the Stages menu opens on every Play once stage 1 is beaten; a death in Endless banks everything.
+- **The Armadillo** item in Garry's message was empty: nothing done.

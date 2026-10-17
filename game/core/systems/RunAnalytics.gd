@@ -59,12 +59,12 @@ const FRAME_GAP_MS := 250.0
 const SUMMARY_MAX := 24000
 ## Where a run's gold comes from (pass 61, Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)"):
 ## the `source` every Run.add_gold call names. coins = a creature's dropped coin; loose_change, gold_dust, boss_coins,
-## loot_cache, blasting_cap = coins of those origins (PickupManager.mark_coin); elite_purse, boss_purse = a kill's
+## loot_cache, blasting_cap, barrel (pass 87: a black barrel's coins) = coins of those origins (PickupManager.mark_coin); elite_purse, boss_purse = a kill's
 ## purse; chest = a chest's gold (its gold roll, or gold when the build changed under the reel); coin_bag = Pickpocket's
 ## bag; hush_money = a hit's pay; bounty = Bounty Hunter; dice = the dice shrine; empty_offer, stranger_empty,
 ## shop_empty = something with nothing left to give; debug = the developer buttons (boards leave it out); other = a call
 ## that named nothing (none should: pass61_an_test).
-const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot_cache", "blasting_cap", "elite_purse",
+const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot_cache", "blasting_cap", "barrel", "elite_purse",
 	"boss_purse", "chest", "coin_bag", "hush_money", "bounty", "dice", "empty_offer", "stranger_empty", "shop_empty",
 	"debug", "other"]
 ## Where a run's gold goes (Run.spend_gold's `sink`): the shop structure, the Down! revive. The Strongbox is not a
@@ -215,6 +215,8 @@ func begin(p_game: Node) -> void:
 	header["settings"] = _settings()
 	header["map_settings"] = RunAnalytics.map_settings(mapdef.timeline if mapdef else null)
 	header["stat_names"] = RunAnalytics.stat_names()
+	# pass 87 (lane STOOLS): the stage this run plays (a stage run since pass 87: Game started it before the recorder)
+	header.merge(stage_header(), true)
 	Analytics.run_begin(str(header["run_id"]))
 	var em = game.get("enemies")
 	var dir = game.get("director")
@@ -222,6 +224,9 @@ func begin(p_game: Node) -> void:
 	_connect(em, "boss_died", func(def, _p): event("boss_end", def.id))
 	_connect(dir, "boss_started", _on_boss_started)
 	_connect(dir, "stage_started", func(s): event("stage", "", int(s) + 1); _sheet_dirty = true)
+	# pass 87 (lane STOOLS): the stage's boss down (its portal's countdown to Endless begins); Endless begun is Game's
+	# own event ("endless", Game._on_endless_started)
+	_connect(dir, "stage_cleared", func(s): event("stage_beaten", "", int(s) + 1, {"stage_clock": snappedf(_stage_clock(), 0.1)}))
 	Run.level_up.connect(_on_level)
 	# pass 74: lifesteal's heal is unnamed on the hero; Game's handler heals before this one hears it (connected first)
 	Run.lifesteal_healed.connect(func(_n): _name_heal("lifesteal"))
@@ -654,6 +659,8 @@ func _sample() -> void:
 		_put(row, "phase", int(dir.phase))
 	var wave := Run.endless_wave()
 	_put(row, "wave", wave)
+	# pass 87 (lane STOOLS): seconds into Endless (only in Endless)
+	_putf(row, "en", float(Run.get("endless_time")) if bool(Run.get("endless")) and Run.get("endless_time") != null else 0.0)
 	if wave != _last_wave:
 		if wave > 0:
 			event("wave", "", wave)
@@ -916,6 +923,9 @@ func _fill_end(with_log: bool, banked: int = 0) -> void:
 	header["clock"] = snappedf(Run.elapsed, 0.1)
 	header["stage"] = Run.stage + 1
 	header["endless_wave"] = Run.endless_wave()
+	# pass 87 (lane STOOLS): the stage run's end: its window, its own clock, the boss, Endless, how it ended
+	header.merge(stage_header(), true)
+	header.merge(stage_end_fields(), true)
 	header["level"] = Run.level
 	header["kills"] = Run.kills
 	header["gold"] = Run.run_gold
@@ -952,8 +962,67 @@ func _end_props(banked: int) -> Dictionary:
 		"stage": header.get("stage", 1), "wave": header.get("endless_wave", 0), "level": header.get("level", 1),
 		"kills": header.get("kills", 0), "gold": header.get("gold", 0), "banked": banked,
 		"strongbox": header.get("strongbox", 0), "revives": header.get("revives", 0)}
+	# pass 87 (lane STOOLS): which stage, how the run ended, its boss, Endless
+	for k in STAGE_END_PROPS:
+		if header.has(k):
+			p[k] = header[k]
 	p.merge(gold_end(banked), true)
 	return p
+
+
+## Pass 87 (lane STOOLS): the header and run_end keys that say which stage the run played and how it ended
+## (stage_header, stage_end_fields).
+const STAGE_END_PROPS := ["stage_id", "stage_name", "stage_index", "stage_length", "stage_count", "outcome", "boss_killed",
+	"stage_clock", "endless_s", "run_time"]
+
+
+## Pass 87 (lane STOOLS; Garry: "Analytics should make it easy to indicate which Stage Player was playing on and which
+## Stage the data is about"): the stage this run plays: stage (1-based, as before), stage_index (0-based), stage_id,
+## stage_name, its window on the map's clock (stage_start, stage_length) and how many the map has (stage_count). Lane
+## SGAME's WaveTimeline helpers when the map has them (stage_list), else stage_length x stages.
+static func stage_header() -> Dictionary:
+	var k: int = Run.stage
+	var out := {"stage": k + 1, "stage_index": k}
+	var tl: WaveTimeline = Run.map.timeline if Run.map != null else null
+	if tl == null:
+		return out
+	if tl.has_method("stage_entry"):
+		var e: Dictionary = tl.call("stage_entry", k)
+		out["stage_id"] = str(e.get("id", "s%d" % (k + 1)))
+		out["stage_name"] = str(e.get("name", "Stage %d" % (k + 1)))
+		out["stage_start"] = snappedf(float(e.get("start", 0.0)), 0.1)
+		out["stage_length"] = snappedf(float(e.get("length", tl.stage_length)), 0.1)
+		out["stage_count"] = int(tl.call("stage_count"))
+	else:
+		out["stage_id"] = "s%d" % (k + 1)
+		out["stage_name"] = "Stage %d" % (k + 1)
+		out["stage_start"] = snappedf(float(k) * tl.stage_length, 0.1)
+		out["stage_length"] = snappedf(tl.stage_length, 0.1)
+		out["stage_count"] = tl.stages
+	return out
+
+
+## Pass 87 (lane STOOLS): how the stage run ended: outcome (Run.outcome(): extracted | died_endless | died_after_boss |
+## died; "quit" for a run left by the app), boss_killed (the stage's boss fell), stage_clock (seconds into the stage: its
+## length once the boss came), endless_s (seconds survived in Endless), run_time (every second played: the stage, its boss,
+## the portal's countdown and Endless).
+func stage_end_fields() -> Dictionary:
+	var out := {}
+	var res := str(header.get("result", ""))
+	if Run.has_method("outcome"):
+		out["outcome"] = "quit" if res == "abandon" or res == "quit" else str(Run.call("outcome"))
+	else:
+		out["outcome"] = "extracted" if Run.extracted else ("died_endless" if Run.endless else ("quit" if res == "abandon" else "died"))
+	out["boss_killed"] = bool(Run.get("stage_beaten")) if Run.get("stage_beaten") != null else false
+	out["stage_clock"] = snappedf(_stage_clock(), 0.1)
+	out["endless_s"] = snappedf(float(Run.get("endless_time")) if Run.get("endless_time") != null and Run.endless else 0.0, 0.1)
+	out["run_time"] = snappedf(float(Run.call("run_time")) if Run.has_method("run_time") else play_t, 0.1)
+	return out
+
+
+## Seconds into this run's stage (Run.stage_clock, lane SGAME; the run clock before pass 87).
+func _stage_clock() -> float:
+	return float(Run.call("stage_clock")) if Run.has_method("stage_clock") else Run.elapsed
 
 
 ## The run's gold as it ended (pass 61, on run_end): gold_earned (every source, greed in; gold_greed is greed's share,

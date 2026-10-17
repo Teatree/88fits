@@ -600,3 +600,210 @@ static func row_timer(r: Dictionary) -> bool:
 ## The mix rows of `rows` (row_in_mix).
 static func mix_rows(rows: Array) -> Array:
 	return rows.filter(func(r) -> bool: return r is Dictionary and row_in_mix(r))
+
+
+# ---------------------------------------------------------------- stages as their own runs (pass 87, lane SGAME)
+
+## Garry (2026-10-17): "Now Player Unlocks Stages and is only able to enter them after having completed the previous
+## one. They differ in how long it takes to complete them as well." The map keeps ONE timeline on the run clock (the
+## roster, the events, the curves, as before); each stage is a window of it, in order: {"id", "name", "length" (seconds
+## before its boss), "boss" (an enemy id), "description", "difficulty" (the Stages menu's line), "filter" {"color":
+## "#RRGGBB", "strength": 0..1} (the world's tint, lane SLOOK), "hell" (stage 3's red ground), "shot" (the menu's
+## picture), "endless" (optional: Endless keys for this stage only)}. Stage k's window starts at the sum of the earlier
+## lengths (Red Canyon 7:10 / 10:00 / 13:00: 0..430, 430..1030, 1030..1810). A run plays one stage (Run.start_stage):
+## its clock starts at the window's start and stops at the window's end, where the stage's boss comes. [] = the fallback
+## for a map without the block: `stages` windows of `stage_length` each, named "Stage k", the boss the boss event at the
+## window's end, stage 3 and later hell (the pre-87 maps' look). Every index here is 0-based and clamped into the list.
+@export var stage_list: Array = []
+## The filter a stage plays without one: none.
+const STAGE_FILTER_NONE := {"color": "#000000", "strength": 0.0}
+
+
+## How many stages the map has: stage_list's, else `stages`.
+func stage_count() -> int:
+	if not stage_list.is_empty():
+		return stage_list.size()
+	return maxi(stages, 1)
+
+
+## Stage `i` clamped into the map's stages.
+func stage_clamp(i: int) -> int:
+	return clampi(i, 0, stage_count() - 1)
+
+
+## Stage `i`'s own entry as the map has it ({} in the fallback, for i < 0 or for a malformed entry).
+func _stage_raw(i: int) -> Dictionary:
+	if stage_list.is_empty() or i < 0:
+		return {}
+	var e = stage_list[stage_clamp(i)]
+	return e if e is Dictionary else {}
+
+
+## Stage `i`'s length in seconds (its window; the boss comes at its end): the entry's `length`, else `stage_length`.
+func stage_len(i: int) -> float:
+	var e := _stage_raw(i)
+	return maxf(float(e.get("length", stage_length)), 1.0)
+
+
+## The run second stage `i`'s window starts at: the earlier stages' lengths added up.
+func stage_start(i: int) -> float:
+	var s := 0.0
+	for k in range(stage_clamp(i)):
+		s += stage_len(k)
+	return s
+
+
+## The run second stage `i`'s window ends at (its boss's second).
+func stage_end(i: int) -> float:
+	return stage_start(i) + stage_len(stage_clamp(i))
+
+
+## Stage `i`'s window on the run clock: Vector2(start, end).
+func stage_window(i: int) -> Vector2:
+	return Vector2(stage_start(i), stage_end(i))
+
+
+## Every stage's length added up (the last window's end).
+func total_length() -> float:
+	return stage_end(stage_count() - 1)
+
+
+## The stage whose window holds run second `t` (a boundary second belongs to the stage it starts; past the last window's
+## end, the last stage).
+func stage_at(t: float) -> int:
+	var n := stage_count()
+	var end := 0.0
+	for k in range(n):
+		end += stage_len(k)
+		if t < end:
+			return k
+	return n - 1
+
+
+## Stage `i`'s id ("s1"... in the fallback).
+func stage_id(i: int) -> String:
+	var e := _stage_raw(i)
+	var id := str(e.get("id", ""))
+	return id if id != "" else "s%d" % (stage_clamp(i) + 1)
+
+
+## Stage `i`'s name ("Stage k" when the entry names none).
+func stage_name(i: int) -> String:
+	var e := _stage_raw(i)
+	var nm := str(e.get("name", ""))
+	return nm if nm != "" else "Stage %d" % (stage_clamp(i) + 1)
+
+
+## Stage `i`'s boss: the entry's `boss`, else the boss event at its window's end (the last boss event inside the window
+## when none sits on the end), else "" (a stage without a boss: its portal opens where the hero stands at its end).
+func stage_boss(i: int) -> String:
+	var e := _stage_raw(i)
+	var b := str(e.get("boss", ""))
+	if b != "":
+		return b
+	var w := stage_window(i)
+	var best := ""
+	var best_t := -INF
+	for ev in events:
+		if not (ev is Dictionary) or str(ev.get("type", "")) != "boss" or ev.get("enemy") is Array:
+			continue
+		var t := float(ev.get("t", 0.0))
+		if absf(t - w.y) < 0.5:
+			return str(ev.get("enemy", ""))
+		if t > w.x and t <= w.y and t > best_t:
+			best_t = t
+			best = str(ev.get("enemy", ""))
+	return best
+
+
+## The boss stage `i`'s entry names itself ("" in the fallback or when it names none; stage_boss also reads the events).
+func stage_boss_named(i: int) -> String:
+	return str(_stage_raw(i).get("boss", ""))
+
+
+## Whether stage `i` plays the hell look (the red ground, pass 43): the entry's `hell`, else stage 3 and later.
+func stage_hell(i: int) -> bool:
+	var e := _stage_raw(i)
+	if e.has("hell"):
+		return bool(e["hell"])
+	return stage_clamp(i) >= 2
+
+
+## Stage `i`'s world filter (lane SLOOK draws it): {"color": Color, "strength": float}; strength 0 = none.
+func stage_filter(i: int) -> Dictionary:
+	var e := _stage_raw(i)
+	var f = e.get("filter", STAGE_FILTER_NONE)
+	var fd: Dictionary = f if f is Dictionary else STAGE_FILTER_NONE
+	return {"color": color_of(fd.get("color", "#000000"), Color.BLACK), "strength": clampf(float(fd.get("strength", 0.0)), 0.0, 1.0)}
+
+
+## Stage `i`'s entry with every key filled (the Stages menu, analytics): index, id, name, length, boss, description,
+## difficulty, filter {color "#rrggbb", strength}, hell, shot ("" when the entry names none), start, end.
+func stage_entry(i: int) -> Dictionary:
+	var e := _stage_raw(i)
+	var k := stage_clamp(i)
+	var f := stage_filter(k)
+	return {"index": k, "id": stage_id(k), "name": stage_name(k), "length": stage_len(k), "boss": stage_boss(k),
+		"description": str(e.get("description", "")), "difficulty": str(e.get("difficulty", "")),
+		"filter": {"color": "#" + (f["color"] as Color).to_html(false), "strength": float(f["strength"])},
+		"hell": stage_hell(k), "shot": str(e.get("shot", "")), "start": stage_start(k), "end": stage_end(k)}
+
+
+# ---------------------------------------------------------------- Endless after a stage (pass 87, lane SGAME)
+
+## Garry (2026-10-17): "Player kills the boss and the Portal that appears shows a 1 minute timer before the Endless Mode
+## will activate ... Endless Mode consists of a huge wave of enemies appearing (with higher speed and HP) and every 10
+## seconds the power of the next wave of enemies becomes stronger in both HP, ATK and a lil bit in Speed. Enemies still
+## drop EXP, but modest amounts and drop coins very very rarely. The goal of this mode is to kill the Player." The map's
+## `endless` block (a stage entry's own `endless` block wins key by key; a key neither names plays ENDLESS_DEFAULTS):
+##   portal_seconds  the portal's countdown to Endless, on the run clock (it stands still behind every screen)
+##   every           seconds between Endless waves
+##   first_wave      creatures in the huge first wave; wave_size + wave_growth x (k - 2) in wave k >= 2
+##   cap             the crowd kept up between the waves, x the stage-end cap (load units; 0 = the waves alone)
+##   hp, atk, speed  wave 1's multipliers on the creatures (on the stage-end numbers: the late roster's fixed numbers)
+##   hp_growth, atk_growth   each wave x (1 + this) on the last: COMPOUNDING (wave k = hp x (1 + hp_growth)^(k - 1))
+##   speed_growth, speed_max LINEAR: wave k = speed x (1 + speed_growth x (k - 1)), never past speed_max
+##   xp_share        a kill's XP in Endless, a share of what it would drop
+##   coin_chance     a creature's coin roll happens only this share of the time (very rarely)
+##   roster_window   the "late roster": the mix rows open in the stage's last this-many seconds
+@export var endless: Dictionary = {}
+const ENDLESS_DEFAULTS := {"portal_seconds": 60.0, "every": 10.0, "first_wave": 120.0, "wave_size": 30.0,
+	"wave_growth": 2.0, "cap": 1.0, "hp": 1.5, "atk": 1.2, "speed": 1.15, "hp_growth": 0.15, "atk_growth": 0.1,
+	"speed_growth": 0.02, "speed_max": 1.6, "xp_share": 0.35, "coin_chance": 0.05, "roster_window": 60.0}
+
+
+## One Endless number for stage `i` (-1 = the map's): the stage's own `endless` block, then the map's, then the default.
+func endless_value(key: String, i: int = -1) -> float:
+	var own = _stage_raw(i).get("endless", {}) if i >= 0 else {}
+	if own is Dictionary and (own as Dictionary).has(key):
+		return float(own[key])
+	if endless.has(key):
+		return float(endless[key])
+	return float(ENDLESS_DEFAULTS.get(key, 0.0))
+
+
+## The portal's countdown to Endless after stage `i`'s boss (seconds of the run clock).
+func portal_seconds(i: int = -1) -> float:
+	return maxf(endless_value("portal_seconds", i), 0.0)
+
+
+## Endless wave `wave`'s (1-based) multipliers on the creatures after stage `i`: {hp, atk, speed}.
+func endless_mults(wave: int, i: int = -1) -> Dictionary:
+	var w := float(maxi(wave, 1) - 1)
+	var hp := maxf(endless_value("hp", i), 0.0) * pow(maxf(1.0 + endless_value("hp_growth", i), 0.0), w)
+	var atk := maxf(endless_value("atk", i), 0.0) * pow(maxf(1.0 + endless_value("atk_growth", i), 0.0), w)
+	var sp0 := maxf(endless_value("speed", i), 0.0)
+	var sp := minf(sp0 * (1.0 + endless_value("speed_growth", i) * w), maxf(endless_value("speed_max", i), sp0))
+	return {"hp": hp, "atk": atk, "speed": sp}
+
+
+## How many creatures Endless wave `wave` (1-based) brings after stage `i`.
+func endless_wave_size(wave: int, i: int = -1) -> int:
+	if wave <= 1:
+		return maxi(int(endless_value("first_wave", i)), 0)
+	return maxi(int(endless_value("wave_size", i) + endless_value("wave_growth", i) * float(wave - 2)), 0)
+
+
+## The Endless wave (1-based) `seconds` into Endless after stage `i`.
+func endless_wave_at(seconds: float, i: int = -1) -> int:
+	return int(floor(maxf(seconds, 0.0) / maxf(endless_value("every", i), 1.0))) + 1

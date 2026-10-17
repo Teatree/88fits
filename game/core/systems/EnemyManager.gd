@@ -4102,7 +4102,8 @@ func muzzle_point(i: int, aim: Vector3 = Vector3.ZERO, mz_in: Dictionary = {}) -
 		return pos[i] + Vector3(0, size[i] * 0.8, 0)
 	var k: float = size[i] / maxf(def.size, 0.01)
 	var t := type_idx[i]
-	var strip := _strip_of(i, t)
+	# pass 87 (lane FIXES): the attack strip's back half counts as the back set (_face_strip)
+	var strip := _face_strip(i, t, _strip_of(i, t))
 	var sgn := -1.0
 	if _face_bit(flip[i], t, strip) > 0.5:
 		sgn = -sgn
@@ -5160,6 +5161,16 @@ func _face_bit(f: int, t: int, strip: int) -> float:
 	return float(f)
 
 
+## The strip whose facing creature `i`'s frame follows (pass 87, lane FIXES): the attack strip's back half (attack_views
+## "front_back", shown while it faces away) is a back painting, so it reads the back set's key (`back_faces`) and its hand
+## sits on the back set's side (muzzle_point); every other strip is its own. The Dynamite Bandit's back wind-up aims the
+## other way than his front one, and it read the front key.
+func _face_strip(i: int, t: int, strip: int) -> int:
+	if strip == A_ATTACK and _t_atkv[t] == 1 and away[i] == 1:
+		return 5
+	return strip
+
+
 func _render() -> void:
 	_update_mark()
 	# compact instances per type
@@ -5238,7 +5249,7 @@ func _render() -> void:
 			fl = -fl
 		elif flash_hot[i] == 1:
 			fl = 2.0 + fl
-		var fy := _face_bit(flip[i], t, strip)
+		var fy := _face_bit(flip[i], t, _face_strip(i, t, strip))
 		if i == tethered_i and st != STATE_DYING:
 			# the red outline of the creature holding the rope (levels 0..16 on top of the flip bit)
 			fy += 2.0 * roundf(tether_glow() * 16.0)

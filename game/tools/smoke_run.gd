@@ -1,8 +1,10 @@
 ## Headless integration run. Starts a run straight into gameplay, simulates a thumb that steers in an S,
 ## auto-picks cards, fast-forwards to the first boss, walks into the portal, says "Not yet" once (pass 48: the run goes
-## on, the portal waits, and asks again once he has stepped out and back in), continues, extracts, then
-## visits Results, Title, Shop, Collection, Settings, the Mirror and the developer menu. Exit code 0 only if the whole
-## path ran. A revive (pass 48) and the Nuke run on the way, and the run file must record no damage past what the
+## on, the portal waits, and asks again once he has stepped out and back in), then (pass 87, stages as their own runs)
+## lets the portal's countdown run out while its dialog is up: Endless starts (the dialog and the portal go), its waves
+## come every few seconds, tougher each time, and the run is abandoned (portal=extract: EXTRACT on the second visit
+## instead, as before), then visits Results, Title, Shop, Collection, Settings, the Mirror and the developer menu. Exit
+## code 0 only if the whole path ran. A revive (pass 48) and the Nuke run on the way, and the run file must record no damage past what the
 ## creatures had (no zero rows, nothing near the revive's or the boss kill's 100 000).
 ## Run: godot --headless --path game --script res://tools/smoke_run.gd -- seconds=90 weapon=boomstick
 ## Autoloads are reached through the tree because SceneTree scripts compile before autoloads exist.
@@ -46,6 +48,13 @@ var _revived := false         # pass 48: a Nuke and a debug revive mid-run, the 
 var _declined := false        # pass 48: the first portal visit says "Not yet"
 var _declined_at := -1.0
 var _asked_again := false
+## pass 87 (lane SGAME): what the second portal visit does: "endless" (the countdown runs out, Endless, then the run is
+## abandoned) or "extract"; what Endless showed (its first waves, their HP factor), and when it started (the tool's clock)
+var _portal_mode := "endless"
+var _endless_at := -1.0
+var _endless_waves := 0
+var _endless_hp: Array = []
+var _endless_alive_before := 0
 
 
 func _init() -> void:
@@ -64,13 +73,16 @@ func _init() -> void:
 			_boss_n = int(a.trim_prefix("boss="))
 		elif a == "evolve=all":
 			_evolve_all = true
+		elif a.begins_with("portal="):
+			_portal_mode = a.trim_prefix("portal=")
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
 func _start() -> void:
 	_start_unix = Time.get_unix_time_from_system()
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
-	f.store_string(JSON.stringify({"weapon": _weapon, "level": 3, "character": _character, "map": _map, "spawn": true}))
+	# pass 87 (lane SGAME): boss=2 plays stage 2 as its own run (the launch's `stage`)
+	f.store_string(JSON.stringify({"weapon": _weapon, "level": 3, "character": _character, "map": _map, "spawn": true, "stage": maxi(_boss_n, 1)}))
 	f.close()
 	var save := root.get_node("Save")
 	save.data["runs_started"] = 1
@@ -186,10 +198,28 @@ func _tick_run(dt: float) -> void:
 				_asked_again = true
 				print("smoke_run: the portal asked again %.1f s after Not yet" % (_t - _declined_at))
 			_portal_decided += 1
-			var extract: bool = _portal_decided >= 2
-			_game.portal_dialog.visible = false
-			_game.portal_dialog.decided.emit(extract)
-			print("smoke_run: portal decision %d -> %s" % [_portal_decided, "extract" if extract else "continue"])
+			if _portal_mode == "extract":
+				_game.portal_dialog.visible = false
+				_game.portal_dialog.decided.emit(true)
+				print("smoke_run: portal decision %d -> extract" % _portal_decided)
+			else:
+				# pass 87 (lane SGAME): the countdown runs on while the dialog is up (Game.tick_portal_countdown); at 0
+				# Endless starts, the dialog closes and the run goes on
+				var left: float = _game.portal_seconds_left()
+				print("smoke_run: portal decision %d -> wait out the countdown (%.1f s left)" % [_portal_decided, left])
+				if left < 0.0:
+					_errors.append("no portal countdown while the portal is open")
+				_endless_alive_before = _game.enemies.alive_count()
+				_game.tick_portal_countdown(left + 0.1)
+				if _game.enemies.alive_count() <= _endless_alive_before:
+					_errors.append("Endless's first wave brought nobody")
+				if _game.portal_dialog.visible or _game.paused:
+					_errors.append("Endless came but the portal dialog stayed up or the run paused")
+				if _game.portal != null and is_instance_valid(_game.portal) and not _game.portal.is_queued_for_deletion():
+					_errors.append("Endless came but the portal stayed")
+				if not _run.endless or int(_game.director.phase) != 3:
+					_errors.append("the countdown ran out but Endless did not start")
+				_endless_at = _t
 	if _perf:
 		if int(_t) % 10 == 0 and int(_t) != _last_clear and _t > 1.0:
 			_last_clear = int(_t)
@@ -234,19 +264,11 @@ func _tick_run(dt: float) -> void:
 	if _t > 6.0 and not _boss_forced:
 		_boss_forced = true
 		# the stage clock comes from the timeline (pass 46 stretched Red Canyon's stages from 300 s to 430 s)
+		# pass 87 (lane SGAME): the clock just before this stage run's boss (boss=2 plays stage 2 as its own run)
 		var sl := _stage_len()
+		_run.elapsed = sl - 4.0
 		if _boss_n >= 2:
-			# the second boss straight away: stage 2, the clock just before its event, the director past the earlier ones
-			_run.stage = 1
-			_run.elapsed = 2.0 * sl - 4.0
-			var tl = _game.director.timeline
-			for k in range(tl.events.size()):
-				if float(tl.events[k].get("t", 0.0)) < 2.0 * sl:
-					_game.director._event_i = k + 1
-			_game.director._apply_mults()
-			print("smoke_run: jumped to the second boss (stage 2, event %d)" % _game.director._event_i)
-		else:
-			_run.elapsed = sl - 4.0
+			print("smoke_run: stage %d run, clock %.0f, the boss at %.0f" % [_run.stage + 1, _run.elapsed, sl])
 		for k in range(6):
 			_run.add_xp(_run.xp_to_next() + 1.0)
 		# exercise the evolution path: max the first weapon, add its passive, open a chest
@@ -337,8 +359,29 @@ func _tick_run(dt: float) -> void:
 		em.kill_all(true)
 	if _game.portal and is_instance_valid(_game.portal) and _game.portal.armed and not _game.paused:
 		_game.player.global_position = _game.portal.global_position + Vector3(0.2, 0.5, 0)
-	if _portal_decided == 1 and _run.stage == 1 and _run.elapsed < 2.0 * _stage_len() - 10.0:
-		_run.elapsed = 2.0 * _stage_len() - 4.0
+	# pass 87 (lane SGAME): Endless's waves, a few seconds of each, then the run is abandoned (Endless ends only so)
+	if _endless_at >= 0.0:
+		var w: int = _run.endless_wave()
+		if w > _endless_waves:
+			_endless_waves = w
+			# the wave's own numbers were fixed (a source per row it drew, "@w<k>"), at the wave's multiplier
+			var srcs := 0
+			for k in _game.director._src.keys():
+				if str(k).ends_with("@w%d" % w):
+					srcs += 1
+			if srcs == 0:
+				_errors.append("Endless wave %d fixed no numbers" % w)
+			var m: Dictionary = _game.director.timeline.endless_mults(w, _run.stage)
+			_endless_hp.append(float(m["hp"]))
+			print("smoke_run: Endless wave %d, %d alive, %d rows fixed, hp x %.2f, speed x %.2f" % [w, _game.enemies.alive_count(), srcs, float(m["hp"]), float(_game.enemies.stage_speed_mult)])
+		# the waves come every `every` seconds of Endless: the tool hurries Endless's clock along
+		_run.endless_time += dt * 4.0
+		if _endless_waves >= 3 and not _game.paused:
+			if _endless_hp.size() >= 3 and not (float(_endless_hp[2]) > float(_endless_hp[1]) and float(_endless_hp[1]) > float(_endless_hp[0])):
+				_errors.append("Endless's waves did not grow tougher: %s" % str(_endless_hp))
+			_endless_at = -2.0
+			print("smoke_run: Endless ran %d waves (%.1f s of it); the run is abandoned" % [_endless_waves, _run.endless_time])
+			_game.abandon_run()
 	var sec := int(_t)
 	if sec != _last_report and sec % 2 == 0 and not _perf:
 		_last_report = sec
@@ -352,12 +395,13 @@ func _tick_run(dt: float) -> void:
 				str(_game.paused), str(_game.resume_gate.visible if _game.get("resume_gate") else false), int(_game.get("_pending_levels"))])
 
 
-## The map's stage length in seconds (the director's timeline once the game is up, else the map's own, else 300).
+## The run's stage's window end in seconds of the run clock (pass 87: the director's timeline once the game is up, else
+## the map's own, else 300).
 func _stage_len() -> float:
 	if is_instance_valid(_game) and _game.director and _game.director.timeline:
-		return float(_game.director.timeline.stage_length)
+		return float(_game.director.timeline.stage_end(_run.stage))
 	if _run and _run.map and _run.map.timeline:
-		return float(_run.map.timeline.stage_length)
+		return float(_run.map.timeline.stage_end(_run.stage))
 	return 300.0
 
 

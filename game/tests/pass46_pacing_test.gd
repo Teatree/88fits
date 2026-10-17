@@ -123,7 +123,8 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	var tl := _tl()
 	assert_float(tl.stage_length).is_equal(430.0)
 	assert_int(tl.stages).is_equal(3)
-	# every boss exactly at a stage's end, one a stage; every mini-boss half way through one
+	# every boss exactly at a stage's end, one a stage; every mini-boss half way through one (pass 87, lane SGAME,
+	# re-pinned: the stages are windows of their own lengths now, 7:10 / 10:00 / 13:00, WaveTimeline.stage_window)
 	var boss_ks: Array = []
 	var elite_ks: Array = []
 	for ev in tl.events:
@@ -131,11 +132,12 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 		assert_float(fmod(t, 1.0)).override_failure_message("event at %.2f s is not a whole second" % t).is_equal(0.0)
 		match str(ev.get("type", "")):
 			"boss":
-				var k := t / tl.stage_length
-				assert_float(k).override_failure_message("a boss at %.1f s is not at a stage's end" % t).is_equal(roundf(k))
-				boss_ks.append(int(k))
+				var k := tl.stage_at(t - 0.5)
+				assert_float(t).override_failure_message("a boss at %.1f s is not at a stage's end" % t).is_equal(tl.stage_end(k))
+				boss_ks.append(k + 1)
 			"elite_boss":
-				elite_ks.append(t / tl.stage_length)
+				var s := tl.stage_at(t)
+				elite_ks.append(float(s) + (t - tl.stage_start(s)) / tl.stage_len(s))
 			"elite_every":
 				assert_float(float(ev.get("interval", 0.0))).is_equal(129.0)
 	assert_array(boss_ks).contains_exactly([1, 2, 3])
@@ -158,24 +160,26 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	# the cap follows the curve at the stage ends (pass 56, re-pinned: Garry draws it in the Level Editor, so the
 	# expected values come from his points, sampled by the curve rule, not from pinned numbers)
 	for k in [1, 2, 3]:
-		var t: float = float(k) * float(tl.stage_length)
+		var t: float = tl.stage_end(k - 1)
 		var want := mini(int(WaveTimeline.sample_points(tl.cap_curve, t)), tl.cap_max)
 		assert_int(tl.cap_at(t, k - 1)).is_equal(want)
 	for p in tl.cap_curve:
 		assert_float(fmod(float(p[0]), 1.0)).is_equal(0.0)
 	# the rest of the clock: the late weights, the specials, the endless waves, the path slots
-	assert_float(tl.weight_late_t).is_equal(2.0 * tl.stage_length)
+	assert_float(tl.weight_late_t).is_equal(tl.stage_end(1))
 	assert_float(float(tl.specials.get("from", 0.0))).is_equal(tl.stage_length * 0.5)
 	var iv: Array = tl.specials.get("interval", [])
 	assert_float(float(iv[0])).is_equal(64.0)
 	assert_float(float(iv[iv.size() - 1])).is_equal(86.0)
-	assert_float(tl.endless_wave_seconds).is_equal(86.0)
+	# (pass 87, lane SGAME, re-pinned: Endless after every stage, a wave every `endless.every` seconds; the path slots
+	# inside each stage's own length)
+	assert_float(tl.endless_value("every")).is_greater(0.0)
 	for s in range(3):
 		var times: Array = tl.path_times_at(s)
 		var prev := 0.0
 		for t in times:
 			assert_float(float(t)).is_greater(prev)
-			assert_float(float(t)).is_less(tl.stage_length)
+			assert_float(float(t)).is_less(tl.stage_len(s))
 			prev = float(t)
 	assert_float(float(tl.path_times_at(0)[0])).is_equal(79.0)
 	# the health ramp is divided by the same factor, so a stretched moment is as tough as the old one was
@@ -196,19 +200,8 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	assert_int(tl.passive_cap_at(2)).is_equal(5)
 
 
-func test_the_endless_clocks_follow_the_stage() -> void:
-	var w := _world()
-	var d := _director(w)
-	Run.stage = 2
-	Run.elapsed = 1300.0
-	d.continue_to_next_stage()
-	assert_bool(Run.endless).is_true()
-	assert_float(d._endless_next_boss).is_equal_approx(1300.0 + 430.0, 0.001)
-	assert_float(d._endless_next_elite_boss).is_equal_approx(1300.0 + 215.0, 0.001)
-	assert_float(d._endless_next_elite).is_equal_approx(1300.0 + 64.5, 0.001)
-	Run.endless = false
-	Run.stage = 0
-	Run.elapsed = 0.0
+# (pass 87, lane SGAME: test_the_endless_clocks_follow_the_stage is gone with the old endless loop, its bosses and Elites
+# a stage; Endless after a stage is pinned in pass87_sgame_test.gd)
 
 
 # ---------------------------------------------------------------- colour after fifty kills
@@ -285,23 +278,7 @@ func test_elite_modifiers_wait_for_the_fifty_kills_and_are_not_dropped() -> void
 	assert_int(_modded(em)).is_equal(2)
 	assert_int(d._elite_held.size()).is_equal(0)
 	assert_float(float(d._elite_timers[0]["next"])).is_equal_approx(302.5 + 129.0, 0.001)
-	# endless holds its own the same way
-	em.kill_all(false)
-	d._elite_timers.clear()
-	Run.endless = true
-	Run.kills = 0
-	d._endless_next_boss = 1e9
-	d._endless_next_elite_boss = 0.0
-	d._endless_next_elite = Run.elapsed
-	d._process_events()
-	assert_int(_modded(em)).is_equal(0)
-	assert_float(d._endless_next_elite).is_equal_approx(Run.elapsed + 1.0, 0.001)
-	Run.kills = 50
-	Run.elapsed += 1.0
-	d._process_events()
-	assert_int(_modded(em)).is_equal(1)
-	assert_float(d._endless_next_elite).is_equal_approx(Run.elapsed + 430.0 * 0.15, 0.001)
-	Run.endless = false
+	# (pass 87, lane SGAME: the old endless's own Elite clock is gone; Endless sends no coloured Elites)
 	Run.kills = 0
 	Run.elapsed = 0.0
 

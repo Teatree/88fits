@@ -24,6 +24,9 @@ uniform float alpha_cut = 0.5;
 uniform vec4 tint : source_color = vec4(1.0);
 // pass 82 (lane TOTEM): how far the painting is drained of its colour (a used Totem Pole greying over 0.4 s)
 uniform float desat : hint_range(0.0, 1.0) = 0.0;
+// pass 87 (lane FIXES): the hero's evade (Player._evade_ghost_start, BillboardSprite.set_fade): under 1 this pass draws
+// nothing and his second pass (sprite_billboard_over, in the see-through queue) draws him at this alpha instead
+uniform float fade_alpha = 1.0;
 
 varying vec2 v_uv;
 
@@ -56,6 +59,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (fade_alpha < 0.999) {
+		discard;
+	}
 	vec4 c = texture(sprite, v_uv);
 	if (c.a < alpha_cut) {
 		discard;

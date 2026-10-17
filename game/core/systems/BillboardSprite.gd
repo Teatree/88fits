@@ -309,6 +309,26 @@ func set_desat(v: float) -> void:
 	_mat.set_shader_parameter("desat", clampf(v, 0.0, 1.0))
 
 
+## How opaque the painting is, 0..1 (pass 87, lane FIXES: the hero's evade turns him see-through for a second). Below 1
+## the first pass steps aside and the second pass (enable_over_trails, already in the see-through queue) draws him at
+## this alpha; a sprite without that pass stays opaque (it has nothing to draw him with).
+func set_fade(a: float) -> void:
+	_ensure()
+	if _over == null:
+		return
+	var v := clampf(a, 0.0, 1.0)
+	_mat.set_shader_parameter("fade_alpha", v)
+	_over.set_shader_parameter("fade_alpha", v)
+
+
+## The alpha set_fade last gave (1 when never set or without the second pass).
+func fade() -> float:
+	if _over == null:
+		return 1.0
+	var v = _over.get_shader_parameter("fade_alpha")
+	return float(v) if v != null else 1.0
+
+
 func set_height(h: float) -> void:
 	_param("height", h)
 

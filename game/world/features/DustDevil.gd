@@ -28,6 +28,8 @@ func _ready() -> void:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.albedo_color = Color(0.85, 0.7, 0.5, 0.35)
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# pass 87 (lane SLOOK): before the stage's filter, so the stage's look tints the column like the sand
+	mat.render_priority = StageLook.PRIORITY - 1
 	_cone.material_override = mat
 	_cone.position.y = 3.0
 	add_child(_cone)

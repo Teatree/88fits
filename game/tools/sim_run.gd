@@ -43,6 +43,8 @@ var _limit := 1500.0
 var _board := 0.0
 var _death := "end"
 var _map := "red_canyon"
+## pass 87 (lane SGAME): the stage the run plays, 1-based (stage=k; the launch's `stage`, Game._start_chosen_stage)
+var _stage := 1
 var _progress := 10.0
 var _wall := 2700.0
 var _res := Vector2i(504, 1122)
@@ -64,7 +66,7 @@ var _trace_n := 0
 ## the bot's options as given (args; Bot.resolve_opts fills in the rest from the preset); lure_r is stray's old name
 var _bot_raw: Dictionary = {}
 const BOT_ARGS := ["preset", "skill", "style", "reaction", "dodge", "daring", "stray", "explore", "totems", "barrels", "powerups",
-	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "specials"]
+	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "specials", "portal"]
 
 var _game: Node
 var _run: Node
@@ -108,6 +110,7 @@ func _init() -> void:
 			"board": _board = float(v)
 			"death": _death = v
 			"map": _map = v
+			"stage": _stage = maxi(int(v), 1)
 			"progress": _progress = maxf(float(v), 1.0)
 			"wall": _wall = float(v)
 			"res":
@@ -238,7 +241,7 @@ func _start() -> void:
 	node_added.connect(_on_node_added)
 	# sim_clock: the rules that count real time count the run's clock (Run.rule_seconds), as on a phone, in both modes
 	_run.launch_override = {"character": _hero, "map": _map, "map_seed": _seed, "analytics_memory": true, "sim_fast": _fast,
-			"sim_clock": true}
+			"sim_clock": true, "stage": _stage}
 	change_scene_to_file("res://game/Game.tscn")
 	process_frame.connect(_tick)
 	_write_progress("boot", "")
@@ -354,6 +357,19 @@ func _trace_line() -> void:
 	var p: Vector3 = _game.player.global_position
 	_say("trace %d pt %.4f hero %.4f,%.4f n %d sum %.3f,%.3f pk %d %.3f,%.3f kills %d xp %.2f hp %.2f proj %d" % [_trace_n, _play_t(), p.x, p.z, n, sum.x, sum.z,
 		pn, psum.x, psum.z, int(_run.kills), float(_run.xp), float(_game.player.hp), int(_game.projectiles.get("count") if _game.projectiles.get("count") != null else -1)])
+
+
+## Pass 87 (lane STOOLS): how the stage run ended, in Run.outcome()'s words when it ended by itself (a death, an
+## extraction); a run the sim stopped (the limit, the wall, a stuck screen) says where it stood: "stopped" (before the
+## boss), "stopped_after_boss" (the boss down, before Endless), "stopped_endless" (in Endless).
+func _stage_outcome(reason: String) -> String:
+	if (reason == "death" or reason == "extract") and _run.has_method("outcome"):
+		return str(_run.call("outcome"))
+	if bool(_run.get("endless")):
+		return "stopped_endless"
+	if bool(_run.get("stage_beaten")):
+		return "stopped_after_boss"
+	return "stopped"
 
 
 ## How the run ended on its own: extracted, given up on Down! (a death), or something else ended it.
@@ -511,7 +527,12 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 		"revives": _bot.revives.duplicate() if _bot else {"ad": 0, "phoenix": 0, "keep": 0}, "assists": int(_bot.assists) if _bot else 0,
 		"picks": int(_bot.picks) if _bot else 0, "kills": int(_run.kills),
 		"xp_total": snappedf(float(ra.get("xp_total")) if ra and ra.get("xp_total") != null else 0.0, 0.1),
-		"dmg_total": snappedf(dmg, 0.1), "build_text": build, "started": str(header.get("started", ""))}
+		"dmg_total": snappedf(dmg, 0.1), "build_text": build, "started": str(header.get("started", "")),
+		# pass 87 (lane STOOLS): the stage run: the stage played (1-based), how it ended, its boss, its Endless
+		"stage": _stage, "outcome": _stage_outcome(reason),
+		"boss_killed": bool(_run.get("stage_beaten")) if _run.get("stage_beaten") != null else false,
+		"endless_s": snappedf(float(_run.get("endless_time")) if _run.get("endless_time") != null and bool(_run.get("endless")) else 0.0, 0.1),
+		"stage_clock": snappedf(float(_run.call("stage_clock")) if _run.has_method("stage_clock") else float(_run.elapsed), 0.1)}
 
 
 ## The player's JSON from the recorder's rows and events (in memory) and the tool's own: meta, the series, the events.

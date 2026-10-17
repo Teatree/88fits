@@ -591,13 +591,14 @@ func _mmss(t: float) -> String:
 
 func _stage_at(t: float) -> int:
 	var tl: WaveTimeline = Run.map.timeline
-	return clampi(int(t / maxf(tl.stage_length, 1.0)), 0, maxi(tl.stages - 1, 0))
+	# pass 87 (lane SGAME): the stage whose window holds t
+	return tl.stage_at(t)
 
 
 ## The arena clock: every spawn after this scales as at `minute`, and the HUD shows its stage.
 func set_clock(minute: float) -> void:
 	var tl: WaveTimeline = Run.map.timeline
-	_minute = clampf(minute, 0.0, float(tl.stages) * tl.stage_length / 60.0)
+	_minute = clampf(minute, 0.0, tl.total_length() / 60.0)
 	Run.elapsed = _minute * 60.0
 	Run.stage = _stage_at(Run.elapsed)
 	game.director._apply_mults()
@@ -665,6 +666,9 @@ func run_director() -> void:
 	var d: WaveDirector = game.director
 	set_clock(_minute)
 	d.phase = WaveDirector.Phase.NORMAL
+	# pass 87 (lane SGAME): back from Endless (the arena's clock is a stage's again)
+	Run.endless = false
+	Run.endless_time = 0.0
 	d._event_i = 0
 	while d._event_i < d.timeline.events.size() and float(d.timeline.events[d._event_i].get("t", 0.0)) < Run.elapsed:
 		d._event_i += 1
@@ -1368,6 +1372,10 @@ func _world_tab() -> void:
 	# pass 82 (lane SAND): the five sands on the spot for this visit (a run plays the map file's: the Level Editor's World card)
 	if game.map and game.map.has_method("set_sand"):
 		_choice("Sand", sand_options(), str(game.map.get("sand_id")), func(v): game.map.call("set_sand", str(v))).name = "SandChoice"
+	# pass 87 (lane SLOOK): each stage's look on the spot (its filter and hell, StageLook; a run shows its own stage's)
+	var looks := stage_look_options()
+	if looks.size() > 1:
+		_choice("Stage look", looks, maxi(StageLook.of(game).stage, 0), func(v): StageLook.of(game).show_stage(int(v), 0.0)).name = "StageLookChoice"
 	_choice("Stats overlay", [[false, "Off"], [true, "On"]], bool(game.debug_panel.visible), func(v): game.debug_panel.visible = bool(v))
 	# the training dummies (pass 48): the developer menu's two settings, and laying the field out again with them; pass 49
 	# (Garry's arena list): the field's patrol, the attacking dummies, the Elite dummy and the Boss dummy. Each row is named
@@ -1408,6 +1416,16 @@ func _world_tab() -> void:
 	_section("Leave")
 	_note("Back to the title. Nothing done in the arena is kept.")
 	_buttons([["Leave the arena", _ask_leave]], 90, 28)
+
+
+## The WORLD tab's Stage look row (pass 87): every stage of the map's stage list as [index, its name].
+func stage_look_options() -> Array:
+	var out: Array = []
+	var list: Array = StageLook.stage_list_of(Run.map.timeline if Run.map else null)
+	for k in range(list.size()):
+		var e = list[k]
+		out.append([k, str((e as Dictionary).get("name", "Stage %d" % (k + 1))) if e is Dictionary else "Stage %d" % (k + 1)])
+	return out
 
 
 ## The WORLD tab's Sand row (pass 82): every sand the map knows (RedCanyon.SANDS) as [id, short label].

@@ -49,7 +49,9 @@ const Settings = (() => {
             el('figcaption', { class: 'muted small', text: `${def.options[k].label}, in the game at phone size: the hero on open sand` })));
         }
       }
-      if (group === 'Stages') card.appendChild(el('p', { class: 'muted small', text: `Stage 1 ${fmtT(0)}–${fmtT(App.stageLength())}, stage 2 to ${fmtT(App.stageLength() * 2)}, stage 3 to ${fmtT(App.stageLength() * 3)}; the run clock stands still through boss fights and portals.` }));
+      // pass 87 (lane STOOLS): each stage's own window (stage_list), set on its tab on the Timeline
+      if (group === 'Stages') card.appendChild(el('p', { class: 'muted small', text: `${App.stageList().map((w) => `Stage ${w.i + 1}${w.name !== `Stage ${w.i + 1}` ? ' (' + w.name + ')' : ''} ${fmtT(w.start)}–${fmtT(w.end)}`).join(', ')}. ${Model.hasStageList(App.tl()) ? 'Each stage\'s name, length, boss, words and colour: its tab on the Timeline (+ Stage adds one).' : 'No stage list yet: the stages are Stage length × Stages; editing a stage on its Timeline tab writes a stage list.'} Every stage is its own run since pass 87; the run clock stands still through its boss fight, the portal's countdown and Endless.` }));
+      if (group === 'Endless') card.appendChild(el('p', { class: 'muted small', text: 'Pass 87: after every stage\'s boss the portal counts down; then Endless: the first wave at once, then a wave every few seconds, each tougher, until the hero falls. A stage may carry its own `endless` block in its JSON entry (key by key over these). The old endless after the last stage is gone.' }));
       // pass 69 (lane EN)
       if (group === 'Coloured specials') card.appendChild(el('p', { class: 'muted small', text: 'The numbers of a coloured special (the rarer, bigger, tougher, glowing one) wherever a creature\'s own Special block (Enemies tab) leaves a box empty; a creature\'s own number always wins, an empty box here is the game\'s default (the grey number). Every creature names its own size, HP and ATK; none names a glow, so Glow here sets all of them.' }));
       // pass 72 (lane BOSS): the references, the chart and the thinking under the Boss HP card's five rows

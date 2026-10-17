@@ -95,6 +95,8 @@ const KIND_EVENTS := {
 	"death": "player_died", "revive": "revive_chosen", "unlock": "quest_completed", "debug_item": "debug_item",
 	# pass 74: a Totem Pole's gift taken, a coloured special killed (with whether it dropped a chest)
 	"totem": "totem_taken", "special_kill": "special_killed",
+	# pass 87 (lane STOOLS): the stage's boss down (the portal's countdown to Endless begins), Endless begun
+	"stage_beaten": "stage_beaten", "endless": "endless_started",
 }
 
 # ---------------------------------------------------------------- the key file
@@ -323,7 +325,24 @@ func super_properties() -> Dictionary:
 	if not run_props.is_empty():
 		p.merge(run_props, true)
 		p["stage"] = Run.stage + 1
+		# pass 87 (lane STOOLS; Garry: "Analytics should make it easy to indicate which Stage Player was playing on and
+		# which Stage the data is about"): every event of a run names its stage's id and whether it came in Endless
+		p.merge(stage_props(), true)
 	return p
+
+
+## Pass 87 (lane STOOLS): the stage keys every event of a run carries: stage_id ("s2"), in_endless (the event came in
+## Endless after the stage's portal countdown) and endless_wave (its wave, 0 outside Endless).
+func stage_props() -> Dictionary:
+	var out := {}
+	var tl: WaveTimeline = Run.map.timeline if Run.map != null else null
+	if tl != null and tl.has_method("stage_id"):
+		out["stage_id"] = str(tl.call("stage_id", Run.stage))
+	else:
+		out["stage_id"] = "s%d" % (Run.stage + 1)
+	out["in_endless"] = bool(Run.endless)
+	out["endless_wave"] = Run.endless_wave()
+	return out
 
 
 ## Queues one event (nothing when block_reason() says why not). Returns whether it was queued.
@@ -526,7 +545,7 @@ func map_event(e: Dictionary) -> Array:
 			p.erase("small")
 		"boss_start", "boss_end":
 			_rename(p, "id", "boss")
-		"stage", "portal_wait":
+		"stage", "portal_wait", "stage_beaten", "endless":
 			p["stage"] = int(p.get("level", Run.stage + 1))
 			p.erase("level")
 		"wave":
@@ -535,10 +554,8 @@ func map_event(e: Dictionary) -> Array:
 			var st := int(p.get("level", Run.stage + 1))
 			p["stage"] = st
 			p.erase("level")
-			var stages := 3
-			if Run.map and Run.map.timeline:
-				stages = int(Run.map.timeline.stages)
-			p["choice"] = "extract" if bool(p.get("extract", false)) else ("stay" if st >= stages else "continue")
+			# pass 87 (lane STOOLS): a stage run never goes on to the next stage: EXTRACT, or "not yet" (the countdown runs on)
+			p["choice"] = "extract" if bool(p.get("extract", false)) else "not_yet"
 			p.erase("extract")
 		"death":
 			_rename(p, "id", "killer")

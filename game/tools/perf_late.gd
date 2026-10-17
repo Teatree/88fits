@@ -7,8 +7,8 @@
 ##         default a third of the way into stage 3: 700 s of 300 s stages, 1003 s of Red Canyon's 430 s stages since pass
 ##         46, the same crowd), level= (45), analytics=0, numbers=0 (no damage numbers: the game's DamageNumbers is
 ##         suppressed, Settings never touched, so the save keeps the player's switch; pass 47), shadows=0 (the scenery's
-##         ground shadows hidden, pass 83). Headless works too, without
-##         the draw calls.
+##         ground shadows hidden, pass 83), look=k (stage k's look, 1-based, look=0 none; default the clock's stage's,
+##         pass 87). Headless works too, without the draw calls. Windowed it also prints the GPU's render time.
 ## Autoloads are reached through the tree: SceneTree scripts compile before they exist.
 extends SceneTree
 
@@ -40,6 +40,9 @@ var _sum := {}
 var _shadows := true
 ## tints=0 (pass 85): the props' natural tints off (every painting's tint uniforms), the A/B of their cost
 var _tints := true
+## look=k (pass 87, lane SLOOK): stage k's look (1-based; StageLook: its filter and hell) over the crowd; look=0 none.
+## By default the look of the stage the clock is in (stage 3's), as a run of that stage shows it.
+var _look := -1
 
 
 func _init() -> void:
@@ -62,6 +65,8 @@ func _init() -> void:
 			_shadows = false
 		elif a == "tints=0":
 			_tints = false
+		elif a.begins_with("look="):
+			_look = int(a.substr(5))
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -154,8 +159,9 @@ func _make_build() -> void:
 	_run.level = _level
 	_run.stage = 2
 	if _clock < 0.0:
-		var sl: float = float(_game.director.timeline.stage_length)
-		_clock = 2.0 * sl + sl / 3.0
+		# pass 87 (lane SGAME): a third into stage 3's own window
+		var tl3 = _game.director.timeline
+		_clock = float(tl3.stage_start(2)) + float(tl3.stage_len(2)) / 3.0
 	_run.elapsed = _clock
 	var d = _game.director
 	for k in range(d.timeline.events.size()):
@@ -163,6 +169,13 @@ func _make_build() -> void:
 			d._event_i = k + 1
 	d._apply_mults()
 	_run.rebuild_sheets()
+	var look = load("res://core/systems/StageLook.gd").of(_game)
+	look.stage = -1
+	if _look == 0:
+		look.set_mults(Color.WHITE, Color.WHITE, 0.0)
+	else:
+		look.show_stage((_look - 1) if _look > 0 else int(_run.stage), 0.0)
+	print("perf_late: stage look %d, world x %s, creatures x %s" % [_look, str(look.env_mult), str(look.actor_mult)])
 	print("perf_late: build %s -> %s, level %d, clock %.0f" % [_build, str(_run.weapons.map(func(w): return w.def.id)), _run.level, _run.elapsed])
 
 
@@ -180,6 +193,7 @@ func _sample() -> void:
 	_frames += 1
 	_add("draws", Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
 	_add("rcpu", RenderingServer.viewport_get_measured_render_time_cpu(_vp))
+	_add("rgpu", RenderingServer.viewport_get_measured_render_time_gpu(_vp))
 	_add("enemies", _game.enemies.count_alive)
 	_add("shots", _game.projectiles.count)
 	_add("fx", _game.fx._n)
@@ -199,5 +213,5 @@ func _report() -> void:
 		if float(r[k]) >= 0.02:
 			parts.append("%s %.2f" % [k, r[k]])
 	print("perf_late: t=%3d | %.2f ms/frame, worst %.1f | %s" % [int(_t), wall, r["worst_ms"], ", ".join(parts)])
-	print("perf_late:        creatures %.0f, shots %.0f, particles %.0f | draw calls %.0f, render cpu %.2f ms" % [_sum["enemies"] / n, _sum["shots"] / n, _sum["fx"] / n, _sum["draws"] / n, _sum["rcpu"] / n])
+	print("perf_late:        creatures %.0f, shots %.0f, particles %.0f | draw calls %.0f, render cpu %.2f ms, gpu %.2f ms" % [_sum["enemies"] / n, _sum["shots"] / n, _sum["fx"] / n, _sum["draws"] / n, _sum["rcpu"] / n, _sum["rgpu"] / n])
 	_reset()

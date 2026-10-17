@@ -561,7 +561,8 @@ const SimModel = (() => {
 
   function settingsLine(s, heroName) {
     const st = s || {};
-    return `${heroName || st.hero} · ${st.players} run${st.players === 1 ? '' : 's'} to ${fmtT(st.limit)} · Upgrade board ${boardWords(st)} · ${DEATHS[st.death] || st.death} · seed ${st.seed}` +
+    // pass 87 (lane STOOLS): the stage the runs played
+    return `${heroName || st.hero} · ${st.stage ? 'stage ' + st.stage + ' · ' : ''}${st.players} run${st.players === 1 ? '' : 's'} to ${fmtT(st.limit)} · Upgrade board ${boardWords(st)} · ${DEATHS[st.death] || st.death} · seed ${st.seed}` +
       (st.fast === false ? ' · everything drawn (sim mode off)' : '');
   }
 

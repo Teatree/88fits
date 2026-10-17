@@ -938,7 +938,8 @@ def routes_checks(check, server):
               and play_orders == sorted(play_orders) and len(set(play_orders)) == len(play_orders) and play_ids[0] == "drifter"
               and all(x["availability"] == hero_json[x["id"]].get("availability", "hidden" if hero_json[x["id"]].get("hidden") else "available")
                       for x in body if x["id"] in hero_json)
-              and [l["code"] for l in sol["looks"]] == ["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"]
+              # pass 87 (lane SOL, re-pinned): her five looks among hers (SOL-F and SOL-G, the puppet catwalks, came after)
+              and {"SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"} <= {l["code"] for l in sol["looks"]}
               and sol["title"] == "/art/wanted/hero_solenne.png" and sol["hero_mutations"] == ["sun_cocktail"] and sol["weapons"] == ["sun_scepter"]
               and in_play == sorted(in_play, reverse=True) and {"dad"} <= {x["id"] for x in body if x["availability"] == "hidden"},
               "/api/heroes: the heroes in play first by their JSON order, each hero's availability his file's, Solenne's five looks, title, her mutation and weapon, the hidden ones after")

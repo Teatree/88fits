@@ -18,8 +18,14 @@ extends Node
 signal boss_started(def: EnemyDef)
 signal portal_ready(pos: Vector3)
 signal stage_started(stage: int)
+## Pass 87 (lane SGAME): the run's stage boss died (Save marked the stage beaten), its portal's countdown to Endless
+## began; Endless began (the countdown ran out: the portal closes); an Endless wave came (1-based).
+signal stage_cleared(stage: int)
+signal endless_started
+signal endless_wave_started(wave: int)
 
-enum Phase { NORMAL, BOSS, PORTAL }
+## Pass 87: ENDLESS after the portal's countdown (the run clock stands still; Endless keeps its own, Run.endless_time).
+enum Phase { NORMAL, BOSS, PORTAL, ENDLESS }
 
 var game: Node
 var timeline: WaveTimeline
@@ -30,11 +36,12 @@ var _event_i := 0
 var _elite_timers: Array = []     # {next, interval}
 var _cull_t := 0.0
 var _portal_t := 0.0   # seconds the portal has waited (the run clock is frozen then; pass 45)
-var _endless_next_boss := 0.0
-var _endless_next_elite := 0.0
-var _endless_next_elite_boss := 0.0
+## pass 87 (lane SGAME): the portal's countdown to Endless (seconds left; -1 = none runs), the Endless wave that came last
+## (0 = none yet), the late roster Endless draws from ({row, w}), and Endless's creatures' speed factor now
+var _portal_left := -1.0
 var _endless_wave := 0
-var _endless_boss_i := 0   # the endless loop's bosses come in the timeline's order (pass 43)
+var _endless_pool: Array = []
+var _endless_speed := 1.0
 ## Elite-modifier spawns asked for before colour came in (pass 46): {enemy, mod}, released one a second once it has
 var _elite_held: Array = []
 var _elite_retry := 0.0    # the run clock at which the held ones are asked about again
@@ -89,6 +96,14 @@ func start(p_map: MapDef) -> void:
 	# pass 84 (lane SPAWN): the once and waves rows' chance and t_jitter, rolled once for this run (no dice without them)
 	_roll_rows()
 	_starve84.clear()
+	# pass 87 (lane SGAME): no countdown, no Endless yet; a stage run starts at its window (what came before it never comes)
+	_portal_left = -1.0
+	_endless_wave = 0
+	_endless_pool = []
+	_endless_speed = 1.0
+	if game.get("pickups") and game.pickups:
+		game.pickups.set("endless_coin_chance", 1.0)
+	_enter_stage_window()
 	running = true
 	var em: EnemyManager = game.enemies
 	for a in map.skins.keys():
@@ -137,18 +152,16 @@ func _apply_mults() -> void:
 	em.set_target_priority(timeline.target_priority)
 	# pass 73 (lane GROUND): every spawn grows out of the ground (EnemyManager.set_spawn_rise), the arena included
 	em.set_spawn_rise(timeline.spawn_rise_value("seconds"), timeline.spawn_rise_value("big_seconds"), timeline.spawn_rise_value("targetable"), timeline.spawn_rise_value("dust"))
+	# pass 87 (lane SGAME): in Endless every creature that comes walks at the wave's speed factor (a little faster each
+	# wave, WaveTimeline.endless_mults; fixed per creature at its spawn as the stage's is)
+	if phase == Phase.ENDLESS:
+		em.stage_speed_mult = timeline.speed_mult(Run.stage) * _endless_speed
 
 
 ## Whether colour may come yet (pass 46): the run has made its first `colour_after_kills` kills (the arena always may).
 ## An elite modifier is colour, so its spawns wait for this; the crowd's tints and specials wait in EnemyManager.spawn.
 func colour_open() -> bool:
 	return Run.arena or timeline == null or Run.kills >= timeline.colour_after_kills
-
-
-## How often endless sends an elite-modded creature: 0.15 of a stage (45 s of a 300 s stage, 64.5 s of Red Canyon's 430
-## since pass 46 stretched it; the endless clocks follow the stage instead of fixed seconds), sooner with Hot Sauce.
-func _endless_elite_every() -> float:
-	return timeline.stage_length * 0.15 / elite_pace()
 
 
 ## Hot Sauce (pass 47, Garry: "how likely Player is to get coloured enemies"): the coloured Elites' clocks (the
@@ -167,6 +180,9 @@ func current_cap() -> int:
 	var cap := timeline.cap_at(Run.elapsed, Run.stage)
 	if phase == Phase.BOSS:
 		return int(cap * timeline.boss_cap_frac)
+	if phase == Phase.ENDLESS:
+		# pass 87 (lane SGAME): the crowd Endless keeps up between its waves, x the stage-end cap (the frozen clock's)
+		return int(float(cap) * maxf(timeline.endless_value("cap", Run.stage), 0.0))
 	if phase == Phase.PORTAL:
 		# pass 48 (Garry: "after the boss dies we spawn a small wave and that's it"): a timeline with a portal wave sent it
 		# as the portal opened (spawn_portal_wave), and nothing comes after it until the hero walks through
@@ -190,7 +206,10 @@ func _process(delta: float) -> void:
 		Perf.add("director", _t0)
 		return
 	if phase == Phase.NORMAL:
-		Run.elapsed += delta
+		# pass 87 (lane SGAME): the run clock stays inside this run's stage window (it is never pulled back: a tool may have
+		# set it past); the window's end brings the stage's boss
+		var end: float = timeline.stage_end(Run.stage)
+		Run.elapsed = minf(Run.elapsed + delta, end) if Run.elapsed < end else Run.elapsed
 		_apply_mults()
 		_process_events()
 		if phase == Phase.NORMAL:
@@ -200,22 +219,36 @@ func _process(delta: float) -> void:
 			_tick_row_waves()
 		# the path slots: a stage puts a weapon's whole path on the table at set seconds into it; pass 79 (lane MUT): the
 		# offer falls due there and waits for the hero's next level-up (Run.mutlvl_tick, M1-M2), never opening on its own
-		Run.mutlvl_tick(Run.elapsed - float(Run.stage) * timeline.stage_length)
+		# (pass 87: seconds into the stage's own window)
+		Run.mutlvl_tick(Run.elapsed - timeline.stage_start(Run.stage))
+		if phase == Phase.NORMAL and Run.elapsed >= end:
+			_stage_end_reached()
 	elif phase == Phase.PORTAL:
 		_portal_t += delta
+		# pass 87: the portal's countdown to Endless, on the run's clock (it stands still behind every screen but the
+		# portal dialog, which ticks it through Game.tick_portal_countdown)
+		tick_portal_countdown(delta)
+	elif phase == Phase.ENDLESS:
+		_tick_endless(delta)
 	if phase != Phase.NORMAL:
 		# the stage clock stands still; the buffs' clock does not (Run.buff_clock, pass 47)
 		Run.held_time += delta
-	if phase != Phase.PORTAL:
+	# the specials' clock in the stage and its boss fight (pass 87: not in the portal wait nor in Endless)
+	if phase == Phase.NORMAL or phase == Phase.BOSS:
 		_tick_specials(delta)
 	_spawn_t -= delta
 	if _spawn_t <= 0.0:
 		_spawn_t = timeline.spawn_interval
-		_spawn_burst()
-	# pass 83 (lane TIMELINE): the continuous rows with their own `interval` draw on their own clocks
-	_tick_row_intervals(delta)
-	# pass 84 (lane SPAWN): the density floor (floor_curve; nothing without one)
-	_floor_fill()
+		# pass 87: Endless keeps its crowd up from the stage's late roster (_endless_fill) instead of the roster's draw
+		if phase == Phase.ENDLESS:
+			_endless_fill()
+		else:
+			_spawn_burst()
+	if phase != Phase.ENDLESS:
+		# pass 83 (lane TIMELINE): the continuous rows with their own `interval` draw on their own clocks
+		_tick_row_intervals(delta)
+		# pass 84 (lane SPAWN): the density floor (floor_curve; nothing without one)
+		_floor_fill()
 	_cull_t -= delta
 	if _cull_t <= 0.0:
 		_cull_t = 0.5
@@ -256,48 +289,28 @@ func _process_events() -> void:
 		if colour_open():
 			var h: Dictionary = _elite_held.pop_front()
 			_spawn_elite(str(h.get("enemy", "")), str(h.get("mod", "")), str(h.get("variant", "")), _stats_of(h))
-	if Run.endless:
-		# every wave (the timeline's endless_wave_seconds: 86 s on Red Canyon since pass 46) the crowd gets
-		# endless_wave_mult tougher, compounding (pass 43); the multipliers follow through _apply_mults, this is the
-		# announcement
-		var wave := Run.endless_wave()
-		if wave != _endless_wave:
-			_endless_wave = wave
-			if wave > 1:
-				game.toast("WAVE %d · ×%.2f" % [wave, Run.stage_mult()], Color(0.93, 0.29, 0.36))
-		if t >= _endless_next_elite:
-			if colour_open():
-				_endless_next_elite = t + _endless_elite_every()
-				_spawn_elite("", "")
-			else:
-				# held a second at a time while colour waits (never, in practice, this late in a run)
-				_endless_next_elite = t + 1.0
-		if t >= _endless_next_boss and map.boss != "":
-			# a boss a stage, a mini-boss half way between (pass 46: from the stage length; it was 300 and 150 s)
-			_endless_next_boss = t + timeline.stage_length
-			_endless_next_elite_boss = t + timeline.stage_length * 0.5
-			_run_event({"type": "boss", "enemy": _endless_boss_id()})
-		if _endless_next_elite_boss > 0.0 and t >= _endless_next_elite_boss and _endless_elite_id() != "":
-			_endless_next_elite_boss = 0.0
-			_run_event({"type": "elite_boss", "enemy": _endless_elite_id()})
 
 
 ## Seconds until the next boss event, or -1 when none is scheduled. The HUD counts it down. Pass 53: it reads the run's
 ## own copy of the events when there is one (a boss with `t_jitter` comes at its rolled time and the count says so; one
-## whose `chance` failed is not counted down to), the timeline's list before a run has rolled.
+## whose `chance` failed is not counted down to), the timeline's list before a run has rolled. Pass 87 (lane SGAME): only
+## in the stage's normal phase and only inside its window (a later stage's boss is never this run's): the stage's own
+## boss at the window's end when no boss event comes sooner (_stage_end_reached); -1 in a boss fight, the portal's
+## countdown and Endless.
 func next_boss_in() -> float:
-	if timeline == null:
+	if timeline == null or phase != Phase.NORMAL:
 		return -1.0
 	var t: float = Run.elapsed
-	if Run.endless:
-		return _endless_next_boss - t
+	var end: float = timeline.stage_end(Run.stage)
 	var best := -1.0
 	var list: Array = _run_events if _run_events.size() == timeline.events.size() else timeline.events
 	for ev in list:
 		if str(ev.get("type", "")) == "boss" and not bool(ev.get("_skip", false)):
 			var et := float(ev.get("t", 0.0))
-			if et > t and (best < 0.0 or et - t < best):
+			if et > t and et <= end and (best < 0.0 or et - t < best):
 				best = et - t
+	if best < 0.0 and end > t and timeline.stage_boss_named(Run.stage) != "":
+		best = end - t
 	return best
 
 
@@ -416,7 +429,8 @@ func boss_stage_of(id: String) -> int:
 		return -1
 	for ev in timeline.events:
 		if str(ev.get("type", "")) == "boss" and str(ev.get("enemy", "")) == id:
-			return maxi(int(ceil(float(ev.get("t", 0.0)) / maxf(timeline.stage_length, 1.0))) - 1, 0)
+			# pass 87 (lane SGAME): the stage whose window the event closes (a hair back: its end second is the next's)
+			return timeline.stage_at(float(ev.get("t", 0.0)) - 0.5)
 	return -1
 
 
@@ -465,29 +479,6 @@ func _spawn_elite_boss(id: String, variant := "", stats := {}) -> void:
 	if i >= 0:
 		elite_index = i
 		game.toast(def.display_name.to_upper(), Color(0.98, 0.62, 0.25))
-
-
-## The boss the endless loop brings next: the timeline's boss events in order, round and round (the King, the Gila, the
-## Brander, the King...), the map's boss when it has none.
-func _endless_boss_id() -> String:
-	var ids: Array = []
-	for ev in timeline.events:
-		if str(ev.get("type", "")) == "boss" and Registry.enemy(str(ev.get("enemy", ""))) != null:
-			ids.append(str(ev.get("enemy", "")))
-	if ids.is_empty():
-		return map.boss
-	var id: String = ids[_endless_boss_i % ids.size()]
-	_endless_boss_i += 1
-	return id
-
-
-## The mini-boss the endless loop repeats: the last elite_boss event in the timeline (one of its ids when it lists several).
-func _endless_elite_id() -> String:
-	for k in range(timeline.events.size() - 1, -1, -1):
-		var ev: Dictionary = timeline.events[k]
-		if str(ev.get("type", "")) == "elite_boss":
-			return _pick_id(ev.get("enemy", ""))
-	return ""
 
 
 ## One id from `v`: a string as it is; from a list one at random, by the parallel `weights` list when one is given (pass
@@ -562,32 +553,38 @@ func fixed_numbers(t0: float, stats: Dictionary = {}) -> Dictionary:
 ## Canyon's hell rows have no end, so stage 3 and the whole of endless kept 14:20's curve and hero level, and only the
 ## x1.12 a wave was left of endless's growth): in endless every row and wave fixes its numbers afresh at each endless
 ## wave, from the wave's start (or its own `t`, if later) and the hero's level at its first spawn in that wave; the step
-## comes with the WAVE toast, like the stage multiplier's, so nothing changes in the middle of a wave.
+## comes with the WAVE toast, like the stage multiplier's, so nothing changes in the middle of a wave. Pass 87 (lane
+## SGAME): Endless follows the stage, its run clock frozen at the window's end, so the numbers are fixed from the row's
+## own start as in the stage, then times the Endless wave's multipliers (WaveTimeline.endless_mults: hp on the HP, atk on
+## the damage), afresh at each Endless wave.
 func source_for(key: String, t0: float, stats: Dictionary) -> Dictionary:
 	var ew := endless_wave_now()
 	if ew > 0:
 		key += "@w%d" % ew
-		t0 = maxf(t0, endless_wave_start(ew))
 	var s = _src.get(key)
 	if s is Dictionary:
 		return s
 	var made := fixed_numbers(t0, stats)
+	if ew > 0 and timeline != null:
+		var m: Dictionary = timeline.endless_mults(ew, Run.stage)
+		made["hp_time"] = float(made["hp_time"]) * float(m["hp"])
+		made["dmg_time"] = float(made["dmg_time"]) * float(m["atk"])
+		made["endless_wave"] = ew
 	_src[key] = made
 	return made
 
 
-## The endless wave the run is in by this director's timeline (pass 58 fix round; Run.endless_wave() reads the map's, the
-## same timeline in a run), 1-based, 0 outside endless.
+## The Endless wave the run is in (pass 58 fix round; pass 87: Run.endless_wave(), a wave every `endless.every` seconds of
+## Endless), 1-based, 0 outside Endless.
 func endless_wave_now() -> int:
 	if not Run.endless or timeline == null:
 		return 0
-	var secs := maxf(Run.elapsed - timeline.stage_length * float(timeline.stages), 0.0)
-	return timeline.endless_wave(secs) + 1
+	return Run.endless_wave()
 
 
-## The run clock at which endless wave `w` (1-based) starts (pass 58 fix round).
+## The second of Endless at which Endless wave `w` (1-based) starts (pass 87: Endless's own clock, Run.endless_time).
 func endless_wave_start(w: int) -> float:
-	return timeline.stage_length * float(timeline.stages) + float(maxi(w - 1, 0)) * maxf(timeline.endless_wave_seconds, 1.0)
+	return float(maxi(w - 1, 0)) * maxf(timeline.endless_value("every", Run.stage), 1.0)
 
 
 ## Forgets every row's and wave's fixed numbers (pass 58): the next spawn of each fixes them again, from the hero's level
@@ -811,15 +808,24 @@ func elite_position() -> Vector3:
 	return Vector3.INF
 
 
-func _on_boss_died(def: EnemyDef, at: Vector3) -> void:
+func _on_boss_died(_def: EnemyDef, at: Vector3) -> void:
+	# pass 87 (lane SGAME): a boss that falls in Endless (the arena, a tool) changes nothing
+	if phase == Phase.ENDLESS:
+		return
 	phase = Phase.PORTAL
 	_portal_t = 0.0
 	# the boss's own chest: it holds a mutation, and opening it is what calls every gem, coin and chest in (pass 30)
 	game.pickups.spawn_chest(at + Vector3(2.0, 0, 0), true)
 	Save.mark_once("boss_%s_%d" % [map.id, Run.stage + 1])
+	# pass 87: the stage is beaten (the next one unlocks: Save.stage_unlocked), and the portal's countdown to Endless begins
+	Run.stage_beaten = true
+	if not Run.arena:
+		Save.mark_stage_beaten(map.id, Run.stage)
+	_portal_left = timeline.portal_seconds(Run.stage)
 	QuestTracker.check_run_events()
 	portal_ready.emit(at)
 	spawn_portal_wave()
+	stage_cleared.emit(Run.stage)
 
 
 ## Whether the timeline sends one wave as the portal opens instead of keeping the crowd up (pass 48, `portal_wave`).
@@ -892,21 +898,229 @@ func _around_point() -> Vector3:
 	return mb.clamp_to_arena(p) if mb else p
 
 
-## Called by the game when the player chooses to continue through the portal.
-func continue_to_next_stage() -> void:
-	Run.stage += 1
-	Run.path_slot = 0
-	if Run.stage >= timeline.stages:
-		Run.endless = true
-		_endless_wave = 1
-		_endless_boss_i = 0
-		_endless_next_boss = Run.elapsed + timeline.stage_length
-		_endless_next_elite = Run.elapsed + _endless_elite_every()
-		_endless_next_elite_boss = Run.elapsed + timeline.stage_length * 0.5
-	phase = Phase.NORMAL
+# ---------------------------------------------------------------- a stage run's window, its end, Endless (pass 87, lane SGAME)
+
+## Garry (2026-10-17): "Player kills the boss and the Portal that appears shows a 1 minute timer before the Endless Mode
+## will activate. There is only an Extract button now in the Portal." A run plays one stage (Run.start_stage): its clock
+## starts at the window's start (start() -> _enter_stage_window), stops at the window's end, where the stage's boss comes
+## (its boss event, or _stage_end_reached); the boss's death opens the portal and its countdown (portal_seconds, run
+## clock); the hero extracts through it (Game), or the countdown runs out and Endless starts (start_endless). There is no
+## going on to the next stage any more (continue_to_next_stage is gone).
+
+## What the timeline dated before this run's stage window never comes (start(), after the run's roll): every event before
+## the window's start is skipped, and a boss event on the start itself too (it is the stage before's); an elite_every
+## event before it still sets its timer, on its own rhythm from its second; a wave of the timeline's `waves` that began
+## before keeps its rhythm from the window's start (a one-burst wave, or one closed by then, is spent). The roster rows
+## need nothing: a once row past its second is dropped as stale, a waves row fires only its latest wave due, a continuous
+## row is open by its own t/until (pass 81/84's rules for a clock that jumped). A run of stage 1 (start 0) changes nothing.
+func _enter_stage_window() -> void:
+	if timeline == null:
+		return
+	var w0: float = timeline.stage_start(Run.stage)
+	if w0 <= 0.0:
+		return
+	for e: Dictionary in _run_events:
+		var t := float(e.get("t", 0.0))
+		var kind := str(e.get("type", ""))
+		if t > w0 or (t == w0 and kind != "boss"):
+			continue
+		if kind == "elite_every" and not bool(e.get("_skip", false)):
+			var iv := maxf(_interval_of(e.get("interval", 90.0)), 1.0)
+			_elite_timers.append({"next": t + ceilf((w0 - t) / iv) * iv, "interval": e.get("interval", 90.0),
+				"enemy": e.get("enemy", ""), "weights": e.get("weights", []), "mod": str(e.get("mod", "")),
+				"variant": str(e.get("variant", "")), "stats": _stats_of(e)})
+		e["_skip"] = true
+	for k in range(_waves.size()):
+		var ws: Dictionary = _waves[k]
+		var w = timeline.waves[k]
+		if not (w is Dictionary) or bool(ws.get("done", false)) or float(w.get("t", 0.0)) >= w0:
+			continue
+		var every := float(w.get("every", 0.0))
+		if every <= 0.0 or ((w as Dictionary).has("until") and float(w["until"]) <= w0):
+			ws["done"] = true
+			continue
+		var t0 := float(w.get("t", 0.0))
+		ws["next_t"] = t0 + ceilf((w0 - t0) / every) * every
+
+
+## The window's end came with no boss fight begun (no boss event at its end, or one whose jitter moved it past): the boss
+## the stage's entry names, else the boss event's at the window's end unless this run skipped it (its `chance` failed:
+## no boss this run, as before), or, for a stage without one, its portal where the hero stands.
+func _stage_end_reached() -> void:
+	var id: String = timeline.stage_boss_named(Run.stage)
+	if id == "":
+		id = timeline.stage_boss(Run.stage)
+		for e: Dictionary in _run_events:
+			if str(e.get("type", "")) == "boss" and str(e.get("enemy", "")) == id and bool(e.get("_skip", false)):
+				id = ""
+	if id != "" and Registry.enemy(id) != null:
+		_start_boss(id)
+		if phase == Phase.BOSS:
+			return
+	_on_boss_died(null, game.player.global_position if game and game.player else Vector3.ZERO)
+
+
+## Seconds left on the portal's countdown to Endless, -1 when none runs (the HUD, the portal dialog; Game.portal_seconds_left).
+func portal_seconds_left() -> float:
+	return maxf(_portal_left, 0.0) if phase == Phase.PORTAL and _portal_left >= 0.0 else -1.0
+
+
+## The countdown's tick (from _process in the portal phase; Game.tick_portal_countdown while the portal dialog is up).
+func tick_portal_countdown(delta: float) -> void:
+	if _portal_left < 0.0 or phase != Phase.PORTAL:
+		return
+	_portal_left -= delta
+	if _portal_left <= 0.0:
+		start_endless()
+
+
+## Endless begins (the portal's countdown ran out; tools and tests may call it): the portal closes (Game hears
+## endless_started), the run clock stays frozen at the window's end while Endless keeps its own (Run.endless_time), its
+## first wave comes at once. Garry: "Enemies still drop EXP, but modest amounts and drop coins very very rarely" (Game's
+## xp share, PickupManager.endless_coin_chance); "The goal of this mode is to kill the Player": it runs until he falls (a
+## death banks everything, pass 70).
+func start_endless() -> void:
+	if phase == Phase.ENDLESS or timeline == null:
+		return
+	phase = Phase.ENDLESS
+	_portal_left = -1.0
+	Run.endless = true
+	Run.endless_time = 0.0
+	_endless_wave = 0
+	_endless_pool = endless_rows()
+	if game.get("pickups") and game.pickups:
+		game.pickups.set("endless_coin_chance", clampf(timeline.endless_value("coin_chance", Run.stage), 0.0, 1.0))
+	endless_started.emit()
+	_tick_endless(0.0)
+
+
+## Endless's clock (from _process): every `every` seconds the next wave, its numbers that much tougher (source_for), its
+## creatures that little faster (_apply_mults), the wave's creatures round the hero.
+func _tick_endless(delta: float) -> void:
+	Run.endless_time += delta
+	var w: int = timeline.endless_wave_at(Run.endless_time, Run.stage)
+	if w <= _endless_wave:
+		return
+	_endless_wave = w
+	_endless_speed = float(timeline.endless_mults(w, Run.stage)["speed"])
 	_apply_mults()
-	Run.stage_changed.emit(Run.stage)
-	stage_started.emit(Run.stage)
+	spawn_endless_wave(w)
+	endless_wave_started.emit(w)
+
+
+## The late roster Endless draws from: the mix rows (WaveTimeline.row_in_mix: one creature, no elite, not a special, not a
+## once row; either channel, any pace) open at some second of the stage's last `roster_window` seconds, each weighing its
+## weight at its last open second there; [{row, w}]. The map's skins when no row is open there.
+func endless_rows() -> Array:
+	var out: Array = []
+	if timeline == null:
+		return out
+	var end: float = timeline.stage_end(Run.stage)
+	var win := maxf(timeline.endless_value("roster_window", Run.stage), 1.0)
+	for r in timeline.roster:
+		if not (r is Dictionary) or not WaveTimeline.row_in_mix(r):
+			continue
+		var t0 := float(r.get("t", 0.0))
+		var until := float(r["until"]) if r.get("until") != null else INF
+		if t0 >= end or until <= end - win:
+			continue
+		var w := _roster_weight(r, maxf(minf(until, end) - 0.5, t0))
+		if w <= 0.0 or _row_def(r) == null:
+			continue
+		out.append({"row": r, "w": w})
+	if out.is_empty() and map != null:
+		for id in map.skins.values():
+			if Registry.enemy(str(id)) != null:
+				out.append({"row": {"enemy": str(id), "t": 0.0}, "w": 1.0})
+	return out
+
+
+## One row of the Endless pool by weight ({} when the pool is empty or every row's creature is at its live limit).
+## Pass 87 (the lead; lane TUNE found hammer giants, bull beetles and spit cacti piling up in Endless): a row whose
+## creature is at its `max_alive` (the row's own when its stats set one) is left out of the draw, as in the roster's
+## (_roster_open); the waves and the fill take only what is left of that limit (_endless_room).
+func _endless_pick() -> Dictionary:
+	var em: EnemyManager = game.enemies if game != null else null
+	var open: Array = []
+	var total := 0.0
+	for p: Dictionary in _endless_pool:
+		var def: EnemyDef = _row_def(p["row"])
+		if em != null and def != null and def.max_alive > 0 and em.alive_of(def.id) >= def.max_alive:
+			continue
+		open.append(p)
+		total += float(p["w"])
+	if total <= 0.0:
+		return {}
+	var pick := _rng.randf() * total
+	for p: Dictionary in open:
+		pick -= float(p["w"])
+		if pick <= 0.0:
+			return p["row"]
+	return (open[open.size() - 1] as Dictionary)["row"]
+
+
+## How many more of `def` Endless may bring now: what is left of its max_alive (no limit: `want`).
+func _endless_room(def: EnemyDef, want: int) -> int:
+	if def == null or def.max_alive <= 0 or game == null:
+		return want
+	return mini(want, maxi(def.max_alive - game.enemies.alive_of(def.id), 0))
+
+
+## Endless wave `w`: endless_wave_size(w) creatures of the pool in packs (the row's pack, 1..12) from all round the hero,
+## past the live cap (the hard cap still holds), with the wave's numbers. Returns how many came.
+func spawn_endless_wave(w: int) -> int:
+	if game == null or game.player == null or _endless_pool.is_empty():
+		return 0
+	var em: EnemyManager = game.enemies
+	var left: int = mini(timeline.endless_wave_size(w, Run.stage), timeline.hard_cap - em.alive_count())
+	var before: int = em.alive_count()
+	var guard := 0
+	while left > 0 and guard < 256:
+		guard += 1
+		var row := _endless_pick()
+		var def: EnemyDef = _row_def(row)
+		if def == null:
+			break
+		var n: int = _endless_room(def, mini(clampi(int(row.get("pack", def.pack_size)), 1, 12), left))
+		if n <= 0:
+			continue
+		_spawn_group(def.id, n, "pack", n, null, str(row.get("variant", "")), _stats_of(row), _around_point, _row_src(row))
+		left -= n
+	return maxi(em.alive_count() - before, 0)
+
+
+## Between the waves (the spawn check, every spawn_interval): the crowd kept up to Endless's cap (current_cap) from the
+## pool, a burst at a time through the spawn points, with the wave's numbers.
+func _endless_fill() -> void:
+	if game == null or game.player == null or _endless_pool.is_empty():
+		return
+	var em: EnemyManager = game.enemies
+	var room: float = float(current_cap()) - em.cap_load()
+	var bodies: int = timeline.hard_cap - em.alive_count()
+	if room <= 0.0 or bodies <= 0:
+		return
+	var burst: float = minf(float(_rng.randi_range(timeline.burst_min, timeline.burst_max)), room)
+	var guard := 0
+	while burst > 0.0 and bodies > 0 and guard < 32:
+		guard += 1
+		var row := _endless_pick()
+		var def: EnemyDef = _row_def(row)
+		if def == null:
+			return
+		var share: float = maxf(def.cap_share, 0.05)
+		var n: int = _endless_room(def, mini(mini(clampi(int(row.get("pack", def.pack_size)), 1, 12), maxi(int(ceil(burst / share)), 1)), bodies))
+		if n <= 0:
+			continue
+		_spawn_group(def.id, n, "pack", n, null, str(row.get("variant", "")), _stats_of(row), Callable(), _row_src(row))
+		burst -= float(n) * share
+		bodies -= n
+
+
+## A kill's XP share now (Game's drop): Endless's `xp_share`, 1 outside Endless.
+func xp_share() -> float:
+	if phase != Phase.ENDLESS or timeline == null:
+		return 1.0
+	return maxf(timeline.endless_value("xp_share", Run.stage), 0.0)
 
 
 func _spawn_burst(due: Array = []) -> void:
@@ -2285,8 +2499,9 @@ static func shown_numbers(tl: WaveTimeline, r: Dictionary, t: float, level: int)
 	var def: EnemyDef = Registry.enemy_with(str(r.get("enemy", "")), "", stats)
 	if def == null:
 		return {}
-	var s := maxi(int(floor(t / maxf(tl.stage_length, 1.0))), 0)
-	var sm := tl.stage_mult(s, maxf(t - tl.stage_length * float(tl.stages), 0.0))
+	# pass 87 (lane SGAME): the stage whose window holds t (Endless no longer grows the stage multiplier)
+	var s: int = tl.stage_at(t)
+	var sm := tl.stage_mult(s)
 	var lv := float(maxi(level - 1, 0))
 	var lv_hp := 1.0 + tl.level_hp_per_level * lv
 	var lv_dmg := 1.0 + tl.level_damage_per_level * lv

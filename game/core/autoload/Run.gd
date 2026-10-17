@@ -35,6 +35,15 @@ var stage := 0:
 		if moved:
 			refill_choices()
 var endless := false
+## Pass 87 (lane SGAME, stages as their own runs): the stage index (0-based) this run plays, read-only (= stage); the
+## stage the next run will play (choose_stage: the Stages menu, the Watch; Game starts it and puts it back to 0); the
+## seconds spent in Endless after the stage's portal countdown; whether this run killed its stage's boss.
+var stage_index: int:
+	get:
+		return stage
+var stage_next := 0
+var endless_time := 0.0
+var stage_beaten := false
 var level := 1
 var xp := 0.0
 var run_gold := 0
@@ -242,6 +251,9 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	stage = 0
 	arena = false
 	endless = false
+	# pass 87 (lane SGAME): a run starts outside Endless, its boss not killed (start_stage moves it to its stage)
+	endless_time = 0.0
+	stage_beaten = false
 	level = 1
 	xp = 0.0
 	run_gold = 0
@@ -2069,29 +2081,91 @@ func open_chest() -> Dictionary:
 	return r
 
 
+## The stage multiplier of this run's stage (pass 87: Endless no longer grows it; its waves carry their own multipliers,
+## WaveTimeline.endless_mults, on the creatures' fixed numbers).
 func stage_mult() -> float:
 	if map == null or map.timeline == null:
 		return 1.0
-	return map.timeline.stage_mult(stage, endless_seconds())
+	return map.timeline.stage_mult(stage)
 
 
-## Seconds into endless (0 before it).
+## Seconds into Endless (0 before it; pass 87: Endless's own clock, endless_time).
 func endless_seconds() -> float:
-	if not endless or map == null or map.timeline == null:
-		return 0.0
-	return maxf(elapsed - map.timeline.stage_length * map.timeline.stages, 0.0)
+	return endless_time if endless else 0.0
 
 
-## The endless wave the run is in, 1-based (0 outside endless).
+## The Endless wave the run is in, 1-based (0 outside Endless; pass 87: a wave every `endless.every` seconds).
 func endless_wave() -> int:
 	if not endless or map == null or map.timeline == null:
 		return 0
-	return map.timeline.endless_wave(endless_seconds()) + 1
+	return map.timeline.endless_wave_at(endless_time, stage)
+
+
+# ---------------------------------------------------------------- stages as their own runs (pass 87, lane SGAME)
+
+## The stage the next run plays (0-based; the Stages menu, the Watch, a tool). Set it before loading the Game scene: Game
+## starts that stage (start_stage) and puts stage_next back to 0, so a Play that skips the menu plays stage 1.
+func choose_stage(i: int) -> void:
+	stage_next = maxi(i, 0)
+
+
+## Puts the fresh run (Run.start: level 1, nothing taken) at stage `i`'s window start (Garry: a stage picked from the menu
+## "is a fresh run: level 1, the hero's start weapon"): the run clock at the window's start, the stage's index for its
+## multipliers, its path slots from the first. Game calls it right after start(); the tests call it directly. The run's
+## end is that stage's boss (WaveDirector); it never continues into the next stage.
+func start_stage(i: int) -> void:
+	var tl: WaveTimeline = map.timeline if map else null
+	var k: int = tl.stage_clamp(i) if tl else 0
+	stage = k
+	elapsed = tl.stage_start(k) if tl else 0.0
+	held_time = 0.0
+	path_slot = 0
+	endless = false
+	endless_time = 0.0
+	stage_beaten = false
+	stage_changed.emit(stage)
+
+
+## Seconds into this run's stage (the HUD's, the pause screen's and the Down! screen's clock: 0:00 at the stage's start,
+## its length at its boss; it stands still through the boss fight, the portal countdown and Endless, as the run clock does).
+func stage_clock() -> float:
+	if map == null or map.timeline == null:
+		return elapsed
+	return maxf(elapsed - map.timeline.stage_start(stage), 0.0)
+
+
+## This run's stage's length in seconds (before its boss).
+func stage_length_now() -> float:
+	if map == null or map.timeline == null:
+		return 0.0
+	return map.timeline.stage_len(stage)
+
+
+## Every second of this run played (unpaused): the stage clock plus the boss fight, the portal countdown and Endless (the
+## run clock stands still there and held_time counts on). The "survive N minutes" quests and the best time read it.
+func run_time() -> float:
+	return stage_clock() + held_time
+
+
+## How this run ended, or stands (the Results, analytics): "extracted", "died_endless" (fell in Endless),
+## "died_after_boss" (fell after the boss, before Endless), "died" (fell before the boss, or quit; a quit is died too).
+func outcome() -> String:
+	if extracted:
+		return "extracted"
+	if endless:
+		return "died_endless"
+	if stage_beaten:
+		return "died_after_boss"
+	return "died"
 
 
 func summary() -> Dictionary:
 	return {
-		"time": elapsed, "stage": stage + 1, "level": level, "kills": kills, "gold": run_gold,
+		# pass 87 (lane SGAME): the time is every second the run was played (run_time; the best time keeps the same), and
+		# the stage run's own numbers ride along
+		"time": run_time(), "stage_clock": stage_clock(), "stage_name": map.timeline.stage_name(stage) if map and map.timeline else "",
+		"outcome": outcome(), "stage_beaten": stage_beaten, "endless_time": endless_time, "endless_wave": endless_wave(),
+		"stage": stage + 1, "level": level, "kills": kills, "gold": run_gold,
 		"extracted": extracted, "died": died, "damage_by_weapon": damage_by_weapon.duplicate(),
 		"kills_by_weapon": kills_by_weapon.duplicate(), "evolutions": evolutions, "chests": chests_opened,
 		"character": character.display_name if character else "", "map": map.display_name if map else "",
@@ -2144,5 +2218,6 @@ func recent_dps(window: float) -> float:
 		var k := posmod(s, DPS_BUCKETS)
 		if _dps_sec[k] == s:
 			total += _dps_sum[k]
-	var span := minf(w, maxf(now, 1.0))
+	# pass 87 (lane SGAME): the seconds this run has had (run_time: a stage run's clock starts at its window, not 0)
+	var span := minf(w, maxf(minf(now, run_time()), 1.0))
 	return total / span

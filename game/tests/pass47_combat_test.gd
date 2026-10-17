@@ -332,12 +332,11 @@ func test_hot_sauce_speeds_the_coloured_elite_clocks() -> void:
 	add_child(auto_free(wd))
 	wd.timeline = Registry.map("red_canyon").timeline
 	assert_float(wd.elite_pace()).is_equal_approx(1.0, 0.0001)
-	var every0 := wd._endless_elite_every()
 	assert_float(wd.next_elite_at(100.0, 120.0)).is_equal_approx(220.0, 0.001)
 	Run.player_sheet.add_effects([Effect.make("difficulty", "add", 1.0, "player")], "test")
 	assert_float(wd.elite_pace()).is_equal_approx(1.5, 0.0001)
 	assert_float(wd.next_elite_at(100.0, 120.0)).is_equal_approx(180.0, 0.001)
-	assert_float(wd._endless_elite_every()).is_equal_approx(every0 / 1.5, 0.001)
+	# (pass 87, lane SGAME: the old endless's Elite clock, _endless_elite_every, is gone with it)
 
 
 func test_hot_sauce_pays_for_colour_and_keeps_the_chests_apart() -> void:

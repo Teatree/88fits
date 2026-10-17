@@ -1309,3 +1309,7 @@ only): the brain, the death burst, a caster's spells.
 
 Self-test: `selftest_TIMELINE84.py` (the view maths under Node against the estimate, the fields and their help, the
 conversion on load and no churn, the page's words).
+
+## Pass 87: stage tabs
+
+The Timeline has a tab strip: All | Stage 1 | Stage 2 | ... | + Stage. A stage tab shows that stage's window (the ruler counts the stage's own clock) and its card in the inspector: name, difficulty line, description, picture, length (keep or stretch the later stages, with a confirm), boss, look (filter colour, strength, the creatures' share `actors`, a swatch) and hell. + Stage appends one; deleting asks. Settings has an Endless block. Reload the page after the pass 87 migration before saving the map (an old page writes the old timeline back). Keys: docs/waves_schema.md "Pass 87".

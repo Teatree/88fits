@@ -103,6 +103,9 @@ func _default() -> Dictionary:
 		# hero (availability "available") is owned without being listed; a save from before has none bought, so it keeps
 		# only the free heroes, whoever it played (Garry asked for the locks)
 		"heroes_owned": [],
+		# pass 87 (lane SGAME): the stages beaten per map (a stage's boss killed), map id -> [bool, ...] by stage index
+		# (stage_beaten, stage_unlocked); filled once from the old flags and kill totals (_migrate_stages)
+		"stages_beaten": {},
 	}
 
 
@@ -155,6 +158,8 @@ func load_save() -> void:
 	if not (data.get("seen") is Dictionary):
 		data["seen"] = {}
 	_migrate_seen()
+	# pass 87 (lane SGAME): the stages this save has beaten, once, from what it did before stages were their own runs
+	_migrate_stages()
 	_survey_counted_from_runs()
 	Settings.from_dict(data.get("settings", {}))
 	last_saved_unix = int(data.get("saved_at", 0))
@@ -854,6 +859,80 @@ func mark_seen(kind: String, id: String) -> void:
 
 func best_run(map_id: String) -> Dictionary:
 	return data["best_runs"].get(map_id, {})
+
+
+# ---------------------------------------------------------------- stages unlocked (pass 87, lane SGAME)
+
+## Garry (2026-10-17): "Now Player Unlocks Stages and is only able to enter them after having completed the previous
+## one." A stage is beaten once its boss is killed in a run of it (WaveDirector marks it); stage 1 is always open, stage
+## i once stage i - 1 is beaten; the Stages menu opens on every Play once stage 1 is beaten (stages_menu_open).
+
+## The beaten flags of map `map_id`'s stages by index (a copy; shorter than the map's stages when the later ones are not).
+func stages_beaten(map_id: String) -> Array:
+	var all = data.get("stages_beaten", {})
+	var v = all.get(map_id, []) if all is Dictionary else []
+	return (v as Array).duplicate() if v is Array else []
+
+
+## Whether stage `i` (0-based) of map `map_id` has been beaten (its boss killed in a run of it).
+func stage_beaten(map_id: String, i: int) -> bool:
+	var v := stages_beaten(map_id)
+	return i >= 0 and i < v.size() and bool(v[i])
+
+
+## Whether stage `i` (0-based) of map `map_id` may be played: stage 1 always, a later one once the one before is beaten.
+func stage_unlocked(map_id: String, i: int) -> bool:
+	return i <= 0 or stage_beaten(map_id, i - 1)
+
+
+## Whether Play opens the Stages menu for map `map_id` (Garry: "opens on every Play" once stage 1 is beaten).
+func stages_menu_open(map_id: String) -> bool:
+	return stage_beaten(map_id, 0)
+
+
+## Stage `i` (0-based) of map `map_id` beaten (WaveDirector, as its boss dies; tests, the developer menu).
+func mark_stage_beaten(map_id: String, i: int) -> void:
+	if map_id == "" or i < 0 or stage_beaten(map_id, i):
+		return
+	if not (data.get("stages_beaten") is Dictionary):
+		data["stages_beaten"] = {}
+	var v := stages_beaten(map_id)
+	while v.size() <= i:
+		v.append(false)
+	v[i] = true
+	data["stages_beaten"][map_id] = v
+	request_save()
+
+
+## Forgets every stage beaten on map `map_id` ("" = every map): the developer menu's reset, tests.
+func forget_stages(map_id: String = "") -> void:
+	if not (data.get("stages_beaten") is Dictionary) or map_id == "":
+		data["stages_beaten"] = {}
+	else:
+		(data["stages_beaten"] as Dictionary).erase(map_id)
+	request_save()
+
+
+## A save from before pass 87 (once, "stages_migrated"): a stage counts as beaten when the save killed that stage's boss
+## in a run before: its "boss_<map>_<k>" flag (marked as a stage's boss died since pass 30), or a kill of the stage's
+## boss in the totals (kills_of_enemy: the King for stage 1, the Gila for stage 2, the Brander for stage 3 on Red Canyon).
+## The bosses are read off each map's stages (WaveTimeline.stage_boss). Never takes a stage away.
+func _migrate_stages() -> void:
+	if once("stages_migrated"):
+		return
+	if not (data.get("stages_beaten") is Dictionary):
+		data["stages_beaten"] = {}
+	var kills = data["totals"].get("kills_of_enemy", {})
+	for map_id in Registry.maps.keys():
+		var m: MapDef = Registry.maps[map_id]
+		if m == null or m.timeline == null:
+			continue
+		for k in range(m.timeline.stage_count()):
+			var boss: String = m.timeline.stage_boss(k)
+			var killed: bool = boss != "" and kills is Dictionary and int((kills as Dictionary).get(boss, 0)) > 0
+			if once("boss_%s_%d" % [str(map_id), k + 1]) or killed:
+				mark_stage_beaten(str(map_id), k)
+	mark_once("stages_migrated")
 
 
 func hint_seen(id: String) -> bool:

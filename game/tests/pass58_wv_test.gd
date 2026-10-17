@@ -967,25 +967,34 @@ func test_endless_waves_fix_the_rows_afresh() -> void:
 	var a2 := _from_row(dir, em, row, 1200.0)
 	assert_float(em.f_hpt[a2]).is_equal_approx(em.f_hpt[a], 0.0001)
 	assert_float(em.f_lvh[a2]).is_equal_approx(em.f_lvh[a], 0.0001)
-	# endless, its first wave: fixed afresh from the wave's start (1290 s) and the hero's level at its first creature then
-	Run.stage = 3
+	# Endless after the stage (pass 87, lane SGAME, re-pinned: the run clock stands at the stage's end in Endless, and
+	# each Endless wave fixes the rows afresh from their own start and the hero's level at its first creature then, times
+	# that wave's multipliers, WaveTimeline.endless_mults), its first wave
 	Run.endless = true
+	Run.endless_time = 0.0
 	Run.level = 30
-	var b := _from_row(dir, em, row, 1300.0)
-	assert_float(em.f_hpt[b]).is_equal_approx(1.0 + 1290.0 / 300.0, 0.0001)
+	var m1: Dictionary = dir.timeline.endless_mults(1, Run.stage)
+	var b := _from_row(dir, em, row, 1290.0)
+	assert_float(em.f_hpt[b]).is_equal_approx((1.0 + 860.0 / 300.0) * float(m1["hp"]), 0.0001)
 	assert_float(em.f_lvh[b]).is_equal_approx(1.0 + 0.05 * 29.0, 0.0001)
-	assert_float(float(dir.source_state(dir.row_key(row) + "@w1")["t0"])).is_equal(1290.0)
+	assert_float(float(dir.source_state(dir.row_key(row) + "@w1")["t0"])).is_equal(860.0)
 	# the same wave later: the same numbers, whatever the hero's level now
 	Run.level = 34
-	var c := _from_row(dir, em, row, 1340.0)
+	Run.endless_time = 5.0
+	var c := _from_row(dir, em, row, 1290.0)
 	assert_float(em.f_hpt[c]).is_equal_approx(em.f_hpt[b], 0.0001)
 	assert_float(em.f_lvh[c]).is_equal_approx(em.f_lvh[b], 0.0001)
 	assert_float(em.max_hp[c]).is_equal_approx(em.max_hp[b], 0.0001)
-	# the next wave (from 1350 s): afresh again
+	# the next wave (a wave's `every` on): afresh again, at the next wave's multiplier
 	Run.level = 40
-	var e := _from_row(dir, em, row, 1360.0)
-	assert_float(em.f_hpt[e]).is_equal_approx(1.0 + 1350.0 / 300.0, 0.0001)
+	Run.endless_time = Run.map.timeline.endless_value("every", Run.stage) + 0.5
+	var m2: Dictionary = dir.timeline.endless_mults(2, Run.stage)
+	var e := _from_row(dir, em, row, 1290.0)
+	assert_float(em.f_hpt[e]).is_equal_approx((1.0 + 860.0 / 300.0) * float(m2["hp"]), 0.0001)
 	assert_float(em.f_lvh[e]).is_equal_approx(1.0 + 0.05 * 39.0, 0.0001)
+	assert_float(float(m2["hp"])).is_greater(float(m1["hp"]))
+	Run.endless = false
+	Run.endless_time = 0.0
 
 
 func test_split_children_keep_the_parents_stage_size_and_hue() -> void:

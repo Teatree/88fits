@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-17, pass 86, version 0.72)
+## Status (2026-10-17, pass 87, version 0.73)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.72). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.73). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -274,9 +274,9 @@ made **only when Garry asks**; analytics events carry `build: dev|prod`.
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and two or three oases
 rolled per run from `Run.map_seed` (pass 80: `oases`, water slows walking by `water_slow` 10%), sand to a western
 sandstone fort wall (pass 80, `CanyonWalls.gd`) with the red-rock cliffs behind it; everything but the ground, the wall, barrels, signs and a few
-movers is a painted 2.5D billboard (props `art/sprites/props/`, structures `st_<id>.png`). Three stages of 430 s (bosses
-Tumbleweed King 7:10, Gila Grande 14:20, the Brander 21:30; Elites at 3:35 / 10:45 / 17:55; stage 3 is "hell": a red
-ground and a hell channel of creatures on its own cap), then endless. The timeline (`content/maps/red_canyon/red_canyon.json`
+movers is a painted 2.5D billboard (props `art/sprites/props/`, structures `st_<id>.png`). Three stages, each its own run since pass 87
+(Sundown 7:10 to the Tumbleweed King, Nightfall 10:00 to the Gila Grande, Blood Moon 13:00 to the Brander; stage 3 is "hell": a red
+ground and a hell channel of creatures on its own cap), each followed by a portal countdown and Endless. The timeline (`content/maps/red_canyon/red_canyon.json`
 `timeline_data`: cap curve, roster rows, waves, events, specials, HP/ATK curves, scaling) is **Garry's to edit in the
 Level Editor** (`tools\level_editor.cmd`, `docs/level_editor.md`, schema `docs/waves_schema.md`; since pass 66 the same
 page also creates and edits enemies, heroes and items and queues their art for the local AI: the Enemies / Heroes / Items
@@ -345,6 +345,15 @@ joshua_tree_d; Teleports smaller, 3 a map (4 a third of the time), 40 m apart, l
 "dynamite"` thrown in place a little ahead with a hop (`throw_jump`, pass 86), a 1 s fuse, a blast like the hero's; Fadeaway has a Puppet look FAD-D
 (fresh; he plays FAD-C); the Watch opens on a Hero Settings pop-up (WatchSetup.gd; Restart run, R), shows the
 build's icons, the bot's goal plaque (WatchPlaque.gd), sound off by default, and the bot goes for power-ups.
+Pass 87: **stages are their own runs** (`timeline_data.stage_list`: Sundown 430 s, Nightfall 600 s, Blood Moon 780 s,
+windows of the one timeline; Run.start_stage / choose_stage; a fresh level-1 run from the window's start, the clock
+shown per stage; after the boss a 60 s portal countdown with only EXTRACT, then **Endless** (`endless`: a big wave,
+then a stronger one every 10 s, 0.35 XP, rare coins); Save `stages_beaten`; the Stages menu ui/StagesScreen.gd opens
+on Play once stage 1 is beaten; stage filters (StageLook.gd, stage_filter.gdshader: Nightfall blue, Blood Moon red)
+and pictures art/ui/stages/; the Level Editor's stage tabs, `--stage` on sim_batch and watch, analytics and PostHog
+by stage (board "88fits · Stages")); stages 2-3 retuned for a fresh hero. Also: the Big Mouth without a tongue (a
+throat glow, a 0.24 s wind-up, a punch); the EVADE word and a see-through hero; black barrels hold 1-5 coins (+2 a
+map, `PickupManager.coin_debt`); fresh looks SOL-F/G, FAD-E/F, DM-F..I (none played yet).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

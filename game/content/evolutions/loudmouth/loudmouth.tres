@@ -29,8 +29,28 @@ visual_file = "loudmouth_visual.tscn"
 params = {
 "beam": {
 "arch_deg": 0.0,
+"punch": {
+"back": 0.45,
+"climb": 0.2,
+"decay": 7.5,
+"hz": 2.8,
+"pop": 0.2,
+"pulse": 0.3
+},
+"throat": {
+"gain": 1.0,
+"size": 0.9,
+"walls": 0.9
+},
 "tick": 0.14,
-"width": 0.55
+"width": 0.55,
+"windup": {
+"gape": 36.0,
+"rear": 0.35,
+"seconds": 0.24,
+"swell": 0.1,
+"tremble": 0.03
+}
 },
 "familiar": {
 "size": 1.5

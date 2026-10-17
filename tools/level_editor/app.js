@@ -30,6 +30,7 @@ const App = (() => {
     assume: { turnover: null, bossSeconds: null, portalSeconds: null },  // pass 57: the page's own numbers (null = the fit)
     simLife: null,              // pass 84: the shown Sim's lifetimes {creature id: mean seconds alive} (Timeline's overlay)
     useSimLife: false,          // pass 84: the estimate takes them (Ruler and controls: "lifetimes from the Sim")
+    stageView: 'all',           // pass 87 (lane STOOLS): the Timeline's stage tab: 'all' (the whole map) or a stage index
   };
 
   // ------------------------------------------------------------------ loading
@@ -100,6 +101,7 @@ const App = (() => {
       const note = conv.converted || conv.ided ? ` · ${conv.converted ? `${conv.converted} roster rows read from weight / weight_late as presence keyframes` : ''}${conv.converted && conv.ided ? ', ' : ''}${conv.ided ? `${conv.ided} rows given an id` : ''} (the next Save writes the new shape)` : '';
       status(`Loaded ${m ? m.file : id}${note}${legacy}`);
       loadAssume(id);
+      loadStageView(id);
       S.fit = null;
       fetchFit(id);
       render('all');
@@ -189,8 +191,35 @@ const App = (() => {
   const stageLength = () => M.stageLength(tl());
   const stages = () => M.stages(tl());
   const runEnd = () => M.runEnd(tl());
-  /** The axis runs a little into endless, so open rows and timers show where they go on. */
-  const viewEnd = () => runEnd() + Math.max(120, Math.round(stageLength() * 0.35));
+  // pass 87 (lane STOOLS): the stage windows (stage_list) and the Timeline's stage tabs
+  const stageList = () => M.stageList(tl());
+  const stageStart = (s) => M.stageStart(tl(), s);
+  const stageEnd = (s) => M.stageEnd(tl(), s);
+  const stageLen = (s) => M.stageLen(tl(), s);
+  const stageWindow = (s) => M.stageWindow(tl(), s);
+  /** The stage tab open on the Timeline: null for "All", else the 0-based stage (a tab past the stages falls back). */
+  const viewStage = () => (typeof S.stageView === 'number' && S.stageView >= 0 && S.stageView < stages() ? S.stageView : null);
+  /** Seconds after a stage's boss the view shows (the portal's timer, then a little Endless). */
+  /** The portal's countdown after the open stage's boss (the map's endless.portal_seconds; a stage's own block wins). */
+  const portalSeconds = () => M.portalTimer(tl(), viewStage() == null ? stages() - 1 : viewStage());
+  const AFTER_STAGE = 120;
+  /** The run clock where the view starts: 0, or the open stage's window start. */
+  const viewStart = () => (viewStage() == null ? 0 : stageStart(viewStage()));
+  /** The axis runs a little into endless, so open rows and timers show where they go on; a stage tab shows its window,
+   *  the portal's timer after its boss and two minutes of Endless. */
+  const viewEnd = () => (viewStage() == null
+    ? runEnd() + Math.max(120, Math.round(stageLen(stages() - 1) * 0.35))
+    : stageEnd(viewStage()) + portalSeconds() + AFTER_STAGE);
+  const stageViewKey = (id) => `88fits-editor-stageview-${id}`;
+  /** Open a stage tab (null / 'all' = the whole map); the browser remembers it per map. */
+  function setStageView(v) {
+    S.stageView = v == null || v === 'all' ? 'all' : Math.max(0, Math.min(Math.floor(Number(v)), stages() - 1));
+    try { localStorage.setItem(stageViewKey(S.mapId), String(S.stageView)); } catch (_) { /* fine */ }
+  }
+  function loadStageView(id) {
+    S.stageView = 'all';
+    try { const v = localStorage.getItem(stageViewKey(id)); if (v != null && v !== 'all' && isFinite(Number(v))) S.stageView = Number(v); } catch (_) { /* all */ }
+  }
   /** 0-based stage index at run second t (stages() and above = endless). */
   const stageAt = (t) => M.stageAt(tl(), t);
   const stageName = (s) => (s >= stages() ? 'endless' : `stage ${s + 1}`);
@@ -380,6 +409,8 @@ const App = (() => {
       skin: skins.length ? String(skins[0]) : '',
       boss: S.map && S.map.boss ? String(S.map.boss) : '',
       end: viewEnd(),
+      // pass 87 (lane STOOLS): the open stage tab's run (null on All)
+      stage: viewStage(),
     };
   }
 
@@ -417,7 +448,10 @@ const App = (() => {
     if (key === spawnCache.key && spawnCache.est) return { est: spawnCache.est, stale: false, opts, ms: spawnCache.ms };
     if (allowStale && spawnCache.est && performance.now() - spawnCache.at < DRAG_ESTIMATE_MS) return { est: spawnCache.est, stale: true, opts, ms: spawnCache.ms };
     const t0 = performance.now();
-    const est = M.spawnEstimate(tl(), S.enemies, opts);
+    // pass 87 (lane STOOLS): every stage is its own run: a stage tab estimates that stage's run (a fresh hero from its
+    // window's start), "All" each stage's run stitched on the map's clock (a map without a stage list: the old one run)
+    const est = opts.stage != null ? M.spawnEstimate(tl(), S.enemies, opts)
+      : M.hasStageList(tl()) ? M.stagesEstimate(tl(), S.enemies, opts) : M.spawnEstimate(tl(), S.enemies, Object.assign({}, opts, { stage: null }));
     spawnCache = { key, est, ms: performance.now() - t0, at: performance.now() };
     return { est, stale: false, opts, ms: spawnCache.ms };
   }
@@ -492,6 +526,8 @@ const App = (() => {
     if (s.kind === 'roster') return (tl().roster || [])[s.i] || null;
     if (s.kind === 'wave') return (tl().waves || [])[s.i] || null;
     if (s.kind === 'event') return (tl().events || [])[s.i] || null;
+    // pass 87: a stage's settings card
+    if (s.kind === 'stage') return s.i != null && s.i >= 0 && s.i < stages() ? { kind: 'stage', i: s.i } : null;
     return { kind: s.kind };
   }
 
@@ -536,7 +572,7 @@ const App = (() => {
     const at = Math.max(0, Math.round(t == null ? Timeline.viewCenter() : t));
     apply((d) => {
       if (!Array.isArray(d.roster)) d.roster = [];
-      d.roster.push({ id: M.newRowId(d), t: at, enemy: id, weights: [[at, 5], [at + Math.round(stageLength() / 2), 5]] });
+      d.roster.push({ id: M.newRowId(d), t: at, enemy: id, weights: [[at, 5], [at + Math.round(stageLen(stageAt(at)) / 2), 5]] });
       S.sel = { kind: 'roster', i: d.roster.length - 1 };
     });
     toast(`Added a roster row at ${fmtT(at)}`);
@@ -548,7 +584,8 @@ const App = (() => {
   function newRowPreset(kind, t) {
     const id = firstCreatureId();
     const at = Math.max(0, Math.round(t == null ? Timeline.viewCenter() : t));
-    const SL = stageLength();
+    // pass 87: half / a whole of the stage the row starts in
+    const SL = stageLen(Math.min(stageAt(at), stages() - 1));
     const presets = {
       continuous: () => ({ enemy: id, weights: [[at, 5], [at + Math.round(SL / 2), 5]] }),
       waves: () => ({ enemy: id, weights: [[at, 5], [at + Math.round(SL / 2), 5]], until: at + Math.round(SL / 2), pace: 'waves', every: 30, count: 10, role: 'fodder' }),
@@ -866,7 +903,8 @@ const App = (() => {
       if (ev.chance != null && (Number(ev.chance) < 0 || Number(ev.chance) > 1)) mark(key, 'error', 'chance must be between 0 and 1');
       if (ev.chance != null && Number(ev.chance) === 0) mark(key, 'warn', 'chance 0: it never happens');
       statsIssues(ev.stats, key, mark, '');
-      if (ev.type === 'boss' && t > 0 && Math.abs(t / SL - Math.round(t / SL)) > 1e-6) mark(key, 'warn', `a boss away from a stage boundary (${fmtT(SL)} × n): the portal after it starts the next stage early`);
+      // pass 87: a stage's boss fires at its window's end (stage_list)
+      if (ev.type === 'boss' && t > 0 && !M.stageList(d).some((w) => Math.abs(w.end - t) <= 0.5)) mark(key, 'warn', `a boss away from a stage's end (${M.stageList(d).map((w) => fmtT(w.end)).join(', ')}): a stage run ends at the boss at its end`);
       if (ev.type !== 'boss') {
         for (const bt of bosses) {
           if (t >= bt && t < bt + BOSS_WINDOW && stageAt(bt) === stageAt(t)) {
@@ -907,7 +945,8 @@ const App = (() => {
     }
     (d.path_times || []).forEach((list, s) => {
       if (!Array.isArray(list)) { mark('paths', 'error', `path_times for stage ${s + 1} is not a list`); return; }
-      for (const v of list) if (Number(v) < 0 || Number(v) > SL) { mark('paths', 'warn', `a path time (${v}) is outside stage ${s + 1} (0–${SL} s)`); break; }
+      const SLs = s < stages() ? stageLen(s) : stageLen(stages() - 1);
+      for (const v of list) if (Number(v) < 0 || Number(v) > SLs) { mark('paths', 'warn', `a path time (${v}) is outside stage ${s + 1} (0–${SLs} s)`); break; }
     });
     const sp = d.specials || {};
     for (const row of sp.pool || []) {
@@ -915,7 +954,9 @@ const App = (() => {
       if (!creature(id)) mark('specials', 'error', `unknown special "${id}"`);
     }
     for (const row of ((d.pickups || {}).roster || [])) if (!pickup(row.id)) mark('pickups', 'warn', `unknown power-up "${row.id}"`);
-    if (!(Number(d.stage_length) > 0)) mark('settings', 'error', 'stage_length must be above 0');
+    if (!M.hasStageList(d) && !(Number(d.stage_length) > 0)) mark('settings', 'error', 'stage_length must be above 0');
+    // pass 87 (lane STOOLS): the stage list's own checks (lengths, ids, filters, a boss at each end)
+    if (typeof StageModel !== 'undefined') for (const m of StageModel.issues(d)) mark(`stage:${m.i}`, m.level, m.msg);
     S.issues = { errors, warnings, marks };
     return S.issues;
   }
@@ -1069,7 +1110,10 @@ const App = (() => {
   function setClock(t, extra) {
     const c = document.getElementById('clock');
     if (t == null) { c.textContent = ''; return; }
-    c.textContent = `${fmtT(t)} · ${stageName(stageAt(t))} · cap ${capAt(t)}${extra ? ' · ' + extra : ''}`;
+    // pass 87: in a stage tab the stage run's own clock comes first ("2:10 in stage 2 · 9:20 on the map")
+    const vs = viewStage();
+    const own = vs != null ? `${fmtT(Math.max(0, t - stageStart(vs)))} into stage ${vs + 1} · map ` : '';
+    c.textContent = `${own}${fmtT(t)} · ${stageName(stageAt(t))} · cap ${capAt(t)}${extra ? ' · ' + extra : ''}`;
   }
 
   // ------------------------------------------------------------------ toasts
@@ -1166,6 +1210,8 @@ const App = (() => {
   return {
     S, init, loadMap, refreshCreatures, creature, creatureName, elite, pickup, variantOk, iconFor, playCode, creatureColor,
     tl, stageLength, stages, runEnd, viewEnd, stageAt, stageName, stageMult, samplePoints, capAt, hellCapAt,
+    // pass 87 (lane STOOLS): the stage windows and the stage tabs
+    stageList, stageStart, stageEnd, stageLen, stageWindow, viewStage, viewStart, setStageView, portalSeconds,
     hpTimeMult, dmgTimeMult, hpMultAt, dmgMultAt, creatureAt, rowNumbers, eventNumbers, sourceName, actual, actualAt, knockbackOf, rowWeight, rosterAt, waveEnd, wavesAt, nextEvent,
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
     newRow, newRowPreset, splitRow, convertRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,

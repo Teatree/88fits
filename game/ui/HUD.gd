@@ -298,6 +298,7 @@ func _fit_top() -> void:
 	_gold_plate.position = Vector2(w - 36 - DISC - 18 - _gold_plate.size.x, TOP_Y)
 	_pause_btn.position = Vector2(w - 36 - DISC, TOP_Y - 2)
 	_pause_btn.size = Vector2(DISC, DISC)
+	_place_stage_tag()
 	_fit_mut_word()
 
 
@@ -1099,7 +1100,8 @@ static func buff_parts() -> Array:
 
 
 func tick(delta: float) -> void:
-	_timer.text = W.mmss(Run.elapsed)
+	# pass 87 (lane SUI): the stage's clock, the portal's count or Endless's time (_tick_stage_clock)
+	_tick_stage_clock()
 	if _timer_plate.size.x > 0.0 and absf(_timer_plate.get_combined_minimum_size().x - _timer_plate.size.x) > 1.0:
 		_fit_top()
 	_refresh_buffs()
@@ -1226,3 +1228,181 @@ func _draw() -> void:
 	var knob := _ring_pos + _stick * _stick_r
 	draw_circle(knob, kr, Color(W.PAPER.r, W.PAPER.g, W.PAPER.b, 0.7 * a), true, -1.0, true)
 	draw_arc(knob, kr, 0.0, TAU, 48, Color(W.INK.r, W.INK.g, W.INK.b, 0.6 * a), 5.0, true)
+
+
+# ---------------------------------------------------------------- the stage clock, the portal's count, Endless (pass 87, lane SUI)
+
+## Garry (pass 87): after the boss "the Portal that appears shows a 1 minute timer before the Endless Mode will activate";
+## Endless is "a huge wave of enemies ... and every 10 seconds the power of the next wave ... becomes stronger". The clock
+## plate says which clock it is showing: the stage's own time (from 00:00 at the stage's start, lane SGAME's
+## stage clock) on paper; while the portal waits, the seconds left before Endless on rock with ENDLESS IN hanging under
+## it (the tag, pulsing in its last STAGE_TAG_WARN seconds); in Endless the time survived in it on ink with WAVE n under
+## it (a pulse on each new wave), and an ENDLESS banner in rock as it starts.
+const STAGE_TAG_PX := 20
+const STAGE_TAG_WARN := 10.0
+var _stage_tag: PanelContainer
+var _stage_tag_text: WText
+var _clock_mode := ""
+var _clock_box_paper: StyleBox
+var _was_endless := false
+var _endless_wave_seen := 0
+var _tag_pulse_at := -1
+## A capture tool's or a test's clock (pass 87): {portal_left, endless, endless_wave, endless_seconds, stage_seconds},
+## each read in place of the game's when present (as test_arrows pins pointers).
+var test_stage_clock: Dictionary = {}
+
+
+## The clock plate's words and look, and the tag under it, each frame of the run (tick).
+func _tick_stage_clock() -> void:
+	if _stage_tag == null:
+		_build_stage_tag()
+	var mode := ""
+	var left := portal_left()
+	var in_endless: bool = bool(test_stage_clock.get("endless", Run.endless))
+	if in_endless:
+		mode = "endless"
+	elif left > 0.0:
+		mode = "portal"
+	if mode != _clock_mode:
+		_set_clock_mode(mode)
+	match mode:
+		"portal":
+			var whole := int(ceil(left))
+			_timer.text = W.mmss(float(whole))
+			if left <= STAGE_TAG_WARN and whole != _tag_pulse_at:
+				_tag_pulse_at = whole
+				_pulse_stage_tag()
+		"endless":
+			_timer.text = W.mmss(endless_seconds())
+			var wave := endless_wave()
+			_stage_tag_text.text = "WAVE %d" % maxi(wave, 1)
+			if wave != _endless_wave_seen:
+				if _endless_wave_seen > 0:
+					_pulse_stage_tag()
+				_endless_wave_seen = wave
+			_place_stage_tag()
+		_:
+			_timer.text = W.mmss(float(test_stage_clock.get("stage_seconds", stage_seconds())))
+	# Endless began: its banner (whoever started it; the same words while up are not shown twice)
+	if in_endless and not _was_endless:
+		endless_banner()
+	_was_endless = in_endless
+
+
+## The ENDLESS banner, in rock (pass 87).
+func endless_banner() -> void:
+	banner("ENDLESS")
+	_banner.add_theme_stylebox_override("panel", W.box(W.ROCK, 4, 5).pad(52, 14, 52, 14))
+
+
+func _build_stage_tag() -> void:
+	_clock_box_paper = _timer_plate.get_theme_stylebox("panel")
+	_stage_tag = PanelContainer.new()
+	_stage_tag.name = "StageTag"
+	_stage_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stage_tag_text = W.text("", W.slab(W.em(STAGE_TAG_PX, 0.08)), STAGE_TAG_PX, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, STAGE_TAG_PX * 1.2)
+	_stage_tag.add_child(_stage_tag_text)
+	_stage_tag.visible = false
+	_top.add_child(_stage_tag)
+
+
+## Paper for the stage's clock, rock for the portal's count, ink for Endless; the tag under it says which.
+func _set_clock_mode(mode: String) -> void:
+	_clock_mode = mode
+	_tag_pulse_at = -1
+	match mode:
+		"portal":
+			_timer_plate.add_theme_stylebox_override("panel", W.box(W.ROCK, 4, 5).pad(36, 4, 36, 4))
+			_timer.color = W.PAPER
+			_stage_tag_text.text = "ENDLESS IN"
+			_stage_tag_text.color = W.ROCK
+			_stage_tag.add_theme_stylebox_override("panel", W.box(W.PAPER, 3, 3).pad(14, 3, 14, 4))
+			_stage_tag.visible = true
+		"endless":
+			_timer_plate.add_theme_stylebox_override("panel", W.box(W.INK, 4, 5).pad(36, 4, 36, 4))
+			_timer.color = W.PAPER
+			_stage_tag_text.text = "WAVE %d" % maxi(endless_wave(), 1)
+			_stage_tag_text.color = W.PAPER
+			_stage_tag.add_theme_stylebox_override("panel", W.box(W.ROCK, 3, 3).pad(14, 3, 14, 4))
+			_stage_tag.visible = true
+			_endless_wave_seen = endless_wave()
+		_:
+			if _clock_box_paper:
+				_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper)
+			_timer.color = W.INK
+			_stage_tag.visible = false
+	_fit_top()
+	_place_stage_tag()
+
+
+## The tag hangs from the clock plate's foot, centred under it (over the gap between the weapons and the lines).
+func _place_stage_tag() -> void:
+	if _stage_tag == null or not _stage_tag.visible:
+		return
+	_stage_tag.reset_size()
+	var s := _stage_tag.get_combined_minimum_size()
+	_stage_tag.size = s
+	_stage_tag.pivot_offset = s * 0.5
+	_stage_tag.position = Vector2(_timer_plate.position.x + (_timer_plate.size.x - s.x) * 0.5, _timer_plate.position.y + _timer_plate.size.y - 6.0)
+
+
+func _pulse_stage_tag() -> void:
+	if _stage_tag == null:
+		return
+	_stage_tag.pivot_offset = _stage_tag.size * 0.5
+	_stage_tag.scale = Vector2.ONE * 1.22
+	var tw := _stage_tag.create_tween()
+	tw.tween_property(_stage_tag, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+## Which clock the plate shows now: "" (the stage's), "portal" or "endless" (tests and tools).
+func clock_mode() -> String:
+	return _clock_mode
+
+
+## The tag's words under the clock ("" when it is not shown).
+func stage_tag_text() -> String:
+	return _stage_tag_text.text if _stage_tag and _stage_tag.visible else ""
+
+
+## The seconds the portal has left before Endless (lane SGAME's Game.portal_seconds_left()); -1 when none counts.
+func portal_left() -> float:
+	if test_stage_clock.has("portal_left"):
+		return float(test_stage_clock["portal_left"])
+	if game and game.has_method("portal_seconds_left"):
+		return float(game.call("portal_seconds_left"))
+	return -1.0
+
+
+## The stage's own clock (00:00 at the stage's start; lane SGAME's Run.stage_clock()).
+static func stage_seconds() -> float:
+	return Run.stage_clock()
+
+
+## Seconds survived in Endless (Run.endless_time) and its wave (Run.endless_wave(), 1 the first; lane SGAME).
+func endless_seconds() -> float:
+	if test_stage_clock.has("endless_seconds"):
+		return float(test_stage_clock["endless_seconds"])
+	return Run.endless_time
+
+
+func endless_wave() -> int:
+	if test_stage_clock.has("endless_wave"):
+		return int(test_stage_clock["endless_wave"])
+	return Run.endless_wave()
+
+
+## Game's announcements (lane SGAME: WaveDirector.endless_started / endless_wave_started): the ENDLESS banner, and the
+## WAVE tag's pulse with its new number on each wave after the first.
+func on_endless_started() -> void:
+	endless_banner()
+
+
+func on_endless_wave(w: int) -> void:
+	if _stage_tag == null or _clock_mode != "endless":
+		return
+	_stage_tag_text.text = "WAVE %d" % maxi(w, 1)
+	_place_stage_tag()
+	if w > _endless_wave_seen and _endless_wave_seen > 0:
+		_pulse_stage_tag()
+	_endless_wave_seen = maxi(w, _endless_wave_seen)

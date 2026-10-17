@@ -1,10 +1,11 @@
-## Wooden barrels (pass 44): thirty-three 3D barrels (COUNT; forty-four until pass 45) scattered over the map by the run's
+## Wooden barrels (pass 44): thirty-five 3D barrels (COUNT; forty-four until pass 45, thirty-three until pass 87) scattered over the map by the run's
 ## seed, each a little apart from the next, clear of the flats, the rocks, the water, the structures and the painted
 ## scenery (never behind a billboard: the camera looks north from above, so a painting covers the ground just north of
 ## its foot for about its height).
 ## Dark barrels are common; the rare ones (`light`, they hold three times the gems) are matte black with brass hoops since
 ## pass 48 (Garry: black), so the good barrel still reads as the good one. The hero walking up to one breaks it:
-## it bursts into splinters and a puff of dust, drops a handful of XP gems, and the camera gives a small kick.
+## it bursts into splinters and a puff of dust, drops a handful of XP gems (a black one 1-5 coins too since pass 87),
+## and the camera gives a small kick.
 ## Drawn as MultiMeshes of art/props/barrel.glb (`Body`, tinted dark or black; `Hoops`, iron on the common ones and brass
 ## on the rare ones, a MultiMesh each).
 ## Barrel Rush (pass 47, a passive): every barrel he smashes starts or refreshes a speed boost (Run.barrel_rush) and the
@@ -12,8 +13,20 @@
 class_name BarrelField
 extends Node3D
 
-const COUNT := 33
+## Pass 87 (lane FIXES): 35, the old 33 that roll LIGHT_FRAC plus EXTRA_DARK black ones on top (always black).
+const COUNT := 35
 const LIGHT_FRAC := 0.22
+## Pass 87 (lane FIXES, Garry: "Add 2 more dark barrels to the random number of barrels that appear on the map"): the
+## last EXTRA_DARK of the COUNT spots are always the black ("darker", `light` in code) kind; the others roll LIGHT_FRAC.
+const EXTRA_DARK := 2
+## Pass 87 (lane FIXES, Garry: "The darker barrels should now give between 1-5 coins"): a black barrel bursts into
+## COIN_MIN..COIN_MAX coins (uniform, whole), each worth COIN_VALUE (the stage scales it when it is taken, like every
+## coin), counted as gold source "barrel". Each black barrel's count is rolled once per map (`coins`, from the run's seed)
+## and the creatures' first coins of the run hold back that much in all (PickupManager.coin_debt), so breaking every black
+## barrel pays what the kills paid before.
+const COIN_MIN := 1
+const COIN_MAX := 5
+const COIN_VALUE := 1.0
 const MIN_GAP := 6.5
 const RADIUS := 0.31
 const BREAK_REACH := 1.05
@@ -33,6 +46,10 @@ var pos: PackedVector3Array = PackedVector3Array()
 var light: PackedByteArray = PackedByteArray()
 var alive: PackedByteArray = PackedByteArray()
 var broken := 0
+## Coins the black barrels dropped this map (pass 87; tests and the capture).
+var coins_dropped := 0
+## The coins each spot's barrel holds (pass 87): COIN_MIN..COIN_MAX for a black one, 0 for a brown one (_roll_coins).
+var coins: PackedByteArray = PackedByteArray()
 var _body_dark: MultiMesh
 var _body_light: MultiMesh
 var _hoops: MultiMesh          # the common barrels' iron hoops
@@ -59,6 +76,11 @@ func setup(p_game: Node, p_map: MapBase) -> void:
 	# too low and the bottom one sat half in the sand)
 	_part_xf = {"body": meshes.get("body_xf", Transform3D.IDENTITY), "hoops": meshes.get("hoops_xf", Transform3D.IDENTITY)}
 	_place()
+	# pass 87 (lane FIXES): the black barrels' coins, and the creatures' coins hold back as much (PickupManager.coin_debt)
+	_roll_coins()
+	var pk = game.get("pickups") if game != null else null
+	if pk != null and pk.has_method("set_coin_debt"):
+		pk.set_coin_debt(float(coins_total()))
 	var dark_n := 0
 	for i in pos.size():
 		if light[i] == 0:
@@ -227,7 +249,8 @@ func _place() -> void:
 		if not ok:
 			continue
 		pos.append(Vector3(p.x, map.height_at(p.x, p.y), p.y))
-		light.append(1 if rng.randf() < LIGHT_FRAC else 0)
+		# pass 87 (lane FIXES): the last EXTRA_DARK spots are black whatever the roll
+		light.append(1 if pos.size() > COUNT - EXTRA_DARK or rng.randf() < LIGHT_FRAC else 0)
 		alive.append(1)
 
 
@@ -344,12 +367,45 @@ func _break(i: int) -> void:
 		if light[i] == 1:
 			for k in 4:
 				pk.spawn(pk.KIND_GEM_M, at + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.6, 0.6)), per * 4.0)
+			# pass 87 (lane FIXES): and its coins
+			_drop_coins(i, at, pk)
 	Audio.play("st_barrel_break", at)
 	if game.camera:
 		game.camera.shake(0.45 if light[i] == 1 else 0.3)
 	if game.hud and light[i] == 1:
 		game.hud.toast("A GOOD BARREL", Color(1.0, 0.85, 0.4))
 	_rush()
+
+
+## Each black barrel's coins (pass 87, lane FIXES): COIN_MIN..COIN_MAX (uniform, whole), rolled once per map on the run's
+## seed (its own dice, after the spots, so the spots are as before); a brown barrel holds none.
+func _roll_coins() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = Run.map_seed * 31 + 11
+	coins.resize(pos.size())
+	for i in pos.size():
+		coins[i] = rng.randi_range(COIN_MIN, COIN_MAX) if light[i] == 1 else 0
+
+
+## All the coins the map's barrels hold (broken or not).
+func coins_total() -> int:
+	var n := 0
+	for c in coins:
+		n += c
+	return n
+
+
+## Black barrel `i`'s coins (pass 87, lane FIXES): what it holds (`coins`; COIN_MIN..COIN_MAX at random for one set up by
+## hand), worth COIN_VALUE each, scattered round it like its gems, each marked as the "barrel" gold source. Returns how
+## many.
+func _drop_coins(i: int, at: Vector3, pk) -> int:
+	var n: int = coins[i] if i < coins.size() and coins[i] > 0 else randi_range(COIN_MIN, COIN_MAX)
+	for k in n:
+		var c: int = pk.spawn(pk.KIND_COIN, at + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.6, 0.6)), COIN_VALUE)
+		if pk.has_method("mark_coin"):
+			pk.mark_coin(c, "barrel")
+	coins_dropped += n
+	return n
 
 
 ## Barrel Rush (pass 47, Garry: "Smacking Barrels Causes Player to get a speed boost"): Run starts or refreshes the boost

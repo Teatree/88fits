@@ -45,8 +45,10 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 | `launch` *(2)* | the debug launch file the run started from (a tool's, or the editor's content dock test launch): its plain values, e.g. `{character, weapon, level, map, map_seed, spawn}`; absent for a run from the title |
 | `result` | `in_progress` (a checkpoint), `extract`, `death` (Down!'s give up or its timeout), `abandon` (give up from the pause menu), `end`, `quit`; (pass 78) `killed` only in a copy PostHog got at the next launch: the app was closed after the run's checkpoint and before its end (the local file still says `in_progress`) |
 | `length` | play seconds (unpaused; the x axis of every chart) |
-| `clock` | `Run.elapsed`, the stage clock, which freezes during a boss fight and at a portal |
+| `clock` | `Run.elapsed`, the run clock (the map's), which freezes during a boss fight and at a portal; since pass 87 a stage run's clock starts at its window's start (stage 2 of Red Canyon at 430) and stands still at its end through the boss, the portal's countdown and Endless |
 | `stage`, `endless_wave`, `level`, `kills`, `gold`, `strongbox`, `revives` | the end state (`gold` = the purse at the end, `strongbox` = gold a Strongbox banked, `revives` = revives bought) |
+| `stage_index`, `stage_id`, `stage_name`, `stage_start`, `stage_length`, `stage_count` | (pass 87) the stage this run played (since pass 87 every run is one stage, picked in the Stages menu, the Watch or the Sim): `stage_index` 0-based (`stage` stays 1-based), `stage_id` the map's id for it (`s1`, `s2`...; the same in PostHog), `stage_name`, its window on the map's clock (`stage_start`, `stage_length` seconds to its boss), how many stages the map has |
+| `outcome`, `boss_killed`, `stage_clock`, `endless_s`, `run_time` | (pass 87) how the stage run ended: `outcome` = `extracted` (through the portal), `died_endless` (fell in Endless), `died_after_boss` (fell between the boss and Endless), `died` (fell before the boss), `quit` (left from the pause menu or the app); `boss_killed` (the stage's boss fell: the next stage unlocked), `stage_clock` (seconds into the stage: its length once the boss came), `endless_s` (seconds survived in Endless), `run_time` (every second played: the stage, its boss, the portal's countdown and Endless) |
 | `gold_before` | (pass 61) the saved gold (`Save.gold()`) as the run began |
 | `gold_end` *(2)* | the run's gold as PostHog's `run_end` has it: `gold_earned`, `gold_spent`, `gold_greed`, `gold_debug`, `gold_strongbox`, `gold_purse`, `gold_banked`, `gold_lost`, `gold_before`, `gold_after` (see *Gold*) |
 | `talents` *(2)* | the Upgrade board as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
@@ -82,9 +84,10 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 |---|---|
 | `t` | play seconds |
 | `clock` | the stage clock |
-| `stage` | 1-based |
-| `phase` | the director's phase: 0 normal, 1 boss, 2 portal |
+| `stage` | 1-based (since pass 87 the same on every row: a run plays one stage) |
+| `phase` | the director's phase: 0 normal, 1 boss, 2 portal (pass 87: the portal's countdown), 3 Endless (pass 87) |
 | `wave` | the endless wave, 1-based (missing before endless) |
+| `en` | (pass 87) seconds into Endless (missing before it) |
 | `level`, `xp`, `xp_next` | the hero's level, XP into it, XP the level needs |
 | `xp_total` | (pass 77) every XP point gained so far (`Run.xp_gained`, after Field Notes), cumulative |
 | `hp`, `hp_max`, `shield`, `invuln` | health, max, Energy Shield points, 1 while invulnerable |
@@ -148,6 +151,8 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `debug_item` | `id`, `level`, `item_kind` (the debug hand's) |
 | `level` | `level` (the new level) |
 | `stage` | `level` = the stage that began (1-based) |
+| `stage_beaten` | (pass 87) the stage's boss fell and the portal's countdown to Endless began: `level` = the stage, `stage_clock` |
+| `endless` | (pass 87) the countdown ran out and Endless began: `level` = the stage (Game's own event) |
 | `wave` | `level` = the endless wave that began |
 | `boss_start` | `id` (the boss); *(2)* `hp` (its max HP as it came), and its HP pegging when it had one: `dps` (the hero's damage a second over the window), `ref` (the DPS the boss expects), `mult` (its HP multiplier), `window` (seconds); since pass 83 in the seconds mode (`boss_hp_scaling.mode`) also `mode` "seconds", `seconds` (the seconds of full DPS it was given) and `full_dps` (the hero's full DPS on it then; `dps` is the same number, `ref` and `window` 0) |
 | `boss_end` | `id` (the boss) |
@@ -164,7 +169,7 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `mutation_due` | (pass 79) a mutation offer fell due on the stage clock and waits for the next level-up: `level` (the hero's), `due` (offers waiting after it), `slot`; `dropped: true` when it was spent with no weapon open (at its slot), at the level-up that took it (`at_level_up`) or as its screen opened (`at_screen`). A mutation level-up's own `offer` keeps `route: "path"` |
 | `pickup` | `id`, `small` (cake slices, coin bags), `effect` |
 | `portal_wait` | (pass 48) the boss is down and the portal waits: `level` = the stage |
-| `portal` | `level` = the stage the portal closed, `extract` |
+| `portal` | `level` = the stage the portal closed, `extract` (pass 87: true = EXTRACT; false = "not yet", the countdown runs on) |
 | `death` | `id` (the last creature whose hit the hero took), `hit` (melee/ranged/boss) |
 | `revive` | `id` = `gold`, `ad`, `debug` or `phoenix` |
 | `unlock` | `id` (the quest completed) |
@@ -204,7 +209,7 @@ Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)". Eve
 | in a run: source | where the gold came from |
 |---|---|
 | `coins` | a coin a creature dropped (the stage multiplies every coin) |
-| `loose_change`, `gold_dust`, `boss_coins`, `loot_cache`, `blasting_cap` | coins of those origins (`PickupManager.mark_coin`): Loose Change's tossed coin, the Sun Scepter's Gold Dust, the boss's shower, the Loot Cache's coins (and its purse), Mira's Blasting Cap mine; a merged coin counts as `coins` |
+| `loose_change`, `gold_dust`, `boss_coins`, `loot_cache`, `blasting_cap`, `barrel` | coins of those origins (`PickupManager.mark_coin`): Loose Change's tossed coin, the Sun Scepter's Gold Dust, the boss's shower, the Loot Cache's coins (and its purse), Mira's Blasting Cap mine, a black barrel's 1-5 coins (pass 87); a merged coin counts as `coins` |
 | `coin_bag` | Pickpocket's bag (a pickup with `effect: gold`, named by its id) |
 | `elite_purse`, `boss_purse` | the purse an Elite's or a boss's death pays |
 | `chest` | a chest's gold (its gold roll, or gold when the build changed under the reel) |
@@ -255,7 +260,15 @@ Every recorder event whose kind is in `Analytics.KIND_EVENTS` goes out renamed a
 `est_after` is known): item kinds as `item_picked`, `offer` as `level_up` / `path_offer`, `banish`, `chest`,
 `structure`, `pickup` (a small one counted into the summary instead), `boss_start` / `boss_end`, `elite`, `stage`,
 `wave`, `portal_wait`, `portal`, `death`, `revive`, `unlock`, `debug_item`; *(2)* `totem` as `totem_taken` and
-`special_kill` as `special_killed`. Plus `run_start`, `run_end` and `run_summary`. The rest stays in the local file only:
+`special_kill` as `special_killed`; (pass 87) `stage_beaten` as `stage_beaten` and `endless` as `endless_started`. Plus
+`run_start`, `run_end` and `run_summary`.
+
+**Stages (pass 87).** Every event of a run carries `stage` (1-based), `stage_id` (`s1`...), `in_endless` (true when it
+came in Endless) and `endless_wave` (0 outside Endless) as super properties, so any chart breaks down by stage and by
+the stage's Endless. `run_end` adds `stage_id`, `stage_name`, `stage_index`, `stage_length`, `stage_count`, `outcome`,
+`boss_killed`, `stage_clock`, `endless_s` and `run_time` (the header's keys above). The portal's `stage_cleared` event
+says `choice: extract` or `not_yet` (before pass 87 also `continue` / `stay`). The boards (`tools/posthog_boards.py`):
+"88fits · Stages" and a stage breakdown on the run boards. The rest stays in the local file only:
 `level`, `skip`, `reroll` (the offer carries them), *(2)* `special`, `elite_mod`, `elite_kill`, `stranger`,
 `stranger_decline`, `totem_offer`, and every row; since pass 78 all of it also travels inside `run_record` (below).
 

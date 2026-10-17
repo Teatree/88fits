@@ -64,7 +64,8 @@ static func _satisfied(q: QuestDef, in_run: bool) -> bool:
 		"reach_level":
 			return in_run and Run.max_level_reached >= int(c.get("level", 0))
 		"survive_minutes":
-			return in_run and Run.elapsed >= float(c.get("minutes", 0)) * 60.0
+			# pass 87 (lane SGAME): the seconds this run was played (Run.run_time: its stage, its boss, the portal, Endless)
+			return in_run and Run.run_time() >= float(c.get("minutes", 0)) * 60.0
 		"survive_minutes_no_lift":
 			return in_run and Run.no_lift_time >= float(c.get("minutes", 0)) * 60.0
 		"kills_in_run_of_enemy":
@@ -123,17 +124,22 @@ static func stage_hint(q: QuestDef) -> int:
 	if map == null or map.timeline == null:
 		return 0
 	var tl: WaveTimeline = map.timeline
-	var stage_len: float = maxf(float(tl.stage_length), 1.0)
 	match str(c.get("type", "")):
 		"kills_of_enemy", "kills_in_run_of_enemy":
 			var t: float = first_arrival(tl, str(c.get("enemy", "")))
-			return int(floor(t / stage_len)) + 1 if t >= 0.0 else 0
+			# pass 87 (lane SGAME): the stage whose window holds it
+			return tl.stage_at(t) + 1 if t >= 0.0 else 0
 		"kill_boss", "reach_stage":
 			return int(c.get("stage", 1))
 		"extract_after_stage":
 			return int(c.get("stage", 1))
 		"survive_minutes", "survive_minutes_no_lift":
-			return int(ceil(float(c.get("minutes", 0)) * 60.0 / stage_len))
+			# pass 87: the first stage at least that long (a run plays one stage), else the last (its Endless)
+			var need: float = float(c.get("minutes", 0)) * 60.0
+			for k in range(tl.stage_count()):
+				if tl.stage_len(k) >= need:
+					return k + 1
+			return tl.stage_count()
 		"evolve_any":
 			return 2
 		"reach_level":
@@ -159,6 +165,7 @@ static func first_arrival(tl: WaveTimeline, enemy_id: String) -> float:
 	var sp: Dictionary = tl.specials if tl.specials is Dictionary else {}
 	for row in sp.get("pool", []):
 		if row is Dictionary and str(row.get("enemy", "")) == enemy_id:
-			var t := float(sp.get("from", 0.0)) + maxf(float(row.get("stage", 1)) - 1.0, 0.0) * float(tl.stage_length)
+			# pass 87 (lane SGAME): from `from` in stage 1, from a later stage's window start (the specials' clock runs there)
+			var t := maxf(float(sp.get("from", 0.0)), tl.stage_start(maxi(int(row.get("stage", 1)) - 1, 0)))
 			best = t if best < 0.0 or t < best else best
 	return best

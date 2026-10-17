@@ -13,6 +13,14 @@
 [ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_d.png" id="11_ta1fg"]
 [ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_sprite_e.png" id="12_h761r"]
 [ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_e.png" id="13_81le7"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_sprite_f.png" id="14_d2cs0"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_f.png" id="15_1uee2"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_sprite_g.png" id="16_ory3r"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_g.png" id="17_b4j42"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_sprite_h.png" id="18_4dbgs"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_h.png" id="19_tkyvh"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_sprite_i.png" id="20_jhmye"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_i.png" id="21_x3up1"]
 
 [resource]
 script = ExtResource("1_3maa1")
@@ -211,6 +219,114 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("12_h761r"),
 "sprite_file": "dust_mummy_sprite_e.png",
+"strip_cols": 43
+},
+"DM-F": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 10.0
+},
+"front_faces": "right",
+"head": 0.977,
+"icon": ExtResource("15_1uee2"),
+"note": "Pass 87: Garry's mummy.png, serious; a slow stiff shuffle (Walking with the legs' swing x0.55, arms raised); falls on its back",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("14_d2cs0"),
+"sprite_file": "dust_mummy_sprite_f.png",
+"strip_cols": 43
+},
+"DM-G": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.977,
+"icon": ExtResource("17_b4j42"),
+"note": "Pass 87: Garry's mummy.png, serious; a heavy lurch (Orc Walk leaning forward, arms raised); falls on its face",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("16_ory3r"),
+"sprite_file": "dust_mummy_sprite_g.png",
+"strip_cols": 43
+},
+"DM-H": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.949,
+"icon": ExtResource("19_tkyvh"),
+"note": "Pass 87: Garry's mummy.png, goofy; a bouncy clown shuffle (Garry's Scary Clown Walk on a driver fitted to its round body, arms up and out); unravels into a heap",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("18_4dbgs"),
+"sprite_file": "dust_mummy_sprite_h.png",
+"strip_cols": 40
+},
+"DM-I": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 12.0
+},
+"front_faces": "right",
+"head": 0.955,
+"icon": ExtResource("21_x3up1"),
+"note": "Pass 87: Garry's mummy.png, goofy; a dragging limp (Walking with a stiff right leg on a driver fitted to its round body, arms up and out); falls back",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("20_jhmye"),
+"sprite_file": "dust_mummy_sprite_i.png",
 "strip_cols": 43
 }
 }

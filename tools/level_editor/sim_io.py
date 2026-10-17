@@ -366,7 +366,7 @@ def watch_args(s):
     talent, the seed, the map, Down!'s answer and the bot's options."""
     t = s.get("talents") if isinstance(s.get("talents"), dict) and s.get("talents") else SB.board_talents(float(s.get("board", 0) or 0))
     args = ["--hero", str(s.get("hero", "drifter")), "--talents", SB.talents_arg(t), "--seed", str(int(s.get("seed", 1) or 1)),
-            "--map", str(s.get("map", "red_canyon")), "--death", str(s.get("death", "end"))]
+            "--map", str(s.get("map", "red_canyon")), "--death", str(s.get("death", "end")), "--stage", str(int(s.get("stage", 1) or 1))]
     for k, v in (s.get("bot") or {}).items():
         args += ["--bot", "%s=%s" % (k, ("1" if v else "0") if isinstance(v, bool) else ("%g" % v if isinstance(v, float) else str(v)))]
     return args

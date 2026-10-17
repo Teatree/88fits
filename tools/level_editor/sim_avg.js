@@ -107,6 +107,20 @@ const SimAvg = (() => {
   }
 
   /** statistics.median over the values that are not null (null when none). */
+  /** Pass 87 (lane STOOLS), sim_batch.stage_run_summary: the stage runs' outcomes over the players that say one. */
+  function stageRunSummary(plist) {
+    const outs = plist.filter((p) => p.ok && p.outcome);
+    if (!outs.length) return null;
+    const counts = {};
+    for (const p of outs) counts[String(p.outcome)] = (counts[String(p.outcome)] || 0) + 1;
+    const en = outs.map((p) => num(p.endless_s)).filter((v) => v > 0);
+    const stages = Array.from(new Set(outs.map((p) => Math.trunc(num(p.stage, 1))))).sort((a, b) => a - b);
+    const oc = {};
+    for (const k of Object.keys(counts).sort(cmpStr)) oc[k] = counts[k];
+    return { runs: outs.length, stage: stages.length === 1 ? stages[0] : null, boss_killed: outs.filter((p) => p.boss_killed).length,
+      outcomes: oc, endless_runs: en.length, endless_s_median: en.length ? r(median(en)) : null };
+  }
+
   function median(vals) {
     const v = (vals || []).filter((x) => x != null).sort((a, b) => a - b);
     if (!v.length) return null;
@@ -470,7 +484,10 @@ const SimAvg = (() => {
         level: atEnd('level'), kills: atEnd('kills'), gold: atEnd('gold_total'), xp: atEnd('xp_total'), dmg,
         fps: own(m, 'fps') ? m.fps : null, build: String(m.build_text || ''), assists: own(m, 'assists') ? m.assists : null,
         end_stage: own(m, 'end_stage') ? m.end_stage : null, endless_wave: own(m, 'endless_wave') ? m.endless_wave : null, talents: m.talents || {},
-        chests: atEnd('chests'), powerups: atEnd('powerups'), totems: atEnd('totems') });
+        chests: atEnd('chests'), powerups: atEnd('powerups'), totems: atEnd('totems'),
+        // pass 87 (lane STOOLS): the stage run (sim_run.gd's meta): its stage, how it ended, its Endless
+        stage: own(m, 'stage') ? m.stage : null, outcome: own(m, 'outcome') ? m.outcome : null, boss_killed: own(m, 'boss_killed') ? m.boss_killed : null,
+        endless_s: own(m, 'endless_s') ? m.endless_s : null });
     }
     const mk = markers(ok.map((p) => p.d));
     const nm = {};
@@ -489,6 +506,7 @@ const SimAvg = (() => {
       level_mean: endMean('level'), gold_mean: endMean('gold'), xp_mean: endMean('xp'), dmg_mean: endMean('dmg'),
       chests_mean: endMean('chests'), powerups_mean: endMean('powerups'), totems_mean: endMean('totems'),
       bosses: mk.bosses.map((b) => ({ id: b.id, occurrence: b.occurrence, reached: b.n, beaten: b.beaten, fight_s: b.fight_s, mult: b.mult })) };
+    summary.stage_run = stageRunSummary(plist);
     const tt = [];
     for (let s = 0; s <= T; s++) tt.push(s);
     const res = { schema: SCHEMA, meta: Object.assign({}, meta || {}), settings: st, names: nm, t: tt, playing, series: outSeries,

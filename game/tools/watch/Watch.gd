@@ -53,6 +53,8 @@ var args: Dictionary = {}
 var hero := "drifter"
 var run_seed := 1
 var map_id := "red_canyon"
+## pass 87 (lane STOOLS): the stage the run plays (1-based)
+var stage := 1
 var limit := 0.0
 var death := "end"
 var bot_opts: Dictionary = {}
@@ -305,6 +307,8 @@ func _apply_save() -> void:
 		save.data["quests_done"] = done
 	else:
 		save.data["quests_done"] = []
+	# pass 87 (lane STOOLS): the stages beaten: every one in tool mode, the PC save's in the save's mode (watch.py's setup)
+	save.data["stages_beaten"] = stages_beaten_for(unlocks, map_id, reg.map(map_id), setup_doc)
 	if not (save.data.get("hero_look") is Dictionary):
 		save.data["hero_look"] = {}
 	if look != "":
@@ -439,13 +443,31 @@ func _pick_ref() -> void:
 	ref = {}
 	ref_label = ""
 	var same := hero == str(args.get("hero", "drifter")) and map_id == str(args.get("map", "red_canyon")) \
-		and SETUP.same_board(SETUP.picks_from(talents_text), SETUP.picks_from(str(args.get("talents", "none"))))
+		and SETUP.same_board(SETUP.picks_from(talents_text), SETUP.picks_from(str(args.get("talents", "none")))) \
+		and stage == maxi(int(args.get("stage", "1")), 1)
 	if same:
 		_load_ref(str(args.get("ref", "")), str(args.get("ref_label", "")))
 		return
-	var r := SETUP.ref_for(setup_doc.get("refs", []) if setup_doc.get("refs") is Array else [], hero, map_id, SETUP.picks_from(talents_text))
+	var r := SETUP.ref_for(setup_doc.get("refs", []) if setup_doc.get("refs") is Array else [], hero, map_id, SETUP.picks_from(talents_text), stage)
 	if not r.is_empty():
 		_load_ref(str(r["path"]), str(r["label"]))
+
+
+## Pass 87 (lane STOOLS): the sandbox's stages beaten for a run: tool mode ("all") every stage of the map, the save's
+## mode the PC save's flags (the setup file's save_stages), {} without them.
+static func stages_beaten_for(mode: String, p_map: String, mdef, doc: Dictionary) -> Dictionary:
+	if mode == "all":
+		var n := 1
+		if mdef != null and mdef.timeline != null:
+			n = int(mdef.timeline.call("stage_count")) if mdef.timeline.has_method("stage_count") else maxi(int(mdef.timeline.stages), 1)
+		var v: Array = []
+		for _k in range(n):
+			v.append(true)
+		return {p_map: v}
+	var saved = doc.get("save_stages", {})
+	if saved is Dictionary and (saved as Dictionary).get(p_map) is Array:
+		return {p_map: ((saved as Dictionary)[p_map] as Array).duplicate()}
+	return {}
 
 
 ## The setup file watch.py wrote (setup=): the board presets and the Sim results; {} without one.
@@ -502,8 +524,10 @@ static func ref_from(doc) -> Dictionary:
 ## The launch a run of the Watch starts from (Run.launch_override): the hero, the map and its seed, the run's own clock;
 ## `spawn` the game's own start (the hero comes down in the spawn beam, pass 85's Start Run) instead of the tools' instant
 ## one.
-static func launch_of(p_hero: String, p_map: String, p_seed: int, spawn: bool) -> Dictionary:
-	return {"character": p_hero, "map": p_map, "map_seed": p_seed, "sim_clock": true, "sim_fast": false, "watch": true, "spawn": spawn}
+static func launch_of(p_hero: String, p_map: String, p_seed: int, spawn: bool, p_stage: int = 1) -> Dictionary:
+	# pass 87 (lane STOOLS): the stage the run plays (1-based; the launch's `stage`, lane SGAME's Game._start_chosen_stage)
+	return {"character": p_hero, "map": p_map, "map_seed": p_seed, "sim_clock": true, "sim_fast": false, "watch": true, "spawn": spawn,
+		"stage": maxi(p_stage, 1)}
 
 
 ## Pass 85: a run from settings `s` (WatchSetup's shape): everything the last run left is cleared, the settings taken,
@@ -532,6 +556,7 @@ func take_settings(s: Dictionary) -> void:
 	hero = str(s.get("hero", hero))
 	look = str(s.get("look", ""))
 	map_id = str(s.get("map", map_id))
+	stage = maxi(int(s.get("stage", stage)), 1)
 	run_seed = maxi(int(s.get("seed", run_seed)), 1)
 	if bool(s.get("seed_random", false)):
 		run_seed = randi_range(1, 99999)
@@ -591,7 +616,7 @@ func _start_game(spawn: bool = false) -> void:
 	var run := run_node()
 	run.seed_dice(run_seed)
 	# the creatures' and the pickups' own dice, seeded right after their _ready randomizes them (sim_run.gd's way)
-	run.launch_override = launch_of(hero, map_id, run_seed, spawn)
+	run.launch_override = launch_of(hero, map_id, run_seed, spawn, stage)
 	# (tests: the record kept in memory, nothing written)
 	if str(args.get("analytics", "")) == "memory":
 		run.launch_override["analytics_memory"] = true
@@ -1347,6 +1372,13 @@ func setup_action(what: String) -> void:
 				setup._preset_to_fields()
 		"sound":
 			setup._sound.button_pressed = v == "1"
+		# pass 87 (lane STOOLS): the stage (1-based; a locked one in the save's mode stays unpicked) and Every unlock
+		"stage":
+			var si: int = setup._stage_idx.find(int(v) - 1)
+			if si >= 0 and not setup._stage.is_item_disabled(si):
+				setup._stage.select(si)
+		"unlocks":
+			setup._unlocks.button_pressed = v == "all" or v == "1"
 		"slot":
 			var bits := v.split("/")
 			if bits.size() == 2:

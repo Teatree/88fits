@@ -114,9 +114,10 @@ func test_the_dwarf_shooter_opens_stage_two() -> void:
 			assert_float(float(r.get("t", 0.0))).is_greater(STAGE)
 
 
+## Stage `s`'s rows (pass 87, lane SGAME, re-pinned: the stages are windows of their own lengths, stage_window).
 func _stage_rows(tl: WaveTimeline, s: int) -> Array:
-	var a := STAGE * s
-	var b := STAGE * (s + 1)
+	var a := tl.stage_start(s)
+	var b := tl.stage_end(s)
 	return tl.roster.filter(func(r): return float(r.get("t", 0.0)) >= a and float(r.get("t", 0.0)) < b)
 
 
@@ -126,8 +127,8 @@ func test_each_later_stage_has_rushes_with_special_spawning() -> void:
 	# is that every later stage has a positive cap all through it
 	var tl := _tl()
 	for s: int in [1, 2]:
-		var a := STAGE * s
-		var b := STAGE * (s + 1)
+		var a := tl.stage_start(s)
+		var b := tl.stage_end(s)
 		for k in range(int(a) + 1, int(b) - 2, 10):
 			assert_int(tl.cap_at(float(k), s)).override_failure_message("stage %d cap at %d s" % [s + 1, k]).is_greater(0)
 
@@ -140,7 +141,7 @@ func _introduced(tl: WaveTimeline) -> Array:
 			first[id] = t
 	var out := [0, 0, 0]
 	for id: String in first.keys():
-		out[mini(int(float(first[id]) / STAGE), 2)] += 1
+		out[mini(tl.stage_at(float(first[id])), 2)] += 1
 	return out
 
 
@@ -203,7 +204,8 @@ func test_every_row_plays_a_creature_that_is_in_play() -> void:
 
 func test_endless_keeps_a_crowd_of_both_channels() -> void:
 	var tl := _tl()
-	var t := STAGE * 3.0 + 200.0
+	# pass 87 (lane SGAME, re-pinned): Endless draws from the stage's late roster, stage 3's last second here
+	var t := tl.stage_end(2) - 1.0
 	var regular := 0
 	var hell := 0
 	for r in tl.roster_at(t):
@@ -228,10 +230,13 @@ func test_the_bosses_keep_their_stage_and_later_stages_hit_harder_in_play() -> v
 		var t := float(r.get("t", 0.0))
 		if t == STAGE or t == STAGE * 2.0:
 			assert_float(tl.damage_mult_at(t)).is_equal_approx(tl.damage_mult_at(t - 1.0), 0.005)
-	# in play a stage-2 bite is still harder than a stage-1 one (stage x ATK x), and stage 3's harder than stage 2's
-	var s1 := tl.stage_mult(0) * tl.damage_mult_at(300.0)
-	var s2 := tl.stage_mult(1) * tl.damage_mult_at(700.0)
-	var s3 := tl.stage_mult(2) * tl.damage_mult_at(1150.0)
+	# in play a stage-2 bite is still harder than a stage-1 one (stage x ATK x), and stage 3's harder than stage 2's.
+	# Pass 87 (lane TUNE, re-pinned on purpose): every stage is a fresh level-1 hero's run now, so each stage's ATK x
+	# starts soft and ramps through its own window; the bites are compared at the same point of each window (its
+	# middle), no longer at fixed run seconds (1150 s is stage 3's soft opening since the windows are 430/600/780 s)
+	var s1 := tl.stage_mult(0) * tl.damage_mult_at(tl.stage_start(0) + tl.stage_len(0) * 0.5)
+	var s2 := tl.stage_mult(1) * tl.damage_mult_at(tl.stage_start(1) + tl.stage_len(1) * 0.5)
+	var s3 := tl.stage_mult(2) * tl.damage_mult_at(tl.stage_start(2) + tl.stage_len(2) * 0.5)
 	assert_float(s2).is_greater(s1)
 	assert_float(s3).is_greater(s2)
 
@@ -241,16 +246,19 @@ func test_rows_carry_their_hp_ramp_and_stay_under_the_caps() -> void:
 	for s: int in [1, 2]:
 		var early := INF
 		var late := 0.0
+		# (pass 87, lane SGAME, re-pinned: the first 60/430 and the last 150/430 of each stage's own length)
+		var a := tl.stage_start(s)
+		var ln := tl.stage_len(s)
 		for r in _stage_rows(tl, s):
 			var st: Dictionary = r.get("stats", {}) if r.get("stats") is Dictionary else {}
 			var m := float(st.get("hp_mult", 1.0))
 			var t := float(r.get("t", 0.0))
-			if t < STAGE * s + 60.0:
+			if t < a + ln * 60.0 / STAGE:
 				early = minf(early, m)
-			if t > STAGE * s + 280.0:
+			if t > a + ln * 280.0 / STAGE:
 				late = maxf(late, m)
 		# each stage's rows start soft (the hero arrives with last stage's build) and end tough
 		assert_float(late).is_greater(early)
-	for k in range(0, 1400, 5):
+	for k in range(0, int(tl.total_length()) + 100, 5):
 		assert_int(tl.cap_at(float(k), 2)).is_less_equal(tl.cap_max)
 	assert_int(tl.hard_cap).is_greater_equal(tl.cap_max)  # pass 85 re-pin: Garry's hard cap (300 since 2026-10-17)

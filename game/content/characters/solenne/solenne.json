@@ -291,6 +291,202 @@
         "hit": 12,
         "die": 8
       }
+    },
+    "SOL-F": {
+      "recipe": {
+        "pose_hint": "Her head always turns together with her body: her sun face looks the same way her chest and her feet point, the way she walks, and never turns towards the viewer unless her body faces the viewer. Her head is a round glossy yellow ball, not a flat disc, with long pointed golden-yellow rays sticking out all round it like a crown of spikes, so the same spiky sun shows from every side; her face (calm half-lidded eyes with thin black brows, a small nose, small red lips) sits on the side of the ball she faces. A slender figure: a long neck in the high collar of the glossy black latex catsuit, a small waist, long legs in knee-high black heeled boots, black gloves. Both arms hang straight down at her sides, hands open, not on the hips.",
+        "side_hint": "Strict profile: her sun face is seen from the side looking to the right, where she walks: one eye, the tip of the nose and the lips at the right edge of the round yellow head, the back of the ball and its rays on the left; never turned to the viewer, never looking over her shoulder.",
+        "back_hint": "the back of the round yellow sun ball with its rays all round and no face, the zip line down the catsuit's back, the heels of the boots; both arms swing loosely at her sides and never reach behind her back",
+        "anim_hint": "a slender woman in a glossy black latex catsuit with a high collar, black gloves and knee-high black heeled boots; her head is a round glossy yellow sun ball with long pointed golden-yellow rays all round it, the same spiky sun from every side; her head turns with her body and her face (calm half-lidded eyes, thin black brows, small red lips) looks the way she walks; the same slim proportions and the same height in every frame",
+        "pose_motion": "walking in place on the spot like on a treadmill with a slow catwalk stride: each foot placed straight in front of the other on one line, the hips swaying from side to side, the shoulders level and still, the chin up, both arms swinging loosely at her sides with open hands, the head and the body facing the same way the whole time",
+        "anim_negative": "a human head, hair, a helmet, a face on the body, a second head, a weapon, a cape, turning the head towards the camera, looking over the shoulder, a flat disc seen edge-on, a hand on the hip, hands behind the back, arms crossed, crouching, bending forward, jumping, a second figure",
+        "stills": "f",
+        "still_keys": {
+          "front": "solenne_front",
+          "back": "solenne_back",
+          "cheer": "solenne_cheer",
+          "dead": "solenne_dead",
+          "hurt_front": "solenne_hurt_front",
+          "hurt_back": "solenne_hurt_back"
+        },
+        "seed_offset": 3549,
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "method": "hero_puppet",
+        "puppet": {
+          "source": "SOL-B",
+          "stills": "repaint",
+          "refs": {
+            "front": "paint",
+            "side": "paint",
+            "back": "paint"
+          },
+          "painter": "klein",
+          "steps": 0,
+          "turbo": true,
+          "seeds": 4,
+          "first_seed": 0,
+          "words": {
+            "front": "",
+            "side": "The first reference image shows a character standing in an A-pose, the arms held out to the sides. The second reference image shows her outfit from the side. Draw the same character seen from the side in a strict profile, facing to the right of the frame, standing straight: her whole head is turned to the right together with her body, so her sun face is seen in profile looking to the right (one half-lidded eye, the small nose and the red lips in profile at the right edge of the round yellow head), never turned towards the viewer; the long pointed golden-yellow rays stick out all round her round sun head, as in the first image. The arms reach out sideways toward and away from the viewer, so from the side the near arm hangs straight down over the side of the torso with the hand at the height of the hips, nothing held forward, the far arm hidden behind the body, the legs straight. Keep the outfit, colours, proportions and art style of the references, the same height as the first image.",
+            "back": ""
+          },
+          "screen": "",
+          "tries": 2,
+          "faces": 60000,
+          "reuse": "auto",
+          "fbx": "",
+          "clip": "catwalk_walking.fbx",
+          "idle": "",
+          "frame": "soles",
+          "face": "nose",
+          "depth_views": [
+            "back"
+          ],
+          "run_fit": true,
+          "fringe": true
+        },
+        "pose_drivers": {
+          "front": "solenne_puppet_catwalk_walking",
+          "fd": "solenne_puppet_catwalk_walking",
+          "side": "solenne_puppet_catwalk_walking_farhide",
+          "bd": "solenne_puppet_catwalk_walking",
+          "back": "solenne_puppet_catwalk_walking"
+        },
+        "ctl_drivers": {
+          "back": "solenne_puppet_catwalk_walking_depth"
+        },
+        "run_fit": "tools/dl/drivers/solenne_puppet_catwalk_walking/silhouette.json",
+        "fringe_remap": true
+      },
+      "note": "pass 87, PRECISE words (the sun head a spiky ball seen from every side, the outfit, her proportions, the catwalk stride, the face turned with the body, never to the camera from the side): her arms-out paintings (front c2, side c2 on words with her face in profile, back c0, edited from SOL-B's) made into a 3D puppet (Hunyuan3D-2mv try 0, Mixamo bones, the shoulders set by hand: the finder had put them on her collar's tips) walking Mixamo's Catwalk Walking; every view on its stick figure (the side on a copy with the far arm hidden while it swings high), the back on its depth video; size from the 3D model (run_fit); colour fringes cleaned. Her side, three-quarter front and three-quarter back painted again (4 candidates each, picked by eye) so her sun face looks where she walks; front, back, cheer and death stay her own paintings (side c2, fd c3, bd c0)",
+      "sprite": "solenne_sprite_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true
+    },
+    "SOL-G": {
+      "recipe": {
+        "pose_hint": "She looks where she walks.",
+        "side_hint": "",
+        "back_hint": "",
+        "anim_hint": "a woman in a black catsuit with a yellow sun for a head, looking where she walks",
+        "pose_motion": "a catwalk walk in place",
+        "anim_negative": "",
+        "stills": "g",
+        "still_keys": {
+          "front": "solenne_front",
+          "back": "solenne_back",
+          "cheer": "solenne_cheer",
+          "dead": "solenne_dead",
+          "hurt_front": "solenne_hurt_front",
+          "hurt_back": "solenne_hurt_back"
+        },
+        "seed_offset": 1037,
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "method": "hero_puppet",
+        "puppet": {
+          "source": "SOL-B",
+          "stills": "repaint",
+          "refs": {
+            "front": "paint",
+            "side": "paint",
+            "back": "paint"
+          },
+          "painter": "klein",
+          "steps": 0,
+          "turbo": true,
+          "seeds": 4,
+          "first_seed": 0,
+          "words": {
+            "front": "",
+            "side": "The first reference image shows a character standing in an A-pose, the arms held out to the sides. The second reference image shows her outfit from the side. Draw the same character seen from the side in a strict profile, facing to the right of the frame, standing straight: her whole head is turned to the right together with her body, so her sun face is seen in profile looking to the right (one half-lidded eye, the small nose and the red lips in profile at the right edge of the round yellow head), never turned towards the viewer; the long pointed golden-yellow rays stick out all round her round sun head, as in the first image. The arms reach out sideways toward and away from the viewer, so from the side the near arm hangs straight down over the side of the torso with the hand at the height of the hips, nothing held forward, the far arm hidden behind the body, the legs straight. Keep the outfit, colours, proportions and art style of the references, the same height as the first image.",
+            "back": ""
+          },
+          "screen": "",
+          "tries": 2,
+          "faces": 60000,
+          "reuse": "auto",
+          "fbx": "",
+          "clip": "catwalk_walking.fbx",
+          "idle": "",
+          "frame": "soles",
+          "face": "nose",
+          "depth_views": [
+            "back"
+          ],
+          "run_fit": true,
+          "fringe": true
+        },
+        "pose_drivers": {
+          "front": "solenne_puppet_catwalk_walking",
+          "fd": "solenne_puppet_catwalk_walking",
+          "side": "solenne_puppet_catwalk_walking_farhide",
+          "bd": "solenne_puppet_catwalk_walking",
+          "back": "solenne_puppet_catwalk_walking"
+        },
+        "ctl_drivers": {
+          "back": "solenne_puppet_catwalk_walking_depth"
+        },
+        "run_fit": "tools/dl/drivers/solenne_puppet_catwalk_walking/silhouette.json",
+        "fringe_remap": true
+      },
+      "note": "pass 87, LOOSE words (\"She looks where she walks.\", \"a woman in a black catsuit with a yellow sun for a head, looking where she walks\", \"a catwalk walk in place\"): her arms-out paintings (front c2, side c2 on words with her face in profile, back c0, edited from SOL-B's) made into a 3D puppet (Hunyuan3D-2mv try 0, Mixamo bones, the shoulders set by hand: the finder had put them on her collar's tips) walking Mixamo's Catwalk Walking; every view on its stick figure (the side on a copy with the far arm hidden while it swings high), the back on its depth video; size from the 3D model (run_fit); colour fringes cleaned. Her side, three-quarter front and three-quarter back painted again (4 candidates each, picked by eye) so her sun face looks where she walks; front, back, cheer and death stay her own paintings (side c2, fd c0, bd c0; three of the four side candidates lost the rays: a bald yellow head with two ears)",
+      "sprite": "solenne_sprite_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true
     }
   },
   "badge": {

@@ -117,7 +117,7 @@ def stage_mult(tl, s, t):
     if s < len(sm):
         return float(sm[s])
     last = float(sm[-1])
-    run_end = float(tl.get("stage_length", 300)) * int(tl.get("stages", 3))
+    run_end = stage_list_py(tl)[-1]["end"]
     into = max(t - run_end, 0.0)
     wm = float(tl.get("endless_wave_mult", 1.0))
     if wm > 1.0:
@@ -160,7 +160,10 @@ def fixed_from(tl, t0, t):
     in endless wave N (from 1) from the later of t0 and the wave's start, stage_length x stages + (N - 1) x
     endless_wave_seconds (60 when the map has none)."""
     frm = max(numv(t0, 0), 0)
-    end = float(tl.get("stage_length", 300)) * max(1, int(tl.get("stages", 3)))
+    # pass 87 (model.js fixedFrom): with a stage_list no endless after the last stage refixes the rows
+    if has_stage_list_py(tl):
+        return frm
+    end = stage_list_py(tl)[-1]["end"]
     if not t >= end:
         return frm
     ews = max(float(tl.get("endless_wave_seconds", 60)), 1.0)
@@ -247,7 +250,7 @@ def creature_at(tl, c, stats, t, level, t0=None):
     at t, the hero level and creature_hp_mult / creature_damage_mult; an Elite or a boss as before (its damage on the live
     curve at t). t0 None = t."""
     st = stats or {}
-    s = int(math.floor(t / float(tl.get("stage_length", 300))))
+    s = stage_at_py(tl, t)
     sm = stage_mult(tl, s, t)
     lv_hp = 1 + float(tl.get("level_hp_per_level", 0)) * max(level - 1, 0)
     lv_dmg = 1 + float(tl.get("level_damage_per_level", 0)) * max(level - 1, 0)
@@ -545,6 +548,89 @@ def stage_length(tl):
     return v or 300
 
 
+def has_stage_list_py(tl):
+    return isinstance(tl.get("stage_list"), list) and any(is_obj(e) for e in tl["stage_list"])
+
+
+def stage_at_py(tl, t):
+    """model.js stageAt (pass 87): the window holding t; past the end the last stage with a stage_list, else on by the
+    stage length (the old endless)."""
+    lst = stage_list_py(tl)
+    for w in lst:
+        if t < w["end"]:
+            return w["i"]
+    if has_stage_list_py(tl):
+        return len(lst) - 1
+    last = lst[-1]
+    return len(lst) + max(0, int(math.floor((t - last["end"]) / last["length"])))
+
+
+def stage_list_py(tl):
+    """model.js stageList (pass 87, lane STOOLS): the map's stage_list windows, else stage_length x stages."""
+    out = []
+    sl = tl.get("stage_list") if isinstance(tl.get("stage_list"), list) else []
+    if any(is_obj(e) for e in sl):
+        at = 0.0
+        for e in sl:
+            if not is_obj(e):
+                continue
+            i = len(out)
+            ln = numv(e.get("length"), 0) if numv(e.get("length"), 0) >= 1 else stage_length(tl)
+            out.append({"i": i, "id": str(e["id"]) if e.get("id") not in (None, "") else "s%d" % (i + 1),
+                        "name": str(e["name"]) if e.get("name") not in (None, "") else "Stage %d" % (i + 1),
+                        "start": at, "end": at + ln, "length": ln, "boss": "" if e.get("boss") is None else str(e.get("boss"))})
+            at += ln
+        return out
+    SL = stage_length(tl)
+    n = max(1, int(numv(tl.get("stages"), 3)))
+    for i in range(n):
+        out.append({"i": i, "id": "s%d" % (i + 1), "name": "Stage %d" % (i + 1), "start": i * SL, "end": (i + 1) * SL, "length": SL, "boss": ""})
+    return out
+
+
+ENDLESS_DEFAULTS = {"portal_seconds": 60, "every": 10, "first_wave": 120, "wave_size": 30, "wave_growth": 2, "cap": 1, "hp": 1.5,
+                    "atk": 1.2, "speed": 1.15, "hp_growth": 0.15, "atk_growth": 0.1, "speed_growth": 0.02, "speed_max": 1.6,
+                    "xp_share": 0.35, "coin_chance": 0.05, "roster_window": 60}
+
+
+def _finite(v):
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return False
+    return f == f and f not in (float("inf"), float("-inf"))
+
+
+def endless_value_py(tl, key, s=None):
+    """model.js endlessValue (WaveTimeline.endless_value): the stage entry's endless block, the map's, the default."""
+    sl = tl.get("stage_list") if isinstance(tl.get("stage_list"), list) else []
+    lst = [e for e in sl if is_obj(e)]
+    if s is not None and s >= 0 and lst:
+        e = lst[max(0, min(int(s // 1), len(lst) - 1))]
+        en = e.get("endless") if is_obj(e.get("endless")) else {}
+        if en.get(key) is not None and _finite(en.get(key)):
+            return float(en[key])
+    en = tl.get("endless") if is_obj(tl.get("endless")) else {}
+    if en.get(key) is not None and _finite(en.get(key)):
+        return float(en[key])
+    return float(ENDLESS_DEFAULTS.get(key, 0))
+
+
+def portal_timer_py(tl, s=None):
+    """model.js portalTimer: the portal's countdown to Endless after stage s's boss (endless.portal_seconds, 60)."""
+    return max(endless_value_py(tl, "portal_seconds", s), 0)
+
+
+def endless_wave_size_py(tl, wave, s=None):
+    """model.js endlessWaveSize (WaveTimeline.endless_wave_size)."""
+    if wave <= 1:
+        return max(int(endless_value_py(tl, "first_wave", s)), 0)
+    return max(int(endless_value_py(tl, "wave_size", s) + endless_value_py(tl, "wave_growth", s) * (wave - 2)), 0)
+
+
+STAGE_EDGE = 0.5
+
+
 def spawn_estimate(tl, creatures, opts=None):
     """model.js spawnEstimate, step for step."""
     o = opts if is_obj(opts) else {}
@@ -560,8 +646,13 @@ def spawn_estimate(tl, creatures, opts=None):
         return numv(tl.get(key), TL_SPAWN_DEF[key])
 
     SL = stage_length(tl)
-    NST = max(1, numv(tl.get("stages"), 3))
-    end = numv(o.get("end"), 0) if o.get("end") is not None else NST * SL + max(120, js_round(SL * 0.35))
+    # pass 87 (lane STOOLS): the stage windows (stage_list); a stage run (opts.stage) of one of them
+    LST = stage_list_py(tl)
+    NST = len(LST)
+    end = numv(o.get("end"), 0) if o.get("end") is not None else LST[-1]["end"] + max(120, js_round(SL * 0.35))
+    SR = None
+    if o.get("stage") not in (None, "") and isinstance(o.get("stage"), (int, float)):
+        SR = LST[max(0, min(int(o["stage"] // 1), NST - 1))]
     tin = o.get("turnover")
     tv_curve = [[numv(q[0], 0), max(numv(q[1], 0), 0)] for q in tin if isinstance(q, list) and len(q) >= 2] \
         if isinstance(tin, list) and tin and isinstance(tin[0], list) else None
@@ -656,6 +747,8 @@ def spawn_estimate(tl, creatures, opts=None):
             picks = [{"d": def_of(pk["id"], r.get("stats")), "share": pk["share"]} for pk in pick_shares(r.get("enemy"), r.get("enemy_weights"))]
             picks = [pk for pk in picks if pk["d"]]
         d = def_of(str("" if r.get("enemy") is None else r.get("enemy")), r.get("stats")) if one else (picks[0]["d"] if picks else None)
+        if SR is not None and str(r.get("pace")) == "once" and row_wave_start_py(r) < SR["start"] - 2:
+            continue
         if d or (not one and (r.get("enemy") == ROW_ENEMY_ROSTER or picks)):
             until = 1e9 if r.get("until") is None or r.get("until") == "" else numv(r.get("until"), 1e9)
             roster.append({"r": r, "d": d, "key": "roster:%d" % ri, "t": numv(r.get("t"), 0), "until": until, "hell": r.get("channel") == "hell",
@@ -688,7 +781,7 @@ def spawn_estimate(tl, creatures, opts=None):
 
     def turnover_now():
         if tv_curve is not None:
-            v = sample_points(tv_curve, clock()) if tv_curve else 0
+            v = sample_points(tv_curve, clock() - SR["start"] if SR is not None else clock()) if tv_curve else 0
         elif tv_stages is not None:
             v = tv_stages[min(max(S["stage"], 0), len(tv_stages) - 1)]
         else:
@@ -770,6 +863,8 @@ def spawn_estimate(tl, creatures, opts=None):
         cap = min(trunc(base + cap_per_stage * S["stage"]), cap_max)
         if S["phase"] == 1:
             return trunc(cap * boss_frac)
+        if S["phase"] == 3:
+            return trunc(cap * max(endless_value_py(tl, "cap", S["stage"]), 0))
         if S["phase"] == 2:
             if portal_wave_count > 0:
                 return 0
@@ -816,7 +911,8 @@ def spawn_estimate(tl, creatures, opts=None):
             p = ((max(numv(a.get("chance"), 1), 0) / s) if s > 0 else 0) if alts else 1
             d = def_of(str("" if a.get("enemy") is None else a.get("enemy")), a.get("stats"))
             if p > 0:
-                branches.append({"p": p, "d": d, "key": "wave:%d:%d" % (wi, k), "spawned": 0, "next": numv(w.get("t"), 0), "done": not d})
+                branches.append({"p": p, "d": d, "key": "wave:%d:%d" % (wi, k), "spawned": 0,
+                                 "next": max(numv(w.get("t"), 0), SR["start"]) if SR is not None else numv(w.get("t"), 0), "done": not d})
         waves.append({"t": numv(w.get("t"), 0), "until": None if w.get("until") is None or w.get("until") == "" else numv(w.get("until"), 0),
                       "count": trunc(numv(w.get("count"), 0)), "burst": max(trunc(numv(w.get("burst"), 5)), 1),
                       "every": numv(w.get("every"), 0), "respect": w.get("respect_cap") is not False,
@@ -1086,6 +1182,11 @@ def spawn_estimate(tl, creatures, opts=None):
     events = [{"ev": ev, "i": i, "t": max(numv(ev.get("t"), 0), 0) if is_obj(ev) else 0} for i, ev in enumerate(ev_list)]
     events = [e for e in events if is_obj(e["ev"]) and numv(e["ev"].get("chance"), 1) > 0]
     events.sort(key=lambda e: (e["t"], e["i"]))
+    if SR is not None:
+        events = [e for e in events if e["t"] >= SR["start"] - 1e-9 and e["t"] <= SR["end"] + STAGE_EDGE
+                  and not (SR["i"] > 0 and e["ev"].get("type") == "boss" and abs(e["t"] - SR["start"]) <= STAGE_EDGE)]
+        if SR["boss"] and not any(e["ev"].get("type") == "boss" and abs(e["t"] - SR["end"]) <= STAGE_EDGE for e in events):
+            events.append({"ev": {"t": SR["end"], "type": "boss", "enemy": SR["boss"]}, "i": len(ev_list), "t": SR["end"]})
     boss_ids = [ev["enemy"] for ev in ev_list if is_obj(ev) and ev.get("type") == "boss" and isinstance(ev.get("enemy"), str) and ev["enemy"] in by_id]
     last_elite_boss = None
     for ev in ev_list:
@@ -1252,6 +1353,56 @@ def spawn_estimate(tl, creatures, opts=None):
         if due:
             spawn_burst(due)
 
+    def endless_pool():
+        end_t = SR["end"]
+        win = max(endless_value_py(tl, "roster_window", S["stage"]), 1)
+        out = []
+        for x in roster:
+            if not x["mix"] or not x["one"] or not x["d"]:
+                continue
+            u = x["until"]
+            if x["t"] >= end_t or u <= end_t - win:
+                continue
+            w = roster_weight(x["r"], max(min(u, end_t) - 0.5, x["t"]), late_t)
+            if w <= 0:
+                continue
+            out.append({"d": x["d"], "w": w, "key": x["key"]})
+        if not out and o.get("skin"):
+            d = def_of(str(o["skin"]), None)
+            if d:
+                out.append({"d": d, "w": 1, "key": ""})
+        return out
+
+    def endless_add(n):
+        W = sum(p["w"] for p in S["en_pool"])
+        if not (W > 0) or not (n > 0):
+            return
+        for p in S["en_pool"]:
+            m = n * p["w"] / W
+            add(p["d"], m, "reg")
+            if p["key"]:
+                bump(src_cum, p["key"], m)
+
+    def endless_wave(w):
+        n = min(endless_wave_size_py(tl, w, S["stage"]), max(hard - bodies(), 0))
+        if n > 0:
+            endless_add(n)
+            marks.append({"t": SR["end"] + S["sr_after"], "kind": "swarm", "id": S["en_pool"][0]["d"]["id"] if S["en_pool"] else "", "n": n})
+
+    def endless_fill():
+        if not S["en_pool"]:
+            return
+        room = cap_now() - load_all()
+        left = hard - bodies()
+        if not (room > 0) or not (left > 0):
+            return
+        burst = min((b_lo + b_hi) / 2, room)
+        W = sum(p["w"] for p in S["en_pool"])
+        sh = sum(p["w"] * max(p["d"]["share"], 0.05) for p in S["en_pool"])
+        if not (W > 0):
+            return
+        endless_add(min(burst / (sh / W), left))
+
     def portal_wave():
         if portal_wave_count <= 0:
             return
@@ -1350,17 +1501,27 @@ def spawn_estimate(tl, creatures, opts=None):
                 alive_by[sid] = alive_by.get(sid, 0) + 1 / len(sp["ids"])
         starve = {key: (T["starve"][key] / T["checks"] if T["checks"] > 0 else 0) for key in T["starve"]}
         hl = load_of(hell_ids(rows_at(now() if S["phase"] == 0 else now() - 1, True)))
-        points.append({"t": clock(), "after": after, "all": total(), "reg": cat["reg"], "col": cat["col"], "mod": cat["mod"],
+        points.append({"t": SR["end"] + S["sr_after"] if SR is not None and S["sr_after"] > 0 else clock(), "after": after, "all": total(), "reg": cat["reg"], "col": cat["col"], "mod": cat["mod"],
                        "elite": cat["elite"], "special": cat["special"], "boss": cat["boss"], "minion": cat["minion"], "kills": S["kills"], "alive": bodies(), "by": by,
                        "src": dict(src_cum), "cap": cap_now(), "load": load_all() - hl,
                        "floor": sample_points(floor_curve, now()) if floor_curve else 0,
                        "full": T["full"] / T["checks"] if T["checks"] > 0 else 0, "aliveBy": alive_by, "starve": starve})
         T["checks"], T["full"], T["starve"] = 0, 0, {}
 
+    if SR is not None:
+        S["k"] = js_round(SR["start"] * EST_HZ)
+        S["stage"] = SR["i"]
+    S["sr_after"] = 0.0
+    S["sr_done"] = False
     record(False)
-    end_k = js_round(end * EST_HZ)
+    end_k = js_round((min(end, SR["end"]) if SR is not None else end) * EST_HZ)
+    sr_portal_steps = max(1, js_round(portal_timer_py(tl, SR["i"]) * EST_HZ)) if SR is not None else 0
+    sr_endless_steps = max(0, js_round((end - SR["end"]) * EST_HZ) - sr_portal_steps) if SR is not None else 0
+    en_every = max(1, js_round(max(endless_value_py(tl, "every", SR["i"]), 1) * EST_HZ)) if SR is not None else 1
+    S["en_steps"], S["en_wave"], S["en_pool"] = 0, 0, None
+    sr_end_k = js_round(SR["end"] * EST_HZ) if SR is not None else 0
     guard = 0
-    while (S["k"] < end_k or S["phase"] != 0) and guard < 4000000:
+    while (not S["sr_done"] if SR is not None else True) and (S["k"] < end_k or S["phase"] != 0) and guard < 4000000:
         guard += 1
         S["play"] += 1
         kd = turnover_now() / EST_HZ
@@ -1386,6 +1547,10 @@ def spawn_estimate(tl, creatures, opts=None):
                 tick_waves()
             if S["phase"] == 0:
                 tick_row_waves()
+            if SR is not None and S["phase"] == 0 and S["k"] >= sr_end_k:
+                S["phase"], S["phase_left"], S["portal_t"] = 2, sr_portal_steps, 0.0
+                portal_wave()
+                record(True)
         elif S["phase"] == 1:
             S["phase_left"] -= 1
             while S["fight"] and S["fight"]["brood"] and S["fight"]["brood"][0]["step"] <= S["play"]:
@@ -1399,19 +1564,57 @@ def spawn_estimate(tl, creatures, opts=None):
             if S["phase_left"] <= 0:
                 S["boss_alive"] = None
                 S["kills"] += 1
-                S["phase"], S["phase_left"], S["portal_t"] = 2, portal_steps, 0.0
+                S["phase"], S["phase_left"], S["portal_t"] = 2, sr_portal_steps if SR is not None else portal_steps, 0.0
                 portal_wave()
+                if SR is not None:
+                    S["fight"]["spawned"] = total() - S["fight"]["before"] - 1
+                    record(True)
+        elif S["phase"] == 3:
+            S["en_steps"] += 1
+            S["sr_after"] = (sr_portal_steps + S["en_steps"]) / EST_HZ
+            w = S["en_steps"] // en_every + 1
+            if w > S["en_wave"]:
+                S["en_wave"] = w
+                endless_wave(w)
         else:
             S["phase_left"] -= 1
             S["portal_t"] += 1 / EST_HZ
-        if S["phase"] != 2:
+            if SR is not None:
+                S["sr_after"] = (sr_portal_steps - S["phase_left"]) / EST_HZ
+        if S["phase"] < 2:
             tick_specials()
         S["spawn_step"] -= 1
         if S["spawn_step"] <= 0:
             S["spawn_step"] = burst_every
-            spawn_burst()
-        tick_row_intervals()
-        floor_fill()
+            if S["phase"] == 3:
+                endless_fill()
+            else:
+                spawn_burst()
+        if S["phase"] != 3:
+            tick_row_intervals()
+            floor_fill()
+        if SR is not None and S["phase"] == 2:
+            if (S["play"] % EST_HZ == 0 and S["sr_after"] > 0) or S["phase_left"] <= 0:
+                record(False)
+            if S["phase_left"] <= 0:
+                if S["fight"]:
+                    del S["fight"]["brood"]
+                    fights.append(S["fight"])
+                    S["fight"] = None
+                if sr_endless_steps > 0:
+                    S["phase"], S["en_steps"] = 3, 0
+                    S["en_pool"] = endless_pool()
+                    S["en_wave"] = 1
+                    endless_wave(1)
+                else:
+                    S["sr_done"] = True
+            continue
+        if SR is not None and S["phase"] == 3:
+            if S["en_steps"] % EST_HZ == 0 or S["en_steps"] >= sr_endless_steps:
+                record(False)
+            if S["en_steps"] >= sr_endless_steps:
+                S["sr_done"] = True
+            continue
         if S["phase"] == 2 and S["phase_left"] <= 0:
             S["stage"] += 1
             if S["stage"] >= NST:
@@ -1431,7 +1634,9 @@ def spawn_estimate(tl, creatures, opts=None):
             record(False)
     last = points[-1]["by"]
     ids = sorted(last, key=lambda cid: (-last[cid][0], cid))
-    return {"points": points, "ids": ids, "marks": marks, "fights": fights, "colourAt": S["colour_at"]}
+    return {"points": points, "ids": ids, "marks": marks, "fights": fights, "colourAt": S["colour_at"],
+            "stage": {"i": SR["i"], "start": SR["start"], "end": SR["end"], "portal": sr_portal_steps / EST_HZ,
+                      "endless": sr_endless_steps / EST_HZ, "waves": S["en_wave"]} if SR is not None else None}
 
 
 # ---------------------------------------------------------------- model.js under node
@@ -2163,9 +2368,11 @@ def estimate_checks():
         check(same, "actualAt(%s at %s, window %s): js hp %s atk %s (%d rows), py hp %s atk %s (%d rows)" % (names[k], t, win, got["hp"], got["atk"], len(got["rows"]), py["hp"], py["atk"], len(py["rows"])))
     # lane WV's fix round: in endless every row is fixed afresh at its wave's start (Red Canyon: 21:30 + 86 s a wave)
     rc_tl = cases[3][0]
-    rc_end = float(rc_tl.get("stage_length", 300)) * int(rc_tl.get("stages", 3))
+    # pass 87: with a stage_list (Red Canyon since pass 87) there is no endless after the last stage: every row keeps its
+    # own start (model.js fixedFrom)
+    rc_end = stage_list_py(rc_tl)[-1]["end"]
     rc_ews = max(float(rc_tl.get("endless_wave_seconds", 60)), 1.0)
-    w_start = rc_end + math.floor((1420 - rc_end) / rc_ews) * rc_ews
+    w_start = rc_end + math.floor((1420 - rc_end) / rc_ews) * rc_ews if 1420 >= rc_end and not has_stage_list_py(rc_tl) else float("-inf")
     rows1420 = act[(3, 1420)]["rows"]
     check(rows1420 and all(est_close(r["t0"], max(r["start"], w_start), 1e-12) for r in rows1420),
           "Actual in endless: every row at 23:40 fixed from its wave's start %s: %s" % (w_start, [(r["key"], r["start"], r["t0"]) for r in rows1420]))
@@ -2475,9 +2682,12 @@ def snap_targets_py(tl, self_ref=None):
             continue
         word = str(ev["name"]) if ev.get("name") else SNAP_EVENT_WORD_PY.get(ev.get("type"), str(ev.get("type") or "event"))
         add(numv(ev.get("t"), 0), "event", "%s %s" % (word, clock_py(numv(ev.get("t"), 0))))
-    sl, n = stage_length(tl), max(1, int(numv(tl.get("stages"), 3)))
+    # pass 87 (model.js stageMarks): each window's start and the run's end
+    lst = stage_list_py(tl)
+    marks = [w["start"] for w in lst] + [lst[-1]["end"]]
+    n = len(lst)
     for k in range(n + 1):
-        add(k * sl, "stage", "stage %d start" % (k + 1) if k < n else "the run's end")
+        add(marks[k], "stage", "stage %d start" % (k + 1) if k < n else "the run's end")
     return out
 
 

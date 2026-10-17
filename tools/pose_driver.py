@@ -14,7 +14,8 @@ WanAnimateToVideo node expects, plus a contact sheet per view.
 Loops (loop=1, default): N frames of the whole action plus a repeat of the first, so Wan's 4k+1 length closes the loop.
 arms=zombie (pass 33.4, the skeletons): both arms held straight out in front at shoulder height through the whole
 stride, the upper and fore arms pinned by damped-track constraints to points ahead of the shoulders, the legs and the
-torso left to the clip.
+torso left to the clip. arm_drop=<deg> slopes them (negative raises them), arm_wide=<deg> (pass 87) spreads each
+arm that many degrees out from straight ahead, fore_drop=<deg> (pass 87) gives the forearm its own slope.
 arms=hold_r (pass 48, the Vulture Raider): the right arm pinned holding something up at the shoulder (upper arm down, forearm
 up), the left arm and the legs walking as the clip does.
 One-shots (loop=0): N frames evenly from `start` to `end` seconds, N itself 4k+1.
@@ -209,10 +210,17 @@ def extract():
         # head like hands up; at 18 degrees the hands sit at the shoulders from behind and before the chest from the front
         side_v = fwd.cross(up)
         slope = math.tan(math.radians(float(a.get("arm_drop", 18.0))))
+        # pass 87 (lane MUMMY, Garry's mummy with its arms up and out): arm_wide=<deg> spreads each arm that many degrees
+        # out from straight ahead (unset: the small fixed spread of before), fore_drop=<deg> gives the forearm its own
+        # slope (unset: arm_drop's), so the hands rise above the elbows like the reference's claws
+        wide_deg = a.get("arm_wide")
+        fore_slope = math.tan(math.radians(float(a["fore_drop"]))) if a.get("fore_drop") not in (None, "") else slope
         for side, sgn in (("Right", 1.0), ("Left", -1.0)):
             sh = joint(side + "Arm", f0)
             for bone, reach, wide in ((side + "Arm", 0.6, 0.07), (side + "ForeArm", 1.3, 0.09)):
-                drop = -reach * slope
+                if wide_deg not in (None, ""):
+                    wide = reach * math.tan(math.radians(float(wide_deg)))
+                drop = -reach * (fore_slope if bone.endswith("ForeArm") else slope)
                 e = bpy.data.objects.new("zombie_" + bone, None)
                 sc.collection.objects.link(e)
                 e.location = sh + fwd * reach + up * drop + side_v * sgn * wide
@@ -364,6 +372,7 @@ def extract():
     json.dump({"kind": "pose", "fbx": os.path.basename(fbx), "src": os.path.basename(fbx), "action": act.name, "frames": n, "loop": loop,
                "pitch": math.degrees(pitch), "start": a.get("start"), "end": a.get("end"), "views": list(VIEWS),
                "body": a.get("body"), "fwd": a.get("fwd", "feet"), "arms": a.get("arms"), "rig": a.get("rig", "mixamo"), "rigmap": a.get("rigmap"),
+               "arm_drop": a.get("arm_drop"), "arm_wide": a.get("arm_wide"), "fore_drop": a.get("fore_drop"),
                "amp": float(a["amp"]) if a.get("amp") else None, "lean": float(a["lean"]) if a.get("lean") else None,
                "retarget": {k: round(v, 3) for k, v in R.items()}, "notes": ""},
               open(os.path.join(out, "meta.json"), "w"), indent=1)

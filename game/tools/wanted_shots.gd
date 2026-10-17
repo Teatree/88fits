@@ -19,6 +19,11 @@
 ## Pass 54: 29b-path-reel (only=path: the mutation offer's pre-reel spinning past three weapons; 29c as it lands) before
 ## 08-path-offer; 13c-pause-options at sound 100 and music 0 (both thumbs whole, the floating text block under them);
 ## 06e-hud-phoenix (only=phoenix: Phoenix Feather's plate flying off the hero with its embers and its banner).
+## Pass 87 (lane SUI, the stages): 18-stages (the Stages menu: stage 1 beaten, stage 2 open, stage 3 locked), 18b scrolled
+## to its foot, 18c every stage beaten (only=stages; run with inset=130 too); 15 is the stage clear with its one road and
+## the countdown to Endless (15b its last seconds in rock, 15c NOT YET held); 06f-hud-portal (the clock showing the
+## portal's count, ENDLESS IN under it) and 06g-hud-endless (Endless's time on ink, WAVE 3 under it, the ENDLESS banner)
+## (only=hud_stage).
 extends SceneTree
 
 var _out := "user://wanted_shots"
@@ -77,14 +82,14 @@ func _main() -> void:
 	_save = root.get_node("Save")
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
-	var in_run := ["backdrop", "backdrop_arena", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results"]
+	var in_run := ["backdrop", "backdrop_arena", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results", "hud_stage"]
 	var any_run := false
 	for n in in_run:
 		if _want(n):
 			any_run = true
 	if any_run:
 		await _in_run()
-	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev", "consent", "survey"]
+	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev", "consent", "survey", "stages"]
 	var any_menu := false
 	for n in menus:
 		if _want(n):
@@ -201,6 +206,26 @@ func _scene(path: String) -> void:
 				c.visible = false
 
 
+## 18 (pass 87): the Stages menu for the Drifter on Red Canyon: stage 1 beaten (its stamp), stage 2 open, stage 3
+## locked (its requirement); 18b scrolled to its foot; 18c every stage beaten. The save's stages go back after.
+func _stages() -> void:
+	var keep: Dictionary = (_save.data.get("stages_beaten", {}) as Dictionary).duplicate(true)
+	_save.data["last_character"] = "drifter"
+	_save.data["last_map"] = "red_canyon"
+	_save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
+	await _scene("res://ui/StagesScreen.tscn")
+	await _wait(0.6)
+	await _shot("18-stages")
+	current_scene.scroll.scroll_vertical = 999999
+	await _wait(0.4)
+	await _shot("18b-stages-scrolled")
+	_save.data["stages_beaten"] = {"red_canyon": [true, true, true]}
+	await _scene("res://ui/StagesScreen.tscn")
+	await _wait(0.6)
+	await _shot("18c-stages-all-beaten")
+	_save.data["stages_beaten"] = keep
+
+
 ## 01-05, 17: the menus with the mocks' purse and best run.
 func _menus() -> void:
 	_save.data["gold"] = 104711
@@ -241,6 +266,8 @@ func _menus() -> void:
 		root.get_node("Settings").preview_locked_heroes = false
 	if _want("consent") or _want("survey"):
 		await _cards60()
+	if _want("stages"):
+		await _stages()
 	if _want("mirror"):
 		# the mock's board: Grit and Drive at rank 1, the rest untouched; 108,411 in the purse
 		_save.data["gold"] = 108411
@@ -397,6 +424,8 @@ func _in_run() -> void:
 		await _pause()
 	if _want("down"):
 		await _down()
+	if _want("hud_stage"):
+		await _hud_stage()
 	if _want("stageclear"):
 		await _stage_clear()
 	if _want("results"):
@@ -822,28 +851,48 @@ func _stage_clear() -> void:
 	_clear_ui()
 	_run.run_gold = 312
 	_run.kills = 412
-	_hud_common(11, 0.2, 312, 300.0)
+	_hud_common(11, 0.2, 312, 430.0)
 	g.set_paused(true)
-	g.portal_dialog.open(1, true, false)
+	# pass 87: one road and the countdown to Endless (the count pinned: the arena has no portal timer)
+	var pd = g.portal_dialog
+	pd.seconds_source = func() -> float: return 59.0
+	pd.open(1, true, false)
 	await _wait(0.8)
 	await _shot("15-stage-clear")
 	# 15c (pass 48): NOT YET under a finger
-	var nb = g.portal_dialog.find_child("NotYet", true, false)
+	var nb = pd.find_child("NotYet", true, false)
 	if nb:
 		nb.show_held(true)
 		await _shot("15c-stage-clear-not-yet")
 		nb.show_held(false)
-	g.portal_dialog.visible = false
-	# 15b (pass 43): after the last boss, the second road is Stay
-	_run.stage = 2
-	_run.elapsed = 900.0
-	_run.run_gold = 1840
-	g.portal_dialog.open(3, true, true)
-	await _wait(0.8)
-	await _shot("15b-stage-clear-final")
-	g.portal_dialog.visible = false
-	_run.stage = 0
+	# 15b (pass 87): its last seconds, the count in rock
+	pd.seconds_source = func() -> float: return 7.0
+	await _wait(0.5)
+	await _shot("15b-stage-clear-last-seconds")
+	pd.visible = false
+	pd.seconds_source = Callable()
 	g.set_paused(false)
+
+
+## 06f/06g (pass 87): the clock plate while the portal counts down to Endless (rock, ENDLESS IN under it), then in
+## Endless (ink, its time survived, WAVE 3 under it, the ENDLESS banner).
+func _hud_stage() -> void:
+	_clear_ui()
+	_build([["weapon", "hornet_nest", 4], ["weapon", "boomstick", 3], ["weapon", "molotov", 3], ["passive", "magnet", 3]])
+	_hud_common(14, 0.4, 268, 430.0)
+	g.hud.test_arrows = [{"pos": Vector2(1080, 748), "color": Color("6e8b5e"), "side": 1, "text": "PORTAL 24 m"}]
+	g.hud.test_stage_clock = {"portal_left": 42.0, "endless": false}
+	g.hud.tick(0.0)
+	await _wait(0.4)
+	await _shot("06f-hud-portal")
+	g.hud.test_arrows = []
+	g.hud.test_stage_clock = {"endless": true, "endless_wave": 3, "endless_seconds": 31.0}
+	g.hud.tick(0.0)
+	await _wait(0.5)
+	await _shot("06g-hud-endless")
+	g.hud.test_stage_clock = {}
+	g.hud.tick(0.0)
+	g.hud._banner.visible = false
 
 
 ## 16: extracted at 10:00, stage 2, a new best; damage by every kind of source; Turret Buddy unlocked. Pass 72: the

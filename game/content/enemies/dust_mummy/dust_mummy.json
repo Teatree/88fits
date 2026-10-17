@@ -250,6 +250,287 @@
       },
       "head": 1.0,
       "fresh": true
+    },
+    "DM-F": {
+      "note": "Pass 87: Garry's mummy.png, serious; a slow stiff shuffle (Walking with the legs' swing x0.55, arms raised); falls on its back",
+      "recipe": {
+        "stills": "dmf",
+        "art_prompt": "a slim menacing mummy wrapped head to toe in tight overlapping strips of old dusty beige-grey bandages with thin dark seams between the wraps, a few torn bandage ends hanging from its wrists, one elbow and one knee, no skin showing anywhere, the head fully wrapped with a dark shadowed slit across the eyes and two small fierce glowing red eyes, a lean human build with long limbs, both arms stretched out forward and raised high like a sleepwalking zombie, the clawed bandaged hands up at the height of its head and wider apart than its shoulders, the elbows only slightly bent",
+        "back_ref": "tools/dl/p87/MUMMY/ref_back.png",
+        "back_hint": "Its back is wrapped in the same overlapping bandage strips, the head fully wrapped from behind, both arms stretched forward and raised high so the clawed hands show beside and above its head, no face and no eyes from behind.",
+        "dead_hint": "lying flat on its back on the ground, dead: the red eyes gone dark, the arms flopped out to the sides, its body stretched out sideways across the picture with its head on the left and its feet on the right, a few loose bandage ends lying beside it; it lies on nothing, with no ground and no shadow under it",
+        "pose": "mummy_shuffle_b",
+        "pose_front": "mummy_shuffle_f",
+        "stand": "still",
+        "gait": "shuffling forward in place on the spot with short stiff dragging steps, both arms held stretched out forward and raised high the whole time, the clawed hands up beside its head, never lowered",
+        "motion": "a slim bandaged mummy shuffling slowly with its arms stretched out and raised high",
+        "anim_negative": "extra arms, a third arm, extra legs, extra hands, two heads, a second mummy, skin showing, a face with a nose or mouth, arms hanging down, arms lowered, hands at the hips, arms at its sides, arms crossed, bandage strips like extra legs, the figure shrinking",
+        "death": "clip",
+        "death_frames": 8,
+        "run_fps": 10,
+        "outline_frac": 0.016,
+        "outline_color": "#2e2420",
+        "remap_hues": [
+          {
+            "ranges": [
+              [
+                56,
+                75
+              ]
+            ],
+            "to": 44,
+            "sat": 0.9
+          },
+          {
+            "ranges": [
+              [
+                75,
+                330
+              ]
+            ],
+            "to": 45,
+            "sat": 0.45
+          }
+        ],
+        "match_still": true
+      },
+      "sprite": "dust_mummy_sprite_f.png",
+      "icon": "dust_mummy_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 10,
+        "die": 12
+      },
+      "head": 0.977,
+      "fresh": true
+    },
+    "DM-G": {
+      "note": "Pass 87: Garry's mummy.png, serious; a heavy lurch (Orc Walk leaning forward, arms raised); falls on its face",
+      "recipe": {
+        "stills": "dmg",
+        "art_prompt": "a slim menacing mummy wrapped head to toe in tight overlapping strips of old dusty beige-grey bandages with thin dark seams between the wraps, a few torn bandage ends hanging from its wrists, one elbow and one knee, no skin showing anywhere, the head fully wrapped with a dark shadowed slit across the eyes and two small fierce glowing red eyes, a lean human build with long limbs, both arms stretched out forward and raised high like a sleepwalking zombie, the clawed bandaged hands up at the height of its head and wider apart than its shoulders, the elbows only slightly bent",
+        "back_ref": "tools/dl/p87/MUMMY/ref_back.png",
+        "back_hint": "Its back is wrapped in the same overlapping bandage strips, the head fully wrapped from behind, both arms stretched forward and raised high so the clawed hands show beside and above its head, no face and no eyes from behind.",
+        "dead_hint": "fallen flat on its face on the ground, dead: lying on its belly with the back of its wrapped head up, the arms still stretched out ahead of it, its body stretched out sideways across the picture with its head on the left and its feet on the right; it lies on nothing, with no ground and no shadow under it",
+        "pose": "mummy_lurch_b",
+        "pose_front": "mummy_lurch_f",
+        "stand": "still",
+        "gait": "lurching forward in place on the spot with heavy swaying steps, leaning ahead, both arms held stretched out forward and raised high the whole time, the clawed hands up beside its head, never lowered",
+        "motion": "a slim bandaged mummy lurching forward with its arms stretched out and raised high",
+        "anim_negative": "extra arms, a third arm, extra legs, extra hands, two heads, a second mummy, skin showing, a face with a nose or mouth, arms hanging down, arms lowered, hands at the hips, arms at its sides, arms crossed, bandage strips like extra legs, the figure shrinking",
+        "death": "clip",
+        "death_frames": 8,
+        "anim_seed": 1,
+        "run_fps": 15,
+        "outline_frac": 0.016,
+        "outline_color": "#2e2420",
+        "remap_hues": [
+          {
+            "ranges": [
+              [
+                56,
+                75
+              ]
+            ],
+            "to": 44,
+            "sat": 0.9
+          },
+          {
+            "ranges": [
+              [
+                75,
+                330
+              ]
+            ],
+            "to": 45,
+            "sat": 0.45
+          }
+        ],
+        "match_still": true
+      },
+      "sprite": "dust_mummy_sprite_g.png",
+      "icon": "dust_mummy_icon_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.977,
+      "fresh": true
+    },
+    "DM-H": {
+      "note": "Pass 87: Garry's mummy.png, goofy; a bouncy clown shuffle (Garry's Scary Clown Walk on a driver fitted to its round body, arms up and out); unravels into a heap",
+      "recipe": {
+        "stills": "dmh",
+        "art_prompt": "a goofy cartoon mummy with a round chubby body and a big round head, wrapped in loose sloppy dusty beige bandages, one long loose bandage strip flopping off the top of its head, bandage ends dangling from its arms and legs, no skin showing, two big round glowing red eyes peeking out of a wide gap in the wraps, short stubby legs, chunky mitten-like bandaged hands with stubby claw fingers, a silly clumsy look, both arms stretched out forward and raised high like a sleepwalking zombie, the clawed bandaged hands up at the height of its head and wider apart than its shoulders, the elbows only slightly bent",
+        "back_ref": "tools/dl/p87/MUMMY/ref_back.png",
+        "back_hint": "Its back is wrapped in the same overlapping bandage strips, the head fully wrapped from behind, both arms stretched forward and raised high so the clawed hands show beside and above its head, no face and no eyes from behind.",
+        "dead_hint": "collapsed into a low loose heap of unravelled dusty bandages, dead: the two dimmed red eyes peeking out of the top of the pile, a couple of bandage ends trailing off it; the pile sits on nothing, with no ground and no shadow under it",
+        "pose": "mummy_bounce_fit_b",
+        "pose_front": "mummy_bounce_fit_f",
+        "stand": "still",
+        "gait": "bouncing along in place on the spot with big springy goofy steps, both arms held stretched out forward and raised high the whole time, the clawed hands up beside its head, never lowered",
+        "motion": "a goofy chubby mummy bouncing along with its arms stretched out and raised high",
+        "anim_negative": "extra arms, a third arm, extra legs, extra hands, two heads, a second mummy, skin showing, a face with a nose or mouth, arms hanging down, arms lowered, hands at the hips, arms at its sides, arms crossed, bandage strips like extra legs, the figure shrinking, a long bandage strip whipping out to the side, an arm behind the head, arms crossed over the head",
+        "death": "collapse",
+        "death_frames": 8,
+        "run_fps": 15,
+        "outline_frac": 0.016,
+        "outline_color": "#2e2420",
+        "remap_hues": [
+          {
+            "ranges": [
+              [
+                56,
+                75
+              ]
+            ],
+            "to": 44,
+            "sat": 0.9
+          },
+          {
+            "ranges": [
+              [
+                75,
+                330
+              ]
+            ],
+            "to": 45,
+            "sat": 0.45
+          },
+          {
+            "ranges": [
+              [
+                330,
+                360
+              ],
+              [
+                0,
+                22
+              ]
+            ],
+            "to": 45,
+            "sat": 0.6,
+            "min_sat": 0.08,
+            "max_sat": 0.55
+          }
+        ],
+        "match_still": true
+      },
+      "sprite": "dust_mummy_sprite_h.png",
+      "icon": "dust_mummy_icon_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.949,
+      "fresh": true
+    },
+    "DM-I": {
+      "note": "Pass 87: Garry's mummy.png, goofy; a dragging limp (Walking with a stiff right leg on a driver fitted to its round body, arms up and out); falls back",
+      "recipe": {
+        "stills": "dmi",
+        "art_prompt": "a goofy cartoon mummy with a round chubby body and a big round head, wrapped in loose sloppy dusty beige bandages, one long loose bandage strip flopping off the top of its head, bandage ends dangling from its arms and legs, no skin showing, two big round glowing red eyes peeking out of a wide gap in the wraps, short stubby legs, chunky mitten-like bandaged hands with stubby claw fingers, a silly clumsy look, both arms stretched out forward and raised high like a sleepwalking zombie, the clawed bandaged hands up at the height of its head and wider apart than its shoulders, the elbows only slightly bent",
+        "back_ref": "tools/dl/p87/MUMMY/ref_back.png",
+        "back_hint": "Its back is wrapped in the same overlapping bandage strips, the head fully wrapped from behind, both arms stretched forward and raised high so the clawed hands show beside and above its head, no face and no eyes from behind.",
+        "dead_hint": "lying flat on its back on the ground, dead: the red eyes gone dark, the arms flopped out to the sides, its body stretched out sideways across the picture with its head on the left and its feet on the right, a few loose bandage ends lying beside it; it lies on nothing, with no ground and no shadow under it",
+        "pose": "mummy_limp_fit_b",
+        "pose_front": "mummy_limp_fit_f",
+        "stand": "still",
+        "gait": "limping in place on the spot, stepping with one leg and dragging the other stiff straight leg behind, both arms held stretched out forward and raised high the whole time, the clawed hands up beside its head, never lowered",
+        "motion": "a goofy chubby mummy limping and dragging one stiff leg with its arms stretched out and raised high",
+        "anim_negative": "extra arms, a third arm, extra legs, extra hands, two heads, a second mummy, skin showing, a face with a nose or mouth, arms hanging down, arms lowered, hands at the hips, arms at its sides, arms crossed, bandage strips like extra legs, the figure shrinking, a long bandage strip whipping out to the side, an arm behind the head, arms crossed over the head",
+        "death": "clip",
+        "death_frames": 8,
+        "run_fps": 12,
+        "outline_frac": 0.016,
+        "outline_color": "#2e2420",
+        "remap_hues": [
+          {
+            "ranges": [
+              [
+                56,
+                75
+              ]
+            ],
+            "to": 44,
+            "sat": 0.9
+          },
+          {
+            "ranges": [
+              [
+                75,
+                330
+              ]
+            ],
+            "to": 45,
+            "sat": 0.45
+          },
+          {
+            "ranges": [
+              [
+                330,
+                360
+              ],
+              [
+                0,
+                22
+              ]
+            ],
+            "to": 45,
+            "sat": 0.6,
+            "min_sat": 0.08,
+            "max_sat": 0.55
+          }
+        ],
+        "match_still": true
+      },
+      "sprite": "dust_mummy_sprite_i.png",
+      "icon": "dust_mummy_icon_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 12,
+        "die": 12
+      },
+      "head": 0.955,
+      "fresh": true
     }
   },
   "note": "Pass 53 (Garry): four new looks with more rags and no skin, each on its own walk (DM-A/B on Garry's Zombie monster walk GLB via tools/dl/drivers/zombie_walk, DM-C on the skeletons' arms-out shamble, DM-D a free Wan clip); the old painting kept as DM-0."

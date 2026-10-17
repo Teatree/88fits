@@ -10,7 +10,7 @@
   "knockback": 4.81,
   "radius": 0.55,
   "size": 1.85,
-  "blood": "#4BC51F",
+  "blood": "#CF1717",
   "pack_size": 2,
   "drops": {
     "small": 1.0,
@@ -145,6 +145,7 @@
       },
       "attack_views": "front_back",
       "attack_throw": true,
+      "back_faces": "left",
       "sprite": "spit_cactus_sprite_a.png",
       "icon": "spit_cactus_icon_a.png",
       "anims": {

@@ -34,6 +34,8 @@ const Timeline = (() => {
   const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the hero kills, so it assumes the hero kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers.';
   let spp = 1.0;                       // seconds per pixel
   let root = null, scrollBox = null, content = null, cursorEl = null, readout = null, card = null, menu = null;
+  // pass 87 (lane STOOLS): the strip of stage tabs above the sections (stage_tabs.js draws it)
+  let stageBar = null;
   const lanes = {};                    // name -> {row, label, svg}
   let drag = null;
   let raf = 0;
@@ -102,6 +104,9 @@ const Timeline = (() => {
     document.body.appendChild(readout);
     card = el('div', { class: 'hovercard', hidden: true });
     document.body.appendChild(card);
+    // pass 87 (lane STOOLS): the stage tabs above the calendar
+    stageBar = el('div', { class: 'tl-stagebar' });
+    root.appendChild(stageBar);
     root.appendChild(scrollBox);
     // pass 84: the inspector folds to a slim bar at the right (its own state, remembered by the browser)
     wireInspectorFold();
@@ -260,20 +265,27 @@ const Timeline = (() => {
   }
 
   const svgLeft = () => lanes.ruler.svg.getBoundingClientRect().left;
-  const x = (t) => t / spp;
-  const tAt = (clientX) => (clientX - svgLeft()) * spp;
-  const contentWidth = () => Math.ceil(App.viewEnd() / spp) + 60;
+  // pass 87 (lane STOOLS): the axis starts at the view's start T0 (0 on "All", the window's start on a stage tab), so a
+  // stage tab draws its window from the left edge; times stay run-clock seconds everywhere (the map's own clock)
+  let T0 = 0;
+  const x = (t) => (t - T0) / spp;
+  const tAt = (clientX) => (clientX - svgLeft()) * spp + T0;
+  /** The run second at pixel `px` of a lane (the sampled lines walk the pixels). */
+  const tAtPx = (px) => px * spp + T0;
+  const contentWidth = () => Math.ceil((App.viewEnd() - T0) / spp) + 60;
 
   function viewCenter() {
-    if (!scrollBox) return 0;
+    if (!scrollBox) return T0;
     const visible = scrollBox.clientWidth - LABEL_W;
-    return Math.max(0, Math.min(App.runEnd(), (scrollBox.scrollLeft + visible / 2) * spp));
+    const hi = App.viewStage() == null ? App.runEnd() : App.stageEnd(App.viewStage());
+    return Math.max(T0, Math.min(hi, tAtPx(scrollBox.scrollLeft + visible / 2)));
   }
 
   function fit() {
     if (!scrollBox) return;
     const w = Math.max(200, scrollBox.clientWidth - LABEL_W - 40);
-    spp = App.viewEnd() / w;
+    T0 = App.viewStart();
+    spp = (App.viewEnd() - T0) / w;
     scrollBox.scrollLeft = 0;
     render();
   }
@@ -350,6 +362,9 @@ const Timeline = (() => {
 
   function render() {
     if (!root || !App.S.map) return;
+    // pass 87: the stage tab strip and the axis's start (a stage tab: its window)
+    T0 = App.viewStart();
+    renderStageTabs();
     loadSecState();
     hovers = {};
     if (!drag) hideCard();
@@ -386,6 +401,11 @@ const Timeline = (() => {
     lanes.hp_act.row.classList.toggle('selected', selKey === 'hp');
     lanes.dmg_act.row.classList.toggle('selected', selKey === 'dmg');
     updateZoomLabel();
+  }
+
+  /** Pass 87 (lane STOOLS): the stage tab strip (StageTabs.renderStrip), drawn with the rest. */
+  function renderStageTabs() {
+    if (stageBar && typeof StageTabs !== 'undefined') StageTabs.renderStrip(stageBar);
   }
 
   function setHeight(name, h) {
@@ -596,7 +616,6 @@ const Timeline = (() => {
   function sectionSummary(id) {
     const tl = App.tl();
     const v = view;
-    const SL = App.stageLength();
     try {
       if (id === 'controls') return `the ruler stays · kill rate from ${App.turnoverSource()} · Sim: ${simOv ? simOv.label : 'none'}`;
       if (id === 'onscreen' && v) {
@@ -618,7 +637,7 @@ const Timeline = (() => {
         const top = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 3);
         return top.length ? `most on screen over the run: ${top.map(([cid, n2]) => `${App.creatureName(cid)} ${Math.round(all > 0 ? (n2 / all) * 100 : 0)}%`).join(', ')}` : 'nobody';
       }
-      if (id === 'spawned' && lastSpawn) { const p = Model.estimateAt(lastSpawn.est, SL, true); return `≈${fmtCount(p ? p.all : 0)} spawned by ${fmtT(SL)}`; }
+      if (id === 'spawned' && lastSpawn) { const SE = App.stageEnd(App.viewStage() == null ? 0 : App.viewStage()); const p = Model.estimateAt(lastSpawn.est, SE, true); return `≈${fmtCount(p ? p.all : 0)} spawned by ${fmtT(SE)}`; }
       if (id === 'rows') {
         const rows = tl.roster || [];
         const n = (p) => rows.filter((r) => TimelineModel.paceOf(r) === p).length;
@@ -672,12 +691,14 @@ const Timeline = (() => {
   // cap, cap_full, starving rows, threat, the hero's full DPS, effective HP and power, challenge, who was alive, its
   // deaths and each creature's lifetime. Its keep_up (seconds of his own damage to clear the crowd, per play second) comes
   // from the result itself for the Challenge lane's seconds. An older server without the route: the result alone.
-  const SIM_KEY = (map) => `88fits-editor-sim-${map || ''}`;
+  // pass 87 (lane STOOLS): each tab remembers its own Sim (a stage tab: by default the newest Sim of that stage)
+  const SIM_KEY = (map) => `88fits-editor-sim-${map || ''}${App.viewStage() == null ? '' : '-s' + (App.viewStage() + 1)}`;
   let simOv = null, simList = [], simFor = null, simBusy = false;
   async function loadSimList(force) {
     const mapId = App.S.mapId || '';
-    if (!force && simFor === mapId) return;
-    simFor = mapId;
+    const forKey = mapId + '|' + (App.viewStage() == null ? 'all' : App.viewStage());
+    if (!force && simFor === forKey) return;
+    simFor = forKey;
     simList = []; simOv = null;
     try {
       const r = await fetch('/api/sim/history', { cache: 'no-store' });
@@ -687,11 +708,14 @@ const Timeline = (() => {
     if (simSelect) {
       clear(simSelect);
       simSelect.appendChild(el('option', { value: '', text: 'none (the estimate alone)' }));
-      for (const x of simList) simSelect.appendChild(el('option', { value: x.id, text: `${x.id} · ${x.hero_name || ''} · ${x.players_done || '?'} runs · ${String(x.started || '').replace('T', ' ').slice(0, 16)}` }));
+      for (const x of simList) simSelect.appendChild(el('option', { value: x.id, text: `${x.id} · ${x.hero_name || ''} · ${(x.settings || {}).stage ? 'stage ' + x.settings.stage : 'all stages (before pass 87)'} · ${x.players_done || '?'} runs · ${String(x.started || '').replace('T', ' ').slice(0, 16)}` }));
     }
     let want = '';
     try { want = localStorage.getItem(SIM_KEY(mapId)) || ''; } catch (_) { /* the newest */ }
-    const pick = want === '-' ? '' : ((simList.find((x) => x.id === want) || simList[0] || {}).id || '');
+    // a stage tab's default: the newest Sim of that stage, else the newest
+    const vs = App.viewStage();
+    const first = (vs == null ? null : simList.find((x) => Number((x.settings || {}).stage) === vs + 1)) || simList[0] || {};
+    const pick = want === '-' ? '' : ((simList.find((x) => x.id === want) || first).id || '');
     if (simSelect) simSelect.value = pick;
     if (pick) await pickSim(pick, true); else render();
   }
@@ -889,8 +913,11 @@ const Timeline = (() => {
       cache.set(ck, x);
       return x;
     }
-    const SL = App.stageLength();
+    // pass 87: every stage is a fresh run, so the typical hero starts at power 1 at each window's start (his power by
+    // the seconds he has played, on the first stage's marks)
+    const SL = App.stageLen(0);
     const marks = typeof PowerModel !== 'undefined' ? PowerModel.TYPICAL.map((m, k) => ({ t: k * SL, power: m.power })) : [{ t: 0, power: 1 }];
+    const played = (t) => Math.max(0, t - App.stageStart(Math.min(App.stageAt(t), App.stages() - 1)));
     const baseDps = typeof PowerModel !== 'undefined' ? PowerModel.BASE_DPS : 20.4;
     const baseEhp = typeof PowerModel !== 'undefined' ? PowerModel.BASE_EHP : 100;
     const v = { n, ser, t: ser.t, alive: ser.alive, reg: new Float64Array(n), hell: new Float64Array(n), cap: new Float64Array(n), capB: new Float64Array(n), full: new Uint8Array(n),
@@ -915,7 +942,7 @@ const Timeline = (() => {
       let dsrc = sd != null && sd >= 1 ? 1 : 0;
       if (!dsrc && simOv) { sd = simAt(simOv.dpsReal, t); dsrc = sd != null && sd >= 1 ? 2 : 0; }
       const se = simOv ? simAt(simOv.ehp, t) : null;
-      const typ = TimelineModel.typicalHero(t, marks, baseDps, baseEhp);
+      const typ = TimelineModel.typicalHero(played(t), marks, baseDps, baseEhp);
       const dps = dsrc ? sd : typ.dps;
       const ehp = se != null && se >= 1 ? se : typ.ehp;
       v.dps[j] = dps; v.dpsSim[j] = dsrc; v.ehp[j] = ehp; v.ehpSim[j] = se != null && se >= 1 ? 1 : 0;
@@ -998,7 +1025,7 @@ const Timeline = (() => {
     // the floor
     if (fc.length) {
       let pts = '';
-      for (let px = 0; px <= x(App.viewEnd()); px += 3) pts += `${px},${y(floorAt(px * spp))} `;
+      for (let px = 0; px <= x(App.viewEnd()); px += 3) pts += `${px},${y(floorAt(tAtPx(px)))} `;
       g.appendChild(svg('polyline', { points: pts, class: 'floor-line' }));
     }
     // the Sim's real count
@@ -1179,7 +1206,7 @@ const Timeline = (() => {
     const end = App.viewEnd();
     const step = Math.max(1, Math.round(3 * spp));
     const ts = [];
-    for (let t = 0; t <= end; t += step) ts.push(t);
+    for (let t = Math.floor(T0); t <= end; t += step) ts.push(t);
     const samples = ts.map((t) => compAt(t));
     // the ten largest over the view, the rest as "others"
     const tot = {};
@@ -1255,7 +1282,7 @@ const Timeline = (() => {
     const sorted = fc.filter((p) => Array.isArray(p)).slice().sort((a, b) => a[0] - b[0]);
     let pts = '';
     if (sorted.length) {
-      for (let px = 0; px <= x(end); px += 3) pts += `${px},${y(Model.samplePoints(sorted, px * spp))} `;
+      for (let px = 0; px <= x(end); px += 3) pts += `${px},${y(Model.samplePoints(sorted, tAtPx(px)))} `;
       s.appendChild(svg('polyline', { points: pts, class: 'floor-edit-line' + issueClass('floor') }));
       const hit = svg('polyline', { points: pts, class: 'cap-hit' }, svg('title', {}, 'the floor curve: click to edit; double-click to add a point here'));
       hit.addEventListener('pointerdown', (e) => {
@@ -1459,20 +1486,42 @@ const Timeline = (() => {
   function renderRuler(w) {
     const s = clear(lanes.ruler.svg);
     setHeight('ruler', RULER_H);
-    const SL = App.stageLength(), n = App.stages(), end = App.viewEnd();
+    const n = App.stages(), end = App.viewEnd();
     const names = ['stage-1', 'stage-2', 'stage-3', 'stage-4'];
-    for (let k = 0; k < n; k++) {
-      const a = k * SL, b = Math.min((k + 1) * SL, end);
-      s.appendChild(svg('rect', { x: x(a), y: 0, width: Math.max(0, x(b) - x(a)), height: 20, class: 'band ' + names[Math.min(k, 3)] }));
-      s.appendChild(svg('text', { x: x(a) + 6, y: 14, class: 'band-text', text: `Stage ${k + 1}  ${fmtT(a)} – ${fmtT((k + 1) * SL)}  ×${fmtN(App.stageMult(k), 2)}` }));
+    const vs = App.viewStage();
+    // pass 87 (lane STOOLS): each stage's own window (stage_list), its band a button that opens its settings
+    for (const wdw of App.stageList()) {
+      const k = wdw.i, a = wdw.start, b = Math.min(wdw.end, end);
+      if (b < T0) continue;
+      const fl = typeof StageModel !== 'undefined' ? StageModel.filterOf(wdw.entry) : null;
+      const band = svg('g', { class: 'stage-band' + (App.selKey() === `stage:${k}` ? ' selected' : ''), onpointerdown: (e) => { if (e.button === 0) { e.stopPropagation(); App.select({ kind: 'stage', i: k }); } } });
+      band.appendChild(svg('rect', { x: x(a), y: 0, width: Math.max(0, x(b) - x(a)), height: 20, class: 'band ' + names[Math.min(k, 3)] }));
+      if (fl && fl.strength > 0) band.appendChild(svg('rect', { x: x(a), y: 16, width: Math.max(0, x(b) - x(a)), height: 4, fill: fl.color, opacity: Math.min(1, 0.35 + fl.strength) }));
+      band.appendChild(svg('text', { x: Math.max(x(a), 0) + 6, y: 14, class: 'band-text', text: `Stage ${k + 1}${wdw.name !== `Stage ${k + 1}` ? ' · ' + wdw.name : ''}  ${fmtT(a)} – ${fmtT(wdw.end)} (${fmtT(wdw.length)})  ×${fmtN(App.stageMult(k), 2)}` }));
+      band.appendChild(svg('title', {}, `Stage ${k + 1}: click for its settings (name, length, boss, words, colour)`));
+      s.appendChild(band);
     }
-    s.appendChild(svg('rect', { x: x(App.runEnd()), y: 0, width: Math.max(0, x(end) - x(App.runEnd())) + 60, height: 20, class: 'band endless' }));
-    s.appendChild(svg('text', { x: x(App.runEnd()) + 6, y: 14, class: 'band-text', text: `Endless  (every ${App.tl().endless_wave_seconds || 60} s ×${App.tl().endless_wave_mult || 1})` }));
+    if (vs == null) {
+      s.appendChild(svg('rect', { x: x(App.runEnd()), y: 0, width: Math.max(0, x(end) - x(App.runEnd())) + 60, height: 20, class: 'band endless' }));
+      s.appendChild(svg('text', { x: x(App.runEnd()) + 6, y: 14, class: 'band-text', text: `after the last boss: the portal's ${fmtT(App.portalSeconds())}, then Endless` }));
+    } else {
+      // a stage tab: its boss, the portal's timer (only Extract), then Endless
+      const be = App.stageEnd(vs), pe = be + App.portalSeconds();
+      s.appendChild(svg('rect', { x: x(be), y: 0, width: Math.max(0, x(pe) - x(be)), height: 20, class: 'band portal-band' }));
+      s.appendChild(svg('text', { x: x(be) + 6, y: 14, class: 'band-text', text: `portal ${fmtT(App.portalSeconds())}` }, svg('title', {}, 'after the boss: the portal opens with a timer and only EXTRACT; when it runs out, Endless starts')));
+      s.appendChild(svg('rect', { x: x(pe), y: 0, width: Math.max(0, x(end) - x(pe)) + 60, height: 20, class: 'band endless' }));
+      s.appendChild(svg('text', { x: x(pe) + 6, y: 14, class: 'band-text', text: `Endless: ${Model.endlessWaveSize(App.tl(), 1, vs)} at once, then a wave every ${fmtN(Model.endlessValue(App.tl(), 'every', vs), 0)} s, each tougher` }));
+    }
     const step = tickStep();
-    for (let t = 0; t <= end; t += step / 2) {
-      const major = Math.abs((t / step) - Math.round(t / step)) < 1e-6;
+    // a stage tab ticks the stage run's own clock (0:00 at its window's start); All, the map's
+    for (let t = T0; t <= end; t += step / 2) {
+      const major = Math.abs(((t - T0) / step) - Math.round((t - T0) / step)) < 1e-6;
       s.appendChild(svg('line', { x1: x(t), x2: x(t), y1: major ? 24 : 32, y2: 40, class: major ? 'tick' : 'tick minor' }));
-      if (major) s.appendChild(svg('text', { x: x(t) + 3, y: 54, class: 'tick-text', text: fmtT(t) }));
+      if (major) {
+        // a stage tab counts the stage run's own clock (0:00 at the window's start), the map's clock beside it, smaller
+        if (vs == null) s.appendChild(svg('text', { x: x(t) + 3, y: 54, class: 'tick-text', text: fmtT(t) }));
+        else s.appendChild(svg('text', { x: x(t) + 3, y: 54, class: 'tick-text' }, svg('tspan', { text: fmtT(t - T0) }), svg('tspan', { class: 'tick-map', dx: 4, text: `(${fmtT(t)})` })));
+      }
     }
     // skulls for the bosses, crowns for the Elites, on the ruler too (they are the landmarks of a run)
     (App.tl().events || []).forEach((ev, i) => {
@@ -1484,7 +1533,9 @@ const Timeline = (() => {
       hovers[`event:${i}`] = () => eventCard(i);
       s.appendChild(g);
     });
-    lanes.ruler.label.querySelector('.lane-sub').textContent = `${n} stages × ${fmtT(SL)}`;
+    lanes.ruler.label.querySelector('.lane-sub').textContent = vs == null
+      ? `${n} stage${n === 1 ? '' : 's'}: ${App.stageList().map((wd) => fmtT(wd.length)).join(' + ')}`
+      : `stage ${vs + 1}'s own clock (the map's in brackets)`;
   }
 
   // ------------------------------------------------------------------ cap
@@ -1513,12 +1564,12 @@ const Timeline = (() => {
     // the hell channel's cap (a share of the regular one per stage)
     if ((d.hell_cap || []).some((h) => Number(h) > 0)) {
       let pts = '';
-      for (let px = 0; px <= x(end); px += 4) pts += `${px},${y(App.hellCapAt(px * spp))} `;
+      for (let px = 0; px <= x(end); px += 4) pts += `${px},${y(App.hellCapAt(tAtPx(px)))} `;
       s.appendChild(svg('polyline', { points: pts, class: 'hell-cap' }, svg('title', {}, 'the hell channel\'s cap (hell_cap × the regular cap)')));
     }
     // the effective cap, sampled (cap_max and cap_per_stage apply on top of the curve)
     let pts = '';
-    for (let px = 0; px <= x(end); px += 3) pts += `${px},${y(App.capAt(px * spp))} `;
+    for (let px = 0; px <= x(end); px += 3) pts += `${px},${y(App.capAt(tAtPx(px)))} `;
     pts += `${x(end)},${y(App.capAt(end))}`;
     s.appendChild(svg('polyline', { points: pts, class: 'cap-line' + issueClass('cap') }));
     // boss fights keep boss_cap_frac of the cap: a dip at each boss event (the clock stands still, so it has no width)
@@ -1716,9 +1767,9 @@ const Timeline = (() => {
     g.appendChild(svg('text', { x: 48, y: 11, class: 'sp-est', text: `estimate · kill rate from ${App.turnoverSource()}${shape}${res.stale ? ' · catching up with the drag' : ''}` }));
     hovers.spawned = (t) => spawnedCard(t);
     s.appendChild(g);
-    const SL = App.stageLength();
-    const atStage = Model.estimateAt(est, SL, true);
-    lanes.spawned.label.querySelector('.lane-sub').textContent = `estimate · ${fmtCount(atStage ? atStage.all : 0)} by ${fmtT(SL)}`;
+    const SE = App.stageEnd(App.viewStage() == null ? 0 : App.viewStage());
+    const atStage = Model.estimateAt(est, SE, true);
+    lanes.spawned.label.querySelector('.lane-sub').textContent = `estimate · ${fmtCount(atStage ? atStage.all : 0)} by ${fmtT(SE)}`;
   }
 
   /** Which of the card's groups a creature belongs to: a boss, an Elite (the mini-bosses), a special (the specials'
@@ -1839,7 +1890,7 @@ const Timeline = (() => {
     const f = (t) => (isHp ? App.hpTimeMult(t) : App.dmgTimeMult(t));
     const end = App.viewEnd();
     let line = '';
-    for (let px = 0; px <= x(end); px += 3) line += `${px},${y(f(px * spp))} `;
+    for (let px = 0; px <= x(end); px += 3) line += `${px},${y(f(tAtPx(px)))} `;
     g.appendChild(svg('polyline', { points: line, class: 'act-intended ' + kind }));
     const ser = lastActual ? lastActual.series : null;
     let spans = 0, clipped = 0;
@@ -1951,7 +2002,7 @@ const Timeline = (() => {
       s.appendChild(svg('text', { x: 4, y: y(v) - 2, class: 'grid-text', text: `×${fmtN(v, 2)}` }));
     }
     let line = '';
-    for (let px = 0; px <= x(end); px += 3) line += `${px},${y(f(px * spp))} `;
+    for (let px = 0; px <= x(end); px += 3) line += `${px},${y(f(tAtPx(px)))} `;
     line += `${x(end)},${y(f(end))}`;
     const cls = 'curve-line ' + name + (c ? '' : ' legacy') + (mode === 'formula' ? ' formula' : '') + issueClass(name);
     s.appendChild(svg('polyline', { points: line, class: cls }));
@@ -1971,8 +2022,7 @@ const Timeline = (() => {
       App.apply((tl) => {
         if (!Model.hasCurve(tl[key])) {
           // start from the line as it is (the legacy formula, or ×1) at the stage marks, plus the new point
-          const SL = App.stageLength(), seeded = [];
-          for (let k = 0; k <= App.stages(); k++) seeded.push([k * SL, Model.round(f(k * SL), 4)]);
+          const seeded = Model.stageMarks(App.tl()).map((mt) => [mt, Model.round(f(mt), 4)]);
           tl[key] = isHp
             ? { mode: 'points', points: seeded, formula: { kind: 'power', a: tl.hp_growth == null ? Model.DEF.hp_growth : Number(tl.hp_growth), b: tl.hp_power == null ? Model.DEF.hp_power : Number(tl.hp_power) } }
             : { mode: 'points', points: seeded, formula: { kind: 'linear', a: 0 } };
@@ -2039,11 +2089,12 @@ const Timeline = (() => {
     const yOf = {};
     let y = ROSTER_HEAD;
     if (mode === 'none') {
-      rows.forEach((r, i) => { items.push({ type: 'row', i, y }); yOf[i] = y; y += ROW_H; });
+      rows.forEach((r, i) => { if (!rowInView(r)) return; items.push({ type: 'row', i, y }); yOf[i] = y; y += ROW_H; });
       return { items, yOf, height: y, mode };
     }
     const groups = new Map();
     rows.forEach((r, i) => {
+      if (!rowInView(r)) return;
       const g = groupOf(r, mode);
       if (!groups.has(g.key)) groups.set(g.key, Object.assign(g, { rows: [] }));
       groups.get(g.key).rows.push(i);
@@ -2058,6 +2109,17 @@ const Timeline = (() => {
       if (!collapsed) for (const i of g.rows) { items.push({ type: 'row', i, y }); yOf[i] = y; y += ROW_H; }
     }
     return { items, yOf, height: y, mode };
+  }
+
+  /** Pass 87 (lane STOOLS): whether a row shows on the open tab: every row on "All"; on a stage tab the rows open at
+   *  some second of its window (from its start to its boss; a row spanning windows shows on both tabs). */
+  function rowInView(r) {
+    const vs = App.viewStage();
+    if (vs == null) return true;
+    const a = App.stageStart(vs), b = App.stageEnd(vs);
+    const t0 = Number(r.t) || 0;
+    const t1 = r.until == null || r.until === '' ? Infinity : Number(r.until);
+    return t0 < b && t1 > a;
   }
 
   /** A row's numbers in play at its start (HP, ATK), from lane SPAWN's shown difficulty when the model has it
@@ -2162,8 +2224,10 @@ const Timeline = (() => {
       verts.push([x(tEnd), yW(App.rowWeight(r, tEnd))]);
       inner.appendChild(svg('path', { d: `M${x0},${yb} ${verts.map(([vx, vy]) => `L${vx},${vy}`).join(' ')} L${x(tEnd)},${yb} Z`, class: 'w-area', fill: col }));
       inner.appendChild(svg('polyline', { points: verts.map(([vx, vy]) => `${vx},${vy}`).join(' '), class: 'w-edge', stroke: col }));
-      if (c) inner.appendChild(svg('image', { href: App.iconFor(fid, r.variant), x: x0 + 5, y: y0 + 1.5, width: 17, height: 17, preserveAspectRatio: 'xMidYMid meet' }));
-      let tx = x0 + 26;
+      // pass 87: a bar that starts before a stage tab's window keeps its icon and words at the window's left edge
+      const lx0 = Math.max(x0, 0);
+      if (c) inner.appendChild(svg('image', { href: App.iconFor(fid, r.variant), x: lx0 + 5, y: y0 + 1.5, width: 17, height: 17, preserveAspectRatio: 'xMidYMid meet' }));
+      let tx = lx0 + 26;
       const nm = `${r.name ? r.name + ' · ' : ''}${enemyWords(r)}`;
       inner.appendChild(svg('text', { x: tx, y: y0 + 13, class: 'bar-text', text: nm }));
       tx += textWidth(nm, 12) + 8;
@@ -2243,7 +2307,10 @@ const Timeline = (() => {
     }
     if (!rows.length) s.appendChild(svg('text', { x: 8, y: ROSTER_HEAD + 18, class: 'hint-text', text: 'no spawn rows: "+ Row" adds one at the view\'s centre' }));
     const hell = rows.filter((r) => r.channel === 'hell').length;
-    lanes.roster.label.querySelector('.lane-sub').textContent = `${plural(rows.length, 'row')}${hell ? ` · ${hell} hell` : ''}`;
+    const shownN = lay.items.filter((it) => it.type === 'row').length + lay.items.filter((it) => it.type === 'group' && it.collapsed).reduce((a, it) => a + it.g.rows.length, 0);
+    lanes.roster.label.querySelector('.lane-sub').textContent = App.viewStage() == null
+      ? `${plural(rows.length, 'row')}${hell ? ` · ${hell} hell` : ''}`
+      : `${shownN} of ${plural(rows.length, 'row')} in stage ${App.viewStage() + 1}${hell ? ` · ${hell} hell` : ''}`;
     renderGutter(rows, lay);
   }
 
@@ -2389,10 +2456,12 @@ const Timeline = (() => {
 
   /** A shaded strip per stage behind a lane (stage 2 and 3 slightly darker), so the eye keeps the stage while scrolling. */
   function stageShade(s, h) {
-    const SL = App.stageLength(), n = App.stages();
-    for (let k = 1; k < n; k += 2) s.appendChild(svg('rect', { x: x(k * SL), y: 0, width: x(SL), height: h, class: 'stage-shade' }));
-    s.appendChild(svg('rect', { x: x(App.runEnd()), y: 0, width: x(App.viewEnd()) - x(App.runEnd()) + 60, height: h, class: 'endless-shade' }));
-    for (let k = 1; k <= n; k++) s.appendChild(svg('line', { x1: x(k * SL), x2: x(k * SL), y1: 0, y2: h, class: 'stage-line' }));
+    // pass 87: each stage's own window (stage_list); a stage tab shades what comes after its boss (portal, Endless)
+    const L = App.stageList();
+    for (const wd of L) if (wd.i % 2 === 1) s.appendChild(svg('rect', { x: x(wd.start), y: 0, width: Math.max(0, x(wd.end) - x(wd.start)), height: h, class: 'stage-shade' }));
+    const after = App.viewStage() == null ? App.runEnd() : App.stageEnd(App.viewStage());
+    s.appendChild(svg('rect', { x: x(after), y: 0, width: Math.max(0, x(App.viewEnd()) - x(after)) + 60, height: h, class: 'endless-shade' }));
+    for (const wd of L) s.appendChild(svg('line', { x1: x(wd.end), x2: x(wd.end), y1: 0, y2: h, class: 'stage-line' }));
   }
 
   function textWidth(str, px) { return String(str).length * px * 0.56; }
@@ -2647,7 +2716,6 @@ const Timeline = (() => {
     setHeight('paths', PATH_H);
     stageShade(s, PATH_H);
     const pt = App.tl().path_times || [];
-    const SL = App.stageLength();
     const key = 'paths';
     const g = svg('g', { class: 'paths' + (App.selKey() === key ? ' selected' : '') + issueClass(key), 'data-key': key, onpointerdown: (e) => { if (e.button === 0) { e.stopPropagation(); App.select({ kind: 'paths' }); } } });
     g.appendChild(svg('rect', { x: 0, y: 0, width: w, height: PATH_H, class: 'paths-hit' }));
@@ -2655,7 +2723,7 @@ const Timeline = (() => {
     for (let st = 0; st < App.stages() && pt.length; st++) {
       const list = pt[Math.min(st, pt.length - 1)] || [];
       list.forEach((v, k) => {
-        const px = x(st * SL + Number(v));
+        const px = x(App.stageStart(st) + Number(v));
         g.appendChild(svg('line', { x1: px, x2: px, y1: 6, y2: 20, class: 'path-tick' }));
         g.appendChild(svg('text', { x: px + 2, y: 29, class: 'path-text', text: k + 1 }));
         n++;

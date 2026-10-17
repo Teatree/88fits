@@ -90,7 +90,8 @@ ranged = {
 }
 knockback = 4.81
 head = 0.956
-blood = Color(0.29411766, 0.77254903, 0.12156863, 1)
+blood = Color(0.8117647, 0.09019608, 0.09019608, 1)
+back_faces = "left"
 variants = {
 "SC-0": {
 "anims": {
@@ -131,7 +132,7 @@ variants = {
 },
 "attack_throw": true,
 "attack_views": "front_back",
-"back_faces": "right",
+"back_faces": "left",
 "fps": {
 "die": 8.0,
 "run": 15.0

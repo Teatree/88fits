@@ -108,6 +108,8 @@ var _arena_btn: WButton
 const TitleStageScript := preload("res://ui/TitleStage.gd")
 ## The play-data card (pass 59) and how long after the title comes in it asks.
 const WConsentScript := preload("res://ui/wanted/WConsent.gd")
+## The Stages menu (pass 87, lane SUI): PLAY opens it once the map's first stage is beaten.
+const StagesScreenScript := preload("res://ui/StagesScreen.gd")
 const CONSENT_DELAY := 0.8
 var _live := false
 var _stage: TitleStageScript
@@ -878,6 +880,14 @@ func _on_play() -> void:
 		Save.data["last_character"] = c.id
 	Save.data["last_map"] = _map_id
 	Save.request_save()
+	# pass 87 (lane SUI): once the map's first stage is beaten, PLAY opens the Stages menu (every time); the live look
+	# keeps its world for the way back, as for the other menus. Before that PLAY starts stage 1 as it always did.
+	if StagesScreenScript.opens_for(_map_id):
+		if _stage:
+			_stage.keep_on_exit = true
+		UiFx.go(get_tree(), "res://ui/StagesScreen.tscn")
+		return
+	Run.choose_stage(0)
 	_leave_for_a_run()
 	UiFx.go(get_tree(), "res://game/Game.tscn")
 

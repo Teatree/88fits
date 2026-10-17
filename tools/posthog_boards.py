@@ -3,8 +3,11 @@
     python tools/posthog_boards.py            # (re)build every board
     python tools/posthog_boards.py --check    # run every board's queries, build nothing
 
-Nine dashboards, each one column so they read on a phone: Pulse, Players, Level Editor versions, Run curves, Run health
-& weapons (pass 60: the rest of analytics/dashboard.html's charts), Deaths, Builds & items, Surveys, Coins (pass 61,
+Ten dashboards, each one column so they read on a phone: Pulse, Players, Level Editor versions, Run curves, Run health
+& weapons (pass 60: the rest of analytics/dashboard.html's charts), Deaths, Builds & items, Surveys, Stages (pass 87,
+Garry: "Analytics should make it easy to indicate which Stage Player was playing on and which Stage the data is about":
+every run is one stage since pass 87, every event of a run carries stage, stage_id, in_endless and endless_wave; filter
+ANY board by stage with a dashboard filter on the event property stage_id), Coins (pass 61,
 Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)": run_summary's gold_by_source / gold_spent_by /
 m_gold_in / m_gold_out, run_end's gold_earned ... gold_after, and the gold_meta event for every move of the saved gold;
 runs from before pass 61 have none of it and are left out). Re-running keeps
@@ -37,6 +40,11 @@ DAYS = 30
 PLAYER = "coalesce(person.properties.player_name, concat('id ', left(distinct_id, 8)))"
 RECENT = "timestamp > now() - INTERVAL %d DAY" % DAYS
 SUMMARIES = "event = 'run_summary' AND " + RECENT + " AND isNotNull(properties.m_secs)"
+# pass 87 (lane STOOLS): the stage an event is about: its stage_id, else "s<stage>" (an event from before pass 87, when a
+# run went through the stages: the stage it was in)
+STAGE = "coalesce(nullIf(toString(properties.stage_id), ''), concat('s', toString(properties.stage)))"
+# run_end of a stage run (pass 87: it carries the outcome)
+STAGE_ENDS = "event = 'run_end' AND " + RECENT + " AND isNotNull(properties.outcome)"
 
 
 def arr(prop):
@@ -155,6 +163,7 @@ BOARDS = [
             "round(100 * countIf(properties.result = 'death') / count(), 1) AS death_pct, round(avg(properties.t) / 60, 1) AS avg_minutes "
             "FROM events WHERE event = 'run_end' AND timestamp > now() - INTERVAL 7 DAY")),
         ("Runs a day, by how they ended", trend("run_end", "ActionsBar", breakdown="result")),
+        ("Runs a day, by stage", trend("run_end", "ActionsBar", breakdown="stage_id")),
         ("Where heroes fall (stage)", trend("player_died", "ActionsBarValue", breakdown="stage")),
         ("Survey answers this week", trend("survey sent", "BoldNumber", date_from="-7d")),
         ("Gold today: earned, spent, banked, lost, on talents", table(
@@ -174,7 +183,8 @@ BOARDS = [
             " GROUP BY player ORDER BY last_seen DESC")),
         ("Recent runs", table(
             "SELECT timestamp, " + PLAYER + " AS player, properties.hero AS hero, properties.result AS result, "
-            "round(properties.t / 60, 1) AS minutes, properties.stage AS stage, properties.level AS level, properties.kills AS kills "
+            "round(properties.t / 60, 1) AS minutes, properties.stage AS stage, " + STAGE + " AS stage_id, properties.outcome AS outcome, "
+            "properties.level AS level, properties.kills AS kills "
             "FROM events WHERE event = 'run_end' AND " + RECENT + " ORDER BY timestamp DESC LIMIT 50")),
         ("Opens a day, by player", trend("app_open", "ActionsBar", breakdown="player_name", breakdown_type="person")),
         ("Phones: frame rate", table(
@@ -257,6 +267,10 @@ BOARDS = [
             "SELECT toInt(floor(properties.t / 60)) AS minute, count() AS deaths FROM events WHERE event = 'player_died' AND " + RECENT +
             " GROUP BY minute ORDER BY minute", "minute", ["deaths"], display="ActionsBar")),
         ("Deaths by stage", trend("player_died", "ActionsBarValue", breakdown="stage")),
+        ("Deaths by stage, in Endless or before (pass 87)", table(
+            "SELECT " + STAGE + " AS stage_id, if(properties.in_endless = true, 'in Endless', 'before Endless') AS when_, count() AS deaths, "
+            "round(avg(properties.t) / 60, 1) AS avg_minute, round(avg(properties.level), 1) AS avg_level FROM events "
+            "WHERE event = 'player_died' AND " + RECENT + " GROUP BY stage_id, when_ ORDER BY stage_id, when_")),
         ("Last deaths", table(
             "SELECT timestamp, " + PLAYER + " AS player, properties.hero AS hero, properties.stage AS stage, round(properties.t / 60, 1) AS minute, "
             "properties.level AS level, properties.killer AS killer, properties.kills AS kills FROM events WHERE event = 'player_died' AND " + RECENT +
@@ -291,6 +305,42 @@ BOARDS = [
         ("Who stopped the questions", table(
             "SELECT timestamp, " + PLAYER + " AS player, event, properties.where AS where FROM events "
             "WHERE event IN ('survey_opt_out', 'survey_opt_in') ORDER BY timestamp DESC LIMIT 50")),
+    ]),
+    ("88fits · Stages", "Each stage as its own run (pass 87): how its runs end (extracted, fell before the boss, after it, in Endless), how often "
+     "the boss falls, how long heroes last in Endless, by hero and by player, and when each player first beat each stage. Every other board "
+     "filters by stage too: add a dashboard filter on the event property stage_id (s1, s2, s3).", [
+        ("Stage runs: how they end", table(
+            "SELECT " + STAGE + " AS stage_id, any(properties.stage_name) AS name, count() AS runs, "
+            "round(100 * countIf(properties.boss_killed = true) / count(), 1) AS boss_down_pct, "
+            "round(100 * countIf(properties.outcome = 'extracted') / count(), 1) AS extracted_pct, "
+            "round(100 * countIf(properties.outcome = 'died') / count(), 1) AS fell_before_boss_pct, "
+            "round(100 * countIf(properties.outcome = 'died_after_boss') / count(), 1) AS fell_after_boss_pct, "
+            "round(100 * countIf(properties.outcome = 'died_endless') / count(), 1) AS fell_in_endless_pct, "
+            "round(100 * countIf(properties.outcome = 'quit') / count(), 1) AS quit_pct, "
+            "round(avg(toFloat(properties.run_time)) / 60, 1) AS avg_minutes, round(avg(properties.level), 1) AS avg_level "
+            "FROM events WHERE " + STAGE_ENDS + " GROUP BY stage_id ORDER BY stage_id")),
+        ("Stage runs a day, by how they ended", trend("run_end", "ActionsBar", breakdown="outcome")),
+        ("Endless: how long heroes last", table(
+            "SELECT " + STAGE + " AS stage_id, count() AS runs_in_endless, round(median(toFloat(properties.endless_s))) AS median_s, "
+            "round(quantile(0.9)(toFloat(properties.endless_s))) AS p90_s, max(toInt(properties.wave)) AS best_wave, "
+            "round(avg(properties.level), 1) AS avg_level FROM events WHERE " + STAGE_ENDS + " AND toFloat(properties.endless_s) > 0 "
+            "GROUP BY stage_id ORDER BY stage_id")),
+        ("Where the boss stops them: seconds into the stage at the fall", table(
+            "SELECT " + STAGE + " AS stage_id, toInt(floor(toFloat(properties.stage_clock) / 60)) AS minute_of_stage, count() AS deaths "
+            "FROM events WHERE " + STAGE_ENDS + " AND properties.outcome = 'died' GROUP BY stage_id, minute_of_stage ORDER BY stage_id, minute_of_stage")),
+        ("Stage runs by hero", table(
+            "SELECT properties.hero AS hero, " + STAGE + " AS stage_id, count() AS runs, "
+            "round(100 * countIf(properties.boss_killed = true) / count(), 1) AS boss_down_pct, round(avg(properties.level), 1) AS avg_level, "
+            "round(avg(toFloat(properties.endless_s))) AS avg_endless_s FROM events WHERE " + STAGE_ENDS +
+            " GROUP BY hero, stage_id ORDER BY hero, stage_id")),
+        ("Each player's stages", table(
+            "SELECT " + PLAYER + " AS player, " + STAGE + " AS stage_id, count() AS runs, countIf(properties.boss_killed = true) AS bosses_down, "
+            "round(max(toFloat(properties.endless_s))) AS best_endless_s, max(timestamp) AS last_played FROM events WHERE " + STAGE_ENDS +
+            " GROUP BY player, stage_id ORDER BY player, stage_id")),
+        ("When each player first beat each stage", table(
+            "SELECT " + PLAYER + " AS player, " + STAGE + " AS stage_id, min(timestamp) AS first_beaten, count() AS times_beaten FROM events "
+            "WHERE event = 'stage_beaten' AND " + RECENT + " GROUP BY player, stage_id ORDER BY player, stage_id")),
+        ("Endless waves reached a day", trend("endless_wave", "ActionsBar", breakdown="stage_id")),
     ]),
     ("88fits · Coins", "Where the gold comes from and where it goes (pass 61): in a run by source and by sink, minute by minute, "
      "what each run banked (every end banks since pass 70; only a quit loses it), and outside the runs the bank: Upgrade ranks bought and refunded, the balance "

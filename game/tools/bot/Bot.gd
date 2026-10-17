@@ -50,18 +50,23 @@ const LURE_EVERY := 6
 const PRESETS := {
 	"sim77": {"skill": 1.0, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.0,
 		"totems": false, "barrels": false, "powerups": true, "structures": false, "shop": false, "stranger": false, "boss": "leash",
-		"cards": "tier", "specials": false},
+		"cards": "tier", "specials": false, "portal": "endless"},
 	"explorer": {"skill": 0.9, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.6,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score", "specials": true},
+		"cards": "score", "specials": true, "portal": "endless"},
 	"careless": {"skill": 0.4, "style": "balanced", "reaction": 0.6, "dodge": 0.5, "daring": 0.8, "stray": 60.0, "explore": 0.4,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "free",
-		"cards": "score", "specials": true},
+		"cards": "score", "specials": true, "portal": "endless"},
 	"expert": {"skill": 1.0, "style": "balanced", "reaction": 0.1, "dodge": 1.0, "daring": 0.45, "stray": 60.0, "explore": 0.7,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score", "specials": true},
+		"cards": "score", "specials": true, "portal": "endless"},
 }
 const DEFAULT_PRESET := "explorer"
+## Pass 87 (lane STOOLS; a stage run ends at its boss, then the portal counts down to Endless): what the bot does after
+## the stage's boss: "endless" (the default) never walks to the portal and answers it "not yet" if he steps in, so the
+## run goes on into Endless until the stop or his death; "extract" walks to the portal (after the boss's chest) and
+## extracts (the run ends there, the stage beaten).
+const PORTAL_CHOICES := ["endless", "extract"]
 ## The planner (BotGoals; on whenever explore > 0 or totems, barrels or structures are on): a new plan every PLAN_EVERY
 ## play seconds; a goal held is kept unless one SWITCH_K times better turns up; none under U_MIN is taken; a goal not
 ## reached in PATIENCE_BASE + PATIENCE_PER_M s a metre (+ its use time) is given up and rests REST_S seconds.
@@ -253,6 +258,8 @@ static func resolve_opts(raw: Dictionary) -> Dictionary:
 				o[key] = str(v) if str(v) in ["leash", "free"] else str(o[key])
 			"cards":
 				o[key] = str(v) if str(v) in ["tier", "score"] else str(o[key])
+			"portal":
+				o[key] = str(v) if PORTAL_CHOICES.has(str(v)) else str(o.get(key, "endless"))
 			"death":
 				o[key] = str(v) if str(v) in ["end", "ad", "keep"] else "end"
 			"lure_w", "lure_close", "t0":
@@ -339,9 +346,11 @@ func _screens() -> void:
 		if _boss_chest_lying():
 			g.portal_dialog.decline()
 			return
-		events.append({"t": snappedf(play_t(), 0.1), "clock": snappedf(_clock(), 0.1), "kind": "portal", "stage": int(_run.stage) + 1})
+		# pass 87 (lane STOOLS): EXTRACT with portal=extract, else "not yet" (the countdown runs on into Endless)
+		var out := str(opts.get("portal", "endless")) == "extract"
+		events.append({"t": snappedf(play_t(), 0.1), "clock": snappedf(_clock(), 0.1), "kind": "portal", "stage": int(_run.stage) + 1, "extract": out})
 		g.portal_dialog.visible = false
-		g.portal_dialog.decided.emit(false)
+		g.portal_dialog.decided.emit(out)
 		return
 	var cs = g.cards
 	if cs and cs.visible and not (cs._offer as Array).is_empty() and not cs._picking:
@@ -893,7 +902,8 @@ func _must_goal() -> Dictionary:
 			if is_instance_valid(c) and bool(c.boss) and not bool(c.opened):
 				return {"key": "chest:%d" % c.get_instance_id(), "at": c.global_position, "must": true, "what": "boss_chest"}
 	var portal = game.portal
-	if portal != null and is_instance_valid(portal):
+	# pass 87: only a bot told to extract walks to the portal
+	if portal != null and is_instance_valid(portal) and str(opts.get("portal", "endless")) == "extract":
 		var pp: Vector3 = (portal as Node3D).global_position
 		if not bool(portal.get("armed")):
 			var out := Vector3(me.x - pp.x, 0.0, me.z - pp.z)
@@ -1138,7 +1148,8 @@ func _goal() -> Dictionary:
 				near_d = d
 				near = {"key": key, "at": at, "must": false, "what": "chest"}
 	var portal = game.portal
-	if portal != null and is_instance_valid(portal):
+	# pass 87: only a bot told to extract walks to the portal
+	if portal != null and is_instance_valid(portal) and str(opts.get("portal", "endless")) == "extract":
 		var pp: Vector3 = (portal as Node3D).global_position
 		if not bool(portal.get("armed")):
 			# after a "Not yet" the portal asks again only once he has been out past its re-arm distance: out first

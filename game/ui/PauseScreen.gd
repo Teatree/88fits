@@ -117,7 +117,8 @@ func _process(_delta: float) -> void:
 
 
 func _refresh() -> void:
-	_clock.text = "%s · %s" % [W.mmss(Run.elapsed), ("Endless" if Run.endless else "Stage %d" % (Run.stage + 1))]
+	# pass 87 (lane SGAME): the stage's own clock
+	_clock.text = "%s · %s" % [W.mmss(Run.stage_clock()), ("Endless" if Run.endless else "Stage %d" % (Run.stage + 1))]
 	_tabs.select(_tab, false)
 	for c in _content.get_children():
 		c.queue_free()

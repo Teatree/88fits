@@ -587,6 +587,8 @@ func test_a_level_up_behind_the_down_screen_waits_for_the_decision() -> void:
 
 func test_the_portal_and_a_chest_open_one_at_a_time() -> void:
 	var g := await _game()
+	# pass 87 (lane SGAME, re-pinned): the portal asks only while it is open (the director's portal phase, after the boss)
+	g.director.phase = WaveDirector.Phase.PORTAL
 	g._on_portal_entered()
 	g.open_chest(g.player.global_position + Vector3(1, 0, 0))
 	await _frames(1)

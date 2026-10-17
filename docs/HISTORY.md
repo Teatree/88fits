@@ -2622,3 +2622,412 @@ Tests game/tests/pass85_bandit_test.gd.
 he throws the Dynamite stick. Make em a bit bigger. try again". The lead: `ranged.throw_jump` (a sine hop through the
 release hold, 0.45 m on the Spit Cactus) in EnemyManager._throw_hold_tick; the cactus `size` 1.5 -> 1.85 and `radius`
 0.45 -> 0.55; checked frame by frame with game/tools/_p85_bandit_shot.gd (tools/dl/p86/jump/sheet.png).
+
+**Pass 87 (2026-10-17, v0.73): stages separated, Endless, Nightfall and the Blood Moon, the Big Mouth's glow and punch, Solenne and Fadeaway on the Puppet method, four mummies, the evade, the black barrels' coins.** Garry: "It's time to make a significant change to how our Stages work. Now Player Unlocks Stages and is only able to enter them after having completed the previous one" (the portal with a 1 minute timer and only Extract, then Endless; a Stages menu with pictures and difficulty; a blueish evening for stage 2 and a reddish blood moon for stage 3; the Watch, the analytics, PostHog and the Level Editor by stage); answered: fresh runs retuned, 7:10 / 10:00 / 13:00, the menu on every Play, Endless deaths bank everything. Also: the Big Mouth's tongue out with a glow, a wind-up and a punch; the bandit's facing; Solenne's Puppet look on the Catwalk and Fadeaway's size, shoulders and back 88, each in two versions (a precise and a loose prompt); a new mummy from mummy.png in four looks with the arms always up; the evade shown; black barrels with 1-5 coins. Ten lanes (tools/dl/p87/INTERFACES.md, INTERFACES_STAGES.md); the first MUMMY agent ran out of room and a second one finished it; the lead made Endless respect live limits.
+
+Pass 87, lane SGAME (stages as their own runs, in the game). Garry: "Now Player Unlocks Stages and is only able to enter
+them after having completed the previous one ... Player kills the boss and the Portal that appears shows a 1 minute
+timer before the Endless Mode will activate. There is only an Extract button now in the Portal." The map keeps one
+timeline; `timeline_data.stage_list` cuts it into windows (WaveTimeline.stage_window / stage_at / stage_boss /
+stage_filter / stage_entry; the fallback `stages` x `stage_length`), and `timeline_data.endless` holds Endless's keys
+(ENDLESS_DEFAULTS, endless_mults: compounding HP and damage, linear capped speed). A run plays one stage: Run.start_stage
+(Game._start_chosen_stage from Run.choose_stage or the launch's `stage`, 1-based) puts the fresh run at its window's
+start; WaveDirector skips what came before the window (_enter_stage_window), holds the clock at the window's end and
+brings the stage's boss there (_stage_end_reached), and on its death marks the stage beaten (Save.stages_beaten,
+stage_unlocked, stages_menu_open; old saves migrated from their boss flags and kill totals) and runs the portal's
+countdown (portal_seconds_left, tick_portal_countdown; the portal dialog keeps it running); at 0 Phase.ENDLESS
+(start_endless): a huge first wave from the stage's late roster, a wave every 10 s, each fixed afresh with its
+multipliers (source_for), the crowd kept up between them (_endless_fill), XP x xp_share (Game), coins x coin_chance
+(PickupManager.endless_coin_chance), no bosses, Elites or specials; the old endless loop and continue_to_next_stage are
+gone, and the portal dialog's "go on" became "not yet". Run gained stage_clock (the HUD, pause and Down! clocks),
+run_time (survive quests, the best time), endless_time, stage_beaten, outcome; the summary carries them. Red Canyon was
+migrated by tools/dl/p87/SGAME/migrate_stages.py (backup red_canyon.pre87.json): Sundown 430, Nightfall 600, Blood Moon
+780, stages 2-3 stretched into their windows (the HP curve stays a formula on the run clock; lane TUNE retunes). Tools:
+smoke_run plays stage 1 to its boss, says Not yet, runs the countdown out in the dialog and plays three Endless waves
+(portal=extract for the old ending), hell_check plays stage 3 as its own run (its fight on the play clock), sim_run.gd
+takes `stage=k`, the arena's clock reads the windows. Tests: pass87_sgame_test.gd; re-pinned pass28, pass46_pacing,
+pass47_combat, pass48_world, pass58_wv, pass60_ui, pass62_pc.
+
+Lane TUNE (pass 87): stages 2 and 3 retuned for a fresh level-1 hero, and Endless. Garry: "Stages 2 and 3 retuned so a
+fresh hero can clear them, clearly harder than Stage 1" (a stage picked from the Stages menu is a fresh run: level 1,
+the start weapon); the brief: a quarter of the Upgrade board clears stage 2 (10:00 + the Gila) most of the time, half
+clears stage 3 (13:00 + the Brander), each harder than the stage before, Endless kills a typical hero in a few minutes.
+After lane SGAME's migration (stage windows 430 / 600 / 780 s, stages 2-3 stretched) stage 2 carried pass 62/64's
+numbers, made for a level-22 hero arriving with stage 1's build: a fresh hero met about 11 times stage 1's crowd HP and
+6 times its bite in the first minute and fell about 50 times in a stage-2 run (sim, Drifter, a quarter board).
+Method: the run sim (tools/sim_batch.py --stage k, the explorer bot, a private --sim-dir) with death=keep, every fall
+counted by phase (the stage, the boss fight, the portal, Endless) from the phase series. The bots are far weaker than
+Garry (death=end: the explorer cleared stage 1 at a quarter board 1 time in 10, the expert 0, both falling at ~1:40 to
+the skeleton knights; Garry cleared it at level 30 with a third of the board), so the targets are relative, as pass 64's
+were: stage 2 at a quarter and stage 3 at half about as hard as stage 1 with no board (the first-time stage everyone
+clears), and each stage clearly harder than the one before at the same board. Garry's stage 1, stage_mults [1, 2.2,
+3.34] (the coins' worth) and the HP formula (pass62_pc_test pins it through 7:10) are untouched; the knobs were the
+stage-2 / stage-3 rows' HP x (a factor ramping through each window on the migrated numbers), the ATK x curve's points
+after 430 s, the cap curve (a soft start in each window), the Elites' and the bosses' event HP x (the bosses' only as the
+data-HP floor of the seconds mode: a fresh hero's 40 s / 60 s of full DPS now rules, as for the King), r18 a second later
+(431: stage 2's side of the steps), and lane SGAME's `endless` keys. Tools: tools/dl/p87/TUNE/bake.py (reads the map as
+it is, changes only these numbers, skips a row someone else edited), est.py (rows' numbers by stage minute), summ.py,
+fallsmin.py, table.py; eight bakes, about 300 simulated runs. What the sims showed on the way: the fresh hero snowballs
+(stage 2's creatures drop 1.6-2.7x stage 1's XP a kill), so a soft stage was beaten by level 20 at 4:00 and its second
+half got easier, while a slightly hard opening sank the run (stage 3: +30% HP and ATK took the falls from 4 to 14), so
+the openings stayed soft and the late rows ramp steeply (stage 2 x0.26 -> x1.4, stage 3 x0.30 -> x0.60); the hero
+outgrew stage 3 by its end until its late rows were raised; Endless's 120-strong first wave at x1.2 ATK felled a third
+of the stage-2 heroes within 15 s (Garry's words give the first wave "higher speed and HP", not attack). Tests re-pinned
+on purpose: pass62_pc_test and pass64_df_test (stages compared at the middle of their own windows; the Elites found by
+window). Numbers and the before/after table: balancing_TUNE.md.
+
+**Lane SUI (the stages on screen).** Garry: "After Player had completed the 1st Stage ... A new menu unlocks, which will
+pop-up whenever Player presses Play ... Each of the Stage Buttons will feature a screenshot ... and a quick description of
+the difficulty ... The Stages that are locked will show the requirement ... Upon tapping the Stage Player will proceed to
+play that Stage with the chosen hero"; "the Portal that appears shows a 1 minute timer before the Endless Mode will
+activate. There is only an Extract button now in the Portal". New **ui/StagesScreen.gd** (+ .tscn, ScreenBase, the
+Wanted kit): header "Stages" with the back square and the chosen hero's badge, "RED CANYON · DRIFTER", one card per
+`stage_list` entry (WaveTimeline.stage_entry): the stage's picture (art/ui/stages/<map>_s<k>.jpg from lane SLOOK, 972 x
+374 covered, striped until it exists) with an ink STAGE k tag and the stage's name in paper slab over a soft ink foot,
+a sage BEATEN stamp on a beaten stage; under it the difficulty line in the stage's colour (sage / brass / rock), the
+description, "7:10 to the boss" and the boss's plate and name. A locked card is aged with its picture under an ink wash
+and a padlock and "To unlock: Beat the Gila Grande"; a tap plays the locked sound and shakes it. A tap on an open card
+calls `Run.choose_stage(i)` and starts the run. **TitleScreen._on_play** opens the menu once `Save.stages_menu_open`
+(the live title keeps its world for the way back); before that PLAY plays stage 1. **PortalDialog** rewritten: BOSS DOWN /
+STAGE k CLEAR, the Extract road as before, and an ink Endless card with "STARTS IN" and the count (brass, rock and
+swelling in the last 10 s), "A huge wave, then a tougher one every 10 s, until you fall." and the gold line; NOT YET
+kept; the dialog drives the game's countdown while up (`Game.tick_portal_countdown`) and the game closes it when Endless
+starts; with a pinned count or no game it closes itself (`expire`, signal `expired`). **HUD**: the clock plate shows the
+stage's own clock (Run.stage_clock), then the portal's count on rock with ENDLESS IN hanging under it, then Endless's
+time on ink with WAVE n (rock tag, a swell on each wave) and the ENDLESS banner (`on_endless_started`,
+`on_endless_wave`, called by Game; `test_stage_clock` for captures). **Results**: the star line Extracted / Fell in
+Endless / Run over, "STAGE 1 · SUNDOWN · BEATEN" in the stage's colour, the run's time, "Endless 01:24 · wave 9" in rock;
+PLAY AGAIN replays the same stage. Tools: wanted_shots 18-stages / 18b / 18c (only=stages; inset=130 too), 15 / 15b /
+15c (the new stage clear), 06f-hud-portal / 06g-hud-endless (only=hud_stage); touch_audit stages (PLAY opens the menu
+with stage 1 beaten, every card, locked ones refuse, open ones start their stage, the back square), stages_play (a real
+tap on stage 2 starts a fresh level-1 run at stage 2 with the clock at 00:00), portal_expire, endless_banner;
+game/tools/_p87_SUI_flow.gd (scratch: boss down -> dialog -> NOT YET -> the HUD's count -> back in -> Endless -> wave 2
+-> a fall -> the Results). Tests game/tests/pass87_sui_test.gd.
+
+**Lane SLOOK (the stages' looks and their pictures).** Garry: "there is a blueish dim filter on the map for Stage 2 to
+indicate evening, and a redish filter on Stage 3 to indicate hell / bloodmoon ... This should look good and not mess up
+how elements 'read' during the game. The screenshots in the Stages menu should reflect the look." Most of the world is
+unshaded paintings, so the sun and the ambient alone could not tint it, and a tint uniform in every world shader would
+have meant hooks in EnemyManager, PropField, PickupManager and BillboardSprite. Instead a stage's `filter` {color,
+strength, actors} (timeline_data.stage_list) is two quads over the whole view (core/shaders/stage_filter.gdshader,
+blend_mul, the quad in clip space so any camera sees it, never culled), drawn by core/systems/StageLook.gd at render
+priority -7: after the opaque world and the water, before every ground mark, shadow, gem, coin, outline, effect and
+projectile, which stay untinted on top and pop more on the darker world. Split by pass 72's stencil: the world
+(stencil 0 sand/water/sky and 2 scenery) at the filter's strength, the creatures and the hero (stencil 1) at `actors`
+(default 0.35) of it, so they stay brighter than the ground. The quad's colour reaches the screen sRGB-encoded, so
+StageLook hands it in linear light: on the screen each channel is multiplied by the colour as authored. A white factor
+hides the quads (stage 1 costs nothing). Hell (pass 43's ground) comes from the entry's `hell` (fallback without a
+stage list: the third stage on, as before); Game's stage_started lambda calls `StageLook.of(self).show_stage(s)` (it
+called map.set_hell). The dust gusts and the dust devil now draw before the filter (priority -8; at 2 they were a pale
+veil over the blood moon). Red Canyon, tuned side by side on a staged scene (tools/game/_p87_SLOOK_read.gd: creatures,
+a special's rim, an Elite, outlines behind a saguaro and a structure, red rings, a danger disc, an orange line, gems,
+coins, a chest): Nightfall #3D55C8 at 0.48 (a slate blue-grey sand), Blood Moon #6A1A28 at 0.6 over the hell ground (a
+dark crimson: a dark red keeps the red warnings readable by brightness, a bright red flattened the danger disc). The
+Stages menu's pictures: game/tools/stage_shots.gd builds the arena on the title's roll (88) with the run's dice fixed,
+hides the props and structures between the camera and the crowd, puts the stage's own creatures (its window's most
+weighted rows, the hell channel first on a hell stage, each row's look and stats) on the south shore of the east oasis
+facing the hero (his back to the camera), applies the stage's look and shoots through a SubViewport sharing the run's
+world, 2x supersampled to 1248 x 480 -> art/ui/stages/red_canyon_s1..3.jpg (the palms, the lake, the fort wall, the
+cliffs and a sliver of sky behind); `overview=<png>` draws the roll from above for choosing a spot. The debug arena's
+WORLD tab gained "Stage look" (each stage's look on the spot); perf_late gained `look=k` and prints the GPU time.
+
+**Pass 87, lane STOOLS: the stages in the Level Editor, the estimate, the Sim, the Watch and the analytics.** Garry:
+"These changes should be reflected in both the Watch tool, the analytics (posthog too) and the LevelEditor ... Watch Tool
+should give me a choice to which Stage bot will be playing in. LevelEditor will have tabs in the Timeline for each Stage
+(more Stages can be added and it should be fairly simple to add (choosing the colouring should be possible too)).
+Analytics should make it easy to indicate which Stage Player was playing on and which Stage the data is about."
+
+**The Level Editor.** model.js reads the map's `stage_list` (one window a stage, the sum of the earlier lengths;
+without one, stage_length x stages as before: no churn): `stageList`, `stageWindow`, `stageStart/End/Len`, `stageMarks`,
+and every page use of the old one stage length re-read through them (the ruler, the shades, the mutation offers, a
+curve's seeded points, the snap targets, the summaries, the validation: a boss away from a window's end, a path time past
+its stage's own length). A strip of **stage tabs** above the Timeline (stage_tabs.js): All | Stage 1 · Sundown 7:10 |
+... | + Stage, each with its colour dot. A stage tab draws its window from the left edge (timeline.js: the axis from
+`T0`, every sampled line read through it), the ruler counting the stage's own clock with the map's in brackets, only
+the rows open in its window (a row spanning windows on both tabs, its label kept at the window's edge), its boss, the
+portal's countdown and two minutes of Endless after it; each tab remembers its own Sim (the newest of its stage by
+default). A **stage's card** (its tab, or its band on the ruler) holds its name, difficulty line, description, picture,
+length (a new length asks: keep its own times, cutting what falls past a shorter end, or stretch them; the later stages
+move either way, named in the question), boss (its boss event follows), look (a starting look, the colour with a live
+swatch: the map's sand, rock and wall colours and the boss in daylight and in the stage's look, the strength, lane
+SLOOK's share on the creatures) and hell ground; Delete stage asks with what goes. The edits are page-free in
+stage_model.js (Node-tested). Settings gained the Endless block (lane SGAME's `endless` keys) and says the old endless
+keys are not played; the Instructions tab a "Pass 87: stages as their own runs" section.
+
+**The estimate per stage.** spawnEstimate's `opts.stage` plays a stage run (model.js STAGE_RUN_NOTES, the Python twin in
+selftest.py step for step): an empty map at the window's start, only its own events, its boss at its end (from its entry
+when no event), the kill-rate curve read at the seconds the fresh hero played, then the portal's countdown with the
+director's clock held at the end and Endless (wave 1 at once, a wave every `every` s, the crowd kept up to the
+stage-end cap x `endless.cap`, from the late roster) drawn after the window. "All" stitches every stage's run. On a
+map with a stage list the old endless after the last stage is gone (`stageAt` keeps the last stage, `fixedFrom` never
+refixes), as the game's WaveTimeline.
+
+**The Sim.** sim_batch.py `--stage k` (settings `stage`, checked against the map's stages; each player gets `stage=k`;
+the made-up players of a later stage start at its window), its job spec and the Sim tab's Stage box, the history and
+the settings line say the stage; result.json's players say their `stage`, `outcome`, `boss_killed`, `endless_s` (from
+sim_run.gd's meta) and `summary.stage_run` counts the boss kills, the outcomes and the median Endless survival
+(sim_avg.js the twin). The bot's new option `portal` (endless, the default in every preset: never walks to the portal,
+answers it "not yet" and plays on into Endless; extract: walks there and extracts), in Bot.gd, sim_run.gd's BOT_ARGS,
+sim_batch's BOT_KEYS and the Watch's bot form.
+
+**The Watch.** The Hero Settings pop-up has a Stage row (every stage of the map with its name, length and boss): with
+Every unlock on every stage, off only the stages the PC save has unlocked (watch.py's setup file: `save_stages`,
+sim_batch.save_stages reading the save as Save does, an unmigrated save from its old boss flags and kill totals); the
+run starts that stage (the launch's `stage`); `--stage k`, check actions `setup.stage=`, `setup.unlocks=`; the header
+says the stage's name, its own clock, the portal's countdown and the Endless wave; the grey line is a Sim of the same
+stage (a whole-run Sim from before pass 87 only for stage 1).
+
+**Analytics.** The run record's header names the stage (`stage_index`, `stage_id`, `stage_name`, `stage_start`,
+`stage_length`, `stage_count`) and how the stage run ended (`outcome` extracted / died_endless / died_after_boss / died
+/ quit, `boss_killed`, `stage_clock`, `endless_s`, `run_time`); a row in Endless has `en`; the stage's boss down is a
+`stage_beaten` event (Endless begun stays Game's `endless`). PostHog: every run event carries `stage_id`, `in_endless`,
+`endless_wave`; `stage_beaten` and `endless_started` events; `run_end` the header's stage keys; the portal's choice
+`extract` or `not_yet`. tools/posthog_boards.py: a new "88fits · Stages" board (how stage runs end, boss-down rate,
+Endless survival, by hero and player, when each player first beat each stage), "Runs a day, by stage" on Pulse, the
+stage and outcome on Players' recent runs, deaths in Endless or before; rebuilt (ten boards, 68 tiles, all queries
+checked); any board filters by stage with a dashboard filter on stage_id. analytics/dashboard.html: a Stage filter for
+every list, the stage's name and outcome on the summary, the facts and the history. analytics/SCHEMA.md documents it all.
+
+Tests: tools/level_editor/selftest_STOOLS87.py (176 checks: the windows by hand and against the Python twin, the edits,
+the stage-run estimate twins on fixtures and Red Canyon, the page's wiring, the Sim's settings, args, made-up players
+and the stage_run summary twins, the Watch's launcher and the save's stages, the analytics files); the selftest's twins
+of the stage-free maths re-read through the stage list (snap targets, fixedFrom, creatureAt's stage, stage_mult);
+game/tests/pass87_stools_test.gd (8); pass57_an_test re-pinned (the portal's choice). The full selftest: 13,157 + this
+group, only lane SOL's Solenne looks pin failing. Checked by eye: the Level Editor on a spare port (the tabs, a stage
+card, the length confirm), the Watch (its Stage row, a stage 3 run), the dashboard's filter, a stage 2 Sim.
+
+For docs/level_editor.md (the lead): "Pass 87: the stage tabs" from the Instructions section above; for
+docs/waves_schema.md nothing new beyond lane SGAME's keys (the editor writes stage_list and endless as SGAME documents).
+For CLAUDE.md: the boards are ten (Stages added); `python tools/sim_batch.py ... --stage k`; `python tools/watch.py
+--stage k`.
+
+Pass 87, lane BIGMOUTH (Garry: "Remove the tongue from the **Big Mouth** 3d Object. But keep a kind of a bright shining
+thing in the back of the Mouth when it's shooting the Laser. Add a bit of a wind-up animation to the Big Mouth as it's
+about to shoot, something short. And a visual 'punch back' when the laser is being shot"). The model
+(`tools/blender_mouth.py`, `art/props/big_mouth.glb` and the gold `loud_mouth.glb`, both regenerated) has no `Tongue`;
+its inside is a dark throat: a hollow bowl open to the front, its inner skin `Cavity` (dark, lit by the glow) and its
+outer skin `ThroatBack` (the lips' colour at 0.55, so the back of the mouth no longer reads as a dark egg or a hole
+behind the gold lips), each single-sided, and a floor on the jaw (`Floor` inside, `FloorBack` outside) so the wide-open
+mouth shows a dark hollow, never the sand; `Glow` (a core deep in the bowl) and `Flare` (an empty in the opening) are
+for the code; `game_views=1` renders the game's angle (tipped back 32 degrees, camera 48 degrees up) from four sides,
+shut, gaping and open, to tools/dl/mouth/. `LaserBeam.gd`: the **throat glow** (`params.beam.throat {size 0.9, gain 1,
+walls 0.9}`, `_setup_throat`, `_tick_glow`, `_flare_facing`, `core/shaders/mouth_glow.gdshader`: a depth-tested
+camera-facing flare, so it shows only through the open mouth, faded as the mouth turns its back on the camera): dark
+at rest, 0.2 + 0.6 f^2 through the wind-up (it shines between the teeth before the jaw opens), 1 with a flicker while it
+pours, gone in a tenth of a second after, always in the beam's colour (pink, Slow Roast orange, Bad Breath green); the
+old whole-cavity white glow is gone. The **wind-up** ("the breath", `params.beam.windup {seconds 0.24, rear 0.35 rad,
+gape 36 deg, swell 0.1, tremble 0.03 m}`; it was a fixed 0.12 s clamp-and-squash Garry never noticed): the mouth turns
+to its target, its lips rear up, the jaw gapes, it swells, the glow gathers, a shiver at the end; the beam pours at its
+end. The cooldown clock still starts at the pull, so the wind-up is taken from the cooldown and the time between beams
+is unchanged; the first tick comes 0.24 s after the pull. The **punch** (`params.beam.punch {back 0.36 m (Loudmouth
+0.45), climb 0.2 rad, pop 0.2, hz 2.8, decay 7.5, pulse 0.3}`, the Revolver's familiar.kick shape): as the beam leaves
+the mouth kicks back along its aim, its lips climb and it swells, springs past rest and settles in about 0.6 s; every
+pulse (0.28 s) kicks again at 0.3; the orbit is eased in `_fam_base` and the kick laid over it unsmoothed, the beam
+leaving from the lips where they are. A pull while the beam still pours (cooldown shorter than the beam) re-aims it and
+pours on at once with a fresh punch, no wind-up. The flash bursts moved out along the line (0.6 / 0.9 m, the pulse puff
+0.7 m) so they no longer cover the lips. Numbers in big_mouth.json and loudmouth.json; keys in tools/dl/p87/keys_BIGMOUTH.md.
+Captures: game/tools/_p87_BIGMOUTH_shot.gd (frame by frame round a shot, the pack set up the screen, down it or to the
+side, the mouth held where it films best, crops round its orbit place so the punch shows), outputs tools/dl/p87/BIGMOUTH/.
+Tests game/tests/pass87_BIGMOUTH_test.gd (10); pass46_weapons_test's wind-up test re-pinned (the breath, not the clamp)
+and pass61_wp2_test reads the wind-up's own length.
+
+**Lane SOL (pass 87): Solenne on the Puppet method, catwalking; two looks SOL-F (precise words) and SOL-G (loose
+words), both fresh.** Garry: "Let's try a Look using the Puppet Method, I always felt it was weird that she looks at us
+while walking to the side. Make sure to use the Cat Walk animation instead of a Run one for this. Make 2 new versions
+(trying a more precise and less precise prompts)". Her played SOL-B walks on a stick figure whose face was pinned to the
+viewer (pass 55's pose_fit) with a side still whose sun disc is turned to the camera; SOL-A's profile side read as a
+head with two ears. The puppet (stages run from the shell as the hero_puppet job runs them; Garry's Level Editor held
+the queue): `tools/puppet.py solenne --look SOL-B --clip catwalk_walking.fbx` with the arms-out side on words of its
+own (tools/dl/p87/SOL/words_side.txt: her face in profile looking right, the rays all round): four arms-out fronts
+(c2: slim like her, arms clear), three sides (all in profile; c2, rays like her front's), three backs (c0, the front's
+arm angle); Hunyuan3D-2mv try 0 (a spiky sun ball with a face); the rig put her shoulders at the tips of her high
+flared collar (the finder's "shoulder top" is the first slab 1.6x the neck's width) and was rebuilt with
+tools/dl/p87/SOL/rig_fix.py (the shoulder on the straight arm's axis under the shoulder's round top, the elbow half
+way; the first rig in tools/dl/puppet/solenne/old/); Mixamo's Catwalk Walking retargeted (36 frames), guides
+solenne_puppet_catwalk_walking (+ _depth, silhouette). Each look painted its own side, three-quarter front and
+three-quarter back (and their hurts) as four candidates on gen_art's own view prompts plus its words, picked by eye
+(tools/dl/p87/SOL/still_cands.py); front, back, cheer, death and the front/back hurts stay her own paintings
+(still_keys). The first SOL-F walks showed two faults the method shares with both looks: the three-quarter back on the
+depth guide painted a black glossy reflection under her feet, and the side's far arm (projected up to her chest by
+the 25-degree camera) came out as a hand at the back of her neck; both looks walk only the back on depth and the side
+on tools/dl/drivers/solenne_puppet_catwalk_walking_farhide (tools/dl/p87/SOL/far_arm.py: the far arm dropped where its
+wrist is above mid-torso).
+
+The two prompts (recipe keys; everything else equal):
+
+SOL-F, precise:
+- pose_hint: "Her head always turns together with her body: her sun face looks the same way her chest and her feet
+  point, the way she walks, and never turns towards the viewer unless her body faces the viewer. Her head is a round
+  glossy yellow ball, not a flat disc, with long pointed golden-yellow rays sticking out all round it like a crown of
+  spikes, so the same spiky sun shows from every side; her face (calm half-lidded eyes with thin black brows, a small
+  nose, small red lips) sits on the side of the ball she faces. A slender figure: a long neck in the high collar of the
+  glossy black latex catsuit, a small waist, long legs in knee-high black heeled boots, black gloves. Both arms hang
+  straight down at her sides, hands open, not on the hips."
+- side_hint: "Strict profile: her sun face is seen from the side looking to the right, where she walks: one eye, the
+  tip of the nose and the lips at the right edge of the round yellow head, the back of the ball and its rays on the
+  left; never turned to the viewer, never looking over her shoulder."
+- back_hint: "the back of the round yellow sun ball with its rays all round and no face, the zip line down the
+  catsuit's back, the heels of the boots; both arms swing loosely at her sides and never reach behind her back"
+- anim_hint: "a slender woman in a glossy black latex catsuit with a high collar, black gloves and knee-high black
+  heeled boots; her head is a round glossy yellow sun ball with long pointed golden-yellow rays all round it, the same
+  spiky sun from every side; her head turns with her body and her face (calm half-lidded eyes, thin black brows, small
+  red lips) looks the way she walks; the same slim proportions and the same height in every frame"
+- pose_motion: "walking in place on the spot like on a treadmill with a slow catwalk stride: each foot placed straight
+  in front of the other on one line, the hips swaying from side to side, the shoulders level and still, the chin up,
+  both arms swinging loosely at her sides with open hands, the head and the body facing the same way the whole time"
+- anim_negative: "a human head, hair, a helmet, a face on the body, a second head, a weapon, a cape, turning the head
+  towards the camera, looking over the shoulder, a flat disc seen edge-on, a hand on the hip, hands behind the back,
+  arms crossed, crouching, bending forward, jumping, a second figure"
+
+SOL-G, loose:
+- pose_hint: "She looks where she walks."
+- anim_hint: "a woman in a black catsuit with a yellow sun for a head, looking where she walks"
+- pose_motion: "a catwalk walk in place"
+- side_hint, back_hint, anim_negative: "" (set empty on purpose, so her own top-level words do not apply)
+
+What each prompt changed (both on the same puppet, guides, seeds scheme and picks by eye; sheets
+tools/dl/p87/SOL/sheet_final.png, phone_final.png, walk_final.gif, heads_final.png, cmp_side_big.png, cmp_fd_big.png;
+in game tools/dl/p87/SOL/ingame_dirs.png, ingame_frames.png, ingame_zoom_BFG.png): in both, unlike SOL-B, her sun face
+looks where she walks: a profile looking right in the side walk and idle (mirrored to the left by the game), a
+three-quarter face turned to the lower right in the diagonal front, the back of her head in the diagonal back; the
+front still faces the camera (she walks at it). SOL-F's precise words kept her design from every side: all four side
+candidates in profile with the rays all round (a spiky sun ball), the red lips, her slim build; the fd candidates
+turned body and face together. SOL-G's one-liners also turned the face (the words that matter are "looks where she
+walks"), but three of its four side candidates lost the rays (a bald yellow ball with two ear-like spikes, the model's
+own reading of a flat sun seen edge-on) and the picked one keeps only a few short rays at the back; at phone size its
+side and diagonal heads read as a yellow ball rather than a sun; the walks themselves (motion, size, colours) came out
+alike, since the stick figures drive the motion. Sizes (opaque height, run/idle median): F and G front 1.03, fd
+0.97-0.98, side 0.94, bd 0.94, back 0.96 (the puppet's own catwalk ratios; SOL-B 0.97-1.01). Tests:
+game/tests/pass87_SOL_test.gd (4) with pass66_shape, pass55_lead, pass60_art, pass66_gd, pass55_hv, pass76_looks,
+pass69_hero: 76 green; check_scripts clean; smoke_run OK; the Level Editor selftest pinned her looks as exactly SOL-A..E and is re-pinned
+(tools/level_editor/selftest_S.py: those five among hers): 13,208 passed.
+
+**Lane FADE (pass 87): Fadeaway, fixed, two fresh looks FAD-E (the precise prompt) and FAD-F (the loose one).**
+Garry: "Fadeaway - Still has some problems: the size problem, they are inconsistent: run front is considerably larger
+than front stand ...; back run shoulders look slouched; back 3/4 right/left the back number 88 is gone. Make 2 new
+versions (trying a more precise and less precise prompts)". Measured first (tools/dl/p87/FADE/measure.py, the opaque box
+per frame; match_scale.py, the standing head found in every frame at scales 0.75-1.35; size_table.py): the bounding box
+cannot see the bug (FAD-D's front run stood at 0.99 of its stand's height) but the body can: his head in FAD-D's front
+run was 1.12-1.18x the stand's (back 1.07-1.10), FAD-C's 1.09-1.12 (side 1.11). The causes, all in the guide and the
+bd painting: (1) tools/puppet.py takes the puppet's Neck bone for OpenPose's neck point, 0.18 of the torso ABOVE the
+shoulder line in the back views (an inverted V: Wan paints sloping, sagging shoulders = the slouch); (2) the running
+puppet, leaning into the stride and seen from 25 degrees above, puts his face only 0.13 torso above the shoulders in
+the front view (the Mixamo run: 0.29): the head is painted sunk into the shoulders, the figure comes out short for its
+body and the fit by height blows the body up (the size); (3) gen_art paints the bd still from the front still alone,
+with no back words, so fadeaway_c_bd's back was plain purple and no walk could keep an 88 (and the Running clip swings
+the bd shoulder line from square, 0.113 of the frame, to edge-on, 0.019, and the near arm's backswing crosses the back:
+half of every bd stride hid it anyway).
+The fixes: a new guide tools/dl/drivers/fadeaway_puppet_run_up (tools/dl/p87/FADE/driver_fix.py from the puppet's
+fadeaway_puppet_run): the neck point on the shoulder line in every view (square shoulders), the face lifted per view to
+about the Mixamo run's head height (front/fd nose 0.29 torso, side ears 0.36, bd 0.50, back 0.56: upright), and in the
+bd view only the shoulder twist calmed (width 0.08 + 0.2 x (w - mean): 0.069-0.088) and the backswing kept on its own
+side (elbow and wrist at least 0.6 of the half shoulder width out from the back's middle). Every view walks on it as a
+stick figure (the depth guide had dulled the purple in pass 85). The bd painting is made from the front AND the back
+still (refs [front, back], words naming the 88 across his upper back) and named per view (`still_keys.bd`). Each view's
+run is then sized to its standing still by the head (`run_scale` per view, from the head width, the head template and
+ladders checked by eye): the run's head within 1-2 % of the stand's in every view of both looks.
+The looks (both fresh, method hero_pose5, painter Klein, FAD-C's badge and cut-out; Garry's played look stays FAD-C):
+- **FAD-E, the precise prompt** (stills `e`, seed_offset 2311): art_prompt "a tall, lean, athletic young Black man of
+  about twenty with long arms and long legs, broad square shoulders held level, a straight upright back and his chest
+  up; dark brown skin; a short rounded black afro with a white terry-cloth sweatband across his forehead; sharp angular
+  features, a thin black goatee, heavy-lidded confident eyes and a sly half-smile; a sleeveless vivid royal-purple
+  basketball jersey with gold trim round the neck and the armholes and a big gold number 88 printed in the middle of
+  the chest; loose knee-length bright white basketball shorts with a purple waistband and a purple and gold stripe
+  down the outside of each leg; white wristbands on both wrists; short white socks and white high-top sneakers with
+  purple accents; standing straight and facing the viewer with his arms relaxed at his sides, empty hands", with
+  pose_hint (chest up, both shoulders level and square), a back_hint naming "a big gold number 88 printed across the
+  middle of his upper back between the shoulder blades, as big as the 88 on the front; both shoulders broad, square
+  and level, his back straight and upright, never hunched or slouched", a side_hint, an anim_hint ("... he runs tall
+  with his back straight, his chest up and both shoulders square and level") and plain negatives ("a basketball, a
+  ball in his hands, extra arms or legs, a face on the back of his head, hunched shoulders, slouching, sloping
+  shoulders, a plain jersey back without its number, a dull greyish jersey"). Picks: front c3 of 4, back c1 of 3, bd88
+  c0 of 3 (face hidden, both digits on his back). Its first back flinch turned his head round to show a face and lost
+  the 88 (the hero's hurt_hint "a grimace"): repainted from the back still (`still_keys.hurt_back`
+  fadeaway_e_hurt_back88, c1 of 3: from behind, no face, the 88); its first down painting had a stray brown shape
+  beside him: repainted (c0 of 3).
+- **FAD-F, the loose prompt** (stills `f`, seed_offset 2377): art_prompt "a tall Black basketball player with an afro
+  and a white headband, a purple number 88 jersey, white shorts and white sneakers, standing straight and facing the
+  viewer, arms at his sides"; back_hint "Seen from behind: the number 88 on the back of his jersey, standing
+  straight."; no side_hint; anim_hint "a basketball player with an afro and a white headband in a purple 88 jersey and
+  white shorts"; bd words "Three-quarter back view of this character, turned away to the upper right, standing
+  straight, with the 88 from the second image on his back. Same style." The short words gave him a white 88 (nothing
+  said gold), a big round afro, a slimmer build and plainer shorts; two of three bd paintings barely turned (c2 picked);
+  his cheer lost the 88. His first back walk painted a basketball in his hand: the hero's anim_negative "no
+  basketball, ..." reads as a double negative in a negative prompt, and "a basketball player" invites the ball: walked
+  again with plain negatives ("a basketball, a ball in his hands", anim_seed 1).
+Walks: 53 s a view on the AI server (each rolled up to three times by gen_art's colour checks); F's back and bd, then
+both bd walks twice more as the bd guide improved (old clips kept in tools/dl/p87/FADE/old_clips/). In game
+(game/tools/_p87_FADE_shot.gd, the look forced in the wrapper's sandbox): eight directions beside FAD-C and FAD-D, the
+runs at the stand's size, the 88 on the back and the back-diagonal in every frame captured. Sheets:
+tools/dl/p87/FADE/sheet_C_D_E_F.png, phone_C_D_E_F.png, runs_C_D_E_F.gif, ingame_dirs.png, ingame_backs.png,
+ef_other_anims.png (cheer, die, hits); the size table size_after.md. Tests: pass87_FADE_test (4: both entries,
+their strips, the game wears them, every view's run head within 5 % of the stand and the run never taller than it
+by 5 %; the same measure fails FAD-C and FAD-D's fronts), pass67_fadeaway re-pinned (Garry's bonus level 3 read from
+his JSON), pass85_FADE, pass66_shape, pass69_hero, pass76_looks green; check_scripts 587 files 0 errors; Level Editor
+selftest 13,206 passed.
+
+Lane MUMMY (pass 87): four new Dust Mummy looks from Garry's mummy.png.
+Garry: "Mummy - Let's have another go at the mummy as I really didn't like the previous iterations. Method: Same one as
+we used for the skeleton. Ref: mummy.png. 2 direction. Important to make sure that the arms are always outstretched and
+high up (kind of like a zombie). 4 Looks from the start (differing by seriousness / walking cycles)." Four looks of
+content/enemies/dust_mummy, all `fresh`, DM-0 still played: DM-F "serious shuffle" (a slim menacing mummy close to
+Garry's drawing, Mixamo Walking with the legs' swing x0.55, run 10 fps, falls on its back), DM-G "serious lurch" (the
+same build, Orc Walk leaning 10 degrees, 15 fps, falls back and rolls onto its face, `anim_seed` 1), DM-H "goofy bounce"
+(a round chubby mummy with a big head, Garry's Scary Clown Walk, 15 fps, unravels into a heap: `death: collapse`),
+DM-I "goofy limp" (the round mummy, Walking with the right leg's swing x0.3, 12 fps, falls on its back). The skeleton's
+method (creature_pose2: a Klein still per view, Wan Animate on an OpenPose driver, tools/gen_art.py --variant run
+through tools/asset_job.py with a sidecar, merged in place by tools/dl/p87/MUMMY/entry.py): fronts as Klein edits of
+Garry's front figure (tools/dl/p87/MUMMY/cands.py, serious and goofy wordings, with and without the style anchor),
+backs from each picked front plus his back figure (`back_ref`), colour-matched to the front (cands.py
+match_to_front), all picked by eye. Arms up in every frame came from the drivers: tools/pose_driver.py `arms=zombie`
+gained `arm_wide` (a yaw out from straight ahead) and `fore_drop` (the forearm's own slope), one driver per view
+(`pose_front` raised for the camera above, `pose` for the back, where raised arms rise further); the round goofy
+mummies also need `body=` per view (pose_driver's goblin retarget: the front to the round front painting, the back to
+the back painting), since on a man's proportions Wan made them slim, swung a bandage strip like a whip and crossed the
+arms over the head (DM-H's first run), and a head scale above the painting's (`top_nose` x3.9) drew a giant head that
+swallowed the raised hands (DM-H's second). Arm targets were read off the paintings in units of the neck-to-ankle
+distance (tools/dl/p87/MUMMY/finish/drv_units2.py: wrist rise above the neck, reach out, elbow angle, ear spread):
+arm_wide is applied at the target's forward distance, so the effective elevation is atan(tan(arm_drop) cos(arm_wide)).
+New drivers tools/dl/drivers/mummy_shuffle_f/_b, mummy_lurch_f/_b, mummy_bounce_f/_b, mummy_limp_f/_b,
+mummy_bounce_fit_f/_b, mummy_limp_fit_f/_b. Garry's Scary Clown Walk.dae was rebuilt for Blender 5 (no Collada
+importer) by tools/dl/p87/MUMMY/dae_to_blend.py; his Zombie monster walk GLB's arm chain runs through _guideBn_ bones
+and its head juts forward between the shoulders from above, so it was dropped. tools/gen_art.py (additive): a creature
+look's `remap_hues` (an object or a list of blocks with artkit's min_sat / max_sat, on the walks and the death clip:
+the walks' yellow drift back to beige, the teal and green feet Wan smeared in, and for the goofy two a pink cast, the
+saturated red eyes spared by max_sat) and `match_still` (each walk frame's saturation and value matched to its view's
+painting, the lines, the outline and the red eyes spared). Checked every frame (tools/dl/p87/MUMMY/sheet_DM-*.png,
+z_DM-*_*.png, final_four.png at phone size) and in the arena (game/tools/_p87_mummy_shot.gd, tools/dl/p87/MUMMY/shots/).
+Known flaws: DM-F's stepping foot shows a dark sole in 5 of 12 front frames; DM-G's fall flips the body mid-air before
+it lands on its face (animate.fall_clip's prompt says "on its back"; two seeds did the same); DM-H's backs are slimmer
+than its round front painting and its hands come out small with bent elbows (goofy "hands up" more than reaching
+claws), with a few orange flecks in its first back frames; DM-I's walk grins (an open mouth under the eye slit). Tests
+game/tests/pass87_mummy_test.gd (4), pass53/54_waves and pass66_shape unchanged and green.
+
+Lane FIXES (pass 87): the Dynamite Bandit's back, the evade, the black barrels' coins.
+Garry: "Cactus ... looks the wrong way when looking at the player. At least from the back the directions seem to be
+swapped." The bandit look SC-A's back paintings came from Garry's back figure, which turns up-left (the back wind-up
+aims with its left fist out to the left), while the look said nothing (back_faces "right"); and the attack strip's back
+half (attack_views "front_back") read the FRONT key whatever the look said. Now `variants.SC-A.back_faces: "left"` and
+EnemyManager._face_strip makes the throw's back half the back set for the mirror (`_render`) and for the hand the stick
+leaves from (`muzzle_point`: from behind it had left from the empty hand). Checked with game/tools/_p87_FIXES_face.gd: the
+bandit at the eight compass points round the hero, standing, winding up, releasing, walking in, backing off
+(tools/dl/p87/FIXES/face_rr = before, face_fix = after, facing_*_before_after.png). The front was right (the head and the
+pointing hand turn screen-right as painted).
+Garry: "How do we show Player Evading? ... a text 'Evade' that flies out of the hero (just like with the 'Block') and hero
+should become half transparent for a second". The hero's evade word (DamageNumbers, pass 47's DODGE) reads EVADE in its
+own lavender (#cdb8ff; BLOCK stays pale), and the hero turns see-through: alpha 0.5 for 0.7 s easing back to whole by
+1.0 s (Player.EVADE_GHOST_*; another evade restarts it, never fainter; cleared on death). His first pass steps aside
+below alpha 1 (sprite_billboard `fade_alpha`) and his second pass, already in the see-through queue for the speed trails
+(pass 49), draws him at that alpha (BillboardSprite.set_fade). Works with the hit blink (Ghost Step) and in the
+trampoline's flight (tools/dl/p87/FIXES/evade1, evade2; game/tools/_p87_FIXES_evade.gd).
+Garry: "The darker barrels should now give between 1-5 coins ... reduce the number of coins ... from just killing enemies
+by the equivalent of claiming all of the dark barrels ... Add 2 more dark barrels". The darker ones are the rare black
+barrels (pass 48; `light` in BarrelField's code): 35 barrels a map, the last two always black (9.26 black on average,
+7.26 before); each black barrel holds 1-5 coins worth 1 (rolled with the map), dropped with its gems (gold source
+"barrel"). The creatures' coins pay it back as a per-run bill (PickupManager.coin_debt = every coin the map's black
+barrels hold, broken or not): while anything is owed, 40% of the coins the kills would drop go to the bill instead
+(COIN_DEBT_SHARE 0.4 = the bill over a stage-1 run's kill coins), then they drop as ever. A multiplier on drops.gold could
+not do it: coins a kill rise eightfold after stage 1 and with stage runs a run is one stage (BALANCING §34.FIXES). Sims
+(Drifter, explorer bot, a quarter board, 10 runs each, tools/dl/p87/FIXES/sim_*): every full run paid its whole bill
+(30.5 coins a map on average); the bot's barrels gave back about what it paid; the totals' run-to-run spread (an Elite's
+coin is x5) hides a 28-coin shift.

@@ -220,7 +220,7 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 		_killer.text = "Something put you down."
 	_killer_icon.texture = badge_for(killer) if by != "" else null
 	_killer_icon.visible = _killer_icon.texture != null
-	_stats.text = "%s · %s kills · %s" % [W.mmss(Run.elapsed), W.num(Run.kills), W.lv(Run.level)]
+	_stats.text = "%s · %s kills · %s" % [W.mmss(Run.stage_clock()), W.num(Run.kills), W.lv(Run.level)]
 	_gold_line.text = "%s gold still comes home." % W.num(gold)
 	_gold_row.visible = gold > 0
 	var s := W.node("Settings")

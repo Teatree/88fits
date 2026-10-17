@@ -1,0 +1,383 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a tall Black basketball player with an afro and a white headband, a purple number 88 jersey, white shorts and white sneakers, standing straight and facing the viewer, arms at his sides",
+ "renders": {
+  "front": {
+   "seed": 248949783,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a tall Black basketball player with an afro and a white headband, a purple number 88 jersey, white shorts and white sneakers, standing straight and facing the viewer, arms at his sides. Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 374,
+     "right": 376,
+     "top": 45,
+     "bottom": 40,
+     "height": 938,
+     "width": 273
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 248973541,
+   "prompt": "Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing straight with arms relaxed. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball Seen from behind: the number 88 on the back of his jersey, standing straight. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_f_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 375,
+     "right": 376,
+     "top": 47,
+     "bottom": 49,
+     "height": 927,
+     "width": 272
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 248949789,
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball  isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 429,
+     "right": 408,
+     "top": 45,
+     "bottom": 38,
+     "height": 940,
+     "width": 186
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 248949790,
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 374,
+     "right": 367,
+     "top": 46,
+     "bottom": 40,
+     "height": 937,
+     "width": 282
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 248997305,
+   "prompt": "Three-quarter back view of this character, turned away to the upper right, standing straight, with the 88 from the second image on his back. Same style. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_f_front.png",
+    "88fits/fadeaway_f_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 376,
+     "right": 375,
+     "top": 47,
+     "bottom": 48,
+     "height": 928,
+     "width": 272
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 248949793,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 258,
+     "right": 273,
+     "top": 59,
+     "bottom": 83,
+     "height": 881,
+     "width": 492
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 248949813,
+   "prompt": "One single figure alone in the frame: the exact same character seen directly from behind, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_f_back_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 318,
+     "right": 384,
+     "top": 49,
+     "bottom": 49,
+     "height": 925,
+     "width": 321
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 248949814,
+   "prompt": "One single figure alone in the frame: the exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_f_front_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 360,
+     "right": 362,
+     "top": 45,
+     "bottom": 42,
+     "height": 936,
+     "width": 301
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 248949815,
+   "prompt": "One single figure alone in the frame: the exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_f_side_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 428,
+     "right": 409,
+     "top": 47,
+     "bottom": 38,
+     "height": 938,
+     "width": 186
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 248949816,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_f_bd88_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 380,
+     "right": 366,
+     "top": 52,
+     "bottom": 56,
+     "height": 915,
+     "width": 277
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 248949817,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_f_fd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 374,
+     "right": 367,
+     "top": 47,
+     "bottom": 38,
+     "height": 938,
+     "width": 282
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 248949795,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. flinching back with a grimace, one arm raised across the chest. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 50,
+     "right": 71,
+     "top": 198,
+     "bottom": 156,
+     "height": 669,
+     "width": 902
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "art_prompt": "a tall Black basketball player with an afro and a white headband, a purple number 88 jersey, white shorts and white sneakers, standing straight and facing the viewer, arms at his sides",
+  "back_hint": "Seen from behind: the number 88 on the back of his jersey, standing straight.",
+  "side_hint": "",
+  "anim_hint": "a basketball player with an afro and a white headband in a purple 88 jersey and white shorts",
+  "stills": "f",
+  "seed_offset": 2377,
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "pose_drivers": {
+   "front": "fadeaway_puppet_run_up",
+   "fd": "fadeaway_puppet_run_up",
+   "side": "fadeaway_puppet_run_up",
+   "bd": "fadeaway_puppet_run_up",
+   "back": "fadeaway_puppet_run_up"
+  },
+  "still_keys": {
+   "bd": "fadeaway_f_bd88"
+  },
+  "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+  "fringe_remap": true,
+  "anim_negative": "a basketball, a ball in his hands",
+  "anim_seed": 1,
+  "run_scale": {
+   "front": 0.91,
+   "fd": 0.895,
+   "side": 0.905,
+   "bd": 0.93,
+   "back": 0.88
+  }
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "fringe_remap": true,
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

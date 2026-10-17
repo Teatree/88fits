@@ -44,6 +44,8 @@ const SOURCES := {
 	"hot_springs": ["passive:hot_springs", "Hot Springs"],
 }
 
+## The Stages menu's helpers (pass 87): a stage's entry, its colour.
+const StagesScreenScript := preload("res://ui/StagesScreen.gd")
 ## The show's pace (pass 72; pass 74 the pop and the one chart part), in seconds at normal speed.
 const GOLD_TIME := 2.5
 ## The chart block's pop once the gold is counted: from POP_FROM of its size, an ease-out-back of POP_BACK (a small
@@ -159,9 +161,19 @@ func build() -> void:
 	var head := VBoxContainer.new()
 	head.add_theme_constant_override("separation", 0)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	head.add_child(WStarLine.make("Extracted" if s["extracted"] else "Run over", 30, W.INK))
-	head.add_child(W.slab_text(W.mmss(float(s["time"])), 120, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 120.0))
-	var bits: Array = ["Endless" if Run.endless else "Stage %d" % int(s["stage"]), W.lv(int(s["level"])), "%s kills" % W.num(int(s["kills"])),
+	# pass 87 (lane SUI): how the stage ended, the stage by its number and name, its own time, Endless's line when it ran
+	var story := stage_story()
+	head.add_child(WStarLine.make(str(story["star"]), 30, W.INK))
+	var stage_line := W.text(str(story["stage"]).to_upper(), W.slab(W.em(26, 0.06)), 26, story["tone"], HORIZONTAL_ALIGNMENT_CENTER, 40.0)
+	stage_line.name = "StageLine"
+	head.add_child(stage_line)
+	head.add_child(W.slab_text(W.mmss(float(story["time"])), 120, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 120.0))
+	if str(story["endless"]) != "":
+		var el := W.serif_text(str(story["endless"]), 30, W.ROCK, 600, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+		el.name = "EndlessLine"
+		el.custom_minimum_size.y = 42
+		head.add_child(el)
+	var bits: Array = [W.lv(int(s["level"])), "%s kills" % W.num(int(s["kills"])),
 		"%d chest%s" % [int(s["chests"]), "" if int(s["chests"]) == 1 else "s"], "%d evolution%s" % [int(s["evolutions"]), "" if int(s["evolutions"]) == 1 else "s"]]
 	var line := W.serif_text(" · ".join(bits), 30, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	line.custom_minimum_size.y = 42
@@ -262,7 +274,9 @@ func build() -> void:
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(col)
 	var again := WButton.make(["PLAY AGAIN"], 72, WButton.PRIMARY, 6, 10, 24.0, 0.0, 72.0)
-	again.pressed.connect(func(): go("res://game/Game.tscn"))
+	# pass 87 (lane SUI): the same stage again (Game plays stage 1 unless a stage was chosen)
+	var again_stage := Run.stage
+	again.pressed.connect(func(): Run.choose_stage(again_stage); go("res://game/Game.tscn"))
 	col.add_child(again)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)
@@ -1204,3 +1218,35 @@ func _offer_survey(run_seconds: float) -> void:
 	if not is_inside_tree():
 		return
 	_survey = WSurveyScript.open(self, sv)
+
+
+## The head's stage story (pass 87, lane SUI; Garry: a stage run ends at its boss, then the portal's minute, then
+## Endless): `star` how it ended (Extracted, Fell in Endless, Run over: Run.outcome), `stage` the stage by number and name
+## with "Beaten" once its boss died (Run.stage_beaten), `tone` the stage's colour (StagesScreen.tone), `time` the run's
+## time (Run.summary's, every second played, as the best runs count it), `endless` the time survived in Endless and its
+## waves ("" when it never started).
+static func stage_story() -> Dictionary:
+	var i := maxi(Run.stage, 0)
+	var list: Array = StagesScreenScript.entries(Run.map) if Run.map else []
+	var e: Dictionary = list[i] if i < list.size() else {}
+	var out := Run.outcome()
+	var beaten := Run.stage_beaten or Run.extracted or Run.endless
+	var star := "Run over"
+	if out == "extracted":
+		star = "Extracted"
+	elif out == "died_endless" and Run.died:
+		star = "Fell in Endless"
+	var parts: Array = ["Stage %d" % (i + 1)]
+	var nm := str(e.get("name", ""))
+	if nm != "" and nm != "Stage %d" % (i + 1):
+		parts.append(nm)
+	if beaten:
+		parts.append("Beaten")
+	var endless := ""
+	if Run.endless:
+		endless = "Endless %s" % W.mmss(Run.endless_time)
+		var wave := Run.endless_wave()
+		if wave > 0:
+			endless += " · wave %d" % wave
+	return {"star": star, "stage": " · ".join(parts), "tone": StagesScreenScript.tone(list, i) if not list.is_empty() else W.INK_SOFT,
+		"time": Run.run_time(), "endless": endless, "beaten": beaten}

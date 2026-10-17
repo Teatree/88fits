@@ -890,3 +890,176 @@ status_SIMVIEW.md "OVERLAY READY".
 - tools/level_editor/sim_model.js: the Sim tab's "The crowd against the cap" draws `load` (dotted) when the sim has
   it; new charts `cap_full` ("Cap full", % of the second) and `challenge` ("The crowd against the hero", median + band)
   when the sim has them (older sims: unchanged chart list).
+
+## Pass 87: stages
+
+### stage_list, Endless (lane SGAME)
+
+#### timeline_data.stage_list (Array, default [])
+One entry per stage, in order. Stage k's window on the run clock starts at the sum of the earlier `length`s.
+| key | type | default (key left out) | meaning |
+|---|---|---|---|
+| id | string | "s<k>" | the stage's id (analytics, the menu's picture name) |
+| name | string | "Stage <k>" | the Stages menu's and the Results' name |
+| length | number (s) | `stage_length` | seconds before its boss (its window's length); Red Canyon 430 / 600 / 780 |
+| boss | enemy id | the boss event at the window's end (else the last inside it) | the boss that ends the stage; the director brings it at the window's end when no boss fight began (no boss event there, or one whose t_jitter moved it past) |
+| description | string | "" | the Stages menu's words |
+| difficulty | string | "" | the Stages menu's difficulty line |
+| filter | {color "#rrggbb", strength 0..1} | {"#000000", 0} | the world's tint (lane SLOOK draws it; SLOOK may add `actors`) |
+| hell | bool | stage index >= 2 | the hell look (the red ground, pass 43) |
+| shot | res:// path | "" | the Stages menu's picture (lane SLOOK: res://art/ui/stages/<map>_s<k>.jpg) |
+| endless | object | {} | Endless keys for this stage only (each wins over the map's `endless` key of the same name) |
+[] = the fallback (maps without the block): `stages` windows of `stage_length`, names "Stage k", hell from stage 3.
+`stage_length` / `stages` stay in the file as that fallback.
+
+#### timeline_data.endless (Object, default {}; a key left out plays WaveTimeline.ENDLESS_DEFAULTS)
+| key | default | meaning |
+|---|---|---|
+| portal_seconds | 60 | the portal's countdown to Endless after the boss, seconds of the run clock (stands still behind every screen but the portal dialog) |
+| every | 10 | seconds between Endless waves (Endless's own clock, Run.endless_time) |
+| first_wave | 120 | creatures in the huge first wave (round the hero, past the live cap; the hard cap holds) |
+| wave_size | 30 | creatures in wave 2 |
+| wave_growth | 2 | more creatures in each later wave: wave k = wave_size + wave_growth x (k - 2) |
+| cap | 1.0 | the crowd kept up between the waves, x the stage-end cap (load units); 0 = the waves alone |
+| hp | 1.5 | wave 1's HP multiplier on the creatures' fixed numbers (the late roster's, from each row's own start) |
+| atk | 1.2 | wave 1's damage multiplier |
+| speed | 1.15 | wave 1's speed multiplier (times the stage's speed_per_stage) |
+| hp_growth | 0.15 | COMPOUNDING per wave: wave k = hp x (1 + hp_growth)^(k-1) |
+| atk_growth | 0.1 | COMPOUNDING per wave, as hp_growth |
+| speed_growth | 0.02 | LINEAR per wave: wave k = speed x (1 + speed_growth x (k-1)) ... |
+| speed_max | 1.6 | ... never past this |
+| xp_share | 0.35 | a kill's XP in Endless, a share of what it would drop (gems, Prospector's, Eureka's) |
+| coin_chance | 0.05 | a creature's coin roll happens only this share of the time in Endless (very rarely) |
+| roster_window | 60 | the "late roster" Endless draws from: the mix rows (one creature, no elite, not a special, not a once row; any pace, either channel) open in the stage's last this-many seconds, each at its weight at its last open second there (the map's skins when none) |
+No bosses, Elites or specials come in Endless; power-ups and creature chests drop as before.
+The old `endless_wave_seconds` / `endless_wave_mult` / `endless_mult_per_minute` are no longer played (the old endless
+after stage 3 is gone).
+
+#### Launch key (user://debug_launch.json, Run.launch_override)
+| key | type | meaning |
+|---|---|---|
+| stage | int, 1-based | the stage the run plays (a fresh run at its window's start); the sim's `stage=k`, the Watch, smoke_run's boss=2, hell_check (3) |
+
+#### Save
+| key | type | meaning |
+|---|---|---|
+| stages_beaten | {map id: [bool, ...]} | a stage's boss killed in a run of it; stage i+1 unlocks once stage i is beaten; filled once from old saves ("stages_migrated" in `once`) |
+
+#### Code API (for other lanes)
+See the API READY block at the top of tools/dl/p87/status_SGAME.md.
+
+### The stage filter (lane SLOOK)
+
+All in `timeline_data.stage_list[k]` (SGAME's entry; STOOLS edits them in the stage tabs).
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `filter.color` | "#rrggbb" (or [r, g, b] 0..1) | "#ffffff" | the colour of the stage's "glass" over the world. The world is drawn x white.lerp(color, strength) on the screen: black dims, a blue cools and dims, a red warms and dims. A bad colour plays as none. |
+| `filter.strength` | float 0..1 | 0 | how strong the glass is (0 = none: stage 1; the quads are not drawn at all). |
+| `filter.actors` | float 0..1 (optional) | 0.35 (`StageLook.ACTORS_DEFAULT`) | the share of the strength the creatures, the hero, power-ups and flowers take (the paintings that are not scenery), so they stay brighter than the ground. 1 = tinted like the world, 0 = untouched. The Level Editor need not show it; it may offer it as "creatures" next to strength. |
+| `hell` | bool | false (without a stage_list: true from the third stage) | pass 43's hell ground (RedCanyon.set_hell: redder darker sand, the water and the fort wall with it, warmer ambient and haze); now read from the entry instead of "stage index >= 2". |
+
+What the filter does NOT tint (drawn after it, readability): the ground marks (every telegraph ring, disc, line, cone,
+the Salt's patches, scorches, spills, the structures' rings), the creatures' and props' ground shadows, gems, coins and
+their glints, the creatures' outlines behind scenery, every effect (bursts, blood, flames, tracers, beams), the
+projectiles, badges, damage numbers and all UI. The dust gusts and the dust devil ARE tinted (they draw before it).
+
+Code: `StageLook.of(game).show_stage(s)` (Game's stage_started), `StageLook.filter_mults(entry) -> [world, creatures]`,
+`StageLook.entry_of(timeline, s)`, `StageLook.hell_of(timeline, s)`, `StageLook.PRIORITY` (-7).
+
+Pictures: `art/ui/stages/<map>_s<k>.jpg` (k from 1), 1248 x 480 JPG (q 0.88), made by
+`bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/stage_shots.gd`
+(then `--import`); the entry's `shot` names it. Re-run it after changing a stage's filter or roster so the card shows it.
+
+### The retune (lane TUNE)
+
+No new key, param, special or stat. Lane TUNE changed only numbers in `game/content/maps/red_canyon/red_canyon.json`
+(timeline_data), all of them keys that already exist and that the Level Editor already edits:
+
+| Key | What changed | Where in the editor |
+|---|---|---|
+| `roster[].stats.hp_mult` (stage-2 and stage-3 rows, once-rows included) | the migrated number x a stage factor ramping through the window (see balancing_TUNE.md) | a row's form, HP x |
+| `roster[r18].t` | 430 -> 431 (the blue slimes start a second into stage 2, so they read stage 2's side of the 7:10 steps) | a row's form, start |
+| `damage_curve.points` after 430 s | stage 2's and stage 3's own ramps (balancing_TUNE.md) | Curves -> ATK x |
+| `cap_curve` | a point a second into each window (stage 2: 25, stage 3: 35) and one back on the old line later | Curves -> Cap |
+| `events[elite_boss at 730 / 1420].stats.hp_mult` | 0.94 -> 0.8, 1.33 -> 0.45 | the event's form |
+| `events[boss at 1030 / 1810].stats.hp_mult` (new on those events; the key existed) | 0.3 / 0.15: only the data-HP floor of the seconds mode | the event's form |
+| `endless.atk`, `endless.hp_growth`, `endless.atk_growth`, `endless.speed_growth` | lane SGAME's defaults 1.2 / 0.15 / 0.1 / 0.02 -> see balancing_TUNE.md | Settings -> Endless (lane STOOLS) |
+
+`stage_mults` [1, 2.2, 3.34] are Garry's and are unchanged (they also set the coins' worth: x round(stage mult), so
+stage 2 still pays x2 and stage 3 x3).
+
+### Stages in the tools and the analytics (lane STOOLS)
+
+Every new key, argument and field this lane added (the map's `stage_list` and `endless` blocks themselves are lane
+SGAME's: keys_SGAME.md; the filter's `actors` is lane SLOOK's: keys_SLOOK.md). Defaults in brackets.
+
+#### Level Editor (tools/level_editor)
+- **Map keys the page edits** (no new ones): `timeline_data.stage_list[k]` {`id`, `name`, `length`, `boss`, `description`,
+  `difficulty`, `filter` {`color` "#rrggbb", `strength` 0..1, `actors` 0..1 (SLOOK's, 0.35 unset)}, `hell`, `shot`} on a
+  stage's card; `timeline_data.endless.*` (portal_seconds, every, first_wave, wave_size, wave_growth, cap, hp, hp_growth,
+  atk, atk_growth, speed, speed_growth, speed_max, xp_share, coin_chance, roster_window) in Settings -> Endless. The old
+  `endless_wave_seconds` / `endless_wave_mult` stay in Settings as "Old ..." (not played since pass 87).
+- **Page settings** (browser only, never in the map): `88fits-editor-stageview-<map>` (the open stage tab: `all` or a
+  0-based index); `88fits-editor-sim-<map>[-s<k>]` (each tab's Sim).
+- **model.js API** (page-free, Node): `STAGE_LIST_KEYS`, `hasStageList(tl)`, `stageList(tl)` -> [{i, id, name, start, end,
+  length, boss, entry}], `stageWindow(tl, s)`, `stageStart/stageEnd/stageLen(tl, s)`, `stageMarks(tl)`; `stageAt(tl, t)`
+  (with a stage_list: the last stage past the end, as WaveTimeline.stage_at); `fixedFrom` (with a stage_list: always the
+  row's start); `STAGE_EDGE` (0.5 s), `ENDLESS_DEFAULTS`, `endlessValue(tl, key, s)`, `portalTimer(tl, s)`,
+  `endlessWaveSize(tl, wave, s)`, `endlessMults(tl, wave, s)`; `spawnEstimate(tl, creatures, {stage: k, ...})` (a stage
+  run; its result's `stage` {i, start, end, portal, endless, waves}); `stagesEstimate(tl, creatures, opts)` (every stage
+  run stitched: the All tab).
+- **stage_model.js** (`StageModel`, page-free, Node): `FILTER_DEF`, `FILTER_PRESETS` (none, evening, bloodmoon, dawn,
+  storm, night), `filterOf(entry)`, `bossEventOf(tl, s)`, `bossOf(tl, s)`, `ensureList(tl)`, `newStageId(tl)`,
+  `mapTimes(tl, f, endFix)`, `setLength(tl, s, len, 'keep'|'stretch')`, `lengthPreview`, `addStage(tl)`,
+  `removeStage(tl, s)`, `removePreview`, `setBoss(tl, s, id)`, `setField(tl, s, key, value)`, `describe`, `issues(tl)`
+  -> [{i, level, msg}] (validation keys `stage:<i>`).
+- **App** (app.js) gained `stageList, stageStart, stageEnd, stageLen, stageWindow, viewStage, viewStart, setStageView,
+  portalSeconds`; selection kind `{kind: 'stage', i}`.
+
+#### The bot (game/tools/bot/Bot.gd)
+- Option `portal`: "endless" (every preset) | "extract"; `PORTAL_CHOICES`; in sim_run.gd's BOT_ARGS, sim_batch's BOT_KEYS, the Watch's bot
+  form (`bot.portal=`).
+
+#### The Sim
+- **tools/sim_batch.py**: settings `stage` (int, 1-based [1], 1..20 and at most the map's stages); CLI `--stage k`;
+  each player's command gets `stage=k`; `map_stages(map_id)` (the map's windows and bosses as the game reads them);
+  `save_stages(save_dir=None)` -> ({map: [bool...]}, note) (the PC save's stages beaten, an unmigrated save's from its
+  old boss flags and kill totals); result.json `players[].stage`, `.outcome`, `.boss_killed`, `.endless_s`;
+  `summary.stage_run` {runs, stage, boss_killed, outcomes {outcome: count}, endless_runs, endless_s_median} (null for a
+  sim from before pass 87). Twin: tools/level_editor/sim_avg.js (`stageRunSummary`).
+- **game/tools/sim_run.gd** meta: `stage` (1-based), `outcome` (Run.outcome() for a run that ended by itself; a run the sim
+  stopped: `stopped`, `stopped_after_boss` or `stopped_endless`), `boss_killed`, `endless_s`,
+  `stage_clock` (the `stage=` argument itself is lane SGAME's).
+- **tools/level_editor/jobs.py** sim spec: `stage` (int [1]); the job passes `--stage`. sim_io.py's Watch button passes
+  `--stage`. The Sim tab's form: `stage` (its Stage box).
+
+#### The Watch
+- **tools/watch.py**: `--stage k` (1-based [1]) -> the Watch's `stage=k`; setup.json gains `save_stages` {map: [bool]}
+  and `save_stages_note`; `refs[].stage` (0 = a whole-run Sim from before pass 87); `ref_stage_ok(sim_stage, stage)`.
+- **game/tools/watch**: arg `stage=` (1-based); settings `stage` (WatchSetup.defaults_from_args / collect);
+  `WatchSetup.stage_open(beaten, k, all)`; `WatchSetup.ref_for(refs, hero, map, picks, stage = 1)`;
+  `Watch.launch_of(hero, map, seed, spawn, stage = 1)` (launch key `stage`); `Watch.stages_beaten_for(mode, map, mdef,
+  doc)`; check actions `setup.stage=<k>`, `setup.unlocks=all|save`.
+
+#### The run record (game/core/systems/RunAnalytics.gd; analytics/SCHEMA.md)
+- Header (at the start and the end): `stage_index` (0-based), `stage_id`, `stage_name`, `stage_start`, `stage_length`,
+  `stage_count` (`stage` stays 1-based); at the end: `outcome` (extracted | died_endless | died_after_boss | died | quit),
+  `boss_killed`, `stage_clock`, `endless_s`, `run_time`. `RunAnalytics.stage_header()` (static), `stage_end_fields()`,
+  `STAGE_END_PROPS`.
+- Row: `en` (seconds into Endless; missing before it). Phase 3 = Endless.
+- Events: `stage_beaten` (level = the stage, `stage_clock`); Endless begun is Game's own `endless` event (lane SGAME).
+
+#### PostHog (game/core/autoload/Analytics.gd; tools/posthog_boards.py)
+- Super properties of every run event: `stage_id`, `in_endless` (bool), `endless_wave` (0 outside); `stage` as before.
+- Events: `stage_beaten`, `endless_started`; `stage_cleared.choice` = `extract` | `not_yet` (before: also continue/stay).
+- `run_end` adds `stage_id`, `stage_name`, `stage_index`, `stage_length`, `stage_count`, `outcome`, `boss_killed`,
+  `stage_clock`, `endless_s`, `run_time`.
+- Boards: new "88fits · Stages" (https://eu.posthog.com/project/290195/dashboard/1031751); "Runs a day, by stage" on
+  Pulse; stage_id and outcome on Players' "Recent runs"; "Deaths by stage, in Endless or before" on Deaths. HogQL
+  `STAGE` = the event's stage_id, else "s" + its stage.
+
+#### The dashboard (analytics/dashboard.html)
+- A Stage filter (`#stagefilter`, remembered as `runwatch.stage`): every list (history, opened runs, remote runs) by
+  stage_id (an older run by the stage it ended in); the summary's Stage tile, the facts' Stage and How it ended, the
+  history's stage name / outcome / endless columns.

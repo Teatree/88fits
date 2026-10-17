@@ -454,9 +454,12 @@ func test_the_portal_sends_one_wave_then_nothing() -> void:
 	for k in range(5):
 		d._spawn_burst()
 	assert_int(em.alive_count()).is_equal(n)
-	# through the portal the stage's crowd comes back
-	d.continue_to_next_stage()
+	# pass 87 (lane SGAME, re-pinned: no going on through the portal any more): when its countdown runs out, Endless keeps
+	# a crowd up again
+	d.start_endless()
 	assert_int(d.current_cap()).is_greater(0)
+	Run.endless = false
+	Run.endless_time = 0.0
 
 
 func test_a_timeline_without_a_wave_keeps_its_portal_cap() -> void:

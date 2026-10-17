@@ -10,6 +10,9 @@ it runs from a shell too:
     python tools/sim_batch.py --out <dir> --bot "preset=sim77"       # pass 80: the bot's options (BOT_KEYS; the runner's
                                                                      # own default is the Explorer)
     python tools/sim_batch.py --out <dir> --synthetic [...]          # made-up players: the page's and the selftest's fixture
+    python tools/sim_batch.py --out <dir> --stage 2                  # pass 87: every run plays stage 2 (a fresh hero at its
+                                                                     # window's start; its boss, the portal's countdown,
+                                                                     # Endless until the stop or the death)
 
 What it does, in order:
  1. The sim lock tools/dl/locks/sim.lock (one sim batch at a time). NOT the godot lock: the snapshot is another project
@@ -73,7 +76,9 @@ SCHEMA = 1
 # the settings and their defaults (INTERFACES "Lane SIMUI"; round 2: the board talent by talent, the death policies
 # without gold, the number at once from the processors); the page, the job spec and the CLI share them
 DEFAULTS = {"hero": "drifter", "players": 10, "workers": 0, "limit": 1500, "board": 1.5, "talents": None, "board_label": "",
-            "death": "end", "seed": 1, "map": "red_canyon", "fps": 60, "note": "", "fast": True, "bot": {}}
+            "death": "end", "seed": 1, "map": "red_canyon", "fps": 60, "note": "", "fast": True, "bot": {}, "stage": 1}
+# pass 87 (lane STOOLS): the stage every run of a sim plays (1-based; sim_run.gd's stage=, lane SGAME's launch key)
+STAGE_MAX = 20
 BOARDS = [(0.0, "none"), (1.5, "a quarter"), (3.0, "half"), (6.0, "full")]
 PRESETS = [("none", 0.0), ("quarter", 1.5), ("half", 3.0), ("full", 6.0)]   # the page's preset keys
 DEATHS = [("end", "end the run at the first death", "no revive: the run ends at the first death (the default: Garry took Get up with gold out)"),
@@ -228,6 +233,7 @@ BOT_KEYS = [  # (key, kind, lo/choices, hi, label, help)
     ("stranger", "bool", None, None, "Stranger", "deals with the Stranger (max HP for a ware) while healthy"),
     ("cards", "enum", ("tier", "score"), None, "Cards", "score: every card scored (DPS, survival, plan, gold); tier: pass 77's fixed order"),
     ("specials", "bool", None, None, "Specials", "pass 82: goes to find a glowing special that stays out of reach (known 5 s, past 9 m or off the screen; not while a boss lives)"),
+    ("portal", "enum", ("endless", "extract"), None, "Portal", "pass 87: after the stage's boss: endless = never extracts, plays on into Endless until the stop or his death; extract = walks to the portal and extracts (the run ends there)"),
 ]
 BOT_KEY_NAMES = [k[0] for k in BOT_KEYS]
 _BOT_PRESETS_CACHE = {}
@@ -483,6 +489,72 @@ def save_board(save_dir=None):
     return None, "no save found at %s" % paths[-1]
 
 
+def map_stages(map_id):
+    """Pass 87 (lane STOOLS): a map's stages from its JSON as the game reads them (WaveTimeline.stage_list, else
+    stage_length x stages): [{i, id, name, start, end, length, boss}] (the boss: the entry's, else the boss event at the
+    window's end, else the last boss event inside it)."""
+    data = read_json(os.path.join(GAME, "content", "maps", map_id, map_id + ".json"), tries=2) or {}
+    tl = data.get("timeline_data") if isinstance(data.get("timeline_data"), dict) else {}
+    sl = [e for e in (tl.get("stage_list") or []) if isinstance(e, dict)] if isinstance(tl.get("stage_list"), list) else []
+    length = float(tl.get("stage_length") or 300) or 300.0
+    out, at = [], 0.0
+    entries = sl or [{} for _ in range(max(1, int(tl.get("stages") or 3)))]
+    events = [e for e in (tl.get("events") or []) if isinstance(e, dict) and e.get("type") == "boss" and isinstance(e.get("enemy"), str)]
+    for i, e in enumerate(entries):
+        ln = float(e.get("length") or 0) if sl else length
+        ln = ln if ln >= 1 else length
+        start, end = at, at + ln
+        boss = str(e.get("boss") or "")
+        if not boss:
+            best_t = None
+            for ev in events:
+                t = float(ev.get("t") or 0)
+                if abs(t - end) < 0.5:
+                    boss = ev["enemy"]
+                    break
+                if start < t <= end and (best_t is None or t > best_t):
+                    best_t, boss = t, ev["enemy"]
+        out.append({"i": i, "id": str(e.get("id") or "s%d" % (i + 1)), "name": str(e.get("name") or "Stage %d" % (i + 1)),
+                    "start": start, "end": end, "length": ln, "boss": boss})
+        at = end
+    return out
+
+
+def save_stages(save_dir=None):
+    """Pass 87 (lane STOOLS): the PC save's stages beaten per map ({map: [bool, ...]}) for the Watch's "the save's stages"
+    (read only, as save_board): the save's `stages_beaten`, and for a save the game has not migrated yet (no
+    "stages_migrated" once flag) what Save._migrate_stages would give: a stage's "boss_<map>_<k>" once flag or a kill of
+    its boss in the totals. (stages, note)."""
+    d = save_dir or locks.SAVE_DIR
+    paths = []
+    if os.path.isfile(locks.RESTORE_PENDING):
+        paths.append(os.path.join(locks.KEEP_DIR, "save.json.keep"))
+    paths.append(os.path.join(d, "save.json"))
+    for p in paths:
+        data = read_json(p, tries=2)
+        if not isinstance(data, dict):
+            continue
+        out = {}
+        sb = data.get("stages_beaten") if isinstance(data.get("stages_beaten"), dict) else {}
+        for m, v in sb.items():
+            if isinstance(v, list):
+                out[str(m)] = [bool(x) for x in v]
+        once = data.get("once") if isinstance(data.get("once"), list) else []
+        if "stages_migrated" not in once:
+            kills = ((data.get("totals") or {}).get("kills_of_enemy") or {}) if isinstance(data.get("totals"), dict) else {}
+            maps_dir = os.path.join(GAME, "content", "maps")
+            for m in sorted(os.listdir(maps_dir)) if os.path.isdir(maps_dir) else []:
+                for st in map_stages(m):
+                    k = st["i"]
+                    if ("boss_%s_%d" % (m, k + 1)) in once or (st["boss"] and float(kills.get(st["boss"], 0) or 0) > 0):
+                        v = out.setdefault(m, [])
+                        while len(v) <= k:
+                            v.append(False)
+                        v[k] = True
+        return out, "read from %s" % p
+    return {}, "no save found at %s" % paths[-1]
+
+
 def caps_problem(s, caps):
     """Why the runner cannot play these settings ("" when it can): a death policy it refuses, a custom board it would
     play as no board (an older runner reads only board= presets)."""
@@ -543,6 +615,7 @@ def clean_settings(raw, heroes=None, maps=None, legacy=False):
     s["limit"] = num("limit", int, LIMIT_MIN, LIMIT_MAX)
     s["seed"] = num("seed", int, 0, 2 ** 31 - 1)
     s["fps"] = num("fps", int, 10, 240)
+    s["stage"] = num("stage", int, 1, STAGE_MAX)
     b = raw.get("board", DEFAULTS["board"])
     try:
         b = float(b)
@@ -583,6 +656,12 @@ def clean_settings(raw, heroes=None, maps=None, legacy=False):
         probs.append("no hero %r" % s["hero"])
     if maps is not None and s["map"] not in maps:
         probs.append("no map %r" % s["map"])
+    elif maps is not None:
+        # pass 87: a stage the map has
+        n_st = len(map_stages(s["map"]))
+        if s["stage"] > n_st:
+            probs.append("stage must be 1 to %d on %s (got %d)" % (n_st, s["map"], s["stage"]))
+            s["stage"] = n_st
     s["note"] = str(raw.get("note", "") or "").strip()[:200]
     # pass 80 (lane BOT): the bot's options as given (sparse; {} = the runner's default preset)
     s["bot"], bp = clean_bot(raw.get("bot"))
@@ -1154,7 +1233,8 @@ def player_args(settings, p, snap, out_dir, wall_cap, caps=None):
     args = ["--headless", "--fixed-fps", str(int(s["fps"])), "--path", snap, "--log-file", p.log,
             "--script", "res://tools/sim_run.gd", "--",
             "out=" + p.json, "hero=" + s["hero"], "seed=%d" % p.seed, "limit=%d" % int(s["limit"]), "board=%g" % board,
-            "death=" + s["death"], "map=" + s["map"], "progress=%d" % PROGRESS_EVERY, "wall=%d" % max(60, int(wall_cap) - 45)]
+            "death=" + s["death"], "map=" + s["map"], "progress=%d" % PROGRESS_EVERY, "wall=%d" % max(60, int(wall_cap) - 45),
+            "stage=%d" % int(s.get("stage", 1) or 1)]
     if s.get("talents"):
         args.append("talents=" + talents_arg(s["talents"]))   # an empty board: board=0 alone (the runner reads no "none")
     if caps.get("fast"):
@@ -1406,6 +1486,22 @@ def _bd_end(g, name, i):
     if not a:
         return 0.0
     return a[g[2]] or 0.0
+
+
+def stage_run_summary(plist):
+    """Pass 87 (lane STOOLS): the stage runs' outcome over the players that say one (sim_run.gd's meta; None before pass
+    87): runs, the boss killed (how many), each outcome's count, the runs that reached Endless and the median seconds they
+    lasted there (sim_avg.js stageRunSummary is its twin)."""
+    outs = [p for p in plist if p.get("ok") and p.get("outcome")]
+    if not outs:
+        return None
+    counts = {}
+    for p in outs:
+        counts[str(p["outcome"])] = counts.get(str(p["outcome"]), 0) + 1
+    en = [_num(p.get("endless_s")) for p in outs if _num(p.get("endless_s")) > 0]
+    stages = sorted({int(_num(p.get("stage"), 1)) for p in outs})
+    return {"runs": len(outs), "stage": stages[0] if len(stages) == 1 else None, "boss_killed": sum(1 for p in outs if p.get("boss_killed")),
+            "outcomes": {k: counts[k] for k in sorted(counts)}, "endless_runs": len(en), "endless_s_median": _r(_medians(en)) if en else None}
 
 
 def _medians(vals):
@@ -1949,7 +2045,9 @@ def aggregate(players, settings, meta=None, game_dir=None):
                       "dmg": _r(sum(_bd_end(g, "dmg_by", i) for i in g[3].get("dmg_by", {}))) if g else None,
                       "fps": m.get("fps"), "build": str(m.get("build_text") or ""), "assists": m.get("assists"),
                       "end_stage": m.get("end_stage"), "endless_wave": m.get("endless_wave"), "talents": m.get("talents") or {},
-                      "chests": at_end("chests"), "powerups": at_end("powerups"), "totems": at_end("totems")})
+                      "chests": at_end("chests"), "powerups": at_end("powerups"), "totems": at_end("totems"),
+                      # pass 87 (lane STOOLS): the stage run (sim_run.gd's meta): its stage, how it ended, its Endless
+                      "stage": m.get("stage"), "outcome": m.get("outcome"), "boss_killed": m.get("boss_killed"), "endless_s": m.get("endless_s")})
     mk = markers([d for _, d, _ in ok])
     names = content_names(game_dir or snap_game(), set(all_ids) | {b["id"] for b in mk["bosses"]} | {s["hero"]})
     reached = sum(1 for p in plist if p["ok"] and _num(p["end_t"]) >= limit - 1.5)
@@ -1965,6 +2063,7 @@ def aggregate(players, settings, meta=None, game_dir=None):
                "chests_mean": end_mean("chests"), "powerups_mean": end_mean("powerups"), "totems_mean": end_mean("totems"),
                "bosses": [{"id": b["id"], "occurrence": b["occurrence"], "reached": b["n"], "beaten": b["beaten"], "fight_s": b["fight_s"],
                            "mult": b.get("mult")} for b in mk["bosses"]]}
+    summary["stage_run"] = stage_run_summary(plist)
     res = {"schema": SCHEMA, "meta": dict(meta or {}), "settings": s, "names": names, "t": list(range(T + 1)), "playing": playing,
            "series": out_series, "breakdowns": out_bd, "markers": mk, "players": plist, "summary": summary,
            "rules": {"dps_window": DPS_WINDOW, "rate_window": RATE_WINDOW, "trouble": TROUBLE_FRAC, "bands": list(BAND_SERIES),
@@ -2024,6 +2123,14 @@ def synthetic_player(k, seed, settings, creatures=None):
     boss_left, boss_i, portal_left = 0, 0, 0
     boss_at = [430, 860, 1290]
     boss_ids = ["tumbleweed_king", "gila_grande", "brander"]
+    if int(s.get("stage", 1) or 1) > 1:
+        # pass 87: a later stage's run starts at its window (its clock, its stage, only its own boss at its end)
+        sts = map_stages(s["map"])
+        k = min(int(s["stage"]), len(sts)) - 1
+        clock, stage, boss_i = float(sts[k]["start"]), k + 1, k
+        boss_at = [0] * k + [sts[k]["end"]] + [1e9] * 3
+        boss_ids = [""] * k + [sts[k]["boss"] or "boss"] + ["", "", ""]
+        events = [{"t": 0.0, "clock": clock, "kind": "stage", "stage": stage}]
     joined = {"revolver": 0}
     end_reason = "limit"
     for t in range(1, limit + 1):
@@ -2429,9 +2536,9 @@ class Batch:
         os.makedirs(os.path.join(self.out, "players"), exist_ok=True)
         write_json(os.path.join(self.out, "settings.json"), self.settings, indent=1)
         s = self.settings
-        self.say("sim: %d run%s of %s to %s, %d at once, Upgrade board %s, on death: %s, seed %d, map %s, %d fps -> %s" % (
+        self.say("sim: %d run%s of %s to %s, %d at once, Upgrade board %s, on death: %s, seed %d, map %s stage %d, %d fps -> %s" % (
             s["players"], "" if s["players"] == 1 else "s", s["hero"], fmt_t(s["limit"]), s["workers"], board_text(s.get("talents"), s.get("board_label")),
-            death_label(s["death"]), s["seed"], s["map"], s["fps"], self.out))
+            death_label(s["death"]), s["seed"], s["map"], int(s.get("stage", 1) or 1), s["fps"], self.out))
         if not self.args.synthetic:
             why = caps_problem(s, self.caps)
             if why:
@@ -2529,6 +2636,7 @@ def main(argv=None):
     ap.add_argument("--no-fast", action="store_true", help="play without the runner's sim mode (every visual drawn), to compare")
     ap.add_argument("--seed", type=int, default=DEFAULTS["seed"])
     ap.add_argument("--map", default=DEFAULTS["map"])
+    ap.add_argument("--stage", type=int, default=DEFAULTS["stage"], help="pass 87: the stage every run plays, 1-based (a fresh hero at its window's start)")
     ap.add_argument("--fps", type=int, default=DEFAULTS["fps"])
     ap.add_argument("--note", default="")
     ap.add_argument("--bot", default="", help="the bot's options: preset=explorer|sim77|careless|expert and key=value (BOT_KEYS), comma-separated")

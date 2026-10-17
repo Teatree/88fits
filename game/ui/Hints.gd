@@ -96,7 +96,7 @@ func tick(delta: float) -> void:
 			if Run.xp > 0.0 or Run.level > 1 or _t > XP_HOLD:
 				_done("gems")
 		"":
-			if not _pause_toast_done and Run.elapsed >= 90.0 and not Save.hint_seen("pause"):
+			if not _pause_toast_done and Run.stage_clock() >= 90.0 and not Save.hint_seen("pause"):
 				_pause_toast_done = true
 				Save.mark_hint("pause")
 				game.toast("Tap the pause disc for your build", W.PAPER)

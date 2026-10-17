@@ -381,7 +381,8 @@ func test_not_yet_closes_the_stage_clear_without_a_decision() -> void:
 	assert_str(nb.label_text()).is_equal("NOT YET")
 	# under the two roads
 	assert_int(nb.get_index()).is_equal(pd._cards.get_child_count() - 1)
-	assert_str(pd._foot.text).is_equal("Not ready? Step out, and walk back in when you are.")
+	# pass 87 (lane SUI): the countdown to Endless runs on while he is out
+	assert_str(pd._foot.text).is_equal("Not ready? Step out, and walk back in before the clock runs out.")
 	nb.pressed.emit()
 	assert_bool(pd.visible).is_false()
 	assert_int(no.size()).is_equal(1)

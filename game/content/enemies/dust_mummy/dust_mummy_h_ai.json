@@ -1,0 +1,200 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a goofy cartoon mummy with a round chubby body and a big round head, wrapped in loose sloppy dusty beige bandages, one long loose bandage strip flopping off the top of its head, bandage ends dangling from its arms and legs, no skin showing, two big round glowing red eyes peeking out of a wide gap in the wraps, short stubby legs, chunky mitten-like bandaged hands with stubby claw fingers, a silly clumsy look, both arms stretched out forward and raised high like a sleepwalking zombie, the clawed bandaged hands up at the height of its head and wider apart than its shoulders, the elbows only slightly bent",
+ "renders": {
+  "front": {
+   "seed": 1036889,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this mummy as a finished 2D anime game creature illustration of a goofy cartoon mummy with a round chubby body and a big round head, wrapped in loose sloppy dusty beige bandages, one long loose bandage strip flopping off the top of its head, bandage ends dangling and unravelling from its arms and legs, no skin showing, two big round glowing red eyes peeking out of a wide gap in the wraps, short stubby legs, chunky mitten-like bandaged hands with stubby claw fingers, a silly clumsy look. Pose exactly as the reference: both arms stretched out forward and raised high like a sleepwalking zombie, the hands up at the height of its head and wider apart than its shoulders, the elbows only slightly bent, the bandaged hands open with the fingers curled like claws, the legs slightly apart with the knees a little bent. Front view, facing the viewer, the glowing red eyes looking at the viewer, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it and above the hands, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/dm87_ref_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 41,
+     "right": 43,
+     "top": 44,
+     "bottom": 33,
+     "height": 946,
+     "width": 939
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 31988,
+   "prompt": "The second reference image shows this same mummy seen from behind: copy its back view and its pose from it: the back of the fully wrapped head with a torn bandage end hanging from it, the back wrapped in overlapping diagonal bandage strips, torn strips hanging from the wrists, both arms stretched forward and raised high on either side of the head so the bandaged clawed hands show up beside and above the head, wider apart than the shoulders, the legs slightly apart with the heels towards the viewer. Draw it in exactly the art style, colors, bandages and body proportions of the first reference image, which shows this mummy from the front. Full-body back view seen directly from behind, no face visible, no eyes. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it and above the hands, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dust_mummy_dmh_front.png",
+    "88fits/dm87_ref_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 58,
+     "right": 58,
+     "top": 58,
+     "bottom": 32,
+     "height": 933,
+     "width": 907
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 12911,
+   "prompt": "This exact creature collapsed into a low loose heap of unravelled dusty bandages, dead: the two dimmed red eyes peeking out of the top of the pile, a couple of bandage ends trailing off it; the pile sits on nothing, with no ground and no shadow under it, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dust_mummy_dmh_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 67,
+     "right": 67,
+     "top": 278,
+     "bottom": 199,
+     "height": 546,
+     "width": 889
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "stills": "dmh",
+  "art_prompt": "a goofy cartoon mummy with a round chubby body and a big round head, wrapped in loose sloppy dusty beige bandages, one long loose bandage strip flopping off the top of its head, bandage ends dangling from its arms and legs, no skin showing, two big round glowing red eyes peeking out of a wide gap in the wraps, short stubby legs, chunky mitten-like bandaged hands with stubby claw fingers, a silly clumsy look, both arms stretched out forward and raised high like a sleepwalking zombie, the clawed bandaged hands up at the height of its head and wider apart than its shoulders, the elbows only slightly bent",
+  "back_ref": "tools/dl/p87/MUMMY/ref_back.png",
+  "back_hint": "Its back is wrapped in the same overlapping bandage strips, the head fully wrapped from behind, both arms stretched forward and raised high so the clawed hands show beside and above its head, no face and no eyes from behind.",
+  "dead_hint": "collapsed into a low loose heap of unravelled dusty bandages, dead: the two dimmed red eyes peeking out of the top of the pile, a couple of bandage ends trailing off it; the pile sits on nothing, with no ground and no shadow under it",
+  "pose": "mummy_bounce_fit_b",
+  "pose_front": "mummy_bounce_fit_f",
+  "stand": "still",
+  "gait": "bouncing along in place on the spot with big springy goofy steps, both arms held stretched out forward and raised high the whole time, the clawed hands up beside its head, never lowered",
+  "motion": "a goofy chubby mummy bouncing along with its arms stretched out and raised high",
+  "anim_negative": "extra arms, a third arm, extra legs, extra hands, two heads, a second mummy, skin showing, a face with a nose or mouth, arms hanging down, arms lowered, hands at the hips, arms at its sides, arms crossed, bandage strips like extra legs, the figure shrinking, a long bandage strip whipping out to the side, an arm behind the head, arms crossed over the head",
+  "death": "collapse",
+  "death_frames": 8,
+  "run_fps": 15,
+  "outline_frac": 0.016,
+  "outline_color": "#2e2420",
+  "remap_hues": [
+   {
+    "ranges": [
+     [
+      56,
+      75
+     ]
+    ],
+    "to": 44,
+    "sat": 0.9
+   },
+   {
+    "ranges": [
+     [
+      75,
+      330
+     ]
+    ],
+    "to": 45,
+    "sat": 0.45
+   },
+   {
+    "ranges": [
+     [
+      330,
+      360
+     ],
+     [
+      0,
+      22
+     ]
+    ],
+    "to": 45,
+    "sat": 0.6,
+    "min_sat": 0.08,
+    "max_sat": 0.55
+   }
+  ],
+  "match_still": true
+ },
+ "clip_kind": {
+  "front": "pose",
+  "back": "pose",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": "mummy_bounce_fit_b"
+ },
+ "remap_hues": [
+  {
+   "ranges": [
+    [
+     56,
+     75
+    ]
+   ],
+   "to": 44,
+   "sat": 0.9
+  },
+  {
+   "ranges": [
+    [
+     75,
+     330
+    ]
+   ],
+   "to": 45,
+   "sat": 0.45
+  },
+  {
+   "ranges": [
+    [
+     330,
+     360
+    ],
+    [
+     0,
+     22
+    ]
+   ],
+   "to": 45,
+   "sat": 0.6,
+   "min_sat": 0.08,
+   "max_sat": 0.55
+  }
+ ],
+ "match_still": true,
+ "qa_online": null
+}

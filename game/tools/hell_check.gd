@@ -1,13 +1,14 @@
-## Headless check of pass 43's Stage 3 (run with --script): a run jumped to stage 3 with a stage-3 build; the hell crowd
-## spawning on its own cap beside the regular roster (the map's hell rows: imps and hellhounds; at most three giants), the ground
-## gone red, the Brander's ring of fire and brand lines, the giant's slam, the Gila's rumble, then endless waves after
-## the boss. Prints what it saw and exits non-zero on a script error or a missing piece.
+## Headless check of pass 43's Stage 3 (run with --script): stage 3 played as its own run (pass 87: the launch's `stage`,
+## a fresh run at its window's start) with a stage-3 build given after 3 s; the hell crowd spawning on its own cap beside
+## the regular roster (the map's hell rows: imps and hellhounds; at most three giants), the ground gone red, the Brander's
+## ring of fire and brand lines, the giant's slam, the Gila's rumble, then the portal's countdown and Endless's waves after
+## the boss (pass 87). Prints what it saw and exits non-zero on a script error or a missing piece.
 ##
 ##   godot --headless --path game --script res://tools/hell_check.gd [-- seconds=120]
 extends SceneTree
 
 var _t := 0.0
-var _seconds := 110.0
+var _seconds := 170.0
 var _game: Node
 var _run: Node
 var _phase := "boot"
@@ -31,7 +32,7 @@ func _init() -> void:
 
 func _start() -> void:
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
-	f.store_string(JSON.stringify({"weapon": "guitarra", "level": 4, "character": "calavera", "map": "red_canyon"}))
+	f.store_string(JSON.stringify({"weapon": "guitarra", "level": 4, "character": "calavera", "map": "red_canyon", "stage": 3}))
 	f.close()
 	root.get_node("Save").data["runs_started"] = 1
 	_run = root.get_node("Run")
@@ -71,27 +72,22 @@ func _tick() -> void:
 	if _game.get("resume_gate") and _game.resume_gate and _game.resume_gate.visible:
 		_game.resume_gate.tap()
 	if _game.portal_dialog and _game.portal_dialog.visible:
-		_seen["portal_final"] = _game.portal_dialog._cont_title.text
-		_game.portal_dialog.visible = false
-		_game.portal_dialog.decided.emit(false)
-		print("hell_check: portal -> stay (%s)" % _seen["portal_final"])
+		# pass 87 (lane SGAME): the portal's countdown runs on while its dialog is up; run it out: Endless
+		var left: float = _game.portal_seconds_left()
+		_seen["portal_countdown"] = snappedf(left, 0.1)
+		_game.tick_portal_countdown(left + 0.1)
+		print("hell_check: portal -> the countdown (%.1f s) run out, Endless %s, dialog up %s" % [left, str(_run.endless), str(_game.portal_dialog.visible)])
+		if _game.portal_dialog.visible or not _run.endless:
+			_errors.append("the countdown ran out in the portal dialog, but Endless did not take over")
 	match _phase:
 		"boot":
 			if _t > 3.0:
 				_phase = "stage3"
-				# stage 3, three seconds into it, the director past every earlier event; a stage-3 build (the stage clock is
-				# the timeline's: pass 46 stretched Red Canyon's stages from 300 s to 430 s)
+				# pass 87 (lane SGAME): the run is stage 3's own (the launch's `stage`: its clock from the window's start,
+				# the events before it never come); a stage-3 build on top
 				var tl = _game.director.timeline
-				var at: float = 2.0 * float(tl.stage_length) + 3.0
-				_run.stage = 2
-				_run.elapsed = at
-				for k in range(tl.events.size()):
-					if float(tl.events[k].get("t", 0.0)) < at:
-						_game.director._event_i = k + 1
-				_game.director.continue_to_next_stage()
-				_run.stage = 2
-				_run.elapsed = at
-				_game.director._apply_mults()
+				if _run.stage != 2 or _run.elapsed < float(tl.stage_start(2)) or _run.elapsed > float(tl.stage_start(2)) + 10.0:
+					_errors.append("not a stage-3 run at its window's start: stage %d clock %.1f" % [_run.stage + 1, _run.elapsed])
 				for k in range(12):
 					_run.add_xp(_run.xp_to_next() + 1.0)
 				_run.add_or_level_passive("brimstone_brand")
@@ -148,7 +144,8 @@ func _tick() -> void:
 					_seen["giant_windup"] = true
 			# the boss at 20 s: the ring and the lines
 			if _t > 20.0 and _boss_at < 0.0:
-				_boss_at = _t
+				# pass 87 (lane SGAME): the fight's milestones on the play clock (the chests the kills drop pause the run)
+				_boss_at = _play_t
 				em.kill_all(true)
 				_game.director._run_event({"type": "boss", "enemy": "brander"})
 			if _boss_at > 0.0:
@@ -157,7 +154,7 @@ func _tick() -> void:
 					_seen["ring_r"] = snappedf(float(_game._ring["r"]), 0.1)
 					# pass 48: the ring closes at the pace knob, (radius - min_radius) / shrink metres a second times the pace
 					var rr: float = float(_game._ring["r"])
-					if _t > _boss_at + 3.0 and _ring_r0 < 0.0:
+					if _play_t > _boss_at + 3.0 and _ring_r0 < 0.0:
 						_ring_r0 = rr
 						_ring_t0 = _play_t
 					elif _ring_r0 > 0.0 and _play_t > _ring_t0 + 6.0 and not _seen.has("ring_rate"):
@@ -178,22 +175,22 @@ func _tick() -> void:
 							_errors.append("the Brander burned on his own brand line: %.1f -> %.1f" % [hb, em.hp[em.boss_index]])
 						_seen["self_burn"] = em.hp[em.boss_index] < hb - 0.001
 				# a hero outside the ring burns (god mode keeps him alive; the log says so)
-				if _t > _boss_at + 30.0 and _t < _boss_at + 31.0 and not _game._ring.is_empty():
+				if _play_t > _boss_at + 30.0 and _play_t < _boss_at + 31.0 and not _game._ring.is_empty():
 					var c: Vector3 = _game._ring["center"]
 					_game.player.global_position = c + Vector3(float(_game._ring["r"]) + 6.0, 0.5, 0)
-				if _t > _boss_at + 34.0 and em.boss_alive():
+				if _play_t > _boss_at + 34.0 and em.boss_alive():
 					em.damage(em.boss_index, 100000.0, "guitarra")
-				if _t > _boss_at + 36.0 and not em.boss_alive() and _game._ring.is_empty():
+				if _play_t > _boss_at + 36.0 and not em.boss_alive() and _game._ring.is_empty():
 					_seen["ring_gone"] = true
 				if _game.portal and is_instance_valid(_game.portal) and _game.portal.armed and not _game.paused:
 					_game.player.global_position = _game.portal.global_position + Vector3(0.2, 0.5, 0)
 				if _run.endless:
 					_seen["endless"] = true
 					_seen["wave"] = _run.endless_wave()
-					if _t > _boss_at + 44.0:
-						# a wave a frame, to see the multiplier climb (a wave is the timeline's endless_wave_seconds)
-						_run.elapsed += float(_game.director.timeline.endless_wave_seconds)
-						_seen["endless_mult"] = snappedf(_run.stage_mult(), 0.01)
+					if _play_t > _boss_at + 44.0:
+						# pass 87: a wave a frame, to see the multiplier climb (a wave every `endless.every` seconds of Endless)
+						_run.endless_time += float(_game.director.timeline.endless_value("every", 2))
+						_seen["endless_hp"] = snappedf(float(_game.director.timeline.endless_mults(_run.endless_wave(), 2)["hp"]), 0.01)
 			if _run.endless and _run.endless_wave() >= 4:
 				_finish("")
 				return
@@ -220,9 +217,9 @@ func _hell_ids() -> Array:
 	var out: Array = []
 	if _game == null or _game.get("director") == null or _game.director.timeline == null:
 		return ["imp", "hellhound"]
-	# only the rows already open where the check drops in (stage 3 + 3 s): pass 62's stage 3 brings its hellhounds at 15:20,
-	# a minute into the window, and a creature the window may or may not reach made the check flaky
-	var at: float = 2.0 * float(_game.director.timeline.stage_length) + 3.0
+	# only the rows already open where the check drops in (stage 3 + 3 s): pass 62's stage 3 brings its hellhounds a minute
+	# into the window, and a creature the window may or may not reach made the check flaky (pass 87: its own window)
+	var at: float = float(_game.director.timeline.stage_start(2)) + 3.0
 	for r in _game.director.timeline.roster:
 		if str(r.get("channel", "")) == "hell" and float(r.get("t", 0.0)) <= at + 5.0:
 			var id := str(r.get("enemy", ""))
@@ -232,7 +229,7 @@ func _hell_ids() -> Array:
 
 
 func _finish(why: String) -> void:
-	var want: Array = _hell_ids() + ["hammer_giant", "hell_tint", "rumble", "giant_windup", "ring", "ring_rate", "brand_lines", "ring_gone", "endless", "portal_final"]
+	var want: Array = _hell_ids() + ["hammer_giant", "hell_tint", "rumble", "giant_windup", "ring", "ring_rate", "brand_lines", "ring_gone", "endless", "portal_countdown"]
 	var missing: Array = []
 	for k in want:
 		if not _seen.has(k):

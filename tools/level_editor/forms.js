@@ -721,14 +721,15 @@ const Forms = (() => {
   function pathTimesBlock(tl) {
     const wrap = el('div', { class: 'block-form' });
     const pt = Array.isArray(tl.path_times) ? tl.path_times : [];
+    // pass 87: each stage's own length (stage_list)
     const SL = App.stageLength();
     pt.forEach((list, s) => {
       const line = numbersLine(list, (vals) => App.apply((d) => { d.path_times[s] = vals; }), { path: `path_times.${s}`, placeholder: `seconds into stage ${s + 1}` });
-      wrap.appendChild(el('div', { class: 'frow' }, el('label', { class: 'flabel', text: s === pt.length - 1 && s < App.stages() - 1 ? `Stage ${s + 1}+` : `Stage ${s + 1}`, title: `seconds into the stage (0–${SL}); the last list holds for later stages` }),
+      wrap.appendChild(el('div', { class: 'frow' }, el('label', { class: 'flabel', text: s === pt.length - 1 && s < App.stages() - 1 ? `Stage ${s + 1}+` : `Stage ${s + 1}`, title: `seconds into the stage (0–${App.stageLen(Math.min(s, App.stages() - 1))}); the last list holds for later stages` }),
         el('div', { class: 'fctl' }, line, el('button', { class: 'x', type: 'button', text: '×', title: 'remove this stage\'s list', onclick: () => App.apply((d) => { d.path_times.splice(s, 1); }) }))));
     });
     wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: '+ stage list', onclick: () => App.apply((d) => { if (!Array.isArray(d.path_times)) d.path_times = []; d.path_times.push(d.path_times.length ? d.path_times[d.path_times.length - 1].slice() : [60, 120, 180]); }) }));
-    wrap.appendChild(el('p', { class: 'muted small', text: `Seconds into each stage (a stage is ${fmtT(SL)}); "mm:ss" works too. The last list holds for every later stage and endless.` }));
+    wrap.appendChild(el('p', { class: 'muted small', text: `Seconds into each stage (${App.stageList().map((w) => fmtT(w.length)).join(' / ')}${SL ? '' : ''}); "mm:ss" works too. The last list holds for every later stage.` }));
     return wrap;
   }
 

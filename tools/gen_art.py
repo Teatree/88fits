@@ -1016,6 +1016,40 @@ def match_colours(img, mu, sd):
     return out
 
 
+def _walk_mask(rgba, hsv, vmin):
+    """Pass 87 (lane MUMMY): the figure's pixels a walk's colour match reads and moves: opaque, brighter than the dark
+    lines and the outline (value over vmin), and not a saturated red (the mummies' glowing eyes keep their glow)."""
+    m = (np.asarray(rgba)[..., 3] > 127) & (hsv[..., 2] > vmin)
+    red = ((hsv[..., 0] < 0.06) | (hsv[..., 0] > 0.94)) & (hsv[..., 1] > 0.45)
+    return m & ~red
+
+
+def walk_stats(img, vmin=0.3):
+    """Mean and spread of saturation and value over _walk_mask's pixels."""
+    rgba = img.convert("RGBA")
+    hsv = np.asarray(rgba.convert("RGB").convert("HSV")).astype(np.float32) / 255.0
+    sv = hsv[..., 1:][_walk_mask(rgba, hsv, vmin)]
+    if not len(sv):
+        return np.array([0.5, 0.5], np.float32), np.array([0.2, 0.2], np.float32)
+    return sv.mean(axis=0), sv.std(axis=0) + 1e-4
+
+
+def match_walk(img, mu, sd, vmin=0.3):
+    """A walk frame's saturation and value brought to its painting's (walk_stats), hues kept, the lines, the outline and
+    the red glow left as they are (match_colours reads the outline too, which darkened a whole frame)."""
+    rgba = img.convert("RGBA")
+    hsv = np.asarray(rgba.convert("RGB").convert("HSV")).astype(np.float32) / 255.0
+    m = _walk_mask(rgba, hsv, vmin)
+    if not m.any():
+        return img
+    fm, fs = walk_stats(rgba, vmin)
+    new = np.clip((hsv[..., 1:] - fm) / fs * sd + mu, 0.0, 1.0)
+    hsv[..., 1:] = np.where(m[..., None], new, hsv[..., 1:])
+    out = Image.fromarray((hsv * 255.0 + 0.5).astype(np.uint8), "HSV").convert("RGBA")
+    out.putalpha(rgba.getchannel("A"))
+    return out
+
+
 def _hue_hist(img, bins=24):
     a = np.asarray(img.convert("RGBA")).astype(np.float32) / 255.0
     m = a[..., 3] > 0.5
@@ -1470,6 +1504,31 @@ def process(type_, folder, id_):
             run_b = video_cycle(back_img, ak + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill, scale_mul=run_scale_of(d, "back"))
             kinds["back"] = "free" if run_b is not None else "procedural"
         info["clips"] = {"walk_f": run_f is not None, "walk_b": run_b is not None, "pose": clip}
+        # pass 87 (lane MUMMY): a creature look's "remap_hues" too (the heroes' key since pass 46): hues the walk smeared
+        # in that the painting lacks (the mummies' teal and green feet) go back to its own hue; off unless named
+        # (a list of such blocks applies each in turn: the walks' yellow drift to beige, then the foreign hues)
+        crh = d.get("remap_hues")
+        crh_list = [crh] if isinstance(crh, dict) else ([c for c in crh if isinstance(c, dict)] if isinstance(crh, list) else [])
+        # (a block's min_sat / max_sat as artkit.remap_hues: max_sat spares the strongly saturated, the mummies' red eyes
+        # when their walks' pink cast goes back to beige)
+        def _crh(f, c):
+            return artkit.remap_hues(f, c.get("ranges", []), c.get("to", 30), c.get("sat", 0.55), float(c.get("min_sat", 0.16)), float(c.get("max_sat", 1.01)))
+        for c in crh_list:
+            run_f = [_crh(f, c) for f in run_f] if run_f else run_f
+            run_b = [_crh(f, c) for f in run_b] if run_b else run_b
+        if crh_list:
+            info["remap_hues"] = crh
+        if d.get("match_still"):
+            # pass 87 (lane MUMMY): every walk frame's saturation and value brought to its view's painting (match_walk,
+            # the hues kept): the mummies' walks came out yellower than their paintings and flickered warmer or paler
+            # from frame to frame; off unless the look names it
+            if run_f:
+                mu, sd = walk_stats(base)
+                run_f = [match_walk(f, mu, sd) for f in run_f]
+            if run_b:
+                mu, sd = walk_stats(back_cell)
+                run_b = [match_walk(f, mu, sd) for f in run_b]
+            info["match_still"] = True
         views = {}
         if int(d.get("directions", 2)) == 8:
             # side and diagonal stills edited from the front painting, a walk clip each, fitted to the front's height
@@ -1527,6 +1586,8 @@ def process(type_, folder, id_):
             fall = pose_death(img, ak + "_death", death[5:], seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
         kinds["die"] = ("flf" if death == "clip" else "pose") if fall else "procedural"
         if fall:
+            for c in crh_list:   # pass 87: the death clip's smeared hues too
+                fall = [_crh(f, c) for f in fall]
             frames["die"] = fall
         elif death == "squash":
             # a creature that splats instead of falling over (the Blue Slime, pass 44): the standing painting squashes flatter

@@ -6,7 +6,7 @@
 ## hit on a creature within MERGE of the birth of a number of the same kind on it adds to that number, so a shotgun's
 ## pellets or a beam's ticks read as one. The hero's own numbers come from Player: what a hit took off his health (red),
 ## what his shield soaked (blue), what came back (green: pickups, lifesteal, the level patch; regen and Siesta batched
-## every half second), DODGE and BLOCK. They start at his shoulders and follow him: what hit him (or missed) on his left,
+## every half second), EVADE (DODGE until pass 87) and BLOCK. They start at his shoulders and follow him: what hit him (or missed) on his left,
 ## healing on his right, clear of the HUD's "+N XP" and coin popups that rise from over his head.
 ## A number pops in big (POP_FROM, a crit POP_FROM_CRIT, back to 1 over POP with a little overshoot), climbs easing out
 ## while it drifts a little sideways (neighbours lean apart, so a crowd's numbers spread instead of stacking), holds, then
@@ -73,6 +73,10 @@ const RED := Color("ff4b3e")
 const BLUE := Color("74c6ff")
 const HEAL := Color("6cf27a")
 const PALE := Color("e8f2ff")
+## Pass 87 (lane FIXES, Garry: "a text 'Evade' that flies out of the hero (just like with the 'Block')"): an evaded hit's
+## word reads EVADE (it was DODGE, pale like BLOCK) in its own ghostly lavender, beside the hero turning see-through
+## (Player._evade_ghost_start).
+const EVADE := Color("cdb8ff")
 ## Type sizes in canvas px: a hit, a crit (bigger), a fire or poison tick (smaller); the hero's hurt, heal and words.
 ## Pass 54: a tenth up on pass 47's (48, 72, 58, 40, 54, 48, 40) for the lighter face.
 const PX := 52
@@ -218,7 +222,7 @@ func hero_heal(amount: float) -> void:
 	_hero(KIND_HEAL, amount, HEAL_MERGE)
 
 
-## A hit he evaded: DODGE.
+## A hit he evaded: EVADE (pass 87; DODGE before; the kind keeps its old name).
 func hero_dodge() -> void:
 	_hero(KIND_DODGE, 0.0, WORD_MERGE)
 
@@ -324,7 +328,9 @@ static func colour_of(n: Num) -> Color:
 			return BLUE
 		KIND_HEAL:
 			return HEAL
-		KIND_DODGE, KIND_BLOCK:
+		KIND_DODGE:
+			return EVADE
+		KIND_BLOCK:
 			return PALE
 	if n.crit:
 		return CRIT
@@ -359,7 +365,7 @@ static func label_of(n: Num) -> String:
 		KIND_HEAL:
 			return "+" + text_of(n.amount)
 		KIND_DODGE:
-			return "DODGE"
+			return "EVADE"
 		KIND_BLOCK:
 			return "BLOCK"
 	return text_of(n.amount)

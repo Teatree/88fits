@@ -63,14 +63,18 @@ func test_later_stages_attack_is_a_sane_multiplier() -> void:
 
 func test_still_a_step_up_stage_by_stage_in_play() -> void:
 	var tl := _tl()
-	var s1 := tl.stage_mult(0) * tl.damage_mult_at(300.0)
-	var s2 := tl.stage_mult(1) * tl.damage_mult_at(700.0)
-	var s3 := tl.stage_mult(2) * tl.damage_mult_at(1150.0)
+	# pass 87 (lane TUNE, re-pinned on purpose): each stage is a fresh level-1 hero's run in its own window (430 / 600 /
+	# 780 s), its ATK x starting soft and ramping; the stages are compared at the same point of their windows (the
+	# middle), no longer at fixed run seconds
+	var s1 := tl.stage_mult(0) * tl.damage_mult_at(tl.stage_start(0) + tl.stage_len(0) * 0.5)
+	var s2 := tl.stage_mult(1) * tl.damage_mult_at(tl.stage_start(1) + tl.stage_len(1) * 0.5)
+	var s3 := tl.stage_mult(2) * tl.damage_mult_at(tl.stage_start(2) + tl.stage_len(2) * 0.5)
 	assert_float(s2).is_greater(s1)
 	assert_float(s3).is_greater(s2)
-	# the Gila fights on stage 2's ATK x (the clock stands at 860), the Brander on stage 3's end (pass 68: Garry's stage 2
-	# slopes, so the second before is a near neighbour, not an equal)
-	assert_float(tl.damage_mult_at(STAGE * 2.0)).is_equal_approx(tl.damage_mult_at(STAGE * 2.0 - 1.0), 0.005)
+	# the Gila fights on stage 2's ATK x (the clock stands at its window's end), the Brander on stage 3's end (pass 68:
+	# Garry's stage 2 slopes, so the second before is a near neighbour, not an equal)
+	var gila := tl.stage_end(1)
+	assert_float(tl.damage_mult_at(gila)).is_equal_approx(tl.damage_mult_at(gila - 1.0), 0.005)
 
 
 func test_rows_are_softer_than_pass_62_and_still_ramp() -> void:
@@ -88,14 +92,21 @@ func test_rows_are_softer_than_pass_62_and_still_ramp() -> void:
 
 
 func test_the_elite_events_are_softer_than_pass_62() -> void:
-	var tl: Dictionary = _json()["timeline_data"]
-	var want := {645: 1.3, 1075: 1.9}
-	for e in tl["events"]:
-		var t := int(float(e.get("t", 0.0)))
-		if str(e.get("type", "")) == "elite_boss" and want.has(t):
+	# pass 87 (lane TUNE, re-pinned on purpose): the stage-2 / stage-3 Elites sit in the new windows (5:00 into each),
+	# and a fresh level-1 hero meets them, so their HP x fell under pass 64's floor of 0.5 (stage 3's x stage 3's
+	# elite.hp_mult_per_stage^2 x the stage multiplier); still softer than pass 62's and a sane positive number
+	var tl := _tl()
+	var want := [1.3, 1.9]
+	var seen := 0
+	for e in tl.events:
+		var t := float(e.get("t", 0.0))
+		var s := tl.stage_at(t)
+		if str(e.get("type", "")) == "elite_boss" and s >= 1 and s <= 2:
+			seen += 1
 			var st: Dictionary = e.get("stats", {})
-			assert_float(float(st.get("hp_mult", 1.0))).is_less(float(want[t]))
-			assert_float(float(st.get("hp_mult", 1.0))).is_greater(0.5)
+			assert_float(float(st.get("hp_mult", 1.0))).is_less(float(want[s - 1]))
+			assert_float(float(st.get("hp_mult", 1.0))).is_greater(0.1)
+	assert_int(seen).is_greater_equal(2)
 
 
 func test_the_probe_plays_a_quarter_board() -> void:

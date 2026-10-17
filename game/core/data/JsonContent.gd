@@ -632,6 +632,12 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	var w := WaveTimeline.new()
 	w.stage_length = float(t.get("stage_length", 300.0))
 	w.stages = int(t.get("stages", 3))
+	# pass 87 (lane SGAME): the stages as windows of the one timeline, and Endless after a stage (read as they are;
+	# WaveTimeline's fallbacks and ENDLESS_DEFAULTS fill gaps)
+	var sl = t.get("stage_list", [])
+	w.stage_list = sl if sl is Array else []
+	var en = t.get("endless", {})
+	w.endless = en if en is Dictionary else {}
 	var sm = t.get("stage_mults", [1.0, 1.35, 1.8])
 	w.stage_mults = sm if sm is Array else [1.0]
 	w.endless_mult_per_minute = float(t.get("endless_mult_per_minute", 0.0))

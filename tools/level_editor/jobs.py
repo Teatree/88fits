@@ -287,6 +287,7 @@ SPECS = {
         "fast": _f("bool", True, False, "the runner's sim mode (the purely visual work skipped, every rule kept) when it has one"),
         "seed": _f("int", 1, False, "run k plays seed + k - 1"),
         "map": _f("str", "red_canyon", False, "the map (its saved file)"),
+        "stage": _f("int", 1, False, "pass 87: the stage every run plays, 1-based (each stage is its own run)"),
         "fps": _f("int", 60, False, "--fixed-fps: 60 = a weapon can fire every frame as on the phone"),
         "note": _f("str", "", False, "a few words to find this sim in the history"),
         "bot": _f("json", {}, False, "pass 80: the bot's options {preset, key: value} (tools/sim_batch.py BOT_KEYS); empty = the runner's default (Explorer)"),
@@ -4571,7 +4572,7 @@ def sim_plan(job):
     out = sim_out_dir(job)
     tail = ["--hero", s["hero"], "--players", str(s["players"]), "--workers", str(s["workers"]), "--limit", str(s["limit"]),
             "--board", "%g" % max(0.0, s["board"]), "--talents", sb.talents_arg(s.get("talents") or {}), "--death", s["death"],
-            "--seed", str(s["seed"]), "--map", s["map"], "--fps", str(s["fps"]), "--job", str(job["id"])]
+            "--seed", str(s["seed"]), "--map", s["map"], "--stage", str(int(s.get("stage", 1) or 1)), "--fps", str(s["fps"]), "--job", str(job["id"])]
     if s.get("board_label"):
         tail += ["--board-label", s["board_label"]]
     if not s.get("fast", True):

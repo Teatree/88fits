@@ -1179,9 +1179,18 @@ static func big_coin_mult(def: EnemyDef, is_elite: bool) -> float:
 	return 1.0
 
 
+## Pass 87 (lane SGAME): in Endless a creature's coin roll happens only this share of the time (WaveDirector.start_endless
+## sets the map's endless.coin_chance; 1 outside Endless). Garry: "drop coins very very rarely".
+var endless_coin_chance := 1.0
+
+
 func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> void:
 	var d := def.drops
 	var luck: float = Run.player_sheet.get_stat("luck", 0.0)
+	# pass 87 (lane SGAME): Endless's coins, only endless_coin_chance of the time
+	if endless_coin_chance < 1.0 and float(d.get("gold", 0.0)) > 0.0 and randf() >= endless_coin_chance:
+		d = d.duplicate()
+		d["gold"] = 0.0
 	if randf() < float(d.get("small", 0.0)):
 		spawn(KIND_GEM_S, at, 1.0 * xp_scale)
 	if randf() < float(d.get("medium", 0.0)) + luck * 0.1:
@@ -1189,9 +1198,42 @@ func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> v
 	if randf() < float(d.get("large", 0.0)):
 		spawn(KIND_GEM_L, at, 25.0 * xp_scale)
 	if randf() < float(d.get("gold", 0.0)) * (1.0 + luck):
-		spawn(KIND_COIN, at, float(1 + randi() % 3) * big_coin_mult(def, is_elite))
+		# pass 87 (lane FIXES): the black barrels' coins come out of the creatures' (coin_debt, COIN_DEBT_SHARE of them)
+		var cv := _after_coin_debt(float(1 + randi() % 3) * big_coin_mult(def, is_elite))
+		if cv > 0.0:
+			spawn(KIND_COIN, at, cv)
 	if is_elite and randf() < 0.05 + luck * 0.1:
 		spawn(KIND_VACUUM, at, 0.0)
+
+
+# ---------------------------------------------------------------- pass 87 (lane FIXES): the black barrels' coins
+## Garry: "The darker barrels should now give between 1-5 coins. Because of this you reduce the number of coins that
+## Player could have normally have gotten from just killing enemies by the equivalent of claiming all of the dark barrels
+## around the map." The coin value the creatures' coins still owe this run: every coin the map's black barrels hold
+## (BarrelField.coins_total, set when the barrels are laid out). While anything is owed, a coin a creature would drop
+## (drops.gold, Elites' and bosses' too) goes to the bill COIN_DEBT_SHARE of the time: the bill takes its value (before
+## the stage and greed) and it does not drop, or only what is left of it once the bill is paid. So a run that breaks every
+## black barrel earns what it earned before, a short one gives up only its share, and once the bill is paid the kills
+## drop their coins as ever; purses, chests and the rest are untouched.
+const COIN_DEBT_SHARE := 0.4
+var coin_debt := 0.0
+## The coin value the bill took so far this run (tests, the sim's numbers).
+var coin_debt_paid := 0.0
+
+
+func set_coin_debt(v: float) -> void:
+	coin_debt = maxf(v, 0.0)
+
+
+## What drops of a creature's coin worth `v` (0: nothing): the bill takes it COIN_DEBT_SHARE of the time while anything is
+## owed (`share` stands in for the share in tests).
+func _after_coin_debt(v: float, share: float = COIN_DEBT_SHARE) -> float:
+	if coin_debt <= 0.0 or v <= 0.0 or randf() >= share:
+		return v
+	var take := minf(coin_debt, v)
+	coin_debt -= take
+	coin_debt_paid += take
+	return v - take
 
 
 ## The gem a creature mostly drops (pass 47, for Prospector's extra one): the size with the best chance in its drops, the

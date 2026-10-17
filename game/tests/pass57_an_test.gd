@@ -344,10 +344,11 @@ func test_the_run_recorders_events_are_renamed() -> void:
 	assert_str(str(m[1]["killer"])).is_equal("goblin")
 	assert_str(str(m[1]["killer_kind"])).is_equal("melee")
 	assert_bool(m[1].has("weapons")).is_true()
+	# pass 87 (lane STOOLS, re-pinned): a stage run never goes on to the next stage: anything but EXTRACT is "not yet"
 	m = a.map_event({"kind": "portal", "level": 3, "extract": false})
-	assert_str(str(m[1]["choice"])).is_equal("stay")
+	assert_str(str(m[1]["choice"])).is_equal("not_yet")
 	m = a.map_event({"kind": "portal", "level": 1, "extract": false})
-	assert_str(str(m[1]["choice"])).is_equal("continue")
+	assert_str(str(m[1]["choice"])).is_equal("not_yet")
 	m = a.map_event({"kind": "portal", "level": 2, "extract": true})
 	assert_str(str(m[1]["choice"])).is_equal("extract")
 	# not sent on their own: the level reached, skips and rerolls (the offer carries them), small pickups (counted)

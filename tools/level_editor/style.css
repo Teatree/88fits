@@ -1170,3 +1170,35 @@ b.zone-hard { color: #ff6b6b; background: none; }
 .inspector .insp-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
 .tl-legend { gap: 4px 22px; }
 .tl-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ------------------------------------------------------------ pass 87 (lane STOOLS): the stage tabs and a stage's card */
+.tl-stagebar { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--surface); border-bottom: 1px solid var(--axis); overflow-x: auto; white-space: nowrap; }
+.stg-label { color: var(--muted); font-size: 0.78rem; margin-right: 4px; }
+.stg-tab { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border-2); border-radius: 7px; padding: 3px 10px; font: inherit; font-size: 0.84rem; cursor: pointer; }
+.stg-tab:hover { background: var(--surface-3); color: var(--ink); }
+.stg-tab.active { background: #263a55; color: var(--ink); border-color: var(--s1); box-shadow: inset 0 -2px 0 var(--s1); }
+.stg-tab small { color: var(--muted); font-size: 0.74rem; }
+.stg-tab .stg-name { color: var(--ink); font-size: 0.8rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.stg-tab.add { border-style: dashed; color: var(--sel); }
+.stg-tab.error { border-color: var(--crit); }
+.stg-tab.warn { border-color: rgba(250,178,25,0.6); }
+.stg-iss { color: var(--warn); font-weight: 700; }
+.stg-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); display: inline-block; }
+.stg-dot.none { background: repeating-linear-gradient(135deg, #cfae84 0 3px, #b89a74 3px 6px); }
+.stg-note { color: var(--muted); font-size: 0.76rem; margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage-band { cursor: pointer; }
+.stage-band:hover .band { filter: brightness(1.25); }
+.stage-band.selected .band { stroke: var(--sel); stroke-width: 1.5; }
+.band.portal-band { fill: #3f3a1c; }
+.tick-map { fill: var(--muted); font-size: 9.5px; font-weight: 400; }
+.stg-form .stg-swatch { display: block; width: 100%; max-width: 260px; height: auto; aspect-ratio: 260 / 92; border-radius: 6px; border: 1px solid var(--border-2); }
+.stg-range-box { display: inline-flex; align-items: center; gap: 8px; }
+.stg-range { width: 170px; accent-color: var(--s1); }
+.stg-range-out { color: var(--ink-2); font-size: 0.82rem; min-width: 38px; }
+.stg-confirm { border: 1px solid var(--sel); border-radius: 7px; background: rgba(255,209,102,0.06); padding: 8px 10px; margin: 4px 0 10px; display: flex; flex-direction: column; gap: 5px; }
+.stg-confirm[hidden] { display: none; }
+.stg-conf-head { font-weight: 600; }
+.stg-conf-line { color: var(--ink-2); font-size: 0.84rem; }
+.stg-conf-line.warn { color: var(--warn); }
+.stg-conf-acts { display: flex; gap: 6px; margin-top: 3px; }
+.insp-help.warn { color: var(--warn); }

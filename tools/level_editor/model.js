@@ -83,11 +83,69 @@ const Model = (() => {
 
   // ------------------------------------------------------------------ stages
 
+  /** The old one-number stage length (`stage_length`): a map without `stage_list` has every stage this long. Since pass
+   *  87 a stage's own window is stageStart / stageEnd / stageLen (below). */
   const stageLength = (tl) => num(tl.stage_length, DEF.stage_length) || DEF.stage_length;
-  const stages = (tl) => Math.max(1, num(tl.stages, DEF.stages));
-  const runEnd = (tl) => stages(tl) * stageLength(tl);
-  /** 0-based stage index at run second t (stages() and above = endless, as Run.stage counts on through endless). */
-  const stageAt = (tl, t) => Math.max(0, Math.floor(t / stageLength(tl)));
+
+  // pass 87 (lane STOOLS; Garry: "Player Unlocks Stages ... They differ in how long it takes to complete them"): the map's
+  // `stage_list`, one entry per stage in order ({id, name, length, boss, description, difficulty, filter {color,
+  // strength}, hell, shot}); stage k's window starts at the sum of the earlier lengths and its boss fires at its end (the
+  // game's WaveTimeline.stage_window, lane SGAME). A map without one has `stages` windows of `stage_length` (today's
+  // play exactly). A malformed entry (not an object) is skipped; a length under 1 s is the old stage_length.
+  const STAGE_LIST_KEYS = ['id', 'name', 'length', 'boss', 'description', 'difficulty', 'filter', 'hell', 'shot'];
+  /** Whether the map has its own stage_list (the stage tabs edit it; without one they show the fallback windows). */
+  const hasStageList = (tl) => Array.isArray(tl && tl.stage_list) && tl.stage_list.some(isObj);
+  /** Every stage's window: [{i, id, name, start, end, length, boss, entry (the map's own object, null for the fallback)}]. */
+  function stageList(tl) {
+    const d = isObj(tl) ? tl : {};
+    const out = [];
+    if (hasStageList(d)) {
+      let at = 0;
+      for (const e of d.stage_list) {
+        if (!isObj(e)) continue;
+        const i = out.length;
+        const len = num(e.length, 0) >= 1 ? num(e.length, 0) : stageLength(d);
+        out.push({ i, id: e.id != null && e.id !== '' ? String(e.id) : `s${i + 1}`, name: e.name != null && e.name !== '' ? String(e.name) : `Stage ${i + 1}`,
+          start: at, end: at + len, length: len, boss: e.boss == null ? '' : String(e.boss), entry: e });
+        at += len;
+      }
+      return out;
+    }
+    const SL = stageLength(d), n = Math.max(1, trunc0(num(d.stages, DEF.stages)));
+    for (let i = 0; i < n; i++) out.push({ i, id: `s${i + 1}`, name: `Stage ${i + 1}`, start: i * SL, end: (i + 1) * SL, length: SL, boss: '', entry: null });
+    return out;
+  }
+  function trunc0(v) { return v < 0 ? Math.ceil(v) : Math.floor(v); }
+  const stages = (tl) => stageList(tl).length;
+  const runEnd = (tl) => { const L = stageList(tl); return L[L.length - 1].end; };
+  /** Stage s's window (0-based; past the last stage the windows go on at the last one's length, as endless counts). */
+  function stageWindow(tl, s) {
+    const L = stageList(tl);
+    const k = Math.max(0, Math.floor(num(s, 0)));
+    if (k < L.length) return L[k];
+    const last = L[L.length - 1];
+    const start = last.end + (k - L.length) * last.length;
+    return { i: k, id: '', name: 'Endless', start, end: start + last.length, length: last.length, boss: '', entry: null, endless: true };
+  }
+  const stageStart = (tl, s) => stageWindow(tl, s).start;
+  const stageEnd = (tl, s) => stageWindow(tl, s).end;
+  const stageLen = (tl, s) => stageWindow(tl, s).length;
+  /** 0-based stage index at run second t: the window holding it. Past the run's end: with a stage_list the last stage
+   *  (WaveTimeline.stage_at: a stage run's clock never passes its window; its Endless is the stage's own), without one
+   *  stages() and above (the old endless, counted on by the stage length, as Run.stage counted on through it). */
+  function stageAt(tl, t) {
+    const L = stageList(tl);
+    const at = num(t, 0);
+    for (const w of L) if (at < w.end) return w.i;
+    if (hasStageList(tl)) return L.length - 1;
+    const last = L[L.length - 1];
+    return L.length + Math.max(0, Math.floor((at - last.end) / last.length));
+  }
+  /** The stage marks: every window's start and the run's end ([0, 430, 1030, 1810] for Red Canyon since pass 87). */
+  function stageMarks(tl) {
+    const L = stageList(tl);
+    return L.map((w) => w.start).concat([L[L.length - 1].end]);
+  }
 
   /** The stage multiplier (WaveTimeline.stage_mult): the stage's entry, endless from the last one by its waves. */
   function stageMult(tl, s, t) {
@@ -95,7 +153,7 @@ const Model = (() => {
     if (!sm.length) return 1;
     if (s < sm.length) return num(sm[s], 1);
     const last = num(sm[sm.length - 1], 1);
-    const into = Math.max(0, (t == null ? s * stageLength(tl) : t) - runEnd(tl));
+    const into = Math.max(0, (t == null ? stageStart(tl, s) : t) - runEnd(tl));
     const wm = num(tl.endless_wave_mult, 1);
     if (wm > 1) return last * Math.pow(wm, Math.floor(into / Math.max(num(tl.endless_wave_seconds, 60), 1)));
     return last * (1 + num(tl.endless_mult_per_minute, 0) * into / 60);
@@ -403,6 +461,9 @@ const Model = (() => {
    *  afresh at each endless wave (the step comes with the WAVE toast, like the stage multiplier's). */
   function fixedFrom(tl, t0, t) {
     const from = Math.max(num(t0, 0), 0);
+    // pass 87: with a stage_list there is no endless after the last stage (each stage's Endless keeps the rows' numbers
+    // from their starts, times its wave's multipliers: WaveDirector.source_for)
+    if (hasStageList(tl)) return from;
     const end = runEnd(tl);
     const at = num(t, 0);
     if (!(at >= end)) return from;
@@ -822,10 +883,8 @@ const Model = (() => {
   /** A curve's formula sampled at the stage marks (0, stage_length, ... the run's end): the points a switch from formula
    *  to manual starts from. Four decimals, like the map's own curves. */
   function seedPoints(tl, formula) {
-    const SL = stageLength(tl), n = stages(tl);
-    const out = [];
-    for (let k = 0; k <= n; k++) out.push([k * SL, round(formulaAt(formula, k * SL), 4)]);
-    return out;
+    // pass 87: the stage marks are each window's start and the run's end (stage_list)
+    return stageMarks(tl).map((t) => [t, round(formulaAt(formula, t), 4)]);
   }
 
   // ------------------------------------------------------------------ spawned so far (pass 57)
@@ -856,6 +915,47 @@ const Model = (() => {
   /** The assumptions when there is nothing better (no run records): 6 % of the crowd killed a second, a 60 s boss fight,
    *  a 30 s portal wait. */
   const EST_DEF = { turnover: 0.06, bossSeconds: 60, portalSeconds: 30 };
+  // pass 87 (lane STOOLS): a stage run (spawnEstimate's opts.stage). STAGE_RUN_NOTES: the clock starts at the window's
+  // start with an empty crowd and the stage's index (its multipliers, hell share, path times); only the events inside the
+  // window play (none before its start, the stage before's boss at its start left out, none after its end; the stage's
+  // boss at its end, from its stage_list entry when no boss event is there); a once row more than 2 s before the start
+  // is dropped (the director drops a once row that late), the old waves[] blocks start no earlier than the window; the
+  // boss fight stands the clock still as before; after it the portal's timer (the map's, portalTimer) is drawn second by
+  // second after the window's end with the director's clock held at the end; the run ends when the timer runs out.
+  const STAGE_EDGE = 0.5;
+  /** Lane SGAME's Endless keys and their defaults (WaveTimeline.ENDLESS_DEFAULTS): the map's `endless` block, a stage
+   *  entry's own `endless` block winning key by key. */
+  const ENDLESS_DEFAULTS = { portal_seconds: 60, every: 10, first_wave: 120, wave_size: 30, wave_growth: 2, cap: 1, hp: 1.5, atk: 1.2,
+    speed: 1.15, hp_growth: 0.15, atk_growth: 0.1, speed_growth: 0.02, speed_max: 1.6, xp_share: 0.35, coin_chance: 0.05, roster_window: 60 };
+  /** One Endless number for stage s (WaveTimeline.endless_value): the stage's own `endless` block, the map's, the default.
+   *  s < 0 (or null): the map's. */
+  function endlessValue(tl, key, s) {
+    const d = isObj(tl) ? tl : {};
+    if (s != null && s >= 0 && hasStageList(d)) {
+      const list = d.stage_list.filter(isObj);
+      const e = list[Math.max(0, Math.min(Math.floor(s), list.length - 1))];
+      if (e && isObj(e.endless) && e.endless[key] != null && isFinite(Number(e.endless[key]))) return Number(e.endless[key]);
+    }
+    if (isObj(d.endless) && d.endless[key] != null && isFinite(Number(d.endless[key]))) return Number(d.endless[key]);
+    return num(ENDLESS_DEFAULTS[key], 0);
+  }
+  /** The portal's countdown to Endless after stage s's boss, seconds (WaveTimeline.portal_seconds; 60 by default). */
+  function portalTimer(tl, s) { return Math.max(endlessValue(tl, 'portal_seconds', s), 0); }
+  /** Endless wave `wave` (1-based)'s size after stage s (WaveTimeline.endless_wave_size). */
+  function endlessWaveSize(tl, wave, s) {
+    if (wave <= 1) return Math.max(Math.trunc(endlessValue(tl, 'first_wave', s)), 0);
+    return Math.max(Math.trunc(endlessValue(tl, 'wave_size', s) + endlessValue(tl, 'wave_growth', s) * (wave - 2)), 0);
+  }
+  /** Endless wave `wave`'s multipliers {hp, atk, speed} after stage s (WaveTimeline.endless_mults: hp and atk compound per
+   *  wave, speed grows linearly to speed_max). */
+  function endlessMults(tl, wave, s) {
+    const w = Math.max(wave, 1) - 1;
+    const hp = Math.max(endlessValue(tl, 'hp', s), 0) * Math.pow(Math.max(1 + endlessValue(tl, 'hp_growth', s), 0), w);
+    const atk = Math.max(endlessValue(tl, 'atk', s), 0) * Math.pow(Math.max(1 + endlessValue(tl, 'atk_growth', s), 0), w);
+    const sp0 = Math.max(endlessValue(tl, 'speed', s), 0);
+    const sp = Math.min(sp0 * (1 + endlessValue(tl, 'speed_growth', s) * w), Math.max(endlessValue(tl, 'speed_max', s), sp0));
+    return { hp, atk, speed: sp };
+  }
   /** WaveTimeline's own defaults for the keys the estimate reads (JsonContent.timeline_from_dict). */
   const TL_SPAWN_DEF = {
     cap_start: 100, cap_per_minute: 10, cap_max: 250, hard_cap: 300, cap_per_stage: 0, boss_cap_frac: 0.3, portal_cap: 10,
@@ -969,13 +1069,16 @@ const Model = (() => {
   /** The estimate (the block comment above). `creatures`: the server's records (a list or an id map). `opts`: {turnover
    *  (a share of the crowd a second, or a list per stage, the last for later stages and endless), bossSeconds,
    *  portalSeconds, end (the run clock to stop at; default the editor's view end), skin (the map's first skin, for a swarm
-   *  that names no creature), boss (the map's boss, for a boss event that names none and for endless)}. Returns
+   *  that names no creature), boss (the map's boss, for a boss event that names none and for endless), stage (pass 87:
+   *  a STAGE RUN of that 0-based stage: see stageRunNotes below)}. Returns
    *  {points: one per run second (and one after each boss fight, at the fight's second), each {t, after, all, reg, col,
    *  mod, elite, special, boss, kills, alive, by: {id: [spawned, coloured, elite-modified]}, src: {'roster:<i>' |
    *  'wave:<i>:<k>': what that roster row or wave alternative has spawned (pass 58)}}, ids (largest first), marks
    *  [{t, kind elite|mod|special|boss|swarm, id, n}], fights [{t, boss, seconds, portal, spawned}], colourAt, assume}. */
   function spawnEstimate(tl, creatures, opts) {
     const o = isObj(opts) ? opts : {};
+    // pass 87 (lane STOOLS): a stage run (STAGE_RUN_NOTES): a fresh run of one stage from its window's start
+    const SR = o.stage != null && o.stage !== '' && isFinite(Number(o.stage)) ? stageWindow(tl, Math.max(0, Math.min(Math.floor(Number(o.stage)), stages(tl) - 1))) : null;
     const byId = {};
     if (Array.isArray(creatures)) { for (const c of creatures) if (c && c.id) byId[c.id] = c; } else if (isObj(creatures)) Object.assign(byId, creatures);
     const g = (key) => num(tl[key], TL_SPAWN_DEF[key]);
@@ -1065,6 +1168,7 @@ const Model = (() => {
       const one = rowSingleEnemy(r);
       const picks = one ? null : r.enemy === ROW_ENEMY_ROSTER ? [] : pickShares(r.enemy, r.enemy_weights).map((pk) => ({ d: defOf(pk.id, r.stats), share: pk.share })).filter((pk) => pk.d);
       const d = one ? defOf(String(r.enemy == null ? '' : r.enemy), r.stats) : picks.length ? picks[0].d : null;
+      if (SR && String(r.pace) === 'once' && rowWaveStart(r) < SR.start - 2) return;
       if (d || (!one && (r.enemy === ROW_ENEMY_ROSTER || picks.length))) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d ? d.pack : 1)), 1), single: r.pattern === 'single',
         one, picks, mix: rowInMix(r), once: String(r.pace) === 'once', timer: rowTimer(r), elite: rowElite(r), special: !!r.special, next: null,
         p: rowPaced(r) ? clamp(num(r.chance, 1), 0, 1) : 1,
@@ -1120,6 +1224,11 @@ const Model = (() => {
 
     // ---- the clocks: the run clock is k / EST_HZ and stands still through a boss fight and its portal wait
     let k = 0, play = 0, stage = 0, phase = 0, phaseLeft = 0, portalT = 0, spawnStep = 0;
+    // pass 87: a stage run's clock starts at its window's start, its stage index the stage's
+    if (SR) { k = Math.round(SR.start * EST_HZ); stage = SR.i; }
+    let srDone = false, srAfter = 0;
+    // pass 87: Endless after the portal's countdown (phase 3): its clock in steps, the wave that came last, its pool
+    let enSteps = 0, enWave = 0, enPool = null;
     let fight = null;
     let endless = false, enNextBoss = 0, enNextElite = 0, enNextEliteBoss = 0, enBossI = 0;
     const clock = () => k / EST_HZ;
@@ -1128,16 +1237,20 @@ const Model = (() => {
     // Red Canyon's first fight keeps 0.6 of 54, not of 100)
     const now = () => (phase === 0 ? k / EST_HZ : k / EST_HZ + HAIR);
     // never more than the whole crowd a second
-    const turnoverNow = () => Math.min(tvCurve ? (tvCurve.length ? samplePoints(tvCurve, clock()) : 0)
+    // pass 87: a stage run's hero is fresh at its window's start: the kill rate curve (fitted on runs from 0:00) is read
+    // at the seconds he has played
+    const turnoverNow = () => Math.min(tvCurve ? (tvCurve.length ? samplePoints(tvCurve, SR ? clock() - SR.start : clock()) : 0)
       : tvStages ? tvStages[Math.min(Math.max(stage, 0), tvStages.length - 1)] : tvFlat, 1);
 
     /** WaveDirector.current_cap: the curve (or the old line), cap_per_stage, cap_max; boss_cap_frac of it in a boss fight;
-     *  in the portal wait 0 after a portal wave, else portal_cap (-1 = the stage-end cap) for portal_spawn_seconds. */
+     *  in the portal wait 0 after a portal wave, else portal_cap (-1 = the stage-end cap) for portal_spawn_seconds; pass
+     *  87: in Endless the stage-end cap x endless.cap. */
     function capNow() {
       const t = now();
       const base = curve.length ? samplePoints(curve, t) : trunc(g('cap_start')) + g('cap_per_minute') * (t / 60);
       const cap = Math.min(trunc(base + capPerStage * stage), capMax);
       if (phase === 1) return trunc(cap * bossFrac);
+      if (phase === 3) return trunc(cap * Math.max(endlessValue(tl, 'cap', stage), 0));
       if (phase === 2) {
         if (portalWaveCount > 0) return 0;
         if (portalSpawn >= 0 && portalT >= portalSpawn) return 0;
@@ -1181,7 +1294,7 @@ const Model = (() => {
       for (const { a, k } of list) {
         const p = alts.length ? (sum > 0 ? Math.max(num(a.chance, 1), 0) / sum : 0) : 1;
         const d = defOf(String(a.enemy == null ? '' : a.enemy), a.stats);
-        if (p > 0) branches.push({ p, d, key: `wave:${wi}:${k}`, spawned: 0, next: num(w.t, 0), done: !d });
+        if (p > 0) branches.push({ p, d, key: `wave:${wi}:${k}`, spawned: 0, next: SR ? Math.max(num(w.t, 0), SR.start) : num(w.t, 0), done: !d });
       }
       waves.push({
         t: num(w.t, 0), until: w.until == null || w.until === '' ? null : num(w.until, 0), count: trunc(num(w.count, 0)),
@@ -1410,9 +1523,15 @@ const Model = (() => {
         default: break;
       }
     }
-    const events = evList.map((ev, i) => ({ ev, i, t: isObj(ev) ? Math.max(num(ev.t, 0), 0) : 0 }))
+    let events = evList.map((ev, i) => ({ ev, i, t: isObj(ev) ? Math.max(num(ev.t, 0), 0) : 0 }))
       .filter((e) => isObj(e.ev) && num(e.ev.chance, 1) > 0)
       .sort((a, b) => a.t - b.t || a.i - b.i);
+    if (SR) {
+      // a stage run plays only its own window's events: none before its start (the stage before's boss at its start is
+      // that stage's), none after its end; the stage's own boss at its end, from its entry when no boss event is there
+      events = events.filter((e) => e.t >= SR.start - 1e-9 && e.t <= SR.end + STAGE_EDGE && !(SR.i > 0 && e.ev.type === 'boss' && Math.abs(e.t - SR.start) <= STAGE_EDGE));
+      if (SR.boss && !events.some((e) => e.ev.type === 'boss' && Math.abs(e.t - SR.end) <= STAGE_EDGE)) events.push({ ev: { t: SR.end, type: 'boss', enemy: SR.boss }, i: evList.length, t: SR.end });
+    }
     let evI = 0;
     const bossIds = evList.filter((ev) => isObj(ev) && ev.type === 'boss' && typeof ev.enemy === 'string' && byId[ev.enemy]).map((ev) => ev.enemy);
     let lastEliteBoss = null;
@@ -1556,6 +1675,50 @@ const Model = (() => {
       }
       if (due) spawnBurst(due);
     }
+    /** Pass 87 (lane STOOLS), WaveDirector.endless_rows: the late roster Endless draws from: the mix rows open in the
+     *  stage's last `roster_window` seconds, each by its weight at its last second in the window; the map's first skin when
+     *  none is. [{x, d, w, key}] */
+    function endlessPool() {
+      const endT = SR.end;
+      const win = Math.max(endlessValue(tl, 'roster_window', stage), 1);
+      const out = [];
+      for (const x of roster) {
+        if (!x.mix || !x.one || !x.d) continue;
+        const u = x.until;
+        if (x.t >= endT || u <= endT - win) continue;
+        const w = rowWeight(x.r, Math.max(Math.min(u, endT) - 0.5, x.t), lateT);
+        if (w <= 0) continue;
+        out.push({ d: x.d, w, key: x.key });
+      }
+      if (!out.length && o.skin) { const d = defOf(String(o.skin), null); if (d) out.push({ d, w: 1, key: '' }); }
+      return out;
+    }
+    /** `n` bodies of the Endless pool, shared by weight (each row's own creature; tallied under its row). */
+    function endlessAdd(n) {
+      let W = 0;
+      for (const p of enPool) W += p.w;
+      if (!(W > 0) || !(n > 0)) return;
+      for (const p of enPool) { const m = n * p.w / W; add(p.d, m, 'reg'); if (p.key) bump(srcCum, p.key, m); }
+    }
+    /** WaveDirector.spawn_endless_wave: wave w's size, past the live cap, under the hard cap. */
+    function endlessWave(w) {
+      const n = Math.min(endlessWaveSize(tl, w, stage), Math.max(hard - bodies(), 0));
+      if (n > 0) { endlessAdd(n); marks.push({ t: SR.end + srAfter, kind: 'swarm', id: enPool.length ? enPool[0].d.id : '', n }); }
+    }
+    /** WaveDirector._endless_fill, in expectation: a burst (the mean of burst_min..burst_max load) up to the room under
+     *  Endless's cap, the bodies by the pool's mean share, under the hard cap. */
+    function endlessFill() {
+      if (!enPool.length) return;
+      const room = capNow() - loadAll();
+      const left = hard - bodies();
+      if (!(room > 0) || !(left > 0)) return;
+      const burst = Math.min((bLo + bHi) / 2, room);
+      let W = 0, sh = 0;
+      for (const p of enPool) { W += p.w; sh += p.w * Math.max(p.d.share, 0.05); }
+      if (!(W > 0)) return;
+      endlessAdd(Math.min(burst / (sh / W), left));
+    }
+
     /** WaveDirector.spawn_portal_wave: `count` bodies of the regular rows as the stage ended, by weight, a pack a draw. */
     function portalWave() {
       if (portalWaveCount <= 0) return;
@@ -1638,15 +1801,21 @@ const Model = (() => {
       const starve = {};
       for (const key of Object.keys(starveN)) starve[key] = checks > 0 ? starveN[key] / checks : 0;
       const hl = loadOf(hellIds(rowsAt(phase === 0 ? now() : now() - 1, true)));
-      points.push({ t: clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion, kills, alive: bodies(), by, src: Object.assign({}, srcCum),
+      points.push({ t: SR && srAfter > 0 ? SR.end + srAfter : clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion, kills, alive: bodies(), by, src: Object.assign({}, srcCum),
         cap: capNow(), load: loadAll() - hl, floor: floorCurve.length ? samplePoints(floorCurve, now()) : 0, full: checks > 0 ? fullChecks / checks : 0, aliveBy, starve });
       checks = 0; fullChecks = 0; starveN = {};
     }
     record(false);
 
-    const endK = Math.round(end * EST_HZ);
+    const endK = Math.round((SR ? Math.min(end, SR.end) : end) * EST_HZ);
+    // a stage run: the portal's countdown (the map's endless.portal_seconds, not the page's wait) after its boss, then
+    // Endless to the view's end
+    const srPortalSteps = SR ? Math.max(1, Math.round(portalTimer(tl, SR.i) * EST_HZ)) : 0;
+    const srEndlessSteps = SR ? Math.max(0, Math.round((end - SR.end) * EST_HZ) - srPortalSteps) : 0;
+    const srEndK = SR ? Math.round(SR.end * EST_HZ) : 0;
+    const enEvery = SR ? Math.max(1, Math.round(Math.max(endlessValue(tl, 'every', SR.i), 1) * EST_HZ)) : 1;
     let guard = 0;
-    while ((k < endK || phase !== 0) && guard < 4000000) {
+    while ((SR ? !srDone && (k < endK || phase !== 0) : (k < endK || phase !== 0)) && guard < 4000000) {
       guard++;
       play++;
       // the hero kills `turnover` of the crowd a second; a special goes at the end of its expected life
@@ -1661,6 +1830,9 @@ const Model = (() => {
         processEvents();
         if (phase === 0) tickWaves();
         if (phase === 0) tickRowWaves();
+        // pass 87: a stage run's window ended with no boss fight (WaveDirector._stage_end_reached for a stage without a
+        // boss): its portal opens where the hero stands, the countdown begins
+        if (SR && phase === 0 && k >= srEndK) { phase = 2; phaseLeft = srPortalSteps; portalT = 0; portalWave(); record(true); }
       } else if (phase === 1) {
         phaseLeft--;
         while (fight && fight.brood.length && fight.brood[0].step <= play) {
@@ -1672,18 +1844,44 @@ const Model = (() => {
         if (phaseLeft <= 0) {
           // the boss falls: the portal opens with its wave (WaveDirector._on_boss_died)
           bossAlive = null; kills += 1;
-          phase = 2; phaseLeft = portalSteps; portalT = 0;
+          phase = 2; phaseLeft = SR ? srPortalSteps : portalSteps; portalT = 0;
           portalWave();
+          // pass 87: a stage run's fight is over: its point at the boss's second, then the portal's seconds after it
+          if (SR) { fight.spawned = total() - fight.before - 1; record(true); }
         }
+      } else if (phase === 3) {
+        // pass 87: Endless (WaveDirector._tick_endless): a wave every `every` seconds of its own clock
+        enSteps++;
+        srAfter = (srPortalSteps + enSteps) / EST_HZ;
+        const w = Math.floor(enSteps / enEvery) + 1;
+        if (w > enWave) { enWave = w; endlessWave(w); }
       } else {
         phaseLeft--;
         portalT += 1 / EST_HZ;
+        if (SR) srAfter = (srPortalSteps - phaseLeft) / EST_HZ;
       }
-      if (phase !== 2) tickSpecials();
+      // the specials' clock in the stage and its boss fight (pass 87: not in the portal wait nor in Endless)
+      if (phase < 2) tickSpecials();
       spawnStep--;
-      if (spawnStep <= 0) { spawnStep = burstEvery; spawnBurst(); }
-      tickRowIntervals();
-      floorFill();
+      if (spawnStep <= 0) { spawnStep = burstEvery; if (phase === 3) endlessFill(); else spawnBurst(); }
+      if (phase !== 3) { tickRowIntervals(); floorFill(); }
+      if (SR && phase === 2) {
+        // pass 87: a stage run's portal countdown, a point a second after the boss; at 0 Endless (or the view's end)
+        if ((play % EST_HZ === 0 && srAfter > 0) || phaseLeft <= 0) record(false);
+        if (phaseLeft <= 0) {
+          if (fight) { delete fight.brood; fights.push(fight); fight = null; }
+          if (srEndlessSteps > 0) {
+            // WaveDirector.start_endless: the pool, wave 1 at once
+            phase = 3; enSteps = 0; enPool = endlessPool(); enWave = 1; endlessWave(1);
+          } else srDone = true;
+        }
+        continue;
+      }
+      if (SR && phase === 3) {
+        if (enSteps % EST_HZ === 0 || enSteps >= srEndlessSteps) record(false);
+        if (enSteps >= srEndlessSteps) srDone = true;
+        continue;
+      }
       if (phase === 2 && phaseLeft <= 0) {
         // the hero walks through: the next stage (or endless, its clocks set again at every portal) at the same second
         stage++;
@@ -1704,7 +1902,32 @@ const Model = (() => {
 
     const last = points[points.length - 1].by;
     const ids = Object.keys(last).sort((a, b) => last[b][0] - last[a][0] || (a < b ? -1 : a > b ? 1 : 0));
-    return { points, ids, marks, fights, colourAt, assume: { turnover: tvCurve || tvStages || tvFlat, bossSeconds: bossSteps / EST_HZ, portalSeconds: portalSteps / EST_HZ, end } };
+    return { points, ids, marks, fights, colourAt, assume: { turnover: tvCurve || tvStages || tvFlat, bossSeconds: bossSteps / EST_HZ, portalSeconds: portalSteps / EST_HZ, end },
+      stage: SR ? { i: SR.i, start: SR.start, end: SR.end, portal: srPortalSteps / EST_HZ, endless: srEndlessSteps / EST_HZ, waves: enWave } : null };
+  }
+
+  /** Pass 87 (lane STOOLS): the estimates of every stage run stitched on the map's clock (the Timeline's "All" tab): each
+   *  window's points from its own stage run (a fresh hero at its start, so the counts start again at each window), the
+   *  last stage's portal after the run's end. `opts` as spawnEstimate's (its `stage` ignored). */
+  function stagesEstimate(tl, creatures, opts) {
+    const L = stageList(tl);
+    const out = { points: [], ids: [], marks: [], fights: [], colourAt: null, assume: null, stages: [] };
+    const idSeen = new Set();
+    L.forEach((w, i) => {
+      // an earlier stage's run is cut at its window's end (the next window shows the next run), so it needs no Endless
+      const o2 = Object.assign({}, isObj(opts) ? opts : {}, { stage: i });
+      if (i < L.length - 1) o2.end = w.end;
+      const est = spawnEstimate(tl, creatures, o2);
+      const last = i === L.length - 1;
+      for (const p of est.points) if (last || p.t < w.end || (p.t === w.end && !p.after)) out.points.push(p);
+      out.marks.push(...est.marks);
+      out.fights.push(...est.fights);
+      if (out.colourAt == null && est.colourAt != null) out.colourAt = est.colourAt;
+      if (!out.assume) out.assume = est.assume;
+      for (const id of est.ids) if (!idSeen.has(id)) { idSeen.add(id); out.ids.push(id); }
+      out.stages.push(est.stage);
+    });
+    return out;
   }
 
   /** The estimate's point at run second t: the last one at or before it (at a boss fight's own second the point after
@@ -2017,8 +2240,8 @@ const Model = (() => {
       const word = ev.name ? String(ev.name) : (SNAP_EVENT_WORD[ev.type] || String(ev.type || 'event'));
       add(num(ev.t, 0), 'event', `${word} ${clockText(num(ev.t, 0))}`, { kind: 'event', i });
     });
-    const SL = stageLength(d), n = stages(d);
-    for (let k = 0; k <= n; k++) add(k * SL, 'stage', k < n ? `stage ${k + 1} start` : 'the run\'s end', { kind: 'stage', k });
+    const marks = stageMarks(d), n = marks.length - 1;
+    for (let k = 0; k <= n; k++) add(marks[k], 'stage', k < n ? `stage ${k + 1} start` : 'the run\'s end', { kind: 'stage', k });
     return out;
   }
 
@@ -2074,8 +2297,11 @@ const Model = (() => {
   const api = {
     DEF, FORMULA_DEF, isObj, num, clamp, round, samplePoints, formulaAt, curveMode, curveMult, hasCurve, hpTimeMult, dmgTimeMult,
     stageLength, stages, runEnd, stageAt, stageMult, rowWeight, keyframesOf, convertRow, normaliseRoster, newRowId,
+    // pass 87 (lane STOOLS): the stage windows (stage_list)
+    STAGE_LIST_KEYS, hasStageList, stageList, stageWindow, stageStart, stageEnd, stageLen, stageMarks,
     defaultKnockback, baseNumbers, knockbackOf, creatureAt, otherOverrides, seedPoints, getPath,
     MAX_BODIES, EST_HZ, EST_DEF, pickShares, eliteCount, burstOnce, burstAvg, bossBrood, spawnEstimate, estimateAt,
+    STAGE_EDGE, portalTimer, stagesEstimate, ENDLESS_DEFAULTS, endlessValue, endlessWaveSize, endlessMults,
     archOf, rowNumbers, actualSources, actualAt, actualSeries, ACTUAL_CLAMP, actualScale, eliteEveryTimes,
     fixedFrom, lookOf, waveEndOf, openSourceOf, eventNumbers,
     sizeRange, sizeIssues, TINT_DEF, tintRange, tintIssues, hueSpan, hueAt, hsvToRgb, toLinear, toSrgb, tintPixel,

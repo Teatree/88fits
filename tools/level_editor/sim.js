@@ -126,7 +126,8 @@ const Sim = (() => {
     const st = h.settings || {};
     const when = h.started ? new Date(h.started) : null;
     const hm = when && !isNaN(when.getTime()) ? `${when.getMonth() + 1}/${when.getDate()} ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}` : '';
-    return `${hm} · ${h.hero_name || heroName(st.hero)} ×${st.players} to ${M.fmtT(st.limit)}`;
+    // pass 87 (lane STOOLS): the stage the runs played (a sim from before pass 87 went through the stages)
+    return `${hm} · ${h.hero_name || heroName(st.hero)} ×${st.players} to ${M.fmtT(st.limit)} · ${st.stage ? 'stage ' + st.stage : 'all stages (before pass 87)'}`;
   }
 
   function saveDraft() {
@@ -210,7 +211,7 @@ const Sim = (() => {
     const f = S.form;
     return { hero: f.hero, players: f.players, workers: Number(f.workers) > 0 ? f.workers : 0, limit: f.limit, board: f.board, talents: f.talents || {},
       board_label: f.board_label || '', death: f.death, seed: f.seed, map: App.S.mapId || f.map, fps: f.fps || 60, note: f.note || '',
-      bot: f.bot || {} };
+      bot: f.bot || {}, stage: Math.max(1, Math.min(Number(f.stage) || 1, App.stages())) };
   }
 
   async function runSim(saveFirst) {
@@ -398,6 +399,10 @@ const Sim = (() => {
     grid.appendChild(el('div', { class: 'sim-field' }, el('span', { class: 'sim-label', text: 'Map' }),
       el('div', { class: 'sim-mapline' }, el('b', { text: mp ? mp.name : mid }), el('span', { class: 'muted small', text: rev.saved ? ` · the saved file (${whenText(rev.saved)})` : ' · the saved file' })),
       App.dirty() ? el('span', { class: 'sim-help warn-text', text: 'Unsaved changes: the sim plays the map as last saved (Run sim offers to save first).' }) : el('span', { class: 'sim-help', text: 'the map open in the editor, as last saved' })));
+    // pass 87 (lane STOOLS; Garry: every stage is its own run): the stage every run plays
+    const stSel = el('select', { class: 'sim-input', onchange: (e) => set('stage', Number(e.target.value)) });
+    for (const w of App.stageList()) stSel.appendChild(el('option', { value: w.i + 1, text: `Stage ${w.i + 1}${w.name !== `Stage ${w.i + 1}` ? ' · ' + w.name : ''} (${M.fmtT(w.length)}${w.boss ? ', ' + App.creatureName(w.boss) : ''})`, selected: w.i + 1 === Math.max(1, Number(f.stage) || 1) }));
+    grid.appendChild(field('Stage', stSel, 'each run plays this stage: a fresh hero (level 1, his start weapon) at its window\'s start, its boss at its end, then the portal\'s countdown and Endless until the stop or his death (the bot never extracts)'));
     // the hero
     const hero = el('select', { class: 'sim-input', onchange: (e) => set('hero', e.target.value) });
     for (const h of meta.heroes || []) hero.appendChild(el('option', { value: h.id, text: h.name + (h.hidden ? ' (hidden in the game)' : ''), selected: h.id === f.hero }));

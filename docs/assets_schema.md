@@ -1652,3 +1652,138 @@ No new JSON key, param, special or stat. FAD-D uses the Puppet method's existing
 `method: hero_puppet`, `pose_drivers`, `ctl_drivers`, `run_fit`, `fringe_remap`, `puppet{...}` with
 `depth_views: ["fd", "back"]` (a per-view choice the job form already offers), plus the look-entry keys `fresh`,
 `icon` (FAD-C's badge), `icon_picked`, `title` (FAD-C's cut-out).
+
+## Pass 87: new keys
+
+### The Big Mouth (lane BIGMOUTH)
+
+New keys in a LaserBeam weapon's `params.beam` (the Big Mouth, the Loudmouth). Every block is optional; a key left out
+takes the default in `LaserBeam.WINDUP_DEFAULTS` / `PUNCH_DEFAULTS` / `THROAT_DEFAULTS`. A mutation's `params.beam`
+merges over them like any other params (deep), so a mutation may carry its own.
+
+| Key | Type | Default | Big Mouth | Loudmouth | Meaning |
+|---|---|---|---|---|---|
+| `beam.windup.seconds` | float s | 0.24 | 0.24 | 0.24 | the wind-up before each beam; the beam pours at its end. 0 = it pours on the pull. Taken from the cooldown (the cooldown clock starts at the pull), so the time between beams is unchanged |
+| `beam.windup.rear` | float rad | 0.35 | 0.35 | 0.35 | how far the lips rear up (tip back) through the wind-up, eased in |
+| `beam.windup.gape` | float deg | 36 | 36 | 36 | how far the jaw opens through the wind-up (it snaps to 80 when the beam pours) |
+| `beam.windup.swell` | float | 0.1 | 0.1 | 0.1 | how much the mouth swells (an in-breath) through the wind-up, x(1 + swell) |
+| `beam.windup.tremble` | float m | 0.03 | 0.03 | 0.03 | a shiver in the last half of the wind-up |
+| `beam.punch.back` | float m | 0.36 | 0.36 | 0.45 | the punch back along the aim as the beam leaves |
+| `beam.punch.climb` | float rad | 0.2 | 0.2 | 0.2 | the lips kick up with the punch |
+| `beam.punch.pop` | float | 0.2 | 0.2 | 0.2 | the mouth swells with the punch, x(1 + pop x punch) |
+| `beam.punch.hz` | float Hz | 2.8 | 2.8 | 2.8 | the punch's spring: amp x e^(-decay t) x cos(2 pi hz t); it swings past rest once |
+| `beam.punch.decay` | float 1/s | 7.5 | 7.5 | 7.5 | how fast the spring dies (gone in about 0.6 s) |
+| `beam.punch.pulse` | float | 0.3 | 0.3 | 0.3 | each pulse while it pours (every 0.28 s) kicks again at this share of the punch; 0 = none |
+| `beam.throat.size` | float | 0.9 | 0.9 | 0.9 | the throat flare's size, in the model's own units (it scales with the model) |
+| `beam.throat.gain` | float | 1.0 | 1.0 | 1.0 | the flare's brightness |
+| `beam.throat.walls` | float | 0.9 | 0.9 | 0.9 | how bright the inside of the throat (its inner skin and floor) glows while it burns (emission energy) |
+
+The glow's colour is always the beam's (`beam.color`, Bad Breath's `breath.color`, else the pink); its core runs to the
+beam's core colour. No new stat, special or behaviour; no Level Editor vocabulary needed (the Items tab shows params as
+JSON).
+
+Model nodes the code reads (tools/blender_mouth.py; a model without them still works): `Familiar/Mouth` > `Jaw`
+(with `Floor`, the floor's inside, lit, and `FloorBack`, its outside), `Upper`, `Cavity` (the throat's inner skin,
+lit), `ThroatBack` (its outer skin in the lips' colour x0.55, never lit), `Glow` (the
+core, hidden at rest), `Flare` (an empty: the flare's anchor). `Tongue` is gone.
+
+### Facing, evade, barrels (lane FIXES)
+
+No new JSON keys, params, specials or stats.
+
+- `variants.<code>.back_faces` (existing key since pass 46, "right" | "left" | "straight", default the creature's own,
+  else "right") now also steers the attack strip's BACK half when the look's `attack_views` is "front_back" (it read
+  `front_faces` before): the back wind-up/release mirror the way the back walk does. Set on the Spit Cactus's SC-A:
+  `"back_faces": "left"`. The editor's look facing control (if any) needs no change; its help text may say "the back
+  set, walk and throw".
+- Code constants Garry may want to see (no JSON): BarrelField.COUNT 35 / EXTRA_DARK 2 / COIN_MIN 1 / COIN_MAX 5 /
+  COIN_VALUE 1; PickupManager.COIN_DEBT_SHARE 0.4; Player.EVADE_GHOST_TIME 1.0 / HOLD 0.7 / ALPHA 0.5;
+  DamageNumbers.EVADE #cdb8ff.
+- New gold source id `barrel` (RunAnalytics.GOLD_SOURCES; a black barrel's coins) for anything that lists gold sources
+  (dashboard.html, posthog_boards.py, the Sim's gold breakdown legend); unknown ids already show as their id.
+
+### Mummy looks, drivers, gen_art keys (lane MUMMY)
+
+No new game key: the four mummy looks (dust_mummy DM-F..DM-I) use the recipe keys the Level Editor already knows
+(creature_pose2: `stills`, `art_prompt`, `pose`, `pose_front`, `stand`, `gait`, `motion`, `anim_negative`, `back_hint`,
+`dead_hint`, `death`, `death_frames`, `run_fps`, `outline_frac`, `outline_color`, `back_ref`, `anim_seed`) and the look
+entry's `fresh`, plus two gen_art recipe keys (art pipeline only; the game never reads them):
+
+| recipe key (creature look) | type | default | meaning |
+|---|---|---|---|
+| `remap_hues` | object `{ranges: [[h0, h1], ...], to, sat, min_sat, max_sat}` or a LIST of such objects | absent = off; in a block sat 0.55, min_sat 0.16, max_sat 1.01 | the heroes' key (pass 46) now read for a creature look too (tools/gen_art.py `process`, creature branch): every walk frame (front and back) and every frame of the death clip has the visible pixels whose hue is in `ranges` (degrees) and whose saturation is over `min_sat` and at most `max_sat` sent to hue `to` at `sat` times their saturation, value kept (artkit.remap_hues); a list applies each block in turn. All four mummies carry `[{"ranges": [[56, 75]], "to": 44, "sat": 0.9}, {"ranges": [[75, 330]], "to": 45, "sat": 0.45}]` (the yellow drift back to beige, then the teal/green feet Wan smeared in); DM-H and DM-I add `{"ranges": [[330, 360], [0, 22]], "to": 45, "sat": 0.6, "min_sat": 0.08, "max_sat": 0.55}` (their walks' pink cast back to beige, the saturated red eyes spared by max_sat) |
+| `match_still` | bool | false | every walk frame's saturation and value brought to its view's painting (front frames to the front cell, back frames to the back cell; mean and spread over the figure's pixels brighter than value 0.3, hues kept, the dark lines, the outline and a saturated red (the glowing eyes) left alone: gen_art `walk_stats` / `match_walk`). For a walk that came out yellower than its painting or flickers warmer/paler frame to frame. Applied after `remap_hues` |
+
+For the Level Editor lane: creature_pose2 in tools/level_editor/methods.json lists neither; `remap_hues` is already a
+recipe row in assets_fields.js (recipeCommon, as an object: the list form is new), `match_still` would be a bool row
+("Match the painting's colours"). The record's `info` (the `_ai.json`) carries `remap_hues` and `match_still: true`
+when they ran.
+
+Tool arguments (tools/pose_driver.py, additive, defaults unchanged):
+
+| arg | type | default | meaning |
+|---|---|---|---|
+| `arm_wide=<deg>` | float | unset (the old fixed 0.07 / 0.09 m spread) | with `arms=zombie`: each arm spread that many degrees out from straight ahead |
+| `fore_drop=<deg>` | float | unset (= `arm_drop`) | with `arms=zombie`: the forearm's own slope below the horizontal (negative raises it), so the hands rise above the elbows |
+
+meta.json of a driver also records `arm_drop`, `arm_wide`, `fore_drop` (null when not given).
+
+New drivers in tools/dl/drivers/ (12 frames, five views; `_f` = raised for the front view, use as `pose_front`; `_b` =
+for the back view, use as `pose`): mummy_shuffle_f/_b, mummy_lurch_f/_b, mummy_bounce_f/_b, mummy_limp_f/_b, and the
+body-fitted ones the goofy looks walk on (pose_driver `body=` per view: the front to the round front painting, the back
+to the back painting; arms up and out as painted): mummy_bounce_fit_f/_b (DM-H), mummy_limp_fit_f/_b (DM-I). The plain
+mummy_bounce/limp drivers made the round mummy slim and crossed its arms (DM-H's first run).
+
+### Solenne's puppet (lane SOL)
+
+No new JSON key, param, special or stat, and no code. SOL-F and SOL-G use the Puppet method's existing recipe keys
+(pass 71) and the hero look keys:
+
+- `method: "hero_puppet"`, `pose_drivers` (every view the puppet's OpenPose guide; the side on
+  `solenne_puppet_catwalk_walking_farhide`), `ctl_drivers` (`{"back": "solenne_puppet_catwalk_walking_depth"}`),
+  `run_fit` (`tools/dl/drivers/solenne_puppet_catwalk_walking/silhouette.json`), `fringe_remap: true`,
+  `puppet{...}` with `clip: "catwalk_walking.fbx"` (the job form's Moving clip), `stills: "repaint"`,
+  `source: "SOL-B"`, `depth_views: ["back"]`, `words.side` (the arms-out side's own words: her face in profile).
+- The look's own paintings: `stills` (`"f"` / `"g"`) for side, fd, bd and their hurts, with `still_keys` naming her own
+  `solenne_front`, `solenne_back`, `solenne_cheer`, `solenne_dead`, `solenne_hurt_front`, `solenne_hurt_back`;
+  `seed_offset` (1 + crc32(code) % 9973, as the Level Editor writes it), `painter {model: klein, steps: 0}`.
+- The words under test, all existing gen_art keys: `pose_hint`, `side_hint`, `back_hint`, `anim_hint`, `pose_motion`,
+  `anim_negative` (SOL-G sets the empty ones to "" on purpose, so her top-level words do not apply).
+- Look entry keys: `fresh: true`, `note`, `sprite`, `anims`, `strip_cols`, `fps`.
+
+A new guide folder (git-ignored, under tools/dl/drivers): `solenne_puppet_catwalk_walking` (+ `_depth`,
+`silhouette.json`) from the puppet, and `solenne_puppet_catwalk_walking_farhide` (a copy whose side view drops the far
+arm in the frames where its wrist is above mid-torso; `meta.json` `far_arm_hidden` records which).
+
+### Fadeaway's looks (lane FADE)
+
+No new JSON key, param, special or stat. FAD-E and FAD-F use existing recipe keys:
+- `method: "hero_pose5"`, `painter {model: klein, steps: 0}`, `stills` ("e" / "f"), `seed_offset` (2311 / 2377),
+  `anim_seed` (FAD-F: 1);
+- `art_prompt`, `pose_hint` (FAD-E), `back_hint`, `side_hint` ("" on FAD-F: the hero's own is not used), `anim_hint`,
+  `anim_negative`;
+- `pose_drivers` {front, fd, side, bd, back: "fadeaway_puppet_run_up"} (a new guide folder under tools/dl/drivers/, made by
+  tools/dl/p87/FADE/driver_fix.py from fadeaway_puppet_run; its meta.json records `upright` {neck_up, head, twist,
+  clear, report});
+- `still_keys` {bd: "fadeaway_<e|f>_bd88"} and on FAD-E also {hurt_back: "fadeaway_e_hurt_back88"} (gen_art's
+  hero_still_key already reads still_keys for any still name, hurt_<view> included);
+- `run_fit` (the puppet's silhouette.json) and `run_scale` per view (pass 70 key) for the size;
+- `fringe_remap: true`;
+- look-entry keys `fresh`, `note`, `icon` + `icon_picked` + `title` (FAD-C's badge and cut-out), `sprite`, `anims`,
+  `strip_cols`, `fps`.
+
+### The stage screens (lane SUI)
+
+The screens read lane SGAME's keys only (see keys_SGAME.md):
+- `timeline_data.stage_list[k]`: `name` (the card's title over its picture, the Results' stage line), `description`
+  (the card's body), `difficulty` (the card's coloured line), `length` (the card's "m:ss to the boss"), `boss` (the
+  card's boss plate and name; the next stage's requirement "Beat the <boss>"), `hell` (the difficulty line in rock),
+  `shot` (the card's picture path; default `res://art/ui/stages/<map>_s<k>.jpg`, k from 1, 972 x 374 box, 2.6 : 1).
+- `timeline_data.endless.every` (or a stage's own `endless.every`): the stage clear's "a tougher one every N s".
+
+Tool-only properties (not content):
+- `HUD.test_stage_clock` {portal_left, endless, endless_wave, endless_seconds, stage_seconds}: a capture or test pins the
+  clock plate's state (as `test_arrows` pins pointers).
+- `PortalDialog.seconds_source` (Callable -> float): a capture or test pins the countdown; with it set (or without a
+  game) the dialog counts by itself and closes itself at 0 (`expire()`, signal `expired`).
+- `StagesScreen.hold_start` / `started`: a tap on an open card records the stage without leaving (touch_audit, tests).

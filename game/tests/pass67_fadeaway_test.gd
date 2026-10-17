@@ -175,7 +175,11 @@ func test_the_basketballs_path_is_whole() -> void:
 	assert_str(c.favourite_passive).is_equal("evade")
 	assert_object(Registry.passive("evade")).is_not_null()
 	assert_str(str(c.favourite_passive_bonus.get("type", ""))).is_equal("level")
-	assert_int(int(c.favourite_passive_bonus.get("value", 0))).is_equal(2)
+	# pass 87 (lane FADE, re-pinned): Garry set the bonus level by hand (2 -> 3, uncommitted while pass 87 ran): the
+	# test reads his JSON instead of pinning his number
+	var fj: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/characters/fadeaway/fadeaway.json"))
+	assert_int(int(c.favourite_passive_bonus.get("value", 0))).is_equal(int(fj["favourite_passive_bonus"]["value"]))
+	assert_int(int(c.favourite_passive_bonus.get("value", 0))).is_greater(0)
 	var ft: MutationDef = Registry.mutation("free_throw")
 	assert_bool(ft.is_hero()).is_true()
 	assert_str(ft.hero).is_equal("fadeaway")

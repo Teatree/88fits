@@ -106,6 +106,9 @@ func _ready() -> void:
 		mapdef = Registry.sorted_maps()[0]
 	Run.start(character, mapdef)
 	Run.arena = arena
+	# pass 87 (lane SGAME): the stage this run plays (the Stages menu's or the Watch's Run.choose_stage; a tool's launch
+	# `stage`, 1-based), a fresh run at its window's start; the next run plays stage 1 unless chosen again
+	_start_chosen_stage(debug_launch)
 	# map
 	if mapdef and mapdef.scene:
 		map = mapdef.scene.instantiate()
@@ -188,11 +191,15 @@ func _ready() -> void:
 	add_child(barrels)
 	barrels.setup(self, map)
 	director.portal_ready.connect(_on_portal_ready)
+	# pass 87 (lane SGAME): the countdown ran out (the portal closes, Endless begins), and each Endless wave
+	director.endless_started.connect(_on_endless_started)
+	director.endless_wave_started.connect(_on_endless_wave)
 	director.boss_started.connect(func(def): if hud: hud.show_boss(def))
 	director.stage_started.connect(func(s):
 		if hud: hud.refresh_stage()
-		# stage 3 is hell: the sand goes a shade redder (pass 43), and stays so through endless
-		if map and map.has_method("set_hell"): map.set_hell(1.0 if s >= 2 else 0.0, 3.0))
+		# the stage's look (pass 87, StageLook): its filter over the world, its sky, and hell (pass 43's redder sand, from
+		# the stage list's `hell`; without one from stage 3 on), kept through endless
+		StageLook.of(self).show_stage(s))
 	director.boss_started.connect(_on_boss_started)
 	enemies.boss_hp_changed.connect(func(hp, mx): if hud: hud.set_boss_hp(hp, mx))
 	enemies.boss_died.connect(func(_d, _p): if hud: hud.hide_boss())
@@ -1222,7 +1229,7 @@ func _log_pause(reason: String) -> void:
 		if r:
 			lines = Array(r.get_as_text().strip_edges().split("\n", false))
 			r.close()
-	lines.append("%s · %s" % [TextGen.time_mmss(Run.elapsed), reason])
+	lines.append("%s · %s" % [TextGen.time_mmss(Run.stage_clock()), reason])
 	while lines.size() > 6:
 		lines.pop_front()
 	var w := FileAccess.open("user://pauses.txt", FileAccess.WRITE)
@@ -1354,7 +1361,8 @@ func _process(delta: float) -> void:
 		return
 	Audio.set_listener(player.global_position)
 	if not player.input.lifted_once:
-		Run.no_lift_time = Run.elapsed
+		# pass 87 (lane SGAME): seconds into the stage (a stage run's clock starts at its window)
+		Run.no_lift_time = Run.stage_clock()
 	if portal and is_instance_valid(portal):
 		portal.check_player(player)
 	Run.alive = enemies.alive_count()
@@ -1379,7 +1387,8 @@ func _process(delta: float) -> void:
 		hints.tick(delta)
 	Perf.add("hud", t0)
 	Perf.frame()
-	if int(Run.elapsed) % 5 == 0 and int(Run.elapsed * 10.0) % 50 == 0:
+	# pass 87 (lane SGAME): on the seconds played (run_time runs on through boss fights, the portal and Endless)
+	if int(Run.run_time()) % 5 == 0 and int(Run.run_time() * 10.0) % 50 == 0:
 		_check_quests()
 
 
@@ -1387,7 +1396,7 @@ var _last_quest_check := -1
 func _check_quests() -> void:
 	if Run.arena:
 		return
-	var s := int(Run.elapsed)
+	var s := int(Run.run_time())
 	if s == _last_quest_check:
 		return
 	_last_quest_check = s
@@ -1913,6 +1922,9 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 	# the creature's own XP scale (pass 47: a variance special's `xp` was never paid), else its type's
 	var xp_scale: float = enemies.died_xp_scale if enemies and enemies.died_xp_scale > 0.0 else def.xp_mult * (4.0 if elite else 1.0)
+	# pass 87 (lane SGAME): Endless's kills drop a share of their XP (endless.xp_share; Garry: "modest amounts")
+	if director:
+		xp_scale *= director.xp_share()
 	pickups.drop_from(def, at, xp_scale, elite != null)
 	# Prospector (pass 47): a chance of one more XP gem, the size this creature mostly drops
 	var xp_chance: float = Run.player_sheet.get_stat("xp_drop_chance", 0.0)
@@ -2538,21 +2550,89 @@ func _on_portal_ready(at: Vector3) -> void:
 	add_child(portal)
 	portal.global_position = at
 	portal.entered.connect(_on_portal_entered)
-	hud.toast("PORTAL OPEN: extract or continue", UiKit.GOOD)
+	# pass 87 (lane SGAME): extract, or Endless when the countdown runs out
+	hud.toast("PORTAL OPEN: extract before Endless", UiKit.GOOD)
 
 
 ## The hero walked into the portal: the stage-clear dialog (pass 60: its turn, behind a chest he touched first).
 func _on_portal_entered() -> void:
+	# pass 87: a portal closed by Endless asks nothing
+	if director and director.phase != WaveDirector.Phase.PORTAL:
+		return
 	_request_modal(Modal.PORTAL, _open_portal_dialog)
 
 
 func _open_portal_dialog() -> bool:
+	# pass 87 (lane SGAME): Endless came while the request waited its turn: nothing to ask
+	if director and director.phase != WaveDirector.Phase.PORTAL:
+		return false
 	_modal = Modal.PORTAL
 	set_paused(true)
-	var final_stage: bool = Run.stage + 1 >= Run.map.timeline.stages if Run.map and Run.map.timeline else false
-	# pass 43: after the last boss the choice is extract or stay (endless needs no unlock any more)
-	portal_dialog.open(Run.stage + 1, true, final_stage)
+	# pass 87: only EXTRACT now (Garry: "There is only an Extract button now in the Portal"; no going on to the next
+	# stage); the countdown to Endless runs on while the dialog is up (tick_portal_countdown)
+	portal_dialog.open(Run.stage + 1, false, true)
 	return true
+
+
+# ---------------------------------------------------------------- stage runs, the countdown, Endless (pass 87, lane SGAME)
+
+## The stage this run plays (from _ready, right after Run.start): the launch's `stage` (1-based: a tool, the sim, the
+## Watch's launch), else Run.stage_next (the Stages menu, Run.choose_stage), clamped to the map's stages; a fresh run at
+## that stage's window start (Run.start_stage). Run.stage_next goes back to 0 (a Play that skips the menu plays stage 1).
+## The debug arena keeps its own clock (stage 1's start; its WAVES tab moves it).
+func _start_chosen_stage(launch: Dictionary) -> void:
+	var st := Run.stage_next
+	Run.stage_next = 0
+	if launch.has("stage"):
+		st = int(launch["stage"]) - 1
+	if Run.arena or Run.map == null or Run.map.timeline == null:
+		return
+	Run.start_stage(st)
+
+
+## Seconds left on the portal's countdown to Endless, -1 when none runs (the HUD, the portal dialog).
+func portal_seconds_left() -> float:
+	return director.portal_seconds_left() if director else -1.0
+
+
+## The portal dialog keeps the countdown running while it is up (lane SUI's PortalDialog calls this from its _process
+## with its delta): the run is paused behind it, and every other screen holds the countdown with the run clock.
+func tick_portal_countdown(delta: float) -> void:
+	if director == null or _ended or not paused or director.phase != WaveDirector.Phase.PORTAL:
+		return
+	if portal_dialog == null or not portal_dialog.visible:
+		return
+	director.tick_portal_countdown(delta)
+
+
+## The countdown ran out (WaveDirector.start_endless): the portal closes, its dialog with it if it is up (the run goes on),
+## and Endless is announced (the HUD's own when it has one, lane SUI's on_endless_started; a banner otherwise).
+func _on_endless_started() -> void:
+	if portal and is_instance_valid(portal):
+		portal.queue_free()
+	portal = null
+	_modal_queue = _modal_queue.filter(func(r: Dictionary) -> bool: return int(r["kind"]) != Modal.PORTAL)
+	if portal_dialog and portal_dialog.visible:
+		portal_dialog.visible = false
+		if _modal == Modal.PORTAL:
+			_modal_done({}, false)
+	if RunAnalytics.I: RunAnalytics.I.event("endless", "", Run.stage + 1)
+	if hud:
+		if hud.has_method("on_endless_started"):
+			hud.call("on_endless_started")
+		else:
+			hud.banner("ENDLESS", UiKit.DANGER)
+
+
+## An Endless wave came (1-based): the HUD's own when it has one (lane SUI's on_endless_wave), a toast otherwise.
+func _on_endless_wave(w: int) -> void:
+	# (the run recorder notes the waves itself, RunAnalytics' "wave" event)
+	if hud == null:
+		return
+	if hud.has_method("on_endless_wave"):
+		hud.call("on_endless_wave", w)
+	elif w > 1:
+		hud.toast("WAVE %d" % w, UiKit.DANGER)
 
 
 ## "Not yet" (pass 48, PortalDialog.declined: the button, or back): the run goes on with the portal where it is, and it
@@ -2570,7 +2650,8 @@ func _on_portal_declined() -> void:
 
 
 func _on_portal_decided(extract: bool) -> void:
-	if RunAnalytics.I: RunAnalytics.I.event("portal", "", Run.stage + 1, {"extract": extract})
+	# pass 87 (lane SGAME): only EXTRACT decides now (anything else is "not yet", recorded as portal_wait)
+	if extract and RunAnalytics.I: RunAnalytics.I.event("portal", "", Run.stage + 1, {"extract": extract})
 	if extract:
 		Run.extracted = true
 		Save.mark_once("extract_%s_%d" % [Run.map.id, Run.stage + 1])
@@ -2579,18 +2660,9 @@ func _on_portal_decided(extract: bool) -> void:
 		player.cheer()
 		end_run()
 	else:
-		# the run goes on first (the next stage's start plays unpaused), then the next screen in line if one waits
-		_modal_done({}, false)
-		if portal:
-			portal.queue_free()
-			portal = null
-		director.continue_to_next_stage()
-		if Run.endless:
-			hud.banner("HELL STAYS", UiKit.ACCENT)
-		elif Run.stage + 1 >= 3:
-			hud.banner("STAGE %d · HELL" % (Run.stage + 1), UiKit.DANGER)
-		else:
-			hud.banner("STAGE %d" % (Run.stage + 1), UiKit.ACCENT)
+		# pass 87 (lane SGAME): no going on to the next stage any more: anything but EXTRACT is "not yet" (the portal waits,
+		# its countdown runs on, and Endless comes when it runs out)
+		_on_portal_declined()
 
 
 ## Down: the death plays out for a moment, then the game pauses behind the revive screen. One chance per run plus
@@ -2794,7 +2866,8 @@ func end_run() -> void:
 	# the run's gold comes home with the hero, whatever the end (pass 70: bank_run_end)
 	var map_id := Run.map.id if Run.map else ""
 	bank_run_end(map_id)
-	Save.record_run(map_id, Run.elapsed, Run.level, Run.stage + 1, Run.kills)
+	# pass 87 (lane SGAME): the best time is the seconds played (a stage run's clock starts at its window)
+	Save.record_run(map_id, Run.run_time(), Run.level, Run.stage + 1, Run.kills)
 	# after the run is counted, so "play N runs" sees this one
 	QuestTracker.check_all(true)
 	Save.flush()

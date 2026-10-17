@@ -74,8 +74,10 @@ func test_the_late_swarm_is_fodder() -> void:
 	# pass 84 (lane SPAWN, re-pinned): the swarm is a "once" row now (tools/migrate_timeline.py), an old map's event still counts
 	var swarms: Array = tl.events.filter(func(e: Dictionary) -> bool: return str(e.get("type", "")) == "swarm")
 	swarms.append_array(tl.roster.filter(func(r: Dictionary) -> bool: return str(r.get("pace", "")) == "once"))
+	# pass 87 (lane SGAME, re-pinned): stage 3 is 13:00 now and its times were stretched (1204 s became 1654 s): the late
+	# swarm is the fire-ant swarm of stage 3's window
 	for ev in swarms:
-		if float(ev.get("t", 0.0)) == 1204.0:
+		if tl.stage_at(float(ev.get("t", 0.0))) == 2 and str(ev.get("enemy", "")) == "fire_ant":
 			found = true
 			assert_str(str(ev.get("enemy", ""))).is_equal("fire_ant")
 			# pass 53: the ants are 0.6 of a mummy now (Garry), so the late swarm sends 24 of them, not 40

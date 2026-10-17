@@ -363,8 +363,18 @@ func refresh() -> void:
 	if run:
 		var ph := ""
 		if game and game.get("director") != null:
-			ph = ["", " · boss", " · portal"][clampi(int(game.director.phase), 0, 2)] if int(game.director.phase) <= 2 else " · phase %d" % int(game.director.phase)
-		stage_txt = "stage %d%s · clock %s · played %s" % [int(run.stage) + 1, ph, DATA.mmss(float(run.elapsed)), DATA.mmss(w.play_t())]
+			# pass 87 (lane STOOLS): the portal's countdown and Endless (phase 3) with its wave
+			ph = ["", " · boss", " · portal", " · Endless"][clampi(int(game.director.phase), 0, 3)] if int(game.director.phase) <= 3 else " · phase %d" % int(game.director.phase)
+			if int(game.director.phase) == 2 and game.director.has_method("portal_seconds_left") and float(game.director.portal_seconds_left()) >= 0.0:
+				ph += " %s" % DATA.mmss(float(game.director.portal_seconds_left()))
+			if int(game.director.phase) == 3 and run.has_method("endless_wave"):
+				ph += " wave %d" % int(run.endless_wave())
+		# pass 87: the stage's name and its own clock (a stage run's clock starts at its window)
+		var st_name := ""
+		if run.get("map") != null and run.map.timeline != null and run.map.timeline.has_method("stage_name"):
+			st_name = " " + str(run.map.timeline.stage_name(int(run.stage)))
+		var st_clock: float = float(run.stage_clock()) if run.has_method("stage_clock") else float(run.elapsed)
+		stage_txt = "stage %d%s%s · clock %s · played %s" % [int(run.stage) + 1, st_name, ph, DATA.mmss(st_clock), DATA.mmss(w.play_t())]
 	_title.text = "%s  ·  %s" % [w.hero_name(), stage_txt if stage_txt != "" else ("Hero Settings: choose the run, then Start Run" if w.setup_open() and game == null else "starting…")]
 	_sub.text = w.header_words()
 	_pause_btn.text = "Go on" if clk.paused else "Pause"

@@ -1,0 +1,359 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a slender woman in a glossy black latex catsuit with a high collar, knee-high black boots, black gloves; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight, both arms relaxed at her sides",
+ "renders": {
+  "front": {
+   "seed": 0,
+   "prompt": "cut from Garry's turnaround picture (pass 54, tools/make_solenne_static.py)",
+   "refs": [
+    "Sun-Headed Catsuit Character Turnaround.png"
+   ],
+   "qa": {
+    "problems": [],
+    "source": "reference"
+   },
+   "attempt": 0,
+   "cached": true
+  },
+  "back": {
+   "seed": 0,
+   "prompt": "cut from Garry's turnaround picture (pass 54, tools/make_solenne_static.py)",
+   "refs": [
+    "Sun-Headed Catsuit Character Turnaround.png"
+   ],
+   "qa": {
+    "problems": [],
+    "source": "reference"
+   },
+   "attempt": 0,
+   "cached": true
+  },
+  "side": {
+   "seed": 110611603,
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. She looks where she walks.  isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 407,
+     "right": 436,
+     "top": 105,
+     "bottom": 64,
+     "height": 854,
+     "width": 180
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 108611598,
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. She looks where she walks. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 376,
+     "right": 348,
+     "top": 101,
+     "bottom": 47,
+     "height": 875,
+     "width": 299
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 108611599,
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. She looks where she walks. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 379,
+     "right": 386,
+     "top": 87,
+     "bottom": 72,
+     "height": 864,
+     "width": 258
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 7628,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 280,
+     "right": 280,
+     "top": 104,
+     "bottom": 80,
+     "height": 839,
+     "width": 463
+    }
+   },
+   "attempt": 0,
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 60116,
+   "prompt": "Edit this exact woman, keeping her seen directly from behind: the back of her yellow sun head with its pointed rays, the back of the glossy black catsuit, the backs of the black boots, no face at all, nothing of her face visible. She flinches from a hit: her shoulders hunched up, her sun head jerked a little to one side, one arm lifted a little away from her body, her knees slightly bent. Keep the same outfit, colours, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_back_hurt_src.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0,
+   "source": "Klein edit of solenne_back (pass 54)",
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 7652,
+   "prompt": "One single figure alone in the frame: the exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 368,
+     "right": 367,
+     "top": 104,
+     "bottom": 64,
+     "height": 855,
+     "width": 288
+    }
+   },
+   "attempt": 0,
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 108611626,
+   "prompt": "One single figure alone in the frame: the exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_g_side_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 405,
+     "right": 412,
+     "top": 103,
+     "bottom": 62,
+     "height": 858,
+     "width": 206
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "hurt_bd": {
+   "seed": 108611627,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_g_bd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 375,
+     "right": 383,
+     "top": 87,
+     "bottom": 71,
+     "height": 865,
+     "width": 265
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "hurt_fd": {
+   "seed": 108611628,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_g_fd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 374,
+     "right": 345,
+     "top": 99,
+     "bottom": 46,
+     "height": 878,
+     "width": 304
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "dead": {
+   "seed": 7633,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. her sun face wincing, eyes shut, rays bent back. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 100,
+     "right": 73,
+     "top": 254,
+     "bottom": 269,
+     "height": 500,
+     "width": 850
+    }
+   },
+   "attempt": 0,
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "pose_hint": "She looks where she walks.",
+  "side_hint": "",
+  "back_hint": "",
+  "anim_hint": "a woman in a black catsuit with a yellow sun for a head, looking where she walks",
+  "pose_motion": "a catwalk walk in place",
+  "anim_negative": "",
+  "stills": "g",
+  "still_keys": {
+   "front": "solenne_front",
+   "back": "solenne_back",
+   "cheer": "solenne_cheer",
+   "dead": "solenne_dead",
+   "hurt_front": "solenne_hurt_front",
+   "hurt_back": "solenne_hurt_back"
+  },
+  "seed_offset": 1037,
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "method": "hero_puppet",
+  "puppet": {
+   "source": "SOL-B",
+   "stills": "repaint",
+   "refs": {
+    "front": "paint",
+    "side": "paint",
+    "back": "paint"
+   },
+   "painter": "klein",
+   "steps": 0,
+   "turbo": true,
+   "seeds": 4,
+   "first_seed": 0,
+   "words": {
+    "front": "",
+    "side": "The first reference image shows a character standing in an A-pose, the arms held out to the sides. The second reference image shows her outfit from the side. Draw the same character seen from the side in a strict profile, facing to the right of the frame, standing straight: her whole head is turned to the right together with her body, so her sun face is seen in profile looking to the right (one half-lidded eye, the small nose and the red lips in profile at the right edge of the round yellow head), never turned towards the viewer; the long pointed golden-yellow rays stick out all round her round sun head, as in the first image. The arms reach out sideways toward and away from the viewer, so from the side the near arm hangs straight down over the side of the torso with the hand at the height of the hips, nothing held forward, the far arm hidden behind the body, the legs straight. Keep the outfit, colours, proportions and art style of the references, the same height as the first image.",
+    "back": ""
+   },
+   "screen": "",
+   "tries": 2,
+   "faces": 60000,
+   "reuse": "auto",
+   "fbx": "",
+   "clip": "catwalk_walking.fbx",
+   "idle": "",
+   "frame": "soles",
+   "face": "nose",
+   "depth_views": [
+    "back"
+   ],
+   "run_fit": true,
+   "fringe": true
+  },
+  "pose_drivers": {
+   "front": "solenne_puppet_catwalk_walking",
+   "fd": "solenne_puppet_catwalk_walking",
+   "side": "solenne_puppet_catwalk_walking_farhide",
+   "bd": "solenne_puppet_catwalk_walking",
+   "back": "solenne_puppet_catwalk_walking"
+  },
+  "ctl_drivers": {
+   "back": "solenne_puppet_catwalk_walking_depth"
+  },
+  "run_fit": "tools/dl/drivers/solenne_puppet_catwalk_walking/silhouette.json",
+  "fringe_remap": true
+ },
+ "clip_kind": {
+  "back": "control",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "fringe_remap": true,
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

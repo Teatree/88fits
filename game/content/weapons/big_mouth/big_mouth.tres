@@ -68,8 +68,28 @@ visual_file = "big_mouth_visual.tscn"
 params = {
 "beam": {
 "arch_deg": 0.0,
+"punch": {
+"back": 0.36,
+"climb": 0.2,
+"decay": 7.5,
+"hz": 2.8,
+"pop": 0.2,
+"pulse": 0.3
+},
+"throat": {
+"gain": 1.0,
+"size": 0.9,
+"walls": 0.9
+},
 "tick": 0.18,
-"width": 0.34
+"width": 0.34,
+"windup": {
+"gape": 36.0,
+"rear": 0.35,
+"seconds": 0.24,
+"swell": 0.1,
+"tremble": 0.03
+}
 }
 }
 id = "big_mouth"

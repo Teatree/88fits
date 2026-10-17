@@ -21,7 +21,7 @@
   "favourite_passive": "evade",
   "favourite_passive_bonus": {
     "type": "level",
-    "value": 2
+    "value": 3
   },
   "start_weapon": "basketball",
   "specials": [],
@@ -252,6 +252,141 @@
       "icon_picked": true,
       "title": "hero_fadeaway_c.png",
       "sprite": "fadeaway_sprite_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true
+    },
+    "FAD-E": {
+      "recipe": {
+        "art_prompt": "a tall, lean, athletic young Black man of about twenty with long arms and long legs, broad square shoulders held level, a straight upright back and his chest up; dark brown skin; a short rounded black afro with a white terry-cloth sweatband across his forehead; sharp angular features, a thin black goatee, heavy-lidded confident eyes and a sly half-smile; a sleeveless vivid royal-purple basketball jersey with gold trim round the neck and the armholes and a big gold number 88 printed in the middle of the chest; loose knee-length bright white basketball shorts with a purple waistband and a purple and gold stripe down the outside of each leg; white wristbands on both wrists; short white socks and white high-top sneakers with purple accents; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+        "pose_hint": "standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball",
+        "back_hint": "He faces away from the viewer: only the back of his rounded black afro with the white sweatband's band round the back of his head, the back of his neck, and the back of the vivid purple jersey with a big gold number 88 printed across the middle of his upper back between the shoulder blades, as big as the 88 on the front; both shoulders broad, square and level, his back straight and upright, never hunched or slouched; the bright white shorts with their purple and gold side stripes, the backs of his calves and the heels of the white high-tops; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
+        "side_hint": "a clean side profile facing right: the rounded afro and the sweatband, the goatee, the jersey's side with its gold armhole trim, the bright white shorts with the purple and gold stripe down the side, standing tall with his back straight and both shoulders level, the near shoulder never raised above the far one, one arm hanging relaxed beside the torso, empty hands",
+        "anim_hint": "a tall athletic young Black man with dark brown skin and a short rounded black afro with a white sweatband, in a sleeveless vivid royal-purple basketball jersey with gold trim and a big gold number 88 on the front and on the back, bright white knee-length shorts with purple and gold side stripes, white wristbands and white high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level",
+        "anim_negative": "a basketball, a ball in his hands, extra arms or legs, a face on the back of his head, hunched shoulders, slouching, sloping shoulders, a plain jersey back without its number, a dull greyish jersey",
+        "stills": "e",
+        "seed_offset": 2311,
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "pose_drivers": {
+          "front": "fadeaway_puppet_run_up",
+          "fd": "fadeaway_puppet_run_up",
+          "side": "fadeaway_puppet_run_up",
+          "bd": "fadeaway_puppet_run_up",
+          "back": "fadeaway_puppet_run_up"
+        },
+        "still_keys": {
+          "bd": "fadeaway_e_bd88",
+          "hurt_back": "fadeaway_e_hurt_back88"
+        },
+        "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+        "fringe_remap": true,
+        "run_scale": {
+          "front": 0.885,
+          "fd": 0.905,
+          "side": 0.905,
+          "bd": 0.91,
+          "back": 0.915
+        }
+      },
+      "note": "pass 87: the precise (detailed) prompt on its own paintings (e: front c3, back c1, picked by eye); the back-diagonal painted from the front AND the back still so the 88 stays on his back (still_keys.bd), the back flinch from the back still (still_keys.hurt_back: no face, the 88 kept); walked on the puppet's stick figure fixed for him (fadeaway_puppet_run_up: the neck on the shoulder line = square shoulders, the head lifted = upright, the back-diagonal's shoulder twist calmed and its backswing kept off the 88); each view's run sized to his standing still by the head (run_scale)",
+      "icon": "fadeaway_icon_c.png",
+      "icon_picked": true,
+      "title": "hero_fadeaway_c.png",
+      "sprite": "fadeaway_sprite_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true
+    },
+    "FAD-F": {
+      "recipe": {
+        "art_prompt": "a tall Black basketball player with an afro and a white headband, a purple number 88 jersey, white shorts and white sneakers, standing straight and facing the viewer, arms at his sides",
+        "back_hint": "Seen from behind: the number 88 on the back of his jersey, standing straight.",
+        "side_hint": "",
+        "anim_hint": "a basketball player with an afro and a white headband in a purple 88 jersey and white shorts",
+        "stills": "f",
+        "seed_offset": 2377,
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "pose_drivers": {
+          "front": "fadeaway_puppet_run_up",
+          "fd": "fadeaway_puppet_run_up",
+          "side": "fadeaway_puppet_run_up",
+          "bd": "fadeaway_puppet_run_up",
+          "back": "fadeaway_puppet_run_up"
+        },
+        "still_keys": {
+          "bd": "fadeaway_f_bd88"
+        },
+        "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+        "fringe_remap": true,
+        "anim_negative": "a basketball, a ball in his hands",
+        "anim_seed": 1,
+        "run_scale": {
+          "front": 0.91,
+          "fd": 0.895,
+          "side": 0.905,
+          "bd": 0.93,
+          "back": 0.88
+        }
+      },
+      "note": "pass 87: the loose (short) prompt on its own paintings (f: front c0, back c1, picked by eye; the short words gave a white 88 and a bigger afro); the back-diagonal painted from the front and the back still (still_keys.bd); walked on fadeaway_puppet_run_up like FAD-E; its first back walk painted a ball in his hand (the words say a basketball player), walked again with plain negatives (anim_seed 1); each view's run sized to his standing still by the head (run_scale)",
+      "icon": "fadeaway_icon_c.png",
+      "icon_picked": true,
+      "title": "hero_fadeaway_c.png",
+      "sprite": "fadeaway_sprite_f.png",
       "anims": {
         "idle": 4,
         "run": 24,

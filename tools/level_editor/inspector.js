@@ -48,6 +48,8 @@ const Inspector = (() => {
     // pass 84 (lane TIMELINE): the floor curve and the portal after a boss
     else if (sel.kind === 'floor') floorForm(container);
     else if (sel.kind === 'portal') portalForm(container);
+    // pass 87 (lane STOOLS): a stage's settings (stage_tabs.js)
+    else if (sel.kind === 'stage' && typeof StageTabs !== 'undefined') StageTabs.card(container, sel.i);
     else if (sel.kind === 'specials') blockForm(container, 'Specials', 'the specials\' clock: one at a time, a random interval after the last one dies', Forms.specialsBlock(App.tl()), 'specials');
     else if (sel.kind === 'paths') blockForm(container, 'Mutation offers', 'when each stage\'s mutation offers fall due: each comes at the hero\'s next level-up, in place of the three cards', Forms.pathTimesBlock(App.tl()), 'paths');
     else if (sel.kind === 'pickups') blockForm(container, 'Power-up drops', 'what kills drop and how often', Forms.pickupsBlock(App.tl()), 'pickups');
@@ -1305,7 +1307,7 @@ const Inspector = (() => {
     const tl = App.tl();
     const facts = el('div', { class: 'facts' });
     facts.appendChild(el('div', { text: `${(tl.roster || []).length} roster rows · ${(tl.waves || []).length} waves · ${(tl.events || []).length} events` }));
-    facts.appendChild(el('div', { text: `${App.stages()} stages of ${fmtT(App.stageLength())} · cap ${App.capAt(0)} → ${App.capAt(App.runEnd())} · hard cap ${tl.hard_cap}` }));
+    facts.appendChild(el('div', { text: `${App.stages()} stages (${App.stageList().map((w) => fmtT(w.length)).join(' + ')}) · cap ${App.capAt(0)} → ${App.capAt(App.runEnd())} · hard cap ${tl.hard_cap}` }));
     container.appendChild(facts);
   }
 
@@ -1316,6 +1318,7 @@ const Inspector = (() => {
     if (kind === 'wave' && tl.waves && tl.waves[i]) return `wave ${tl.waves[i].name || tl.waves[i].id || i}`;
     if (kind === 'event' && tl.events && tl.events[i]) return `event ${App.eventLabel(tl.events[i])} @ ${fmtT(tl.events[i].t)}`;
     if (kind === 'hp') return 'HP curve';
+    if (kind === 'stage') { const w = App.stageWindow(Number(i)); return `stage ${Number(i) + 1} (${w.name})`; }
     if (kind === 'dmg') return 'damage curve';
     return kind;
   }

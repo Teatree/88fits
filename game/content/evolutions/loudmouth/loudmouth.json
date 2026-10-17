@@ -19,7 +19,27 @@
     "beam": {
       "width": 0.55,
       "tick": 0.14,
-      "arch_deg": 0.0
+      "arch_deg": 0.0,
+      "windup": {
+        "seconds": 0.24,
+        "rear": 0.35,
+        "gape": 36.0,
+        "swell": 0.1,
+        "tremble": 0.03
+      },
+      "punch": {
+        "back": 0.45,
+        "climb": 0.2,
+        "pop": 0.2,
+        "hz": 2.8,
+        "decay": 7.5,
+        "pulse": 0.3
+      },
+      "throat": {
+        "size": 0.9,
+        "gain": 1.0,
+        "walls": 0.9
+      }
     },
     "familiar": {
       "size": 1.5

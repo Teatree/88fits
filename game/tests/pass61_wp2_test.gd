@@ -255,7 +255,7 @@ func test_bad_breath_turns_the_beam_green_yellow_and_sets_it_wobbling() -> void:
 	var em: EnemyManager = w["em"]
 	_creature(em, Vector3(0, 0, -5))
 	assert_bool(b._fire()).is_true()
-	_ticks(b, LaserBeam.WINDUP + 0.05)
+	_ticks(b, b.windup_seconds() + 0.05)
 	assert_float(float(b._beam_mat.get_shader_parameter("wobble"))).is_equal_approx(1.0, 0.001)
 	assert_bool(_near(b._beam_mat.get_shader_parameter("color"), Color(0.66, 1.0, 0.16))).is_true()
 
@@ -267,14 +267,14 @@ func test_bad_breath_puffs_gusts_where_it_hits_and_the_plain_beam_none() -> void
 		_creature(em, Vector3(0.0, 0, -3.0 - 2.0 * k))
 	var plain := _behaviour(w, LaserBeam.new(), "big_mouth") as LaserBeam
 	assert_bool(plain._fire()).is_true()
-	_ticks(plain, LaserBeam.WINDUP + 0.6)
+	_ticks(plain, plain.windup_seconds() + 0.6)
 	assert_int(plain.gust_hits).is_equal(0)
 	plain.queue_free()
 	var b := _behaviour(w, LaserBeam.new(), "big_mouth", ["mouth_knock"]) as LaserBeam
 	var fx: Fx = w["fx"]
 	var before := fx._n
 	assert_bool(b._fire()).is_true()
-	_ticks(b, LaserBeam.WINDUP + 0.05)
+	_ticks(b, b.windup_seconds() + 0.05)
 	# the first touch: a big gust off what stands in the line
 	assert_int(b.gust_hits).is_greater_equal(1)
 	assert_int(fx._n).is_greater(before)

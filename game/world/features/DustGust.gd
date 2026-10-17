@@ -42,7 +42,9 @@ func _ready() -> void:
 	mat.vertex_color_use_as_albedo = true
 	mat.albedo_texture = _streak_texture()
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.render_priority = 2
+	# pass 87 (lane SLOOK): drawn before the stage's filter (StageLook.PRIORITY), so an evening or a blood moon tints the
+	# gust like the sand it blows over (it was 2, after the filter: a pale veil over a dark stage); still over the water
+	mat.render_priority = StageLook.PRIORITY - 1
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
