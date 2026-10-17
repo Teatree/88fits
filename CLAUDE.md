@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-17, pass 85, version 0.71)
+## Status (2026-10-17, pass 86, version 0.72)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.71). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.72). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -342,7 +342,7 @@ Pass 85: the title builds on the map's own sand and lays one of six presets (art
 kind has a natural random tint (props.json `tint`, prop_billboard.gdshader, per spot); new fan_palm_b and
 joshua_tree_d; Teleports smaller, 3 a map (4 a third of the time), 40 m apart, landing 15 m clear of any
 (teleport `per_map`, `land_clear`); the Spit Cactus plays the Dynamite Bandit SC-A (fresh): `ranged.shot:
-"dynamite"` thrown in place a little ahead, a 1 s fuse, a blast like the hero's; Fadeaway has a Puppet look FAD-D
+"dynamite"` thrown in place a little ahead with a hop (`throw_jump`, pass 86), a 1 s fuse, a blast like the hero's; Fadeaway has a Puppet look FAD-D
 (fresh; he plays FAD-C); the Watch opens on a Hero Settings pop-up (WatchSetup.gd; Restart run, R), shows the
 build's icons, the bot's goal plaque (WatchPlaque.gd), sound off by default, and the bot goes for power-ups.
 

@@ -7066,8 +7066,17 @@ func _throw_hold_tick(i: int, def: EnemyDef, dt: float) -> void:
 	if def.brain != "kite" or float(def.ranged.get("release_hold", 0.0)) <= 0.0 or not (def.boss.get("attacks", []) as Array).is_empty():
 		return
 	timer[i] -= dt * attack_clock(i)
+	# pass 86 (Garry: "Make the Cactus jump up a little bit when he throws the Dynamite stick"): a hop through the release
+	# hold, `ranged.throw_jump` metres at its top (a sine over the hold), back on the ground when the hold ends
+	var jump := float(def.ranged.get("throw_jump", 0.0))
+	if jump > 0.0 and lift_t[i] <= 0.0:
+		var total: float = float(def.ranged.get("release_hold", 0.0)) / maxf(pace, 0.05)
+		var u := clampf(1.0 - timer[i] / maxf(total, 0.01), 0.0, 1.0)
+		lift_h[i] = sin(u * PI) * jump
 	if timer[i] <= 0.0:
 		state[i] = STATE_MOVE
+		if jump > 0.0 and lift_t[i] <= 0.0:
+			lift_h[i] = 0.0
 
 
 ## The frame of a throw's `attack` strip creature `i` shows (pass 85, EnemyDef.attack_throw): the view's half (front, or

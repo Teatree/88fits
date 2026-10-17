@@ -4700,3 +4700,12 @@ Harpooner) ... The throw should be in place ... always red and will still pulsat
   (9), so a map holds about 12-13 structures plus the Totem Poles (32.WORLD); Garry tunes the count in the Level Editor.
 - **The puppet's hand finder**: lane FADE wrapped tools/puppet_blender.py's rig in tools/dl/p85/FADE/rig_fix.py (the
   hand tip = the farthest vertex near the forearm's line); folding it into the tool is open.
+
+## 33. Pass 86 (v0.72): the Dynamite Bandit hops and grows
+
+Garry (2026-10-17): "Make the Cactus jump up a little bit when he throws the Dynamite stick. Make em a bit bigger".
+- **The hop**: through the release hold (`ranged.release_hold` 0.35 s) a thrower with `ranged.throw_jump` rises on a sine
+  to that many metres and lands as the hold ends (EnemyManager._throw_hold_tick; never while launched or thrown).
+  The Spit Cactus: `throw_jump` **0.45 m**.
+- **Bigger**: the Spit Cactus `size` 1.5 -> **1.85** (+23%) and its body `radius` 0.45 -> **0.55** with it (so rounds
+  still hit where he is drawn).

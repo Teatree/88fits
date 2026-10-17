@@ -14,8 +14,8 @@ brain = "kite"
 hp = 18.0
 speed = 1.15
 damage = 8.0
-radius = 0.45
-size = 1.5
+radius = 0.55
+size = 1.85
 pack_size = 2
 drops = {
 "chest": 0.007,
@@ -79,6 +79,7 @@ ranged = {
 "shot": "dynamite",
 "splash": 1.2,
 "telegraph": 0.7,
+"throw_jump": 0.45,
 "trail": {
 "alpha": 0.4,
 "color": "#6B625C",

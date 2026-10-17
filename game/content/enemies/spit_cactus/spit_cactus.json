@@ -8,8 +8,8 @@
   "speed": 1.15,
   "damage": 8,
   "knockback": 4.81,
-  "radius": 0.45,
-  "size": 1.5,
+  "radius": 0.55,
+  "size": 1.85,
   "blood": "#4BC51F",
   "pack_size": 2,
   "drops": {
@@ -38,6 +38,7 @@
     "land_only": true,
     "shot": "dynamite",
     "release_hold": 0.35,
+    "throw_jump": 0.45,
     "dynamite": {
       "speed": 9.0,
       "fuse": 1.0,

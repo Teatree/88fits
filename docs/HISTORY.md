@@ -2617,3 +2617,8 @@ death en_goblin_die. Difficulty probe (quarter board, Calavera, seeds 11-13, scr
 with old=1 for the spit): stage 1 at 4:17-5:15, the cactus's share 2.34 maxHP a minute before, 2.17 after (145, 136,
 104 sticks thrown, 13-18 % of them caught him); stage 2 at 10:00-11:40 too few cacti to read (0.60 before, 0.33 after).
 Tests game/tests/pass85_bandit_test.gd.
+
+**Pass 86 (2026-10-17, v0.72): the Dynamite Bandit hops and grows.** Garry: "Make the Cactus jump up a little bit when
+he throws the Dynamite stick. Make em a bit bigger. try again". The lead: `ranged.throw_jump` (a sine hop through the
+release hold, 0.45 m on the Spit Cactus) in EnemyManager._throw_hold_tick; the cactus `size` 1.5 -> 1.85 and `radius`
+0.45 -> 0.55; checked frame by frame with game/tools/_p85_bandit_shot.gd (tools/dl/p86/jump/sheet.png).
