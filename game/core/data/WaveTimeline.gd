@@ -149,6 +149,14 @@ func passive_cap_at(stage: int) -> int:
 ## key existed, still halves).
 const HERO_KNOCKBACK_DEFAULT := 0.5
 @export var hero_knockback_mult: float = HERO_KNOCKBACK_DEFAULT
+## Pass 89 (Garry: "make it so the special attacks still knock player back. Like rocketeer rockets, dynamite, boss
+## attacks, etc. but less than before. The regular melee attacks shouldn't have a knockback still"): the share of a
+## special attack's push that reaches the hero (Player.knock_share: a charge, a blast, a rocket, the dynamite, a boulder,
+## a slam, an eruption, a boss's attack, the Sniper's beam, a shot with its own weight); a bite or a plain shot never
+## pushes him. 0 = nothing moves him; 1 = as before pass 88. The debug switch Settings.hero_knockback plays every push
+## whole. A map that names none plays HERO_SPECIAL_KNOCK_DEFAULT.
+const HERO_SPECIAL_KNOCK_DEFAULT := 0.5
+@export var hero_special_knock: float = HERO_SPECIAL_KNOCK_DEFAULT
 ## Pass 69 (lane EN): the map's numbers for a variance special that the creature's own `variance.special` does not name:
 ## any of {"size", "hp", "damage", "xp", "tint_strength", "glow"} (EnemyDef.special_value: the creature's own, then this,
 ## then EnemyDef.SPECIAL_DEFAULTS). WaveDirector._apply_mults hands it to EnemyManager.special_defaults. {} = none.

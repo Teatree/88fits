@@ -49,33 +49,27 @@ func test_the_switch_is_off_by_default_saved_and_locked_off_in_prod() -> void:
 	assert_bool(Settings.hero_knockback).is_false()
 
 
-# ---------------------------------------------------------------- 2. off: no hit moves him
+# ---------------------------------------------------------------- 2. off: no regular hit moves him
+# (pass 89: the special attacks' pushes came back at the map's share; game/tests/pass89_knock_test.gd pins them)
 
-func test_off_no_shove_hit_knock_or_hostile_blast_moves_him() -> void:
+func test_off_no_regular_hit_knock_moves_him() -> void:
 	Settings.hero_knockback = false
 	var p := _hero()
 	assert_bool(p.hit_knockback_on()).is_false()
-	assert_bool(p.shove(Vector3(6, 0, 0))).is_false()
-	assert_vector(p._kb).is_equal(Vector3.ZERO)
 	p.hit_knock(Vector3(4, 0, 0))
 	assert_vector(p._kb).is_equal(Vector3.ZERO)
 	assert_float(p._stick_lock).is_equal(0.0)
-	p.blast(Vector3(20, 0, 0), 6.0)
-	assert_vector(p._kb).is_equal(Vector3.ZERO)
-	assert_float(p.velocity.y).is_less_equal(0.0)
 
 
-func test_off_a_landed_hit_hurts_but_does_not_move_him() -> void:
+func test_off_a_landed_bite_hurts_but_does_not_move_him() -> void:
 	Settings.hero_knockback = false
 	var p := _hero()
 	var hp0 := p.hp
-	p.take_damage(5.0, Vector3(-1, 0, 0), {"by": "a test", "kind": "melee", "knock": 4.0, "fx": ["charge", "knocked back"]})
+	p.take_damage(5.0, Vector3(-1, 0, 0), {"by": "a test", "kind": "melee", "knock": 4.0, "fx": ["charge"]})
 	assert_float(p.hp).is_less(hp0)
 	assert_vector(p._kb).is_equal(Vector3.ZERO)
-	# the Down! list leaves the push words out (nothing moved him)
 	var last: Dictionary = p.damage_log[p.damage_log.size() - 1]
 	assert_array(last["fx"]).contains(["charge"])
-	assert_array(last["fx"]).not_contains(["knocked back"])
 
 
 func test_off_his_own_moves_and_the_pulls_still_move_him() -> void:

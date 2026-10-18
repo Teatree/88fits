@@ -3126,3 +3126,15 @@ and probes' preset boards never buy Stakes (sim_batch.PRESET_SKIP; a quarter 11 
 pass88_mirror_test.gd; re-pinned pass83_meta (no Thorns form), pass45_ui (Grit by name), pass61_mr (summary in the
 board's order), pass70_econ (the board's scale instead of x2.5 per rank), selftest_SIM77 (presets without Stakes, the
 talents by price); the Level Editor's vocab.py / assets_model.js know the eight stats and the hidden kind.
+
+**Pass 89 (2026-10-18, v0.75): the special attacks push the hero again, at half.** Garry: "make it so the special
+attacks still knock player back. Like rocketeer rockets, dynamite, boss attacks, etc. but less than before. The regular
+melee attacks shouldn't have a knockback still". Pass 88 had taken every push away. Now Player.knock_share splits them:
+a regular attack (any creature's bite, bosses' included, and a plain shot) never pushes him; a special one (a charge,
+every hostile blast, an Elite's death blast, slams, eruptions and their throw, custom and other boss attacks, the
+Sniper's beam, a shot with its own weight) at the map's new `hero_special_knock` (default 0.5, push and lift alike;
+WaveTimeline, JsonContent, the Level Editor's Scaling card, the run record's map_settings). EnemyManager marks the bite
+`special_knock: false` and the Sniper's beam and custom attacks `true`; Player.special_push replaces the guarded
+apply_knockback calls (Game.elite_explosion, the slam without a lift); _erupt_throw_hero scales its arc. The debug
+switch is now labelled "Full hero knockback" (every push whole, as before pass 88). Tests: pass89_knock_test.gd;
+pass88_tweaks_test re-pinned (only regular hits stay still).

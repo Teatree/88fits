@@ -60,7 +60,9 @@ var pierce_falloff: bool = true
 ## option in the Debug version of the Settings menu"): off (the default), no hit moves him (Player.hit_knockback_on: a
 ## bite's, a charge's or a shot's shove, a slam, a blast's throw, a rocket, a boulder, the Gila's eruption); on, every
 ## push comes back as it was before pass 88. Settings shows the switch only in debug mode (the Debug panel) and in the
-## developer menu; the production build holds it off.
+## developer menu; the production build holds it off. Pass 89: off, the special attacks push him again at the map's
+## share (WaveTimeline.hero_special_knock, 0.5; Player.knock_share) and a bite or a plain shot never does; on, every
+## push whole.
 var hero_knockback: bool = false
 ## The debug arena's training dummies (pass 48, the developer menu and the arena's WORLD tab; lane L5 lays them out):
 ## how many stand in the field (never fewer than 10), and their health: 0 = undying (a hit refills them), else that much

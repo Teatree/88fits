@@ -695,6 +695,8 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 72 (lane ITEMS): every push the hero's side gives a creature times this (EnemyManager.hero_knock_mult)
 	# (lane INTEG: a map that names none halves, WaveTimeline.HERO_KNOCKBACK_DEFAULT)
 	w.hero_knockback_mult = float(t.get("hero_knockback_mult", WaveTimeline.HERO_KNOCKBACK_DEFAULT))
+	# pass 89: the share of a special attack's push that reaches the hero (Player.knock_share)
+	w.hero_special_knock = clampf(float(t.get("hero_special_knock", WaveTimeline.HERO_SPECIAL_KNOCK_DEFAULT)), 0.0, 1.0)
 	# pass 69 (lane EN): the map's fallbacks for a variance special's numbers (read as they are)
 	var spd = t.get("special_defaults", {})
 	w.special_defaults = spd if spd is Dictionary else {}

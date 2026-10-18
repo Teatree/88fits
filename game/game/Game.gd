@@ -2940,8 +2940,9 @@ func elite_explosion(center: Vector3, r: float, damage: float, delay: float, kno
 			if knockback > 0.0:
 				(binfo.get("fx", []) as Array).append("thrown")
 			player.take_damage(damage, center, binfo)
-			if knockback > 0.0 and player.has_method("apply_knockback") and d.length_squared() > 0.01 and player.hit_knockback_on():
-				player.apply_knockback(d.normalized() * knockback)
+			# pass 89: a special attack's push, at the hero's share of it (Player.knock_share)
+			if knockback > 0.0 and player.has_method("special_push") and d.length_squared() > 0.01:
+				player.special_push(d.normalized() * knockback)
 		if friendly_frac > 0.0:
 			enemies.damage_radius(center, r, damage * friendly_frac, "blast", knockback * 0.8)
 		fx.burst(center + Vector3(0, 0.6, 0), UiKit.DANGER, r * 0.7)

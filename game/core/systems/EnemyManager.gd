@@ -3573,6 +3573,8 @@ func _physics_process(delta: float) -> void:
 			# or a shield's catch, never to an evaded or an immune one
 			var binfo := hit_info(i, "melee", cfx)
 			binfo["knock"] = bite_knock(i)
+			# pass 89: a bite is a regular attack, a boss's too: it no longer pushes him (Player.knock_share)
+			binfo["special_knock"] = false
 			player.take_damage(touch, pos[i], binfo)
 	_mean_max_hp = crowd_hp / float(crowd_n) if crowd_n > 0 else 0.0
 	Run.poisoned_alive = poisoned
@@ -4688,7 +4690,10 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						if atk.has("lift") and player.has_method("blast"):
 							# the giant's hammer (pass 43): a real throw, past the shove's cap
 							player.blast(d.normalized() * float(atk.get("knockback", 6.0)), float(atk["lift"]))
-						elif player.has_method("apply_knockback") and (not player.has_method("hit_knockback_on") or player.hit_knockback_on()):
+						elif player.has_method("special_push"):
+							# pass 89: a special attack's push, at the hero's share of it (Player.knock_share)
+							player.special_push(d.normalized() * float(atk.get("knockback", 6.0)))
+						elif player.has_method("apply_knockback"):
 							player.apply_knockback(d.normalized() * float(atk.get("knockback", 6.0)))
 					if game and game.has_method("shockwave"):
 						game.shockwave(pos[i], r)
@@ -5807,6 +5812,7 @@ func _sniper_fire(i: int, def: EnemyDef, s: Dictionary) -> void:
 		if beam_distance(player.global_position, from, dir, length) <= half + SNIPER_HERO_R:
 			var info := hit_info(i, "ranged", ["laser"])
 			info["knock"] = float(bm.get("knockback", 5.0))
+			info["special_knock"] = true
 			player.take_damage(dealt, from, info)
 			hit_hero = true
 			sniper_hero_hits += 1
@@ -6101,6 +6107,7 @@ func _custom_hit(run: Dictionary, cdef: BossAttackDef, at: Vector3, ppos: Vector
 		return
 	var info: Dictionary = (run["info"] as Dictionary).duplicate()
 	info["knock"] = cdef.knockback
+	info["special_knock"] = true
 	player.take_damage(float(run["damage"]), at, info)
 	custom_hits += 1
 	if cdef.lift > 0.0 and cdef.knockback > 0.0 and player.has_method("blast") and str(player.get("last_outcome")) == "hit":
@@ -6627,8 +6634,12 @@ func _erupt_throw_hero(i: int, atk: Dictionary, off: Vector3, b: Dictionary) -> 
 		return false
 	if player.has_method("knock_immune") and bool(player.call("knock_immune")):
 		return false
-	# pass 88 (lane TWEAKS): no throw while the hero takes no knockback (Settings.hero_knockback off, the default)
-	if player.has_method("hit_knockback_on") and not bool(player.call("hit_knockback_on")):
+	# pass 89: a special attack's throw, at the hero's share of it (Player.knock_share; 1 with the debug switch on): the
+	# height and the distance times the share, the time in the air times its root (the same arc, smaller)
+	var share := 1.0
+	if player.has_method("knock_share"):
+		share = float(player.call("knock_share", true))
+	if share <= 0.0:
 		return false
 	var dir := Vector3(off.x, 0.0, off.z)
 	if dir.length_squared() < 0.09:
@@ -6638,9 +6649,9 @@ func _erupt_throw_hero(i: int, atk: Dictionary, off: Vector3, b: Dictionary) -> 
 	if dir.length_squared() < 0.0001:
 		dir = Vector3.FORWARD
 	dir = dir.normalized()
-	var up := maxf(float(atk.get("throw_up", 0.0)), 0.0)
-	var out := maxf(float(atk.get("throw_out", 0.0)), 0.0)
-	var air := float(atk.get("throw_air", 0.0))
+	var up := maxf(float(atk.get("throw_up", 0.0)), 0.0) * share
+	var out := maxf(float(atk.get("throw_out", 0.0)), 0.0) * share
+	var air := float(atk.get("throw_air", 0.0)) * sqrt(share)
 	if air <= 0.0:
 		air = sqrt(8.0 * up / THROW_G)
 	air = maxf(air, 0.2)

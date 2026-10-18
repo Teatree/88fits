@@ -135,7 +135,7 @@ func _refresh() -> void:
 	pf_row.name = "PierceFalloffRow"
 	_list.add_child(pf_row)
 	# pass 88: the hero's knockback from hits, off by default (also in Settings' Debug panel)
-	var hk_row := _switch("Hero knockback", "hero_knockback")
+	var hk_row := _switch("Full hero knockback", "hero_knockback")
 	hk_row.name = "HeroKnockbackRow"
 	_list.add_child(hk_row)
 	# the arena's training dummies (pass 48): a tap steps each one on, the arena lays them out from these

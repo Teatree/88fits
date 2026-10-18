@@ -5359,3 +5359,28 @@ Spite's 12,900 of Thorns / Thirst power became 2,580 of Stakes.
 - The board lists talents by their first rank's price, cheapest first, then `order`, then id (TalentDef.board_before,
   Registry.talents_list); `order` rewritten 1-8 to match: Stakes, Fortune, Choice, Drive, Study, Stride, Grit, Nerve.
   A later price edit reorders the board by itself. The Level Editor's Sim tab lists them the same way (sim_io).
+
+## 36. Pass 89 (v0.75): the special attacks push the hero again, at half
+
+Garry (2026-10-18): "Player Knockback, make it so the special attacks still knock player back. Like rocketeer rockets,
+dynamite, boss attacks, etc. but less than before. The regular melee attacks shouldn't have a knockback still".
+
+- **Regular attacks never push the hero**: any creature's bite (a boss's and an Elite's bite too: EnemyManager's contact
+  hit says `special_knock: false`), and a plain shot or splash with no weight of its own (the SHOT_KNOCK share of its
+  shooter's bite).
+- **Special attacks push at the map's `hero_special_knock`** (timeline_data, absent = WaveTimeline.HERO_SPECIAL_KNOCK_DEFAULT
+  0.5; the Level Editor's Scaling card "Special knockback on hero x", 0..1): a charge that connects, every hostile blast
+  (the rocketeer's rocket, the dynamite, the golem's boulder and swoop, the giant's and the bosses' slams, the Gila's
+  rumble, the King's tumbleweeds), an Elite's death blast, a rock slam, a rain or eruption with a `knockback`, the Gila's
+  eruption throw (height and distance x the share, time in the air x its root), a custom boss attack, every other boss
+  attack (`kind` "boss": the Brander's lines), the Saiga Sniper's beam, and a shot with its own `knockback` (the
+  Buckshot Dwarf's pellets, the Scorpion's and the Sun Prophet's volleys). A blast's lift is scaled like its push.
+- Player.knock_share(special): 1 with the debug switch, else the share for a special push and 0 for a regular one;
+  Player.is_special_hit(info): `info.special_knock` when named, else a boss's attack. shove() and a hostile blast() are
+  special by definition; take_damage's own shove asks is_special_hit; Player.special_push(v) is a special push through
+  the plain knockback (an Elite's blast, a slam without a lift).
+- Unchanged: the Invincibility bubble and Hang Time's flight still hold off every push; his own moves (the dash, a lunge,
+  Thruster Burst, the leap, the trampoline, a teleport) and the pulls (the silk line, the harpoon's rope) move him whole.
+- The debug switch (Settings.hero_knockback, now labelled **Full hero knockback**) plays every push whole, bites
+  included, as before pass 88; locked off in prod. The Down! list keeps "knocked back" / "thrown" unless the share is 0.
+- Recorded in the run record's `map_settings.hero_special_knock`.

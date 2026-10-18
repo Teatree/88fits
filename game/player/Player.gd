@@ -563,12 +563,15 @@ var last_outcome := "none"
 
 ## `from_creature` (the default): a creature's own shove, turned out of the crowd and settled (_crowd_knock); a hostile
 ## shot's passes false and keeps its line. Nothing while the Invincibility bubble holds (pass 60).
+## Pass 89: every caller of shove is a special attack's push (a charge, a slam, an eruption, a shot with its own
+## weight), so it comes at knock_share(true).
 func shove(v: Vector3, from_creature: bool = true) -> bool:
-	if _knock_grace > 0.0 or dead or knock_immune() or not hit_knockback_on():
+	var share: float = knock_share(true)
+	if _knock_grace > 0.0 or dead or knock_immune() or share <= 0.0:
 		return false
 	_knock_grace = KNOCK_GRACE
 	# whatever the source, the shove itself is bounded: the physics never sees a metre a frame
-	var f: float = minf(v.length(), 14.0)
+	var f: float = minf(v.length() * share, 14.0)
 	if f > 0.01:
 		var push := v.normalized() * f
 		if from_creature:
@@ -586,13 +589,46 @@ func apply_knockback(v: Vector3, hostile: bool = true) -> void:
 	_kb += v
 
 
-## Whether a hit may move him at all (pass 88, Garry: "Remove the Knockback from being hit for Player entirely"): the
-## debug switch Settings.hero_knockback, off by default. Off, shove, hit_knock and a hostile blast do nothing (and the
-## knockbacks that come through apply_knockback, an Elite's blast and a slam, and the Gila's eruption throw ask this
-## first); his own moves (the dash, a lunge, the thruster burst, the leap, Hang Time's trampoline, a teleport) and the
-## pulls (a silk line, the harpoon's leash) are not knockback and still move him.
+## Whether every hit pushes him whole, as before pass 88: the debug switch Settings.hero_knockback, off by default.
+## Pass 88 took every push away; pass 89 (Garry: "make it so the special attacks still knock player back. Like
+## rocketeer rockets, dynamite, boss attacks, etc. but less than before. The regular melee attacks shouldn't have a
+## knockback still") brings the special attacks' back at a share (knock_share). His own moves (the dash, a lunge, the
+## thruster burst, the leap, Hang Time's trampoline, a teleport) and the pulls (a silk line, the harpoon's leash) are
+## not knockback and always move him.
 func hit_knockback_on() -> bool:
 	return bool(Settings.hero_knockback)
+
+
+## How much of a push reaches him (pass 89): 1 with the debug switch on (every push as before pass 88); otherwise a
+## `special` one (a charge, a blast, a rocket, the dynamite, a boulder, a slam, an eruption, a boss's attack, the
+## Sniper's beam, a shot with its own weight) at the map's `hero_special_knock` (Red Canyon: the game's 0.5), and a
+## regular one (any creature's bite, a boss's too, and a plain shot or splash) not at all.
+func knock_share(special: bool) -> float:
+	if hit_knockback_on():
+		return 1.0
+	if not special:
+		return 0.0
+	var m: MapDef = Run.map
+	if m == null or m.timeline == null:
+		return WaveTimeline.HERO_SPECIAL_KNOCK_DEFAULT
+	return clampf(m.timeline.hero_special_knock, 0.0, 1.0)
+
+
+## Whether a hit's own shove (take_damage's `info.knock`) is a special attack's (pass 89): what the caller says in
+## `info.special_knock`, else a boss's attack (`kind` "boss": the contact bite says false itself).
+static func is_special_hit(info: Dictionary) -> bool:
+	if info.has("special_knock"):
+		return bool(info["special_knock"])
+	return str(info.get("kind", "melee")) == "boss"
+
+
+## A special attack's push through the plain knockback (pass 89: an Elite's blast, a slam without a lift): `v` at
+## knock_share(true), nothing while the Invincibility bubble holds.
+func special_push(v: Vector3) -> void:
+	var share: float = knock_share(true)
+	if share <= 0.0 or dead or knock_immune():
+		return
+	_kb += v * share
 
 
 ## The Invincibility power-up's rule (pass 60, Garry: "Invincibility (shield) Power Up should null out the knockback
@@ -607,10 +643,12 @@ func knock_immune() -> bool:
 ## past HIT_KNOCK_MAX (or past what a blast already gave him), and the stick held off for STICK_LOCK seconds. A
 ## creature's (`from_creature`, the default) goes out of the crowd and never straight back (pass 60, _crowd_knock); a
 ## shot's keeps its line. Nothing while the Invincibility bubble holds.
-func hit_knock(v: Vector3, from_creature: bool = true) -> void:
-	if dead or knock_immune() or not hit_knockback_on():
+## Pass 89: a `special` one comes at knock_share(true), a regular one (a bite, a plain shot) at knock_share(false).
+func hit_knock(v: Vector3, from_creature: bool = true, special: bool = false) -> void:
+	var share: float = knock_share(special)
+	if dead or knock_immune() or share <= 0.0:
 		return
-	var flat := Vector3(v.x, 0.0, v.z)
+	var flat := Vector3(v.x, 0.0, v.z) * share
 	if flat.length_squared() < 0.0001:
 		return
 	if from_creature:
@@ -724,16 +762,23 @@ func _knock_from(from: Vector3, info: Dictionary) -> void:
 	away.y = 0.0
 	if away.length_squared() < 0.0001:
 		return
-	hit_knock(away.normalized() * f, str(info.get("kind", "melee")) != "ranged")
+	hit_knock(away.normalized() * f, str(info.get("kind", "melee")) != "ranged", is_special_hit(info))
 
 
 ## A blast throws him (pass 33.3, the rocketeer's rocket): past the shove's cap and its grace, `up` metres a second off
 ## the ground with it, and the grace starts again so no shove stacks on top while he flies. A `hostile` one (the
 ## default) is nothing while the Invincibility bubble holds (pass 60); his own (Astro's thruster burst passes false)
-## throws him anyway.
+## throws him anyway. Pass 89: a hostile blast is always a special attack's, so it throws him at knock_share(true),
+## the push and the lift alike.
 func blast(v: Vector3, up: float = 0.0, hostile: bool = true) -> void:
-	if dead or (hostile and (knock_immune() or not hit_knockback_on())):
+	if dead:
 		return
+	if hostile:
+		var share: float = knock_share(true)
+		if knock_immune() or share <= 0.0:
+			return
+		v *= share
+		up *= share
 	_knock_grace = KNOCK_GRACE
 	_kb += Vector3(v.x, 0, v.z)
 	if up > 0.0:
@@ -1049,11 +1094,11 @@ func _star_block(amount: float, info: Dictionary) -> bool:
 	return true
 
 
-## A hit's words for the Down! list (pass 88): without the hero's knockback (Settings.hero_knockback off) the push words
-## ("knocked back", "thrown") are left out, since nothing moved him.
+## A hit's words for the Down! list (pass 88): when no push reaches him (pass 89: the map's hero_special_knock at 0 with
+## the debug switch off; only the special attacks carry the push words) "knocked back" and "thrown" are left out.
 func _logged_fx(info: Dictionary) -> Array:
 	var fx: Array = (info.get("fx", []) as Array).duplicate()
-	if not hit_knockback_on():
+	if knock_share(true) <= 0.0:
 		fx = fx.filter(func(w) -> bool: return str(w) != "knocked back" and str(w) != "thrown")
 	return fx
 
