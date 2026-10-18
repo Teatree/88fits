@@ -265,17 +265,25 @@ func test_the_summary_lists_only_talents_with_ranks_in_board_order() -> void:
 		if str(c.name).begins_with("Chip_"):
 			chips.append(c)
 	assert_int(chips.size()).is_equal(2)
-	assert_str(str(chips[0].name)).is_equal("Chip_grit_0")
-	assert_str(str(chips[1].name)).is_equal("Chip_stride_1")
+	# pass 88 (lane MIRROR, re-pinned on purpose): in the board's order, which is by price since pass 88 (Stride 425
+	# before Grit 450 today), read from the Registry rather than pinned
+	var order: Array = []
+	for def: TalentDef in Registry.talents_list():
+		if def.id in ["grit", "stride"]:
+			order.append(def.id)
+	var want_names := {"grit": "Chip_grit_0", "stride": "Chip_stride_1"}
+	assert_str(str(chips[0].name)).is_equal(want_names[order[0]])
+	assert_str(str(chips[1].name)).is_equal(want_names[order[1]])
 	assert_object(flow.find_child("Hint", false, false)).is_null()
-	assert_str(_texts(chips[0])).contains("x3")
-	assert_str(_texts(chips[1])).contains("x1")
-	var plate: WPlate = chips[1].get_child(0)
+	var gi := 0 if order[0] == "grit" else 1
+	assert_str(_texts(chips[gi])).contains("x3")
+	assert_str(_texts(chips[1 - gi])).contains("x1")
+	var plate: WPlate = chips[1 - gi].get_child(0)
 	assert_object(plate.tex).is_same(Registry.talent("stride").form_icon(1))
 	var listed: Array = []
 	for def: TalentDef in h.summary_talents():
 		listed.append(def.id)
-	assert_array(listed).is_equal(["grit", "stride"])
+	assert_array(listed).is_equal(order)
 	h.visible = false
 	await get_tree().process_frame
 

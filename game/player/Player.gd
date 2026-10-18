@@ -564,7 +564,7 @@ var last_outcome := "none"
 ## `from_creature` (the default): a creature's own shove, turned out of the crowd and settled (_crowd_knock); a hostile
 ## shot's passes false and keeps its line. Nothing while the Invincibility bubble holds (pass 60).
 func shove(v: Vector3, from_creature: bool = true) -> bool:
-	if _knock_grace > 0.0 or dead or knock_immune():
+	if _knock_grace > 0.0 or dead or knock_immune() or not hit_knockback_on():
 		return false
 	_knock_grace = KNOCK_GRACE
 	# whatever the source, the shove itself is bounded: the physics never sees a metre a frame
@@ -586,6 +586,15 @@ func apply_knockback(v: Vector3, hostile: bool = true) -> void:
 	_kb += v
 
 
+## Whether a hit may move him at all (pass 88, Garry: "Remove the Knockback from being hit for Player entirely"): the
+## debug switch Settings.hero_knockback, off by default. Off, shove, hit_knock and a hostile blast do nothing (and the
+## knockbacks that come through apply_knockback, an Elite's blast and a slam, and the Gila's eruption throw ask this
+## first); his own moves (the dash, a lunge, the thruster burst, the leap, Hang Time's trampoline, a teleport) and the
+## pulls (a silk line, the harpoon's leash) are not knockback and still move him.
+func hit_knockback_on() -> bool:
+	return bool(Settings.hero_knockback)
+
+
 ## The Invincibility power-up's rule (pass 60, Garry: "Invincibility (shield) Power Up should null out the knockback
 ## from enemies"): while its bubble is up no hostile shove, hit knock, pull or blast moves him. Only the power-up: the
 ## Energy Shield line's points still take the shove of what they catch, and the blink after a hit or a revive is no
@@ -599,7 +608,7 @@ func knock_immune() -> bool:
 ## creature's (`from_creature`, the default) goes out of the crowd and never straight back (pass 60, _crowd_knock); a
 ## shot's keeps its line. Nothing while the Invincibility bubble holds.
 func hit_knock(v: Vector3, from_creature: bool = true) -> void:
-	if dead or knock_immune():
+	if dead or knock_immune() or not hit_knockback_on():
 		return
 	var flat := Vector3(v.x, 0.0, v.z)
 	if flat.length_squared() < 0.0001:
@@ -723,7 +732,7 @@ func _knock_from(from: Vector3, info: Dictionary) -> void:
 ## default) is nothing while the Invincibility bubble holds (pass 60); his own (Astro's thruster burst passes false)
 ## throws him anyway.
 func blast(v: Vector3, up: float = 0.0, hostile: bool = true) -> void:
-	if dead or (hostile and knock_immune()):
+	if dead or (hostile and (knock_immune() or not hit_knockback_on())):
 		return
 	_knock_grace = KNOCK_GRACE
 	_kb += Vector3(v.x, 0, v.z)
@@ -1040,10 +1049,19 @@ func _star_block(amount: float, info: Dictionary) -> bool:
 	return true
 
 
+## A hit's words for the Down! list (pass 88): without the hero's knockback (Settings.hero_knockback off) the push words
+## ("knocked back", "thrown") are left out, since nothing moved him.
+func _logged_fx(info: Dictionary) -> Array:
+	var fx: Array = (info.get("fx", []) as Array).duplicate()
+	if not hit_knockback_on():
+		fx = fx.filter(func(w) -> bool: return str(w) != "knocked back" and str(w) != "thrown")
+	return fx
+
+
 func _log_hit(raw: float, dealt: float, shield: float, info: Dictionary, note: String) -> void:
 	damage_log.append({"t": Run.elapsed, "by": str(info.get("by", "something")), "id": str(info.get("id", "")),
 		"kind": str(info.get("kind", "melee")), "role": role_of(info), "colour": colour_of(info.get("colour", "")),
-		"fx": (info.get("fx", []) as Array).duplicate(), "raw": raw, "dealt": dealt, "shield": shield, "note": note,
+		"fx": _logged_fx(info), "raw": raw, "dealt": dealt, "shield": shield, "note": note,
 		"hp": maxf(hp, 0.0), "fatal": false})
 	if RunAnalytics.I: RunAnalytics.I.took(info, raw, dealt, shield, note)
 	_trim_log()

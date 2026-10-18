@@ -74,11 +74,11 @@ params = {
 "decay": 7.5,
 "hz": 2.8,
 "pop": 0.2,
-"pulse": 0.3
+"pulse": 0.0
 },
 "throat": {
 "gain": 1.0,
-"size": 0.9,
+"rim": 0.35,
 "walls": 0.9
 },
 "tick": 0.18,

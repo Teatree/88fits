@@ -38,8 +38,8 @@
         "name": "Sundown",
         "length": 430,
         "boss": "tumbleweed_king",
-        "description": "The canyon at sundown: goblins, scorpions and the walking dead, then the Tumbleweed King.",
-        "difficulty": "Gentle: learn the creatures",
+        "description": "The canyon at sundown. Learn the ropes.",
+        "difficulty": "Easy",
         "filter": {
           "color": "#000000",
           "strength": 0.0
@@ -52,8 +52,8 @@
         "name": "Nightfall",
         "length": 600,
         "boss": "gila_grande",
-        "description": "Night falls on the canyon: ants, armadillos, mummies and werewolves, and the Gila Grande at the end.",
-        "difficulty": "Hard: a tougher crowd, for longer",
+        "description": "Night falls on the canyon. Tougher, and longer.",
+        "difficulty": "Medium",
         "filter": {
           "color": "#3D55C8",
           "strength": 0.48
@@ -66,8 +66,8 @@
         "name": "Blood Moon",
         "length": 780,
         "boss": "brander",
-        "description": "Hell opens under a blood moon: imps and hellhounds join the crowd before the Brander.",
-        "difficulty": "Brutal: hell, then the Brander",
+        "description": "Hell opens under a blood moon. Few come back.",
+        "difficulty": "Hard",
         "filter": {
           "color": "#6A1A28",
           "strength": 0.6
@@ -95,8 +95,8 @@
         233.3
       ],
       [
-        431,
-        25.0
+        430,
+        148.0
       ],
       [
         670,
@@ -284,7 +284,8 @@
           "can_be_elite": false
         },
         "pack": 12,
-        "pattern": "scatter"
+        "pattern": "scatter",
+        "interval": 4
       },
       {
         "id": "r21",
@@ -393,7 +394,7 @@
         },
         "pace": "waves",
         "every": 5,
-        "count": 15,
+        "count": 10,
         "pack": 1,
         "pattern": "scatter"
       },
@@ -413,7 +414,7 @@
         },
         "pattern": "pack",
         "pack": 5,
-        "interval": 1
+        "interval": 5
       },
       {
         "id": "r14",
@@ -427,7 +428,8 @@
         ],
         "until": 315,
         "pattern": "scatter",
-        "pack": 1
+        "pack": 1,
+        "interval": 6
       },
       {
         "id": "r15",
@@ -441,7 +443,27 @@
         ],
         "until": 347,
         "pattern": "scatter",
-        "interval": 3
+        "interval": 6,
+        "stats": {
+          "drops": {
+            "large": 0.1
+          }
+        }
+      },
+      {
+        "id": "r54",
+        "t": 376,
+        "enemy": "spit_cactus",
+        "weights": [
+          [
+            377,
+            1.2
+          ]
+        ],
+        "until": 416,
+        "pattern": "scatter",
+        "pack": 1,
+        "interval": 6
       },
       {
         "id": "r4",
@@ -453,14 +475,19 @@
             1.0
           ]
         ],
-        "until": 430,
+        "until": 420,
         "pattern": "scatter",
-        "interval": 3
+        "interval": 6,
+        "stats": {
+          "drops": {
+            "large": 0.1
+          }
+        }
       },
       {
         "id": "r16",
         "t": 368,
-        "enemy": "werewolf",
+        "enemy": "dust_mummy",
         "weights": [
           [
             368,

@@ -12,16 +12,17 @@ func _json() -> Dictionary:
 	return JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/dust_mummy/dust_mummy.json"))
 
 
+## Re-pinned in pass 88 (Garry: "Let's go with DM-G"): DM-G plays, approved (no longer fresh); the other three stay fresh.
 func test_the_four_looks_are_fresh_and_dm0_still_plays() -> void:
 	var j := _json()
-	assert_str(str(j.get("variant", ""))).is_equal("DM-0")
+	assert_str(str(j.get("variant", ""))).is_equal("DM-G")
 	var e: EnemyDef = Registry.enemy("dust_mummy")
-	assert_str(e.variant).is_equal("DM-0")
+	assert_str(e.variant).is_equal("DM-G")
 	var codes: Array = e.variant_codes()
 	for code in NEW:
 		assert_bool(codes.has(code)).override_failure_message(code + " is not a look").is_true()
 		var v: Dictionary = j["variants"][code]
-		assert_bool(bool(v.get("fresh", false))).override_failure_message(code + " is not fresh").is_true()
+		assert_bool(bool(v.get("fresh", false))).override_failure_message(code + " freshness").is_equal(code != "DM-G")
 		assert_bool(v.get("shelved", false)).is_false()
 
 
@@ -70,6 +71,10 @@ func test_a_look_wears_its_art_through_variant_def() -> void:
 	var e: EnemyDef = Registry.enemy("dust_mummy")
 	for code in NEW:
 		var v: EnemyDef = e.variant_def(code)
-		assert_str(v.variant_code).is_equal(code)
 		assert_int(v.frames_of("run")).is_equal(12)
+		# re-pinned in pass 88: the played look (DM-G since pass 88) is the plain type, keyed by the id alone
+		if code == e.variant:
+			assert_str(v.type_key()).is_equal("dust_mummy")
+			continue
+		assert_str(v.variant_code).is_equal(code)
 		assert_str(v.type_key()).is_equal("dust_mummy@" + code)

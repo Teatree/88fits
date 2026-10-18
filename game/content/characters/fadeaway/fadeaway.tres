@@ -32,8 +32,8 @@ favourite_passive_bonus = {
 }
 availability = "purchase"
 price = 1750
-sprite = ExtResource("6_cxldy")
-sprite_file = "fadeaway_sprite_c.png"
+sprite = ExtResource("9_ld7m5")
+sprite_file = "fadeaway_sprite_e.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -250,7 +250,7 @@ variants = {
 "title": "hero_fadeaway_c.png"
 }
 }
-variant = "FAD-C"
+variant = "FAD-E"
 id = "fadeaway"
 display_name = "Fadeaway"
 flavour = "You cannot guard what you cannot catch."

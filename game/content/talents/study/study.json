@@ -2,15 +2,15 @@
   "id": "study",
   "name": "Study",
   "flavour": "Learn faster, or mend slower.",
-  "order": 7,
+  "order": 5,
   "ranks": 6,
   "cost": [
-    425,
-    765,
-    1275,
-    1915,
-    2765,
-    3825
+    400,
+    720,
+    1200,
+    1800,
+    2600,
+    3600
   ],
   "forms": [
     {

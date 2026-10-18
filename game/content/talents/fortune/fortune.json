@@ -2,15 +2,15 @@
   "id": "fortune",
   "name": "Fortune",
   "flavour": "Better cards, or fatter purses.",
-  "order": 4,
+  "order": 2,
   "ranks": 6,
   "cost": [
-    375,
-    675,
-    1125,
-    1690,
-    2440,
-    3375
+    300,
+    540,
+    900,
+    1350,
+    1950,
+    2700
   ],
   "forms": [
     {

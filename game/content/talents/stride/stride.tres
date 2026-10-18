@@ -22,9 +22,9 @@ target = "player"
 
 [resource]
 script = ExtResource("2_lsivf")
-order = 3
+order = 6
 ranks = 6
-cost = [300.0, 540.0, 900.0, 1350.0, 1950.0, 2700.0]
+cost = [425.0, 765.0, 1275.0, 1915.0, 2765.0, 3825.0]
 forms = [{
 "effects": [SubResource("Resource_qdg8m")],
 "icon": ExtResource("2_qdg8m"),

@@ -36,6 +36,9 @@
     "die": 12
   },
   "head": 1.0,
+  "shadow": {
+    "die_drop": 0.2
+  },
   "sfx": {
     "hit": "en_goblin_hit",
     "die": "en_goblin_die"

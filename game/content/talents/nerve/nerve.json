@@ -2,15 +2,15 @@
   "id": "nerve",
   "name": "Nerve",
   "flavour": "Pass on one more, or get back up.",
-  "order": 6,
+  "order": 8,
   "ranks": 6,
   "cost": [
-    550,
-    990,
-    1650,
-    2475,
-    3575,
-    4950
+    500,
+    900,
+    1500,
+    2250,
+    3250,
+    4500
   ],
   "forms": [
     {

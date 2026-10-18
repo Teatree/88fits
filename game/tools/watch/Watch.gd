@@ -281,6 +281,7 @@ func _setup_save() -> void:
 		settings.camera_mode = 0
 		settings.ranged_on_screen = true
 		settings.pierce_falloff = true
+		settings.hero_knockback = false
 		settings.show_hints = false
 		settings.damage_numbers = numbers_on
 		settings.debug_mode = false

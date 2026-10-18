@@ -56,9 +56,9 @@ target = "player"
 
 [resource]
 script = ExtResource("2_es87a")
-order = 6
+order = 8
 ranks = 6
-cost = [550.0, 990.0, 1650.0, 2475.0, 3575.0, 4950.0]
+cost = [500.0, 900.0, 1500.0, 2250.0, 3250.0, 4500.0]
 forms = [{
 "effects": [SubResource("Resource_0i6lo")],
 "icon": ExtResource("2_0i6lo"),

@@ -30,6 +30,16 @@
 ## as the beam leaves, the mouth kicks back along its aim, its lips climb and it swells, then springs past rest and
 ## settles: amp x e^(-decay t) x cos(2 pi hz t); each PULSE while it pours kicks again at `pulse` of that. A pull while
 ## the beam still pours (cooldown shorter than the beam) re-aims it and pours on at once with a fresh punch, no wind-up.
+## Pass 88 (Garry: "The 'Punch' from the laser should happen only once, when the laser shooting starts ... it looks like
+## the mouth is having a fit"; "The tongue is still there actually. I mean the meaty part behind the mouth ... `Cavity`,
+## `Glow` and `ThroatBack`. Make it so these are all hidden, and when the attack is happening there is a mesh that appears
+## that is as big as all of those together, and glows bright white as it used to"): the punch comes once, as a beam
+## starts from a shut mouth (`punch.pulse` 0: the pulses only puff and ring; a pull while it pours re-aims it with no new
+## punch). The model has no bowl, core or flare anchor (tools/blender_mouth.py); its `Glow` is one egg filling the whole
+## throat, hidden at rest, shown bright white (core/shaders/mouth_core, the beam's colour a faint rim, `throat.rim`)
+## through the wind-up and while the beam pours, fading to the throat's dark in about a tenth of a second after and hidden
+## once the jaw has shut; the floor on the jaw glows with it (`throat.walls`) and is hidden with it at rest. Older parts (Cavity, ThroatBack, Tongue)
+## found on a model are hidden.
 class_name LaserBeam
 extends WeaponBehavior
 
@@ -37,13 +47,28 @@ extends WeaponBehavior
 const WINDUP := 0.24
 ## Pass 87: the wind-up, the punch and the throat glow when params.beam.windup / punch / throat leave a key out.
 const WINDUP_DEFAULTS := {"seconds": WINDUP, "rear": 0.35, "gape": 36.0, "swell": 0.1, "tremble": 0.03}
-const PUNCH_DEFAULTS := {"back": 0.36, "climb": 0.2, "pop": 0.2, "hz": 2.8, "decay": 7.5, "pulse": 0.3}
-const THROAT_DEFAULTS := {"size": 0.9, "gain": 1.0, "walls": 0.9}
-## the throat flare is drawn this far towards the camera (m), so it clears the throat's walls behind it
-const FLARE_PUSH := 0.05
+## (pass 88: `pulse` 0, the punch comes once as the beam starts; the throat is the white Glow, `rim` its edge in the beam's
+## colour, `walls` the floor's glow, `gain` its brightness)
+const PUNCH_DEFAULTS := {"back": 0.36, "climb": 0.2, "pop": 0.2, "hz": 2.8, "decay": 7.5, "pulse": 0.0}
+const THROAT_DEFAULTS := {"gain": 1.0, "rim": 0.35, "walls": 0.9}
+## pass 88: the throat's dark, which the Glow fades to after the beam while the jaw shuts (the old bowl's colour)
+const GLOW_DARK := Color(0.12, 0.008, 0.025)
+## pass 88: the Glow stays (dark) while the jaw is open more than this share of JAW_OPEN_DEG (the chew at rest opens it
+## 0.09 at most), so the closing mouth never shows the sand through it
+const GLOW_SHUT_OPEN := 0.12
+## pass 88: the old throat's parts, hidden if a model still has them
+const HIDDEN_PARTS := ["Cavity", "ThroatBack", "Tongue"]
 ## a punch on a mouth still settling from the last adds half of what is left, up to this much
 const PUNCH_STACK_MAX := 1.6
 const JAW_OPEN_DEG := 80.0
+## the mouth tipped back so its lips face up to the high camera, and the jaw's slow chew between beams (degrees, rad/s);
+## pass 88: named, so the title's mouth (TitleStage.Actor._fly_mouth) flies on the same numbers
+const REST_PITCH_DEG := 32.0
+const CHEW_DEG := 7.0
+const CHEW_RATE := 2.6
+## pass 88: the orbit round the hero when params.familiar leaves a key out, and the bob's rate (rad/s)
+const ORBIT_DEFAULTS := {"radius": 1.25, "height": 1.3, "bob": 0.09, "speed": 0.9}
+const BOB_RATE := 2.4
 ## the jaw's spring (stiffness, damping): it snaps open past JAW_OPEN_DEG by about a sixth and settles
 const JAW_K := 900.0
 const JAW_D := 30.0
@@ -91,11 +116,11 @@ var _punch_t := -1.0
 var _punch_amp := 0.0
 var _glow := 0.0
 var _floor_mesh: MeshInstance3D
+## pass 88: the floor's outside (seen from behind and below), shown and hidden with the Glow
+var _floor_back: MeshInstance3D
 var _glow_core: MeshInstance3D
 var _glow_core_rest := Vector3.ONE
-var _glow_core_mat: StandardMaterial3D
-var _flare: MeshInstance3D
-var _flare_mat: ShaderMaterial
+var _glow_core_mat: ShaderMaterial
 ## punches started so far (tests)
 var punches := 0
 
@@ -185,13 +210,14 @@ func _on_setup() -> void:
 		_upper = _model.find_child("Upper", true, false) as Node3D
 		if _upper:
 			_upper_rest = _upper.position
-		# the cavity lights up from inside while the beam pours: its own copy of its material, with emission
-		var cav := _model.find_child("Cavity", true, false) as MeshInstance3D
+		# the floor of the mouth lights up from inside while the beam pours: its own copy of its material, with emission
+		# (pass 88: the floor's; the cavity it shared it with is gone)
+		var cav := _model.find_child("Floor", true, false) as MeshInstance3D
 		if cav and cav.mesh:
 			var base: Material = cav.material_override if cav.material_override else cav.mesh.surface_get_material(0)
 			_cavity_mat = (base.duplicate() if base is StandardMaterial3D else StandardMaterial3D.new()) as StandardMaterial3D
 			_cavity_mat.emission_enabled = true
-			_cavity_mat.emission = _beam_colour().lightened(0.35)
+			_cavity_mat.emission = _glow_tint()
 			_cavity_mat.emission_energy_multiplier = 0.0
 			cav.material_override = _cavity_mat
 		_setup_throat()
@@ -222,40 +248,26 @@ func _on_setup() -> void:
 	add_child(_beam)
 
 
-## Pass 87: the dark throat's parts. The floor on the jaw wears the cavity's lit copy (so the whole throat lights up
-## together), the core deep in it gets its own unshaded material and starts hidden, and the flare quad (mouth_glow)
-## hangs on the model's `Flare` anchor (else on the core, else the model). A mouth model without them (an older GLB)
-## still works: whatever is missing is skipped.
+## Pass 88: the throat. The floor on the jaw wears the lit copy made in _on_setup; the `Glow` egg gets its own unshaded
+## material (mouth_core) and starts hidden; the old parts (HIDDEN_PARTS) are hidden. A mouth model without them still
+## works: whatever is missing is skipped.
 func _setup_throat() -> void:
+	for n: String in HIDDEN_PARTS:
+		var old := _model.find_child(n, true, false) as Node3D
+		if old:
+			old.visible = false
 	_floor_mesh = _model.find_child("Floor", true, false) as MeshInstance3D
 	if _floor_mesh and _cavity_mat:
 		_floor_mesh.material_override = _cavity_mat
+	_floor_back = _model.find_child("FloorBack", true, false) as MeshInstance3D
 	_glow_core = _model.find_child("Glow", true, false) as MeshInstance3D
 	if _glow_core:
 		_glow_core_rest = _glow_core.scale
-		_glow_core_mat = StandardMaterial3D.new()
-		_glow_core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_glow_core_mat.albedo_color = _beam_colour().lerp(_beam_core(), 0.6)
+		_glow_core_mat = ShaderMaterial.new()
+		_glow_core_mat.shader = load("res://core/shaders/mouth_core.gdshader")
 		_glow_core.material_override = _glow_core_mat
 		_glow_core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_glow_core.visible = false
-	var anchor := _model.find_child("Flare", true, false) as Node3D
-	if anchor == null:
-		anchor = _glow_core if _glow_core else _model
-	_flare = MeshInstance3D.new()
-	_flare.name = "ThroatFlare"
-	var q := QuadMesh.new()
-	q.size = Vector2(1, 1)
-	_flare.mesh = q
-	_flare_mat = ShaderMaterial.new()
-	_flare_mat.shader = load("res://core/shaders/mouth_glow.gdshader")
-	_flare_mat.set_shader_parameter("push", FLARE_PUSH)
-	_flare.material_override = _flare_mat
-	_flare.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# the quad is turned to the camera in its shader: never cull it by where the unit quad would stand
-	_flare.extra_cull_margin = 2.0
-	_flare.visible = false
-	anchor.add_child(_flare)
 
 
 ## Pass 87: one of params.beam's blocks (windup, punch, throat), or {} when it has none.
@@ -339,50 +351,42 @@ func _pose_offset(t: float) -> Vector3:
 	return off
 
 
-## Pass 87: the throat's glow: it gathers through the wind-up (a fifth to four fifths, faster at the end), burns while the
-## beam pours (with a flicker) and dies away in about a tenth of a second after; the core, the flare and the walls follow
-## it in the beam's colour as it is now. The flare fades as the mouth turns its back on the camera.
+## Pass 88: the throat's glow: mostly lit (0.7) as the wind-up starts and full by its end, full while the beam pours (with a
+## faint flicker), gone in about a tenth of a second after. The Glow egg shows white x `gain` with the beam's colour a
+## faint rim (`rim`); as it dies it darkens to GLOW_DARK, and it hides once it is out and the jaw is shut. The floor
+## glows with it (`walls`) and shows and hides with it (at rest the lips and teeth are the whole mouth).
 func _tick_glow(delta: float, t: float, firing: bool, winding: bool) -> void:
 	var want := 0.0
 	if firing:
 		want = 1.0
 	elif winding:
-		var f := windup_f()
-		want = 0.2 + 0.6 * f * f
+		want = 0.7 + 0.3 * windup_f()
 	if delta <= 0.0:
 		_glow = want
 	else:
 		_glow = move_toward(_glow, want, (30.0 if want > _glow else 9.0) * delta)
-	var lit := _glow > 0.01
-	var flick := (0.86 + 0.14 * sin(t * 47.0)) if firing else 1.0
-	var col := _beam_colour()
-	var core := _beam_core()
+	var flick := (0.94 + 0.06 * sin(t * 47.0)) if firing else 1.0
 	if _glow_core:
-		_glow_core.visible = lit
-		if lit:
-			_glow_core.scale = _glow_core_rest * (0.5 + 0.7 * _glow) * flick
-			_glow_core_mat.albedo_color = col.lerp(core, 0.6)
-	if _flare:
-		_flare.visible = lit
-		if lit:
-			_flare.scale = Vector3.ONE * maxf(throat_value("size"), 0.0) * (0.45 + 0.55 * _glow) * flick
-			_flare_mat.set_shader_parameter("color", col)
-			_flare_mat.set_shader_parameter("core_color", core)
-			_flare_mat.set_shader_parameter("strength", maxf(throat_value("gain"), 0.0) * _glow * _flare_facing())
+		var show := _glow > 0.01 or _open > GLOW_SHUT_OPEN
+		_glow_core.visible = show
+		# the floor of the mouth too: from behind, at rest, it read as the meaty part behind the lips
+		if _floor_mesh:
+			_floor_mesh.visible = show
+		if _floor_back:
+			_floor_back.visible = show
+		if show:
+			var lit := Color(1, 1, 1) * maxf(throat_value("gain"), 0.0) * flick
+			_glow_core_mat.set_shader_parameter("color", GLOW_DARK.lerp(lit, clampf(_glow, 0.0, 1.0)))
+			_glow_core_mat.set_shader_parameter("rim_color", _beam_colour())
+			_glow_core_mat.set_shader_parameter("rim", maxf(throat_value("rim"), 0.0) * _glow)
 	if _cavity_mat:
-		_cavity_mat.emission = col
+		_cavity_mat.emission = _glow_tint()
 		_cavity_mat.emission_energy_multiplier = maxf(throat_value("walls"), 0.0) * _glow * flick
 
 
-## Pass 87: 1 when the mouth faces the camera, fading to 0 as it turns its back (a light inside a mouth shows only
-## through its opening); 1 without a camera.
-func _flare_facing() -> float:
-	var cam: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
-	if cam == null or _model == null:
-		return 1.0
-	var fwd := -_model.global_transform.basis.z.normalized()
-	var to_cam := (cam.global_position - _model.global_position).normalized()
-	return smoothstep(-0.35, 0.25, fwd.dot(to_cam))
+## Pass 88: the floor's glow: white with a touch of the beam's colour.
+func _glow_tint() -> Color:
+	return _beam_colour().lerp(Color(1, 1, 1), 0.75)
 
 
 ## On every build change (pass 61): the cavity glows the beam's colour as it is now (Bad Breath's green, Slow Roast's
@@ -390,7 +394,7 @@ func _flare_facing() -> float:
 func refresh_marks() -> void:
 	super.refresh_marks()
 	if _cavity_mat:
-		_cavity_mat.emission = _beam_colour()
+		_cavity_mat.emission = _glow_tint()
 
 
 func _familiar_param(key: String, default: float) -> float:
@@ -401,14 +405,14 @@ func _familiar_param(key: String, default: float) -> float:
 func _place(delta: float) -> void:
 	if _familiar == null:
 		return
-	var r := _familiar_param("radius", 1.25)
-	var h := _familiar_param("height", 1.3)
-	var bob := _familiar_param("bob", 0.09)
+	var r := _familiar_param("radius", ORBIT_DEFAULTS["radius"])
+	var h := _familiar_param("height", ORBIT_DEFAULTS["height"])
+	var bob := _familiar_param("bob", ORBIT_DEFAULTS["bob"])
 	# the mouth holds still while it winds up and fires, and drifts around the hero the rest of the time
 	if _beam_t <= 0.0 and _windup_t <= 0.0:
-		_orbit += delta * _familiar_param("speed", 0.9)
+		_orbit += delta * _familiar_param("speed", ORBIT_DEFAULTS["speed"])
 	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
-	var want: Vector3 = player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 2.4) * bob, sin(_orbit) * r)
+	var want: Vector3 = player.global_position + Vector3(cos(_orbit) * r, h + sin(t * BOB_RATE) * bob, sin(_orbit) * r)
 	# pass 87: the eased follow carries only the orbit; the punch and the tremble are laid over it on the frame, unsmoothed
 	_fam_base = want if delta <= 0.0 else _fam_base.lerp(want, clampf(delta * 8.0, 0.0, 1.0))
 	_familiar.global_position = _fam_base + _pose_offset(t)
@@ -443,7 +447,7 @@ func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 	elif firing:
 		target = -deg_to_rad(JAW_OPEN_DEG)
 	else:
-		target = -deg_to_rad(7.0 * (0.5 + 0.5 * sin(t * 2.6)))
+		target = chew_angle(t)
 	if delta <= 0.0:
 		_jaw_a = target
 		_jaw_v = 0.0
@@ -471,7 +475,7 @@ func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 	_face_yaw = lerp_angle(_face_yaw, atan2(-face.x, -face.z), clampf(delta * 9.0, 0.0, 1.0)) if delta > 0.0 else atan2(-face.x, -face.z)
 	# pass 87: the lips rear up through the wind-up and climb with the punch
 	var p := punch()
-	var pitch := deg_to_rad(32.0) + windup_value("rear") * ease_w + punch_value("climb") * p
+	var pitch := deg_to_rad(REST_PITCH_DEG) + windup_value("rear") * ease_w + punch_value("climb") * p
 	_model.rotation = Vector3(pitch, _face_yaw, 0.0)
 	var sc := Vector3.ONE * _model_scale
 	if winding:
@@ -479,6 +483,11 @@ func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 	elif firing:
 		sc *= 1.0 + 0.04 * sin(t * 38.0)
 	_model.scale = sc * maxf(1.0 + punch_value("pop") * p, 0.5)
+
+
+## The jaw's angle at rest at `t` seconds: a slow chew, 0 to CHEW_DEG open (below zero is open).
+static func chew_angle(t: float) -> float:
+	return -deg_to_rad(CHEW_DEG * (0.5 + 0.5 * sin(t * CHEW_RATE)))
 
 
 func muzzle() -> Vector3:
@@ -499,10 +508,10 @@ func _fire() -> bool:
 		return false
 	_aim_yaw = atan2(-d.x, -d.z)
 	_yaw0 = _aim_yaw
-	# pass 87: a pull while the beam still pours re-aims it and pours on at once with a fresh punch (the mouth is open
-	# already); a pull during the wind-up only re-aims it
+	# pass 87: a pull while the beam still pours re-aims it and pours on at once (the mouth is open already); pass 88:
+	# without a new punch, the beam never stopped; a pull during the wind-up only re-aims it
 	if _beam_t > 0.0:
-		_start_beam()
+		_start_beam(false)
 		return true
 	if _windup_t > 0.0:
 		return true
@@ -514,8 +523,9 @@ func _fire() -> bool:
 	return true
 
 
-## The beam starts: the jaw is let go (its spring snaps it open), the flash at the lips, the punch (pass 87).
-func _start_beam() -> void:
+## The beam starts: the jaw is let go (its spring snaps it open), the flash at the lips, the punch (pass 87; pass 88: only
+## when it starts from a shut mouth, `kick`).
+func _start_beam(kick := true) -> void:
 	_beam_t = maxf(stat("duration", 2.0), 0.2)
 	_tick_t = 0.0
 	_pulse_t = PULSE
@@ -523,7 +533,8 @@ func _start_beam() -> void:
 	_crack_t = 0.0
 	_hit_once.clear()
 	beams += 1
-	_start_punch(1.0)
+	if kick:
+		_start_punch(1.0)
 	sfx("fire", muzzle())
 	_flash()
 
@@ -670,7 +681,8 @@ func _flash() -> void:
 		cam.shake(0.18)
 
 
-## While it pours: a puff at the lips and the ring on the sand again, and a smaller punch (pass 87).
+## While it pours: a puff at the lips and the ring on the sand again (pass 87 kicked it again at `punch.pulse`; pass 88:
+## 0, the punch comes once).
 func _pulse() -> void:
 	_start_punch(punch_value("pulse"))
 	var fx = game.get("fx")

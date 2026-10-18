@@ -49,7 +49,8 @@ var _progress := 10.0
 var _wall := 2700.0
 var _res := Vector2i(504, 1122)
 var _grit := 0
-var _spite := 1
+## pass 88 (lane MIRROR): -1 (the default) leaves Spite (now Stakes: Difficulty 0 / Boss 1) out of a board= board
+var _spite := -1
 var _unlocks := "all"
 var _arg_error := ""
 ## talents=<id>:<rank>:<form>,... (or <id>:<picks>): the Upgrade board talent by talent, {id: [form a rank]}; empty =
@@ -189,6 +190,9 @@ func _start() -> void:
 				form = _grit
 			elif id == "spite":
 				form = _spite
+				if form < 0:
+					k += 1
+					continue
 			var rank: int = PROBE.rank_for(_board, k)
 			k += 1
 			if rank <= 0:
@@ -229,6 +233,7 @@ func _start() -> void:
 		settings.camera_mode = 0
 		settings.ranged_on_screen = true
 		settings.pierce_falloff = true
+		settings.hero_knockback = false
 		settings.show_hints = false
 		settings.damage_numbers = false
 		settings.debug_mode = false

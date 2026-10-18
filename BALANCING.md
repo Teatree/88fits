@@ -5212,3 +5212,150 @@ player could notice once Garry picks one:
 - **Garry's answers** (2026-10-17): a stage picked from the menu is a fresh run, retuned; lengths 7:10 / 10:00 / 13:00;
   the Stages menu opens on every Play once stage 1 is beaten; a death in Endless banks everything.
 - **The Armadillo** item in Garry's message was empty: nothing done.
+
+## 35. Pass 88 (v0.74): the Big Mouth, no hero knockback, played looks, the Stages menu, Stakes
+
+Garry's request (2026-10-18, tools/dl/p88/REQUEST.md). Each lane's rules as it wrote them.
+
+### 35.MOUTH The Big Mouth: one punch, one white glow, a smooth title spin
+
+All visual; no damage, timing or reach changed.
+
+- **The punch comes once** (`params.beam.punch.pulse` 0 on the Big Mouth and the Loudmouth, and the default): the mouth
+  kicks back as a beam starts from a shut mouth and settles in about 0.6 s while the beam still pours; the pulses every
+  0.28 s only puff at the lips and ring on the sand. A pull while the beam still pours (a cooldown shorter than the
+  beam) re-aims it and pours on with no new punch (pass 87 gave it a fresh one).
+- **The Glow** (`params.beam.throat {gain 1, rim 0.35, walls 0.9}`): the throat is one white egg (`Glow`, as big as the old
+  bowl, its core and skins together), hidden at rest; mostly lit the moment the wind-up starts (0.7 + 0.3 f through it,
+  f = how far into it), full while the beam pours (a 6% flicker), out in about 0.11 s after (9 a second). White x `gain`,
+  the beam's colour only at its edge (`rim` x the glow), the floor of the mouth glowing with it (white with a quarter of
+  the beam's colour, energy `walls` x the glow). As it dies it darkens to the throat's dark (GLOW_DARK) and stays, dark,
+  while the jaw is open more than 0.12 of its 80 degrees (the rest chew opens it 0.09 at most), so a closing mouth never
+  shows the sand; then it hides. The floor of the mouth (`Floor`, `FloorBack`) shows and hides with it: at rest the
+  mouth is its lips and teeth only. Pass 87's beam-coloured flare quad is gone.
+- **The title's mouth** (May's companion on the live Main Menu): flown as a run flies it with no creature near: facing the
+  camera all the way round its circle, tipped back 32 degrees, the jaw chewing 0 to 7 degrees, on the run's orbit (radius
+  1.25 m, height 1.3 m, bob 0.09 m at 2.4 rad/s, 0.9 rad/s round; it was the guns' 1.35 m, 0.12 m at 3.1, 1.4 rad/s). It no
+  longer takes the guns' flourish kick (every 3.5 to 5 s from a clock seeded by the hero, so it always fell at the same
+  spot of the circle, the bottom left: the stutter) nor turns out from the hero as it circles.
+
+### 35.TWEAKS No knockback on the hero; DM-G and FAD-E played; two shadows
+
+- **No knockback on the hero** (Garry: "Remove the Knockback from being hit for Player entirely"): `Settings.hero_knockback`
+  false by default. Off, no hit moves the hero: Player.shove, Player.hit_knock and a hostile Player.blast do nothing, and
+  the two knockbacks that come through apply_knockback (Game.elite_explosion's push, the slam's push for a slam without
+  `lift`) and the Gila's eruption throw (EnemyManager._erupt_throw_hero) ask Player.hit_knockback_on first. The hits
+  still land (damage, shield, evade, invulnerability unchanged); no STICK_LOCK either (it came with the shove). The
+  Down! list leaves out the words "knocked back" and "thrown" while the switch is off.
+- **What still moves him**: his own dash, Thruster's lunge, Astro's thruster burst and the leap pickup (blast with
+  hostile false), Hang Time's trampoline, teleports, and the two pulls that are the attack itself, not a knockback: the
+  silk line's pull towards its shooter (apply_knockback) and the harpoon's leash (Game tether).
+- **On** (the debug switch "Hero knockback", Settings' Debug panel and the developer menu; prod holds it off): every
+  push as before pass 88 (HIT_KNOCK 2.5, HIT_KNOCK_MAX 9, KNOCK_GRACE 1 s, STICK_LOCK 0.12 s, the crowd escape).
+- `hero_knockback_mult` (0.5, the hero's side pushing creatures) is unchanged.
+- **A body's death sink** (`shadow.die_drop`, EnemyManager.die_sink): the death strip sinks by die_drop x the cell
+  (x size x squash) at its last frame, eased in linearly by frame index (0 on the first death frame), on top of
+  `shadow.drop`; clamped -0.5..0.5.
+
+### 35.STAGEMENU The Stages menu, simpler
+
+UI rules (ui/StagesScreen.gd; no balance numbers):
+
+- **The call to action**: "Choose a Stage" (slab, 52 px) under the header, the small "RED CANYON · DRIFTER" line over it
+  (`CALL_TO_ACTION`, `CTA_PX`).
+- **The difficulty line**: "Difficulty: <word>". The word is the stage entry's `difficulty` (a word as written; a
+  number 1..4 is a level; a leading "Difficulty:" is not doubled), else the stage's place: the first Easy, then Medium,
+  Hard, and Extremely Hard for the fourth and every one after (`DIFFICULTY_WORDS`). Red Canyon writes Easy, Medium,
+  Hard. Its colour rule is pass 87's (sage first, rock last and hell, brass between).
+- **The descriptions** name no creature and no boss (Garry); one short line each.
+- **A boss met** (`Save.enemy_met(id)`, the Collection's rule from pass 44): on the sand in a run once
+  (`Save.seen("enemy", id)`, marked by EnemyManager.spawn, the debug arena's spawns included, as in the Collection) or
+  killed once (`kills_of_enemy`). Until then his card shows the Collection's silhouette plate and "Boss not encountered
+  yet" (grey) in place of his name, and the locked stage after his says "Beat Stage k" (k = the stage before) instead of
+  "Beat the <boss>". Met: his icon and name as before.
+
+### 35.MIRROR Stakes (Difficulty, Boss) for Spite; prices by power; cheapest first
+
+#### Stakes (was Spite: Thorns +2 thorns a rank, Thirst +1% lifesteal a rank, both gone)
+Talent id `spite` kept (saves, sims, tests know it); name **Stakes**, forms **Difficulty** and **Boss**,
+`content/talents/spite/spite.json`, numbers per rank (the ranks add; the factor is 1 + the sum):
+
+| form | HP | attack | speed | bounty (XP and coins, never written) | who |
+|---|---|---|---|---|---|
+| Difficulty | +10% `danger_hp` | +10% `danger_attack` | +4% `danger_speed` | +5% `danger_bounty` | every creature that is not a boss or an Elite by its kind (an elite-modded or special creature is a regular one) |
+| Boss | +10% `boss_danger_hp` | +10% `boss_danger_attack` | +4% `boss_danger_speed` | +5% `boss_danger_bounty` | bosses and Elites by their kind (archetype boss / elite) |
+
+Rules (core/systems/MirrorDanger.gd):
+- HP, walking speed and the contact bite at the spawn (EnemyManager.spawn); every hit a creature throws (ranged, slams,
+  boss attacks, death bursts) through `host_of`, so all of a creature's damage carries the attack factor.
+- A boss's HP: the Boss form multiplies **after** the pass 83 seconds-of-full-DPS floor and the DPS scale (the floor
+  still rules, the form lifts it); an Elite's after its own stage formula.
+- Bounty: the creature's XP scale (its gems), its coin (PickupManager.drop_from: a whole number of coins, the fraction
+  paid by chance, so +5% of a 2-coin drop is 2, or 3 one time in ten), an Elite's and a boss's purse and the boss's
+  coins (Game._kill_effects). Bounty < danger on every form (a test pins the shape, not the numbers).
+- Nothing in the arena (Run.arena: factor 1).
+- The texts say only the danger ("Creatures +10% HP and attack, +4% speed a rank."); the bounty stats are TextGen kind
+  **"hidden"** (never written, not on the pause Stats tab).
+- Old saves: Spite ranks bought as Thorns / Thirst are erased and paid back in **full** at the old prices
+  (500/900/1500/2250/3250/4500), talent_spent lowered by the same, once (`once: stakes_v88`; buying a Stakes rank also
+  marks it, so a Stakes rank is never paid back); the Upgrade board says so once in two toasts ("SPITE IS NOW STAKES",
+  "+2,900 GOLD BACK FOR 3 RANKS"). Full, not converted: the new forms make the game harder, which the player never chose.
+- The sim's and the probes' preset boards (none / quarter / half / full) never buy Stakes (sim_batch.PRESET_SKIP; a
+  quarter is now 11 of 48 ranks, full 42); a board set talent by talent may.
+
+Measured (run sim, Drifter, 12 bots, seed 1, death=keep, stage 1):
+- Difficulty x6 ranks, to 7:10: deaths 10.7 -> 21.4 (x2.0), kills -4%, level +1.8, gold +13%.
+- Difficulty x1 rank: deaths 10.3 -> 12.3, gold -4% (noise; the bounty is small at one rank).
+- Boss x6 ranks, to 10:00 (through the King): the King's fight 78 s -> 102 s, beaten 10 -> 8 of 12, deaths 13.9 -> 16.3,
+  gold +9%.
+
+#### Prices by power (each talent's first rank; the ladder stays pass 46's x1, 1.8, 3, 4.5, 6.5, 9 to the nearest 5)
+Impact = the run sim with 6 ranks of one form and nothing else against an empty board (Drifter, 12 bots, seed 1,
+death=keep, to 7:10): deaths and kills as logs, impact = (ln(deaths0/deaths) + ln(kills/kills0)) / 2 (noise about
++-0.06: Choice and Nerve, which the bot never uses, read 0.02-0.06). HeroPower (DPS x EHP, level 1) beside it.
+
+| talent | form | deaths | kills | gold | impact | HeroPower x6 | price before | price after |
+|---|---|---|---|---|---|---|---|---|
+| (none) | | 10.67 | 2023 | 1172 | 0 | 1.00 | | |
+| Stakes | Difficulty | 21.42 (+101%) | -4% | +13% | -0.37 (harder) | | 500 (Spite) | **100** |
+| | Boss | 9.67 | +11% | +14% | 0.10 (noise: one Elite before 7:10) | | | |
+| Fortune | Omen | 10.17 | +9% | +7% | 0.07 | 1.00 | 375 | **300** |
+| | Greed | 9.58 | -2% | **+96%** | 0.04 | 1.00 | | |
+| Choice | Reroll | 9.50 | 0% | -1% | 0.06 (bot never rerolls) | 1.00 | 450 | **325** |
+| | Banish | 10.17 | -1% | -2% | 0.02 (bot never banishes) | 1.00 | | |
+| Drive | Muscle | 8.50 | +11% | -6% | 0.17 | 1.19 | 400 | **375** |
+| | Tempo | 9.67 | +23% | -1% | 0.15 | 1.17 | | |
+| Study | Field Notes | 8.00 | +16% | +11% | 0.22 (level 27 vs 21) | 1.00 | 425 | **400** |
+| | Poultice | 8.58 | +12% | +5% | 0.16 | ~1.24 | | |
+| Stride | Boots | 5.92 (-45%) | -12% | -11% | 0.23 | 1.00 | 300 | **425** |
+| | Lodestone | 8.67 | +21% | +15% | 0.20 (level 24) | 1.00 | | |
+| Grit | Padding | 8.08 | +11% | -1% | 0.19 | 1.33 (x1.1 a rank compounds: +77% HP at 6) | 350 | **450** |
+| | Plate | 7.17 (-33%) | 0% | -16% | 0.20 | 1.25 | | |
+| Nerve | Skip | 10.83 | -1% | +1% | 0 (bot) | 1.00 | 550 | **500** |
+| | Second Wind | 10.67 | -1% | +2% | 0 (death=keep never revives) | a whole extra life a revive | | |
+
+Choices: the sims put Grit, Stride, Study and Drive close together (0.16-0.22), so they sit in one band 375-450, Grit
+the top (HeroPower's strongest, Padding compounds), Stride up from the cheapest (the sims' best survival and level);
+Choice and Nerve are what a player values and a bot cannot show (rerolls / banishes; skips and revives): Choice cheap
+(325), Nerve the dearest (500: Second Wind is a whole life a rank); Fortune 300 (Omen weak, Greed pure income: +96%
+gold at six ranks, priced low so it pays back); Stakes 100 (challenge for a little more gold and XP).
+
+| talent | ranks 1-6 | total before | total after |
+|---|---|---|---|
+| Stakes (spite) | 100, 180, 300, 450, 650, 900 | 12,900 | 2,580 |
+| Fortune | 300, 540, 900, 1350, 1950, 2700 | 9,680 | 7,740 |
+| Choice | 325, 585, 975, 1465, 2115, 2925 | 11,610 | 8,390 |
+| Drive | 375, 675, 1125, 1690, 2440, 3375 | 10,320 | 9,680 |
+| Study | 400, 720, 1200, 1800, 2600, 3600 | 10,970 | 10,320 |
+| Stride | 425, 765, 1275, 1915, 2765, 3825 | 7,740 | 10,970 |
+| Grit | 450, 810, 1350, 2025, 2925, 4050 | 9,030 | 11,610 |
+| Nerve | 500, 900, 1500, 2250, 3250, 4500 | 14,190 | 12,900 |
+| **board** | | **86,440** | **74,190** |
+
+The seven power talents together: 73,540 -> 71,610 (-3%, the economy's scale kept); the whole board -14% because
+Spite's 12,900 of Thorns / Thirst power became 2,580 of Stakes.
+
+#### Order
+- The board lists talents by their first rank's price, cheapest first, then `order`, then id (TalentDef.board_before,
+  Registry.talents_list); `order` rewritten 1-8 to match: Stakes, Fortune, Choice, Drive, Study, Stride, Grit, Nerve.
+  A later price edit reorders the board by itself. The Level Editor's Sim tab lists them the same way (sim_io).

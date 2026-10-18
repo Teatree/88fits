@@ -160,15 +160,20 @@ func test_no_text_says_the_gold_stays_in_the_sand() -> void:
 
 # ---------------------------------------------------------------- 2. prices x2.5
 
-func test_every_talent_rank_costs_two_and_a_half_times_pass_69s() -> void:
+## Pass 88 (lane MIRROR, re-pinned on purpose): the talents were priced again by their measured impact (balancing §35,
+## game/tests/pass88_mirror_test.gd); what stays from pass 70 is the scale: every talent on the same ladder, the board's
+## priced ranks between half and the whole of pass 70's x2.5 total (Spite's Thorns and Thirst went; Stakes is cheap).
+func test_the_board_keeps_pass_70s_scale() -> void:
 	assert_int(Registry.talents_list().size()).is_equal(TALENTS_69.size())
+	var was := 0
+	var now := 0
 	for td: TalentDef in Registry.talents_list():
 		assert_bool(TALENTS_69.has(td.id)).override_failure_message(td.id).is_true()
-		var was: Array = TALENTS_69[td.id]
-		for k in was.size():
-			# x2.5, a half (x4.5 / x6.5 of an odd first rank) to the nearest 5
-			var want := int(5 * round(float(was[k]) * 2.5 / 5.0))
-			assert_int(td.cost_of_rank(k)).override_failure_message("%s rank %d" % [td.id, k + 1]).is_equal(want)
+		for k in (TALENTS_69[td.id] as Array).size():
+			was += int(5 * round(float(TALENTS_69[td.id][k]) * 2.5 / 5.0))
+			now += td.cost_of_rank(k)
+	assert_int(now).is_greater(was / 2)
+	assert_int(now).is_less_equal(was)
 
 
 func test_every_hero_on_sale_costs_his_new_price() -> void:

@@ -1,38 +1,74 @@
 {
   "id": "spite",
-  "name": "Spite",
-  "flavour": "Punish the touch, or drink from it.",
-  "order": 8,
+  "name": "Stakes",
+  "flavour": "Raise the stakes: on the whole crowd, or on the big ones.",
+  "order": 1,
   "ranks": 6,
   "cost": [
-    500,
-    900,
-    1500,
-    2250,
-    3250,
-    4500
+    100,
+    180,
+    300,
+    450,
+    650,
+    900
   ],
   "forms": [
     {
-      "name": "Thorns",
-      "text": "+2 thorns a rank.",
+      "name": "Difficulty",
+      "text": "Creatures +10% HP and attack, +4% speed a rank.",
       "effects": [
         {
-          "stat": "thorns",
+          "stat": "danger_hp",
           "op": "add",
-          "value": 2.0,
+          "value": 0.1,
+          "target": "player"
+        },
+        {
+          "stat": "danger_attack",
+          "op": "add",
+          "value": 0.1,
+          "target": "player"
+        },
+        {
+          "stat": "danger_speed",
+          "op": "add",
+          "value": 0.04,
+          "target": "player"
+        },
+        {
+          "stat": "danger_bounty",
+          "op": "add",
+          "value": 0.05,
           "target": "player"
         }
       ]
     },
     {
-      "name": "Thirst",
-      "text": "+1% lifesteal a rank (capped as ever).",
+      "name": "Boss",
+      "text": "Bosses and Elites +10% HP and attack, +4% speed a rank.",
       "effects": [
         {
-          "stat": "lifesteal",
+          "stat": "boss_danger_hp",
           "op": "add",
-          "value": 0.01,
+          "value": 0.1,
+          "target": "player"
+        },
+        {
+          "stat": "boss_danger_attack",
+          "op": "add",
+          "value": 0.1,
+          "target": "player"
+        },
+        {
+          "stat": "boss_danger_speed",
+          "op": "add",
+          "value": 0.04,
+          "target": "player"
+        },
+        {
+          "stat": "boss_danger_bounty",
+          "op": "add",
+          "value": 0.05,
           "target": "player"
         }
       ]

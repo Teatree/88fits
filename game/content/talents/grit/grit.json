@@ -2,15 +2,15 @@
   "id": "grit",
   "name": "Grit",
   "flavour": "Thicker skin, or harder bones.",
-  "order": 1,
+  "order": 7,
   "ranks": 6,
   "cost": [
-    350,
-    630,
-    1050,
-    1575,
-    2275,
-    3150
+    450,
+    810,
+    1350,
+    2025,
+    2925,
+    4050
   ],
   "forms": [
     {

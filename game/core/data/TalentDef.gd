@@ -93,6 +93,20 @@ func summed_effects(form: int, rank: int) -> Array:
 	return out
 
 
+## The first rank's price (pass 88: what the board sorts by), 0 without a price list.
+func first_price() -> int:
+	return int(cost[0]) if not cost.is_empty() else 0
+
+
+## The board's order (pass 88, Registry.talents_list): the cheaper first rank first, then `order`, then the id.
+static func board_before(a: TalentDef, b: TalentDef) -> bool:
+	if a.first_price() != b.first_price():
+		return a.first_price() < b.first_price()
+	if a.order != b.order:
+		return a.order < b.order
+	return a.id < b.id
+
+
 ## The price of the next rank when `rank` are already owned, or -1 when the form is full: past `ranks` or past the
 ## price list, whichever ends first (pass 46: the two can never disagree silently; tools/import_json.gd warns when they
 ## differ in length).

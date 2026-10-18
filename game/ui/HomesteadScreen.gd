@@ -101,6 +101,8 @@ func build() -> void:
 	_refund.pressed.connect(_take_back)
 	add_child(_refund)
 	_refresh()
+	# pass 88 (lane MIRROR): Spite's old ranks paid back, said once
+	_show_board_note()
 
 
 ## The mirror: a brass frame in an ink ring round dark glass, and whatever lives in it looking back.
@@ -570,3 +572,40 @@ func on_back() -> void:
 func _input(event: InputEvent) -> void:
 	if _sheet_root == null:
 		super._input(event)
+
+
+# ---------------------------------------------------------------- pass 88 (lane MIRROR): the Stakes' refund, said once
+
+## The toasts over the mirror while the board's note shows (null without one).
+var _note_toasts: WToasts
+## Where they sit: over the mirror's glass, under the summary strip.
+const NOTE_TOP := 450.0
+
+
+## Save.board_note's "stakes_refund" (Save._migrate_stakes: an older save's Spite ranks, Thorns and Thirst, paid back in
+## full) as two toasts the first time the board opens after it, then forgotten.
+func _show_board_note() -> void:
+	var n := Save.board_note()
+	if str(n.get("kind", "")) != "stakes_refund":
+		return
+	_note_toasts = WToasts.new()
+	_note_toasts.name = "NoteToasts"
+	_note_toasts.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_note_toasts.offset_top = NOTE_TOP
+	_note_toasts.offset_bottom = NOTE_TOP + 200.0
+	add_child(_note_toasts)
+	for t in note_words(n):
+		_note_toasts.push(t)
+	Save.clear_board_note()
+
+
+## The note's toasts: ["SPITE IS NOW STAKES", "+2,900 GOLD BACK FOR 3 RANKS"].
+static func note_words(n: Dictionary) -> Array:
+	var ranks := int(n.get("ranks", 0))
+	return ["SPITE IS NOW STAKES", "+%s GOLD BACK FOR %d RANK%s" % [W.num(int(n.get("gold", 0))), ranks, "" if ranks == 1 else "S"]]
+
+
+func _process(delta: float) -> void:
+	super(delta)
+	if _note_toasts:
+		_note_toasts.tick(delta)

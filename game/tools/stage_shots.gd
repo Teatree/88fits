@@ -14,7 +14,18 @@
 ## <out>/<map>_s<k>.jpg (default out res://art/ui/stages; the menu's card box is 936 x 360, drawn covered) and, with
 ## `preview`, a PNG of each there too. Run `--import` after it so the game loads the new pictures.
 ## The arena keeps nothing (Save.begin_sandbox); a watchdog quits after 240 s whatever happens; every wait is bounded.
+## Pass 88 (lane STAGEMENU, Garry: "avoid showing the enemies on the screenshot ... fix the shadows and floor markings
+## ... on the crystal, the Player and some of the enemies"): no creatures unless `crowd=1`; the hero alone unless
+## `figure=0`; every structure's ring and pie (ground marks that read as stray arcs this low) hidden; and every painted
+## shadow (the props', the structures', the hero's) laid where the painting's foot meets the ground as THIS camera sees
+## it. A painting's foot stands a little up its camera-facing quad and the game pushes its shadow back by that over
+## sin(46 degrees) (tools/prop_shadows.py), right for the play camera but in front of the foot from this low one
+## (_relay_shadows: the camera's ray through the painted foot, onto the ground).
+## [crowd=0|1] [figure=0|1]
 extends SceneTree
+
+## The pitch the props' shadow offsets were measured for (tools/prop_shadows.py: the run's and the title's camera).
+const SHADOW_PITCH_DEG := 46.0
 
 const SPOTS := {
 	# picked by eye on the title's roll (88; tools/dl/p87/SLOOK/frame_*_sheet.png): the crowd on the south shore of the
@@ -41,6 +52,9 @@ var _cam: Dictionary = {}
 var _looks: Dictionary = {}
 var _boss := false
 var _count := 1
+## pass 88: the stage's creatures in the picture (off: Garry), the hero in it (on)
+var _crowd := false
+var _figure := true
 ## overview=<png>: the layout from straight above instead (choosing a spot), its lakes, structures and signs printed
 var _overview := ""
 var _run
@@ -79,6 +93,8 @@ func _initialize() -> void:
 			"boss": _boss = v == "1"
 			"overview": _overview = v
 			"count": _count = maxi(int(v), 1)
+			"crowd": _crowd = v == "1"
+			"figure": _figure = v != "0"
 			_:
 				if k.begins_with("look"):
 					var f := v.split(",")
@@ -131,6 +147,8 @@ func _main() -> void:
 	cfg.merge(_cam, true)
 	_build_view(cfg)
 	_clear_view(cfg)
+	_hide_marks()
+	_relay_shadows()
 	var out_abs := ProjectSettings.globalize_path(_out) if _out.begins_with("res://") or _out.begins_with("user://") else _out
 	DirAccess.make_dir_recursive_absolute(out_abs)
 	if _preview != "":
@@ -208,9 +226,10 @@ func _stage_shot(s: int, tl, list: Array, cfg: Dictionary, out_abs: String) -> v
 	var here := _ground(Vector3(spot.x, 0, spot.y))
 	var hero_at := here + Vector3(float(cfg.get("hero_dx", -1.2)), 0.0, float(cfg.get("hero_dz", 5.0)))
 	g.player.global_position = _ground(hero_at) + Vector3(0, 0.05, 0)
-	# the stage's creatures in a band across the spot, facing the hero
+	_place_hero()
+	# the stage's creatures in a band across the spot, facing the hero (pass 88: only with crowd=1)
 	var window := _window(tl, list, s - 1)
-	var ids := _stage_creatures(tl, window, s - 1)
+	var ids: Array = _stage_creatures(tl, window, s - 1) if _crowd else []
 	print("stage_shots: stage %d window %s creatures %s" % [s, str(window), str(ids.map(func(r): return str(r.get("enemy", ""))))])
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 87 + s
@@ -240,6 +259,9 @@ func _stage_shot(s: int, tl, list: Array, cfg: Dictionary, out_abs: String) -> v
 	# held where they stand while they rise out of the sand (the map's spawn_rise) and turn to the hero
 	for k in range(110):
 		_freeze()
+		await process_frame
+	_place_hero()
+	for k in range(3):
 		await process_frame
 	await RenderingServer.frame_post_draw
 	var img: Image = _vp.get_texture().get_image()
@@ -337,3 +359,147 @@ func _freeze() -> void:
 			em.speed[i] = 0.0
 			em.cooldown[i] = 9.0
 			em.vel[i] = Vector3.ZERO
+
+
+# ---------------------------------------------------------------- pass 88 (lane STAGEMENU): marks and shadows
+
+## Every structure's ring and pie (the ground marks in its colour) hidden, and the hero's magnet ring: from this low
+## camera a ring draped over the dunes reads as a stray arc beside the crystal, not as a ring.
+func _hide_marks() -> void:
+	var n := 0
+	for st in g.structures.items:
+		if not is_instance_valid(st):
+			continue
+		for part in [st.ring, st.pie]:
+			if part:
+				part.visible = false
+				n += 1
+	if g.player.get("ring"):
+		g.player.ring.visible = false
+	print("stage_shots: hid %d structure marks" % n)
+
+
+## Every painted prop's and structure's ground shadow laid again where its painted foot meets the ground as this camera
+## sees it (the game lays them for the play camera's pitch, SHADOW_PITCH_DEG).
+func _relay_shadows() -> void:
+	var pf = g.map.get("props")
+	if pf == null:
+		return
+	var k := sin(deg_to_rad(SHADOW_PITCH_DEG))
+	var n := 0
+	var types: Dictionary = pf.get("_types")
+	for row: Dictionary in pf.placed:
+		var s := int(row.get("s", -1))
+		if s < 0:
+			continue
+		var look := str(row["look"])
+		if not types.has(look):
+			continue
+		var h: float = float(types[look]["height"]) * float(row["scale"])
+		var sh: Dictionary = pf.shadow_of(look)
+		var x: float = float(sh["x"]) * h * (-1.0 if bool(row.get("flip", false)) else 1.0)
+		var foot: float = maxf(-float(sh["z"]) * k, 0.0) * h
+		var at := _seen_foot(row["pos"] + Vector3(0, 0.06, 0), foot)
+		pf.move_shadow(s, at + Vector3(x, 0.0, 0.0), pf.shadow_scale(s))
+		n += 1
+	for st in g.structures.items:
+		if not is_instance_valid(st) or int(st.get("shadow")) < 0 or not st.visible:
+			continue
+		var h2: float = float(st.def.height) * 1.15
+		var sh2: Dictionary = pf.shadow_of("st_" + str(st.def.id))
+		var foot2: float = maxf(-float(sh2["z"]) * k, 0.0) * h2
+		var at2 := _seen_foot(st.global_position + Vector3(0, 0.04, 0), foot2)
+		pf.move_shadow(int(st.shadow), at2 + Vector3(float(sh2["x"]) * h2, 0.0, 0.0), pf.shadow_scale(int(st.shadow)))
+		n += 1
+	print("stage_shots: laid %d shadows for this camera" % n)
+
+
+## Where the camera's ray through a painting's foot (`up` metres up its camera-facing quad from its base `base`) meets
+## the ground: the spot its shadow reads as under it. The base itself when the foot is on it.
+func _seen_foot(base: Vector3, up: float) -> Vector3:
+	if up <= 0.001 or _camera == null:
+		return Vector3(base.x, g.map.height_at(base.x, base.z), base.z)
+	var cam := _camera.global_position
+	var p: Vector3 = base + _camera.global_transform.basis.y.normalized() * up
+	var dir := (p - cam).normalized()
+	if dir.y >= -0.001:
+		return base
+	# march from the foot along the ray until it is under the ground, then halve the step back to the crossing
+	var t0 := 0.0
+	var t1 := 0.0
+	var step := 0.25
+	var found := false
+	for i in range(1200):
+		t1 = t0 + step
+		var q := p + dir * t1
+		if q.y <= g.map.height_at(q.x, q.z):
+			found = true
+			break
+		t0 = t1
+	if not found:
+		return base
+	for i in range(24):
+		var tm := (t0 + t1) * 0.5
+		var q2 := p + dir * tm
+		if q2.y <= g.map.height_at(q2.x, q2.z):
+			t1 = tm
+		else:
+			t0 = tm
+	var hit := p + dir * t1
+	return Vector3(hit.x, g.map.height_at(hit.x, hit.z), hit.z)
+
+
+## The hero for the picture: held (cinematic, so the game no longer lays his shadow), his magnet ring off, and his blob
+## shadow laid where his painted feet meet the ground as this camera sees them; `figure=0` takes him out.
+func _place_hero() -> void:
+	var p = g.player
+	p.cinematic = true
+	if not _figure:
+		p.visible = false
+		return
+	var sp = p.sprite
+	var mat = sp.get("_mat")
+	var foot := 0.0
+	if mat:
+		var tex: Texture2D = mat.get_shader_parameter("sprite")
+		var share := _foot_share(tex, float(mat.get_shader_parameter("frame")), float(mat.get_shader_parameter("frames")),
+			float(mat.get_shader_parameter("cols")), float(mat.get_shader_parameter("rows")))
+		foot = share * float(mat.get_shader_parameter("height")) * float(mat.get_shader_parameter("squash"))
+	var base: Vector3 = p.global_position
+	var at := _seen_foot(base, foot)
+	var flat := Basis(Vector3.UP, p.rotation.y) * Basis.from_scale(p.shadow_scale)
+	var quad := p.shadow.mesh as QuadMesh
+	var ext: float = quad.size.x if quad else 1.4
+	p.shadow.global_transform = g.enemies.drape(Transform3D(flat, Vector3(at.x, 0.0, at.z)), g.map.height_at, ext)
+	print("stage_shots: hero's feet %.3f m up his quad, shadow %.2f m behind him" % [foot, Vector2(at.x - base.x, at.z - base.z).length()])
+
+
+## How far up its cell a sprite strip frame's lowest opaque pixel stands, as a share of the cell's height.
+func _foot_share(tex: Texture2D, frame: float, frames: float, cols: float, rows: float) -> float:
+	if tex == null:
+		return 0.0
+	var img := tex.get_image()
+	if img == null:
+		return 0.0
+	if img.is_compressed():
+		img.decompress()
+	var f := int(floor(frame))
+	var cw: int
+	var ch: int
+	var ox: int
+	var oy: int
+	if cols > 0.5:
+		cw = int(img.get_width() / int(cols))
+		ch = int(img.get_height() / maxi(int(rows), 1))
+		ox = (f % int(cols)) * cw
+		oy = (f / int(cols)) * ch
+	else:
+		cw = int(img.get_width() / maxi(int(frames), 1))
+		ch = img.get_height()
+		ox = f * cw
+		oy = 0
+	for y in range(ch - 1, -1, -1):
+		for x in range(0, cw, 2):
+			if img.get_pixel(ox + x, oy + y).a > 0.5:
+				return float(ch - 1 - y) / float(ch)
+	return 0.0

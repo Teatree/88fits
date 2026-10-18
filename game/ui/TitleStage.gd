@@ -456,6 +456,8 @@ class Actor extends Node3D:
 	const FLOURISH := Vector2(3.5, 5.0)
 	## pass 55: the sceptre's strike (its shake, its flare) comes from the behaviour's own helpers
 	const SCEPTER := preload("res://core/behaviors/SunScepter.gd")
+	## pass 88: the Big Mouth flies on LaserBeam's own numbers (its pitch, chew and orbit)
+	const MOUTH := preload("res://core/behaviors/LaserBeam.gd")
 	const GRASP := Vector2(4.0, 6.0)
 	const STRUM := Vector2(2.6, 3.6)
 	const ROCK_K := 420.0
@@ -512,6 +514,11 @@ class Actor extends Node3D:
 	var _string_rest := Vector3.ONE
 	var _sun_glow: ShaderMaterial
 	var _sun_glow_node: MeshInstance3D
+	## pass 88: the Big Mouth's model, its jaw and upper lip (and where the lip rests)
+	var _mouth: Node3D
+	var _mouth_jaw: Node3D
+	var _mouth_upper: Node3D
+	var _mouth_upper_rest := Vector3.ZERO
 	## a strike's clock (< 0: none) and the kick up the staff it gives (pass 55)
 	var _sun_t := -1.0
 	var _sun_kick := Vector3.ZERO
@@ -671,6 +678,19 @@ class Actor extends Node3D:
 					glow.material_override = _sun_glow
 					_sun_glow_node = glow
 				_next = _rng.randf_range(FLOURISH.x * 0.5, FLOURISH.y * 0.5)
+			"LaserBeam":
+				# pass 88: the mouth's parts its flight moves; its glow and its floor (and any old throat part) hidden, as
+				# a run hides them between beams
+				_mouth = familiar.get_node_or_null("Mouth") as Node3D
+				if _mouth:
+					_mouth_jaw = _mouth.find_child("Jaw", true, false) as Node3D
+					_mouth_upper = _mouth.find_child("Upper", true, false) as Node3D
+					if _mouth_upper:
+						_mouth_upper_rest = _mouth_upper.position
+					for n: String in ["Glow", "Floor", "FloorBack"] + MOUTH.HIDDEN_PARTS:
+						var part := _mouth.find_child(n, true, false) as Node3D
+						if part:
+							part.visible = false
 			_:
 				_wing_l = familiar.get_node_or_null("WingL") as Node3D
 				_wing_r = familiar.get_node_or_null("WingR") as Node3D
@@ -813,6 +833,11 @@ class Actor extends Node3D:
 	## Where the companion wants to be: its circle round him at its height, bobbing (its behaviour's numbers), pushed back
 	## along its barrel by a kick.
 	func _want(t: float) -> Vector3:
+		if kind == "LaserBeam":
+			# pass 88: the mouth's own circle and bob, as LaserBeam._place flies it in a run
+			var od: Dictionary = MOUTH.ORBIT_DEFAULTS
+			var mr := _fam("radius", od["radius"])
+			return position + Vector3(cos(_orbit) * mr, _fam("height", od["height"]) + sin(t * MOUTH.BOB_RATE) * _fam("bob", od["bob"]), sin(_orbit) * mr)
 		var r := _fam("radius", 1.3 if kind == "GravityGun" else 1.25)
 		var h := _fam("height", 1.45 if kind == "GravityGun" else (1.5 if kind == "ConeWave" else 1.35))
 		var bob := _fam("bob", 0.08 if kind == "GravityGun" else (0.14 if kind == "ConeWave" else 0.12))
@@ -831,6 +856,8 @@ class Actor extends Node3D:
 		if kind == "GravityGun" and _open > 0.5:
 			# it hangs still while it strains to hold something
 			speed *= 0.25
+		if kind == "LaserBeam":
+			speed = _fam("speed", MOUTH.ORBIT_DEFAULTS["speed"])
 		_orbit += delta * speed
 		# eased after him as in a run (a running hero drags it a little); one running off keeps it close, so it leaves the
 		# screen with him
@@ -849,9 +876,38 @@ class Actor extends Node3D:
 				_fly_guitar(delta, t)
 			"SunScepter":
 				_fly_sun(delta, t)
+			"LaserBeam":
+				_fly_mouth(t)
 			_:
 				_fly_gun(delta, t)
 		_draw_familiar()
+
+	## The Big Mouth (pass 88; Garry: "the mouth is always facing the camera when it's spinning in the game ... make sure
+	## that it's happening like that in the Main Menu"): as LaserBeam._place_model holds it between beams with no creature
+	## near: facing the camera, tipped back REST_PITCH_DEG so its lips look up at it, the jaw chewing slowly and the upper
+	## lip lifting with it. No gun kick and no turning out from him: the kick (a nod at the same spot of the circle every
+	## time, the flourish clock being seeded by the hero) and the turn out (a fast swing as it passed in front of him) were
+	## the menu's stutter.
+	func _fly_mouth(t: float) -> void:
+		familiar.rotation = Vector3.ZERO
+		if _mouth == null:
+			return
+		var yaw := PI
+		var cam: Camera3D = stage.camera if stage else null
+		if cam and cam.is_inside_tree():
+			var back := cam.global_transform.basis.z
+			back.y = 0.0
+			if back.length_squared() > 0.0001:
+				# the model looks down its -Z: turned to look along `back`, towards the camera
+				yaw = atan2(-back.x, -back.z)
+		_mouth.rotation = Vector3(deg_to_rad(MOUTH.REST_PITCH_DEG), yaw, 0.0)
+		var jaw: float = MOUTH.chew_angle(t)
+		if _mouth_jaw:
+			_mouth_jaw.rotation.x = jaw
+		if _mouth_upper:
+			var open := clampf(-jaw / deg_to_rad(MOUTH.JAW_OPEN_DEG), 0.0, 1.25)
+			_mouth_upper.position = _mouth_upper_rest + Vector3(0, 0.05 * open, 0)
+			_mouth_upper.rotation.x = 0.18 * open
 
 	## A gun companion: turned to its aim, rocking, a kick settling; now and then a flourish (a revolver twirls over its
 	## trigger guard as its cylinder clicks round, Hip Shot's twirl; another gun kicks); wings flap.

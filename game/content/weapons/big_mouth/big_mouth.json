@@ -33,10 +33,10 @@
         "pop": 0.2,
         "hz": 2.8,
         "decay": 7.5,
-        "pulse": 0.3
+        "pulse": 0.0
       },
       "throat": {
-        "size": 0.9,
+        "rim": 0.35,
         "gain": 1.0,
         "walls": 0.9
       }

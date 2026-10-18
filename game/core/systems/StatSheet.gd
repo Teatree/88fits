@@ -60,6 +60,11 @@ const PLAYER_DEFAULTS := {
 	# (PickupManager.vein); Gold Rush's attack damage per Run.GOLD_RUSH_PER gold gained while held (Run.gold_rush_bonus)
 	"bronco_chance": 0.0, "debuff_jump": 0.0, "star_block_every": 0.0, "gem_sweep_every": 0.0, "vein_chance": 0.0,
 	"gold_might": 0.0,
+	# pass 88 (lane MIRROR), the Upgrade board's Stakes (core/systems/MirrorDanger.gd: EnemyManager.spawn and host_of,
+	# PickupManager.drop_from, Game._kill_effects): regular creatures' and bosses' / Elites' HP, attack, speed and bounty
+	# (their XP and coins), each a share on top of 1
+	"danger_hp": 0.0, "danger_attack": 0.0, "danger_speed": 0.0, "danger_bounty": 0.0,
+	"boss_danger_hp": 0.0, "boss_danger_attack": 0.0, "boss_danger_speed": 0.0, "boss_danger_bounty": 0.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

@@ -136,14 +136,15 @@ func test_the_mouth_has_no_tongue_and_a_dark_throat_with_a_core() -> void:
 		var mouth: Node = n.get_node_or_null("Familiar/Mouth")
 		assert_object(mouth).override_failure_message(path + ": no mouth").is_not_null()
 		assert_object(mouth.find_child("Tongue", true, false)).override_failure_message(path + ": the tongue is back").is_null()
-		for part in ["Cavity", "ThroatBack", "Glow", "Flare", "Floor", "Jaw", "Upper"]:
+		# pass 88 (re-pinned on purpose, lane MOUTH): the bowl's skins, the small core and the flare anchor are gone; one
+		# Glow fills the throat
+		for part in ["Glow", "Floor", "Jaw", "Upper"]:
 			assert_object(mouth.find_child(part, true, false)).override_failure_message(path + ": no " + part).is_not_null()
-		# the floor goes down with the jaw; the core sits behind the opening's anchor, deeper in the throat
+		for part in ["Cavity", "ThroatBack", "Flare"]:
+			assert_object(mouth.find_child(part, true, false)).override_failure_message(path + ": " + part + " is back").is_null()
+		# the floor goes down with the jaw
 		var jaw: Node = mouth.find_child("Jaw", true, false)
 		assert_bool(jaw.is_ancestor_of(mouth.find_child("Floor", true, false))).is_true()
-		var core := mouth.find_child("Glow", true, false) as Node3D
-		var flare := mouth.find_child("Flare", true, false) as Node3D
-		assert_float(core.position.z).is_greater(flare.position.z)
 		n.free()
 
 
@@ -162,8 +163,9 @@ func test_the_wind_up_punch_and_glow_numbers_come_from_params() -> void:
 	assert_float(lb.punch_value("pop")).is_equal_approx(0.2, 0.0001)
 	assert_float(lb.punch_value("hz")).is_equal_approx(2.8, 0.0001)
 	assert_float(lb.punch_value("decay")).is_equal_approx(7.5, 0.0001)
-	assert_float(lb.punch_value("pulse")).is_equal_approx(0.3, 0.0001)
-	assert_float(lb.throat_value("size")).is_equal_approx(0.9, 0.0001)
+	# pass 88 (re-pinned on purpose, lane MOUTH): the punch comes once (no pulse kicks); the throat's rim, not a flare size
+	assert_float(lb.punch_value("pulse")).is_equal_approx(0.0, 0.0001)
+	assert_float(lb.throat_value("rim")).is_equal_approx(0.35, 0.0001)
 	# the Loudmouth's bigger mouth kicks further; a mutation's beam params leave the blocks alone
 	var loud := _mouth(w, "loudmouth", ["mouth_burn", "mouth_knock", "mouth_arch"])
 	assert_float(loud.punch_value("back")).is_equal_approx(0.45, 0.0001)
@@ -181,7 +183,6 @@ func test_the_wind_up_gathers_the_glow_then_the_beam_pours() -> void:
 	var lb := _mouth(w)
 	lb._tick(DT)
 	assert_float(lb.glow_level()).is_equal(0.0)
-	assert_bool(lb._flare.visible).is_false()
 	assert_bool(lb._glow_core.visible).is_false()
 	assert_bool(lb._fire()).is_true()
 	assert_int(lb.beams).is_equal(0)
@@ -193,8 +194,8 @@ func test_the_wind_up_gathers_the_glow_then_the_beam_pours() -> void:
 	var first_half := frames
 	assert_int(lb.beams).is_equal(0)
 	var mid := lb.glow_level()
-	assert_float(mid).is_between(0.2, 0.6)
-	assert_bool(lb._flare.visible).is_true()
+	# pass 88 (re-pinned on purpose, lane MOUTH): mostly lit as the wind-up starts, full by its end (no flare)
+	assert_float(mid).is_between(0.7, 0.95)
 	assert_bool(lb._glow_core.visible).is_true()
 	assert_float(lb._jaw.rotation.x).is_less(-deg_to_rad(10.0))
 	assert_float(lb._model.rotation.x).is_greater(deg_to_rad(32.0) + 0.1)
@@ -266,13 +267,9 @@ func test_the_beam_punches_the_mouth_back_along_its_aim_and_it_springs_to_rest()
 		lb._tick(DT)
 		lowest = minf(lowest, lb.punch())
 	assert_float(lowest).is_less(-0.1)
-	# a pulse kicks again, smaller
-	guard = 0
-	while lb.punches < 2 and lb._beam_t > 0.0 and guard < 60:
-		lb._tick(DT)
-		guard += 1
-	assert_int(lb.punches).is_equal(2)
-	assert_float(lb.punch()).is_between(lb.punch_value("pulse") * 0.9, lb.punch_value("pulse") * 1.5)
+	# pass 88 (re-pinned on purpose, lane MOUTH): the pulses kick no more; the punch came once
+	_ticks(lb, 1.0)
+	assert_int(lb.punches).is_equal(1)
 	# after the beam: settled where it orbits, dark again
 	_ticks(lb, lb.stat("duration", 2.0) + 0.8)
 	assert_float(lb._beam_t).is_less_equal(0.0)
@@ -280,7 +277,6 @@ func test_the_beam_punches_the_mouth_back_along_its_aim_and_it_springs_to_rest()
 	assert_float(lb._punch_t).is_equal(-1.0)
 	assert_float(lb._familiar.global_position.distance_to(lb._fam_base)).is_less(0.0001)
 	assert_float(lb.glow_level()).is_equal(0.0)
-	assert_bool(lb._flare.visible).is_false()
 	assert_bool(lb._glow_core.visible).is_false()
 	assert_float(lb._cavity_mat.emission_energy_multiplier).is_equal(0.0)
 
@@ -295,16 +291,18 @@ func test_a_pull_while_the_beam_still_pours_pours_on_at_once() -> void:
 	_ticks(lb, 0.5)
 	var left := lb._beam_t
 	assert_bool(lb._fire()).is_true()
-	# no wind-up, a fresh beam and a fresh punch
+	# no wind-up, a fresh beam; pass 88 (re-pinned on purpose, lane MOUTH): no fresh punch, the beam never stopped
 	assert_float(lb._windup_t).is_equal(0.0)
 	assert_int(lb.beams).is_equal(2)
 	assert_float(lb._beam_t).is_greater(left)
-	assert_float(lb.punch()).is_greater(0.99)
+	assert_int(lb.punches).is_equal(1)
 
 
 # ---------------------------------------------------------------- the glow's colour and facing
 
-func test_the_throat_glows_the_beams_colour() -> void:
+## Pass 88 (re-pinned on purpose, lane MOUTH): the throat glows white, the beam's colour only its rim and in the floor's
+## tint; there is no flare to fade.
+func test_the_throat_glows_white_with_the_beams_colour_at_its_rim() -> void:
 	var w := _world()
 	_creature(w["em"], Vector3(4, 0, 0))
 	for pair in [[[], Color(1.0, 0.25, 0.7)], [["mouth_burn"], Color(1.0, 0.45, 0.15)], [["mouth_knock"], Color(0.66, 1.0, 0.16)]]:
@@ -313,23 +311,11 @@ func test_the_throat_glows_the_beams_colour() -> void:
 		_ticks(lb, lb.windup_seconds() + 0.1)
 		assert_int(lb.beams).is_equal(1)
 		var want: Color = pair[1]
-		assert_bool(_near(lb._flare_mat.get_shader_parameter("color"), want)).override_failure_message(str(pair[0]) + ": the flare is not the beam's colour").is_true()
-		assert_bool(_near(lb._cavity_mat.emission, want)).override_failure_message(str(pair[0]) + ": the throat is not the beam's colour").is_true()
+		var c: Color = lb._glow_core_mat.get_shader_parameter("color")
+		assert_float(minf(c.r, minf(c.g, c.b))).override_failure_message(str(pair[0]) + ": the glow is not white").is_greater(0.85)
+		assert_bool(_near(lb._glow_core_mat.get_shader_parameter("rim_color"), want)).override_failure_message(str(pair[0]) + ": the rim is not the beam's colour").is_true()
+		assert_bool(_near(lb._cavity_mat.emission, want.lerp(Color(1, 1, 1), 0.75))).override_failure_message(str(pair[0]) + ": the floor's tint").is_true()
 		lb.queue_free()
-
-
-func test_the_flare_fades_as_the_mouth_turns_its_back_on_the_camera() -> void:
-	var w := _world()
-	var lb := _mouth(w)
-	var cam := Camera3D.new()
-	add_child(cam)
-	cam.make_current()
-	var fwd: Vector3 = -lb._model.global_transform.basis.z.normalized()
-	cam.global_position = lb._model.global_position + fwd * 6.0
-	assert_float(lb._flare_facing()).is_equal_approx(1.0, 0.0001)
-	cam.global_position = lb._model.global_position - fwd * 6.0
-	assert_float(lb._flare_facing()).is_equal_approx(0.0, 0.0001)
-	cam.queue_free()
 
 
 func test_a_mouth_model_without_a_throat_still_works() -> void:
@@ -345,6 +331,5 @@ func test_a_mouth_model_without_a_throat_still_works() -> void:
 	lb._setup_throat()
 	assert_object(lb._glow_core).is_null()
 	assert_object(lb._floor_mesh).is_null()
-	assert_object(lb._flare.get_parent()).is_same(bare)
 	lb._tick_glow(DT, 0.0, true, false)
 	assert_float(lb.glow_level()).is_greater(0.4)

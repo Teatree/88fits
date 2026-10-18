@@ -69,7 +69,7 @@
   "doc": "The wall: slow, thick, fourteen damage a touch. It arrives when a build must have area damage or a way around.",
   "head": 1.0,
   "variant_base": "DM-0",
-  "variant": "DM-0",
+  "variant": "DM-G",
   "variants": {
     "DM-0": {
       "note": "Pass 22: the first mummy (a Klein still, free Wan clips)"
@@ -374,7 +374,10 @@
         "die": 12
       },
       "head": 0.977,
-      "fresh": true
+      "shadow": {
+        "drop": 0.05,
+        "up": 0.3
+      }
     },
     "DM-H": {
       "note": "Pass 87: Garry's mummy.png, goofy; a bouncy clown shuffle (Garry's Scary Clown Walk on a driver fitted to its round body, arms up and out); unravels into a heap",

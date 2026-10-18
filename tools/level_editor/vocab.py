@@ -200,6 +200,9 @@ PLAYER_DEFAULTS = {
     # Gold Rush)
     "bronco_chance": 0.0, "debuff_jump": 0.0, "star_block_every": 0.0, "gem_sweep_every": 0.0, "vein_chance": 0.0,
     "gold_might": 0.0,
+    # pass 88 (lane MIRROR): the Upgrade board's Stakes (MirrorDanger.gd)
+    "danger_hp": 0.0, "danger_attack": 0.0, "danger_speed": 0.0, "danger_bounty": 0.0,
+    "boss_danger_hp": 0.0, "boss_danger_attack": 0.0, "boss_danger_speed": 0.0, "boss_danger_bounty": 0.0,
 }
 # player stats the code reads that are not in PLAYER_DEFAULTS (default 0 from get_stat); content uses them all
 PLAYER_STATS_EXTRA = {"brand_chance": 0.0, "fire_vuln": 0.0, "poison_slow": 0.0, "poison_pass": 0.0}
@@ -256,6 +259,11 @@ STAT_NAMES = {
     "bronco_chance": ["chance a knocked-back enemy is launched", "pct"], "debuff_jump": ["debuff jumps", "rule"],
     "star_block_every": ["seconds between star blocks", "rule"], "gem_sweep_every": ["seconds between gem sweeps", "rule"],
     "vein_chance": ["chance a kill bursts into 5 XP gems", "pct"], "gold_might": ["attack damage per 100 gold gained", "pct"],
+    # pass 88 (lane MIRROR); kind "hidden" = never written anywhere (the Stakes' bounty)
+    "danger_hp": ["enemy HP", "pct"], "danger_attack": ["enemy attack", "pct"], "danger_speed": ["enemy speed", "pct"],
+    "danger_bounty": ["", "hidden"], "boss_danger_hp": ["boss and Elite HP", "pct"],
+    "boss_danger_attack": ["boss and Elite attack", "pct"], "boss_danger_speed": ["boss and Elite speed", "pct"],
+    "boss_danger_bounty": ["", "hidden"],
 }
 # pass 69: what each new stat does, in a line (the effect pickers show it); lane PAS's help texts
 STAT_HELP = {
@@ -276,6 +284,15 @@ STAT_HELP = {
     "gem_sweep_every": "Mother Lode: every this many seconds every XP gem on the screen flies to the hero (the first 1 s after it is taken); 0 = none",
     "vein_chance": "Eureka: the chance a kill bursts into 5 more XP gems of its size (rolled with Prospector's extra gem, so it needs xp_drop_chance above 0)",
     "gold_might": "Gold Rush: attack damage for every 100 gold gained while held (after coin gain), up to +50% in all; spending takes nothing back",
+    # pass 88 (lane MIRROR): the Upgrade board's Stakes; 0.1 = +10% (the ranks add); never in the arena
+    "danger_hp": "Stakes (Difficulty): regular creatures' HP (everything but a boss or an Elite by its kind)",
+    "danger_attack": "Stakes (Difficulty): regular creatures' attack, their bite and every hit they throw",
+    "danger_speed": "Stakes (Difficulty): regular creatures' walking speed",
+    "danger_bounty": "Stakes (Difficulty): regular creatures' XP and coins (never written in the game)",
+    "boss_danger_hp": "Stakes (Boss): bosses' and Elites' HP (a boss's after the seconds-of-DPS floor)",
+    "boss_danger_attack": "Stakes (Boss): bosses' and Elites' attack",
+    "boss_danger_speed": "Stakes (Boss): bosses' and Elites' walking speed",
+    "boss_danger_bounty": "Stakes (Boss): bosses' and Elites' XP, coins and purses (never written in the game)",
 }
 # the weapon stats WeaponInstance.rebuild seeds before `def.base` (defaults), then the ones systems read with no seed
 WEAPON_STATS = {"damage": 5.0, "cooldown": 1.0, "amount": 1.0, "pierce": 0.0, "area": 1.0, "speed": 10.0, "duration": 2.0,

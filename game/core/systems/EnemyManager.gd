@@ -409,6 +409,9 @@ var _t_cnt := PackedInt32Array()
 ## of the cell the painting sinks
 var _t_big := PackedByteArray()
 var _t_sh := PackedFloat32Array()
+## per type (pass 88, lane TWEAKS): the share of the cell its death strip sinks by at its last frame (EnemyDef.shadow
+## "die_drop", die_drop_of), eased in from nothing at the strip's first frame
+var _t_ddrop := PackedFloat32Array()
 ## per type (pass 48): 1 for the training dummy's brain, whose touch never reaches the hero (pass 49: unless it is set
 ## to melee, dummy_mode)
 var _t_dummy := PackedByteArray()
@@ -501,6 +504,8 @@ func _pstats() -> void:
 	_ll_longer = 1.0 + maxf(Run.perk_param("lingering_light", "longer", 0.3), 0.0) if ll else 1.0
 	# pass 70 (lane LINES): Bucking Bronco's chance, Prairie Fire's jumps
 	_pstats_lines(s)
+	# pass 88 (lane MIRROR): the Upgrade board's Stakes
+	_pstats_mirror()
 
 
 ## Reads the hero's numbers again now (a test or a tool that edits Run.player_sheet by hand).
@@ -544,7 +549,8 @@ func lvd_of(i: int) -> float:
 ## creature_damage_mult times the damage curve creature `i`'s hits carry (pass 58): the curve at its source's start (1 for
 ## a source that overrides `damage`), else hostile_mult() now.
 func host_of(i: int) -> float:
-	return creature_damage_mult * f_dmt[i] if fixed[i] == 1 else hostile_mult()
+	# pass 88 (lane MIRROR): x the Stakes' attack factor for its kind (1 without)
+	return (creature_damage_mult * f_dmt[i] if fixed[i] == 1 else hostile_mult()) * _mirror_attack_of(i)
 
 
 ## The source numbers creature `i` was spawned with (pass 58), as spawn() takes them: {} for a plain creature on the live
@@ -985,6 +991,7 @@ func register_type(def: EnemyDef) -> int:
 	# pass 85 (lane BANDIT): a throw's attack strip (EnemyDef.attack_throw, _throw_frame)
 	_t_throw.append(1 if def.attack_throw else 0)
 	_t_sh.append_array(shadow_numbers(def))
+	_t_ddrop.append(die_drop_of(def))
 	_t_cv.append_array(charge_numbers(def))
 	return types.size() - 1
 
@@ -1026,6 +1033,8 @@ func set_shadow_tuning(t: int, tuning: Dictionary) -> void:
 	def.shadow = keep
 	for k in range(4):
 		_t_sh[t * 4 + k] = n[k]
+	if t < _t_ddrop.size():
+		_t_ddrop[t] = clampf(float(tuning.get("die_drop", 0.0)), -0.5, 0.5)
 
 
 func _height(x: float, z: float) -> float:
@@ -1084,6 +1093,11 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	var ehp := def.hp * stg * hpt * hp_mult * lvh * creature_hp_mult
 	var esp := def.speed * stage_speed_mult
 	var edm := def.damage * stg * lvd * creature_damage_mult * dmt
+	# pass 88 (lane MIRROR): the Stakes (Difficulty for a regular creature, Boss for a boss or an Elite by its kind)
+	var mbig := MirrorDanger.is_big(def)
+	ehp *= mirror_factor(mbig, "hp")
+	esp *= mirror_factor(mbig, "speed")
+	edm *= mirror_factor(mbig, "attack")
 	var ear := def.damage_reduction
 	# pass 58 (R2): a size-range row rolls this creature's size in its range (in place of the variance's jitter below), and
 	# its body's radius follows the rolled size unless the row set a radius; a split child takes its parent's roll (the
@@ -1095,7 +1109,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	f_bsz[i] = base_sz if ranged_size else 0.0
 	var esz := base_sz * scale_mult
 	var rad: float = def.radius * (base_sz / maxf(def.size_ref, 0.01) if ranged_size and def.radius_follows else 1.0)
-	var xps := def.xp_mult
+	var xps := def.xp_mult * mirror_factor(mbig, "bounty")
 	elite_idx[i] = -1
 	if elite != null:
 		elite_idx[i] = elites.find(elite)
@@ -1236,6 +1250,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		hp[i] *= boss_hp_scale
 		# pass 83 (lane SCALE): the seconds mode's floor, the hero's full DPS x the boss's seconds (0 = none)
 		hp[i] = maxf(hp[i], boss_hp_target)
+		# pass 88 (lane MIRROR): the Stakes' Boss form multiplies after the seconds floor
+		hp[i] *= mirror_factor(true, "hp")
 		max_hp[i] = hp[i]
 		boss_spawned.emit(def)
 		boss_hp_changed.emit(hp[i], max_hp[i])
@@ -1243,7 +1259,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	elif def.archetype == "elite":
 		# the mini-boss: scales with the stage like a boss does, but no bar, no intro, no phase change
 		var extra := pow(float(def.elite.get("hp_mult_per_stage", 1.8)), float(Run.stage))
-		hp[i] = def.hp * extra * maxf(stage_mult, 1.0) * creature_hp_mult
+		hp[i] = def.hp * extra * maxf(stage_mult, 1.0) * creature_hp_mult * mirror_factor(true, "hp")
 		max_hp[i] = hp[i]
 		Audio.play("en_elite_spawn", pos[i])
 	elif elite != null:
@@ -4672,7 +4688,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						if atk.has("lift") and player.has_method("blast"):
 							# the giant's hammer (pass 43): a real throw, past the shove's cap
 							player.blast(d.normalized() * float(atk.get("knockback", 6.0)), float(atk["lift"]))
-						elif player.has_method("apply_knockback"):
+						elif player.has_method("apply_knockback") and (not player.has_method("hit_knockback_on") or player.hit_knockback_on()):
 							player.apply_knockback(d.normalized() * float(atk.get("knockback", 6.0)))
 					if game and game.has_method("shockwave"):
 						game.shockwave(pos[i], r)
@@ -5013,6 +5029,21 @@ func sprite_sink(i: int, sq: float, cam_up: Vector3) -> Vector3:
 	return cam_up * (drop * size[i] * maxf(sq, 0.2)) if drop != 0.0 else Vector3.ZERO
 
 
+## A def's death sink (pass 88, lane TWEAKS; Garry: the Red Goblin "seems to be hovering above the shadow in death, let's
+## lower him a bit"): EnemyDef.shadow "die_drop", the share of the cell the death strip's last frame sinks by (on top of
+## "drop"), clamped to -0.5..0.5; 0 when it has none.
+static func die_drop_of(def: EnemyDef) -> float:
+	return clampf(float(def.shadow_tuning().get("die_drop", 0.0)), -0.5, 0.5)
+
+
+## How far creature `i`'s death painting sinks (pass 88, die_drop_of): down the billboard's own plane (`cam_up`) by its
+## type's die_drop share of the cell at its size and squash `sq`, eased in frame by frame: nothing on the strip's first
+## frame (`k` 0, the hit), all of it on its last (`k` 1, the body on the ground), so the fall lands on the shadow.
+func die_sink(i: int, k: float, sq: float, cam_up: Vector3) -> Vector3:
+	var dd: float = _t_ddrop[type_idx[i]] if type_idx[i] < _t_ddrop.size() else 0.0
+	return cam_up * (dd * clampf(k, 0.0, 1.0) * size[i] * maxf(sq, 0.2)) if dd != 0.0 else Vector3.ZERO
+
+
 ## How far creature `i`'s painting sits down the billboard's up (`cam_up`) while it rises out of the sand (pass 60,
 ## rise_t): the part still under, the whole figure (its top at `head` of the cell, at its size and squash `sq`) at 0 and
 ## nothing at 1, eased so it comes up quick and settles (rise_ease). Zero once it is up.
@@ -5228,6 +5259,9 @@ func _render() -> void:
 		var at := pos[i] + Vector3(0, lift_h[i] + cp.y, 0) + scr * cp.x
 		if drop != 0.0:
 			at -= sprite_sink(i, sq, cam_up)
+		if strip == A_DIE and _t_ddrop[t] != 0.0:
+			# pass 88 (lane TWEAKS): the death strip sinks onto its shadow frame by frame (EnemyDef.shadow "die_drop")
+			at -= die_sink(i, float(mini(int(anim_t[i]), n - 1)) / float(maxi(n - 1, 1)), sq, cam_up)
 		# rising out of the sand (pass 60): the painting sits down the billboard's up by the part still under, the terrain
 		# hiding it; quick at first and settling (an ease-out), the figure's top (`head`) reaching the ground at 0
 		var rise: float = rise_t[i]
@@ -6593,6 +6627,9 @@ func _erupt_throw_hero(i: int, atk: Dictionary, off: Vector3, b: Dictionary) -> 
 		return false
 	if player.has_method("knock_immune") and bool(player.call("knock_immune")):
 		return false
+	# pass 88 (lane TWEAKS): no throw while the hero takes no knockback (Settings.hero_knockback off, the default)
+	if player.has_method("hit_knockback_on") and not bool(player.call("hit_knockback_on")):
+		return false
 	var dir := Vector3(off.x, 0.0, off.z)
 	if dir.length_squared() < 0.09:
 		var from: Vector3 = b.get("from", pos[i])
@@ -7107,3 +7144,31 @@ func _throw_frame(i: int, t: int) -> int:
 	if state[i] == STATE_ATTACK:
 		return off + q + (int(anim_t[i]) % maxi(half - q, 1))
 	return off + (int(anim_t[i]) % q)
+
+
+# ---------------------------------------------------------------- pass 88 (lane MIRROR): the Upgrade board's Stakes
+
+## The Stakes' factors as the hero's numbers stood at the last _pstats (MirrorDanger.factors: {"hp": [regular, big],
+## "attack", "speed", "bounty"}); empty until read.
+var _mirror: Dictionary = {}
+
+
+func _pstats_mirror() -> void:
+	_mirror = MirrorDanger.factors()
+
+
+## The Stakes' factor on `what` ("hp", "attack", "speed", "bounty") for a regular creature (big = false) or a boss or an
+## Elite by its kind (big = true): 1 + the hero's danger stat (MirrorDanger), 1 in the arena.
+func mirror_factor(big: bool, what: String) -> float:
+	_pstats()
+	if _mirror.is_empty():
+		_mirror = MirrorDanger.factors()
+	var f = _mirror.get(what)
+	return float((f as Array)[1 if big else 0]) if f is Array else 1.0
+
+
+## The attack factor creature `i` carries (its kind's: host_of multiplies every hit it throws by it).
+func _mirror_attack_of(i: int) -> float:
+	if i < 0 or i >= MAX or type_idx[i] < 0 or type_idx[i] >= types.size():
+		return 1.0
+	return mirror_factor(MirrorDanger.is_big(types[type_idx[i]]["def"]), "attack")

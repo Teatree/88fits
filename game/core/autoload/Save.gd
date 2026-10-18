@@ -160,6 +160,8 @@ func load_save() -> void:
 	_migrate_seen()
 	# pass 87 (lane SGAME): the stages this save has beaten, once, from what it did before stages were their own runs
 	_migrate_stages()
+	# pass 88 (lane MIRROR): Spite's old Thorns / Thirst ranks paid back in full, once
+	_migrate_stakes()
 	_survey_counted_from_runs()
 	Settings.from_dict(data.get("settings", {}))
 	last_saved_unix = int(data.get("saved_at", 0))
@@ -735,6 +737,9 @@ func buy_talent(def: TalentDef, form: int = 0) -> bool:
 	if cost < 0 or not spend_gold(cost, "talent", {"talent": def.id, "rank": rank + 1, "form": form}):
 		return false
 	picks.append(form)
+	# pass 88 (lane MIRROR): a Stakes rank bought is never taken for an old Spite rank (a save wiped since its load)
+	if def.id == "spite":
+		mark_once(STAKES_ONCE)
 	var all: Dictionary = data.get("talents", {})
 	all[def.id] = {"picks": picks, "rank": picks.size(), "form": form}
 	data["talents"] = all
@@ -770,6 +775,49 @@ func talent_refund_all() -> int:
 	add_gold(back, "talent_refund", info)
 	request_save()
 	return back
+
+
+# ---------------------------------------------------------------- pass 88 (lane MIRROR): Spite's old forms
+
+## What Spite's ranks cost before pass 88, rank by rank, when its forms were Thorns and Thirst: an old save's ranks come
+## back at these prices (the talent is Stakes now: Difficulty and Boss, which make the game harder).
+const SPITE_OLD_COST := [500, 900, 1500, 2250, 3250, 4500]
+const STAKES_ONCE := "stakes_v88"
+
+
+## Once per save (the once-flag STAKES_ONCE, set on every save, a new one too, so a Stakes rank bought later is never
+## paid back): the ranks an older save bought in Spite (Thorns / Thirst) are erased and their whole price comes back
+## (SPITE_OLD_COST, not the half of Take it all back: the player never chose to give them up), the board's spent total
+## lowered by as much, and a note left for the Upgrade board's toast (board_note). Returns the gold paid back.
+func _migrate_stakes() -> int:
+	if once(STAKES_ONCE):
+		return 0
+	var all = data.get("talents", {})
+	var back := 0
+	var ranks := 0
+	if all is Dictionary and (all as Dictionary).has("spite"):
+		ranks = talent_rank("spite")
+		for k in range(ranks):
+			back += int(SPITE_OLD_COST[mini(k, SPITE_OLD_COST.size() - 1)])
+		(all as Dictionary).erase("spite")
+	if back > 0:
+		data["talent_spent"] = maxi(talent_spent() - back, 0)
+		add_gold(back, "talent_refund", {"talent": "spite", "ranks": ranks, "why": STAKES_ONCE})
+		data["board_note"] = {"kind": "stakes_refund", "gold": back, "ranks": ranks}
+	mark_once(STAKES_ONCE)
+	return back
+
+
+## The note the Upgrade board shows once as a toast ({kind, gold, ranks}; {} none).
+func board_note() -> Dictionary:
+	var n = data.get("board_note", {})
+	return n if n is Dictionary else {}
+
+
+func clear_board_note() -> void:
+	if data.has("board_note"):
+		data.erase("board_note")
+		request_save()
 
 
 
@@ -855,6 +903,12 @@ func mark_seen(kind: String, id: String) -> void:
 		data["seen"][kind] = []
 	data["seen"][kind].append(id)
 	request_save()
+
+
+## Pass 88 (lane STAGEMENU): a creature or boss met = the Collection's rule (pass 44): it has been on the sand in a
+## run once (seen, EnemyManager.spawn marks it) or killed once. The Stages menu hides a boss not met yet.
+func enemy_met(id: String) -> bool:
+	return id != "" and (seen("enemy", id) or keyed_total("kills_of_enemy", id) > 0)
 
 
 func best_run(map_id: String) -> Dictionary:

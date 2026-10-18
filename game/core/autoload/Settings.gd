@@ -56,6 +56,12 @@ var ranged_on_screen: bool = true
 ## (ProjectileManager.falloff_factor, the Spear's thrust too); off, exactly the old numbers. Settings shows the switch
 ## only in debug mode (the Debug panel) and in the developer menu; on for everyone.
 var pierce_falloff: bool = true
+## The hero's knockback from hits (pass 88, Garry: "Remove the Knockback from being hit for Player entirely. Add this
+## option in the Debug version of the Settings menu"): off (the default), no hit moves him (Player.hit_knockback_on: a
+## bite's, a charge's or a shot's shove, a slam, a blast's throw, a rocket, a boulder, the Gila's eruption); on, every
+## push comes back as it was before pass 88. Settings shows the switch only in debug mode (the Debug panel) and in the
+## developer menu; the production build holds it off.
+var hero_knockback: bool = false
 ## The debug arena's training dummies (pass 48, the developer menu and the arena's WORLD tab; lane L5 lays them out):
 ## how many stand in the field (never fewer than 10), and their health: 0 = undying (a hit refills them), else that much
 ## HP, and one that dies comes back.
@@ -111,7 +117,7 @@ var surveys: bool = true
 ## force_prod(). The dev build never changes.
 const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_buttons": false, "free_revive_button": false,
 	"hit_log": false, "preview_locked_heroes": false, "menu_style": MENU_STYLE_DEFAULT, "ranged_on_screen": true,
-	"pierce_falloff": true}
+	"pierce_falloff": true, "hero_knockback": false}
 var _prod_forced := -1
 
 
@@ -153,6 +159,7 @@ func to_dict() -> Dictionary:
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 		"menu_style": menu_style, "ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
+		"hero_knockback": hero_knockback,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
@@ -183,6 +190,7 @@ func from_dict(d: Dictionary) -> void:
 	menu_style = str(d.get("menu_style", menu_style))
 	ranged_on_screen = bool(d.get("ranged_on_screen", ranged_on_screen))
 	pierce_falloff = bool(d.get("pierce_falloff", pierce_falloff))
+	hero_knockback = bool(d.get("hero_knockback", hero_knockback))
 	dummy_count = int(d.get("dummy_count", dummy_count))
 	dummy_hp = int(d.get("dummy_hp", dummy_hp))
 	dummy_patrol = bool(d.get("dummy_patrol", dummy_patrol))

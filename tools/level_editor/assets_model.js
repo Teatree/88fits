@@ -30,6 +30,8 @@ const AssetsModel = (() => {
     counter_damage: 0, counter_haste: 0, counter_speed: 0, counter_seconds: 0, heavyweight: 0, overheal: 0, heal_pulse: 0, last_stand: 0, xp_pull_radius: 0, xp_pull_rate: 0,
     // pass 70 (lane LINES): the evolved lines' twists
     bronco_chance: 0, debuff_jump: 0, star_block_every: 0, gem_sweep_every: 0, vein_chance: 0, gold_might: 0,
+    // pass 88 (lane MIRROR): the Upgrade board's Stakes
+    danger_hp: 0, danger_attack: 0, danger_speed: 0, danger_bounty: 0, boss_danger_hp: 0, boss_danger_attack: 0, boss_danger_speed: 0, boss_danger_bounty: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -65,6 +67,10 @@ const AssetsModel = (() => {
     // pass 70 (lane LINES); kind "rule" = said in TextGen.RULE_TEXT's words with the number inside
     bronco_chance: ['chance a knocked-back enemy is launched', 'pct'], debuff_jump: ['debuff jumps', 'rule'], star_block_every: ['seconds between star blocks', 'rule'],
     gem_sweep_every: ['seconds between gem sweeps', 'rule'], vein_chance: ['chance a kill bursts into 5 XP gems', 'pct'], gold_might: ['attack damage per 100 gold gained', 'pct'],
+    // pass 88 (lane MIRROR): the Upgrade board's Stakes; kind "hidden" = never written anywhere (their bounty)
+    danger_hp: ['enemy HP', 'pct'], danger_attack: ['enemy attack', 'pct'], danger_speed: ['enemy speed', 'pct'], danger_bounty: ['', 'hidden'],
+    boss_danger_hp: ['boss and Elite HP', 'pct'], boss_danger_attack: ['boss and Elite attack', 'pct'], boss_danger_speed: ['boss and Elite speed', 'pct'],
+    boss_danger_bounty: ['', 'hidden'],
   };
   // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
   const STAT_HELP = {
@@ -276,6 +282,7 @@ const AssetsModel = (() => {
       case 'deg': return `${Math.round(v)}°`;
       case 'count': return String(Math.round(v));
       case 'word': return Number(v) > 0 ? statName(stat, vocab) : '—';   // pass 69: never a number on a card
+      case 'hidden': return '—';   // pass 88: never written
       default: return Math.abs(v - Math.round(v)) < 0.001 ? String(Math.round(v)) : Number(v).toFixed(1);
     }
   }
@@ -292,6 +299,8 @@ const AssetsModel = (() => {
     // pass 69 (TextGen.describe_effect): a stat said in words ("word": the Magnet's "pulls more often") is its name when
     // it grows, nothing else, never a number
     if (kind === 'word') return value > 0 && withName ? name : '';
+    // pass 88 (TextGen.describe_effect): a hidden stat says nothing
+    if (kind === 'hidden') return '';
     let out = '';
     if (op === 'mul') {
       const pct = Math.round(value * 100);
@@ -591,7 +600,7 @@ const AssetsModel = (() => {
       for (const e of Array.isArray(lv) ? lv : []) {
         if (!isObj(e) || !e.stat) continue;
         // pass 69 (TextGen._sum_effects): a stat said in words has no total
-        if (statKind(String(e.stat)) === 'word') continue;
+        if (statKind(String(e.stat)) === 'word' || statKind(String(e.stat)) === 'hidden') continue;
         const a = touch(String(e.stat)), v = num(e.value, 0);
         if (e.op === 'mul') a.mul *= 1 + v; else if (e.op === 'set') a.set = v; else a.add += v;
       }

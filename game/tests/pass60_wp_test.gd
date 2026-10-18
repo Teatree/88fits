@@ -92,9 +92,12 @@ const DT := 1.0 / 60.0
 func before_test() -> void:
 	Save.data = Save._default()
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
+	# pass 88 (lane TWEAKS): these pin the hero's pushes, which are off by default since pass 88 (Settings.hero_knockback)
+	Settings.hero_knockback = true
 
 
 func after_test() -> void:
+	Settings.hero_knockback = false
 	Run.debug_clear_items()
 	Run.end()
 

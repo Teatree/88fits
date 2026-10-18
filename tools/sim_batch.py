@@ -89,7 +89,10 @@ LEGACY_DEATHS = {"gold": "revive with gold, then the run ends"}   # an older sim
 # the Upgrade board (game/content/talents): difficulty_probe's FORMS, in its order (a fractional board alternates the
 # ranks in this order); a talent's picks are one letter a rank bought, its form: A the first, B the second
 TALENT_ORDER = ("grit", "drive", "stride", "fortune", "choice", "nerve", "study", "spite")
-TALENT_FORMS = {"grit": 0, "drive": 0, "stride": 0, "fortune": 0, "choice": 0, "nerve": 1, "study": 1, "spite": 1}
+TALENT_FORMS = {"grit": 0, "drive": 0, "stride": 0, "fortune": 0, "choice": 0, "nerve": 1, "study": 1, "spite": 0}
+# pass 88 (lane MIRROR): the talents the presets leave empty: Spite is Stakes now (Difficulty / Boss: harder creatures for
+# a little more coin and XP), a challenge rather than power, so a preset board never buys it (a board talent by talent may)
+PRESET_SKIP = ("spite",)
 MAX_RANK = 6
 MAX_PLAYERS = 100
 LIMIT_MIN, LIMIT_MAX = 30, 3 * 3600
@@ -374,7 +377,7 @@ def board_talents(m):
     out = {}
     for k, tid in enumerate(TALENT_ORDER):
         r = rank_for(float(m), k)
-        if r > 0:
+        if r > 0 and tid not in PRESET_SKIP:
             out[tid] = "AB"[TALENT_FORMS[tid]] * r
     return out
 

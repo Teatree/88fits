@@ -1463,7 +1463,7 @@ static func stat_names() -> Dictionary:
 ## The switches the run played with: pierce drop-off (Settings.pierce_falloff), the player's debug mode, and whether
 ## the run counts as Garry's own (Analytics.is_dev: the editor binary, a debug build or debug mode).
 func _settings() -> Dictionary:
-	return {"pierce_falloff": bool(Settings.pierce_falloff), "debug_mode": bool(Settings.debug_mode), "dev": Analytics.is_dev()}
+	return {"pierce_falloff": bool(Settings.pierce_falloff), "hero_knockback": bool(Settings.hero_knockback), "debug_mode": bool(Settings.debug_mode), "dev": Analytics.is_dev()}
 
 
 ## The map's numbers the run played, each block with the game's own defaults where the map leaves a key out (an empty

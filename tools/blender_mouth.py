@@ -3,8 +3,8 @@ lip and lower teeth on a `Jaw` node hinged behind the corners so the laser can o
 
     "$BLENDER" -b --python tools/blender_mouth.py -- out=D:/_projects/88fits/game/art/props [lips=0.86,0.05,0.12] [name=big_mouth] [game_views=1]
 
-Writes <out>/<name>.glb (nodes: Mouth > Upper, Jaw (LowerLip, LowerTooth_*, Floor, FloorBack), Cavity, ThroatBack,
-Glow, Flare) and previews shut and open in tools/dl/mouth/. The mouth faces Blender's +Y, which the glTF exporter turns
+Writes <out>/<name>.glb (nodes: Mouth > Upper, Jaw (LowerLip, LowerTooth_*, Floor, FloorBack), Glow) and previews shut
+and open in tools/dl/mouth/. The mouth faces Blender's +Y, which the glTF exporter turns
 into -Z: a Godot node's forward, so look_at points the lips at a target. About a metre wide. The two in the game:
 big_mouth (the default lips) and loud_mouth (lips=0.95,0.62,0.08 name=loud_mouth).
 
@@ -17,6 +17,13 @@ and `Flare` an empty in the opening's middle, both for LaserBeam.gd (it hides th
 camera-facing flare at `Flare` and the inner skin and floor glowing, through the wind-up and while the beam pours).
 game_views=1 also renders the game's angle (tipped back 32 degrees, a camera 48 degrees up) from four sides, shut,
 gaping (the wind-up) and wide open with the core lit, to tools/dl/mouth/<name>_game_<state>_<side>.png.
+
+Pass 88 (Garry: "The tongue is still there actually. I mean the meaty part behind the mouth ... `Cavity`, `Glow` and
+`ThroatBack`. Make it so these are all hidden, and when the attack is happening there is a mesh that appears that is as
+big as all of those together, and glows bright white as it used to, this will be our 'Glow' from now on"): the bowl's
+two skins, the small core and the flare's anchor are gone; `Glow` is one closed egg filling the whole throat (the
+bowl's middle and size, its front flat where the bowl's rim was), white; LaserBeam.gd keeps it hidden at rest and shows
+it, bright white, through the wind-up and while the beam pours. The floor on the jaw stays.
 """
 import math
 import os
@@ -71,8 +78,8 @@ M_CAVE.use_backface_culling = True
 # gold Loudmouth's lips from the high camera)
 M_BACK = mat("throat_back", tuple(c * 0.55 for c in LIPS), 0.45)
 M_BACK.use_backface_culling = True
-# the core deep in the throat (LaserBeam swaps its material for its own and keeps it hidden at rest)
-M_GLOW = mat("glow", (1.0, 0.55, 0.85), 0.5, emit=(1.0, 0.45, 0.8))
+# the glow filling the throat (pass 88: white; LaserBeam swaps its material for its own and keeps it hidden at rest)
+M_GLOW = mat("glow", (1.0, 1.0, 1.0), 0.5, emit=(1.0, 1.0, 1.0))
 M_GLOW.node_tree.nodes.get("Principled BSDF").inputs["Emission Strength"].default_value = 6.0
 
 
@@ -199,7 +206,7 @@ THROAT_R = (W * 0.8, 0.2, 0.14)
 THROAT_CUT = 0.45   # the bowl's rim, as a fraction of its depth in front of its middle
 
 
-def bowl(name, inner, material):
+def bowl(name, inner, material):  # pass 87's throat (unused since pass 88)
     """The throat's bowl: an egg with its front cut away; its inner skin faces in (seen through the open mouth), its outer
     skin faces out (seen from behind)."""
     bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=24, radius=1.0, location=THROAT_C)
@@ -219,21 +226,23 @@ def bowl(name, inner, material):
     return o
 
 
-cave = bowl("Cavity", True, M_CAVE)
-bowl("ThroatBack", False, M_BACK)
-# the core: a small hot lens against the back of the throat
-bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=1.0, location=(0.0, -0.28, -0.14))
+# pass 88: no bowl, no core, no flare anchor: one glow as big as all of them, a closed egg in the bowl's place, its front
+# flat where the bowl's rim was (so it stays behind the teeth)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=24, radius=1.0, location=THROAT_C)
 glow = bpy.context.active_object
 glow.name = "Glow"
-glow.scale = (0.085, 0.05, 0.07)
+_bm = bmesh.new()
+_bm.from_mesh(glow.data)
+for _v in _bm.verts:
+    if _v.co.y > THROAT_CUT:
+        _v.co.y = THROAT_CUT
+bmesh.ops.remove_doubles(_bm, verts=_bm.verts[:], dist=0.0001)
+_bm.to_mesh(glow.data)
+_bm.free()
+glow.scale = THROAT_R
 bpy.ops.object.shade_smooth()
 glow.data.materials.append(M_GLOW)
 glow.parent = root
-# where the flare's middle sits: in the mouth's opening, behind the lips
-flare = bpy.data.objects.new("Flare", None)
-bpy.context.scene.collection.objects.link(flare)
-flare.location = (0.0, -0.1, -0.1)
-flare.parent = root
 
 os.makedirs(OUT, exist_ok=True)
 # previews: shut and wide open, from the front and a little above (like the game's camera), under a sun

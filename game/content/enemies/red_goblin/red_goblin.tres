@@ -38,6 +38,9 @@ fps = {
 }
 knockback = 2.94
 head = 1.0
+shadow = {
+"die_drop": 0.2
+}
 blood = Color(0.78431374, 0.08627451, 0.11764706, 1)
 variants = {
 "RG-A": {
@@ -61,7 +64,9 @@ variants = {
 "head": 1.0,
 "icon": ExtResource("1_w8i1a"),
 "note": "blood red (hue 357)",
-"shadow": {},
+"shadow": {
+"die_drop": 0.2
+},
 "shelved": false,
 "sprite": ExtResource("3_lffj4"),
 "sprite_file": "red_goblin_sprite.png",
@@ -88,7 +93,9 @@ variants = {
 "head": 1.0,
 "icon": ExtResource("5_t0gxy"),
 "note": "brick red (hue 14)",
-"shadow": {},
+"shadow": {
+"die_drop": 0.2
+},
 "shelved": false,
 "sprite": ExtResource("4_5157x"),
 "sprite_file": "red_goblin_sprite_b.png",

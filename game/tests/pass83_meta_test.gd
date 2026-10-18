@@ -9,8 +9,6 @@ extends GdUnitTestSuite
 
 ## The two heroes on sale with no requirement (pass 83's pick: the first two after the Drifter in the title order).
 const MONEY_ONLY := ["astro", "ironwood"]
-## Thorns a rank of the Upgrade board's Spite/Thorns form (pass 83; +5 before).
-const THORNS_A_RANK := 2.0
 
 
 func before_test() -> void:
@@ -163,20 +161,15 @@ func test_a_heros_items_are_hidden_until_he_is_owned() -> void:
 
 # ---------------------------------------------------------------- 3. Thorns
 
-func test_the_thorns_form_is_two_a_rank_and_says_so() -> void:
+## Pass 88 (lane MIRROR, re-pinned on purpose): the Upgrade board's Thorns form is gone (Spite is Stakes: Difficulty and
+## Boss, game/tests/pass88_mirror_test.gd); thorns stay on the passive items (Bristle), at most one burst a cooldown.
+func test_the_upgrade_board_has_no_thorns_form_any_more() -> void:
 	var td: TalentDef = Registry.talent("spite")
 	assert_object(td).is_not_null()
-	assert_str(td.form_name(0)).is_equal("Thorns")
-	var e: Array = td.effects_for(0, 1)
-	assert_int(e.size()).is_equal(1)
-	assert_str((e[0] as Effect).stat).is_equal("thorns")
-	assert_float((e[0] as Effect).value).is_equal_approx(THORNS_A_RANK, 0.001)
-	var full := 0.0
-	for x: Effect in td.effects_for(0, td.max_rank()):
-		full += x.value
-	assert_float(full).is_equal_approx(THORNS_A_RANK * td.max_rank(), 0.001)
-	# the text follows the data
-	assert_str(td.form_text(0)).contains("+%d thorns" % int(THORNS_A_RANK))
+	for form in range(2):
+		assert_str(td.form_name(form)).is_not_equal("Thorns")
+		for x: Effect in td.effects_for(form, td.max_rank()):
+			assert_str(x.stat).is_not_equal("thorns")
 	assert_float(Game.THORNS_COOLDOWN).is_equal_approx(0.5, 0.001)
 
 

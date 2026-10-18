@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-17, pass 87, version 0.73)
+## Status (2026-10-18, pass 88, version 0.74)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.73). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.74). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -354,6 +354,13 @@ and pictures art/ui/stages/; the Level Editor's stage tabs, `--stage` on sim_bat
 by stage (board "88fits · Stages")); stages 2-3 retuned for a fresh hero. Also: the Big Mouth without a tongue (a
 throat glow, a 0.24 s wind-up, a punch); the EVADE word and a see-through hero; black barrels hold 1-5 coins (+2 a
 map, `PickupManager.coin_debt`); fresh looks SOL-F/G, FAD-E/F, DM-F..I (none played yet).
+Pass 88: the hero takes no knockback from hits (`Settings.hero_knockback`, a debug switch, locked off in prod);
+the mummy plays DM-G and Fadeaway FAD-E; `shadow.die_drop` sinks a death strip (the Red Goblin 0.2); the Big Mouth
+punches once a beam and shows one white `Glow` egg only while it attacks (Cavity/ThroatBack gone), its title spin
+faces the camera; the Stages menu: "Choose a Stage", "Difficulty: Easy...", the boss hidden until met
+(`Save.enemy_met`), pictures without creatures; the Upgrade board's Spite is **Stakes** (forms Difficulty and Boss:
++10% HP and ATK, +4% speed a rank, a hidden +5% XP and coins; core/systems/MirrorDanger.gd; old Spite ranks refunded
+once), every talent repriced by its measured power and the board sorted by first-rank price (Registry.talents_list).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

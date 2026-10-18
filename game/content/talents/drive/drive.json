@@ -2,15 +2,15 @@
   "id": "drive",
   "name": "Drive",
   "flavour": "Hit harder, or hit sooner.",
-  "order": 2,
+  "order": 4,
   "ranks": 6,
   "cost": [
-    400,
-    720,
-    1200,
-    1800,
-    2600,
-    3600
+    375,
+    675,
+    1125,
+    1690,
+    2440,
+    3375
   ],
   "forms": [
     {

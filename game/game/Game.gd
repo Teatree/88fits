@@ -2017,18 +2017,19 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 	var lode: float = 1.5 if (Run.character and Run.character.specials.has("motherlode")) else 1.0
 	var pays := def.brain != "dummy"
 	if (elite != null or def.archetype == "elite") and pays:
-		var purse := int(elite_purse(Run.stage) * lode)
+		# pass 88 (lane MIRROR): x the Stakes' bounty on its kind (MirrorDanger)
+		var purse := int(elite_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty"))
 		Run.add_gold(purse, "elite_purse")
 		hud.toast("+%d GOLD" % purse, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
-		var chest_gold := int(boss_purse(Run.stage) * lode)
+		var chest_gold := int(boss_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty"))
 		Run.add_gold(chest_gold, "boss_purse")
 		hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		_end_ring()
 		_hell_lines.clear()
 		# the reward scales with the boss (drops.coins, drops.chests): the second boss pays for continuing
-		for k in range(int(def.drops.get("coins", BOSS_COINS))):
+		for k in range(MirrorDanger.scaled_count(float(def.drops.get("coins", BOSS_COINS)), MirrorDanger.factor_of(def, "bounty"))):
 			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5)), 5.0), "boss_coins")
 		for k in range(int(def.drops.get("chests", 1)) - 1):
 			pickups.spawn_chest(at + Vector3(-2.0 - 1.6 * k, 0, 1.5))
@@ -2939,7 +2940,7 @@ func elite_explosion(center: Vector3, r: float, damage: float, delay: float, kno
 			if knockback > 0.0:
 				(binfo.get("fx", []) as Array).append("thrown")
 			player.take_damage(damage, center, binfo)
-			if knockback > 0.0 and player.has_method("apply_knockback") and d.length_squared() > 0.01:
+			if knockback > 0.0 and player.has_method("apply_knockback") and d.length_squared() > 0.01 and player.hit_knockback_on():
 				player.apply_knockback(d.normalized() * knockback)
 		if friendly_frac > 0.0:
 			enemies.damage_radius(center, r, damage * friendly_frac, "blast", knockback * 0.8)

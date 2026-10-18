@@ -40,23 +40,27 @@ drops = {
 }
 anims = {
 "attack": 2.0,
-"die": 5.0,
+"die": 8.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("3_6byrc")
-sprite_file = "dust_mummy_sprite.png"
+sprite = ExtResource("16_ory3r")
+sprite_file = "dust_mummy_sprite_g.png"
 frame_px = 176
-strip_cols = 40
+strip_cols = 43
 fps = {
-"die": 8.0,
+"die": 12.0,
 "run": 15.0
 }
 knockback = 6.36
-head = 1.0
+head = 0.977
+shadow = {
+"drop": 0.05,
+"up": 0.3
+}
 blood = Color(0.60784316, 0.20392157, 0.9098039, 1)
 variants = {
 "DM-0": {
@@ -269,7 +273,10 @@ variants = {
 "head": 0.977,
 "icon": ExtResource("17_b4j42"),
 "note": "Pass 87: Garry's mummy.png, serious; a heavy lurch (Orc Walk leaning forward, arms raised); falls on its face",
-"shadow": {},
+"shadow": {
+"drop": 0.05,
+"up": 0.3
+},
 "shelved": false,
 "sprite": ExtResource("16_ory3r"),
 "sprite_file": "dust_mummy_sprite_g.png",
@@ -330,7 +337,7 @@ variants = {
 "strip_cols": 43
 }
 }
-variant = "DM-0"
+variant = "DM-G"
 sfx = {
 "die": "en_mummy_die",
 "hit": "en_goblin_hit"
@@ -354,7 +361,7 @@ variance = {
 id = "dust_mummy"
 display_name = "Dust Mummy"
 flavour = "Slow. Very, very slow. Still coming."
-icon = ExtResource("1_ymoj1")
+icon = ExtResource("17_b4j42")
 icon_file = "dust_mummy_icon.png"
 placeholder = {
 "color": "#D8CBA8",

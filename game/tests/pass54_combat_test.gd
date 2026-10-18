@@ -94,10 +94,13 @@ func before_test() -> void:
 	Save.data = Save._default()
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	Settings.ranged_on_screen = true
+	# pass 88 (lane TWEAKS): these pin the hero's pushes, which are off by default since pass 88 (Settings.hero_knockback)
+	Settings.hero_knockback = true
 
 
 func after_test() -> void:
 	Settings.ranged_on_screen = true
+	Settings.hero_knockback = false
 	Run.player_sheet.remove_source("test")
 	Run.debug_clear_items()
 	Run.end()

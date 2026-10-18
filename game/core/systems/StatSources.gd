@@ -42,7 +42,7 @@ static func at_start(stat: String) -> float:
 ## Whether a stat is said as a number of its own: not a "word" stat (never numbered) nor a "rule" (a sentence).
 static func listable(stat: String) -> bool:
 	var k := TextGen.stat_kind(stat)
-	return k != "word" and k != "rule"
+	return k != "word" and k != "rule" and k != "hidden"
 
 
 ## Whether a stat moved since the run began by anything its unit can show.

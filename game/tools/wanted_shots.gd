@@ -213,6 +213,12 @@ func _stages() -> void:
 	_save.data["last_character"] = "drifter"
 	_save.data["last_map"] = "red_canyon"
 	_save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
+	# pass 88 (lane STAGEMENU): the bosses met so far: the King only (the Gila and the Brander hidden)
+	var keep_seen = _save.data.get("seen", {}).duplicate(true) if _save.data.get("seen") is Dictionary else {}
+	var keep_kills = _save.data["totals"].get("kills_of_enemy", {}).duplicate(true) if _save.data.get("totals") is Dictionary else {}
+	if _save.data.get("totals") is Dictionary:
+		_save.data["totals"]["kills_of_enemy"] = {}
+	_save.data["seen"] = {"enemy": ["tumbleweed_king"]}
 	await _scene("res://ui/StagesScreen.tscn")
 	await _wait(0.6)
 	await _shot("18-stages")
@@ -220,10 +226,14 @@ func _stages() -> void:
 	await _wait(0.4)
 	await _shot("18b-stages-scrolled")
 	_save.data["stages_beaten"] = {"red_canyon": [true, true, true]}
+	_save.data["seen"] = {"enemy": ["tumbleweed_king", "gila_grande", "brander"]}
 	await _scene("res://ui/StagesScreen.tscn")
 	await _wait(0.6)
 	await _shot("18c-stages-all-beaten")
 	_save.data["stages_beaten"] = keep
+	_save.data["seen"] = keep_seen
+	if _save.data.get("totals") is Dictionary:
+		_save.data["totals"]["kills_of_enemy"] = keep_kills
 
 
 ## 01-05, 17: the menus with the mocks' purse and best run.

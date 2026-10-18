@@ -588,7 +588,9 @@ func talent(id: String) -> TalentDef:
 
 func talents_list() -> Array:
 	var out: Array = talents.values()
-	out.sort_custom(func(a, b): return a.order < b.order)
+	# pass 88 (lane MIRROR; Garry: "the ones who's first upgrade is the cheapest go on top and the most expensive on the
+	# bottom"): by the first rank's price, then `order`
+	out.sort_custom(func(a, b): return TalentDef.board_before(a, b))
 	return out
 
 

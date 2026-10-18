@@ -8,37 +8,73 @@
 
 [sub_resource type="Resource" id="Resource_txfy4"]
 script = ExtResource("1_nmbfl")
-stat = "thorns"
-value = 2.0
+stat = "danger_hp"
+value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_s1lxg"]
 script = ExtResource("1_nmbfl")
-stat = "lifesteal"
-value = 0.01
+stat = "danger_attack"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ikn64"]
+script = ExtResource("1_nmbfl")
+stat = "danger_speed"
+value = 0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_sev8q"]
+script = ExtResource("1_nmbfl")
+stat = "danger_bounty"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_kpalf"]
+script = ExtResource("1_nmbfl")
+stat = "boss_danger_hp"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_d70t6"]
+script = ExtResource("1_nmbfl")
+stat = "boss_danger_attack"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_aladp"]
+script = ExtResource("1_nmbfl")
+stat = "boss_danger_speed"
+value = 0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_y72ww"]
+script = ExtResource("1_nmbfl")
+stat = "boss_danger_bounty"
+value = 0.05
 target = "player"
 
 [resource]
 script = ExtResource("2_s2miy")
-order = 8
+order = 1
 ranks = 6
-cost = [500.0, 900.0, 1500.0, 2250.0, 3250.0, 4500.0]
+cost = [100.0, 180.0, 300.0, 450.0, 650.0, 900.0]
 forms = [{
-"effects": [SubResource("Resource_txfy4")],
+"effects": [SubResource("Resource_txfy4"), SubResource("Resource_s1lxg"), SubResource("Resource_ikn64"), SubResource("Resource_sev8q")],
 "icon": ExtResource("2_txfy4"),
 "icon_file": "spite_0_icon.png",
-"name": "Thorns",
-"text": "+2 thorns a rank."
+"name": "Difficulty",
+"text": "Creatures +10% HP and attack, +4% speed a rank."
 }, {
-"effects": [SubResource("Resource_s1lxg")],
+"effects": [SubResource("Resource_kpalf"), SubResource("Resource_d70t6"), SubResource("Resource_aladp"), SubResource("Resource_y72ww")],
 "icon": ExtResource("3_s1lxg"),
 "icon_file": "spite_1_icon.png",
-"name": "Thirst",
-"text": "+1% lifesteal a rank (capped as ever)."
+"name": "Boss",
+"text": "Bosses and Elites +10% HP and attack, +4% speed a rank."
 }]
 id = "spite"
-display_name = "Spite"
-flavour = "Punish the touch, or drink from it."
+display_name = "Stakes"
+flavour = "Raise the stakes: on the whole crowd, or on the big ones."
 icon = ExtResource("2_6ram5")
 icon_file = "spite_icon.png"
 placeholder = {

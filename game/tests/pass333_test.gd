@@ -54,6 +54,16 @@ func current_yaw() -> float:
 """
 
 
+## Pass 88 (lane TWEAKS): these pin the hero's pushes and their words, which are off by default since pass 88
+## (Settings.hero_knockback): on for these tests.
+func before_test() -> void:
+	Settings.hero_knockback = true
+
+
+func after_test() -> void:
+	Settings.hero_knockback = false
+
+
 func _script(src: String) -> GDScript:
 	var s := GDScript.new()
 	s.source_code = src

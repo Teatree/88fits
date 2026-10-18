@@ -95,7 +95,9 @@ func test_the_settings_wipe_asks_first() -> void:
 # ---------------------------------------------------------------- the Upgrade sheet
 
 func test_the_sheet_sums_the_ranks_for_reading() -> void:
-	var def: TalentDef = Registry.talents_list()[0]
+	# pass 88 (lane MIRROR, re-pinned on purpose): Grit by name (the board's first talent is the cheapest since pass 88,
+	# Stakes, whose forms read three stats)
+	var def: TalentDef = Registry.talent("grit")
 	# all the ranks (six since pass 46), each the same step
 	var full := def.max_rank()
 	assert_int(full).is_equal(6)

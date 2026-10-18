@@ -3031,3 +3031,98 @@ not do it: coins a kill rise eightfold after stage 1 and with stage runs a run i
 (Drifter, explorer bot, a quarter board, 10 runs each, tools/dl/p87/FIXES/sim_*): every full run paid its whole bill
 (30.5 coins a map on average); the bot's barrels gave back about what it paid; the totals' run-to-run spread (an Elite's
 coin is x5) hides a 28-coin shift.
+
+**Pass 88 (2026-10-18, v0.74): the Big Mouth's one punch and white glow, no knockback on the hero, DM-G and FAD-E, a simpler Stages menu, Stakes on the Upgrade board.** Garry: the punch only when the laser starts; the "meaty part behind the mouth" (Cavity, Glow, ThroatBack) hidden and one bright white glow of their size shown while it attacks; the menu's idle spin stuttering at the bottom left; "Remove the Knockback from being hit for Player entirely" with a debug switch; "Let's go with DM-G" with its shadow under it; the Red Goblin hovering in death; "I'm going to go with FAD-E"; the Stages menu's words simpler with no creatures or bosses named, the boss hidden until met, no creatures in the pictures and their shadows fixed, "Choose a Stage", "Difficulty: Easy"...; on the Mirror, LifeSteal and Thorns replaced by Difficulty and Boss, prices by power, the cheapest first. Four lanes (tools/dl/p88/INTERFACES.md): MOUTH, TWEAKS, STAGEMENU, MIRROR.
+
+Pass 88, lane MOUTH (Garry: "The 'Punch' from the laser should happen only once, when the laser shooting starts ... it's
+looks like the mouth is having a fit"; "The tongue is still there actually. I mean the meaty part behind the mouth.
+Looking at the .glb in blender it's actually the: `Cavity`, `Glow` and `ThroatBack`. Make it so these are all hidden, and
+when the attack is happening there is a mesh that appears that is as big as all of those together, and glows bright
+white as it used to, this will be our 'Glow' from now on"; "When spinning in an idle fashion is seems to stutter at a
+specific point on the bottom left. Seems to only happen in Main Menu ... the mouth is always facing the camera when it's
+spinning in the game ... make sure that it's happening like that in the Main Menu"). **The punch** comes once, as a beam
+starts from a shut mouth: `params.beam.punch.pulse` 0 on the Big Mouth and the Loudmouth (and LaserBeam.PUNCH_DEFAULTS),
+so the pulses every 0.28 s only puff and ring; a pull while the beam still pours re-aims it with no new punch
+(`_start_beam(kick)`). **The model** (`tools/blender_mouth.py`, `art/props/big_mouth.glb` and `loud_mouth.glb`
+regenerated): `Cavity`, `ThroatBack`, the small core and the `Flare` anchor removed from the GLB; `Glow` is now one closed
+egg filling the old bowl's whole space (its middle and size, the front flat at the old rim, 0.8 x 0.29 x 0.28 m in the
+model), white; the floor on the jaw (`Floor`, `FloorBack`) stays in the GLB but is shown only with the Glow (from behind, at rest, it read as the same meaty lump). **LaserBeam.gd**: the Glow gets its own unshaded
+material (new `core/shaders/mouth_core.gdshader`: white, the beam's colour a faint edge, `throat.rim` 0.35), hidden at rest,
+mostly lit the moment the wind-up starts (0.7) and full by its end, full while the beam pours, out in about 0.11 s after; as it
+dies it darkens to the throat's dark (`GLOW_DARK`) and stays dark while the jaw is open more than 0.12 of its 80 degrees,
+so the shutting mouth never shows the sand, then hides; the floor shows, hides and glows with it (white with a quarter of the beam's
+colour, `throat.walls`); pass 87's beam-coloured flare quad and `core/shaders/mouth_glow.gdshader` are gone
+(`throat.size` replaced by `throat.rim`); parts named Cavity, ThroatBack or Tongue on any model are hidden
+(`HIDDEN_PARTS`). The mouth's rest pitch (32 degrees), chew (7 degrees at 2.6 rad/s, `chew_angle`) and orbit
+(`ORBIT_DEFAULTS`, `BOB_RATE`) are named constants now. **The title** (`ui/TitleStage.gd`, Actor `_fly_mouth`): the stutter
+was the title flying May's mouth as a gun: the guns' flourish kick (a 16-degree nod gone in 0.11 s) came every 3.5 to 5 s
+from a clock seeded by the hero's id while the circle took 4.5 s, so it always fell at the same spot, the bottom left;
+the mouth also flew level and turned out from her (side on, its underside showing). Now it flies as a run flies it with
+no creature near: facing the camera all the way round, tipped back 32 degrees, chewing, the Glow hidden, on the run's
+circle (1.25 m, 1.3 m up, 0.9 rad/s, bob 0.09 m). Captures: game/tools/_p88_MOUTH_title.gd (the title's companion frame by
+frame over a full turn with a per-frame log), the in-run shots with game/tools/_p87_BIGMOUTH_shot.gd; outputs
+tools/dl/p88/MOUTH/. Tests game/tests/pass88_MOUTH_test.gd; pass87_BIGMOUTH_test re-pinned (no Cavity/ThroatBack/Flare,
+pulse 0, throat.rim, no fresh punch on a re-pull, the glow white with the beam's colour at its rim, the flare test gone).
+
+Lane TWEAKS (pass 88). **No knockback on the hero** (Garry: "Remove the Knockback from being hit for Player entirely. Add
+this option in the Debug version of the Settings menu"): `Settings.hero_knockback` (false by default, saved, in
+PROD_LOCKED at false) and `Player.hit_knockback_on()`; off, `Player.shove`, `hit_knock` and a hostile `blast` do nothing,
+and the two knockbacks that come through `apply_knockback` (Game.elite_explosion, a slam without `lift` in EnemyManager)
+and the Gila's eruption throw (`_erupt_throw_hero`) ask first; the hits still land, and the Down! list leaves out
+"knocked back" / "thrown" (`Player._logged_fx`). His own moves (dash, Thruster's lunge, the thruster burst, the leap,
+Hang Time, teleports) and the two pulls (the silk line's pull, the harpoon's leash) still move him. The switch "Hero
+knockback" sits in Settings' Debug panel (`HeroKnockback`, touch_audit taps it) and the developer menu
+(`HeroKnockbackRow`); run records carry `settings.hero_knockback`; the sim and the Watch hold it off. Tests that pin the
+pushes (pass332, pass333, pass54_combat, pass60_wp) switch it on. **Looks**: the Dust Mummy plays DM-G and Fadeaway
+FAD-E, both approved (no longer fresh; pass87_mummy and pass87_FADE re-pinned). DM-G's shadow is its own
+(`variants.DM-G.shadow` {drop 0.05, up 0.3}: its feet stood about a tenth of the cell above the blob). The Red Goblin's
+dead body hovered over its blob (its last death frame ends 27 px of 128 above the foot line): a new key
+`shadow.die_drop` (EnemyManager.die_drop_of / die_sink: the death strip sinks by that share of the cell at its last
+frame, eased in by frame from 0 at its first) set to 0.2 on red_goblin; the green goblin (GOB-D) has the same frames.
+Captures: tools/dl/p88/TWEAKS/ (game/tools/_p88_TWEAKS_shot.gd).
+
+**Lane STAGEMENU (the Stages menu, simpler).** Garry: "Make the description of the Stages a bit simpler and don't
+mention any enemies or bosses ... the icon of the Boss ... should remain hidden until Player had encountered it at
+least once ... and the Boss name says 'Boss not encountered yet' ... avoid showing the enemies on the screenshot ...
+fix the shadows and floor markings ... on the crystal, the Player and some of the enemies ... Add a call to Action.
+'Choose a Stage' ... Just write 'Difficulty: Easy' 'Medium' 'Hard' 'Extremely Hard'". Red Canyon's stage_list words
+(edited in place): "The canyon at sundown. Learn the ropes." / "Night falls on the canyon. Tougher, and longer." /
+"Hell opens under a blood moon. Few come back."; `difficulty` Easy / Medium / Hard. ui/StagesScreen.gd: "Choose a
+Stage" (slab 52) under the "RED CANYON · DRIFTER" line; the line "Difficulty: <word>" (`difficulty_word`: the entry's
+word, a number 1..4 as a level, else by the stage's place: Easy, Medium, Hard, Extremely Hard from the fourth on); the
+boss plate the Collection's silhouette and "Boss not encountered yet" until `Save.enemy_met(id)` (new: the
+Collection's rule, seen on the sand in a run or killed), and a locked stage asks to "Beat Stage k" until the boss
+before it is met. The pictures (game/tools/stage_shots.gd, re-shot): no creatures (`crowd=1` brings them back), the
+hero alone at the oasis; the structures' rings and pies (ground marks: the teleport crystal's ring read as a stray arc
+from the low camera) hidden; and every painted shadow laid again for the picture's camera. Cause, a capture matter and
+not a game bug: a painting's foot stands a little up its camera-facing quad and the game pushes its shadow back by that
+over sin(46 deg) (tools/prop_shadows.py), right for the play and title camera, but from the picture's ~10 deg camera
+the shadow lay in front of the foot, under the palms, the crystal and the hero as a detached dark band. The tool now
+casts the camera's ray through each painted foot (props by their manifest `shadow.z`, structures by `st_<id>`, the hero
+by his frame's lowest opaque row) onto the ground and lays the shadow there (`_relay_shadows`, `_place_hero` with the
+hero held cinematic so the game does not re-lay his). wanted_shots 18/18b show the Gila and the Brander hidden, 18c
+all met.
+
+Lane MIRROR (pass 88): **Spite became Stakes, the board priced by power and sorted cheapest first.** Garry: "The
+following should be removed: LifeSteal, Thorns. To be replaced by 1. Difficulty ... 2. BOSS ... reassess the pricing
+of the Upgrades in the Mirror ... the ones who's first upgrade is the cheapest go on top". The talent `spite` (id kept)
+is **Stakes** with forms **Difficulty** (regular creatures: +10% HP, +10% attack, +4% speed a rank) and **Boss**
+(bosses and Elites by their kind, the same steps), each paying a hidden +5% a rank more XP and coins; eight new player
+stats (`danger_hp|attack|speed|bounty`, `boss_danger_*`) read through core/systems/MirrorDanger.gd: EnemyManager.spawn
+(HP, speed, bite, XP scale; a boss's HP multiplied after the pass 83 seconds floor), `host_of` (every hit a creature
+throws), PickupManager.drop_from (a coin's bounty, its fraction by chance: MirrorDanger.scaled_count), Game._kill_effects
+(purses, the boss's coins); never in the arena. TextGen gained the kind "hidden" (the bounty is never written; the
+form text names only the danger). The forms' icons are the skull and crown badges (art/ui/badges). An old save's Spite
+ranks (Thorns / Thirst) are paid back in full at the old prices once (Save._migrate_stakes, once-flag stakes_v88, also
+marked by buying a Stakes rank), said on the Upgrade board in two toasts (HomesteadScreen._show_board_note). **Prices**
+from the run sim (tools/dl/p88/MIRROR/price_sims.py: 6 ranks of one form against an empty board, Drifter, 12 bots,
+death=keep, to 7:10; 17 sims plus the Stakes at one rank and the Boss form through the King) and HeroPower: first ranks
+Stakes 100, Fortune 300, Choice 325, Drive 375, Study 400, Stride 425 (was the cheapest at 300; the sims' best
+survival), Grit 450, Nerve 500 (was 550), pass 46's ladder kept; the board's total 86,440 -> 74,190 (the seven power
+talents -3%, Spite's 12,900 now 2,580). Difficulty at six ranks doubled the bots' falls for +13% gold; Boss at six made
+the King's fight 78 s -> 102 s for +9% gold. **Order**: Registry.talents_list sorts by the first rank's price, then
+`order` (TalentDef.board_before), `order` rewritten 1-8; the Level Editor's Sim tab lists them alike (sim_io); the sim's
+and probes' preset boards never buy Stakes (sim_batch.PRESET_SKIP; a quarter 11 of 48 ranks). Tests:
+pass88_mirror_test.gd; re-pinned pass83_meta (no Thorns form), pass45_ui (Grit by name), pass61_mr (summary in the
+board's order), pass70_econ (the board's scale instead of x2.5 per rank), selftest_SIM77 (presets without Stakes, the
+talents by price); the Level Editor's vocab.py / assets_model.js know the eight stats and the hidden kind.

@@ -42,8 +42,8 @@ func test_two_new_looks_with_their_recipes() -> void:
 		var rs: Dictionary = rec["run_scale"]
 		for v: String in VIEWS.keys():
 			assert_float(float(rs.get(v, 1.0))).is_between(0.5, 1.5)
-		# fresh until Garry picks; never shelved; the played look stays his own
-		assert_bool(bool(e.get("fresh", false))).is_true()
+		# fresh until Garry picks (re-pinned in pass 88: he picked FAD-E, approved, so it is no longer fresh); never shelved
+		assert_bool(bool(e.get("fresh", false))).is_equal(code != "FAD-E")
 		assert_bool(bool(e.get("shelved", false))).is_false()
 		arts[code] = str(rec["art_prompt"])
 	# the precise prompt says much more than the loose one

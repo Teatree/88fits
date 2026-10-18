@@ -1787,3 +1787,91 @@ Tool-only properties (not content):
 - `PortalDialog.seconds_source` (Callable -> float): a capture or test pins the countdown; with it set (or without a
   game) the dialog counts by itself and closes itself at 0 (`expire()`, signal `expired`).
 - `StagesScreen.hold_start` / `started`: a tap on an open card records the stage without leaving (touch_audit, tests).
+
+## Pass 88: new keys
+
+### The Big Mouth: one punch, one white glow, a smooth title spin (lane MOUTH)
+
+Changes to a LaserBeam weapon's `params.beam` blocks (the Big Mouth, the Loudmouth). A mutation's `params.beam` still
+merges over them deep. No new stat, special or behaviour; no Level Editor vocabulary needed (the Items tab shows params
+as JSON).
+
+| Key | Type | Default | Big Mouth | Loudmouth | Meaning |
+|---|---|---|---|---|---|
+| `beam.punch.pulse` | float | **0.0** (was 0.3) | 0.0 | 0.0 | each pulse while the beam pours (every 0.28 s) kicks the mouth again at this share of the punch; 0 = the punch comes once, as the beam starts (Garry's ask). The pulses still puff at the lips and ring on the sand |
+| `beam.throat.rim` | float | 0.35 | 0.35 | 0.35 | NEW: how much of the beam's colour tints the white Glow's edge (0 = pure white). Replaces `throat.size` |
+| `beam.throat.gain` | float | 1.0 | 1.0 | 1.0 | the Glow's brightness (white x gain; unshaded, so 1 is full white) |
+| `beam.throat.walls` | float | 0.9 | 0.9 | 0.9 | how bright the floor of the mouth (on the jaw) glows while it burns (emission energy), white with a quarter of the beam's colour |
+| ~~`beam.throat.size`~~ | | | | | REMOVED (the flare quad it sized is gone) |
+
+Code constants (LaserBeam.gd), not params: `GLOW_DARK` (0.12, 0.008, 0.025: the colour the Glow fades to after the beam),
+`GLOW_SHUT_OPEN` 0.12 (the Glow stays, dark, while the jaw is open more than this share of 80 degrees), `REST_PITCH_DEG`
+32, `CHEW_DEG` 7, `CHEW_RATE` 2.6, `ORBIT_DEFAULTS` {radius 1.25, height 1.3, bob 0.09, speed 0.9}, `BOB_RATE` 2.4 (named
+in pass 88 so the title flies the mouth on the run's numbers; the values are unchanged).
+
+Model nodes the code reads (tools/blender_mouth.py; a model without them still works): `Familiar/Mouth` > `Jaw` (with
+`Floor`, lit, and `FloorBack`, both shown only with the Glow), `Upper`, `Glow` (one closed egg filling the throat, hidden
+at rest). Gone from the GLB:
+`Cavity`, `ThroatBack`, the small core, `Flare`. Parts named `Cavity`, `ThroatBack` or `Tongue` found on a model are
+hidden (LaserBeam.HIDDEN_PARTS).
+
+### No knockback on the hero; DM-G and FAD-E played; two shadows (lane TWEAKS)
+
+| Key | Where | Type | Default | Meaning |
+|---|---|---|---|---|
+| `hero_knockback` | Settings (save.json `settings`), Settings.PROD_LOCKED | bool | false | the hero's knockback from hits. Off: no bite, charge, shot, slam, rumble, stalactite, rocket, boulder, dynamite, tumbleweed, Elite blast, custom attack or Gila eruption moves him (Player.hit_knockback_on). On: every push as before pass 88. Switch "Hero knockback" in Settings' Debug panel (debug mode) and the developer menu; prod holds it off. Run records carry it in `settings.hero_knockback`. |
+| `shadow.die_drop` | creature JSON top-level `shadow` or a look's `variants[CODE].shadow` | number, share of the cell, clamped -0.5..0.5 | 0 | how far the death strip sinks down the billboard's plane at its last frame (on top of `shadow.drop`), eased in frame by frame from 0 at the strip's first frame, so a body painted above the cell's foot line lands on its shadow (EnemyManager.die_drop_of / die_sink). For the Level Editor: a number field next to "Shadow drop" (`shadow.die_drop`, step 0.02, help "how far the dead body sinks onto its shadow, share of the cell; 0 = none"); tools/level_editor/vocab.py SHADOW_KEYS could gain `"die_drop": 0.0`. |
+
+### The Stages menu, simpler (lane STAGEMENU)
+
+No new JSON keys. `timeline_data.stage_list[k].difficulty` (pass 87, a free text) now reads as the difficulty WORD:
+the Stages menu shows "Difficulty: <word>". Empty = by the stage's place (Easy, Medium, Hard, Extremely Hard); a
+number 1..4 = that level. The Level Editor's stage card can keep its text box (help text could say "Easy, Medium,
+Hard or Extremely Hard; empty = by the stage's place").
+
+Code: `StagesScreen.difficulty_word(entry, i)`, `difficulty_text`, `level_word(k)`, `boss_met(id)`,
+`Save.enemy_met(id)` (seen on the sand or killed). Tool args: `stage_shots.gd crowd=1` (the old creatures back),
+`figure=0` (no hero).
+
+### Stakes (Difficulty, Boss) for Spite; prices by power; cheapest first (lane MIRROR)
+
+#### Player stats (StatSheet.PLAYER_DEFAULTS, all 0.0; op "add" a rank; the factor is 1 + the stat; read through
+#### core/systems/MirrorDanger.gd; 1 in the arena)
+| stat | TextGen name / kind | read by | meaning |
+|---|---|---|---|
+| `danger_hp` | "enemy HP" / pct | EnemyManager.spawn | regular creatures' HP (everything but a boss or an Elite by its kind; elite-modded and special creatures are regular) |
+| `danger_attack` | "enemy attack" / pct | EnemyManager.spawn (contact) + host_of (every hit it throws) | regular creatures' attack |
+| `danger_speed` | "enemy speed" / pct | EnemyManager.spawn | regular creatures' walking speed |
+| `danger_bounty` | "" / **hidden** | EnemyManager.spawn (XP scale), PickupManager.drop_from (its coin), Game._kill_effects (an elite-modded creature's purse) | regular creatures' XP and coins; never written |
+| `boss_danger_hp` | "boss and Elite HP" / pct | EnemyManager.spawn (a boss's HP x it AFTER the pass 83 seconds floor and the DPS scale; an Elite's after its formula) | bosses' and Elites' HP |
+| `boss_danger_attack` | "boss and Elite attack" / pct | spawn + host_of | bosses' and Elites' attack |
+| `boss_danger_speed` | "boss and Elite speed" / pct | spawn | their walking speed |
+| `boss_danger_bounty` | "" / **hidden** | spawn (XP), drop_from (their coin), Game._kill_effects (Elite purse, boss purse, the boss's coins) | their XP and coins; never written |
+
+#### TextGen
+- New stat kind **"hidden"**: describe_effect says nothing, _sum_effects skips it, StatSources.listable false.
+
+#### Content
+- `content/talents/spite/spite.json` (id kept): name "Stakes", forms "Difficulty" (danger_*) and "Boss" (boss_danger_*),
+  each with the four stats above; icons spite_0_icon.png (the skull badge) and spite_1_icon.png (the crown badge).
+- Every talent's `cost` re-priced and `order` rewritten in the board's order (see balancing_MIRROR.md).
+
+#### Code
+- `TalentDef.first_price()`, `TalentDef.board_before(a, b)`: the board's order (cheaper first rank, then `order`, then id);
+  `Registry.talents_list()` sorts by it.
+- `MirrorDanger` (static): `is_big(def)`, `stat_for(big, what)`, `factor(big, what)`, `factor_of(def, what)`,
+  `factors()`, `scaled_count(v, mult, roll)` (a whole number of coins, the fraction by chance).
+- `EnemyManager.mirror_factor(big, what)` (cached with the hero's numbers, `_pstats_mirror`), `_mirror_attack_of(i)`.
+- `Save._migrate_stakes()` (once-flag `stakes_v88`; `SPITE_OLD_COST` [500, 900, 1500, 2250, 3250, 4500]),
+  `Save.board_note()` / `clear_board_note()` (data key `board_note` {kind "stakes_refund", gold, ranks}); buying a Stakes
+  rank marks the once-flag.
+- `HomesteadScreen._show_board_note()` / `note_words(n)`: two toasts over the mirror the first time the board opens
+  after a refund.
+
+#### Tools
+- `tools/sim_batch.py` `PRESET_SKIP = ("spite",)`: the presets (none / quarter / half / full) never buy Stakes (a quarter
+  is 11 of 48 ranks, full 42); `TALENT_FORMS["spite"]` 0.
+- `game/tools/sim_run.gd`, `difficulty_probe.gd`, `_p85_bandit_probe.gd`: `spite=` default -1 = Stakes left out of a
+  board= / mirror= board (0 Difficulty, 1 Boss).
+- `tools/level_editor/sim_io.talents()` lists the talents in the board's order and adds `first_price`, `order`,
+  `in_presets`.

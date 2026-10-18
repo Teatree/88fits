@@ -927,6 +927,23 @@ func _settings_menu_style() -> void:
 				_fail("settings_debug", "PierceFalloff", "a tap did not flip Settings.pierce_falloff")
 			st.set("pierce_falloff", was_pf)
 			(pfs as Control).set("on", was_pf)
+	# the hero's knockback (pass 88), when the setting exists: a real tap flips it, put back after
+	if "hero_knockback" in st and st.debug_mode:
+		var hks: Control = current_scene.find_child("HeroKnockback", true, false)
+		if hks == null:
+			_count("settings_debug", false)
+			_fail("settings_debug", "HeroKnockback", "the debug mode is on and the switch is not there")
+		else:
+			var was_hk: bool = bool(st.get("hero_knockback"))
+			var at5: Vector2 = await _spot(hks)
+			await _tap(at5)
+			await _wait(0.2)
+			var ok5: bool = bool(st.get("hero_knockback")) != was_hk
+			_count("settings_debug", ok5)
+			if not ok5:
+				_fail("settings_debug", "HeroKnockback", "a tap did not flip Settings.hero_knockback")
+			st.set("hero_knockback", was_hk)
+			(hks as Control).set("on", was_hk)
 	st.debug_mode = keep_debug
 	st.menu_style = keep_style
 	root.get_node("Save").request_save()

@@ -2,15 +2,15 @@
   "id": "choice",
   "name": "Choice",
   "flavour": "See another, or throw one away.",
-  "order": 5,
+  "order": 3,
   "ranks": 6,
   "cost": [
-    450,
-    810,
-    1350,
-    2025,
-    2925,
-    4050
+    325,
+    585,
+    975,
+    1465,
+    2115,
+    2925
   ],
   "forms": [
     {

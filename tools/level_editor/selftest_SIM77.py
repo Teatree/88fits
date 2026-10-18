@@ -221,9 +221,10 @@ def _agg_checks(check, SB, tmp):
 def _round2_checks(check, SB, tmp):
     import locks
     # the board talent by talent
-    check(SB.board_talents(1.5) == {"grit": "AA", "drive": "A", "stride": "AA", "fortune": "A", "choice": "AA", "nerve": "B", "study": "BB", "spite": "B"}
-          and SB.board_ranks(SB.board_talents(1.5)) == 12 and SB.board_ranks(SB.board_talents(6)) == 48 and SB.board_talents(0) == {},
-          "r2: the presets as difficulty_probe's FORMS and rank_for (a quarter = 12 of 48 ranks)")
+    # pass 88 (lane MIRROR): Spite is Stakes (Difficulty / Boss), which no preset buys (SB.PRESET_SKIP)
+    check(SB.board_talents(1.5) == {"grit": "AA", "drive": "A", "stride": "AA", "fortune": "A", "choice": "AA", "nerve": "B", "study": "BB"}
+          and SB.board_ranks(SB.board_talents(1.5)) == 11 and SB.board_ranks(SB.board_talents(6)) == 42 and SB.board_talents(0) == {},
+          "r2: the presets as difficulty_probe's FORMS and rank_for, Stakes left out (a quarter = 11 of 48 ranks)")
     t, p = SB.clean_talents("grit:AAB,drive:1,nerve:2:B")
     check(t == {"grit": "AAB", "drive": "B", "nerve": "BB"} and not p, "r2: the talents' text in its three shapes: %s %s" % (t, p))
     t, p = SB.clean_talents({"grit": {"picks": [0, 1, 0]}, "study": {"rank": 2, "form": 1}, "spite": [1, 1], "stride": 3})
@@ -559,7 +560,8 @@ def _routes_checks(check, SB, tmp):
         check(code == 200 and body["defaults"]["players"] == 10 and any(h["id"] == "drifter" for h in body["heroes"]) and body["max_workers"] == max(1, (os.cpu_count() or 4) - 2)
               and [b["label"] for b in body["boards"]] == ["none", "a quarter", "half", "full"]
               and [d["value"] for d in body["deaths"]] == [k for k, _, _ in SB.DEATHS if k in SB.runner_caps(Srv.GAME)["deaths"]]
-              and [t["id"] for t in body["talents"]] == list(SB.TALENT_ORDER) and [p["key"] for p in body["presets"]][:4] == ["none", "quarter", "half", "full"]
+              and sorted(t["id"] for t in body["talents"]) == sorted(SB.TALENT_ORDER)
+              and [t["first_price"] for t in body["talents"]] == sorted(t["first_price"] for t in body["talents"]) and [p["key"] for p in body["presets"]][:4] == ["none", "quarter", "half", "full"]
               and "frame by frame" in body["speed_words"],
               "routes: settings: the defaults, the heroes, the boards, the death modes, the processors")
         check(post(["s-old", "keep"], {"keep": True})[1]["kept"] is True and os.path.isfile(os.path.join(SB.runs_dir(), "s-old", "kept")), "routes: keep")

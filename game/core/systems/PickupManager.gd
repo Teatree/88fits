@@ -1200,6 +1200,8 @@ func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> v
 	if randf() < float(d.get("gold", 0.0)) * (1.0 + luck):
 		# pass 87 (lane FIXES): the black barrels' coins come out of the creatures' (coin_debt, COIN_DEBT_SHARE of them)
 		var cv := _after_coin_debt(float(1 + randi() % 3) * big_coin_mult(def, is_elite))
+		# pass 88 (lane MIRROR): the Stakes' bounty on its kind, a fraction paid by chance (MirrorDanger.scaled_count)
+		cv = float(MirrorDanger.scaled_count(cv, MirrorDanger.factor_of(def, "bounty")))
 		if cv > 0.0:
 			spawn(KIND_COIN, at, cv)
 	if is_elite and randf() < 0.05 + luck * 0.1:

@@ -66,16 +66,24 @@ def heroes(srv):
 
 
 def talents(srv):
-    """The Upgrade board's eight talents in the order the presets fill them: [{id, name, flavour, forms [{name, text}],
-    ranks}] from game/content/talents."""
+    """The Upgrade board's eight talents in the board's order (pass 88: the cheaper first rank first, then `order`):
+    [{id, name, flavour, forms [{name, text}], ranks, preset_form, first_price, order, in_presets}] from
+    game/content/talents (the presets fill them in SB.TALENT_ORDER, never those in SB.PRESET_SKIP)."""
     out = []
     for tid in SB.TALENT_ORDER:
         d = SB.read_json(os.path.join(_game(srv), "content", "talents", tid, tid + ".json"), tries=1) or {}
         forms = [{"name": str(f.get("name") or ("AB"[i])), "text": str(f.get("text") or "")} for i, f in enumerate(d.get("forms") or [])][:2]
         while len(forms) < 2:
             forms.append({"name": "AB"[len(forms)], "text": ""})
+        cost = d.get("cost") or []
+        first = cost[0] if isinstance(cost, list) and cost and isinstance(cost[0], (int, float)) else 0
+        order = d.get("order", 100) if isinstance(d.get("order", 100), (int, float)) else 100
         out.append({"id": tid, "name": str(d.get("name") or tid.capitalize()), "flavour": str(d.get("flavour") or ""), "forms": forms,
-                    "ranks": int(d.get("ranks") or SB.MAX_RANK), "preset_form": SB.TALENT_FORMS[tid]})
+                    "ranks": int(d.get("ranks") or SB.MAX_RANK), "preset_form": SB.TALENT_FORMS[tid], "first_price": first,
+                    "order": order, "in_presets": tid not in SB.PRESET_SKIP})
+    # pass 88 (lane MIRROR): as the Upgrade board lists them (TalentDef.board_before): the cheaper first rank first, then
+    # `order`, then the id
+    out.sort(key=lambda t: (t["first_price"], t["order"], t["id"]))
     return out
 
 

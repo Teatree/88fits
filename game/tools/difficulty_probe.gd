@@ -72,7 +72,8 @@ var _mirror := 0.0
 var _hero := "calavera"
 var _seed := 11
 var _grit := 0
-var _spite := 1
+## pass 88 (lane MIRROR): -1 (the default) leaves Spite (now Stakes: Difficulty 0 / Boss 1) out of a mirror= board
+var _spite := -1
 var _hpx := 1.0
 var _dmgx := 1.0
 var _game: Node
@@ -150,6 +151,9 @@ func _start() -> void:
 				form = _grit
 			elif id == "spite":
 				form = _spite
+				if form < 0:
+					k += 1
+					continue
 			var rank := rank_for(_mirror, k)
 			k += 1
 			if rank <= 0:

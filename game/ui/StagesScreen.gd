@@ -4,9 +4,11 @@
 ## One card per stage of the map's `stage_list` (WaveTimeline), in order: the stage's picture (art/ui/stages/<map>_s<k>.jpg,
 ## lane SLOOK's capture of the stage in its own look; striped until it exists) with STAGE k over its top-left corner and
 ## the stage's name over its foot, then the difficulty line in the stage's colour (sage the first, rock the last and
-## every hell stage, brass between), the description, and its facts: the time to its boss and the boss (a "?" plate
-## until the stage is open). A stage beaten wears a sage BEATEN stamp. A locked stage: the picture darkened with a
-## padlock, the card aged, and what opens it ("Beat the Tumbleweed King"); a tap says no (the locked sound, a shake) and
+## every hell stage, brass between), the description, and its facts: the time to its boss and the boss. A stage beaten
+## wears a sage BEATEN stamp. Pass 88 (lane STAGEMENU, Garry): "Choose a Stage" under the header; the line is
+## "Difficulty: Easy" (Medium, Hard, Extremely Hard: difficulty_word); the boss a silhouette named "Boss not encountered
+## yet" until met (boss_met), and a locked stage asks to "Beat Stage k" until then. A locked stage: the picture darkened
+## with a padlock, the card aged, and what opens it ("Beat the Tumbleweed King"); a tap says no (the locked sound, a shake) and
 ## starts nothing. A tap on an open one starts that stage as a fresh run with the hero chosen on the title (Run's stage
 ## launch, lane SGAME). The header: the back square (back to the title, as Esc and the back gesture do), "Stages", the
 ## chosen hero's badge on the right.
@@ -32,6 +34,12 @@ const SHAKE_PX := 14.0
 const SHAKE_TIME := 0.32
 ## The art the stage pictures are looked for in when a stage names none (`shot`).
 const SHOT_PATH := "res://art/ui/stages/%s_s%d.jpg"
+## Pass 88 (lane STAGEMENU, Garry): the call to action under the header, its size.
+const CALL_TO_ACTION := "Choose a Stage"
+const CTA_PX := 52
+## The difficulty words by level (1 = the first stage's), and what an unmet boss's name says (pass 88).
+const DIFFICULTY_WORDS := ["Easy", "Medium", "Hard", "Extremely Hard"]
+const BOSS_UNMET := "Boss not encountered yet"
 
 var map_id := ""
 var hero: CharacterDef
@@ -57,7 +65,16 @@ func build() -> void:
 	var m := Registry.map(map_id)
 	var top := W.label("%s · %s" % [m.display_name if m else map_id, hero.display_name if hero else ""], 22, W.INK_SOFT)
 	top.custom_minimum_size.y = 24
-	content.add_child(top)
+	# pass 88 (Garry: 'Add a call to Action. "Choose a Stage"'): the screen's call under the map and hero line
+	var head := VBoxContainer.new()
+	head.name = "Head"
+	head.add_theme_constant_override("separation", 4)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(top)
+	var cta := W.slab_text(CALL_TO_ACTION, CTA_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, CTA_PX * 1.1)
+	cta.name = "CallToAction"
+	head.add_child(cta)
+	content.add_child(head)
 	var list := entries(m)
 	for i in list.size():
 		var c := _card(m, list, i)
@@ -116,7 +133,7 @@ func _card(m: MapDef, list: Array, i: int) -> WTap:
 	pad.add_child(body)
 	v.add_child(pad)
 	if open:
-		var diff := str(e.get("difficulty", ""))
+		var diff := difficulty_text(e, i)
 		if diff != "":
 			var d := W.text(diff, W.serif(700, false, W.em(DIFF_PX, 0.04)), DIFF_PX, tone(list, i), HORIZONTAL_ALIGNMENT_LEFT, DIFF_PX * 1.25, true)
 			d.name = "Difficulty"
@@ -259,13 +276,16 @@ func _facts(e: Dictionary, open: bool) -> HBoxContainer:
 	h.add_child(gap)
 	var bd: EnemyDef = Registry.enemy(str(e.get("boss", ""))) if str(e.get("boss", "")) != "" else null
 	if bd:
-		var p := WPlate.new().for_def(bd, BOSS_PX)
+		# pass 88 (Garry): the boss stays hidden (the Collection's silhouette) until the player has met him once
+		var met := boss_met(bd.id)
+		var p := WPlate.new().for_def(bd, BOSS_PX, not met)
 		p.name = "BossPlate"
 		p.border = 4
 		p.fill = W.AGED
 		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		p.set_meta("met", met)
 		h.add_child(p)
-		var bn := W.slab_text(bd.display_name, FACT_PX + 4, W.ROCK if open else W.INK_SOFT, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		var bn := W.slab_text(bd.display_name if met else BOSS_UNMET, FACT_PX + 4, (W.ROCK if open else W.INK_SOFT) if met else W.COMMON, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 		bn.name = "Boss"
 		bn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(bn)
@@ -362,15 +382,45 @@ static func beaten(p_map_id: String, i: int) -> bool:
 	return Save.stage_beaten(p_map_id, i)
 
 
-## What opens stage `i`: beating the stage before it ("Beat the Tumbleweed King", or "Beat Stage 1" with no boss).
+## What opens stage `i`: beating the stage before it ("Beat the Tumbleweed King" once he has been met; pass 88: "Beat
+## Stage 1" while he has not, or with no boss).
 static func requirement(_m: MapDef, list: Array, i: int) -> String:
 	if i <= 0 or i - 1 >= list.size():
 		return ""
 	var prev: Dictionary = list[i - 1]
 	var bd: EnemyDef = Registry.enemy(str(prev.get("boss", ""))) if str(prev.get("boss", "")) != "" else null
-	if bd:
+	if bd and boss_met(bd.id):
 		return "Beat %s" % _the(bd.display_name)
-	return "Beat %s" % str(prev.get("name", "Stage %d" % i))
+	return "Beat Stage %d" % i
+
+
+## Pass 88 (lane STAGEMENU): a boss is shown once the player has met him (Save.enemy_met: on the sand in a run once, or
+## killed: the Collection's rule).
+static func boss_met(id: String) -> bool:
+	return Save.enemy_met(id)
+
+
+## The difficulty line (pass 88, Garry: 'Just write "Difficulty: Easy" "Medium" "Hard" "Extremely Hard"'): "Difficulty: "
+## and the entry's `difficulty` (a word, or a level 1..4), else the word for the stage's place (the first Easy, then
+## Medium, Hard, Extremely Hard and on).
+static func difficulty_text(e: Dictionary, i: int) -> String:
+	return "Difficulty: " + difficulty_word(e, i)
+
+
+static func difficulty_word(e: Dictionary, i: int) -> String:
+	var own := str(e.get("difficulty", "")).strip_edges()
+	if own.is_valid_int():
+		return level_word(int(own) - 1)
+	if own.to_lower().begins_with("difficulty:"):
+		own = own.substr(11).strip_edges()
+	if own != "":
+		return own
+	return level_word(i)
+
+
+## The difficulty word of level `k` (0 = Easy; past the last, Extremely Hard).
+static func level_word(k: int) -> String:
+	return DIFFICULTY_WORDS[clampi(k, 0, DIFFICULTY_WORDS.size() - 1)]
 
 
 ## "the Tumbleweed King", "the Brander": a boss's name after "Beat", its own "The" in lower case.

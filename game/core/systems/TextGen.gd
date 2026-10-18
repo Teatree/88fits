@@ -59,6 +59,12 @@ const STATS := {
 	"bronco_chance": ["chance a knocked-back enemy is launched", "pct"], "debuff_jump": ["debuff jumps", "rule"],
 	"star_block_every": ["seconds between star blocks", "rule"], "gem_sweep_every": ["seconds between gem sweeps", "rule"],
 	"vein_chance": ["chance a kill bursts into 5 XP gems", "pct"], "gold_might": ["attack damage per 100 gold gained", "pct"],
+	# pass 88 (lane MIRROR), the Upgrade board's Stakes (MirrorDanger); "hidden": a stat never written anywhere (Garry: the
+	# coins and XP they pay more "we don't write that in the description")
+	"danger_hp": ["enemy HP", "pct"], "danger_attack": ["enemy attack", "pct"], "danger_speed": ["enemy speed", "pct"],
+	"danger_bounty": ["", "hidden"], "boss_danger_hp": ["boss and Elite HP", "pct"],
+	"boss_danger_attack": ["boss and Elite attack", "pct"], "boss_danger_speed": ["boss and Elite speed", "pct"],
+	"boss_danger_bounty": ["", "hidden"],
 }
 ## The words of a "rule" stat (pass 70, lane LINES: the evolved lines' twists), {n} its amount, then the unit its number
 ## carries on a pause row or a change row.
@@ -129,6 +135,9 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 	# a stat said in words (pass 69, "word": the Magnet's "pulls more often"): its name when it grows, nothing else
 	if kind == "word":
 		return name if e.value > 0.0 and with_name else ""
+	# a hidden stat (pass 88): nothing at all
+	if kind == "hidden":
+		return ""
 	# a rule (pass 70): its own words with the amount inside
 	if kind == "rule":
 		return rule_words(e.stat, e.value) if with_name else _plain(e.value) + str(RULE_TEXT.get(e.stat, ["", ""])[1])
@@ -694,7 +703,7 @@ static func _sum_effects(list: Array) -> Array:
 		if e == null:
 			continue
 		# a stat said in words has no total (pass 69: the Magnet's "pulls more often" is a step, never a sum)
-		if stat_kind(e.stat) == "word":
+		if stat_kind(e.stat) == "word" or stat_kind(e.stat) == "hidden":
 			continue
 		var key := e.stat + "|" + e.op + "|" + e.target
 		if not acc.has(key):

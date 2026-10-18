@@ -58,7 +58,7 @@
     "bd": "run_spread"
   },
   "variant_base": "FAD-A",
-  "variant": "FAD-C",
+  "variant": "FAD-E",
   "variants": {
     "FAD-A": {
       "note": "the placeholder blob strip the editor drew at creation (not art)",
@@ -344,8 +344,7 @@
         "run": 36,
         "hit": 12,
         "die": 8
-      },
-      "fresh": true
+      }
     },
     "FAD-F": {
       "recipe": {

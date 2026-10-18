@@ -101,6 +101,8 @@ func test_stage_one_is_always_open_and_the_next_opens_when_the_one_before_is_bea
 func test_a_locked_stage_asks_for_the_boss_before_it() -> void:
 	var m := Registry.map("red_canyon")
 	var list: Array = StagesScreenScript.entries(m)
+	# pass 88 (lane STAGEMENU): the boss is named once met (before that "Beat Stage 1": pass88_stagemenu_test)
+	Save.mark_seen("enemy", str(list[0]["boss"]))
 	var said: String = StagesScreenScript.requirement(m, list, 1)
 	var king: EnemyDef = Registry.enemy(str(list[0]["boss"]))
 	assert_str(said).starts_with("Beat ")
@@ -151,8 +153,11 @@ func test_the_menu_has_a_card_per_stage_and_a_locked_one_starts_nothing() -> voi
 
 func test_each_card_shows_its_name_length_and_boss() -> void:
 	_beat([true, true, false])
-	var m := await _menu()
 	var list: Array = StagesScreenScript.entries(Registry.map("red_canyon"))
+	# pass 88 (lane STAGEMENU): a boss is named once met (hidden before: pass88_stagemenu_test)
+	for e: Dictionary in list:
+		Save.mark_seen("enemy", str(e["boss"]))
+	var m := await _menu()
 	for c: WTap in m.call("cards"):
 		var i := int(c.get_meta("stage"))
 		var e: Dictionary = list[i]

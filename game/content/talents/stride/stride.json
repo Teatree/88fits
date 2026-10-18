@@ -2,15 +2,15 @@
   "id": "stride",
   "name": "Stride",
   "flavour": "Cover the ground, or pull it to you.",
-  "order": 3,
+  "order": 6,
   "ranks": 6,
   "cost": [
-    300,
-    540,
-    900,
-    1350,
-    1950,
-    2700
+    425,
+    765,
+    1275,
+    1915,
+    2765,
+    3825
   ],
   "forms": [
     {

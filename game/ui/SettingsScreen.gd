@@ -220,6 +220,15 @@ func _debug_panel() -> PanelContainer:
 		sw2.toggled.connect(func(on: bool): Settings.set_value("pierce_falloff", on))
 		r2.add_child(sw2)
 		col.add_child(r2)
+	# the hero's knockback from hits (pass 88, Garry: "Remove the Knockback from being hit for Player entirely. Add this
+	# option in the Debug version of the Settings menu"): off by default; on, every hit pushes him as before
+	if "hero_knockback" in Settings:
+		var r3 := _row("Hero knockback")
+		var sw3 := WSwitch.make(bool(Settings.get("hero_knockback")))
+		sw3.name = "HeroKnockback"
+		sw3.toggled.connect(func(on: bool): Settings.set_value("hero_knockback", on))
+		r3.add_child(sw3)
+		col.add_child(r3)
 	return p
 
 
