@@ -36,9 +36,12 @@ const BOT_NUMBERS := [["skill", "Skill", 0.0, 1.0, 0.05, "how well he picks card
 ## the bot's choice options: [key, label, choices]
 const BOT_CHOICES := [["style", "Style", ["balanced", "damage", "safety", "greedy"]], ["boss", "Boss", ["leash", "free"]],
 	["cards", "Cards", ["tier", "score"]], ["portal", "Portal", ["endless", "extract"]]]
-const BOOL_WORDS := {"totems": "Totem Poles", "barrels": "Barrels", "powerups": "Power-ups", "structures": "Structures",
+const BOOL_WORDS := {"breakout": "Ring breakout", "totems": "Totem Poles", "barrels": "Barrels", "powerups": "Power-ups", "structures": "Structures",
 	"shop": "Shop", "stranger": "Stranger", "specials": "Specials"}
-const DEATHS := [["end", "end the run at the first fall"], ["ad", "the ad revive once, then end"], ["keep", "stand up at once, count every fall"]]
+## pass 90 (lane WATCH): ask (the default: the run pauses at his fall, Revive R / with blast B / End run E, as often as
+## he falls) and auto (the Watch stands him up by itself) before the bot's own answers to Down!
+const DEATHS := [["ask", "pause and ask: Revive (R) or End run (E), every fall"], ["auto", "revive him by itself, every fall (counted)"],
+	["end", "end the run at the first fall"], ["ad", "the ad revive once, then end"], ["keep", "the bot stands up at once, count every fall"]]
 const PRESET_ORDER := ["none", "quarter", "half", "full", "save"]
 const PRESET_WORDS := {"none": "None", "quarter": "A quarter", "half": "Half", "full": "Full", "save": "My save"}
 const FORM_COLS := [Color(0.43, 0.71, 1.0), Color(0.93, 0.66, 0.26)]
@@ -93,7 +96,7 @@ static func defaults_from_args(args: Dictionary) -> Dictionary:
 		"stage": maxi(int(args.get("stage", "1")), 1),
 		"seed": maxi(int(args.get("seed", "1")), 1), "seed_random": str(args.get("seed_random", "0")) == "1",
 		"speed": CLOCK.nearest(float(args.get("speed", "1"))), "limit": maxf(float(args.get("limit", "0")), 0.0),
-		"death": str(args.get("death", "end")), "sound": str(args.get("sound", "0")) == "1", "numbers": str(args.get("numbers", "1")) != "0",
+		"death": str(args.get("death", "ask")), "sound": str(args.get("sound", "0")) == "1", "numbers": str(args.get("numbers", "1")) != "0",
 		"unlocks": str(args.get("unlocks", "all")), "talents": str(args.get("talents", "none")), "board_label": str(args.get("board_label", "")),
 		"bot": "stub" if str(args.get("bot", "auto")) == "stub" else "auto", "bot_opts": {}}
 	var o := {}
@@ -492,7 +495,7 @@ func _build_run(parent: Control) -> void:
 	_death = OptionButton.new()
 	for d in DEATHS:
 		_death.add_item("%s: %s" % [str(d[0]), str(d[1])])
-	_row(g, "Down!", _death, "how the bot answers Down!")
+	_row(g, "Down!", _death, "when he falls: you revive him (ask), the Watch does (auto), or the bot answers Down!")
 	var sw := HBoxContainer.new()
 	sw.add_theme_constant_override("separation", 14)
 	_sound = CheckBox.new()
@@ -555,6 +558,11 @@ func _build_bot(parent: Control) -> void:
 			ob.add_item(str(c))
 		_bot_fields[str(spec[0])] = ob
 		_row(g, str(spec[1]), ob, "")
+		# pass 90: choosing the safety style ticks the ring breakout (it is part of that style; untick it to leave it out)
+		if str(spec[0]) == "style":
+			ob.item_selected.connect(func(j: int) -> void:
+				if ob.get_item_text(j) == "safety" and _bot_fields.has("breakout"):
+					(_bot_fields["breakout"] as CheckBox).button_pressed = true)
 	if (BOT_NUMBERS.size() + BOT_CHOICES.size()) % 2 == 1:
 		g.add_child(Control.new())
 		g.add_child(Control.new())
@@ -566,6 +574,8 @@ func _build_bot(parent: Control) -> void:
 		var cb := CheckBox.new()
 		cb.text = str(BOOL_WORDS.get(str(key), str(key).capitalize()))
 		cb.tooltip_text = "goes for %s" % cb.text.to_lower()
+		if str(key) == "breakout":
+			cb.tooltip_text = "surrounded by a ring, he pushes out through its thinnest wall (part of the safety style)"
 		_bot_fields[str(key)] = cb
 		flow.add_child(cb)
 
@@ -769,7 +779,7 @@ func _fill(s: Dictionary) -> void:
 	_limit.text = limit_text(float(s.get("limit", 0.0)))
 	var di := 0
 	for j in range(DEATHS.size()):
-		if str(DEATHS[j][0]) == str(s.get("death", "end")):
+		if str(DEATHS[j][0]) == str(s.get("death", "ask")):
 			di = j
 	_death.select(di)
 	_sound.button_pressed = bool(s.get("sound", false))
@@ -852,6 +862,10 @@ func collect() -> Dictionary:
 		"board_label": board_words(picks, presets, labels, _talent_ids.size()),
 		"bot": "stub" if preset == "stub" else "auto"}
 	s["bot_opts"] = {} if preset == "stub" else bot_diff(preset, _bot_presets().get(preset, {}), _bot_values())
+	# pass 90 (lane BOT's note): the safety style brings the ring breakout unless it is given (Bot.resolve_opts), so with
+	# the safety style the box's state always goes along, ticked or not
+	if preset != "stub" and _bot_fields.has("breakout") and str((s["bot_opts"] as Dictionary).get("style", _bot_values().get("style", ""))) == "safety":
+		s["bot_opts"]["breakout"] = bool(_bot_values()["breakout"])
 	return s
 
 

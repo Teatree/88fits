@@ -14,6 +14,7 @@ const CHART := preload("res://tools/watch/WatchChart.gd")
 const STRIP := preload("res://tools/watch/WatchStrip.gd")
 const DATA := preload("res://tools/watch/WatchData.gd")
 const CLOCK := preload("res://tools/watch/WatchClock.gd")
+const HURT := preload("res://tools/watch/WatchHurt.gd")
 
 const BG := Color(0.082, 0.09, 0.11)
 const CARD := Color(0.105, 0.115, 0.14)
@@ -34,6 +35,10 @@ const WINDOW_S := 180.0
 ## pass 82: the pickups' marks on the Level and XP chart: [kind, word, colour, shape, lane]
 const PICKUP_MARKS := [["chests", "Chests", Color(0.98, 0.8, 0.3), "square", 2], ["powerups", "Power-ups", Color(0.42, 0.88, 0.62), "circle", 1],
 	["totems", "Totems", Color(0.95, 0.55, 0.8), "triangle", 0]]
+## pass 90: the Damage taken table's share of the charts' column against a chart's 1
+const HURT_STRETCH := 1.9
+## pass 90: a pickup mark's name in the charts' hover
+const PICKUP_ONE := {"chests": "Chest", "powerups": "Power-up", "totems": "Totem gift"}
 ## the decision log shows at most this many entries, newest first
 const LOG_MAX := 60
 
@@ -67,6 +72,17 @@ var _end_text: RichTextLabel
 var _log_key := ""
 var _build_key := ""
 var _share_cols: Dictionary = {}
+## pass 90 (lane WATCH): the HP chart's tabs (HP & Danger | Damage taken, the D key), the Damage taken table, and the
+## down box (the bot fell: Revive, Revive with a blast, End run)
+var show_hurt := false
+var _hp_chart_tab: Button
+var _hurt_tab: Button
+var _hurt
+var _down_box: PanelContainer
+var _down_text: Label
+var _win_label: Label
+var _win_btns: Dictionary = {}
+var _hp_block_box: VBoxContainer
 
 
 func build(w: Node) -> void:
@@ -89,6 +105,7 @@ func build(w: Node) -> void:
 	_end_box.add_child(_end_text)
 	_end_box.visible = false
 	col.add_child(_end_box)
+	col.add_child(_down_block())
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 10)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -130,8 +147,12 @@ func build(w: Node) -> void:
 		c.title = t
 		c.custom_minimum_size = Vector2(0, 72)
 		c.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		a.add_child(c)
 		_charts.append(c)
+		# pass 90: the HP chart shares its place with the Damage taken tab
+		if t.begins_with("HP"):
+			a.add_child(_hp_block(c))
+		else:
+			a.add_child(c)
 	# 4: the decision log
 	var lg_head := HBoxContainer.new()
 	lg_head.add_child(_section("Decisions"))
@@ -318,6 +339,156 @@ func _header() -> Control:
 	return v
 
 
+## Pass 90: the HP chart's place: a row of two tabs (HP & Danger | Damage taken, the D key) over the chart or the Damage
+## taken table (WatchHurt.gd), one shown at a time.
+func _hp_block(c) -> Control:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 2)
+	v.add_child(tabs)
+	_hp_chart_tab = _tab_button("HP & Danger", "the HP chart, Danger beneath (D switches)", func() -> void: set_hurt_tab(false))
+	_hurt_tab = _tab_button("Damage taken", "where the damage comes from: by source and attack, the whole run and the last seconds, the shield's and the evaded parts apart (D switches)", func() -> void: set_hurt_tab(true))
+	tabs.add_child(_hp_chart_tab)
+	tabs.add_child(_hurt_tab)
+	# the table's window: its last-seconds column (shown with the table)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tabs.add_child(sp)
+	_win_label = Label.new()
+	_win_label.text = "last"
+	_win_label.add_theme_font_size_override("font_size", 12)
+	_win_label.add_theme_color_override("font_color", DIM)
+	tabs.add_child(_win_label)
+	for s in HURT.WINDOWS:
+		var secs := int(s)
+		var wb := _tab_button("%d s" % secs, "the table's last-seconds column over the last %d s of play" % secs, func() -> void: set_hurt_window(secs))
+		tabs.add_child(wb)
+		_win_btns[secs] = wb
+	_hp_block_box = v
+	v.add_child(c)
+	_hurt = HURT.new()
+	_hurt.custom_minimum_size = Vector2(0, 72)
+	_hurt.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_hurt.visible = false
+	_hurt.window_changed.connect(func(s: int) -> void: set_hurt_window(s))
+	v.add_child(_hurt)
+	_show_tab()
+	return v
+
+
+func _tab_button(text: String, tip: String, cb: Callable) -> Button:
+	var bt := Button.new()
+	bt.text = text
+	bt.tooltip_text = tip
+	bt.focus_mode = Control.FOCUS_NONE
+	bt.toggle_mode = true
+	bt.add_theme_font_size_override("font_size", 12)
+	bt.add_theme_stylebox_override("normal", _box(Color(0.12, 0.13, 0.16), 3, 6, EDGE))
+	bt.add_theme_stylebox_override("hover", _box(Color(0.18, 0.2, 0.24), 3, 6, EDGE))
+	bt.add_theme_stylebox_override("pressed", _box(Color(0.105, 0.115, 0.14), 3, 6, ACCENT))
+	bt.add_theme_color_override("font_pressed_color", ACCENT)
+	bt.add_theme_color_override("font_color", DIM)
+	bt.pressed.connect(cb)
+	return bt
+
+
+## Pass 90: the HP block shows the Damage taken table (`on`) or the HP chart.
+func set_hurt_tab(on: bool) -> void:
+	show_hurt = on
+	_show_tab()
+	if on:
+		_refresh_hurt()
+
+
+## Pass 90: the table's last-seconds window (10, 30 or 60 s).
+func set_hurt_window(secs: int) -> void:
+	if _hurt == null:
+		return
+	_hurt.window_s = secs
+	_show_tab()
+	_refresh_hurt()
+
+
+func _show_tab() -> void:
+	if _hurt == null:
+		return
+	_hurt.visible = show_hurt
+	(_charts[1] as Control).visible = not show_hurt
+	_hp_chart_tab.set_pressed_no_signal(not show_hurt)
+	_hurt_tab.set_pressed_no_signal(show_hurt)
+	_win_label.visible = show_hurt
+	for s in _win_btns:
+		var wb: Button = _win_btns[s]
+		wb.visible = show_hurt
+		wb.set_pressed_no_signal(int(s) == int(_hurt.window_s))
+	# the table takes more of the column than a chart (its rows want the room); the chart its own share
+	if _hp_block_box != null:
+		_hp_block_box.size_flags_stretch_ratio = HURT_STRETCH if show_hurt else 1.0
+
+
+## A check's pointer (the action "hover=<chart 0..3 | hurt>/<x share>/<y share>"): the hover drawn there as the mouse
+## would draw it.
+func check_hover(spec: String) -> void:
+	var bits := spec.split("/")
+	if bits.size() != 3:
+		return
+	var c: Control = _hurt if bits[0] == "hurt" else (_charts[clampi(int(bits[0]), 0, _charts.size() - 1)] as Control)
+	if c == null:
+		return
+	# (one pointer: the others' hover goes, as when the mouse leaves them)
+	for o in _charts + [_hurt]:
+		if o != c and o != null:
+			o.set("hover", Vector2(-1, -1))
+			o.queue_redraw()
+	# (x as "t<play seconds>" on a chart: that moment's place)
+	var x := float(bits[1]) * c.size.x
+	if bits[1].begins_with("t") and c.has_method("to_px"):
+		x = c.to_px(Vector2(float(bits[1].substr(1)), 0.0), 0).x
+	elif bits[1] == "fall" and c.has_method("to_px") and not (watch.data.falls as Array).is_empty():
+		x = c.to_px(Vector2(float(watch.data.falls[-1]["t"]), 0.0), 0).x
+	c.set("hover", Vector2(x, float(bits[2]) * c.size.y))
+	c.queue_redraw()
+
+
+## The Damage taken table's rows now (the whole run's and the window's), when it shows.
+func _refresh_hurt() -> void:
+	if _hurt == null or not show_hurt or watch == null:
+		return
+	var data = watch.data
+	var now: float = watch.play_t()
+	_hurt.set_rows(data.hurt_rows(-1.0), data.hurt_rows(now - float(_hurt.window_s)), now)
+
+
+## Pass 90: the box that says the bot is down and waits (Watch.down_wait): Revive (R), Revive with a blast (B), End run
+## (E).
+func _down_block() -> Control:
+	_down_box = PanelContainer.new()
+	_down_box.add_theme_stylebox_override("panel", _box(Color(0.2, 0.08, 0.08), 6, 8, BAD))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 6)
+	_down_box.add_child(h)
+	_down_text = Label.new()
+	_down_text.add_theme_font_size_override("font_size", 15)
+	_down_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_down_text.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_down_text.custom_minimum_size = Vector2(40, 0)
+	_down_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_down_text.mouse_filter = Control.MOUSE_FILTER_PASS
+	h.add_child(_down_text)
+	var rv := _button("Revive (R)", "stand him up where he fell at full health and shield, two seconds of blinking, the crowd as it is; the run goes on (as often as you like)",
+		func() -> void: watch.watch_revive(false))
+	rv.add_theme_stylebox_override("normal", _box(Color(0.16, 0.3, 0.18), 4, 8, GOOD))
+	rv.add_theme_stylebox_override("hover", _box(Color(0.2, 0.38, 0.22), 4, 8, GOOD))
+	h.add_child(rv)
+	h.add_child(_button("Revive with blast (B)", "the same, with the game's own revive blast (Down!'s: the crowd round him killed, the big ones pushed)",
+		func() -> void: watch.watch_revive(true)))
+	h.add_child(_button("End run (E)", "he stays down: the run ends here as a death (recorded)", func() -> void: watch.end_down()))
+	_down_box.visible = false
+	return _down_box
+
+
 func _on_meta(meta) -> void:
 	watch.open_meta(str(meta))
 
@@ -340,6 +511,9 @@ func reset_run() -> void:
 	_log_key = ""
 	_build_key = ""
 	_share_cols = {}
+	if _hurt != null:
+		_hurt.scroll = 0
+		_hurt.set_rows([], [], 0.0)
 	if _build_box != null:
 		for c in _build_box.get_children():
 			_build_box.remove_child(c)
@@ -396,12 +570,22 @@ func refresh() -> void:
 		var txt: String = w.end_words()
 		if _end_text.text != txt:
 			_end_text.text = txt
+	# pass 90: the bot is down and the Watch waits for Revive or End run
+	var dw := bool(w.get("down_wait"))
+	_down_box.visible = dw and not w.ended
+	if dw:
+		var dt: String = w.down_words()
+		if _down_text.text != dt:
+			_down_text.text = dt
+			_down_text.tooltip_text = dt
+	_pause_btn.disabled = dw
 	# 2: the live numbers
 	_live(w, data, run, game)
 	# 4, 5, 6
 	_decisions(w, data)
 	_build_text(w, data, run)
 	_threat_text(w, data, game)
+	_refresh_hurt()
 
 
 func _set_tile(key: String, val: String, sub: String = " ", col: Color = TEXT) -> void:
@@ -428,7 +612,10 @@ func _live(w: Node, data, run: Node, game: Node) -> void:
 	var hp := float(player.hp) if player else float(data.hp[i])
 	var mx := float(player.max_hp) if player else float(data.hp_max[i])
 	var hp_col := GOOD if hp >= 0.6 * mx else (ACCENT if hp >= 0.3 * mx else BAD)
-	_set_tile("hp", "%d / %d" % [int(ceil(hp)), int(roundf(mx))], "%d%%" % int(roundf(100.0 * hp / maxf(mx, 1.0))), hp_col)
+	# pass 90: and how often the Watch stood him up again
+	var nrev: int = data.watch_revives()
+	_set_tile("hp", "%d / %d" % [maxi(int(roundf(hp)), 1 if hp > 0.0 else 0), int(roundf(mx))], "%d%%%s" % [int(roundf(100.0 * hp / maxf(mx, 1.0))),
+		(" · revived %d×" % nrev) if nrev > 0 else ""], hp_col)
 	var dg: float = data.danger[i]
 	_set_tile("danger", "%.1f%%" % dg, "max HP lost a second (5 s)", BAD if dg >= 3.0 else (ACCENT if dg >= 1.0 else TEXT))
 	var ku: float = data.keep_up[i]
@@ -448,20 +635,31 @@ func _live(w: Node, data, run: Node, game: Node) -> void:
 		cap = int(game.director.current_cap())
 	_set_tile("crowd", ("%d / %d" % [data.alive[i], cap]) if cap > 0 else "%d" % data.alive[i], "%s HP alive%s" % [_num(data.crowd[i]),
 		" · the cap now" if cap > 0 else ""], PURPLE)
-	_pickup_tiles(data)
+	_pickup_tiles(data, w.get("bot") if w else null)
 
 
 ## Pass 82: the run's chests, power-ups and totems so far (each in its mark's colour), and the specials killed of those
 ## that came.
-func _pickup_tiles(data) -> void:
+func _pickup_tiles(data, bot = null) -> void:
 	var tot: Dictionary = data.pickup_totals()
 	var subs := {"chests": "opened, skips too", "powerups": "taken, not the small", "totems": "gifts taken"}
 	for m in PICKUP_MARKS:
 		var k := str(m[0])
 		_set_tile(k, "%d" % int(tot[k]), str(subs[k]), m[2])
-	var sc := int(data.special_chests)
-	_set_tile("specials", "%d / %d" % [int(data.specials_killed), int(data.specials_came)], "killed / came%s" % (
-		(" · %d chest%s" % [sc, "" if sc == 1 else "s"]) if sc > 0 else ""), Color(0.95, 0.55, 0.8) if int(data.specials_came) > int(data.specials_killed) else TEXT)
+	# pass 90 (lead): the special creature types (Rocketeer, Sniper, Harpooner: Bot.special_tallies), the ones the bot
+	# hunts; the coloured variance specials only where there is no bot to say
+	var came := int(data.specials_came)
+	var killed := int(data.specials_killed)
+	var sub := "killed / came"
+	if bot != null and bot.has_method("special_tallies"):
+		var st: Dictionary = bot.special_tallies()
+		came = int(st.get("came", 0))
+		killed = int(st.get("killed", 0))
+		sub = "special types killed / came"
+	# the chests are the coloured specials' (the recorder's special_kill): only beside their own counts
+	var sc := int(data.special_chests) if sub == "killed / came" else 0
+	_set_tile("specials", "%d / %d" % [killed, came], "%s%s" % [sub,
+		(" · %d chest%s" % [sc, "" if sc == 1 else "s"]) if sc > 0 else ""], Color(0.95, 0.55, 0.8) if came > killed else TEXT)
 
 
 ## The per-second rate of a running count over its newest `secs` rows.
@@ -526,6 +724,10 @@ static func _filled(list: Array) -> int:
 
 func _entry(w: Node, d: Dictionary) -> String:
 	var kind := str(d.get("kind", ""))
+	# pass 90: the Watch's own lines: a fall it waits on, a revive
+	if kind == "down" or kind == "revive":
+		return "[color=#%s]%s · Lv %d · %s[/color]  %s\n" % [_hex(BAD if kind == "down" else GOOD), DATA.mmss(float(d.get("clock", 0.0))),
+			int(d.get("level", 0)), "DOWN" if kind == "down" else "REVIVED", _esc(str(d.get("reason", "")))]
 	var lines := PackedStringArray()
 	var head := "[color=#%s]%s · Lv %d · %s[/color]" % [_hex(DIM), DATA.mmss(float(d.get("clock", 0.0))), int(d.get("level", 0)), kind]
 	lines.append(head)
@@ -762,8 +964,13 @@ func _threat_text(w: Node, data, game: Node) -> void:
 					continue
 				var amount := ("%d" % int(roundf(dealt))) if dealt >= 0.5 or note == "" else note
 				last.append("%s %s%s" % [_esc(str(h.get("by", "?"))), amount, " (fatal)" if bool(h.get("fatal", false)) else ""])
-		lines.append("[color=#%s]Fell[/color] at %s to %s%s%s" % [_hex(BAD), DATA.mmss(float(f["clock"])), _esc(w.name_of(str(f["killer"]))),
-			(" (%s)" % str(f["hit"])) if str(f["hit"]) != "" else "", ("; last hits: " + ", ".join(last)) if not last.is_empty() else ""])
+		# pass 90: a fall the Watch (or Phoenix Feather) stood him up from says so
+		var rv := str(f.get("revived", ""))
+		var rv_txt := ""
+		if rv != "":
+			rv_txt = " [color=#%s]· revived%s[/color]" % [_hex(GOOD), " by you" if rv == "watch" else " (%s)" % rv]
+		lines.append("[color=#%s]Fell[/color] at %s to %s%s%s%s" % [_hex(BAD), DATA.mmss(float(f["clock"])), _esc(w.name_of(str(f["killer"]))),
+			(" (%s)" % str(f["hit"])) if str(f["hit"]) != "" else "", rv_txt, ("; last hits: " + ", ".join(last)) if not last.is_empty() else ""])
 	_threat.text = "\n".join(lines)
 
 
@@ -779,9 +986,7 @@ func update_charts() -> void:
 	var x0 := 0.0 if whole_run else maxf(x1 - WINDOW_S, 0.0)
 	var cols := 360
 	var ref: Dictionary = watch.ref
-	var marks: Array = []
-	for f in data.falls:
-		marks.append({"x": float(f["t"]), "color": Color(BAD.r, BAD.g, BAD.b, 0.8)})
+	var marks: Array = fall_marks(data.falls, watch)
 	for c in _charts:
 		c.x0 = x0
 		c.x1 = x1
@@ -793,11 +998,11 @@ func update_charts() -> void:
 	var est_pts: PackedVector2Array = DATA.bucket(data.t, data.est, x0, x1, cols)
 	var crowd_pts: PackedVector2Array = DATA.bucket(data.t, data.crowd, x0, x1, cols)
 	var ref_dps := _ref_pts(ref, "dps", x0, x1, cols)
-	c1.series = [{"pts": crowd_pts, "color": PURPLE, "width": 1.2, "axis": 1, "fill": true}]
+	c1.series = [{"pts": crowd_pts, "name": "Crowd HP", "color": PURPLE, "width": 1.2, "axis": 1, "fill": true}]
 	if not ref_dps.is_empty():
-		c1.series.append({"pts": ref_dps, "color": GREY, "width": 1.5, "axis": 0})
-	c1.series.append({"pts": est_pts, "color": Color(0.98, 0.85, 0.35, 0.8), "width": 1.2, "axis": 0, "dashed": true})
-	c1.series.append({"pts": dps_pts, "color": ACCENT, "width": 2.0, "axis": 0})
+		c1.series.append({"pts": ref_dps, "name": "Sim avg DPS", "color": GREY, "width": 1.5, "axis": 0})
+	c1.series.append({"pts": est_pts, "name": "Estimate", "color": Color(0.98, 0.85, 0.35, 0.8), "width": 1.2, "axis": 0, "dashed": true})
+	c1.series.append({"pts": dps_pts, "name": "Real DPS", "color": ACCENT, "width": 2.0, "axis": 0})
 	c1.axes = [{"max": DATA.nice_max(maxf(maxf(_max_y(dps_pts), _max_y(est_pts)), _max_y(ref_dps))), "fmt": "k", "unit": ""},
 		{"max": DATA.nice_max(_max_y(crowd_pts)), "fmt": "k", "unit": ""}, {"max": 0.0}]
 	c1.legend = [["Real DPS (5 s)", ACCENT], ["Estimate", Color(0.98, 0.85, 0.35)], ["Crowd HP (right)", PURPLE]]
@@ -811,8 +1016,8 @@ func update_charts() -> void:
 		var ref_pw := _ref_pts(ref, "power", x0, x1, cols)
 		c1.series = []
 		if not ref_pw.is_empty():
-			c1.series.append({"pts": ref_pw, "color": GREY, "width": 1.5, "axis": 0})
-		c1.series.append({"pts": pw_pts, "color": Color(0.55, 0.8, 1.0), "width": 2.0, "axis": 0, "fill": true})
+			c1.series.append({"pts": ref_pw, "name": "Sim avg", "color": GREY, "width": 1.5, "axis": 0})
+		c1.series.append({"pts": pw_pts, "name": "Power", "color": Color(0.55, 0.8, 1.0), "width": 2.0, "axis": 0, "fill": true})
 		c1.axes = [{"max": DATA.nice_max(maxf(maxf(_max_y(pw_pts), _max_y(ref_pw)), 1.0)), "fmt": "%.1f", "unit": ""}, {"max": 0.0}, {"max": 0.0}]
 		c1.legend = [["Power: sqrt(full DPS / 20.4 x eff. HP / 100)", Color(0.55, 0.8, 1.0)]]
 		if not ref_pw.is_empty():
@@ -824,11 +1029,11 @@ func update_charts() -> void:
 	var dg_pts: PackedVector2Array = DATA.bucket(data.t, data.danger, x0, x1, cols)
 	var ref_hp := _ref_pts(ref, "hp", x0, x1, cols)
 	c2.lower = 0.34
-	c2.series = [{"pts": mx_pts, "color": Color(GOOD.r, GOOD.g, GOOD.b, 0.35), "width": 1.0, "axis": 0},
-		{"pts": hp_pts, "color": GOOD, "width": 2.0, "axis": 0, "fill": true},
-		{"pts": dg_pts, "color": BAD, "width": 1.4, "axis": 2, "fill": true}]
+	c2.series = [{"pts": mx_pts, "name": "Max HP", "color": Color(GOOD.r, GOOD.g, GOOD.b, 0.35), "width": 1.0, "axis": 0},
+		{"pts": hp_pts, "name": "HP", "color": GOOD, "width": 2.0, "axis": 0, "fill": true},
+		{"pts": dg_pts, "name": "Danger", "color": BAD, "width": 1.4, "axis": 2, "fill": true}]
 	if not ref_hp.is_empty():
-		c2.series.insert(1, {"pts": ref_hp, "color": GREY, "width": 1.5, "axis": 0})
+		c2.series.insert(1, {"pts": ref_hp, "name": "Sim avg HP", "color": GREY, "width": 1.5, "axis": 0})
 	c2.axes = [{"max": DATA.nice_max(maxf(_max_y(mx_pts), _max_y(ref_hp))), "fmt": "%.0f", "unit": ""}, {"max": 0.0},
 		{"max": DATA.nice_max(maxf(_max_y(dg_pts), 2.0)), "fmt": "%.0f", "unit": "%"}]
 	c2.legend = [["HP", GOOD], ["Max HP", Color(GOOD.r, GOOD.g, GOOD.b, 0.45)], ["Danger (below)", BAD]]
@@ -846,10 +1051,10 @@ func update_charts() -> void:
 	var lv_pts: PackedVector2Array = DATA.bucket(data.t, lv, x0, x1, cols)
 	var xp_pts: PackedVector2Array = DATA.bucket(data.t, xp, x0, x1, cols)
 	var ref_lv := _ref_pts(ref, "level", x0, x1, cols)
-	c3.series = [{"pts": xp_pts, "color": Color(BLUE.r, BLUE.g, BLUE.b, 0.5), "width": 1.0, "axis": 1, "fill": true}]
+	c3.series = [{"pts": xp_pts, "name": "XP to next", "color": Color(BLUE.r, BLUE.g, BLUE.b, 0.5), "width": 1.0, "axis": 1, "fill": true}]
 	if not ref_lv.is_empty():
-		c3.series.append({"pts": ref_lv, "color": GREY, "width": 1.5, "axis": 0})
-	c3.series.append({"pts": lv_pts, "color": BLUE, "width": 2.0, "axis": 0})
+		c3.series.append({"pts": ref_lv, "name": "Sim avg level", "color": GREY, "width": 1.5, "axis": 0})
+	c3.series.append({"pts": lv_pts, "name": "Level", "color": BLUE, "width": 2.0, "axis": 0})
 	c3.axes = [{"max": DATA.nice_max(maxf(maxf(_max_y(lv_pts), _max_y(ref_lv)), 8.0)), "fmt": "%.0f", "unit": ""},
 		{"max": 100.0, "fmt": "%.0f", "unit": "%"}, {"max": 0.0}]
 	c3.legend = [["Level", BLUE], ["XP to next (right)", Color(BLUE.r, BLUE.g, BLUE.b, 0.6)]]
@@ -860,6 +1065,24 @@ func update_charts() -> void:
 	_share_chart(_charts[3], data, x0, x1, mini(cols, 240))
 	for c in _charts:
 		c.queue_redraw()
+
+
+## Pass 90: the falls as the charts' marks: a red line each, named for the hover ("Fell to Goblin (melee) at 3:12"), a
+## revived one with a green dot on its top and "· revived" (pure; tested). `w` names the killer (name_of), or null.
+static func fall_marks(falls: Array, w) -> Array:
+	var out: Array = []
+	for f in falls:
+		var killer := str(f.get("killer", ""))
+		var nm: String = str(w.name_of(killer)) if w != null and killer != "" else (killer if killer != "" else "something")
+		var hit := str(f.get("hit", ""))
+		var m := {"x": float(f["t"]), "color": Color(BAD.r, BAD.g, BAD.b, 0.8),
+			"name": "Fell to %s%s at %s" % [nm, (" (%s)" % hit) if hit != "" else "", DATA.mmss(float(f.get("clock", f["t"])))]}
+		var rv := str(f.get("revived", ""))
+		if rv != "":
+			m["tip"] = GOOD
+			m["name"] = str(m["name"]) + (" · revived" if rv == "watch" else " · up again (%s)" % rv)
+		out.append(m)
+	return out
 
 
 ## Pass 82: a mark at each chest, power-up and totem gift picked up (PICKUP_MARKS: one lane, shape and colour a kind) on
@@ -878,7 +1101,7 @@ static func pickup_points(pickups: Dictionary) -> Array:
 	var out: Array = []
 	for m in PICKUP_MARKS:
 		for t in pickups.get(str(m[0]), []):
-			out.append({"x": float(t), "lane": int(m[4]), "shape": str(m[3]), "color": m[2]})
+			out.append({"x": float(t), "lane": int(m[4]), "shape": str(m[3]), "color": m[2], "name": "%s at %s" % [str(PICKUP_ONE[str(m[0])]), DATA.mmss(float(t))]})
 	return out
 
 
@@ -942,7 +1165,7 @@ func _share_chart(c, data, x0: float, x1: float, ncols: int) -> void:
 	var legend: Array = []
 	for j in range(ids.size()):
 		var col: Color = _share_colour(str(ids[j]))
-		c.bands.append({"top": tops[j], "bottom": bottoms[j], "color": Color(col.r, col.g, col.b, 0.75)})
+		c.bands.append({"top": tops[j], "bottom": bottoms[j], "color": Color(col.r, col.g, col.b, 0.75), "name": "Other" if ids[j] == "other" else str(watch.name_of(ids[j]))})
 		var nm: String = "Other" if ids[j] == "other" else watch.name_of(ids[j])
 		legend.append(["%s %d%%" % [nm, int(roundf(100.0 * float(order[j][1])))], col])
 	c.legend = legend

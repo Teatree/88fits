@@ -1875,3 +1875,90 @@ Code: `StagesScreen.difficulty_word(entry, i)`, `difficulty_text`, `level_word(k
   board= / mirror= board (0 Difficulty, 1 Boss).
 - `tools/level_editor/sim_io.talents()` lists the talents in the board's order and adds `first_price`, `order`,
   `in_presets`.
+
+## Pass 90: new keys
+
+### The bot's ring breakout, the Survivor preset, hunting only the special types (lane BOT)
+
+#### The bot's options (game/tools/bot/Bot.gd; sim_run.gd args, watch.py --bot, the Sim tab's Bot group, WatchSetup)
+| key | type | default | meaning |
+|---|---|---|---|
+| `breakout` | bool | false (true in the "survivor" preset; true when `style` is given as `safety` and `breakout` is not given) | the ring breakout (game/tools/bot/BotBreakout.gd): when a ring of creatures comes up round him, or the crowd has shut him in with open ground past it, he picks the thinnest side and pushes through at full speed, taking the bites, until out by a margin (rules: tools/dl/p90/balancing_BOT.md) |
+
+#### The new preset
+| preset | label | values |
+|---|---|---|
+| `survivor` | Survivor | the Explorer's values with `style: "safety"` and `breakout: true` |
+
+Every preset now names `breakout` (false in sim77, explorer, careless, expert).
+
+#### The run sim's meta.bot (Bot.summary())
+- `breakout`: {started, rings, out, timeout} (the pushes started, those a fresh ring started, ended out by the margin,
+  ended by the clock); {} with the option off.
+- `specials`: {came, killed, life_s, hunted, found, hunted_down, gave_up, coloured}: came / killed / life_s are now the
+  special creature TYPES the bot saw (the gear badge: rocketeer = Vulture Raider, saiga_sniper, harpoon_troglodyte),
+  watched every 15 frames; `coloured` {came, killed, chests, life_s} is pass 82's tally of the coloured variance
+  specials from the recorder's events (no longer hunted). The old top-level `chests` moved into `coloured`.
+
+#### Decision kinds and intents (the Watch's log and <stamp>_decisions.csv)
+- kind `breakout`, two entries a push:
+  - phase `start`: taken `way:<deg>` (degrees from north, clockwise), offered = the three cheapest ways
+    [{id "way:<deg>", name (compass word), score (minus the cost), parts {wall (creatures in the lane), bites (their
+    weighted metres), beyond, edge, rock, lean}}], extra `trigger` ("ring" | "surrounded"), `dir_deg`, `dir` (compass
+    word), `thick`, `bites`, `beyond`, `n`, `gap_deg`, and `ring_r` (a ring) or `cover` (shut in). Reasons: "a ring of 30
+    came up round him 18 m off: out through its thinnest side before it closes, east (1 creature in the way)" /
+    "surrounded: 24 creatures round him, 100% of the ways shut, the widest gap 5°; pushes through the thinnest wall,
+    north-east (2 creatures in the way)".
+  - phase `end`: taken "", extra `trigger`, `why` ("out" | "timeout"), `secs`, `metres`, `hp_lost`. Reasons: "out of the
+    ring after 2.1 s and 11 m, 7 HP lost" / "stopped pushing after 3.0 s (14 m), 12 HP lost".
+- intent `breakout` while a push is under way (mode_frames["breakout"]).
+
+#### Functions others call
+- `Bot.on_revived()`: the Watch's revive; clears the breakout, the goal held, the hold, danger's memory, the dodge.
+- `BotGoals.is_special_type(em, i)`: whether creature i is of a special creature type (its type entry's badge is "gear").
+
+### The Watch: Damage taken, chart hover hints, revive at will (lane WATCH)
+
+#### The Watch's command line (Watch.gd args; tools/watch.py)
+| key | type | default | meaning |
+|---|---|---|---|
+| `death=` / `--death` | string | **ask** (was end) | ask: the run pauses at his fall, the panel's down box waits (Revive R, Revive with blast B, End run E), as often as he falls; auto: the Watch stands him up by itself 0.5 s (game time) after the fall; end / ad / keep: the bot answers Down! as before. With `autoquit` (a check that closes itself) "ask" acts as "end". The Level Editor's Sim tab still passes the Sim's own death (end/ad/keep) to its Watch button. |
+| `actions=` | list | | new action words: `die` (a check's fall), `revive`, `reviveb` (with the blast), `enddown`, `hurt` / `hpchart` (the tab), `hover=<chart 0..3 \| hurt>/<x share \| t<play s> \| fall>/<y share>` (a pointer for captures) |
+
+#### Keys in the window
+| key | when | does |
+|---|---|---|
+| R | down | Revive (no blast, the crowd as it is). Otherwise R is still Restart run. |
+| B | down | Revive with the game's own revive blast |
+| E | down | End run (a death) |
+| D | always | the HP block's tab: HP & Danger / Damage taken |
+| Space, ., L | down | ignored (the run waits for R/B/E) |
+
+#### The run record (RunAnalytics header and events; only from the Watch)
+| key | type | meaning |
+|---|---|---|
+| `header.watch_revives` | int | how often the Watch stood him up (0 / absent: never) |
+| `header.watch.revives` | int | the same, beside the Watch's other settings |
+| `header.watch.revive_t` | [float] | the play seconds of each revive |
+| event `revive`, id `watch` | event | each Watch revive: `n` (its number), `blast` (bool), `down_s` (play seconds he lay down: 0 when paused at once) |
+| event `death` | event | unchanged: each fall, as before (so falls and revives pair up) |
+
+`header.revives` (Run.revives_used, the bought ones) is not touched: a Watch revive is never "bought".
+analytics/dashboard.html does not show `watch_revives` yet (lane WATCH does not own it): the lead may add
+`(r.watch_revives ? ' · revived ' + r.watch_revives + '× in the Watch' : '')` beside its "revives bought" (line ~839).
+
+#### The decision log (Watch panel and <stamp>_decisions.csv)
+New kinds the Watch writes: `down` (reason "fell to <who> (<attack>) at m:ss of play; ..."), `revive` (reason
+"revived by hand (#n): full health, no blast, the crowd as it is" / "with the revive blast"). Both, and lane BOT's
+`breakout`, are never given a real-DPS change.
+
+#### Code (game/tools/watch/)
+- WatchData: `hurt` (one record a hit), `read_hurt(damage_log, play_t)`, `hurt_rows(since)`, `sum_hurt`, `hurt_totals`,
+  `attack_of(kind, fx)`, `hit_of`, `revives`, `watch_revives()`; falls carry `revived` (the revive's id).
+- WatchHurt.gd (new): the Damage taken table (`table()`, `hint_lines()`, `dot_colour()`, `click("sort:<col>" | "win:<s>")`,
+  WINDOWS [10, 30, 60]).
+- WatchChart: `hover`, `hover_info(p)`, `nearest_index(pts, x)`, `time_at(px)`; series/bands/marks/points take `name`;
+  a mark takes `tip` (a dot colour).
+- WatchPanel: `set_hurt_tab(on)`, `set_hurt_window(s)`, `check_hover(spec)`, `fall_marks(falls, w)`, the down box.
+- Watch: `down_wait`, `watch_revive(blast)`, `end_down()`, `check_fell()`, `watch_handles_death()`, `down_words()`,
+  `fatal_words(dlog)`, `revive_count`, `revive_times`, AUTO_REVIVE_S 0.5.

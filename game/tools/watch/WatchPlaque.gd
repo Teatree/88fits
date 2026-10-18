@@ -169,6 +169,9 @@ static func words_of(info: Dictionary) -> Dictionary:
 		return {"text": "", "sub": "", "tone": "calm"}
 	if bool(info.get("spawning", false)):
 		return {"text": "Coming down", "sub": "the spawn beam: he lands, then plays", "tone": "calm"}
+	# pass 90: down, the Watch waits for you
+	if bool(info.get("down_wait", false)):
+		return {"text": "Down!", "sub": "waiting for you: R revives him, E ends the run", "tone": "danger"}
 	var scr: Array = Array(str(info.get("screens", "")).split(",", false))
 	if scr.has("revive"):
 		return {"text": "Down!", "sub": "answering Down! (%s)" % str(info.get("death", "end")), "tone": "danger"}
@@ -201,6 +204,9 @@ static func words_of(info: Dictionary) -> Dictionary:
 			return {"text": "Down!", "sub": "", "tone": "danger"}
 		"dodge":
 			return {"text": "Dodging", "sub": "a blast, a big one or a rocket close", "tone": "danger"}
+		# pass 90 (lane BOT's intent): surrounded, pushing out of the ring
+		"breakout":
+			return {"text": "Breaking out", "sub": "surrounded: pushing through the ring's thinnest wall", "tone": "danger"}
 		"kite", "sweep":
 			if bool(info.get("hold", false)) and what != "":
 				return {"text": "Running away", "sub": "the crowd is on him; then: %s" % goal_text(what, name, why).to_lower(), "tone": "danger"}

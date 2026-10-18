@@ -6,8 +6,10 @@
 ##   var bot = BOT.new(game, {"seed": 7, "preset": "explorer", "skill": 0.8})
 ##   bot.tick(dt)            # every frame, after the game's own
 ##   bot.intent / bot.goal / bot.decisions / bot.decided (signal)
-## The options (keys in tools/dl/p80/keys_BOT.md, numbers in BALANCING.md): `preset` names a whole set ("sim77" = pass
-## 77's bot exactly, "explorer" the default, "careless", "expert"); any key given wins over the preset's.
+## The options (keys in tools/dl/p80/keys_BOT.md and tools/dl/p90/keys_BOT.md, numbers in BALANCING.md): `preset` names
+## a whole set ("sim77" = pass 77's bot exactly, "explorer" the default, "careless", "expert", pass 90's "survivor"); any
+## key given wins over the preset's. Pass 90: `breakout` (tools/bot/BotBreakout.gd) gets him out of a ring; it is part
+## of the safety style (a style given as safety brings it unless breakout is given too).
 ## Reached only from tools and tests: nothing here names an autoload or a game class (tools compile before autoloads).
 extends RefCounted
 
@@ -16,6 +18,7 @@ signal decided(entry: Dictionary)
 const LEGS := preload("res://tools/bot/BotLegs.gd")
 const CARDS := preload("res://tools/bot/BotCards.gd")
 const GOALS := preload("res://tools/bot/BotGoals.gd")
+const BREAK := preload("res://tools/bot/BotBreakout.gd")
 const TOTEM_BOONS_PATH := "res://core/systems/TotemBoons.gd"
 
 ## a chest within this many metres is walked to; one not reached in CHEST_PATIENCE play seconds is left for CHEST_REST
@@ -46,20 +49,24 @@ const LURE_EVERY := 6
 ## The presets: every option's value (the defaults of the keys a caller leaves out; plain literals: tools/sim_batch.py
 ## reads this block for the Level Editor's Sim tab). "sim77" is pass 77's bot exactly
 ## (tiers for cards, a random mutation, the gift with the most feathers, the shop and the Stranger left, no goals but
-## chests, the boss and the portal).
+## chests, the boss and the portal). Pass 90 (lane BOT): "survivor" is the Explorer playing the safety style with the ring
+## breakout on (tools/bot/BotBreakout.gd).
 const PRESETS := {
 	"sim77": {"skill": 1.0, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.0,
 		"totems": false, "barrels": false, "powerups": true, "structures": false, "shop": false, "stranger": false, "boss": "leash",
-		"cards": "tier", "specials": false, "portal": "endless"},
+		"cards": "tier", "specials": false, "portal": "endless", "breakout": false},
 	"explorer": {"skill": 0.9, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.6,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score", "specials": true, "portal": "endless"},
+		"cards": "score", "specials": true, "portal": "endless", "breakout": false},
 	"careless": {"skill": 0.4, "style": "balanced", "reaction": 0.6, "dodge": 0.5, "daring": 0.8, "stray": 60.0, "explore": 0.4,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "free",
-		"cards": "score", "specials": true, "portal": "endless"},
+		"cards": "score", "specials": true, "portal": "endless", "breakout": false},
 	"expert": {"skill": 1.0, "style": "balanced", "reaction": 0.1, "dodge": 1.0, "daring": 0.45, "stray": 60.0, "explore": 0.7,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score", "specials": true, "portal": "endless"},
+		"cards": "score", "specials": true, "portal": "endless", "breakout": false},
+	"survivor": {"skill": 0.9, "style": "safety", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.6,
+		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
+		"cards": "score", "specials": true, "portal": "endless", "breakout": true},
 }
 const DEFAULT_PRESET := "explorer"
 ## Pass 87 (lane STOOLS; a stage run ends at its boss, then the portal counts down to Endless): what the bot does after
@@ -119,7 +126,13 @@ const HUNT_NEAR := 6.0
 const HUNT_FAR := GOALS.IN_REACH
 const SPECIAL_MAX_S := 60.0
 const STYLES := ["balanced", "damage", "safety", "greedy"]
-const BOOL_KEYS := ["totems", "barrels", "powerups", "structures", "shop", "stranger", "specials"]
+const BOOL_KEYS := ["totems", "barrels", "powerups", "structures", "shop", "stranger", "specials", "breakout"]
+## Pass 90 (lane BOT): the breakout reads the crowd round him every BREAK_SCAN_EVERY frames (the push itself every frame);
+## a red warning on the sand nudges a push by BREAK_RING_NUDGE of its dodge push; the special creature types are watched
+## every GEAR_EVERY frames (summary's specials tallies).
+const BREAK_SCAN_EVERY := 2
+const BREAK_RING_NUDGE := 0.5
+const GEAR_EVERY := 15
 
 var game: Node
 ## the options as resolved (resolve_opts): every key has its value
@@ -188,6 +201,17 @@ var specials_gave_up := 0
 var _crowd_near := 0
 var pu_lying: Dictionary = {}
 var pu_reached := 0
+## pass 90 (lane BOT): the ring breakout (tools/bot/BotBreakout.gd; null with the option off), the crowd it last read
+## (every BREAK_SCAN_EVERY frames) and the health when a push started
+var breakout = null
+var _bo_bodies: Array = []
+var _bo_keys: Array = []
+var _bo_k := 0
+var _bo_hp0 := 0.0
+## pass 90: the special creature types seen (special_key -> [first seen, gone or -1], play seconds; watched every
+## GEAR_EVERY frames): summary's specials came / killed / life_s
+var _gear_seen: Dictionary = {}
+var _gear_k := 0
 
 
 func _init(p_game: Node, p_opts: Dictionary = {}) -> void:
@@ -218,6 +242,8 @@ func _init(p_game: Node, p_opts: Dictionary = {}) -> void:
 		planner = GOALS.new(hash([sd, "goals"]))
 		if game != null and game.get("map") != null:
 			planner.setup_map(game.map)
+	if bool(opts.get("breakout", false)):
+		breakout = BREAK.new()
 
 
 ## Whether the planner runs: the map's things are wanted (explore, totems, barrels or structures; pass 82: or the specials).
@@ -267,6 +293,10 @@ static func resolve_opts(raw: Dictionary) -> Dictionary:
 			_:
 				if BOOL_KEYS.has(key):
 					o[key] = truthy(v)
+	# pass 90 (lane BOT): the ring breakout is part of the safety style: a style set to safety brings it unless breakout
+	# is given too (a preset's own value stands while its style is kept)
+	if not raw.has("breakout") and raw.has("style") and str(o["style"]) == "safety":
+		o["breakout"] = true
 	return o
 
 
@@ -693,8 +723,12 @@ func _drive(dt: float) -> void:
 	if _last_pos != Vector3.INF:
 		metres += Vector2(me.x - _last_pos.x, me.z - _last_pos.z).length()
 	_last_pos = me
+	_watch_gear()
 	if planner != null:
 		_drive_planned(dt)
+		return
+	# pass 90: a ring breakout under way (or starting) wins over everything
+	if _breakout_drive(dt, me):
 		return
 	var g := _goal()
 	if g.is_empty():
@@ -751,6 +785,9 @@ func _walk_goal(g: Dictionary, dt: float) -> void:
 ## ring; else the sweep.
 func _drive_planned(dt: float) -> void:
 	_observe(dt)
+	# pass 90: a ring breakout under way (or starting) wins over every goal and must
+	if _breakout_drive(dt, game.player.global_position):
+		return
 	var must := _must_goal()
 	if not must.is_empty():
 		if not _cur.is_empty():
@@ -1097,6 +1134,8 @@ func summary() -> Dictionary:
 	return {"opts": o, "metres": roundi(metres), "goals": goals_by.duplicate(), "gave_up": gave_up, "decisions": by,
 		"seen": snappedf(planner.seen_share(), 0.01) if planner != null else 0.0, "shop_bought": bought, "stranger_taken": dealt,
 		"specials": special_tallies(),
+		# pass 90: the ring breakout's pushes (started, by a fresh ring, out by the margin, by the clock); {} with it off
+		"breakout": breakout.tallies() if breakout != null else {},
 		# pass 85: the power-ups that lay on the map, the goals made of them, those walked to and taken
 		"powerups": {"lying": pu_lying.size(), "goals": int(goals_by.get("powerup", 0)), "reached": pu_reached}}
 
@@ -1354,12 +1393,33 @@ func _special_found(g: Dictionary) -> void:
 	_decide("special", row, sid, "the special %s is down after %d s of the hunt%s" % [nm, roundi(hunt_s), ", a chest dropped" if dropped else ""])
 
 
-## The specials of the run (the run sim's meta.bot.specials): from the recorder's events the specials that came, those
-## killed and the chests their deaths dropped, and `life_s`, the mean play seconds a special stood (the sum of the kills'
-## times less the sum of the comings', a special still standing counted to now: no pairing needed, a special leaves the
-## field only by dying); from the bot, the hunts (goals of kind special), those that brought it in reach (found), those
-## that ended with it down before that, and those given up.
+## The specials of the run (the run sim's meta.bot.specials). Pass 90 (Garry: the specials to hunt are "the Special enemy
+## types like `Rocketeer`, `Sniper` and the `Harpooner`. The ones which spawn outside the map"): the special creature types
+## the bot saw (_watch_gear): came, killed (gone: they leave the field only by dying) and `life_s`, the mean play seconds
+## one stood (one still standing counted to now); from the bot, the hunts (goals of kind special), those that brought it in
+## reach (found), those that ended with it down before that, and those given up. `coloured`: the coloured variance specials
+## from the recorder's events (pass 82's tallies: came, killed, the chests their deaths dropped, life_s), no longer hunted.
 func special_tallies() -> Dictionary:
+	var now := play_t()
+	var gone := 0
+	var life := 0.0
+	for key in _gear_seen:
+		var e: Array = _gear_seen[key]
+		if float(e[1]) >= 0.0:
+			gone += 1
+			life += float(e[1]) - float(e[0])
+		else:
+			life += now - float(e[0])
+	var came_g := _gear_seen.size()
+	return {"came": came_g, "killed": gone, "life_s": snappedf(maxf(life / float(came_g), 0.0), 0.1) if came_g > 0 else 0.0,
+		"hunted": int(goals_by.get("special", 0)), "found": specials_found, "hunted_down": specials_down, "gave_up": specials_gave_up,
+		"coloured": coloured_tallies()}
+
+
+## The coloured variance specials from the recorder's events (pass 82): those that came, those killed and the chests
+## their deaths dropped, and `life_s`, the mean play seconds one stood (the sum of the kills' times less the sum of the
+## comings', one still standing counted to now: no pairing needed, a special leaves the field only by dying).
+func coloured_tallies() -> Dictionary:
 	var came := 0
 	var killed := 0
 	var chests := 0
@@ -1381,5 +1441,134 @@ func special_tallies() -> Dictionary:
 				if bool(e.get("chest", false)):
 					chests += 1
 	var life := (t_out + float(maxi(came - killed, 0)) * play_t() - t_in) / float(came) if came > 0 else 0.0
-	return {"came": came, "killed": killed, "chests": chests, "life_s": snappedf(maxf(life, 0.0), 0.1), "hunted": int(goals_by.get("special", 0)),
-		"found": specials_found, "hunted_down": specials_down, "gave_up": specials_gave_up}
+	return {"came": came, "killed": killed, "chests": chests, "life_s": snappedf(maxf(life, 0.0), 0.1)}
+
+
+# ---------------------------------------------------------------- the ring breakout (pass 90, lane BOT)
+
+## One frame of the breakout (option `breakout`; tools/bot/BotBreakout.gd): the crowd read every BREAK_SCAN_EVERY frames,
+## a push started when he is surrounded, held to its end; while one is under way the stick goes its way at full tilt
+## (round a rock in the way, nudged by a red warning: BREAK_RING_NUDGE) and nothing else steers. True while it steers.
+func _breakout_drive(dt: float, me: Vector3) -> bool:
+	if breakout == null:
+		return false
+	_bo_k += 1
+	# the crowd read every BREAK_SCAN_EVERY frames, a push under way and its cooldown too (who is new is remembered from
+	# read to read; a crossing ends when the ring is behind him)
+	var read := _bo_k % BREAK_SCAN_EVERY == 0 or _bo_bodies.is_empty()
+	if read:
+		_bo_keys = []
+		_bo_bodies = BREAK.bodies_of(game.get("enemies"), me, BREAK.SCAN_R, _bo_keys)
+	var mb = game.get("map")
+	var ctx := {"arena_r": float(mb.arena_radius) if mb != null and mb.get("arena_radius") != null else 66.0,
+		"obstacles": mb.obstacles if mb != null and mb.get("obstacles") is Array else [], "lean": _breakout_lean(me)}
+	var d: Vector3 = breakout.update(dt, me, _bo_bodies, ctx, _bo_keys, read)
+	if breakout.last_event == "started":
+		_breakout_started()
+	elif breakout.last_event == "ended":
+		_breakout_ended()
+	if d == Vector3.ZERO:
+		return false
+	var inp = game.player.input
+	if inp != null:
+		var push: Vector3 = d + LEGS._round_rocks(game, me, d, 10.0)
+		var rp := LEGS.ring_push(game, me, legs.reaction, legs.dodge, legs.dodge_seed)
+		legs.seen_ring = rp
+		LEGS.push(inp, push + rp * BREAK_RING_NUDGE)
+	intent = "breakout"
+	mode_frames["breakout"] = int(mode_frames.get("breakout", 0)) + 1
+	return true
+
+
+## The way his goal lies (a flat unit vector; ZERO with none, or the sweep): the breakout leans that way.
+func _breakout_lean(me: Vector3) -> Vector3:
+	if goal.is_empty() or str(goal.get("what", "")) == "sweep" or not (goal.get("at") is Vector3):
+		return Vector3.ZERO
+	var at: Vector3 = goal["at"]
+	var to := Vector3(at.x - me.x, 0.0, at.z - me.z)
+	return to.normalized() if to.length() > 0.5 else Vector3.ZERO
+
+
+## A push started: a "breakout" decision entry (the three cheapest ways, the one taken, what he saw: a fresh ring, or the
+## crowd shut round him).
+func _breakout_started() -> void:
+	_bo_hp0 = float(game.player.hp)
+	var c: Dictionary = breakout.choice
+	var sn: Dictionary = breakout.seen
+	var deg := float(c.get("deg", 0.0))
+	var thick := int(c.get("thick", 0))
+	var word := BREAK.compass(deg)
+	var way := "%s (%d creature%s in the way)" % [word, thick, "" if thick == 1 else "s"]
+	var why := ""
+	var extra := {"phase": "start", "trigger": str(breakout.kind), "dir_deg": roundi(deg), "dir": word, "thick": thick,
+		"bites": snappedf(float(c.get("cost", 0.0)), 0.1), "beyond": snappedf(float(c.get("beyond", 0.0)), 0.1), "n": int(sn.get("n", 0)),
+		"gap_deg": roundi(float(sn.get("gap_deg", 0.0)))}
+	if str(breakout.kind) == "ring":
+		extra["ring_r"] = snappedf(float(sn.get("r", 0.0)), 0.1)
+		why = "a ring of %d came up round him %d m off: out through its thinnest side before it closes, %s" % [int(sn.get("n", 0)),
+			roundi(float(sn.get("r", 0.0))), way]
+	else:
+		extra["cover"] = snappedf(float(sn.get("cover", 0.0)), 0.01)
+		why = "surrounded: %d creatures round him, %d%% of the ways shut, the widest gap %d°; pushes through the thinnest wall, %s" % [
+			int(sn.get("n", 0)), roundi(float(sn.get("cover", 0.0)) * 100.0), roundi(float(sn.get("gap_deg", 0.0))), way]
+	_decide("breakout", c.get("rows", []), "way:%d" % roundi(deg), why, extra)
+
+
+## A push ended: a "breakout" decision entry (out by the margin, or the clock ran out), its seconds, metres and HP lost.
+func _breakout_ended() -> void:
+	var e: Dictionary = breakout.ended
+	var lost := maxf(_bo_hp0 - float(game.player.hp), 0.0)
+	var secs := float(e.get("t", 0.0))
+	var m := float(e.get("metres", 0.0))
+	var why := ("out of the ring after %.1f s and %d m, %d HP lost" if str(e.get("why", "")) == "out" else "stopped pushing after %.1f s (%d m), %d HP lost") % [secs, roundi(m), roundi(lost)]
+	_decide("breakout", [], "", why, {"phase": "end", "trigger": str(e.get("kind", "")), "why": str(e.get("why", "")), "secs": snappedf(secs, 0.1),
+		"metres": roundi(m), "hp_lost": roundi(lost)})
+
+
+## Pass 90 (the Watch's revive: the hero stood up again, the run going on): whatever belonged to the life that ended is
+## cleared: a breakout under way and its cooldown, the goal held, the hold, the hunt, danger's memory, the dodge.
+func on_revived() -> void:
+	if breakout != null:
+		breakout.reset()
+	_bo_bodies = []
+	_bo_keys = []
+	_cur = {}
+	goal = {}
+	_hold = false
+	_hold_t = 0.0
+	_plan_at = 0.0
+	_goal_key = ""
+	_goal_t = 0.0
+	_boss_back = false
+	_hurt = 0.0
+	_hp_last = -1.0
+	_lure_wait = 0
+	_phoenix_pending = false
+	legs.seen_ring = Vector3.ZERO
+	intent = "kite"
+
+
+## Pass 90: the special creature types alive now (BotGoals.is_special_type), every GEAR_EVERY frames: first seen, and the
+## moment each is gone (dying or its slot empty: they leave the field only by dying).
+func _watch_gear() -> void:
+	_gear_k += 1
+	if _gear_k % GEAR_EVERY != 0:
+		return
+	var em = game.get("enemies")
+	if em == null:
+		return
+	var now := play_t()
+	var live := {}
+	var dying := int(em.STATE_DYING)
+	for i in range(int(em.MAX)):
+		if em.alive[i] != 1 or int(em.state[i]) == dying or not GOALS.is_special_type(em, i):
+			continue
+		var key := GOALS.special_key(i, int(em.serial[i]))
+		live[key] = true
+		if not _gear_seen.has(key):
+			_gear_seen[key] = [now, -1.0]
+	for key in _gear_seen:
+		var e: Array = _gear_seen[key]
+		if float(e[1]) < 0.0 and not live.has(key):
+			e[1] = now
+

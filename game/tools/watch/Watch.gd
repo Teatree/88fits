@@ -56,7 +56,8 @@ var map_id := "red_canyon"
 ## pass 87 (lane STOOLS): the stage the run plays (1-based)
 var stage := 1
 var limit := 0.0
-var death := "end"
+## pass 90: "ask" (pause and wait for Revive / End run), "auto" (the Watch stands him up), or the bot's: end, ad, keep
+var death := "ask"
 var bot_opts: Dictionary = {}
 var repo := ""
 ## pass 85 (lane TOOLS; Garry: "Make Sound Off by default")
@@ -144,6 +145,27 @@ var _pending: Dictionary = {}
 var _restart_frame := -1
 var _setup_was_paused := false
 
+## Pass 90 (lane WATCH; Garry: "allow me to manually revive the Bot when he dies. Like, as many times as I like. When he
+## dies I can just press a button to revive the Bot and it will continue the run like nothing happened"): with `death`
+## "ask" (the Watch's default) the fall pauses the run before Down! can come (its wait is on the game's clock) and the
+## panel's down box waits: Revive (R) stands him up where he fell (watch_revive: Player.revive, then full health and
+## shield, the revive's two seconds of blinking, no blast: the crowd as it is), Revive with blast (B) adds the game's own
+## revive blast (Game.revive_blast and its push, as Down!'s revive always has), End run (E) ends it as a death. "auto"
+## stands him up the same way by itself AUTO_REVIVE_S after he falls. A fall Phoenix Feather takes is left to it. Each
+## revive is the recorder's "revive" event (id "watch", n, blast, down_s), counted in the header (watch.revives,
+## watch.revive_t, watch_revives) and logged (a "down" and a "revive" line in the decision log and its CSV). A check
+## that closes itself (autoquit) has no one to ask: "ask" is "end" there.
+const AUTO_REVIVE_S := 0.5
+var down_wait := false
+var down_at := 0.0
+var down_clock := 0.0
+var down_by := ""
+var revive_count := 0
+var revive_times: Array = []
+var _was_dead := false
+var _phoenix_was := false
+var _auto_left := -1.0
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -179,7 +201,7 @@ func _read_args() -> void:
 		run_seed = 1
 	map_id = str(args.get("map", "red_canyon"))
 	limit = maxf(float(args.get("limit", "0")), 0.0)
-	death = str(args.get("death", "end"))
+	death = str(args.get("death", "ask"))
 	repo = str(args.get("repo", ""))
 	sound_on = str(args.get("sound", "0")) == "1"
 	numbers_on = str(args.get("numbers", "1")) != "0"
@@ -408,6 +430,8 @@ func _fit() -> void:
 func badge_words() -> String:
 	if ended:
 		return "RUN OVER"
+	if down_wait:
+		return "DOWN  ·  R revive  ·  B with blast  ·  E end run"
 	if clock.paused:
 		return "PAUSED"
 	# (pass 82: the game's own pause screen says PAUSED and its RESUME sits where the badge would; the header says
@@ -603,6 +627,13 @@ func _reset_run_state() -> void:
 	_end_shot = false
 	_finger_down = false
 	_clicks = []
+	down_wait = false
+	down_by = ""
+	revive_count = 0
+	revive_times = []
+	_was_dead = false
+	_phoenix_was = false
+	_auto_left = -1.0
 	if view != null and sub != null:
 		view.texture = sub.get_texture()
 		view.modulate = Color(1, 1, 1)
@@ -713,6 +744,7 @@ func _on_frame() -> void:
 	if bool(game.get("_ended")):
 		_finish_run()
 		return
+	_check_down()
 	var pt := play_t()
 	var dplay := pt - _last_play
 	_last_play = pt
@@ -793,7 +825,8 @@ func _make_bot() -> void:
 	var opts := bot_opts.duplicate()
 	opts["seed"] = run_seed
 	if not opts.has("death"):
-		opts["death"] = death
+		# pass 90: the bot answers Down! only by its own policies; the Watch's "ask" and "auto" never let Down! come
+		opts["death"] = death if death in ["end", "ad", "keep"] else "end"
 	if str(args.get("bot", "auto")) != "stub" and ResourceLoader.exists(BOT_PATH):
 		var s = load(BOT_PATH)
 		if s is GDScript and (s as GDScript).can_instantiate():
@@ -846,6 +879,11 @@ func _apply_engine(now_us: int) -> void:
 ## a watcher sees the cards; one left up STUCK_S is reported, and Down! is answered by `death` then.
 func _tick_bot(wall_dt: float) -> void:
 	if bot == null:
+		return
+	# pass 90: Down! that came anyway is the Watch's to answer, never the bot's
+	if watch_handles_death() and game.revive_screen and game.revive_screen.visible:
+		if not down_wait and _auto_left < 0.0:
+			_fell(game.player)
 		return
 	# pass 82: the game paused by its own screen (the player's): the bot neither answers it nor plays; no stuck count
 	if game_pause_up():
@@ -901,12 +939,174 @@ func _unstick(key: String) -> void:
 		game.revive_screen._decide("give_up")
 
 
+# ---------------------------------------------------------------- pass 90: down, and up again at will
+
+## Whether the Watch answers a fall itself ("ask": waits for Revive / End run; "auto": stands him up), rather than the
+## bot answering Down!. A check that closes itself has no one to ask: "ask" is "end" there.
+func watch_handles_death() -> bool:
+	return death == "auto" or (death == "ask" and not autoquit)
+
+
+## Every frame of a run: a fall seen the frame after it (Game._on_player_died's Down! waits 1.2 s on the game's clock, so
+## it never comes while the Watch holds the run); a fall Phoenix Feather takes is its own. While down the run is held
+## paused; "auto" counts its beat down on the game's clock.
+func _check_down() -> void:
+	var p = game.get("player")
+	var run := run_node()
+	if p == null or run == null:
+		return
+	var ph := bool(run.get("phoenix_used"))
+	var dead := bool(p.dead)
+	if dead and not _was_dead and not (ph and not _phoenix_was) and watch_handles_death():
+		_fell(p)
+	_was_dead = dead
+	_phoenix_was = ph
+	if down_wait:
+		clock.paused = true
+	elif _auto_left >= 0.0 and dead and not get_tree().paused:
+		_auto_left -= get_process_delta_time()
+		if _auto_left <= 0.0:
+			watch_revive(false)
+
+
+func _fell(p) -> void:
+	down_at = play_t()
+	down_clock = float(run_node().elapsed)
+	down_by = fatal_words(p.damage_log)
+	var e := {"t": snappedf(down_at, 0.1), "clock": snappedf(down_clock, 0.1), "kind": "down", "offered": [], "taken": "",
+		"reason": "fell to %s at %s of play%s" % [down_by, DATA.mmss(down_at), "; the Watch stands him up" if death == "auto" else "; waiting: R revives, E ends the run"],
+		"level": int(run_node().level), "dps_before": 0.0}
+	data.add_decision(e)
+	print("watch: DOWN at %s of play (clock %s) to %s%s" % [DATA.mmss(down_at), DATA.mmss(down_clock), down_by, ": revive (R) or end (E)" if death != "auto" else ""])
+	if death == "auto":
+		_auto_left = AUTO_REVIVE_S
+	else:
+		down_wait = true
+		clock.paused = true
+		clock.mode = ""
+	_refresh_left = 0.0
+	_charts_dirty = true
+
+
+## Who felled him, from his damage log (the newest hit that was not a heal): "Goblin (bite)".
+static func fatal_words(dlog: Array) -> String:
+	for i in range(dlog.size() - 1, -1, -1):
+		var h = dlog[i]
+		if h is Dictionary and str(h.get("kind", "")) != "heal":
+			var fx: Array = h.get("fx", []) if h.get("fx") is Array else []
+			return "%s (%s)" % [str(h.get("by", "something")), DATA.attack_of(str(h.get("kind", "melee")), fx)]
+	return "something"
+
+
+## Revive (R; with `blast`, B): he stands up where he fell at full health and shield, the revive's two seconds of
+## blinking (Player.revive), his bar back, the screens that waited while he was down (banked level-ups, a chest) coming
+## one after another as after the game's own revive, the bot told (on_revived when it has it), and the run going on.
+## `blast`: the game's own revive blast too (Game.revive_blast and its push). Returns whether he was stood up.
+func watch_revive(blast: bool = false) -> bool:
+	if not _game_ok() or ended:
+		return false
+	var p = game.get("player")
+	if p == null or not bool(p.dead):
+		down_wait = false
+		_auto_left = -1.0
+		return false
+	_close_down_screen()
+	p.revive()
+	p.hp = p.max_hp
+	if p.sheet:
+		p.shield_pts = p.sheet.get_stat("shield_max", 0.0)
+	p.damaged.emit(p.hp, p.max_hp)
+	if game.hud:
+		game.hud.show_player_bar()
+	if blast:
+		game.revive_blast()
+		game.enemies.damage_radius(p.global_position, 6.0, 0.0, "", 12.0)
+		if game.telegraphs:
+			game.telegraphs.flash_ring(p.global_position, 6.0, Color(0.47, 0.83, 0.5), 0.6)
+	revive_count += 1
+	revive_times.append(snappedf(play_t(), 0.1))
+	var down_s := snappedf(maxf(play_t() - down_at, 0.0), 0.1)
+	if ra != null and is_instance_valid(ra):
+		ra.event("revive", "watch", 0, {"n": revive_count, "blast": blast, "down_s": down_s})
+		var hdr = ra.get("header")
+		if hdr is Dictionary:
+			if not (hdr.get("watch") is Dictionary):
+				hdr["watch"] = {}
+			hdr["watch"]["revives"] = revive_count
+			hdr["watch"]["revive_t"] = revive_times.duplicate()
+			hdr["watch_revives"] = revive_count
+	data.add_decision({"t": snappedf(play_t(), 0.1), "clock": snappedf(float(run_node().elapsed), 0.1), "kind": "revive", "offered": [],
+		"taken": "", "reason": "revived %s (#%d): full health, %s" % ["by the Watch" if death == "auto" else "by hand", revive_count,
+		"with the revive blast" if blast else "no blast, the crowd as it is"], "level": int(run_node().level), "dps_before": 0.0})
+	if bot != null and bot.has_method("on_revived"):
+		bot.on_revived()
+	if not (game.get("_modal_queue") as Array).is_empty():
+		game._open_next_modal_soon(float(game.REVIVE_BEAT))
+	print("watch: REVIVED #%d at %s of play%s" % [revive_count, DATA.mmss(play_t()), " with the blast" if blast else ""])
+	down_wait = false
+	_auto_left = -1.0
+	_was_dead = false
+	clock.paused = false
+	clock.mode = ""
+	clock.reset_measure()
+	_refresh_left = 0.0
+	_charts_dirty = true
+	return true
+
+
+## Down! up anyway (it came before the Watch saw the fall): closed without an answer, the game's turn handed back.
+func _close_down_screen() -> void:
+	var rs = game.get("revive_screen")
+	if rs == null or not (rs as CanvasItem).visible:
+		return
+	rs.set("_open", false)
+	rs.visible = false
+	game.set("_modal", 0)
+	game.set_paused(false)
+
+
+## A check's fall (the action "die"): his shield and blink gone, a hit bigger than his health (a dodge or a block
+## falls back to the death itself).
+func check_fell() -> void:
+	if not _game_ok():
+		return
+	var p = game.get("player")
+	if p == null or bool(p.dead):
+		return
+	p.invuln = 0.0
+	p.shield_pts = 0.0
+	# (one HP left and a hit of his whole health: the fall reads as a real one on the charts, no spike off the scale)
+	p.hp = minf(float(p.hp), 1.0)
+	p.take_damage(float(p.max_hp), p.global_position + Vector3(1, 0, 0), {"by": "the Watch's check", "id": "", "kind": "melee", "fx": ["check"]})
+	if not bool(p.dead):
+		p.hp = 0.0
+		p._die()
+
+
+## End run (E) while he is down: the run ends here as a death (recorded).
+func end_down() -> void:
+	if not down_wait:
+		return
+	end_now()
+
+
+## The down box's words: when, to what, and the revives so far.
+func down_words() -> String:
+	var t := "Bot down at %s of play (clock %s): fell to %s." % [DATA.mmss(down_at), DATA.mmss(down_clock), down_by]
+	if revive_count > 0:
+		t += "  Revived %d× so far." % revive_count
+	return t
+
+
 func _read_data() -> void:
 	if ra == null or not is_instance_valid(ra):
 		return
 	var n: int = data.read_rows(ra.get("samples"))
 	var p = game.get("player")
 	data.read_events(ra.get("events"), p.damage_log if p != null else [])
+	# pass 90: the hits he took since the last frame, for the Damage taken tab (his log keeps only 30 s)
+	if p != null:
+		data.read_hurt(p.damage_log, play_t())
 	if n > 0:
 		_charts_dirty = true
 		data.fill_decisions(play_t())
@@ -986,7 +1186,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_M:
 			toggle_sound()
 		KEY_R:
-			open_setup(true)
+			# pass 90: while he is down, R revives him (Restart run stays on its button)
+			if down_wait:
+				watch_revive(false)
+			else:
+				open_setup(true)
+		KEY_B:
+			if down_wait:
+				watch_revive(true)
+			else:
+				handled = false
+		KEY_E:
+			if down_wait:
+				end_down()
+			else:
+				handled = false
+		KEY_D:
+			panel.set_hurt_tab(not panel.show_hurt)
 		_:
 			handled = false
 	if handled:
@@ -994,6 +1210,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func toggle_pause() -> void:
+	# pass 90: down, the run waits for Revive or End run
+	if down_wait:
+		return
 	clock.toggle_pause()
 	_refresh_left = 0.0
 
@@ -1005,12 +1224,16 @@ func set_speed(s: float) -> void:
 
 
 func step_second() -> void:
+	if down_wait:
+		return
 	clock.step(play_t())
 	clock.reset_measure()
 	_refresh_left = 0.0
 
 
 func run_to_level() -> void:
+	if down_wait:
+		return
 	clock.to_level(int(run_node().level))
 	clock.reset_measure()
 	_refresh_left = 0.0
@@ -1075,7 +1298,8 @@ func setup_open() -> bool:
 ## What the plaque says now (WatchPlaque.words_of reads it): the run's state, the screen up, the bot's intent and goal.
 func plaque_words() -> Dictionary:
 	var info := {"ended": ended, "setup": setup_open(), "started": _game_ok() or ended, "screens": "", "path": false,
-		"spawning": false, "intent": "", "goal": {}, "hold": false, "nearest": INF, "flee_d": 0.0, "bot": bot_kind, "death": death}
+		"spawning": false, "intent": "", "goal": {}, "hold": false, "nearest": INF, "flee_d": 0.0, "bot": bot_kind, "death": death,
+		"down_wait": down_wait}
 	if _game_ok() and not ended:
 		info["screens"] = screen_key()
 		info["spawning"] = bool(game.get("spawning"))
@@ -1101,6 +1325,11 @@ func end_now() -> void:
 		return
 	clock.paused = false
 	clock.mode = ""
+	# pass 90: a run ended while he lies down (End run, the limit, a restart) ends as a death
+	if down_wait or (game.get("player") != null and bool(game.player.dead)):
+		run_node().died = true
+		down_wait = false
+		_auto_left = -1.0
 	if _forced_pause:
 		get_tree().paused = bool(game.get("paused"))
 		_forced_pause = false
@@ -1319,8 +1548,23 @@ func _run_actions() -> void:
 			if setup != null and setup.visible and setup.can_cancel:
 				setup.visible = false
 				_on_setup_cancelled()
+		# pass 90 (checks and captures): fell him, revive him (with the blast), the Damage taken tab, a pointer on a chart
+		"die":
+			check_fell()
+		"revive":
+			watch_revive(false)
+		"reviveb":
+			watch_revive(true)
+		"enddown":
+			end_down()
+		"hurt":
+			panel.set_hurt_tab(true)
+		"hpchart":
+			panel.set_hurt_tab(false)
 		_:
-			if what.begins_with("setup.") and setup != null and setup.visible:
+			if what.begins_with("hover="):
+				panel.check_hover(what.substr(6))
+			elif what.begins_with("setup.") and setup != null and setup.visible:
 				setup_action(what.substr(6))
 			elif what.begins_with("speed="):
 				set_speed(float(what.substr(6)))
@@ -1469,6 +1713,8 @@ func status_words() -> String:
 	var parts := PackedStringArray()
 	if ended:
 		parts.append("run over")
+	elif down_wait:
+		parts.append("down at %s: waiting (R revive, B with blast, E end run)" % DATA.mmss(down_at))
 	elif clock.paused:
 		parts.append("paused" + (" (and in game)" if clock.game_hold else ""))
 	elif clock.game_hold:
@@ -1492,6 +1738,9 @@ func end_words() -> String:
 	var what: String = {"death": "He fell", "extract": "He got out", "abandon": "Given up", "end": "Ended", "quit": "Stopped"}.get(res, res)
 	var t := "[b]Run over[/b]: %s at %s of play (clock %s), level %d, %d kills.  " % [what, DATA.mmss(float(end_info.get("t", 0.0))),
 		DATA.mmss(float(end_info.get("clock", 0.0))), int(end_info.get("level", 0)), int(end_info.get("kills", 0))]
+	# pass 90: and how often the Watch stood him up
+	if revive_count > 0:
+		t += "Revived %d× (at %s).  " % [revive_count, ", ".join(PackedStringArray(revive_times.map(func(x) -> String: return DATA.mmss(float(x)))))]
 	var rec := str(end_info.get("record", ""))
 	t += "Record: [url=%s]%s[/url]" % [rec, _short(rec)]
 	if end_info.has("csv"):

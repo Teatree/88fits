@@ -74,19 +74,21 @@ const STYLE_GOALS := {
 ## he stands still for a structure's use within this share of its ring's radius
 const STAND_FRAC := 0.55
 const KINDS := ["explore", "totem", "barrel", "powerup", "structure", "chest", "gems"]
-## Pass 82 (lane WATCH; Garry: "Bot should try to find the Special Enemies when they appear"): a variance special (the
-## glowing one: EnemyManager.vspecial; many times the HP, a chest at its chest_chance) is a goal of kind "special" with
-## the option `specials` on. Specials chase the hero and the weapons take them first within 10 m (target_priority): the
-## bot that never hunts kills 97.6% of them anyway (10 sims), and a hunt of every one cost him 6 to 8 levels at 25:00 and
-## half again the falls. So he goes to find one that does not come: one he has known SPECIAL_WAIT s (known: within
-## SPECIAL_SEE m of him; specials spawn 19-24 m off, at the screen's edge) that is still out of reach (past IN_REACH m or
-## off the screen). The one he hunts stays known up to SPECIAL_KEEP m; once it is in reach the hunt ends (Bot.gd) and he
-## plays on while the weapons take it. No hunt while a boss lives (the boss is the fight), none new under SPECIAL_HP of his
-## health, the one under way goes on down to SPECIAL_HP_HELD (a gap: a health hovering at one line does not flip him
-## between goals every half second); the far limit by health and danger cuts the reach as for every goal. Its value
-## V_SPECIAL (below a chest's and a Totem Pole's, above the gems' cap) has no taste and no mood (always wanted), only the
-## jitter and the style's word; the utility shrinks with the distance as every goal's. Bot.gd leans him into reach
-## (HUNT_NEAR).
+## Pass 82 (lane WATCH; Garry: "Bot should try to find the Special Enemies when they appear"), pass 90 (lane BOT; Garry:
+## "I meant the Special enemy types like `Rocketeer`, `Sniper` and the `Harpooner`. The ones which spawn outside the map.
+## Let's not hunt coloured fodder enemies"): a special creature type (is_special_type: its type wears the gear badge,
+## EnemyDef.badge_for(), the data the game's own hit log and target priority read: today the Vulture Raider (rocketeer),
+## the Saiga Sniper and the harpooner, the map's `specials` pool) is a goal of kind "special" with the option `specials`
+## on; the coloured variance specials (EnemyManager.vspecial) never are. The weapons take a special first within 10 m
+## (target_priority); pass 82 measured that hunting every one cost levels and falls. So he goes to find one that keeps
+## off: one he has known SPECIAL_WAIT s (known: within SPECIAL_SEE m of him; the Raider sits 28 m off, the Sniper holds
+## at 16 m, the harpooner keeps 12 m) that is still out of reach (past IN_REACH m or off the screen). The one he hunts
+## stays known up to SPECIAL_KEEP m; once it is in reach the hunt ends (Bot.gd) and he plays on while the weapons take
+## it. No hunt while a boss lives (the boss is the fight), none new under SPECIAL_HP of his health, the one under way goes
+## on down to SPECIAL_HP_HELD (a gap: a health hovering at one line does not flip him between goals every half second);
+## the far limit by health and danger cuts the reach as for every goal. Its value V_SPECIAL (below a chest's and a Totem
+## Pole's, above the gems' cap) has no taste and no mood (always wanted), only the jitter and the style's word; the
+## utility shrinks with the distance as every goal's. Bot.gd leans him into reach (HUNT_NEAR).
 const SPECIAL_SEE := 30.0
 const SPECIAL_KEEP := 45.0
 const SPECIAL_HP := 0.5
@@ -433,27 +435,24 @@ func candidates(game: Node, run, c: Dictionary) -> Array:
 	return out
 
 
-## Pass 82: the variance specials alive that he knows of and that do not come (see SPECIAL_WAIT above; SPECIAL_KEEP and in
+## The special creature types alive that he knows of and that keep off (see SPECIAL_WAIT above; SPECIAL_KEEP and in
 ## reach too for the one held: `c.held_key`), each a candidate of kind "special" ({..., index, serial, sid (its creature
 ## id), name, fight (SPECIAL_FIGHT_S)}); none while a boss lives, none new under SPECIAL_HP of his health (the one held:
-## SPECIAL_HP_HELD), none past the far limit `far`.
+## SPECIAL_HP_HELD), none past the far limit `far`. Pass 90: only the special creature types (is_special_type), never a
+## coloured variance special.
 func special_candidates(game: Node, c: Dictionary, far: float) -> Array:
 	var out: Array = []
 	var em = game.get("enemies")
 	var hp := float(c["hp_frac"])
 	if em == null or hp < SPECIAL_HP_HELD or c["boss"] != Vector3.INF:
 		return out
-	var vs = em.get("vspecial")
-	if not (vs is PackedByteArray):
-		return out
 	var me: Vector3 = c["me"]
 	var t := float(c["t"])
 	var held := str(c.get("held_key", ""))
 	var dying := int(em.STATE_DYING)
-	var spd = em.get("special_defaults")
 	var os = em.get("onscreen")
-	for i in range(mini(int(em.MAX), (vs as PackedByteArray).size())):
-		if vs[i] != 1 or em.alive[i] != 1 or int(em.state[i]) == dying:
+	for i in range(int(em.MAX)):
+		if em.alive[i] != 1 or int(em.state[i]) == dying or not is_special_type(em, i):
 			continue
 		var key := special_key(i, int(em.serial[i]))
 		if float(resting.get(key, -1.0)) > t or (hp < SPECIAL_HP and key != held):
@@ -470,16 +469,31 @@ func special_candidates(game: Node, c: Dictionary, far: float) -> Array:
 			continue
 		var def = em.types[em.type_idx[i]]["def"]
 		var nm := str(def.display_name)
-		var chest := ""
-		if def.has_method("special_value") and def.get("variance") is Dictionary:
-			var cc := float(def.special_value((def.variance as Dictionary).get("special", {}), spd if spd is Dictionary else {}, "chest_chance"))
-			if cc > 0.0:
-				chest = ", a %d%% chest" % roundi(cc * 100.0)
 		var u := V_SPECIAL * jitter(key) * style_mult(str(c["style"]), "special", "special") / (1.0 + d / DIST_SCALE)
 		out.append({"kind": "special", "what": "special", "key": key, "at": at, "value": V_SPECIAL, "u": u, "d": d,
-			"why": "a special: %s%s, out of reach %d s" % [nm, chest, roundi(t - float(special_seen[key]))], "index": i, "serial": int(em.serial[i]), "sid": str(def.id), "name": nm,
+			"why": "a special: %s, out of reach %d s" % [nm, roundi(t - float(special_seen[key]))], "index": i, "serial": int(em.serial[i]), "sid": str(def.id), "name": nm,
 			"fight": SPECIAL_FIGHT_S})
 	return out
+
+
+## Pass 90: whether creature `i` of the crowd `em` is of a special creature type: its type wears the gear badge (the type
+## entry's "badge", EnemyDef.badge_for(); a type entry without one asks its def). A coloured variance special of a plain
+## creature is not (vspecial is never read here).
+static func is_special_type(em, i: int) -> bool:
+	if em == null:
+		return false
+	var types = em.get("types")
+	var tix = em.get("type_idx")
+	if not (types is Array) or not (tix is PackedInt32Array) or i < 0 or i >= (tix as PackedInt32Array).size():
+		return false
+	var ti := int(tix[i])
+	if ti < 0 or ti >= (types as Array).size() or not (types[ti] is Dictionary):
+		return false
+	var te: Dictionary = types[ti]
+	if te.has("badge"):
+		return str(te["badge"]) == "gear"
+	var def = te.get("def")
+	return def != null and def.has_method("badge_for") and str(def.badge_for()) == "gear"
 
 
 ## A special's key: its slot and its serial (a slot is used again by the next creature).

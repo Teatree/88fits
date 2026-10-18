@@ -62,6 +62,16 @@ var specials_came := 0
 var specials_killed := 0
 var special_chests := 0
 
+## Pass 90 (lane WATCH; Garry: "a tab in the HP, and Danger beneath which would show a breakdown of where the damage
+## comes from"): every hit the hero took, harvested from Player.damage_log as it comes (read_hurt; the log keeps only
+## 30 s, so each frame's new entries are copied here), one record a hit: {t (play s), clock, key (by|attack), by,
+## attack, kind, role, colour, raw, lost (HP), shield (the Energy Shield took), note ("" | evaded | shield | broke |
+## power-up | star)}. The same hits RunAnalytics.took counts (Player._log_hit feeds both).
+var hurt: Array = []
+## the Watch's revives (the recorder's "revive" events): {t, clock, via ("watch", "phoenix", "debug"...), blast}
+var revives: Array = []
+var _hurt_last = null
+
 var _rows_read := 0
 var _events_read := 0
 var _lost5 := PackedFloat32Array()
@@ -145,6 +155,13 @@ func read_events(events: Array, last_hits: Array = []) -> int:
 				last.append(last_hits[i])
 			falls.append({"t": float(e.get("t", 0.0)), "clock": float(e.get("clock", 0.0)), "killer": str(e.get("id", "")),
 				"hit": str(e.get("hit", "")), "last": last})
+		elif kind == "revive":
+			# pass 90: a stand-up (the Watch's own, id "watch"; Phoenix Feather's; a bought one); the fall before it is
+			# marked revived
+			revives.append({"t": float(e.get("t", 0.0)), "clock": float(e.get("clock", 0.0)), "via": str(e.get("id", "")),
+				"blast": bool(e.get("blast", false))})
+			if not falls.is_empty():
+				(falls[falls.size() - 1] as Dictionary)["revived"] = str(e.get("id", ""))
 		# pass 82: a chest, a power-up or a totem gift (the same event may be nothing else above: chest, pickup, totem)
 		var pk := str(SIM.pickup_kind(e))
 		if pk != "":
@@ -179,7 +196,8 @@ func fill_decisions(now: float, final: bool = false) -> int:
 		if bool(d.get("filled", false)):
 			continue
 		# a walking goal (pass 82: or a hunt's end) changes no build: no DPS change of its own
-		if str(d.get("kind", "")) in ["goal", "special"]:
+		# (pass 90: nor a fall or a revive the Watch logged, nor a push out of a ring)
+		if str(d.get("kind", "")) in ["goal", "special", "down", "revive", "breakout"]:
 			d["filled"] = true
 			continue
 		var at := float(d.get("t", 0.0))
@@ -213,6 +231,123 @@ func threat(secs: int = THREAT_S) -> Array:
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a["lost"]) > float(b["lost"]) if float(a["lost"]) != float(b["lost"]) else int(a["hits"]) > int(b["hits"]))
 	return out
+
+
+# ---------------------------------------------------------------- pass 90: the damage taken, hit by hit
+
+## the words of a hit that say what came with it, not what it was (they never name the attack)
+const SIDE_FX := ["knocked back", "thrown", "roped", "pulled", "slowed"]
+## a hit's kind in words when its words name no attack (EnemyManager.hit_info: melee, ranged, boss)
+const KIND_WORDS := {"melee": "bite", "ranged": "shot", "boss": "attack"}
+## the notes of a hit that took nothing: dodged, or a block (the shield power-up's sphere, Marshal's Star)
+const BLOCK_NOTES := ["power-up", "star"]
+
+
+## Reads the hero's damage log's entries not read yet (Player.damage_log, newest last; `now` the play second they are
+## read at, every frame, so it is the hit's own to a frame). The log is trimmed to its last 30 s, so the last entry
+## read is found by reference; when it is gone, the whole log is new. Heals are left out. Returns how many hits came.
+func read_hurt(dlog: Array, now: float) -> int:
+	if dlog.is_empty():
+		return 0
+	var i := dlog.size() - 1
+	if _hurt_last != null:
+		while i >= 0 and not is_same(dlog[i], _hurt_last):
+			i -= 1
+	else:
+		i = -1
+	var n := 0
+	for j in range(i + 1, dlog.size()):
+		var e = dlog[j]
+		if e is Dictionary and str(e.get("kind", "")) != "heal":
+			hurt.append(hit_of(e, now))
+			n += 1
+	_hurt_last = dlog[dlog.size() - 1]
+	return n
+
+
+## One damage-log entry as the breakdown keeps it (pure).
+static func hit_of(e: Dictionary, now: float) -> Dictionary:
+	var by := str(e.get("by", "something"))
+	var attack := attack_of(str(e.get("kind", "melee")), e.get("fx", []) as Array if e.get("fx") is Array else [])
+	return {"t": now, "clock": float(e.get("t", 0.0)), "key": by + "|" + attack, "by": by, "attack": attack,
+		"kind": str(e.get("kind", "melee")), "role": str(e.get("role", "")), "colour": str(e.get("colour", "")),
+		"raw": float(e.get("raw", 0.0)), "lost": float(e.get("dealt", 0.0)), "shield": float(e.get("shield", 0.0)),
+		"note": str(e.get("note", ""))}
+
+
+## What a hit was, in a word or two: its first word that names an attack ("dynamite", "volley", "charge", "ground
+## rumble"), else its kind's word (bite, shot, attack).
+static func attack_of(kind: String, fx: Array) -> String:
+	for w in fx:
+		var s := str(w)
+		if s != "" and not SIDE_FX.has(s):
+			return s
+	return str(KIND_WORDS.get(kind, kind))
+
+
+## The hits since play second `since` (-1: the whole run) summed by source and attack: [{key, by, attack, kind, role,
+## colour, lost, raw, shield, evaded (count), evaded_raw, blocked (count), hits, biggest (HP), last (play s)}], by HP
+## lost, then the shield's part, then the hits, most first.
+func hurt_rows(since: float = -1.0) -> Array:
+	return sum_hurt(hurt, since)
+
+
+static func sum_hurt(hits: Array, since: float = -1.0) -> Array:
+	var by := {}
+	for h in hits:
+		if since >= 0.0 and float(h["t"]) < since:
+			continue
+		var k := str(h["key"])
+		if not by.has(k):
+			by[k] = {"key": k, "by": h["by"], "attack": h["attack"], "kind": h["kind"], "role": h["role"], "colour": h["colour"],
+				"lost": 0.0, "raw": 0.0, "shield": 0.0, "evaded": 0, "evaded_raw": 0.0, "blocked": 0, "hits": 0, "biggest": 0.0, "last": 0.0}
+		var r: Dictionary = by[k]
+		var note := str(h["note"])
+		r["hits"] = int(r["hits"]) + 1
+		r["raw"] = float(r["raw"]) + float(h["raw"])
+		r["lost"] = float(r["lost"]) + float(h["lost"])
+		r["shield"] = float(r["shield"]) + float(h["shield"])
+		r["biggest"] = maxf(float(r["biggest"]), float(h["lost"]))
+		r["last"] = maxf(float(r["last"]), float(h["t"]))
+		if note == "evaded":
+			r["evaded"] = int(r["evaded"]) + 1
+			r["evaded_raw"] = float(r["evaded_raw"]) + float(h["raw"])
+		elif BLOCK_NOTES.has(note):
+			r["blocked"] = int(r["blocked"]) + 1
+		# a colour or a role seen on any of its hits (an Elite's outline)
+		if str(r["colour"]) == "" and str(h["colour"]) != "":
+			r["colour"] = h["colour"]
+	var out: Array = by.values()
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if float(a["lost"]) != float(b["lost"]):
+			return float(a["lost"]) > float(b["lost"])
+		if float(a["shield"]) != float(b["shield"]):
+			return float(a["shield"]) > float(b["shield"])
+		if int(a["hits"]) != int(b["hits"]):
+			return int(a["hits"]) > int(b["hits"])
+		return str(a["key"]) < str(b["key"]))
+	return out
+
+
+## The sums of rows (sum_hurt's): {lost, raw, shield, evaded, evaded_raw, blocked, hits}.
+static func hurt_totals(rows: Array) -> Dictionary:
+	var tot := {"lost": 0.0, "raw": 0.0, "shield": 0.0, "evaded": 0, "evaded_raw": 0.0, "blocked": 0, "hits": 0}
+	for r in rows:
+		for k in tot:
+			if tot[k] is int:
+				tot[k] = int(tot[k]) + int(r[k])
+			else:
+				tot[k] = float(tot[k]) + float(r[k])
+	return tot
+
+
+## The Watch's own revives so far (via "watch").
+func watch_revives() -> int:
+	var n := 0
+	for r in revives:
+		if str(r["via"]) == "watch":
+			n += 1
+	return n
 
 
 ## Each source's share of the damage of the rows from `i0` to `i1` (inclusive), the `top` biggest by name and the rest

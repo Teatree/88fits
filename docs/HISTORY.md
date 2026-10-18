@@ -3138,3 +3138,55 @@ WaveTimeline, JsonContent, the Level Editor's Scaling card, the run record's map
 apply_knockback calls (Game.elite_explosion, the slam without a lift); _erupt_throw_hero scales its arc. The debug
 switch is now labelled "Full hero knockback" (every push whole, as before pass 88). Tests: pass89_knock_test.gd;
 pass88_tweaks_test re-pinned (only regular hits stay still).
+
+**Pass 90 (2026-10-18, v0.76): the Watch's bot breaks out of rings and hunts only the special types; the Watch's Damage taken tab, chart hover hints and revive at will.** Garry: the bot "getting overwhelmed with enemies if they spawn in a `ring` around him" (push through in one direction, part of the safety style, a new preset); the hunt for "the Special enemy types like `Rocketeer`, `Sniper` and the `Harpooner`... Let's not hunt coloured fodder enemies"; a tab under HP and Danger with where the damage comes from; a hint when hovering the charts; "manually revive the Bot when he dies... as many times as I like". Two lanes (tools/dl/p90/INTERFACES.md): BOT, WATCH.
+
+Lane BOT (Garry: the bot "has a nasty habit of getting overwhelmed with enemies if they spawn in a `ring` around him...
+detects that he is surrounded and then just tries to push through in a specific direction"; and "I meant the Special
+enemy types like `Rocketeer`, `Sniper` and the `Harpooner`. The ones which spawn outside the map. Let's not hunt
+coloured fodder enemies"): the **ring breakout** (game/tools/bot/BotBreakout.gd, new; Bot.gd `_breakout_drive` in both
+drive paths, option `breakout` in BOOL_KEYS and sim_run's BOT_ARGS). Two triggers: a **fresh ring** (12 or more creatures
+first seen together at one distance, evenly round him; the arena wall closes a gap) sends him out through its thinnest
+side before it closes; **shut in** (12 or more within 9 m, 90% of the ways shut, no 25° gap, open ground past the wall)
+pushes him through the thinnest wall. The way: 32 directions, each costed by the bites waiting along a bite-wide lane (the
+metres he would walk that close to each creature, x its damage against the crowd's mean, Elites and bosses double), the
+crowd past the wall, the arena's edge and rocks, less a lean to his goal or the middle. He commits (full stick, no kite,
+0.6-3 s) until he is out by a margin, then a 5 s cooldown. Decision kind `breakout` (phase start: the three cheapest ways,
+the one taken, what he saw; phase end: out or the clock, seconds, metres, HP lost), intent `breakout`, meta.bot.breakout
+{started, rings, out, timeout}. Part of the safety style (a style given as safety brings it unless `breakout` is given)
+and the new **Survivor** preset (the Explorer with the safety style and the breakout; sim_batch's BOT_PRESETS, the Sim
+tab, watch.py; WatchSetup reads Bot.PRESETS itself). Measured with the run sim (24 runs a cell, death=keep): neutral to a
+little better (ring falls -11%, falls -3% pooled over stage 1 twice and stage 2; tools/dl/p90/balancing_BOT.md); a wider
+coverage trigger tried first fired in every crowd and cost falls and levels (the pushes leave the gems behind). The
+**hunt** now goes only for the special creature types (BotGoals.is_special_type: the type's gear badge, the Vulture
+Raider, the Saiga Sniper, the harpooner), never the coloured variance specials; meta.bot.specials counts the types the bot
+saw (came, killed, life_s) and keeps the coloured ones' recorder tallies under `coloured`. `Bot.on_revived()` clears a
+life's state for the Watch's revive. A controlled ring probe for the sim snapshot: game/tools/_p90_BOT_ring.gd +
+tools/dl/p90/BOT/ring_probe.py. Tests pass90_BOT_test.gd (10); pass82_watch_test re-pinned on purpose (its fake specials
+are a gear-badge type now; the coloured tallies are `coloured_tallies()`); selftest_SIM77 gained the Survivor's checks.
+
+**Lane WATCH (pass 90).** Garry: "add a tab in the HP, and Danger beneath which would show a breakdown of where the
+damage comes from", "add a highlight to the Charts. One that shows a hint when you hover over the charts", and "allow me
+to manually revive the Bot when he dies. Like, as many times as I like ... continue the run like nothing happened".
+The Watch's HP chart now shares its place with a **Damage taken** tab (D, or the tabs over it): a table drawn like the
+charts (game/tools/watch/WatchHurt.gd) of every hit he took, harvested each frame from Player.damage_log
+(WatchData.read_hurt: the log keeps 30 s, so new entries are found by reference; heals left out), one row per source and
+attack (Skeleton · bite, Vulture Raider · rocket, Gila Grande · volley): a coloured dot (boss red, Elite purple, special
+pink), a bar (HP lost red, the Energy Shield's part blue, evaded grey outline), HP lost and share for the whole run, the
+last 10/30/60 s (chips in the tab row), shield, evaded, hits; click a head to sort; the wheel scrolls; a row under the
+pointer lights and its hint tells its story (incoming, lost, shield, evaded, blocked, biggest hit, last hit). The tab
+takes 1.9 charts' height while it shows. **Every chart has a hover** (WatchChart.hover_info): a vertical line at the
+pointer, dots where the named lines cross it, a hint box with the time, each named line's value (top line first, in its
+axis's format), the share bands' values and the falls/revives/pickups within 6 px named; kept inside the plot, paused or
+running. **Revive at will** (Watch.gd): `death` is "ask" by default now (watch.py --death, the Hero Settings' Down!
+row: ask, auto, end, ad, keep): the fall pauses the run the frame after (Down! waits 1.2 s on the game's clock, so it
+never comes; no results), a red box under the header says "Bot down at m:ss of play (clock m:ss): fell to <who>
+(<attack>)" with Revive (R), Revive with blast (B), End run (E) (also the badge over the phone and the plaque); Revive
+is Player.revive then full health and shield, its 2 s blink, the bar back, the banked screens resumed, no blast (the
+crowd as it is), the bot told (Bot.on_revived, lane BOT); B adds Game.revive_blast and its push (the game's own revive
+always blasts; the plain one is Garry's "like nothing happened"); "auto" revives by itself 0.5 s after the fall. Each
+revive is the recorder's "revive" event (id watch), counted in header.watch_revives / watch.revives / watch.revive_t,
+a "down" and a "revive" line in the decision log and CSV, "revived N×" on the HP tile and the end box, a green dot on
+the fall's red mark, "· revived by you" in the Threat. Also: the safety style ticks lane BOT's "Ring breakout" box in
+the Hero Settings (and with the safety style the box's state is always passed), the plaque says "Breaking out", and a
+breakout decision gets no real-DPS change. Tests game/tests/pass90_WATCH_test.gd (7). No game code changed.

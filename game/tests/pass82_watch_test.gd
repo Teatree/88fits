@@ -59,6 +59,14 @@ class FakeDef:
 		return float(defaults.get(key, 0.35))
 
 
+class FakeRaider:
+	extends FakeDef
+
+	func _init() -> void:
+		id = "rocketeer"
+		display_name = "Vulture Raider"
+
+
 class FakeEnemies:
 	extends RefCounted
 	const MAX := 8
@@ -84,11 +92,14 @@ class FakeEnemies:
 		type_idx.resize(MAX)
 		onscreen.resize(MAX)
 		onscreen.fill(1)
-		types = [{"def": FakeDef.new()}]
+		types = [{"def": FakeDef.new(), "badge": ""}, {"def": FakeRaider.new(), "badge": "gear"}]
 
+	## pass 90 (lane BOT, re-pinned on purpose): `special` lays a special creature type (the gear badge: a Vulture
+	## Raider), the one kind the bot hunts now; a coloured variance special is never hunted
 	func put(i: int, at: Vector3, special: bool, sr: int = 1) -> void:
 		alive[i] = 1
-		vspecial[i] = 1 if special else 0
+		vspecial[i] = 0
+		type_idx[i] = 1 if special else 0
 		state[i] = 0
 		serial[i] = sr
 		pos[i] = at
@@ -162,7 +173,7 @@ func test_a_special_is_a_goal_while_he_knows_it() -> void:
 	assert_int(sp.size()).is_equal(1)
 	var c: Dictionary = sp[0]
 	assert_str(str(c["key"])).is_equal(GOALS.special_key(0, 7))
-	assert_str(str(c["why"])).is_equal("a special: Red Goblin, a 35% chest, out of reach 10 s")
+	assert_str(str(c["why"])).is_equal("a special: Vulture Raider, out of reach 10 s")
 	assert_int(int(c["index"])).is_equal(0)
 	assert_float(float(c["fight"])).is_equal(GOALS.SPECIAL_FIGHT_S)
 	# no taste or mood: the same value whatever the run's seed, only the jitter and the distance move it
@@ -216,21 +227,23 @@ func test_a_special_is_a_goal_while_he_knows_it() -> void:
 	assert_float(float(_specials(gl.candidates(g, null, vs))[0]["u"])).is_less(u_b)
 
 
-func test_the_real_creatures_say_their_chest() -> void:
-	# the real EnemyDef's special_value answers through an instance (the planner calls it so: no game class named there)
-	var def: EnemyDef = Registry.enemy("goblin") if Registry.enemy("goblin") != null else Registry.enemies.values()[0]
+func test_the_real_special_creatures_are_hunted_by_name() -> void:
+	# pass 90 (lane BOT, re-pinned on purpose: was "the real creatures say their chest", a coloured goblin's chest chance):
+	# the real special creature types (their type entry's badge, as the game's EnemyManager writes it) are hunted by name;
+	# a real plain creature rolled coloured is not
+	var def: EnemyDef = Registry.enemy("rocketeer")
+	var plain: EnemyDef = Registry.enemy("goblin") if Registry.enemy("goblin") != null else Registry.enemies.values()[0]
 	var g := _fake_game()
-	g.enemies.types = [{"def": def}]
-	g.enemies.special_defaults = {"chest_chance": 0.5}
+	g.enemies.types = [{"def": plain, "badge": plain.badge_for()}, {"def": def, "badge": def.badge_for()}]
 	g.enemies.put(2, Vector3(0, 0, 12), true, 3)
+	g.enemies.put(3, Vector3(12, 0, 0), false, 4)
+	g.enemies.vspecial[3] = 1
 	var gl = GOALS.new(1)
 	gl.setup_map(g.map)
 	gl.candidates(g, null, _view({"preset": "explorer", "explore": 0.0}, 1.0, "", 10.0))
 	var sp := _specials(gl.candidates(g, null, _view({"preset": "explorer", "explore": 0.0})))
 	assert_int(sp.size()).is_equal(1)
-	var want := roundi(EnemyDef.special_value(def.variance.get("special", {}), {"chest_chance": 0.5}, "chest_chance") * 100.0)
-	var words := "a special: %s" % def.display_name + ((", a %d%% chest" % want) if want > 0 else "") + ", out of reach 10 s"
-	assert_str(str(sp[0]["why"])).is_equal(words)
+	assert_str(str(sp[0]["why"])).is_equal("a special: %s, out of reach 10 s" % def.display_name)
 
 
 func test_the_hunt_is_logged_from_its_start_to_its_end() -> void:
@@ -245,7 +258,7 @@ func test_the_hunt_is_logged_from_its_start_to_its_end() -> void:
 	var e: Dictionary = bot.decisions[bot.decisions.size() - 1]
 	assert_str(str(e["kind"])).is_equal("goal")
 	assert_str(str(e["what"])).is_equal("special")
-	assert_str(str(e["reason"])).is_equal("a special: Red Goblin, a 35% chest, out of reach 20 s (14 m)")
+	assert_str(str(e["reason"])).is_equal("a special: Vulture Raider, out of reach 20 s (14 m)")
 	assert_str(str(bot.goal["what"])).is_equal("special")
 	# its patience: the walk's, and the fight's on top
 	assert_float(float(bot._cur["patience"])).is_equal_approx(BOT.PATIENCE_BASE + 14.0 * BOT.PATIENCE_PER_M + GOALS.SPECIAL_FIGHT_S, 0.01)
@@ -261,8 +274,8 @@ func test_the_hunt_is_logged_from_its_start_to_its_end() -> void:
 	bot._goal_finished(bot._cur)
 	var d: Dictionary = bot.decisions[bot.decisions.size() - 1]
 	assert_str(str(d["kind"])).is_equal("special")
-	assert_str(str(d["taken"])).is_equal("red_goblin")
-	assert_str(str(d["reason"])).is_equal("the special Red Goblin is down after 7 s of the hunt, a chest dropped")
+	assert_str(str(d["taken"])).is_equal("rocketeer")
+	assert_str(str(d["reason"])).is_equal("the special Vulture Raider is down after 7 s of the hunt, a chest dropped")
 	assert_int(int(bot.specials_down)).is_equal(1)
 	# a new creature in its slot is another one: the old hunt is done
 	em.put(0, Vector3(3, 0, 0), true, 6)
@@ -280,14 +293,14 @@ func test_the_hunt_is_logged_from_its_start_to_its_end() -> void:
 	bot._goal_finished(bot._cur)
 	var f: Dictionary = bot.decisions[bot.decisions.size() - 1]
 	assert_str(str(f["kind"])).is_equal("special")
-	assert_str(str(f["reason"])).is_equal("found the special Red Goblin after 3 s: in reach, the weapons take it first")
+	assert_str(str(f["reason"])).is_equal("found the special Vulture Raider after 3 s: in reach, the weapons take it first")
 	assert_int(int(bot.specials_found)).is_equal(1)
 	# found: its clock of being out of reach starts again (no re-hunt the next half second when it slips off the screen)
 	assert_float(float(bot.planner.special_seen[GOALS.special_key(0, 6)])).is_equal(bot.play_t())
 	# the run sim's tallies carry the hunts
 	var sm: Dictionary = bot.summary()
 	assert_bool(sm.has("specials")).is_true()
-	for k in ["came", "killed", "chests", "life_s", "hunted", "found", "hunted_down", "gave_up"]:
+	for k in ["came", "killed", "life_s", "hunted", "found", "hunted_down", "gave_up", "coloured"]:
 		assert_bool((sm["specials"] as Dictionary).has(k)).override_failure_message(k).is_true()
 	assert_int(int(sm["specials"]["hunted"])).is_equal(2)
 	assert_int(int(sm["specials"]["found"])).is_equal(1)
@@ -310,7 +323,9 @@ func test_the_specials_tallies_and_their_time_alive() -> void:
 		{"t": 30.0, "kind": "special_kill", "id": "goblin", "chest": true}, {"t": 31.0, "kind": "pickup", "id": "heart"}]
 	ra.play_t = 50.0
 	var bot = BOT.new(g, {"seed": 4, "preset": "explorer"})
-	var sp: Dictionary = bot.special_tallies()
+	# (pass 90: the coloured variance specials' tallies, from the recorder, are coloured_tallies now; special_tallies
+	# counts the special creature types the bot saw)
+	var sp: Dictionary = bot.coloured_tallies()
 	assert_int(int(sp["came"])).is_equal(2)
 	assert_int(int(sp["killed"])).is_equal(1)
 	assert_int(int(sp["chests"])).is_equal(1)

@@ -5384,3 +5384,106 @@ dynamite, boss attacks, etc. but less than before. The regular melee attacks sho
 - The debug switch (Settings.hero_knockback, now labelled **Full hero knockback**) plays every push whole, bites
   included, as before pass 88; locked off in prod. The Down! list keeps "knocked back" / "thrown" unless the share is 0.
 - Recorded in the run record's `map_settings.hero_special_knock`.
+
+## 37. Pass 90 (v0.76): the Watch's bot (ring breakout, the special hunt) and the Watch
+
+Garry's request (2026-10-18, tools/dl/p90/REQUEST.md). Each lane's rules as it wrote them. Tools only: nothing in the game's rules changed.
+
+### 37.BOT The bot's ring breakout, the Survivor preset, hunting only the special types
+
+Tools only (the run sim's and the Watch's bot); nothing here changes the game's rules.
+
+#### The ring breakout (game/tools/bot/BotBreakout.gd; option `breakout`)
+On in the new **Survivor** preset (the Explorer with the safety style) and whenever the style is given as `safety` and
+`breakout` is not given; off in sim77, explorer, careless, expert.
+
+Two things start a push:
+1. **A fresh ring** (fresh_ring): at least **12** creatures first seen within **0.25 s** of each other, **6-24 m** off when
+   first seen, within **1.5 m** of one distance (their median), evenly round him: no gap between two of them wider than
+   **2.5 x** the even spacing, allowed at least **70°**, never more than **100°**; a gap whose middle (at the ring's distance)
+   stands within **4 m** of the arena's edge is closed by the wall (a ring's spots there are pressed onto the wall). Reads
+   more than **0.5 s** apart start the memory afresh (nobody is new after a pause or at the run's start).
+2. **Shut in** (late, coverage): at least **12** creatures within **9 m**; each shuts the directions where walking would
+   bring him within its radius + **0.5 m**, over **72** directions; open slits narrower than **15°** count as shut; at least
+   **90%** shut and no gap wider than **25°**; and open ground past the wall he would cross (the bites past it, a lane twice
+   as wide from 13 to 23 m, at most **3.0**).
+
+The way (choose_way, **32** directions): cost = the wall (every creature within its radius + **0.75 m** of the line over
+**13 m**, or for a fresh ring its radius + **3 m**: its bite weight x the metres he would walk that close, at least **0.5 m**;
+bite weight = its damage over the crowd's mean, clamped **0.5-3**, x **2** for an Elite or a boss) + **0.5 x** the crowd past
+the wall + the arena's edge (**1.5** a metre that the spots 8 and 16 m out stand past the arena's radius less **6 m**) + **3**
+a rock within **8 m** in the way - a lean (**1.0 x** the cosine to his goal, or with no goal **1.5 x** the cosine to the
+arena's middle x his distance from it over the arena's radius). The cheapest way is taken.
+
+The push: full stick that way (round a rock's edge, nudged by half of a red warning's dodge push), no kite, held to its
+end: a fresh ring once none of it has stood ahead of him within **2.5 m** (+ its radius) of his line for **0.4 s**; shut in,
+once he has gone the wall's far side + **2.5 m** (at least **4 m**); never less than **0.6 s**, never more than **3 s**. Then a
+**5 s** cooldown. The crowd is read every 2nd frame.
+
+#### The hunt (game/tools/bot/BotGoals.gd special_candidates)
+Only the special creature TYPES: a creature whose type wears the gear badge (EnemyDef.badge_for() == "gear": today the
+Vulture Raider `rocketeer`, the Saiga Sniper `saiga_sniper`, the harpooner `harpoon_troglodyte`, the map's `specials`
+pool). The coloured variance specials (EnemyManager.vspecial) are never hunted. Every other hunt rule unchanged (known
+from 30 m after 5 s out of reach, past 9 m or off the screen, none while a boss lives, under 50% HP no new hunt, 40% for
+the one held, value 60, the patience + 20 s, 60 s at most, rest 40 s).
+
+#### Measurements (the run sim, tools/sim_batch.py, Drifter, a quarter of the board, death=keep: every fall counted)
+"Ring falls" = falls to a ring row's creature inside that row's window (+15 s); "ring HP" = HP lost to it there
+(tools/dl/p90/BOT/ring_stats.py; stage 1 rings: r3 0:47, r21 4:05-5:47 scorpion rings, r16 6:08-7:10 mummy rings; stage 2:
+r29 werewolf rings 13:55-17:10).
+
+| run | players | falls | ring falls | ring HP lost | HP lost | level at the end | pushes a run (ring / shut in) |
+|---|---|---|---|---|---|---|---|
+| stage 1, seeds 301+, breakout off | 24 | 10.08 | 5.88 | 779 | 1594 | 16.2 | - |
+| stage 1, seeds 301+, breakout on | 24 | 9.38 | 4.75 | 645 | 1471 | 17.0 | 24.2 (8.5 / 15.7) |
+| stage 1, seeds 401+, breakout off | 24 | 9.67 | 5.75 | 766 | 1586 | 16.5 | - |
+| stage 1, seeds 401+, breakout on | 24 | 10.29 | 5.83 | 779 | 1638 | 16.4 | 24.6 (8.2 / 16.4) |
+| stage 2, seeds 501+, breakout off | 24 | 16.46 | 2.58 | 439 | 2713 | 26.9 | - |
+| stage 2, seeds 501+, breakout on | 24 | 15.38 | 2.04 | 425 | 2653 | 27.5 | 40.1 (8.0 / 32.1) |
+| stage 1, seeds 401+, Survivor preset | 24 | 10.46 | 5.83 | 786 | 1726 | 15.0 | 24.5 (6.7 / 17.8) |
+
+(the 301+ "on" run played the push's first end rule for a fresh ring; the others the final one.) Pooled: falls 12.07 off
+against 11.68 on (-3%), ring falls 4.74 against 4.21 (-11%), ring HP 661 against 616 (-7%); the level the same or a
+little higher. Per push: a fresh ring costs about 3-5 HP (2.1-2.3 s, 8 m), a shut-in push 11-12.5 HP (1.7-1.8 s, 5 m).
+Within the noise of 24 runs (a run's falls vary 0-36), so read it as: the breakout does not cost the run anything and
+takes a little off the rings.
+
+What did not work on the way (stage 1, 12-24 runs each): a coverage trigger at 12 m (80% shut, gap 35°, 8 creatures)
+fired in every crowd, 30-45 pushes a run, and cost ~1-3 falls and 1-3 levels a run (pushes away from the kill zone leave
+the gems behind); a loose fresh ring (5 creatures, any distance, a 100° gap) caught the roster's timed bursts too
+(31 a run): no better than off.
+
+The Survivor preset plays the safety style too (pass 80's: cards scored for survival, healing goals up, exploring and
+barrels down): on the same seeds it ended 1.4 levels lower than the Explorer with the breakout and fell about as often;
+that is the safety style's price in this stage, not the breakout's.
+
+#### The hunt, before and after (stage 1, seeds 101+, 12 runs each)
+| | hunts a run | specials hunted came / killed | coloured specials came / killed |
+|---|---|---|---|
+| pass 82's hunt (the coloured ones) | 20.9 | 14.5 / 12.6 (coloured) | 14.5 / 12.6 |
+| pass 90 (the special types only) | 1.2 | 1.7 / 0.9 (types) | 14.4 / 12.3 |
+
+The coloured specials die as often without the hunt (85% against 87%: the weapons take them first within 10 m). Stage 2
+(the harpooner joins): 2.9-3.6 hunts a run, 2.5 special types came, 1.6-2.0 killed.
+
+### 37.WATCH The Watch: Damage taken, chart hover hints, revive at will
+
+- **The Watch's Down! (`death`, default "ask")**: when the bot falls, the Watch pauses the run the frame after (the
+  game's Down! waits 1.2 s on the game's clock, so it never comes) and waits: **Revive** (R) stands him up where he fell
+  at **full health and full Energy Shield**, with the revive's **2 s of blinking** (Player.revive), **no blast**: the
+  crowd is left as it is; **Revive with blast** (B) adds the game's own revive blast (Game.revive_blast: 4.8 m that
+  kills the crowd and hurts Elites and bosses for a share, plus the 6 m push), which Down!'s revive always has;
+  **End run** (E) ends the run as a death. As many revives as wanted; none costs gold or counts as a bought revive
+  (Run.revives_used untouched). "auto": the Watch revives him itself **0.5 s of game time** after the fall (no
+  blast). A fall Phoenix Feather takes is left to it. The screens that waited while he was down (banked level-ups, a
+  chest) come after the revive as after the game's own (REVIVE_BEAT 0.6 s). A self-closing check (autoquit) treats
+  "ask" as "end".
+- **The record** says how often: `watch_revives` and `watch.revives` / `watch.revive_t` in the header, a "revive"
+  event (id "watch") after each "death" event; the decision log and its CSV have a "down" and a "revive" line each.
+- **Damage taken tab**: every hit from the hero's damage log (the same hits RunAnalytics.took counts), grouped by
+  source name and attack (the first of the hit's words that names an attack; else bite / shot / attack by its kind;
+  "knocked back", "thrown", "roped", "pulled", "slowed" never name one). HP lost = the hit's dealt; the Energy Shield's
+  part apart; evaded hits counted (and their raw); the shield power-up's and Marshal's Star's blocks counted as
+  blocked. Columns: the whole run, and the last 10 / 30 / 60 s (default 30).
+- **Chart hover**: the hint names a mark or a moment within 6 px of the pointer; a line has a value only within 2.5 of
+  its samples' widths of the pointer.

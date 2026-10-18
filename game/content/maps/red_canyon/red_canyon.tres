@@ -214,18 +214,18 @@ roster = [{
 "until": 420.0,
 "weights": [[389.0, 1.0]]
 }, {
-"count": 40.0,
+"count": 5.0,
 "enemy": "dust_mummy",
 "every": 5.0,
 "id": "r16",
 "pace": "waves",
-"pack": 40.0,
-"pattern": "scatter",
+"pack": 5.0,
+"pattern": "ring",
 "stats": {
 "hp": 20.0,
-"hp_mult": 2.0,
-"size": 1.4,
-"speed": 2.1
+"hp_mult": 10.0,
+"size": 5.0,
+"speed": 1.5
 },
 "t": 368.0,
 "until": 430.0,

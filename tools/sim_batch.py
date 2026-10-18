@@ -218,7 +218,9 @@ BOT_PRESETS = [("explorer", "Explorer", "the default: explores the map, walks to
                ("sim77", "Sim (pass 77)", "the old bot exactly: kites and sweeps gems, cards by a fixed order, a random mutation, leaves "
                 "the Shop and the Stranger, no map goals (to compare with older sims)"),
                ("careless", "Careless", "a weak player: slow to react, misses half the warnings, dares the crowd, often takes a weaker card"),
-               ("expert", "Expert", "a strong player: quick, sees every warning, always the best-scored card, explores more")]
+               ("expert", "Expert", "a strong player: quick, sees every warning, always the best-scored card, explores more"),
+               ("survivor", "Survivor", "pass 90: the Explorer playing safe: the safety style, and when a ring of creatures closes round him "
+                "he pushes out through its thinnest side (the breakout)")]
 BOT_KEYS = [  # (key, kind, lo/choices, hi, label, help)
     ("skill", "float", 0.0, 1.0, "Skill", "decision quality: 1 always takes the best-scored card, lower takes a weaker one more often"),
     ("style", "enum", ("balanced", "damage", "safety", "greedy"), None, "Style", "what the scores weigh most: damage, safety or gold and XP"),
@@ -237,6 +239,7 @@ BOT_KEYS = [  # (key, kind, lo/choices, hi, label, help)
     ("cards", "enum", ("tier", "score"), None, "Cards", "score: every card scored (DPS, survival, plan, gold); tier: pass 77's fixed order"),
     ("specials", "bool", None, None, "Specials", "pass 82: goes to find a glowing special that stays out of reach (known 5 s, past 9 m or off the screen; not while a boss lives)"),
     ("portal", "enum", ("endless", "extract"), None, "Portal", "pass 87: after the stage's boss: endless = never extracts, plays on into Endless until the stop or his death; extract = walks to the portal and extracts (the run ends there)"),
+    ("breakout", "bool", None, None, "Breakout", "pass 90: surrounded by a closing ring (80% of the ways shut within 12 m, no gap wider than 35 degrees, 8 or more creatures), he picks the thinnest side and pushes through it at full speed, taking the bites, until he is out by a margin (4 s at most, 3 s before another); on with the safety style unless set"),
 ]
 BOT_KEY_NAMES = [k[0] for k in BOT_KEYS]
 _BOT_PRESETS_CACHE = {}
@@ -348,6 +351,10 @@ def bot_effective(b, presets=None):
         if k != "preset":
             base[k] = v
             src[k] = "set"
+    # pass 90 (lane BOT, Bot.resolve_opts): a style set to safety brings the breakout unless breakout is set too
+    if "breakout" not in (b or {}) and "style" in (b or {}) and base.get("style") == "safety":
+        base["breakout"] = True
+        src["breakout"] = "style"
     base["preset"] = pre
     return base, src
 
@@ -2642,7 +2649,7 @@ def main(argv=None):
     ap.add_argument("--stage", type=int, default=DEFAULTS["stage"], help="pass 87: the stage every run plays, 1-based (a fresh hero at its window's start)")
     ap.add_argument("--fps", type=int, default=DEFAULTS["fps"])
     ap.add_argument("--note", default="")
-    ap.add_argument("--bot", default="", help="the bot's options: preset=explorer|sim77|careless|expert and key=value (BOT_KEYS), comma-separated")
+    ap.add_argument("--bot", default="", help="the bot's options: preset=explorer|sim77|careless|expert|survivor and key=value (BOT_KEYS), comma-separated")
     ap.add_argument("--job", default="", help="the Level Editor job that runs this (its id)")
     ap.add_argument("--wall-cap", type=int, default=0, help="seconds one run may take before it is stopped (default max(900, 2 x limit))")
     ap.add_argument("--keep", type=int, default=HISTORY_KEEP, help="the newest sims kept in tools/dl/sim/runs (kept ones never count)")

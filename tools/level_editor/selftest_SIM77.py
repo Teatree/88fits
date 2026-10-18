@@ -295,6 +295,16 @@ def _round2_checks(check, SB, tmp):
     eff, src = SB.bot_effective({"preset": "sim77", "skill": 0.4}, pres)
     check(eff["skill"] == 0.4 and src["skill"] == "set" and src["explore"] == "preset" and eff["explore"] == pres["sim77"]["explore"],
           "p80: the effective options say where each comes from")
+    # pass 90 (lane BOT): the Survivor preset (the Explorer, the safety style, the ring breakout); the safety style brings
+    # the breakout unless it is set too (Bot.resolve_opts)
+    check(pres["survivor"]["breakout"] is True and pres["survivor"]["style"] == "safety" and pres["explorer"]["breakout"] is False
+          and SB.clean_bot("preset=survivor,breakout=0")[0] == {"preset": "survivor", "breakout": False},
+          "p90: the survivor preset and the breakout option: %s" % pres.get("survivor"))
+    e90, s90 = SB.bot_effective({"preset": "explorer", "style": "safety"}, pres)
+    e90b, _ = SB.bot_effective({"preset": "explorer", "style": "safety", "breakout": False}, pres)
+    check(e90["breakout"] is True and s90["breakout"] == "style" and e90b["breakout"] is False
+          and SB.bot_effective({"preset": "explorer"}, pres)[0]["breakout"] is False,
+          "p90: the safety style brings the breakout unless it is set: %s %s" % (e90.get("breakout"), e90b.get("breakout")))
     # my save: the PC save, or the copy tools/locks.py keeps aside
     saved = (locks.SAVE_DIR, locks.KEEP_DIR, locks.RESTORE_PENDING)
     try:

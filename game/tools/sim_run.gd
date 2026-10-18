@@ -67,7 +67,7 @@ var _trace_n := 0
 ## the bot's options as given (args; Bot.resolve_opts fills in the rest from the preset); lure_r is stray's old name
 var _bot_raw: Dictionary = {}
 const BOT_ARGS := ["preset", "skill", "style", "reaction", "dodge", "daring", "stray", "explore", "totems", "barrels", "powerups",
-	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "specials", "portal"]
+	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "breakout", "specials", "portal"]
 
 var _game: Node
 var _run: Node

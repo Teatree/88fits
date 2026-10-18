@@ -494,7 +494,8 @@ const Sim = (() => {
     const grid = el('div', { class: 'sim-bot-fields' });
     for (const k of bm.keys || []) {
       const own = Object.prototype.hasOwnProperty.call(b, k.key);
-      const pv = (preDef.values || {})[k.key];
+      // pass 90 (lane BOT, Bot.resolve_opts): a style set to safety brings the breakout unless the breakout is set too
+      const pv = k.key === 'breakout' && Object.prototype.hasOwnProperty.call(b, 'style') && b.style === 'safety' ? true : (preDef.values || {})[k.key];
       const v = own ? b[k.key] : pv;
       const change = (nv) => {
         const nb = Object.assign({}, S.form.bot || {}, { preset: pre });

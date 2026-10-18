@@ -497,15 +497,15 @@
         "until": 430,
         "stats": {
           "hp": 20,
-          "size": 1.4,
-          "hp_mult": 2,
-          "speed": 2.1
+          "size": 5.0,
+          "hp_mult": 10,
+          "speed": 1.5
         },
-        "pattern": "scatter",
-        "pack": 40,
+        "pattern": "ring",
+        "pack": 5,
         "pace": "waves",
         "every": 5,
-        "count": 40
+        "count": 5
       },
       {
         "id": "r19",

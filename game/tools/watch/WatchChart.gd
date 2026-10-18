@@ -3,7 +3,12 @@
 ## lower band with its own axis (HP over Danger), stacked areas (the damage share), the Sim's average as a grey line,
 ## and vertical marks (the falls, a boss); pass 82: small shaped marks at moments along the plot's foot (the chests,
 ## power-ups and totems picked up), one lane each, and legend items with those shapes. Nothing here reads the game.
-## Tools only.
+## Pass 90 (lane WATCH; Garry: "add a highlight to the Charts. One that shows a hint when you hover over the charts"):
+## the pointer over the plot draws a vertical line there, a dot on every named line where it crosses, and a hint box
+## with the time and each named series' value (its colour's square, its axis's format), the share bands' values, and
+## the marks (falls, revives) and moments (chests, power-ups, totems) within HOVER_PX of it, named. The box stays inside
+## the plot (under the title row, clear of the axes' numbers) and flips to the pointer's left near the right edge. It
+## works paused and running (the Watch processes always). Tools only.
 extends Control
 
 const BG := Color(0.105, 0.115, 0.14)
@@ -20,6 +25,12 @@ const PAD_B := 16.0
 const POINT_R := 3.5
 const LANE_H := 9.0
 const POINT_EDGE := Color(0.05, 0.05, 0.07, 0.9)
+## pass 90: the hover's line, its box, how near (px) a mark or a moment must be to be named, a hint row's height
+const HOVER_LINE := Color(1, 1, 1, 0.38)
+const HOVER_BOX := Color(0.06, 0.065, 0.08, 0.94)
+const HOVER_EDGE := Color(0.35, 0.38, 0.45)
+const HOVER_PX := 6.0
+const HOVER_ROW := 15.0
 
 var title := ""
 var x0 := 0.0
@@ -29,14 +40,14 @@ var axes: Array = [{"max": 1.0, "fmt": "%.0f", "unit": ""}, {"max": 0.0, "fmt": 
 ## the lower band's share of the plot's height (0 = no lower band)
 var lower := 0.0
 ## {pts: PackedVector2Array, color, width, axis: 0 left | 1 right | 2 lower, fill: bool (an area to the baseline),
-## dashed: bool}
+## dashed: bool, name: the hover's word for it ("" or none = not in the hint)}
 var series: Array = []
-## stacked areas on the left axis: {top: PackedVector2Array, bottom: PackedVector2Array (same x), color}
+## stacked areas on the left axis: {top: PackedVector2Array, bottom: PackedVector2Array (same x), color, name}
 var bands: Array = []
-## vertical marks: {x, color}
+## vertical marks: {x, color, name (the hover's words), tip (a Color: a dot on the mark's top, pass 90: a revived fall)}
 var marks: Array = []
 ## pass 82: marks at moments, along the upper plot's foot: {x, lane (0 the lowest), shape: "square" | "circle" |
-## "triangle", color}
+## "triangle", color, name}
 var points: Array = []
 ## [[text, color], ...] in the title row; pass 82: [text, color, shape] draws that shape instead of the square
 var legend: Array = []
@@ -44,11 +55,26 @@ var legend: Array = []
 var note := ""
 ## the microseconds _draw took since the panel last asked (the Watch's cost)
 var draw_us := 0
+## pass 90: where the pointer is over the chart (local px; x < 0 = not over it)
+var hover := Vector2(-1, -1)
 
 
 func _ready() -> void:
 	clip_contents = true
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# pass 90: the pointer is followed (the hover); clicks and the wheel go on to the panel
+	mouse_filter = Control.MOUSE_FILTER_PASS
+
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		hover = (event as InputEventMouseMotion).position
+		queue_redraw()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT and hover.x >= 0.0:
+		hover = Vector2(-1, -1)
+		queue_redraw()
 
 
 func plot_rect() -> Rect2:
@@ -137,6 +163,9 @@ func _draw_all() -> void:
 		var x := to_px(Vector2(float(m["x"]), 0.0), 0).x
 		if x >= full.position.x and x <= full.end.x:
 			draw_line(Vector2(x, full.position.y), Vector2(x, full.end.y), m["color"], 1.0)
+			# pass 90: a revived fall wears a dot on its top
+			if m.get("tip") is Color:
+				draw_circle(Vector2(x, full.position.y + 3.0), 3.0, m["tip"])
 	# the lines (areas first, so a line sits on top)
 	for s in series:
 		if bool(s.get("fill", false)):
@@ -158,6 +187,7 @@ func _draw_all() -> void:
 		else:
 			draw_polyline(px, col, w, true)
 	_draw_points(up)
+	_draw_hover(font)
 
 
 ## Pass 82: the moments' marks on the upper plot's foot, each kind its lane (`lane` 0 the lowest), drawn last (on top).
@@ -276,3 +306,129 @@ func _strip(top: PackedVector2Array, bottom: PackedVector2Array, axis: int, col:
 	cols.resize(n * 2)
 	cols.fill(col)
 	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), idx, pts, cols)
+
+
+# ---------------------------------------------------------------- pass 90: the hover
+
+## The play second under local x `px` (the plot's own scale).
+func time_at(px: float) -> float:
+	var r := plot_rect()
+	return x0 + (px - r.position.x) / maxf(r.size.x, 1.0) * (x1 - x0)
+
+
+## The index of the point of `pts` (sorted by x) whose x is nearest `x`; -1 when empty (pure; tested).
+static func nearest_index(pts: PackedVector2Array, x: float) -> int:
+	var n := pts.size()
+	if n == 0:
+		return -1
+	var lo := 0
+	var hi := n - 1
+	while hi - lo > 1:
+		var mid := int((lo + hi) / 2.0)
+		if pts[mid].x < x:
+			lo = mid
+		else:
+			hi = mid
+	return lo if absf(pts[lo].x - x) <= absf(pts[hi].x - x) else hi
+
+
+## How far (play seconds) a line's nearest sample may lie from the time asked: two and a half samples' widths, so a
+## line has no value before it starts or across a gap.
+func _reach(pts: PackedVector2Array) -> float:
+	var span := maxf(x1 - x0, 1.0)
+	var step := span
+	if pts.size() > 1:
+		step = maxf((pts[pts.size() - 1].x - pts[0].x) / float(pts.size() - 1), 0.001)
+	return maxf(step * 2.5, span / 400.0)
+
+
+## What the hint says at local point `p`: {t, rows: [[text, colour, dot px (x < 0: none)]], marks: [[text, colour]]};
+## {} when `p` is not over the plot (tested).
+func hover_info(p: Vector2) -> Dictionary:
+	var full := plot_rect()
+	if p.x < full.position.x or p.x > full.end.x or p.y < full.position.y - 4.0 or p.y > full.end.y + 4.0:
+		return {}
+	var t := time_at(p.x)
+	var rows: Array = []
+	# the lines drawn last (on top: the chart's own) first
+	for si in range(series.size() - 1, -1, -1):
+		var s: Dictionary = series[si]
+		var nm := str(s.get("name", ""))
+		if nm == "":
+			continue
+		var pts: PackedVector2Array = s["pts"]
+		var i := nearest_index(pts, t)
+		if i < 0 or absf(pts[i].x - t) > _reach(pts):
+			continue
+		var ax := int(s.get("axis", 0))
+		var col: Color = s["color"]
+		rows.append([nm + "  " + _fmt(axes[ax], pts[i].y), Color(col.r, col.g, col.b, 1.0), to_px(pts[i], ax)])
+	# the share bands, the top one first as drawn (each its own value: its top less its bottom)
+	for j in range(bands.size() - 1, -1, -1):
+		var b: Dictionary = bands[j]
+		var nm2 := str(b.get("name", ""))
+		if nm2 == "":
+			continue
+		var top: PackedVector2Array = b["top"]
+		var bot: PackedVector2Array = b["bottom"]
+		var k := nearest_index(top, t)
+		if k < 0 or k >= bot.size() or absf(top[k].x - t) > _reach(top):
+			continue
+		var v := top[k].y - bot[k].y
+		if v < 0.5:
+			continue
+		var bc: Color = b["color"]
+		rows.append([nm2 + "  " + _fmt(axes[0], v), Color(bc.r, bc.g, bc.b, 1.0), Vector2(-1, -1)])
+	var near: Array = []
+	for m in marks:
+		var nm3 := str(m.get("name", ""))
+		if nm3 != "" and absf(to_px(Vector2(float(m["x"]), 0.0), 0).x - p.x) <= HOVER_PX:
+			var mc: Color = m["color"]
+			near.append([nm3, Color(mc.r, mc.g, mc.b, 1.0)])
+	for q in points:
+		var nm4 := str(q.get("name", ""))
+		if nm4 != "" and absf(to_px(Vector2(float(q["x"]), 0.0), 0).x - p.x) <= HOVER_PX:
+			near.append([nm4, q["color"]])
+	return {"t": t, "rows": rows, "marks": near}
+
+
+func _draw_hover(font: Font) -> void:
+	if hover.x < 0.0:
+		return
+	var info := hover_info(hover)
+	if info.is_empty():
+		return
+	var full := plot_rect()
+	draw_line(Vector2(hover.x, full.position.y), Vector2(hover.x, full.end.y), HOVER_LINE, 1.0)
+	for r in info["rows"]:
+		var at: Vector2 = r[2]
+		if at.x >= 0.0:
+			draw_circle(at, 4.0, POINT_EDGE)
+			draw_circle(at, 3.0, r[1])
+	# [text, colour, keyed (a colour square before it)]
+	var lines: Array = [["%s of play" % _mmss(float(info["t"])), TITLE, false]]
+	for r in info["rows"]:
+		lines.append([str(r[0]), r[1], true])
+	for m in info["marks"]:
+		lines.append([str(m[0]), m[1], false])
+	var w := 0.0
+	for l in lines:
+		w = maxf(w, font.get_string_size(str(l[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x + (14.0 if bool(l[2]) else 0.0))
+	var box := Vector2(w + 14.0, float(lines.size()) * HOVER_ROW + 8.0)
+	# beside the pointer, inside the plot (under the title row, clear of the axes' numbers); on its left near the edge
+	var x := hover.x + 12.0
+	if x + box.x > full.end.x:
+		x = hover.x - 12.0 - box.x
+	x = clampf(x, full.position.x, maxf(full.end.x - box.x, full.position.x))
+	var y := clampf(hover.y - box.y * 0.5, full.position.y, maxf(size.y - box.y - 2.0, full.position.y))
+	var rect := Rect2(Vector2(x, y), box)
+	draw_rect(rect, HOVER_BOX)
+	draw_rect(rect, HOVER_EDGE, false, 1.0)
+	var ly := y + HOVER_ROW
+	for l in lines:
+		var lx := x + 7.0
+		if bool(l[2]):
+			draw_rect(Rect2(lx, ly - 9.0, 8.0, 8.0), l[1])
+			lx += 14.0
+		draw_string(font, Vector2(lx, ly), str(l[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, TITLE if bool(l[2]) else l[1])
+		ly += HOVER_ROW
