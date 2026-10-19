@@ -12,7 +12,7 @@ TOOLS = os.path.join(ROOT, "tools")
 
 METHOD_IDS = ["hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_ctl", "creature_proc",
               "front_from_picture", "recolour", "item_icon", "icon_cands", "hero_badge", "hero_title", "driver_pose", "driver_depth",
-              "ref_probe", "ref_render", "driver_tweak", "hero_puppet"]   # pass 70: driver_tweak (lane LE); pass 71: hero_puppet (lane PLE)
+              "ref_probe", "ref_render", "driver_tweak", "hero_puppet", "creature_pictures"]   # pass 70: driver_tweak (lane LE); pass 71: hero_puppet (lane PLE)
 KNOWN_TOOLS = {"gen_art", "gen_ctl", "gen_edit_stills", "gen_icon_cands", "gen_badge_cands", "gen_title_heroes", "recolour_strip",
                "pose_driver", "blender_depth_drivers", "blender_ref", "pose_fit", "pose_spread", "pose_scale", "pose_occlude", "pose_shoulders",
                "puppet"}   # pass 71: tools/puppet.py (hero_puppet)

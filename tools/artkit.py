@@ -48,6 +48,11 @@ def key_background(img, despill=0.09, despill_mix=0.45, cut_shadow=None):
     alpha = (~is_bg).astype(np.float32)
     alpha = keep_main_components(alpha)
     ys = np.nonzero(alpha.max(axis=1) > 0.5)[0]
+    if len(ys) > 0 and cut_shadow and figure_wears_screen(alpha, dh, sat, mx, ys):
+        # pass 91 (the Cactus Walker's black line): a figure whose own body is the screen's hue (a green cactus on the
+        # green screen) would lose the bottom of its body to the shadow cut below, the ink lines staying behind as a
+        # dark band the outline then fills in; no cut for such a figure (a cast shadow on it is the lesser evil)
+        cut_shadow = False
     if len(ys) > 0 and cut_shadow:
         # only the thin sliver where a cast shadow overlaps the feet, and only pixels close to the screen hue:
         # olive trousers and brown boots must survive (they did not, once, and the hero lost his legs)
@@ -87,6 +92,27 @@ def key_background(img, despill=0.09, despill_mix=0.45, cut_shadow=None):
     out = np.concatenate([rgb, alpha[..., None]], axis=2)
     res = Image.fromarray((out * 255).astype(np.uint8), "RGBA")
     return res.filter(ImageFilter.UnsharpMask(radius=1.4, percent=60, threshold=2))
+
+
+WEARS_SCREEN_SHARE = 0.04   # pass 91: the share of a figure's upper body in the shadow cut's colours that turns the cut off
+
+
+def figure_wears_screen(alpha, dh, sat, mx, ys=None):
+    """Pass 91: True when the figure itself is painted in the shadow cut's colours (near the screen's hue, saturated, not
+    dark): more than WEARS_SCREEN_SHARE of its opaque pixels above the bottom band. The cut is then turned off: it was
+    made for a cast shadow under feet, and on a green creature on the green screen it ate the creature's lower body
+    (the ink lines stayed and became a black line at the bottom of every frame)."""
+    if ys is None:
+        ys = np.nonzero(alpha.max(axis=1) > 0.5)[0]
+    if not len(ys):
+        return False
+    y_lo = int(ys.max() - (ys.max() - ys.min()) * 0.12)
+    fig = alpha[:y_lo] > 0.5
+    n = int(fig.sum())
+    if n == 0:
+        return False
+    tinted = fig & (dh[:y_lo] < 0.11) & (sat[:y_lo] > 0.18) & (mx[:y_lo] > 0.3)
+    return float(tinted.sum()) / n > WEARS_SCREEN_SHARE
 
 
 def keep_main_components(alpha, keep_ratio=0.02):
@@ -460,6 +486,112 @@ def crumble(cell_img, t, seed=0, bands=8, pile=0.4):
     for k, piece, x, y in sorted(slices, key=lambda s: -s[0]):
         out.alpha_composite(piece, (max(x, 0), max(min(y, cell - piece.height), 0)), (max(-x, 0), 0))
     return out
+
+
+def shatter(cell_img, n_frames=6, seed=0, pieces=14, outline_px=2, outline_color=(14, 8, 12, 255), spread=1.9, shrink=0.62):
+    """Pass 91 (the Cactus Walker, Garry: "a pile of pieces"): a death in which the standing painting itself breaks into
+    `pieces` irregular chunks (a Voronoi cut of its silhouette from `seed`) that pop out a little, fall, turn and come
+    to rest heaped on the ground: a real pile, stacked by a height map of the cell's columns so no piece floats or sinks
+    into another, the big ones first at the bottom. Every piece is the painting's own pixels with a fresh outline on
+    its cut edges; no model paints anything, so the pile is always this creature's pieces. Returns n_frames cells, the
+    last one the pile at rest (the dead frame the game holds). `spread` is the pile's width against the figure's;
+    `shrink` the pieces' size at rest (a whole body heaped up in its own width stood as tall as the body)."""
+    import random
+    rng = random.Random(int(seed) * 7 + 91)
+    cell = cell_img.width
+    arr = np.asarray(cell_img.convert("RGBA"))
+    a = arr[..., 3] > 40
+    ys, xs = np.nonzero(a)
+    if len(xs) < 20:
+        return [cell_img] * n_frames
+    top, bot = int(ys.min()), int(ys.max()) + 1
+    left, right = int(xs.min()), int(xs.max()) + 1
+    # the seeds: jittered inside the silhouette, so every piece is a chunk of the body
+    idx = rng.sample(range(len(xs)), min(len(xs), pieces * 40))
+    seeds = []
+    for i in idx:
+        p = (float(xs[i]), float(ys[i]))
+        if all((p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 > (0.32 * (right - left)) ** 2 / pieces * 2.2 for q in seeds):
+            seeds.append(p)
+        if len(seeds) >= pieces:
+            break
+    S = np.array(seeds, dtype=np.float32)
+    gy, gx = np.mgrid[0:cell, 0:cell].astype(np.float32)
+    d2 = (gx[..., None] - S[None, None, :, 0]) ** 2 + (gy[..., None] - S[None, None, :, 1]) ** 2
+    lab = np.argmin(d2, axis=2)
+    parts = []
+    for k in range(len(seeds)):
+        m = a & (lab == k)
+        if m.sum() < 12:
+            continue
+        pys, pxs = np.nonzero(m)
+        y0, y1, x0, x1 = int(pys.min()), int(pys.max()) + 1, int(pxs.min()), int(pxs.max()) + 1
+        crop = arr[y0:y1, x0:x1].copy()
+        crop[..., 3] = np.where(m[y0:y1, x0:x1], crop[..., 3], 0)
+        pad = outline_px + 2
+        im = Image.new("RGBA", (x1 - x0 + 2 * pad, y1 - y0 + 2 * pad), (0, 0, 0, 0))
+        im.alpha_composite(Image.fromarray(crop, "RGBA"), (pad, pad))
+        im = add_outline(im, outline_px, outline_color)
+        # where its centre starts (cell px)
+        parts.append({"img": im, "cx": x0 - pad + im.width / 2.0, "cy": y0 - pad + im.height / 2.0, "area": int(m.sum())})
+    # the rest: big pieces first, each dropped onto the heap at a spot near the middle; its final turn is random
+    mid = (left + right) / 2.0
+    half = min((right - left) * spread / 2.0, cell * 0.40)
+    ground = np.full(cell, float(bot), dtype=np.float32)   # the top of the heap per column
+    for p in sorted(parts, key=lambda q: -q["area"]):
+        rot = rng.uniform(-80.0, 80.0)
+        small = p["img"].resize((max(1, int(p["img"].width * shrink)), max(1, int(p["img"].height * shrink))), Image.LANCZOS)
+        r_img = small.rotate(rot, resample=Image.BICUBIC, expand=True)
+        ra = np.asarray(r_img)[..., 3] > 60
+        cols = np.nonzero(ra.any(axis=0))[0]
+        if not len(cols):
+            continue
+        # each column's lowest opaque row in the rotated piece
+        low = np.array([np.nonzero(ra[:, c])[0].max() if ra[:, c].any() else 0 for c in range(r_img.width)], dtype=np.float32)
+        best = None
+        for _ in range(14):   # a few spots tried, the lowest landing kept: the heap fills in rather than towering
+            cx = mid + rng.triangular(-half, half, 0.0)
+            x_left = int(round(cx - r_img.width / 2.0))
+            cs = [c for c in cols if 0 <= x_left + c < cell]
+            if not cs:
+                continue
+            y_top = min(ground[x_left + c] - 1 - low[c] for c in cs)
+            if best is None or y_top > best[1]:
+                best = (x_left, y_top, cs)
+        if best is None:
+            continue
+        x_left, y_top, cs = best
+        y_top = max(y_top, 0.0)
+        # what the next pieces rest on: the piece's body, its thorns eroded away (pieces stood on a spike's tip)
+        solid = np.asarray(r_img.getchannel("A").filter(ImageFilter.MinFilter(5)))> 60
+        for c in cs:
+            col = np.nonzero(solid[:, c])[0]
+            if len(col):
+                ground[x_left + c] = min(ground[x_left + c], y_top + float(col.min()))
+        p.update(rot=rot, ex=x_left + r_img.width / 2.0, ey=y_top + r_img.height / 2.0)
+    frames = []
+    for f in range(n_frames):
+        t = (f + 1) / float(n_frames)          # the last frame is the pile at rest
+        out = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
+        placed = []
+        for p in parts:
+            if "ex" not in p:
+                continue
+            # a small pop outward and up, then gravity: x eases, y follows a drop with an early lift
+            ox = p["cx"] + (p["cx"] - mid) * 0.25 * math.sin(math.pi * min(t * 1.6, 1.0))
+            x = ox + (p["ex"] - ox) * (1 - (1 - t) ** 2)
+            lift = -0.10 * (bot - top) * math.sin(math.pi * min(t * 2.2, 1.0)) * (1.0 - t)
+            y = p["cy"] + (p["ey"] - p["cy"]) * (t * t) + lift
+            sc = 1.0 - (1.0 - shrink) * t
+            im = p["img"].resize((max(1, int(p["img"].width * sc)), max(1, int(p["img"].height * sc))), Image.LANCZOS)
+            im = im.rotate(p["rot"] * t, resample=Image.BICUBIC, expand=True)
+            placed.append((y, im, int(round(x - im.width / 2.0)), int(round(y - im.height / 2.0))))
+        for _, im, x, y in sorted(placed, key=lambda q: -q[0]):
+            x = min(max(x, -im.width + 1), cell - 1)
+            y = min(max(y, -im.height + 1), cell - 1)
+            out.alpha_composite(im, (max(x, 0), max(y, 0)), (max(-x, 0), max(-y, 0)))
+        frames.append(out)
+    return frames
 
 
 def hop_cycle(stand, cell, n=12, height=0.13, ground=0.3):

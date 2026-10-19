@@ -3190,3 +3190,20 @@ a "down" and a "revive" line in the decision log and CSV, "revived N×" on the H
 the fall's red mark, "· revived by you" in the Threat. Also: the safety style ticks lane BOT's "Ring breakout" box in
 the Hero Settings (and with the safety style the box's state is always passed), the plaque says "Breaking out", and a
 breakout decision gets no real-DPS change. Tests game/tests/pass90_WATCH_test.gd (7). No game code changed.
+
+**Pass 91 (2026-10-19, v0.77): the Level Editor method "Creature from front + back pictures", the shatter death, the keyer's black line fixed.**
+
+Pass 91 (lane ARTJOB, the Cactus Walker). Garry's green cactus came out with a black line at its bottom and a "pile of
+pieces" death that was the whole cactus with pieces on it. The line: artkit.key_background cuts a cast-shadow band in the
+bottom 12% of every figure, the pixels near the screen's hue; a green creature on the green screen lost its lower body
+there and its ink lines stayed, which the outline filled into a dark band. Fixed at the cause: the cut is off when the
+figure itself wears the screen's colours (artkit.figure_wears_screen, WEARS_SCREEN_SHARE 0.04 of the upper body). The
+death: his creature JSON (cloned from the Blue Slime) had death "squash", and every painted dead still is a Klein EDIT of
+the front ("This exact creature <dead_hint> ... keep the same proportions"), which keeps the creature whole. New death
+"shatter" (artkit.shatter): the painting breaks into ~14 Voronoi pieces that pop, fall, turn and heap on the ground
+(height-map stacking, pieces at 0.62 size at rest, a crack frame first; nothing painted, dead_hint unused). New Level
+Editor method creature_pictures ("Creature from front + back pictures"): recipe front_ref, back_ref, picture_use as_is |
+redraw, screen auto (blue when the picture's figure leans green; gen_art.auto_screen), plus every creature_proc input;
+gen_art.picture_still lays the picture on the screen as a cached still (<id>_<slug>_front/_back) or has Klein redraw it.
+Landed CW-E (fresh) on the Cactus Walker from his pictures. Balancing notes: shatter_pieces (14) and death_frames (6) are
+recipe keys; the screen guard threshold WEARS_SCREEN_SHARE = 0.04 in tools/artkit.py.

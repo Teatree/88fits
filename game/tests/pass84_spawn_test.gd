@@ -480,12 +480,12 @@ func test_red_canyon_spawns_through_rows_only() -> void:
 			assert_bool(r.has("weights")).is_true()
 		if str(r.get("elite", "")) != "":
 			elite_rows += 1
-			assert_str(str(r.get("enemy", ""))).is_equal("roster")
 		var e = r.get("enemy", "")
 		if e is String and e != "roster":
 			assert_object(Registry.enemy(e)).override_failure_message(str(r.get("id", ""))).is_not_null()
 	assert_int(once).is_greater_equal(5)
-	assert_int(elite_rows).is_equal(1)
+	# (re-pinned, pass 91: Garry gives Elites to rows of his own creatures in the Level Editor)
+	assert_int(elite_rows).is_greater_equal(1)
 
 
 func test_a_swarm_row_comes_past_the_hard_cap_as_the_event_did() -> void:

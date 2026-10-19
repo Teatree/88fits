@@ -1,0 +1,194 @@
+{
+  "id": "cactus_walker",
+  "name": "Cactus Walker",
+  "flavour": "",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 26,
+  "speed": 1.7,
+  "damage": 7,
+  "knockback": 4.5,
+  "radius": 0.6,
+  "size": 1.8,
+  "blood": "#4DFF70",
+  "pack_size": 5,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.4,
+    "gold": 0.05,
+    "chest": 0.004
+  },
+  "frame_px": 160,
+  "xp_mult": 3.5,
+  "cap_share": 1.0,
+  "sfx": {
+    "hit": "en_slime_hit",
+    "die": "en_slime_die"
+  },
+  "placeholder": {
+    "color": "#2E7BFF",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "screen": "green",
+  "art_prompt": "a big round blob of glossy bright cobalt-blue slime jelly, a rounded dome shape sitting on the ground, translucent blue with a lighter cyan glow inside and bright white highlights on top, two large round black eyes with white highlights and a wide open happy mouth, a few small drips of blue slime running down its sides, no arms, no legs, no hair, nothing on its head, facing the viewer",
+  "variance": {
+    "size": 0.18,
+    "speed": 0.12,
+    "tints": [
+      "#FFFFFF",
+      "#D8F0FF",
+      "#C0FFF4",
+      "#E0D8FF"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.0333,
+    "special": {
+      "size": 1.5,
+      "hp": 15.0,
+      "damage": 2.0,
+      "xp": 3.0,
+      "tint": "#5A1078",
+      "tint_strength": 0.6
+    }
+  },
+  "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, its drips swinging",
+  "anim_negative": "arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting",
+  "dead_hint": "splattered flat into a wide shallow puddle of blue slime, dead: the dome gone, only a flat spread of blue jelly with its two round black eyes floating on top, no body shape left; the puddle sits on nothing, with no ground, no sand and no shadow under it",
+  "back_hint": "Its back is a plain glossy blue dome with the drips, no eyes and no mouth visible.",
+  "death": "squash",
+  "directions": 2,
+  "doc": "Cactus Walker guy",
+  "variant_base": "CW-A",
+  "variant": "CW-E",
+  "sprite": "cactus_walker_sprite_a.png",
+  "icon": "cactus_walker_icon_a.png",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 6,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 41,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "head": 0.988,
+  "variants": {
+    "CW-A": {
+      "recipe": {
+        "walk": "hop",
+        "art_prompt": "A small, round, aggressive-looking cactus monster with a compact, nearly spherical body. Its body is olive green with several prominent vertical cactus ribs running from the top to the bottom, creating deep grooves and rounded, segmented surfaces.\n\nNumerous long, sharp, ivory-colored spikes protrude from its body at irregular intervals. The spikes vary in length and thickness, with some particularly large, outward-pointing thorns along the silhouette. Each spike emerges from a small, dark brown base embedded in the cactus skin.\n\nIts face is integrated directly into the front of the cactus body. Two large, orange-red eyes with dark pupils sit beneath sharply angled, heavy green brows, creating an angry, hostile expression. Below the eyes is a narrow, downward-curving mouth with a dark interior and two small, sharp white fangs pointing downward.\n\nAt the very top of the cactus sits a striking crimson-red flower made of multiple overlapping, sharply pointed petals arranged in a layered, crown-like formation. The petals have darker red shading toward their bases and tips.\n\nThe cactus has no arms, legs, feet, or other limbs. Its entire silhouette consists of the round, spiked body and the red flower on top.",
+        "back_hint": "Back view of a small, round, olive-green cactus monster. Its spherical body has prominent vertical ribs with deep grooves and numerous long, sharp, ivory-colored spikes protruding outward from dark brown bases. A crimson-red flower with layered, pointed petals sits at the top. No face, arms, legs, or feet. Perfectly centered, upright, and viewed directly from behind.",
+        "dead_hint": "A pile of small cactus pieces",
+        "method": "creature_proc",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "a",
+        "seed_offset": 5666,
+        "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, its drips swinging",
+        "anim_negative": "arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting",
+        "screen": "green"
+      },
+      "sprite": "cactus_walker_sprite_a.png",
+      "icon": "cactus_walker_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.988,
+      "fresh": true
+    },
+    "CW-D": {
+      "recipe": {
+        "stills": "cactus_walker",
+        "art_prompt": "A small, round, aggressive-looking cactus monster with a compact, nearly spherical body. Its body is olive green with several prominent vertical cactus ribs running from the top to the bottom, creating deep grooves and rounded, segmented surfaces.\n\nNumerous long, sharp, ivory-colored spikes protrude from its body at irregular intervals. The spikes vary in length and thickness, with some particularly large, outward-pointing thorns along the silhouette. Each spike emerges from a small, dark brown base embedded in the cactus skin.\n\nIts face is integrated directly into the front of the cactus body. Two large, orange-red eyes with dark pupils sit beneath sharply angled, heavy green brows, creating an angry, hostile expression. Below the eyes is a narrow, downward-curving mouth with a dark interior and two small, sharp white fangs pointing downward.\n\nAt the very top of the cactus sits a striking crimson-red flower made of multiple overlapping, sharply pointed petals arranged in a layered, crown-like formation. The petals have darker red shading toward their bases and tips.\n\nThe cactus has no arms, legs, feet, or other limbs. Its entire silhouette consists of the round, spiked body and the red flower on top.",
+        "walk": "hop",
+        "back_hint": "Back view of a small, round, olive-green cactus monster. Its spherical body has prominent vertical ribs with deep grooves and numerous long, sharp, ivory-colored spikes protruding outward from dark brown bases. A crimson-red flower with layered, pointed petals sits at the top. No face, arms, legs, or feet. Perfectly centered, upright, and viewed directly from behind.",
+        "dead_hint": "splattered flat into a wide shallow puddle of green slime, dead: the dome gone, only a flat spread of green jelly with its two round black eyes floating on top, no body shape left; the puddle sits on nothing, with no ground, no sand and no shadow under it",
+        "method": "creature_proc",
+        "painter": {
+          "model": "klein",
+          "steps": 41,
+          "stills": "reused",
+          "reused": [
+            "cactus_walker_cactus_walker_front",
+            "cactus_walker_cactus_walker_back",
+            "cactus_walker_cactus_walker_dead"
+          ]
+        },
+        "seed_offset": 8608,
+        "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, its drips swinging",
+        "anim_negative": "arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting",
+        "screen": "green"
+      },
+      "sprite": "cactus_walker_sprite_d.png",
+      "icon": "cactus_walker_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.988,
+      "fresh": true
+    },
+    "CW-E": {
+      "recipe": {
+        "method": "creature_pictures",
+        "front_ref": "tools/dl/uploads/2d/cactus_walker_front.png",
+        "back_ref": "tools/dl/uploads/2d/cactus_walker_back.png",
+        "picture_use": "as_is",
+        "art_prompt": "A small, round, aggressive-looking cactus monster with a compact, nearly spherical body. Its body is olive green with several prominent vertical cactus ribs running from the top to the bottom, creating deep grooves and rounded, segmented surfaces.\n\nNumerous long, sharp, ivory-colored spikes protrude from its body at irregular intervals. The spikes vary in length and thickness, with some particularly large, outward-pointing thorns along the silhouette. Each spike emerges from a small, dark brown base embedded in the cactus skin.\n\nIts face is integrated directly into the front of the cactus body. Two large, orange-red eyes with dark pupils sit beneath sharply angled, heavy green brows, creating an angry, hostile expression. Below the eyes is a narrow, downward-curving mouth with a dark interior and two small, sharp white fangs pointing downward.\n\nAt the very top of the cactus sits a striking crimson-red flower made of multiple overlapping, sharply pointed petals arranged in a layered, crown-like formation. The petals have darker red shading toward their bases and tips.\n\nThe cactus has no arms, legs, feet, or other limbs. Its entire silhouette consists of the round, spiked body and the red flower on top.",
+        "stills": "e",
+        "walk": "hop",
+        "death": "shatter",
+        "screen": "auto",
+        "seed_offset": 9191,
+        "hop_height": 0.7
+      },
+      "fresh": true,
+      "sprite": "cactus_walker_sprite_e.png",
+      "icon": "cactus_walker_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 7,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 42,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.988
+    }
+  }
+}

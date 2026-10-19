@@ -1,0 +1,145 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 41
+ },
+ "anchor": "72ae817babd1",
+ "subject": "A small, round, aggressive-looking cactus monster with a compact, nearly spherical body. Its body is olive green with several prominent vertical cactus ribs running from the top to the bottom, creating deep grooves and rounded, segmented surfaces.\n\nNumerous long, sharp, ivory-colored spikes protrude from its body at irregular intervals. The spikes vary in length and thickness, with some particularly large, outward-pointing thorns along the silhouette. Each spike emerges from a small, dark brown base embedded in the cactus skin.\n\nIts face is integrated directly into the front of the cactus body. Two large, orange-red eyes with dark pupils sit beneath sharply angled, heavy green brows, creating an angry, hostile expression. Below the eyes is a narrow, downward-curving mouth with a dark interior and two small, sharp white fangs pointing downward.\n\nAt the very top of the cactus sits a striking crimson-red flower made of multiple overlapping, sharply pointed petals arranged in a layered, crown-like formation. The petals have darker red shading toward their bases and tips.\n\nThe cactus has no arms, legs, feet, or other limbs. Its entire silhouette consists of the round, spiked body and the red flower on top.",
+ "renders": {
+  "front": {
+   "seed": 402494119476,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of A small, round, aggressive-looking cactus monster with a compact, nearly spherical body. Its body is olive green with several prominent vertical cactus ribs running from the top to the bottom, creating deep grooves and rounded, segmented surfaces.  Numerous long, sharp, ivory-colored spikes protrude from its body at irregular intervals. The spikes vary in length and thickness, with some particularly large, outward-pointing thorns along the silhouette. Each spike emerges from a small, dark brown base embedded in the cactus skin.  Its face is integrated directly into the front of the cactus body. Two large, orange-red eyes with dark pupils sit beneath sharply angled, heavy green brows, creating an angry, hostile expression. Below the eyes is a narrow, downward-curving mouth with a dark interior and two small, sharp white fangs pointing downward.  At the very top of the cactus sits a striking crimson-red flower made of multiple overlapping, sharply pointed petals arranged in a layered, crown-like formation. The petals have darker red shading toward their bases and tips.  The cactus has no arms, legs, feet, or other limbs. Its entire silhouette consists of the round, spiked body and the red flower on top.. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/cactus_walker_cactus_walker_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": false,
+    "view": "front",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 48,
+     "right": 73,
+     "top": 73,
+     "bottom": 42,
+     "height": 908,
+     "width": 902
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 41
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 137422624,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. Back view of a small, round, olive-green cactus monster. Its spherical body has prominent vertical ribs with deep grooves and numerous long, sharp, ivory-colored spikes protruding outward from dark brown bases. A crimson-red flower with layered, pointed petals sits at the top. No face, arms, legs, or feet. Perfectly centered, upright, and viewed directly from behind. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/cactus_walker_cactus_walker_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": false,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match",
+     "view=front"
+    ],
+    "geometry": {
+     "left": 134,
+     "right": 149,
+     "top": 97,
+     "bottom": 83,
+     "height": 843,
+     "width": 740
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 137422632,
+   "prompt": "This exact creature green puddle, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/cactus_walker_cactus_walker_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": false,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 134,
+     "right": 150,
+     "top": 97,
+     "bottom": 84,
+     "height": 842,
+     "width": 739
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "stills": "cactus_walker",
+  "art_prompt": "A small, round, aggressive-looking cactus monster with a compact, nearly spherical body. Its body is olive green with several prominent vertical cactus ribs running from the top to the bottom, creating deep grooves and rounded, segmented surfaces.\n\nNumerous long, sharp, ivory-colored spikes protrude from its body at irregular intervals. The spikes vary in length and thickness, with some particularly large, outward-pointing thorns along the silhouette. Each spike emerges from a small, dark brown base embedded in the cactus skin.\n\nIts face is integrated directly into the front of the cactus body. Two large, orange-red eyes with dark pupils sit beneath sharply angled, heavy green brows, creating an angry, hostile expression. Below the eyes is a narrow, downward-curving mouth with a dark interior and two small, sharp white fangs pointing downward.\n\nAt the very top of the cactus sits a striking crimson-red flower made of multiple overlapping, sharply pointed petals arranged in a layered, crown-like formation. The petals have darker red shading toward their bases and tips.\n\nThe cactus has no arms, legs, feet, or other limbs. Its entire silhouette consists of the round, spiked body and the red flower on top.",
+  "walk": "hop",
+  "back_hint": "Back view of a small, round, olive-green cactus monster. Its spherical body has prominent vertical ribs with deep grooves and numerous long, sharp, ivory-colored spikes protruding outward from dark brown bases. A crimson-red flower with layered, pointed petals sits at the top. No face, arms, legs, or feet. Perfectly centered, upright, and viewed directly from behind.",
+  "dead_hint": "splattered flat into a wide shallow puddle of green slime, dead: the dome gone, only a flat spread of green jelly with its two round black eyes floating on top, no body shape left; the puddle sits on nothing, with no ground, no sand and no shadow under it",
+  "method": "creature_proc",
+  "painter": {
+   "model": "klein",
+   "steps": 41
+  },
+  "seed_offset": 8608,
+  "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, its drips swinging",
+  "anim_negative": "arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting",
+  "screen": "green"
+ },
+ "clip_kind": {
+  "front": "procedural",
+  "back": "procedural",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ },
+ "qa_online": null
+}

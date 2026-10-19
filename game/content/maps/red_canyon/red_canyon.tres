@@ -59,10 +59,12 @@ burst_max = 12
 spawn_interval = 0.7
 roster = [{
 "count": 30.0,
+"elite": "speedy",
 "enemy": "red_goblin",
 "every": 5.0,
 "id": "r1",
 "pace": "waves",
+"special": false,
 "stats": {
 "drops": {
 "medium": 0.0
@@ -84,14 +86,15 @@ roster = [{
 "pattern": "scatter",
 "stats": {
 "can_be_elite": false,
+"size_mult": 1.1,
 "speed": 3.0
 },
 "t": 141.0,
 "until": 200.0,
 "weights": [[141.0, 3.0], [201.0, 3.7]]
 }, {
-"count": 100.0,
-"enemy": "lesser_scorpion",
+"count": 70.0,
+"enemy": "cactus_walker",
 "every": 10.0,
 "id": "r21",
 "pace": "waves",
@@ -100,7 +103,7 @@ roster = [{
 "ring_radius": 18.0,
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 1.7,
+"hp_mult": 0.8,
 "size": 2.0,
 "tint": {
 "amount": 0.4,
@@ -160,7 +163,7 @@ roster = [{
 }, {
 "enemy": "skeleton_knight",
 "id": "r13",
-"interval": 5.0,
+"interval": 10.0,
 "pack": 5.0,
 "pattern": "pack",
 "stats": {
@@ -203,7 +206,7 @@ roster = [{
 }, {
 "enemy": "bull_beetle",
 "id": "r4",
-"interval": 6.0,
+"interval": 5.0,
 "pattern": "scatter",
 "stats": {
 "drops": {
@@ -224,8 +227,8 @@ roster = [{
 "stats": {
 "hp": 20.0,
 "hp_mult": 10.0,
-"size": 5.0,
-"speed": 1.5
+"size": 3.5,
+"speed": 1.75
 },
 "t": 368.0,
 "until": 430.0,

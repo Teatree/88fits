@@ -596,8 +596,8 @@
     {"key": "walk", "type": "select", "default": "hop", "options": ["hop", ""], "help": "hop: a 12-frame squash-and-stretch hop from the painting; '': with the job's no_video a 6-frame lean-and-bob walk."},
     {"key": "hop_height", "type": "number", "default": 0.13, "help": "How high the hop goes, as a fraction of the cell."},
     {"key": "cell_fill", "type": "number", "default": 0.72, "help": "How much of the cell the painting fills (headroom for the hop; raise the creature's size to keep it the same on screen)."},
-    {"key": "death", "type": "select", "default": "squash", "options": ["squash", "collapse", ""], "help": "squash: the painting squashes into the puddle; collapse: slices drop into the painted heap; '': a tilt into the dead still."},
-    {"key": "dead_hint", "type": "text", "default": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, limbs sprawled limp in the air", "help": "The dead still's words (for a collapse, describe the heap)."},
+    {"key": "death", "type": "select", "default": "squash", "options": ["squash", "collapse", "shatter", ""], "help": "squash: squashes flat, then the painted dead still (a puddle); collapse: slices drop, then a painted heap; shatter: the painting breaks into pieces that fall into a pile (nothing painted, dead_hint unused); '': tips over into the painted dead still. A painted dead still is an EDIT of the front: it can lie down, flatten or shut its eyes, but it keeps the creature whole."},
+    {"key": "dead_hint", "type": "text", "default": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, limbs sprawled limp in the air", "help": "The dead still's words, for squash, collapse and the tilt (not shatter): this creature dead, e.g. 'squashed flat on the ground, eyes shut'. It is an edit of the front painting, so 'a pile of pieces' gives the whole creature with pieces on it: for pieces choose death shatter."},
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen the stills are painted on (a green slime goes on blue)."},
     {"key": "back_hint", "type": "text", "default": "", "help": "Extra words for the back still."},
     {"key": "outline_frac", "type": "number", "default": 0.024, "help": "Outline width as a fraction of the cell."},
@@ -605,7 +605,7 @@
     {"key": "frame_px", "type": "int", "default": 128, "help": "The sprite cell in pixels."},
     {"key": "key_sat", "type": "number", "default": 0.35, "help": "Keyer saturation threshold."},
     {"key": "key_min_value", "type": "number", "default": 0.2, "help": "Keyer value threshold."},
-    {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the bottom shadow band."},
+    {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the cast-shadow band under the feet (off by itself when the figure wears the screen's colour, pass 91)."},
     {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."},
     {"key": "pose", "type": "driver", "default": "", "help": "Keep empty: no driver, no clip."}
    ],
@@ -613,6 +613,51 @@
     {"key": "no_video", "type": "bool", "default": false, "help": "The 6-frame lean-and-bob walk instead of a hop (--no-video)."}
    ],
    "refs": {"2d": false, "3d": []},
+   "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--no-video?", "--skip-qa?"]}
+  },
+  {
+   "id": "creature_pictures",
+   "name": "Creature from front + back pictures",
+   "kind": "enemy",
+   "summary": "Your two pictures are the creature's front and back stills, and one job makes the whole look: the hop (or, with no_video, the lean-and-bob walk) from the pictures themselves as in Creature: no video at all, the death, the strip, the icon and the look entry in the creature's JSON. picture_use as_is (the default) takes the pictures exactly as drawn, keyed off a screen picked from their colours (a green creature goes on blue); redraw has Klein redraw each in the house style first. No back picture: the back is painted from the front. Death shatter (the default) breaks the painting into a pile of pieces.",
+   "needs": ["a front picture (png/webp; a transparent background is best)", "a back picture (optional)"],
+   "produces": "the front and back stills (<id>_<slug>_front/_back), a strip (a 12-frame hop or a 6-frame walk, the death), the icon, the look entry",
+   "counts": {"stills": 0, "clips": 0},
+   "time": {"median_s": 15, "worst_s": 120},
+   "weaknesses": [
+    "Reads as a cut-out, like every no-video look: for blobs, tumbleweeds, things without legs.",
+    "as_is keeps the pictures' own drawing and outline: draw them in the house style, or pick redraw.",
+    "A painted dead still (squash, collapse, the tilt) is an edit of the front and keeps the creature whole; for pieces use shatter.",
+    "Raise the creature's size to keep its on-screen size when cell_fill gives the hop headroom."
+   ],
+   "example": {"image": "examples/creature_proc_blue_slime.png", "strip": {"kind": "enemy", "id": "blue_slime", "code": "SL-A"}},
+   "recipe_fields": [
+    {"key": "front_ref", "type": "file", "default": "", "help": "The front picture (the face towards you). Upload it here."},
+    {"key": "back_ref", "type": "file", "default": "", "help": "The back picture (seen from behind). Empty: the back is painted from the front."},
+    {"key": "picture_use", "type": "select", "default": "as_is", "options": ["as_is", "redraw"], "help": "as_is: the pictures are the stills, exactly as drawn; redraw: Klein redraws each in the house style (the picture as the identity reference, about 20 s each)."},
+    {"key": "art_prompt", "type": "textarea", "default": "", "help": "What the creature is (used by redraw, a painted back and a painted dead still)."},
+    {"key": "stills", "type": "text", "default": "", "help": "The slug the look's stills are cached under (<id>_<slug>_front/_back): a new look gets its own (its letter)."},
+    {"key": "walk", "type": "select", "default": "hop", "options": ["hop", ""], "help": "hop: a 12-frame squash-and-stretch hop from the painting; '': with the job's no_video a 6-frame lean-and-bob walk."},
+    {"key": "hop_height", "type": "number", "default": 0.13, "help": "How high the hop goes, as a fraction of the cell."},
+    {"key": "cell_fill", "type": "number", "default": 0.72, "help": "How much of the cell the painting fills (headroom for the hop; raise the creature's size to keep it the same on screen)."},
+    {"key": "death", "type": "select", "default": "shatter", "options": ["squash", "collapse", "shatter", ""], "help": "squash: squashes flat, then the painted dead still (a puddle); collapse: slices drop, then a painted heap; shatter: the painting breaks into pieces that fall into a pile (nothing painted, dead_hint unused); '': tips over into the painted dead still. A painted dead still is an EDIT of the front: it can lie down, flatten or shut its eyes, but it keeps the creature whole."},
+    {"key": "dead_hint", "type": "text", "default": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, limbs sprawled limp in the air", "help": "The dead still's words, for squash, collapse and the tilt (not shatter): this creature dead, e.g. 'squashed flat on the ground, eyes shut'. It is an edit of the front painting, so 'a pile of pieces' gives the whole creature with pieces on it: for pieces choose death shatter."},
+    {"key": "back_hint", "type": "text", "default": "", "help": "Extra words for the back still."},
+    {"key": "outline_frac", "type": "number", "default": 0.024, "help": "Outline width as a fraction of the cell."},
+    {"key": "outline_color", "type": "text", "default": "#0E080C", "help": "Outline colour, hex."},
+    {"key": "frame_px", "type": "int", "default": 128, "help": "The sprite cell in pixels."},
+    {"key": "key_sat", "type": "number", "default": 0.35, "help": "Keyer saturation threshold."},
+    {"key": "key_min_value", "type": "number", "default": 0.2, "help": "Keyer value threshold."},
+    {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the cast-shadow band under the feet (off by itself when the figure wears the screen's colour, pass 91)."},
+    {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."},
+    {"key": "screen", "type": "select", "default": "auto", "options": ["auto", "green", "blue"], "help": "The screen the pictures are laid on and keyed off: auto picks blue for a green creature, else green."},
+    {"key": "shatter_pieces", "type": "int", "default": 14, "help": "death shatter: how many pieces it breaks into."},
+    {"key": "death_frames", "type": "int", "default": 6, "help": "death shatter: the frames of the fall (after one crack frame)."}
+   ],
+   "job_fields": [
+    {"key": "no_video", "type": "bool", "default": false, "help": "The 6-frame lean-and-bob walk instead of a hop (--no-video)."}
+   ],
+   "refs": {"2d": true, "3d": []},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--no-video?", "--skip-qa?"]}
   },
   {
@@ -977,11 +1022,12 @@
   }
  ],
  "deaths": [
-  {"value": "", "name": "Tilt over (free)", "text": "The standing painting leans and tips into the painted dead still: 5 procedural frames, no model.", "seconds": 0},
+  {"value": "", "name": "Tilt over (free)", "text": "The standing painting leans and tips over, then cuts to the painted dead still (dead_hint: how it lies dead): 5 procedural frames, one Klein still.", "seconds": 0},
   {"value": "clip", "name": "Painted dead still + a Wan fall", "text": "Wan first-last-frame from the standing painting to the dead still, 33 frames cut to death_frames (8).", "seconds": 132},
   {"value": "pose:<driver>", "name": "A driven fall", "text": "Wan Animate on a one-shot OpenPose driver (death_back is Mixamo's Falling Back Death; _goblin and _runt fitted); fails on caped or shielded figures and tips over instead.", "seconds": 55},
-  {"value": "squash", "name": "Squash", "text": "The painting squashes into the puddle in 6 frames (blobs).", "seconds": 0},
-  {"value": "collapse", "name": "Collapse", "text": "The standing painting is cut into slices that drop into a painted heap (dead_hint must describe the heap).", "seconds": 0},
+  {"value": "squash", "name": "Squash", "text": "The painting squashes flatter and wider over 4 frames, then cuts to the painted dead still (dead_hint: a puddle). For blobs.", "seconds": 0},
+  {"value": "collapse", "name": "Collapse", "text": "The standing painting is cut into slices that drop, then cuts to a painted heap (dead_hint must describe the heap). The heap is a Klein edit of the front and often keeps the creature whole: shatter is the reliable pile.", "seconds": 0},
+  {"value": "shatter", "name": "Shatter into a pile", "text": "The standing painting breaks into about 14 pieces that pop, fall, turn and come to rest heaped on the ground (artkit.shatter): 7 procedural frames, nothing painted, dead_hint unused. The death that really ends as a pile of pieces.", "seconds": 0},
   {"value": "death_drivers", "name": "The model's own death (creature_ctl)", "text": "Fun Control walks the front painting along the model's death clip; death_keep picks 8 of its 25 frames and is re-pickable without a render.", "seconds": 86}
  ],
  "ref_wordings": [

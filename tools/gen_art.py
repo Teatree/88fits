@@ -575,6 +575,70 @@ def back_ref_render(d, sk, bg, front_ref, back_prompt):
     return [front_ref, up], prompt
 
 
+def picture_use(d):
+    """Pass 91: how creature_pictures uses Garry's pictures: "as_is" (the picture is the still, laid on the screen) or
+    "redraw" (Klein redraws it in the house style, the picture as the identity reference)."""
+    return "redraw" if str(d.get("picture_use", "as_is")).lower() == "redraw" else "as_is"
+
+
+def auto_screen(pic_name):
+    """Pass 91: the screen for a picture's figure: blue when the figure leans green (a green cactus on the green screen
+    lost its lower body to the keyer), else green. An opaque picture is judged by its middle half."""
+    pic = ref_path(pic_name)
+    if not pic:
+        return BG_GREEN
+    a = np.asarray(Image.open(pic).convert("RGBA")).astype(np.float32) / 255.0
+    if a[..., 3].min() > 0.99:
+        h, w = a.shape[:2]
+        a = a[h // 4: 3 * h // 4, w // 4: 3 * w // 4]
+    rgb = a[..., :3][a[..., 3] > 0.5]
+    if not len(rgb):
+        return BG_GREEN
+    mx, mn = rgb.max(axis=1), rgb.min(axis=1)
+    sat = (mx - mn) / np.maximum(mx, 1e-6)
+    greenish = (rgb[:, 1] >= rgb[:, 0]) & (rgb[:, 1] >= rgb[:, 2]) & (sat > 0.18) & (mx > 0.2)
+    return BG_BLUE if float(greenish.mean()) > 0.15 else BG_GREEN
+
+
+def picture_still(d, key, pic_name, view, subject, bg, refs, seed, info):
+    """Pass 91 (creature_pictures): a still from a picture of Garry's. "as_is": the picture laid on the screen colour,
+    centred on a 1024 square with a margin (what render() paints), cached as <key>.png/.json like every still, so the
+    keyer, the walk and the death read it as a painting. "redraw": a Klein edit of the picture (gen_edit_stills' words),
+    the style anchor first. None when the picture is not on disk."""
+    pic = ref_path(pic_name)
+    if not pic:
+        log("  (%s picture %r is not on disk: painted from the words)" % (view, str(pic_name)))
+        return None
+    blue = bg == BG_BLUE
+    if picture_use(d) == "redraw":
+        up = comfy.upload_pil(on_screen(Image.open(pic), blue), key + "_picture.png")
+        words = "front view, standing and facing the viewer" if view == "front" else "back view seen directly from behind, no face visible"
+        prompt = (("The first reference image shows the art style only; do not copy its subjects. The second" if refs else "The") +
+                  " reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of " +
+                  subject + ". Full body, " + words + ", the whole creature inside the picture. " + STYLE + ". " + bg + ".")
+        img, inf = render(key, prompt, list(refs) + [up], {"subject": subject.split(",")[0], "view": view, "subjects_max": 1}, seed)
+        inf["picture"] = str(pic_name)
+        info["renders"][view] = inf
+        return img
+    src = Image.open(pic).convert("RGBA")
+    if src.getchannel("A").getextrema()[0] < 250:
+        box = src.getchannel("A").point(lambda v: 255 if v > 40 else 0).getbbox()
+        if box:
+            src = src.crop(box)
+    s = 1024 * 0.8 / max(src.width, src.height)
+    src = src.resize((max(1, int(src.width * s)), max(1, int(src.height * s))), Image.LANCZOS)
+    canvas = Image.new("RGBA", (1024, 1024), (0, 0, 255, 255) if blue else (0, 255, 0, 255))
+    canvas.alpha_composite(src, ((1024 - src.width) // 2, (1024 - src.height) // 2))
+    img = canvas.convert("RGB")
+    os.makedirs(RAW, exist_ok=True)
+    img.save(os.path.join(RAW, key + ".png"))
+    inf = {"picture": str(pic_name), "as_is": True, "screen": "blue" if blue else "green", "view": view}
+    with open(os.path.join(RAW, key + ".json"), "w", encoding="utf-8") as f:
+        json.dump(inf, f, indent=1)
+    info["renders"][view] = inf
+    return img
+
+
 def attack_stills(d, sk, subject, bg, front_ref, img, back_img, seed, info):
     """Pass 73 (lane ART, the Saiga Sniper's aim): painted attack poses for a creature whose recipe or JSON names one:
     the pose in words (`aim_hint`, lane SNIPER's key), optionally with a picture of it (`aim_ref`). The front pose is
@@ -1444,9 +1508,16 @@ def process(type_, folder, id_):
         # (a variant's own: goblin_gobb_pose_f)
         sk = id_ + ("_" + still_slug(d) if still_slug(d) else "")
         ak = id_ + ("_" + vcode.lower().replace("-", "") if vcode else "")
-        img, inf = render(sk + "_front", styled(subject, "Full body, front view, standing and facing the viewer.", bg), refs,
-                          {"subject": subject, "view": "front", "subjects_max": 1}, seed)
-        info["renders"]["front"] = inf
+        # pass 91 (creature_pictures): the front and back stills from Garry's own pictures (front_ref / back_ref), as
+        # they are or redrawn; the screen picked from the picture's colours unless the recipe names one
+        if d.get("front_ref") and str(d.get("screen", "auto") or "auto").lower() == "auto":
+            bg = auto_screen(d.get("front_ref"))
+            info["screen"] = "blue" if bg == BG_BLUE else "green"
+        img = picture_still(d, sk + "_front", d.get("front_ref"), "front", subject, bg, refs, seed, info) if d.get("front_ref") else None
+        if img is None:
+            img, inf = render(sk + "_front", styled(subject, "Full body, front view, standing and facing the viewer.", bg), refs,
+                              {"subject": subject, "view": "front", "subjects_max": 1}, seed)
+            info["renders"]["front"] = inf
         front_ref = comfy.upload_pil(img, sk + "_front.png")
         # a creature JSON may carry "back_hint" too: what the back view must keep (the centipede's coil at its base)
         back_prompt = ("Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same "
@@ -1455,10 +1526,14 @@ def process(type_, folder, id_):
         if d.get("back_prompt"):
             back_prompt = str(d["back_prompt"]) + " " + bg + "."
         # pass 73 (lane ART): a picture of the back ("back_ref") as the back still's second reference
-        back_refs, back_prompt = back_ref_render(d, sk, bg, front_ref, back_prompt)
-        back_img, inf = render(sk + "_back", back_prompt, back_refs, {"subject": "the same creature seen from behind", "view": "back", "subjects_max": 1,
-                               "ref_h": figure_height(img)}, seed + 1)
-        info["renders"]["back"] = inf
+        back_img = None
+        if d.get("front_ref") and d.get("back_ref") and picture_use(d) == "as_is":
+            back_img = picture_still(d, sk + "_back", d.get("back_ref"), "back", subject, bg, refs, seed + 1, info)
+        if back_img is None:
+            back_refs, back_prompt = back_ref_render(d, sk, bg, front_ref, back_prompt)
+            back_img, inf = render(sk + "_back", back_prompt, back_refs, {"subject": "the same creature seen from behind", "view": "back", "subjects_max": 1,
+                                   "ref_h": figure_height(img)}, seed + 1)
+            info["renders"]["back"] = inf
         # creatures get a heavier, darker outline than the hero so they separate from the sand and from each other
         CO, CF = (14, 8, 12, 255), 0.024
         # a creature may ask for a lighter outline in its JSON (the Elite is three times a goblin, so the heavy rim read as black)
@@ -1575,11 +1650,20 @@ def process(type_, folder, id_):
         falls_apart = str(d.get("death", "")) == "collapse"
         dead_expect = {"subject": "a heap of loose bones with a skull on top" if falls_apart else "the same creature lying on its back", "view": None,
                        "subjects_max": 8 if falls_apart else 1, "no_match_ok": falls_apart}
-        dead_img, inf = render(sk + "_dead", dead_prompt, [front_ref], dead_expect, seed + 9)
-        info["renders"]["dead"] = inf
-        dead_cell = finish(dead_img, cell, 0.7, True, None, CF, None, CO)[0]
-        fall = None
         death = str(d.get("death", ""))
+        shards = None
+        if death == "shatter":
+            # pass 91: the painting itself breaks into pieces that fall into a pile (artkit.shatter); nothing is painted,
+            # so dead_hint is not used (an edit of the front keeps the creature whole: "a pile of pieces" came out as the
+            # whole cactus with pieces stuck on it)
+            shards = artkit.shatter(base, int(d.get("death_frames", 6)), seed, int(d.get("shatter_pieces", 14)), max(1, int(round(cell * CF * 0.5))), CO)
+            dead_cell = shards[-1]
+            info["renders"]["dead"] = {"procedural": "shatter"}
+        else:
+            dead_img, inf = render(sk + "_dead", dead_prompt, [front_ref], dead_expect, seed + 9)
+            info["renders"]["dead"] = inf
+            dead_cell = finish(dead_img, cell, 0.7, True, None, CF, None, CO)[0]
+        fall = None
         if death == "clip":
             fall = death_cycle(img, dead_img, ak + "_fall", seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
         elif death.startswith("pose:"):
@@ -1589,6 +1673,8 @@ def process(type_, folder, id_):
             for c in crh_list:   # pass 87: the death clip's smeared hues too
                 fall = [_crh(f, c) for f in fall]
             frames["die"] = fall
+        elif shards:
+            frames["die"] = [artkit.transform(base, sy=0.94, sx=1.04)] + shards
         elif death == "squash":
             # a creature that splats instead of falling over (the Blue Slime, pass 44): the standing painting squashes flatter
             # and wider over four frames into the painted puddle (the first-last-frame clip between the two grew it legs)

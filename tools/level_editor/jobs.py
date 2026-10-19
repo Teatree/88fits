@@ -88,12 +88,12 @@ LANES = ("comfy", "godot", "local", "sim")   # pass 77 (lane SIMUI): the run sim
 KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "hero": "characters", "weapon": "weapons", "evolution": "evolutions",
                 "passive": "passives", "mutation": "mutations"}
 LOOK_METHODS = ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_ctl", "creature_proc",
-                "front_from_picture", "recolour", "hero_puppet")
+                "front_from_picture", "recolour", "hero_puppet", "creature_pictures")
 CTL_VIEWS = ("front", "fd", "side", "bd", "back")
 HERO_VIEWS = ("front", "back", "side", "fd", "bd")
 # median seconds per method when methods.json has no timing (the synthesis §7; "~" always on the page)
 BUILTIN_MEDIAN = {"hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "creature_pose2": 240, "creature_free8": 960,
-                  "creature_ctl": 660, "creature_ctl_side": 60, "creature_ctl_side_dev": 840, "creature_proc": 90,
+                  "creature_ctl": 660, "creature_ctl_side": 60, "creature_ctl_side_dev": 840, "creature_proc": 90, "creature_pictures": 15,
                   "front_from_picture": 20, "recolour": 5, "item_icon": 20, "icon_cands": 20, "icon_cands_dev": 270,
                   "hero_badge": 20, "hero_title": 25, "driver_pose": 60, "driver_depth": 300, "driver_tweak": 5, "ref_probe": 10,
                   "ref_render": 60, "register": 120, "import": 90, "launch": 0, "install": 5, "hero_puppet": 1200}
@@ -537,7 +537,7 @@ def cache_keys(method, spec, target, doc=None):
     recipe = (spec or {}).get("recipe") or {}
     doc = doc or {}
     stills, clips = [], []
-    if method in ("creature_free2", "creature_pose2", "creature_free8", "creature_proc"):
+    if method in ("creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures"):
         st = recipe.get("stills", doc.get("stills"))
         sk = cid + ("_" + str(st) if st else "")
         ak = cid + ("_" + _code_part(code) if code else "")
@@ -545,9 +545,10 @@ def cache_keys(method, spec, target, doc=None):
         if method == "creature_free8" or int(recipe.get("directions", doc.get("directions", 2))) == 8:
             stills += [sk + "_side", sk + "_bd", sk + "_fd"]
             clips += [ak + "_walk_side", ak + "_walk_bd", ak + "_walk_fd"]
-        if method == "creature_pose2" or (recipe.get("pose", doc.get("pose")) and method != "creature_proc"):
+        procedural = method in ("creature_proc", "creature_pictures")   # pass 91: no clips for either
+        if method == "creature_pose2" or (recipe.get("pose", doc.get("pose")) and not procedural):
             clips = [ak + "_pose_f", ak + "_pose_b"] + clips
-        elif method != "creature_proc" and str(recipe.get("walk", doc.get("walk", ""))) != "hop":
+        elif not procedural and str(recipe.get("walk", doc.get("walk", ""))) != "hop":
             clips = [ak + "_walk_f", ak + "_walk_b"] + clips
         death = str(recipe.get("death", doc.get("death", "")))
         if death == "clip":
@@ -605,7 +606,7 @@ def expected_stages(method, spec, target, doc=None, phase=1):
     def add(name, key, type_):
         st.append({"name": name, "key": key, "type": type_})
 
-    if method in ("creature_free2", "creature_pose2", "creature_free8", "creature_proc"):
+    if method in ("creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures"):
         stills, clips = keys["stills"], keys["clips"]
         add("front", stills[0], "still")
         add("back", stills[1], "still")
@@ -620,7 +621,8 @@ def expected_stages(method, spec, target, doc=None, phase=1):
             for v in ("side", "bd", "fd"):
                 if k.endswith("_walk_" + v):
                     add("walk_" + v, k, "clip")
-        add("dead", stills[2], "still")
+        if str(recipe.get("death", doc.get("death", ""))) != "shatter":   # pass 91: a shatter paints no dead still
+            add("dead", stills[2], "still")
         for k in clips:
             if k.endswith("_fall"):
                 add("fall", k, "clip")
@@ -942,7 +944,7 @@ def _plan(job):
         if prob:
             p["error"] = prob
     elif kind == "look":
-        if method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "hero_puppet"):
+        if method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures", "hero_puppet"):
             argv = ["--no-import", "--only", cid, "--variant=" + code]
             if spec.get("skip_qa"):
                 argv.append("--skip-qa")
@@ -1572,7 +1574,7 @@ def _tail_from_file(job, n):
         return []
 
 
-CREATURE_STILL_METHODS = ("creature_free2", "creature_pose2", "creature_free8", "creature_proc")
+CREATURE_STILL_METHODS = ("creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures")
 # pass 68 (D1, D2): the look methods whose stills gen_art keys by the recipe's `stills` slug (<id>_<slug>_<view>); hero_fit
 # never gets one (it re-walks the hero's own paintings by design)
 STILL_METHODS = CREATURE_STILL_METHODS + ("hero_pose5", "hero_puppet")
@@ -1877,8 +1879,8 @@ def _apply_reroll(target, spec):
         views = [v.strip() for v in str(rr.get("view") or "").split(",") if v.strip()]
         if not views or any(v not in CTL_VIEWS for v in views):
             raise ValueError("the one-view walk needs reroll.view: one or more of %s" % ", ".join(CTL_VIEWS))
-        if method == "creature_proc":
-            raise ValueError("creature_proc has no clips (its frames are procedural): re-roll the stills")
+        if method in ("creature_proc", "creature_pictures"):
+            raise ValueError(method + " has no clips (its frames are procedural): re-roll the stills")
         clips = [k for k in cache_keys(method, spec, target, _look_state(target)["doc"])["clips"] if clip_view(k) in views]
         if not clips:
             raise ValueError("%s walks no %s view (a two-direction look walks front and back only)" % (code or "this look", "/".join(views)))
@@ -1901,8 +1903,8 @@ def _apply_reroll(target, spec):
     if method == "creature_ctl" and mode in ("stills", "seeds"):
         raise ValueError("creature_ctl paints its stills from the picked side with its code's own seeds: re-roll a view or the clips "
                          "(new side candidates: queue a new look)")
-    if method == "creature_proc" and mode == "clips":
-        raise ValueError("creature_proc has no clips (its frames are procedural): re-roll the stills")
+    if method in ("creature_proc", "creature_pictures") and mode == "clips":
+        raise ValueError(method + " has no clips (its frames are procedural): re-roll the stills")
     recipe = spec.get("recipe")
     if not isinstance(recipe, dict):
         recipe = {}
@@ -3329,7 +3331,7 @@ def _post(job):
     res = _result(job) or {}
     info = res.get("info") or {}
     try:
-        if kind == "look" and method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_ctl", "hero_puppet"):
+        if kind == "look" and method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures", "creature_ctl", "hero_puppet"):
             entry = res.get("entry") or {}
             if not entry:
                 return None, "the tool wrote no result.json entry (nothing merged)"

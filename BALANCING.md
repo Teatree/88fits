@@ -5487,3 +5487,7 @@ The coloured specials die as often without the hunt (85% against 87%: the weapon
   blocked. Columns: the whole run, and the last 10 / 30 / 60 s (default 30).
 - **Chart hover**: the hint names a mark or a moment within 6 px of the pointer; a line has a value only within 2.5 of
   its samples' widths of the pointer.
+
+## 38. Pass 91 (v0.77): art tools only
+
+No game numbers changed. The keyer skips the cast-shadow cut when the figure wears the screen colour (artkit.WEARS_SCREEN_SHARE 0.04); creature death `shatter` (artkit.shatter, about 14 pieces into a heap); method creature_pictures (front_ref, back_ref, picture_use as_is|redraw, screen auto).

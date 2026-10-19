@@ -68,11 +68,11 @@ const Jobs = (() => {
   // the modes jobs.py's _apply_reroll accepts per method (it refuses the others with a reason): hero_fit paints no stills
   // of its own, gen_ctl paints its stills from the picked side, creature_proc has no clips; a recolour and a front from a
   // picture have nothing to re-roll
-  const REROLL_FOR = { hero_fit: ['clips', 'clip'], creature_ctl: ['clips', 'clip', 'view'], creature_proc: ['seeds', 'stills'], recolour: [], front_from_picture: [], hero_puppet: ['seeds', 'clips', 'clip', 'stills', 'stage'] };
+  const REROLL_FOR = { hero_fit: ['clips', 'clip'], creature_ctl: ['clips', 'clip', 'view'], creature_proc: ['seeds', 'stills'], creature_pictures: ['seeds', 'stills'], recolour: [], front_from_picture: [], hero_puppet: ['seeds', 'clips', 'clip', 'stills', 'stage'] };
   function rerollModes(method) { return REROLL.map((r) => r.v).filter((v) => (REROLL_FOR[method] || ['seeds', 'clips', 'clip', 'stills']).includes(v)); }
   // the look methods whose stills are cached under a slug of the look's own (jobs.py STILL_METHODS, pass 68 D1: hero_pose5
   // joined); a Duplicate… draft of one of them can reuse its source's paintings
-  const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc', 'hero_pose5', 'hero_puppet'];
+  const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc', 'creature_pictures', 'hero_pose5', 'hero_puppet'];
   // pass 68 (D10): a new look comes with at least this many candidates of each kind it has
   const MIN_CANDIDATES = 3;
   // the candidate jobs and the fields their tools read (D6/D7); "What to paint" shows them filled from the server's

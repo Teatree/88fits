@@ -315,7 +315,7 @@ def checks(check, run_node, server):
     check(all(a["telegraph"] in ("line", "ring", "ring_at_hero", "sector", "fan", "spokes", "none") for a in res["attacks"].values()), "P every attack has a default telegraph")
     # pass 73 (lane SNIPER): + the sniper brain's block and flee on hit (any creature)
     check(len(res["blocks"]) == 12 and res["blocks"]["ranged"] == 19 and res["blocks"]["charge"] == 13 and res["blocks"]["flee_on_hit"] == 3, "P 12 brain blocks (ranged 19 rows, charge 13, flee on hit 3): %s" % res["blocks"])
-    check(len(res["recipes"]) == 9 and res["wordings"] == 10, "P 9 method recipe tables and 10 reference wordings: %s" % res["recipes"])
+    check(len(res["recipes"]) == 10 and res["wordings"] == 10, "P 10 method recipe tables (pass 91: creature_pictures) and 10 reference wordings: %s" % res["recipes"])
     # pass 69 (lane LE): the count follows vocab.py's tables (checked against StatSheet.gd and TextGen.gd elsewhere)
     import vocab as _vocab
     check(res["stats"]["player"] == len(_vocab.PLAYER_DEFAULTS) + len(_vocab.PLAYER_STATS_EXTRA) and res["stats"]["weapon"] == 29 and res["stats"]["named"] >= len(_vocab.STAT_NAMES) - 2,

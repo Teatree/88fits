@@ -248,7 +248,9 @@ func test_a_used_strongbox_returns_at_a_fresh_spot_and_floats_down() -> void:
 	assert_bool(g.map.in_water(at)).is_false()
 	for s in sm.items:
 		if s != back and s != first:
-			assert_float(Vector2(at.x - s.global_position.x, at.z - s.global_position.z).length()).is_greater_equal(sm._spacing * 0.5)
+			# (pass 91, re-pinned: a structure standing its own count, a Totem Pole, keeps its own spacing, as find_spot says)
+			var sp: float = sm._spacing if sm.per_map_range(s.def) == Vector2i(-1, -1) else sm.own_spacing(s.def)
+			assert_float(Vector2(at.x - s.global_position.x, at.z - s.global_position.z).length()).is_greater_equal(sp * 0.5 - 0.001)
 	# high up at first, coming down all the way, slowing as it lands; not usable until it stands
 	var h0: float = back.visual.position.y - back.rest.y
 	assert_float(h0).is_greater(StructureManager.DESCEND_HEIGHT * 0.9)

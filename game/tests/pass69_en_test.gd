@@ -170,10 +170,11 @@ func test_every_creature_special_is_rarer_bigger_tougher_and_harder() -> void:
 		assert_float(float((def.variance["special"] as Dictionary)["hp"])).is_equal(15.0)
 		seen += 1
 	assert_int(seen).is_equal(21)
-	# no creature in play with a special chance is left out of the table
+	# a creature made since (pass 91: Garry's Cactus Walker, from the Level Editor) with a special chance carries a
+	# special block of its own (re-pinned: the table holds pass 69's creatures only)
 	for def: EnemyDef in Registry.enemies.values():
-		if float(def.variance.get("special_chance", 0.0)) > 0.0:
-			assert_bool(OLD_CHANCE.has(def.id)).override_failure_message(def.id + " has a special chance the table misses").is_true()
+		if float(def.variance.get("special_chance", 0.0)) > 0.0 and not OLD_CHANCE.has(def.id):
+			assert_bool(def.variance.get("special") is Dictionary).override_failure_message(def.id + " has a special chance and no special block").is_true()
 	# the shaman's block (chance 0) carries the new numbers too, for the day it is turned on
 	var sh: Dictionary = _json("res://content/enemies/dust_shaman/dust_shaman.json")["variance"]["special"]
 	assert_float(float(sh["hp"])).is_equal(15.0)

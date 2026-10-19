@@ -149,7 +149,9 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	var stretched: Array = tl.events.filter(func(e: Dictionary) -> bool: return not bool(e.get("special", false)))
 	# (pass 84, lane SPAWN, re-pinned: Elites every is a row now, its event's second and interval kept; the swarms too)
 	for r: Dictionary in tl.roster:
-		if str(r.get("elite", "")) != "":
+		# (pass 91, re-pinned: only the old Elites-every row, the one drawing from the roster; Garry's own rows with an
+		# Elite on his creatures are his)
+		if str(r.get("elite", "")) != "" and str(r.get("enemy", "")) == "roster":
 			stretched.append(r)
 			assert_float(float(r.get("every", 0.0))).is_equal(129.0)
 	stretched.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.get("t", 0.0)) < float(b.get("t", 0.0)))
