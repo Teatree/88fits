@@ -1275,7 +1275,7 @@ const Jobs = (() => {
         const sel = el('select');
         sel.appendChild(el('option', { value: '', text: '(none)' }));
         if (!is3d) for (const r of (ctx.refs && ctx.refs['2d']) || []) sel.appendChild(el('option', { value: r.path || r.url || r.name, text: r.name, selected: (r.path || r.url || r.name) === v }));
-        for (const u of (ctx.refs && ctx.refs['3d']) || []) { const p = `tools/dl/uploads/3d/${u.slug}/${u.file || ''}`; sel.appendChild(el('option', { value: p, text: `${u.slug} (${u.file || 'model'})`, selected: p === v })); }
+        for (const u of (ctx.refs && ctx.refs['3d']) || []) { const p = u.path || `tools/dl/uploads/3d/${u.slug}/${u.file || ''}`; /* pass 92: a loose model's own path */ sel.appendChild(el('option', { value: p, text: `${u.slug} (${u.file || 'model'})`, selected: p === v })); }
         if (v && ![...sel.options].some((x) => x.value === v)) sel.appendChild(el('option', { value: v, text: v, selected: true }));
         sel.addEventListener('change', () => onChange(sel.value === '' ? null : sel.value));
         const up = el('input', { type: 'file', accept: is3d ? '.fbx,.glb,.gltf,.obj,.dae,.blend,.zip' : '.png,.jpg,.jpeg,.webp', style: 'display:none' });
@@ -1428,7 +1428,7 @@ const Jobs = (() => {
       ? Object.entries(kindFields).filter(([k]) => !OWN_KEYS.includes(k) && !recipeKeys.has(k) && !hidden(k)).map(([k, f]) => Object.assign({ key: k }, f || {}, { type: specType(f && f.type) }))
       : null;
     const mfields = (method && Array.isArray(method.job_fields) ? method.job_fields : []).filter((f) => !hidden(f.key));
-    const jfields = specFields && specFields.length ? specFields.map((f) => { const mf = mfields.find((x) => x.key === f.key) || {}; return Object.assign({}, mf, f, { help: f.help || mf.help || '' }, mf.type === 'driver' ? { type: 'driver' } : {}); }) : (kindFields ? [] : mfields);   // pass 70: a methods.json `driver` field keeps its library select (driver_tweak's src)
+    const jfields = specFields && specFields.length ? specFields.map((f) => { const mf = mfields.find((x) => x.key === f.key) || {}; return Object.assign({}, mf, f, { help: f.help || mf.help || '' }, mf.type === 'driver' || mf.type === 'file' ? { type: mf.type } : {}); }) : (kindFields ? [] : mfields);   // pass 70: a methods.json `driver` field keeps its library select (driver_tweak's src); pass 92: a `file` field its upload picker (driver_depth's and ref_limbs' src were plain text boxes)
     const modelFields = jfields.filter((f) => f.group === 'model');
     const assetFields = jfields.filter((f) => f.group !== 'model' && f.key !== 'dev');   // `dev` is the old switch: the model select covers it
     if (modelFields.length) {
@@ -1448,6 +1448,9 @@ const Jobs = (() => {
       const CONT = ['stage', 'use_side', 'view_cands', 'use_view', 'pick', 'file', 'key'];
       const fold = el('details', { class: 'jfold' }, el('summary', { text: 'continuation fields (the picks set them; leave them for a new job)' }));
       let folded = 0;
+      const madeFolds = {};
+      const madeFold = (m) => madeFolds[m] || (madeFolds[m] = el('details', { class: 'jfold', open: String(spec.job.mode || '') === m },
+        el('summary', { text: m === 'gait' ? 'the made walk (mode gait): swing, lift, flex, duty, bob, sway' : 'the made death on its back (mode flip_curl): roll, curl, bounce, twitch, hold' })));
       for (const f of assetFields) {
         const cur = spec.job[f.key] != null ? spec.job[f.key] : (f.key === 'seeds' ? spec.counts.seeds : (f.key in spec.flags ? spec.flags[f.key] : undefined));
         const onChange = (v) => {
@@ -1455,11 +1458,17 @@ const Jobs = (() => {
           if (f.key === 'seeds') spec.counts.seeds = v == null ? undefined : Number(v);
           if (['dev', 'skip_qa', 'no_video', 'no_style_ref'].includes(f.key)) spec.flags[f.key] = !!v;
           if (f.key === 'seed') spec.flags.seed = Number(v) || 0;
+          if (f.key === 'mode') for (const [m, fd] of Object.entries(madeFolds)) fd.open = String(v || '') === m;   // pass 92
         };
         const ctl = PICTURE_KEYS.includes(f.key) ? pictureControl(cur, onChange, { refs }) : recipeControl(f, cur, onChange, { drivers, refs });
         const line = fieldLine(f.label || (f.key === 'ref' ? 'Reference picture' : f.key), ctl, f.help + (f.required ? ' (required)' : ''));
+        // pass 92 (lane SPIDER): the made walk's and the made death's settings (driver_depth mode gait / flip_curl) in folds
+        // of their own, open when that mode is chosen: 24 more boxes than a clip's driver needs
+        const made = /^(gait|flip_curl): /.exec(f.help || '');
+        if (made) { const fd = madeFold(made[1]); fd.appendChild(line); continue; }
         if (CONT.includes(f.key) && !(spec.job[f.key])) { fold.appendChild(line); folded++; } else body.appendChild(line);
       }
+      for (const fd of Object.values(madeFolds)) body.appendChild(fd);
       if (folded) body.appendChild(fold);
     }
 
@@ -1955,6 +1964,18 @@ const Jobs = (() => {
     return row;
   }
 
+  /** pass 92 (lane SPIDER): the probe's leg chains (probe.limbs) in words: the count every painter copies (Garry's spider
+   *  had six legs and nothing said so), and that a legged rig walks and dies without a clip (driver_depth gait / flip_curl). */
+  function limbsText(p, arm, acts) {
+    const l = p && p.limbs;
+    if (!arm || !l || !(l.count >= 2) || p.humanoid) return '';
+    let t = ` · ${l.count} leg chains (${l.left} left, ${l.right} right)`;
+    if (l.left !== l.right) t += ': the sides differ, check the bones';
+    t += acts.length ? '; no walk among the clips? driver_depth mode gait makes one, mode flip_curl a death on its back' : '; driver_depth mode gait makes a walk without a clip, mode flip_curl a death on its back';
+    t += '; a missing leg pair is copied by "A model\'s legs fixed" (ref_limbs)';
+    return t;
+  }
+
   /** What the probe (blender_ref.py mode=probe → probe.json) says this model can do: the synthesis §5.3 decision tree. */
   function probeBox(u) {
     const p = u.probe;
@@ -1964,10 +1985,14 @@ const Jobs = (() => {
     const meshes = p.meshes != null ? p.meshes : (Array.isArray(p.meshes) ? p.meshes.length : 0);
     let text, bad = false;
     if (!arm && !meshes) { text = 'not a model Blender can read (no armature, no mesh)'; bad = true; }
+    else if (arm && !acts.length && p.limbs && p.limbs.count >= 2 && !p.humanoid) text = 'This model has no animation clip; it can be the icon\'s reference and the look reference';   // pass 92: limbsText says how it walks
     else if (!arm || !acts.length) text = 'This model has no animation clip, so it cannot drive a walk; it can be the icon\'s reference and the look reference. For a walk export it from Mixamo as FBX Binary, 30 fps, In Place, keyframe reduction none, or a GLB that carries its animation.';
     else if (p.rig_guess === 'mixamo') text = `Mixamo-style humanoid with ${acts.length} clip${acts.length > 1 ? 's' : ''} (${acts.map((a) => a.name + (a.seconds ? ' ' + a.seconds.toFixed(1) + ' s' : '')).join(', ')}): OpenPose drivers (24 frames for a run, 12 for a walk; loop or one-shot) and depth drivers.`;
     else if (p.rig_guess === 'sm') text = `A Synty-style (Bone_SM_*) humanoid with ${acts.length} clip${acts.length > 1 ? 's' : ''}: OpenPose drivers with rig=sm, and depth drivers.`;
     else text = `A rigged model (${p.rig_guess || 'other'} rig) with ${acts.length} clip${acts.length > 1 ? 's' : ''}: depth drivers of its own motion (pick the walk / death / idle clip); for OpenPose drivers a bone map is needed (ask Claude).`;
+    // pass 92 (lane SPIDER): the leg count the painters will copy, and the made motions a legged rig gets without a clip
+    text += limbsText(p, arm, acts);
+    if (u.loose && !u.probe) text = 'put in uploads/3d by hand: queue "What a 3D file can do" on it to probe it. ' + text;
     return el('div', { class: 'probe' + (bad ? ' bad' : ''), text: `probe: ${text}${p.dimensions ? ' · size ' + (Array.isArray(p.dimensions) ? p.dimensions.map((x) => Number(x).toFixed(2)).join(' × ') : p.dimensions) : ''}${p.forward_guess ? ' · forward ' + p.forward_guess : ''}` });
   }
 

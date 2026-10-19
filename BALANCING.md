@@ -5491,3 +5491,14 @@ The coloured specials die as often without the hunt (85% against 87%: the weapon
 ## 38. Pass 91 (v0.77): art tools only
 
 No game numbers changed. The keyer skips the cast-shadow cut when the figure wears the screen colour (artkit.WEARS_SCREEN_SHARE 0.04); creature death `shatter` (artkit.shatter, about 14 pieces into a heap); method creature_pictures (front_ref, back_ref, picture_use as_is|redraw, screen auto).
+
+## 39. Pass 92 (v0.78): the Desert Spider
+
+# Pass 92, lane SPIDER: numbers and rules for BALANCING.md
+
+- New creature `desert_spider` (Desert Spider), content/enemies/desert_spider/desert_spider.json. Not on any map (Garry places it).
+  Starting numbers are the Fire Ant's (hp 36, speed 3.0 (ant 2.8), damage 8, knockback 4.81, drops small 1 / medium 0.6 /
+  gold 0.12 / chest 0.008, xp_mult 2.4), with its own body: radius 0.5, size 1.3, pack_size 3, archetype swarmer, brain chase,
+  blood #7BC43A, frame_px 160, shadow {scale [1.45, 1.5], up 0.45, drop 0.06}, fps run 20 / die 12, eight directions.
+  It plays look SP-B (a creature with looks must play one; all four looks are `fresh` until Garry approves one).
+- No new game rule. The new numbers are art-tool settings (blender_gait defaults; see keys_SPIDER.md).

@@ -3207,3 +3207,33 @@ redraw, screen auto (blue when the picture's figure leans green; gen_art.auto_sc
 gen_art.picture_still lays the picture on the screen as a cached still (<id>_<slug>_front/_back) or has Klein redraw it.
 Landed CW-E (fresh) on the Cactus Walker from his pictures. Balancing notes: shatter_pieces (14) and death_frames (6) are
 recipe keys; the screen guard threshold WEARS_SCREEN_SHARE = 0.04 in tools/artkit.py.
+
+**Pass 92 (2026-10-19, v0.78): the Desert Spider by the scorpion's method, four looks SP-A..D, the on-its-back death, the made walk and death in the depth-driver tool, the leg fix, explainer https://claude.ai/artifact/PuzdQ4H2dvaTJDEbtfKGwv (docs/spider/).**
+
+## Pass 92, lane SPIDER: the Desert Spider (the scorpion's method on Garry's spider), four looks, a death on its back, an explainer
+
+Garry asked for a spider by the scorpion's method from `spider._low_poly.glb`, four looks of rising cartooniness, a death
+that leaves it on its back with its legs curled up, the Level Editor steps for the same result (with fixes on the way) and
+an explainer like the puppet one (`docs/spider/spider_explainer.html`, pictures in `docs/spider/img/`).
+
+- The model had **six legs** (three a side, plus two fangs), a 10.6 s idle-and-wander clip with no walk in it, a rest pose
+  far from its stance (Sketchfab FBX -> GLB) and faced +Y (the probe said -Y). `tools/blender_limb_clone.py` (new) made the
+  stance the rest pose (`rest=frame:0`, the clip dropped), copied the middle pair (`clone=left_leg_center_:left_leg_mid_:24:-0.06;...`)
+  and turned the originals forward (`turn=...:-18:0.03`): `tools/dl/uploads/3d/spider_8legs/spider_8legs.glb`.
+- `tools/blender_gait.py` (new) + `blender_depth_drivers.py` modes **gait** (a made walk: two alternating sets, L1 R2 L3 R4
+  against R1 L2 R3 L4; swing, lift, flex, duty, bob, sway) and **flip_curl** (a made death: a jerk, a roll onto its back over
+  roll_time, the legs curling in over the belly round one fold axis each, a bounce, a twitch, the dead pose held), plus
+  **proportions** (body_scale, head_scale, leg_scale, scale_bones): the cartoon looks walk on the clay given their own
+  proportions, since Wan Fun Control follows the depth's shapes over the painting's (SP-D's face vanished on the plain clay).
+  Drivers: spider_walk / spider_death (A, B), spider_walk_c / spider_death_c, spider_walk_d / spider_death_d.
+- New creature `desert_spider` (fire-ant numbers, no map brings it), four fresh looks SP-A (near-real wolf spider) .. SP-D
+  (very exaggerated), all gen_ctl on the same model, picked by eye with the legs counted; it plays SP-B (a creature with
+  looks must play one).
+- Negative prompts reach nothing in this pipeline: Klein runs at cfg 1 with a zeroed negative, Flux.2 dev is guidance
+  distilled (BasicGuider, no negative), Wan Fun Control at cfg 1 (ComfyUI skips the negative pass). Tried Klein at cfg 2 / 3
+  with a real negative: see the explainer. The leg count is held by the clay and the anatomy words.
+- Level Editor: the probe counts leg chains (`limbs`) and reads a creature's forward from its head bone; loose models in
+  uploads/3d are listed and probed into their own folder; driver_depth offers gait / flip_curl and the proportions (in folds);
+  new job kind and method `ref_limbs`; the enemy editor got "+ Depth driver…" and "+ Fix a model's legs…"; `file` fields keep
+  their upload picker (src was a text box); the walk cache follows the painting, the seed and the control video
+  (`animate.cache_fits`); methods.json tells the truth about negative words. selftest_SPIDER92.py.

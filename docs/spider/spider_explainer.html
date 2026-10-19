@@ -1,0 +1,603 @@
+<meta charset="utf-8">
+<title>The Desert Spider</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sancreek&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a naturalist's field notebook pinned on a desert night: one reading column; the method is a single silk thread
+   down the left edge with a knot at each real step; pictures may run wider than the text. Dark first (it is read at
+   night on a phone), a dusk-paper light theme for the day. */
+:root {
+  --bg: #15121a;        /* desert night */
+  --panel: #201a26;     /* a notebook card */
+  --panel-2: #2a2231;
+  --ink: #f0e6d4;       /* sand */
+  --ink-2: #b9aa96;
+  --rule: #3a3142;
+  --silk: #cdd5de;      /* the web thread */
+  --amber: #e7a540;     /* the wolf spider's tan: the one accent */
+  --amber-ink: #24170a;
+  --rust: #e07654;      /* mistakes */
+  --rust-bg: #33201b;
+  --sage: #9cc49a;      /* what worked */
+  --sage-bg: #1d2a1f;
+  --code-bg: #2a2331;
+  --display: "Sancreek", "Rockwell", Georgia, serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f1eadf; --panel: #fbf7f0; --panel-2: #f3ece1; --ink: #2a1f17; --ink-2: #6a5b4c; --rule: #ddd1c0;
+  --silk: #8a93a0; --amber: #a8620c; --amber-ink: #fff6e6; --rust: #b0412a; --rust-bg: #f8e3dc; --sage: #3f7a3d;
+  --sage-bg: #e4f0e1; --code-bg: #ece3d5; color-scheme: light; } }
+:root[data-theme="light"] {
+  --bg: #f1eadf; --panel: #fbf7f0; --panel-2: #f3ece1; --ink: #2a1f17; --ink-2: #6a5b4c; --rule: #ddd1c0;
+  --silk: #8a93a0; --amber: #a8620c; --amber-ink: #fff6e6; --rust: #b0412a; --rust-bg: #f8e3dc; --sage: #3f7a3d;
+  --sage-bg: #e4f0e1; --code-bg: #ece3d5; color-scheme: light; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 17px/1.62 var(--body); margin: 0; }
+.page { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 22px 80px; }
+.col { max-width: 760px; margin-inline: auto; }
+.wide { max-width: 1100px; margin-inline: auto; }
+h1, h2, h3 { line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font: 400 clamp(2.4rem, 8vw, 4.4rem)/1.02 var(--display); color: var(--amber); letter-spacing: .01em; }
+h2 { font: 700 clamp(1.3rem, 3.6vw, 1.75rem)/1.2 var(--body); }
+h3 { font: 700 1.1rem/1.3 var(--body); margin-block: 26px 8px; }
+p { margin: 0 0 12px; }
+a { color: var(--amber); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--mono); font-size: .82em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { font: .8rem/1.5 var(--mono); background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0 0 14px; }
+.small { font-size: .9rem; color: var(--ink-2); }
+.num { font-variant-numeric: tabular-nums; }
+ul.plain, ol.plain { padding-left: 1.25rem; margin: 0 0 14px; }
+ul.plain li, ol.plain li { margin-bottom: 6px; }
+
+/* the masthead */
+.mast { padding-block: 14px 8px; }
+.eyebrow { font: 600 .74rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; }
+.lede { font-size: 1.12rem; margin-top: 14px; max-width: 62ch; }
+.specimens { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-block: 24px 8px; }
+.spec { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; align-content: start; }
+.spec img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; display: block; border-radius: 6px; background: #1e1a24; }
+.spec .code { font: 600 .82rem/1 var(--mono); color: var(--amber); }
+.spec .cap { font-size: .86rem; line-height: 1.3; color: var(--ink-2); }
+.dial { display: flex; align-items: center; gap: 8px; font: 600 .72rem/1 var(--mono); color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase; margin-top: 4px; }
+.dial i { flex: 1; height: 2px; background: linear-gradient(90deg, var(--silk), var(--amber)); border-radius: 2px; }
+
+.facts { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-block: 22px 8px; }
+.fact { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.fact .big { font: 400 1.6rem/1.1 var(--display); color: var(--amber); }
+.fact p { margin: 6px 0 0; font-size: .93rem; color: var(--ink-2); }
+
+nav.toc { margin-block: 26px; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 16px; }
+nav.toc ol { margin: 6px 0 0; padding-left: 1.3rem; columns: 2 220px; column-gap: 28px; }
+nav.toc li { margin-bottom: 4px; break-inside: avoid; }
+
+/* the thread: one knot per real step */
+section { margin-top: 64px; scroll-margin-top: 16px; }
+.thread { position: relative; padding-left: 34px; }
+.thread::before { content: ""; position: absolute; left: 11px; top: 6px; bottom: 0; width: 2px; background: linear-gradient(var(--silk), transparent); opacity: .7; }
+.knot { position: absolute; left: 0; top: 2px; width: 24px; height: 24px; border-radius: 50%; background: var(--bg); border: 2px solid var(--silk); display: grid; place-items: center; font: 600 .7rem/1 var(--mono); color: var(--silk); }
+.stephead { display: grid; gap: 6px; margin-bottom: 14px; }
+.stephead .where { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 .72rem/1 var(--mono); padding: 5px 8px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink-2); background: var(--panel); }
+.chip.b { border-color: var(--amber); color: var(--amber); }
+.chip.c { border-color: var(--silk); color: var(--silk); }
+
+figure { margin: 16px 0 20px; }
+figure img { display: block; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--rule); background: #1e1a24; cursor: zoom-in; }
+figcaption { font-size: .88rem; color: var(--ink-2); margin-top: 6px; }
+.pair { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 16px 0 20px; }
+.pair figure { margin: 0; min-width: 0; }
+.scroll { overflow-x: auto; }
+
+.box { border-radius: 10px; padding: 14px 16px 6px; margin: 16px 0 20px; background: var(--panel); border: 1px solid var(--rule); min-width: 0; }
+.box.bad { background: var(--rust-bg); border-color: color-mix(in srgb, var(--rust) 45%, transparent); }
+.box.bad h3, .box.bad strong.k { color: var(--rust); }
+.box.good { background: var(--sage-bg); border-color: color-mix(in srgb, var(--sage) 45%, transparent); }
+.box.good h3 { color: var(--sage); }
+.box h3 { margin-top: 0; }
+
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; vertical-align: top; padding: 7px 9px; border-bottom: 1px solid var(--rule); }
+th { font: 600 .74rem/1.3 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-2); }
+td code { white-space: nowrap; }
+.tablewrap { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+
+.prompt { font: .82rem/1.55 var(--mono); background: var(--code-bg); border-left: 3px solid var(--amber); padding: 10px 12px; border-radius: 0 6px 6px 0; margin: 8px 0 14px; overflow-wrap: anywhere; }
+details.more { margin: 10px 0 16px; }
+details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
+
+.lightbox { position: fixed; inset: 0; background: rgba(8, 6, 10, .92); display: grid; place-items: center; z-index: 20; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); cursor: zoom-out; }
+.lightbox[hidden] { display: none; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="page">
+<div class="col mast">
+  <div class="eyebrow">88fits · art pipeline · creature <code>desert_spider</code> · pass 92 · 19 Oct 2026</div>
+  <h1>The Desert Spider</h1>
+  <p class="lede">Your 3D spider, walked and killed the way the Dune Scorpion was: Blender moves the model, its depth renders guide the video model, and the paintings give it four looks from near-real to very cartoony. The model needed two more legs and a walk of its own on the way, and the death had to be built from scratch: it rolls onto its back and curls its legs up like a real dead spider. Every picture here is from the real run.</p>
+</div>
+
+<div class="wide">
+  <div class="specimens" aria-label="The four looks, least to most cartoony">
+    <div class="spec"><img src="img/look_spa_run.gif" width="220" height="220" alt="SP-A, near-real walking towards the viewer"><span class="code">SP-A · Near-real</span><span class="cap">A desert wolf spider: tan fur, a chevron on its back, banded legs, eight small eyes, no face.</span></div>
+    <div class="spec"><img src="img/look_spb_run.gif" width="220" height="220" alt="SP-B, mild cartoon walking towards the viewer"><span class="code">SP-B · Mild cartoon</span><span class="cap">A rust tarantula with a cream stripe, big shiny eyes and a grumpy frown.</span></div>
+    <div class="spec"><img src="img/look_spc_run.gif" width="220" height="220" alt="SP-C, exaggerated walking towards the viewer"><span class="code">SP-C · Exaggerated</span><span class="cap">A balloon of an abdomen with a red mark, chunky legs, angry eyes under heavy brows.</span></div>
+    <div class="spec"><img src="img/look_spd_run.gif" width="220" height="220" alt="SP-D, very exaggerated walking towards the viewer"><span class="code">SP-D · Very exaggerated</span><span class="cap">A purple ball of anger: huge furious eyes, a snarl of fangs, little stick legs.</span></div>
+  </div>
+  <div class="dial" aria-hidden="true"><span>near-real</span><i></i><span>very cartoony</span></div>
+</div>
+
+<div class="col">
+  <div class="facts">
+    <div class="fact"><div class="big">6 → 8</div><p>legs on your model: the middle pair copied in Blender before anything was painted.</p></div>
+    <div class="fact"><div class="big">4 looks</div><p>SP-A to SP-D on one 3D spider, each a full strip: five views walking in eight directions, a death, an icon.</p></div>
+    <div class="fact"><div class="big">~12 min</div><p>of AI server time a look, plus your two picks (the side painting, then any view that came out wrong).</p></div>
+    <div class="fact"><div class="big">0.4 s</div><p>for the roll onto its back; the legs keep curling after it lands, then it lies still.</p></div>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <strong>On this page</strong>
+    <ol>
+            <li><a href="#model">The model: six legs and a missing walk</a></li>
+      <li><a href="#legs">Two more legs</a></li>
+      <li><a href="#gait">A walk made in Blender</a></li>
+      <li><a href="#views">Five views, clay and depth</a></li>
+      <li><a href="#death">The death on its back</a></li>
+      <li><a href="#paint">Painting the four looks</a></li>
+      <li><a href="#prompts">Prompts, negatives and the leg count</a></li>
+      <li><a href="#mistakes">Mistakes and dead ends</a></li>
+      <li><a href="#le">The same in the Level Editor</a></li>
+      <li><a href="#fixes">Level Editor fixes made</a></li>
+      <li><a href="#settings">New settings</a></li>
+      <li><a href="#time">Timings</a></li>
+      <li><a href="#ingame">In the game</a></li>
+    </ol>
+  </nav>
+</div>
+
+<div class="col">
+
+<section id="model" class="thread">
+  <span class="knot">1</span>
+  <div class="stephead">
+    <h2>The model: six legs and a missing walk</h2>
+    <div class="where"><span class="chip b">Blender</span><span class="chip">tools/blender_ref.py mode=probe</span><span class="chip">seconds</span></div>
+  </div>
+  <p>The probe reads a 3D file and says what it can do. For <code>spider._low_poly.glb</code> it found a rig of 31 bones, one clip called <code>Take 001</code> (10.6 seconds) and a mesh of 639 points. Three things in that file would have spoiled the result if nobody had looked:</p>
+  <ul class="plain">
+    <li><b>Six legs.</b> The bones are <code>left_leg_front</code>, <code>left_leg_center</code>, <code>left_leg_back</code> and the same on the right: three a side, plus two short fangs (<code>left_chap</code>, <code>right_chap</code>). A spider has eight, and the painters copy whatever the clay shows.</li>
+    <li><b>No walk.</b> The clip is seven seconds of standing still and then a short wander that turns in circles. The scorpion and the beetle had a real walk clip to loop; this one does not.</li>
+    <li><b>It faces +Y.</b> The probe guessed −Y, Blender's default, because its guess only knew how to read a humanoid's feet. Every view would have come out turned round.</li>
+  </ul>
+  <figure><img src="img/s1_probe_thumbs.jpg" alt="The probe's six small renders of the spider model in grey" loading="lazy"><figcaption>The probe's thumbnails (front, three-quarter front, side, three-quarter back, back, icon angle), drawn with the wrong forward: the "front" is its back.</figcaption></figure>
+  <figure><img src="img/s1_six_legs.jpg" alt="The spider model from three-quarters and from above, left legs yellow and right legs blue: three on each side" loading="lazy"><figcaption>Coloured by side: three legs left (yellow), three right (blue). The head with its two fangs is the small part in front; the big oval carries the legs.</figcaption></figure>
+  <p>The probe now counts the leg chains and reads a creature's forward from its head bone, so the same file says this at once: <em>"It has 6 leg chains (3 left, 3 right): a walk can be made without a clip (driver_depth mode gait) and a death on its back (mode flip_curl); a missing pair is copied by tools/blender_limb_clone.py."</em> and <em>"forward +Y (head)"</em>.</p>
+  <p>One more trap: the file's rest pose is not its stance. Without the clip playing, every leg sits far off to one side (the model came from Sketchfab as an FBX turned into a GLB, and the skin was bound in another pose). Anything that works from the rest pose, like copying a leg, has to fix that first.</p>
+  <figure><img src="img/s2_rest_pose.jpg" alt="Left: the spider standing as the clip shows it. Right: the same model in its rest pose, small and far off to one side" loading="lazy"><figcaption>Left: the clip's first frame, the stance everyone sees. Right: the rest pose, the same frame of the camera: the mesh is somewhere else entirely.</figcaption></figure>
+</section>
+
+<section id="legs" class="thread">
+  <span class="knot">2</span>
+  <div class="stephead">
+    <h2>Two more legs</h2>
+    <div class="where"><span class="chip b">Blender</span><span class="chip">tools/blender_limb_clone.py (new)</span><span class="chip">10 s</span></div>
+  </div>
+  <p>Each leg of this model is a separate set of mesh pieces carried by its own four bones, so a leg can be copied whole: the bones are duplicated, the mesh pieces those bones carry are duplicated with their weights moved to the new bones, and the copy is turned round the vertical axis through its hip. The middle pair was copied and turned back, the originals turned a little forward, so the four legs a side fan out like a real spider's (two reaching forward, two back).</p>
+<pre>"$BLENDER" -b --python tools/blender_limb_clone.py -- \
+  src=tools/dl/uploads/3d/spider._low_poly.glb \
+  out=tools/dl/uploads/3d/spider_8legs/spider_8legs.glb \
+  rest=frame:0 forward=+Y \
+  "clone=left_leg_center_:left_leg_mid_:24:-0.06;right_leg_center_:right_leg_mid_:-24:-0.06" \
+  "turn=left_leg_center_:-18:0.03;right_leg_center_:18:0.03"</pre>
+  <ul class="plain">
+    <li><code>rest=frame:0</code> bakes the clip's first pose into the mesh and makes it the rest pose (Blender's Apply Pose as Rest Pose). The old clip is dropped: its keys were made against the old rest pose and would throw the legs about.</li>
+    <li><code>clone=chain:new:yaw:shift</code>: every bone whose name starts with <code>left_leg_center_</code> is copied as <code>left_leg_mid_…</code>, turned 24° (counter-clockwise seen from above) and slid back 6% of the leg's reach so the two hips do not sit on one point.</li>
+    <li><code>turn=chain:yaw:shift</code> turns an existing leg the same way.</li>
+  </ul>
+  <figure><img src="img/s3_eight_legs.jpg" alt="The eight-legged spider from above, from three-quarters and from the side, the two copied legs in pink" loading="lazy"><figcaption>Eight legs, four a side. Pink: the two copies. Yellow and blue: the original legs, the middle pair turned forward.</figcaption></figure>
+  <p>The signs took one try to get right: on a model facing +Y a left leg turns forward with a <em>negative</em> yaw. The first run used the rest pose as it was and turned the legs round hips that were somewhere else; the legs crossed. Both lessons are in the tool's text and in the Level Editor's notes.</p>
+</section>
+
+<section id="gait" class="thread">
+  <span class="knot">3</span>
+  <div class="stephead">
+    <h2>A walk made in Blender</h2>
+    <div class="where"><span class="chip b">Blender</span><span class="chip">blender_depth_drivers.py mode=gait</span><span class="chip">tools/blender_gait.py (new)</span><span class="chip">10 s</span></div>
+  </div>
+  <p>With no walk clip, the walk is made from the legs themselves. The tool finds the legs by name (<code>legs=leg_</code>: every bone with leg in its name whose parent is not a leg starts a chain), works out which side each is on and its order front to back, and moves them in two sets half a stride apart, the way spiders walk: left 1, right 2, left 3, right 4 together, then right 1, left 2, right 3, left 4.</p>
+  <figure><img src="img/s4_gait_top.jpg" alt="Four views from above of the walking spider, legs in orange and blue sets" loading="lazy"><figcaption>From above at a quarter, half and three quarters of a stride. Orange: one set (L1 R2 L3 R4). Blue: the other. When one set is on the ground pushing back, the other is in the air coming forward.</figcaption></figure>
+  <figure><img src="img/s4_gait_34.jpg" alt="Four three-quarter views of the walking spider" loading="lazy"><figcaption>The same stride from three-quarters: the raised legs bend at the knee while they come forward.</figcaption></figure>
+  <p>Each leg turns round its hip (<code>swing</code> 18° fore and aft), rises while it steps (<code>lift</code> 24°), bends its knee while it is up (<code>flex</code> 16°), and stays on the ground for 55% of the stride (<code>duty</code>). The body dips twice a stride (<code>bob</code>) and turns a little side to side (<code>sway</code>). Every turn is done in world space round the joint, so the rig's own bone axes, often nonsense in a Sketchfab file, never matter. A creature's real step is too small to read at sprite size (the beetle needed its legs swung 1.7 times wider); the made walk is wide from the start.</p>
+  <div class="pair">
+    <figure><img src="img/s4_gait_side_depth.gif" alt="The side view's depth video: the spider walking in white on black" loading="lazy"><figcaption>The side depth video, one stride of 12 frames.</figcaption></figure>
+    <figure><img src="img/s4_gait_front_depth.gif" alt="The front view's depth video" loading="lazy"><figcaption>The front depth video. Near is bright, far is dark.</figcaption></figure>
+  </div>
+<pre>"$BLENDER" -b --python tools/blender_depth_drivers.py -- \
+  src=tools/dl/uploads/3d/spider_8legs/spider_8legs.glb out=tools/dl/drivers/spider_walk \
+  mode=gait forward=+Y legs=leg_ frames=12 cycles=2 swing=18 lift=24 flex=16</pre>
+</section>
+
+<section id="views" class="thread">
+  <span class="knot">4</span>
+  <div class="stephead">
+    <h2>Five views, clay and depth</h2>
+    <div class="where"><span class="chip b">Blender</span><span class="chip">same run</span></div>
+  </div>
+  <p>The same run renders the five game views (front, three-quarter front, side, three-quarter back, back) from a camera 25° above, orthographic, framed on the whole stride. For each view it writes a clay picture (what the painter redraws) and 25 depth frames (two strides plus a closing frame: what the video model walks along). The eight game directions are these five, mirrored.</p>
+  <figure><img src="img/s5_views_clay.jpg" alt="Five clay renders of the spider from the five game angles" loading="lazy"><figcaption>Clay: front, three-quarter front, side (facing right), three-quarter back, back.</figcaption></figure>
+  <figure><img src="img/s5_views_depth.jpg" alt="Five depth renders of the spider" loading="lazy"><figcaption>Depth, frame 0 of each view. Each view has its own depth range (near to far over the whole stride), so the far legs keep some grey and are not walked on nothing.</figcaption></figure>
+</section>
+
+<section id="death" class="thread">
+  <span class="knot">5</span>
+  <div class="stephead">
+    <h2>The death on its back</h2>
+    <div class="where"><span class="chip b">Blender</span><span class="chip">blender_depth_drivers.py mode=flip_curl</span><span class="chip">8 s</span></div>
+  </div>
+  <p>A dead spider lies on its back with its legs folded in over its belly (its leg muscles let go and the legs curl inward). The model has no death clip, so the death is made, the same way as the walk, and rendered as a death driver: 25 depth frames of the front view that the video model walks the front painting along.</p>
+  <figure><img src="img/s6_death_clay.jpg" alt="Ten clay frames: the spider jerks, rolls onto its back and curls its legs" loading="lazy"><figcaption>The made death in clay, from three-quarters: the hit, the roll, landing on its back, the legs folding in, still.</figcaption></figure>
+  <div class="pair">
+    <figure><img src="img/s6_death_clay.gif" alt="The clay death as a moving loop" loading="lazy"><figcaption>The same, moving (the last pose held).</figcaption></figure>
+    <figure><img src="img/s6_death_depth.gif" alt="The front view's death depth video" loading="lazy"><figcaption>What the video model follows: the front view's depth, 25 frames.</figcaption></figure>
+  </div>
+  <h3>The timeline (1.2 seconds over 25 frames)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>When</th><th>What</th><th>Setting</th></tr></thead>
+    <tbody class="num">
+      <tr><td>0 – 0.12 s</td><td>The hit: every leg flings up 22° and the body jumps a little</td><td><code>spasm</code>, <code>spasm_deg</code></td></tr>
+      <tr><td>0.08 – 0.48 s</td><td>The roll: 180° sideways round its own length, eased in and out, kept on the ground (its lowest point always touches the sand)</td><td><code>roll_start</code>, <code>roll_time</code> 0.4, <code>roll</code>, <code>roll_axis</code> side, <code>roll_dir</code></td></tr>
+      <tr><td>0.05 – 0.75 s</td><td>The curl: each hip swings its leg 70° towards the belly, each knee folds 55° more; it keeps folding after it lands</td><td><code>curl_root</code>, <code>curl</code>, <code>curl_start</code>, <code>curl_end</code></td></tr>
+      <tr><td>0.48 – 0.83 s</td><td>Two small bounces on its back, dying away</td><td><code>bounce</code> 0.12 of its height</td></tr>
+      <tr><td>0.75 – 1.02 s</td><td>The folded legs twitch, smaller each time</td><td><code>twitch</code> 6°</td></tr>
+      <tr><td>1.02 – 1.2 s</td><td>Held: the dead pose</td><td><code>hold</code> 0.85 of the clip</td></tr>
+    </tbody>
+  </table></div>
+  <figure><img src="img/s6_dead_pose.jpg" alt="The dead pose from the front, three-quarters, the side and above" loading="lazy"><figcaption>The held dead pose from the front, three-quarters, the side and straight above: on its back, the legs curled up over the belly.</figcaption></figure>
+  <p>The legs fold round one axis each (the horizontal line across the leg at its hip), read once from the standing pose. The first version worked the axis out again at every joint from where the leg pointed; once a leg folded past straight down its direction flipped and the fold turned back on itself, leaving the legs bunched out sideways. The fixed fold is on the right:</p>
+  <figure><img src="img/x_fold_bug.jpg" alt="Left: the first death, legs bunched sideways. Right: the fixed death, legs curled over the belly" loading="lazy"><figcaption>Left: the axis recomputed per joint. Right: one axis per leg.</figcaption></figure>
+  <figure><img src="img/x_curl_tries.jpg" alt="Four dead poses with different hip and knee curls, from the front and from three-quarters" loading="lazy"><figcaption>Tuning the curl (hip / knee): 40/70, 60/70, 65/55, 80/45. The spider uses 70/55: the legs stand up over the belly and fold their ends inward.</figcaption></figure>
+<pre>"$BLENDER" -b --python tools/blender_depth_drivers.py -- \
+  src=tools/dl/uploads/3d/spider_8legs/spider_8legs.glb out=tools/dl/drivers/spider_death \
+  mode=flip_curl forward=+Y legs=leg_ total=25 views=front,fd,side curl_root=70 curl=55</pre>
+  <p>The painted deaths, and which of the 25 frames each look keeps, are in <a href="#paint">Painting the four looks</a>.</p>
+</section>
+</div>
+
+<div class="col">
+<section id="paint" class="thread">
+  <span class="knot">6</span>
+  <div class="stephead">
+    <h2>Painting the four looks</h2>
+    <div class="where"><span class="chip c">ComfyUI on the AI server</span><span class="chip">tools/gen_ctl.py</span><span class="chip">about 12 min a look</span></div>
+  </div>
+  <p>Each look runs the scorpion's method unchanged: the side view is painted first, as four candidates from the side clay with the style picture as the first reference; you pick one; the other four views are painted from that side painting and their own clay, with the way each view faces spelled out; then Wan 2.2 Fun Control walks every view along its depth video and the front painting along the death video; last, everything is fitted to one scale and packed into the strip (eight directions from five views).</p>
+<pre>python tools/gen_ctl.py --id=desert_spider --variant=SP-A --seeds=4 --skip-qa        # four side candidates, then it stops
+python tools/gen_ctl.py --id=desert_spider --variant=SP-A --use-side=k1 --skip-qa    # the rest: four views, five walks, the death, the strip</pre>
+    <h3>SP-A · Near-real</h3>
+  <p>A desert wolf spider: tan fur, a chevron on its back, banded legs, eight small eyes, no face.</p>
+  <figure><img src="img/cands_spa.jpg" alt="Four side candidates of SP-A" loading="lazy"><figcaption>The four side candidates. Picked <b>k1</b>. k1: the most real of the four, eight legs counted (four near, four far), fangs under the head. k3 had a cartoon face; k0 and k2 a lighter screen behind.</figcaption></figure>
+  <figure><img src="img/views_spa.jpg" alt="The five painted views of SP-A" loading="lazy"><figcaption>The five paintings the walks start from: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
+  <div class="pair">
+    <figure><img src="img/look_spa_run.gif" alt="SP-A walking towards the viewer" loading="lazy"><figcaption>Front walk.</figcaption></figure>
+    <figure><img src="img/look_spa_side.gif" alt="SP-A walking, side view" loading="lazy"><figcaption>Side walk.</figcaption></figure>
+    <figure><img src="img/look_spa_die.gif" alt="SP-A dying: it rolls onto its back and curls its legs" loading="lazy"><figcaption>The death, the dead pose held.</figcaption></figure>
+  </div>
+  <figure class="scroll"><img src="img/look_spa_rows.jpg" alt="Every frame of SP-A's strip: five walks and the death" loading="lazy"><figcaption>The whole strip: 12 frames for each of the five walks, the 8 kept death frames. The first front walk grew two grey-green ghost legs under the head (<a href="#mistakes">mistakes</a>); the front and three-quarter front were painted again with words that place the front legs, and walked again.</figcaption></figure>
+  <h3>SP-B · Mild cartoon</h3>
+  <p>A rust tarantula with a cream stripe, big shiny eyes and a grumpy frown.</p>
+  <figure><img src="img/cands_spb.jpg" alt="Four side candidates of SP-B" loading="lazy"><figcaption>The four side candidates. Picked <b>k0</b>. k0: a face in profile that faces right, eight legs. k1 looked at the viewer (a side view must face right).</figcaption></figure>
+  <figure><img src="img/views_spb.jpg" alt="The five painted views of SP-B" loading="lazy"><figcaption>The five paintings the walks start from: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
+  <div class="pair">
+    <figure><img src="img/look_spb_run.gif" alt="SP-B walking towards the viewer" loading="lazy"><figcaption>Front walk.</figcaption></figure>
+    <figure><img src="img/look_spb_side.gif" alt="SP-B walking, side view" loading="lazy"><figcaption>Side walk.</figcaption></figure>
+    <figure><img src="img/look_spb_die.gif" alt="SP-B dying: it rolls onto its back and curls its legs" loading="lazy"><figcaption>The death, the dead pose held.</figcaption></figure>
+  </div>
+  <figure class="scroll"><img src="img/look_spb_rows.jpg" alt="Every frame of SP-B's strip: five walks and the death" loading="lazy"><figcaption>The whole strip: 12 frames for each of the five walks, the 8 kept death frames. Walked cleanly on the plain clay: its face sits where the model's head is, so the depth and the painting agree.</figcaption></figure>
+  <h3>SP-C · Exaggerated</h3>
+  <p>A balloon of an abdomen with a red mark, chunky legs, angry eyes under heavy brows.</p>
+  <figure><img src="img/cands_spc.jpg" alt="Four side candidates of SP-C" loading="lazy"><figcaption>The four side candidates. Picked <b>k1</b>. k1: the biggest abdomen against the head, eight legs, angry brows. (The hourglass came out as a red cap in all four.)</figcaption></figure>
+  <figure><img src="img/views_spc.jpg" alt="The five painted views of SP-C" loading="lazy"><figcaption>The five paintings the walks start from: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
+  <div class="pair">
+    <figure><img src="img/look_spc_run.gif" alt="SP-C walking towards the viewer" loading="lazy"><figcaption>Front walk.</figcaption></figure>
+    <figure><img src="img/look_spc_side.gif" alt="SP-C walking, side view" loading="lazy"><figcaption>Side walk.</figcaption></figure>
+    <figure><img src="img/look_spc_die.gif" alt="SP-C dying: it rolls onto its back and curls its legs" loading="lazy"><figcaption>The death, the dead pose held.</figcaption></figure>
+  </div>
+  <figure class="scroll"><img src="img/look_spc_rows.jpg" alt="Every frame of SP-C's strip: five walks and the death" loading="lazy"><figcaption>The whole strip: 12 frames for each of the five walks, the 8 kept death frames. Walks on the clay given its proportions (body 1.6, head 1.5 raised 30°, legs 0.85), its front along a softened depth video so the face stays; its side and three-quarter back walks are from the first run, its back painted again (<a href="#mistakes">mistakes</a>).</figcaption></figure>
+  <h3>SP-D · Very exaggerated</h3>
+  <p>A purple ball of anger: huge furious eyes, a snarl of fangs, little stick legs.</p>
+  <figure><img src="img/cands_spd.jpg" alt="Four side candidates of SP-D" loading="lazy"><figcaption>The four side candidates. Picked <b>k3</b>. k3: the snarl and the biggest eyes; eight legs ending in small feet. k2 was a calmer blob with small fangs.</figcaption></figure>
+  <figure><img src="img/views_spd.jpg" alt="The five painted views of SP-D" loading="lazy"><figcaption>The five paintings the walks start from: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
+  <div class="pair">
+    <figure><img src="img/look_spd_run.gif" alt="SP-D walking towards the viewer" loading="lazy"><figcaption>Front walk.</figcaption></figure>
+    <figure><img src="img/look_spd_side.gif" alt="SP-D walking, side view" loading="lazy"><figcaption>Side walk.</figcaption></figure>
+    <figure><img src="img/look_spd_die.gif" alt="SP-D dying: it rolls onto its back and curls its legs" loading="lazy"><figcaption>The death, the dead pose held.</figcaption></figure>
+  </div>
+  <figure class="scroll"><img src="img/look_spd_rows.jpg" alt="Every frame of SP-D's strip: five walks and the death" loading="lazy"><figcaption>The whole strip: 12 frames for each of the five walks, the 8 kept death frames. Its face vanished twice (the plain clay, then the clay with its proportions) before a softened depth video kept it: <a href="#mistakes">mistakes</a>. Front, three-quarter back and back walk along softened depth.</figcaption></figure>
+</section>
+
+<section id="prompts" class="thread">
+  <span class="knot">7</span>
+  <div class="stephead"><h2>Prompts, negatives and the leg count</h2></div>
+  <h3>The look words, least to most cartoony</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Look</th><th>prompt</th><th>detail</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><b>SP-A</b></td><td>a big hairy desert wolf spider with sandy tan and dusty brown bristly fur, a dark brown chevron pattern down the middle of its oval abdomen, long legs banded in tan and dark brown, a cluster of small glossy black eyes on the front of its head and two short dark fangs</td><td>a real spider's anatomy and proportions, no cartoon face, no eyebrows, no mouth, no teeth, menacing</td><td>A real desert species, real markings; "no cartoon face" because the house style pulls every creature towards a mascot.</td></tr>
+      <tr><td><b>SP-B</b></td><td>a chunky cartoon desert tarantula with a round fuzzy rust-orange abdomen with a cream stripe pattern, thick fuzzy brown legs with orange bands at the joints, two big shiny black eyes with white highlights and four tiny eyes above them, a small grumpy frown and two little curved fangs</td><td>a slightly oversized head, friendly-mean mobile game creature, still clearly a spider</td><td>One step: a face appears, the body stays a spider's.</td></tr>
+      <tr><td><b>SP-C</b></td><td>an exaggerated cartoon desert spider with a huge round bulbous abdomen like a balloon in sandy yellow with a dark red hourglass mark on top, short chunky legs with dark brown tips, a small head with two big angry glaring eyes under heavy slanted brows and two curved white fangs</td><td>exaggerated cartoon proportions: the abdomen three times the size of the head, thick short legs</td><td>The brief: a big round abdomen, chunky legs, angry eyes. The size ratio is said as a number.</td></tr>
+      <tr><td><b>SP-D</b></td><td>a very exaggerated goofy cartoon spider: an enormous round fuzzy purple-brown body, a big head with two huge furious bulging eyes with tiny red pupils and thick angry eyebrows, a snarling mouth with two big white fangs, and eight tiny thin stick legs far too small for its big body</td><td>extremely exaggerated cartoon proportions: the body huge and round, the eyes and fangs huge, the legs tiny and thin</td><td>Huge eyes, fangs, tiny legs against the body. Purple so it is not mistaken for C at a glance.</td></tr>
+    </tbody>
+  </table></div>
+  <h3>The words every look shares</h3>
+  <p><b>anatomy</b>, sent in every painting and every walk:</p>
+  <div class="prompt">exactly eight legs, four on each side, each leg one single continuous jointed limb that starts at the body and ends in one pointed foot, exactly one head with two short fangs, exactly one round abdomen, no antennae, no tail, no wings, no extra legs, the left and right sides symmetrical</div>
+  <p>Each part of it answers a way many-legged creatures go wrong: a number per side (painters count better per side than in total), "one single continuous limb" (legs that split or merge at a knee), "starts at the body" (a leg growing out of the head), "ends in one pointed foot" (double feet), the absent parts named (an insect's antennae and a scorpion's tail creep in), symmetry (five legs on one side, three on the other).</p>
+  <p><b>blockout</b> (how the clay is described): <em>a smooth plain clay 3D model of a spider: a small head with two short fangs at the front, one big oval abdomen behind it, and eight long jointed legs, four on each side, spread round the body</em>. The painter is told to take only the anatomy, the pose, the camera angle and where every leg is from the clay.</p>
+  <p><b>words.front</b>, after the first front walk grew ghost legs: <em>walking straight towards the viewer, seen from the front and a little above: its head and two fangs are at the bottom middle of the picture, nearest the viewer; its two front legs reach forward towards the viewer, one on each side of the head, and its other six legs spread out to the left and the right, three on each side; the round abdomen rises behind the head</em>.</p>
+  <p><b>motion</b>: <em>scuttling in place on its eight legs like a real spider, the legs stepping in two alternating sets of four, the body low and level</em>.</p>
+
+  <h3>Negative prompts: what they do here</h3>
+  <p>The look keeps a negative list (<code>anim_negative</code>): <em>extra legs, nine legs, ten legs, six legs, legs merging, a leg growing from the head, antennae, a tail, wings, two heads, a second spider, standing upright</em>. In this pipeline it changes nothing, and neither did the scorpion's:</p>
+  <ul class="plain">
+    <li><b>Klein</b> (the paintings) runs at cfg 1 with the negative side zeroed. At cfg 1 the sampler uses the positive prompt alone.</li>
+    <li><b>Flux.2 dev</b> (the better painter, <code>--dev</code>) is guidance-distilled: it has no negative input at all.</li>
+    <li><b>Wan 2.2 Fun Control</b> (the walks and the death) runs the 4-step speed-up at cfg 1, and ComfyUI then skips the negative pass entirely. The negative words are sent and never read.</li>
+  </ul>
+  <p>To see whether a real negative would help, the SP-A side was painted again on Klein with the negative wired in, at cfg 2 and cfg 3 (the same seed, then another):</p>
+  <figure><img src="img/x_negtest.jpg" alt="Four paintings of the same spider: cfg 1 without a negative, cfg 2 and cfg 3 with one, cfg 3 with another seed" loading="lazy"><figcaption>cfg 1 (the pipeline's), cfg 2 + negative, cfg 3 + negative, cfg 3 + negative on another seed. The first three are nearly the same picture; the colours go duller with cfg. The last one has nine or ten legs despite "nine legs, ten legs, extra legs" in its negative. Each costs twice to three times the time.</figcaption></figure>
+  <p>So the leg count is held by three things instead: <b>the clay</b> (it must have the right legs: the six-legged model would have taught every painting six), <b>the anatomy words</b> above, and <b>your eye</b>. The vision check cannot count legs; every candidate here was counted by hand, tip by tip, near side and far side. The walks follow the depth video's legs, so a painting with the right legs walks with the right legs, unless the painting and the depth disagree about where they are (the ghost legs below).</p>
+</section>
+
+<section id="mistakes" class="thread">
+  <span class="knot">8</span>
+  <div class="stephead"><h2>Mistakes and dead ends</h2></div>
+    <div class="box bad">
+    <h3>The model had six legs</h3>
+    <p>Nothing in the old probe said so; every painter copies the clay, so a six-legged clay would have made six-legged spiders in every look. Found by counting the bones, fixed with the leg copy (step 2). The probe counts leg chains now.</p>
+  </div>
+  <div class="box bad">
+    <h3>Facing the wrong way, resting in the wrong place</h3>
+    <p>The probe guessed −Y for a spider facing +Y, and the file's rest pose sits far from its stance. The first leg copy turned legs round hips that were somewhere else and the legs crossed. Both fixed in the tools (the head bone gives a creature's forward; <code>rest=frame:0</code>).</p>
+  </div>
+  <div class="box bad">
+    <h3>The curl that folded back on itself</h3>
+    <p>The first death recomputed each leg's fold axis at every joint. Once a leg passed straight down the axis flipped and the legs ended bunched out sideways instead of curled over the belly. One axis per leg, read from the standing pose, fixed it (picture in step 5).</p>
+  </div>
+  <div class="box bad">
+    <h3>Ghost legs in SP-A's front walk</h3>
+    <p>The front painting fanned all eight legs out to the sides; the front depth video has the two front legs reaching towards the camera under the head. Wan 2.2 followed both and drew two extra grey-green legs where the depth had legs and the painting had none: ten legs. The front was painted again with words that put the front legs where the model has them, and walked again: eight.</p>
+    <figure><img src="img/x_ghost_legs.jpg" alt="The front clay, the first front painting, its walk with two ghost legs, the second front painting, its walk with eight legs" loading="lazy"><figcaption>The front clay · the first front painting · its walk (two ghost legs under the head) · the second painting (front legs forward) · its walk.</figcaption></figure>
+  </div>
+  <div class="box bad">
+    <h3>The cartoon face that vanished</h3>
+    <p>SP-D's front painting is mostly face. Its walk came out faceless: a purple model seen from above with a slit for a mouth. Wan Fun Control follows the depth video's shapes over the painting's, and the model's head, seen from 25° above, is a low wedge showing its top. Tried in turn:</p>
+    <ol class="plain">
+      <li>The clay given the look's proportions (body 1.5, head 1.6, legs 0.65): still faceless.</li>
+      <li>The head raised 35° so it faces the camera, and only the body's depth blurred (the legs kept sharp): still faceless, it read as the spider's back.</li>
+      <li>The whole depth video blurred 14 px: the face stayed, but the legs stopped walking.</li>
+      <li>The whole depth video blurred 10 px: the face stays and the legs walk. This is what SP-C and SP-D use for their front (SP-D for its three-quarter back too) and for their deaths: <code>ctl_soft</code>, <code>death_soft</code>.</li>
+    </ol>
+    <figure><img src="img/x_face_lost.jpg" alt="SP-D's front painting and five tries at its front walk" loading="lazy"><figcaption>The painting, then a frame of each try: the plain clay, with proportions, head up with the body blurred, all blurred 14 px, all blurred 10 px.</figcaption></figure>
+    <p>SP-C met the same in its first run (the front walk showed the top of its abdomen and two fangs, no face). Its second run, on the clay with its proportions and a softened front, kept the face in front, but its three-quarter back and back walks came out as the plain clay (a pale ochre lump with no markings), so the strip uses the second run's front, three-quarter front and death, the first run's side and three-quarter back, and a back painted again (three candidates, the one without the stray leg) and walked on softened depth. SP-D's back, walked on softened depth too, kept its look.</p>
+    <figure><img src="img/x_c_front_v1.jpg" alt="SP-C's first front walk: no face, the top of the abdomen" loading="lazy"><figcaption>SP-C's first front walk. SP-B kept its face without help: a face the size of the model's head sits where the depth says the head is.</figcaption></figure>
+  </div>
+  <div class="box bad">
+    <h3>Green bellies in the death</h3>
+    <p>The paintings never show a spider's underside, so the walk invents the belly the roll shows, and on a green screen it invents green: every death has pale green patches under the curled legs, which the strip's green guard turns grey. Naming each look's belly colour in the death words ("its dark purple-brown belly … nothing green") did not stop it. A softened death video was worse (the whole spider went to mush) and was dropped. The dead pose still reads: on its back, legs curled up. A cleaner belly would need a painted dead still as the death's last frame, or a blue screen for these looks.</p>
+    <figure><img src="img/x_death_green.jpg" alt="SP-D's first death: green patches on the body as it rolls" loading="lazy"><figcaption>SP-D's first death (kept 8 frames).</figcaption></figure>
+  </div>
+  <div class="box bad">
+    <h3>A ninth leg on SP-C's back view</h3>
+    <p>SP-C's first back painting had a leg growing straight down from the end of the abdomen, between the two sets of four. The second run's back (on the clay with its proportions) walked as a plain lump, so the back was painted again as three candidates; the one picked has four legs a side and nothing in the middle.</p>
+    <div class="pair">
+      <figure><img src="img/x_c_back_leg.jpg" alt="SP-C's first back painting with an extra leg at the bottom middle" loading="lazy"><figcaption>The stray leg at the bottom.</figcaption></figure>
+      <figure><img src="img/x_c_back_cands.jpg" alt="Three new back candidates of SP-C" loading="lazy"><figcaption>The three new candidates: c0 and c1 have a leg in the middle again; c2 (picked) does not.</figcaption></figure>
+    </div>
+  </div>
+  <div class="box bad">
+    <h3>The middle of the roll smears</h3>
+    <p>Frames 5 and 6 of every death (the spider on its side, legs flung) come out as a blur of legs: the video model cannot keep a figure together through a fast half-turn. <code>death_keep</code> skips them: <code>[3, 4, 7, 8, 9, 11, 14, 24]</code> keeps the stand, the start of the roll, the landing, the curl and the held dead pose. At the game's 12 frames a second the roll takes four frames, a third of a second.</p>
+  </div>
+  <div class="box bad">
+    <h3>Negative prompts: a dead end</h3>
+    <p>As described above: they reach no model in this pipeline, and wiring a real one into Klein at cfg 2 or 3 did not hold the leg count.</p>
+  </div>
+  <div class="box bad">
+    <h3>A view painted again kept its old walk</h3>
+    <p>The walk cache was found by name alone, so after SP-A's front was painted again its old ghost-legged walk would have come straight back. The cache now checks the painting, the seed and the control video, and picking a repainted view sets its old walk aside.</p>
+  </div>
+  <div class="box good">
+    <h3>What worked first time</h3>
+    <ul class="plain">
+      <li>The side candidates followed the clay's legs: each picked side painting has eight, four near and four far, counted tip by tip.</li>
+      <li>The made walk and the made death drove Wan without trouble: the walks loop, the death ends on its back with its legs curled.</li>
+      <li>SP-B walked cleanly on the plain clay in all five views.</li>
+    </ul>
+  </div>
+
+</section>
+</div>
+
+<div class="col">
+<section id="le" class="thread">
+  <span class="knot">9</span>
+  <div class="stephead">
+    <h2>The same in the Level Editor</h2>
+    <div class="where"><span class="chip">tools\level_editor.cmd</span><span class="chip">Enemies tab</span><span class="chip">Jobs tab</span></div>
+  </div>
+  <p>Everything above was run from the command line so it could be watched and fixed on the way. This is the route you would take in the Level Editor for the same spider, with the fixes from this pass in place. The values are the ones used here.</p>
+
+  <h3>1. Make the creature</h3>
+  <p>Enemies tab → <b>+ New from template ▾</b> → the Fire Ant (the numbers this spider starts from) → id <code>desert_spider</code>, name Desert Spider. Set size 1.3, radius 0.5, pack 3, blood <code>#7BC43A</code>, frame_px 160, the doc line. Leave it off the timeline until its looks are approved. Save asset.</p>
+
+  <h3>2. Read the model</h3>
+  <p>In the spider's editor, <b>+ Depth driver…</b> opens the driver form; its method cards hold everything 3D. Your file sits loose in <code>tools/dl/uploads/3d/</code>, which the editor now lists (it used to see only models in a folder of their own). Pick <b>What a 3D file can do</b>, src <code>spider_low_poly (spider._low_poly.glb)</code>, Queue. Its probe line then reads: <em>rigged model (other rig) with 1 clip · 6 leg chains (3 left, 3 right); no walk among the clips? driver_depth mode gait makes one, mode flip_curl a death on its back; a missing leg pair is copied by "A model's legs fixed" (ref_limbs) · forward +Y</em>.</p>
+
+  <h3>3. Give it eight legs</h3>
+  <p><b>+ Fix a model's legs…</b> (method <b>A model's legs fixed</b>, new):</p>
+  <figure><img src="img/le_limbs_form.jpg" alt="The Level Editor's form for the leg fix, filled with the spider's values" loading="lazy"><figcaption>src the loose spider, name <code>spider_8legs</code>, rest <code>frame:0</code>, clone and turn as in step 2 above, forward <code>+Y</code>. It writes <code>tools/dl/uploads/3d/spider_8legs/spider_8legs.glb</code>, a top view to check (<code>top.png</code>) and the new model's probe (8 leg chains, 4 a side).</figcaption></figure>
+
+  <h3>4. The walk and the death</h3>
+  <p><b>+ Depth driver…</b> → <b>Depth drivers from a rigged model's own clip, or a made walk and death</b>. Two jobs:</p>
+  <div class="pair">
+    <figure><img src="img/le_depth_form.jpg" alt="The depth driver form: src spider_8legs, name spider_walk, mode gait" loading="lazy"><figcaption>The walk: src <code>spider_8legs</code>, name <code>spider_walk</code>, mode <code>gait</code>, legs <code>leg_</code>, forward <code>+Y</code>; no action.</figcaption></figure>
+    <figure><img src="img/le_depth_form_gait.jpg" alt="The made walk's settings: swing 18, lift 24, flex 16" loading="lazy"><figcaption>The made walk's fold opens with mode gait: swing 18, lift 24, flex 16 (the rest left at their defaults).</figcaption></figure>
+  </div>
+  <figure><img src="img/le_depth_form_death.jpg" alt="The made death's settings: curl 55, curl_root 70" loading="lazy"><figcaption>The death: same src, name <code>spider_death</code>, mode <code>flip_curl</code>, views <code>front,fd,side</code> (front alone is enough for the game), curl 55, curl_root 70.</figcaption></figure>
+  <p>For a cartoon look, a third and fourth pair of jobs with the proportions: <code>spider_walk_c</code> / <code>spider_death_c</code> with body_scale 1.6, head_scale 1.5, leg_scale 0.85, head_pitch 30, and <code>spider_walk_d</code> / <code>spider_death_d</code> with 1.5, 1.6, 0.65, head_pitch 35 (why: <a href="#mistakes">mistakes</a>, the face that vanished).</p>
+
+  <h3>5. Each look</h3>
+  <p>In the spider's editor, <b>+ Generate art…</b> → method <b>Creature: walked on a 3D model's own motion</b>. The recipe fields, with SP-A's values:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>drivers</td><td><code>spider_walk</code> (SP-C: <code>spider_walk_c</code>, SP-D: <code>spider_walk_d</code>)</td></tr>
+      <tr><td>prompt</td><td>the look's words (<a href="#prompts">below</a>)</td></tr>
+      <tr><td>noun</td><td><code>a spider</code></td></tr>
+      <tr><td>blockout</td><td>a smooth plain clay 3D model of a spider: a small head with two short fangs at the front, one big oval abdomen behind it, and eight long jointed legs, four on each side, spread round the body</td></tr>
+      <tr><td>detail</td><td>the finish words of the look</td></tr>
+      <tr><td>anatomy</td><td>exactly eight legs, four on each side, each leg one single continuous jointed limb … (<a href="#prompts">in full below</a>)</td></tr>
+      <tr><td>words</td><td>the four camera sentences (front, fd, bd, back)</td></tr>
+      <tr><td>motion</td><td>scuttling in place on its eight legs like a real spider, the legs stepping in two alternating sets of four, the body low and level</td></tr>
+      <tr><td>death_drivers</td><td><code>spider_death</code> (or <code>_c</code>, <code>_d</code>)</td></tr>
+      <tr><td>death_motion</td><td>it jerks, rolls over onto its back and lies dead with its eight legs curled up over its &lt;belly colour&gt; …</td></tr>
+      <tr><td>death_keep</td><td><code>[3, 4, 7, 8, 9, 11, 14, 24]</code>: the stand, the roll without its two smeared frames, the landing, the curl, the held dead pose</td></tr>
+      <tr><td>ctl_soft, death_soft</td><td>SP-C and SP-D only: <code>{"radius": 10, "body": false, "views": ["front"]}</code> (SP-D: front, bd, back): the cartoon faces survive the walk</td></tr>
+      <tr><td>directions, fps, screen</td><td>8, 20, green</td></tr>
+      <tr><td>outline_frac, outline_color</td><td>0.014, a dark of the look's colour</td></tr>
+      <tr><td>Candidates (job)</td><td>4</td></tr>
+    </tbody>
+  </table></div>
+  <p>Queue. The job paints four side candidates and waits on its card for your pick: count the legs of each (see <a href="#prompts">the leg count</a>), pick, and it paints the other four views and walks all five, then the death. Duplicate… the look for the next one and change only the prompt (and the drivers for C and D).</p>
+  <p>When a view comes out wrong (SP-A's front grew ghost legs), Re-roll… the look and fill the continuation fields: <code>view_cands</code> <code>front,fd</code>, Candidates 3; pick one per view on the card. Since this pass the walk of a view painted again is walked again by itself. To change which death frames are kept, edit <code>death_keep</code> and Re-roll: no new render, a few seconds.</p>
+
+  <h3>6. Check, approve, place</h3>
+  <p>Test in game (the spider's editor) plays it in the arena; approve the look you like (the others stay fresh), make it the default, and add a roster row on the Timeline when you want it in a stage.</p>
+  <figure><img src="img/le_enemy_buttons.jpg" alt="The Desert Spider in the Level Editor's enemy editor: its four looks and the buttons Generate art, Icon candidates, Depth driver and Fix a model's legs" loading="lazy"><figcaption>The spider's editor with the two new buttons under its looks.</figcaption></figure>
+</section>
+
+<section id="fixes" class="thread">
+  <span class="knot">10</span>
+  <div class="stephead"><h2>Level Editor fixes made</h2></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Problem met</th><th>Fix</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td>The probe never said the spider had six legs; the painters copied the clay</td><td>probe.json <code>limbs</code> (count, left, right); the probe line in the page says it and names the next step</td><td>blender_ref.py, jobs.js</td></tr>
+      <tr><td>The probe said −Y for a creature facing +Y (it only read humanoid feet)</td><td>A rig without feet: forward from the middle of its joints to its head bone (<code>forward_basis: head</code>)</td><td>blender_ref.py</td></tr>
+      <tr><td>A model dropped into <code>uploads/3d</code> by hand (yours: the spider, the ant, the raptor) was never listed, and its probe would have gone to <code>uploads/3d/probe.json</code>, shared by every loose file</td><td>Loose models are listed under their own slug; their probe and renders go to <code>uploads/3d/&lt;slug&gt;/</code>; the pickers use the file's own path</td><td>server.py, jobs.py, jobs.js</td></tr>
+      <tr><td>A rigged model without a walk clip could not drive a walk</td><td>driver_depth modes <code>gait</code> and <code>flip_curl</code>, their settings in two folds that open with the mode; only changed settings reach the command line</td><td>blender_gait.py, blender_depth_drivers.py, jobs.py, methods.json, jobs.js</td></tr>
+      <tr><td>A cartoon look's walk lost its face on the plain model's depth</td><td>Proportion settings on the made motions (body_scale, head_scale, leg_scale, scale_bones, head_pitch), and the recipe keys <code>ctl_soft</code> / <code>death_soft</code>: the depth video softened before the walk</td><td>blender_gait.py, animate.py (soften_ctl), gen_ctl.py, methods.json</td></tr>
+      <tr><td>No way to fix a model's legs</td><td>New job kind and method <code>ref_limbs</code> (A model's legs fixed): the fixed model as a new upload, probed</td><td>blender_limb_clone.py, jobs.py, methods.json</td></tr>
+      <tr><td>The creature editor had no button for its 3D steps (only the Heroes tab opened a driver form)</td><td><b>+ Depth driver…</b> and <b>+ Fix a model's legs…</b> under a creature's looks</td><td>assets.js</td></tr>
+      <tr><td>A model field (<code>src</code>) of a driver job was a plain text box: you had to type the path</td><td>A methods.json <code>file</code> field keeps its upload picker</td><td>jobs.js</td></tr>
+      <tr><td>A view painted again kept its old walk: the walk cache was keyed on the name only, and walk_seeds needed its folder moved away by hand</td><td>A cached walk serves only the same painting (a hash of it), the same seed and the same control video (its folder and its frames on disk); picking a view painted again sets its old walk aside</td><td>animate.py (cache_fits), gen_ctl.py, methods.json</td></tr>
+      <tr><td>The help said negative words keep extra legs out of the walks; they change nothing at cfg 1</td><td>anim_negative's help says so; creature_ctl's notes give the many-legs rules</td><td>methods.json</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">Seen and left: a new creature without an icon makes the page ask for that icon a few hundred times (404s in the console, harmless; the register job's placeholder ends it), and a form opened on a chosen method does not scroll to its card. All checks: <code>python tools/level_editor/selftest.py</code> green, the new ones in <code>selftest_SPIDER92.py</code>.</p>
+</section>
+
+<section id="settings" class="thread">
+  <span class="knot">11</span>
+  <div class="stephead"><h2>New settings</h2></div>
+  <h3>Made walk (mode gait)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Setting</th><th>Default</th><th>Spider</th><th>What it does</th></tr></thead>
+    <tbody class="num">
+      <tr><td><code>legs</code></td><td>leg words</td><td><code>leg_</code></td><td>Which bones are legs (a regex over their names)</td></tr>
+      <tr><td><code>gait</code></td><td>alternate</td><td>alternate</td><td>Two sets half a stride apart (spider, insect tripod, trot); <code>wave</code> ripples each side from the back</td></tr>
+      <tr><td><code>swing</code></td><td>14°</td><td>18°</td><td>How far each leg turns fore and aft</td></tr>
+      <tr><td><code>lift</code></td><td>18°</td><td>24°</td><td>How high a leg rises while it steps</td></tr>
+      <tr><td><code>flex</code></td><td>14°</td><td>16°</td><td>How much the knee bends while the leg is up</td></tr>
+      <tr><td><code>duty</code></td><td>0.55</td><td>0.55</td><td>Share of the stride a leg is on the ground</td></tr>
+      <tr><td><code>bob</code>, <code>sway</code></td><td>0.04, 2.5°</td><td>same</td><td>The body's dip and side-to-side turn</td></tr>
+      <tr><td><code>base</code></td><td>(rest pose)</td><td>—</td><td>Seconds into a clip whose pose is the stance</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Made death (mode flip_curl)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Setting</th><th>Default</th><th>Spider</th><th>What it does</th></tr></thead>
+    <tbody class="num">
+      <tr><td><code>roll_axis</code></td><td>side</td><td>side</td><td>Rolls over sideways (a spider) or end over end (<code>front</code>)</td></tr>
+      <tr><td><code>roll</code>, <code>roll_dir</code></td><td>180°, 1</td><td>same</td><td>How far and which way it turns over (170°: tipped a little)</td></tr>
+      <tr><td><code>roll_start</code>, <code>roll_time</code></td><td>0.08 s, 0.4 s</td><td>same</td><td>When the roll starts and how long it takes</td></tr>
+      <tr><td><code>curl_root</code></td><td>40°</td><td>70°</td><td>Each hip swings its leg towards the belly</td></tr>
+      <tr><td><code>curl</code></td><td>70°</td><td>55°</td><td>Each knee folds in</td></tr>
+      <tr><td><code>curl_start</code>, <code>curl_end</code></td><td>0.05 s, 0.75 s</td><td>same</td><td>When the curl runs</td></tr>
+      <tr><td><code>bounce</code></td><td>0.12</td><td>0.12</td><td>Bounce on landing (share of its height)</td></tr>
+      <tr><td><code>twitch</code></td><td>6°</td><td>6°</td><td>The curled legs twitch before it lies still</td></tr>
+      <tr><td><code>spasm</code>, <code>spasm_deg</code></td><td>0.12 s, 22°</td><td>same</td><td>The hit: the legs fling up</td></tr>
+      <tr><td><code>seconds</code>, <code>hold</code></td><td>1.2 s, 0.85</td><td>same</td><td>Clip length; after this share the dead pose is held</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Proportions (both modes)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Setting</th><th>Default</th><th>SP-C</th><th>SP-D</th><th>What it does</th></tr></thead>
+    <tbody class="num">
+      <tr><td><code>body_scale</code></td><td>1</td><td>1.6</td><td>1.5</td><td>The body bigger, the legs keeping their size</td></tr>
+      <tr><td><code>head_scale</code></td><td>1</td><td>1.5</td><td>1.6</td><td>The head bigger (room for a cartoon face)</td></tr>
+      <tr><td><code>leg_scale</code></td><td>1</td><td>0.85</td><td>0.65</td><td>Every leg longer or shorter</td></tr>
+      <tr><td><code>scale_bones</code></td><td>—</td><td>—</td><td>—</td><td><code>name:factor,…</code> any other bone</td></tr>
+      <tr><td><code>head_pitch</code></td><td>0°</td><td>30°</td><td>35°</td><td>The head raised so its face looks at the front camera</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Softened depth (creature_ctl recipe)</h3>
+  <p><code>ctl_soft</code> <code>{"radius": 10, "body": false, "views": ["front"]}</code>: the views named walk along their depth video blurred by <code>radius</code> pixels (written once beside the driver, <code>spider_walk_d_soft10/</code>); <code>body: true</code> blurs only the body and head and keeps the thin legs sharp (it did not keep the face here). <code>death_soft</code> the same for the death video. Without them nothing changes.</p>
+  <h3>Leg fix (blender_limb_clone.py, method ref_limbs)</h3>
+  <p><code>rest=frame:&lt;n&gt;</code>, <code>clone=chain:new:yaw[:shift];…</code>, <code>turn=chain:yaw[:shift];…</code>, <code>forward</code>, <code>shot</code>. Yaw is counter-clockwise from above; shift is a share of the leg's reach along forward.</p>
+</section>
+</div>
+
+<div class="col">
+<section id="time" class="thread">
+  <span class="knot">12</span>
+  <div class="stephead"><h2>Timings</h2></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Step</th><th>Where</th><th>Time</th></tr></thead>
+    <tbody class="num">
+      <tr><td>Probe the model</td><td>Blender, this PC</td><td>4 s</td></tr>
+      <tr><td>Fix the legs (copy, turn, rest pose)</td><td>Blender</td><td>10 s</td></tr>
+      <tr><td>Made walk: 5 views × 25 depth frames + clay + look</td><td>Blender</td><td>10 s</td></tr>
+      <tr><td>Made death: 3 views × 25 frames</td><td>Blender</td><td>8 s</td></tr>
+      <tr><td>Side candidates (4, Klein)</td><td>AI server</td><td>25 s each, 2 min</td></tr>
+      <tr><td>Your pick</td><td>you</td><td>a minute: count the legs</td></tr>
+      <tr><td>The other four views (Klein)</td><td>AI server</td><td>25 s each</td></tr>
+      <tr><td>Five walks (Wan 2.2 Fun Control, 25 frames)</td><td>AI server</td><td>65 – 120 s each, about 7 min</td></tr>
+      <tr><td>The death (Wan, 25 frames, 8 kept)</td><td>AI server</td><td>75 – 80 s</td></tr>
+      <tr><td>A view painted again (3 candidates) and walked again</td><td>AI server</td><td>about 3 min</td></tr>
+      <tr><td>Different death frames kept (death_keep)</td><td>this PC</td><td>seconds, no render</td></tr>
+      <tr><td><b>One look, start to strip</b></td><td></td><td><b>about 12 minutes</b> of the server, plus the picks</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">The whole pass ran its jobs one at a time through the ComfyUI lock, sharing the server with your own Level Editor queue. Two looks were run twice (SP-C, SP-D) and one view pair once more (SP-A front and three-quarter front).</p>
+</section>
+
+<section id="ingame" class="thread">
+  <span class="knot">13</span>
+  <div class="stephead"><h2>In the game</h2><div class="where"><span class="chip">tools/item_shots.gd</span><span class="chip">the debug arena</span></div></div>
+  <figure><img src="img/game_shots.jpg" alt="The four looks in the debug arena, three spiders each walking at the Drifter" loading="lazy"><figcaption>The four looks in the debug arena (<code>tools/item_shots.gd creatures=desert_spider@SP-A,…</code>), three of each walking at the hero: SP-A, SP-B (top), SP-C, SP-D (bottom).</figcaption></figure>
+  <p>The spider plays SP-B (a creature with looks must play one); all four looks are marked fresh until you approve one. It is on no map: its numbers are the Fire Ant's for now (36 HP, speed 3, bite 8, packs of three). Place it from the Timeline when a look is approved.</p>
+</section>
+</div>
+
+</div>
+<div class="lightbox" id="lb" hidden><img id="lbimg" alt=""></div>
+<script>
+(function () {
+  var lb = document.getElementById('lb'), im = document.getElementById('lbimg');
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t.tagName === 'IMG' && t.closest('figure, .spec')) { im.src = t.currentSrc || t.src; im.alt = t.alt; lb.hidden = false; }
+    else if (t === lb || t === im) { lb.hidden = true; }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lb.hidden = true; });
+})();
+</script>

@@ -41,6 +41,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import blender_ref as R  # noqa: E402
+import blender_gait as G  # noqa: E402
 try:
     import bpy
     from mathutils import Quaternion, Vector
@@ -63,27 +64,30 @@ def main():
         raise SystemExit("blender_depth_drivers: no armature in %s: a depth driver needs a rigged model with a clip" % src)
     if not body:
         raise SystemExit("blender_depth_drivers: no mesh in %s" % src)
-    act = R.find_action(A.get("action"), arm) if R.all_actions() else None
-    if act is None:
-        raise SystemExit("blender_depth_drivers: %s has no animation clip, so it cannot drive a walk. %s" % (src, R.INSERT_HINT))
-    R.use_action(arm, act)
     mode = A.get("mode", "cycle")
-    if mode not in ("cycle", "oneshot"):
-        raise SystemExit("blender_depth_drivers: mode=%s is not cycle or oneshot" % mode)
+    if mode not in ("cycle", "oneshot", "gait", "flip_curl"):
+        raise SystemExit("blender_depth_drivers: mode=%s is not cycle, oneshot, gait or flip_curl" % mode)
+    proc = mode in ("gait", "flip_curl")   # pass 92: made here, no clip needed (tools/blender_gait.py)
+    act = R.find_action(A.get("action"), arm) if R.all_actions() and (not proc or A.get("action")) else None
+    if act is None and not proc:
+        raise SystemExit("blender_depth_drivers: %s has no animation clip, so it cannot drive a walk (mode=gait makes a "
+                         "walk for a legged model without one). %s" % (src, R.INSERT_HINT))
+    if act is not None:
+        R.use_action(arm, act)
     out = os.path.abspath(A.get("out", os.path.join(R.REPO, "tools", "dl", "drivers", os.path.splitext(os.path.basename(src))[0])))
     N = int(A.get("frames", 12))
     CYCLES = int(A.get("cycles", 2))
-    total = N * CYCLES + 1 if mode == "cycle" else int(A.get("total", 25))
+    total = N * CYCLES + 1 if mode in ("cycle", "gait") else int(A.get("total", 25))
     pitch = float(A.get("pitch", 25.0))
     size = 640
     screen = R.parse_rgb(A.get("screen"), (0.0, 1.0, 0.0))
     depth_mode = A.get("depth", "tight")
     amp = float(A.get("amp", "1.0"))
     amp_re = A.get("amp_bones", LEG_WORDS)
-    inplace = A.get("inplace", "1" if mode == "cycle" else "0") not in ("0", "false", "no")
-    views = A.get("views", "front,fd,side,bd,back" if mode == "cycle" else "front").split(",")
+    inplace = A.get("inplace", "1" if mode == "cycle" else "0") not in ("0", "false", "no") and not proc
+    views = A.get("views", "front,fd,side,bd,back" if mode in ("cycle", "gait") else "front").split(",")
     fps = sc.render.fps
-    F0, F1 = act.frame_range[0], act.frame_range[1]
+    F0, F1 = (act.frame_range[0], act.frame_range[1]) if act is not None else (0.0, 1.0)
     f0, f1 = F0, F1
     if A.get("start") or A.get("end"):
         f0 = F0 + float(A.get("start", 0.0)) * fps
@@ -94,6 +98,28 @@ def main():
     root = arm
     while root.parent is not None:
         root = root.parent
+    legs = None
+    gopt = {}
+    if proc:
+        # the base pose: the rest pose, or the clip's pose at `base` seconds when an action is named (its stance)
+        base = None
+        if act is not None:
+            R.set_frame(F0 + float(A.get("base", 0.0) or 0.0) * fps)
+            base = {pb.name: (pb.location.copy(), (pb.rotation_quaternion.copy() if pb.rotation_mode == "QUATERNION"
+                    else pb.rotation_euler.to_quaternion()), pb.scale.copy()) for pb in arm.pose.bones}
+            arm.animation_data.action = None
+        alias0 = R.bone_alias(arm)
+        _l, _y, _b, fvec = R.forward_guess(arm, alias0)
+        sopt = G.options(A, G.SCALE_DEFAULTS)
+        legs = G.Legs(arm, body, root, R.forward_vector(A.get("forward", "-Y"), fvec), A.get("legs") or G.LEG_WORDS, base, sopt)
+        gopt = G.options(A, G.GAIT_DEFAULTS if mode == "gait" else G.DEATH_DEFAULTS)
+        gopt.update({k: v for k, v in sopt.items() if v not in (1.0, "")})
+        print("blender_depth_drivers: %d legs: %s" % (len(legs.chains), ", ".join(legs.describe())))
+        print("blender_depth_drivers: %s %s" % (mode, ", ".join("%s=%s" % kv for kv in sorted(gopt.items()))))
+    # pass 93: tips=1 writes tips.json, where every leg's foot is in each view's picture frame by frame (the leg check)
+    want_tips = legs is not None and str(A.get("tips", "0")) not in ("0", "", "false", "no")
+    tip_verts = legs.tip_vertices(body) if want_tips else None
+    tips = {}
 
     # ------------------------------------------------------------ time
     POSE = [None]   # amp: the cycle's N poses with the matching bones' swing scaled, {bone: (location, rotation, scale)}
@@ -164,12 +190,19 @@ def main():
             arm.animation_data.action = None
             print("blender_depth_drivers: %d bones swung %.2fx" % (amp_matched, amp))
 
-    root.location = Vector((0, 0, 0))
-    set_time(f0)
+    if not proc:
+        root.location = Vector((0, 0, 0))
+        set_time(f0)
     mn0, mx0 = R.bbox(body)
     C0 = (mn0 + mx0) * 0.5
 
     def at(f):
+        if proc:
+            if mode == "gait":
+                legs.pose_gait((f % N) / float(N), gopt)
+            else:
+                legs.pose_flip_curl(float(gopt["seconds"]) * f / float(max(total - 1, 1)), gopt)
+            return
         root.location = Vector((0, 0, 0))
         if mode == "oneshot":
             set_time(f0 + (f1 - f0) * f / float(max(total - 1, 1)))
@@ -191,7 +224,7 @@ def main():
         a, b = R.bbox(body)
         mn = Vector((min(mn.x, a.x), min(mn.y, a.y), min(mn.z, a.z)))
         mx = Vector((max(mx.x, b.x), max(mx.y, b.y), max(mx.z, b.z)))
-    target, extent, dist, ortho = R.camera_rule(mn, mx, death=(mode == "oneshot"))
+    target, extent, dist, ortho = R.camera_rule(mn, mx, death=(mode in ("oneshot", "flip_curl")))
     alias = R.bone_alias(arm)
     _label, _yaw, _basis, fwd_vec = R.forward_guess(arm, alias)
     fwd = R.forward_vector(A.get("forward", "-Y"), fwd_vec)
@@ -271,7 +304,7 @@ def main():
         R.render(os.path.join(d, "clay.png"))
         looks()
         R.render(os.path.join(d, "look.png"))
-        if mode == "oneshot":
+        if mode in ("oneshot", "flip_curl"):
             R.set_material(body, clay)
             R.workbench("MATERIAL", screen)
             for f in sorted({total // 4, total // 2, (3 * total) // 4, total - 1}):
@@ -299,17 +332,29 @@ def main():
         for f in range(total):
             at(f)
             R.render(os.path.join(d, "ctl_%02d.png" % f))
+            if want_tips:
+                from bpy_extras.object_utils import world_to_camera_view
+                row = []
+                for mesh_w, bone_w in legs.tips_world(body, tip_verts):
+                    pm = world_to_camera_view(sc, cam, mesh_w)
+                    pb_ = world_to_camera_view(sc, cam, bone_w)
+                    row.append([round(pm.x * size, 1), round((1.0 - pm.y) * size, 1), round(pb_.x * size, 1), round((1.0 - pb_.y) * size, 1)])
+                tips.setdefault(view, []).append(row)
         print("blender_depth_drivers: rendered %s %d depth frames" % (view, total))
         sc.view_settings.view_transform = view_transform
     R.restore_materials(backup)
     meta = {"kind": "depth", "mode": mode, "loop": mode == "cycle", "src": os.path.relpath(src, R.REPO).replace("\\", "/"),
-            "action": act.name, "range": [f0, f1], "clip_range": [F0, F1], "start": A.get("start"), "end": A.get("end"), "fps": fps,
+            "action": act.name if act is not None else None, "range": [f0, f1], "clip_range": [F0, F1], "start": A.get("start"), "end": A.get("end"), "fps": fps,
             "frames": N, "cycles": CYCLES, "total": total, "views": views, "depth": depth_mode, "depth_ranges": ranges,
             "amp": amp, "amp_bones": amp_re if abs(amp - 1.0) > 0.001 else None, "amp_matched": amp_matched,
             "pitch": pitch, "size": size, "extent": extent, "forward": A.get("forward", "-Y"), "inplace": inplace,
             "albedo": os.path.relpath(albedo, R.REPO).replace("\\", "/") if albedo else None, "scale_applied": factor,
-            "notes": ""}
+            "notes": "", "legs": legs.describe() if legs else None,
+            ("gait" if mode == "gait" else "death"): gopt if proc else None}
     json.dump(meta, open(os.path.join(out, "meta.json"), "w", encoding="utf-8", newline="\n"), indent=1)
+    if want_tips:
+        json.dump({"legs": legs.describe(), "size": size, "cols": "mesh_x, mesh_y, bone_x, bone_y (pixels)", "views": tips},
+                  open(os.path.join(out, "tips.json"), "w", encoding="utf-8", newline="\n"))
     print("blender_depth_drivers: done ->", out)
 
 

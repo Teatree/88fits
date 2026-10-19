@@ -3658,6 +3658,9 @@ def list_refs():
                 out["2d"].append({"name": f, "url": "/dl/uploads/2d/%s" % f, "path": rel(full), "size": os.path.getsize(full),
                                   "mtime": int(os.path.getmtime(full))})
     d3 = os.path.join(UPLOADS, "3d")
+    # pass 92 (lane SPIDER): a model dropped into uploads/3d by hand (spider._low_poly.glb, the raptor, the ant) has no
+    # folder of its own and was never listed; it is listed now under its slug, its probe and renders in uploads/3d/<slug>/
+    loose = loose_models(d3)
     if os.path.isdir(d3):
         for slug in sorted(os.listdir(d3)):
             folder = os.path.join(d3, slug)
@@ -3665,6 +3668,8 @@ def list_refs():
                 continue
             files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
             model = next((f for f in sorted(files) if f.lower().endswith(UPLOAD_EXTS["3d"])), None)
+            if model is None and slug in loose:
+                continue   # the probe folder of a loose model: listed with it below
             probe = None
             if os.path.isfile(os.path.join(folder, "probe.json")):
                 try:
@@ -3675,6 +3680,37 @@ def list_refs():
             out["3d"].append({"slug": slug, "file": model, "path": rel(os.path.join(folder, model)) if model else None,
                               "size": os.path.getsize(os.path.join(folder, model)) if model else 0,
                               "mtime": int(os.path.getmtime(folder)), "probe": probe, "renders": renders})
+        for slug, name in sorted(loose.items()):
+            full = os.path.join(d3, name)
+            folder = os.path.join(d3, slug)
+            probe = None
+            if os.path.isfile(os.path.join(folder, "probe.json")):
+                try:
+                    probe = load_json(os.path.join(folder, "probe.json"))
+                except (OSError, ValueError):
+                    probe = {"error": "probe.json is not valid JSON"}
+            files = sorted(os.listdir(folder)) if os.path.isdir(folder) else []
+            renders = ["/dl/uploads/3d/%s/%s" % (slug, f) for f in files if f.lower().endswith((".png", ".jpg", ".webp"))]
+            out["3d"].append({"slug": slug, "file": name, "path": rel(full), "size": os.path.getsize(full),
+                              "mtime": int(os.path.getmtime(full)), "probe": probe, "renders": renders, "loose": True})
+    return out
+
+
+def loose_models(d3):
+    """{slug: file name} of the model files lying in uploads/3d itself (not in a folder of their own). A slug a folder
+    with its own model already has gets a _loose suffix."""
+    out = {}
+    if not os.path.isdir(d3):
+        return out
+    for name in sorted(os.listdir(d3)):
+        full = os.path.join(d3, name)
+        if not os.path.isfile(full) or not name.lower().endswith(UPLOAD_EXTS["3d"]) or name.lower().endswith(".zip"):
+            continue
+        slug = _slug(name)
+        folder = os.path.join(d3, slug)
+        if os.path.isdir(folder) and any(f.lower().endswith(UPLOAD_EXTS["3d"]) for f in os.listdir(folder)):
+            slug += "_loose"
+        out[slug] = name
     return out
 
 

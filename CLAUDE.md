@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-19, pass 91, version 0.77)
+## Status (2026-10-19, pass 92, version 0.78)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.77). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.78). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -370,6 +370,11 @@ Harpooner); the Watch has a Damage taken tab beside HP & Danger (WatchHurt.gd, D
 revives the fallen bot at will (`--death ask`, the default: R revive, B with the blast, E end; recorded as
 `watch_revives`).
 Pass 91 (art tools): Level Editor method "Creature from front + back pictures" (creature_pictures: two pictures as they are or redrawn, the procedural walk, screen auto), death `shatter` (a heap of pieces, artkit.shatter), the keyer no longer cuts a green figure's feet on a green screen (the black line).
+Pass 92 (art tools): the Desert Spider (content/enemies/desert_spider, looks SP-A..D fresh, plays SP-B, on no map);
+`blender_depth_drivers.py mode=gait|flip_curl` (tools/blender_gait.py: a made walk for a rig without a clip, a death
+rolled onto its back with the legs curled; proportions body_scale/head_scale/leg_scale/head_pitch), tools/blender_limb_clone.py
+(method ref_limbs: copy/turn leg chains, rest=frame:N), gen_ctl `ctl_soft`/`death_soft` (softened depth keeps cartoon
+faces), a walk cache keyed on painting+seed+control; explainer https://claude.ai/artifact/PuzdQ4H2dvaTJDEbtfKGwv (docs/spider/).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

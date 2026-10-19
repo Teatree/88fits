@@ -186,15 +186,87 @@ def wan_fun_control(prompt, ref_name, ctl_names, seed, width=640, height=640, ne
     return g
 
 
+def soften_ctl(src_dir, radius, body=True, open_iter=9):
+    """pass 92 (lane SPIDER): a control video with its body's depth softened, so the painting's own face and markings
+    survive the walk (Wan Fun Control follows the depth's shapes over the reference painting's: SP-C and SP-D, cartoon
+    spiders with big faces, walked away faceless on the sharp depth; blurred all over, the face stayed but the legs stopped
+    walking). body=True blurs only what an opening of the silhouette keeps (the body and head; thin legs drop out and keep
+    their sharp depth). Written once beside the driver (<driver>_soft<r>[b]/<view>/) and returned; clay.png is copied."""
+    from PIL import ImageFilter
+    from scipy import ndimage
+    src_dir = os.path.abspath(src_dir)
+    view = os.path.basename(src_dir)
+    drv = os.path.dirname(src_dir)
+    dst = os.path.join(drv + "_soft%d%s" % (int(round(radius)), "b" if body else ""), view)
+    os.makedirs(dst, exist_ok=True)
+    for f in sorted(os.listdir(src_dir)):
+        p = os.path.join(src_dir, f)
+        q = os.path.join(dst, f)
+        if not f.endswith(".png") or (os.path.exists(q) and os.path.getmtime(q) >= os.path.getmtime(p)):
+            continue
+        if not f.startswith("ctl_"):
+            Image.open(p).save(q)
+            continue
+        sharp = Image.open(p).convert("RGB")
+        soft = sharp.filter(ImageFilter.GaussianBlur(radius))
+        if body:
+            a = np.asarray(sharp.convert("L")) > 10
+            m = ndimage.binary_dilation(ndimage.binary_opening(a, iterations=open_iter), iterations=4)
+            m = ndimage.gaussian_filter(m.astype(np.float32), 4)[..., None]
+            out = np.asarray(sharp).astype(np.float32) * (1 - m) + np.asarray(soft).astype(np.float32) * m
+            Image.fromarray(out.clip(0, 255).astype(np.uint8)).save(q)
+        else:
+            soft.save(q)
+    return dst
+
+
+def ref_hash(ref_rgb, size=640):
+    """pass 92 (lane SPIDER): what a cached control clip was walked from: the painting as Wan sees it. A view painted
+    again (gen_ctl --use-view) or another walk seed (walk_seeds) used to get the old clip back from the cache until its
+    ANIM folder was moved away by hand."""
+    import hashlib
+    return hashlib.md5(ref_rgb.convert("RGB").resize((size, size), Image.LANCZOS).tobytes()).hexdigest()[:16]
+
+
+def ctl_sig(ctl_dir):
+    """The control video as it is on disk now (its frames' names, sizes and times): a driver rendered again under the
+    same name (the spider's cartoon looks got their proportions this way) walks anew."""
+    import hashlib
+    h = hashlib.md5()
+    try:
+        for f in sorted(os.listdir(ctl_dir)):
+            if f.startswith("ctl_") and f.endswith(".png"):
+                st = os.stat(os.path.join(ctl_dir, f))
+                h.update(("%s:%d:%d;" % (f, st.st_size, int(st.st_mtime))).encode())
+    except OSError:
+        return ""
+    return h.hexdigest()[:16]
+
+
+def cache_fits(meta, ref_h, seed, ctl_dir, tries=2):
+    """A cached clip serves this call when it was walked from the same painting, on one of this call's seeds, along the
+    same control video. Keys a cache from before pass 92 does not have are not held against it."""
+    if meta.get("ref_hash") and meta["ref_hash"] != ref_h:
+        return False
+    if meta.get("seed") is not None and int(meta["seed"]) not in [seed + a * 7919 for a in range(max(tries, 1))]:
+        return False
+    if meta.get("ctl_dir") and os.path.normcase(os.path.abspath(meta["ctl_dir"])) != os.path.normcase(os.path.abspath(ctl_dir)):
+        return False
+    if meta.get("ctl_sig") and meta["ctl_sig"] != ctl_sig(ctl_dir):
+        return False
+    return True
+
+
 def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_extra="", loop_frames=12, tries=2):
     """A walk cycle that follows a 3D model's control video (tools/blender_ant.py: ctl_NN.png, two strides): the
     second stride is kept (the first settles in), keyed, cropped to a common box. Returns (frames, meta); cached in
     ANIM/<key>/ like the other cycles."""
     os.makedirs(os.path.join(ANIM, key), exist_ok=True)
     meta_p = os.path.join(ANIM, key, "cycle.json")
+    rh = ref_hash(ref_rgb, size)
     if os.path.exists(meta_p):
         meta = json.load(open(meta_p, encoding="utf-8"))
-        if meta.get("control") and meta.get("n_out") == loop_frames:
+        if meta.get("control") and meta.get("n_out") == loop_frames and cache_fits(meta, rh, seed, ctl_dir, tries):
             frames = [Image.open(os.path.join(ANIM, key, "out_%02d.png" % k)).convert("RGBA") for k in range(loop_frames)]
             if len(frames) == loop_frames:
                 return frames, meta
@@ -233,7 +305,7 @@ def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_e
         for k, f in enumerate(out):
             f.save(os.path.join(ANIM, key, "out_%02d.png" % k))
         artkit.contact_sheet(out, loop_frames, 200).save(os.path.join(ANIM, key, "cycle_sheet.png"))
-        meta = {"key": key, "seed": s, "control": True, "ctl_dir": os.path.abspath(ctl_dir), "n_out": loop_frames, "frames": len(raw),
+        meta = {"key": key, "seed": s, "control": True, "ctl_dir": os.path.abspath(ctl_dir), "n_out": loop_frames, "frames": len(raw), "ref_hash": rh, "ctl_sig": ctl_sig(ctl_dir),
                 "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt}
         json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
         print("  ctl  %-24s seed %-7d %5.0fs  %d frames, box %s" % (key, s, secs, loop_frames, box), flush=True)
@@ -260,13 +332,15 @@ def oneshot_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative
     os.makedirs(os.path.join(ANIM, key), exist_ok=True)
     meta_p = os.path.join(ANIM, key, "cycle.json")
     keep = list(keep)
+    rh = ref_hash(ref_rgb, size)
     if os.path.exists(meta_p):
         meta = json.load(open(meta_p, encoding="utf-8"))
-        if meta.get("oneshot") and meta.get("keep") == keep:
+        fits = cache_fits(meta, rh, seed, ctl_dir, tries)
+        if meta.get("oneshot") and meta.get("keep") == keep and fits:
             frames = [Image.open(os.path.join(ANIM, key, "out_%02d.png" % k)).convert("RGBA") for k in range(len(keep))]
             return frames, meta
         fulls = [os.path.join(ANIM, key, "full_%02d.png" % k) for k in keep]
-        if meta.get("oneshot") and all(os.path.exists(f) for f in fulls):
+        if meta.get("oneshot") and fits and all(os.path.exists(f) for f in fulls):
             # other frames of the clip already rendered (a smeared stretch left out): picked again, no render
             out = _crop_kept([Image.open(f).convert("RGBA") for f in fulls], size)
             for k, f in enumerate(out):
@@ -311,7 +385,7 @@ def oneshot_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative
         for k, f in enumerate(out):
             f.save(os.path.join(ANIM, key, "out_%02d.png" % k))
         artkit.contact_sheet(out, len(out), 200).save(os.path.join(ANIM, key, "cycle_sheet.png"))
-        meta = {"key": key, "seed": s, "oneshot": True, "keep": keep, "ctl_dir": os.path.abspath(ctl_dir), "frames": len(raw),
+        meta = {"key": key, "seed": s, "oneshot": True, "keep": keep, "ctl_dir": os.path.abspath(ctl_dir), "frames": len(raw), "ref_hash": rh, "ctl_sig": ctl_sig(ctl_dir),
                 "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt}
         json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
         print("  shot %-24s seed %-7d %5.0fs  %d frames of %d, box %s" % (key, s, secs, len(out), len(raw), box), flush=True)

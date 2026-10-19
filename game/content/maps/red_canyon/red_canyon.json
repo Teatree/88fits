@@ -263,8 +263,8 @@
         "pace": "waves",
         "every": 5,
         "count": 30,
-        "elite": "speedy",
-        "special": false
+        "special": false,
+        "role": "fodder"
       },
       {
         "id": "r2",
@@ -288,7 +288,8 @@
         },
         "pack": 12,
         "pattern": "scatter",
-        "interval": 4
+        "interval": 4,
+        "role": "fodder"
       },
       {
         "id": "r21",
@@ -312,23 +313,15 @@
         "pack": 30,
         "stats": {
           "hp_mult": 0.8,
-          "tint": {
-            "hue": [
-              350,
-              12
-            ],
-            "sat": 0.95,
-            "val": 0.8,
-            "amount": 0.4
-          },
-          "size": 2,
+          "size": 1.25,
           "damage_mult": 1.25
         },
         "pattern": "ring",
         "pace": "waves",
         "every": 10,
         "count": 70,
-        "ring_radius": 18
+        "ring_radius": 18,
+        "role": "fodder"
       },
       {
         "id": "r3",
@@ -354,7 +347,8 @@
         "pace": "waves",
         "every": 10,
         "count": 30,
-        "offset": 3
+        "offset": 3,
+        "role": "fodder"
       },
       {
         "id": "r5",
@@ -379,7 +373,8 @@
         },
         "pace": "waves",
         "every": 5,
-        "count": 10
+        "count": 10,
+        "role": "fodder"
       },
       {
         "id": "r12",
@@ -399,7 +394,8 @@
         "every": 5,
         "count": 10,
         "pack": 1,
-        "pattern": "scatter"
+        "pattern": "scatter",
+        "role": "fodder"
       },
       {
         "id": "r13",
@@ -417,7 +413,8 @@
         },
         "pattern": "pack",
         "pack": 5,
-        "interval": 10
+        "interval": 10,
+        "role": "fodder"
       },
       {
         "id": "r14",
@@ -432,7 +429,8 @@
         "until": 315,
         "pattern": "scatter",
         "pack": 1,
-        "interval": 6
+        "interval": 6,
+        "role": "fodder"
       },
       {
         "id": "r15",
@@ -451,7 +449,8 @@
           "drops": {
             "large": 0.1
           }
-        }
+        },
+        "role": "fodder"
       },
       {
         "id": "r54",
@@ -466,7 +465,8 @@
         "until": 416,
         "pattern": "scatter",
         "pack": 1,
-        "interval": 6
+        "interval": 6,
+        "role": "fodder"
       },
       {
         "id": "r4",
@@ -485,7 +485,8 @@
           "drops": {
             "large": 0.1
           }
-        }
+        },
+        "role": "fodder"
       },
       {
         "id": "r16",
@@ -508,7 +509,8 @@
         "pack": 5,
         "pace": "waves",
         "every": 5,
-        "count": 5
+        "count": 5,
+        "role": "fodder"
       },
       {
         "id": "r19",

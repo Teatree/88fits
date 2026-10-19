@@ -414,6 +414,18 @@ def forward_guess(arm, alias):
             if lat.length > 1e-6:
                 fwd = lat.cross(up)
                 basis = "body"
+    if fwd.length <= 1e-6 and arm is not None:
+        # pass 92 (lane SPIDER): a creature rig: from the middle of all its joints to its head bone (the spider faces +Y and
+        # the probe said -Y, Blender's default, so every view came out turned until forward= was set by hand)
+        heads = [b for b in arm.pose.bones if re.search(r"(?i)head", b.name) and not re.search(r"(?i)end$|_end|top", b.name)]
+        if heads:
+            pts = [arm.matrix_world @ b.head for b in arm.pose.bones]
+            mid = sum(pts, Vector((0, 0, 0))) / float(len(pts))
+            v = (arm.matrix_world @ heads[0].head) - mid
+            v.z = 0.0
+            if v.length > 1e-6:
+                fwd = v
+                basis = "head"
     if fwd.length <= 1e-6:
         fwd = Vector((0, -1, 0))
     fwd.normalize()
@@ -637,6 +649,17 @@ def contact_sheet(paths, out, cell=192, gap=4, bg=(0.12, 0.12, 0.14, 1.0)):
 
 # ---------------------------------------------------------------- the probe
 
+def limb_chains(names, parents, pattern=r"(?i)leg|thigh|calf|shin|foot|toe|tarsus|femur|tibia"):
+    """pass 92 (lane SPIDER): the leg chains of a rig by bone name, as blender_gait.Legs finds them: a matching bone whose
+    parent does not match starts one. {count, left, right, chains: [first bone]}. The spider's file had six legs, which no
+    one saw until the clay was painted; the probe says it now."""
+    pat = re.compile(pattern)
+    roots = [n for n in names if pat.search(n) and not (parents.get(n) and pat.search(parents.get(n)))]
+    left = [n for n in roots if _SIDE_L.search(n) and not _SIDE_R.search(n)]
+    right = [n for n in roots if _SIDE_R.search(n) and not _SIDE_L.search(n)]
+    return {"count": len(roots), "left": len(left), "right": len(right), "chains": roots}
+
+
 def probe(src, scale_applied, albedo=None):
     sc = scene()
     fps = sc.render.fps
@@ -664,7 +687,9 @@ def probe(src, scale_applied, albedo=None):
     has_tex = any(r["has_image_texture"] for r in mesh_rows)
     can = {"icon": bool(mesh_objs), "look": bool(mesh_objs),
            "pose_drivers": bool(arm) and bool(acts) and humanoid,
-           "depth_drivers": bool(arm) and bool(acts) and bool(mesh_objs)}
+           "depth_drivers": bool(arm) and bool(acts) and bool(mesh_objs),
+           # pass 92: a legged rig walks without a clip (blender_depth_drivers.py mode=gait / flip_curl)
+           "gait_drivers": bool(arm) and bool(mesh_objs) and not humanoid}
     if not arms and not mesh_objs:
         message = "Not a model Blender can read: no mesh and no armature came out of the file."
     elif not arms:
@@ -680,11 +705,19 @@ def probe(src, scale_applied, albedo=None):
         message = "A humanoid rig with its own bone names: pose drivers after the bone map is checked (rigmap), or depth drivers."
     else:
         message = "A rigged model with %d clip%s that is not a humanoid: depth drivers of its own clips (choose the walk, the death)." % (len(acts), "" if len(acts) == 1 else "s")
+    parents = {b.name: (b.parent.name if b.parent else None) for b in arm.data.bones} if arm else {}
+    limbs = limb_chains(names, parents) if arm else {"count": 0, "left": 0, "right": 0, "chains": []}
+    if arm is not None and mesh_objs and not humanoid and limbs["count"] >= 2:
+        if not acts:
+            message = "This model has no animation clip; it can be the icon's reference and the look reference."
+        message += (" It has %d leg chain%s (%d left, %d right): a walk can be made without a clip (driver_depth mode gait) "
+                    "and a death on its back (mode flip_curl); a missing pair is copied by tools/blender_limb_clone.py."
+                    % (limbs["count"], "" if limbs["count"] == 1 else "s", limbs["left"], limbs["right"]))
     return {"src": src, "scale_applied": scale_applied, "fps": fps,
             "armatures": [{"name": a.name, "bones": [b.name for b in a.data.bones],
                            "bone_parents": {b.name: (b.parent.name if b.parent else None) for b in a.data.bones}} for a in arms],
             "actions": acts, "meshes": mesh_rows, "dimensions": dims, "has_image_texture": has_tex,
-            "rig_guess": guess, "rigmap_guess": rmap, "humanoid": humanoid,
+            "rig_guess": guess, "rigmap_guess": rmap, "humanoid": humanoid, "limbs": limbs,
             "forward_guess": label, "forward_yaw_deg": yaw, "forward_basis": basis,
             "albedo_guess": os.path.relpath(albedo, REPO).replace("\\", "/") if albedo and os.path.exists(albedo) else None,
             "can": can, "message": message}

@@ -531,7 +531,8 @@
     "A Klein 'dead on its back' still came out as a live scorpion rearing up and the vision check passed it: use the model's death clip.",
     "A plain or simple look on Flux.2 dev returns the clay itself: edit a richer look instead.",
     "Flux.2 dev restarts the ComfyUI service before every render and cannot run in batches; the third dev render in one process once sat 30 minutes.",
-    "A front painted from the blockout came out top-down with the head at the far end: the side is painted first for a reason."
+    "A front painted from the blockout came out top-down with the head at the far end: the side is painted first for a reason.",
+    "Many legs (pass 92, the spider): no negative prompt reaches any painter or walk here (cfg 1); what holds the count is the clay (the model must have the right number of legs: the spider had six), anatomy words that state the number per side ('exactly eight legs, four on each side, each leg one continuous jointed limb'), and counting the legs of every painting by eye: the vision QA cannot count legs."
    ],
    "example": {"image": "examples/creature_ctl_bull_beetle.png", "strip": {"kind": "enemy", "id": "bull_beetle", "code": "BB-A"}},
    "recipe_fields": [
@@ -545,7 +546,7 @@
     {"key": "keep", "type": "text", "default": "", "help": "Something every view must carry ('its jet-black shell, never brown'): appended to the four non-side prompts."},
     {"key": "look_ref", "type": "file", "default": "", "help": "A picture of what the creature looks like (loosely followed: colours, armour, markings, not the pose): the third reference of the side candidates. A look render of the model (ref_render's look.png) works too."},
     {"key": "motion", "type": "text", "default": "walking in place", "help": "The walk's words for Fun Control."},
-    {"key": "anim_negative", "type": "text", "default": "", "help": "Words to avoid in the walks."},
+    {"key": "anim_negative", "type": "text", "default": "", "help": "Words to avoid in the walks. Pass 92: Fun Control runs at cfg 1.0 (the 4-step LoRA) and ComfyUI then never computes the negative side, so these words change nothing today; they are kept for a run at cfg above 1. The paintings take no negative either (Klein at cfg 1, Flux.2 dev a guidance-distilled model): say the anatomy in anatomy and let the clay carry the leg count."},
     {"key": "death_drivers", "type": "driver", "default": "", "help": "A oneshot depth driver of the model dying (front/ctl_NN.png): the front painting walks along it. Empty: a dead still is painted (dead) and Wan falls into it."},
     {"key": "death_motion", "type": "text", "default": "", "help": "The death clip's words."},
     {"key": "death_keep", "type": "json", "default": [1, 4, 7, 10, 13, 16, 20, 24], "help": "Which 8 of the death clip's 25 frames to keep (the middle of a roll smears); changing them needs no render."},
@@ -558,7 +559,9 @@
     {"key": "outline_frac", "type": "number", "default": 0.024, "help": "Outline width as a fraction of the cell."},
     {"key": "outline_color", "type": "text", "default": "#0E080C", "help": "Outline colour, hex."},
     {"key": "side_seeds", "type": "int", "default": 3, "help": "How many side candidates to paint."},
-    {"key": "walk_seeds", "type": "json", "default": {}, "help": "{view: n}: another seed for one view's walk (a see-through horn in fd: {\"fd\": 1})."}
+    {"key": "walk_seeds", "type": "json", "default": {}, "help": "{view: n}: another seed for one view's walk (a see-through horn in fd: {\"fd\": 1}). Since pass 92 a changed seed or a view painted again walks anew by itself (the cache keeps the painting's hash and the seed)."},
+    {"key": "ctl_soft", "type": "json", "default": null, "help": "Pass 92: {radius, body, views}: the depth videos the views walk along with the body softened (radius px; body true: only the body and head, the thin legs keep their sharp depth; views: which, default all). Wan follows the depth's shapes over the painting's: a cartoon face painted bigger than the model's head was walked away (SP-C, SP-D); softened, it stays. {\"radius\": 14, \"body\": true, \"views\": [\"front\", \"fd\"]}."},
+    {"key": "death_soft", "type": "json", "default": null, "help": "Pass 92: the same for the death video (front)."}
    ],
    "job_fields": [
     {"key": "dev", "type": "bool", "default": false, "help": "Paint the side candidates on Flux.2 dev at 28 steps (4-5 min each, a service restart each) instead of Klein."},
@@ -892,10 +895,10 @@
   },
   {
    "id": "driver_depth",
-   "name": "Depth drivers from a rigged model's own clip",
+   "name": "Depth drivers from a rigged model's own clip, or a made walk and death",
    "kind": "driver",
-   "summary": "blender_depth_drivers.py plays the clip you choose on the model (any rig: a beetle, a scorpion, a humanoid), takes the travel out per frame, optionally swings the leg bones wider (amp), and writes for each of the five game views a depth video (near bright, far dark, 25 frames: 12 x 2 cycles + 1), a clay render and a textured look render; mode oneshot for a death or an attack (the front view, 25 frames evenly over the clip, with clay thumbnails at the quarters). Clay first, so a bad framing shows before the depth frames. The folder is what creature_ctl's drivers / death_drivers name. Ten seconds for the beetle.",
-   "needs": ["an FBX or GLB with an armature and a clip (ref_probe lists the clips: a walk, a death, an idle)"],
+   "summary": "blender_depth_drivers.py plays the clip you choose on the model (any rig: a beetle, a scorpion, a humanoid), takes the travel out per frame, optionally swings the leg bones wider (amp), and writes for each of the five game views a depth video (near bright, far dark, 25 frames: 12 x 2 cycles + 1), a clay render and a textured look render; mode oneshot for a death or an attack (the front view, 25 frames evenly over the clip, with clay thumbnails at the quarters). Pass 92: a legged model without a usable clip gets its motion made (tools/blender_gait.py): mode gait walks its legs in two alternating sets (a spider's L1 R2 L3 R4 against R1 L2 R3 L4; gait wave ripples them from the back) with swing, lift, flex, duty, bob and sway; mode flip_curl is the death of a spider or a beetle: a jerk, a roll onto its back over roll_time seconds, the legs curling in over the belly (curl_root at the hips, curl at every knee), a bounce, a twitch, then the dead pose held for the last frames. The legs are found by name (legs, a regex). Clay first, so a bad framing shows before the depth frames. The folder is what creature_ctl's drivers / death_drivers name. Ten seconds for the beetle and the spider.",
+   "needs": ["an FBX or GLB with an armature and a clip (ref_probe lists the clips: a walk, a death, an idle); for mode gait or flip_curl an armature whose leg bones have leg words in their names (ref_probe counts the leg chains)"],
    "produces": "tools/dl/drivers/<name>/<view>/ctl_00..24.png, clay.png, look.png (+ clay_NN.png for a one-shot), meta.json (kind depth)",
    "counts": {"stills": 0, "clips": 0},
    "time": {"median_s": 15, "worst_s": 90},
@@ -904,7 +907,10 @@
     "A real creature's step can be too small to read at sprite size: amp swings the matching bones wider, and the leg bones' names must match amp_bones (the beetle's unnamed legs needed ^Bone\\.00[345]).",
     "A wide depth range leaves the far legs flat and Wan walks them on nothing: depth tight (the default) and Raw frames.",
     "Do not lay a model on its side for readability; a mirrored or oddly facing model needs forward= set.",
-    "A clip with root motion is held on the spot by its box centre, which also removes a real lunge; inplace=0 keeps it."
+    "A clip with root motion is held on the spot by its box centre, which also removes a real lunge; inplace=0 keeps it.",
+    "gait and flip_curl turn the leg bones round their joints in world space, so the rig's own bone axes never matter, but they start from the rest pose: a Sketchfab GLB whose rest pose is not its stance (the spider's legs rested far off to one side) needs ref_limbs' rest frame:0 first, or base (seconds into a clip whose pose is the stance).",
+    "flip_curl's legs fold round one axis each, read once from the stance: a leg that passes straight down keeps folding the same way (the first try recomputed it per joint and the legs bunched back out).",
+    "A painter copies the clay's leg count: count the legs in the probe (limbs) before painting; the spider came with six and was made eight by ref_limbs."
    ],
    "example": {"image": "examples/driver_depth_beetle.png", "strip": null},
    "recipe_fields": [],
@@ -912,7 +918,7 @@
     {"key": "src", "type": "file", "default": "", "help": "The FBX, GLB/glTF, OBJ, DAE, .blend or a zip of one."},
     {"key": "name", "type": "text", "default": "", "help": "The driver folder's name under tools/dl/drivers."},
     {"key": "action", "type": "text", "default": "", "help": "The clip: its exact name, the part after the last '|' (walk, death) or a unique piece of it."},
-    {"key": "mode", "type": "select", "default": "cycle", "options": ["cycle", "oneshot"], "help": "cycle: a looping walk (frames x cycles + 1); oneshot: a death or attack played once over `total` frames."},
+    {"key": "mode", "type": "select", "default": "cycle", "options": ["cycle", "oneshot", "gait", "flip_curl"], "help": "cycle: the clip as a looping walk (frames x cycles + 1); oneshot: the clip as a death or attack played once over `total` frames; gait: a walk made for a legged model, no clip needed; flip_curl: a death made: it rolls onto its back and curls its legs up (views front unless set)."},
     {"key": "frames", "type": "int", "default": 12, "help": "cycle: poses per stride."},
     {"key": "cycles", "type": "int", "default": 2, "help": "cycle: strides in the video (12 x 2 + 1 = 25, Wan's 4k+1)."},
     {"key": "total", "type": "int", "default": 25, "help": "oneshot: frames over the clip."},
@@ -926,7 +932,35 @@
     {"key": "forward", "type": "select", "default": "-Y", "options": ["-Y", "+Y", "-X", "+X", "auto"], "help": "The way the model faces (-Y is Blender's and the beetle's); auto takes the probe's guess."},
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The clay and look renders' background."},
     {"key": "albedo", "type": "file", "default": "", "help": "A colour map for look.png when the file's own texture paths are missing (a sibling textures/ folder is found by itself)."},
-    {"key": "inplace", "type": "bool", "default": true, "help": "Take the travel out per frame (cycles); a one-shot keeps it unless set."}
+    {"key": "inplace", "type": "bool", "default": true, "help": "Take the travel out per frame (cycles); a one-shot keeps it unless set."},
+    {"key": "legs", "type": "text", "default": "", "help": "gait / flip_curl: a regex over the leg bones' names (empty: leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia). The spider: leg_."},
+    {"key": "base", "type": "text", "default": "", "help": "gait / flip_curl: seconds into the named clip (action) whose pose is the stance; empty: the rest pose."},
+    {"key": "body_scale", "type": "number", "default": 1, "help": "gait / flip_curl: the body this much bigger, the legs keeping their size. Wan follows the depth's shapes over the painting's, so a cartoon look's walk needs its proportions in the clay (SP-C: 1.6)."},
+    {"key": "head_scale", "type": "number", "default": 1, "help": "gait / flip_curl: the head this much bigger: room for a big cartoon face (SP-D: 1.6)."},
+    {"key": "leg_scale", "type": "number", "default": 1, "help": "gait / flip_curl: every leg this much longer or shorter (SP-D: 0.65)."},
+    {"key": "scale_bones", "type": "text", "default": "", "help": "gait / flip_curl: name:factor,... any other bone this much bigger (its children follow)."},
+    {"key": "head_pitch", "type": "number", "default": 0, "help": "gait / flip_curl: degrees the head is raised: from the front camera, 25 degrees above, a low head shows its top, and a cartoon face painted on it was walked away (SP-C: 30, SP-D: 35)."},
+    {"key": "gait", "type": "select", "default": "alternate", "options": ["alternate", "wave"], "help": "gait: alternate = two sets half a stride apart (a spider L1 R2 L3 R4 / R1 L2 R3 L4, an insect's tripod, a trot); wave = each side ripples from the back."},
+    {"key": "swing", "type": "number", "default": 14, "help": "gait: degrees each leg turns fore and aft over the stride (the spider: 18)."},
+    {"key": "lift", "type": "number", "default": 18, "help": "gait: degrees a leg rises while it steps forward (the spider: 24)."},
+    {"key": "flex", "type": "number", "default": 14, "help": "gait: degrees the second joint bends while the leg is up (the spider: 16)."},
+    {"key": "duty", "type": "number", "default": 0.55, "help": "gait: the share of the stride a leg is on the ground."},
+    {"key": "bob", "type": "number", "default": 0.04, "help": "gait: the body dips this share of its height twice a stride."},
+    {"key": "sway", "type": "number", "default": 2.5, "help": "gait: degrees the body turns side to side once a stride."},
+    {"key": "seconds", "type": "number", "default": 1.2, "help": "flip_curl: how long the clip is; its total frames are spread over it."},
+    {"key": "roll_axis", "type": "select", "default": "side", "options": ["side", "front"], "help": "flip_curl: side = rolls over sideways round its length (a spider); front = flips end over end."},
+    {"key": "roll", "type": "number", "default": 180, "help": "flip_curl: degrees it turns over (170 leaves it tipped a little)."},
+    {"key": "roll_dir", "type": "number", "default": 1, "help": "flip_curl: 1 or -1, which way it rolls."},
+    {"key": "roll_start", "type": "number", "default": 0.08, "help": "flip_curl: seconds before the roll starts."},
+    {"key": "roll_time", "type": "number", "default": 0.4, "help": "flip_curl: seconds the roll takes."},
+    {"key": "curl", "type": "number", "default": 70, "help": "flip_curl: degrees each knee folds in towards the belly (the spider: 55)."},
+    {"key": "curl_root", "type": "number", "default": 40, "help": "flip_curl: degrees each hip swings its leg towards the belly (the spider: 70)."},
+    {"key": "curl_start", "type": "number", "default": 0.05, "help": "flip_curl: seconds when the curl starts."},
+    {"key": "curl_end", "type": "number", "default": 0.75, "help": "flip_curl: seconds when the legs are fully curled (it keeps folding after it lands)."},
+    {"key": "bounce", "type": "number", "default": 0.12, "help": "flip_curl: the share of its height it bounces when it lands (two hops, dying away)."},
+    {"key": "twitch", "type": "number", "default": 6, "help": "flip_curl: degrees the curled legs twitch before it lies still (0: none)."},
+    {"key": "spasm_deg", "type": "number", "default": 22, "help": "flip_curl: degrees the legs fling up at the hit."},
+    {"key": "hold", "type": "number", "default": 0.85, "help": "flip_curl: the share of the clip after which the dead pose is held (the last kept frame is the dead pose)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
    "runner": {"tool": "blender_depth_drivers", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "action={action}", "mode={mode}", "frames={frames}", "cycles={cycles}", "total={total}", "start={start}?", "end={end}?", "depth={depth}", "amp={amp}", "amp_bones={amp_bones}", "pitch={pitch}", "views={views}", "forward={forward}", "screen={screen}", "albedo={albedo}?", "inplace={inplace as 1|0}"]}
@@ -1019,6 +1053,33 @@
    ],
    "refs": {"2d": false, "3d": ["icon", "look"]},
    "runner": {"tool": "blender_ref", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{slug}", "mode={mode}", "forward={forward}", "action={action}?", "at={at}?", "pitch={pitch}", "icon_yaw={icon_yaw}", "icon_pitch={icon_pitch}", "size={size}", "screen={screen}?", "albedo={albedo}?", "scale={scale}"]}
+  },
+  {
+   "id": "ref_limbs",
+   "name": "A model's legs fixed: a leg pair copied or turned",
+   "kind": "ref",
+   "summary": "tools/blender_limb_clone.py (pass 92, lane SPIDER): Garry's spider had six legs, three a side; a spider has eight, and every painter copies the clay. A leg chain (every bone whose name starts with chain, and the mesh pieces those bones carry) is copied with its weights moved to the new bones (clone chain:new:yaw[:shift]) or turned (turn chain:yaw[:shift]) round the vertical axis through its hip, yaw degrees counter-clockwise seen from above, slid shift of its reach along forward. rest frame:0 first makes the clip's first pose the rest pose (a Sketchfab GLB rests far from its stance; its clips are dropped, so the walk is then made by driver_depth mode gait). Written as a new upload tools/dl/uploads/3d/<name>/<name>.glb with top.png (the legs from above) and its probe. Seconds.",
+   "needs": ["a rigged model whose legs are separate mesh pieces (a leg welded into the body cannot be copied this way)", "the chain names from the probe (its bones list)"],
+   "produces": "tools/dl/uploads/3d/<name>/<name>.glb, top.png, probe.json, thumbs.png",
+   "counts": {"stills": 0, "clips": 0},
+   "time": {"median_s": 15, "worst_s": 60},
+   "weaknesses": [
+    "The signs: yaw is counter-clockwise seen from above in the scene's axes, so on a model facing +Y a left leg turns forward with a negative yaw and a right leg with a positive one; look at top.png.",
+    "Two legs from one hip overlap at the root: slide the copy back (shift -0.06) and the original forward (0.03).",
+    "rest frame:0 drops the model's clips (their keys were made against the old rest pose)."
+   ],
+   "example": {"image": "examples/ref_limbs_spider.png", "strip": null},
+   "recipe_fields": [],
+   "job_fields": [
+    {"key": "src", "type": "file", "default": "", "help": "The rigged model (an upload)."},
+    {"key": "name", "type": "text", "default": "", "help": "The new model's name: tools/dl/uploads/3d/<name>/<name>.glb."},
+    {"key": "rest", "type": "text", "default": "frame:0", "help": "frame:<n>: the clip's pose at frame n becomes the rest pose first; empty: keep the rest pose."},
+    {"key": "clone", "type": "text", "default": "", "help": "chain:new:yaw[:shift];... e.g. left_leg_center_:left_leg_mid_:24:-0.06;right_leg_center_:right_leg_mid_:-24:-0.06 (the spider)."},
+    {"key": "turn", "type": "text", "default": "", "help": "chain:yaw[:shift];... e.g. left_leg_center_:-18:0.03;right_leg_center_:18:0.03 (the spider)."},
+    {"key": "forward", "type": "select", "default": "", "options": ["", "-Y", "+Y", "-X", "+X"], "help": "The way the model faces: the slide's direction (the spider: +Y)."}
+   ],
+   "refs": {"2d": false, "3d": ["animation"]},
+   "runner": {"tool": "blender_limb_clone", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{name}/{name}.glb", "rest={rest}?", "clone={clone}?", "turn={turn}?", "forward={forward}?"]}
   }
  ],
  "deaths": [
@@ -1028,7 +1089,7 @@
   {"value": "squash", "name": "Squash", "text": "The painting squashes flatter and wider over 4 frames, then cuts to the painted dead still (dead_hint: a puddle). For blobs.", "seconds": 0},
   {"value": "collapse", "name": "Collapse", "text": "The standing painting is cut into slices that drop, then cuts to a painted heap (dead_hint must describe the heap). The heap is a Klein edit of the front and often keeps the creature whole: shatter is the reliable pile.", "seconds": 0},
   {"value": "shatter", "name": "Shatter into a pile", "text": "The standing painting breaks into about 14 pieces that pop, fall, turn and come to rest heaped on the ground (artkit.shatter): 7 procedural frames, nothing painted, dead_hint unused. The death that really ends as a pile of pieces.", "seconds": 0},
-  {"value": "death_drivers", "name": "The model's own death (creature_ctl)", "text": "Fun Control walks the front painting along the model's death clip; death_keep picks 8 of its 25 frames and is re-pickable without a render.", "seconds": 86}
+  {"value": "death_drivers", "name": "The model's own death (creature_ctl)", "text": "Fun Control walks the front painting along the model's death clip, or along a made one (driver_depth mode flip_curl, pass 92: it rolls onto its back over roll_time and curls its legs up over the belly, like a dead spider or beetle); death_keep picks 8 of its 25 frames and is re-pickable without a render; the last kept frame is the dead pose.", "seconds": 86}
  ],
  "ref_wordings": [
   {"role": "style", "level": "fixed", "text": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: <subject>. <view>. <STYLE>. <bg>. Do not copy any subject from the reference.", "source": "gen_art.py:141-145 (styled())", "where": "the style anchor is the first reference of every front (and gen_ctl side) still; --no-anchor-ref / --no-style-ref drops it; never for icons"},

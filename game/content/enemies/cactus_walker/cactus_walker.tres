@@ -7,6 +7,8 @@
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_sprite_d.png" id="6_43co3"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_icon_d.png" id="7_1d4ib"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_icon_e.png" id="7_uc5j8"]
+[ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_sprite_c.png" id="8_uc5j8"]
+[ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_icon_c.png" id="9_ffn43"]
 
 [resource]
 script = ExtResource("2_t2tb5")
@@ -25,24 +27,24 @@ drops = {
 }
 anims = {
 "attack": 2.0,
-"die": 7.0,
+"die": 5.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("6_1d4ib")
-sprite_file = "cactus_walker_sprite_e.png"
+sprite = ExtResource("8_uc5j8")
+sprite_file = "cactus_walker_sprite_c.png"
 frame_px = 160
-strip_cols = 42
+strip_cols = 40
 fps = {
 "die": 8.0,
 "run": 15.0
 }
 knockback = 4.5
 head = 0.988
-blood = Color(0.3019608, 1, 0.4392157, 1)
+blood = Color(0.12156863, 0.47843137, 0.19215687, 1)
 variants = {
 "CW-A": {
 "anims": {
@@ -70,6 +72,33 @@ variants = {
 "sprite": ExtResource("4_wl756"),
 "sprite_file": "cactus_walker_sprite_a.png",
 "strip_cols": 41
+},
+"CW-C": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.988,
+"icon": ExtResource("9_ffn43"),
+"note": "from CW-E",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("8_uc5j8"),
+"sprite_file": "cactus_walker_sprite_c.png",
+"strip_cols": 40
 },
 "CW-D": {
 "anims": {
@@ -126,7 +155,7 @@ variants = {
 "strip_cols": 42
 }
 }
-variant = "CW-E"
+variant = "CW-C"
 sfx = {
 "die": "en_slime_die",
 "hit": "en_slime_hit"
@@ -149,7 +178,7 @@ variance = {
 }
 id = "cactus_walker"
 display_name = "Cactus Walker"
-icon = ExtResource("7_uc5j8")
+icon = ExtResource("9_ffn43")
 icon_file = "cactus_walker_icon_a.png"
 placeholder = {
 "color": "#2E7BFF",

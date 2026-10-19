@@ -28,7 +28,7 @@ motion (the walk's words), death_drivers (a folder under tools/dl/drivers), deat
 8 of the death clip's frames to keep, picked by eye; re-picking needs no render), remap_hues (artkit.remap_hues on every
 frame, a colour one view drifted into), dead (the dead
 painting's words when there is no death driver), fps, directions, screen ("green"/"blue"), outline_frac, outline_color,
-side_seeds.
+side_seeds, ctl_soft / death_soft (pass 92: {radius, body, views}: the depth's body softened so a painted face survives).
 Pass 70 (lane LE): the side and view candidates' seeds are the job's own (tools/cand_seeds.py: the Level Editor job id and
 its attempt move them, candidate k a prime past a million from k-1); the plain views keep their seeds.
 """
@@ -191,6 +191,16 @@ def paint(cid, code, recipe, drv, seed, bg):
         view, ck = pair.split(":", 1)
         for ext in (".png", ".json"):
             shutil.copy(os.path.join(g.RAW, "%s_%s_%s%s" % (key, view, ck, ext)), os.path.join(g.RAW, "%s_%s%s" % (key, view, ext)))
+        # pass 92: the view's old walk (and, for the front, the death walked from the front painting) is set aside so the
+        # new painting is walked; a cache from before pass 92 has no painting hash for animate.cache_fits to refuse it
+        for sub in ([key + "_ctl_" + view] + ([key + "_death"] if view == "front" else [])):
+            d0 = os.path.join(animate.ANIM, sub)
+            if os.path.isdir(d0):
+                d1 = d0 + "_old"
+                if os.path.isdir(d1):
+                    shutil.rmtree(d1, ignore_errors=True)
+                os.replace(d0, d1)
+                log("  %s: the old walk set aside (%s_old)" % (view, sub))
     for k, view in enumerate(["front", "fd", "bd", "back"]):
         clay = comfy.upload_pil(Image.open(os.path.join(drv, view, "clay.png")).convert("RGB"), "%s_clay_%s.png" % (key, view))
         p = ("The first reference image is a finished painting of " + noun + " character in side view. The second reference image is a "
@@ -253,9 +263,12 @@ def main():
     sizes = {}
     for view in (["front", "back"] if two else VIEWS):
         # "walk_seeds" {view: n} rolls one view's walk again with another seed (pass 49: BB-B's three-quarter front painted
-        # its long horn as a see-through grey ghost); move that view's ai_anim folder away first
+        # its long horn as a see-through grey ghost); since pass 92 the walk cache follows the seed and the painting
+        # (animate.cache_fits), so that view's ai_anim folder no longer has to be moved away first
         wseed = seed + 20 + VIEWS.index(view) + 1000 * int((recipe.get("walk_seeds") or {}).get(view, 0))
-        frames, _ = animate.cycle_control(views[view], key + "_ctl_" + view, os.path.join(drv, view), wseed, prompt=motion,
+        # pass 92: "ctl_soft" {radius, body, views}: the body's depth softened so a painted face survives the walk
+        cdir = soft_dir(recipe, os.path.join(drv, view), view)
+        frames, _ = animate.cycle_control(views[view], key + "_ctl_" + view, cdir, wseed, prompt=motion,
                                           negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))))
         k = model_scale(frames, os.path.join(drv, view))
         sizes[view] = k
@@ -290,7 +303,7 @@ def main():
         # "death_keep": which 8 of the clip's 25 frames to keep (Wan smears some of the roll; picked by eye from
         # tools/dl/ai_anim/<key>_death/full_NN.png and re-picked without a render)
         dkeep = tuple(int(v) for v in recipe.get("death_keep", (1, 4, 7, 10, 13, 16, 20, 24)))
-        dclip, _ = animate.oneshot_control(front, key + "_death", ddir, seed + 30, prompt=dmotion,
+        dclip, _ = animate.oneshot_control(front, key + "_death", soft_dir(recipe, ddir, "front", "death_soft"), seed + 30, prompt=dmotion,
                                            negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))), keep=dkeep)
         # the death starts from the front painting, so it takes the front walk's size correction
         frames["die"] = artkit.place_clip_frames([drop_islands(f) for f in resized(dclip, sizes.get("front", 1.0))], cell, scale, px, CO)
@@ -345,6 +358,18 @@ def main():
         g.emit_sidecar(folder, cid, code, patch, {"pipeline": "gen_ctl", "scale": sizes, "fall": bool(fall), "recipe_ran": recipe,
                                                   "clip_kind": clip_kind, "qa_online": g.QA_ONLINE})
     log("gen_ctl: %s %s packed, %d frames, %s" % (cid, code, sum(counts.values()), fname))
+
+
+def soft_dir(recipe, ctl_dir, view, key="ctl_soft"):
+    """The control video a view walks along: the driver's own, or its softened copy when the recipe's `ctl_soft` (or, for
+    the death, `death_soft`) names this view: {"radius": 14, "body": true, "views": ["front", "fd"]} (no views: all)."""
+    cs = recipe.get(key)
+    if not isinstance(cs, dict) or not float(cs.get("radius", 0) or 0):
+        return ctl_dir
+    vs = cs.get("views")
+    if vs and view not in vs:
+        return ctl_dir
+    return animate.soften_ctl(ctl_dir, float(cs["radius"]), bool(cs.get("body", True)), int(cs.get("open", 9)))
 
 
 def noun_or(recipe):

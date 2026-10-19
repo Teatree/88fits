@@ -96,7 +96,7 @@ BUILTIN_MEDIAN = {"hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "cr
                   "creature_ctl": 660, "creature_ctl_side": 60, "creature_ctl_side_dev": 840, "creature_proc": 90, "creature_pictures": 15,
                   "front_from_picture": 20, "recolour": 5, "item_icon": 20, "icon_cands": 20, "icon_cands_dev": 270,
                   "hero_badge": 20, "hero_title": 25, "driver_pose": 60, "driver_depth": 300, "driver_tweak": 5, "ref_probe": 10,
-                  "ref_render": 60, "register": 120, "import": 90, "launch": 0, "install": 5, "hero_puppet": 1200}
+                  "ref_render": 60, "ref_limbs": 20, "register": 120, "import": 90, "launch": 0, "install": 5, "hero_puppet": 1200}
 
 # ---------------------------------------------------------------- the kinds and their fields
 
@@ -243,13 +243,51 @@ SPECS = {
         "help": "a copy of a pose driver with one change in chosen views (pose_scale / pose_spread / pose_occlude / pose_shoulders), drawn again"},
     "driver_depth": {"lane": "local", "fields": {
         "src": _f("str", "", True, "the rigged model"), "name": _f("str", "", True, "the driver folder name"), "action": _f("str", "", False, "the clip to play"),
-        "mode": _f("enum", "cycle", False, "cycle (a walk) | oneshot (a death)", ("cycle", "oneshot")), "frames": _f("int", 12, False, ""),
+        "mode": _f("enum", "cycle", False, "cycle (the clip as a walk) | oneshot (the clip as a death) | gait (a walk made for a legged model, no clip needed) | flip_curl (a death made: it rolls onto its back, legs curled)", ("cycle", "oneshot", "gait", "flip_curl")), "frames": _f("int", 12, False, ""),
         "cycles": _f("int", 2, False, ""), "total": _f("int", 25, False, "oneshot frames"), "start": _f("str", "", False, ""), "end": _f("str", "", False, ""),
         "depth": _f("enum", "tight", False, "", ("tight", "wide")), "amp": _f("float", 1.0, False, "legs swing this much wider"),
         "amp_bones": _f("str", "", False, "regex of the bones amp applies to"), "pitch": _f("int", 25, False, ""), "views": _f("str", "", False, "front,fd,side,bd,back"),
-        "forward": _f("str", "", False, "-Y"), "screen": _f("str", "", False, "0,1,0"), "albedo": _f("str", "", False, ""), "inplace": _f("bool", True, False, "")},
-        "help": "depth control videos for gen_ctl from a model's own clip (tools/blender_depth_drivers.py, lane B)"},
+        "forward": _f("str", "", False, "-Y"), "screen": _f("str", "", False, "0,1,0"), "albedo": _f("str", "", False, ""), "inplace": _f("bool", True, False, ""),
+        # pass 92 (lane SPIDER): the made motions (tools/blender_gait.py); empty = the tool's default
+        "legs": _f("str", "", False, "gait / flip_curl: a regex over the leg bones' names (empty: leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia)"),
+        "base": _f("str", "", False, "gait / flip_curl: seconds into the named clip whose pose is the stance (empty: the rest pose)"),
+        "body_scale": _f("float", 1.0, False, "gait / flip_curl: the body this much bigger, the legs keeping their size (a cartoon look's big abdomen: Wan follows the depth's shapes, so the clay carries the look's proportions)"),
+        "head_scale": _f("float", 1.0, False, "gait / flip_curl: the head this much bigger (a big cartoon face needs room in the depth)"),
+        "leg_scale": _f("float", 1.0, False, "gait / flip_curl: every leg this much longer or shorter (0.65: stubby cartoon legs)"),
+        "scale_bones": _f("str", "", False, "gait / flip_curl: name:factor,... any other bone this much bigger"),
+        "head_pitch": _f("float", 0.0, False, "gait / flip_curl: degrees the head is raised so a cartoon face looks at the front view (SP-D: 35)"),
+        "gait": _f("enum", "alternate", False, "gait: alternate (two sets half a stride apart: a spider's L1 R2 L3 R4, an insect's tripod) | wave (a ripple from the back)", ("alternate", "wave")),
+        "swing": _f("float", 14.0, False, "gait: degrees each leg turns fore and aft over the stride"),
+        "lift": _f("float", 18.0, False, "gait: degrees a leg rises while it steps forward"),
+        "flex": _f("float", 14.0, False, "gait: degrees the second joint bends while the leg is up"),
+        "duty": _f("float", 0.55, False, "gait: the share of the stride a leg is on the ground"),
+        "bob": _f("float", 0.04, False, "gait: the body dips this share of its height twice a stride"),
+        "sway": _f("float", 2.5, False, "gait: degrees the body turns side to side"),
+        "seconds": _f("float", 1.2, False, "flip_curl: how long the clip is (its total frames spread over it)"),
+        "roll_axis": _f("enum", "side", False, "flip_curl: side (rolls over sideways, a spider) | front (flips end over end)", ("side", "front")),
+        "roll": _f("float", 180.0, False, "flip_curl: degrees it turns over (170: tipped a little to one side)"),
+        "roll_dir": _f("float", 1.0, False, "flip_curl: 1 or -1, which way it rolls"),
+        "roll_start": _f("float", 0.08, False, "flip_curl: seconds before the roll starts"),
+        "roll_time": _f("float", 0.4, False, "flip_curl: seconds the roll takes"),
+        "curl": _f("float", 70.0, False, "flip_curl: degrees each knee folds in towards the belly"),
+        "curl_root": _f("float", 40.0, False, "flip_curl: degrees each hip swings the leg towards the belly"),
+        "curl_start": _f("float", 0.05, False, "flip_curl: seconds when the curl starts"),
+        "curl_end": _f("float", 0.75, False, "flip_curl: seconds when the legs are fully curled"),
+        "bounce": _f("float", 0.12, False, "flip_curl: the share of its height it bounces when it lands"),
+        "twitch": _f("float", 6.0, False, "flip_curl: degrees the curled legs twitch before it lies still (0: none)"),
+        "spasm_deg": _f("float", 22.0, False, "flip_curl: degrees the legs fling up at the hit"),
+        "hold": _f("float", 0.85, False, "flip_curl: the share of the clip after which the dead pose is held")},
+        "help": "depth control videos for gen_ctl from a model's own clip, or a walk / death made for a legged model (tools/blender_depth_drivers.py, tools/blender_gait.py)"},
     "ref_probe": {"lane": "local", "fields": {"src": _f("str", "", True, "the 3D file")}, "help": "what a 3D file can do: probe.json beside it"},
+    # pass 92 (lane SPIDER): a model with the wrong number of legs fixed (tools/blender_limb_clone.py), written as a new upload
+    "ref_limbs": {"lane": "local", "fields": {
+        "src": _f("str", "", True, "the rigged 3D file"),
+        "name": _f("str", "", True, "the new model's name: it is written to tools/dl/uploads/3d/<name>/<name>.glb and probed"),
+        "rest": _f("str", "frame:0", False, "frame:<n>: the clip's pose at frame n becomes the rest pose first (a Sketchfab GLB rests far from its stance; the clips are dropped); empty: keep the rest pose"),
+        "clone": _f("str", "", False, "chain:new:yaw[:shift];... copies a leg chain (bones whose names start with chain) as new, turned yaw degrees round its hip, slid shift of its reach along forward (negative: back)"),
+        "turn": _f("str", "", False, "chain:yaw[:shift];... turns an existing chain the same way"),
+        "forward": _f("str", "", False, "the way the model faces (-Y, +Y, -X, +X): the slide's direction")},
+        "help": "a leg chain copied or turned on a rigged model (tools/blender_limb_clone.py: the spider's six legs made eight), then probed"},
     "ref_render": {"lane": "local", "fields": {
         "src": _f("str", "", True, "the 3D file"), "mode": _f("enum", "views", False, "", ("icon", "views", "all")), "forward": _f("str", "", False, ""),
         "action": _f("str", "", False, ""), "at": _f("str", "", False, "seconds"), "frame": _f("str", "", False, ""), "pitch": _f("int", 25, False, ""),
@@ -725,7 +763,7 @@ def _title(job):
         return "Test in game: " + ", ".join(x for x in (s.get("character"), s.get("spawn_enemy"), s.get("variant"), s.get("look")) if x)
     if job["kind"] in ("driver_pose", "driver_depth", "driver_tweak"):
         return "%s %s" % (job["kind"], (job.get("spec") or {}).get("name", ""))
-    if job["kind"] in ("ref_probe", "ref_render"):
+    if job["kind"] in ("ref_probe", "ref_render", "ref_limbs"):
         return "%s %s" % (job["kind"], os.path.basename((job.get("spec") or {}).get("src", "")))
     return "%s%s · %s" % (name, (" " + code) if code else "", job["kind"])
 
@@ -1121,7 +1159,7 @@ def _plan(job):
                     args.append("tuck=%g" % float(str(spec["tuck"]).strip()))
             p["steps"] = [[PY, os.path.join(TOOLS, tool), _rel(src_dir), _rel(dst_dir)] + args]
             p["equiv"] = "python tools/%s %s %s %s" % (tool, _rel(src_dir), _rel(dst_dir), " ".join(args))
-    elif kind in ("driver_pose", "driver_depth", "ref_probe", "ref_render"):
+    elif kind in ("driver_pose", "driver_depth", "ref_probe", "ref_render", "ref_limbs"):
         p.update(mode="steps", lock=None)
         bl = blender_path() or "$BLENDER"
         src = str(spec.get("src", ""))
@@ -1166,16 +1204,37 @@ def _plan(job):
                 v = spec.get(k)
                 if v not in (None, "") and v != dflt:
                     kv.append("%s=%s" % (k, v))
+            kv += made_motion_args(spec)
             if spec.get("inplace") is False:
                 kv.append("inplace=0")
             p["steps"] = [[bl, "-b", "--python", os.path.join(TOOLS, "blender_depth_drivers.py"), "--"] + kv]
             p["equiv"] = '"$BLENDER" -b --python tools/blender_depth_drivers.py -- ' + " ".join(kv)
+        elif kind == "ref_limbs":
+            # pass 92 (lane SPIDER): the fixed model as a new upload of its own, then its probe beside it
+            name = re.sub(r"[^a-z0-9_]+", "_", str(spec.get("name", "")).lower()).strip("_")
+            d = os.path.join(UPLOADS, "3d", name)
+            out = os.path.join(d, name + ".glb")
+            kv = ["src=" + src, "out=" + _rel(out), "shot=" + _rel(os.path.join(d, "top.png"))]
+            for k in ("rest", "clone", "turn", "forward"):
+                if str(spec.get(k) or "").strip():
+                    kv.append("%s=%s" % (k, str(spec[k]).strip()))
+            pk = ["src=" + _rel(out), "out=" + _rel(d), "mode=probe"] + (["forward=" + str(spec["forward"]).strip()] if str(spec.get("forward") or "").strip() else [])
+            if not name:
+                p.update(steps=[], equiv="", error="ref_limbs needs a name for the new model")
+            elif os.path.exists(out):
+                p.update(steps=[], equiv="", error="tools/dl/uploads/3d/%s exists already: choose another name" % name)
+            else:
+                p["steps"] = [[bl, "-b", "--python", os.path.join(TOOLS, "blender_limb_clone.py"), "--"] + kv,
+                              [bl, "-b", "--python", os.path.join(TOOLS, "blender_ref.py"), "--"] + pk]
+                p["equiv"] = ('"$BLENDER" -b --python tools/blender_limb_clone.py -- ' + " ".join('"%s"' % a if ";" in a else a for a in kv)
+                              + ' && "$BLENDER" -b --python tools/blender_ref.py -- ' + " ".join(pk))
         else:
             slug_dir = os.path.dirname(src) if os.path.dirname(src) else os.path.join(UPLOADS, "3d", os.path.splitext(os.path.basename(src))[0])
             if not os.path.isabs(slug_dir):
                 # a repo-relative src (tools/dl/uploads/3d/<slug>/<file>): resolve against the repo, not the process's
                 # working directory (the selftest runs from tools/level_editor and doubled the path)
                 slug_dir = os.path.join(_root, slug_dir)
+            slug_dir = loose_slug_dir(slug_dir, src)
             mode = "probe" if kind == "ref_probe" else str(spec.get("mode") or "views")
             kv = ["src=" + src, "out=" + _rel(slug_dir), "mode=" + mode]
             if kind == "ref_render":
@@ -2892,7 +2951,7 @@ def _run(job):
             with _lock:
                 _finish(job, "failed", error=plan["error"])
             return
-        if plan["mode"] == "steps" and job["kind"] in ("driver_pose", "driver_depth", "ref_probe", "ref_render"):
+        if plan["mode"] == "steps" and job["kind"] in ("driver_pose", "driver_depth", "ref_probe", "ref_render", "ref_limbs"):
             msg = _blender_ready(job["kind"], plan)
             if msg:
                 live.logf.write(msg + "\n")
@@ -2934,11 +2993,57 @@ def _run(job):
             _save()
 
 
+# pass 92 (lane SPIDER): the made motions' keys (tools/blender_gait.py) with the tool's own defaults: a key is passed only
+# when the job changes it and only to the mode that reads it, so the command line stays the short one Garry would type
+SCALE_KEYS = (("body_scale", 1.0), ("head_scale", 1.0), ("leg_scale", 1.0), ("scale_bones", ""), ("head_pitch", 0.0))
+GAIT_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("gait", "alternate"), ("swing", 14.0), ("lift", 18.0), ("flex", 14.0), ("duty", 0.55),
+             ("bob", 0.04), ("sway", 2.5))
+DEATH_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("seconds", 1.2), ("roll_axis", "side"), ("roll", 180.0), ("roll_dir", 1.0), ("roll_start", 0.08),
+              ("roll_time", 0.4), ("curl", 70.0), ("curl_root", 40.0), ("curl_start", 0.05), ("curl_end", 0.75), ("bounce", 0.12),
+              ("twitch", 6.0), ("spasm_deg", 22.0), ("hold", 0.85))
+
+
+def loose_slug_dir(slug_dir, src):
+    """pass 92 (lane SPIDER): a model lying in uploads/3d itself (dropped there by hand) writes its probe and renders into
+    uploads/3d/<slug>/, the folder the editor's list reads (server.loose_models), not into uploads/3d where every loose
+    model would share one probe.json."""
+    if os.path.normcase(os.path.normpath(slug_dir)) != os.path.normcase(os.path.normpath(os.path.join(UPLOADS, "3d"))):
+        return slug_dir
+    stem = os.path.splitext(os.path.basename(src))[0].lower()
+    slug = re.sub(r"[^a-z0-9]+", "_", stem).strip("_") or "upload"
+    d = os.path.join(UPLOADS, "3d", slug)
+    if os.path.isdir(d) and any(f.lower().endswith((".fbx", ".glb", ".gltf", ".obj", ".dae", ".blend")) for f in os.listdir(d)):
+        d += "_loose"
+    return d
+
+
+def made_motion_args(spec):
+    """The key=value words a driver_depth job adds for mode gait or flip_curl (none for cycle / oneshot)."""
+    mode = str(spec.get("mode") or "cycle")
+    keys = GAIT_KEYS if mode == "gait" else DEATH_KEYS if mode == "flip_curl" else ()
+    out = []
+    for k, dflt in keys:
+        v = spec.get(k)
+        if v in (None, ""):
+            continue
+        if isinstance(dflt, float):
+            try:
+                if abs(float(v) - dflt) < 1e-9:
+                    continue
+            except (TypeError, ValueError):
+                pass
+        elif str(v) == str(dflt):
+            continue
+        out.append("%s=%s" % (k, v))
+    return out
+
+
 def _blender_ready(kind, plan):
     bl = blender_path()
     if not bl:
         return "Blender not found: set BLENDER or install it under %LOCALAPPDATA%/Programs/blender-*/ (the page's status line shows the path)"
-    script = {"driver_pose": "pose_driver.py", "driver_depth": "blender_depth_drivers.py", "ref_probe": "blender_ref.py", "ref_render": "blender_ref.py"}[kind]
+    script = {"driver_pose": "pose_driver.py", "driver_depth": "blender_depth_drivers.py", "ref_probe": "blender_ref.py", "ref_render": "blender_ref.py",
+              "ref_limbs": "blender_limb_clone.py"}[kind]
     if not os.path.isfile(os.path.join(TOOLS, script)):
         if kind == "driver_depth":
             return "ask Claude for a depth driver: tools/blender_depth_drivers.py is not in this checkout yet"
@@ -3697,10 +3802,15 @@ def _harvest(job):
                     outs.append({"label": "%s %s" % (v, n), "type": "still", "url": "/dl/drivers/%s/%s/%s" % (name, v, n)})
         if os.path.isfile(os.path.join(d, "meta.json")):
             outs.append({"label": "meta.json", "type": "json", "url": "/dl/drivers/%s/meta.json" % name})
-    if kind in ("ref_probe", "ref_render"):
+    if kind in ("ref_probe", "ref_render", "ref_limbs"):
         src = str(spec.get("src", ""))
         d = os.path.dirname(src) if os.path.dirname(src) else os.path.join(UPLOADS, "3d", os.path.splitext(os.path.basename(src))[0])
         d = d if os.path.isabs(d) else os.path.join(_root, d)
+        d = loose_slug_dir(d, src)   # pass 92: a loose model's probe lives in uploads/3d/<slug>/
+        if kind == "ref_limbs":
+            d = os.path.join(UPLOADS, "3d", re.sub(r"[^a-z0-9_]+", "_", str(spec.get("name", "")).lower()).strip("_"))
+            if os.path.isfile(os.path.join(d, "top.png")):
+                outs.append({"label": "top.png (the legs from above)", "type": "still", "url": _url_dl(os.path.join(d, "top.png"))})
         for n in ("probe.json", "icon_ref.png", "thumbs.png"):
             if os.path.isfile(os.path.join(d, n)):
                 outs.append({"label": n, "type": "json" if n.endswith(".json") else "still", "url": _url_dl(os.path.join(d, n))})
