@@ -98,6 +98,49 @@ def model_scale(frames, ctl_dir, first=12):
     return 1.0 if abs(k - 1.0) < 0.04 else k
 
 
+def fit_to_ctl(ref, ctl_dir, first=12, n=12, share=1.0):
+    """pass 93 (recipe "fit_ref": true, or a list of views): the painting's figure moved and scaled onto the depth video's
+    figure before Wan walks it. Klein paints some views bigger than their clay (SP-E's front 1.4 times as wide): Wan then
+    walks the painting at its own size along a smaller depth figure, and the painted legs outside the depth's stay on as
+    faded grey ghost legs beside the walking ones. The painting's keyed box is fitted to the depth's box over the stride
+    (the median width matched, centres and bottoms aligned) on the painting's own screen colour. `share` < 1 goes only that
+    part of the way (0.5: half the size change), so a painting whose look lies outside the clay keeps some of it."""
+    rgb = ref.convert("RGB")
+    a = np.asarray(artkit.key_background(rgb))[..., 3] > 127
+    ys, xs = np.nonzero(a)
+    if len(xs) < 50:
+        return ref
+    W, H = rgb.size
+    boxes = []
+    for k in range(first, first + n):
+        p = os.path.join(ctl_dir, "ctl_%02d.png" % k)
+        if os.path.exists(p):
+            im = Image.open(p).convert("L")
+            m = np.asarray(im) > 12
+            yy, xx = np.nonzero(m)
+            if len(xx):
+                boxes.append((xx.min() / im.width, yy.min() / im.height, (xx.max() + 1) / im.width, (yy.max() + 1) / im.height))
+    if not boxes:
+        return ref
+    cw = float(np.median([b[2] - b[0] for b in boxes]))
+    cx = float(np.median([(b[0] + b[2]) / 2.0 for b in boxes]))
+    cb = float(np.median([b[3] for b in boxes]))
+    pw = (xs.max() + 1 - xs.min()) / W
+    s = 1.0 + (cw / max(pw, 1e-6) - 1.0) * float(share)
+    if abs(s - 1.0) < 0.04:
+        return ref
+    box = (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
+    fig = artkit.key_background(rgb).crop(box)
+    fig = fig.resize((max(1, round(fig.width * s)), max(1, round(fig.height * s))), Image.LANCZOS)
+    corner = np.asarray(rgb)[:8, :8].reshape(-1, 3).mean(axis=0)
+    out = Image.new("RGBA", (W, H), tuple(int(c) for c in corner) + (255,))
+    x = int(round(cx * W - fig.width / 2.0))
+    y = int(round(cb * H - fig.height))
+    out.paste(fig, (x, y), fig)
+    log("  fit_ref: the painting x%.2f onto the depth figure" % s)
+    return out.convert("RGB")
+
+
 def drop_islands(img, frac=0.08, gap=6):
     """A frame's detached bits cleared: alpha blobs smaller than `frac` of the largest that lie more than `gap` pixels
     from it (pass 46: SC-C's back walk had a sting floating above the claws in two frames; a leg the keyer cut loose
@@ -125,12 +168,15 @@ def resized(frames, k):
     return [f.resize((max(1, round(f.width * k)), max(1, round(f.height * k))), Image.LANCZOS) for f in frames]
 
 
-def no_green(img):
-    """A creature with no green in it: any green in a frame is the screen's spill, held down to the red channel."""
+def no_green(img, mode=True):
+    """A creature with no green in it: any green in a frame is the screen's spill, held down to the red channel.
+    mode "rb" (pass 93, recipe "no_green": "rb"): held down to the larger of red and blue instead, so a light blue
+    creature keeps its colour (SP-F's sky blue has more green than red: the red clamp turned it royal blue)."""
     a = np.asarray(img.convert("RGBA")).copy()
     m = a[..., 3] > 0
     r, gch = a[..., 0].astype(np.int16), a[..., 1].astype(np.int16)
-    a[..., 1] = np.where(m & (gch > r), r, gch).astype(np.uint8)
+    cap = np.maximum(r, a[..., 2].astype(np.int16)) if mode == "rb" else r
+    a[..., 1] = np.where(m & (gch > cap), cap, gch).astype(np.uint8)
     return Image.fromarray(a, "RGBA")
 
 
@@ -268,7 +314,12 @@ def main():
         wseed = seed + 20 + VIEWS.index(view) + 1000 * int((recipe.get("walk_seeds") or {}).get(view, 0))
         # pass 92: "ctl_soft" {radius, body, views}: the body's depth softened so a painted face survives the walk
         cdir = soft_dir(recipe, os.path.join(drv, view), view)
-        frames, _ = animate.cycle_control(views[view], key + "_ctl_" + view, cdir, wseed, prompt=motion,
+        # pass 93: "fit_ref" true (or a list of views): the painting fitted onto the depth figure first (fit_to_ctl)
+        fr = recipe.get("fit_ref")
+        # (a number 0..1 fits that share of the way: fit_to_ctl's share)
+        share = 1.0 if (fr is True or (isinstance(fr, list) and view in fr)) else (float(fr) if isinstance(fr, (int, float)) and not isinstance(fr, bool) else 0.0)
+        ref = fit_to_ctl(views[view], os.path.join(drv, view), share=share) if share > 0 else views[view]
+        frames, _ = animate.cycle_control(ref, key + "_ctl_" + view, cdir, wseed, prompt=motion,
                                           negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))))
         k = model_scale(frames, os.path.join(drv, view))
         sizes[view] = k
@@ -322,7 +373,7 @@ def main():
             frames["die"] = [artkit.transform(base, lean_deg=-14, sy=0.97), artkit.fall(base, 38), artkit.fall(base, 66), dead_cell, dead_cell]
     if recipe.get("no_green", True):
         for k in list(frames.keys()):
-            frames[k] = [no_green(f) for f in frames[k]]
+            frames[k] = [no_green(f, recipe.get("no_green", True)) for f in frames[k]]
     # "remap_hues" {ranges, to, sat, min_sat, max_sat}: a hue some views took that the others do not have, pulled to one (pass 46:
     # SC-C's three-quarter back came out purple-blue and its side blue-black beside charcoal front and back views)
     rh = recipe.get("remap_hues")

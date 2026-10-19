@@ -34,7 +34,8 @@ func test_the_spider_loads_and_no_map_brings_it_yet() -> void:
 func test_four_looks_on_the_same_drivers_from_least_to_most_cartoony() -> void:
 	var d := _doc()
 	var vs: Dictionary = d["variants"]
-	assert_array(vs.keys()).contains_exactly_in_any_order(LOOKS)
+	# pass 93 (lane LEGS) added SP-E and SP-F on the fixed walk (pass93_LEGS_test): the four are still there
+	assert_array(vs.keys()).contains(LOOKS)
 	var words := []
 	for code: String in LOOKS:
 		var r: Dictionary = vs[code]["recipe"]

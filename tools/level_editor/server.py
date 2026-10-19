@@ -134,6 +134,7 @@ import content_io as cio  # noqa: E402
 import vocab as VOCAB  # noqa: E402
 import boss_attacks_io as BAIO  # noqa: E402  (pass 72, lane BOSS: the custom boss attacks' routes)
 import sim_io as SIMIO  # noqa: E402  (pass 77, lane SIMUI: the Sim tab's routes, /api/sim/...)
+import drivers_io as DRVIO  # noqa: E402  (pass 93, lane PREVIEW: the driver library, /api/drivers[/<name>], /api/painted_death)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -3598,47 +3599,9 @@ def status_record():
 # ---------------------------------------------------------------- drivers, refs, methods
 
 def list_drivers():
-    """tools/dl/drivers/*/meta.json (lane B writes kind, views, frames, loop, fbx|src, pitch, notes, action): [{name,
-    kind pose|depth, views, frames, meta, frames_url, sheet, sheets}]. A pose folder has <view>_sheet.png and
-    all_sheet.png and frames <view>/driver_NN.png; a depth folder has <view>/clay.png and <view>/ctl_NN.png."""
-    out = []
-    if not os.path.isdir(DRIVERS):
-        return out
-    for name in sorted(os.listdir(DRIVERS)):
-        folder = os.path.join(DRIVERS, name)
-        meta_path = os.path.join(folder, "meta.json")
-        if not os.path.isdir(folder) or not os.path.isfile(meta_path):
-            continue
-        try:
-            meta = load_json(meta_path)
-        except (OSError, ValueError):
-            meta = {}
-        if not isinstance(meta, dict):
-            meta = {}
-        on_disk = sorted(v for v in os.listdir(folder) if os.path.isdir(os.path.join(folder, v)))
-        views = [str(v) for v in meta["views"] if str(v) in on_disk] if isinstance(meta.get("views"), list) else on_disk
-        kind = str(meta.get("kind", "")) if meta.get("kind") in ("pose", "depth") else (
-            "depth" if ("mode" in meta or "action" in meta or "extent" in meta) else "pose")
-        sheet = None
-        sheets = {}
-        for cand in ("all_sheet.png", os.path.join("side", "clay.png"), os.path.join("front", "clay.png")):
-            if os.path.isfile(os.path.join(folder, cand)):
-                sheet = "/dl/drivers/%s/%s" % (name, cand.replace("\\", "/"))
-                break
-        for v in views:
-            for cand in ("%s_sheet.png" % v, os.path.join(v, "clay.png")):
-                if os.path.isfile(os.path.join(folder, cand)):
-                    sheets[v] = "/dl/drivers/%s/%s" % (name, cand.replace("\\", "/"))
-                    break
-        frames = meta.get("frames")
-        if frames is None and views:
-            frames = len([f for f in os.listdir(os.path.join(folder, views[0])) if re.match(r"^(driver|ctl)_\d+\.png$", f)])
-        out.append({"name": name, "kind": kind, "views": views, "frames": frames, "loop": meta.get("loop"),
-                    "source": meta.get("fbx") or meta.get("glb") or meta.get("src"), "action": meta.get("action"),
-                    "notes": meta.get("notes", ""), "meta": meta, "frames_url": "/dl/drivers/%s/<view>/" % name,
-                    "frame_pattern": "ctl_%02d.png" if kind == "depth" else "driver_%02d.png",
-                    "sheet": sheet, "sheets": sheets, "mtime": int(os.path.getmtime(meta_path))})
-    return out
+    """Pass 93 (lane PREVIEW): drivers_io.list_drivers (every folder with frames, meta.json or not; real frame counts,
+    stills, used_by, the folder path; the keys the pass 66 listing had are kept)."""
+    return DRVIO.list_drivers(DRIVERS, CONTENT)
 
 
 def _slug(name):
@@ -4039,6 +4002,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, list_items())
         if parts == ["drivers"]:
             return self._send(200, list_drivers())
+        if (len(parts) == 2 and parts[0] == "drivers") or (len(parts) == 3 and parts[0] == "painted_death"):
+            # pass 93 (lane PREVIEW): one driver with every frame and still; a creature_ctl look's painted death
+            return DRVIO.api_get(self, sys.modules[__name__], parts, query)
         if len(parts) == 2 and parts[0] == "puppet":
             # pass 71 (lane PLE): what the Puppet method has of a hero and what its form offers
             if not ID_RE.match(parts[1]):
@@ -4363,6 +4329,10 @@ class Handler(BaseHTTPRequestHandler):
                                                        "error": "" if ok else "held by another process: send force"})
             if parts[:2] == ["api", "jobs"]:
                 return self._post_jobs(parts[2:])
+            if parts[:2] == ["api", "drivers"] and parts[-1] == "open" and len(parts) in (3, 4):
+                # pass 93 (lane PREVIEW): Explorer on a driver's folder (drivers_io.open_folder: a library folder only)
+                data, err = self._body()
+                return DRVIO.api_post(self, sys.modules[__name__], parts[1:], data if isinstance(data, dict) else {})
             if parts[:2] == ["api", "sim"]:
                 # pass 77 (lane SIMUI): the Sim tab's run, settings, keep / delete / cancel, unlock (sim_io.py)
                 return SIMIO.api_post(self, sys.modules[__name__], parts[2:])

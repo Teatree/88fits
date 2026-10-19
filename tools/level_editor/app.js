@@ -1051,6 +1051,8 @@ const App = (() => {
       else if (S.tab === 'bossattacks' && typeof BossAttacks !== 'undefined') BossAttacks.render(panel);
       // pass 77 (lane SIMUI): the run sim (sim.js: its own state, polling and charts; plays the saved map)
       else if (S.tab === 'sim' && typeof Sim !== 'undefined') Sim.render(panel);
+      // pass 93 (lane PREVIEW): the driver library (drivers.js: its own state; reads tools/dl/drivers, writes nothing)
+      else if (S.tab === 'drivers' && typeof Drivers !== 'undefined') Drivers.render(panel);
       else if (assetsTab()) Assets.render(S.tab, panel);
     }
     updateTopBar();

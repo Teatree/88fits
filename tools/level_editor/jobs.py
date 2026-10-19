@@ -263,6 +263,12 @@ SPECS = {
         "duty": _f("float", 0.55, False, "gait: the share of the stride a leg is on the ground"),
         "bob": _f("float", 0.04, False, "gait: the body dips this share of its height twice a stride"),
         "sway": _f("float", 2.5, False, "gait: degrees the body turns side to side"),
+        # pass 93 (lane LEGS): step=track, every foot along the body's length (the spider's legs had swept sideways)
+        "step": _f("enum", "swing", False, "gait: swing (each leg turns rigidly round its hip: a leg pointing forward or back sweeps its foot across the body) | track (every foot slides straight back on the ground and steps forward through the air, reached by bending hip and knee: the spider's v2 walk)", ("swing", "track")),
+        "stride": _f("float", 0.22, False, "gait: step track: how far each foot travels fore and aft, a share of the creature's length"),
+        "raise": _f("float", 0.12, False, "gait: step track: how high a foot rises mid-step, a share of the creature's length (the spider: 0.15)"),
+        "crouch": _f("float", 0.1, False, "gait: step track: the feet's tracks pulled in towards the hips by this share of the reach, so straight legs have bend to give (the spider: 0.15)"),
+        "knee": _f("enum", "up", False, "gait: step track: up (the knee above the hip-to-foot line: spiders, insects) | down", ("up", "down")),
         "seconds": _f("float", 1.2, False, "flip_curl: how long the clip is (its total frames spread over it)"),
         "roll_axis": _f("enum", "side", False, "flip_curl: side (rolls over sideways, a spider) | front (flips end over end)", ("side", "front")),
         "roll": _f("float", 180.0, False, "flip_curl: degrees it turns over (170: tipped a little to one side)"),
@@ -1207,8 +1213,16 @@ def _plan(job):
             kv += made_motion_args(spec)
             if spec.get("inplace") is False:
                 kv.append("inplace=0")
+            # pass 93 (lane LEGS): a made motion writes where every foot goes (tips.json); a made walk is then checked
+            # (tools/gait_check.py: gait_check.png, the foot paths per view, and which way each foot steps)
+            made = str(spec.get("mode") or "cycle") in ("gait", "flip_curl")
+            if made:
+                kv.append("tips=1")
             p["steps"] = [[bl, "-b", "--python", os.path.join(TOOLS, "blender_depth_drivers.py"), "--"] + kv]
             p["equiv"] = '"$BLENDER" -b --python tools/blender_depth_drivers.py -- ' + " ".join(kv)
+            if str(spec.get("mode") or "cycle") == "gait":
+                p["steps"].append([PY, os.path.join(TOOLS, "gait_check.py"), _rel(out)])
+                p["equiv"] += " && python tools/gait_check.py " + _rel(out)
         elif kind == "ref_limbs":
             # pass 92 (lane SPIDER): the fixed model as a new upload of its own, then its probe beside it
             name = re.sub(r"[^a-z0-9_]+", "_", str(spec.get("name", "")).lower()).strip("_")
@@ -2997,7 +3011,9 @@ def _run(job):
 # when the job changes it and only to the mode that reads it, so the command line stays the short one Garry would type
 SCALE_KEYS = (("body_scale", 1.0), ("head_scale", 1.0), ("leg_scale", 1.0), ("scale_bones", ""), ("head_pitch", 0.0))
 GAIT_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("gait", "alternate"), ("swing", 14.0), ("lift", 18.0), ("flex", 14.0), ("duty", 0.55),
-             ("bob", 0.04), ("sway", 2.5))
+             ("bob", 0.04), ("sway", 2.5),
+             # pass 93 (lane LEGS): step=track and its settings
+             ("step", "swing"), ("stride", 0.22), ("raise", 0.12), ("crouch", 0.1), ("knee", "up"))
 DEATH_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("seconds", 1.2), ("roll_axis", "side"), ("roll", 180.0), ("roll_dir", 1.0), ("roll_start", 0.08),
               ("roll_time", 0.4), ("curl", 70.0), ("curl_root", 40.0), ("curl_start", 0.05), ("curl_end", 0.75), ("bounce", 0.12),
               ("twitch", 6.0), ("spasm_deg", 22.0), ("hold", 0.85))

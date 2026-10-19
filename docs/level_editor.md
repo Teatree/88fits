@@ -1313,3 +1313,63 @@ conversion on load and no churn, the page's words).
 ## Pass 87: stage tabs
 
 The Timeline has a tab strip: All | Stage 1 | Stage 2 | ... | + Stage. A stage tab shows that stage's window (the ruler counts the stage's own clock) and its card in the inspector: name, difficulty line, description, picture, length (keep or stretch the later stages, with a confirm), boss, look (filter colour, strength, the creatures' share `actors`, a swatch) and hell. + Stage appends one; deleting asks. Settings has an Endless block. Reload the page after the pass 87 migration before saving the map (an old page writes the old timeline back). Keys: docs/waves_schema.md "Pass 87".
+
+## Pass 93: the Drivers tab (see a driver, with its frame numbers)
+
+A **driver** is the motion a video model paints over: a 3D model's own walk or death, rendered frame by frame. A look's
+recipe names it (`pose_drivers.<view>` and `pose` / `pose_front` for the OpenPose walks, `drivers` and
+`death_drivers` for the depth walks and deaths of creature_ctl, `ctl_drivers.<view>` for a puppet look) and the painter
+follows it frame for frame.
+
+**Where they are kept.** Every driver is a folder `tools/dl/drivers/<name>/` (on this PC
+`D:/_projects/88fits/tools/dl/drivers/`), with one folder per game view inside it: `front`, `fd` (front three-quarter),
+`side`, `bd` (back three-quarter), `back`. In a view folder:
+
+| file | what it is |
+|---|---|
+| `driver_00.png`, `driver_01.png`, ... | OpenPose stick figures, one per frame (the heroes' and the humanoid creatures' walks; tools/pose_driver.py from a Mixamo FBX). `poses.json` holds their keypoints. |
+| `ctl_00.png`, `ctl_01.png`, ... | depth frames of a 3D model, one per frame (the creatures' walks and deaths; Blender: light = near, dark = far). |
+| `clay.png` | the model standing, in grey clay (what the painters copy) |
+| `look.png` | the model in its own colours, when it has them |
+| `clay_06.png`, `clay_12.png`, ... | a one-shot's (a death's) clay at that frame |
+
+Beside the view folders: `meta.json` (what made it: the model, the clip, the frame count, loop or once, the tool's
+settings), `<view>_sheet.png` and `all_sheet.png` (contact sheets of a pose driver). A folder named
+`<driver>_soft10` (or `_soft10b`) is gen_ctl's softened copy of a depth driver (a look's `ctl_soft` / `death_soft`,
+pass 92): it has no meta.json. The **frame index** is the number in the file name, counting from 0: `ctl_07.png` is
+frame 7, and `death_keep`'s numbers are these. Outside the editor any picture viewer shows them: open a view folder in
+Explorer and step through it (Windows Photos goes from file to file with the arrow keys).
+
+A creature_ctl look's **painted death** (what Wan painted along the death driver) is kept in
+`tools/dl/ai_anim/<creature>_<code without the dash, lower case>_death/` (`bull_beetle_bbc_death` for BB-C):
+`full_00.png` ... `full_24.png` every painted frame (same numbering), `out_NN.png` the frames death_keep kept,
+`cycle.json` the keep it was cut with.
+
+**The Drivers tab** (beside Jobs) lists every driver as a card: it plays while the mouse is over it, its kind
+(OpenPose, depth, death), the frames each view has, what made it, its date and size, and the looks that use it (green:
+the look the game plays). Search by name, model, clip or the creature / hero using it; filter OpenPose / Depth / Deaths
+/ Used / Unused; sort by name, date or size; Refresh reads the folder again. A click opens the **viewer**: one view at
+a time (the tabs), the frame large with its index on it, play / pause (Space), one frame back and on (arrow keys),
+first / last (Home / End), a scrub bar, the speed, loop on or off (a death starts with loop off: it plays once and
+stops on the last frame), the clay and look stills beside it (a pose driver: its contact sheet), every frame below as
+a numbered sheet (click one to show it), what made it, meta.json, the looks using it, and the folder with **Copy path**
+and **Open folder** (the server opens Explorer on that folder; only folders of the library).
+
+**Beside every driver field** (a look's recipe, Art words, the job form, the driver library of a tweak job) a small
+frame plays while the mouse is over it, and **preview** opens the viewer on that driver and that field's view. A
+finished driver job's card has **▶ preview <name>**.
+
+**death_keep** (creature_ctl's death frames kept) is typed (`1, 4, 7, ...`) or picked: **Pick frames…** opens the
+viewer on the death driver with every frame numbered; a click keeps or drops a frame (the small green number is its
+place in the kept order, which is the order the strip plays them), **play the kept frames** plays only those, as the
+strip's death will, **even 8** spreads eight over the clip with the last one in, **the default** puts back
+`1 4 7 10 13 16 20 24`, **clear** empties the field (the default applies). When the look's death has been painted the
+viewer shows the painted frames by default (switch *show* to the depth driver), and the field's tiles show the kept
+painted frames; a new keep is cut again from the cached clip with no render. A death painted along another driver is
+not shown as this one's.
+
+Routes (tools/level_editor/drivers_io.py): `GET /api/drivers` (every folder with frames, meta.json or not: `counts`
+per view, `first`, `path`, `made`, `plays`, `death`, `parent`, `size`, `files`, `used_by`, plus the pass 66 keys;
+`frames` is now the frame files of its first view), `GET /api/drivers/<name>` (+ `view_detail`: every frame's index
+and URL, the stills), `GET /api/painted_death/<enemy>/<code>`, `POST /api/drivers/<name>/open` `{view}` and
+`POST /api/drivers/open` (the library). methods.json marks death_keep with `picker: "frames"`, `frames_of`, `view`.

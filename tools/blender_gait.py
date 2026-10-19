@@ -17,6 +17,20 @@ The walk (mode=gait), one stride over `frames` poses:
   duty=0.55        the share of the stride a leg is on the ground (pushing back)
   bob=0.04         the body dips this share of its height twice a stride
   sway=2.5         degrees the body turns side to side once a stride
+  step=swing       how a foot is moved (pass 93). swing (pass 92, the default, kept for the old drivers): each leg turns
+                   rigidly round the vertical through its hip (swing degrees) and tilts up (lift, flex). That moves a
+                   sideways leg's foot fore and aft, but a leg pointing forward or back sweeps its foot ACROSS the body,
+                   and the front and back views see the feet slide sideways while the middle legs' fore-aft step is
+                   foreshortened away: the spider's legs looked still or moving the wrong way.
+                   track: every foot follows the same straight track along the body's length (planted and sliding back
+                   under it on the ground, an arc forward through the air), reached by turning the hip round the vertical
+                   and bending hip and knee in the leg's own plane (two-bone IK, the knee kept up); swing/lift/flex are
+                   then unused. The spider's v2 walk: step=track stride=0.22 raise=0.15 crouch=0.15 sway=0 bob=0.03.
+  stride=0.22      track: how far each foot travels fore and aft, a share of the creature's length (legs included)
+  raise=0.12       track: how high a foot rises mid-step, a share of the same length
+  crouch=0.1       track: each foot's track pulled in towards its hip by this share of its reach, so a leg that rests
+                   straight has bend to give (without it a front or back leg reaching out straightens and lies flat)
+  knee=up          track: up keeps every knee above the hip-to-foot line (spiders, insects); down below it
 The death (mode=flip_curl), over the clip's `total` frames, a timeline in seconds over `seconds`:
   seconds=1.2      how long the whole clip is (frames are spread evenly over it)
   spasm=0.12       seconds of the hit: the legs splay up and the body jumps a little (spasm_deg=22)
@@ -49,7 +63,8 @@ except ImportError:  # importable outside Blender for the selftest (only the pur
 
 LEG_WORDS = r"(?i)leg|thigh|calf|shin|foot|toe|tarsus|femur|tibia"
 
-GAIT_DEFAULTS = {"gait": "alternate", "swing": 14.0, "lift": 18.0, "flex": 14.0, "duty": 0.55, "bob": 0.04, "sway": 2.5}
+GAIT_DEFAULTS = {"gait": "alternate", "swing": 14.0, "lift": 18.0, "flex": 14.0, "duty": 0.55, "bob": 0.04, "sway": 2.5,
+                 "step": "swing", "stride": 0.22, "raise": 0.12, "crouch": 0.1, "knee": "up"}
 SCALE_DEFAULTS = {"body_scale": 1.0, "head_scale": 1.0, "leg_scale": 1.0, "scale_bones": "", "head_pitch": 0.0}
 DEATH_DEFAULTS = {"seconds": 1.2, "spasm": 0.12, "spasm_deg": 22.0, "roll_axis": "side", "roll": 180.0, "roll_dir": 1.0,
                   "roll_start": 0.08, "roll_time": 0.4, "curl": 70.0, "curl_root": 40.0, "curl_start": 0.05, "curl_end": 0.75,
@@ -80,6 +95,44 @@ def phase_offsets(sides, order, gait="alternate"):
         else:
             out.append(0.0 if (o + (1 if s > 0 else 0)) % 2 == 0 else 0.5)
     return out
+
+
+def track_offset(ph, duty, stride, raise_):
+    """step=track (pass 93): where a foot is at phase `ph` (0..1), as (along, up) in the creature's length units: on the
+    ground (ph < duty) it slides straight back under the body from +stride/2 to -stride/2 at an even speed (planted while
+    the body walks over it); in the air it comes forward again along an eased arc that peaks at `raise_` mid-step."""
+    ph = ph % 1.0
+    if ph < duty:
+        s = ph / duty
+        return stride * (0.5 - s), 0.0
+    s = (ph - duty) / max(1.0 - duty, 1e-6)
+    e = 0.5 - 0.5 * math.cos(math.pi * s)
+    return stride * (-0.5 + e), raise_ * math.sin(math.pi * s)
+
+
+def two_bone(j1, e, t, knee_up=True):
+    """Two-bone IK in a leg's vertical plane, the hip at the origin; points are (out, up) pairs: j1 the knee, e the foot,
+    t the target. The knee and everything beyond it turn as one piece (the joints past the knee keep their bend).
+    Returns (hip, knee) turns in radians, positive raising the outer part; the target is pulled into reach when it is out
+    of it (the foot then stops short along the line to it). knee_up: the knee stays above the hip-to-foot line (a spider's
+    or an insect's); False: below it."""
+    a = math.hypot(j1[0], j1[1])
+    b = math.hypot(e[0] - j1[0], e[1] - j1[1])
+    d = math.hypot(t[0], t[1])
+    lo, hi = abs(a - b) + 1e-6, a + b - 1e-6
+    th = math.atan2(t[1], t[0])
+    if a < 1e-9 or b < 1e-9:
+        return th - math.atan2(e[1], e[0]), 0.0
+    d = min(max(d, lo), hi)
+    phi = math.acos(min(max((a * a + d * d - b * b) / (2.0 * a * d), -1.0), 1.0))
+    hip = (th + phi if knee_up else th - phi) - math.atan2(j1[1], j1[0])
+    c, s_ = math.cos(hip), math.sin(hip)
+    k = (j1[0] * c - j1[1] * s_, j1[0] * s_ + j1[1] * c)
+    e2 = (e[0] * c - e[1] * s_, e[0] * s_ + e[1] * c)
+    tt = (d * math.cos(th), d * math.sin(th))
+    knee = math.atan2(tt[1] - k[1], tt[0] - k[0]) - math.atan2(e2[1] - k[1], e2[0] - k[0])
+    knee = (knee + math.pi) % (2.0 * math.pi) - math.pi
+    return hip, knee
 
 
 def leg_angles(ph, duty, swing, lift, flex):
@@ -269,8 +322,9 @@ class Legs:
 
     # -------------------------------------------------------- leg tips (pass 93: tips=1 writes where each foot goes)
     def tip_vertices(self, objs):
-        """Per chain, the mesh vertex its foot is: of the vertices weighted mostly to the chain's bones, the farthest from
-        its hip in the current (rest) pose; (object index, vertex index) or None when the mesh has no such weights."""
+        """Per chain, the mesh vertex its foot is: of the vertices weighted mostly to the chain's last bone that has any,
+        the farthest from its hip measured flat (a spider's raised knee is farther from a hip sunk under the body than its
+        foot is, in 3D); (object index, vertex index) or None when the mesh has no such weights."""
         import numpy as np
         dg = bpy.context.evaluated_depsgraph_get()
         out = []
@@ -290,15 +344,18 @@ class Legs:
                 top.append(names.get(best.group) if best is not None else None)
             per_obj.append((w, top))
         for c in self.chains:
-            bones = {pb.name for pb in c}
             hip = self.world(c[0].head)
-            best, far = None, -1.0
-            for oi, (w, top) in enumerate(per_obj):
-                for vi, g in enumerate(top):
-                    if g in bones:
-                        d = (Vector(w[vi]) - hip).length
-                        if d > far:
-                            best, far = (oi, vi), d
+            best = None
+            for pb in reversed(c):
+                far = -1.0
+                for oi, (w, top) in enumerate(per_obj):
+                    for vi, g in enumerate(top):
+                        if g == pb.name:
+                            d = Vector((w[vi][0] - hip.x, w[vi][1] - hip.y)).length
+                            if d > far:
+                                best, far = (oi, vi), d
+                if best is not None:
+                    break
             out.append(best)
         return out
 
@@ -324,7 +381,66 @@ class Legs:
         return out
 
     # -------------------------------------------------------- the walk
+    def track_setup(self):
+        """step=track: each leg's hip, knee and foot at rest in world space (the foot is the mesh's tip vertex, else the last
+        bone's tail) and the creature's length along forward, read once."""
+        import numpy as np
+        import blender_ref as R
+        self.reset()
+        verts = self.tip_vertices(self.body)
+        feet = [m for m, _b in self.tips_world(self.body, verts)]
+        w = R.verts_world(self.body)
+        f = np.array([self.fwd.x, self.fwd.y, 0.0])
+        proj = w @ f
+        self.length = max(float(proj.max() - proj.min()), 1e-6)
+        self.track = []
+        for c, foot in zip(self.chains, feet):
+            j0 = self.world(c[0].head)
+            j1 = self.world(c[1].head) if len(c) > 1 else None
+            self.track.append((j0, j1, foot.copy()))
+
+    def pose_track(self, c, rest, along, up_, knee_up, crouch=0.0):
+        """One leg posed so its foot reaches rest foot + forward x along + up x up_ (world units): the hip turns round the
+        vertical (the foot's bearing), then the hip and the knee bend in the leg's vertical plane (two_bone). crouch: the
+        foot's track is pulled in towards the hip by this share of its flat reach, so a leg that rests straight has bend to
+        give when its foot reaches forward or back (else it straightens and lies flat)."""
+        j0, j1, foot = rest
+        flat0 = Vector((foot.x - j0.x, foot.y - j0.y, 0.0))
+        T = foot - flat0 * crouch + self.fwd * along + self.up * up_
+        u0 = Vector((foot.x - j0.x, foot.y - j0.y, 0.0))
+        u1 = Vector((T.x - j0.x, T.y - j0.y, 0.0))
+        if u0.length < 1e-9 or u1.length < 1e-9:
+            return
+        yaw = math.atan2(u0.cross(u1).z, u0.dot(u1))
+        self.turn_bone(c[0], j0, self.up, math.degrees(yaw))
+        if j1 is None:
+            return
+        Ry = Matrix.Rotation(yaw, 3, self.up)
+        k = j0 + Ry @ (j1 - j0)
+        e = j0 + Ry @ (foot - j0)
+        h = u1.normalized()
+
+        def flat(P):
+            d = P - j0
+            return (d.dot(h), d.z)
+        hip, knee = two_bone(flat(k), flat(e), flat(T), knee_up)
+        axis = h.cross(self.up)
+        self.turn_bone(c[0], j0, axis, math.degrees(hip))
+        k2 = j0 + Matrix.Rotation(hip, 3, axis) @ (k - j0)
+        self.turn_bone(c[1], k2, axis, math.degrees(knee))
+
     def pose_gait(self, phase, o):
+        if str(o.get("step", "swing")) == "track":
+            if getattr(self, "track", None) is None:
+                self.track_setup()
+            self.reset()
+            offs = phase_offsets(self.sides, self.order, o["gait"])
+            L = self.length
+            for c, off, rest in zip(self.chains, offs, self.track):
+                along, h = track_offset(phase + off, float(o["duty"]), float(o["stride"]), float(o["raise"]))
+                self.pose_track(c, rest, along * L, h * L, str(o.get("knee", "up")) != "down", float(o.get("crouch", 0.0)))
+            self.body_motion(phase, o)
+            return
         self.reset()
         offs = phase_offsets(self.sides, self.order, o["gait"])
         for c, off in zip(self.chains, offs):
@@ -337,6 +453,10 @@ class Legs:
             self.turn_bone(c[0], self.world(c[0].head), a, -lift)
             if len(c) > 1 and flex:
                 self.turn_bone(c[1], self.world(c[1].head), self.fold_axis(c, self.up), flex)
+        self.body_motion(phase, o)
+
+    def body_motion(self, phase, o):
+        """The body's sway (turned side to side once a stride) and bob (dipped twice a stride)."""
         if self.body_bone is not None and float(o["sway"]):
             self.turn_bone(self.body_bone, self.centre, self.up, float(o["sway"]) * math.sin(2.0 * math.pi * phase))
         dip = float(o["bob"]) * self.height * (0.5 + 0.5 * math.cos(4.0 * math.pi * phase))

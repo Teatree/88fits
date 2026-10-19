@@ -331,6 +331,153 @@
         "run": 20,
         "die": 12
       }
+    },
+    "SP-E": {
+      "note": "SP-B in light purple (lavender and lilac) on the fixed walk (spider_walk_v2: every foot steps along the body)",
+      "fresh": true,
+      "recipe": {
+        "drivers": "spider_walk_v2",
+        "noun": "a spider",
+        "blockout": "a smooth plain clay 3D model of a spider: a small head with two short fangs at the front, one big oval abdomen behind it, and eight long jointed legs, four on each side, spread round the body",
+        "prompt": "a chunky cartoon desert tarantula with a round fuzzy pale lavender abdomen with a soft cream stripe pattern, thick fuzzy light lilac-purple legs with pale lavender bands at the joints, two big shiny black eyes with white highlights and four tiny eyes above them, a small grumpy frown and two little curved fangs, the whole spider light purple",
+        "detail": "a slightly oversized head, friendly-mean mobile game creature, still clearly a spider",
+        "anatomy": "exactly eight legs, four on each side, each leg one single continuous jointed limb that starts at the body and ends in one pointed foot, exactly one head with two short fangs, exactly one round abdomen, no antennae, no tail, no wings, no extra legs, the left and right sides symmetrical",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its head and two fangs are at the bottom middle of the picture, nearest the viewer; its two front legs reach forward towards the viewer, one on each side of the head, and its other six legs spread out to the left and the right, three on each side; the round abdomen rises behind the head",
+          "fd": "walking towards the lower right corner of the picture, turned three-quarters towards the viewer and seen a little from above: the head with its face, both eyes and both fangs at the lower right, nearest the viewer, the round abdomen at the upper left, farther away; the two front legs reach forward towards the lower right, the other legs spread to both sides",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the round abdomen nearest the viewer at the lower left, the head at the upper right, farther away, four legs on each side",
+          "back": "walking straight away from the viewer, seen from behind and a little above: its round abdomen is nearest the viewer at the bottom middle of the picture, the head beyond it is mostly hidden, and its eight legs spread out to the left and the right, four on each side"
+        },
+        "motion": "scuttling in place on its eight legs like a real spider, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of four, the body low and level",
+        "anim_negative": "extra legs, nine legs, ten legs, six legs, legs merging, a leg growing from the head, antennae, a tail, wings, two heads, a second spider, standing upright",
+        "death_drivers": "spider_death",
+        "death_motion": "it jerks, rolls over onto its back and lies dead with its eight legs curled up over its pale lavender belly like a real dead spider, the legs folded in towards each other, the same colours as the reference all over, nothing green",
+        "death_keep": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          11,
+          14,
+          24
+        ],
+        "dead": "lying dead on its back, its eight legs curled up over its belly",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#2C1838",
+        "side_seeds": 4,
+        "fit_ref": [
+          "front"
+        ],
+        "ctl_soft": {
+          "radius": 10,
+          "body": false,
+          "views": [
+            "front",
+            "side"
+          ]
+        }
+      },
+      "sprite": "desert_spider_sprite_e.png",
+      "icon": "desert_spider_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.581,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "SP-F": {
+      "note": "SP-B in light blue (pale sky and powder blue) on the fixed walk (spider_walk_v2: every foot steps along the body)",
+      "fresh": true,
+      "recipe": {
+        "drivers": "spider_walk_v2",
+        "noun": "a spider",
+        "blockout": "a smooth plain clay 3D model of a spider: a small head with two short fangs at the front, one big oval abdomen behind it, and eight long jointed legs, four on each side, spread round the body",
+        "prompt": "a chunky cartoon desert tarantula with a round fuzzy pale sky-blue abdomen with a soft white stripe pattern, thick fuzzy powder-blue legs with pale icy-blue bands at the joints, two big shiny black eyes with white highlights and four tiny eyes above them, a small grumpy frown and two little curved fangs, the whole spider light blue",
+        "detail": "a slightly oversized head, friendly-mean mobile game creature, still clearly a spider",
+        "anatomy": "exactly eight legs, four on each side, each leg one single continuous jointed limb that starts at the body and ends in one pointed foot, exactly one head with two short fangs, exactly one round abdomen, no antennae, no tail, no wings, no extra legs, the left and right sides symmetrical",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its head and two fangs are at the bottom middle of the picture, nearest the viewer; its two front legs reach forward towards the viewer, one on each side of the head, and its other six legs spread out to the left and the right, three on each side; the round abdomen rises behind the head",
+          "fd": "walking towards the lower right corner of the picture, turned three-quarters towards the viewer and seen a little from above: the head with its face, both eyes and both fangs at the lower right, nearest the viewer, the round abdomen at the upper left, farther away; the two front legs reach forward towards the lower right, the other legs spread to both sides",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the round abdomen nearest the viewer at the lower left, the head at the upper right, farther away, four legs on each side",
+          "back": "walking straight away from the viewer, seen from behind and a little above: its round abdomen is nearest the viewer at the bottom middle of the picture, the head beyond it is mostly hidden, and its eight legs spread out to the left and the right, four on each side"
+        },
+        "motion": "scuttling in place on its eight legs like a real spider, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of four, the body low and level",
+        "anim_negative": "extra legs, nine legs, ten legs, six legs, legs merging, a leg growing from the head, antennae, a tail, wings, two heads, a second spider, standing upright",
+        "death_drivers": "spider_death",
+        "death_motion": "it jerks, rolls over onto its back and lies dead with its eight legs curled up over its pale blue belly like a real dead spider, the legs folded in towards each other, the same colours as the reference all over, nothing green",
+        "death_keep": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          11,
+          14,
+          24
+        ],
+        "dead": "lying dead on its back, its eight legs curled up over its belly",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#132A3E",
+        "side_seeds": 4,
+        "no_green": "rb",
+        "fit_ref": [
+          "front"
+        ],
+        "ctl_soft": {
+          "radius": 10,
+          "body": false,
+          "views": [
+            "front",
+            "side"
+          ]
+        }
+      },
+      "sprite": "desert_spider_sprite_f.png",
+      "icon": "desert_spider_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.631,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
     }
   },
   "variant": "SP-B"

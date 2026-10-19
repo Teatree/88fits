@@ -29,6 +29,9 @@ names (leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia); the beetle's un
 forward= is the way the model faces (-Y for the beetle, the scorpion and Blender's convention); the cameras go round it:
 front 0 (it walks at the viewer), fd 45, side 90 (it faces screen-right like the painted side views), bd 135, back 180,
 pitch 25 from above, orthographic, three extents away, 1.45 extents wide (1.6 for a oneshot).
+tips=1 (pass 93, mode gait / flip_curl): also writes <out>/tips.json, where every leg's foot (its mesh tip vertex) and its
+last bone's tail fall in each view's pictures frame by frame ({legs, size, views: {view: [[[mx, my, bx, by] per leg] per
+frame]]}}); tools/gait_check.py draws the foot paths and says which way each foot travels while it is down.
 """
 import json
 import math

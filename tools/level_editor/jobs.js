@@ -948,6 +948,11 @@ const Jobs = (() => {
       else if (o.qa) cellEl.appendChild(el('span', { class: 'muted', text: 'QA ok' }));
       box.appendChild(cellEl);
     }
+    // pass 93 (lane PREVIEW): a driver job's new driver (any output under /dl/drivers/<name>/) opens in the viewer
+    const made = Array.from(new Set((j.outputs || []).map((o) => /^\/dl\/drivers\/([A-Za-z0-9_-]+)\//.exec(String(o.url || ''))).filter(Boolean).map((m2) => m2[1])));
+    if (made.length && typeof Drivers !== 'undefined') {
+      box.appendChild(el('div', { class: 'joutput' }, made.map((nm) => el('button', { type: 'button', class: 'btn small', text: `▶ preview ${nm}`, title: `play ${nm} frame by frame with its frame numbers (the Drivers tab's viewer)`, onclick: () => { Drivers.ensureList(true); Drivers.open(nm, {}); } }))));
+    }
     return box;
   }
 
@@ -1256,6 +1261,14 @@ const Jobs = (() => {
         return box;
       }
       case 'json': {
+        // pass 93 (lane PREVIEW): a list of frame numbers picked off its driver's frames (death_keep: methods.json
+        // `picker: "frames"`, `frames_of` names the field holding the driver; ctx.recipeValue reads it as it is now)
+        if (f.picker === 'frames' && typeof Drivers !== 'undefined') {
+          const of = f.frames_of || 'death_drivers';
+          return Drivers.keepField({ value, dflt: Array.isArray(f.default) ? f.default : undefined, view: f.view || 'front', label: f.label || f.key,
+            getDriver: () => (ctx && typeof ctx.recipeValue === 'function' ? ctx.recipeValue(of) : ''),
+            painted: ctx && ctx.painted ? ctx.painted : null, onChange: (l) => onChange(l && l.length ? l : null) });
+        }
         const ta = el('textarea', { class: 'mono', spellcheck: false, placeholder: f.default != null ? JSON.stringify(f.default) : '{}' });
         ta.value = v === '' ? '' : JSON.stringify(v, null, 1);
         ta.addEventListener('change', () => { try { onChange(ta.value.trim() ? JSON.parse(ta.value) : null); ta.style.borderColor = ''; } catch (_) { ta.style.borderColor = 'var(--s8)'; } });
@@ -1266,8 +1279,19 @@ const Jobs = (() => {
         sel.appendChild(el('option', { value: '', text: f.default != null ? `(default: ${f.default})` : '(none)' }));
         for (const d of ctx.drivers || []) sel.appendChild(el('option', { value: d.name, text: `${d.name} (${d.kind || '?'}${d.frames ? ', ' + d.frames + ' frames' : ''})`, selected: d.name === v }));
         if (v && !(ctx.drivers || []).some((d) => d.name === v)) sel.appendChild(el('option', { value: v, text: `${v} (not in the library)`, selected: true }));
-        sel.addEventListener('change', () => onChange(sel.value === '' ? null : sel.value));
-        return sel;
+        if (typeof Drivers === 'undefined') { sel.addEventListener('change', () => onChange(sel.value === '' ? null : sel.value)); return sel; }
+        // pass 93 (lane PREVIEW): the chosen driver (else the default) plays beside the choice; "preview" opens the viewer
+        const view = typeof DriversModel !== 'undefined' ? DriversModel.viewOfKey(f.key) : 'side';
+        const box = el('span', { class: 'drv-pickwrap' }, sel);
+        let th = Drivers.thumb(v || (f.default != null ? String(f.default) : ''), { view });
+        box.appendChild(th);
+        sel.addEventListener('change', () => {
+          onChange(sel.value === '' ? null : sel.value);
+          const next = Drivers.thumb(sel.value || (f.default != null ? String(f.default) : ''), { view });
+          th.replaceWith(next);
+          th = next;
+        });
+        return box;
       }
       case 'file': {
         // a picture (2D uploads) or a model (3D uploads) under tools/dl, with an Upload… button; `src` fields are 3D
@@ -1384,7 +1408,10 @@ const Jobs = (() => {
         const whoseJ = kind === 'hero' ? 'the hero\'s' : 'the creature\'s';
         const f2 = inherited && !inBox ? Object.assign({}, f, { default: inh }) : f;
         const ctl = PICTURE_KEYS.includes(f.key) ? pictureControl(own, (v) => U.setPath(spec.recipe, f.key, v), { refs, dflt: inherited ? String(inh) : '' })
-          : recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs, inherit: inBox ? { value: inh, from: `${whoseJ} own ${f.key}` } : null, inheritObj: inh && typeof inh === 'object' ? inh : null });
+          : recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs, inherit: inBox ? { value: inh, from: `${whoseJ} own ${f.key}` } : null, inheritObj: inh && typeof inh === 'object' ? inh : null,
+            // pass 93 (lane PREVIEW): death_keep's picker reads the death driver as the form holds it, and the look's painted death
+            recipeValue: (k) => { const ov = U.getPath(spec.recipe, k); return ov != null && ov !== '' ? ov : (contentJson ? U.getPath(contentJson, k) : ''); },
+            painted: fixedCode && (kind === 'enemy' || kind === 'boss') ? { enemy: id, code: fixedCode } : null });
         const line = fieldLine(f.label || f.key, ctl, f.help);
         if (inBox) {
           const own0 = !(own == null || own === '');
@@ -2020,6 +2047,8 @@ const Jobs = (() => {
         players.push(p);
         card.appendChild(p.el);
       }
+      // pass 93 (lane PREVIEW): the full viewer (every view, the frame numbers) without picking the card
+      if (typeof Drivers !== 'undefined') card.appendChild(el('button', { type: 'button', class: 'btn small', text: 'preview', title: `${d.name}: every view frame by frame with its numbers`, onclick: (e) => { e.stopPropagation(); Drivers.open(d.name, { view }); } }));
       grid.appendChild(card);
     }
     const filter = el('input', { type: 'search', class: 'txt', placeholder: 'filter…' });

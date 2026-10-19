@@ -3237,3 +3237,67 @@ an explainer like the puppet one (`docs/spider/spider_explainer.html`, pictures 
   new job kind and method `ref_limbs`; the enemy editor got "+ Depth driver…" and "+ Fix a model's legs…"; `file` fields keep
   their upload picker (src was a text box); the walk cache follows the painting, the seed and the control video
   (`animate.cache_fits`); methods.json tells the truth about negative words. selftest_SPIDER92.py.
+
+**Pass 93 (2026-10-19, v0.79): the spider's legs fixed (`step=track`), SP-E light purple and SP-F light blue, the Level Editor's Drivers tab and frame picker.** Garry: "most legs aren't moving, and the ones that are moving are moving in the wrong direction"; drivers previewed in the Level Editor with frame numbers. Two lanes (tools/dl/p93/): LEGS, PREVIEW.
+
+## Pass 93, lane LEGS: the Desert Spider's legs walk properly; SP-E (light purple) and SP-F (light blue) from SP-B; the explainer
+
+Garry: "give me an instruction on how to improve on the Desert Spider SP-B version. I basically want 2 more versions which fix
+the leg movement (currently most legs aren't moving, and the ones that are moving are moving in the wrong direction). And I
+want the colour of the spider to be a light purple or light blue (1 each variant). Give me the instructions on how I ought to
+have done it myself, then do it yourself, then update the HTML doc to only show the 3 variants - SP-B and the 2 new ones. Add an
+explanation on how to fix the legs and what was wrong with them."
+
+- **Diagnosis.** `blender_depth_drivers.py tips=1` (new) writes `tips.json`, every foot (the mesh tip of each leg chain's last
+  weighted bone, farthest flat from the hip) per view and frame; `tools/gait_check.py` (new) draws the paths on the clay and
+  judges each leg. Pass 92's made walk (`blender_gait` step swing: each leg turned rigidly round the vertical through its hip)
+  moves a sideways leg's foot fore and aft but sweeps a forward or backward leg's foot ACROSS the body: in the front and back
+  views L1, R1, L4, R4 travelled 94-132 px sideways (of 640) against 47-71 up and down (4 + 4 legs SIDEWAYS), and the middle
+  legs' fore-aft step, foreshortened from 25 degrees above, barely showed; in the side view the front and back pairs slid back
+  only 19-35 px a stride against 71-98 for the middle pair. The painter was not at fault: optical flow of SP-B's painted walk at
+  each foot matched the driver's foot motion (cosine 0.6-0.98, 50-98% of its distance) wherever the leg is visible. Also
+  excluded: a mirrored left/right sign (every planted foot slid back), thin depth legs, Wan smoothing, frame count, strip fps.
+- **Fix.** `blender_gait.py` `step=track` (default `swing` keeps every old driver): each foot follows a straight track along
+  the body (planted, sliding back at an even speed; an eased arc forward through the air peaking at `raise`), reached by
+  turning the hip round the vertical and two-bone IK of hip and knee in the leg's plane (`two_bone`, knee up); `stride` 0.22,
+  `raise` 0.12, `crouch` 0.1 (each track pulled in towards the hip: the straight resting legs had no bend to give, and the
+  first track walk laid the front and back legs flat), `knee` up|down. Driver `tools/dl/drivers/spider_walk_v2`: step=track
+  stride=0.22 raise=0.15 crouch=0.15 sway=0 bob=0.03 tips=1 (front view: 0 px sideways, 83 up and down; side: every planted
+  foot slides back 90 px, lifts 61). The death is unchanged (spider_death).
+- **gen_ctl `fit_ref`** (recipe key, true or a list of views): the painting's keyed figure fitted onto the depth video's figure
+  (median width, centre and bottom) before Wan walks it. Klein paints some views far bigger than their clay (SP-E's front x1.54,
+  back x1.6); Wan walked the painting at its own size along a smaller depth figure and left the painted legs outside the
+  depth's as faded grey ghost legs beside the walking ones (SP-B's front has them too, hidden by its colour).
+- **gen_ctl `no_green` "rb"** (recipe): green held down to max(red, blue) instead of red, for light blue looks; default unchanged.
+- **Looks.** desert_spider SP-E (pale lavender / lilac) and SP-F (pale sky / powder blue): SP-B's recipe with the colour words,
+  the belly in the death words and the outline colour changed, "the whole spider light purple/blue" appended, a motion line that
+  says how a foot moves, drivers spider_walk_v2, death spider_death; side candidates counted by eye (SP-E k1 of 4; SP-F k6 of 8,
+  k0 had nine legs); SP-E's back painted again (c0 of 3: the first kept the clay's brown legs); both looks walk their front fitted + softened and their side softened (`fit_ref` ["front"], `ctl_soft` {10, false, [front, side]}: the face and striped abdomen kept, no ghost legs); SP-F `no_green` "rb" (gen_ctl's green guard clamped green to red and turned its sky blue royal blue); fresh; the spider still plays SP-B. `game/tests/pass93_LEGS_test.gd`; pass92_SPIDER_test and
+  selftest_SPIDER92 re-pinned to "contains the four" (they pinned exactly four looks).
+- **Level Editor.** driver_depth's gait fold has step / stride / raise / crouch / knee (jobs.py SPECS + GAIT_KEYS, methods.json
+  helps starting "gait: " so jobs.js folds them); a made motion's command gets tips=1 and a made walk runs gait_check.py as the
+  job's second step (gait_check.png in the driver folder); methods.json names the sideways-legs lesson. selftest_LEGS93.py.
+- **Doc.** docs/spider/spider_explainer.html now shows SP-B, SP-E and SP-F only, with section 4 "Fixing the legs: what was
+  wrong and how" (top / front / side foot paths before and after, depth GIFs with the feet marked, the measurements, SP-B walked
+  on both drivers, the crouch picture, gait_check) and 5b "How you could have made SP-E and SP-F yourself"; built by
+  tools/dl/p93/LEGS/scripts/build_doc.py from tools/dl/p93/LEGS/doc/. The A/C/D pictures left docs/spider/img.
+- **Checks.** gdUnit: pass93_LEGS_test 14 tests, pass92_SPIDER_test 4, pass66_shape_test 3: 0 failures); check_scripts 0; Level Editor selftest 13,736 / 0 (selftest_LEGS93.py 46). Optical flow of the new walks against spider_walk_v2: 23 (SP-E) and 24 (SP-F) of 40 leg-views follow, SP-B on its own walk 27: the painter copies a walk equally well; the walk itself is what changed. Captures tools/dl/p93/LEGS/shots/.
+- Not done: the made-walk fold's summary text in jobs.js still lists "swing, lift, flex, duty, bob, sway" (PREVIEW lane's file); SP-B is not re-walked on the fixed walk in the game (only for the doc's comparison, cache desert_spider_spb_v2cmp_ctl_*); SP-E's first death frame is paler than the rest (Wan's first frames of the death clip).
+
+Lane PREVIEW (pass 93): the Level Editor's **Drivers** tab and driver previews (Garry: "I only see names and can't
+tell what the actual animation will look like ... where these are kept ... the frame index somewhere"). New
+tools/level_editor/drivers_io.py (server.py hands it /api/drivers, /api/drivers/<name>, /api/painted_death/<enemy>/<code>,
+POST /api/drivers[/<name>]/open; the old list_drivers body is gone, its keys kept): every folder of tools/dl/drivers with
+frames, meta.json or not (gen_ctl's _soft copies listed with their parent), frame counts per view from the files
+(`frames` = files, 25 for run; a depth meta's `frames` is poses per stride), first index, stills (clay, look,
+clay_NN, a pose view's sheet), made-from sentence, plays loop|once (a made gait walks round although its meta says
+loop false), size, files, date, used_by (every enemy / boss / hero look whose recipe names it). Page: drivers_model.js
+(page-free maths), drivers.js (the tab: hover-play cards, search, filters, sort; the viewer: views, big frame index,
+play/pause/step/first/last/scrub/speed/loop, keys, stills, numbered contact sheet, path with Copy and Open folder (Explorer
+on library folders only), meta.json, users; inline thumbs + "preview" beside every driver field in the asset editor
+and the job form, driver library cards and finished driver jobs; death_keep's picker: typed or picked off the death
+driver's numbered frames or the look's painted death tools/dl/ai_anim/<key>_death/full_NN.png when it was walked along
+that driver, "play the kept frames", even 8, the default, clear), drivers.css. methods.json: death_keep gains
+`picker: "frames"`, `frames_of: "death_drivers"`, `view: "front"`. docs/level_editor.md "Pass 93". Tests:
+selftest_PREVIEW93.py (57 checks; selftest_S re-pinned: run's `frames` 25, meta's 24); the whole selftest green
+(13,687). Playwright screenshots in tools/dl/p93/PREVIEW/.

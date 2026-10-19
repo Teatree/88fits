@@ -224,7 +224,7 @@ def checks(check, run_node, server):
     if os.path.isfile(cj):
         d = json.load(open(cj, encoding="utf-8"))
         vs = d.get("variants") or {}
-        check(sorted(vs) == ["SP-A", "SP-B", "SP-C", "SP-D"], "four looks SP-A..SP-D: %s" % sorted(vs))
+        check({"SP-A", "SP-B", "SP-C", "SP-D"} <= set(vs), "four looks SP-A..SP-D (pass 93 added SP-E, SP-F): %s" % sorted(vs))
         for code, e in sorted(vs.items()):
             r = e.get("recipe") or {}
             check(str(r.get("drivers", "")).startswith("spider_walk") and str(r.get("death_drivers", "")).startswith("spider_death"),

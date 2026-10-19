@@ -961,7 +961,9 @@ def routes_checks(check, server):
         st, body, h = get("/api/content/pickup/heart")
         check(st == 404, "/api/content of a non-edit kind is a 404")
         st, body, h = get("/api/drivers")
-        check(st == 200 and any(d["name"] == "run" and d["kind"] == "pose" and d["frames"] == 24 and d["sheet"] == "/dl/drivers/run/all_sheet.png" for d in body)
+        # pass 93 (lane PREVIEW, re-pinned): `frames` is the files on disk (driver_00..24: 25, the loop's closing frame too),
+        # meta.json's 24 stays in `meta`
+        check(st == 200 and any(d["name"] == "run" and d["kind"] == "pose" and d["frames"] == 25 and d["meta"].get("frames") == 24 and d["sheet"] == "/dl/drivers/run/all_sheet.png" for d in body)
               and any(d["name"] == "beetle_walk" and d["kind"] == "depth" and "side" in d["views"] for d in body), "/api/drivers: pose and depth drivers from meta.json")
         st, body, h = get("/api/refs")
         check(st == 200 and set(body) == {"2d", "3d"}, "/api/refs")

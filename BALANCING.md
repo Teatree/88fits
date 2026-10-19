@@ -5502,3 +5502,7 @@ No game numbers changed. The keyer skips the cast-shadow cut when the figure wea
   blood #7BC43A, frame_px 160, shadow {scale [1.45, 1.5], up 0.45, drop 0.06}, fps run 20 / die 12, eight directions.
   It plays look SP-B (a creature with looks must play one; all four looks are `fresh` until Garry approves one).
 - No new game rule. The new numbers are art-tool settings (blender_gait defaults; see keys_SPIDER.md).
+
+## 40. Pass 93 (v0.79): art tools only
+
+No game numbers changed. Made walks: `step` swing (default, pass 92) | track (stride 0.22, raise 0.12, crouch 0.1, knee up); `tips=1` writes tips.json, tools/gait_check.py names SIDEWAYS/BACKWARDS legs. gen_ctl recipe `fit_ref` (scale the painting onto the depth figure), `no_green` "rb" (green held to max(red, blue)). The Desert Spider still plays SP-B; SP-E and SP-F are fresh.

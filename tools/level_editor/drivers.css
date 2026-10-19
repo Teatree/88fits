@@ -1,0 +1,85 @@
+/* Pass 93 (lane PREVIEW): the driver library (the Drivers tab), its viewer and the inline previews (drivers.js). */
+
+/* ---- the inline thumb beside a driver field */
+.drv-thumb { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; vertical-align: middle; }
+.drv-thumb-box { position: relative; display: inline-block; background: #000; border: 1px solid var(--border-2); border-radius: 4px; overflow: hidden; line-height: 0; cursor: zoom-in; }
+.drv-thumb-img { object-fit: contain; display: block; }
+.drv-thumb-idx { position: absolute; left: 2px; top: 1px; font: 700 11px/1 ui-monospace, Consolas, monospace; color: #fff; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; }
+.drv-pickwrap { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+
+/* ---- the viewer */
+.drv-modal { width: min(1180px, calc(100vw - 40px)); }
+.drv-head { flex-wrap: wrap; }
+.drv-title { font-size: 1.1rem; }
+.drv-kind { font-size: 0.74rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border-2); color: var(--ink-2); white-space: nowrap; }
+.drv-kind.depth { border-color: rgba(57,135,229,0.6); color: #8db8ef; }
+.drv-kind.pose { border-color: rgba(25,158,112,0.6); color: #6fd0ad; }
+.drv-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.drv-tabs .btn.on, .drv-kinds .btn.on { background: var(--s1); border-color: transparent; color: #fff; }
+.drv-main { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.drv-left { display: flex; flex-direction: column; gap: 6px; }
+.drv-stage { position: relative; width: 440px; height: 440px; max-width: calc(100vw - 80px); max-height: calc(100vw - 80px); background: #000; border: 1px solid var(--border-2); border-radius: 8px; overflow: hidden; }
+.drv-frame { width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: auto; }
+.drv-bigidx { position: absolute; left: 10px; top: 4px; font: 800 64px/1 ui-monospace, Consolas, monospace; color: #fff; text-shadow: 0 0 4px #000, 0 0 8px #000, 2px 2px 0 #000; pointer-events: none; font-variant-numeric: tabular-nums; }
+.drv-keptmark { position: absolute; right: 10px; top: 10px; font: 700 15px/1 system-ui, sans-serif; background: var(--good); color: #fff; padding: 4px 9px; border-radius: 999px; pointer-events: none; }
+.drv-keptmark[hidden] { display: none; }
+.drv-file { font-family: ui-monospace, Consolas, monospace; }
+.drv-ctl { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.drv-scrub { width: 170px; accent-color: var(--s1); }
+.drv-stills { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 300px; min-width: 280px; max-width: 600px; align-content: flex-start; }
+.drv-still { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.drv-still img { width: 136px; height: 136px; object-fit: contain; background: #111; border: 1px solid var(--border); border-radius: 6px; cursor: zoom-in; }
+.drv-still figcaption { font-size: 0.78rem; color: var(--ink-2); }
+.drv-pickbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; padding: 8px 10px; background: var(--surface-2); border: 1px solid rgba(12,163,12,0.5); border-radius: 8px; }
+.drv-keepline { font-family: ui-monospace, Consolas, monospace; font-size: 0.86rem; }
+.drv-sheet-head { margin: 10px 0 4px; }
+.drv-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 5px; }
+.drv-cell { position: relative; padding: 0; background: #000; border: 2px solid var(--border); border-radius: 6px; cursor: pointer; line-height: 0; overflow: hidden; }
+.drv-cell img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; }
+.drv-cell-idx { position: absolute; left: 3px; top: 2px; font: 800 20px/1 ui-monospace, Consolas, monospace; color: #fff; text-shadow: 0 0 3px #000, 1px 1px 0 #000; }
+.drv-cell-order { position: absolute; right: 3px; bottom: 3px; font: 700 12px/1 system-ui, sans-serif; background: var(--good); color: #fff; padding: 2px 5px; border-radius: 999px; }
+.drv-cell.cur { border-color: var(--sel); }
+.drv-cell.kept { border-color: var(--good); box-shadow: 0 0 0 1px var(--good) inset; }
+.drv-cell.kept.cur { border-color: var(--sel); }
+.drv-info { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 0.86rem; }
+.drv-pathbox { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.drv-path { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.drv-path code { font-size: 0.8rem; background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
+.drv-used { display: inline-block; font-size: 0.76rem; margin: 1px 3px 1px 0; padding: 0 6px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); }
+.drv-used.played { background: rgba(12,163,12,0.25); color: #9fe39f; }
+.drv-meta pre { max-height: 260px; overflow: auto; background: var(--page); padding: 6px 8px; border-radius: 6px; }
+
+/* ---- death_keep */
+.drv-keep { display: flex; flex-direction: column; gap: 4px; }
+.drv-keep-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.drv-keep-row .txt { min-width: 220px; font-family: ui-monospace, Consolas, monospace; }
+.drv-keep-tiles { display: flex; align-items: flex-end; gap: 3px; flex-wrap: wrap; }
+.drv-keep-tile { position: relative; width: 46px; height: 46px; background: #4a4a46; border: 1px solid var(--border-2); border-radius: 4px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; }
+.drv-keep-tile img { width: 100%; height: 100%; object-fit: contain; }
+.drv-keep-tile.bad { border-color: var(--crit); }
+.drv-keep-idx { position: absolute; left: 2px; top: 1px; font: 800 13px/1 ui-monospace, Consolas, monospace; color: #fff; text-shadow: 0 0 2px #000, 1px 1px 0 #000; }
+.drv-keep-x { color: var(--crit); font-weight: 700; }
+
+/* ---- the Drivers tab */
+.drv-page { overflow: auto; }
+.drv-pagehead h2 { margin: 4px 0; }
+.drv-pagehead .help { margin: 2px 0 6px; color: var(--ink-2); max-width: 1100px; }
+.drv-where { margin-bottom: 8px; max-width: 1100px; }
+.drv-where p { color: var(--ink-2); }
+.drv-where div { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.drv-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; position: sticky; top: 0; background: var(--page); padding: 6px 0; z-index: 2; }
+.drv-bar input[type=search] { min-width: 320px; }
+.drv-kinds { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+.drv-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; padding-bottom: 20px; }
+.drv-libcard { display: flex; flex-direction: column; gap: 4px; padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.drv-libcard:hover, .drv-libcard:focus { border-color: var(--s1); outline: none; }
+.drv-libtop { display: flex; gap: 6px; }
+.drv-libclay { width: 120px; height: 120px; object-fit: contain; background: #111; border: 1px solid var(--border); border-radius: 4px; }
+.drv-libtop .drv-thumb-idx { font-size: 18px; }
+.drv-libname { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.drv-made { color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.drv-usedbox { display: flex; flex-wrap: wrap; gap: 2px; }
+/* a painted death's frames are keyed (transparent): a mid grey shows a dark creature */
+.drv-modal.painted .drv-frame, .drv-modal.painted .drv-cell img { background: #6b6b66; }
+.drv-stills-note { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; }
+.drv-still img.wide { width: 560px; max-width: 100%; height: auto; max-height: 260px; }

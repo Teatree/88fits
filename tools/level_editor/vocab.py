@@ -119,7 +119,7 @@ ENEMY_ART_KEYS = ["art_prompt", "screen", "back_hint", "back_prompt", "outline_f
                   "key_cut_shadow", "key_clamp_screen", "remap_hues"]
 CTL_RECIPE_KEYS = ["drivers", "prompt", "noun", "detail", "blockout", "words", "keep", "look_ref", "motion", "death_drivers",
                    "death_motion", "death_keep", "remap_hues", "dead", "fps", "directions", "screen", "outline_frac",
-                   "outline_color", "side_seeds", "walk_seeds", "anatomy", "no_green"]
+                   "outline_color", "side_seeds", "walk_seeds", "anatomy", "no_green", "fit_ref"]
 
 # ---------------------------------------------------------------- heroes (CharacterDef.gd, JsonContent._character)
 

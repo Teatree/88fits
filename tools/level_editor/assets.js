@@ -657,6 +657,7 @@ const Assets = (() => {
       }
       case 'id_select': row = Forms.row(def2, idSelect(doc, def), {}); break;
       case 'driver': row = Forms.row(def2, driverPick(doc, def), {}); break;
+      case 'frame_list': row = Forms.row(def2, frameListPick(doc, def), { cls: 'wide-ctl' }); break;   // pass 93 (lane PREVIEW): death_keep
       case 'checklist': row = Forms.row(def2, checklist(doc, def2), {}); break;
       case 'tags': row = Forms.row(def2, tagsInput(doc, def), {}); break;
       case 'pickup_weights': row = Forms.row(def2, pickupWeights(doc, def), { cls: 'wide-ctl' }); break;
@@ -894,7 +895,34 @@ const Assets = (() => {
     const want = def.driverKind || null;
     const list = S.drivers.filter((d) => !want || !d.kind || d.kind === want || (want === 'depth' && d.kind === 'depth') || (want === 'pose' && d.kind !== 'depth'));
     const opts = list.map((d) => ({ v: d.name, label: d.name, sub: `${d.kind || 'pose'} · ${d.frames || '?'} frames · ${Array.isArray(d.views) ? d.views.join(' ') : ''}`, help: d.meta ? JSON.stringify(d.meta) : '' }));
-    return Forms.iconSelect(opts, val || '', write, { emptyLabel: '— (the default)', path: def.key, popWidth: 340 });
+    const sel = Forms.iconSelect(opts, val || '', write, { emptyLabel: '— (the default)', path: def.key, popWidth: 340 });
+    // pass 93 (lane PREVIEW): the driver that applies (this field's, else the inherited or default one) plays beside it
+    if (typeof Drivers === 'undefined') return sel;
+    const ph = placeholderOf(def, doc);
+    // an empty hero view plays gen_art's default, run
+    const shown = val || (typeof ph === 'string' && ph ? ph.replace(/^\(default: |\)$/g, '') : (/(^|\.)pose_drivers\./.test(def.key) ? 'run' : ''));
+    return el('span', { class: 'drv-pickwrap' }, sel, Drivers.thumb(shown, { view: typeof DriversModel !== 'undefined' ? DriversModel.viewOfKey(def.key) : 'side' }));
+  }
+
+  /** Pass 93 (lane PREVIEW): a list of frame numbers (death_keep) picked off its driver's frames (methods.json
+   *  `picker: "frames"`, `frames_of`: the field naming the driver, read from this look's recipe, else the asset's own). */
+  function frameListPick(doc, def) {
+    const val = U.getPath(doc.data, def.key);
+    const apply2 = applyFor(doc);
+    const of = def.framesOf || 'death_drivers';
+    const m = /^variants\.([^.]+)\.recipe\./.exec(def.key);
+    const code = m ? m[1] : '';
+    const ownDrv = U.getPath(doc.data, def.key.replace(/[^.]+$/, of));
+    const inhDrv = m ? U.getPath(doc.data, of) : null;
+    const driver = ownDrv || inhDrv || '';
+    if (typeof Drivers === 'undefined') return jsonBox(doc, def, {});
+    return Drivers.keepField({
+      value: val, dflt: Array.isArray(def.defList) ? def.defList : undefined, driver, view: def.view || 'front',
+      driverNote: ownDrv ? `this look's ${of}` : (inhDrv ? `inherited: ${doc.id}'s own ${of}` : ''),
+      painted: code && (doc.kind === 'enemy' || doc.kind === 'boss') ? { enemy: doc.id, code } : null,
+      label: def.label || 'Frames kept',
+      onChange: (list) => apply2(() => U.setPath(doc.data, def.key, list && list.length ? list : null), 'editor'),
+    });
   }
 
   function checklist(doc, def) {
@@ -1100,6 +1128,8 @@ const Assets = (() => {
         continue;
       }
       if (t === 'driver') out.push(Object.assign(base, { type: 'driver', driverKind: /^(drivers|death_drivers)$/.test(f.key) ? 'depth' : 'pose' }));
+      // pass 93 (lane PREVIEW): a list of frame numbers picked off a driver's frames (death_keep)
+      else if (t === 'json' && f.picker === 'frames') out.push(Object.assign(base, { type: 'frame_list', framesOf: f.frames_of || 'death_drivers', view: f.view || 'front', defList: Array.isArray(f.default) ? f.default : undefined }));
       else if (t === 'file') out.push(Object.assign(base, { type: 'text', help: (base.help ? base.help + ' ' : '') + '(a path under tools/dl, as the upload gives it)' }));
       else if (t === 'select') out.push(Object.assign(base, { type: 'select', options: (Array.isArray(f.options) ? f.options : []).map((o) => (typeof o === 'string' ? { v: o, label: o === '' ? '(empty)' : o } : o)) }));
       else if (['bool', 'int', 'number', 'json', 'text', 'textarea'].includes(t)) out.push(Object.assign(base, { type: t }));
