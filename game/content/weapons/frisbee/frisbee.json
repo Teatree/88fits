@@ -68,6 +68,7 @@
   "evolves_with": "",
   "evolves_into": "flying_saucer",
   "params": {
+    "fire_forward": true,
     "bend_deg": 25,
     "bend_per_extra": 12,
     "fan_deg": 16,
@@ -85,7 +86,12 @@
       "emission": "#7CFF00",
       "energy": 0.8,
       "spin": 16.0,
-      "trail": true
+      "trail": {
+        "style": "streak",
+        "length": 0.4,
+        "width": 1.5,
+        "alpha": 0.6
+      }
     }
   },
   "sfx": {

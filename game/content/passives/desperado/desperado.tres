@@ -1,20 +1,40 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/desperado/desperado_icon.png" id="1_hjmtm"]
+[ext_resource type="Texture2D" path="res://content/passives/desperado/desperado_icon_evolved.png" id="1_pcxv7"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_pcxv7"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_qhifx"]
 
-[sub_resource type="Resource" id="Resource_hjmtm"]
+[sub_resource type="Resource" id="Resource_pcxv7"]
 script = ExtResource("2_pcxv7")
 stat = "desperado"
-value = 0.12
+value = 0.16
+target = "player"
+
+[sub_resource type="Resource" id="Resource_qhifx"]
+script = ExtResource("2_pcxv7")
+stat = "desperado"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_roiau"]
+script = ExtResource("2_pcxv7")
+stat = "desperado"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_wdtau"]
+script = ExtResource("2_pcxv7")
+stat = "desperado"
+value = 0.15
 target = "player"
 
 [resource]
 script = ExtResource("3_qhifx")
-levels = [[SubResource("Resource_hjmtm")]]
-max_level = 5
-text = "The more you are hurt, the harder you hit: +1.2% attack damage for every 10% of health you are missing at level 1 (+12% near death), up to +60% at level 5."
+levels = [[SubResource("Resource_pcxv7")], [SubResource("Resource_qhifx")], [SubResource("Resource_roiau")], [SubResource("Resource_wdtau")]]
+max_level = 4
+text = "The more you are hurt, the harder you hit: +1.6% attack damage for every 10% of health you are missing at level 1 (+16% near death), up to +51% once Evolved."
+evolved_icon = ExtResource("1_pcxv7")
 id = "desperado"
 display_name = "Desperado"
 flavour = "Nothing to lose. Everything to hit."

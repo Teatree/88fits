@@ -90,8 +90,8 @@ func test_fifteen_lines_each_with_an_evolved_line() -> void:
 		assert_str(p.evolves_into).override_failure_message(id + " evolves").is_empty()
 	for id: String in NEW_ITEMS:
 		var p: PassiveDef = Registry.passive(id)
-		# pass 70: Prospector became a line (four levels)
-		assert_int(p.max_level).is_equal(4 if p.is_line() else 5)
+		# pass 70: Prospector became a line (four levels); pass 95: a passive item climbs the rarity ladder
+		assert_int(p.max_level).is_equal(4 if p.is_line() else PassiveDef.ladder_levels(p.rarity))
 		assert_float(p.weight).is_between(8.0, 10.0)
 		assert_str(str(p.placeholder.get("color", ""))).is_not_empty()
 	for p: PassiveDef in Registry.passives.values():
@@ -651,25 +651,27 @@ func test_the_new_stats_have_defaults_and_names() -> void:
 		assert_str(TextGen.describe_effect(e)).is_equal(str(said[e]))
 	# each new item's numbers reach the sheet
 	_start()
-	var at := {"ducktape": ["debuff_duration", 1.15], "hot_sauce": ["difficulty", 0.25], "siesta": ["still_regen", 1.0],
-		"steady_hand": ["still_might", 0.1], "barrel_rush": ["barrel_speed", 0.25], "prospector": ["xp_drop_chance", 0.06],
-		"big_game_hunter": ["elite_damage", 0.15]}
+	# (re-pinned in pass 95, lane PASSIVES: the items' first rungs are higher, tools/passive_ladder.py)
+	var at := {"ducktape": ["debuff_duration", 1.15], "hot_sauce": ["difficulty", 0.25], "siesta": ["still_regen", 1.4],
+		"steady_hand": ["still_might", 0.13], "barrel_rush": ["barrel_speed", 0.3], "prospector": ["xp_drop_chance", 0.06],
+		"big_game_hunter": ["elite_damage", 0.2]}
 	for id: String in at.keys():
 		Run.add_or_level_passive(id)
 		assert_float(Run.player_sheet.get_stat(str(at[id][0]), 0.0)).override_failure_message(id).is_equal_approx(float(at[id][1]), 0.0001)
-	assert_float(Run.player_sheet.get_stat("barrel_seconds", 0.0)).is_equal_approx(3.0, 0.0001)
+	assert_float(Run.player_sheet.get_stat("barrel_seconds", 0.0)).is_equal_approx(4.0, 0.0001)
 	for k in range(4):
 		Run.add_or_level_passive("barrel_rush")
 		Run.add_or_level_passive("steady_hand")
-	assert_float(Run.player_sheet.get_stat("barrel_speed", 0.0)).is_equal_approx(0.65, 0.0001)
-	assert_float(Run.player_sheet.get_stat("barrel_seconds", 0.0)).is_equal_approx(6.0, 0.0001)
-	assert_float(Run.player_sheet.get_stat("still_might", 0.0)).is_equal_approx(0.3, 0.0001)
+	# Barrel Rush at level 5 of its 6, Steady Hand at its top (4)
+	assert_float(Run.player_sheet.get_stat("barrel_speed", 0.0)).is_equal_approx(0.62, 0.0001)
+	assert_float(Run.player_sheet.get_stat("barrel_seconds", 0.0)).is_equal_approx(6.4, 0.0001)
+	assert_float(Run.player_sheet.get_stat("still_might", 0.0)).is_equal_approx(0.26, 0.0001)
 	# Beer: more attack damage, less health
 	var hp := Run.player_sheet.get_stat("max_hp", 100.0)
 	var might := Run.player_sheet.get_stat("might", 1.0)
 	Run.add_or_level_passive("beer")
 	assert_float(Run.player_sheet.get_stat("max_hp", 100.0)).is_equal_approx(hp * 0.95, 0.001)
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 1.12, 0.001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 1.15, 0.001)
 	# gold_gained says what came in, after greed, and only when something did
 	var got: Array = []
 	var cb := func(a: int) -> void: got.append(a)
@@ -696,9 +698,10 @@ func test_the_new_items_read_well() -> void:
 			assert_bool(s.contains("_")).override_failure_message(id + " shows a raw stat: " + s).is_false()
 			assert_bool(s.contains("0.8 s")).override_failure_message(id + " rounds 0.75 s: " + s).is_false()
 		assert_str(p.flavour).is_not_empty()
+	# (pass 95: a passive item's first level reads plainly, a higher one names its rung)
 	assert_str(TextGen.passive_description(Registry.passive("barrel_rush"), 1)).is_equal(
-		"+25% move speed after a barrel, +3 s barrel boost at level 1, then +10% move speed after a barrel, +0.75 s barrel boost a level.")
-	assert_str(TextGen.passive_description(Registry.passive("barrel_rush"), 3)).ends_with("Level 3: +45% move speed after a barrel, +4.5 s barrel boost total.")
+		"+30% move speed after a barrel, +4 s barrel boost.")
+	assert_str(TextGen.passive_description(Registry.passive("barrel_rush"), 3)).is_equal("Level 3 (Rare): +46% move speed after a barrel, +5.2 s barrel boost total.")
 	assert_str(TextGen.passive_description(Registry.passive("barrage"), 1)).is_equal("+6 projectiles.")
 	assert_str(TextGen.passive_description(Registry.passive("ducktape"), 2)).is_equal("+15% debuff duration per level. Level 2: +32% debuff duration total.")
 	# the new lines explain what their stat does on the card
@@ -724,22 +727,22 @@ func test_steady_hand_folds_in_five_percent_buckets_up_to_double() -> void:
 	Run.note_still(0.0)
 	Run.add_or_level_passive("steady_hand")
 	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base, 0.0001)
-	# 2.3 s at 10% a second: 23%, folded as 20%
-	Run.note_still(2.3)
-	assert_int(Run.steady_bucket).is_equal(4)
-	assert_float(Run.steady_might()).is_equal_approx(0.2, 0.0001)
+	# 2 s at 13% a second (pass 95's first rung): 26%, folded as 25%
+	Run.note_still(2.0)
+	assert_int(Run.steady_bucket).is_equal(5)
+	assert_float(Run.steady_might()).is_equal_approx(0.25, 0.0001)
 	assert_bool(Run._steady_dirty).is_true()
 	Run._desperado_built_ms = -100000
 	Run.tick_timed()
 	assert_bool(Run._steady_dirty).is_false()
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.2, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.25, 0.0001)
 	var named := false
 	for r in Run.player_sheet.breakdown("might"):
-		if str(r["source"]) == "Steady Hand +20%":
+		if str(r["source"]) == "Steady Hand +25%":
 			named = true
 	assert_bool(named).is_true()
 	# a little longer in the same bucket: nothing to rebuild
-	Run.note_still(2.45)
+	Run.note_still(2.3)
 	assert_bool(Run._steady_dirty).is_false()
 	# up to +100% at most, however long he stands
 	Run.note_still(60.0)
@@ -756,13 +759,13 @@ func test_steady_hand_folds_in_five_percent_buckets_up_to_double() -> void:
 	Run.tick_timed()
 	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base, 0.0001)
 	assert_float(Run.steady_might()).is_equal(0.0)
-	# level 5: 30% a second, the cap in 3.4 s
-	for k in range(4):
+	# Evolved (level 4): 26% a second, the cap in 3.9 s
+	for k in range(3):
 		Run.add_or_level_passive("steady_hand")
-	Run.note_still(3.4)
+	Run.note_still(3.9)
 	assert_int(Run.steady_bucket).is_equal(20)
 	Run.note_still(1.0)
-	assert_int(Run.steady_bucket).is_equal(6)
+	assert_int(Run.steady_bucket).is_equal(5)
 
 
 func test_barrel_rush_runs_faster_for_a_while_after_a_barrel() -> void:
@@ -772,23 +775,24 @@ func test_barrel_rush_runs_faster_for_a_while_after_a_barrel() -> void:
 	assert_float(Run.boost_left(Run.BARREL_RUSH)).is_equal(0.0)
 	Run.add_or_level_passive("barrel_rush")
 	assert_bool(Run.barrel_rush()).is_true()
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.25, 0.0001)
-	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(3.0, 0.0001)
+	# (pass 95's first rung: 30% for 4 s, +8% and +0.6 s a rung)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.3, 0.0001)
+	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(4.0, 0.0001)
 	Run.elapsed += 1.0
-	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(2.0, 0.0001)
+	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(3.0, 0.0001)
 	# another barrel starts the clock again, the speed not stacked
 	assert_bool(Run.barrel_rush()).is_true()
-	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(3.0, 0.0001)
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.25, 0.0001)
+	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(4.0, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.3, 0.0001)
 	# two levels later: faster and longer
 	Run.add_or_level_passive("barrel_rush")
 	Run.add_or_level_passive("barrel_rush")
 	assert_bool(Run.barrel_rush()).is_true()
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.45, 0.0001)
-	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(4.5, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.46, 0.0001)
+	assert_float(Run.boost_left("barrel_rush")).is_equal_approx(5.2, 0.0001)
 	assert_int(Run.timed.filter(func(t: Dictionary) -> bool: return t["id"] == "barrel_rush").size()).is_equal(1)
 	# it runs out quietly (no "wore off" toast) and the speed is back
-	Run.elapsed += 5.0
+	Run.elapsed += 6.0
 	assert_array(Run.tick_timed()).is_empty()
 	assert_float(Run.boost_left("barrel_rush")).is_equal(0.0)
 	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed, 0.0001)

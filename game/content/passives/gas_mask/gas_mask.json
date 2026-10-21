@@ -3,15 +3,31 @@
   "name": "Gas Mask",
   "rarity": "epic",
   "weight": 5,
-  "max_level": 5,
+  "max_level": 3,
   "flavour": "Breathe easy in the bad air.",
-  "text": "1% damage reduction for every poisoned enemy, up to 8% (+8% a level, 40% at level 5).",
+  "text": "1% damage reduction for every poisoned enemy, up to 12% (20% at level 2, 30% once Evolved).",
   "levels": [
     [
       {
         "stat": "gas_mask_cap",
         "op": "add",
+        "value": 0.12,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "gas_mask_cap",
+        "op": "add",
         "value": 0.08,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "gas_mask_cap",
+        "op": "add",
+        "value": 0.1,
         "target": "player"
       }
     ]

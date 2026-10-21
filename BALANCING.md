@@ -5506,3 +5506,489 @@ No game numbers changed. The keyer skips the cast-shadow cut when the figure wea
 ## 40. Pass 93 (v0.79): art tools only
 
 No game numbers changed. Made walks: `step` swing (default, pass 92) | track (stride 0.22, raise 0.12, crouch 0.1, knee up); `tips=1` writes tips.json, tools/gait_check.py names SIDEWAYS/BACKWARDS legs. gen_ctl recipe `fit_ref` (scale the painting onto the depth figure), `no_green` "rb" (green held to max(red, blue)). The Desert Spider still plays SP-B; SP-E and SP-F are fresh.
+
+## 41. Pass 95 (v0.80): the muzzle, the Frisbee's trails, Fire forward, the passive ladder, the Dragon's Breath, despawning, the Magnet, the King and the Scorpion, VACE frame repair
+
+Garry's request (2026-10-21, tools/dl/p95/REQUEST.md). Each lane's rules as it wrote them.
+
+### 41.ITEMS The shot from the held gun's muzzle; the Frisbee's trail per look; the Fire forward debug switch
+
+#### The shot leaves the held gun (ProjectileEmitter.shot_origin)
+- A gun that is **held** (the forward guns: the Boomstick, the Blunderbuss, the Doomstick, with every mutation: Birdshot,
+  Both Barrels, Slug, Dragon's Breath...) fires every round, pellet, ghost pellet of a blast, tracer and muzzle flash from
+  the **muzzle as drawn this frame**: the gun is posed at the hero's hip (Player.tscn `Hip`, 0.55 m to his right, 0.7 m up)
+  and turned to the shot's line, and the muzzle is the middle of the far end of its barrels (the vertices of its visible
+  meshes within 3 cm of the furthest down the gun's -Z: twin barrels and a bell mouth average to the bore). The recoil
+  squish (scale z 0.7 on the shot) and the turn are in it: the Boomstick's round starts 0.85 m x 0.7 = 0.6 m ahead of the
+  hip at the barrel's height (0.09 m over the hip), 0.85 m once the gun has settled. Before: the hero's chest, 0.8 m up and
+  0.5 m out (Player.aim_origin), a third of a metre behind the muzzle and higher than it.
+- Only where the round starts moves: its line, speed, life (range / speed), the blast's hit test (from the hero) and the
+  lead are what they were. The companions (the Revolver, Tommy Gun, Chicago Typewriter, Golden Revolver, Peashooter...)
+  fire from their own mouths as before (pass 35, pass 75: 0.45 m along the line from the gun's rest place); a weapon
+  with neither a held gun nor a companion from the chest as before.
+
+#### The Frisbee's trail (Frisbee.trail_params, `params.disc.trail`)
+- `disc.trail` is a block {style, length, width, alpha, colour}; `true` = the look's own style and numbers, `false` or
+  style "none" = no trail. One style per look: plain -> **streak** (one faint pale ribbon with a brighter thread down its
+  middle), razors (Poison Razors) -> **sparks** (two thin bright lines off the rim's edges, 0.9 radii out, and every other
+  trail point a short spark flicking out and back), saucer (the Flying Saucer) -> **glow** (a wide soft glow with a brighter
+  core). Carry inherits the plain streak at its 1.5x disc (the width is in disc radii, so it trails wider).
+- The styles' numbers (code defaults = the content's): streak length 0.4 s, width 1.5 radii, alpha 0.6, colour the glow
+  lerped 45% to white; sparks 0.32 s, 0.6 radii (the sparks' length), alpha 0.9, 30% to white; glow 0.48 s, 2.2 radii,
+  alpha 0.45, 20% to white. Before pass 95: 0.22 s, 1.5 radii, alpha 0.32, 25% to white, one ribbon for every look, gone
+  the instant the disc began its glide. Now the ribbon keeps fading out behind a disc gliding down (no new points are laid
+  in the glide). A point every 0.025 s (TRAIL_STEP); every disc of a weapon draws into one ImmediateMesh: one draw call.
+
+#### "Fire forward" (Settings.fire_forward, core/systems/FireForward.gd)
+- A **debug switch**, off by default, PROD_LOCKED off (Settings' Debug panel row "Fire forward", the developer menu row;
+  the run record's `settings.fire_forward`). Garry asked for it as a toggle; what it changes is a rule of play only when
+  he turns it on.
+- On, a weapon with `params.fire_forward` fires **along the hero's facing** (Player.forward) unless a living creature (not
+  dying, not still rising) stands within **75% of the weapon's range** of the hero (FireForward.NEAR_FRAC x `range` as the
+  weapon's sheet says it, so Reach and the like count): then it aims as it always did. Covered: the Sabre (range 2.6 ->
+  1.95 m), the Spear = pike (4.6 -> 3.45 m), the Hammer (4.6 -> 3.45 m), the Frisbee (12 -> 9 m), the Tumbleweed (16 ->
+  12 m), the Basketball (9 -> 6.75 m) and their evolutions (Whirlwind, Thunder Lance, Earthshaker, Flying Saucer, Dust
+  Devil, Slam Dunk). The hidden Spear (`spear`), Halberd, Zweihänder and the old Earthshaker are not marked.
+- The Sabre and the Spear stroke along the facing on their clock even with nobody there (before: no stroke without a
+  target); the Hammer's blow lands **75% of its reach ahead** (3.45 m; its 1.6 m smash radius then covers to the range's
+  end); the Frisbee's arc crosses its line at the range's end; the Tumbleweed rolls straight ahead (before: no shot
+  without a target).
+- The Basketball thrown forward: a throw that struck nothing by the end of its flight hops to a creature within its bounce
+  reach (`ricochet_any.reach`, 7 m) as a hit would send it, else it **drops to the sand** (slows to 35% of its speed, falls
+  under gravity, gone with a puff of sand on the ground or after 0.6 s): no return, no catch, no Heat, no refund. A throw
+  that hit something plays on as any throw (its hops, the return, the catch).
+
+#### Measured (captures tools/dl/p95/ITEMS/shots/, 1080x1920, the debug arena, camera zoom 0.62; sheets in thumbs/)
+- The muzzle (`held_tip`, in the held gun's own frame; the hip pivot is the origin): the Boomstick (0, 0.095, -0.85):
+  0.85 m down the barrel, 9.5 cm above the pivot; Both Barrels (0, 0.094, -0.85): the bore between the twin barrels;
+  Birdshot the same gun; the Blunderbuss (0, 0.10, -1.15): the bell's mouth 1.15 m out. In every frame after the shot
+  (boomstick_side_f02/f04, boomstick_f02, both_barrels, birdshot, blunderbuss, blunderbuss_side) the tracers and the muzzle
+  smoke start at the barrel's end as drawn, none inside the hero or behind the gun. The Revolver, Tommy Gun and Chicago
+  Typewriter report "no held tip" and fire from their companions' mouths as before (revolver/tommy/chicago frames).
+- The trails (frisbee_plain, frisbee_razors, frisbee_carry, flying_saucer, frames f04..f45): plain = a faint pale
+  yellow-green streak (0.72, 1.0, 0.45) from the hero to each disc, dimmer than the disc; razors = two thin pink edge lines
+  (1.0, 0.39, 0.68) with the sparks; saucer = a wide soft pink glow (1.0, 0.40, 0.71) about 2 disc widths wide; Carry =
+  the streak at its 1.5x disc. Each reads at the phone's canvas against the sand at a glance and none shouts.
+- Fire forward (forward_sabre, forward_hammer, forward_frisbee; nobody alive): the Sabre's stroke dir (0, 0, -1) = the
+  facing (0, 0, -1); the Hammer at level 3 (range 5.52 m) landed 4.14 m ahead = 0.75 x 5.52; the Frisbee's first disc
+  left at 8 degrees off the facing (its arc's opening angle; dir0 (0.139, 0, -0.990)), crossing the line at the range's end.
+- Tests: pass95_ITEMS_test 18/18; the older files my ids touch, 15 files 225/225, none re-pinned (pass35 16, pass48_melee
+  20, pass48_projectiles 24, pass51 10, pass53_weapons_a 11, pass53_weapons_b 13, pass60_wp 18, pass61_wp1 17,
+  pass62_it 20, pass66_shape 14, pass67_ball 12, pass69_fris 18, pass74_analytics 8, pass81_prod 15, pass88_tweaks 9);
+  check_scripts 619 files, 0 errors; smoke_run 60 s OK (263 kills, 10 cards, 1 chest, 1 portal, errors []);
+  touch_audit settings 64 of 64 controls answered a finger (the FireForward switch among the Debug panel's 4).
+
+### 41.PASSIVES Passive items climb the rarity ladder to Evolved; power redistributed
+
+#### The rule: passive items climb the rarity ladder
+
+A passive item (content/passives, `line` false, no `evolves_from`; the 34 items) keeps its rarity and climbs the
+rarity ladder one rung an upgrade: an item of rarity r has (the rungs from r to legendary) + 1 (Evolved) upgrades, so
+its levels are common 6, uncommon 5, rare 4, epic 3 (legendary 2; no item is legendary). Level k stands on rung
+RARITIES[idx(r) + k - 1]; the top level is **Evolved**, a rarity for passive items only (never for weapons or cards):
+the dark plate ringed in brass like an evolved line, the item's Evolved icon (the same icon with a white outline round
+its subject, `<id>_icon_evolved.png`, tools/evolved_icons.py), "Evolved" in the words (the card's EVOLVED tag in the
+evolution's ember, "Next level (Evolved): ...", "Level 6 (Evolved): ... total."). `max_level` is derived from the rule
+(PassiveDef.ladder_levels, applied in JsonContent.build); the JSON holds every rung's effects explicitly, so each rung
+is Garry's to tune in the Level Editor (which warns when the list and the rule disagree). The lines (cards: 4 levels,
+a Risen card when maxed) are untouched. (Garry, pass 95: "the number of Upgrades is reduced to the number of upgrades
+they have left to reach Legendary + Evolved Rarity ... Evolved is a 'Rarity' for Passive Items".)
+
+What follows from it, named:
+- A held item's upgrade card says the rung it lands on after the kind's word ("PASSIVE · RARE"); a new item's card
+  says only PASSIVE (its plate says its rarity, pass 47); the top says PASSIVE with the EVOLVED tag.
+- The plate of a passive item takes its rung's colour wherever its level is known (cards, chests, the Stranger, the
+  pause Build tab and Stats sources); the Collection shows the item in general: its rarity's colour and the base icon.
+- The Stranger's two levels at once land on the rung of the level reached; a chest offers one rung; nothing past the
+  top. An old level past the top (a tool, a record) reads as Evolved.
+- Phoenix Feather (uncommon, 5 levels): level 1 one free revive; rungs 2-4 +15%, +15%, +20% health on revive
+  (`revive_hp`, the gold revive's too); Evolved a second free revive (`phoenix_revive` 2, Run.phoenix_count): the item
+  is "used" only when every life is spent.
+- Shop prices still go by the item's own rarity (StructureShop RARITY_MULT), not the rung bought.
+
+#### The redistribution (tools/passive_ladder.py; the old numbers under tools/dl/p95/PASSIVES/old/)
+
+The scheme, from Garry's words ("redistribute that power among fewer upgrades ... not the same 100% over 2 ... the
+power shouldn't just half either ... stats on the 1st level will be higher"):
+- level 1 = 1.2-1.5 x the old level 1 (fatter the rarer: common ~1.3, uncommon ~1.35, rare ~1.4, epic ~1.5);
+- each rung after it about 0.8 of an old step (the same-count items keep their old top, so their rungs are a touch
+  under an old step; the Evolved rung is bigger than any old step);
+- the Evolved rung the biggest single step, about 1.5 rungs ("not as crazy");
+- the top: an item that lost rungs (rare 5 -> 4, epic 5 -> 3) ends at 0.75-0.9 of its old top; one that kept its
+  count (the uncommons, the 3-level epics) at about its old top (x0.97-1.05); one that gained rungs (common 5 -> 6,
+  Overkill 3 -> 5, Ricochet 4 -> 5, Brimstone Brand and Guillotine 3 -> 4, Phoenix Feather 1 -> 5) a little above it
+  (x1.05-1.22; Beer's and Quickdraw's multiplicative stacks x1.21);
+- a capped stat never passes its cap: the Magnet's 8.5 m (PickupManager.XP_PULL_MAX_R, so its top stays 8.5 m, reached
+  in 3 picks instead of 5, level 1 at 6 m), Hot Streak's +100%, chances under 100%;
+- by hand with a reason: Phoenix Feather (above), the Magnet (the cap), the Pocket Watch (the chance at levels 1, 3 and
+  Evolved as before), Counterpunch (level 1 keeps "double damage", Evolved makes it x2.5), Hot Springs (same count: the
+  old top kept, level 1 fatter), the 3-level epics.
+
+The table (level 1 | rung 2 | ... | Evolved; the top old -> new and its ratio):
+
+| item | rarity | old levels | new levels | rungs (level 1 | rung 2 | ... | Evolved) | top: old -> new (ratio) |
+|---|---|---|---|---|---|
+| adrenaline | uncommon | 5 | 5 | adrenaline_speed +0.0055, adrenaline_might +0.004 | adrenaline_speed +0.003, adrenaline_might +0.0025 | adrenaline_speed +0.003, adrenaline_might +0.0025 | adrenaline_speed +0.003, adrenaline_might +0.0025 | adrenaline_speed +0.005, adrenaline_might +0.0035 | adrenaline_speed 0.02 -> 0.0195 (x0.97); adrenaline_might 0.015 -> 0.015 (x1.00) |
+| barrel_rush | common | 5 | 6 | barrel_speed +0.3, barrel_seconds +4 | barrel_speed +0.08, barrel_seconds +0.6 | barrel_speed +0.08, barrel_seconds +0.6 | barrel_speed +0.08, barrel_seconds +0.6 | barrel_speed +0.08, barrel_seconds +0.6 | barrel_speed +0.12, barrel_seconds +0.9 | barrel_speed 0.65 -> 0.74 (x1.14); barrel_seconds 6 -> 7.3 (x1.22) |
+| beer | common | 5 | 6 | might x0.15, max_hp x-0.05 | might x0.1, max_hp x-0.04 | might x0.1, max_hp x-0.04 | might x0.1, max_hp x-0.04 | might x0.1, max_hp x-0.04 | might x0.14, max_hp x-0.05 | might 0.7623 -> 0.9194 (x1.21); max_hp -0.2262 -> -0.2335 (x1.03) |
+| big_game_hunter | uncommon | 5 | 5 | elite_damage +0.2 | elite_damage +0.12 | elite_damage +0.12 | elite_damage +0.12 | elite_damage +0.18 | elite_damage 0.75 -> 0.74 (x0.99) |
+| brimstone_brand | rare | 3 | 4 | brand_chance +0.2 | brand_chance +0.1 | brand_chance +0.1 | brand_chance +0.15 | brand_chance 0.45 -> 0.55 (x1.22) |
+| cake | common | 5 | 6 | heal_drop +0.004 | heal_drop +0.0025 | heal_drop +0.0025 | heal_drop +0.0025 | heal_drop +0.0025 | heal_drop +0.0035 | heal_drop 0.015 -> 0.0175 (x1.17) |
+| cold_snap | common | 5 | 6 | freeze_chance +0.03 | freeze_chance +0.015 | freeze_chance +0.015 | freeze_chance +0.015 | freeze_chance +0.015 | freeze_chance +0.02 | freeze_chance 0.1 -> 0.11 (x1.10) |
+| counterpunch | uncommon | 5 | 5 | counter_damage +1, counter_haste +0.25, counter_speed +0.2, counter_seconds +2.5 | counter_haste +0.04, counter_speed +0.025, counter_seconds +0.2 | counter_haste +0.04, counter_speed +0.025, counter_seconds +0.2 | counter_haste +0.04, counter_speed +0.025, counter_seconds +0.2 | counter_damage +0.5, counter_haste +0.06, counter_speed +0.04, counter_seconds +0.3 | counter_damage 1 -> 1.5 (x1.50); counter_haste 0.4 -> 0.43 (x1.07); counter_speed 0.27 -> 0.315 (x1.17); counter_seconds 3 -> 3.4 (x1.13) |
+| desperado | rare | 5 | 4 | desperado +0.16 | desperado +0.1 | desperado +0.1 | desperado +0.15 | desperado 0.6 -> 0.51 (x0.85) |
+| gas_mask | epic | 5 | 3 | gas_mask_cap +0.12 | gas_mask_cap +0.08 | gas_mask_cap +0.1 | gas_mask_cap 0.4 -> 0.3 (x0.75) |
+| guillotine | rare | 3 | 4 | execute_frac +0.09 | execute_frac +0.04 | execute_frac +0.04 | execute_frac +0.06 | execute_frac 0.21 -> 0.23 (x1.10) |
+| heavyweight | rare | 5 | 4 | heavyweight +0.012 | heavyweight +0.0015 | heavyweight +0.0015 | heavyweight +0.0025 | heavyweight 0.02 -> 0.0175 (x0.87) |
+| hot_springs | epic | 3 | 3 | max_hp +26, regen +0.65, heal_pulse +5 | max_hp +6, regen +0.2 | max_hp +10, regen +0.35 | max_hp 40 -> 42 (x1.05); regen 1.2 -> 1.2 (x1.00); heal_pulse 4 -> 5 (x1.25) |
+| hot_streak | rare | 5 | 4 | kill_might +0.07 | kill_might +0.04 | kill_might +0.04 | kill_might +0.06 | kill_might 0.25 -> 0.21 (x0.84) |
+| hush_money | uncommon | 5 | 5 | gold_on_hit +3 | gold_on_hit +2 | gold_on_hit +2 | gold_on_hit +2 | gold_on_hit +3 | gold_on_hit 10 -> 12 (x1.20) |
+| kindling | uncommon | 5 | 5 | fire_damage x0.2 | fire_damage x0.12 | fire_damage x0.12 | fire_damage x0.12 | fire_damage x0.18 | fire_damage 1.0114 -> 0.9894 (x0.98) |
+| last_stand | epic | 3 | 3 | last_stand +1.3 | last_stand +0.3 | last_stand +0.5 | last_stand 2 -> 2.1 (x1.05) |
+| loose_change | uncommon | 5 | 5 | coin_on_hit +0.32 | coin_on_hit +0.08 | coin_on_hit +0.08 | coin_on_hit +0.08 | coin_on_hit +0.12 | coin_on_hit 0.65 -> 0.68 (x1.05) |
+| magnet | epic | 5 | 3 | xp_pull_radius +6 | xp_pull_radius +1, xp_pull_rate +0.5 | xp_pull_radius +1.5, xp_pull_rate +0.5 | xp_pull_radius 8.5 -> 8.5 (x1.00); xp_pull_rate 1 -> 1 (x1.00) |
+| overkill | uncommon | 3 | 5 | overkill +0.4 | overkill +0.15 | overkill +0.15 | overkill +0.15 | overkill +0.25 | overkill 1.02 -> 1.1 (x1.08) |
+| phoenix_feather | uncommon | 1 | 5 | phoenix_revive +1 | revive_hp +0.15 | revive_hp +0.15 | revive_hp +0.2 | phoenix_revive +1 | phoenix_revive 1 -> 2 (x2.00); revive_hp new 0.5 |
+| pickpocket | common | 5 | 6 | coin_drop +0.005 | coin_drop +0.003 | coin_drop +0.003 | coin_drop +0.003 | coin_drop +0.003 | coin_drop +0.005 | coin_drop 0.02 -> 0.022 (x1.10) |
+| pocket_watch | uncommon | 5 | 5 | powerup_duration +0.2, powerup_chance +0.05 | powerup_duration +0.12 | powerup_duration +0.12, powerup_chance +0.04 | powerup_duration +0.12 | powerup_duration +0.2, powerup_chance +0.05 | powerup_duration 0.75 -> 0.76 (x1.01); powerup_chance 0.12 -> 0.14 (x1.17) |
+| powder_keg | uncommon | 5 | 5 | powder_keg_chance +0.065 | powder_keg_chance +0.02 | powder_keg_chance +0.02 | powder_keg_chance +0.02 | powder_keg_chance +0.03 | powder_keg_chance 0.15 -> 0.155 (x1.03) |
+| quickdraw | common | 5 | 6 | projectile_speed x0.2 | projectile_speed x0.12 | projectile_speed x0.12 | projectile_speed x0.12 | projectile_speed x0.12 | projectile_speed x0.18 | projectile_speed 1.0114 -> 1.2281 (x1.21) |
+| reach | uncommon | 5 | 5 | area x0.1 | area x0.06 | area x0.06 | area x0.06 | area x0.1 | area 0.4693 -> 0.4411 (x0.94) |
+| ricochet | uncommon | 4 | 5 | ricochet +0.25 | ricochet +0.13 | ricochet +0.13 | ricochet +0.13 | ricochet +0.2 | ricochet 0.8 -> 0.84 (x1.05) |
+| siesta | uncommon | 5 | 5 | still_regen +1.4 | still_regen +0.8 | still_regen +0.8 | still_regen +0.8 | still_regen +1.2 | still_regen 5 -> 5 (x1.00) |
+| sinners_greed | epic | 3 | 3 | greed +0.4, xp_gain +0.2 | greed +0.2, xp_gain +0.1 | greed +0.3, xp_gain +0.15 | greed 0.9 -> 0.9 (x1.00); xp_gain 0.45 -> 0.45 (x1.00) |
+| skedaddle | rare | 5 | 4 | hurt_speed +0.25, hurt_speed_seconds +2 | hurt_speed +0.03, hurt_speed_seconds +0.3 | hurt_speed +0.03, hurt_speed_seconds +0.3 | hurt_speed +0.05, hurt_speed_seconds +0.5 | hurt_speed 0.4 -> 0.36 (x0.90); hurt_speed_seconds 3.5 -> 3.1 (x0.89) |
+| snake_oil | epic | 3 | 3 | overheal +0.25 | overheal +0.06 | overheal +0.1 | overheal 0.4 -> 0.41 (x1.02) |
+| steady_hand | rare | 5 | 4 | still_might +0.13 | still_might +0.04 | still_might +0.04 | still_might +0.05 | still_might 0.3 -> 0.26 (x0.87) |
+| venom | uncommon | 5 | 5 | poison_damage x0.2 | poison_damage x0.12 | poison_damage x0.12 | poison_damage x0.12 | poison_damage x0.18 | poison_damage 1.0114 -> 0.9894 (x0.98) |
+| vulture | uncommon | 5 | 5 | crit_heal_chance +0.06 | crit_heal_chance +0.03 | crit_heal_chance +0.03 | crit_heal_chance +0.03 | crit_heal_chance +0.05 | crit_heal_chance 0.2 -> 0.2 (x1.00) |
+
+#### The texts
+
+The hand-written card lines that named the old numbers were rewritten to the ladder's (TEXT in the tool): Barrel Rush,
+Cold Snap, Counterpunch, Desperado, Gas Mask, Guillotine, Heavyweight, Hot Springs, Hot Streak, Last Stand, Loose
+Change, the Magnet, Phoenix Feather, the Pocket Watch, Powder Keg, Siesta, Skedaddle, Snake Oil, Steady Hand,
+Vulture; Beer's trade reads "−4 to −5% max HP a level". The generated lines: level 1 plainly ("+0.4% cake drop
+chance."), a higher level "Level 3 (Rare): +0.9% cake drop chance total.", the next level "Next level (Rare): +0.25%
+cake drop chance", a card's upgrade "Next: +0.25% cake drop chance." (no "a level": every rung is its own).
+
+#### Measured
+
+##### The run sim (tools/sim_batch.py: 12 Drifters, seeds 1-12, a quarter board, death ends the run, stage 1)
+
+Before = the committed passives on a private copy of the snapshot (tools/dl/p95/PASSIVES/sim/before), after = the ladder
+(sim/after); the same code otherwise. Mean (sd, median) over the 12 runs, Welch's t:
+
+| measure | before | after | delta | t (df ~17-21) |
+|---|---|---|---|---|
+| run end (s) | 280 (73, 278) | 262 (54, 259) | -18 | 0.66 |
+| hero level at the end | 11.9 (4.3, 11) | 10.2 (2.9, 9.5) | -1.8 | 1.11 |
+| kills | 961 (501, 927) | 886 (366, 866) | -75 | 0.40 |
+| damage dealt | 44,820 (35,842) | 35,989 (18,310) | -8,831 | 0.73 |
+| XP | 2,254 (2,062) | 1,498 (1,096) | -756 | 1.07 |
+| gold | 401 (340) | 311 (285) | -90 | 0.68 |
+| chests | 4.1 (4.1) | 2.2 (2.2) | -1.9 | 1.36 |
+| deaths a run | 1.25 | 1.25 | 0 | |
+
+No measure moves beyond its noise (every t under 1.4: p above 0.19); the "before" set holds two runs that reached
+levels 20 and 21 (424 s and 338 s) and without them it equals the "after" set (end 259 s vs 262, level 10.2 vs 10.2,
+kills 799 vs 886). The bot held only 7 passive items (7 levels in all) across the 12 "before" runs and 8 (9 levels)
+across the "after" ones: the explorer bot spends its picks on weapons and cards, so the sim barely exercises the
+passives at all; the probe below measures them directly. A 30-run pair would halve the noise but not change this.
+
+##### HeroPower (game/tools/_p95_PASSIVES_power.gd: a fresh Drifter with the Revolver, each item alone at level 1 and at its top, old rungs against new)
+
+HeroPower (core/systems/HeroPower.gd) is the square root of full DPS x effective HP: it sees only damage, health,
+regen and armour. The base here is 2.385 (DPS 116.1, EHP 100). Of the 34 items only three move it at all; the other 31
+(chances, gold, coins, drops, pulls, on-kill and conditional stacks, speeds, revives) read +0.000 at every level, old and
+new, so their balance rests on the table's ratios above. Power above the base:
+
+| item | rarity | level 1 old -> new | top old -> new |
+|---|---|---|---|
+| beer | common | +0.075 -> +0.108 (x1.44) | +0.400 (lv 5) -> +0.508 (lv 6) (x1.27) |
+| heavyweight | rare | +0.116 -> +0.139 (x1.19) | +0.228 (lv 5) -> +0.200 (lv 4) (x0.88) |
+| hot_springs | epic | +0.386 -> +0.492 (x1.27) | +0.779 (lv 3) -> +0.797 (lv 3) (x1.02) |
+
+The six common items (barrel_rush, beer, cake, cold_snap, pickpocket, quickdraw) maxed together: 2.785 -> 2.893 (DPS 205 -> 223, EHP 77.4 -> 76.7); only Beer
+counts for HeroPower among them (its might stack 0.76 -> 0.92 with a sixth rung, its HP trade -22.6% -> -23.4%).
+
+Verdict: nothing jumps out. Level 1 is a fifth to a half stronger, as Garry asked; Heavyweight, which lost a rung,
+tops out at 0.88 of before; Hot Springs, with the same count, at 1.02; Beer, with a rung more, at 1.27 (a common item
+that costs six picks to max). No retune after the measurement.
+
+### 41.BREATH The Cologne and Lighter (Dragon's Breath): a fire-breath weapon, its path and evolution
+
+#### The Dragon's Breath (content/weapons/dragons_breath; behaviour FireBreath)
+
+Rare, weight 6 (the Molotov's), available to everyone, no hero's favourite. Level 1: a tick of **32** damage every
+**1.0 s** to every creature whose body stands in a **50°** cone **5 m** long from the hero's face, for **2.0 s**, every
+**9.0 s** (the slowest weapon in the game at every level: the Turret Buddy's 6.0 s is next; the rule is relative, "the
+slowest weapon in the game", checked against every other weapon's base cooldown by the Level Editor's selftest, so the
+number itself is Garry's to tune); every creature in the fire is set alight every tick with **6** fire damage (every
+0.6 s) for **2.5 s**, spread 0.3. `amount` is seconds of breath: **+1.0 s per point past the first**, **6 s at most**
+(so Multishot's three points make a 5 s breath; a 10-point amount buff a 6 s one). Level 2: damage +35%, range +0.5 m.
+Level 3: cooldown −12%, fire damage +50%. Level 4: damage +35%, area +20% (the cone 60°). Level 5: cooldown −12%,
+range +0.5 m, duration +1.0 s. At 5: 58.3 a tick, 6.97 s, 3.0 s (three ticks), 6 m, 60°, burn 9 / 2.5 s.
+
+Rules (every one new, FireBreath.gd):
+- **The cone follows his facing** and walks with him; it never aims. A creature counts when any of its body (its
+  radius) is inside; dying, hidden and held ones never.
+- **A tick on entry**: a creature takes its first tick the moment it stands in the fire, the next every `tick` s while
+  it stays (counted by its spawn serial); the cadence is anchored to its entry (a tick that lands a frame late never
+  delays the next); a creature that walks out and back in within a tick keeps its clock, one back after longer starts
+  afresh. No tick on the breath's last frame (a 2 s breath ticks at 0 and 1 s; the estimate counts ceil(seconds / tick)).
+- **The wait** (`breath.wait` 2 s): with the cooldown ready it waits for a creature to stand in the cone; past the
+  wait it breathes where he faces if anyone at all is within `range` (aim_index: on the screen, up out of the sand).
+- The breath keeps burning through a pause (the whoosh stops and starts again) and ends when the hero falls.
+- Blue fire (`fire_blue`, Blue Flame and so the Fire Eater): the breath, its wash and every creature it lights burn blue.
+
+#### The path
+
+- **Blue Flame** (element, fire): range +25%, damage −20%, burns last +75%, fire_blue. (Methanol's trade, the Molotov's.)
+- **Held Breath** (volume; `breath.still {seconds 2, duration_mult 2, damage_mult 1.5, ring true}`): a breath that
+  starts after the hero has stood still AND unhit for 2 s lasts ×2 (after the amount cap), every tick deals ×1.5, and
+  the fire comes from all sides (a 360° ring, the same reach). `Player.still_unhit_seconds` = min(still_seconds, seconds
+  since the last hit that landed on his star, shield or health); an evaded or immune hit is a miss. A hit breaks the
+  stillness for the NEXT breath only: a breath already burning is never cut. Steady Hand's `still_seconds` is untouched.
+- **Backdraft** (motion; `breath.knock` 5, `look.intensity` 1.5): every tick also shoves the creature straight away
+  from the hero with force 5 through EnemyManager.damage's push (/ its mass x knockback_resist x the map's
+  hero_knockback_mult 0.5, a boss 0.15): about a metre a second for a skeleton. The flames x1.5.
+
+#### The Fire Eater (content/evolutions/fire_eater)
+
+80 a tick, 6.5 s, 3.5 s (four ticks), 7 m, 65° (area 1.3), burn 14 / 3.5 s, spread 0.5; `final`: knock 7, intensity
+1.8, max_seconds 8. With its path (always all three): 64 a tick, 8.75 m, burn lasts 6.1 s, blue. **Thorns +8 on the
+hero while it is held** (the Thorn's level 1): a weapon level effect aimed at "player" (new rule, WeaponDef.player_effects
+/ Run._apply_weapon_player_effects, source "weapon:fire_eater" in the Stats tab); the thorns strike as Game._thorns_burst
+does (THORNS_RADIUS 2.3 m, once every 0.5 s, recorded as "thorns"). The Fire Eater is the slowest evolution (the Iron
+Bastion's 5.0 s is next).
+
+#### The estimate
+
+WeaponInstance.breath_dps = damage x ticks x BREATH_CATCH (3 creatures in the cone) / cooldown; HeroPower divides the 3
+out and adds the burn for `element_uptime` = (breath seconds + fire_duration) / cooldown of the time (1 for every
+other weapon: a 9 s weapon's burn is out most of the time, and a boss's HP is pegged to the hero's full DPS).
+
+##### The table (game/tools/_p95_BREATH_dps.gd, a fresh level-1 Drifter's sheet; whole output tools/dl/p95/BREATH/dps.txt)
+
+"dps" is the pause screen's estimate (WeaponInstance.dps_estimate), "1-target" HeroPower's (the crowd divided out, the
+burn at its uptime). A level-5 row carries the weapon's whole path (Blue Flame's −20% damage is in the breath's).
+
+| weapon | lvl | cooldown | a hit | range | burn | dps (pause) | 1-target (HeroPower) | path |
+|---|---|---|---|---|---|---|---|---|
+| dragons_breath | 1 | 9.00 | 32.0 | 5.0 | 6/2.5s | 21.3 | 12.1 | |
+| dragons_breath | 5 | 6.97 | 46.7 | 7.5 | 9/4.4s | 60.2 | 35.1 | blue_flame, held_breath, backdraft |
+| fire_eater | 1 | 6.50 | 64.0 | 8.8 | 14/6.1s | 118.2 | 62.7 | blue_flame, held_breath, backdraft |
+| molotov | 1 | 2.40 | 8.0 | 10.0 | 4/1.8s | 3.3 | 10.0 | |
+| molotov | 5 | 2.11 | 8.0 | 10.0 | 5/4.2s | 3.8 | 11.5 | accelerant, methanol, oil_slick |
+| moonshine | 1 | 2.00 | 10.0 | 12.0 | 5/4.2s | 10.0 | 18.0 | accelerant, methanol, oil_slick |
+| boomstick | 1 | 1.40 | 6.0 | 6.0 | | 21.4 | 21.4 | |
+| boomstick | 5 | 1.26 | 9.4 | 6.0 | 4/1.8s | 95.1 | 45.0 | dragons_breath (the Boomstick's fire mutation), birdshot_lane, both_barrels |
+| blunderbuss | 1 | 1.00 | 9.0 | 10.0 | 10/4.0s | 291.6 | 65.3 | the same |
+| guitarra | 1 | 1.40 | 14.0 | 6.0 | | 30.0 | 10.0 | |
+| guitarra | 5 | 1.55 | 22.8 | 12.0 | | 44.0 | 14.7 | tinnitus, far_reach, music_slap |
+| requiem | 1 | 1.54 | 24.0 | 9.8 | | 46.8 | 15.6 | the same |
+| hammer | 1 | 2.40 | 20.0 | 4.6 | | 25.0 | 8.3 | |
+| hammer | 5 | 2.40 | 31.3 | 6.3 | | 117.2 | 39.1 | thors_wrath, giant_slayer, aftershock |
+| revolver | 1 | 1.00 | 20.0 | 14.0 | | 20.0 | 20.0 | |
+| revolver | 5 | 0.79 | 48.8 | 14.0 | | 258.5 | 258.5 | silver_bullet, hip_shot, trick_shot |
+| turret_buddy | 1 | 6.00 | 4.0 | 8.0 | | 12.0 | 12.0 | (the next slowest weapon) |
+| iron_bastion | 1 | 5.00 | 6.7 | 10.0 | | 20.2 | 20.2 | (the next slowest evolution) |
+
+Where it stands among the 24 weapons in play ("decent damage", the brief: the middle at level 1):
+- Level 1: **13th of 24 from the bottom on both columns** (the median: dps 21.3 beside the Boomstick's 21.4 and the
+  Revolver's 20.0; 1-target 12.1 beside the Sun Scepter's 12.7 and the Turret Buddy's 12.0).
+- Level 5 with its path: 6th of 24 (dps 60.2 against a median of 113; 1-target 35.1 against 67): the estimate counts 3
+  creatures in the cone and Blue Flame's −20%; without the path 75 dps (10th). In a stage-2 crowd the 60° x 6 m cone
+  holds more than 3, see the probe below.
+- The Fire Eater: 8th of 24 evolutions (118 dps; the strongest, the Golden Revolver, 650); never above the strongest.
+
+#### Measured in play (game/tools/difficulty_probe.gd; the Drifter's fixed builds with the Dragon's Breath in the Peashooter's slot)
+
+Builds b1x / b2x / b3x (tools/difficulty_probe.gd BUILDS, the lane's rows): b1 at 5:00 with a quarter board (mirror
+1.5), 130 s windows, two seeds; b2 at 14:20 inside Nightfall's window (stage=1) and b3 at 21:30 inside Blood Moon's
+(stage=2), half a board (mirror 3), seed 11. "dealt/s" is the build's whole damage a second over the window; "lost/min"
+the HP lost a minute in max-HP units net of healing. The probe is not deterministic (0.4 maxHP a minute between runs of
+one seed): read the pairs together.
+
+| window | build (the fifth slot) | seed | lost/min net | kills/min | dealt/s | DPS45 at the end |
+|---|---|---|---|---|---|---|
+| 5:00, a quarter board | b1: Peashooter L1 (est 11) | 11 | 0.65 | 193 | 549 | 535 |
+| | | 12 | 1.09 | 180 | 433 | 234 |
+| | b1x: Dragon's Breath L1 (est 27) | 11 | 0.90 | 196 | 498 | 436 |
+| | | 12 | 0.28 | 193 | 512 | 485 |
+| 14:20 (Nightfall), half a board | b2: Peashooter L3 + 2 mutations (est 91) | 11 | 0.00 | 692 | 3,795 | 2,533 |
+| | b2x: Dragon's Breath L5 + its path (est 127) | 11 | 0.00 | 983 | 5,278 | 5,450 |
+| 21:30 (Blood Moon), half a board | b3: Peashooter L5 + 2 mutations (est 268) | 11 | 0.00 | 1,873 | 5,568 | 6,116 |
+| | b3x: the Fire Eater (est 369) | 11 | 0.00 | 1,937 | 5,306 | 5,499 |
+
+Read: at level 1 the breath is a level-1 Peashooter (the pairs overlap within the probe's noise: kills 193-196 against
+180-193, damage 498-512 against 433-549 a second). At level 5 with its path, in a 200-strong Nightfall crowd, the
+build deals **39% more a second (5,278 against 3,795) and kills 42% more a minute (983 against 692)** than with the
+Peashooter's slot: the 60° x 7.5 m cone holds far more than the estimate's 3 creatures, so "decent damage" at 1 and
+strong at 5 hold in play even though the pause-screen estimate ranks it 6th of 24 at 5. The Fire Eater in the Blood
+Moon window is a level-5 Peashooter's slot (−5% damage a second, +3% kills, one seed: the same within noise) beside
+the Golden Revolver, Whirlwind and Saw Halo that carry that build; it stands 8th of 24 evolutions by the estimate,
+never above the strongest. Nothing in the pairs changes the HP lost (every window at 0.0 net past 14:20 with half a
+board).
+
+The lead may want to change: the estimate's BREATH_CATCH (3) undersells the breath in a crowd (the b2 pair says 10+
+in the cone); 4-5 would put the pause screen's number and the bot's card score nearer what it does, at the cost of
+overstating it on a thin crowd (the brief asked for a conservative middle at level 1, which 3 gives).
+
+### 41.WORLD Regular creatures despawn out of view; the Magnet power-up as a timed wide pull
+
+#### Despawn: regular creatures far from the hero and out of view go (map `timeline_data.despawn`)
+Garry: "in Vampire Survivors certain enemies despawn if the player walks far enough from them. Let's do that as well.
+This, of course, only applies to regular enemies, not all of them. Also, we need to make sure that the despawning
+happens out of Player's view. So never when enemies are above him. When enemies despawn they leave nothing behind."
+Vampire Survivors moves a far creature to the other side of the screen; Megabonk's crowd stays near the hero. Ours vanish
+and their rows spawn again near him, which is the same crowd density with no teleporting bodies.
+
+- **Who**: a regular creature only. Never the boss, an Elite by its kind, one wearing an Elite modifier, a special type
+  (the gear badge: the Vulture Raider, the harpooner, the Saiga Sniper), a coloured variance special, a boss's summon
+  (a brood, an eruption's young) while its boss lives, a training dummy, one held by the Gravity Gun, roped, in the air
+  (a launch, a toss, a bounce), still rising out of the sand or sinking into it, or dying already.
+- **When**: every `every` = 0.5 s a pass over the crowd (at the top of the creatures' physics tick, before the grid is
+  built, so a freed slot is never in that tick's cells). A creature goes when ALL hold: farther than `distance` = 40 m
+  (flat) from the hero; OFF the screen by the camera's own frustum test grown by 1 m at his feet (EnemyManager
+  refresh_onscreen, half the crowd refreshed a tick; without a camera that can say (tests, tools) everything counts as
+  on the screen, so nothing ever goes); older than `grace` = 6 s since its spawn. `keep_share` = 0: none of the ones
+  that could go is spared (above 0, that share is spared at each check, rolled again at the next).
+- **What**: it vanishes at once: no death animation, no blood, no XP, no coins, no drops, no chest, no kill count, no
+  quest progress, no analytics kill, no corpse, no `creature_dying` / `enemy_died` signal. The live counts drop as for
+  a death (`count_alive`, the cap's load, `alive_of` for a row's max_alive, Endless's room), so the director's rows
+  spawn again near the hero on their next check. Counted in the run record (`despawned`, by creature).
+- **Where it is off**: the debug arena (creatures are spawned there to be looked at); a manager without a director
+  (tests, tools) unless one calls `set_despawn`.
+- **The older rule it replaces for regular creatures** (found by the probe, undocumented until now: WaveDirector
+  `_cull_behind`, every 0.5 s, since an early pass): anything more than 30 m BEHIND the hero (behind = more than ~107
+  degrees off his facing; never the boss, the Elite boss or an artillery creature) was moved up to a fresh spawn point
+  19-24 m from him, in front, wherever it was and whatever it was (a coloured special, an Elite modifier, a boss's
+  brood, a held one) and whether or not it could be seen. With the despawn rule ON, a regular creature
+  (EnemyManager.despawn_kind) is left to the despawn rule and NEVER moved up (it walks after him, and goes at 40 m out
+  of view); the ones the despawn rule never takes (a special type, a coloured special, an Elite modifier, a summon of a
+  living boss, one held, roped, in the air or rising) are still moved up at 30 m behind, as before. With the rule OFF
+  (`enabled` false, the arena) `_cull_behind` plays as before for everyone. Why: Garry asked for "despawn ... leave
+  nothing behind"; the move-up is a teleport that keeps the crowd on him however far he runs, which is not that; and the
+  probe showed no creature ever gets 40 m away while the move-up runs, so the two cannot both play on the same creature.
+- **Why 40 / 6 / 0.5**: the screen shows about 12 m to the sides and 20 m up and down at the run's zoom (plus the 1 m
+  margin); the roster's rings come at 18 m, the sides' bursts 19-24 m out, the Saiga Sniper stands off at 26 m (a
+  special: excluded anyway); a teleport jumps 40 m, so the crowd left behind goes on the next check. 6 s of grace keeps
+  a burst that landed behind a running hero (5 m/s: 30 m in 6 s) from being thrown away before it had a chance. Half a
+  second between checks is the director's own spawn cadence (Red Canyon's spawn check is 0.7 s).
+- **Measured** (game/tools/_p95_WORLD_probe.gd, a 120 s headless run of the real game on Red Canyon stage 1, the
+  Drifter in god mode walking a square 25 s a side at his walking speed, so the crowd is left behind on every leg; the
+  probe reads the crowd itself every frame and judges with the camera's own frustum test, not the manager's flags;
+  log tools/dl/p95/WORLD/probe2.txt): **176 creatures despawned in 120 s** (Lesser Scorpion 77, Skeleton 68, Skeleton
+  Knight 31: the regular rows of the first two minutes; no Elite, special or summon), the probe's own count of
+  creatures gone without a death 176 (= the manager's), **0 violations** (not one went while on the screen or within
+  40 m); the farthest living creature stayed at 33-41 m (40.7 m at most: the 40 m line plus the half second between
+  checks) where it had been 30 m with the old move-up; alive 27-81 against a cap of 150, and after every walk-away the
+  rows refilled (past half the cap after a despawn: yes; the least alive right after one: 13, at the end of the
+  longest leg). About 1.5 creatures a second go while he walks away at 5 m/s, none while he stands (t 65-75 s of
+  probe1, the same walk with the rule off: 0 despawned, the farthest never past 31 m, because `_cull_behind` kept
+  moving the crowd up in front of him).
+
+#### The Magnet power-up: a timed wide pull (content/pickups/magnet_pulse, effect `magnet`)
+Garry: "Magnet - should not pull everything. Should just affect a big area and work for a time (like 10s) maybe. For
+that time there should be a 2d magnet icon floating around the Player and the usual UI elements indicating that Player
+is 'magnetizing' things in that moment. The area of effect should be quite big, around 2.5 times larger than the Magnet
+Epic Item. Making the player move around and such."
+
+- **Reach**: `params.radius_mult` = 2.5 × the reach the Magnet card gives at its level 1 (its `xp_pull_radius` add,
+  read from the card at run time, so the power-up follows the card: 5 m before this pass = 12.5 m; lane PASSIVES'
+  retune of the card's level 1 to 6 m = **15 m**, which is what the capture shows). Flat distance from the hero's feet.
+- **Time**: `duration` = 10 s on the buffs' clock (it stands still through a pause), × the Pocket Watch's
+  `powerup_duration` (1; 1.75 at level 5) × the hero's `buff_duration` (Solenne's Magic Hour 1.25), like Sprint, Berserk
+  and the Shield. A second Magnet while one runs ADDS its seconds to what is left (the only timed power-up that extends
+  rather than restarts: a second Sprint restarts its clock; a magnet thrown away would read as a bug).
+- **What it pulls**: every tick, every EXP gem and every coin lying on the sand within the reach sets off for the hero
+  on the magnet arc (pass 60's big-pull look). Never a chest, a power-up, a vacuum gem (the Elite's white gem: its own
+  pull would take the whole map, which is what the old Magnet Pulse did), nor a gem still falling (it is taken the
+  moment it lands). Walking about gathers more: the reach travels with him.
+- **Shown**: the HUD's power-up plate with the seconds left (the pickup's icon, as Sprint's); the 2D magnet (the
+  pickup's own icon, 0.8 m, orbiting his feet at 1.3 m and 1.55 m up, 1.4 rad/s, bobbing 0.12 m) with up to three faint
+  dashed field lines curving to the nearest gems on their way (then to the nearest ones lying up to 1.6 × the reach
+  away: where to walk), their dashes crawling towards the magnet, a spark every 0.12 s; a faint ring at the reach (0.45
+  s) at the start and then every 0.6 s while anything came; the icon blinks over its last 1.5 s as a power-up on the
+  ground does; the "pk_vacuum" sound at the start; "Magnet wore off" with the other buffs. The toast says the reach and
+  the seconds from the data: "MAGNET: gems and coins within 15 m for 10 s".
+- **The bot** prices it as it priced the Magnet Pulse: by the XP lying (BotGoals.powerup_value "vacuum" / "magnet").
+- **Pickup weights, lifetime, colour, icon**: unchanged (weight 2, 40 s on the ground, #FFB52E).
+- **What is gone**: the old Magnet Pulse's whole-map vacuum (coins and chests too). The Uber Magnet structure, a boss
+  chest's opening and the Elite's vacuum gem still pull the whole map (`vacuum_all`).
+
+### 41.BOSS The King's tumbleweed trail and three-stomp jump; the Scorpion Elite's tail sniper
+
+#### The King's stomp (content/bosses/tumbleweed_king, row `stomp`; EnemyManager `_stomp_*`)
+- The old `slam` row (one blast of 30 in 6 m after a 1.2 s wind-up) is now `stomp`: the same 1.2 s wind-up and ring,
+  then a jump (2.2 m high: 0.35 s up on an ease-out, 0.2 s down on an ease-in) and a landing, three times, 0.45 s on the
+  ground between a landing and the next hop. Landings come 1.0 s apart (gap 0.45 + up 0.35 + down 0.2); the first
+  lands 0.55 s after the wind-up. The whole attack: 1.2 + 0.55 + 2 x 1.0 = 3.75 s, then the King's cooldown_between
+  (2.0 s) as before.
+- Damage a landing: 18 = 60% of the old slam's 30, in the same radius 6 m (+ 0.5 m for the hero's body), x the boss's
+  stage x hero-level x host factors as every scripted attack. Danger against before: a hero who stands in the ring for
+  all three takes 54 (x1.8 the old slam); one who walks out as the first lands (5 m/s, from the King's 2.2 m body to
+  past 6.5 m: about a second) takes one or two (18 to 36); one who leaves during the wind-up, as before, takes none.
+  The ring warns before every landing (the wind-up's 1.2 s for the first, then 0.55 s for the hop, then 1.0 s after
+  each landing for the next), so the dodge is read, not guessed. In practice (the capture, the sim's bot) one landing
+  is the common outcome: a touch under the old slam's 30.
+- Push: knockback 6 as a special push (pass 89's hero_special_knock share, 0.5 on Red Canyon: 3 m/s), per landing; a
+  row with `lift` throws instead (none in content).
+- The pace knob and a hamper stretch the hops and gaps as they stretch a wind-up (the attack clock x pace: EnemyManager
+  `pace` = Run.move_pace() x the timeline's creature_speed_mult: Red Canyon's 0.9 x 0.9 = 0.81). In the arena capture
+  at that pace the landings came 1.25 s apart (75 frames at 60 fps) and the three took 3.75 s after the wind-up; at
+  pace 1 they come 1.0 s apart as above.
+- The landing's wave: a band of light racing out to 6 m over 0.5 s (Telegraphs.race_ring, width 0.3 of the radius), the
+  ring's flash 0.4 s, Fx.stomp_dust (a ring of puffs covering about 0.6 of the radius, a column, 12 grains, 8 clods),
+  a camera kick 1.2 (the old slam's shockwave was 1.0), the boulder's landing thud. Cosmetic.
+- The `slam` script itself is unchanged (the Hammer Giant's, custom slams).
+
+#### The Scorpion Elite's tail sniper (content/enemies/dune_scorpion, row `tail_sniper`; EnemyManager `_tail_*`)
+- A fourth attack in its rotation (burrow, slam_at, spit_volley, tail_sniper; cooldown_between 4.5 s unchanged) with
+  `chance` 0.7: as its turn comes it plays 7 times in 10, else the rotation moves on to the burrow. Its share of the
+  Elite's attacks: 0.7 / 3.7 = 19%; about one attack in five. Skipped while the hero is within 5 m (`min_range`): up
+  close its slam and burrow are the threat.
+- The sequence: a 0.5 s wind-up (it stops), then frozen: aim 1.0 s (8 red lines gathering from the tail tip over a 40
+  degree cone, following the hero) + lock 0.4 s (the line stands still: the time to step off it) + the beam, then 0.6 s
+  frozen; three times: 3 x (1.0 + 0.4) + 3 x 0.6 = 6.0 s frozen in all, the beams 2.0 s apart. Each aim starts afresh
+  at where the hero stands, so a hero who keeps moving across the line is missed by the beam he dodged and aimed at
+  again by the next. All x 1/pace (the same creatures' pace as the stomp: the capture at Red Canyon's 0.81 had the
+  beams 2.5 s apart).
+- Damage a beam: 2 x the Saiga Sniper's base = 2 x (the Vulture Raider's rocket 22 x 0.7) = 30.8 before the Elite's own
+  stage x hero-level x host factors (the Saiga's 15.4 before its own); against the Drifter's 100 HP at stage 1, level 1:
+  three beams on a standing hero = 92.4, nearly a kill; one dodged = 61.6. The beam's knockback 5 as a special push
+  (share 0.5), hit info "tail beam".
+- The crowd on the beam's line: 5% of max HP each (at most 40) and a 3 m push aside, the Saiga's rule (the Elite thins
+  its own escort when it fires through it).
+- Nothing spoils the run but a stun, a freeze, a launch, a grab, hiding or death (the Saiga's spoil-on-hit does not
+  apply: an Elite is under fire the whole time). After the run its own charge waits at least 0.8 s (TAIL_CHARGE_REST).
+- Reading: identical to the Saiga's shot (SniperFx: the gathering lines, the lock, the laser, the sparks), from the
+  tail tip (muzzle up 2.0 m at its size 3, 0.4 m behind the body along the aim).
+
+#### The King's tumbleweed trail (content/bosses/tumbleweed_king, the volley row's `trail`; ProjectileManager TUMBLE_TRAIL)
+- Cosmetic: every tumbleweed of the volley lays a dust ribbon in the tracers' ring (style "line": a soft band that
+  widens x1.9, lifts at 0.45 m/s and greys like smoke over its life), a warm dark sand #7A5A30 at alpha 0.58, 0.5 m
+  wide, 0.75 s life, a segment every 0.3 m rolled (0.6 m on a busy screen), from the ball's foot (0.35 m under its
+  centre), and a real dust puff every 0.11 s (Fx.roll_dust, thinned on a busy screen). Twelve tumbleweeds x 2.6 s:
+  about 160 live segments at most in the 2048 ring (the capture: 600 segments laid, 264 puffs over the volley).
+  The first capture's darker, longer ribbon (#5C3F1E at 0.72, 0.55 m, 0.9 s) read as twelve shadow spokes at phone
+  size, so it was lightened and shortened; the code default and the King's row carry the same numbers. Nothing in
+  the sim.
+- Pass 45's bead at the foot (tan at alpha 0.4: invisible on the sand) only remains for a trail of style "none".
+
+#### New common attack key
+- `chance` (0..1) on any `boss.attacks` row: rolled as the attack's turn comes; a miss skips to the next attack (the
+  range skips' loop). Without it an attack always plays, as before.
+
+### 41.VACE VACE frame repair in the Level Editor: the frames store, the Frames view, history, cross-look, export
+
+No game rule, number or content value changes in this lane: the frames store, the Frames view and the VACE repair are
+tooling. A look's strip changes only when Garry presses Export, and then only the frames he chose; the entry keeps
+its anims counts, strip_cols and fps (head is measured again from the idle and run frames, as every landing does).
+
+Tool thresholds, for the record (tools/frames_store.FLAG_RULES, hints on the sheet, never a verdict): jump 1.7 (a
+frame differs from both neighbours 1.7x more than they differ from each other, and more than twice the median
+step), footprint 0.72-1.35 of the group's median box, seam 2.2x the median step (loops), silhouette IoU under 0.5
+against the driver's frame, empty under 0.4% of the cell.

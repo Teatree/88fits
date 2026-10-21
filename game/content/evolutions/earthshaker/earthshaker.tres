@@ -28,6 +28,7 @@ sfx = {
 visual = ExtResource("2_6vtkg")
 visual_file = "earthshaker_visual.tscn"
 params = {
+"fire_forward": true,
 "giant_slayer": {
 "always": true,
 "mult": 2.5

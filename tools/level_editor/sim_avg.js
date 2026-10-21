@@ -32,7 +32,7 @@ const SimAvg = (() => {
   // pass 84 (lane SIMVIEW): challenge (a threat over the hero's product), alive_hell_by and starving_by
   const MEDIAN_SERIES = ['keep_up', 'boss_s', 'challenge'];
   const BREAKDOWNS = { dmg_by: 'cum', kills_by: 'cum', gold_by: 'cum', took_by: 'cum', healed_by: 'cum', alive_by: 'level', held_by: 'level',
-    alive_hell_by: 'level', starving_by: 'level' };
+    alive_hell_by: 'level', starving_by: 'level', despawned_by: 'cum' };   // pass 95 (lane WORLD): the despawned by creature
   const SOURCE_WORDS = { blast: 'Blast', revive: 'Revive blast', grand_finale: 'Grand Finale', powder_keg: 'Powder Keg',
     loose_rocket: 'Loose rocket', thorns: 'Thorns', other: 'Other' };
 
@@ -576,7 +576,7 @@ const SimAvg = (() => {
     const held = { weapons: 0, evolutions: 0, lines: 0, passives: 0, perks: 0 };
     let mHp = 1.0, mDmg = 1.0;
     const goldTotal = [], gold = [], dmgTotal = [], kills = [], level = [], xpTotal = [], took = [], healed = [], deaths = [];
-    const aliveBy = {}, goldBy = {}, dmgBy = {}, killsBy = {}, goldAcc = {}, dmgAcc = {}, killsAcc = {};
+    const aliveBy = {}, goldBy = {}, dmgBy = {}, killsBy = {}, goldAcc = {}, dmgAcc = {}, killsAcc = {}, despawnedBy = {}, despAcc = {};   // pass 95 (lead): despawned_by, as sim_run.gd
     const fallT = [];
     for (const e of rec || []) if (isObj(e) && String(e.kind) === 'death') fallT.push(fl(e.t));
     let fi = 0, gsum = 0, dsum = 0, lastT = 0;
@@ -646,6 +646,7 @@ const SimAvg = (() => {
       gold.push(int(row.gold));
       kills.push(int(row.kills));
       step(killsBy, killsAcc, isObj(row.killed) ? row.killed : {}, i, true, false);
+      step(despawnedBy, despAcc, isObj(row.despawned) ? row.despawned : {}, i, true, false);
       level.push(int(row.level, 1));
       xpTotal.push(snapped(fl(row.xp_total), 0.1));
       let lost = 0;
@@ -659,7 +660,7 @@ const SimAvg = (() => {
     const out = Object.assign({}, S);
     out.sums = { rows: rows.length, deaths: fallT.length, gold_total: gsum };
     Object.assign(out, { took_by: tookBy, healed_by: healedBy, held_by: heldBy, alive_by: aliveBy, gold_total: goldTotal, gold, gold_by: goldBy,
-      dmg_total: dmgTotal, dmg_by: dmgBy, kills, kills_by: killsBy, level, xp_total: xpTotal, took, healed, deaths });
+      dmg_total: dmgTotal, dmg_by: dmgBy, kills, kills_by: killsBy, despawned_by: despawnedBy, level, xp_total: xpTotal, took, healed, deaths });
     // pass 82 (lane STATS): chests, power-ups and totems so far at each row (sim_run.gd series()'s pickup counts)
     Object.assign(out, SM.pickupCounts(rec, rows.map((r0) => fl(isObj(r0) ? r0.t : 0))));
     out.events = eventsOut(rec, toolEvents, endEv);

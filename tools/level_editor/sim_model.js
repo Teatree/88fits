@@ -408,6 +408,11 @@ const SimModel = (() => {
       stack: killFold, lines: [], overlay: ov('kills', 'mean', `${cmpName}: kills`) });
     else push('rewards', { id: 'kills', title: 'Kills', fmt: 'int', unit: 'kills', how: `Creatures killed so far, ${playingNote}.`,
       lines: [{ key: 'kills', label: 'kills', color: SLOTS[1], values: ser(res, 'kills') || [] }], overlay: ov('kills', 'mean', `${cmpName}: kills`) });
+    // pass 95 (lane WORLD): the regular creatures that despawned far from the hero and out of view (a sim from pass 95 on)
+    const despFold = fold(bds.despawned_by, names, FOLD, creatureColors);
+    if (despFold) push('rewards', { id: 'despawned', title: 'Despawned out of view', fmt: 'int', unit: 'creatures',
+      how: `Regular creatures that vanished so far because the hero left them more than the map's despawn distance behind, off the screen (no kill, no drop; their rows spawn again near him), split by creature (the biggest ${FOLD}, the rest as Other), ${playingNote}. The top edge is the total.`,
+      stack: despFold, lines: [], overlay: [] });
     // pass 82 (lane STATS): chests, power-ups and totems picked up so far
     const pk = PICKUP_SERIES.filter((p) => has(p.key));
     if (pk.length) push('rewards', { id: 'pickups', title: 'Chests, power-ups, totems', fmt: 'level', unit: 'picked up',

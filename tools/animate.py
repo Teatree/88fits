@@ -156,14 +156,36 @@ WAN_T2V_LORA_HIGH = "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors
 WAN_T2V_LORA_LOW = "wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors"
 
 
-def wan_fun_control(prompt, ref_name, ctl_names, seed, width=640, height=640, negative=NEGATIVE, prefix="88fits/ctl", shift=5.0):
+WAN_DEFAULTS = {"steps": 4, "cfg": 1.0, "lora": True, "shift": 5.0, "size": 640}
+
+
+def wan_settings(w=None):
+    """pass 94 (lane REAL): a walk's Wan settings, the recipe's `wan` {steps, cfg, lora, shift, size} laid over the
+    defaults (4 steps with the lightx2v speed-up LoRAs at cfg 1, shift 5, 640 px: every walk before pass 94). Without
+    the LoRA (lora false) Wan 2.2 wants about 20 steps at cfg 3.5 (the ComfyUI template); cfg above 1 makes ComfyUI
+    compute the negative side too, so anim_negative and the built-in negative words act only then (about twice the
+    time a step). `steps` is the total, split half on the high-noise model and half on the low-noise one."""
+    out = dict(WAN_DEFAULTS)
+    if isinstance(w, dict):
+        for k in WAN_DEFAULTS:
+            if w.get(k) is not None:
+                out[k] = type(WAN_DEFAULTS[k])(w[k])
+    out["steps"] = max(2, int(out["steps"]))
+    out["size"] = max(256, int(out["size"]) // 16 * 16)
+    return out
+
+
+def wan_fun_control(prompt, ref_name, ctl_names, seed, width=640, height=640, negative=NEGATIVE, prefix="88fits/ctl", shift=5.0,
+                    steps=4, cfg=1.0, lora=True):
     """Wan 2.2 Fun Control 14B (pass 34): a clip that follows a control video (our depth renders of a 3D model walking)
-    and looks like the reference painting. The two-stage split and the 4-step LoRAs as for the other Wan graphs."""
+    and looks like the reference painting. The two-stage split and the 4-step LoRAs as for the other Wan graphs.
+    pass 94: steps / cfg / lora (wan_settings): without the LoRA, more steps at a real cfg."""
     g = comfy.Graph()
     hi = g.add("UNETLoader", "Wan 2.2 Fun Control high noise", unet_name=WAN_FUN_HIGH, weight_dtype="default")
     lo = g.add("UNETLoader", "Wan 2.2 Fun Control low noise", unet_name=WAN_FUN_LOW, weight_dtype="default")
-    hi = g.add("LoraLoaderModelOnly", "lightx2v high", model=(hi, 0), lora_name=WAN_T2V_LORA_HIGH, strength_model=1.0)
-    lo = g.add("LoraLoaderModelOnly", "lightx2v low", model=(lo, 0), lora_name=WAN_T2V_LORA_LOW, strength_model=1.0)
+    if lora:
+        hi = g.add("LoraLoaderModelOnly", "lightx2v high", model=(hi, 0), lora_name=WAN_T2V_LORA_HIGH, strength_model=1.0)
+        lo = g.add("LoraLoaderModelOnly", "lightx2v low", model=(lo, 0), lora_name=WAN_T2V_LORA_LOW, strength_model=1.0)
     hi = g.add("ModelSamplingSD3", model=(hi, 0), shift=shift)
     lo = g.add("ModelSamplingSD3", model=(lo, 0), shift=shift)
     clip = g.add("CLIPLoader", "umt5 text encoder", clip_name=WAN_CLIP, type="wan", device="default")
@@ -177,10 +199,12 @@ def wan_fun_control(prompt, ref_name, ctl_names, seed, width=640, height=640, ne
         batch = li if batch is None else g.add("ImageBatch", image1=(batch, 0), image2=(li, 0))
     fc = g.add("Wan22FunControlToVideo", positive=(pos, 0), negative=(neg, 0), vae=(vae, 0), width=width, height=height, length=len(ctl_names),
                batch_size=1, ref_image=(ref, 0), control_video=(batch, 0))
-    s1 = g.add("KSamplerAdvanced", "high noise 0-2", model=(hi, 0), add_noise="enable", noise_seed=seed, steps=4, cfg=1.0, sampler_name="euler", scheduler="simple",
-               positive=(fc, 0), negative=(fc, 1), latent_image=(fc, 2), start_at_step=0, end_at_step=2, return_with_leftover_noise="enable")
-    s2 = g.add("KSamplerAdvanced", "low noise 2-4", model=(lo, 0), add_noise="disable", noise_seed=0, steps=4, cfg=1.0, sampler_name="euler", scheduler="simple",
-               positive=(fc, 0), negative=(fc, 1), latent_image=(s1, 0), start_at_step=2, end_at_step=10000, return_with_leftover_noise="disable")
+    steps = max(2, int(steps))
+    half = steps // 2
+    s1 = g.add("KSamplerAdvanced", "high noise 0-%d" % half, model=(hi, 0), add_noise="enable", noise_seed=seed, steps=steps, cfg=float(cfg), sampler_name="euler", scheduler="simple",
+               positive=(fc, 0), negative=(fc, 1), latent_image=(fc, 2), start_at_step=0, end_at_step=half, return_with_leftover_noise="enable")
+    s2 = g.add("KSamplerAdvanced", "low noise %d-%d" % (half, steps), model=(lo, 0), add_noise="disable", noise_seed=0, steps=steps, cfg=float(cfg), sampler_name="euler", scheduler="simple",
+               positive=(fc, 0), negative=(fc, 1), latent_image=(s1, 0), start_at_step=half, end_at_step=10000, return_with_leftover_noise="disable")
     dec = g.add("VAEDecode", samples=(s2, 0), vae=(vae, 0))
     g.add("SaveImage", images=(dec, 0), filename_prefix=prefix)
     return g
@@ -257,16 +281,24 @@ def cache_fits(meta, ref_h, seed, ctl_dir, tries=2):
     return True
 
 
-def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_extra="", loop_frames=12, tries=2):
+def wan_fits(meta, ws):
+    """pass 94: a cached clip serves only the Wan settings it was walked with (a cache without them was walked on the
+    defaults)."""
+    return (meta.get("wan") or dict(WAN_DEFAULTS)) == ws
+
+
+def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_extra="", loop_frames=12, tries=2, wan=None):
     """A walk cycle that follows a 3D model's control video (tools/blender_ant.py: ctl_NN.png, two strides): the
     second stride is kept (the first settles in), keyed, cropped to a common box. Returns (frames, meta); cached in
-    ANIM/<key>/ like the other cycles."""
+    ANIM/<key>/ like the other cycles. pass 94: `wan` {steps, cfg, lora, shift, size} (wan_settings)."""
+    ws = wan_settings(wan)
+    size = ws["size"] if isinstance(wan, dict) and wan.get("size") else size
     os.makedirs(os.path.join(ANIM, key), exist_ok=True)
     meta_p = os.path.join(ANIM, key, "cycle.json")
     rh = ref_hash(ref_rgb, size)
     if os.path.exists(meta_p):
         meta = json.load(open(meta_p, encoding="utf-8"))
-        if meta.get("control") and meta.get("n_out") == loop_frames and cache_fits(meta, rh, seed, ctl_dir, tries):
+        if meta.get("control") and meta.get("n_out") == loop_frames and cache_fits(meta, rh, seed, ctl_dir, tries) and wan_fits(meta, ws):
             frames = [Image.open(os.path.join(ANIM, key, "out_%02d.png" % k)).convert("RGBA") for k in range(loop_frames)]
             if len(frames) == loop_frames:
                 return frames, meta
@@ -278,7 +310,8 @@ def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_e
     last_err = None
     for attempt in range(tries):
         s = seed + attempt * 7919
-        pngs, secs = comfy.run(wan_fun_control(prompt, ref_name, ctl_names, s, size, size, negative=neg, prefix="88fits/ctl_" + key), timeout=3600)
+        pngs, secs = comfy.run(wan_fun_control(prompt, ref_name, ctl_names, s, size, size, negative=neg, prefix="88fits/ctl_" + key,
+                                               shift=ws["shift"], steps=ws["steps"], cfg=ws["cfg"], lora=ws["lora"]), timeout=7200)
         raw = [Image.open(io.BytesIO(b)).convert("RGB") for b in pngs]
         if len(raw) < loop_frames * 2:
             last_err = "got %d frames" % len(raw)
@@ -306,7 +339,7 @@ def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_e
             f.save(os.path.join(ANIM, key, "out_%02d.png" % k))
         artkit.contact_sheet(out, loop_frames, 200).save(os.path.join(ANIM, key, "cycle_sheet.png"))
         meta = {"key": key, "seed": s, "control": True, "ctl_dir": os.path.abspath(ctl_dir), "n_out": loop_frames, "frames": len(raw), "ref_hash": rh, "ctl_sig": ctl_sig(ctl_dir),
-                "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt}
+                "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt, "wan": ws}
         json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
         print("  ctl  %-24s seed %-7d %5.0fs  %d frames, box %s" % (key, s, secs, loop_frames, box), flush=True)
         return out, meta
@@ -326,16 +359,19 @@ def _crop_kept(frames, size, pad=6):
     return [f.crop(box) for f in frames]
 
 
-def oneshot_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_extra="", keep=(1, 4, 7, 10, 13, 16, 20, 24), tries=2):
+def oneshot_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_extra="", keep=(1, 4, 7, 10, 13, 16, 20, 24), tries=2, wan=None):
     """A one-shot clip (a death) that follows a 3D model's control video (tools/blender_scorpion.py mode=death): the
-    frames at `keep` from the start to the end, keyed and cropped to one box. Cached in ANIM/<key>/ like the cycles."""
+    frames at `keep` from the start to the end, keyed and cropped to one box. Cached in ANIM/<key>/ like the cycles.
+    pass 94: `wan` as cycle_control's."""
+    ws = wan_settings(wan)
+    size = ws["size"] if isinstance(wan, dict) and wan.get("size") else size
     os.makedirs(os.path.join(ANIM, key), exist_ok=True)
     meta_p = os.path.join(ANIM, key, "cycle.json")
     keep = list(keep)
     rh = ref_hash(ref_rgb, size)
     if os.path.exists(meta_p):
         meta = json.load(open(meta_p, encoding="utf-8"))
-        fits = cache_fits(meta, rh, seed, ctl_dir, tries)
+        fits = cache_fits(meta, rh, seed, ctl_dir, tries) and wan_fits(meta, ws)
         if meta.get("oneshot") and meta.get("keep") == keep and fits:
             frames = [Image.open(os.path.join(ANIM, key, "out_%02d.png" % k)).convert("RGBA") for k in range(len(keep))]
             return frames, meta
@@ -358,7 +394,8 @@ def oneshot_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative
     last_err = None
     for attempt in range(tries):
         s = seed + attempt * 7919
-        pngs, secs = comfy.run(wan_fun_control(prompt, ref_name, ctl_names, s, size, size, negative=neg, prefix="88fits/ctl_" + key), timeout=3600)
+        pngs, secs = comfy.run(wan_fun_control(prompt, ref_name, ctl_names, s, size, size, negative=neg, prefix="88fits/ctl_" + key,
+                                               shift=ws["shift"], steps=ws["steps"], cfg=ws["cfg"], lora=ws["lora"]), timeout=7200)
         raw = [Image.open(io.BytesIO(b)).convert("RGB") for b in pngs]
         if len(raw) <= max(keep):
             last_err = "got %d frames" % len(raw)
@@ -386,7 +423,7 @@ def oneshot_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative
             f.save(os.path.join(ANIM, key, "out_%02d.png" % k))
         artkit.contact_sheet(out, len(out), 200).save(os.path.join(ANIM, key, "cycle_sheet.png"))
         meta = {"key": key, "seed": s, "oneshot": True, "keep": keep, "ctl_dir": os.path.abspath(ctl_dir), "frames": len(raw), "ref_hash": rh, "ctl_sig": ctl_sig(ctl_dir),
-                "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt}
+                "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt, "wan": ws}
         json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
         print("  shot %-24s seed %-7d %5.0fs  %d frames of %d, box %s" % (key, s, secs, len(out), len(raw), box), flush=True)
         return out, meta

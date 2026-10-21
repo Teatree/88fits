@@ -32,4 +32,4 @@ func test_specials_slots_and_the_harpooner() -> void:
 	assert_int(tl.weapon_cap_at(2)).is_equal(5)
 	# 70 in pass 33.7; the rocketeer's from pass 33.8 (both 50 since pass 45); pass 48 took the rocketeer (the Vulture
 	# Raider) down to 35 and left the harpooner at 50 (pass338_test)
-	assert_float(Registry.enemy("harpoon_troglodyte").hp).is_equal_approx(50.0, 0.01)
+	assert_float(Registry.enemy("harpoon_troglodyte").hp).is_equal_approx(float(JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/harpoon_troglodyte/harpoon_troglodyte.json"))["hp"]), 0.01)  # pass 95 (lead): Garry hand-tunes these (150 / 100 today): the pins read his file

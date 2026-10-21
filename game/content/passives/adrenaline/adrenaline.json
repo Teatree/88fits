@@ -10,13 +10,69 @@
       {
         "stat": "adrenaline_speed",
         "op": "add",
-        "value": 0.004,
+        "value": 0.0055,
         "target": "player"
       },
       {
         "stat": "adrenaline_might",
         "op": "add",
+        "value": 0.004,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "adrenaline_speed",
+        "op": "add",
         "value": 0.003,
+        "target": "player"
+      },
+      {
+        "stat": "adrenaline_might",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "adrenaline_speed",
+        "op": "add",
+        "value": 0.003,
+        "target": "player"
+      },
+      {
+        "stat": "adrenaline_might",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "adrenaline_speed",
+        "op": "add",
+        "value": 0.003,
+        "target": "player"
+      },
+      {
+        "stat": "adrenaline_might",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "adrenaline_speed",
+        "op": "add",
+        "value": 0.005,
+        "target": "player"
+      },
+      {
+        "stat": "adrenaline_might",
+        "op": "add",
+        "value": 0.0035,
         "target": "player"
       }
     ]

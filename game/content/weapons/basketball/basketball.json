@@ -69,6 +69,7 @@
   "evolves_with": "",
   "evolves_into": "slam_dunk",
   "params": {
+    "fire_forward": true,
     "radius": 0.3,
     "roll_radius": 0.22,
     "no_shells": true,

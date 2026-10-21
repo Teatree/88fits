@@ -26,6 +26,7 @@
     []
   ],
   "params": {
+    "fire_forward": true,
     "bend_deg": 25,
     "bend_per_extra": 12,
     "fan_deg": 16,
@@ -43,7 +44,12 @@
       "emission": "#FF3FA4",
       "energy": 1.2,
       "spin": 18.0,
-      "trail": true
+      "trail": {
+        "style": "glow",
+        "length": 0.48,
+        "width": 2.2,
+        "alpha": 0.45
+      }
     },
     "final": {
       "carry": {

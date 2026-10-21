@@ -31,7 +31,13 @@ params = {
 "albedo": "#FF3FA4",
 "emission": "#FF1F8A",
 "energy": 0.7,
-"look": "razors"
+"look": "razors",
+"trail": {
+"alpha": 0.9,
+"length": 0.32,
+"style": "sparks",
+"width": 0.6
+}
 }
 }
 id = "poison_razors"

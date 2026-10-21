@@ -37,6 +37,14 @@ const BUILDS := {
 			"passives": [["brawn", 3], ["mend", 2], ["vigour", 3], ["deadeye", 2], ["multishot", 1], ["reach", 2], ["powder_keg", 2], ["quickdraw", 2], ["cold_snap", 2]]},
 		"b3": {"weapons": [["golden_revolver", 0, []], ["moonshine", 0, []], ["saw_halo", 0, []], ["whirlwind", 0, []], ["peashooter", 5, ["big_peas", "bouncing_peas"]]],
 			"passives": [["juggernaut", 1], ["mend", 2], ["vigour", 4], ["deadeye", 4], ["multishot", 3], ["reach", 3], ["powder_keg", 3], ["quickdraw", 3], ["cold_snap", 3]]},
+		# pass 95 (lane BREATH): the same budgets with the Dragon's Breath in the Peashooter's slot (b1x at 1, b2x at 5 with its
+		# path, b3x the Fire Eater), to read what the breath adds against the Peashooter's slot
+		"b1x": {"weapons": [["revolver", 3, ["hip_shot"]], ["molotov", 2, ["accelerant"]], ["orbit_saws", 2, ["saw_swarm"]], ["sabre", 2, ["flurry"]], ["dragons_breath", 1, []]],
+			"passives": [["brawn", 2], ["mend", 1], ["vigour", 2], ["deadeye", 1], ["reach", 1], ["powder_keg", 2], ["quickdraw", 1], ["cold_snap", 1]]},
+		"b2x": {"weapons": [["golden_revolver", 0, []], ["molotov", 4, ["accelerant", "methanol"]], ["orbit_saws", 4, ["saw_swarm", "rust"]], ["sabre", 3, ["flurry", "critical_thinking"]], ["dragons_breath", 5, ["blue_flame", "held_breath", "backdraft"]]],
+			"passives": [["brawn", 3], ["mend", 2], ["vigour", 3], ["deadeye", 2], ["multishot", 1], ["reach", 2], ["powder_keg", 2], ["quickdraw", 2], ["cold_snap", 2]]},
+		"b3x": {"weapons": [["golden_revolver", 0, []], ["moonshine", 0, []], ["saw_halo", 0, []], ["whirlwind", 0, []], ["fire_eater", 0, []]],
+			"passives": [["juggernaut", 1], ["mend", 2], ["vigour", 4], ["deadeye", 4], ["multishot", 3], ["reach", 3], ["powder_keg", 3], ["quickdraw", 3], ["cold_snap", 3]]},
 	},
 	# pass 67 (lane M): Calavera's budget with Buck's Tommy Gun in place of the Guitarra; pass 69 (lane HERO): Buck is
 	# Jeżyk, landing with the Frisbee (Carry its stage-1 pick, the Flying Saucer in b3) and loving the Salt (his Salt Flats)

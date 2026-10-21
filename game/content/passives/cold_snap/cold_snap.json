@@ -3,10 +3,50 @@
   "name": "Cold Snap",
   "rarity": "common",
   "weight": 9,
-  "max_level": 5,
+  "max_level": 6,
   "flavour": "Even the desert gets a cold night.",
-  "text": "A hit may freeze a creature for 1 second: blue, still and harmless. 2% at level 1, 10% at level 5. Bosses shrug it off.",
+  "text": "A hit may freeze a creature for 1 second: blue, still and harmless. 3% at level 1, 11% once Evolved. Bosses shrug it off.",
   "levels": [
+    [
+      {
+        "stat": "freeze_chance",
+        "op": "add",
+        "value": 0.03,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "freeze_chance",
+        "op": "add",
+        "value": 0.015,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "freeze_chance",
+        "op": "add",
+        "value": 0.015,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "freeze_chance",
+        "op": "add",
+        "value": 0.015,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "freeze_chance",
+        "op": "add",
+        "value": 0.015,
+        "target": "player"
+      }
+    ],
     [
       {
         "stat": "freeze_chance",

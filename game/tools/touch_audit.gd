@@ -944,6 +944,23 @@ func _settings_menu_style() -> void:
 				_fail("settings_debug", "HeroKnockback", "a tap did not flip Settings.hero_knockback")
 			st.set("hero_knockback", was_hk)
 			(hks as Control).set("on", was_hk)
+	# "Fire forward" (pass 95, lane ITEMS), when the setting exists: a real tap flips it, put back after
+	if "fire_forward" in st and st.debug_mode:
+		var ffs: Control = current_scene.find_child("FireForward", true, false)
+		if ffs == null:
+			_count("settings_debug", false)
+			_fail("settings_debug", "FireForward", "the debug mode is on and the switch is not there")
+		else:
+			var was_ff: bool = bool(st.get("fire_forward"))
+			var at6: Vector2 = await _spot(ffs)
+			await _tap(at6)
+			await _wait(0.2)
+			var ok6: bool = bool(st.get("fire_forward")) != was_ff
+			_count("settings_debug", ok6)
+			if not ok6:
+				_fail("settings_debug", "FireForward", "a tap did not flip Settings.fire_forward")
+			st.set("fire_forward", was_ff)
+			(ffs as Control).set("on", was_ff)
 	st.debug_mode = keep_debug
 	st.menu_style = keep_style
 	root.get_node("Save").request_save()

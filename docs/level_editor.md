@@ -1373,3 +1373,125 @@ per view, `first`, `path`, `made`, `plays`, `death`, `parent`, `size`, `files`, 
 `frames` is now the frame files of its first view), `GET /api/drivers/<name>` (+ `view_detail`: every frame's index
 and URL, the stills), `GET /api/painted_death/<enemy>/<code>`, `POST /api/drivers/<name>/open` `{view}` and
 `POST /api/drivers/open` (the library). methods.json marks death_keep with `picker: "frames"`, `frames_of`, `view`.
+
+## Pass 95: Frames (every frame of a look, its versions, repairs with VACE, one export)
+
+Garry: "a way to view every single frame and choose which ones to regenerate ... available to existing assets too ...
+options per frame (the history of other generated frames) ... frames from other Looks ... several frame changes in
+one go without needing to wait for the save export thing to finish."
+
+**Frames…** sits on every look card (Enemies and Heroes tabs, every look that has a strip, painted this pass or years
+ago) and on a landed look's job card. It opens the **Frames view** on that look:
+
+- **The tabs**: one per animation x view the strip holds (`run · side`, `die · front`, ...), with a green count of the
+  frames staged in it and a pin where a choice is pinned.
+- **The stage**: the frame large with its **slot** number (its index in the animation, 0-based: the number everything
+  here uses), the previous and the next frame beside it, the driver's frame under it (what the clip was walked on; a
+  repair follows it), play / pause (Space), one frame back and on (arrow keys), first / last (Home / End), the scrub
+  bar, the speed (the game's own rate for that animation), loop, zoom 1x-3x.
+- **The sheet**: every frame numbered. Click one to show it; shift-click a range; ctrl-click to add one. Badges: a
+  green tick = staged, a pin = pinned, ≠ = the installed strip differs from the pinned choice, ⚠ = a flag (hover for
+  the number and the rule).
+- **The versions** of the shown slot, newest first: `SP-B-1` is the frame the strip was installed with, `SP-B-2` the
+  first repair of that slot, and so on (the n-th version of that slot in that look). Each says what made it (the
+  strip, VACE with its seed, a copy from another look) and when. **Click one to stage it**: the preview plays it at
+  once, the tab counts it, nothing is written. **Pin** keeps a choice through later re-rolls of the look; **Unstage**
+  is Undo (back to the selected one); **large** opens it big.
+- **Repair with VACE…** on the selected frames: the words (the clip's own by default), a seed, the window (a short
+  loop goes in twice plus its first frame, 25 frames, the chosen ones masked in both passes and taken from the
+  second; a long one once; a one-shot as it is), the guide (the driver's frames fitted onto the kept figure, or
+  **free**: filled from the neighbours alone). Queue = a `frames_repair` job on the comfy lane (the Jobs tab shows
+  it); when it lands, the new frames appear here as versions and are **staged at the landing** (unless the slot is
+  pinned, or you staged a choice on it meanwhile: then added, not staged, and the card says so; the repair process
+  itself never writes the staging, so there is one writer). **Fill from neighbours…** is the same job with the guide
+  set to free (no RIFE / FILM model is installed on the server). Every frame of the animation that is not chosen is
+  kept: the model sees the whole cycle and paints only the masked ones. **The rule per method** (`methods.json`
+  `repair`: `vace` yes / conditional / no, `fill` cell / still / none): a procedural animation (no clip cache, no
+  driver: an idle, an attack, a hit, a hop walk, a recolour) is **refused** by the route and shown so by the button;
+  the still is the thing to fix there. Tick **fill freely anyway** in the form to send it as a free fill on purpose.
+- **From another look…**: every other look of the asset that has this animation, its versions of the same slot(s),
+  with the warnings that matter (other cell size, other frame count, another driver). A click copies that frame in
+  as a new version of this slot (never a link: the other look is not touched), staged.
+- **Ask the local vision model**: LM Studio looks at the shown frame and answers a short JSON (limbs counted, broken,
+  ghost, colour, a note). Honestly labelled: it cannot count limbs reliably (pass 92's lesson); it is a hint beside
+  the deterministic flags, which are also hints: **empty** (the figure under 0.4% of the cell), **footprint** (its box
+  outside 0.72-1.35 of the group's median), **jump** (it differs from both neighbours 1.7x more than they differ from
+  each other), **seam** (a loop's last-to-first step over 2.2x the median), **silhouette** (it overlaps the driver's
+  frame by under 50%, boxes aligned). They flag SP-B's side slot 0 and not its ghost-leg frames 3-5: ghost legs sit
+  inside the silhouette. Your eye stays the judge; the sheet shows every frame.
+- **Undo all** drops every staged choice of the look. **Export (n)** is the one write: a `frames_export` job packs
+  the strip again from the staged and selected versions with the pipeline's own packing (the same cell placement,
+  outline and order; nothing in the game changes shape), keeps the old strip under
+  `tools/level_editor/backups/<id>/frames_<stamp>_<file>.png` (the newest 30 per asset kept), writes the look's
+  entry (**without** the NEW mark: the frames are your own choice, not a landing), then the usual import job. The
+  staged choices become the selected, pinned ones. **Exporting the look the game plays asks first** (a confirm box
+  naming it; the route refuses without it). An export queued while a repair of the same look runs **waits** for it
+  (the card says held). If the entry cannot be merged, or the import after it fails, the export is **rolled back**:
+  the old strip is put back from its backup, the old entry merged back, and your choices are **staged again**, so
+  nothing you chose is lost (the card says "rolled back"). A reload of the page keeps everything: the choices live in
+  the store, not the page.
+- **Where frames live** (the help line under the view): the game plays the strip under `game/content/<folder>/<id>/`;
+  the video model's frames are in `tools/dl/ai_anim/<key>/` (`out_NN` kept, `full_NN` all); every version of every
+  frame is in `tools/dl/frames/<kind>/<id>/<CODE>/<anim>/<view>/slot_NN/`; the old strip of every export in
+  `tools/level_editor/backups/<id>/`. The versions drawer offers **Delete** on a version nothing refers to (never the
+  selected, staged, exported or copied-from ones); **From another look…** lists removed looks too, marked.
+
+**Where it is kept**: `tools/dl/frames/<kind>/<id>/<CODE>/<anim>/<view>/` is one group (an animation x a view);
+`slot_NN/vNNN.png + vNNN.json` one version of one frame (its id is a hash of the picture; the json its provenance:
+source, seed, prompt, model, workflow, time, who chose it, what the vision model said); `selected.json` the choice
+per slot; `staged.json` what the next Export packs; `exports.json` every export. Nothing there is deleted by the
+tools. A version is a **cell** (a finished strip cell) or a **raw** clip frame (640 px, keyed, what the video model
+painted before artkit placed it): the group's **fit** (cell = canvas x s + o), measured from the installed cells and
+their clip frames (`tools/dl/ai_anim/<key>/out_NN.png`), places a raw frame exactly as the pipeline placed the clip's,
+then punch, the look's outline and its post filters (gen_ctl's drop_islands and no_green, a recipe's remap_hues). A
+look painted before the clip cache was kept has cells only: a repair then puts the cells back on a canvas (softer
+frames; the sheet says so).
+
+**Every method** (what the store finds, the rule the route and the page read from `methods.json` `repair`, the
+repair path, and where the store hook is):
+
+| method | frames come from | store twin (raw) | guide a repair follows | rule (vace / fill) | repair path | store hook |
+|---|---|---|---|---|---|---|
+| creature_ctl (walks) | Wan Fun Control along a depth driver, the second stride (`<id>_<code>_ctl_<view>`) | yes (out_NN) | the driver's `ctl_(n+k)`, fitted on the kept figure | **yes** / cell | VACE (proven on SP-B's side walk) | `merge_look` -> `on_look_landed` (a job); `hook_after_save` after gen_ctl's `strip.save` (a hand run) |
+| creature_ctl (death) | one-shot Fun Control along `death_drivers`, `death_keep` frames | yes | `ctl_keep[k]` | yes / cell | re-pick `death_keep` first (no render), then VACE | the same |
+| creature_pose2 (front / back walks) | Wan Animate on an OpenPose driver (`<ak>_pose_f/_b`) | yes | `driver_(k+1)` | conditional / cell | VACE (a benchmark decides) | `merge_look`; `hook_after_save` after gen_art's `strip.save` |
+| creature_free2 / creature_free8 (walks) | a free Wan clip cut by silhouette period (`<ak>_walk_<view>`) | yes | none (free fill) | conditional / cell | VACE, free | the same |
+| creature deaths "clip" (a fall) | first-last-frame clip, 8 picked by silhouette (`<ak>_fall`) | no (the picks are not kept) | none | conditional / cell | VACE in cell space, free | the same |
+| creature deaths "pose:<drv>" | Wan Animate one-shot | yes | — (not mapped) | conditional / cell | VACE, free | the same |
+| hero_pose5 / hero_fit (runs) | Wan Animate on `pose_drivers.<view>` or run (`<ck>_pose_run_<view>`) | yes | `driver_(k+1)` | conditional / cell | VACE (a benchmark decides) | `merge_look`; `hook_after_save` after gen_art's hero `strip.save` |
+| hero_puppet (runs) | Fun Control on `ctl_drivers.<view>` (`<ck>_ctl_run_<view>`), else as hero_pose5 | yes | `ctl_(n+k)` | **yes** / cell | VACE on the depth views | the same |
+| free hero clips (the fallback) | a free Wan clip (`<ck>_run_<sfx>`) | yes | none | conditional / cell | VACE, free | the same |
+| creature_proc, creature_pictures, idle / attack / hit / tilt deaths of every method | artkit from one painting (bobs, leans, a tilt) | no | none | **no** / still | history, copy from another look, export; the route refuses VACE unless "fill freely anyway" | the same (a procedural group has no clip and no driver: `repairable` says so) |
+| recolour | the source look's strip recoloured | no (cells) | the source look's | no / cell | repair the source look and recolour again; history, copy, export | `merge_look` (the recolour job's landing) |
+| hero hit / die / cheer | painted stills with a procedural wince / fall | no | none | (the method's) / still | history, copy, export | the same |
+| an imported or hand-made strip (no method) | the strip itself | no | none | conditional (no rule) / cell | history, copy, export; VACE free fill in cell space | the retrofit when Frames… opens it |
+| front_from_picture, item icons, badges, titles, drivers, 3D refs | no animation | — | — | no / none | — | — |
+
+The store hook is one place for jobs: the server's `merge_look` (every method's landing, re-rolls, recolours and
+the export itself go through it) calls `frames_io.on_look_landed`, which registers the look again: new cells become
+versions (`reroll`), selected unless the slot is pinned (a pinned slot keeps its choice and shows ≠ until the next
+Export). A **hand run** of `gen_art.py` / `gen_ctl.py` (no job, no merge) calls `frames_store.hook_after_save` right
+after `strip.save`: a look the store knows is registered again from the strip just saved (with the run's own counts),
+and a warning names the pinned frames the run replaced ("Export is the writer for this look"). An existing look is
+registered the first time Frames… opens it (the retrofit); nothing is written under game/ until Export.
+
+**Hardening (pass 95 resume, after the tooling assessment's AN-01..AN-14)**: one writer of `staged.json` (the repair
+process returns its versions with `stage_wanted`, the landing stages them); the shrink guard of
+`artkit.place_clip_frames` in `Group.to_cell` (a repaired figure larger than the cell at the group's fit is shrunk
+about its floor, never cropped; the version says `shrunk` and the flags raise `footprint`); every installed version
+records `driver {name, ctl_sig}` and the clip's `wan`, so a repair made on an older driver can be told; `store_version:
+1` in every `group.json`; a confirm before exporting the look in play; an export waits for a running repair of the same
+look; rollback on a failed merge or import; no NEW mark on an export; retention: never a referenced version deleted
+(`delete_version` refuses what a selection, a staging, an export or a copy's `from` names), 30 strip backups per asset,
+repair sheets 90 days, raws kept; the picker marks removed looks (their frames stay copyable from the store).
+
+**Numbers** (SP-B's side walk, 12 frames, the R9700): the model pair installed in 9 minutes (2 x 17.3 GB fp8);
+ComfyUI loads each as `WAN21_Vace`, 16.5 GB, fully on the card; one repair of a 25-frame window at 640 px: 137-143 s
+(plus the lock wait); the fit measured at 0.5 px residual; the retrofit of a 13-animation look: 3.4 s.
+
+**Scripts**: `python tools/frames_store.py register|info|flags|export <kind> <id> <CODE> [<anim> <view>]`;
+`python tools/vace_repair.py --kind enemy --id desert_spider --code SP-B --anim run --view side --slots 3-5,9
+[--prompt ...] [--seed N] [--window auto|single|double] [--guide driver|free] [--dry-run] [--out DIR]`. Routes:
+`GET /api/frames/<kind>/<id>/<code>[/<anim>/<view>[/others]]`, `POST .../<anim>/<view>/stage|unstage|pin|copy|repair|ask`,
+`POST /api/frames/<kind>/<id>/<code>/export|register`; pictures `/dl/frames/...`. Jobs `frames_repair` (comfy lane)
+and `frames_export` (local lane; its entry lands like a look's, then an import). Self-test: `selftest_VACE95.py`.

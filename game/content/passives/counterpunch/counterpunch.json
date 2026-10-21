@@ -5,7 +5,7 @@
   "weight": 8,
   "max_level": 5,
   "flavour": "Duck. Then swing.",
-  "text": "After an evade, your next attack deals double damage, and for 2 s you attack 20% faster and move 15% faster.",
+  "text": "After an evade, your next attack deals double damage, and for 2.5 s you attack 25% faster and move 20% faster. Evolved: 2.5 times.",
   "levels": [
     [
       {
@@ -17,19 +17,19 @@
       {
         "stat": "counter_haste",
         "op": "add",
-        "value": 0.2,
+        "value": 0.25,
         "target": "player"
       },
       {
         "stat": "counter_speed",
         "op": "add",
-        "value": 0.15,
+        "value": 0.2,
         "target": "player"
       },
       {
         "stat": "counter_seconds",
         "op": "add",
-        "value": 2.0,
+        "value": 2.5,
         "target": "player"
       }
     ],
@@ -37,19 +37,85 @@
       {
         "stat": "counter_haste",
         "op": "add",
-        "value": 0.05,
+        "value": 0.04,
         "target": "player"
       },
       {
         "stat": "counter_speed",
         "op": "add",
-        "value": 0.03,
+        "value": 0.025,
         "target": "player"
       },
       {
         "stat": "counter_seconds",
         "op": "add",
-        "value": 0.25,
+        "value": 0.2,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "counter_haste",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      },
+      {
+        "stat": "counter_speed",
+        "op": "add",
+        "value": 0.025,
+        "target": "player"
+      },
+      {
+        "stat": "counter_seconds",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "counter_haste",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      },
+      {
+        "stat": "counter_speed",
+        "op": "add",
+        "value": 0.025,
+        "target": "player"
+      },
+      {
+        "stat": "counter_seconds",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "counter_damage",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      },
+      {
+        "stat": "counter_haste",
+        "op": "add",
+        "value": 0.06,
+        "target": "player"
+      },
+      {
+        "stat": "counter_speed",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      },
+      {
+        "stat": "counter_seconds",
+        "op": "add",
+        "value": 0.3,
         "target": "player"
       }
     ]

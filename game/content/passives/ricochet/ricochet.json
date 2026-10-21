@@ -5,9 +5,41 @@
   "rarity": "uncommon",
   "weight": 6,
   "pairs_with": "",
-  "max_level": 4,
+  "max_level": 5,
   "repeat_last_level": true,
   "levels": [
+    [
+      {
+        "stat": "ricochet",
+        "op": "add",
+        "value": 0.25,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "ricochet",
+        "op": "add",
+        "value": 0.13,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "ricochet",
+        "op": "add",
+        "value": 0.13,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "ricochet",
+        "op": "add",
+        "value": 0.13,
+        "target": "player"
+      }
+    ],
     [
       {
         "stat": "ricochet",

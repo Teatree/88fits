@@ -152,6 +152,9 @@ func _apply_mults() -> void:
 	em.set_target_priority(timeline.target_priority)
 	# pass 73 (lane GROUND): every spawn grows out of the ground (EnemyManager.set_spawn_rise), the arena included
 	em.set_spawn_rise(timeline.spawn_rise_value("seconds"), timeline.spawn_rise_value("big_seconds"), timeline.spawn_rise_value("targetable"), timeline.spawn_rise_value("dust"))
+	# pass 95 (lane WORLD): regular creatures far from the hero and off the screen despawn (EnemyManager.set_despawn,
+	# the map's timeline_data.despawn); never in the arena, where creatures are spawned to be looked at
+	em.set_despawn({} if Run.arena else timeline.despawn_cfg())
 	# pass 87 (lane SGAME): in Endless every creature that comes walks at the wave's speed factor (a little faster each
 	# wave, WaveTimeline.endless_mults; fixed per creature at its spawn as the stage's is)
 	if phase == Phase.ENDLESS:
@@ -2054,6 +2057,11 @@ func _cull_behind() -> void:
 		if em.alive[i] == 0 or i == em.boss_index or i == elite_index:
 			continue
 		if (em.types[em.type_idx[i]]["def"] as EnemyDef).brain == "artillery":
+			continue
+		# pass 95 (lane WORLD): with the map's despawn rule on, a regular creature left behind despawns out of view
+		# (EnemyManager._tick_despawn) instead of being moved up ahead of him; the ones that rule never takes (a special,
+		# an Elite, a coloured special, a boss's summon, one held, in the air or rising) are moved up as before
+		if em.despawn_enabled() and em.despawn_kind(i):
 			continue
 		var d := em.pos[i] - player.global_position
 		d.y = 0.0

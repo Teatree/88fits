@@ -1,22 +1,23 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/passives/last_stand/last_stand_icon_evolved.png" id="1_4dn6r"]
 [ext_resource type="Texture2D" path="res://content/passives/last_stand/last_stand_icon.png" id="1_fgp21"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_4dn6r"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_s7rr3"]
 
-[sub_resource type="Resource" id="Resource_fgp21"]
-script = ExtResource("2_4dn6r")
-stat = "last_stand"
-value = 1.0
-target = "player"
-
 [sub_resource type="Resource" id="Resource_4dn6r"]
 script = ExtResource("2_4dn6r")
 stat = "last_stand"
-value = 0.5
+value = 1.3
 target = "player"
 
 [sub_resource type="Resource" id="Resource_s7rr3"]
+script = ExtResource("2_4dn6r")
+stat = "last_stand"
+value = 0.3
+target = "player"
+
+[sub_resource type="Resource" id="Resource_m5vua"]
 script = ExtResource("2_4dn6r")
 stat = "last_stand"
 value = 0.5
@@ -24,10 +25,11 @@ target = "player"
 
 [resource]
 script = ExtResource("3_s7rr3")
-levels = [[SubResource("Resource_fgp21")], [SubResource("Resource_4dn6r")], [SubResource("Resource_s7rr3")]]
+levels = [[SubResource("Resource_4dn6r")], [SubResource("Resource_s7rr3")], [SubResource("Resource_m5vua")]]
 repeat_last_level = false
 max_level = 3
-text = "When a hit leaves you under 30% health, time slows for 2 s and you deal double damage."
+text = "When a hit leaves you under 30% health, time slows for 2 s and you deal 2.3 times the damage (more each rung)."
+evolved_icon = ExtResource("1_4dn6r")
 id = "last_stand"
 display_name = "Last Stand"
 flavour = "Not today."

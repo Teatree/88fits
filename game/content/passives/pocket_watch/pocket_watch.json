@@ -10,7 +10,29 @@
       {
         "stat": "powerup_duration",
         "op": "add",
-        "value": 0.15,
+        "value": 0.2,
+        "target": "player"
+      },
+      {
+        "stat": "powerup_chance",
+        "op": "add",
+        "value": 0.05,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "powerup_duration",
+        "op": "add",
+        "value": 0.12,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "powerup_duration",
+        "op": "add",
+        "value": 0.12,
         "target": "player"
       },
       {
@@ -24,7 +46,7 @@
       {
         "stat": "powerup_duration",
         "op": "add",
-        "value": 0.15,
+        "value": 0.12,
         "target": "player"
       }
     ],
@@ -32,41 +54,19 @@
       {
         "stat": "powerup_duration",
         "op": "add",
-        "value": 0.15,
+        "value": 0.2,
         "target": "player"
       },
       {
         "stat": "powerup_chance",
         "op": "add",
-        "value": 0.04,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "powerup_duration",
-        "op": "add",
-        "value": 0.15,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "powerup_duration",
-        "op": "add",
-        "value": 0.15,
-        "target": "player"
-      },
-      {
-        "stat": "powerup_chance",
-        "op": "add",
-        "value": 0.04,
+        "value": 0.05,
         "target": "player"
       }
     ]
   ],
   "repeat_last_level": false,
-  "text": "Power-ups you pick up last 15% longer a level; at levels 1, 3 and 5 they also drop 4% more often.",
+  "text": "Power-ups you pick up last 20% longer, more each rung (+76% once Evolved); at levels 1, 3 and Evolved they also drop more often (+14% in all).",
   "art_prompt": "a battered silver pocket watch hanging open on a short chain, a small glowing golden lightning bolt across its white face",
   "placeholder": {
     "color": "#C8CCD4",

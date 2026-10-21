@@ -42,7 +42,7 @@ const TELEGRAPHS := ["circles", "lines", "ring", "none"]
 const LANDING_MODES := ["stagger", "volley"]
 ## The built-in attack names a `script` attack may wrap (EnemyManager's runner; tools/level_editor/vocab.py ATTACKS).
 const SCRIPTS := ["roll", "spawn_ring", "slam_at", "blink", "burrow", "rain", "erupt", "spit_volley", "slam", "rumble",
-	"brand", "tumbleweed_volley", "swoop", "boulder"]
+	"brand", "tumbleweed_volley", "swoop", "boulder", "stomp", "tail_sniper"]
 
 ## Every group's keys with the game's defaults: what a key the file leaves out plays (the Level Editor's grey numbers;
 ## tools/level_editor/boss_attacks.js mirrors this table and selftest_BOSS.py checks they agree).

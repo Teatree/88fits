@@ -110,7 +110,8 @@ MEDIAN_SERIES = ("keep_up", "boss_s", "challenge")   # pass 84 (lane SIMVIEW): c
 RATE_WINDOW = 10   # seconds the per-second counts (kills, spawns, hits) are smoothed over, as the run dashboard's 10 s means
 TROUBLE_FRAC = 0.30   # "in trouble": under this share of max HP (the run dashboard's survivability card)
 BREAKDOWNS = {"dmg_by": "cum", "kills_by": "cum", "gold_by": "cum", "took_by": "cum", "healed_by": "cum", "alive_by": "level",
-              "held_by": "level", "alive_hell_by": "level", "starving_by": "level"}   # pass 84 (lane SIMVIEW): the last two
+              "held_by": "level", "alive_hell_by": "level", "starving_by": "level",
+              "despawned_by": "cum"}   # pass 95 (lane WORLD): the despawned by creature   # pass 84 (lane SIMVIEW): the last two
 # the damage sources that are no content item (RunAnalytics.SOURCE_NAMES: "blast" = creatures caught in a hostile blast,
 # a boss's slam or a creature's grenade; "revive" = the Down! revive's blast)
 SOURCE_WORDS = {"blast": "Blast", "revive": "Revive blast", "grand_finale": "Grand Finale", "powder_keg": "Powder Keg",

@@ -2,37 +2,87 @@
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_orgw6"]
 [ext_resource type="Texture2D" path="res://content/passives/barrel_rush/barrel_rush_icon.png" id="1_r41bd"]
+[ext_resource type="Texture2D" path="res://content/passives/barrel_rush/barrel_rush_icon_evolved.png" id="1_ys0jd"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_r41bd"]
-
-[sub_resource type="Resource" id="Resource_r41bd"]
-script = ExtResource("1_orgw6")
-stat = "barrel_speed"
-value = 0.25
-target = "player"
 
 [sub_resource type="Resource" id="Resource_ys0jd"]
 script = ExtResource("1_orgw6")
-stat = "barrel_seconds"
-value = 3.0
+stat = "barrel_speed"
+value = 0.3
 target = "player"
 
 [sub_resource type="Resource" id="Resource_3taro"]
 script = ExtResource("1_orgw6")
-stat = "barrel_speed"
-value = 0.1
+stat = "barrel_seconds"
+value = 4.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_705si"]
 script = ExtResource("1_orgw6")
+stat = "barrel_speed"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_hc4mg"]
+script = ExtResource("1_orgw6")
 stat = "barrel_seconds"
-value = 0.75
+value = 0.6
+target = "player"
+
+[sub_resource type="Resource" id="Resource_1jj56"]
+script = ExtResource("1_orgw6")
+stat = "barrel_speed"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_cf1bw"]
+script = ExtResource("1_orgw6")
+stat = "barrel_seconds"
+value = 0.6
+target = "player"
+
+[sub_resource type="Resource" id="Resource_30nrh"]
+script = ExtResource("1_orgw6")
+stat = "barrel_speed"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_1ldo4"]
+script = ExtResource("1_orgw6")
+stat = "barrel_seconds"
+value = 0.6
+target = "player"
+
+[sub_resource type="Resource" id="Resource_3dk5d"]
+script = ExtResource("1_orgw6")
+stat = "barrel_speed"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_3lghk"]
+script = ExtResource("1_orgw6")
+stat = "barrel_seconds"
+value = 0.6
+target = "player"
+
+[sub_resource type="Resource" id="Resource_fln6l"]
+script = ExtResource("1_orgw6")
+stat = "barrel_speed"
+value = 0.12
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ie672"]
+script = ExtResource("1_orgw6")
+stat = "barrel_seconds"
+value = 0.9
 target = "player"
 
 [resource]
 script = ExtResource("2_r41bd")
-levels = [[SubResource("Resource_r41bd"), SubResource("Resource_ys0jd")], [SubResource("Resource_3taro"), SubResource("Resource_705si")]]
-max_level = 5
-text = "Smash a barrel to run 25% faster for 3 s. Each level after: +10% and +0.75 s more."
+levels = [[SubResource("Resource_ys0jd"), SubResource("Resource_3taro")], [SubResource("Resource_705si"), SubResource("Resource_hc4mg")], [SubResource("Resource_1jj56"), SubResource("Resource_cf1bw")], [SubResource("Resource_30nrh"), SubResource("Resource_1ldo4")], [SubResource("Resource_3dk5d"), SubResource("Resource_3lghk")], [SubResource("Resource_fln6l"), SubResource("Resource_ie672")]]
+max_level = 6
+text = "Smash a barrel to run 30% faster for 4 s. Each rung after: +8% and +0.6 s more; Evolved +12% and +0.9 s."
+evolved_icon = ExtResource("1_ys0jd")
 id = "barrel_rush"
 display_name = "Barrel Rush"
 flavour = "Nothing gets a man moving like splinters."

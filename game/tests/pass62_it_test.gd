@@ -210,8 +210,10 @@ func test_the_pocket_watch_is_an_uncommon_passive_item_of_five_levels() -> void:
 
 
 func test_every_level_lengthens_the_power_ups_and_levels_1_3_5_raise_the_drop_chance() -> void:
-	var want_d := [1.0, 1.15, 1.30, 1.45, 1.60, 1.75]
-	var want_c := [1.0, 1.04, 1.04, 1.08, 1.08, 1.12]
+	# re-pinned in pass 95 (lane PASSIVES): the ladder's rungs (+20%, +12%, +12%, +12%, Evolved +20%; the chance at
+	# levels 1, 3 and Evolved: +5%, +4%, +5%)
+	var want_d := [1.0, 1.20, 1.32, 1.44, 1.56, 1.76]
+	var want_c := [1.0, 1.05, 1.05, 1.09, 1.09, 1.14]
 	for lv in range(0, 6):
 		Run.debug_set_item("passive", "pocket_watch", lv)
 		assert_float(Run.player_sheet.get_stat("powerup_duration", 0.0)).override_failure_message("duration at %d" % lv).is_equal_approx(want_d[lv], 0.0001)
@@ -219,15 +221,15 @@ func test_every_level_lengthens_the_power_ups_and_levels_1_3_5_raise_the_drop_ch
 		assert_float(Run.powerup_seconds(20.0)).is_equal_approx(20.0 * float(want_d[lv]), 0.001)
 	# the card's words: level 1 both stats, level 2 the duration only, the changes each step lists
 	var pw := Registry.passive("pocket_watch")
-	assert_str(TextGen.describe_effects(pw.effects_at_level(1))).is_equal("+15% power-up duration, +4% power-up drop chance")
-	assert_str(TextGen.describe_effects(pw.effects_at_level(2))).is_equal("+15% power-up duration")
+	assert_str(TextGen.describe_effects(pw.effects_at_level(1))).is_equal("+20% power-up duration, +5% power-up drop chance")
+	assert_str(TextGen.describe_effects(pw.effects_at_level(2))).is_equal("+12% power-up duration")
 	var ch := TextGen.passive_changes(pw, 2, 3)
 	assert_int(ch.size()).is_equal(2)
-	assert_str(str(ch[0]["after"])).is_equal("+45%")
-	assert_str(str(ch[1]["before"])).is_equal("+4%")
-	assert_str(str(ch[1]["after"])).is_equal("+8%")
-	assert_str(TextGen.passive_description(pw, 5)).contains("+75% power-up duration")
-	assert_str(TextGen.passive_description(pw, 5)).contains("+12% power-up drop chance")
+	assert_str(str(ch[0]["after"])).is_equal("+44%")
+	assert_str(str(ch[1]["before"])).is_equal("+5%")
+	assert_str(str(ch[1]["after"])).is_equal("+9%")
+	assert_str(TextGen.passive_description(pw, 5)).contains("+76% power-up duration")
+	assert_str(TextGen.passive_description(pw, 5)).contains("+14% power-up drop chance")
 
 
 func test_the_drop_chance_of_a_kill_grows_with_the_watch() -> void:
@@ -251,7 +253,7 @@ func test_the_drop_chance_of_a_kill_grows_with_the_watch() -> void:
 	var counts: Array = []
 	for lv in [0, 5]:
 		Run.debug_set_item("passive", "pocket_watch", lv)
-		assert_float(wd.powerup_chance_mult()).is_equal_approx(1.0 if lv == 0 else 1.12, 0.0001)
+		assert_float(wd.powerup_chance_mult()).is_equal_approx(1.0 if lv == 0 else 1.14, 0.0001)
 		pk.set("dropped", 0)
 		wd._rng.seed = 62
 		for n in range(20000):
@@ -261,7 +263,8 @@ func test_the_drop_chance_of_a_kill_grows_with_the_watch() -> void:
 	assert_float(ratio).override_failure_message("drops %s" % str(counts)).is_between(1.07, 1.17)
 
 
-## A real Game: Berserk and Sprint and the Shield picked up last 1.75 x at level 5; a structure's buff keeps its seconds.
+## A real Game: Berserk and Sprint and the Shield picked up last 1.76 x at level 5 (pass 95: the Pocket Watch's rungs +20 / +12 /
+## +12 / +12 / +20%); a structure's buff keeps its seconds.
 func test_power_ups_off_the_ground_last_longer_and_a_structure_does_not() -> void:
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": "boomstick", "level": 1, "character": "drifter", "map": "red_canyon", "map_seed": 5, "analytics": false}))
@@ -279,9 +282,9 @@ func test_power_ups_off_the_ground_last_longer_and_a_structure_does_not() -> voi
 		for tb: Dictionary in Run.timed:
 			if str(tb["id"]) == id:
 				left = float(tb["until"]) - Run.buff_clock()
-		assert_float(left).override_failure_message(id).is_equal_approx(def.duration * 1.75, 0.05)
+		assert_float(left).override_failure_message(id).is_equal_approx(def.duration * 1.76, 0.05)
 	g.apply_pickup(Registry.pickup("shield"), at)
-	assert_float(g.player.shield_t).is_equal_approx(Registry.pickup("shield").duration * 1.75, 0.05)
+	assert_float(g.player.shield_t).is_equal_approx(Registry.pickup("shield").duration * 1.76, 0.05)
 	# the War Drum's buff: its own 30 s, the watch does nothing to it
 	var drum: StructureDef = Registry.structure("war_drum")
 	g.use_structure(drum, at)

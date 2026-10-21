@@ -264,6 +264,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	died = false
 	revives_used = 0
 	phoenix_used = false
+	phoenix_spent = 0
 	# pass 69: Counterpunch's armed attack, Last Stand's window and its hidden cooldown start clear
 	counter_armed = false
 	counter_weapon = ""
@@ -388,6 +389,8 @@ func _build_player_sheet() -> void:
 	# pass 73 (lane STRUCT): the Totem Poles' gifts, before the passives (Heavyweight reads the max HP they give)
 	_apply_totem_boons()
 	_apply_passives_to_sheet()
+	# pass 95 (lane BREATH): a held weapon's level effects aimed at the hero (the Fire Eater's thorns)
+	_apply_weapon_player_effects()
 	# adrenaline reads the per-stack values the passives just put on the sheet, so it goes on last
 	if adrenaline > 0:
 		var sp: float = player_sheet.get_stat("adrenaline_speed", 0.0) * adrenaline
@@ -781,12 +784,28 @@ func _apply_last_stand() -> void:
 ## Phoenix Feather (pass 48): the hero carries a free revive (the player stat `phoenix_revive`) not spent this run.
 ## Game._on_player_died stands him up with it before the Down! screen.
 func phoenix_ready() -> bool:
-	return not phoenix_used and player_sheet.get_stat("phoenix_revive", 0.0) > 0.0
+	return phoenix_spent < phoenix_count()
 
 
-## Spends Phoenix Feather's revive (once a run; the run recorder hears it as a "revive" of kind "phoenix", Game._revive).
+## Pass 95 (lane PASSIVES): the free revives the feather carries (its `phoenix_revive`: one, two on its Evolved rung)
+## and how many this run has spent; `phoenix_used` stays the "all spent" flag the UI and the tests read.
+var phoenix_spent := 0
+
+
+func phoenix_count() -> int:
+	return int(round(player_sheet.get_stat("phoenix_revive", 0.0)))
+
+
+## Spends one of Phoenix Feather's revives (the run recorder hears it as a "revive" of kind "phoenix", Game._revive);
+## the item is used up once every one is spent.
 func use_phoenix() -> void:
-	phoenix_used = true
+	phoenix_spent += 1
+	_refresh_phoenix_used()
+
+
+## The "all spent" flag follows the lives the feather carries now (a rung that adds a life frees it again).
+func _refresh_phoenix_used() -> void:
+	phoenix_used = phoenix_spent > 0 and phoenix_spent >= phoenix_count()
 
 
 ## Whether a passive item held has done its one job this run (pass 48: Phoenix Feather once its revive is spent; the
@@ -841,6 +860,32 @@ func _apply_desperado() -> void:
 	player_sheet.add_effects([e], _desperado_source, _ramp_sid("desperado"))
 
 
+## Pass 95 (lane BREATH): a weapon's level effects aimed at "player" (WeaponDef.player_effects: the Fire Eater's thorns
+## +8) reach the hero's sheet while the weapon is held, as a mutation's player_effects do; source "weapon:<id>" (the
+## pause Stats tab names the weapon). _build_player_sheet calls it; a weapon added, levelled or evolved that carries
+## any tells it (_weapon_player_effects_changed), so the sheet follows at once.
+func _apply_weapon_player_effects() -> void:
+	for w in weapons:
+		var src: String = "weapon:" + w.def.id
+		player_sheet.remove_source(src)
+		var effs: Array = w.def.player_effects(w.level)
+		if not effs.is_empty():
+			player_sheet.add_effects(effs, src)
+
+
+## Pass 95 (lane BREATH): `w` was just added, levelled or evolved (from `old`): when either form carries player effects
+## the hero's sheet is built again and every weapon rebuilt on it.
+func _weapon_player_effects_changed(w: WeaponInstance, old: WeaponDef = null) -> void:
+	var any: bool = w != null and not w.def.player_effects(w.level).is_empty()
+	if not any and old != null:
+		any = not old.player_effects(old.max_level).is_empty()
+	if not any:
+		return
+	_build_player_sheet()
+	for x in weapons:
+		x.rebuild(player_sheet, weapons)
+
+
 func _apply_passives_to_sheet() -> void:
 	for pid in passives.keys():
 		player_sheet.remove_source("passive:" + pid)
@@ -876,6 +921,8 @@ func _apply_passives_to_sheet() -> void:
 	_apply_gold_rush()
 	# Heavyweight (pass 69) reads the max HP everything above put on the sheet
 	_apply_heavyweight()
+	# pass 95 (lane PASSIVES): Phoenix Feather's lives follow its rungs
+	_refresh_phoenix_used()
 
 
 ## The hero has stood still this long (pass 47; the Player tells it, 0 when he moves). Cheap: only Steady Hand's bucket
@@ -1814,6 +1861,7 @@ func add_weapon(def: WeaponDef, level_override: int = 1) -> WeaponInstance:
 	_note("weapon", def.id, inst.level, {"new": true})
 	Save.mark_seen("weapon", def.id)
 	inst.rebuild(player_sheet, weapons)
+	_weapon_player_effects_changed(inst)   # pass 95 (lane BREATH)
 	build_changed.emit()
 	return inst
 
@@ -1824,6 +1872,7 @@ func level_weapon(id: String) -> void:
 		w.level += 1
 		_note("weapon", id, w.level, {"new": false})
 		w.rebuild(player_sheet, weapons)
+		_weapon_player_effects_changed(w)   # pass 95 (lane BREATH)
 		build_changed.emit()
 
 
@@ -1920,6 +1969,7 @@ func evolve(w: WeaponInstance) -> WeaponInstance:
 	_note("evolution", into.id, 1, {"from": w.def.id})
 	Save.mark_seen("weapon", into.id)
 	inst.rebuild(player_sheet, weapons)
+	_weapon_player_effects_changed(inst, w.def)   # pass 95 (lane BREATH): the Fire Eater's thorns land at once
 	evolutions += 1
 	Save.add_total("evolutions", 1)
 	weapon_evolved.emit(into.id)

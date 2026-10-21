@@ -1,19 +1,51 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/pickpocket/pickpocket_icon.png" id="1_ejx7o"]
+[ext_resource type="Texture2D" path="res://content/passives/pickpocket/pickpocket_icon_evolved.png" id="1_rjbvw"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_wrnsf"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ejx7o"]
 
-[sub_resource type="Resource" id="Resource_ejx7o"]
+[sub_resource type="Resource" id="Resource_rjbvw"]
 script = ExtResource("1_wrnsf")
 stat = "coin_drop"
-value = 0.004
+value = 0.005
+target = "player"
+
+[sub_resource type="Resource" id="Resource_jxpjg"]
+script = ExtResource("1_wrnsf")
+stat = "coin_drop"
+value = 0.003
+target = "player"
+
+[sub_resource type="Resource" id="Resource_jewim"]
+script = ExtResource("1_wrnsf")
+stat = "coin_drop"
+value = 0.003
+target = "player"
+
+[sub_resource type="Resource" id="Resource_7sfe8"]
+script = ExtResource("1_wrnsf")
+stat = "coin_drop"
+value = 0.003
+target = "player"
+
+[sub_resource type="Resource" id="Resource_1trtt"]
+script = ExtResource("1_wrnsf")
+stat = "coin_drop"
+value = 0.003
+target = "player"
+
+[sub_resource type="Resource" id="Resource_yd6ui"]
+script = ExtResource("1_wrnsf")
+stat = "coin_drop"
+value = 0.005
 target = "player"
 
 [resource]
 script = ExtResource("2_ejx7o")
-levels = [[SubResource("Resource_ejx7o")]]
-max_level = 5
+levels = [[SubResource("Resource_rjbvw")], [SubResource("Resource_jxpjg")], [SubResource("Resource_jewim")], [SubResource("Resource_7sfe8")], [SubResource("Resource_1trtt")], [SubResource("Resource_yd6ui")]]
+max_level = 6
+evolved_icon = ExtResource("1_rjbvw")
 id = "pickpocket"
 display_name = "Pickpocket"
 flavour = "Finders, keepers."

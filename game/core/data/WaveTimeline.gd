@@ -234,6 +234,34 @@ const WATER_SLOW_DEFAULT := 0.1
 ## plays OASES_DEFAULTS.
 @export var oases: Dictionary = {}
 const OASES_DEFAULTS := {"min": 2, "max": 3, "extra_chance": 0.35, "gap": 10.0}
+## Pass 95 (lane WORLD; Garry: "in Vampire Survivors certain enemies despawn if the player walks far enough from them.
+## Let's do that as well ... only applies to regular enemies ... the despawning happens out of Player's view ... they
+## leave nothing behind"): {"enabled", "distance", "grace", "every", "keep_share"}. Every `every` seconds a regular
+## creature (never a boss, an Elite, a special type, a coloured special, a boss's summon while its boss lives, a training
+## dummy, one still rising, held or in the air) farther than `distance` m from the hero, off the screen and older than
+## `grace` seconds since its spawn vanishes with no death, no blood, no drops and no kill (EnemyManager._tick_despawn);
+## the director's live counts drop as for a death, so its row spawns again near the hero. `keep_share` is the share of
+## those spared at each check (0 = all of them go). A key left out (the whole block too) plays DESPAWN_DEFAULTS;
+## enabled false = off. The debug arena never despawns.
+@export var despawn: Dictionary = {}
+const DESPAWN_DEFAULTS := {"enabled": true, "distance": 40.0, "grace": 6.0, "every": 0.5, "keep_share": 0.0}
+
+
+## One number of despawn (pass 95): the map's, else DESPAWN_DEFAULTS' ("enabled" as 1 / 0).
+func despawn_value(key: String) -> float:
+	var v = despawn.get(key, DESPAWN_DEFAULTS.get(key, 0.0))
+	if v is bool:
+		return 1.0 if v else 0.0
+	return float(v) if (v is float or v is int) else float(DESPAWN_DEFAULTS.get(key, 0.0))
+
+
+## The despawn block whole, every key filled (pass 95): what EnemyManager.set_despawn takes.
+func despawn_cfg() -> Dictionary:
+	var out := {}
+	for k in DESPAWN_DEFAULTS:
+		out[k] = despawn_value(k)
+	out["enabled"] = despawn_value("enabled") > 0.5
+	return out
 
 
 ## One number of spawn_rise (pass 73): the map's, else SPAWN_RISE_DEFAULTS'.

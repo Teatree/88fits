@@ -1962,3 +1962,368 @@ New kinds the Watch writes: `down` (reason "fell to <who> (<attack>) at m:ss of 
 - WatchPanel: `set_hurt_tab(on)`, `set_hurt_window(s)`, `check_hover(spec)`, `fall_marks(falls, w)`, the down box.
 - Watch: `down_wait`, `watch_revive(blast)`, `end_down()`, `check_fell()`, `watch_handles_death()`, `down_words()`,
   `fatal_words(dlog)`, `revive_count`, `revive_times`, AUTO_REVIVE_S 0.5.
+
+## Pass 95: new keys
+
+### The shot from the held gun's muzzle; the Frisbee's trail per look; the Fire forward debug switch (lane ITEMS)
+
+| Where | Key | Type | Default | Meaning |
+|---|---|---|---|---|
+| Settings (save `settings`) | `fire_forward` | bool | false (PROD_LOCKED false) | the "Fire forward" debug switch: the Sabre, Spear, Hammer, Frisbee, Tumbleweed and Basketball (and their evolutions) fire along the hero's facing while no creature stands within 75% of their range; Settings' Debug panel row "Fire forward" (switch node `FireForward`), the developer menu row `FireForwardRow` |
+| weapon / evolution `params` | `fire_forward` | bool | false (absent) | marks a weapon the switch covers (content: sabre, pike, hammer, frisbee, tumbleweed, basketball, whirlwind, thunder_lance, earthshaker, flying_saucer, dust_devil, slam_dunk); read by core/systems/FireForward.gd; a shared params key in vocab.py / assets_fields.js |
+| Frisbee `params.disc.trail` | `style` | "streak" \| "sparks" \| "glow" \| "none" | the look's own (plain streak, razors sparks, saucer glow) | the trail behind the disc (Frisbee.trail_params); `true` = the look's own block, `false` = none |
+| | `length` | number (s) | the style's (0.4 / 0.32 / 0.48) | seconds the trail lingers (a point every 0.025 s) |
+| | `width` | number (disc radii) | the style's (1.5 / 0.6 / 2.2) | the ribbon's full width in disc radii (so Carry's x1.5 disc trails wider); for sparks the sparks' length |
+| | `alpha` | number 0..1 | the style's (0.6 / 0.9 / 0.45) | how solid the trail is at the disc, fading to nothing at the end |
+| | `colour` | #RRGGBB | the disc's `emission` lerped toward white (45% / 30% / 20%) | the trail's colour |
+| ProjectileManager shot `extra` | `drop_alone` | bool | absent | a ball thrown along the facing (ProjectileEmitter._throw_ball under the switch): with nobody to bounce off at the end of its flight it drops (`_drop_alone`) |
+| | `drop_t` | float (s) | absent | the dropping ball's clock (`_tick_dropping`); `ProjectileManager.drops` counts them, `DROP_LIFE` 0.6 s |
+| run record (`settings`) | `fire_forward` | bool | | the switch the run played with (RunAnalytics._settings) |
+
+Level Editor: the disc group's `disc.trail` bool row became five typed rows `disc.trail.style/length/width/alpha/colour`
+(assets_fields.js); `fire_forward` lives in the shared params keys (vocab.py `PARAMS_KEYS["*"]`, `_PARAMS_SHARED` +
+core/systems/FireForward.gd; assets_fields.js `PARAMS_SHARED`). ProjectileEmitter gained `shot_origin(dir)`, `held_tip()`
+(no keys: the muzzle is found from the held gun's meshes).
+
+### Passive items climb the rarity ladder to Evolved; power redistributed (lane PASSIVES)
+
+#### Content (content/passives/<id>/<id>.json, passive items only: `line` false, no `evolves_from`)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `levels` | list of lists of Effect | | one list a rung: level 1 (the item's rarity), then one rung up each, the last the Evolved rung. The count is the rarity's ladder (common 6, uncommon 5, rare 4, epic 3, legendary 2). tools/passive_ladder.py wrote every rung; the Level Editor flags a longer list (error: unreachable) and a shorter one (warning: the last level repeats) |
+| `max_level` | int | derived | the game derives it from the rarity (PassiveDef.apply_ladder in JsonContent.build); the JSON's value is written by the tool and shown by the editor, a different number is ignored (a warning) |
+| `repeat_last_level` | bool | true | unchanged: a shorter list repeats its last level up to the top |
+| `icon_evolved` | string | `<id>_icon_evolved.png` | the Evolved rung's icon (optional; tools/evolved_icons.py makes it from `<id>_icon.png`: the subject with a white outline on a transparent ground); absent = the base icon on the Evolved rung too |
+| `text` / `trade` | string | | unchanged keys; the hand-written lines that named the old numbers were rewritten by the tool (TEXT / TRADE tables in tools/passive_ladder.py) |
+
+No new key on the lines (cards) or the evolved cards.
+
+#### Code (no JSON key)
+
+- `PassiveDef.LADDER` = ["common", "uncommon", "rare", "epic", "legendary"], `PassiveDef.EVOLVED_RUNG` = "evolved".
+- `PassiveDef.ladder_levels(rarity)` (static): the levels an item of that rarity climbs (common 6 .. legendary 2; unknown = common).
+- `PassiveDef.is_item()`: on the ladder (not a line, not an evolved form); `ladder_top()`; `rung_at(level)` (the rarity at 0 and 1, a rarity up a level, "evolved" at the top and past it); `is_evolved_rung(level)`; `icon_at(level)`; `evolved_icon` (Texture2D); `apply_ladder()`.
+- `W.rung_of(def, level)`, `W.is_evolved_rung(def, level)`, `W.icon_at(def, level)`; `W.plate_fill(def, level)` climbs for passive items (level 0 = the rarity's colour; the Evolved rung EVOLVED_FILL, ringed EVOLVED_RING by WPlate).
+- `TextGen.rung_name(def, level)` ("Common" .. "Legendary", "Evolved"); `next_level_text` says "Next level (Rare): ..."; `passive_description` says "Level 3 (Rare): ... total." (level 1 plainly).
+- `WItem.rung_word(card)` (" · RARE" after PASSIVE on an upgrade card; "" on a new card and on the Evolved rung); the tag "EVOLVED" (W.EMBER) on the Evolved rung; `options()["evolution"]` true there (the card's ember band).
+- `CollectionScreen.rung_wash(def, level)`: the level cells' fill (the rung's plate colour washed to the paper; ember for Evolved).
+- `Run.phoenix_spent` (int), `Run.phoenix_count()` (the `phoenix_revive` stat rounded: 1, 2 on the feather's Evolved rung); `phoenix_used` stays the "all spent" flag.
+
+#### Level Editor
+
+- assets_fields.js: `LADDER`, `ladderLevels(rarity)`, `rungAt(rarity, level)`, `rungName(rarity, level)`, `onLadder(doc)` (exported); RULES.passive: levels longer than the ladder = error, shorter = warning, max_level != ladder = warning.
+- assets.js levelSteps: "<Rung> rung" beside each level of a passive item and a ladder line under the levels.
+- vocab.py: `PASSIVE_DEFAULTS.max_level` 6 (a new item is common), `PASSIVE_LADDER` served as `passive_ladder`.
+
+#### Analytics
+
+Unchanged: a passive's level is still an int in every record (`passive` notes, the build snapshots); the top level is now the rarity's ladder count.
+
+### The Cologne and Lighter (Dragon's Breath): a fire-breath weapon, its path and evolution (lane BREATH)
+
+For the Level Editor (vocab.py / assets_fields.js already carry them) and docs/assets_schema.md.
+
+#### Weapon behaviour `FireBreath` (core/behaviors/FireBreath.gd)
+
+A new behaviour primitive: a cone of fire breathed from the hero's face (Player.face_origin) along where he faces, for
+`duration` s every `cooldown` s; the cone follows his facing and walks with him; it never aims. Base stats it reads:
+`damage` (a tick's damage to a creature standing in the fire), `cooldown`, `amount` (seconds of breath: +seconds_per_amount
+per point past the first), `duration` (seconds a breath lasts at amount 1), `range` (the cone's length, m), `area` (x the
+cone's width), `fire_damage` / `fire_duration` / `fire_spread` (EnemyManager.ignite on every tick, as the Molotov). A
+weapon with it needs no visual scene (no 3D object). `targeting: "forward"` (the words say "where you face").
+
+##### `params.breath` (deep-merged by mutations and an evolution's `final`, as every params key)
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `cone_deg` | number | 50 | the cone's width at area 1 (x the `area` stat; 15 at least; 360 = a full ring) |
+| `tick` | number | 1.0 | seconds between hits on a creature standing in the fire; the first the moment it is inside |
+| `seconds_per_amount` | number | 1.0 | seconds of breath added per point of `amount` past the first (Multishot, the amount buff) |
+| `max_seconds` | number | 6.0 | the longest a breath lasts before Held Breath's doubling |
+| `wait` | number | 2.0 | with the cooldown ready it waits this long for a creature to stand in the cone; past it, it breathes where he faces if anyone is within `range` at all (aim_index) |
+| `knock` | number | 0 | Backdraft: every tick also shoves the creature straight away from the hero with this force (EnemyManager.damage's push: / its mass x knockback_resist x the map's hero_knockback_mult, a boss 0.15) |
+| `look.intensity` | number | 1.0 | the flames' size (sqrt) and count (Backdraft 1.5, the Fire Eater 1.8) |
+| `still` | {seconds, duration_mult, damage_mult, ring} | absent | Held Breath: present = on. A breath that starts after the hero has stood still AND unhit for `seconds` (Player.still_unhit_seconds) lasts `duration_mult` times as long, every tick deals `damage_mult` times, and `ring` makes it come from all sides (a full ring). A hit that lands breaks the stillness; a breath already burning is never cut |
+| `face_up`, `face_forward` | number | 1.45, 0.3 | where the fire starts when the hero has no face_origin (a fake hero in a test); Player's own constants FACE_UP / FACE_FORWARD otherwise |
+
+Shared keys it reads: `fire_blue` (WeaponInstance.blue_fire: the breath, its wash and the creatures it lights burn blue;
+Blue Flame, the Fire Eater through its path).
+
+##### `sfx`
+
+| Key | Meaning |
+|---|---|
+| `fire` | played as a breath starts (`w_breath_start`: the lighter's flick and the whoomp) |
+| `loop` | a looping sound run for the breath's length (Audio.play_loop; `w_breath_loop`, `loop: true` in the soundmap; the blue flame x1.12 pitch, an evolution x0.88) |
+
+#### Weapon level effects aimed at the hero (WeaponDef.player_effects, Run._apply_weapon_player_effects)
+
+A weapon's `levels[][]` effect with `"target": "player"` reaches the hero's sheet while the weapon is held, at the levels
+reached, under the source `weapon:<id>` (the pause Stats tab names the weapon; StatSources kind "weapon"). As a
+mutation's player effects (MutationDef.player_effects). The Fire Eater carries `thorns +8` this way (the Thorn's level
+1). Run rebuilds the hero's sheet at once when a weapon with any is added, levelled or evolved.
+
+#### Player (game/player/Player.gd)
+
+- `face_origin(dir) -> Vector3`: FACE_UP (1.45 m) up his 1.9 m painting, FACE_FORWARD (0.3 m) out along `dir`.
+- `still_unhit_seconds() -> float`: min(still_seconds(), seconds since the last hit that landed on his star, shield or
+  health). `still_seconds` (Steady Hand) is untouched. take_damage's hook `_note_hit_for_still` after the evade.
+
+#### Fx / Telegraphs
+
+- `Fx.breath_jet(at, dir, reach, deg, n, size, blue, ring)`: `n` flame tongues down the cone, an ember now and then; the
+  first never thinned by the budget.
+- the wash on the sand is Telegraphs.wash (existing), the scorch at the end Telegraphs.scorch (existing).
+
+#### Sounds (content/sounds/soundmap.json)
+
+`w_breath_start` (weapon, -6 dB), `w_breath_loop` (weapon, -12 dB, `loop: true`), both synthesised by
+tools/synth_breath_sfx.py into content/sounds/real/.
+
+#### Content
+
+- content/weapons/dragons_breath (Dragon's Breath; rare, weight 6; FireBreath, forward; evolves into fire_eater)
+- content/mutations/blue_flame (element, fire; fire_blue), held_breath (volume; breath.still), backdraft (motion; breath.knock 5, look.intensity 1.5)
+- content/evolutions/fire_eater (Fire Eater; thorns +8 on the player; final: knock 7, intensity 1.8)
+
+#### Estimates
+
+- `WeaponInstance.BREATH_CATCH` 3.0 (the cone's crowd), `breath_seconds()`, `breath_cone_deg()`, `breath_ticks()`,
+  `breath_dps()`, `breath_rows()`; `HeroPower.element_uptime(w)`: a FireBreath weapon's burn counts for
+  (breath_seconds + fire_duration) / cooldown of the time (1 for every other weapon).
+- `TextGen.breath_words(sheet, params)`; `amount_noun` "seconds of breath".
+
+### Regular creatures despawn out of view; the Magnet power-up as a timed wide pull (lane WORLD)
+
+#### Map: `timeline_data.despawn` (WaveTimeline.despawn, JsonContent.timeline_from_dict; Level Editor Settings → Scaling)
+A block; a key left out (the whole block too) plays `WaveTimeline.DESPAWN_DEFAULTS`. `WaveTimeline.despawn_value(key)` is
+one number, `despawn_cfg()` the block whole with the defaults filled (what `EnemyManager.set_despawn` takes; the director
+hands it over in `_apply_mults`, `{}` = off in the arena).
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `enabled` | bool | true | the rule runs at all; false = a crowd left behind walks after the hero forever (the game before pass 95) |
+| `distance` | number (m) | 40 | how far (flat) from the hero a regular creature must be to despawn |
+| `grace` | number (s) | 6 | seconds after its spawn a creature is safe, whatever its distance |
+| `every` | number (s) | 0.5 | seconds between two passes over the crowd (never under 0.05) |
+| `keep_share` | 0..1 | 0 | the share of the creatures that could go at a check that are spared this time (rolled again at the next check; the manager's own dice, rolled only above 0) |
+
+For docs/waves_schema.md (the lead): "Pass 95: `despawn` {enabled, distance, grace, every, keep_share}: every `every` s a
+regular creature (never the boss, an Elite by its kind or modifier, a special type (the gear badge), a coloured special, a
+boss's summon while its boss lives, a training dummy, one held by the Gravity Gun, roped, in the air, still rising or
+sinking, or dying) farther than `distance` m from the hero, OFF the screen (EnemyManager.refresh_onscreen: the camera's
+frustum grown by 1 m; never one you can see, above him or below) and older than `grace` s vanishes with no death, blood,
+XP, coins, drops, chest, kill or corpse (EnemyManager.despawn → _free: the live counts drop as for a death, so the row, the
+cap and Endless spawn again near the hero)."
+
+#### EnemyManager (new)
+- `despawn_cfg: Dictionary`, `set_despawn(cfg)`, `despawn_enabled()`.
+- `spawn_at: PackedFloat32Array` (each creature's birth on the despawn clock), `summoned: PackedByteArray` (1 = spawned
+  while `force_plain` was up: a boss's brood or a caster's eruption), `age_of(i)`.
+- `despawn_kind(i) -> bool` (the "who": alive, not dying, regular; WaveDirector._cull_behind leaves these to the rule),
+- `can_despawn(i, ppos) -> bool` (the rule for one creature), `_tick_despawn(delta, ppos) -> int` (the clock, the
+  check every `every` s; called at the top of `_physics_process` BEFORE `_rebuild_grid`), `despawn(i) -> bool`.
+- Counters: `despawned: int`, `despawned_by: Dictionary {creature id: n}`.
+
+#### WaveDirector
+- `_cull_behind()` (the older move-up of anything 30 m behind the hero) skips `em.despawn_kind(i)` creatures while
+  `em.despawn_enabled()`; otherwise as before. `_apply_mults` hands the block over: `em.set_despawn({} if Run.arena else
+  timeline.despawn_cfg())`.
+
+#### Analytics (RunAnalytics; analytics/SCHEMA.md updated)
+- Hook `RunAnalytics.despawned(def)`; per-second row key `despawned` `{creature id: n}`; the header's `crowd` block gains
+  `despawned` (total) and `despawned_by`.
+- The run sim: `despawned_by` is a cumulative breakdown (game/tools/sim_run.gd, tools/sim_batch.py BREAKDOWNS,
+  tools/level_editor/sim_avg.js BREAKDOWNS); the Sim tab draws "Despawned out of view" under Rewards when a sim carries
+  it (sim_model.js). The Timeline tab's overlay tooltip was NOT extended (not cheap: sim_batch's overlay + timeline.js).
+
+#### Pickup: `content/pickups/magnet_pulse` (effect `magnet`)
+| key | type | value | meaning |
+|---|---|---|---|
+| `effect` | string | `"magnet"` | the pickup effect (Game.apply_pickup → `_apply_magnet_pickup`; was `vacuum`) |
+| `duration` | number (s) | 10 | how long the pull runs (× the Pocket Watch's `powerup_duration`, × the hero's `buff_duration`, as every timed power-up) |
+| `params.radius_mult` | number | 2.5 | the reach as a multiple of what the Magnet card gives at its level 1 (its `xp_pull_radius` add: 6 m with lane PASSIVES' ladder, 5 m before → **15 m**; the number follows the card); `PickupManager.magnet_radius(def)` |
+| `name` | string | "Magnet" | (was "Magnet Pulse"); `flavour` reworded |
+
+Other pickup effects are untouched; `vacuum` still exists as an effect kind (the Uber Magnet structure is `vacuum_all`;
+the arena's button and a boss chest still call `PickupManager.vacuum_all`).
+
+#### PickupManager (new)
+- `magnet_item_reach()` (static: the card's level-1 add, 5 m fallback), `magnet_radius(def)` (static).
+- `magnet_start(def, seconds) -> float` (starts, or ADDS the seconds to a running one; the entry lives in `Run.timed`
+  under the pickup's id with no effects, so the HUD's plate counts it down and it wears off with the others' toast;
+  returns the seconds it runs from now), `magnet_running()`, `magnet_left()`.
+- `_tick_magnet(delta, hero)` (in the pickups' tick while the hero is up), `magnet_pull(c, r) -> int` (every gem and
+  coin lying within r on the magnet arc, never a vacuum gem), `magnet_targets(c, r, n)` (the field lines' spots),
+  `_magnet_show()`.
+- State and counters: `magnet_id`, `magnet_r`, `magnet_buff: MagnetBuff`, `magnet_pulls`, `magnet_starts`.
+- Constants: `MAGNET_RING_EVERY` 0.6 s, `MAGNET_COLOUR`, `MAGNET_ITEM_REACH_FALLBACK` 5, `MAGNET_SFX` "pk_vacuum",
+  `MAGNET_LOOK` 1.6 (the field lines look this far past the reach for the next gems).
+
+#### core/systems/MagnetBuff.gd (new, class_name MagnetBuff)
+The 2D magnet: `setup(def)`, `follow(hero, targets, left, delta)`, `icon_at()`, `line_point(from, to, k)`; constants
+`LINES` 3, `ORBIT_R` 1.3 m, `ORBIT_SPEED` 1.4 rad/s, `HEIGHT` 1.55 m, `BOB` 0.12 m, `ICON_M` 0.8 m, `LINE_COLOUR`,
+`DASHES` 8, `SPARK_EVERY` 0.12 s, `BLINK_LAST` 1.5 s; counters `lines_drawn`, `sparks`; `fx` (the game's Fx for the sparks).
+
+#### Game.gd
+- `apply_pickup`'s match gains `"magnet"` → `_apply_magnet_pickup(def)` (the toast "MAGNET: gems and coins within R m
+  for N s" from the data, a ring at the reach).
+
+#### The bot (game/tools/bot)
+- `BotGoals.powerup_value` / `powerup_why`: `"magnet"` priced exactly as `"vacuum"` (by the XP lying); `Bot._vacuum_lying`
+  counts a magnet lying as it counted a vacuum.
+
+#### Level Editor
+- fields.js: five rows `despawn.enabled|distance|grace|every|keep_share` in the Scaling card (plain dotted keys, no
+  `block:`; types bool / number / number / number / percent; grey numbers = the game's defaults).
+- selftest_WORLD95.py (the checks above).
+
+### The King's tumbleweed trail and three-stomp jump; the Scorpion Elite's tail sniper (lane BOSS)
+
+All in a creature's `boss.attacks[]` rows (content/bosses, content/enemies), read by EnemyManager's attack runner. The
+Level Editor's Enemies tab lists them (tools/level_editor/assets_fields.js ATTACKS / ATTACK_COMMON, vocab.py ATTACKS).
+
+#### Built-in scripts (BossAttackDef.SCRIPTS, 14 -> 16)
+
+##### `stomp` (the Tumbleweed King's; EnemyManager `_stomp_*`)
+| key | type | default | meaning |
+|---|---|---|---|
+| `windup` | s | 1.0 (the King 1.2) | the common wind-up; its `telegraph` "ring" draws the radius round the boss (x 1/pace) |
+| `stomps` | int | 3 | landings in one attack |
+| `gap` | s | 0.45 | on the ground between a landing and the next hop (x 1/pace); landings come `gap + jump.up + jump.down` apart (1.0 s) |
+| `jump` | {height, up, down} | {2.2, 0.35, 0.2} | the hop: how high the figure springs (m, lift_h: the shadow shrinks under it), the rise (s, ease-out) and the fall (s, ease-in) |
+| `radius` | m | 6.0 | the hero within radius + 0.5 of the boss's spot is hit at every landing |
+| `damage` | | 18 | a landing's damage x stage x hero level x host factors (the old slam's 30 x 0.6) |
+| `knockback` | m/s | 6.0 | a landing's push on the hero: a special push (pass 89's share, 0.5 on Red Canyon) |
+| `lift` | m | none | when set, the push is a throw up instead (Player.blast), the Hammer Giant's way |
+A landing shows Game.stomp_wave (a band racing out over the sand to the radius, the ring's flash, a ring of dust and
+clods, a camera kick 1.2) and plays `en_boulder_land`; a ring telegraph shows before every landing (the wind-up's for
+the first, then one for the hop, then gap + hop long after each landing). The `slam` script is unchanged.
+
+##### `tail_sniper` (the Dune Scorpion's; EnemyManager `_tail_*`; any creature with a script may carry it)
+| key | type | default | meaning |
+|---|---|---|---|
+| `windup` | s | 1.0 (the Scorpion 0.5) | the stop before the first aim; `telegraph` "none" |
+| `count` | int | 3 | beams in one attack, one after the other |
+| `gap` | s | 0.6 | frozen between a beam and the next aim, and after the last (x 1/pace) |
+| `aim` | s | 1.0 | the Saiga's red lines gather from the muzzle on the hero and follow him this long (x 1/pace) |
+| `lock` | s | 0.4 | the locked line holds still before the beam (x 1/pace): the time to step off it |
+| `lines` | int | 8 | lines gathering over the aim (SniperFx.line_plan) |
+| `cone_deg` | deg | 40 | the cone the lines start from |
+| `damage_from` | creature id | "" | a sniper creature whose beam's own base (its `damage_from` chain: the Saiga = the Vulture Raider's rocket 22 x 0.7 = 15.4) x `damage_mult` is the base |
+| `damage_mult` | | 2.0 | with `damage_from` |
+| `damage` | | 30.8 | the base without `damage_from`; x this creature's stage x hero level x host factors |
+| `beam` | {length, width, seconds, knockback, creature_frac, creature_max, push, sparks} | the Saiga's {60, 0.5, 0.15, 5, 0.05, 40, 3, 1.5} | the beam: the hero on its line (half width + 0.4 m) takes the damage and `knockback` as a special push; every creature on it takes `creature_frac` of its max HP (at most `creature_max`) and `push` m sideways |
+| `muzzle` | {up, side, forward} | {2.0, 0, -0.4} | where the lines and the beam leave, metres at the def's size (EnemyManager.muzzle_point: up the painting, screen-side, along the aim) |
+| `sfx` | {aim, lock, shot} | the creature's sfx, else en_sniper_aim / en_sniper_lock / en_sniper_shot | |
+Nothing but a stun, a freeze, a launch, a grab, hiding or death drops the run (`tail_cancels`); a hit does not.
+The hero's hit info says `tail beam` (kind ranged, elite true, special_knock true).
+
+#### Common attack key
+| key | type | default | meaning |
+|---|---|---|---|
+| `chance` | 0..1 | none (always) | rolled as the attack's turn comes in the rotation; a miss skips to the next attack (as a range skip does). The Scorpion's tail: 0.7 |
+
+#### The volley's trail (the `tumbleweed_volley` row; ProjectileManager.TUMBLE_TRAIL for any `shot: "tumbleweed"` without one)
+| key | type | default | meaning |
+|---|---|---|---|
+| `trail.style` | "line" / "streak" / "ribbon" / "wisp" / "toon" / "none" | "line" | the tracer look the dust ribbon is laid with in the tracers' ring (tracer_line.gdshader); "none" = pass 45's bead only |
+| `trail.colour` | "#RRGGBB" | "#7A5A30" | a warm dark sand (it has to read on the light sand without reading as a shadow: the darker #5C3F1E did) |
+| `trail.alpha` | 0..1 | 0.58 | |
+| `trail.width` | m | 0.5 | the ribbon's head width |
+| `trail.life` | s | 0.75 | a segment's life |
+| `trail.puffs` | s | 0.11 | a real puff of dust (Fx.roll_dust) at the ball's foot every this many seconds; 0 = none |
+Game.tumbleweed_volley gained a tenth argument `trail: Dictionary = {}` (the row's), EnemyManager hands it when the game
+takes it (`_tumbleweed_volley_call`).
+
+#### Diagnostics (EnemyManager / ProjectileManager vars, for tests and tools)
+`stomp_runs`, `stomp_lands`, `stomp_hero_hits`, `stomp_last`; `tail_runs`, `tail_shots`, `tail_hero_hits`,
+`tail_cancels`, `tail_last`; `tumble_trails`, `tumble_puffs`. Static helpers: `EnemyManager.stomp_jump(row)`,
+`stomp_hop_seconds(row)`, `stomp_period(row)`; `ProjectileManager.tumble_trail_cfg(trail)`.
+
+### VACE frame repair in the Level Editor: the frames store, the Frames view, history, cross-look, export (lane VACE)
+
+No new content JSON key: the frames store lives beside the content (tools/dl/frames/), the look entry keeps its keys
+(sprite, anims, strip_cols, head, fps, fresh) and an export writes only those (and never `fresh`: an export is Garry's
+own choice of frames, not a landing).
+
+#### The store (tools/frames_store.py; tools/dl/frames/<kind>/<id>/<CODE>/<anim>/<view>/)
+
+| file / key | type | meaning |
+|---|---|---|
+| `group.json` | object | the group: `store_version` (1), `kind, id, code, base, view, key` (the strip key, run_s), `n` (slots), `frame_px`, `fps`, `loop`, `canvas` (the clip's size, 640), `fit` {s, ox, oy, source measured|default, pairs, residual_px, worst_px, canvas}, `outline` {px, color}, `clip` {key, dir, out, full, box, seed, size, prompt, kind control|oneshot|pose|flf|free, match, wan, ctl_sig, ref_hash}, `driver` {name, view, dir, pattern, kind depth|pose, index [per slot]}, `ref_still`, `screen`, `method`, `post` {drop_islands, no_green, remap_hues}, `strip` {file, mtime, size}, `registered` |
+| `slot_NN/vNNN.json` | object | a version: `id` (sha1 of the PNG, 16 hex), `label` (`<CODE>-<n>`), `slot`, `space` cell|raw, `source` installed|reroll|vace|copied|repaint, `by` pipeline|ai|human, `time`, `size`, `raw` (true when `vNNN_raw.png` is beside it), `canvas`, `cell_sha1`, `cell_fit` (the fit the cell render used), `shrunk` (the shrink guard's factor when the figure was larger than the cell; absent otherwise), `clip_key`, `clip_frame`, `driver` {name, ctl_sig} (what it was walked on), `wan` (the clip's or the repair's settings), `from` {kind, id, code, base, view, slot, version, label, removed?, resized_from_px?}, `seed`, `prompt`, `model`, `workflow`, `job`, `window` {mode, frames, taken}, `control`, `reference`, `kept`, `free_fill`, `qa` {vision {answer, model, time, note}} |
+| `selected.json` | {slots: {N: {id, by, time, pinned, installed_differs?}}} | the chosen version per slot (`installed_differs` cleared when the strip shows the pinned choice again) |
+| `staged.json` | {slots: {N: {id, time, why}}} | choices not yet exported; ONE writer: the page's routes and the job landing (jobs._post -> frames_io.stage_versions); vace_repair.py never writes it |
+| `exports.json` | [{time, job, strip_sha1, changed, backup} or {time, job, rollback: true, strip_sha1, backup, why, staged_again}] | every export and every rollback |
+
+Flag rules (`frames_store.FLAG_RULES`): jump 1.7, footprint (0.72, 1.35), seam 2.2, silhouette 0.5, empty 0.004;
+`footprint` is also raised on a version the shrink guard shrank. Retention (`frames_store.RETENTION`): strip_backups
+30 per asset, repair_days 90 (the sheets under tools/dl/frames/_repairs); a version is never deleted while anything
+references it (`referenced_ids`: selections, stagings, exports, copies' `from`); raws are kept. `STORE_VERSION = 1`.
+
+Functions added at the resume: `Look(..., override={sprite, anims, strip_cols})`, `Look.in_play`, `StoreLook` (a removed
+look from its group.json), `removed_looks`, `rollback_export(kind, id, code, backup, changed, job, why)`,
+`prune_strip_backups(dir, keep)`, `prune_repairs(dir, days)`, `referenced_ids(kind, id)`, `delete_version(group, slot,
+id)`, `hook_after_save(folder, id, code, counts, cols, sprite, log)`; `export_look` returns `old_entry`,
+`strip_sha1_before`, `in_play` (also in the sidecar's info). CLI: `stage <kind> <id> <code> <anim> <view> <slot> <id>`,
+`rollback <kind> <id> <code> <backup> [changed json]`.
+
+#### methods.json
+
+Every method carries `repair: {vace: yes|conditional|no, fill: still|cell|none, note}` (the rule the route and the page
+read: `frames_io.repair_rule(method)`, `repairable(group)`): ctl and puppet yes; pose and free conditional; proc,
+pictures, front_from_picture, recolour no (fill still / cell); icons, drivers, refs no / none.
+
+#### Routes (tools/level_editor/frames_io.py)
+
+GET `/api/frames/<kind>/<id>/<code>` (+ `in_play`, `rule`, `strip_file`, `pinned`), `/.../<anim>/<view>` (+ `repairable` {ok, why,
+rule, procedural}, `store_version`, `strip_file`, `clip_dir`, `backups_dir`), `/.../<anim>/<view>/others` (looks carry
+`removed`); POST `/.../<anim>/<view>/stage` {slot, version}, `/unstage` {slot?}, `/pin` {slot, version?, pinned},
+`/copy` {slot, from {code, slot?, version?}, stage?}, `/repair` {slots, prompt?, seed?, window?, size?, guide?, free_fill?}
+(refused with `needs_free_fill` on a procedural animation or a method whose rule says no), `/ask` {slot, version?},
+`/delete` {slot, version} (refused with `referenced` while anything refers to it); POST `/api/frames/<kind>/<id>/<code>/export`
+{confirm?, force?} (the look in play answers `needs_confirm` until `confirm: true`), `/register` {force?}. Pictures:
+`/dl/frames/...` (DL_ROOTS gained "frames"). `stage_versions(...)` and `rollback(...)` are the landing's and the
+rollback's entry points for jobs.py.
+
+#### Jobs (tools/level_editor/jobs.py SPECS)
+
+- `frames_repair` (lane comfy): spec {kind, id, code, anim, view, slots [int], prompt, seed, window auto|single|double,
+  guide driver|free, free_fill, size, note}; the plan writes `<job>/repair.json` and runs `python tools/vace_repair.py
+  --job <it>` with the comfy lock held (env_steps: LOCK_HELD_COMFY, ASSET_JOB_SIDECAR); result.json info.outputs = the
+  sheets, info.repair.versions = the versions with `stage_wanted`; the landing (`_frames_repair_post`) stages them:
+  `written` {layout "staged", staged [...], skipped [{slot, id, why}]}.
+- `frames_export` (lane local): spec {kind, id, code, note, in_play}; runs `python tools/frames_store.py export ...`;
+  its result.json entry lands through merge_look WITHOUT `fresh`; a failed merge rolls back at once
+  (`written.rollback`); the import job that follows carries `spec.after_export: [job id]` (kept through merged imports)
+  and, when it fails, `_rollback_after_import` undoes the export (strip, choices staged again, the old entry merged back
+  with pipeline `frames_rollback`; the export card gets `rolled_back` and "rolled back" in its error). A queued export
+  waits while a `frames_repair` of the same look is queued / running / waiting (`_frames_export_waits`; the card says held).
+
+#### server.py
+
+`merge_look(kind, id, code, entry, info)`: no `fresh` when `info.pipeline` is `frames_export` or `frames_rollback`.
+
+#### comfy.py
+
+`wan_fun_vace(prompt, ref_name, ctl_names, mask_names, seed, width, height, negative, prefix, shift, steps, cfg, lora,
+strength, length)`; models `WAN_VACE_HIGH` / `WAN_VACE_LOW` (wan2.2_fun_vace_{high,low}_noise_14B_fp8_scaled).
+
+#### tools/vace_repair.py
+
+`--kind --id --code --anim --view --slots 3-5,9 [--prompt] [--seed] [--window auto|single|double] [--size] [--steps]
+[--cfg] [--shift] [--strength] [--guide driver|free] [--free-fill] [--no-stage] [--dry-run] [--out DIR]` or `--job
+<repair.json>` (keys as the flags, plus `free_fill`). Never writes staged.json; refuses a procedural animation without
+`--free-fill`; prunes the repair sheets older than 90 days when it runs into the default folder.
+
+#### gen_art.py / gen_ctl.py
+
+One line after every `strip.save`: `frames_store.hook_after_save(folder, id, code, counts, cols, sprite, log)`.
+
+#### The page (frames.js / frames_model.js)
+
+`FramesModel.exportConfirmText(code, total, inPlay, id)`, `whereLine(detail)`; `versionText` says the driver, the shrink
+and a removed source; the repair form's "fill freely anyway" checkbox sends `free_fill`; the versions drawer's Delete;
+the picker's "removed look" chip; the info block's "Where frames live" line.

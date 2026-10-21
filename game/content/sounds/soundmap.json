@@ -1086,6 +1086,21 @@
       "pitch_spread": 0.05,
       "volume_db": -10,
       "file": "real/ui_card.wav"
+    },
+    "w_breath_start": {
+      "category": "weapon",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": -6,
+      "file": "real/w_breath_start.wav"
+    },
+    "w_breath_loop": {
+      "category": "weapon",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -12,
+      "loop": true,
+      "file": "real/w_breath_loop.wav"
     }
   }
 }

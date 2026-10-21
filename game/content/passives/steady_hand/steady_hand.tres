@@ -2,15 +2,28 @@
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5a83v"]
 [ext_resource type="Texture2D" path="res://content/passives/steady_hand/steady_hand_icon.png" id="1_gxlqm"]
+[ext_resource type="Texture2D" path="res://content/passives/steady_hand/steady_hand_icon_evolved.png" id="1_wftx0"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_gxlqm"]
 
-[sub_resource type="Resource" id="Resource_gxlqm"]
+[sub_resource type="Resource" id="Resource_wftx0"]
 script = ExtResource("1_5a83v")
 stat = "still_might"
-value = 0.1
+value = 0.13
 target = "player"
 
-[sub_resource type="Resource" id="Resource_wftx0"]
+[sub_resource type="Resource" id="Resource_20cc1"]
+script = ExtResource("1_5a83v")
+stat = "still_might"
+value = 0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_4obgf"]
+script = ExtResource("1_5a83v")
+stat = "still_might"
+value = 0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_g5ole"]
 script = ExtResource("1_5a83v")
 stat = "still_might"
 value = 0.05
@@ -18,9 +31,10 @@ target = "player"
 
 [resource]
 script = ExtResource("2_gxlqm")
-levels = [[SubResource("Resource_gxlqm")], [SubResource("Resource_wftx0")]]
-max_level = 5
-text = "The longer you stand still, the harder you hit: +10% attack damage a second (5% faster each level), up to +100%. Moving drops it."
+levels = [[SubResource("Resource_wftx0")], [SubResource("Resource_20cc1")], [SubResource("Resource_4obgf")], [SubResource("Resource_g5ole")]]
+max_level = 4
+text = "The longer you stand still, the harder you hit: +13% attack damage a second (faster each rung), up to +100%. Moving drops it."
+evolved_icon = ExtResource("1_wftx0")
 id = "steady_hand"
 display_name = "Steady Hand"
 flavour = "Breathe out. Squeeze."

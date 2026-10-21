@@ -30,6 +30,9 @@ const SPIKE_HIT := 0.5
 ## creatures on the screen.
 const SUN_CATCH := 1.6
 const SWEEP_CATCH := 10.0
+## The Dragon's Breath's cone (pass 95, lane BREATH, FireBreath) as the estimate counts it: about this many creatures
+## stand in the fire (a cone like the Guitarra's).
+const BREATH_CATCH := 3.0
 
 
 func _init(p_def: WeaponDef, p_level: int = 1) -> void:
@@ -261,6 +264,9 @@ func dps_estimate() -> float:
 		"SaltShaker":
 			# pass 69 (lane SALT): the patches lying at once, about SALT_CATCH creatures in each, a tick every salt.tick
 			return salt_dps()
+		"FireBreath":
+			# pass 95 (lane BREATH): a breath's ticks on about BREATH_CATCH creatures, over the long cooldown
+			return breath_dps()
 		_:
 			return _shot_dps(hits, cd)
 
@@ -364,6 +370,9 @@ func stat_rows() -> Array:
 		"SaltShaker":
 			# pass 69 (lane SALT): the Salt's own rows (salt_rows)
 			return salt_rows()
+		"FireBreath":
+			# pass 95 (lane BREATH): the Dragon's Breath's own rows (breath_rows)
+			return breath_rows()
 		"SunScepter":
 			# the Sun Scepter (pass 54): its pillars, each one's radius, Zenith's sweep and Gold Dust's coins
 			var srows: Array = []
@@ -518,6 +527,60 @@ func salt_dps() -> float:
 	if cr is Dictionary and secs > 0.0:
 		per += dmg * float((cr as Dictionary).get("mult", 2.0)) / secs
 	return per * lying * SALT_CATCH
+
+
+# ---- pass 95, lane BREATH: the Dragon's Breath's estimate and rows ----
+
+## params.breath (pass 95), {} without it.
+func breath_block() -> Dictionary:
+	var b = params.get("breath")
+	return b if b is Dictionary else {}
+
+
+## How long a breath lasts (pass 95, as FireBreath.breath_seconds): `duration` + breath.seconds_per_amount for every point
+## of amount past the first, breath.max_seconds at most (Held Breath's doubling is not in: it needs the hero still).
+func breath_seconds() -> float:
+	var bd := breath_block()
+	var extra: float = float(maxi(stat_int("amount", 1), 1) - 1) * float(bd.get("seconds_per_amount", 1.0))
+	return clampf(stat("duration", 2.0) + extra, 0.1, maxf(float(bd.get("max_seconds", 6.0)), 0.1))
+
+
+## The cone's width now (pass 95): breath.cone_deg x the area stat, 15 at least, 360 at most.
+func breath_cone_deg() -> float:
+	return clampf(float(breath_block().get("cone_deg", 50.0)) * stat("area", 1.0), 15.0, 360.0)
+
+
+## The ticks a creature standing in the fire takes over one breath: one the moment it is inside, one every breath.tick.
+func breath_ticks() -> int:
+	return maxi(int(ceil(breath_seconds() / maxf(float(breath_block().get("tick", 1.0)), 0.1) - 0.0001)), 1)
+
+
+## The Dragon's Breath's estimate (pass 95): every tick lands on about BREATH_CATCH creatures, over the cooldown (the burn
+## is HeroPower's element_dps, for the share of the time it is lit).
+func breath_dps() -> float:
+	var cd: float = maxf(stat("cooldown", 10.0), 0.05)
+	return stat("damage", 12.0) * float(breath_ticks()) * BREATH_CATCH / cd
+
+
+## The Dragon's Breath's rows (pass 95): a tick's damage, the cooldown, the breath's seconds and the cone, the ticks a
+## breath lands, Backdraft's shove, Held Breath's held numbers, the burn, the estimate.
+func breath_rows() -> Array:
+	var bd := breath_block()
+	var rows: Array = []
+	rows.append({"stat": "damage", "name": "damage a second", "value": TextGen.format_value("damage", stat("damage", 12.0))})
+	rows.append({"stat": "cooldown", "name": TextGen.stat_name("cooldown"), "value": TextGen.format_value("cooldown", stat("cooldown", 10.0))})
+	rows.append({"stat": "duration", "name": "breath", "value": TextGen.format_value("duration", breath_seconds())})
+	rows.append({"stat": "range", "name": "reach", "value": TextGen.format_value("range", stat("range", 5.0))})
+	rows.append({"stat": "cone_deg", "name": TextGen.stat_name("cone_deg"), "value": TextGen.format_value("cone_deg", breath_cone_deg())})
+	var knock := float(bd.get("knock", 0.0))
+	if knock > 0.0:
+		rows.append({"stat": "knockback", "name": "shove a second", "value": TextGen._plain(knock)})
+	var st = bd.get("still")
+	if st is Dictionary:
+		rows.append({"stat": "still", "name": "held breath", "value": "×%s long, ×%s hits" % [TextGen._plain(float((st as Dictionary).get("duration_mult", 2.0))), TextGen._plain(float((st as Dictionary).get("damage_mult", 1.5)))]})
+	_element_rows(rows)
+	rows.append({"stat": "dps", "name": "dps", "value": str(int(round(dps_estimate())))})
+	return rows
 
 
 ## The Salt's rows (pass 69): what a tick does, how often it pours, how many patches, each one's radius and how long it

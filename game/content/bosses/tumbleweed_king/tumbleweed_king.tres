@@ -7,9 +7,9 @@
 [resource]
 script = ExtResource("1_85nhh")
 archetype = "boss"
-doc = "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a volley of twelve tumbleweeds rolled out in every direction (each throws you), a ring of tumbleweed minions, a slam."
+doc = "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a volley of twelve tumbleweeds rolled out in every direction (each throws you), a ring of tumbleweed minions, a jump and three stomps (pass 95: each a wave over the sand, a ring before every landing; the tumbleweeds leave a dust trail)."
 brain = "boss"
-hp = 1440.0
+hp = 2880.0
 speed = 1.6
 damage = 20.0
 radius = 2.2
@@ -56,6 +56,14 @@ boss = {
 "name": "tumbleweed_volley",
 "speed": 9.0,
 "telegraph": "spokes",
+"trail": {
+"alpha": 0.58,
+"colour": "#7A5A30",
+"life": 0.75,
+"puffs": 0.11,
+"style": "line",
+"width": 0.5
+},
 "windup": 0.8
 }, {
 "count": 16.0,
@@ -64,10 +72,17 @@ boss = {
 "telegraph": "none",
 "windup": 0.8
 }, {
-"damage": 30.0,
+"damage": 18.0,
+"gap": 0.45,
+"jump": {
+"down": 0.2,
+"height": 2.2,
+"up": 0.35
+},
 "knockback": 6.0,
-"name": "slam",
+"name": "stomp",
 "radius": 6.0,
+"stomps": 3.0,
 "telegraph": "ring",
 "windup": 1.2
 }],

@@ -76,6 +76,7 @@ params = {
 "heat_per": 0.05,
 "refund": 0.35
 },
+"fire_forward": true,
 "heat_look": {
 "body_green_max": 0.3,
 "color": "#FF5A10",

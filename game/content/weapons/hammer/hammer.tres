@@ -74,6 +74,7 @@ sfx = {
 visual = ExtResource("3_mtujd")
 visual_file = "hammer_visual.tscn"
 params = {
+"fire_forward": true,
 "smash": {
 "bounce": 0.18,
 "fade": 0.22,

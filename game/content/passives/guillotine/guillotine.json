@@ -4,14 +4,38 @@
   "flavour": "No appeals. No second hit.",
   "rarity": "rare",
   "weight": 5,
-  "text": "Finishes the job: a creature left under the threshold by any of your hits dies on the spot. 7% of its health at level 1, 21% at level 3. Bosses are spared.",
-  "max_level": 3,
+  "text": "Finishes the job: a creature left under the threshold by any of your hits dies on the spot. 9% of its health at level 1, 23% once Evolved. Bosses are spared.",
+  "max_level": 4,
   "levels": [
     [
       {
         "stat": "execute_frac",
         "op": "add",
-        "value": 0.07,
+        "value": 0.09,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "execute_frac",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "execute_frac",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "execute_frac",
+        "op": "add",
+        "value": 0.06,
         "target": "player"
       }
     ]

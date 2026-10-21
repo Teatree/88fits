@@ -64,6 +64,13 @@ var pierce_falloff: bool = true
 ## share (WaveTimeline.hero_special_knock, 0.5; Player.knock_share) and a bite or a plain shot never does; on, every
 ## push whole.
 var hero_knockback: bool = false
+## "Fire forward" (pass 95, lane ITEMS; Garry: "Change the following items to always fire at a sequence (add this as a
+## togglable option in the debug version of settings, by default it's off)"): on, the Sabre, the Spear, the Hammer, the
+## Frisbee, the Tumbleweed and the Basketball (and their evolutions: `params.fire_forward` in content) fire along the
+## hero's facing while no creature stands within 75% of the weapon's range of him (core/systems/FireForward.gd; the
+## Basketball thrown with nobody to bounce off drops to the sand). Off, every one aims as before. Settings shows the
+## switch only in debug mode (the Debug panel) and in the developer menu; the production build holds it off.
+var fire_forward: bool = false
 ## The debug arena's training dummies (pass 48, the developer menu and the arena's WORLD tab; lane L5 lays them out):
 ## how many stand in the field (never fewer than 10), and their health: 0 = undying (a hit refills them), else that much
 ## HP, and one that dies comes back.
@@ -119,7 +126,7 @@ var surveys: bool = true
 ## force_prod(). The dev build never changes.
 const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_buttons": false, "free_revive_button": false,
 	"hit_log": false, "preview_locked_heroes": false, "menu_style": MENU_STYLE_DEFAULT, "ranged_on_screen": true,
-	"pierce_falloff": true, "hero_knockback": false}
+	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false}
 var _prod_forced := -1
 
 
@@ -161,7 +168,7 @@ func to_dict() -> Dictionary:
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 		"menu_style": menu_style, "ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
-		"hero_knockback": hero_knockback,
+		"hero_knockback": hero_knockback, "fire_forward": fire_forward,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
@@ -193,6 +200,7 @@ func from_dict(d: Dictionary) -> void:
 	ranged_on_screen = bool(d.get("ranged_on_screen", ranged_on_screen))
 	pierce_falloff = bool(d.get("pierce_falloff", pierce_falloff))
 	hero_knockback = bool(d.get("hero_knockback", hero_knockback))
+	fire_forward = bool(d.get("fire_forward", fire_forward))
 	dummy_count = int(d.get("dummy_count", dummy_count))
 	dummy_hp = int(d.get("dummy_hp", dummy_hp))
 	dummy_patrol = bool(d.get("dummy_patrol", dummy_patrol))

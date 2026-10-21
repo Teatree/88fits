@@ -405,6 +405,9 @@ func _kind_line(def: ContentDef) -> String:
 	if def is WeaponDef:
 		return ("Evolution" if (def as WeaponDef).is_evolution else "Weapon") + " · %d levels" % (def as WeaponDef).max_level
 	if def is PassiveDef:
+		# pass 95 (lane PASSIVES): a passive item climbs from its rarity to Evolved ("Passive · Rare → Evolved · 4 levels")
+		if (def as PassiveDef).is_item():
+			return "Passive · %s → Evolved · %d levels" % [TextGen.rarity_name(W.rarity_of(def)), W.max_level_of(def)]
 		return "%s · %d levels" % ["Card" if W.is_line(def) else "Passive", W.max_level_of(def)]
 	if def is PerkDef:
 		var hero := Registry.character((def as PerkDef).hero)
@@ -521,8 +524,19 @@ func _level_grid(def: ContentDef) -> GridContainer:
 		var text := TextGen.describe_effects(fx)
 		if text == "":
 			continue
+		# pass 95 (lane PASSIVES): a passive item's cell names its rung and takes a wash of the rung's plate colour
+		if def is PassiveDef and (def as PassiveDef).is_item():
+			grid.add_child(_cell(str(lv), "%s · %s" % [TextGen.rung_name(def as PassiveDef, lv), text], rung_wash(def as PassiveDef, lv)))
+			continue
 		grid.add_child(_cell(str(lv), text))
 	return grid
+
+
+## A level cell's fill for a passive item's rung (pass 95): the rung's plate colour washed towards the paper, the
+## Evolved rung the evolution's ember washed the same way (its dark plate would swallow the ink).
+static func rung_wash(def: PassiveDef, level: int) -> Color:
+	var c: Color = W.EMBER if W.is_evolved_rung(def, level) else W.plate_fill(def, level)
+	return c.lerp(W.PAPER, 0.55)
 
 
 func _cell(n: String, text: String, fill: Color = W.PAPER) -> PanelContainer:

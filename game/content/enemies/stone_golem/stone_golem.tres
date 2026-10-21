@@ -8,7 +8,7 @@
 script = ExtResource("2_hiuso")
 archetype = "elite"
 doc = "The Elite that fights at every range: a slow stone golem that smacks the ground in front of it when the hero stands close; from a little further out it marks a half-disc in his direction as wide as the dwarf's wedge and buries it in falling stalactites (one hit and a throw for a hero still inside, the crowd scattered). From anywhere at all it marks a ring the size of the scorpion's burrow on the hero's spot and hurls a boulder across the map onto it: a blast that hurts and throws him and everything else round it."
-hp = 520.0
+hp = 750.0
 speed = 0.9
 damage = 16.0
 radius = 1.3

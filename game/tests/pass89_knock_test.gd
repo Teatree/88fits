@@ -137,9 +137,10 @@ func test_the_switch_on_plays_every_push_whole() -> void:
 
 func test_the_game_marks_its_hits() -> void:
 	var em := FileAccess.get_file_as_string("res://core/systems/EnemyManager.gd")
-	# the bite says regular; the Sniper's beam and a custom boss attack say special
+	# the bite says regular; the Sniper's beam and a custom boss attack say special (pass 95, lane BOSS: and the Scorpion
+	# Elite's tail beam, EnemyManager.beam_hit: three)
 	assert_bool(em.contains("binfo[\"special_knock\"] = false")).is_true()
-	assert_int(em.count("info[\"special_knock\"] = true")).is_equal(2)
+	assert_int(em.count("info[\"special_knock\"] = true")).is_equal(3)
 	assert_bool(em.contains("player.special_push(")).is_true()
 	var game := FileAccess.get_file_as_string("res://game/Game.gd")
 	assert_bool(game.contains("player.special_push(")).is_true()

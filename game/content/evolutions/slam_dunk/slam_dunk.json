@@ -31,6 +31,7 @@
     ]
   ],
   "params": {
+    "fire_forward": true,
     "radius": 0.34,
     "roll_radius": 0.22,
     "no_shells": true,

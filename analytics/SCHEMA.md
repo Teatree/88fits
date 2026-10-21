@@ -63,7 +63,7 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 | `totals` | `Run`'s `damage_by_weapon`, `kills_by_weapon`, `kills_by_enemy` |
 | `timeline` *(2)* | the Results screen's story (`Run.timeline`) without its second-by-second samples: `markers` `[[t, kind]]` (kind `special`, `elite`, `boss`: a kill; `down`: the hero fell), `stages` `[[t, stage index]]`, `sources` `{damage id: {owned, hit}}` (the play second it was first owned / first hit; -1 never), `start_weapon` |
 | `quests` *(2)* | every counted quest not done as the run began: `{id: {name, before, after, need, done}}` (its progress as the run began and as it ended, what it needs, done now) |
-| `crowd` *(2)* | the crowd's counters at the end, those above zero: `special_chests`, `hot_chests` (Hot Sauce), `sniper_aims`, `sniper_shots`, `sniper_hero_hits`, `sniper_cancels` (the Saiga Sniper) |
+| `crowd` *(2)* | the crowd's counters at the end, those above zero: `special_chests`, `hot_chests` (Hot Sauce), `sniper_aims`, `sniper_shots`, `sniper_hero_hits`, `sniper_cancels` (the Saiga Sniper); since pass 95 `despawned` (regular creatures that vanished far from the hero and out of view, never a kill) and `despawned_by` `{creature id: count}` |
 | `fps` *(2)* | `{avg, low}`: the mean frame rate and the 1 % low (a window only; the frame clock PostHog's run_summary has) |
 | `names` | `{id: display name}` for every id the file mentions (weapons, passives, perks, mutations, creatures, pickups, structures; *(2)* Elite modifiers, talents, the totem gifts, the cards an offer showed) |
 | `hit_log` | the hero's last 30 s of hits as the Down! screen shows them: `{t (the stage clock), by, id (the creature), kind (melee/ranged/boss/heal), role, colour, fx, raw, dealt, shield, note (evaded, shield, broke, star, ...), hp, fatal}`; a named heal has `kind: heal` and `amount`; only on a finished run |
@@ -115,6 +115,7 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `killed` | `{creature id: kills this second}` |
 | `elite_kills` | Elites (and elite-modified creatures) killed this second |
 | `spawned` | `{creature id: spawned this second}` |
+| `despawned` | (pass 95) `{creature id: despawned this second}`: regular creatures that vanished because the hero left them more than the map's despawn distance behind, off the screen (`timeline_data.despawn`); no kill, no drop |
 | `alive`, `cap`, `load`, `hard_cap` | creatures up, the director's live cap, the crowd in cap-share units, the timeline's hard cap |
 | `specials_alive` *(2)* | coloured variance specials up now (`EnemyManager.specials_alive`) |
 | `press` | Σ over live creatures of max HP × damage: the crowd's pressure |

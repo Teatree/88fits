@@ -3301,3 +3301,227 @@ that driver, "play the kept frames", even 8, the default, clear), drivers.css. m
 `picker: "frames"`, `frames_of: "death_drivers"`, `view: "front"`. docs/level_editor.md "Pass 93". Tests:
 selftest_PREVIEW93.py (57 checks; selftest_S re-pinned: run's `frames` 25, meta's 24); the whole selftest green
 (13,687). Playwright screenshots in tools/dl/p93/PREVIEW/.
+
+**Pass 95 (2026-10-21, v0.80): the shot from the muzzle, the Frisbee's trails, Fire forward, passive items up the rarity ladder to Evolved, the Dragon's Breath, despawning out of view, the timed Magnet, the King's trail and three stomps, the Scorpion's tail sniper, VACE frame repair in the Level Editor, and a read-only assessment of TOOLING_UPDATE_PROMPT.md.** Garry's list (tools/dl/p95/REQUEST.md) under the goal "complete all of the following while checking the quality of art assets and the game itself. Megabonk is a big inspiration"; the spider work (pass 94) parked on his word. Six lanes (tools/dl/p95/INTERFACES.md): ITEMS, PASSIVES, BREATH, WORLD, BOSS, VACE; the assessment docs/tooling/assessment_2026-10-21.md (published: https://claude.ai/artifact/H2KFqNpoq9r27k8b6PYR2H): 44 items, 39 accepted, 3 rejected, 2 questions (AN-07, AN-09). The lanes were cut twice by the spend limit and resumed from their status files. Lead fixes: the Boomstick's mutation "Dragon's Breath" renamed "Dragon Shells" (id unchanged) so the player sees one card of that name; Game.visible_modals skips a closing Spirit Pole (the smoke run's "two screens up at once: chest,totem").
+
+**The shot from the gun** (Garry: "Shot should happen from the shotgun 3d object"). A held gun's rounds left the hero's
+chest (Player.aim_origin: 0.8 m up, 0.5 m out) while the gun hung at his hip with its barrel reaching 0.85 m out, so every
+Boomstick pellet, tracer and flash started a third of a metre behind the muzzle and above it, out of his painting.
+ProjectileEmitter.shot_origin poses the held gun (at the hip, turned to the shot's line, so it snaps to the line its
+rounds fly) and fires from the muzzle as drawn: the far end of the gun's barrels found from its visible meshes' vertices
+(within 3 cm of the furthest down -Z, averaged: twin barrels and the Blunderbuss's bell give the bore), carried by the
+gun's transform, so the hip's bob, the recoil squish and the turn are in it (held_tip, cached per look: Both Barrels
+shows the twin barrels and hides the single one). Every path: the volley, the burst, the second barrel, Fan the Hammer's
+taps, the hip shot, the blast's ghost pellets and the muzzle flash. The Boomstick, the Blunderbuss and the Doomstick
+with every mutation; the companions untouched (pass 75's rest-place line kept); the hit test and the lead unchanged.
+
+**The Frisbee's trail** (Garry: "needs a dim trail behind its flight because it's hard to see it right now. Treat each
+visual update of Frisbee with its own trail effect"). `disc.trail` is a block {style, length, width, alpha, colour}, one
+style per look: the plain disc's **streak** (a faint pale ribbon with a brighter thread), Poison Razors' **sparks** (two
+thin bright edge lines and short sparks flicking off the rim), the Flying Saucer's **glow** (a wide soft glow with a
+brighter core); Carry inherits the streak at its bigger disc (widths in disc radii). Longer (0.4 / 0.32 / 0.48 s against
+0.22), more solid (alpha 0.6 / 0.9 / 0.45 against 0.32), and the ribbon fades out behind a gliding disc instead of
+vanishing at the glide's start. Still one ImmediateMesh for every disc of a weapon (one draw call). The Level Editor's
+disc group shows the five rows; an old `trail: true` reads as the look's own block.
+
+**"Fire forward"** (Garry: "Change the following items to always fire at a sequence (add this as a togglable option in the
+debug version of settings, by default it's off): Saber, Spear, Hammer, Frisbee, Tumbleweed - always in the direction
+Player is facing; Basketball - always throw in front ... All of these will stop just shooting forward once there is an
+enemy that's 75% of the weapon's attack range from the hero"). Settings.fire_forward (off, PROD_LOCKED, a Debug panel row,
+a developer menu row, touch_audit); ONE helper, core/systems/FireForward.gd: the facing when the switch is on, the
+weapon carries `params.fire_forward` (content: the six and their evolutions) and no living creature stands within
+NEAR_FRAC 0.75 x the sheet's range; the behaviours ask it at every pull (ProjectileEmitter's usual aim, Thruster, Smasher,
+Frisbee). The Sabre and Spear stroke along the facing on their clock, the Hammer lands 75% of its reach ahead, the Frisbee
+arcs about its line, the Tumbleweed rolls straight; the Basketball thrown forward carries "drop_alone": at its range's end
+with nothing struck it hops to a creature within its bounce reach, else drops to the sand and is gone (no return, no catch,
+no Heat; ProjectileManager._drop_alone / _tick_dropping). The run record's settings carry the switch.
+
+**Pass 95, lane PASSIVES: the passive items climb the rarity ladder.** Garry: "the number of Upgrades is reduced to
+the number of upgrades they have left to reach Legendary + Evolved Rarity ... Evolved is a 'Rarity' for Passive Items
+... I do expect that stats on the 1st level will be higher". The rule lives in one place (PassiveDef.ladder_levels,
+applied to `max_level` in JsonContent.build): an item of rarity r has the rungs from r to legendary + Evolved as
+upgrades, so common 6 levels, uncommon 5, rare 4, epic 3; level k stands on rung idx(r) + k - 1 and the top is Evolved,
+a rarity for passive items alone (the dark plate in the brass ring every evolution wears, the item's Evolved icon, the
+EVOLVED tag in ember and the card's ember band, "Evolved" in every generated line). W.plate_fill climbs for passive
+items (level 0 stays the rarity's colour: the Collection), WPlate rings the Evolved rung and draws `evolved_icon`,
+WItem names the rung on an upgrade card ("PASSIVE · RARE"), TextGen names it in the pause and next-level lines, the
+Collection says "Passive · Rare → Evolved · 4 levels" and washes each level cell in its rung's colour. The 34 items'
+JSONs now hold every rung explicitly (tools/passive_ladder.py: the table, the rewritten card lines, in-place with the
+files' layout and line endings; the old numbers kept under tools/dl/p95/PASSIVES/old/): level 1 1.2-1.5x the old,
+each rung about 0.8 of an old step, the Evolved rung the biggest, the top of an item that lost rungs 0.75-0.9 of the old
+one, of one that kept its count about the same, of one that gained rungs a little above; capped stats stay under their
+caps (the Magnet's 8.5 m). The Evolved icons: tools/evolved_icons.py cuts the subject by alpha, grows a white outline
+(6 px of 256) and leaves the ground transparent (the plate is the black), with a review sheet of all 34 on the dark
+plate. Phoenix Feather climbs too: rungs of health on revive, Evolved a second life (Run.phoenix_spent / phoenix_count;
+`phoenix_used` still the "all spent" flag). The Level Editor's Items tab names the rung beside each level, warns when
+the levels or max_level disagree with the ladder (an overlong list is an error), defaults a new item to 6 levels;
+selftest_PASSIVES95.py. Tests pass95_PASSIVES_test.gd (the rule, every item's levels and icon, the plates, the cards'
+words, every text at every rung, a run buys every rung and no further, a level past the top loads, the feather's
+second life, the tool's --check) and the re-pins of pass23, 24, 46_passives, 47_rules, 48_items, 48_p0, 48_ui, 53_items,
+62_it and 69_pas to the new numbers. Lessons: a rule that only one place computes (the ladder in PassiveDef) keeps the
+JSON honest: the tool writes max_level too so every reader of the JSON agrees, and the editor flags the disagreement
+instead of the game refusing it; a sparse JSON (repeat_last_level) was fine while every level was the same, but rungs
+that differ must be explicit so Garry can tune each; the Godot lock has no fairness, so a lane's long test run waits
+behind every other lane's short commands (start the long ones early, write the other pieces while they wait).
+
+**BREATH: the Dragon's Breath (Cologne and Lighter).** Garry: a weapon that "breathes fire" where the hero faces for
+a time, every creature in it burning and hit every second it stands there; rare, 2 s when it comes, the slowest in
+the game, decent damage; amount = more seconds; very visible, cheap VFX; no 3D object, the fire from his face; three
+mutations (a knockback every second with a fiercer look; a Methanol-like blue fire, further, weaker, longer; a doubled
+attack from all sides after standing completely still 2 s, broken by a hit but never cutting a running attack); an
+evolution amplifying it all with the Thorn's level-1 thorns. Built: a new behaviour primitive `FireBreath`
+(core/behaviors/FireBreath.gd: a cone from `Player.face_origin` along `forward()`, bodies tested by their radius, a
+tick on entry then every `breath.tick` anchored to the entry, `ignite` every tick, the cone turning and walking with
+him; the wait rule: a creature in the cone, or anyone within reach after `breath.wait`; Backdraft's shove through
+EnemyManager.damage's push at the map's hero share; Held Breath on `Player.still_unhit_seconds` (new: still_seconds
+and a hit-ago clock, the hit noted in take_damage after the evade, so Steady Hand's still is untouched); blue through
+WeaponInstance.blue_fire and EnemyManager.fire_blue; cheap VFX: Fx.breath_jet (pooled flame tongues down the cone,
+about 40 alive, an ember now and then), Telegraphs.wash under it and a scorch after; the lighter's pop and a whoosh
+loop (Audio.play_loop, `sfx.loop`, synthesised in numpy by tools/synth_breath_sfx.py). Content: weapons/dragons_breath
+(rare, weight 6; 9 s, 2 s, 50°, 5 m, 32 a tick + a 6/2.5 s burn; at 5: 58 a tick, 7 s, 3 s, 6 m, 60°), mutations
+blue_flame (element), held_breath (volume), backdraft (motion), evolutions/fire_eater (80 a tick, 6.5 s, 3.5 s, 7 m,
+65°, burn 14/3.5 s, knock 7, thorns +8 on the hero: a weapon level effect aimed at "player", a new rule in
+Run._apply_weapon_player_effects, named "weapon:<id>" in the Stats tab). The icons painted through gen_icon_cands set
+95 (a cologne bottle and a lighter, the blue one, the ring, the gale, the torch and bottle crossed) and picked from one
+review sheet. The estimate (WeaponInstance.breath_dps, BREATH_CATCH 3, HeroPower.element_uptime so the burn of a 9 s
+weapon is not counted as always lit): the breath is the median weapon at level 1 (21 dps, beside the Boomstick and
+the Revolver), 6th of 24 at level 5 by the estimate, the Fire Eater 8th of 24 evolutions; the difficulty probe's
+pairs (the breath in the Peashooter's slot) in balancing_BREATH.md. TextGen.breath_words, the rows, the Level
+Editor's FireBreath vocab and `breath` group (selftest_BREATH95.py, L69's SOURCES), pass95_BREATH_test.gd (13).
+Lessons: the Boomstick's pass-51 mutation is already called "Dragon's Breath"; the ids never meet in code (the
+Registry keys by type) but the player sees two cards of one name: the lead's call. A tick clock scheduled from the
+frame a tick lands on drifts a frame a tick (the test with 1/60 s steps lost its fourth tick); anchor it to the due
+time. A capture that counts the breaths after arming the cooldown misses a still hero's breath that fires the same
+frame (the first evolution capture was empty); count before arming. A probe window past a stage's end (pass 87:
+stage=0 at 860 s) ends at once and reports 0 s: give the probe the stage whose window holds t0.
+
+**Pass 95, lane WORLD: regular creatures despawn out of view; the Magnet is a timed wide pull.** Garry: "in Vampire
+Survivors certain enemies despawn if the player walks far enough from them. Let's do that as well ... only regular
+enemies ... out of Player's view ... they leave nothing behind." The map's `timeline_data.despawn` {enabled true,
+distance 40, grace 6, every 0.5, keep_share 0} (WaveTimeline.DESPAWN_DEFAULTS, JsonContent; the director hands it to
+EnemyManager.set_despawn, off in the arena; the Level Editor's Scaling card has the five rows): every half second a
+regular creature (never the boss, an Elite by kind or modifier, a special type, a coloured special, a boss's summon while
+it lives, a dummy, one held, roped, in the air or rising) farther than 40 m from the hero, off the screen by the camera's
+frustum test and older than 6 s vanishes (EnemyManager._tick_despawn at the top of the tick before the grid, can_despawn,
+despawn → _free): no death, blood, XP, drops, chest, kill or corpse; the live counts drop as for a death so its row
+spawns again near him, which is how VS and Megabonk keep the crowd round the hero. Counted in the run record (the
+per-second `despawned` map, the crowd block's `despawned` / `despawned_by`) and in the run sim (`despawned_by`, a chart
+under Rewards). And "Magnet - should not pull everything. Should just affect a big area and work for a time (like 10s)
+... a 2d magnet icon floating around the Player ... around 2.5 times larger than the Magnet Epic Item": the Magnet Pulse
+is the Magnet (content/pickups/magnet_pulse, effect "magnet", duration 10, params.radius_mult 2.5): for 10 s (the Pocket
+Watch's and the hero's buff seconds; a second one adds its seconds) every gem and coin lying within 2.5 × the Magnet
+card's level-1 reach (15 m with the card's 6 m) of the hero comes on the magnet arc, never a vacuum gem, a chest or a power-up
+(PickupManager.magnet_start / _tick_magnet / magnet_pull); the HUD's plate counts it down through Run.timed; the 2D
+magnet (core/systems/MagnetBuff.gd: the pickup's icon orbiting at 1.3 m, bobbing, dashed field lines to the nearest gems,
+a spark now and then, blinking its last 1.5 s); a faint ring at the reach; the bot prices it as the vacuum. Tests
+pass95_WORLD_test.gd (9), selftest_WORLD95.py; the probe game/tools/_p95_WORLD_probe.gd and the capture
+_p95_WORLD_shot.gd.
+
+Pass 95, lane BOSS (Garry: the King's tumbleweeds "should have a trail behind it. It's not visible right now"; the stomp
+"should have an animation of the king jumping and doing the stomp. It should be more than one stomp, 3. There should be
+visible wave effects around the boss"; "Scorpion Elite should have like a more powerful sniper attack, that comes out of
+the scorpion's tail ... visually the same ... shoot 3 in a sequence 1 after the other"). The trail: pass 45's tan bead at
+the ball's foot was tan on tan; every hostile `shot: "tumbleweed"` now wears a dust trail (ProjectileManager
+`_tumble_trail_*`, TUMBLE_TRAIL: a dark-sand ribbon laid in the tracers' ring as the ball rolls, in the "line" style that
+widens, lifts and greys like smoke, plus a real puff of dust off its foot every 0.11 s, Fx.roll_dust), the King's volley
+row carrying its own `trail {style, colour, alpha, width, life, puffs}` through Game.tumbleweed_volley's new tenth
+argument. The stomp: the King's `slam` row became the `stomp` script (EnemyManager `_stomp_*`): after the wind-up and its
+ring the fire step parks the attack pose (STATE_ATTACK, the runner's timer at SNIPER_HELD) and runs the hops on lift_h (up
+2.2 m over 0.35 s on an ease-out, down over 0.2 s on an ease-in: the painting rises, its shadow shrinks under it, it lands
+squashed); each landing hurts the hero within 6 m for 18 (60% of the old slam's 30) with a special push of 6, shows the
+wave (Game.stomp_wave: Telegraphs.race_ring to the radius, a flash ring, Fx.stomp_dust's ring of puffs, clods and grains,
+a camera kick) and plays the boulder's thud; 0.45 s on the ground, the next hop; three landings 1.0 s apart, a ring before
+every one; then the cooldown. The `slam` script is untouched. The tail sniper: the `tail_sniper` script (EnemyManager
+`_tail_*`) on the Dune Scorpion's rotation (chance 0.7, skipped inside 5 m): the fire step freezes it the Saiga's way
+(STATE_WINDUP, the timer parked) and runs three shots one after the other, each a fresh aim on the hero (SniperFx's lines
+from the tail tip, muzzle_point with the row's `muzzle` up 2.0 / forward -0.4, 1.0 s), a 0.4 s lock, the Saiga's beam
+(beam_hit: the hero on the line takes 2 x the Saiga's base = 30.8 before the Elite's factors, with a special push of 5,
+"tail beam"; the crowd on it nicked 5% and pushed aside), 0.6 s frozen; a moving hero dodges the beam he stepped off and
+is aimed at again by the next. Nothing but a stun, a freeze, a launch, a grab, hiding or death spoils it. The common attack
+key `chance` (rolled as the turn comes, a miss skips to the next attack). The Level Editor: vocab.ATTACKS / ATTACK_COMMON,
+assets_fields.js ATTACKS (nested blocks as `json` rows: a one-line branch in enemies.js attackField), BossAttackDef.SCRIPTS,
+boss_attacks_io.BUILTINS, boss_model.js SCRIPTS (14 -> 16 built-ins); selftest_BOSS95.py. Tests pass95_BOSS_test.gd;
+re-pins on purpose: pass45_bosses (the bosses' HP read from their files: Garry's doubled numbers; "slam" -> "stomp"),
+pass73_sniper (the Saiga's HP read from its file: Garry's 125), pass89_knock (three `special_knock = true` writers).
+Capture game/tools/_p95_BOSS_shot.gd. Lessons: a run that holds the runner's STATE_ATTACK must park `timer` far above
+zero, or the fire step fires the same attack again next tick; aims drawn by SniperFx must be added after
+`_tick_snipers` (its begin() clears the frame's aims), so the tails tick after it; the Registry serves the `.tres`, so a
+content edit is invisible to the tests until import_json runs.
+
+#### Pass 95, lane VACE: frame repair with VACE in the Level Editor, for every animation method and existing assets
+
+Garry: "the 3rd approach using VACE for fixing broken frames seems to be the most sensible one ... add this VACE frames
+fixing option to EVERY method that includes any kind of animation ... a way to view every single frame and choose which
+ones to regenerate ... available to existing assets too ... options per frame (the history of other generated frames)
+... frames from other Looks (SP-A-1, 2, 3) ... several frame changes in one go without needing to wait for the save
+export thing to finish."
+
+- **The install.** Probed the AI server over ssh (ComfyUI 0.33.0, the R9700's 34 GB, 216 GB free, HF at 40 MB/s,
+  `WanVaceToVideo` a core node, no VACE weights). Installed **Wan 2.2 Fun VACE 14B** (Comfy-Org's fp8_scaled high +
+  low noise, 17.3 GB each, 9 minutes of wget, no lock, no restart): the same generation, umt5, Wan 2.1 VAE and
+  lightx2v 4-step t2v LoRAs as the Fun Control walks the creature clips come from. `tools/comfy.wan_fun_vace()`:
+  the kept frames as the inactive video, the guides as the reactive one, masks per frame through `ImageToMask`, the
+  painting as the reference latent (trimmed after), the two-stage split as the walks. ComfyUI loads it as
+  `WAN21_Vace` (16.5 GB each, fully on the card); 25 frames at 640 px in 137-143 s.
+- **The frames store** (`tools/frames_store.py`, `tools/dl/frames/<kind>/<id>/<CODE>/<anim>/<view>/slot_NN/vNNN.png+json`):
+  one version per frame ever made, ids a hash of the PNG, labels `<CODE>-<n>`; `selected.json` (the choice per slot,
+  pinned by a human), `staged.json` (choices not yet exported), `exports.json`. The retrofit cuts any installed strip
+  by frame_px / strip_cols / the kind's order and, when the clip cache still has the clip, attaches the clip frame as
+  the version's raw twin and measures the **fit** (cell = canvas x s + o: SP-B's side 0.5 px residual, the rendered
+  twin at IoU 0.98 against the installed cell), so a repaired raw frame is placed, outlined and post-filtered exactly
+  as the pipeline placed the clip's. The driver and the frame each slot was walked on are found from the recipe
+  (creature_ctl's second stride, death_keep, Wan Animate's driver k+1). A landing (merge_look) syncs the store: new
+  cells become versions selected unless the slot is pinned. Deterministic **flags** per frame (empty, footprint, jump,
+  seam, silhouette against the driver) with the number and the rule; they miss ghost legs, said so.
+- **The repair** (`tools/vace_repair.py`): the whole animation goes in as the clip (a short loop twice plus its first
+  frame, 25 = 4k+1; a long one once; a one-shot padded), the chosen frames masked and replaced by the driver's frames
+  **fitted onto the kept figure** (the painting walks at its own size: SP-B's side 1.11x the depth, 40 px over), or
+  grey for a free fill (`--guide free`); the painting from the cache as the reference; the clip's own words as the
+  prompt; the frames keyed like a clip and landed as versions `source: vace`, staged unless pinned. Proof on SP-B's
+  side walk (slots 3-5 and 9, chosen by eye: khaki ghost hind legs, a green leg): 3 and 4 came back clean, 5 and 9
+  worse on two seeds (a flatter body, a paler reshaped head): the versions drawer put the originals back for those
+  two and the export took the two good ones. Pictures under tools/dl/p95/VACE/.
+- **The Frames view** (`tools/level_editor/frames.js`, `frames_model.js`, `frames.css`; routes `frames_io.py`,
+  `/api/frames/...`): **Frames…** on every look card (enemies, bosses, heroes; existing assets included) and on a
+  landed look's or a repair's job card; tabs per animation x view with staged counts; the frame big with its slot
+  number and badges, the previous and next beside it, the driver's frame under it; play / step / scrub / speed / loop
+  / zoom; a numbered sheet (click, shift-click a range, ctrl-click); the versions drawer (stage, pin, unstage, large);
+  Repair with VACE… (words, seed, window, guide: a `frames_repair` job on the comfy lane), Fill from neighbours… (the
+  same with guide free), From another look… (every other look's same slot, compatibility warnings; a copy becomes a
+  version here, never a link), Ask the local vision model (LM Studio, labelled as a hint), Undo (unstage), **Export**
+  (one `frames_export` job: the strip packed with artkit from the staged and selected versions, the old strip under
+  tools/level_editor/backups/<id>/, the entry merged line by line, fresh, then the import job). Staging is instant
+  and lives in the store (a reload keeps it); only Export writes the strip.
+- **Jobs**: `frames_repair` and `frames_export` in jobs.py (SPECS, `_frames_plan`, a step's own env so the comfy lock
+  passes to the subprocess, the export's entry landing through `_post` like a look's, the outputs on the card).
+- **Tests**: `selftest_VACE95.py` (78 checks: the store on a drawn creature with two looks, a synthetic clip cache,
+  driver and painting: retrofit, fit, round trip, versions, staging, pinning, flags on an empty and a shifted frame,
+  export and commit, a re-roll keeping a pin, a copy from the other look; the routes over HTTP with a jobs stand-in;
+  vace_repair's window and dry run; frames_model.js under Node; the wiring; the two job kinds' plans).
+- Not done: RIFE/FILM (no model on the server; the free VACE fill covers the case); the flags do not see ghost legs;
+  procedural animations get the history / copy / export path, no Repair button logic beyond the same job (a free fill).
+- **The resume (after the spend limit, 2026-10-21 evening; the read-only tooling assessment's AN-01..AN-14 and E2-E5
+  read first).** The demo's export into SP-B, the look in play, was put back: the installed strip from the export's own
+  backup (its hash equals the committed bytes), the repaired versions of slots 3, 4, 5 and 9 kept in the store unpinned
+  and unstaged, the selections on the installed frames again, a rollback record in exports.json, the texture re-imported
+  and the .tres regenerated under the Godot lock; `git status` shows the strip unmodified. Then the assessment's
+  engineering items, no question asked: one writer of staged.json (the repair process returns its versions with
+  `stage_wanted`; the Level Editor's landing stages them unless the slot is pinned or a hand choice came meanwhile);
+  the shrink guard of artkit.place_clip_frames in the store's cell render (a figure larger than the cell is shrunk about
+  its floor, never cropped, flagged `footprint`); `driver {name, ctl_sig}` and the clip's `wan` on every installed
+  version, `store_version: 1` in every group.json; `frames_store.hook_after_save` after every strip.save in gen_art
+  and gen_ctl (a look with a store is registered again from the saved strip with the run's own counts; a warning names
+  the pinned frames the run replaced: "Export is the writer for this look"); a `repair` rule per method in
+  methods.json (vace yes / conditional / no; fill cell / still / none) that the route, vace_repair.py and the page read:
+  a procedural animation (no clip, no driver) is refused unless "fill freely anyway" is sent on purpose; no NEW mark on
+  an export; a confirm box before exporting the look the game plays (Q5's default); an export job waits for a running
+  repair of the same look; rollback when the entry cannot be merged or the import after it fails (the strip from the
+  backup, the old entry merged back, the choices staged again, the card says "rolled back"); retention (never a
+  referenced version deleted, 30 strip backups per asset, repair sheets 90 days, raws kept; a Delete in the versions
+  drawer for the rest); the picker marks removed looks (their group.json serves their frames). The doc's per-method
+  table gained the rule and the store-hook columns, the view a "Where frames live" line. selftest_VACE95.py grew from
+  78 to 130 checks (the restore round-trip, one writer, the confirm, the rollback on a forced merge failure and a failed
+  import, the refusals, retention, the wait). No GPU run in the resume. The honest state of the repair quality stays
+  what the two demo runs showed: of four side-walk frames redone, the two at the start of a span came back clean and
+  the span's end and a lone frame came back worse on two seeds; the single-window benchmark the assessment asks for
+  has not been run.

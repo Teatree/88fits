@@ -1,5 +1,5 @@
 {
- "_about": "The art methods the Level Editor offers (pass 66, lane B). Lane V draws the method cards from `methods`, lane P builds the recipe rows from `recipe_fields`, lane J maps `runner`. Times are medians measured on disk (see timings_note). `kind` is enemy (creatures and bosses), hero, item, or driver / ref for the 3D-reference tools. A `recipe_fields` key with a dot (pose_drivers.back) is a path into a nested object of the recipe; `job_fields` are the job's own settings (flags, pre-steps), not recipe keys. In `runner.argv`, {x} is a value from the target or a field, and a token ending in ? is sent only when its field is set or true; `call: blender` means `$BLENDER -b --python tools/<tool>.py -- <argv>`.",
+ "_about": "The art methods the Level Editor offers (pass 66, lane B). Lane V draws the method cards from `methods`, lane P builds the recipe rows from `recipe_fields`, lane J maps `runner`. Times are medians measured on disk (see timings_note). `kind` is enemy (creatures and bosses), hero, item, or driver / ref for the 3D-reference tools. A `recipe_fields` key with a dot (pose_drivers.back) is a path into a nested object of the recipe; `job_fields` are the job's own settings (flags, pre-steps), not recipe keys. In `runner.argv`, {x} is a value from the target or a field, and a token ending in ? is sent only when its field is set or true; `call: blender` means `$BLENDER -b --python tools/<tool>.py -- <argv>`. A `repair` rule per method (pass 95, lane VACE) says whether the Frames view may send VACE on the look's animations: vace yes / conditional / no; fill cell (frame-level edits live in the frames store) / still (fix the painting and re-run) / none (no animation).",
  "methods": [
   {
    "id": "hero_pose5",
@@ -52,6 +52,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["back", "bd", "side", "fd", "front"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "the runs are Wan Animate clips on OpenPose: a repair feeds the pose frames as VACE's control (not Wan Animate's own pose channel) with the view's still as the reference, so a benchmark decides; idle, hit, die, cheer and turn come from the stills (fix the still, re-run)"},
    "runner": {"tool": "gen_art", "call": "process", "type": "characters", "argv": ["--no-import", "--only", "{id}", "--variant={code}?", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -96,6 +97,7 @@
     {"key": "fit_occlude", "type": "bool", "default": false, "help": "pose_occlude: hide the hand that swings in front of the chest in the back views. Writes <driver>_occ."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "as hero_pose5 on fitted drivers; every version records the driver it was walked on, so a repair made before a refit shows as orphaned"},
    "runner": {"tool": "gen_art", "call": "process", "type": "characters", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?"],
               "pre_steps": [
                {"tool": "pose_fit", "call": "cli", "argv": ["tools/dl/drivers/{fit_source}", "tools/dl/drivers/{fit_source}_fit", "{fit_template}"]},
@@ -355,6 +357,7 @@
      "animation"
     ]
    },
+   "repair": {"vace": "yes", "fill": "cell", "note": "the depth views are VACE's own inputs (a depth frame per slot, the painting as the reference); the pose front as hero_pose5"},
    "runner": {
     "tool": "puppet",
     "call": "main",
@@ -415,6 +418,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead. A creature walks front and back (side, bd, fd only with eight directions)."}
    ],
    "refs": {"2d": false, "3d": []},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "free clips have no driver: a repair is a free fill from the neighbours with the still as the reference (identity may drift); the cut indices map the clip's full_NN to a slot"},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -464,6 +468,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead. A creature walks front and back (side, bd, fd only with eight directions)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "Wan Animate on an OpenPose driver: as hero_pose5"},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -510,6 +515,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead."}
    ],
    "refs": {"2d": false, "3d": []},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "five free clips: as creature_free2, one view at a time"},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -546,7 +552,7 @@
     {"key": "keep", "type": "text", "default": "", "help": "Something every view must carry ('its jet-black shell, never brown'): appended to the four non-side prompts."},
     {"key": "look_ref", "type": "file", "default": "", "help": "A picture of what the creature looks like (loosely followed: colours, armour, markings, not the pose): the third reference of the side candidates. A look render of the model (ref_render's look.png) works too."},
     {"key": "motion", "type": "text", "default": "walking in place", "help": "The walk's words for Fun Control."},
-    {"key": "anim_negative", "type": "text", "default": "", "help": "Words to avoid in the walks. Pass 92: Fun Control runs at cfg 1.0 (the 4-step LoRA) and ComfyUI then never computes the negative side, so these words change nothing today; they are kept for a run at cfg above 1. The paintings take no negative either (Klein at cfg 1, Flux.2 dev a guidance-distilled model): say the anatomy in anatomy and let the clay carry the leg count."},
+    {"key": "anim_negative", "type": "text", "default": "", "help": "Words to avoid in the walks. Pass 92: Fun Control runs at cfg 1.0 (the 4-step LoRA) and ComfyUI then never computes the negative side, so these words change nothing there; pass 94: with wan {\"lora\": false, \"cfg\": 3.5} they act. The paintings take no negative either (Klein at cfg 1, Flux.2 dev a guidance-distilled model): say the anatomy in anatomy and let the clay carry the leg count."},
     {"key": "death_drivers", "type": "driver", "default": "", "help": "A oneshot depth driver of the model dying (front/ctl_NN.png): the front painting walks along it. Empty: a dead still is painted (dead) and Wan falls into it."},
     {"key": "death_motion", "type": "text", "default": "", "help": "The death clip's words."},
     {"key": "death_keep", "type": "json", "picker": "frames", "frames_of": "death_drivers", "view": "front", "default": [1, 4, 7, 10, 13, 16, 20, 24], "help": "Which 8 of the death clip's 25 frames to keep (the middle of a roll smears); changing them needs no render. The numbers are the frame files' (ctl_00.png = 0): Pick frames... shows them numbered, with the painted death once the look has one."},
@@ -554,6 +560,14 @@
     {"key": "remap_hues", "type": "json", "default": null, "help": "{ranges: [[h0, h1]], to, sat, min_sat, max_sat}: a hue one view drifted into sent back; it keeps value."},
     {"key": "no_green", "type": "json", "default": true, "help": "Green in a frame is the screen's spill: true holds it down to red; \"rb\" (pass 93) to the larger of red and blue, for a light blue look (the red clamp turned SP-F's sky blue royal blue); false: off."},
     {"key": "fit_ref", "type": "json", "default": null, "help": "Pass 93: true, a share 0..1 or a list of views: the painting fitted onto the depth video's figure before Wan walks it. Klein paints some views far bigger than their clay, and the painted legs outside the depth's stay on as faded ghost legs. Fitted alone a cartoon face can go (Wan follows the clay): pair it with ctl_soft. SP-E, SP-F: [\"front\"] with ctl_soft {radius 10, body false, views [front, side]}."},
+    {"key": "paint_mode", "type": "select", "default": "redraw", "options": ["redraw", "repaint"], "help": "Pass 94: redraw (every look before pass 94: the style anchor first, the clay for anatomy and pose only) or repaint: the model's own clay is the first and main picture and is repainted ('keep the model's silhouette, its pose and the camera angle exactly ... nothing is added that the model does not have'); the other four views take the side painting as their second picture (colours and finish). With anchor true the style anchor goes in last (style only) and the house style line stays: SP-G and SP-H, SP-A's realism in the house style. Without it the look drifts to a 3D render."},
+    {"key": "anchor", "type": "bool", "default": false, "help": "Pass 94 (repaint): the style anchor as the last reference ('shows the art style only'), so the repainted model keeps the game's cel-shaded look with its outline. True for every look in the game's style (SP-G, SP-H)."},
+    {"key": "style", "type": "textarea", "default": "", "help": "Pass 94 (repaint): a style line in place of the house one (gen_art's anime line). Empty = the house style. A first try with a realistic line ('a realistic, detailed painted game creature ... no outlines') made a photoreal spider Garry did not want: keep it empty for the game's look."},
+    {"key": "clay_src", "type": "select", "default": "clay", "options": ["clay", "look"], "help": "Pass 94 (repaint): which render of the model is painted over: clay.png (warm clay) or look.png (the model in its own colours; grey for an untextured model, so no brown leaks into a light look: SP-E's first back kept the clay's brown legs)."},
+    {"key": "clay_fill", "type": "number", "default": 0, "min": 0, "max": 1, "step": 0.05, "help": "Pass 94 (repaint): the clay cropped round the figure so it fills this share of the picture (0.8), so the painter sees the model bigger; the painting is put back where the crop came from before Wan walks it. 0 = the render as it is."},
+    {"key": "init", "type": "json", "default": null, "help": "Pass 94 (repaint): img2img. {\"denoise\": 0.88, \"tint\": \"#C4A8E2\" | \"auto\", \"gain\": 1.25, \"blur\": 6}: the painter starts from the clay itself, keyed and coloured like the look (auto: the side painting's colour) on the pure screen, noised to `denoise` instead of from pure noise, so every leg stays where the model has it: the strongest setting for closeness to the model. Klein: 0.88 with blur 6 (the blur softens the clay's facets; 0.7 keeps the polygons, 0.95 drifts). Flux.2 dev: 0.91 and NO blur: blurred, dev let go of the clay entirely (silhouette overlap 0.35 against 0.87 unblurred, same seed), unblurred at 0.85 it copies the facets. Without init Flux.2 dev ignores the clay's pose. Also shade_blur px (only the shading inside the figure blurred, the outline sharp) and posterize n (the shading in n flat bands): tried on Flux.2 dev, it let go of the clay with either (overlap 0.35), so they are off for SP-H."},
+    {"key": "refine", "type": "json", "default": null, "help": "Pass 94 (repaint): {\"rounds\": n, \"denoise\": 0.35, \"steps\": 12, \"words\": \"...\"}: each painting painted over n more times on Klein from itself (img2img). Tested on SP-G's side: every round turned it pinker and hairier and none removed a wrong shape: kept at 0; seeds and a view painted again fix shapes, refine does not. Since the correction the rounds use the view's own words and references; model \"dev\" paints them on Flux.2 dev (a dev round at 0.6 kept the model's facets too)."},
+    {"key": "wan", "type": "json", "default": null, "help": "Pass 94: the walks' and the death's Wan settings {\"steps\": 4, \"cfg\": 1, \"lora\": true, \"shift\": 5, \"size\": 640} (the defaults: the 4-step lightx2v speed-up LoRA, about 70-95 s a walk). {\"lora\": false, \"steps\": 20, \"cfg\": 3.5}: the full model, 20 steps half on each noise stage, a real cfg, so the negative words (anim_negative and the built-in ones) act; about ten times as long a walk. A changed setting walks anew (the cache keeps them)."},
     {"key": "fps", "type": "int", "default": 20, "help": "Playback rate of the walks in the game."},
     {"key": "directions", "type": "int", "default": 8, "help": "8: five views into eight directions; 2: the front and back only (the ant: the eight views read as inconsistent)."},
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen the views are painted on."},
@@ -571,6 +585,7 @@
     {"key": "skip_qa", "type": "bool", "default": false, "help": "Skip the vision QA (it once hung 15 min); you review by eye anyway."}
    ],
    "refs": {"2d": true, "3d": ["look", "animation"]},
+   "repair": {"vace": "yes", "fill": "cell", "note": "depth control per frame, the painting per view as the reference, the second stride either side: the proven case (SP-B's side walk); the death one-shot too (re-pick death_keep without a render first)"},
    "runner": {"tool": "gen_ctl", "call": "main", "argv": ["--id={id}", "--variant={code}", "--dev?", "--seeds={seeds}?", "--skip-qa?"],
               "stages": [
                {"name": "side", "argv": ["--id={id}", "--variant={code}", "--dev?", "--seeds={seeds}?", "--skip-qa?"], "then": "waiting", "choices": "tools/dl/ai_raw_anime/{id}_{code}_side_k<n>.png", "sheet": "tools/dl/review/{id}_{code lower}_side_cands.png"},
@@ -617,6 +632,7 @@
     {"key": "no_video", "type": "bool", "default": false, "help": "The 6-frame lean-and-bob walk instead of a hop (--no-video)."}
    ],
    "refs": {"2d": false, "3d": []},
+   "repair": {"vace": "no", "fill": "still", "note": "every frame comes from one painting (a hop or a 6-frame walk, bobs, leans): fix the still and re-run; the Frames view keeps history, copies and the export for it; a VACE free fill only with free_fill on purpose"},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--no-video?", "--skip-qa?"]}
   },
   {
@@ -662,6 +678,7 @@
     {"key": "no_video", "type": "bool", "default": false, "help": "The 6-frame lean-and-bob walk instead of a hop (--no-video)."}
    ],
    "refs": {"2d": true, "3d": []},
+   "repair": {"vace": "no", "fill": "still", "note": "procedural from the pictures: edit the picture and re-run; history, copies and the export in the Frames view"},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--no-video?", "--skip-qa?"]}
   },
   {
@@ -695,6 +712,7 @@
     {"key": "skip_qa", "type": "bool", "default": false, "help": "Skip the vision QA."}
    ],
    "refs": {"2d": true, "3d": []},
+   "repair": {"vace": "no", "fill": "still", "note": "stills only: no animation to repair"},
    "runner": {"tool": "gen_edit_stills", "call": "main", "argv": ["--id", "{id}", "--stills", "{stills}", "--ref", "{picture}", "--prompt", "{prompt}", "--seeds", "{seeds}", "--screen", "{screen}", "--keep", "{keep}?", "--no-style-ref?", "--skip-qa?"],
               "then": "waiting", "pick_argv": ["--id", "{id}", "--stills", "{stills}", "--pick", "{n}"]}
   },
@@ -725,6 +743,7 @@
     {"key": "recolour.max_sat", "type": "number", "default": 1.0, "help": "hue: cap on the moved pixels' saturation."}
    ],
    "refs": {"2d": false, "3d": []},
+   "repair": {"vace": "no", "fill": "cell", "note": "a whole-strip hue transform of another look: repair the source look and run the recolour again, or edit cells here (history and copies in the Frames view)"},
    "runner": {"tool": "recolour_strip", "call": "cli", "argv": ["--src", "{folder}/{id}_sprite_{from letter}.png", "--dst", "{folder}/{id}_sprite_{letter}.png", "--ranges", "{ranges as a-b,c-d}", "--to", "{to}", "--sat", "{sat}", "--mode", "{mode}?", "--set-sat", "{set_sat}?", "--value", "{value}?", "--min-val", "{min_val}?", "--preview", "tools/dl/review/{id}_{letter}_recolour.png"],
               "also_icon": true}
   },
@@ -749,6 +768,7 @@
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen it is painted on (the placeholder colour steers it when unset; green subjects go on blue)."}
    ],
    "refs": {"2d": false, "3d": []},
+   "repair": {"vace": "no", "fill": "none", "note": "an icon: no animation"},
    "runner": {"tool": "gen_art", "call": "process", "type": "{weapons|evolutions|passives|mutations}", "argv": ["--no-import", "--only", "{id}", "--skip-qa?", "--seed={seed}?"]}
   },
   {
@@ -783,6 +803,7 @@
     {"key": "dev", "type": "bool", "default": false, "help": "Flux.2 dev instead of Klein: 8 Turbo steps, 28 with Turbo off (better, 4-5 min a seed, one service restart each)."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
+   "repair": {"vace": "no", "fill": "none", "note": "icon candidates: no animation"},
    "runner": {"tool": "gen_icon_cands", "call": "paint", "argv": [], "job": {"kind": "{type}", "id": "{id}", "subject": "{subject}", "ref": "{ref}", "screen": "{screen}", "set": "_le_{job}", "style": "{style}", "file": "{file}"},
               "then": "done", "pick_call": "pick", "pick_args": ["{key}={n}"]}
   },
@@ -813,6 +834,7 @@
     {"key": "top_pad", "type": "number", "default": 0.03, "help": "Room above the head inside the circle."}
    ],
    "refs": {"2d": true, "3d": []},
+   "repair": {"vace": "no", "fill": "none", "note": "a badge: no animation"},
    "runner": {"tool": "gen_badge_cands", "call": "main", "argv": ["--id", "{id}", "--seeds", "{seeds}", "--first-seed", "{first_seed}?", "--character", "{character}?", "--prompt", "{prompt}?", "--ref", "{ref}?", "--variant", "{variant}?"], "then": "waiting",
               "pick_argv": ["--id", "{id}", "--pick", "{n}", "--variant", "{variant}?", "--head-width", "{head_width}?", "--top-pad", "{top_pad}?"]}
   },
@@ -846,6 +868,7 @@
     {"key": "first_seed", "type": "int", "default": 0, "label": "First seed", "help": "Where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool's own start, from the asset's id; another number = a fresh set from the same words."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
+   "repair": {"vace": "no", "fill": "none", "note": "a title cut-out: no animation"},
    "runner": {"tool": "gen_title_heroes", "call": "paint", "argv": ["--only", "{id}", "--seeds={seeds}", "--first-seed={first_seed}", "--character", "{character}?", "--pose", "{pose}?", "--holds", "{holds}?", "--camera", "{camera}?", "--ref", "{ref}?", "--extra-ref", "{extra_ref}?", "--extra-words", "{extra_words}?", "--variant", "{variant}?"],
               "args": ["{id}", "{seeds}", "{first_seed}"], "kwargs": ["character", "pose", "holds", "camera", "ref", "extra_ref", "extra_words", "variant"],
               "then": "done", "pick_call": "pick", "pick_args": ["{id}={n}"], "pick_argv": ["--pick", "{id}={n}", "--variant", "{variant}?"], "after_pick": "import"}
@@ -891,6 +914,7 @@
     {"key": "tuck", "type": "text", "default": "", "help": "Side view: the far upper arm turns to at most this many degrees back from straight down in the frames where the near arm is swung back (25); its elbow up behind the back read as a raised shoulder. Empty: off."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
+   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look: re-render it instead"},
    "runner": {"tool": "pose_driver", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "frames={frames}", "loop={loop as 1|0}", "start={start}?", "end={end}?", "pitch={pitch}", "arms={arms}?", "arm_drop={arm_drop}?", "body={body}?", "fwd={fwd}?", "rig={rig}", "rigmap={rigmap path}?", "action={action}?", "amp={amp}?", "amp_bones={amp_bones}?", "lean={lean}?"], "then": "with shoulders: python tools/pose_shoulders.py tools/dl/drivers/{name} tools/dl/drivers/{name}_lvl level={shoulders} views={shoulder_views} tuck={tuck}?",
               "then": {"tool": "pose_driver", "call": "draw", "args": ["tools/dl/drivers/{name}"]}}
   },
@@ -935,6 +959,9 @@
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The clay and look renders' background."},
     {"key": "albedo", "type": "file", "default": "", "help": "A colour map for look.png when the file's own texture paths are missing (a sibling textures/ folder is found by itself)."},
     {"key": "inplace", "type": "bool", "default": true, "help": "Take the travel out per frame (cycles); a one-shot keeps it unless set."},
+    {"key": "smooth", "type": "int", "default": 0, "help": "Pass 94: subdivision levels the renders get (Catmull-Clark; 2 for a low-poly model). The spider's low-poly knees and abdomen rendered as crystal spikes in the depth video and in the clay, and every walk copied them whatever the painting looked like; smooth 2 rounds them (spider_walk_v3, spider_death_v2). The depth range and the leg tips still come from the raw mesh. 0 = off."},
+    {"key": "skin", "type": "select", "default": "", "options": ["", "capsule"], "help": "Pass 94 (gait / flip_curl): capsule replaces the legs' own mesh by one tapered capsule per leg segment, from a chain bone's head to the next bone's head (the rest of the model stays), rigidly skinned to its bone. The spider's legs were stacked cones whose wide ends stood past every joint, a row of spikes from the side and three-quarter cameras that every walk copied (spider_walk_v4, spider_death_v3). Empty: the mesh as it is."},
+    {"key": "skin_radius", "type": "number", "default": 0.06, "help": "Pass 94: skin capsule: the leg's radius at the hip as a share of the leg's whole length, tapering evenly to a point at the foot (0.06 for the spider). The mesh's own widths were tried and came out two to three times the leg's: the cones overlap at every joint."},
     {"key": "legs", "type": "text", "default": "", "help": "gait / flip_curl: a regex over the leg bones' names (empty: leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia). The spider: leg_."},
     {"key": "base", "type": "text", "default": "", "help": "gait / flip_curl: seconds into the named clip (action) whose pose is the stance; empty: the rest pose."},
     {"key": "body_scale", "type": "number", "default": 1, "help": "gait / flip_curl: the body this much bigger, the legs keeping their size. Wan follows the depth's shapes over the painting's, so a cartoon look's walk needs its proportions in the clay (SP-C: 1.6)."},
@@ -970,6 +997,7 @@
     {"key": "hold", "type": "number", "default": 0.85, "help": "flip_curl: the share of the clip after which the dead pose is held (the last kept frame is the dead pose)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
+   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look: re-render it instead"},
    "runner": {"tool": "blender_depth_drivers", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "action={action}", "mode={mode}", "frames={frames}", "cycles={cycles}", "total={total}", "start={start}?", "end={end}?", "depth={depth}", "amp={amp}", "amp_bones={amp_bones}", "pitch={pitch}", "views={views}", "forward={forward}", "screen={screen}", "albedo={albedo}?", "inplace={inplace as 1|0}"]}
   },
   {
@@ -1000,6 +1028,7 @@
     {"key": "tuck", "type": "text", "default": "", "help": "op shoulders, side view: the far upper arm at most this many degrees back from straight down (25); empty = off."}
    ],
    "refs": {"2d": false, "3d": []},
+   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look"},
    "runner": {"tool": "pose_scale", "call": "main", "argv": ["tools/dl/drivers/{src}", "tools/dl/drivers/{name}", "scale={scale}", "views={views}"], "then": "op spread: python tools/pose_spread.py src dst spread={spread}; op occlude: python tools/pose_occlude.py src dst; op shoulders: python tools/pose_shoulders.py src dst level={level} views={views} tuck={tuck}?"}
   },
   {
@@ -1026,6 +1055,7 @@
     {"key": "scale", "type": "text", "default": "auto", "help": "auto: a model taller than 20 units is scaled x0.01; or a factor."}
    ],
    "refs": {"2d": false, "3d": ["icon", "look", "animation"]},
+   "repair": {"vace": "no", "fill": "none", "note": "a probe of a 3D file: nothing to repair"},
    "runner": {"tool": "blender_ref", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{slug}", "mode=probe", "forward={forward}", "action={action}?", "at={at}?", "scale={scale}"]}
   },
   {
@@ -1059,6 +1089,7 @@
     {"key": "scale", "type": "text", "default": "auto", "help": "auto: a centimetre model is scaled to metres; or a factor."}
    ],
    "refs": {"2d": false, "3d": ["icon", "look"]},
+   "repair": {"vace": "no", "fill": "none", "note": "a reference render: nothing to repair"},
    "runner": {"tool": "blender_ref", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{slug}", "mode={mode}", "forward={forward}", "action={action}?", "at={at}?", "pitch={pitch}", "icon_yaw={icon_yaw}", "icon_pitch={icon_pitch}", "size={size}", "screen={screen}?", "albedo={albedo}?", "scale={scale}"]}
   },
   {
@@ -1086,6 +1117,7 @@
     {"key": "forward", "type": "select", "default": "", "options": ["", "-Y", "+Y", "-X", "+X"], "help": "The way the model faces: the slide's direction (the spider: +Y)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
+   "repair": {"vace": "no", "fill": "none", "note": "a 3D edit: nothing to repair"},
    "runner": {"tool": "blender_limb_clone", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{name}/{name}.glb", "rest={rest}?", "clone={clone}?", "turn={turn}?", "forward={forward}?"]}
   }
  ],

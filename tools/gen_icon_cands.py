@@ -740,6 +740,25 @@ JOBS = {
                                   "a black beret, striped shirt and black overalls, her round magenta mitten hands sticking out "
                                   "to the sides, glossy vinyl with welded seams and a small white air valve, and a big bold hot "
                                   "pink question mark floating beside her head"},
+    # pass 95 (set 95, lane BREATH): the Dragon's Breath (a cologne bottle and a lighter), its path and its evolution
+    "dragons_breath": {"set": "95", "kind": "weapons", "id": "dragons_breath",
+                       "subject": "a small round glass bottle of amber cologne with a shiny gold atomiser cap standing at the left, "
+                                  "a cheap orange plastic lighter lit in front of its nozzle, and one big long roaring tongue of "
+                                  "orange and yellow fire bursting out of the spray to the right, filling the picture; no hands"},
+    "backdraft": {"set": "95", "kind": "mutations", "id": "backdraft",
+                  "subject": "a wide roaring blast of orange and yellow fire blowing hard from left to right like a gale, with "
+                             "curling white wind streaks and flying embers in it, big and forceful, nothing else"},
+    "blue_flame": {"set": "95", "kind": "mutations", "id": "blue_flame",
+                   "subject": "a small round glass bottle of clear cologne with a silver cap standing at the left, a cheap "
+                              "lighter in front of its nozzle burning with a pale blue flame, and one long tongue of bright "
+                              "blue and white fire bursting out of the spray to the right; no hands"},
+    "held_breath": {"set": "95", "kind": "mutations", "id": "held_breath",
+                    "subject": "a ring of orange and yellow fire seen from a little above, flames licking outwards all the way "
+                               "round it, a calm dark empty centre, a few small embers rising"},
+    "fire_eater": {"set": "95", "screen": "blue", "kind": "evolutions", "id": "fire_eater",
+                   "subject": "a burning wooden torch and a round glass cologne bottle crossed like an X, a huge roaring plume "
+                              "of orange and yellow fire bursting up out of them, a few sharp green cactus spines sticking "
+                              "out of the bottle's sides"},
 }
 
 

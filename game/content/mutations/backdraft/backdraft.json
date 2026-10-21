@@ -1,0 +1,27 @@
+{
+  "id": "backdraft",
+  "name": "Backdraft",
+  "flavour": "Breathe in. Breathe out. Stand well back.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "dragons_breath",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Every second in the fire shoves them away from you. The breath roars bigger.",
+  "vfx": "a bigger, brighter jet of flame; whatever stands in it staggers back every second",
+  "effects": [],
+  "params": {
+    "breath": {
+      "knock": 5.0,
+      "look": {
+        "intensity": 1.5
+      }
+    }
+  },
+  "art_prompt": "a wide roaring blast of orange fire blowing sideways like a gale, with curling wind streaks and flying embers",
+  "placeholder": {
+    "color": "#FF5A1E",
+    "glyph": "star"
+  }
+}

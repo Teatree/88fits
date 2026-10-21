@@ -220,9 +220,12 @@ func test_a_brand_line_knows_its_owner() -> void:
 # ---------------------------------------------------------------- the King (items 14 and 15)
 
 func test_the_bosses_have_their_new_health() -> void:
-	assert_float(Registry.enemy("tumbleweed_king").hp).is_equal_approx(1440.0, 0.001)
-	assert_float(Registry.enemy("gila_grande").hp).is_equal_approx(2400.0, 0.001)
-	assert_float(Registry.enemy("brander").hp).is_equal_approx(5440.0, 0.001)
+	# pass 95 (lane BOSS): Garry tunes the bosses' health by hand (pass 95: every one doubled); the Registry's number is the
+	# file's, never a pin here (the pass 45 numbers were 1440 / 2400 / 5440)
+	for id in ["tumbleweed_king", "gila_grande", "brander"]:
+		var want := float(JSON.parse_string(FileAccess.get_file_as_string("res://content/bosses/%s/%s.json" % [id, id]))["hp"])
+		assert_float(Registry.enemy(id).hp).override_failure_message("%s's health is its file's" % id).is_equal_approx(want, 0.001)
+		assert_float(want).is_greater_equal(1440.0)
 
 
 func test_the_king_has_a_volley_and_a_ring_of_minions() -> void:
@@ -236,7 +239,8 @@ func test_the_king_has_a_volley_and_a_ring_of_minions() -> void:
 			volley = a
 		elif str((a as Dictionary).get("name", "")) == "spawn_ring":
 			ring = a
-	assert_array(names).contains(["roll", "tumbleweed_volley", "spawn_ring", "slam"])
+	# pass 95 (lane BOSS): the slam became the stomp (a jump and three landings; pass95_BOSS_test)
+	assert_array(names).contains(["roll", "tumbleweed_volley", "spawn_ring", "stomp"])
 	assert_str(str(volley.get("telegraph", ""))).is_equal("spokes")
 	assert_int(int(volley.get("count", 0))).is_greater_equal(10)
 	assert_float(float(volley.get("lift", 0.0))).is_greater(0.0)
@@ -374,9 +378,13 @@ func test_the_volley_sound_exists() -> void:
 func test_the_specials_have_fifty_health_and_no_armour() -> void:
 	var r: EnemyDef = Registry.enemy("rocketeer")
 	var h: EnemyDef = Registry.enemy("harpoon_troglodyte")
-	# pass 48: the rocketeer (the Vulture Raider) has 30% less, 35; the harpooner keeps 50
-	assert_float(r.hp).is_equal_approx(35.0, 0.001)
-	assert_float(h.hp).is_equal_approx(50.0, 0.001)
+	# pass 48: the rocketeer (the Vulture Raider) has 30% less, 35; the harpooner keeps 50. Pass 95 (lane BOSS): Garry
+	# tunes the specials' health by hand (100 and 150 since pass 95): the Registry's number is the file's, never a pin
+	for id in ["rocketeer", "harpoon_troglodyte"]:
+		var want := float(JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/%s/%s.json" % [id, id]))["hp"])
+		assert_float(Registry.enemy(id).hp).override_failure_message("%s's health is its file's" % id).is_equal_approx(want, 0.001)
+	assert_float(r.hp).is_greater_equal(35.0)
+	assert_float(h.hp).is_greater_equal(50.0)
 	assert_float(h.damage_reduction).is_equal_approx(0.0, 0.001)
 	assert_float(r.damage_reduction).is_equal_approx(0.0, 0.001)
 

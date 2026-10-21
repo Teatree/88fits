@@ -2,16 +2,87 @@
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_55yv3"]
 [ext_resource type="Texture2D" path="res://content/passives/beer/beer_icon.png" id="1_a1v0s"]
+[ext_resource type="Texture2D" path="res://content/passives/beer/beer_icon_evolved.png" id="1_nrwge"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_a1v0s"]
 
-[sub_resource type="Resource" id="Resource_a1v0s"]
+[sub_resource type="Resource" id="Resource_nrwge"]
 script = ExtResource("1_55yv3")
 stat = "might"
 op = "mul"
-value = 0.12
+value = 0.15
 target = "player"
 
-[sub_resource type="Resource" id="Resource_nrwge"]
+[sub_resource type="Resource" id="Resource_34vbs"]
+script = ExtResource("1_55yv3")
+stat = "max_hp"
+op = "mul"
+value = -0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_s45at"]
+script = ExtResource("1_55yv3")
+stat = "might"
+op = "mul"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_7ljsl"]
+script = ExtResource("1_55yv3")
+stat = "max_hp"
+op = "mul"
+value = -0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_6p8su"]
+script = ExtResource("1_55yv3")
+stat = "might"
+op = "mul"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_uni1t"]
+script = ExtResource("1_55yv3")
+stat = "max_hp"
+op = "mul"
+value = -0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_tg84j"]
+script = ExtResource("1_55yv3")
+stat = "might"
+op = "mul"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_y76q6"]
+script = ExtResource("1_55yv3")
+stat = "max_hp"
+op = "mul"
+value = -0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_tkcmx"]
+script = ExtResource("1_55yv3")
+stat = "might"
+op = "mul"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_awoud"]
+script = ExtResource("1_55yv3")
+stat = "max_hp"
+op = "mul"
+value = -0.04
+target = "player"
+
+[sub_resource type="Resource" id="Resource_i2ogv"]
+script = ExtResource("1_55yv3")
+stat = "might"
+op = "mul"
+value = 0.14
+target = "player"
+
+[sub_resource type="Resource" id="Resource_wvke3"]
 script = ExtResource("1_55yv3")
 stat = "max_hp"
 op = "mul"
@@ -20,9 +91,10 @@ target = "player"
 
 [resource]
 script = ExtResource("2_a1v0s")
-levels = [[SubResource("Resource_a1v0s"), SubResource("Resource_nrwge")]]
-max_level = 5
-trade = "−5% max HP a level"
+levels = [[SubResource("Resource_nrwge"), SubResource("Resource_34vbs")], [SubResource("Resource_s45at"), SubResource("Resource_7ljsl")], [SubResource("Resource_6p8su"), SubResource("Resource_uni1t")], [SubResource("Resource_tg84j"), SubResource("Resource_y76q6")], [SubResource("Resource_tkcmx"), SubResource("Resource_awoud")], [SubResource("Resource_i2ogv"), SubResource("Resource_wvke3")]]
+max_level = 6
+trade = "−4 to −5% max HP a level"
+evolved_icon = ExtResource("1_nrwge")
 id = "beer"
 display_name = "Beer"
 flavour = "Liquid courage. Paid for in blood."

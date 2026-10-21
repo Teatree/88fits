@@ -9,12 +9,13 @@ extends GdUnitTestSuite
 const NEW := ["counterpunch", "heavyweight", "snake_oil", "hot_springs", "last_stand"]
 ## id -> [rarity, weight, max_level, {stat: its value at the top level}]
 const DATA := {
-	"counterpunch": ["uncommon", 8.0, 5, {"counter_damage": 1.0, "counter_haste": 0.4, "counter_speed": 0.27, "counter_seconds": 3.0}],
-	"heavyweight": ["rare", 7.0, 5, {"heavyweight": 0.02}],
-	"snake_oil": ["epic", 5.0, 3, {"overheal": 0.4}],
-	"hot_springs": ["epic", 5.0, 3, {"heal_pulse": 4.0, "regen": 1.2}],
-	"last_stand": ["epic", 5.0, 3, {"last_stand": 2.0}],
-	"magnet": ["epic", 6.0, 5, {"xp_pull_radius": 8.5, "xp_pull_rate": 1.0}],
+	# re-pinned in pass 95 (lane PASSIVES): the rarity ladder (uncommon 5 levels, rare 4, epic 3) and its numbers
+	"counterpunch": ["uncommon", 8.0, 5, {"counter_damage": 1.5, "counter_haste": 0.43, "counter_speed": 0.315, "counter_seconds": 3.4}],
+	"heavyweight": ["rare", 7.0, 4, {"heavyweight": 0.0175}],
+	"snake_oil": ["epic", 5.0, 3, {"overheal": 0.41}],
+	"hot_springs": ["epic", 5.0, 3, {"heal_pulse": 5.0, "regen": 1.2}],
+	"last_stand": ["epic", 5.0, 3, {"last_stand": 2.1}],
+	"magnet": ["epic", 6.0, 3, {"xp_pull_radius": 8.5, "xp_pull_rate": 1.0}],
 }
 
 const FAKE_GAME := """extends Node
@@ -174,21 +175,21 @@ func test_five_new_items_and_the_magnet_with_their_numbers() -> void:
 		Run.end()
 	# the first levels as the brief gives them
 	_start()
-	var at := {"counterpunch": {"counter_damage": 1.0, "counter_haste": 0.2, "counter_speed": 0.15, "counter_seconds": 2.0},
-		"heavyweight": {"heavyweight": 0.01}, "snake_oil": {"overheal": 0.2}, "hot_springs": {"heal_pulse": 4.0},
-		"last_stand": {"last_stand": 1.0}, "magnet": {"xp_pull_radius": 5.0, "xp_pull_rate": 0.0}}
+	var at := {"counterpunch": {"counter_damage": 1.0, "counter_haste": 0.25, "counter_speed": 0.2, "counter_seconds": 2.5},
+		"heavyweight": {"heavyweight": 0.012}, "snake_oil": {"overheal": 0.25}, "hot_springs": {"heal_pulse": 5.0},
+		"last_stand": {"last_stand": 1.3}, "magnet": {"xp_pull_radius": 6.0, "xp_pull_rate": 0.0}}
 	var hp0 := Run.player_sheet.get_stat("max_hp", 100.0)
 	for id: String in at.keys():
 		Run.add_or_level_passive(id)
 		for stat: String in (at[id] as Dictionary).keys():
 			assert_float(Run.player_sheet.get_stat(stat, 0.0)).override_failure_message(id + " " + stat).is_equal_approx(float(at[id][stat]), 0.0001)
-	# Hot Springs' +20 max HP at level 1, +40 at level 3
-	assert_float(Run.player_sheet.get_stat("max_hp", 100.0) - hp0).is_equal_approx(20.0, 0.0001)
+	# Hot Springs' +26 max HP at level 1, +42 at level 3 (pass 95)
+	assert_float(Run.player_sheet.get_stat("max_hp", 100.0) - hp0).is_equal_approx(26.0, 0.0001)
 	_take("hot_springs", 2)
-	assert_float(Run.player_sheet.get_stat("max_hp", 100.0) - hp0).is_equal_approx(40.0, 0.0001)
-	# Last Stand x2.5 at level 2
+	assert_float(Run.player_sheet.get_stat("max_hp", 100.0) - hp0).is_equal_approx(42.0, 0.0001)
+	# Last Stand x2.6 at level 2
 	Run.add_or_level_passive("last_stand")
-	assert_float(Run.last_stand_mult()).is_equal_approx(2.5, 0.0001)
+	assert_float(Run.last_stand_mult()).is_equal_approx(2.6, 0.0001)
 
 
 func test_the_texts_read_short_and_never_name_the_magnet_s_wait_or_last_stand_s_cooldown() -> void:
@@ -207,13 +208,14 @@ func test_the_texts_read_short_and_never_name_the_magnet_s_wait_or_last_stand_s_
 		assert_int(p.text.length()).override_failure_message(id + " card line is long").is_less_equal(150)
 	# the Magnet: radius in metres, "more often" in words, never a second
 	var mg: PassiveDef = Registry.passive("magnet")
-	assert_str(TextGen.next_level_text(mg, 1)).is_equal("Next level: +1 m EXP pull radius, pulls more often")
+	# (pass 95: three levels, epic, legendary, Evolved; the next level names its rung)
+	assert_str(TextGen.next_level_text(mg, 1)).is_equal("Next level (Legendary): +1 m EXP pull radius, pulls more often")
 	assert_str(WItem.effect({"def": mg, "level_from": 1, "level_to": 2})).is_equal("Next: +1 m EXP pull radius, pulls more often.")
-	assert_str(TextGen.passive_description(mg, 5)).is_equal("Level 5: +8.5 m EXP pull radius total.")
+	assert_str(TextGen.passive_description(mg, 3)).is_equal("Level 3 (Evolved): +8.5 m EXP pull radius total.")
 	var a_wait := RegEx.create_from_string("\\d(\\.\\d+)?\\s*(s\\b|sec|second)")
-	for lv in range(1, 6):
+	for lv in range(1, 4):
 		for s: String in [TextGen.passive_description(mg, lv), TextGen.next_level_text(mg, lv), mg.text,
-				WItem.effect({"def": mg, "level_from": lv, "level_to": mini(lv + 1, 5)})]:
+				WItem.effect({"def": mg, "level_from": lv, "level_to": mini(lv + 1, 3)})]:
 			assert_object(a_wait.search(s)).override_failure_message("the Magnet names its wait: " + s).is_null()
 	for row: Dictionary in TextGen.passive_changes(mg, 1, 2):
 		assert_str(str(row["stat"])).is_equal("xp_pull_radius")
@@ -223,9 +225,9 @@ func test_the_texts_read_short_and_never_name_the_magnet_s_wait_or_last_stand_s_
 	var ls: PassiveDef = Registry.passive("last_stand")
 	for s: String in [ls.text, TextGen.passive_description(ls, 3), TextGen.next_level_text(ls, 1)]:
 		assert_bool(s.contains("20 s") or s.contains("cooldown")).override_failure_message("Last Stand names its cooldown: " + s).is_false()
-	assert_str(TextGen.passive_description(ls, 3)).is_equal("Level 3: +200% attack damage in Last Stand total.")
-	assert_str(TextGen.passive_description(Registry.passive("heavyweight"), 1)).starts_with("+1% attack damage per 10 max HP at level 1")
-	assert_str(TextGen.passive_description(Registry.passive("snake_oil"), 2)).is_equal("Level 2: +30% overheal past full health total.")
+	assert_str(TextGen.passive_description(ls, 3)).is_equal("Level 3 (Evolved): +210% attack damage in Last Stand total.")
+	assert_str(TextGen.passive_description(Registry.passive("heavyweight"), 1)).is_equal("+1.2% attack damage per 10 max HP.")
+	assert_str(TextGen.passive_description(Registry.passive("snake_oil"), 2)).is_equal("Level 2 (Legendary): +31% overheal past full health total.")
 
 
 # ---------------------------------------------------------------- Counterpunch
@@ -240,11 +242,11 @@ func test_counterpunch_arms_the_next_attack_once_and_its_boost_times_out() -> vo
 	Run.add_or_level_passive("counterpunch")
 	assert_bool(Run.counterpunch_evaded()).is_true()
 	assert_bool(Run.counter_armed).is_true()
-	# the boost: 20% attack speed, 15% move speed for 2 s, quiet
-	assert_float(Run.player_sheet.get_stat("haste", 1.0)).is_equal_approx(haste * 1.2, 0.0001)
-	assert_float(Run.haste).is_equal_approx(haste * 1.2, 0.0001)
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.15, 0.0001)
-	assert_float(Run.boost_left(Run.COUNTERPUNCH)).is_equal_approx(2.0, 0.0001)
+	# the boost: 25% attack speed, 20% move speed for 2.5 s (pass 95's first rung), quiet
+	assert_float(Run.player_sheet.get_stat("haste", 1.0)).is_equal_approx(haste * 1.25, 0.0001)
+	assert_float(Run.haste).is_equal_approx(haste * 1.25, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.2, 0.0001)
+	assert_float(Run.boost_left(Run.COUNTERPUNCH)).is_equal_approx(2.5, 0.0001)
 	# nothing fired yet: no weapon hits double
 	assert_float(Run.counterpunch_mult("revolver")).is_equal(1.0)
 	# the revolver fires first: its hits are doubled, another weapon's are not, the arm is spent
@@ -273,9 +275,13 @@ func test_counterpunch_arms_the_next_attack_once_and_its_boost_times_out() -> vo
 	# levels: longer and stronger, and an evade after a level takes the new numbers
 	_take("counterpunch", 4)
 	Run.counterpunch_evaded()
-	assert_float(Run.boost_left(Run.COUNTERPUNCH)).is_equal_approx(3.0, 0.0001)
-	assert_float(Run.player_sheet.get_stat("haste", 1.0)).is_equal_approx(haste * 1.4, 0.0001)
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.27, 0.0001)
+	assert_float(Run.boost_left(Run.COUNTERPUNCH)).is_equal_approx(3.4, 0.0001)
+	assert_float(Run.player_sheet.get_stat("haste", 1.0)).is_equal_approx(haste * 1.43, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.315, 0.0001)
+	# Evolved: the counter-attack hits two and a half times
+	assert_float(Run.counterpunch_mult("revolver")).is_equal(1.0)
+	Run.counterpunch_fired("revolver")
+	assert_float(Run.counterpunch_mult("revolver")).is_equal_approx(2.5, 0.0001)
 	assert_int(Run.timed.filter(func(t: Dictionary) -> bool: return t["id"] == Run.COUNTERPUNCH).size()).is_equal(1)
 
 
@@ -324,15 +330,16 @@ func test_heavyweight_grows_with_max_hp_in_whole_tens() -> void:
 	var mhp := Run.player_sheet.get_stat("max_hp", 100.0)
 	Run.add_or_level_passive("heavyweight")
 	var steps := floorf(mhp / 10.0 + 0.0001)
-	assert_float(Run.heavyweight_might()).is_equal_approx(0.01 * steps, 0.0001)
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * (1.0 + 0.01 * steps), 0.0001)
+	# (pass 95: 1.2% per 10 at level 1)
+	assert_float(Run.heavyweight_might()).is_equal_approx(0.012 * steps, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * (1.0 + 0.012 * steps), 0.0001)
 	# more max HP (Vigour), more damage: the source follows
 	_take("vigour", 2)
 	var mhp2 := Run.player_sheet.get_stat("max_hp", 100.0)
 	assert_float(mhp2).is_greater(mhp)
 	var steps2 := floorf(mhp2 / 10.0 + 0.0001)
-	assert_float(Run.heavyweight_might()).is_equal_approx(0.01 * steps2, 0.0001)
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * (1.0 + 0.01 * steps2), 0.0001)
+	assert_float(Run.heavyweight_might()).is_equal_approx(0.012 * steps2, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * (1.0 + 0.012 * steps2), 0.0001)
 	# one source, named with its bonus, through a rebuild too
 	Run.rebuild_sheets()
 	var named := 0
@@ -340,14 +347,14 @@ func test_heavyweight_grows_with_max_hp_in_whole_tens() -> void:
 		if str(en["source"]).begins_with("Heavyweight +"):
 			named += 1
 	assert_int(named).is_equal(1)
-	# level 5: +2% per 10
-	_take("heavyweight", 4)
-	assert_float(Run.heavyweight_might()).is_equal_approx(0.02 * steps2, 0.0001)
+	# Evolved (level 4): +1.75% per 10
+	_take("heavyweight", 3)
+	assert_float(Run.heavyweight_might()).is_equal_approx(0.0175 * steps2, 0.0001)
 	# only whole tens count: 5 more max HP than a whole ten adds nothing
 	var tens := floorf(Run.player_sheet.get_stat("max_hp", 100.0) / 10.0 + 0.0001)
 	Run.player_sheet.add_effects([Effect.make("max_hp", "add", tens * 10.0 + 5.0 - Run.player_sheet.get_stat("max_hp", 100.0), "player")], "test")
 	Run._apply_heavyweight()
-	assert_float(Run.heavyweight_might()).is_equal_approx(0.02 * tens, 0.0001)
+	assert_float(Run.heavyweight_might()).is_equal_approx(0.0175 * tens, 0.0001)
 
 
 # ---------------------------------------------------------------- Snake Oil
@@ -362,7 +369,7 @@ func test_snake_oil_heals_past_full_up_to_its_cap_and_hits_take_it_first() -> vo
 	assert_float(p.overheal).is_equal(0.0)
 	Run.add_or_level_passive("snake_oil")
 	p.refresh_stats()
-	var cap := p.max_hp * 0.2
+	var cap := p.max_hp * 0.25
 	assert_float(p.overheal_cap()).is_equal_approx(cap, 0.001)
 	# a heal over full: the rest is overheal, never past the cap
 	p.hp = p.max_hp - 5.0
@@ -394,10 +401,10 @@ func test_snake_oil_heals_past_full_up_to_its_cap_and_hits_take_it_first() -> vo
 	# levels raise the cap; losing the item drops what is over it
 	_take("snake_oil", 2)
 	p.refresh_stats()
-	assert_float(p.overheal_cap()).is_equal_approx(p.max_hp * 0.4, 0.001)
+	assert_float(p.overheal_cap()).is_equal_approx(p.max_hp * 0.41, 0.001)
 	p.hp = p.max_hp
 	p.heal(500.0)
-	assert_float(p.overheal).is_equal_approx(p.max_hp * 0.4, 0.001)
+	assert_float(p.overheal).is_equal_approx(p.max_hp * 0.41, 0.001)
 	Run.passives.erase("snake_oil")
 	Run.rebuild_sheets()
 	p.refresh_stats()
@@ -426,12 +433,12 @@ func test_hot_springs_pulses_on_every_heal_at_most_every_half_second() -> void:
 	assert_int(got.size()).is_equal(0)
 	Run.add_or_level_passive("hot_springs")
 	p.refresh_stats()
-	# a heal of 10: 4 + 2 x 10 = 24
+	# a heal of 10: 5 + 2 x 10 = 25 (pass 95: 5 flat at level 1)
 	p.hp = p.max_hp - 30.0
 	p.heal(10.0)
 	p._tick_heal_pulse(DT)
 	assert_int(got.size()).is_equal(1)
-	assert_float(float(got[0][0])).is_equal_approx(24.0, 0.001)
+	assert_float(float(got[0][0])).is_equal_approx(25.0, 0.001)
 	assert_float(float(got[0][1])).is_equal_approx(10.0, 0.001)
 	# another heal at once waits for the half second, then goes out with all that came since
 	p.heal(3.0)
@@ -441,7 +448,7 @@ func test_hot_springs_pulses_on_every_heal_at_most_every_half_second() -> void:
 	assert_int(got.size()).is_equal(1)
 	p._tick_heal_pulse(0.11)
 	assert_int(got.size()).is_equal(2)
-	assert_float(float(got[1][0])).is_equal_approx(4.0 + 2.0 * 5.0, 0.001)
+	assert_float(float(got[1][0])).is_equal_approx(5.0 + 2.0 * 5.0, 0.001)
 	# a big heal is capped at 40
 	p.hp = 1.0
 	p._pulse_cd = 0.0
@@ -498,13 +505,13 @@ func test_last_stand_fires_under_thirty_percent_once_in_twenty_seconds() -> void
 	# not low enough, or already down: nothing
 	assert_bool(Run.last_stand_check(30.0, 100.0)).is_false()
 	assert_bool(Run.last_stand_check(0.0, 100.0)).is_false()
-	# under 30%: it starts, double damage on the sheet
+	# under 30%: it starts, x2.3 damage on the sheet (pass 95's first rung)
 	assert_bool(Run.last_stand_check(29.0, 100.0)).is_true()
 	assert_bool(Run.last_stand_active).is_true()
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 2.0, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 2.3, 0.0001)
 	# kept through a rebuild while it runs
 	Run.rebuild_sheets()
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 2.0, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 2.3, 0.0001)
 	Run.set_last_stand(false)
 	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might, 0.0001)
 	# the hidden cooldown: not again for 20 s of the buffs' clock
@@ -514,11 +521,11 @@ func test_last_stand_fires_under_thirty_percent_once_in_twenty_seconds() -> void
 	Run.held_time += 1.01
 	assert_bool(Run.last_stand_check(10.0, 100.0)).is_true()
 	Run.set_last_stand(false)
-	# level 3: x3
+	# Evolved (level 3): x3.1
 	_take("last_stand", 2)
 	Run.elapsed += 25.0
 	assert_bool(Run.last_stand_check(10.0, 100.0)).is_true()
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 3.0, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(might * 3.1, 0.0001)
 
 
 func test_a_hit_that_leaves_the_hero_low_tells_the_game_once() -> void:
@@ -612,7 +619,7 @@ func test_the_magnet_gives_no_pickup_radius_and_pulls_only_gems_within_its_reach
 	var reach := Run.player_sheet.get_stat("magnet", 1.5)
 	Run.add_or_level_passive("magnet")
 	assert_float(Run.player_sheet.get_stat("magnet", 1.5)).is_equal_approx(reach, 0.0001)
-	assert_float(pm.xp_pull_radius()).is_equal_approx(5.0, 0.0001)
+	assert_float(pm.xp_pull_radius()).is_equal_approx(6.0, 0.0001)
 	# gems about 3 m and 3.5 m away, one about 9 m, a coin about 4 m (they land a little off where they were let go)
 	var a := pm.spawn(PickupManager.KIND_GEM_S, Vector3(3, 0, 0), 1.0)
 	var b := pm.spawn(PickupManager.KIND_GEM_L, Vector3(0, 0, 3.5), 25.0)
@@ -637,8 +644,8 @@ func test_the_magnet_gives_no_pickup_radius_and_pulls_only_gems_within_its_reach
 	assert_int(pm.arced[a]).is_equal(1)
 	# nothing pulled twice
 	assert_int(pm.pull_xp(Vector3.ZERO, 5.0)).is_equal(0)
-	# level 5: 8.5 m, and never past it
-	_take("magnet", 4)
+	# Evolved (level 3, pass 95): 8.5 m, and never past it
+	_take("magnet", 2)
 	assert_float(pm.xp_pull_radius()).is_equal_approx(8.5, 0.0001)
 	Run.player_sheet.add_effects([Effect.make("xp_pull_radius", "add", 10.0, "player")], "test")
 	assert_float(pm.xp_pull_radius()).is_equal_approx(PickupManager.XP_PULL_MAX_R, 0.0001)
@@ -668,7 +675,7 @@ func test_the_magnet_s_pulls_come_at_random_waits_faster_with_levels() -> void:
 	for k in range(60 * 60):
 		pm._tick_xp_pulls(DT, Vector3.ZERO)
 	assert_int(pm.xp_pulls).is_between(7, 21)
-	_take("magnet", 4)
+	_take("magnet", 2)
 	for k in range(300):
 		var wt := pm.xp_pull_wait()
 		assert_float(wt).is_between(1.5, 4.0)

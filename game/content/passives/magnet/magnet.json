@@ -10,7 +10,7 @@
       {
         "stat": "xp_pull_radius",
         "op": "add",
-        "value": 5.0,
+        "value": 6.0,
         "target": "player"
       }
     ],
@@ -24,7 +24,7 @@
       {
         "stat": "xp_pull_rate",
         "op": "add",
-        "value": 0.25,
+        "value": 0.5,
         "target": "player"
       }
     ],
@@ -32,51 +32,23 @@
       {
         "stat": "xp_pull_radius",
         "op": "add",
-        "value": 1.0,
+        "value": 1.5,
         "target": "player"
       },
       {
         "stat": "xp_pull_rate",
         "op": "add",
-        "value": 0.25,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "xp_pull_radius",
-        "op": "add",
-        "value": 0.75,
-        "target": "player"
-      },
-      {
-        "stat": "xp_pull_rate",
-        "op": "add",
-        "value": 0.25,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "xp_pull_radius",
-        "op": "add",
-        "value": 0.75,
-        "target": "player"
-      },
-      {
-        "stat": "xp_pull_rate",
-        "op": "add",
-        "value": 0.25,
+        "value": 0.5,
         "target": "player"
       }
     ]
   ],
   "repeat_last_level": false,
-  "text": "Every few seconds, at random, pulls every EXP gem within 5 m to you. Levels reach farther and pull more often.",
+  "text": "Every few seconds, at random, pulls every EXP gem within 6 m to you. Rungs reach farther and pull more often.",
   "placeholder": {
     "color": "#8A69F2",
     "glyph": "magnet"
   },
   "art_prompt": "a purple horseshoe magnet with two small purple gems pulled towards it",
-  "max_level": 5
+  "max_level": 3
 }

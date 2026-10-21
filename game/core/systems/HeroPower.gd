@@ -51,6 +51,9 @@ static func crowd_of(w: WeaponInstance) -> float:
 			return 1.0 + float(maxi(w.stat_int("chains", 0), 0))
 		"Orbiter", "Spawner", "Lobber", "MissilePod", "SaltShaker":
 			return 1.0
+		"FireBreath":
+			# pass 95 (lane BREATH): the cone, about BREATH_CATCH creatures in it
+			return WeaponInstance.BREATH_CATCH
 	# a gun (ProjectileEmitter): its blast's catch (a ricochet is left in: measured on a lone boss, the Golden Revolver
 	# lands its whole estimate)
 	var bl := w.blast()
@@ -73,7 +76,17 @@ static func element_dps(w: WeaponInstance) -> float:
 static func weapon_dps(w: WeaponInstance) -> float:
 	if w == null or w.def == null:
 		return 0.0
-	return maxf(w.dps_estimate(), 0.0) / crowd_of(w) + element_dps(w)
+	return maxf(w.dps_estimate(), 0.0) / crowd_of(w) + element_dps(w) * element_uptime(w)
+
+
+## Pass 95 (lane BREATH): the share of the time a weapon's burn is on its target. 1 for every weapon as before; the
+## Dragon's Breath lights it only while it breathes and the burn after (breath_seconds + fire_duration over its long
+## cooldown), so its burn is counted for that share and a boss's HP is not pegged to a fire that is out most of the time.
+static func element_uptime(w: WeaponInstance) -> float:
+	if w == null or w.behavior() != "FireBreath":
+		return 1.0
+	var cd: float = maxf(w.stat("cooldown", 10.0), 0.05)
+	return clampf((w.breath_seconds() + w.stat("fire_duration", 1.8)) / cd, 0.0, 1.0)
 
 
 ## The average crit's factor: 1 + crit_chance x (crit_damage - 1).

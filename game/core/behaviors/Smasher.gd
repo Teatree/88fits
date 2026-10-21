@@ -127,7 +127,11 @@ func _fire() -> bool:
 	var reach := stat("range", 4.6)
 	var r := _blast_r()
 	var n: int = maxi(stat_int("amount", 1), 1)
-	var spots := crowd_spots(n, reach, r)
+	# pass 95 (lane ITEMS): "Fire forward" (FireForward.dir, Settings.fire_forward): the blow lands 75% of the reach ahead
+	# along his facing (FireForward.NEAR_FRAC: the smash's radius covers the range's end) while no creature stands within
+	# 75% of the range; else on the thickest crowd as before
+	var fwd: Vector3 = FireForward.dir(inst, player, game.enemies, 4.6)
+	var spots: Array = [player.global_position + fwd * reach * FireForward.NEAR_FRAC] if fwd != Vector3.ZERO else crowd_spots(n, reach, r)
 	if spots.is_empty():
 		return false
 	var stagger := _smash("stagger", 0.12)

@@ -510,7 +510,8 @@ static func powerup_value(eff: String, c: Dictionary) -> float:
 	match eff:
 		"heal":
 			return PU_HEAL * (1.0 - hp) if hp < PU_HEAL_ABOVE else 0.0
-		"vacuum":
+		"vacuum", "magnet":
+			# (pass 95, lane WORLD: the Magnet power-up is a timed wide pull, priced like the vacuum by the XP lying)
 			var need := maxf(float(c.get("xp_need", 1.0)), 1.0)
 			return minf(PU_VACUUM + float(c.get("xp_lying", 0.0)) / need * PU_VACUUM_PER_LEVEL, PU_VACUUM_MAX)
 		"nuke":
@@ -530,7 +531,7 @@ static func powerup_why(eff: String, c: Dictionary) -> String:
 	match eff:
 		"heal":
 			return ", hurt (%d%% HP)" % roundi(float(c.get("hp_frac", 1.0)) * 100.0)
-		"vacuum":
+		"vacuum", "magnet":
 			return ", %d XP lying" % roundi(float(c.get("xp_lying", 0.0)))
 		"nuke", "buff", "shield":
 			if crowd > 0:

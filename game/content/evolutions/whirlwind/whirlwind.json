@@ -23,6 +23,7 @@
     []
   ],
   "params": {
+    "fire_forward": true,
     "thrust": {
       "out": 0.05,
       "slice": 0.14,

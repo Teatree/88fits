@@ -92,7 +92,8 @@ LOOK_METHODS = ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "c
 CTL_VIEWS = ("front", "fd", "side", "bd", "back")
 HERO_VIEWS = ("front", "back", "side", "fd", "bd")
 # median seconds per method when methods.json has no timing (the synthesis §7; "~" always on the page)
-BUILTIN_MEDIAN = {"hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "creature_pose2": 240, "creature_free8": 960,
+BUILTIN_MEDIAN = {"frames_repair": 240, "frames_export": 15,   # pass 95 (lane VACE): a VACE repair of one animation, an export
+                  "hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "creature_pose2": 240, "creature_free8": 960,
                   "creature_ctl": 660, "creature_ctl_side": 60, "creature_ctl_side_dev": 840, "creature_proc": 90, "creature_pictures": 15,
                   "front_from_picture": 20, "recolour": 5, "item_icon": 20, "icon_cands": 20, "icon_cands_dev": 270,
                   "hero_badge": 20, "hero_title": 25, "driver_pose": 60, "driver_depth": 300, "driver_tweak": 5, "ref_probe": 10,
@@ -248,6 +249,10 @@ SPECS = {
         "depth": _f("enum", "tight", False, "", ("tight", "wide")), "amp": _f("float", 1.0, False, "legs swing this much wider"),
         "amp_bones": _f("str", "", False, "regex of the bones amp applies to"), "pitch": _f("int", 25, False, ""), "views": _f("str", "", False, "front,fd,side,bd,back"),
         "forward": _f("str", "", False, "-Y"), "screen": _f("str", "", False, "0,1,0"), "albedo": _f("str", "", False, ""), "inplace": _f("bool", True, False, ""),
+        # pass 94 (lane REAL): a low-poly model's cones and fins rounded in the renders (the spider's crystal knees)
+        "smooth": _f("int", 0, False, "subdivision levels the renders get (2 for a low-poly model: its cones and fins rounded, the depth range and the leg tips still from the raw mesh); 0 = off"),
+        "skin": _f("enum", "", False, "gait / flip_curl: capsule = the legs' own mesh replaced by tapered capsules along the bone chain, head to head (a low-poly model's cone legs stood up as spikes at every joint); empty = the mesh as it is", ("", "capsule")),
+        "skin_radius": _f("float", 0.06, False, "skin capsule: the leg's radius at the hip as a share of its length, tapering to a point at the foot"),
         # pass 92 (lane SPIDER): the made motions (tools/blender_gait.py); empty = the tool's default
         "legs": _f("str", "", False, "gait / flip_curl: a regex over the leg bones' names (empty: leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia)"),
         "base": _f("str", "", False, "gait / flip_curl: seconds into the named clip whose pose is the stance (empty: the rest pose)"),
@@ -317,6 +322,22 @@ SPECS = {
         "help": "a picked candidate written into the game (then an import job)"},
     # pass 77 (lane SIMUI): the Sim tab's run sim (tools/sim_batch.py): no ComfyUI, no Godot lock (its own sim lock, on a
     # snapshot of game/ with its own user folder), its own lane; started only by the Sim tab's Run sim button
+    # pass 95 (lane VACE): the Frames view's jobs (tools/level_editor/frames_io.py queues them): a repair of chosen frames
+    # of one animation x view with Wan 2.2 Fun VACE (tools/vace_repair.py, the comfy lane), and the export of a look's
+    # strip from the frames store's choices (tools/frames_store.py export; the entry merged, then an import job)
+    "frames_repair": {"lane": "comfy", "fields": {
+        "kind": _f("str", "", True, "enemy | boss | hero"), "id": _f("str", "", True, "the asset"), "code": _f("str", "", True, "the look"),
+        "anim": _f("str", "", True, "the animation (run, idle, die, attack)"), "view": _f("str", "", True, "front | fd | side | bd | back"),
+        "slots": _f("list", [], True, "the frames to paint anew (0-based slots of the animation)"),
+        "prompt": _f("str", "", False, "the words (empty: the clip's own)"), "seed": _f("int", 0, False, "0 = the clip's seed moved by the slots"),
+        "window": _f("enum", "auto", False, "auto | single | double: how much of the animation goes in (auto: a short loop twice)", ("auto", "single", "double")),
+        "guide": _f("enum", "driver", False, "driver: the redone frames follow the driver's frames fitted onto the kept figure; free: filled from their neighbours", ("driver", "free")),
+        "free_fill": _f("bool", False, False, "paint a procedural animation (no clip cache, no driver) anyway, as a free fill from the neighbours (the method's repair rule in methods.json says VACE is pointless there)"),
+        "size": _f("int", 0, False, "the canvas (0 = the clip's, 640)"), "note": _f("str", "", False, "")},
+        "help": "chosen frames of one animation painted anew with Wan 2.2 Fun VACE, the rest kept; the new frames land in the frames store and are staged at the landing (one writer of staged.json)"},
+    "frames_export": {"lane": "local", "fields": {
+        "kind": _f("str", "", True, ""), "id": _f("str", "", True, ""), "code": _f("str", "", True, ""), "note": _f("str", "", False, "")},
+        "help": "the look's strip packed again from the frames store's staged and selected versions (the old strip backed up), its entry merged, then an import"},
     "sim": {"lane": "sim", "fields": {
         "hero": _f("str", "drifter", False, "the hero every run plays"),
         "players": _f("int", 10, False, "how many runs are played and averaged (1-100)"),
@@ -1211,6 +1232,12 @@ def _plan(job):
                 if v not in (None, "") and v != dflt:
                     kv.append("%s=%s" % (k, v))
             kv += made_motion_args(spec)
+            if int(spec.get("smooth") or 0) > 0:
+                kv.append("smooth=%d" % int(spec["smooth"]))
+            if str(spec.get("skin") or "") == "capsule":
+                kv.append("skin=capsule")
+                if spec.get("skin_radius") not in (None, "") and abs(float(spec["skin_radius"]) - 0.06) > 1e-9:
+                    kv.append("skin_radius=%g" % float(spec["skin_radius"]))
             if spec.get("inplace") is False:
                 kv.append("inplace=0")
             # pass 93 (lane LEGS): a made motion writes where every foot goes (tips.json); a made walk is then checked
@@ -1259,6 +1286,8 @@ def _plan(job):
                         kv.append("%s=%s" % (k, v))
             p["steps"] = [[bl, "-b", "--python", os.path.join(TOOLS, "blender_ref.py"), "--"] + kv]
             p["equiv"] = '"$BLENDER" -b --python tools/blender_ref.py -- ' + " ".join(kv)
+    elif kind in ("frames_repair", "frames_export"):
+        p.update(_frames_plan(job, asset_dir))   # pass 95 (lane VACE): the Frames view's repair and export
     elif kind == "sim":
         p.update(sim_plan(job))   # pass 77 (lane SIMUI): one tools/sim_batch.py process, its own sim lock
     elif kind in ("register", "import"):
@@ -1338,6 +1367,31 @@ def _plan(job):
         else:
             p.update(mode="steps", lock=None, steps=[], error="nothing to install from a %s job" % src["kind"])
     return p
+
+
+def _frames_plan(job, asset_dir):
+    """pass 95 (lane VACE): a frames_repair runs tools/vace_repair.py on the job's repair.json under the comfy lock
+    (the step told the lock is held, as an asset job is: env_steps), a frames_export runs tools/frames_store.py export
+    on the local lane; both write the job's result.json (the repair's sheet for the card, the export's entry for the
+    merge), the export's entry landing through merge_look like a look's."""
+    kind, spec = job["kind"], job.get("spec") or {}
+    os.makedirs(asset_dir, exist_ok=True)
+    env = {"ASSET_JOB_SIDECAR": os.path.join(asset_dir, "result.json"), "ASSET_JOB_ID": job["id"], "ASSET_JOB_NAME": _user_folder(job),
+           "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
+    if kind == "frames_repair":
+        rj = os.path.join(asset_dir, "repair.json")
+        rec = {k: spec.get(k) for k in ("kind", "id", "code", "anim", "view", "slots", "prompt", "seed", "window", "size", "note", "guide", "free_fill")}
+        rec["job"] = job["id"]
+        with open(rj, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(rec, f, indent=1, ensure_ascii=False)
+        env.update({"LOCK_HELD_COMFY": "1", "COMFY_LOCK_HELD": "1"})
+        step = [PY, os.path.join(TOOLS, "vace_repair.py"), "--job", _rel(rj)]
+        return {"mode": "steps", "lock": "comfy", "steps": [step], "env_steps": env,
+                "equiv": "python tools/vace_repair.py --kind %s --id %s --code %s --anim %s --view %s --slots %s" % (
+                    spec.get("kind"), spec.get("id"), spec.get("code"), spec.get("anim"), spec.get("view"), ",".join(str(s) for s in (spec.get("slots") or [])))}
+    step = [PY, os.path.join(TOOLS, "frames_store.py"), "export", str(spec.get("kind", "")), str(spec.get("id", "")), str(spec.get("code", ""))]
+    return {"mode": "steps", "lock": None, "steps": [step], "env_steps": env,
+            "equiv": "python tools/frames_store.py export %s %s %s" % (spec.get("kind"), spec.get("id"), spec.get("code"))}
 
 
 def _derive(job):
@@ -1626,7 +1680,7 @@ def _public(job, tail_n, full=False):
     out["plan"] = {k: v for k, v in (job.get("plan") or {}).items() if k != "env"}
     # pass 68 review: a queued candidate job the worker skips while its look paints the reference first (_waits_for_look);
     # the Jobs tab numbers these after the runnable ones of their lane
-    out["held"] = bool(job.get("state") == "queued" and _waits_for_look(job))
+    out["held"] = bool(job.get("state") == "queued" and (_waits_for_look(job) or _frames_export_waits(job)))
     live = _live.get(job["id"])
     if live is not None:
         out["log_tail"] = [x for x in live.tail][-tail_n:]
@@ -2868,9 +2922,23 @@ def _waits_for_look(job):
     return False
 
 
+def _frames_export_waits(job):
+    """pass 95 resume (AN-08, E5): a queued frames_export waits while a frames_repair of the same look is queued, running or
+    waiting, so the export packs the repair's result (staged at its landing) and never a half-landed store."""
+    if job.get("kind") != "frames_export":
+        return False
+    t = job.get("target") or {}
+    for o in _state["jobs"]:
+        ot = o.get("target") or {}
+        if (o is not job and o.get("kind") == "frames_repair" and o.get("state") in ("queued", "running", "waiting")
+                and ot.get("id") == t.get("id") and str(ot.get("code") or "") == str(t.get("code") or "")):
+            return True
+    return False
+
+
 def _take_next(lane):
     with _lock:
-        cands = [j for j in _state["jobs"] if j["state"] == "queued" and j.get("lane") == lane and not _waits_for_look(j)]
+        cands = [j for j in _state["jobs"] if j["state"] == "queued" and j.get("lane") == lane and not _waits_for_look(j) and not _frames_export_waits(j)]
         if not cands:
             return None
         front = [j for j in cands if j.get("front")]
@@ -2884,6 +2952,9 @@ def _take_next(lane):
                     for t in o["spec"].get("targets") or []:
                         if str(t) not in targets:
                             targets.append(str(t))
+                    for x in o["spec"].get("after_export") or []:   # pass 95 resume: the exports an import follows, carried into the merged one
+                        if x not in (job["spec"].get("after_export") or []):
+                            job["spec"].setdefault("after_export", []).append(x)
                     o["state"], o["ended"], o["merged_into"] = "done", _now(), job["id"]
                     o["title"] = (o.get("title") or "import") + " (merged into %s)" % job["id"]
                 job["spec"]["targets"] = targets
@@ -3393,6 +3464,7 @@ def _after_exit(job, rc, live):
         if live.timed_out:
             # pass 70: killed for its time limit; the worker's finally frees the lock, the card offers Re-queue
             _finish(job, "failed", error=live.timed_out)
+            _rollback_after_import(job)   # pass 95 resume: an import that followed a Frames export undoes the export
             return
         if rc != 0:
             tail = [x for x in live.tail if x.strip()]
@@ -3407,6 +3479,7 @@ def _after_exit(job, rc, live):
                         err = x.strip()
                         break
             _finish(job, "failed", error=err or (tail[-1].strip() if tail else "exit code %s" % rc))
+            _rollback_after_import(job)   # pass 95 resume: an import that followed a Frames export undoes the export
             return
         marker = live.marker
         puppet_phase = job.get("method") == "hero_puppet" and job.get("puppet_next") != "walks"
@@ -3446,13 +3519,78 @@ def _result(job):
         return None
 
 
+def _frames_repair_post(job, res):
+    """pass 95 resume (AN-08, one writer of staged.json): the repair subprocess only adds versions; at the landing each
+    version that asked to be staged is staged unless the slot is pinned or a hand choice was staged meanwhile (then it
+    stays unstaged and the card says so). Returns (written, error) like _post."""
+    t = job.get("target") or {}
+    rep = ((res or {}).get("info") or {}).get("repair") or {}
+    versions = rep.get("versions") or []
+    if not versions:
+        return {"file": "", "keys": [], "backup": "", "layout": "staged", "staged": [], "skipped": []}, ("" if rep else "the repair wrote no result.json (nothing landed)")
+    try:
+        import frames_io as FRIO
+        r = FRIO.stage_versions(t.get("kind"), t.get("id"), t.get("code"), rep.get("base"), rep.get("view"), versions)
+    except Exception as e:   # noqa: BLE001
+        return {"file": "", "keys": [], "backup": "", "layout": "staged", "staged": [], "skipped": [{"slot": v.get("slot"), "id": v.get("id"), "why": "not staged: %s" % e} for v in versions]}, \
+            "the versions landed but could not be staged: %s: %s (stage them in the Frames view)" % (type(e).__name__, e)
+    return {"file": "", "keys": [], "backup": "", "layout": "staged", "staged": r.get("staged") or [], "skipped": r.get("skipped") or []}, ""
+
+
+def _frames_rollback(job, info, why, restore_entry=False):
+    """pass 95 resume (AN-09): a Frames export undone when its merge or the import after it failed: the strip put back
+    from the export's backup and the exported choices staged again (frames_store.rollback_export); with restore_entry
+    (the merge had gone through) the old entry is merged back through the hook, without `fresh`."""
+    t = job.get("target") or {}
+    out = {"ok": False, "why": why}
+    try:
+        import frames_io as FRIO
+        r = FRIO.rollback(t.get("kind"), t.get("id"), t.get("code"), info.get("backup"), info.get("changed"), job=job["id"], why=why) or {}
+        out.update(r)
+        old = info.get("old_entry") or {}
+        h = _hook("merge_look")
+        if restore_entry and r.get("ok") and old and h:
+            m = h(t["kind"], t["id"], t["code"], dict(old), {"pipeline": "frames_rollback", "why": why}) or {}
+            out["entry_restored"], out["entry_error"] = bool(m.get("ok")), (m.get("error") or "")
+    except Exception as e:   # noqa: BLE001
+        out["error"] = "%s: %s" % (type(e).__name__, e)
+    _log("jobs: Frames export %s rolled back (%s): %s" % (job["id"], why, json.dumps({k: out.get(k) for k in ("ok", "restored_from", "staged_again", "entry_restored", "error")})))
+    return out
+
+
+def _rollback_after_import(job):
+    """pass 95 resume (AN-09): an import that followed a frames_export (spec.after_export) failed: the export is undone
+    (the strip, the choices, the entry) and its card says so. Never raises (a rollback must not end the lane)."""
+    try:
+        if job.get("kind") != "import":
+            return
+        for jid in (job.get("spec") or {}).get("after_export") or []:
+            ex = _find(jid)
+            if not ex or ex.get("rolled_back"):
+                continue
+            info = (_result(ex) or {}).get("info") or {}
+            if not info.get("backup"):
+                continue
+            ex["rolled_back"] = _frames_rollback(ex, info, "the import after it failed (%s)" % (job.get("error") or "")[:160], restore_entry=True)
+            ex["error"] = ((ex.get("error") or "") + " | rolled back: the import failed; your frames are staged again").strip(" |")
+    except Exception as e:   # noqa: BLE001
+        _log("jobs: the rollback after import %s failed: %s: %s" % (job.get("id"), type(e).__name__, e))
+    try:
+        _save()
+    except Exception as e:   # noqa: BLE001  (a script importing jobs.py without init: the queue stays in memory)
+        _log("jobs: the queue was not saved after the rollback: %s" % e)
+
+
 def _post(job):
     """The merge into the content JSON through the server's hooks; returns (written, error)."""
     kind, method, t = job["kind"], job.get("method"), job.get("target") or {}
     res = _result(job) or {}
     info = res.get("info") or {}
     try:
-        if kind == "look" and method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures", "creature_ctl", "hero_puppet"):
+        if kind == "frames_repair":   # pass 95 resume (lane VACE): the repair's versions staged here, one writer of staged.json
+            return _frames_repair_post(job, res)
+        if (kind == "look" and method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures", "creature_ctl", "hero_puppet")) \
+                or kind == "frames_export":   # pass 95 (lane VACE): an export's entry lands like a look's
             entry = res.get("entry") or {}
             if not entry:
                 return None, "the tool wrote no result.json entry (nothing merged)"
@@ -3460,9 +3598,14 @@ def _post(job):
             if not h:
                 return {"file": "", "keys": ["variants"], "backup": "", "layout": "unmerged"}, "no merge hook: the entry sits in result.json"
             e = dict(entry)
-            e["fresh"] = True
+            if kind != "frames_export":
+                e["fresh"] = True   # pass 95 resume: an export is Garry's own choice of frames, never a NEW look
             r = h(t["kind"], t["id"], t["code"], e, info) or {}
             written = _written(t, r, ["variants"])
+            if kind == "frames_export" and not r.get("ok"):
+                # pass 95 resume (AN-09): the strip is already new while the entry is old: put the strip back, stage the choices again
+                written["rollback"] = _frames_rollback(job, info, "the entry could not be merged: %s" % (r.get("error") or "?"))
+                return written, "%s | rolled back: the strip was put back from its backup and your frames are staged again" % (r.get("error") or "the entry could not be merged")
             if r.get("ok"):
                 try:
                     honest = _note_reused_stills(job)
@@ -3667,13 +3810,16 @@ def _snapshot_icons(job):
 def _after_done(job):
     """What follows a landing: an import job for new PNGs."""
     kind, t = job["kind"], job.get("target") or {}
-    if kind in ("look", "item_icon", "install") and t.get("id"):
+    if kind in ("look", "item_icon", "install", "frames_export") and t.get("id"):   # pass 95: an export's strip needs the import too
         if kind == "look" and job.get("method") == "front_from_picture":
             return
         tf, jp = content_path(t.get("kind", ""), t["id"])
         if tf:
             try:
-                enqueue("import", {"kind": t.get("kind", ""), "id": t["id"], "code": ""}, {"targets": ["%s/%s" % (tf, t["id"])]},
+                spec = {"targets": ["%s/%s" % (tf, t["id"])]}
+                if kind == "frames_export":
+                    spec["after_export"] = [job["id"]]   # pass 95 resume: a failed import undoes this export (_rollback_after_import)
+                enqueue("import", {"kind": t.get("kind", ""), "id": t["id"], "code": ""}, spec,
                         title="import %s/%s (after %s)" % (tf, t["id"], job["id"]))
             except ValueError:
                 pass
@@ -3724,6 +3870,31 @@ def _clip_output(key, label=None, fps=None):
     if fps:
         out["fps"] = fps
     return out
+
+
+def _frames_outputs(job, res):
+    """pass 95 (lane VACE): what a frames job's result.json names (info.outputs: sheets under tools/dl, the strip) as the
+    card's outputs; a repair also says which versions it made and what was staged."""
+    outs = []
+    info = (res or {}).get("info") or {}
+    for o in info.get("outputs") or []:
+        f = str(o.get("file") or "")
+        p = os.path.join(_root, f) if f and not os.path.isabs(f) else f
+        if not p or not os.path.isfile(p):
+            continue
+        rec = {"label": str(o.get("label") or os.path.basename(p)), "type": str(o.get("type") or "sheet"), "file": _rel(p)}
+        if o.get("type") == "strip":
+            t = job.get("target") or {}
+            rec["url"] = "/sprite/%s/%s/%s?v=%d" % (t.get("kind", ""), t.get("id", ""), t.get("code", ""), int(os.path.getmtime(p)))
+        elif "tools/dl/" in _rel(p):
+            rec["url"] = _url_dl(p) + "?v=%d" % int(os.path.getmtime(p))
+        outs.append(rec)
+    rep = info.get("repair") or {}
+    if rep.get("versions"):
+        outs.append({"label": "versions", "type": "json", "detail": {"versions": rep["versions"], "seconds": rep.get("seconds"), "window": rep.get("window"), "seed": rep.get("seed")}})
+    if info.get("changed") is not None and job["kind"] == "frames_export":
+        outs.append({"label": "frames changed", "type": "json", "detail": {"changed": info.get("changed"), "backup": info.get("backup")}})
+    return outs
 
 
 def _harvest(job):
@@ -3838,6 +4009,8 @@ def _harvest(job):
         outs = puppet_outputs(job) + outs   # pass 71: the arms-out sheets, the shape, the rig, the preview, the GLB, the guides
     if kind == "install" and res:
         outs.append({"label": "installed", "type": "json", "detail": {k: res.get(k) for k in ("tool", "call", "top") if res.get(k) is not None}})
+    if kind in ("frames_repair", "frames_export"):
+        outs += _frames_outputs(job, res)   # pass 95 (lane VACE): the repair's sheets, the exported strip
     # the ComfyUI workflows the job ran (comfy.save_job_workflow): one file per graph; the copy in the page's Workflows
     # sidebar (`<stem>_userdata.json` marker, written by the run or by push_workflows) gives the "open in ComfyUI" link
     wd = os.path.join(_job_dir(job["id"]), "workflows")
@@ -3950,7 +4123,7 @@ def _run_steps(job, plan, live):
                 job["progress"]["stage"] = (st or {}).get("name", "step %d" % (i + 1))
                 _save()
             t0 = time.time()
-            rc = _spawn(job, live, step, timeout=step_timeout(job, step))
+            rc = _spawn(job, live, step, env_extra=plan.get("env_steps"), timeout=step_timeout(job, step))   # pass 95: a step's own env (the frames jobs)
             if live.timed_out and rc == 0:
                 rc = -9   # killed for its time limit: never a success
             with _lock:

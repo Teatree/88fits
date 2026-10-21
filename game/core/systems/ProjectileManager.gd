@@ -353,6 +353,8 @@ func hostile_shot(p_kind: int, from: Vector3, velocity: Vector3, damage: float, 
 		_trail_t[i] = 0.0
 		# pass 62: the shooter's own spit (EnemyDef.ranged: land_only, trail, pulse; the Spit Cactus)
 		_creature_look(i, arcing)
+		# pass 95 (lane BOSS): a tumbleweed's dust trail (the King's volley)
+		_tumble_trail_start(i)
 	return i
 
 
@@ -663,6 +665,10 @@ func _physics_process(delta: float) -> void:
 		if hostile[i] == 1 and extra[i].has("lie_t"):
 			_tick_dynamite_lying(i, dt)
 			continue
+		# pass 95 (lane ITEMS, "Fire forward"): a ball thrown forward that found nobody drops to the sand (_drop_alone)
+		if hostile[i] == 0 and extra[i].has("drop_t"):
+			_tick_dropping(i, delta, map)
+			continue
 		if homing[i] == 1:
 			if life[i] <= 0.0:
 				_explode(i)
@@ -729,6 +735,9 @@ func _physics_process(delta: float) -> void:
 				enemies.drag_radius(pos[i], ar, pull, dt)
 		if life[i] <= 0.0:
 			if ret[i] == 1:
+				# pass 95 (lane ITEMS): a ball thrown forward with nobody to bounce off drops instead of coming home
+				if _drop_alone(i, enemies, weapon[i]):
+					continue
 				# the boomerang turns at the end of its run (_turn_home); pass 67: the basketball turns here too when it hit
 				# nothing, or when the hop it was on lost its target, so no ball is ever lost
 				_turn_home(i, weapon[i])
@@ -801,6 +810,9 @@ func _physics_process(delta: float) -> void:
 			# pass 85 (lane BANDIT): a creature's dynamite tumbles end over end as it flies
 			if extra[i].has("dynamite"):
 				spin[i] += dt * DYN_TUMBLE
+			# pass 95 (lane BOSS): a tumbleweed's dust ribbon and puffs, every tick (_tumble_trail_tick)
+			if extra[i].has("tumble_trail"):
+				_tumble_trail_tick(i, delta)
 			_trail_t[i] -= delta
 			if _trail_t[i] <= 0.0:
 				_trail_t[i] = TRAIL_STEP
@@ -818,8 +830,8 @@ func _physics_process(delta: float) -> void:
 				elif shot_kind == "pellet":
 					_drop_trail(pos[i], Color(0.42, 0.4, 0.44, 0.45), 0.7)
 				elif shot_kind == "tumbleweed":
-					# dust at its foot (pass 45)
-					_drop_trail(pos[i] - Vector3(0, 0.3, 0), Color(0.82, 0.68, 0.45, 0.4), 1.1)
+					# dust at its foot (pass 45); pass 95 (lane BOSS): only for a trail of style "none" (_tumble_trail_tick)
+					_tumble_bead(i)
 				else:
 					_drop_trail(pos[i])
 			# pass 62: a land-only spit (ranged.land_only) hurts nobody in the air; only its landing splash does (_explode)
@@ -1229,6 +1241,46 @@ func _turn_home(i: int, w: WeaponInstance) -> void:
 ## Whether this weapon's shot comes home when its pierce is spent (pass 67, `params.return_on_hit`: the basketball).
 func _returns_on_hit(w: WeaponInstance) -> bool:
 	return w != null and bool(w.params.get("return_on_hit", false))
+
+
+## Pass 95 (lane ITEMS, "Fire forward"; Garry: the Basketball "will simply fall to the floor and disappear in case there
+## are no nearby enemies"): seconds a dropped ball may fall before it is gone, and how many have dropped (tests, the arena).
+const DROP_LIFE := 0.6
+var drops := 0
+
+
+## A ball thrown along the hero's facing (extra "drop_alone", ProjectileEmitter._throw_ball) that struck nothing on its way:
+## at the end of its flight it hops to a creature within its bounce reach (_ricochet_on, as a hit would send it) and from
+## there plays on as any throw; with nobody there it falls to the sand (_tick_dropping) and is gone: no return, no catch,
+## no Heat. False when the shot is not such a ball or has hit something (then it comes home as usual).
+func _drop_alone(i: int, enemies: EnemyManager, w: WeaponInstance) -> bool:
+	if not extra[i].has("drop_alone") or int(extra[i].get("hits", 0)) > 0:
+		return false
+	if enemies != null and _ricochet_on(i, enemies, w):
+		return true
+	extra[i]["drop_t"] = 0.0
+	ret[i] = 0
+	vel[i] = Vector3(vel[i].x, 0.0, vel[i].z) * 0.35
+	life[i] = DROP_LIFE
+	drops += 1
+	return true
+
+
+## The dropped ball: it slows, falls under gravity and is gone with a puff of sand when it meets the ground or DROP_LIFE
+## is out (the loop took this tick off its life already).
+func _tick_dropping(i: int, delta: float, map) -> void:
+	extra[i]["drop_t"] = float(extra[i]["drop_t"]) + delta
+	vel[i].y -= 24.0 * delta
+	var brake := maxf(1.0 - delta * 3.0, 0.0)
+	vel[i].x *= brake
+	vel[i].z *= brake
+	pos[i] += vel[i] * delta
+	spin[i] += delta * 6.0
+	var ground: float = map.height_at(pos[i].x, pos[i].z) if map else 0.0
+	if pos[i].y <= ground + 0.12 or life[i] <= 0.0:
+		if game != null and game.has_method("fx_sand"):
+			game.fx_sand(Vector3(pos[i].x, ground, pos[i].z), 0.7)
+		_free(i)
 
 
 ## Pass 48, `params.ricochet_any {count, frac, puff, puff_seconds}` (the Pea Cannon, the Golden Revolver): a shot whose
@@ -4028,3 +4080,83 @@ func _dynamite_blast(i: int) -> void:
 	if game.get("camera") and game.camera.has_method("shake"):
 		game.camera.shake(float(bl.get("shake", 0.5)))
 	Audio.play(str(bl.get("sfx", "w_lob_boom")), at)
+
+
+# ---------------------------------------------------------------- pass 95 (lane BOSS): the King's tumbleweed trail
+## Garry (pass 95): "Tumbleweed King: Tumbleweed attack should have a trail behind it. It's not visible right now." Pass
+## 45's trail was one tan bead at the ball's foot every TRAIL_STEP at 0.4 alpha: tan on tan, nothing read on the sand.
+## Every hostile shot of `shot` "tumbleweed" now wears a dust trail (its params' `trail` over TUMBLE_TRAIL; the King's
+## volley row hands its own through Game.tumbleweed_volley): `style` (a TRACER_STYLE_IDS look: "line" is pass 79's soft
+## band that widens, lifts and greys like smoke; "none" = the old bead), `colour` + `alpha` (a dark sand, so it reads on
+## the light sand), `width` (m) and `life` (s) lay a ribbon in the tracers' ring (one MultiMesh, tracer_line.gdshader) every
+## TRACER_SEG_MIN m it rolls (_tumble_trail_tick, from the ball's foot: TUMBLE_FOOT under its centre), and every `puffs`
+## seconds (0 = none) a real puff of dust rises off its foot and drifts back the way it came (Fx.roll_dust; thinned on a
+## busy screen like every dust). Nothing in the sim.
+const TUMBLE_TRAIL := {"style": "line", "colour": "#7A5A30", "alpha": 0.58, "width": 0.5, "life": 0.75, "puffs": 0.11}
+const TUMBLE_FOOT := 0.35
+## diagnostics and tests: trails started, puffs dropped
+var tumble_trails := 0
+var tumble_puffs := 0
+
+
+## The look a tumbleweed shot `i` rolls with (its params' `trail` over TUMBLE_TRAIL), kept on the shot as `tumble_trail`.
+static func tumble_trail_cfg(own) -> Dictionary:
+	var cfg: Dictionary = TUMBLE_TRAIL.duplicate()
+	if own is Dictionary:
+		for k in (own as Dictionary).keys():
+			cfg[k] = (own as Dictionary)[k]
+	var col := Color.from_string(str(cfg.get("colour", cfg.get("color", TUMBLE_TRAIL["colour"]))), Color(0.36, 0.25, 0.12))
+	col.a = clampf(float(cfg.get("alpha", TUMBLE_TRAIL["alpha"])), 0.0, 1.0)
+	var style := str(cfg.get("style", TUMBLE_TRAIL["style"]))
+	return {"on": style != "none" and TRACER_STYLE_IDS.has(style), "style": style, "ts": int(TRACER_STYLE_IDS.get(style, 0)), "tc": col,
+		"tw": maxf(float(cfg.get("width", TUMBLE_TRAIL["width"])), 0.02), "tl": maxf(float(cfg.get("life", TUMBLE_TRAIL["life"])), 0.05),
+		"puffs": maxf(float(cfg.get("puffs", TUMBLE_TRAIL["puffs"])), 0.0)}
+
+
+## From hostile_shot: a tumbleweed's trail starts where it left.
+func _tumble_trail_start(i: int) -> void:
+	if str(extra[i].get("shot", "")) != "tumbleweed":
+		return
+	var tt := tumble_trail_cfg(extra[i].get("trail"))
+	tt["puff_t"] = 0.0
+	tt["from"] = pos[i]
+	tt["t0"] = clock
+	extra[i]["tumble_trail"] = tt
+	tumble_trails += 1
+
+
+## A tumbleweed's tick (after it moved): the ribbon's next segment once it has rolled far enough, the next puff when due.
+func _tumble_trail_tick(i: int, delta: float) -> void:
+	if Run.sim_mode:
+		return
+	var tt: Dictionary = extra[i]["tumble_trail"]
+	var foot := Vector3(0, TUMBLE_FOOT, 0)
+	if bool(tt["on"]):
+		var from: Vector3 = tt["from"]
+		var step := TRACER_SEG_MIN * (2.0 if count > TRACER_BUSY else 1.0)
+		if from.distance_squared_to(pos[i]) >= step * step:
+			_tracer_lay(from - foot, pos[i] - foot, tt["tc"], float(tt["tw"]), float(tt["tl"]), float(tt["t0"]), clock, int(tt["ts"]), -1.0)
+			tt["from"] = pos[i]
+			tt["t0"] = clock
+	var every := float(tt["puffs"])
+	if every <= 0.0 or game == null:
+		return
+	tt["puff_t"] = float(tt["puff_t"]) - delta
+	if float(tt["puff_t"]) > 0.0:
+		return
+	tt["puff_t"] = every
+	var fx = game.get("fx")
+	if fx != null and fx.has_method("roll_dust"):
+		var back := -vel[i]
+		back.y = 0.0
+		back = back.normalized() if back.length_squared() > 0.0001 else Vector3.ZERO
+		fx.roll_dust(pos[i] - foot, back, 1.0)
+		tumble_puffs += 1
+
+
+## The old bead at a tumbleweed's foot (pass 45), for a trail of style "none" only.
+func _tumble_bead(i: int) -> void:
+	var tt = extra[i].get("tumble_trail")
+	if tt is Dictionary and bool((tt as Dictionary)["on"]):
+		return
+	_drop_trail(pos[i] - Vector3(0, 0.3, 0), Color(0.82, 0.68, 0.45, 0.4), 1.1)

@@ -246,6 +246,13 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 				out["def"] = m
 				out["icon"] = m.icon
 				out["name"] = m.display_name
+		"weapon":
+			# pass 95 (lane BREATH): a held weapon's effects on the hero (the Fire Eater's thorns)
+			var wd: WeaponDef = Registry.weapon(id)
+			if wd:
+				out["def"] = wd
+				out["icon"] = wd.icon
+				out["name"] = wd.display_name
 		"buff":
 			for tb in Run.timed:
 				if str(tb.get("source", "")) == sid:

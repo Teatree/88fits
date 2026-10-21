@@ -738,9 +738,12 @@ const Assets = (() => {
     const apply2 = applyFor(doc);
     const wrap = el('div', { class: 'lsteps' });
     const base = M.isObj(doc.data.base) ? doc.data.base : {};
+    // pass 95 (lane PASSIVES): a passive item's level is a rung of its rarity ladder (AFIELDS.rungName): named beside it
+    const ladder = doc.kind === 'passive' && F.onLadder(doc.data);
+    const rung = (lv) => (ladder ? el('span', { class: 'muted small lrung', text: `${F.rungName(doc.data.rarity, lv)} rung` }) : null);
     for (let i = 0; i < n; i++) {
       const lv = Array.isArray(levels[i]) ? levels[i] : [];
-      const head = el('div', { class: 'lstep-head' }, el('b', { text: `Level ${i + 1}` }), i === 0 && fixed ? el('span', { class: 'muted small', text: 'always empty: the weapon arrives with its base numbers' }) : null,
+      const head = el('div', { class: 'lstep-head' }, el('b', { text: `Level ${i + 1}` }), rung(i + 1), i === 0 && fixed ? el('span', { class: 'muted small', text: 'always empty: the weapon arrives with its base numbers' }) : null,
         !fixed && i === n - 1 && n > 1 ? el('button', { class: 'x', type: 'button', text: '×', title: 'remove this level', onclick: () => apply2(() => { doc.data.levels = levels.slice(0, i); }, 'editor') }) : null);
       const body = el('div', { class: 'lstep-body' });
       if (!(i === 0 && fixed)) body.appendChild(statEffects(doc, { key: `levels.${i}`, stats: def.stats, target: def.target }));
@@ -748,6 +751,7 @@ const Assets = (() => {
     }
     if (!fixed) wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: '+ level', onclick: () => apply2(() => { if (!Array.isArray(doc.data.levels)) doc.data.levels = []; doc.data.levels.push([]); }, 'editor') }));
     if (fixed && levels.length !== fixed) wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: `Make it ${fixed} levels`, onclick: () => apply2(() => { const next = levels.slice(0, fixed); while (next.length < fixed) next.push([]); next[0] = []; doc.data.levels = next; }, 'editor') }));
+    if (ladder) wrap.appendChild(el('div', { class: 'muted small lsum', text: `the rarity ladder (pass 95): ${F.ladderLevels(doc.data.rarity)} levels, ${doc.data.rarity || 'common'} up to legendary, then Evolved; the game derives Max level from the rarity` }));
     const sum = M.levelsSummary(base, levels);
     if (sum.length) wrap.appendChild(el('div', { class: 'muted small lsum', text: `At level ${n}: ` + sum.map((r) => `${M.statName(r.stat)} ${M.formatValue(r.stat, r.start)} → ${M.formatValue(r.stat, r.end)}`).join(' · ') }));
     return wrap;

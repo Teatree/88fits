@@ -29,7 +29,7 @@ func test_trigger_happy_is_gone_and_ricochet_is_here() -> void:
 	_start()
 	Run.add_or_level_passive("ricochet")
 	Run.rebuild_sheets()
-	assert_float(Run.player_sheet.get_stat("ricochet", 0.0)).is_equal_approx(0.2, 0.001)
+	assert_float(Run.player_sheet.get_stat("ricochet", 0.0)).is_equal_approx(0.25, 0.001)   # pass 95: 25% at level 1
 
 
 func test_homing_family_is_content() -> void:

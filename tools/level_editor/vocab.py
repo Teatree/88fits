@@ -33,7 +33,8 @@ TELEGRAPHS = ["line", "ring", "ring_at_hero", "sector", "fan", "spokes", "none"]
 # `ranged.shot` / `spit_volley.shot`: the projectile's look; anything else is the green spit; `harpoon: true` is its own kind
 SHOT_KINDS = ["", "pellet", "spike", "shard", "harpoon"]
 # the keys every attack of a `boss.attacks` script shares, with the game's defaults (None = no default: absent means off)
-ATTACK_COMMON = {"name": "", "windup": 1.0, "telegraph": "none", "reach": None, "min_range": None, "max_range": None}
+ATTACK_COMMON = {"name": "", "windup": 1.0, "telegraph": "none", "reach": None, "min_range": None, "max_range": None,
+                 "chance": None}  # pass 95 (lane BOSS): rolled as its turn comes; a miss skips to the next attack
 # attack name -> its own keys with defaults, the telegraph it is drawn with by convention, whether it lands at
 # `atk_target` (set only by telegraph `ring_at_hero`: slam_at, burrow and boulder need it)
 ATTACKS = {
@@ -55,6 +56,11 @@ ATTACKS = {
     "tumbleweed_volley": {"keys": {"count": 12, "speed": 9.0, "damage": 14.0, "life": 2.6, "knockback": 14.0, "lift": 2.5, "spoke_length": None}, "telegraph": "spokes", "needs_ring_at_hero": False},
     "swoop": {"keys": {"count": 14, "duration": 0.8, "fall": 0.45, "radius": 6.5, "deg": 180.0, "damage": 24.0, "knockback": 14.0, "lift": 3.0, "throw": 12.0, "throw_radius": 1.8}, "telegraph": "sector", "needs_ring_at_hero": False},
     "boulder": {"keys": {"flight": 1.6, "radius": 4.6, "damage": 30.0, "knockback": 26.0, "lift": 6.0, "creature_frac": 0.5, "throw": 22.0, "throw_radius": 6.5, "size": 1.7, "arc": 9.0}, "telegraph": "ring_at_hero", "needs_ring_at_hero": True},
+    # pass 95 (lane BOSS): the King's jump and three stomps (EnemyManager._stomp_*: `jump` {height 2.2, up 0.35, down 0.2}),
+    # the Scorpion Elite's tail beam (EnemyManager._tail_*: `beam` and `muzzle` as the sniper block's, `sfx` {aim, lock, shot})
+    "stomp": {"keys": {"stomps": 3, "gap": 0.45, "jump": {}, "radius": 6.0, "damage": 18.0, "knockback": 6.0, "lift": None}, "telegraph": "ring", "needs_ring_at_hero": False},
+    "tail_sniper": {"keys": {"count": 3, "gap": 0.6, "aim": 1.0, "lock": 0.4, "lines": 8, "cone_deg": 40.0, "damage": 30.8, "damage_from": "", "damage_mult": 2.0,
+                             "beam": {}, "muzzle": {}, "sfx": {}}, "telegraph": "none", "needs_ring_at_hero": False},
 }
 # the telegraph keys each kind reads (EnemyManager.gd 3638-3676), with defaults
 TELEGRAPH_KEYS = {"line": {"length": None}, "ring": {"radius": 6.0}, "ring_at_hero": {"radius": 5.0},
@@ -119,7 +125,9 @@ ENEMY_ART_KEYS = ["art_prompt", "screen", "back_hint", "back_prompt", "outline_f
                   "key_cut_shadow", "key_clamp_screen", "remap_hues"]
 CTL_RECIPE_KEYS = ["drivers", "prompt", "noun", "detail", "blockout", "words", "keep", "look_ref", "motion", "death_drivers",
                    "death_motion", "death_keep", "remap_hues", "dead", "fps", "directions", "screen", "outline_frac",
-                   "outline_color", "side_seeds", "walk_seeds", "anatomy", "no_green", "fit_ref"]
+                   "outline_color", "side_seeds", "walk_seeds", "anatomy", "no_green", "fit_ref",
+                   # pass 94 (lane REAL): the repaint method and the Wan settings
+                   "paint_mode", "anchor", "style", "clay_src", "clay_fill", "init", "refine", "wan"]
 
 # ---------------------------------------------------------------- heroes (CharacterDef.gd, JsonContent._character)
 
@@ -315,7 +323,8 @@ RARITY_UNUSED = ["legendary"]
 # game/core/behaviors/*.gd minus the base class and the Turret (the Spawner's child)
 BEHAVIOURS = ["ProjectileEmitter", "Orbiter", "Lobber", "LaserBeam", "Beam", "Spawner", "MineLayer", "MissilePod", "Thruster",
               "Smasher", "GravityGun", "ConeWave", "SunScepter",
-              "SaltShaker", "Frisbee"]   # pass 69: the Salt (lane SALT) and the Frisbee (lane FRIS)
+              "SaltShaker", "Frisbee",   # pass 69: the Salt (lane SALT) and the Frisbee (lane FRIS)
+              "FireBreath"]   # pass 95: the Dragon's Breath (lane BREATH)
 TARGETING = ["nearest", "priority", "densest", "orbit", "random", "healthy", "forward", "ground"]
 TARGETING_MEANINGFUL = ["priority", "forward", "random", "healthy"]
 MUTATION_KINDS = ["element", "volume", "motion", "stance", "hero"]
@@ -323,12 +332,16 @@ PATH_KINDS = ["element", "volume", "motion"]
 ELEMENTS = ["", "fire", "poison"]
 WEAPON_TAGS = ["gun", "melody", "melee", "homing", "blade", "explosive", "thrown", "magic"]
 WEAPON_DEFAULTS = {"behavior": "ProjectileEmitter", "targeting": "nearest", "max_level": 5, "rarity": "common", "weight": 10.0}
-PASSIVE_DEFAULTS = {"line": False, "repeat_last_level": True, "max_level": 5, "rarity": "common", "weight": 10.0}
+# pass 95 (lane PASSIVES): a new passive item is common, so its ladder has 6 levels (PASSIVE_LADDER; the game derives it)
+PASSIVE_DEFAULTS = {"line": False, "repeat_last_level": True, "max_level": 6, "rarity": "common", "weight": 10.0}
+# the passive items' rarity ladder (PassiveDef.ladder_levels): the rungs from the rarity to legendary + Evolved + level 1
+PASSIVE_LADDER = {"common": 6, "uncommon": 5, "rare": 4, "epic": 3, "legendary": 2}
 MUTATION_DEFAULTS = {"kind": "motion", "rarity": "rare", "weight": 8}
 # the top-level `params` keys each behaviour reads (header docs and greps of the .gd files; ProjectileEmitter's list
 # includes what ProjectileManager reads off a projectile's params). Checked against the sources by key name.
 PARAMS_KEYS = {
-    "*": ["familiar", "glow", "final"],
+    # pass 95 (lane ITEMS): `fire_forward` marks a weapon the "Fire forward" debug switch covers (core/systems/FireForward.gd)
+    "*": ["familiar", "glow", "final", "fire_forward"],
     "ProjectileEmitter": ["aura", "burst", "burst_gap", "scatter_deg", "sweep_deg", "double_every", "double_gap", "double_tap",
                           "drum_axis", "drum_step", "drum_scale", "fan_step_deg", "fire_blind", "hip_shot", "momentum_rounds",
                           "no_shells", "radius", "radius_mult", "speed_mult", "silver", "shockwave", "tint", "look", "blast",
@@ -364,6 +377,9 @@ PARAMS_KEYS = {
     "SaltShaker": ["salt", "shaker"],
     "Frisbee": ["bend_deg", "bend_per_extra", "fan_deg", "falloff", "hit_radius", "height", "glide_seconds", "disc", "carry",
                 "proc_mult", "stun", "loop"],
+    # pass 95 (lane BREATH): the Dragon's Breath's cone, tick, seconds per amount, the wait, Backdraft's knock, Held
+    # Breath's still block and the look, all under one `breath` key
+    "FireBreath": ["breath", "fire_blue"],
 }
 
 # ---------------------------------------------------------------- perk specials (pass 69: Run.perk_param, Decoy.param)
@@ -414,7 +430,8 @@ PERK_SPECIALS = {
 }
 # where a params key may be read besides its behaviour's file (ProjectileManager reads a projectile's params, ...)
 _PARAMS_SHARED = ["core/systems/ProjectileManager.gd", "core/systems/WeaponInstance.gd", "game/Game.gd", "core/systems/Mine.gd",
-                  "core/systems/EnergyTraces.gd", "core/behaviors/WeaponBehavior.gd", "core/behaviors/Turret.gd"]
+                  "core/systems/EnergyTraces.gd", "core/behaviors/WeaponBehavior.gd", "core/behaviors/Turret.gd",
+                  "core/systems/FireForward.gd"]
 
 # ---------------------------------------------------------------- quests (QuestTracker._satisfied)
 
@@ -482,7 +499,7 @@ def table(content_dir, game_dir=None, combos_seen=()):
         "rarities": RARITIES, "rarity_plate": RARITY_PLATE, "rarity_unused": RARITY_UNUSED, "behaviours": BEHAVIOURS,
         "targeting": TARGETING, "targeting_meaningful": TARGETING_MEANINGFUL, "mutation_kinds": MUTATION_KINDS,
         "path_kinds": PATH_KINDS, "elements": ELEMENTS, "weapon_tags": WEAPON_TAGS, "weapon_defaults": WEAPON_DEFAULTS,
-        "passive_defaults": PASSIVE_DEFAULTS, "mutation_defaults": MUTATION_DEFAULTS, "params_keys": PARAMS_KEYS,
+        "passive_defaults": PASSIVE_DEFAULTS, "passive_ladder": PASSIVE_LADDER, "mutation_defaults": MUTATION_DEFAULTS, "params_keys": PARAMS_KEYS,
         "quest_types": QUEST_TYPES, "unlock_types": UNLOCK_TYPES, "quest_template_condition": QUEST_TEMPLATE_CONDITION,
         "placeholder_shapes": PLACEHOLDER_SHAPES, "placeholder_ears": PLACEHOLDER_EARS, "placeholder_glyphs": PLACEHOLDER_GLYPHS,
         "sounds": sound_ids(content_dir), "elites": folder_ids(content_dir, "elites"), "pickups": folder_ids(content_dir, "pickups"),

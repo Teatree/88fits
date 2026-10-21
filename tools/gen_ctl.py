@@ -46,6 +46,7 @@ import gen_art as g  # noqa: E402
 import animate  # noqa: E402
 import cand_seeds  # noqa: E402
 import artkit  # noqa: E402
+import frames_store  # noqa: E402  (pass 95, lane VACE: the frames store told after strip.save)
 import comfy  # noqa: E402
 import numpy as np  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
@@ -180,6 +181,157 @@ def no_green(img, mode=True):
     return Image.fromarray(a, "RGBA")
 
 
+def repaint_mode(recipe):
+    """pass 94 (lane REAL): recipe "paint_mode": "repaint": every view is the model's own clay repainted (the clay the
+    first and main reference, no style anchor, "keep the model's silhouette, pose and camera exactly"), for a look as
+    close to the 3D model as it can get; the other views take the side painting as their second reference (colours and
+    finish). Default "redraw": the pass 46 wording (style anchor, the clay for anatomy and pose only)."""
+    return str(recipe.get("paint_mode", "redraw")) == "repaint"
+
+
+def clay_for(recipe, drv, view, size=1024):
+    """The clay a view is painted from (pass 94): clay.png, or look.png with "clay_src": "look" (the model in its own
+    colours: grey for an untextured model, no brown to leak into a light look); with "clay_fill" f (0..1) cropped square
+    round the figure so it fills f of the frame, and scaled to `size`, so the painter sees the model bigger. Returns
+    (RGB, box in the 640 driver frame or None)."""
+    d = os.path.join(drv, view)
+    src = os.path.join(d, "look.png") if recipe.get("clay_src") == "look" and os.path.exists(os.path.join(d, "look.png")) else os.path.join(d, "clay.png")
+    im = Image.open(src).convert("RGB")
+    fill = float(recipe.get("clay_fill") or 0)
+    if fill <= 0 or fill > 1:
+        return im, None
+    a = np.asarray(artkit.key_background(im))[..., 3] > 127
+    ys, xs = np.nonzero(a)
+    if len(xs) < 50:
+        return im, None
+    side = max(xs.max() + 1 - xs.min(), ys.max() + 1 - ys.min()) / fill
+    cx, cy = (xs.min() + xs.max() + 1) / 2.0, (ys.min() + ys.max() + 1) / 2.0
+    box = (int(round(cx - side / 2)), int(round(cy - side / 2)), int(round(cx + side / 2)), int(round(cy + side / 2)))
+    corner = tuple(int(c) for c in np.asarray(im)[:8, :8].reshape(-1, 3).mean(axis=0))
+    pad = Image.new("RGB", (box[2] - box[0], box[3] - box[1]), corner)
+    pad.paste(im, (-box[0], -box[1]))
+    return pad.resize((size, size), Image.LANCZOS), box
+
+
+def uncrop(painting, box, size=640):
+    """A painting of a clay_fill crop put back where the crop came from in the driver's frame (the inverse of clay_for),
+    on the painting's own screen colour, so Wan walks it where the depth video's figure is."""
+    if not box:
+        return painting
+    rgb = painting.convert("RGB")
+    corner = tuple(int(c) for c in np.asarray(rgb)[:8, :8].reshape(-1, 3).mean(axis=0))
+    out = Image.new("RGB", (size, size), corner)
+    out.paste(rgb.resize((box[2] - box[0], box[3] - box[1]), Image.LANCZOS), (box[0], box[1]))
+    return out
+
+
+def tinted_clay(clay, recipe, bg, side=None):
+    """pass 94: the start picture of an img2img paint (recipe "init": {"denoise": 0.8, "tint": "#C4A8E2" | "auto"}): the
+    clay keyed, its shading coloured like the look ("auto": the side painting's median figure colour) on the pure screen."""
+    ini = recipe.get("init") if isinstance(recipe.get("init"), dict) else {}
+    t = str(ini.get("tint", "#C4A8E2"))
+    if t == "auto" and side is not None:
+        a = np.asarray(artkit.key_background(side.convert("RGB")))
+        m = a[..., 3] > 200
+        rgb = np.median(a[..., :3][m], axis=0) if m.any() else np.array([196, 168, 226])
+    else:
+        t = t.lstrip("#") if t != "auto" else "C4A8E2"
+        rgb = np.array([int(t[0:2], 16), int(t[2:4], 16), int(t[4:6], 16)], np.float32)
+    k = artkit.key_background(clay.convert("RGB"))
+    a = np.asarray(k).astype(np.float32)
+    lum = (0.299 * a[..., 0] + 0.587 * a[..., 1] + 0.114 * a[..., 2]) / 255.0
+    # "shade_blur" px: only the shading inside the figure blurred (the clay's facets gone), its outline kept sharp: Flux.2
+    # dev lets go of a blurred start picture altogether, and holds on to a sharp outline
+    sb = float(ini.get("shade_blur", 0) or 0)
+    if sb > 0:
+        from scipy import ndimage
+        w = a[..., 3] / 255.0
+        lum = ndimage.gaussian_filter(lum * w, sb) / np.maximum(ndimage.gaussian_filter(w, sb), 1e-3)
+    # "posterize" n: the shading in n flat bands, like cel shading (clean shapes with edges a painter can hold on to)
+    pz = int(ini.get("posterize", 0) or 0)
+    if pz > 1:
+        lo, hi = float(np.percentile(lum[a[..., 3] > 127], 5)) if (a[..., 3] > 127).any() else 0.0, float(lum.max())
+        q = np.clip((lum - lo) / max(hi - lo, 1e-3), 0, 0.999)
+        lum = lo + (np.floor(q * pz) + 0.5) / pz * (hi - lo)
+    col = np.clip(lum[..., None] * float(ini.get("gain", 1.25)) * np.asarray(rgb, np.float32)[None, None, :], 0, 255)
+    al = a[..., 3:4] / 255.0
+    scr = np.array((0, 0, 255) if bg == g.BG_BLUE else (0, 255, 0), np.float32)
+    out = Image.fromarray((col * al + scr[None, None, :] * (1 - al)).astype(np.uint8), "RGB")
+    # "blur" px: the clay's flat polygons and fins softened, so the painter keeps the shapes but not the facets
+    if float(ini.get("blur", 0) or 0) > 0:
+        from PIL import ImageFilter
+        out = out.filter(ImageFilter.GaussianBlur(float(ini["blur"])))
+    return out
+
+
+def init_denoise(recipe):
+    ini = recipe.get("init")
+    return float(ini.get("denoise", 0.8)) if isinstance(ini, dict) else 1.0
+
+
+def repaint_anchor(recipe):
+    """pass 94: a repaint look keeps the house style when its recipe says "anchor": true (Garry: "the realistic version that
+    is still in our style"): the style anchor goes in as the last reference, style only."""
+    return bool(recipe.get("anchor"))
+
+
+def repaint_prompt(recipe, view, bg, with_side):
+    """The repaint wording (pass 94): the clay first, its shapes kept exactly, the look's words, the recipe's own style
+    ("style") or the house style line; with "anchor" the style anchor is the last reference (repaint_anchor)."""
+    noun = recipe.get("noun", "a creature")
+    words = dict(recipe.get("words", {}))
+    vw = words.get(view) or ("in side profile facing right" if view == "side" else "seen from another angle")
+    detail = recipe.get("detail", "")
+    anatomy = recipe.get("anatomy", "exactly one body, exactly one tail")
+    style = recipe.get("style") or g.STYLE
+    second = (" The second reference image is the finished painting of the same creature seen from the side: copy its colours, "
+              "markings, hair and finish exactly, but not its pose or camera angle.") if with_side else ""
+    anchor = repaint_anchor(recipe)
+    art = (" The " + ("third" if with_side else "second") + " reference image shows the art style only; do not copy its subjects.") if anchor else ""
+    what = ("Repaint this exact 3D model as a finished, detailed anime game creature illustration of " if anchor else "Repaint this exact model as ")
+    surface = ("It must not look like a plain 3D model. " if anchor else
+               "Only the surface changes: the flat polygons become the creature's real body. ")
+    return ("The first reference image is a rough 3D model of " + noun + " (" + recipe.get("blockout", "a plain clay 3D model") + "), "
+            + vw + "." + second + art + " " + what + recipe["prompt"] + (", with " + detail if detail else "") +
+            ". Keep the model's silhouette, its pose and the camera angle exactly: " + anatomy + "; every leg stays where it is, at "
+            "the same angle and length, bending at the same joints, the body and head the same size and in the same place; nothing "
+            "is added that the model does not have. " + surface + style + ". " + bg + ".")
+
+
+def refine(img, key, recipe, refs, seed, bg, prompt=""):
+    """pass 94: "refine" {"rounds": n, "denoise": 0.6, "steps": 28, "model": "klein" | "dev", "words": ...}: the painting
+    painted over again n times from itself (img2img at `denoise`) with the view's own prompt and references (the clay,
+    the side painting, the style anchor), so its shapes stay and the clay's facets and smears can go. Flux.2 dev (model
+    "dev") restarts the server before each round. Each round cached as RAW/<key>_r<k>.png."""
+    rf = recipe.get("refine")
+    if not isinstance(rf, dict) or int(rf.get("rounds", 0) or 0) <= 0:
+        return img
+    words = rf.get("words") or prompt or ("Clean up this painting of " + recipe.get("noun", "a creature") + ": keep exactly the same "
+                                          "creature, pose, colours and camera; sharpen the details, remove smears and any extra or broken "
+                                          "legs; " + recipe.get("anatomy", "") + ". " + (recipe.get("style") or g.STYLE) + ". " + bg + ".")
+    dev = str(rf.get("model", "klein")) == "dev"
+    for k in range(int(rf["rounds"])):
+        raw = os.path.join(g.RAW, "%s_r%d.png" % (key, k + 1))
+        if os.path.exists(raw):
+            img = Image.open(raw).convert("RGB")
+            continue
+        cur = comfy.upload_pil(img, "%s_r%d_in.png" % (key, k))
+        steps = int(rf.get("steps", 40 if dev else 28))
+        den = float(rf.get("denoise", 0.6))
+        if dev:
+            imgs, secs = comfy.run_dev(comfy.flux2_dev(words, seed + 101 * (k + 1), 1024, 1024, refs=list(refs), steps=steps, guidance=4.0,
+                                                       turbo=False, prefix="88fits/" + key + "_r%d" % (k + 1), init=cur, denoise=den))
+            log("  " + comfy.release_models())
+        else:
+            imgs, secs = comfy.run(comfy.klein(words, seed + 101 * (k + 1), 1024, 1024, refs=list(refs), steps=steps,
+                                               prefix="88fits/" + key + "_r%d" % (k + 1), init=cur, denoise=den))
+        import io
+        img = Image.open(io.BytesIO(imgs[0])).convert("RGB")
+        img.save(raw)
+        log("  refine %s round %d (%s, %d steps, denoise %.2f) %.0fs" % (key, k + 1, "dev" if dev else "klein", steps, den, secs))
+    return img
+
+
 def paint(cid, code, recipe, drv, seed, bg):
     """The five views; returns {view: RGB}, or None while the side view waits to be picked."""
     key = cid + "_" + code.lower().replace("-", "")
@@ -195,9 +347,13 @@ def paint(cid, code, recipe, drv, seed, bg):
     look = []
     if recipe.get("look_ref"):
         look = [comfy.upload_pil(Image.open(os.path.join(REPO, recipe["look_ref"])).convert("RGB"), key + "_look.png")]
+    rp = repaint_mode(recipe)
     if not os.path.exists(os.path.join(g.RAW, side_key + ".png")):
-        refs = g.ensure_anchor_uploaded()
-        clay = comfy.upload_pil(Image.open(os.path.join(drv, "side", "clay.png")).convert("RGB"), key + "_clay_side.png")
+        refs = [] if rp else g.ensure_anchor_uploaded()
+        tail = g.ensure_anchor_uploaded() if rp and repaint_anchor(recipe) else []
+        clay_img = clay_for(recipe, drv, "side")[0] if rp else Image.open(os.path.join(drv, "side", "clay.png")).convert("RGB")
+        clay = comfy.upload_pil(clay_img, key + "_clay_side.png")
+        init = comfy.upload_pil(tinted_clay(clay_img, recipe, bg), key + "_init_side.png") if rp and init_denoise(recipe) < 1 else None
         n = int(opt("seeds", str(recipe.get("side_seeds", 3))))
         # pass 70: the job's own seeds (a re-run's attempt and the job id move them); pass 72: from the job's First seed
         # (--first-seed, 0 = the look's own seed: cand_seeds.start)
@@ -212,14 +368,18 @@ def paint(cid, code, recipe, drv, seed, bg):
                  "and where every leg and every other part is." + looks + " Redraw it as a finished, detailed anime game creature "
                  "illustration of " + recipe["prompt"] + (", with " + detail if detail else "") + ", in side profile facing right, "
                  + anatomy + ". It must not look like a plain 3D model. " + g.STYLE + ". " + bg + ".")
+            if rp:
+                p = repaint_prompt(recipe, "side", bg, False)
             raw = os.path.join(g.RAW, ck + ".png")
             if not os.path.exists(raw):
                 s = side_seeds[k]
                 # the painter and its quality come from gen_art.MODEL (--dev, --model=, --steps=, or the editor's ART_* env)
-                imgs, secs = g.paint(p, s, 1024, 1024, list(refs) + [clay] + look, "88fits/" + ck, full=True)
+                imgs, secs = g.paint(p, s, 1024, 1024, list(refs) + [clay] + look + list(tail), "88fits/" + ck, full=True,
+                                     init=init, denoise=init_denoise(recipe) if init else 1.0)
                 import io
                 Image.open(io.BytesIO(imgs[0])).convert("RGB").save(raw)
-                json.dump({"seed": s, "prompt": p, "refs": list(refs) + [clay] + look, "qa": {"problems": []}, "attempt": 0},
+                json.dump({"seed": s, "prompt": p, "refs": list(refs) + [clay] + look + list(tail), "qa": {"problems": []}, "attempt": 0,
+                           "painter": g.painter_info(True), "init": init, "denoise": init_denoise(recipe) if init else 1.0},
                           open(raw[:-4] + ".json", "w", encoding="utf-8"), indent=1)
                 log("  side %s seed %d %.0fs" % (ck, s, secs))
             keys.append(ck)
@@ -227,6 +387,9 @@ def paint(cid, code, recipe, drv, seed, bg):
         log("  side candidates painted: look at %s, then rerun with --use-side=kN" % path)
         return None
     side = Image.open(os.path.join(g.RAW, side_key + ".png")).convert("RGB")
+    if rp:
+        side = refine(side, side_key, recipe, [comfy.upload_pil(clay_for(recipe, drv, "side")[0], key + "_clay_side.png")] +
+                      (list(g.ensure_anchor_uploaded()) if repaint_anchor(recipe) else []), seed + 7, bg, repaint_prompt(recipe, "side", bg, False))
     out = {"side": side}
     keep = (" It keeps " + recipe["keep"] + ", seen from this angle.") if recipe.get("keep") else ""
     words = recipe.get("words", {})
@@ -248,22 +411,30 @@ def paint(cid, code, recipe, drv, seed, bg):
                 os.replace(d0, d1)
                 log("  %s: the old walk set aside (%s_old)" % (view, sub))
     for k, view in enumerate(["front", "fd", "bd", "back"]):
-        clay = comfy.upload_pil(Image.open(os.path.join(drv, view, "clay.png")).convert("RGB"), "%s_clay_%s.png" % (key, view))
+        clay_img = clay_for(recipe, drv, view)[0] if rp else Image.open(os.path.join(drv, view, "clay.png")).convert("RGB")
+        clay = comfy.upload_pil(clay_img, "%s_clay_%s.png" % (key, view))
+        vinit = comfy.upload_pil(tinted_clay(clay_img, recipe, bg, side), "%s_init_%s.png" % (key, view)) if rp and init_denoise(recipe) < 1 else None
+        vden = init_denoise(recipe) if vinit else 1.0
         p = ("The first reference image is a finished painting of " + noun + " character in side view. The second reference image is a "
              "smooth plain 3D model of the same creature, " + words.get(view, "seen from another angle") + ". Redraw the 3D model as the "
              "same creature as the first image, the same colours, armour, markings and art style, in exactly the pose and camera angle "
              "of the 3D model, with " + anatomy + " and the same number of legs and claws as the 3D model." + keep +
              " It must not look like a plain 3D model. " + g.STYLE + ". " + bg + ".")
+        vrefs = [side_ref, clay]
+        if rp:
+            p = repaint_prompt(recipe, view, bg, True)
+            vrefs = [clay, side_ref] + (list(g.ensure_anchor_uploaded()) if repaint_anchor(recipe) else [])
         if view in cands:
             ks = ["%s_%s_c%d" % (key, view, c) for c in range(int(opt("seeds", "3")))]
             # pass 70: the job's own seeds, CAND_STEP past the plain view's own
             vseeds = cand_seeds.seeds(cand_seeds.start(seed, opt("first-seed", "0")) + 11 + k + cand_seeds.CAND_STEP + g.LOOK_SEED_STEP * (cand_seeds.job_attempt() - 1), len(ks), cand_seeds.job_tag())
             for c, ck in enumerate(ks):
-                g.render(ck, p, [side_ref, clay], {"subject": noun, "view": None, "subjects_max": 1}, vseeds[c], tries=1)
+                g.render(ck, p, vrefs, {"subject": noun, "view": None, "subjects_max": 1}, vseeds[c], tries=1, init=vinit, denoise=vden)
             log("  %s candidates: %s" % (view, sheet(ks, "%s_%s_cands.png" % (key, view))))
             continue
-        img, _ = g.render("%s_%s" % (key, view), p, [side_ref, clay], {"subject": noun, "view": None, "subjects_max": 1}, seed + 11 + k, tries=1)
-        out[view] = img
+        img, _ = g.render("%s_%s" % (key, view), p, vrefs, {"subject": noun, "view": None, "subjects_max": 1}, seed + 11 + k, tries=1,
+                          init=vinit, denoise=vden)
+        out[view] = refine(img, "%s_%s" % (key, view), recipe, vrefs, seed + 11 + k, bg, p) if rp else img
     if cands:
         log("  pick with --use-view=VIEW:cN[,VIEW:cN]")
         return None
@@ -290,6 +461,8 @@ def main():
     if not os.path.exists(os.path.join(drv, "back", "ctl_24.png")):
         raise SystemExit("gen_ctl: render the drivers first (%s)" % drv)
     bg = g.BG_BLUE if recipe.get("screen", d.get("screen", "green")) == "blue" else g.BG_GREEN
+    # pass 94: the look's recorded painter {model, steps, guidance, turbo} (gen_art.apply_painter; a job's own settings win)
+    g.apply_painter(recipe.get("painter"))
     seed = g.seed_for(cid + code)
     views = paint(cid, code, recipe, drv, seed, bg)
     if views is None or opt("stage") == "paint":
@@ -300,9 +473,14 @@ def main():
     CO = (int(oc[0:2], 16), int(oc[2:4], 16), int(oc[4:6], 16), 255)
     CF = float(recipe.get("outline_frac", d.get("outline_frac", 0.024)))
     anatomy_short = recipe.get("anatomy", "exactly one tail")
-    motion = ("A 2D anime game creature sprite, " + recipe["prompt"].split(",")[0] + ", " + recipe.get("motion", "walking in place") +
+    # pass 94: a repainted look without the style anchor (a realistic look) is not told "anime ... cel shading"
+    if repaint_mode(recipe) and not repaint_anchor(recipe):
+        kind_words, finish_words = "A realistic game creature, ", ", the same realistic detail, fine hairs and soft light as the reference"
+    else:
+        kind_words, finish_words = "A 2D anime game creature sprite, ", ", crisp clean line art, cel shading"
+    motion = (kind_words + recipe["prompt"].split(",")[0] + ", " + recipe.get("motion", "walking in place") +
               " exactly as the control video shows, the same creature, colours and markings as the reference in every frame, "
-              + anatomy_short + ", crisp clean line art, cel shading. The camera is completely locked off and static. The background stays a flat "
+              + anatomy_short + finish_words + ". The camera is completely locked off and static. The background stays a flat "
               "solid bright " + ("blue" if bg == g.BG_BLUE else "green") + " color with nothing in it, no ground, no shadow.")
     two = int(recipe.get("directions", 8)) == 2
     walks = {}
@@ -318,9 +496,11 @@ def main():
         fr = recipe.get("fit_ref")
         # (a number 0..1 fits that share of the way: fit_to_ctl's share)
         share = 1.0 if (fr is True or (isinstance(fr, list) and view in fr)) else (float(fr) if isinstance(fr, (int, float)) and not isinstance(fr, bool) else 0.0)
-        ref = fit_to_ctl(views[view], os.path.join(drv, view), share=share) if share > 0 else views[view]
+        # pass 94: a clay_fill painting goes back where its crop came from in the driver's frame first
+        src = uncrop(views[view], clay_for(recipe, drv, view)[1]) if repaint_mode(recipe) else views[view]
+        ref = fit_to_ctl(src, os.path.join(drv, view), share=share) if share > 0 else src
         frames, _ = animate.cycle_control(ref, key + "_ctl_" + view, cdir, wseed, prompt=motion,
-                                          negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))))
+                                          negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))), wan=recipe.get("wan"))
         k = model_scale(frames, os.path.join(drv, view))
         sizes[view] = k
         walks[view] = [drop_islands(f) for f in resized(frames, k)]
@@ -346,16 +526,17 @@ def main():
     ddir = os.path.join(REPO, "tools", "dl", "drivers", ddrv, "front") if ddrv else ""
     ddriven = bool(ddir and os.path.exists(os.path.join(ddir, "ctl_24.png")))
     if ddriven:
-        dmotion = ("A 2D anime game creature sprite, " + recipe["prompt"].split(",")[0] + ", dying exactly as the control video shows: "
+        dmotion = (kind_words + recipe["prompt"].split(",")[0] + ", dying exactly as the control video shows: "
                    + recipe.get("death_motion", "it rears up in a spasm, rolls over onto its back and lies dead with its legs curled up in the "
                                 "air, the pale underside of its body showing") + ". The same creature, colours and markings as the reference in "
-                   "every frame, " + anatomy_short + ", crisp clean line art, cel shading. The camera is completely locked off and static. The "
+                   "every frame, " + anatomy_short + finish_words + ". The camera is completely locked off and static. The "
                    "background stays a flat solid bright " + ("blue" if bg == g.BG_BLUE else "green") + " color with nothing in it, no ground, no shadow.")
         # "death_keep": which 8 of the clip's 25 frames to keep (Wan smears some of the roll; picked by eye from
         # tools/dl/ai_anim/<key>_death/full_NN.png and re-picked without a render)
         dkeep = tuple(int(v) for v in recipe.get("death_keep", (1, 4, 7, 10, 13, 16, 20, 24)))
-        dclip, _ = animate.oneshot_control(front, key + "_death", soft_dir(recipe, ddir, "front", "death_soft"), seed + 30, prompt=dmotion,
-                                           negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))), keep=dkeep)
+        dfront = uncrop(front, clay_for(recipe, drv, "front")[1]) if repaint_mode(recipe) else front
+        dclip, _ = animate.oneshot_control(dfront, key + "_death", soft_dir(recipe, ddir, "front", "death_soft"), seed + 30, prompt=dmotion,
+                                           negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))), keep=dkeep, wan=recipe.get("wan"))
         # the death starts from the front painting, so it takes the front walk's size correction
         frames["die"] = artkit.place_clip_frames([drop_islands(f) for f in resized(dclip, sizes.get("front", 1.0))], cell, scale, px, CO)
         fall = True
@@ -384,6 +565,7 @@ def main():
     letter = code.split("-")[-1].lower()
     fname = cid + "_sprite_" + letter + ".png"
     strip.save(os.path.join(folder, fname))
+    frames_store.hook_after_save(folder, cid, code, counts, cols, fname, log)   # pass 95: the frames store follows the strip (pinned slots warned)
     iname = cid + "_icon_" + letter + ".png"
     # pass 76: a pick has a file of its own since the Level Editor's icon guard (<id>_icon_<x>_<tag>_c<k>.png)
     if isinstance(entry, dict) and entry.get("icon_picked") and entry.get("icon") and os.path.isfile(os.path.join(folder, os.path.basename(str(entry["icon"])))):

@@ -3,15 +3,31 @@
   "name": "Heavyweight",
   "rarity": "rare",
   "weight": 7,
-  "max_level": 5,
+  "max_level": 4,
   "flavour": "The bigger they are, the harder they hit.",
-  "text": "+1% attack damage for every 10 max HP you have (+0.25% a level).",
+  "text": "+1.2% attack damage for every 10 max HP you have (+0.15% a rung, Evolved +0.25%).",
   "levels": [
     [
       {
         "stat": "heavyweight",
         "op": "add",
-        "value": 0.01,
+        "value": 0.012,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heavyweight",
+        "op": "add",
+        "value": 0.0015,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heavyweight",
+        "op": "add",
+        "value": 0.0015,
         "target": "player"
       }
     ],

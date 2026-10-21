@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/backdraft/backdraft_icon.png" id="1_kh7bb"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_uk13y"]
+
+[resource]
+script = ExtResource("2_uk13y")
+weapon = "dragons_breath"
+text = "Every second in the fire shoves them away from you. The breath roars bigger."
+vfx = "a bigger, brighter jet of flame; whatever stands in it staggers back every second"
+params = {
+"breath": {
+"knock": 5.0,
+"look": {
+"intensity": 1.5
+}
+}
+}
+id = "backdraft"
+display_name = "Backdraft"
+flavour = "Breathe in. Breathe out. Stand well back."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_kh7bb")
+icon_file = "backdraft_icon.png"
+placeholder = {
+"color": "#FF5A1E",
+"glyph": "star"
+}

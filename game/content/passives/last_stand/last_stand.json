@@ -5,13 +5,13 @@
   "weight": 5,
   "max_level": 3,
   "flavour": "Not today.",
-  "text": "When a hit leaves you under 30% health, time slows for 2 s and you deal double damage.",
+  "text": "When a hit leaves you under 30% health, time slows for 2 s and you deal 2.3 times the damage (more each rung).",
   "levels": [
     [
       {
         "stat": "last_stand",
         "op": "add",
-        "value": 1.0,
+        "value": 1.3,
         "target": "player"
       }
     ],
@@ -19,7 +19,7 @@
       {
         "stat": "last_stand",
         "op": "add",
-        "value": 0.5,
+        "value": 0.3,
         "target": "player"
       }
     ],

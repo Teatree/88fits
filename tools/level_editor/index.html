@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="xp.css">
 <link rel="stylesheet" href="sim.css">
 <link rel="stylesheet" href="drivers.css">
+<link rel="stylesheet" href="frames.css">
 </head>
 <body>
 <!-- the glyphs every lane and chip uses: <use href="#g-name"> (pass 53); they take their fill from the <use> -->
@@ -125,6 +126,10 @@
      selftest_PREVIEW93.py); assets.js and jobs.js call Drivers only when it is there -->
 <script src="drivers_model.js"></script>
 <script src="drivers.js"></script>
+<!-- pass 95 (lane VACE): the Frames view (frames_model.js: page-free maths, also run under Node by selftest_VACE95.py);
+     looks.js and jobs.js call Frames only when it is there -->
+<script src="frames_model.js"></script>
+<script src="frames.js"></script>
 <!-- pass 72 (lane BOSS): the boss HP scaling card (Settings) and the Boss attacks tab, on their page-free maths -->
 <script src="boss_model.js"></script>
 <script src="boss_scaling.js"></script>

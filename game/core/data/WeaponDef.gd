@@ -103,3 +103,14 @@ func effects_at_level(level: int) -> Array:
 		return []
 	var lv = levels[level - 1]
 	return lv if lv is Array else []
+
+
+## Pass 95 (lane BREATH): the level effects up to `level` aimed at the hero (`target: "player"`, as a mutation's
+## player_effects): Run puts them on his sheet while the weapon is held (the Fire Eater's thorns +8). The weapon's own
+## sheet carries them too, where no behaviour reads them.
+func player_effects(level: int) -> Array:
+	var out: Array = []
+	for e in effects_for_level(level):
+		if e is Effect and (e as Effect).target == "player":
+			out.append(e)
+	return out

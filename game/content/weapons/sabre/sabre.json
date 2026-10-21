@@ -67,6 +67,7 @@
   "evolves_with": "",
   "evolves_into": "whirlwind",
   "params": {
+    "fire_forward": true,
     "thrust": {
       "out": 0.06,
       "slice": 0.16,

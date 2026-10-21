@@ -129,7 +129,9 @@ func test_kinds_and_their_words() -> void:
 	assert_str(WItem.tag({"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true})).is_equal("EVOLUTION")
 	assert_str(WItem.word({"def": magnet, "level_from": 0, "level_to": 1})).is_equal("PASSIVE")
 	assert_str(WItem.tag({"def": magnet, "level_from": 0, "level_to": 1})).is_equal("NEW")
-	assert_str(WItem.word({"def": magnet, "level_from": 1, "level_to": 2})).is_equal("PASSIVE")
+	# pass 95 (lane PASSIVES): an upgrade of a passive item names the rung it lands on (the epic Magnet's second level
+	# is legendary)
+	assert_str(WItem.word({"def": magnet, "level_from": 1, "level_to": 2})).is_equal("PASSIVE · LEGENDARY")
 	assert_str(WItem.tag({"def": magnet, "level_from": 1, "level_to": 2})).is_equal("UPGRADE")
 	assert_str(WItem.word({"def": Registry.weapon("boomstick"), "level_from": 0, "level_to": 1})).is_equal("WEAPON")
 	assert_str(WItem.tag({"def": Registry.weapon("boomstick"), "level_from": 0, "level_to": 1})).is_equal("NEW")

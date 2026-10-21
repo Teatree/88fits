@@ -376,6 +376,8 @@ const LookGrid = (() => {
     if (current && current.doc && typeof Assets !== 'undefined' && typeof Assets.recipeEditor === 'function') b('Recipe (typed)…', 'select it and go to its recipe as typed fields per method (under the grid): Save asset keeps the changes', () => showRecipe(look.code, look));
     if (!stub) b('Re-roll…', 'queue the look again: the job form opens with its recipe and painter; choose what to throw away (new seeds, redo the clips, repaint the stills; one view for gen_ctl)', () => openForm(kind, id, { mode: 'look', code: look.code, method: methodOf(look) || undefined, recipe: look.recipe || null, painter: (look.recipe && look.recipe.painter) || null, reroll: true }));
     b('Duplicate…', 'a draft copy of this look under the next free code: its recipe, words and painter copied; nothing is painted until you press Generate… on the draft (change its recipe first if you like)', () => duplicateDraft(kind, id, record, s, look));
+    // pass 95 (lane VACE): every frame of every animation, its versions, repairs with VACE, frames from other looks, one export
+    if (!stub && typeof Frames !== 'undefined') b('Frames…', 'every frame of every animation of this look: play and scrub them, choose frames to paint anew with VACE (the rest kept), pick any earlier version or a frame of another look, stage several changes, then one Export', () => Frames.open(kind === 'boss' ? 'boss' : kind, id, look.code));
     if (!draft) {
       // a look's own icon (pass 68, D8): a hero's icon is the round badge, so a hero look offers badge and title cut-out
       // candidates; the base look's go to the hero's (or the creature's) own files

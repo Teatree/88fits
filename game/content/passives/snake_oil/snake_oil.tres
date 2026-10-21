@@ -1,22 +1,23 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon_evolved.png" id="1_b230n"]
 [ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon.png" id="1_yl05g"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_b230n"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_lwsnv"]
 
-[sub_resource type="Resource" id="Resource_yl05g"]
-script = ExtResource("2_b230n")
-stat = "overheal"
-value = 0.2
-target = "player"
-
 [sub_resource type="Resource" id="Resource_b230n"]
 script = ExtResource("2_b230n")
 stat = "overheal"
-value = 0.1
+value = 0.25
 target = "player"
 
 [sub_resource type="Resource" id="Resource_lwsnv"]
+script = ExtResource("2_b230n")
+stat = "overheal"
+value = 0.06
+target = "player"
+
+[sub_resource type="Resource" id="Resource_akrha"]
 script = ExtResource("2_b230n")
 stat = "overheal"
 value = 0.1
@@ -24,10 +25,11 @@ target = "player"
 
 [resource]
 script = ExtResource("3_lwsnv")
-levels = [[SubResource("Resource_yl05g")], [SubResource("Resource_b230n")], [SubResource("Resource_lwsnv")]]
+levels = [[SubResource("Resource_b230n")], [SubResource("Resource_lwsnv")], [SubResource("Resource_akrha")]]
 repeat_last_level = false
 max_level = 3
-text = "Heals can fill your health past full, up to 20% of max HP more, shown pink on your health bar. Regen stops at full."
+text = "Heals can fill your health past full, up to 25% of max HP more, shown pink on your health bar. Regen stops at full."
+evolved_icon = ExtResource("1_b230n")
 id = "snake_oil"
 display_name = "Snake Oil"
 flavour = "Cures what ails you. And then some."

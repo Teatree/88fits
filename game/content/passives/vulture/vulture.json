@@ -5,13 +5,45 @@
   "weight": 8,
   "max_level": 5,
   "flavour": "Feeds on a good shot.",
-  "text": "A critical hit may heal you for 2% of your max health. 4% of crits at level 1, 20% at level 5.",
+  "text": "A critical hit may heal you for 2% of your max health. 6% of crits at level 1, 20% once Evolved.",
   "levels": [
     [
       {
         "stat": "crit_heal_chance",
         "op": "add",
-        "value": 0.04,
+        "value": 0.06,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "crit_heal_chance",
+        "op": "add",
+        "value": 0.03,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "crit_heal_chance",
+        "op": "add",
+        "value": 0.03,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "crit_heal_chance",
+        "op": "add",
+        "value": 0.03,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "crit_heal_chance",
+        "op": "add",
+        "value": 0.05,
         "target": "player"
       }
     ]

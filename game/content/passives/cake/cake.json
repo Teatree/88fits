@@ -4,13 +4,53 @@
   "flavour": "Carried across the desert in a hatbox. Still good.",
   "rarity": "common",
   "weight": 9,
-  "max_level": 5,
+  "max_level": 6,
   "levels": [
     [
       {
         "stat": "heal_drop",
         "op": "add",
-        "value": 0.003,
+        "value": 0.004,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heal_drop",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heal_drop",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heal_drop",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heal_drop",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heal_drop",
+        "op": "add",
+        "value": 0.0035,
         "target": "player"
       }
     ]

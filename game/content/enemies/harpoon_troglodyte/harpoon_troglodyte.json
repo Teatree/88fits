@@ -4,7 +4,7 @@
   "flavour": "It cannot see you. It does not need to.",
   "archetype": "brute",
   "brain": "kite",
-  "hp": 50,
+  "hp": 150,
   "speed": 2.4,
   "damage": 10,
   "knockback": 5.38,

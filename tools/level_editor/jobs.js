@@ -823,6 +823,8 @@ const Jobs = (() => {
       j.target && j.target.id ? el('button', { type: 'button', class: 'btn small primary', text: j.kind === 'sim' ? 'Open in Sim' : j.target.code ? 'Open look' : 'Open asset', onclick: () => openAsset(j.target) }) : null,
       el('button', { type: 'button', class: 'btn small', text: 'Re-queue', title: 'the same spec again (attempt + 1); the tools reuse what is cached unless you re-roll', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
       j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
+      // pass 95 (lane VACE): a landed look's (or a repair's, an export's) frames, versions and repairs
+      (['look', 'frames_repair', 'frames_export'].includes(j.kind) && j.target && j.target.code && typeof Frames !== 'undefined') ? el('button', { type: 'button', class: 'btn small', text: 'Frames…', title: 'every frame of this look\'s animations: look at them one by one, choose frames to paint anew with VACE, pick versions, export once', onclick: () => Frames.open(j.target.kind || 'enemy', j.target.id, j.target.code, j.kind === 'frames_repair' && j.spec ? { base: j.spec.anim, view: j.spec.view, slot: Array.isArray(j.spec.slots) ? j.spec.slots[0] : null } : {}) }) : null,
       el('button', { type: 'button', class: 'btn small ghost', text: 'Hide', title: 'hide this card until the page reloads', onclick: () => { S.hidden.add(j.id); draw(); } }),
       el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
       el('span', { class: 'spacer' }),

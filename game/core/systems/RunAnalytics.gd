@@ -306,6 +306,15 @@ func spawned(def: EnemyDef) -> void:
 		event("elite", def.id)
 
 
+## EnemyManager.despawn (pass 95, lane WORLD): a regular creature far from the hero and off the screen went, leaving
+## nothing: the second's count by creature (the row's `despawned`) and the run's (the header's crowd block).
+var _despawns: Dictionary = {}
+var despawned_by: Dictionary = {}
+func despawned(def: EnemyDef) -> void:
+	_despawns[def.id] = int(_despawns.get(def.id, 0)) + 1
+	despawned_by[def.id] = int(despawned_by.get(def.id, 0)) + 1
+
+
 ## Player.heal: the health actually restored, and what restored it (pass 74: Player.heal's `source`, the pickup's or the
 ## structure's name; an unnamed heal is "other" until the signal that caused it names it: lifesteal, level_up).
 func healed(n: float, source: String = "") -> void:
@@ -729,6 +738,8 @@ func _sample() -> void:
 	_put_map(row, "killed", _kills, false)
 	_put(row, "elite_kills", _elite_kills)
 	_put_map(row, "spawned", _spawns, false)
+	# pass 95 (lane WORLD): the ones that went far from the hero, out of view (never a kill)
+	_put_map(row, "despawned", _despawns, false)
 	# the crowd: count against the cap, and its pressure (Σ max_hp × damage of every creature up)
 	if em != null:
 		_put(row, "alive", int(em.alive_count()))
@@ -821,6 +832,8 @@ func _sample() -> void:
 		_kills[k] = 0
 	for k in _spawns:
 		_spawns[k] = 0
+	for k in _despawns:
+		_despawns[k] = 0
 	for k in _gold_in:
 		_gold_in[k] = 0
 	for k in _gold_out:
@@ -1419,10 +1432,13 @@ func _crowd() -> Dictionary:
 	var out := {}
 	if em == null:
 		return out
-	for k in ["special_chests", "hot_chests", "sniper_aims", "sniper_shots", "sniper_hero_hits", "sniper_cancels"]:
+	for k in ["special_chests", "hot_chests", "sniper_aims", "sniper_shots", "sniper_hero_hits", "sniper_cancels", "despawned"]:
 		var v = em.get(k)
 		if v != null and int(v) != 0:
 			out[k] = int(v)
+	# pass 95 (lane WORLD): the despawned by creature, when any went
+	if not despawned_by.is_empty():
+		out["despawned_by"] = despawned_by.duplicate()
 	return out
 
 
@@ -1463,7 +1479,7 @@ static func stat_names() -> Dictionary:
 ## The switches the run played with: pierce drop-off (Settings.pierce_falloff), the player's debug mode, and whether
 ## the run counts as Garry's own (Analytics.is_dev: the editor binary, a debug build or debug mode).
 func _settings() -> Dictionary:
-	return {"pierce_falloff": bool(Settings.pierce_falloff), "hero_knockback": bool(Settings.hero_knockback), "debug_mode": bool(Settings.debug_mode), "dev": Analytics.is_dev()}
+	return {"pierce_falloff": bool(Settings.pierce_falloff), "hero_knockback": bool(Settings.hero_knockback), "fire_forward": bool(Settings.get("fire_forward")), "debug_mode": bool(Settings.debug_mode), "dev": Analytics.is_dev()}
 
 
 ## The map's numbers the run played, each block with the game's own defaults where the map leaves a key out (an empty

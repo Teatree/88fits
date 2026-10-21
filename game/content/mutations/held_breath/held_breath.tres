@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/held_breath/held_breath_icon.png" id="1_oq815"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_agswl"]
+
+[resource]
+script = ExtResource("2_agswl")
+weapon = "dragons_breath"
+mutation_kind = "volume"
+text = "Stand still 2 s before a breath: it lasts twice as long, hits ×1.5 and comes from all sides. A hit breaks the stillness."
+vfx = "a full ring of fire round the hero's head when he has stood still, twice as long"
+params = {
+"breath": {
+"still": {
+"damage_mult": 1.5,
+"duration_mult": 2.0,
+"ring": true,
+"seconds": 2.0
+}
+}
+}
+id = "held_breath"
+display_name = "Held Breath"
+flavour = "Plant your feet. Fill your lungs. Let them come."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_oq815")
+icon_file = "held_breath_icon.png"
+placeholder = {
+"color": "#FFB030",
+"glyph": "ring"
+}

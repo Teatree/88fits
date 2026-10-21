@@ -47,6 +47,7 @@ params = {
 "energy": 0.8
 }
 },
+"fire_forward": true,
 "radius": 0.9,
 "return": true,
 "roll_radius": 0.75

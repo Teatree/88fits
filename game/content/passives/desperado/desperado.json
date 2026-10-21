@@ -2,16 +2,40 @@
   "id": "desperado",
   "name": "Desperado",
   "flavour": "Nothing to lose. Everything to hit.",
-  "text": "The more you are hurt, the harder you hit: +1.2% attack damage for every 10% of health you are missing at level 1 (+12% near death), up to +60% at level 5.",
+  "text": "The more you are hurt, the harder you hit: +1.6% attack damage for every 10% of health you are missing at level 1 (+16% near death), up to +51% once Evolved.",
   "rarity": "rare",
   "weight": 6,
-  "max_level": 5,
+  "max_level": 4,
   "levels": [
     [
       {
         "stat": "desperado",
         "op": "add",
-        "value": 0.12,
+        "value": 0.16,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "desperado",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "desperado",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "desperado",
+        "op": "add",
+        "value": 0.15,
         "target": "player"
       }
     ]

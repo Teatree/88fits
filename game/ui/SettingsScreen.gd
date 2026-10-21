@@ -230,6 +230,16 @@ func _debug_panel() -> PanelContainer:
 		sw3.toggled.connect(func(on: bool): Settings.set_value("hero_knockback", on))
 		r3.add_child(sw3)
 		col.add_child(r3)
+	# "Fire forward" (pass 95, lane ITEMS; Garry: "add this as a togglable option in the debug version of settings, by
+	# default it's off"): on, the Sabre, Spear, Hammer, Frisbee, Tumbleweed and Basketball fire along the hero's facing
+	# while no creature stands within 75% of their range (core/systems/FireForward.gd)
+	if "fire_forward" in Settings:
+		var r4 := _row("Fire forward")
+		var sw4 := WSwitch.make(bool(Settings.get("fire_forward")))
+		sw4.name = "FireForward"
+		sw4.toggled.connect(func(on: bool): Settings.set_value("fire_forward", on))
+		r4.add_child(sw4)
+		col.add_child(r4)
 	return p
 
 

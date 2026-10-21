@@ -33,6 +33,11 @@
 ## own line to the target between shots, so a shot no longer jerks it off the hero's line. `spin {chance, seconds, turns,
 ## gap, hop, axis}`: after the last round of a pull, now and then (never twice within `gap` seconds, only when the twirl
 ## ends before the next pull), it twirls about its trigger guard with a little hop. Guns without them are as before.
+## Pass 95 (lane ITEMS; Garry: "Shot should happen from the shotgun 3d object"): a held gun (the forward guns) fires
+## from its muzzle as drawn this frame (shot_origin: the far end of its barrels carried by the gun's transform, the hip's
+## bob, the recoil squish and the turn in it); and "Fire forward" (FireForward.dir, Settings.fire_forward): a weapon with
+## `params.fire_forward` (the Tumbleweed, the Basketball) fires along the hero's facing while no creature stands within
+## 75% of its range, the ball then dropping to the sand when it finds nobody to bounce off (extra "drop_alone").
 class_name ProjectileEmitter
 extends WeaponBehavior
 
@@ -58,6 +63,8 @@ var _drum: Node3D          # a drum magazine on the companion gun turns a notch 
 var _recoil := 0.0
 var _aim_yaw := 0.0
 var _aim_dir := Vector3.ZERO
+## Pass 95 (lane ITEMS): the facing this pull fires along under "Fire forward" (FireForward.dir), ZERO when it aims as usual.
+var _forward_dir := Vector3.ZERO
 var _orbit := 0.0
 var _flap := 0.0
 # params.burst: the shots of one trigger pull leave one after another (a submachine gun) instead of all at once
@@ -461,7 +468,7 @@ func _fire_burst_shot() -> void:
 	# Sweep Fire: the rounds walk across a fan instead of scattering
 	var d: Vector3 = dir.rotated(Vector3.UP, float(b["angle"])) if b.has("angle") else dir.rotated(Vector3.UP, randf_range(-float(b["spread"]), float(b["spread"])))
 	var punchy := _familiar != null and not _fam_dict("kick").is_empty()
-	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else player.aim_origin(dir)
+	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else shot_origin(dir)
 	game.projectiles.fire(_kind(), from, d * float(b["speed"]), float(b["damage"]), int(b["pierce"]), float(b["prad"]), float(b["life"]), inst, float(b["knock"]))
 	if _familiar:
 		if punchy:
@@ -579,6 +586,92 @@ func _tick(_delta: float) -> void:
 			_familiar.scale = _familiar.scale.lerp(Vector3.ONE, _delta * 10.0)
 
 
+# ---------------------------------------------------------------- pass 95 (lane ITEMS): the shot leaves the held gun's muzzle
+## Pass 95 (Garry: "Shot should happen from the shotgun 3d object"): where a round leaves. A gun that is held (the forward
+## guns: the Boomstick, the Blunderbuss, the Doomstick, with every mutation) fires from its muzzle as drawn this frame:
+## the gun is posed first (at the hip, turned to the shot's line: _pose_held), and the muzzle is the far end of its
+## barrels in the gun's own space (held_tip) carried by the gun's transform, so the hip's bob, the recoil squish (the
+## tip comes back with it) and the turn are in it. A companion fires from its own mouth (the callers), and a weapon
+## with neither from the hero's chest (Player.aim_origin). Only where the round starts moves: its line, the hit test and
+## the lead are what they were.
+func shot_origin(dir: Vector3) -> Vector3:
+	if _held != null and _held.visible and player != null:
+		_pose_held()
+		var tip := held_tip()
+		if tip != Vector3.INF:
+			return _held.global_transform * tip
+	return player.aim_origin(dir)
+
+
+## The held gun where the tick draws it: at the hero's hip, turned to the aim (a shot sets the aim to its own line first,
+## so the gun snaps to the line its rounds fly; the tick's tracking carries on from there).
+func _pose_held() -> void:
+	var hip = player.get("hip")
+	if hip is Node3D and is_instance_valid(hip):
+		_held.global_position = (hip as Node3D).global_position
+	_held.rotation.y = _aim_yaw
+
+
+## The vertices of the barrels' far end count as the muzzle when they lie within this of the furthest one (metres).
+const TIP_BAND := 0.03
+var _tip_cache := Vector3.INF
+var _tip_key := "?"
+
+
+## The muzzle in the held gun's own space: the middle of the far end of its barrels, the vertices of its visible meshes
+## furthest down the gun's -Z (within TIP_BAND of the furthest: twin barrels and a bell mouth average to the middle of
+## the bore). Worked out once per look (a look may show or hide a barrel: Both Barrels) and kept. Vector3.INF with no
+## mesh under the gun.
+func held_tip() -> Vector3:
+	if _held == null:
+		return Vector3.INF
+	if _tip_key != _look_key:
+		_tip_key = _look_key
+		_tip_cache = _compute_held_tip()
+	return _tip_cache
+
+
+func _compute_held_tip() -> Vector3:
+	var inv: Transform3D = _held.global_transform.affine_inverse()
+	var verts := PackedVector3Array()
+	var far := INF
+	for m: MeshInstance3D in _held.find_children("*", "MeshInstance3D", true, false):
+		if m.mesh == null or not _shown_under(m, _held):
+			continue
+		var xf: Transform3D = inv * m.global_transform
+		for s in range(m.mesh.get_surface_count()):
+			var arrays: Array = m.mesh.surface_get_arrays(s)
+			if arrays.is_empty():
+				continue
+			var vs = arrays[Mesh.ARRAY_VERTEX]
+			if not (vs is PackedVector3Array):
+				continue
+			for v: Vector3 in vs:
+				var p: Vector3 = xf * v
+				verts.append(p)
+				if p.z < far:
+					far = p.z
+	if verts.is_empty():
+		return Vector3.INF
+	var sum := Vector3.ZERO
+	var n := 0
+	for p: Vector3 in verts:
+		if p.z <= far + TIP_BAND:
+			sum += p
+			n += 1
+	return sum / float(maxi(n, 1))
+
+
+## Whether `n` is drawn: it and every node up to `root` visible.
+static func _shown_under(n: Node, root: Node) -> bool:
+	var cur: Node = n
+	while cur != null and cur != root:
+		if cur is Node3D and not (cur as Node3D).visible:
+			return false
+		cur = cur.get_parent()
+	return true
+
+
 ## The way from the companion to creature `t` (the gun's own line of fire), else to the one it would aim at now
 ## (aim_index: the nearest, or the strong and the close), else `fallback`.
 func _from_familiar(fallback: Vector3, t: int = -1) -> Vector3:
@@ -644,7 +737,7 @@ func _second_barrel() -> void:
 	_aim_dir = dir
 	_aim_yaw = atan2(-dir.x, -dir.z)
 	_blast(bl, dir, stat("damage", 5.0), maxi(stat_int("amount", 1), 1), stat("knockback", 0.0), _speed())
-	var from: Vector3 = player.aim_origin(dir)
+	var from: Vector3 = shot_origin(dir)
 	muzzle_flash(from, dir)
 	sfx("fire", from)
 
@@ -652,7 +745,7 @@ func _second_barrel() -> void:
 ## A repeat of the last volley at the current aim (Fan the Hammer), scaled.
 func _volley(mult: float) -> void:
 	var dir: Vector3 = _aim_dir if _aim_dir.length_squared() > 0.0001 else player.forward()
-	var from: Vector3 = (_familiar.global_position + dir * 0.45) if _familiar else player.aim_origin(dir)
+	var from: Vector3 = (_familiar.global_position + dir * 0.45) if _familiar else shot_origin(dir)
 	var amount: int = max(stat_int("amount", 1), 1)
 	var speed := _speed()
 	var half_spread := _fan_half(amount)
@@ -673,7 +766,7 @@ func _hip_volley() -> void:
 	if _familiar:
 		dir = _from_familiar(dir)
 	var punchy := _familiar != null and _fam_base_set and not _fam_dict("kick").is_empty()
-	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else player.aim_origin(dir)
+	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else shot_origin(dir)
 	var amount: int = maxi(stat_int("amount", 1), 1)
 	var speed := _speed()
 	_volley_at(dir, from, amount, stat("damage", 5.0), speed, stat_int("pierce", 0), _prad(), stat("range", 9.0) / maxf(speed, 1.0), stat("knockback", 0.0), _fan_half(amount) * 0.5)
@@ -708,6 +801,7 @@ func _fire() -> bool:
 	var dir := Vector3.ZERO
 	var half_spread := 0.0
 	var target := -1
+	_forward_dir = Vector3.ZERO
 	match inst.def.targeting:
 		"forward":
 			# a lane or a cone (pass 48) aims at what is within its own reach
@@ -743,12 +837,15 @@ func _fire() -> bool:
 			dir = (enemies.pos[target] - hero)
 			half_spread = _fan_half(amount)
 		_:
+			# pass 95 (lane ITEMS): "Fire forward" (FireForward.dir, Settings.fire_forward): a weapon with `params.fire_forward`
+			# (the Tumbleweed, the Basketball) fires along his facing while no creature stands within 75% of its range
+			_forward_dir = FireForward.dir(inst, player, enemies, 9.0)
 			# the nearest, or (pass 48, "priority") the strong and the close
-			target = aim_index(hero, range_m)
-			if target < 0 and not bool(inst.params.get("fire_without_target", false)):
+			target = aim_index(hero, range_m) if _forward_dir == Vector3.ZERO else -1
+			if target < 0 and _forward_dir == Vector3.ZERO and not bool(inst.params.get("fire_without_target", false)):
 				return false
 			# pass 69 (lane HERO, May's Trigger Happy): `fire_without_target` fires along her facing when nobody is in range
-			dir = (enemies.pos[target] - hero) if target >= 0 else player.forward()
+			dir = (enemies.pos[target] - hero) if target >= 0 else (_forward_dir if _forward_dir != Vector3.ZERO else player.forward())
 			half_spread = _fan_half(amount)
 	dir.y = 0.0
 	if dir.length_squared() < 0.0001:
@@ -756,7 +853,7 @@ func _fire() -> bool:
 	dir = dir.normalized()
 	_aim_dir = dir
 	_aim_yaw = atan2(-dir.x, -dir.z)
-	var from: Vector3 = player.aim_origin(dir)
+	var from: Vector3 = shot_origin(dir)
 	if _familiar:
 		# shots leave the companion's mouth, wherever it is circling right now, aimed from there
 		if inst.def.targeting != "random":
@@ -902,7 +999,8 @@ func _blast_show(bl: Dictionary, hero: Vector3, d: Vector3, amount: int, speed: 
 	var pm: ProjectileManager = game.projectiles
 	var n: int = clampi(amount, 3, 14)
 	var spd: float = maxf(speed * 2.2, 30.0)
-	var start: Vector3 = player.aim_origin(d)
+	# pass 95 (lane ITEMS): the pellets leave the held gun's muzzle (shot_origin), as the real rounds do
+	var start: Vector3 = shot_origin(d)
 	var side := d.cross(Vector3.UP).normalized()
 	# the ghost pellets in the weapon's own look (pass 61: Dragon's Breath's orange down a Birdshot lane)
 	var k_draw := _kind()
@@ -1308,6 +1406,10 @@ func _throw_ball(dir: Vector3, from: Vector3, amount: int, damage: float, speed:
 	var ra = inst.params.get("ricochet_any")
 	var count: int = int((ra as Dictionary).get("count", 0)) if ra is Dictionary else 0
 	pm.extra[j]["rc_left"] = maxi(count + amount - 1, 0)
+	if _forward_dir != Vector3.ZERO:
+		# pass 95 (lane ITEMS, "Fire forward"): a ball thrown along his facing with nobody to bounce off at the end of its
+		# flight drops to the sand and is gone (ProjectileManager._drop_alone): no return, no catch, no Heat
+		pm.extra[j]["drop_alone"] = true
 	throws += 1
 	return j
 

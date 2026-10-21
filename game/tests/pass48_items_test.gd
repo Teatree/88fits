@@ -9,23 +9,26 @@ extends GdUnitTestSuite
 const NEW := ["phoenix_feather", "skedaddle", "powder_keg", "loose_change", "gas_mask", "hot_streak"]
 ## id -> [rarity, weight, max_level, {stat: its value at the top level}]
 const DATA := {
-	"phoenix_feather": ["uncommon", 6.0, 1, {"phoenix_revive": 1.0}],
-	"skedaddle": ["rare", 7.0, 5, {"hurt_speed": 0.4, "hurt_speed_seconds": 3.5}],
-	"powder_keg": ["uncommon", 8.0, 5, {"powder_keg_chance": 0.15}],
-	"loose_change": ["uncommon", 8.0, 5, {"coin_on_hit": 0.65}],
-	"gas_mask": ["epic", 5.0, 5, {"gas_mask_cap": 0.4}],
-	"hot_streak": ["rare", 6.0, 5, {"kill_might": 0.25}],
+	# re-pinned in pass 95 (lane PASSIVES): the items climb the rarity ladder (uncommon 5 levels, rare 4, epic 3) and
+	# their numbers were redistributed (tools/passive_ladder.py); Phoenix Feather climbs to a second life
+	"phoenix_feather": ["uncommon", 6.0, 5, {"phoenix_revive": 2.0}],
+	"skedaddle": ["rare", 7.0, 4, {"hurt_speed": 0.36, "hurt_speed_seconds": 3.1}],
+	"powder_keg": ["uncommon", 8.0, 5, {"powder_keg_chance": 0.155}],
+	"loose_change": ["uncommon", 8.0, 5, {"coin_on_hit": 0.68}],
+	"gas_mask": ["epic", 5.0, 3, {"gas_mask_cap": 0.3}],
+	"hot_streak": ["rare", 6.0, 4, {"kill_might": 0.21}],
 }
 ## the player-facing line of each, word for word (Garry's brief)
 const TEXT := {
-	"phoenix_feather": "Once a run: two seconds after you fall, you get back up with the revive's blast. Gone once used.",
-	"skedaddle": "After a hit, run 20% faster for 1.5 s (+5% and +0.5 s a level).",
-	"powder_keg": "A kill has a 5% chance to blow up (+2.5% a level): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
-	"loose_change": "A hit has a 25% chance to knock a coin worth 10 gold out of you (+10% a level). It lands a few steps away: go and get it.",
-	"gas_mask": "1% damage reduction for every poisoned enemy, up to 8% (+8% a level, 40% at level 5).",
-	"hot_streak": "Kills make you stronger for the rest of the run: +5% attack damage per 1,000 kills (+5% a level), up to +100%.",
+	# (pass 95: the lines name the ladder's numbers)
+	"phoenix_feather": "Two seconds after you fall, you get back up with the revive's blast, once a run. Each rung raises the health you rise with; Evolved: a second life.",
+	"skedaddle": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
+	"powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
+	"loose_change": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
+	"gas_mask": "1% damage reduction for every poisoned enemy, up to 12% (20% at level 2, 30% once Evolved).",
+	"hot_streak": "Kills make you stronger for the rest of the run: +7% attack damage per 1,000 kills (more each rung), up to +100%.",
 }
-const DESPERADO_TEXT := "The more you are hurt, the harder you hit: +1.2% attack damage for every 10% of health you are missing at level 1 (+12% near death), up to +60% at level 5."
+const DESPERADO_TEXT := "The more you are hurt, the harder you hit: +1.6% attack damage for every 10% of health you are missing at level 1 (+16% near death), up to +51% once Evolved."
 
 const FAKE_GAME := """extends Node
 var player: Node3D
@@ -166,21 +169,22 @@ func test_six_new_passive_items_with_their_numbers_and_words() -> void:
 		for stat: String in top.keys():
 			assert_float(Run.player_sheet.get_stat(stat, 0.0)).override_failure_message("%s %s" % [id, stat]).is_equal_approx(float(top[stat]), 0.0001)
 		Run.end()
-	# the first levels as the brief gives them (Skedaddle +20% for 1.5 s, Powder Keg 5%, Loose Change 25%), then the step
+	# the first levels (pass 95: higher than the brief's, the ladder's first rung: Skedaddle +25% for 2 s, Powder Keg 6.5%,
+	# Loose Change 32%), then the step
 	_start()
-	var at := {"skedaddle": ["hurt_speed", 0.2], "powder_keg": ["powder_keg_chance", 0.05], "loose_change": ["coin_on_hit", 0.25],
-		"gas_mask": ["gas_mask_cap", 0.08], "hot_streak": ["kill_might", 0.05], "phoenix_feather": ["phoenix_revive", 1.0]}
+	var at := {"skedaddle": ["hurt_speed", 0.25], "powder_keg": ["powder_keg_chance", 0.065], "loose_change": ["coin_on_hit", 0.32],
+		"gas_mask": ["gas_mask_cap", 0.12], "hot_streak": ["kill_might", 0.07], "phoenix_feather": ["phoenix_revive", 1.0]}
 	for id: String in at.keys():
 		Run.add_or_level_passive(id)
 		assert_float(Run.player_sheet.get_stat(str(at[id][0]), 0.0)).override_failure_message(id).is_equal_approx(float(at[id][1]), 0.0001)
-	assert_float(Run.player_sheet.get_stat("hurt_speed_seconds", 0.0)).is_equal_approx(1.5, 0.0001)
-	Run.add_or_level_passive("skedaddle")
-	assert_float(Run.player_sheet.get_stat("hurt_speed", 0.0)).is_equal_approx(0.25, 0.0001)
 	assert_float(Run.player_sheet.get_stat("hurt_speed_seconds", 0.0)).is_equal_approx(2.0, 0.0001)
+	Run.add_or_level_passive("skedaddle")
+	assert_float(Run.player_sheet.get_stat("hurt_speed", 0.0)).is_equal_approx(0.28, 0.0001)
+	assert_float(Run.player_sheet.get_stat("hurt_speed_seconds", 0.0)).is_equal_approx(2.3, 0.0001)
 	Run.add_or_level_passive("powder_keg")
-	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.075, 0.0001)
+	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.085, 0.0001)
 	Run.add_or_level_passive("loose_change")
-	assert_float(Run.player_sheet.get_stat("coin_on_hit", 0.0)).is_equal_approx(0.35, 0.0001)
+	assert_float(Run.player_sheet.get_stat("coin_on_hit", 0.0)).is_equal_approx(0.40, 0.0001)
 
 
 func test_the_new_items_read_well_on_cards_pause_and_collection() -> void:
@@ -195,19 +199,22 @@ func test_the_new_items_read_well_on_cards_pause_and_collection() -> void:
 			# each starts a sentence: a capital, a digit or a sign
 			var c0 := s.substr(0, 1)
 			assert_bool(c0 == c0.to_upper()).override_failure_message(id + " starts small: " + s).is_true()
+	# (pass 95: the first level reads plainly, a higher one names its rung, the next level its rung)
 	assert_str(TextGen.passive_description(Registry.passive("phoenix_feather"), 1)).is_equal("+1 free revive.")
-	assert_str(TextGen.next_level_text(Registry.passive("phoenix_feather"), 1)).is_equal("Maxed.")
+	assert_str(TextGen.next_level_text(Registry.passive("phoenix_feather"), 1)).is_equal("Next level (Rare): +15% health on revive")
+	assert_str(TextGen.next_level_text(Registry.passive("phoenix_feather"), 5)).is_equal("Maxed.")
 	assert_str(TextGen.passive_description(Registry.passive("skedaddle"), 1)).is_equal(
-		"+20% move speed after a hit, +1.5 s boost after a hit at level 1, then +5% move speed after a hit, +0.5 s boost after a hit a level.")
-	assert_str(TextGen.passive_description(Registry.passive("skedaddle"), 5)).ends_with(
-		"Level 5: +40% move speed after a hit, +3.5 s boost after a hit total.")
-	assert_str(TextGen.passive_description(Registry.passive("powder_keg"), 5)).ends_with("Level 5: +15% chance a kill blows up total.")
-	assert_str(TextGen.passive_description(Registry.passive("loose_change"), 5)).ends_with("Level 5: +65% chance a hit knocks a coin out total.")
+		"+25% move speed after a hit, +2 s boost after a hit.")
+	assert_str(TextGen.passive_description(Registry.passive("skedaddle"), 4)).is_equal(
+		"Level 4 (Evolved): +36% move speed after a hit, +3.1 s boost after a hit total.")
+	assert_str(TextGen.passive_description(Registry.passive("powder_keg"), 5)).is_equal("Level 5 (Evolved): +15.5% chance a kill blows up total.")
+	assert_str(TextGen.passive_description(Registry.passive("loose_change"), 5)).is_equal("Level 5 (Evolved): +68% chance a hit knocks a coin out total.")
 	assert_str(TextGen.passive_description(Registry.passive("hot_streak"), 2)).is_equal(
-		"+5% attack damage per 1,000 kills per level. Level 2: +10% attack damage per 1,000 kills total.")
+		"Level 2 (Epic): +11% attack damage per 1,000 kills total.")
 	# a ceiling says "up to", and the line still starts with a capital
-	assert_str(TextGen.passive_description(Registry.passive("gas_mask"), 5)).is_equal(
-		"Up to +8% damage reduction from poisoned enemies per level. Level 5: up to +40% damage reduction from poisoned enemies total.")
+	assert_str(TextGen.passive_description(Registry.passive("gas_mask"), 1)).is_equal("Up to +12% damage reduction from poisoned enemies.")
+	assert_str(TextGen.passive_description(Registry.passive("gas_mask"), 3)).is_equal(
+		"Level 3 (Evolved): up to +30% damage reduction from poisoned enemies total.")
 	assert_str(TextGen.describe_effect(Effect.make("gas_mask_cap", "add", 0.08, "player"))).is_equal("up to +8% damage reduction from poisoned enemies")
 	assert_str(TextGen.describe_effect(Effect.make("coin_on_hit", "add", 0.1, "player"))).is_equal("+10% chance a hit knocks a coin out")
 	assert_str(TextGen.describe_effect(Effect.make("phoenix_revive", "add", 1.0, "player"))).is_equal("+1 free revive")
@@ -218,14 +225,14 @@ func test_the_new_items_read_well_on_cards_pause_and_collection() -> void:
 func test_desperado_says_what_it_does() -> void:
 	var d: PassiveDef = Registry.passive("desperado")
 	assert_str(d.text).is_equal(DESPERADO_TEXT)
-	# the numbers it promises: +1.2% a tenth at level 1, +60% near death at level 5
-	assert_float(float((d.effects_at_level(1)[0] as Effect).value)).is_equal_approx(0.12, 0.0001)
+	# the numbers it promises (pass 95): +1.6% a tenth at level 1, +51% near death once Evolved (level 4)
+	assert_float(float((d.effects_at_level(1)[0] as Effect).value)).is_equal_approx(0.16, 0.0001)
 	_start()
-	for k in range(5):
+	for k in range(4):
 		Run.add_or_level_passive("desperado")
 	Run.note_hp(0.0, 100.0)
-	assert_float(Run.desperado_might()).is_equal_approx(0.6, 0.0001)
-	assert_str(TextGen.passive_description(d, 1)).starts_with("Up to +12% attack damage as health falls")
+	assert_float(Run.desperado_might()).is_equal_approx(0.51, 0.0001)
+	assert_str(TextGen.passive_description(d, 1)).starts_with("Up to +16% attack damage as health falls")
 	# the comment beside TextGen.PREFIX no longer says +30%
 	var src := FileAccess.get_file_as_string("res://core/systems/TextGen.gd")
 	assert_bool(src.contains("up to +30% attack damage")).is_false()
@@ -240,8 +247,8 @@ func test_passive_items_top_out_at_five_and_lines_at_four() -> void:
 		elif p.is_line():
 			assert_int(p.max_level).override_failure_message(p.id + " (line)").is_equal(4)
 		else:
-			# Garry's item 13: a pick-up and four upgrades at most
-			assert_int(p.max_level).override_failure_message(p.id + " (passive item)").is_between(1, 5)
+			# Garry's item 13: a pick-up and four upgrades at most; pass 95: the rarity ladder (common 6 .. epic 3)
+			assert_int(p.max_level).override_failure_message(p.id + " (passive item)").is_equal(PassiveDef.ladder_levels(p.rarity))
 	_start()
 	for k in range(5):
 		assert_bool(Run.add_or_level_passive("loose_change")).is_true()
@@ -297,6 +304,9 @@ func test_weapon_levels_stop_at_five_wherever_they_are_offered() -> void:
 # ---------------------------------------------------------------- Phoenix Feather
 
 func test_phoenix_feather_is_one_revive_and_never_offered_again() -> void:
+	# re-pinned in pass 95 (lane PASSIVES): the feather climbs the ladder like every item (its rungs raise the health he
+	# rises with, Evolved is a second life: pass95_PASSIVES_test), so a held one is offered as an upgrade; a spent one at
+	# its top is never offered again
 	_start()
 	var ph: PassiveDef = Registry.passive("phoenix_feather")
 	assert_bool(Run.phoenix_ready()).is_false()
@@ -311,29 +321,32 @@ func test_phoenix_feather_is_one_revive_and_never_offered_again() -> void:
 	assert_int(Run.passive_level("phoenix_feather")).is_equal(1)
 	assert_bool(Run.phoenix_ready()).is_true()
 	assert_bool(Run.item_spent(ph)).is_false()
-	# held: no second level, no card, no chest, no Stranger (he sells rare and up)
-	assert_bool(Run.add_or_level_passive("phoenix_feather")).is_false()
-	for k in range(150):
-		for c in CardPool.level_up_offer(4):
-			assert_str(str(c["id"])).override_failure_message("Phoenix Feather offered while held").is_not_equal("phoenix_feather")
+	# held: its next rungs are on the table as upgrades, never as a new item
 	for c: Dictionary in Run.chest_candidates():
-		assert_str(str(c["id"])).is_not_equal("phoenix_feather")
-	for k in range(100):
-		var o := Run.stranger_offer()
-		if not o.is_empty():
-			assert_str(str(o["id"])).is_not_equal("phoenix_feather")
-	# spent: once a run, kept in the build (the UI says SPENT), still never offered
+		if str(c["id"]) == "phoenix_feather":
+			assert_bool(bool(c["is_new"])).is_false()
+			assert_int(int(c["level_from"])).is_equal(1)
+	# spent: once a run at level 1, kept in the build (the UI says SPENT)
 	Run.use_phoenix()
 	assert_bool(Run.phoenix_used).is_true()
 	assert_bool(Run.phoenix_ready()).is_false()
 	assert_bool(Run.item_spent(ph)).is_true()
 	assert_bool(Run.item_spent(Registry.passive("magnet"))).is_false()
 	assert_bool(Run.held_passives().has("phoenix_feather")).is_true()
+	# at its top and spent: no card, no chest, no Stranger (he sells rare and up)
+	Run.debug_set_item("passive", "phoenix_feather", ph.max_level)
+	Run.use_phoenix()
+	assert_bool(Run.phoenix_used).is_true()
+	assert_bool(Run.add_or_level_passive("phoenix_feather")).is_false()
 	for k in range(100):
 		for c in CardPool.level_up_offer(4):
 			assert_str(str(c["id"])).is_not_equal("phoenix_feather")
 	for c: Dictionary in Run.chest_candidates():
 		assert_str(str(c["id"])).is_not_equal("phoenix_feather")
+	for k in range(100):
+		var o := Run.stranger_offer()
+		if not o.is_empty():
+			assert_str(str(o["id"])).is_not_equal("phoenix_feather")
 	# a rebuild keeps it spent
 	Run.rebuild_sheets()
 	assert_bool(Run.phoenix_ready()).is_false()
@@ -353,31 +366,31 @@ func test_skedaddle_runs_after_a_hit_quietly_and_a_new_hit_refreshes_it() -> voi
 	assert_bool(Run.timed.is_empty()).is_true()
 	Run.add_or_level_passive("skedaddle")
 	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed, 0.0001)
-	# a hit: 20% faster for 1.5 s, a quiet boost
+	# a hit: 25% faster for 2 s (pass 95's first rung), a quiet boost
 	assert_bool(Run.skedaddle()).is_true()
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.2, 0.0001)
-	assert_float(Run.skedaddle_left()).is_equal_approx(1.5, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.25, 0.0001)
+	assert_float(Run.skedaddle_left()).is_equal_approx(2.0, 0.0001)
 	var mine: Array = Run.timed.filter(func(t: Dictionary) -> bool: return t["id"] == Run.SKEDADDLE)
 	assert_int(mine.size()).is_equal(1)
 	assert_bool(bool(mine[0]["quiet"])).is_true()
 	assert_str(str(mine[0]["label"])).is_equal("SKEDADDLE")
 	# a second later another hit: the clock starts again, the speed is not stacked
 	Run.elapsed += 1.0
-	assert_float(Run.skedaddle_left()).is_equal_approx(0.5, 0.0001)
+	assert_float(Run.skedaddle_left()).is_equal_approx(1.0, 0.0001)
 	assert_bool(Run.skedaddle()).is_true()
-	assert_float(Run.skedaddle_left()).is_equal_approx(1.5, 0.0001)
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.2, 0.0001)
+	assert_float(Run.skedaddle_left()).is_equal_approx(2.0, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.25, 0.0001)
 	assert_int(Run.timed.filter(func(t: Dictionary) -> bool: return t["id"] == Run.SKEDADDLE).size()).is_equal(1)
-	# two levels later the next hit runs faster and longer
+	# two rungs later the next hit runs faster and longer (+3% and +0.3 s a rung)
 	Run.add_or_level_passive("skedaddle")
 	Run.add_or_level_passive("skedaddle")
 	assert_bool(Run.skedaddle()).is_true()
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.3, 0.0001)
-	assert_float(Run.skedaddle_left()).is_equal_approx(2.5, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.31, 0.0001)
+	assert_float(Run.skedaddle_left()).is_equal_approx(2.6, 0.0001)
 	assert_int(Run.timed.filter(func(t: Dictionary) -> bool: return t["id"] == Run.SKEDADDLE).size()).is_equal(1)
 	# the buffs' clock: a boss fight (held_time) counts too
 	Run.held_time += 1.0
-	assert_float(Run.skedaddle_left()).is_equal_approx(1.5, 0.0001)
+	assert_float(Run.skedaddle_left()).is_equal_approx(1.6, 0.0001)
 	# it runs out without a "wore off" toast, and the speed is back
 	Run.elapsed += 2.0
 	assert_array(Run.tick_timed()).is_empty()
@@ -387,9 +400,9 @@ func test_skedaddle_runs_after_a_hit_quietly_and_a_new_hit_refreshes_it() -> voi
 	Run.add_or_level_passive("barrel_rush")
 	assert_bool(Run.barrel_rush()).is_true()
 	assert_bool(Run.skedaddle()).is_true()
-	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.25 * 1.3, 0.0001)
-	assert_float(Run.boost_left(Run.BARREL_RUSH)).is_equal_approx(3.0, 0.0001)
-	assert_float(Run.skedaddle_left()).is_equal_approx(2.5, 0.0001)
+	assert_float(Run.player_sheet.get_stat("move_speed", 0.0)).is_equal_approx(speed * 1.3 * 1.31, 0.0001)
+	assert_float(Run.boost_left(Run.BARREL_RUSH)).is_equal_approx(4.0, 0.0001)
+	assert_float(Run.skedaddle_left()).is_equal_approx(2.6, 0.0001)
 
 
 # ---------------------------------------------------------------- Gas Mask
@@ -399,16 +412,16 @@ func test_gas_mask_turns_poisoned_creatures_into_damage_reduction() -> void:
 	Run.poisoned_alive = 30
 	assert_float(Run.gas_mask_dr()).is_equal(0.0)
 	Run.add_or_level_passive("gas_mask")
-	# a point a poisoned creature, up to 8% at level 1
-	for pair in [[0, 0.0], [1, 0.01], [3, 0.03], [8, 0.08], [30, 0.08]]:
+	# a point a poisoned creature, up to 12% at level 1 (pass 95), 30% once Evolved (level 3)
+	for pair in [[0, 0.0], [1, 0.01], [3, 0.03], [12, 0.12], [30, 0.12]]:
 		Run.poisoned_alive = int(pair[0])
 		assert_float(Run.gas_mask_dr()).override_failure_message("%d poisoned" % int(pair[0])).is_equal_approx(float(pair[1]), 0.00001)
-	for k in range(4):
+	for k in range(2):
 		Run.add_or_level_passive("gas_mask")
-	Run.poisoned_alive = 30
-	assert_float(Run.gas_mask_dr()).is_equal_approx(0.3, 0.00001)
+	Run.poisoned_alive = 25
+	assert_float(Run.gas_mask_dr()).is_equal_approx(0.25, 0.00001)
 	Run.poisoned_alive = 55
-	assert_float(Run.gas_mask_dr()).is_equal_approx(0.4, 0.00001)
+	assert_float(Run.gas_mask_dr()).is_equal_approx(0.3, 0.00001)
 	# the hero takes it off every hit, on top of his own reduction
 	var p := _hero()
 	var own := Run.player_sheet.get_stat("damage_reduction", 0.0)
@@ -443,12 +456,12 @@ func test_hot_streak_keeps_every_kill_made_while_held_for_the_rest_of_the_run() 
 	assert_int(Run.streak).is_equal(0)
 	assert_float(Run.hot_streak_bonus()).is_equal(0.0)
 	Run.add_or_level_passive("hot_streak")
-	assert_float(Run.player_sheet.get_stat("kill_might", 0.0)).is_equal_approx(0.05, 0.00001)
+	assert_float(Run.player_sheet.get_stat("kill_might", 0.0)).is_equal_approx(0.07, 0.00001)
 	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base, 0.0001)
-	# level 1: a percent every 200 kills; 199 kills are still nothing
-	for k in range(199):
+	# level 1 (pass 95: +7% per 1,000): a percent every 143 kills; 142 kills are still nothing
+	for k in range(142):
 		Run.add_kill("goblin", "peashooter")
-	assert_int(Run.streak).is_equal(199)
+	assert_int(Run.streak).is_equal(142)
 	assert_int(Run.streak_bucket).is_equal(0)
 	assert_bool(Run._streak_dirty).is_false()
 	Run.add_kill("goblin", "peashooter")
@@ -464,31 +477,31 @@ func test_hot_streak_keeps_every_kill_made_while_held_for_the_rest_of_the_run() 
 	# a hit takes nothing away: there is nothing that ends it (Game._on_player_hit ends only Crescendo)
 	assert_bool(Run.has_method("reset_hot_streak")).is_false()
 	Run.reset_crescendo()
-	assert_int(Run.streak).is_equal(201)
-	# 1,000 kills at level 1: +5%, named on the sheet
-	for k in range(799):
+	assert_int(Run.streak).is_equal(144)
+	# 1,000 kills at level 1: +7%, named on the sheet
+	for k in range(856):
 		Run.add_kill("goblin", "peashooter")
 	_follow()
-	assert_float(Run.hot_streak_bonus()).is_equal_approx(0.05, 0.00001)
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.05, 0.0001)
+	assert_float(Run.hot_streak_bonus()).is_equal_approx(0.07, 0.00001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.07, 0.0001)
 	var named := false
 	for r in Run.player_sheet.breakdown("might"):
-		if str(r["source"]) == "Hot Streak +5%":
+		if str(r["source"]) == "Hot Streak +7%":
 			named = true
 	assert_bool(named).is_true()
 	# a rebuild for any other reason keeps it; a level more counts every kill again at the new rate at once
 	Run.add_or_level_passive("magnet")
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.05, 0.0001)
-	for k in range(4):
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.07, 0.0001)
+	for k in range(3):
 		Run.add_or_level_passive("hot_streak")
-	assert_float(Run.player_sheet.get_stat("kill_might", 0.0)).is_equal_approx(0.25, 0.00001)
-	assert_float(Run.hot_streak_bonus()).is_equal_approx(0.25, 0.00001)
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.25, 0.0001)
-	# level 5: +100% at 4,000 kills, and no further
-	for k in range(3000):
+	assert_float(Run.player_sheet.get_stat("kill_might", 0.0)).is_equal_approx(0.21, 0.00001)
+	assert_float(Run.hot_streak_bonus()).is_equal_approx(0.21, 0.00001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.21, 0.0001)
+	# Evolved (level 4): +100% at 4,762 kills, and no further
+	for k in range(3800):
 		Run.add_kill("goblin", "peashooter")
 	_follow()
-	assert_int(Run.streak).is_equal(4000)
+	assert_int(Run.streak).is_equal(4800)
 	assert_float(Run.hot_streak_bonus()).is_equal_approx(1.0, 0.00001)
 	for k in range(500):
 		Run.add_kill("goblin", "peashooter")
@@ -508,10 +521,10 @@ func test_powder_keg_rolls_on_its_own_stat_and_records_as_itself() -> void:
 	_start()
 	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal(0.0)
 	Run.add_or_level_passive("powder_keg")
-	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.05, 0.0001)
+	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.065, 0.0001)
 	for k in range(4):
 		Run.add_or_level_passive("powder_keg")
-	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.15, 0.0001)
+	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.155, 0.0001)
 	# the blast is the item's own source (Results names it by the item): a quarter of the body's health within 2.4 m (Game's
 	# constants read off its script, so this suite compiles without the whole game)
 	var consts: Dictionary = (load("res://game/Game.gd") as GDScript).get_script_constant_map()

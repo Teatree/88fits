@@ -1,0 +1,61 @@
+{
+  "id": "fire_eater",
+  "name": "Fire Eater",
+  "flavour": "He swallowed the whole act. A longer, hotter, wider breath, and whoever lays a hand on him burns for it (thorns 8).",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "dragons_breath",
+  "max_level": 1,
+  "behavior": "FireBreath",
+  "targeting": "forward",
+  "base": {
+    "damage": 80,
+    "cooldown": 6.5,
+    "amount": 1,
+    "duration": 3.5,
+    "range": 7.0,
+    "area": 1.3,
+    "fire_damage": 14,
+    "fire_duration": 3.5,
+    "fire_spread": 0.5
+  },
+  "levels": [
+    [
+      {
+        "stat": "thorns",
+        "op": "add",
+        "value": 8,
+        "target": "player"
+      }
+    ]
+  ],
+  "params": {
+    "breath": {
+      "cone_deg": 50,
+      "tick": 1.0,
+      "seconds_per_amount": 1.0,
+      "max_seconds": 8.0,
+      "wait": 2.0,
+      "look": {
+        "intensity": 1.0
+      }
+    },
+    "final": {
+      "breath": {
+        "knock": 7.0,
+        "look": {
+          "intensity": 1.8
+        }
+      }
+    }
+  },
+  "sfx": {
+    "fire": "w_breath_start",
+    "loop": "w_breath_loop"
+  },
+  "placeholder": {
+    "color": "#FF4A0A",
+    "glyph": "bottle"
+  },
+  "art_prompt": "a circus fire eater's torch and a glass cologne bottle crossed, a huge roaring plume of orange fire with blue at its heart, a few sharp cactus spines bristling round the bottle"
+}

@@ -68,6 +68,7 @@ sfx = {
 visual = ExtResource("3_d2vsb")
 visual_file = "sabre_visual.tscn"
 params = {
+"fire_forward": true,
 "thrust": {
 "back": 0.12,
 "out": 0.06,

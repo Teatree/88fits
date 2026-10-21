@@ -89,8 +89,8 @@ func _manager(g: Node) -> EnemyManager:
 func test_the_harpooner_has_the_rocketeers_health() -> void:
 	# the two specials shared their health from pass 33.8 (50 each since pass 45); pass 48 took the rocketeer, now the
 	# Vulture Raider, to 30% less (35) and kept the harpooner at 50
-	assert_float(Registry.enemy("harpoon_troglodyte").hp).is_equal_approx(50.0, 0.001)
-	assert_float(Registry.enemy("rocketeer").hp).is_equal_approx(35.0, 0.001)
+	assert_float(Registry.enemy("harpoon_troglodyte").hp).is_equal_approx(float(JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/harpoon_troglodyte/harpoon_troglodyte.json"))["hp"]), 0.001)  # pass 95 (lead): Garry hand-tunes these (150 / 100 today): the pins read his file
+	assert_float(Registry.enemy("rocketeer").hp).is_equal_approx(float(JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/rocketeer/rocketeer.json"))["hp"]), 0.001)
 
 
 # ---------------------------------------------------------------- ground marks

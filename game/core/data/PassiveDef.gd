@@ -37,10 +37,69 @@ extends ContentDef
 @export var variant_base: String = ""
 ## The look whose icon `icon` holds now ("" = the JSON's `variant`): wear_look.
 var worn := ""
+## Pass 95 (lane PASSIVES): the icon a passive item wears on its Evolved rung (`<id>_icon_evolved.png`, the same
+## picture with a white outline round its subject, tools/evolved_icons.py); null = the base icon there too.
+@export var evolved_icon: Texture2D
+
+## Pass 95 (lane PASSIVES, Garry: "the number of Upgrades is reduced to the number of upgrades they have left to reach
+## Legendary + Evolved Rarity"): a passive item climbs the rarity ladder one rung an upgrade. An item of rarity r has
+## steps(r) = the rungs from r to legendary (common 4, uncommon 3, rare 2, epic 1, legendary 0) + 1 (Evolved) upgrades,
+## so levels = steps + 1: common 6, uncommon 5, rare 4, epic 3, legendary 2. Level k stands on rung LADDER[idx(r) + k - 1]
+## and the top level is EVOLVED_RUNG ("Evolved" is a rarity for passive items, never for weapons or cards: the dark plate
+## ringed in brass, the Evolved icon, "Evolved" in the words). `max_level` is derived from the rule for every item
+## (apply_ladder, JsonContent.build); the lines (`line`) and the evolved cards keep their own. The JSON holds every rung's
+## effects explicitly (tools/passive_ladder.py wrote them), so Garry tunes each rung; a shorter list repeats its last
+## level as before (repeat_last_level), a longer one is unreachable (the Level Editor warns of both).
+const LADDER := ["common", "uncommon", "rare", "epic", "legendary"]
+const EVOLVED_RUNG := "evolved"
 
 
 func kind() -> String:
 	return "passive"
+
+
+## The levels an item of `rarity` climbs: the rungs left to legendary + Evolved + its own first level (common 6 ..
+## legendary 2). An unknown rarity reads as common (as W.rarity_of reads it).
+static func ladder_levels(p_rarity: String) -> int:
+	var i := LADDER.find(p_rarity)
+	return LADDER.size() - 1 - maxi(i, 0) + 2
+
+
+## Whether this is a passive item on the ladder: not a line (a card), not an evolved form.
+func is_item() -> bool:
+	return not line and evolves_from == ""
+
+
+## The top level of this passive (the ladder's for an item, else `max_level`).
+func ladder_top() -> int:
+	return ladder_levels(rarity) if is_item() else maxi(max_level, 1)
+
+
+## The rung an item stands on at `level`: its rarity at level 1 (and at 0, the item in general), one rung up a level,
+## EVOLVED_RUNG at the top and past it; the rarity itself for a line or an evolved form.
+func rung_at(level: int) -> String:
+	if not is_item() or level <= 1:
+		return rarity if LADDER.has(rarity) else LADDER[0]
+	if level >= ladder_top():
+		return EVOLVED_RUNG
+	var i := maxi(LADDER.find(rarity), 0) + level - 1
+	return LADDER[mini(i, LADDER.size() - 1)]
+
+
+## Whether `level` is an item's Evolved rung (its top level or past it; never a line's, which evolves into a card).
+func is_evolved_rung(level: int) -> bool:
+	return is_item() and level >= ladder_top()
+
+
+## The icon to draw at `level`: the Evolved icon on the Evolved rung when it has one, else the icon worn.
+func icon_at(level: int) -> Texture2D:
+	return evolved_icon if is_evolved_rung(level) and evolved_icon != null else icon
+
+
+## Derives `max_level` from the ladder for an item (JsonContent.build, once the rarity is read).
+func apply_ladder() -> void:
+	if is_item():
+		max_level = ladder_levels(rarity)
 
 
 ## The look codes in order (empty when it has one icon); a shelved look (`variants[CODE].shelved`) is left out unless

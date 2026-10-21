@@ -132,7 +132,7 @@ const BossModel = (() => {
   // pass 73 (lane GROUND): a rain's landing, BossAttackDef.LANDING_MODES
   const LANDING_MODES = ['stagger', 'volley'];
   const SCRIPTS = ['roll', 'spawn_ring', 'slam_at', 'blink', 'burrow', 'rain', 'erupt', 'spit_volley', 'slam', 'rumble',
-    'brand', 'tumbleweed_volley', 'swoop', 'boulder'];
+    'brand', 'tumbleweed_volley', 'swoop', 'boulder', 'stomp', 'tail_sniper'];
   const DEFAULTS = {
     projectile: { look: 'spike', tint: '#D0242F', size: 1.0, glow: 1.0, flight: 1.0, arc: 6.0, speed: 12.0, range: 18.0, hit_radius: 0.5, trail: true },
     pattern: { shape: 'rings', center: 'boss', radius_min: 3.0, radius_max: 16.0, spacing: 3.2, count: 0, jitter: 0.2, gap: 1.0, turn: true, order: 'out', spread_deg: 360.0, aim: 'hero', waves: 1, wave_gap: 0.5, width: 1.2 },

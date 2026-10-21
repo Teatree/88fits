@@ -67,6 +67,7 @@ sfx = {
 visual = ExtResource("3_7vev6")
 visual_file = "tumbleweed_visual.tscn"
 params = {
+"fire_forward": true,
 "radius": 0.7,
 "roll_radius": 0.6
 }

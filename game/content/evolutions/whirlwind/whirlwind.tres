@@ -31,6 +31,7 @@ params = {
 "final": {
 "crit_refund": 0.2
 },
+"fire_forward": true,
 "thrust": {
 "back": 0.1,
 "out": 0.05,

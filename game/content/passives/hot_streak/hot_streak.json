@@ -3,15 +3,39 @@
   "name": "Hot Streak",
   "rarity": "rare",
   "weight": 6,
-  "max_level": 5,
+  "max_level": 4,
   "flavour": "It only gets hotter.",
-  "text": "Kills make you stronger for the rest of the run: +5% attack damage per 1,000 kills (+5% a level), up to +100%.",
+  "text": "Kills make you stronger for the rest of the run: +7% attack damage per 1,000 kills (more each rung), up to +100%.",
   "levels": [
     [
       {
         "stat": "kill_might",
         "op": "add",
-        "value": 0.05,
+        "value": 0.07,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "kill_might",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "kill_might",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "kill_might",
+        "op": "add",
+        "value": 0.06,
         "target": "player"
       }
     ]

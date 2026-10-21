@@ -171,8 +171,10 @@ func test_the_saiga_sniper_is_a_special_from_garrys_picture() -> void:
 	assert_str(def.badge_for()).is_equal("gear")
 	assert_bool(def.can_be_elite).is_false()
 	assert_int(def.max_alive).is_equal(1)
-	# HP and XP like the Vulture Raider's
-	assert_float(def.hp).is_equal(rk.hp)
+	# HP and XP like the Vulture Raider's (pass 95, lane BOSS: Garry tunes his health by hand, 125 since pass 95; the
+	# Registry's number is the file's, never pinned to the Raider's any more)
+	assert_float(def.hp).is_equal(float(d["hp"]))
+	assert_float(def.hp).is_greater_equal(rk.hp)
 	assert_float(def.xp_mult).is_equal(rk.xp_mult)
 	# the shape rules every creature keeps: a doc, a blood, a knockback of its own
 	assert_str(str(d.get("doc", ""))).is_not_empty()

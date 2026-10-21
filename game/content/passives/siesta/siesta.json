@@ -10,13 +10,45 @@
       {
         "stat": "still_regen",
         "op": "add",
-        "value": 1.0,
+        "value": 1.4,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "still_regen",
+        "op": "add",
+        "value": 0.8,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "still_regen",
+        "op": "add",
+        "value": 0.8,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "still_regen",
+        "op": "add",
+        "value": 0.8,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "still_regen",
+        "op": "add",
+        "value": 1.2,
         "target": "player"
       }
     ]
   ],
   "repeat_last_level": true,
-  "text": "Standing still heals you: +1 health a second a level.",
+  "text": "Standing still heals you: +1.4 health a second, more each rung.",
   "art_prompt": "a wide straw sombrero resting on a plump white pillow, a small glowing red heart floating just above it",
   "placeholder": {
     "color": "#E8D080",

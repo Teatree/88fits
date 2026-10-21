@@ -1,0 +1,101 @@
+{
+  "id": "dragons_breath",
+  "name": "Dragon's Breath",
+  "flavour": "A squirt of cologne, a cheap lighter, and no sense at all.",
+  "rarity": "rare",
+  "weight": 6,
+  "behavior": "FireBreath",
+  "targeting": "forward",
+  "tags": [],
+  "base": {
+    "damage": 32,
+    "cooldown": 9.0,
+    "amount": 1,
+    "duration": 2.0,
+    "range": 5.0,
+    "area": 1.0,
+    "fire_damage": 6,
+    "fire_duration": 2.5,
+    "fire_spread": 0.3
+  },
+  "max_level": 5,
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.35
+      },
+      {
+        "stat": "range",
+        "op": "add",
+        "value": 0.5
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      },
+      {
+        "stat": "fire_damage",
+        "op": "mul",
+        "value": 0.5
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.35
+      },
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      },
+      {
+        "stat": "range",
+        "op": "add",
+        "value": 0.5
+      },
+      {
+        "stat": "duration",
+        "op": "add",
+        "value": 1.0
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "fire_eater",
+  "params": {
+    "breath": {
+      "cone_deg": 50,
+      "tick": 1.0,
+      "seconds_per_amount": 1.0,
+      "max_seconds": 6.0,
+      "wait": 2.0,
+      "look": {
+        "intensity": 1.0
+      }
+    }
+  },
+  "sfx": {
+    "fire": "w_breath_start",
+    "loop": "w_breath_loop"
+  },
+  "placeholder": {
+    "color": "#FF7A1E",
+    "glyph": "bottle"
+  },
+  "art_prompt": "a small glass bottle of amber cologne with a gold cap, a cheap orange plastic lighter held at its nozzle, and a long roaring tongue of orange fire bursting sideways from the lit spray"
+}

@@ -210,11 +210,17 @@ func _fire() -> bool:
 	var crit := next_is_crit()
 	if crit and not _thrust_flag("alternate"):
 		reach *= crit_reach_mult()
-	var t := aim_index(player.global_position, reach + 0.6)
-	if t < 0:
+	# pass 95 (lane ITEMS): "Fire forward" (FireForward.dir, Settings.fire_forward): the stroke goes along his facing while no
+	# creature stands within 75% of the range; else at the nearest (the strong and the close for a priority blade) as before
+	var fwd: Vector3 = FireForward.dir(inst, player, game.enemies, 2.6)
+	var t: int = -1 if fwd != Vector3.ZERO else aim_index(player.global_position, reach + 0.6)
+	if t < 0 and fwd == Vector3.ZERO:
 		return false
 	target = t
-	_aim_at(t)
+	if t >= 0:
+		_aim_at(t)
+	else:
+		_dir = fwd
 	strokes += 1
 	_count_stroke(crit)
 	# an alternate stroke (the Thunder Lance) is a sweep, then a thrust

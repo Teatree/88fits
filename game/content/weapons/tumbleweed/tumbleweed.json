@@ -16,6 +16,7 @@
     "speed": 6
   },
   "params": {
+    "fire_forward": true,
     "radius": 0.7,
     "roll_radius": 0.6
   },

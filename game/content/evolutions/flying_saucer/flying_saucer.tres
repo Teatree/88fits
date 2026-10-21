@@ -37,7 +37,12 @@ params = {
 "look": "saucer",
 "size": 0.36,
 "spin": 18.0,
-"trail": true
+"trail": {
+"alpha": 0.45,
+"length": 0.48,
+"style": "glow",
+"width": 2.2
+}
 },
 "falloff": {
 "floor": 0.25,
@@ -64,6 +69,7 @@ params = {
 },
 "proc_mult": 1.5
 },
+"fire_forward": true,
 "glide_seconds": 0.45,
 "height": 1.0,
 "hit_radius": 0.55

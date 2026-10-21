@@ -67,6 +67,7 @@
   "evolves_with": "",
   "evolves_into": "thunder_lance",
   "params": {
+    "fire_forward": true,
     "pierce_falloff": {
       "step": 0.8,
       "floor": 0.4,

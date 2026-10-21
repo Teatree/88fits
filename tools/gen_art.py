@@ -24,6 +24,7 @@ import base64, glob, hashlib, io, json, os, re, shutil, subprocess, sys, time, u
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import comfy, artkit, animate
+import frames_store  # pass 95 (lane VACE): the frames store told after every strip.save (hook_after_save: a look with a store is registered again, pinned slots warned)
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -116,21 +117,23 @@ def painter_info(full=False):
     return {"model": "klein", "unet": comfy.KLEIN_UNET, "steps": int(MODEL["steps"] or 4)}
 
 
-def paint(prompt, seed, width, height, refs, prefix, full=False):
+def paint(prompt, seed, width, height, refs, prefix, full=False, init=None, denoise=1.0):
     """One still on the chosen painter with the chosen quality: Klein (MODEL steps or 4), or Flux.2 dev (steps,
     guidance, turbo from MODEL; `full` = the 28-step no-Turbo quality on a freshly restarted server, what the
     candidates use by default). Returns (png bytes, seconds). Every caller that painted a still itself goes through
     here, so the Level Editor's model settings reach them all."""
     p = painter_info(full)
     if p["model"] == "dev":
-        g = comfy.flux2_dev(prompt, seed, width, height, refs=refs, steps=p["steps"], guidance=p["guidance"], turbo=p["turbo"], prefix=prefix)
+        g = comfy.flux2_dev(prompt, seed, width, height, refs=refs, steps=p["steps"], guidance=p["guidance"], turbo=p["turbo"], prefix=prefix,
+                            init=init, denoise=denoise)
         # every dev still on a freshly restarted server, Turbo too (2026-10-12: a dev job cancelled mid-render left
         # ComfyUI holding both models in a full RAM, and the next Turbo still went straight in and thrashed the swap
         # for twenty minutes; the models are released after each still anyway, so the restart costs seconds)
         imgs, secs = comfy.run_dev(g)
         log("  " + comfy.release_models())
         return imgs, secs
-    return comfy.run(comfy.klein(prompt, seed, width, height, refs=refs, steps=p["steps"], prefix=prefix))
+    # pass 94: init + denoise < 1 = img2img from that uploaded picture (comfy._init_latent)
+    return comfy.run(comfy.klein(prompt, seed, width, height, refs=refs, steps=p["steps"], prefix=prefix, init=init, denoise=denoise))
 ONLY, SEED_OFFSET, PICK = None, 0, None
 for a in sys.argv:
     if a.startswith("--only="):
@@ -1289,7 +1292,7 @@ def animate_still_height(still_rgb, fill=0.72):
     return keyed.height * s
 
 
-def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3):
+def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3, init=None, denoise=1.0):
     """Returns (PIL RGB image, info). Cached in RAW/<key>.png + .json."""
     os.makedirs(RAW, exist_ok=True)
     raw, meta = os.path.join(RAW, key + ".png"), os.path.join(RAW, key + ".json")
@@ -1303,7 +1306,7 @@ def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3):
     for attempt in range(tries):
         s = seed + attempt * 7919
         t0 = time.time()
-        imgs, secs = paint(prompt, s, width, height, refs, "88fits/" + key)
+        imgs, secs = paint(prompt, s, width, height, refs, "88fits/" + key, init=init, denoise=denoise)
         img = Image.open(io.BytesIO(imgs[0])).convert("RGB")
         ok, report = qa(img, expect)
         geo = geometry(img)
@@ -1694,6 +1697,7 @@ def process(type_, folder, id_):
             # a variant's strip and icon sit beside the ones the game uses (its icon is its own painting)
             d["sprite"] = id_ + "_sprite_" + vcode.split("-")[-1].lower() + ".png"
             strip.save(os.path.join(folder, d["sprite"]))
+            frames_store.hook_after_save(folder, id_, vcode, counts, cols, d["sprite"], log)   # pass 95: the frames store follows the strip
             d["icon"] = id_ + "_icon_" + vcode.split("-")[-1].lower() + ".png"
             # pass 76: a pick has a file of its own since the Level Editor's icon guard (<id>_icon_<x>_<tag>_c<k>.png)
             picked = os.path.basename(str(ventry.get("icon") or "")) if isinstance(ventry, dict) and ventry.get("icon_picked") else ""
@@ -1707,6 +1711,7 @@ def process(type_, folder, id_):
                 vicon.save(os.path.join(folder, d["icon"]))
         else:
             strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
+            frames_store.hook_after_save(folder, id_, None, counts, cols, d.get("sprite", id_ + "_sprite.png"), log)   # pass 95: the frames store follows the strip
             icon, _ = finish(img, 256, 0.9, False, None, 0.009)
             icon.save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
         d["anims"] = counts
@@ -1861,8 +1866,10 @@ def process(type_, folder, id_):
             # a hero's variant strip sits beside the one the game plays; the badge stays the hero's own (pass 55)
             d["sprite"] = id_ + "_sprite_" + vcode.split("-")[-1].lower() + ".png"
             strip.save(os.path.join(folder, d["sprite"]))
+            frames_store.hook_after_save(folder, id_, vcode, counts, cols, d["sprite"], log)   # pass 95: the frames store follows the strip
         else:
             strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
+            frames_store.hook_after_save(folder, id_, None, counts, cols, d.get("sprite", id_ + "_sprite.png"), log)   # pass 95: the frames store follows the strip
             # the icon: a painted close-up doing something, keyed and set into a round badge that fills the plate's lower half
             pp = str(d.get("portrait_prompt", "smiling at the viewer"))
             # edited from the front still so the face and outfit are this character's; the head fills half the frame

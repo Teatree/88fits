@@ -1,21 +1,51 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/reach/reach_icon.png" id="1_68y37"]
+[ext_resource type="Texture2D" path="res://content/passives/reach/reach_icon_evolved.png" id="1_krbia"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_68y37"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_krbia"]
 
-[sub_resource type="Resource" id="Resource_68y37"]
+[sub_resource type="Resource" id="Resource_krbia"]
 script = ExtResource("2_krbia")
 stat = "area"
 op = "mul"
-value = 0.08
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_yi0i1"]
+script = ExtResource("2_krbia")
+stat = "area"
+op = "mul"
+value = 0.06
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ho5fw"]
+script = ExtResource("2_krbia")
+stat = "area"
+op = "mul"
+value = 0.06
+target = "player"
+
+[sub_resource type="Resource" id="Resource_4e8gy"]
+script = ExtResource("2_krbia")
+stat = "area"
+op = "mul"
+value = 0.06
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ommsn"]
+script = ExtResource("2_krbia")
+stat = "area"
+op = "mul"
+value = 0.1
 target = "player"
 
 [resource]
 script = ExtResource("2_68y37")
-levels = [[SubResource("Resource_68y37")]]
+levels = [[SubResource("Resource_krbia")], [SubResource("Resource_yi0i1")], [SubResource("Resource_ho5fw")], [SubResource("Resource_4e8gy")], [SubResource("Resource_ommsn")]]
 max_level = 5
 pairs_with = "orbit_saws"
+evolved_icon = ExtResource("1_krbia")
 id = "reach"
 display_name = "Reach"
 flavour = "Bigger everything."

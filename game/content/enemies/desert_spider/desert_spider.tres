@@ -13,6 +13,8 @@
 [ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_e.png" id="11_cx263"]
 [ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_f.png" id="12_3yw3i"]
 [ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_f.png" id="13_g1yb0"]
+[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_g.png" id="14_3yw3i"]
+[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_g.png" id="15_g1yb0"]
 
 [resource]
 script = ExtResource("2_f0uby")
@@ -281,6 +283,43 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("12_3yw3i"),
 "sprite_file": "desert_spider_sprite_f.png",
+"strip_cols": 91
+},
+"SP-G": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.65,
+"icon": ExtResource("15_g1yb0"),
+"note": "Pass 94: SP-A's realism in the house style, light purple, as close to the 3D model as it gets, on Klein with many iterations: the clay repainted (img2img from the tinted clay), 28 steps, many seeds per view picked by eye; walked on spider_walk_v4 (the legs as capsules, the model's cones rounded)",
+"shadow": {
+"drop": 0.06,
+"scale": [1.45, 1.5],
+"up": 0.45
+},
+"shelved": false,
+"sprite": ExtResource("14_3yw3i"),
+"sprite_file": "desert_spider_sprite_g.png",
 "strip_cols": 91
 }
 }

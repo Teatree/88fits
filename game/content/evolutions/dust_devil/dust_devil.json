@@ -21,6 +21,7 @@
     []
   ],
   "params": {
+    "fire_forward": true,
     "radius": 0.9,
     "fan_step_deg": 14,
     "return": true,

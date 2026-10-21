@@ -43,7 +43,9 @@ const AFIELDS = (() => {
     behaviors: ['Beam', 'ConeWave', 'GravityGun', 'LaserBeam', 'Lobber', 'MineLayer', 'MissilePod', 'Orbiter', 'ProjectileEmitter', 'Smasher', 'Spawner', 'SunScepter', 'Thruster'].map((b) => opt(b))
       // pass 69: the Salt's patches laid behind the hero (lane SALT) and the Frisbee's curving discs (lane FRIS)
       .concat([opt('SaltShaker', 'SaltShaker', 'pass 69, the Salt: a shaker floats round the hero and pours patches behind him that hurt what stands in them (params: salt, shaker)'),
-        opt('Frisbee', 'Frisbee', 'pass 69: discs thrown at a creature on an arc bending left or right at random, cutting through everything to the end of their range (params: bend, fan, falloff, disc, carry, loop)')]),
+        opt('Frisbee', 'Frisbee', 'pass 69: discs thrown at a creature on an arc bending left or right at random, cutting through everything to the end of their range (params: bend, fan, falloff, disc, carry, loop)'),
+        // pass 95 (lane BREATH): the Dragon's Breath
+        opt('FireBreath', 'FireBreath', 'pass 95, the Dragon\'s Breath: every cooldown the hero breathes a cone of fire from his face where he faces for `duration` s (+1 s per amount past the first); whatever stands in it takes `damage` every second and catches fire (params: breath)')]),
     targeting: [opt('nearest'), opt('priority', 'priority', 'the strongest enemy nearby'), opt('densest'), opt('densest_healthy', 'densest healthy', 'the Molotov and Skull Rain: the densest crowd of healthy enemies'), opt('orbit'), opt('random'), opt('healthy'), opt('forward'), opt('ground')],
     mutationKinds: [opt('element'), opt('volume'), opt('motion'), opt('stance', 'stance', 'no mutation uses it yet'), opt('hero', 'hero', 'one hero\'s own: needs `hero`')],
     elements: [opt('', 'none'), opt('fire'), opt('poison')],
@@ -125,6 +127,8 @@ const AFIELDS = (() => {
     // pass 69: the Salt (lane SALT) and the Frisbee (lane FRIS)
     SaltShaker: ['salt', 'shaker'],
     Frisbee: ['bend_deg', 'bend_per_extra', 'carry', 'disc', 'falloff', 'fan_deg', 'glide_seconds', 'height', 'hit_radius', 'loop', 'proc_mult', 'stun'],
+    // pass 95 (lane BREATH): the Dragon's Breath (its blue fire is the shared fire_blue)
+    FireBreath: ['breath'],
   };
   // keys WeaponInstance and the systems (ProjectileManager, Game, EnergyTraces, Mine) read for any behaviour
   const PARAMS_SHARED = ['final', 'glow', 'familiar', 'look', 'ricochet_any', 'mini_crit', 'fire_blue', 'ignite_chance', 'zenith', 'sticky', 'size_mult', 'silver', 'pollen', 'plant', 'pin', 'pierce_falloff', 'out_speed_mult', 'back_speed_mult',
@@ -132,7 +136,9 @@ const AFIELDS = (() => {
     'tracer_life', 'tracer_width', 'tracer_clear', 'tracer_alpha', 'tracer_style', 'tracer_hot', 'trace', 'tint', 'thrust', 'telegraph', 'tail_fade', 'sun', 'split_scale', 'split_count', 'spiral', 'spent', 'cloud_mult', 'cloud_seconds', 'curare', 'hit_radius',
     'roll_radius', 'no_spin', 'trail_zone', 'life', 'gold_on_kill', 'speed_mult', 'radius_mult',
     // pass 67 (the basketball): ProjectileManager turns the ball home when its hits are spent and hands the catch over
-    'return_on_hit', 'return_pierce', 'catch'];
+    'return_on_hit', 'return_pierce', 'catch',
+    // pass 95 (lane ITEMS): a weapon the "Fire forward" debug switch covers (core/systems/FireForward.gd)
+    'fire_forward'];
   function paramsKnown(key, behavior) {
     return PARAMS_SHARED.includes(key) || (PARAMS_KEYS[behavior] || []).includes(key);
   }
@@ -175,6 +181,21 @@ const AFIELDS = (() => {
         P('shaker.orbit_speed', 'Orbit speed (rad/s)', 'number', 0.55, 'how fast it circles him (6.28 = one turn a second)', { min: 0, step: 0.05 }),
         P('shaker.bob', 'Bob (m)', 'number', 0.08, 'how far it bobs up and down', { min: 0, step: 0.01 }),
       ] },
+    // pass 95 (lane BREATH): the Dragon's Breath's cone
+    { id: 'breath', label: 'The breath', behaviors: ['FireBreath'], show: 'always', src: 'core/behaviors/FireBreath.gd',
+      help: 'the cone of fire breathed from the hero\'s face where he faces; its base stats above are a tick\'s damage, the cooldown between breaths (the slowest in the game), the amount (+seconds_per_amount s of breath per point past the first), the duration (seconds a breath lasts), the range (the cone\'s length), the area (× the cone\'s width) and the burn (fire_damage every 0.6 s for fire_duration, fire_spread)', rows: [
+        P('breath.cone_deg', 'Cone (°)', 'number', 50, 'the cone\'s width at area 1 (× the area stat; 360 = a full ring)', { min: 15, max: 360, step: 1 }),
+        P('breath.tick', 'Tick (s)', 'number', 1.0, 'seconds between hits on a creature standing in the fire (the first the moment it is inside)', { min: 0.1, step: 0.1 }),
+        P('breath.seconds_per_amount', 'Seconds per extra amount', 'number', 1.0, 'seconds of breath added for every point of amount past the first (Multishot, the amount buff)', { min: 0, step: 0.25 }),
+        P('breath.max_seconds', 'Longest breath (s)', 'number', 6, 'the breath never lasts longer than this before Held Breath\'s doubling', { min: 0.5, step: 0.5 }),
+        P('breath.wait', 'Wait (s)', 'number', 2, 'with the cooldown ready it waits this long for a creature to stand in the cone; then it breathes where he faces if anyone is within reach', { min: 0, step: 0.5 }),
+        P('breath.knock', 'Shove a tick', 'number', 0, 'Backdraft: every tick also shoves the creature straight away from the hero with this force (through the map\'s hero share; 5 on Backdraft)', { min: 0, step: 0.5 }),
+        P('breath.look.intensity', 'Fire intensity', 'number', 1, 'the flames\' size and count (Backdraft 1.5, the Fire Eater 1.8)', { min: 0.1, step: 0.1 }),
+        P('breath.still.seconds', 'Held Breath: still for (s)', 'number', null, 'Held Breath: an attack that starts after the hero has stood still and unhit this long is a held breath; empty = no Held Breath', { min: 0, step: 0.5 }),
+        P('breath.still.duration_mult', 'Held Breath: lasts ×', 'number', 2, 'a held breath lasts this many times as long', { min: 1, step: 0.25 }),
+        P('breath.still.damage_mult', 'Held Breath: tick ×', 'number', 1.5, 'standing in a held breath\'s fire deals this many times the tick', { min: 0, step: 0.25 }),
+        P('breath.still.ring', 'Held Breath: all round', 'bool3', true, 'a held breath comes from all sides of his face (a full ring)'),
+      ] },
     { id: 'frisbee_flight', label: 'Flight', behaviors: ['Frisbee'], show: 'always', src: 'core/behaviors/Frisbee.gd',
       help: 'how the discs fly: at a creature (the nearest in range, else ahead), bending left or right at random; its base stats above are damage, cooldown, amount (discs a volley), speed, range and knockback', rows: [
         P('bend_deg', 'Bend (°)', 'number', 25, 'how far off the aim line each disc leaves, to a side picked at random per disc', { min: 0, step: 1 }),
@@ -195,7 +216,13 @@ const AFIELDS = (() => {
         P('disc.emission', 'Glow colour', 'swatch', '#7CFF00', 'the faint glow and the trail (the saucer\'s pink top and razors)'),
         P('disc.energy', 'Glow strength', 'number', 0.8, 'how bright the glow is', { min: 0, step: 0.1 }),
         P('disc.spin', 'Spin (rad/s)', 'number', 16, 'how fast it spins flat', { min: 0, step: 1 }),
-        P('disc.trail', 'Trail', 'bool3', true, 'the faint ribbon behind it'),
+        // pass 95 (lane ITEMS): the trail is a block, one style per look (Frisbee.trail_params); an old `trail: true` reads as
+        // the look's own style and becomes a block when a row below is set
+        P('disc.trail.style', 'Trail style', 'select', null, 'the trail behind the disc: streak = one faint pale ribbon with a brighter thread (the plain disc), sparks = two thin bright lines off the rim and short sparks flicking out (Poison Razors), glow = a wide soft glow with a brighter core (the Flying Saucer), none = no trail; empty = the look\'s own (plain streak, razors sparks, saucer glow)', { options: [opt('streak', 'streak'), opt('sparks', 'sparks'), opt('glow', 'glow'), opt('none', 'none')] }),
+        P('disc.trail.length', 'Trail length (s)', 'number', null, 'seconds the trail lingers behind the disc (a point every 0.025 s); empty = the style\'s own (streak 0.4, sparks 0.32, glow 0.48)', { min: 0.05, step: 0.05 }),
+        P('disc.trail.width', 'Trail width (× radius)', 'number', null, 'the ribbon\'s full width in disc radii, so a bigger disc (Carry) trails wider; for sparks the sparks\' length; empty = the style\'s own (streak 1.5, sparks 0.6, glow 2.2)', { min: 0, step: 0.1 }),
+        P('disc.trail.alpha', 'Trail opacity', 'number', null, 'how solid the trail is at the disc, 0..1, fading to nothing at its end; empty = the style\'s own (streak 0.6, sparks 0.9, glow 0.45)', { min: 0, max: 1, step: 0.05 }),
+        P('disc.trail.colour', 'Trail colour', 'swatch', null, 'the trail\'s colour; empty = the glow colour above lerped toward white (streak 45%, sparks 30%, glow 20%)'),
         P('disc.haze', 'Poison haze', 'bool3', false, 'the Flying Saucer\'s faint green poison haze under it'),
       ] },
     { id: 'carry', label: 'Carry', behaviors: ['Frisbee'], show: 'always', src: 'core/behaviors/Frisbee.gd',
@@ -473,6 +500,8 @@ const AFIELDS = (() => {
     { key: 'reach', label: 'Reach (m)', type: 'number', min: 0, help: 'waits, walking on, until the hero is within reach + radius' },
     { key: 'min_range', label: 'Skip inside (m)', type: 'number', min: 0, help: 'skipped while the hero is nearer than this' },
     { key: 'max_range', label: 'Skip beyond (m)', type: 'number', min: 0, help: 'skipped while the hero is farther than this' },
+    // pass 95 (lane BOSS): EnemyManager._attack_chance_misses
+    { key: 'chance', label: 'Chance', type: 'number', min: 0, max: 1, step: 0.05, help: 'rolled as its turn comes (0..1): a miss skips to the next attack in the list; empty = always plays (the Scorpion\'s tail sniper 0.7)' },
   ];
   const ATTACKS = {
     roll: { label: 'Roll', telegraph: 'line', help: 'rushes along the line at `speed` for `duration` (the boss brain only runs it right)', keys: [k('speed', 'Speed (m/s)', 'number', 12), k('duration', 'Duration (s)', 'number', 1.2), k('damage', 'Damage', 'number', 25, 'x stage x host'), k('length', 'Line length (m)', 'number', null, 'the telegraph\'s line; empty = speed x duration + its radius')] },
@@ -501,6 +530,9 @@ const AFIELDS = (() => {
     tumbleweed_volley: { label: 'Tumbleweed volley', telegraph: 'spokes', help: '`count` tumbleweeds roll out all round for `life` seconds', keys: [k('count', 'Tumbleweeds', 'int', 12), k('speed', 'Speed (m/s)', 'number', 9), k('damage', 'Damage', 'number', 14), k('life', 'Life (s)', 'number', 2.6), k('knockback', 'Knockback', 'number', 14), k('lift', 'Lift (m)', 'number', 2.5), k('spoke_length', 'Spoke length (m)', 'number', null, 'the telegraph\'s lines; empty = how far a tumbleweed rolls')] },
     swoop: { label: 'Swoop', telegraph: 'sector', help: 'a sweep over a wedge ahead, then a fall', keys: [k('count', 'Count', 'int', 14), k('duration', 'Duration (s)', 'number', 0.8), k('fall', 'Fall (s)', 'number', 0.45), k('radius', 'Radius (m)', 'number', 6.5), k('deg', 'Wedge (°)', 'number', 180), k('damage', 'Damage', 'number', 24), k('knockback', 'Knockback', 'number', 14), k('lift', 'Lift (m)', 'number', 3), k('throw', 'Throw', 'number', 12), k('throw_radius', 'Throw radius (m)', 'number', 1.8)] },
     boulder: { label: 'Boulder', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a boulder thrown at the hero\'s spot (Game.throw_boulder reads the whole block)', keys: [k('flight', 'Flight (s)', 'number', 1.6), k('radius', 'Radius (m)', 'number', 4.6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 26), k('lift', 'Lift (m)', 'number', 6), k('creature_frac', 'Crowd share', 'number', 0.5), k('throw', 'Throw', 'number', 22), k('throw_radius', 'Throw radius (m)', 'number', 6.5), k('size', 'Boulder size', 'number', 1.7), k('arc', 'Arc', 'number', 9)] },
+    // pass 95 (lane BOSS): the King's jump and three stomps (EnemyManager._stomp_*), the Scorpion Elite's tail beam (_tail_*)
+    stomp: { label: 'Stomp', telegraph: 'ring', help: 'after the wind-up (and its ring) it springs up and lands `stomps` times, `gap` s on the ground between hops: each landing hurts the hero within `radius` + 0.5 m (`damage` x stage x level x host), pushes him `knockback` at the special share and sends a wave of light and dust over the sand; a ring warns before every landing (the King: the old slam, 60% of its damage a stomp, three of them)', keys: [k('stomps', 'Stomps', 'int', 3), k('gap', 'Gap (s)', 'number', 0.45, 'on the ground between a landing and the next hop (x 1/pace); landings come gap + up + down apart'), k('jump', 'Jump', 'json', null, '{"height": 2.2, "up": 0.35, "down": 0.2}: how high it springs (m), the rise and the fall (s); empty = those', { min: undefined }), k('radius', 'Radius (m)', 'number', 6), k('damage', 'Damage a stomp', 'number', 18), k('knockback', 'Knockback', 'number', 6), k('lift', 'Lift (m)', 'number', null, 'throws the hero up instead of the push (Player.blast)')] },
+    tail_sniper: { label: 'Tail sniper', telegraph: 'none', help: 'the Saiga Sniper\'s shot from any creature: after the wind-up it freezes, red lines gather from the muzzle on the hero and follow him `aim` s, lock `lock` s, a beam crosses the map (the hero on its line takes the damage and `beam.knockback` at the special share, every creature on it a nick and a push); `count` beams one after the other, `gap` s frozen between, each aimed afresh at where he stands (a moving hero dodges the next); then the cooldown. Nothing but a stun, a freeze, a launch, a grab or hiding spoils it', keys: [k('count', 'Beams', 'int', 3), k('gap', 'Gap (s)', 'number', 0.6, 'frozen between a beam and the next aim, and after the last (x 1/pace)'), k('aim', 'Aim (s)', 'number', 1, 'the lines gather on the hero and follow him this long (x 1/pace)'), k('lock', 'Hold (s)', 'number', 0.4, 'the locked line holds still this long before the beam (x 1/pace): the time to step off it'), k('lines', 'Lines', 'int', 8), k('cone_deg', 'Line cone (°)', 'number', 40), k('damage', 'Damage', 'number', 30.8, 'used without Damage from; x stage x level x host'), k('damage_from', 'Damage from', 'enemy', '', 'a sniper creature: its beam\'s own base (the Saiga: the Vulture Raider\'s rocket x 0.7 = 15.4) x Damage x is the base instead'), k('damage_mult', 'Damage x', 'number', 2, 'with Damage from: the Scorpion\'s 2 = twice the Saiga\'s'), k('beam', 'Beam', 'json', null, '{"length": 60, "width": 0.5, "seconds": 0.15, "knockback": 5, "creature_frac": 0.05, "creature_max": 40, "push": 3, "sparks": 1.5}: the Saiga\'s look and numbers without one', { min: undefined }), k('muzzle', 'Muzzle', 'json', null, '{"up": 2, "side": 0, "forward": -0.4}: where the lines and the beam leave, in metres at the def\'s size (the Scorpion\'s tail tip: up along the painting, forward along the aim)', { min: undefined }), k('sfx', 'Sounds', 'json', null, '{"aim", "lock", "shot"}: sound ids over the creature\'s own, over the Saiga\'s (en_sniper_aim, en_sniper_lock, en_sniper_shot)', { min: undefined })] },
   };
   const ATTACK_NAMES = Object.keys(ATTACKS);
   // pass 72 (lane BOSS): the custom attacks of content/boss_attacks (the Boss attacks tab's list; none under Node)
@@ -790,6 +822,16 @@ const AFIELDS = (() => {
   // the evolution form is the weapon's with its own emphasis; the renderer reads `only` (is_evolution)
   const evolution = weapon;
 
+  // pass 95 (lane PASSIVES): a passive item (not a card, not an evolved form) climbs the rarity ladder one rung an
+  // upgrade (PassiveDef.ladder_levels): common 6 levels, uncommon 5, rare 4, epic 3, legendary 2; its top is Evolved.
+  // The game derives max_level from the rarity; the JSON lists every rung's effects (tools/passive_ladder.py).
+  const LADDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+  const ladderIndex = (rarity) => Math.max(LADDER.indexOf(String(rarity == null || rarity === '' ? 'common' : rarity)), 0);
+  const ladderLevels = (rarity) => LADDER.length - 1 - ladderIndex(rarity) + 2;
+  const rungAt = (rarity, level) => (level >= ladderLevels(rarity) ? 'evolved' : LADDER[Math.min(ladderIndex(rarity) + Math.max(level, 1) - 1, LADDER.length - 1)]);
+  const rungName = (rarity, level) => { const r = rungAt(rarity, level); return r === 'evolved' ? 'Evolved' : r.charAt(0).toUpperCase() + r.slice(1); };
+  const onLadder = (d) => !!d && !d.line && !(d.evolves_from != null && String(d.evolves_from).trim() !== '');
+
   const passive = [].concat(
     T('Identity', [
       { key: 'id', label: 'Id', type: 'slug', required: true },
@@ -800,9 +842,9 @@ const AFIELDS = (() => {
       { key: 'line', label: 'Card (line item)', type: 'bool', def: false, help: 'a fortune card (`line` in the JSON; pass 73) takes one of the 5 card slots and evolves when maxed; else a passive item (no cap)' },
     ]),
     T('Levels', [
-      { key: 'levels', label: 'Levels', type: 'level_steps', stats: 'player', target: 'player', help: 'the effects per level (target player; a weapon stat with target all_weapons reaches every weapon, as Kindling does); a card lists one level and repeats it' },
-      { key: 'repeat_last_level', label: 'Repeat the last level', type: 'bool', def: true },
-      { key: 'max_level', label: 'Max level', type: 'int', min: 1, def: 8, help: 'cards 4, evolved cards 1, items 5 / 3 / 1' },
+      { key: 'levels', label: 'Levels', type: 'level_steps', stats: 'player', target: 'player', help: 'the effects per level (target player; a weapon stat with target all_weapons reaches every weapon, as Kindling does); a card lists one level and repeats it; a passive item lists every rung of its rarity ladder (pass 95: its rarity up to legendary, then Evolved)' },
+      { key: 'repeat_last_level', label: 'Repeat the last level', type: 'bool', def: true, help: 'a shorter list repeats its last level up to Max level' },
+      { key: 'max_level', label: 'Max level', type: 'int', min: 1, def: 8, help: 'cards 4, evolved cards 1; a passive item: derived from its rarity (pass 95: common 6, uncommon 5, rare 4, epic 3, legendary 2), the game ignores the number here' },
     ]),
     T('Links', [
       { key: 'pairs_with', label: 'Pairs with', type: 'id_select', kind: 'any_item', help: 'informational' },
@@ -933,7 +975,10 @@ const AFIELDS = (() => {
       R('detail', 'Detail', 'textarea'), R('anatomy', 'Anatomy', 'textarea'), R('keep', 'Keep', 'textarea', 'what every view keeps'), R('words.front', 'Front words', 'textarea'), R('words.fd', 'Front-diagonal words', 'textarea'), R('words.bd', 'Back-diagonal words', 'textarea'), R('words.back', 'Back words', 'textarea'),
       R('look_ref', 'Look reference', 'text', 'a picture of what it looks like (identity, loosely)'), R('motion', 'Motion', 'textarea'), R('death_drivers', 'Death drivers', 'driver', '', { driverKind: 'depth' }), R('death_motion', 'Death motion', 'textarea'), R('death_keep', 'Death frames kept', 'json', '[3, 5, 6, 7, 14, 16, 19, 24]'),
       R('dead', 'Dead still', 'textarea'), R('fps', 'Run fps', 'int', '', { min: 1, def: 20 }), R('directions', 'Directions', 'select', '', { options: (v) => v.directions, def: 8 }), R('side_seeds', 'Side candidates', 'int', '', { min: 1, def: 3 }), R('walk_seeds', 'Walk seeds', 'json', '{view: n}'),
-      R('model_scale', 'Model scale', 'number', '', { min: 0.1, step: 0.05 }), R('no_green', 'No green', 'json', 'true: green held to red; "rb": to red or blue (a light blue look, pass 93); false: off'), R('fit_ref', 'Fit the painting', 'json', 'pass 93: true, 0..1 or [views]: the painting fitted onto the depth figure before the walk')].concat(recipeCommon),
+      R('model_scale', 'Model scale', 'number', '', { min: 0.1, step: 0.05 }), R('no_green', 'No green', 'json', 'true: green held to red; "rb": to red or blue (a light blue look, pass 93); false: off'), R('fit_ref', 'Fit the painting', 'json', 'pass 93: true, 0..1 or [views]: the painting fitted onto the depth figure before the walk'),
+      R('paint_mode', 'Paint mode', 'select', 'pass 94: repaint = the clay repainted, as close to the model as it gets', { options: () => [opt('redraw'), opt('repaint')], def: 'redraw' }), R('anchor', 'Style anchor', 'bool', 'repaint: the style anchor last, the house style kept'), R('style', 'Style line', 'textarea', 'repaint: empty = the house style'),
+      R('clay_src', 'Clay render', 'select', 'repaint: clay.png or look.png', { options: () => [opt('clay'), opt('look')], def: 'clay' }), R('clay_fill', 'Clay fill', 'number', 'repaint: crop the clay so the figure fills this share (0.8)', { min: 0, max: 1, step: 0.05 }),
+      R('init', 'Start from the clay', 'json', '{denoise 0.85, tint, gain, blur}: img2img from the tinted clay'), R('refine', 'Refine rounds', 'json', '{rounds, denoise, steps}'), R('wan', 'Wan settings', 'json', '{steps 4, cfg 1, lora true}: {lora false, steps 20, cfg 3.5} = the full model')].concat(recipeCommon),
     hero_pose5: [R('pose_drivers.front', 'Driver: front', 'driver'), R('pose_drivers.back', 'Driver: back', 'driver'), R('pose_drivers.side', 'Driver: side', 'driver'), R('pose_drivers.fd', 'Driver: front-diagonal', 'driver'), R('pose_drivers.bd', 'Driver: back-diagonal', 'driver'),
       R('still_keys', 'Still keys', 'json', '{view: cache key}'), R('anim_hint', 'Clip subject', 'textarea'), R('pose_motion', 'Pose motion', 'textarea'), R('back_hint', 'Back view', 'textarea'), R('run_fps', 'Run fps', 'int', '', { min: 1, def: 36 })].concat(recipeCommon),
     hero_fit: [R('pose_drivers.front', 'Driver: front', 'driver'), R('pose_drivers.back', 'Driver: back', 'driver'), R('pose_drivers.side', 'Driver: side', 'driver'), R('pose_drivers.fd', 'Driver: front-diagonal', 'driver'), R('pose_drivers.bd', 'Driver: back-diagonal', 'driver'),
@@ -1132,6 +1177,10 @@ const AFIELDS = (() => {
       E('evolves_from', (d, c) => { const t = str(d.evolves_from) && flat(c, 'passives') && findIn(flat(c, 'passives'), d.evolves_from); return str(d.evolves_from) && flat(c, 'passives') && (!t || String(t.evolves_into) !== String((c && c.id) || d.id)); }, (d) => `evolves_from "${d.evolves_from}" is not a passive whose evolves_into is this`),
       E('element', (d, c) => d.element != null && !vals(vocabOf(c).elements).includes(str(d.element)), (d) => `unknown element "${d.element}"`),
       W('weight', (d) => str(d.evolves_from) && Number(d.weight) > 0, 'an evolved card usually weighs 0: it comes from its base card, never on its own'),
+      // pass 95 (lane PASSIVES): a passive item's levels are its rarity ladder (common 6 .. epic 3, the top Evolved)
+      E('levels', (d) => onLadder(d) && Array.isArray(d.levels) && d.levels.length > ladderLevels(d.rarity), (d) => `a ${str(d.rarity) || 'common'} item climbs ${ladderLevels(d.rarity)} levels (its rarity up to legendary, then Evolved): level ${ladderLevels(d.rarity) + 1} and up are never reached`),
+      W('levels', (d) => onLadder(d) && Array.isArray(d.levels) && d.levels.length > 0 && d.levels.length < ladderLevels(d.rarity), (d) => `a ${str(d.rarity) || 'common'} item climbs ${ladderLevels(d.rarity)} levels: the last level listed repeats for the rungs not listed (tools/passive_ladder.py writes every rung)`),
+      W('max_level', (d) => onLadder(d) && d.max_level != null && Number(d.max_level) !== ladderLevels(d.rarity), (d) => `the game derives a passive item's max_level from its rarity (${ladderLevels(d.rarity)} for ${str(d.rarity) || 'common'}): this ${d.max_level} is ignored`),
       W('band', (d, c) => !d.evolves_from && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants ${Math.round(b.lo * 100)}-${Math.round(b.hi * 100)}% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
     ]),
     mutation: [].concat(common('mutation'), rarityRules, [
@@ -1186,6 +1235,8 @@ const AFIELDS = (() => {
     enemy, hero, weapon, evolution, passive, mutation, QUEST_ROWS, SECTIONS, RECIPES, WORDINGS, RULES, options, table, hexToHsv,
     // pass 69 (lane LE)
     perk, PARAM_GROUPS, paramGroupsFor, paramInherited, isBall, PERK_SPECIALS, PERK_PARAM_HELP, perkSpecialOptions, perkSpecialTable,
+    // pass 95 (lane PASSIVES): the passive items' rarity ladder
+    LADDER, ladderLevels, rungAt, rungName, onLadder,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

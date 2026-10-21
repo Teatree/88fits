@@ -218,9 +218,10 @@ func test_desperado_grows_by_the_tenth_of_health_missing() -> void:
 	Run.rebuild_sheets()
 	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base, 0.0001)
 	Run.note_hp(100.0, 100.0)
-	for k in range(5):
+	# (re-pinned in pass 95, lane PASSIVES: four levels on the rarity ladder, +51% at its Evolved top)
+	for k in range(4):
 		Run.add_or_level_passive("desperado")
-	assert_float(Run.player_sheet.get_stat("desperado", 0.0)).is_equal_approx(0.6, 0.0001)
+	assert_float(Run.player_sheet.get_stat("desperado", 0.0)).is_equal_approx(0.51, 0.0001)
 	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base, 0.0001)
 	# half the health gone: half of it, by the tenth
 	Run.note_hp(45.0, 100.0)
@@ -230,12 +231,12 @@ func test_desperado_grows_by_the_tenth_of_health_missing() -> void:
 	Run._desperado_built_ms = -100000
 	Run.tick_timed()
 	assert_bool(Run._desperado_dirty).is_false()
-	assert_float(Run.desperado_might()).is_equal_approx(0.3, 0.0001)
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.3, 0.0001)
+	assert_float(Run.desperado_might()).is_equal_approx(0.255, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.255, 0.0001)
 	# nearly down: nine tenths
 	Run.note_hp(5.0, 100.0)
 	Run.rebuild_sheets()
-	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.54, 0.0001)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base * 1.459, 0.0001)
 	# the pause screen's breakdown names it
 	var named := false
 	for r in Run.player_sheet.breakdown("might"):
@@ -248,7 +249,7 @@ func test_desperado_grows_by_the_tenth_of_health_missing() -> void:
 	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(base, 0.0001)
 	var d: PassiveDef = Registry.passive("desperado")
 	assert_str(d.rarity).is_equal("rare")   # pass 47b: nothing above rare yet
-	assert_int(d.max_level).is_equal(5)
+	assert_int(d.max_level).is_equal(4)   # pass 95: a rare item climbs rare, epic, legendary, Evolved
 
 
 # ---------------------------------------------------------------- the pace of levels

@@ -1,0 +1,38 @@
+{
+  "id": "blue_flame",
+  "name": "Blue Flame",
+  "flavour": "Burns cold. Burns long. Smells terrible.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "dragons_breath",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "The breath burns blue: 25% further, −20% damage, burns last 75% longer.",
+  "vfx": "a pale blue jet of fire from the hero's face and blue flames on everything it set burning",
+  "effects": [
+    {
+      "stat": "range",
+      "op": "mul",
+      "value": 0.25
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.2
+    },
+    {
+      "stat": "fire_duration",
+      "op": "mul",
+      "value": 0.75
+    }
+  ],
+  "params": {
+    "fire_blue": true
+  },
+  "art_prompt": "a small glass bottle of clear cologne beside a cheap lighter burning with a pale blue flame, a long tongue of blue fire bursting sideways",
+  "placeholder": {
+    "color": "#5A8CFF",
+    "glyph": "star"
+  }
+}

@@ -1821,6 +1821,8 @@ func _physics_process(delta: float) -> void:
 		_tick_xp_pulls(delta, hero)
 		# Mother Lode's sweeps (pass 70): now and then every EXP gem on the screen
 		_tick_gem_sweep(delta, hero)
+		# the Magnet power-up (pass 95, lane WORLD): for its seconds every gem and coin within its reach comes
+		_tick_magnet(delta, hero)
 		# the ones lying on the sand within his magnet's reach, and within a turret's pull (pass 61: the grid's cells)
 		_pull_round(hero, magnet, hero, false)
 		for a in _attractors:
@@ -2328,3 +2330,182 @@ func glint_xform(i: int, at: Vector3) -> Transform3D:
 func glint_color(i: int) -> Color:
 	var c: Color = (GLINT_COLOURS[clampi(kind[i], 0, GLINT_COLOURS.size() - 1)] as Color).lerp(Color.WHITE, GLINT_PALE)
 	return Color(c.r, c.g, c.b, glint_level(glint_t[i]))
+
+
+# ---------------------------------------------------------------- the Magnet power-up (pass 95, lane WORLD)
+
+## Pass 95 (lane WORLD; Garry: "Magnet - should not pull everything. Should just affect a big area and work for a time
+## (like 10s) maybe. For that time there should be a 2d magnet icon floating around the Player and the usual UI elements
+## indicating that Player is 'magnetizing' things in that moment. The area of effect should be quite big, around 2.5
+## times larger than the Magnet Epic Item. Making the player move around and such."): the Magnet pickup
+## (content/pickups/magnet_pulse, effect "magnet", Game._apply_magnet_pickup) runs for its `duration` seconds on the
+## buffs' clock, kept in Run.timed under the pickup's id (so the HUD's plate counts it down as Sprint's does, it wears off
+## with the others' toast, and a second Magnet while one runs ADDS its seconds, magnet_start); every tick every gem and
+## coin lying within magnet_r m (flat) of the hero sets off for him on the magnet arc (magnet_pull: never a vacuum gem, a
+## chest or a power-up), so walking about gathers more; a faint ring at the reach every MAGNET_RING_EVERY s while any
+## came; the 2D magnet (MagnetBuff) orbits him meanwhile with its field lines to the nearest ones (magnet_targets).
+## magnet_r = the pickup's params.radius_mult (2.5) x the reach the Magnet card gives at its level 1 (its xp_pull_radius
+## add, magnet_item_reach: 5 m today, so 12.5 m).
+const MAGNET_RING_EVERY := 0.6
+const MAGNET_COLOUR := Color(1.0, 0.71, 0.18, 0.5)
+const MAGNET_ITEM_REACH_FALLBACK := 5.0
+const MAGNET_SFX := "pk_vacuum"
+var magnet_id := ""
+var magnet_r := 0.0
+## How many pickups the running magnet set off this run, and how many magnets were started (tests, the capture).
+var magnet_pulls := 0
+var magnet_starts := 0
+var magnet_buff: MagnetBuff = null
+var _magnet_ring_t := 0.0
+
+
+## The reach the Magnet card gives at its level 1: its first level's `xp_pull_radius` add (the card may be retuned; this
+## follows it), MAGNET_ITEM_REACH_FALLBACK without the card.
+static func magnet_item_reach() -> float:
+	var p: PassiveDef = Registry.passive("magnet")
+	if p != null:
+		for e in p.effects_at_level(1):
+			if e is Effect and str(e.stat) == "xp_pull_radius" and str(e.op) == "add":
+				return maxf(float(e.value), 0.0)
+	return MAGNET_ITEM_REACH_FALLBACK
+
+
+## The power-up's reach: its params.radius_mult (2.5) times the card's level-1 reach.
+static func magnet_radius(def: PickupDef) -> float:
+	var mult: float = float(def.params.get("radius_mult", 2.5)) if def != null else 2.5
+	return maxf(mult, 0.0) * magnet_item_reach()
+
+
+## The Magnet starts, or runs `seconds` longer when one runs already (the seconds are the power-up's, before the hero's
+## buff_seconds, which Run.add_timed_effects applies; the extension keeps what is left). Returns the seconds it runs from
+## now, as the HUD's plate shows them.
+func magnet_start(def: PickupDef, seconds: float) -> float:
+	if def == null or Run.player_sheet == null:
+		return 0.0
+	var left := Run.boost_left(def.id)
+	var total := left + Run.buff_seconds(maxf(seconds, 0.0))
+	var mult := maxf(Run.player_sheet.get_stat("buff_duration", 1.0), 0.0)
+	Run.add_timed_effects(def.id, def.display_name, [], total / mult if mult > 0.0 else total)
+	magnet_id = def.id
+	magnet_r = magnet_radius(def)
+	magnet_starts += 1
+	_magnet_ring_t = 0.0
+	var hero := _hero_at()
+	_magnet_show()
+	Audio.play(MAGNET_SFX, hero if hero != Vector3.INF else Vector3.ZERO)
+	return total
+
+
+## Whether the Magnet runs now (its seconds left on the buffs' clock, Run.boost_left).
+func magnet_running() -> bool:
+	return magnet_id != "" and Run.boost_left(magnet_id) > 0.0
+
+
+func magnet_left() -> float:
+	return Run.boost_left(magnet_id) if magnet_id != "" else 0.0
+
+
+## One tick of the Magnet (the pickups' tick, while the hero is up): the pull round him, the ring, the icon.
+func _tick_magnet(delta: float, hero: Vector3) -> void:
+	if not magnet_running():
+		if magnet_buff != null:
+			if is_instance_valid(magnet_buff):
+				magnet_buff.queue_free()
+			magnet_buff = null
+		return
+	var n := magnet_pull(hero, magnet_r)
+	magnet_pulls += n
+	_magnet_ring_t -= delta
+	if n > 0 and _magnet_ring_t <= 0.0:
+		_magnet_ring_t = MAGNET_RING_EVERY
+		var tg = game.get("telegraphs") if game != null else null
+		if tg != null and tg.has_method("flash_ring"):
+			tg.flash_ring(hero, magnet_r, MAGNET_COLOUR, 0.45)
+	_magnet_show()
+	if magnet_buff != null:
+		magnet_buff.follow(hero, magnet_targets(hero, magnet_r, MagnetBuff.LINES), magnet_left(), delta)
+
+
+## The 2D magnet comes (once; never in the run sim's fast mode, which draws nothing).
+func _magnet_show() -> void:
+	if magnet_buff != null or game == null or bool(Run.get("sim_mode")):
+		return
+	var def: PickupDef = Registry.pickup(magnet_id)
+	if def == null:
+		return
+	var mb := MagnetBuff.new()
+	mb.setup(def)
+	mb.fx = game.get("fx")
+	game.add_child(mb)
+	magnet_buff = mb
+
+
+## Every gem and coin lying within `r` m (flat) of `c` sets off for the hero on the magnet arc (the big pull's look);
+## never a vacuum gem (its own pull would take the whole map). How many set off.
+func magnet_pull(c: Vector3, r: float) -> int:
+	if _cap <= 0 or r <= 0.0 or _g_head.is_empty():
+		return 0
+	var hero := _hero_at()
+	if hero == Vector3.INF:
+		hero = c
+	var x0 := _cell_x(c.x - r)
+	var x1 := _cell_x(c.x + r)
+	var z0 := _cell_x(c.z - r)
+	var z1 := _cell_x(c.z + r)
+	var r2 := r * r
+	var n := 0
+	for cz in range(z0, z1 + 1):
+		for cx in range(x0, x1 + 1):
+			var i := _g_head[cz * GRID_N + cx]
+			while i >= 0:
+				var nx := _g_next[i]
+				if kind[i] != KIND_VACUUM:
+					var dx := pos[i].x - c.x
+					var dz := pos[i].z - c.z
+					if dx * dx + dz * dz < r2:
+						_start_trip(i, hero, true)
+						n += 1
+				i = nx
+	return n
+
+
+## Up to `n` spots the magnet's field lines point at, nearest first: the gems and coins on their way to the hero on the
+## arc, then the ones lying past the reach `r` but within MAGNET_LOOK x r of `c` (the next to come as he walks).
+const MAGNET_LOOK := 1.6
+func magnet_targets(c: Vector3, r: float, n: int) -> PackedVector3Array:
+	var best: Array = []
+	if _cap > 0:
+		for i in _act:
+			if alive[i] == 1 and flying[i] == 1 and arced[i] == 1 and kind[i] != KIND_VACUUM:
+				_magnet_consider(best, pos[i], Vector2(pos[i].x - c.x, pos[i].z - c.z).length_squared(), n)
+		if best.size() < n and not _g_head.is_empty():
+			var look := r * MAGNET_LOOK
+			var x0 := _cell_x(c.x - look)
+			var x1 := _cell_x(c.x + look)
+			var z0 := _cell_x(c.z - look)
+			var z1 := _cell_x(c.z + look)
+			for cz in range(z0, z1 + 1):
+				for cx in range(x0, x1 + 1):
+					var i := _g_head[cz * GRID_N + cx]
+					while i >= 0:
+						if kind[i] != KIND_VACUUM:
+							var d2 := Vector2(pos[i].x - c.x, pos[i].z - c.z).length_squared()
+							if d2 < look * look:
+								_magnet_consider(best, pos[i], d2, n)
+						i = _g_next[i]
+	var out := PackedVector3Array()
+	for b in best:
+		out.append(b[0])
+	return out
+
+
+## Keeps `best` (pairs [pos, d2], nearest first) to `n` entries.
+static func _magnet_consider(best: Array, p: Vector3, d2: float, n: int) -> void:
+	var k := 0
+	while k < best.size() and float(best[k][1]) <= d2:
+		k += 1
+	if k >= n:
+		return
+	best.insert(k, [p, d2])
+	if best.size() > n:
+		best.resize(n)

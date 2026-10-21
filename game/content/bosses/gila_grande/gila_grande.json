@@ -4,7 +4,7 @@
   "flavour": "Slow to anger. You have angered it.",
   "archetype": "boss",
   "brain": "boss",
-  "hp": 2400,
+  "hp": 4800,
   "speed": 1.4,
   "damage": 24,
   "knockback": 7.0,

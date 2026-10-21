@@ -75,10 +75,11 @@ func test_passive_stats_reach_the_player_sheet() -> void:
 	Run.rebuild_sheets()
 	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal_approx(0.08, 0.001)
 	assert_float(Run.player_sheet.get_stat("crit_damage", 0.0)).is_equal_approx(2.0, 0.001)
-	assert_float(Run.player_sheet.get_stat("execute_frac", 0.0)).is_equal_approx(0.07, 0.001)
+	# (re-pinned in pass 95, lane PASSIVES: the items' first rungs are higher)
+	assert_float(Run.player_sheet.get_stat("execute_frac", 0.0)).is_equal_approx(0.09, 0.001)
 	assert_float(Run.player_sheet.get_stat("thorns", 0.0)).is_equal_approx(8.0, 0.001)
-	assert_float(Run.player_sheet.get_stat("overkill", 0.0)).is_equal_approx(0.34, 0.001)
-	assert_float(Run.player_sheet.get_stat("ricochet", 0.0)).is_equal_approx(0.2, 0.001)
+	assert_float(Run.player_sheet.get_stat("overkill", 0.0)).is_equal_approx(0.4, 0.001)
+	assert_float(Run.player_sheet.get_stat("ricochet", 0.0)).is_equal_approx(0.25, 0.001)
 	assert_float(Run.player_sheet.get_stat("xp_gain", 0.0)).is_equal_approx(1.08, 0.001)
 
 

@@ -249,6 +249,39 @@ func aim_origin(dir: Vector3) -> Vector3:
 	return global_position + Vector3(0, 0.8, 0) + d.normalized() * 0.5
 
 
+## Pass 95 (lane BREATH): where his face is when he looks along `dir` (the Dragon's Breath starts there, no 3D object):
+## FACE_UP metres up his 1.9 m painting, FACE_FORWARD out, so the fire leaves in front of the painting, not through it.
+const FACE_UP := 1.45
+const FACE_FORWARD := 0.3
+
+
+func face_origin(dir: Vector3) -> Vector3:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length_squared() < 0.0001:
+		d = forward()
+	return global_position + Vector3(0, FACE_UP, 0) + d.normalized() * FACE_FORWARD
+
+
+## Pass 95 (lane BREATH): seconds he has stood still AND unhit (Held Breath's rule: "being hit by anything breaks up this
+## effect"): his still seconds (still_seconds, untouched: Steady Hand keeps reading those), or the seconds since the last
+## hit that landed on his star, his shield or his health (take_damage: an evaded or immune hit is a miss and does not
+## count), whichever is shorter.
+var _hit_ago := 1.0e9
+
+
+func still_unhit_seconds() -> float:
+	return minf(still_seconds(), _hit_ago)
+
+
+## take_damage's hook: a hit landed now.
+func _note_hit_for_still() -> void:
+	_hit_ago = 0.0
+
+
+func _tick_hit_ago(delta: float) -> void:
+	_hit_ago = minf(_hit_ago + delta, 1.0e9)
+
+
 func _physics_process(delta: float) -> void:
 	var _t0 := Time.get_ticks_usec()
 	_note_hp()
@@ -423,6 +456,7 @@ func _tick_still(delta: float, planar: Vector3, stepped: Vector3, on_floor: bool
 	var s := still_seconds()
 	if s != noted_still:
 		_note_still(s)
+	_tick_hit_ago(delta)   # pass 95 (lane BREATH): still_unhit_seconds
 
 
 ## Seconds he has stood still, counted from when he counts as still (0 while he moves).
@@ -962,6 +996,8 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 		# pass 87 (lane FIXES): he turns see-through for a second
 		_evade_ghost_start()
 		return
+	# pass 95 (lane BREATH): from here the hit lands (on the star, the shield or his health): his stillness is broken
+	_note_hit_for_still()
 	# Marshal's Star (pass 70, lane LINES): a ready star takes the whole hit
 	if _star_block(amount, info):
 		return

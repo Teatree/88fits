@@ -10,7 +10,39 @@
       {
         "stat": "area",
         "op": "mul",
-        "value": 0.08,
+        "value": 0.1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.06,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.06,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.06,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.1,
         "target": "player"
       }
     ]

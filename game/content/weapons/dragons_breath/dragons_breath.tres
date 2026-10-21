@@ -1,0 +1,103 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/dragons_breath/dragons_breath_icon.png" id="1_jcl3h"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_a2ftk"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_ecihj"]
+
+[sub_resource type="Resource" id="Resource_jcl3h"]
+script = ExtResource("2_a2ftk")
+stat = "damage"
+op = "mul"
+value = 0.35
+
+[sub_resource type="Resource" id="Resource_a2ftk"]
+script = ExtResource("2_a2ftk")
+stat = "range"
+value = 0.5
+
+[sub_resource type="Resource" id="Resource_ecihj"]
+script = ExtResource("2_a2ftk")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_siwp0"]
+script = ExtResource("2_a2ftk")
+stat = "fire_damage"
+op = "mul"
+value = 0.5
+
+[sub_resource type="Resource" id="Resource_myugl"]
+script = ExtResource("2_a2ftk")
+stat = "damage"
+op = "mul"
+value = 0.35
+
+[sub_resource type="Resource" id="Resource_nwwuj"]
+script = ExtResource("2_a2ftk")
+stat = "area"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_vga15"]
+script = ExtResource("2_a2ftk")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_smsww"]
+script = ExtResource("2_a2ftk")
+stat = "range"
+value = 0.5
+
+[sub_resource type="Resource" id="Resource_gri3p"]
+script = ExtResource("2_a2ftk")
+stat = "duration"
+value = 1.0
+
+[resource]
+script = ExtResource("3_ecihj")
+behavior = "FireBreath"
+targeting = "forward"
+base = {
+"amount": 1.0,
+"area": 1.0,
+"cooldown": 9.0,
+"damage": 32.0,
+"duration": 2.0,
+"fire_damage": 6.0,
+"fire_duration": 2.5,
+"fire_spread": 0.3,
+"range": 5.0
+}
+levels = [[], [SubResource("Resource_jcl3h"), SubResource("Resource_a2ftk")], [SubResource("Resource_ecihj"), SubResource("Resource_siwp0")], [SubResource("Resource_myugl"), SubResource("Resource_nwwuj")], [SubResource("Resource_vga15"), SubResource("Resource_smsww"), SubResource("Resource_gri3p")]]
+max_level = 5
+evolves_into = "fire_eater"
+sfx = {
+"fire": "w_breath_start",
+"loop": "w_breath_loop"
+}
+visual_file = "dragons_breath_visual.tscn"
+params = {
+"breath": {
+"cone_deg": 50.0,
+"look": {
+"intensity": 1.0
+},
+"max_seconds": 6.0,
+"seconds_per_amount": 1.0,
+"tick": 1.0,
+"wait": 2.0
+}
+}
+id = "dragons_breath"
+display_name = "Dragon's Breath"
+flavour = "A squirt of cologne, a cheap lighter, and no sense at all."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_jcl3h")
+icon_file = "dragons_breath_icon.png"
+placeholder = {
+"color": "#FF7A1E",
+"glyph": "bottle"
+}

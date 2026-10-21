@@ -84,7 +84,9 @@ func test_the_common_plate_is_a_light_grey() -> void:
 			common_item = p
 			break
 	assert_object(common_item).is_not_null()
-	assert_bool(W.plate_fill(common_item, 3).is_equal_approx(c)).is_true()
+	assert_bool(W.plate_fill(common_item, 1).is_equal_approx(c)).is_true()
+	# pass 95 (lane PASSIVES): a common item climbs the ladder a level: its third level is rare
+	assert_bool(W.plate_fill(common_item, 3).is_equal_approx(W.RARITY_PLATE["rare"])).is_true()
 	var plate: WPlate = auto_free(WPlate.new().for_def(Registry.weapon("peashooter"), 72.0, false, 1))
 	assert_bool(plate.fill.is_equal_approx(c)).is_true()
 	# the other tiers as they were

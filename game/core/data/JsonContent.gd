@@ -77,6 +77,8 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 	# pass 73 (lane CARDS): an item playing a look (a card's B-E) shows that look's icon (PassiveDef.wear_look)
 	if res is PassiveDef:
 		(res as PassiveDef).wear_look("")
+		# pass 95 (lane PASSIVES): a passive item's levels come from the rarity ladder (its rarity is read by now)
+		(res as PassiveDef).apply_ladder()
 	# pass 76 (lane LOOKS): a weapon family's looks (ItemLooks), read but not worn: the def keeps its top level (the .tres
 	# too), Registry.apply_item_looks puts the family's look on
 	if res is WeaponDef or res is MutationDef:
@@ -181,6 +183,8 @@ static func _passive(d: Dictionary, dir: String) -> PassiveDef:
 	p.line = bool(d.get("line", false))
 	# pass 73 (lane CARDS): its looks (the cards' A-E)
 	_passive_variants(p, d, dir)
+	# pass 95 (lane PASSIVES): the icon of an item's Evolved rung (`icon_evolved`, else <id>_icon_evolved.png; none = base)
+	p.evolved_icon = resolve_texture(dir, str(d.get("icon_evolved", str(d.get("id", "")) + "_icon_evolved.png")))
 	return p
 
 
@@ -739,6 +743,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.water_slow = float(t.get("water_slow", WaveTimeline.WATER_SLOW_DEFAULT))
 	var oas = t.get("oases", {})
 	w.oases = oas if oas is Dictionary else {}
+	# pass 95 (lane WORLD): far creatures despawn out of view (read as it is; WaveTimeline.DESPAWN_DEFAULTS fill gaps)
+	var dsp = t.get("despawn", {})
+	w.despawn = dsp if dsp is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

@@ -114,7 +114,7 @@ NEW_WEAPON_STARTS_HIDDEN = True
 # five passive items came unlocked; selftest_L69 reads the bounds from the test file)
 BAND_LO, BAND_HI = 0.28, 0.56
 # tools/dl roots the page may read through /dl/<rel> (plus any root whose name starts with "icons")
-DL_ROOTS = ("jobs", "drivers", "ai_raw_anime", "ai_anim", "review", "title_heroes", "uploads", "puppet")
+DL_ROOTS = ("jobs", "drivers", "ai_raw_anime", "ai_anim", "review", "title_heroes", "uploads", "puppet", "frames")   # pass 95: the frames store
 DL_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".json", ".txt", ".glb")
 # pass 71 (lane PLE): the Puppet method's files (tools/dl/puppet/<hero>/: the arms-out paintings, the shape, the rig's
 # x-rays, <hero>_puppet.glb with its clips) and the page's 3D viewer, vendored (tools/level_editor/vendor/: Google's
@@ -135,6 +135,7 @@ import vocab as VOCAB  # noqa: E402
 import boss_attacks_io as BAIO  # noqa: E402  (pass 72, lane BOSS: the custom boss attacks' routes)
 import sim_io as SIMIO  # noqa: E402  (pass 77, lane SIMUI: the Sim tab's routes, /api/sim/...)
 import drivers_io as DRVIO  # noqa: E402  (pass 93, lane PREVIEW: the driver library, /api/drivers[/<name>], /api/painted_death)
+import frames_io as FRIO  # noqa: E402  (pass 95, lane VACE: the frames store's routes, /api/frames/...)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -3169,7 +3170,8 @@ class Hooks:
                 update.pop("icon")
             if kind == "hero" and "frame_px" not in update and isinstance(existing.get("recipe"), dict) and existing["recipe"].get("frame_px"):
                 update["frame_px"] = existing["recipe"]["frame_px"]
-            update["fresh"] = True
+            if str((info or {}).get("pipeline") or "") not in ("frames_export", "frames_rollback"):
+                update["fresh"] = True   # pass 95 resume (AN-09): a Frames export is Garry's own choice of frames, never a NEW look
             merged = cio.merge_entry(existing, update)
             t_entry = cio.set_variant_entry(text, code, update)
             new_vs = dict(vs)
@@ -3198,8 +3200,11 @@ class Hooks:
             backup_rel = backup(cid, path)
             cio.write_atomic(path, out)
             d2 = json.loads(out)
+        # pass 95 (lane VACE): the landed strip's frames into the frames store (new cells become versions, selected
+        # unless a human pinned the slot); never fails the landing
+        frames_sync = FRIO.on_look_landed(kind, cid, code) if merged.get("sprite") else None
         return {"ok": True, "layout": layout, "file": rel(path), "keys": keys, "backup": backup_rel, "code": code,
-                "base": base, "entry": d2["variants"][code]}
+                "base": base, "entry": d2["variants"][code], "frames": frames_sync}
 
     def merge_top(self, kind, cid, top):
         """A base run's top-level keys (anims, strip_cols, fps, head; art_prompt only when absent; a hero badge install's
@@ -4005,6 +4010,9 @@ class Handler(BaseHTTPRequestHandler):
         if (len(parts) == 2 and parts[0] == "drivers") or (len(parts) == 3 and parts[0] == "painted_death"):
             # pass 93 (lane PREVIEW): one driver with every frame and still; a creature_ctl look's painted death
             return DRVIO.api_get(self, sys.modules[__name__], parts, query)
+        if parts[:1] == ["frames"]:
+            # pass 95 (lane VACE): the Frames view (frames_io.py: a look's groups, one group's slots and versions, other looks')
+            return FRIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if len(parts) == 2 and parts[0] == "puppet":
             # pass 71 (lane PLE): what the Puppet method has of a hero and what its form offers
             if not ID_RE.match(parts[1]):
@@ -4333,6 +4341,10 @@ class Handler(BaseHTTPRequestHandler):
                 # pass 93 (lane PREVIEW): Explorer on a driver's folder (drivers_io.open_folder: a library folder only)
                 data, err = self._body()
                 return DRVIO.api_post(self, sys.modules[__name__], parts[1:], data if isinstance(data, dict) else {})
+            if parts[:2] == ["api", "frames"]:
+                # pass 95 (lane VACE): stage / unstage / pin / copy / repair / ask / export / register (frames_io.py)
+                data, err = self._body()
+                return FRIO.api_post(self, sys.modules[__name__], parts[2:], data if isinstance(data, dict) else {})
             if parts[:2] == ["api", "sim"]:
                 # pass 77 (lane SIMUI): the Sim tab's run, settings, keep / delete / cancel, unlock (sim_io.py)
                 return SIMIO.api_post(self, sys.modules[__name__], parts[2:])

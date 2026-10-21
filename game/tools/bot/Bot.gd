@@ -999,7 +999,8 @@ func _replan(now: float) -> void:
 ## Pass 85: whether a vacuum power-up lies within BotGoals.PU_SEE m of `me` (the XP lying is counted for it then).
 static func _vacuum_lying(pk, me: Vector3) -> bool:
 	for sp in pk.specials:
-		if not is_instance_valid(sp) or bool(sp.taken) or sp.def == null or str(sp.def.effect_kind) != "vacuum":
+		# (pass 95, lane WORLD: the Magnet is a timed wide pull now, "magnet"; priced by the XP lying like the vacuum)
+		if not is_instance_valid(sp) or bool(sp.taken) or sp.def == null or not (str(sp.def.effect_kind) in ["vacuum", "magnet"]):
 			continue
 		var at: Vector3 = (sp as Node3D).global_position
 		if Vector2(at.x - me.x, at.z - me.z).length() <= GOALS.PU_SEE:

@@ -4,7 +4,7 @@
   "flavour": "Half a boss. All of the attitude.",
   "archetype": "elite",
   "brain": "charge",
-  "hp": 260,
+  "hp": 500,
   "speed": 1.5,
   "damage": 18,
   "knockback": 7.0,
@@ -72,7 +72,7 @@
   },
   "outline_frac": 0.011,
   "outline_color": "#5A3A24",
-  "doc": "The Elite that fights up close: it charges down a red line, and between charges it sinks into the sand and bursts up under the hero's feet (throwing him and the crowd a little), slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him.",
+  "doc": "The Elite that fights up close: it charges down a red line, and between charges it sinks into the sand and bursts up under the hero's feet (throwing him and the crowd a little), slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him. Pass 95: now and then (7 in 10 turns, never with the hero within 5 m) it freezes and its tail aims the Saiga Sniper's beam at him three times in a row, each aimed afresh: twice the Saiga's damage a beam, the same red lines, lock and laser.",
   "boss": {
     "attacks": [
       {
@@ -111,6 +111,37 @@
         "shot": "spike",
         "knockback": 5.0,
         "telegraph": "fan"
+      },
+      {
+        "name": "tail_sniper",
+        "windup": 0.5,
+        "count": 3,
+        "gap": 0.6,
+        "aim": 1.0,
+        "lock": 0.4,
+        "lines": 8,
+        "cone_deg": 40.0,
+        "damage_from": "saiga_sniper",
+        "damage_mult": 2.0,
+        "damage": 30.8,
+        "chance": 0.7,
+        "min_range": 5.0,
+        "beam": {
+          "length": 60.0,
+          "width": 0.5,
+          "seconds": 0.15,
+          "knockback": 5.0,
+          "creature_frac": 0.05,
+          "creature_max": 40.0,
+          "push": 3.0,
+          "sparks": 1.5
+        },
+        "muzzle": {
+          "up": 2.0,
+          "side": 0.0,
+          "forward": -0.4
+        },
+        "telegraph": "none"
       }
     ],
     "cooldown_between": 4.5

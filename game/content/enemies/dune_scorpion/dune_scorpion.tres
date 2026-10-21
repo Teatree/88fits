@@ -15,9 +15,9 @@
 [resource]
 script = ExtResource("1_mvnul")
 archetype = "elite"
-doc = "The Elite that fights up close: it charges down a red line, and between charges it sinks into the sand and bursts up under the hero's feet (throwing him and the crowd a little), slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him."
+doc = "The Elite that fights up close: it charges down a red line, and between charges it sinks into the sand and bursts up under the hero's feet (throwing him and the crowd a little), slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him. Pass 95: now and then (7 in 10 turns, never with the hero within 5 m) it freezes and its tail aims the Saiga Sniper's beam at him three times in a row, each aimed afresh: twice the Saiga's damage a beam, the same red lines, lock and laser."
 brain = "charge"
-hp = 260.0
+hp = 500.0
 speed = 1.5
 damage = 18.0
 radius = 1.1
@@ -290,6 +290,36 @@ boss = {
 "straight": true,
 "telegraph": "fan",
 "windup": 0.8
+}, {
+"aim": 1.0,
+"beam": {
+"creature_frac": 0.05,
+"creature_max": 40.0,
+"knockback": 5.0,
+"length": 60.0,
+"push": 3.0,
+"seconds": 0.15,
+"sparks": 1.5,
+"width": 0.5
+},
+"chance": 0.7,
+"cone_deg": 40.0,
+"count": 3.0,
+"damage": 30.8,
+"damage_from": "saiga_sniper",
+"damage_mult": 2.0,
+"gap": 0.6,
+"lines": 8.0,
+"lock": 0.4,
+"min_range": 5.0,
+"muzzle": {
+"forward": -0.4,
+"side": 0.0,
+"up": 2.0
+},
+"name": "tail_sniper",
+"telegraph": "none",
+"windup": 0.5
 }],
 "cooldown_between": 4.5
 }

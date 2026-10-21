@@ -685,6 +685,9 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 	var gold_by := {}
 	var dmg_by := {}
 	var kills_by := {}
+	# pass 95 (lane WORLD): the regular creatures that went far from the hero, out of view (cumulative, like the kills)
+	var despawned_by := {}
+	var desp_acc := {}
 	var gold_acc := {}
 	var dmg_acc := {}
 	var kills_acc := {}
@@ -783,6 +786,8 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 		kills.append(int(r.get("kills", 0)))
 		var kd = r.get("killed", {})
 		_step(kills_by, kills_acc, kd if kd is Dictionary else {}, i, true, false)
+		var dd = r.get("despawned", {})
+		_step(despawned_by, desp_acc, dd if dd is Dictionary else {}, i, true, false)
 		level.append(int(r.get("level", 1)))
 		xp_total.append(snappedf(float(r.get("xp_total", 0.0)), 0.1))
 		var lost := 0.0
@@ -835,6 +840,7 @@ static func series(rows: Array, rec: Array, tool_events: Array, end_ev: Dictiona
 	out["dmg_by"] = dmg_by
 	out["kills"] = kills
 	out["kills_by"] = kills_by
+	out["despawned_by"] = despawned_by
 	out["level"] = level
 	out["xp_total"] = xp_total
 	out["took"] = took

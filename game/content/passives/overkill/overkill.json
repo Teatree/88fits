@@ -4,13 +4,45 @@
   "flavour": "The damage past a kill splashes onto whoever stood next to it.",
   "rarity": "uncommon",
   "weight": 5,
-  "max_level": 3,
+  "max_level": 5,
   "levels": [
     [
       {
         "stat": "overkill",
         "op": "add",
-        "value": 0.34,
+        "value": 0.4,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "overkill",
+        "op": "add",
+        "value": 0.15,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "overkill",
+        "op": "add",
+        "value": 0.15,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "overkill",
+        "op": "add",
+        "value": 0.15,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "overkill",
+        "op": "add",
+        "value": 0.25,
         "target": "player"
       }
     ]

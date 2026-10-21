@@ -2,19 +2,33 @@
 
 [ext_resource type="Texture2D" path="res://content/passives/gas_mask/gas_mask_icon.png" id="1_8emtn"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_51q0g"]
+[ext_resource type="Texture2D" path="res://content/passives/gas_mask/gas_mask_icon_evolved.png" id="1_78s5d"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_8emtn"]
 
-[sub_resource type="Resource" id="Resource_8emtn"]
+[sub_resource type="Resource" id="Resource_78s5d"]
+script = ExtResource("1_51q0g")
+stat = "gas_mask_cap"
+value = 0.12
+target = "player"
+
+[sub_resource type="Resource" id="Resource_x5ma5"]
 script = ExtResource("1_51q0g")
 stat = "gas_mask_cap"
 value = 0.08
 target = "player"
 
+[sub_resource type="Resource" id="Resource_epx1k"]
+script = ExtResource("1_51q0g")
+stat = "gas_mask_cap"
+value = 0.1
+target = "player"
+
 [resource]
 script = ExtResource("2_8emtn")
-levels = [[SubResource("Resource_8emtn")]]
-max_level = 5
-text = "1% damage reduction for every poisoned enemy, up to 8% (+8% a level, 40% at level 5)."
+levels = [[SubResource("Resource_78s5d")], [SubResource("Resource_x5ma5")], [SubResource("Resource_epx1k")]]
+max_level = 3
+text = "1% damage reduction for every poisoned enemy, up to 12% (20% at level 2, 30% once Evolved)."
+evolved_icon = ExtResource("1_78s5d")
 id = "gas_mask"
 display_name = "Gas Mask"
 flavour = "Breathe easy in the bad air."

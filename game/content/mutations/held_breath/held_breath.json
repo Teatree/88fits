@@ -1,0 +1,29 @@
+{
+  "id": "held_breath",
+  "name": "Held Breath",
+  "flavour": "Plant your feet. Fill your lungs. Let them come.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "dragons_breath",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Stand still 2 s before a breath: it lasts twice as long, hits ×1.5 and comes from all sides. A hit breaks the stillness.",
+  "vfx": "a full ring of fire round the hero's head when he has stood still, twice as long",
+  "effects": [],
+  "params": {
+    "breath": {
+      "still": {
+        "seconds": 2.0,
+        "duration_mult": 2.0,
+        "damage_mult": 1.5,
+        "ring": true
+      }
+    }
+  },
+  "art_prompt": "a ring of orange fire seen from above, flames licking outwards all the way round a calm dark centre",
+  "placeholder": {
+    "color": "#FFB030",
+    "glyph": "ring"
+  }
+}

@@ -3,21 +3,49 @@
   "name": "Skedaddle",
   "rarity": "rare",
   "weight": 7,
-  "max_level": 5,
+  "max_level": 4,
   "flavour": "When the lead flies, so do you.",
-  "text": "After a hit, run 20% faster for 1.5 s (+5% and +0.5 s a level).",
+  "text": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
   "levels": [
     [
       {
         "stat": "hurt_speed",
         "op": "add",
-        "value": 0.2,
+        "value": 0.25,
         "target": "player"
       },
       {
         "stat": "hurt_speed_seconds",
         "op": "add",
-        "value": 1.5,
+        "value": 2.0,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "hurt_speed",
+        "op": "add",
+        "value": 0.03,
+        "target": "player"
+      },
+      {
+        "stat": "hurt_speed_seconds",
+        "op": "add",
+        "value": 0.3,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "hurt_speed",
+        "op": "add",
+        "value": 0.03,
+        "target": "player"
+      },
+      {
+        "stat": "hurt_speed_seconds",
+        "op": "add",
+        "value": 0.3,
         "target": "player"
       }
     ],

@@ -210,7 +210,7 @@ const Enemies = (() => {
     });
     out.push(list);
     const addSel = Forms.select(F.attackOptions(), '', (v) => { if (v) write((arr) => { arr.push({ name: v }); }); }, { emptyLabel: '+ attack ▾', path: 'boss.attacks.add' });
-    out.push(el('div', { class: 'alt-actions' }, addSel, el('span', { class: 'muted small', text: 'the 14 names EnemyManager knows, then the custom attacks (★, pass 72: made on the Boss attacks tab without code: a rain, a volley, a ring, a slam or a built-in with your numbers)' })));
+    out.push(el('div', { class: 'alt-actions' }, addSel, el('span', { class: 'muted small', text: 'the 16 names EnemyManager knows, then the custom attacks (★, pass 72: made on the Boss attacks tab without code: a rain, a volley, a ring, a slam or a built-in with your numbers)' })));
     const m = iss.marks['boss.attacks'];
     if (m) out.push(el('div', { class: 'ferr ' + m.level, 'data-key': 'boss.attacks', text: m.msgs.join(' · ') }));
     if (attacks.length) out.push(sequenceLine(d, pf, doc.ui.map || 'red_canyon', tl));
@@ -230,6 +230,8 @@ const Enemies = (() => {
     } else if (r.type === 'bool') ctl = Forms.bool3Input({ key: path }, val, (v) => setKey(r.key, v), { path, placeholder: ph || 'no' });
     else if (r.type === 'enemy') ctl = Forms.enemyPick(val || '', (v) => setKey(r.key, v), { path, summary: false, emptyLabel: r.key === 'enemy' ? '— (the game\'s default "coyote" no longer exists)' : '—' });
     else if (r.type === 'text') ctl = Forms.textInput({ key: path }, val, (v) => setKey(r.key, v), { path, placeholder: ph });
+    // pass 95 (lane BOSS): a nested block (the stomp's jump, the tail sniper's beam / muzzle / sfx) as JSON; kept as typed until it parses
+    else if (r.type === 'json') ctl = Forms.textareaInput({ key: path }, val == null ? '' : JSON.stringify(val), (v) => { if (v == null || String(v).trim() === '') { setKey(r.key, null); return; } try { setKey(r.key, JSON.parse(v)); } catch (e) { /* not JSON yet */ } }, { path, rows: 1, placeholder: ph || '{}' });
     else ctl = Forms.numberInput({ key: path, min: r.min, step: r.type === 'int' ? 1 : (r.step || 'any'), int: r.type === 'int' }, val, (v) => setKey(r.key, v), { path, placeholder: ph, cls: 'short' });
     return Forms.row({ key: path, label: r.label, help: r.help || '' }, ctl, {});
   }

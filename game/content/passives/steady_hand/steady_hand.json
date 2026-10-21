@@ -4,13 +4,29 @@
   "flavour": "Breathe out. Squeeze.",
   "rarity": "rare",
   "weight": 8,
-  "max_level": 5,
+  "max_level": 4,
   "levels": [
     [
       {
         "stat": "still_might",
         "op": "add",
-        "value": 0.1,
+        "value": 0.13,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "still_might",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "still_might",
+        "op": "add",
+        "value": 0.04,
         "target": "player"
       }
     ],
@@ -24,7 +40,7 @@
     ]
   ],
   "repeat_last_level": true,
-  "text": "The longer you stand still, the harder you hit: +10% attack damage a second (5% faster each level), up to +100%. Moving drops it.",
+  "text": "The longer you stand still, the harder you hit: +13% attack damage a second (faster each rung), up to +100%. Moving drops it.",
   "art_prompt": "a brown leather-gloved hand holding a silver revolver perfectly level and still, pointing to the right, a thin straight red aiming line from its barrel",
   "placeholder": {
     "color": "#C0C8D0",

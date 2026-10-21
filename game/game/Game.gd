@@ -1132,6 +1132,10 @@ func visible_modals() -> Array:
 			["shop", structure_shop], ["stranger", stranger_screen], ["totem", totem_screen], ["pause", pause_screen]]:
 		var n = pair[1]
 		if n != null and is_instance_valid(n) and (n as CanvasItem).visible:
+			# pass 95 (lead): the Spirit Pole plays a 0.42 s close after its pick (`_done`) while the next screen may
+			# already open after MODAL_BEAT; a closing totem is not a screen that is up
+			if pair[0] == "totem" and bool(n.get("_done")):
+				continue
 			out.append(pair[0])
 	return out
 
@@ -1320,6 +1324,9 @@ func _make_behavior(name: String) -> WeaponBehavior:
 		"SaltShaker":
 			# pass 69: the Salt, patches of salt laid in the hero's wake (lane SALT)
 			return preload("res://core/behaviors/SaltShaker.gd").new()
+		"FireBreath":
+			# pass 95: the Dragon's Breath, a cone of fire breathed where the hero faces (lane BREATH)
+			return preload("res://core/behaviors/FireBreath.gd").new()
 	push_warning("Unknown weapon behaviour: " + name)
 	return null
 
@@ -2459,6 +2466,9 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			# everything on the map, the coins and the chests too, as a boss kill does it
 			pickups.vacuum_all(true, true)
 			hud.toast("MAGNET PULSE", def.color)
+		"magnet":
+			# pass 95 (lane WORLD): a timed wide pull round the hero instead
+			_apply_magnet_pickup(def)
 		"nuke":
 			var np: Dictionary = def.params
 			nuke_blast(player.global_position, float(np.get("radius", 16.0)), def.value, float(np.get("knockback", 14.0)))
@@ -2498,6 +2508,17 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			Audio.play("pk_powerup", at)
 	fx.burst(at + Vector3(0, 0.8, 0), def.color, 1.3)
 	telegraphs.flash_ring(at, 2.0, def.color, 0.35)
+
+
+## Pass 95 (lane WORLD): the Magnet power-up (effect "magnet"; Garry: "should not pull everything. Should just affect a
+## big area and work for a time (like 10s)"): PickupManager.magnet_start runs it for the pickup's `duration` with the
+## Pocket Watch's longer seconds (Run.powerup_seconds) and the hero's buff_seconds, as every timed power-up; a second one
+## adds its seconds. The toast says the reach and the seconds from the data; a ring at the reach shows the area.
+func _apply_magnet_pickup(def: PickupDef) -> void:
+	var secs: float = pickups.magnet_start(def, Run.powerup_seconds(def.duration))
+	var r: float = pickups.magnet_r
+	hud.toast("%s: gems and coins within %d m for %d s" % [def.display_name.to_upper(), int(round(r)), int(round(secs))], def.color)
+	telegraphs.flash_ring(player.global_position, r, def.color, 0.5)
 
 
 ## A chest on the ground was touched: the game pauses and the reel decides in front of the player. One reel at a time
@@ -2991,15 +3012,18 @@ func enemy_shot_straight(from: Vector3, target: Vector3, speed: float, damage: f
 ## `first` (the spokes' phase), at `speed` for `life` seconds (9 m/s x 2.6 s: about 24 m, so he reaches a hero across
 ## the screen). Each hits the hero once: `damage`, and a throw back of `knockback` with `lift` (Player.blast, past the
 ## shove's cap). They roll (params.roll = their radius) and raise dust; they are hostile shots, so High Noon slows them.
-func tumbleweed_volley(at: Vector3, first: Vector3, count: int, speed: float, damage: float, life: float, knockback: float, lift: float, info: Dictionary) -> void:
+func tumbleweed_volley(at: Vector3, first: Vector3, count: int, speed: float, damage: float, life: float, knockback: float, lift: float, info: Dictionary, trail: Dictionary = {}) -> void:
 	var phase := atan2(first.z, first.x) if first.length_squared() > 0.0001 else 0.0
 	var ground: float = map.height_at(at.x, at.z) if map else at.y
 	var from := Vector3(at.x, ground + TUMBLE_R, at.z)
 	for k in range(count):
 		var a := phase + TAU * float(k) / float(maxi(count, 1))
 		var dir := Vector3(cos(a), 0, sin(a))
-		projectiles.hostile_shot(_tumble_kind, from + dir * 1.2, dir * speed, damage, 0.0, life, false,
-			{"shot": "tumbleweed", "roll": TUMBLE_R, "hit_radius": 0.6, "knockback": knockback, "lift": lift, "info": info, "origin": from})
+		var p := {"shot": "tumbleweed", "roll": TUMBLE_R, "hit_radius": 0.6, "knockback": knockback, "lift": lift, "info": info, "origin": from}
+		if not trail.is_empty():
+			# pass 95 (lane BOSS): the row's own trail look (ProjectileManager.TUMBLE_TRAIL without one)
+			p["trail"] = trail
+		projectiles.hostile_shot(_tumble_kind, from + dir * 1.2, dir * speed, damage, 0.0, life, false, p)
 	fx_sand(from + Vector3(0, 0.3, 0), 3.0)
 	if camera:
 		camera.shake(0.5)
@@ -4313,3 +4337,18 @@ func _spit_material() -> Material:
 	m.emission_enabled = true
 	m.emission = Color(0.3, 0.7, 0.3)
 	return m
+
+
+## Pass 95 (lane BOSS): the King's stomp landing at `center`, `r` m round (EnemyManager._stomp_land; Garry: "There should
+## be visible wave effects around the boss"): a band of light racing out over the sand to the edge (Telegraphs.race_ring,
+## draped over the dunes), the ring's flash where it lands, a ring of dust, clods and grains thrown out (Fx.stomp_dust), a
+## warm burst at the feet and a kick of the camera. `size` is the stomper's, for the dust.
+func stomp_wave(center: Vector3, r: float, size: float = 5.0) -> void:
+	# two bands: a hot pale one racing ahead, a darker ridge of sand behind it (the first capture's one pale band washed
+	# out over the next stomp's red disc)
+	telegraphs.race_ring(center, r, 0.45, Color(1.0, 0.93, 0.7, 1.0), 0.34)
+	telegraphs.race_ring(center, r * 0.92, 0.62, Color(0.72, 0.5, 0.26, 0.85), 0.26)
+	telegraphs.flash_ring(center, r, Color(1.0, 0.6, 0.3), 0.4)
+	fx.stomp_dust(center, r, size)
+	fx.burst(center + Vector3(0, 0.4, 0), Color(0.95, 0.72, 0.42), r * 0.45)
+	camera.shake(1.2)

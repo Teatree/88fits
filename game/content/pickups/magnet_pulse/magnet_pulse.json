@@ -1,10 +1,13 @@
 {
   "id": "magnet_pulse",
-  "name": "Magnet Pulse",
-  "flavour": "Every gem on the map comes home.",
-  "effect": "vacuum",
+  "name": "Magnet",
+  "flavour": "Every gem and coin near you comes home, for a while.",
+  "effect": "magnet",
   "value": 0,
-  "duration": 0,
+  "duration": 10.0,
+  "params": {
+    "radius_mult": 2.5
+  },
   "lifetime": 40.0,
   "color": "#FFB52E",
   "weight": 2,

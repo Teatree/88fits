@@ -5,13 +5,13 @@
   "weight": 5,
   "max_level": 3,
   "flavour": "Cures what ails you. And then some.",
-  "text": "Heals can fill your health past full, up to 20% of max HP more, shown pink on your health bar. Regen stops at full.",
+  "text": "Heals can fill your health past full, up to 25% of max HP more, shown pink on your health bar. Regen stops at full.",
   "levels": [
     [
       {
         "stat": "overheal",
         "op": "add",
-        "value": 0.2,
+        "value": 0.25,
         "target": "player"
       }
     ],
@@ -19,7 +19,7 @@
       {
         "stat": "overheal",
         "op": "add",
-        "value": 0.1,
+        "value": 0.06,
         "target": "player"
       }
     ],

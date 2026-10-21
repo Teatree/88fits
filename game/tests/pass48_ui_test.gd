@@ -52,12 +52,16 @@ func test_a_weapon_s_and_a_line_s_plate_takes_its_level_s_colour() -> void:
 	assert_int(brawn.max_level).is_equal(4)
 	for lv in range(1, 5):
 		assert_bool(W.plate_fill(brawn, lv).is_equal_approx(_rarity(lv))).override_failure_message("line level %d" % lv).is_true()
-	# evolutions dark at any level, a passive item its rarity at any level
+	# evolutions dark at any level; a passive item its rarity in general and at level 1, then up the ladder a level
+	# (pass 95, lane PASSIVES: the epic Magnet's third level is its Evolved rung, dark)
+	var magnet: PassiveDef = Registry.passive("magnet")
 	for lv in [0, 1, 5]:
 		assert_bool(W.plate_fill(Registry.weapon("pea_cannon"), lv).is_equal_approx(W.EVOLVED_FILL)).is_true()
 		assert_bool(W.plate_fill(Registry.passive("juggernaut"), lv).is_equal_approx(W.EVOLVED_FILL)).is_true()
-		var magnet: PassiveDef = Registry.passive("magnet")
+	for lv in [0, 1]:
 		assert_bool(W.plate_fill(magnet, lv).is_equal_approx(W.RARITY_PLATE[W.rarity_of(magnet)])).is_true()
+	assert_bool(W.plate_fill(magnet, 2).is_equal_approx(W.RARITY_PLATE["legendary"])).is_true()
+	assert_bool(W.plate_fill(magnet, 5).is_equal_approx(W.EVOLVED_FILL)).is_true()
 	# the plate takes the level; an evolution keeps its brass ring
 	var p: WPlate = auto_free(WPlate.new().for_def(pea, 72.0, false, 4))
 	assert_bool(p.fill.is_equal_approx(W.RARITY_PLATE["epic"])).is_true()
@@ -297,7 +301,8 @@ func test_the_buff_words_under_the_slots() -> void:
 	Run.add_or_level_passive("hot_streak")
 	assert_float(Run.player_sheet.get_stat("kill_might", 0.0)).is_greater(0.0)
 	Run.streak = 1370
-	assert_array(HUD.buff_parts()).contains(["HOT STREAK +6%"])
+	# (pass 95: +7% per 1,000 kills at level 1: 1,370 kills are +9%)
+	assert_array(HUD.buff_parts()).contains(["HOT STREAK +9%"])
 	Run.streak = 0
 	assert_bool(HUD.buff_parts().any(func(s: String) -> bool: return s.begins_with("HOT STREAK"))).is_false()
 	var hud: HUD = auto_free(HUD.new())

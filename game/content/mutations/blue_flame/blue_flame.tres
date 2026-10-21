@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2g132"]
+[ext_resource type="Texture2D" path="res://content/mutations/blue_flame/blue_flame_icon.png" id="2_vxhdx"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_n5t30"]
+
+[sub_resource type="Resource" id="Resource_2g132"]
+script = ExtResource("1_2g132")
+stat = "range"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_vxhdx"]
+script = ExtResource("1_2g132")
+stat = "damage"
+op = "mul"
+value = -0.2
+
+[sub_resource type="Resource" id="Resource_n5t30"]
+script = ExtResource("1_2g132")
+stat = "fire_duration"
+op = "mul"
+value = 0.75
+
+[resource]
+script = ExtResource("3_n5t30")
+weapon = "dragons_breath"
+mutation_kind = "element"
+text = "The breath burns blue: 25% further, −20% damage, burns last 75% longer."
+vfx = "a pale blue jet of fire from the hero's face and blue flames on everything it set burning"
+effects = [SubResource("Resource_2g132"), SubResource("Resource_vxhdx"), SubResource("Resource_n5t30")]
+params = {
+"fire_blue": true
+}
+id = "blue_flame"
+display_name = "Blue Flame"
+flavour = "Burns cold. Burns long. Smells terrible."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_vxhdx")
+icon_file = "blue_flame_icon.png"
+placeholder = {
+"color": "#5A8CFF",
+"glyph": "star"
+}

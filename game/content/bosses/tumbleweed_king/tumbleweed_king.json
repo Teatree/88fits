@@ -4,7 +4,7 @@
   "flavour": "Wears a crown. Rolls anyway.",
   "archetype": "boss",
   "brain": "boss",
-  "hp": 1440,
+  "hp": 2880,
   "speed": 1.6,
   "damage": 20,
   "knockback": 7.0,
@@ -48,7 +48,15 @@
         "damage": 14,
         "knockback": 14,
         "lift": 2.5,
-        "telegraph": "spokes"
+        "telegraph": "spokes",
+        "trail": {
+          "style": "line",
+          "colour": "#7A5A30",
+          "alpha": 0.58,
+          "width": 0.5,
+          "life": 0.75,
+          "puffs": 0.11
+        }
       },
       {
         "name": "spawn_ring",
@@ -58,10 +66,17 @@
         "telegraph": "none"
       },
       {
-        "name": "slam",
+        "name": "stomp",
         "windup": 1.2,
+        "stomps": 3,
+        "gap": 0.45,
+        "jump": {
+          "height": 2.2,
+          "up": 0.35,
+          "down": 0.2
+        },
         "radius": 6.0,
-        "damage": 30,
+        "damage": 18,
         "telegraph": "ring",
         "knockback": 6
       }
@@ -87,6 +102,6 @@
     "run": 15,
     "die": 8
   },
-  "doc": "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a volley of twelve tumbleweeds rolled out in every direction (each throws you), a ring of tumbleweed minions, a slam.",
+  "doc": "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a volley of twelve tumbleweeds rolled out in every direction (each throws you), a ring of tumbleweed minions, a jump and three stomps (pass 95: each a wave over the sand, a ring before every landing; the tumbleweeds leave a dust trail).",
   "head": 0.984
 }

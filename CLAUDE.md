@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-19, pass 93, version 0.79)
+## Status (2026-10-21, pass 95, version 0.80)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.79). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.80). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -379,6 +379,21 @@ Pass 93: made walks `step=track` (feet along the body; driver spider_walk_v2; to
 (light purple) and SP-F (light blue) fresh; gen_ctl `fit_ref`, `no_green: "rb"`; the Level Editor's Drivers tab
 (tools/level_editor/drivers.js, drivers_io.py: every driver in tools/dl/drivers previewed with frame numbers, the
 folder layout explained) and a `death_keep` frame picker.
+Pass 95: held guns fire from the muzzle as drawn (`ProjectileEmitter.shot_origin`); the Frisbee's `disc.trail`
+per look; the debug switch `Settings.fire_forward` (core/systems/FireForward.gd: Sabre, Spear, Hammer, Frisbee,
+Tumbleweed and the Basketball fire where the hero faces until a creature is within 75% of range); **passive items
+climb the rarity ladder** (PassiveDef.ladder_levels: rungs to Legendary + Evolved; `<id>_icon_evolved.png`;
+tools/passive_ladder.py); the **Dragon's Breath** (content/weapons/dragons_breath, core/behaviors/FireBreath.gd, the
+slowest weapon: a 2 s cone from the hero's face, a tick a second, ignite; Blue Flame / Held Breath / Backdraft,
+evolution Fire Eater with thorns); regular creatures **despawn** 40 m away and off-screen leaving nothing
+(`timeline_data.despawn`, EnemyManager.despawn; WaveDirector's old move-up kept for the kinds the rule never takes);
+the Magnet power-up pulls gems and coins within 2.5x the Magnet card's reach for 10 s (MagnetBuff.gd, a HUD plate);
+the King's tumbleweeds trail dust and his `stomp` is three hops with waves (Game.stomp_wave); the Scorpion Elite's
+`tail_sniper` fires three Saiga-style beams in a row (boss attack rows take `chance`); the Level Editor's **Frames
+view** (tools/frames_store.py, frames_io.py, frames.js: every frame of every look, versions per slot with
+provenance, frames from other looks, several changes staged then one Export; VACE repair tools/vace_repair.py +
+comfy.wan_fun_vace on the Wan 2.2 Fun VACE 14B fp8 pair installed on the AI server) and the tooling assessment
+docs/tooling/assessment_2026-10-21.md.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

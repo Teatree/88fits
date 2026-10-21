@@ -26,7 +26,7 @@ FOLDER = "boss_attacks"
 KINDS = ["rain", "volley", "ring", "slam", "script"]
 # BossAttackDef.SCRIPTS: the built-in attack names (EnemyManager's runner); a custom attack never takes one as its id
 BUILTINS = ["roll", "spawn_ring", "slam_at", "blink", "burrow", "rain", "erupt", "spit_volley", "slam", "rumble",
-            "brand", "tumbleweed_volley", "swoop", "boulder"]
+            "brand", "tumbleweed_volley", "swoop", "boulder", "stomp", "tail_sniper"]
 # BossAttackDef.DEFAULTS (selftest_BOSS.py checks all three tables against the GDScript)
 DEFAULTS = {
     "projectile": {"look": "spike", "tint": "#D0242F", "size": 1.0, "glow": 1.0, "flight": 1.0, "arc": 6.0, "speed": 12.0,

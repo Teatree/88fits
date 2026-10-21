@@ -335,6 +335,33 @@ static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> Stri
 	return text
 
 
+## The Dragon's Breath in words (pass 95, lane BREATH; core/behaviors/FireBreath.gd): the cone, how long and how often
+## it breathes (the amount's seconds in), what a second in it costs, then what the path adds (Backdraft's shove, Held
+## Breath's held breath). The burn's line comes with the fire extras after it.
+static func breath_words(sheet: StatSheet, pr: Dictionary) -> String:
+	var b = pr.get("breath", {})
+	var bd: Dictionary = b if b is Dictionary else {}
+	var deg: float = clampf(float(bd.get("cone_deg", 50.0)) * sheet.get_stat("area", 1.0), 15.0, 360.0)
+	var amount := maxi(sheet.get_int("amount", 1), 1)
+	var secs: float = clampf(sheet.get_stat("duration", 2.0) + float(amount - 1) * float(bd.get("seconds_per_amount", 1.0)), 0.1, maxf(float(bd.get("max_seconds", 6.0)), 0.1))
+	var tick: float = maxf(float(bd.get("tick", 1.0)), 0.1)
+	var shape := "a ring of fire" if deg >= 359.0 else "a %d° cone of fire" % int(round(deg))
+	var text := "Breathes %s %.0f m long where you face, %.1f s every %.1f s: whatever stands in it takes %d damage every %s and catches fire." % [
+		shape, sheet.get_stat("range", 5.0), secs, sheet.get_stat("cooldown", 10.0), int(round(sheet.get_stat("damage", 12.0))),
+		"second" if absf(tick - 1.0) < 0.01 else "%.1f s" % tick]
+	if float(bd.get("seconds_per_amount", 1.0)) > 0.0:
+		text += " Every extra projectile adds %s s of breath." % _plain(float(bd.get("seconds_per_amount", 1.0)))
+	if float(bd.get("knock", 0.0)) > 0.0:
+		text += " Every %s in it shoves them away from you." % ("second" if absf(tick - 1.0) < 0.01 else "hit")
+	var st = bd.get("still")
+	if st is Dictionary:
+		var sd: Dictionary = st
+		text += " Stand still %s s before a breath: it lasts ×%s, hits ×%s%s; a hit breaks the stillness." % [
+			_plain(float(sd.get("seconds", 2.0))), _plain(float(sd.get("duration_mult", 2.0))), _plain(float(sd.get("damage_mult", 1.5))),
+			" and comes from all sides" if bool(sd.get("ring", true)) else ""]
+	return text
+
+
 ## The Frisbee in words (pass 69, lane FRIS; core/behaviors/Frisbee.gd): its throw, its curve, its drop-off and floor,
 ## then what its path adds (Carry's ride, Trick Shot's share, a stun, the Flying Saucer's loop).
 static func frisbee_words(sheet: StatSheet, pr: Dictionary) -> String:
@@ -573,6 +600,9 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 		"SaltShaker":
 			# pass 69 (lane SALT): patches of salt in the hero's wake
 			text = salt_words(sheet, pr)
+		"FireBreath":
+			# pass 95 (lane BREATH): the Dragon's Breath, breath_words
+			text = breath_words(sheet, pr)
 		_:
 			text = def.display_name + "."
 	var extras: Array = []
@@ -667,6 +697,12 @@ static func _passive_lines(def: PassiveDef, level: int) -> String:
 	# an evolved line has one level: all it is (pass 47); so has an item of one level (pass 48: Phoenix Feather)
 	if def.max_level <= 1:
 		return total + "."
+	# pass 95 (lane PASSIVES): a passive item on the rarity ladder names its rung ("Level 3 (Rare): ... total.",
+	# "Level 4 (Evolved): ..."); its first level is what it gives, plainly
+	if def.is_item():
+		if lv <= 1:
+			return total + "."
+		return "Level %d (%s): %s total." % [lv, rung_name(def, lv), total]
 	if _same_every_level(def):
 		return "%s per level. Level %d: %s total." % [per, lv, total]
 	# a first level of its own, then the same step (pass 47: Barrel Rush, Steady Hand; pass 48: Skedaddle, Powder Keg,
@@ -736,7 +772,17 @@ static func next_level_text(def: ContentDef, level: int) -> String:
 	if level >= max_level:
 		return "Maxed."
 	var s := describe_effects(eff)
+	# pass 95 (lane PASSIVES): a passive item names the rung the next level lands on ("Next level (Rare): ...")
+	if def is PassiveDef and (def as PassiveDef).is_item():
+		return "Next level (%s): %s" % [rung_name(def as PassiveDef, level + 1), s if s != "" else "nothing new"]
 	return "Next level: " + (s if s != "" else "nothing new")
+
+
+## The name of the rung a passive item stands on at `level` (pass 95, lane PASSIVES): "Common" .. "Legendary",
+## "Evolved" at its top; its rarity's name for a line or an evolved form.
+static func rung_name(def: PassiveDef, level: int) -> String:
+	var r: String = def.rung_at(level) if def != null else "common"
+	return "Evolved" if r == PassiveDef.EVOLVED_RUNG else rarity_name(r)
 
 
 # --- what an upgrade changes (pass 58) -------------------------------------------------------------------------------
@@ -907,6 +953,9 @@ static func amount_noun(def: WeaponDef, sheet: StatSheet = null, params: Diction
 			return "frisbees"
 		"SaltShaker":
 			return "patches"
+		"FireBreath":
+			# pass 95 (lane BREATH): every point of amount is a second more of breath
+			return "seconds of breath"
 	return stat_name("amount")
 
 

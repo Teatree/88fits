@@ -1,70 +1,48 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/magnet/magnet_icon.png" id="1_6d6vi"]
+[ext_resource type="Texture2D" path="res://content/passives/magnet/magnet_icon_evolved.png" id="1_t41ta"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_6d6vi"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_t41ta"]
-
-[sub_resource type="Resource" id="Resource_6d6vi"]
-script = ExtResource("2_t41ta")
-stat = "xp_pull_radius"
-value = 5.0
-target = "player"
 
 [sub_resource type="Resource" id="Resource_t41ta"]
 script = ExtResource("2_t41ta")
 stat = "xp_pull_radius"
-value = 1.0
+value = 6.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ggvfj"]
 script = ExtResource("2_t41ta")
-stat = "xp_pull_rate"
-value = 0.25
-target = "player"
-
-[sub_resource type="Resource" id="Resource_u66uy"]
-script = ExtResource("2_t41ta")
 stat = "xp_pull_radius"
 value = 1.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_fnyua"]
+[sub_resource type="Resource" id="Resource_u66uy"]
 script = ExtResource("2_t41ta")
 stat = "xp_pull_rate"
-value = 0.25
+value = 0.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_fnyua"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_radius"
+value = 1.5
 target = "player"
 
 [sub_resource type="Resource" id="Resource_53v8r"]
 script = ExtResource("2_t41ta")
-stat = "xp_pull_radius"
-value = 0.75
-target = "player"
-
-[sub_resource type="Resource" id="Resource_pbum2"]
-script = ExtResource("2_t41ta")
 stat = "xp_pull_rate"
-value = 0.25
-target = "player"
-
-[sub_resource type="Resource" id="Resource_qm33r"]
-script = ExtResource("2_t41ta")
-stat = "xp_pull_radius"
-value = 0.75
-target = "player"
-
-[sub_resource type="Resource" id="Resource_51he0"]
-script = ExtResource("2_t41ta")
-stat = "xp_pull_rate"
-value = 0.25
+value = 0.5
 target = "player"
 
 [resource]
 script = ExtResource("2_6d6vi")
-levels = [[SubResource("Resource_6d6vi")], [SubResource("Resource_t41ta"), SubResource("Resource_ggvfj")], [SubResource("Resource_u66uy"), SubResource("Resource_fnyua")], [SubResource("Resource_53v8r"), SubResource("Resource_pbum2")], [SubResource("Resource_qm33r"), SubResource("Resource_51he0")]]
+levels = [[SubResource("Resource_t41ta")], [SubResource("Resource_ggvfj"), SubResource("Resource_u66uy")], [SubResource("Resource_fnyua"), SubResource("Resource_53v8r")]]
 repeat_last_level = false
-max_level = 5
+max_level = 3
 pairs_with = "turret_buddy"
-text = "Every few seconds, at random, pulls every EXP gem within 5 m to you. Levels reach farther and pull more often."
+text = "Every few seconds, at random, pulls every EXP gem within 6 m to you. Rungs reach farther and pull more often."
+evolved_icon = ExtResource("1_t41ta")
 id = "magnet"
 display_name = "Magnet"
 flavour = "Gems come to you."

@@ -4,7 +4,7 @@
   "flavour": "He waits for you to tire. Then he waits a little less.",
   "archetype": "spitter",
   "brain": "artillery",
-  "hp": 35,
+  "hp": 100,
   "speed": 1.6,
   "damage": 8,
   "knockback": 4.81,

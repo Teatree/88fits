@@ -11,6 +11,34 @@
       {
         "stat": "greed",
         "op": "add",
+        "value": 0.4,
+        "target": "player"
+      },
+      {
+        "stat": "xp_gain",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "greed",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      },
+      {
+        "stat": "xp_gain",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "greed",
+        "op": "add",
         "value": 0.3,
         "target": "player"
       },

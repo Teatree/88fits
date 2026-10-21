@@ -1,19 +1,51 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/passives/cake/cake_icon_evolved.png" id="1_8m2bd"]
 [ext_resource type="Texture2D" path="res://content/passives/cake/cake_icon.png" id="1_20ofu"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_8m2bd"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_tatj6"]
 
-[sub_resource type="Resource" id="Resource_20ofu"]
+[sub_resource type="Resource" id="Resource_8m2bd"]
 script = ExtResource("2_8m2bd")
 stat = "heal_drop"
-value = 0.003
+value = 0.004
+target = "player"
+
+[sub_resource type="Resource" id="Resource_tatj6"]
+script = ExtResource("2_8m2bd")
+stat = "heal_drop"
+value = 0.0025
+target = "player"
+
+[sub_resource type="Resource" id="Resource_m3dcs"]
+script = ExtResource("2_8m2bd")
+stat = "heal_drop"
+value = 0.0025
+target = "player"
+
+[sub_resource type="Resource" id="Resource_bqw4k"]
+script = ExtResource("2_8m2bd")
+stat = "heal_drop"
+value = 0.0025
+target = "player"
+
+[sub_resource type="Resource" id="Resource_w0txs"]
+script = ExtResource("2_8m2bd")
+stat = "heal_drop"
+value = 0.0025
+target = "player"
+
+[sub_resource type="Resource" id="Resource_cxn2t"]
+script = ExtResource("2_8m2bd")
+stat = "heal_drop"
+value = 0.0035
 target = "player"
 
 [resource]
 script = ExtResource("3_tatj6")
-levels = [[SubResource("Resource_20ofu")]]
-max_level = 5
+levels = [[SubResource("Resource_8m2bd")], [SubResource("Resource_tatj6")], [SubResource("Resource_m3dcs")], [SubResource("Resource_bqw4k")], [SubResource("Resource_w0txs")], [SubResource("Resource_cxn2t")]]
+max_level = 6
+evolved_icon = ExtResource("1_8m2bd")
 id = "cake"
 display_name = "Cake"
 flavour = "Carried across the desert in a hatbox. Still good."

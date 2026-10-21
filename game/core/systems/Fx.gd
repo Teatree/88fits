@@ -1583,3 +1583,77 @@ func dig_spray(at: Vector3, size: float = 1.0, k: float = 0.0) -> void:
 	var pa := randf() * TAU
 	var po := Vector3(cos(pa), 0.0, sin(pa))
 	_emit_dust(at + po * 0.4 * w + Vector3(0, 0.12, 0), po * 0.8 * w + Vector3(0, 0.35, 0), randf_range(0.55, 0.75), 0.3 * w, 0.9 * w * strength, 0.55, DUST_TAN, true)
+
+
+# ---- pass 95 (lane BREATH): the Dragon's Breath's jet of fire: new functions below this line ----
+
+## A jet of fire breathed from `at` (the hero's face) along `dir` (pass 95, FireBreath._show, every FireBreath.FX_EVERY):
+## `n` flame tongues thrown down the cone (`reach` m long, `deg` wide; `ring` = all round), each from a little in front of
+## the face, fast enough to reach the end within its life, sinking from face height towards the bodies in the fire as it
+## goes, `size` metres tall at its fullest (the fire shader eats it away with age); now and then an ember flung ahead
+## of it. `blue` burns the blue palette (Blue Flame). The first tongue of a go is never thinned by the budget, the rest
+## are, so a crowded screen keeps a breath that reads and loses only its fullness.
+func breath_jet(at: Vector3, dir: Vector3, reach: float, deg: float, n: int, size: float = 0.55, blue: bool = false, ring: bool = false) -> void:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length_squared() < 0.0001 or n <= 0:
+		return
+	d = d.normalized()
+	var half := deg_to_rad(clampf(deg, 1.0, 360.0)) * 0.5
+	var life_mid := 0.36
+	for k in range(n):
+		var a: float = randf() * TAU if ring else randf_range(-half, half) * 0.88
+		var dk := d.rotated(Vector3.UP, a)
+		var life := randf_range(0.3, 0.42)
+		# the flame covers the reach in about life_mid seconds, the odd one a little short or long
+		var spd: float = reach / life_mid * randf_range(0.78, 1.04)
+		var p := at + dk * randf_range(0.2, 0.55) + Vector3(randf_range(-0.08, 0.08), randf_range(-0.12, 0.08), randf_range(-0.08, 0.08))
+		var v := dk * spd + Vector3(randf_range(-0.3, 0.3), randf_range(-2.4, -0.4), randf_range(-0.3, 0.3))
+		var h: float = size * randf_range(0.8, 1.25)
+		_emit_flame(p, v, life, h * 0.55, h * 1.15, Color(FLAME_ORANGE.r, FLAME_ORANGE.g, FLAME_ORANGE.b, 0.95), k == 0, blue)
+	# an ember now and then, flung ahead and falling
+	if randf() < 0.35:
+		var ea: float = randf() * TAU if ring else randf_range(-half, half)
+		var ed := d.rotated(Vector3.UP, ea)
+		var ec := SPARK_BLUE if blue else Color(1.0, 0.82, 0.35)
+		_emit(at + ed * 0.4, ed * randf_range(5.0, 9.0) + Vector3(0, randf_range(0.5, 2.0), 0), randf_range(0.35, 0.55), 0.12, 0.04, 1.0, 0.8, ec, 9.0, true)
+
+
+## Pass 95 (lane BOSS): the dust a rolling tumbleweed kicks up (ProjectileManager._tumble_trail_tick, every `puffs`
+## seconds): one soft tan puff at its foot drifting `back` (the way it came) and up, growing as it fades; thinned on a busy
+## screen like every dust. `size` scales it.
+func roll_dust(at: Vector3, back: Vector3, size: float = 1.0) -> void:
+	if _busy_skip():
+		return
+	var w := maxf(size, 0.4)
+	var o := at + Vector3(randf_range(-0.15, 0.15), 0.05, randf_range(-0.15, 0.15)) * w
+	var v := back * randf_range(0.6, 1.2) * w + Vector3(randf_range(-0.2, 0.2), randf_range(0.5, 0.9), randf_range(-0.2, 0.2)) * w
+	_emit_dust(o, v, randf_range(0.5, 0.75), 0.35 * w, randf_range(0.9, 1.3) * w, 0.62, DUST_TAN if randf() < 0.7 else DUST_PALE)
+
+
+## Pass 95 (lane BOSS): the King's stomp landing (Game.stomp_wave): a ring of dust thrown out low all round the spot,
+## racing out towards the stomp's `r` (the puffs cover about 0.6 r before they fade), a column up the middle, clods and
+## grains flung up and out. Never thinned: the stomp is the attack's tell. `size` is the stomper's size in metres.
+func stomp_dust(at: Vector3, r: float, size: float = 1.0) -> void:
+	var w := clampf(size * 0.5, 0.8, 3.0)
+	var n := 14 + mini(int(r), 10)
+	var phase := randf() * TAU
+	var reach := maxf(r, 2.0)
+	for k in range(n):
+		var ang := phase + TAU * float(k) / float(n)
+		var out := Vector3(cos(ang), 0.0, sin(ang))
+		var life := randf_range(0.6, 0.8)
+		var o := at + out * randf_range(0.5, 0.9) * w + Vector3(0, 0.15, 0)
+		var v := out * (reach * randf_range(0.5, 0.7) / life) + Vector3(0, randf_range(0.3, 0.7), 0)
+		_emit_dust(o, v, life, 0.4 * w, randf_range(1.2, 1.6) * w, 0.72, DUST_PALE if k % 3 == 1 else DUST_TAN, true)
+	for k in range(3):
+		var vy := 2.4 - 0.4 * float(k)
+		_emit_dust(at + Vector3(randf_range(-0.15, 0.15) * w, 0.25 + 0.35 * float(k), randf_range(-0.15, 0.15) * w), Vector3(0, vy, 0),
+			randf_range(0.7, 0.9), 0.35 * w, randf_range(0.9, 1.2) * w, 0.7, DUST_TAN if k != 1 else DUST_PALE, true)
+	for k in range(12):
+		var ga := randf() * TAU
+		var gv := Vector3(cos(ga), 0.0, sin(ga)) * randf_range(2.0, 5.0) * w * 0.5 + Vector3(0, randf_range(2.5, 5.0), 0)
+		_emit(at + Vector3(0, 0.1, 0), gv, randf_range(0.35, 0.6), 0.12, 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true, true)
+	for k in range(8):
+		var ca := phase + TAU * (float(k) + 0.5) / 8.0
+		var cv := Vector3(cos(ca), 0.0, sin(ca)) * randf_range(1.5, 3.0) * w * 0.5 + Vector3(0, randf_range(3.0, 5.0), 0)
+		_emit(at + Vector3(cos(ca) * 0.3 * w, 0.25, sin(ca) * 0.3 * w), cv, randf_range(0.5, 0.75), 0.1 * w, 0.07 * w, 1.0, 0.9, CLOD, 12.0, true, true)

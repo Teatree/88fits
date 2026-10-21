@@ -54,6 +54,80 @@ except ImportError:  # importable outside Blender (the selftest); main() needs B
 LEG_WORDS = r"(?i)leg|thigh|calf|shin|foot|toe|tarsus|femur|tibia"
 
 
+def capsule_legs(arm, body, legs, hip_share=0.06):
+    """pass 94 (lane REAL): skin=capsule. The legs' own mesh is replaced by one tapered capsule per leg segment: from a
+    chain bone's head to the next bone's head (the tails of an imported rig point anywhere: the spider's were invented
+    by the glTF importer and left its chains unconnected), the leg's radius `hip_share` of its length at the hip
+    (skin_radius, 0.06) tapering evenly to a point at the foot; each capsule rigidly skinned to its bone. (The mesh's
+    own widths were tried as the radii: the spider's cones are weighted to the bone before them and overlap at every
+    joint, so the measured widths came out two to three times the leg's.) The spider's legs were stacked cones whose wide ends stood past
+    every joint: from the side and three-quarter cameras a row of spikes above the body, in the clay and in the depth
+    video, and every walk copied them whatever the painting looked like. `body` is extended in place (the gait's leg
+    tips then find the capsules' points)."""
+    import bmesh
+    import numpy as np
+    R.update()
+    names = {pb.name for c in legs.chains for pb in c}
+    mw = arm.matrix_world
+    per = {}      # bone -> its vertices, world
+    for o in list(body):
+        groups = {g.index: g.name for g in o.vertex_groups}
+        me = o.data
+        om = o.matrix_world
+        leg_idx = []
+        for v in me.vertices:
+            best = max(v.groups, key=lambda g: g.weight, default=None)
+            gname = groups.get(best.group) if best is not None else None
+            if gname in names:
+                leg_idx.append(v.index)
+                per.setdefault(gname, []).append(om @ v.co)
+        if leg_idx:
+            bm = bmesh.new()
+            bm.from_mesh(me)
+            bm.verts.ensure_lookup_table()
+            bmesh.ops.delete(bm, geom=[bm.verts[i] for i in leg_idx], context="VERTS")
+            bm.to_mesh(me)
+            bm.free()
+    made = 0
+    radii = {}
+    for c in legs.chains:
+        heads = [mw @ pb.head for pb in c]
+        # the segments: head to next head; a last bone that carries mesh gets a segment to its farthest vertex
+        segs = [(c[i], heads[i], heads[i + 1]) for i in range(len(c) - 1)]
+        last = c[-1]
+        if per.get(last.name):
+            far = max(per[last.name], key=lambda q: (q - heads[-1]).length)
+            segs.append((last, heads[-1], far))
+        total = sum((t - h).length for _pb, h, t in segs)
+        r0 = hip_share * total
+        for k, (pb, h, t) in enumerate(segs):
+            L = (t - h).length
+            if L < 1e-6:
+                continue
+            rh = r0 * (1.0 - k / float(len(segs)))
+            rt = r0 * (1.0 - (k + 1) / float(len(segs)))
+            radii[pb.name] = (rh, rt)
+            bpy.ops.mesh.primitive_cone_add(vertices=20, radius1=rh, radius2=rt, depth=L, location=(h + t) / 2.0)
+            ob = bpy.context.active_object
+            ob.name = "capsule_" + pb.name
+            ob.rotation_mode = "QUATERNION"
+            ob.rotation_quaternion = (t - h).to_track_quat("Z", "Y")
+            for poly in ob.data.polygons:
+                poly.use_smooth = True
+            vg = ob.vertex_groups.new(name=pb.name)
+            vg.add(list(range(len(ob.data.vertices))), 1.0, "REPLACE")
+            mod = ob.modifiers.new("arm", "ARMATURE")
+            mod.object = arm
+            # a child of the armature object, its world place kept: a death that rolls the armature itself (flip_curl)
+            # takes the capsules with it, as it takes the model's own mesh (the armature modifier alone follows bones)
+            ob.parent = arm
+            ob.matrix_parent_inverse = arm.matrix_world.inverted()
+            body.append(ob)
+            made += 1
+    print("blender_depth_drivers: skin=capsule: %d leg segments as capsules, radii %s" % (made, ", ".join("%s %.3f/%.3f" % (k, v[0], v[1]) for k, v in sorted(radii.items()))))
+    return made
+
+
 def main():
     A = R.args()
     if "src" not in A:
@@ -67,6 +141,17 @@ def main():
         raise SystemExit("blender_depth_drivers: no armature in %s: a depth driver needs a rigged model with a clip" % src)
     if not body:
         raise SystemExit("blender_depth_drivers: no mesh in %s" % src)
+    # pass 94 (lane REAL): smooth=N rounds a low-poly model's cones and fins for the renders only (a Catmull-Clark
+    # subdivision at N render levels: the spider's knees and abdomen rendered as crystal spikes that every walk copied).
+    # The viewport evaluation (the depth range, the leg tips) keeps the raw mesh, so tips.json stays index-true.
+    smooth = int(A.get("smooth", "0") or 0)
+    if smooth > 0:
+        for o in body:
+            m = o.modifiers.new("smooth94", "SUBSURF")
+            m.levels = 0
+            m.render_levels = smooth
+            m.show_viewport = False
+            m.show_render = True
     mode = A.get("mode", "cycle")
     if mode not in ("cycle", "oneshot", "gait", "flip_curl"):
         raise SystemExit("blender_depth_drivers: mode=%s is not cycle, oneshot, gait or flip_curl" % mode)
@@ -119,6 +204,14 @@ def main():
         gopt.update({k: v for k, v in sopt.items() if v not in (1.0, "")})
         print("blender_depth_drivers: %d legs: %s" % (len(legs.chains), ", ".join(legs.describe())))
         print("blender_depth_drivers: %s %s" % (mode, ", ".join("%s=%s" % kv for kv in sorted(gopt.items()))))
+    # pass 94: skin=capsule: the legs' mesh replaced by tapered capsules along their bones (capsule_legs)
+    skin = str(A.get("skin", "") or "")
+    if skin == "capsule":
+        if legs is None:
+            raise SystemExit("blender_depth_drivers: skin=capsule needs a made motion (mode=gait or flip_curl: the legs are found there)")
+        capsule_legs(arm, body, legs, float(A.get("skin_radius", "0.06") or 0.06))
+    elif skin:
+        raise SystemExit("blender_depth_drivers: skin=%s is not capsule" % skin)
     # pass 93: tips=1 writes tips.json, where every leg's foot is in each view's picture frame by frame (the leg check)
     want_tips = legs is not None and str(A.get("tips", "0")) not in ("0", "", "false", "no")
     tip_verts = legs.tip_vertices(body) if want_tips else None
@@ -349,7 +442,7 @@ def main():
     meta = {"kind": "depth", "mode": mode, "loop": mode == "cycle", "src": os.path.relpath(src, R.REPO).replace("\\", "/"),
             "action": act.name if act is not None else None, "range": [f0, f1], "clip_range": [F0, F1], "start": A.get("start"), "end": A.get("end"), "fps": fps,
             "frames": N, "cycles": CYCLES, "total": total, "views": views, "depth": depth_mode, "depth_ranges": ranges,
-            "amp": amp, "amp_bones": amp_re if abs(amp - 1.0) > 0.001 else None, "amp_matched": amp_matched,
+            "amp": amp, "amp_bones": amp_re if abs(amp - 1.0) > 0.001 else None, "amp_matched": amp_matched, "smooth": smooth, "skin": skin or None, "skin_radius": float(A.get("skin_radius", "0.06") or 0.06) if skin else None,
             "pitch": pitch, "size": size, "extent": extent, "forward": A.get("forward", "-Y"), "inplace": inplace,
             "albedo": os.path.relpath(albedo, R.REPO).replace("\\", "/") if albedo else None, "scale_applied": factor,
             "notes": "", "legs": legs.describe() if legs else None,

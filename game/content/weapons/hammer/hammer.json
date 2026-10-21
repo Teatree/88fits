@@ -72,6 +72,7 @@
   "evolves_with": "",
   "evolves_into": "earthshaker",
   "params": {
+    "fire_forward": true,
     "smash": {
       "radius": 1.6,
       "rise": 0.12,

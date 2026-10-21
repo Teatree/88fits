@@ -69,6 +69,7 @@ sfx = {
 visual = ExtResource("3_nndpq")
 visual_file = "pike_visual.tscn"
 params = {
+"fire_forward": true,
 "pierce_falloff": {
 "first_mult": 1.15,
 "floor": 0.4,

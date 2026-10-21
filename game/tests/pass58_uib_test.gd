@@ -618,7 +618,8 @@ func test_a_starless_upgrade_card_says_its_step() -> void:
 	assert_str(str(WItem.options({"def": mut, "level_from": 0, "level_to": 1}, {"stars": []})["word"])).is_equal("MUTATION")
 	var jug := {"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true}
 	assert_str(str(WItem.options(jug, {"stars": []})["word"])).is_equal("EVOLVES " + Registry.passive("brawn").display_name.to_upper())
-	assert_str(str(WItem.options({"def": Registry.passive("magnet"), "level_from": 1, "level_to": 2}, {"stars": []})["word"])).is_equal("PASSIVE · LV 1 → 2")
+	# (pass 95, lane PASSIVES: a passive item's word names the rung it lands on, then the step)
+	assert_str(str(WItem.options({"def": Registry.passive("magnet"), "level_from": 1, "level_to": 2}, {"stars": []})["word"])).is_equal("PASSIVE · LEGENDARY · LV 1 → 2")
 	# what a card shows under its name as one line (the arena's INFO can quote it): an upgrade's rows, else its line
 	var parts: Array = []
 	for r: Dictionary in WItem.changes(up):

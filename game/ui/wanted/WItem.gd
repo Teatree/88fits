@@ -17,7 +17,7 @@ extends RefCounted
 
 ## The tag's colours (pass 58): an upgrade in brass (it builds on what the hero holds), a new item in sage, an
 ## evolution in its own ember.
-const TAG_COLORS := {"UPGRADE": W.BRASS, "NEW": W.SAGE, "EVOLUTION": W.EMBER}
+const TAG_COLORS := {"UPGRADE": W.BRASS, "NEW": W.SAGE, "EVOLUTION": W.EMBER, "EVOLVED": W.EMBER}
 
 
 static func kind(def: ContentDef) -> String:
@@ -42,7 +42,7 @@ static func word(card: Dictionary) -> String:
 			if bool(card.get("evolve", false)):
 				var src = W.node("Registry").passive((def as PassiveDef).evolves_from)
 				return "EVOLVES " + (src.display_name.to_upper() if src else "A " + what)
-			return what
+			return what + rung_word(card)
 		"perk":
 			var hero = W.node("Registry").character((def as PerkDef).hero)
 			return "%s'S PERK · ONCE" % (hero.display_name.to_upper() if hero else "HERO")
@@ -58,9 +58,25 @@ static func tag(card: Dictionary) -> String:
 	var k := kind(def)
 	if k == "evolution" or bool(card.get("evolve", false)) or W.is_evolved(def):
 		return "EVOLUTION"
+	# pass 95 (lane PASSIVES): a passive item's upgrade onto its Evolved rung says so (in the evolution's ember)
+	if k == "passive" and int(card.get("level_from", 0)) > 0 and W.is_evolved_rung(def, level_of(card)):
+		return "EVOLVED"
 	if k in ["weapon", "line", "passive"]:
 		return "UPGRADE" if int(card.get("level_from", 0)) > 0 else "NEW"
 	return ""
+
+
+## The rung a passive item's upgrade lands on, after the kind's word (pass 95, lane PASSIVES, Garry: the items climb
+## the rarity ladder): " · RARE", " · LEGENDARY"; "" on a new item's card (its plate says its rarity, pass 47), on the
+## Evolved rung (the tag says EVOLVED) and on anything else.
+static func rung_word(card: Dictionary) -> String:
+	var def: ContentDef = card["def"]
+	if not (def is PassiveDef) or not (def as PassiveDef).is_item() or int(card.get("level_from", 0)) <= 0:
+		return ""
+	var lt := level_of(card)
+	if W.is_evolved_rung(def, lt):
+		return ""
+	return " · " + TextGen.rarity_name(W.rung_of(def, lt)).to_upper()
 
 
 static func tag_color(t: String) -> Color:
@@ -225,7 +241,8 @@ static func options(card: Dictionary, extra: Dictionary = {}) -> Dictionary:
 	var o := {
 		"word": word(card), "word_color": word_color(card), "stars": stars(card), "effect": effect(card),
 		"rarity": "", "plate_px": 180.0, "icon_frac": 0.68,
-		"evolution": kind(def) == "evolution" or bool(card.get("evolve", false)),
+		# pass 95: a passive item's Evolved rung wears the evolution's ember band too
+		"evolution": kind(def) == "evolution" or bool(card.get("evolve", false)) or (int(card.get("level_from", 0)) > 0 and W.is_evolved_rung(def, level_of(card))),
 		"level": level_of(card), "dots": WPlate.path_of(def), "dots_ready": WPlate.ready_of(def),
 		"tag": tag(card), "changes": changes(card), "favourite": favourite(card),
 	}

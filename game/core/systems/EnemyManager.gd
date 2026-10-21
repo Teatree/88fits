@@ -1271,6 +1271,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		_sniper_spawned(i, def)
 	# pass 73 (lane GROUND): it grows out of the ground (the map's spawn_rise; nothing without a director)
 	_emerge_start(i, def)
+	# pass 95 (lane WORLD): when it came and whether a boss or a caster summoned it (the despawn rule reads both)
+	_despawn_note_spawn(i)
 	return i
 
 
@@ -3299,6 +3301,9 @@ func _physics_process(delta: float) -> void:
 	# every creature steers every other tick, as before, but half of the crowd on each tick (pass 33.8: all of them on
 	# the even ticks made every other frame three times the cost of the one between)
 	var parity := _tick & 1
+	# pass 95 (lane WORLD): regular creatures far from the hero and off the screen go, before the grid is built, so none
+	# of them sits in this tick's cells (the screen flags are last tick's: at 40 m none is near the screen's edge)
+	_tick_despawn(delta, player.global_position)
 	_rebuild_grid()
 	_obstacle_cells()
 	_cf_tick = _camera_forward()
@@ -3581,6 +3586,8 @@ func _physics_process(delta: float) -> void:
 	_update_boss(delta, ppos)
 	# pass 73 (lane SNIPER): the Saiga Snipers' aims, locks and shots
 	_tick_snipers(delta, ppos)
+	# pass 95 (lane BOSS): the Scorpion Elite's tail beams, after the Saiga's (SniperFx.begin() ran in _tick_snipers)
+	_tick_tails(delta, ppos)
 	# the burrows' mounds swell with their wind-ups (pass 60), after the runner has moved the timers
 	_tick_mounds()
 	_ticks += 1
@@ -4449,6 +4456,8 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_stalactites(delta, ppos)
 	# pass 72 (lane BOSS): the custom attacks in the air (content/boss_attacks)
 	_tick_custom_attacks(delta, ppos)
+	# pass 95 (lane BOSS): the King's stomps under way (the hops and the landings)
+	_tick_stomps(delta, ppos)
 	if boss_index >= 0:
 		_update_attacks(boss_index, delta, ppos)
 	for i in range(MAX):
@@ -4522,7 +4531,8 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 			# one with a maximum range is skipped while he is beyond it (pass 45: the golem's smack and swoop give way to
 			# its boulder when he keeps his distance)
 			var tries := 0
-			while _attack_out_of_range(atk, gap_d) and tries < attacks.size():
+			# pass 95 (lane BOSS): an attack with `chance` is skipped when its roll misses (_attack_chance_misses)
+			while (_attack_out_of_range(atk, gap_d) or _attack_chance_misses(atk)) and tries < attacks.size():
 				atk_i[i] += 1
 				atk = attacks[atk_i[i] % attacks.size()]
 				tries += 1
@@ -4700,6 +4710,12 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					if game and atk.has("lift"):
 						game.camera.shake(1.4)
 					state[i] = STATE_MOVE
+				"stomp":
+					# pass 95 (lane BOSS): the King's jump and three stomps (_stomp_start, _tick_stomps: the pose held)
+					_stomp_start(i, atk)
+				"tail_sniper":
+					# pass 95 (lane BOSS): the Scorpion Elite's tail beam, three in a row (_tail_start, _tick_tails: frozen)
+					_tail_start(i, atk, ppos)
 				"rumble":
 					# the Gila (pass 43): every line of the fan becomes a wave of heaving sand running out from the boss
 					var rn := int(atk.get("count", 7))
@@ -4723,9 +4739,8 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 				"tumbleweed_volley":
 					# the King (pass 45): tumbleweeds roll out in every direction, far, whether the hero is near or not
 					if game and game.has_method("tumbleweed_volley"):
-						game.tumbleweed_volley(pos[i], charge_dir[i], int(atk.get("count", 12)), float(atk.get("speed", 9.0)),
-							float(atk.get("damage", 14)) * stage_of(i) * lvd_of(i) * host_of(i), float(atk.get("life", 2.6)),
-							float(atk.get("knockback", 14.0)), float(atk.get("lift", 2.5)), hit_info(i, "ranged", ["tumbleweed"]))
+						# pass 95 (lane BOSS): with the row's `trail` (the dust ribbon every tumbleweed leaves)
+						_tumbleweed_volley_call(i, atk)
 					state[i] = STATE_MOVE
 				"swoop":
 					# the golem's swoop (pass 45): stalactites blanket the half-disc it marked, `count` of them over `duration`
@@ -7183,3 +7198,547 @@ func _mirror_attack_of(i: int) -> float:
 	if i < 0 or i >= MAX or type_idx[i] < 0 or type_idx[i] >= types.size():
 		return 1.0
 	return mirror_factor(MirrorDanger.is_big(types[type_idx[i]]["def"]), "attack")
+
+
+# ---------------------------------------------------------------- despawn (pass 95, lane WORLD)
+
+## Pass 95 (lane WORLD; Garry: "in Vampire Survivors certain enemies despawn if the player walks far enough from them.
+## Let's do that as well. This, of course, only applies to regular enemies, not all of them ... the despawning happens
+## out of Player's view. So never when enemies are above him. When enemies despawn they leave nothing behind"): the
+## map's `timeline_data.despawn` as the director hands it (WaveTimeline.despawn_cfg: enabled, distance, grace, every,
+## keep_share; {} = off, so a manager without a director never despawns, nor the arena). Every `every` seconds
+## (_tick_despawn, before the tick builds its grid) every creature can_despawn says yes to vanishes (despawn): no death
+## animation, no blood, no XP, no coins, no drops, no chest, no kill, no corpse, no signal; the live counts drop as for
+## a death (_free), so the director's rows, the cap and Endless spawn again near the hero, which is how Megabonk and
+## Vampire Survivors keep the crowd round him. `despawned` / `despawned_by` count them (the run record's crowd block).
+var despawn_cfg: Dictionary = {}
+var despawned := 0
+var despawned_by: Dictionary = {}
+## When each creature spawned, on the despawn clock (seconds of raw physics time since the manager first ticked), and
+## whether a boss's or a caster's summon brought it (force_plain was up): a boss's brood stays while the boss lives.
+var spawn_at := PackedFloat32Array()
+var summoned := PackedByteArray()
+var _despawn_clock := 0.0
+var _despawn_t := 0.0
+
+
+## The director hands the map's block over (WaveTimeline.despawn_cfg); {} or enabled false = off.
+func set_despawn(cfg: Dictionary) -> void:
+	despawn_cfg = cfg.duplicate() if cfg != null else {}
+
+
+func despawn_enabled() -> bool:
+	return bool(despawn_cfg.get("enabled", false))
+
+
+## spawn() calls it last: the creature's birth on the despawn clock and its summoned flag (sized here, lazily, so the
+## pools' resize block is not touched).
+func _despawn_note_spawn(i: int) -> void:
+	if spawn_at.size() != MAX:
+		spawn_at.resize(MAX)
+		summoned.resize(MAX)
+	spawn_at[i] = _despawn_clock
+	summoned[i] = 1 if force_plain else 0
+
+
+## Seconds since creature `i` spawned, on the despawn clock (0 for one never noted).
+func age_of(i: int) -> float:
+	if i < 0 or i >= spawn_at.size():
+		return 0.0
+	return maxf(_despawn_clock - spawn_at[i], 0.0)
+
+
+## Whether creature `i` may vanish now, the hero at `ppos`: a regular creature (never the boss, one wearing an Elite
+## modifier or of the Elite or boss kind, a special type (the gear badge: the Vulture Raider, the harpooner, the Saiga
+## Sniper), a coloured variance special, a training dummy, a boss's summon while its boss lives, one held by the
+## Gravity Gun, roped, in the air, still rising or sinking, or dying already) that is OFF the screen (the camera's
+## test, refresh_onscreen: nothing visible ever goes, above him or below), older than `grace` seconds and farther than
+## `distance` m (flat) from him.
+func can_despawn(i: int, ppos: Vector3) -> bool:
+	if not despawn_kind(i):
+		return false
+	if onscreen.size() == MAX and onscreen[i] == 1:
+		return false
+	if age_of(i) < float(despawn_cfg.get("grace", WaveTimeline.DESPAWN_DEFAULTS["grace"])):
+		return false
+	var d := float(despawn_cfg.get("distance", WaveTimeline.DESPAWN_DEFAULTS["distance"]))
+	var dx := pos[i].x - ppos.x
+	var dz := pos[i].z - ppos.z
+	return dx * dx + dz * dz > d * d
+
+
+## The "who" of the rule: whether creature `i` is one the despawn rule may ever take (alive, not dying, and regular as
+## can_despawn says), whatever its distance, screen or age. WaveDirector._cull_behind leaves these to the rule and moves
+## up only the others, as it did before pass 95.
+func despawn_kind(i: int) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+		return false
+	if i == boss_index or elite_idx[i] >= 0 or vspecial[i] == 1 or held[i] == 1 or undying[i] == 1 or i == tethered_i:
+		return false
+	if lift_t[i] > 0.0 or lift_h[i] > 0.05 or rise_t[i] < 1.0 or rise_v[i] != 0.0:
+		return false
+	var ti := type_idx[i]
+	if ti < 0 or ti >= types.size() or _t_dummy[ti] == 1 or _t_badge[ti] == "gear":
+		return false
+	var def: EnemyDef = types[ti]["def"]
+	if def.archetype == "boss" or def.archetype == "elite":
+		return false
+	if summoned.size() == MAX and summoned[i] == 1 and boss_index >= 0:
+		return false
+	return true
+
+
+## One tick of the rule (the physics tick calls it with the raw delta, before the grid): the clock, then every `every`
+## seconds a pass over the crowd; `keep_share` of the ones that may go are spared this time (the manager's own dice,
+## rolled only when the share is above 0, so the run's sequence never moves at the default). How many went.
+func _tick_despawn(delta: float, ppos: Vector3) -> int:
+	_despawn_clock += delta
+	if not despawn_enabled():
+		return 0
+	_despawn_t -= delta
+	if _despawn_t > 0.0:
+		return 0
+	_despawn_t = maxf(float(despawn_cfg.get("every", WaveTimeline.DESPAWN_DEFAULTS["every"])), 0.05)
+	var keep := clampf(float(despawn_cfg.get("keep_share", 0.0)), 0.0, 1.0)
+	var n := 0
+	for i in range(MAX):
+		if alive[i] == 0 or not can_despawn(i, ppos):
+			continue
+		if keep > 0.0 and _rng.randf() < keep:
+			continue
+		if despawn(i):
+			n += 1
+	return n
+
+
+## Creature `i` vanishes, leaving nothing: no death, no drops, no kill, no corpse (the opposite of _die); the live
+## counts drop in _free as for a death. True when it went.
+func despawn(i: int) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+		return false
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	held[i] = 0
+	poison_src[i] = {}
+	fire_src[i] = {}
+	fire_blue[i] = 0
+	hamper_t[i] = 0.0
+	status_t[i] = 0.0
+	lift_t[i] = 0.0
+	lift_h[i] = 0.0
+	lift_mode[i] = 0
+	vel[i] = Vector3.ZERO
+	kb[i] = Vector3.ZERO
+	_free(i)
+	despawned += 1
+	despawned_by[def.id] = int(despawned_by.get(def.id, 0)) + 1
+	if RunAnalytics.I: RunAnalytics.I.despawned(def)
+	return true
+
+
+# ---------------------------------------------------------------- pass 95 (lane BOSS): the King's stomp
+## Garry (pass 95): "The stomp attack should have an animation of the king jumping and doing the stomp. It should be
+## more than one stomp, 3. There should be visible wave effects around the boss." The `stomp` script (the King's old
+## `slam` row): the runner's wind-up and its ring as any attack's, then the fire step starts a run (_stomp_start): the
+## attack pose held (STATE_ATTACK, the runner's timer parked at SNIPER_HELD so its fire step never comes round again),
+## the figure springs up `jump.height` m over `jump.up` s on an ease-out (lift_h: the render lifts the painting and
+## shrinks the shadow under it) and drops over `jump.down` s on an ease-in, landing squashed: a stomp (_stomp_land).
+## Each stomp hurts the hero within `radius` + 0.5 m for `damage` x the attacker's stage, level and hostile factors
+## (as the slam) and pushes him `knockback` as a special push (pass 89's share; a `lift` throws him instead, the giant's
+## way), the wave shows (Game.stomp_wave: a band racing out over the sand to the radius, the ring's flash, a ring of
+## dust and clods, a kick of the camera) and the thud plays (STOMP_SOUND). Then `gap` s on the ground under the next
+## stomp's ring (gap + up + down long: the warning), the next hop; `stomps` landings in all, then the boss's
+## cooldown_between. The clock is the creatures' attack clock x pace, every wind-up's: the pace knob and a hamper
+## stretch the hops as they stretch a wind-up. The `slam` script is untouched (the Hammer Giant, custom slams).
+const STOMP_JUMP := {"height": 2.2, "up": 0.35, "down": 0.2}
+const STOMP_LAND_SQUASH := 0.62
+const STOMP_RISE_STRETCH := 1.12
+const STOMP_SOUND := "en_boulder_land"
+const STOMP_UP := 0
+const STOMP_DOWN := 1
+const STOMP_GAP := 2
+## creature -> {serial, atk, left, n, phase, t, damage, radius}
+var _stomps: Dictionary = {}
+## diagnostics and tests: runs started, landings, hero hits, the last landing
+var stomp_runs := 0
+var stomp_lands := 0
+var stomp_hero_hits := 0
+var stomp_last: Dictionary = {}
+
+
+## The hop's numbers of a stomp row: its `jump` {height, up, down} over STOMP_JUMP.
+static func stomp_jump(atk: Dictionary) -> Dictionary:
+	var out: Dictionary = STOMP_JUMP.duplicate()
+	var j = atk.get("jump")
+	if j is Dictionary:
+		for k in (j as Dictionary).keys():
+			out[k] = float((j as Dictionary)[k])
+	return out
+
+
+## How long one stomp's hop takes, s (up + down).
+static func stomp_hop_seconds(atk: Dictionary) -> float:
+	var j := stomp_jump(atk)
+	return maxf(float(j["up"]), 0.01) + maxf(float(j["down"]), 0.01)
+
+
+## From one landing to the next, s (the gap on the ground + the hop).
+static func stomp_period(atk: Dictionary) -> float:
+	return maxf(float(atk.get("gap", 0.45)), 0.0) + stomp_hop_seconds(atk)
+
+
+## The run starts (the runner's fire step, the wind-up over): the pose held, the first hop under way, the first landing's
+## ring running on from the wind-up's for the hop.
+func _stomp_start(i: int, atk: Dictionary) -> void:
+	state[i] = STATE_ATTACK
+	timer[i] = SNIPER_HELD
+	vel[i] = Vector3.ZERO
+	intent[i] = Vector3.ZERO
+	var r := float(atk.get("radius", 6.0))
+	_stomps[i] = {"serial": serial[i], "atk": atk, "left": maxi(int(atk.get("stomps", 3)), 1), "n": 0, "phase": STOMP_UP, "t": 0.0,
+		"damage": float(atk.get("damage", 18)) * stage_of(i) * lvd_of(i) * host_of(i), "radius": r}
+	squash[i] = STOMP_RISE_STRETCH
+	stomp_runs += 1
+	if game:
+		game.telegraph_ring(pos[i], r, stomp_hop_seconds(atk) / maxf(pace, 0.05), Color(0.93, 0.29, 0.36))
+
+
+## The stomps under way, once a tick (from _update_boss): the hop's height on lift_h, the landing, the gap, the next hop.
+func _tick_stomps(delta: float, ppos: Vector3) -> void:
+	if _stomps.is_empty():
+		return
+	for key in _stomps.keys():
+		var i: int = int(key)
+		var s: Dictionary = _stomps[key]
+		if alive[i] == 0 or serial[i] != int(s["serial"]) or state[i] != STATE_ATTACK:
+			# dead, gone or taken by something else: back on the ground, the run dropped
+			if alive[i] == 1 and serial[i] == int(s["serial"]):
+				lift_h[i] = 0.0
+			_stomps.erase(key)
+			continue
+		var atk: Dictionary = s["atk"]
+		var j := stomp_jump(atk)
+		s["t"] = float(s["t"]) + delta * attack_clock(i) * pace
+		var t := float(s["t"])
+		match int(s["phase"]):
+			STOMP_UP:
+				var u := clampf(t / maxf(float(j["up"]), 0.01), 0.0, 1.0)
+				lift_h[i] = float(j["height"]) * (1.0 - (1.0 - u) * (1.0 - u))
+				if u >= 1.0:
+					s["phase"] = STOMP_DOWN
+					s["t"] = 0.0
+			STOMP_DOWN:
+				var u := clampf(t / maxf(float(j["down"]), 0.01), 0.0, 1.0)
+				lift_h[i] = float(j["height"]) * (1.0 - u * u)
+				if u >= 1.0:
+					lift_h[i] = 0.0
+					_stomp_land(i, s, ppos)
+			STOMP_GAP:
+				if t >= maxf(float(atk.get("gap", 0.45)), 0.0):
+					s["phase"] = STOMP_UP
+					s["t"] = 0.0
+					squash[i] = STOMP_RISE_STRETCH
+
+
+## A landing: the hero in the radius hurt and pushed, the wave, the thud; the next stomp's ring, or the run's end.
+func _stomp_land(i: int, s: Dictionary, ppos: Vector3) -> void:
+	var atk: Dictionary = s["atk"]
+	var r := float(s["radius"])
+	var dmg_now := float(s["damage"])
+	squash[i] = STOMP_LAND_SQUASH
+	s["n"] = int(s["n"]) + 1
+	s["left"] = int(s["left"]) - 1
+	stomp_lands += 1
+	var hit := false
+	var d := ppos - pos[i]
+	d.y = 0.0
+	if player != null and player.get("dead") != true and d.length() <= r + 0.5:
+		player.take_damage(dmg_now, pos[i], hit_info(i, "melee", ["stomp", "knocked back"]))
+		if d.length_squared() > 0.01:
+			var push := d.normalized() * float(atk.get("knockback", 6.0))
+			if atk.has("lift") and player.has_method("blast"):
+				player.blast(push, float(atk["lift"]))
+			elif player.has_method("special_push"):
+				player.special_push(push)
+			elif player.has_method("apply_knockback"):
+				player.apply_knockback(push)
+		hit = true
+		stomp_hero_hits += 1
+	if game:
+		if game.has_method("stomp_wave"):
+			game.stomp_wave(pos[i], r, size[i])
+		elif game.has_method("shockwave"):
+			game.shockwave(pos[i], r)
+	Audio.play(STOMP_SOUND, pos[i])
+	stomp_last = {"n": int(s["n"]), "at": pos[i], "radius": r, "hero_hit": hit, "damage": dmg_now}
+	if int(s["left"]) > 0:
+		s["phase"] = STOMP_GAP
+		s["t"] = 0.0
+		if game:
+			game.telegraph_ring(pos[i], r, stomp_period(atk) / maxf(pace, 0.05), Color(0.93, 0.29, 0.36))
+	else:
+		_stomp_end(i)
+
+
+## The run is over: the pose released, on the ground, the boss's cooldown.
+func _stomp_end(i: int) -> void:
+	_stomps.erase(i)
+	lift_h[i] = 0.0
+	if state[i] == STATE_ATTACK:
+		state[i] = STATE_MOVE
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	atk_t[i] = float(def.boss.get("cooldown_between", 2.0))
+
+
+## Pass 95 (lane BOSS): the King's volley handed its row's `trail` (Game.tumbleweed_volley's tenth argument) when the game
+## takes one (a test's fake game may not).
+func _tumbleweed_volley_call(i: int, atk: Dictionary) -> void:
+	var dmg_now := float(atk.get("damage", 14)) * stage_of(i) * lvd_of(i) * host_of(i)
+	var info := hit_info(i, "ranged", ["tumbleweed"])
+	var trail = atk.get("trail", {})
+	if game.get_method_argument_count("tumbleweed_volley") >= 10:
+		game.tumbleweed_volley(pos[i], charge_dir[i], int(atk.get("count", 12)), float(atk.get("speed", 9.0)), dmg_now, float(atk.get("life", 2.6)),
+			float(atk.get("knockback", 14.0)), float(atk.get("lift", 2.5)), info, trail if trail is Dictionary else {})
+	else:
+		game.tumbleweed_volley(pos[i], charge_dir[i], int(atk.get("count", 12)), float(atk.get("speed", 9.0)), dmg_now, float(atk.get("life", 2.6)),
+			float(atk.get("knockback", 14.0)), float(atk.get("lift", 2.5)), info)
+
+
+## Pass 95 (lane BOSS): an attack with `chance` (0..1) is skipped as its turn comes when its roll misses (the next attack
+## plays; the runner's range skips work the same way); without one it always plays.
+func _attack_chance_misses(atk: Dictionary) -> bool:
+	if not atk.has("chance"):
+		return false
+	return _rng.randf() >= clampf(float(atk["chance"]), 0.0, 1.0)
+
+
+# ---------------------------------------------------------------- pass 95 (lane BOSS): the Scorpion Elite's tail sniper
+## Garry (pass 95): "Scorpion Elite should have like a more powerful sniper attack, that comes out of the scorpion's tail.
+## It's like a more powerful shot, but visually the same. And he should shoot 3 in a sequence 1 after the other." The
+## `tail_sniper` script, any creature's: the runner's wind-up (it stops), then the fire step freezes it (_tail_start:
+## STATE_WINDUP with the timer parked at SNIPER_HELD, as the Saiga is held: its own brain's steer waits, the attack
+## or idle set shows) and runs `count` shots one after the other (_tick_tails): the Saiga's red lines gather from the
+## row's `muzzle` ({up, side, forward} in metres at the def's size, muzzle_point: the tail's tip) on the hero and follow
+## him `aim` s (`lines` of them over `cone_deg`), lock `lock` s, the beam fires (SniperFx: the Saiga's look; `beam`
+## {length, width, seconds, knockback, creature_frac, creature_max, push, sparks} as the Saiga's), the hero on its line
+## takes tail_damage and `beam.knockback` as a special push, every creature on it is nicked and pushed aside as by the
+## Saiga's; then `gap` s frozen, and the next shot aims afresh at where he stands now (a moving hero dodges the next);
+## after the last gap the pose is released, the boss cooldown runs and its own brain's charge waits TAIL_CHARGE_REST.
+## The damage: `damage_from` names a sniper creature whose beam's base (its own damage_from chain: the Saiga's is the
+## Vulture Raider's rocket x 0.7 = 15.4) x `damage_mult` (2) is the base, else `damage`; x this creature's stage, level
+## and hostile factors. Nothing spoils it but a stun, a freeze, a launch, a grab, hiding or death (an Elite is under
+## fire the whole time: a hit that spoiled it would never let it shoot). All on the attack clock x pace, the wind-ups'.
+const TAIL_MUZZLE := {"up": 2.0, "side": 0.0, "forward": -0.4}
+const TAIL_CHARGE_REST := 0.8
+const TAIL_AIM := 0
+const TAIL_LOCK := 1
+const TAIL_GAP := 2
+## creature -> {serial, atk, left, shots, phase, t, aim, dir, lines, from, ldir, d, dealt}
+var _tails: Dictionary = {}
+## diagnostics and tests
+var tail_runs := 0
+var tail_shots := 0
+var tail_hero_hits := 0
+var tail_cancels := 0
+var tail_last: Dictionary = {}
+
+
+func _tail_beam(atk: Dictionary) -> Dictionary:
+	var b = atk.get("beam", {})
+	return b if b is Dictionary else {}
+
+
+func _tail_muzzle(atk: Dictionary) -> Dictionary:
+	var m = atk.get("muzzle", TAIL_MUZZLE)
+	return m if m is Dictionary and not (m as Dictionary).is_empty() else TAIL_MUZZLE
+
+
+## The unscaled damage of a sniper creature's beam (its `sniper.beam`: `damage_from` + `damage_mult` over another
+## creature's rocket, else `damage`), as sniper_damage reads it before the factors.
+func sniper_base_damage(def: EnemyDef) -> float:
+	var b = def.sniper.get("beam", {}) if def != null else {}
+	if not (b is Dictionary):
+		return 15.4
+	var bm: Dictionary = b
+	var base := float(bm.get("damage", 15.4))
+	var src := str(bm.get("damage_from", ""))
+	if src != "":
+		var sd: EnemyDef = Registry.enemy(src)
+		if sd != null and sd.artillery.get("missile") is Dictionary and (sd.artillery["missile"] as Dictionary).has("damage"):
+			base = float(sd.artillery["missile"]["damage"]) * float(bm.get("damage_mult", 0.7))
+	return base
+
+
+## The tail beam's damage to the hero: the row's base (see the header) x this creature's own factors.
+func tail_damage(i: int, atk: Dictionary) -> float:
+	var base := float(atk.get("damage", 30.8))
+	var src := str(atk.get("damage_from", ""))
+	if src != "":
+		var sd: EnemyDef = Registry.enemy(src)
+		if sd != null and sd.sniper.get("beam") is Dictionary:
+			base = sniper_base_damage(sd) * float(atk.get("damage_mult", 2.0))
+	return base * stage_of(i) * lvd_of(i) * host_of(i)
+
+
+func _tail_lines(atk: Dictionary) -> Array:
+	return SniperFx.line_plan(int(atk.get("lines", 8)), float(atk.get("aim", 1.0)), float(atk.get("cone_deg", 40.0)), _rng)
+
+
+## The run starts (the runner's fire step): frozen facing the hero, the first aim on him now.
+func _tail_start(i: int, atk: Dictionary, ppos: Vector3) -> void:
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	state[i] = STATE_WINDUP
+	timer[i] = SNIPER_HELD
+	vel[i] = Vector3.ZERO
+	intent[i] = Vector3.ZERO
+	var dir := ppos - pos[i]
+	dir.y = 0.0
+	dir = dir.normalized() if dir.length_squared() > 0.0001 else charge_dir[i]
+	charge_dir[i] = dir
+	_tails[i] = {"serial": serial[i], "atk": atk, "left": maxi(int(atk.get("count", 3)), 1), "shots": 0, "phase": TAIL_AIM, "t": 0.0,
+		"aim": ppos, "dir": dir, "lines": _tail_lines(atk), "dealt": tail_damage(i, atk)}
+	tail_runs += 1
+	Audio.play(_tail_sfx(atk, def, "aim", "en_sniper_aim"), pos[i])
+	if game != null and game.has_method("hint_once"):
+		game.hint_once("tail_sniper", "%s: its tail aims a beam, three times. Step off the red line." % def.display_name.to_upper())
+
+
+## The row's `sfx` {aim, lock, shot} over the def's, over the Saiga's ids.
+func _tail_sfx(atk: Dictionary, def: EnemyDef, key: String, fallback: String) -> String:
+	var own = atk.get("sfx", {})
+	if own is Dictionary and (own as Dictionary).has(key):
+		return str((own as Dictionary)[key])
+	return str(def.sfx.get(key, fallback))
+
+
+## The tail runs, once a tick (from _physics_process, after _tick_snipers: SniperFx.begin() has cleared the frame's aims):
+## the aim following the hero, the lock, the beam, the gap, the next aim; dropped by whatever breaks the freeze.
+func _tick_tails(delta: float, ppos: Vector3) -> void:
+	if _tails.is_empty():
+		return
+	var fx := _sniper_fx_node()
+	fx.time_scale = time_scale
+	for key in _tails.keys():
+		var i: int = int(key)
+		var s: Dictionary = _tails[key]
+		if alive[i] == 0 or serial[i] != int(s["serial"]) or state[i] == STATE_DYING:
+			_tails.erase(key)
+			continue
+		if state[i] != STATE_WINDUP or freeze_t[i] > 0.0 or stun_t[i] > 0.0 or held[i] == 1 or hidden[i] == 1 or lift_t[i] > 0.0 \
+				or player == null or player.get("dead") == true:
+			_tail_end(i, true)
+			continue
+		var def: EnemyDef = types[type_idx[i]]["def"]
+		var atk: Dictionary = s["atk"]
+		s["t"] = float(s["t"]) + delta * attack_clock(i) * pace
+		var phase := int(s["phase"])
+		if phase == TAIL_GAP:
+			if float(s["t"]) >= maxf(float(atk.get("gap", 0.6)), 0.0):
+				if int(s["left"]) <= 0:
+					_tail_end(i, false)
+					continue
+				# the next shot: a fresh plan, aimed at where he stands now
+				s["phase"] = TAIL_AIM
+				s["t"] = 0.0
+				s["aim"] = ppos
+				s["lines"] = _tail_lines(atk)
+				Audio.play(_tail_sfx(atk, def, "aim", "en_sniper_aim"), pos[i])
+			continue
+		if phase == TAIL_AIM:
+			var aim_pt: Vector3 = (s["aim"] as Vector3).lerp(ppos, clampf(delta * SNIPER_FOLLOW, 0.0, 1.0))
+			s["aim"] = aim_pt
+			var d := aim_pt - pos[i]
+			d.y = 0.0
+			if d.length_squared() > 0.01:
+				s["dir"] = d.normalized()
+				charge_dir[i] = d.normalized()
+			var total := float(atk.get("aim", 1.0))
+			var from := muzzle_point(i, s["dir"], _tail_muzzle(atk))
+			if float(s["t"]) < total:
+				fx.aim(from, aim_pt, float(s["t"]), total, s["lines"])
+				continue
+			var ld := Vector3(aim_pt.x - from.x, 0.0, aim_pt.z - from.z)
+			s["phase"] = TAIL_LOCK
+			s["t"] = 0.0
+			s["from"] = from
+			s["ldir"] = ld.normalized() if ld.length_squared() > 0.0001 else s["dir"]
+			s["d"] = ld.length()
+			Audio.play(_tail_sfx(atk, def, "lock", "en_sniper_lock"), pos[i])
+		var bm := _tail_beam(atk)
+		var hold := float(atk.get("lock", 0.4))
+		if float(s["t"]) >= hold:
+			_tail_fire(i, s)
+		else:
+			fx.lock(s["from"], s["ldir"], float(s["d"]), float(s["t"]), hold, float(bm.get("length", 60.0)), float(bm.get("width", 0.5)))
+
+
+## One beam from the tail along the locked line: the hero and the crowd on it (beam_hit), the fx, the shot's sound; then
+## the gap before the next.
+func _tail_fire(i: int, s: Dictionary) -> void:
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	var atk: Dictionary = s["atk"]
+	var bm := _tail_beam(atk)
+	var from: Vector3 = s["from"]
+	var dir: Vector3 = s["ldir"]
+	var length := float(bm.get("length", 60.0))
+	var width := float(bm.get("width", 0.5))
+	var dealt := float(s["dealt"])
+	var hero_hit := beam_hit(i, from, dir, length, width, dealt, bm, ["tail beam"])
+	if hero_hit:
+		tail_hero_hits += 1
+	_sniper_fx_node().beam(from, dir, length, width, float(s["d"]), float(bm.get("seconds", 0.15)), float(bm.get("sparks", 1.5)))
+	if game != null and game.has_method("fx_burst"):
+		game.fx_burst(from, Color(1.0, 0.35, 0.3), 1.3)
+	Audio.play(_tail_sfx(atk, def, "shot", "en_sniper_shot"), from)
+	s["shots"] = int(s["shots"]) + 1
+	s["left"] = int(s["left"]) - 1
+	s["phase"] = TAIL_GAP
+	s["t"] = 0.0
+	tail_shots += 1
+	tail_last = {"from": from, "dir": dir, "length": length, "width": width, "damage": dealt, "hero_hit": hero_hit, "shot": int(s["shots"])}
+
+
+## A beam from `from` along `dir` (flat, unit) for `length` m, `width` wide, fired by creature `i`: the hero, when his feet
+## are within half its width + SNIPER_HERO_R of its line, takes `dealt` with `bm.knockback` as a special push and `words`
+## in his hit's info; every other creature on it takes `bm.creature_frac` of its max HP (at most `bm.creature_max`) and a
+## push of `bm.push` m off the line to the side it stood on (the Saiga's rule, _sniper_fire). True when the hero was hit.
+func beam_hit(i: int, from: Vector3, dir: Vector3, length: float, width: float, dealt: float, bm: Dictionary, words: Array) -> bool:
+	var half := width * 0.5
+	var hit_hero := false
+	if player != null and player.get("dead") != true:
+		if beam_distance(player.global_position, from, dir, length) <= half + SNIPER_HERO_R:
+			var info := hit_info(i, "ranged", words)
+			info["knock"] = float(bm.get("knockback", 5.0))
+			info["special_knock"] = true
+			player.take_damage(dealt, from, info)
+			hit_hero = true
+	var frac := float(bm.get("creature_frac", 0.05))
+	var cap := float(bm.get("creature_max", 40.0))
+	var push := float(bm.get("push", 3.0))
+	var side := Vector3(-dir.z, 0.0, dir.x)
+	var hit := PackedInt32Array()
+	for j in range(MAX):
+		if j == i or alive[j] == 0 or state[j] == STATE_DYING or hidden[j] == 1 or held[j] == 1:
+			continue
+		if beam_distance(pos[j], from, dir, length) <= half + radius[j]:
+			hit.append(j)
+	for j in hit:
+		if alive[j] == 0 or state[j] == STATE_DYING:
+			continue
+		var rel := Vector3(pos[j].x - from.x, 0.0, pos[j].z - from.z)
+		var sg := 1.0 if rel.dot(side) >= 0.0 else -1.0
+		kb[j] += side * (sg * push * KB_PER_M * _t_kbt[type_idx[j]] * (0.15 if j == boss_index else 1.0))
+		damage(j, minf(max_hp[j] * frac, cap), "", Vector3.ZERO, 0.0)
+	return hit_hero
+
+
+## The run is over (or dropped, `cancelled`): the pose released, the boss cooldown, its own charge held a beat.
+func _tail_end(i: int, cancelled: bool) -> void:
+	_tails.erase(i)
+	if alive[i] == 1 and state[i] == STATE_WINDUP:
+		state[i] = STATE_MOVE
+	if alive[i] == 1 and type_idx[i] >= 0 and type_idx[i] < types.size():
+		var def: EnemyDef = types[type_idx[i]]["def"]
+		atk_t[i] = float(def.boss.get("cooldown_between", 2.0))
+		cooldown[i] = maxf(cooldown[i], TAIL_CHARGE_REST)
+	if cancelled:
+		tail_cancels += 1

@@ -43,6 +43,7 @@ params = {
 }
 }
 },
+"fire_forward": true,
 "pierce_falloff": {
 "first_mult": 1.2,
 "floor": 0.4,

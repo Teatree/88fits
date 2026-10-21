@@ -5,13 +5,13 @@
   "weight": 8,
   "max_level": 5,
   "flavour": "Every bruise shakes something loose.",
-  "text": "A hit has a 25% chance to knock a coin worth 10 gold out of you (+10% a level). It lands a few steps away: go and get it.",
+  "text": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
   "levels": [
     [
       {
         "stat": "coin_on_hit",
         "op": "add",
-        "value": 0.25,
+        "value": 0.32,
         "target": "player"
       }
     ],
@@ -19,7 +19,31 @@
       {
         "stat": "coin_on_hit",
         "op": "add",
-        "value": 0.1,
+        "value": 0.08,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "coin_on_hit",
+        "op": "add",
+        "value": 0.08,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "coin_on_hit",
+        "op": "add",
+        "value": 0.08,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "coin_on_hit",
+        "op": "add",
+        "value": 0.12,
         "target": "player"
       }
     ]

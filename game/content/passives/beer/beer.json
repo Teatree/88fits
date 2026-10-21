@@ -4,13 +4,83 @@
   "flavour": "Liquid courage. Paid for in blood.",
   "rarity": "common",
   "weight": 9,
-  "max_level": 5,
+  "max_level": 6,
   "levels": [
     [
       {
         "stat": "might",
         "op": "mul",
-        "value": 0.12,
+        "value": 0.15,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": -0.05,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": -0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": -0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": -0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": -0.04,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.14,
         "target": "player"
       },
       {
@@ -22,7 +92,7 @@
     ]
   ],
   "repeat_last_level": true,
-  "trade": "−5% max HP a level",
+  "trade": "−4 to −5% max HP a level",
   "art_prompt": "a big wooden beer tankard with two brass bands and a handle, full of golden beer with thick white foam overflowing down its side",
   "placeholder": {
     "color": "#E8B840",

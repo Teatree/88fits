@@ -117,10 +117,11 @@ static func slot(px: float, p_padlock: bool = false, stage: int = 0) -> WPlate:
 func for_def(def: ContentDef, px: float, is_locked: bool = false, level: int = 0) -> WPlate:
 	side = px
 	var k := W.kind_of(def)
-	var evolved := W.is_evolved(def)
+	# pass 95 (lane PASSIVES): a passive item on its Evolved rung wears the evolved look and its Evolved icon
+	var evolved := W.is_evolved(def) or W.is_evolved_rung(def, level)
 	fill = W.plate_fill(def, level)
 	round_plate = k == "character"
-	tex = def.icon if def else null
+	tex = W.icon_at(def, level) if def else null
 	locked = is_locked
 	radius = 10 if px < 140 else (12 if px < 190 else (14 if px < 240 else (18 if px < 400 else 24)))
 	border = 4 if px < 140 else 5

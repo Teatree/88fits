@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/fire_eater/fire_eater_icon.png" id="1_uoshx"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_clp3n"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_0pn2l"]
+
+[sub_resource type="Resource" id="Resource_uoshx"]
+script = ExtResource("2_clp3n")
+stat = "thorns"
+value = 8.0
+target = "player"
+
+[resource]
+script = ExtResource("3_0pn2l")
+behavior = "FireBreath"
+targeting = "forward"
+base = {
+"amount": 1.0,
+"area": 1.3,
+"cooldown": 6.5,
+"damage": 80.0,
+"duration": 3.5,
+"fire_damage": 14.0,
+"fire_duration": 3.5,
+"fire_spread": 0.5,
+"range": 7.0
+}
+levels = [[SubResource("Resource_uoshx")]]
+max_level = 1
+is_evolution = true
+evolved_from = "dragons_breath"
+sfx = {
+"fire": "w_breath_start",
+"loop": "w_breath_loop"
+}
+visual_file = "fire_eater_visual.tscn"
+params = {
+"breath": {
+"cone_deg": 50.0,
+"look": {
+"intensity": 1.0
+},
+"max_seconds": 8.0,
+"seconds_per_amount": 1.0,
+"tick": 1.0,
+"wait": 2.0
+},
+"final": {
+"breath": {
+"knock": 7.0,
+"look": {
+"intensity": 1.8
+}
+}
+}
+}
+id = "fire_eater"
+display_name = "Fire Eater"
+flavour = "He swallowed the whole act. A longer, hotter, wider breath, and whoever lays a hand on him burns for it (thorns 8)."
+rarity = "rare"
+icon = ExtResource("1_uoshx")
+icon_file = "fire_eater_icon.png"
+placeholder = {
+"color": "#FF4A0A",
+"glyph": "bottle"
+}

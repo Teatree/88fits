@@ -558,8 +558,20 @@ def _refs(g, refs, vae, pos, neg=None, megapixels=1.0):
     return pos, neg
 
 
-def klein(prompt, seed, width=1024, height=1024, refs=(), steps=4, cfg=1.0, prefix="88fits/klein", negative=""):
-    """Flux.2 Klein 9B distilled. refs: LoadImage names (see upload())."""
+def _init_latent(g, vae, init, width, height, sig, denoise):
+    """pass 94 (lane REAL): img2img. The sampling starts from `init` (an uploaded picture's name) noised to `denoise` (the
+    low part of the schedule) instead of from pure noise: the painting keeps the picture's shapes (a model's clay tinted
+    like the look). Returns (latent node, sigmas node)."""
+    li = g.add("LoadImage", "start picture", image=init)
+    sc = g.add("ImageScale", image=(li, 0), upscale_method="lanczos", width=width, height=height, crop="disabled")
+    lat = g.add("VAEEncode", pixels=(sc, 0), vae=(vae, 0))
+    sp = g.add("SplitSigmasDenoise", sigmas=(sig, 0), denoise=float(denoise))
+    return lat, (sp, 1)
+
+
+def klein(prompt, seed, width=1024, height=1024, refs=(), steps=4, cfg=1.0, prefix="88fits/klein", negative="", init=None, denoise=1.0):
+    """Flux.2 Klein 9B distilled. refs: LoadImage names (see upload()). pass 94: `init` + `denoise` < 1: img2img from that
+    picture (_init_latent)."""
     g = Graph()
     m = g.add("UNETLoader", "Flux.2 Klein 9B", unet_name=KLEIN_UNET, weight_dtype="default")
     c = g.add("CLIPLoader", "Qwen3 8B text encoder", clip_name=KLEIN_CLIP, type="flux2", device="default")
@@ -573,16 +585,19 @@ def klein(prompt, seed, width=1024, height=1024, refs=(), steps=4, cfg=1.0, pref
     guider = g.add("CFGGuider", model=(m, 0), positive=(pos, 0), negative=(neg, 0), cfg=cfg)
     sampler = g.add("KSamplerSelect", sampler_name="euler")
     sig = g.add("Flux2Scheduler", steps=steps, width=width, height=height)
-    lat = g.add("EmptyFlux2LatentImage", width=width, height=height, batch_size=1)
+    if init and float(denoise) < 1.0:
+        lat, sigs = _init_latent(g, v, init, width, height, sig, denoise)
+    else:
+        lat, sigs = g.add("EmptyFlux2LatentImage", width=width, height=height, batch_size=1), (sig, 0)
     noise = g.add("RandomNoise", noise_seed=seed)
-    out = g.add("SamplerCustomAdvanced", noise=(noise, 0), guider=(guider, 0), sampler=(sampler, 0), sigmas=(sig, 0), latent_image=(lat, 0))
+    out = g.add("SamplerCustomAdvanced", noise=(noise, 0), guider=(guider, 0), sampler=(sampler, 0), sigmas=sigs, latent_image=(lat, 0))
     dec = g.add("VAEDecode", samples=(out, 0), vae=(v, 0))
     g.add("SaveImage", images=(dec, 0), filename_prefix=prefix)
     return g
 
 
-def flux2_dev(prompt, seed, width=1024, height=1024, refs=(), steps=8, guidance=4.0, turbo=True, prefix="88fits/flux2dev"):
-    """Flux.2 dev with the Turbo LoRA (8 steps) or plain (20 steps)."""
+def flux2_dev(prompt, seed, width=1024, height=1024, refs=(), steps=8, guidance=4.0, turbo=True, prefix="88fits/flux2dev", init=None, denoise=1.0):
+    """Flux.2 dev with the Turbo LoRA (8 steps) or plain (20 steps). pass 94: `init` + `denoise` as klein()'s."""
     g = Graph()
     m = g.add("UNETLoader", "Flux.2 dev", unet_name=FLUX2_UNET, weight_dtype="default")
     if turbo:
@@ -595,10 +610,64 @@ def flux2_dev(prompt, seed, width=1024, height=1024, refs=(), steps=8, guidance=
     guider = g.add("BasicGuider", model=(m, 0), conditioning=(pos, 0))
     sampler = g.add("KSamplerSelect", sampler_name="euler")
     sig = g.add("Flux2Scheduler", steps=steps if turbo else max(steps, 20), width=width, height=height)
-    lat = g.add("EmptyFlux2LatentImage", width=width, height=height, batch_size=1)
+    if init and float(denoise) < 1.0:
+        lat, sigs = _init_latent(g, v, init, width, height, sig, denoise)
+    else:
+        lat, sigs = g.add("EmptyFlux2LatentImage", width=width, height=height, batch_size=1), (sig, 0)
     noise = g.add("RandomNoise", noise_seed=seed)
-    out = g.add("SamplerCustomAdvanced", noise=(noise, 0), guider=(guider, 0), sampler=(sampler, 0), sigmas=(sig, 0), latent_image=(lat, 0))
+    out = g.add("SamplerCustomAdvanced", noise=(noise, 0), guider=(guider, 0), sampler=(sampler, 0), sigmas=sigs, latent_image=(lat, 0))
     dec = g.add("VAEDecode", samples=(out, 0), vae=(v, 0))
+    g.add("SaveImage", images=(dec, 0), filename_prefix=prefix)
+    return g
+
+
+WAN_VACE_HIGH = "wan2.2_fun_vace_high_noise_14B_fp8_scaled.safetensors"
+WAN_VACE_LOW = "wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors"
+
+
+def wan_fun_vace(prompt, ref_name, ctl_names, mask_names, seed, width=640, height=640, negative="", prefix="88fits/vace", shift=5.0,
+                 steps=4, cfg=1.0, lora=True, strength=1.0, length=None):
+    """Wan 2.2 Fun VACE 14B (pass 95, lane VACE): a clip with some frames kept and some painted anew. `ctl_names` is
+    one picture per frame: a kept frame as it is, a frame to redo as its guide (the driver's depth or pose frame, or
+    mid grey for a free fill); `mask_names` one picture per frame, white where the model paints (a redone frame),
+    black where it keeps; `ref_name` the painting (the identity). The core WanVaceToVideo node encodes the kept frames
+    as the inactive video and the guides as the reactive one, the reference as a latent frame in front (trimmed after
+    sampling), and the same two-stage lightx2v 4-step split as the Fun Control walks (tools/animate.wan_fun_control),
+    so a repaired stretch comes out of the model family the clip was walked by."""
+    import animate
+    g = Graph()
+    hi = g.add("UNETLoader", "Wan 2.2 Fun VACE high noise", unet_name=WAN_VACE_HIGH, weight_dtype="default")
+    lo = g.add("UNETLoader", "Wan 2.2 Fun VACE low noise", unet_name=WAN_VACE_LOW, weight_dtype="default")
+    if lora:
+        hi = g.add("LoraLoaderModelOnly", "lightx2v high", model=(hi, 0), lora_name=animate.WAN_T2V_LORA_HIGH, strength_model=1.0)
+        lo = g.add("LoraLoaderModelOnly", "lightx2v low", model=(lo, 0), lora_name=animate.WAN_T2V_LORA_LOW, strength_model=1.0)
+    hi = g.add("ModelSamplingSD3", model=(hi, 0), shift=shift)
+    lo = g.add("ModelSamplingSD3", model=(lo, 0), shift=shift)
+    clip = g.add("CLIPLoader", "umt5 text encoder", clip_name=animate.WAN_CLIP, type="wan", device="default")
+    vae = g.add("VAELoader", vae_name=animate.WAN_VAE)
+    pos = g.add("CLIPTextEncode", "motion prompt", clip=(clip, 0), text=prompt)
+    neg = g.add("CLIPTextEncode", "negative", clip=(clip, 0), text=negative or animate.NEGATIVE)
+    ref = g.add("LoadImage", "reference painting", image=ref_name)
+    batch = None
+    for k, name in enumerate(ctl_names):
+        li = g.add("LoadImage", "frame %02d" % k, image=name)
+        batch = li if batch is None else g.add("ImageBatch", image1=(batch, 0), image2=(li, 0))
+    mbatch = None
+    for k, name in enumerate(mask_names):
+        li = g.add("LoadImage", "mask %02d" % k, image=name)
+        mbatch = li if mbatch is None else g.add("ImageBatch", image1=(mbatch, 0), image2=(li, 0))
+    masks = g.add("ImageToMask", "masks: white = paint anew", image=(mbatch, 0), channel="red")
+    n = int(length or len(ctl_names))
+    vace = g.add("WanVaceToVideo", positive=(pos, 0), negative=(neg, 0), vae=(vae, 0), width=width, height=height, length=n, batch_size=1,
+                 strength=float(strength), control_video=(batch, 0), control_masks=(masks, 0), reference_image=(ref, 0))
+    steps = max(2, int(steps))
+    half = steps // 2
+    s1 = g.add("KSamplerAdvanced", "high noise 0-%d" % half, model=(hi, 0), add_noise="enable", noise_seed=seed, steps=steps, cfg=float(cfg), sampler_name="euler", scheduler="simple",
+               positive=(vace, 0), negative=(vace, 1), latent_image=(vace, 2), start_at_step=0, end_at_step=half, return_with_leftover_noise="enable")
+    s2 = g.add("KSamplerAdvanced", "low noise %d-%d" % (half, steps), model=(lo, 0), add_noise="disable", noise_seed=0, steps=steps, cfg=float(cfg), sampler_name="euler", scheduler="simple",
+               positive=(vace, 0), negative=(vace, 1), latent_image=(s1, 0), start_at_step=half, end_at_step=10000, return_with_leftover_noise="disable")
+    trim = g.add("TrimVideoLatent", samples=(s2, 0), trim_amount=(vace, 3))
+    dec = g.add("VAEDecode", samples=(trim, 0), vae=(vae, 0))
     g.add("SaveImage", images=(dec, 0), filename_prefix=prefix)
     return g
 

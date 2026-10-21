@@ -120,38 +120,38 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
 
 <div class="page">
 <div class="col mast">
-  <div class="eyebrow">88fits · art pipeline · creature <code>desert_spider</code> · passes 92 and 93 · 19 Oct 2026</div>
+  <div class="eyebrow">88fits · art pipeline · creature <code>desert_spider</code> · passes 92, 93 and 94 · 19 Oct 2026</div>
   <h1>The Desert Spider</h1>
-  <p class="lede">Your 3D spider, walked and killed the way the Dune Scorpion was: Blender moves the model, its depth renders guide the video model, and the paintings give it its looks. The model needed two more legs and a walk of its own, and the death was built from scratch: it rolls onto its back and curls its legs up like a real dead spider. Pass 93 fixed the walk (most legs looked still, the rest slid sideways: <a href="#fixlegs">what was wrong and how</a>) and painted SP-B again in light purple (SP-E) and light blue (SP-F) on the fixed walk. Every picture here is from the real runs.</p>
+  <p class="lede">Your 3D spider, walked and killed the way the Dune Scorpion was: Blender moves the model, its depth renders guide the video model, and the paintings give it its looks. Pass 94 starts at the top: SP-E and SP-F were awful, and <a href="#real">section ★</a> shows where their artifacts came from and the two new light purple looks, SP-G on Klein and SP-H on Flux.2 dev, each with many iterations, both painted over the model itself at SP-A's realism in the house style. The older sections (the model, its legs, the walk and its fix, the death) still describe how the spider is built. Every picture here is from the real runs.</p>
 </div>
 
 <div class="wide">
-  <div class="specimens" aria-label="SP-B and its two new colours">
-    <div class="spec"><img src="img/look_spb_run.gif" width="220" height="220" alt="SP-B, mild cartoon, the first walk walking towards the viewer"><span class="code">SP-B · Mild cartoon, the first walk</span><span class="cap">A rust tarantula with a cream stripe, big shiny eyes and a grumpy frown, on pass 92's walk.</span></div>
-    <div class="spec"><img src="img/look_spe_run.gif" width="220" height="220" alt="SP-E, light purple, the fixed walk walking towards the viewer"><span class="code">SP-E · Light purple, the fixed walk</span><span class="cap">SP-B in pale lavender and lilac, on spider_walk_v2: every foot steps along the body.</span></div>
-    <div class="spec"><img src="img/look_spf_run.gif" width="220" height="220" alt="SP-F, light blue, the fixed walk walking towards the viewer"><span class="code">SP-F · Light blue, the fixed walk</span><span class="cap">SP-B in pale sky and powder blue, on spider_walk_v2.</span></div>
+  <div class="specimens" aria-label="SP-G and SP-H">
+    <div class="spec"><img src="img/look_spg_run.gif" width="220" height="220" alt="SP-G, Klein, many iterations walking towards the viewer"><span class="code">SP-G · Klein, many iterations</span><span class="cap">Light purple, SP-A&#39;s realism in the house style, painted over the model.</span></div>
+    <div class="spec"><img src="img/look_sph_run.gif" width="220" height="220" alt="SP-H, Flux.2 dev, many iterations walking towards the viewer"><span class="code">SP-H · Flux.2 dev, many iterations</span><span class="cap">Light purple, SP-A&#39;s realism in the house style, painted over the model.</span></div>
   </div>
-  <div class="dial" aria-hidden="true"><span>SP-B: the first walk</span><i></i><span>SP-E, SP-F: the fixed walk</span></div>
+  <div class="dial" aria-hidden="true"><span>SP-G: Klein</span><i></i><span>SP-H: Flux.2 dev</span></div>
 </div>
 
 <div class="col">
   <div class="facts">
-    <div class="fact"><div class="big">4 → 0</div><p>legs sliding sideways in the front and back views: every foot now steps along the body (<a href="#fixlegs">step 4</a>).</p></div>
-    <div class="fact"><div class="big">90 px</div><p>every planted foot slides back a stride in the side view (it was 19 to 98, the front and back pairs barely moving).</p></div>
-    <div class="fact"><div class="big">3 looks</div><p>SP-B and its two new colours, SP-E light purple and SP-F light blue, each a full strip: five views, eight directions, a death, an icon.</p></div>
-    <div class="fact"><div class="big">~12 min</div><p>of AI server time a look, plus your picks (the side painting, then any view that came out wrong).</p></div>
+    <div class="fact"><div class="big">2 looks</div><p>SP-G (Klein) and SP-H (Flux.2 dev), light purple, SP-A's realism in the house style, every view the 3D model itself repainted (<a href="#real">section ★</a>).</p></div>
+    <div class="fact"><div class="big">painting</div><p>is where SP-E and SP-F went wrong first: their views were not the model, and Wan smeared the difference.</p></div>
+    <div class="fact"><div class="big">0.5 → 0.9</div><p>how much of the model's outline a painting keeps, painted from scratch against painted over the clay itself.</p></div>
+    <div class="fact"><div class="big"><!--FACT_TIME--></div><p>of AI server time for SP-G; SP-H about <!--FACT_TIME_H-->: Flux.2 dev restarts the server for every picture.</p></div>
   </div>
 
   <nav class="toc" aria-label="Contents">
     <strong>On this page</strong>
     <ol>
-            <li><a href="#model">The model: six legs and a missing walk</a></li>
+      <li><a href="#real"><b>★ Realistic purple spiders: Klein vs Flux.2 dev with many iterations</b></a></li>
+      <li><a href="#model">The model: six legs and a missing walk</a></li>
       <li><a href="#legs">Two more legs</a></li>
       <li><a href="#gait">A walk made in Blender</a></li>
       <li><a href="#fixlegs"><b>Fixing the legs: what was wrong and how</b></a></li>
       <li><a href="#views">Five views, clay and depth</a></li>
       <li><a href="#death">The death on its back</a></li>
-      <li><a href="#paint">Painting the three looks</a></li>
+      <li><a href="#paint">Painting the first looks</a></li>
       <li><a href="#prompts">Prompts, negatives and the leg count</a></li>
       <li><a href="#mistakes">Mistakes and dead ends</a></li>
       <li><a href="#le">The same in the Level Editor (and how to make SP-E and SP-F yourself)</a></li>
@@ -161,6 +161,176 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
       <li><a href="#ingame">In the game</a></li>
     </ol>
   </nav>
+</div>
+
+<div class="col">
+<section id="real" class="thread">
+  <span class="knot">★</span>
+  <div class="stephead">
+    <h2>Realistic purple spiders: Klein vs Flux.2 dev with many iterations</h2>
+    <div class="where"><span class="chip b">pass 94</span><span class="chip">gen_ctl paint_mode repaint</span><span class="chip">img2img from the clay</span><span class="chip">Wan without the speed-up LoRA</span></div>
+  </div>
+  <p>You played SP-E and SP-F and wrote: <em>"the results are actually awful. Lots of artifacts, side views are all messed up, pretty much every view looks wrong ... the only view from which either of these 2 spiders look kind of ok is the front"</em>. You were right: they are bad, and below is why. Then you asked for two more, both light purple, as close to the 3D model as possible, one on Klein and one on Flux.2 dev, each with many iterations; and, when the first try came out photoreal: <em>"I meant not fully realistic, but the realistic version that is still in our style ... like SP-A level of realism."</em> That is what SP-G (Klein) and SP-H (Flux.2 dev) are: SP-A's real spider anatomy, small eyes and no cartoon face, in the game's cel-shaded style with its outline, light purple, every view painted over the model itself.</p>
+
+  <div class="before">
+    <p class="small"><b>Before:</b> SP-B (pass 92) and SP-E, SP-F (pass 93). Kept in the JSON, fresh, not to be played.</p><div class="pair"><figure><img src="img/look_spb_run.gif" alt="SP-B walking towards the viewer" loading="lazy"><figcaption>SP-B, mild cartoon, the first walk</figcaption></figure><figure><img src="img/look_spe_run.gif" alt="SP-E walking towards the viewer" loading="lazy"><figcaption>SP-E, light purple, the fixed walk</figcaption></figure><figure><img src="img/look_spf_run.gif" alt="SP-F walking towards the viewer" loading="lazy"><figcaption>SP-F, light blue, the fixed walk</figcaption></figure></div>
+  </div>
+
+  <h3>1. Where the artifacts came from</h3>
+  <p>For every view, the clay render of the model, the painting the walk starts from, and four frames of the finished walk, side by side. If the damage is already in the painting, more walking iterations cannot fix it; if the painting is fine and the walk is not, it is Wan.</p>
+  <figure><img src="img/real_diag_spe.jpg" alt="SP-E: for each of the five views, the clay, the painting and four walk frames" loading="lazy"><figcaption>SP-E. Columns: clay (the model), the painting (Klein, 4 steps), walk frames 0, 3, 6 and 9 (Wan, 4 steps). Rows: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
+  <figure><img src="img/real_diag_spf.jpg" alt="SP-F: the same columns for the light blue spider" loading="lazy"><figcaption>SP-F, the same columns.</figcaption></figure>
+  <p><b>Both, and the painting first.</b></p>
+  <ul class="plain">
+    <li><b>The paintings were not the model.</b> The painter was told to "use the clay only for the anatomy, the pose, the camera angle", and it did not. The three-quarter views (rows 2 and 4) came out as near side views; the back view as a top-down abdomen; every view with a big round cartoon abdomen and short thick legs, where the model has a small low body hung between long legs that arch high. Only the front painting is roughly the model's shape, and that is the view you said looks kind of ok.</li>
+    <li><b>Wan then had to make two different spiders into one.</b> Wan Fun Control takes its shapes from the depth video (the model) and its colours from the painting. Where the two agree it is clean; where they do not, it produces exactly what you saw: the model's thin spiky legs painted lavender on the cartoon body (side, three-quarter views), faded grey and fuzzy ghost legs where the painting had a leg the depth did not (front, side), a shrunken body on the back where the painting's big abdomen had no depth under it. The 4-step speed-up made the smears worse (see Wan below), but it did not cause them.</li>
+  </ul>
+  <p>So the iterations had to go first into a painting that <b>is</b> the model, view by view, and second into the walk.</p>
+  <p><b>And a third thing, found only when the new paintings were walked: the model's own legs.</b> Your spider's legs are stacked cones, one per bone, and each cone's wide end stands past the joint. From the three-quarter and side cameras those wide ends read as a row of crystal spikes above the body, and the depth video, which is what Wan follows, is a mass of them. A painting with smooth legs is walked back into spikes whatever the painter did, in every look since SP-A. The front view escapes it (the knees are seen edge-on), which is why the front was always the one view that looked right.</p>
+  <figure><img src="img/real_depth_cones.jpg" alt="Nine depth frames of the model: three-quarter front, side and three-quarter back" loading="lazy"><figcaption>The depth video Wan walks along (<code>spider_walk_v2</code>, three frames each of the three-quarter front, side and three-quarter back): the body is barely there between the cones' wide ends.</figcaption></figure>
+  <figure class="scroll"><img src="img/real_v2raw_check_fd.jpg" alt="SP-G's three-quarter front walk on the raw depth, all twelve frames" loading="lazy"><figcaption>SP-G's three-quarter front walked on that depth: the painting (a smooth fuzzy spider) comes back as the depth's spikes, frame after frame. <a href="#walkfix">What was done about it</a> is below.</figcaption></figure>
+
+  <h3>2. The new way to paint: the model itself, repainted</h3>
+  <p>Every look before this pass described the clay to the painter as one of three pictures (style picture first, clay second). The new mode <code>paint_mode: "repaint"</code> turns that round:</p>
+  <ul class="plain">
+    <li><b>The clay is the first picture and the one being painted.</b> The words say "Repaint this exact 3D model ... Keep the model's silhouette, its pose and the camera angle exactly: every leg stays where it is, at the same angle and length, bending at the same joints ... nothing is added that the model does not have." The other four views get the chosen side painting as their second picture (colours and markings), and the style anchor last ("the art style only": <code>anchor: true</code>), so the house style stays.</li>
+    <li><b>The clay is cropped round the spider</b> (<code>clay_fill</code> 0.8), so the painter sees it big; the painting is put back exactly where the crop came from before the walk, so it lies on the depth video's spider.</li>
+    <li><b>The painting starts from the clay itself</b> (<code>init</code>: img2img). The grey render is coloured lavender on the pure green screen and the painter starts from it, partly noised, instead of from pure noise. This is what really holds every leg where the model has it: measured as the overlap of the painting's outline with the clay's (1 = identical), plain prompting gives 0.5–0.7, starting from the clay 0.75–0.95.</li>
+  </ul>
+  <figure><img src="img/real_clays.jpg" alt="The model's grey render from the five game views, cropped round the spider" loading="lazy"><figcaption>What is painted over: the model's own render (<code>clay_src: "look"</code>, grey, so no clay brown leaks into a light look) from the five game views, cropped (<code>clay_fill</code> 0.8).</figcaption></figure>
+  <figure><img src="img/real_klein_init.jpg" alt="Eight side paintings: plain prompting and three amounts of noise on the tinted clay, two seeds" loading="lazy"><figcaption>Klein, side view, two seeds. Left: plain prompting from the clay (no start picture). Then starting from the clay at denoise 0.80, 0.88, 0.94 (blur 6). Lower keeps the model's polygons; higher lets the painter drift; one seed (bottom) keeps the model's sharp fins at every setting: seeds matter as much as settings.</figcaption></figure>
+  <figure><img src="img/real_vs_spa.jpg" alt="A lavender spider painted over the model beside SP-A" loading="lazy"><figcaption>Left: painted over the model in the house style. Right: SP-A, the realism you asked for. Same style, the same real anatomy, the model's long arched legs.</figcaption></figure>
+
+  <h3>3. SP-G: Klein, many iterations</h3>
+  <p>Klein 9B is a distilled model meant for 4 steps; the non-distilled Klein base exists on the server only as the small 4B, not the 9B. What "many iterations" honestly means for it, measured:</p>
+  <ul class="plain">
+    <li><b>More steps: only when starting from the clay.</b> Painted from scratch, 8, 16 and 28 steps gave the same picture as 4 with a little more fine detail (and a duller green screen). Starting from the clay, the steps are what clears the model's flat facets and fins: 4 steps keeps crystal-like legs, 16 is clean, 28 cleanest. SP-G paints at <b>28 steps</b> (about 100–150 s a picture against 25 s).</li>
+    <li><b>Many seeds, picked by eye</b>: 8 side candidates (after three earlier sets of 6 that kept the model's fins), 4 per other view. The outline overlap with the clay is printed for each (<code>iou.py</code>), but the pick is by eye: a high overlap can mean the fins were copied.</li>
+    <li><b>A blurred start</b> (<code>init.blur</code> 10): softens the model's facets before Klein starts, so it keeps the shapes but not the polygons.</li>
+    <li><b>Refine rounds</b> (the painting painted over again from itself) were tried and dropped: every round turned it pinker and hairier, none removed a wrong shape.</li>
+    <li>The Klein base 4B (50 real steps, cfg 4, a real negative prompt; 2 min a picture) was tried on the side: no better than the 9B, more saturated, and it kept the model's fins; not used.</li>
+  </ul>
+  <figure><img src="img/real_klein_steps.jpg" alt="The same side painting at 4, 8, 16 and 28 Klein steps" loading="lazy"><figcaption>Klein from the clay (denoise 0.88, blur 6, the same seed) at 4, 8, 16 and 28 steps: 76, 36, 61 and 100 s. The facets go as the steps rise.</figcaption></figure>
+  <figure><img src="img/real_refine.jpg" alt="A painting refined three times at two strengths" loading="lazy"><figcaption>Refine rounds (from the first, photoreal attempt): top, three rounds at 0.35 drift pinker and hairier; bottom, three rounds at 0.5 on a painting with fins keep the fins.</figcaption></figure>
+
+  <h3>4. SP-H: Flux.2 dev, many iterations</h3>
+  <ul class="plain">
+    <li><b>Steps: 40 without the Turbo LoRA</b> (the old full quality was 28). 28 against 50 steps on the same seed gave the same picture with slightly finer hair (5 against 8 minutes), so 40 is enough; above that the time buys nothing visible.</li>
+    <li><b>Flux.2 dev barely follows the clay as a picture</b>: painted from scratch, it ignores the model's pose (overlap 0.5). Started from the clay it follows it, but only on a knife's edge: unblurred at denoise 0.85 it holds the model (0.87, and copies its facets); blurred (any amount), with the shading softened, posterized, at 0.91, or even at 0.80 with soft shading, it lets go completely and paints the same free spider every time (0.32–0.37, see below). So SP-H starts from the sharp clay at 0.85, and its seeds decide: of four side candidates one copied the fins, one followed the model loosely and cleanly (picked), two ignored it.</li>
+    <li><b>Seeds</b>: 4 side candidates, 3 per other view, each 9–12 minutes (the server restarts before every dev picture). A dev refine round from its own painting (denoise 0.6) kept the facets and was not used.</li>
+  </ul>
+  <figure><img src="img/real_photo_dev.jpg" alt="Flux.2 dev at 28 and 50 steps from scratch and from the clay" loading="lazy"><figcaption>From the first (photoreal) attempt, the same seed: dev 28 and 50 steps from scratch (the camera and legs are not the model's), then 28 and 50 steps from the clay at 0.85 (the model's legs, and its fins). 313, 500, 328 and 445 s.</figcaption></figure>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Flux.2 dev, side view, one seed, from the clay</th><th>Outline overlap with the model</th></tr></thead>
+    <tbody class="num">
+      <tr><td>40 steps, denoise 0.85, the sharp clay</td><td>0.87 (follows; copies the facets)</td></tr>
+      <tr><td>40 steps, 0.85, blurred 8 px</td><td>0.36 (ignores it)</td></tr>
+      <tr><td>28 steps, 0.85, blurred 8 px</td><td>0.35</td></tr>
+      <tr><td>40 steps, 0.85 and 0.88, shading blurred 12 px, sharp outline</td><td>0.35, 0.35</td></tr>
+      <tr><td>40 steps, 0.85, shading posterized in 3 bands</td><td>0.36</td></tr>
+      <tr><td>40 steps, 0.80, shading blurred 12 px</td><td>0.37</td></tr>
+      <tr><td>40 steps, 0.91, the sharp clay (another seed)</td><td>0.32</td></tr>
+      <tr><td>+ a dev refine round at 0.60</td><td>0.88 (the facets stay)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="walkfix">5. The walks, part one: the model's legs made walkable</h3>
+  <p>Three things were tried on the side view with the same SP-G painting, each walked on the full Wan (below), against the walk on the raw depth:</p>
+  <ul class="plain">
+    <li><b>The model smoothed</b> (driver setting <code>smooth</code> 2: a subdivision for the renders only; <code>spider_walk_v3</code>). The cones get rounder, the spikes stay: they are the cones' wide ends, not sharp edges.</li>
+    <li><b>The depth softened</b> (<code>ctl_soft</code> 10 px, pass 92's trick for a cartoon face). Much better: the painting's body, face and legs survive, because Wan no longer sees the spikes sharply; the legs step a little more vaguely.</li>
+    <li><b>The legs rebuilt</b> (driver setting <code>skin</code> capsule, new: <code>spider_walk_v4</code>, <code>spider_death_v3</code>). The legs' own mesh is thrown away and each leg segment, from one bone's head to the next bone's head, becomes a tapered capsule (the leg's radius 6% of its length at the hip, a point at the foot), skinned to its bone; the body, head and fangs stay the model's. The depth video is then a clean spider from every camera, and the clay too. The bones' tails could not be used: the glTF importer invented them, pointing anywhere, which is also why pass 93 measured the feet from the mesh.</li>
+  </ul>
+  <figure><img src="img/real_side_fix.jpg" alt="The same side painting walked on the raw depth, the smoothed model, the smoothed model with softened depth" loading="lazy"><figcaption>SP-G's side painting walked four ways (every other frame): on the raw depth; on the raw depth softened 10 px; on the smoothed model; on the smoothed model softened. Softening keeps the painting; only the rebuilt legs below make the depth itself right.</figcaption></figure>
+  <figure><img src="img/real_depth_v2_v4.jpg" alt="One depth frame per view, the raw model above and the capsule legs below" loading="lazy"><figcaption>One depth frame per view: the raw model (above) and its legs rebuilt as capsules (below, <code>spider_walk_v4</code>). The gait check passes on both (the feet step the same way); only the shapes changed.</figcaption></figure>
+  <figure><img src="img/real_look_v2_v4.jpg" alt="The side render of the raw model and of the capsule-legged one, and two frames of the rebuilt death" loading="lazy"><figcaption>The model's render before and after, and the rebuilt death (<code>spider_death_v3</code>) mid-roll and dead: the capsules are children of the armature, so the roll takes them along.</figcaption></figure>
+  <p>Both looks walk and die on the rebuilt legs. The paintings stay the ones painted over the raw clay: each is put back exactly over the new depth video's figure before the walk, and its legs lie where the bones are either way.</p>
+
+  <h3>5b. The walks, part two: Wan without the speed-up</h3>
+  <p>Every walk so far ran Wan 2.2 Fun Control with the lightx2v speed-up LoRA: 4 steps, cfg 1. At cfg 1 the negative words are never even computed. The bigger Wan (no other Fun Control model is on the server) is the same model without the LoRA: <code>wan: {"lora": false, "steps": 20, "cfg": 3.5}</code>, 10 steps on each of its two halves, a real cfg, and the negative words ("ghost legs, transparent legs, smeared legs, extra legs ...") now act. One view first, the same painting:</p>
+  <figure><img src="img/real_wan_settings.jpg" alt="Four rows of walk frames of the same painting under four Wan settings" loading="lazy"><figcaption>The same side painting walked four ways. 4 steps with the LoRA (121 s): smooth, the abdomen's markings fade, see-through legs. <b>20 steps, cfg 3.5, no LoRA (245 s)</b>: the painting's markings and leg bands stay. 20 steps at 832 px (539 s): dark gaps between the legs. 30 steps at cfg 5 (341 s): the most detail and black blotches. Chosen: 20 steps, cfg 3.5, for both looks, so the comparison between them stays about the painter.</figcaption></figure>
+  <p>It costs only about twice the time, not ten times: most of a walk's time is loading the two 14 GB halves of the model.</p>
+
+  <h3>6. SP-G against SP-H</h3>
+    <p>The same model, the same walk (<code>spider_walk_v2</code>), the same death, the same Wan settings; only the painter differs. SP-G's row above SP-H's for every view, every other frame of the walk and every kept frame of the death.</p>
+  <div class="pair">
+    <figure><img src="img/look_spg_run.gif" alt="SP-G walking towards the viewer" loading="lazy"><figcaption>SP-G (Klein), front.</figcaption></figure>
+    <figure><img src="img/look_sph_run.gif" alt="SP-H walking towards the viewer" loading="lazy"><figcaption>SP-H (Flux.2 dev), front.</figcaption></figure>
+    <figure><img src="img/look_spg_side.gif" alt="SP-G walking, side view" loading="lazy"><figcaption>SP-G, side.</figcaption></figure>
+    <figure><img src="img/look_sph_side.gif" alt="SP-H walking, side view" loading="lazy"><figcaption>SP-H, side.</figcaption></figure>
+    <figure><img src="img/look_spg_fd.gif" alt="SP-G walking, three-quarter front" loading="lazy"><figcaption>SP-G, three-quarter front.</figcaption></figure>
+    <figure><img src="img/look_sph_fd.gif" alt="SP-H walking, three-quarter front" loading="lazy"><figcaption>SP-H, three-quarter front.</figcaption></figure>
+    <figure><img src="img/look_spg_bd.gif" alt="SP-G walking, three-quarter back" loading="lazy"><figcaption>SP-G, three-quarter back.</figcaption></figure>
+    <figure><img src="img/look_sph_bd.gif" alt="SP-H walking, three-quarter back" loading="lazy"><figcaption>SP-H, three-quarter back.</figcaption></figure>
+    <figure><img src="img/look_spg_back.gif" alt="SP-G walking away" loading="lazy"><figcaption>SP-G, back.</figcaption></figure>
+    <figure><img src="img/look_sph_back.gif" alt="SP-H walking away" loading="lazy"><figcaption>SP-H, back.</figcaption></figure>
+    <figure><img src="img/look_spg_die.gif" alt="SP-G dying on its back" loading="lazy"><figcaption>SP-G, the death.</figcaption></figure>
+    <figure><img src="img/look_sph_die.gif" alt="SP-H dying on its back" loading="lazy"><figcaption>SP-H, the death.</figcaption></figure>
+  </div>
+  <figure><img src="img/views_spg.jpg" alt="SP-G's five paintings" loading="lazy"><figcaption>SP-G's five paintings (Klein, 28 steps, from the blurred clay at 0.88): front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
+  <figure><img src="img/views_sph.jpg" alt="SP-H's five paintings" loading="lazy"><figcaption>SP-H's five paintings (Flux.2 dev, 40 steps, from the sharp clay at 0.85).</figcaption></figure>
+  <figure class="scroll"><img src="img/real_gh_front.jpg" alt="Front walk frames, SP-G over SP-H" loading="lazy"><figcaption>Front walk, every other frame.</figcaption></figure>
+  <figure class="scroll"><img src="img/real_gh_fd.jpg" alt="Three-quarter front walk frames, SP-G over SP-H" loading="lazy"><figcaption>Three-quarter front.</figcaption></figure>
+  <figure class="scroll"><img src="img/real_gh_side.jpg" alt="Side walk frames, SP-G over SP-H" loading="lazy"><figcaption>Side.</figcaption></figure>
+  <figure class="scroll"><img src="img/real_gh_bd.jpg" alt="Three-quarter back walk frames, SP-G over SP-H" loading="lazy"><figcaption>Three-quarter back.</figcaption></figure>
+  <figure class="scroll"><img src="img/real_gh_back.jpg" alt="Back walk frames, SP-G over SP-H" loading="lazy"><figcaption>Back.</figcaption></figure>
+  <figure class="scroll"><img src="img/real_gh_death.jpg" alt="Death frames, SP-G over SP-H" loading="lazy"><figcaption>The death, the eight kept frames.</figcaption></figure>
+  <!--GH_VERDICT-->
+  <figure><img src="img/real_game_shots.jpg" alt="SP-G and SP-H in the debug arena" loading="lazy"><figcaption>In the debug arena (<code>tools/item_shots.gd creatures=desert_spider@SP-G,desert_spider@SP-H zoom=0.7</code>), three of each walking at the hero.</figcaption></figure>
+
+
+  <h3>7. The first try, discarded</h3>
+  <p>Read literally ("drop the cartooniness"), the first SP-G and SP-H were painted without the style anchor and with a realistic style line. They came out as soft 3D renders of a furry lavender spider, closer to a photo than to the game. You corrected it; those paintings and the one finished strip are kept outside the game (<code>tools/dl/p94/REAL/backup/photoreal/</code>). Their tests still taught the settings above (steps, refine, dev's steps, Wan).</p>
+  <figure><img src="img/real_photo_walks.jpg" alt="The photoreal SP-G's five walks and death" loading="lazy"><figcaption>The discarded photoreal SP-G: its five walks and the death.</figcaption></figure>
+
+  <h3>8. How you would do it in the Level Editor</h3>
+    <p>Two duplicates of SP-A, each a job of yours and a few picks. The recipe keys are new in pass 94 and sit in creature_ctl's <b>Recipe (typed)…</b> with their help texts; the model and steps are the job form's own Model group.</p>
+  <ol class="plain">
+    <li><b>The walkable legs.</b> Enemies tab → Desert Spider → <b>+ Depth driver…</b>, the fixed walk's form of pass 93 (src <code>spider_8legs</code>, mode <code>gait</code>, legs <code>leg_</code>, forward <code>+Y</code>, step <code>track</code>, stride 0.22, raise 0.15, crouch 0.15, sway 0, bob 0.03) with two new fields: <b>smooth</b> <code>2</code> and <b>skin</b> <code>capsule</code> (skin_radius 0.06, the default), name <code>spider_walk_v4</code>. Queue (fifteen seconds); the job runs the gait check as before. The death the same way: mode <code>flip_curl</code>, curl 55, curl_root 70, views <code>front,fd,side</code>, smooth 2, skin capsule, name <code>spider_death_v3</code>. Open the driver in the Drivers tab: the legs are smooth tapered rods, no spikes, in every view and through the roll.</li>
+    <li><b>A copy of SP-A per painter.</b> Enemies tab → Desert Spider → SP-A's card → <b>Duplicate…</b> (SP-G, then SP-H). In <b>Recipe (typed)…</b> set:
+      <div class="tablewrap"><table>
+        <thead><tr><th>Field</th><th>SP-G (Klein)</th><th>SP-H (Flux.2 dev)</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>prompt</td><td colspan="2">SP-A's words with the colours changed: <i>pale lavender and light lilac-purple bristly fur, a darker violet chevron pattern ... legs banded in light lilac and darker violet ... the whole spider light purple</i></td><td>SP-A's realism, your colour</td></tr>
+          <tr><td>detail</td><td colspan="2">SP-A's: <i>a real spider's anatomy and proportions, no cartoon face, no eyebrows, no mouth, no teeth, menacing</i></td><td>not a cartoon</td></tr>
+          <tr><td>drivers / death_drivers</td><td colspan="2"><code>spider_walk_v4</code> / <code>spider_death_v3</code></td><td>the fixed walk (pass 93) on the rebuilt legs (step 1)</td></tr>
+          <tr><td>paint_mode</td><td colspan="2"><code>repaint</code></td><td>the model itself is repainted, view by view</td></tr>
+          <tr><td>anchor</td><td colspan="2"><code>true</code></td><td>the style anchor stays: the house style, not a photo</td></tr>
+          <tr><td>clay_src / clay_fill</td><td colspan="2"><code>look</code> / <code>0.8</code></td><td>the grey render, cropped round the spider</td></tr>
+          <tr><td>init</td><td><code>{"denoise": 0.88, "tint": "#C4A8E2", "blur": 10}</code></td><td><code>{"denoise": 0.85, "tint": "#C4A8E2"}</code></td><td>start from the clay; Klein likes it blurred, dev lets go of a blurred one</td></tr>
+          <tr><td>wan</td><td colspan="2"><code>{"lora": false, "steps": 20, "cfg": 3.5}</code></td><td>the full Wan for the walks and the death</td></tr>
+          <tr><td>side_seeds</td><td><code>8</code></td><td><code>4</code></td><td>Klein pictures are cheap, dev's are 10 minutes each</td></tr>
+          <tr><td>words</td><td colspan="2">per view, the model's layout spelled out (the head's and the abdomen's place, "the body small and low, hanging between the high-arched legs")</td><td>the painter reads them before the clay</td></tr>
+          <tr><td>blockout</td><td colspan="2">… <i>its flat facets, sharp fins and cone-shaped legs are only the model's rough surface, not part of the spider</i></td><td>it helps a little; the seeds help more</td></tr>
+        </tbody>
+      </table></div>
+      <b>Save asset.</b> Then <b>Generate…</b> on the card: the Model group of the job form is where "many iterations" lives: <b>SP-G</b>: Model <code>klein</code>, Steps <code>28</code>; <b>SP-H</b>: Model <code>dev</code>, Steps <code>40</code>, Turbo <b>off</b>. Candidates 8 (SP-G) or 4 (SP-H). Queue.</li>
+    <li><b>Pick the side.</b> The job waits with the side candidates. Look for: the model's long arched legs (not short cones), eight legs, a small low body, no crystal fins on the back, a small face. Klein: about one in three of a set is clean. Dev: one in four follows the model loosely and cleanly, one copies its fins, the rest ignore it. Not clean? <b>Re-roll 4 more</b>.</li>
+    <li><b>Every other view as candidates too.</b> The repaint views follow the clay well but any of them can copy the fins: after the pick, <b>Re-roll… → redo one view</b> for front, three-quarter front, three-quarter back and back, Candidates 4 (SP-G) or 3 (SP-H), and pick each by eye. The three-quarter views are the ones to look at longest (your complaint about SP-E and SP-F): the head must be at the near corner in the three-quarter front and at the far corner, mostly hidden, in the three-quarter back.</li>
+    <li><b>The walks</b> run after the last pick on the full Wan (about 4 minutes a view, 25 minutes a look, against 12 with the speed-up). Hover the card to play every view; a view that came out with ghost legs or a smeared body: <b>Re-roll… → keep the stills, redo the clips</b> after changing that view's <code>walk_seeds</code>, or paint that view again.</li>
+    <li><b>Test in game, Approve, Make default</b> as before.</li>
+  </ol>
+
+
+  <h3>9. Timings</h3>
+    <div class="tablewrap"><table>
+    <thead><tr><th>Step</th><th>SP-G (Klein 28 steps)</th><th>SP-H (Flux.2 dev 40 steps, no Turbo)</th></tr></thead>
+    <tbody class="num">
+      <tr><td>One side candidate (1024 px, from the clay)</td><td>100 – 150 s</td><td>490 – 560 s (a server restart before each, about 30 s of it)</td></tr>
+      <tr><td>Side candidates painted, in all</td><td>8 + 6 + 6 + 6 earlier sets (the fins): about 55 min</td><td>4 + 4 + 1 earlier sets (ignoring the clay): about 75 min</td></tr>
+      <tr><td>One view candidate</td><td>100 – 110 s</td><td>670 – 780 s</td></tr>
+      <tr><td>Four views as candidates</td><td>4 each: 28 min</td><td>3 each, plus 3 more fronts: 2 h 30 min</td></tr>
+      <tr><td>One walk (Wan Fun Control, no LoRA, 20 steps, cfg 3.5, 25 frames)</td><td colspan="2"><!--T_WALK--></td></tr>
+      <tr><td>The death (25 frames, 8 kept)</td><td colspan="2"><!--T_DEATH--></td></tr>
+      <tr><td>Five walks and the death</td><td colspan="2"><!--T_CLIPS--></td></tr>
+      <tr><td>Views walked or painted again after the frame check</td><td><!--T_FIX_G--></td><td><!--T_FIX_H--></td></tr>
+      <tr><td><b>The look, start to strip</b></td><td><b><!--T_TOTAL_G--></b></td><td><b><!--T_TOTAL_H--></b></td></tr>
+      <tr><td>Settings experiments before either (Klein steps and base, img2img, refine, dev steps and starts, Wan)</td><td colspan="2">about 3 h 20 min of the server, listed in <code>tools/dl/p94/REAL/exp/exp_*.log</code></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">Every job ran one at a time through the ComfyUI lock, sharing the server with your own Level Editor queue. A Flux.2 dev picture is 5 to 7 times a Klein 28-step one, and dev's pictures needed more sets to find ones that follow the model; the walks cost the same for both.</p>
+
+</section>
 </div>
 
 <div class="col">
@@ -367,43 +537,14 @@ python tools/gait_check.py tools/dl/drivers/spider_walk_v2</pre>
 <section id="paint" class="thread">
   <span class="knot">7</span>
   <div class="stephead">
-    <h2>Painting the three looks</h2>
+    <h2>Painting the first looks</h2>
     <div class="where"><span class="chip c">ComfyUI on the AI server</span><span class="chip">tools/gen_ctl.py</span><span class="chip">about 12 min a look</span></div>
   </div>
   <p>Each look runs the scorpion's method unchanged: the side view is painted first, as four candidates from the side clay with the style picture as the first reference; you pick one; the other four views are painted from that side painting and their own clay, with the way each view faces spelled out; then Wan 2.2 Fun Control walks every view along its depth video and the front painting along the death video; last, everything is fitted to one scale and packed into the strip (eight directions from five views).</p>
 <pre>python tools/gen_ctl.py --id=desert_spider --variant=SP-E                 # four side candidates, then it stops
 python tools/gen_ctl.py --id=desert_spider --variant=SP-E --use-side=k1    # the rest: four views, five walks, the death, the strip</pre>
   <p>SP-B is pass 92's mild cartoon tarantula on the first walk. SP-E and SP-F are SP-B's recipe with only the colour words changed (and the belly's colour in the death words, and the outline's colour), walked on the fixed <code>spider_walk_v2</code>; they die on the same <code>spider_death</code>.</p>
-    <h3>SP-B · Mild cartoon, the first walk</h3>
-  <p>A rust tarantula with a cream stripe, big shiny eyes and a grumpy frown, on pass 92's walk.</p>
-  <figure><img src="img/cands_spb.jpg" alt="Four side candidates of SP-B" loading="lazy"><figcaption>The four side candidates. Picked <b>k0</b>. k0: a face in profile that faces right, eight legs. k1 looked at the viewer (a side view must face right).</figcaption></figure>
-  <figure><img src="img/views_spb.jpg" alt="The five painted views of SP-B" loading="lazy"><figcaption>The five paintings the walks start from: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
-  <div class="pair">
-    <figure><img src="img/look_spb_run.gif" alt="SP-B walking towards the viewer" loading="lazy"><figcaption>Front walk.</figcaption></figure>
-    <figure><img src="img/look_spb_side.gif" alt="SP-B walking, side view" loading="lazy"><figcaption>Side walk.</figcaption></figure>
-    <figure><img src="img/look_spb_die.gif" alt="SP-B dying: it rolls onto its back and curls its legs" loading="lazy"><figcaption>The death, the dead pose held.</figcaption></figure>
-  </div>
-  <figure class="scroll"><img src="img/look_spb_rows.jpg" alt="Every frame of SP-B's strip: five walks and the death" loading="lazy"><figcaption>The whole strip: 12 frames for each of the five walks, the 8 kept death frames. Walked cleanly on the plain clay: its face sits where the model's head is. Its legs show the first walk's fault: <a href="#fixlegs">fixing the legs</a>.</figcaption></figure>
-  <h3>SP-E · Light purple, the fixed walk</h3>
-  <p>SP-B in pale lavender and lilac, on spider_walk_v2: every foot steps along the body.</p>
-  <figure><img src="img/cands_spe.jpg" alt="Four side candidates of SP-E" loading="lazy"><figcaption>The four side candidates. Picked <b>k1</b>. k1: eight legs (five tips near, three behind), SP-B's grumpy frown and fuzzy banded legs. k0 and k2 were friendlier; k3 had a sad face.</figcaption></figure>
-  <figure><img src="img/views_spe.jpg" alt="The five painted views of SP-E" loading="lazy"><figcaption>The five paintings the walks start from: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
-  <div class="pair">
-    <figure><img src="img/look_spe_run.gif" alt="SP-E walking towards the viewer" loading="lazy"><figcaption>Front walk.</figcaption></figure>
-    <figure><img src="img/look_spe_side.gif" alt="SP-E walking, side view" loading="lazy"><figcaption>Side walk.</figcaption></figure>
-    <figure><img src="img/look_spe_die.gif" alt="SP-E dying: it rolls onto its back and curls its legs" loading="lazy"><figcaption>The death, the dead pose held.</figcaption></figure>
-  </div>
-  <figure class="scroll"><img src="img/look_spe_rows.jpg" alt="Every frame of SP-E's strip: five walks and the death" loading="lazy"><figcaption>The whole strip: 12 frames for each of the five walks, the 8 kept death frames. Walks on the fixed spider_walk_v2. Its first back painting kept the clay's brown legs: painted again as three candidates, c0 (purple, four legs a side) picked and walked again. Its first front walk had grey ghost legs at the sides; the front is fitted onto the depth figure and walked on softened depth, the side on softened depth (face kept): <a href="#fixlegs">step 4</a>. The three-quarter views face right with the face showing, like SP-B's.</figcaption></figure>
-  <h3>SP-F · Light blue, the fixed walk</h3>
-  <p>SP-B in pale sky and powder blue, on spider_walk_v2.</p>
-  <figure><img src="img/cands_spf.jpg" alt="Four side candidates of SP-F" loading="lazy"><figcaption>The four side candidates. Picked <b>k6</b>. k6 of eight: four more seeds were painted because k0 (the best face) had nine leg tips and k1 to k3 were greyer or sad. k6: eight legs, the frown, fuzzy banded legs, light blue.</figcaption></figure>
-  <figure><img src="img/views_spf.jpg" alt="The five painted views of SP-F" loading="lazy"><figcaption>The five paintings the walks start from: front, three-quarter front, side, three-quarter back, back.</figcaption></figure>
-  <div class="pair">
-    <figure><img src="img/look_spf_run.gif" alt="SP-F walking towards the viewer" loading="lazy"><figcaption>Front walk.</figcaption></figure>
-    <figure><img src="img/look_spf_side.gif" alt="SP-F walking, side view" loading="lazy"><figcaption>Side walk.</figcaption></figure>
-    <figure><img src="img/look_spf_die.gif" alt="SP-F dying: it rolls onto its back and curls its legs" loading="lazy"><figcaption>The death, the dead pose held.</figcaption></figure>
-  </div>
-  <figure class="scroll"><img src="img/look_spf_rows.jpg" alt="Every frame of SP-F's strip: five walks and the death" loading="lazy"><figcaption>The whole strip: 12 frames for each of the five walks, the 8 kept death frames. Walks on spider_walk_v2 with the same front and side settings as SP-E. Its first strip came out royal blue: the green guard held every pixel's green down to its red, and sky blue has more green than red; <code>"no_green": "rb"</code> fixed it without painting anything again (the walks were cached).</figcaption></figure>
+  <p>SP-B, SP-E and SP-F are shown in short at the top of <a href="#real">section ★</a>; the long pages of their candidates and strips are gone: you called SP-E and SP-F awful, and section ★ says why.</p>
 </section>
 
 <section id="prompts" class="thread">

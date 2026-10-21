@@ -478,6 +478,148 @@
         "run": 20,
         "die": 12
       }
+    },
+    "SP-G": {
+      "note": "Pass 94: SP-A's realism in the house style, light purple, as close to the 3D model as it gets, on Klein with many iterations: the clay repainted (img2img from the tinted clay), 28 steps, many seeds per view picked by eye; walked on spider_walk_v4 (the legs as capsules, the model's cones rounded)",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "spider_walk_v4",
+        "noun": "a spider",
+        "blockout": "a rough grey 3D model of a spider: a small head with two short fangs at the front, an oval abdomen behind it and eight long jointed legs, four on each side, arching above the body and down to pointed feet; its flat facets, sharp fins and cone-shaped legs are only the model's rough surface, not part of the spider",
+        "prompt": "a big hairy desert wolf spider with pale lavender and light lilac-purple bristly fur, a darker violet chevron pattern down the middle of its oval abdomen, long legs banded in light lilac and darker violet, a cluster of small glossy black eyes on the front of its head and two short dark fangs, the whole spider light purple",
+        "detail": "a real spider's anatomy and proportions, smooth rounded hairy legs, no cartoon face, no eyebrows, no mouth, no teeth, menacing",
+        "anatomy": "exactly eight legs, four on each side, each leg one single continuous jointed limb that starts at the body and ends in one pointed foot, exactly one head with two short fangs, exactly one oval abdomen, no antennae, no tail, no wings, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its small head with the two fangs at the right end of the body, its oval abdomen low at the left end, the whole body small and low, hanging between the high-arched legs",
+          "front": "seen from the front and a little above, walking towards the viewer: its small head with the two fangs at the bottom middle, nearest the viewer, the oval abdomen behind and above it, the legs spreading to both sides",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its small head with the two fangs at the lower right, nearest the viewer, the oval abdomen at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its oval abdomen nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from behind and a little above, walking away from the viewer: its oval abdomen nearest the viewer in the middle, the head hidden beyond it, the legs spreading to both sides"
+        },
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "init": {
+          "denoise": 0.88,
+          "tint": "#C4A8E2",
+          "blur": 10
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 28
+        },
+        "motion": "scuttling in place on its eight legs like a real spider, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of four, the body low and level",
+        "anim_negative": "extra legs, nine legs, ten legs, six legs, legs merging, a leg growing from the head, antennae, a tail, wings, two heads, a second spider, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a cartoon face, eyebrows, a mouth",
+        "death_drivers": "spider_death_v3",
+        "death_motion": "it jerks, rolls over onto its back and lies dead with its eight legs curled up over its pale lavender belly like a real dead spider, the legs folded in towards each other, the same colours as the reference all over, nothing green",
+        "death_keep": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          11,
+          14,
+          24
+        ],
+        "dead": "lying dead on its back, its eight legs curled up over its belly",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#2C1838",
+        "side_seeds": 8,
+        "wan": {
+          "lora": false,
+          "steps": 20,
+          "cfg": 3.5
+        }
+      },
+      "sprite": "desert_spider_sprite_g.png",
+      "icon": "desert_spider_icon_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.65,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "SP-H": {
+      "note": "Pass 94: SP-A's realism in the house style, light purple, as close to the 3D model as it gets, on Flux.2 dev with many iterations: the clay repainted (img2img from the tinted clay), 40 steps without Turbo, several seeds per view picked by eye; walked on spider_walk_v4 (the legs as capsules, the model's cones rounded)",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "spider_walk_v4",
+        "noun": "a spider",
+        "blockout": "a rough grey 3D model of a spider: a small head with two short fangs at the front, an oval abdomen behind it and eight long jointed legs, four on each side, arching above the body and down to pointed feet; its flat facets, sharp fins and cone-shaped legs are only the model's rough surface, not part of the spider",
+        "prompt": "a big hairy desert wolf spider with pale lavender and light lilac-purple bristly fur, a darker violet chevron pattern down the middle of its oval abdomen, long legs banded in light lilac and darker violet, a cluster of small glossy black eyes on the front of its head and two short dark fangs, the whole spider light purple",
+        "detail": "a real spider's anatomy and proportions, smooth rounded hairy legs, no cartoon face, no eyebrows, no mouth, no teeth, menacing",
+        "anatomy": "exactly eight legs, four on each side, each leg one single continuous jointed limb that starts at the body and ends in one pointed foot, exactly one head with two short fangs, exactly one oval abdomen, no antennae, no tail, no wings, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its small head with the two fangs at the right end of the body, its oval abdomen low at the left end, the whole body small and low, hanging between the high-arched legs",
+          "front": "seen from the front and a little above, walking towards the viewer: its small head with the two fangs at the bottom middle, nearest the viewer, the oval abdomen behind and above it, the legs spreading to both sides",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its small head with the two fangs at the lower right, nearest the viewer, the oval abdomen at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its oval abdomen nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from behind and a little above, walking away from the viewer: its oval abdomen nearest the viewer in the middle, the head hidden beyond it, the legs spreading to both sides"
+        },
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "init": {
+          "denoise": 0.85,
+          "tint": "#C4A8E2"
+        },
+        "painter": {
+          "model": "dev",
+          "steps": 40,
+          "guidance": 4.0,
+          "turbo": false
+        },
+        "motion": "scuttling in place on its eight legs like a real spider, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of four, the body low and level",
+        "anim_negative": "extra legs, nine legs, ten legs, six legs, legs merging, a leg growing from the head, antennae, a tail, wings, two heads, a second spider, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a cartoon face, eyebrows, a mouth",
+        "death_drivers": "spider_death_v3",
+        "death_motion": "it jerks, rolls over onto its back and lies dead with its eight legs curled up over its pale lavender belly like a real dead spider, the legs folded in towards each other, the same colours as the reference all over, nothing green",
+        "death_keep": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          11,
+          14,
+          24
+        ],
+        "dead": "lying dead on its back, its eight legs curled up over its belly",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#2C1838",
+        "side_seeds": 4,
+        "wan": {
+          "lora": false,
+          "steps": 20,
+          "cfg": 3.5
+        }
+      }
     }
   },
   "variant": "SP-B"

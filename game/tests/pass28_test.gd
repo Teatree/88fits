@@ -56,8 +56,8 @@ func test_the_harpooner_is_one_at_a_time_with_a_tether() -> void:
 	assert_str(t.brain).is_equal("kite")
 	# 140, then 70 (pass 33.7), the rocketeer's since pass 33.8, and 50 for both since pass 45; its armour went in pass 45;
 	# pass 48 (Garry): the Vulture Raider lost 30% (35) and the harpooner kept its 50
-	assert_float(t.hp).is_equal_approx(50.0, 0.001)
-	assert_float(Registry.enemy("rocketeer").hp).is_equal_approx(35.0, 0.001)
+	assert_float(t.hp).is_equal_approx(float(JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/harpoon_troglodyte/harpoon_troglodyte.json"))["hp"]), 0.001)  # pass 95 (lead): Garry hand-tunes these (150 / 100 today): the pins read his file
+	assert_float(Registry.enemy("rocketeer").hp).is_equal_approx(float(JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/rocketeer/rocketeer.json"))["hp"]), 0.001)
 	assert_float(t.damage_reduction).is_equal_approx(0.0, 0.001)
 	var tether: Dictionary = t.ranged.get("tether", {})
 	# pass 33.10: a leash, not a flat slow: walking away runs at `away_speed` and towards is free, and the rope is as

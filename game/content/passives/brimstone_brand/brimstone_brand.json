@@ -5,8 +5,32 @@
   "rarity": "rare",
   "weight": 7,
   "from_stage": 3,
-  "max_level": 3,
+  "max_level": 4,
   "levels": [
+    [
+      {
+        "stat": "brand_chance",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "brand_chance",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "brand_chance",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ],
     [
       {
         "stat": "brand_chance",

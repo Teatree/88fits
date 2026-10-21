@@ -74,13 +74,19 @@ params = {
 "look": "plain",
 "size": 0.36,
 "spin": 16.0,
-"trail": true
+"trail": {
+"alpha": 0.6,
+"length": 0.4,
+"style": "streak",
+"width": 1.5
+}
 },
 "falloff": {
 "floor": 0.25,
 "step": 0.85
 },
 "fan_deg": 16.0,
+"fire_forward": true,
 "glide_seconds": 0.45,
 "height": 1.0,
 "hit_radius": 0.55

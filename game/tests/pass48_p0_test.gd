@@ -386,8 +386,8 @@ func test_the_rarity_changes() -> void:
 	assert_str(Registry.passive("sinners_greed").rarity).is_equal("epic")
 	for id in ["reach", "big_game_hunter", "venom"]:
 		assert_str(Registry.passive(id).rarity).override_failure_message(id).is_equal("uncommon")
-	# Reach is +8% area a level (+40% at its top, was +50%)
-	assert_float(float((Registry.passive("reach").levels[0][0] as Effect).value)).is_equal_approx(0.08, 0.0001)
+	# Reach is +8% area a level (+40% at its top, was +50%); pass 95: +10% at level 1, +6% a rung, +10% Evolved
+	assert_float(float((Registry.passive("reach").levels[0][0] as Effect).value)).is_equal_approx(0.1, 0.0001)
 
 
 func test_the_stranger_gives_level_two_or_one_more() -> void:
@@ -794,7 +794,9 @@ func test_plates_take_their_level_colour() -> void:
 	assert_bool(W.plate_fill(Registry.passive("juggernaut"), 1).is_equal_approx(W.EVOLVED_FILL)).is_true()
 	var greed: PassiveDef = Registry.passive("sinners_greed")
 	assert_bool(W.plate_fill(greed, 1).is_equal_approx(W.RARITY_PLATE["epic"])).is_true()
-	assert_bool(W.plate_fill(greed, 5).is_equal_approx(W.RARITY_PLATE["epic"])).is_true()
+	# pass 95 (lane PASSIVES): a passive item climbs the ladder a level; past its top it is Evolved, dark
+	assert_bool(W.plate_fill(greed, 2).is_equal_approx(W.RARITY_PLATE["legendary"])).is_true()
+	assert_bool(W.plate_fill(greed, 5).is_equal_approx(W.EVOLVED_FILL)).is_true()
 	assert_bool(W.plate_fill(Registry.mutation("methanol"), 3).is_equal_approx(W.PLUM)).is_true()
 	# the plate takes it as its fourth argument; the old calls read the item in general
 	var p: WPlate = auto_free(WPlate.new())

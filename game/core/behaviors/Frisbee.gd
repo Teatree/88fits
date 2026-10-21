@@ -13,7 +13,11 @@
 ##   sheet says; a modest knockback along the flight; none while it glides down;
 ## - `disc {look plain|razors|saucer, size, albedo, emission, energy, spin, trail, size_mult, haze}`: the disc drawn
 ##   (disc_mesh, built here: lime plastic, the hot-pink "Shredder" with razor blades round the rim, the chrome-and-pink
-##   saucer with glowing razors), `size` its radius in metres times size_mult (Carry's x1.5);
+##   saucer with glowing razors), `size` its radius in metres times size_mult (Carry's x1.5); `trail` (pass 95, lane
+##   ITEMS) a block {style streak|sparks|glow|none, length, width, alpha, colour}: the trail behind the disc, one style
+##   per look (trail_params);
+## - pass 95 (lane ITEMS): "Fire forward" (FireForward.dir, Settings.fire_forward): along the hero's facing while no
+##   creature stands within 75% of the range;
 ## - `carry {chance, drop_hit}` (Carry): the first creature a disc hits may ride it to the end of its flight, held by the
 ##   Gravity Gun's grip (EnemyManager.grabbable/grab/place_held/release: never a boss, an Elite, an elite-modded or an
 ##   ungrabbable creature, and nothing hits it while it rides), one a disc; it is set down where the disc comes down and
@@ -26,7 +30,7 @@ extends WeaponBehavior
 
 const BEND_MIN_M := 3.0
 const TURN_EXTRA_DEG := 60.0
-const TRAIL_SECONDS := 0.22
+## Seconds between the points of a disc's trail (its length in seconds is the trail block's `length`).
 const TRAIL_STEP := 0.025
 const HIT_SFX_GAP := 0.08
 const HAZE_GAP := 0.05
@@ -48,7 +52,9 @@ var _trail_mi: MeshInstance3D
 var _look_key := ""
 var _mesh: ArrayMesh
 var _mats: Array = []
-var _trail_col := Color(0.72, 1.0, 0.16)
+## The trail as the disc params say (trail_params), {} for none; set with the look.
+var _trail: Dictionary = {}
+var _trail_begun := false  # a surface is open in _trail_mesh: begun by the first quad, so a frame without one never ends an empty surface
 
 
 func _uses_projectiles() -> bool:
@@ -139,8 +145,11 @@ func _fire() -> bool:
 	var em: EnemyManager = game.enemies
 	var pp: Vector3 = player.global_position
 	var range_m := maxf(stat("range", 12.0), 1.0)
-	var tgt := aim_index(pp, range_m) if em else -1
-	var aim := Vector3.ZERO
+	# pass 95 (lane ITEMS): "Fire forward" (FireForward.dir, Settings.fire_forward): along his facing, the arc crossing its
+	# line at the range's end, while no creature stands within 75% of the range; else at the nearest as before
+	var fwd: Vector3 = FireForward.dir(inst, player, em, 12.0)
+	var tgt: int = -1 if fwd != Vector3.ZERO else (aim_index(pp, range_m) if em else -1)
+	var aim: Vector3 = fwd
 	var dist := range_m
 	if tgt >= 0:
 		aim = em.pos[tgt] - pp
@@ -443,14 +452,17 @@ func _place(d: Dictionary) -> void:
 	(node as Node3D).global_transform = Transform3D(b.scaled(Vector3(r, r, r)), d["pos"])
 
 
+## The disc's trail points age, the old ones go (after the block's `length`), and a new one is laid every TRAIL_STEP s
+## while it flies (none while it glides down: the ribbon fades out behind it).
 func _trail_push(d: Dictionary, delta: float) -> void:
-	if not bool(_disc_params().get("trail", true)):
+	if _trail.is_empty():
 		return
 	var pts: PackedVector3Array = d["trail"]
 	var age: PackedFloat32Array = d["tage"]
+	var length: float = float(_trail["length"])
 	for k in range(age.size()):
 		age[k] += delta
-	while not age.is_empty() and age[0] >= TRAIL_SECONDS:
+	while not age.is_empty() and age[0] >= length:
 		age.remove_at(0)
 		pts.remove_at(0)
 	d["tclock"] = float(d["tclock"]) - delta
@@ -476,46 +488,160 @@ func _haze(d: Dictionary, delta: float) -> void:
 	game.fx.mote(p + Vector3(cos(a) * r * 0.8, -0.15, sin(a) * r * 0.8), Vector3(cos(a) * 0.4, -0.5, sin(a) * 0.4), 0.55, 0.32 * r / 0.36, Color(0.45, 1.0, 0.35, 0.35))
 
 
-## Every disc's ribbon, drawn as one flat strip behind it that thins and fades with age.
+# ---------------------------------------------------------------- the trail (pass 95, lane ITEMS)
+## Pass 95 (Garry: "Frisbee - needs a dim trail behind its flight because it's hard to see it right now. Treat each
+## visual update of Frisbee with its own trail effect"): `disc.trail` is a block {style, length, width, alpha, colour}
+## (true = the look's own style with its numbers, false = none). `style`: "streak" (the plain disc: one faint pale ribbon
+## with a brighter thread down its middle), "sparks" (the razors: two thin bright lines off the rim's edges and short
+## sparks flicking out and back), "glow" (the saucer: a wide soft glow with a brighter core); "none" = no trail.
+## `length`: seconds the trail lingers (a point every TRAIL_STEP s); `width`: the ribbon's full width in disc radii
+## (Carry's bigger disc trails wider; for sparks the sparks' length); `alpha`: at the disc, fading to nothing at the end;
+## `colour`: #RRGGBB (empty = the look's glow colour lerped toward white by the style's `white`). Every disc of the weapon
+## draws into the one ImmediateMesh "Trails" (one draw call for all of them, however many fly); the ribbon keeps fading
+## out behind a disc that glides down. Numbers picked by eye on 1080x1920 captures against the sand.
+const TRAIL_STYLES := {
+	"streak": {"length": 0.4, "width": 1.5, "alpha": 0.6, "white": 0.45},
+	"sparks": {"length": 0.32, "width": 0.6, "alpha": 0.9, "white": 0.3},
+	"glow": {"length": 0.48, "width": 2.2, "alpha": 0.45, "white": 0.2},
+}
+## The style each look wears when its block names none.
+const LOOK_STYLE := {"plain": "streak", "razors": "sparks", "saucer": "glow"}
+
+
+## The trail as the disc params say now: {style, length, width, alpha, colour (a Color)}, or {} for none.
+func trail_params() -> Dictionary:
+	var dp := _disc_params()
+	var trb = dp.get("trail", true)
+	if trb is bool and not bool(trb):
+		return {}
+	var block: Dictionary = trb if trb is Dictionary else {}
+	var style := str(block.get("style", LOOK_STYLE.get(str(dp.get("look", "plain")), "streak")))
+	if style == "none":
+		return {}
+	if not TRAIL_STYLES.has(style):
+		style = "streak"
+	var d: Dictionary = TRAIL_STYLES[style]
+	var col: Color = _html(str(dp.get("emission", "#7CFF00")), Color(0.49, 1.0, 0.0)).lerp(Color.WHITE, float(d["white"]))
+	if block.has("colour"):
+		col = _html(str(block["colour"]), col)
+	return {"style": style, "length": maxf(float(block.get("length", d["length"])), 0.05),
+		"width": maxf(float(block.get("width", d["width"])), 0.0), "alpha": clampf(float(block.get("alpha", d["alpha"])), 0.0, 1.0),
+		"colour": col}
+
+
+## A colour from its HTML code, `fallback` when the code is not one.
+static func _html(code: String, fallback: Color) -> Color:
+	return Color.html(code) if Color.html_is_valid(code) else fallback
+
+
+## Every disc's trail in its style, all into the one mesh.
 func _draw_trails(_delta: float) -> void:
 	if _trail_mesh == null:
 		return
 	_trail_mesh.clear_surfaces()
-	var begun := false
+	_trail_begun = false
+	if _trail.is_empty():
+		return
+	var style: String = str(_trail["style"])
+	var length: float = float(_trail["length"])
+	var alpha: float = float(_trail["alpha"])
+	var col: Color = _trail["colour"]
 	for d: Dictionary in discs:
 		var pts: PackedVector3Array = d["trail"]
 		var age: PackedFloat32Array = d["tage"]
-		if pts.size() < 1 or int(d["phase"]) != 0:
+		if pts.is_empty():
 			continue
 		var all := pts.duplicate()
-		all.append(d["pos"])
 		var ages := age.duplicate()
-		ages.append(0.0)
-		var w: float = float(d["radius"]) * 0.75
-		for k in range(all.size() - 1):
-			var a: Vector3 = all[k]
-			var b: Vector3 = all[k + 1]
-			var along := b - a
-			along.y = 0.0
-			if along.length_squared() < 0.000001:
-				continue
-			var side := Vector3(-along.z, 0.0, along.x).normalized()
-			var fa := 1.0 - clampf(ages[k] / TRAIL_SECONDS, 0.0, 1.0)
-			var fb := 1.0 - clampf(ages[k + 1] / TRAIL_SECONDS, 0.0, 1.0)
-			var ca := Color(_trail_col.r, _trail_col.g, _trail_col.b, 0.32 * fa)
-			var cb := Color(_trail_col.r, _trail_col.g, _trail_col.b, 0.32 * fb)
-			if not begun:
-				_trail_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-				begun = true
-			var a0 := a - side * w * fa
-			var a1 := a + side * w * fa
-			var b0 := b - side * w * fb
-			var b1 := b + side * w * fb
-			for v: Array in [[a0, ca], [b0, cb], [a1, ca], [a1, ca], [b0, cb], [b1, cb]]:
-				_trail_mesh.surface_set_color(v[1])
-				_trail_mesh.surface_add_vertex(v[0])
-	if begun:
+		if int(d["phase"]) == 0:
+			all.append(d["pos"])
+			ages.append(0.0)
+		if all.size() < 2:
+			continue
+		var r: float = float(d["radius"])
+		var w: float = float(_trail["width"]) * r
+		match style:
+			"sparks":
+				_trail_sparks(all, ages, length, w, r, alpha, col)
+			"glow":
+				# a wide soft layer under a brighter, whiter core
+				_trail_ribbon(all, ages, length, w * 0.5, alpha * 0.4, col)
+				_trail_ribbon(all, ages, length, w * 0.17, alpha, col.lerp(Color.WHITE, 0.3))
+			_:
+				# the streak: the pale ribbon and a thin brighter thread down its middle
+				_trail_ribbon(all, ages, length, w * 0.5, alpha, col)
+				_trail_ribbon(all, ages, length, w * 0.1, alpha * 0.8, col.lerp(Color.WHITE, 0.5))
+	if _trail_begun:
 		_trail_mesh.surface_end()
+		_trail_begun = false
+
+
+## One flat strip along the points, `half` wide at the disc, tapering and fading with age to nothing at `length` seconds.
+func _trail_ribbon(all: PackedVector3Array, ages: PackedFloat32Array, length: float, half: float, alpha: float, col: Color) -> void:
+	for k in range(all.size() - 1):
+		var a: Vector3 = all[k]
+		var b: Vector3 = all[k + 1]
+		var along := b - a
+		along.y = 0.0
+		if along.length_squared() < 0.000001:
+			continue
+		var side := Vector3(-along.z, 0.0, along.x).normalized()
+		var fa := 1.0 - clampf(ages[k] / length, 0.0, 1.0)
+		var fb := 1.0 - clampf(ages[k + 1] / length, 0.0, 1.0)
+		_quad(a, b, side, half * fa, half * fb, Color(col.r, col.g, col.b, alpha * fa), Color(col.r, col.g, col.b, alpha * fb))
+
+
+## The razors' trail: two thin bright lines off the rim's edges (0.9 of the radius out), and every other point a short
+## spark (`w` long) flicking out from one edge and back, whiter, fading faster.
+func _trail_sparks(all: PackedVector3Array, ages: PackedFloat32Array, length: float, w: float, r: float, alpha: float, col: Color) -> void:
+	var thick := maxf(r * 0.07, 0.01)
+	var edge := r * 0.9
+	var spark := col.lerp(Color.WHITE, 0.6)
+	for k in range(all.size() - 1):
+		var a: Vector3 = all[k]
+		var b: Vector3 = all[k + 1]
+		var along := b - a
+		along.y = 0.0
+		if along.length_squared() < 0.000001:
+			continue
+		var dirn := along.normalized()
+		var side := Vector3(-dirn.z, 0.0, dirn.x)
+		var fa := 1.0 - clampf(ages[k] / length, 0.0, 1.0)
+		var fb := 1.0 - clampf(ages[k + 1] / length, 0.0, 1.0)
+		for s: float in [-1.0, 1.0]:
+			_quad(a + side * edge * s, b + side * edge * s, side, thick * fa, thick * fb, Color(col.r, col.g, col.b, alpha * fa), Color(col.r, col.g, col.b, alpha * fb))
+		if k % 2 == 0:
+			var sgn: float = 1.0 if ((k >> 1) & 1) == 0 else -1.0
+			var start := a + side * edge * sgn
+			var end := start + side * w * sgn - dirn * w * 0.6
+			var sdir := end - start
+			var sside := Vector3(-sdir.z, 0.0, sdir.x).normalized()
+			_quad(start, end, sside, thick * 0.7 * fa, 0.0, Color(spark.r, spark.g, spark.b, alpha * fa * fa), Color(spark.r, spark.g, spark.b, 0.0))
+
+
+## A quad from `a` to `b`, `ha` and `hb` out to each side of them, in their colours (two triangles; the material culls
+## nothing, so the winding does not matter).
+func _quad(a: Vector3, b: Vector3, side: Vector3, ha: float, hb: float, ca: Color, cb: Color) -> void:
+	var a0 := a - side * ha
+	var a1 := a + side * ha
+	var b0 := b - side * hb
+	var b1 := b + side * hb
+	if not _trail_begun:
+		_trail_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+		_trail_begun = true
+	for v: Array in [[a0, ca], [b0, cb], [a1, ca], [a1, ca], [b0, cb], [b1, cb]]:
+		_trail_mesh.surface_set_color(v[1])
+		_trail_mesh.surface_add_vertex(v[0])
+
+
+## How many vertices the trails drew this frame (tests, captures): 0 with no trail.
+func trail_vertex_count() -> int:
+	if _trail_mesh == null or _trail_mesh.get_surface_count() == 0:
+		return 0
+	var arrays: Array = _trail_mesh.surface_get_arrays(0)
+	if arrays.is_empty() or not (arrays[Mesh.ARRAY_VERTEX] is PackedVector3Array):
+		return 0
+	return (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
 
 
 ## The mesh and materials for the disc as the weapon's params say now (a mutation taken changes them).
@@ -531,7 +657,7 @@ func _refresh_look() -> void:
 	var energy := float(dp.get("energy", 0.8))
 	_mesh = disc_mesh(look, albedo)
 	_mats = disc_materials(look, emission, energy)
-	_trail_col = emission.lerp(Color.WHITE, 0.25)
+	_trail = trail_params()
 
 
 func refresh_marks() -> void:

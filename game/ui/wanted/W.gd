@@ -258,14 +258,36 @@ static func kind_glyph(kind: String) -> Texture2D:
 static func plate_fill(def: ContentDef, level: int = 0) -> Color:
 	if def == null:
 		return KIND["weapon"]
-	if is_evolved(def):
+	if is_evolved(def) or is_evolved_rung(def, level):
 		return EVOLVED_FILL
 	var k := kind_of(def)
 	if k == "passive":
-		return RARITY_PLATE.get(rarity_of(def), RARITY_PLATE["common"])
+		# pass 95 (lane PASSIVES): a passive item climbs the ladder from its rarity, one rung a level (rung_of); level 0
+		# is the item in general, its rarity's colour
+		return RARITY_PLATE.get(rung_of(def, level), RARITY_PLATE["common"])
 	if k == "weapon" or k == "line":
 		return level_fill(level)
 	return KIND.get(k, BRASS)
+
+
+## The rung a passive item stands on at `level` (pass 95, lane PASSIVES; PassiveDef.rung_at): its rarity at level 1 and
+## at 0 (the item in general), a rarity up each level, "evolved" at its top; the rarity itself for anything else.
+static func rung_of(def: ContentDef, level: int = 0) -> String:
+	if def is PassiveDef and (def as PassiveDef).is_item() and level > 0:
+		return (def as PassiveDef).rung_at(level)
+	return rarity_of(def)
+
+
+## Whether `level` is a passive item's Evolved rung (pass 95): the dark plate in the brass ring, the Evolved icon.
+static func is_evolved_rung(def: ContentDef, level: int) -> bool:
+	return def is PassiveDef and (def as PassiveDef).is_evolved_rung(level)
+
+
+## The icon an item is drawn with at `level` (pass 95): a passive item's Evolved icon on its Evolved rung, else its own.
+static func icon_at(def: ContentDef, level: int = 0) -> Texture2D:
+	if def is PassiveDef:
+		return (def as PassiveDef).icon_at(level)
+	return def.icon if def else null
 
 
 ## The plate colour of a weapon or a line at `level` (pass 48): RARITY_PLATE by RARITIES[level - 1], level 1 common up to

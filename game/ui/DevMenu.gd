@@ -138,6 +138,11 @@ func _refresh() -> void:
 	var hk_row := _switch("Full hero knockback", "hero_knockback")
 	hk_row.name = "HeroKnockbackRow"
 	_list.add_child(hk_row)
+	# pass 95 (lane ITEMS): "Fire forward", off by default (also in Settings' Debug panel): the Sabre, Spear, Hammer,
+	# Frisbee, Tumbleweed and Basketball fire along the hero's facing while no creature is within 75% of their range
+	var ff_row := _switch("Fire forward (Sabre, Spear, Hammer, Frisbee, Tumbleweed, Basketball)", "fire_forward")
+	ff_row.name = "FireForwardRow"
+	_list.add_child(ff_row)
 	# the arena's training dummies (pass 48): a tap steps each one on, the arena lays them out from these
 	var hp_row := _row("Arena dummies · health", Settings.dummy_hp_label(Settings.dummy_hp), func():
 		Settings.set_value("dummy_hp", Settings.next_step(Settings.DUMMY_HP_STEPS, Settings.dummy_hp))
