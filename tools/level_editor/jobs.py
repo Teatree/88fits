@@ -70,8 +70,9 @@ METHODS_FILE = os.path.join(HERE, "methods.json")
 PY = sys.executable
 GODOT = locks.GODOT
 LAUNCH_FILE = os.path.join(locks.SAVE_DIR, "debug_launch.json")   # a module variable: the selftest points it at a temp dir
-COMFY_SERVER = os.environ.get("COMFY_SERVER", "http://192.168.137.54:8188")
-LMSTUDIO_MODELS = "http://127.0.0.1:1234/v1/models"
+import ai_hosts  # noqa: E402  (pass 97, lane SAFE: tools/ai_hosts.json; COMFY_SERVER still wins; the old literals when absent)
+COMFY_SERVER = os.environ.get("COMFY_SERVER", ai_hosts.get("comfy", "http://192.168.137.54:8188"))
+LMSTUDIO_MODELS = ai_hosts.get("lmstudio", "http://127.0.0.1:1234").rstrip("/") + "/v1/models"
 STALL_SECONDS = 20 * 60          # silence this long marks a job stalled (never killed: a dev restart can take minutes)
 # pass 70 (lane LE): a step that runs Godot (register / import: --import, import_json, gen_placeholders) is killed after
 # this many seconds, the Godot lock freed, the job failed with the reason and offered for Re-queue. A `godot --import`
@@ -454,6 +455,9 @@ def _save():
             return _state["rev"]
         if not _inited:
             raise RuntimeError("jobs.init() has not run in this process: the queue is not written (a script importing jobs.py)")
+        if not _queue_file_ok():   # pass 97 (lane PROGRESS): a test that re-pointed JOBS_DIR alone wrote its fake queue over the real one
+            _log("jobs: %s is not inside JOBS_DIR %s: the queue is not written" % (QUEUE_FILE, JOBS_DIR))
+            return _state["rev"]
         _state["rev"] += 1
         os.makedirs(JOBS_DIR, exist_ok=True)
         tmp = QUEUE_FILE + ".tmp"
@@ -471,6 +475,15 @@ def _save():
                     break
                 time.sleep(0.05)
         return _state["rev"]
+
+
+def _queue_file_ok():
+    """pass 97 (lane PROGRESS): QUEUE_FILE is JOBS_DIR's own queue.json (selftest_VACE95 pointed JOBS_DIR at a temp folder
+    and left QUEUE_FILE on the real one: every full selftest run wrote its two-job fake over Garry's queue)."""
+    try:
+        return os.path.normcase(os.path.abspath(os.path.dirname(QUEUE_FILE))) == os.path.normcase(os.path.abspath(JOBS_DIR))
+    except Exception:   # noqa: BLE001
+        return False
 
 
 def _find(job_id):
@@ -777,6 +790,7 @@ def _eta(job):
         med = float(m["time"]["median_s"])
     if med is None:
         med = float(BUILTIN_MEDIAN.get(key, BUILTIN_MEDIAN.get(method, 60)))
+    med = _measured_eta(job, key, med)   # pass 97 (lane PROGRESS, OPS-02): the measured median at >= 5 samples; job["eta_source"] says which
     if kind in ("icon_cands", "hero_badge", "hero_title", "front_from_picture") or method == "front_from_picture":
         med *= max(1, int(spec.get("seeds") or 1))
     stages = (job.get("progress") or {}).get("stages") or []
@@ -923,7 +937,7 @@ def _asset_env(job):
         env.pop("LOCK_HELD_COMFY", None)
         env.pop("COMFY_LOCK_HELD", None)
     if job.get("kind") == "install":
-        src = _find(str(spec.get("source_job", "")))
+        src = _find(str(spec.get("source_job", ""))) or _archived_raw(str(spec.get("source_job", "")))   # pass 97 (lane PROGRESS): an archived source too
         if src is not None and src.get("kind") in ("hero_badge", "hero_title"):
             # pass 68 (D7): the badge candidates (and, since the review, the title cut-outs) are keyed by the job that
             # painted them (tag = ASSET_JOB_ID's last 4): the pick runs under that job's id so the tool finds them by the
@@ -1324,7 +1338,7 @@ def _plan(job):
         cmd = [GODOT, "--path", GAME, "res://game/Game.tscn"]
         p.update(mode="launch", lock="godot", steps=[cmd], launch=launch, equiv="bash tools/godot.sh --path game res://game/Game.tscn   (user://debug_launch.json = %s)" % json.dumps(launch))
     elif kind == "install":
-        src = _find(str(spec.get("source_job", "")))
+        src = _find(str(spec.get("source_job", ""))) or _archived_raw(str(spec.get("source_job", "")))   # pass 97 (lane PROGRESS): an archived source too
         choice = str(spec.get("choice", ""))
         if src is None:
             p.update(mode="steps", lock=None, steps=[], equiv="", error="the source job %r is gone" % spec.get("source_job"))
@@ -1443,6 +1457,9 @@ def _evaluate_post(job, res):
             notes = job.setdefault("progress", {}).setdefault("notes", [])
             if info["summary"] not in notes:
                 notes.append(str(info["summary"]))
+    _ev_emit("evaluator", "verdict", job=job.get("id"), rid=job.get("request") or (job.get("spec") or {}).get("request"),   # pass 97 (lane PROGRESS, WF-02)
+             look={"kind": (job.get("spec") or {}).get("kind"), "id": (job.get("spec") or {}).get("id"), "code": (job.get("spec") or {}).get("code")},
+             gates=info.get("gates"), summary=info.get("summary"), dollars=info.get("dollars"), model_calls=info.get("model_calls"), findings=info["findings"])
     return {"file": "", "keys": [], "backup": "", "layout": "findings", "findings": info["findings"], "gates": info.get("gates"), "summary": info.get("summary")}, ""
 
 
@@ -1740,7 +1757,7 @@ def get(job_id):
     with _lock:
         _sync_from_disk()
         j = _find(job_id)
-        return _public(j, LOG_TAIL_FULL, full=True) if j else None
+        return _public(j, LOG_TAIL_FULL, full=True) if j else _archived_public(job_id)   # pass 97 (lane PROGRESS): an archived id too
 
 
 def _public(job, tail_n, full=False):
@@ -1764,12 +1781,105 @@ def _tail_from_file(job, n):
     try:
         with open(p, "r", encoding="utf-8", errors="replace") as f:
             lines = f.read().splitlines()
-        return lines[-n:]
+        return [x for x in lines if not RE_COMFY_STEP.match(x)][-n:]   # pass 97 (lane PROGRESS): without ComfyUI's step lines
     except OSError:
         return []
 
 
-CREATURE_STILL_METHODS = ("creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures")
+# ---------------------------------------------------------------- pass 97 (lane LIVE, UI-02): the delta poll
+# GET /api/jobs?since=<rev>&delta=1 answers what changed since <rev> instead of the whole list. Every record's served view
+# (the record, `held` for a queued job, the log tail of a running one) is hashed at the first delta call after the
+# queue's rev moved; a record whose hash changed gets `rev` = that rev, an id gone gets a tombstone, the id order is
+# kept. Nothing here writes a record, queue.json, list() or _public: the non-delta answer stays exactly as it was (the
+# per-record rev lives in this process's memory and is served on the delta's records only). Measured against a hash in
+# _save on a 468-job queue: tools/dl/p97/LIVE/measure_delta.py, the numbers in status_LIVE.md.
+
+_delta = {"rev": None, "floor": None, "state": None, "sig": {}, "at": {}, "tomb": {}, "order": None, "order_at": 0}
+
+
+def _delta_view_sig(job):
+    """One record's served view as a hash (process-local, never persisted): the record itself, `held` for a queued job
+    (it follows other jobs and the disk), the log tail of a running job (it moves without the record)."""
+    held = bool(job.get("state") == "queued" and (_waits_for_look(job) or _frames_export_waits(job)))
+    tail = None
+    if job.get("state") == "running":
+        live = _live.get(job.get("id"))
+        tail = tuple([x for x in live.tail][-LOG_TAIL_SHORT:]) if live is not None else tuple(_tail_from_file(job, LOG_TAIL_SHORT))
+    try:
+        text = json.dumps(job, ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        text = repr(job)
+    return hash((text, held, tail))
+
+
+def _delta_scan():
+    """Bring the per-record revs up to the queue's rev (under _lock): once per rev, whoever polls first pays it."""
+    d = _delta
+    rev = _state["rev"]
+    if d["rev"] == rev and d["state"] is _state:
+        return
+    if d["state"] is not _state and d["rev"] is not None and rev < d["rev"]:
+        # a queue loaded again with a lower rev (a test's fresh world, another file): the bookkeeping starts over
+        d.update(rev=None, floor=None, sig={}, at={}, tomb={}, order=None, order_at=0)
+    seen = []
+    for j in _state["jobs"]:
+        jid = j.get("id")
+        seen.append(jid)
+        s = _delta_view_sig(j)
+        if d["sig"].get(jid) != s:
+            d["sig"][jid] = s
+            d["at"][jid] = rev
+    have = set(seen)
+    for jid in [k for k in d["sig"] if k not in have]:
+        d["sig"].pop(jid, None)
+        d["at"].pop(jid, None)
+        d["tomb"][jid] = rev
+    for jid in [k for k in d["tomb"] if k in have]:
+        d["tomb"].pop(jid, None)
+    if seen != d["order"]:
+        if d["order"] is not None:
+            d["order_at"] = rev
+        d["order"] = seen
+    if d["floor"] is None:
+        d["floor"] = rev
+    d["rev"], d["state"] = rev, _state
+
+
+def list_delta(since_rev=None):
+    """pass 97: {rev, changed: [served records, each with its `rev`], removed: [ids], delta: True}; + `order` (every id in
+    the queue's order) when an id was added, removed or moved since `since_rev`; + `full: True` (everything, the page
+    replaces its list) when `since_rev` is 0, older than this process's bookkeeping or ahead of the queue; + `unchanged:
+    True` (nothing) when it is the queue's rev. list() stays the contract for every other caller."""
+    with _lock:
+        _sync_from_disk()
+        _delta_scan()
+        d = _delta
+        rev = _state["rev"]
+        try:
+            since = int(since_rev) if since_rev is not None else 0
+        except (TypeError, ValueError):
+            since = 0
+        out = {"rev": rev, "delta": True}
+        if since > 0 and since == rev:
+            out.update(changed=[], removed=[], unchanged=True)
+            return out
+        full = since <= 0 or since < (d["floor"] or 0) or since > rev
+        jobs = _state["jobs"] if full else [j for j in _state["jobs"] if d["at"].get(j.get("id"), rev) > since]
+        changed = []
+        for j in jobs:
+            p = _public(j, LOG_TAIL_SHORT)
+            p["rev"] = d["at"].get(j.get("id"), rev)
+            changed.append(p)
+        out["changed"] = changed
+        out["removed"] = [] if full else sorted(k for k, r in d["tomb"].items() if r > since)
+        if full:
+            out["full"] = True
+        if full or d["order_at"] > since:
+            out["order"] = [j.get("id") for j in _state["jobs"]]
+        return out
+
+
+CREATURE_STILL_METHODS =("creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures")
 # pass 68 (D1, D2): the look methods whose stills gen_art keys by the recipe's `stills` slug (<id>_<slug>_<view>); hero_fit
 # never gets one (it re-walks the hero's own paintings by design)
 STILL_METHODS = CREATURE_STILL_METHODS + ("hero_pose5", "hero_puppet")
@@ -2533,6 +2643,7 @@ def enqueue(kind, target, spec, title=None, request=None):
             except Exception as e:
                 job["error"] = "the recipe could not be written: %s" % e
         _state["jobs"].append(job)
+        _ev_job(job, "queued", title=job.get("title"), spec=job.get("spec"))   # pass 97 (lane PROGRESS, WF-02)
         _save()
         return _public(job, LOG_TAIL_SHORT)
 
@@ -2591,6 +2702,7 @@ def edit(job_id, spec=None, title=None):
                 _hook("set_recipe")(t["kind"], t["id"], t["code"], job["spec"].get("recipe") or {}, job["spec"].get("note") or None)
             except Exception as e:
                 job["error"] = "the recipe could not be written: %s" % e
+        _ev_job(job, "edited", spec=spec, title=title)   # pass 97 (lane PROGRESS, WF-02)
         _save()
         return _public(job, LOG_TAIL_SHORT)
 
@@ -2601,6 +2713,7 @@ def cancel(job_id):
         job = _find(job_id)
         if job is None:
             raise ValueError("no job %s" % job_id)
+        _ev_job(job, "cancel")   # pass 97 (lane PROGRESS, WF-02): asked; `finished` says how it ended
         if job["state"] in ("queued", "waiting"):
             job["state"], job["ended"] = "cancelled", _now()
             _save()
@@ -2629,7 +2742,7 @@ def cancel(job_id):
 def requeue(job_id, reroll=None):
     _writable()
     with _lock:
-        job = _find(job_id)
+        job = _find(job_id) or _unarchive(job_id)   # pass 97 (lane PROGRESS): an archived job comes back into the queue
         if job is None:
             raise ValueError("no job %s" % job_id)
         if job["state"] in ("running", "queued"):
@@ -2713,8 +2826,63 @@ def requeue(job_id, reroll=None):
             # a side already picked stays picked (the cache holds <key>_side.png); the views start again from there
             pass
         _derive(job)
+        _ev_job(job, "requeued", reroll=reroll or None, moved=len(moved))   # pass 97 (lane PROGRESS, WF-02)
         _save()
         return _public(job, LOG_TAIL_SHORT)
+
+
+# pass 97 (lane SAFE, OPS-03): "N jobs interrupted by the restart: Re-queue all". recover() is the only place a job turns
+# `interrupted`, at this editor's start, stamping `ended`; the jobs it stamped are the ones ended at or after this
+# module's import (STARTED_AT; a test sets it). Nothing here runs on its own: only POST /api/jobs/requeue_interrupted.
+STARTED_AT = time.time()
+
+
+def interrupted_ids(scope="restart"):
+    """The ids of the interrupted jobs, queue order: scope "restart" = the ones the restart interrupted (ended at or
+    after STARTED_AT), "all" = every interrupted job in the queue."""
+    with _lock:
+        _sync_from_disk()
+        out = []
+        for j in _state["jobs"]:
+            if j.get("state") != "interrupted":
+                continue
+            if scope != "all":
+                t = _epoch(j.get("ended"))
+                if t is None or t < STARTED_AT - 1.0:   # _now() keeps whole seconds
+                    continue
+            out.append(j["id"])
+        return out
+
+
+def requeue_interrupted(ids=None, scope="restart"):
+    """Re-queue all (Garry's one click, never automatic): requeue() on every interrupted job of `scope` (or of `ids`
+    among them), exactly as its own Re-queue button does. A `launch` job (Test in game: the game window) is skipped,
+    since a re-run would open the game again; a job requeue() refuses is listed with its words.
+    -> {requeued: [ids], skipped: [{id, why}], refused: [{id, error}]}"""
+    _writable()
+    todo = interrupted_ids("all" if scope == "all" else "restart")
+    out = {"requeued": [], "skipped": [], "refused": []}
+    if ids is not None:
+        want = [str(i) for i in ids]
+        out["skipped"] += [{"id": i, "why": "not interrupted%s" % ("" if scope == "all" else " by the restart")}
+                           for i in want if i not in todo]
+        todo = [i for i in todo if i in want]
+    for jid in todo:
+        with _lock:
+            j = _find(jid)
+            kind = j.get("kind") if j else None
+        if j is None:
+            out["skipped"].append({"id": jid, "why": "gone"})
+            continue
+        if kind == "launch":
+            out["skipped"].append({"id": jid, "why": "a test in game is started by its own Re-queue"})
+            continue
+        try:
+            requeue(jid)
+            out["requeued"].append(jid)
+        except Exception as e:   # noqa: BLE001  (one refusal never stops the others)
+            out["refused"].append({"id": jid, "error": str(e) if isinstance(e, ValueError) else "%s: %s" % (type(e).__name__, e)})
+    return out
 
 
 def pick(job_id, choice):
@@ -2757,6 +2925,7 @@ def pick(job_id, choice):
         job["choices"] = []
         job["ended"], job["pid"] = None, None
         _derive(job)
+        _ev_job(job, "picked", choice=choice, waiting_for=marker)   # pass 97 (lane PROGRESS, WF-02)
         _save()
         return _public(job, LOG_TAIL_SHORT)
 
@@ -2775,7 +2944,7 @@ def choice_id(src, choice):
 def install(job_id, choice, options=None):
     _writable()
     with _lock:
-        src = _find(job_id)
+        src = _find(job_id) or _archived_raw(job_id)   # pass 97 (lane PROGRESS): an archived candidate job's pictures too
         if src is None:
             raise ValueError("no job %s" % job_id)
         if src["kind"] not in ("icon_cands", "hero_badge", "hero_title"):
@@ -2876,6 +3045,7 @@ def merge(job_id, redump=False):
         error = "" if r.get("ok") else str(r.get("error") or "the file could not be re-dumped")
     else:
         written, error = _post(job)
+    _ev_job(job, "merged", written=written, error=error or "", redump=bool(redump))   # pass 97 (lane PROGRESS, WF-02)
     with _lock:
         if written is not None:
             job["written"] = written
@@ -2899,7 +3069,7 @@ def status():
         ro["since"] = _epoch(_readonly.get("since"))
     return {"queued": counts["queued"], "running": counts["running"], "waiting": counts["waiting"], "lanes": lanes,
             "locks": locks.status_all(), "blender": blender_path(), "qa_online": _qa_cache["v"], "rev": _state["rev"],
-            "workers": len(_workers), "readonly": ro}
+            "workers": len(_workers), "readonly": ro, "archived": _archived_count()}   # pass 97 (lane PROGRESS): jobs in archive/
 
 
 def reclaim_stale_locks():
@@ -2928,6 +3098,7 @@ def recover():
                 job["error"] = job.get("error") or "the editor server stopped while this ran"
                 job["pid"] = None
                 changed.append(job["id"])
+                _ev_job(job, "interrupted", why=job["error"])   # pass 97 (lane PROGRESS, WF-02)
                 if job["kind"] == "launch" and os.path.isfile(LAUNCH_FILE):
                     try:
                         os.remove(LAUNCH_FILE)
@@ -3040,6 +3211,7 @@ def _take_next(lane):
         job["ended"], job["error"] = None, "" if "could not be written" not in job.get("error", "") else job["error"]
         job["progress"]["stalled"] = False
         job["server_pid"] = os.getpid()   # which editor runs it (a later editor's start must not kill it)
+        _on_attempt_start(job)   # pass 97 (lane PROGRESS): no stale substage, the attempt's lock wait, the `started` event
         _lane_current[lane] = job["id"]
         _save()
         return job
@@ -3068,6 +3240,7 @@ def _finish(job, state, error="", save=True):
             job["outputs"] = _harvest(job)
         except Exception:
             pass
+    _on_finish(job, state)   # pass 97 (lane PROGRESS): the substage goes; the `finished` event
     if save:
         _save()
 
@@ -3075,6 +3248,7 @@ def _finish(job, state, error="", save=True):
 def _acquire(job, live, name):
     """The lane's lock, saying who holds it meanwhile (lock_waits); None when the job was cancelled while waiting."""
     said = None
+    t_wait0 = time.time()   # pass 97 (lane PROGRESS): the wait is kept per attempt (lock_wait_s)
     while not _stop.is_set():
         if live.cancelled:
             return None
@@ -3083,6 +3257,7 @@ def _acquire(job, live, name):
             with _lock:
                 job["lock_waits"] = {}
                 job["progress"]["stage"] = ""
+                _add_lock_wait(job, name, time.time() - t_wait0)
             return lk
         s = locks.status(name) or {}
         who = "%s%s since %s" % (s.get("who", "?"), (" / " + s["job"]) if s.get("job") else "", time.strftime("%H:%M", time.localtime(s.get("since", time.time()))))
@@ -3315,7 +3490,8 @@ def _on_line(job, live, line):
         live.logf.flush()
     except Exception:
         pass
-    live.tail.append(line)
+    if not RE_COMFY_STEP.match(line):   # pass 97 (lane PROGRESS): ComfyUI's step lines go to log.txt and the substage, not the card's tail
+        live.tail.append(line)
     with _lock:
         job["progress"]["last_output"] = _now()
         seen = parse_line(job, line, live.key_to_stage)
@@ -3421,6 +3597,7 @@ def parse_line(job, line, key_to_stage=None):
     stages = prog.get("stages", [])
     idx = key_to_stage if key_to_stage is not None else _stage_index(job)
     seen = None
+    stage_before = prog.get("stage")   # pass 97 (lane PROGRESS): a stage that moves clears the ComfyUI substage
     if job.get("kind") == "sim":
         return sim_parse(job, line)   # pass 77 (lane SIMUI): tools/sim_batch.py's "sim: ..." lines
     if job.get("method") == "hero_puppet" and (line.startswith("puppet: ") or line.startswith("[puppet ")):
@@ -3508,6 +3685,7 @@ def parse_line(job, line, key_to_stage=None):
         prog["stage"] = {"side": "side candidates painted", "view": "view candidates painted", "pick": "candidates painted",
                          "review": "review sheet", "badge": "badge candidates", "title": "title candidates"}[marker]
         seen = seen or ("marker", marker)
+    _comfy_progress(job, line, stage_before)   # pass 97 (lane PROGRESS, WF-07): progress.substage / progress.comfy_error
     prog["done"] = sum(1 for s in stages if s.get("state") == "done")
     prog["total"] = len(stages)
     return seen
@@ -3559,18 +3737,9 @@ def _after_exit(job, rc, live):
             _rollback_after_import(job)   # pass 95 resume: an import that followed a Frames export undoes the export
             return
         if rc != 0:
-            tail = [x for x in live.tail if x.strip()]
-            err = ""
-            for x in reversed(tail):   # the exception's own line first, then a tool's message, then the runner's
-                if re.match(r"^\w*(Error|Exception|Exit)\b", x) or x.startswith(("gen_art:", "gen_ctl:", "gen_edit_stills:", "gen_badge_cands:", "SCRIPT ERROR")):
-                    err = x.strip()
-                    break
-            if not err:
-                for x in reversed(tail):
-                    if x.startswith("asset_job:") or "error" in x.lower():
-                        err = x.strip()
-                        break
-            _finish(job, "failed", error=err or (tail[-1].strip() if tail else "exit code %s" % rc))
+            # the exception's own line first, then a tool's message, then the runner's; pass 97 (lane PROGRESS, OPS-02): on
+            # ANSI-stripped lines, never an ANSI code alone (error_line)
+            _finish(job, "failed", error=error_line(live.tail, rc))
             _rollback_after_import(job)   # pass 95 resume: an import that followed a Frames export undoes the export
             return
         marker = live.marker
@@ -3589,6 +3758,7 @@ def _after_exit(job, rc, live):
         return
     # the post phase: merge through the hooks (outside the lock: the server's merge takes its own)
     written, error = _post(job)
+    _ev_job(job, "landed", written=written, error=error or "")   # pass 97 (lane PROGRESS, WF-02): what the landing wrote
     with _lock:
         if written is not None:
             job["written"] = written
@@ -3843,7 +4013,7 @@ def _post_install_look(job, res, code=None):
     else from the names the tools write (an icon job's `file`, <id>_icon_<x>.png, hero_<id>_<x>.png) when on disk."""
     t = job.get("target") or {}
     code = str(code or t.get("code") or "")
-    src = _find(str((job.get("spec") or {}).get("source_job", ""))) or {}
+    src = _find(str((job.get("spec") or {}).get("source_job", ""))) or _archived_raw(str((job.get("spec") or {}).get("source_job", ""))) or {}   # pass 97 (lane PROGRESS)
     entry = res.get("entry") if isinstance(res.get("entry"), dict) else {}
     files = {k: os.path.basename(str(entry[k])) for k in ("icon", "title") if entry.get(k)}
     if not files:
@@ -5199,3 +5369,525 @@ def sim_parse(job, line):
     prog["done"] = sum(1 for s in stages if s.get("state") == "done")
     prog["total"] = len(stages)
     return seen
+
+
+# ---------------------------------------------------------------- pass 97 (lane PROGRESS): progress, events, archive, ops
+# WF-07: comfy.run's progress thread prints `comfy: <prompt> <node> <value>/<max>` and `comfy: <prompt> error <text>`
+# (tools/comfy.py ProgressWatch); parse_line turns them into progress.substage / progress.comfy_error (_comfy_progress).
+# WF-02: the events log (tools/level_editor/events.py, on only in the server process): one line at each choke point
+# calls _ev_job / _ev_emit. The archive: finished records whose `ended` is older than ARCHIVE_DAYS move to
+# JOBS_DIR/archive/queue_<YYYY-MM>.json (their folders untouched; get() still finds them; list() shows the live queue).
+# OPS-02: the error-line rule (error_line), the per-attempt lock wait (lock_wait_s), the measured medians the ETA uses
+# at >= MEASURED_MIN_SAMPLES (eta_source says which number the card shows).
+
+RE_COMFY_STEP = re.compile(r"^comfy: (?!prompt )(\S+) (.+) (\d+)/(\d+)\s*$")
+RE_COMFY_ERROR = re.compile(r"^comfy: (?!prompt )(\S+) error (.+)$")
+ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")
+ARCHIVE_DAYS = 30
+ARCHIVE_STATES = ("done", "failed", "cancelled")
+MEASURED_MIN_SAMPLES = 5
+MEASURED_TTL = 30.0
+SEEDED_KINDS = ("icon_cands", "hero_badge", "hero_title", "front_from_picture")
+
+
+def _ev():
+    """tools/level_editor/events.py as one module object (None when it cannot be imported: nothing is logged). A
+    third-party `events` in sys.modules first: ours is loaded from its file under the alias `le_events`."""
+    m = sys.modules.get("events")
+    if m is not None and hasattr(m, "job_event"):
+        return m
+    m = sys.modules.get("le_events")
+    if m is not None:
+        return m
+    try:
+        if m is None and sys.modules.get("events") is None:
+            import events as m2
+            if hasattr(m2, "job_event"):
+                return m2
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("le_events", os.path.join(HERE, "events.py"))
+        m3 = importlib.util.module_from_spec(spec)
+        sys.modules["le_events"] = m3
+        spec.loader.exec_module(m3)
+        return m3
+    except Exception:   # noqa: BLE001
+        return None
+
+
+def _ev_job(job, event, **fields):
+    """One job event (never raises; nothing when the log is off)."""
+    try:
+        m = _ev()
+        if m is not None:
+            m.job_event(job, event, **fields)
+    except Exception:   # noqa: BLE001
+        pass
+
+
+def _ev_emit(kind, event, **fields):
+    try:
+        m = _ev()
+        if m is not None:
+            m.emit(kind, event, **fields)
+    except Exception:   # noqa: BLE001
+        pass
+
+
+# ---- WF-07: the substage
+
+def _running_view(job):
+    """The view of the job's first unfinished still or clip stage (the one rendering now), or ""."""
+    for s in (job.get("progress") or {}).get("stages") or []:
+        if s.get("type") in ("still", "clip", "side") and s.get("state") not in ("done", "skipped"):
+            words = re.split(r"[\s_/]+", str(s.get("name") or "") + " " + str(s.get("key") or ""))
+            for v in ("front", "back", "side", "fd", "bd"):
+                if v in words:
+                    return v
+            return ""
+    return ""
+
+
+def _comfy_progress(job, line, stage_before):
+    """parse_line's tail: a `comfy: <prompt> <node> <v>/<max>` line -> progress.substage {node, value, max, at, since,
+    prompt, view?}; `comfy: <prompt> error <text>` -> progress.comfy_error (+ comfy_error_prompt); a newer `comfy: prompt`
+    clears the error (a retry queued a new prompt); a stage that moved clears the substage."""
+    prog = job.setdefault("progress", {})
+    m = RE_COMFY_ERROR.match(line)
+    if m:
+        prog["comfy_error"] = strip_ansi(m.group(2)).strip()[:300]
+        prog["comfy_error_prompt"] = m.group(1)
+        return
+    m = RE_COMFY_STEP.match(line)
+    if m:
+        pid, node = m.group(1), m.group(2).strip()
+        sub = prog.get("substage") if isinstance(prog.get("substage"), dict) else None
+        now = _now()
+        since = sub.get("since") if sub and sub.get("node") == node and sub.get("prompt") == pid and sub.get("since") else now
+        new = {"node": node, "value": int(m.group(3)), "max": int(m.group(4)), "at": now, "since": since, "prompt": pid}
+        view = _running_view(job)
+        if view:
+            new["view"] = view
+        prog["substage"] = new
+        return
+    m = RE_COMFY_PROMPT.match(line)
+    if m and prog.get("comfy_error_prompt") and prog.get("comfy_error_prompt") != m.group(1):
+        prog.pop("comfy_error", None)
+        prog.pop("comfy_error_prompt", None)
+    if prog.get("stage") != stage_before and "substage" in prog:
+        prog.pop("substage", None)
+
+
+def _on_attempt_start(job):
+    """_take_next: a run starts (an attempt, or a picked continuation): no stale substage or ComfyUI error; the lock
+    wait starts again when the attempt is new; the `started` event."""
+    prog = job.setdefault("progress", {})
+    prog.pop("substage", None)
+    prog.pop("comfy_error", None)
+    prog.pop("comfy_error_prompt", None)
+    att = int(job.get("attempt", 1) or 1)
+    if job.get("lock_wait_attempt") != att:
+        job["lock_wait_s"] = {}
+        job["lock_wait_attempt"] = att
+    _ev_job(job, "started", lane=job.get("lane"))
+
+
+def _on_finish(job, state):
+    """_finish: the substage goes (nothing renders any more; a ComfyUI error stays on the card); the `finished` event."""
+    (job.get("progress") or {}).pop("substage", None)
+    _ev_job(job, "finished", error=(job.get("error") or "")[:300], ended=job.get("ended"))
+
+
+def _add_lock_wait(job, name, secs):
+    """_acquire: the seconds this attempt waited for a lock, kept (lock_waits itself is cleared when the lock is taken)."""
+    try:
+        secs = float(secs)
+    except (TypeError, ValueError):
+        return
+    if secs < 0.05:
+        return
+    att = int(job.get("attempt", 1) or 1)
+    if job.get("lock_wait_attempt") != att:
+        job["lock_wait_s"] = {}
+        job["lock_wait_attempt"] = att
+    w = job.setdefault("lock_wait_s", {})
+    w[name] = round(float(w.get(name, 0.0)) + secs, 1)
+    tot = job.setdefault("lock_wait_total_s", {})
+    tot[name] = round(float(tot.get(name, 0.0)) + secs, 1)
+    if secs >= 1.0:
+        _ev_job(job, "lock_waited", lock=name, seconds=round(secs, 1))
+
+
+# ---- OPS-02: the error line
+
+def strip_ansi(text):
+    return ANSI_RE.sub("", str(text or ""))
+
+
+def error_line(tail, rc=None):
+    """A failed job's `error`: the rule before pass 97 on ANSI-stripped lines with the blank ones left out (an ANSI reset
+    `\\x1b[0m` alone was the error of four failed imports): newest first, the exception's own line (`<Name>Error: ...`,
+    `...Exception`, `Exit...`) or a tool's message (gen_art:, gen_ctl:, gen_edit_stills:, gen_badge_cands:, SCRIPT ERROR);
+    else a line with `asset_job:`, "error" (any case) or FAILED; else the last non-empty line; else "exit code <rc>"."""
+    lines = []
+    for x in tail or []:
+        s = strip_ansi(x).rstrip("\r\n")
+        if s.strip():
+            lines.append(s)
+    for x in reversed(lines):
+        if re.match(r"^\w*(Error|Exception|Exit)\b", x) or x.startswith(("gen_art:", "gen_ctl:", "gen_edit_stills:", "gen_badge_cands:", "SCRIPT ERROR")):
+            return x.strip()
+    for x in reversed(lines):
+        if x.startswith("asset_job:") or "error" in x.lower() or "FAILED" in x:
+            return x.strip()
+    if lines:
+        # nothing telling: how the step ended and the last thing it said (a Godot crash at its teardown printed only
+        # "[ DONE ] loading_editor_layout" and an ANSI reset)
+        return ("%s after: %s" % (exit_text(rc), lines[-1].strip()))[:400]
+    return exit_text(rc) if rc is not None else "exit code None"
+
+
+# Windows NTSTATUS codes a crashed process exits with (as the unsigned and the signed number)
+NTSTATUS = {0xC0000005: "an access violation (a crash)", 0xC00000FD: "a stack overflow (a crash)", 0xC0000409: "a stack buffer overrun (a crash)",
+            0xC000013A: "Ctrl+C / the console closed", 0xC0000374: "a heap corruption (a crash)"}
+
+
+def exit_text(rc):
+    """"exit code 1", "exit code 0xC0000005: an access violation (a crash)", or "the step failed" (rc unknown)."""
+    if rc is None:
+        return "the step failed"
+    try:
+        u = int(rc) & 0xFFFFFFFF
+    except (TypeError, ValueError):
+        return "exit code %s" % rc
+    if u in NTSTATUS:
+        return "exit code 0x%08X: %s" % (u, NTSTATUS[u])
+    return "exit code %s" % rc
+
+
+def error_is_noise(err):
+    """An `error` that says nothing once its ANSI codes are gone (the records before pass 97; the Ops view re-derives it)."""
+    return bool(err) and not strip_ansi(err).strip()
+
+
+def last_attempt_tail(job_id, n=LOG_TAIL_FULL):
+    """The last `n` lines of a job's log.txt after its last attempt header (read-only)."""
+    p = os.path.join(_job_dir(job_id), "log.txt")
+    try:
+        with open(p, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return []
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].startswith("--- ") and " attempt " in lines[i]:
+            lines = lines[i + 1:]
+            break
+    return lines[-n:]
+
+
+# ---- OPS-02: measured medians (the ETA, the Ops fold)
+
+def eta_key(job):
+    """The key _eta looks up for a job (its method, creature_ctl's side phase, a dev icon set)."""
+    kind, method = job.get("kind"), job.get("method") or job.get("kind")
+    spec = job.get("spec") or {}
+    key = method
+    if method == "creature_ctl" and int(job.get("phase", 1) or 1) <= 1 and not spec.get("use_side"):
+        key = "creature_ctl_side_dev" if spec.get("dev") else "creature_ctl_side"
+    if kind == "icon_cands" and spec.get("dev"):
+        key = "icon_cands_dev"
+    return key
+
+
+def attempt_seconds(job):
+    """Seconds the record's last run took (ended - started; a candidate set's per seed, as _eta counts it), or None."""
+    a, b = _epoch(job.get("started")), _epoch(job.get("ended"))
+    if a is None or b is None or b < a:
+        return None
+    secs = b - a
+    spec = job.get("spec") or {}
+    if job.get("kind") in SEEDED_KINDS or job.get("method") == "front_from_picture":
+        secs /= max(1, int(spec.get("seeds") or 1))
+    return secs
+
+
+def attempt_rendered(job):
+    """False when the run painted nothing (every still and clip stage came from the cache), else True."""
+    stages = [s for s in (job.get("progress") or {}).get("stages") or [] if s.get("type") in ("still", "clip", "side")]
+    if not stages:
+        return True
+    return any(float(s.get("secs") or 0) > 0 for s in stages)
+
+
+def _median_p90(xs):
+    xs = sorted(xs)
+    if not xs:
+        return None
+    n = len(xs)
+    med = xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2.0
+    p90 = xs[max(0, min(n - 1, -(-9 * n // 10) - 1))]   # the nearest rank: ceil(0.9 n)
+    return {"median": round(med, 1), "p90": round(p90, 1), "n": n}
+
+
+def measured_medians(records=None):
+    """{key: {"rendered": {median, p90, n}, "cached": {...}}} over finished runs (done, or waiting after a phase) of at
+    least one second."""
+    samples = {}
+    for j in (records if records is not None else _state["jobs"]):
+        if j.get("state") not in ("done", "waiting") or j.get("merged_into"):
+            continue
+        secs = attempt_seconds(j)
+        if secs is None or secs < 1.0:
+            continue
+        samples.setdefault(eta_key(j), {"rendered": [], "cached": []})["rendered" if attempt_rendered(j) else "cached"].append(secs)
+    out = {}
+    for k, v in samples.items():
+        out[k] = {"rendered": _median_p90(v["rendered"]), "cached": _median_p90(v["cached"])}
+    return out
+
+
+_measured = {"t": 0.0, "rev": None, "n": None, "table": {}}
+
+
+def _measured_table():
+    """measured_medians() of this queue, kept MEASURED_TTL seconds (the ETA asks every 5 s per running job)."""
+    now = time.time()
+    st = _state
+    age = now - _measured["t"]
+    moved = _measured["rev"] != st.get("rev") or _measured["n"] != len(st["jobs"])
+    if age > MEASURED_TTL or (moved and age > 5.0):
+        try:
+            _measured["table"] = measured_medians(st["jobs"])
+        except Exception:   # noqa: BLE001
+            _measured["table"] = {}
+        _measured.update(t=now, rev=st.get("rev"), n=len(st["jobs"]))
+    return _measured["table"]
+
+
+def _measured_eta(job, key, med):
+    """_eta's base number: the measured rendered median of this key at >= MEASURED_MIN_SAMPLES, else what _eta had
+    (methods.json's median, else BUILTIN_MEDIAN); job["eta_source"] says which."""
+    try:
+        row = (_measured_table().get(key) or {}).get("rendered") or {}
+        if int(row.get("n") or 0) >= MEASURED_MIN_SAMPLES and float(row.get("median") or 0) >= 1.0:
+            job["eta_source"] = "measured"
+            job["eta_samples"] = int(row["n"])
+            return float(row["median"])
+        m = _methods().get(job.get("method") or job.get("kind"))
+        job["eta_source"] = "methods" if (m and isinstance(m.get("time"), dict) and m["time"].get("median_s")) else "builtin"
+        job.pop("eta_samples", None)
+    except Exception:   # noqa: BLE001
+        pass
+    return med
+
+
+# ---- WF-02: the archive
+
+_arch_cache = {}   # path -> ((mtime_ns, size), record)
+
+
+def archive_dir():
+    return os.path.join(JOBS_DIR, "archive")
+
+
+def _archive_files():
+    d = archive_dir()
+    try:
+        names = sorted(n for n in os.listdir(d) if n.startswith("queue_") and n.endswith(".json"))
+    except OSError:
+        return []
+    return [os.path.join(d, n) for n in names]
+
+
+def _archive_load(p, fresh=False):
+    """An archive file {v, month, jobs: [...]} (cached by mtime and size), or None."""
+    try:
+        st = os.stat(p)
+        sig = (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+    hit = _arch_cache.get(p)
+    if hit and hit[0] == sig and not fresh:
+        return hit[1]
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(d, dict) or not isinstance(d.get("jobs"), _LIST):
+        return None
+    _arch_cache[p] = (sig, d)
+    return d
+
+
+def _write_json_atomic(p, obj):
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(obj, f, indent=1, ensure_ascii=False)
+    for i in range(40):
+        try:
+            os.replace(tmp, p)
+            return True
+        except PermissionError:
+            if i == 39:
+                raise
+            time.sleep(0.05)
+    return False
+
+
+def _archive_month(job):
+    e = str(job.get("ended") or "")
+    return e[:7] if re.match(r"^\d{4}-\d{2}", e) else "unknown"
+
+
+def archive_finished(days=ARCHIVE_DAYS, now=None):
+    """Finished records (done, failed, cancelled) whose `ended` is older than `days` move from queue.json to
+    archive/queue_<YYYY-MM>.json (the month they ended). The records are copied as they are (never rewritten), each month
+    written and read back before the queue lets them go; their folders stay. A record a live job still points at (an
+    import's after_export, a merged import's target) waits. Only the editor that runs the queue does this."""
+    if _readonly is not None or not _inited:
+        return {"ok": False, "archived": 0, "skipped": "read-only" if _readonly is not None else "jobs.init() has not run"}
+    if not _queue_file_ok():
+        return {"ok": False, "archived": 0, "skipped": "QUEUE_FILE is not in JOBS_DIR"}
+    cutoff = (now if now is not None else time.time()) - float(days) * 86400.0
+    with _lock:
+        refs = set()
+        for j in _state["jobs"]:
+            if j.get("state") not in ARCHIVE_STATES:
+                refs.update(str(x) for x in ((j.get("spec") or {}).get("after_export") or []))
+            if j.get("merged_into"):
+                refs.add(str(j["merged_into"]))
+        old = []
+        for j in _state["jobs"]:
+            t = _epoch(j.get("ended"))
+            if j.get("state") in ARCHIVE_STATES and t is not None and t < cutoff and j["id"] not in refs and j["id"] not in _live:
+                old.append(j)
+        if not old:
+            return {"ok": True, "archived": 0, "months": [], "kept": len(_state["jobs"])}
+        by_month = collections.OrderedDict()
+        for j in old:
+            by_month.setdefault(_archive_month(j), []).append(j)
+        months = []
+        try:
+            for month, recs in by_month.items():
+                p = os.path.join(archive_dir(), "queue_%s.json" % month)
+                cur = _archive_load(p, fresh=True) or {"v": 1, "month": month,
+                                                       "about": "finished jobs moved out of tools/dl/jobs/queue.json (pass 97, jobs.archive_finished); their folders are untouched",
+                                                       "jobs": []}
+                at = {r.get("id"): i for i, r in enumerate(cur["jobs"]) if isinstance(r, dict)}
+                for r in recs:
+                    rc = json.loads(json.dumps(r, ensure_ascii=False))
+                    if r["id"] in at:
+                        cur["jobs"][at[r["id"]]] = rc
+                    else:
+                        cur["jobs"].append(rc)
+                cur["updated"] = _now()
+                _write_json_atomic(p, cur)
+                back = _archive_load(p, fresh=True) or {}
+                have = {r.get("id") for r in back.get("jobs") or [] if isinstance(r, dict)}
+                if not all(r["id"] in have for r in recs):
+                    raise RuntimeError("%s did not read back with every record" % p)
+                months.append({"month": month, "n": len(recs), "file": _rel(p)})
+        except Exception as e:   # noqa: BLE001  (nothing leaves the queue unless its month is safely written)
+            _log("jobs: the archive was not written (%s: %s): the queue keeps every record" % (type(e).__name__, e))
+            return {"ok": False, "archived": 0, "error": "%s: %s" % (type(e).__name__, e)}
+        gone = {j["id"] for j in old}
+        _state["jobs"][:] = [j for j in _state["jobs"] if j["id"] not in gone]
+        _save()
+        kept = len(_state["jobs"])
+    _ev_emit("server", "archive", n=len(gone), months=months, days=days)
+    return {"ok": True, "archived": len(gone), "months": months, "kept": kept}
+
+
+def archive_tick(days=ARCHIVE_DAYS):
+    """The server's start and its daily tick: the archive, and the events log rolled when it grew past its size."""
+    out = {"archive": None, "events_rolled": None}
+    try:
+        out["archive"] = archive_finished(days)
+    except Exception as e:   # noqa: BLE001
+        out["archive"] = {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}
+    try:
+        m = _ev()
+        if m is not None:
+            out["events_rolled"] = m.roll_if_big()
+    except Exception:   # noqa: BLE001
+        pass
+    return out
+
+
+def archived_summary():
+    """{total, months: [{month, n, file}]} of the archive (newest month first)."""
+    months = []
+    for p in reversed(_archive_files()):
+        d = _archive_load(p) or {}
+        months.append({"month": d.get("month") or os.path.basename(p)[6:-5], "n": len(d.get("jobs") or []), "file": _rel(p)})
+    return {"total": sum(m["n"] for m in months), "months": months}
+
+
+def archived_records(month=None):
+    """The archived records (raw) of one month, or of every month (oldest first)."""
+    out = []
+    for p in _archive_files():
+        d = _archive_load(p) or {}
+        if month and (d.get("month") or os.path.basename(p)[6:-5]) != month:
+            continue
+        for r in d.get("jobs") or []:
+            if isinstance(r, dict) and r.get("id"):
+                out.append((p, r))
+    return out
+
+
+def archived_month(month):
+    """GET /api/jobs/archived?month=YYYY-MM: the month's records as the page reads a job (no log tails)."""
+    out = []
+    for p, r in archived_records(month):
+        pub = {k: v for k, v in r.items() if k != "plan"}
+        pub["plan"] = {k: v for k, v in (r.get("plan") or {}).items() if k != "env"}
+        pub["held"], pub["log_tail"], pub["archived"] = False, [], os.path.basename(p)
+        out.append(pub)
+    return out
+
+
+def _archived_public(job_id):
+    """get()'s fallback: an archived record as get() serves a job (its log tail from its folder), `archived` naming the
+    file; None when no archive holds it."""
+    for p in reversed(_archive_files()):
+        d = _archive_load(p) or {}
+        for r in d.get("jobs") or []:
+            if isinstance(r, dict) and r.get("id") == job_id:
+                pub = _public(r, LOG_TAIL_FULL, full=True)
+                pub["archived"] = os.path.basename(p)
+                return pub
+    return None
+
+
+def _archived_count():
+    try:
+        return archived_summary()["total"]
+    except Exception:   # noqa: BLE001
+        return 0
+
+
+def _archived_raw(job_id):
+    """An archived record as it was written (read-only: install reads a candidate job's choices), or None."""
+    for p in reversed(_archive_files()):
+        d = _archive_load(p) or {}
+        for r in d.get("jobs") or []:
+            if isinstance(r, dict) and r.get("id") == job_id:
+                return json.loads(json.dumps(r, ensure_ascii=False))
+    return None
+
+
+def _unarchive(job_id):
+    """requeue()'s fallback (under _lock): an archived record put back at the end of the queue (a copy; the archive keeps
+    its own until the next archive replaces it by id), or None. The page never shows an archived job, so only an API call
+    (Claude, a request's fold) gets here."""
+    if _readonly is not None:
+        return None
+    rec = _archived_raw(job_id)
+    if rec is None:
+        return None
+    rec.pop("archived", None)
+    _state["jobs"].append(rec)
+    _ev_job(rec, "unarchived")
+    return rec

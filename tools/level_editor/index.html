@@ -124,6 +124,9 @@
 <!-- pass 96 (lane PAGE): the Jobs tab's page-free part (the card signature without the clock, the connection line, the request
      card's fold; selftest_PAGE96.py runs it under Node); jobs.js falls back to its own copies when it is missing -->
 <script src="jobs_model.js"></script>
+<!-- pass 97 (lane LIVE): the live job pieces the Jobs card and the look card's stage share (stages, the log, the outputs with
+     their players kept by URL, the substage line, the look card's live block) -->
+<script src="jobs_view.js"></script>
 <script src="jobs.js"></script>
 <script src="puppet.js"></script>
 <!-- pass 93 (lane PREVIEW): the driver library and its viewer (drivers_model.js: page-free maths, also run under Node by

@@ -251,6 +251,10 @@ const LookGrid = (() => {
     const chips = chipsFor(look, record, kind, id);
     info.appendChild(el('h3', {}, el('span', { text: look.code }), ...chips));
     if (look.note) info.appendChild(el('div', { class: 'note', text: look.note }));
+    // pass 97 (lane LIVE, UI-05): the look's live block (its queued / running / waiting jobs and its art request, patched
+    // from Jobs.subscribe, never by drawing the grid again) and its history line (past jobs, exports, events)
+    info.appendChild(liveHost(kind, id, look.code));
+    info.appendChild(historyHost(kind, id, look.code));
     const anims = look.anims || record.anims || {};
     const keys = Object.keys(anims).filter((k) => anims[k] > 0);
     const dl = el('dl');
@@ -448,6 +452,92 @@ const LookGrid = (() => {
     const look = rec ? looksOf(rec).find((l) => l.code === code) : null;
     const recipe = JSON.parse(JSON.stringify(recipeOf(code, look)));
     openForm(kind, id, { mode: 'look', code, draft: true, method: recipe.method || (look ? methodOf(look) : '') || undefined, recipe, painter: recipe.painter || null, from: recipe.from || null, note: look ? look.note || '' : '' });
+  }
+
+  // ------------------------------------------------------------------ pass 97 (lane LIVE, UI-05): the stage's live block
+  // and history line. The block draws the look's queued / running / waiting jobs (its chip, stage k of N, elapsed / ETA,
+  // a lock wait, the ComfyUI substage, the stages, the 3 newest outputs, "open in Jobs") and the art request on it
+  // (iteration k of n, the budget, the provisional winner, Approve: the pass-96 batch box), from the same records and
+  // the same pieces as the Jobs card (JobsModel.liveModel, JobsView.liveBlock). Jobs.subscribe tells it after every poll
+  // that changed something; it draws itself again only when what it shows changed, and never draws the grid.
+  let liveSubscribed = false;
+  const hist = new Map();   // `${kind}|${id}|${code}` -> {at, events: [...] | null, exports: [...] | null, busy}
+  function ensureLiveSub() {
+    if (liveSubscribed || typeof Jobs === 'undefined' || typeof Jobs.subscribe !== 'function') return;
+    Jobs.subscribe(onJobsChanged);
+    liveSubscribed = true;
+  }
+  function onJobsChanged() {
+    if (!current || !current.container || !current.container.isConnected) return;
+    for (const h of current.container.querySelectorAll('div.lg-live-host')) drawLive(h);
+    for (const h of current.container.querySelectorAll('div.lg-history')) drawHistory(h, false);
+  }
+  function liveHost(kind, id, code) {
+    const h = el('div', { class: 'lg-live-host' });
+    h.dataset.kind = kind; h.dataset.id = id; h.dataset.code = code;
+    ensureLiveSub();
+    drawLive(h);
+    return h;
+  }
+  function drawLive(host) {
+    if (typeof Jobs === 'undefined' || !Jobs.S || typeof JobsModel === 'undefined' || !JobsModel.liveModel || typeof JobsView === 'undefined') return;
+    const { kind, id, code } = host.dataset;
+    const jobs = Jobs.S.jobs || [];
+    const byId = Jobs.S.byId instanceof Map && Jobs.S.byId.size ? Jobs.S.byId : new Map(jobs.map((j) => [j.id, j]));
+    const model = JobsModel.liveModel(jobs, Jobs.S.requests || [], kind, id, code);
+    const sig = JSON.stringify([model.jobs.map((m) => { const p = (byId.get(m.id) || {}).progress || {}; return [m.id, m.state, m.stage, m.lock, m.thumbs, m.elapsed && m.state !== 'running' ? m.elapsed : '', p.substage || null, p.comfy_error || null, p.stages || null]; }), model.request]);
+    if (host.__sig === sig) return;
+    host.__sig = sig;
+    clear(host);
+    host.appendChild(JobsView.liveBlock(model, { jobs: byId, onApprove: (req) => { const r = (Jobs.S.requests || []).find((x) => x.rid === req.rid); if (r && typeof Jobs.approveRequest === 'function') Jobs.approveRequest(r); } }));
+  }
+  function historyHost(kind, id, code) {
+    const h = el('div', { class: 'lg-history' });
+    h.dataset.kind = kind; h.dataset.id = id; h.dataset.code = code;
+    drawHistory(h, true);
+    return h;
+  }
+  /** The history line: the past jobs in the list (a link to them alone on the Jobs tab), the exports and the newest
+   *  events of the look (GET /api/events, lane PROGRESS's log; asked once a minute at most, when the stage shows). */
+  function drawHistory(host, load) {
+    if (typeof JobsModel === 'undefined' || !JobsModel.historyModel) return;
+    const { kind, id, code } = host.dataset;
+    const key = `${kind}|${id}|${code}`;
+    const hc = hist.get(key) || { at: 0, events: null, exports: null, busy: false };
+    hist.set(key, hc);
+    if (load && !hc.busy && Date.now() - hc.at > 60000) loadHistory(hc, kind, id, code).then(() => { if (host.isConnected) drawHistory(host, false); });
+    const fromEvents = hc.events ? hc.events.filter((e) => e && e.kind === 'frames' && /export|rollback/.test(String(e.event || ''))).map((e) => ({ time: e.t, why: e.event, changed: e.changed })) : null;
+    const m = JobsModel.historyModel(typeof Jobs !== 'undefined' && Jobs.S ? Jobs.S.jobs : [], hc.exports || fromEvents, hc.events, kind, id, code);
+    const sig = JSON.stringify(m);
+    if (host.__sig === sig) return;
+    host.__sig = sig;
+    clear(host);
+    host.appendChild(el('span', { text: m.line }));
+    host.appendChild(el('a', { href: m.jobsLink, text: 'its jobs', title: 'the Jobs tab with this look\'s jobs only (Show all jobs there goes back)' }));
+    if (!hc.exports && !fromEvents) host.appendChild(el('a', { href: '#', text: 'exports…', title: 'read this look\'s exports from the frames store (its groups\' exports.json; the Frames view registers a look it has not seen, as Frames… does)', onclick: (e) => { e.preventDefault(); loadExports(hc, kind, id, code).then(() => { host.__sig = ''; if (host.isConnected) drawHistory(host, false); }); } }));
+    for (const line of m.events) host.appendChild(el('span', { class: 'lg-history-ev', text: line }));
+  }
+  async function loadHistory(hc, kind, id, code) {
+    hc.busy = true;
+    try {
+      const r = await fetch(`/api/events?since=0&limit=5000&look=${encodeURIComponent(`${kind}/${id}/${code}`)}`, { cache: 'no-store' });
+      const d = r.ok ? await r.json() : null;
+      hc.events = d && Array.isArray(d.events) ? d.events : null;   // no events API (yet): the line says nothing of them
+    } catch (_) { hc.events = null; }
+    hc.at = Date.now();
+    hc.busy = false;
+  }
+  async function loadExports(hc, kind, id, code) {
+    if (typeof Frames === 'undefined' || typeof Frames.summary !== 'function') return;
+    const sum = await Frames.summary(kind, id, code);
+    const out = [];
+    for (const g of (sum && sum.groups) || []) {
+      try {
+        const r = await fetch(`/dl/frames/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/${encodeURIComponent(code)}/${encodeURIComponent(g.base)}/${encodeURIComponent(g.view)}/exports.json`, { cache: 'no-store' });
+        if (r.ok) { const list = await r.json(); if (Array.isArray(list)) for (const e of list) out.push(Object.assign({ group: g.key }, e)); }
+      } catch (_) { /* a group without exports */ }
+    }
+    hc.exports = out;
   }
 
   /** The job list changed which looks have live jobs (Jobs.applyList, for any asset): the chips and the draft buttons

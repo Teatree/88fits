@@ -157,39 +157,6 @@
       "head": 0.988,
       "fresh": true
     },
-    "CW-E": {
-      "recipe": {
-        "method": "creature_pictures",
-        "front_ref": "tools/dl/uploads/2d/cactus_walker_front.png",
-        "back_ref": "tools/dl/uploads/2d/cactus_walker_back.png",
-        "picture_use": "as_is",
-        "art_prompt": "A small, round, aggressive-looking cactus monster with a compact, nearly spherical body. Its body is olive green with several prominent vertical cactus ribs running from the top to the bottom, creating deep grooves and rounded, segmented surfaces.\n\nNumerous long, sharp, ivory-colored spikes protrude from its body at irregular intervals. The spikes vary in length and thickness, with some particularly large, outward-pointing thorns along the silhouette. Each spike emerges from a small, dark brown base embedded in the cactus skin.\n\nIts face is integrated directly into the front of the cactus body. Two large, orange-red eyes with dark pupils sit beneath sharply angled, heavy green brows, creating an angry, hostile expression. Below the eyes is a narrow, downward-curving mouth with a dark interior and two small, sharp white fangs pointing downward.\n\nAt the very top of the cactus sits a striking crimson-red flower made of multiple overlapping, sharply pointed petals arranged in a layered, crown-like formation. The petals have darker red shading toward their bases and tips.\n\nThe cactus has no arms, legs, feet, or other limbs. Its entire silhouette consists of the round, spiked body and the red flower on top.",
-        "stills": "e",
-        "walk": "hop",
-        "death": "shatter",
-        "screen": "auto",
-        "seed_offset": 9191,
-        "hop_height": 0.7
-      },
-      "fresh": true,
-      "sprite": "cactus_walker_sprite_e.png",
-      "icon": "cactus_walker_icon_e.png",
-      "anims": {
-        "idle": 4,
-        "run": 12,
-        "attack": 2,
-        "hit": 1,
-        "die": 7,
-        "run_b": 12,
-        "idle_b": 4
-      },
-      "strip_cols": 42,
-      "fps": {
-        "run": 15,
-        "die": 8
-      },
-      "head": 0.988
-    },
     "CW-C": {
       "note": "from CW-E",
       "recipe": {

@@ -611,7 +611,7 @@ def page_checks(check, run_node):
     keys = {f["key"] for f in meth["recipe_fields"]} if meth else set()
     check({"run_fit", "fringe_remap", "anim_hint", "run_scale"} <= keys and any(f["key"] == "puppet" for f in meth.get("job_fields", [])),
           "PLE page: the card's recipe keys (run_fit, fringe_remap, anim_hint, run_scale) and its puppet field")
-    js = _read(os.path.join(HERE, "jobs.js"))
+    js = _read(os.path.join(HERE, "jobs.js")) + (_read(os.path.join(HERE, "jobs_view.js")) if os.path.isfile(os.path.join(HERE, "jobs_view.js")) else "")   # pass 97 (lane LIVE, re-pinned on purpose): the outputs moved to jobs_view.js
     check("Puppet.formSection(body, c)" in js and "k === 'puppet'" in js and "Puppet.outputCell(o, holder)" in js and "Puppet.rerollStage(box, picks)" in js
           and "hero_puppet: ['seeds', 'clips', 'clip', 'stills', 'stage']" in js and "{ mode: 'stage', stage: spec.reroll.stage || 'guides' }" in js and "ch.group && groups.length" in js,
           "PLE page: jobs.js's hooks: the form section, the field kept out of Asset settings, the GLB output, the stage re-run, one pick per group")

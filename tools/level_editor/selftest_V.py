@@ -163,6 +163,9 @@ def checks(check, run_node, server):
     check("'Duplicate…'" in lg_src and "function painterText" in lg_src and "duplicateDraft(kind, id, record, s, look)" in lg_src and "return { painterText, " in lg_src, "V: a look card offers Duplicate… (a draft since pass 68) and shows its painter (LookGrid.painterText)")
     with open(os.path.join(HERE, "jobs.js"), "r", encoding="utf-8") as f:
         jb_src = f.read()
+    if os.path.isfile(os.path.join(HERE, "jobs_view.js")):   # pass 97 (lane LIVE, re-pinned on purpose): the card's outputs moved to jobs_view.js
+        with open(os.path.join(HERE, "jobs_view.js"), "r", encoding="utf-8") as f:
+            jb_src += f.read()
     check("const Jobs = (() =>" in jb_src and "FAST = 2000" in jb_src and "jobs-badge" in jb_src, "V: jobs.js defines Jobs, polls every 2 s, drives #jobs-badge")
     check("opts.duplicateOf" in jb_src and "opts.painter" in jb_src and "srcStills" in jb_src and "class: 'jinh'" in jb_src, "V: the job form takes a duplicate (recipe and painter copied, the stills slug cleared, reuse offered) and greys inherited words")
     check("'push_workflows'" in jb_src and "o.open_url" in jb_src and "/api/workflows/push" in jb_src and "comfy_open_ext" in jb_src and "filter((o) => o.open_url).length" in jb_src,

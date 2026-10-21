@@ -1,0 +1,20 @@
+{"_about": "pass 97 (lane PROGRESS): one Klein render as ComfyUI's /ws tells it, replayed by selftest_PROGRESS97's fake server. The `status` message is the live capture (live_status_capture.jsonl, the AI server idle, 2026-10-22 00:37, ComfyUI 0.33.0); the execution messages follow ComfyUI's documented protocol (development/comfyui-server/comms_messages: executing {node, prompt_id}, progress {node, prompt_id, value, max}, executed, execution_cached, execution_success) because no GPU run was allowed in this pass. `delay` = seconds before the message; PROMPT is replaced by the fake's prompt id, SID by the client id.",
+ "messages": [
+  {"delay": 0.0, "msg": {"type": "status", "data": {"status": {"exec_info": {"queue_remaining": 0}}, "sid": "SID"}}},
+  {"delay": 0.3, "msg": {"type": "status", "data": {"status": {"exec_info": {"queue_remaining": 1}}}}},
+  {"delay": 0.05, "msg": {"type": "execution_start", "data": {"prompt_id": "PROMPT", "timestamp": 1761082647000}}},
+  {"delay": 0.05, "msg": {"type": "execution_cached", "data": {"nodes": ["1", "2"], "prompt_id": "PROMPT", "timestamp": 1761082647010}}},
+  {"delay": 0.05, "msg": {"type": "executing", "data": {"node": "3", "display_node": "3", "prompt_id": "PROMPT"}}},
+  {"delay": 0.10, "msg": {"type": "executing", "data": {"node": "7", "display_node": "7", "prompt_id": "PROMPT"}}},
+  {"delay": 0.10, "msg": {"type": "progress", "data": {"value": 1, "max": 4, "prompt_id": "PROMPT", "node": "7"}}},
+  {"delay": 0.10, "msg": {"type": "progress", "data": {"value": 2, "max": 4, "prompt_id": "PROMPT", "node": "7"}}},
+  {"delay": 0.10, "msg": {"type": "progress", "data": {"value": 3, "max": 4, "prompt_id": "PROMPT", "node": "7"}}},
+  {"delay": 0.10, "msg": {"type": "progress", "data": {"value": 4, "max": 4, "prompt_id": "PROMPT", "node": "7"}}},
+  {"delay": 0.05, "msg": {"type": "executing", "data": {"node": "8", "display_node": "8", "prompt_id": "PROMPT"}}},
+  {"delay": 0.05, "binary": "0000000100000001ffd8ffe0"},
+  {"delay": 0.10, "msg": {"type": "executing", "data": {"node": "9", "display_node": "9", "prompt_id": "PROMPT"}}},
+  {"delay": 0.05, "msg": {"type": "executed", "data": {"node": "9", "display_node": "9", "output": {"images": [{"filename": "x_00001_.png", "subfolder": "88fits", "type": "output"}]}, "prompt_id": "PROMPT"}}},
+  {"delay": 0.02, "msg": {"type": "executing", "data": {"node": null, "prompt_id": "PROMPT"}}},
+  {"delay": 0.02, "msg": {"type": "execution_success", "data": {"prompt_id": "PROMPT", "timestamp": 1761082648200}}},
+  {"delay": 0.02, "msg": {"type": "status", "data": {"status": {"exec_info": {"queue_remaining": 0}}}}}
+ ]}

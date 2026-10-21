@@ -16,7 +16,11 @@ routes are listed in docs/level_editor.md ("The API (for scripts)"); in short:
                             retire|availability|delete|make_path|look, /api/content/<kind>/<id>/look/<code>,
                             /api/upload, /api/test_launch
     the jobs (66, jobs.py): GET /api/jobs[?since=rev], /api/job/<id>, /api/jobs/specs, /api/jobs/defaults?kind=&target=
-                            (68); POST /api/jobs, /api/jobs/<id>[/cancel|requeue|pick|install|move|delete]
+                            (68); POST /api/jobs, /api/jobs/<id>[/cancel|requeue|pick|install|move|delete]; pass 97:
+                            GET /api/jobs?since=rev&delta=1 -> {rev, changed, removed, delta[, order, full, unchanged]}
+                            POST /api/jobs/requeue_interrupted {ids?, all?} -> {requeued, skipped, refused} (97, SAFE)
+    the guard (97, SAFE):   every POST (and the one GET that writes, /api/frames/<kind>/<id>/<code>) needs a loopback Host
+                            and no foreign Origin (403); a JSON route's body needs Content-Type: application/json (415)
     the run sim (77):       GET /api/sim/settings|status|history|result/<id>; POST /api/sim/settings|run|unlock,
                             /api/sim/<id>/keep|delete|cancel (sim_io.py; the sims are tools/sim_batch.py jobs of kind "sim")
     the icon guard (76):    GET /api/content/<kind>/<id>/icons, /iconfile/<kind>/<id>/<ref>; POST /api/content/<kind>/<id>/icon
@@ -126,9 +130,10 @@ VENDOR_TYPES = {".js": "text/javascript; charset=utf-8", ".mjs": "text/javascrip
                 ".md": "text/markdown; charset=utf-8", ".json": "application/json; charset=utf-8"}
 UPLOAD_MAX = 200 * 1024 * 1024
 UPLOAD_EXTS = {"2d": (".png", ".jpg", ".jpeg", ".webp", ".gif"), "3d": (".fbx", ".glb", ".gltf", ".obj", ".dae", ".blend", ".zip")}
-QA_URL = "http://127.0.0.1:1234/v1/models"
 
 sys.path.insert(0, os.path.join(ROOT, "tools"))
+import ai_hosts  # noqa: E402  (pass 97, lane SAFE: tools/ai_hosts.json; the old literal when the file has none)
+QA_URL = ai_hosts.get("lmstudio", "http://127.0.0.1:1234").rstrip("/") + "/v1/models"
 import locks  # noqa: E402  (tools/locks.py: the repo-wide Godot and ComfyUI locks, the PC save kept aside)
 import content_io as cio  # noqa: E402
 import vocab as VOCAB  # noqa: E402
@@ -137,6 +142,8 @@ import sim_io as SIMIO  # noqa: E402  (pass 77, lane SIMUI: the Sim tab's routes
 import drivers_io as DRVIO  # noqa: E402  (pass 93, lane PREVIEW: the driver library, /api/drivers[/<name>], /api/painted_death)
 import frames_io as FRIO  # noqa: E402  (pass 95, lane VACE: the frames store's routes, /api/frames/...)
 import requests_io as REQIO  # noqa: E402  (pass 96, lane REQ: the art requests, /api/requests..., /api/job/<id>/summary)
+import events as EV  # noqa: E402  (pass 97, lane PROGRESS: the events log tools/dl/jobs/events.jsonl; on only in main())
+import ops_io as OPSIO  # noqa: E402  (pass 97, lane PROGRESS: /api/ops, /api/events, /api/jobs/archived, server.log)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -1593,6 +1600,7 @@ def write_content(kind, cid, new_obj, base_mtime=None):
         backup_rel = backup(cid, path)
         cio.write_atomic(path, text)
         new_mtime = mtime_of(path)
+    EV.emit("content", "write", kind_of=kind, id=cid, changed=changed, removed=removed, backup=backup_rel, file=rel(path))   # pass 97 (lane PROGRESS, WF-02)
     import_ok, output = run_import("%s/%s" % (tfolder, cid))
     return {"ok": True, "changed": changed, "removed": removed, "backup": backup_rel, "import_ok": import_ok,
             "output": output, "mtime": new_mtime, "wrote": rel(path)}
@@ -2392,6 +2400,7 @@ def look_op(kind, cid, codes, op, body=None):
     if op == "default":
         res = write_variant_kind(kind, cid, codes[0])
         if res.get("ok"):
+            EV.look_events(kind, cid, codes[:1], "default", backup=res.get("backup"))   # pass 97 (lane PROGRESS, WF-02)
             d = load_json(path)
             res["looks"] = look_records(kind, cid, os.path.dirname(path), d, path)
         else:
@@ -2450,6 +2459,8 @@ def look_op(kind, cid, codes, op, body=None):
                     moved.append(rel(os.path.join(dest, os.path.basename(f))))
         d2 = json.loads(text)
     import_ok, output, job = (None, "no import needed", None)
+    EV.look_events(kind, cid, codes, op, backup=backup_rel, moved=moved or None,   # pass 97 (lane PROGRESS, WF-02)
+                   note=str(body.get("note", "")) if op == "note" else None, recipe=body.get("recipe") if op == "recipe" else None)
     if op in ("shelve", "unshelve", "remove"):
         import_ok, output = run_import("%s/%s" % (tfolder, cid))
     else:
@@ -2778,6 +2789,8 @@ def set_look_icon(kind, cid, code, file, why="", confirm=None, need_file=True):
         backup_rel = backup(cid, path)
         cio.write_atomic(path, text)
         d2 = json.loads(text)
+    EV.emit("icon", "set", look=EV.look_of(kind, cid, info["code"]), file=name, was=info["shown"], base=is_base, why=str(why or ""),   # pass 97 (lane PROGRESS, WF-02)
+            icon_backup=copy, backup=backup_rel)
     return {"ok": True, "kind": kind, "id": cid, "code": info["code"], "base": is_base, "file": name, "was": info["shown"],
             "icon_backup": copy, "backup": backup_rel, "layout": "entry", "history": len(history),
             "entry": None if is_base else (d2.get("variants") or {}).get(code), "icon": look_icon_info(kind, cid, folder, d2, code)}
@@ -3110,8 +3123,11 @@ def install_guard(job_id, body):
         ref["next"]["candidate"] = True
         ref["job"] = src.get("id")
         ref["choice"] = choice
+        EV.emit("icon", "install_asks", job=src.get("id"), look=EV.look_of(kind, cid, info["code"]), choice=choice, file=new_name)   # pass 97 (lane PROGRESS)
         return ref.pop("status"), ref
     options.update(icon_file=new_name, icon_code="" if info["base"] else info["code"], why="install %s" % label)
+    EV.emit("icon", "install_guard", job=src.get("id"), look=EV.look_of(kind, cid, info["code"]), choice=choice, file=new_name,   # pass 97 (lane PROGRESS)
+            confirmed=body.get("confirm") is True)
     return None, options
 
 
@@ -3594,12 +3610,12 @@ def status_record():
             jobs = {"error": "%s: %s" % (type(e).__name__, e)}
     lk = locks.status_all()
     qa = jobs.get("qa_online") if isinstance(jobs, dict) and jobs.get("qa_online") is not None else qa_online()
-    return {"ok": True, "root": ROOT, "godot": os.path.isfile(GODOT), "backups": BACKUPS, "content": CONTENT,
+    return _safe_status({"ok": True, "root": ROOT, "godot": os.path.isfile(GODOT), "backups": BACKUPS, "content": CONTENT,
             "blender": blender_path(), "qa_online": qa, "locks": lk, "comfy": lk.get("comfy"), "godot_lock": lk.get("godot"),
             "jobs": jobs, "jobs_available": m is not None, "jobs_error": _jobs_error[0] if m is None else "",
             "methods": os.path.isfile(METHODS), "new_weapon_starts_hidden": NEW_WEAPON_STARTS_HIDDEN,
             # whether the ComfyUI page has the 88fits_open extension (the "open in ComfyUI" links need it)
-            "comfy_open_ext": (m.comfy_extension_state() if m is not None and hasattr(m, "comfy_extension_state") else None)}
+            "comfy_open_ext": (m.comfy_extension_state() if m is not None and hasattr(m, "comfy_extension_state") else None)}, m)
 
 
 # ---------------------------------------------------------------- drivers, refs, methods
@@ -3889,6 +3905,7 @@ def fit_turnover(map_id, include_headless=False, runs_dir=None):
 
 # GETs that are polled or fetched by the dozen say nothing in the console (pass 66)
 QUIET_PREFIXES = ("/api/jobs", "/api/job/", "/api/status", "/dl/", "/icon/", "/sprite/", "/art/", "/examples/", "/sound/", "/api/sim/", "/api/requests")   # pass 96: the request folds are polled too
+QUIET_PREFIXES += ("/api/events", "/api/ops")   # pass 97 (lane PROGRESS): the look card's history and the Ops fold are polled too
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -3936,6 +3953,10 @@ class Handler(BaseHTTPRequestHandler):
         path = unquote(raw[0])
         query = parse_qs(raw[1]) if len(raw) > 1 else {}
         parts = [p for p in path.split("/") if p]
+        if _state_changing_get(parts):   # pass 97 (lane SAFE, WF-08): the one GET that writes gets the Host and Origin check
+            refused = _request_guard(self, body_check=False)
+            if refused:
+                return _guard_refuse(self, refused)
         try:
             if parts[:1] == ["api"]:
                 return self._api_get(parts[1:], query)
@@ -4055,6 +4076,9 @@ class Handler(BaseHTTPRequestHandler):
                 res = next_codes(kind, cid, n)
                 return self._send(200 if res.get("ok") else 404, res)
             return self._error(404, "unknown API path")
+        if parts in (["ops"], ["events"], ["jobs", "archived"]):
+            # pass 97 (lane PROGRESS): the Ops roll-up, the events log, the archived jobs (ops_io.py)
+            return OPSIO.api_get(self, sys.modules[__name__], parts, query)
         if parts == ["jobs", "specs"]:
             m = jobs_module()
             if m is None:
@@ -4075,6 +4099,10 @@ class Handler(BaseHTTPRequestHandler):
                 since = int(since) if since is not None else None
             except ValueError:
                 since = None
+            if (query.get("delta") or [""])[0] in ("1", "true"):
+                # pass 97 (lane LIVE, UI-02): {rev, changed, removed, delta} for the page; without delta=1 today's answer
+                st, body = jobs_call("list_delta", since)
+                return self._send(st, body)
             st, body = jobs_call("list", since)
             return self._send(st, body)
         if len(parts) == 2 and parts[0] == "job":
@@ -4270,6 +4298,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, out)
 
     def do_POST(self):
+        refused = _request_guard(self)   # pass 97 (lane SAFE, WF-08): a foreign Host or Origin 403, a non-JSON body 415
+        if refused:
+            return _guard_refuse(self, refused)
         path = unquote(self.path.split("?", 1)[0])
         parts = [p for p in path.split("/") if p]
         try:
@@ -4440,6 +4471,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error(400, "a job needs {kind, target, spec}")
             st, body = jobs_call("enqueue", str(data["kind"]), data.get("target") or {}, data.get("spec") or {}, data.get("title"))
             return self._send(st, body)
+        if parts == ["requeue_interrupted"]:
+            # pass 97 (lane SAFE, OPS-03): "Re-queue all" {ids?, all?} -> {requeued, skipped, refused}; only on a click
+            st, body = jobs_call("requeue_interrupted", data.get("ids") if isinstance(data.get("ids"), list) else None,
+                                 "all" if data.get("all") else "restart")
+            return self._send(st, body)
         jid = parts[0]
         if not re.match(r"^[A-Za-z0-9_-]+$", jid):
             return self._error(400, "bad job id")
@@ -4475,6 +4511,184 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(st, body)
 
 
+# ---------------------------------------------------------------- pass 97 (lane SAFE): health and safety (OPS-03, WF-08)
+
+# WF-08: the editor binds 127.0.0.1 (main(), free_port); a POST is refused when its Host is not this editor's loopback
+# address (a page that rebinds its own name to 127.0.0.1), when it carries an Origin that is not this editor's own page
+# (another site in Garry's browser), or when a JSON route gets a body that is not application/json (a form or a
+# text/plain "simple request"). /api/upload keeps its own body (the raw file). A request with no Origin (urllib, curl,
+# art_request.py, puppet.py, the selftests) passes on a loopback Host.
+GUARD_HOSTS = ("127.0.0.1", "localhost")
+GUARD_RAW_BODY_ROUTES = (["api", "upload"],)
+
+
+def _split_host(value):
+    """'127.0.0.1:8787' -> ('127.0.0.1', '8787'); '[::1]:8787' -> ('::1', '8787'); 'localhost' -> ('localhost', '')."""
+    v = (value or "").strip().lower()
+    if v.startswith("["):
+        name, _, rest = v[1:].partition("]")
+        return name, rest[1:] if rest.startswith(":") else ""
+    name, _, port = v.partition(":")
+    return name, port
+
+
+def _request_guard(h, body_check=True):
+    """None when the request may go on, else (status, error text): 403 for a foreign Host or Origin, 415 for a JSON
+    route's body sent as another content type. A missing Host (no browser omits it) passes: the socket is loopback."""
+    try:
+        port = str(h.server.server_address[1])
+    except Exception:   # noqa: BLE001  (a handler stand-in without a server: the selftests' fakes)
+        port = ""
+    host = h.headers.get("Host")
+    if host is not None:
+        name, hp = _split_host(host)
+        if name not in GUARD_HOSTS or (hp and port and hp != port):
+            return 403, ("this editor answers only on http://127.0.0.1:%s or http://localhost:%s (the request named Host %s)"
+                         % (port, port, host))
+    origin = h.headers.get("Origin")
+    if origin is not None:
+        o = origin.strip().lower().rstrip("/")
+        if o not in ("http://127.0.0.1:%s" % port, "http://localhost:%s" % port):
+            return 403, ("a request from another page (Origin %s) is refused: only the editor's own page, or a script "
+                         "without an Origin, may change things" % origin)
+    if not body_check:
+        return None
+    parts = [p for p in unquote(h.path.split("?", 1)[0]).split("/") if p]
+    if parts in GUARD_RAW_BODY_ROUTES:
+        return None
+    try:
+        length = int(h.headers.get("Content-Length") or 0)
+    except ValueError:
+        length = 0
+    if length > 0:
+        ctype = (h.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+        if ctype != "application/json":
+            return 415, ("a POST body must be JSON sent with Content-Type: application/json (got %s)"
+                         % (h.headers.get("Content-Type") or "no Content-Type"))
+    return None
+
+
+def _guard_refuse(h, refused):
+    """Answer a refused request; the body is never read, so the connection is closed after the answer."""
+    h.close_connection = True
+    return h._error(refused[0], refused[1], guard=True)
+
+
+def _state_changing_get(parts):
+    """The GET routes that write anything (WF-08's list): /api/frames/<kind>/<id>/<code> registers a look new to the
+    frames store (frames_store.look_summary(register=True)). Every other GET only reads (or fills an in-memory cache)."""
+    return len(parts) == 5 and parts[:2] == ["api", "frames"]
+
+
+# OPS-03: what /api/status says about the toolchain (tools/doctor.py, cached) and the restart's interrupted jobs
+DOCTOR_LIVE = [False]      # main() turns it on: a selftest that imports this module never starts the doctor's thread
+DOCTOR_EVERY = 600.0       # seconds between two refreshes at most
+_doctor_cache = {"t": 0.0, "summary": None, "running": False, "error": ""}
+_doctor_lock = threading.Lock()
+
+
+def _doctor_refresh():
+    try:
+        import doctor   # tools/doctor.py (read-only checks; quick = no ssh login and no walk of tools/dl)
+        rep = doctor.run(quick=True)
+        summ = doctor.summary(rep)
+        err = ""
+    except Exception as e:   # noqa: BLE001
+        summ, err = None, "%s: %s" % (type(e).__name__, e)
+    with _doctor_lock:
+        _doctor_cache.update(t=time.time(), running=False, error=err)
+        if summ is not None:
+            _doctor_cache["summary"] = summ
+
+
+def doctor_status():
+    """/api/status.doctor: the last summary (None before main() enabled it; {pending: true} until the first one ends).
+    A stale one starts a refresh on a daemon thread; a request never waits for it."""
+    if not DOCTOR_LIVE[0]:
+        return None
+    with _doctor_lock:
+        if time.time() - _doctor_cache["t"] >= DOCTOR_EVERY and not _doctor_cache["running"]:
+            _doctor_cache["running"] = True
+            threading.Thread(target=_doctor_refresh, name="doctor", daemon=True).start()
+        if _doctor_cache["summary"] is not None:
+            return dict(_doctor_cache["summary"], refreshing=_doctor_cache["running"])
+        return {"pending": True, "error": _doctor_cache["error"]}
+
+
+def _safe_status(rec, m):
+    """status_record() plus `interrupted` (the jobs the last restart interrupted, for "Re-queue all"), `interrupted_ids`,
+    `doctor` and `ai_hosts` (the hosts in use; never the key's contents)."""
+    try:
+        ids = m.interrupted_ids() if m is not None and hasattr(m, "interrupted_ids") else []
+    except Exception:   # noqa: BLE001
+        ids = []
+    rec["interrupted"], rec["interrupted_ids"] = len(ids), ids
+    rec["doctor"] = doctor_status()
+    try:
+        rec["ai_hosts"] = {k: ai_hosts.get(k) for k in ("comfy", "lmstudio", "ollama", "ssh")}
+    except Exception:   # noqa: BLE001
+        rec["ai_hosts"] = None
+    return rec
+
+
+# OPS-03: closing the console window does what Ctrl+C does (main()'s finally: jobs.stop(), the `jobs` lock released), so
+# no dead lock is left behind; recover() at the next start stays the backstop for a kill nobody can catch
+_exit_state = {"done": False, "jobs": None}
+_console_handler_ref = []   # the ctypes callback: kept alive while the process runs
+CTRL_EVENTS = {2: "the console window was closed", 5: "log off", 6: "shut down"}
+
+
+def _exit_cleanup(reason="exit", say=False):
+    """jobs.stop() once (the workers told to stop, the `jobs` lock released); the window gives a closing process about
+    five seconds, so each worker is waited for half a second at most. True when it ran now."""
+    if _exit_state["done"] or _exit_state["jobs"] is None:
+        return False
+    _exit_state["done"] = True
+    try:
+        _exit_state["jobs"].stop(timeout=0.5)
+        msg = "stopped (%s): the job queue's lock is released" % reason
+    except Exception as e:   # noqa: BLE001
+        msg = "jobs: stop on %s: %s" % (reason, e)
+    if say:
+        try:
+            print(msg, flush=True)
+        except Exception:   # noqa: BLE001  (the console may be gone already)
+            pass
+    return True
+
+
+def _console_ctrl(event):
+    """SetConsoleCtrlHandler's callback. Close / log off / shut down -> _exit_cleanup, True. Ctrl+C (0) and Ctrl+Break (1)
+    -> False: Python's own handler goes on (KeyboardInterrupt, as today)."""
+    event = int(event)
+    if event in CTRL_EVENTS:
+        _exit_cleanup(CTRL_EVENTS[event], say=True)
+        return True
+    return False
+
+
+def _install_exit_handlers(jobs):
+    """main(): the console-close handler (Windows), Ctrl+Break as Ctrl+C, and atexit; each a no-op when not available."""
+    import atexit
+    import signal
+    _exit_state["jobs"] = jobs
+    atexit.register(_exit_cleanup, "exit")
+    if hasattr(signal, "SIGBREAK"):
+        try:
+            signal.signal(signal.SIGBREAK, signal.default_int_handler)
+        except (ValueError, OSError):
+            pass
+    if os.name == "nt":
+        try:
+            import ctypes
+            from ctypes import wintypes
+            cb = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.DWORD)(lambda ev: bool(_console_ctrl(ev)))
+            if ctypes.windll.kernel32.SetConsoleCtrlHandler(cb, True):
+                _console_handler_ref.append(cb)
+        except Exception as e:   # noqa: BLE001
+            print("note: no console-close handler (%s); the next start still takes over a dead jobs lock" % e)
+
+
 # ---------------------------------------------------------------- main
 
 def free_port(start):
@@ -4498,6 +4712,7 @@ def main():
     ap.add_argument("--exit-idle-after", type=float, default=0.0, metavar="SECONDS",
                     help="after this many seconds, stop the server at the first moment no job is queued or running")
     args = ap.parse_args()
+    OPSIO.server_boot()   # pass 97 (lane PROGRESS): the console also into tools/dl/jobs/server.log; the events log on
     if not os.path.isdir(CONTENT):
         print("no content folder at %s: run this from the 88fits checkout" % CONTENT)
         return 1
@@ -4529,6 +4744,11 @@ def main():
             jobs = None
     else:
         print("jobs: %s (the Jobs tab will say so)" % (_jobs_error[0] or "the jobs module is not here yet"))
+    if jobs is not None:
+        OPSIO.server_start(jobs, port)   # pass 97 (lane PROGRESS): the `start` event; the archive now and once a day
+    _install_exit_handlers(jobs)   # pass 97 (lane SAFE, OPS-03): closing this window = Ctrl+C (the jobs lock released)
+    DOCTOR_LIVE[0] = True          # pass 97 (lane SAFE): /api/status.doctor, refreshed on a daemon thread every 10 min at most
+    doctor_status()
     print("Ctrl+C stops it.")
     if args.exit_idle_after > 0:
         def _idle_watch() -> None:

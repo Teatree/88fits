@@ -22,7 +22,9 @@ tools/jdk17/
 tools/dl/
 
 # release keystore + password: never commit
-tools/keys/
+# pass 97: every file in tools/keys is ignored except its README (what goes there: anthropic.env, gemini.env, codesign.env)
+tools/keys/*
+!tools/keys/README.md
 
 # reference models and pictures Garry shared (pass 44): kept beside the repo, never committed
 _REFERENCES/

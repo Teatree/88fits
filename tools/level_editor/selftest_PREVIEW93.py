@@ -311,7 +311,7 @@ def checks(check, run_node, server):
     check("Drivers.render(panel)" in rd("app.js"), "app.js draws the Drivers tab")
     a = rd("assets.js")
     check("Drivers.thumb(" in a and "case 'frame_list'" in a and "f.picker === 'frames'" in a, "assets.js: driver fields play, death_keep is picked")
-    j = rd("jobs.js")
+    j = rd("jobs.js") + (rd("jobs_view.js") if os.path.isfile(os.path.join(HERE, "jobs_view.js")) else "")   # pass 97 (lane LIVE, re-pinned on purpose): the outputs moved to jobs_view.js
     check("Drivers.thumb(" in j and "Drivers.keepField(" in j and "recipeValue:" in j and "Drivers.open(nm" in j, "jobs.js: the job form's driver fields, death_keep, a driver job's preview")
     srv = rd("server.py")
     check("DRVIO.list_drivers(DRIVERS, CONTENT)" in srv and "painted_death" in srv, "server.py hands the routes to drivers_io")

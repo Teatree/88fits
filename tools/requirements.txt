@@ -1,0 +1,22 @@
+# The Python packages the 88fits tools import beyond the standard library (pass 97, lane SAFE; an import scan of
+# tools/**/*.py). The versions are the ones on Garry's PC (Python 3.10), as minimums.
+#     python -m pip install -r tools/requirements.txt
+#     python tools/doctor.py        # checks them (and the rest of the toolchain) without changing anything
+# The Level Editor's server, locks.py, art_request.py and doctor.py need none of these (standard library only).
+# bpy, bmesh, mathutils and bpy_extras come with Blender (the blender_*.py scripts run inside it), never from pip.
+
+# essential: the art pipeline (gen_art, gen_ctl, artkit, animate, frames_store, vace_repair, the pose_* tools, the selftests' pictures)
+numpy>=1.22.0
+Pillow>=10.0.0
+scipy>=1.11.2
+
+# optional: ComfyUI's live progress lines in comfy.run (pass 97; without it the jobs run as before, without the step line)
+websocket-client>=1.9.0
+
+# optional: the sound tools (ai_sfx.py, ai_music.py, make_sfx_review.py)
+soundfile>=0.12.1
+librosa>=0.10.0
+gradio_client>=2.5.0
+
+# optional: exe_info.py (the PC build's version and icon check in ship.sh; skipped without it)
+pefile>=2023.2.7

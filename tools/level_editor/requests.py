@@ -460,6 +460,7 @@ def _event(rec, event, **fields):
     e = {"t": _now(), "event": event}
     e.update({k: v for k, v in fields.items() if v is not None})
     rec.setdefault("history", []).append(e)
+    _events_mirror(rec, e)   # pass 97 (lane PROGRESS, WF-02): the same entry in tools/dl/jobs/events.jsonl
     return e
 
 
@@ -484,6 +485,7 @@ def record_event(rid, event):
         e.setdefault("t", _now())
         e.setdefault("event", "note")
         rec.setdefault("history", []).append(e)
+        _events_mirror(rec, e)   # pass 97 (lane PROGRESS, WF-02): the same entry in tools/dl/jobs/events.jsonl
         if not live:
             save(rec)
         return e
@@ -1427,3 +1429,17 @@ def job_summary(jid, jobs_mod=None):
             "target": j.get("target"), "title": j.get("title") or "", "stages": stages, "done": done, "total": total, "stage": prog.get("stage") or "",
             "hard": hard, "advisory": adv, "gates": gates, "outputs": outs, "sheet": sheet, "error": j.get("error") or "",
             "started": j.get("started"), "ended": j.get("ended"), "paragraph": "; ".join(bits) + "."}
+
+
+def _events_mirror(rec, entry):
+    """pass 97 (lane PROGRESS, WF-02): a history entry mirrored into the events log as a `request` event (the same t and
+    event; the history stays the record's own). Never raises; nothing when the log is off (outside the server)."""
+    try:
+        m = sys.modules.get("events") or sys.modules.get("le_events")
+        if m is None or not hasattr(m, "request_event"):
+            import jobs as _j
+            m = _j._ev()
+        if m is not None:
+            m.request_event(rec, entry)
+    except Exception:   # noqa: BLE001
+        pass

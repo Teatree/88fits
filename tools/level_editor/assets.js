@@ -402,6 +402,7 @@ const Assets = (() => {
       doc.quest = rec.quest || null;
       doc.pathMissing = rec.path_missing || null;
       const fresh = rec.json || {};
+      const before = JSON.stringify(lookFreeData(doc.data));   // pass 97: what the pane shows outside the Looks section
       if (!docDirty(doc)) { doc.data = fresh; doc.saved = JSON.stringify(fresh); }
       else {
         const saved = JSON.parse(doc.saved);
@@ -419,12 +420,50 @@ const Assets = (() => {
         doc.saved = JSON.stringify(saved);
       }
       // a look that landed or an import that finished shows at once (lead, pass 66: the grid kept the old record)
-      redraw(doc, 'editor');
+      // pass 97 (lane LIVE, UI-04): only the Looks section (and the pane's header) is drawn again when nothing outside
+      // the look keys changed on disk, so a field being typed, an open fold and the scroll elsewhere in the pane stay;
+      // anything else changed (or no Looks section on screen): the whole pane as before
+      // pass 97 (lead, the review's A1): a hero's pane holds the Puppet box and other parts that read their files once when
+      // built (tools/dl/puppet), so a hero always gets the whole pane again, as before pass 97; enemies and bosses keep the
+      // Looks-only redraw
+      if (doc.kind === 'hero' || before !== JSON.stringify(lookFreeData(doc.data)) || !redrawLooks(doc)) redraw(doc, 'editor');
       return rec;
     } catch (e) {
       App.status(`Could not read ${id} again: ${e.message}`, 'bad');
       return null;
     }
+  }
+
+  // pass 97 (lane LIVE): the keys the Looks section draws (enemies.js / heroes.js put them in it); a refresh that changed
+  // nothing else draws only that section
+  const LOOK_SECTION_KEYS = ['variants', 'variant', 'variant_base', 'anims', 'strip_cols', 'frame_px', 'fps', 'directions'];
+  const LOOK_SECTIONS = ['Looks', 'Looks & previews'];
+  function lookFreeData(data) { const o = Object.assign({}, data || {}); for (const k of LOOK_SECTION_KEYS) delete o[k]; return o; }
+  /** The doc's Looks section (and the pane's header) replaced by freshly built ones; false when the pane shows none (an
+   *  item, another tab), and the caller draws the pane as before. The rest of the pane keeps its DOM. */
+  function redrawLooks(doc) {
+    if (typeof App === 'undefined' || App.S.tab !== tabOf(doc.kind)) return false;
+    const old = doc.pane;
+    if (!old || !old.isConnected) return false;
+    const secOf = (pane) => [...pane.querySelectorAll('details.asection')].find((d) => LOOK_SECTIONS.includes(d.dataset.section));
+    const oldSec = secOf(old);
+    if (!oldSec) return false;
+    const mod = moduleFor(doc.kind);
+    if (!mod || typeof mod.redraw !== 'function') return false;
+    // the module draws its pane through swapPane: this one time swapPane builds it aside and hands back the new section
+    let built = null;
+    doc.__looksOnly = (pane) => { built = pane; };
+    try { mod.redraw(doc, 'editor'); } finally { doc.__looksOnly = null; doc.pane = old; }
+    if (!built) return false;
+    const newSec = secOf(built);
+    if (!newSec) return false;
+    oldSec.replaceWith(newSec);
+    const oh = old.querySelector('div.ahead'), nh = built.querySelector('div.ahead');
+    if (oh && nh && oh.parentNode === old) oh.replaceWith(nh);
+    // the players of the sections built aside and thrown away
+    for (const n of built.querySelectorAll('figure.sp')) { if (n.__sp && typeof n.__sp.destroy === 'function') n.__sp.destroy(); }
+    App.render('none');
+    return true;
   }
 
   // ------------------------------------------------------------------ server operations
@@ -1345,6 +1384,8 @@ const Assets = (() => {
   function swapPane(doc, build) {
     const old = doc.pane;
     if (!old || !old.parentNode) return false;
+    // pass 97: redrawLooks asks for the pane built aside (only its Looks section and header are kept)
+    if (typeof doc.__looksOnly === 'function') { const pane = buildPane(doc, build); doc.pane = old; doc.__looksOnly(pane); return true; }
     Forms.closePop();
     const scroll = old.scrollTop;
     const act = old.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.path : null;

@@ -63,7 +63,8 @@ DEFAULTS = os.path.join(HERE, "level_editor", "request_defaults.json")
 KEYS_DIR = os.path.join(HERE, "keys")
 JOBS_DIR = os.path.join(DL, "jobs")
 
-LMSTUDIO = "http://127.0.0.1:1234/v1/chat/completions"
+import ai_hosts  # noqa: E402  (pass 97, lane SAFE: tools/ai_hosts.json "lmstudio"; the old literal when the file has none)
+LMSTUDIO = ai_hosts.get("lmstudio", "http://127.0.0.1:1234").rstrip("/") + "/v1/chat/completions"
 VISION_MODEL = "qwen2.5-vl-7b-instruct-abliterated"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"

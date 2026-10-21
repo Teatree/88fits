@@ -38,9 +38,14 @@
 
 const Jobs = (() => {
   const { el, clear, fmtT } = U;
+  // pass 97 (lane LIVE): the shared view pieces and the page-free model (globals in the page; required under Node by the selftests)
+  const JV = typeof JobsView !== 'undefined' ? JobsView : (typeof require === 'function' ? require('./jobs_view.js') : null);
+  const JM = typeof JobsModel !== 'undefined' ? JobsModel : (typeof require === 'function' ? require('./jobs_model.js') : null);
   const FAST = 2000, SLOW = 6000, MISSING = 15000;
   const LOG_LINES = 12;
   const COMFY_URL = 'http://192.168.137.54:8188/';   // the AI server's ComfyUI page (the workflow files are dragged into it)
+  /** pass 97: the ComfyUI page from tools/ai_hosts.json when /api/status carries it (lane SAFE), else the old address. */
+  function comfyUrl() { const h = S && S.status && S.status.ai_hosts && S.status.ai_hosts.comfy; return h ? String(h).replace(/\/?$/, '/') : COMFY_URL; }
   const STATES = ['running', 'waiting', 'queued', 'done', 'failed', 'interrupted', 'cancelled'];
   const FINISHED = ['done', 'failed', 'interrupted', 'cancelled'];
   const STATE_LABEL = { queued: 'QUEUED', running: 'RUNNING', waiting: 'WAITING FOR PICK', done: 'DONE', failed: 'FAILED', interrupted: 'INTERRUPTED', cancelled: 'CANCELLED' };
@@ -130,6 +135,10 @@ const Jobs = (() => {
     lastContact: 0, downSince: 0, netError: '',
     // pass 96 (1.7): the art requests (GET /api/requests; tools/level_editor/requests.py), their cards and page state
     requests: [], requestsApi: undefined, rcards: new Map(), rsigs: new Map(), rui: new Map(), findings: new Map(), tick: 0,
+    // pass 97 (lane LIVE): the delta poll (noDelta: the server has no list_delta: the whole list as before), the records
+    // by id, the subscribers (Jobs.subscribe), the kept groups, the #jobs?look= filter, the card a route asked for, the
+    // Ops fold's answer
+    byId: new Map(), subs: new Set(), noDelta: false, groupEls: null, emptyEl: null, filterEl: null, filter: null, focus: null, ops: null, opsAt: 0, opsBusy: false,
   };
   /** The page state of a job (pass 96): created on first use. */
   function ui(id) { let u = S.ui.get(id); if (!u) { u = { picked: null, gpicked: {}, reroll: false, folds: {}, log: 'bottom' }; S.ui.set(id, u); } return u; }
@@ -345,16 +354,21 @@ const Jobs = (() => {
     if (conn && (S.downSince || (S.lastContact && Date.now() - S.lastContact > 10000))) drawConnection(conn);
   }
   function schedule(ms) { clearTimeout(S.timer); S.timer = setTimeout(poll, ms); }
-  function onScreen() { return (typeof App !== 'undefined' && App.S && App.S.tab === 'jobs') || !!document.querySelector('.jcard'); }
+  function onScreen() { return (typeof App !== 'undefined' && App.S && App.S.tab === 'jobs') || !!document.querySelector('.jcard') || liveBlockOnScreen(); }
+  /** pass 97: a look's stage shows a live block (its job runs): the page asks every 2 s, as on the Jobs tab. */
+  function liveBlockOnScreen() { return typeof document !== 'undefined' && [...document.querySelectorAll('div.lg-live')].some((e) => !e.hidden && e.isConnected); }
 
   async function poll() {
     clearTimeout(S.timer);
     if (document.hidden) { schedule(SLOW); return; }
     let next = onScreen() ? FAST : SLOW;
     try {
-      const r = await fetch(`/api/jobs?since=${S.rev}`, { cache: 'no-store' });
+      // pass 97 (lane LIVE, UI-02): the delta (only the records that changed since S.rev, the ids removed); a server
+      // without it answers 501 (or the whole list, which applyList takes as before)
+      const r = await fetch(S.noDelta ? `/api/jobs?since=${S.rev}` : `/api/jobs?since=${S.rev}&delta=1`, { cache: 'no-store' });
       S.lastContact = Date.now(); S.downSince = 0; S.netError = '';   // pass 96: the server answered (whatever it said)
-      if (r.status === 404) { S.apiMissing = true; next = MISSING; }
+      if (r.status === 501 && !S.noDelta) { S.noDelta = true; next = 50; }
+      else if (r.status === 404) { S.apiMissing = true; next = MISSING; }
       else {
         const d = await r.json();
         if (d && d.ok === false) { S.apiMissing = true; next = MISSING; S.apiError = d.error || ''; }
@@ -368,10 +382,12 @@ const Jobs = (() => {
       S.netError = e.message;
     }
     if (!S.apiMissing && App.S.tab === 'jobs' && Date.now() - S.statusAt > 4000) await fetchStatus();
-    if (!S.apiMissing && onScreen()) await fetchRequests();   // pass 96 (1.7): the art requests beside the jobs
+    if (!S.apiMissing && (onScreen() || lookStageOnScreen())) await fetchRequests();   // pass 96 (1.7): the art requests beside the jobs (pass 97: and on a look's stage)
     if (App.S.tab === 'jobs' && S.panel && S.panel.isConnected) drawHeader();
+    drawPill();   // pass 97: "offline since hh:mm" on every tab
     schedule(next);
   }
+  function lookStageOnScreen() { return typeof document !== 'undefined' && !!document.querySelector('.lg-stage'); }
 
   /** pass 96 (1.7): GET /api/requests -> S.requests (the folds); a 404 means the route is not there (no group drawn). */
   async function fetchRequests() {
@@ -383,7 +399,9 @@ const Jobs = (() => {
       S.requestsApi = true;
       const before = JSON.stringify(S.requests.map((x) => rsig(x)));
       S.requests = list;
-      if (App.S.tab === 'jobs' && S.panel && S.panel.isConnected && before !== JSON.stringify(list.map((x) => rsig(x)))) draw();
+      const moved = before !== JSON.stringify(list.map((x) => rsig(x)));
+      if (App.S.tab === 'jobs' && S.panel && S.panel.isConnected && moved) draw();
+      if (moved) notify({ jobs: S.jobs, changed: [], removed: [], full: false, rev: S.rev, requests: true });   // pass 97: the look card's request line
     } catch (_) { /* the list as it was */ }
   }
 
@@ -396,10 +414,19 @@ const Jobs = (() => {
   }
 
   function applyList(d) {
+    // pass 97 (UI-02): an answer older than the list the page holds (two polls crossing) is dropped
+    if (d && d.delta && !d.full && Number(d.rev) < Number(S.rev)) return;
+    // the delta (or the whole list from a server without it) merged by id, the server's order kept (JobsModel.merge)
+    const m = JM && JM.merge ? JM.merge(S.jobs, d)
+      : { jobs: Array.isArray(d.jobs) ? d.jobs : S.jobs, changed: (Array.isArray(d.jobs) ? d.jobs : []).map((j) => j.id), removed: [], full: true, unchanged: !Array.isArray(d.jobs) };
     S.rev = d.rev || S.rev;
-    const jobs = Array.isArray(d.jobs) ? d.jobs : [];
+    if (m.unchanged) return;
+    const jobs = m.jobs;
+    S.byId = new Map(jobs.map((j) => [j.id, j]));
     if (S.last) {
-      for (const j of jobs) {
+      for (const id of m.changed) {
+        const j = S.byId.get(id);
+        if (!j) continue;
         const was = S.last.get(j.id);
         if (was === j.state) continue;
         if (was === undefined && !['done', 'failed', 'waiting'].includes(j.state)) continue;   // a job created elsewhere: no toast until it changes
@@ -408,6 +435,7 @@ const Jobs = (() => {
     }
     S.last = new Map(jobs.map((j) => [j.id, j.state]));
     S.jobs = jobs;
+    for (const id of m.removed) { S.ui.delete(id); }   // a removed job's page state goes with it
     updateBadge();
     if (App.S.tab === 'jobs' && S.panel && S.panel.isConnected) draw();
     // a look card shows its jobs' states, and a stub without a live look job is a draft with Generate… (pass 68): the open
@@ -418,6 +446,20 @@ const Jobs = (() => {
       S.liveSig = live;
       if (typeof LookGrid !== 'undefined' && typeof LookGrid.jobsChanged === 'function') { try { LookGrid.jobsChanged(); } catch (_) { /* drawn on the next render */ } }
     }
+    notify({ jobs, changed: m.changed, removed: m.removed, full: !!m.full, rev: S.rev });
+  }
+
+  /** pass 97 (UI-02): the one change bus. fn({jobs, changed: [ids], removed: [ids], full, rev, requests?}) after every
+   *  poll that changed something (and after the requests changed: {requests: true}); returns the unsubscribe. The look
+   *  card's live block listens here instead of polling; the Frames view keeps its own 5 s group fetch (it reads the frames
+   *  store, not the jobs) and calls Jobs.poll(), which is a delta now. */
+  function subscribe(fn) {
+    if (typeof fn !== 'function') return () => {};
+    S.subs.add(fn);
+    return () => S.subs.delete(fn);
+  }
+  function notify(ev) {
+    for (const fn of [...S.subs]) { try { fn(ev); } catch (e) { if (typeof console !== 'undefined') console.warn('Jobs.subscribe listener failed', e); } }
   }
 
   // the content kinds the server names in an import job's targets ("enemies/test_beast") -> the page's kinds
@@ -587,8 +629,10 @@ const Jobs = (() => {
     root.appendChild(head);
     root.appendChild(el('div', { class: 'jobs-status', id: 'jobs-status' }));
     root.appendChild(el('div', { id: 'jobs-confirm' }));
+    root.appendChild(opsFold());   // pass 97 (OPS-02's page side): the Ops fold, its own node (drawHeader never rebuilds it)
     S.groups = el('div', { class: 'jobs-groups' });
     root.appendChild(S.groups);
+    S.groupEls = new Map(); S.emptyEl = null; S.filterEl = null;   // pass 97: the kept groups belong to this pane
     for (const c of S.cards.values()) disposeCard(c);
     S.cards.clear(); S.sigs.clear();
     for (const c of S.rcards.values()) disposeCard(c);
@@ -614,6 +658,14 @@ const Jobs = (() => {
     const conn = el('div', { class: 'jobs-conn', id: 'jobs-conn' });
     drawConnection(conn);
     box.appendChild(conn);
+    // pass 97 (OPS-03's page side, lane SAFE's /api/status.interrupted): the jobs a restart stopped, one click away from
+    // the queue again (POST /api/jobs/requeue_interrupted: the same Re-queue per job; never automatic)
+    const nInt = Number(st.interrupted) || 0;
+    if (nInt > 0 && !ro) {
+      box.appendChild(el('div', { class: 'jwarn jinterrupted' },
+        el('span', { text: `${nInt} job${nInt === 1 ? ' was' : 's were'} interrupted by the restart` }),
+        el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue all', title: 'each one queued again as its own Re-queue would (attempt + 1; the tools reuse what is cached); nothing else changes', onclick: requeueInterrupted })));
+    }
     if (ro) {
       // a second Level Editor: the first one holds the queue (jobs.claim_queue); this page shows it and refuses changes
       const since = ro.since && isFinite(Number(ro.since)) ? new Date(Number(ro.since) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (ro.since || '?');
@@ -679,49 +731,196 @@ const Jobs = (() => {
     box.append(el('i', { class: 'dot' }), el('span', { text: line.text, title: 'when this page last heard from the Level Editor; it asks every 2 s on this tab, 6 s elsewhere, 15 s while the server does not answer' }));
   }
 
-  function draw() {
-    if (!S.groups) return;
-    clear(S.groups);
-    drawRequests();   // pass 96 (1.7): the Requests group first, one card per art request; the request's jobs stay in their groups below
-    const jobs = S.jobs.filter((j) => !S.hidden.has(j.id));
-    if (!jobs.length) {
-      S.groups.appendChild(el('div', { class: 'jempty' }, el('div', { text: S.apiMissing ? 'no jobs API yet' : 'no jobs' }), el('div', { class: 'small', text: 'Queue one from a creature\'s or a hero\'s Looks (+ New look…, Re-roll…, Icon candidates…), an item\'s icon, or a hero\'s badge and title cut-out.' })));
-      return;
+  // ------------------------------------------------------------------ pass 97 (lane LIVE): the pill, Re-queue all, the Ops fold, the routes
+
+  /** "offline since hh:mm" in the top bar on every tab while the Level Editor does not answer (the connection state). */
+  function drawPill() {
+    if (typeof document === 'undefined' || !JM || !JM.offlinePill) return;
+    let pill = document.getElementById('offline-pill');
+    const m = JM.offlinePill({ downSince: S.downSince, netError: S.netError });
+    if (!pill) {
+      if (!m) return;
+      const bar = document.querySelector('header.top');
+      if (!bar) return;
+      pill = el('span', { id: 'offline-pill', class: 'offline-pill' });
+      const brand = bar.querySelector('div.brand');
+      if (brand && brand.parentNode === bar && bar.insertBefore) bar.insertBefore(pill, bar.childNodes[[...bar.childNodes].indexOf(brand) + 1] || null); else bar.appendChild(pill);
     }
-    const by = { running: [], waiting: [], queued: [], finished: [] };
-    for (const j of jobs) (by[j.state] || by.finished).push(j);
-    by.finished.sort((a, b) => String(b.ended || b.created || '').localeCompare(String(a.ended || a.created || '')));
-    // Up next in the order the workers take the jobs, numbered per lane, held jobs after (D12); the other groups as the
-    // server lists them
-    const ordered = { queued: queueOrder(by.queued) };
-    for (const key of ['running', 'waiting', 'finished']) ordered[key] = by[key].map((j, i) => ({ job: j, pos: i, n: by[key].length }));
-    for (const [key, label] of GROUPS) {
-      const list = ordered[key];
-      if (!list.length) continue;
-      let head = `${label} · ${list.length}`;
-      if (key === 'queued') {
-        const per = {}, held = {};
-        for (const x of list) { const l = x.job.lane || '?'; per[l] = (per[l] || 0) + 1; if (x.held) held[l] = (held[l] || 0) + 1; }
-        if (Object.keys(per).length > 1 || Object.keys(held).length) head += ` (${Object.entries(per).map(([l, n]) => `${l} ${n}${held[l] ? `, ${held[l]} waiting for a front` : ''}`).join(' · ')})`;
-      }
-      const g = el('div', { class: 'jobs-group' + (key === 'queued' ? ' upnext' : '') }, el('h2', { text: head, title: key === 'queued' ? 'in the order they will run: one job at a time per lane (comfy: the art; godot: imports and launches; local: Blender, pose tools, recolours, installs), the lanes side by side; a job waiting for a look\'s front still runs once that picture is painted' : '' }));
-      list.forEach((x) => {
-        const j = x.job;
-        const s = sig(j);
-        const where = [x.pos, x.n, x.held ? 1 : 0, x.up || 0, x.down || 0].join('/');
-        let c = S.cards.get(j.id);
-        if (!c || S.sigs.get(j.id) !== s || c.dataset.pos !== where) {
-          if (c) disposeCard(c);        // the old card's clip players go with it (a running card is rebuilt every poll)
-          c = card(j, x); c.dataset.pos = where; S.cards.set(j.id, c); S.sigs.set(j.id, s);
-        }
-        g.appendChild(c);
-      });
-      S.groups.appendChild(g);
-    }
-    for (const id of [...S.cards.keys()]) if (!jobs.some((j) => j.id === id)) { disposeCard(S.cards.get(id)); S.cards.delete(id); S.sigs.delete(id); }
+    pill.hidden = !m;
+    if (m) { if (pill.textContent !== m.text) pill.textContent = m.text; pill.title = m.title; }
   }
 
-  function disposeCard(c) { for (const p of (c && c.__players) || []) p.destroy(); if (c) c.__players = []; }
+  async function requeueInterrupted() {
+    App.status('re-queueing the interrupted jobs…', 'busy');
+    const res = await post('/api/jobs/requeue_interrupted', {});
+    if (!res.ok) { App.status(`Re-queue all refused: ${res.error || '?'}`, 'bad'); return; }
+    const n = Array.isArray(res.requeued) ? res.requeued.length : 0;
+    // lane SAFE's answer: {ok, requeued: [ids], skipped: [...], refused: [...]} (a launch job is skipped)
+    const why = (list) => list.map((x) => (x && typeof x === 'object' ? `${shortId(x.id || '')} ${x.error || x.why || x.reason || ''}`.trim() : String(x))).join('; ').slice(0, 200);
+    const sk = Array.isArray(res.skipped) ? res.skipped : [], rf = Array.isArray(res.refused) ? res.refused : [];
+    App.status(`${n} interrupted job${n === 1 ? '' : 's'} queued again${sk.length ? ` · ${sk.length} skipped: ${why(sk)}` : ''}${rf.length ? ` · ${rf.length} refused: ${why(rf)}` : ''}`, rf.length ? 'bad' : 'good');
+    await fetchStatus(); await poll(); drawHeader();
+  }
+
+  /** The Ops fold (GET /api/ops?days=7, lane PROGRESS): outcomes per kind and method, the measured medians beside
+   *  methods.json's, the lock waits, the failures as sentences, the dollars per request. Fetched when opened, again every
+   *  60 s while it is open; its own node, so the 2 s header redraw never closes it. */
+  function opsFold() {
+    const d = el('details', { class: 'jops', id: 'jobs-ops', open: !!S.opsOpen }, el('summary', { text: 'Ops: the last 7 days (outcomes, medians, lock waits, failures, cost)' }), el('div', { class: 'jops-body' }));
+    d.addEventListener('toggle', () => { S.opsOpen = d.open; if (d.open) fetchOps(true); });
+    if (S.opsOpen) setTimeout(() => fetchOps(false), 0);
+    return d;
+  }
+  async function fetchOps(force) {
+    const box = document.getElementById('jobs-ops');
+    if (!box || !box.open || S.opsBusy) return;
+    if (!force && S.ops && Date.now() - S.opsAt < 60000) { drawOps(); return; }
+    S.opsBusy = true;
+    try {
+      const r = await fetch('/api/ops?days=7', { cache: 'no-store' });
+      if (r.status === 404 || r.status === 501) S.ops = { missing: true };
+      else { const j = await r.json(); S.ops = j && j.ok === false ? { error: j.error || `HTTP ${r.status}` } : j; }
+    } catch (e) { S.ops = { error: e.message }; }
+    S.opsBusy = false; S.opsAt = Date.now();
+    drawOps();
+    clearTimeout(S.opsTimer);
+    S.opsTimer = setTimeout(() => fetchOps(true), 60000);
+  }
+  function drawOps() {
+    const det = document.getElementById('jobs-ops');
+    const box = det && det.querySelector('div.jops-body');
+    if (!box) return;
+    clear(box);
+    const o = S.ops;
+    if (!o) { box.appendChild(el('div', { class: 'muted small', text: 'asking…' })); return; }
+    if (o.missing) { box.appendChild(el('div', { class: 'muted small', text: 'this Level Editor has no /api/ops yet (pass 97, lane PROGRESS): restart it once that lands' })); return; }
+    if (o.error) { box.appendChild(el('div', { class: 'warn-text small', text: `the Ops answer failed: ${o.error}` })); return; }
+    const m = JM.opsModel(o, S.methods);
+    if (m.outcomes.length) {
+      const t = el('table', { class: 'jops-table' });
+      t.appendChild(el('tr', {}, el('th', { text: 'kind' }), el('th', { text: 'method' }), ...m.cols.map((c) => el('th', { text: c })), el('th', { text: 'all' })));
+      for (const r of m.outcomes) t.appendChild(el('tr', {}, el('td', { text: r.kind }), el('td', { text: r.method }), ...r.cells.map((n, i) => el('td', { class: n && ['failed', 'interrupted'].includes(m.cols[i]) ? 'bad' : '', text: n ? String(n) : '' })), el('td', { text: String(r.total) })));
+      box.appendChild(el('div', { class: 'jops-sec' }, el('b', { text: `Outcomes${m.days ? ' (' + m.days + ' days)' : ''}` }), t));
+    } else box.appendChild(el('div', { class: 'muted small', text: 'no finished job in the window' }));
+    if (m.medians.length) {
+      const t = el('table', { class: 'jops-table' }, el('tr', {}, el('th', { text: 'method' }), el('th', { text: 'rendered (median)' }), el('th', { text: 'cached' }), el('th', { text: 'methods.json' })));
+      for (const r of m.medians) t.appendChild(el('tr', { title: r.measured ? 'the estimate on a job card uses the measured median (5 runs or more)' : 'under 5 measured runs: the estimate uses methods.json\'s figure' }, el('td', { text: r.method }), el('td', { class: r.measured ? '' : 'muted', text: r.rendered }), el('td', { text: r.cached }), el('td', { class: 'muted', text: r.table })));
+      box.appendChild(el('div', { class: 'jops-sec' }, el('b', { text: 'Seconds per job' }), m.etaSource ? el('span', { class: 'muted small', text: ' ' + m.etaSource }) : null, t));
+    }
+    if (m.lock) box.appendChild(el('div', { class: 'jops-sec' }, el('b', { text: 'Waiting for a lock: ' }), el('span', { text: m.lock })));
+    if (m.counts) box.appendChild(el('div', { class: 'jops-sec muted small', text: m.counts }));
+    if (m.failures.length) { const ul = el('ul', { class: 'jops-fail' }); for (const f of m.failures) ul.appendChild(el('li', { text: f })); box.appendChild(el('div', { class: 'jops-sec' }, el('b', { text: 'Failures' }), ul)); }
+    if (m.requests.length || m.total) box.appendChild(el('div', { class: 'jops-sec' }, el('b', { text: `Evaluation cost${m.total ? ': ' + m.total : ''}` }), m.byModel ? el('span', { class: 'muted small', text: ' ' + m.byModel }) : null, ...m.requests.map((r) => el('div', { class: 'small', text: r }))));
+  }
+
+  /** The routes (app.js): bring a job's card (or a request's) into view and mark it; kept until its card is drawn. */
+  function focus(id) { S.focus = { job: id }; S.filter = null; if (S.groups) draw(); }
+  function focusRequest(rid) { S.focus = { request: rid }; if (S.groups) draw(); }
+  function focusCard() {
+    const f = S.focus;
+    if (!f || !S.groups) return;
+    const c = f.job ? S.cards.get(f.job) : S.rcards.get(f.request);
+    if (!c || !c.isConnected) { if (S.jobs.length && f.job && !S.byId.has(f.job)) { App.status(`job ${shortId(f.job)} is not in the list (cleared or archived)`); S.focus = null; } return; }
+    S.focus = null;
+    for (const x of S.groups.querySelectorAll('.jfocus')) x.classList.remove('jfocus');
+    c.classList.add('jfocus');
+    if (c.scrollIntoView) c.scrollIntoView({ block: 'center' });
+  }
+
+  /** The groups (pass 97, UI-04): kept by key and synced with the cards by job id (insertBefore, never cleared and
+   *  appended again), so a card that did not change is never detached: its log keeps its place, its clips play on. */
+  function draw() {
+    if (!S.groups) return;
+    const blocks = [];
+    const all = S.jobs.filter((j) => !S.hidden.has(j.id));
+    const jobs = S.filter && JM ? all.filter((j) => JM.filterMatch(j, S.filter)) : all;
+    if (S.filter) blocks.push(filterBar(all.length, jobs.length));
+    const rg = drawRequests();   // pass 96 (1.7): the Requests group first, one card per art request; the request's jobs stay in their groups below
+    if (rg) blocks.push(rg);
+    const shown = new Set();
+    if (!jobs.length) {
+      if (!S.emptyEl) S.emptyEl = el('div', { class: 'jempty' }, el('div', { class: 'jempty-what' }), el('div', { class: 'small', text: 'Queue one from a creature\'s or a hero\'s Looks (+ New look…, Re-roll…, Icon candidates…), an item\'s icon, or a hero\'s badge and title cut-out.' }));
+      const what = S.filter ? `no jobs of ${S.filter.look || S.filter.id} in the list` : S.apiMissing ? 'no jobs API yet' : 'no jobs';
+      const w = S.emptyEl.querySelector('div.jempty-what');
+      if (w && w.textContent !== what) w.textContent = what;
+      blocks.push(S.emptyEl);
+    } else {
+      const by = { running: [], waiting: [], queued: [], finished: [] };
+      for (const j of jobs) (by[j.state] || by.finished).push(j);
+      by.finished.sort((a, b) => String(b.ended || b.created || '').localeCompare(String(a.ended || a.created || '')));
+      // Up next in the order the workers take the jobs, numbered per lane, held jobs after (D12); the other groups as the
+      // server lists them
+      const ordered = { queued: queueOrder(by.queued) };
+      for (const key of ['running', 'waiting', 'finished']) ordered[key] = by[key].map((j, i) => ({ job: j, pos: i, n: by[key].length }));
+      for (const [key, label] of GROUPS) {
+        const list = ordered[key];
+        if (!list.length) continue;
+        let head = `${label} · ${list.length}`;
+        if (key === 'queued') {
+          const per = {}, held = {};
+          for (const x of list) { const l = x.job.lane || '?'; per[l] = (per[l] || 0) + 1; if (x.held) held[l] = (held[l] || 0) + 1; }
+          if (Object.keys(per).length > 1 || Object.keys(held).length) head += ` (${Object.entries(per).map(([l, n]) => `${l} ${n}${held[l] ? `, ${held[l]} waiting for a front` : ''}`).join(' · ')})`;
+        }
+        const g = groupEl(key, head, key === 'queued' ? 'in the order they will run: one job at a time per lane (comfy: the art; godot: imports and launches; local: Blender, pose tools, recolours, installs), the lanes side by side; a job waiting for a look\'s front still runs once that picture is painted' : '');
+        const nodes = [g.__h2];
+        for (const x of list) {
+          const j = x.job;
+          let c = S.cards.get(j.id);
+          if (!c || c.dataset.state !== j.state) { c = card(j, x, c); S.cards.set(j.id, c); }   // a state change builds the card again (its clip players handed over)
+          else patchCard(c, j, x);
+          S.sigs.set(j.id, c.dataset.pos);
+          nodes.push(c);
+          shown.add(j.id);
+        }
+        syncChildren(g, nodes);
+        blocks.push(g);
+      }
+    }
+    syncChildren(S.groups, blocks);
+    for (const id of [...S.cards.keys()]) if (!shown.has(id)) { disposeCard(S.cards.get(id)); S.cards.delete(id); S.sigs.delete(id); }
+    if (S.focus) focusCard();
+  }
+  /** A group of cards by key (its <h2> patched in place). */
+  function groupEl(key, head, tip) {
+    if (!S.groupEls) S.groupEls = new Map();
+    let g = S.groupEls.get(key);
+    if (!g) {
+      g = el('div', { class: 'jobs-group' + (key === 'queued' ? ' upnext' : '') + (key === 'requests' ? ' requests' : ''), 'data-group': key });
+      g.__h2 = el('h2', { text: head, title: tip || '' });
+      g.appendChild(g.__h2);
+      S.groupEls.set(key, g);
+    }
+    if (g.__h2.textContent !== head) g.__h2.textContent = head;
+    if ((tip || '') !== g.__h2.title) g.__h2.title = tip || '';
+    return g;
+  }
+  /** parent's children made exactly `nodes`, in order: the ones not wanted go first, then each one out of place moves;
+   *  a node already in place is never touched. */
+  function syncChildren(parent, nodes) {
+    const want = new Set(nodes);
+    for (const n of [...parent.childNodes]) if (!want.has(n)) parent.removeChild(n);
+    for (let i = 0; i < nodes.length; i++) { const at = parent.childNodes[i]; if (at !== nodes[i]) parent.insertBefore(nodes[i], at || null); }
+  }
+  /** The `#jobs?look=SP-B` filter (pass 97): only that look's jobs, with a way back to all. */
+  function filterBar(nAll, nShown) {
+    if (!S.filterEl) S.filterEl = el('div', { class: 'jfilter' });
+    const f = S.filter || {};
+    clear(S.filterEl);
+    S.filterEl.append(el('span', { text: `showing the jobs of ${f.look || ''}${f.look && f.id ? ' (' + f.id + ')' : f.id || ''}: ${nShown} of ${nAll}` }),
+      el('button', { type: 'button', class: 'btn small', text: 'Show all jobs', onclick: () => setFilter(null) }));
+    return S.filterEl;
+  }
+  function setFilter(f) {
+    S.filter = f && (f.look || f.id) ? Object.assign({}, f) : null;
+    if (typeof App !== 'undefined' && App.route) App.route(S.filter ? { tab: 'jobs', filter: S.filter } : { tab: 'jobs' });
+    draw();
+  }
+
+  function disposeCard(c) {
+    for (const p of (c && c.__players) || []) p.destroy();
+    if (c) c.__players = [];
+    if (c && c.__bank) { c.__bank.destroyAll(); c.__bank = null; }   // pass 97: the card's clip players
+  }
 
   // ------------------------------------------------------------------ pass 96 (lane PAGE, 1.7): the art request cards
   // One card per request from GET /api/requests (tools/level_editor/requests.py's fold): the state chip, iteration k of n,
@@ -736,16 +935,20 @@ const Jobs = (() => {
   }
   function drawRequests() {
     for (const [rid, c] of [...S.rcards]) if (!S.requests.some((r) => r.rid === rid)) { disposeCard(c); S.rcards.delete(rid); S.rsigs.delete(rid); }
-    if (!S.requests.length || typeof JobsModel === 'undefined') return;
+    if (!S.requests.length || typeof JobsModel === 'undefined') return null;
     const live = S.requests.filter((r) => !JobsModel.FINAL.includes(r.state));
-    const g = el('div', { class: 'jobs-group requests' }, el('h2', { text: `Requests · ${S.requests.length}${live.length !== S.requests.length ? ` (${live.length} live)` : ''}`, title: 'the art requests (tools/art_request.py start, or Claude\'s one command): each drives a loop of jobs on one look; its jobs sit in the groups below; only the final install needs you (Approve)' }));
+    // pass 97: the group is kept (groupEl) and its cards synced by rid; a changed request's card is built again with the
+    // old card's clip players handed over (its open panels come back from S.rui)
+    const g = groupEl('requests', `Requests · ${S.requests.length}${live.length !== S.requests.length ? ` (${live.length} live)` : ''}`, 'the art requests (tools/art_request.py start, or Claude\'s one command): each drives a loop of jobs on one look; its jobs sit in the groups below; only the final install needs you (Approve)');
+    const nodes = [g.__h2];
     for (const r of S.requests) {
       const s = rsig(r) + '|' + (S.findings.get(r.rid) ? S.findings.get(r.rid).job : '');
       let c = S.rcards.get(r.rid);
-      if (!c || S.rsigs.get(r.rid) !== s) { if (c) disposeCard(c); c = requestCard(r); S.rcards.set(r.rid, c); S.rsigs.set(r.rid, s); }
-      g.appendChild(c);
+      if (!c || S.rsigs.get(r.rid) !== s) { const old = c; c = requestCard(r, old); if (old) disposeCard(old); S.rcards.set(r.rid, c); S.rsigs.set(r.rid, s); }
+      nodes.push(c);
     }
-    S.groups.appendChild(g);
+    syncChildren(g, nodes);
+    return g;
   }
   function jobsById() { return new Map(S.jobs.map((j) => [j.id, j])); }
   async function requestAct(r, verb, body, busyText) {
@@ -781,15 +984,17 @@ const Jobs = (() => {
     }
     return cur ? cur.rec : null;
   }
-  function requestCard(r) {
+  function requestCard(r, old) {
     const F = JobsModel.requestFold(r, jobsById());
     const u = rui(r.rid);
     const a = r.asset || {};
     const c = el('article', { class: `jcard rcard state-${F.chip.cls}`, 'data-rid': r.rid });
     c.__players = [];
+    c.__bank = old && old.__bank ? old.__bank : (JV ? new JV.Bank() : null);   // pass 97: the latest outputs' players handed over
+    if (old) old.__bank = null;
     const head = el('div', { class: 'jcard-head' },
       el('span', { class: `chip state-${F.chip.cls}`, text: F.chip.text }),
-      el('span', { class: 'jid', text: 'request ' + shortId(r.rid), title: r.rid }),
+      el('span', { class: 'jid', text: 'request ' + shortId(r.rid), title: `${r.rid} (click: this request's address, #requests/${r.rid}: a reload comes back to it)`, onclick: () => { S.focus = { request: r.rid }; focusCard(); if (App.route) App.route({ tab: 'jobs', request: r.rid }); } }),
       el('span', { class: 'jtitle', text: F.title }),
       el('span', { class: 'muted small', text: `mode ${F.mode}` }));
     const times = [];
@@ -815,7 +1020,7 @@ const Jobs = (() => {
     const fbox = el('div', { class: 'rfindings' });
     c.appendChild(fbox);
     const latest = F.latestJob ? jobsById().get(F.latestJob.id) : null;
-    if (latest && (latest.outputs || []).length) fbox.appendChild(outputs(latest, c.__players));
+    if (latest && (latest.outputs || []).length) fbox.appendChild(outputs(latest, c.__bank || c.__players));
     if (F.sheet) { const img = el('img', { src: F.sheet.startsWith('/') ? F.sheet : '/dl/' + String(F.sheet).replace(/^tools\/dl\//, ''), alt: '', loading: 'lazy', title: 'the provisional winner\'s sheet' }); img.addEventListener('click', () => StripPlayer.openImage(img.src, `request ${shortId(r.rid)} · the sheet`)); fbox.appendChild(el('div', { class: 'rsheet' }, img, el('div', { class: 'muted small', text: 'the sheet' }))); }
     const badges = el('div', { class: 'rbadges' }, el('span', { class: 'muted small', text: 'findings: looking…' }));
     fbox.appendChild(badges);
@@ -909,22 +1114,121 @@ const Jobs = (() => {
   }
 
   // ------------------------------------------------------------------ the cards
+  // pass 97 (lane LIVE, UI-04): a card is an <article> of named slots (head, sub, stage, bar, stages, log, outputs,
+  // choices, actions, folds, reroll: SLOTS gives each state's slots in the order they show); every slot has its own
+  // signature (JobsModel.slotSigs) and a poll rebuilds only the slots whose signature moved; the log takes its new lines
+  // in place; the outputs keep their clip players by URL (JobsView.Bank) so a clip keeps playing; a state change builds
+  // the card again and hands it the old card's players. Handlers read the job's newest record (cur(j)).
 
-  /** A job's card; x = its place ({pos, n} in its group; queued jobs: queueOrder's entry with held, up, down). */
-  function card(j, x) {
-    const t = j.target || {};
+  const SLOTS = {
+    running: ['head', 'sub', 'stage', 'bar', 'stages', 'log', 'outputs', 'actions', 'folds'],
+    waiting: ['head', 'sub', 'stage', 'actions', 'stages', 'outputs', 'folds'],
+    queued: ['head', 'sub', 'stage', 'stages', 'outputs', 'actions', 'folds'],
+    done: ['head', 'sub', 'stage', 'outputs', 'choices', 'stages', 'actions', 'folds', 'reroll'],
+    failed: ['head', 'sub', 'stage', 'log', 'outputs', 'actions', 'folds', 'reroll'],
+  };
+  function slotsOf(j) { return SLOTS[j.state] || SLOTS.failed; }
+  /** The job's newest record (the handlers of a slot that was not rebuilt hold the record they were built with). */
+  function cur(j) { return (S.byId && S.byId.get(j.id)) || j; }
+  function whereOf(x) { const w = x || {}; return [w.pos, w.n, w.held ? 1 : 0, w.up || 0, w.down || 0].join('/'); }
+  function slotSigsOf(j, x) {
+    const ctx = { hidden: S.hidden.has(j.id), ext: S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null, method: methodName(j) };
+    const s = JM && JM.slotSigs ? JM.slotSigs(j, ctx, x) : { all: sig(j) + whereOf(x) };
+    const u = ui(j.id);
+    s.reroll = JSON.stringify([!!u.reroll, j.cache_keys || null, seedOf(j), j.method || null, j.kind]);
+    return s;
+  }
+  /** A slot with nothing to show keeps its place as a hidden span (a later patch fills it). */
+  function hole(name) { return el('span', { class: 'jslot-hole', hidden: true, 'data-slot': name }); }
+  /** A slot of several elements: a wrapper that lays them out as the card's own children (display: contents). */
+  function group(...nodes) { const g = el('div', { class: 'jslot' }); for (const n of nodes.flat()) if (n) g.appendChild(n); return g.childNodes.length ? g : null; }
+
+  /** A job's card; x = its place ({pos, n} in its group; queued jobs: queueOrder's entry with held, up, down); old = the
+   *  card it replaces (a state change): its clip players are handed over. */
+  function card(j, x, old) {
     const c = el('article', { class: `jcard state-${j.state}`, 'data-id': j.id });
+    c.dataset.state = j.state;
+    c.__bank = old && old.__bank ? old.__bank : (JV ? new JV.Bank() : null);
+    if (old) old.__bank = null;
     c.__players = [];
+    c.__slots = {}; c.__sigs = {}; c.__job = j; c.__x = x || { pos: 0, n: 1 };
+    const sigs = slotSigsOf(j, c.__x);
+    for (const name of slotsOf(j)) {
+      const n = buildSlot(name, c, j, c.__x) || hole(name);
+      n.dataset.slot = name;
+      c.__slots[name] = n; c.__sigs[name] = sigs[name];
+      c.appendChild(n);
+    }
+    c.dataset.pos = whereOf(c.__x);
+    return c;
+  }
+  /** The slots whose signature moved, built again in place (the log takes its new lines in place); -> how many. */
+  function patchCard(c, j, x) {
+    c.__job = j; c.__x = x || c.__x;
+    const sigs = slotSigsOf(j, c.__x);
+    let n = 0;
+    for (const name of slotsOf(j)) {
+      if (c.__sigs[name] === sigs[name]) continue;
+      c.__sigs[name] = sigs[name];
+      const old = c.__slots[name];
+      if (name === 'log' && old && old.tagName === 'PRE' && JV) { JV.patchLog(old, j, old.__lines, ui(j.id)); n++; continue; }
+      refreshSlot(c, name, j, sigs[name]);
+      n++;
+    }
+    c.dataset.pos = whereOf(c.__x);
+    return n;
+  }
+  /** One slot built again whatever its signature (a toggle, a panel); its signature taken as it is now. */
+  function refreshSlot(c, name, j, sig1) {
+    const job = j || c.__job;
+    c.__sigs[name] = sig1 !== undefined ? sig1 : slotSigsOf(job, c.__x)[name];
+    const old = c.__slots[name];
+    const nn = buildSlot(name, c, job, c.__x) || hole(name);
+    nn.dataset.slot = name;
+    if (old && old.parentNode === c) old.replaceWith(nn); else c.appendChild(nn);
+    c.__slots[name] = nn;
+    return nn;
+  }
+
+  function buildSlot(name, c, j, x) {
+    const p = j.progress || {};
+    switch (name) {
+      case 'head': return headEl(j);
+      case 'sub': return subEl(j);
+      case 'stage': return stageEl(c, j, x);
+      case 'bar': return j.state === 'running' && p.total ? el('div', { class: 'jbar' + (p.stalled ? ' stalled' : '') }, el('i', { style: `width:${Math.min(100, Math.round(100 * (p.done || 0) / p.total))}%` })) : null;
+      case 'stages': {
+        const has = (p.stages || []).length;
+        if (!has || (j.state === 'queued' && !((j.phase || 1) > 1))) return null;
+        return stagesRow(j);
+      }
+      case 'log': return j.state === 'running' ? logTail(j) : (j.log_tail && j.log_tail.length ? logTail(j, 6) : null);
+      case 'outputs': {
+        if (!(j.outputs || []).length || (j.state === 'queued' && !((j.phase || 1) > 1))) return null;
+        return outputs(j, c.__bank || c.__players);   // what it made so far (a failed job: before it stopped, its workflows above all)
+      }
+      case 'choices': return j.state === 'done' && (j.choices || []).length ? installChoices(c, j) : null;
+      case 'actions': return actionsEl(c, j, x);
+      case 'folds': return foldsEl(j);
+      case 'reroll': return ui(j.id).reroll && FINISHED.includes(j.state) && j.kind !== 'sim' ? rerollBox(c, j) : null;
+      default: return null;
+    }
+  }
+
+  function headEl(j) {
     const head = el('div', { class: 'jcard-head' },
       el('span', { class: `chip state-${j.state}`, text: STATE_LABEL[j.state] || j.state }),
-      el('span', { class: 'jid', text: '#' + shortId(j.id), title: j.id }),
+      el('span', { class: 'jid', text: '#' + shortId(j.id), title: `${j.id} (click: this card's address, #jobs/${j.id}: a reload comes back to it)`, onclick: () => { S.focus = { job: j.id }; focusCard(); if (App.route) App.route({ tab: 'jobs', job: j.id }); } }),
       el('span', { class: 'jtitle', text: title(j) }));
     const times = [];
     if (j.created) times.push('created ' + when(j.created));
     if (j.started) times.push('started ' + when(j.started));
     if (j.ended) times.push('ended ' + when(j.ended));
     head.appendChild(el('span', { class: 'jwhen', text: times.join(' · ') }));
-    c.appendChild(head);
+    return head;
+  }
+  function subEl(j) {
+    const t = j.target || {};
     const sub = el('div', { class: 'jcard-sub' });
     if (t.kind) sub.appendChild(el('span', {}, el('span', { class: 'muted', text: 'target ' }), el('b', { text: `${t.kind} ${t.id || ''}${t.code ? ' · ' + t.code : ''}` })));
     sub.appendChild(el('span', {}, el('span', { class: 'muted', text: 'method ' }), el('span', { text: methodName(j), title: j.method || '' })));
@@ -936,60 +1240,106 @@ const Jobs = (() => {
     if (df.length) sub.appendChild(el('span', { class: 'muted', text: 'filled in: ' + df.map(([k, v]) => `${k} from ${v || 'the defaults'}`).join(' · '), title: df.map(([k]) => `${k}: ${String(j.spec[k] == null ? '' : j.spec[k]).slice(0, 200)}`).join('\n') }));
     if (j.spec && j.spec.reroll && j.spec.reroll.mode) sub.appendChild(el('span', { class: 'muted', text: `re-roll: ${j.spec.reroll.mode}${j.spec.reroll.view ? ' (' + j.spec.reroll.view + ')' : ''}` }));
     if (j.qa_online === false) sub.appendChild(el('span', { class: 'warn-text', text: 'QA offline: every first roll kept', title: 'the vision check did not answer; the tools keep what the model painted first' }));
-    c.appendChild(sub);
-    if (j.state === 'running') runningBody(c, j);
-    else if (j.state === 'waiting') waitingBody(c, j);
-    else if (j.state === 'queued') queuedBody(c, j, x || { pos: 0, n: 1 });
-    else if (j.state === 'done') doneBody(c, j);
-    else failedBody(c, j);
-    // pass 96 (UI-04 part 1): the folds' open state lives in S.ui, so a rebuilt card opens them again
+    // pass 97: the art request this job belongs to (a link to its card)
+    if (j.request) sub.appendChild(el('a', { class: 'small', href: JM ? JM.formatHash({ request: j.request }) : '#jobs', text: `request ${shortId(j.request)}`, title: `this job is one step of the art request ${j.request}: its card is in Requests` }));
+    return sub;
+  }
+  /** The state's own lines: running (the stage, the elapsed clock, a stall, a lock wait, the last output, pass 97's
+   *  substage), waiting (what to pick and the candidates), queued (its place in its lane), done (what was written),
+   *  failed / interrupted / cancelled (why). */
+  function stageEl(c, j, x) {
+    if (j.state === 'running') {
+      const p = j.progress || {};
+      const elapsed = secondsSince(j.started);
+      const eta = j.eta_s != null ? ` / ~${fmtT(j.eta_s)}` : '';
+      const line = el('div', { class: 'jcard-sub' },
+        el('span', {}, el('span', { class: 'muted', text: 'stage ' }), el('b', { text: p.stage || '…' }), el('span', { class: 'muted', text: p.total ? ` (${p.done || 0} of ${p.total})` : '' })),
+        el('span', {}, el('span', { class: 'muted', text: 'elapsed ' }), el('span', { class: 'jelapsed', 'data-started': j.started || '', 'data-eta': j.eta_s != null ? String(j.eta_s) : '', text: fmtT(elapsed) + eta, title: 'the estimate ("~") is the method\'s measured median × its stages; a Flux.2 dev restart can add minutes' + (j.eta_source ? ` (this one: ${{ measured: 'the measured median of its last 5+ runs', methods: 'methods.json\'s figure', builtin: 'the built-in figure' }[j.eta_source] || j.eta_source})` : '') })),   // pass 96: ticked by its own 1 s timer (pass 97: lane PROGRESS's eta_source said)
+        p.stalled ? el('span', { class: 'warn-text', text: 'no output for 20 min: stalled? (never killed on its own; Cancel if you are sure)' }) : null,
+        j.lock_waits && Object.keys(j.lock_waits).length ? el('span', { class: 'warn-text', text: 'waiting for a lock: ' + Object.entries(j.lock_waits).map(([k, v]) => `${k} ${v}`).join('; ') }) : null,
+        p.last_output ? el('span', { class: 'muted', text: p.last_output, title: 'the last line the tool printed' }) : null);
+      return group(line, JV ? JV.substageLine(j) : null);
+    }
+    if (j.state === 'waiting') return waitingStage(c, j);
+    if (j.state === 'queued') return queuedLine(j, x || { pos: 0, n: 1 });
+    if (j.state === 'done') return writtenLines(j);
+    if (j.error) return group(el('div', { class: 'jerror', text: j.error }), j.progress && j.progress.comfy_error ? el('div', { class: 'jerror small', text: 'ComfyUI: ' + j.progress.comfy_error }) : null);
+    if (j.state === 'interrupted') return el('div', { class: 'jwarn', text: 'The server restarted while this job ran: its process was stopped. Re-queue continues from the tools\' caches (finished stills and clips are reused).' });
+    if (j.state === 'cancelled') return el('div', { class: 'muted small', text: 'cancelled' });
+    return null;
+  }
+
+  function stagesRow(j) { return JV.stagesRow(j); }
+  function logTail(j, lines) { return JV.logTail(j, lines || LOG_LINES, ui(j.id)); }
+
+  function actionsEl(c, j, x) {
+    const t = j.target || {};
+    if (j.state === 'running') {
+      return el('div', { class: 'jcard-actions' },
+        el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', title: 'kill the tool (and, for a ComfyUI job, interrupt the server\'s queue, which holds only ours under the lock)', onclick: () => act(j, 'cancel', {}, 'cancelling') }),
+        t.id ? el('button', { type: 'button', class: 'btn small', text: j.kind === 'sim' ? 'Open in Sim' : 'Open asset', onclick: () => openAsset(cur(j).target) }) : null,
+        el('button', { type: 'button', class: 'btn small ghost', text: 'Log', title: 'the last 80 lines', onclick: () => showLog(j) }));
+    }
+    if (j.state === 'waiting') {
+      const u = ui(j.id);
+      const picked = u.picked || null;
+      const choices = j.choices || [];
+      const groups = [...new Set(choices.filter((ch) => ch.group).map((ch) => ch.group))];
+      const pickText = picked ? `Pick ${(choices.find((ch) => (ch.key != null ? ch.key : ch.label) === picked) || {}).label || picked}` : (groups.length ? `Pick (one per ${groups.join(' and ')})` : 'Pick');
+      const pickBtn = el('button', { type: 'button', class: 'btn small primary jpick', text: pickText, disabled: !picked, onclick: () => { const v = ui(j.id).picked; if (v) act(j, 'pick', { choice: v }, `picking ${v}`); } });
+      const n = (j.spec && j.spec.counts && j.spec.counts.seeds) || choices.length || 3;
+      return el('div', { class: 'jcard-actions' },
+        pickBtn,
+        el('button', { type: 'button', class: 'btn small', text: `Re-roll ${n} more`, title: 'the same stage again with the next seeds: new candidates', onclick: () => { const jj = cur(j); act(jj, 'requeue', { reroll: { stills: (jj.choices || []).map((ch) => ch.cache_key).filter(Boolean), clips: [], seed: seedOf(jj) + 1 } }, 're-rolling'); } }),
+        el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', onclick: () => act(j, 'cancel', {}, 'cancelling') }),
+        el('button', { type: 'button', class: 'btn small ghost', text: 'Edit', title: 'change the spec: the job goes back to the queue at phase 1 (its candidates are stale)', onclick: () => openForm(t.kind, t.id, { job: cur(j) }) }));
+    }
+    if (j.state === 'queued') {
+      const w = x || { pos: 0, n: 1 };
+      const { pos, n, held } = w;
+      const up = held ? 0 : (w.up != null ? w.up : (pos > 0 ? -1 : 0)), down = held ? 0 : (w.down != null ? w.down : (pos < n - 1 ? 1 : 0));
+      const why = held ? 'a held job waits for its look\'s front: it does not move' : j.front ? 'a picked job resuming goes first in its lane: it moves only among the other resuming ones' : 'a resuming pick stays first in the lane';
+      return el('div', { class: 'jcard-actions' },
+        el('button', { type: 'button', class: 'btn small', text: 'Edit', title: 'change the spec in the form', onclick: () => openForm(t.kind, t.id, { job: cur(j) }) }),
+        el('button', { type: 'button', class: 'btn small', text: '▲', title: up ? 'earlier in its lane' : `earlier in its lane (${held ? why : pos === 0 ? 'it is first' : why})`, disabled: !up, onclick: () => act(j, 'move', { delta: up }, 'moving') }),
+        el('button', { type: 'button', class: 'btn small', text: '▼', title: down ? 'later in its lane' : `later in its lane (${held ? why : pos >= n - 1 ? 'it is last' : why})`, disabled: !down, onclick: () => act(j, 'move', { delta: down }, 'moving') }),
+        el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', onclick: () => act(j, 'cancel', {}, 'cancelling') }));
+    }
+    if (j.state === 'done') {
+      return el('div', { class: 'jcard-actions' },
+        t.id ? el('button', { type: 'button', class: 'btn small primary', text: j.kind === 'sim' ? 'Open in Sim' : t.code ? 'Open look' : 'Open asset', onclick: () => openAsset(cur(j).target) }) : null,
+        el('button', { type: 'button', class: 'btn small', text: 'Re-queue', title: 'the same spec again (attempt + 1); the tools reuse what is cached unless you re-roll', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
+        j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
+        // pass 95 (lane VACE): a landed look's (or a repair's, an export's) frames, versions and repairs
+        (['look', 'frames_repair', 'frames_export'].includes(j.kind) && t.code && typeof Frames !== 'undefined') ? el('button', { type: 'button', class: 'btn small', text: 'Frames…', title: 'every frame of this look\'s animations: look at them one by one, choose frames to paint anew with VACE, pick versions, export once', onclick: () => { const jj = cur(j); Frames.open(jj.target.kind || 'enemy', jj.target.id, jj.target.code, jj.kind === 'frames_repair' && jj.spec ? { base: jj.spec.anim, view: jj.spec.view, slot: Array.isArray(jj.spec.slots) ? jj.spec.slots[0] : null } : {}); } }) : null,
+        el('button', { type: 'button', class: 'btn small ghost', text: 'Hide', title: 'hide this card until the page reloads', onclick: () => { S.hidden.add(j.id); draw(); } }),
+        el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
+        el('span', { class: 'spacer' }),
+        el('button', { type: 'button', class: 'btn small ghost danger', text: 'Delete', title: 'remove the record and tools/dl/jobs/<id>/', onclick: () => act(j, 'delete', {}, 'deleting') }));
+    }
+    return el('div', { class: 'jcard-actions' },
+      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
+      j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
+      el('button', { type: 'button', class: 'btn small', text: 'Edit', onclick: () => { const jj = cur(j); openForm((jj.target || {}).kind, (jj.target || {}).id, { job: jj }); } }),
+      el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
+      j.kind === 'look' && t.code ? el('button', { type: 'button', class: 'btn small ghost', text: 'Remove the stub', title: `delete variants["${t.code}"] from ${t.id}.json when it has no strip (the server refuses otherwise)`, onclick: async () => {
+        const res = await post(`/api/content/${encodeURIComponent(t.kind)}/${encodeURIComponent(t.id)}/look/${encodeURIComponent(t.code)}`, { op: 'remove' });
+        App.status(res.ok ? `${t.id}: the stub ${t.code} is gone` : `${t.id} ${t.code}: ${res.error}`, res.ok ? 'good' : 'bad');
+      } }) : null,
+      el('span', { class: 'spacer' }),
+      el('button', { type: 'button', class: 'btn small ghost danger', text: 'Delete', onclick: () => act(j, 'delete', {}, 'deleting') }));
+  }
+
+  /** The folds (the command Claude would type, the spec); their open state lives in S.ui (pass 96). */
+  function foldsEl(j) {
     const u = ui(j.id);
     const fold = (key, summaryText, body) => { const d = el('details', { class: 'jfold', open: !!u.folds[key] }, el('summary', { text: summaryText }), body); d.addEventListener('toggle', () => { u.folds[key] = d.open; }); return d; };
-    if (j.equiv) c.appendChild(fold('equiv', 'the command Claude would type', el('div', { class: 'jequiv', text: j.equiv })));
-    if (j.spec) c.appendChild(fold('spec', 'the spec', el('pre', { class: 'jlog', text: JSON.stringify(j.spec, null, 1) })));
-    if (u.reroll && ['done', 'failed', 'interrupted', 'cancelled'].includes(j.state) && j.kind !== 'sim') rerollPanel(c, j, true);   // an open re-roll panel survives the rebuild
-    return c;
+    return group(j.equiv ? fold('equiv', 'the command Claude would type', el('div', { class: 'jequiv', text: j.equiv })) : null,
+      j.spec ? fold('spec', 'the spec', el('pre', { class: 'jlog', text: JSON.stringify(j.spec, null, 1) })) : null);
   }
 
-  function stagesRow(j) {
-    const p = j.progress || {};
-    const row = el('div', { class: 'jstages' });
-    // a stage's note says when it was not made by this job ("cached": the still or clip was on disk already)
-    for (const s of p.stages || []) row.appendChild(el('span', { class: 'jstage ' + (s.state || '') + (s.note === 'cached' ? ' cached' : ''), text: s.name + (s.secs ? ` ${Math.round(s.secs)}s` : '') + (s.note ? ` · ${s.note}` : ''), title: `${s.name}: ${s.state || 'pending'}${s.note === 'cached' ? ' (reused from disk: this job did not paint it)' : s.note ? ' · ' + s.note : ''}` }));
-    return row;
-  }
-
-  function logTail(j, lines) {
-    const tail = (j.log_tail || []).slice(-(lines || LOG_LINES));
-    const pre = el('pre', { class: 'jlog', text: tail.join('\n') || '(no output yet)' });
-    // pass 96 (UI-04 part 1): the log pins to the bottom only when it was at the bottom; a scrolled-up log keeps its place
-    const u = ui(j.id);
-    requestAnimationFrame(() => { pre.scrollTop = typeof u.log === 'number' ? u.log : pre.scrollHeight; });
-    pre.addEventListener('scroll', () => { u.log = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 4 ? 'bottom' : pre.scrollTop; });
-    return pre;
-  }
-
-  function runningBody(c, j) {
-    const p = j.progress || {};
-    const elapsed = secondsSince(j.started);
-    const eta = j.eta_s != null ? ` / ~${fmtT(j.eta_s)}` : '';
-    c.appendChild(el('div', { class: 'jcard-sub' },
-      el('span', {}, el('span', { class: 'muted', text: 'stage ' }), el('b', { text: p.stage || '…' }), el('span', { class: 'muted', text: p.total ? ` (${p.done || 0} of ${p.total})` : '' })),
-      el('span', {}, el('span', { class: 'muted', text: 'elapsed ' }), el('span', { class: 'jelapsed', 'data-started': j.started || '', 'data-eta': j.eta_s != null ? String(j.eta_s) : '', text: fmtT(elapsed) + eta, title: 'the estimate ("~") is the method\'s measured median × its stages; a Flux.2 dev restart can add minutes' })),   // pass 96: ticked by its own 1 s timer
-      p.stalled ? el('span', { class: 'warn-text', text: 'no output for 20 min: stalled? (never killed on its own; Cancel if you are sure)' }) : null,
-      j.lock_waits && Object.keys(j.lock_waits).length ? el('span', { class: 'warn-text', text: 'waiting for a lock: ' + Object.entries(j.lock_waits).map(([k, v]) => `${k} ${v}`).join('; ') }) : null,
-      p.last_output ? el('span', { class: 'muted', text: p.last_output, title: 'the last line the tool printed' }) : null));
-    if (p.total) c.appendChild(el('div', { class: 'jbar' + (p.stalled ? ' stalled' : '') }, el('i', { style: `width:${Math.min(100, Math.round(100 * (p.done || 0) / p.total))}%` })));
-    if (p.stages && p.stages.length) c.appendChild(stagesRow(j));
-    c.appendChild(logTail(j));
-    if (j.outputs && j.outputs.length) c.appendChild(outputs(j, c.__players));
-    c.appendChild(el('div', { class: 'jcard-actions' },
-      el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', title: 'kill the tool (and, for a ComfyUI job, interrupt the server\'s queue, which holds only ours under the lock)', onclick: () => act(j, 'cancel', {}, 'cancelling') }),
-      j.target && j.target.id ? el('button', { type: 'button', class: 'btn small', text: j.kind === 'sim' ? 'Open in Sim' : 'Open asset', onclick: () => openAsset(j.target) }) : null,
-      el('button', { type: 'button', class: 'btn small ghost', text: 'Log', title: 'the last 80 lines', onclick: () => showLog(j) })));
-  }
-
-  function waitingBody(c, j) {
+  /** What to pick and the candidates; the pick lives in S.ui (pass 96), the Pick button in the actions slot follows it. */
+  function waitingStage(c, j) {
     const choices = j.choices || [];
     // pass 96 (UI-04 part 1): the pick lives in S.ui (read here, written in the handlers), so it survives a poll's rebuild;
     // c.__picked stays as a mirror for anything that reads it
@@ -1001,9 +1351,9 @@ const Jobs = (() => {
     const groups = [...new Set(choices.filter((ch) => ch.group).map((ch) => ch.group))];
     const gpicked = u.gpicked || (u.gpicked = {});
     c.__gpicked = gpicked;
-    c.appendChild(el('div', { class: 'jcard-sub' }, el('b', { text: `needs your pick: ${what} (${choices.length} candidate${choices.length === 1 ? '' : 's'})` }), el('span', { class: 'muted', text: j.progress && j.progress.stage ? j.progress.stage : '' }), el('span', { class: 'muted', text: 'click a picture to zoom, click the card to choose' })));
+    const line = el('div', { class: 'jcard-sub' }, el('b', { text: `needs your pick: ${what} (${choices.length} candidate${choices.length === 1 ? '' : 's'})` }), el('span', { class: 'muted', text: j.progress && j.progress.stage ? j.progress.stage : '' }), el('span', { class: 'muted', text: 'click a picture to zoom, click the card to choose' }));
     const grid = el('div', { class: 'jchoices' });
-    const pickBtn = el('button', { type: 'button', class: 'btn small primary', text: picked ? `Pick ${picked}` : 'Pick', disabled: !picked, onclick: () => act(j, 'pick', { choice: picked }, `picking ${picked}`) });
+    const setBtn = (text) => { const b = c.querySelector('button.jpick'); if (b) { b.disabled = !picked; b.textContent = text; } };
     for (const ch of choices) {
       const key = ch.key != null ? ch.key : ch.label;
       const box = el('div', { class: 'jchoice' + (picked === key || (ch.group && gpicked[ch.group] === key) ? ' picked' : ''), title: ch.label || key });
@@ -1019,85 +1369,50 @@ const Jobs = (() => {
           for (const x of grid.children) if (x.dataset.group === ch.group) x.classList.toggle('picked', x === box);
           picked = groups.every((g) => gpicked[g]) ? (typeof Puppet !== 'undefined' ? Puppet.groupPick(gpicked) : Object.values(gpicked).join(',')) : null;
           c.__picked = picked; u.picked = picked;
-          pickBtn.disabled = !picked;
-          pickBtn.textContent = picked ? `Pick ${picked}` : `Pick (one per ${groups.join(' and ')})`;
+          setBtn(picked ? `Pick ${picked}` : `Pick (one per ${groups.join(' and ')})`);
         });
         box.dataset.group = ch.group;
       } else if (ch.sheet && !ch.key) {
         img.title = 'the review sheet';
       } else {
-        box.addEventListener('click', () => { picked = key; c.__picked = key; u.picked = key; for (const x of grid.children) x.classList.toggle('picked', x === box); pickBtn.disabled = false; pickBtn.textContent = `Pick ${ch.label || key}`; });
+        box.addEventListener('click', () => { picked = key; c.__picked = key; u.picked = key; for (const x of grid.children) x.classList.toggle('picked', x === box); setBtn(`Pick ${ch.label || key}`); });
       }
       grid.appendChild(box);
     }
-    c.appendChild(grid);
     const sheet = choices.find((ch) => ch.sheet);
-    if (sheet) c.appendChild(el('div', { class: 'muted small' }, el('a', { href: '#', text: 'the review sheet', onclick: (e) => { e.preventDefault(); StripPlayer.openImage(sheet.sheet, 'the review sheet'); } })));
-    const n = (j.spec && j.spec.counts && j.spec.counts.seeds) || choices.length || 3;
-    c.appendChild(el('div', { class: 'jcard-actions' },
-      pickBtn,
-      el('button', { type: 'button', class: 'btn small', text: `Re-roll ${n} more`, title: 'the same stage again with the next seeds: new candidates', onclick: () => act(j, 'requeue', { reroll: { stills: choices.map((ch) => ch.cache_key).filter(Boolean), clips: [], seed: seedOf(j) + 1 } }, 're-rolling') }),
-      el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', onclick: () => act(j, 'cancel', {}, 'cancelling') }),
-      el('button', { type: 'button', class: 'btn small ghost', text: 'Edit', title: 'change the spec: the job goes back to the queue at phase 1 (its candidates are stale)', onclick: () => openForm(j.target.kind, j.target.id, { job: j }) })));
-    // pass 71: what the job made so far, its ComfyUI workflows above all (a puppet job stops for three picks)
-    if (j.progress && (j.progress.stages || []).length) c.appendChild(stagesRow(j));
-    if ((j.outputs || []).length) c.appendChild(outputs(j, c.__players));
+    return group(line, grid, sheet ? el('div', { class: 'muted small' }, el('a', { href: '#', text: 'the review sheet', onclick: (e) => { e.preventDefault(); StripPlayer.openImage(sheet.sheet, 'the review sheet'); } })) : null);
   }
 
-  /** A queued card: its place in its lane (x = queueOrder's entry: one worker per lane takes them in this order), or, for
-   *  a held job, what it waits for; ▲ / ▼ swap it with the card above or below in its group (off where none is). */
-  function queuedBody(c, j, x) {
+  /** A queued card's place in its lane (x = queueOrder's entry: one worker per lane takes them in this order), or, for a
+   *  held job, what it waits for. */
+  function queuedLine(j, x) {
     const { pos, n, held } = x;
-    const up = held ? 0 : (x.up != null ? x.up : (pos > 0 ? -1 : 0)), down = held ? 0 : (x.down != null ? x.down : (pos < n - 1 ? 1 : 0));
     const t = j.target || {};
-    c.appendChild(el('div', { class: 'jcard-sub' },
+    return el('div', { class: 'jcard-sub' },
       held ? el('span', { class: 'warn-text', text: heldLabel(j), title: `held: its reference picture (${(j.spec && j.spec.ref) || 'the look\'s front still'}) is not on disk yet, and ${t.code || 'its look'}'s look job (queued, running or waiting for a pick) paints it first; the ${j.lane || '?'} lane runs the jobs above, and this one once that picture is there` })
         : el('span', { class: pos === 0 ? 'jnext' : 'muted', text: queueLabel(pos, n, j.lane), title: `the ${j.lane || '?'} lane runs one job at a time, in this order; the other lanes run beside it` }),
       j.front && !held ? el('span', { class: 'muted', text: 'a picked job resuming: it goes first in its lane' }) : null,
-      j.eta_s != null ? el('span', { class: 'muted', text: `~${fmtT(j.eta_s)} once it runs`, title: 'the method\'s measured median × its stages' }) : null));
-    // pass 71: a resuming job (a pick made, a puppet phase on the other lane next) shows what it made so far
-    if ((j.phase || 1) > 1 && j.progress && (j.progress.stages || []).length) c.appendChild(stagesRow(j));
-    if ((j.phase || 1) > 1 && (j.outputs || []).length) c.appendChild(outputs(j, c.__players));
-    const why = held ? 'a held job waits for its look\'s front: it does not move' : j.front ? 'a picked job resuming goes first in its lane: it moves only among the other resuming ones' : 'a resuming pick stays first in the lane';
-    c.appendChild(el('div', { class: 'jcard-actions' },
-      el('button', { type: 'button', class: 'btn small', text: 'Edit', title: 'change the spec in the form', onclick: () => openForm(j.target.kind, j.target.id, { job: j }) }),
-      el('button', { type: 'button', class: 'btn small', text: '▲', title: up ? 'earlier in its lane' : `earlier in its lane (${held ? why : pos === 0 ? 'it is first' : why})`, disabled: !up, onclick: () => act(j, 'move', { delta: up }, 'moving') }),
-      el('button', { type: 'button', class: 'btn small', text: '▼', title: down ? 'later in its lane' : `later in its lane (${held ? why : pos >= n - 1 ? 'it is last' : why})`, disabled: !down, onclick: () => act(j, 'move', { delta: down }, 'moving') }),
-      el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', onclick: () => act(j, 'cancel', {}, 'cancelling') })));
+      j.eta_s != null ? el('span', { class: 'muted', text: `~${fmtT(j.eta_s)} once it runs`, title: 'the method\'s measured median × its stages' }) : null);
   }
 
-  function doneBody(c, j) {
+  function writtenLines(j) {
     const w = j.written;
-    if (w && w.file) {
-      const layout = w.layout || '';
-      const text = layout === 'unmerged' ? 'the result is NOT in the JSON yet' : `wrote ${w.file.split(/[\\/]/).pop()}${w.keys && w.keys.length ? ' (' + w.keys.join(', ') + ')' : ''} · ${layout === 'block' ? 'the whole variants block rewritten in place' : layout === 'entry' ? 'one entry written in place' : layout === 'redumped' ? 'RE-DUMPED (the file\'s layout changed)' : layout}${w.backup ? ' · backup ' + String(w.backup).split(/[\\/]/).pop() : ''}`;
-      c.appendChild(el('div', { class: layout === 'unmerged' ? 'jwarn' : 'jcard-sub muted', text }));
+    if (!(w && w.file)) return null;
+    const layout = w.layout || '';
+    const text = layout === 'unmerged' ? 'the result is NOT in the JSON yet' : `wrote ${w.file.split(/[\\/]/).pop()}${w.keys && w.keys.length ? ' (' + w.keys.join(', ') + ')' : ''} · ${layout === 'block' ? 'the whole variants block rewritten in place' : layout === 'entry' ? 'one entry written in place' : layout === 'redumped' ? 'RE-DUMPED (the file\'s layout changed)' : layout}${w.backup ? ' · backup ' + String(w.backup).split(/[\\/]/).pop() : ''}`;
+    return group(el('div', { class: layout === 'unmerged' ? 'jwarn' : 'jcard-sub muted', text }),
       // pass 96 (AN-09 Q4): what the frames store did at the landing: "re-applied N pinned frames (export job ...)", the pins that no longer fit
-      if (w.frames && w.frames.note) c.appendChild(el('div', { class: w.frames.misfit || w.frames.error ? 'jwarn' : 'jcard-sub muted', text: w.frames.note, title: (w.frames.reapply && w.frames.reapply.names || []).join('\n') }));
-      if (layout === 'unmerged') c.appendChild(el('div', { class: 'jwarn' },
+      w.frames && w.frames.note ? el('div', { class: w.frames.misfit || w.frames.error ? 'jwarn' : 'jcard-sub muted', text: w.frames.note, title: (w.frames.reapply && w.frames.reapply.names || []).join('\n') }) : null,
+      layout === 'unmerged' ? el('div', { class: 'jwarn' },
         el('span', { text: 'Neither the block write nor the entry write fit this file\'s layout (a hand-edited JSON). The strip, the icon and result.json are on disk. Choose:' }),
         el('button', { type: 'button', class: 'btn small', text: 'Merge again', title: 'try the line-preserving merge once more (after you tidied the file, say)', onclick: () => act(j, 'merge', { redump: false }, 'merging') }),
-        el('button', { type: 'button', class: 'btn small danger', text: 'Re-dump this file (changes its layout)', title: 'write the whole JSON again with a two-space indent: every line may change in git, but the look lands', onclick: () => act(j, 'merge', { redump: true }, 're-dumping') })));
-    }
-    if (j.outputs && j.outputs.length) c.appendChild(outputs(j, c.__players));
-    if (j.choices && j.choices.length) installChoices(c, j);
-    if (j.progress && j.progress.stages && j.progress.stages.length) c.appendChild(stagesRow(j));
-    c.appendChild(el('div', { class: 'jcard-actions' },
-      j.target && j.target.id ? el('button', { type: 'button', class: 'btn small primary', text: j.kind === 'sim' ? 'Open in Sim' : j.target.code ? 'Open look' : 'Open asset', onclick: () => openAsset(j.target) }) : null,
-      el('button', { type: 'button', class: 'btn small', text: 'Re-queue', title: 'the same spec again (attempt + 1); the tools reuse what is cached unless you re-roll', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
-      j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
-      // pass 95 (lane VACE): a landed look's (or a repair's, an export's) frames, versions and repairs
-      (['look', 'frames_repair', 'frames_export'].includes(j.kind) && j.target && j.target.code && typeof Frames !== 'undefined') ? el('button', { type: 'button', class: 'btn small', text: 'Frames…', title: 'every frame of this look\'s animations: look at them one by one, choose frames to paint anew with VACE, pick versions, export once', onclick: () => Frames.open(j.target.kind || 'enemy', j.target.id, j.target.code, j.kind === 'frames_repair' && j.spec ? { base: j.spec.anim, view: j.spec.view, slot: Array.isArray(j.spec.slots) ? j.spec.slots[0] : null } : {}) }) : null,
-      el('button', { type: 'button', class: 'btn small ghost', text: 'Hide', title: 'hide this card until the page reloads', onclick: () => { S.hidden.add(j.id); draw(); } }),
-      el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
-      el('span', { class: 'spacer' }),
-      el('button', { type: 'button', class: 'btn small ghost danger', text: 'Delete', title: 'remove the record and tools/dl/jobs/<id>/', onclick: () => act(j, 'delete', {}, 'deleting') })));
+        el('button', { type: 'button', class: 'btn small danger', text: 'Re-dump this file (changes its layout)', title: 'write the whole JSON again with a two-space indent: every line may change in git, but the look lands', onclick: () => act(j, 'merge', { redump: true }, 're-dumping') })) : null);
   }
 
   function installChoices(c, j) {
     const choices = j.choices || [];
     let picked = null;
-    c.appendChild(el('div', { class: 'jcard-sub' }, el('b', { text: `${choices.length} candidates to pick from` }), el('span', { class: 'muted', text: 'Install writes the picked one into the content (the old file is backed up) and imports it' })));
+    const line = el('div', { class: 'jcard-sub' }, el('b', { text: `${choices.length} candidates to pick from` }), el('span', { class: 'muted', text: 'Install writes the picked one into the content (the old file is backed up) and imports it' }));
     const grid = el('div', { class: 'jchoices' });
     const btn = el('button', { type: 'button', class: 'btn small primary', text: 'Install', disabled: true, onclick: () => act(j, 'install', { choice: picked }, `installing ${picked}`) });
     for (const ch of choices) {
@@ -1109,36 +1424,18 @@ const Jobs = (() => {
       box.addEventListener('click', () => { picked = key; for (const x of grid.children) x.classList.toggle('picked', x === box); btn.disabled = false; btn.textContent = `Install ${ch.label || key}`; });
       grid.appendChild(box);
     }
-    c.appendChild(grid);
-    c.appendChild(el('div', { class: 'jcard-actions' }, btn, el('button', { type: 'button', class: 'btn small', text: `Re-roll ${choices.length} more`, onclick: () => act(j, 'requeue', { reroll: { seed: ((j.spec && j.spec.flags && j.spec.flags.seed) || 0) + 1 } }, 're-rolling') })));
+    return group(line, grid, el('div', { class: 'jcard-actions' }, btn, el('button', { type: 'button', class: 'btn small', text: `Re-roll ${choices.length} more`, onclick: () => { const jj = cur(j); act(jj, 'requeue', { reroll: { seed: ((jj.spec && jj.spec.flags && jj.spec.flags.seed) || 0) + 1 } }, 're-rolling'); } })));
   }
 
-  function failedBody(c, j) {
-    if (j.error) c.appendChild(el('div', { class: 'jerror', text: j.error }));
-    else if (j.state === 'interrupted') c.appendChild(el('div', { class: 'jwarn', text: 'The server restarted while this job ran: its process was stopped. Re-queue continues from the tools\' caches (finished stills and clips are reused).' }));
-    else if (j.state === 'cancelled') c.appendChild(el('div', { class: 'muted small', text: 'cancelled' }));
-    if (j.log_tail && j.log_tail.length) c.appendChild(logTail(j, 6));
-    if (j.outputs && j.outputs.length) c.appendChild(outputs(j, c.__players));   // what it made before it stopped: its workflows above all
-    const t = j.target || {};
-    c.appendChild(el('div', { class: 'jcard-actions' },
-      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
-      j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
-      el('button', { type: 'button', class: 'btn small', text: 'Edit', onclick: () => openForm(t.kind, t.id, { job: j }) }),
-      el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
-      j.kind === 'look' && t.code ? el('button', { type: 'button', class: 'btn small ghost', text: 'Remove the stub', title: `delete variants["${t.code}"] from ${t.id}.json when it has no strip (the server refuses otherwise)`, onclick: async () => {
-        const res = await post(`/api/content/${encodeURIComponent(t.kind)}/${encodeURIComponent(t.id)}/look/${encodeURIComponent(t.code)}`, { op: 'remove' });
-        App.status(res.ok ? `${t.id}: the stub ${t.code} is gone` : `${t.id} ${t.code}: ${res.error}`, res.ok ? 'good' : 'bad');
-      } }) : null,
-      el('span', { class: 'spacer' }),
-      el('button', { type: 'button', class: 'btn small ghost danger', text: 'Delete', onclick: () => act(j, 'delete', {}, 'deleting') })));
+  /** Re-queue with a re-roll: the record's cache_keys (stills, clips) as boxes to tick and the next seed. The panel is
+   *  the card's `reroll` slot; its open state is S.ui's (pass 96), so it survives a rebuilt card. A second click closes it. */
+  function rerollPanel(c, j) {
+    const u = ui(j.id);
+    u.reroll = !u.reroll;
+    refreshSlot(c, 'reroll', cur(j));
   }
-
-  /** Re-queue with a re-roll: the record's cache_keys (stills, clips) as boxes to tick and the next seed.
-   *  pass 96: its open state is S.ui's (reopened on a rebuilt card: `restore`). */
-  function rerollPanel(c, j, restore) {
-    const old = c.querySelector('.jreroll');
-    if (old) { old.remove(); ui(j.id).reroll = false; return; }
-    if (!restore) ui(j.id).reroll = true;
+  function rerollBox(c, j) {
+    const close = () => { ui(j.id).reroll = false; refreshSlot(c, 'reroll', cur(j)); };
     const ck = j.cache_keys || {};
     const stills = Array.isArray(ck.stills) ? ck.stills : [], clips = Array.isArray(ck.clips) ? ck.clips : [];
     const box = el('div', { class: 'lg-edit jreroll' });
@@ -1157,70 +1454,15 @@ const Jobs = (() => {
     const seedCb = el('input', { type: 'checkbox' }); seedCb.checked = true;
     box.appendChild(el('label', { class: 'cb' }, seedCb, el('span', { text: `the next seed (${seedOf(j)} → ${seedOf(j) + 1})` })));
     box.appendChild(el('div', { class: 'row' },
-      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => { const reroll = { stills: [...picks.stills], clips: [...picks.clips] }; if (seedCb.checked) reroll.seed = seedOf(j) + 1; if (picks.stage) reroll.stage = picks.stage; box.remove(); ui(j.id).reroll = false; act(j, 'requeue', { reroll }, 're-rolling'); } }),
-      el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => { box.remove(); ui(j.id).reroll = false; } })));
-    c.appendChild(box);
+      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => { const reroll = { stills: [...picks.stills], clips: [...picks.clips] }; if (seedCb.checked) reroll.seed = seedOf(j) + 1; if (picks.stage) reroll.stage = picks.stage; close(); act(j, 'requeue', { reroll }, 're-rolling'); } }),
+      el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: close })));
+    return box;
   }
 
-  /** The job's outputs: stills with their QA verdict, clips played from their out_NN frames, sheets, icons, the strip. */
+  /** The job's outputs (JobsView.outputs, shared with the look card's stage since pass 97): holder = the card's
+   *  JobsView.Bank (clip players kept by URL) or an array (the request card's). */
   function outputs(j, holder) {
-    const box = el('div', { class: 'joutputs' });
-    const flows = (j.outputs || []).filter((o) => o.type === 'workflow');
-    if (flows.length) {
-      // the ComfyUI workflows this job ran, one per render. Each run also saves its graph into the ComfyUI page's own
-      // Workflows sidebar (workflows/88fits/<job folder>/); "↗" opens the page on that copy through the 88fits_open
-      // extension (Garry: "click a link and open the ComfyUI page with the workflow and everything"); "file" is the JSON.
-      const ext = S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null;
-      const unsent = flows.filter((o) => !o.open_url).length;
-      const row = el('div', { class: 'jflows' }, el('b', { text: 'ComfyUI workflows' }),
-        el('span', { class: 'muted small', text: unsent ? ' (one per render)' : ' (one per render; each sits in the ComfyUI page\'s Workflows sidebar under 88fits)' }));
-      for (const o of flows) {
-        const set = el('span', { class: 'jflow-set' });
-        if (o.open_url) set.appendChild(el('a', { class: 'jflow open', href: o.open_url, target: '_blank', rel: 'noopener', text: o.label + ' ↗', title: ext === false ? `opens the ComfyUI page; its 88fits_open extension is not installed yet, so pick the workflow in the Workflows sidebar: ${o.userdata}` : `open the ComfyUI page on this workflow (${o.userdata})` }));
-        else set.appendChild(el('span', { class: 'jflow pending', text: o.label, title: 'not in the ComfyUI sidebar yet: Send to ComfyUI' }));
-        set.appendChild(el('a', { class: 'jflow file', href: o.url, target: '_blank', rel: 'noopener', text: 'file', title: 'the workflow file (drag it into the ComfyUI page)' }));
-        row.appendChild(set);
-      }
-      if (unsent) row.appendChild(el('button', { type: 'button', class: 'btn small', text: `Send to ComfyUI (${unsent})`, title: 'save these workflows into the ComfyUI page\'s Workflows sidebar (88fits folder); the links then open them', onclick: async () => {
-        const res = await act(j, 'push_workflows', {}, 'sending the workflows to ComfyUI');
-        const errs = res && res.ok && res.job && Array.isArray(res.job.push_errors) ? res.job.push_errors : [];
-        if (errs.length) App.status(`${title(j)}: ${(res.job.pushed || []).length} sent, ${errs.length} failed: ${errs[0]}`, 'bad', errs.join('\n'));
-      } }));
-      if (ext === false) row.appendChild(el('span', { class: 'warn-text small', text: 'the ComfyUI page has no 88fits_open extension yet: a link opens the page and the workflow waits in its Workflows sidebar (ask Claude: python tools/comfy.py --install-ext)' }));
-      box.appendChild(row);
-    }
-    for (const o of j.outputs || []) {
-      if (o.type === 'workflow') continue;
-      const cellEl = el('div', { class: 'joutput' });
-      if (o.type === 'clip' && o.url) {
-        const n = Number(o.frames) || 12;
-        const base = String(o.url).replace(/\/?$/, '/');
-        const p = StripPlayer.createSeq({ pattern: base + 'out_%02d.png', count: n, fps: Number(o.fps) || 12, size: 120, mode: 'hover', label: o.label || 'clip' });
-        if (holder) holder.push(p);
-        cellEl.appendChild(p.el);
-      } else if (o.type === 'strip' && o.url) {
-        cellEl.appendChild(el('a', { href: '#', text: 'the strip', onclick: (e) => { e.preventDefault(); openAsset(j.target); } }));
-      } else if (o.type === 'glb' && o.url && typeof Puppet !== 'undefined') {
-        // pass 71: the puppet's GLB in the 3D viewer (lazy: a click loads it; destroyed with the card)
-        cellEl.classList.add('joutput-glb');
-        cellEl.appendChild(Puppet.outputCell(o, holder));
-      } else if (o.url) {
-        const img = el('img', { src: o.url, alt: '', loading: 'lazy', title: o.label || '' });
-        img.addEventListener('click', () => StripPlayer.openImage(o.url, `${title(j)} · ${o.label || o.type}`));
-        cellEl.appendChild(img);
-      }
-      cellEl.appendChild(el('span', { text: o.label || o.type || '' }));
-      if (o.clip_kind) cellEl.appendChild(el('span', { class: o.clip_kind === 'free' || o.clip_kind === 'procedural' ? 'qa-bad' : 'muted', text: o.clip_kind + (o.clip_kind === 'free' ? ' (fell back from the driver)' : ''), title: 'how the clip was made: pose (a driver), control (a depth video), free (Wan guessed), procedural (no video)' }));
-      if (o.qa && o.qa.problems && o.qa.problems.length) cellEl.appendChild(el('span', { class: 'qa-bad', text: 'QA: ' + o.qa.problems.join(', ') }));
-      else if (o.qa) cellEl.appendChild(el('span', { class: 'muted', text: 'QA ok' }));
-      box.appendChild(cellEl);
-    }
-    // pass 93 (lane PREVIEW): a driver job's new driver (any output under /dl/drivers/<name>/) opens in the viewer
-    const made = Array.from(new Set((j.outputs || []).map((o) => /^\/dl\/drivers\/([A-Za-z0-9_-]+)\//.exec(String(o.url || ''))).filter(Boolean).map((m2) => m2[1])));
-    if (made.length && typeof Drivers !== 'undefined') {
-      box.appendChild(el('div', { class: 'joutput' }, made.map((nm) => el('button', { type: 'button', class: 'btn small', text: `▶ preview ${nm}`, title: `play ${nm} frame by frame with its frame numbers (the Drivers tab's viewer)`, onclick: () => { Drivers.ensureList(true); Drivers.open(nm, {}); } }))));
-    }
-    return box;
+    return JV.outputs(j, holder, { ext: S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null, title: title(j), openAsset, act: (path, body, busy) => act(j, path, body, busy) });
   }
 
   async function showLog(j) {
@@ -1632,7 +1874,7 @@ const Jobs = (() => {
       // the ComfyUI workflows behind these methods, as files the ComfyUI page loads (tools/comfy_workflows, from `python tools/comfy.py --export`);
       // a finished job also keeps every graph it ran under its own card
       const wf = el('div', { class: 'jflows' }, el('b', { text: 'The ComfyUI workflows behind the methods' }),
-        el('span', { class: 'muted small', text: ' (each opens in ' }), el('a', { href: COMFY_URL, target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }),
+        el('span', { class: 'muted small', text: ' (each opens in ' }), el('a', { href: comfyUrl(), target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }),
         el('span', { class: 'muted small', text: ' from its Workflows sidebar, 88fits/templates; every job keeps the exact graphs it ran on its card)' }));
       // the templates are saved into the ComfyUI page's sidebar first (once per file), so each link opens the page on it
       if (!S.tplPush || Date.now() - S.tplPushAt > 60000) { S.tplPush = post('/api/workflows/push', {}).catch(() => null); S.tplPushAt = Date.now(); }
@@ -2486,6 +2728,8 @@ const Jobs = (() => {
     // pass 68: the pure helpers (selftest_V checks them under Node) and the tables they read
     flatten, unflatten, queueOrder, queueLabel, heldLabel, withClearedFields, painterOfSpec, painterDiffers, candidatePlan, candidateRefusal, refUrl, candidateWords, sourceTag, lookRowKeys, rerollModes,
     GROUPS, LANE_ORDER, STILL_METHODS, MIN_CANDIDATES, CAND_KINDS, CAND_FIELDS, METHOD_ONLY, REROLL_FOR, CANDIDATES_HELP, FIRST_SEED_HELP, SEEDED_LOOKS,
+    // pass 97 (lane LIVE): the change bus, the routes, the request's Approve for the look card, the card's slots (tests)
+    subscribe, focus, focusRequest, setFilter, approveRequest, fetchRequests, drawPill, SLOTS, syncChildren, card, patchCard, cardSig: sig,
   };
 })();
 if (typeof module !== 'undefined') module.exports = Jobs;

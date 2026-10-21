@@ -16,7 +16,12 @@ Graph nodes are added with Graph.add(class_type, **inputs); an input value that 
 import atexit, io, json, os, re, sys, threading, time, urllib.parse, urllib.request, uuid
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SERVER = os.environ.get("COMFY_SERVER", "http://192.168.137.54:8188")
+try:   # pass 97 (lane SAFE): the hosts from tools/ai_hosts.json; COMFY_SERVER and --server= still win; the old literals when absent
+    import ai_hosts as _ai_hosts
+except ImportError:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import ai_hosts as _ai_hosts
+SERVER = os.environ.get("COMFY_SERVER", _ai_hosts.get("comfy", "http://192.168.137.54:8188"))
 for _a in sys.argv:
     if _a.startswith("--server="):
         SERVER = _a.split("=", 1)[1]
@@ -306,7 +311,8 @@ def upload_pil(img, name, subfolder="88fits"):
     return upload(buf.getvalue(), name, subfolder)
 
 
-SERVER_SSH = ["ssh", "-i", os.path.expanduser("~/.ssh/id_ed25519_ai_server"), "-o", "ConnectTimeout=10", "teatree@192.168.137.54"]
+SERVER_SSH = ["ssh", "-i", os.path.expanduser(_ai_hosts.get("ssh_key", "~/.ssh/id_ed25519_ai_server")), "-o", "ConnectTimeout=10",
+              _ai_hosts.get("ssh", "teatree@192.168.137.54")]   # pass 97 (lane SAFE): tools/ai_hosts.json "ssh_key", "ssh"
 
 
 def server_ram_used_gb():
@@ -409,35 +415,321 @@ def save_job_workflow(graph):
         return None
 
 
+# ---------------------------------------------------------------- pass 97 (lane PROGRESS, WF-07): live progress from /ws
+# ComfyUI tells the client that queued a prompt what it runs over its WebSocket (ws://<server>/ws?clientId=<id>, the
+# same id the POST /prompt carried): `executing` {node, prompt_id} when a node starts (node None = the prompt is done),
+# `progress` {node, prompt_id, value, max} for a sampler's steps, `execution_error` {prompt_id, node_id, node_type,
+# exception_type, exception_message, ...}, `execution_success`, `execution_cached`, `status`, and binary preview frames
+# (ignored). The shapes are ComfyUI's documented protocol (docs: development/comfyui-server/comms_messages); a live
+# capture on the AI server (pass 97, idle) recorded the `status` message on connect; the recorded fixture the selftest
+# replays is tools/level_editor/testdata/comfy_ws/. This thread only PRINTS lines for the Level Editor's parser:
+#     comfy: <prompt_id> <node title> <value>/<max>     at most one line per PROGRESS_SECONDS, and at once on a new node
+#     comfy: <prompt_id> error <node_type> #<node>: <exception_type>: <message>      at once on execution_error
+# (a node without steps prints 0/0). The node title is Graph.add's `_title`, else the class_type. Nothing waits on it:
+# /history stays the completion authority; a socket that fails is tried again at most PROGRESS_RECONNECTS times and then
+# the thread goes quiet; it closes when run() returns. On only under a Level Editor job (ASSET_JOB_ID or
+# ASSET_JOB_SIDECAR set) or with COMFY_PROGRESS=1; COMFY_PROGRESS=0 turns it off.
+
+PROGRESS_SECONDS = 2.0
+PROGRESS_RECONNECTS = 2
+_PRINT_LOCK = threading.Lock()
+
+
+def progress_enabled():
+    flag = os.environ.get("COMFY_PROGRESS", "").strip()
+    if flag in ("0", "off", "no", "false"):
+        return False
+    return flag in ("1", "on", "yes", "true") or bool(os.environ.get("ASSET_JOB_ID") or os.environ.get("ASSET_JOB_SIDECAR"))
+
+
+def _ws_backend():
+    """(name, connect) for the first WebSocket client that imports: websocket-client, else websockets' sync client;
+    None when neither does (then no thread: /history alone, as before pass 97). connect(url, timeout) returns an object
+    with recv(timeout) -> (kind "text"|"binary", payload) or None on a timeout, and close()."""
+    try:
+        import websocket as _wsc   # websocket-client
+        if hasattr(_wsc, "create_connection"):
+            def connect_wsc(url, timeout):
+                return _WscConn(_wsc, _wsc.create_connection(url, timeout=timeout))
+            return "websocket-client", connect_wsc
+    except Exception:   # noqa: BLE001
+        pass
+    try:
+        from websockets.sync.client import connect as _wss_connect   # websockets >= 11
+
+        def connect_wss(url, timeout):
+            return _WssConn(_wss_connect(url, open_timeout=timeout, close_timeout=1, max_size=None))
+        return "websockets", connect_wss
+    except Exception:   # noqa: BLE001
+        pass
+    return None
+
+
+class _WscConn:
+    def __init__(self, mod, ws):
+        self.mod, self.ws = mod, ws
+
+    def recv(self, timeout):
+        self.ws.settimeout(timeout)
+        try:
+            op, data = self.ws.recv_data()
+        except self.mod.WebSocketTimeoutException:
+            return None
+        if op == self.mod.ABNF.OPCODE_TEXT:
+            return "text", data.decode("utf-8", "replace")
+        if op == self.mod.ABNF.OPCODE_CLOSE:
+            raise ConnectionError("closed by the server")
+        return "binary", data
+
+    def close(self):
+        try:
+            self.ws.close(timeout=1)
+        except Exception:   # noqa: BLE001
+            pass
+
+
+class _WssConn:
+    def __init__(self, ws):
+        self.ws = ws
+
+    def recv(self, timeout):
+        try:
+            data = self.ws.recv(timeout=timeout)
+        except TimeoutError:
+            return None
+        return ("text", data) if isinstance(data, str) else ("binary", data)
+
+    def close(self):
+        try:
+            self.ws.close()
+        except Exception:   # noqa: BLE001
+            pass
+
+
+class ProgressWatch:
+    """One run()'s listener (a daemon thread). set_prompt(pid) after the POST; close() when run() returns."""
+
+    def __init__(self, client_id, graph=None, server=None, backend=None, out=None, seconds=None, reconnects=None):
+        self.client_id = client_id
+        self.url = (server or SERVER).replace("https://", "wss://").replace("http://", "ws://").rstrip("/") + "/ws?clientId=" + client_id
+        self.titles = {}
+        try:
+            for nid, node in (graph.api() if graph is not None else {}).items():
+                self.titles[str(nid)] = str((graph.titles or {}).get(nid) or node.get("class_type") or nid)
+        except Exception:   # noqa: BLE001
+            pass
+        self.backend = backend if backend is not None else _ws_backend()
+        self.out = out   # a callable taking one line (the selftest); default: stdout
+        self.seconds = PROGRESS_SECONDS if seconds is None else float(seconds)
+        self.reconnects = PROGRESS_RECONNECTS if reconnects is None else int(reconnects)
+        self.prompt = None
+        self.connects = 0          # successful connections (the selftest reads these)
+        self.failures = 0
+        self.lines = []            # what it printed
+        self.gave_up = False
+        self._stop = threading.Event()
+        self._released = threading.Event()   # set_prompt ran: the `comfy: prompt` line is out, ours may follow
+        self._conn = None
+        self._node = None          # (prompt, node id) printed last
+        self._node_since = 0.0
+        self._last_print = 0.0
+        self._pending = None       # the newest state not printed yet (throttled)
+        self._printed_state = None
+        self._done_prompts = set()
+        self.thread = threading.Thread(target=self._main, name="comfy-progress", daemon=True)
+
+    def start(self):
+        if self.backend is None:
+            return self
+        self.thread.start()
+        return self
+
+    def set_prompt(self, pid):
+        self.prompt = str(pid)
+        self._released.set()
+
+    def close(self, wait=0.0):
+        """Stop listening; the thread closes its socket itself within a quarter second (run() never waits for the
+        closing handshake)."""
+        self._stop.set()
+        self._released.set()
+        if wait and self.thread.is_alive() and threading.current_thread() is not self.thread:
+            self.thread.join(wait)
+
+    # -- the thread ----------------------------------------------------------------------------------------------
+    def _main(self):
+        tries = 0
+        while not self._stop.is_set():
+            try:
+                self._conn = self.backend[1](self.url, 5.0)
+            except Exception:   # noqa: BLE001  (refused, no upgrade, no route: /history goes on alone)
+                self._conn = None
+                self.failures += 1
+                tries += 1
+                if tries > self.reconnects or self._stop.wait(min(1.0 * tries, 3.0)):
+                    self.gave_up = not self._stop.is_set()
+                    return
+                continue
+            self.connects += 1
+            try:
+                self._listen()
+            except Exception:   # noqa: BLE001  (dropped mid-render: try again, at most `reconnects` times in all)
+                pass
+            finally:
+                c, self._conn = self._conn, None
+                if c is not None:
+                    c.close()
+            if self._stop.is_set():
+                return
+            self.failures += 1
+            tries += 1
+            if tries > self.reconnects or self._stop.wait(min(1.0 * tries, 3.0)):
+                self.gave_up = not self._stop.is_set()
+                return
+
+    def _listen(self):
+        while not self._stop.is_set():
+            got = self._conn.recv(0.25)
+            self._flush()
+            if got is None:
+                continue
+            kind, payload = got
+            if kind != "text":
+                continue   # a preview picture
+            try:
+                msg = json.loads(payload)
+            except ValueError:
+                continue
+            self._on_message(msg)
+
+    def _on_message(self, msg):
+        if not isinstance(msg, dict):
+            return
+        typ, data = msg.get("type"), msg.get("data") if isinstance(msg.get("data"), dict) else {}
+        pid = str(data.get("prompt_id") or "")
+        if self.prompt and pid and pid != self.prompt:
+            return   # another prompt on this socket (an earlier run's, a reconnect's replay)
+        if typ == "execution_error":
+            node = str(data.get("node_id") or "")
+            text = "%s #%s: %s: %s" % (data.get("node_type") or self.titles.get(node, "?"), node, data.get("exception_type") or "error",
+                                       data.get("exception_message") or "")
+            text = " ".join(str(text).split())[:300]
+            self._pending = None
+            self._emit("comfy: %s error %s" % (pid or self.prompt or "?", text), force=True)
+            self._done_prompts.add(pid)
+        elif typ == "executing":
+            node = data.get("node")
+            if node is None:
+                self._done_prompts.add(pid)
+                self._flush(force=True)
+                return
+            self._state(pid, str(node), 0, 0)
+        elif typ == "progress":
+            node = data.get("node")
+            try:
+                v, mx = int(data.get("value") or 0), int(data.get("max") or 0)
+            except (TypeError, ValueError):
+                return
+            self._state(pid, str(node) if node is not None else (self._node[1] if self._node else "?"), v, mx)
+        elif typ in ("execution_success", "execution_interrupted"):
+            self._done_prompts.add(pid)
+            self._flush(force=True)
+
+    def _state(self, pid, node, value, mx):
+        key = (pid or self.prompt or "?", node)
+        new_node = key != self._node
+        if new_node:
+            # the node that ran before may have a step not printed yet: let it go (the new node is the news)
+            self._node = key
+            self._node_since = time.time()
+        self._pending = (key[0], node, value, mx)
+        if new_node:
+            self._flush(force=True)
+
+    def _flush(self, force=False):
+        st = self._pending
+        if st is None or st == self._printed_state:
+            return
+        if not force and time.time() - self._last_print < self.seconds:
+            return
+        if not self._released.is_set():
+            return   # the `comfy: prompt <id>` line is not out yet: ours wait (the pending state is kept)
+        pid, node, value, mx = st
+        self._printed_state = st
+        self._pending = None
+        self._emit("comfy: %s %s %d/%d" % (pid, self.titles.get(node, node), value, mx))
+
+    def _emit(self, line, force=False):
+        if not force and self._stop.is_set():
+            return
+        if not self._released.is_set() and not force:
+            return
+        self.lines.append(line)
+        self._last_print = time.time()
+        try:
+            if self.out is not None:
+                self.out(line)
+            else:
+                with _PRINT_LOCK:
+                    sys.stdout.write(line + "\n")   # one write: never split by another thread's print
+                    sys.stdout.flush()
+        except Exception:   # noqa: BLE001
+            pass
+
+
+def progress_watch(client_id, graph=None):
+    """The started ProgressWatch for a run, or None (outside a Level Editor job, COMFY_PROGRESS=0, no WebSocket library)."""
+    if not progress_enabled():
+        return None
+    try:
+        w = ProgressWatch(client_id, graph)
+        if w.backend is None:
+            return None
+        return w.start()
+    except Exception:   # noqa: BLE001  (the watch must never stop a render)
+        return None
+
+
 def run(graph, timeout=1200):
-    """Queue a graph and wait for its SaveImage outputs. Returns (list of png bytes, seconds)."""
+    """Queue a graph and wait for its SaveImage outputs. Returns (list of png bytes, seconds).
+    pass 97 (lane PROGRESS, WF-07): under a Level Editor job a daemon thread also listens on ComfyUI's /ws for this
+    client id and prints `comfy: <prompt> <node> <value>/<max>` lines (progress_watch); /history below stays the one
+    completion authority, and the whole mechanism when the socket fails."""
     save_job_workflow(graph)
-    r = post("/prompt", {"prompt": graph.api(), "client_id": "88fits-" + uuid.uuid4().hex[:8]})
-    if r.get("error") or r.get("node_errors"):
-        raise RuntimeError("ComfyUI rejected the graph: " + json.dumps({"error": r.get("error"), "node_errors": r.get("node_errors")})[:1500])
-    pid = r["prompt_id"]
-    print("comfy: prompt %s" % pid, flush=True)   # pass 96 (WF-06c): the Level Editor keeps it, so a cancel deletes this prompt alone
-    t0 = time.time()
-    while True:
-        time.sleep(1.0)
-        _beat()
-        h = get("/history/" + pid)
-        if pid in h:
-            st = h[pid].get("status", {})
-            if st.get("status_str") == "error":
-                raise RuntimeError("ComfyUI error: " + json.dumps(st.get("messages"))[:1500])
-            out = []
-            for o in h[pid].get("outputs", {}).values():
-                for im in o.get("images", []):
-                    if im.get("type") != "output":
-                        continue
-                    url = SERVER + "/view?filename=%s&subfolder=%s&type=%s" % (urllib.parse.quote(im["filename"]), urllib.parse.quote(im["subfolder"]), im["type"])
-                    out.append(urllib.request.urlopen(url, timeout=120).read())
-            if not out:
-                raise RuntimeError("ComfyUI produced no image")
-            return out, time.time() - t0
-        if time.time() - t0 > timeout:
-            raise RuntimeError("ComfyUI timeout after %ds" % timeout)
+    client_id = "88fits-" + uuid.uuid4().hex[:8]
+    watch = progress_watch(client_id, graph)   # None outside a Level Editor job (a hand run prints what it always printed)
+    try:
+        r = post("/prompt", {"prompt": graph.api(), "client_id": client_id})
+        if r.get("error") or r.get("node_errors"):
+            raise RuntimeError("ComfyUI rejected the graph: " + json.dumps({"error": r.get("error"), "node_errors": r.get("node_errors")})[:1500])
+        pid = r["prompt_id"]
+        print("comfy: prompt %s" % pid, flush=True)   # pass 96 (WF-06c): the Level Editor keeps it, so a cancel deletes this prompt alone
+        if watch is not None:
+            watch.set_prompt(pid)
+        t0 = time.time()
+        while True:
+            time.sleep(1.0)
+            _beat()
+            h = get("/history/" + pid)
+            if pid in h:
+                st = h[pid].get("status", {})
+                if st.get("status_str") == "error":
+                    raise RuntimeError("ComfyUI error: " + json.dumps(st.get("messages"))[:1500])
+                out = []
+                for o in h[pid].get("outputs", {}).values():
+                    for im in o.get("images", []):
+                        if im.get("type") != "output":
+                            continue
+                        url = SERVER + "/view?filename=%s&subfolder=%s&type=%s" % (urllib.parse.quote(im["filename"]), urllib.parse.quote(im["subfolder"]), im["type"])
+                        out.append(urllib.request.urlopen(url, timeout=120).read())
+                if not out:
+                    raise RuntimeError("ComfyUI produced no image")
+                return out, time.time() - t0
+            if time.time() - t0 > timeout:
+                raise RuntimeError("ComfyUI timeout after %ds" % timeout)
+    finally:
+        if watch is not None:
+            watch.close()
 
 
 # ---------------------------------------------------------------- graph

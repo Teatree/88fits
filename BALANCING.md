@@ -6239,3 +6239,57 @@ Tool-side rules introduced (for the Level Editor doc, not the game): every expor
 is confirmed once for the whole batch; a landing never displaces a pinned frame (a re-apply export, or an in-process
 re-pack for a hand run); a pin past the new frame count or of another cell size is reported and kept, never guessed;
 no frame version is ever deleted; the strip-backup cap of 30 per asset stays.
+
+## 43. Pass 97 (v0.82): the live page (tools only; no game numbers)
+
+Garry's word (tools/dl/p97/REQUEST.md): proceed with Phase 2. Each lane's rules.
+
+### 43.LIVE Stable cards, the delta poll, hash routing, the look card's live block, the page side of progress, ops and health
+
+No game number changed, no game rule added: lane LIVE touched only the Level Editor (tools/level_editor/) and its docs.
+Nothing for BALANCING.md §43.
+
+Page-side numbers (tool behaviour, not game balance), for the record:
+- the delta's per-record bookkeeping is computed once per queue rev, at the first delta poll after it moved;
+- the look card's history line asks GET /api/events at most once a minute per look while its stage shows;
+- the Ops fold asks GET /api/ops?days=7 when opened and every 60 s while open;
+- the page polls every 2 s while a look's live block shows a job (as on the Jobs tab), else 6 s (unchanged);
+- the substage line says "(no tick for N s)" after 30 s without a tick.
+
+### 43.PROGRESS ComfyUI's live progress, the events log and the archive, Ops, server.log, the error line
+
+- **Progress lines** (tools/comfy.py): at most one `comfy: <prompt> <node> k/n` line per 2 s on one node (the newest
+  state when the window opens; the 0.25 s receive tick flushes it), one at once when another node starts (the previous
+  node's last unprinted step is dropped: the new node is the news), the error line at once. On only under a Level Editor
+  job or with COMFY_PROGRESS=1. A failed or dropped socket: 1 + 2 tries (1 s, then 2 s apart), then quiet; /history is
+  always the completion.
+- **The substage** (jobs.parse_line): replaced by every step line; `since` kept while the node and prompt stay the same;
+  removed when the job's stage name changes (a render or clip finished), at a new run, at the end. `comfy_error`
+  cleared by a newer `comfy: prompt` line and at a new run. The step lines stay out of the card's short log tail.
+- **The archive**: finished records (done, failed, cancelled) whose `ended` is more than 30 days old leave queue.json for
+  archive/queue_<month ended>.json, at the editor's start (5 s after) and every 24 h, by the editor that runs the queue
+  only; a record a live job points at (an import's after_export, a merged import's target) waits; a month file is
+  written and read back before any record leaves; a failure leaves the queue whole. Requeue of an archived id puts a
+  copy back in the queue.
+- **The ETA**: the median seconds of the method's done (or waiting-after-a-phase) runs of at least 1 s that painted
+  something (a still/clip/side stage with seconds; any run for kinds without such stages), per seed for a candidate set,
+  from the live queue, once there are >= 5 of them; else methods.json's `time.median_s`; else BUILTIN_MEDIAN. Scaled by
+  the pending stages as before. On the 468 rebuilt records: hero_pose5 244 s (15 runs; the tables say 570), import 30 s
+  (98; 90), icon_cands 16.3 s a seed (219; methods.json 80), creature_proc 474 s (9; 90).
+- **The error line**: the exception's own line or a tool's message (gen_art:, gen_ctl:, gen_edit_stills:,
+  gen_badge_cands:, SCRIPT ERROR), else a line with asset_job:, "error" or FAILED, else "<how it exited> after: <last
+  line>" (exit code N; a Windows crash code named: 0xC0000005 access violation, 0xC00000FD stack overflow, 0xC0000409
+  stack buffer overrun, 0xC0000374 heap corruption, 0xC000013A console closed), newest first, on ANSI-stripped non-blank
+  lines. On the 446 real logs: 440 as before; the 6 that differ were the ones whose old answer was an ANSI code alone.
+- **Ops failure groups**: the sentence with numbers, hex codes, job ids and paths taken out (first 160 characters).
+- **server.log**: 5 MB, three old files; **events.jsonl** rolled above 32 MB by the daily tick.
+
+### 43.SAFE doctor.py, requirements.txt, ai_hosts.json, the console-close handler, Re-queue all, the request guard, net_check.py
+
+No game numbers changed. Tool rules (for the record, none touches play):
+- Re-queue all (`POST /api/jobs/requeue_interrupted`) takes the jobs the editor's last start marked interrupted (ended at
+  or after the server process started), never runs on its own, and skips a Test in game (`launch`) job.
+- The request guard: a POST needs a loopback Host (127.0.0.1 / localhost, the editor's port when named) and no foreign
+  Origin (else 403); a JSON route's body needs Content-Type application/json (else 415); /api/upload keeps its raw body.
+- The editor's doctor summary refreshes at most every 600 s, on a thread no request waits for.
+- doctor.py warns under 10 GB free on the checkout's drive.

@@ -34,7 +34,8 @@ STYLE_ID = "anime"          # raw renders are cached per style so a restyle neve
 RAW = os.path.join(REPO, "tools", "dl", "ai_raw_" + STYLE_ID)
 REVIEW = os.path.join(REPO, "tools", "dl", "review")
 ANCHOR = os.path.join(REPO, "game", "art", "style", "style_anchor.png")
-LMSTUDIO = "http://127.0.0.1:1234/v1/chat/completions"
+import ai_hosts  # pass 97 (lane SAFE): the hosts from tools/ai_hosts.json, the old literal when the file has none
+LMSTUDIO = ai_hosts.get("lmstudio", "http://127.0.0.1:1234").rstrip("/") + "/v1/chat/completions"
 VISION_MODEL = "qwen2.5-vl-7b-instruct-abliterated"
 
 STYLE = ("in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat "

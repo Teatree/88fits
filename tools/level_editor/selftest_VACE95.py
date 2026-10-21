@@ -598,8 +598,9 @@ def checks(check, run_node, server):
             check(False, "jobs.py could not be imported for the landing checks: %s" % e)
         if jobs is not None:
             tmpj = tempfile.mkdtemp(prefix="le_vace95_land_")
-            saved_j = {"JOBS_DIR": jobs.JOBS_DIR, "_hooks": jobs._hooks, "_state": jobs._state}
+            saved_j = {"JOBS_DIR": jobs.JOBS_DIR, "QUEUE_FILE": jobs.QUEUE_FILE, "_hooks": jobs._hooks, "_state": jobs._state}
             jobs.JOBS_DIR = tmpj
+            jobs.QUEUE_FILE = os.path.join(tmpj, "queue.json")   # pass 97 (lane PROGRESS): the rollback's _save() wrote the fake queue over the real one
             target = {"kind": "enemy", "id": "bug", "code": "BG-B"}
 
             def result_for(jid, rec):
@@ -673,6 +674,7 @@ def checks(check, run_node, server):
                 check(not jobs._frames_export_waits(ex_q), "once the repair is done the export runs")
             finally:
                 jobs.JOBS_DIR, jobs._hooks, jobs._state = saved_j["JOBS_DIR"], saved_j["_hooks"], saved_j["_state"]
+                jobs.QUEUE_FILE = saved_j["QUEUE_FILE"]
                 shutil.rmtree(tmpj, ignore_errors=True)
     finally:
         for k, v in saved.items():

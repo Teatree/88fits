@@ -1,0 +1,7 @@
+{
+  "comfy": "http://192.168.137.54:8188",
+  "ssh": "teatree@192.168.137.54",
+  "ssh_key": "~/.ssh/id_ed25519_ai_server",
+  "lmstudio": "http://127.0.0.1:1234",
+  "ollama": "http://192.168.137.54:11434"
+}

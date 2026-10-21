@@ -3,10 +3,8 @@
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_t2tb5"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_sprite_a.png" id="4_wl756"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_icon_a.png" id="5_wxxvs"]
-[ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_sprite_e.png" id="6_1d4ib"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_sprite_d.png" id="6_43co3"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_icon_d.png" id="7_1d4ib"]
-[ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_icon_e.png" id="7_uc5j8"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_sprite_c.png" id="8_uc5j8"]
 [ext_resource type="Texture2D" path="res://content/enemies/cactus_walker/cactus_walker_icon_c.png" id="9_ffn43"]
 
@@ -126,33 +124,6 @@ variants = {
 "sprite": ExtResource("6_43co3"),
 "sprite_file": "cactus_walker_sprite_d.png",
 "strip_cols": 41
-},
-"CW-E": {
-"anims": {
-"attack": 2.0,
-"die": 7.0,
-"hit": 1.0,
-"idle": 4.0,
-"idle_b": 4.0,
-"run": 12.0,
-"run_b": 12.0
-},
-"attack_throw": false,
-"attack_views": "",
-"back_faces": "right",
-"fps": {
-"die": 8.0,
-"run": 15.0
-},
-"front_faces": "right",
-"head": 0.988,
-"icon": ExtResource("7_uc5j8"),
-"note": "",
-"shadow": {},
-"shelved": false,
-"sprite": ExtResource("6_1d4ib"),
-"sprite_file": "cactus_walker_sprite_e.png",
-"strip_cols": 42
 }
 }
 variant = "CW-C"

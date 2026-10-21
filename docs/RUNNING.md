@@ -1,5 +1,17 @@
 # Running 88fits
 
+## Setup on a new PC (pass 97)
+
+1. Clone the repo; unzip Godot 4.7.2 (win64) into `Godot_v4.7.2-stable_win64\` at its root and a JDK 17 into
+   `tools\jdk17\` (both git-ignored); Blender 5.2 into `%LOCALAPPDATA%\Programs\`; Node.js LTS (the Level Editor's
+   selftest); Python 3.10 with "Add python.exe to PATH".
+2. `python -m pip install -r tools/requirements.txt` (numpy, Pillow, scipy are what the art tools need; the rest are the
+   sound tools', the exe check's and ComfyUI's live progress lines).
+3. Copy the secrets by hand into `tools\keys\` (`tools/keys/README.md` lists them) and the AI server's key to
+   `~\.ssh\id_ed25519_ai_server`; the AI hosts are in `tools/ai_hosts.json`.
+4. `python tools/doctor.py`: it changes nothing and ends `essentials ok`, or names each missing piece with the line that
+   fixes it (exit 1). `python tools/net_check.py` lists what on the PC listens beyond itself (read-only too).
+
 ## On this PC (Godot editor)
 
 1. Run `Godot_v4.7.2-stable_win64\Godot_v4.7.2-stable_win64.exe`, click **Import**, pick `game\project.godot`.

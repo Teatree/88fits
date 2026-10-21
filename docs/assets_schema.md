@@ -2561,3 +2561,169 @@ the routes, the page).
 - `Jobs.S.ui` (Map job id -> {picked, gpicked, reroll, folds: {equiv, spec}, log}), `Jobs.S.rui` (Map rid -> {jobs,
   reject, pick}), `Jobs.S.requests`, `requestsApi`, `lastContact`, `downSince`, `netError`, `findings`.
 - index.html: `jobs_model.js` before `jobs.js`; `requests.css`.
+
+## Pass 97: new keys
+
+### Stable cards, the delta poll, hash routing, the look card's live block, the page side of progress, ops and health (lane LIVE)
+
+No content JSON key, no game key, no Settings switch. Everything below is the Level Editor's page/server contract.
+
+#### Server (tools/level_editor/server.py + jobs.py)
+| Name | Type | Default | Meaning |
+|---|---|---|---|
+| `GET /api/jobs?since=<rev>&delta=1` | route | (without `delta`: today's answer, unchanged) | `{ok, rev, delta: true, changed: [served job records], removed: [ids]}`; + `order: [every id in queue order]` when an id was added, removed or moved since `since`; + `full: true` (everything; the page replaces its list) when `since` is 0, ahead of the queue's rev, or older than this process's bookkeeping; + `unchanged: true` (empty lists) when `since` is the queue's rev. `delta=true` is accepted too. |
+| `rev` on a served record (delta answers only) | int | the rev of the first delta poll that saw the record's served view change | the per-record cursor (in memory, never written to queue.json; absent from the non-delta answer so it stays byte-identical) |
+| `jobs.list_delta(since_rev=None)` | function | - | the route's body; `jobs.list()` untouched |
+| `jobs._delta` | module dict | `{rev, floor, state, sig, at, tomb, order, order_at}` | the bookkeeping: per-id view hash and rev, tombstones, the last id order (+ when it changed), the first scan's rev (`floor`), the `_state` object it was computed for |
+
+The served view hashed per record = the record (JSON) + `held` (queued jobs) + the log tail (running jobs: `_live` tail,
+else log.txt). A scan runs at most once per queue rev, on the first delta poll after it moved.
+
+#### Page routes (the address's hash; tools/level_editor/app.js, JobsModel.parseHash/formatHash)
+| Hash | Opens |
+|---|---|
+| `#<tab>` (`timeline`, `sim`, `settings`, `creatures`, `heroes`, `items`, `jobs`, `drivers`, `bossattacks`, `instructions`) | that tab (written on every tab switch) |
+| `#jobs/<job id>` | the Jobs tab, that card scrolled to and marked (`.jfocus`) |
+| `#jobs?look=<CODE>[&id=<asset id>][&kind=<kind>]` | the Jobs tab showing that look's jobs only (a bar with **Show all jobs**) |
+| `#requests/<rid>` | the Jobs tab, that request's card scrolled to and marked |
+| `#frames/<kind>/<id>/<code>[/<anim>/<view>[/<slot>]]` | the asset's tab and the Frames view on that group (stopped on the slot when one is given); kind enemy, boss or hero; ids `[A-Za-z0-9_][A-Za-z0-9_.-]*`, never `..` |
+Written with `history.replaceState` (no Back steps); read once on load and on a link's `hashchange`. No hash = the Timeline, as before.
+
+#### Page modules
+| Name | Where | Meaning |
+|---|---|---|
+| `Jobs.subscribe(fn)` -> unsubscribe | jobs.js | the change bus: `fn({jobs, changed: [ids], removed: [ids], full, rev, requests?})` after every poll that changed something (`requests: true` when only the art requests changed) |
+| `Jobs.focus(id)`, `Jobs.focusRequest(rid)`, `Jobs.setFilter({look, id, kind} | null)` | jobs.js | the routes' entry points |
+| `Jobs.S.noDelta` | jobs.js | true after a 501 to `delta=1` (a server without list_delta): the page polls the whole list from then on |
+| `Jobs.S.byId`, `Jobs.S.filter`, `Jobs.S.ops` | jobs.js | the records by id; the look filter; the Ops answer |
+| `Jobs.SLOTS` | jobs.js | the card slots per state (running, waiting, queued, done, failed) |
+| `JobsModel.merge(jobs, d)` | jobs_model.js | -> `{jobs, changed, removed, full, moved, unchanged}` |
+| `JobsModel.slotSigs(j, ctx, x)` | jobs_model.js | one signature per slot (head, sub, stage, bar, stages, log, outputs, choices, actions, folds) |
+| `JobsModel.parseHash(h)`, `formatHash(r)`, `filterMatch(j, f)` | jobs_model.js | the routes |
+| `JobsModel.substageText(progress, now, seen)` | jobs_model.js | "side · KSampler step 3 of 4 · 41 s" (`since`/`started` = when the node began; max 0 = the name alone; "(no tick for N s)" after 30 s) |
+| `JobsModel.liveModel(jobs, requests, kind, id, code, now)` | jobs_model.js | the look card's live block in words |
+| `JobsModel.historyModel(jobs, exports, events, kind, id, code)` | jobs_model.js | the history line |
+| `JobsModel.opsModel(ops, methods)` | jobs_model.js | the Ops fold (outcomes nested `{state: {kind: {method: n}}}` or flat `"state|kind|method"`) |
+| `JobsModel.offlinePill(st)` | jobs_model.js | "offline since hh:mm" |
+| `JobsView.Bank` | jobs_view.js | players kept by key (a clip's URL + frames + fps; a GLB's URL) across rebuilds: `begin / take / push / sweep / destroyAll` |
+| `JobsView.stagesRow / logTail / patchLog / outputs / substageLine / requestStrip / liveBlock` | jobs_view.js | the pieces the Jobs card and the look stage share |
+| `App.route(r)`, `App.applyRoute(r)` | app.js | write / follow a route |
+
+#### Fields read from the other lanes (as they wrote them)
+- PROGRESS: `progress.substage {node, value, max, at, since, prompt, view?}`, `progress.comfy_error` (a string), `eta_source`
+  (measured | methods | builtin), `lock_wait_s {lock: seconds}`, `GET /api/ops?days=7` (INTERFACES' shape),
+  `GET /api/events?since=&limit=&look=<kind>/<id>/<code>` -> `{ok, seq, last, more, events}` (events with `look`, `t`, `kind`, `event`, `job`).
+- SAFE: `/api/status.interrupted` (+ `interrupted_ids`), `POST /api/jobs/requeue_interrupted` -> `{ok, requeued, skipped, refused}`, `/api/status.ai_hosts.comfy`.
+
+#### CSS classes (requests.css)
+`.jslot` (display: contents), `.jslot-hole`, `.jsubstage` (`.stale`), `.jsub-error`, `.jfocus`, `.jfilter`, `.jinterrupted`, `.jops*`, `.offline-pill`, `.lg-live*`, `.lg-history`.
+
+### ComfyUI's live progress, the events log and the archive, Ops, server.log, the error line (lane PROGRESS)
+
+#### Job record fields (tools/dl/jobs/queue.json; additive; old records simply lack them)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `progress.substage` | object or absent | absent | `{node: str, value: int, max: int, at: iso, since: iso, prompt: str, view?: "front"/"fd"/"side"/"bd"/"back"}`: ComfyUI's current node and step (`max` 0 = a node without steps). Set by parse_line from a `comfy: <prompt> <node> <v>/<max>` line; removed when a stage finishes, at a new run, at the end. |
+| `progress.comfy_error` | str or absent | absent | one line `<node_type> #<node>: <exception_type>: <message>` (<= 300 chars) from ComfyUI's `execution_error`; cleared when the job queues a newer prompt and at a new run; kept after the job fails. |
+| `progress.comfy_error_prompt` | str or absent | absent | the prompt id the error belongs to. |
+| `eta_source` | "measured" / "methods" / "builtin" | set by `_eta` | which number `eta_s` started from. |
+| `eta_samples` | int or absent | absent | how many runs the measured median came from (only with `eta_source: measured`). |
+| `lock_wait_s` | {lock: seconds} | `{}` at each new attempt | seconds this attempt waited for each lock (`lock_waits` is still cleared when the lock is taken). |
+| `lock_wait_total_s` | {lock: seconds} | absent until a wait | the same summed over every attempt. |
+| `lock_wait_attempt` | int | the attempt | which attempt `lock_wait_s` belongs to. |
+| `archived` (served only) | str | absent | on `GET /api/job/<id>` and `/api/jobs/archived?month=`: the archive file that holds the record. Never stored in queue.json. |
+
+#### Log line formats (printed by tools/comfy.py's ProgressWatch, read by jobs.parse_line)
+
+- `comfy: <prompt_id> <node title> <value>/<max>` (regex `^comfy: (?!prompt )(\S+) (.+) (\d+)/(\d+)\s*$`)
+- `comfy: <prompt_id> error <text>` (regex `^comfy: (?!prompt )(\S+) error (.+)$`)
+- unchanged: `comfy: prompt <id>` (pass 96).
+
+#### Env vars
+
+| var | default | meaning |
+|---|---|---|
+| `COMFY_PROGRESS` | unset | `1` turns the WebSocket progress lines on for any comfy.run (a hand run); `0` turns them off everywhere; unset = on only under a Level Editor job (`ASSET_JOB_ID` or `ASSET_JOB_SIDECAR` set). |
+
+#### Module constants
+
+| constant | value | meaning |
+|---|---|---|
+| comfy.PROGRESS_SECONDS | 2.0 | at most one progress line per this many seconds on one node |
+| comfy.PROGRESS_RECONNECTS | 2 | a socket that fails or drops is tried again this many times, then the thread goes quiet |
+| jobs.ARCHIVE_DAYS | 30 | finished records older than this leave queue.json |
+| jobs.ARCHIVE_STATES | done, failed, cancelled | the states the archive takes |
+| jobs.MEASURED_MIN_SAMPLES | 5 | the ETA uses the measured median from this many rendered runs |
+| jobs.MEASURED_TTL | 30 s | the measured table is recomputed at most this often (5 s when the queue changed) |
+| events.ROLL_BYTES | 32 MB | the daily tick moves a bigger events.jsonl into archive/events_<stamp>.jsonl |
+| ops_io.LOG_MAX_BYTES / LOG_BACKUPS | 5 MB / 3 | server.log rotation |
+| ops_io.ARCHIVE_EVERY | 24 h | the archive tick after the one at start (5 s after start) |
+
+#### Files
+
+- `tools/dl/jobs/events.jsonl`: `{seq, t, kind, event, job?, rid?, look?: {kind, id, code}, ...}`; kinds job | look | icon | content | frames | evaluator | request | server.
+- `tools/dl/jobs/<job>/events.jsonl`: that job's events (and the request entries that name it).
+- `tools/dl/jobs/archive/queue_<YYYY-MM>.json`: `{v: 1, month, about, updated, jobs: [records as they were]}`.
+- `tools/dl/jobs/archive/events_<stamp>.jsonl`: a rolled events log.
+- `tools/dl/jobs/server.log` (+ `.1` `.2` `.3`): the editor's console, each line stamped `YYYY-MM-DD HH:MM:SS `.
+- `tools/level_editor/testdata/comfy_ws/`: `live_status_capture.jsonl` (the live capture, 2026-10-22 00:37), `render_klein.json`, `render_slow.json`, `render_error.json` (documented shapes, `{_about, messages: [{delay, msg | binary}]}`).
+
+#### Routes (additions)
+
+- `GET /api/events?since=<seq>&limit=N[&job=<id>][&rid=<rid>][&look=<kind>/<id>[/<code>]]` -> `{ok, seq, last, more, events, enabled[, reset]}`
+- `GET /api/ops?days=N` -> `{ok, days, window, jobs_seen, archived_read, outcomes, medians: {key: {rendered, cached, builtin, methods, eta_uses}}, lock_wait, failures: [{reason, n, last_job, sample, kinds}], failures_rederived, qa_offline, interrupted, stalled, cost: {requests, total_dollars, calls, by_model, file}, eta_source, min_samples, generated_ms}`
+- `GET /api/jobs/archived[?month=YYYY-MM]` -> `{ok, total, months: [{month, n, file}]}` / `{ok, month, jobs}`
+- `GET /api/status` -> `jobs.archived` (int)
+- `GET /api/job/<id>` also answers an archived id (with `archived`)
+
+### doctor.py, requirements.txt, ai_hosts.json, the console-close handler, Re-queue all, the request guard, net_check.py (lane SAFE)
+
+#### tools/ai_hosts.json (new; read by tools/ai_hosts.py)
+| key | type | default (today's literal) | meaning / readers |
+|---|---|---|---|
+| `comfy` | URL | `http://192.168.137.54:8188` | ComfyUI on the AI server: comfy.SERVER, jobs.COMFY_SERVER (env `COMFY_SERVER` and comfy's `--server=` still win) |
+| `ssh` | user@host | `teatree@192.168.137.54` | the AI server's login: comfy.SERVER_SSH (restart, RAM, scp of the extension), doctor's BatchMode probe |
+| `ssh_key` | path (`~` = home) | `~/.ssh/id_ed25519_ai_server` | the key that login uses: comfy.SERVER_SSH `-i`, doctor |
+| `lmstudio` | base URL | `http://127.0.0.1:1234` | LM Studio: jobs.LMSTUDIO_MODELS and server.QA_URL (+ `/v1/models`), gen_art.LMSTUDIO and vision_eval.LMSTUDIO (+ `/v1/chat/completions`) |
+| `ollama` | base URL | `http://192.168.137.54:11434` | Ollama on the AI server: doctor (`/api/tags`) |
+A missing file, a missing or empty key, or a file that is not a JSON object = the default (said once on stderr for a
+broken file). Env `AI_HOSTS_FILE=<path>` reads another file (tests, doctor --root reads `<root>/tools/ai_hosts.json`).
+`python tools/ai_hosts.py` prints each value and its source. Not read (out of the brief's five): tools/qa_bench.py's own
+LMSTUDIO literal, jobs.js's COMFY_URL (LIVE's file; `/api/status.ai_hosts.comfy` now carries the value for the page).
+
+#### Routes and answers
+- `POST /api/jobs/requeue_interrupted` body `{}` | `{ids: [job ids]}` | `{all: true}` -> `{ok, requeued: [ids], skipped:
+  [{id, why}], refused: [{id, error}]}`; read-only editor -> 400 with the holder named. Scope "restart" (default) = jobs in
+  state `interrupted` whose `ended` >= jobs.STARTED_AT (this process's import; recover() stamps `ended` at the start);
+  `all` = every interrupted job. A `launch` job is skipped ("a test in game is started by its own Re-queue").
+- `GET /api/status` gains: `interrupted` (int, the count above), `interrupted_ids` ([ids]), `doctor` (null unless
+  server.main() started this editor; then `{pending: true, error}` until the first run, else `{ok, at, missing, absent,
+  warnings, checks: [{name, status ok|missing|warn|info, value, detail, fix}], refreshing}`), `ai_hosts` ({comfy,
+  lmstudio, ollama, ssh}).
+- The guard: every POST -> 403 `{ok: false, error, guard: true}` for a Host that is not 127.0.0.1/localhost (a named port
+  must be the editor's), or an Origin other than `http://127.0.0.1:<port>` / `http://localhost:<port>`; 415 for a body
+  (Content-Length > 0) on any route but `/api/upload` whose Content-Type is not `application/json` (parameters allowed).
+  A missing Host passes (no browser omits it; the socket is loopback). The connection is closed after a refusal.
+  Guarded GET: `/api/frames/<kind>/<id>/<code>` (Host + Origin only).
+
+#### server.py (new functions; module names)
+`GUARD_HOSTS`, `GUARD_RAW_BODY_ROUTES`, `_split_host`, `_request_guard(h, body_check=True)`, `_guard_refuse`,
+`_state_changing_get(parts)`, `DOCTOR_LIVE` ([bool]), `DOCTOR_EVERY` (600 s), `_doctor_refresh`, `doctor_status()`,
+`_safe_status(rec, m)`, `_exit_state`, `CTRL_EVENTS` {2 close, 5 log off, 6 shut down}, `_exit_cleanup(reason, say)`
+(jobs.stop(timeout=0.5) once), `_console_ctrl(event)`, `_install_exit_handlers(jobs)` (SetConsoleCtrlHandler, SIGBREAK ->
+KeyboardInterrupt, atexit).
+
+#### jobs.py (new)
+`STARTED_AT` (float, import time), `interrupted_ids(scope="restart"|"all")`, `requeue_interrupted(ids=None, scope="restart")`.
+
+#### New tools
+- `tools/doctor.py [--json] [--quick] [--home D] [--root R]`: exit 0 essentials ok, 1 missing; `run(root, home, quick,
+  probe)`, `summary(rep)`, `as_text(rep)`, `Probe` (the outside world in one class). Essentials: python>=3.8, numpy, pillow,
+  scipy, node, godot binary, the checkout (game/project.godot). Optional (named, never failing): the other packages,
+  git, blender, jdk, ssh_key; warnings: services down, ssh login failing, dead/unknown lock holders, under 10 GB free.
+- `tools/net_check.py [--json]`: `parse_netstat`, `parse_tasklist`, `forward_of`, `verdicts`, `as_text`; flags 8787-8800
+  and ssh `-L` forwards; changes nothing.
+- `tools/requirements.txt`: numpy>=1.22.0, Pillow>=10.0.0, scipy>=1.11.2 (essential); websocket-client>=1.9.0,
+  soundfile>=0.12.1, librosa>=0.10.0, gradio_client>=2.5.0, pefile>=2023.2.7 (optional).
+- `tools/keys/README.md` (tracked: `.gitignore` now `tools/keys/*` + `!tools/keys/README.md`).

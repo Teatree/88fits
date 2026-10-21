@@ -3676,3 +3676,86 @@ connection line, and the Requests group with one card per art request (the fold,
 findings beside the outputs, the sheet, the jobs folded, Pause / Stop / Resume / Step / Approve / Reject / Pick
 another). New `jobs_model.js` (page-free) and `requests.css`; `selftest_PAGE96.py` (74 checks); five VACE95 checks
 re-pinned on purpose (Delete gone, the hook re-applies instead of warning, slot 1 keeps both versions).
+
+**Pass 97 (2026-10-22, v0.82): the live page, Phase 2 of the tooling plan.** Garry: "proceed with Phase 2" (his pass 96 condition stands: nothing old may break). Three lanes (tools/dl/p97/INTERFACES.md): LIVE, PROGRESS, SAFE. Job cards patch in place (clips keep playing, panels and picks survive polls); `/api/jobs?delta=1` sends only what changed (5.4 MB -> ~13 KB a changed poll; without `delta` the old answer byte for byte); hash routes reopen a job, request or frame on reload; the look card has a live block and a history line; ComfyUI's node progress reaches the card (comfy.run's WebSocket thread under a Level Editor job; /history still ends a render); tools/dl/jobs/events.jsonl (seq, one writer) and the 30-day archive; /api/ops with measured medians and the ledger's dollars; a rotating server.log; failed jobs' errors as sentences; tools/doctor.py, tools/requirements.txt, tools/ai_hosts.json, the console-close handler (no dead jobs lock), Re-queue all, the request guard (a foreign Origin or Host 403, a non-JSON body 415), tools/net_check.py. Found and fixed: pass 96 shipped frames.js with a syntax error (the Frames view never loaded; a lead review fix; selftest_JSSYNTAX97.py now parses every page script); selftest_VACE95 had been overwriting the real tools/dl/jobs/queue.json on every full selftest run since pass 95 (jobs._save now refuses a queue file outside its jobs folder; the 470 job folders are intact and tools/dl/p97/PROGRESS/rebuild_queue.py rebuilt 468 records read-only into tools/dl/p97/PROGRESS/queue_recovered.json, not installed); creatures.js's icon fallback retried forever when both icons were missing.
+
+Pass 97, lane LIVE (the live page: Phase 2 steps 2.1, 2.2, 2.5 and the page side of 2.3, 2.6, 2.7). **Stable cards
+(UI-04 full)**: a job card is an `<article>` of named slots (head, sub, stage, bar, stages, log, outputs, choices,
+actions, folds, reroll; `Jobs.SLOTS` per state, in today's order), each with its own signature
+(`JobsModel.slotSigs`, no clock) and rebuilt alone when it moved (`patchCard` / `refreshSlot`); the log takes new lines
+in place and re-pins only when it was at the bottom (`JobsView.patchLog`); outputs keep their clip players by URL
+(`JobsView.Bank`: take / sweep), so a running creature_ctl card keeps its clips playing across polls and a card that
+changes state hands its players to the new card; groups are kept (`groupEl`) and synced with `syncChildren`
+(non-members removed first, then insertBefore only where out of place): `clear(S.groups)` is gone; `refreshRecord`
+redraws the Looks section (and the pane header) alone when only look keys changed on disk (`redrawLooks` through a
+one-shot `doc.__looksOnly` in `swapPane`; the aside-built sections' players destroyed), else the pane as before.
+**Delta poll (UI-02 full)**: `jobs.list_delta` + `GET /api/jobs?since=&delta=1` -> `{rev, changed, removed, delta[,
+order, full, unchanged]}`; per-record revs come from a hash of each record's served view (record + held + a running
+job's tail) computed lazily once per queue rev (measured on a 468-record queue rebuilt from the job folders: 30 ms a scan;
+a hash in `_save` would add that to every save, and `_touch` would need ~148 mutation sites across three lanes); one
+running job changed = 12.7 KB instead of 5.4 MB; the non-delta answer is byte-identical to pass 96's (selftest compares
+against an inline copy of the old `list()`); the page merges by id (`JobsModel.merge`), falls back to the whole list on a
+501, drops crossing stale deltas, and tells `Jobs.subscribe` listeners `{changed, removed}`. **Routes**: `#<tab>`,
+`#jobs/<id>`, `#jobs?look=CODE&id=`, `#requests/<rid>`, `#frames/<kind>/<id>/<code>/<anim>/<view>/<slot>` written with
+replaceState and restored on load / hashchange (app.js; Frames.open wrapped once, a routed slot paused on); a card's
+or request's id click puts its address in the bar. **Look card live block (UI-05)**: new `jobs_view.js` shared by the
+Jobs card and the look stage; the selected look's stage shows its queued/running/waiting jobs (chip, stage k of N,
+elapsed/ETA, lock wait or `lock_wait_s`, the ComfyUI substage, stages, 3 newest outputs, "open in Jobs") and its art
+request (iteration, budget bars, provisional winner, Approve = the pass-96 batch box), redrawn from `Jobs.subscribe`
+only when it changed, never the grid; a history line (past jobs with the `#jobs?look=` link, exports from the events
+log or, on a click, from the frames store's exports.json, the newest events). **Page side of 2.3/2.6/2.7**:
+`progress.substage` drawn as "side · KSampler step 3 of 4 · 41 s" (max 0 = the node alone; "(no tick for N s)"),
+`progress.comfy_error` in red; an Ops fold (`GET /api/ops?days=7`: outcomes, rendered/cached medians beside
+methods.json's, lock waits, failures as sentences, dollars per request) that the 2 s header redraw never closes; the
+"offline since hh:mm" pill in the top bar on every tab; "N jobs were interrupted by the restart: Re-queue all"
+(`/api/status.interrupted`, `POST /api/jobs/requeue_interrupted`). **Found and fixed**: frames.js did not parse at
+51b037d (an unescaped apostrophe in pass 96's Repair-panel profile line): the browser dropped the file, so the Frames
+view, the batch box and the request card's Approve were dead in the page; one character fixed, and selftest_LIVE97 now
+`node --check`s every script index.html loads. Re-pinned on purpose (the outputs moved to jobs_view.js; the checks read
+jobs.js + jobs_view.js): selftest_V (workflow links), selftest_PLE (Puppet.outputCell), selftest_PREVIEW93
+(Drivers.open). Tests: selftest_LIVE97.py (93 checks). Lesson: string-grep wiring checks miss a file that does not
+parse; check every page script with `node --check`. Latent, not fixed (not this lane's file): creatures.js's palette
+retries a missing look icon forever when the creature's own icon is missing too (`onerror` sets the same failing URL).
+
+Pass 97, lane PROGRESS (Phase 2 steps 2.3 server side, 2.4, 2.6 server side): **ComfyUI's live progress, the events
+log, the archive, Ops.** `comfy.run` opens ComfyUI's WebSocket for its own client id on a daemon thread (`ProgressWatch`:
+websocket-client, else websockets' sync client, else none) only under a Level Editor job, and prints `comfy: <prompt>
+<node> k/n` (one line per 2 s, at once on a new node) and `comfy: <prompt> error ...`; /history stays the completion, a
+socket that fails is tried twice more and then left alone. The message shapes come from ComfyUI's documented protocol;
+a read-only capture on the idle AI server (the comfy lock taken, 00:37) recorded the `status` message on connect; the
+fixture is tools/level_editor/testdata/comfy_ws/. `jobs.parse_line` turns the lines into `progress.substage` {node,
+value, max, at, since, prompt, view} and `progress.comfy_error`. New `tools/level_editor/events.py`:
+`tools/dl/jobs/events.jsonl` (one writer, the server; `seq`; a copy per job folder) fed at the choke points (enqueue,
+take, finish, landing, merge, pick, requeue, cancel, edit, recover, the look ops, the icon set and guard, the content
+Save, the frames verbs, the evaluator's verdict, every request history entry); `GET /api/events`. The archive: finished
+jobs older than 30 days move to `archive/queue_<month>.json` at start and daily; `GET /api/job/<id>`, requeue and install
+still find them; `GET /api/jobs/archived`; `/api/status.jobs.archived`. New `tools/level_editor/ops_io.py`:
+`GET /api/ops?days=N` (outcomes, measured medians rendered vs cached, lock waits now kept per attempt, failures as
+sentences, QA offline, interrupted, stalled, dollars per request from the ledger; 15 ms on 468 jobs) and the
+`server.log` tee (5 MB x 3). The error-line rule strips ANSI codes and ends with "<exit code> after: <last line>" (the 6
+Godot crashes that showed `\x1b[0m`); the ETA uses the measured median at >= 5 runs (`eta_source`). Found at the start:
+`selftest_VACE95` had written its two-job fake over the real `tools/dl/jobs/queue.json` on every full selftest run (the
+467 older records lost on 2026-10-22; their folders intact): `jobs._save()` now writes only JOBS_DIR's own queue file and
+the test points both; `tools/dl/p97/PROGRESS/rebuild_queue.py` rebuilds the records read-only from the folders
+(`queue_recovered.json`, 468 records). selftest_PROGRESS97.py: 120 checks.
+
+Lane SAFE (pass 97, steps 2.7 server side and 2.8 of the tooling plan): **health and safety**. `tools/requirements.txt`
+(an import scan of tools/: numpy, Pillow, scipy essential; websocket-client, soundfile, librosa, gradio_client, pefile
+optional; Blender's own modules aside) and `tools/doctor.py` (read-only: Python, the packages, Node, Godot, Blender, the
+JDK, git, ComfyUI / LM Studio / Ollama, the ssh key and a BatchMode login, the four locks with verdicts, disk, the key
+files by name; exit 0 / 1 naming what is missing; `--json`, `--quick`, `--home`, `--root`; its quick summary in
+`/api/status.doctor`, refreshed at most every 10 minutes off the request path, only in an editor main() started).
+`tools/ai_hosts.json` + `tools/ai_hosts.py` (`get(name, default)`): comfy.py, jobs.py, server.py, gen_art.py and
+vision_eval.py read the AI hosts from one file; with today's values (or no file) every constant is byte-identical,
+COMFY_SERVER still wins. Closing the editor's console window now does what Ctrl+C does (`SetConsoleCtrlHandler` for
+close / log off / shut down, Ctrl+Break as Ctrl+C, atexit): proved on a real server.main() in a hidden console with a
+temp lock dir (the jobs lock released; with the handler taken out it was left behind, as before). "Re-queue all":
+`POST /api/jobs/requeue_interrupted` and `/api/status.interrupted` (the jobs the last start interrupted; a Test in game
+skipped; never automatic). The request guard in `do_POST` (`_request_guard`: a non-loopback Host or a foreign Origin
+403, a JSON route's non-JSON body 415, the upload's raw body kept; the one GET that writes, the frames look summary,
+checked too); every in-repo caller replayed against HEAD's server and today's (14 shapes identical; selftest_S's raw
+`Host: x` requests now name 127.0.0.1). `tools/net_check.py` (read-only listing of non-loopback listeners; it found the
+ssh forward `-L 192.168.0.43:8788:192.168.137.54:8788` and prints the one command to keep it on this PC; Garry's call).
+`tools/keys/README.md` (tracked; the keys stay ignored). Found on the way: frames.js in HEAD does not parse (an
+apostrophe in a single-quoted string at line 462), so the Frames view's script never loads; reported, not fixed (no owner).
+Tests: selftest_SAFE97.py (115 checks).

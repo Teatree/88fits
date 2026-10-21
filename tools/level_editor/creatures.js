@@ -191,7 +191,8 @@ const Creatures = (() => {
         disabled: !v.ready || (busy === c.id && !isDef), 'data-code': v.code,
         title: `${v.code}${v.note ? ': ' + v.note : ''}${isDef ? ' (the default look)' : v.ready ? ' (click to make it the default)' : ' (not painted yet: the game would play the base strip)'}${v.shelved ? ' · shelved: out of the arena and the default lists' : ''}${v.fresh ? ' · unreviewed' : ''}`,
       },
-      el('img', { src: v.icon, alt: '', width: 48, height: 48, onerror: (e) => { e.target.src = c.icon; } }),
+      // pass 97 (lead): one fallback only; with the creature's own icon missing too, the old handler retried forever
+      el('img', { src: v.icon, alt: '', width: 48, height: 48, onerror: (e) => { e.target.onerror = null; if (c.icon && e.target.src !== c.icon) e.target.src = c.icon; } }),
       el('span', { class: 'look-code', text: v.code }),
       el('span', { class: 'look-tag' + (isDef ? ' on' : v.ready ? '' : ' na'), text: isDef ? 'default' : v.shelved ? 'shelved' : v.fresh ? 'new' : v.ready ? 'make default' : 'not painted' }));
       if (!isDef && v.ready) fig.addEventListener('click', () => { confirming = asking ? null : { id: c.id, code: v.code }; redrawFn(); });

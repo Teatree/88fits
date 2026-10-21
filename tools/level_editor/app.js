@@ -69,6 +69,80 @@ const App = (() => {
     const want = new URLSearchParams(location.search).get('map');
     const first = S.maps.find((m) => m.id === want) || S.maps[0];
     if (first) await loadMap(first.id); else status('No maps under game/content/maps', 'bad');
+    initRoutes();   // pass 97 (lane LIVE): a reload returns to the tab, the job, the request or the frame the address names
+  }
+
+  // ------------------------------------------------------------------ pass 97 (lane LIVE, UI-02): the page's routes
+  // The address's hash names where the page is: #<tab>, #jobs/<id>, #jobs?look=SP-B&id=<creature>, #requests/<rid>,
+  // #frames/<kind>/<id>/<code>/<anim>/<view>/<slot> (JobsModel.parseHash / formatHash). It is written as the page moves
+  // (replaceState: no history entries, Back behaves as before) and read once on load and on a link's hashchange, so a
+  // reload comes back to the same tab, card, request or frame. An address without a hash opens the Timeline as before.
+  let routing = false;
+  function routeModel() { return typeof JobsModel !== 'undefined' && JobsModel.parseHash ? JobsModel : null; }
+  /** Write the hash for a route ({tab} | {tab, job} | {tab, request} | {tab, filter} | {tab, frames}). */
+  function route(r) {
+    const RM = routeModel();
+    if (!RM || routing || typeof history === 'undefined' || !history.replaceState) return;
+    const h = RM.formatHash(r) || '';
+    if ((location.hash || '') === h) return;
+    try { history.replaceState(history.state, '', location.pathname + location.search + h); } catch (_) { /* a page without a history: the hash stays */ }
+  }
+  /** Where the page is now, as a route (the tab; on the Jobs tab its filter). */
+  function here() {
+    if (S.tab === 'jobs' && typeof Jobs !== 'undefined' && Jobs.S && Jobs.S.filter) return { tab: 'jobs', filter: Jobs.S.filter };
+    return { tab: S.tab };
+  }
+  async function applyRoute(r) {
+    if (!r) return;
+    routing = true;
+    try {
+      if (r.tab && r.tab !== S.tab && document.querySelector(`.tabs button[data-tab="${r.tab}"]`)) switchTab(r.tab);
+      if (r.tab === 'jobs' && typeof Jobs !== 'undefined') {
+        if (r.job) Jobs.focus(r.job);
+        else if (r.request) Jobs.focusRequest(r.request);
+        else if (r.filter) Jobs.setFilter(r.filter);
+        else if (Jobs.S && Jobs.S.filter) Jobs.setFilter(null);
+      }
+      if (r.frames && typeof Frames !== 'undefined') {
+        const f = r.frames;
+        if (typeof Assets !== 'undefined' && typeof Assets.open === 'function') { try { await Assets.open(f.kind, f.id); } catch (_) { /* the view opens all the same */ } }
+        const viewer = await Frames.open(f.kind, f.id, f.code, { base: f.anim, view: f.view, slot: f.slot });
+        // the address named a frame: the view stays on it (a loop would otherwise play on from it)
+        if (viewer && f.slot != null && typeof viewer.pause === 'function' && typeof viewer.showPos === 'function') { viewer.pause(); viewer.showPos(f.slot); }
+      }
+    } finally { routing = false; }
+    route(r);
+  }
+  /** The Frames view writes its group and slot into the address while it is open (a paused frame's slot; a playing view
+   *  its animation and view), and the address goes back to where the page was when it closes. frames.js is not changed:
+   *  Frames.open is wrapped once here. */
+  function routeFrames() {
+    if (typeof Frames === 'undefined' || typeof Frames.open !== 'function' || Frames.__routed) return;
+    const open = Frames.open;
+    Frames.open = async function (kind, id, code, o) {
+      const back = here();
+      const opts = o || {};
+      route({ frames: { kind, id, code, anim: opts.base, view: opts.view, slot: opts.slot } });
+      let viewer = null;
+      try { viewer = await open.call(Frames, kind, id, code, o); } catch (e) { route(back); throw e; }
+      const dlg = viewer && viewer.dlg;
+      if (!dlg) { route(back); return viewer; }
+      const tick = setInterval(() => {
+        if (!dlg.isConnected) { clearInterval(tick); return; }
+        route({ frames: { kind, id, code, anim: viewer.base || undefined, view: viewer.view || undefined, slot: viewer.playing ? undefined : viewer.slot } });
+      }, 1000);
+      dlg.addEventListener('close', () => { clearInterval(tick); route(here()); });
+      return viewer;
+    };
+    Frames.__routed = true;
+  }
+  function initRoutes() {
+    const RM = routeModel();
+    if (!RM) return;
+    routeFrames();
+    window.addEventListener('hashchange', () => { const r = RM.parseHash(location.hash); if (r) applyRoute(r); });
+    const r = RM.parseHash(location.hash);
+    if (r) applyRoute(r); else route(here());
   }
 
   /** The creature list again (after the Creatures tab set a default look: the in-play icons change). */
@@ -1172,6 +1246,7 @@ const App = (() => {
     document.getElementById('zoom-box').hidden = name !== 'timeline';
     if (Timeline.hideCard) Timeline.hideCard();
     render(name === 'timeline' ? 'all' : 'tab');
+    route(here());   // pass 97: #<tab> (a reload comes back to it)
   }
 
   function wireKeys() {
@@ -1218,6 +1293,7 @@ const App = (() => {
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
     newRow, newRowPreset, splitRow, convertRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,
     issuesFor, save, revert, exportJson, render, status, setClock, toast, switchTab, BOSS_WINDOW,
+    route, applyRoute,   // pass 97 (lane LIVE): the hash routes
     spawned, spawnOpts, setAssume, turnoverSource, setSimLife, setUseSimLife,
   };
 })();

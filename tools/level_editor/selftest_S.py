@@ -1060,9 +1060,10 @@ def routes_checks(check, server):
             st, body = post("/api/content/pickup/heart/save", {"json": {}})
             check(st == 404, "a non-edit kind on a POST is a 404")
             # upload: the cap, the missing length, a real small file
-            r = raw_request(["POST /api/upload HTTP/1.1", "Host: x", "X-Kind: 2d", "X-Filename: big.png", "Content-Length: 300000000", "Connection: close"])
+            # pass 97 (lane SAFE, WF-08): the guard refuses a Host that is not loopback, so the raw requests name 127.0.0.1
+            r = raw_request(["POST /api/upload HTTP/1.1", "Host: 127.0.0.1", "X-Kind: 2d", "X-Filename: big.png", "Content-Length: 300000000", "Connection: close"])
             check(r.startswith("HTTP/1.0 413") or r.startswith("HTTP/1.1 413"), "an upload over 200 MB is a 413 before any byte is read: %s" % r.split("\r\n")[0])
-            r = raw_request(["POST /api/upload HTTP/1.1", "Host: x", "X-Kind: 2d", "X-Filename: nolength.png", "Connection: close"])
+            r = raw_request(["POST /api/upload HTTP/1.1", "Host: 127.0.0.1", "X-Kind: 2d", "X-Filename: nolength.png", "Connection: close"])
             check(" 411 " in r.split("\r\n")[0], "an upload without Content-Length is a 411: %s" % r.split("\r\n")[0])
             png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 3000
             st, body = post("/api/upload", png, {"Content-Type": "application/octet-stream", "X-Kind": "2d", "X-Filename": "ref-pic_1.png"})

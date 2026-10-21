@@ -186,6 +186,7 @@ def stage(kind, cid, code, base, view, body):
     slot = int(body.get("slot"))
     vid = str(body.get("version") or "")
     rec = g.stage(slot, vid, why=str(body.get("why") or "chosen"))
+    _ev("stage", kind, cid, code, base, view, slot=slot, version=vid, why=str(body.get("why") or "chosen"))   # pass 97 (lane PROGRESS, WF-02)
     return {"ok": True, "slot": slot, "staged": rec, "group": g.detail(_dl_url)}
 
 
@@ -193,6 +194,7 @@ def unstage(kind, cid, code, base, view, body):
     look, g = _group(kind, cid, code, base, view)
     slot = body.get("slot")
     g.unstage(None if slot is None else int(slot))
+    _ev("unstage", kind, cid, code, base, view, slot=slot)   # pass 97 (lane PROGRESS, WF-02)
     return {"ok": True, "group": g.detail(_dl_url)}
 
 
@@ -202,6 +204,7 @@ def pin(kind, cid, code, base, view, body):
     if body.get("version"):
         g.select(slot, str(body["version"]), by="human", pinned=bool(body.get("pinned", True)))
     rec = g.pin(slot, bool(body.get("pinned", True)))
+    _ev("pin", kind, cid, code, base, view, slot=slot, version=body.get("version"), pinned=bool(body.get("pinned", True)), ok=rec is not None)   # pass 97 (lane PROGRESS)
     return {"ok": rec is not None, "slot": slot, "selected": rec, "group": g.detail(_dl_url)}
 
 
@@ -228,6 +231,7 @@ def copy(kind, cid, code, base, view, body):
     staged = None
     if body.get("stage", True):
         staged = g.stage(slot, v["id"], why="copied from %s" % v.get("from", {}).get("label", src_code))
+    _ev("copy", kind, cid, code, base, view, slot=slot, version=v["id"], label=v.get("label"), source=frm, staged=staged is not None)   # pass 97 (lane PROGRESS)
     return {"ok": True, "slot": slot, "version": {"id": v["id"], "label": v["label"], "n": v["n"]}, "staged": staged, "group": g.detail(_dl_url)}
 
 
@@ -343,6 +347,7 @@ def export_job(srv, kind, cid, code, body):
     res = srv._enqueue("frames_export", target, {"kind": kind, "id": cid, "code": code, "note": str(body.get("note") or ""), "in_play": bool(s.get("in_play"))}, title)
     if res.get("job") is None:
         return {"ok": False, "error": res.get("error") or "the queue is not here"}
+    _ev("export", kind, cid, code, None, None, job=(res.get("job") or {}).get("id"), staged=n, in_play=bool(s.get("in_play")))   # pass 97 (lane PROGRESS)
     return {"ok": True, "job": res["job"], "staged": n, "in_play": bool(s.get("in_play"))}
 
 
@@ -382,7 +387,9 @@ def stage_versions(kind, cid, code, base, view, versions):
 def rollback(kind, cid, code, backup, changed, job=None, why=""):
     """pass 95 resume (AN-09): an export undone by the Level Editor when its merge or import failed (the strip from the
     backup, the exported choices staged again; the old entry is merged back by the caller through merge_look)."""
-    return FS.rollback_export(kind, cid, code, backup, changed=changed, job=job, why=why)
+    r = FS.rollback_export(kind, cid, code, backup, changed=changed, job=job, why=why)
+    _ev("rollback", kind, cid, code, None, None, job=job, why=why, ok=(r or {}).get("ok"))   # pass 97 (lane PROGRESS, WF-02)
+    return r
 
 
 def delete(kind, cid, code, base, view, body):
@@ -513,3 +520,18 @@ def api_post(h, srv, parts, body=None):
     except (TypeError, KeyError) as e:
         return h._error(400, "bad body: %s" % e)
     return h._send(200 if res.get("ok") else 400, res)
+
+
+def _ev(op, kind, cid, code, base, view, job=None, **fields):
+    """pass 97 (lane PROGRESS, WF-02): one `frames` event (the page's verbs and the loop's, which call the same
+    functions); never raises; nothing outside the server."""
+    try:
+        m = sys.modules.get("events") or sys.modules.get("le_events")
+        if m is None or not hasattr(m, "emit"):
+            import jobs as _j
+            m = _j._ev()
+        if m is not None:
+            group = "%s/%s" % (base, view) if base and view else None
+            m.emit("frames", op, job=job, look=m.look_of(kind, cid, code), group=group, **fields)
+    except Exception:   # noqa: BLE001
+        pass

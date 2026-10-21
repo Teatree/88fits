@@ -1708,3 +1708,188 @@ step frame with a fake planner, the controls, approve / reject / pick, the route
 against a fake ComfyUI, the no-regression proofs) and `selftest_SLICE.py` (the whole sentence offline in about 10 s on
 the real workers: a stand-in tool, the real `frames_store.export_look`, a fake evaluator and planner, `art_request.py`
 over HTTP, Garry's confirm, `result`).
+
+## Pass 97: the live page
+
+The Jobs tab, the look card and the address bar follow the jobs as they run, without redrawing what did not change.
+Nothing older changed its behaviour: every button, panel, dialog and tab works as before.
+
+**Cards that stay put.** A job card is now made of parts (its head, its target line, its stage line, the progress bar,
+the stages, the log, the outputs, the buttons, the folds, the re-roll panel); each poll redraws only the parts whose
+content moved. A running creature card keeps its clips playing while its log and stage tick (the clip players are kept
+by their address and reused; a card that finishes hands its clips to the finished card). An open re-roll panel, an
+open fold, a picked candidate, a Reject draft on a request card and a log you scrolled up stay as they are when another
+job finishes. The groups (Requests, Up next, Waiting, Running, Finished) are kept and their cards moved one at a time:
+the page never empties and refills itself, so it does not jump.
+
+**What the page asks.** Every 2 s on the Jobs tab (6 s elsewhere) the page asks only what changed since its last answer:
+`GET /api/jobs?since=<rev>&delta=1` -> `{rev, changed, removed, delta}` (plus `order` when a job was added, removed or
+moved, `full` when the page has nothing yet or the queue was replaced, `unchanged` when nothing moved). With today's
+queue that is a dozen kilobytes for a running job instead of the whole list (5.4 MB with 468 records). Without
+`delta=1` the route answers exactly as before (Claude's `art_request.py`, `puppet.py` and the docs use that form). A
+server older than pass 97 is noticed (501) and the page asks the whole list, as before.
+
+**The ComfyUI step.** While a render runs, the running card and the look card show the node and its step: "side ·
+KSampler step 3 of 4 · 41 s" (tools/comfy.py prints it from ComfyUI's progress messages; "no tick for N s" when they
+stop; a node without steps, such as VAE Decode, shows its name alone). A ComfyUI error is shown in red on the card at
+once. A running card's estimate says where it comes from (the measured median of the method's last runs, or
+methods.json's figure) when you hover it; a finished wait for a lock shows on the look card ("waited for the comfy lock
+2:05").
+
+**The look card's live block.** The selected look's stage (Enemies / Heroes, Looks) shows its queued, running or waiting
+jobs (the state, stage k of N, the time against the estimate, a lock it waits for, the ComfyUI step, the stages, the
+three newest outputs; "open in Jobs" goes to its card) and the art request on that look (iteration k of n, the budget,
+the provisional winner, **Approve…**: the same one box for the whole batch as on the request card). Under it a history
+line: the look's past jobs ("its jobs" opens the Jobs tab with that look's jobs only; **Show all jobs** goes back), its
+exports and the newest events of the look (when the events log is there). The block redraws itself when its jobs move;
+the grid of looks is never redrawn for it.
+
+**After a job lands.** The look grid's section (Looks, or Looks & previews on a hero) is redrawn alone when a job lands
+or an import finishes: a field you are typing in, an open section and the scroll elsewhere in the editor stay. If the
+file changed outside the looks (another key on disk), the whole editor is drawn again as before.
+
+**Addresses.** The address bar now says where you are, so a reload comes back to it: `#jobs`, `#creatures` (any tab),
+`#jobs/<job id>` (that card, marked), `#requests/<request id>`, `#jobs?look=SP-B&id=desert_spider` (that look's jobs
+only), `#frames/enemy/desert_spider/SP-B/run/side/7` (the Frames view on that animation and view, stopped on that frame; while
+it plays the address keeps the animation and view). Click a card's
+`#id` (or a request's id) to put its address in the bar. The address changes without adding Back steps.
+
+**Ops** (a fold under the Jobs header, from `GET /api/ops?days=7`): the outcomes per kind and method over the last 7 days,
+the measured seconds per job (rendered and cached) beside methods.json's figure, the time spent waiting for a lock, the
+failures as sentences with their count, and the evaluation cost per art request. It is asked when you open it and once a
+minute while it stays open.
+
+**Offline and restarts.** While the Level Editor does not answer, a red "offline since hh:mm" pill shows in the top bar on
+every tab (the Jobs header says since when and that it retries every 15 s); it goes when the server answers. After a
+restart, "N jobs were interrupted by the restart" with **Re-queue all** queues each of them again exactly as its own
+Re-queue would; nothing is re-queued on its own.
+
+Tests: `selftest_LIVE97.py` (the delta on a temporary queue and over HTTP with the old answer compared byte for byte, the
+page's merge, part signatures, addresses, the ComfyUI step words, the live block, history and Ops under Node, and the
+Jobs tab, the look card and the editor's Looks section driven through the DOM stand-in). frames.js did not parse at the
+start of this pass (one apostrophe), which had silently switched off the Frames view and Approve: fixed, and every page
+script is now checked to parse (`selftest_JSSYNTAX97.py`).
+
+## Pass 97: health and safety
+
+**Is this PC ready?** `python tools/doctor.py` looks at everything the tools need and changes nothing: Python, the
+packages in `tools/requirements.txt` (numpy, Pillow and scipy are essential; the sound tools' packages, pefile and
+websocket-client are optional), Node.js (the selftest), the Godot binary in the checkout, Blender, the JDK, git, the
+three AI services (ComfyUI `/system_stats`, LM Studio `/v1/models`, Ollama `/api/tags`), the AI server's ssh key and a
+`BatchMode` login (`true` on the server: no prompt, nothing changed), the four locks with a verdict on each holder (free,
+alive, dead = reclaimed by the next taker, no owner file = an unknown process, the jobs lock's editor answering on its
+port or not), the free disk space and what `tools/dl` holds, and which key files exist in `tools/keys/` (names only). It
+ends `essentials ok` (exit 0) or `essentials MISSING: <names>` (exit 1); every missing piece is named with the line that
+fixes it. `--json` for scripts and Claude, `--quick` (no ssh login, no walk of `tools/dl`), `--home` / `--root` to look
+at another home folder or checkout. The editor runs the quick form on its own, at most every 10 minutes, on a thread no
+request waits for: `GET /api/status` carries its summary as `doctor` (`{ok, at, missing, absent, warnings, checks}`;
+null in an editor the selftest imports).
+
+**Where the AI lives**: `tools/ai_hosts.json` holds the hosts every tool uses (`comfy`, `ssh`, `ssh_key`, `lmstudio`,
+`ollama`), read by comfy.py, jobs.py, server.py, gen_art.py and vision_eval.py through `tools/ai_hosts.py`. With
+today's values nothing changes; a missing file, a missing key or a broken file = the old built-in values; the
+environment's `COMFY_SERVER` (and comfy.py's `--server=`) still win. `python tools/ai_hosts.py` prints what each tool
+gets and where it came from. `/api/status.ai_hosts` names them (never the key's contents).
+
+**Closing the window**: closing the editor's console window now does what Ctrl+C does (the job workers told to stop,
+the queue's `jobs` lock released), and Ctrl+Break does the same; a job that was running is marked interrupted at the
+next start as before (`recover()` stays the backstop for a kill nothing can catch, such as Task Manager's End task).
+
+**Re-queue all**: `GET /api/status` gains `interrupted` (how many jobs the last start found running and marked
+interrupted) and `interrupted_ids`; `POST /api/jobs/requeue_interrupted` (body `{}`; `{ids: [...]}` for some of them,
+`{all: true}` for every interrupted job in the queue, older ones too) runs the same Re-queue as each card's button and
+answers `{requeued, skipped, refused}`. It never runs on its own. A Test in game (`launch`) is skipped (a re-run would
+open the game window again; its own Re-queue still does).
+
+**The request guard** (WF-08): the editor binds 127.0.0.1 only (a selftest asserts it). Every POST is refused with 403
+when its `Host` is not `127.0.0.1` / `localhost` (with the editor's port when one is named), or when it carries an
+`Origin` other than the editor's own page (`http://127.0.0.1:<port>`, `http://localhost:<port>`); a JSON route's body
+must come with `Content-Type: application/json` (else 415). `/api/upload` keeps its raw body (`application/octet-stream`).
+The refusal is `{ok: false, error, guard: true}`. A script without an Origin (urllib, curl, PowerShell) passes on a
+loopback address as before, as long as it names the JSON type: `curl -H "Content-Type: application/json" -d "{...}"`,
+`Invoke-RestMethod -ContentType application/json`. The one GET that writes, `/api/frames/<kind>/<id>/<code>` (it
+registers a look new to the frames store), gets the Host and Origin check; every other GET only reads and is unchanged.
+Checked callers: the page (every `fetch` POST sends JSON from its own origin; the upload sends octet-stream), puppet.py
+and art_request.py (`api()`), the selftests' posts; selftest_S's two raw upload requests now name `Host: 127.0.0.1`.
+
+**What listens beyond this PC**: `python tools/net_check.py` lists the TCP listeners on a non-loopback address with their
+process names, flags the editor's port range (8787-8800) and every ssh forward, and prints the one command that would
+keep a forward on this PC only. It changes nothing. On 2026-10-22 it found `ssh.exe -L 192.168.0.43:8788:192.168.137.54:8788`
+(the AI server's port 8788 reachable from the home network through this PC); keeping it on this PC only
+(`-L 127.0.0.1:8788:192.168.137.54:8788`) or dropping it is Garry's call.
+
+**Secrets**: `tools/keys/` (git-ignored except its README) holds `keystore.env` + `88fits.keystore`, `codesign.env`,
+`anthropic.env`, `gemini.env`; `tools/keys/README.md` says who reads each. The evaluator reads its keys only from there.
+
+Tests: `selftest_SAFE97.py` (the hosts reader and the five readers in a child process, the guard on a stand-in and over
+HTTP with every caller's own request code, the loopback bind, Re-queue all on a temporary queue, the doctor's summary
+cache, doctor.py on a fake probe, net_check's parsers, the console handler called directly, requirements.txt against an
+import scan of tools/, the keys folder).
+
+## Pass 97: progress, events, ops
+
+**The ComfyUI step, from ComfyUI itself.** While a Level Editor job renders, `comfy.run` also listens on ComfyUI's
+WebSocket (`ws://<server>/ws?clientId=<the id the prompt was queued with>`) on a thread of its own and prints, into the
+job's log, `comfy: <prompt id> <node> <step>/<steps>` (at most one line every 2 s, and at once when another node starts;
+a node without steps says `0/0`) and `comfy: <prompt id> error <node type> #<node>: <exception>: <message>` at once when
+ComfyUI reports an error. The node is named by its title in the graph (`Graph.add(..., _title=...)`), else its class.
+The server turns them into the job's `progress.substage` `{node, value, max, at, since, prompt, view}` and
+`progress.comfy_error` (the card draws them; see "The live page"). Nothing waits on that socket: `/history` is still
+how a render ends, and when the socket refuses or drops (tried again twice at most) the job runs exactly as before,
+without the step line. A run by hand (no Level Editor job) opens no socket and prints nothing new; `COMFY_PROGRESS=1`
+turns the lines on for it, `COMFY_PROGRESS=0` off everywhere. The step lines go to `log.txt`, not to the card's short
+log (the step is on the card already). Puppet's Hunyuan and the sound tools poll ComfyUI their own way: no step line.
+
+**The events log** (`tools/dl/jobs/events.jsonl`): one line per thing that happened, in order, each with a `seq`:
+a job queued, started, finished (its state and error), landed (what it wrote), picked, re-queued, cancelled, edited,
+interrupted; a look approved, shelved, unshelved, removed, noted, its recipe or default changed; an icon set or an
+install asked about; a content Save (the keys it changed); a frame staged, unstaged, pinned, copied, exported, rolled
+back; an evaluator's verdict; every entry of an art request's history (the request keeps its own `history[]` as
+before; the same entries are here too); the server's start and the archive. Each job folder holds a copy of its own
+events (`tools/dl/jobs/<id>/events.jsonl`). "Why did SP-B change at 12:40" is one search:
+`findstr "SP-B" tools\dl\jobs\events.jsonl` (or `grep '"code": "SP-B"'`). Only the editor writes it (a script that
+imports jobs.py writes nothing); a failing write never fails what it records. Above 32 MB it moves to
+`tools/dl/jobs/archive/events_<stamp>.jsonl` and the numbers go on. For scripts:
+`GET /api/events?since=<seq>&limit=N[&job=<id>][&rid=<request>][&look=<kind>/<id>[/<code>]]` -> `{ok, seq, last, more,
+events}` (`seq` is where to ask from next time).
+
+**The archive.** At the editor's start and once a day, finished jobs (done, failed, cancelled) that ended more than 30
+days ago move from `tools/dl/jobs/queue.json` to `tools/dl/jobs/archive/queue_<YYYY-MM>.json` (the month they ended),
+exactly as they were; their folders stay. The Jobs tab and `GET /api/jobs?since=0` show the live queue only;
+`GET /api/job/<id>` still finds an archived job (it says `archived: "queue_2026-09.json"`), Re-queue by id brings one
+back, an icon candidate of an archived job can still be installed. `GET /api/jobs/archived` lists the months,
+`?month=YYYY-MM` one month's jobs; `/api/status` says how many as `jobs.archived`. Only the editor that runs the queue
+archives; a job another job still points at (an export its import follows) waits.
+
+**Ops** (`GET /api/ops?days=7`): computed when asked, from the queue, the archive (for a window beyond 28 days) and the
+evaluator's ledger: how many jobs ended in each state per kind and method; the seconds a run takes per method, split
+into runs that painted something and runs the cache served (median, 90th percentile, how many), beside methods.json's
+and the built-in figure; the seconds spent waiting for each lock (now kept per attempt: a job's `lock_wait_s`, and
+`lock_wait_total_s` over its attempts); the failures grouped by their sentence; QA-offline, interrupted and stalled
+counts; the evaluation cost per art request and per model. About 15 ms on 468 jobs.
+
+**Estimates from what really happened.** A job's estimate (`eta_s`) now starts from the median of the method's last
+runs that painted something, once there are at least 5 of them in the queue; before that, methods.json's figure, else
+the built-in one. The card can say which: `eta_source` = `measured` | `methods` | `builtin`.
+
+**Errors as sentences.** A failed job's `error` is taken from its log without colour codes: the exception's own line
+first (as before), else a line naming an error or FAILED, else how the step ended and the last thing it said (a Godot
+import that crashed at its exit used to show an invisible colour code; it now reads "exit code 0xC0000005: an access
+violation (a crash) after: [ DONE ] loading_editor_layout"). Old records are not rewritten; the Ops view re-reads
+their logs for the sentence.
+
+**server.log.** Everything the editor prints (its start, every API line, every traceback) also goes to
+`tools/dl/jobs/server.log`, each line with its time; at 5 MB it becomes `server.log.1` (three old files kept), so what
+happened is still there after the window closed.
+
+**A selftest no longer writes over the queue.** Until this pass, one selftest group wrote its two-job fake over
+`tools/dl/jobs/queue.json` whenever the full selftest ran (the 2026-10-22 queue lost its 467 older records that way; the
+job folders and their logs are intact). `jobs._save()` now writes only `JOBS_DIR`'s own queue file, and that test points
+both. The lost records can be rebuilt from their folders: `python tools/dl/p97/PROGRESS/rebuild_queue.py` writes
+`queue_recovered.json` (read-only, states guessed from the logs), which can be put in `tools/dl/jobs/archive/`.
+
+Tests: `selftest_PROGRESS97.py` (comfy.run against a fake ComfyUI speaking HTTP and WebSocket from the recorded messages
+in `testdata/comfy_ws/`: the lines, the throttle, the error, a refused and a dropped socket, no socket for a hand run, a
+real subprocess; parse_line's substage and error; the events log under 16 threads; the choke points on a temporary
+world with a job's events folded back into its record and a request's history equal to its events; the archive round
+trip over HTTP; Ops on 50 synthetic jobs; the error rule; the log's rotation).
