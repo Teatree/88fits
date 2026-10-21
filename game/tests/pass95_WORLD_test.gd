@@ -184,6 +184,9 @@ func test_the_director_hands_the_block_over_but_never_in_the_arena() -> void:
 	hero.global_position = Vector3.ZERO
 	var regular := _spawn(em, "red_goblin", Vector3(0, 0, 50))
 	var special := _spawn(em, "red_goblin", Vector3(0, 0, 55))
+	# pass 96 (lead): the Red Goblin rolls a coloured special 4% of the time (variance.special_chance): the "regular" one
+	# is made plain by hand, else one spawn in 25 made this test fail (it did once, in pass 96's regression run)
+	em.vspecial[regular] = 0
 	em.vspecial[special] = 1
 	# (the director gave the crowd the map's spawn_rise: both are all the way up for this)
 	for i: int in [regular, special]:

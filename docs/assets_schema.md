@@ -2327,3 +2327,237 @@ One line after every `strip.save`: `frames_store.hook_after_save(folder, id, cod
 `FramesModel.exportConfirmText(code, total, inPlay, id)`, `whereLine(detail)`; `versionText` says the driver, the shrink
 and a removed source; the repair form's "fill freely anyway" checkbox sends `free_fill`; the versions drawer's Delete;
 the picker's "removed look" chip; the info block's "Where frames live" line.
+
+## Pass 96: new keys
+
+### Phase 0: the VACE window benchmark and profiles; the blind calibration set and the tier table (lane GATES)
+
+#### tools/level_editor/methods.json: every method's `repair` rule (21 methods)
+
+Written by `python tools/vace_bench.py write-profiles` from the measured benchmark (tools/dl/p96/GATES/bench/summary.json);
+read by `vace_repair.profile_for` (and lane LOOP's `loop.repair_profile`). The two keys sit beside pass 95's `vace` /
+`fill` / `note` on the same one-line rule.
+
+| key | type | default (when absent) | meaning |
+|---|---|---|---|
+| `repair.profile` | object | pass 95's behaviour: `{window: "auto", frames: null, strength: 1.0, steps: 4, cfg: 1.0, lora: true}` | the VACE settings a repair of this method's animations follows when the caller passes none |
+| `repair.profile.window` | `"single"` \| `"double"` \| `"auto"` | `"auto"` (= double for loops of up to 12 frames, single for longer ones; one-shots as they are) | a loop goes in once plus its first frame (single, 13 frames for a 12-frame walk) or twice plus the first (double, 25) |
+| `repair.profile.frames` | int \| null | null | the window's frame count for a 12-frame loop (13 or 25); informational |
+| `repair.profile.strength` | float 0..1 | 1.0 | WanVaceToVideo's control strength |
+| `repair.profile.steps` | int | 4 | the sampler steps (4 with the lightx2v LoRAs, 20 without) |
+| `repair.profile.cfg` | float | 1.0 | the guidance (1.0 with the LoRAs, 3.5 without) |
+| `repair.profile.lora` | bool | true | the 4-step lightx2v LoRAs on the two Wan models |
+| `repair.escalation` | list of `"single"` \| `"double"` \| `"reroll_view"` | `["single", "double", "reroll_view"]` | the ladder to climb when a repair's checks are no better than before (the plan's fixed order; `reroll_view` = re-roll the view instead); a class the benchmark found unreliable (best score under 0.6) has `["reroll_view"]` only. The profile's `window` says where a hand run or an "auto" job starts; the loop may start the ladder at that window |
+
+A method the catalogue does not list (an old look's `creature` / `hero` method) is classed by what its group holds
+(`vace_repair.class_of`: a depth driver = ctl, a pose driver = pose, a clip without a driver = free, cells only = cell)
+and follows the class's representative method: creature_ctl, creature_pose2, creature_free2, creature_proc. The classes
+of the 21 methods: ctl = creature_ctl, hero_puppet; pose = hero_pose5, hero_fit, creature_pose2; free = creature_free2,
+creature_free8; cell = the rest (procedural, stills, icons, badges, titles, drivers, 3D references).
+
+Precedence in `vace_repair.repair()`: an explicit argument (`--window`, `--strength`, `--steps`, `--cfg`, `--lora`) >
+the method class's profile > the clip's own `wan` settings (`cycle.json`) > the built-in defaults above. A Level Editor
+`frames_repair` job passes only `window` (its form's choice, "auto" = the profile) so it follows the profile.
+
+#### tools/vace_repair.py: new arguments and job keys (every old one unchanged)
+
+| argument / job key | type | default | meaning |
+|---|---|---|---|
+| `--strength` / `strength` | float | None = the profile's | was 1.0 fixed; absent now means "the profile's" (1.0 when no profile) |
+| `--lora 1|0` / `lora` | bool | None = the profile's | the LoRAs on or off (the job key is a bool) |
+| `--mask "slot:x0,y0,x1,y1[;...]"` / `mask` | {slot: [x0, y0, x1, y1]} | none | a partial repair: only that rectangle of the slot is painted (fractions of the canvas, 0..1); the kept pixels outside it stay the control and the result; the version records `mask` |
+| `--store DIR` / `store` | path | tools/dl/frames | another frames-store root (the benchmark's copy); `register_look` runs there if the look is unknown |
+| `profile=` (Python only) | dict | None = `profile_for(method, meta)` | a profile to follow instead of the catalogue's |
+
+New fields on the result (`repair_<stamp>.json`, the job's `result.json` `info.repair`): `profile` {window, frames,
+strength, steps, cfg, lora, escalation, class, method, source}, `mask`, `store`, `upload_bytes`, `upload_seconds`,
+`frames_back`. New fields on a version record: `mask` (when partial), `profile` {class, source, window}.
+
+Functions: `profile_for(method, meta, rules) -> dict`, `class_of(method, meta) -> "ctl"|"pose"|"free"|"cell"`,
+`repair_rules(path) -> {method: rule}`, `next_rung(profile_or_rule_or_list, rung) -> next | None`, `parse_mask`,
+`clean_mask`, `mask_image`, `partial_frame`, `partial_merge`.
+
+#### tools/level_editor/request_defaults.json `tiers` (GATES owns this key; REQ the rest)
+
+```
+"tiers": {
+  "0": "deterministic",
+  "1": {"backend": "openai_chat", "model": "<the local model with the best miss rate on the blind set>", "on": "flagged+sample", "url": "http://127.0.0.1:1234/v1/chat/completions", "max_tokens": 300 | 1500},
+  "2": {"backend": "anthropic", "model": "claude-haiku-5-5", "on": "sheets", "ceiling_dollars": 0.0, "key_file": "tools/keys/anthropic.env"},
+  "_measured": {"made", "set", "models": {<model>: {<rubric>: {miss_rate, false_alarm_rate, seconds_per_image, runs, agreement, dollars}}}, "note"}
+}
+```
+`ceiling_dollars` 0.0 = the tier is off (the loop runs local-only and says so). `max_tokens` on tier 1: a thinking model
+(gemma) spends its budget on hidden reasoning first; an empty answer is "no verdict", never "ok".
+
+#### tools/qa_bench/manifest.json (in git; the images under tools/dl/qa_bench/, ignored)
+
+`cases[]`: `id` (C01.., a fixed shuffle), `image`, `kind` still|frame, `species`, `expect_legs`, `verdict` {legs, ghost,
+face, smear, clean, chosen}, `strength` strong|weak, `source` (the status-file line), `rater`, `origin` (the source
+image), `size`. `rubric`, `anchored`, `unanchored`: the texts. `python tools/qa_bench.py prepare` rebuilds it.
+
+### The request record, art_request.py and the routes; the cancel fix; the offline slice (lane REQ)
+
+#### The request record `tools/dl/jobs/requests/<rid>.json` (requests.py; `v` 1)
+| key | type | default | meaning |
+|---|---|---|---|
+| rid | str | `r<YYYYMMDD-HHMMSS>-<4hex>` | the request id (the CLI's and the routes' handle) |
+| created / updated | iso | now | when it was made / last saved |
+| goal | str | required | Garry's or Claude's one sentence |
+| brief | {art_prompt, appearance, words} | the asset's own words | immutable once created (`save` refuses a changed brief) |
+| asset | {kind, id, code, method, from} | code allocated when absent | the look the request paints; `from` the look whose recipe a new code copied |
+| mode | auto \| step \| observe | auto | Auto-iterate; one op per Step; no loop (the landing waits for approval) |
+| budget | {rerolls, repair_rounds, lane_seconds, evaluator_calls, cloud_dollars} | 2, 2, 5400, 60, 0.0 (request_defaults.json `budget` over the built-ins) | the caps; cloud_dollars 0 = the metered tiers are off (never a stop) |
+| spent | {rerolls, repair_rounds: {group: n}, lane_seconds, evaluator_calls, cloud_dollars, charged?} | zeros | recounted at every step: lane seconds from the jobs' clocks, calls and dollars from the findings' model_calls (a `charge` is a floor under them), re-rolls and rounds from the ops |
+| state | running \| paused \| waiting \| approved \| done \| failed \| stopped \| cancelled | running | the request's state |
+| waiting_for | null \| approval \| pick | null | what a `waiting` request waits for |
+| stop_reason | str | - | why it waits (the gates passed, the budget ended (...), the planner has nothing more to try, a refused op, ...) |
+| jobs | [job id] | [the look job] | every job of the request in creation order (stamped `request`); imports that follow, evaluates, repairs, the export |
+| current_job | job id \| null | the look job | the job that runs or is queued now |
+| landed | [{job, t}] | - | the look jobs that landed |
+| iterations | [{n, started, ended, job, findings, op, gates, note, ...}] | [] | one per dispatched op; the planner's extra keys on the op (`hard_before`) are moved here |
+| provisional | {code, groups: {"base/view": {staged: [slots], pinned: [slots]}}, by?, why?, note?} \| null | null | the provisional winner: a staged selection (+ pinned re-applies); never a pin, an export or the JSON's `variant` |
+| history | [{t, event, ...}] | [created, job] | created, job, op, waiting, paused, resumed, step, stopped, cancelled, look_approved, approved, rejected, picked, provisional, note, error, done, failed |
+| rejections | [{t, code, why, versions}] | - | Garry's rejects with their reasons |
+| export_job | job id | - | the frames_export approve queued |
+| result | {code, strip_sha1, entry, import_job, export_job, changed, flags, verdicts, summary, sheet, strip} \| null | null | filled at `done` |
+| toast / note | {t, text} / str | - | the last human-facing line (the page's toast) |
+| error | str | "" | why it failed |
+| title | str | "" | an optional title (the job's title too) |
+
+#### On a job record (jobs.py)
+| key | type | meaning |
+|---|---|---|
+| request | str (rid) | the art request the job belongs to: `enqueue(..., request=rid)`, `spec.request` (an evaluate job), or `jobs.set_request(job_id, rid)`; absent on a plain job |
+| comfy_prompt | str | the newest prompt id `comfy.run` printed (`comfy: prompt <id>`); a cancel deletes that one |
+
+#### `tools/level_editor/request_defaults.json`
+| key | type | default | meaning |
+|---|---|---|---|
+| budget | {rerolls, repair_rounds, lane_seconds, evaluator_calls, cloud_dollars} | Garry's defaults | the global budget (REQ) |
+| cloud_ceiling_dollars_per_day | float | 0.0 | the day's cloud ceiling (LOOP's vision_eval reads it; 0 = off) |
+| tiers | object | {} | the tier table (GATES writes it) |
+
+#### Routes (requests_io.py)
+`POST /api/requests` {goal, asset: {kind, id, code?, method?, spec?, from?}, brief?, mode?, budget?, title?} -> {ok, rid, fold};
+`GET /api/requests` -> {ok, requests: [folds]}; `GET /api/requests/<rid>` -> {ok, ...fold}; `POST /api/requests/<rid>/pause|resume|stop|cancel|step` -> {ok, ...fold};
+`POST .../approve` {confirm: true} -> {ok, ...fold, export_job, batch} (409 {needs_confirm, batch, fresh, in_play} without confirm);
+`POST .../reject` {why}; `POST .../pick` {code} | {group, slot, version, look?}; `GET /api/job/<id>/summary` -> {ok, id, kind, method, state, request, target, title, stages: [{name, state, secs}], done, total, stage, hard, advisory, gates, outputs: [{label, type, file?, url?, cache_key?, qa?}], sheet, error, started, ended, paragraph}.
+
+#### The fold (`requests.fold`; what PAGE draws)
+rid, v, created, updated, goal, asset, mode, state, waiting_for, iteration {n, of}, budget, spent, budget_line, provisional, summary, sheet, jobs [{id, kind, state, title, stage, error}], current_job, export_job, history_tail (the last 8), iterations, findings {job, path, gates, sheet} | null, result, error, toast, note, stop_reason, title, page (`#jobs?request=<rid>`).
+
+#### The CLI `tools/art_request.py`
+`start --kind --id [--code] [--from] [--method] --goal [--mode] [--rerolls] [--repair-rounds] [--minutes] [--evals] [--cloud-dollars] [--prompt] [--appearance] [--word k=v ...] [--title]`, `status|result|sheet|cancel|pause|resume <rid> [--wait --timeout S]`, `list`, `job <job id>`, `--editor URL`, `--json`. Exit codes 0 done / ok, 2 not final, 1 failed / stopped / cancelled / refused, 3 no editor.
+
+### The evaluator adapter, tiers, ledger and findings; the commands, the planner and the loop body (lane LOOP)
+
+#### Files
+- `tools/vision_eval.py`: the evaluator adapter (three backends + FakeBackend), the ledger, the cache, the tiers, the findings, the CLI.
+- `tools/qa_rubrics.json`: the fixed rubric texts by id (`still_gate`, `frame_ask`, `frame_blind`, `still_blind`, `sheet_blind`), each with
+  `per` (image | sheet), `text`, `placeholders` (only the two legacy ones), `fields` ({bad_when: value|list} | {record: true} | {note: true}).
+- `tools/level_editor/commands.py`, `tools/level_editor/loop.py`, `tools/level_editor/requests_api.py`, `tools/level_editor/selftest_LOOP96.py`.
+- `tools/dl/qa/ledger.json` (git-ignored, under tools/dl): every evaluator call; `tools/dl/qa/cache/<key>.json`: cached answers.
+- `tools/keys/anthropic.env`, `tools/keys/gemini.env` (git-ignored; do not exist today): `ANTHROPIC_API_KEY=...` / `GEMINI_API_KEY=...` or a bare token.
+
+#### The `evaluate` job kind (jobs.py SPECS; lane local; no lock)
+| key | type | default | meaning |
+|---|---|---|---|
+| kind, id, code | str | required | the look |
+| groups | list of "base/view" | [] = every group | which animation x view groups to evaluate |
+| tiers | list of int | [0, 1] | 0 deterministic flags + geometry; 1 the local eye on flagged frames + one clean frame a group; 2 the cloud eye on one contact sheet |
+| request | str | "" | the request id (the ledger's request column; ASSET_JOB_REQUEST in the step's env) |
+| cloud_dollars | float | 0.0 | the request's ceiling for tier 2 (0 = tier 2 off) |
+| backend | str | "" | openai_chat / anthropic / gemini / fake for tier 1 (empty = the tier table's) |
+| model | str | "" | the model id (empty = the tier table's) |
+| note | str | "" | |
+Writes `<job>/evaluate.json` (the spec), `<job>/findings.json`, `<job>/findings_sheet.png`, `<job>/decision_sheet.png` (tier 2), `<job>/result.json`
+(`info.findings`, `info.gates`, `info.summary`, `info.outputs`, `info.dollars`, `info.model_calls`, `info.tier2`). The job record gains `findings` (the path)
+and one summary line in `progress.notes`.
+
+#### The findings record (`findings.json`; INTERFACES' shape plus)
+`v`, `job`, `look {kind, id, code}`, `model_calls [{backend, model, images, ms, dollars, cached, refused, error, tier}]`, `items [{image, group, slot,
+kind measured|model|human, field, value, ok (true | false | null = no verdict), rule, box [x, y, w, h] | null, model, tier}]`, `gates {hard_failures,
+advisory, pass}`, `sheet`, `tiers`, `tier2 {ran, why, cells?, sheet?}`, `request`, `time`, `groups [{label, n, repairable, method, flagged}]`,
+`dollars`, `summary`, `file`.
+Measured fields: `empty`, `footprint`, `jump`, `seam`, `silhouette` (frames), `empty`, `touches-edge`, `unreadable` (stills). Model fields (frame_blind):
+`legs`, `arms` (recorded, ok null), `broken`, `ghost`, `face`, `smear`, `colour`, `note`, `verdict` (no verdict); sheet_blind: `sheet` per cell.
+
+#### request_defaults.json keys LOOP reads (GATES / REQ own the file)
+- `tiers`: {"0": "deterministic", "1": {backend, model, on}, "2": {backend, model, on, ceiling_dollars}} (built-in when absent: the local 7B, claude-haiku-5-5 at $0).
+- `cloud_ceiling_dollars_per_day` (float, default 0.0 = the cloud tier off for everyone).
+
+#### methods.json keys LOOP reads (GATES writes; built-in defaults when absent)
+- `repair.profile`: {window: single|double, frames, strength, steps, lora}; `repair.escalation`: ["single", "double", "reroll_view"].
+
+#### Command ops (`commands.py`), the request record fields they read
+- op `{op, target {kind, id, code, group?, slots?, job?}, args, why}`; args per verb: requeue {words, seed, job, keys}; reroll_view {view, base, job, seed};
+  repair {rung, window, prompt, seed, guide, note}; stage {slot, version, why}; copy {slot, from {code, slot?, version?, base?, view?}, stage}; ask {tiers, groups,
+  cloud_dollars, backend, model}; note {text}; select_provisional {code, groups {label: {versions {slot: version id}}}, staged}; stop {why}.
+- the record: `mode` (auto | step | observe), `asset {kind, id, code}`, `budget {rerolls, repair_rounds, evaluator_calls, cloud_dollars}`, `spent {rerolls,
+  repair_rounds {group: n}, evaluator_calls, cloud_dollars}`, `iterations [{n, job, op, hard_before?, hard_after?}]`, `provisional`.
+- the planner adds `hard_before` on a repair / reroll_view op (the hard count on its slots when proposed): REQ's step records it on the iteration.
+
+#### Environment
+- `ASSET_JOB_REQUEST` (the evaluate step; gen_art's legacy calls put it in the ledger's request column).
+- `GEN_CTL_FOLDER` (asset_job's dry run: gen_ctl writes into this copy of the creature folder).
+
+#### The recipe
+- `recipe.loop_words` (str): the words the loop's `requeue` added to `art_prompt` (so a human sees what the loop changed).
+
+### The frame layer as Garry decided; the request card and the page's minimum (lane PAGE)
+
+Nothing in the game's content JSON. Everything below is the Level Editor's (the frames store under tools/dl/frames,
+the routes, the page).
+
+#### tools/frames_store.py
+- `label_of(v=None, group=None, *, code, base, view, slot, n)` -> `"SP-A / Run / Side / Frame 07 / v2"` (the one
+  formatter; `Frame 07` = the 0-based slot zero-padded; without `n` the slot's name). `VIEW_WORD` {front Front, fd
+  "Front ¾", side Side, bd "Back ¾", back Back}. `Group.name_of(slot, v=None)`.
+- Served (not persisted): every version record of `Group.detail` / `others` carries `name` (string); every slot
+  `name` and `was_pinned` (the id a landing with another cell size unpinned, or null); the detail `lost_pins`
+  (list of the selection records a landing could not re-apply: {id, by, time, pinned, slot, why, lost}).
+- `group.json` `lost_pins` (persisted): the pins a landing left behind (slot past the new count, or another
+  frame_px); their versions stay.
+- `selected.json` slot record `was_pinned` (string id): set when a frame_px change unpinned the slot.
+- `Group.effective_cells(staged=True)`, `Group.flags(staged=True)`, `Group.selected_version(slot)`: `staged=False`
+  = the selected versions only (the "before" of a batch).
+- `Group.register(...)` returns `misfit` ([{slot, id, why: "count" | "frame_px", name, text}]) and `pinned_differs`
+  ([slot]) beside the old keys.
+- `staged_batch(kind, cid, code, url_of=None)` -> {ok, kind, id, code, items: [{group, base, view, slot, name, why:
+  "staged" | "pinned", from: {id, label, n, name, source, url, seed, job, time} | null, to: {...}, source, staged_why,
+  flags: {raised: [flag], cleared: [flag], after: {flag: rule}}}], staged, pinned_reapply, in_play, strip_file,
+  backup_dir, replaces_installed}.
+- `export_look`: `changed[]` entries gain `name` and `why` ("staged" | "pinned": a pinned choice the strip did not
+  show, packed again); the result and the sidecar's `info` gain `names` ([string]) and `reapplied` (int).
+- `reapply_pins(kind, cid, code, override=None, log=None, job=None)` -> {ok, pinned, slots: [(group, slot)], names,
+  backup, strip_sha1, counts, cols}; `exports.json` entries gain `why: "reapply"` for it.
+- `hook_after_save(...)` returns `reapplied` (reapply_pins's result or None) and `misfit` beside `pinned`, `groups`.
+- `misfit_text(misfit)` -> the sentence. `NEVER_DELETED` the rule's words. `delete_version` -> {ok: false, retired:
+  true, referenced, error} always.
+
+#### tools/level_editor/frames_io.py (routes)
+- `GET /api/frames/<kind>/<id>/<code>/batch` -> staged_batch(...) + `lines` ([string], `batch_line` per item).
+- `POST /api/frames/<kind>/<id>/<code>/export` without `confirm: true` -> 400 {ok: false, needs_confirm: true,
+  in_play, batch, error} for EVERY look with a strip (pass 95: only the look in play).
+- `POST .../delete` -> 400 {ok: false, retired: true, ...} always.
+- `on_look_landed(kind, cid, code, enqueue=None)` -> the register result + `misfit`, `misfit_text`, `reapply`
+  ({pinned, names, note, job, error}) when pinned slots differed (a `frames_export` queued with spec
+  `reapply: {pinned, slots: [[group, slot]], names}`, `note: "re-applied N pinned frames"`, `in_play`).
+- `others`: versions gain `name`, `from`, `seed`, `driver`.
+
+#### tools/level_editor/jobs.py
+- a `look` / `frames_export` job's `written.frames` ({reapply: {pinned, job, names, error}, note, misfit,
+  misfit_text, error}) when the merge hook returned the store's sync.
+- `_render_ok(seen, line)`; a `render <key> seed N 12.3s ok` line harvests the outputs at once.
+
+#### The page
+- `FramesModel`: `VIEW_WORD`, `SOURCE_OPTIONS`, `TIME_OPTIONS`, `frameLabel`, `nameOf`, `sourceMark`,
+  `filterVersions(list, {source, days, raw}, now)`, `batchLines`, `batchSummary`; `SOURCE_TEXT` gains `old_roll`,
+  `archived`.
+- `Frames.confirmBox(kind, id, code, {title, yes, empty})` -> Promise<bool>; `Frames.batchContent(batch)`.
+- `JobsModel` (jobs_model.js): `sig(j, {hidden, ext})`, `elapsedText`, `connectionLine`, `budgetBars`, `lastOp`,
+  `waitingWords`, `buttonsFor`, `requestFold(fold, jobsById)`, `findingsBadges`.
+- `Jobs.S.ui` (Map job id -> {picked, gpicked, reroll, folds: {equiv, spec}, log}), `Jobs.S.rui` (Map rid -> {jobs,
+  reject, pick}), `Jobs.S.requests`, `requestsApi`, `lastContact`, `downSince`, `netError`, `findings`.
+- index.html: `jobs_model.js` before `jobs.js`; `requests.css`.

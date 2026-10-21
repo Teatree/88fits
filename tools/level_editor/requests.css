@@ -1,0 +1,38 @@
+/* Pass 96 (lane PAGE): the art request cards on the Jobs tab (jobs.js requestCard) and the honest connection line. */
+
+.jobs-conn { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--ink-2); width: 100%; }
+.jobs-conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); display: inline-block; }
+.jobs-conn.down .dot { background: var(--s8); }
+.jobs-conn.noapi .dot { background: var(--warn); }
+.jobs-conn.readonly .dot { background: var(--warn); }
+.jobs-conn.never .dot { background: var(--muted); }
+.jobs-conn.down { color: var(--s8); }
+
+.jobs-group.requests > h2 { color: #c8c0ff; }
+.rcard { border-color: rgba(144,133,233,0.55); }
+.rcard.state-waiting { border-color: rgba(255,209,102,0.7); }
+.rcard .rgoal { font-style: italic; color: var(--ink-2); }
+.rcard .rrow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 0.82rem; color: var(--ink-2); }
+.rcard .rwait { color: #ffd166; font-size: 0.84rem; }
+.rbudgets { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 12px; }
+.rbudget { display: flex; flex-direction: column; gap: 2px; font-size: 0.76rem; }
+.rbudget .bar { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.rbudget .bar i { display: block; height: 100%; background: var(--s1); }
+.rbudget.full .bar i { background: var(--s8); }
+.rbudget .lbl { display: flex; justify-content: space-between; color: var(--muted); }
+.rsummary { font-size: 0.84rem; line-height: 1.35; padding: 6px 8px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--border); }
+.rfindings { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+.rfindings .rbadges { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; max-width: 520px; }
+.rbadge { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: rgba(250,178,25,0.22); color: var(--warn); line-height: 1.1; }
+.rbadge.model { background: rgba(57,135,229,0.22); color: #8db8ef; }
+.rbadge.human { background: rgba(12,163,12,0.22); color: #9fe39f; }
+.rbadge.ok { background: rgba(255,255,255,0.08); color: var(--ink-2); font-weight: 500; }
+.rgates { font-size: 0.78rem; color: var(--muted); width: 100%; }
+.rsheet img { width: 160px; height: 110px; object-fit: contain; background: #222; border: 1px solid var(--border); border-radius: 6px; cursor: zoom-in; }
+.rjobs summary { cursor: pointer; font-size: 0.82rem; color: var(--ink-2); }
+.rjobs .rjob { display: flex; gap: 8px; align-items: center; font-size: 0.8rem; padding: 2px 0; }
+.rjobs .rjob a { color: #8db8ef; cursor: pointer; }
+.rpanel { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: var(--surface); border: 1px solid rgba(144,133,233,0.5); border-radius: 8px; }
+.rpanel .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rpanel textarea { width: 100%; min-height: 48px; font-size: 0.84rem; }
+.jelapsed { font-variant-numeric: tabular-nums; }

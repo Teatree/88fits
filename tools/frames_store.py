@@ -88,6 +88,35 @@ FLAG_RULES = {"jump": 1.7, "footprint": (0.72, 1.35), "seam": 2.2, "silhouette":
 # are kept (the only full-resolution copy once a re-roll moves the clip aside)
 STORE_VERSION = 1
 RETENTION = {"strip_backups": 30, "repair_days": 90}
+# pass 96 (lane PAGE, Garry's decisions 1 and 10): the label every page and result names a frame by, and the rule that
+# a frame version is never deleted (the Delete button is gone; delete_version refuses, kept so callers still work)
+VIEW_WORD = {"front": "Front", "fd": "Front ¾", "side": "Side", "bd": "Back ¾", "back": "Back"}
+NEVER_DELETED = ("frame versions are never deleted (pass 96, Garry's rule): every version of every frame is kept for reuse; "
+                 "stage another one instead")
+
+
+def label_of(v=None, group=None, code=None, base=None, view=None, slot=None, n=None):
+    """Garry's frame label, the one formatter (pass 96, decision 1): `SP-A / Run / Side / Frame 07 / v2`. `Frame 07` is
+    the 0-based slot the sheet numbers, zero-padded; `v2` the version's number in that slot (the record's `label`
+    `SP-A-2` stays for scripts). Takes a version record (+ its group), a group alone (the slot's name), or the parts."""
+    if isinstance(v, dict):
+        slot = v.get("slot", slot) if slot is None else slot
+        n = v.get("n", n) if n is None else n
+    g = group
+    if g is not None:
+        code = code or getattr(getattr(g, "look", None), "code", None) or (g.meta.get("code") if hasattr(g, "meta") else None)
+        base = base or getattr(g, "base", None)
+        view = view or getattr(g, "view", None)
+    parts = [str(code or "?")]
+    if base:
+        parts.append(str(base).capitalize())
+    if view:
+        parts.append(VIEW_WORD.get(str(view), str(view).capitalize()))
+    if slot is not None:
+        parts.append("Frame %02d" % int(slot))
+    if n is not None:
+        parts.append("v%d" % int(n))
+    return " / ".join(parts)
 
 
 def _now():
@@ -644,12 +673,28 @@ class Group:
         vs = self.versions(slot)
         return (vs[0], "first") if vs else (None, "none")
 
-    def effective_cells(self):
+    def effective_cells(self, staged=True):
+        """The cells the preview plays and an export packs; staged=False (pass 96): the selected versions only, the
+        "before" of a staged batch."""
         out = []
         for k in range(self.n):
-            v, _ = self.effective(k)
+            v, _ = self.effective(k) if staged else self.selected_version(k)
             out.append(self.cell_of(k, v) if v else Image.new("RGBA", (self.look.frame_px,) * 2, (0, 0, 0, 0)))
         return out
+
+    def selected_version(self, slot):
+        """The selected version of a slot (what the last export or install chose), else the first; (version, how)."""
+        sel = self.selected().get(str(slot))
+        if sel:
+            v = self.version(slot, sel["id"])
+            if v:
+                return v, "selected"
+        vs = self.versions(slot)
+        return (vs[0], "first") if vs else (None, "none")
+
+    def name_of(self, slot, v=None):
+        """Garry's label of a slot or of one of its versions (label_of with this group's code, base and view)."""
+        return label_of(v, self, slot=slot) if v is not None else label_of(None, self, slot=slot)
 
     # -- registration (the retrofit, and a sync after a landing)
     def register(self, cells, force=False):
@@ -660,6 +705,7 @@ class Group:
         look = self.look
         n = len(cells)
         was = self.exists()
+        px_before = int(self.meta.get("frame_px") or 0) if was else 0   # pass 96: a landing that changed the cell size
         if not was:
             self.meta = {"kind": look.kind, "id": look.cid, "code": look.code, "base": self.base, "view": self.view, "key": self.key,
                          "n": n, "frame_px": look.frame_px, "loop": loops(self.base), "created": _now(), "canvas": CANVAS, "store_version": STORE_VERSION}
@@ -711,6 +757,27 @@ class Group:
             else:
                 sel[str(k)] = {"id": v["id"], "by": "install", "time": _now(), "pinned": False}
             changed.append({"slot": k, "to": v["label"], "why": "installed" if not was else "re-rolled"})
+        # pass 96 (lane PAGE, AN-09 Q4): the pins a landing left behind are reported, never guessed: a pinned slot past
+        # the new frame count, or a pinned cell of another size (frame_px changed), cannot be re-applied; its pin moves
+        # to group.json `lost_pins` (the version stays, nothing is deleted) and the landing's own cell is selected
+        misfit = []
+        for ks in sorted(list(sel.keys()), key=lambda x: int(x) if x.isdigit() else 0):
+            try:
+                k = int(ks)
+            except ValueError:
+                continue
+            cur = sel.get(ks) or {}
+            if k >= n:
+                if cur.get("pinned"):
+                    misfit.append({"slot": k, "id": cur.get("id"), "why": "count", "name": self.name_of(k, self.version(k, cur.get("id")) or {"n": None}),
+                                   "text": "the animation has %d frames now" % n})
+                    self.meta.setdefault("lost_pins", []).append(dict(cur, slot=k, why="the animation has %d frames now" % n, lost=_now()))
+                sel.pop(ks, None)
+            elif cur.get("pinned") and cur.get("installed_differs") and was and px_before and px_before != look.frame_px:
+                misfit.append({"slot": k, "id": cur.get("id"), "why": "frame_px", "name": self.name_of(k, self.version(k, cur.get("id")) or {"n": None}),
+                               "text": "the cells are %d px now (the pinned frame is %d px)" % (look.frame_px, px_before)})
+                self.meta.setdefault("lost_pins", []).append(dict(cur, slot=k, why="the cells are %d px now" % look.frame_px, lost=_now()))
+                sel[ks] = {"id": cur["installed_differs"], "by": "install", "time": _now(), "pinned": False, "was_pinned": cur.get("id")}
         self._write_sel(sel)
         self.meta["n"] = n
         self.meta["frame_px"] = look.frame_px
@@ -731,7 +798,8 @@ class Group:
         self.meta["registered"] = _now()
         self.save_meta()
         return {"group": self.key, "new": not was, "changed": changed, "clip": (clip or {}).get("key"), "driver": (self.meta.get("driver") or {}).get("name"),
-                "fit": self.meta.get("fit", {}).get("source") if isinstance(self.meta.get("fit"), dict) else "default"}
+                "fit": self.meta.get("fit", {}).get("source") if isinstance(self.meta.get("fit"), dict) else "default",
+                "misfit": misfit, "pinned_differs": sorted(int(k) for k, s in sel.items() if s.get("pinned") and s.get("installed_differs"))}
 
     def _clip(self, n):
         """The clip cache this group was cut from: the first candidate key whose out_NN count equals the slots."""
@@ -807,11 +875,12 @@ class Group:
                 "worst_px": float(max(res)) if res else None, "canvas": self.meta.get("canvas", CANVAS)}
 
     # -- flags (deterministic, no AI)
-    def flags(self):
+    def flags(self, staged=True):
         """Per slot, what looks off about the effective frame: a jump from both neighbours, a footprint far off the
-        median, an empty frame, a loop seam, a silhouette unlike the driver's. Numbers and the rule each one broke."""
+        median, an empty frame, a loop seam, a silhouette unlike the driver's. Numbers and the rule each one broke.
+        staged=False (pass 96): the flags of the selected versions alone (the "before" of a staged batch)."""
         n = self.n
-        cells = self.effective_cells()
+        cells = self.effective_cells(staged=staged)
         masks = []
         boxes = []
         for c in cells:
@@ -842,7 +911,7 @@ class Group:
             f = {}
             if empties[i] < FLAG_RULES["empty"]:
                 f["empty"] = {"area": round(empties[i], 4), "rule": "the figure covers under %.1f%% of the cell" % (FLAG_RULES["empty"] * 100)}
-            ev, _ = self.effective(i)
+            ev, _ = self.effective(i) if staged else self.selected_version(i)
             if ev and ev.get("shrunk"):
                 f["footprint"] = {"shrunk": ev["shrunk"], "rule": "its figure was larger than the cell at the group's fit: shrunk to %d%% to fit (the pipeline would have shrunk the whole clip)" % int(round(float(ev["shrunk"]) * 100))}
             if boxes[i] and mw > 0 and mh > 0:
@@ -864,14 +933,14 @@ class Group:
                 if seam > FLAG_RULES["seam"]:
                     f["seam"] = {"score": round(seam, 2), "rule": "the last frame to the first differs %.1fx the median step: the loop jumps" % seam}
             if drv and i < len(drv.get("index") or []):
-                iou = self._silhouette_iou(i, drv)
+                iou = self._silhouette_iou(i, drv, staged=staged)
                 if iou is not None and iou < FLAG_RULES["silhouette"]:
                     f["silhouette"] = {"iou": round(iou, 2), "rule": "its silhouette overlaps the driver's frame by only %d%% (boxes aligned)" % int(iou * 100)}
             out[str(i)] = f
         return out
 
-    def _silhouette_iou(self, slot, drv):
-        v, _ = self.effective(slot)
+    def _silhouette_iou(self, slot, drv, staged=True):
+        v, _ = self.effective(slot) if staged else self.selected_version(slot)
         if not v:
             return None
         raw = self.raw_of(slot, v)
@@ -910,12 +979,13 @@ class Group:
                                              "driver", "wan", "shrunk", "window", "control", "reference")}
                 rec["url"] = url_of(self.cell_url_file(k, v))
                 rec["src_url"] = url_of(v["file"])
+                rec["name"] = self.name_of(k, v)   # pass 96: Garry's label (`SP-A / Run / Side / Frame 07 / v2`)
                 vs.append(rec)
             eff, how = self.effective(k)
             cur = sel.get(str(k)) or {}
             rec = {"slot": k, "versions": vs, "selected": cur.get("id"), "pinned": bool(cur.get("pinned")), "installed_differs": cur.get("installed_differs"),
                    "staged": (st.get(str(k)) or {}).get("id"), "effective": eff["id"] if eff else None, "effective_how": how,
-                   "url": url_of(self.cell_url_file(k, eff)) if eff else None}
+                   "url": url_of(self.cell_url_file(k, eff)) if eff else None, "name": self.name_of(k), "was_pinned": cur.get("was_pinned")}
             if drv:
                 rec["driver_url"] = url_of(os.path.join(REPO, drv["dir"], drv["pattern"] % drv["index"][k]))
                 rec["driver_frame"] = drv["index"][k]
@@ -926,6 +996,7 @@ class Group:
                 "ref_url": url_of(os.path.join(REPO, self.meta["ref_still"])) if self.meta.get("ref_still") else None,
                 "method": self.meta.get("method"), "post": self.meta.get("post"), "path": _rel(self.dir), "flags": self.flags(),
                 "store_version": self.meta.get("store_version"), "in_play": bool(getattr(self.look, "in_play", False)),
+                "lost_pins": self.meta.get("lost_pins") or [],   # pass 96: pins a landing could not re-apply (the versions stay)
                 # where the frames live (the page's help line): the strip the game plays, the clip cache, the backups
                 "strip_file": _rel(self.look.strip_path) if getattr(self.look, "strip_path", "") else "",
                 "clip_dir": (self.meta.get("clip") or {}).get("dir"), "backups_dir": _rel(os.path.join(BACKUPS, self.look.cid))}
@@ -1122,13 +1193,18 @@ def export_look(kind, cid, code, job=None, store=None, content=None, backups=Non
     for base, view, key, n in groups_of(look):
         g = Group(look, base, view, store)
         st = g.staged()
+        sel = g.selected()
         seq = []
         for k in range(n):
             v, how = g.effective(k)
             cell = g.cell_of(k, v) if v else cells_now.get(key, [None] * n)[k]
             seq.append(cell)
             if str(k) in st:
-                changed.append({"group": key, "slot": k, "to": v.get("label") if v else None, "id": v.get("id") if v else None})
+                changed.append({"group": key, "slot": k, "to": v.get("label") if v else None, "id": v.get("id") if v else None,
+                                "name": g.name_of(k, v) if v else g.name_of(k), "why": "staged"})
+            elif (sel.get(str(k)) or {}).get("pinned") and (sel.get(str(k)) or {}).get("installed_differs") and v:
+                # pass 96 (AN-09 Q4): a pinned choice the installed strip does not show is packed again (the re-apply)
+                changed.append({"group": key, "slot": k, "to": v.get("label"), "id": v.get("id"), "name": g.name_of(k, v), "why": "pinned"})
         frames[key] = seq
     strip, counts, cols = artkit.pack_strip(frames, order_of(kind), look.frame_px)
     data = png_bytes(strip)
@@ -1173,13 +1249,15 @@ def export_look(kind, cid, code, job=None, store=None, content=None, backups=Non
             entry["head"] = round(max(figure_top(f) for f in idle_run), 3)
     if look.fps:
         entry["fps"] = look.fps
+    reapplied = [c for c in changed if c.get("why") == "pinned"]
     out = {"ok": True, "strip": look.sprite_name, "file": _rel(look.strip_path), "backup": _rel(backup), "changed": changed, "entry": entry,
-           "strip_sha1": sha_of(data), "strip_sha1_before": sha_of(old), "cols": cols, "frames": sum(counts.values()), "old_entry": old_entry, "in_play": look.in_play}
+           "strip_sha1": sha_of(data), "strip_sha1_before": sha_of(old), "cols": cols, "frames": sum(counts.values()), "old_entry": old_entry, "in_play": look.in_play,
+           "names": [c["name"] for c in changed], "reapplied": len(reapplied)}
     side = sidecar or os.environ.get("ASSET_JOB_SIDECAR", "")
     if side:
         rec = {"id": cid, "folder": look.folder, "variant": code, "entry": entry, "top": {}, "info": {"pipeline": "frames_export", "changed": changed, "backup": _rel(backup),
                                                                                                 "old_entry": old_entry, "strip_sha1": sha_of(data), "strip_sha1_before": sha_of(old),
-                                                                                                "in_play": look.in_play,
+                                                                                                "in_play": look.in_play, "names": out["names"], "reapplied": len(reapplied),
                                                                                                 "outputs": [{"label": "strip", "type": "strip", "file": _rel(look.strip_path)}]}}
         os.makedirs(os.path.dirname(side) or ".", exist_ok=True)
         with open(side, "w", encoding="utf-8", newline="\n") as f:
@@ -1192,6 +1270,135 @@ def figure_top(cell_img):
     a = np.asarray(cell_img)[..., 3] > 127
     ys = np.nonzero(a.max(axis=1))[0]
     return (cell_img.height - float(ys.min())) / cell_img.height if len(ys) else 0.0
+
+
+def staged_batch(kind, cid, code, url_of=None, store=None, content=None):
+    """pass 96 (lane PAGE, Garry's decision 5): what the next Export of a look replaces, as the one confirm box lists
+    it: every staged change as a before / after pair (the selected version -> the staged one, both named in Garry's
+    form) with the flag deltas (the flags the change raises and clears), plus the pinned slots whose installed cell
+    differs (packed again by the export: the re-apply), whether the game plays the look and where the old strip goes."""
+    look = Look(kind, cid, code, content)
+    url = url_of or (lambda p: _rel(p))
+    items = []
+    for base, view, key, n in groups_of(look):
+        g = Group(look, base, view, store)
+        st = g.staged()
+        sel = g.selected()
+        pinned_differs = [int(k) for k, s in sel.items() if s.get("pinned") and s.get("installed_differs") and int(k) < n]
+        if not st and not pinned_differs:
+            continue
+        before = g.flags(staged=False) if st else {}
+        after = g.flags(staged=True) if st else {}
+        for ks, rec in sorted(st.items(), key=lambda x: int(x[0])):
+            k = int(ks)
+            to = g.version(k, rec.get("id"))
+            frm, _ = g.selected_version(k)
+            if not to:
+                continue
+            fb, fa = set((before.get(ks) or {}).keys()), set((after.get(ks) or {}).keys())
+            items.append({"group": key, "base": base, "view": view, "slot": k, "name": g.name_of(k), "why": "staged",
+                          "from": _batch_side(g, k, frm, url), "to": _batch_side(g, k, to, url), "source": to.get("source"),
+                          "staged_why": rec.get("why"), "flags": {"raised": sorted(fa - fb), "cleared": sorted(fb - fa),
+                                                                   "after": {f: (after.get(ks) or {}).get(f, {}).get("rule") for f in sorted(fa)}}})
+        for k in sorted(pinned_differs):
+            if str(k) in st:
+                continue
+            cur = sel.get(str(k)) or {}
+            to = g.version(k, cur.get("id"))
+            frm = g.version(k, cur.get("installed_differs"))
+            if not to:
+                continue
+            items.append({"group": key, "base": base, "view": view, "slot": k, "name": g.name_of(k), "why": "pinned",
+                          "from": _batch_side(g, k, frm, url) if frm else None, "to": _batch_side(g, k, to, url), "source": to.get("source"),
+                          "staged_why": "a pinned choice the installed strip does not show: re-applied", "flags": {"raised": [], "cleared": [], "after": {}}})
+    return {"ok": True, "kind": kind, "id": cid, "code": code, "items": items, "staged": sum(1 for i in items if i["why"] == "staged"),
+            "pinned_reapply": sum(1 for i in items if i["why"] == "pinned"), "in_play": look.in_play, "strip_file": _rel(look.strip_path),
+            "backup_dir": _rel(os.path.join(BACKUPS, cid)), "replaces_installed": look.has_strip()}
+
+
+def _batch_side(g, k, v, url):
+    if not v:
+        return None
+    return {"id": v.get("id"), "label": v.get("label"), "n": v.get("n"), "name": g.name_of(k, v), "source": v.get("source"),
+            "url": url(g.cell_url_file(k, v)), "seed": v.get("seed"), "job": v.get("job"), "time": v.get("time")}
+
+
+def reapply_pins(kind, cid, code, override=None, log=None, job=None, store=None, content=None, backups=None):
+    """pass 96 (lane PAGE, AN-09 Q4, a hand run): the strip just saved by gen_art / gen_ctl packed again in-process with
+    the pinned versions on the pinned slots and the run's new cells everywhere else, written over that strip before the
+    JSON dump (the run's own counts through `override`), logged in exports.json (`why: reapply`). Nothing staged
+    changes. Returns {ok, pinned: N, slots: [(group, slot)], names, misfit, backup}; pinned 0 = nothing to do."""
+    say = log or (lambda *a: None)
+    look = Look(kind, cid, code, content, override=override)
+    if not look.has_strip():
+        return {"ok": False, "error": "no strip", "pinned": 0}
+    frames, hits, names = {}, [], []
+    cells_now = look.cells()
+    for base, view, key, n in groups_of(look):
+        g = Group(look, base, view, store)
+        sel = g.selected()
+        seq = []
+        for k in range(n):
+            cur = sel.get(str(k)) or {}
+            if cur.get("pinned") and cur.get("installed_differs"):
+                v = g.version(k, cur.get("id"))
+                if v:
+                    seq.append(g.cell_of(k, v))
+                    hits.append((key, k))
+                    names.append(g.name_of(k, v))
+                    continue
+            seq.append(cells_now.get(key, [None] * n)[k])
+        frames[key] = seq
+    if not hits:
+        return {"ok": True, "pinned": 0, "slots": [], "names": []}
+    strip, counts, cols = artkit.pack_strip(frames, order_of(kind), look.frame_px)
+    data = png_bytes(strip)
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    bdir = os.path.join(backups or BACKUPS, cid)
+    os.makedirs(bdir, exist_ok=True)
+    backup = os.path.join(bdir, "frames_%s_%s" % (stamp, look.sprite_name))
+    shutil.copy2(look.strip_path, backup)
+    prune_strip_backups(bdir)
+    tmp = look.strip_path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    os.replace(tmp, look.strip_path)
+    for base, view, key, n in groups_of(look):
+        g = Group(look, base, view, store)
+        mine = [k for (kk, k) in hits if kk == key]
+        if not mine:
+            continue
+        sel = g.selected()
+        for k in mine:
+            cur = sel.get(str(k)) or {}
+            cur.pop("installed_differs", None)   # the strip shows the pinned choice again
+            sel[str(k)] = cur
+        g._write_sel(sel)
+        logp = os.path.join(g.dir, "exports.json")
+        lg = _load(logp, []) or []
+        lg.append({"time": _now(), "job": job, "strip_sha1": sha_of(data), "why": "reapply",
+                   "changed": [{"group": key, "slot": k, "id": (sel.get(str(k)) or {}).get("id"), "why": "pinned", "name": g.name_of(k, g.version(k, (sel.get(str(k)) or {}).get("id")))} for k in mine],
+                   "backup": _rel(backup)})
+        _save(logp, lg)
+        gs = os.stat(look.strip_path)
+        g.meta["strip"] = {"file": look.sprite_name, "mtime": int(gs.st_mtime), "size": gs.st_size}
+        g.save_meta()
+    say("frames_store: re-applied %d pinned frame%s into %s (%s; the run's strip is kept under %s)" % (
+        len(hits), "" if len(hits) == 1 else "s", look.sprite_name, ", ".join(names[:6]) + (", ..." if len(names) > 6 else ""), _rel(backup)))
+    return {"ok": True, "pinned": len(hits), "slots": hits, "names": names, "backup": _rel(backup), "strip_sha1": sha_of(data), "counts": counts, "cols": cols}
+
+
+def misfit_text(misfit):
+    """One line for the pins a landing could not re-apply: "2 pinned frames could not be re-applied: the animation has 8 frames now"."""
+    ms = [m for m in (misfit or []) if m]
+    if not ms:
+        return ""
+    whys = []
+    for m in ms:
+        if m.get("text") and m["text"] not in whys:
+            whys.append(m["text"])
+    return "%d pinned frame%s could not be re-applied: %s (%s; their versions are kept)" % (
+        len(ms), "" if len(ms) == 1 else "s", "; ".join(whys), ", ".join(str(m.get("name") or m.get("slot")) for m in ms[:6]) + (", ..." if len(ms) > 6 else ""))
 
 
 def rollback_export(kind, cid, code, backup, changed=None, job=None, why="", store=None, content=None):
@@ -1320,24 +1527,12 @@ def referenced_ids(kind, cid, store=None):
 
 
 def delete_version(group, slot, vid, store=None):
-    """A version's files removed, only when nothing references it (referenced_ids) and it is not the slot's only
-    version. The slot's other versions keep their numbers (a gap in vNNN is fine: labels are display only)."""
+    """RETIRED (pass 96, Garry's decision 10: every reusable frame version is kept indefinitely): always refuses, kept
+    as a function so nothing that calls it breaks. The refusal names the version when it exists. Nothing is removed."""
     v = group.version(slot, vid)
-    if not v:
-        return {"ok": False, "error": "no version %s in slot %s" % (vid, slot)}
-    if len(group.versions(slot)) <= 1:
-        return {"ok": False, "error": "the slot's only version stays"}
-    refs = referenced_ids(group.look.kind, group.look.cid, store or group.store)
-    if vid in refs:
-        return {"ok": False, "error": "%s is referenced (selected, staged, exported or copied from): it stays" % v.get("label", vid), "referenced": True}
-    d = group.slot_dir(slot)
-    gone = []
-    for sfx in (".json", ".png", "_raw.png", "_cell.png"):
-        p = os.path.join(d, "v%03d%s" % (v["n"], sfx))
-        if os.path.isfile(p):
-            os.remove(p)
-            gone.append(os.path.basename(p))
-    return {"ok": True, "deleted": v.get("label"), "files": gone}
+    name = group.name_of(slot, v) if v else "%s slot %s" % (vid, slot)
+    return {"ok": False, "retired": True, "referenced": bool(v and vid in referenced_ids(group.look.kind, group.look.cid, store or group.store)),
+            "error": "%s stays: %s" % (name, NEVER_DELETED)}
 
 
 # ---------------------------------------------------------------- the hand-run hook (pass 95 resume, AN-10)
@@ -1365,18 +1560,28 @@ def hook_after_save(folder, cid, code, counts=None, cols=None, sprite=None, log=
             return None
         cells = look.cells()
         pinned = []
+        misfit = []
         out = []
         for base, view, key, n in groups_of(look):
             g = Group(look, base, view)
-            out.append(g.register(cells.get(key, [])))
+            r = g.register(cells.get(key, []))
+            out.append(r)
+            misfit += [dict(m, group=key) for m in (r.get("misfit") or [])]
             pinned += [(key, int(k)) for k, s in g.selected().items() if s.get("pinned") and s.get("installed_differs")]
+        reapplied = None
         if pinned:
-            say("frames_store: WARNING %s %s has %d pinned frame(s) in the Frames store (%s) and this run's strip replaced them: "
-                "Export is the writer for this look; open Frames... in the Level Editor to put the pinned choices back" % (
-                    cid, code, len(pinned), ", ".join("%s/%d" % p for p in pinned[:6]) + (", ..." if len(pinned) > 6 else "")))
+            # pass 96 (Garry's decision 4): the run's new cells never displace a pinned frame: the strip is packed again
+            # in-process with the pinned versions before the JSON dump (the new cells are versions already, nothing is lost)
+            reapplied = reapply_pins(kind, cid, code, override=ov, log=say)
+            if not reapplied.get("ok"):
+                say("frames_store: WARNING %s %s has %d pinned frame(s) (%s) this run's strip replaced and the re-pack failed (%s): "
+                    "open Frames... in the Level Editor and Export to put the pinned choices back" % (
+                        cid, code, len(pinned), ", ".join("%s/%d" % p for p in pinned[:6]) + (", ..." if len(pinned) > 6 else ""), reapplied.get("error")))
         else:
             say("frames_store: %s %s registered again from the saved strip (%d animations)" % (cid, code, len(out)))
-        return {"ok": True, "pinned": pinned, "groups": out}
+        if misfit:
+            say("frames_store: WARNING %s %s: %s" % (cid, code, misfit_text(misfit)))
+        return {"ok": True, "pinned": pinned, "groups": out, "reapplied": reapplied, "misfit": misfit}
     except Exception as e:   # noqa: BLE001  a store problem must never fail a painting run
         say("frames_store: the store hook failed for %s %s: %s: %s" % (cid, code, type(e).__name__, e))
         return {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}

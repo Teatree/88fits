@@ -729,7 +729,8 @@ def dry_folder_checks(check):
         other = os.path.join(tmp, "copy", "characters", "x")
         check(asset_job._dry_folder({}, tmp, other) == other, "PLE dry: a folder outside game/content (a selftest's copy) is used as it is")
         src = _read(os.path.join(TOOLS, "asset_job.py"))
-        check(src.count("_dry_folder(job, job_dir,") == 3, "PLE dry: both of asset_job's gen_art dry runs (a look, a puppet's walks) take the copy")
+        # pass 96 (lane LOOP, re-pinned on purpose): gen_ctl's dry run takes the copy too (GEN_CTL_FOLDER): three callers + the def
+        check(src.count("_dry_folder(job, job_dir,") == 4, "PLE dry: all three of asset_job's dry runs (a gen_art look, a puppet's walks, a creature_ctl look) take the copy")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

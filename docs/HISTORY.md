@@ -3525,3 +3525,154 @@ export thing to finish."
   what the two demo runs showed: of four side-walk frames redone, the two at the start of a span came back clean and
   the span's end and a lone frame came back worse on two seeds; the single-window benchmark the assessment asks for
   has not been run.
+
+**Pass 96 (2026-10-21/22, v0.81): the art-production loop, Phase 0 and Phase 1 of the tooling plan.** Garry: "proceed, make sure none of the old functionality is broken" on the revised assessment (docs/tooling/assessment_2026-10-21.md revision 2). Four lanes (tools/dl/p96/INTERFACES.md): GATES, REQ, LOOP, PAGE. What exists now: `tools/art_request.py start|status|result|...` creates a request (`tools/dl/jobs/requests/<rid>.json`) whose jobs run on the existing lanes; after every landing an `evaluate` job runs the tiers (0 deterministic flags and geometry = the hard gates; 1 the local vision model on flagged frames; 2 a cloud eye on one contact sheet only when the request pays) and writes `findings.json`; the planner (tools/level_editor/loop.py) proposes one op from the Auto-iterate allow-list (tools/level_editor/commands.py: requeue with prompt words and a new seed, reroll_view, repair with the VACE profile and the escalation single -> double -> reroll_view, ask, note, select_provisional, stop; never export/install/default/approve/pin/remove/delete/a pinned slot) until the gates pass or the budget ends, then waits for Garry's one approval (the batch box); the evaluator adapter tools/vision_eval.py (local OpenAI-chat, Anthropic Messages with a pinned model and a key only from tools/keys/anthropic.env, Gemini's official API with tools/keys/gemini.env; opaque image names; the ledger tools/dl/qa/ledger.json with per-request and daily ceilings, $0 = off); the frame layer as he decided (the label `SP-A / Run / Side / Frame 07 / v2`, a confirmation before any export that replaces an installed strip covering the whole batch, pins re-applied at every landing, no deletion of versions, the picker's filters); the request card on the Jobs tab; a pick survives polls; stills show on the render line; an honest connection line; cancel never clears ComfyUI's queue; the offline slice test. No game code changed.
+
+2026-10-21 21:03 read RULES, INTERFACES, REQUEST, the brief, the assessment's E4 / F5 Phase 0 / AN-02 / AN-04 / AI-07 /
+AI-08, report_VACE.md, design_VACE.md, vace_repair.py, frames_store.py (Look, Group, flags, _silhouette_iou), the 21
+repair rules, part_AI.md. Its scratchpad scripts (bench.py, blind.py, manifest.json, the result files) still existed in
+this session's scratchpad: the case list was rebuilt from the status files it cites and checked against them.
+
+21:20 a probe of every look's run/front (tools/dl/p96/GATES_probe_looks.py): the pose2 candidate GOB-D (goblin_gobd_pose_f,
+driver bigguy_goblin, in play), the free2 candidate BD-A (buckshot_dwarf_bda_walk_f, creature_free2, no driver, in
+play), the recipe-less base RG-A (red_goblin: cells only, no clip, no still). The LM Studio server answers (22 models,
+none loaded; the 7B and google/gemma-4-e4b present). No tools/keys/anthropic.env, no gemini.env.
+
+21:25 the hue-histogram distance E4 names was measured on the demo's pairs (the real store's SP-B-2 / SP-B-3 versions
+against the still): it put the good repairs (3, 4: 0.17-0.19) FARTHER from the still than the bad ones (0.06-0.15), so
+it cannot be a check; a 6x6x6 RGB histogram distance of the figure's pixels separates them (good 0.34-0.37 at a kept
+median 0.31, bad 0.41-0.57) and the mean saturation drops on the bad ones (0.69-0.75 vs 0.77-0.78). The RGB histogram
+at 1.25 x the kept median became the `colour` check (tools/dl/p96/GATES/spb_pairs.png is the sheet behind it).
+
+21:40 vace_repair.py: `profile_for` / `class_of` / `repair_rules` / `next_rung`, the partial `mask`, `store`, `profile`,
+the upload volume; the CLI gained --mask, --store, --lora; --strength's default became "the profile's". A dry run with
+--store registered SP-B in a separate root and left tools/dl/frames alone.
+
+21:42 tools/vace_bench.py: the 27-run matrix, the bench store copy, the baselines, the checks, score, choose,
+write-profiles (one-line in-place edits), checks_cli. Dry runs of one run per class + the mask built their inputs. The
+check set calibrated on the demo's versions (calibrate_checks.log): the colour check catches the four bad versions,
+good slot 3 passes every check, good slot 4 trips `jump` beside the bad new 5. The pose baseline flags `silhouette` on
+all 12 installed GOB-D frames (a stick figure against a body): such a flag is left out of a group's checks and said so.
+
+21:43 the GPU matrix started (`python tools/vace_bench.py run`, one subprocess a run so the comfy lock is released between
+runs). 21:50 tools/qa_bench.py + the manifest (39 cases). 21:51 the LM Studio runs started (through LOOP's
+vision_eval.openai_chat_json, which had landed). 21:57 the first four ctl runs: single window, strength 1.0: 0.917 and
+1.0 (clean 3/4, 4/4); strength 0.7: 0.792 and 0.833 (clean 0/4): the weaker control strength is worse on this walk.
+The PC GPU sat at 98% / 11.5 of 12 GB while the 7B ran (30-50 s an image against part D3's 1-2 s): the verdicts hold,
+the seconds are to be re-timed. selftest_GATES96.py written (52 pass; the 8 that need the written profiles and tiers
+wait for them).
+
+22:05 the FLAG_RULES sweep (tools/dl/p96/GATES/flag_rules_tune.py, on its own copy of the SP-B group after a first attempt
+collided with the running bench's staging in the bench store): no threshold lowers the misses without a new false alarm;
+the demo's two good repairs carry the higher jump scores (2.67, 3.72) and 11 of 12 installed frames sit under IoU 0.6
+against the depth driver. FLAG_RULES unchanged. The full LE selftest baseline at 22:10: 14,593 passed, 12 failed (8 mine
+waiting for the profiles and tiers, one a crash on the absent key, fixed; LOOP96 x3 and the PLE dry-run check theirs).
+
+22:18 the LM Studio runs done (the 7B x2 anchored, gemma x2 anchored, each unanchored once; LM Studio left with nothing
+loaded): the 7B misses 9/19 anchored, 7/19 unanchored, flags 5/12 clean; gemma anchored misses 11-12/19 and flags 1-3,
+unanchored misses 5 but flags 10/12. Neither sees a ghost leg. 22:21 the 7B unanchored run again (identical: the 7B is
+deterministic at temperature 0; gemma agrees with itself on 92% of the flags). The tier rule gained FA_MAX 0.5 (a screen
+that flags most clean frames is no screen). 22:22 the tier table written into request_defaults.json (REQ's file re-read;
+its layout kept): tier 1 = the 7B unanchored, tier 2 = claude-haiku-5-5 on sheets at ceiling 0.0. 22:25 16 of the 27 VACE
+runs done; the pose and free classes in; the cell, mask and 20-step runs remain.
+
+23:04 the 27 VACE runs done (21:43-23:04; the 20-step runs 190-325 s each). `score`: the table in bench/summary.md; the
+choice per class by the brief's rule; `write-profiles` changed the 21 repair lines of methods.json and nothing else;
+the group test 70/70. A plain dry run of SP-B follows creature_ctl's written profile (double, 20 steps, cfg 3.5, no
+LoRA, strength 0.7); the explicit demo settings reproduce pass 95's dry-run inputs key for key (oldpath/). The winner's
+sheet and the mask run's sheet spot-checked by eye: the redone slots match the installed walk; the mask's rectangle
+reads as a darker patch. design_VACE.md section 9, balancing_GATES.md's tables, report_GATES.md written; the full LE
+selftest running at my end.
+
+23:12 the full LE selftest at my end: 14,730 passed, 7 failed, all seven lane LOOP's ladder tests, which pin the plan's
+fixed order single -> double -> reroll_view for creature_ctl while my choose() had written double -> single ->
+reroll_view (the ctl winner's window first). INTERFACES fixes the order, so the fix is mine: a reliable class gets
+the fixed ladder, an unreliable one ["reroll_view"]; the profile's window says where a hand run or an "auto" job
+starts. 23:20 choose() changed, the group's expectations re-pinned, write-profiles again (the 21 repair lines), the
+docs' ladder lines corrected; the full selftest again.
+
+23:35 the full LE selftest: 14,737 passed, 0 failed. report_GATES.md written (through GATES/write_report.py). Done.
+
+**Pass 96, lane REQ: the art request record and routes (1.1, 1.2), the cancel fix (1.6), the offline slice (1.8).**
+`tools/level_editor/requests.py` is the record above the jobs of one art request (`tools/dl/jobs/requests/<rid>.json`:
+goal, the immutable brief, the asset, the mode, Garry's budget and what was spent, the jobs, the iterations, the
+provisional winner, the history, the result) and the frame of the Auto-iterate loop's step function: jobs.py calls
+`requests.on_job_end(job)` for any job carrying `request` (after `_after_exit`, on a hand cancel, on a worker crash;
+an import merged into another's counts as ended with it), the step loads the record, does nothing while paused /
+stopped / cancelled or while a job of the request is still active, waits for approval when the budget is spent, and
+otherwise asks LOOP's planner for one op, validates it (`commands.validate`), dispatches it (`commands.dispatch`),
+records the iteration and counts the budget; mode `step` pauses after every op. Pause / Resume / Stop / Cancel / Step,
+approve (one confirm for the whole batch: the fresh look approved and one `frames_export` with `confirm: true`; `done`
+with the result once its import lands), reject (unstaged, AN-13's `review` on the versions, the loop goes on) and pick
+(a code, or a version pinned and marked for the export's re-apply) are functions and routes (`requests_io.py`: `POST
+/api/requests`, `GET /api/requests[/<rid>]` = the fold with one paragraph composed by code, `POST
+/api/requests/<rid>/<verb>`, `GET /api/job/<id>/summary`). `tools/art_request.py` is Claude's one command (`start /
+status / result / sheet / cancel / pause / resume / list / job`; stdlib; the port from the jobs lock's note; `result`
+says "waiting for Garry's approval" with exit 2 until the export's import landed; no approve verb: that is Garry's, in
+the page). jobs.py gained `enqueue(..., request=)` (or `spec.request`), `set_request`, `requests_module()` (ours even
+when the PyPI library of the same name got into sys.modules first), the import after a request's job inheriting its
+request, `comfy_prompt` from `comfy.run`'s new `comfy: prompt <id>` line, and `_comfy_interrupt(prompt_id)`: a cancel
+now sends `POST /queue {delete: [its id]}` and `/interrupt` only while that id runs, never `clear` (WF-06c; a job
+without a recorded id gets `/interrupt` alone). Tests: `selftest_REQ96.py` (156 checks) and `selftest_SLICE.py` (35:
+the whole sentence offline on the real workers in about 10 s with a stand-in tool, the real `frames_store.export_look`,
+a fake evaluator and planner, a fake ComfyUI that records what a cancel sent). A job without a request runs exactly as
+before; `since=0` returns everything; the documented API changed only by additions. Lessons: jobs.py's import
+coalescing marks a merged import done without `_after_exit`, so a request's hook has to fire for the merged ones when
+the one that ran lands, and the record reads a merged job's state through the chain; a hand pin selects, so the store
+has nothing "staged" and an approve must count the pinned frames the strip does not show (PAGE's `staged_batch`) or
+the pick would never be packed.
+
+**Pass 96, lane LOOP (1.3 the evaluator, 1.4 the loop body; 2026-10-21).** One adapter for every visual evaluator,
+`tools/vision_eval.py`: three backends behind one call shape (`openai_chat` = LM Studio on the PC / Ollama on the server,
+what gen_art.vision_json sent since pass 60; `anthropic` = the Messages API with a model pinned in request_defaults.json
+and the key only from the git-ignored tools/keys/anthropic.env, never the environment; `gemini` = the official
+generateContent API with tools/keys/gemini.env, built and untested because no key exists) plus a FakeBackend for the
+tests; the opaque-name rule (every picture copied to img_<n>.png in a temporary folder, the backend given bytes only,
+the question a fixed rubric from tools/qa_rubrics.json: the label leak of pass 95's experiment); a per-model answer
+budget (a thinking model given 220 tokens returns nothing); an empty or unparsable answer = no verdict, never ok; the
+ledger tools/dl/qa/ledger.json with the request's `cloud_dollars` and the global `cloud_ceiling_dollars_per_day`
+ceilings (0 = the cloud tier off; a call that would pass one is refused and logged; an unpriced model refused); a cache
+by sha1(picture) + rubric + model. The tiers on a stored look (`evaluate_look`, the `evaluate` job kind on the local
+lane): 0 deterministic on every frame (the Frames view's flags, gen_art's geometry on the paintings: the only HARD
+gates), 1 the local eye on the flagged frames plus one clean frame a group (advisory, badged with the model's name), 2
+the cloud eye on one numbered contact sheet per decision point when the request pays for it and the tiers disagree or
+a hard finding needs confirming. The findings record `<job>/findings.json` (items with kind measured / model / human,
+the gates, the sheet), one line in the job's notes. The old callers unchanged and proven: gen_art.qa asks the same
+question word for word with the same request body (byte for byte in the selftest), `--skip-qa` still skips, the Frames
+view's Ask button asks frames_io.ASK; inside gen_art.render the geometry now runs BEFORE the model, so an empty or
+edge-touching still never costs a vision call (`skipped_model` in the report; under --skip-qa the old shape exactly);
+four asset_job dry runs (the Blue Slime through gen_art, the Desert Spider through gen_ctl, each with and without
+--skip-qa) recorded before and after the change: every prompt identical (tools/dl/p96/LOOP/dry_diff.md). The loop
+body: `commands.py` (one op shape {op, target, args, why}, unknown keys refused; the Auto-iterate allow-list requeue /
+reroll_view / repair / stage / copy within the asset / ask / note / select_provisional / stop, Observe none, Step the
+same one at a time; never export, install, default, approve, pin, remove, delete, a pinned slot, anything outside the
+request's look; `validate` = schema, mode, target, pins, budget; `dispatch` through the page's own jobs_call /
+frames_io functions; select_provisional stages and records, never pins, exports or touches `variant`) and `loop.py`
+(the pure planner: ask when the findings are stale, select_provisional when the hard gates pass, repair the failing
+slots as spans at the method's first rung with the ladder single -> double -> reroll_view read from methods.json's
+`repair.profile` / `repair.escalation` (GATES) or built-in, the next rung when a repair did not lower the hard count on
+its own slots, reroll_view after two ops without improvement or when every frame fails, requeue with words from a
+defect -> words table and a new seed for a still-level failure or a procedural group, the plateau rule, budget units
+checked before proposing). Lessons: a `creature_ctl` dry run had been dead since gen_ctl started passing `init=`
+(asset_job's stand-in refused it); once alive it wrote stand-in frames over SP-B's installed strip and, through the pass
+95 store hook, registered 91 stand-in cells as selected versions: undone from HEAD and verified slot by slot, then fixed
+for good (gen_ctl's dry run writes into the job's copy through GEN_CTL_FOLDER like gen_art's has since pass 71, and the
+dry-run stand-ins make frames_store.hook_after_save a recording no-op for both tools). 232 checks in
+selftest_LOOP96.py.
+
+Pass 96, lane PAGE (2026-10-21): Garry's changes to the frame layer (F5 step 1.5) and the request card with the page's
+minimum (1.7). The frame label `SP-A / Run / Side / Frame 07 / v2` everywhere from one formatter (`frames_store.label_of`,
+`FramesModel.frameLabel`; every served version and slot carries `name`, the short `label` stays for scripts); one
+confirmation box before EVERY export that replaces an installed strip, listing the whole staged batch as before / after
+pairs with the flag deltas and the pinned re-applies (`staged_batch`, `GET .../batch`, the route refuses without
+`confirm: true`; `Frames.confirmBox` for the request card); pinned frames never overwritten: `on_look_landed` queues a
+`frames_export` that packs the pinned versions back (no confirm, "re-applied N pinned frames" on the card),
+`hook_after_save` re-packs in-process for a hand run (`reapply_pins`), pins that no longer fit (the count shrank,
+frame_px changed) reported and moved to `lost_pins`, versions kept; Delete retired (`delete_version` and the route
+refuse always); the picker's filters (look, animation, view, time, source, only raw; newest first; one group at a
+time) and the marks old roll / archived. The Jobs tab: `Jobs.S.ui` (a pick, an open panel, the folds, the log place
+survive polls), `sig` without the clock and a 1 s elapsed timer, the render-ok harvest in `_on_line`, the honest
+connection line, and the Requests group with one card per art request (the fold, the budget bars, the last op, the
+findings beside the outputs, the sheet, the jobs folded, Pause / Stop / Resume / Step / Approve / Reject / Pick
+another). New `jobs_model.js` (page-free) and `requests.css`; `selftest_PAGE96.py` (74 checks); five VACE95 checks
+re-pinned on purpose (Delete gone, the hook re-applies instead of warning, slot 1 keeps both versions).

@@ -10,9 +10,72 @@ const FramesModel = (() => {
   const ANIM_LABEL = { idle: 'idle', run: 'run', attack: 'attack', hit: 'hit', die: 'die', turn: 'turn', cheer: 'cheer' };
   const SPEEDS = [2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 36];
   const ZOOMS = [1, 2, 3];
-  const SOURCE_TEXT = { installed: 'the installed frame (the strip)', reroll: 're-rolled by a job (the strip)', vace: 'painted anew by VACE', copied: 'copied from another look', repaint: 'repainted', neighbour: 'filled from a neighbour' };
+  const SOURCE_TEXT = { installed: 'the installed frame (the strip)', reroll: 're-rolled by a job (the strip)', vace: 'painted anew by VACE', copied: 'copied from another look', repaint: 'repainted', neighbour: 'filled from a neighbour',
+    old_roll: 'an old roll (a generation moved aside)', archived: 'an archived strip' };   // pass 96: the marks the picker shows where the store has them (AN-06's import is Phase 4)
+  // pass 96 (lane PAGE, Garry's decision 1): the frame label everywhere, the JS twin of frames_store.label_of
+  const VIEW_WORD = { front: 'Front', fd: 'Front ¾', side: 'Side', bd: 'Back ¾', back: 'Back' };
+  const SOURCE_OPTIONS = [{ v: '', label: 'any source' }, { v: 'installed', label: 'installed' }, { v: 'reroll', label: 're-rolled' }, { v: 'vace', label: 'VACE' }, { v: 'copied', label: 'copied' },
+    { v: 'repaint', label: 'repainted' }, { v: 'neighbour', label: 'filled from a neighbour' }, { v: 'old_roll', label: 'old roll' }, { v: 'archived', label: 'archived' }];
+  const TIME_OPTIONS = [{ v: 0, label: 'any time' }, { v: 1, label: 'the last day' }, { v: 7, label: 'the last week' }, { v: 30, label: 'the last month' }];
+  const SOURCE_MARK = { old_roll: 'old roll', archived: 'archived' };
 
   const isInt = (v) => typeof v === 'number' && isFinite(v) && Math.floor(v) === v;
+
+  /** `SP-A / Run / Side / Frame 07 / v2`: the slot zero-padded (the sheet's 0-based number), the version's n; without n the slot's name. */
+  function frameLabel(code, base, view, slot, n) {
+    const parts = [String(code || '?')];
+    if (base) parts.push(String(base).charAt(0).toUpperCase() + String(base).slice(1));
+    if (view) parts.push(VIEW_WORD[view] || (String(view).charAt(0).toUpperCase() + String(view).slice(1)));
+    if (slot != null && isFinite(Number(slot))) parts.push(`Frame ${String(Number(slot)).padStart(2, '0')}`);
+    if (n != null && isFinite(Number(n))) parts.push(`v${Number(n)}`);
+    return parts.join(' / ');
+  }
+  /** A served version's name (the route gives `name`; else built from the group). */
+  function nameOf(v, g) { return (v && v.name) || frameLabel(g && g.code, g && g.base, g && g.view, v && v.slot, v && v.n); }
+  /** The mark on a version from where it came: 'old roll', 'archived', or '' (removed looks are marked on the look). */
+  function sourceMark(v) { return SOURCE_MARK[v && v.source] || ''; }
+
+  /** The picker's filters on one group's versions (pass 96, AN-07: look, time, source, only raw; newest first).
+   *  f: {source: '' | key, days: 0 | n, raw: bool}; `now` in ms (tests pass one). */
+  function filterVersions(list, f, now) {
+    const o = f || {};
+    const t0 = o.days > 0 ? (now || Date.now()) - o.days * 86400000 : null;
+    return (Array.isArray(list) ? list.slice() : []).filter((v) => {
+      if (o.source && v.source !== o.source) return false;
+      if (o.raw && !(v.raw || v.space === 'raw')) return false;
+      if (t0 != null) { const t = v.time ? new Date(String(v.time).replace(' ', 'T')).getTime() : NaN; if (isNaN(t) || t < t0) return false; }
+      return true;
+    }).sort((a, b) => {
+      const ta = a.time ? String(a.time) : '', tb = b.time ? String(b.time) : '';
+      if (ta !== tb) return tb.localeCompare(ta);
+      return (Number(b.n) || 0) - (Number(a.n) || 0);
+    });
+  }
+
+  /** The confirm box's lines (pass 96, decision 5): one per change, `Run / Side / Frame 07 <- SP-A / Run / Side / Frame 07 / v2 (VACE)`,
+   *  with the flag deltas in words; and the box's summary. */
+  function batchLines(b) {
+    const items = b && Array.isArray(b.items) ? b.items : [];
+    return items.map((i) => {
+      const to = i.to || {};
+      const src = { installed: 'the strip', reroll: 're-rolled', vace: 'VACE', copied: 'copied', repaint: 'repainted', neighbour: 'filled from a neighbour', old_roll: 'an old roll', archived: 'archived' }[to.source] || to.source || '?';
+      const here = String(i.name || '').split(' / ').slice(1).join(' / ') || String(i.name || '');
+      const fl = i.flags || {};
+      const deltas = [];
+      if (Array.isArray(fl.raised) && fl.raised.length) deltas.push(`raises ${fl.raised.join(', ')}`);
+      if (Array.isArray(fl.cleared) && fl.cleared.length) deltas.push(`clears ${fl.cleared.join(', ')}`);
+      return { line: `${here} <- ${to.name || to.label || '?'} (${src}${i.why === 'pinned' ? '; a pinned choice re-applied' : ''})`, deltas: deltas.join('; ') || 'no flag changes', why: i.why, from: i.from || null, to: i.to || null, name: i.name, slot: i.slot, group: i.group };
+    });
+  }
+  function batchSummary(b) {
+    const items = b && Array.isArray(b.items) ? b.items : [];
+    const staged = items.filter((i) => i.why === 'staged').length, pinned = items.filter((i) => i.why === 'pinned').length;
+    const parts = [`Export replaces ${items.length} frame${items.length === 1 ? '' : 's'} of ${b && b.code ? b.code : 'this look'}'s installed strip`];
+    if (pinned) parts.push(`${staged} staged, ${pinned} pinned choice${pinned === 1 ? '' : 's'} re-applied`);
+    parts.push(b && b.in_play ? 'the game PLAYS this look' : 'the game does not play this look');
+    parts.push(`the old strip is kept under ${b && b.backup_dir ? b.backup_dir : 'tools/level_editor/backups/'}/ and a failed merge or import puts it back`);
+    return parts.join(' · ');
+  }
 
   /** A group's name on a tab: "run · side". */
   function groupLabel(g) { return `${ANIM_LABEL[g.base] || g.base} · ${VIEW_LABEL[g.view] || g.view}`; }
@@ -116,9 +179,10 @@ const FramesModel = (() => {
     return out;
   }
 
-  /** A version in words: "SP-B-2 · painted anew by VACE · seed 24110 · walked on spider_walk · 13:20". */
+  /** A version in words: "SP-B / Run / Side / Frame 02 / v2 · painted anew by VACE · seed 24110 · walked on spider_walk · 13:20"
+   *  (pass 96: Garry's label first; the short `label` when the record carries no name). */
   function versionText(v) {
-    const bits = [v.label || v.id];
+    const bits = [v.name || v.label || v.id];
     bits.push(SOURCE_TEXT[v.source] || v.source || '?');
     if (v.from && v.from.label) bits.push(`from ${v.from.label}${v.from.code ? ' of ' + v.from.code : ''}${v.from.removed ? ' (removed look)' : ''}`);
     if (v.seed != null && v.source === 'vace') bits.push(`seed ${v.seed}`);
@@ -173,7 +237,8 @@ const FramesModel = (() => {
     return Math.max(0, Math.min(n - 1, q));
   }
 
-  const api = { VIEWS, VIEW_LABEL, ANIM_LABEL, SPEEDS, ZOOMS, SOURCE_TEXT, groupLabel, select, slotsText, parseSlots, playlist, previewFps, repairPlan, badges, versionText, versionsNewestFirst, compat, summaryLine, step, exportConfirmText, whereLine };
+  const api = { VIEWS, VIEW_LABEL, ANIM_LABEL, SPEEDS, ZOOMS, SOURCE_TEXT, groupLabel, select, slotsText, parseSlots, playlist, previewFps, repairPlan, badges, versionText, versionsNewestFirst, compat, summaryLine, step, exportConfirmText, whereLine,
+    VIEW_WORD, SOURCE_OPTIONS, TIME_OPTIONS, frameLabel, nameOf, sourceMark, filterVersions, batchLines, batchSummary };   // pass 96
   return api;
 })();
 if (typeof module !== 'undefined') module.exports = FramesModel;

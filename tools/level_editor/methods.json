@@ -52,7 +52,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["back", "bd", "side", "fd", "front"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
-   "repair": {"vace": "conditional", "fill": "cell", "note": "the runs are Wan Animate clips on OpenPose: a repair feeds the pose frames as VACE's control (not Wan Animate's own pose channel) with the view's still as the reference, so a benchmark decides; idle, hit, die, cheer and turn come from the stills (fix the still, re-run)"},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "the runs are Wan Animate clips on OpenPose: a repair feeds the pose frames as VACE's control (not Wan Animate's own pose channel) with the view's still as the reference, so a benchmark decides; idle, hit, die, cheer and turn come from the stills (fix the still, re-run)", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "characters", "argv": ["--no-import", "--only", "{id}", "--variant={code}?", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -97,7 +97,7 @@
     {"key": "fit_occlude", "type": "bool", "default": false, "help": "pose_occlude: hide the hand that swings in front of the chest in the back views. Writes <driver>_occ."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
-   "repair": {"vace": "conditional", "fill": "cell", "note": "as hero_pose5 on fitted drivers; every version records the driver it was walked on, so a repair made before a refit shows as orphaned"},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "as hero_pose5 on fitted drivers; every version records the driver it was walked on, so a repair made before a refit shows as orphaned", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "characters", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?"],
               "pre_steps": [
                {"tool": "pose_fit", "call": "cli", "argv": ["tools/dl/drivers/{fit_source}", "tools/dl/drivers/{fit_source}_fit", "{fit_template}"]},
@@ -357,7 +357,7 @@
      "animation"
     ]
    },
-   "repair": {"vace": "yes", "fill": "cell", "note": "the depth views are VACE's own inputs (a depth frame per slot, the painting as the reference); the pose front as hero_pose5"},
+   "repair": {"vace": "yes", "fill": "cell", "note": "the depth views are VACE's own inputs (a depth frame per slot, the painting as the reference); the pose front as hero_pose5", "profile": {"window": "double", "frames": 25, "strength": 0.7, "steps": 20, "cfg": 3.5, "lora": false}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {
     "tool": "puppet",
     "call": "main",
@@ -418,7 +418,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead. A creature walks front and back (side, bd, fd only with eight directions)."}
    ],
    "refs": {"2d": false, "3d": []},
-   "repair": {"vace": "conditional", "fill": "cell", "note": "free clips have no driver: a repair is a free fill from the neighbours with the still as the reference (identity may drift); the cut indices map the clip's full_NN to a slot"},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "free clips have no driver: a repair is a free fill from the neighbours with the still as the reference (identity may drift); the cut indices map the clip's full_NN to a slot", "profile": {"window": "double", "frames": 25, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -468,7 +468,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead. A creature walks front and back (side, bd, fd only with eight directions)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
-   "repair": {"vace": "conditional", "fill": "cell", "note": "Wan Animate on an OpenPose driver: as hero_pose5"},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "Wan Animate on an OpenPose driver: as hero_pose5", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -515,7 +515,7 @@
     {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead."}
    ],
    "refs": {"2d": false, "3d": []},
-   "repair": {"vace": "conditional", "fill": "cell", "note": "five free clips: as creature_free2, one view at a time"},
+   "repair": {"vace": "conditional", "fill": "cell", "note": "five free clips: as creature_free2, one view at a time", "profile": {"window": "double", "frames": 25, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -585,7 +585,7 @@
     {"key": "skip_qa", "type": "bool", "default": false, "help": "Skip the vision QA (it once hung 15 min); you review by eye anyway."}
    ],
    "refs": {"2d": true, "3d": ["look", "animation"]},
-   "repair": {"vace": "yes", "fill": "cell", "note": "depth control per frame, the painting per view as the reference, the second stride either side: the proven case (SP-B's side walk); the death one-shot too (re-pick death_keep without a render first)"},
+   "repair": {"vace": "yes", "fill": "cell", "note": "depth control per frame, the painting per view as the reference, the second stride either side: the proven case (SP-B's side walk); the death one-shot too (re-pick death_keep without a render first)", "profile": {"window": "double", "frames": 25, "strength": 0.7, "steps": 20, "cfg": 3.5, "lora": false}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_ctl", "call": "main", "argv": ["--id={id}", "--variant={code}", "--dev?", "--seeds={seeds}?", "--skip-qa?"],
               "stages": [
                {"name": "side", "argv": ["--id={id}", "--variant={code}", "--dev?", "--seeds={seeds}?", "--skip-qa?"], "then": "waiting", "choices": "tools/dl/ai_raw_anime/{id}_{code}_side_k<n>.png", "sheet": "tools/dl/review/{id}_{code lower}_side_cands.png"},
@@ -632,7 +632,7 @@
     {"key": "no_video", "type": "bool", "default": false, "help": "The 6-frame lean-and-bob walk instead of a hop (--no-video)."}
    ],
    "refs": {"2d": false, "3d": []},
-   "repair": {"vace": "no", "fill": "still", "note": "every frame comes from one painting (a hop or a 6-frame walk, bobs, leans): fix the still and re-run; the Frames view keeps history, copies and the export for it; a VACE free fill only with free_fill on purpose"},
+   "repair": {"vace": "no", "fill": "still", "note": "every frame comes from one painting (a hop or a 6-frame walk, bobs, leans): fix the still and re-run; the Frames view keeps history, copies and the export for it; a VACE free fill only with free_fill on purpose", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--no-video?", "--skip-qa?"]}
   },
   {
@@ -678,7 +678,7 @@
     {"key": "no_video", "type": "bool", "default": false, "help": "The 6-frame lean-and-bob walk instead of a hop (--no-video)."}
    ],
    "refs": {"2d": true, "3d": []},
-   "repair": {"vace": "no", "fill": "still", "note": "procedural from the pictures: edit the picture and re-run; history, copies and the export in the Frames view"},
+   "repair": {"vace": "no", "fill": "still", "note": "procedural from the pictures: edit the picture and re-run; history, copies and the export in the Frames view", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--no-video?", "--skip-qa?"]}
   },
   {
@@ -712,7 +712,7 @@
     {"key": "skip_qa", "type": "bool", "default": false, "help": "Skip the vision QA."}
    ],
    "refs": {"2d": true, "3d": []},
-   "repair": {"vace": "no", "fill": "still", "note": "stills only: no animation to repair"},
+   "repair": {"vace": "no", "fill": "still", "note": "stills only: no animation to repair", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_edit_stills", "call": "main", "argv": ["--id", "{id}", "--stills", "{stills}", "--ref", "{picture}", "--prompt", "{prompt}", "--seeds", "{seeds}", "--screen", "{screen}", "--keep", "{keep}?", "--no-style-ref?", "--skip-qa?"],
               "then": "waiting", "pick_argv": ["--id", "{id}", "--stills", "{stills}", "--pick", "{n}"]}
   },
@@ -743,7 +743,7 @@
     {"key": "recolour.max_sat", "type": "number", "default": 1.0, "help": "hue: cap on the moved pixels' saturation."}
    ],
    "refs": {"2d": false, "3d": []},
-   "repair": {"vace": "no", "fill": "cell", "note": "a whole-strip hue transform of another look: repair the source look and run the recolour again, or edit cells here (history and copies in the Frames view)"},
+   "repair": {"vace": "no", "fill": "cell", "note": "a whole-strip hue transform of another look: repair the source look and run the recolour again, or edit cells here (history and copies in the Frames view)", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "recolour_strip", "call": "cli", "argv": ["--src", "{folder}/{id}_sprite_{from letter}.png", "--dst", "{folder}/{id}_sprite_{letter}.png", "--ranges", "{ranges as a-b,c-d}", "--to", "{to}", "--sat", "{sat}", "--mode", "{mode}?", "--set-sat", "{set_sat}?", "--value", "{value}?", "--min-val", "{min_val}?", "--preview", "tools/dl/review/{id}_{letter}_recolour.png"],
               "also_icon": true}
   },
@@ -768,7 +768,7 @@
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen it is painted on (the placeholder colour steers it when unset; green subjects go on blue)."}
    ],
    "refs": {"2d": false, "3d": []},
-   "repair": {"vace": "no", "fill": "none", "note": "an icon: no animation"},
+   "repair": {"vace": "no", "fill": "none", "note": "an icon: no animation", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{weapons|evolutions|passives|mutations}", "argv": ["--no-import", "--only", "{id}", "--skip-qa?", "--seed={seed}?"]}
   },
   {
@@ -803,7 +803,7 @@
     {"key": "dev", "type": "bool", "default": false, "help": "Flux.2 dev instead of Klein: 8 Turbo steps, 28 with Turbo off (better, 4-5 min a seed, one service restart each)."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
-   "repair": {"vace": "no", "fill": "none", "note": "icon candidates: no animation"},
+   "repair": {"vace": "no", "fill": "none", "note": "icon candidates: no animation", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_icon_cands", "call": "paint", "argv": [], "job": {"kind": "{type}", "id": "{id}", "subject": "{subject}", "ref": "{ref}", "screen": "{screen}", "set": "_le_{job}", "style": "{style}", "file": "{file}"},
               "then": "done", "pick_call": "pick", "pick_args": ["{key}={n}"]}
   },
@@ -834,7 +834,7 @@
     {"key": "top_pad", "type": "number", "default": 0.03, "help": "Room above the head inside the circle."}
    ],
    "refs": {"2d": true, "3d": []},
-   "repair": {"vace": "no", "fill": "none", "note": "a badge: no animation"},
+   "repair": {"vace": "no", "fill": "none", "note": "a badge: no animation", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_badge_cands", "call": "main", "argv": ["--id", "{id}", "--seeds", "{seeds}", "--first-seed", "{first_seed}?", "--character", "{character}?", "--prompt", "{prompt}?", "--ref", "{ref}?", "--variant", "{variant}?"], "then": "waiting",
               "pick_argv": ["--id", "{id}", "--pick", "{n}", "--variant", "{variant}?", "--head-width", "{head_width}?", "--top-pad", "{top_pad}?"]}
   },
@@ -868,7 +868,7 @@
     {"key": "first_seed", "type": "int", "default": 0, "label": "First seed", "help": "Where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool's own start, from the asset's id; another number = a fresh set from the same words."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
-   "repair": {"vace": "no", "fill": "none", "note": "a title cut-out: no animation"},
+   "repair": {"vace": "no", "fill": "none", "note": "a title cut-out: no animation", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "gen_title_heroes", "call": "paint", "argv": ["--only", "{id}", "--seeds={seeds}", "--first-seed={first_seed}", "--character", "{character}?", "--pose", "{pose}?", "--holds", "{holds}?", "--camera", "{camera}?", "--ref", "{ref}?", "--extra-ref", "{extra_ref}?", "--extra-words", "{extra_words}?", "--variant", "{variant}?"],
               "args": ["{id}", "{seeds}", "{first_seed}"], "kwargs": ["character", "pose", "holds", "camera", "ref", "extra_ref", "extra_words", "variant"],
               "then": "done", "pick_call": "pick", "pick_args": ["{id}={n}"], "pick_argv": ["--pick", "{id}={n}", "--variant", "{variant}?"], "after_pick": "import"}
@@ -914,7 +914,7 @@
     {"key": "tuck", "type": "text", "default": "", "help": "Side view: the far upper arm turns to at most this many degrees back from straight down in the frames where the near arm is swung back (25); its elbow up behind the back read as a raised shoulder. Empty: off."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
-   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look: re-render it instead"},
+   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look: re-render it instead", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "pose_driver", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "frames={frames}", "loop={loop as 1|0}", "start={start}?", "end={end}?", "pitch={pitch}", "arms={arms}?", "arm_drop={arm_drop}?", "body={body}?", "fwd={fwd}?", "rig={rig}", "rigmap={rigmap path}?", "action={action}?", "amp={amp}?", "amp_bones={amp_bones}?", "lean={lean}?"], "then": "with shoulders: python tools/pose_shoulders.py tools/dl/drivers/{name} tools/dl/drivers/{name}_lvl level={shoulders} views={shoulder_views} tuck={tuck}?",
               "then": {"tool": "pose_driver", "call": "draw", "args": ["tools/dl/drivers/{name}"]}}
   },
@@ -997,7 +997,7 @@
     {"key": "hold", "type": "number", "default": 0.85, "help": "flip_curl: the share of the clip after which the dead pose is held (the last kept frame is the dead pose)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
-   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look: re-render it instead"},
+   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look: re-render it instead", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "blender_depth_drivers", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "action={action}", "mode={mode}", "frames={frames}", "cycles={cycles}", "total={total}", "start={start}?", "end={end}?", "depth={depth}", "amp={amp}", "amp_bones={amp_bones}", "pitch={pitch}", "views={views}", "forward={forward}", "screen={screen}", "albedo={albedo}?", "inplace={inplace as 1|0}"]}
   },
   {
@@ -1028,7 +1028,7 @@
     {"key": "tuck", "type": "text", "default": "", "help": "op shoulders, side view: the far upper arm at most this many degrees back from straight down (25); empty = off."}
    ],
    "refs": {"2d": false, "3d": []},
-   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look"},
+   "repair": {"vace": "no", "fill": "none", "note": "a driver, not a look", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "pose_scale", "call": "main", "argv": ["tools/dl/drivers/{src}", "tools/dl/drivers/{name}", "scale={scale}", "views={views}"], "then": "op spread: python tools/pose_spread.py src dst spread={spread}; op occlude: python tools/pose_occlude.py src dst; op shoulders: python tools/pose_shoulders.py src dst level={level} views={views} tuck={tuck}?"}
   },
   {
@@ -1055,7 +1055,7 @@
     {"key": "scale", "type": "text", "default": "auto", "help": "auto: a model taller than 20 units is scaled x0.01; or a factor."}
    ],
    "refs": {"2d": false, "3d": ["icon", "look", "animation"]},
-   "repair": {"vace": "no", "fill": "none", "note": "a probe of a 3D file: nothing to repair"},
+   "repair": {"vace": "no", "fill": "none", "note": "a probe of a 3D file: nothing to repair", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "blender_ref", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{slug}", "mode=probe", "forward={forward}", "action={action}?", "at={at}?", "scale={scale}"]}
   },
   {
@@ -1089,7 +1089,7 @@
     {"key": "scale", "type": "text", "default": "auto", "help": "auto: a centimetre model is scaled to metres; or a factor."}
    ],
    "refs": {"2d": false, "3d": ["icon", "look"]},
-   "repair": {"vace": "no", "fill": "none", "note": "a reference render: nothing to repair"},
+   "repair": {"vace": "no", "fill": "none", "note": "a reference render: nothing to repair", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "blender_ref", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{slug}", "mode={mode}", "forward={forward}", "action={action}?", "at={at}?", "pitch={pitch}", "icon_yaw={icon_yaw}", "icon_pitch={icon_pitch}", "size={size}", "screen={screen}?", "albedo={albedo}?", "scale={scale}"]}
   },
   {
@@ -1117,7 +1117,7 @@
     {"key": "forward", "type": "select", "default": "", "options": ["", "-Y", "+Y", "-X", "+X"], "help": "The way the model faces: the slide's direction (the spider: +Y)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
-   "repair": {"vace": "no", "fill": "none", "note": "a 3D edit: nothing to repair"},
+   "repair": {"vace": "no", "fill": "none", "note": "a 3D edit: nothing to repair", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
    "runner": {"tool": "blender_limb_clone", "call": "blender", "argv": ["src={src}", "out=tools/dl/uploads/3d/{name}/{name}.glb", "rest={rest}?", "clone={clone}?", "turn={turn}?", "forward={forward}?"]}
   }
  ],

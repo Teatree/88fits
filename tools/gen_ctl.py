@@ -450,6 +450,10 @@ def main():
         f = os.path.join(REPO, "game", "content", kind, cid)
         if os.path.isdir(f):
             folder = f
+    if os.environ.get("GEN_CTL_FOLDER") and os.path.isdir(os.environ["GEN_CTL_FOLDER"]):
+        # pass 96 (lane LOOP): a dry run's copy of the creature folder (tools/asset_job.py _dry_folder, as gen_art's dry
+        # run has had since pass 71): the strip, the icon and the marker land in the copy, never in game/content
+        folder = os.environ["GEN_CTL_FOLDER"]
     if folder is None:
         raise SystemExit("gen_ctl: no creature folder for %s" % cid)
     d = json.load(open(os.path.join(folder, cid + ".json"), encoding="utf-8"))

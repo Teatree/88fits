@@ -123,7 +123,17 @@ const Jobs = (() => {
     rev: 0, jobs: [], status: null, statusAt: 0, timer: 0, last: null, hidden: new Set(), apiMissing: false, panel: null,
     groups: null, cards: new Map(), sigs: new Map(), methods: null, methodsP: null, drivers: null, refs: null, lists: {}, confirm: null, started: false,
     specs: undefined,   // GET /api/jobs/specs: jobs.py's SPECS {kind: {lane, fields: {name: {type, default, required, help, options}}}}; null = not served
+    // pass 96 (lane PAGE, UI-04 part 1): the page's own state per job id, apart from the server's records, so a pick, an
+    // open panel, a fold or the log's place survives a poll that rebuilds the card: {picked, gpicked, reroll, folds: {equiv, spec}, log}
+    ui: new Map(),
+    // pass 96 (UI-02 part 1): the honest connection line: when the server last answered, since when it does not
+    lastContact: 0, downSince: 0, netError: '',
+    // pass 96 (1.7): the art requests (GET /api/requests; tools/level_editor/requests.py), their cards and page state
+    requests: [], requestsApi: undefined, rcards: new Map(), rsigs: new Map(), rui: new Map(), findings: new Map(), tick: 0,
   };
+  /** The page state of a job (pass 96): created on first use. */
+  function ui(id) { let u = S.ui.get(id); if (!u) { u = { picked: null, gpicked: {}, reroll: false, folds: {}, log: 'bottom' }; S.ui.set(id, u); } return u; }
+  function rui(rid) { let u = S.rui.get(rid); if (!u) { u = { jobs: false, reject: null, pick: false, findings: true }; S.rui.set(rid, u); } return u; }
   // a job's spec as jobs.py validates it is FLAT (method, recipe, refs, drivers, skip_qa, dev, seed, seeds, keys, ...);
   // the form edits a nested state (flags, counts, job) and flattens it on Queue / Save (flatten), unflattens on Edit
   const FLAG_KEYS = ['skip_qa', 'dev', 'no_video', 'no_style_ref'];
@@ -320,7 +330,19 @@ const Jobs = (() => {
     if (S.started) return;
     S.started = true;
     document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+    // pass 96 (UI-04 part 1): the elapsed clock on its own 1 s timer, touching only the elapsed spans (the card signature
+    // has no time term any more, so a running card is rebuilt only when something it shows changed)
+    S.tick = setInterval(tickElapsed, 1000);
     schedule(300);
+  }
+  function tickElapsed() {
+    if (document.hidden) return;
+    for (const s of document.querySelectorAll('.jelapsed')) {
+      const text = typeof JobsModel !== 'undefined' ? JobsModel.elapsedText(s.dataset.started, s.dataset.eta === '' ? null : Number(s.dataset.eta)) : fmtT(secondsSince(s.dataset.started));
+      if (s.textContent !== text) s.textContent = text;
+    }
+    const conn = document.getElementById('jobs-conn');
+    if (conn && (S.downSince || (S.lastContact && Date.now() - S.lastContact > 10000))) drawConnection(conn);
   }
   function schedule(ms) { clearTimeout(S.timer); S.timer = setTimeout(poll, ms); }
   function onScreen() { return (typeof App !== 'undefined' && App.S && App.S.tab === 'jobs') || !!document.querySelector('.jcard'); }
@@ -331,6 +353,7 @@ const Jobs = (() => {
     let next = onScreen() ? FAST : SLOW;
     try {
       const r = await fetch(`/api/jobs?since=${S.rev}`, { cache: 'no-store' });
+      S.lastContact = Date.now(); S.downSince = 0; S.netError = '';   // pass 96: the server answered (whatever it said)
       if (r.status === 404) { S.apiMissing = true; next = MISSING; }
       else {
         const d = await r.json();
@@ -338,10 +361,30 @@ const Jobs = (() => {
         else if (d && !d.unchanged) { S.apiMissing = false; applyList(d); }
         else S.apiMissing = false;
       }
-    } catch (e) { S.apiMissing = true; S.apiError = e.message; next = MISSING; }
+    } catch (e) {
+      // pass 96 (UI-02 part 1): a network failure is not "no jobs API": the connection line says since when and that it retries
+      S.apiMissing = true; S.apiError = e.message; next = MISSING;
+      if (!S.downSince) S.downSince = Date.now();
+      S.netError = e.message;
+    }
     if (!S.apiMissing && App.S.tab === 'jobs' && Date.now() - S.statusAt > 4000) await fetchStatus();
+    if (!S.apiMissing && onScreen()) await fetchRequests();   // pass 96 (1.7): the art requests beside the jobs
     if (App.S.tab === 'jobs' && S.panel && S.panel.isConnected) drawHeader();
     schedule(next);
+  }
+
+  /** pass 96 (1.7): GET /api/requests -> S.requests (the folds); a 404 means the route is not there (no group drawn). */
+  async function fetchRequests() {
+    try {
+      const r = await fetch('/api/requests', { cache: 'no-store' });
+      if (r.status === 404 || r.status === 501) { S.requestsApi = false; S.requests = []; return; }
+      const d = await r.json();
+      const list = Array.isArray(d) ? d : (d && Array.isArray(d.requests) ? d.requests : []);
+      S.requestsApi = true;
+      const before = JSON.stringify(S.requests.map((x) => rsig(x)));
+      S.requests = list;
+      if (App.S.tab === 'jobs' && S.panel && S.panel.isConnected && before !== JSON.stringify(list.map((x) => rsig(x)))) draw();
+    } catch (_) { /* the list as it was */ }
   }
 
   async function fetchStatus() {
@@ -548,6 +591,8 @@ const Jobs = (() => {
     root.appendChild(S.groups);
     for (const c of S.cards.values()) disposeCard(c);
     S.cards.clear(); S.sigs.clear();
+    for (const c of S.rcards.values()) disposeCard(c);
+    S.rcards.clear(); S.rsigs.clear();   // pass 96: the request cards are rebuilt with the pane
     drawHeader();
     draw();
     methods().then(() => { if (App.S.tab === 'jobs' && S.panel === panel && panel.isConnected) { S.sigs.clear(); draw(); } });
@@ -559,11 +604,16 @@ const Jobs = (() => {
     const box = document.getElementById('jobs-status');
     if (!box) return;
     clear(box);
-    if (S.apiMissing) {
+    if (S.apiMissing && !S.downSince) {
       box.appendChild(el('span', { class: 'warn-text', text: `the jobs API is not here yet${S.apiError ? ' (' + S.apiError + ')' : ''}: the server (tools/level_editor/server.py) needs lane S's routes and lane J's jobs.py; this page asks again every 15 s` }));
     }
     const st = S.status || {};
     const ro = st.jobs && st.jobs.readonly;
+    // pass 96 (UI-02 part 1): the honest connection line: last contact, "no answer since hh:mm:ss, retrying every 15 s"
+    // (a network failure), apart from "no jobs API" (the server answers) and "another editor runs the queue"
+    const conn = el('div', { class: 'jobs-conn', id: 'jobs-conn' });
+    drawConnection(conn);
+    box.appendChild(conn);
     if (ro) {
       // a second Level Editor: the first one holds the queue (jobs.claim_queue); this page shows it and refuses changes
       const since = ro.since && isFinite(Number(ro.since)) ? new Date(Number(ro.since) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (ro.since || '?');
@@ -611,14 +661,28 @@ const Jobs = (() => {
     }
   }
 
+  /** pass 96 (UI-04 part 1): the signature has NO time term any more (it was the clock in 2 s steps, which rebuilt every
+   *  running card every poll and lost a pick, an open panel and the log's place); the elapsed clock ticks on its own. */
   function sig(j) {
+    const ctx = { hidden: S.hidden.has(j.id), ext: S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null };
+    if (typeof JobsModel !== 'undefined') return JobsModel.sig(j, ctx);
     const p = j.progress || {};
-    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.outputs || []).filter((o) => o.open_url).length, S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, j.state === 'running' ? Math.floor(Date.now() / 2000) : 0, S.hidden.has(j.id), !!j.front, !!j.held, j.lane]);
+    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.outputs || []).filter((o) => o.open_url).length, ctx.ext, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, ctx.hidden, !!j.front, !!j.held, j.lane]);
+  }
+  function drawConnection(box) {
+    clear(box);
+    const st = S.status || {};
+    const line = typeof JobsModel !== 'undefined'
+      ? JobsModel.connectionLine({ now: Date.now(), lastContact: S.lastContact, downSince: S.downSince, netError: S.netError, apiMissing: S.apiMissing, apiError: S.apiError, readonly: st.jobs && st.jobs.readonly ? st.jobs.readonly : null })
+      : { cls: S.downSince ? 'down' : 'ok', text: S.downSince ? `no answer since ${new Date(S.downSince).toLocaleTimeString()}, retrying every 15 s` : `last answer ${S.lastContact ? new Date(S.lastContact).toLocaleTimeString() : '–'}` };
+    box.className = 'jobs-conn ' + line.cls;
+    box.append(el('i', { class: 'dot' }), el('span', { text: line.text, title: 'when this page last heard from the Level Editor; it asks every 2 s on this tab, 6 s elsewhere, 15 s while the server does not answer' }));
   }
 
   function draw() {
     if (!S.groups) return;
     clear(S.groups);
+    drawRequests();   // pass 96 (1.7): the Requests group first, one card per art request; the request's jobs stay in their groups below
     const jobs = S.jobs.filter((j) => !S.hidden.has(j.id));
     if (!jobs.length) {
       S.groups.appendChild(el('div', { class: 'jempty' }, el('div', { text: S.apiMissing ? 'no jobs API yet' : 'no jobs' }), el('div', { class: 'small', text: 'Queue one from a creature\'s or a hero\'s Looks (+ New look…, Re-roll…, Icon candidates…), an item\'s icon, or a hero\'s badge and title cut-out.' })));
@@ -659,6 +723,191 @@ const Jobs = (() => {
 
   function disposeCard(c) { for (const p of (c && c.__players) || []) p.destroy(); if (c) c.__players = []; }
 
+  // ------------------------------------------------------------------ pass 96 (lane PAGE, 1.7): the art request cards
+  // One card per request from GET /api/requests (tools/level_editor/requests.py's fold): the state chip, iteration k of n,
+  // the budget bars, the last op and why, waiting_for in words, the request's jobs folded underneath (their own cards
+  // stay in their groups), the findings beside the latest outputs, the provisional winner's sheet, and the buttons
+  // Pause / Stop / Resume / Step / Approve (the one batch box of the Frames view, then approve {confirm: true}) /
+  // Reject (a reason) / Pick another. The page state (open folds, a reject draft, the pick panel) is S.rui's.
+
+  function rsig(r) {
+    const f = r || {};
+    return JSON.stringify([f.rid, f.state, f.waiting_for, f.iteration, f.spent, f.budget, f.provisional, f.summary, f.sheet, (f.jobs || []).map((j) => j.id + ':' + j.state), (f.history_tail || []).length, f.updated, f.result ? 1 : 0]);
+  }
+  function drawRequests() {
+    for (const [rid, c] of [...S.rcards]) if (!S.requests.some((r) => r.rid === rid)) { disposeCard(c); S.rcards.delete(rid); S.rsigs.delete(rid); }
+    if (!S.requests.length || typeof JobsModel === 'undefined') return;
+    const live = S.requests.filter((r) => !JobsModel.FINAL.includes(r.state));
+    const g = el('div', { class: 'jobs-group requests' }, el('h2', { text: `Requests · ${S.requests.length}${live.length !== S.requests.length ? ` (${live.length} live)` : ''}`, title: 'the art requests (tools/art_request.py start, or Claude\'s one command): each drives a loop of jobs on one look; its jobs sit in the groups below; only the final install needs you (Approve)' }));
+    for (const r of S.requests) {
+      const s = rsig(r) + '|' + (S.findings.get(r.rid) ? S.findings.get(r.rid).job : '');
+      let c = S.rcards.get(r.rid);
+      if (!c || S.rsigs.get(r.rid) !== s) { if (c) disposeCard(c); c = requestCard(r); S.rcards.set(r.rid, c); S.rsigs.set(r.rid, s); }
+      g.appendChild(c);
+    }
+    S.groups.appendChild(g);
+  }
+  function jobsById() { return new Map(S.jobs.map((j) => [j.id, j])); }
+  async function requestAct(r, verb, body, busyText) {
+    App.status(`request ${shortId(r.rid)}: ${busyText || verb}…`, 'busy');
+    const res = await post(`/api/requests/${encodeURIComponent(r.rid)}/${verb}`, body || {});
+    if (!res.ok) { App.status(`request ${shortId(r.rid)}: ${verb} refused: ${res.error || '?'}`, 'bad'); return res; }
+    App.status(`request ${shortId(r.rid)}: ${verb} done`, 'good');
+    await fetchRequests(); await poll();
+    return res;
+  }
+  /** Approve = the one confirmation box of the Frames view over the request's look (the whole staged batch), then
+   *  approve {confirm: true}; without a code, a plain confirm. */
+  async function approveRequest(r) {
+    const a = r.asset || {};
+    const code = (r.provisional && r.provisional.code) || a.code;
+    let yes = false;
+    if (code && typeof Frames !== 'undefined' && typeof Frames.confirmBox === 'function') yes = await Frames.confirmBox(a.kind || 'enemy', a.id, code, { title: `Approve request ${shortId(r.rid)}: ${a.id} · ${code} — the whole batch`, yes: 'Approve: export the batch and install', empty: 'approving marks the look approved and installs nothing new in the strip' });
+    else yes = confirm(`Approve request ${shortId(r.rid)} (${a.id || '?'})? The provisional winner is exported and installed.`);
+    if (!yes) { App.status(`request ${shortId(r.rid)}: not approved, nothing changed`); return; }
+    const res = await requestAct(r, 'approve', { confirm: true }, 'approving');
+    if (res && !res.ok && res.needs_confirm) App.status(`request ${shortId(r.rid)}: the server still asks for a confirmation: ${res.error || ''}`, 'bad');
+  }
+  /** The findings of the request's latest job that has any (<job>/findings.json, served under /dl/jobs/), cached per request. */
+  async function findingsFor(r) {
+    const jobs = (r.jobs || []).slice().reverse();
+    const cur = S.findings.get(r.rid);
+    for (const j of jobs) {
+      if (!['done', 'failed', 'waiting'].includes(j.state)) continue;
+      if (cur && cur.job === j.id) return cur.rec;
+      const rec = await fetchJson(`/dl/jobs/${encodeURIComponent(j.id)}/findings.json`, null);
+      if (rec && typeof rec === 'object' && Array.isArray(rec.items)) { S.findings.set(r.rid, { job: j.id, rec }); return rec; }
+      if (cur && cur.job === j.id) return cur.rec;
+    }
+    return cur ? cur.rec : null;
+  }
+  function requestCard(r) {
+    const F = JobsModel.requestFold(r, jobsById());
+    const u = rui(r.rid);
+    const a = r.asset || {};
+    const c = el('article', { class: `jcard rcard state-${F.chip.cls}`, 'data-rid': r.rid });
+    c.__players = [];
+    const head = el('div', { class: 'jcard-head' },
+      el('span', { class: `chip state-${F.chip.cls}`, text: F.chip.text }),
+      el('span', { class: 'jid', text: 'request ' + shortId(r.rid), title: r.rid }),
+      el('span', { class: 'jtitle', text: F.title }),
+      el('span', { class: 'muted small', text: `mode ${F.mode}` }));
+    const times = [];
+    if (r.created) times.push('created ' + when(r.created));
+    if (r.updated) times.push('updated ' + when(r.updated));
+    head.appendChild(el('span', { class: 'jwhen', text: times.join(' · ') }));
+    c.appendChild(head);
+    if (F.goal) c.appendChild(el('div', { class: 'rgoal small', text: '“' + F.goal + '”' }));
+    const lastOp = F.lastOp;
+    c.appendChild(el('div', { class: 'rrow' },
+      el('b', { text: F.iteration }),
+      lastOp ? el('span', { text: `last op: ${lastOp.text}`, title: lastOp.why || '' }) : el('span', { class: 'muted', text: 'no operation yet' }),
+      el('span', { class: 'muted', text: F.provisional })));
+    if (F.waiting) c.appendChild(el('div', { class: 'rwait', text: F.waiting }));
+    // the budget bars
+    if (F.budgets.length) {
+      const bb = el('div', { class: 'rbudgets' });
+      for (const b of F.budgets) bb.appendChild(el('div', { class: 'rbudget' + (b.full ? ' full' : ''), title: `${b.label}: ${b.text}` }, el('div', { class: 'lbl' }, el('span', { text: b.label }), el('span', { text: b.text })), el('div', { class: 'bar' }, el('i', { style: `width:${b.pct}%` }))));
+      c.appendChild(bb);
+    }
+    if (F.summary) c.appendChild(el('div', { class: 'rsummary', text: F.summary }));
+    // the findings beside the latest outputs, the provisional sheet
+    const fbox = el('div', { class: 'rfindings' });
+    c.appendChild(fbox);
+    const latest = F.latestJob ? jobsById().get(F.latestJob.id) : null;
+    if (latest && (latest.outputs || []).length) fbox.appendChild(outputs(latest, c.__players));
+    if (F.sheet) { const img = el('img', { src: F.sheet.startsWith('/') ? F.sheet : '/dl/' + String(F.sheet).replace(/^tools\/dl\//, ''), alt: '', loading: 'lazy', title: 'the provisional winner\'s sheet' }); img.addEventListener('click', () => StripPlayer.openImage(img.src, `request ${shortId(r.rid)} · the sheet`)); fbox.appendChild(el('div', { class: 'rsheet' }, img, el('div', { class: 'muted small', text: 'the sheet' }))); }
+    const badges = el('div', { class: 'rbadges' }, el('span', { class: 'muted small', text: 'findings: looking…' }));
+    fbox.appendChild(badges);
+    findingsFor(r).then((rec) => {
+      if (!c.isConnected && !badges.isConnected) return;
+      clear(badges);
+      if (!rec) { badges.appendChild(el('span', { class: 'muted small', text: 'no findings yet (the evaluator writes <job>/findings.json)' })); return; }
+      const fb = JobsModel.findingsBadges(rec);
+      badges.appendChild(el('span', { class: 'rgates', text: fb.gates }));
+      for (const b of fb.badges) badges.appendChild(el('span', { class: 'rbadge ' + b.cls, text: b.text, title: b.title }));
+      if (!fb.badges.length) badges.appendChild(el('span', { class: 'rbadge ok', text: `nothing flagged (${fb.ok} of ${fb.n} ok)` }));
+      if (fb.sheet && !F.sheet) { const img = el('img', { src: fb.sheet.startsWith('/') ? fb.sheet : '/dl/' + String(fb.sheet).replace(/^tools\/dl\//, ''), alt: '', loading: 'lazy', title: 'the findings sheet' }); img.addEventListener('click', () => StripPlayer.openImage(img.src, `request ${shortId(r.rid)} · the findings sheet`)); badges.appendChild(el('div', { class: 'rsheet' }, img)); }
+    });
+    // the request's jobs folded underneath (their cards stay in their groups)
+    const jl = el('details', { class: 'rjobs', open: !!u.jobs }, el('summary', { text: F.jobsLine }));
+    jl.addEventListener('toggle', () => { u.jobs = jl.open; });
+    for (const j of F.jobs) {
+      const a2 = el('a', { text: '#' + shortId(j.id), title: 'scroll to its card' });
+      a2.addEventListener('click', () => { const card2 = S.groups && S.groups.querySelector(`[data-id="${j.id}"]`); if (card2) card2.scrollIntoView({ block: 'center', behavior: 'smooth' }); else App.status(`job ${shortId(j.id)} is not on the page (hidden or cleared)`); });
+      jl.appendChild(el('div', { class: 'rjob' }, el('span', { class: `chip state-${j.state}`, text: STATE_LABEL[j.state] || j.state }), a2, el('span', { text: `${j.kind}${j.title ? ' · ' + j.title : ''}` })));
+    }
+    c.appendChild(jl);
+    if (F.result && F.result.summary) c.appendChild(el('div', { class: 'rsummary', text: 'result: ' + F.result.summary }));
+    // the buttons the state allows
+    const acts = el('div', { class: 'jcard-actions' });
+    const B = (text, title, fn, cls) => el('button', { type: 'button', class: 'btn small' + (cls ? ' ' + cls : ''), text, title, onclick: fn });
+    for (const name of F.buttons) {
+      if (name === 'Pause') acts.appendChild(B('Pause', 'a running job finishes; nothing new is queued until Resume', () => requestAct(r, 'pause', {}, 'pausing')));
+      else if (name === 'Resume') acts.appendChild(B('Resume', 'the loop continues', () => requestAct(r, 'resume', {}, 'resuming')));
+      else if (name === 'Step') acts.appendChild(B('Step', 'one operation, then paused again', () => requestAct(r, 'step', {}, 'stepping')));
+      else if (name === 'Stop') acts.appendChild(B('Stop', 'the loop ends; what landed is kept (a queued job of the request is cancelled)', () => requestAct(r, 'stop', {}, 'stopping'), 'danger'));
+      else if (name === 'Cancel') acts.appendChild(B('Cancel', 'the request is cancelled; its queued, running and waiting jobs too', () => requestAct(r, 'cancel', {}, 'cancelling'), 'danger'));
+      else if (name === 'Approve') acts.appendChild(B('Approve…', 'ONE box lists the whole staged batch of the provisional winner (every changed frame before and after); one click exports it and installs', () => approveRequest(r), 'primary'));
+      else if (name === 'Reject') acts.appendChild(B('Reject…', 'send the provisional winner back with a reason: it is unstaged, the reason recorded, and the loop goes on', () => { u.reject = u.reject == null ? '' : null; rejectPanel(c, r, u); }));
+      else if (name === 'Pick another') acts.appendChild(B('Pick another…', 'choose a candidate look or a frame version by hand; the loop continues from it', () => { u.pick = !u.pick; pickPanel(c, r, u); }));
+    }
+    if (a.id) acts.appendChild(B(a.code ? 'Open look' : 'Open asset', 'the asset in its tab', () => openAsset({ kind: a.kind, id: a.id, code: (r.provisional && r.provisional.code) || a.code })));
+    if (a.id && a.code && typeof Frames !== 'undefined') acts.appendChild(B('Frames…', 'every frame of the provisional look: versions, staging, repairs', () => Frames.open(a.kind || 'enemy', a.id, (r.provisional && r.provisional.code) || a.code, {})));
+    c.appendChild(acts);
+    const panel = el('div', { class: 'rpanel', hidden: true });
+    c.appendChild(panel);
+    if (u.reject != null) rejectPanel(c, r, u);
+    else if (u.pick) pickPanel(c, r, u);
+    return c;
+  }
+  function rejectPanel(c, r, u) {
+    const panel = c.querySelector('.rpanel');
+    if (!panel) return;
+    clear(panel);
+    if (u.reject == null) { panel.hidden = true; return; }
+    u.pick = false;
+    panel.hidden = false;
+    const ta = el('textarea', { placeholder: 'why? (kept with the rejected versions as their review; the loop reads it as a hint)' });
+    ta.value = u.reject || '';
+    ta.addEventListener('input', () => { u.reject = ta.value; });
+    panel.append(el('b', { text: 'Reject the provisional winner' }), ta,
+      el('div', { class: 'row' },
+        el('button', { type: 'button', class: 'btn small danger', text: 'Reject', onclick: async () => { const why = ta.value.trim(); if (!why) { App.status('a reason is needed', 'bad'); return; } u.reject = null; panel.hidden = true; await requestAct(r, 'reject', { why }, 'rejecting'); } }),
+        el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => { u.reject = null; panel.hidden = true; clear(panel); } })));
+  }
+  /** Pick another: the request's candidate looks (one button each: pick {code}) and the provisional's groups (open the
+   *  Frames view on that group, where a version is staged or pinned by hand; the loop continues from it). */
+  function pickPanel(c, r, u) {
+    const panel = c.querySelector('.rpanel');
+    if (!panel) return;
+    clear(panel);
+    if (!u.pick) { panel.hidden = true; return; }
+    u.reject = null;
+    panel.hidden = false;
+    const a = r.asset || {};
+    const codes = [...new Set((r.jobs || []).map((j) => j.target && j.target.code).concat([a.code, r.provisional && r.provisional.code]).filter(Boolean))];
+    const byId = jobsById();
+    for (const j of r.jobs || []) { const live = byId.get(j.id); if (live && live.target && live.target.code && !codes.includes(live.target.code)) codes.push(live.target.code); }
+    panel.appendChild(el('b', { text: 'Pick another' }));
+    const row = el('div', { class: 'row' }, el('span', { class: 'muted small', text: 'a candidate look:' }));
+    for (const code of codes) row.appendChild(el('button', { type: 'button', class: 'btn small' + (r.provisional && r.provisional.code === code ? ' primary' : ''), text: code, title: `pick ${code} as the provisional winner (recorded as your pick); the loop continues from it`, onclick: async () => { u.pick = false; panel.hidden = true; await requestAct(r, 'pick', { code }, `picking ${code}`); } }));
+    if (!codes.length) row.appendChild(el('span', { class: 'muted small', text: 'no candidate look yet' }));
+    panel.appendChild(row);
+    const groups = r.provisional && r.provisional.groups && typeof r.provisional.groups === 'object' ? Object.keys(r.provisional.groups) : [];
+    const row2 = el('div', { class: 'row' }, el('span', { class: 'muted small', text: 'a frame version:' }));
+    const code = (r.provisional && r.provisional.code) || a.code;
+    if (code && typeof Frames !== 'undefined') {
+      for (const gk of groups.length ? groups : ['run/side']) {
+        const [base, view] = String(gk).split('/');
+        row2.appendChild(el('button', { type: 'button', class: 'btn small', text: `${gk}…`, title: `open the Frames view on ${code} ${gk}: stage or pin the version you want (a pinned slot is never displaced by the loop)`, onclick: () => Frames.open(a.kind || 'enemy', a.id, code, { base, view }) }));
+      }
+      row2.appendChild(el('span', { class: 'muted small', text: 'stage or pin a version there; Approve installs the staged batch' }));
+    } else row2.appendChild(el('span', { class: 'muted small', text: 'no look yet' }));
+    panel.appendChild(row2);
+    panel.appendChild(el('div', { class: 'row' }, el('button', { type: 'button', class: 'btn small ghost', text: 'Close', onclick: () => { u.pick = false; panel.hidden = true; clear(panel); } })));
+  }
+
   // ------------------------------------------------------------------ the cards
 
   /** A job's card; x = its place ({pos, n} in its group; queued jobs: queueOrder's entry with held, up, down). */
@@ -693,8 +942,12 @@ const Jobs = (() => {
     else if (j.state === 'queued') queuedBody(c, j, x || { pos: 0, n: 1 });
     else if (j.state === 'done') doneBody(c, j);
     else failedBody(c, j);
-    if (j.equiv) c.appendChild(el('details', { class: 'jfold' }, el('summary', { text: 'the command Claude would type' }), el('div', { class: 'jequiv', text: j.equiv })));
-    if (j.spec) c.appendChild(el('details', { class: 'jfold' }, el('summary', { text: 'the spec' }), el('pre', { class: 'jlog', text: JSON.stringify(j.spec, null, 1) })));
+    // pass 96 (UI-04 part 1): the folds' open state lives in S.ui, so a rebuilt card opens them again
+    const u = ui(j.id);
+    const fold = (key, summaryText, body) => { const d = el('details', { class: 'jfold', open: !!u.folds[key] }, el('summary', { text: summaryText }), body); d.addEventListener('toggle', () => { u.folds[key] = d.open; }); return d; };
+    if (j.equiv) c.appendChild(fold('equiv', 'the command Claude would type', el('div', { class: 'jequiv', text: j.equiv })));
+    if (j.spec) c.appendChild(fold('spec', 'the spec', el('pre', { class: 'jlog', text: JSON.stringify(j.spec, null, 1) })));
+    if (u.reroll && ['done', 'failed', 'interrupted', 'cancelled'].includes(j.state) && j.kind !== 'sim') rerollPanel(c, j, true);   // an open re-roll panel survives the rebuild
     return c;
   }
 
@@ -709,7 +962,10 @@ const Jobs = (() => {
   function logTail(j, lines) {
     const tail = (j.log_tail || []).slice(-(lines || LOG_LINES));
     const pre = el('pre', { class: 'jlog', text: tail.join('\n') || '(no output yet)' });
-    requestAnimationFrame(() => { pre.scrollTop = pre.scrollHeight; });
+    // pass 96 (UI-04 part 1): the log pins to the bottom only when it was at the bottom; a scrolled-up log keeps its place
+    const u = ui(j.id);
+    requestAnimationFrame(() => { pre.scrollTop = typeof u.log === 'number' ? u.log : pre.scrollHeight; });
+    pre.addEventListener('scroll', () => { u.log = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 4 ? 'bottom' : pre.scrollTop; });
     return pre;
   }
 
@@ -719,7 +975,7 @@ const Jobs = (() => {
     const eta = j.eta_s != null ? ` / ~${fmtT(j.eta_s)}` : '';
     c.appendChild(el('div', { class: 'jcard-sub' },
       el('span', {}, el('span', { class: 'muted', text: 'stage ' }), el('b', { text: p.stage || '…' }), el('span', { class: 'muted', text: p.total ? ` (${p.done || 0} of ${p.total})` : '' })),
-      el('span', {}, el('span', { class: 'muted', text: 'elapsed ' }), el('span', { text: fmtT(elapsed) + eta, title: 'the estimate ("~") is the method\'s measured median × its stages; a Flux.2 dev restart can add minutes' })),
+      el('span', {}, el('span', { class: 'muted', text: 'elapsed ' }), el('span', { class: 'jelapsed', 'data-started': j.started || '', 'data-eta': j.eta_s != null ? String(j.eta_s) : '', text: fmtT(elapsed) + eta, title: 'the estimate ("~") is the method\'s measured median × its stages; a Flux.2 dev restart can add minutes' })),   // pass 96: ticked by its own 1 s timer
       p.stalled ? el('span', { class: 'warn-text', text: 'no output for 20 min: stalled? (never killed on its own; Cancel if you are sure)' }) : null,
       j.lock_waits && Object.keys(j.lock_waits).length ? el('span', { class: 'warn-text', text: 'waiting for a lock: ' + Object.entries(j.lock_waits).map(([k, v]) => `${k} ${v}`).join('; ') }) : null,
       p.last_output ? el('span', { class: 'muted', text: p.last_output, title: 'the last line the tool printed' }) : null));
@@ -735,17 +991,22 @@ const Jobs = (() => {
 
   function waitingBody(c, j) {
     const choices = j.choices || [];
-    let picked = c.__picked || null;
+    // pass 96 (UI-04 part 1): the pick lives in S.ui (read here, written in the handlers), so it survives a poll's rebuild;
+    // c.__picked stays as a mirror for anything that reads it
+    const u = ui(j.id);
+    let picked = u.picked || null;
+    c.__picked = picked;
     const what = { side: 'the side painting the other views follow', view: 'one view\'s candidates', pick: 'a candidate', puppet_front: 'the arms-out front the 3D shape is made from', puppet_views: 'one arms-out side and one back', puppet_shape: 'the 3D shape (each try in clay from six sides)' }[j.waiting_for] || 'a candidate';
     // pass 71: choices with a `group` (a puppet's side and back) take one pick per group, sent together ("side=1,back=0")
     const groups = [...new Set(choices.filter((ch) => ch.group).map((ch) => ch.group))];
-    const gpicked = c.__gpicked || (c.__gpicked = {});
+    const gpicked = u.gpicked || (u.gpicked = {});
+    c.__gpicked = gpicked;
     c.appendChild(el('div', { class: 'jcard-sub' }, el('b', { text: `needs your pick: ${what} (${choices.length} candidate${choices.length === 1 ? '' : 's'})` }), el('span', { class: 'muted', text: j.progress && j.progress.stage ? j.progress.stage : '' }), el('span', { class: 'muted', text: 'click a picture to zoom, click the card to choose' })));
     const grid = el('div', { class: 'jchoices' });
-    const pickBtn = el('button', { type: 'button', class: 'btn small primary', text: 'Pick', disabled: true, onclick: () => act(j, 'pick', { choice: picked }, `picking ${picked}`) });
+    const pickBtn = el('button', { type: 'button', class: 'btn small primary', text: picked ? `Pick ${picked}` : 'Pick', disabled: !picked, onclick: () => act(j, 'pick', { choice: picked }, `picking ${picked}`) });
     for (const ch of choices) {
       const key = ch.key != null ? ch.key : ch.label;
-      const box = el('div', { class: 'jchoice' + (picked === key ? ' picked' : ''), title: ch.label || key });
+      const box = el('div', { class: 'jchoice' + (picked === key || (ch.group && gpicked[ch.group] === key) ? ' picked' : ''), title: ch.label || key });
       const img = el('img', { src: ch.url, alt: '', loading: 'lazy' });
       img.addEventListener('click', (e) => { e.stopPropagation(); StripPlayer.openImage(ch.url, `${title(j)} · ${ch.label || key}`); });
       box.appendChild(img);
@@ -757,7 +1018,7 @@ const Jobs = (() => {
           gpicked[ch.group] = key;
           for (const x of grid.children) if (x.dataset.group === ch.group) x.classList.toggle('picked', x === box);
           picked = groups.every((g) => gpicked[g]) ? (typeof Puppet !== 'undefined' ? Puppet.groupPick(gpicked) : Object.values(gpicked).join(',')) : null;
-          c.__picked = picked;
+          c.__picked = picked; u.picked = picked;
           pickBtn.disabled = !picked;
           pickBtn.textContent = picked ? `Pick ${picked}` : `Pick (one per ${groups.join(' and ')})`;
         });
@@ -765,7 +1026,7 @@ const Jobs = (() => {
       } else if (ch.sheet && !ch.key) {
         img.title = 'the review sheet';
       } else {
-        box.addEventListener('click', () => { picked = key; c.__picked = key; for (const x of grid.children) x.classList.toggle('picked', x === box); pickBtn.disabled = false; pickBtn.textContent = `Pick ${ch.label || key}`; });
+        box.addEventListener('click', () => { picked = key; c.__picked = key; u.picked = key; for (const x of grid.children) x.classList.toggle('picked', x === box); pickBtn.disabled = false; pickBtn.textContent = `Pick ${ch.label || key}`; });
       }
       grid.appendChild(box);
     }
@@ -811,6 +1072,8 @@ const Jobs = (() => {
       const layout = w.layout || '';
       const text = layout === 'unmerged' ? 'the result is NOT in the JSON yet' : `wrote ${w.file.split(/[\\/]/).pop()}${w.keys && w.keys.length ? ' (' + w.keys.join(', ') + ')' : ''} · ${layout === 'block' ? 'the whole variants block rewritten in place' : layout === 'entry' ? 'one entry written in place' : layout === 'redumped' ? 'RE-DUMPED (the file\'s layout changed)' : layout}${w.backup ? ' · backup ' + String(w.backup).split(/[\\/]/).pop() : ''}`;
       c.appendChild(el('div', { class: layout === 'unmerged' ? 'jwarn' : 'jcard-sub muted', text }));
+      // pass 96 (AN-09 Q4): what the frames store did at the landing: "re-applied N pinned frames (export job ...)", the pins that no longer fit
+      if (w.frames && w.frames.note) c.appendChild(el('div', { class: w.frames.misfit || w.frames.error ? 'jwarn' : 'jcard-sub muted', text: w.frames.note, title: (w.frames.reapply && w.frames.reapply.names || []).join('\n') }));
       if (layout === 'unmerged') c.appendChild(el('div', { class: 'jwarn' },
         el('span', { text: 'Neither the block write nor the entry write fit this file\'s layout (a hand-edited JSON). The strip, the icon and result.json are on disk. Choose:' }),
         el('button', { type: 'button', class: 'btn small', text: 'Merge again', title: 'try the line-preserving merge once more (after you tidied the file, say)', onclick: () => act(j, 'merge', { redump: false }, 'merging') }),
@@ -870,10 +1133,12 @@ const Jobs = (() => {
       el('button', { type: 'button', class: 'btn small ghost danger', text: 'Delete', onclick: () => act(j, 'delete', {}, 'deleting') })));
   }
 
-  /** Re-queue with a re-roll: the record's cache_keys (stills, clips) as boxes to tick and the next seed. */
-  function rerollPanel(c, j) {
+  /** Re-queue with a re-roll: the record's cache_keys (stills, clips) as boxes to tick and the next seed.
+   *  pass 96: its open state is S.ui's (reopened on a rebuilt card: `restore`). */
+  function rerollPanel(c, j, restore) {
     const old = c.querySelector('.jreroll');
-    if (old) { old.remove(); return; }
+    if (old) { old.remove(); ui(j.id).reroll = false; return; }
+    if (!restore) ui(j.id).reroll = true;
     const ck = j.cache_keys || {};
     const stills = Array.isArray(ck.stills) ? ck.stills : [], clips = Array.isArray(ck.clips) ? ck.clips : [];
     const box = el('div', { class: 'lg-edit jreroll' });
@@ -892,8 +1157,8 @@ const Jobs = (() => {
     const seedCb = el('input', { type: 'checkbox' }); seedCb.checked = true;
     box.appendChild(el('label', { class: 'cb' }, seedCb, el('span', { text: `the next seed (${seedOf(j)} → ${seedOf(j) + 1})` })));
     box.appendChild(el('div', { class: 'row' },
-      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => { const reroll = { stills: [...picks.stills], clips: [...picks.clips] }; if (seedCb.checked) reroll.seed = seedOf(j) + 1; if (picks.stage) reroll.stage = picks.stage; box.remove(); act(j, 'requeue', { reroll }, 're-rolling'); } }),
-      el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => box.remove() })));
+      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => { const reroll = { stills: [...picks.stills], clips: [...picks.clips] }; if (seedCb.checked) reroll.seed = seedOf(j) + 1; if (picks.stage) reroll.stage = picks.stage; box.remove(); ui(j.id).reroll = false; act(j, 'requeue', { reroll }, 're-rolling'); } }),
+      el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => { box.remove(); ui(j.id).reroll = false; } })));
     c.appendChild(box);
   }
 

@@ -136,6 +136,7 @@ import boss_attacks_io as BAIO  # noqa: E402  (pass 72, lane BOSS: the custom bo
 import sim_io as SIMIO  # noqa: E402  (pass 77, lane SIMUI: the Sim tab's routes, /api/sim/...)
 import drivers_io as DRVIO  # noqa: E402  (pass 93, lane PREVIEW: the driver library, /api/drivers[/<name>], /api/painted_death)
 import frames_io as FRIO  # noqa: E402  (pass 95, lane VACE: the frames store's routes, /api/frames/...)
+import requests_io as REQIO  # noqa: E402  (pass 96, lane REQ: the art requests, /api/requests..., /api/job/<id>/summary)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -3887,7 +3888,7 @@ def fit_turnover(map_id, include_headless=False, runs_dir=None):
 # ---------------------------------------------------------------- the handler
 
 # GETs that are polled or fetched by the dozen say nothing in the console (pass 66)
-QUIET_PREFIXES = ("/api/jobs", "/api/job/", "/api/status", "/dl/", "/icon/", "/sprite/", "/art/", "/examples/", "/sound/", "/api/sim/")
+QUIET_PREFIXES = ("/api/jobs", "/api/job/", "/api/status", "/dl/", "/icon/", "/sprite/", "/art/", "/examples/", "/sound/", "/api/sim/", "/api/requests")   # pass 96: the request folds are polled too
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -4013,6 +4014,9 @@ class Handler(BaseHTTPRequestHandler):
         if parts[:1] == ["frames"]:
             # pass 95 (lane VACE): the Frames view (frames_io.py: a look's groups, one group's slots and versions, other looks')
             return FRIO.api_get(self, sys.modules[__name__], parts[1:], query)
+        if parts[:1] == ["requests"] or (len(parts) == 3 and parts[0] == "job" and parts[2] == "summary"):
+            # pass 96 (lane REQ): the art requests' folds and a job's summary (requests_io.py)
+            return REQIO.api_get(self, sys.modules[__name__], parts, query)
         if len(parts) == 2 and parts[0] == "puppet":
             # pass 71 (lane PLE): what the Puppet method has of a hero and what its form offers
             if not ID_RE.match(parts[1]):
@@ -4345,6 +4349,10 @@ class Handler(BaseHTTPRequestHandler):
                 # pass 95 (lane VACE): stage / unstage / pin / copy / repair / ask / export / register (frames_io.py)
                 data, err = self._body()
                 return FRIO.api_post(self, sys.modules[__name__], parts[2:], data if isinstance(data, dict) else {})
+            if parts[:2] == ["api", "requests"]:
+                # pass 96 (lane REQ): create, pause / resume / stop / cancel / step, approve / reject / pick (requests_io.py)
+                data, err = self._body()
+                return REQIO.api_post(self, sys.modules[__name__], parts[2:], data if isinstance(data, dict) else {})
             if parts[:2] == ["api", "sim"]:
                 # pass 77 (lane SIMUI): the Sim tab's run, settings, keep / delete / cancel, unlock (sim_io.py)
                 return SIMIO.api_post(self, sys.modules[__name__], parts[2:])
@@ -4486,6 +4494,9 @@ def main():
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--no-jobs", action="store_true", help="do not start the AI job workers (jobs.py)")
+    # pass 96 (lead): an unattended run (the loop's live proof) stops itself once nothing is queued or running
+    ap.add_argument("--exit-idle-after", type=float, default=0.0, metavar="SECONDS",
+                    help="after this many seconds, stop the server at the first moment no job is queued or running")
     args = ap.parse_args()
     if not os.path.isdir(CONTENT):
         print("no content folder at %s: run this from the 88fits checkout" % CONTENT)
@@ -4519,6 +4530,21 @@ def main():
     else:
         print("jobs: %s (the Jobs tab will say so)" % (_jobs_error[0] or "the jobs module is not here yet"))
     print("Ctrl+C stops it.")
+    if args.exit_idle_after > 0:
+        def _idle_watch() -> None:
+            time.sleep(args.exit_idle_after)
+            while True:
+                try:
+                    st = jobs.status() if jobs is not None else {}
+                    if int(st.get("running", 0) or 0) == 0 and int(st.get("queued", 0) or 0) == 0:
+                        print("exit-idle-after: nothing queued or running, stopping")
+                        httpd.shutdown()
+                        return
+                except Exception:
+                    pass
+                time.sleep(15)
+        threading.Thread(target=_idle_watch, daemon=True).start()
+        print("exit-idle-after: this editor stops itself once idle after %.0f s" % args.exit_idle_after)
     if not args.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
@@ -4536,4 +4562,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # pass 96 (lead): modules that look the server up by name (frames_io._default_enqueue) find it when it runs as __main__
+    sys.modules.setdefault("server", sys.modules[__name__])
     sys.exit(main())

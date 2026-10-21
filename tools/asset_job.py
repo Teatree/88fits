@@ -304,8 +304,11 @@ class DryRun:
         if gen_art is not None:
             real_render = gen_art.render
 
-            def fake_render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3):
-                rec.note("render", key=key, prompt=prompt, refs=list(refs), expect=expect, seed=seed, size=[width, height])
+            def fake_render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3, init=None, denoise=1.0):
+                # pass 96 (lane LOOP): init / denoise as gen_art.render takes them since the img2img stills (gen_ctl passes
+                # them): the stand-in refused them, so every creature_ctl dry run died at its first render
+                rec.note("render", key=key, prompt=prompt, refs=list(refs), expect=expect, seed=seed, size=[width, height],
+                         **({"init": True, "denoise": denoise} if init is not None else {}))
                 raw, meta = os.path.join(gen_art.RAW, key + ".png"), os.path.join(gen_art.RAW, key + ".json")
                 if os.path.exists(raw) and os.path.exists(meta):
                     cached = json.load(open(meta, encoding="utf-8"))
@@ -324,6 +327,21 @@ class DryRun:
 
             fake_render.real = real_render
             gen_art.render = fake_render
+
+            # pass 96 (lane LOOP): the frames store is never told about a dry run's strip: the hook keys the store on the
+            # folder's name, so a dry run of a look with a store registered its stand-in cells as new versions and
+            # selected them (the Desert Spider SP-B, 2026-10-21). Both tools call it through the module attribute.
+            try:
+                import frames_store
+
+                def fake_hook(folder, cid, code=None, counts=None, cols=None, sprite=None, log=None, **kw):
+                    rec.note("frames_store.hook_after_save", id=cid, code=code, sprite=sprite, skipped="dry run: the frames store is not told")
+                    return None
+
+                fake_hook.real = frames_store.hook_after_save
+                frames_store.hook_after_save = fake_hook
+            except Exception as e:   # noqa: BLE001
+                rec.note("frames_store", error="%s: %s" % (type(e).__name__, e))
 
             def fake_cycle(name):
                 def f(still, key, *a, **kw):
@@ -394,6 +412,9 @@ def run(job_dir, dry=False):
             import animate  # noqa: E402
             import artkit  # noqa: E402
             rec.install(comfy, gen_art=gen_ctl.g, animate=animate, artkit=artkit)
+            # pass 96 (lane LOOP): gen_ctl writes into a copy of the creature folder too (GEN_CTL_FOLDER), as gen_art has
+            # since pass 71: a dry run of a creature_ctl look overwrote SP-B's strip with stand-in frames (2026-10-21)
+            os.environ["GEN_CTL_FOLDER"] = _dry_folder(job, job_dir, _folder_for(job))
         gen_ctl.main()
     elif tool == "gen_edit_stills":
         import gen_edit_stills  # noqa: E402

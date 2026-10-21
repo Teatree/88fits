@@ -13,9 +13,14 @@ the export a "frames_export" job (tools/frames_store.py export, then the Level E
     POST .../copy      {slot, from: {code, slot, version}}     a version of another look copied in (a new version here), staged
     POST .../repair    {slots: [..], prompt?, seed?, window?}  a frames_repair job queued (VACE on the comfy lane)
     POST .../ask       {slot, version?}                        the local vision model (LM Studio) asked about one frame
-    POST .../delete    {slot, version}                         a version's files removed (refused while anything references it)
+    POST .../delete    {slot, version}                         RETIRED (pass 96): always refused, versions are never deleted
+    GET  /api/frames/<kind>/<id>/<code>/batch                  pass 96: what the next Export replaces (every staged change as a
+                                                               before / after pair in Garry's label form, the flag deltas, the
+                                                               pinned slots re-applied, in_play, the backup folder)
     POST /api/frames/<kind>/<id>/<code>/export {confirm?}      a frames_export job queued (the strip packed, merged, imported);
-                                                               the look in play needs confirm: true (the page asks first)
+                                                               EVERY export that replaces an installed strip needs confirm: true
+                                                               (pass 96: the answer without it carries `batch`, the page shows one
+                                                               box for the whole batch, one click approves it all)
     POST /api/frames/<kind>/<id>/<code>/register               the look registered again (force: the fit and clip re-read)
 
 Pictures come as /dl/frames/<...> (the store lives under tools/dl/frames) and /dl/drivers/..., /dl/ai_raw_anime/...
@@ -94,7 +99,10 @@ def repairable(g, method=None):
 
 def _dl_url(path):
     """A file under tools/dl as the server serves it: /dl/<rel>?v=<mtime>."""
-    rel = os.path.relpath(path, DL_DIR).replace("\\", "/")
+    try:
+        rel = os.path.relpath(path, DL_DIR).replace("\\", "/")
+    except ValueError:   # pass 96: Windows, a store on another drive than DL_DIR (a script's temp store): never a 400
+        rel = os.path.basename(path)
     try:
         v = int(os.path.getmtime(path))
     except OSError:
@@ -162,7 +170,8 @@ def others(kind, cid, code, base, view):
             vs = []
             for v in g.versions(k):
                 vs.append({"id": v["id"], "label": v["label"], "n": v["n"], "source": v.get("source"), "space": v.get("space"), "time": v.get("time"),
-                           "url": _dl_url(g.cell_url_file(k, v)), "raw": bool(v.get("raw") or v.get("space") == "raw")})
+                           "url": _dl_url(g.cell_url_file(k, v)), "raw": bool(v.get("raw") or v.get("space") == "raw"),
+                           "name": g.name_of(k, v), "from": v.get("from"), "seed": v.get("seed"), "driver": v.get("driver")})   # pass 96: Garry's label + the picker's filters
             eff, how = g.effective(k)
             slots.append({"slot": k, "versions": vs, "effective": eff["id"] if eff else None})
         if o.get("removed"):
@@ -242,7 +251,11 @@ def ask(kind, cid, code, base, view, body):
     bg = Image.new("RGBA", big.size, (110, 110, 120, 255))
     bg.alpha_composite(big)
     try:
-        ans = gen_art.vision_json(bg.convert("RGB"), ASK % noun, max_tokens=200)
+        # pass 96 (lane LOOP, AI-01): through the one adapter (tools/vision_eval.py), the same question (the `frame_ask`
+        # rubric is ASK word for word), the same request body, the same fields back; the ledger is told
+        import vision_eval
+        ans = vision_eval.openai_chat_json(bg.convert("RGB"), vision_eval.rubric_text("frame_ask", noun=noun), max_tokens=200,
+                                           url=getattr(gen_art, "LMSTUDIO", vision_eval.LMSTUDIO), model=getattr(gen_art, "VISION_MODEL", vision_eval.VISION_MODEL))
     except Exception as e:
         return {"ok": False, "error": "the vision model did not answer: %s" % e, "online": False}
     rec = dict(v.get("qa") or {})
@@ -288,6 +301,28 @@ def FS_parse_slots(text, n):
     return vace_repair.parse_slots(text, n)
 
 
+def batch(kind, cid, code):
+    """pass 96 (Garry's decision 5): what the next Export replaces, for the one confirm box: every staged change as a
+    before / after pair in Garry's label form with the flag deltas, the pinned slots the export packs again, whether the
+    game plays the look, the backup folder. GET /api/frames/<kind>/<id>/<code>/batch (the request card's Approve box
+    reads it too)."""
+    try:
+        b = FS.staged_batch(kind, cid, code, _dl_url)
+    except ValueError as e:
+        return {"ok": False, "error": str(e), "items": []}
+    b["lines"] = [batch_line(i) for i in b.get("items") or []]
+    return b
+
+
+def batch_line(i):
+    """One change as a line: `Run / Side / Frame 07 <- SP-A / Run / Side / Frame 07 / v2 (VACE)`."""
+    to = i.get("to") or {}
+    src = {"installed": "the strip", "reroll": "re-rolled", "vace": "VACE", "copied": "copied", "repaint": "repainted", "neighbour": "filled from a neighbour",
+           "old_roll": "an old roll", "archived": "archived"}.get(str(to.get("source") or ""), str(to.get("source") or "?"))
+    here = " / ".join(str(i.get("name") or "").split(" / ")[1:]) or str(i.get("name") or "")
+    return "%s <- %s (%s%s)" % (here, to.get("name") or to.get("label") or "?", src, "; re-applied pin" if i.get("why") == "pinned" else "")
+
+
 def export_job(srv, kind, cid, code, body):
     s = summary(kind, cid, code)
     if not s.get("ok"):
@@ -295,11 +330,14 @@ def export_job(srv, kind, cid, code, body):
     if not s.get("staged") and not body.get("force"):
         return {"ok": False, "error": "nothing is staged for %s: choose frames first" % code}
     n = int(s.get("staged", 0) or 0)
-    if s.get("in_play") and body.get("confirm") is not True:
-        # pass 95 resume (AN-09, Q5's default): the look the game plays is replaced only after a confirm (as a played icon is)
-        return {"ok": False, "needs_confirm": True, "in_play": True,
-                "error": "%s is the look the game plays: Export replaces the strip it shows (%d frame%s changed; the old strip is kept under %s). Confirm first." % (
-                    code, n, "" if n == 1 else "s", "tools/level_editor/backups/%s/" % cid)}
+    if body.get("confirm") is not True:
+        # pass 96 (Garry's decision 5; pass 95 asked only for the look in play): EVERY export that replaces an installed
+        # strip is confirmed first, one box for the whole staged batch; the route refuses without confirm: true
+        b = batch(kind, cid, code)
+        return {"ok": False, "needs_confirm": True, "in_play": bool(s.get("in_play")), "batch": b,
+                "error": "%s%s: Export replaces the installed strip %s (%d frame%s changed%s; the old strip is kept under %s). Confirm the batch first." % (
+                    code, " is the look the game plays" if s.get("in_play") else "", s.get("strip_file") or "", n, "" if n == 1 else "s",
+                    ", %d pinned re-applied" % b.get("pinned_reapply") if b.get("pinned_reapply") else "", "tools/level_editor/backups/%s/" % cid)}
     target = {"kind": kind, "id": cid, "code": code}
     title = "export %s %s: %d frame%s changed" % (cid, code, n, "" if n == 1 else "s")
     res = srv._enqueue("frames_export", target, {"kind": kind, "id": cid, "code": code, "note": str(body.get("note") or ""), "in_play": bool(s.get("in_play"))}, title)
@@ -348,8 +386,7 @@ def rollback(kind, cid, code, backup, changed, job=None, why=""):
 
 
 def delete(kind, cid, code, base, view, body):
-    """A version removed (its files), only when nothing references it: never the selected, staged, exported or copied-from
-    ones (retention, AN-14)."""
+    """RETIRED (pass 96, Garry's decision 10): the route answers the refusal; no version is ever removed."""
     look, g = _group(kind, cid, code, base, view)
     slot = int(body.get("slot"))
     r = FS.delete_version(g, slot, str(body.get("version") or ""))
@@ -358,14 +395,50 @@ def delete(kind, cid, code, base, view, body):
     return r
 
 
-def on_look_landed(kind, cid, code):
+def _default_enqueue():
+    """server.py's _enqueue (the module function) when the server is the caller; None in a script."""
+    srv = sys.modules.get("server")
+    fn = getattr(srv, "_enqueue", None) if srv else None
+    return fn if callable(fn) else None
+
+
+def on_look_landed(kind, cid, code, enqueue=None):
     """A look's strip landed (merge_look): its groups synced, so the installed cells are versions (selected unless the
-    slot is pinned). Never raises: a landing must not fail on the store."""
+    slot is pinned). Pass 96 (Garry's decision 4): a pinned slot the landing's strip does not show is RE-APPLIED: a
+    `frames_export` is queued that packs the pinned versions with the new cells (no confirm: F3's N1 default, it
+    restores his choice; the card note "re-applied N pinned frames"); pins that no longer fit (the slot count shrank,
+    frame_px changed) are reported, their versions kept. Never raises: a landing must not fail on the store."""
     try:
         look = FS.Look(kind, cid, code)
         if not look.has_strip():
             return None
-        return FS.register_look(kind, cid, code)
+        r = FS.register_look(kind, cid, code)
+        if not r.get("ok"):
+            return r
+        pinned = []
+        misfit = []
+        for gr in r.get("groups") or []:
+            pinned += [(gr.get("group"), k) for k in (gr.get("pinned_differs") or [])]
+            misfit += [dict(m, group=gr.get("group")) for m in (gr.get("misfit") or [])]
+        r["misfit"] = misfit
+        r["misfit_text"] = FS.misfit_text(misfit)
+        if pinned:
+            names = []
+            for key, k in pinned:
+                base, view = FS.anim_parts(kind, key)
+                g = FS.Group(look, base, view)
+                v = g.version(k, (g.selected().get(str(k)) or {}).get("id"))
+                names.append(g.name_of(k, v) if v else g.name_of(k))
+            note = "re-applied %d pinned frame%s" % (len(pinned), "" if len(pinned) == 1 else "s")
+            enq = enqueue or _default_enqueue()
+            spec = {"kind": kind, "id": cid, "code": code, "note": note, "in_play": bool(look.in_play),
+                    "reapply": {"pinned": len(pinned), "slots": [[key, k] for key, k in pinned], "names": names}}
+            title = "export %s %s: %s" % (cid, code, note)
+            res = enq("frames_export", {"kind": kind, "id": cid, "code": code}, spec, title) if enq else {"job": None, "error": "no queue (a script): run `python tools/frames_store.py export %s %s %s`" % (kind, cid, code)}
+            job = (res or {}).get("job") if isinstance(res, dict) else res
+            r["reapply"] = {"pinned": len(pinned), "names": names, "note": note, "job": (job.get("id") if isinstance(job, dict) else job),
+                            "error": (res or {}).get("error") if isinstance(res, dict) and not job else ""}
+        return r
     except Exception as e:   # noqa: BLE001
         return {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}
 
@@ -383,12 +456,15 @@ def api_get(h, srv, parts, query=None):
     if len(parts) < 3:
         return h._error(404, "frames paths are /api/frames/<kind>/<id>/<code>[/<anim>/<view>[/others]]")
     kind, cid, code = parts[0], parts[1], parts[2]
-    err = _check(kind, cid, code, parts[3] if len(parts) > 3 else None, parts[4] if len(parts) > 4 else None)
+    is_batch = len(parts) == 4 and parts[3] == "batch"   # pass 96: /batch is a look route, not an animation
+    err = _check(kind, cid, code, parts[3] if len(parts) > 3 and not is_batch else None, parts[4] if len(parts) > 4 else None)
     if err:
         return h._error(400, err)
     try:
         if len(parts) == 3:
             res = summary(kind, cid, code)
+        elif is_batch:
+            res = batch(kind, cid, code)   # pass 96: the staged batch the confirm box lists, without queuing anything
         elif len(parts) == 5:
             res = detail(kind, cid, code, parts[3], parts[4])
         elif len(parts) == 6 and parts[5] == "others":

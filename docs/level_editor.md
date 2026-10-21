@@ -1495,3 +1495,216 @@ ComfyUI loads each as `WAN21_Vace`, 16.5 GB, fully on the card; one repair of a 
 `GET /api/frames/<kind>/<id>/<code>[/<anim>/<view>[/others]]`, `POST .../<anim>/<view>/stage|unstage|pin|copy|repair|ask`,
 `POST /api/frames/<kind>/<id>/<code>/export|register`; pictures `/dl/frames/...`. Jobs `frames_repair` (comfy lane)
 and `frames_export` (local lane; its entry lands like a look's, then an import). Self-test: `selftest_VACE95.py`.
+
+## Pass 96: the request card and the frame layer's rules
+
+Garry's decisions on the tooling assessment (revision 2, points 1, 2, 4, 5, 10, 11, 12) written into the Frames view
+and the Jobs tab; nothing older changed its behaviour (the Frames view, the Drivers tab, the job cards and every
+dialog work as before; `selftest_VACE95.py`'s 130 checks are green, five of them re-pinned on purpose: Delete is gone
+and the hook re-applies instead of warning).
+
+**The frame label** (decision 1): every place the page or a result names a frame says `SP-A / Run / Side / Frame 07 /
+v2`: the look, the animation, the view (`Front`, `Front ¾`, `Side`, `Back ¾`, `Back`), the frame (the 0-based slot the
+sheet numbers, zero-padded) and the version (`v2` = the second version of that slot). One formatter writes it
+(`frames_store.label_of`, `FramesModel.frameLabel` in the page); every served version and slot carries it as `name`
+(the drawer, the picker, the staged list under the sheet, the stage line, the job card, `result.json`'s `names`, the
+summary). The record's short `label` (`SP-A-2`) stays for scripts; identity is still the content hash.
+
+**One confirmation for every export** (decision 5): Export on ANY look with an installed strip (not only the one the
+game plays) first shows one box listing the whole staged batch: every changed frame as a before / after pair with its
+line (`Run / Side / Frame 07 <- SP-A / Run / Side / Frame 07 / v2 (VACE)`), the flags the change raises or clears,
+whether the game plays the look, the backup folder; the pinned choices the strip does not show yet are listed too
+("a pinned choice re-applied"). One click (**Export all N**) sends `confirm: true` for all of it; the route
+(`POST /api/frames/<kind>/<id>/<code>/export`) refuses without it and answers the batch. `GET
+/api/frames/<kind>/<id>/<code>/batch` is the same batch without queuing; the request card's Approve opens the same box
+(`Frames.confirmBox`).
+
+**Pinned frames are never overwritten** (decision 4): when a job's strip lands on a look with pinned slots (a re-roll,
+a repaint), the landing registers the new cells as versions and **queues a `frames_export` that packs the pinned
+versions back** onto the pinned slots with the new cells everywhere else, with no confirmation (it restores Garry's
+own choice; F3's N1 default) and the card note "re-applied N pinned frames (export job ...)". A hand run of
+`gen_art.py` / `gen_ctl.py` does the same **in-process** right after `strip.save` and before the JSON dump
+(`frames_store.hook_after_save` -> `reapply_pins`; the run's own strip is kept under `tools/level_editor/backups/<id>/`,
+the log says "re-applied N pinned frames"). A landing that changed the frame count or the cell size reports the pins
+that no longer fit ("N pinned frames could not be re-applied: the animation has M frames now" / "the cells are P px
+now"), moves them to the group's `lost_pins` (shown in the view's info block) and keeps every version.
+
+**No deletion of versions** (decision 10): the Delete button is gone; `delete_version` and `POST .../delete` refuse
+always (`retired: true`); every version of every frame is kept for reuse. (The strip-backup cap of 30 per asset
+stays: every replaced cell is a registered version.)
+
+**The picker's filters** (decision 2): From another look… filters by look, animation and view (one group fetched at
+a time; another animation or view only on purpose, with an amber warning), time (the last day / week / month) and
+source (installed, re-rolled, VACE, copied, repainted, old roll, archived; "only raw"), newest first; the marks
+"removed look", "old roll" and "archived" show where the store has them (the import of old rolls and archived strips
+into the store is Phase 4: not built yet).
+
+**The Jobs tab** (decision 11, UI-04 part 1 and UI-02 part 1): a running card is no longer rebuilt every poll (the
+card signature has no clock in it; the elapsed time ticks on its own 1 s timer), and the page's own state lives apart
+from the server's records (`Jobs.S.ui`, a Map per job id): a picked candidate, an open re-roll panel, the spec / command
+folds and the log's scroll place survive a poll that rebuilds the card. A still appears on the card the moment its
+`render ... ok` line is printed (not at the next 5 s cache check). The header carries an honest connection line:
+"connected · last answer hh:mm:ss", "no answer from the Level Editor since hh:mm:ss (...): retrying every 15 s",
+"the server answers but has no jobs API", or "another editor runs the queue (...)": four different things, said
+apart.
+
+**The request card** (1.7; decision 12 keeps the loop's state on the look card for a later pass): a **Requests**
+group at the top of the Jobs tab, one card per art request (`GET /api/requests`, `tools/level_editor/requests.py`): the
+state chip, `iteration k of n`, the budget bars (re-rolls, repair rounds with the worst group, lane time, evaluator
+calls, cloud $) as spent of budget, the last operation and why, `waiting_for` in words, the one-paragraph summary,
+the findings beside the latest job's outputs (a badge per failed item with the rule text and the model's name, the
+gates line with the model calls and dollars; from `<job>/findings.json`), the provisional winner's sheet, the
+request's jobs folded underneath (their own cards stay in their groups; a click scrolls to one), and the buttons the
+state allows: **Pause / Resume / Step / Stop** (and Cancel), **Approve…** (the batch box over the provisional look,
+then `approve {confirm: true}`), **Reject…** (a reason, kept with the rejected versions), **Pick another…** (a candidate
+look, or the Frames view on the provisional group to stage or pin a version by hand). A server without the requests
+route shows no group and nothing else changes. The page-free parts live in `jobs_model.js` (`sig`, `elapsedText`,
+`connectionLine`, `requestFold`, `budgetBars`, `findingsBadges`), checked under Node by `selftest_PAGE96.py`.
+
+**Keys**: `tools/dl/p96/keys_PAGE.md`. Self-test: `selftest_PAGE96.py` (the batch's shape and refusal, the pin
+re-apply on a fake landing with pinned slots and with a changed slot count / cell size, the hook's in-process re-pack,
+`label_of`, `delete_version` refusing, the filters' maths, `sig` without the time term, the harvest on a canned line,
+the connection line's words, the request fold).
+
+## Pass 96: the loop (the evaluator, its tiers, the planner and the commands a request may run on its own)
+
+A request (REQ's `art_request.py start`, the Jobs tab's request card) runs the **Auto-iterate loop**: after every job of
+the request lands, the step function asks the planner for ONE op, validates it, runs it through the page's own functions,
+records it, and goes on until the hard gates pass or the budget is spent; then it waits for Garry's one approval. What
+it does on its own, what it never does, and where every call is written down:
+
+**The evaluator** (`tools/vision_eval.py`, one adapter for every eye):
+- **Tier 0, deterministic, free, on every frame**: the Frames view's flags (`empty`, `footprint`, `jump`, `seam`,
+  `silhouette`, each with its number and rule) on every animation x view of the look, and gen_art's geometry on the
+  paintings (`empty`, `touches-edge`). These are the **hard gates**: the loop's `pass` is theirs alone.
+- **Tier 1, the local eye, free**: LM Studio on this PC (the configured `qwen2.5-vl-7b`), shown the flagged frames plus
+  one clean frame a group (three times the size on grey, as the Ask button shows them), asked the fixed `frame_blind`
+  rubric. Its answers are **advisory** (a badge with the model's name): it cannot count limbs (pass 95's measurement),
+  so nothing it says passes or fails a frame.
+- **Tier 2, the cloud eye, metered**: a pinned cheap Claude model (the Messages API, the key only from the git-ignored
+  `tools/keys/anthropic.env`; never the environment) or Gemini (the official API, `tools/keys/gemini.env`; built,
+  untested: no key exists) on **one numbered contact sheet** per decision point, only when the request's `cloud_dollars`
+  is above 0 and the tiers disagree or a hard finding needs confirming. **$0 = off** (the default). Advisory too.
+- **Honest rules**: every picture is copied to `img_<n>.png` in a temporary folder before any call and the backend gets
+  bytes only; the question is a fixed rubric from `tools/qa_rubrics.json` (no look note, job title, recipe word or file
+  name: the label leak); a per-model answer budget (`gemma` 1200 tokens, the 7B 220, Claude 2048: a thinking model given
+  220 returns nothing); an empty or unparsable answer is **no verdict**, never ok; answers are cached by
+  sha1(picture) + rubric + model under `tools/dl/qa/cache/`.
+- **The ledger** `tools/dl/qa/ledger.json`: every call (backend, model, pictures, ms, tokens, dollars, request id,
+  rubric), every refusal and why. Ceilings: the request's `cloud_dollars` and the global
+  `cloud_ceiling_dollars_per_day` of `tools/level_editor/request_defaults.json`; a call that would pass either is
+  refused and logged; an unpriced model (Gemini until G3 measures it) is refused under a ceiling. The price table
+  (dated) lives in `vision_eval.py`. `python tools/vision_eval.py --ledger` prints the totals, `--keys` says which
+  key files exist (today: none).
+- **The findings record** `<job>/findings.json` (the `evaluate` job kind, the local lane, no lock): `items[]` with
+  `kind` measured / model / human, `field`, `value`, `ok`, `rule`, `group`, `slot`, `box`, `model`, `tier`;
+  `gates {hard_failures, advisory, pass}`; the sheet `findings_sheet.png` (every frame, the flagged ones framed red);
+  one summary line in the job's notes ("findings: 2 hard, 1 advisory (run/side: 3 jump, 4 jump); qwen... x3; $0.0000").
+- **The old callers are unchanged**: `gen_art.qa()` asks the same question (the `still_gate` rubric, word for word) with
+  the same request body and gets the same fields back; `--skip-qa` still skips; the Frames view's Ask button asks
+  `frames_io.ASK` (= the `frame_ask` rubric). One change inside `gen_art.render()`: the geometry runs **before** the
+  model, so an empty or edge-touching still fails on its numbers and never costs a vision call (the report gains
+  `skipped_model`; under `--skip-qa` the report is exactly the old one).
+
+**The planner** (`tools/level_editor/loop.py`, `next_op(record, findings)`, one op per iteration, cheapest first):
+1. no fresh findings for the last landed job -> `ask` (an evaluate job; the findings are re-made after every change);
+2. the hard gates pass -> `select_provisional` (the effective frames staged as the winner), then nothing more;
+3. a hard finding on frames of a group with a clip and a driver -> `repair` of those slots (spans) at the method's first
+   rung (`methods.json` `repair.profile` / `repair.escalation`, GATES's benchmark; built-in: single -> double ->
+   reroll_view); when a repair of the same slots did not lower their hard count, the next rung; after the ladder, or
+   when the group failed twice without improvement, `reroll_view`;
+4. a hard finding on a painting (empty, touches the edge), or on frames of a procedural group (no clip, no driver: the
+   still is the thing) -> `requeue` of the look job with words from the defect -> words table and a new seed;
+5. the **plateau rule**: never the same op twice in a row on the same target;
+6. a budget unit missing for the move -> the next move, else `select_provisional`.
+The budgets (rerolls 2, repair rounds 2 per animation x view, evaluator calls 60, lane seconds, cloud dollars 0) are
+REQ's; the step function counts every dispatched op.
+
+**The commands** (`tools/level_editor/commands.py`): one shape `{op, target, args, why}` (unknown keys refused); the
+Auto-iterate allow-list `requeue`, `reroll_view`, `repair`, `stage`, `copy` (within the asset), `ask`, `note`,
+`select_provisional`, `stop`; **never** `export`, `install`, `default`, `approve`, `pin`, `remove`, `delete`,
+`unstage`, a pinned slot, or anything outside the request's asset and look; Observe = no op; Step = the same verbs one
+at a time. `validate` checks the schema, the mode, the target, the pins and the budget; `dispatch` runs the op
+through the SAME functions the page uses (`jobs_call` requeue / edit, `frames_io.repair_job` / `stage` / `copy`, an
+`evaluate` job) and answers a refusal without raising. **`select_provisional` stages, never pins, never exports,
+never touches the JSON's `variant`**: the game cannot play anything the loop made until Garry's one confirm exports it.
+
+**Keys**: the `evaluate` job's spec (`kind`, `id`, `code`, `groups`, `tiers`, `request`, `cloud_dollars`, `backend`,
+`model`); `request_defaults.json` `tiers` (GATES) and `cloud_ceiling_dollars_per_day` (0 = the cloud tier off);
+`methods.json` `repair.profile` / `repair.escalation` (GATES); `tools/keys/anthropic.env`, `tools/keys/gemini.env`
+(git-ignored; `X_API_KEY=...` or a bare token). Dry runs: `asset_job --dry-run` now works for a `creature_ctl` look
+too (its stand-in took no `init`), writes into the job's copy of the creature folder (`GEN_CTL_FOLDER`) like gen_art's
+has since pass 71, and never tells the frames store (a dry run's stand-in cells used to register as versions).
+
+## Pass 96: requests (one command from Claude, the loop on its own, one approval from Garry)
+
+**What Claude types.** `python tools/art_request.py start --kind enemy --id desert_spider --code SP-G --from SP-B --goal "a
+cleaner side walk"` (stdlib; it finds the running Level Editor through the jobs lock's note, or `--editor`; `--code` absent
+= the next free code, created as a stub entry whose recipe copies `--from`; `--rerolls N --repair-rounds N --minutes N
+--evals N --cloud-dollars X` set the budget; `--mode auto|step|observe`; `--prompt`, `--appearance`, `--word key=value`
+fill the brief). It prints the request id and the page link. Then `status <rid>` (one line: the state, iteration k of n,
+the running job, the budget line), `result <rid>` (the paragraph and the paths; **"waiting for Garry's approval"** while
+it is, exit 2; exit 0 only once the export's import landed), `sheet <rid>` (the review sheet's path), `cancel | pause |
+resume <rid>`, `list`, `job <job id>` (`GET /api/job/<id>/summary`: state, stage ticks, hard / advisory counts, output
+paths, the sheet, one paragraph; never a log or a picture). There is **no approve verb for Claude**: the approval is
+Garry's, in the page (the request card's one box).
+
+**What the record holds** (`tools/dl/jobs/requests/<rid>.json`, `v` 1): the goal; the **brief** (`art_prompt`, `appearance`,
+`words`: immutable once created, the file refuses a changed one); the asset (`kind`, `id`, `code`, `method`, `from`); the
+mode (`auto` = Auto-iterate, the default; `step` = one op per Step; `observe` = no loop: the landing waits for approval);
+the **budget** (`rerolls` 2, `repair_rounds` 2 per animation x view, `lane_seconds` 5400, `evaluator_calls` 60,
+`cloud_dollars` 0 = the metered tiers off; `tools/level_editor/request_defaults.json` `budget` over the built-ins, the
+request's own values over that) and **spent** (lane seconds from the jobs' own clocks, evaluator calls and dollars from
+the findings' `model_calls`, re-rolls and repair rounds from the ops); the state (`running`, `paused`, `waiting` with
+`waiting_for` `approval` | `pick`, `approved`, `done`, `failed`, `stopped`, `cancelled`); the jobs (every one stamped
+`request: <rid>`: the look, the imports that follow it, the evaluate jobs, the repairs, the export); the **iterations**
+(`{n, started, ended, job, findings, op, gates, note}` plus what the planner noted beside the op, such as `hard_before`);
+the **provisional** winner (`{code, groups: {"run/side": {staged: [..], pinned: [..]}}}`: a staged selection, never a pin,
+never an export, never the JSON's `variant`); the **history** (every event: created, job, op, waiting, paused, resumed,
+stopped, cancelled, approved, rejected, picked, provisional, note, done, failed); the **result** once done (`code`,
+`strip_sha1`, `entry`, `import_job`, `export_job`, `changed`, `flags` and `verdicts` from the findings, `summary`, `sheet`,
+`strip`); `toast` / `note` (the last human-facing line) and `stop_reason` (why it waits).
+
+**How the loop runs** (`requests.step`, the frame; the body is lane LOOP's `loop.next_op` and `commands.validate` /
+`dispatch`): a job of the request ends (any way: jobs.py's `_request_after` after `_after_exit`, a hand cancel, a worker
+crash; an import merged into another's counts as ended with that one) -> the record is loaded -> nothing while the
+request is paused / stopped / cancelled / done, or while another job of the request (not an import) is queued, running
+or waiting for a pick (`waiting_for: pick`) -> the budget spent -> `waiting`, `waiting_for: approval`, a toast -> else
+the planner is asked for ONE op from the newest findings; `None` = the gates passed (or nothing more to try) ->
+waiting for approval; an op -> validated (a refusal is recorded and the request waits), dispatched through the page's
+own functions, the iteration recorded, the budget counted; a direct op (a note, a staging, the provisional pick) lets
+the step ask again at once (at most 8 in one step), a queued job ends the step until that job lands. Mode `step`
+pauses after every op (Step runs the next); Pause lets the running job finish, then nothing more runs until Resume;
+Stop cancels the request's queued and running jobs and keeps what landed (approve it, or cancel); Cancel cancels every
+job of it, imports too.
+
+**Garry's one confirm** (`POST /api/requests/<rid>/approve {confirm: true}`, the card's box): the batch = the
+provisional look's staged frames and the pinned frames the installed strip does not show (PAGE's
+`frames_store.staged_batch`); a NEW look is approved (`look_op approve`) and, with anything to pack, one `frames_export`
+with `confirm: true` is queued; the request is `approved` until the export's import lands, then `done` with the result.
+With nothing to pack it is done at once with the landed entry. `reject {why}` unstages the provisional look, writes
+`review: {verdict: rejected, why, by: human}` on those versions (AN-13) and lets the loop go on (mode auto) or waits for
+Step (mode step). `pick {code}` names another look of the asset as the provisional one; `pick {group, slot, version}`
+pins that version (selected, pinned, marked as differing from the strip so the export re-applies it); then mode auto
+continues from it, mode step waits.
+
+**The routes** (`tools/level_editor/requests_io.py`): `POST /api/requests` {goal, asset, brief?, mode?, budget?} -> {rid,
+fold}; `GET /api/requests` -> {requests: [folds]}; `GET /api/requests/<rid>` -> the fold (state, waiting_for, iteration
+{n, of = re-rolls + repair rounds + 1}, budget, spent, budget_line, provisional, summary = one paragraph composed by
+code, sheet, findings {job, gates, sheet}, jobs [{id, kind, state, title, stage, error}], history_tail, iterations,
+result, toast, page); `POST /api/requests/<rid>/pause|resume|stop|cancel|step|approve|reject|pick`; `GET
+/api/job/<id>/summary`. Errors: 404 no such request or job, 400 a bad body, 409 a state that refuses the verb (an
+approve without confirm answers 409 with `needs_confirm` and the batch).
+
+**The cancel fix** (WF-06c): `comfy.run` prints `comfy: prompt <id>` once ComfyUI took the graph; the job keeps it
+(`comfy_prompt`); a cancel of a running comfy job sends `POST /queue {delete: [that id]}` and `/interrupt` only while
+that id is the one running; a job without a recorded id gets `/interrupt` alone; **never `/queue {clear: true}`** (a
+Stop on a request no longer kills a hand run's prompt).
+
+**Nothing old changes**: a job without `request` runs exactly as before (no key on its record, the same import after
+its landing); `GET /api/jobs?since=0` returns everything; the existing routes keep their answers (a job's record gains
+`request` and `comfy_prompt` only when they exist). Tests: `selftest_REQ96.py` (the record, the budgets, the fold, the
+step frame with a fake planner, the controls, approve / reject / pick, the routes, the CLI, the summary, the cancel
+against a fake ComfyUI, the no-regression proofs) and `selftest_SLICE.py` (the whole sentence offline in about 10 s on
+the real workers: a stand-in tool, the real `frames_store.export_look`, a fake evaluator and planner, `art_request.py`
+over HTTP, Garry's confirm, `result`).

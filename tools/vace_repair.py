@@ -44,6 +44,179 @@ DEFAULT_NEG = ("camera movement, camera pan, zoom, dolly, the character walks ac
                "shadow, blurry, low quality, deformed, extra limbs, missing limbs, text, watermark, static image, frozen, "
                "a second creature, duplicate body, morphing, melting")
 
+# ---------------------------------------------------------------- pass 96 (lane GATES, G1): the repair profile per method class
+# methods.json's `repair` rule may carry `profile` {window, frames, strength, steps, cfg, lora} and `escalation` [rungs], written
+# by tools/vace_bench.py from the measured benchmark (tools/dl/p96/GATES/bench). A caller that passes no window / strength /
+# steps / cfg / lora gets the profile of the group's method (explicit arguments > the profile > the clip's own `wan` > the
+# built-in defaults, which are pass 95's: auto window, strength 1.0, 4 steps with the lightx2v LoRAs, cfg 1.0). A method the
+# catalogue does not know (an old look's "creature" / "hero") is classed by what the group holds: a depth driver = ctl, a pose
+# driver = pose, a clip without a driver = free, cells only = cell. The escalation rungs are the windows to try in order when a
+# repair's checks are no better than before, then "reroll_view" (re-roll the view instead); next_rung() walks them.
+METHODS_JSON = os.path.join(HERE, "level_editor", "methods.json")
+DEFAULT_PROFILE = {"window": "auto", "frames": None, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": True}
+DEFAULT_ESCALATION = ["single", "double", "reroll_view"]
+CLASS_METHODS = {"ctl": "creature_ctl", "pose": "creature_pose2", "free": "creature_free2", "cell": "creature_proc"}
+METHOD_CLASSES = {"creature_ctl": "ctl", "hero_puppet": "ctl", "hero_pose5": "pose", "hero_fit": "pose", "creature_pose2": "pose",
+                  "creature_free2": "free", "creature_free8": "free"}   # every other method is "cell" (its frames come from a painting)
+_RULES = {"mtime": None, "rules": {}}
+
+
+def repair_rules(path=None):
+    """{method id: its `repair` rule} from methods.json, re-read when the file changes (empty when it cannot be read)."""
+    path = path or METHODS_JSON
+    try:
+        mt = os.path.getmtime(path)
+    except OSError:
+        return {}
+    if _RULES["mtime"] != mt or path != METHODS_JSON:
+        rules = {}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                for m in (json.load(f).get("methods") or []):
+                    if isinstance(m, dict) and isinstance(m.get("repair"), dict):
+                        rules[str(m.get("id"))] = m["repair"]
+        except (OSError, ValueError):
+            rules = {}
+        if path == METHODS_JSON:
+            _RULES.update(mtime=mt, rules=rules)
+        return rules
+    return _RULES["rules"]
+
+
+def class_of(method=None, meta=None):
+    """The method class (ctl, pose, free, cell) of a method id, else of what the group's meta holds."""
+    m = str(method or "")
+    if m in METHOD_CLASSES:
+        return METHOD_CLASSES[m]
+    if m and m in repair_rules():
+        return "cell"
+    meta = meta or {}
+    drv = meta.get("driver") if isinstance(meta.get("driver"), dict) else None
+    if drv and drv.get("kind") == "depth":
+        return "ctl"
+    if drv and drv.get("kind") == "pose":
+        return "pose"
+    if meta.get("clip"):
+        return "free"
+    return "cell"
+
+
+def profile_for(method=None, meta=None, rules=None):
+    """The repair profile a group follows: {window, frames, strength, steps, cfg, lora, escalation, class, method, source}.
+    The method's own rule when it carries a profile, else the rule of the class's representative method
+    (creature_ctl / creature_pose2 / creature_free2 / creature_proc), else the built-in defaults."""
+    rules = rules if rules is not None else repair_rules()
+    cls = class_of(method, meta)
+    out = dict(DEFAULT_PROFILE)
+    out.update({"escalation": list(DEFAULT_ESCALATION), "class": cls, "method": str(method or ""), "source": "default"})
+    for mid in ([str(method)] if method else []) + [CLASS_METHODS.get(cls, "")]:
+        r = rules.get(mid) if mid else None
+        if not isinstance(r, dict):
+            continue
+        has_profile = isinstance(r.get("profile"), dict)
+        has_esc = isinstance(r.get("escalation"), list) and bool(r["escalation"])
+        if has_profile:
+            p = r["profile"]
+            for k in DEFAULT_PROFILE:
+                if p.get(k) is not None:
+                    out[k] = p[k]
+            out["source"] = "methods.json " + mid
+        if has_esc:
+            out["escalation"] = [str(x) for x in r["escalation"]]
+        if has_profile or has_esc:
+            break
+    if out["window"] not in ("auto", "single", "double"):
+        out["window"] = "auto"
+    return out
+
+
+def next_rung(profile, rung=None):
+    """The escalation rung after `rung` (None = the first rung): "single" | "double" | "reroll_view" | None when the rungs
+    are spent. `profile` is profile_for()'s dict, a methods.json `repair` rule, or a plain list of rungs."""
+    if isinstance(profile, (list, tuple)):
+        rungs = [str(x) for x in profile]
+    elif isinstance(profile, dict):
+        rungs = profile.get("escalation")
+        if not rungs and isinstance(profile.get("profile"), dict):
+            rungs = profile.get("escalation")
+        rungs = [str(x) for x in (rungs or DEFAULT_ESCALATION)]
+    else:
+        rungs = list(DEFAULT_ESCALATION)
+    if not rungs:
+        return None
+    if rung is None:
+        return rungs[0]
+    rung = str(rung)
+    if rung not in rungs:
+        return None
+    k = rungs.index(rung)
+    return rungs[k + 1] if k + 1 < len(rungs) else None
+
+
+def parse_mask(text):
+    """"5:0.1,0.5,0.45,1" [";slot:x0,y0,x1,y1"...] -> {slot: [x0, y0, x1, y1]} (fractions of the canvas, 0..1)."""
+    out = {}
+    for part in str(text or "").split(";"):
+        part = part.strip()
+        if not part:
+            continue
+        slot, _, rect = part.partition(":")
+        vals = [float(v) for v in re.split(r"[\s,]+", rect.strip()) if v]
+        if len(vals) != 4:
+            raise ValueError("a mask is slot:x0,y0,x1,y1 (fractions of the canvas): %r" % part)
+        out[int(slot)] = vals
+    return out
+
+
+def clean_mask(mask, n):
+    """{slot: [x0, y0, x1, y1]} with the keys as ints in 0..n-1 and the rectangle clamped and ordered, or {}."""
+    out = {}
+    for k, rect in (mask or {}).items():
+        try:
+            slot = int(k)
+            x0, y0, x1, y1 = [min(1.0, max(0.0, float(v))) for v in rect]
+        except (TypeError, ValueError):
+            continue
+        if not (0 <= slot < n):
+            continue
+        x0, x1 = min(x0, x1), max(x0, x1)
+        y0, y1 = min(y0, y1), max(y0, y1)
+        if x1 - x0 < 0.01 or y1 - y0 < 0.01:
+            continue
+        out[slot] = [x0, y0, x1, y1]
+    return out
+
+
+def rect_px(rect, S):
+    x0, y0, x1, y1 = rect
+    return (int(round(x0 * S)), int(round(y0 * S)), max(int(round(x0 * S)) + 1, int(round(x1 * S))), max(int(round(y0 * S)) + 1, int(round(y1 * S))))
+
+
+def mask_image(rect, S):
+    """White inside the rectangle, black outside: the per-frame VACE mask of a partial repair."""
+    m = Image.new("RGB", (S, S), (0, 0, 0))
+    ImageDraw.Draw(m).rectangle([rect_px(rect, S)[0], rect_px(rect, S)[1], rect_px(rect, S)[2] - 1, rect_px(rect, S)[3] - 1], fill=(255, 255, 255))
+    return m
+
+
+def partial_frame(kept_rgb, guide_rgb, rect, S):
+    """The control frame of a partially masked slot: the kept frame as it is, the guide pasted inside the rectangle."""
+    out = kept_rgb.copy()
+    x0, y0, x1, y1 = rect_px(rect, S)
+    out.paste(guide_rgb.crop((x0, y0, x1, y1)), (x0, y0))
+    return out
+
+
+def partial_merge(orig_rgba, new_rgba, rect, S, feather=8):
+    """The repaired pixels inside the rectangle (edges feathered) over the original canvas outside it."""
+    x0, y0, x1, y1 = rect_px(rect, S)
+    m = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(m).rectangle([x0, y0, x1 - 1, y1 - 1], fill=255)
+    if feather > 0:
+        from PIL import ImageFilter
+        m = m.filter(ImageFilter.GaussianBlur(feather / 2.0))
+    return Image.composite(new_rgba.convert("RGBA"), orig_rgba.convert("RGBA"), m)
+
 
 def log(*a):
     print(*a, flush=True)
@@ -192,13 +365,18 @@ def sheet(rows, labels, redo, cell=180, out_path=None):
 
 
 def repair(kind, cid, code, base, view, slots, prompt=None, seed=None, window="auto", size=None, stage=True, dry=False, out_dir=None,
-           job=None, negative=None, steps=None, cfg=None, lora=None, shift=None, strength=1.0, guide="driver", free_fill=False):
+           job=None, negative=None, steps=None, cfg=None, lora=None, shift=None, strength=None, guide="driver", free_fill=False,
+           mask=None, store=None, profile=None):
+    """pass 96 (lane GATES): `strength` / `steps` / `cfg` / `lora` / `window` left None or "auto" follow the method class's
+    repair profile (profile_for); `mask` {slot: [x0, y0, x1, y1]} paints only that rectangle of a slot (fractions of the
+    canvas; the rest of the frame is kept as it is); `store` is another frames-store root (the benchmark's copy);
+    `profile` a profile dict to follow instead of the catalogue's."""
     t_all = time.time()
     look = fs.Look(kind, cid, code)
-    g = fs.Group(look, base, view)
+    g = fs.Group(look, base, view, store)
     if not g.exists():
-        fs.register_look(kind, cid, code)
-        g = fs.Group(look, base, view)
+        fs.register_look(kind, cid, code, store=store)
+        g = fs.Group(look, base, view, store)
     if not g.exists():
         raise SystemExit("vace_repair: %s %s has no %s %s group (no strip?)" % (cid, code, base, view))
     if not g.meta.get("clip") and not g.meta.get("driver") and not free_fill:
@@ -213,7 +391,12 @@ def repair(kind, cid, code, base, view, slots, prompt=None, seed=None, window="a
     if n < 2:
         raise SystemExit("vace_repair: %s %s has one frame: there is no stretch to repair, repaint it instead" % (base, view))
     loop = fs.loops(base)
+    prof = dict(profile) if isinstance(profile, dict) else profile_for(g.meta.get("method"), g.meta)
+    if window in (None, "", "auto"):
+        window = str(prof.get("window") or "auto")
     plan, mode = window_plan(n, loop, window)
+    mask = clean_mask(mask, n)
+    mask = {k: v for k, v in mask.items() if k in redo}
     S = int(size or g.canvas_size() or fs.CANVAS)
     S = max(256, S // 16 * 16)
     out_dir = out_dir or os.path.join(REPO, "tools", "dl", "frames", "_repairs")
@@ -269,8 +452,13 @@ def repair(kind, cid, code, base, view, slots, prompt=None, seed=None, window="a
     frames, masks, takes = [], [], {}
     for j, (slot, redo_ok, take) in enumerate(plan):
         if slot in redo and redo_ok:
-            frames.append(guides.get(slot, grey))
-            masks.append(white)
+            if slot in mask:
+                # a partial repair: the kept pixels stay the control outside the rectangle, the guide fills it, the mask is the rectangle
+                frames.append(partial_frame(on_screen(canvases[slot], screen), guides.get(slot, grey), mask[slot], S))
+                masks.append(mask_image(mask[slot], S))
+            else:
+                frames.append(guides.get(slot, grey))
+                masks.append(white)
             if take:
                 takes[slot] = j
         else:
@@ -287,14 +475,21 @@ def repair(kind, cid, code, base, view, slots, prompt=None, seed=None, window="a
                  "reference in every frame, crisp clean line art, cel shading. The camera is completely locked off and static. The background stays a flat "
                  "solid bright %s color with nothing in it, no ground, no shadow." % (noun, "walking" if base == "run" else "moving", "blue" if screen[2] > screen[1] else "green"))
     wan = (g.meta.get("clip") or {}).get("wan") or {}
-    settings = {"steps": int(steps or wan.get("steps") or 4), "cfg": float(cfg if cfg is not None else wan.get("cfg", 1.0)),
-                "lora": bool(wan.get("lora", True) if lora is None else lora), "shift": float(shift or wan.get("shift") or 5.0), "size": S, "strength": float(strength)}
+    # pass 96: an explicit argument wins, then the method class's profile, then the clip's own walk settings, then pass 95's defaults
+    p_steps, p_cfg, p_lora, p_strength = prof.get("steps"), prof.get("cfg"), prof.get("lora"), prof.get("strength")
+    settings = {"steps": int(steps or p_steps or wan.get("steps") or 4),
+                "cfg": float(cfg if cfg is not None else (p_cfg if p_cfg is not None else wan.get("cfg", 1.0))),
+                "lora": bool((p_lora if p_lora is not None else wan.get("lora", True)) if lora is None else lora),
+                "shift": float(shift or wan.get("shift") or 5.0), "size": S,
+                "strength": float(strength if strength is not None else (p_strength if p_strength is not None else 1.0))}
     seed = int(seed if seed is not None else ((g.meta.get("clip") or {}).get("seed") or 0) + 31 + sum(redo))
     neg = negative or DEFAULT_NEG
     drv_rec = {"name": drv["name"], "ctl_sig": (g.meta.get("clip") or {}).get("ctl_sig")} if drv else None
     info = {"kind": kind, "id": cid, "code": code, "base": base, "view": view, "key": g.key, "slots": redo, "window": mode, "frames": len(plan),
             "seed": seed, "prompt": words, "negative": neg, "reference": ref_src, "driver": (drv or {}).get("name"), "driver_rec": drv_rec, "driver_fit": aff, "screen": list(screen),
             "canvas": S, "wan": settings, "job": job, "stamp": stamp, "guide": "driver" if guided else "free", "free_fill": bool(free_fill),
+            "profile": {k: prof.get(k) for k in ("window", "frames", "strength", "steps", "cfg", "lora", "escalation", "class", "method", "source")},
+            "mask": {str(k): v for k, v in mask.items()} or None, "store": fs._rel(g.store) if store else None,
             "plan": [{"slot": s, "redo": (s in redo and r), "take": t} for s, r, t in plan]}
     # the sheet of what goes in (before, the guides), kept even on a dry run
     before = [g.cell_of(k, eff[k]) for k in range(n)]
@@ -314,9 +509,17 @@ def repair(kind, cid, code, base, view, slots, prompt=None, seed=None, window="a
     except Exception:
         pass
     tag = "%s_%s_%s_%s_%s" % (cid, fs.code_part(code), base, view, stamp[-6:])
-    ref_name = comfy.upload_pil(ref_img, tag + "_ref.png")
-    ctl_names = [comfy.upload_pil(f, "%s_f%02d.png" % (tag, j)) for j, f in enumerate(frames)]
-    mask_names = [comfy.upload_pil(m, "%s_m%02d.png" % (tag, j)) for j, m in enumerate(masks)]
+    upload_bytes = [0]
+
+    def up(img, name):
+        upload_bytes[0] += len(fs.png_bytes(img))   # pass 96: the upload volume, for the benchmark's cost column
+        return comfy.upload_pil(img, name)
+
+    t_up = time.time()
+    ref_name = up(ref_img, tag + "_ref.png")
+    ctl_names = [up(f, "%s_f%02d.png" % (tag, j)) for j, f in enumerate(frames)]
+    mask_names = [up(m, "%s_m%02d.png" % (tag, j)) for j, m in enumerate(masks)]
+    upload_seconds = time.time() - t_up
     graph = comfy.wan_fun_vace(words, ref_name, ctl_names, mask_names, seed, S, S, negative=neg, prefix="88fits/vace_" + tag, shift=settings["shift"],
                                steps=settings["steps"], cfg=settings["cfg"], lora=settings["lora"], strength=settings["strength"])
     t0 = time.time()
@@ -338,10 +541,13 @@ def repair(kind, cid, code, base, view, slots, prompt=None, seed=None, window="a
     for slot in redo:
         j = takes[slot]
         keyed = artkit.key_background(raw[j], 0.16, 0.7)
+        if slot in mask:
+            keyed = partial_merge(canvases[slot], keyed, mask[slot], S)   # pass 96: only the rectangle changes
         empty = float((np.asarray(keyed)[..., 3] > 127).mean())
         v = g.add_version(slot, keyed, "raw", "vace", by="ai", seed=seed, prompt=words, model="wan2.2_fun_vace_14B", workflow="wan_fun_vace",
                           job=job, window={"mode": mode, "frames": len(plan), "taken": j}, control=("driver:" + drv["name"]) if guided else "free",
-                          reference=ref_src, kept=[k for k in range(n) if k not in redo], wan=settings, canvas=[S, S], driver=drv_rec, free_fill=bool(free_fill) or None)
+                          reference=ref_src, kept=[k for k in range(n) if k not in redo], wan=settings, canvas=[S, S], driver=drv_rec, free_fill=bool(free_fill) or None,
+                          mask=mask.get(slot), profile={"class": prof.get("class"), "source": prof.get("source"), "window": mode})
         pinned = bool((sel.get(str(slot)) or {}).get("pinned"))
         wanted = bool(stage and not pinned and empty >= fs.FLAG_RULES["empty"])
         after[slot] = g.cell_of(slot, v)
@@ -359,7 +565,8 @@ def repair(kind, cid, code, base, view, slots, prompt=None, seed=None, window="a
         full.paste(f.resize((160, 160), Image.LANCZOS), (j * 160, 0))
     full.save(os.path.join(out_dir, "window_%s.jpg" % stamp), quality=85)
     info.update(seconds=round(secs, 1), total_seconds=round(time.time() - t_all, 1), vram_free_before=vram0, vram_free_after=vram1, versions=versions,
-                sheet=sheet_path, window_picture=os.path.join(out_dir, "window_%s.jpg" % stamp), flags=g.flags())
+                sheet=sheet_path, window_picture=os.path.join(out_dir, "window_%s.jpg" % stamp), flags=g.flags(),
+                upload_bytes=upload_bytes[0], upload_seconds=round(upload_seconds, 1), frames_back=len(raw))
     with open(os.path.join(out_dir, "repair_%s.json" % stamp), "w", encoding="utf-8", newline="\n") as f:
         json.dump(info, f, indent=1, ensure_ascii=False)
     side = os.environ.get("ASSET_JOB_SIDECAR", "")
@@ -393,12 +600,15 @@ def main(argv=None):
     ap.add_argument("--steps", type=int, default=None)
     ap.add_argument("--cfg", type=float, default=None)
     ap.add_argument("--shift", type=float, default=None)
-    ap.add_argument("--strength", type=float, default=1.0)
+    ap.add_argument("--strength", type=float, default=None, help="VACE's control strength (default: the method class's profile, else 1.0)")
     ap.add_argument("--guide", default="driver", choices=("driver", "free"), help="driver: the redone frames follow the driver's frames; free: filled from their neighbours")
     ap.add_argument("--free-fill", action="store_true", help="paint a procedural animation (no clip, no driver) anyway, as a free fill from the neighbours")
     ap.add_argument("--no-stage", action="store_true", help="mark the versions as not to be staged at the landing (this process never stages: one writer)")
     ap.add_argument("--dry-run", action="store_true", help="build the inputs and the sheet; send nothing")
     ap.add_argument("--out", default=None, help="where the sheet and result go (default tools/dl/frames/_repairs)")
+    ap.add_argument("--mask", default=None, help="pass 96: paint only a rectangle of a slot: slot:x0,y0,x1,y1 (fractions of the canvas), ';' between slots")
+    ap.add_argument("--store", default=None, help="pass 96: another frames-store root (the benchmark's copy; default tools/dl/frames)")
+    ap.add_argument("--lora", default=None, choices=("1", "0"), help="pass 96: 1 = the 4-step lightx2v LoRAs, 0 = without them (default: the profile, else the clip's)")
     a = ap.parse_args(argv)
     kw = {}
     if a.job:
@@ -407,14 +617,17 @@ def main(argv=None):
         kw = dict(kind=j.get("kind"), cid=j.get("id"), code=j.get("code"), base=j.get("anim"), view=j.get("view"), slots=j.get("slots"),
                   prompt=j.get("prompt") or None, seed=j.get("seed"), window=j.get("window") or "auto", size=j.get("size"), stage=not j.get("no_stage"),
                   dry=bool(j.get("dry_run")), out_dir=j.get("out") or os.path.dirname(os.path.abspath(a.job)), job=j.get("job") or os.environ.get("ASSET_JOB_ID"),
-                  negative=j.get("negative") or None, steps=j.get("steps"), cfg=j.get("cfg"), shift=j.get("shift"), strength=float(j.get("strength") or 1.0),
-                  guide=str(j.get("guide") or "driver"), free_fill=bool(j.get("free_fill")))
+                  negative=j.get("negative") or None, steps=j.get("steps"), cfg=j.get("cfg"), shift=j.get("shift"),
+                  strength=(float(j["strength"]) if j.get("strength") not in (None, "", 0, "0") else None),
+                  guide=str(j.get("guide") or "driver"), free_fill=bool(j.get("free_fill")),
+                  mask=(parse_mask(j["mask"]) if isinstance(j.get("mask"), str) else j.get("mask")), lora=j.get("lora"), store=j.get("store") or None)
     else:
         if not (a.kind and a.id and a.code and a.anim and a.view and a.slots):
             ap.error("--kind, --id, --code, --anim, --view and --slots are needed (or --job)")
         kw = dict(kind=a.kind, cid=a.id, code=a.code, base=a.anim, view=a.view, slots=a.slots, prompt=a.prompt, seed=a.seed, window=a.window, size=a.size,
                   stage=not a.no_stage, dry=a.dry_run, out_dir=a.out, job=os.environ.get("ASSET_JOB_ID"), negative=a.negative, steps=a.steps, cfg=a.cfg,
-                  shift=a.shift, strength=a.strength, guide=a.guide, free_fill=a.free_fill)
+                  shift=a.shift, strength=a.strength, guide=a.guide, free_fill=a.free_fill, mask=parse_mask(a.mask) if a.mask else None,
+                  store=a.store, lora=(None if a.lora is None else a.lora == "1"))
     if kw.get("seed") is not None:
         kw["seed"] = int(kw["seed"])
     repair(**kw)

@@ -1,0 +1,87 @@
+{
+ "v": 1,
+ "note": "pass 96: the art requests' defaults (tools/level_editor/requests.py reads `budget`; lane GATES writes `tiers`). Every budget key can be set per request (art_request.py start --rerolls --repair-rounds --minutes --evals --cloud-dollars, or POST /api/requests {budget}). cloud_dollars 0 = the metered tiers are off.",
+ "budget": {
+  "rerolls": 2,
+  "repair_rounds": 2,
+  "lane_seconds": 5400,
+  "evaluator_calls": 60,
+  "cloud_dollars": 0.0
+ },
+ "cloud_ceiling_dollars_per_day": 0.0,
+ "tiers": {
+  "0": "deterministic",
+  "1": {
+   "backend": "openai_chat",
+   "model": "qwen2.5-vl-7b-instruct-abliterated",
+   "on": "flagged+sample",
+   "url": "http://127.0.0.1:1234/v1/chat/completions",
+   "max_tokens": 300,
+   "rubric": "unanchored",
+   "miss_rate": 0.368,
+   "false_alarm_rate": 0.417
+  },
+  "2": {
+   "backend": "anthropic",
+   "model": "claude-haiku-5-5",
+   "on": "sheets",
+   "ceiling_dollars": 0.0,
+   "key_file": "tools/keys/anthropic.env"
+  },
+  "_measured": {
+   "made": "2026-10-21T22:22:34",
+   "set": "tools/qa_bench/manifest.json (31 strong cases: 19 defects, 12 clean)",
+   "models": {
+    "google/gemma-4-e4b": {
+     "anchored": {
+      "miss_rate": 0.605,
+      "false_alarm_rate": 0.167,
+      "seconds_per_image": 8.235,
+      "runs": 2,
+      "agreement": {
+       "cases": 39,
+       "flag": 0.923,
+       "all_fields": 0.872
+      },
+      "dollars": 0.0
+     },
+     "unanchored": {
+      "miss_rate": 0.263,
+      "false_alarm_rate": 0.833,
+      "seconds_per_image": 8.67,
+      "runs": 1,
+      "agreement": null,
+      "dollars": 0.0
+     }
+    },
+    "qwen2.5-vl-7b-instruct-abliterated": {
+     "anchored": {
+      "miss_rate": 0.474,
+      "false_alarm_rate": 0.417,
+      "seconds_per_image": 8.285,
+      "runs": 2,
+      "agreement": {
+       "cases": 39,
+       "flag": 1.0,
+       "all_fields": 1.0
+      },
+      "dollars": 0.0
+     },
+     "unanchored": {
+      "miss_rate": 0.368,
+      "false_alarm_rate": 0.417,
+      "seconds_per_image": 1.6,
+      "runs": 2,
+      "agreement": {
+       "cases": 39,
+       "flag": 1.0,
+       "all_fields": 1.0
+      },
+      "dollars": 0.0
+     }
+    }
+   },
+   "note": "tier 1 = the best miss rate at zero cost; no model on this set counts legs or sees ghost legs reliably: the loop's provisional winner is a staged selection Garry approves, never an install; tier 2 off until a key exists (G3)"
+  }
+ }
+}

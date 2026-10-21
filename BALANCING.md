@@ -5992,3 +5992,250 @@ Tool thresholds, for the record (tools/frames_store.FLAG_RULES, hints on the she
 frame differs from both neighbours 1.7x more than they differ from each other, and more than twice the median
 step), footprint 0.72-1.35 of the group's median box, seam 2.2x the median step (loops), silhouette IoU under 0.5
 against the driver's frame, empty under 0.4% of the cell.
+
+## 42. Pass 96 (v0.81): the art-production loop (tools only; no game numbers)
+
+Garry's word (tools/dl/p96/REQUEST.md): proceed with the approved plan, break nothing. Each lane's rules.
+
+### 42.GATES Phase 0: the VACE window benchmark and profiles; the blind calibration set and the tier table
+
+Tools only: nothing here changes the game. The numbers are measured (tools/dl/p96/GATES/bench/, tools/dl/qa_bench/results/).
+
+#### G1: the VACE repair benchmark (tools/vace_bench.py)
+
+**What a run is.** One `vace_repair.repair()` of existing cached frames (no re-walk, no new painting) on a copy of the
+frames store (tools/dl/p96/GATES/bench/store; Garry's tools/dl/frames is never written), one subprocess a run so the
+comfy lock is free between runs.
+
+**The classes and their looks.** ctl = Desert Spider SP-B run/side (the demo's slots 3, 4, 5, 9; seeds 24110 and 7);
+pose = Goblin GOB-D run/front (Wan Animate on the OpenPose driver bigguy_goblin); free = Buckshot Dwarf BD-A run/front
+(creature_free2, no driver: a free fill, grey guide); cell = Red Goblin RG-A run/front (a recipe-less base: cells only,
+no clip, no still: the reference is the fullest kept frame; free fill); mask = SP-B run/side slot 5 with a rectangle
+over its front legs (the lower-left 45% x 55% of the figure's box).
+
+**The matrix (27 runs).** ctl: window single (13 frames) / double (25) x strength 1.0 / 0.7 x the 4-step lightx2v LoRAs
+at cfg 1.0 / 20 steps without them at cfg 3.5, two seeds = 16; pose and free: single / double x two seeds = 4 each;
+cell: single / double, one seed = 2; mask: double, LoRAs, one seed = 1. The cheap runs go first, the 20-step runs last.
+
+**The checks per redone slot** (E4's list, deterministic, no eye), on the composition with the run's versions staged:
+- `empty`: no `empty` flag (the figure covers at least 0.4% of the cell);
+- `jump`: no `jump` flag (frames_store: differs from both neighbours more than 1.7x their difference from each other and more than twice the median step);
+- `footprint`: no `footprint` flag (the figure's box within 0.72-1.35 of the group's median; or shrunk to fit);
+- `silhouette`: no `silhouette` flag (IoU against the driver's frame under 0.5), only where a driver exists AND the flag does not fire on more than half the installed frames of the group (the pose class: a stick figure against a body is always under 0.5: skipped and said);
+- `seam`: when slot 0 or n-1 is redone, the seam flag on the last slot unchanged (never applies to the demo's slots);
+- `area`: the figure's alpha area within 0.72-1.35 of the group's median (the effective cells);
+- `colour`: the distance of the frame's figure to the view's still (a 6x6x6 RGB histogram of the pixels with alpha over 127, half the L1 distance; the still keyed as the clip's reference; with no still, the fullest kept frame) at most **1.25 x the kept frames' median distance** (`vace_bench.COLOUR_TOL`).
+
+**Score of a run** = checks passed / checks over the redone slots (the brief's rule); `clean` = slots that pass every
+check / slots (the stricter number, reported beside it); lone = a redone slot with no redone neighbour (slot 9), span =
+the rest (3, 4, 5), scored apart.
+
+**Why the colour check is an RGB histogram, not the hue histogram E4 names.** On the demo's pairs (the real store's
+SP-B-2 / SP-B-3 versions, lane VACE's verdicts: 3, 4 good; 5, 9 bad on both seeds) the saturation-weighted hue
+histogram put the GOOD repairs farther from the still (0.174, 0.187) than the bad ones (0.061-0.148), so it cannot be
+a check. The RGB histogram does separate them: installed frames 0.275-0.350 (median 0.305), good repairs 0.342 /
+0.371 (1.12x / 1.22x the median), bad 0.413 / 0.424 / 0.530 / 0.560 (1.35x-1.83x); the bad ones are also paler (mean
+saturation 0.69-0.75 against 0.77-0.78). The tolerance 1.25 passes the two good and fails the four bad; it is set on
+four points and says so (tools/dl/p96/GATES/calibrate_checks.log, spb_pairs.png).
+
+**Choosing the profile per class** (`vace_bench.choose`): the best mean score over the seeds; two profiles within 0.02
+(`TIE`) are a tie and the cheaper render wins; a class whose best mean score is under **0.6** (`PASS_MIN`) is not
+reliable: `vace` stays (or becomes) `conditional` and its escalation is `["reroll_view"]`. A reliable class's escalation
+is the plan's fixed ladder `["single", "double", "reroll_view"]` (INTERFACES; the profile's window says where a
+hand run or an "auto" job starts, the ladder where the loop climbs when a repair did not help). The brief's
+0.6 is a low bar with this check set (a run whose four slots all fail the colour check still scores about 0.83: the
+other checks pass almost always), which is why `clean` is reported beside the score and the lead may pin a stricter rule.
+
+**The profile's precedence in vace_repair.** An explicit argument (--window/--strength/--steps/--cfg/--lora) > the
+method class's profile (methods.json) > the clip's own `wan` settings > pass 95's defaults (auto window, 1.0, 4 steps,
+cfg 1.0, LoRAs on). A Level Editor repair job passes only its form's `window` ("auto" = the profile).
+
+**The escalation rungs** (`vace_repair.next_rung`): `escalation[0]` first; after a rung whose repair's checks are no
+better than before, the next; after the last, None (the loop stops repairing that group). `reroll_view` is not a repair.
+
+##### The benchmark table
+
+| class | window | strength | sampler | seeds | score (mean) | min | clean slots | render s | upload MB |
+|---|---|---|---|---|---|---|---|---|---|
+| ctl | single | 1.0 | 4-step LoRAs, cfg 1 | 2 | 0.959 | 0.917 | 0.875 | 122.0 | 1.65 |
+| ctl | single | 0.7 | 4-step LoRAs, cfg 1 | 2 | 0.812 | 0.792 | 0.0 | 115.4 | 1.65 |
+| ctl | double | 1.0 | 4-step LoRAs, cfg 1 | 2 | 0.916 | 0.875 | 0.5 | 137.75 | 2.88 |
+| ctl | double | 0.7 | 4-step LoRAs, cfg 1 | 2 | 0.916 | 0.833 | 0.5 | 138.05 | 2.88 |
+| pose | single | 1.0 | 4-step LoRAs, cfg 1 | 2 | 0.95 | 0.9 | 0.75 | 119.05 | 1.74 |
+| pose | double | 1.0 | 4-step LoRAs, cfg 1 | 2 | 0.95 | 0.9 | 0.75 | 141.1 | 3.02 |
+| free | single | 1.0 | 4-step LoRAs, cfg 1 | 2 | 0.9 | 0.9 | 0.5 | 123.9 | 2.5 |
+| free | double | 1.0 | 4-step LoRAs, cfg 1 | 2 | 1.0 | 1.0 | 1.0 | 139.8 | 4.28 |
+| cell | single | 1.0 | 4-step LoRAs, cfg 1 | 1 | 0.9 | 0.9 | 0.75 | 113.3 | 1.64 |
+| cell | double | 1.0 | 4-step LoRAs, cfg 1 | 1 | 0.85 | 0.85 | 0.25 | 135.1 | 2.95 |
+| mask | double | 1.0 | 4-step LoRAs, cfg 1 | 1 | 1.0 | 1.0 | 1.0 | 144.7 | 3.03 |
+| ctl | single | 1.0 | 20 steps, no LoRA, cfg 3.5 | 2 | 0.959 | 0.917 | 0.875 | 197.75 | 1.65 |
+| ctl | single | 0.7 | 20 steps, no LoRA, cfg 3.5 | 2 | 0.958 | 0.958 | 0.75 | 191.6 | 1.65 |
+| ctl | double | 1.0 | 20 steps, no LoRA, cfg 3.5 | 2 | 0.938 | 0.875 | 0.75 | 315.05 | 2.88 |
+| ctl | double | 0.7 | 20 steps, no LoRA, cfg 3.5 | 2 | 1.0 | 1.0 | 1.0 | 314.6 | 2.88 |
+
+Chosen (written into methods.json 23:04, the ladder fixed 23:20): ctl double / 0.7 / 20 steps no LoRA cfg 3.5; pose single / 1.0 / LoRAs; free double / 1.0 / LoRAs; cell single / 1.0 / LoRAs; every class's escalation the fixed single -> double -> reroll_view (the other window's score: ctl single 0.958 at the same strength and sampler, pose double 0.95, free single 0.9, cell double 0.85). Every class is over 0.6: no rule became conditional. The ctl pick costs 315 s a repair against 122 s for the LoRA single window at 0.959: `vace_bench.TIE` 0.05 would pick the cheaper one.
+
+#### FLAG_RULES: changed nothing, and why (tools/dl/p96/GATES/flag_rules_tune.log)
+
+The only frame-level ground truth with neighbours is SP-B run/side with the demo's versions. Each demo version staged
+ALONE among the installed frames (the loop's case) and judged by the geometry flags (jump, seam, footprint, silhouette,
+empty) over a sweep of jump 1.2-2.0, silhouette 0.5-0.7, footprint (0.72-1.35) / (0.8-1.25) / (0.9-1.12):
+- at today's rules the four bad versions are all missed (jump scores 1.24-1.46, IoU 0.52-0.60) and the two GOOD repairs
+  are both flagged `jump` (scores 2.67 and 3.72: a clean repaint differs more from its ghost-legged neighbours than a
+  pale tangle does);
+- a silhouette threshold of 0.6 catches the four bad ones but flags 11 of the 12 installed frames (their IoU against the
+  depth driver sits under 0.6: the painting walks at its own size, pass 94's finding);
+- no setting lowers the misses without a new false alarm: **FLAG_RULES stays as it is** ({jump 1.7, footprint 0.72-1.35,
+  seam 2.2, silhouette 0.5, empty 0.004}).
+Consequence for the loop: a `jump` on a single repaired slot among untouched neighbours is NOT evidence against the
+repair; the colour check is the one that separated good from bad on this set. The flags remain hints.
+
+#### G2: the blind set and the tiers (tools/qa_bench.py, tools/qa_bench/manifest.json)
+
+**The set.** 39 cases under blind ids C01..C39 (a fixed shuffle, seed 96): part D3's 16 (9 Klein side stills: SP-A/B/E/F/G
+picks = clean, SP-F k0 9 legs, SP-H k1 11 legs, the cfg3 negative test ~9 legs, SP-G k1 skull face; 7 walk frames: SP-A v1
+ghost legs 10, SP-D v1 face lost, SP-E unfitted ghost legs, SP-E fit 1 and fit 0.5 face lost, SP-E installed clean, SP-G
+v2 clean), the SP-C v1 and SP-D v2 `before/` fronts (face lost; 3 frames), lane VACE's demo pairs (SP-B side slots 3-5
+installed = ghost legs, SP-B-2 slots 3, 4 = clean, SP-B-2 5 = head reshaped + smears, SP-B-2 9 = pale tangle, SP-B-3 5
+and 9 = worse: 9 frames), three other creatures' side picks (Dune Scorpion SC-D k0, Bull Beetle BB-C k1, Lesser Scorpion
+LS-B k1: the still in use is the picked candidate by bytes and the look is in play = clean), and 8 weak cases (the
+installed SP-C / SP-D fronts inferred clean from the pack decision; the six losers of those picks as "not chosen"). 31
+strong cases = 19 defects + 12 clean; a say-clean evaluator scores miss rate 1.0, false alarms 0.0, clean-vs-defect 12/31.
+
+**The rubric.** One text (manifest `rubric`): count the legs on each side, ghost legs, smears, the face (ok / missing /
+wrong / n/a), notes; JSON only. The species' expected count is the only anchor ("a correct spider has exactly 8 legs, 4
+on each side"); `--unanchored` replaces it with "count every leg you can see ... do not assume how many". Never a file
+name, a status line or a verdict.
+
+**Scoring.** legs = the exact count where one is recorded; ghost / face = the boolean where recorded; flagged = any of
+(legs != the species' count, ghost, smears, face missing or wrong); miss rate = defects not flagged / defects; false-alarm
+rate = clean flagged / clean; an empty or unparsable answer = no verdict (not flagged: a miss on a defect, never "ok");
+agreement = the share of cases two runs of one model flag the same way (and with every field the same).
+
+**The tier rule** (`qa_bench.tiers`): tier 0 deterministic on everything (the flags); tier 1 = the local model with the
+best miss rate (ties: fewer false alarms, then faster) at zero cost, on flagged frames plus a sample; tier 2 = a cloud
+eye on contact sheets at decision points, **off** (ceiling 0.0) until a key exists (tools/keys/anthropic.env or
+gemini.env; the harness's own key is never used) and its blind numbers earn it; the pinned tier-2 id is
+claude-haiku-5-5 (the cheapest current vision-capable model, $0.10 / $0.50 per MTok), off.
+
+##### The evaluators' numbers (tools/dl/qa_bench/results/scores.md, 2026-10-21; 31 strong cases: 19 defects, 12 clean)
+
+| evaluator (LM Studio on the PC's RTX 4070) | rubric | runs | miss rate (defects passed) | false-alarm rate (clean flagged) | legs right | ghost right | face right | clean-vs-defect | s / image | $ | run-to-run agreement (flag / every field) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| qwen2.5-vl-7b-instruct-abliterated | anchored | 2 | 0.474 (9/19) | 0.417 (5/12) | 14/22 | 38/50 | 32/56 | 34/62 | 1.1 (the first run 15.5 under VRAM pressure) | 0 | 1.0 / 1.0 |
+| qwen2.5-vl-7b-instruct-abliterated | **unanchored** | 2 | **0.368 (7/19)** | 0.417 (5/12) | 14/22 | 38/50 | 36/56 | 38/62 | 1.6 | 0 | 1.0 / 1.0 |
+| google/gemma-4-e4b | anchored | 2 | 0.605 (12/19, 11/19) | 0.167 (1/12, 3/12) | 13/22 | 38/50 | 34/56 | 35/62 | 8.2 | 0 | 0.923 / 0.872 |
+| google/gemma-4-e4b | unanchored | 1 | 0.263 (5/19) | **0.833 (10/12)** | 2/11 | 19/25 | 17/28 | 16/31 | 8.7 | 0 | one run |
+| a say-clean evaluator | | | 1.0 | 0.0 | | | | 12/31 | | | |
+
+What the numbers mean (tools/dl/p96/GATES/qa_cases.log): the 7B answers "8 legs" for every spider whatever the picture
+(9, 10, 11 legs all pass) and flags only a lost face or a smear; unanchored it still says 8 but calls two more lost faces
+(C19, C28). Its five false alarms are the three scorpion stills (it calls the picked, in-play Dune Scorpion and Lesser
+Scorpion faces "missing" every time), SP-G's clean v2 front, and the demo's two GOOD repairs (C10, C37: "face missing"
+on a side walk). Gemma anchored flags little and misses most; unanchored it counts 6 or 12 legs on clean spiders and
+flags 10 of 12 clean frames: a screen that passes nothing on. Neither sees a ghost leg (38/50 "right" is the say-no
+baseline: 0 of the 7 ghost cases caught by either). Both are deterministic enough to trust a single run (the 7B exactly;
+gemma on 92% of the flags).
+
+**The tier table written** (request_defaults.json `tiers`): tier 1 = the 7B with the unanchored rubric (the best miss
+rate among the configurations that flag at most half of the clean cases, `qa_bench.FA_MAX` 0.5: gemma unanchored is
+out on that rule), on flagged frames + a sample, max_tokens 300; tier 2 = claude-haiku-5-5 on sheets, ceiling 0.0 (off;
+no key). No tier earns single-frame escalation: none beats tier 0 + 1 on misses without new false alarms, as AI-07 asked.
+The honest line for the request card: the local eye passes about 4 of 10 defects and flags about 4 of 10 clean frames;
+the loop's provisional winner is a staged selection Garry approves, never an install.
+
+#### G3: Gemini
+
+No tools/keys/gemini.env: nothing was built beyond the key file's name and the refusal in `qa_bench.py run gemini`
+(lane LOOP's adapter carries the GeminiBackend slot). When Garry buys the AI Studio key with billing, G3 =
+`python tools/qa_bench.py run gemini <model> --repeat 2` through the adapter, then `score` and `tiers --write`.
+
+### 42.REQ The request record, art_request.py and the routes; the cancel fix; the offline slice
+
+These are tool rules, not game rules; they bound what the Auto-iterate loop may spend on one request.
+
+- **The defaults** (Garry's point 8; `tools/level_editor/request_defaults.json` `budget`): 2 re-rolls per look, 2 repair
+  rounds per animation x view, 5,400 s (90 min) of lane time, 60 evaluator calls, $0.00 of cloud spend. Every one can be
+  set per request (`art_request.py start --rerolls --repair-rounds --minutes --evals --cloud-dollars`, or `POST
+  /api/requests {budget}`) and globally in that file; a value under 0 reads as 0.
+- **What counts**: a `requeue` or `reroll_view` op = one re-roll; a `repair` op = one repair round of its group
+  (animation/view); an `ask` op = one evaluator call; lane seconds = the sum of the request's jobs' own clocks (started
+  to ended, a running job to now, imports included); evaluator calls and dollars are recounted at every step from the
+  findings' `model_calls` (the ops' `ask` count is a floor; a `charge` made outside the step is a floor too).
+- **When the loop stops**: the moment the planner returns no op (the hard gates passed, or nothing more to try) the
+  request waits for Garry's approval (stop early: no iteration is spent "to be sure"); any cap spent does the same
+  with the reason on the record (lane seconds, evaluator calls, a cloud ceiling above 0, or BOTH re-rolls and repair
+  rounds gone: with re-rolls gone and repair rounds left the planner may still repair, and the other way round). An op
+  that would overspend its own unit is refused before it runs (no re-roll left, no repair round left for that group, no
+  evaluator call left) and the request waits.
+- **Iteration k of n**: n = re-rolls + repair rounds + 1 (the first landing), the card's and the CLI's "iteration 2 of 5".
+- **One op per step; at most 8 direct ops in one step** (a note, a staging, the provisional pick chain inside one
+  landing's step); a queued job ends the step until that job lands. Mode `step` pauses after every op.
+- **Nothing automatic reaches the game**: the provisional winner is a staged selection; the export runs only on Garry's
+  one confirm (`approve {confirm: true}`), covering the whole batch (staged frames + pinned re-applies); a fresh look is
+  approved (its NEW mark dropped) in the same click.
+- **A failed first job** with nothing landed fails the request; a failed export, or a failed import after it (the
+  export rolled back by jobs.py), fails it too, with the reason; what landed before is kept.
+
+### 42.LOOP The evaluator adapter, tiers, ledger and findings; the commands, the planner and the loop body
+
+#### The tiers (vision_eval.evaluate_look)
+- Tier 0 (deterministic, free) runs on every frame of every evaluated group: frames_store's FLAG_RULES (jump 1.7, footprint 0.72-1.35,
+  seam 2.2, silhouette 0.5, empty 0.004; GATES may re-tune them) and gen_art's geometry on the paintings (empty; touches-edge = a margin
+  under 12 px on the left, right or top, or under 20 px at the bottom; a bust may run off the bottom). These are the only HARD gates.
+- Tier 1 (the local eye, free) sees the flagged frames plus ONE clean frame a group (the middle unflagged slot, the same every run), each
+  three times its size on grey (110, 110, 120). Advisory only.
+- Tier 2 (the cloud eye) runs only when the request's cloud_dollars > 0 AND (a hard finding exists OR the tiers disagree: a flagged frame the
+  local eye called fine, or a clean frame it called broken); ONE contact sheet per decision point: the flagged slots and their neighbours
+  (+-1), 160 px cells, numbered from 1, at most 6 a row. Advisory only.
+- The gates: hard_failures = measured items not ok; advisory = model items not ok; pass = hard_failures == 0.
+
+#### The ledger and the ceilings
+- Every call and every refusal is logged (the newest 2,000 kept; the totals and the per-day totals kept whole).
+- A cloud call is refused when: the model has no price row (unpriced); cloud_ceiling_dollars_per_day <= 0 (the default: off); the day's spend +
+  the estimate > the day's ceiling; the request's cloud_dollars <= 0; the request's spend (from the ledger) + the estimate > its cloud_dollars.
+- The estimate before a call: (1,500 tokens a picture + 400 + len(prompt)/3) x the input price + max_tokens x the output price.
+- Prices ($/MTok, dated 2026-10-06): haiku-5-5 0.10/0.50, sonnet-5-5 2/10, opus-5-5 4/20, haiku-4-5 1/5, sonnet-5 2/10, opus-5 5/25 (cache reads
+  at a tenth of the input price, cache writes at 1.25x: an estimate). Gemini: no row (G3 measures).
+- The answer budget (max_tokens) per model: 220 by default, 1,200 for gemma / qwen3 / "thinking", 2,048 for claude / gemini; an explicit value wins.
+- The cache key: sha1 of the pictures + the rubric id + the rubric text's sha1 + the model; a no-verdict answer is never cached.
+
+#### The planner (loop.next_op), in order
+1. No fresh findings (none, or older than the last landed job) -> ask; after an ask that gave no findings, or with no evaluator calls left
+   -> select_provisional (never a second ask in a row).
+2. hard_failures == 0 -> select_provisional once, then None.
+3. Hard findings on frames of a repairable group (a clip or a driver) -> repair of the failing slots (as spans) at the first rung of the
+   method's escalation (default single -> double -> reroll_view); the same slots failing after a repair with no lower hard count -> the
+   next rung; a lower count -> the same rung again on what is left; after the last rung -> reroll_view; every frame of the group failing
+   (slots >= n) -> reroll_view ("a new clip"); the group repaired / re-rolled twice without improvement -> reroll_view.
+4. A hard finding on a painting, or on frames of a procedural group -> requeue with DEFECT_WORDS[field] joined (deduplicated) and seed =
+   asset.seed + 7919 x (rerolls spent + 1) (gen_art.render's own stride between tries).
+5. Candidates are tried cheapest first: repairs before re-rolls, a lower rung before a higher one, then by group name; a candidate without
+   its budget unit is skipped; the plateau rule skips a candidate equal to the last iteration's op (verb + group + slots + rung/view/words).
+6. Nothing left -> select_provisional, then None.
+
+#### The commands
+- Observe: no op. Auto / Step: requeue, reroll_view, repair, stage, copy, ask, note, select_provisional, stop. Never: export, install, default,
+  approve, pin, unpin, remove, delete, unstage, shelve, variant, icon, merge, push_workflows.
+- Budget units: requeue and reroll_view = 1 reroll; repair = 1 repair round of its group; ask = 1 evaluator call; the rest free. Counted by REQ's
+  step function (requests.count_op), never by dispatch.
+- repair never sends free_fill (a procedural group is refused by frames_io's own rule); its window = the rung (single | double); strength and
+  steps come from the method's profile inside vace_repair (GATES).
+- requeue lays the words on recipe.art_prompt (", " joined) and records them in recipe.loop_words; reroll_view moves the view's clip cache key
+  aside through jobs.requeue (the walk seed moves as a hand re-roll's does).
+
+#### DEFECT_WORDS (defect -> the words a requeue adds)
+legs: "every leg fully drawn and attached, the right number of legs, no extra limbs"; ghost: "no ghost limbs, no faint or see-through duplicates
+of any part"; face: "a clear face on the head with two eyes, no skull, no second face"; smear: "crisp clean line art, no blurred or smeared parts";
+empty: "one whole figure centred in the frame, clearly visible against the flat background"; touches-edge: "the whole figure well inside the
+frame with a clear margin on every side, nothing cut by the border"; broken, colour, silhouette, footprint, jump, seam: see loop.py.
+
+### 42.PAGE The frame layer as Garry decided; the request card and the page's minimum
+
+No game number, rule, cap or condition changed or added: this lane touched only the Level Editor (the frames store,
+its routes, the page). Nothing for BALANCING.md §42.
+
+Tool-side rules introduced (for the Level Editor doc, not the game): every export that replaces an installed strip
+is confirmed once for the whole batch; a landing never displaces a pinned frame (a re-apply export, or an in-process
+re-pack for a hand run); a pin past the new frame count or of another cell size is reported and kept, never guessed;
+no frame version is ever deleted; the strip-backup cap of 30 per asset stays.

@@ -1,0 +1,843 @@
+{
+ "v": 1,
+ "made": "2026-10-21T21:50:24",
+ "images": "tools/dl/qa_bench/",
+ "blind": "ids C01.. are a fixed shuffle (random seed 96) of the sources; a name never carries a verdict",
+ "rubric": "You are checking ONE frame of a 2D game creature sprite: {species}, as a still painting on a flat colour screen or as one animation frame pasted on grey. {anchor}Small fangs, pincers, claws or mouthparts at the head are NOT legs. Answer ONLY with one JSON object, no prose, keys: legs_total (integer: how many legs you can see in total), legs_left (integer: legs on the left half of the body as drawn), legs_right (integer: legs on the right half), ghost_legs (true if there are faded, translucent, greyish, blurry or duplicated extra legs beside the solid ones), smears (true if parts of the body or legs are blurred, streaked or smeared), face (\"ok\" if a face with eyes is drawn where this view should show one, \"missing\" if the head has no face or eyes although it should, \"wrong\" if the face is not the creature's own, e.g. a skull or a human-like face, \"n/a\" if the view shows the creature from behind), notes (a string of at most 20 words).",
+ "anchored": "A correct {species_word} has exactly {n} legs, {half} on each side of the body. Count carefully. ",
+ "unanchored": "Count every leg you can see, one by one, from left to right; do not assume how many legs this creature should have. ",
+ "expect_legs": {
+  "spider": 8,
+  "scorpion": 8,
+  "beetle": 6
+ },
+ "cases": [
+  {
+   "id": "C01",
+   "image": "tools/dl/qa_bench/C01.png",
+   "kind": "still",
+   "species": "beetle",
+   "expect_legs": 6,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": null,
+    "chosen": false
+   },
+   "strength": "weak",
+   "source": "bull_beetle BB-C side candidates: not the pick",
+   "rater": "a pick's loser",
+   "origin": "tools/dl/ai_raw_anime/bull_beetle_bbc_side_k0.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C02",
+   "image": "tools/dl/qa_bench/C02.png",
+   "kind": "still",
+   "species": "beetle",
+   "expect_legs": 6,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "tools/dl/review/bull_beetle_bbc_side_cands.png: k1 = bull_beetle_bbc_side.png (the same bytes), BB-C in play",
+   "rater": "the pick, in play",
+   "origin": "tools/dl/ai_raw_anime/bull_beetle_bbc_side_k1.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C03",
+   "image": "tools/dl/qa_bench/C03.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": true,
+    "smear": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p95/report_VACE.md section 6: 'Slot 5 came back with a flattened, reshaped head and paler patches'",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_05/v002.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C04",
+   "image": "tools/dl/qa_bench/C04.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p95/report_VACE.md section 6: run 2 both worse again",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_09/v003.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C05",
+   "image": "tools/dl/qa_bench/C05.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 10,
+    "ghost": true,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: 'SP-A front walk: Wan added two ghost legs (grey-green) under the head ... -> 10 legs'",
+   "rater": "lane SPIDER (p92) by eye",
+   "origin": "tools/dl/p92/SPIDER/before/spa_ctl_front_v1/out_05.png",
+   "size": [
+    554,
+    349
+   ]
+  },
+  {
+   "id": "C06",
+   "image": "tools/dl/qa_bench/C06.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 9,
+    "ghost": false,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: 'cfg3 seed2 ~9 legs'",
+   "rater": "lane SPIDER (p92) by eye",
+   "origin": "tools/dl/p92/SPIDER/negtest/cfg3_neg_seed2.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C07",
+   "image": "tools/dl/qa_bench/C07.png",
+   "kind": "still",
+   "species": "scorpion",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": null,
+    "chosen": false
+   },
+   "strength": "weak",
+   "source": "dune_scorpion SC-D side candidates: not the pick",
+   "rater": "a pick's loser",
+   "origin": "tools/dl/ai_raw_anime/dune_scorpion_scd_side_k1.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C08",
+   "image": "tools/dl/qa_bench/C08.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": false,
+    "clean": true
+   },
+   "strength": "weak",
+   "source": "p92/status_SPIDER.md DONE line: 'C (k1) front ... softened ... all four looks packed' (the installed SP-C front)",
+   "rater": "inferred from the pack decision",
+   "origin": "tools/dl/ai_anim/desert_spider_spc_ctl_front/out_05.png",
+   "size": [
+    513,
+    353
+   ]
+  },
+  {
+   "id": "C09",
+   "image": "tools/dl/qa_bench/C09.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p93/status_LEGS.md: 'fit 1 (no ghosts, face+abdomen lost)'",
+   "rater": "lane LEGS (p93) by eye",
+   "origin": "tools/dl/p93/LEGS/backup/desert_spider_spe_ctl_front_sharp/out_05.png",
+   "size": [
+    332,
+    281
+   ]
+  },
+  {
+   "id": "C10",
+   "image": "tools/dl/qa_bench/C10.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 8,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p95/report_VACE.md section 6: 'slots 3 and 4 came back clean: eight legs where the driver has eight ... no green'",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_03/v002.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C11",
+   "image": "tools/dl/qa_bench/C11.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": true,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p95/design_VACE.md section 5: the ghost-leg frames 3-5",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_04/v001_raw.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C12",
+   "image": "tools/dl/qa_bench/C12.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p95/report_VACE.md section 6: 'Run 2 (seed 7, slots 5 and 9 only): both worse again'",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_05/v003.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C13",
+   "image": "tools/dl/qa_bench/C13.png",
+   "kind": "still",
+   "species": "scorpion",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": null,
+    "chosen": false
+   },
+   "strength": "weak",
+   "source": "lesser_scorpion LS-B side candidates: not the pick",
+   "rater": "a pick's loser",
+   "origin": "tools/dl/ai_raw_anime/lesser_scorpion_lsb_side_k2.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C14",
+   "image": "tools/dl/qa_bench/C14.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 8,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: 'picks by eye (8 legs counted): SP-B k0'",
+   "rater": "lane SPIDER (p92) by eye; the pick, in play",
+   "origin": "tools/dl/ai_raw_anime/desert_spider_spb_side_k0.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C15",
+   "image": "tools/dl/qa_bench/C15.png",
+   "kind": "still",
+   "species": "scorpion",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "tools/dl/review/dune_scorpion_scd_side_cands.png: k0 = desert dune_scorpion_scd_side.png (the same bytes), SC-D in play",
+   "rater": "the pick, in play",
+   "origin": "tools/dl/ai_raw_anime/dune_scorpion_scd_side_k0.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C16",
+   "image": "tools/dl/qa_bench/C16.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p93/status_LEGS.md: 'fit+soft10 (face+stripes kept, legs step) -> chosen' (the installed SP-E front)",
+   "rater": "lane LEGS (p93) by eye; chosen",
+   "origin": "tools/dl/ai_anim/desert_spider_spe_ctl_front/out_05.png",
+   "size": [
+    346,
+    258
+   ]
+  },
+  {
+   "id": "C17",
+   "image": "tools/dl/qa_bench/C17.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: the same SP-C front walk, its first frame",
+   "rater": "lane SPIDER (p92) by eye",
+   "origin": "tools/dl/p92/SPIDER/before/spc_v1/desert_spider_spc_ctl_front/out_00.png",
+   "size": [
+    494,
+    372
+   ]
+  },
+  {
+   "id": "C18",
+   "image": "tools/dl/qa_bench/C18.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p94/status_REAL.md 2026-10-21: 'SP-G v2 walks checked frame by frame ... the front is fine'",
+   "rater": "lane REAL (p94) by eye",
+   "origin": "tools/dl/ai_anim/desert_spider_spg_ctl_front/out_05.png",
+   "size": [
+    449,
+    304
+   ]
+  },
+  {
+   "id": "C19",
+   "image": "tools/dl/qa_bench/C19.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: 'SP-D v2 front walk (proportions) STILL lost the face' (backup before/spd_v2)",
+   "rater": "lane SPIDER (p92) by eye",
+   "origin": "tools/dl/p92/SPIDER/before/spd_v2/desert_spider_spd_ctl_front/out_05.png",
+   "size": [
+    549,
+    384
+   ]
+  },
+  {
+   "id": "C20",
+   "image": "tools/dl/qa_bench/C20.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 9,
+    "ghost": false,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p93/status_LEGS.md: 'SP-F k0-7 -> pick k6 (8 legs; k0 had 9)'",
+   "rater": "lane LEGS (p93) by eye",
+   "origin": "tools/dl/ai_raw_anime/desert_spider_spf_side_k0.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C21",
+   "image": "tools/dl/qa_bench/C21.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: 'SP-C front walk (body 1.6/head 1.1) ... STILL lost the face' (backup before/spc_v1)",
+   "rater": "lane SPIDER (p92) by eye",
+   "origin": "tools/dl/p92/SPIDER/before/spc_v1/desert_spider_spc_ctl_front/out_05.png",
+   "size": [
+    494,
+    372
+   ]
+  },
+  {
+   "id": "C22",
+   "image": "tools/dl/qa_bench/C22.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 11,
+    "ghost": false,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p94/status_REAL.md: 'SP-H ... k1 eleven legs'",
+   "rater": "lane REAL (p94) by eye",
+   "origin": "tools/dl/p94/REAL/backup/sph_d85b8/desert_spider_sph_side_k1.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C23",
+   "image": "tools/dl/qa_bench/C23.png",
+   "kind": "still",
+   "species": "scorpion",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "tools/dl/review/lesser_scorpion_lsb_side_cands.png: k1 = lesser_scorpion_lsb_side.png (the same bytes), LS-B in play",
+   "rater": "the pick, in play",
+   "origin": "tools/dl/ai_raw_anime/lesser_scorpion_lsb_side_k1.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C24",
+   "image": "tools/dl/qa_bench/C24.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": true,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p93/status_LEGS.md: 'SP-E ... front walk has grey ghost legs at the sides' (the unfitted walk)",
+   "rater": "lane LEGS (p93) by eye",
+   "origin": "tools/dl/p93/LEGS/backup/desert_spider_spe_ctl_front_1792412798/out_05.png",
+   "size": [
+    499,
+    376
+   ]
+  },
+  {
+   "id": "C25",
+   "image": "tools/dl/qa_bench/C25.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": true,
+    "face": null,
+    "smear": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p95/report_VACE.md section 6: 'slot 9 as a pale tangle of legs'",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_09/v002.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C26",
+   "image": "tools/dl/qa_bench/C26.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 8,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: 'picks by eye (8 legs counted): SP-A k1'",
+   "rater": "lane SPIDER (p92) by eye; the pick",
+   "origin": "tools/dl/ai_raw_anime/desert_spider_spa_side_k1.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C27",
+   "image": "tools/dl/qa_bench/C27.png",
+   "kind": "still",
+   "species": "scorpion",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": null,
+    "chosen": false
+   },
+   "strength": "weak",
+   "source": "dune_scorpion SC-D side candidates: not the pick",
+   "rater": "a pick's loser",
+   "origin": "tools/dl/ai_raw_anime/dune_scorpion_scd_side_k2.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C28",
+   "image": "tools/dl/qa_bench/C28.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p92/status_SPIDER.md: 'SP-D front walk (plain drivers) lost its big face'",
+   "rater": "lane SPIDER (p92) by eye",
+   "origin": "tools/dl/p92/SPIDER/before/spd_v1/desert_spider_spd_ctl_front/out_05.png",
+   "size": [
+    460,
+    352
+   ]
+  },
+  {
+   "id": "C29",
+   "image": "tools/dl/qa_bench/C29.png",
+   "kind": "still",
+   "species": "scorpion",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": null,
+    "chosen": false
+   },
+   "strength": "weak",
+   "source": "lesser_scorpion LS-B side candidates: not the pick",
+   "rater": "a pick's loser",
+   "origin": "tools/dl/ai_raw_anime/lesser_scorpion_lsb_side_k0.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C30",
+   "image": "tools/dl/qa_bench/C30.png",
+   "kind": "still",
+   "species": "beetle",
+   "expect_legs": 6,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": null,
+    "clean": null,
+    "chosen": false
+   },
+   "strength": "weak",
+   "source": "bull_beetle BB-C side candidates: not the pick",
+   "rater": "a pick's loser",
+   "origin": "tools/dl/ai_raw_anime/bull_beetle_bbc_side_k2.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C31",
+   "image": "tools/dl/qa_bench/C31.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 8,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p94/status_REAL.md: 'SP-G house-style side k0-5: pick k2 (chevrons, fuzzy, 8 legs)'",
+   "rater": "lane REAL (p94) by eye; the pick",
+   "origin": "tools/dl/p94/REAL/backup/spg_k16/raw/desert_spider_spg_side_k2.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C32",
+   "image": "tools/dl/qa_bench/C32.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 8,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p93/status_LEGS.md: pick k6 (8 legs)",
+   "rater": "lane LEGS (p93) by eye; the pick",
+   "origin": "tools/dl/ai_raw_anime/desert_spider_spf_side_k6.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C33",
+   "image": "tools/dl/qa_bench/C33.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 8,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p93/status_LEGS.md: 'SP-E k0-3 -> pick k1 (8 legs, grumpy, fuzzy)'",
+   "rater": "lane LEGS (p93) by eye; the pick",
+   "origin": "tools/dl/ai_raw_anime/desert_spider_spe_side_k1.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C34",
+   "image": "tools/dl/qa_bench/C34.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": true,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p95/design_VACE.md section 5: the flags do 'not [flag] the ghost-leg frames 3-5' of SP-B's side walk",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_03/v001_raw.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C35",
+   "image": "tools/dl/qa_bench/C35.png",
+   "kind": "still",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p94/status_REAL.md: 'k1 skull face'",
+   "rater": "lane REAL (p94) by eye",
+   "origin": "tools/dl/p94/REAL/backup/spg_k16/raw/desert_spider_spg_side_k1.png",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": "C36",
+   "image": "tools/dl/qa_bench/C36.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": false,
+    "face": true,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p93/status_LEGS.md: 'fit 0.5 (face lost)'",
+   "rater": "lane LEGS (p93) by eye",
+   "origin": "tools/dl/ai_anim/desert_spider_spe_test_fit05/out_05.png",
+   "size": [
+    333,
+    328
+   ]
+  },
+  {
+   "id": "C37",
+   "image": "tools/dl/qa_bench/C37.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": 8,
+    "ghost": false,
+    "face": false,
+    "clean": true
+   },
+   "strength": "strong",
+   "source": "p95/report_VACE.md section 6: slots 3 and 4 clean",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_04/v002.png",
+   "size": [
+    640,
+    640
+   ]
+  },
+  {
+   "id": "C38",
+   "image": "tools/dl/qa_bench/C38.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": null,
+    "face": false,
+    "clean": true
+   },
+   "strength": "weak",
+   "source": "p92/status_SPIDER.md: 'whole blur 10px: face kept AND legs move -> recipe ctl_soft' then packed (the installed SP-D front)",
+   "rater": "inferred from the pack decision",
+   "origin": "tools/dl/ai_anim/desert_spider_spd_ctl_front/out_05.png",
+   "size": [
+    547,
+    378
+   ]
+  },
+  {
+   "id": "C39",
+   "image": "tools/dl/qa_bench/C39.png",
+   "kind": "frame",
+   "species": "spider",
+   "expect_legs": 8,
+   "verdict": {
+    "legs": null,
+    "ghost": true,
+    "face": false,
+    "clean": false
+   },
+   "strength": "strong",
+   "source": "p95/design_VACE.md section 5: the ghost-leg frames 3-5",
+   "rater": "lane VACE (p95) by eye",
+   "origin": "tools/dl/frames/enemy/desert_spider/SP-B/run/side/slot_05/v001_raw.png",
+   "size": [
+    640,
+    640
+   ]
+  }
+ ]
+}

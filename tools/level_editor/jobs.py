@@ -93,6 +93,7 @@ CTL_VIEWS = ("front", "fd", "side", "bd", "back")
 HERO_VIEWS = ("front", "back", "side", "fd", "bd")
 # median seconds per method when methods.json has no timing (the synthesis §7; "~" always on the page)
 BUILTIN_MEDIAN = {"frames_repair": 240, "frames_export": 15,   # pass 95 (lane VACE): a VACE repair of one animation, an export
+                  "evaluate": 30,   # pass 96 (lane LOOP): the evaluator on a look (tier 0 + the local eye on the flagged frames)
                   "hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "creature_pose2": 240, "creature_free8": 960,
                   "creature_ctl": 660, "creature_ctl_side": 60, "creature_ctl_side_dev": 840, "creature_proc": 90, "creature_pictures": 15,
                   "front_from_picture": 20, "recolour": 5, "item_icon": 20, "icon_cands": 20, "icon_cands_dev": 270,
@@ -338,6 +339,18 @@ SPECS = {
     "frames_export": {"lane": "local", "fields": {
         "kind": _f("str", "", True, ""), "id": _f("str", "", True, ""), "code": _f("str", "", True, ""), "note": _f("str", "", False, "")},
         "help": "the look's strip packed again from the frames store's staged and selected versions (the old strip backed up), its entry merged, then an import"},
+    # pass 96 (lane LOOP, AI-07 / AI-03): the loop's evaluator on a look (tools/vision_eval.py): tier 0 deterministic on every
+    # frame of its groups, tier 1 the local eye on the flagged frames plus one sampled clean frame a group, tier 2 the cloud eye
+    # on one contact sheet when the request's cloud_dollars allow it; writes <job>/findings.json (the local lane, no lock)
+    "evaluate": {"lane": "local", "fields": {
+        "kind": _f("str", "", True, "enemy | boss | hero"), "id": _f("str", "", True, "the asset"), "code": _f("str", "", True, "the look"),
+        "groups": _f("list", [], False, "the animation x view groups to evaluate (run/side, die/front, ...; empty = every group of the look)"),
+        "tiers": _f("list", [0, 1], False, "0 deterministic flags + geometry, 1 the local vision model on the flagged frames + one clean frame a group, 2 the cloud eye on one contact sheet"),
+        "request": _f("str", "", False, "the request this evaluation belongs to (empty = a plain job)"),
+        "cloud_dollars": _f("float", 0.0, False, "the request's ceiling for the cloud tier (0 = tier 2 off)"),
+        "backend": _f("str", "", False, "openai_chat | anthropic | gemini | fake (empty = the tier table's)"), "model": _f("str", "", False, "the model id (empty = the tier table's)"),
+        "note": _f("str", "", False, "")},
+        "help": "every frame of the look flagged (empty, footprint, jump, seam, silhouette; the stills' geometry), the flagged ones shown to the local vision model; findings.json + a sheet beside the job"},
     "sim": {"lane": "sim", "fields": {
         "hero": _f("str", "drifter", False, "the hero every run plays"),
         "players": _f("int", 10, False, "how many runs are played and averaged (1-100)"),
@@ -1288,6 +1301,8 @@ def _plan(job):
             p["equiv"] = '"$BLENDER" -b --python tools/blender_ref.py -- ' + " ".join(kv)
     elif kind in ("frames_repair", "frames_export"):
         p.update(_frames_plan(job, asset_dir))   # pass 95 (lane VACE): the Frames view's repair and export
+    elif kind == "evaluate":
+        p.update(_evaluate_plan(job, asset_dir))   # pass 96 (lane LOOP): the loop's evaluator on a look
     elif kind == "sim":
         p.update(sim_plan(job))   # pass 77 (lane SIMUI): one tools/sim_batch.py process, its own sim lock
     elif kind in ("register", "import"):
@@ -1392,6 +1407,59 @@ def _frames_plan(job, asset_dir):
     step = [PY, os.path.join(TOOLS, "frames_store.py"), "export", str(spec.get("kind", "")), str(spec.get("id", "")), str(spec.get("code", ""))]
     return {"mode": "steps", "lock": None, "steps": [step], "env_steps": env,
             "equiv": "python tools/frames_store.py export %s %s %s" % (spec.get("kind"), spec.get("id"), spec.get("code"))}
+
+
+def _evaluate_plan(job, asset_dir):
+    """pass 96 (lane LOOP, AI-07 / AI-03): an `evaluate` job runs tools/vision_eval.py --job on the job's evaluate.json on
+    the local lane with no lock (the local eye is LM Studio on this PC; a cloud call is bounded by the ledger's ceilings
+    inside the tool): it writes <job>/findings.json + findings_sheet.png and the sidecar result.json the card reads."""
+    spec = job.get("spec") or {}
+    os.makedirs(asset_dir, exist_ok=True)
+    ej = os.path.join(asset_dir, "evaluate.json")
+    rec = {k: spec.get(k) for k in ("kind", "id", "code", "groups", "tiers", "request", "cloud_dollars", "backend", "model", "note")}
+    rec["job"] = job["id"]
+    with open(ej, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(rec, f, indent=1, ensure_ascii=False)
+    env = {"ASSET_JOB_SIDECAR": os.path.join(asset_dir, "result.json"), "ASSET_JOB_ID": job["id"], "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
+    if spec.get("request"):
+        env["ASSET_JOB_REQUEST"] = str(spec["request"])   # the ledger's request id
+    step = [PY, os.path.join(TOOLS, "vision_eval.py"), "--job", _rel(ej)]
+    equiv = "python tools/vision_eval.py --kind %s --id %s --code %s --tiers %s" % (spec.get("kind"), spec.get("id"), spec.get("code"),
+                                                                                     ",".join(str(t) for t in (spec.get("tiers") or [0, 1])))
+    if spec.get("groups"):
+        equiv += " --groups " + ",".join(str(g) for g in spec["groups"])
+    return {"mode": "steps", "lock": None, "steps": [step], "env_steps": env, "equiv": equiv}
+
+
+def _evaluate_post(job, res):
+    """pass 96 (lane LOOP): an evaluate job merges nothing; its findings' path goes on the job and its one line into the
+    notes (the card shows it; REQ's step function reads <job>/findings.json). Returns (written, error) like _post."""
+    info = (res or {}).get("info") or {}
+    if not info.get("findings"):
+        return {"file": "", "keys": [], "backup": "", "layout": "findings"}, "the evaluator wrote no findings (nothing landed)"
+    with _lock:
+        job["findings"] = info["findings"]
+        if info.get("summary"):
+            notes = job.setdefault("progress", {}).setdefault("notes", [])
+            if info["summary"] not in notes:
+                notes.append(str(info["summary"]))
+    return {"file": "", "keys": [], "backup": "", "layout": "findings", "findings": info["findings"], "gates": info.get("gates"), "summary": info.get("summary")}, ""
+
+
+def _evaluate_outputs(job, res):
+    """pass 96 (lane LOOP): the card's outputs of an evaluate job: its sheets (info.outputs, the frames jobs' reader) and
+    the findings record with its gates and summary."""
+    info = (res or {}).get("info") or {}
+    outs = _frames_outputs(job, res)
+    if info.get("findings"):
+        f = str(info["findings"])
+        rec = {"label": "findings", "type": "json", "file": f,
+               "detail": {"findings": f, "gates": info.get("gates"), "summary": info.get("summary"), "dollars": info.get("dollars"),
+                          "model_calls": info.get("model_calls"), "tier2": info.get("tier2")}}
+        if "tools/dl/" in f:
+            rec["url"] = _url_dl(os.path.join(_root, f))
+        outs.append(rec)
+    return outs
 
 
 def _derive(job):
@@ -2430,7 +2498,9 @@ def _check_candidate_spec(kind, target, spec):
                          "absolute ones are read; check the name)" % (k, p))
 
 
-def enqueue(kind, target, spec, title=None):
+def enqueue(kind, target, spec, title=None, request=None):
+    """`request` (pass 96, lane REQ): the art request this job belongs to, stamped on the record as `request`; a job
+    without one runs exactly as before (nothing in this module reads it except the request hook)."""
     _writable()
     spec = validate_spec(kind, spec)
     target = _check_target(kind, target)
@@ -2453,6 +2523,8 @@ def enqueue(kind, target, spec, title=None):
            "written": None, "lock_waits": {}, "front": False}
     if rr:
         job["reroll"] = rr
+    if request or spec.get("request"):
+        job["request"] = str(request or spec.get("request"))   # pass 96 (lane REQ): the art request this job is part of (the kwarg, or the spec's own key: an evaluate job)
     with _lock:
         _derive(job)
         if kind == "look" and spec.get("recipe") is not None and _hook("set_recipe"):
@@ -2532,6 +2604,7 @@ def cancel(job_id):
         if job["state"] in ("queued", "waiting"):
             job["state"], job["ended"] = "cancelled", _now()
             _save()
+            _request_after(job)   # pass 96 (lane REQ): a request's job cancelled by hand: its record learns
             return _public(job, LOG_TAIL_SHORT)
         if job["state"] != "running":
             return _public(job, LOG_TAIL_SHORT)
@@ -2542,7 +2615,7 @@ def cancel(job_id):
     if pid:
         _kill_tree(pid)
     if job.get("lane") == "comfy" and pid:
-        _comfy_interrupt()
+        _comfy_interrupt(job.get("comfy_prompt"))   # pass 96 (WF-06c): this job's own prompt, never the whole queue
     with _lock:
         if live is None:   # no worker (a recovered record): finish it here
             job["state"], job["ended"] = "cancelled", _now()
@@ -2893,6 +2966,7 @@ def _worker(lane):
                 with _lock:
                     if job["state"] == "running":
                         _finish(job, "failed", error="%s: %s" % (type(e).__name__, e))
+                _request_after(job)   # pass 96 (lane REQ): a request's job that died in the worker
         finally:
             if job is not None:
                 with _lock:
@@ -3065,6 +3139,7 @@ def _run(job):
             else:
                 rc = _spawn(job, live, job["cmd"], _asset_env(job))
             _after_exit(job, rc, live)
+            _request_after(job)   # pass 96 (lane REQ): a request's job ended (any way): its step function runs
         finally:
             if lk is not None:
                 lk.release()
@@ -3243,12 +3318,25 @@ def _on_line(job, live, line):
     live.tail.append(line)
     with _lock:
         job["progress"]["last_output"] = _now()
-        parse_line(job, line, live.key_to_stage)
+        seen = parse_line(job, line, live.key_to_stage)
+        if _render_ok(seen, line):
+            # pass 96 (lane PAGE, UI-02): a `render <key> seed N 12.3s ok` line lists the still on the card at once, not at
+            # the next 5 s cache check (_harvest is idempotent: it is rebuilt from disk every time)
+            try:
+                job["outputs"] = _harvest(job)
+            except Exception as e:   # pass 96 (lead): never let a harvest error stop the reader thread (the log would freeze)
+                _log("harvest on the render line: %s: %s" % (type(e).__name__, e))
+            live.last_save = live.last_save or time.time()
         m = stop_marker(line)
         if m:
             live.marker = m
         if not live.last_save:
             live.last_save = time.time()
+
+
+def _render_ok(seen, line):
+    """pass 96: whether a parsed line was a finished render (`render <key> seed N 12.3s ok`): the still is on disk now."""
+    return bool(seen) and isinstance(seen, tuple) and seen[0] == "render" and str(line).rstrip().endswith(" ok")
 
 
 # ---------------------------------------------------------------- progress
@@ -3273,6 +3361,7 @@ RE_REVIEW = re.compile(r"^review (\S+)")
 RE_BADGE_DONE = re.compile(r"badge candidates painted")
 RE_TITLE_REVIEW = re.compile(r"^\s+review: (\S+)")
 RE_SIDECAR = re.compile(r"sidecar written: (\S+)")
+RE_COMFY_PROMPT = re.compile(r"^comfy: prompt (\S+)")   # pass 96 (WF-06c): comfy.run's prompt id, so a cancel deletes that one
 RE_VIEWS_SHEET = re.compile(r"views sheet:")
 
 
@@ -3408,6 +3497,9 @@ def parse_line(job, line, key_to_stage=None):
     m = RE_SIDECAR.search(line)
     if m:
         job["sidecar"] = m.group(1)
+    m = RE_COMFY_PROMPT.match(line)
+    if m:
+        job["comfy_prompt"] = m.group(1)   # pass 96 (WF-06c): the newest prompt the job queued on ComfyUI
     marker = stop_marker(line)
     if marker in ("review", "badge", "title", "side", "view", "pick"):
         for s in stages:
@@ -3587,6 +3679,8 @@ def _post(job):
     res = _result(job) or {}
     info = res.get("info") or {}
     try:
+        if kind == "evaluate":   # pass 96 (lane LOOP): the findings on the job, nothing merged
+            return _evaluate_post(job, res)
         if kind == "frames_repair":   # pass 95 resume (lane VACE): the repair's versions staged here, one writer of staged.json
             return _frames_repair_post(job, res)
         if (kind == "look" and method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_pictures", "creature_ctl", "hero_puppet")) \
@@ -3602,6 +3696,8 @@ def _post(job):
                 e["fresh"] = True   # pass 95 resume: an export is Garry's own choice of frames, never a NEW look
             r = h(t["kind"], t["id"], t["code"], e, info) or {}
             written = _written(t, r, ["variants"])
+            if isinstance(r.get("frames"), dict):
+                written["frames"] = _frames_landed_note(r["frames"])   # pass 96 (lane PAGE): "re-applied N pinned frames" / the pins that no longer fit
             if kind == "frames_export" and not r.get("ok"):
                 # pass 95 resume (AN-09): the strip is already new while the entry is old: put the strip back, stage the choices again
                 written["rollback"] = _frames_rollback(job, info, "the entry could not be merged: %s" % (r.get("error") or "?"))
@@ -3667,6 +3763,23 @@ def _post(job):
 def _written(t, r, keys):
     tf, jp = content_path(t.get("kind", ""), t.get("id", ""))
     return {"file": _rel(jp) if jp else "", "keys": keys, "backup": r.get("backup", ""), "layout": r.get("layout", "unmerged" if not r.get("ok") else "block")}
+
+
+def _frames_landed_note(sync):
+    """pass 96 (lane PAGE, AN-09 Q4): what the frames store did at a landing, for the card: the pinned frames it queued a
+    re-apply export for ("re-applied N pinned frames", the job), and the pins that no longer fit (reported, kept)."""
+    out = {}
+    rp = sync.get("reapply") if isinstance(sync.get("reapply"), dict) else None
+    if rp:
+        out["reapply"] = {"pinned": rp.get("pinned"), "job": rp.get("job"), "names": rp.get("names") or [], "error": rp.get("error") or ""}
+        out["note"] = "%s%s" % (rp.get("note") or "re-applied %s pinned frames" % rp.get("pinned"), (" (export job %s)" % rp["job"]) if rp.get("job") else (": " + rp["error"] if rp.get("error") else ""))
+    if sync.get("misfit"):
+        out["misfit"] = sync["misfit"]
+        out["misfit_text"] = sync.get("misfit_text") or ""
+        out["note"] = (out.get("note", "") + "; " if out.get("note") else "") + (sync.get("misfit_text") or "some pinned frames could not be re-applied")
+    if sync.get("error"):
+        out["error"] = sync["error"]
+    return out
 
 
 def _note_reused_stills(job):
@@ -3820,9 +3933,71 @@ def _after_done(job):
                 if kind == "frames_export":
                     spec["after_export"] = [job["id"]]   # pass 95 resume: a failed import undoes this export (_rollback_after_import)
                 enqueue("import", {"kind": t.get("kind", ""), "id": t["id"], "code": ""}, spec,
-                        title="import %s/%s (after %s)" % (tf, t["id"], job["id"]))
+                        title="import %s/%s (after %s)" % (tf, t["id"], job["id"]), request=job.get("request"))   # pass 96: the import follows its request
             except ValueError:
                 pass
+
+
+# ---------------------------------------------------------------- pass 96 (lane REQ): the art requests' hook
+# A job that carries `request` (enqueue(..., request=rid) or set_request) belongs to an art request
+# (tools/level_editor/requests.py: the record above the request's jobs and the frame of the Auto-iterate loop). When
+# such a job ends in any way (_run after _after_exit, a hand cancel, a worker crash) the request's step function runs
+# and decides what to queue next. A job without `request` never reaches this: it runs exactly as before this pass.
+
+def requests_module():
+    """tools/level_editor/requests.py as one shared module object. The file is named by the plan; the PyPI library
+    of that name may be in sys.modules first (a third party imported it): then ours is loaded from its file under the
+    alias `le_requests`, so every caller (this hook, requests_io.py, the selftests) still shares one object."""
+    m = sys.modules.get("requests")
+    if m is not None and hasattr(m, "on_job_end"):
+        return m
+    if m is None:
+        import importlib
+        try:
+            m2 = importlib.import_module("requests")
+        except ImportError:
+            m2 = None
+        if m2 is not None and hasattr(m2, "on_job_end"):
+            return m2
+    m3 = sys.modules.get("le_requests")
+    if m3 is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("le_requests", os.path.join(HERE, "requests.py"))
+        m3 = importlib.util.module_from_spec(spec)
+        sys.modules["le_requests"] = m3
+        spec.loader.exec_module(m3)
+    return m3
+
+
+def set_request(job_id, rid):
+    """A job stamped as part of an art request after the fact (an export queued through frames_io, a job LOOP's
+    dispatcher queued through the plain enqueue). Returns the job's public record; ValueError without the job."""
+    _writable()
+    with _lock:
+        job = _find(job_id)
+        if job is None:
+            raise ValueError("no job %s" % job_id)
+        job["request"] = str(rid)
+        _save()
+        return _public(job, LOG_TAIL_SHORT)
+
+
+def _request_after(job):
+    """The request's step function after one of its jobs ended; nothing for a plain job; never raises (a broken
+    request must not end a lane). An import that other imports were merged into (_take_next's coalescing) ends for
+    their requests too: each is told with its own rid."""
+    if not job:
+        return
+    rids = [job["request"]] if job.get("request") else []
+    with _lock:
+        for o in _state["jobs"]:
+            if o.get("merged_into") == job.get("id") and o.get("request") and o["request"] not in rids:
+                rids.append(o["request"])
+    for rid in rids:
+        try:
+            requests_module().on_job_end(dict(job, request=rid))
+        except Exception as e:   # noqa: BLE001
+            _log("jobs: request %s: the step after %s failed: %s: %s" % (rid, job.get("id"), type(e).__name__, e))
 
 
 # ---------------------------------------------------------------- harvest
@@ -4011,6 +4186,8 @@ def _harvest(job):
         outs.append({"label": "installed", "type": "json", "detail": {k: res.get(k) for k in ("tool", "call", "top") if res.get(k) is not None}})
     if kind in ("frames_repair", "frames_export"):
         outs += _frames_outputs(job, res)   # pass 95 (lane VACE): the repair's sheets, the exported strip
+    if kind == "evaluate":
+        outs += _evaluate_outputs(job, res)   # pass 96 (lane LOOP): the findings sheet and record
     # the ComfyUI workflows the job ran (comfy.save_job_workflow): one file per graph; the copy in the page's Workflows
     # sidebar (`<stem>_userdata.json` marker, written by the run or by push_workflows) gives the "open in ComfyUI" link
     wd = os.path.join(_job_dir(job["id"]), "workflows")
@@ -4317,14 +4494,54 @@ def push_templates(folder=None):
     return out
 
 
-def _comfy_interrupt():
-    """After a cancelled comfy job: stop what the server is doing and clear its queue (ours alone: we hold the lock)."""
-    for path, body in (("/interrupt", {}), ("/queue", {"clear": True})):
+def _comfy_post(path, body, timeout=5):
+    req = urllib.request.Request(COMFY_SERVER + path, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    return urllib.request.urlopen(req, timeout=timeout).read()
+
+
+def _comfy_running_ids(timeout=5):
+    """The prompt ids ComfyUI is running now (GET /queue: queue_running rows are [number, prompt_id, ...])."""
+    try:
+        with urllib.request.urlopen(COMFY_SERVER + "/queue", timeout=timeout) as r:
+            q = json.load(r)
+        out = []
+        for row in (q.get("queue_running") or []):
+            if isinstance(row, (_LIST, tuple)) and len(row) > 1:
+                out.append(str(row[1]))
+            elif isinstance(row, dict) and row.get("prompt_id"):
+                out.append(str(row["prompt_id"]))
+        return out
+    except Exception:
+        return None   # pass 96 (lead): "could not ask" is not "nothing runs": the caller interrupts anyway
+
+
+def _comfy_interrupt(prompt_id=None):
+    """After a cancelled comfy job (pass 96, WF-06c; lane REAL's lesson: a `clear` of the whole queue cost a hand run its
+    12-minute prompt): only THIS job's prompt is touched. With its id (comfy.run prints `comfy: prompt <id>`,
+    parse_line keeps it): POST /queue {delete: [id]} takes it out of the pending queue, and /interrupt is sent only
+    while that id is the one running. Without an id (an older tool, a job that never reached /prompt): /interrupt
+    alone, never `clear`. Returns what was sent (the selftest's fake ComfyUI records it too)."""
+    sent = []
+    if prompt_id:
         try:
-            req = urllib.request.Request(COMFY_SERVER + path, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
-            urllib.request.urlopen(req, timeout=5).read()
+            _comfy_post("/queue", {"delete": [str(prompt_id)]})
+            sent.append(("/queue", {"delete": [str(prompt_id)]}))
         except Exception:
             pass
+        running = _comfy_running_ids()
+        if running is None or str(prompt_id) in running:
+            try:
+                _comfy_post("/interrupt", {})
+                sent.append(("/interrupt", {}))
+            except Exception:
+                pass
+        return sent
+    try:
+        _comfy_post("/interrupt", {})
+        sent.append(("/interrupt", {}))
+    except Exception:
+        pass
+    return sent
 
 
 # ---------------------------------------------------------------- pass 71 (lane PLE): the Puppet method, hero_puppet

@@ -21,12 +21,13 @@ const Frames = (() => {
   const FM = FramesModel;
   const el = (...a) => U.el(...a);
   const CELL = 160;
-  const HELP = 'Every frame of the animation is a slot; every slot keeps every version it ever had (SP-B-1 is the installed frame, SP-B-2 the first repair of it, ...). '
-    + 'A click on a version stages it: the preview plays it at once and nothing is written until Export packs the strip. A pinned slot keeps its choice when a job re-rolls the look. '
+  const HELP = 'Every frame of the animation is a slot; every slot keeps every version it ever had, named SP-B / Run / Side / Frame 07 / v1 (the installed frame), v2 (the first repair of it), ... No version is ever deleted. '
+    + 'A click on a version stages it: the preview plays it at once and nothing is written until Export packs the strip. A pinned slot keeps its choice when a job re-rolls the look: the landing packs the pinned frames back into the strip ("re-applied N pinned frames" on the card). '
+    + 'Every Export that replaces an installed strip shows one box listing the whole batch (each changed frame before and after, the flags it raises or clears); one click approves all of it. '
     + 'Repair with VACE paints the chosen frames anew with Wan 2.2 Fun VACE, the other frames kept and the driver\'s frame as the guide; the new frames land here as versions, staged. '
     + 'The flags are deterministic hints (a jump from both neighbours, a footprint off the median, an empty frame, a loop seam, a silhouette unlike the driver\'s): they miss ghost legs and faces on backs, so look. '
     + 'Each method has a repair rule (methods.json): VACE runs where a clip or a driver exists; a procedural animation (an idle, an attack, a hit, a hop walk) is refused unless you tick "fill freely anyway", because the still is the thing to fix there. '
-    + 'A repair job\'s new frames are staged when it lands (unless the slot is pinned or you staged a choice meanwhile). Exporting the look the game plays asks first; a failed merge or import puts the old strip back and stages your frames again. '
+    + 'A repair job\'s new frames are staged when it lands (unless the slot is pinned or you staged a choice meanwhile). A failed merge or import puts the old strip back and stages your frames again. '
     + 'Where frames live: the strip under game/content/ (what the game plays), the clip cache under tools/dl/ai_anim/ (what the video model painted), every version under tools/dl/frames/, the old strip of every export under tools/level_editor/backups/<id>/ (the newest 30 kept).';
 
   async function fetchJson(url, dflt) {
@@ -141,8 +142,9 @@ const Frames = (() => {
       // the sheet
       this.sheetHead = el('div', { class: 'fr-sheet-head muted small' });
       this.sheet = el('div', { class: 'fr-sheet' });
+      this.stagedList = el('div', { class: 'fr-staged-list' });   // pass 96: the staged changes of this group, in Garry's label form, each with an undo
       this.info = el('div', { class: 'fr-info' });
-      this.dlg.append(head, this.tabs, main, this.actions, this.panel, this.sheetHead, this.sheet, this.info,
+      this.dlg.append(head, this.tabs, main, this.actions, this.panel, this.sheetHead, this.sheet, this.stagedList, this.info,
         el('details', { class: 'fr-help' }, el('summary', { text: 'How the Frames view works' }), el('p', { class: 'small', text: HELP })));
     }
     drawTabs() {
@@ -206,9 +208,25 @@ const Frames = (() => {
     redrawAll() {
       this.preload = FM.playlist(this.detail).map((f) => { const im = new Image(); im.src = f.url; return im; });
       this.drawSheet();
+      this.drawStaged();
       this.drawVersions();
       this.drawActions();
       this.drawInfo();
+    }
+    /** pass 96: the staged changes of the shown group as lines (`Run / Side / Frame 07 <- SP-A / Run / Side / Frame 07 / v2 (VACE)`), each with an undo. */
+    drawStaged() {
+      U.clear(this.stagedList);
+      const d = this.detail;
+      const rows = (d.slots || []).filter((s) => s.staged);
+      if (!rows.length) return;
+      this.stagedList.appendChild(el('div', { class: 'muted small', text: `${rows.length} staged change${rows.length === 1 ? '' : 's'} in ${FM.groupLabel(d)} (Export packs them; ✕ undoes one):` }));
+      for (const s of rows) {
+        const v = (s.versions || []).find((x) => x.id === s.staged) || {};
+        const here = String(s.name || FM.frameLabel(d.code, d.base, d.view, s.slot)).split(' / ').slice(1).join(' / ');
+        this.stagedList.appendChild(el('div', { class: 'row' },
+          el('button', { type: 'button', class: 'btn small ghost', text: '✕', title: 'unstage this frame (Undo)', onclick: () => this.unstage(s.slot) }),
+          el('span', { text: `${here} <- ${FM.nameOf(v, d)} (${(FM.SOURCE_TEXT[v.source] || v.source || '?')})`, title: FM.versionText(v) })));
+      }
     }
     applyZoom() {
       const px = CELL * this.zoom;
@@ -292,7 +310,7 @@ const Frames = (() => {
       this.cells = new Map();
       for (const s of this.detail.slots) {
         const bs = FM.badges(s, flags[String(s.slot)]);
-        const c = el('button', { type: 'button', class: 'fr-cell' + (s.staged ? ' staged' : '') + (s.pinned ? ' pinned' : '') + (this.sel.has(s.slot) ? ' sel' : ''), title: `slot ${s.slot}${bs.length ? ': ' + bs.map((b) => b.text).join(', ') : ''}` },
+        const c = el('button', { type: 'button', class: 'fr-cell' + (s.staged ? ' staged' : '') + (s.pinned ? ' pinned' : '') + (this.sel.has(s.slot) ? ' sel' : ''), title: `${s.name || 'slot ' + s.slot}${bs.length ? ': ' + bs.map((b) => b.text).join(', ') : ''}` },
           el('img', { src: s.url || '', alt: '', loading: 'lazy' }), el('span', { class: 'fr-cell-idx', text: String(s.slot) }),
           bs.length ? el('span', { class: 'fr-cell-badges' }, bs.map((b) => el('span', { class: 'fr-mini ' + b.cls, text: b.key === 'staged' ? '✓' : b.key === 'pinned' ? '📌' : b.key === 'differs' ? '≠' : '⚠', title: b.title }))) : null);
         c.addEventListener('click', (e) => {
@@ -322,7 +340,10 @@ const Frames = (() => {
         const img = el('img', { src: v.url, alt: '', loading: 'lazy' });
         img.addEventListener('click', () => this.stage(s.slot, v.id));
         tile.appendChild(img);
-        tile.appendChild(el('div', { class: 'fr-vlabel' }, el('b', { text: v.label }), el('span', { class: 'muted small', text: (FM.SOURCE_TEXT[v.source] || v.source || '') + (v.from && v.from.label ? ` (${v.from.label}${v.from.code ? ' of ' + v.from.code : ''})` : '') })));
+        // pass 96: Garry's label (`SP-B / Run / Side / Frame 07 / v2`); the short `label` stays in the hover text for scripts
+        tile.appendChild(el('div', { class: 'fr-vlabel' }, el('b', { class: 'fr-vname', text: FM.nameOf(v, this.detail), title: v.label || '' }),
+          el('span', { class: 'muted small' }, el('span', { text: (FM.SOURCE_TEXT[v.source] || v.source || '') + (v.from && (v.from.name || v.from.label) ? ` (${v.from.name || v.from.label}${!v.from.name && v.from.code ? ' of ' + v.from.code : ''}${v.from.removed ? ', removed look' : ''})` : '') }),
+            FM.sourceMark(v) ? el('span', { class: 'fr-mark ' + (v.source === 'old_roll' ? 'old' : 'archived'), text: FM.sourceMark(v) }) : null)));
         const marks = el('div', { class: 'fr-vmarks' });
         if (isSt) marks.appendChild(el('span', { class: 'fr-badge staged', text: 'staged' }));
         if (isSel) marks.appendChild(el('span', { class: 'fr-badge ' + (s.pinned ? 'pinned' : 'sel'), text: s.pinned ? 'pinned' : 'selected', title: s.pinned ? 'a human chose it: a re-roll keeps it' : 'what the installed strip shows (or the last export packed)' }));
@@ -333,8 +354,8 @@ const Frames = (() => {
         if (isSel && !s.pinned) acts.appendChild(el('button', { type: 'button', class: 'btn small ghost', text: 'Pin', title: 'keep this choice through re-rolls', onclick: () => this.pin(s.slot, v.id, true) }));
         if (isSel && s.pinned) acts.appendChild(el('button', { type: 'button', class: 'btn small ghost', text: 'Unpin', onclick: () => this.pin(s.slot, v.id, false) }));
         if (isSt) acts.appendChild(el('button', { type: 'button', class: 'btn small ghost', text: 'Unstage', title: 'back to the selected version (Undo)', onclick: () => this.unstage(s.slot) }));
-        acts.appendChild(el('button', { type: 'button', class: 'btn small ghost', text: 'large', onclick: () => StripPlayer.openImage(v.url, `${this.id} ${this.code} · ${this.detail.key} · slot ${s.slot} · ${v.label}`) }));
-        if (!isSel && !isSt && !isEff && s.versions.length > 1) acts.appendChild(el('button', { type: 'button', class: 'btn small ghost danger', text: 'Delete', title: 'remove this version\'s files (refused while anything refers to it: a selection, a staging, an export, a copy made from it)', onclick: () => this.deleteVersion(s.slot, v.id, v.label) }));
+        acts.appendChild(el('button', { type: 'button', class: 'btn small ghost', text: 'large', onclick: () => StripPlayer.openImage(v.url, `${this.id} · ${FM.nameOf(v, this.detail)}`) }));
+        // pass 96 (Garry's decision 10): no Delete button: a frame version is never deleted (the route refuses too)
         tile.appendChild(acts);
         list.appendChild(tile);
       }
@@ -373,11 +394,6 @@ const Frames = (() => {
       return res;
     }
     stage(slot, vid) { return this.act(() => post(this.gurl('/stage'), { slot, version: vid }), `slot ${slot} staged`); }
-    async deleteVersion(slot, vid, label) {
-      if (!confirm(`Delete ${label} of slot ${slot}? Its files go; it is refused while anything refers to it.`)) return;
-      const res = await this.act(() => post(this.gurl('/delete'), { slot, version: vid }), `deleting ${label}…`);
-      if (res && res.ok) status(`${this.code} slot ${slot}: ${label} deleted (${(res.files || []).length} files)`, 'good');
-    }
     unstage(slot) { return this.act(() => post(this.gurl('/unstage'), { slot }), `slot ${slot} unstaged`); }
     pin(slot, vid, pinned) { return this.act(() => post(this.gurl('/pin'), { slot, version: vid, pinned }), pinned ? `slot ${slot} pinned` : `slot ${slot} unpinned`); }
     async unstageSel(sel) {
@@ -398,16 +414,36 @@ const Frames = (() => {
     async exportLook() {
       const total = this.sum.groups.reduce((a, g) => a + (g.staged || 0), 0);
       if (!total) return;
-      // pass 95 resume (AN-09, Q5's default): the look the game plays is replaced only after a confirm; the route refuses without it
-      const ask = FM.exportConfirmText(this.code, total, !!this.sum.in_play, this.id);
-      if (ask && !confirm(ask)) return;
-      let res = await this.act(() => post(this.url('/export'), ask ? { confirm: true } : {}), 'export queued…');
+      // pass 96 (Garry's decision 5): EVERY export that replaces an installed strip shows one box listing the whole batch
+      // (before / after per frame, the flag deltas, whether the game plays the look, the backup); one click sends confirm: true
+      const b = await fetchJson(this.url('/batch'), null);
+      if (!this.dlg.isConnected) return;
+      let yes;
+      if (b && b.ok && Array.isArray(b.items) && b.items.length) yes = await this.batchPanel(b);
+      else yes = confirm(FM.exportConfirmText(this.code, total, true, this.id));   // an older server without the batch route: the plain line
+      if (!yes) return;
+      let res = await this.act(() => post(this.url('/export'), { confirm: true }), 'export queued…');
       if (res && !res.ok && res.needs_confirm) {
-        if (!confirm(res.error || FM.exportConfirmText(this.code, total, true, this.id))) return;
+        // the route still refuses without confirm; it should not reach here, but say so plainly and offer the box again
+        if (res.batch && res.batch.items && res.batch.items.length ? !(await this.batchPanel(res.batch)) : !confirm(res.error || FM.exportConfirmText(this.code, total, true, this.id))) return;
         res = await this.act(() => post(this.url('/export'), { confirm: true }), 'export queued…');
       }
       if (res && res.ok) status(`${this.id} ${this.code}: export job #${String((res.job && res.job.id) || '').slice(-4)} queued: the strip is packed from ${total} changed frame${total === 1 ? '' : 's'}, the look's entry written, then an import (see the Jobs tab; it waits for a running repair of this look)`, 'good');
       this.watchJobs(true);
+    }
+    /** The batch box inside the view (this.panel): resolves true on "Export all", false on cancel. */
+    batchPanel(b) {
+      return new Promise((resolve) => {
+        U.clear(this.panel);
+        this.panel.hidden = false;
+        const done = (v) => { this.panel.hidden = true; U.clear(this.panel); resolve(v); };
+        this.panel.appendChild(el('div', { class: 'fr-panel-head' }, el('b', { text: `Export ${this.code}: confirm the batch` }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small ghost', text: '✕', onclick: () => done(false) })));
+        this.panel.appendChild(batchContent(b));
+        this.panel.appendChild(el('div', { class: 'row' },
+          el('button', { type: 'button', class: 'btn small primary', text: `Export all ${b.items.length} (one click for the whole batch)`, onclick: () => done(true) }),
+          el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => done(false) })));
+        this.panel.scrollIntoView({ block: 'nearest' });
+      });
     }
 
     // ------------------------------------------------------------------ the repair form
@@ -423,7 +459,7 @@ const Frames = (() => {
       const ta = el('textarea', { class: 'txt fr-prompt', spellcheck: false, placeholder: 'the words the frames are painted with (empty: the clip\'s own)' });
       ta.value = clip.prompt || '';
       const seed = el('input', { type: 'number', class: 'num', value: 0, min: 0, step: 1, title: '0 = the clip\'s seed moved by the slots; another number for another roll' });
-      const win = el('select', { title: 'how much of the animation goes in' }, el('option', { value: 'auto', text: `auto (${plan.mode})`, selected: true }), el('option', { value: 'double', text: 'double: the loop twice' }), el('option', { value: 'single', text: 'single: the loop once' }));
+      const win = el('select', { title: 'how much of the animation goes in' }, el('option', { value: 'auto', text: `auto (${((this.detail.repairable || {}).rule || {}).profile && ((this.detail.repairable || {}).rule || {}).profile.window ? ((this.detail.repairable || {}).rule || {}).profile.window + ', the method's profile' : plan.mode})`, selected: true }), el('option', { value: 'double', text: 'double: the loop twice' }), el('option', { value: 'single', text: 'single: the loop once' }));
       const note = el('div', { class: 'muted small', text: `${plan.note}${this.detail.driver ? ` · guide: ${this.detail.driver.name}'s frames fitted onto the kept figure` : ' · no driver: the frames are filled from their neighbours'}${this.detail.ref_still ? ' · reference: ' + this.detail.ref_still.split('/').pop() : ' · reference: the fullest kept frame (no painting in the cache)'}${clip.key ? '' : ' · NO CLIP CACHE: the kept frames are strip cells put back on a canvas (softer result)'}` });
       const msg = el('span', { class: 'muted small' });
       // pass 95 resume (AN-01): the method's repair rule; a procedural animation needs "fill freely anyway" on purpose
@@ -448,19 +484,39 @@ const Frames = (() => {
     }
 
     // ------------------------------------------------------------------ from another look
+    /** pass 96 (AN-07, Garry's decision 2): the picker with filters by look, animation, view, time and source (newest first;
+     *  lazy: one group's versions fetched at a time), the marks removed / old roll / archived where the store has them;
+     *  a different animation or view only on purpose (an amber warning: the poses differ). */
     async othersPanel(sel) {
+      const f = this.pickFilters || (this.pickFilters = { look: '', base: this.base, view: this.view, days: 0, source: '', raw: false });
+      if (!this.sum.groups.some((g) => g.base === f.base && g.view === f.view)) { f.base = this.base; f.view = this.view; }
       U.clear(this.panel);
       this.panel.hidden = false;
-      this.panel.appendChild(el('div', { class: 'fr-panel-head' }, el('b', { text: `From another look: ${this.detail.key}` }), el('span', { class: 'muted small', text: 'loading…' }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small ghost', text: '✕', onclick: () => { this.panel.hidden = true; U.clear(this.panel); } })));
-      const r = await fetchJson(this.gurl('/others'), null);
+      const close = () => { this.panel.hidden = true; U.clear(this.panel); };
+      this.panel.appendChild(el('div', { class: 'fr-panel-head' }, el('b', { text: `From another look: ${this.detail.key}` }), el('span', { class: 'muted small', text: 'loading…' }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small ghost', text: '✕', onclick: close })));
+      const otherGroup = f.base !== this.base || f.view !== this.view;
+      const r = await fetchJson(this.url(`/${encodeURIComponent(f.base)}/${encodeURIComponent(f.view)}/others`), null);
       if (!this.dlg.isConnected) return;
       U.clear(this.panel);
       const slots = sel.length ? sel : [this.slot];
-      this.panel.appendChild(el('div', { class: 'fr-panel-head' }, el('b', { text: `From another look: ${this.detail.key}, slot${slots.length > 1 ? 's' : ''} ${FM.slotsText(slots)}` }), el('span', { class: 'muted small', text: 'a frame of theirs copied here becomes a version of this slot (staged); the other look is not touched' }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small ghost', text: '✕', onclick: () => { this.panel.hidden = true; U.clear(this.panel); } })));
+      this.panel.appendChild(el('div', { class: 'fr-panel-head' }, el('b', { text: `From another look: ${this.detail.key}, slot${slots.length > 1 ? 's' : ''} ${FM.slotsText(slots)}` }), el('span', { class: 'muted small', text: 'a frame of theirs copied here becomes a version of this slot (staged); the other look is not touched; every frame ever generated for this asset that the store holds is listed, newest first' }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small ghost', text: '✕', onclick: close })));
       const looks = r && r.ok ? r.looks : [];
-      if (!looks.length) { this.panel.appendChild(el('p', { class: 'muted small', text: `no other look of ${this.id} has a ${this.detail.key} animation with a strip` })); return; }
+      // the filter row
+      const sel1 = (opts, cur, onchange, title) => { const s = el('select', { title }); for (const o of opts) s.appendChild(el('option', { value: o.v, text: o.label, selected: String(o.v) === String(cur) })); s.addEventListener('change', () => { onchange(s.value); this.othersPanel(sel); }); return s; };
+      const lookOpts = [{ v: '', label: 'every look' }].concat(looks.map((o) => ({ v: o.code, label: o.code + (o.removed ? ' (removed)' : '') })));
+      const groupOpts = this.sum.groups.map((g) => ({ v: `${g.base}/${g.view}`, label: FM.groupLabel(g) + (g.base === this.base && g.view === this.view ? ' (this one)' : '') }));
+      this.panel.appendChild(el('div', { class: 'fr-filters' },
+        el('span', { class: 'muted', text: 'look' }), sel1(lookOpts, f.look, (v) => { f.look = v; }, 'only this look'),
+        el('span', { class: 'muted', text: 'animation · view' }), sel1(groupOpts, `${f.base}/${f.view}`, (v) => { const [b2, v2] = v.split('/'); f.base = b2; f.view = v2; }, 'the other looks\' frames of this animation and view (one group fetched at a time)'),
+        el('span', { class: 'muted', text: 'time' }), sel1(FM.TIME_OPTIONS, f.days, (v) => { f.days = Number(v) || 0; }, 'only versions made since then'),
+        el('span', { class: 'muted', text: 'source' }), sel1(FM.SOURCE_OPTIONS, f.source, (v) => { f.source = v; }, 'installed, re-rolled, VACE, copied, old roll, archived'),
+        (() => { const cb = el('input', { type: 'checkbox', checked: f.raw }); cb.addEventListener('change', () => { f.raw = cb.checked; this.othersPanel(sel); }); return el('label', { class: 'cb', title: 'only versions with a clip frame (the fit sizes a copy exactly)' }, cb, el('span', { text: 'only raw' })); })(),
+        otherGroup ? el('span', { class: 'warn-text', text: `${f.base} · ${f.view} is not ${this.detail.key}: the poses will not match this animation; copy only on purpose` }) : null));
+      if (!looks.length) { this.panel.appendChild(el('p', { class: 'muted small', text: `no other look of ${this.id} has a ${f.base} ${f.view} animation with a strip` })); return; }
       const drv = this.detail.driver ? this.detail.driver.name : '';
+      let shown = 0;
       for (const o of looks) {
+        if (f.look && o.code !== f.look) continue;
         const warns = FM.compat(o, this.n(), this.detail.frame_px, drv);
         const box = el('div', { class: 'fr-other' + (o.removed ? ' removed' : '') });
         box.appendChild(el('div', { class: 'fr-other-head' }, el('b', { text: o.code }),
@@ -468,15 +524,21 @@ const Frames = (() => {
           el('span', { class: 'muted small', text: o.note || '' }), warns.length ? el('span', { class: 'warn-text small', text: warns.join('; ') }) : el('span', { class: 'muted small', text: 'compatible' })));
         for (const k of slots) {
           const os = o.slots.find((x) => x.slot === k);
-          const row = el('div', { class: 'fr-other-row' }, el('span', { class: 'fr-other-slot', text: `slot ${k} ←` }));
+          const row = el('div', { class: 'fr-other-row' }, el('span', { class: 'fr-other-slot', text: `${String(this.slotRec(k) && this.slotRec(k).name || 'slot ' + k).split(' / ').slice(1).join(' / ') || 'slot ' + k} ←` }));
           if (!os) { row.appendChild(el('span', { class: 'muted small', text: `${o.code} has no slot ${k}` })); box.appendChild(row); continue; }
-          for (const v of FM.versionsNewestFirst(os.versions)) {
+          const list = FM.filterVersions(os.versions, f);
+          if (!list.length) { row.appendChild(el('span', { class: 'muted small', text: 'nothing matches the filters' })); box.appendChild(row); continue; }
+          for (const v of list) {
+            shown++;
             const tile = el('button', { type: 'button', class: 'fr-pick' + (v.id === os.effective ? ' eff' : ''), title: `${FM.versionText(v)}${v.id === os.effective ? ' (what ' + o.code + ' plays)' : ''}: copy it into slot ${k} of ${this.code}` },
-              el('img', { src: v.url, alt: '', loading: 'lazy' }), el('span', { class: 'small', text: v.label + (v.raw ? '' : ' (cell)') }));
+              el('img', { src: v.url, alt: '', loading: 'lazy' }), el('span', { class: 'small', text: (v.name || v.label) + (v.raw ? '' : ' (cell)') }),
+              FM.sourceMark(v) ? el('span', { class: 'fr-mark ' + (v.source === 'old_roll' ? 'old' : 'archived'), text: FM.sourceMark(v) }) : null);
             tile.addEventListener('click', async () => {
               tile.disabled = true;
-              const res = await this.act(() => post(this.gurl('/copy'), { slot: k, from: { code: o.code, slot: k, version: v.id } }), `copying ${v.label} of ${o.code} into slot ${k}…`);
-              if (res && res.ok) status(`${this.code} slot ${k}: ${v.label} of ${o.code} copied in as ${res.version.label}, staged`, 'good');
+              const from = { code: o.code, slot: k, version: v.id };
+              if (otherGroup) { from.base = f.base; from.view = f.view; }
+              const res = await this.act(() => post(this.gurl('/copy'), { slot: k, from }), `copying ${v.name || v.label} into slot ${k}…`);
+              if (res && res.ok) status(`${this.code} slot ${k}: ${v.name || v.label} copied in as ${res.version.name || res.version.label}, staged`, 'good');
               tile.disabled = false;
             });
             row.appendChild(tile);
@@ -485,6 +547,7 @@ const Frames = (() => {
         }
         this.panel.appendChild(box);
       }
+      if (!shown) this.panel.appendChild(el('p', { class: 'muted small', text: 'nothing matches the filters (old rolls and archived strips are not imported into the store yet: a later pass)' }));
     }
 
     // ------------------------------------------------------------------ info, and the watch on running repairs
@@ -495,7 +558,8 @@ const Frames = (() => {
       this.info.append(
         el('div', {}, el('b', { text: 'Made by: ' }), el('span', { text: `${d.method || '?'} · ${d.clip ? 'clip ' + d.clip.key + ' (' + d.clip.kind + ', ' + d.clip.full + ' frames painted, ' + d.clip.out + ' kept)' : 'no clip cache for this animation (procedural, or painted before the cache was kept)'}${d.driver ? ' · driver ' + d.driver.name + ' (' + d.driver.kind + ')' : ' · no driver'}` })),
         el('div', {}, el('b', { text: 'Fit: ' }), el('span', { text: fit.source === 'measured' ? `measured from ${fit.pairs} installed frames and their clip frames (scale ${Number(fit.s).toFixed(3)}, residual ${Number(fit.residual_px).toFixed(1)} px): a repaired frame is placed exactly as the pipeline placed the clip's` : 'default (no clip frames to measure from): a repaired frame is placed by the cell\'s size' })),
-        el('div', {}, el('b', { text: 'Store: ' }), el('code', { text: d.path || '' }), el('span', { class: 'muted small', text: ` · every version is a PNG + JSON there (store layout ${d.store_version || '?'}); a version is never deleted while anything refers to it` })),
+        el('div', {}, el('b', { text: 'Store: ' }), el('code', { text: d.path || '' }), el('span', { class: 'muted small', text: ` · every version is a PNG + JSON there (store layout ${d.store_version || '?'}); no version is ever deleted (pass 96)` })),
+        d.lost_pins && d.lost_pins.length ? el('div', { class: 'warn-text small' }, el('b', { text: 'Pins a landing could not re-apply: ' }), el('span', { text: d.lost_pins.map((p) => `slot ${p.slot} (${p.why})`).join('; ') + '; their versions are kept' })) : null,
         el('div', { class: 'muted small fr-where' }, el('b', { text: 'Where frames live: ' }), el('span', { text: FM.whereLine(d) })),
         d.repairable && !d.repairable.ok ? el('div', { class: 'warn-text small' }, el('b', { text: 'Repair rule: ' }), el('span', { text: d.repairable.why })) : null);
     }
@@ -520,6 +584,45 @@ const Frames = (() => {
     }
   }
 
-  return { open, summary, HELP };
+  /** pass 96: the batch as the one confirm box shows it: the summary line, then every change as a before / after pair with
+   *  its line and the flag deltas. Shared by the view's panel and the standalone box (the request card's Approve). */
+  function batchContent(b) {
+    const box = el('div', { class: 'fr-batch' });
+    box.appendChild(el('div', { class: 'fr-batch-sum' + (b.in_play ? ' inplay' : ''), text: FM.batchSummary(b) }));
+    for (const ln of FM.batchLines(b)) {
+      const pic = (side) => side && side.url ? el('img', { src: side.url, alt: '', title: side.name || side.label || '' }) : el('span', { class: 'fr-batch-none', text: side ? '?' : 'none' });
+      box.appendChild(el('div', { class: 'fr-batch-row' + (ln.why === 'pinned' ? ' pinned' : '') },
+        pic(ln.from), el('span', { class: 'fr-batch-arrow', text: '→' }), pic(ln.to),
+        el('div', { class: 'fr-batch-text' }, el('code', { text: ln.line }),
+          el('span', { class: 'delta' + (/raises/.test(ln.deltas) ? ' raised' : ''), text: ln.deltas }),
+          ln.from && ln.from.name ? el('span', { class: 'muted small', text: `was ${ln.from.name}` }) : null)));
+    }
+    return box;
+  }
+
+  /** pass 96: the one confirm box as a standalone dialog over GET /api/frames/<kind>/<id>/<code>/batch, for callers outside the
+   *  view (the request card's Approve): resolves true when Garry clicks Export all / Approve, false otherwise. o: {title,
+   *  yes}: the words on the button; with nothing staged the box says so and resolves on the plain button. */
+  async function confirmBox(kind, id, code, o) {
+    const opts = o || {};
+    const b = await fetchJson(`${base(kind, id, code)}/batch`, null);
+    return new Promise((resolve) => {
+      const dlg = document.createElement('dialog');
+      dlg.className = 'sp-modal fr-batch-modal';
+      const done = (v) => { try { dlg.close(); } catch (_) { /* closed */ } resolve(v); };
+      dlg.addEventListener('close', () => { dlg.remove(); resolve(false); });
+      const items = b && b.ok && Array.isArray(b.items) ? b.items : [];
+      dlg.appendChild(el('div', { class: 'sp-modal-head' }, el('b', { text: opts.title || `${id} · ${code}: confirm the batch` }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small', text: '✕', onclick: () => done(false) })));
+      if (items.length) dlg.appendChild(batchContent(b));
+      else dlg.appendChild(el('p', { class: 'muted small', text: b && b.error ? b.error : `nothing is staged for ${code}: ${opts.empty || 'approving installs nothing new in the strip'}` }));
+      dlg.appendChild(el('div', { class: 'row', style: 'display:flex; gap:8px; margin-top:8px;' },
+        el('button', { type: 'button', class: 'btn small primary', text: opts.yes || (items.length ? `Export all ${items.length} (one click for the whole batch)` : 'Approve'), onclick: () => done(true) }),
+        el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => done(false) })));
+      document.body.appendChild(dlg);
+      dlg.showModal();
+    });
+  }
+
+  return { open, summary, HELP, confirmBox, batchContent };
 })();
 if (typeof module !== 'undefined') module.exports = Frames;

@@ -433,34 +433,22 @@ def styled(subject, view_hint, bg, with_anchor=True):
 # ---------------------------------------------------------------- vision QA
 
 def vision_json(img, question, max_tokens=220):
-    buf = io.BytesIO()
-    img.convert("RGB").save(buf, "PNG")
-    body = {"model": VISION_MODEL, "max_tokens": max_tokens, "temperature": 0, "messages": [{"role": "user", "content": [
-        {"type": "text", "text": question},
-        {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()}}]}]}
-    req = urllib.request.Request(LMSTUDIO, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
-    txt = json.load(urllib.request.urlopen(req, timeout=300))["choices"][0]["message"]["content"]
-    txt = txt.strip().strip("`")
-    if txt.startswith("json"):
-        txt = txt[4:]
-    i, j = txt.find("{"), txt.rfind("}")
-    return json.loads(txt[i:j + 1]) if i >= 0 and j > i else {}
+    """The local vision model (LM Studio) on one picture. Pass 96 (lane LOOP, AI-01): the same call through the one
+    adapter tools/vision_eval.py (the OpenAI chat shape, one base64 PNG, temperature 0, 300 s, the first {...} parsed,
+    {} when there is none, the exception raised): the request body and the parse are what this function sent since
+    pass 60; the adapter adds the ledger line (tools/dl/qa/ledger.json: a free call)."""
+    import vision_eval
+    return vision_eval.openai_chat_json(img, question, max_tokens=max_tokens, url=LMSTUDIO, model=VISION_MODEL)
 
 
 def qa(img, expect):
     """expect: {'subject': str, 'view': 'front'|'back'|None, 'subjects_max': int}. Returns (passed, report)."""
     if SKIP_QA:
         return True, {"skipped": True}
-    q = ("You are checking a generated video game asset. Answer ONLY with one JSON object, no prose, with keys: "
-         "subjects (integer, how many separate characters or objects are shown), "
-         "background (\"flat\" if the background is a single flat color, otherwise \"scene\"), "
-         "ground (true if a floor, ground plane, grass or a cast shadow is drawn under the subject), "
-         "text (true if any letters, numbers or a watermark appear), "
-         "cropped (true if part of the main subject is cut off by the image border), "
-         "legs (true if the subject's legs and feet are both completely visible and drawn, false if any limb is missing or cut off), "
-         "view (\"front\" if the main subject's face or front is towards the viewer, \"back\" if it is seen from behind with no face visible, "
-         "\"side\" for a profile, else \"other\"), "
-         "matches (true if the image clearly shows: %s)." % expect.get("subject", "the requested subject"))
+    # pass 96 (lane LOOP): the question is the `still_gate` rubric of tools/qa_rubrics.json, word for word what this
+    # function asked since pass 60 (the subject filled in as before: the stills gate names what it paints)
+    import vision_eval
+    q = vision_eval.rubric_text("still_gate", subject=expect.get("subject", "the requested subject"))
     global QA_ONLINE
     try:
         r = vision_json(img, q)
@@ -1308,18 +1296,27 @@ def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3, in
         t0 = time.time()
         imgs, secs = paint(prompt, s, width, height, refs, "88fits/" + key, init=init, denoise=denoise)
         img = Image.open(io.BytesIO(imgs[0])).convert("RGB")
-        ok, report = qa(img, expect)
+        # pass 96 (lane LOOP, AI-07): the geometry FIRST: an empty or edge-touching still fails on its own numbers and
+        # never costs a vision-model call (the model used to be asked before geometry() ran). With --skip-qa the
+        # report keeps its old shape ({skipped: true} + the problems); the problems list keeps its old order.
         geo = geometry(img)
-        report.setdefault("problems", [])
+        edge = []
         if geo.get("empty"):
-            report["problems"].append("empty")
+            edge.append("empty")
         else:
             # portraits are meant to run off the bottom edge; everything else must sit clear of every edge
             if expect.get("bust"):
                 if min(geo["left"], geo["right"], geo["top"]) < 12:
-                    report["problems"].append("touches-edge")
+                    edge.append("touches-edge")
             elif min(geo["left"], geo["right"], geo["top"]) < 12 or geo["bottom"] < 20:
-                report["problems"].append("touches-edge")
+                edge.append("touches-edge")
+        if edge and not SKIP_QA:
+            ok, report = False, {"problems": [], "skipped_model": edge[0]}
+        else:
+            ok, report = qa(img, expect)
+        report.setdefault("problems", [])
+        report["problems"] += edge
+        if not geo.get("empty"):
             if expect.get("ref_h") and geo["height"] < 0.68 * float(expect["ref_h"]):
                 report["problems"].append("too-short")
             if expect.get("ref_h") and geo["height"] > 1.2 * float(expect["ref_h"]):

@@ -1,0 +1,75 @@
+{
+ "_about": "Pass 96 (lane LOOP, AI-01 / AI-08): the fixed questions every visual evaluator is asked, by id. tools/vision_eval.py reads them (rubric_text). A rubric is fixed text: no look note, job title, recipe word or file name ever goes into it (the label leak measured in pass 95: a model told the verdict by the file names scored 16/16, blind 10/16). The two legacy rubrics keep a placeholder their callers fill as before (gen_art.qa's subject, the Frames button's noun: those are the stills gate and a hand button, not the loop's evaluator); the `_blind` rubrics are the loop's and carry nothing about the asset. `fields` says which answer keys become findings items and when a value is a failure (bad_when); `record` keeps a value without a verdict (a count: no evaluator measured counts limbs reliably, D3); `per` is image (one call per picture) or sheet (one call for one contact sheet).",
+ "rubrics": {
+  "still_gate": {
+   "per": "image",
+   "text": "You are checking a generated video game asset. Answer ONLY with one JSON object, no prose, with keys: subjects (integer, how many separate characters or objects are shown), background (\"flat\" if the background is a single flat color, otherwise \"scene\"), ground (true if a floor, ground plane, grass or a cast shadow is drawn under the subject), text (true if any letters, numbers or a watermark appear), cropped (true if part of the main subject is cut off by the image border), legs (true if the subject's legs and feet are both completely visible and drawn, false if any limb is missing or cut off), view (\"front\" if the main subject's face or front is towards the viewer, \"back\" if it is seen from behind with no face visible, \"side\" for a profile, else \"other\"), matches (true if the image clearly shows: {subject}).",
+   "placeholders": {"subject": "the requested subject"},
+   "fields": {
+    "subjects": {"record": true, "rule": "how many subjects the model counted"},
+    "background": {"bad_when": ["scene"], "rule": "the background must be one flat colour"},
+    "text": {"bad_when": true, "rule": "no letters, numbers or watermark"},
+    "cropped": {"bad_when": true, "rule": "the subject must not be cut by the border"},
+    "legs": {"bad_when": false, "rule": "the legs and feet must be drawn whole"},
+    "view": {"record": true, "rule": "the view the model saw"},
+    "matches": {"bad_when": false, "rule": "the picture must show the subject asked for"}
+   },
+   "note": "gen_art.qa's question, kept word for word (the stills gate; its problems list is computed by gen_art.qa itself)"
+  },
+  "frame_ask": {
+   "per": "image",
+   "text": "You are checking one frame of a 2D game sprite animation of {noun}. Answer ONLY with one JSON object, no prose, with keys: limbs (integer: how many legs or arms you can count), broken (true if a limb, the head or the body is cut, detached, smeared, doubled or missing), ghost (true if a faint or see-through duplicate of a part is visible), colour (true if a patch has a colour the rest of the figure lacks), note (a few words on what looks wrong, or \"fine\").",
+   "placeholders": {"noun": "a creature"},
+   "fields": {
+    "limbs": {"record": true, "rule": "limbs counted (a count no local eye does reliably: a hint, not a verdict)"},
+    "broken": {"bad_when": true, "rule": "a limb, the head or the body cut, detached, smeared, doubled or missing"},
+    "ghost": {"bad_when": true, "rule": "a faint or see-through duplicate of a part"},
+    "colour": {"bad_when": true, "rule": "a patch of a colour the rest of the figure lacks"},
+    "note": {"note": true}
+   },
+   "note": "the Frames view's Ask button, kept word for word (frames_io.ASK)"
+  },
+  "frame_blind": {
+   "per": "image",
+   "text": "You are checking one frame of a 2D game sprite animation: one figure on a plain grey background. Answer ONLY with one JSON object, no prose, with keys: legs (integer: how many legs you can count), arms (integer: how many arms), broken (true if a limb, the head or the body is cut, detached, smeared, doubled or missing), ghost (true if a faint or see-through duplicate of a part is visible), face (\"ok\" if a face is drawn where the head is, \"missing\" if the head has no face at all, \"wrong\" if the face is a skull, doubled, or on the back of the head, \"away\" if the head is turned away from the viewer), smear (true if a part of the figure is blurred into streaks), colour (true if a patch has a colour the rest of the figure lacks), note (a few words on what looks wrong, or \"fine\").",
+   "placeholders": {},
+   "fields": {
+    "legs": {"record": true, "rule": "legs counted (recorded, never a verdict: no evaluator measured counts them reliably)"},
+    "arms": {"record": true, "rule": "arms counted (recorded, never a verdict)"},
+    "broken": {"bad_when": true, "rule": "a limb, the head or the body cut, detached, smeared, doubled or missing"},
+    "ghost": {"bad_when": true, "rule": "a faint or see-through duplicate of a part"},
+    "face": {"bad_when": ["missing", "wrong"], "rule": "a face drawn where the head is (or the head turned away)"},
+    "smear": {"bad_when": true, "rule": "a part blurred into streaks"},
+    "colour": {"bad_when": true, "rule": "a patch of a colour the rest of the figure lacks"},
+    "note": {"note": true}
+   },
+   "note": "the loop's per-frame rubric (tier 1): hint-free"
+  },
+  "still_blind": {
+   "per": "image",
+   "text": "You are checking one still painting of a video game character or creature on a flat background. Answer ONLY with one JSON object, no prose, with keys: subjects (integer: how many separate figures are shown), legs (integer: how many legs you can count), arms (integer), broken (true if a limb, the head or the body is cut, detached, smeared, doubled or missing), ghost (true if a faint or see-through duplicate of a part is visible), face (\"ok\" if a face is drawn where the head is, \"missing\" if the head has no face at all, \"wrong\" if the face is a skull, doubled, or on the back of the head, \"away\" if the head is turned away from the viewer), smear (true if a part is blurred into streaks), text (true if any letters, numbers or a watermark appear), note (a few words on what looks wrong, or \"fine\").",
+   "placeholders": {},
+   "fields": {
+    "subjects": {"record": true, "rule": "figures counted"},
+    "legs": {"record": true, "rule": "legs counted (recorded, never a verdict)"},
+    "arms": {"record": true, "rule": "arms counted (recorded, never a verdict)"},
+    "broken": {"bad_when": true, "rule": "a limb, the head or the body cut, detached, smeared, doubled or missing"},
+    "ghost": {"bad_when": true, "rule": "a faint or see-through duplicate of a part"},
+    "face": {"bad_when": ["missing", "wrong"], "rule": "a face drawn where the head is (or the head turned away)"},
+    "smear": {"bad_when": true, "rule": "a part blurred into streaks"},
+    "text": {"bad_when": true, "rule": "no letters, numbers or watermark"},
+    "note": {"note": true}
+   },
+   "note": "the loop's still rubric (tier 1 on a painting): hint-free"
+  },
+  "sheet_blind": {
+   "per": "sheet",
+   "text": "This is a numbered contact sheet of frames from 2D game sprite animations. Each cell shows one frame with its number at the top left; the cells of one row belong to one animation. Answer ONLY with one JSON object, no prose, of the form {\"cells\": [{\"n\": <number>, \"ok\": true or false, \"why\": \"a few words\"}]} listing EVERY cell. ok is false only when that frame itself looks broken: a cut, detached, doubled, missing or smeared limb, head or body; a faint ghost duplicate of a part; a wrong or missing face; a patch of a foreign colour. Do not compare drawing styles between rows, and do not mark a frame for its pose.",
+   "placeholders": {},
+   "fields": {
+    "cells": {"cells": true, "rule": "the cloud eye's verdict on this cell of the decision sheet"}
+   },
+   "note": "the loop's contact-sheet rubric (tier 2): one call per decision point"
+  }
+ }
+}

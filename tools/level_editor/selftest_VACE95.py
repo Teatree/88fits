@@ -365,9 +365,11 @@ def checks(check, run_node, server):
         check(not rd1.get("ok") and rd1.get("referenced"), "a selected (exported) version is refused: %s" % rd1.get("error"))
         old1 = vs[1][0]
         rd2 = FS.delete_version(g, 1, old1["id"])
-        check(rd2.get("ok") and not os.path.isfile(old1["file"]) and len(g.versions(1)) == 1, "an unreferenced version's files go: %s" % rd2.get("files"))
+        # re-pinned in pass 96 (lane PAGE, Garry's decision 10): a version is NEVER deleted, referenced or not; delete_version refuses always
+        check(not rd2.get("ok") and rd2.get("retired") and os.path.isfile(old1["file"]) and len(g.versions(1)) == 2 and "never deleted" in rd2.get("error", ""),
+              "pass 96: an unreferenced version is refused too (never deleted): %s" % rd2.get("error", "")[:60])
         rd3 = FS.delete_version(g, 1, v2["id"])
-        check(not rd3.get("ok") and "only version" in rd3.get("error", ""), "the slot's only version stays")
+        check(not rd3.get("ok") and rd3.get("retired"), "pass 96: the selected version is refused, retired")
         refs = FS.referenced_ids("enemy", "bug")
         check(v2["id"] in refs and cv["from"]["version"] in refs, "referenced_ids: selections and a copy's source count")
         bdir2 = os.path.join(tmp, "cap")
@@ -409,9 +411,16 @@ def checks(check, run_node, server):
         strip3.save(look.strip_path)
         g.pin(2, True)
         hk = FS.hook_after_save(w["folder"], "bug", "BG-B", counts3, cols3, "bug_sprite_b.png", log=lambda *a: said.append(" ".join(str(x) for x in a)))
-        check(hk and hk.get("ok") and len(g.versions(2)) == 3 and g.versions(2)[2]["source"] == "reroll" and g.selected()["2"]["pinned"] and g.selected()["2"].get("installed_differs"),
-              "hook_after_save registers the saved strip (a reroll version) and keeps the pinned choice: %s" % hk.get("pinned"))
-        check(any("WARNING" in s and "Export is the writer" in s for s in said), "the hook warns about pinned slots: %s" % (said[-1][:100] if said else ""))
+        # re-pinned in pass 96 (lane PAGE, Garry's decision 4): the hook RE-APPLIES the pinned choice in-process (the run's new
+        # cell is a version, the strip shows the pinned one again, nothing differs); it used to warn and leave the strip
+        pinned2 = g.selected()["2"]
+        strip_h = Image.open(look.strip_path).convert("RGBA")
+        off2 = _offset(w["order"], w["anims"], "run_s") + 2
+        cell_h = strip_h.crop((off2 * px, 0, off2 * px + px, px))
+        check(hk and hk.get("ok") and len(g.versions(2)) == 3 and g.versions(2)[2]["source"] == "reroll" and pinned2["pinned"] and not pinned2.get("installed_differs")
+              and hk.get("reapplied", {}).get("pinned") == 1 and np.array_equal(np.asarray(cell_h), np.asarray(g.cell_of(2, g.version(2, pinned2["id"])))),
+              "pass 96: hook_after_save registers the saved strip (a reroll version) and re-packs the pinned choice into it: %s" % hk.get("pinned"))
+        check(any("re-applied 1 pinned frame" in s for s in said) and not any("Export is the writer" in s for s in said), "pass 96: the hook says it re-applied the pin: %s" % (said[-1][:100] if said else ""))
         g.pin(2, False)
         hk2 = FS.hook_after_save(w["folder"], "nobody", "XX-A", {}, 0)
         check(hk2 is None, "a look the store never saw is left alone")
@@ -439,7 +448,7 @@ def checks(check, run_node, server):
         g.pin(3, True)
         d = g.detail(lambda p: "/x/" + os.path.basename(p))
         check(d["ok"] and d["n"] == 4 and len(d["slots"]) == 4 and d["slots"][3]["pinned"] and d["slots"][1]["selected"] == v2["id"] and d["slots"][0]["driver_frame"] == 4
-              and d["slots"][1]["versions"][0]["label"] == "BG-B-2" and d["slots"][1]["url"].startswith("/x/") and d["fit"]["source"] == "measured" and "flags" in d
+              and d["slots"][1]["versions"][1]["label"] == "BG-B-2" and d["slots"][1]["url"].startswith("/x/") and d["fit"]["source"] == "measured" and "flags" in d   # pass 96: BG-B-1 is never deleted, so it is versions[0]
               and d["store_version"] == 1 and d["in_play"] is True and d["strip_file"].endswith("bug_sprite_b.png") and d["clip_dir"].endswith("bug_bgb_ctl_side") and d["backups_dir"].endswith("bug"),
               "the group detail: slots, versions, choices, the driver's frames, the fit, the flags, where the frames live")
         summ = FS.look_summary("enemy", "bug", "BG-B")
@@ -716,7 +725,8 @@ def checks(check, run_node, server):
     check(rd("frames_io.py").count("def repair_rule") == 1 and "def stage_versions" in rd("frames_io.py") and '"delete": delete' in rd("frames_io.py") and "needs_confirm" in rd("frames_io.py"),
           "frames_io.py: the rule, the landing's staging, the delete route, the confirm")
     fj = rd("frames.js")
-    check("exportConfirmText(" in fj and "free_fill" in fj and "removed look" in fj and "whereLine(" in fj and "deleteVersion(" in fj, "frames.js: the confirm, the free fill checkbox, the removed mark, the help line, delete")
+    check("exportConfirmText(" in fj and "free_fill" in fj and "removed look" in fj and "whereLine(" in fj and "deleteVersion(" not in fj and "confirmBox(" in fj,
+          "frames.js: the confirm, the free fill checkbox, the removed mark, the help line; pass 96: no Delete, the batch box")   # re-pinned in pass 96 (lane PAGE): the Delete button is gone
     ga, gc = open(os.path.join(ROOT, "tools", "gen_art.py"), encoding="utf-8").read(), open(os.path.join(ROOT, "tools", "gen_ctl.py"), encoding="utf-8").read()
     check(ga.count("frames_store.hook_after_save(") == 4 and gc.count("frames_store.hook_after_save(") == 1 and ga.count("strip.save(") == 4 and gc.count("strip.save(") == 1,
           "gen_art.py and gen_ctl.py: one store hook after every strip.save (%d + %d)" % (ga.count("frames_store.hook_after_save("), gc.count("frames_store.hook_after_save(")))

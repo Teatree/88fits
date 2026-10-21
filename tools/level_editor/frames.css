@@ -83,3 +83,29 @@
 .fr-info { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; font-size: 0.84rem; }
 .fr-info code { font-size: 0.8rem; background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
 .fr-help { margin-top: 8px; font-size: 0.84rem; }
+
+/* ---- pass 96 (lane PAGE): the one confirm box for a whole export batch, the picker's filters, the staged list, the marks */
+.fr-batch { display: flex; flex-direction: column; gap: 6px; }
+.fr-batch-sum { font-size: 0.86rem; }
+.fr-batch-sum.inplay { color: #ffd166; }
+.fr-batch-row { display: grid; grid-template-columns: 72px 18px 72px 1fr; gap: 6px 10px; align-items: center; padding: 4px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.fr-batch-row img { width: 72px; height: 72px; object-fit: contain; background: #4a4a46 repeating-conic-gradient(#44443f 0% 25%, #4f4f4a 0% 50%) 0 0 / 12px 12px; border-radius: 6px; }
+.fr-batch-row .fr-batch-none { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.72rem; border: 1px dashed var(--border); border-radius: 6px; }
+.fr-batch-arrow { text-align: center; color: var(--ink-2); font-weight: 700; }
+.fr-batch-text { display: flex; flex-direction: column; gap: 2px; font-size: 0.84rem; }
+.fr-batch-text code { font-size: 0.8rem; }
+.fr-batch-text .delta { font-size: 0.76rem; color: var(--muted); }
+.fr-batch-text .delta.raised { color: var(--warn); }
+.fr-batch-row.pinned { border-color: #5a4a1a; }
+.fr-batch-modal { width: min(820px, calc(100vw - 40px)); }
+.fr-batch-modal .fr-batch { max-height: 60vh; overflow: auto; }
+.fr-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.82rem; }
+.fr-filters select { font-size: 0.82rem; }
+.fr-filters .warn-text { font-size: 0.78rem; }
+.fr-mark { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(255,255,255,0.10); color: var(--ink-2); line-height: 1.2; }
+.fr-mark.old { background: rgba(144,133,233,0.3); color: #c8c0ff; }
+.fr-mark.archived { background: rgba(201,133,0,0.35); color: #ffd166; }
+.fr-staged-list { display: flex; flex-direction: column; gap: 3px; margin: 6px 0 2px; font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
+.fr-staged-list .row { display: flex; align-items: center; gap: 8px; }
+.fr-staged-list .row .btn { padding: 0 6px; }
+.fr-vlabel .fr-vname { font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }

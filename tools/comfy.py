@@ -416,6 +416,7 @@ def run(graph, timeout=1200):
     if r.get("error") or r.get("node_errors"):
         raise RuntimeError("ComfyUI rejected the graph: " + json.dumps({"error": r.get("error"), "node_errors": r.get("node_errors")})[:1500])
     pid = r["prompt_id"]
+    print("comfy: prompt %s" % pid, flush=True)   # pass 96 (WF-06c): the Level Editor keeps it, so a cancel deletes this prompt alone
     t0 = time.time()
     while True:
         time.sleep(1.0)
