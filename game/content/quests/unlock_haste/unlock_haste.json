@@ -2,9 +2,9 @@
   "id": "unlock_haste",
   "name": "The Tower",
   "condition": {
-    "type": "kills_of_enemy",
-    "enemy": "bull_beetle",
-    "count": 30
+    "type": "item_level",
+    "kind": "card",
+    "level": 4
   },
   "unlocks": {
     "type": "passive",

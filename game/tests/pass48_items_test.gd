@@ -11,7 +11,8 @@ const NEW := ["phoenix_feather", "skedaddle", "powder_keg", "loose_change", "gas
 const DATA := {
 	# re-pinned in pass 95 (lane PASSIVES): the items climb the rarity ladder (uncommon 5 levels, rare 4, epic 3) and
 	# their numbers were redistributed (tools/passive_ladder.py); Phoenix Feather climbs to a second life
-	"phoenix_feather": ["uncommon", 6.0, 5, {"phoenix_revive": 2.0}],
+	# pass 100 (lane SMALL): Phoenix Feather is a one-shot item again (`single`): one level, one revive
+	"phoenix_feather": ["uncommon", 6.0, 1, {"phoenix_revive": 1.0}],
 	"skedaddle": ["rare", 7.0, 4, {"hurt_speed": 0.36, "hurt_speed_seconds": 3.1}],
 	"powder_keg": ["uncommon", 8.0, 5, {"powder_keg_chance": 0.155}],
 	"loose_change": ["uncommon", 8.0, 5, {"coin_on_hit": 0.68}],
@@ -21,7 +22,7 @@ const DATA := {
 ## the player-facing line of each, word for word (Garry's brief)
 const TEXT := {
 	# (pass 95: the lines name the ladder's numbers)
-	"phoenix_feather": "Two seconds after you fall, you get back up with the revive's blast, once a run. Each rung raises the health you rise with; Evolved: a second life.",
+	"phoenix_feather": "Two seconds after you fall, you get back up at half health (more with Second Wind) with the revive's blast. Once a run; it never levels up.",
 	"skedaddle": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
 	"powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
 	"loose_change": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
@@ -201,7 +202,8 @@ func test_the_new_items_read_well_on_cards_pause_and_collection() -> void:
 			assert_bool(c0 == c0.to_upper()).override_failure_message(id + " starts small: " + s).is_true()
 	# (pass 95: the first level reads plainly, a higher one names its rung, the next level its rung)
 	assert_str(TextGen.passive_description(Registry.passive("phoenix_feather"), 1)).is_equal("+1 free revive.")
-	assert_str(TextGen.next_level_text(Registry.passive("phoenix_feather"), 1)).is_equal("Next level (Rare): +15% health on revive")
+	# (pass 100: a one-shot item, held is maxed)
+	assert_str(TextGen.next_level_text(Registry.passive("phoenix_feather"), 1)).is_equal("Maxed.")
 	assert_str(TextGen.next_level_text(Registry.passive("phoenix_feather"), 5)).is_equal("Maxed.")
 	assert_str(TextGen.passive_description(Registry.passive("skedaddle"), 1)).is_equal(
 		"+25% move speed after a hit, +2 s boost after a hit.")
@@ -246,6 +248,9 @@ func test_passive_items_top_out_at_five_and_lines_at_four() -> void:
 			assert_int(p.max_level).override_failure_message(p.id + " (evolved)").is_equal(1)
 		elif p.is_line():
 			assert_int(p.max_level).override_failure_message(p.id + " (line)").is_equal(4)
+		elif p.single:
+			# pass 100 (lane SMALL): a one-shot item (Phoenix Feather) has one level
+			assert_int(p.max_level).override_failure_message(p.id + " (one-shot)").is_equal(1)
 		else:
 			# Garry's item 13: a pick-up and four upgrades at most; pass 95: the rarity ladder (common 6 .. epic 3)
 			assert_int(p.max_level).override_failure_message(p.id + " (passive item)").is_equal(PassiveDef.ladder_levels(p.rarity))
@@ -304,9 +309,8 @@ func test_weapon_levels_stop_at_five_wherever_they_are_offered() -> void:
 # ---------------------------------------------------------------- Phoenix Feather
 
 func test_phoenix_feather_is_one_revive_and_never_offered_again() -> void:
-	# re-pinned in pass 95 (lane PASSIVES): the feather climbs the ladder like every item (its rungs raise the health he
-	# rises with, Evolved is a second life: pass95_PASSIVES_test), so a held one is offered as an upgrade; a spent one at
-	# its top is never offered again
+	# re-pinned in pass 95 (lane PASSIVES) and back in pass 100 (lane SMALL, Garry: "It can only be used once and doesn't
+	# feature any upgrades"): one level, so a held one is never offered again, spent or not
 	_start()
 	var ph: PassiveDef = Registry.passive("phoenix_feather")
 	assert_bool(Run.phoenix_ready()).is_false()
@@ -321,11 +325,9 @@ func test_phoenix_feather_is_one_revive_and_never_offered_again() -> void:
 	assert_int(Run.passive_level("phoenix_feather")).is_equal(1)
 	assert_bool(Run.phoenix_ready()).is_true()
 	assert_bool(Run.item_spent(ph)).is_false()
-	# held: its next rungs are on the table as upgrades, never as a new item
+	# held: never on the table again
 	for c: Dictionary in Run.chest_candidates():
-		if str(c["id"]) == "phoenix_feather":
-			assert_bool(bool(c["is_new"])).is_false()
-			assert_int(int(c["level_from"])).is_equal(1)
+		assert_str(str(c["id"])).is_not_equal("phoenix_feather")
 	# spent: once a run at level 1, kept in the build (the UI says SPENT)
 	Run.use_phoenix()
 	assert_bool(Run.phoenix_used).is_true()

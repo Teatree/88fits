@@ -2839,3 +2839,42 @@ Round 2 (new keys):
 - Drivers: tools/dl/drivers/spider_walk_v5 (v4 + drop_islands=4), spider_death_v5 (death_v4 + drop_islands=4).
 - desert_spider.json: SP-G drivers v5, death_drivers v5, clay_drivers {front, side, back: v4}, view_drivers {back: v4},
   view_words {fd, bd}; SP-H drivers v5, death_drivers v5, clay_drivers v4.
+
+## Pass 100: new keys
+
+### Unlock quests about levels, upgrades and evolutions (lane QUESTS)
+
+| Type | Key | Type | Default | Meaning |
+|---|---|---|---|---|
+| `hero_level` | `hero` | hero id | (required) | the hero the level is reached with, in one run |
+| `hero_level` | `level` | int | (required) | the level to reach (Run.max_level_reached) |
+| `item_level` | `kind` | `any` / `weapon` / `card` / `passive` | `any` | which items count (passive = a passive item, card = a line); an `id` wins over it |
+| `item_level` | `id` | item id | "" | one item (a weapon, a card, a passive item; an evolved form's id works too); empty = any of `kind` |
+| `item_level` | `level` | int | (required unless `rung`) | the level to reach in one run; on a passive item, its level number |
+| `item_level` | `rung` | `uncommon` / `rare` / `epic` / `legendary` / `evolved` | "" | passive items only: the rarity rung to reach (PassiveDef.rung_at); set, it replaces `level` |
+| `evolve_item` | `id` | item id | "" | evolve this item: a weapon into its evolution (a chest), a card into its Risen card, a passive item onto its Evolved rung |
+| `evolve_item` | `kind` | `any` / `weapon` / `card` / `passive` | `any` | with no `id`: evolve any item of this kind |
+| `weapon_paths` | `weapon` | weapon id | "" | carry all of this weapon family's path mutations in one run; empty = any weapon |
+| `items_maxed` | `kind` | `any` / `weapon` / `card` / `passive` | `any` | which items count |
+| `items_maxed` | `count` | int | 1 | how many items of `kind` held at their top level at once (weapon max level or evolved, card max or Risen, passive item on Evolved; a one-shot item never) |
+
+Code: `QuestDef.gd` header (the list), `QuestTracker._satisfied` / `progress` / `stage_hint` / `run_progress` /
+`held_items` / `item_kind_of` / `rung_rank`, `TextGen.quest_build_text` / `quest_item_name` / `quest_kind_words`.
+Level Editor: `assets_fields.js` VOCAB.questTypes (+5), VOCAB.questItemKinds, VOCAB.questRungs, QUEST_ROWS rows
+`condition.hero`, `condition.kind`, `condition.id`, `condition.rung` (and `condition.level` / `condition.count` /
+`condition.weapon` shown for the new types); `assets_model.js` questBuildText (questText's mirror); `items.js` /
+`typed_forms.js` id rows by the row's kind; `vocab.py` QUEST_TYPES (+5), QUEST_ITEM_KINDS, QUEST_RUNGS (served as
+`quest_item_kinds`, `quest_rungs`); `server.py` references_to also names quests by `condition.id` and `condition.hero`.
+Bible: `tools/make_bible.py` quest_text (`_quest_build_text`) and quest_stage. Run record: `analytics/SCHEMA.md`
+`quests` notes the build quests.
+
+### The one-shot Phoenix Feather, the stage look before the landing (lane SMALL)
+
+| Where | Key | Type | Default | Meaning |
+|---|---|---|---|---|
+| passive JSON (`content/passives/<id>/<id>.json`), PassiveDef | `single` | bool | false | A one-shot passive item: one level (the game sets `max_level` 1), off the rarity ladder (no rungs, no Evolved rung, no Evolved icon), never offered again once held (card, chest, Stranger); a level past 1 (an old run) adds nothing. Ignored on a card (`line`) and an evolved form. Phoenix Feather carries it. Level Editor: Items tab, Levels section, "One-shot (no upgrades)" (passive items only), warnings when it has more than one level, a max_level other than 1, an `evolves_into`, or sits on a card. |
+| PassiveDef | `on_ladder()` | func | - | `is_item() and not single`: what the ladder code (ladder_top, rung_at, is_evolved_rung, apply_ladder), TextGen (rung names), W.rung_of, WItem.rung_word and the Collection read now in place of is_item(). |
+| Game.gd | `SPAWN_BEAM_PRIORITY` | const int | -6 | The spawn beam's render priority: after the stage filter (StageLook.PRIORITY -7), before the hero; was -10 (under the filter). |
+| Game.gd | `_show_stage_look_now()` | func | - | Shows the run's stage look (StageLook.show_stage(Run.stage, 0.0)) before the spawn beam / instant start; not in the arena. |
+| StageLook.gd | `show_stage(s, seconds = -1)` | behaviour | - | A call without `seconds` for the stage already shown does nothing (no second switch, no fade); an explicit `seconds` always shows the stage. |
+| Level Editor vocab | `PASSIVE_DEFAULTS.single` | bool | False | Served to the page. server.py: `single` is editor-owned on a passive and listed on its record. |

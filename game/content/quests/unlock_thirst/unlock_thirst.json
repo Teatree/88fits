@@ -2,9 +2,8 @@
   "id": "unlock_thirst",
   "name": "Death",
   "condition": {
-    "type": "kills_of_enemy",
-    "enemy": "dust_mummy",
-    "count": 60
+    "type": "evolve_item",
+    "id": "mend"
   },
   "unlocks": {
     "type": "passive",

@@ -2,9 +2,9 @@
   "id": "unlock_overkill",
   "name": "Overkill",
   "condition": {
-    "type": "kills_of_enemy",
-    "enemy": "dune_scorpion",
-    "count": 1
+    "type": "item_level",
+    "kind": "passive",
+    "rung": "legendary"
   },
   "unlocks": {
     "type": "passive",

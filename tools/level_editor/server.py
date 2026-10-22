@@ -179,7 +179,7 @@ EDITOR_OWNED = {
                              "title_holds", "title_camera", "title_extra_ref", "appearance"},
     "weapon": _WEAPON_OWNED, "evolution": _WEAPON_OWNED,
     "passive": _COMMON_OWNED | {"line", "levels", "repeat_last_level", "max_level", "pairs_with", "trade", "evolves_into",
-                                "evolves_from", "text"},
+                                "evolves_from", "text", "single"},
     "mutation": _COMMON_OWNED | {"weapon", "kind", "hero", "text", "vfx", "effects", "params", "behavior", "visual"},
     # pass 69: a perk (PerkDef: hero, text, effects, special, params)
     "perk": _COMMON_OWNED | {"hero", "text", "effects", "special", "params"},
@@ -899,7 +899,8 @@ def item_record(kind, cid, folder, d, path, quests):
         rec.update({"line": bool(d.get("line", False)), "max_level": d.get("max_level", 8), "levels": d.get("levels", []),
                     "repeat_last_level": bool(d.get("repeat_last_level", True)), "evolves_into": str(d.get("evolves_into", "")),
                     "evolves_from": str(d.get("evolves_from", "")), "text": str(d.get("text", "")),
-                    "pairs_with": str(d.get("pairs_with", "")), "trade": str(d.get("trade", ""))})
+                    "pairs_with": str(d.get("pairs_with", "")), "trade": str(d.get("trade", "")),
+                    "single": bool(d.get("single", False))})
         # pass 73 (lane CARDS): its looks (the cards' A-E) and the one the game plays
         rec.update(item_look_state(kind, cid, folder, d))
     elif kind == "mutation":
@@ -1383,7 +1384,8 @@ def references_to(kind, cid):
     for qid, folder, path, d in _load_kind("quest"):
         u = d.get("unlocks") if isinstance(d.get("unlocks"), dict) else {}
         c = d.get("condition") if isinstance(d.get("condition"), dict) else {}
-        if str(u.get("id", "")) == cid or str(c.get("enemy", "")) == cid or str(c.get("weapon", "")) == cid:
+        # pass 100 (lane QUESTS): the build quests name an item (`id`) or a hero (`hero`)
+        if str(u.get("id", "")) == cid or cid in (str(c.get("enemy", "")), str(c.get("weapon", "")), str(c.get("id", "")), str(c.get("hero", ""))):
             out["quests"].append(qid)
     for wid, folder, path, d in _load_kind("weapon"):
         if str(d.get("evolves_into", "")) == cid or str(d.get("hero", "")) == cid:

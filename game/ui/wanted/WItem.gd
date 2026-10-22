@@ -71,7 +71,7 @@ static func tag(card: Dictionary) -> String:
 ## Evolved rung (the tag says EVOLVED) and on anything else.
 static func rung_word(card: Dictionary) -> String:
 	var def: ContentDef = card["def"]
-	if not (def is PassiveDef) or not (def as PassiveDef).is_item() or int(card.get("level_from", 0)) <= 0:
+	if not (def is PassiveDef) or not (def as PassiveDef).on_ladder() or int(card.get("level_from", 0)) <= 0:
 		return ""
 	var lt := level_of(card)
 	if W.is_evolved_rung(def, lt):

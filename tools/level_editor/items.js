@@ -270,7 +270,7 @@ const Items = (() => {
     const ctl = el('div', { class: 'fctl' });
     const q = fl ? M.questFor(doc.id, fl.quests, kind) : null;
     const draft = doc.ui.questDraft;
-    const words = (qq) => { const c = M.isObj(qq.condition) ? qq.condition : {}; const t = F.VOCAB.questTypes.find((o) => o.v === c.type); const bits = ['count', 'enemy', 'weapon', 'map', 'stage', 'level', 'minutes'].filter((k) => c[k] != null).map((k) => `${k} ${c[k]}`); return `${t ? t.label : c.type || '?'}${bits.length ? ' · ' + bits.join(', ') : ''}`; };
+    const words = (qq) => { const c = M.isObj(qq.condition) ? qq.condition : {}; const t = F.VOCAB.questTypes.find((o) => o.v === c.type); const bits = ['count', 'enemy', 'weapon', 'map', 'stage', 'level', 'minutes', 'hero', 'kind', 'id', 'rung'].filter((k) => c[k] != null && c[k] !== '').map((k) => `${k} ${c[k]}`); return `${t ? t.label : c.type || '?'}${bits.length ? ' · ' + bits.join(', ') : ''}`; };
     if (q && !draft) {
       ctl.appendChild(el('div', { class: 'small' }, el('b', { text: q.name || q.id }), el('span', { text: ` · ${words(q)}` }), el('span', { class: 'muted small', text: ` (${q.id}${q.quest_text ? ': "' + q.quest_text + '"' : ''})` })));
       ctl.appendChild(el('div', { class: 'alt-actions' },
@@ -290,7 +290,7 @@ const Items = (() => {
         if (typeof def.options === 'function') def2.options = F.options(def, Assets.vocab());
         let rowEl;
         if (def.type === 'enemy') rowEl = Forms.row(def2, Forms.enemyPick(U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, v)), { path: 'quest.' + def.key, summary: false, emptyLabel: '—' }), {});
-        else if (def.type === 'id_select') rowEl = Forms.row(def2, Forms.iconSelect(Assets.idOptions('weapon') || [], U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, v)), { emptyLabel: '—', path: 'quest.' + def.key }), {});
+        else if (def.type === 'id_select') rowEl = Forms.row(def2, Forms.iconSelect(((def.kind === 'hero' ? Assets.ensureHeroes() : null), Assets.idOptions(def.kind || 'weapon')) || [], U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, v)), { emptyLabel: '—', path: 'quest.' + def.key }), {});
         else rowEl = Forms.fieldRow(def2, draft, { apply: (fn) => localApply(fn), pathPrefix: 'quest' });
         box.appendChild(rowEl);
       }

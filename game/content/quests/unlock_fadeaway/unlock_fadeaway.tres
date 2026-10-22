@@ -6,9 +6,9 @@
 [resource]
 script = ExtResource("2_fq2us")
 condition = {
-"count": 3.0,
-"enemy": "saiga_sniper",
-"type": "kills_of_enemy"
+"hero": "drifter",
+"level": 12.0,
+"type": "hero_level"
 }
 unlocks = {
 "id": "fadeaway",

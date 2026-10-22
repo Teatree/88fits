@@ -299,7 +299,10 @@ def node_checks(check, run_node):
     check(res["summary"] == ["xp_pull_radius"], "L69 levelsSummary leaves a word stat out of the totals: %s" % res["summary"])
     check(all(res["help"]) and res["kinds"][-1] == ["pulls more often", "word"], "L69 every new stat has a help line and its TextGen name and kind")
     want = {"unlock_buck": "Survive 15 minutes in one run.", "unlock_calavera": "Kill the stage 1 boss on Red Canyon.",
-            "unlock_ironwood": "Kill 2,500 creatures, all time.", "unlock_may": "Reach level 30 in one run.",
+            # re-pinned in pass 100 (lane QUESTS): May's requirement is a level with Calavera now (it was any hero's 30),
+            # read off her quest; Fadeaway's (a level with the Drifter) is checked by selftest_QUESTS100
+            "unlock_ironwood": "Kill 2,500 creatures, all time.",
+            "unlock_may": "Reach level %d with Calavera." % int(next((x["condition"].get("level", 0) for x in q["quests"] if x["id"] == "unlock_may"), 30)),
             "unlock_mira": "Kill 99,999,999 creatures, all time.", "unlock_solenne": "Extract after stage 2 on Red Canyon."}
     got = {x["id"]: t for x, t in zip(q["quests"], res["questText"])}
     check(all(got.get(k) == v for k, v in want.items() if k in got) and len(got) >= 6, "L69 questText reads the heroes' requirements as TextGen.quest_text: %s" % got)

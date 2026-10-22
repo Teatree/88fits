@@ -6,9 +6,10 @@
 [resource]
 script = ExtResource("2_mjx7h")
 condition = {
-"count": 40.0,
-"enemy": "skeleton_knight",
-"type": "kills_of_enemy"
+"id": "orbit_saws",
+"kind": "weapon",
+"level": 5.0,
+"type": "item_level"
 }
 unlocks = {
 "id": "sabre",

@@ -70,7 +70,7 @@ LADDER = {
     "kindling": [[E("fire_damage", 0.2, "mul", "all_weapons")]] + [[E("fire_damage", 0.12, "mul", "all_weapons")]] * 3 + [[E("fire_damage", 0.18, "mul", "all_weapons")]],
     "loose_change": [[E("coin_on_hit", 0.32)]] + [[E("coin_on_hit", 0.08)]] * 3 + [[E("coin_on_hit", 0.12)]],
     "overkill": [[E("overkill", 0.4)]] + [[E("overkill", 0.15)]] * 3 + [[E("overkill", 0.25)]],
-    "phoenix_feather": [[E("phoenix_revive", 1)], [E("revive_hp", 0.15)], [E("revive_hp", 0.15)], [E("revive_hp", 0.2)], [E("phoenix_revive", 1)]],
+    # (pass 100, lane SMALL: Phoenix Feather left the ladder: a one-shot item, `single` in its JSON, one level)
     "pocket_watch": [[E("powerup_duration", 0.2), E("powerup_chance", 0.05)], [E("powerup_duration", 0.12)],
                      [E("powerup_duration", 0.12), E("powerup_chance", 0.04)], [E("powerup_duration", 0.12)],
                      [E("powerup_duration", 0.2), E("powerup_chance", 0.05)]],
@@ -112,7 +112,6 @@ TEXT = {
     "last_stand": "When a hit leaves you under 30% health, time slows for 2 s and you deal 2.3 times the damage (more each rung).",
     "loose_change": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
     "magnet": "Every few seconds, at random, pulls every EXP gem within 6 m to you. Rungs reach farther and pull more often.",
-    "phoenix_feather": "Two seconds after you fall, you get back up with the revive's blast, once a run. Each rung raises the health you rise with; Evolved: a second life.",
     "pocket_watch": "Power-ups you pick up last 20% longer, more each rung (+76% once Evolved); at levels 1, 3 and Evolved they also drop more often (+14% in all).",
     "powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
     "siesta": "Standing still heals you: +1.4 health a second, more each rung.",
@@ -207,6 +206,9 @@ def main(argv=None):
         doc, raw = read_json(path)
         if doc.get("line") or doc.get("evolves_from"):
             bad.append("%s: a line or an evolved form: not on the ladder" % pid)
+            continue
+        if doc.get("single"):
+            bad.append("%s: a one-shot item (`single`, pass 100): not on the ladder" % pid)
             continue
         rar = str(doc.get("rarity", "common"))
         want_n = ladder_levels(rar)

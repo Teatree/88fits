@@ -186,6 +186,9 @@ const TypedForms = (() => {
     const nm = {
       weapon: (id) => { const w = fl && fl.weapons.find((x) => x.id === id); return w ? (w.name || id) : String(id || ''); },
       enemy: (id) => { const c = typeof App !== 'undefined' && App.creature ? App.creature(id) : null; return c ? (c.name || id) : String(id || ''); },
+      // pass 100 (lane QUESTS): the build quests name a hero and an item (weapon, card, passive item, with its evolution)
+      hero: (id) => { const h = (Assets.S.lists.heroes || []).find((x) => x.id === id); return h ? (h.name || id) : ''; },
+      items: fl ? { weapons: fl.weapons.concat(fl.evolutions || []), passives: fl.passives, mutations: fl.mutations || [] } : null,
     };
     return M.questText(q, nm);
   }
@@ -222,7 +225,7 @@ const TypedForms = (() => {
         if (typeof def.options === 'function') def2.options = F.options(def, Assets.vocab());
         let rowEl;
         if (def.type === 'enemy') rowEl = Forms.row(def2, Forms.enemyPick(U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, v)), { path: 'req.' + def.key, summary: false, emptyLabel: '—' }), {});
-        else if (def.type === 'id_select') rowEl = Forms.row(def2, Forms.iconSelect(Assets.idOptions('weapon') || [], U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, v)), { emptyLabel: '—', path: 'req.' + def.key }), {});
+        else if (def.type === 'id_select') rowEl = Forms.row(def2, Forms.iconSelect(((def.kind === 'hero' ? Assets.ensureHeroes() : null), Assets.idOptions(def.kind || 'weapon')) || [], U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, v)), { emptyLabel: '—', path: 'req.' + def.key }), {});
         else rowEl = Forms.fieldRow(def2, draft, { apply: (fn) => localApply(fn), pathPrefix: 'req' });
         box.appendChild(rowEl);
       }

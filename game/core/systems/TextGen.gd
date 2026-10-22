@@ -699,7 +699,7 @@ static func _passive_lines(def: PassiveDef, level: int) -> String:
 		return total + "."
 	# pass 95 (lane PASSIVES): a passive item on the rarity ladder names its rung ("Level 3 (Rare): ... total.",
 	# "Level 4 (Evolved): ..."); its first level is what it gives, plainly
-	if def.is_item():
+	if def.on_ladder():
 		if lv <= 1:
 			return total + "."
 		return "Level %d (%s): %s total." % [lv, rung_name(def, lv), total]
@@ -773,7 +773,7 @@ static func next_level_text(def: ContentDef, level: int) -> String:
 		return "Maxed."
 	var s := describe_effects(eff)
 	# pass 95 (lane PASSIVES): a passive item names the rung the next level lands on ("Next level (Rare): ...")
-	if def is PassiveDef and (def as PassiveDef).is_item():
+	if def is PassiveDef and (def as PassiveDef).on_ladder():
 		return "Next level (%s): %s" % [rung_name(def as PassiveDef, level + 1), s if s != "" else "nothing new"]
 	return "Next level: " + (s if s != "" else "nothing new")
 
@@ -1172,7 +1172,73 @@ static func quest_text(q: QuestDef) -> String:
 			return "Earn %d gold, all time." % int(c.get("count", 0))
 		"reach_stage":
 			return "Reach stage %d." % int(c.get("stage", 1))
+		# pass 100 (lane QUESTS): levels, upgrades and evolutions (quest_build_text)
+		"hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed":
+			return quest_build_text(c)
 	return "Complete a challenge."
+
+
+## Pass 100 (lane QUESTS): the words of the build quests (QuestDef's header): "Reach level 15 with Drifter.", "Get the
+## Orbit Saws to level 5 in one run.", "Get a passive item to Legendary in one run.", "Evolve Temperance into Temperance
+## Risen.", "Take all 3 mutations of the Revolver in one run.", "Hold 3 weapons at max level at once."
+static func quest_build_text(c: Dictionary) -> String:
+	var id := str(c.get("id", ""))
+	var kind := str(c.get("kind", "any"))
+	match str(c.get("type", "")):
+		"hero_level":
+			var reg := _registry()
+			var h: CharacterDef = reg.character(str(c.get("hero", ""))) if reg else null
+			var who: String = h.display_name if h else str(c.get("hero", "")).capitalize()
+			return "Reach level %d with %s." % [int(c.get("level", 0)), who]
+		"item_level":
+			var rung := str(c.get("rung", ""))
+			var to := rung.capitalize() if rung != "" else "level %d" % int(c.get("level", 0))
+			var what := quest_item_name(id) if id != "" else quest_kind_words(("passive" if rung != "" else kind), true)
+			return "Get %s to %s in one run." % [what, to]
+		"evolve_item":
+			if id == "":
+				return "Evolve any %s." % quest_kind_words(kind, false)
+			var reg := _registry()
+			var w: WeaponDef = reg.weapon(id) if reg else null
+			if w and w.is_evolution:
+				return "Evolve the %s." % w.display_name
+			if w:
+				var into: WeaponDef = reg.weapon(w.evolves_into)
+				return "Evolve the %s into the %s." % [w.display_name, into.display_name] if into else "Evolve the %s." % w.display_name
+			var p: PassiveDef = reg.passive(id) if reg else null
+			if p and p.evolves_into != "":
+				return "Evolve %s into %s." % [p.display_name, PassiveDef.display_name_of(p.evolves_into)]
+			if p and p.is_item():
+				return "Get %s to Evolved in one run." % p.display_name
+			return "Evolve %s." % quest_item_name(id)
+		"weapon_paths":
+			var wid := str(c.get("weapon", ""))
+			if wid == "":
+				return "Take all of one weapon's mutations in one run."
+			var reg := _registry()
+			var n: int = (reg.mutations_of(wid) as Array).size() if reg else 3
+			return "Take all %d mutations of %s in one run." % [n, quest_item_name(wid)]
+		"items_maxed":
+			var k := int(c.get("count", 1))
+			return "Hold %d %s%s at max level at once." % [k, quest_kind_words(kind, false), "" if k == 1 else "s"]
+	return "Complete a challenge."
+
+
+## An item by its name as a quest says it: "the Orbit Saws" (a weapon), "Temperance" (a card), "Beer" (a passive item).
+static func quest_item_name(id: String) -> String:
+	var reg := _registry()
+	var w: WeaponDef = reg.weapon(id) if reg else null
+	if w:
+		return "the " + w.display_name
+	return PassiveDef.display_name_of(id)
+
+
+## A kind of item in a quest's words: "a weapon" / "weapon", "a card", "a passive item", "an item" / "item".
+static func quest_kind_words(kind: String, article: bool) -> String:
+	var noun: String = {"weapon": "weapon", "card": "card", "passive": "passive item"}.get(kind, "item")
+	if not article:
+		return noun
+	return ("an " if noun == "item" else "a ") + noun
 
 
 ## "the Dune Scorpion", "150 Goblins", "30 Spit Cactuses": the creature by its name, counted.

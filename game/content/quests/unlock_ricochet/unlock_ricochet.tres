@@ -6,9 +6,8 @@
 [resource]
 script = ExtResource("2_jqf78")
 condition = {
-"count": 30.0,
-"enemy": "spit_cactus",
-"type": "kills_of_enemy"
+"type": "weapon_paths",
+"weapon": "revolver"
 }
 unlocks = {
 "id": "ricochet",

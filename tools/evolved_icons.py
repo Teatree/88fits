@@ -39,7 +39,8 @@ def items(only=None):
             continue
         with open(f, "r", encoding="utf-8") as fh:
             j = json.load(fh)
-        if j.get("line") or j.get("evolves_from"):
+        # pass 100 (lane SMALL): a one-shot item (`single`) has no Evolved rung, so no Evolved icon
+        if j.get("line") or j.get("evolves_from") or j.get("single"):
             continue
         if only and d not in only:
             continue

@@ -6,9 +6,8 @@
 [resource]
 script = ExtResource("2_7c6vx")
 condition = {
-"count": 60.0,
-"enemy": "dust_mummy",
-"type": "kills_of_enemy"
+"id": "mend",
+"type": "evolve_item"
 }
 unlocks = {
 "id": "thirst",

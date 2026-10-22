@@ -6,9 +6,9 @@
 [resource]
 script = ExtResource("2_1usdr")
 condition = {
-"count": 1.0,
-"enemy": "dune_scorpion",
-"type": "kills_of_enemy"
+"kind": "passive",
+"rung": "legendary",
+"type": "item_level"
 }
 unlocks = {
 "id": "overkill",

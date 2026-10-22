@@ -8,7 +8,8 @@
 ## (cards) are untouched, and Phoenix Feather climbs to a second life.
 extends GdUnitTestSuite
 
-const ITEMS := 34
+## re-pinned in pass 100 (lane SMALL): Phoenix Feather left the ladder (a one-shot item, `single`): 33 items climb it
+const ITEMS := 33
 const LADDER := {"common": 6, "uncommon": 5, "rare": 4, "epic": 3, "legendary": 2}
 
 
@@ -27,7 +28,8 @@ func _start(hero: String = "drifter") -> void:
 
 
 func _items() -> Array:
-	return Registry.sorted_passives_only()
+	# the items on the ladder (pass 100: a one-shot item, `single`, is not: pass100_SMALL_test)
+	return Registry.sorted_passives_only().filter(func(p: PassiveDef) -> bool: return p.on_ladder())
 
 
 func _texts(root: Node) -> String:
@@ -343,55 +345,27 @@ func test_a_level_past_the_top_loads_without_error() -> void:
 
 
 func test_phoenix_feather_climbs_to_a_second_life() -> void:
+	# re-pinned in pass 100 (lane SMALL, Garry: "It can only be used once and doesn't feature any upgrades"): the feather
+	# is a one-shot item off the ladder, one level, one revive; the rest is pinned in pass100_SMALL_test
 	_start()
 	var ph: PassiveDef = Registry.passive("phoenix_feather")
-	assert_int(ph.max_level).is_equal(5)
-	assert_bool(Run.phoenix_ready()).is_false()
+	assert_bool(ph.single).is_true()
+	assert_bool(ph.on_ladder()).is_false()
+	assert_int(ph.max_level).is_equal(1)
 	assert_bool(Run.add_or_level_passive("phoenix_feather")).is_true()
 	assert_int(Run.phoenix_count()).is_equal(1)
-	assert_bool(Run.phoenix_ready()).is_true()
-	# one life spent: used up at level 1, as before
 	Run.use_phoenix()
-	assert_int(Run.phoenix_spent).is_equal(1)
-	assert_bool(Run.phoenix_used).is_true()
-	assert_bool(Run.phoenix_ready()).is_false()
-	assert_bool(Run.item_spent(ph)).is_true()
-	# it is offered again while held: the rungs raise the health he rises with
-	var share := Run.player_sheet.get_stat("revive_hp", 0.5)
-	assert_bool(Run.add_or_level_passive("phoenix_feather")).is_true()
-	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(share + 0.15, 0.0001)
-	assert_bool(Run.phoenix_ready()).is_false()
-	Run.add_or_level_passive("phoenix_feather")
-	Run.add_or_level_passive("phoenix_feather")
-	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(share + 0.5, 0.0001)
-	assert_int(Run.phoenix_count()).is_equal(1)
-	# Evolved: a second life, ready again though the first was spent
-	assert_bool(Run.add_or_level_passive("phoenix_feather")).is_true()
-	assert_int(Run.passive_level("phoenix_feather")).is_equal(5)
-	assert_int(Run.phoenix_count()).is_equal(2)
-	assert_bool(Run.phoenix_used).is_false()
-	assert_bool(Run.phoenix_ready()).is_true()
-	assert_bool(Run.item_spent(ph)).is_false()
-	Run.use_phoenix()
-	assert_int(Run.phoenix_spent).is_equal(2)
-	assert_bool(Run.phoenix_used).is_true()
 	assert_bool(Run.phoenix_ready()).is_false()
 	assert_bool(Run.item_spent(ph)).is_true()
 	assert_bool(Run.add_or_level_passive("phoenix_feather")).is_false()
-	# a rebuild keeps it spent; a new run has it fresh
-	Run.rebuild_sheets()
-	assert_bool(Run.phoenix_ready()).is_false()
+	# a level an old run may hold past the one (a save, a tool) still counts one revive
 	_start()
-	assert_int(Run.phoenix_spent).is_equal(0)
-	assert_bool(Run.phoenix_used).is_false()
-	# taken Evolved at once (a favourite's "max"): two lives from the start
 	Run.debug_set_item("passive", "phoenix_feather", 5)
-	assert_int(Run.phoenix_count()).is_equal(2)
-	assert_bool(Run.phoenix_ready()).is_true()
-	Run.use_phoenix()
-	assert_bool(Run.phoenix_ready()).is_true()
-	Run.use_phoenix()
-	assert_bool(Run.phoenix_ready()).is_false()
+	assert_int(Run.passive_level("phoenix_feather")).is_equal(1)
+	assert_int(Run.phoenix_count()).is_equal(1)
+	Run.passives["phoenix_feather"] = 5
+	Run._apply_passives_to_sheet()
+	assert_int(Run.phoenix_count()).is_equal(1)
 
 
 func test_the_tool_s_table_matches_the_content() -> void:

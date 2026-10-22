@@ -6341,3 +6341,100 @@ Garry's word: Gemini first, the local model only as a surfaced backup. The rules
     Garry's quota was spent by the blind benchmark on 2026-10-22 (39 single-picture calls): it resets about 2026-10-29 13:00.
 10. **Measured**: one Gemini call on one picture took about 92-100 s in the blind bench (about 14,000 thinking tokens);
     the live proof's 4-frame sheet: see report_GEMINI.md.
+
+## 45. Pass 100 (v0.85): build quests, the one-shot Phoenix, the stage look at the landing
+
+Garry's words: tools/dl/p100/REQUEST.md. Each lane's rules.
+
+### 45.QUESTS Unlock quests about levels, upgrades and evolutions
+
+Garry (pass 100, "Meta Progression"): most unlock requirements are kill counts ("which is fine"); he wants more that ask
+the player to reach a level with a given hero, upgrade an item (passive item, card, weapon) to a level, evolve an item.
+
+#### The new rules (each is new; name them in BALANCING.md)
+
+1. **Five build quests, all done in one run** (`QuestDef` header; `QuestTracker.run_progress` / `held_items`):
+   `hero_level {hero, level}`, `item_level {kind, id?, level? | rung?}`, `evolve_item {id | kind}`, `weapon_paths {weapon?}`,
+   `items_maxed {kind, count}`. They are read off the run's build as it stands, checked by the run's own once-a-second
+   check, at the boss and at the run's end (`in_run`); the title's quiet check never completes one.
+2. **An evolved form counts its source at the source's top level**: a weapon's evolution is its source at level 5, a
+   Risen card its card at level 4. An evolution never undoes a level reached (the check runs once a second; a level-5 weapon
+   evolved at a chest in the same second still counts).
+3. **A passive item's "level" is its level number; its `rung` is the rarity rung.** Passive items climb the rarity ladder
+   (pass 95), so level 3 is Rare for a common item and Evolved for an epic one. A quest that means "this good" names the
+   rung (`rung`: uncommon, rare, epic, legendary, evolved) and then counts passive items only (cards and weapons never
+   have a rung). `level` stays available and means the number.
+4. **"Evolve" per kind**: a weapon evolves at a chest into its evolution; a card evolves into its Risen card; a passive
+   item "evolves" onto its Evolved rung (its top level). An evolved form's id works in place of its source's.
+5. **"Max level"** (items_maxed): a weapon at its max level or evolved, a card at its max level or Risen, a passive item
+   on its Evolved rung. A one-shot item (top level 1: the Phoenix Feather, lane SMALL's `single`) never counts as maxed.
+6. **weapon_paths** counts the weapon's path mutations (Registry.mutations_of: never a hidden one, never a hero's own),
+   so "all three" is the same set the evolution needs; empty `weapon` = any weapon held.
+7. **hero_level** counts only in a run with that hero (Run.max_level_reached).
+8. **Progress**: the build quests show progress only while a run is on (the run record's quest before/after); outside a
+   run they show none, like `reach_level` always has (the drawer and the Collection show no bar for them).
+9. **Stage hints** (the Collection's "from stage N"): hero_level as reach_level (<= 12: 1, <= 24: 2, else 3); item_level 1
+   (the Evolved rung 2); evolve_item 2 for a weapon (as evolve_any), 1 for a card or a passive item; weapon_paths 1;
+   items_maxed 1 for one or two items, 2 for three or more.
+10. **Save compatibility**: completion is stored by quest id (`Save.quests_done`), never by condition, so a quest done
+    on a save stays done whatever its condition becomes; converted quests kept their ids.
+
+#### Before / after (8 quests changed; every other quest is exactly as it was)
+
+Kill quests before: 13 (12 in play + Mira's unattainable one; Dad's is hidden and kept). After: 6 (Adrenaline, Big
+Mouth, Killer Bees, Lob Grenade, Tumbleweed, Mira) + Dad's hidden one. Converted: 7 kill quests (54%) and May's level quest.
+
+Numbers used for "expected runs": the run sim (tools/dl/sim/runs: the Drifter with a quarter board reaches level 5 at
+2:00, 8 at 4:00, 14 at 7:10 = the stage-1 boss; with no board the bot dies at ~2:30, level 5-6) and the path slots
+(stage 1 offers a path mutation at 1:19, 2:20, 3:20, 4:20, 5:15, 6:05, 6:45). Garry's own played runs reach level 24-28
+by 11-12 minutes. "Runs" means runs of a player aiming at the quest.
+
+| Quest (unlocks) | Old | New | Why | Expected runs (old -> new) | Stage hint |
+|---|---|---|---|---|---|
+| unlock_sabre (Sabre, weapon) | Kill 40 Skeleton Knights (from 1:23) | Get the Orbit Saws to level 5 in one run (`item_level` weapon orbit_saws 5) | blade for blade: the Sabre is earned by maxing the spinning saws; the Orbit Saws is common, open from the start | 1-2 -> 1-3 | 1 -> 1 |
+| unlock_haste (The Tower, card) | Kill 30 Bull Beetles (from 5:06) | Get a card to level 4 in one run (`item_level` card 4) | a card is earned by maxing a card; any of the open cards | 2-4 -> 1-2 (a touch earlier) | 1 -> 1 |
+| unlock_overkill (Overkill, passive item) | Kill the Dune Scorpion (from 3:35) | Get a passive item to Legendary in one run (`item_level` passive, rung legendary) | the passive-item ladder quest: an epic item +1, a rare +2, an uncommon +3 | 1-3 -> 2-4 (a touch later) | 1 -> 1 |
+| unlock_land_mine (Land Mine, weapon) | Kill 120 Fire Ants (stage 2, from 7:11) | Evolve the Salt into the Hiwa Kai (`evolve_item` salt) | ground for ground: the Salt lies on the ground like the mines; an evolution is a stage-2 goal like the old one | 2-4 -> 2-5 | 2 -> 2 |
+| unlock_thirst (Death, card) | Kill 60 Dust Mummies (from 6:08) | Evolve Temperance into Temperance Risen (`evolve_item` mend) | healing to life steal: the heal card risen opens the drinking card | 2-4 -> 2-4 | 1 -> 1 |
+| unlock_ricochet (Ricochet, passive item) | Kill 30 Spit Cactuses (from 4:17) | Take all 3 mutations of the Revolver in one run (`weapon_paths` revolver) | bullets that bounce, earned on the gun; the Revolver is the free Drifter's own; three path slots fall by 3:20 | 1-3 -> 1-3 | 1 -> 1 |
+| unlock_fadeaway (Fadeaway, hero; 1,750 gold after) | Kill 3 Saiga Snipers (special, from 3:35) | Reach level 12 with Drifter (`hero_level` drifter 12) | a hero unlocked by levelling the starter; level 12 is about 5 minutes into a stage-1 run, early as before; his gold price is the real gate | 2-5 -> 1-3 | 1 -> 1 |
+| unlock_may (May, hero; 2,500 gold after) | Reach level 30 in one run (any hero) | Reach level 30 with Calavera (`hero_level` calavera 30) | a hero unlocked by levelling another; Calavera is owned after the stage-1 boss and 300 gold, so no dead end; the level kept (Garry's 30) | late -> late (+1-3 runs: one hero) | 3 -> 3 |
+
+Kept as they were (Garry's numbers untouched): Adrenaline (400 kills), Big Mouth (300 Armadillos), Killer Bees (40
+Armadillos), Lob Grenade (200 Fire Ants in one run), Tumbleweed (150 Skeletons), Mira (unattainable), Dad (hidden), and
+every non-kill quest (Jeżyk, Calavera, Solenne, the Eye, the Guardian, the Ghost, the Sage, Guillotine, Hammer, Spear,
+Quickdraw, Rocket Pod, the Chariot, Turret Buddy, Zap Beam). `items_maxed` is built and tested but no unlock uses it yet
+(Big Mouth was the candidate: "Hold 3 weapons at max level at once" would fit it if Garry wants another conversion).
+
+The quest-locked share (pass44_test's band) is unchanged: 23 locked base items, the stage spread 14 / 8 / 1 (61% / 35%
+/ 1), the same as before (every converted item quest kept its stage hint).
+
+#### Chains (no dead ends)
+
+Every name in a condition is in play and can be had: the Orbit Saws, the Salt, Temperance (mend) are open from the start;
+the Revolver is the free Drifter's; the Drifter is free; Calavera is unlocked by the stage-1 boss (a boss quest) and
+bought for 300 gold. pass100_QUESTS_test walks the chain from a new save and reaches every quest in play.
+
+#### Open for Garry
+
+- Fadeaway's level (12) and May's (30 with Calavera) are first guesses; the Level Editor's hero Requirement edits them.
+- Overkill now asks for a Legendary passive item; if that lands too late in play, `rung: "epic"` is the easier step.
+
+### 45.SMALL The one-shot Phoenix Feather, the stage look before the landing
+
+- **Phoenix Feather is a one-shot item** (Garry, 2026-10-23: "should still be a revive item with 50% HP on revive. It can
+  only be used once and doesn't feature any upgrades"): rarity uncommon, weight 6 (unchanged), one level = `phoenix_revive`
+  +1. Taking it gives one free revive this run: two seconds after he falls he stands up at `revive_hp` health (base 50%)
+  with the revive's blast, before the Down! screen. Once spent it stays in the build marked "(used)" and is never
+  offered again; it is never offered as an upgrade at all (one level). Pass 95's rungs (+15% / +15% / +20% revive
+  health, an Evolved second life) are gone.
+- **Second Wind still raises a Phoenix revive** (lane SMALL's decision, one rule for every revive): the Upgrade board's
+  Nerve -> Second Wind adds +15% revive health at ranks 2, 4, 6 to every revive (gold, ad, Phoenix), so a Phoenix revive
+  is 50% / 65% / 80% / 95% with 0 / 1 / 2 / 3 of those ranks. The card says "half health (more with Second Wind)".
+- **`single`** (any passive item): one level, off the rarity ladder, never offered again once held; the Collection's
+  kind line reads "Passive · <rarity> · no upgrades".
+- **The intro plays in the stage's look**: the run's stage filter and hell are on, at once, before the spawn beam lands
+  (stage 2 Nightfall blue, stage 3 Blood Moon red + hell); the stage's start after the landing changes nothing. The
+  spawn beam draws over the filter (render priority -6, the filter -7), so it reads as light at night and in hell.
+- The bot (game/tools/bot/BotCards.gd) needs no change: a free revive is worth `SURVIVAL_PTS.phoenix_revive` 25 on the
+  one card there is; it never valued the old rungs' revive health.

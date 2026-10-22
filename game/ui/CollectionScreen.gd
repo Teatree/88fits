@@ -406,8 +406,11 @@ func _kind_line(def: ContentDef) -> String:
 		return ("Evolution" if (def as WeaponDef).is_evolution else "Weapon") + " · %d levels" % (def as WeaponDef).max_level
 	if def is PassiveDef:
 		# pass 95 (lane PASSIVES): a passive item climbs from its rarity to Evolved ("Passive · Rare → Evolved · 4 levels")
-		if (def as PassiveDef).is_item():
+		if (def as PassiveDef).on_ladder():
 			return "Passive · %s → Evolved · %d levels" % [TextGen.rarity_name(W.rarity_of(def)), W.max_level_of(def)]
+		# pass 100 (lane SMALL): a one-shot item (`single`: Phoenix Feather) has no upgrades
+		if (def as PassiveDef).single:
+			return "Passive · %s · no upgrades" % TextGen.rarity_name(W.rarity_of(def))
 		return "%s · %d levels" % ["Card" if W.is_line(def) else "Passive", W.max_level_of(def)]
 	if def is PerkDef:
 		var hero := Registry.character((def as PerkDef).hero)
@@ -525,7 +528,7 @@ func _level_grid(def: ContentDef) -> GridContainer:
 		if text == "":
 			continue
 		# pass 95 (lane PASSIVES): a passive item's cell names its rung and takes a wash of the rung's plate colour
-		if def is PassiveDef and (def as PassiveDef).is_item():
+		if def is PassiveDef and (def as PassiveDef).on_ladder():
 			grid.add_child(_cell(str(lv), "%s · %s" % [TextGen.rung_name(def as PassiveDef, lv), text], rung_wash(def as PassiveDef, lv)))
 			continue
 		grid.add_child(_cell(str(lv), text))

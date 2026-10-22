@@ -790,6 +790,7 @@ const Assets = (() => {
     }
     if (!fixed) wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: '+ level', onclick: () => apply2(() => { if (!Array.isArray(doc.data.levels)) doc.data.levels = []; doc.data.levels.push([]); }, 'editor') }));
     if (fixed && levels.length !== fixed) wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: `Make it ${fixed} levels`, onclick: () => apply2(() => { const next = levels.slice(0, fixed); while (next.length < fixed) next.push([]); next[0] = []; doc.data.levels = next; }, 'editor') }));
+    if (doc.kind === 'passive' && doc.data.single && !doc.data.line && !doc.data.evolves_from) wrap.appendChild(el('div', { class: 'muted small lsum', text: 'a one-shot item (pass 100): one level, never offered again once held, no rarity ladder' }));
     if (ladder) wrap.appendChild(el('div', { class: 'muted small lsum', text: `the rarity ladder (pass 95): ${F.ladderLevels(doc.data.rarity)} levels, ${doc.data.rarity || 'common'} up to legendary, then Evolved; the game derives Max level from the rarity` }));
     const sum = M.levelsSummary(base, levels);
     if (sum.length) wrap.appendChild(el('div', { class: 'muted small lsum', text: `At level ${n}: ` + sum.map((r) => `${M.statName(r.stat)} ${M.formatValue(r.stat, r.start)} → ${M.formatValue(r.stat, r.end)}`).join(' · ') }));

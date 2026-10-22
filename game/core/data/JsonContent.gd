@@ -181,6 +181,8 @@ static func _passive(d: Dictionary, dir: String) -> PassiveDef:
 	p.text = str(d.get("text", ""))
 	# pass 47: a line item (four levels, an evolution, one of six slots) or a passive item (no cap, off the HUD)
 	p.line = bool(d.get("line", false))
+	# pass 100 (lane SMALL): a one-shot item (one level, off the rarity ladder, never offered again once held)
+	p.single = bool(d.get("single", false))
 	# pass 73 (lane CARDS): its looks (the cards' A-E)
 	_passive_variants(p, d, dir)
 	# pass 95 (lane PASSIVES): the icon of an item's Evolved rung (`icon_evolved`, else <id>_icon_evolved.png; none = base)

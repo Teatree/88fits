@@ -6,9 +6,9 @@
 [resource]
 script = ExtResource("2_ju1qu")
 condition = {
-"count": 30.0,
-"enemy": "bull_beetle",
-"type": "kills_of_enemy"
+"kind": "card",
+"level": 4.0,
+"type": "item_level"
 }
 unlocks = {
 "id": "haste",

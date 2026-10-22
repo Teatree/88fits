@@ -2,9 +2,9 @@
   "id": "unlock_fadeaway",
   "name": "Fadeaway",
   "condition": {
-    "type": "kills_of_enemy",
-    "enemy": "saiga_sniper",
-    "count": 3
+    "type": "hero_level",
+    "hero": "drifter",
+    "level": 12
   },
   "unlocks": {
     "type": "character",

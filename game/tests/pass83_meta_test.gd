@@ -74,9 +74,12 @@ func test_every_other_hero_is_free_or_needs_a_requirement_then_a_price() -> void
 	assert_int(kinds.size()).is_greater_equal(4)
 	var fq := Registry.quest_for("character", "fadeaway")
 	assert_object(fq).is_not_null()
-	assert_str(TextGen.quest_text(fq)).is_equal("Kill 3 Saiga Snipers.")
-	# the Saiga Sniper is a special from stage 1 on, so the Collection's hint says stage 1
-	assert_int(QuestTracker.stage_hint(fq)).is_equal(1)
+	# re-pinned in pass 100 (lane QUESTS, Garry: more requirements about levels): Fadeaway's requirement is a level
+	# reached with the Drifter (it was 3 Saiga Snipers), read off his quest's own condition; an early hero still (stage 1
+	# or 2 by the Collection's hint)
+	assert_str(str(fq.condition.get("type", ""))).is_equal("hero_level")
+	assert_str(TextGen.quest_text(fq)).is_equal("Reach level %d with Drifter." % int(fq.condition.get("level", 0)))
+	assert_int(QuestTracker.stage_hint(fq)).is_between(1, 2)
 
 
 func test_the_prices_climb_with_the_title_order() -> void:

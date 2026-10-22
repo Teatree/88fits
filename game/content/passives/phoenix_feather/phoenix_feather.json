@@ -3,42 +3,11 @@
   "name": "Phoenix Feather",
   "rarity": "uncommon",
   "weight": 6,
-  "max_level": 5,
+  "max_level": 1,
+  "single": true,
   "flavour": "Some birds will not stay down.",
-  "text": "Two seconds after you fall, you get back up with the revive's blast, once a run. Each rung raises the health you rise with; Evolved: a second life.",
+  "text": "Two seconds after you fall, you get back up at half health (more with Second Wind) with the revive's blast. Once a run; it never levels up.",
   "levels": [
-    [
-      {
-        "stat": "phoenix_revive",
-        "op": "add",
-        "value": 1,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "revive_hp",
-        "op": "add",
-        "value": 0.15,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "revive_hp",
-        "op": "add",
-        "value": 0.15,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "revive_hp",
-        "op": "add",
-        "value": 0.2,
-        "target": "player"
-      }
-    ],
     [
       {
         "stat": "phoenix_revive",

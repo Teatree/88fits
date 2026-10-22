@@ -13,6 +13,22 @@ extends ContentDef
 ##  extract_after_stage {map, stage}    once
 ##  kill_boss {map, stage}              once
 ##  kills_in_run_of_enemy {enemy, count} in one run
+##  kills_total / runs_total / pickups_total / gold_total {count}   totals across runs (pass 44)
+##  reach_stage {stage}                 in one run (pass 44)
+## Pass 100 (lane QUESTS, Garry: more requirements about levels, upgrades and evolutions), all in one run, read off the
+## run's build as it stands (an evolved form counts its source as maxed, so an evolution never undoes a level reached):
+##  hero_level {hero, level}            reach `level` with hero `hero`
+##  item_level {kind, id?, level?, rung?}   get an item to `level`: kind weapon | card | passive (a passive item) | any;
+##                                      `id` names one (its kind then follows from it). A passive item climbs the rarity
+##                                      ladder (PassiveDef.rung_at), so its levels differ by rarity: `rung` (uncommon, rare,
+##                                      epic, legendary, evolved) names the rung to reach instead, and counts passive items
+##                                      only; `level` on a passive item is its level number
+##  evolve_item {id? | kind?}           evolve `id` (a weapon into its evolution at a chest, a card into its Risen card, a
+##                                      passive item onto its Evolved rung; the evolved form's id works too), or any item
+##                                      of `kind` (weapon | card | passive | any)
+##  weapon_paths {weapon?}              carry all of a weapon's path mutations (`weapon` = that family; empty = any)
+##  items_maxed {kind, count}           hold `count` items of `kind` at their top level at once (a weapon at its max
+##                                      level or evolved, a card at its max level or Risen, a passive item on Evolved)
 @export var condition: Dictionary = {}
 ## {"type": "character|weapon|passive|map|mode", "id": "..."}
 @export var unlocks: Dictionary = {}

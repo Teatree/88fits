@@ -290,6 +290,8 @@ func _ready() -> void:
 		var inst := Run.add_weapon(start, start_level)
 		if inst and Run.character and start.id == Run.character.favourite_weapon:
 			CardPool.apply_favourite(inst)
+	# pass 100 (lane SMALL): the stage's look before the landing (Nightfall's blue, Blood Moon's red and hell)
+	_show_stage_look_now()
 	# the beam (the cinematic) for a real launch; a tool's launch file gets the instant start unless it says "spawn": true
 	if bool(debug_launch.get("spawn", debug_launch.is_empty())):
 		_spawn_begin()
@@ -744,6 +746,7 @@ const SPAWN_HURRY_RAMP := 14.0  # the speed-up eases in (rate per second), so th
 const SPAWN_SQUASH := 0.45      # the landing's squash and spring back, seconds
 const SPAWN_LAND_SHAKE := 0.3   # the touchdown's camera shake (1.2 before pass 64 read as a jolt)
 const SPAWN_FLASH := 0.35       # how lit the hero is at the top of the beam (1 = white: he vanished in the beam)
+const SPAWN_BEAM_PRIORITY := -6  # pass 100: drawn over the stage's filter (StageLook.PRIORITY), under the hero
 const SPAWN_BEAM_BACK := 2.2    # metres the beam stands behind him as the camera sees it (his sprite leans back towards the camera: its top passes 1.7 m back)
 var spawning := false
 var _spawn_t := 0.0
@@ -809,7 +812,9 @@ func _spawn_begin() -> void:
 	for k in _spawn_quads.size():
 		var q: MeshInstance3D = _spawn_quads[k]
 		_spawn_beam.add_child(q)
-		(q.material_override as ShaderMaterial).render_priority = -10
+		# pass 100 (lane SMALL): after the stage's filter (StageLook.PRIORITY -7), so the beam is light in Nightfall and
+		# Blood Moon too (it plays in the stage's look now), and still before the hero (0)
+		(q.material_override as ShaderMaterial).render_priority = SPAWN_BEAM_PRIORITY
 		if k < 2:
 			q.position = away * SPAWN_BEAM_BACK
 			_spawn_beam_fade(q, away)
@@ -2610,6 +2615,16 @@ func _start_chosen_stage(launch: Dictionary) -> void:
 	if Run.arena or Run.map == null or Run.map.timeline == null:
 		return
 	Run.start_stage(st)
+
+
+## Pass 100 (lane SMALL, Garry: "the intro cutscene is not in dark"): the run's stage look (StageLook: its filter and
+## its hell) is on before the spawn beam's landing plays, at once (no fade); the director's stage_started after the
+## landing finds that stage shown and leaves it (StageLook.show_stage), so nothing switches twice. The arena keeps its
+## own (its WAVES tab and its Stage look choice).
+func _show_stage_look_now() -> void:
+	if Run.arena:
+		return
+	StageLook.of(self).show_stage(Run.stage, 0.0)
 
 
 ## Seconds left on the portal's countdown to Endless, -1 when none runs (the HUD, the portal dialog).

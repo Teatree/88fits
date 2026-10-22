@@ -54,7 +54,13 @@ const AFIELDS = (() => {
     questTypes: [opt('kills_with_weapon', 'kills with a weapon', '{weapon, count} across runs'), opt('kills_of_enemy', 'kills of a creature', '{enemy, count} across runs'), opt('open_chests', 'chests opened', '{count}'),
       opt('evolve_any', 'any evolution', '{count}'), opt('reach_level', 'reach a level', '{level} in one run'), opt('survive_minutes', 'survive minutes', '{minutes} in one run'),
       opt('survive_minutes_no_lift', 'survive minutes without a lift', '{minutes}'), opt('kills_in_run_of_enemy', 'kills of a creature in one run', '{enemy, count}'), opt('extract_after_stage', 'extract after a stage', '{map, stage}'),
-      opt('kill_boss', 'kill a boss', '{map, stage}'), opt('kills_total', 'kills in all', '{count}'), opt('runs_total', 'runs in all', '{count}'), opt('pickups_total', 'power-ups in all', '{count}'), opt('gold_total', 'gold in all', '{count}'), opt('reach_stage', 'reach a stage', '{stage}')],
+      opt('kill_boss', 'kill a boss', '{map, stage}'), opt('kills_total', 'kills in all', '{count}'), opt('runs_total', 'runs in all', '{count}'), opt('pickups_total', 'power-ups in all', '{count}'), opt('gold_total', 'gold in all', '{count}'), opt('reach_stage', 'reach a stage', '{stage}'),
+      // pass 100 (lane QUESTS): levels, upgrades and evolutions, all in one run (QuestDef's header)
+      opt('hero_level', 'reach a level with a hero', '{hero, level} in one run'), opt('item_level', 'an item to a level', '{kind, id?, level | rung} in one run'),
+      opt('evolve_item', 'evolve an item', '{id} or {kind}: a weapon at a chest, a card into its Risen card, a passive item onto Evolved'), opt('weapon_paths', 'all of a weapon\'s mutations', '{weapon?} in one run'),
+      opt('items_maxed', 'items at max level at once', '{kind, count}')],
+    questItemKinds: [opt('any', 'any item'), opt('weapon'), opt('card', 'card', 'a line (its Risen form counts it maxed)'), opt('passive', 'passive item', 'climbs the rarity ladder')],
+    questRungs: [opt('', 'none: use Level'), opt('uncommon'), opt('rare'), opt('epic'), opt('legendary'), opt('evolved', 'Evolved', 'the top rung')],
     screens: [opt('', 'by the placeholder colour'), opt('green'), opt('blue')],
     favouriteBonus: [opt('level', 'arrives at a level', '{value}'), opt('effects', 'arrives with effects', '{effects}')],
     passiveBonus: [opt('max', 'arrives maxed'), opt('level', 'arrives at a level', '{value}'), opt('effects', 'arrives with effects', '{effects}')],
@@ -830,7 +836,8 @@ const AFIELDS = (() => {
   const ladderLevels = (rarity) => LADDER.length - 1 - ladderIndex(rarity) + 2;
   const rungAt = (rarity, level) => (level >= ladderLevels(rarity) ? 'evolved' : LADDER[Math.min(ladderIndex(rarity) + Math.max(level, 1) - 1, LADDER.length - 1)]);
   const rungName = (rarity, level) => { const r = rungAt(rarity, level); return r === 'evolved' ? 'Evolved' : r.charAt(0).toUpperCase() + r.slice(1); };
-  const onLadder = (d) => !!d && !d.line && !(d.evolves_from != null && String(d.evolves_from).trim() !== '');
+  // pass 100 (lane SMALL): a one-shot item (`single`: Phoenix Feather) is off the ladder: one level, no upgrades
+  const onLadder = (d) => !!d && !d.line && !d.single && !(d.evolves_from != null && String(d.evolves_from).trim() !== '');
 
   const passive = [].concat(
     T('Identity', [
@@ -843,6 +850,7 @@ const AFIELDS = (() => {
     ]),
     T('Levels', [
       { key: 'levels', label: 'Levels', type: 'level_steps', stats: 'player', target: 'player', help: 'the effects per level (target player; a weapon stat with target all_weapons reaches every weapon, as Kindling does); a card lists one level and repeats it; a passive item lists every rung of its rarity ladder (pass 95: its rarity up to legendary, then Evolved)' },
+      { key: 'single', label: 'One-shot (no upgrades)', type: 'bool', def: false, only: (d) => !d.line && !d.evolves_from, help: 'pass 100: a passive item of one level, off the rarity ladder (no rungs, no Evolved), never offered again once held (Phoenix Feather); the game sets its Max level to 1' },
       { key: 'repeat_last_level', label: 'Repeat the last level', type: 'bool', def: true, help: 'a shorter list repeats its last level up to Max level' },
       { key: 'max_level', label: 'Max level', type: 'int', min: 1, def: 8, help: 'cards 4, evolved cards 1; a passive item: derived from its rarity (pass 95: common 6, uncommon 5, rare 4, epic 3, legendary 2), the game ignores the number here' },
     ]),
@@ -936,13 +944,18 @@ const AFIELDS = (() => {
   const QUEST_ROWS = [
     { key: 'name', label: 'Name', type: 'text', help: 'the quest\'s title' },
     { key: 'condition.type', label: 'Condition', type: 'select', options: (v) => v.questTypes, def: 'kills_total', help: 'QuestTracker._satisfied; a new type needs code: ask Claude' },
-    { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total'].includes((q.condition || {}).type) },
+    { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total', 'items_maxed'].includes((q.condition || {}).type) },
     { key: 'condition.enemy', label: 'Creature', type: 'enemy', only: (q) => ['kills_of_enemy', 'kills_in_run_of_enemy'].includes((q.condition || {}).type) },
-    { key: 'condition.weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', only: (q) => (q.condition || {}).type === 'kills_with_weapon' },
+    { key: 'condition.weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', only: (q) => ['kills_with_weapon', 'weapon_paths'].includes((q.condition || {}).type), help: 'weapon_paths: empty = any weapon' },
     { key: 'condition.map', label: 'Map', type: 'text', only: (q) => ['extract_after_stage', 'kill_boss'].includes((q.condition || {}).type), help: 'red_canyon' },
     { key: 'condition.stage', label: 'Stage', type: 'int', min: 1, only: (q) => ['extract_after_stage', 'kill_boss', 'reach_stage'].includes((q.condition || {}).type) },
-    { key: 'condition.level', label: 'Level', type: 'int', min: 1, only: (q) => (q.condition || {}).type === 'reach_level' },
+    { key: 'condition.level', label: 'Level', type: 'int', min: 1, only: (q) => ['reach_level', 'hero_level', 'item_level'].includes((q.condition || {}).type) },
     { key: 'condition.minutes', label: 'Minutes', type: 'number', min: 0, only: (q) => ['survive_minutes', 'survive_minutes_no_lift'].includes((q.condition || {}).type) },
+    // pass 100 (lane QUESTS): the build quests' fields
+    { key: 'condition.hero', label: 'Hero', type: 'id_select', kind: 'hero', only: (q) => (q.condition || {}).type === 'hero_level', help: 'the hero the level is reached with (pick one the player can own: a chain on a later quest dead-ends)' },
+    { key: 'condition.kind', label: 'Item kind', type: 'select', options: (v) => v.questItemKinds, def: 'any', only: (q) => ['item_level', 'evolve_item', 'items_maxed'].includes((q.condition || {}).type), help: 'which items count; an Item below wins over it' },
+    { key: 'condition.id', label: 'Item', type: 'id_select', kind: 'any_item', only: (q) => ['item_level', 'evolve_item'].includes((q.condition || {}).type), help: 'empty = any item of the kind; a weapon, a card or a passive item (an evolved form\'s id works too)' },
+    { key: 'condition.rung', label: 'Rung', type: 'select', options: (v) => v.questRungs, def: '', only: (q) => (q.condition || {}).type === 'item_level', help: 'passive items only: the rarity rung to reach (their level count differs by rarity: common 6 .. epic 3); set, it replaces Level' },
     { key: 'quest_text', label: 'Quest text', type: 'textarea', help: 'optional: TextGen writes one when empty' },
   ];
 
@@ -1182,6 +1195,11 @@ const AFIELDS = (() => {
       E('levels', (d) => onLadder(d) && Array.isArray(d.levels) && d.levels.length > ladderLevels(d.rarity), (d) => `a ${str(d.rarity) || 'common'} item climbs ${ladderLevels(d.rarity)} levels (its rarity up to legendary, then Evolved): level ${ladderLevels(d.rarity) + 1} and up are never reached`),
       W('levels', (d) => onLadder(d) && Array.isArray(d.levels) && d.levels.length > 0 && d.levels.length < ladderLevels(d.rarity), (d) => `a ${str(d.rarity) || 'common'} item climbs ${ladderLevels(d.rarity)} levels: the last level listed repeats for the rungs not listed (tools/passive_ladder.py writes every rung)`),
       W('max_level', (d) => onLadder(d) && d.max_level != null && Number(d.max_level) !== ladderLevels(d.rarity), (d) => `the game derives a passive item's max_level from its rarity (${ladderLevels(d.rarity)} for ${str(d.rarity) || 'common'}): this ${d.max_level} is ignored`),
+      // pass 100 (lane SMALL): a one-shot item has one level
+      W('levels', (d) => !!d.single && !d.line && !str(d.evolves_from) && Array.isArray(d.levels) && d.levels.length > 1, 'a one-shot item (single) has one level: the levels after the first are never reached'),
+      W('max_level', (d) => !!d.single && !d.line && !str(d.evolves_from) && d.max_level != null && Number(d.max_level) !== 1, (d) => `a one-shot item (single) has one level: the game ignores this max_level ${d.max_level}`),
+      W('single', (d) => !!d.single && (!!d.line || !!str(d.evolves_from)), 'single is for a passive item: a card or an evolved form ignores it'),
+      W('single', (d) => !!d.single && !!str(d.evolves_into), 'a one-shot item never reaches a top level to evolve from'),
       W('band', (d, c) => !d.evolves_from && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants ${Math.round(b.lo * 100)}-${Math.round(b.hi * 100)}% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
     ]),
     mutation: [].concat(common('mutation'), rarityRules, [

@@ -2,9 +2,8 @@
   "id": "unlock_land_mine",
   "name": "Land Mine",
   "condition": {
-    "type": "kills_of_enemy",
-    "enemy": "fire_ant",
-    "count": 120
+    "type": "evolve_item",
+    "id": "salt"
   },
   "unlocks": {
     "type": "weapon",

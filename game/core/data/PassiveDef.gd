@@ -53,6 +53,11 @@ var worn := ""
 const LADDER := ["common", "uncommon", "rare", "epic", "legendary"]
 const EVOLVED_RUNG := "evolved"
 
+## Pass 100 (lane SMALL, Garry: Phoenix "can only be used once and doesn't feature any upgrades"): a one-shot passive
+## item (`single` in the JSON): one level, off the rarity ladder (no rungs, no Evolved rung, no Evolved icon), never
+## offered again once held (its max_level is 1). Any future one-shot item sets the same key.
+@export var single: bool = false
+
 
 func kind() -> String:
 	return "passive"
@@ -70,15 +75,22 @@ func is_item() -> bool:
 	return not line and evolves_from == ""
 
 
-## The top level of this passive (the ladder's for an item, else `max_level`).
+## Whether this item climbs the rarity ladder (pass 100: a passive item that is not `single`).
+func on_ladder() -> bool:
+	return is_item() and not single
+
+
+## The top level of this passive (the ladder's for an item, 1 for a one-shot, else `max_level`).
 func ladder_top() -> int:
-	return ladder_levels(rarity) if is_item() else maxi(max_level, 1)
+	if single and is_item():
+		return 1
+	return ladder_levels(rarity) if on_ladder() else maxi(max_level, 1)
 
 
 ## The rung an item stands on at `level`: its rarity at level 1 (and at 0, the item in general), one rung up a level,
 ## EVOLVED_RUNG at the top and past it; the rarity itself for a line or an evolved form.
 func rung_at(level: int) -> String:
-	if not is_item() or level <= 1:
+	if not on_ladder() or level <= 1:
 		return rarity if LADDER.has(rarity) else LADDER[0]
 	if level >= ladder_top():
 		return EVOLVED_RUNG
@@ -88,7 +100,7 @@ func rung_at(level: int) -> String:
 
 ## Whether `level` is an item's Evolved rung (its top level or past it; never a line's, which evolves into a card).
 func is_evolved_rung(level: int) -> bool:
-	return is_item() and level >= ladder_top()
+	return on_ladder() and level >= ladder_top()
 
 
 ## The icon to draw at `level`: the Evolved icon on the Evolved rung when it has one, else the icon worn.
@@ -98,7 +110,9 @@ func icon_at(level: int) -> Texture2D:
 
 ## Derives `max_level` from the ladder for an item (JsonContent.build, once the rarity is read).
 func apply_ladder() -> void:
-	if is_item():
+	if single and is_item():
+		max_level = 1
+	elif on_ladder():
 		max_level = ladder_levels(rarity)
 
 
@@ -178,6 +192,9 @@ func is_evolved() -> bool:
 
 func effects_at_level(level: int) -> Array:
 	if levels.is_empty() or level < 1:
+		return []
+	# pass 100 (lane SMALL): a one-shot item gives its one level once (a level past it, from an old run, adds nothing)
+	if single and level > 1:
 		return []
 	var idx := level - 1
 	if idx >= levels.size():

@@ -657,6 +657,52 @@ def quest_text(q):
         return "Earn %d gold, all time." % n
     if t == "reach_stage":
         return "Reach stage %d." % int(c.get("stage", 1))
+    if t in ("hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed"):
+        return _quest_build_text(c)
+    return "Complete a challenge."
+
+
+def _quest_build_text(c):
+    """Pass 100 (lane QUESTS): TextGen.quest_build_text in Python, the build quests' words."""
+    D = _items()
+    t = c.get("type", "")
+    cap = lambda s: str(s or "").replace("_", " ").title()
+    weapon = lambda i: D["weapons"].get(i) or D["evolutions"].get(i)
+    pname = lambda i: D["passives"].get(i, {}).get("name", cap(i))
+    item = lambda i: ("the " + weapon(i).get("name", i)) if weapon(i) else pname(i)
+    words = lambda k, art: (lambda n: (("an " if n == "item" else "a ") + n) if art else n)({"weapon": "weapon", "card": "card", "passive": "passive item"}.get(k, "item"))
+    iid, kind = str(c.get("id", "") or ""), str(c.get("kind", "any") or "any")
+    if t == "hero_level":
+        h = D["characters"].get(c.get("hero", ""), {})
+        return "Reach level %d with %s." % (int(c.get("level", 0)), h.get("name", cap(c.get("hero", ""))))
+    if t == "item_level":
+        rung = str(c.get("rung", "") or "")
+        to = rung.capitalize() if rung else "level %d" % int(c.get("level", 0))
+        return "Get %s to %s in one run." % (item(iid) if iid else words("passive" if rung else kind, True), to)
+    if t == "evolve_item":
+        if not iid:
+            return "Evolve any %s." % words(kind, False)
+        w = weapon(iid)
+        if w and (w.get("is_evolution") or iid in D["evolutions"]):
+            return "Evolve the %s." % w.get("name", iid)
+        if w:
+            into = weapon(w.get("evolves_into", ""))
+            return "Evolve the %s into the %s." % (w.get("name", iid), into.get("name", "")) if into else "Evolve the %s." % w.get("name", iid)
+        p = D["passives"].get(iid)
+        if p and p.get("evolves_into"):
+            return "Evolve %s into %s." % (p.get("name", iid), pname(p["evolves_into"]))
+        if p and not p.get("line") and not p.get("evolves_from"):
+            return "Get %s to Evolved in one run." % p.get("name", iid)
+        return "Evolve %s." % item(iid)
+    if t == "weapon_paths":
+        wid = str(c.get("weapon", "") or "")
+        if not wid:
+            return "Take all of one weapon's mutations in one run."
+        n = sum(1 for m in D["mutations"].values() if m.get("weapon") == wid and not m.get("hidden") and not m.get("hero") and m.get("kind") != "hero")
+        return "Take all %d mutations of %s in one run." % (n, item(wid))
+    if t == "items_maxed":
+        k = int(c.get("count", 1))
+        return "Hold %d %s%s at max level at once." % (k, words(kind, False), "" if k == 1 else "s")
     return "Complete a challenge."
 
 
@@ -695,9 +741,20 @@ def quest_stage(q):
         return int(-(-float(c.get("minutes", 0)) * 60.0 // stage_len))
     if t == "evolve_any":
         return 2
-    if t == "reach_level":
+    if t in ("reach_level", "hero_level"):
         lv = int(c.get("level", 0))
         return 1 if lv <= 12 else (2 if lv <= 24 else 3)
+    # pass 100 (lane QUESTS): QuestTracker.stage_hint's build quests
+    if t == "item_level":
+        return 2 if c.get("rung") == "evolved" else 1
+    if t == "evolve_item":
+        iid = str(c.get("id", "") or "")
+        is_weapon = iid in _items()["weapons"] or iid in _items()["evolutions"] if iid else c.get("kind", "any") == "weapon"
+        return 2 if is_weapon else 1
+    if t == "weapon_paths":
+        return 1
+    if t == "items_maxed":
+        return 1 if int(c.get("count", 1)) <= 2 else 2
     return 0
 
 

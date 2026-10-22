@@ -2,9 +2,10 @@
   "id": "unlock_sabre",
   "name": "Sabre",
   "condition": {
-    "type": "kills_of_enemy",
-    "enemy": "skeleton_knight",
-    "count": 40
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "orbit_saws",
+    "level": 5
   },
   "unlocks": {
     "type": "weapon",

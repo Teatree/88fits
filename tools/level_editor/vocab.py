@@ -335,7 +335,8 @@ ELEMENTS = ["", "fire", "poison"]
 WEAPON_TAGS = ["gun", "melody", "melee", "homing", "blade", "explosive", "thrown", "magic"]
 WEAPON_DEFAULTS = {"behavior": "ProjectileEmitter", "targeting": "nearest", "max_level": 5, "rarity": "common", "weight": 10.0}
 # pass 95 (lane PASSIVES): a new passive item is common, so its ladder has 6 levels (PASSIVE_LADDER; the game derives it)
-PASSIVE_DEFAULTS = {"line": False, "repeat_last_level": True, "max_level": 6, "rarity": "common", "weight": 10.0}
+# pass 100 (lane SMALL): `single` = a one-shot item (one level, off the ladder, never offered again once held)
+PASSIVE_DEFAULTS = {"line": False, "single": False, "repeat_last_level": True, "max_level": 6, "rarity": "common", "weight": 10.0}
 # the passive items' rarity ladder (PassiveDef.ladder_levels): the rungs from the rarity to legendary + Evolved + level 1
 PASSIVE_LADDER = {"common": 6, "uncommon": 5, "rare": 4, "epic": 3, "legendary": 2}
 MUTATION_DEFAULTS = {"kind": "motion", "rarity": "rare", "weight": 8}
@@ -443,7 +444,14 @@ QUEST_TYPES = {
     "kills_in_run_of_enemy": ["enemy", "count"], "extract_after_stage": ["map", "stage"], "kill_boss": ["map", "stage"],
     "kills_total": ["count"], "runs_total": ["count"], "pickups_total": ["count"], "gold_total": ["count"],
     "reach_stage": ["stage"],
+    # pass 100 (lane QUESTS): levels, upgrades and evolutions in one run (QuestDef's header; `id`/`kind`/`rung`/`weapon`
+    # may stay empty where the header says so)
+    "hero_level": ["hero", "level"], "item_level": ["kind", "id", "level", "rung"], "evolve_item": ["id", "kind"],
+    "weapon_paths": ["weapon"], "items_maxed": ["kind", "count"],
 }
+# pass 100 (lane QUESTS): the item kinds and rarity rungs the build quests take
+QUEST_ITEM_KINDS = ["any", "weapon", "card", "passive"]
+QUEST_RUNGS = ["uncommon", "rare", "epic", "legendary", "evolved"]
 UNLOCK_TYPES = ["character", "weapon", "passive", "map", "talent", "mode"]
 QUEST_TEMPLATE_CONDITION = {"type": "kills_total", "count": 400}
 
@@ -503,6 +511,7 @@ def table(content_dir, game_dir=None, combos_seen=()):
         "path_kinds": PATH_KINDS, "elements": ELEMENTS, "weapon_tags": WEAPON_TAGS, "weapon_defaults": WEAPON_DEFAULTS,
         "passive_defaults": PASSIVE_DEFAULTS, "passive_ladder": PASSIVE_LADDER, "mutation_defaults": MUTATION_DEFAULTS, "params_keys": PARAMS_KEYS,
         "quest_types": QUEST_TYPES, "unlock_types": UNLOCK_TYPES, "quest_template_condition": QUEST_TEMPLATE_CONDITION,
+        "quest_item_kinds": QUEST_ITEM_KINDS, "quest_rungs": QUEST_RUNGS,
         "placeholder_shapes": PLACEHOLDER_SHAPES, "placeholder_ears": PLACEHOLDER_EARS, "placeholder_glyphs": PLACEHOLDER_GLYPHS,
         "sounds": sound_ids(content_dir), "elites": folder_ids(content_dir, "elites"), "pickups": folder_ids(content_dir, "pickups"),
         "combos_seen": sorted(combos_seen),

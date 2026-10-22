@@ -2,9 +2,8 @@
   "id": "unlock_ricochet",
   "name": "Ricochet",
   "condition": {
-    "type": "kills_of_enemy",
-    "enemy": "spit_cactus",
-    "count": 30
+    "type": "weapon_paths",
+    "weapon": "revolver"
   },
   "unlocks": {
     "type": "passive",

@@ -11,36 +11,13 @@ stat = "phoenix_revive"
 value = 1.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_dy71j"]
-script = ExtResource("1_wu1vm")
-stat = "revive_hp"
-value = 0.15
-target = "player"
-
-[sub_resource type="Resource" id="Resource_135gr"]
-script = ExtResource("1_wu1vm")
-stat = "revive_hp"
-value = 0.15
-target = "player"
-
-[sub_resource type="Resource" id="Resource_janhx"]
-script = ExtResource("1_wu1vm")
-stat = "revive_hp"
-value = 0.2
-target = "player"
-
-[sub_resource type="Resource" id="Resource_ndij5"]
-script = ExtResource("1_wu1vm")
-stat = "phoenix_revive"
-value = 1.0
-target = "player"
-
 [resource]
 script = ExtResource("2_jkera")
-levels = [[SubResource("Resource_l7j4w")], [SubResource("Resource_dy71j")], [SubResource("Resource_135gr")], [SubResource("Resource_janhx")], [SubResource("Resource_ndij5")]]
-max_level = 5
-text = "Two seconds after you fall, you get back up with the revive's blast, once a run. Each rung raises the health you rise with; Evolved: a second life."
+levels = [[SubResource("Resource_l7j4w")]]
+max_level = 1
+text = "Two seconds after you fall, you get back up at half health (more with Second Wind) with the revive's blast. Once a run; it never levels up."
 evolved_icon = ExtResource("1_l7j4w")
+single = true
 id = "phoenix_feather"
 display_name = "Phoenix Feather"
 flavour = "Some birds will not stay down."

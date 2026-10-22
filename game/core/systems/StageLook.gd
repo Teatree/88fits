@@ -16,11 +16,14 @@
 ##
 ## Game makes one at its first stage_started (StageLook.of) and hands it every stage that starts (show_stage): the
 ## run's first stage takes its look at once, a later one (the old flow, endless) over FADE_SECONDS.
+## Pass 100 (lane SMALL): Game shows the run's stage before the spawn beam's landing (Game._show_stage_look_now, at
+## once), so the intro plays in the stage's light; the stage_started that follows finds it shown.
 class_name StageLook
 extends Node
 
 const SHADER := preload("res://core/shaders/stage_filter.gdshader")
-## After the water (-10, RedCanyon._water_material) and the spawn beam (-10), before the Salt's patches (-6), the ground
+## After the water (-10, RedCanyon._water_material), before the spawn beam (pass 100: -6, Game.SPAWN_BEAM_PRIORITY, a
+## light over the stage's look), the Salt's patches (-6), the ground
 ## marks (Telegraphs.PRIO_SCORCH -5 .. PRIO_BAND -1), the shadows (EnemyManager.SHADOW_PRIORITY -3), the pickups
 ## (PickupManager.PICKUP_PRIORITY -2) and everything at 0 and above (outlines, effects, projectiles, badges).
 const PRIORITY := -7
@@ -68,6 +71,10 @@ static func of(p_game: Node) -> StageLook:
 ## Stage `s` (0-based) has started: its filter and its hell. The run's first stage at once, a later one faded. (The sky
 ## takes the filter like everything else; it is never seen in play, only in the Stages menu's pictures.)
 func show_stage(s: int, seconds: float = -1.0) -> void:
+	# pass 100 (lane SMALL): the stage shown already (Game._show_stage_look_now put it on before the landing) is left as
+	# it is when the director starts it; an explicit `seconds` (the arena's choice, a tool) always shows it again
+	if s == stage and seconds < 0.0:
+		return
 	var first := stage < 0
 	stage = s
 	var tl: WaveTimeline = _timeline()

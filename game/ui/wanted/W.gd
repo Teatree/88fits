@@ -273,7 +273,7 @@ static func plate_fill(def: ContentDef, level: int = 0) -> Color:
 ## The rung a passive item stands on at `level` (pass 95, lane PASSIVES; PassiveDef.rung_at): its rarity at level 1 and
 ## at 0 (the item in general), a rarity up each level, "evolved" at its top; the rarity itself for anything else.
 static func rung_of(def: ContentDef, level: int = 0) -> String:
-	if def is PassiveDef and (def as PassiveDef).is_item() and level > 0:
+	if def is PassiveDef and (def as PassiveDef).on_ladder() and level > 0:
 		return (def as PassiveDef).rung_at(level)
 	return rarity_of(def)
 

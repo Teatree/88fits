@@ -2,7 +2,8 @@
   "id": "unlock_may",
   "name": "May",
   "condition": {
-    "type": "reach_level",
+    "type": "hero_level",
+    "hero": "calavera",
     "level": 30
   },
   "unlocks": {

@@ -72,9 +72,10 @@ def _items():
 
 
 def content_checks(check):
-    items = [(d, j) for d, j in _items() if not j.get("line") and not j.get("evolves_from")]
+    # pass 100 (lane SMALL): Phoenix Feather is a one-shot item (`single`): off the ladder, 33 items on it
+    items = [(d, j) for d, j in _items() if not j.get("line") and not j.get("evolves_from") and not j.get("single")]
     cards = [(d, j) for d, j in _items() if j.get("line")]
-    check(len(items) == 34, "PASSIVES95 content: 34 passive items on the ladder (%d)" % len(items))
+    check(len(items) == 33, "PASSIVES95 content: 33 passive items on the ladder (%d)" % len(items))
     bad = []
     for d, j in items:
         want = LADDER.get(str(j.get("rarity", "common")), 6)
@@ -127,7 +128,7 @@ def tool_checks(check):
         inside = out.getpixel((32, 32))
         check(out.size == im.size and rim[3] > 200 and rim[0] > 240 and rim[1] > 240 and far[3] == 0 and inside[:3] == (200, 40, 40),
               "PASSIVES95 tools: evolved_icon draws a white rim round the subject, keeps it, leaves the far ground clear (rim %s, far %s, inside %s)" % (rim, far, inside))
-        check(len(evolved_icons.items()) == 34, "PASSIVES95 tools: evolved_icons.items lists the 34 items")
+        check(len(evolved_icons.items()) == 33, "PASSIVES95 tools: evolved_icons.items lists the 33 items on the ladder (pass 100: not the one-shot Phoenix)")
     finally:
         sys.path[:] = saved
 

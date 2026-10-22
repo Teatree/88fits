@@ -3824,3 +3824,53 @@ Round 2 (lead's follow-up the same evening):
 - LE: driver form drop_islands / drop_groups (jobs.py fields + argv, methods.json), creature_ctl recipe fields view_words,
   clay_drivers, view_drivers (methods.json, assets_fields.js, vocab.py); selftest_SPIDER99.py (22 checks).
 - Doc section 6c; round 2 took 1 h 20 min of the server.
+
+**Pass 100 (2026-10-23, v0.85): build quests, the one-shot Phoenix, the stage look at the landing, the phone's performance assessed.** Garry (tools/dl/p100/REQUEST.md): more unlock requirements about levels with a hero, upgrading and evolving items; the Phoenix a once-a-run 50% revive without upgrades; Stage 2's intro not dark; "there are still performance issues on the mobile phone when there are too many enemies around". Three lanes: QUESTS, SMALL, PERF (assessment only: no game change).
+
+Pass 100, lane QUESTS (Garry: "I'd like to see more requirements that have to do with getting Player to reach a specific
+level with a hero, upgrading items passive/card/weapon to a certain level. Evolving an item, etc."): five build quests,
+all done in one run and read off the run's build (`QuestTracker.run_progress` / `held_items`, no new Run state):
+`hero_level {hero, level}`, `item_level {kind, id?, level | rung}` (a passive item's `level` is its number; `rung` names
+the rarity rung, passive items only), `evolve_item {id | kind}` (a weapon at a chest, a card into its Risen card, a passive
+item onto Evolved), `weapon_paths {weapon?}` and `items_maxed {kind, count}`; an evolved form counts its source at its top
+level, a one-shot item is never "maxed"; their progress shows only while a run is on (the run record's quests carry it),
+stage hints as BALANCING says. Worded by `TextGen.quest_build_text` ("Reach level 12 with Drifter.", "Evolve Temperance
+into Temperance Risen.", "Take all 3 mutations of the Revolver in one run."), mirrored by the Level Editor (the Condition
+list, fields per type: hero, item kind, item, rung; the id rows pick by kind; questText) and the bible (make_bible
+quest_text / quest_stage). Seven kill quests and May's became build quests (Sabre: the Orbit Saws to 5; The Tower: a card
+to 4; Overkill: a passive item to Legendary; Land Mine: evolve the Salt; Death: Temperance Risen; Ricochet: the Revolver's
+three mutations; Fadeaway: level 12 with the Drifter; May: level 30 with Calavera); the other quests are as they were.
+Completion is kept by quest id, so a save keeps what it unlocked. Tests: pass100_QUESTS_test.gd (14), pass83_meta
+re-pinned (Fadeaway's words read off his quest), selftest_QUESTS100.py, selftest_L69 re-pinned (May's words).
+
+Lane SMALL (pass 100). **Phoenix Feather is a one-shot item again** (Garry: "should still be a revive item with 50% HP on
+revive. It can only be used once and doesn't feature any upgrades"): a reusable PassiveDef key `single` (one level, off
+pass 95's rarity ladder: `on_ladder()` = is_item and not single, read by ladder_top / rung_at / is_evolved_rung /
+apply_ladder (max_level 1) / effects_at_level (nothing past level 1), TextGen's rung words, W.rung_of, WItem.rung_word and
+the Collection, whose kind line says "Passive · Uncommon · no upgrades"); its JSON is one level of `phoenix_revive` +1,
+`single: true`, the card line "Two seconds after you fall, you get back up at half health (more with Second Wind) with
+the revive's blast. Once a run; it never levels up."; Second Wind's revive health still applies (one rule for every
+revive); the pause screen's "(used)" mark was already there; tools/passive_ladder.py and tools/evolved_icons.py leave a
+single item alone (its old phoenix_feather_icon_evolved.png stays on disk, unused); the Level Editor's Items form has a
+"One-shot (no upgrades)" switch with its warnings (assets_fields.js, assets.js, vocab.py, server.py owns the key);
+selftest_SMALL100.py; pass95_PASSIVES (33 items on the ladder), pass48_items and selftest_PASSIVES95 re-pinned.
+**Stage 2's intro in the dark** (Garry: "the into cutscene is not in dark"): the stage look (StageLook) came only on
+WaveDirector.stage_started after the spawn beam's landing; Game._show_stage_look_now now shows the run's stage at once
+before the beam (not in the arena), StageLook.show_stage leaves the stage it already shows when called without
+`seconds` (no second switch; the arena's choice and the tools pass seconds and are unchanged), and the beam draws over
+the filter (Game.SPAWN_BEAM_PRIORITY -6, was -10 under it) so it reads as light in Nightfall and Blood Moon. Checked by
+eye on windowed captures of the landing on stages 1-3 (game/tools/_p100_SMALL_intro_shot.gd, tools/dl/p100/SMALL/shots2/sheet.png);
+game/tests/pass100_SMALL_test.gd (7 tests).
+
+Lane PERF (assessment only, no game change): the phone (Pixel 8 Pro, 19 of Garry's PostHog runs v0.64-v0.83) averages
+65-115 fps (median 88.5) with 1% lows of 20-61 (median 31); fitted over time in each crowd size, ~96 fps under 200 alive
+and ~70 at 250+, the lows from uneven pacing (a frame with a 60 Hz physics tick costs far more than one between). On the
+PC perf_late's build six costs 14-16 ms a frame at ~290 creatures (enemies.sim 4.3 ms; pass 33.8 measured 5.4 ms in all
+at ~150): the crowd is CPU-bound GDScript, steering half the crowd a tick with 44-50 neighbours per 2.5 m separation
+cell, and drawing all of it although only 6-26% is on screen; shadows and outlines cost little; 120 Hz costs ~25% more
+CPU than 60 Hz and shows nothing new (nothing interpolated). Art: strips import as lossy WebP without mipmaps, held
+uncompressed in VRAM; the played strips are 88/123/128 MB a stage, but boot loads every look of every hero and creature
+(856 pictures, ~2.3 GB). Ranked recommendations (a 60 fps cap on phones; per-second frame times in the run record;
+render only on-screen creatures; smaller separation cells; slower off-screen steering; load only played looks; a 30 Hz
+crowd with interpolation; C++ hot loops; threaded rendering; fewer damage numbers) are in tools/dl/p100/status_PERF.md
+and the lead's report; probes game/tools/_p100_PERF_crowd.gd and _p100_PERF_vram.gd, results tools/dl/p100/PERF/.

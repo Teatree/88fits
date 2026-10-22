@@ -574,6 +574,48 @@ const AssetsModel = (() => {
       case 'pickups_total': return `Pick up ${n('count', 0)} power-ups.`;
       case 'gold_total': return `Earn ${n('count', 0)} gold, all time.`;
       case 'reach_stage': return `Reach stage ${n('stage', 1)}.`;
+      // pass 100 (lane QUESTS): TextGen.quest_build_text
+      case 'hero_level': case 'item_level': case 'evolve_item': case 'weapon_paths': case 'items_maxed': return questBuildText(c, nm);
+      default: return 'Complete a challenge.';
+    }
+  }
+  /** Pass 100 (lane QUESTS): TextGen.quest_build_text, the words of the build quests. `nm.hero(id)` names a hero,
+   *  `nm.items` {weapons (with the evolutions), passives, mutations} names the items; without them ids read capitalised. */
+  function questBuildText(c, nm) {
+    const n = (k, d) => Math.trunc(num(c[k], d));
+    const cap = (id) => String(id || '').replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase());
+    const it = nm.items || {};
+    const weapon = (id) => (it.weapons || []).find((w) => w.id === id) || null;
+    const passive = (id) => (it.passives || []).find((p) => p.id === id) || null;
+    const pname = (id) => { const p = passive(id); return p ? String(p.name || id) : cap(id); };
+    const itemName = (id) => { const w = weapon(id); return w ? 'the ' + String(w.name || id) : pname(id); };
+    const kindWords = (k, article) => { const noun = { weapon: 'weapon', card: 'card', passive: 'passive item' }[k] || 'item'; return article ? (noun === 'item' ? 'an ' : 'a ') + noun : noun; };
+    const id = String(c.id || '');
+    const kind = String(c.kind || 'any');
+    switch (String(c.type || '')) {
+      case 'hero_level': return `Reach level ${n('level', 0)} with ${(nm.hero && nm.hero(c.hero)) || cap(c.hero)}.`;
+      case 'item_level': {
+        const rung = String(c.rung || '');
+        const to = rung ? cap(rung) : `level ${n('level', 0)}`;
+        return `Get ${id ? itemName(id) : kindWords(rung ? 'passive' : kind, true)} to ${to} in one run.`;
+      }
+      case 'evolve_item': {
+        if (!id) return `Evolve any ${kindWords(kind, false)}.`;
+        const w = weapon(id);
+        if (w && w.is_evolution) return `Evolve the ${w.name || id}.`;
+        if (w) { const into = weapon(w.evolves_into); return into ? `Evolve the ${w.name || id} into the ${into.name || into.id}.` : `Evolve the ${w.name || id}.`; }
+        const p = passive(id);
+        if (p && p.evolves_into) return `Evolve ${p.name || id} into ${pname(p.evolves_into)}.`;
+        if (p && !p.line && !p.evolves_from) return `Get ${p.name || id} to Evolved in one run.`;
+        return `Evolve ${itemName(id)}.`;
+      }
+      case 'weapon_paths': {
+        const wid = String(c.weapon || '');
+        if (!wid) return 'Take all of one weapon\'s mutations in one run.';
+        const k = it.mutations ? it.mutations.filter((m) => String(m.weapon) === wid && !m.hidden && !m.hero && m.kind !== 'hero').length : 3;
+        return `Take all ${k} mutations of ${itemName(wid)} in one run.`;
+      }
+      case 'items_maxed': { const k = n('count', 1); return `Hold ${k} ${kindWords(kind, false)}${k === 1 ? '' : 's'} at max level at once.`; }
       default: return 'Complete a challenge.';
     }
   }

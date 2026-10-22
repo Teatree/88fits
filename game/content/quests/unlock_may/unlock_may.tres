@@ -6,8 +6,9 @@
 [resource]
 script = ExtResource("2_a4o44")
 condition = {
+"hero": "calavera",
 "level": 30.0,
-"type": "reach_level"
+"type": "hero_level"
 }
 unlocks = {
 "id": "may",
