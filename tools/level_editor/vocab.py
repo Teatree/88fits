@@ -127,7 +127,9 @@ CTL_RECIPE_KEYS = ["drivers", "prompt", "noun", "detail", "blockout", "words", "
                    "death_motion", "death_keep", "remap_hues", "dead", "fps", "directions", "screen", "outline_frac",
                    "outline_color", "side_seeds", "walk_seeds", "anatomy", "no_green", "fit_ref",
                    # pass 94 (lane REAL): the repaint method and the Wan settings
-                   "paint_mode", "anchor", "style", "clay_src", "clay_fill", "init", "refine", "wan"]
+                   "paint_mode", "anchor", "style", "clay_src", "clay_fill", "init", "refine", "wan",
+                   # pass 99 (lane SPIDER): per-view words, the clay a view was painted on, a view's own walk driver
+                   "view_words", "clay_drivers", "view_drivers"]
 
 # ---------------------------------------------------------------- heroes (CharacterDef.gd, JsonContent._character)
 

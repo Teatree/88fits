@@ -138,7 +138,7 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
     <div class="fact"><div class="big">2 looks</div><p>SP-G (Klein) and SP-H (Flux.2 dev), light purple, SP-A's realism in the house style, every view the 3D model itself repainted (<a href="#real">section ★</a>).</p></div>
     <div class="fact"><div class="big">painting</div><p>is where SP-E and SP-F went wrong first: their views were not the model, and Wan smeared the difference.</p></div>
     <div class="fact"><div class="big">0.5 → 0.9</div><p>how much of the model's outline a painting keeps, painted from scratch against painted over the clay itself.</p></div>
-    <div class="fact"><div class="big"><!--FACT_TIME--></div><p>of AI server time for SP-G; SP-H about <!--FACT_TIME_H-->: Flux.2 dev restarts the server for every picture.</p></div>
+    <div class="fact"><div class="big">~3 h 15 min</div><p>of AI server time for SP-G; SP-H about 4 h 45 min: Flux.2 dev restarts the server for every picture.</p></div>
   </div>
 
   <nav class="toc" aria-label="Contents">
@@ -252,7 +252,7 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
   <p>It costs only about twice the time, not ten times: most of a walk's time is loading the two 14 GB halves of the model.</p>
 
   <h3>6. SP-G against SP-H</h3>
-    <p>The same model, the same walk (<code>spider_walk_v2</code>), the same death, the same Wan settings; only the painter differs. SP-G's row above SP-H's for every view, every other frame of the walk and every kept frame of the death.</p>
+    <p>The same model, the same walk (<code>spider_walk_v5</code>, the fins dropped; SP-G's back stays on v4), the same death (<code>spider_death_v5</code>), the same Wan settings and the same kept death frames; only the painter differs (a test pins it: <code>pass94_REAL_test.gd</code>). These are the strips as installed after the fixes in <a href="#check99">6b</a> and <a href="#round2">6c</a>. SP-G's row above SP-H's for every view, every other frame of the walk and every kept frame of the death.</p>
   <div class="pair">
     <figure><img src="img/look_spg_run.gif" alt="SP-G walking towards the viewer" loading="lazy"><figcaption>SP-G (Klein), front.</figcaption></figure>
     <figure><img src="img/look_sph_run.gif" alt="SP-H walking towards the viewer" loading="lazy"><figcaption>SP-H (Flux.2 dev), front.</figcaption></figure>
@@ -275,9 +275,54 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
   <figure class="scroll"><img src="img/real_gh_bd.jpg" alt="Three-quarter back walk frames, SP-G over SP-H" loading="lazy"><figcaption>Three-quarter back.</figcaption></figure>
   <figure class="scroll"><img src="img/real_gh_back.jpg" alt="Back walk frames, SP-G over SP-H" loading="lazy"><figcaption>Back.</figcaption></figure>
   <figure class="scroll"><img src="img/real_gh_death.jpg" alt="Death frames, SP-G over SP-H" loading="lazy"><figcaption>The death, the eight kept frames.</figcaption></figure>
-  <!--GH_VERDICT-->
+  <div class="box"><p><b>Which reads better.</b> In the game, <b>SP-H</b>: its strong magenta silhouette stands off the sand, its legs are solid in every view and it keeps the chevron, eyes and fangs in the front walk. Its faults are the colour (magenta-orchid, not the light lavender you asked for) and the three-quarter front and side heads, which lost their eyes. <b>SP-G</b> is the light purple you asked for; after round 2 its three-quarter views are painted again with solid, opaque legs and read cleanly, and the spike is gone, so the gap is much smaller. Its front and back are still paler than SP-H's and its thin legs keep a few rainbow edges, so side by side SP-H is still the slightly cleaner sprite, and SP-G the one in your colour.</p></div>
   <figure><img src="img/real_game_shots.jpg" alt="SP-G and SP-H in the debug arena" loading="lazy"><figcaption>In the debug arena (<code>tools/item_shots.gd creatures=desert_spider@SP-G,desert_spider@SP-H zoom=0.7</code>), three of each walking at the hero.</figcaption></figure>
 
+
+  <h3 id="check99">6b. Frame by frame: what was wrong and what was fixed (pass 99)</h3>
+  <p>Every walk and the death of both installed strips, looked at frame by frame on numbered sheets (the 160 px cells the game plays, and the 640 px clip frames they were cut from, where legs can be counted). The local vision model was not asked to count legs (pass 98: it answers "8" almost always), and Gemini's quota was spent. Your eye is the judge; the table is what mine saw.</p>
+  <figure><img src="img/p99_spg_before.jpg" alt="SP-G's first strip: faults in the three-quarter front, side, front and death" loading="lazy"><figcaption>SP-G as it was installed on 2026-10-21, four frames of each faulty animation.</figcaption></figure>
+  <div class="tablewrap"><table>
+    <thead><tr><th>View</th><th>SP-G before</th><th>SP-G after</th><th>SP-H before</th><th>SP-H after</th></tr></thead>
+    <tbody>
+      <tr><td>front</td><td>no eyes, the chevron gone, the model's back fin as a spike; fringes on the left legs (1, 2, 4, 5, 8-10)</td><td><b>fixed</b> by a re-roll: small eyes, two fangs, the violet half; the spike stays; light fringe on 1, 4, 5, 9</td><td>4 + 4 legs, chevron, eyes, fangs; the spike and a nub on the head; 5 slightly smeared</td><td>the same (the repair did not help)</td></tr>
+      <tr><td>3/4 front</td><td>legs stacked under the body into vertical tubes, rainbow fringes (1, 2, 5, 7-10), googly eyes</td><td>not fixed (a re-roll, softened depth and VACE were all worse)</td><td>no eyes, the chevron gone; fringe specks 5, 8, 11</td><td>the same</td></tr>
+      <tr><td>side</td><td>an eyeless snout; two stumps above the back</td><td>not fixed (a re-roll came out the same)</td><td>the same snout and stumps</td><td>the same</td></tr>
+      <tr><td>3/4 back</td><td>a grey-pink fan where the abdomen ends; mauve drift; fringes</td><td>not fixed (a re-roll was worse)</td><td>clean, chevron, 4 + 4</td><td>the same</td></tr>
+      <tr><td>back</td><td>clean: 4 + 4, the violet heart</td><td>the same</td><td>clean; the chevron became faint lines</td><td>the same</td></tr>
+      <tr><td>death</td><td>the legs fold away as two loose clumps, smears in 2-4, reads as a moth</td><td colspan="3"><b>fixed for both</b>: a new death driver keeps the legs folded against the body, and the kept frames skip the roll's smears</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Why most of it could not be fixed cheaply.</b> The faults are not in a few frames: they run through whole views, and they come from the walk, not the painting. Wan paints SP-G's thin, pale legs half see-through over the green screen, and the keying leaves rainbow edges; the three-quarter front's legs pile up because the depth video shows them overlapping there. The cheap tools were tried in order:</p>
+  <ul class="plain">
+    <li><b>Another seed for one view</b> (<code>walk_seeds</code>, about 4 minutes a view): the front came back with its face, so it was kept; the three-quarter front, three-quarter back and side came out no better or worse.</li>
+    <li><b>Softened depth</b> (<code>ctl_soft</code> 10, which saved the side in pass 94's test on the raw model): on the rebuilt legs it turned the three-quarter front's head into a long snout.</li>
+    <li><b>VACE repair</b> (the Frames view's tool with creature_ctl's benchmarked profile: a 25-frame double window, strength 0.7, 20 steps, cfg 3.5, no speed-up), once on each look: both came back pale and see-through, the markings gone. The new versions are kept in the frames store (SP-G-2, SP-H-2), not staged and not exported.</li>
+    <li><b>The death</b>: the fault was in the death driver itself (pass 94's <code>spider_death_v3</code> swings the folded legs out as wings, first row below), so no seed could fix it. Three other curls were rendered in Blender on the PC; the tightest (curl 100, curl_root 20, roll 170) became <code>spider_death_v4</code>, both deaths were walked on it, and eight frames were kept that skip the roll's smears.</li>
+  </ul>
+  <figure><img src="img/p99_rerolls.jpg" alt="SP-G's views walked again on another seed and on softened depth" loading="lazy"><figcaption>SP-G's re-rolls, four frames each: only the front is better.</figcaption></figure>
+  <figure><img src="img/p99_death.jpg" alt="The death drivers compared, and SP-G's death on the old and the new one" loading="lazy"><figcaption>The death: four driver curls, then SP-G's whole clip on v3 and on v4.</figcaption></figure>
+  <figure><img src="img/p99_vace.jpg" alt="Two VACE repairs, both washed out" loading="lazy"><figcaption>The two VACE repairs: before (upper row) and after (lower row) of each.</figcaption></figure>
+  <p><b>SP-H's picks</b> (pass 94 painted the candidates; pass 99 chose): front <b>c5</b> (two small eyes, two fangs, the chevron, smooth banded legs; c0-c2 copied the model's leg fins, c3 has four fangs, c4 a mouth with little teeth; all six carry the model's back fin as a spike, which the walk keeps anyway), three-quarter front <b>c2</b> (smooth, chevrons; c0 and c1 copy the fins), side <b>k2</b> (pass 94's pick), three-quarter back the <b>plain painting</b> (smooth, no fins, the chevron; the three candidates were faceted or finned), back <b>c1</b> (no fins; c0 and c2 finned). No extra seeds were needed. The walks ran on the same drivers and Wan settings as SP-G's.</p>
+  <figure><img src="img/p99_sph_picks.jpg" alt="SP-H's candidate paintings and the picks" loading="lazy"><figcaption>SP-H's candidates; the picks are named in the captions.</figcaption></figure>
+
+  <h3 id="round2">6c. Round 2: the fin taken out of the model, SP-G's three-quarter views painted again</h3>
+  <p><b>The spike.</b> Both looks walked with a spike on the abdomen in the front view, and the three-quarter and side views had fins along the back. They were not in either painter: your 3D model has three small fins glued on its back and a nub on its head, each a loose 3- or 4-corner piece of the mesh, and the depth video Wan walks along showed them in every view. A new driver setting, <code>drop_islands</code>, deletes such small loose pieces that hang on the body or head bones before the renders (the model file itself is not touched; the fangs and legs are bigger pieces and stay). <code>spider_walk_v5</code> is <code>spider_walk_v4</code> with <code>drop_islands 4</code> (16 seconds on the PC, the gait check passes) and <code>spider_death_v5</code> the same for the death. Every view of both looks was walked again on it with the same seeds as the installed walks, and each new walk was kept only if it was at least as good frame by frame: all were except SP-G's back, which came out with crystal-faceted far legs and a split heart mark, so SP-G's back still walks on v4 (<code>view_drivers {"back": "spider_walk_v4"}</code>; its fin was only a small nub there). The paintings were painted on v4's clay, so <code>clay_drivers</code> keeps v4's crop for them and they lie exactly where they did.</p>
+  <figure><img src="img/p99_r2_spike.jpg" alt="The depth video with and without the fins, and the walks before and after" loading="lazy"><figcaption>The driver before and after, then the front of both looks and SP-H's three-quarter front before and after (four frames each).</figcaption></figure>
+  <p><b>SP-G's three-quarter views.</b> The cheap fixes had failed because the paintings themselves were pale and flat. Both were painted again: four seeds each on the look's own painter (Klein, 28 steps, from v5's clay), with words for those two views only (<code>view_words</code>: "strong value contrast ... the abdomen a solid saturated violet with a bold dark violet chevron, the legs solid and fully opaque, banded in light lilac and dark violet ..."). Picked by eye: three-quarter front <b>c2</b> (the bold chevron, dark leg tips, the head at the near corner; c3 had a cast shadow on the screen and turned blue, c0 and c1 were as pale as before), three-quarter back <b>c0</b> (the dark abdomen mark and opaque violet legs; c1 and c2 face the wrong way, c3 walked with smears on its far legs). Both walks are clearly better than before: solid bodies, the legs readable, far fewer rainbow edges.</p>
+  <figure><img src="img/p99_r2_fdbd.jpg" alt="SP-G's new three-quarter paintings and their walks" loading="lazy"><figcaption>The candidates, then each walk before and after (four frames each).</figcaption></figure>
+  <div class="tablewrap"><table>
+    <thead><tr><th>View</th><th>SP-G after round 1</th><th>SP-G after round 2</th><th>SP-H after round 1</th><th>SP-H after round 2</th></tr></thead>
+    <tbody>
+      <tr><td>front</td><td>eyes and fangs; the fin spike</td><td>no spike; a pale head with dark eyes and fangs</td><td>the fin spike and a head nub</td><td>no spike; the painted head nub stays; eyes a little weaker</td></tr>
+      <tr><td>3/4 front</td><td>legs stacked into tubes, rainbow edges</td><td><b>new painting</b>: solid body, bold chevron, eyes and fangs, opaque legs; light fringe on 5, 8, 9</td><td>no eyes, spiky back</td><td><b>fixed</b>: eyes and fangs back, the back smooth</td></tr>
+      <tr><td>side</td><td>eyeless snout, two leg tops above the back</td><td>the same, without the fins</td><td>the same</td><td>the same, without the fins</td></tr>
+      <tr><td>3/4 back</td><td>a grey-pink fan, mauve drift</td><td><b>new painting</b>: a dark violet mark, opaque violet legs</td><td>clean</td><td>the same</td></tr>
+      <tr><td>back</td><td>clean</td><td>unchanged (kept on v4)</td><td>clean</td><td>the same, the head nub gone</td></tr>
+      <tr><td>death</td><td>curled on its back</td><td>the same, no spike in its first frames</td><td>curled on its back</td><td>the same, no spike</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">Left for you to decide (not touched): SP-H's colour (magenta-orchid, not lavender), and the two far-leg tops above the back in the side views (they read as the far legs in the game).</p>
 
   <h3>7. The first try, discarded</h3>
   <p>Read literally ("drop the cartooniness"), the first SP-G and SP-H were painted without the style anchor and with a realistic style line. They came out as soft 3D renders of a furry lavender spider, closer to a photo than to the game. You corrected it; those paintings and the one finished strip are kept outside the game (<code>tools/dl/p94/REAL/backup/photoreal/</code>). Their tests still taught the settings above (steps, refine, dev's steps, Wan).</p>
@@ -286,19 +331,24 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
   <h3>8. How you would do it in the Level Editor</h3>
     <p>Two duplicates of SP-A, each a job of yours and a few picks. The recipe keys are new in pass 94 and sit in creature_ctl's <b>Recipe (typed)…</b> with their help texts; the model and steps are the job form's own Model group.</p>
   <ol class="plain">
-    <li><b>The walkable legs.</b> Enemies tab → Desert Spider → <b>+ Depth driver…</b>, the fixed walk's form of pass 93 (src <code>spider_8legs</code>, mode <code>gait</code>, legs <code>leg_</code>, forward <code>+Y</code>, step <code>track</code>, stride 0.22, raise 0.15, crouch 0.15, sway 0, bob 0.03) with two new fields: <b>smooth</b> <code>2</code> and <b>skin</b> <code>capsule</code> (skin_radius 0.06, the default), name <code>spider_walk_v4</code>. Queue (fifteen seconds); the job runs the gait check as before. The death the same way: mode <code>flip_curl</code>, curl 55, curl_root 70, views <code>front,fd,side</code>, smooth 2, skin capsule, name <code>spider_death_v3</code>. Open the driver in the Drivers tab: the legs are smooth tapered rods, no spikes, in every view and through the roll.</li>
+    <li><b>The walkable legs.</b> Enemies tab → Desert Spider → <b>+ Depth driver…</b>, the fixed walk's form of pass 93 (src <code>spider_8legs</code>, mode <code>gait</code>, legs <code>leg_</code>, forward <code>+Y</code>, step <code>track</code>, stride 0.22, raise 0.15, crouch 0.15, sway 0, bob 0.03) with two new fields: <b>smooth</b> <code>2</code> and <b>skin</b> <code>capsule</code> (skin_radius 0.06, the default), name <code>spider_walk_v4</code>. Queue (fifteen seconds); the job runs the gait check as before. The death the same way: mode <code>flip_curl</code>, <b>curl 100, curl_root 20, roll 170, twitch 4</b>, views <code>front,fd,side</code>, smooth 2, skin capsule, name <code>spider_death_v4</code> (pass 99: pass 94's <code>spider_death_v3</code>, curl 55 and curl_root 70, swung the folded legs out as two wings off the body, and every death walked on it came out as two loose clumps). Open the driver in the Drivers tab: the legs are smooth tapered rods, no spikes, in every view, and in the dead pose they lie folded against the body. <b>Round 2</b>: the same two forms again with <b>drop_islands</b> <code>4</code> (new: the model's small loose fins and head nub are left out of the renders), names <code>spider_walk_v5</code> and <code>spider_death_v5</code>.</li>
     <li><b>A copy of SP-A per painter.</b> Enemies tab → Desert Spider → SP-A's card → <b>Duplicate…</b> (SP-G, then SP-H). In <b>Recipe (typed)…</b> set:
       <div class="tablewrap"><table>
         <thead><tr><th>Field</th><th>SP-G (Klein)</th><th>SP-H (Flux.2 dev)</th><th>Why</th></tr></thead>
         <tbody>
           <tr><td>prompt</td><td colspan="2">SP-A's words with the colours changed: <i>pale lavender and light lilac-purple bristly fur, a darker violet chevron pattern ... legs banded in light lilac and darker violet ... the whole spider light purple</i></td><td>SP-A's realism, your colour</td></tr>
           <tr><td>detail</td><td colspan="2">SP-A's: <i>a real spider's anatomy and proportions, no cartoon face, no eyebrows, no mouth, no teeth, menacing</i></td><td>not a cartoon</td></tr>
-          <tr><td>drivers / death_drivers</td><td colspan="2"><code>spider_walk_v4</code> / <code>spider_death_v3</code></td><td>the fixed walk (pass 93) on the rebuilt legs (step 1)</td></tr>
+          <tr><td>drivers / death_drivers</td><td colspan="2"><code>spider_walk_v5</code> / <code>spider_death_v5</code> (round 2; v4 in round 1)</td><td>the fixed walk (pass 93) on the rebuilt legs (step 1)</td></tr>
           <tr><td>paint_mode</td><td colspan="2"><code>repaint</code></td><td>the model itself is repainted, view by view</td></tr>
           <tr><td>anchor</td><td colspan="2"><code>true</code></td><td>the style anchor stays: the house style, not a photo</td></tr>
           <tr><td>clay_src / clay_fill</td><td colspan="2"><code>look</code> / <code>0.8</code></td><td>the grey render, cropped round the spider</td></tr>
           <tr><td>init</td><td><code>{"denoise": 0.88, "tint": "#C4A8E2", "blur": 10}</code></td><td><code>{"denoise": 0.85, "tint": "#C4A8E2"}</code></td><td>start from the clay; Klein likes it blurred, dev lets go of a blurred one</td></tr>
           <tr><td>wan</td><td colspan="2"><code>{"lora": false, "steps": 20, "cfg": 3.5}</code></td><td>the full Wan for the walks and the death</td></tr>
+          <tr><td>death_keep</td><td colspan="2"><code>[0, 3, 4, 10, 11, 13, 17, 24]</code></td><td>the 8 death frames kept of 25, picked by eye (the roll's frames 5-9 smear); a re-pick needs no render</td></tr>
+          <tr><td>walk_seeds</td><td><code>{"front": 1}</code></td><td>(none)</td><td>SP-G's front walked again on another seed after the frame check (its first lost the eyes)</td></tr>
+          <tr><td>clay_drivers</td><td><code>{"front": "spider_walk_v4", "side": "spider_walk_v4", "back": "spider_walk_v4"}</code></td><td><code>"spider_walk_v4"</code></td><td>new: the driver a view was painted on, so a painting keeps its place when the walk moves to v5 (SP-G's new three-quarter paintings were painted on v5)</td></tr>
+          <tr><td>view_drivers</td><td><code>{"back": "spider_walk_v4"}</code></td><td>(none)</td><td>new: one view walks on another driver (SP-G's back was better on v4)</td></tr>
+          <tr><td>view_words</td><td><code>fd</code>, <code>bd</code>: <i>painted with strong value contrast ... the legs solid and fully opaque ...</i></td><td>(none)</td><td>new: words for one view's painting only (then <b>Re-roll… → redo one view</b>, 4 candidates)</td></tr>
           <tr><td>side_seeds</td><td><code>8</code></td><td><code>4</code></td><td>Klein pictures are cheap, dev's are 10 minutes each</td></tr>
           <tr><td>words</td><td colspan="2">per view, the model's layout spelled out (the head's and the abdomen's place, "the body small and low, hanging between the high-arched legs")</td><td>the painter reads them before the clay</td></tr>
           <tr><td>blockout</td><td colspan="2">… <i>its flat facets, sharp fins and cone-shaped legs are only the model's rough surface, not part of the spider</i></td><td>it helps a little; the seeds help more</td></tr>
@@ -308,7 +358,8 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
     <li><b>Pick the side.</b> The job waits with the side candidates. Look for: the model's long arched legs (not short cones), eight legs, a small low body, no crystal fins on the back, a small face. Klein: about one in three of a set is clean. Dev: one in four follows the model loosely and cleanly, one copies its fins, the rest ignore it. Not clean? <b>Re-roll 4 more</b>.</li>
     <li><b>Every other view as candidates too.</b> The repaint views follow the clay well but any of them can copy the fins: after the pick, <b>Re-roll… → redo one view</b> for front, three-quarter front, three-quarter back and back, Candidates 4 (SP-G) or 3 (SP-H), and pick each by eye. The three-quarter views are the ones to look at longest (your complaint about SP-E and SP-F): the head must be at the near corner in the three-quarter front and at the far corner, mostly hidden, in the three-quarter back.</li>
     <li><b>The walks</b> run after the last pick on the full Wan (about 4 minutes a view, 25 minutes a look, against 12 with the speed-up). Hover the card to play every view; a view that came out with ghost legs or a smeared body: <b>Re-roll… → keep the stills, redo the clips</b> after changing that view's <code>walk_seeds</code>, or paint that view again.</li>
-    <li><b>Test in game, Approve, Make default</b> as before.</li>
+    <li><b>Check every frame</b> (pass 99): Frames… on the look card, one tab per view, the sheet numbered. What to look for and what each fix costs is in <a href="#check99">6b</a>: a re-roll of one view is <b>Re-roll… → keep the stills, redo the clips</b> with that view's <code>walk_seeds</code> set to 1 (about 4 minutes); a death that falls apart is the driver (a new <b>+ Depth driver…</b>, then <code>death_drivers</code>); a different set of death frames is just <code>death_keep</code> (seconds, no render). <b>Repair with VACE…</b> exists for a few bad frames, but on these two looks it washed the colours out (6b): do not stage what it gives without looking.</li>
+    <li><b>Test in game, Approve, Make default</b> as before (you made SP-G the played look on 2026-10-22; both stay NEW until you approve them).</li>
   </ol>
 
 
@@ -320,15 +371,18 @@ details.more summary { cursor: pointer; color: var(--amber); font-weight: 700; }
       <tr><td>Side candidates painted, in all</td><td>8 + 6 + 6 + 6 earlier sets (the fins): about 55 min</td><td>4 + 4 + 1 earlier sets (ignoring the clay): about 75 min</td></tr>
       <tr><td>One view candidate</td><td>100 – 110 s</td><td>670 – 780 s</td></tr>
       <tr><td>Four views as candidates</td><td>4 each: 28 min</td><td>3 each, plus 3 more fronts: 2 h 30 min</td></tr>
-      <tr><td>One walk (Wan Fun Control, no LoRA, 20 steps, cfg 3.5, 25 frames)</td><td colspan="2"><!--T_WALK--></td></tr>
-      <tr><td>The death (25 frames, 8 kept)</td><td colspan="2"><!--T_DEATH--></td></tr>
-      <tr><td>Five walks and the death</td><td colspan="2"><!--T_CLIPS--></td></tr>
-      <tr><td>Views walked or painted again after the frame check</td><td><!--T_FIX_G--></td><td><!--T_FIX_H--></td></tr>
-      <tr><td><b>The look, start to strip</b></td><td><b><!--T_TOTAL_G--></b></td><td><b><!--T_TOTAL_H--></b></td></tr>
+      <tr><td>One walk (Wan Fun Control, no LoRA, 20 steps, cfg 3.5, 25 frames)</td><td colspan="2">235 - 300 s a view (about 4 to 5 minutes; the first view of a run is the slowest, the model loads)</td></tr>
+      <tr><td>The death (25 frames, 8 kept)</td><td colspan="2">236 - 244 s</td></tr>
+      <tr><td>Five walks and the death</td><td colspan="2">about 25 minutes a look (SP-G 1,490 s, SP-H 1,515 s)</td></tr>
+      <tr><td>Views walked or painted again after the frame check</td><td>about 31 min: four views walked again on another seed (241 - 250 s each; only the front kept), the three-quarter front on softened depth (301 s, not kept), the death on the new driver (242 s), one VACE repair (343 s, not kept); four death drivers rendered in Blender on the PC (no AI server)</td><td>about 10 min: the death on the new driver (244 s), one VACE repair (337 s, not kept)</td></tr>
+      <tr><td>Round 2: the fin-free drivers (Blender, the PC)</td><td colspan="2">16 s a driver</td></tr>
+      <tr><td>Round 2: walks again on v5 (same seeds), deaths on v5</td><td>front, side, back, death: about 17 min</td><td>five walks and the death: about 25 min</td></tr>
+      <tr><td>Round 2: three-quarter views painted again</td><td>8 candidates (176 s each, about 24 min) and 3 walks (about 12 min)</td><td>(none)</td></tr>
+      <tr><td><b>The look, start to strip</b></td><td><b>about 3 h 15 min of the server</b></td><td><b>about 4 h 45 min of the server</b></td></tr>
       <tr><td>Settings experiments before either (Klein steps and base, img2img, refine, dev steps and starts, Wan)</td><td colspan="2">about 3 h 20 min of the server, listed in <code>tools/dl/p94/REAL/exp/exp_*.log</code></td></tr>
     </tbody>
   </table></div>
-  <p class="small">Every job ran one at a time through the ComfyUI lock, sharing the server with your own Level Editor queue. A Flux.2 dev picture is 5 to 7 times a Klein 28-step one, and dev's pictures needed more sets to find ones that follow the model; the walks cost the same for both.</p>
+  <p class="small">Every job ran one at a time through the ComfyUI lock, sharing the server with your own Level Editor queue. A Flux.2 dev picture is 5 to 7 times a Klein 28-step one, and dev's pictures needed more sets to find ones that follow the model; the walks cost the same for both. Re-packing a look from its cached walks (a new <code>death_keep</code>, a walk copied in) takes about 10 seconds.</p>
 
 </section>
 </div>

@@ -46,10 +46,8 @@ func test_the_new_looks_have_strip_icon_and_eight_directions() -> void:
 	var d := _doc()
 	for code: String in NEW:
 		var e: Dictionary = d["variants"][code]
-		# pass 95 (lead): the work is parked on Garry's word; a look whose art never landed (SP-H) is skipped
-		if not e.has("sprite"):
-			push_warning("pass94: %s has no strip yet (the spider work is parked)" % code)
-			continue
+		# pass 99 (lane SPIDER): both looks landed (SP-H packed on the same drivers and Wan as SP-G): no skip any more
+		assert_bool(e.has("sprite")).override_failure_message("%s has no strip" % code).is_true()
 		var letter := code.substr(3).to_lower()
 		assert_str(str(e.get("sprite", ""))).is_equal("desert_spider_sprite_%s.png" % letter)
 		assert_str(str(e.get("icon", ""))).is_equal("desert_spider_icon_%s.png" % letter)
@@ -66,8 +64,6 @@ func test_the_game_loads_the_new_looks_and_their_walks_move() -> void:
 	var order := ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
 	for code: String in NEW:
 		var e: Dictionary = _doc()["variants"][code]
-		if not e.has("sprite"):
-			continue   # pass 95 (lead): parked, not landed (see above)
 		var v: EnemyDef = def.variant_def(code)
 		assert_object(v.sprite).override_failure_message(code).is_not_null()
 		var img := Image.load_from_file(ProjectSettings.globalize_path(DIR + str(e["sprite"])))
@@ -87,3 +83,15 @@ func test_the_game_loads_the_new_looks_and_their_walks_move() -> void:
 						changed += 1
 				assert_int(changed).override_failure_message("%s %s" % [code, a]).is_equal(n - 1)
 			k += n
+
+
+func test_g_and_h_differ_only_in_the_painter() -> void:
+	# pass 99 (lane SPIDER): "pack it ... the same way SP-G was packed, so G and H differ only in the painter": the drivers,
+	# the death driver, the Wan settings, the walk words and the kept death frames are the same in both recipes
+	var vs: Dictionary = _doc()["variants"]
+	var g: Dictionary = vs["SP-G"]["recipe"]
+	var h: Dictionary = vs["SP-H"]["recipe"]
+	for k: String in ["drivers", "death_drivers", "wan", "motion", "death_motion", "death_keep", "anim_negative", "prompt", "words"]:
+		assert_str(JSON.stringify(h.get(k))).override_failure_message(k).is_equal(JSON.stringify(g.get(k)))
+	assert_str(str((g["painter"] as Dictionary)["model"])).is_equal("klein")
+	assert_str(str((h["painter"] as Dictionary)["model"])).is_equal("dev")

@@ -255,6 +255,9 @@ SPECS = {
         "smooth": _f("int", 0, False, "subdivision levels the renders get (2 for a low-poly model: its cones and fins rounded, the depth range and the leg tips still from the raw mesh); 0 = off"),
         "skin": _f("enum", "", False, "gait / flip_curl: capsule = the legs' own mesh replaced by tapered capsules along the bone chain, head to head (a low-poly model's cone legs stood up as spikes at every joint); empty = the mesh as it is", ("", "capsule")),
         "skin_radius": _f("float", 0.06, False, "skin capsule: the leg's radius at the hip as a share of its length, tapering to a point at the foot"),
+        # pass 99 (lane SPIDER): small loose spikes dropped for the renders (the spider's dorsal fins: spider_walk_v5)
+        "drop_islands": _f("int", 0, False, "delete loose mesh parts of at most this many vertices that follow a body bone (drop_groups): the spider's fins (4); 0 = off"),
+        "drop_groups": _f("str", "", False, "drop_islands: a regex over the bone an island follows (empty: body|head|neck|root)"),
         # pass 92 (lane SPIDER): the made motions (tools/blender_gait.py); empty = the tool's default
         "legs": _f("str", "", False, "gait / flip_curl: a regex over the leg bones' names (empty: leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia)"),
         "base": _f("str", "", False, "gait / flip_curl: seconds into the named clip whose pose is the stance (empty: the rest pose)"),
@@ -1265,6 +1268,10 @@ def _plan(job):
                 kv.append("skin=capsule")
                 if spec.get("skin_radius") not in (None, "") and abs(float(spec["skin_radius"]) - 0.06) > 1e-9:
                     kv.append("skin_radius=%g" % float(spec["skin_radius"]))
+            if int(spec.get("drop_islands") or 0) > 0:   # pass 99 (lane SPIDER)
+                kv.append("drop_islands=%d" % int(spec["drop_islands"]))
+                if spec.get("drop_groups"):
+                    kv.append("drop_groups=%s" % spec["drop_groups"])
             if spec.get("inplace") is False:
                 kv.append("inplace=0")
             # pass 93 (lane LEGS): a made motion writes where every foot goes (tips.json); a made walk is then checked

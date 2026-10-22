@@ -29,6 +29,9 @@ names (leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia); the beetle's un
 forward= is the way the model faces (-Y for the beetle, the scorpion and Blender's convention); the cameras go round it:
 front 0 (it walks at the viewer), fd 45, side 90 (it faces screen-right like the painted side views), bd 135, back 180,
 pitch 25 from above, orthographic, three extents away, 1.45 extents wide (1.6 for a oneshot).
+drop_islands=N (pass 99) deletes every loose part of the mesh of at most N vertices that follows a bone matching
+drop_groups (default body|head|neck|root) before anything else: the spider's dorsal fins and head nubs (3-4 vertex islands)
+that walked as a spike on every look (spider_walk_v5: drop_islands=4).
 tips=1 (pass 93, mode gait / flip_curl): also writes <out>/tips.json, where every leg's foot (its mesh tip vertex) and its
 last bone's tail fall in each view's pictures frame by frame ({legs, size, views: {view: [[[mx, my, bx, by] per leg] per
 frame]]}}); tools/gait_check.py draws the foot paths and says which way each foot travels while it is down.
@@ -52,6 +55,60 @@ except ImportError:  # importable outside Blender (the selftest); main() needs B
     bpy = None
 
 LEG_WORDS = r"(?i)leg|thigh|calf|shin|foot|toe|tarsus|femur|tibia"
+
+
+def drop_islands(body, max_verts, groups_re=r"(?i)body|head|neck|root"):
+    """pass 99 (lane SPIDER): drop_islands=N deletes, for the renders only, every loose part of the mesh (a connected
+    island) of at most N vertices whose vertices mostly follow a bone matching `drop_groups`: a low-poly model's
+    stuck-on spikes (the file itself is never changed). The spider's three dorsal fins and its head's two nubs are 3- and 4-vertex islands on body_01 /
+    head_03 that every walk copied as a spike on the abdomen; its fangs (6-10 vertices, the chap bones) and its legs
+    stay. Returns how many vertices went."""
+    import bmesh
+    rx = re.compile(groups_re)
+    gone = 0
+    for o in body:
+        if o.type != "MESH" or not o.vertex_groups:
+            continue
+        names = {g.index: g.name for g in o.vertex_groups}
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bm.verts.ensure_lookup_table()
+        dl = bm.verts.layers.deform.active
+        seen = set()
+        kill = []
+        for v in bm.verts:
+            if v.index in seen:
+                continue
+            isl, stack = [], [v]
+            seen.add(v.index)
+            while stack:
+                x = stack.pop()
+                isl.append(x)
+                for e in x.link_edges:
+                    y = e.other_vert(x)
+                    if y.index not in seen:
+                        seen.add(y.index)
+                        stack.append(y)
+            if len(isl) > max_verts or dl is None:
+                continue
+            votes = {}
+            for x in isl:
+                d = x[dl]
+                if d:
+                    gi = max(d.items(), key=lambda kv: kv[1])[0]
+                    n = names.get(gi, "")
+                    votes[n] = votes.get(n, 0) + 1
+            top = max(votes.items(), key=lambda kv: kv[1])[0] if votes else ""
+            if top and rx.search(top):
+                kill += isl
+        if kill:
+            bmesh.ops.delete(bm, geom=kill, context="VERTS")
+            bm.to_mesh(o.data)
+            o.data.update()
+            gone += len(kill)
+        bm.free()
+    print("blender_depth_drivers: drop_islands=%d (%s): %d vertices dropped" % (max_verts, groups_re, gone))
+    return gone
 
 
 def capsule_legs(arm, body, legs, hip_share=0.06):
@@ -144,6 +201,10 @@ def main():
     # pass 94 (lane REAL): smooth=N rounds a low-poly model's cones and fins for the renders only (a Catmull-Clark
     # subdivision at N render levels: the spider's knees and abdomen rendered as crystal spikes that every walk copied).
     # The viewport evaluation (the depth range, the leg tips) keeps the raw mesh, so tips.json stays index-true.
+    # pass 99 (lane SPIDER): drop_islands=N removes small loose spikes (the spider's dorsal fins) before anything else
+    dropped = 0
+    if int(A.get("drop_islands", "0") or 0) > 0:
+        dropped = drop_islands(body, int(A["drop_islands"]), A.get("drop_groups") or r"(?i)body|head|neck|root")
     smooth = int(A.get("smooth", "0") or 0)
     if smooth > 0:
         for o in body:
@@ -442,7 +503,7 @@ def main():
     meta = {"kind": "depth", "mode": mode, "loop": mode == "cycle", "src": os.path.relpath(src, R.REPO).replace("\\", "/"),
             "action": act.name if act is not None else None, "range": [f0, f1], "clip_range": [F0, F1], "start": A.get("start"), "end": A.get("end"), "fps": fps,
             "frames": N, "cycles": CYCLES, "total": total, "views": views, "depth": depth_mode, "depth_ranges": ranges,
-            "amp": amp, "amp_bones": amp_re if abs(amp - 1.0) > 0.001 else None, "amp_matched": amp_matched, "smooth": smooth, "skin": skin or None, "skin_radius": float(A.get("skin_radius", "0.06") or 0.06) if skin else None,
+            "amp": amp, "amp_bones": amp_re if abs(amp - 1.0) > 0.001 else None, "amp_matched": amp_matched, "smooth": smooth, "drop_islands": int(A.get("drop_islands", "0") or 0) or None, "dropped": dropped or None, "skin": skin or None, "skin_radius": float(A.get("skin_radius", "0.06") or 0.06) if skin else None,
             "pitch": pitch, "size": size, "extent": extent, "forward": A.get("forward", "-Y"), "inplace": inplace,
             "albedo": os.path.relpath(albedo, R.REPO).replace("\\", "/") if albedo else None, "scale_applied": factor,
             "notes": "", "legs": legs.describe() if legs else None,

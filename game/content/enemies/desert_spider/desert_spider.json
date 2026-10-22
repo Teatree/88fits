@@ -484,7 +484,7 @@
       "fresh": true,
       "recipe": {
         "method": "creature_ctl",
-        "drivers": "spider_walk_v4",
+        "drivers": "spider_walk_v5",
         "noun": "a spider",
         "blockout": "a rough grey 3D model of a spider: a small head with two short fangs at the front, an oval abdomen behind it and eight long jointed legs, four on each side, arching above the body and down to pointed feet; its flat facets, sharp fins and cone-shaped legs are only the model's rough surface, not part of the spider",
         "prompt": "a big hairy desert wolf spider with pale lavender and light lilac-purple bristly fur, a darker violet chevron pattern down the middle of its oval abdomen, long legs banded in light lilac and darker violet, a cluster of small glossy black eyes on the front of its head and two short dark fangs, the whole spider light purple",
@@ -512,16 +512,16 @@
         },
         "motion": "scuttling in place on its eight legs like a real spider, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of four, the body low and level",
         "anim_negative": "extra legs, nine legs, ten legs, six legs, legs merging, a leg growing from the head, antennae, a tail, wings, two heads, a second spider, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a cartoon face, eyebrows, a mouth",
-        "death_drivers": "spider_death_v3",
+        "death_drivers": "spider_death_v5",
         "death_motion": "it jerks, rolls over onto its back and lies dead with its eight legs curled up over its pale lavender belly like a real dead spider, the legs folded in towards each other, the same colours as the reference all over, nothing green",
         "death_keep": [
+          0,
           3,
           4,
-          7,
-          8,
-          9,
+          10,
           11,
-          14,
+          13,
+          17,
           24
         ],
         "dead": "lying dead on its back, its eight legs curled up over its belly",
@@ -535,6 +535,21 @@
           "lora": false,
           "steps": 20,
           "cfg": 3.5
+        },
+        "walk_seeds": {
+          "front": 1
+        },
+        "clay_drivers": {
+          "front": "spider_walk_v4",
+          "side": "spider_walk_v4",
+          "back": "spider_walk_v4"
+        },
+        "view_words": {
+          "fd": "painted with strong value contrast like a real wolf spider: the fur pale lavender with deep violet shadows, the oval abdomen a solid saturated violet with a bold dark violet chevron, the legs solid and fully opaque, thick enough to read, banded in light lilac and dark violet, every part outlined crisply in dark plum",
+          "bd": "painted with strong value contrast like a real wolf spider: the fur pale lavender with deep violet shadows, the oval abdomen a solid saturated violet with a bold dark violet chevron, the legs solid and fully opaque, thick enough to read, banded in light lilac and dark violet, every part outlined crisply in dark plum"
+        },
+        "view_drivers": {
+          "back": "spider_walk_v4"
         }
       },
       "sprite": "desert_spider_sprite_g.png",
@@ -555,7 +570,7 @@
         "idle_fd": 4
       },
       "strip_cols": 91,
-      "head": 0.65,
+      "head": 0.556,
       "fps": {
         "run": 20,
         "die": 12
@@ -566,7 +581,7 @@
       "fresh": true,
       "recipe": {
         "method": "creature_ctl",
-        "drivers": "spider_walk_v4",
+        "drivers": "spider_walk_v5",
         "noun": "a spider",
         "blockout": "a rough grey 3D model of a spider: a small head with two short fangs at the front, an oval abdomen behind it and eight long jointed legs, four on each side, arching above the body and down to pointed feet; its flat facets, sharp fins and cone-shaped legs are only the model's rough surface, not part of the spider",
         "prompt": "a big hairy desert wolf spider with pale lavender and light lilac-purple bristly fur, a darker violet chevron pattern down the middle of its oval abdomen, long legs banded in light lilac and darker violet, a cluster of small glossy black eyes on the front of its head and two short dark fangs, the whole spider light purple",
@@ -595,16 +610,16 @@
         },
         "motion": "scuttling in place on its eight legs like a real spider, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of four, the body low and level",
         "anim_negative": "extra legs, nine legs, ten legs, six legs, legs merging, a leg growing from the head, antennae, a tail, wings, two heads, a second spider, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a cartoon face, eyebrows, a mouth",
-        "death_drivers": "spider_death_v3",
+        "death_drivers": "spider_death_v5",
         "death_motion": "it jerks, rolls over onto its back and lies dead with its eight legs curled up over its pale lavender belly like a real dead spider, the legs folded in towards each other, the same colours as the reference all over, nothing green",
         "death_keep": [
+          0,
           3,
           4,
-          7,
-          8,
-          9,
+          10,
           11,
-          14,
+          13,
+          17,
           24
         ],
         "dead": "lying dead on its back, its eight legs curled up over its belly",
@@ -618,7 +633,31 @@
           "lora": false,
           "steps": 20,
           "cfg": 3.5
-        }
+        },
+        "clay_drivers": "spider_walk_v4"
+      },
+      "sprite": "desert_spider_sprite_h.png",
+      "icon": "desert_spider_icon_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.562,
+      "fps": {
+        "run": 20,
+        "die": 12
       }
     },
     "SP-I": {

@@ -2816,3 +2816,26 @@ python tools/vision_eval.py --agy-health | --agy-rule | --cloud-backend antigrav
 | smear | sheet_agy rubric answer + item | true when a part is blurred into streaks |
 | tools/dl/qa/agy_state.json | file | {quota_until (epoch), until_text, reason, seen}: a spent subscription quota, no Gemini call until then (delete to retry) |
 | quota_until / quota_reason | agy_today(), /api/eyes today | the spent quota's date and agy's words |
+
+## Pass 99: new keys
+
+No new code keys. New data only:
+- driver `tools/dl/drivers/spider_death_v4` (flip_curl: curl 100, curl_root 20, roll 170, twitch 4, spasm_deg 22,
+  bounce 0.12; smooth 2, skin capsule, skin_radius 0.06; views front, fd, side; forward +Y; total 25).
+- desert_spider.json SP-G recipe: `death_drivers` "spider_death_v4", `death_keep` [0, 3, 4, 10, 11, 13, 17, 24],
+  `walk_seeds` {"front": 1} (existing key: the front walk on seed +1000).
+- SP-H recipe: `death_drivers` "spider_death_v4", `death_keep` as SP-G; SP-H entry gains sprite, icon, anims,
+  strip_cols, head, fps (its first strip).
+
+Round 2 (new keys):
+- tools/blender_depth_drivers.py `drop_islands=N` (int, default 0 = off): delete every connected mesh island of at
+  most N vertices whose vertices mostly follow a bone matching `drop_groups` (regex, default `(?i)body|head|neck|root`),
+  before smoothing/skinning; meta.json gets `drop_islands`, `dropped`. LE driver_depth job fields `drop_islands`,
+  `drop_groups` (passed only when set).
+- gen_ctl recipe `view_words` ({view: text}, default {}): words added after the prompt in that view's repaint prompt.
+- gen_ctl recipe `clay_drivers` (driver name or {view: name}, default the `drivers`): the driver whose clay a view is
+  painted from and uncropped onto (clay_for).
+- gen_ctl recipe `view_drivers` ({view: name}, default {}): the walk driver for that view (ctl, fit_to_ctl, model_scale).
+- Drivers: tools/dl/drivers/spider_walk_v5 (v4 + drop_islands=4), spider_death_v5 (death_v4 + drop_islands=4).
+- desert_spider.json: SP-G drivers v5, death_drivers v5, clay_drivers {front, side, back: v4}, view_drivers {back: v4},
+  view_words {fd, bd}; SP-H drivers v5, death_drivers v5, clay_drivers v4.

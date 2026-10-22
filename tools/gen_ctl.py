@@ -194,6 +194,13 @@ def clay_for(recipe, drv, view, size=1024):
     colours: grey for an untextured model, no brown to leak into a light look); with "clay_fill" f (0..1) cropped square
     round the figure so it fills f of the frame, and scaled to `size`, so the painter sees the model bigger. Returns
     (RGB, box in the 640 driver frame or None)."""
+    # pass 99 (lane SPIDER): "clay_drivers" (a driver name, or {view: name}) names the driver a view was painted from
+    # and is put back on, when the walk moved to another (spider_walk_v5 dropped the fins: the old paintings keep the
+    # crop of the clay they were painted on, so the cached placement and the walk's reference stay the same)
+    cd = recipe.get("clay_drivers")
+    cname = (cd.get(view) if isinstance(cd, dict) else cd) if cd else None
+    if cname:
+        drv = os.path.join(REPO, "tools", "dl", "drivers", str(cname))
     d = os.path.join(drv, view)
     src = os.path.join(d, "look.png") if recipe.get("clay_src") == "look" and os.path.exists(os.path.join(d, "look.png")) else os.path.join(d, "clay.png")
     im = Image.open(src).convert("RGB")
@@ -291,8 +298,11 @@ def repaint_prompt(recipe, view, bg, with_side):
     what = ("Repaint this exact 3D model as a finished, detailed anime game creature illustration of " if anchor else "Repaint this exact model as ")
     surface = ("It must not look like a plain 3D model. " if anchor else
                "Only the surface changes: the flat polygons become the creature's real body. ")
+    # pass 99 (lane SPIDER): "view_words" {view: words}: the look's words for that view's painting only (SP-G's pale
+    # three-quarter views painted again with "stronger violet ..." without touching the shared prompt)
+    extra = str((recipe.get("view_words") or {}).get(view, "") or "")
     return ("The first reference image is a rough 3D model of " + noun + " (" + recipe.get("blockout", "a plain clay 3D model") + "), "
-            + vw + "." + second + art + " " + what + recipe["prompt"] + (", with " + detail if detail else "") +
+            + vw + "." + second + art + " " + what + recipe["prompt"] + (", " + extra if extra else "") + (", with " + detail if detail else "") +
             ". Keep the model's silhouette, its pose and the camera angle exactly: " + anatomy + "; every leg stays where it is, at "
             "the same angle and length, bending at the same joints, the body and head the same size and in the same place; nothing "
             "is added that the model does not have. " + surface + style + ". " + bg + ".")
@@ -495,17 +505,19 @@ def main():
         # (animate.cache_fits), so that view's ai_anim folder no longer has to be moved away first
         wseed = seed + 20 + VIEWS.index(view) + 1000 * int((recipe.get("walk_seeds") or {}).get(view, 0))
         # pass 92: "ctl_soft" {radius, body, views}: the body's depth softened so a painted face survives the walk
-        cdir = soft_dir(recipe, os.path.join(drv, view), view)
+        # pass 99 (lane SPIDER): "view_drivers" {view: name}: that view walks on another driver than "drivers"
+        vdrv = os.path.join(REPO, "tools", "dl", "drivers", str((recipe.get("view_drivers") or {}).get(view) or recipe["drivers"]))
+        cdir = soft_dir(recipe, os.path.join(vdrv, view), view)
         # pass 93: "fit_ref" true (or a list of views): the painting fitted onto the depth figure first (fit_to_ctl)
         fr = recipe.get("fit_ref")
         # (a number 0..1 fits that share of the way: fit_to_ctl's share)
         share = 1.0 if (fr is True or (isinstance(fr, list) and view in fr)) else (float(fr) if isinstance(fr, (int, float)) and not isinstance(fr, bool) else 0.0)
         # pass 94: a clay_fill painting goes back where its crop came from in the driver's frame first
         src = uncrop(views[view], clay_for(recipe, drv, view)[1]) if repaint_mode(recipe) else views[view]
-        ref = fit_to_ctl(src, os.path.join(drv, view), share=share) if share > 0 else src
+        ref = fit_to_ctl(src, os.path.join(vdrv, view), share=share) if share > 0 else src
         frames, _ = animate.cycle_control(ref, key + "_ctl_" + view, cdir, wseed, prompt=motion,
                                           negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))), wan=recipe.get("wan"))
-        k = model_scale(frames, os.path.join(drv, view))
+        k = model_scale(frames, os.path.join(vdrv, view))
         sizes[view] = k
         walks[view] = [drop_islands(f) for f in resized(frames, k)]
     log("  model scale per view: " + ", ".join("%s %.2f" % (v, k) for v, k in sizes.items()))

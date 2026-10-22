@@ -3778,3 +3778,49 @@ per-frame badges per eye from the versions' qa.eyes (eyes_io.on_findings at the 
 sheet, the look's "Eyes:" line, Gemini named and coloured on the request card, today's calls and fallbacks in Ops.
 New files: tools/level_editor/eyes_io.py, eyes.js, eyes.css, selftest_GEMINI98.py; GATES96 re-pinned on purpose (tier 2's
 backend may be antigravity). Docs: docs/level_editor.md "Pass 98: Gemini as a checker".
+
+**Pass 99 (2026-10-22, v0.84): the Desert Spider's SP-G and SP-H finished.** Garry: "continue with the spider then" (lifting pass 95's park). One lane, two rounds; the lead's round 2 targeted the faults with a known cause: the 3D model's dorsal fins (now dropped from the depth renders) and SP-G's pale three-quarter paintings (painted again). Lead's own pass 98 analysis the same day: the local vision model answers the expected leg count almost always (8 on 29 of 31 spiders), so its leg 'accuracy' was the anchor; Gemini never over-counted a clean spider.
+
+Garry: "continue with the spider then" (pass 94's SP-G / SP-H work, parked in pass 95). SP-G (Klein) stays the played
+look; every look stays fresh; SP-I (Garry's request r20261022-000038-84ed) untouched.
+
+- **The frame-by-frame check** of SP-G's installed strip (numbered sheets of the 160 px cells and of the 640 px clip
+  frames, tools/dl/p99/SPIDER/check/): every walk view had whole-view faults (rainbow fringes where Wan paints the pale
+  thin legs half see-through over the green, the three-quarter front's legs stacked into tubes, the side's eyeless snout,
+  the front's lost face, the three-quarter back's grey fan) and the death fell apart: pass 94's spider_death_v3 itself
+  swings the folded legs out as two wings, so every death walked on it showed two loose clumps.
+- **Fixes, cheapest first**: one view re-walked on another seed (walk_seeds {view: 1}, ~4 min): the front got its eyes
+  and fangs back (kept); fd, bd, side were not better (not kept); softened depth (ctl_soft 10) on fd: worse. VACE repair
+  with creature_ctl's benchmarked profile (double window 25, strength 0.7, 20 steps, cfg 3.5, no LoRA), once on SP-G fd
+  4-5 and once on SP-H front 5 (~340 s each): both washed out and see-through: kept as versions SP-G-2 / SP-H-2 in the
+  frames store, never staged or exported. **A new death driver** tools/dl/drivers/spider_death_v4 (blender_depth_drivers
+  mode=flip_curl curl=100 curl_root=20 roll=170 twitch=4, smooth 2, skin capsule 0.06, views front,fd,side; Blender on
+  the PC): the legs stay folded against the body; both deaths walked on it, death_keep [0, 3, 4, 10, 11, 13, 17, 24]
+  (the roll's smeared frames skipped, a re-pick without a render).
+- **SP-H** packed for the first time (the picks by eye: front c5, fd c2, side k2, bd the plain painting seed 24187,
+  back c1), on spider_walk_v4 / spider_death_v4 with the full Wan, so G and H differ only in the painter (pinned by the
+  new test test_g_and_h_differ_only_in_the_painter). Its strip and icon: desert_spider_sprite_h.png / icon_h.png.
+- Verdict: in game SP-H reads better (a solid magenta silhouette, clean legs; faults: magenta not lavender, eyeless 3/4
+  front and side heads); SP-G is the asked-for light purple with the better front face but pale, fringed legs and a
+  tangled three-quarter front. Both keep the model's back fin as a spike in the front view (it is in the model's depth).
+- Doc: docs/spider/spider_explainer.html section ★ finished (6b the frame check and the fixes, the side-by-side, the
+  Level Editor steps with spider_death_v4, the timings), built from tools/dl/p99/SPIDER/doc/ by
+  tools/dl/p99/SPIDER/scripts/build_doc.py (images 8.66 MB). Not published (the lead does).
+- Timings: a walk 235-300 s, a death 236-244 s, five walks + death ~25 min a look; SP-G ~2 h 20 min of the server in
+  all (pass 94 + 99), SP-H ~4 h 20 min.
+- Tests: pass94_REAL_test.gd (SP-H must have its strip now; the new parity test) 4/4, pass93_LEGS 4/4, pass92_SPIDER
+  3/3, check_scripts ok, Level Editor selftest 15,222 passed / 0 failed, tools/dl/jobs/queue.json untouched (sha1
+  637fba2f... before and after). In-game capture game/tools/_p99_SPIDER_shots.gd (scratch, watchdog + frame cap).
+
+Round 2 (lead's follow-up the same evening):
+- **The spike**: the model's three dorsal fins and its head nub are loose 3-4 vertex pieces of the mesh on the body and
+  head bones; new blender_depth_drivers `drop_islands=N` (+ `drop_groups`, default body|head|neck|root) deletes such
+  islands before the renders (the file untouched; meta.json records it). spider_walk_v5 / spider_death_v5 = v4 + 
+  drop_islands=4 (16 s each on the PC; gait_check ok). Both looks re-walked on them with the same seeds; kept where at
+  least as good: all but SP-G's back (faceted far legs on v5), which stays on v4 via the new `view_drivers`.
+  `clay_drivers` keeps each painting's v4 crop so the paintings lie where they did.
+- **SP-G's three-quarter views painted again** (Klein 28, 4 seeds each from v5's clay, new `view_words` for fd/bd:
+  strong value contrast, opaque legs): fd c2 and bd c0 picked by eye and walked on v5: clearly better than the pale ones.
+- LE: driver form drop_islands / drop_groups (jobs.py fields + argv, methods.json), creature_ctl recipe fields view_words,
+  clay_drivers, view_drivers (methods.json, assets_fields.js, vocab.py); selftest_SPIDER99.py (22 checks).
+- Doc section 6c; round 2 took 1 h 20 min of the server.
