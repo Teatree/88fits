@@ -298,6 +298,11 @@ const LookGrid = (() => {
     const acts = el('div', { class: 'lg-actions' });
     actions(acts, kind, id, record, look, s);
     info.appendChild(acts);
+    if (!isStub(look) && typeof Eyes !== 'undefined' && Eyes) {   // pass 98 (lane GEMINI): "Eyes: Gemini flagged 3 frames in run/side"
+      const eh = el('div', { class: 'lg-eyes' });
+      info.appendChild(eh);
+      Eyes.lookLine(eh, kind === 'boss' ? 'boss' : kind, id, look.code);
+    }
     wrap.appendChild(info);
     return wrap;
   }
@@ -382,6 +387,8 @@ const LookGrid = (() => {
     b('Duplicate…', 'a draft copy of this look under the next free code: its recipe, words and painter copied; nothing is painted until you press Generate… on the draft (change its recipe first if you like)', () => duplicateDraft(kind, id, record, s, look));
     // pass 95 (lane VACE): every frame of every animation, its versions, repairs with VACE, frames from other looks, one export
     if (!stub && typeof Frames !== 'undefined') b('Frames…', 'every frame of every animation of this look: play and scrub them, choose frames to paint anew with VACE (the rest kept), pick any earlier version or a frame of another look, stage several changes, then one Export', () => Frames.open(kind === 'boss' ? 'boss' : kind, id, look.code));
+    // pass 98 (lane GEMINI): Gemini over every frame of the look (an evaluate job; badges land on each frame in Frames…)
+    if (!stub && typeof Eyes !== 'undefined' && Eyes) b('Check with Gemini', `Gemini (Garry's subscription, through the Antigravity CLI) looks at every frame of every animation of this look on numbered sheets of up to 16 (one call a sheet, about 2 minutes each; the day's cap is in the Jobs tab's Ops fold), with tier 0's flags and the local model beside it; each frame gets a badge per eye in Frames…: a hint, not a verdict`, () => Eyes.checkLook(kind === 'boss' ? 'boss' : kind, id, look.code));
     if (!draft) {
       // a look's own icon (pass 68, D8): a hero's icon is the round badge, so a hero look offers badge and title cut-out
       // candidates; the base look's go to the hero's (or the creature's) own files

@@ -144,6 +144,7 @@ import frames_io as FRIO  # noqa: E402  (pass 95, lane VACE: the frames store's 
 import requests_io as REQIO  # noqa: E402  (pass 96, lane REQ: the art requests, /api/requests..., /api/job/<id>/summary)
 import events as EV  # noqa: E402  (pass 97, lane PROGRESS: the events log tools/dl/jobs/events.jsonl; on only in main())
 import ops_io as OPSIO  # noqa: E402  (pass 97, lane PROGRESS: /api/ops, /api/events, /api/jobs/archived, server.log)
+import eyes_io as EYESIO  # noqa: E402  (pass 98, lane GEMINI: /api/eyes, Check with Gemini, the frames' eyes)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -3905,7 +3906,7 @@ def fit_turnover(map_id, include_headless=False, runs_dir=None):
 
 # GETs that are polled or fetched by the dozen say nothing in the console (pass 66)
 QUIET_PREFIXES = ("/api/jobs", "/api/job/", "/api/status", "/dl/", "/icon/", "/sprite/", "/art/", "/examples/", "/sound/", "/api/sim/", "/api/requests")   # pass 96: the request folds are polled too
-QUIET_PREFIXES += ("/api/events", "/api/ops")   # pass 97 (lane PROGRESS): the look card's history and the Ops fold are polled too
+QUIET_PREFIXES += ("/api/events", "/api/ops", "/api/eyes")   # pass 97 (lane PROGRESS): the look card's history and the Ops fold are polled too
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -4035,6 +4036,9 @@ class Handler(BaseHTTPRequestHandler):
         if parts[:1] == ["frames"]:
             # pass 95 (lane VACE): the Frames view (frames_io.py: a look's groups, one group's slots and versions, other looks')
             return FRIO.api_get(self, sys.modules[__name__], parts[1:], query)
+        if parts[:1] == ["eyes"]:
+            # pass 98 (lane GEMINI): the Gemini eye's health and today's calls, what the eyes say of a look (eyes_io.py)
+            return EYESIO.api_get(self, sys.modules[__name__], parts, query)
         if parts[:1] == ["requests"] or (len(parts) == 3 and parts[0] == "job" and parts[2] == "summary"):
             # pass 96 (lane REQ): the art requests' folds and a job's summary (requests_io.py)
             return REQIO.api_get(self, sys.modules[__name__], parts, query)
@@ -4380,6 +4384,10 @@ class Handler(BaseHTTPRequestHandler):
                 # pass 95 (lane VACE): stage / unstage / pin / copy / repair / ask / export / register (frames_io.py)
                 data, err = self._body()
                 return FRIO.api_post(self, sys.modules[__name__], parts[2:], data if isinstance(data, dict) else {})
+            if parts[:2] == ["api", "eyes"]:
+                # pass 98 (lane GEMINI): Check with Gemini (an evaluate job over the whole look; eyes_io.py)
+                data, err = self._body()
+                return EYESIO.api_post(self, sys.modules[__name__], parts[2:], data if isinstance(data, dict) else {})
             if parts[:2] == ["api", "requests"]:
                 # pass 96 (lane REQ): create, pause / resume / stop / cancel / step, approve / reject / pick (requests_io.py)
                 data, err = self._body()

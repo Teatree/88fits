@@ -135,7 +135,7 @@ def checks(check, run_node, server):
     t = doc.get("tiers") or {}
     check(t.get("0") == "deterministic" and isinstance(t.get("1"), dict) and isinstance(t.get("2"), dict), "request_defaults.json carries the tier table (0, 1, 2)")
     check(t.get("1", {}).get("backend") == "openai_chat" and t.get("1", {}).get("model") and t.get("1", {}).get("on") == "flagged+sample", "tier 1: a local openai_chat model on flagged frames + a sample")
-    check(t.get("2", {}).get("on") == "sheets" and float(t.get("2", {}).get("ceiling_dollars", 1)) == 0.0 and t.get("2", {}).get("backend") in ("anthropic", "gemini"), "tier 2: sheets only, ceiling 0.0 (off)")
+    check(t.get("2", {}).get("on") == "sheets" and float(t.get("2", {}).get("ceiling_dollars", 1)) == 0.0 and t.get("2", {}).get("backend") in ("anthropic", "gemini", "antigravity"), "tier 2: sheets only, ceiling 0.0 (off for the paid eyes; pass 98 re-pin: antigravity = Gemini on Garry's subscription, no dollars)")
     check(isinstance(t.get("_measured"), dict) and t["_measured"].get("models"), "the measured numbers travel with the table")
 
     # ---- G1: vace_repair's profile reading and next_rung

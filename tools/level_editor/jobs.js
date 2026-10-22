@@ -811,6 +811,7 @@ const Jobs = (() => {
     if (m.counts) box.appendChild(el('div', { class: 'jops-sec muted small', text: m.counts }));
     if (m.failures.length) { const ul = el('ul', { class: 'jops-fail' }); for (const f of m.failures) ul.appendChild(el('li', { text: f })); box.appendChild(el('div', { class: 'jops-sec' }, el('b', { text: 'Failures' }), ul)); }
     if (m.requests.length || m.total) box.appendChild(el('div', { class: 'jops-sec' }, el('b', { text: `Evaluation cost${m.total ? ': ' + m.total : ''}` }), m.byModel ? el('span', { class: 'muted small', text: ' ' + m.byModel }) : null, ...m.requests.map((r) => el('div', { class: 'small', text: r }))));
+    if (typeof Eyes !== 'undefined' && Eyes) Eyes.opsInto(box);   // pass 98 (lane GEMINI): today's Gemini calls against the cap
   }
 
   /** The routes (app.js): bring a job's card (or a request's) into view and mark it; kept until its card is drawn. */
@@ -1030,6 +1031,7 @@ const Jobs = (() => {
       if (!rec) { badges.appendChild(el('span', { class: 'muted small', text: 'no findings yet (the evaluator writes <job>/findings.json)' })); return; }
       const fb = JobsModel.findingsBadges(rec);
       badges.appendChild(el('span', { class: 'rgates', text: fb.gates }));
+      if (rec.gemini_error) badges.appendChild(el('div', { class: 'jerror eye-fallback', text: (rec.fallback && rec.fallback.line) || `Gemini failed: ${rec.gemini_error} - checked by the local model instead` }));   // pass 98 (lane GEMINI)
       for (const b of fb.badges) badges.appendChild(el('span', { class: 'rbadge ' + b.cls, text: b.text, title: b.title }));
       if (!fb.badges.length) badges.appendChild(el('span', { class: 'rbadge ok', text: `nothing flagged (${fb.ok} of ${fb.n} ok)` }));
       if (fb.sheet && !F.sheet) { const img = el('img', { src: fb.sheet.startsWith('/') ? fb.sheet : '/dl/' + String(fb.sheet).replace(/^tools\/dl\//, ''), alt: '', loading: 'lazy', title: 'the findings sheet' }); img.addEventListener('click', () => StripPlayer.openImage(img.src, `request ${shortId(r.rid)} · the findings sheet`)); badges.appendChild(el('div', { class: 'rsheet' }, img)); }
@@ -1262,7 +1264,7 @@ const Jobs = (() => {
     }
     if (j.state === 'waiting') return waitingStage(c, j);
     if (j.state === 'queued') return queuedLine(j, x || { pos: 0, n: 1 });
-    if (j.state === 'done') return writtenLines(j);
+    if (j.state === 'done') return (j.eyes && j.eyes.gemini_error) ? group(writtenLines(j), el('div', { class: 'jerror eye-fallback', text: j.eyes.fallback_line || `Gemini failed: ${j.eyes.gemini_error} - checked by the local model instead`, title: 'pass 98: Gemini is the first model eye; when its call fails the local model checks the same frames (badges "Local (fallback)")' })) : writtenLines(j);   // pass 98 (lane GEMINI): the fallback surfaced as an error
     if (j.error) return group(el('div', { class: 'jerror', text: j.error }), j.progress && j.progress.comfy_error ? el('div', { class: 'jerror small', text: 'ComfyUI: ' + j.progress.comfy_error }) : null);
     if (j.state === 'interrupted') return el('div', { class: 'jwarn', text: 'The server restarted while this job ran: its process was stopped. Re-queue continues from the tools\' caches (finished stills and clips are reused).' });
     if (j.state === 'cancelled') return el('div', { class: 'muted small', text: 'cancelled' });
@@ -1312,6 +1314,8 @@ const Jobs = (() => {
         j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
         // pass 95 (lane VACE): a landed look's (or a repair's, an export's) frames, versions and repairs
         (['look', 'frames_repair', 'frames_export'].includes(j.kind) && t.code && typeof Frames !== 'undefined') ? el('button', { type: 'button', class: 'btn small', text: 'Frames…', title: 'every frame of this look\'s animations: look at them one by one, choose frames to paint anew with VACE, pick versions, export once', onclick: () => { const jj = cur(j); Frames.open(jj.target.kind || 'enemy', jj.target.id, jj.target.code, jj.kind === 'frames_repair' && jj.spec ? { base: jj.spec.anim, view: jj.spec.view, slot: Array.isArray(jj.spec.slots) ? jj.spec.slots[0] : null } : {}); } }) : null,
+        // pass 98 (lane GEMINI): Gemini over every frame of the landed look (an evaluate job; badges on each frame in Frames…)
+        (['look', 'frames_repair'].includes(j.kind) && t.code && typeof Eyes !== 'undefined' && Eyes) ? el('button', { type: 'button', class: 'btn small', text: 'Check with Gemini', title: `Gemini (Garry's subscription) looks at every frame of this look on numbered sheets of up to 16 (one call a sheet, about 2 minutes each), with tier 0's flags and the local model; each frame gets a badge per eye: a hint, not a verdict`, onclick: () => { const jj = cur(j); Eyes.checkLook(jj.target.kind || 'enemy', jj.target.id, jj.target.code); } }) : null,
         el('button', { type: 'button', class: 'btn small ghost', text: 'Hide', title: 'hide this card until the page reloads', onclick: () => { S.hidden.add(j.id); draw(); } }),
         el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
         el('span', { class: 'spacer' }),

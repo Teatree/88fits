@@ -236,6 +236,17 @@ def defaults():
     return out
 
 
+def eyes_stamp(brief=None):
+    """pass 98 (lane GEMINI): the request's tier-2 eye, stamped at creation so the planner stays a pure function of the
+    record: {tier2, backend, model} from request_defaults.json tiers["2"]; on when tier 2 is antigravity (Gemini through
+    Garry's subscription: no dollars) and neither tiers["2"].requests nor the brief's `gemini` is false. A record without
+    it (made before pass 98) plans as pass 96 did."""
+    t2 = (defaults().get("tiers") or {}).get("2")
+    t2 = t2 if isinstance(t2, dict) else {}
+    on = t2.get("backend") == "antigravity" and t2.get("requests", True) is not False and (brief or {}).get("gemini", True) is not False
+    return {"tier2": bool(on), "backend": t2.get("backend") or "", "model": t2.get("model") or ""}
+
+
 def _coerce_budget(b):
     out = {}
     for k in BUDGET_KEYS:
@@ -613,6 +624,7 @@ def create(goal, asset, brief=None, mode="auto", budget=None, srv=None, title=No
            "mode": mode, "budget": budget_for(budget), "spent": _empty_spent(),
            "state": "running", "waiting_for": None, "jobs": [], "current_job": None, "iterations": [],
            "provisional": None, "history": [], "result": None, "error": "", "note": "", "toast": None, "title": str(title or "")}
+    rec["eyes"] = eyes_stamp(brief)   # pass 98 (lane GEMINI): Gemini at the decision points (tier 2), on by default
     _event(rec, "created", goal=goal, asset=dict(rec["asset"]), mode=mode, budget=dict(rec["budget"]))
     job_title = title or "request %s: %s %s" % (rid, cid, code)
     try:

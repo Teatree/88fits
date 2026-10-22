@@ -70,6 +70,15 @@
     "cells": {"cells": true, "rule": "the cloud eye's verdict on this cell of the decision sheet"}
    },
    "note": "the loop's contact-sheet rubric (tier 2): one call per decision point"
+  },
+  "sheet_agy": {
+   "per": "sheet",
+   "text": "This is a numbered contact sheet of frames from 2D game sprite animations of one character or creature. Each cell shows one frame on grey with its number in a black box at the top left; the cells may come from different animations and views. Judge every cell on its own. Answer ONLY with one JSON object, no prose, of the form {\"cells\": [{\"n\": <number>, \"ok\": true or false, \"legs\": <integer: how many legs you can count>, \"ghost\": true or false, \"smear\": true or false, \"face\": \"ok\" or \"missing\" or \"wrong\" or \"away\", \"why\": \"a few words\"}]} listing EVERY numbered cell. ok is false only when that frame itself looks broken: a cut, detached, doubled, extra, missing or smeared limb, head or body; a faint or see-through ghost duplicate of a part; a wrong or missing face; a patch of a foreign colour. ghost is true when a faint or see-through duplicate of a part is visible; smear is true when a part is blurred into streaks. Do not mark a frame for its pose or its drawing style.",
+   "placeholders": {},
+   "fields": {
+    "cells": {"cells": true, "rule": "Gemini's verdict on this cell of its contact sheet (a hint, not a verdict)"}
+   },
+   "note": "pass 98 (lane GEMINI): Gemini through the Antigravity CLI on a numbered contact sheet of up to 16 frames (tier 2, Check / Ask Gemini); legs, ghost, smear and face come back per cell for the badges; a leg count alone never drives a repair (the bench: legs 2/11)"
   }
  }
 }

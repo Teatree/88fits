@@ -3759,3 +3759,22 @@ ssh forward `-L 192.168.0.43:8788:192.168.137.54:8788` and prints the one comman
 `tools/keys/README.md` (tracked; the keys stay ignored). Found on the way: frames.js in HEAD does not parse (an
 apostrophe in a single-quoted string at line 462), so the Frames view's script never loads; reported, not fixed (no owner).
 Tests: selftest_SAFE97.py (115 checks).
+
+**Pass 98 (2026-10-22, v0.83): Gemini as the art checker.** Garry has a Gemini subscription and no API billing; the Gemini API's free tier answered 429/503 and the Gemini CLI refused his tier, so the route is the Antigravity CLI (agy) in print mode under one narrow read rule in his ~/.gemini/antigravity-cli/settings.json (never --dangerously-skip-permissions). A blind benchmark on the 39-case set (tools/dl/qa_bench/agy_run.py): Gemini 3.8 Flash missed 0 of 19 broken frames but flagged 9 of 12 clean ones; leg counts right 2 of 11, ghost legs 22 of 25, faces 21 of 28; about 91 s a picture (the local qwen2.5-vl-7b: 7 misses, 5 false alarms). Garry: "just use Gemini first. Then if there are errors with Gemini we use the local as backups. And we make sure to surface that information somehow as an error." The benchmark spent his subscription's weekly quota (agy: "Individual quota reached ... Resets in 166h"), so the live proof ran the fallback for real and Gemini's own answer is proven only with a fake agy; the editor remembers the quota in tools/dl/qa/agy_state.json until 2026-10-29 13:00, and the lead lowered the daily cap to 6. Lead fixes: qa_bench.py `tiers --write` keeps a non-Anthropic tier 2; the Frames view's info block no longer prints "null"; REAL94's "the spider still plays SP-B" now accepts Garry's own pick (SP-G, set in the editor at 12:57).
+
+Pass 98, lane GEMINI: Garry's Gemini subscription as the art checker. tools/vision_eval.py gained the `antigravity`
+backend (agy.exe in print / plan mode on opaque pictures in tools/dl/qa/agy_inbox/<call id>/, removed after; a refused
+read, a log-in error, a timeout or an empty answer = no verdict), numbered contact sheets of up to 16 frames
+(agy_sheets, rubric sheet_agy), a daily call cap (tiers["2"].daily_calls, 6 a day) and the request's calls in ceiling_check,
+ledger rows with seconds and agy's tokens, agy_health and ensure_agy_rule (the one inbox read rule appended to Garry's
+~/.gemini/antigravity-cli/settings.json after a backup). Garry's order (2026-10-22): tier 0, then Gemini on the flagged
+frames + a clean one a group, the local model only on the frames a Gemini call failed on, shown as an error everywhere
+("Gemini failed: <why> - checked by the local model instead", "Local (fallback)" badges, an events entry, ledger rows,
+the Ops count). request_defaults' tier 2 is antigravity (the paid eyes kept as alternates); new requests are stamped
+eyes.tier2 and the planner asks [0, 1, 2] (one more before the provisional winner); both eyes flagging a frame orders
+repairs first and earns one repair. The Level Editor: Ask Gemini in the Frames view (selected frames, one sheet, a job),
+Check with Gemini on a look card and on finished look / repair job cards (every frame, sheets per animation x view),
+per-frame badges per eye from the versions' qa.eyes (eyes_io.on_findings at the landing), G / L / G+L marks on the
+sheet, the look's "Eyes:" line, Gemini named and coloured on the request card, today's calls and fallbacks in Ops.
+New files: tools/level_editor/eyes_io.py, eyes.js, eyes.css, selftest_GEMINI98.py; GATES96 re-pinned on purpose (tier 2's
+backend may be antigravity). Docs: docs/level_editor.md "Pass 98: Gemini as a checker".

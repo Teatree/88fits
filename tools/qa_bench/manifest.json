@@ -1,6 +1,6 @@
 {
  "v": 1,
- "made": "2026-10-21T21:50:24",
+ "made": "2026-10-22T13:04:52",
  "images": "tools/dl/qa_bench/",
  "blind": "ids C01.. are a fixed shuffle (random seed 96) of the sources; a name never carries a verdict",
  "rubric": "You are checking ONE frame of a 2D game creature sprite: {species}, as a still painting on a flat colour screen or as one animation frame pasted on grey. {anchor}Small fangs, pincers, claws or mouthparts at the head are NOT legs. Answer ONLY with one JSON object, no prose, keys: legs_total (integer: how many legs you can see in total), legs_left (integer: legs on the left half of the body as drawn), legs_right (integer: legs on the right half), ghost_legs (true if there are faded, translucent, greyish, blurry or duplicated extra legs beside the solid ones), smears (true if parts of the body or legs are blurred, streaked or smeared), face (\"ok\" if a face with eyes is drawn where this view should show one, \"missing\" if the head has no face or eyes although it should, \"wrong\" if the face is not the creature's own, e.g. a skull or a human-like face, \"n/a\" if the view shows the creature from behind), notes (a string of at most 20 words).",

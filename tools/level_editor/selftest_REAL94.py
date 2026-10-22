@@ -185,7 +185,7 @@ def checks(check, run_node, server):
     # ---- the content
     sp = json.load(open(os.path.join(ROOT, "game", "content", "enemies", "desert_spider", "desert_spider.json"), encoding="utf-8"))
     v = sp["variants"]
-    check(sp["variant"] == "SP-B", "the spider still plays SP-B")
+    check(sp["variant"] in v, "the spider plays one of its own looks (Garry picks it in the editor: SP-B in pass 94, SP-G since 2026-10-22)")
     for code, model in (("SP-G", "klein"), ("SP-H", "dev")):
         e = v.get(code) or {}
         rc = e.get("recipe") or {}

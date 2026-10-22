@@ -38,7 +38,8 @@ func test_two_realistic_purple_looks_repainted_from_the_clay() -> void:
 		assert_int((r["death_keep"] as Array).size()).is_equal(8)
 		assert_bool(bool(vs[code].get("fresh", false))).override_failure_message(code).is_true()
 		assert_bool(bool(vs[code].get("shelved", false))).is_false()
-	assert_str(str(d["variant"])).is_equal("SP-B")
+	# Garry picks the played look in the editor (SP-B in pass 93/94, SP-G since 2026-10-22): any of its own looks
+	assert_bool((d["variants"] as Dictionary).has(str(d["variant"]))).is_true()
 
 
 func test_the_new_looks_have_strip_icon_and_eight_directions() -> void:

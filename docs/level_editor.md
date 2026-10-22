@@ -1893,3 +1893,107 @@ in `testdata/comfy_ws/`: the lines, the throttle, the error, a refused and a dro
 real subprocess; parse_line's substage and error; the events log under 16 threads; the choke points on a temporary
 world with a job's events folded back into its record and a request's history equal to its events; the archive round
 trip over HTTP; Ops on 50 synthetic jobs; the error rule; the log's rotation).
+
+
+## Pass 98: Gemini as a checker
+
+Gemini now looks at the frames for you, through your own Google subscription (the Antigravity CLI, `agy.exe`): no
+dollars, no API key. It is a second pair of eyes, never a judge: what it says is a **badge on the frame**, a hint, not a
+verdict. The only hard gates are still tier 0's measured flags (empty, footprint, jump, seam, silhouette).
+
+**The order (your rule, 2026-10-22).** Tier 0 measures every frame. Then **Gemini** looks at a numbered contact sheet of
+the flagged frames plus one clean frame of each animation x view. The **local model** (LM Studio, unchanged) looks only
+when a Gemini call fails, at exactly the frames Gemini could not answer for. A fallback is shown as an error, so you
+always know: see "When Gemini fails" below. The "Ask the local vision model" button in the Frames view works exactly as
+before.
+
+**How far to trust it (the blind benchmark, 2026-10-22, 31 cases).** Gemini caught all 19 broken frames, but it also
+flagged 9 of the 12 clean ones. Its leg counts were right only 2 times in 11 (it says 6 or 7 on a clean 8-legged spider).
+Ghost legs (22 of 25) and faces (21 of 28) it judges well. So:
+- a Gemini **leg count** on its own is only a badge (hover it: "leg counts are unreliable"). It never makes the loop
+  repair a frame. It only counts where tier 0's silhouette or footprint flag is on the same frame;
+- a **ghost** part, a **smear**, or a **missing or wrong face** from Gemini may make the loop repair that frame, once;
+- nothing Gemini says ever passes or fails a look. Your approval stays the final word.
+
+**What runs on its own.** An art request made from now on (the Jobs tab's request card, `art_request.py start`) asks
+Gemini every time the loop checks the look. The first check runs as soon as the look lands, and there is one more check
+before the loop picks its provisional winner if the last one had no Gemini in it. Requests made before pass 98 run
+exactly as they did. When Gemini and the local model both flag the same frame, the loop repairs that animation first,
+and with the hard gates passing it repairs those frames once (never twice on the same frames). This counts only when
+both eyes actually looked at the same frame, so in the loop it is rare now that the local model is the fallback. In the
+Frames view it shows whenever you asked both (Ask the local vision model and Ask Gemini).
+
+**The buttons.**
+- **Frames view → Ask Gemini** (beside "Ask the local vision model"): the selected frames (shift-click a range,
+  ctrl-click to add; nothing selected = the shown frame) go on one contact sheet, as a job on the local lane, so the page
+  never waits. It takes about 2 minutes. When it lands, the view reloads and the frames get their badges.
+- **Enemies / Heroes → a look → Check with Gemini**: every frame of every animation of the look, on sheets of up to 16
+  frames (one sheet, one call: an 8-animation look with 12 frames each is about 8 calls). A box asks first and shows
+  today's count.
+- **Jobs tab → a finished look or repair job → Check with Gemini**: the same check on that job's look.
+
+**How to read the badges.**
+- On a frame's version (the Frames view's versions drawer), one badge per eye: purple **"Gemini: 9 legs, extra leg"**,
+  blue **"Local: ghost part"**. A quiet "Gemini: fine" means it looked and saw nothing wrong. Hover a badge for the
+  model's full note, the time, the job, and "a hint, not a verdict". Click it to put the note in the status line.
+- A frame that two eyes both flag gets a red **"Gemini + Local both flag it"** mark first: look at that one first.
+- On the frame sheet, each cell carries a small corner mark: **G** (Gemini flags it), **L** (the local model flags it),
+  **G+L** in red (both), or a quiet ✓ (they looked, nothing found).
+- Under a look's buttons: **"Eyes: Gemini flagged 3 frames in run/side; Local flagged nothing (12 frames seen)"**.
+- A request card shows Gemini's findings beside the outputs in purple, named "Gemini: ...".
+- The Jobs tab's **Ops** fold has one more line: **"Gemini today: 3 of 6 calls (3 left) · ready"**. It also counts
+  today's fallbacks to the local model.
+
+**When Gemini fails** (agy missing, Antigravity wants you to log in again, a refused read, a timeout, an empty answer,
+frames it skipped, today's cap reached, or your subscription's quota spent), the local model checks the same frames
+instead, and you see it:
+- a red line on the job card and on the request card: **"Gemini failed: <why> - checked by the local model instead"**;
+- the frames' badges read **"Local (fallback): ..."** with a red edge;
+- the findings record says `eye: "local (fallback)"` and `gemini_error: "<why>"`; the events log has an
+  `evaluator / fallback` entry; the local calls' rows in `tools/dl/qa/ledger.json` carry the reason; the Ops line counts
+  the day's fallbacks.
+
+**If your Gemini quota is spent.** agy answers "Individual quota reached ... Resets in 166h35m" when the subscription's
+allowance is used up. **The blind benchmark on 2026-10-22 used it up; it resets about 2026-10-29 13:00.** The Level Editor
+remembers this in `tools/dl/qa/agy_state.json` and makes no Gemini call until then. Until the reset, the local model does
+the checking, every time shown as "Gemini failed: Gemini's subscription quota is spent (it resets in ...)". The Ask Gemini
+and Check with Gemini buttons say so instead of queueing a job. The Ops line reads "quota spent until <date>". To try
+again earlier (after an upgrade, say), delete `tools/dl/qa/agy_state.json`. One call costs a lot of the allowance: about
+17,000 input and 14,000 thinking tokens per picture. That is why a sheet holds 16 frames. The quota is weekly, and about 40 single-picture calls emptied it, so the daily cap is 6:
+six sheets a day spread a week's allowance.
+
+**If Antigravity asks you to log in again**: open a terminal and run `%LOCALAPPDATA%\agy\bin\agy.exe` once by itself,
+sign in with your Google account as it asks, then close it. The next check works again. `python tools/vision_eval.py
+--agy-health` says whether agy.exe and its read rule are in place, without making a call.
+
+**The daily cap and where the settings live.** `tools/level_editor/request_defaults.json`, `tiers` → `"2"`:
+- `daily_calls` (6): the most Gemini calls in one day, counted from the ledger. A call past the cap is refused, and
+  the local model takes over (shown as a fallback).
+- `requests` (true): false turns Gemini off for new requests. One request can also be made without it with
+  `brief.gemini: false`.
+- `model` (`gemini-3.8-flash-medium`), `print_timeout` (420 s per call).
+- `alternates`: the paid eyes (Claude Haiku through the Messages API, the Gemini API) kept as options. Put one back as
+  tier 2's `backend` with a `ceiling_dollars` to use it the pass 96 way.
+
+A request's `evaluator_calls` budget counts Gemini's calls too. When it is spent, the frames that are left are marked
+"not asked".
+
+**How agy is allowed to read the pictures.** Each call copies its pictures, under blind names (`img_0.png`), into
+`tools/dl/qa/agy_inbox/<call id>/`, runs agy in plan mode in that folder, and deletes the folder afterwards. agy may only
+read files your settings allow. Pass 98 added one rule to `C:\Users\Garry\.gemini\antigravity-cli\settings.json`:
+`read_file(D:/_projects/88fits/tools/dl/qa/agy_inbox)`. Your qa_bench rule stays, and a backup of the file was kept
+first. `python tools/vision_eval.py --agy-rule` adds the rule again if it is ever lost (with a fresh backup); it never
+writes when the rule is already there. agy is never run with `--dangerously-skip-permissions`.
+
+**For scripts.** `GET /api/eyes` (health, today's calls, the cap), `GET /api/eyes/look/<kind>/<id>/<code>` (per group,
+the frames each eye flags, and the line), `POST /api/eyes/check {kind, id, code, groups?, fresh?}`, `POST
+/api/frames/<kind>/<id>/<code>/<anim>/<view>/ask_gemini {slots, fresh?}`. The `evaluate` job takes new optional keys:
+`scope` (flagged | all | slots), `slots` ({group: [slot]}), `cloud_backend` (antigravity), `calls_left`, `fresh` (no
+cache), `fallback` (false = no local fallback). A job without them runs exactly as in pass 96.
+`python tools/vision_eval.py --kind enemy --id desert_spider --code SP-B --tiers 0,1,2 --cloud-backend antigravity --scope all --out <dir>`
+runs a check by hand.
+
+Tests: `selftest_GEMINI98.py` runs a fake agy (a small script that answers like agy's print mode, plus a refusal, a
+log-in error, a timeout and an empty answer). It covers the sheet numbering round trip, the cap, the ledger rows, the
+inbox cleanup, the settings append on a temp copy, Gemini first with the fallback, the planner, the routes over HTTP
+and the page's model under Node.

@@ -40,7 +40,7 @@ ARGS_ALLOWED = {
     "repair": ("rung", "window", "prompt", "seed", "guide", "note"),
     "stage": ("slot", "version", "why"),
     "copy": ("slot", "from", "stage"),
-    "ask": ("tiers", "groups", "cloud_dollars", "backend", "model"),
+    "ask": ("tiers", "groups", "cloud_dollars", "backend", "model", "scope"),   # scope: pass 98 (lane GEMINI), tier 2's frames
     "note": ("text",),
     "select_provisional": ("code", "groups", "staged"),
     "stop": ("why",),
@@ -254,6 +254,10 @@ def dispatch(op, record, ctx=None):
             spec = {"kind": t["kind"], "id": t["id"], "code": t["code"], "groups": list(args.get("groups") or ([t["group"]] if t.get("group") else [])),
                     "tiers": list(args.get("tiers") or [0, 1]), "request": rid or "", "cloud_dollars": float(args.get("cloud_dollars") or ((record or {}).get("budget") or {}).get("cloud_dollars") or 0.0),
                     "backend": str(args.get("backend") or ""), "model": str(args.get("model") or ""), "note": str(op.get("why") or "")}
+            if args.get("scope"):   # pass 98 (lane GEMINI): which frames tier 2 sees, and the request's evaluator calls left
+                spec["scope"] = str(args["scope"])
+            if 2 in [int(x) for x in spec["tiers"] if str(x).lstrip("-").isdigit()]:
+                spec["calls_left"] = max(0, int(_budget_left(record, "evaluator_calls")))
             res = ctx.enqueue("evaluate", {"kind": t["kind"], "id": t["id"], "code": t["code"]}, spec, "evaluate %s %s (the loop)" % (t["id"], t["code"]))
             j = (res or {}).get("job")
             if not j:

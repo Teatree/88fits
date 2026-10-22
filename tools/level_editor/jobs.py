@@ -346,9 +346,9 @@ SPECS = {
     "evaluate": {"lane": "local", "fields": {
         "kind": _f("str", "", True, "enemy | boss | hero"), "id": _f("str", "", True, "the asset"), "code": _f("str", "", True, "the look"),
         "groups": _f("list", [], False, "the animation x view groups to evaluate (run/side, die/front, ...; empty = every group of the look)"),
-        "tiers": _f("list", [0, 1], False, "0 deterministic flags + geometry, 1 the local vision model on the flagged frames + one clean frame a group, 2 the cloud eye on one contact sheet"),
+        "tiers": _f("list", [0, 1], False, "0 deterministic flags + geometry, 1 the local vision model on the flagged frames + one clean frame a group, 2 Gemini (pass 98: through Antigravity, free, first; the local model then only checks what a failed Gemini call left) or a paid cloud eye on contact sheets"),
         "request": _f("str", "", False, "the request this evaluation belongs to (empty = a plain job)"),
-        "cloud_dollars": _f("float", 0.0, False, "the request's ceiling for the cloud tier (0 = tier 2 off)"),
+        "cloud_dollars": _f("float", 0.0, False, "the request's ceiling for a PAID tier 2 (0 = a paid eye is off; Gemini through Antigravity costs nothing and runs at 0, capped by tiers[2].daily_calls)"),
         "backend": _f("str", "", False, "openai_chat | anthropic | gemini | fake (empty = the tier table's)"), "model": _f("str", "", False, "the model id (empty = the tier table's)"),
         "note": _f("str", "", False, "")},
         "help": "every frame of the look flagged (empty, footprint, jump, seam, silhouette; the stills' geometry), the flagged ones shown to the local vision model; findings.json + a sheet beside the job"},
@@ -1431,6 +1431,9 @@ def _evaluate_plan(job, asset_dir):
     os.makedirs(asset_dir, exist_ok=True)
     ej = os.path.join(asset_dir, "evaluate.json")
     rec = {k: spec.get(k) for k in ("kind", "id", "code", "groups", "tiers", "request", "cloud_dollars", "backend", "model", "note")}
+    for k in ("scope", "slots", "cloud_backend", "calls_left", "fresh"):   # pass 98 (lane GEMINI): only when the spec has them
+        if spec.get(k) not in (None, "", [], {}):
+            rec[k] = spec[k]
     rec["job"] = job["id"]
     with open(ej, "w", encoding="utf-8", newline="\n") as f:
         json.dump(rec, f, indent=1, ensure_ascii=False)
@@ -1451,6 +1454,19 @@ def _evaluate_post(job, res):
     info = (res or {}).get("info") or {}
     if not info.get("findings"):
         return {"file": "", "keys": [], "backup": "", "layout": "findings"}, "the evaluator wrote no findings (nothing landed)"
+    try:   # pass 98 (lane GEMINI): the models' findings written per frame into the frames store (qa.eyes), the eye's line
+        import eyes_io
+        ew = eyes_io.on_findings(job, info)
+        if ew.get("written") or ew.get("line") or ew.get("gemini_error"):
+            with _lock:   # pass 98 review: the job record is dumped by _save under the lock
+                job["eyes"] = ew
+        if ew.get("gemini_error"):   # Garry: a Gemini failure checked by the local model instead is an error the log keeps
+            _ev_emit("evaluator", "fallback", job=job.get("id"), rid=job.get("request") or (job.get("spec") or {}).get("request"),
+                     look={"kind": (job.get("spec") or {}).get("kind"), "id": (job.get("spec") or {}).get("id"), "code": (job.get("spec") or {}).get("code")},
+                     gemini_error=ew.get("gemini_error"), eye=ew.get("eye"), frames=ew.get("fallback_frames"))
+    except Exception as e:   # noqa: BLE001  (a landing must not fail on the store)
+        with _lock:
+            job["eyes"] = {"written": 0, "error": "%s: %s" % (type(e).__name__, e)}
     with _lock:
         job["findings"] = info["findings"]
         if info.get("summary"):

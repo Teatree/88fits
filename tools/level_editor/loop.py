@@ -15,6 +15,15 @@ The order:
   5. a view whose walk failed twice (two ops on that group
      without improvement)                                 -> reroll_view
   6. only advisory findings (the models') remain          -> select_provisional then None
+Pass 98 (lane GEMINI; Garry: "just use Gemini first ... the local as backups"): a request stamped `eyes.tier2`
+(requests.create, from request_defaults.json tiers["2"] = antigravity) asks tiers [0, 1, 2] every time: tier 0 on every
+frame, Gemini on a sheet of the flagged frames + a clean one a group, the local model only on the frames of a Gemini call
+that failed (vision_eval's fallback). Before select_provisional, findings made without tier 2 get one ask [0, 1, 2]
+first. What a Gemini finding may drive (the blind bench: legs 2/11, ghost 22/25, face 21/28): a ghost, a smear or a
+wrong / missing face (`defects` on the item) counts; a leg count (or another defect) counts only where tier 0's
+silhouette or footprint flag is on the same frame; a leg count alone is a badge. Counting frames (and frames both eyes
+flag, when both actually ran) put their group first among the repairs; with the hard gates passing, they earn one repair
+of a repairable group (never twice on the same slots). A record without `eyes` plans exactly as pass 96.
 The plateau rule: never the same op twice in a row on the same target (op + group + slots): the next rung instead, else
 the next cheaper-to-dearer move, else select_provisional. Budget units are checked here before an op is proposed and
 counted by REQ's step (requests.count_op) when it is dispatched.
@@ -253,10 +262,19 @@ def next_op(record, findings):
             return _select_or_none(record, "the evaluator gave no findings: the frames as they stand are the provisional winner")
         if _budget_left(record, "evaluator_calls") <= 0:
             return _select_or_none(record, "no evaluator calls left: the frames as they stand are the provisional winner")
+        if _tier2_on(record):   # pass 98 (lane GEMINI; Garry: Gemini first, the local model only when Gemini fails)
+            return _op("ask", record, ("the look landed" if _look_just_landed(record) else "the look changed") + ": flag every frame (tier 0), Gemini on a sheet of the "
+                       "flagged ones and a clean one a group (the local model only if Gemini fails)", {"tiers": [0, 1, 2], "scope": "flagged"})
         return _op("ask", record, "the look changed: flag every frame again (tier 0, the local eye on the flagged ones)", {"tiers": [0, 1]})
     gates = findings.get("gates") or {}
     if int(gates.get("hard_failures") or 0) == 0:
-        return _select_or_none(record, "the hard gates pass (only advisory findings remain): the effective frames are the provisional winner", findings)
+        agreed = _agreed_repair(record, findings)   # pass 98 (lane GEMINI): both eyes flag a frame: one repair of it
+        if agreed:
+            return agreed
+        seen = _gemini_repair(record, findings)   # pass 98: Gemini's trusted defects (ghost, smear, face): one repair
+        if seen:
+            return seen
+        return _decide(record, "the hard gates pass (only advisory findings remain): the effective frames are the provisional winner", findings)
     hard = _hard_by_group(findings)
     # 3 hard findings on frames of a repairable group -> repair (spans), the rung from the escalation
     candidates = []
@@ -298,7 +316,8 @@ def next_op(record, findings):
     # cheapest first: repairs before re-rolls; within repairs the lower rung first
     order = {"repair": 0, "reroll_view": 1}
     rung_order = {"single": 0, "double": 1, None: 2}
-    candidates.sort(key=lambda c: (order[c[0]], rung_order.get(c[3], 2), c[1]))
+    agreed_groups = {g for g, _ in (_agreed(findings) | _gemini_counts(findings))} if _tier2_on(record) else set()   # pass 98: the eyes agree -> first
+    candidates.sort(key=lambda c: (order[c[0]], 0 if c[1] in agreed_groups else 1, rung_order.get(c[3], 2), c[1]))
     for verb, group, slots, rung, why, improved in candidates:
         if verb == "repair":
             if _budget_left(record, "repair_rounds", group) <= 0:
@@ -336,7 +355,107 @@ def next_op(record, findings):
         if not _same_as_last(record, op):
             return op
     # nothing left the budget or the plateau rule allows: the best so far is the provisional winner
-    return _select_or_none(record, "no further move within the budget (or the same move would repeat): the frames as they stand are the provisional winner", findings)
+    return _decide(record, "no further move within the budget (or the same move would repeat): the frames as they stand are the provisional winner", findings)
+
+
+# ---------------------------------------------------------------- pass 98 (lane GEMINI): tier 2 at the decision points
+
+def _tier2_on(record):
+    """Whether the request asks Gemini at its decision points (requests.create stamps `eyes.tier2`; absent = pass 96)."""
+    return bool(((record or {}).get("eyes") or {}).get("tier2"))
+
+
+def _look_just_landed(record):
+    """No op yet (the request's look job landed), or the last op painted the look again (requeue, reroll_view)."""
+    last = _last_op(record)
+    return not last or last.get("op") in ("requeue", "reroll_view")
+
+
+def _tier2_seen(findings):
+    """The findings were made with tier 2 asked (whatever came of it: ran, refused by the cap, nothing in scope)."""
+    try:
+        return 2 in [int(t) for t in ((findings or {}).get("tiers") or [])]
+    except (TypeError, ValueError):
+        return False
+
+
+TRUSTED = ("ghost", "smear", "face")   # the blind bench (pass 98): Gemini's ghost 22/25, face 21/28; legs 2/11 (never alone)
+TIER0_SHAPE = ("silhouette", "footprint")   # the deterministic flags a Gemini leg count must agree with
+
+
+def _gemini_counts(findings):
+    """{(group, slot)} where a Gemini (tier 2) finding may count toward a repair: it names a trusted defect (ghost, smear,
+    face), or it is a leg count / other defect AND tier 0's silhouette or footprint flag is on the same frame. A leg count
+    alone is a badge only. Items without `defects` (pass 96's paid eye) never count."""
+    shape = {(str(it.get("group")), int(it.get("slot"))) for it in (findings or {}).get("items") or []
+             if it.get("kind") == "measured" and it.get("ok") is False and it.get("field") in TIER0_SHAPE and it.get("group") and it.get("slot") is not None}
+    out = set()
+    for it in (findings or {}).get("items") or []:
+        if it.get("kind") != "model" or it.get("ok") is not False or int(it.get("tier") or 1) != 2 or not it.get("group") or it.get("slot") is None:
+            continue
+        kinds = it.get("defects") or []
+        key = (str(it["group"]), int(it["slot"]))
+        if any(k in TRUSTED for k in kinds) or (kinds and key in shape):
+            out.add(key)
+    return out
+
+
+def _agreed(findings):
+    """{(group, slot)} a tier-1 item and a COUNTING tier-2 item (_gemini_counts) both flag (ok false): only when both ran."""
+    t1 = set()
+    for it in (findings or {}).get("items") or []:
+        if it.get("kind") != "model" or it.get("ok") is not False or not it.get("group") or it.get("slot") is None:
+            continue
+        if int(it.get("tier") or 1) != 2:
+            t1.add((str(it["group"]), int(it["slot"])))
+    return t1 & _gemini_counts(findings)
+
+
+def _gemini_repair(record, findings):
+    """One repair of the frames Gemini flags with a trusted defect (ghost, smear, face; a leg count only where tier 0's
+    silhouette / footprint agrees), the gates passing; the same guards as the agreement repair."""
+    return _agreed_repair(record, findings, _gemini_counts(findings),
+                          "Gemini flags %s slots %s with a defect it sees well (ghost, smear or face): one repair of them (%s window; a hint the gates do not enforce)")
+
+
+def _agreed_repair(record, findings, keys=None, words=None):
+    """One repair of the slots both eyes flag in a repairable group (gates passing), cheapest group first; never twice on
+    the same slots of a group, never past the group's repair_rounds. None when there is none to make."""
+    if not _tier2_on(record):
+        return None
+    by_group = {}
+    for g, s in (_agreed(findings) if keys is None else keys):
+        by_group.setdefault(g, set()).add(s)
+    for group in sorted(by_group):
+        gi = _group_info(findings, group)
+        if not gi or not gi.get("repairable", False):
+            continue
+        slots = sorted(by_group[group])
+        if len(slots) >= max(2, int(gi.get("n") or 2)):
+            continue
+        if any(set(slots) <= set(p["slots"]) for p in _ops_on_group(record, group) if p["verb"] == "repair"):
+            continue
+        if _budget_left(record, "repair_rounds", group) <= 0:
+            continue
+        prof = repair_profile(gi.get("method"))
+        esc = prof["escalation"]
+        rung = esc[0] if esc and esc[0] != "reroll_view" else "single"
+        op = _op("repair", record, (words or "both eyes (the local model and Gemini) flag %s slots %s: one repair of them (%s window; a hint the gates do not enforce)")
+                 % (group, ",".join(str(s) for s in slots), rung), {"rung": rung}, group=group, slots=slots)
+        if _same_as_last(record, op):
+            continue
+        op["hard_before"] = _hard_count(findings, group, slots)
+        return op
+    return None
+
+
+def _decide(record, why, findings):
+    """The decision point before select_provisional: with tier 2 on and the fresh findings made without it, one ask of
+    tiers [0, 1, 2] first (evaluator calls permitting); else select_provisional (once), then None."""
+    if _tier2_on(record) and not (record or {}).get("provisional") and findings_fresh(record, findings) and not _tier2_seen(findings)             and _budget_left(record, "evaluator_calls") > 0:
+        return _op("ask", record, "a decision point: Gemini looks at the flagged frames and a clean one a group before the provisional winner is chosen",
+                   {"tiers": [0, 1, 2], "scope": "flagged"})
+    return _select_or_none(record, why, findings)
 
 
 def _select_or_none(record, why, findings=None):

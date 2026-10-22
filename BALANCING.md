@@ -6293,3 +6293,51 @@ No game numbers changed. Tool rules (for the record, none touches play):
   Origin (else 403); a JSON route's body needs Content-Type application/json (else 415); /api/upload keeps its raw body.
 - The editor's doctor summary refreshes at most every 600 s, on a thread no request waits for.
 - doctor.py warns under 10 GB free on the checkout's drive.
+
+## 44. Pass 98 (v0.83): Gemini as the art checker (tools only; no game numbers)
+
+Garry's word: Gemini first, the local model only as a surfaced backup. The rules:
+
+1. **The order of the eyes** (Garry, 2026-10-22: "just use Gemini first. Then if there are errors with Gemini we use the
+   local as backups"): tier 0 (deterministic flags + the stills' geometry) on every frame = the ONLY hard gates; then
+   Gemini (tier 2, `antigravity`, gemini-3.8-flash-medium through Garry's Antigravity CLI) on numbered contact sheets of
+   the flagged frames + one sampled clean frame per animation x view; the local LM Studio model (tier 1) runs ONLY on the
+   frames of a Gemini call that failed. Applies whenever tier 2's eye is antigravity (the tier table's default since pass
+   98, and every manual Gemini button). A job without tier 2 (tiers [0, 1], pass 96) still runs the local model first,
+   unchanged.
+2. **What counts as a Gemini failure (the local fallback follows)**: agy.exe missing; not logged in / no JSON from agy;
+   a refused read (`denied_actions`); a timeout (print timeout 420 s, subprocess 480 s); an empty or unparsable answer;
+   cells the answer skipped; the daily cap reached. NOT a failure: a request whose evaluator_calls are spent (those frames
+   are "not asked", no fallback).
+3. **The fallback is surfaced as an error**: findings `eye: "local (fallback)"` + `gemini_error`; a red line "Gemini
+   failed: <reason> - checked by the local model instead" on the job card and on the request card; frame badges "Local
+   (fallback)"; an events.jsonl entry (evaluator / fallback); the fallback calls' ledger rows carry the reason; the Ops
+   line counts today's fallbacks. `fallback: false` on a job = no local call, the error still surfaced.
+4. **Every model finding is advisory**: a badge with the model's name, never a gate, never a pass or fail of a frame.
+5. **Gemini's daily cap**: 6 calls a day (the lead, after the quota ran out: Garry's subscription quota is weekly and about 40 single-picture calls emptied it; absent = 40) (`tiers["2"].daily_calls`), counted from the ledger (refusals and cache hits
+   not counted; a failed call counts). One call = one contact sheet of at most **16 frames**. A request's
+   `evaluator_calls` budget caps the sheets too (`calls_left` = budget minus spent when the ask is dispatched).
+6. **When a request asks Gemini**: requests created from pass 98 on are stamped `eyes.tier2` (on when tier 2 is
+   antigravity and `tiers["2"].requests` is not false; `brief.gemini: false` turns one off). Such a request asks tiers
+   [0, 1, 2] at every check (the first one when the look lands); before select_provisional, findings made without tier 2
+   get one more ask with it. Requests without the stamp plan exactly as in pass 96.
+7a. **What a Gemini finding may drive (the blind bench, 2026-10-22, recorded in request_defaults tiers["2"]._measured:
+    miss 0.0, false alarms 0.75, legs 2/11, ghost 22/25, face 21/28, ~91 s an image)**: a flagged cell's `defects`
+    (vision_eval.defect_kinds) of ghost, smear or face (wrong / missing) may drive ONE repair of that frame in a
+    repairable group (gates passing; never twice on the same frames; within repair_rounds) and puts its group first
+    among the repairs; a leg count (or another defect) counts ONLY where tier 0's silhouette or footprint flag is on the
+    same frame; a leg count alone is a badge only (its hover says the counts are unreliable).
+7. **"Both eyes flag the same frame"** (a tier-1 and a tier-2 item, ok false, on the same group and slot; only when both
+   actually ran, and the Gemini item counting under 7a): (a) among hard-finding repairs, that group goes first; (b) with the hard gates passing, ONE repair of
+   the agreed frames of a repairable group (the method's first rung), never twice on the same frames, within the group's
+   repair_rounds. Under rule 1 this is rare in the loop (the local model only sees frames Gemini failed on); in the
+   Frames view it shows whenever Garry asked both (the red "both flag it" mark, the G+L cell mark).
+8. **The cache**: the same sheet + rubric + model is answered from tools/dl/qa/cache (no call, not counted); the buttons
+   may pass `fresh` to skip it.
+9. **The sampled clean frame**: per group, the middle of the unflagged slots (the same choice as pass 96's tier 1).
+11. **A spent subscription quota** (agy: "Individual quota reached ... Resets in <h m s>"; read from agy's JSON or its
+    cli.log) is remembered in tools/dl/qa/agy_state.json until the reset: no Gemini call until then (refused at once, the
+    local fallback runs and is surfaced), the buttons refuse with the date, the Ops line says "quota spent until".
+    Garry's quota was spent by the blind benchmark on 2026-10-22 (39 single-picture calls): it resets about 2026-10-29 13:00.
+10. **Measured**: one Gemini call on one picture took about 92-100 s in the blind bench (about 14,000 thinking tokens);
+    the live proof's 4-frame sheet: see report_GEMINI.md.

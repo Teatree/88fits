@@ -322,6 +322,7 @@ const Frames = (() => {
           this.drawActions();
         });
         this.cells.set(s.slot, c);
+        if (typeof Eyes !== 'undefined' && Eyes) Eyes.markCell(c, s);   // pass 98 (lane GEMINI): G / L / G+L when an eye flags the shown frame
         this.sheet.appendChild(c);
       }
     }
@@ -347,6 +348,7 @@ const Frames = (() => {
         const marks = el('div', { class: 'fr-vmarks' });
         if (isSt) marks.appendChild(el('span', { class: 'fr-badge staged', text: 'staged' }));
         if (isSel) marks.appendChild(el('span', { class: 'fr-badge ' + (s.pinned ? 'pinned' : 'sel'), text: s.pinned ? 'pinned' : 'selected', title: s.pinned ? 'a human chose it: a re-roll keeps it' : 'what the installed strip shows (or the last export packed)' }));
+        if (typeof Eyes !== 'undefined' && Eyes) for (const sp of Eyes.badgeSpans(v, { skipLegacy: true })) marks.appendChild(sp);   // pass 98 (lane GEMINI): a badge per eye
         if (v.qa && v.qa.vision && v.qa.vision.answer) marks.appendChild(el('span', { class: 'fr-badge vision', text: 'vision: ' + (v.qa.vision.answer.note || JSON.stringify(v.qa.vision.answer)).slice(0, 60), title: JSON.stringify(v.qa.vision.answer) + '\n' + (v.qa.vision.note || '') }));
         tile.appendChild(marks);
         const acts = el('div', { class: 'fr-vacts' });
@@ -377,6 +379,7 @@ const Frames = (() => {
         B('From another look…', 'the same slot in every other look of this asset (removed looks too, marked): pick a frame of theirs (a copy becomes a version here, staged)', () => this.othersPanel(sel), '', !sel.length && n === 0),
         B('Fill from neighbours…', plan.ok ? `a VACE repair with no guide: the ${sel.length} chosen frame${sel.length === 1 ? '' : 's'} painted from the neighbours alone (no RIFE / FILM model is installed on the server; this is the same job with guide = free)${rep.ok ? '' : '; ' + rep.why}` : plan.note, () => this.repairForm(sel, 'free'), '', !plan.ok),
         B('Ask the local vision model', 'LM Studio looks at the shown frame and says what seems wrong (honestly: it cannot count limbs reliably)', () => this.ask(), '', false),
+        ...((typeof Eyes !== 'undefined' && Eyes) ? [B('Ask Gemini', `Gemini (Garry's subscription, through the Antigravity CLI) looks at ${sel.length ? 'the ' + sel.length + ' selected frame' + (sel.length === 1 ? '' : 's') : 'the shown frame'} on one numbered contact sheet (a job on the local lane, about 2 minutes); its answer lands as a purple badge on each frame: a hint, not a verdict`, () => this.askGemini(sel), '', false)] : []),   // pass 98 (lane GEMINI)
         B('Unstage selected', 'drop the staged choices of the selected frames (Undo)', () => this.unstageSel(sel), '', !sel.some((k) => this.slotRec(k) && this.slotRec(k).staged)));
     }
     async act(fn, busyText) {
@@ -410,6 +413,13 @@ const Frames = (() => {
       if (!s) return;
       const res = await this.act(() => post(this.gurl('/ask'), { slot: s.slot, version: s.effective }), 'asking the local vision model…');
       if (res && res.ok) status(`${this.id} ${this.code} slot ${s.slot}: the vision model says ${JSON.stringify(res.vision.answer)} (a hint: it cannot count limbs reliably)`, 'good');
+    }
+    /** pass 98 (lane GEMINI): the selected frames (else the shown one) on one Gemini sheet; the view reloads when it lands. */
+    async askGemini(sel) {
+      const slots = sel && sel.length ? sel : [this.slot];
+      const base = this.base, view = this.view;
+      const res = await Eyes.askFrames(this.kind, this.id, this.code, base, view, slots, () => { if (this.dlg.isConnected && this.base === base && this.view === view) this.reload(); });
+      return res;
     }
     async exportLook() {
       const total = this.sum.groups.reduce((a, g) => a + (g.staged || 0), 0);
@@ -555,13 +565,13 @@ const Frames = (() => {
       U.clear(this.info);
       const d = this.detail;
       const fit = d.fit || {};
-      this.info.append(
+      this.info.append(...[
         el('div', {}, el('b', { text: 'Made by: ' }), el('span', { text: `${d.method || '?'} · ${d.clip ? 'clip ' + d.clip.key + ' (' + d.clip.kind + ', ' + d.clip.full + ' frames painted, ' + d.clip.out + ' kept)' : 'no clip cache for this animation (procedural, or painted before the cache was kept)'}${d.driver ? ' · driver ' + d.driver.name + ' (' + d.driver.kind + ')' : ' · no driver'}` })),
         el('div', {}, el('b', { text: 'Fit: ' }), el('span', { text: fit.source === 'measured' ? `measured from ${fit.pairs} installed frames and their clip frames (scale ${Number(fit.s).toFixed(3)}, residual ${Number(fit.residual_px).toFixed(1)} px): a repaired frame is placed exactly as the pipeline placed the clip's` : 'default (no clip frames to measure from): a repaired frame is placed by the cell\'s size' })),
         el('div', {}, el('b', { text: 'Store: ' }), el('code', { text: d.path || '' }), el('span', { class: 'muted small', text: ` · every version is a PNG + JSON there (store layout ${d.store_version || '?'}); no version is ever deleted (pass 96)` })),
         d.lost_pins && d.lost_pins.length ? el('div', { class: 'warn-text small' }, el('b', { text: 'Pins a landing could not re-apply: ' }), el('span', { text: d.lost_pins.map((p) => `slot ${p.slot} (${p.why})`).join('; ') + '; their versions are kept' })) : null,
         el('div', { class: 'muted small fr-where' }, el('b', { text: 'Where frames live: ' }), el('span', { text: FM.whereLine(d) })),
-        d.repairable && !d.repairable.ok ? el('div', { class: 'warn-text small' }, el('b', { text: 'Repair rule: ' }), el('span', { text: d.repairable.why })) : null);
+        d.repairable && !d.repairable.ok ? el('div', { class: 'warn-text small' }, el('b', { text: 'Repair rule: ' }), el('span', { text: d.repairable.why })) : null].filter(Boolean));
     }
     /** While a repair or export job of this look is queued or running (or for half an hour after this view queued
      *  one, when the Jobs tab is not polling), the group is fetched again every 5 s, so new versions appear. */

@@ -511,6 +511,9 @@ def api_post(h, srv, parts, body=None):
                 res = fn(kind, cid, code, base, view, body)
             elif op == "repair":
                 res = repair_job(srv, kind, cid, code, base, view, body)
+            elif op == "ask_gemini":   # pass 98 (lane GEMINI): the chosen frames on one contact sheet (an evaluate job)
+                import eyes_io
+                res = eyes_io.ask_frames(srv, kind, cid, code, base, view, body)
             else:
                 return h._error(404, "unknown frames op %s" % op)
         else:

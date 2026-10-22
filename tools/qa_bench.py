@@ -323,13 +323,26 @@ def anthropic_chat(img_path, question, model, max_tokens):
         return {"text": "ERROR " + str(e)[:300], "parsed": {}, "usage": {}, "finish_reason": "error", "via": "direct"}
 
 
+def gemini_chat(img_path, question, model, max_tokens):
+    """The official Generative Language API through lane LOOP's adapter (vision_eval.GeminiBackend: the key only from
+    tools/keys/gemini.env; pass 97 follow-up, the lead wired it in once Garry added the key)."""
+    import vision_eval
+    be = vision_eval.GeminiBackend(model=model)
+    buf = io.BytesIO()
+    Image.open(img_path).convert("RGB").save(buf, "PNG")
+    try:
+        txt, usage = be.ask([buf.getvalue()], question, max(int(max_tokens), 2048))
+        return {"text": txt[:1200], "parsed": parse_json(txt), "usage": usage, "finish_reason": None, "via": "vision_eval.GeminiBackend"}
+    except Exception as e:
+        return {"text": "ERROR " + str(e)[:300], "parsed": {}, "usage": {}, "finish_reason": "error", "via": "vision_eval.GeminiBackend"}
+
+
 def run(backend, model, unanchored=False, tag="", max_tokens=None, url=None, only=None, repeat=1):
     man = manifest()
     if backend == "gemini":
         if not _key_file("gemini.env"):
             raise SystemExit("qa_bench: no tools/keys/gemini.env: the Gemini tier is not run (G3 waits for Garry's AI Studio key with billing)")
-        raise SystemExit("qa_bench: the Gemini backend is lane LOOP's adapter's (vision_eval.GeminiBackend); run it through `run openai_chat` with its OpenAI-compatible URL for now")
-    if backend not in ("openai_chat", "anthropic"):
+    if backend not in ("openai_chat", "anthropic", "gemini"):
         raise SystemExit("qa_bench: backend is openai_chat | anthropic | gemini")
     if max_tokens is None:
         max_tokens = 1500 if "gemma" in model.lower() else 300   # a thinking model spends its budget on hidden reasoning first (part D3's lesson)
@@ -349,6 +362,8 @@ def run(backend, model, unanchored=False, tag="", max_tokens=None, url=None, onl
             t0 = time.time()
             if backend == "openai_chat":
                 r = openai_chat(p, q, model, max_tokens, url)
+            elif backend == "gemini":
+                r = gemini_chat(p, q, model, max_tokens)
             else:
                 r = anthropic_chat(p, q, model, max_tokens)
             r["seconds"] = round(time.time() - t0, 2)
@@ -555,6 +570,9 @@ def tiers(write=False, scores=None, quiet=False):
     if os.path.isfile(REQUEST_DEFAULTS):
         with open(REQUEST_DEFAULTS, "r", encoding="utf-8") as f:
             doc = json.load(f)   # re-read right before writing: REQ owns the other keys
+    old2 = (doc.get("tiers") or {}).get("2")
+    if isinstance(old2, dict) and old2.get("backend") not in (None, "anthropic"):
+        table["2"] = old2   # pass 98: a chosen tier-2 eye (Gemini through Antigravity) is kept; the bench only refreshes tiers 0, 1 and _measured
     doc["tiers"] = table
     tmp = REQUEST_DEFAULTS + ".tmp"
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:

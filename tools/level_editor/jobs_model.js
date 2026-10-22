@@ -167,6 +167,13 @@ const JobsModel = (() => {
       title: `${i.rule || i.field || ''}${i.value != null ? ' (' + i.value + ')' : ''}${i.model ? ' · ' + i.model : i.kind === 'measured' ? ' · measured' : i.kind === 'human' ? ' · Garry' : ''}`,
       cls: i.kind === 'model' ? 'model' : i.kind === 'human' ? 'human' : 'measured', group: i.group || '', slot: i.slot == null ? null : i.slot, model: i.model || '',
     }));
+    // pass 98 (lane GEMINI): a finding that names its eye (Gemini's items carry `eye`) shows the eye's name and colour
+    items.filter((i) => i && i.ok === false).forEach((i, k) => {
+      if (!i.eye) return;
+      const nm = ({ gemini: 'Gemini', local: 'Local' })[i.eye] || i.eye;
+      Object.assign(badges[k], { text: `${nm}: ${i.label || i.value || i.field || '?'}${i.slot != null ? ' f' + String(i.slot).padStart(2, '0') : ''}${i.group ? ' · ' + i.group : ''}`,
+        title: `${i.note || i.rule || ''}${i.model ? ' · ' + i.model : ''} (a hint, not a verdict)`, cls: `model eye-${['gemini', 'local'].includes(i.eye) ? i.eye : 'other'}`, eye: i.eye });
+    });
     const g = rec.gates || {};
     const calls = Array.isArray(rec.model_calls) ? rec.model_calls : [];
     const dollars = calls.reduce((a, c) => a + (Number(c.dollars) || 0), 0);

@@ -46,8 +46,8 @@ anims = {
 "run_fd": 12.0,
 "run_s": 12.0
 }
-sprite = ExtResource("3_41wrd")
-sprite_file = "desert_spider_sprite_b.png"
+sprite = ExtResource("14_3yw3i")
+sprite_file = "desert_spider_sprite_g.png"
 frame_px = 160
 strip_cols = 91
 fps = {
@@ -55,7 +55,7 @@ fps = {
 "run": 20.0
 }
 knockback = 4.81
-head = 0.644
+head = 0.65
 shadow = {
 "drop": 0.06,
 "scale": [1.45, 1.5],
@@ -323,7 +323,7 @@ variants = {
 "strip_cols": 91
 }
 }
-variant = "SP-B"
+variant = "SP-G"
 sfx = {
 "die": "en_beetle_die",
 "hit": "en_ant_hit"
@@ -332,7 +332,7 @@ xp_mult = 2.4
 id = "desert_spider"
 display_name = "Desert Spider"
 flavour = "Eight legs, no manners."
-icon = ExtResource("1_y6mhg")
+icon = ExtResource("15_g1yb0")
 icon_file = "desert_spider_icon.png"
 placeholder = {
 "color": "#8A6A44",

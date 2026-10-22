@@ -1,0 +1,24 @@
+/* pass 98 (lane GEMINI): the eyes' badges. Gemini purple, the local model blue, both flagging a frame a strong red ring. */
+.eye-badge { cursor: help; }
+.fr-badge.eye-badge.eye-gemini { background: rgba(150,100,255,0.22); color: #c6a8ff; }
+.fr-badge.eye-badge.eye-local { background: rgba(57,135,229,0.2); color: #8db8ef; }
+.fr-badge.eye-badge.eye-other { background: rgba(255,255,255,0.1); color: var(--ink-2); }
+.fr-badge.eye-badge.ok, .fr-badge.eye-badge.none { font-weight: 500; opacity: 0.8; }
+.fr-badge.eye-badge.bad { box-shadow: inset 0 0 0 1px currentColor; }
+.fr-badge.eye-badge.eye-both { background: #c0392b; color: #fff; box-shadow: 0 0 0 2px rgba(255,90,90,0.45); }
+.eye-mini { position: absolute; left: 2px; bottom: 2px; font: 700 11px/1 system-ui, sans-serif; padding: 2px 4px; border-radius: 999px; background: rgba(0,0,0,0.6); color: #fff; }
+.eye-mini.eye-gemini { background: #7a4fd6; }
+.eye-mini.eye-local { background: #2f6fbf; }
+.eye-mini.eye-other { background: #555; }
+.eye-mini.both { background: #c0392b; box-shadow: 0 0 0 2px #ffd0d0; }
+.eye-mini.ok { background: rgba(0,0,0,0.45); color: #bfe8bf; font-weight: 500; }
+.fr-cell.eye-both-cell { border-color: #e04a3a; }
+.eye-line { font-size: 0.78rem; color: #c6a8ff; margin: 4px 0; }
+.eye-line.both { color: #ff9b8f; font-weight: 700; }
+.eye-ops { color: #c6a8ff; }
+.rbadge.model.eye-gemini { background: rgba(150,100,255,0.22); color: #c6a8ff; }
+.rbadge.model.eye-local { background: rgba(57,135,229,0.22); color: #8db8ef; }
+.fr-badge.eye-badge.fallback { box-shadow: inset 0 0 0 1px #e04a3a; }
+.fr-badge.eye-badge.fallback::before { content: '! '; color: #ff8a7a; }
+.eye-ops.fallback { color: #ff9b8f; }
+.jerror.eye-fallback { margin-top: 4px; }

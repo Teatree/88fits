@@ -2727,3 +2727,92 @@ KeyboardInterrupt, atexit).
 - `tools/requirements.txt`: numpy>=1.22.0, Pillow>=10.0.0, scipy>=1.11.2 (essential); websocket-client>=1.9.0,
   soundfile>=0.12.1, librosa>=0.10.0, gradio_client>=2.5.0, pefile>=2023.2.7 (optional).
 - `tools/keys/README.md` (tracked: `.gitignore` now `tools/keys/*` + `!tools/keys/README.md`).
+
+## Pass 98: new keys
+
+### tools/level_editor/request_defaults.json `tiers["2"]` (was the Anthropic eye, ceiling 0)
+| key | type | default | meaning |
+|---|---|---|---|
+| backend | str | "antigravity" | tier 2's eye: Gemini through Garry's Antigravity CLI (free in dollars). anthropic / gemini still work as in pass 96 (with ceiling_dollars) |
+| model | str | "gemini-3.8-flash-medium" | agy's --model |
+| on | str | "sheets" | unchanged meaning: numbered contact sheets |
+| ceiling_dollars | float | 0.0 | kept (the paid eyes' ceiling; GATES96 reads it) |
+| daily_calls | int | 6 | the day's Gemini call cap, counted from the ledger (read whatever tier 2's backend is; absent = 40) |
+| requests | bool | true | false = new requests are not stamped with Gemini (eyes.tier2 false) |
+| print_timeout | int s | 420 | agy --print-timeout; the subprocess times out 60 s later |
+| exe | str | (absent) | optional path to agy.exe (default %LOCALAPPDATA%\agy\bin\agy.exe) |
+| note | str | | words for Garry |
+| alternates | obj | {anthropic, gemini_api} | the pass 96 paid eyes kept as options (not read by code) |
+
+`python tools/qa_bench.py tiers --write` keeps a tier 2 whose backend is not anthropic (the lead, pass 98): the bench
+refreshes tiers 0, 1 and `_measured` only, so the Gemini eye and its cap survive a rewrite.
+
+### tools/qa_rubrics.json
+| key | meaning |
+|---|---|
+| rubrics.sheet_agy | per "sheet": Gemini's contact-sheet question; answer {cells: [{n, ok, legs, ghost, face, why}]} for every numbered cell |
+
+### The art request record (requests.create)
+| key | type | default | meaning |
+|---|---|---|---|
+| eyes | {tier2: bool, backend: str, model: str} | from tiers["2"] | stamped at creation; the planner reads eyes.tier2 (absent on pre-98 records = pass 96 planning) |
+| brief.gemini | bool | true | false = this request without Gemini |
+
+### The `evaluate` job spec / evaluate.json (all optional; absent = pass 96 exactly)
+| key | type | default | meaning |
+|---|---|---|---|
+| scope | str | "flagged" | tier 2's frames: flagged (+ one clean a group) / all (every frame, sheets per group) / slots |
+| slots | {group: [int]} or [int] | | the chosen frames for scope slots (a list applies to the first group) |
+| cloud_backend | str | "" (= the tier table's) | antigravity (the buttons); fake_agy (selftests only, needs AGY_FAKE_EXE) |
+| calls_left | int | (none) | the request's evaluator calls left: caps Gemini's sheets |
+| fresh | bool | false | true = no answer cache |
+| fallback | bool | true | false = no local fallback when Gemini fails (the error still surfaced) |
+| by | str | | "garry" for the buttons |
+
+The loop's `ask` op takes a new arg `scope` (commands.ARGS_ALLOWED["ask"]).
+
+### The findings record (findings.json) and its items
+| key | where | meaning |
+|---|---|---|
+| eye | record | "gemini" / "local (fallback)" (Gemini failed, the local model checked) / "none" (failed, no fallback) |
+| gemini_error | record | why Gemini failed, in Garry's words |
+| fallback | record | {frames, why, model, id, line: "Gemini failed: <why> - checked by the local model instead"} |
+| eyes.gemini | record | {line: "Gemini flagged 3 frames in run/side (1,4,7)", flagged {group: [slots]}, model, backend} |
+| agreed | record | [[group, slot]] both eyes flag (only when both ran) |
+| tier2 | record | gains backend, model, eye, scope, sheets [{file, cells, groups}], cells, flagged, line |
+| eye, backend, version, cell, label, note, legs, ghost, face | item (tier 2) | Gemini's per-frame answer; version = the frame version judged |
+| eye "local", fallback true, version | item (tier 1) | a fallback item |
+| version | model items | the version each judged frame showed (stamped on tier 1 items too) |
+
+### The frames store: a version's `qa.eyes` (eyes_io.on_findings, when an evaluate job lands)
+A list (newest 8) of {eye: gemini|local, name: "Gemini"|"Local"|"Local (fallback)", fallback, model, backend, tier, ok
+(false = flagged, true = fine, null = no verdict), label (the badge's words), note (the full answer), legs, job, time,
+hint: "a hint, not a verdict"}. The old qa.vision (the local button) is read as a Local entry.
+
+### The job record
+| key | meaning |
+|---|---|
+| eyes | {written, line, gemini_error?, eye?, fallback_line?, fallback_frames?} after an evaluate job lands |
+
+### Ledger rows (tools/dl/qa/ledger.json)
+backend "antigravity": + seconds, tokens_thinking, tokens_cache_read. A fallback's local calls: + fallback (the reason),
+fallback_id. vision_eval.agy_today() = {calls, cap, left, day, fallbacks, last_fallback}.
+
+### Events
+kind "evaluator", event "fallback" {job, rid, look, gemini_error, eye, frames}.
+
+### Routes
+GET /api/eyes; GET /api/eyes/look/<kind>/<id>/<code>; POST /api/eyes/check {kind, id, code, groups?, fresh?, force?};
+POST /api/frames/<kind>/<id>/<code>/<anim>/<view>/ask_gemini {slots, fresh?, force?}.
+
+### CLI
+python tools/vision_eval.py --agy-health | --agy-rule | --cloud-backend antigravity --scope flagged|all
+
+### Added after the benchmark and the live proof
+| key | where | meaning |
+|---|---|---|
+| tiers["2"].miss_rate / false_alarm_rate / trust / _measured | request_defaults.json | the blind bench's numbers for Gemini (like tier 1's); trust: legs false, ghost / smear / face true |
+| defects | Gemini item (ok false) | ["ghost" / "smear" / "face" / "legs" / "other"] (vision_eval.defect_kinds); the planner trusts ghost, smear, face |
+| smear | sheet_agy rubric answer + item | true when a part is blurred into streaks |
+| tools/dl/qa/agy_state.json | file | {quota_until (epoch), until_text, reason, seen}: a spent subscription quota, no Gemini call until then (delete to retry) |
+| quota_until / quota_reason | agy_today(), /api/eyes today | the spent quota's date and agy's words |

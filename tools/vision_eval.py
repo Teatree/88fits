@@ -434,6 +434,616 @@ class FakeBackend(Backend):
         return True, "fake"
 
 
+# ---------------------------------------------------------------- pass 98 (lane GEMINI): Garry's Gemini subscription as an eye
+# The Antigravity CLI (agy.exe, Garry's Google subscription: no dollars) in print mode, the call tools/dl/qa_bench/agy_run.py
+# proved: `agy -p=<prompt> --mode plan --output-format json --model gemini-3.8-flash-medium --print-timeout <s>` run with
+# cwd = a folder holding only the pictures under opaque names, the prompt telling it to call view_file once on each named
+# file and nothing else; the answer is the JSON's `response`. agy reads files only under Garry's read rules in
+# ~/.gemini/antigravity-cli/settings.json: the inbox rule `read_file(<repo>/tools/dl/qa/agy_inbox)` (ensure_agy_rule
+# appends it, a backup first). A refused read (`denied_actions`), an empty answer, a timeout = no verdict, never ok.
+# Free in dollars, bounded by a daily call cap (request_defaults.json tiers["2"].daily_calls, default 40) counted from the
+# ledger, and by a request's evaluator_calls (the budget's `calls_left`).
+AGY_EXE = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser(r"~\AppData\Local"), "agy", "bin", "agy.exe")
+AGY_MODEL = "gemini-3.8-flash-medium"
+AGY_SETTINGS = os.path.join(os.path.expanduser("~"), ".gemini", "antigravity-cli", "settings.json")
+AGY_INBOX = os.path.join(QA_DIR, "agy_inbox")
+AGY_LOCK = os.path.join(QA_DIR, "agy.lock")
+AGY_DAILY_CALLS = 40
+AGY_PRINT_TIMEOUT = 420          # seconds agy itself waits for the model (one picture took ~100 s in the blind bench)
+AGY_SHEET_MAX = 16               # cells on one contact sheet: one agent turn covers up to 16 frames
+AGY_NAME = "Gemini"              # the eye's name on the page's badges
+AGY_CLI_LOG = os.path.join(os.path.expanduser("~"), ".gemini", "antigravity-cli", "cli.log")   # agy's own log (the reason of an empty answer)
+AGY_STATE = os.path.join(QA_DIR, "agy_state.json")   # {quota_until, reason, seen}: the subscription's quota spent (no call until then)
+
+
+def agy_rule(inbox=None):
+    """The one read rule agy needs for the inbox (forward slashes: a backslash breaks Garry's JSON)."""
+    return "read_file(%s)" % os.path.abspath(inbox or AGY_INBOX).replace("\\", "/")
+
+
+def agy_table():
+    """tiers["2"] of request_defaults.json when it names antigravity, else {} (the built-ins apply)."""
+    t2 = tier_table().get("2")
+    return t2 if isinstance(t2, dict) and t2.get("backend") == "antigravity" else {}
+
+
+def agy_daily_cap():
+    """The day's Gemini call cap: request_defaults.json tiers["2"].daily_calls (default 40; whatever tier 2's backend is,
+    so a tier table rewritten by qa_bench keeps the cap)."""
+    t2 = tier_table().get("2")
+    try:
+        v = (t2 or {}).get("daily_calls") if isinstance(t2, dict) else None
+        return int(v) if v is not None else AGY_DAILY_CALLS
+    except (TypeError, ValueError):
+        return AGY_DAILY_CALLS
+
+
+def backend_calls_today(backend_name, day=None):
+    """How many calls of one backend the ledger holds for the day (refused and cached ones not counted)."""
+    day = day or _day()
+    d = _ledger_load()
+    return sum(1 for c in d["calls"] if isinstance(c, dict) and c.get("backend") == backend_name and c.get("day") == day
+               and not c.get("refused") and not c.get("cached"))
+
+
+def agy_error_of(d, since=None, log_path=None):
+    """Why agy answered nothing: an error field of its JSON, else the newest "run ended with error" line of its own
+    cli.log written since the call began (local HH:MM:SS of today). "" when nothing says."""
+    for k in ("error", "error_message", "message", "status_message"):
+        v = (d or {}).get(k)
+        if isinstance(v, dict):
+            v = v.get("message") or json.dumps(v)
+        if v and str(v).strip():
+            return str(v).strip()[:300]
+    p = log_path or AGY_CLI_LOG
+    try:
+        with open(p, "rb") as f:
+            f.seek(0, 2)
+            n = f.tell()
+            f.seek(max(0, n - 65536))
+            tail = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return ""
+    t0 = time.strftime("%H:%M:%S", time.localtime((since or time.time()) - 2))
+    day = time.strftime("%m%d", time.localtime())
+    for ln in reversed(tail):
+        m = re.match(r"^[EW](\d{4}) (\d\d:\d\d:\d\d)", ln)
+        if not m or m.group(1) != day or m.group(2) < t0:
+            continue
+        for pat in (r"run ended with error and no response: (.*)$", r"(RESOURCE_EXHAUSTED.*)$", r"(UNAUTHENTICATED.*)$", r"(PERMISSION_DENIED.*)$"):
+            mm = re.search(pat, ln)
+            if mm:
+                return mm.group(1).strip()[:300]
+    return ""
+
+
+def _hms_seconds(text):
+    """"166h35m16s" -> seconds (0 when absent)."""
+    m = re.search(r"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?", text or "")
+    if not m or not any(m.groups()):
+        return 0
+    h, mi, s = (int(x or 0) for x in m.groups())
+    return h * 3600 + mi * 60 + s
+
+
+def note_agy_failure(why):
+    """A spent subscription quota ("Individual quota reached ... Resets in 166h35m16s") is remembered in agy_state.json:
+    no Gemini call is made until it resets (the local fallback runs, shown as an error)."""
+    w = str(why or "")
+    if "quota" not in w.lower() and "resource_exhausted" not in w.lower():
+        return None
+    m = re.search(r"[Rr]esets in ([0-9hms]+)", w)
+    secs = _hms_seconds(m.group(1)) if m else 3600
+    st = {"quota_until": time.time() + max(60, secs), "reason": w[:300], "seen": _now()}
+    st["until_text"] = time.strftime("%Y-%m-%d %H:%M", time.localtime(st["quota_until"]))
+    try:
+        _save_json(AGY_STATE, st)
+    except OSError:
+        pass
+    return st
+
+
+def agy_quota():
+    """The remembered spent quota {quota_until, until_text, reason} while it lasts, else None."""
+    st = _load_json(AGY_STATE, None)
+    if isinstance(st, dict) and float(st.get("quota_until") or 0) > time.time():
+        return st
+    return None
+
+
+def agy_today():
+    """{calls, cap, left, day, fallbacks, last_fallback} of the Gemini eye for the page's Ops fold (fallbacks: the times
+    today the local model checked frames because a Gemini call failed)."""
+    n, cap = backend_calls_today("antigravity"), agy_daily_cap()
+    day = _day()
+    fb, last = set(), None
+    for c in _ledger_load()["calls"]:
+        if isinstance(c, dict) and c.get("day") == day and c.get("fallback"):
+            fb.add(c.get("fallback_id") or c.get("t"))
+            last = {"why": c.get("fallback"), "t": c.get("t")}
+    q = agy_quota()
+    return {"calls": n, "cap": cap, "left": max(0, cap - n), "day": day, "fallbacks": len(fb), "last_fallback": last,
+            "quota_until": q.get("until_text") if q else None, "quota_reason": q.get("reason") if q else None}
+
+
+def _read_settings(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def agy_rule_present(settings_path=None, inbox=None):
+    """(present, detail): the inbox's read rule (or one on a folder above it) in agy's allow list."""
+    p = settings_path or AGY_SETTINGS
+    want = agy_rule(inbox)[len("read_file("):-1].rstrip("/").lower()
+    try:
+        d = _read_settings(p)
+    except FileNotFoundError:
+        return False, "no settings file %s" % p
+    except (OSError, ValueError) as e:
+        return False, "the settings file %s could not be read: %s" % (p, e)
+    allow = ((d.get("permissions") or {}).get("allow") or []) if isinstance(d, dict) else []
+    for r in allow:
+        r = str(r)
+        if r.startswith("read_file(") and r.endswith(")"):
+            have = r[len("read_file("):-1].replace("\\", "/").rstrip("/").lower()
+            if want == have or want.startswith(have + "/"):
+                return True, r
+    return False, "no %s in %s" % (agy_rule(inbox), p)
+
+
+def ensure_agy_rule(settings_path=None, inbox=None, backup_dir=None):
+    """Append the inbox's read rule to agy's allow list (nothing else changes; Garry's own rules kept, in order), after a
+    backup of the file into backup_dir. Returns {ok, added, rule, backup, file}. Never writes when the rule is there."""
+    p = settings_path or AGY_SETTINGS
+    rule = agy_rule(inbox)
+    ok, why = agy_rule_present(p, inbox)
+    if ok:
+        return {"ok": True, "added": False, "rule": rule, "file": p, "why": "already there: %s" % why}
+    try:
+        d = _read_settings(p)
+    except FileNotFoundError:
+        d = {}
+    except (OSError, ValueError) as e:
+        return {"ok": False, "added": False, "rule": rule, "file": p, "error": "unreadable: %s (nothing written)" % e}
+    if not isinstance(d, dict):
+        return {"ok": False, "added": False, "rule": rule, "file": p, "error": "the settings file is not a JSON object (nothing written)"}
+    backup = None
+    if os.path.isfile(p):
+        bd = backup_dir or os.path.join(DL, "qa", "agy_settings_backups")
+        os.makedirs(bd, exist_ok=True)
+        backup = os.path.join(bd, "settings.%s.json" % time.strftime("%Y%m%d-%H%M%S"))
+        shutil.copy2(p, backup)
+    perms = d.setdefault("permissions", {})
+    if not isinstance(perms, dict):
+        return {"ok": False, "added": False, "rule": rule, "file": p, "error": "permissions is not an object (nothing written)"}
+    allow = perms.setdefault("allow", [])
+    if not isinstance(allow, list):
+        return {"ok": False, "added": False, "rule": rule, "file": p, "error": "permissions.allow is not a list (nothing written)"}
+    allow.append(rule)
+    os.makedirs(os.path.dirname(os.path.abspath(p)), exist_ok=True)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(d, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    json.loads(open(tmp, "r", encoding="utf-8").read())   # the file must parse before it replaces Garry's
+    os.replace(tmp, p)
+    return {"ok": True, "added": True, "rule": rule, "file": p, "backup": backup}
+
+
+def agy_health(exe=None, settings_path=None, inbox=None):
+    """What the page shows about the Gemini eye, without a call: the exe, the read rule, today's calls against the cap."""
+    exe = exe or AGY_EXE
+    exe_ok = os.path.isfile(exe if isinstance(exe, str) else (exe[-1] if exe else ""))
+    rule_ok, rule_why = agy_rule_present(settings_path, inbox)
+    t = agy_today()
+    why = []
+    if not exe_ok:
+        why.append("agy.exe is not at %s (the Antigravity CLI)" % exe)
+    if not rule_ok:
+        why.append(rule_why)
+    if t["left"] <= 0:
+        why.append("today's cap is spent (%d of %d calls)" % (t["calls"], t["cap"]))
+    if t.get("quota_until"):
+        why.append("Gemini's subscription quota is spent until %s (agy: %s)" % (t["quota_until"], (t.get("quota_reason") or "")[:120]))
+    return {"ok": exe_ok and rule_ok and not t.get("quota_until"), "exe": exe if isinstance(exe, str) else " ".join(exe), "exe_ok": exe_ok, "rule": agy_rule(inbox), "rule_ok": rule_ok,
+            "rule_detail": rule_why, "settings": settings_path or AGY_SETTINGS, "model": (agy_table().get("model") or AGY_MODEL), "today": t,
+            "why": "; ".join(why) or "ready (no call made to check)"}
+
+
+def _agy_lock(timeout):
+    """One agy call at a time across processes (an evaluate job and the server may both ask): a file made exclusively,
+    a stale one (older than the call's own timeout + 2 minutes) taken over."""
+    os.makedirs(os.path.dirname(AGY_LOCK), exist_ok=True)
+    t0 = time.time()
+    while True:
+        try:
+            fd = os.open(AGY_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, ("%d %s" % (os.getpid(), _now())).encode())
+            os.close(fd)
+            return True
+        except FileExistsError:
+            try:
+                if time.time() - os.path.getmtime(AGY_LOCK) > timeout + 120:
+                    os.remove(AGY_LOCK)
+                    continue
+            except OSError:
+                continue
+            if time.time() - t0 > timeout + 180:
+                return False
+            time.sleep(0.5)
+
+
+def _agy_unlock():
+    try:
+        os.remove(AGY_LOCK)
+    except OSError:
+        pass
+
+
+class AgyBackend(Backend):
+    """Gemini through Garry's Antigravity CLI. ask(images, prompt) writes the pictures as img_<n>.png into
+    tools/dl/qa/agy_inbox/<call id>/ (removed after the call), runs agy there in plan mode, parses `response`. `exe` may
+    be a path (agy.exe, or a .py stand-in run with this Python: the selftests' fake) or an argv list."""
+    name = "antigravity"
+    free = True
+
+    def __init__(self, model=None, exe=None, inbox=None, print_timeout=None, timeout=None, settings_path=None):
+        t = agy_table()
+        Backend.__init__(self, model or t.get("model") or AGY_MODEL)
+        self.exe = exe or t.get("exe") or AGY_EXE
+        self.inbox = inbox or AGY_INBOX
+        self.print_timeout = int(print_timeout or t.get("print_timeout") or AGY_PRINT_TIMEOUT)
+        self.timeout = int(timeout or (self.print_timeout + 60))
+        self.settings_path = settings_path
+        self.daily_calls = agy_daily_cap()
+        self.last = {}
+
+    def argv(self, prompt):
+        if isinstance(self.exe, (list, tuple)):
+            head = list(self.exe)
+        elif str(self.exe).lower().endswith(".py"):
+            head = [sys.executable, str(self.exe)]
+        else:
+            head = [str(self.exe)]
+        return head + ["-p=" + prompt, "--mode", "plan", "--output-format", "json", "--print-timeout", "%ds" % self.print_timeout, "--model", self.model]
+
+    @staticmethod
+    def instruction(names):
+        if len(names) == 1:
+            how = "Call view_file once on %s in the current folder to see the picture, then answer." % names[0]
+        else:
+            how = "Call view_file once on each of %s in the current folder to see the pictures, then answer." % ", ".join(names)
+        return how + " Do not list folders, do not run commands, do not read any other file, do not write anything."
+
+    def ask(self, images, prompt, max_tokens):
+        head = self.argv("")[:-9]
+        if head and not os.path.isfile(head[-1]):
+            raise RuntimeError("agy is not installed at %s" % head[-1])
+        call_id = "c%s_%s" % (time.strftime("%H%M%S"), os.urandom(4).hex())
+        folder = os.path.join(self.inbox, call_id)
+        os.makedirs(folder, exist_ok=True)
+        names = []
+        self.last = {"call": call_id}
+        self.started = time.time()
+        try:
+            for k, data in enumerate(images):
+                n = "img_%d.png" % k
+                with open(os.path.join(folder, n), "wb") as f:
+                    f.write(data)
+                names.append(n)
+            full = self.instruction(names) + "\n\n" + prompt
+            if not _agy_lock(self.timeout):
+                raise RuntimeError("another Gemini call held the agy lock too long (%s)" % _rel(AGY_LOCK))
+            try:
+                import subprocess
+                try:
+                    r = subprocess.run(self.argv(full), cwd=folder, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=self.timeout)
+                except subprocess.TimeoutExpired:
+                    raise RuntimeError("timeout: agy gave no answer in %d s" % self.timeout)
+            finally:
+                _agy_unlock()
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+        out = (r.stdout or "").strip()
+        d = None
+        try:
+            d = json.loads(out) if out.startswith("{") else None
+        except ValueError:
+            d = None
+        if not isinstance(d, dict):
+            lines = [ln for ln in out.splitlines() if ln.strip().startswith("{")]
+            for ln in reversed(lines):
+                try:
+                    d = json.loads(ln)
+                    break
+                except ValueError:
+                    continue
+        if not isinstance(d, dict):
+            err = (r.stderr or out or "").strip().splitlines()
+            raise RuntimeError("agy answered no JSON (exit %s): %s" % (r.returncode, (err[-1] if err else "nothing")[:300]))
+        txt = str(d.get("response") or "")
+        denied = d.get("denied_actions") or []
+        u = d.get("usage") or {}
+        usage = _usage0()
+        usage.update(input=int(u.get("input_tokens") or 0), output=int(u.get("output_tokens") or 0), cache_read=int(u.get("cache_read_tokens") or 0))
+        if u.get("thinking_tokens") is not None:
+            usage["thinking"] = int(u.get("thinking_tokens") or 0)
+        self.last.update(status=d.get("status"), denied=denied, exit=r.returncode)
+        if denied and not txt.strip():
+            raise RuntimeError("denied: agy was refused %s (is %s in %s?)" % (json.dumps(denied)[:200], agy_rule(self.inbox), self.settings_path or AGY_SETTINGS))
+        if not txt.strip():
+            why = agy_error_of(d, self.started)
+            self.last["why"] = why
+            if why:
+                note_agy_failure(why)
+                raise RuntimeError("empty: agy gave no answer: %s" % why)
+        return txt, usage
+
+    def health(self):
+        h = agy_health(self.exe, self.settings_path, self.inbox)
+        return h["ok"], h["why"]
+
+
+def _font(px):
+    from PIL import ImageFont
+    for name in ("arialbd.ttf", "arial.ttf", "DejaVuSans-Bold.ttf"):
+        for base in ("", os.path.join(os.environ.get("WINDIR") or r"C:\Windows", "Fonts")):
+            try:
+                return ImageFont.truetype(os.path.join(base, name) if base else name, px)
+            except (OSError, IOError):
+                continue
+    return ImageFont.load_default()
+
+
+def agy_sheets(cells, per=AGY_SHEET_MAX, cell_px=256, cols=4):
+    """Gemini's contact sheets: cells [(ref, group, slot, cell[, version])] on grey, each numbered big (1..k on every
+    sheet) in a black box at its top left; at most `per` cells a sheet. Returns [(image, {n: {ref, group, slot, version}})]."""
+    Image, ImageDraw = _pil()
+    font = _font(max(18, cell_px // 6))
+    out = []
+    for i in range(0, len(cells), max(1, per)):
+        chunk = cells[i:i + per]
+        n = len(chunk)
+        c = max(1, min(cols, n))
+        rows = (n + c - 1) // c
+        gap = 10
+        W, H = c * (cell_px + gap) + gap, rows * (cell_px + gap) + gap
+        sheet = Image.new("RGBA", (W, H), (60, 60, 68, 255))
+        dr = ImageDraw.Draw(sheet)
+        where = {}
+        for k, cl in enumerate(chunk):
+            ref, group, slot, cell = cl[0], cl[1], cl[2], cl[3]
+            ver = cl[4] if len(cl) > 4 else None
+            x, y = gap + (k % c) * (cell_px + gap), gap + (k // c) * (cell_px + gap)
+            tile = Image.new("RGBA", (cell_px, cell_px), GREY)
+            tile.alpha_composite(cell.convert("RGBA").resize((cell_px, cell_px), Image.LANCZOS))
+            sheet.alpha_composite(tile, (x, y))
+            label = str(k + 1)
+            try:
+                bb = dr.textbbox((0, 0), label, font=font)
+                tw, th = bb[2] - bb[0], bb[3] - bb[1]
+            except AttributeError:
+                bb = (0, 0, 10 * len(label), 14)
+                tw, th = bb[2], bb[3]
+            pad = max(4, cell_px // 40)
+            dr.rectangle((x, y, x + tw + 2 * pad + 2, y + th + 2 * pad + 4), fill=(0, 0, 0, 255))
+            dr.text((x + pad + 1, y + pad - bb[1] + 2), label, fill=(255, 235, 60, 255), font=font)
+            where[k + 1] = {"ref": ref, "group": group, "slot": slot, "version": ver}
+        out.append((sheet.convert("RGB"), where))
+    return out
+
+
+TRUSTED_DEFECTS = ("ghost", "smear", "face")   # pass 98: what the blind bench says Gemini sees (legs 2/11: never alone)
+
+
+def defect_kinds(cell):
+    """The kinds of defect a flagged Gemini cell names: ghost / smear / face (trusted by the bench: they may drive a
+    repair), legs (a count: a badge only, unless tier 0's silhouette or footprint flag agrees), other (a cut or broken
+    part, a foreign colour: advisory)."""
+    c = cell if isinstance(cell, dict) else {}
+    why = str(c.get("why") or "").lower()
+    out = []
+    if c.get("ghost") is True or "ghost" in why or "see-through" in why or "faint" in why:
+        out.append("ghost")
+    if c.get("smear") is True or "smear" in why or "blur" in why or "streak" in why:
+        out.append("smear")
+    face = str(c.get("face") or "").lower()
+    if face in ("missing", "wrong") or ("face" in why and ("missing" in why or "wrong" in why or "no face" in why or "double" in why)):
+        out.append("face")
+    if "leg" in why or "limb" in why:
+        out.append("legs")
+    if not out:
+        out.append("other")
+    return out
+
+
+def agy_label(cell):
+    """The badge's short words for one cell answer: "9 legs, extra leg" / "ghost leg" / "fine"."""
+    if not isinstance(cell, dict):
+        return "no verdict"
+    why = str(cell.get("why") or "").strip()
+    bits = []
+    legs = cell.get("legs")
+    if isinstance(legs, (int, float)) and not isinstance(legs, bool) and cell.get("ok") is False and "leg" not in why.lower():
+        bits.append("%d legs" % int(legs))
+    if why and why.lower() not in ("fine", "ok", "none"):
+        bits.append(why)
+    if not bits:
+        return "fine" if cell.get("ok") is not False else "flagged"
+    return ", ".join(bits)[:48]
+
+
+def _agy_items(answer, where, model, rid="sheet_agy", tier=2):
+    """A Gemini sheet answer {cells: [{n, ok, legs?, ghost?, face?, why}]} as one item per cell (kind model, field sheet,
+    `eye` gemini, `backend` antigravity, `version` of the frame shown, `label` the badge's words, `note` the full answer)."""
+    if not isinstance(answer, dict) or not isinstance(answer.get("cells"), list):
+        return [dict(_item(w.get("ref"), w.get("group"), w.get("slot"), "model", "verdict", None, None, "no verdict: Gemini's sheet answer was empty or unparsable", None, model, tier),
+                     eye="gemini", backend="antigravity", version=w.get("version"), cell=n) for n, w in sorted(where.items())]
+    by_n = {}
+    for c in answer["cells"]:
+        if isinstance(c, dict) and c.get("n") is not None:
+            try:
+                by_n[int(c["n"])] = c
+            except (TypeError, ValueError):
+                pass
+    out = []
+    for n, w in sorted(where.items()):
+        c = by_n.get(int(n))
+        if c is None:
+            out.append(dict(_item(w.get("ref"), w.get("group"), w.get("slot"), "model", "sheet", None, None, "no verdict: Gemini skipped cell %d" % int(n), None, model, tier),
+                            eye="gemini", backend="antigravity", version=w.get("version"), cell=int(n)))
+            continue
+        ok = c.get("ok")
+        ok = None if ok is None else bool(ok)
+        lab = agy_label(c)
+        it = _item(w.get("ref"), w.get("group"), w.get("slot"), "model", "sheet", c.get("why"), ok, "Gemini on a contact sheet: %s (a hint, not a verdict)" % lab, None, model, tier)
+        it.update(eye="gemini", backend="antigravity", version=w.get("version"), cell=int(n), label=lab,
+                  note=json.dumps({k: v for k, v in c.items() if k != "n"}, ensure_ascii=False)[:600])
+        for k in ("legs", "ghost", "face", "smear"):
+            if k in c:
+                it[k] = c[k]
+        if ok is False:
+            it["defects"] = defect_kinds(c)
+        out.append(it)
+    return out
+
+
+def tier2_free(be2, gdata, items, scope="flagged", slots=None, request=None, budget=None, job=None, use_cache=True, out_dir=None, rubric_id="sheet_agy"):
+    """Tier 2 on a free eye (Gemini through agy): which frames, the sheets, one call a sheet, the cells mapped back.
+    scope: "flagged" (the decision point: frames tier 0 or tier 1 flagged + one sampled clean frame a group, packed into
+    sheets across groups), "all" (Check with Gemini: every frame, sheets per animation x view), "slots" (Ask Gemini: the
+    chosen slots, `slots` = {group label: [slot, ...]}). budget["calls_left"] caps the sheets (a request's evaluator_calls);
+    the daily cap is checked per call by ceiling_check. Returns (items, calls, tier2 record)."""
+    flagged = {}
+    for it in items:
+        if it.get("group") and it.get("ok") is False and it.get("slot") is not None:
+            flagged.setdefault(it["group"], set()).add(int(it["slot"]))
+    batches = []   # [[cells]]
+    if scope == "all":
+        for gd in gdata:
+            cells = [("%s/%d" % (gd["label"], s), gd["label"], s, gd["cells"][s], (gd.get("versions") or [None] * gd["n"])[s]) for s in range(min(gd["n"], len(gd["cells"])))]
+            for i in range(0, len(cells), AGY_SHEET_MAX):
+                batches.append(cells[i:i + AGY_SHEET_MAX])
+    else:
+        cells = []
+        for gd in gdata:
+            if scope == "slots":
+                want = sorted({int(s) for s in ((slots or {}).get(gd["label"]) or [])})
+            else:
+                fl = flagged.get(gd["label"], set())
+                want = sorted(fl)
+                s = _sample_clean_slot(gd["n"], fl)
+                if s is not None:
+                    want.append(s)
+            for s in want:
+                if 0 <= s < len(gd["cells"]):
+                    cells.append(("%s/%d" % (gd["label"], s), gd["label"], s, gd["cells"][s], (gd.get("versions") or [None] * gd["n"])[s]))
+        for i in range(0, len(cells), AGY_SHEET_MAX):
+            batches.append(cells[i:i + AGY_SHEET_MAX])
+    rec = {"ran": False, "why": "", "backend": be2.name, "model": be2.model, "eye": AGY_NAME if be2.name == "antigravity" else be2.model, "scope": scope, "sheets": []}
+    if not batches:
+        rec["why"] = "nothing to show: no frame in scope"
+        return [], [], rec
+    left = None
+    if isinstance(budget, dict) and budget.get("calls_left") is not None:
+        try:
+            left = int(budget["calls_left"])
+        except (TypeError, ValueError):
+            left = None
+    out_items, calls, skipped = [], [], 0
+    text = rubric_text(rubric_id)
+    for bi, cells in enumerate(batches):
+        if left is not None and left <= 0:
+            skipped += len(cells)
+            for c in cells:
+                out_items.append(dict(_item(c[0], c[1], c[2], "model", "verdict", None, None, "not asked: the request's evaluator_calls are spent", None, be2.model, 2),
+                                      eye="gemini" if be2.name == "antigravity" else None, backend=be2.name, version=c[4]))
+            continue
+        img, where = agy_sheets(cells)[0]
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            sp = os.path.join(out_dir, "gemini_sheet_%d.png" % (bi + 1))
+            img.save(sp)
+            rec["sheets"].append({"file": _rel(sp), "cells": len(cells), "groups": sorted({c[1] for c in cells})})
+        res = ask(be2, [png_bytes(img)], text, rubric_id=rubric_id, request=request, budget=budget, use_cache=use_cache)
+        calls.append({"backend": res["backend"], "model": res["model"], "images": 1, "cells": len(cells), "ms": res["ms"], "dollars": res["dollars"],
+                      "cached": res["cached"], "refused": res["refused"], "error": res["error"], "tier": 2})
+        if left is not None and not res["cached"] and not res["refused"]:
+            left -= 1
+        if res["refused"] or res["error"] or res["answer"] is None:
+            why = ("refused: " + res["refused"]) if res["refused"] else ("no answer: " + res["error"]) if res["error"] else "no verdict: an empty or unparsable answer"
+            for n, w in sorted(where.items()):
+                out_items.append(dict(_item(w["ref"], w["group"], w["slot"], "model", "verdict", None, None, why, None, be2.model, 2),
+                                      eye="gemini" if be2.name == "antigravity" else None, backend=be2.name, version=w.get("version"), cell=int(n)))
+            rec["why"] = why
+            rec.setdefault("failed_cells", []).extend(cells)   # pass 98: the local model's fallback takes exactly these
+            rec["failed_why"] = _short_reason(res)
+            continue
+        got = _agy_items(res["answer"], where, be2.model)
+        out_items += got
+        rec["ran"] = True
+        # a cell the answer skipped is a partial failure: the local model's fallback takes those frames too
+        missed = {(i.get("group"), i.get("slot")) for i in got if i.get("ok") is None}
+        if missed:
+            rec.setdefault("failed_cells", []).extend(c for c in cells if (c[1], c[2]) in missed)
+            rec["failed_why"] = rec.get("failed_why") or "Gemini gave no verdict on %d frame%s" % (len(missed), "" if len(missed) == 1 else "s")
+    rec["cells"] = sum(len(b) for b in batches) - skipped
+    if skipped:
+        rec["why"] = (rec["why"] + "; " if rec["why"] else "") + "%d frames not asked: the request's evaluator_calls are spent" % skipped
+    bad = {}
+    for it in out_items:
+        if it.get("ok") is False and it.get("group"):
+            bad.setdefault(it["group"], []).append(int(it["slot"]))
+    rec["flagged"] = {g: sorted(set(v)) for g, v in bad.items()}
+    rec["line"] = eyes_line(rec)
+    return out_items, calls, rec
+
+
+def _short_reason(res):
+    """Why a Gemini call failed, in Garry's words for the red line (agy missing, not logged in, refused read, timeout,
+    empty answer, the day's cap)."""
+    if res.get("refused"):
+        return str(res["refused"])
+    e = str(res.get("error") or "")
+    e = re.sub(r"^[A-Za-z]+Error: ", "", e)
+    low = e.lower()
+    if "not installed" in low or "cannot find the file" in low or "no such file" in low:
+        return "agy is not installed (%s)" % e[:120]
+    if "quota" in low or "resource_exhausted" in low:
+        m = re.search(r"[Rr]esets in ([0-9hms]+)", e)
+        return "Gemini's subscription quota is spent%s" % ((" (it resets in %s)" % m.group(1)) if m else "")
+    if "log in" in low or "logged in" in low or "login" in low or "sign in" in low:
+        return "Antigravity wants a log-in again (%s)" % e[:120]
+    if low.startswith("denied"):
+        return "agy was refused the read (the inbox rule is missing from its settings.json)"
+    if not e:
+        return "an empty or unparsable answer"
+    return e[:160]
+
+
+def eyes_line(t2):
+    """"Gemini flagged 3 frames in run/side" (the look card's and the job card's line)."""
+    eye = (t2 or {}).get("eye") or AGY_NAME
+    if not (t2 or {}).get("ran"):
+        return "%s did not look: %s" % (eye, (t2 or {}).get("why") or "not asked")
+    fl = (t2 or {}).get("flagged") or {}
+    n = sum(len(v) for v in fl.values())
+    if not n:
+        return "%s flagged nothing in %d frame%s" % (eye, int(t2.get("cells") or 0), "" if int(t2.get("cells") or 0) == 1 else "s")
+    return "%s flagged %d frame%s in %s" % (eye, n, "" if n == 1 else "s", ", ".join("%s (%s)" % (g, ",".join(str(s) for s in v)) for g, v in sorted(fl.items())))
+
+
+def agreed_frames(findings):
+    """{(group, slot)} both eyes flag: a tier-1 (local) item and a tier-2 (Gemini) item with ok False on the same frame."""
+    t1, t2 = set(), set()
+    for it in (findings or {}).get("items") or []:
+        if it.get("kind") != "model" or it.get("ok") is not False or not it.get("group") or it.get("slot") is None:
+            continue
+        key = (it["group"], int(it["slot"]))
+        (t2 if int(it.get("tier") or 1) == 2 else t1).add(key)
+    return t1 & t2
+
+
 def backend_for(name=None, model=None, url=None):
     """A backend by name (openai_chat | anthropic | gemini | fake), or the instance handed in."""
     if isinstance(name, Backend):
@@ -447,7 +1057,9 @@ def backend_for(name=None, model=None, url=None):
         return GeminiBackend(model, url=url)
     if n == "fake":
         return FakeBackend([], model=model or "fake-eye")
-    raise ValueError("unknown evaluator backend %r (openai_chat, anthropic, gemini, fake)" % name)
+    if n == "antigravity":   # pass 98 (lane GEMINI): Gemini through Garry's Antigravity CLI (no dollars, a daily cap)
+        return AgyBackend(model)
+    raise ValueError("unknown evaluator backend %r (openai_chat, anthropic, gemini, antigravity, fake)" % name)
 
 
 # ---------------------------------------------------------------- the ledger and its ceilings
@@ -543,6 +1155,17 @@ def request_dollars(rid):
 def ceiling_check(backend, estimate, budget=None, request=None):
     """(ok, reason) before a call. A free backend always passes. A cloud call needs: a price (else "unpriced"), the global
     daily ceiling above 0 and not passed, and, when a request budget is given, its cloud_dollars above 0 and not passed."""
+    if getattr(backend, "daily_calls", None) is not None:
+        # pass 98 (lane GEMINI): a free eye with a daily call cap (Gemini through agy) and a request's calls left
+        cap = int(backend.daily_calls)
+        n = backend_calls_today(backend.name)
+        if n >= cap:
+            return False, "today's %s cap: %d of %d calls made (request_defaults.json tiers[\"2\"].daily_calls)" % (AGY_NAME if backend.name == "antigravity" else backend.name, n, cap)
+        if isinstance(budget, dict) and budget.get("calls_left") is not None and int(budget.get("calls_left") or 0) <= 0:
+            return False, "the request's evaluator_calls are spent"
+        q = agy_quota() if backend.name == "antigravity" else None
+        if q:
+            return False, "Gemini's subscription quota is spent until %s (no call made)" % q.get("until_text")
     if getattr(backend, "free", True):
         return True, ""
     if estimate is None:
@@ -586,7 +1209,7 @@ def cache_put(key, rec):
 
 # ---------------------------------------------------------------- one call
 
-def ask(backend, images, prompt, max_tokens=None, rubric_id="", request=None, budget=None, use_cache=True, cache_rubric=None):
+def ask(backend, images, prompt, max_tokens=None, rubric_id="", request=None, budget=None, use_cache=True, cache_rubric=None, ledger_extra=None):
     """One evaluator call on PNG bytes: the cache, the ceiling, the call, the parse, the ledger.
     Returns {answer (dict | None = no verdict), text, usage, ms, dollars, cached, refused, error, model, backend}."""
     backend = backend_for(backend)
@@ -615,8 +1238,8 @@ def ask(backend, images, prompt, max_tokens=None, rubric_id="", request=None, bu
     except Exception as e:   # noqa: BLE001
         out["error"] = "%s: %s" % (type(e).__name__, e)
         out["ms"] = int((time.time() - t0) * 1000)
-        ledger_record({"backend": backend.name, "model": backend.model, "images": len(images), "ms": out["ms"], "tokens_in": 0, "tokens_out": 0,
-                       "dollars": 0.0, "request": request, "rubric": rubric_id, "error": out["error"]})
+        ledger_record(dict({"backend": backend.name, "model": backend.model, "images": len(images), "ms": out["ms"], "tokens_in": 0, "tokens_out": 0,
+                            "dollars": 0.0, "request": request, "rubric": rubric_id, "error": out["error"]}, **(ledger_extra or {})))
         return out
     out["ms"] = int((time.time() - t0) * 1000)
     out["text"], out["usage"] = txt or "", usage or _usage0()
@@ -624,9 +1247,12 @@ def ask(backend, images, prompt, max_tokens=None, rubric_id="", request=None, bu
     out["dollars"] = d if d is not None else 0.0
     ans = parse_json_answer(txt)
     out["answer"] = ans if ans else None   # empty or unparsable = no verdict, never ok
-    ledger_record({"backend": backend.name, "model": backend.model, "images": len(images), "ms": out["ms"], "tokens_in": out["usage"].get("input", 0),
-                   "tokens_out": out["usage"].get("output", 0), "dollars": out["dollars"], "unpriced": d is None, "request": request, "rubric": rubric_id,
-                   "verdict": bool(ans)})
+    extra = dict(ledger_extra or {})   # pass 98 (lane GEMINI): a fallback call's {fallback, fallback_id}
+    if backend.name == "antigravity":   # pass 98 (lane GEMINI): seconds and agy's thinking tokens on the row
+        extra = dict(extra, **{"seconds": round(out["ms"] / 1000.0, 1), "tokens_thinking": int(out["usage"].get("thinking") or 0), "tokens_cache_read": int(out["usage"].get("cache_read") or 0)})
+    ledger_record(dict({"backend": backend.name, "model": backend.model, "images": len(images), "ms": out["ms"], "tokens_in": out["usage"].get("input", 0),
+                        "tokens_out": out["usage"].get("output", 0), "dollars": out["dollars"], "unpriced": d is None, "request": request, "rubric": rubric_id,
+                        "verdict": bool(ans)}, **extra))
     if key and ans:
         cache_put(key, {"answer": ans, "text": txt, "model": backend.model, "rubric": rubric_id, "t": _now()})
     return out
@@ -727,7 +1353,7 @@ def _opaque_copies(entries):
     return tmp, data
 
 
-def evaluate(images, rubric_id, backend=None, model=None, budget=None, request=None, job=None, look=None, tier=1, use_cache=True):
+def evaluate(images, rubric_id, backend=None, model=None, budget=None, request=None, job=None, look=None, tier=1, use_cache=True, ledger_extra=None):
     """The findings of a backend on pictures (INTERFACES shape, items of kind model). images: paths, PIL images or
     {image, group, slot} dicts; rubric_id: a key of tools/qa_rubrics.json; backend: a name or an instance; budget: the
     request's {cloud_dollars, spent} for a cloud backend. Names never reach the model: opaque copies, a fixed rubric."""
@@ -743,7 +1369,7 @@ def evaluate(images, rubric_id, backend=None, model=None, budget=None, request=N
         else:
             batches = [([e], [d]) for e, d in zip(entries, data)]
         for ents, dat in batches:
-            res = ask(be, dat, text, rubric_id=rubric_id, request=request, budget=budget, use_cache=use_cache)
+            res = ask(be, dat, text, rubric_id=rubric_id, request=request, budget=budget, use_cache=use_cache, ledger_extra=ledger_extra)
             calls.append({"backend": res["backend"], "model": res["model"], "images": len(dat), "ms": res["ms"], "dollars": res["dollars"],
                           "cached": res["cached"], "refused": res["refused"], "error": res["error"], "tier": tier})
             if res["refused"] or res["error"]:
@@ -924,7 +1550,8 @@ def tier0_look(look, groups_wanted=None):
                 items.append(_item("%s/%d" % (label, slot), label, slot, "measured", name, _measured_value(rec), False, str(rec.get("rule") or name),
                                    _bbox_xywh(cells[slot]) if slot < len(cells) else None, None, 0))
         gdata.append({"label": label, "base": base, "view": view, "group": g, "cells": cells, "n": g.n,
-                      "repairable": bool(g.meta.get("clip") or g.meta.get("driver")), "method": g.meta.get("method")})
+                      "repairable": bool(g.meta.get("clip") or g.meta.get("driver")), "method": g.meta.get("method"),
+                      "versions": _effective_ids(g)})   # pass 98 (lane GEMINI): the version each cell shows (per-frame findings)
     # the stills (the paintings the clips were made from): gen_art's geometry, no model
     seen = set()
     for gd in gdata:
@@ -947,6 +1574,29 @@ def tier0_look(look, groups_wanted=None):
     return items, gdata
 
 
+def _effective_ids(g):
+    """pass 98 (lane GEMINI): the id of the version each slot of a group shows (the cell evaluated), None where unknown."""
+    out = []
+    for k in range(g.n):
+        try:
+            v, _ = g.effective(k)
+        except Exception:   # noqa: BLE001
+            v = None
+        out.append(v.get("id") if isinstance(v, dict) else None)
+    return out
+
+
+def _stamp_versions(items, gdata):
+    """pass 98 (lane GEMINI): a model item on a frame learns the version it judged (the frames store keeps it per version)."""
+    by = {gd["label"]: gd.get("versions") or [] for gd in gdata}
+    for it in items:
+        if it.get("kind") == "model" and it.get("group") in by and it.get("slot") is not None and not it.get("version"):
+            vs = by[it["group"]]
+            k = int(it["slot"])
+            if 0 <= k < len(vs) and vs[k]:
+                it["version"] = vs[k]
+
+
 def _sample_clean_slot(n, flagged):
     """One clean frame a group, chosen the same way every run: the middle of the unflagged slots."""
     clean = [k for k in range(n) if k not in flagged]
@@ -954,10 +1604,11 @@ def _sample_clean_slot(n, flagged):
 
 
 def evaluate_look(kind, cid, code, tiers=(0, 1), groups=None, backend=None, model=None, request=None, cloud_dollars=0.0, cloud_backend=None,
-                  out_dir=None, job=None, budget=None, use_cache=True):
+                  out_dir=None, job=None, budget=None, use_cache=True, scope="flagged", slots=None, allow_fallback=True):
     """A stored look through the tiers; the findings written to <out_dir>/findings.json and findings_sheet.png when out_dir
     is given. `backend` is tier 1's (default: the tier table's local eye), `cloud_backend` tier 2's (default: the tier
-    table's); `cloud_dollars` is the request's ceiling for tier 2 (0 = off)."""
+    table's); `cloud_dollars` is the request's ceiling for a PAID tier 2 (0 = off); a free tier 2 (antigravity, pass 98)
+    runs at $0, bounded by its daily call cap."""
     import frames_store as FS
     tiers = [int(t) for t in (tiers or (0, 1))]
     look = FS.Look(kind, cid, code)
@@ -974,8 +1625,20 @@ def evaluate_look(kind, cid, code, tiers=(0, 1), groups=None, backend=None, mode
             flagged_by_group.setdefault(it["group"], set()).add(int(it["slot"]))
     tt = tier_table()
     t1 = tt.get("1") if isinstance(tt.get("1"), dict) else {}
+    want_slots = slots   # (the tier-1 block below reuses the name `slots`)
+    # pass 98 (lane GEMINI; Garry: "just use Gemini first ... the local as backups"): when tier 2's eye is a FREE one (Gemini
+    # through agy: the tier table's antigravity, or a backend handed in), Gemini is the primary model eye and the local
+    # tier runs only on the frames of a Gemini call that failed (the fallback, surfaced as an error); otherwise pass 96
+    t2 = tt.get("2") if isinstance(tt.get("2"), dict) else {}
+    be2_free = None
+    if 2 in tiers:
+        name2 = cloud_backend if cloud_backend is not None else t2.get("backend")
+        if isinstance(name2, Backend):
+            be2_free = name2 if name2.free else None
+        elif name2 == "antigravity":
+            be2_free = backend_for("antigravity", t2.get("model") if t2.get("backend") == "antigravity" else None)
     # tier 1: the local eye on the flagged frames plus one sampled clean frame a group
-    if 1 in tiers and gdata:
+    if 1 in tiers and gdata and be2_free is None:
         be1 = backend_for(backend or t1.get("backend") or "openai_chat", model or t1.get("model") or VISION_MODEL)
         pics = []
         for gd in gdata:
@@ -993,8 +1656,34 @@ def evaluate_look(kind, cid, code, tiers=(0, 1), groups=None, backend=None, mode
             calls += f1["model_calls"]
     # tier 2: the cloud eye on one contact sheet when the tiers disagree or a hard finding needs confirming
     tier2 = {"ran": False, "why": ""}
-    if 2 in tiers:
-        t2 = tt.get("2") if isinstance(tt.get("2"), dict) else {}
+    fallback = None
+    if be2_free is not None:
+        # pass 98 (lane GEMINI): Gemini on sheets of the flagged frames + a clean one a group (scope flagged), every frame
+        # (all) or chosen slots (slots), bounded by the day's cap and the request's calls
+        f2_items, f2_calls, tier2 = tier2_free(be2_free, gdata, items, scope=scope or "flagged", slots=want_slots, request=request, budget=budget, job=job,
+                                               use_cache=use_cache, out_dir=out_dir)
+        failed = tier2.pop("failed_cells", [])
+        if failed and allow_fallback:
+            # the fallback: the local model on exactly the frames Gemini failed on, its items marked, the error surfaced
+            be1 = backend_for(backend or t1.get("backend") or "openai_chat", model or t1.get("model") or VISION_MODEL)
+            why = tier2.get("failed_why") or "Gemini gave no answer"
+            fid = "fb_%s_%s" % (time.strftime("%H%M%S"), os.urandom(3).hex())
+            pics = [{"image": frame_on_grey(c[3]), "group": c[1], "slot": c[2], "ref": c[0]} for c in failed]
+            f1 = evaluate(pics, "frame_blind", be1, request=request, budget=budget, job=job, tier=1, use_cache=use_cache,
+                          ledger_extra={"fallback": why, "fallback_id": fid})
+            ver = {(c[1], c[2]): c[4] for c in failed}
+            for it in f1["items"]:
+                it.update(eye="local", fallback=True, version=ver.get((it.get("group"), it.get("slot"))))
+            items += f1["items"]
+            calls += [dict(c, fallback=True) for c in f1["model_calls"]]
+            fallback = {"frames": len(failed), "why": why, "model": be1.model, "id": fid,
+                        "line": "Gemini failed: %s - checked by the local model instead" % why}
+        elif failed:
+            fallback = {"frames": 0, "why": tier2.get("failed_why") or "Gemini gave no answer", "model": None, "id": None,
+                        "line": "Gemini failed: %s - no fallback was allowed" % (tier2.get("failed_why") or "no answer")}
+        items += f2_items
+        calls += f2_calls
+    elif 2 in tiers:
         hard_slots = {(it["group"], it["slot"]) for it in items if it["kind"] == "measured" and it["ok"] is False and it["group"]}
         model_bad = {(it["group"], it["slot"]) for it in items if it["kind"] == "model" and it["ok"] is False and it["group"]}
         model_seen = {(it["group"], it["slot"]) for it in items if it["kind"] == "model" and it["group"]}
@@ -1004,7 +1693,13 @@ def evaluate_look(kind, cid, code, tiers=(0, 1), groups=None, backend=None, mode
         elif not hard_slots and not disagree:
             tier2["why"] = "not needed: no hard finding and the tiers agree"
         else:
-            be2 = backend_for(cloud_backend or t2.get("backend") or "anthropic", t2.get("model") if not cloud_backend or isinstance(cloud_backend, str) else None)
+            name_paid = cloud_backend or t2.get("backend") or "anthropic"
+            if name_paid == t2.get("backend"):
+                model_paid = t2.get("model")
+            else:   # pass 98 review: a paid eye named by hand takes its own model from tiers["2"].alternates, never the table's Gemini id
+                alt = [a for a in (t2.get("alternates") or {}).values() if isinstance(a, dict) and a.get("backend") == name_paid]
+                model_paid = alt[0].get("model") if alt else None
+            be2 = backend_for(name_paid, model_paid)
             want = sorted(hard_slots | disagree)
             cells = []
             for gd in gdata:
@@ -1033,6 +1728,7 @@ def evaluate_look(kind, cid, code, tiers=(0, 1), groups=None, backend=None, mode
                     os.makedirs(out_dir, exist_ok=True)
                     sheet_img.save(sp)
                     tier2["sheet"] = _rel(sp)
+    _stamp_versions(items, gdata)   # pass 98 (lane GEMINI)
     gates = gates_of(items)
     sheet_path = None
     if out_dir and gdata:
@@ -1043,6 +1739,17 @@ def evaluate_look(kind, cid, code, tiers=(0, 1), groups=None, backend=None, mode
                             "flagged": sorted(flagged_by_group.get(gd["label"], set()))} for gd in gdata],
                 "dollars": round(sum(float(c.get("dollars") or 0) for c in calls), 6)}
     findings["summary"] = summary_line(findings)
+    if be2_free is not None:   # pass 98 (lane GEMINI): the eye's line ("Gemini flagged 3 frames in run/side") on the record
+        findings["eyes"] = {"gemini" if be2_free.name == "antigravity" else be2_free.name: {"line": tier2.get("line") or eyes_line(tier2), "flagged": tier2.get("flagged") or {},
+                                                                                           "model": be2_free.model, "backend": be2_free.name}}
+        findings["agreed"] = sorted([list(x) for x in agreed_frames(findings)])
+        findings["summary"] += "; " + (tier2.get("line") or eyes_line(tier2))
+        findings["eye"] = "gemini"
+        if fallback:   # Garry: the fallback is surfaced as an error, everywhere the findings go
+            findings["eye"] = "local (fallback)" if fallback.get("frames") else "none"
+            findings["gemini_error"] = fallback["why"]
+            findings["fallback"] = fallback
+            findings["summary"] += "; " + fallback["line"]
     if out_dir:
         _save_json(os.path.join(out_dir, "findings.json"), findings)
         findings["file"] = _rel(os.path.join(out_dir, "findings.json"))
@@ -1092,8 +1799,27 @@ def run_job(path):
     be = j.get("backend") or None
     if be == "fake":
         be = FakeBackend([json.dumps({"legs": 8, "arms": 0, "broken": False, "ghost": False, "face": "ok", "smear": False, "colour": False, "note": "fine"})])
+    # pass 98 (lane GEMINI): the tier-2 eye named by the job (antigravity: Check with Gemini, Ask Gemini), the frames in
+    # scope (flagged | all | slots), the request's calls left, a fresh look (no cache); absent = pass 96's job exactly
+    kw = {}
+    if j.get("scope"):
+        kw["scope"] = str(j["scope"])
+    if j.get("slots"):
+        sl = j["slots"]
+        if isinstance(sl, list):
+            sl = {(groups or ["?"])[0]: sl}
+        kw["slots"] = {str(k): [int(x) for x in v] for k, v in (sl or {}).items()}
+    cb = j.get("cloud_backend") or None
+    if cb == "fake_agy":   # the selftests' stand-in for agy.exe (never the real one)
+        if not os.environ.get("AGY_FAKE_EXE"):
+            raise ValueError("cloud_backend fake_agy needs AGY_FAKE_EXE (the stand-in script)")
+        cb = AgyBackend(exe=os.environ["AGY_FAKE_EXE"])
+    bud = None
+    if j.get("calls_left") not in (None, "", -1):
+        bud = {"calls_left": int(j["calls_left"])}
     f = evaluate_look(str(j.get("kind")), str(j.get("id")), str(j.get("code")), tiers=tiers, groups=groups, backend=be, model=j.get("model") or None,
-                      request=j.get("request") or None, cloud_dollars=float(j.get("cloud_dollars") or 0.0), out_dir=out_dir, job=j.get("job") or os.environ.get("ASSET_JOB_ID"))
+                      request=j.get("request") or None, cloud_dollars=float(j.get("cloud_dollars") or 0.0), out_dir=out_dir, job=j.get("job") or os.environ.get("ASSET_JOB_ID"),
+                      cloud_backend=cb, budget=bud, use_cache=not j.get("fresh"), allow_fallback=j.get("fallback", True) is not False, **kw)
     log("evaluate: %s %s %s: %s" % (j.get("kind"), j.get("id"), j.get("code"), f["summary"]))
     log("evaluate: wrote %s" % f.get("file"))
     sidecar = os.environ.get("ASSET_JOB_SIDECAR")
@@ -1103,9 +1829,13 @@ def run_job(path):
             outs.append({"file": f["sheet"], "label": "findings sheet", "type": "sheet"})
         if (f.get("tier2") or {}).get("sheet"):
             outs.append({"file": f["tier2"]["sheet"], "label": "decision sheet (tier 2)", "type": "sheet"})
+        for sh in (f.get("tier2") or {}).get("sheets") or []:   # pass 98 (lane GEMINI): the sheets Gemini was shown
+            outs.append({"file": sh["file"], "label": "Gemini's sheet (%d frames: %s)" % (sh["cells"], ", ".join(sh.get("groups") or [])), "type": "sheet"})
         _save_json(sidecar, {"tool": "vision_eval", "call": "evaluate_look", "info": {"findings": f.get("file"), "sheet": f.get("sheet"), "gates": f["gates"],
                                                                                       "summary": f["summary"], "outputs": outs, "dollars": f.get("dollars", 0.0),
-                                                                                      "model_calls": len(f.get("model_calls") or []), "tier2": f.get("tier2")}})
+                                                                                      "model_calls": len(f.get("model_calls") or []), "tier2": f.get("tier2"),
+                                                                                      "eyes": f.get("eyes"), "agreed": f.get("agreed"), "eye": f.get("eye"),
+                                                                                      "gemini_error": f.get("gemini_error"), "fallback": f.get("fallback")}})
     return f
 
 
@@ -1119,18 +1849,28 @@ def main(argv=None):
     ap.add_argument("--tiers", default="0,1")
     ap.add_argument("--groups", default="", help="run/side,die/front (empty = every group)")
     ap.add_argument("--backend", default="", help="openai_chat | anthropic | gemini | fake (tier 1's; empty = the tier table's)")
+    ap.add_argument("--cloud-backend", default="", help="pass 98: tier 2's eye (antigravity = Gemini through agy; empty = the tier table's)")
+    ap.add_argument("--scope", default="flagged", help="pass 98: tier 2's frames: flagged (+ a clean one a group) | all")
     ap.add_argument("--model", default="")
     ap.add_argument("--cloud-dollars", type=float, default=0.0)
     ap.add_argument("--request", default="")
     ap.add_argument("--out", default="")
     ap.add_argument("--ledger", action="store_true", help="print the ledger's totals and stop")
     ap.add_argument("--keys", action="store_true", help="say which key files exist and stop")
+    ap.add_argument("--agy-health", action="store_true", help="pass 98: the Gemini eye (agy.exe, its read rule, today's calls) without a call")
+    ap.add_argument("--agy-rule", action="store_true", help="pass 98: append the inbox's read rule to agy's settings.json (a backup first) and stop")
     a = ap.parse_args(argv)
     if a.ledger:
         log(json.dumps(ledger_totals(), indent=1))
         return 0
     if a.keys:
         log(json.dumps(keys_status(), indent=1))
+        return 0
+    if a.agy_health:
+        log(json.dumps(agy_health(), indent=1))
+        return 0
+    if a.agy_rule:
+        log(json.dumps(ensure_agy_rule(), indent=1))
         return 0
     if a.job:
         run_job(a.job)
@@ -1139,7 +1879,7 @@ def main(argv=None):
         ap.error("--kind, --id and --code are needed (or --job)")
     f = evaluate_look(a.kind, a.id, a.code, tiers=[int(x) for x in a.tiers.split(",") if x.strip()], groups=[x for x in a.groups.split(",") if x.strip()] or None,
                       backend=a.backend or None, model=a.model or None, request=a.request or None, cloud_dollars=a.cloud_dollars,
-                      out_dir=a.out or None)
+                      out_dir=a.out or None, cloud_backend=a.cloud_backend or None, scope=a.scope)
     log(f["summary"])
     if f.get("file"):
         log("wrote " + f["file"])

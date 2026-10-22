@@ -22,11 +22,46 @@
    "false_alarm_rate": 0.417
   },
   "2": {
-   "backend": "anthropic",
-   "model": "claude-haiku-5-5",
+   "backend": "antigravity",
+   "model": "gemini-3.8-flash-medium",
    "on": "sheets",
    "ceiling_dollars": 0.0,
-   "key_file": "tools/keys/anthropic.env"
+   "daily_calls": 6,
+   "requests": true,
+   "print_timeout": 420,
+   "note": "pass 98 (lane GEMINI): Gemini through Garry's Antigravity CLI (his subscription: no dollars), on contact sheets of up to 16 frames at a request's decision points and by hand (Ask Gemini, Check with Gemini); daily_calls caps the day's calls (6: Garry's subscription quota is weekly, about 40 single-picture calls emptied it on 2026-10-22, so 6 a day spreads a week's quota; a contact sheet of 16 frames is one call); requests false turns it off for new requests; the paid eyes below stay as options (backend anthropic or gemini with a ceiling)",
+   "alternates": {
+    "anthropic": {"backend": "anthropic", "model": "claude-haiku-5-5", "on": "sheets", "ceiling_dollars": 0.0, "key_file": "tools/keys/anthropic.env"},
+    "gemini_api": {"backend": "gemini", "model": "gemini-2.5-flash", "on": "sheets", "ceiling_dollars": 0.0, "key_file": "tools/keys/gemini.env"}
+   },
+   "miss_rate": 0.0,
+   "false_alarm_rate": 0.75,
+   "trust": {"legs": false, "ghost": true, "smear": true, "face": true,
+             "note": "pass 98: the blind bench scored Gemini's leg counts 2/11 (it says 6 or 7 on clean 8-legged spiders): a leg-count finding is a badge only and drives a repair only where tier 0's silhouette or footprint flag agrees on the frame; ghost (22/25), face (21/28) and smears may drive a repair"},
+   "_measured": {
+    "made": "2026-10-22T15:21:47",
+    "set": "tools/qa_bench/manifest.json (31 strong cases: 19 defects, 12 clean), one image a call (not a sheet)",
+    "file": "tools/dl/qa_bench/results/agy_gemini_3_8_flash_medium_anchored_r_20261022-142229.json",
+    "models": {
+     "gemini-3.8-flash-medium": {
+      "anchored": {
+       "miss_rate": 0.0,
+       "false_alarm_rate": 0.75,
+       "legs": [2, 11],
+       "ghost": [22, 25],
+       "face": [21, 28],
+       "clean_vs_defect": [22, 31],
+       "no_verdict": 0,
+       "seconds_per_image": 91.22,
+       "runs": 1,
+       "agreement": null,
+       "dollars": 0.0,
+       "weak": {"not_chosen_flagged": [4, 6], "inferred_clean_flagged": [2, 2]}
+      }
+     }
+    },
+    "note": "caught all 19 defects but flagged 9 of 12 clean frames: every Gemini finding stays a hint (a badge), never a gate"
+   }
   },
   "_measured": {
    "made": "2026-10-21T22:22:34",
