@@ -1,4 +1,4 @@
-# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74)
+# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74, schema 3 since pass 101)
 
 One JSON file per run, written by `game/core/systems/RunAnalytics.gd` (a Game child created for every real run; the
 arena never records, and a launch file saying `"analytics": false` skips it). It is written when the run ends; a
@@ -7,6 +7,11 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 
 **Schema 2** (pass 74, v0.60) adds the keys marked *(2)* below; a schema 1 file simply lacks them, and
 `analytics/dashboard.html` opens both (a card that needs a schema 2 key hides itself).
+
+**Schema 3** (pass 101, v0.86, lane FPS) adds the keys marked *(3)*: every row's frame times (`frames`, `frame_ms`,
+`frame_max`, `frame_p95`), the shots in flight (`proj`) and the pickups lying (`pickups`), and the header's
+`frame_timing`. An older file lacks them: the Frame time card and the Performance charts hide, its CSV has no such
+column, everything else reads as before.
 
 ## Where the files go
 
@@ -64,7 +69,8 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 | `timeline` *(2)* | the Results screen's story (`Run.timeline`) without its second-by-second samples: `markers` `[[t, kind]]` (kind `special`, `elite`, `boss`: a kill; `down`: the hero fell), `stages` `[[t, stage index]]`, `sources` `{damage id: {owned, hit}}` (the play second it was first owned / first hit; -1 never), `start_weapon` |
 | `quests` *(2)* | every counted quest not done as the run began: `{id: {name, before, after, need, done}}` (its progress as the run began and as it ended, what it needs, done now). Pass 100: the in-one-run build quests (`hero_level` with the run's hero, `item_level`, `evolve_item`, `weapon_paths`, `items_maxed`) are counted too, their progress this run's (before 0 or 1, after the best the run reached) |
 | `crowd` *(2)* | the crowd's counters at the end, those above zero: `special_chests`, `hot_chests` (Hot Sauce), `sniper_aims`, `sniper_shots`, `sniper_hero_hits`, `sniper_cancels` (the Saiga Sniper); since pass 95 `despawned` (regular creatures that vanished far from the hero and out of view, never a kill) and `despawned_by` `{creature id: count}` |
-| `fps` *(2)* | `{avg, low}`: the mean frame rate and the 1 % low (a window only; the frame clock PostHog's run_summary has) |
+| `fps` *(2)* | `{avg, low}`: the mean frame rate and the 1 % low (a window only; the frame clock PostHog's run_summary has; frames over 250 ms are left out of it as pauses) |
+| `frame_timing` *(3)* | what the rows' frame times mean: `valid` (false when the wall clock is not a player's frame rate), `why` (`headless`: nothing was drawn; `fixed_fps`: run under `--fixed-fps`, the game stepped a fixed time a frame however long it took; `""` when valid), `max_fps` (`Engine.max_fps` as the run began; 0 = no cap but vsync's), `frame_cap` (`Settings.frame_cap`: 60 or 0 = the screen's max; pass 101: 60 by default on a phone), `vsync` (`DisplayServer.VSyncMode`: 0 off, 1 on, 2 adaptive, 3 mailbox), `refresh_hz` (the screen's refresh rate; -1 unknown), `physics_hz` (the world's ticks a second, 60) |
 | `names` | `{id: display name}` for every id the file mentions (weapons, passives, perks, mutations, creatures, pickups, structures; *(2)* Elite modifiers, talents, the totem gifts, the cards an offer showed) |
 | `hit_log` | the hero's last 30 s of hits as the Down! screen shows them: `{t (the stage clock), by, id (the creature), kind (melee/ranged/boss/heal), role, colour, fx, raw, dealt, shield, note (evaded, shield, broke, star, ...), hp, fatal}`; a named heal has `kind: heal` and `amount`; only on a finished run |
 | `samples` | the rows below |
@@ -124,6 +130,10 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `boss_hp` | the boss's health as a fraction while one is up |
 | `boss_now` | (pass 77) the boss's current HP itself while one is up (`boss_hp` stays its share) |
 | `near3`, `near6` | (pass 77) creatures up within 3 m / 6 m of the hero (flat; `RunAnalytics.NEAR_CLOSE`, `NEAR_WIDE`) |
+| `frames` *(3)* | the frames played in this second of play, always written (0 = none; a second of slow motion holds more): only a frame that follows the last ticked one directly counts, however long (a hitch counts); the first frame after a pause, a card screen or a menu does not |
+| `frame_ms`, `frame_max`, `frame_p95` *(3)* | those frames' mean wall time, the slowest one and the 95th percentile (nearest rank), in ms, 0.1 steps; absent when `frames` is 0. fps = 1000 / `frame_ms`. Meaningless when the header's `frame_timing.valid` is false |
+| `proj` *(3)* | shots in flight at the row (`ProjectileManager.count`: every round, lob and hostile shot) |
+| `pickups` *(3)* | gems and coins lying at the row (`PickupManager.count`) |
 | `stats` | the player sheet: max_hp, damage_reduction, regen, move_speed, might, cooldown, area, projectile_speed, duration, amount, magnet, luck, greed, xp_gain, lifesteal, evade, crit_chance, crit_damage, thorns, execute_frac, overkill, haste, shield_max, ricochet, cooldown_on_kill; pass 47 adds still_regen, still_might, barrel_speed, barrel_seconds, xp_drop_chance, elite_damage, debuff_duration, difficulty, skips, banishes (the stage's); pass 62 adds powerup_duration, powerup_chance (`RunAnalytics.STAT_KEYS`; their words in the header's `stat_names`) |
 | `weapons` | `[{id, level, mut: [mutation ids], dmg, cd, amount, pierce, area, est}]` from each weapon's folded sheet |
 | `passives`, `lines` *(2)*, `perks` | `{id: level}` (the passive items; *(2)* the lines apart), `[ids]` (before pass 46 also `lines`, `{id: rank}`) |
@@ -237,6 +247,11 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
 
 ### In PostHog
 
+- `run_summary` *(3)*: the minute folds of the frames (only from a record whose rows carry them): `m_frames` (frames
+  played), `m_frame_ms` (their mean wall time: the minute's frame ms over its frames), `m_fps` (1000 over it),
+  `m_frame_max` (the minute's slowest frame), `m_frame_p95` (the mean of its seconds' 95th percentiles), `m_proj`,
+  `m_pickups` (shots in flight and pickups lying, means a second); and `frame_cap` (`Engine.max_fps` as the run began),
+  `frame_valid` (`frame_timing.valid`), beside the older `fps_avg`, `fps_low`.
 - `run_summary` (one a run): `m_gold_in`, `m_gold_out` (gold in and out in each bucket, sums), `gold_by_source`
   (`{source: gold}`), `gold_spent_by` (`{sink: gold}`), `gold_greed` (what greed added; inside the sources' totals), next
   to the older `m_gold` (the purse at the bucket's end) and `m_banked` (what a Strongbox banked so far).
@@ -351,7 +366,9 @@ byte): UTF-8 with a BOM (Excel), comma-separated, numbers with a dot, CR LF line
 
 - **rows** (`88fits_<stamp>_rows.csv`): one line per row (a second of play). The row's plain keys first in the table's
   order above (only those the run has; pass 78 put pass 77's `xp_total`, `hp_lost`, `hp_healed`, `boss_now`, `near3`,
-  `near6` among them), a key the row leaves out written as 0 (`boss_hp`, `boss_now` empty: no boss up); (pass 82) then
+  `near6` among them; pass 101 *(3)* `frames`, `frame_ms`, `frame_max`, `frame_p95`, `proj`, `pickups` after them), a key
+  the row leaves out written as 0 (`boss_hp`, `boss_now` empty: no boss up; `frame_ms`, `frame_max`, `frame_p95` empty: no
+  frame that second); (pass 82) then
   `chests`, `powerups`, `totems`, picked up so far (counted from the events: *Chests, power-ups and totems*); then each
   per-second map flattened as `group.key` (`dmg.revolver`, `took.goblin`, `healed_by.Heart`, ...; missing = 0); then the
   carried snapshots, filled forward to every second until the next: `mults.*`, `stats.*`,

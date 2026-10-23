@@ -2,7 +2,6 @@
 
 [ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_4dwn4"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_cfeu8"]
-[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_sprite.png" id="3_8nkdc"]
 
 [resource]
 script = ExtResource("2_cfeu8")
@@ -24,7 +23,7 @@ anims = {
 "run": 6.0,
 "run_b": 6.0
 }
-sprite = ExtResource("3_8nkdc")
+sprite_path = "res://content/enemies/training_dummy/training_dummy_sprite.png"
 sprite_file = "res://content/enemies/training_dummy/training_dummy_sprite.png"
 frame_px = 160
 strip_cols = 28

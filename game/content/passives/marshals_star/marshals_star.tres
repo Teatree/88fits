@@ -1,20 +1,16 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/marshals_star/marshals_star_icon.png" id="1_xg4qq"]
 [ext_resource type="Texture2D" path="res://content/passives/marshals_star/marshals_star_icon_b.png" id="1_xvr2m"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_xvr2m"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_dgakb"]
-[ext_resource type="Texture2D" path="res://content/passives/marshals_star/marshals_star_icon_c.png" id="5_2yot2"]
-[ext_resource type="Texture2D" path="res://content/passives/marshals_star/marshals_star_icon_d.png" id="6_4ifne"]
-[ext_resource type="Texture2D" path="res://content/passives/marshals_star/marshals_star_icon_e.png" id="7_l8oml"]
 
-[sub_resource type="Resource" id="Resource_2yot2"]
+[sub_resource type="Resource" id="Resource_xg4qq"]
 script = ExtResource("2_xvr2m")
 stat = "damage_reduction"
 value = 0.25
 target = "player"
 
-[sub_resource type="Resource" id="Resource_4ifne"]
+[sub_resource type="Resource" id="Resource_xvr2m"]
 script = ExtResource("2_xvr2m")
 stat = "star_block_every"
 value = 10.0
@@ -23,37 +19,37 @@ target = "player"
 [resource]
 script = ExtResource("3_dgakb")
 line = true
-levels = [[SubResource("Resource_2yot2"), SubResource("Resource_4ifne")]]
+levels = [[SubResource("Resource_xg4qq"), SubResource("Resource_xvr2m")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "tin_star"
 variants = {
 "A": {
-"icon": ExtResource("1_xg4qq"),
+"icon": "res://content/passives/marshals_star/marshals_star_icon.png",
 "icon_file": "marshals_star_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_xvr2m"),
+"icon": "res://content/passives/marshals_star/marshals_star_icon_b.png",
 "icon_file": "marshals_star_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_2yot2"),
+"icon": "res://content/passives/marshals_star/marshals_star_icon_c.png",
 "icon_file": "marshals_star_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_4ifne"),
+"icon": "res://content/passives/marshals_star/marshals_star_icon_d.png",
 "icon_file": "marshals_star_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_l8oml"),
+"icon": "res://content/passives/marshals_star/marshals_star_icon_e.png",
 "icon_file": "marshals_star_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

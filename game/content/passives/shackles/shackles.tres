@@ -1,14 +1,10 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/shackles/shackles_icon.png" id="1_7xnpo"]
 [ext_resource type="Texture2D" path="res://content/passives/shackles/shackles_icon_b.png" id="1_dsgwq"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_w57p4"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_7xnpo"]
-[ext_resource type="Texture2D" path="res://content/passives/shackles/shackles_icon_c.png" id="5_86rv1"]
-[ext_resource type="Texture2D" path="res://content/passives/shackles/shackles_icon_d.png" id="6_vkypx"]
-[ext_resource type="Texture2D" path="res://content/passives/shackles/shackles_icon_e.png" id="7_1wpq7"]
 
-[sub_resource type="Resource" id="Resource_86rv1"]
+[sub_resource type="Resource" id="Resource_7xnpo"]
 script = ExtResource("1_w57p4")
 stat = "debuff_duration"
 op = "mul"
@@ -18,37 +14,37 @@ target = "player"
 [resource]
 script = ExtResource("2_7xnpo")
 line = true
-levels = [[SubResource("Resource_86rv1")]]
+levels = [[SubResource("Resource_7xnpo")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "ducktape"
 variants = {
 "A": {
-"icon": ExtResource("1_7xnpo"),
+"icon": "res://content/passives/shackles/shackles_icon.png",
 "icon_file": "shackles_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_dsgwq"),
+"icon": "res://content/passives/shackles/shackles_icon_b.png",
 "icon_file": "shackles_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_86rv1"),
+"icon": "res://content/passives/shackles/shackles_icon_c.png",
 "icon_file": "shackles_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_vkypx"),
+"icon": "res://content/passives/shackles/shackles_icon_d.png",
 "icon_file": "shackles_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_1wpq7"),
+"icon": "res://content/passives/shackles/shackles_icon_e.png",
 "icon_file": "shackles_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

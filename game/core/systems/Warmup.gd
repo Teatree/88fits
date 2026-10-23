@@ -30,8 +30,11 @@ static func run(game: Node) -> void:
 func _build(game: Node) -> void:
 	var em: EnemyManager = game.enemies
 	var pm: ProjectileManager = game.projectiles
-	# every creature type the map can show, drawn once through its MultiMesh
-	for def in Registry.enemies.values():
+	# every creature type the map can show, drawn once through its MultiMesh. Pass 101 (lane LOOKS): only the creatures
+	# this run's stage can bring (RunLooks: their strips, in every look the stage brings them in, and the hero's, are
+	# loaded and pinned here, under the beam); every other creature's strip loads when something first asks for it
+	var li = game.get("launch_info")   # pass 101 review: a tool's launch creature and look are pinned too
+	for def: EnemyDef in RunLooks.prepare(game, li if li is Dictionary else {}):
 		em.register_type(def)
 	em.warm_draw(global_position)
 	# every weapon's visual (held guns, familiars, projectile meshes) and its projectile kind

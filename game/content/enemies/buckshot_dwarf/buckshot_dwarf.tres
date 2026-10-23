@@ -1,9 +1,6 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_p468y"]
-[ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_icon.png" id="1_pvaee"]
-[ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_sprite.png" id="3_y8ofa"]
-[ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_sprite_a.png" id="4_p6rqd"]
 [ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_icon_a.png" id="5_ha0kc"]
 
 [resource]
@@ -31,7 +28,7 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("4_p6rqd")
+sprite_path = "res://content/enemies/buckshot_dwarf/buckshot_dwarf_sprite_a.png"
 sprite_file = "buckshot_dwarf_sprite_a.png"
 frame_px = 176
 strip_cols = 40
@@ -76,11 +73,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.983,
-"icon": ExtResource("1_pvaee"),
+"icon": "res://content/enemies/buckshot_dwarf/buckshot_dwarf_icon.png",
 "note": "the top-level strip, before the Level Editor's looks",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("3_y8ofa"),
+"sprite": "res://content/enemies/buckshot_dwarf/buckshot_dwarf_sprite.png",
 "sprite_file": "buckshot_dwarf_sprite.png",
 "strip_cols": 40
 },
@@ -103,11 +100,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.943,
-"icon": ExtResource("5_ha0kc"),
+"icon": "res://content/enemies/buckshot_dwarf/buckshot_dwarf_icon_a.png",
 "note": "pass 70: the Bandit from Garry's turnaround (tools/dl/uploads/2d/bandit.png): the front painted from its front half with his words (front_from_picture, stills bda); the back and the dead edited from it, his back-view words as back_hint; free Wan clips front and back like BD-0",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("4_p6rqd"),
+"sprite": "res://content/enemies/buckshot_dwarf/buckshot_dwarf_sprite_a.png",
 "sprite_file": "buckshot_dwarf_sprite_a.png",
 "strip_cols": 40
 }

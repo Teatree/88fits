@@ -1,12 +1,35 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/vigour/vigour_icon.png" id="1_8xdgh"]
 [ext_resource type="Texture2D" path="res://content/passives/vigour/vigour_icon_b.png" id="1_s2arj"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_s2arj"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_7ovpq"]
-[ext_resource type="Texture2D" path="res://content/passives/vigour/vigour_icon_c.png" id="5_wa4rc"]
-[ext_resource type="Texture2D" path="res://content/passives/vigour/vigour_icon_d.png" id="6_2stpk"]
-[ext_resource type="Texture2D" path="res://content/passives/vigour/vigour_icon_e.png" id="7_gkus4"]
+
+[sub_resource type="Resource" id="Resource_8xdgh"]
+script = ExtResource("2_s2arj")
+stat = "max_hp"
+op = "mul"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_s2arj"]
+script = ExtResource("2_s2arj")
+stat = "max_hp"
+op = "mul"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_7ovpq"]
+script = ExtResource("2_s2arj")
+stat = "damage_reduction"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_bbf4l"]
+script = ExtResource("2_s2arj")
+stat = "max_hp"
+op = "mul"
+value = 0.08
+target = "player"
 
 [sub_resource type="Resource" id="Resource_wa4rc"]
 script = ExtResource("2_s2arj")
@@ -17,33 +40,6 @@ target = "player"
 
 [sub_resource type="Resource" id="Resource_2stpk"]
 script = ExtResource("2_s2arj")
-stat = "max_hp"
-op = "mul"
-value = 0.08
-target = "player"
-
-[sub_resource type="Resource" id="Resource_gkus4"]
-script = ExtResource("2_s2arj")
-stat = "damage_reduction"
-value = 0.05
-target = "player"
-
-[sub_resource type="Resource" id="Resource_ng15l"]
-script = ExtResource("2_s2arj")
-stat = "max_hp"
-op = "mul"
-value = 0.08
-target = "player"
-
-[sub_resource type="Resource" id="Resource_pyni5"]
-script = ExtResource("2_s2arj")
-stat = "max_hp"
-op = "mul"
-value = 0.08
-target = "player"
-
-[sub_resource type="Resource" id="Resource_vofy6"]
-script = ExtResource("2_s2arj")
 stat = "damage_reduction"
 value = 0.05
 target = "player"
@@ -51,37 +47,37 @@ target = "player"
 [resource]
 script = ExtResource("3_7ovpq")
 line = true
-levels = [[SubResource("Resource_wa4rc")], [SubResource("Resource_2stpk"), SubResource("Resource_gkus4")], [SubResource("Resource_ng15l")], [SubResource("Resource_pyni5"), SubResource("Resource_vofy6")]]
+levels = [[SubResource("Resource_8xdgh")], [SubResource("Resource_s2arj"), SubResource("Resource_7ovpq")], [SubResource("Resource_bbf4l")], [SubResource("Resource_wa4rc"), SubResource("Resource_2stpk")]]
 repeat_last_level = false
 max_level = 4
 evolves_into = "ironclad"
 variants = {
 "A": {
-"icon": ExtResource("1_8xdgh"),
+"icon": "res://content/passives/vigour/vigour_icon.png",
 "icon_file": "vigour_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_s2arj"),
+"icon": "res://content/passives/vigour/vigour_icon_b.png",
 "icon_file": "vigour_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_wa4rc"),
+"icon": "res://content/passives/vigour/vigour_icon_c.png",
 "icon_file": "vigour_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_2stpk"),
+"icon": "res://content/passives/vigour/vigour_icon_d.png",
 "icon_file": "vigour_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_gkus4"),
+"icon": "res://content/passives/vigour/vigour_icon_e.png",
 "icon_file": "vigour_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

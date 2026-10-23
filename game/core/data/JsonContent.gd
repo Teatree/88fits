@@ -63,13 +63,13 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 	# a creature playing another art variant than its top-level one shows that variant's icon too
 	if res is EnemyDef:
 		var ed := res as EnemyDef
-		if ed.variant != "" and ed.variants.has(ed.variant) and ed.variants[ed.variant].get("icon") != null:
-			ed.icon = ed.variants[ed.variant]["icon"]
+		if ed.variant != "" and ed.variants.has(ed.variant) and LookArt.icon(ed.variants[ed.variant].get("icon")) != null:
+			ed.icon = LookArt.icon(ed.variants[ed.variant]["icon"])
 	# and a hero playing a look with its own badge shows that one (pass 55, the same rule)
 	if res is CharacterDef:
 		var cd := res as CharacterDef
-		if cd.variant != "" and cd.variants.has(cd.variant) and cd.variants[cd.variant].get("icon") != null:
-			cd.icon = cd.variants[cd.variant]["icon"]
+		if cd.variant != "" and cd.variants.has(cd.variant) and LookArt.icon(cd.variants[cd.variant].get("icon")) != null:
+			cd.icon = LookArt.icon(cd.variants[cd.variant]["icon"])
 		# pass 66: an availability other than "available" ("hidden", "purchase") keeps him hidden, whatever `hidden` says.
 		# Pass 69 (the purchase loop is wired): "hidden" hides him; "purchase" shows him on the title, locked or on sale
 		# (Registry.hero_state), whatever `hidden` says; "available" with `hidden: true` stays hidden (hidden wins there)
@@ -128,6 +128,15 @@ static func resolve_texture(dir: String, file: String) -> Texture2D:
 		if t is Texture2D:
 			return t
 	return null
+
+
+## The res:// path of a strip (pass 101, lane LOOKS) when the file is there, else "": a look's big picture is kept as
+## its path and loaded on its first ask (LookArt), so the .tres names no strip and boot loads none.
+static func strip_of(dir: String, file: String) -> String:
+	if file == "":
+		return ""
+	var path := file if file.begins_with("res://") else dir + file
+	return path if ResourceLoader.exists(path) else ""
 
 
 static func resolve_scene(dir: String, file: String) -> PackedScene:
@@ -200,7 +209,9 @@ static func _passive_variants(p: PassiveDef, d: Dictionary, dir: String) -> void
 		return
 	var base_code := str(d.get("variant_base", ""))
 	var base_file := str(d.get("icon", str(d.get("id", "")) + "_icon.png"))
-	var base_icon: Texture2D = resolve_texture(dir, base_file)
+	# pass 101 (lane LOOKS): every look's icon as its res:// path ("" = not on disk), loaded when the look is worn
+	# (PassiveDef.look_icon), so the cards' unplayed looks are never loaded with the content
+	var base_icon := strip_of(dir, base_file)
 	var all: Dictionary = {}
 	for code in (vs as Dictionary).keys():
 		var v = vs[code]
@@ -208,14 +219,14 @@ static func _passive_variants(p: PassiveDef, d: Dictionary, dir: String) -> void
 			continue
 		var e: Dictionary = v
 		var file := str(e.get("icon", ""))
-		var tex: Texture2D = resolve_texture(dir, file) if file != "" else null
-		if str(code) == base_code and tex == null:
+		var tex := strip_of(dir, file) if file != "" else ""
+		if str(code) == base_code and tex == "":
 			file = base_file
 			tex = base_icon
-		if tex == null:
+		if tex == "":
 			continue
 		all[str(code)] = {"icon": tex, "icon_file": file, "note": str(e.get("note", "")), "shelved": bool(e.get("shelved", false))}
-	if base_code != "" and not all.has(base_code) and base_icon != null:
+	if base_code != "" and not all.has(base_code) and base_icon != "":
 		all[base_code] = {"icon": base_icon, "icon_file": base_file, "note": "", "shelved": false}
 	if all.is_empty():
 		return
@@ -274,7 +285,8 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	var fp = d.get("fps", {})
 	e.fps = fp if fp is Dictionary else {}
 	e.sprite_file = str(d.get("sprite", str(d.get("id", "")) + "_sprite.png"))
-	e.sprite = resolve_texture(dir, e.sprite_file)
+	# pass 101 (lane LOOKS): the strip as a path, loaded on its first ask (EnemyDef.sprite, LookArt)
+	e.sprite_path = strip_of(dir, e.sprite_file)
 	var r = d.get("ranged", {})
 	e.ranged = r if r is Dictionary else {}
 	var c = d.get("charge", {})
@@ -310,12 +322,13 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	var vs = d.get("variants", {})
 	if vs is Dictionary and not vs.is_empty():
 		var base_code := str(d.get("variant_base", ""))
-		var base_icon: Texture2D = resolve_texture(dir, str(d.get("icon", str(d.get("id", "")) + "_icon.png")))
+		# pass 101 (lane LOOKS): every look's icon as its res:// path ("" = none), loaded when the look is worn
+		var base_icon := strip_of(dir, str(d.get("icon", str(d.get("id", "")) + "_icon.png")))
 		var all: Dictionary = {}
 		if base_code != "":
 			var bnote = vs.get(base_code, {})
 			var bn: Dictionary = bnote if bnote is Dictionary else {}
-			all[base_code] = {"sprite": e.sprite, "sprite_file": e.sprite_file, "anims": e.anims, "fps": e.fps, "strip_cols": e.strip_cols,
+			all[base_code] = {"sprite": e.sprite_path, "sprite_file": e.sprite_file, "anims": e.anims, "fps": e.fps, "strip_cols": e.strip_cols,
 				"head": e.head, "icon": base_icon, "note": str(bn.get("note", "")),
 				"front_faces": str(bn.get("front_faces", e.front_faces)), "back_faces": str(bn.get("back_faces", e.back_faces)),
 				"shadow": bn["shadow"] if bn.get("shadow") is Dictionary else e.shadow, "shelved": bool(bn.get("shelved", false)),
@@ -324,19 +337,20 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 			var v = vs[code]
 			if code == base_code or not v is Dictionary or not v.has("sprite"):
 				continue
-			var tex := resolve_texture(dir, str(v["sprite"]))
-			if tex == null:
+			# pass 101 (lane LOOKS): the look's strip as a res:// path ("" = not on disk: left out), loaded when worn
+			var tex := strip_of(dir, str(v["sprite"]))
+			if tex == "":
 				continue
 			var van = v.get("anims", e.anims)
 			var vfp = v.get("fps", e.fps)
 			# a variant's own icon (its own painting), else the creature's
-			var vicon: Texture2D = resolve_texture(dir, str(v["icon"])) if v.has("icon") else null
+			var vicon := strip_of(dir, str(v["icon"])) if v.has("icon") else ""
 			# its facing (pass 46): a painting that turns the other way says so in its own entry (`front_faces` /
 			# `back_faces`, EnemyDef), else it faces like the top-level strip. `shelved` (pass 66, the Level Editor's
 			# looks): out of variant_codes() and so of the arena chips and the default lists; variant_def still wears it.
 			all[str(code)] = {"sprite": tex, "sprite_file": str(v["sprite"]), "anims": van if van is Dictionary else e.anims,
 				"fps": vfp if vfp is Dictionary else e.fps, "strip_cols": int(v.get("strip_cols", 0)), "head": float(v.get("head", e.head)),
-				"icon": vicon if vicon else base_icon, "note": str(v.get("note", "")),
+				"icon": vicon if vicon != "" else base_icon, "note": str(v.get("note", "")),
 				"front_faces": str(v.get("front_faces", e.front_faces)), "back_faces": str(v.get("back_faces", e.back_faces)),
 				"shadow": v["shadow"] if v.get("shadow") is Dictionary else e.shadow, "shelved": bool(v.get("shelved", false)),
 				# pass 85 (lane BANDIT): its attack strip's layout (EnemyDef.apply_attack_layout), else the creature's
@@ -441,7 +455,8 @@ static func _character(d: Dictionary, dir: String) -> CharacterDef:
 	var an = d.get("anims", {"idle": 2, "run": 4, "turn": 1, "hit": 1, "die": 1, "cheer": 1})
 	c.anims = an if an is Dictionary else {}
 	c.sprite_file = str(d.get("sprite", str(d.get("id", "")) + "_sprite.png"))
-	c.sprite = resolve_texture(dir, c.sprite_file)
+	# pass 101 (lane LOOKS): the strip as a path, loaded on its first ask (CharacterDef.sprite, LookArt)
+	c.sprite_path = strip_of(dir, c.sprite_file)
 	_character_variants(c, d, dir)
 	return c
 
@@ -458,8 +473,9 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 	if not (vs is Dictionary) or (vs as Dictionary).is_empty():
 		return
 	var base_code := str(d.get("variant_base", ""))
-	var base_icon: Texture2D = resolve_texture(dir, str(d.get("icon", str(d.get("id", "")) + "_icon.png")))
-	var top := {"sprite": c.sprite, "sprite_file": c.sprite_file, "anims": c.anims, "fps": c.fps, "strip_cols": c.strip_cols,
+	# pass 101 (lane LOOKS): every look's icon as its res:// path ("" = none), loaded when the look is worn
+	var base_icon := strip_of(dir, str(d.get("icon", str(d.get("id", "")) + "_icon.png")))
+	var top := {"sprite": c.sprite_path, "sprite_file": c.sprite_file, "anims": c.anims, "fps": c.fps, "strip_cols": c.strip_cols,
 		"frame_px": c.frame_px, "icon": base_icon, "title": "", "note": "", "shelved": false}
 	var all: Dictionary = {}
 	for code in vs.keys():
@@ -467,8 +483,9 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 		if not (v is Dictionary):
 			continue
 		var e: Dictionary = v
-		var tex: Texture2D = resolve_texture(dir, str(e["sprite"])) if e.has("sprite") else null
-		if tex == null:
+		# pass 101 (lane LOOKS): a res:// path ("" = none on disk), the strip loaded when the look is worn
+		var tex: String = strip_of(dir, str(e["sprite"])) if e.has("sprite") else ""
+		if tex == "":
 			# no strip of its own (or not painted yet): the base look is the top-level strip, any other is left out
 			if str(code) == base_code:
 				var b := top.duplicate()
@@ -479,11 +496,11 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 			continue
 		var van = e.get("anims", c.anims)
 		var vfp = e.get("fps", c.fps)
-		var vicon: Texture2D = resolve_texture(dir, str(e["icon"])) if e.has("icon") else null
+		var vicon := strip_of(dir, str(e["icon"])) if e.has("icon") else ""
 		# `shelved` (pass 66, the Level Editor's looks): out of variant_codes() and the arena chips, worn when named
 		all[str(code)] = {"sprite": tex, "sprite_file": str(e["sprite"]), "anims": van if van is Dictionary else c.anims,
 			"fps": vfp if vfp is Dictionary else c.fps, "strip_cols": int(e.get("strip_cols", 0)),
-			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon else base_icon,
+			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon != "" else base_icon,
 			"title": str(e.get("title", "")), "note": str(e.get("note", "")), "shelved": bool(e.get("shelved", false))}
 	if base_code != "" and not all.has(base_code):
 		all[base_code] = top

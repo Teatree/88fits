@@ -1096,6 +1096,7 @@ func _version_hold() -> void:
 		await _wait(1.2)
 	await _audit("dev", current_scene)
 	await _dev_dummies()
+	await _dev_frame_cap()
 	await _dev_analytics()
 	await _dev_surveys()
 
@@ -1233,6 +1234,32 @@ func _dev_dummies() -> void:
 			_fail("dev_dummies", str(spec[0]), "a tap did not step it on (%s -> %s)" % [str(was), str(now)])
 	for k: String in keep.keys():
 		st.set(k, keep[k])
+	root.get_node("Save").request_save()
+	root.get_node("Save").flush()
+
+
+## Pass 101 (lane FPS): the developer menu's frame-rate row under a real finger: a tap steps Settings.frame_cap round
+## 60 -> MAX -> 60 and the engine's cap (Engine.max_fps) follows; the setting goes back as it was.
+func _dev_frame_cap() -> void:
+	var st = root.get_node("Settings")
+	var keep: int = int(st.frame_cap)
+	for _k in range(2):
+		await _wait(0.2)
+		var row: Control = current_scene.find_child("FrameCap", true, false)
+		if row == null:
+			_count("dev_frame_cap", false)
+			_fail("dev_frame_cap", "FrameCap", "the row is not in the menu")
+			break
+		var was: int = int(st.frame_cap)
+		await _tap(await _spot(row))
+		await _wait(0.3)
+		var now: int = int(st.frame_cap)
+		var want: int = int(st.next_frame_cap(was))
+		var ok: bool = now == want and now != was and Engine.max_fps == maxi(now, 0)
+		_count("dev_frame_cap", ok)
+		if not ok:
+			_fail("dev_frame_cap", "FrameCap", "a tap did not step the cap (%d -> %d, engine %d)" % [was, now, Engine.max_fps])
+	st.frame_cap = keep
 	root.get_node("Save").request_save()
 	root.get_node("Save").flush()
 

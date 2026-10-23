@@ -161,14 +161,15 @@ func test_a_variant_brings_its_own_icon() -> void:
 	var d: EnemyDef = Registry.enemy("goblin")
 	for code in d.variant_codes():
 		var e: Dictionary = d.variants[code]
-		assert_object(e.get("icon")).override_failure_message(str(code) + " has no icon").is_not_null()
+		# pass 101 (lane LOOKS): an entry holds its icon's path, loaded when the look is worn (LookArt.icon)
+		assert_object(LookArt.icon(e.get("icon"))).override_failure_message(str(code) + " has no icon").is_not_null()
 	var other := ""
 	for code in d.variant_codes():
 		if str(code) != d.variant:
 			other = str(code)
 			break
 	if other != "":
-		assert_object(d.variant_def(other).icon).is_same(d.variants[other]["icon"])
+		assert_object(d.variant_def(other).icon).is_same(LookArt.icon(d.variants[other]["icon"]))
 
 
 func test_content_images_import_lossy() -> void:

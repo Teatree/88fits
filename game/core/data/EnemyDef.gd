@@ -23,7 +23,18 @@ extends ContentDef
 ## (run_b / idle_b: the creature seen from behind, used while it walks away from the camera; eight-direction creatures
 ## add run_s/idle_s, run_bd/idle_bd, run_fd/idle_fd, side and diagonals facing screen-right, mirrored for the other half)
 @export var anims: Dictionary = {"idle": 2, "run": 2, "attack": 2, "hit": 1, "die": 1}
-@export var sprite: Texture2D
+## Pass 101 (lane LOOKS): the strip is kept as a path (`sprite_path`, the res:// path JsonContent resolved; "" = no
+## strip) and `sprite` loads it the first time something asks (LookArt: boot loads no strip; a run pins its own set,
+## RunLooks). Setting a texture holds that one; setting null clears the path too (no strip). An old .tres that still
+## names the texture sets it here and plays as before.
+var sprite: Texture2D:
+	get:
+		return _sprite if _sprite != null else LookArt.tex(sprite_path)
+	set(value):
+		_sprite = value
+		sprite_path = value.resource_path if value != null else ""
+var _sprite: Texture2D = null
+@export var sprite_path: String = ""
 @export var sprite_file: String = ""
 ## Frame size in pixels of the sprite strip.
 @export var frame_px: int = 128
@@ -178,17 +189,46 @@ func type_key() -> String:
 	return k if override_key == "" else k + "#" + override_key
 
 
+## A look entry's strip as this def's own (pass 101): a res:// path (what JsonContent writes since pass 101, loaded
+## on the first ask), a texture (an old .tres, a test's or a tool's stand-in entry), or nothing (keeps its own).
+func take_strip(s) -> void:
+	if s is Texture2D:
+		_sprite = s
+		sprite_path = (s as Texture2D).resource_path
+	elif s is String and str(s) != "":
+		_sprite = null
+		sprite_path = str(s)
+
+
+## The res:// path of the strip this def draws ("" when it has none), without loading it.
+func strip_path() -> String:
+	return _sprite.resource_path if _sprite != null else sprite_path
+
+
+## The res:// path of the strip look `code` draws (pass 101; the def's own for "", its own code or an unknown one, as
+## variant_def falls back), without loading it or making a copy.
+func look_strip_path(code: String) -> String:
+	if code == "" or code == variant or not variants.has(code):
+		return strip_path()
+	var s = (variants[code] as Dictionary).get("sprite") if variants[code] is Dictionary else null
+	if s is Texture2D:
+		return (s as Texture2D).resource_path
+	return str(s) if s is String and str(s) != "" else strip_path()
+
+
 ## Takes one variant's art (a `variants` entry) as its own, and its facing when the entry gives one (pass 46: a
 ## variant's painting may turn the other way from the top-level strip's).
 func apply_art(a: Dictionary) -> void:
-	sprite = a.get("sprite", sprite)
+	take_strip(a.get("sprite"))
 	sprite_file = str(a.get("sprite_file", sprite_file))
 	anims = a.get("anims", anims)
 	fps = a.get("fps", fps)
 	strip_cols = int(a.get("strip_cols", strip_cols))
 	head = float(a.get("head", head))
-	if a.get("icon") != null:
-		icon = a["icon"]
+	# pass 101 (lane LOOKS): the entry's icon is its path (LookArt.icon loads it), or a texture
+	var ic := LookArt.icon(a.get("icon"))
+	if ic != null:
+		icon = ic
 	if a.has("front_faces"):
 		front_faces = str(a["front_faces"])
 	if a.has("back_faces"):

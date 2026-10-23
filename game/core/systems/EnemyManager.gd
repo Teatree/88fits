@@ -82,6 +82,39 @@ var damage_time_mult := 1.0
 var onscreen := PackedByteArray()
 var screen_filter_on := true
 const SCREEN_MARGIN_M := 1.0
+## Pass 101 (lane CROWD; Garry: "draw only creatures on the screen"): 1 for a creature whose whole drawn picture (the
+## painting at its own size, squash and stretch, lifted, thrown, sunk or rising out of the sand, rocked by a charge, its
+## badge and its shadow; vis_bounds) reaches into the camera's view grown by a border (VIS_BORDER_M plus how far it and
+## the camera can move before the next check), or left it less than VIS_HOLD ticks ago; refreshed with the screen flags,
+## half the crowd a tick (refresh_drawn). _render writes only these (their shadows and badges with them); the others are
+## not drawn at all, and steer every 4th tick instead of every 2nd (_steer_due). Not `onscreen`: the ranged weapons'
+## rule is unchanged. 1 for a fresh spawn and everywhere without a camera (tools, tests).
+var drawn_vis := PackedByteArray()
+var _vis_hold := PackedByteArray()
+## a tool's or a test's switch: -1 the rule, 1 every creature drawn (the pixel test's reference), 0 none (a test of the
+## off-screen steer)
+var vis_force := -1
+const VIS_HOLD := 6
+const VIS_BORDER_M := 1.0
+const VIS_LOOK_TICKS := 3.0
+## the stretch every check allows for at least (a launch's, a spew's, a stomp's rise: up to 1.25 x today), on top of the
+## creature's own squash and its type's crouch-launch
+const VIS_STRETCH := 1.3
+## the last check's camera, for its move and turn between checks
+var _vis_cam_xf := Transform3D()
+var _vis_cam_fov := -1.0
+var _vis_cam_move := 0.0
+var _vis_cam_turn := 0.0
+## Pass 101 (lane CROWD): off the screen (drawn_vis 0) a creature steers every `steer_far_every` ticks (4; 2 = every
+## creature as before, a tool's A/B), on it every 2nd as ever; a boss, an Elite or an elite-modded one always every 2nd.
+## Each steer's clocks run for the ticks since its last steer (_steer_dt). `_st_last` = that tick, -1 for none yet.
+var steer_far_every := 4
+var _st_last := PackedInt32Array()
+## The push (crowd and rocks) a far steer bakes into the velocity is held for its 4 ticks at 2/4 of the rate, so a
+## body is pushed as far a second as when it steered every 2nd tick (the sim A/B: dense packs off the screen spread
+## wider without it). A tool may clear it (A/B). `_steer_k` is that share for the steer running now (1 otherwise).
+var far_push_scale := true
+var _steer_k := 1.0
 ## The shove a boss's, an Elite's or an elite-modded creature's bite gives the hero is this many times its number (pass 54).
 const BIG_KNOCK := 1.6
 ## The blob shadows draw before the gems and coins among the see-through things (pass 54), so a gem at a creature's feet
@@ -384,10 +417,24 @@ var _max_r := 0.0
 ## only see neighbours within one CELL, so two bodies wider than that together could stand inside each other): every
 ## creature in the grid wider than BIG_R (half a cell) and the widest radius, both as the grid saw them this tick. A wide
 ## body scans as many cells as its reach needs; a narrow one also checks the wide ones past its 3 x 3 while they are few.
+## Pass 101 (lane CROWD): "wide" is past half a SEPARATION cell now (_big_r = sep_cell / 2; BIG_R was CELL / 2), and a
+## narrow creature finds the wide ones by its own cell (_sep_bigs), however many: BIG_LIST_MAX is no longer a limit.
 const BIG_R := CELL * 0.5
 const BIG_LIST_MAX := 16
 var _big := PackedInt32Array()
 var _grid_max_r := 0.0
+## The separation's own grid (pass 101, lane CROWD; Garry: "Test that there are no overlaps with 12 neighbours and
+## increase if necessary"): SEP_CELL metres, built in _rebuild_grid with the 2.5 m one, read only by _steer's separation
+## (and its wide-body reach and big list). The 2.5 m grid stays the weapons' query grid, so every radius query returns
+## the same creatures in the same order as before. A creature walks ~SEP_CELL^2/CELL^2 of the neighbours it did. A tool
+## may set another size (set_sep_cell; 2.5 = the old separation exactly).
+const SEP_CELL := 1.25
+var sep_cell := SEP_CELL
+var _big_r := SEP_CELL * 0.5
+var _sw := 0
+var _s_half := 0.0
+var _s_head := PackedInt32Array()
+var _s_next := PackedInt32Array()
 ## Per type, read every tick (pass 33.8: a dictionary lookup per creature per tick before): an eight-direction strip,
 ## its walk and death frame rates, whether it turns to face the hero when it stands (the ranged brains), its MultiMesh,
 ## its badge, and the frame table (offset and count of each of the 13 strips, and which of them exist).
@@ -451,6 +498,8 @@ func _ready() -> void:
 	speed.resize(MAX); dmg.resize(MAX); radius.resize(MAX); size.resize(MAX); dr.resize(MAX); blown.resize(MAX)
 	hidden.resize(MAX); held.resize(MAX); atk_i.resize(MAX); atk_t.resize(MAX); atk_target.resize(MAX); frenzy_t.resize(MAX)
 	freeze_t.resize(MAX); stun_t.resize(MAX); onscreen.resize(MAX)
+	# pass 101 (lane CROWD): the draw flags and the steer clocks
+	drawn_vis.resize(MAX); drawn_vis.fill(1); _vis_hold.resize(MAX); _st_last.resize(MAX); _st_last.fill(-1)
 	serial.resize(MAX); hamper_t.resize(MAX); hamper_f.resize(MAX); status_tint.resize(MAX); status_t.resize(MAX)
 	fire_blue.resize(MAX); undying.resize(MAX); home.resize(MAX)
 	dummy_mode.resize(MAX); dummy_roam.resize(MAX); patrol_dir.resize(MAX); shove_t.resize(MAX)
@@ -617,6 +666,233 @@ func refresh_onscreen(parity: int = -1) -> void:
 			continue
 		var p := pos[i] + Vector3(0, 0.6 + lift_h[i], 0)
 		onscreen[i] = 0 if cam.is_position_behind(p) or not rect.has_point(cam.unproject_position(p)) else 1
+
+
+# ---------------------------------------------------------------- pass 101 (lane CROWD): drawn creatures, the far steer
+
+## A fresh spawn (pass 101): drawn until its first check says otherwise, its hold full, no steer yet (_steer_dt).
+func _vis_spawn(i: int) -> void:
+	if drawn_vis.size() != MAX:
+		return
+	drawn_vis[i] = 1
+	_vis_hold[i] = VIS_HOLD
+	_st_last[i] = -1
+
+
+## Which creatures are drawn (pass 101, lane CROWD; drawn_vis): half the crowd a tick by `parity` (-1 all of them), each
+## one's picture with its badge and its shadow (vis_bounds) against the camera's view grown by its border (_vis_border:
+## VIS_BORDER_M, its own move and the camera's move and turn over VIS_LOOK_TICKS). One the test finds off stays drawn
+## VIS_HOLD ticks more, so nothing flickers at an edge. Without a camera that can say (refresh_onscreen's rule) every
+## creature is drawn; vis_force overrides the rule (tools, tests).
+func refresh_drawn(parity: int = -1) -> void:
+	if drawn_vis.size() != MAX:
+		return
+	if vis_force >= 0:
+		drawn_vis.fill(1 if vis_force > 0 else 0)
+		return
+	var cam := _vis_camera()
+	if cam == null:
+		drawn_vis.fill(1)
+		return
+	# pass 101 review: a camera snap (a teleport, the arena's respawn) tests the whole crowd at once, so nothing at the
+	# landing waits a tick for its half's turn
+	if _vis_camera_motion(cam) > VIS_SNAP_M:
+		parity = -1
+	# the near plane and the four sides (Camera3D.get_frustum: near, far, left, top, right, bottom; facing out) as
+	# numbers, tested inline (the calls cost more than the sums; the far plane is past anything on the map)
+	var fr: Array[Plane] = cam.get_frustum()
+	var pf := PackedFloat32Array()
+	for k: int in [0, 2, 3, 4, 5]:
+		var pl: Plane = fr[k]
+		pf.append(pl.normal.x)
+		pf.append(pl.normal.y)
+		pf.append(pl.normal.z)
+		pf.append(pl.d)
+	var cxf := cam.global_transform
+	var cam_up := cxf.basis.y
+	var cpos := cxf.origin
+	var scf := _cf_tick
+	var look_s := VIS_LOOK_TICKS / float(maxi(Engine.physics_ticks_per_second, 1))
+	var cam_b := _vis_cam_move * VIS_LOOK_TICKS
+	var cam_t := _vis_cam_turn * VIS_LOOK_TICKS
+	var step := 1 if parity < 0 else 2
+	for i in range(MAX):
+		if alive[i] == 0 or (parity >= 0 and (i & 1) != parity):
+			continue
+		_vis_bounds_into(i, cam_up, scf)
+		var cx := _vb[0]
+		var cy := _vb[1]
+		var cz := _vb[2]
+		# one sphere round the picture's and the shadow's (centred on the picture's)
+		var r := _vb[3]
+		var sx := _vb[4] - cx
+		var sy := _vb[5] - cy
+		var sz := _vb[6] - cz
+		var rs := sqrt(sx * sx + sy * sy + sz * sz) + _vb[7]
+		if rs > r:
+			r = rs
+		# its border (_vis_border, inline)
+		var ex := cx - cpos.x
+		var ey := cy - cpos.y
+		var ez := cz - cpos.z
+		r += VIS_BORDER_M + (vel[i] + kb[i]).length() * look_s + cam_b + cam_t * sqrt(ex * ex + ey * ey + ez * ez)
+		var seen := true
+		var k := 0
+		while k < 20:
+			if pf[k] * cx + pf[k + 1] * cy + pf[k + 2] * cz - pf[k + 3] > r:
+				seen = false
+				break
+			k += 4
+		if seen:
+			drawn_vis[i] = 1
+			_vis_hold[i] = VIS_HOLD
+		elif _vis_hold[i] > step:
+			_vis_hold[i] -= step
+		else:
+			_vis_hold[i] = 0
+			drawn_vis[i] = 0
+
+
+## The camera the crowd is drawn with (pass 101): the viewport's, else the rig's; null where refresh_onscreen has none
+## either (a stand-in rig without on_screen: tools, tests).
+func _vis_camera() -> Camera3D:
+	var rig = game.get("camera") if game != null else null
+	if not (rig is Node and (rig as Node).has_method("on_screen")):
+		return null
+	var vp := get_viewport()
+	var cam: Camera3D = vp.get_camera_3d() if vp else null
+	if cam == null:
+		cam = (rig as Node).get("camera") as Camera3D
+	if cam == null or not cam.is_inside_tree():
+		return null
+	return cam
+
+
+## How far the camera moved (metres) and turned (radians, its field of view's change with it) since the last check, held
+## as a decaying maximum (pass 101): it moves once a shown frame, which is not every tick on a slow phone.
+const VIS_SNAP_M := 3.0   # pass 101 review: a camera move this far in one check is a snap (refresh_drawn tests everyone)
+
+
+func _vis_camera_motion(cam: Camera3D) -> float:
+	var xf := cam.global_transform
+	var move := 0.0
+	var turn := 0.0
+	if _vis_cam_fov >= 0.0:
+		move = xf.origin.distance_to(_vis_cam_xf.origin)
+		var dz := clampf(xf.basis.z.normalized().dot(_vis_cam_xf.basis.z.normalized()), -1.0, 1.0)
+		var dy := clampf(xf.basis.y.normalized().dot(_vis_cam_xf.basis.y.normalized()), -1.0, 1.0)
+		turn = acos(dz) + acos(dy) + deg_to_rad(absf(cam.fov - _vis_cam_fov))
+	_vis_cam_move = maxf(move, _vis_cam_move * 0.75)
+	_vis_cam_turn = maxf(turn, _vis_cam_turn * 0.75)
+	_vis_cam_xf = xf
+	_vis_cam_fov = cam.fov
+	return move
+
+
+## Creature `i`'s border (pass 101, metres): VIS_BORDER_M (a sudden throw, a shake), how far it moves at its own speed
+## (its walk, knock and slide) in VIS_LOOK_TICKS, and how far the camera's move and turn carry the view's edge at its
+## distance `dist` in as many ticks. (refresh_drawn sums the same inline.)
+func _vis_border(i: int, dist: float, look_s: float) -> float:
+	var v := (vel[i] + kb[i]).length()
+	return VIS_BORDER_M + v * look_s + (_vis_cam_move + _vis_cam_turn * dist) * VIS_LOOK_TICKS
+
+
+## Whether a sphere reaches into a frustum (pass 101): Camera3D.get_frustum's planes face out; a sphere wholly past any
+## one of them is not seen. Conservative: a sphere near a corner may pass and be drawn.
+static func sphere_visible(planes: Array[Plane], c: Vector3, r: float) -> bool:
+	for p: Plane in planes:
+		if p.distance_to(c) > r:
+			return false
+	return true
+
+
+var _vb := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])
+
+
+## Creature `i`'s drawn bounds (pass 101, lane CROWD; tests): [picture centre x, y, z, radius, shadow centre x, y, z,
+## radius], `cam_up` the billboards' up (the camera's), `scf` the camera's forward on the ground.
+func vis_bounds(i: int, cam_up: Vector3, scf: Vector3) -> PackedFloat32Array:
+	_vis_bounds_into(i, cam_up, scf)
+	return _vb.duplicate()
+
+
+## The spheres every pixel creature `i` can draw lies in, whatever its state does to its painting until the next check
+## (pass 101, into _vb). The picture: the billboard quad _render places (enemy_billboard.gdshader: from its foot point up
+## the camera's up by size x squash, size x (1 + (1 - squash) / 2) wide, the squash floored at 0.2 there, so at most 0.7 x
+## size either side), its foot lifted (lift_h: a toss, a launch, a thrown body), sunk (EnemyDef.shadow drop and die_drop)
+## or still under the sand (rise_sink, up to the whole figure); its height allows the creature's own squash, its type's
+## launch stretch (1 + 1.6 x crouch) and at least VIS_STRETCH, x 1.05 (a charge's bounce) + 0.05 (the walk's bob); a
+## charger's shake and bounce widen it and its roll about the feet (lean + ROCK) adds the arc; a badge (crown, skull, gear)
+## raises its top to the badge's top at the biggest badge (a boss's, 1.3 x). The shadow: the draped blob at its feet
+## (shadow_xform: 0.55 x width and 0.34 x depth of its size, moved up the screen by its offset), 0.3 m more for the drape.
+func _vis_bounds_into(i: int, cam_up: Vector3, scf: Vector3) -> void:
+	var t := type_idx[i]
+	var s := size[i]
+	var cv := t * CV_N
+	var sq_hi := maxf(maxf(squash[i], 1.0 + 1.6 * _t_cv[cv + 1]), VIS_STRETCH) * 1.05 + 0.05
+	var sb := t * 4
+	var drop := absf(_t_sh[sb + 3]) + (absf(_t_ddrop[t]) if t < _t_ddrop.size() else 0.0)
+	var lo := -s * sq_hi * drop
+	var hi := s * sq_hi * (1.0 + drop)
+	var half_w := 0.7 * s
+	var head := 1.0
+	if rise_t[i] < 1.0 or _t_badge[t] != "":
+		head = maxf(float((types[t] as Dictionary).get("head", 1.0)), 1.0)
+	if rise_t[i] < 1.0:
+		lo -= s * sq_hi * head
+	if _t_badge[t] != "":
+		var bs := BADGE_SIZE * _badge_scale * 1.3
+		hi = maxf(hi, s * head * sq_hi + 0.12 + bs * 1.1)
+		half_w = maxf(half_w, bs * 0.75)
+	var mid := (lo + hi) * 0.5
+	var hh := (hi - lo) * 0.5
+	var r := sqrt(half_w * half_w + hh * hh)
+	var roll := absf(_t_cv[cv + 3]) + (ROCK if _t_cv[cv] > 0.0 else 0.0)
+	if roll > 0.0:
+		var far := maxf(absf(lo), absf(hi))
+		r += roll * sqrt(half_w * half_w + far * far)
+	r += _t_cv[cv] + BOUNCE * s
+	var c := pos[i] + Vector3(0, lift_h[i], 0) + cam_up * mid
+	_vb[0] = c.x
+	_vb[1] = c.y
+	_vb[2] = c.z
+	_vb[3] = r
+	var sc := pos[i] + scf * (_t_sh[sb + 2] * s)
+	_vb[4] = sc.x
+	_vb[5] = sc.y
+	_vb[6] = sc.z
+	_vb[7] = s * (0.275 * absf(_t_sh[sb]) + 0.17 * absf(_t_sh[sb + 1])) + 0.3
+
+
+## Whether creature `i` steers this tick (pass 101, lane CROWD): its half of the crowd (`parity`), every 2nd tick as
+## before while it is drawn, a boss, an Elite or elite-modded, or near an obstacle; off the screen every
+## `steer_far_every`-th tick.
+func _steer_due(i: int, parity: int) -> bool:
+	if (i & 1) != parity:
+		return false
+	if steer_far_every <= 2 or drawn_vis[i] == 1 or i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
+		return true
+	# pass 101 review: a special (the Saiga Sniper, the Raider: off the screen at their stand-off most of the time) and
+	# anything winding up or charging keep the full rate, so a shot never lands after its telegraph has faded
+	if vspecial[i] == 1 or _t_badge[type_idx[i]] == "gear" or state[i] == STATE_WINDUP or state[i] == STATE_CHARGE:
+		return true
+	if posmod(_tick - i, steer_far_every) == 0:
+		return true
+	# by a rock or a cactus (its obstacle cell lists one) it steers every 2nd tick as before: at every 4th it caught on
+	# rock faces more often (the steer A/B, tools/dl/p101/CROWD/steer_b)
+	return _obst_cells.has(Vector2i(floori(pos[i].x / OBST_CELL), floori(pos[i].z / OBST_CELL)))
+
+
+## The seconds a steer's clocks run (pass 101): the ticks since the creature's last steer x `delta` (4 off the screen,
+## 2 on it: exactly `sdt`, delta x 2, as before); `sdt` for its first steer or after a pause in its steering longer than
+## the far cadence (a toss, a grip, the spawn's rise: as before).
+func _steer_dt(i: int, delta: float, sdt: float) -> float:
+	var last := _st_last[i]
+	_st_last[i] = _tick
+	var n := _tick - last
+	if last < 0 or n == 2 or n > maxi(steer_far_every, 2):
+		return sdt
+	return delta * float(n)
 
 
 ## Whether the ranged weapons' picks skip what is off the screen (pass 54): unless the caller asks for `any_screen`, while
@@ -1070,6 +1346,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	# on the screen until the next refresh says otherwise (pass 54)
 	if onscreen.size() == MAX:
 		onscreen[i] = 1
+	# pass 101 (lane CROWD): drawn until its first check says otherwise, and no steer yet
+	_vis_spawn(i)
 	pos[i] = Vector3(at.x, _height(at.x, at.z), at.z)
 	vel[i] = Vector3.ZERO
 	kb[i] = Vector3.ZERO
@@ -2762,6 +3040,30 @@ func _gcol(v: float) -> int:
 	return clampi(int(floor((v + _g_half) / CELL)), 0, _gw - 1)
 
 
+## The separation grid's column (or row) for a coordinate (pass 101, lane CROWD), clamped like _gcol.
+func _scol(v: float) -> int:
+	return clampi(int(floor((v + _s_half) / sep_cell)), 0, _sw - 1)
+
+
+## The separation grid's size (pass 101): the arena and 12 m round it in sep_cell cells, sized again when either changes.
+func _sep_grid_size() -> void:
+	var sh: float = ceilf((arena_radius + 12.0) / sep_cell) * sep_cell
+	if _sw == 0 or sh != _s_half:
+		_s_half = sh
+		_sw = int(sh * 2.0 / sep_cell) + 1
+		_s_head.resize(_sw * _sw)
+		_s_next.resize(MAX)
+
+
+## Another separation cell size (pass 101: the overlap measure's sizes; 2.5 is the pass 33.8 separation exactly): "wide"
+## is past half of it. The grid is built again on the next tick.
+func set_sep_cell(c: float) -> void:
+	sep_cell = maxf(c, 0.25)
+	_big_r = sep_cell * 0.5
+	_sw = 0
+	_bg_n = 0
+
+
 func _rebuild_grid() -> void:
 	# pass 73 (lane SNIPER): the priority creatures' list is gathered again after every rebuild (priority_target)
 	_grid_epoch += 1
@@ -2772,20 +3074,65 @@ func _rebuild_grid() -> void:
 		_g_head.resize(_gw * _gw)
 		_g_next.resize(MAX)
 	_g_head.fill(-1)
+	# pass 101 (lane CROWD): the separation's grid, on the same rule (_sep_grid_size)
+	_sep_grid_size()
+	_s_head.fill(-1)
 	_big.clear()
 	_grid_max_r = 0.0
 	# backwards, so every cell lists its creatures in index order
 	for i in range(MAX - 1, -1, -1):
 		if alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 			continue
-		var c := _gcol(pos[i].z) * _gw + _gcol(pos[i].x)
+		# (pass 101: _gcol and _scol inline: a call each cost more than the sum; int() of a sum past 0 is its floor, and
+		# one below 0 clamps to 0 either way)
+		var px := pos[i].x
+		var pz := pos[i].z
+		var c := clampi(int((pz + _g_half) / CELL), 0, _gw - 1) * _gw + clampi(int((px + _g_half) / CELL), 0, _gw - 1)
 		_g_next[i] = _g_head[c]
 		_g_head[c] = i
+		var sc := clampi(int((pz + _s_half) / sep_cell), 0, _sw - 1) * _sw + clampi(int((px + _s_half) / sep_cell), 0, _sw - 1)
+		_s_next[i] = _s_head[sc]
+		_s_head[sc] = i
 		var r := radius[i]
 		if r > _grid_max_r:
 			_grid_max_r = r
-		if r > BIG_R:
+		if r > _big_r:
 			_big.append(i)
+	# pass 101 (lane CROWD): where each wide body can touch a narrow one (_sep_bigs)
+	_sep_bigs()
+
+
+## The wide bodies by separation cell (pass 101, lane CROWD): each wide body (radius past _big_r) is listed in every cell
+## a narrow creature (radius up to _big_r) touching it can stand in, the cells within _big_r + its radius of it, so a
+## narrow creature finds every wide one it touches from its own cell, however many there are (the 2.5 m grid's list of
+## at most BIG_LIST_MAX gave out past 16; on 1.25 m cells a third of a stage-3 crowd is "wide"). Rebuilt every tick.
+var _bg_head := PackedInt32Array()
+var _bg_j := PackedInt32Array()
+var _bg_next := PackedInt32Array()
+var _bg_n := 0
+
+
+func _sep_bigs() -> void:
+	if _bg_head.size() != _sw * _sw:
+		_bg_head.resize(_sw * _sw)
+	_bg_head.fill(-1)
+	_bg_n = 0
+	for j: int in _big:
+		var reach := _big_r + radius[j]
+		var x0 := _scol(pos[j].x - reach)
+		var x1 := _scol(pos[j].x + reach)
+		var z0 := _scol(pos[j].z - reach)
+		var z1 := _scol(pos[j].z + reach)
+		for cz in range(z0, z1 + 1):
+			for cx in range(x0, x1 + 1):
+				if _bg_n >= _bg_j.size():
+					_bg_j.resize(_bg_n * 2 + 64)
+					_bg_next.resize(_bg_n * 2 + 64)
+				var c := cz * _sw + cx
+				_bg_j[_bg_n] = j
+				_bg_next[_bg_n] = _bg_head[c]
+				_bg_head[c] = _bg_n
+				_bg_n += 1
 
 
 func indices_in_radius(center: Vector3, r: float) -> PackedInt32Array:
@@ -3308,6 +3655,8 @@ func _physics_process(delta: float) -> void:
 	_obstacle_cells()
 	_cf_tick = _camera_forward()
 	refresh_onscreen(parity)
+	# pass 101 (lane CROWD): which creatures are drawn (and steer every 2nd tick), half the crowd a tick
+	refresh_drawn(parity)
 	# the pace knob (pass 48): read once a tick, and never folded into the shared delta below (poison and fire ticks and
 	# the cooldowns keep their clocks); walks, charges and rolls, wind-ups and warnings carry it themselves. Times the
 	# timeline's creature_speed_mult (pass 60): the creatures' own knob, the hero's pace untouched
@@ -3430,8 +3779,15 @@ func _physics_process(delta: float) -> void:
 			_tick_rise(i, delta)
 		if view_t[i] > 0.0:
 			view_t[i] -= delta
-		if (i & 1) == parity:
-			_steer(i, decoy_target(i, ppos), sdt)
+		# pass 101 (lane CROWD): one off the screen every 4th tick (_steer_due), its clocks for the ticks since its last
+		# steer (_steer_dt: sdt for one on the screen, as before)
+		if _steer_due(i, parity):
+			var sdt_i := _steer_dt(i, delta, sdt)
+			# the crowd's and the rocks' push is held for the ticks until its next steer: a far steer's held half as hard
+			# per tick, so it moves a body as far a second as before (far_push_scale)
+			_steer_k = sdt / sdt_i if far_push_scale and sdt_i > sdt else 1.0
+			_steer(i, decoy_target(i, ppos), sdt_i)
+			_steer_k = 1.0
 		# integrate (pass 80: its own move wades at water_slow slower, a push never)
 		var v := vel[i] * _wade_k[i] + kb[i]
 		kb[i] = kb[i].lerp(Vector3.ZERO, delta * 6.0)
@@ -3880,11 +4236,11 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 						Audio.play(str(def.sfx.get("attack", "")), pos[i])
 				_:
 					desired = dir * spd
-	# separation: the creatures in this cell and the eight around it
+	# separation: the creatures in this cell and the eight around it (pass 101: of the separation's own grid, sep_cell)
 	var sep := Vector3.ZERO
 	var my_r := radius[i]
-	var gx := _gcol(pos[i].x)
-	var gz := _gcol(pos[i].z)
+	var gx := clampi(int((pos[i].x + _s_half) / sep_cell), 0, _sw - 1)
+	var gz := clampi(int((pos[i].z + _s_half) / sep_cell), 0, _sw - 1)
 	# a charger shoves what stands in its way out to the side (pass 50, charge.shove while it charges, shove_walk while it
 	# walks): the heading it is pushing along, and how hard
 	var shove := 0.0
@@ -3899,13 +4255,13 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	# the cells round it: 3 x 3, more for a body so wide that a neighbour past the next cell can still touch it (the fix
 	# round of pass 58: a size range's giants)
 	var reach := 1
-	if my_r > BIG_R:
-		reach = maxi(ceili((my_r + _grid_max_r) / CELL), 1)
-	for cx in range(maxi(gx - reach, 0), mini(gx + reach + 1, _gw)):
+	if my_r > _big_r:
+		reach = maxi(ceili((my_r + _grid_max_r) / sep_cell), 1)
+	for cx in range(maxi(gx - reach, 0), mini(gx + reach + 1, _sw)):
 		if ghost:
 			break
-		for cz in range(maxi(gz - reach, 0), mini(gz + reach + 1, _gw)):
-			var j := _g_head[cz * _gw + cx]
+		for cz in range(maxi(gz - reach, 0), mini(gz + reach + 1, _sw)):
+			var j := _s_head[cz * _sw + cx]
 			while j >= 0:
 				if j != i:
 					var d := pos[i] - pos[j]
@@ -3917,12 +4273,16 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					if l2 < min_d * min_d and l2 > 0.0001:
 						var l := sqrt(l2)
 						sep += d / l * (min_d - l) / min_d
-				j = _g_next[j]
+				j = _s_next[j]
 	# a narrow body also feels the wide ones whose edge reaches past its 3 x 3 (a boss, an Elite, a size range's giants),
 	# while they are few (the fix round; a wide one sees it from its own side anyway)
-	if not ghost and my_r <= BIG_R and not _big.is_empty() and _big.size() <= BIG_LIST_MAX:
-		for j: int in _big:
-			if j == i or (absi(_gcol(pos[j].x) - gx) <= 1 and absi(_gcol(pos[j].z) - gz) <= 1):
+	# (pass 101: every wide one listed in its own cell, _sep_bigs, however many: no BIG_LIST_MAX)
+	if not ghost and my_r <= _big_r and _bg_n > 0:
+		var e := _bg_head[gz * _sw + gx]
+		while e >= 0:
+			var j := _bg_j[e]
+			e = _bg_next[e]
+			if j == i or (absi(clampi(int((pos[j].x + _s_half) / sep_cell), 0, _sw - 1) - gx) <= 1 and absi(clampi(int((pos[j].z + _s_half) / sep_cell), 0, _sw - 1) - gz) <= 1):
 				continue
 			var d := pos[i] - pos[j]
 			d.y = 0.0
@@ -3933,7 +4293,8 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 				sep += d / l * (min_d - l) / min_d
 	sep += _obstacle_push(i)
 	var sep_w := 4.0 if state[i] != STATE_CHARGE else 0.5
-	vel[i] = desired + sep * sep_w
+	# (pass 101: _steer_k, the far steer's push held over 4 ticks at half the rate; 1 otherwise)
+	vel[i] = desired + sep * (sep_w * _steer_k)
 	# what the brain meant, before the crowd's push (pass 60): a ranged creature's facing and walk read this
 	intent[i] = desired
 
@@ -5248,6 +5609,9 @@ func _render() -> void:
 	var eye: Vector3 = eye_cam.global_position if eye_cam else Vector3.INF
 	for i in range(MAX):
 		if alive[i] == 0 or hidden[i] == 1:
+			continue
+		# pass 101 (lane CROWD): only what the camera can see (refresh_drawn), its shadow and badge with it
+		if drawn_vis[i] == 0:
 			continue
 		var t := type_idx[i]
 		var mm: MultiMesh = _t_mm[t]

@@ -10,9 +10,10 @@ func test_the_skeleton_and_the_knight_carry_a_dark_blue_look() -> void:
 		assert_bool(def.variants.has(pair[1])).override_failure_message("%s has no %s look" % [pair[0], pair[1]]).is_true()
 		var e: Dictionary = def.variants[pair[1]]
 		var base: Dictionary = def.variants[pair[2]]
-		# the loader resolves the look's pictures into textures (JsonContent); an unimported picture would have dropped the look
-		var strip = e.get("sprite")
-		var icon = e.get("icon")
+		# the loader resolves the look's pictures (JsonContent); an unimported picture would have dropped the look. Pass 101
+		# (lane LOOKS): the strip is its res:// path, loaded when worn (LookArt)
+		var strip = LookArt.tex(str(e.get("sprite")))
+		var icon = LookArt.icon(e.get("icon"))
 		assert_bool(strip is Texture2D).override_failure_message("%s's strip is %s" % [pair[1], str(strip)]).is_true()
 		assert_bool(icon is Texture2D).is_true()
 		assert_str((strip as Texture2D).resource_path).ends_with("%s_sprite_e.png" % pair[0])

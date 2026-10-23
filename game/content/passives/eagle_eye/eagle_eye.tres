@@ -2,19 +2,15 @@
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_21ik7"]
 [ext_resource type="Texture2D" path="res://content/passives/eagle_eye/eagle_eye_icon_b.png" id="1_f83e4"]
-[ext_resource type="Texture2D" path="res://content/passives/eagle_eye/eagle_eye_icon.png" id="1_s8a58"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_s8a58"]
-[ext_resource type="Texture2D" path="res://content/passives/eagle_eye/eagle_eye_icon_c.png" id="5_fmv5q"]
-[ext_resource type="Texture2D" path="res://content/passives/eagle_eye/eagle_eye_icon_d.png" id="6_0dbol"]
-[ext_resource type="Texture2D" path="res://content/passives/eagle_eye/eagle_eye_icon_e.png" id="7_dkxl2"]
 
-[sub_resource type="Resource" id="Resource_fmv5q"]
+[sub_resource type="Resource" id="Resource_s8a58"]
 script = ExtResource("1_21ik7")
 stat = "crit_chance"
 value = 0.45
 target = "player"
 
-[sub_resource type="Resource" id="Resource_0dbol"]
+[sub_resource type="Resource" id="Resource_f83e4"]
 script = ExtResource("1_21ik7")
 stat = "crit_damage"
 value = 0.5
@@ -23,37 +19,37 @@ target = "player"
 [resource]
 script = ExtResource("2_s8a58")
 line = true
-levels = [[SubResource("Resource_fmv5q"), SubResource("Resource_0dbol")]]
+levels = [[SubResource("Resource_s8a58"), SubResource("Resource_f83e4")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "deadeye"
 variants = {
 "A": {
-"icon": ExtResource("1_s8a58"),
+"icon": "res://content/passives/eagle_eye/eagle_eye_icon.png",
 "icon_file": "eagle_eye_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_f83e4"),
+"icon": "res://content/passives/eagle_eye/eagle_eye_icon_b.png",
 "icon_file": "eagle_eye_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_fmv5q"),
+"icon": "res://content/passives/eagle_eye/eagle_eye_icon_c.png",
 "icon_file": "eagle_eye_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_0dbol"),
+"icon": "res://content/passives/eagle_eye/eagle_eye_icon_d.png",
 "icon_file": "eagle_eye_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_dkxl2"),
+"icon": "res://content/passives/eagle_eye/eagle_eye_icon_e.png",
 "icon_file": "eagle_eye_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

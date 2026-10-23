@@ -503,8 +503,15 @@ func _analytics_check() -> String:
 	if not totals.has("revive") or not totals.has("nuke"):
 		return "the revive's or the Nuke's damage is not in the run file (%s)" % str(totals.keys())
 	# pass 74 (schema 2): a tool's run, the header's new blocks, the boss's HP as it came, a totem gift's offer
-	if int(mine.get("schema", 0)) != 2:
-		return "the run file is schema %s, not 2" % str(mine.get("schema", "?"))
+	# pass 101 (lane FPS): schema 3: every row its frames, the header its frame_timing (a headless run's marked not valid)
+	if int(mine.get("schema", 0)) != 3:
+		return "the run file is schema %s, not 3" % str(mine.get("schema", "?"))
+	var ftm = mine.get("frame_timing")
+	if not (ftm is Dictionary) or not (ftm as Dictionary).has("valid") or (DisplayServer.get_name() == "headless" and bool((ftm as Dictionary).get("valid", true))):
+		return "the run file's frame_timing is missing or calls a headless clock valid: %s" % str(ftm)
+	for r in (mine.get("samples", []) as Array):
+		if r is Dictionary and not (r as Dictionary).has("frames"):
+			return "a row has no frames: %s" % str((r as Dictionary).get("t", "?"))
 	if not bool(mine.get("tool", false)):
 		return "the smoke's run file is not marked as a tool's run"
 	for k in ["hero_look", "settings", "map_settings", "gold_end", "timeline", "quests", "trait", "totems"]:

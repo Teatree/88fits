@@ -1,14 +1,10 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon.png" id="1_ldvml"]
 [ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon_b.png" id="1_ndof0"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ndof0"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_5i8ic"]
-[ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon_c.png" id="5_1wwx1"]
-[ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon_d.png" id="6_u7ban"]
-[ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon_e.png" id="7_rom6w"]
 
-[sub_resource type="Resource" id="Resource_1wwx1"]
+[sub_resource type="Resource" id="Resource_ldvml"]
 script = ExtResource("2_ndof0")
 stat = "move_speed"
 op = "mul"
@@ -18,36 +14,36 @@ target = "player"
 [resource]
 script = ExtResource("3_5i8ic")
 line = true
-levels = [[SubResource("Resource_1wwx1")]]
+levels = [[SubResource("Resource_ldvml")]]
 max_level = 4
 evolves_into = "roadrunner"
 variants = {
 "A": {
-"icon": ExtResource("1_ldvml"),
+"icon": "res://content/passives/stride/stride_icon.png",
 "icon_file": "stride_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_ndof0"),
+"icon": "res://content/passives/stride/stride_icon_b.png",
 "icon_file": "stride_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_1wwx1"),
+"icon": "res://content/passives/stride/stride_icon_c.png",
 "icon_file": "stride_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_u7ban"),
+"icon": "res://content/passives/stride/stride_icon_d.png",
 "icon_file": "stride_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_rom6w"),
+"icon": "res://content/passives/stride/stride_icon_e.png",
 "icon_file": "stride_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

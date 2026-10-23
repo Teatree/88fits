@@ -1,14 +1,10 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/haste/haste_icon_b.png" id="1_to75h"]
-[ext_resource type="Texture2D" path="res://content/passives/haste/haste_icon.png" id="1_wacgh"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_to75h"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_wacgh"]
-[ext_resource type="Texture2D" path="res://content/passives/haste/haste_icon_c.png" id="5_bj10k"]
-[ext_resource type="Texture2D" path="res://content/passives/haste/haste_icon_d.png" id="6_cgyvu"]
-[ext_resource type="Texture2D" path="res://content/passives/haste/haste_icon_e.png" id="7_40g0m"]
 
-[sub_resource type="Resource" id="Resource_bj10k"]
+[sub_resource type="Resource" id="Resource_wacgh"]
 script = ExtResource("2_to75h")
 stat = "cooldown"
 op = "mul"
@@ -18,37 +14,37 @@ target = "player"
 [resource]
 script = ExtResource("2_wacgh")
 line = true
-levels = [[SubResource("Resource_bj10k")]]
+levels = [[SubResource("Resource_wacgh")]]
 max_level = 4
 pairs_with = "lob_grenade"
 evolves_into = "quicksilver"
 variants = {
 "A": {
-"icon": ExtResource("1_wacgh"),
+"icon": "res://content/passives/haste/haste_icon.png",
 "icon_file": "haste_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_to75h"),
+"icon": "res://content/passives/haste/haste_icon_b.png",
 "icon_file": "haste_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_bj10k"),
+"icon": "res://content/passives/haste/haste_icon_c.png",
 "icon_file": "haste_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_cgyvu"),
+"icon": "res://content/passives/haste/haste_icon_d.png",
 "icon_file": "haste_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_40g0m"),
+"icon": "res://content/passives/haste/haste_icon_e.png",
 "icon_file": "haste_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

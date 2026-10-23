@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-23, pass 100, version 0.85)
+## Status (2026-10-23, pass 101, version 0.86)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.85). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.86). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -423,6 +423,13 @@ Pass 100: **build quests** (QuestTracker types `hero_level`, `item_level` {kind,
 converted, Save keeps completion by quest id); the Phoenix Feather is one-shot (PassiveDef `single`: one level, off
 the rarity ladder, never offered again); the run's stage look is set before the spawn beam (Game._show_stage_look_now,
 the beam drawn above the filter); the phone's performance assessed (tools/dl/p100/PERF).
+Pass 101 (performance): only creatures whose whole picture reaches the view are drawn (EnemyManager `drawn_vis`,
+vis_bounds, a border and a 6-tick hold; the weapons' `onscreen` unchanged; proof game/tools/_p101_CROWD_pixels.gd: 0
+differing pixels); separation on its own 1.25 m grid (SEP_CELL, `_sep_bigs` cell lists; the 2.5 m grid stays for
+weapon queries); creatures not drawn steer every 4th tick (bosses, Elites, near rocks every 2nd; far_push_scale);
+`Settings.frame_cap` (60 on phones, the developer menu's Frame rate row); run record schema 3 with frame times a
+second (`frame_timing`, the dashboard's Frame time card); looks load on demand (`sprite_path`, core/data/LookArt.gd
+cache, core/systems/RunLooks.gd pins a run's set under the spawn beam): boot 2.3 GB of pictures -> 121 MB, a run ~0.4 GB.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

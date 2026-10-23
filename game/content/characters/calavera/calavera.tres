@@ -3,9 +3,8 @@
 [ext_resource type="Texture2D" path="res://content/characters/calavera/calavera_icon.png" id="1_dwhhe"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="1_ecvu3"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_3ja4l"]
-[ext_resource type="Texture2D" path="res://content/characters/calavera/calavera_sprite.png" id="3_o2my1"]
 
-[sub_resource type="Resource" id="Resource_dwhhe"]
+[sub_resource type="Resource" id="Resource_3ja4l"]
 script = ExtResource("2_3ja4l")
 stat = "might"
 op = "mul"
@@ -14,7 +13,7 @@ target = "player"
 
 [resource]
 script = ExtResource("1_ecvu3")
-level_trait = [SubResource("Resource_dwhhe")]
+level_trait = [SubResource("Resource_3ja4l")]
 order = 4
 trait_name = "Last Dance"
 trait_text = "Gain 1% attack damage per level."
@@ -27,7 +26,7 @@ favourite_bonus = {
 start_weapon = "guitarra"
 availability = "purchase"
 price = 300
-sprite = ExtResource("3_o2my1")
+sprite_path = "res://content/characters/calavera/calavera_sprite.png"
 sprite_file = "calavera_sprite.png"
 anims = {
 "cheer": 1.0,

@@ -31,8 +31,10 @@ BOM = "﻿"
 BASE = ["t", "clock", "stage", "phase", "wave", "level", "xp", "xp_next", "xp_total", "hp", "hp_max", "shield", "invuln", "gold",
         "banked", "kills", "adren", "cresc", "desp", "steady", "est_total", "took_raw", "hits", "evaded", "shielded", "healed",
         "regen", "hp_lost", "hp_healed", "elite_kills", "alive", "cap", "load", "hard_cap", "press", "press_hp", "press_dmg",
-        "boss_hp", "boss_now", "specials_alive", "near3", "near6"]
-EMPTY_WHEN_MISSING = ["boss_hp", "boss_now"]
+        "boss_hp", "boss_now", "specials_alive", "near3", "near6", "frames", "frame_ms", "frame_max", "frame_p95", "proj", "pickups"]
+# pass 101 (lane FPS): the second's frames (schema 3; a second without a frame has no frame times: empty, not 0), the shots
+# in flight and the pickups lying; a record from before has none of these columns
+EMPTY_WHEN_MISSING = ["boss_hp", "boss_now", "frame_ms", "frame_max", "frame_p95"]
 # the second's tallies by id, flattened as group.key; a missing one is 0
 MAPS = ["est", "dmg", "took", "took_kind", "hits_by", "healed_by", "killed", "spawned", "alive_by", "gold_in", "gold_out"]
 # the build's snapshots: on a row only when they changed; carried forward to every second until the next one

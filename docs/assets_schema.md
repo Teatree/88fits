@@ -2878,3 +2878,82 @@ Bible: `tools/make_bible.py` quest_text (`_quest_build_text`) and quest_stage. R
 | Game.gd | `_show_stage_look_now()` | func | - | Shows the run's stage look (StageLook.show_stage(Run.stage, 0.0)) before the spawn beam / instant start; not in the arena. |
 | StageLook.gd | `show_stage(s, seconds = -1)` | behaviour | - | A call without `seconds` for the stage already shown does nothing (no second switch, no fade); an explicit `seconds` always shows the stage. |
 | Level Editor vocab | `PASSIVE_DEFAULTS.single` | bool | False | Served to the page. server.py: `single` is editor-owned on a passive and listed on its record. |
+
+## Pass 101: new keys
+
+### Drawing only what is on screen, separation on 1.25 m cells, slower off-screen steering (lane CROWD)
+
+No content JSON key, param, special or stat is new. Everything is code in `game/core/systems/EnemyManager.gd`
+(constants and tool-facing members), listed here for the docs:
+
+| Name | Type | Default | Meaning |
+|---|---|---|---|
+| `drawn_vis` | PackedByteArray (MAX) | 1 | Pass 101: 1 = the creature is drawn (its picture, badge or shadow reaches into the camera's view grown by its border, or left it less than VIS_HOLD ticks ago). Refreshed half the crowd a tick by `refresh_drawn(parity)`, beside `refresh_onscreen`. 1 for a fresh spawn and everywhere without a camera. NOT the weapons' `onscreen` (unchanged). |
+| `vis_force` | int | -1 | A tool's or test's switch: -1 the rule, 1 every creature drawn, 0 none. |
+| `VIS_HOLD` | const int | 6 | Ticks a creature stays drawn after its test says off (no flicker at an edge). |
+| `VIS_BORDER_M` | const float | 1.0 | The fixed part of the border (metres): a sudden throw (~20 m/s over 3 ticks), a camera shake. |
+| `VIS_LOOK_TICKS` | const float | 3.0 | Ticks of movement the border allows for: the creature's own (walk + knock) and the camera's move and turn (a flag can be 2 ticks old and the camera a frame newer). |
+| `VIS_STRETCH` | const float | 1.3 | The least stretch the bounds allow for (a launch, a spew, a stomp's rise), on top of the creature's own squash and its type's crouch-launch. |
+| `steer_far_every` | int | 4 | Pass 101: a creature not drawn steers every this many ticks (on its half's ticks); drawn ones, the boss, Elites and elite-modded creatures every 2nd as before. 2 = the old cadence for everyone (tools' A/B). |
+| `far_push_scale` | bool | true | A far steer's crowd and rock push goes into the velocity at 2/n of its rate (n = the ticks it is held, 4), so a body is pushed as far a second as before; a tool may clear it (A/B). `_steer_k` is that share for the running steer. |
+| (rule) | — | — | A creature in an obstacle cell (`_obst_cells`, 4 m cells an obstacle reaches) steers every 2nd tick even when not drawn. |
+| `SEP_CELL` | const float | 1.25 | Pass 101: the separation grid's cell (metres). The 2.5 m `CELL` grid stays the weapons' query grid (every radius query unchanged, same order). |
+| `sep_cell` | float | SEP_CELL | The separation cell in use; `set_sep_cell(c)` changes it (tools: the overlap measure; 2.5 = the pass 33.8 separation). |
+| `_big_r` | float | SEP_CELL / 2 | "Wide" = radius past half a separation cell (was `BIG_R` = CELL / 2). |
+| `BIG_LIST_MAX` | const int | 16 | Kept, no longer a limit: since pass 101 a narrow creature finds the wide ones through the cell lists `_sep_bigs` builds (every wide body listed in each separation cell within `_big_r` + its radius), however many there are. |
+
+Functions (new): `refresh_drawn(parity)`, `vis_bounds(i, cam_up, scf) -> PackedFloat32Array` (picture centre xyz + radius,
+shadow centre xyz + radius), `static sphere_visible(planes, c, r)`, `set_sep_cell(c)`, `_vis_spawn`, `_vis_camera`,
+`_vis_camera_motion`, `_vis_border`, `_vis_bounds_into`, `_steer_due`, `_steer_dt`, `_scol`, `_sep_grid_size`, `_sep_bigs`.
+
+Tools (new, under game/tools/, args in their headers): `_p101_CROWD_pixels.gd` (the pixel test), `_p101_CROWD_overlap.gd`
+(the overlap measure per cell size), `_p101_CROWD_steer.gd` (the off-screen steer A/B in play), `_p101_CROWD_bench.gd`
+(the crowd tick's pieces, ms a call).
+
+### The 60 fps cap on phones, frame times every second in the run record (lane FPS)
+
+#### Settings (game/core/autoload/Settings.gd, saved in the save's settings block)
+| key | type | default | meaning |
+|---|---|---|---|
+| `frame_cap` | int, one of `Settings.FRAME_CAPS` [60, 0] | 60 on a phone (`OS.has_feature("mobile")`), 0 on the PC | `Engine.max_fps`: 60 = at most 60 frames a second; 0 = "MAX", the screen's own rate (vsync). A save without it takes the platform's default; any other value reads as the default. Not in PROD_LOCKED (a setting). Developer menu row "Frame rate · 60 or the screen's max (N Hz)" (node `FrameCap`), a tap steps 60 -> MAX -> 60. Functions: `default_frame_cap(mobile)`, `apply_frame_cap()`, `next_frame_cap(c)`, `frame_cap_label(c)` |
+
+#### Run record, schema 3 (core/systems/RunAnalytics.gd; analytics/SCHEMA.md documents every key)
+Rows (one a second of play):
+| key | type | meaning |
+|---|---|---|
+| `frames` | int, always | frames played in the row's second (only a frame straight after the last ticked one: `Engine.get_process_frames()` advanced by 1) |
+| `frame_ms` | float 0.1 | mean wall ms of those frames (absent when frames = 0); fps = 1000 / frame_ms |
+| `frame_max` | float 0.1 | the slowest frame of the second, ms |
+| `frame_p95` | float 0.1 | the 95th percentile frame (nearest rank), ms |
+| `proj` | int (0 left off) | `ProjectileManager.count`: shots in flight |
+| `pickups` | int (0 left off) | `PickupManager.count`: gems and coins lying |
+
+Header: `frame_timing` {valid: bool, why: "" / "headless" / "fixed_fps", max_fps: int, frame_cap: int, vsync: int (DisplayServer.VSyncMode), refresh_hz: float (-1 unknown), physics_hz: int}.
+
+summary() / run_summary (PostHog): `m_frames`, `m_frame_ms`, `m_fps`, `m_frame_max`, `m_frame_p95` (only when a row carried `frames`), `m_proj`, `m_pickups` (when a row carried proj/pickups/frames); run_summary also `frame_cap` (int), `frame_valid` (bool).
+
+#### Page / tools
+- analytics/dashboard.html: card "Frame time" (renderFrames, after "The crowd against the cap"): ms a frame (mean, p95, slowest, 60 and 30 fps lines) and "on screen" (alive, shots, pickups), its table (fps, frames, ms, alive, shots, pickups, stage); csv-lib BASE gains the six row keys, EMPTY_WHEN_MISSING frame_ms, frame_max, frame_p95.
+- tools/level_editor/sim_avg.js: `frameSeries(rows, rec)` (exported), fromRecord adds `frame_ms`, `frame_p95`, `frame_max`, `fps` (only when frame_timing.valid is not false; a frameless row carries the last value) and `proj`, `pickups`.
+- tools/level_editor/sim_model.js: section `perf` "Performance" (last), charts `frame_time` (has frame_ms) and `frame_load` (has proj or pickups). The Sim tab never shows them (sims have no such series).
+- tools/analytics_csv.py: BASE and EMPTY_WHEN_MISSING as the page.
+
+### Only the looks a run shows are loaded; every look still testable in the arena (lane LOOKS)
+
+No new JSON keys: the content JSON (the Level Editor's authoring format) is unchanged. What changed is what the generated
+.tres holds (tools/import_json.gd writes it from the JSON, as before):
+
+- `EnemyDef.sprite_path` / `CharacterDef.sprite_path` (String, exported, default ""): the res:// path of the strip the def
+  plays, "" when the file is not on disk. Written by JsonContent from the JSON's `sprite` (or `<id>_sprite.png`).
+- `EnemyDef.sprite` / `CharacterDef.sprite` (Texture2D) is no longer stored in the .tres: a getter that loads
+  `sprite_path` on the first ask (core/data/LookArt.gd). Setting a texture holds it (and sets sprite_path to its
+  resource_path); setting null means no strip.
+- `variants[CODE].sprite` (enemies, bosses, characters): the look's strip as a res:// path String (was a Texture2D).
+  `sprite_file` (the bare file name) is unchanged.
+- `variants[CODE].icon` (enemies, bosses, characters, passives' card looks): the look's icon as a res:// path String (was
+  a Texture2D); the def's own `icon` (the look it plays) stays a texture. `icon_file` unchanged.
+- Readers accept both a path and a texture (old .tres files, the stand-in looks arena_check and touch_audit build):
+  `EnemyDef.take_strip`, `CharacterDef.take_strip`, `LookArt.icon(v)`.
+- New helpers: `EnemyDef/CharacterDef.strip_path()` (the path drawn, without loading), `look_strip_path(code)` (a look's
+  strip path without a copy), `JsonContent.strip_of(dir, file)` (path when the file exists, else "").
+- `LookArt.KEEP_MB` = 160: unpinned strips kept after their last ask (MB at 4 bytes a pixel).

@@ -117,6 +117,18 @@ var analytics: bool = true
 ## A couple of questions on the Results screen now and then (pass 59, PostHog Surveys through Analytics): "Questions after
 ## a run" in Settings, or "Don't ask me again" on the card.
 var surveys: bool = true
+## The frame cap (pass 101, lane FPS; Garry approved fix 1 of pass 100's performance assessment, "Cap the phone at 60
+## fps"): Engine.max_fps. The world moves 60 times a second (the physics tick; nothing is interpolated), so a frame drawn
+## between two ticks shows the same picture again: a 120 Hz phone drew twice the frames for nothing. 60 = at most 60
+## frames a second (the engine's limiter; vsync stays on, so the lower of the cap and the screen's rate wins); 0 = "Max",
+## the screen's own rate (today's PC behaviour). Default 60 on a phone (the `mobile` feature: Android; iOS is not built),
+## 0 on the PC. Global, so the title and every menu are capped too. The developer menu steps it; not prod-locked (a
+## setting). A save without it takes the platform's default.
+const FRAME_CAPS := [60, 0]
+var frame_cap: int = default_frame_cap(OS.has_feature("mobile")):
+	set(v):
+		frame_cap = int(v) if FRAME_CAPS.has(int(v)) else default_frame_cap(OS.has_feature("mobile"))
+		apply_frame_cap()
 
 ## Pass 81 (lane PROD, Garry: "a production build version ... having no debug options"): the production build is the
 ## export presets "Android Prod" / "Windows Desktop Prod", whose custom feature `prod` makes is_prod() true. In prod every
@@ -128,6 +140,33 @@ const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_bu
 	"hit_log": false, "preview_locked_heroes": false, "menu_style": MENU_STYLE_DEFAULT, "ranged_on_screen": true,
 	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false}
 var _prod_forced := -1
+
+
+func _ready() -> void:
+	# pass 101 (lane FPS): the cap holds from the first frame, with or without a save (from_dict sets it again)
+	apply_frame_cap()
+
+
+## Pass 101 (lane FPS): the frame cap a fresh save starts with: 60 on a phone, 0 (the screen's own rate) on the PC.
+static func default_frame_cap(mobile: bool) -> int:
+	return 60 if mobile else 0
+
+
+## Pass 101 (lane FPS): frame_cap into the engine (Engine.max_fps; 0 = no cap but vsync's).
+func apply_frame_cap() -> void:
+	Engine.max_fps = maxi(frame_cap, 0)
+
+
+## Pass 101 (lane FPS): the cap after `current`, round FRAME_CAPS (60 -> Max -> 60), the developer menu's tap.
+func next_frame_cap(current: int) -> int:
+	var k := FRAME_CAPS.find(current)
+	return int(FRAME_CAPS[(k + 1) % FRAME_CAPS.size()])
+
+
+## Pass 101 (lane FPS): the cap in words: "60" or "MAX".
+func frame_cap_label(cap: int = -1) -> String:
+	var c := frame_cap if cap < 0 else cap
+	return "MAX" if c <= 0 else str(c)
 
 
 func is_prod() -> bool:
@@ -174,6 +213,7 @@ func to_dict() -> Dictionary:
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
 		"boss_dummy_hp": boss_dummy_hp, "boss_dummy_mode": boss_dummy_mode,
 		"analytics": analytics, "surveys": surveys,
+		"frame_cap": frame_cap,
 	}
 
 
@@ -211,6 +251,8 @@ func from_dict(d: Dictionary) -> void:
 	boss_dummy_mode = str(d.get("boss_dummy_mode", boss_dummy_mode))
 	analytics = bool(d.get("analytics", analytics))
 	surveys = bool(d.get("surveys", surveys))
+	# pass 101 (lane FPS): a save from before keeps the platform's default
+	frame_cap = int(d.get("frame_cap", default_frame_cap(OS.has_feature("mobile"))))
 	_prod_lock()
 	changed.emit()
 

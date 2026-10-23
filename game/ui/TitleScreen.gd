@@ -179,7 +179,13 @@ func _ready() -> void:
 	if last and _is_locked(last):
 		last = null
 	_index = maxi(_heroes.find(last), 0)
-	_maps = Registry.sorted_maps().filter(func(m: MapDef) -> bool: return Registry.is_unlocked("map", m.id))
+	# pass 101 (lane LOOKS): no run is going, so the last run's pinned strips are let go (LookArt keeps the most recent
+	# few); the live title keeps the strip of the hero it opens on (the painted title draws his cut-out, no strip)
+	var keep: Array = []
+	if _live and not _heroes.is_empty():
+		keep.append(Registry.played_look(_heroes[_index]).strip_path())
+	LookArt.pin_only(keep)
+	_maps =Registry.sorted_maps().filter(func(m: MapDef) -> bool: return Registry.is_unlocked("map", m.id))
 	_map_id = str(Save.data.get("last_map", ""))
 	if _maps.filter(func(m: MapDef) -> bool: return m.id == _map_id).is_empty():
 		_map_id = _maps[0].id if not _maps.is_empty() else "red_canyon"

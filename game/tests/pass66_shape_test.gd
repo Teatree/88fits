@@ -249,7 +249,8 @@ func test_every_look_a_creature_names_resolves_and_the_played_one_is_among_them(
 		assert_bool(d.variants.has(d.variant)).override_failure_message("%s plays %s, which it has not got" % [d.id, d.variant]).is_true()
 		for code in d.variants.keys():
 			var e: Dictionary = d.variants[code]
-			assert_object(e.get("sprite")).override_failure_message("%s's look %s has no strip" % [d.id, str(code)]).is_not_null()
+			# pass 101 (lane LOOKS): the strip is a res:// path (loaded when worn) that must be there
+			assert_bool(ResourceLoader.exists(str(e.get("sprite", "")))).override_failure_message("%s's look %s has no strip" % [d.id, str(code)]).is_true()
 		# the played look is never shelved (the editor refuses it)
 		assert_bool(d.variant_shelved(d.variant)).override_failure_message("%s plays a shelved look" % d.id).is_false()
 	for c: CharacterDef in Registry.characters.values():
@@ -258,7 +259,7 @@ func test_every_look_a_creature_names_resolves_and_the_played_one_is_among_them(
 		assert_bool(c.variants.has(c.variant)).override_failure_message("%s wears %s, which he has not got" % [c.id, c.variant]).is_true()
 		assert_bool(c.variant_shelved(c.variant)).override_failure_message("%s wears a shelved look" % c.id).is_false()
 		for code in c.variants.keys():
-			assert_object((c.variants[code] as Dictionary).get("sprite")).override_failure_message("%s's look %s has no strip" % [c.id, str(code)]).is_not_null()
+			assert_bool(ResourceLoader.exists(str((c.variants[code] as Dictionary).get("sprite", "")))).override_failure_message("%s's look %s has no strip" % [c.id, str(code)]).is_true()
 
 
 # ---------------------------------------------------------------- the map

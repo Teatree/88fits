@@ -1,22 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_b.png" id="1_y6mhg"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_f0uby"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_b.png" id="3_41wrd"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_a.png" id="4_is16i"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_a.png" id="5_dhmev"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_c.png" id="6_cx263"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_c.png" id="7_3yw3i"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_d.png" id="8_g1yb0"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_d.png" id="9_rdpvj"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_e.png" id="10_dhmev"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_e.png" id="11_cx263"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_f.png" id="12_3yw3i"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_f.png" id="13_g1yb0"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_g.png" id="14_3yw3i"]
 [ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_g.png" id="15_g1yb0"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_sprite_h.png" id="16_rdpvj"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_h.png" id="17_28qk6"]
 
 [resource]
 script = ExtResource("2_f0uby")
@@ -48,7 +33,7 @@ anims = {
 "run_fd": 12.0,
 "run_s": 12.0
 }
-sprite = ExtResource("14_3yw3i")
+sprite_path = "res://content/enemies/desert_spider/desert_spider_sprite_g.png"
 sprite_file = "desert_spider_sprite_g.png"
 frame_px = 160
 strip_cols = 91
@@ -90,7 +75,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.487,
-"icon": ExtResource("5_dhmev"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_a.png",
 "note": "Near-realistic desert wolf spider (the least cartoony)",
 "shadow": {
 "drop": 0.06,
@@ -98,7 +83,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("4_is16i"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_a.png",
 "sprite_file": "desert_spider_sprite_a.png",
 "strip_cols": 91
 },
@@ -127,7 +112,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.644,
-"icon": ExtResource("1_y6mhg"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_b.png",
 "note": "Mild cartoon tarantula: big shiny eyes, a grumpy frown",
 "shadow": {
 "drop": 0.06,
@@ -135,7 +120,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("3_41wrd"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_b.png",
 "sprite_file": "desert_spider_sprite_b.png",
 "strip_cols": 91
 },
@@ -164,7 +149,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.544,
-"icon": ExtResource("7_3yw3i"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_c.png",
 "note": "Exaggerated: a huge round abdomen, chunky legs, angry eyes (side and bd walks from the first run on the plain clay; front, fd, back and death on spider_walk_c, front and back softened)",
 "shadow": {
 "drop": 0.06,
@@ -172,7 +157,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("6_cx263"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_c.png",
 "sprite_file": "desert_spider_sprite_c.png",
 "strip_cols": 91
 },
@@ -201,7 +186,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.512,
-"icon": ExtResource("9_rdpvj"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_d.png",
 "note": "Very exaggerated: huge furious eyes, big fangs, tiny legs",
 "shadow": {
 "drop": 0.06,
@@ -209,7 +194,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("8_g1yb0"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_d.png",
 "sprite_file": "desert_spider_sprite_d.png",
 "strip_cols": 91
 },
@@ -238,7 +223,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.581,
-"icon": ExtResource("11_cx263"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_e.png",
 "note": "SP-B in light purple (lavender and lilac) on the fixed walk (spider_walk_v2: every foot steps along the body)",
 "shadow": {
 "drop": 0.06,
@@ -246,7 +231,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("10_dhmev"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_e.png",
 "sprite_file": "desert_spider_sprite_e.png",
 "strip_cols": 91
 },
@@ -275,7 +260,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.631,
-"icon": ExtResource("13_g1yb0"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_f.png",
 "note": "SP-B in light blue (pale sky and powder blue) on the fixed walk (spider_walk_v2: every foot steps along the body)",
 "shadow": {
 "drop": 0.06,
@@ -283,7 +268,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("12_3yw3i"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_f.png",
 "sprite_file": "desert_spider_sprite_f.png",
 "strip_cols": 91
 },
@@ -312,7 +297,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.556,
-"icon": ExtResource("15_g1yb0"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_g.png",
 "note": "Pass 94: SP-A's realism in the house style, light purple, as close to the 3D model as it gets, on Klein with many iterations: the clay repainted (img2img from the tinted clay), 28 steps, many seeds per view picked by eye; walked on spider_walk_v4 (the legs as capsules, the model's cones rounded)",
 "shadow": {
 "drop": 0.06,
@@ -320,7 +305,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("14_3yw3i"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_g.png",
 "sprite_file": "desert_spider_sprite_g.png",
 "strip_cols": 91
 },
@@ -349,7 +334,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.562,
-"icon": ExtResource("17_28qk6"),
+"icon": "res://content/enemies/desert_spider/desert_spider_icon_h.png",
 "note": "Pass 94: SP-A's realism in the house style, light purple, as close to the 3D model as it gets, on Flux.2 dev with many iterations: the clay repainted (img2img from the tinted clay), 40 steps without Turbo, several seeds per view picked by eye; walked on spider_walk_v4 (the legs as capsules, the model's cones rounded)",
 "shadow": {
 "drop": 0.06,
@@ -357,7 +342,7 @@ variants = {
 "up": 0.45
 },
 "shelved": false,
-"sprite": ExtResource("16_rdpvj"),
+"sprite": "res://content/enemies/desert_spider/desert_spider_sprite_h.png",
 "sprite_file": "desert_spider_sprite_h.png",
 "strip_cols": 91
 }

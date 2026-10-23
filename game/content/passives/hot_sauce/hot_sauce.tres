@@ -2,13 +2,9 @@
 
 [ext_resource type="Texture2D" path="res://content/passives/hot_sauce/hot_sauce_icon_b.png" id="1_684dt"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_huwqx"]
-[ext_resource type="Texture2D" path="res://content/passives/hot_sauce/hot_sauce_icon.png" id="1_vnc05"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_vnc05"]
-[ext_resource type="Texture2D" path="res://content/passives/hot_sauce/hot_sauce_icon_c.png" id="5_a2noh"]
-[ext_resource type="Texture2D" path="res://content/passives/hot_sauce/hot_sauce_icon_d.png" id="6_c0gqd"]
-[ext_resource type="Texture2D" path="res://content/passives/hot_sauce/hot_sauce_icon_e.png" id="7_6qv82"]
 
-[sub_resource type="Resource" id="Resource_a2noh"]
+[sub_resource type="Resource" id="Resource_vnc05"]
 script = ExtResource("1_huwqx")
 stat = "difficulty"
 value = 0.25
@@ -17,37 +13,37 @@ target = "player"
 [resource]
 script = ExtResource("2_vnc05")
 line = true
-levels = [[SubResource("Resource_a2noh")]]
+levels = [[SubResource("Resource_vnc05")]]
 max_level = 4
 evolves_into = "ghost_pepper"
 text = "The Devil deals you in: +25% difficulty a level. Dark variants and elite-marked creatures come more often: tougher, but each pays more XP and may drop a chest."
 variants = {
 "A": {
-"icon": ExtResource("1_vnc05"),
+"icon": "res://content/passives/hot_sauce/hot_sauce_icon.png",
 "icon_file": "hot_sauce_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_684dt"),
+"icon": "res://content/passives/hot_sauce/hot_sauce_icon_b.png",
 "icon_file": "hot_sauce_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_a2noh"),
+"icon": "res://content/passives/hot_sauce/hot_sauce_icon_c.png",
 "icon_file": "hot_sauce_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_c0gqd"),
+"icon": "res://content/passives/hot_sauce/hot_sauce_icon_d.png",
 "icon_file": "hot_sauce_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_6qv82"),
+"icon": "res://content/passives/hot_sauce/hot_sauce_icon_e.png",
 "icon_file": "hot_sauce_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

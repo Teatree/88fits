@@ -2,13 +2,9 @@
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_d1mkt"]
 [ext_resource type="Texture2D" path="res://content/passives/ducktape/ducktape_icon_b.png" id="1_d7llp"]
-[ext_resource type="Texture2D" path="res://content/passives/ducktape/ducktape_icon.png" id="1_ff6ld"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ff6ld"]
-[ext_resource type="Texture2D" path="res://content/passives/ducktape/ducktape_icon_c.png" id="5_4evd7"]
-[ext_resource type="Texture2D" path="res://content/passives/ducktape/ducktape_icon_d.png" id="6_gau12"]
-[ext_resource type="Texture2D" path="res://content/passives/ducktape/ducktape_icon_e.png" id="7_3bluv"]
 
-[sub_resource type="Resource" id="Resource_4evd7"]
+[sub_resource type="Resource" id="Resource_ff6ld"]
 script = ExtResource("1_d1mkt")
 stat = "debuff_duration"
 op = "mul"
@@ -18,37 +14,37 @@ target = "player"
 [resource]
 script = ExtResource("2_ff6ld")
 line = true
-levels = [[SubResource("Resource_4evd7")]]
+levels = [[SubResource("Resource_ff6ld")]]
 max_level = 4
 evolves_into = "shackles"
 text = "The sand runs slow for them: your burns, poison, slows, marks and pins last 15% longer a level."
 variants = {
 "A": {
-"icon": ExtResource("1_ff6ld"),
+"icon": "res://content/passives/ducktape/ducktape_icon.png",
 "icon_file": "ducktape_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_d7llp"),
+"icon": "res://content/passives/ducktape/ducktape_icon_b.png",
 "icon_file": "ducktape_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_4evd7"),
+"icon": "res://content/passives/ducktape/ducktape_icon_c.png",
 "icon_file": "ducktape_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_gau12"),
+"icon": "res://content/passives/ducktape/ducktape_icon_d.png",
 "icon_file": "ducktape_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_3bluv"),
+"icon": "res://content/passives/ducktape/ducktape_icon_e.png",
 "icon_file": "ducktape_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

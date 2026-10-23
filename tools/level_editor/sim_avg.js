@@ -667,6 +667,37 @@ const SimAvg = (() => {
     return out;
   }
 
+  /** Pass 101 (lane FPS): a record's frame series ({frame_ms, frame_p95, frame_max, fps} and {proj, pickups}; {} for
+   *  a record without them), one value a row. */
+  function frameSeries(rows, rec) {
+    const out = {};
+    const seen = (k) => rows.some((r0) => isObj(r0) && own(r0, k));
+    const ft = isObj(rec.frame_timing) ? rec.frame_timing : null;
+    if (seen('frames') && !(ft && ft.valid === false)) {
+      const keys = { frame_ms: 'frame_ms', frame_p95: 'frame_p95', frame_max: 'frame_max' };
+      const raw = { frame_ms: [], frame_p95: [], frame_max: [] };
+      for (const r0 of rows) {
+        const r = isObj(r0) ? r0 : {};
+        const has = fl(r.frames) > 0 && r.frame_ms != null;
+        for (const k of Object.keys(keys)) raw[k].push(has && r[keys[k]] != null ? fl(r[keys[k]]) : null);
+      }
+      const firstOk = raw.frame_ms.findIndex((v) => v != null);
+      if (firstOk >= 0) {
+        for (const k of Object.keys(raw)) {
+          const a = raw[k];
+          let last = a[firstOk] != null ? a[firstOk] : 0;
+          out[k] = a.map((v) => { if (v != null) last = v; return last; });
+        }
+        out.fps = out.frame_ms.map((v) => (v > 0 ? snapped(1000 / v, 0.1) : 0));
+      }
+    }
+    if (seen('proj') || seen('pickups') || seen('frames')) {
+      out.proj = rows.map((r0) => int(isObj(r0) ? r0.proj : 0));
+      out.pickups = rows.map((r0) => int(isObj(r0) ? r0.pickups : 0));
+    }
+    return out;
+  }
+
   /** The evolutions among a record's weapons (sim_run.gd asks the Registry; a record names them by its evolution events). */
   function evoIdsOf(record) {
     const out = {};
@@ -703,6 +734,11 @@ const SimAvg = (() => {
     if (!seen('boss_now')) delete out.boss_hp_abs;
     if (!seen('lines')) delete out.held_by.lines;
     if (!seen('gold_in')) { delete out.gold_total; delete out.gold_by; }
+    // pass 101 (lane FPS): schema 3's frame times, one value a row (a second without a frame carries the last one; the
+    // seconds before the first take the first), only from a record whose clock is a frame rate (frame_timing.valid is
+    // not false: never a headless or --fixed-fps run); the shots and pickups whenever the record has them. A record
+    // from before pass 101 has none of these: their charts hide.
+    Object.assign(out, frameSeries(rows, rec));
     const dmgTotal = out.dmg_total.length ? out.dmg_total[out.dmg_total.length - 1] : 0;
     out.meta = { schema: SCHEMA, source: 'record', record_schema: Number(rec.schema) || 1, hero: String(rec.hero || ''), hero_name: String(rec.hero_name || rec.hero || ''),
       hero_look: String(rec.hero_look || ''), start_weapon: String((rec.timeline && rec.timeline.start_weapon) || ''), seed: rec.seed,
@@ -970,7 +1006,7 @@ const SimAvg = (() => {
 
   return { SCHEMA, DPS_WINDOW, RATE_WINDOW, TROUBLE_FRAC, LEVEL_SERIES, CUM_SERIES, RATE_SERIES, BAND_SERIES, MEDIAN_SERIES, BREAKDOWNS,
     pyRound, fracBits, num, clockS, r, pct, median, rolling, playerGrid, markers, aggregate, nameOf,
-    snapped, step, eventsOut, series, evoIdsOf, fromRecord,
+    snapped, step, eventsOut, series, evoIdsOf, fromRecord, frameSeries,
     OVERLAY_SCHEMA, OVERLAY_SERIES, OVERLAY_BANDS, OVERLAY_MEDIANS, OVERLAY_RULES, overlayRows, overlay };
 })();
 

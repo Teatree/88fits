@@ -3,21 +3,14 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_huik1"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_icon_p.png" id="2_yg02d"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_tlaal"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_b.png" id="4_ui1jp"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_c.png" id="6_uc7w2"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_g.png" id="7_1mxrr"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_p.png" id="7_tlaal"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_icon_g.png" id="8_tlaal"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_q.png" id="8_ui1jp"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_r.png" id="9_ui1jp"]
 
-[sub_resource type="Resource" id="Resource_yg02d"]
+[sub_resource type="Resource" id="Resource_88hbp"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
-[sub_resource type="Resource" id="Resource_uc7w2"]
+[sub_resource type="Resource" id="Resource_oq0di"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
@@ -26,20 +19,20 @@ target = "player"
 
 [resource]
 script = ExtResource("3_tlaal")
-level_trait = [SubResource("Resource_uc7w2")]
+level_trait = [SubResource("Resource_oq0di")]
 order = 8
 trait_name = "No Time"
 trait_text = "Gain 1.5% less cooldown per level."
 pronoun = "she"
 favourite_weapon = "tommy_gun"
 favourite_bonus = {
-"effects": [SubResource("Resource_yg02d")],
+"effects": [SubResource("Resource_88hbp")],
 "type": "effects"
 }
 start_weapon = "big_mouth"
 availability = "purchase"
 price = 2500
-sprite = ExtResource("7_tlaal")
+sprite_path = "res://content/characters/may/may_sprite_p.png"
 sprite_file = "may_sprite_p.png"
 anims = {
 "cheer": 1.0,
@@ -93,10 +86,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("8_tlaal"),
+"icon": "res://content/characters/may/may_icon_g.png",
 "note": "",
 "shelved": false,
-"sprite": ExtResource("4_ui1jp"),
+"sprite": "res://content/characters/may/may_sprite_b.png",
 "sprite_file": "may_sprite_b.png",
 "strip_cols": 62,
 "title": ""
@@ -127,10 +120,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("8_tlaal"),
+"icon": "res://content/characters/may/may_icon_g.png",
 "note": "from MAY-B",
 "shelved": false,
-"sprite": ExtResource("6_uc7w2"),
+"sprite": "res://content/characters/may/may_sprite_c.png",
 "sprite_file": "may_sprite_c.png",
 "strip_cols": 62,
 "title": ""
@@ -161,10 +154,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("8_tlaal"),
+"icon": "res://content/characters/may/may_icon_g.png",
 "note": "pass 70 (lane ART): the bd still repainted with the overalls' back straps (pose_hint words), the back walk on run_hidefwd_lvl (one hand at a time, the forward one hidden), run_scale side 0.88 (the side ran half a head taller); before: pass 69's Flux.2 dev look",
 "shelved": false,
-"sprite": ExtResource("7_1mxrr"),
+"sprite": "res://content/characters/may/may_sprite_g.png",
 "sprite_file": "may_sprite_g.png",
 "strip_cols": 62,
 "title": "hero_may_g.png"
@@ -195,10 +188,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("2_yg02d"),
+"icon": "res://content/characters/may/may_icon_p.png",
 "note": "the Puppet trial: MAY-G's stills, every view's walk on OpenPose from her own rigged 3D puppet (may_puppet_run: her bones, joints her body hides dropped, the ears set from her nose), no run_scale",
 "shelved": false,
-"sprite": ExtResource("7_tlaal"),
+"sprite": "res://content/characters/may/may_sprite_p.png",
 "sprite_file": "may_sprite_p.png",
 "strip_cols": 62,
 "title": "hero_may_p.png"
@@ -229,10 +222,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("8_tlaal"),
+"icon": "res://content/characters/may/may_icon_g.png",
 "note": "the Puppet trial: MAY-G's stills; fd, side, bd and back walked by Wan 2.2 Fun Control on the puppet's depth video (may_puppet_run_depth), the front on the puppet's OpenPose guide (the depth video has no face), no run_scale",
 "shelved": false,
-"sprite": ExtResource("8_ui1jp"),
+"sprite": "res://content/characters/may/may_sprite_q.png",
 "sprite_file": "may_sprite_q.png",
 "strip_cols": 62,
 "title": "hero_may_g.png"
@@ -263,10 +256,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("8_tlaal"),
+"icon": "res://content/characters/may/may_icon_g.png",
 "note": "pass 71: the Puppet method with every setting on (lane PLE): MAY-G's stills; new guides from her puppet framed by the soles with the face angle kept (ears from the nose: may_puppet_run_2); fd, side, bd and back walked on the depth video, the front on the stick figure (MAY-Q's mix); size from the 3D model (run_fit); colour fringes cleaned (fringe_remap)",
 "shelved": false,
-"sprite": ExtResource("9_ui1jp"),
+"sprite": "res://content/characters/may/may_sprite_r.png",
 "sprite_file": "may_sprite_r.png",
 "strip_cols": 62,
 "title": "hero_may_g.png"

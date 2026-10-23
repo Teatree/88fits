@@ -270,7 +270,7 @@
       {
         "id": "r21",
         "t": 245,
-        "until": 347,
+        "until": 315,
         "enemy": "cactus_walker",
         "weights": [
           [
@@ -297,6 +297,37 @@
         "every": 10,
         "count": 70,
         "ring_radius": 18,
+        "role": "fodder"
+      },
+      {
+        "id": "r55",
+        "t": 315,
+        "until": 376,
+        "enemy": "werewolf",
+        "weights": [
+          [
+            315,
+            5.4
+          ],
+          [
+            376,
+            10.1
+          ],
+          [
+            407,
+            10.6
+          ]
+        ],
+        "pack": 30,
+        "stats": {
+          "hp_mult": 0.8,
+          "size": 1.25,
+          "damage_mult": 1.25
+        },
+        "pattern": "scatter",
+        "pace": "waves",
+        "every": 5,
+        "count": 50,
         "role": "fodder"
       },
       {
@@ -430,19 +461,30 @@
       },
       {
         "id": "r54",
-        "t": 376,
+        "t": 357,
         "enemy": "spit_cactus",
         "weights": [
           [
-            377,
+            358,
             1.2
           ]
         ],
-        "until": 416,
+        "until": 430,
         "pattern": "scatter",
         "pack": 1,
         "interval": 6,
-        "role": "fodder"
+        "role": "fodder",
+        "stats": {
+          "tint": {
+            "hue": [
+              297,
+              360
+            ],
+            "sat": 0.87,
+            "val": 1,
+            "amount": 0.09
+          }
+        }
       },
       {
         "id": "r4",

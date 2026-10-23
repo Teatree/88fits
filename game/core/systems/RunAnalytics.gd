@@ -20,12 +20,17 @@
 ## creatures wearing an Elite modifier (came, fell), the Stranger's deals and the Totem Poles' offers. A tool's run
 ## (headless, or started with --script) mirrors into analytics/runs/tools/ so the dashboard opens on a played run, and
 ## a phone keeps only the newest KEEP_FILES run files under user:// (the PC never prunes; the repo's mirror neither).
+## Pass 101 (lane FPS), schema 3: every row carries its second's frames (frames: how many, frame_ms: their mean wall time,
+## frame_max: the slowest, frame_p95: the 95th percentile; fps = 1000 / frame_ms), the shots in flight (proj) and the
+## gems and coins lying (pickups), so the frame rate charts against the crowd, the stage and the minute; the header's
+## frame_timing says whether the clock means anything (valid false for a headless run or one under --fixed-fps) and
+## what capped it (the frame cap, vsync, the screen's rate); summary() folds the same into its minutes.
 class_name RunAnalytics
 extends Node
 
 static var I: RunAnalytics = null
 
-const SCHEMA := 2
+const SCHEMA := 3
 ## Pass 74: the run files a phone keeps in user://analytics/runs (the newest by name: a name is the run's start stamp);
 ## the PC keeps every one (prunes_here).
 const KEEP_FILES := 50
@@ -138,6 +143,10 @@ var _frame_hist := PackedInt32Array()
 var _frame_n := 0
 var _frame_ms := 0.0
 var _frame_last_us := 0
+# pass 101 (lane FPS): the second's frame times (ms) and the engine frame of the last tick (a frame that follows the
+# last one directly is a frame, however long; one after a pause is not)
+var _sec_ms := PackedFloat32Array()
+var _frame_last_pf := -1
 # pass 74: the second's healing by source (Player.heal's source; an unnamed heal waits in _heal_unnamed for the signal
 # that caused it to name it: lifesteal, level_up), its regen, and the hits each creature landed
 var _heal_by: Dictionary = {}
@@ -215,6 +224,8 @@ func begin(p_game: Node) -> void:
 	header["settings"] = _settings()
 	header["map_settings"] = RunAnalytics.map_settings(mapdef.timeline if mapdef else null)
 	header["stat_names"] = RunAnalytics.stat_names()
+	# pass 101 (lane FPS): what the frame clock means in this process and what caps it
+	header["frame_timing"] = RunAnalytics.frame_timing()
 	# pass 87 (lane STOOLS): the stage this run plays (a stage run since pass 87: Game started it before the recorder)
 	header.merge(stage_header(), true)
 	Analytics.run_begin(str(header["run_id"]))
@@ -605,8 +616,13 @@ func tick(delta: float) -> void:
 ## The frame clock (pass 57): this frame's wall time since the last unpaused one, into its millisecond bin.
 func _frame() -> void:
 	var now := Time.get_ticks_usec()
+	var pf := Engine.get_process_frames()
 	if _frame_last_us > 0:
 		var ms := float(now - _frame_last_us) / 1000.0
+		# pass 101 (lane FPS): the second's frames: only a frame straight after the last ticked one (a hitch counts
+		# whatever its length; the gap after a pause, a card screen or a menu does not)
+		if pf == _frame_last_pf + 1:
+			_sec_ms.append(ms)
 		if ms < FRAME_GAP_MS:
 			if _frame_hist.is_empty():
 				_frame_hist.resize(FRAME_BINS)
@@ -615,6 +631,57 @@ func _frame() -> void:
 			_frame_n += 1
 			_frame_ms += ms
 	_frame_last_us = now
+	_frame_last_pf = pf
+
+
+## Pass 101 (lane FPS): the header's frame_timing: valid (false when the wall clock says nothing about a player's frame
+## rate: a headless process, or --fixed-fps, which steps the game a fixed time a frame however long it takes), why not
+## ("headless", "fixed_fps", "" when valid), the cap the run played under (max_fps: Engine.max_fps, 0 = none;
+## frame_cap: Settings.frame_cap), vsync (DisplayServer.VSyncMode: 0 off, 1 on, 2 adaptive, 3 mailbox), the screen's
+## refresh rate (Hz; -1 = unknown) and the physics ticks a second (the world's own rate).
+static func frame_timing() -> Dictionary:
+	var why := ""
+	if DisplayServer.get_name() == "headless":
+		why = "headless"
+	else:
+		for a in OS.get_cmdline_args():
+			if str(a) == "--fixed-fps" or str(a).begins_with("--fixed-fps="):
+				why = "fixed_fps"
+	return {"valid": why == "", "why": why, "max_fps": Engine.max_fps, "frame_cap": int(Settings.frame_cap),
+		"vsync": int(DisplayServer.window_get_vsync_mode()), "refresh_hz": snappedf(DisplayServer.screen_get_refresh_rate(), 0.1),
+		"physics_hz": Engine.physics_ticks_per_second}
+
+
+## Pass 101 (lane FPS): the second's frames into the row, always (0 frames is said, so a record shows it measured):
+## frames, and with any: frame_ms (mean), frame_max (the slowest), frame_p95 (nearest rank); then the list starts over.
+func _put_frames(row: Dictionary) -> void:
+	var n := _sec_ms.size()
+	row["frames"] = n
+	if n > 0:
+		var sum := 0.0
+		var mx := 0.0
+		for v in _sec_ms:
+			sum += v
+			mx = maxf(mx, v)
+		var s := _sec_ms.duplicate()
+		s.sort()
+		row["frame_ms"] = snappedf(sum / float(n), 0.1)
+		row["frame_max"] = snappedf(mx, 0.1)
+		row["frame_p95"] = snappedf(s[clampi(int(ceil(0.95 * float(n))) - 1, 0, n - 1)], 0.1)
+	_sec_ms.resize(0)
+
+
+## Pass 101 (lane FPS): what the frame drew besides the crowd: the shots in flight (ProjectileManager.count) and the gems
+## and coins lying (PickupManager.count); left off the row at 0 like every count.
+func _put_drawn(row: Dictionary) -> void:
+	if game == null or not is_instance_valid(game):
+		return
+	var pm = game.get("projectiles")
+	if pm != null and pm.get("count") != null:
+		_put(row, "proj", int(pm.get("count")))
+	var pk = game.get("pickups")
+	if pk != null and pk.get("count") != null:
+		_put(row, "pickups", int(pk.get("count")))
 
 
 ## {fps_avg, fps_low} from the frame clock ({} before any frame): the mean, and the 1 % low (1000 over the 99th
@@ -808,6 +875,9 @@ func _sample() -> void:
 		if m != _mults_last:
 			row["mults"] = m
 			_mults_last = m
+	# pass 101 (lane FPS): the second's frames, the shots and the pickups
+	_put_frames(row)
+	_put_drawn(row)
 	# the build, only when it changed (and not more than once in SNAPSHOT_EVERY unless an item was picked)
 	if _sheet_dirty and (_item_since_snapshot or play_t - _last_snapshot_t >= SNAPSHOT_EVERY):
 		row["stats"] = _stats_snapshot()
@@ -1059,6 +1129,10 @@ func gold_end(banked: int) -> Dictionary:
 func _summary_props() -> Dictionary:
 	var s := RunAnalytics.fit_summary(samples)
 	s.merge(fps_stats(), true)
+	# pass 101 (lane FPS): the cap the run played under and whether its frame clock means anything
+	var ft: Dictionary = header.get("frame_timing", {})
+	s["frame_cap"] = int(ft.get("max_fps", Engine.max_fps))
+	s["frame_valid"] = bool(ft.get("valid", false))
 	s["kills_by_weapon"] = RunAnalytics._top(Run.kills_by_weapon, 10, 1.0)
 	var b := _build()
 	s["build"] = b
@@ -1151,6 +1225,17 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 	var gold_by := {}
 	var spent_by := {}
 	var dmg_by_min := {}
+	# pass 101 (lane FPS): the minute's frames (count, wall ms, the slowest, the p95s summed over the seconds with frames),
+	# the shots in flight and the pickups lying (means); in the summary only when a row carried them
+	var f_n := _zeros(n)
+	var f_ms := _zeros(n)
+	var f_max := _zeros(n)
+	var f_p95 := _zeros(n)
+	var f_secs := _zeros(n)
+	var proj := _zeros(n)
+	var pickups := _zeros(n)
+	var seen_frames := false
+	var seen_drawn := false
 	var took_kind := {}
 	var dmg_by := {}
 	var est_by := {}
@@ -1215,6 +1300,19 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 			hp[i] = minf(hp[i], f)
 			if f < 0.3:
 				low[i] += 1.0
+		if row.has("frames"):
+			seen_frames = true
+			var fn := float(row.get("frames", 0))
+			if fn > 0.0:
+				f_n[i] += fn
+				f_ms[i] += fn * float(row.get("frame_ms", 0.0))
+				f_max[i] = maxf(f_max[i], float(row.get("frame_max", 0.0)))
+				f_p95[i] += float(row.get("frame_p95", 0.0))
+				f_secs[i] += 1.0
+		if row.has("proj") or row.has("pickups") or row.has("frames"):
+			seen_drawn = true
+		proj[i] += float(row.get("proj", 0))
+		pickups[i] += float(row.get("pickups", 0))
 		evaded += int(row.get("evaded", 0))
 		shielded += float(row.get("shielded", 0.0))
 		healed += float(row.get("healed", 0.0))
@@ -1228,6 +1326,8 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 		est[i] /= k
 		shield_pts[i] /= k
 		crowd_load[i] /= k
+		proj[i] /= k
+		pickups[i] /= k
 	# each weapon's damage minute by minute, the top eight by their total
 	var by_min := {}
 	var top_w: Array = _top(dmg_by, 8, 1.0).keys()
@@ -1237,7 +1337,7 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 			for v in dmg_by_min[w]:
 				ints.append(int(round(float(v))))
 			by_min[w] = ints
-	return {"bucket_s": int(bucket_s), "minutes": n, "m_secs": _ints(secs), "m_stage": _ints(stage), "m_level": _ints(level),
+	var out := {"bucket_s": int(bucket_s), "minutes": n, "m_secs": _ints(secs), "m_stage": _ints(stage), "m_level": _ints(level),
 		"m_alive": _ints(alive), "m_cap": _ints(cap), "m_spawned": _ints(spawned), "m_killed": _ints(killed),
 		"m_press": _ints(press), "m_press_hp": _ints(press_hp), "m_press_dmg": _ints(press_dmg), "m_est": _snaps(est, 0.1),
 		"m_dmg": _ints(dmg), "m_hp": _snaps(hp, 0.01), "m_took": _snaps(took, 0.1), "m_hits": _ints(hits),
@@ -1253,6 +1353,27 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 		"took_by_creature": _top(took_by, 10, 0.1), "spawned_by_creature": _top(spawned_by, 10, 1.0),
 		"killed_by_creature": _top(killed_by, 10, 1.0), "took_kind": _top(took_kind, 5, 0.1),
 		"evaded": evaded, "shielded": snappedf(shielded, 0.1), "healed": snappedf(healed, 0.1)}
+	# pass 101 (lane FPS): m_frame_ms = the minute's mean frame (its frames' wall time over their count), m_fps = 1000 over
+	# it, m_frame_max = its slowest frame, m_frame_p95 = the mean of its seconds' 95th percentiles, m_frames = its frames;
+	# m_proj, m_pickups = the shots in flight and the pickups lying (means a second)
+	if seen_frames:
+		var fms := _zeros(n)
+		var fps := _zeros(n)
+		var p95 := _zeros(n)
+		for i in range(n):
+			if f_n[i] > 0.0:
+				fms[i] = f_ms[i] / f_n[i]
+				fps[i] = 1000.0 / maxf(fms[i], 0.001)
+				p95[i] = f_p95[i] / maxf(f_secs[i], 1.0)
+		out["m_frames"] = _ints(f_n)
+		out["m_frame_ms"] = _snaps(fms, 0.1)
+		out["m_fps"] = _snaps(fps, 0.1)
+		out["m_frame_max"] = _snaps(f_max, 0.1)
+		out["m_frame_p95"] = _snaps(p95, 0.1)
+	if seen_drawn:
+		out["m_proj"] = _ints(proj)
+		out["m_pickups"] = _ints(pickups)
+	return out
 
 
 ## summary() in minute buckets, folded into two-minute ones (then four, ...) while it is bigger than `max_bytes`.

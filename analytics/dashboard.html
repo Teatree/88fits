@@ -246,8 +246,9 @@
   const BASE = ['t', 'clock', 'stage', 'phase', 'wave', 'level', 'xp', 'xp_next', 'xp_total', 'hp', 'hp_max', 'shield', 'invuln', 'gold',
     'banked', 'kills', 'adren', 'cresc', 'desp', 'steady', 'est_total', 'took_raw', 'hits', 'evaded', 'shielded', 'healed',
     'regen', 'hp_lost', 'hp_healed', 'elite_kills', 'alive', 'cap', 'load', 'hard_cap', 'press', 'press_hp', 'press_dmg',
-    'boss_hp', 'boss_now', 'specials_alive', 'near3', 'near6'];
-  const EMPTY_WHEN_MISSING = ['boss_hp', 'boss_now'];
+    'boss_hp', 'boss_now', 'specials_alive', 'near3', 'near6', 'frames', 'frame_ms', 'frame_max', 'frame_p95', 'proj', 'pickups'];
+  // pass 101 (lane FPS): a second without a frame has no frame times (empty, not 0)
+  const EMPTY_WHEN_MISSING = ['boss_hp', 'boss_now', 'frame_ms', 'frame_max', 'frame_p95'];
   // the second's tallies by id, flattened as group.key; a missing one is 0
   const MAPS = ['est', 'dmg', 'took', 'took_kind', 'hits_by', 'healed_by', 'killed', 'spawned', 'alive_by', 'gold_in', 'gold_out'];
   // the build's snapshots: on a row only when they changed; carried forward to every second until the next one
@@ -552,6 +553,7 @@
     const n = rows.length ? Math.round(rows[rows.length - 1].t) + 1 : 0;
     const A = () => new Float64Array(n);
     const S = { run, n, schema: +run.schema || 1, has: new Uint8Array(n), hp: A(), hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), regen: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(), specials: A(), hpMult: A(), dmgMult: A(), timeScale: A(), adren: A(), cresc: A(), desp: A(), steady: A(), power: A(), fullDps: A(), ehp: A(),
+      frames: A(), frameMs: A(), frameMax: A(), frameP95: A(), proj: A(), pickups: A(), hasFrames: false, hasDrawn: false,
       dmgBy: {}, estBy: {}, tookBy: {}, hitsBy: {}, healedBy: {}, killedBy: {}, spawnedBy: {}, aliveBy: {}, tookKind: { melee: A(), ranged: A(), boss: A() }, snaps: [] };
     const byAdd = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] += +obj[k] || 0; } };
     const bySet = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] = +obj[k] || 0; } };
@@ -569,6 +571,10 @@
       S.adren[s] = r.adren || 0; S.cresc[s] = r.cresc || 0; S.desp[s] = r.desp || 0; S.steady[s] = r.steady || 0;
       // pass 83 (lane SCALE): the hero's power level and what it is made of (HeroPower; none in a record before pass 83)
       S.power[s] = r.power || 0; S.fullDps[s] = r.full_dps || 0; S.ehp[s] = r.ehp || 0;
+      // pass 101 (lane FPS): the second's frames (schema 3; NaN = no frame that second, a gap in the chart), the shots and pickups
+      if (r.frames != null) { S.hasFrames = true; S.frames[s] = +r.frames || 0; S.frameMs[s] = r.frame_ms != null ? +r.frame_ms : NaN; S.frameMax[s] = r.frame_max != null ? +r.frame_max : NaN; S.frameP95[s] = r.frame_p95 != null ? +r.frame_p95 : NaN; }
+      if (r.frames != null || r.proj != null || r.pickups != null) S.hasDrawn = true;
+      S.proj[s] = r.proj || 0; S.pickups[s] = r.pickups || 0;
       if (r.mults) curM = r.mults;
       if (curM) { S.hpMult[s] = (curM.stage || 1) * (curM.hp_t || 1) * (curM.lvl_hp || 1); S.dmgMult[s] = (curM.stage || 1) * (curM.dmg_t || 1) * (curM.lvl_dmg || 1); S.timeScale[s] = curM.time_scale || 1; }
       S.real[s] += sum(r.dmg); S.tookRaw[s] += r.took_raw || 0; S.took[s] += sum(r.took); S.hits[s] += r.hits || 0; S.evaded[s] += r.evaded || 0;
@@ -578,6 +584,7 @@
       if (r.stats || r.weapons) S.snaps.push({ s, stats: r.stats, weapons: r.weapons, passives: Object.assign({}, r.passives || {}), lines: Object.assign({}, r.lines || {}), perks: r.perks });
     }
     S.hasMults = !!curM;
+    if (S.hasFrames) for (let s = 0; s < n; s++) if (!S.has[s]) { S.frameMs[s] = NaN; S.frameMax[s] = NaN; S.frameP95[s] = NaN; }
     for (let s = 1; s < n; s++) if (!S.has[s]) { for (const k of STATE) S[k][s] = S[k][s - 1]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][s - 1]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][s - 1]; }
     // the first row is second 1 (a row closes a second): the seconds before it take its state, not zeros
     const first = S.has.indexOf(1);
@@ -778,7 +785,7 @@
     const grid = el('div', 'grid'); $main.appendChild(grid);
     const steps = [renderFacts, renderPower, renderHeroPower, renderPressure, renderRatio, renderHealth, renderEnemies, renderHitLog, renderBosses, renderSpecials,
       renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderPickups, renderTotems, renderHealing, renderSurvival, renderStats,
-      renderMults, renderStacks, renderCrowd, renderRates, renderProgress, renderGold, renderQuests];
+      renderMults, renderStacks, renderCrowd, renderFrames, renderRates, renderProgress, renderGold, renderQuests];
     for (const f of steps) {
       try { f(grid, S); } catch (err) { const c = card(f.name.replace(/^render/, ''), 'This card could not be drawn for this file: ' + err.message); grid.appendChild(c); console.error(err); }
     }
@@ -1355,6 +1362,33 @@
     const c = card('The crowd against the cap', 'Creatures up, the director\'s live cap (lower in a boss fight and at a portal), and the crowd in cap-share units (fodder counts half).');
     if (chartReady()) timeChart(plot(c), S, [line('alive', S.alive, ROLE.alive, { fill: true }), line('cap', S.cap, ROLE.cap, { borderWidth: 1.5 }), line('load', S.load, ROLE.load)], { markers: markerOpts(S, { items: false, portal: true }) });
     timeTable(c, S, [{ label: 'alive', data: S.alive, d: 0 }, { label: 'cap', data: S.cap, d: 0 }, { label: 'load', data: S.load }, { label: 'hard cap', data: S.hardCap, d: 0 }, { label: 'specials up', data: S.specials, d: 0 }]);
+    grid.appendChild(c);
+  }
+  // pass 101 (lane FPS): the frame time each second against what was on screen (schema 3 records)
+  function frameWords(r) {
+    const ft = r.frame_timing || {};
+    const cap = ft.max_fps > 0 ? 'Capped at ' + ft.max_fps + ' fps' : "No cap but the screen’s";
+    const hz = ft.refresh_hz > 0 ? ', the screen ' + fmtN(ft.refresh_hz, 0) + ' Hz' : '';
+    const vs = ft.vsync != null ? (ft.vsync ? ', vsync on' : ', vsync off') : '';
+    return cap + vs + hz + (ft.physics_hz ? ', the world ' + ft.physics_hz + ' ticks a second' : '');
+  }
+  function renderFrames(grid, S) {
+    if (!S.hasFrames) return;
+    const ft = S.run.frame_timing || {};
+    const bad = ft.valid === false ? (ft.why === 'fixed_fps' ? ' THIS RUN RAN UNDER --fixed-fps: its frame times are how long the PC took, not a frame rate.' : ' THIS RUN WAS HEADLESS: nothing was drawn, its frame times mean nothing.') : '';
+    const c = card('Frame time', 'Each second’s frames: the mean wall time of a frame (fps = 1000 ÷ it), the 95th percentile and the slowest one, in ms; beside it what the frame drew: creatures alive, shots in flight, gems and coins lying. A second after a pause or a card screen counts only the frames played. ' + frameWords(S.run) + '.' + bad, { wide: true, slug: 'frame-time' });
+    const fps = Float64Array.from(S.frameMs, (v) => (v > 0 ? 1000 / v : NaN));
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      const mo = markerOpts(S, {});
+      const ref = (v, label) => line(label, Float64Array.from(S.frameMs, () => v), COL.gray, { borderWidth: 1, borderDash: [2, 3], pointRadius: 0 });
+      timeChart(multiBox(m, 'ms a frame', 220), S, [line('mean', S.frameMs, ROLE.real, { fill: true, d: 1, unit: ' ms' }), line('95th percentile', S.frameP95, ROLE.est, { d: 1, unit: ' ms', borderWidth: 1.5 }),
+        line('slowest', S.frameMax, COL.crit, { d: 1, unit: ' ms', borderWidth: 1 }), ref(1000 / 60, '60 fps (16.7 ms)'), ref(1000 / 30, '30 fps (33.3 ms)')], { markers: { bands: mo.bands, stages: mo.stages } });
+      timeChart(multiBox(m, 'on screen', 220), S, [line('alive', S.alive, ROLE.alive, { fill: true, d: 0 }), line('shots in flight', S.proj, COL.s[4], { d: 0 }), line('pickups lying', S.pickups, ROLE.gold, { d: 0, borderDash: [5, 3] })], { markers: { bands: mo.bands, stages: mo.stages } });
+      c.appendChild(m);
+    }
+    timeTable(c, S, [{ label: 'fps', data: fps, d: 1 }, { label: 'frames', data: S.frames, d: 0 }, { label: 'mean ms', data: S.frameMs, d: 1 }, { label: 'p95 ms', data: S.frameP95, d: 1 }, { label: 'slowest ms', data: S.frameMax, d: 1 },
+      { label: 'alive', data: S.alive, d: 0 }, { label: 'shots', data: S.proj, d: 0 }, { label: 'pickups', data: S.pickups, d: 0 }, { label: 'stage', data: S.stage, d: 0 }]);
     grid.appendChild(c);
   }
   function renderRates(grid, S) {

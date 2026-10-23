@@ -210,7 +210,9 @@ func test_a_shelved_hero_look_is_out_of_the_codes_but_still_worn() -> void:
 	assert_bool(t.variant_shelved("SOL-A")).is_true()
 	assert_array(t.variant_codes()).is_equal(["SOL-B", "SOL-C"])
 	assert_array(t.variant_codes(true)).is_equal(["SOL-A", "SOL-B", "SOL-C"])
-	assert_object(t.variant_def("SOL-A").sprite).is_same(t.variants["SOL-A"]["sprite"])
+	# pass 101 (lane LOOKS): an entry holds its strip's path, the look worn loads it
+	assert_str(t.variant_def("SOL-A").strip_path()).is_equal(str(t.variants["SOL-A"]["sprite"]))
+	assert_object(t.variant_def("SOL-A").sprite).is_not_null()
 	# the content as it is: nothing read as shelved by accident
 	var plain := JsonContent.build("characters", JsonContent.load_json(SOL + "solenne.json"), SOL) as CharacterDef
 	assert_array(plain.variant_codes()).is_equal(all)

@@ -2,16 +2,9 @@
 
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_icon.png" id="1_6nfm6"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_1go7i"]
-[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite.png" id="3_1go7i"]
-[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_b.png" id="3_06g83"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="3_jilq0"]
-[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_c.png" id="6_5woph"]
-[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_d.png" id="7_v4tah"]
-[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_e.png" id="8_5woph"]
-[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_f.png" id="9_v4tah"]
-[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_g.png" id="10_oqq31"]
 
-[sub_resource type="Resource" id="Resource_oqq31"]
+[sub_resource type="Resource" id="Resource_6nfm6"]
 script = ExtResource("3_jilq0")
 stat = "debuff_duration"
 op = "mul"
@@ -20,7 +13,7 @@ target = "player"
 
 [resource]
 script = ExtResource("2_1go7i")
-level_trait = [SubResource("Resource_oqq31")]
+level_trait = [SubResource("Resource_6nfm6")]
 order = 5
 trait_name = "Magic Hour"
 trait_text = "Gain 1.5% debuff duration per level (her burns, poison, slows and pins last longer; buffs do not)."
@@ -33,7 +26,7 @@ favourite_bonus = {
 start_weapon = "sun_scepter"
 availability = "purchase"
 price = 1500
-sprite = ExtResource("3_06g83")
+sprite_path = "res://content/characters/solenne/solenne_sprite_b.png"
 sprite_file = "solenne_sprite_b.png"
 anims = {
 "cheer": 1.0,
@@ -87,10 +80,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "Pass 54's walk on Garry's Walking_sun as first rendered: its side view turned a quarter away, her head grew walking down and shrank walking up.",
 "shelved": false,
-"sprite": ExtResource("3_1go7i"),
+"sprite": "res://content/characters/solenne/solenne_sprite.png",
 "sprite_file": "solenne_sprite.png",
 "strip_cols": 62,
 "title": ""
@@ -121,10 +114,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "Walking_sun again, fitted to her (tools/pose_fit.py): squared to her hips, her body, hands and sun disc at her painted size, the disc facing the viewer in every view, a side still with the disc turned to the viewer.",
 "shelved": false,
-"sprite": ExtResource("3_06g83"),
+"sprite": "res://content/characters/solenne/solenne_sprite_b.png",
 "sprite_file": "solenne_sprite_b.png",
 "strip_cols": 62,
 "title": ""
@@ -155,10 +148,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "Mixamo's Catwalk Walking (Garry's _REFERENCES/3d/Catwalk Walking.fbx), fitted to her the same way.",
 "shelved": false,
-"sprite": ExtResource("6_5woph"),
+"sprite": "res://content/characters/solenne/solenne_sprite_c.png",
 "sprite_file": "solenne_sprite_c.png",
 "strip_cols": 62,
 "title": ""
@@ -189,10 +182,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "The run every other hero uses (Mixamo Running), fitted to her the same way.",
 "shelved": false,
-"sprite": ExtResource("7_v4tah"),
+"sprite": "res://content/characters/solenne/solenne_sprite_d.png",
 "sprite_file": "solenne_sprite_d.png",
 "strip_cols": 62,
 "title": ""
@@ -223,10 +216,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "the catwalk again, with a tighter prompt (pass 60): SOL-C's words ('a catwalk stride with the hips swaying') let the model add runway poses: a hand on the hip and a body turning through the three-quarter front cycle, a lean-back crouch in the side cycle. These say what each part of the body does and what stays put, and roll new seeds (anim_seed 4). The three-quarter back view walks on catwalk_fit_wide_spread (pose_spread at 0.10): on the 0.06 spread the driver's wrists passed the hips at hip height and Wan planted both hands on them, elbows out.",
 "shelved": false,
-"sprite": ExtResource("8_5woph"),
+"sprite": "res://content/characters/solenne/solenne_sprite_e.png",
 "sprite_file": "solenne_sprite_e.png",
 "strip_cols": 62,
 "title": ""
@@ -257,10 +250,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "pass 87, PRECISE words (the sun head a spiky ball seen from every side, the outfit, her proportions, the catwalk stride, the face turned with the body, never to the camera from the side): her arms-out paintings (front c2, side c2 on words with her face in profile, back c0, edited from SOL-B's) made into a 3D puppet (Hunyuan3D-2mv try 0, Mixamo bones, the shoulders set by hand: the finder had put them on her collar's tips) walking Mixamo's Catwalk Walking; every view on its stick figure (the side on a copy with the far arm hidden while it swings high), the back on its depth video; size from the 3D model (run_fit); colour fringes cleaned. Her side, three-quarter front and three-quarter back painted again (4 candidates each, picked by eye) so her sun face looks where she walks; front, back, cheer and death stay her own paintings (side c2, fd c3, bd c0)",
 "shelved": false,
-"sprite": ExtResource("9_v4tah"),
+"sprite": "res://content/characters/solenne/solenne_sprite_f.png",
 "sprite_file": "solenne_sprite_f.png",
 "strip_cols": 62,
 "title": ""
@@ -291,10 +284,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "pass 87, LOOSE words (\"She looks where she walks.\", \"a woman in a black catsuit with a yellow sun for a head, looking where she walks\", \"a catwalk walk in place\"): her arms-out paintings (front c2, side c2 on words with her face in profile, back c0, edited from SOL-B's) made into a 3D puppet (Hunyuan3D-2mv try 0, Mixamo bones, the shoulders set by hand: the finder had put them on her collar's tips) walking Mixamo's Catwalk Walking; every view on its stick figure (the side on a copy with the far arm hidden while it swings high), the back on its depth video; size from the 3D model (run_fit); colour fringes cleaned. Her side, three-quarter front and three-quarter back painted again (4 candidates each, picked by eye) so her sun face looks where she walks; front, back, cheer and death stay her own paintings (side c2, fd c0, bd c0; three of the four side candidates lost the rays: a bald yellow head with two ears)",
 "shelved": false,
-"sprite": ExtResource("10_oqq31"),
+"sprite": "res://content/characters/solenne/solenne_sprite_g.png",
 "sprite_file": "solenne_sprite_g.png",
 "strip_cols": 62,
 "title": ""

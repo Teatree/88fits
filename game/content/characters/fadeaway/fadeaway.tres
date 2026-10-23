@@ -1,17 +1,10 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon.png" id="1_34e7o"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_kekjt"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_3n5jm"]
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite.png" id="4_cxldy"]
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite_b.png" id="5_kekjt"]
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite_c.png" id="6_cxldy"]
 [ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_c.png" id="7_hc3nu"]
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite_d.png" id="8_hc3nu"]
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite_e.png" id="9_ld7m5"]
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite_f.png" id="10_qxe4n"]
 
-[sub_resource type="Resource" id="Resource_ld7m5"]
+[sub_resource type="Resource" id="Resource_4s7ql"]
 script = ExtResource("2_kekjt")
 stat = "evade"
 value = 0.005
@@ -19,7 +12,7 @@ target = "player"
 
 [resource]
 script = ExtResource("3_3n5jm")
-level_trait = [SubResource("Resource_ld7m5")]
+level_trait = [SubResource("Resource_4s7ql")]
 order = 6
 trait_name = "Footwork"
 trait_text = "Gain 0.5% evade chance per level."
@@ -32,7 +25,7 @@ favourite_passive_bonus = {
 }
 availability = "purchase"
 price = 1750
-sprite = ExtResource("9_ld7m5")
+sprite_path = "res://content/characters/fadeaway/fadeaway_sprite_e.png"
 sprite_file = "fadeaway_sprite_e.png"
 anims = {
 "cheer": 1.0,
@@ -71,10 +64,10 @@ variants = {
 },
 "fps": {},
 "frame_px": 256,
-"icon": ExtResource("1_34e7o"),
+"icon": "res://content/characters/fadeaway/fadeaway_icon.png",
 "note": "the placeholder blob strip the editor drew at creation (not art)",
 "shelved": true,
-"sprite": ExtResource("4_cxldy"),
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite.png",
 "sprite_file": "fadeaway_sprite.png",
 "strip_cols": 0,
 "title": ""
@@ -105,10 +98,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_34e7o"),
+"icon": "res://content/characters/fadeaway/fadeaway_icon.png",
 "note": "the first painting: five views on the Mixamo run, the back views on run_spread",
 "shelved": false,
-"sprite": ExtResource("5_kekjt"),
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite_b.png",
 "sprite_file": "fadeaway_sprite_b.png",
 "strip_cols": 62,
 "title": ""
@@ -139,10 +132,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("7_hc3nu"),
+"icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 69: white shorts with purple and gold trim (they had blended with the jersey); the side and back runs on drivers with the shoulders levelled with the neck and, in the side view, the far arm tucked behind the torso in the passing frames (tools/pose_shoulders.py: run_side, run_spread_lvl): the side frames' raised shoulder and the back run's sagging shoulders came from the driver",
 "shelved": false,
-"sprite": ExtResource("6_cxldy"),
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite_c.png",
 "sprite_file": "fadeaway_sprite_c.png",
 "strip_cols": 62,
 "title": "hero_fadeaway_c.png"
@@ -173,10 +166,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("7_hc3nu"),
+"icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 85: the Puppet method on FAD-C's stills: his arms-out paintings (front c0, side c0, back c1) made into a 3D puppet (Hunyuan3D-2mv try 0, Mixamo bones, the hands rigged by hand: the finder had put them on the shorts' hem, running.fbx); fd and back walked on its depth video, front, side and bd on its stick figure (fadeaway_puppet_run; on depth the side and bd jerseys came out grey-purple twice); size from the 3D model (run_fit); colour fringes cleaned",
 "shelved": false,
-"sprite": ExtResource("8_hc3nu"),
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite_d.png",
 "sprite_file": "fadeaway_sprite_d.png",
 "strip_cols": 62,
 "title": "hero_fadeaway_c.png"
@@ -207,10 +200,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("7_hc3nu"),
+"icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 87: the precise (detailed) prompt on its own paintings (e: front c3, back c1, picked by eye); the back-diagonal painted from the front AND the back still so the 88 stays on his back (still_keys.bd), the back flinch from the back still (still_keys.hurt_back: no face, the 88 kept); walked on the puppet's stick figure fixed for him (fadeaway_puppet_run_up: the neck on the shoulder line = square shoulders, the head lifted = upright, the back-diagonal's shoulder twist calmed and its backswing kept off the 88); each view's run sized to his standing still by the head (run_scale)",
 "shelved": false,
-"sprite": ExtResource("9_ld7m5"),
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite_e.png",
 "sprite_file": "fadeaway_sprite_e.png",
 "strip_cols": 62,
 "title": "hero_fadeaway_c.png"
@@ -241,10 +234,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("7_hc3nu"),
+"icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 87: the loose (short) prompt on its own paintings (f: front c0, back c1, picked by eye; the short words gave a white 88 and a bigger afro); the back-diagonal painted from the front and the back still (still_keys.bd); walked on fadeaway_puppet_run_up like FAD-E; its first back walk painted a ball in his hand (the words say a basketball player), walked again with plain negatives (anim_seed 1); each view's run sized to his standing still by the head (run_scale)",
 "shelved": false,
-"sprite": ExtResource("10_qxe4n"),
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite_f.png",
 "sprite_file": "fadeaway_sprite_f.png",
 "strip_cols": 62,
 "title": "hero_fadeaway_c.png"

@@ -141,12 +141,15 @@ func variant_note(code: String) -> String:
 
 ## The icon of look `code`: its own picture, else the base look's, else the icon worn now.
 func look_icon(code: String) -> Texture2D:
+	# pass 101 (lane LOOKS): an entry holds its icon's path (loaded here, when the look is drawn), or a texture
 	var e = variants.get(code)
-	if e is Dictionary and (e as Dictionary).get("icon") is Texture2D:
-		return (e as Dictionary)["icon"]
+	var t: Texture2D = LookArt.icon((e as Dictionary).get("icon")) if e is Dictionary else null
+	if t != null:
+		return t
 	var b = variants.get(variant_base)
-	if b is Dictionary and (b as Dictionary).get("icon") is Texture2D:
-		return (b as Dictionary)["icon"]
+	var bt: Texture2D = LookArt.icon((b as Dictionary).get("icon")) if b is Dictionary else null
+	if bt != null:
+		return bt
 	return icon
 
 

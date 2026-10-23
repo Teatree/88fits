@@ -1,21 +1,17 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/ironclad/ironclad_icon.png" id="1_71v1f"]
 [ext_resource type="Texture2D" path="res://content/passives/ironclad/ironclad_icon_b.png" id="1_kj73p"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_kj73p"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_qet7a"]
-[ext_resource type="Texture2D" path="res://content/passives/ironclad/ironclad_icon_c.png" id="5_860wa"]
-[ext_resource type="Texture2D" path="res://content/passives/ironclad/ironclad_icon_d.png" id="6_am532"]
-[ext_resource type="Texture2D" path="res://content/passives/ironclad/ironclad_icon_e.png" id="7_pkgtj"]
 
-[sub_resource type="Resource" id="Resource_860wa"]
+[sub_resource type="Resource" id="Resource_71v1f"]
 script = ExtResource("2_kj73p")
 stat = "max_hp"
 op = "mul"
 value = 0.45
 target = "player"
 
-[sub_resource type="Resource" id="Resource_am532"]
+[sub_resource type="Resource" id="Resource_kj73p"]
 script = ExtResource("2_kj73p")
 stat = "damage_reduction"
 value = 0.15
@@ -24,37 +20,37 @@ target = "player"
 [resource]
 script = ExtResource("3_qet7a")
 line = true
-levels = [[SubResource("Resource_860wa"), SubResource("Resource_am532")]]
+levels = [[SubResource("Resource_71v1f"), SubResource("Resource_kj73p")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "vigour"
 variants = {
 "A": {
-"icon": ExtResource("1_71v1f"),
+"icon": "res://content/passives/ironclad/ironclad_icon.png",
 "icon_file": "ironclad_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_kj73p"),
+"icon": "res://content/passives/ironclad/ironclad_icon_b.png",
 "icon_file": "ironclad_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_860wa"),
+"icon": "res://content/passives/ironclad/ironclad_icon_c.png",
 "icon_file": "ironclad_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_am532"),
+"icon": "res://content/passives/ironclad/ironclad_icon_d.png",
 "icon_file": "ironclad_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_pkgtj"),
+"icon": "res://content/passives/ironclad/ironclad_icon_e.png",
 "icon_file": "ironclad_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

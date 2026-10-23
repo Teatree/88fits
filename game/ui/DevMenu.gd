@@ -143,6 +143,12 @@ func _refresh() -> void:
 	var ff_row := _switch("Fire forward (Sabre, Spear, Hammer, Frisbee, Tumbleweed, Basketball)", "fire_forward")
 	ff_row.name = "FireForwardRow"
 	_list.add_child(ff_row)
+	# pass 101 (lane FPS): the frame cap (Settings.frame_cap): 60 (a phone's default) or MAX (the screen's own rate)
+	var fc_row := _row("Frame rate · 60 or the screen's max (%s Hz)" % _refresh_hz(), Settings.frame_cap_label(), func():
+		Settings.set_value("frame_cap", Settings.next_frame_cap(Settings.frame_cap))
+		_refresh())
+	fc_row.name = "FrameCap"
+	_list.add_child(fc_row)
 	# the arena's training dummies (pass 48): a tap steps each one on, the arena lays them out from these
 	var hp_row := _row("Arena dummies · health", Settings.dummy_hp_label(Settings.dummy_hp), func():
 		Settings.set_value("dummy_hp", Settings.next_step(Settings.DUMMY_HP_STEPS, Settings.dummy_hp))
@@ -283,6 +289,12 @@ func show_survey_now() -> Control:
 	_survey = WSurveyScript.open(self, sv)
 	_refresh_soon()
 	return _survey
+
+
+## Pass 101 (lane FPS): the screen's refresh rate in words ("120", or "?" when the system does not say).
+func _refresh_hz() -> String:
+	var hz := DisplayServer.screen_get_refresh_rate()
+	return "?" if hz <= 0.0 else str(int(round(hz)))
 
 
 ## A row's frame: a 3 px aged outline round 26 x 30 px of room, a column inside.

@@ -1,15 +1,6 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_icon.png" id="1_0ccuo"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_mvnul"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_sprite.png" id="3_c1rqv"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_sprite_a.png" id="4_yqvg8"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_icon_a.png" id="5_xgopn"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_sprite_b.png" id="6_karly"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_icon_b.png" id="7_vy2f3"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_sprite_c.png" id="8_yx46t"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_icon_c.png" id="9_xf13t"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_sprite_d.png" id="10_dv5e0"]
 [ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_icon_d.png" id="11_v2jv0"]
 
 [resource]
@@ -43,7 +34,7 @@ anims = {
 "run_fd": 12.0,
 "run_s": 12.0
 }
-sprite = ExtResource("10_dv5e0")
+sprite_path = "res://content/enemies/dune_scorpion/dune_scorpion_sprite_d.png"
 sprite_file = "dune_scorpion_sprite_d.png"
 frame_px = 224
 strip_cols = 71
@@ -93,7 +84,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.955,
-"icon": ExtResource("1_0ccuo"),
+"icon": "res://content/enemies/dune_scorpion/dune_scorpion_icon.png",
 "note": "Pass 45: painted from the 2D reference (Wan clips; extra tails crept in)",
 "shadow": {
 "drop": 0.065,
@@ -101,7 +92,7 @@ variants = {
 "up": 0.55
 },
 "shelved": false,
-"sprite": ExtResource("3_c1rqv"),
+"sprite": "res://content/enemies/dune_scorpion/dune_scorpion_sprite.png",
 "sprite_file": "dune_scorpion_sprite.png",
 "strip_cols": 71
 },
@@ -130,7 +121,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.871,
-"icon": ExtResource("5_xgopn"),
+"icon": "res://content/enemies/dune_scorpion/dune_scorpion_icon_a.png",
 "note": "Golden amber (today's colours on the 3D model's anatomy)",
 "shadow": {
 "drop": 0.065,
@@ -138,7 +129,7 @@ variants = {
 "up": 0.55
 },
 "shelved": false,
-"sprite": ExtResource("4_yqvg8"),
+"sprite": "res://content/enemies/dune_scorpion/dune_scorpion_sprite_a.png",
 "sprite_file": "dune_scorpion_sprite_a.png",
 "strip_cols": 71
 },
@@ -167,7 +158,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.866,
-"icon": ExtResource("7_vy2f3"),
+"icon": "res://content/enemies/dune_scorpion/dune_scorpion_icon_b.png",
 "note": "Teal armour after Garry's 2D reference (_REFERENCES/2d/scorpion.png)",
 "shadow": {
 "drop": 0.065,
@@ -175,7 +166,7 @@ variants = {
 "up": 0.55
 },
 "shelved": false,
-"sprite": ExtResource("6_karly"),
+"sprite": "res://content/enemies/dune_scorpion/dune_scorpion_sprite_b.png",
 "sprite_file": "dune_scorpion_sprite_b.png",
 "strip_cols": 71
 },
@@ -204,7 +195,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.817,
-"icon": ExtResource("9_xf13t"),
+"icon": "res://content/enemies/dune_scorpion/dune_scorpion_icon_c.png",
 "note": "Black emperor with a blood-red sting",
 "shadow": {
 "drop": 0.065,
@@ -212,7 +203,7 @@ variants = {
 "up": 0.55
 },
 "shelved": false,
-"sprite": ExtResource("8_yx46t"),
+"sprite": "res://content/enemies/dune_scorpion/dune_scorpion_sprite_c.png",
 "sprite_file": "dune_scorpion_sprite_c.png",
 "strip_cols": 71
 },
@@ -241,7 +232,7 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.812,
-"icon": ExtResource("11_v2jv0"),
+"icon": "res://content/enemies/dune_scorpion/dune_scorpion_icon_d.png",
 "note": "Pale sand, banded",
 "shadow": {
 "drop": 0.065,
@@ -249,7 +240,7 @@ variants = {
 "up": 0.55
 },
 "shelved": false,
-"sprite": ExtResource("10_dv5e0"),
+"sprite": "res://content/enemies/dune_scorpion/dune_scorpion_sprite_d.png",
 "sprite_file": "dune_scorpion_sprite_d.png",
 "strip_cols": 71
 }

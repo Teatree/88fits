@@ -3874,3 +3874,75 @@ uncompressed in VRAM; the played strips are 88/123/128 MB a stage, but boot load
 render only on-screen creatures; smaller separation cells; slower off-screen steering; load only played looks; a 30 Hz
 crowd with interpolation; C++ hot loops; threaded rendering; fewer damage numbers) are in tools/dl/p100/status_PERF.md
 and the lead's report; probes game/tools/_p100_PERF_crowd.gd and _p100_PERF_vram.gd, results tools/dl/p100/PERF/.
+
+**Pass 101 (2026-10-23, v0.86): the six performance fixes.** Garry, after pass 100's assessment: "I think all 6 are good", four questions answered (tools/dl/p101/REQUEST.md), then "proceed with implementation"; on separation: "Test that there are no overlaps with 12 neighbours and increase if necessary." Three lanes: CROWD (fixes 3-5), FPS (1-2), LOOKS (6). Garry's own Level Editor edit of red_canyon.json at 14:30 (r21 shortened, a werewolf wave row r55, r54 longer) landed during the pass and is committed with it.
+
+**Pass 101, lane CROWD (the crowd's cost: draw only what is seen, finer separation cells, a slower far steer).** Garry
+took three of pass 100's six performance fixes for the crowd, all in `core/systems/EnemyManager.gd`. (1) **Drawn
+creatures only**: `drawn_vis` (refreshed half the crowd a tick by `refresh_drawn`, beside the weapons' unchanged
+`onscreen`) says whether a creature's whole drawn picture can reach into the camera's view: a sphere round the
+billboard quad at its own size, squash and stretch, lifted, sunk or rising, rocked by a charge, with its badge, and a
+second round its blob shadow (`vis_bounds`), against the camera's frustum grown by a border (1 m + its own speed and
+the camera's move and turn over 3 ticks), held 6 ticks after it leaves; `_render` skips the rest (no painting, shadow
+or badge). Proof: `game/tools/_p101_CROWD_pixels.gd` draws each busy frame three times with
+`RenderingServer.force_draw(false, 0)` (everything drawn, the game's culling, everything again as control) through a
+stage-3 crowd of 300, zooms 1.6 and 2.4, big creatures, Elites, a gear special and two bosses parked across all four
+edges, walking in, corpses thrown across them and creatures rising: 152 captures at 60 fps and 152 at 30 fps, about
+11,000 culled creatures, 0 differing pixels, and every real quad inside its bounds; culling by the feet flags instead
+(the negative control) changed 128 of 152 captures. (2) **Separation on 1.25 m cells**: a grid of its own (`SEP_CELL`,
+`_s_head`/`_s_next`; the 2.5 m grid stays the weapons' query grid, every radius query unchanged in content and order),
+"wide" past 0.625 m, and the wide bodies listed in every cell a narrow one touching them can stand in (`_sep_bigs`), so
+the old 16-body list's cap is gone (on 1.25 m cells a third of a stage-3 crowd is wide; with the cap 0.8-1.1 % of
+creatures had a one-sided overlap). The overlap measure (`_p101_CROWD_overlap.gd`: overlapping pairs per creature at
+tolerances 1.0/0.8/0.5, depth, one-sided pairs, a tight ring and a walking crowd of 300, two seeds, cells 2.5/2.0/1.75/
+1.5/1.25) found 1.25 m inside 2.5 m's seed-to-seed range with no one-sided pair; neighbours walked ~49 -> ~15 (a ring
+~115 -> ~37). (3) **The far steer**: a creature not drawn steers every 4th tick (`steer_far_every`), its clocks run for
+the ticks since its last steer (`_steer_dt`; exactly `sdt` on the screen), velocity held between; drawn creatures, the
+boss, Elites, elite-modded ones and any creature in an obstacle cell steer every 2nd tick as before (the rock rule came
+from the A/B: without it creatures caught on rock faces more often), and a far steer's push goes in at half its rate
+(`far_push_scale`: held twice as long, it pushes as far a second as before; the first sim A/B on stage 1 had fewer
+creatures near the hero without it). The A/B probe `_p101_CROWD_steer.gd` (waves
+20-32 m off a phone's view, god mode, no weapon, interleaved arms) found reach times and closing speeds equal within
+3 % in the open, among rocks, at the wall, walking, against dense packs and rings, and stuck-on-rock time equal with
+the rule; two run-sim A/Bs on one snapshot (16 players a stage, only the cadence differing) found nothing beyond ~1.6
+SE with the final code. On the PC at 300 creatures: enemies.render 1.55 -> 0.92 ms, the steer of every moving creature
+3.18 -> 1.88 ms, enemies.sim 3.41 -> 3.12 ms (perf_late six: render 1.3-1.55 -> 0.7-1.4, GPU halved, sim unchanged:
+its crowd is mostly on the screen, where the new flag's 0.3 ms a tick eats the fine cells' saving). Tests
+`game/tests/pass101_crowd_test.gd` (11).
+
+Pass 101, lane FPS (Garry approved fixes 1 and 2 of pass 100's performance assessment). **The 60 fps cap**: a new
+setting `Settings.frame_cap` drives `Engine.max_fps` (60, or 0 = "MAX", the screen's own rate with vsync); a phone (the
+`mobile` feature) starts at 60, the PC at 0 (today's behaviour), a save without the key takes the platform's default;
+applied in Settings._ready and on every change, so the title and every menu are capped too. The world moves 60 times a
+second (physics ticks, nothing interpolated), so a 120 Hz phone had drawn every picture twice; Godot's limiter works
+with vsync on (the lower of the cap and the screen's rate wins; the Compatibility renderer on Android swaps on vsync, so
+60 lands on every second refresh of a 120 Hz panel). There is no graphics section in the Settings screen, so the switch
+is the developer menu's "Frame rate · 60 or the screen's max (N Hz)" row (node FrameCap, a tap steps 60 -> MAX); it is
+not prod-locked, but prod has no developer menu, so a prod phone plays at 60. **Frame times every second**: the run
+record is schema 3 (core/systems/RunAnalytics.gd): each row carries `frames`, `frame_ms`, `frame_max`, `frame_p95`
+(only frames straight after the last ticked one: a hitch counts, the gap after a pause does not), `proj` and `pickups`;
+the header's `frame_timing` says whether the clock is a frame rate (false headless or under --fixed-fps) and what capped
+it; summary()/run_summary fold `m_frames`, `m_frame_ms`, `m_fps`, `m_frame_max`, `m_frame_p95`, `m_proj`, `m_pickups`,
+plus `frame_cap`, `frame_valid`. analytics/dashboard.html gains the "Frame time" card (ms a frame beside what was on
+screen); the averaged and remote views draw "Frame time" and "What the frame drew" in a new last section, Performance
+(sim_model.js; sim_avg.js frameSeries, only from a valid clock); tools/analytics_csv.py and the page's CSV carry the six
+columns; analytics/SCHEMA.md documents them. A 25-minute run_record grows from ~166,000 to ~200,000 base64 characters,
+still two parts of the 24 allowed. Tests: game/tests/pass101_fps_test.gd, tools/level_editor/selftest_FPS101.py
+(old records still open, the CSVs byte for byte), touch_audit's dev_frame_cap; schema pins re-pinned 2 -> 3 in
+pass45_analytics_test and pass74_analytics_test, the sections pin in selftest_SIM77.
+
+Garry's item 6 ("load only the looks that will appear", the lead's promise: every look stays listed in the arena and the
+Level Editor, its strip loaded the moment it is picked, a brief pause the first time at most, ~2.3 GB -> ~0.3 GB). Pass
+100's probe had found boot putting 856 pictures, 2.3 GB at 4 bytes a pixel, into the GPU: every .tres named every look's
+strip as an ext_resource, so the Registry's scan loaded them all. Now the content keeps a look's strip as its res://
+path (EnemyDef/CharacterDef `sprite_path`; `variants[CODE].sprite` and `.icon` are paths) and `sprite` is a getter that
+loads it on the first ask through core/data/LookArt.gd (a path -> texture cache: the run's set pinned, then the most
+recently asked strips up to KEEP_MB 160, the oldest let go; a texture still drawn stays alive in Godot's own cache, so
+letting go never changes what is on screen). core/systems/RunLooks.gd works out what a run will show (the stage window's
+roster rows with their `variant`, waves and events in the window, specials whose stage has come, the stage's boss, the
+map's `boss` and `skins`, what a boss attack brings, the hero's played look) and Warmup.run, under the spawn beam, pins
+those strips and draws one type per creature of that set (it drew every creature in the game before). The arena pins
+only its dummies and loads a look when it is picked or spawned; the title lets the last run's set go and keeps the hero it
+opens on. The JSON (the Level Editor's format) did not change; import_json writes the new .tres; readers take a texture as
+well (old .tres, the stand-in looks of arena_check and touch_audit). The cards' unplayed looks' icons, and creature and
+hero look icons, load when worn too.

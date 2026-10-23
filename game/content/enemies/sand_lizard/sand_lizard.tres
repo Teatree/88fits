@@ -1,14 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_aj6kf"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon.png" id="1_rjfxn"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite.png" id="3_1atbf"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite_a.png" id="4_kqten"]
 [ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_a.png" id="5_onl8u"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite_b.png" id="6_wviw3"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_b.png" id="7_afmyo"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite_c.png" id="8_pbh4q"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_c.png" id="9_r8q0c"]
 
 [resource]
 script = ExtResource("1_aj6kf")
@@ -36,7 +29,7 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("4_kqten")
+sprite_path = "res://content/enemies/sand_lizard/sand_lizard_sprite_a.png"
 sprite_file = "sand_lizard_sprite_a.png"
 frame_px = 160
 strip_cols = 40
@@ -67,11 +60,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.806,
-"icon": ExtResource("1_rjfxn"),
+"icon": "res://content/enemies/sand_lizard/sand_lizard_icon.png",
 "note": "the top-level strip, before the Level Editor's looks",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("3_1atbf"),
+"sprite": "res://content/enemies/sand_lizard/sand_lizard_sprite.png",
 "sprite_file": "sand_lizard_sprite.png",
 "strip_cols": 40
 },
@@ -94,11 +87,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 1.0,
-"icon": ExtResource("5_onl8u"),
+"icon": "res://content/enemies/sand_lizard/sand_lizard_icon_a.png",
 "note": "",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("4_kqten"),
+"sprite": "res://content/enemies/sand_lizard/sand_lizard_sprite_a.png",
 "sprite_file": "sand_lizard_sprite_a.png",
 "strip_cols": 40
 },
@@ -121,11 +114,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.981,
-"icon": ExtResource("7_afmyo"),
+"icon": "res://content/enemies/sand_lizard/sand_lizard_icon_b.png",
 "note": "",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("6_wviw3"),
+"sprite": "res://content/enemies/sand_lizard/sand_lizard_sprite_b.png",
 "sprite_file": "sand_lizard_sprite_b.png",
 "strip_cols": 40
 },
@@ -148,11 +141,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 1.0,
-"icon": ExtResource("9_r8q0c"),
+"icon": "res://content/enemies/sand_lizard/sand_lizard_icon_c.png",
 "note": "",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("8_pbh4q"),
+"sprite": "res://content/enemies/sand_lizard/sand_lizard_sprite_c.png",
 "sprite_file": "sand_lizard_sprite_c.png",
 "strip_cols": 40
 }

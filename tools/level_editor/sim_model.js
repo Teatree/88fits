@@ -437,6 +437,20 @@ const SimModel = (() => {
         how: `How many weapons, evolutions, lines (the fortune cards), passive items and perks the hero holds at each second, ${playingNote}.`,
         lines: kinds.map((k, i) => ({ key: 'held_' + k, label: k, color: SLOTS[i], values: held[k] })), overlay: [] });
     }
+    // ---- performance (pass 101, lane FPS): the frame times of runs played in a window (run records of schema 3; a sim
+    // runs headless and has none, so the Sim tab never shows this section)
+    if (has('frame_ms')) push('perf', { id: 'frame_time', title: 'Frame time', fmt: 'num', unit: 'ms a frame',
+      how: `Each second's frames, ${playingNote}: the mean wall time of a frame (fps = 1000 ÷ it; 16.7 ms = 60 fps, 33.3 ms = 30 fps), the 95th percentile and the slowest frame of the second. A phone capped at 60 fps (Settings.frame_cap) sits at 16.7 ms while it keeps up; above it, the phone falls behind. Headless and --fixed-fps runs are left out (their clock is not a frame rate).`,
+      lines: [{ key: 'frame_ms', label: 'mean', color: SLOTS[0], values: ser(res, 'frame_ms') || [] },
+        { key: 'frame_p95', label: '95th percentile', color: SLOTS[6], values: ser(res, 'frame_p95') || [], dash: SHORT_DASH, width: 1.5 },
+        { key: 'frame_max', label: 'slowest', color: SLOTS[7], values: ser(res, 'frame_max') || [], width: 1 }],
+      overlay: ov('frame_ms', 'mean', `${cmpName}: mean`) });
+    if (has('proj') || has('pickups')) push('perf', { id: 'frame_load', title: 'What the frame drew', fmt: 'num', unit: 'on the field',
+      how: `What each frame had to draw and move besides the hero, ${playingNote}: creatures alive, shots in flight (every round, lob and hostile shot), gems and coins lying. Read it beside Frame time.`,
+      lines: [{ key: 'alive', label: 'creatures alive', color: SLOTS[0], values: ser(res, 'alive') || [] },
+        { key: 'proj', label: 'shots in flight', color: SLOTS[1], values: ser(res, 'proj') || [], width: 1.5 },
+        { key: 'pickups', label: 'pickups lying', color: SLOTS[3], values: ser(res, 'pickups') || [], dash: SHORT_DASH, width: 1.5 }],
+      overlay: [] });
     for (const c of out) { c.bands = c.bands || []; c.overlay = c.overlay || []; c.lines = c.lines.filter((l) => l.values && l.values.length); }
     return out;
   }
@@ -449,6 +463,8 @@ const SimModel = (() => {
     { id: 'difficulty', title: 'How hard is each second?', words: 'What the hero is up against: the health he loses, whether he keeps up with the crowd, what is close and what hurts.' },
     { id: 'rewards', title: 'Rewards', words: 'Coins, damage and kills so far.' },
     { id: 'growth', title: 'Growth', words: 'His level, his XP and his build.' },
+    // pass 101 (lane FPS): only runs played in a window carry it (the dashboard's runs, never a sim)
+    { id: 'perf', title: 'Performance', words: 'How fast the device drew the frames, and what it had to draw.' },
   ];
 
   /** The difficulty charts these runs could not draw (their runner did not report the data): [chart title]. */

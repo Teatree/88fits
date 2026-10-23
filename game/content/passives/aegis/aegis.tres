@@ -1,27 +1,23 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/aegis/aegis_icon.png" id="1_5r0e2"]
 [ext_resource type="Texture2D" path="res://content/passives/aegis/aegis_icon_b.png" id="1_76lcb"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_76lcb"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_boxa8"]
-[ext_resource type="Texture2D" path="res://content/passives/aegis/aegis_icon_c.png" id="5_cdehr"]
-[ext_resource type="Texture2D" path="res://content/passives/aegis/aegis_icon_d.png" id="6_upa41"]
-[ext_resource type="Texture2D" path="res://content/passives/aegis/aegis_icon_e.png" id="7_arbyl"]
 
-[sub_resource type="Resource" id="Resource_cdehr"]
+[sub_resource type="Resource" id="Resource_5r0e2"]
 script = ExtResource("2_76lcb")
 stat = "shield_max"
 value = 90.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_upa41"]
+[sub_resource type="Resource" id="Resource_76lcb"]
 script = ExtResource("2_76lcb")
 stat = "shield_delay"
 op = "set"
 value = 1.5
 target = "player"
 
-[sub_resource type="Resource" id="Resource_arbyl"]
+[sub_resource type="Resource" id="Resource_boxa8"]
 script = ExtResource("2_76lcb")
 stat = "shield_rate"
 op = "set"
@@ -31,37 +27,37 @@ target = "player"
 [resource]
 script = ExtResource("3_boxa8")
 line = true
-levels = [[SubResource("Resource_cdehr"), SubResource("Resource_upa41"), SubResource("Resource_arbyl")]]
+levels = [[SubResource("Resource_5r0e2"), SubResource("Resource_76lcb"), SubResource("Resource_boxa8")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "energy_shield"
 variants = {
 "A": {
-"icon": ExtResource("1_5r0e2"),
+"icon": "res://content/passives/aegis/aegis_icon.png",
 "icon_file": "aegis_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_76lcb"),
+"icon": "res://content/passives/aegis/aegis_icon_b.png",
 "icon_file": "aegis_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_cdehr"),
+"icon": "res://content/passives/aegis/aegis_icon_c.png",
 "icon_file": "aegis_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_upa41"),
+"icon": "res://content/passives/aegis/aegis_icon_d.png",
 "icon_file": "aegis_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_arbyl"),
+"icon": "res://content/passives/aegis/aegis_icon_e.png",
 "icon_file": "aegis_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

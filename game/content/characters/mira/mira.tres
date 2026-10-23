@@ -3,22 +3,21 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_fg1hg"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_jchtx"]
 [ext_resource type="Texture2D" path="res://content/characters/mira/mira_icon.png" id="2_ndgrd"]
-[ext_resource type="Texture2D" path="res://content/characters/mira/mira_sprite.png" id="4_w8apu"]
 
-[sub_resource type="Resource" id="Resource_ndgrd"]
+[sub_resource type="Resource" id="Resource_jchtx"]
 script = ExtResource("1_fg1hg")
 stat = "cooldown"
 op = "mul"
 value = -0.2
 
-[sub_resource type="Resource" id="Resource_w8apu"]
+[sub_resource type="Resource" id="Resource_ndgrd"]
 script = ExtResource("1_fg1hg")
 stat = "greed"
 op = "mul"
 value = 0.3
 target = "player"
 
-[sub_resource type="Resource" id="Resource_3p01h"]
+[sub_resource type="Resource" id="Resource_w8apu"]
 script = ExtResource("1_fg1hg")
 stat = "might"
 op = "mul"
@@ -27,20 +26,20 @@ target = "player"
 
 [resource]
 script = ExtResource("2_jchtx")
-trait_effects = [SubResource("Resource_w8apu"), SubResource("Resource_3p01h")]
+trait_effects = [SubResource("Resource_ndgrd"), SubResource("Resource_w8apu")]
 order = 9
 trait_name = "Motherlode"
 trait_text = "+30% coin gain and −10% attack damage. Elites and bosses drop one extra material for the homestead."
 pronoun = "she"
 favourite_weapon = "land_mine"
 favourite_bonus = {
-"effects": [SubResource("Resource_ndgrd")],
+"effects": [SubResource("Resource_jchtx")],
 "type": "effects"
 }
 specials = ["motherlode"]
 availability = "hidden"
 price = 9999
-sprite = ExtResource("4_w8apu")
+sprite_path = "res://content/characters/mira/mira_sprite.png"
 sprite_file = "mira_sprite.png"
 anims = {
 "cheer": 1.0,

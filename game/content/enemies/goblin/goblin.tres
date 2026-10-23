@@ -1,13 +1,6 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_2x7it"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_icon.png" id="1_h5rwn"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_sprite.png" id="3_pqa08"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_sprite_b.png" id="4_pqa08"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_sprite_c.png" id="5_vppjr"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_icon_b.png" id="6_iyyin"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_sprite_d.png" id="6_l8cjg"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_icon_c.png" id="7_w3xfa"]
 [ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_icon_d.png" id="9_klujv"]
 
 [resource]
@@ -34,7 +27,7 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("6_l8cjg")
+sprite_path = "res://content/enemies/goblin/goblin_sprite_d.png"
 sprite_file = "goblin_sprite_d.png"
 strip_cols = 43
 fps = {
@@ -65,11 +58,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.977,
-"icon": ExtResource("1_h5rwn"),
+"icon": "res://content/enemies/goblin/goblin_icon.png",
 "note": "the orc walk fitted to the goblin, the painted fall (pass 33.9)",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("3_pqa08"),
+"sprite": "res://content/enemies/goblin/goblin_sprite.png",
 "sprite_file": "goblin_sprite.png",
 "strip_cols": 43
 },
@@ -92,11 +85,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.984,
-"icon": ExtResource("6_iyyin"),
+"icon": "res://content/enemies/goblin/goblin_icon_b.png",
 "note": "the same goblin on Mixamo's plain walk; it dies on the Falling Back Death clip",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("4_pqa08"),
+"sprite": "res://content/enemies/goblin/goblin_sprite_b.png",
 "sprite_file": "goblin_sprite_b.png",
 "strip_cols": 43
 },
@@ -119,11 +112,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.961,
-"icon": ExtResource("7_w3xfa"),
+"icon": "res://content/enemies/goblin/goblin_icon_c.png",
 "note": "a new painting with the club held upright; the orc walk; the painted fall",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("5_vppjr"),
+"sprite": "res://content/enemies/goblin/goblin_sprite_c.png",
 "sprite_file": "goblin_sprite_c.png",
 "strip_cols": 43
 },
@@ -146,11 +139,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 1.0,
-"icon": ExtResource("9_klujv"),
+"icon": "res://content/enemies/goblin/goblin_icon_d.png",
 "note": "a new painting; a swaggering big-guy walk; it dies on the Falling Back Death clip",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("6_l8cjg"),
+"sprite": "res://content/enemies/goblin/goblin_sprite_d.png",
 "sprite_file": "goblin_sprite_d.png",
 "strip_cols": 43
 }

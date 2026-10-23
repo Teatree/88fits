@@ -151,8 +151,9 @@ func test_the_header_carries_the_run_its_settings_and_the_map_as_played() -> voi
 	var ra := _recorder(g)
 	ra.set_launch({"weapon": "revolver", "level": 3, "spawn": true, "skip_me": {"a": 1}})
 	var h: Dictionary = ra.header
-	assert_int(int(h["schema"])).is_equal(2)
-	assert_int(RunAnalytics.SCHEMA).is_equal(2)
+	# pass 101 (lane FPS): schema 3 (the rows' frame times, pass101_fps_test), re-pinned on purpose
+	assert_int(int(h["schema"])).is_equal(3)
+	assert_int(RunAnalytics.SCHEMA).is_equal(3)
 	# the test runner is a tool's process (headless, started with -s)
 	assert_bool(bool(h["tool"])).is_true()
 	assert_bool(RunAnalytics.is_tool_process()).is_true()
@@ -384,7 +385,7 @@ func test_a_tools_run_mirrors_into_its_own_folder_and_the_index_row_flattens_the
 		assert_bool(idx is Array).is_true()
 		var row: Dictionary = (idx as Array).back()
 		assert_str(str(row["file"])).is_equal(fname)
-		assert_int(int(row["schema"])).is_equal(2)
+		assert_int(int(row["schema"])).is_equal(3)   # pass 101 (lane FPS): schema 3, re-pinned on purpose
 		assert_bool(bool(row["tool"])).is_equal(tool_run)
 		for k in ["hero_look", "gold_end.gold_banked", "settings.dev", "map_settings.hero_knockback_mult",
 				"map_settings.boss_hp_scaling.ref_dps.tumbleweed_king", "trait.name", "talents", "totems", "damage",

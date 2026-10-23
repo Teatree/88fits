@@ -109,8 +109,25 @@ roster = [{
 "size": 1.25
 },
 "t": 245.0,
-"until": 347.0,
+"until": 315.0,
 "weights": [[245.0, 5.4], [306.0, 10.1], [337.0, 10.6]]
+}, {
+"count": 50.0,
+"enemy": "werewolf",
+"every": 5.0,
+"id": "r55",
+"pace": "waves",
+"pack": 30.0,
+"pattern": "scatter",
+"role": "fodder",
+"stats": {
+"damage_mult": 1.25,
+"hp_mult": 0.8,
+"size": 1.25
+},
+"t": 315.0,
+"until": 376.0,
+"weights": [[315.0, 5.4], [376.0, 10.1], [407.0, 10.6]]
 }, {
 "count": 30.0,
 "enemy": "lesser_scorpion",
@@ -203,9 +220,17 @@ roster = [{
 "pack": 1.0,
 "pattern": "scatter",
 "role": "fodder",
-"t": 376.0,
-"until": 416.0,
-"weights": [[377.0, 1.2]]
+"stats": {
+"tint": {
+"amount": 0.09,
+"hue": [297.0, 360.0],
+"sat": 0.87,
+"val": 1.0
+}
+},
+"t": 357.0,
+"until": 430.0,
+"weights": [[358.0, 1.2]]
 }, {
 "enemy": "bull_beetle",
 "id": "r4",

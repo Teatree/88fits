@@ -737,7 +737,7 @@ def _page_checks(check, run_node, SB, tmp):
     check(out["ids"] == ["dps", "hp", "playing", "deaths", "danger", "keep_up", "near", "alive_by", "trouble", "hurt", "hits", "heal", "cap", "flow",
                          "strength", "gold", "dmg", "kills", "pickups", "level", "xp", "build"],
           "page: the charts in Garry's order, the difficulty ones round 2's (made-up runs carry every field): %s" % out["ids"])
-    check(out["sections"] == ["hero", "death", "difficulty", "rewards", "growth"] and out["secOf"] == {"dps": "hero", "playing": "death", "danger": "difficulty",
+    check(out["sections"] == ["hero", "death", "difficulty", "rewards", "growth", "perf"] and out["secOf"] == {"dps": "hero", "playing": "death", "danger": "difficulty",
                                                                                                        "gold": "rewards", "build": "growth"},
           "page: the five sections: %s" % out["sections"])
     check(out["lacking"] == [] and len(out["lackingBare"]) == 9 and out["idsBare"] == ["dps", "hp", "playing", "deaths", "alive_by", "gold", "dmg", "kills", "pickups", "level", "xp"],

@@ -1,21 +1,17 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon.png" id="1_f2dl5"]
 [ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon_b.png" id="1_m8uhn"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_m8uhn"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_afda2"]
-[ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon_c.png" id="5_2tftm"]
-[ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon_d.png" id="6_wxox4"]
-[ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon_e.png" id="7_mv1ru"]
 
-[sub_resource type="Resource" id="Resource_2tftm"]
+[sub_resource type="Resource" id="Resource_f2dl5"]
 script = ExtResource("2_m8uhn")
 stat = "greed"
 op = "mul"
 value = 0.6
 target = "player"
 
-[sub_resource type="Resource" id="Resource_wxox4"]
+[sub_resource type="Resource" id="Resource_m8uhn"]
 script = ExtResource("2_m8uhn")
 stat = "gold_might"
 value = 0.01
@@ -24,37 +20,37 @@ target = "player"
 [resource]
 script = ExtResource("3_afda2")
 line = true
-levels = [[SubResource("Resource_2tftm"), SubResource("Resource_wxox4")]]
+levels = [[SubResource("Resource_f2dl5"), SubResource("Resource_m8uhn")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "gold_tooth"
 variants = {
 "A": {
-"icon": ExtResource("1_f2dl5"),
+"icon": "res://content/passives/gold_rush/gold_rush_icon.png",
 "icon_file": "gold_rush_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_m8uhn"),
+"icon": "res://content/passives/gold_rush/gold_rush_icon_b.png",
 "icon_file": "gold_rush_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_2tftm"),
+"icon": "res://content/passives/gold_rush/gold_rush_icon_c.png",
 "icon_file": "gold_rush_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_wxox4"),
+"icon": "res://content/passives/gold_rush/gold_rush_icon_d.png",
 "icon_file": "gold_rush_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_mv1ru"),
+"icon": "res://content/passives/gold_rush/gold_rush_icon_e.png",
 "icon_file": "gold_rush_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

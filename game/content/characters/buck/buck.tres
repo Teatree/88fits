@@ -1,32 +1,23 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_b1smd"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon.png" id="2_4jnfx"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_r747c"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite.png" id="4_ihfma"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_b.png" id="5_ihfma"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_c.png" id="6_nb70y"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_d.png" id="7_nai31"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_d.png" id="8_v865h"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_e.png" id="9_b75va"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_e.png" id="10_v5l1u"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_f.png" id="11_4l51j"]
 [ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_f.png" id="12_18qhc"]
 
-[sub_resource type="Resource" id="Resource_18qhc"]
+[sub_resource type="Resource" id="Resource_r747c"]
 script = ExtResource("1_b1smd")
 stat = "area"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_ysl4k"]
+[sub_resource type="Resource" id="Resource_4jnfx"]
 script = ExtResource("1_b1smd")
 stat = "move_speed"
 op = "mul"
 value = 0.01
 target = "player"
 
-[sub_resource type="Resource" id="Resource_kamrv"]
+[sub_resource type="Resource" id="Resource_ihfma"]
 script = ExtResource("1_b1smd")
 stat = "move_speed"
 op = "mul"
@@ -35,15 +26,15 @@ target = "player"
 
 [resource]
 script = ExtResource("2_r747c")
-trait_effects = [SubResource("Resource_kamrv")]
-level_trait = [SubResource("Resource_ysl4k")]
+trait_effects = [SubResource("Resource_ihfma")]
+level_trait = [SubResource("Resource_4jnfx")]
 order = 7
 trait_name = "Full Tilt"
 trait_text = "Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it."
 pronoun = "he"
 favourite_weapon = "salt"
 favourite_bonus = {
-"effects": [SubResource("Resource_18qhc")],
+"effects": [SubResource("Resource_r747c")],
 "type": "effects"
 }
 start_weapon = "frisbee"
@@ -57,7 +48,7 @@ momentum = {
 }
 availability = "purchase"
 price = 2000
-sprite = ExtResource("11_4l51j")
+sprite_path = "res://content/characters/buck/buck_sprite_f.png"
 sprite_file = "buck_sprite_f.png"
 anims = {
 "cheer": 1.0,
@@ -111,10 +102,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("2_4jnfx"),
+"icon": "res://content/characters/buck/buck_icon.png",
 "note": "the deer, the top-level strip before the Level Editor's looks (shelved in pass 69: the top-level words are Jeżyk's tracksuit now; BUC-B keeps the deer's words)",
 "shelved": true,
-"sprite": ExtResource("4_ihfma"),
+"sprite": "res://content/characters/buck/buck_sprite.png",
 "sprite_file": "buck_sprite.png",
 "strip_cols": 62,
 "title": ""
@@ -145,10 +136,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("2_4jnfx"),
+"icon": "res://content/characters/buck/buck_icon.png",
 "note": "the back and back-diagonal runs on run_spread (the wrists pushed out past the torso, as Calavera and Ironwood)",
 "shelved": true,
-"sprite": ExtResource("5_ihfma"),
+"sprite": "res://content/characters/buck/buck_sprite_b.png",
 "sprite_file": "buck_sprite_b.png",
 "strip_cols": 62,
 "title": ""
@@ -179,10 +170,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("2_4jnfx"),
+"icon": "res://content/characters/buck/buck_icon.png",
 "note": "the back and back-diagonal runs on run_occ: the hands bunch at the chest again (kept for comparison, shelved)",
 "shelved": true,
-"sprite": ExtResource("6_nb70y"),
+"sprite": "res://content/characters/buck/buck_sprite_c.png",
 "sprite_file": "buck_sprite_c.png",
 "strip_cols": 62,
 "title": ""
@@ -213,10 +204,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("8_v865h"),
+"icon": "res://content/characters/buck/buck_icon_d.png",
 "note": "pass 69: Jezyk in the tracksuit (front from Garry's reference sheet, BUC-D's front_from_picture pick c0); the jog: the Running stride with the shoulders levelled and the side's far arm tucked (run_side), the back views spread and levelled (run_spread_lvl)",
 "shelved": false,
-"sprite": ExtResource("7_nai31"),
+"sprite": "res://content/characters/buck/buck_sprite_d.png",
 "sprite_file": "buck_sprite_d.png",
 "strip_cols": 62,
 "title": "hero_buck_d.png"
@@ -247,10 +238,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("10_v5l1u"),
+"icon": "res://content/characters/buck/buck_icon_e.png",
 "note": "pass 69: the sprint: BUC-D's paintings on run_sprint_lvl (the Running stride with the legs swung 1.35x wider and the spine leaning 12 degrees forward, back views spread, shoulders levelled, the side's far arm tucked)",
 "shelved": false,
-"sprite": ExtResource("9_b75va"),
+"sprite": "res://content/characters/buck/buck_sprite_e.png",
 "sprite_file": "buck_sprite_e.png",
 "strip_cols": 62,
 "title": "hero_buck_e.png"
@@ -281,10 +272,10 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("12_18qhc"),
+"icon": "res://content/characters/buck/buck_icon_f.png",
 "note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled). Pass 70 (lane ART): the front walk on run_dash_f_low (the hands low beside his hips, no longer over the jacket); run_scale so every view runs at one size (the back ran small: 0.96 of his standing size against 1.17 from the side and front)",
 "shelved": false,
-"sprite": ExtResource("11_4l51j"),
+"sprite": "res://content/characters/buck/buck_sprite_f.png",
 "sprite_file": "buck_sprite_f.png",
 "strip_cols": 62,
 "title": "hero_buck_f.png"

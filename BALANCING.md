@@ -6438,3 +6438,63 @@ bought for 300 gold. pass100_QUESTS_test walks the chain from a new save and rea
   spawn beam draws over the filter (render priority -6, the filter -7), so it reads as light at night and in hell.
 - The bot (game/tools/bot/BotCards.gd) needs no change: a free revive is worth `SURVIVAL_PTS.phoenix_revive` 25 on the
   one card there is; it never valued the old rungs' revive health.
+
+## 46. Pass 101 (v0.86): the six performance fixes
+
+Garry's words: tools/dl/p101/REQUEST.md. Each lane's rules.
+
+### 46.CROWD Drawing only what is on screen, separation on 1.25 m cells, slower off-screen steering
+
+1. **Only creatures the camera can see are drawn.** A creature is drawn while its whole drawn picture can reach into the
+   camera's view: the painting at its own size (Elites, specials, bosses, a size range: `size`), squash and stretch (its
+   own, its type's launch stretch 1 + 1.6 x crouch, at least 1.3, x 1.05 + 0.05 for a charge's bounce and the walk's bob),
+   up to 0.7 x size either side, lifted (a toss, a launch, a thrown body), sunk (shadow `drop`, `die_drop`) or still under
+   the sand while rising, a charger's shake, bounce and roll, its badge (crown, skull, gear, at a boss's size), and its
+   blob shadow; plus a border of 1.0 m + how far it moves at its own speed in 3 ticks + how far the camera's move and turn
+   carry the view's edge at its distance in 3 ticks; and for 6 ticks after it leaves. Checked half the crowd a tick (each
+   creature every 2nd tick). Not drawn = no painting, no shadow, no badge. The weapons' "on screen" rule (feet within
+   1 m of the screen, Settings.ranged_on_screen) is unchanged and separate. (EnemyManager.drawn_vis, refresh_drawn,
+   VIS_BORDER_M 1.0, VIS_LOOK_TICKS 3, VIS_HOLD 6, VIS_STRETCH 1.3.)
+2. **Separation looks at 1.25 m cells** (was the 2.5 m query grid): a creature walks about 14 neighbours instead of ~49
+   (a dense ring: ~36 instead of ~110). "Wide" = a radius over 0.625 m; a narrow creature finds every wide one it
+   touches through its cell's list, however many (the old list of 16 wide bodies is no longer a cap). The push is the
+   same push. The weapons' radius queries still use the 2.5 m grid and return the same creatures in the same order.
+   Chosen by the overlap measure: 2.5 / 2.0 / 1.75 / 1.5 / 1.25 m all inside 2.5 m's seed-to-seed range of overlapping
+   pairs; with the old 16-body cap 1.5 m and 1.25 m left 0.1 % and 0.8-1.1 % of creatures with a one-sided overlap,
+   with the cell lists none at any size. (EnemyManager.SEP_CELL 1.25, _sep_bigs.)
+3. **Creatures not drawn steer every 4th tick** (drawn ones every 2nd, as before; the boss, Elites, elite-modded
+   creatures and any creature in a cell an obstacle reaches (4 m obstacle cells) always every 2nd). Their velocity
+   holds between steers; each steer runs their clocks (slows, freezes, stuns, wind-ups, charges) for the ticks since
+   their last steer; obstacle and crowd pushes are in every steer, and a far steer's push is baked in at half its
+   rate (it is held twice as long, so a body is pushed as far a second as before); despawn and the director's move-up
+   are unchanged. (EnemyManager.steer_far_every 4, far_push_scale.)
+
+Numbers measured: see report / status_CROWD.md (overlap per cell size, the off-screen steer A/B, the sim before/after).
+
+### 46.FPS The 60 fps cap on phones, frame times every second in the run record
+
+- **The frame cap** (Settings.frame_cap, Engine.max_fps): 60 frames a second at most on a phone (Android; the `mobile`
+  feature), the screen's own rate on the PC (0 = no cap but vsync's). Applies everywhere (title, menus, runs). The
+  developer menu's "Frame rate" row switches 60 / MAX; the production build has no developer menu, so a prod phone plays
+  at 60. Why 60: the world moves 60 times a second (physics ticks; nothing is interpolated), a frame drawn between two
+  ticks repeats the last picture. Pass 100 measured 120 Hz costing about 25% more CPU a second than 60 Hz.
+- **The run record's frame clock** (schema 3): a row's `frames` counts only frames that follow the last ticked one
+  directly (Engine.get_process_frames advanced by 1), so a hitch of any length counts and the gap after a pause or a
+  card screen does not; the run's old `fps` {avg, low} keeps its rule (frames over 250 ms left out as pauses). p95 =
+  nearest rank (ceil(0.95 n)-th smallest). A headless run or one under --fixed-fps is marked `frame_timing.valid:
+  false`; the averaged dashboard views leave its frame times out.
+
+### 46.LOOKS Only the looks a run shows are loaded; every look still testable in the arena
+
+- A look's sprite strip loads the first time something asks for it; the content (.tres) names no strip.
+- A run loads and pins, under the spawn beam (Warmup.run -> RunLooks.prepare), the strips of every creature its stage
+  window can bring in the look it brings it in (roster rows open in the window with their `variant`, waves/events in the
+  window, specials whose stage has come, the stage's boss, the map's `boss` and `skins`, what a boss attack's
+  `enemy`/`spawn` brings) and the hero's played look. Warmup now draws one type per creature of that set (was: every
+  creature in the game).
+- The arena pins only its training dummies; a look loads when it is picked or spawned.
+- The title (TitleScreen._ready) unpins the last run's set; the live title keeps the strip of the hero it opens on.
+- Beyond the pinned set, the most recently asked strips are kept up to LookArt.KEEP_MB = 160 MB (at 4 bytes a pixel); the
+  oldest are let go first (a strip still drawn by a material stays alive regardless).
+- A look's icon (other than the one played) loads when the look is worn or drawn (passives' card looks, creature and hero
+  looks).

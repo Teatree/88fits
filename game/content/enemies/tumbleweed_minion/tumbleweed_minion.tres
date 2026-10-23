@@ -1,16 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon.png" id="1_7bp8e"]
 [ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_c.png" id="1_gnkwv"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_oi5i7"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite.png" id="3_1dmgc"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_c.png" id="3_3vomk"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_a.png" id="6_s358u"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_a.png" id="7_62bp6"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_b.png" id="8_2mn34"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_b.png" id="9_1ec03"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_d.png" id="10_kcb38"]
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_d.png" id="11_rsje4"]
 
 [resource]
 script = ExtResource("2_oi5i7")
@@ -36,7 +27,7 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("3_3vomk")
+sprite_path = "res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_c.png"
 sprite_file = "tumbleweed_minion_sprite_c.png"
 strip_cols = 43
 fps = {
@@ -66,11 +57,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.961,
-"icon": ExtResource("1_7bp8e"),
+"icon": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon.png",
 "note": "Pass 45: the brown cloth cap and the big stern face (kept to come back to)",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("3_1dmgc"),
+"sprite": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite.png",
 "sprite_file": "tumbleweed_minion_sprite.png",
 "strip_cols": 43
 },
@@ -93,11 +84,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.961,
-"icon": ExtResource("7_62bp6"),
+"icon": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_a.png",
 "note": "Red fez, a grumpy scowl",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("6_s358u"),
+"sprite": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_a.png",
 "sprite_file": "tumbleweed_minion_sprite_a.png",
 "strip_cols": 43
 },
@@ -120,11 +111,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.961,
-"icon": ExtResource("9_1ec03"),
+"icon": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_b.png",
 "note": "Red fez, a sly fanged sneer with a face woven from twigs",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("8_2mn34"),
+"sprite": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_b.png",
 "sprite_file": "tumbleweed_minion_sprite_b.png",
 "strip_cols": 43
 },
@@ -147,11 +138,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.961,
-"icon": ExtResource("1_gnkwv"),
+"icon": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_c.png",
 "note": "Red fez, a mean glare with gritted teeth",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("3_3vomk"),
+"sprite": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_c.png",
 "sprite_file": "tumbleweed_minion_sprite_c.png",
 "strip_cols": 43
 },
@@ -174,11 +165,11 @@ variants = {
 },
 "front_faces": "right",
 "head": 0.961,
-"icon": ExtResource("11_rsje4"),
+"icon": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_d.png",
 "note": "Red fez, a bored deadpan",
 "shadow": {},
 "shelved": false,
-"sprite": ExtResource("10_kcb38"),
+"sprite": "res://content/enemies/tumbleweed_minion/tumbleweed_minion_sprite_d.png",
 "sprite_file": "tumbleweed_minion_sprite_d.png",
 "strip_cols": 43
 }

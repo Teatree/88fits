@@ -3,15 +3,14 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_bgsxw"]
 [ext_resource type="Texture2D" path="res://content/characters/astro/astro_icon.png" id="2_bgsxw"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_dewj2"]
-[ext_resource type="Texture2D" path="res://content/characters/astro/astro_sprite.png" id="4_nv1wx"]
 
-[sub_resource type="Resource" id="Resource_bgsxw"]
+[sub_resource type="Resource" id="Resource_dewj2"]
 script = ExtResource("1_bgsxw")
 stat = "area"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_nv1wx"]
+[sub_resource type="Resource" id="Resource_bgsxw"]
 script = ExtResource("1_bgsxw")
 stat = "max_hp"
 value = 2.0
@@ -19,7 +18,7 @@ target = "player"
 
 [resource]
 script = ExtResource("2_dewj2")
-level_trait = [SubResource("Resource_nv1wx")]
+level_trait = [SubResource("Resource_bgsxw")]
 order = 3
 trait_name = "Space Suit"
 trait_text = "Gain 2 max HP per level, and heal 8% of max HP on every level-up."
@@ -27,13 +26,13 @@ pronoun = "she"
 level_heal = 0.08
 favourite_weapon = "orbit_saws"
 favourite_bonus = {
-"effects": [SubResource("Resource_bgsxw")],
+"effects": [SubResource("Resource_dewj2")],
 "type": "effects"
 }
 start_weapon = "gravity_gun"
 availability = "purchase"
 price = 300
-sprite = ExtResource("4_nv1wx")
+sprite_path = "res://content/characters/astro/astro_sprite.png"
 sprite_file = "astro_sprite.png"
 anims = {
 "cheer": 1.0,

@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_85nhh"]
 [ext_resource type="Texture2D" path="res://content/bosses/tumbleweed_king/tumbleweed_king_icon.png" id="1_j64tb"]
-[ext_resource type="Texture2D" path="res://content/bosses/tumbleweed_king/tumbleweed_king_sprite.png" id="3_qvsew"]
 
 [resource]
 script = ExtResource("1_85nhh")
@@ -28,7 +27,7 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("3_qvsew")
+sprite_path = "res://content/bosses/tumbleweed_king/tumbleweed_king_sprite.png"
 sprite_file = "tumbleweed_king_sprite.png"
 frame_px = 256
 strip_cols = 40

@@ -1,14 +1,10 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/slow_burn/slow_burn_icon_b.png" id="1_llrda"]
-[ext_resource type="Texture2D" path="res://content/passives/slow_burn/slow_burn_icon.png" id="1_sy8i5"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_llrda"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_idwsr"]
-[ext_resource type="Texture2D" path="res://content/passives/slow_burn/slow_burn_icon_c.png" id="5_awm1m"]
-[ext_resource type="Texture2D" path="res://content/passives/slow_burn/slow_burn_icon_d.png" id="6_m4spf"]
-[ext_resource type="Texture2D" path="res://content/passives/slow_burn/slow_burn_icon_e.png" id="7_5b1qf"]
 
-[sub_resource type="Resource" id="Resource_awm1m"]
+[sub_resource type="Resource" id="Resource_sy8i5"]
 script = ExtResource("2_llrda")
 stat = "debuff_duration"
 op = "mul"
@@ -18,37 +14,37 @@ target = "player"
 [resource]
 script = ExtResource("3_idwsr")
 line = true
-levels = [[SubResource("Resource_awm1m")]]
+levels = [[SubResource("Resource_sy8i5")]]
 max_level = 4
 evolves_into = "prairie_fire"
 text = "The Ember keeps them burning: your burns, poison, slows, freezes and stuns last 20% longer a level."
 variants = {
 "A": {
-"icon": ExtResource("1_sy8i5"),
+"icon": "res://content/passives/slow_burn/slow_burn_icon.png",
 "icon_file": "slow_burn_icon.png",
 "note": "the icon before the cards (passes 47-72): an object, not a card",
 "shelved": false
 },
 "B": {
-"icon": ExtResource("1_llrda"),
+"icon": "res://content/passives/slow_burn/slow_burn_icon_b.png",
 "icon_file": "slow_burn_icon_b.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },
 "C": {
-"icon": ExtResource("5_awm1m"),
+"icon": "res://content/passives/slow_burn/slow_burn_icon_c.png",
 "icon_file": "slow_burn_icon_c.png",
 "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
 "shelved": false
 },
 "D": {
-"icon": ExtResource("6_m4spf"),
+"icon": "res://content/passives/slow_burn/slow_burn_icon_d.png",
 "icon_file": "slow_burn_icon_d.png",
 "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
 "shelved": false
 },
 "E": {
-"icon": ExtResource("7_5b1qf"),
+"icon": "res://content/passives/slow_burn/slow_burn_icon_e.png",
 "icon_file": "slow_burn_icon_e.png",
 "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
 "shelved": false

@@ -3,15 +3,14 @@
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="1_6xkvr"]
 [ext_resource type="Texture2D" path="res://content/characters/ironwood/ironwood_icon.png" id="1_gdcmj"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_w74pe"]
-[ext_resource type="Texture2D" path="res://content/characters/ironwood/ironwood_sprite.png" id="3_ccyo4"]
 
-[sub_resource type="Resource" id="Resource_gdcmj"]
+[sub_resource type="Resource" id="Resource_w74pe"]
 script = ExtResource("2_w74pe")
 stat = "regen"
 value = 0.1
 target = "player"
 
-[sub_resource type="Resource" id="Resource_ccyo4"]
+[sub_resource type="Resource" id="Resource_gdcmj"]
 script = ExtResource("2_w74pe")
 stat = "regen_delay"
 value = -0.05
@@ -19,7 +18,7 @@ target = "player"
 
 [resource]
 script = ExtResource("1_6xkvr")
-level_trait = [SubResource("Resource_gdcmj"), SubResource("Resource_ccyo4")]
+level_trait = [SubResource("Resource_w74pe"), SubResource("Resource_gdcmj")]
 order = 2
 trait_name = "Enduring"
 trait_text = "Gain 0.1 HP regen and 0.05 s less regen delay per level (regen delay never under 0.5 s)."
@@ -32,7 +31,7 @@ favourite_passive_bonus = {
 }
 availability = "purchase"
 price = 300
-sprite = ExtResource("3_ccyo4")
+sprite_path = "res://content/characters/ironwood/ironwood_sprite.png"
 sprite_file = "ironwood_sprite.png"
 anims = {
 "cheer": 1.0,

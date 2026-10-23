@@ -16,6 +16,8 @@ const RESULTS := "res://ui/ResultsScreen.tscn"
 @onready var ui: CanvasLayer = $UI
 
 var player: Player
+## pass 101 review: the tool's launch keys this run started with (Warmup pins its creature and look)
+var launch_info: Dictionary = {}
 var map: MapBase
 var director: WaveDirector
 var portal: Portal
@@ -80,6 +82,7 @@ func _ready() -> void:
 	# a tool's launch file first (pass 66): its `arena` opens the debug arena as the title's ARENA does (the Level
 	# Editor's "Test in game" launches the editor binary straight into it, _launch_in_arena)
 	var debug_launch := _read_debug_launch()
+	launch_info = debug_launch
 	# pass 77 (lane SIMRUN): the run sim's fast mode (Run.sim_mode), every run's own (off unless its launch says)
 	Run.sim_mode = bool(debug_launch.get("sim_fast", false))
 	# and the run's own clock for the rules that count real time (Run.rule_seconds), every run sim's in both its modes
