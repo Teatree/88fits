@@ -568,7 +568,9 @@ static func land_blast(game: Node, at: Vector3, w: WeaponInstance, area: float, 
 	var r := maxf(area * float(d.get("radius_frac", 0.9)), 0.3)
 	var dmg := w.stat("damage", 8.0) * float(d.get("damage_frac", 1.0))
 	var em: EnemyManager = game.get("enemies")
-	var n: int = em.damage_radius(at, r, dmg, w.def.id, float(d.get("knockback", 2.4))) if em else 0
+	# pass 103: `explosive: true` makes it a blast (HIT_BLAST) that Endless's knock resistance leaves whole
+	var lflags: int = EnemyManager.HIT_BLAST if bool(d.get("explosive", false)) else 0
+	var n: int = em.damage_radius(at, r, dmg, w.def.id, float(d.get("knockback", 2.4)), lflags) if em else 0
 	land_blasts += 1
 	if str(d.get("look", "")) == "sun":
 		var fx = game.get("fx")

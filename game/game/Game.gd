@@ -2073,9 +2073,11 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 
 ## Powder Keg's blast (pass 48): KEG_FRAC of the dead creature's max HP to everything within KEG_RADIUS of the body, thrown
 ## with KEG_KNOCK, recorded as the source POWDER_KEG (Results, the run recorder), whose kills never roll a keg again.
+## Pass 103 (lane PLAY; Garry: "Reduce damage from powder keg by to 1/3"): KEG_FRAC a third of pass 48's quarter, a
+## twelfth of the body's max HP; the chance (powder_keg_chance) unchanged.
 const POWDER_KEG := "powder_keg"
 const KEG_RADIUS := 2.4
-const KEG_FRAC := 0.25
+const KEG_FRAC := 0.25 / 3.0
 const KEG_KNOCK := 9.0
 const KEG_COLOUR := Color(1.0, 0.55, 0.15)
 
@@ -2803,7 +2805,8 @@ func _revive(kind: String) -> void:
 	player.revive()
 	# he comes back with a bang: a wave a third of the nuke's that clears everything but the big ones
 	revive_blast()
-	enemies.damage_radius(player.global_position, 6.0, 0.0, "", 12.0)
+	# pass 103: a blast (HIT_BLAST), so Endless's knock resistance leaves its throw whole
+	enemies.damage_radius(player.global_position, 6.0, 0.0, "", 12.0, EnemyManager.HIT_BLAST)
 	if kind == "phoenix":
 		# Phoenix Feather: he rises out of a ring of fire
 		var at := player.global_position
@@ -3636,7 +3639,7 @@ func nuke_blast(at: Vector3, radius: float, damage: float, knock: float) -> void
 	else:
 		# the revive's ring (pass 48): no damage, so no hit at all (a zero hit still flashed, rolled crits and froze), only
 		# the throw
-		enemies.hero_throw_radius(at, radius, knock)
+		enemies.hero_throw_radius(at, radius, knock, -1, "nuke")
 	# the wave: a fat band racing out to the radius over half a second, laid on the sand (pass 52: it was a flat torus at
 	# the hero's height, and every hill on its way cut through it)
 	telegraphs.race_ring(at, radius, 0.55, Color(1.0, 0.75, 0.35, 0.9), 0.3)

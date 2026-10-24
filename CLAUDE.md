@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-24, pass 102, version 0.87)
+## Status (2026-10-24, pass 103, version 0.88)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.87). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.88). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -436,6 +436,10 @@ seconds; run record schema 4 (core/systems/WorkClock.gd: steps, phys/proc/rest m
 damage numbers merge and thin past 40 on screen, fire/poison clocks lazy, flames thinned past 80 burning, hit sounds
 120 ms apart, crit stats cached (StatSheet.version); Level Editor: the cap shown as load with `cap_max`'s cut and the
 effective limit in bodies, composition swatches, map saves wait 8 s then follow their import job.
+Pass 103: Endless `hp_growth` 0.15, `atk_growth` 0.095 (the lead's guess for Garry to tune); creatures resist
+non-explosive knockback more each second of Endless (`knock_resist_max` 1.0 over `knock_resist_seconds` 90; weapons
+tagged `explosive` and the sources in `knock_resist_exempt_sources` keep their push; EnemyManager.HIT_BLAST); Backdraft
+knock 3.3, Fire Eater 4.7; Powder Keg a twelfth of the body's max HP (Game.KEG_FRAC).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

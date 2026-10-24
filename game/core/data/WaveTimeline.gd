@@ -802,10 +802,22 @@ func stage_entry(i: int) -> Dictionary:
 ##   xp_share        a kill's XP in Endless, a share of what it would drop
 ##   coin_chance     a creature's coin roll happens only this share of the time (very rarely)
 ##   roster_window   the "late roster": the mix rows open in the stage's last this-many seconds
+##   knock_resist_seconds, knock_resist_max   pass 103 (lane PLAY; Garry: "enemies get more and more knockback
+##                   resistance with each minute (by minute 1.5 enemies don't have any knockback from not explosive weapons
+##                   at all)"): every creature resists a push from the hero's side LINEARLY from 0 at Endless's start to
+##                   knock_resist_max at knock_resist_seconds of Endless, then holds (endless_knock_resist; max 0 = off,
+##                   the default, so a map that names neither plays as before); EnemyManager.endless_knock_share
+##   knock_resist_exempt_tag      a weapon carrying this tag (WeaponDef.tags, "explosive") pushes as before
+##   knock_resist_exempt_sources  hit sources that are blasts without a weapon ("nuke", "revive", "powder_keg", ...):
+##                   an Array of ids or one comma-separated String (the Level Editor's text field)
 @export var endless: Dictionary = {}
 const ENDLESS_DEFAULTS := {"portal_seconds": 60.0, "every": 10.0, "first_wave": 120.0, "wave_size": 30.0,
 	"wave_growth": 2.0, "cap": 1.0, "hp": 1.5, "atk": 1.2, "speed": 1.15, "hp_growth": 0.15, "atk_growth": 0.1,
-	"speed_growth": 0.02, "speed_max": 1.6, "xp_share": 0.35, "coin_chance": 0.05, "roster_window": 60.0}
+	"speed_growth": 0.02, "speed_max": 1.6, "xp_share": 0.35, "coin_chance": 0.05, "roster_window": 60.0,
+	"knock_resist_seconds": 90.0, "knock_resist_max": 0.0}
+## pass 103 (lane PLAY): the exempt keys' defaults (not numbers, so not in ENDLESS_DEFAULTS)
+const ENDLESS_KNOCK_EXEMPT_TAG := "explosive"
+const ENDLESS_KNOCK_EXEMPT_SOURCES := ["nuke", "revive", "powder_keg", "loose_rocket", "blast"]
 
 
 ## One Endless number for stage `i` (-1 = the map's): the stage's own `endless` block, then the map's, then the default.
@@ -843,3 +855,44 @@ func endless_wave_size(wave: int, i: int = -1) -> int:
 ## The Endless wave (1-based) `seconds` into Endless after stage `i`.
 func endless_wave_at(seconds: float, i: int = -1) -> int:
 	return int(floor(maxf(seconds, 0.0) / maxf(endless_value("every", i), 1.0))) + 1
+
+
+## Pass 103 (lane PLAY): the creatures' resistance (0..1) to a non-explosive push from the hero's side `seconds` into
+## Endless after stage `i`: knock_resist_max x seconds / knock_resist_seconds, held at knock_resist_max after (0 seconds:
+## the whole of it at once).
+func endless_knock_resist(seconds: float, i: int = -1) -> float:
+	var mx := clampf(endless_value("knock_resist_max", i), 0.0, 1.0)
+	if mx <= 0.0:
+		return 0.0
+	var secs := endless_value("knock_resist_seconds", i)
+	if secs <= 0.0:
+		return mx
+	return mx * clampf(maxf(seconds, 0.0) / secs, 0.0, 1.0)
+
+
+## One raw (non-number) Endless key for stage `i`: the stage's own block, then the map's, then `fallback`.
+func _endless_raw(key: String, i: int, fallback: Variant) -> Variant:
+	var own = _stage_raw(i).get("endless", {}) if i >= 0 else {}
+	if own is Dictionary and (own as Dictionary).has(key):
+		return own[key]
+	if endless.has(key):
+		return endless[key]
+	return fallback
+
+
+## Pass 103: the weapon tag whose pushes Endless's resistance leaves whole ("explosive").
+func endless_knock_exempt_tag(i: int = -1) -> String:
+	return str(_endless_raw("knock_resist_exempt_tag", i, ENDLESS_KNOCK_EXEMPT_TAG)).strip_edges()
+
+
+## Pass 103: the hit sources (ids without a weapon) whose pushes Endless's resistance leaves whole; an Array or a
+## comma-separated String in the JSON.
+func endless_knock_exempt_sources(i: int = -1) -> PackedStringArray:
+	var v: Variant = _endless_raw("knock_resist_exempt_sources", i, ENDLESS_KNOCK_EXEMPT_SOURCES)
+	var out := PackedStringArray()
+	var parts: Array = v if v is Array else Array(str(v).split(",", false))
+	for p in parts:
+		var s := str(p).strip_edges()
+		if s != "":
+			out.append(s)
+	return out

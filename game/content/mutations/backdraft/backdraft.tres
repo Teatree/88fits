@@ -10,7 +10,7 @@ text = "Every second in the fire shoves them away from you. The breath roars big
 vfx = "a bigger, brighter jet of flame; whatever stands in it staggers back every second"
 params = {
 "breath": {
-"knock": 5.0,
+"knock": 3.3,
 "look": {
 "intensity": 1.5
 }

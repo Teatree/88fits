@@ -368,7 +368,8 @@ func test_the_nuke_thruster_burst_and_grand_finale_use_the_heros_throw() -> void
 	var src := FileAccess.get_file_as_string("res://game/Game.gd")
 	assert_str(src).contains('enemies.hero_throw_radius(here, Run.perk_param("thruster_burst"')
 	assert_str(src).contains('enemies.hero_throw_radius(at, fr, Run.perk_param("grand_finale"')
-	assert_str(src).contains("enemies.hero_throw_radius(at, radius, knock)")
+	# pass 103 (lane PLAY): the nuke's throw names its source for Endless's knock resistance (explosive, never resisted)
+	assert_str(src).contains('enemies.hero_throw_radius(at, radius, knock, -1, "nuke")')
 	# the hostile throws (the rocket, the loose rocket, the golem's boulder) keep the plain throw
 	assert_str(src).contains('enemies.throw_radius(ground, tr, float(blast.get("throw", 20.0)))')
 	assert_str(src).contains('enemies.throw_radius(ground, reach, float(blast.get("throw", 20.0)))')

@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_jhdch")
 behavior = "MineLayer"
+tags = ["explosive"]
 targeting = "ground"
 base = {
 "amount": 2.0,

@@ -268,7 +268,9 @@ func _last_stand() -> void:
 	var dmg: float = owner_behavior.stat("damage", 4.0) * float((boom as Dictionary).get("damage_mult", 4.0))
 	if em:
 		var before := Run.kills
-		em.damage_radius(global_position, r, dmg, owner_behavior.inst.def.id, float((boom as Dictionary).get("knockback", 9.0)))
+		# pass 103: an explosion (HIT_BLAST unless the block says `explosive: false`): Endless's knock resistance leaves it whole
+		var bflags: int = EnemyManager.HIT_BLAST if bool((boom as Dictionary).get("explosive", true)) else 0
+		em.damage_radius(global_position, r, dmg, owner_behavior.inst.def.id, float((boom as Dictionary).get("knockback", 9.0)), bflags)
 		owner_behavior.inst.kills += Run.kills - before
 	var fx = game.get("fx")
 	if fx and fx.has_method("explosion"):

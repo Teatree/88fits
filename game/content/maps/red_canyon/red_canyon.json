@@ -1653,13 +1653,23 @@
       "hp": 1.15,
       "atk": 1.0,
       "speed": 1.1,
-      "hp_growth": 0.11,
-      "atk_growth": 0.07,
+      "hp_growth": 0.15,
+      "atk_growth": 0.095,
       "speed_growth": 0.015,
       "speed_max": 1.6,
       "xp_share": 0.35,
       "coin_chance": 0.05,
-      "roster_window": 60
+      "roster_window": 60,
+      "knock_resist_seconds": 90,
+      "knock_resist_max": 1.0,
+      "knock_resist_exempt_tag": "explosive",
+      "knock_resist_exempt_sources": [
+        "nuke",
+        "revive",
+        "powder_keg",
+        "loose_rocket",
+        "blast"
+      ]
     },
     "hell_cap": [
       0.0,

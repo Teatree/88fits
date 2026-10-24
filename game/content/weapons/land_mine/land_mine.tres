@@ -49,6 +49,7 @@ value = 0.3
 [resource]
 script = ExtResource("2_vrt8g")
 behavior = "MineLayer"
+tags = ["explosive"]
 targeting = "ground"
 base = {
 "amount": 1.0,

@@ -264,7 +264,8 @@ func _wave(dir: Vector3, mult: float, echo: bool) -> void:
 		if side:
 			push = Vector3(-away.z, 0.0, away.x) * (1.0 if randf() < 0.5 else -1.0)
 		# pass 72: at the map's share of the hero's pushes (EnemyManager.hero_knock_mult, Red Canyon 0.5)
-		em.bounce(e, lift, lift_t, push * knock * kmul / maxf(em.size[e], 0.8) * em.hero_knock_mult())
+		# pass 103: and Endless's knock resistance (EnemyManager.endless_knock_share); the hop stays
+		em.bounce(e, lift, lift_t, push * knock * kmul / maxf(em.size[e], 0.8) * em.hero_knock_mult() * em.endless_knock_share(wid))
 	waves += 1
 	last_hits = hits
 	if not rang.is_empty():

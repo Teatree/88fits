@@ -5,7 +5,7 @@
   "weight": 8,
   "max_level": 5,
   "flavour": "Handle with care. Or don't.",
-  "text": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
+  "text": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a twelfth of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
   "levels": [
     [
       {

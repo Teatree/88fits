@@ -8,6 +8,9 @@
   "max_level": 1,
   "behavior": "Lobber",
   "targeting": "densest",
+  "tags": [
+    "explosive"
+  ],
   "base": {
     "damage": 45,
     "cooldown": 1.8,

@@ -6,6 +6,9 @@
   "weight": 6,
   "behavior": "MineLayer",
   "targeting": "ground",
+  "tags": [
+    "explosive"
+  ],
   "base": {
     "damage": 28,
     "cooldown": 2.6,

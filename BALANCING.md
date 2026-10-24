@@ -6560,3 +6560,63 @@ work the game does for it.
    hero's sheet once and kept until the next physics tick, a build change, a new sheet or any change to the sheet's list
    of effects; every hit reads the same values as before (StatSheet.get_stat walks every effect, which a late build has
    by the hundred). No rule; listed so nobody looks for one.
+
+## 48. Pass 103 (v0.88): a harder Endless with knockback resistance, the fire breath and Powder Keg toned down
+
+Garry's words: tools/dl/p103/brief_PLAY.md. The rules:
+
+#### Endless ramps harder (the lead's assumption for Garry to tune; he gave no numbers)
+
+Red Canyon `timeline_data.endless`: `hp_growth` 0.11 -> **0.15**, `atk_growth` 0.07 -> **0.095** (the same proportion,
+x1.364 on the growth rate). Wave 1's `hp` 1.15, `atk` 1.0, `speed` 1.1, `speed_growth` 0.015 and `speed_max` 1.6 are
+unchanged. Every number stays in the map's `endless` block (the Level Editor's Endless card); none lived in code.
+Waves every 10 s, wave k = hp x (1 + growth)^(k - 1), on the stage-end numbers.
+
+| Endless time | wave | HP x before | HP x now | ATK x before | ATK x now | speed x (both) |
+|---|---|---|---|---|---|---|
+| 0:00 | 1 | 1.15 | 1.15 | 1.00 | 1.00 | 1.10 |
+| 1:00 | 7 | 2.15 | 2.66 | 1.50 | 1.72 | 1.20 |
+| 2:00 | 13 | 4.02 | 6.15 | 2.25 | 2.97 | 1.30 |
+| 3:00 | 19 | 7.53 | 14.23 | 3.38 | 5.12 | 1.40 |
+| 5:00 | 31 | 26.33 | 76.14 | 7.61 | 15.22 | 1.60 (cap) |
+
+Speed cap unchanged (1.6, reached at about 5:00): the creatures already reach it, and with the knock resistance below a
+faster crowd would close on the hero far quicker than the HP/ATK ramp alone; the harder ramp comes from HP, ATK and no
+more pushing them back.
+
+#### Endless knock resistance (new rule)
+
+From Endless's start every creature resists the hero's NON-explosive pushes linearly: resistance =
+`knock_resist_max` x min(Endless seconds / `knock_resist_seconds`, 1). Red Canyon: 90 s, 1.0 (0% at 0:00, 50% at 0:45,
+100% at 1:30 and after: no push at all). It multiplies on top of the creature's own `knockback_resist` and the map's
+`hero_knockback_mult` (0.5). A map that names neither key plays as before (`knock_resist_max` default 0).
+
+Resisted (hero-side pushes): every weapon hit's knockback (damage()'s kb_force: guns, melee, the ball, the frisbee, the
+breath, gravity-gun landings, the Singularity's pop, thorns, Molotov/Skull Rain landings, Supply Drop's crate), the
+throws of `hero_throw_radius` (Thruster Burst, Grand Finale), Buck's Ram, the tornado's toss, the Guitarra chord's
+bounce shove (the hop stays), Bucking Bronco's throw distance.
+
+Explosive (never resisted):
+- weapons tagged `explosive` (WeaponDef.tags; map key `knock_resist_exempt_tag`): Dynamite Stick / grenade
+  `lob_grenade`, Cluster Bomb, Golden Pineapple, Rocket Pod, Hellfire Battery, Missile Massacre, Land Mine, Minefield,
+  Jackrabbit Mines (all their pushes, the frag's shrapnel and the bomblets included);
+- source ids (map key `knock_resist_exempt_sources`): `nuke` (the Nuke power-up and the revive ring's throw),
+  `revive` (the comeback wave), `powder_keg`, `loose_rocket`, `blast` (a hostile blast's friendly fire);
+- any hit flagged HIT_BLAST: a Last Stand turret's boom (turret `boom.explosive`, default true), a `land_blast` with
+  `explosive: true` (none today: the Sun Cocktail's puff is fire, not a blast), the revive's 6 m throw.
+
+Not touched: hostile pushes on creatures (the Sniper's beam, an eruption, a charger's shove), the pull/tow (Lasso, Wide
+Orbit: it draws them in, not back), a corpse's throw (pass 82), the hero's own knockback.
+
+#### Dragon's Breath knockback a third lower
+
+The base weapon has no knock (`breath.knock` 0). Backdraft (the path's motion mutation, a shove every tick)
+`params.breath.knock` 5.0 -> **3.3**; the Fire Eater (its evolution) `params.final.breath.knock` 7.0 -> **4.7**.
+After the map's 0.5 (hero_knockback_mult) a tick now pushes 1.65 (was 2.5), the Fire Eater 2.35 (was 3.5).
+
+#### Powder Keg damage to a third
+
+Game.KEG_FRAC 0.25 -> **0.25 / 3 (0.0833)**: the blast deals a twelfth of the dead creature's max HP (was a quarter)
+within 2.4 m, at every rank (the damage never depended on the rank). The chance is unchanged (6.5%, +2% a rung, Evolved
++3%: 15.5% at rank 5); the knock (9) unchanged and exempt from Endless's resistance. Card text: "a twelfth of its max
+health".

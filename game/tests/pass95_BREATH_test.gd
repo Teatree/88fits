@@ -357,7 +357,8 @@ func test_backdraft_shoves_what_stands_in_the_fire_every_tick() -> void:
 	assert_float(em.kb[a].length()).is_equal_approx(0.0, 0.001)
 	plain.queue_free()
 	var b := _breath(w, WID, ["backdraft"])
-	assert_float(b.bval("knock")).is_equal_approx(5.0, 0.001)
+	# pass 103 (lane PLAY): Backdraft's knock a third lower, 5.0 -> 3.3 (the JSON's number)
+	assert_float(b.bval("knock")).is_equal_approx(float(((Registry.mutation("backdraft").params as Dictionary)["breath"] as Dictionary)["knock"]), 0.001)
 	assert_float(b.intensity()).is_equal_approx(1.5, 0.001)
 	assert_bool(b._fire()).is_true()
 	assert_int(b.knocks).is_equal(1)
@@ -483,7 +484,8 @@ func test_the_fire_eater_puts_thorns_on_the_hero_while_held_and_amplifies_the_br
 	assert_str(str(StatSources.describe_source("weapon:fire_eater")["name"])).is_equal("Fire Eater")
 	# amplified: the path stays on (blue, Backdraft's shove stronger, Held Breath), more a second than the base at 5
 	assert_bool(ev.blue_fire()).is_true()
-	assert_float(float((ev.params["breath"] as Dictionary).get("knock", 0.0))).is_equal_approx(7.0, 0.001)
+	# pass 103 (lane PLAY): a third lower, 7.0 -> 4.7
+	assert_float(float((ev.params["breath"] as Dictionary).get("knock", 0.0))).is_equal_approx(4.7, 0.001)
 	assert_bool((ev.params["breath"] as Dictionary).has("still")).is_true()
 	assert_float(float(((ev.params["breath"] as Dictionary)["look"] as Dictionary).get("intensity", 1.0))).is_equal_approx(1.8, 0.001)
 	assert_float(ev.dps_estimate()).is_greater(base_dps)

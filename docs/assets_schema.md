@@ -3056,3 +3056,24 @@ minCapBodies, per, hard, capToBind}; `compColor(id, shown, colorOf, folded)`; `c
 New rules (editor only, for BALANCING.md if the lead wants them there): a check warning when `cap_max` is under the cap
 curve ("those points change nothing"); a Timeline warning "cap never binds" for a stage where the hard cap is lower at
 every second of the estimate, with the cap under which it starts to count (hard_cap x the stage's median load a body).
+
+## Pass 103: new keys
+
+Map `timeline_data.endless` (a stage entry's own `endless` block wins key by key; WaveTimeline.endless_value / _endless_raw):
+- `knock_resist_seconds` (number, default 90): seconds of Endless until the knock resistance reaches its most.
+- `knock_resist_max` (number 0..1, default 0 = off): the resistance at its most (Red Canyon 1.0 = no non-explosive push).
+- `knock_resist_exempt_tag` (string, default "explosive"): a weapon/evolution whose `tags` carry it pushes whole.
+- `knock_resist_exempt_sources` (array of ids, or one comma-separated string; default ["nuke","revive","powder_keg",
+  "loose_rocket","blast"]): hit sources without a weapon whose pushes stay whole.
+Level Editor: four rows in the Endless card (tools/level_editor/fields.js; the two lists as text fields).
+
+Weapon `tags` "explosive" now on: lob_grenade, land_mine, cluster_bomb, golden_pineapple, minefield, jackrabbit_mines
+(rocket_pod, hellfire_battery, missile_massacre had it).
+
+Turret `params.turret.boom.explosive` (bool, default true): the Last Stand boom is a blast (HIT_BLAST).
+Weapon `params.land_blast.explosive` (bool, default false): the landing blast is a blast (HIT_BLAST).
+
+Code: EnemyManager.HIT_BLAST (= 4, damage()/damage_radius() flags), endless_knock_resist(), endless_knock_share(source,
+flags), knock_is_explosive(source, flags), knock_cache_clear(), endless_knock_override (tests);
+hero_throw_radius(center, r, force, except_i, source = ""); WaveTimeline.endless_knock_resist(seconds, i),
+endless_knock_exempt_tag(i), endless_knock_exempt_sources(i), ENDLESS_KNOCK_EXEMPT_TAG, ENDLESS_KNOCK_EXEMPT_SOURCES.

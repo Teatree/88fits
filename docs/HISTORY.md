@@ -4020,3 +4020,19 @@ import job (a second Save joins a queued one) and the holder, the page counts th
 OK / failed / cancelled, gives up after 180 s, and always resets. The queued j20261024-011203-2678 was merged into
 j20261024-010448-b3aa, which imported red_canyon at 01:26 once the lock freed. selftest_LE103.py; docs/level_editor.md
 "Pass 103".
+
+**Pass 103 (2026-10-24, v0.88): Endless harder, its creatures past pushing; the fire breath and Powder Keg toned down.** Garry: "Ramp up the difficulty scaling, and make it so the enemies get more and more knockback resistance with each minute (by minute 1.5 enemies don't have any knockback from not explosive weapons at all)"; "Reduce the knockback from fire breath a bit"; "Reduce damage from powder keg by to 1/3". The Endless growth numbers are the lead's assumption (he gave none). His Level Editor requests of the same message were merged in pass 102 (lane LE).
+
+Lane PLAY (Garry: "Ramp up the difficulty scaling, and make it so the enemies get more and more knockback resistance
+with each minute (by minute 1.5 enemies don't have any knockback from not explosive weapons at all) ... Reduce the
+knockback from fire breath a bit. Reduce damage from powder keg by to 1/3"): Red Canyon's Endless grows x1.15 HP and
+x1.095 ATK a wave (was x1.11 / x1.07; speed cap 1.6 unchanged; at 3:00 of Endless HP x14.2, was x7.5). Endless knock
+resistance: the map's `endless.knock_resist_seconds` 90 / `knock_resist_max` 1.0 (WaveTimeline.endless_knock_resist,
+EnemyManager.endless_knock_share): every hero-side push (damage()'s knockback, hero_throw_radius, Ram, the tornado's
+toss, the chord's bounce, Bronco's throw) times 1 - resistance, rising linearly to none at 1:30, unless explosive: a
+weapon tagged `explosive` (`knock_resist_exempt_tag`; the tag added to the grenade, mine and their evolutions beside the
+rocket family), a source id in `knock_resist_exempt_sources` (nuke, revive, powder_keg, loose_rocket, blast) or a hit
+flagged EnemyManager.HIT_BLAST (Last Stand's boom, an `explosive` land_blast, the revive's throw); four rows in the
+Level Editor's Endless card. Backdraft's `breath.knock` 5.0 -> 3.3, the Fire Eater's 7.0 -> 4.7. Powder Keg's
+Game.KEG_FRAC 0.25 -> 0.25/3 (a twelfth of the body's max HP; chance unchanged; card text). Tests
+game/tests/pass103_PLAY_test.gd; pass48_items and pass95_BREATH re-pinned.

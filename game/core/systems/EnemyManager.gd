@@ -30,6 +30,9 @@ const HIT_MINI := 1
 ## HIT_CRIT (pass 62, Ironwood's Heartseeker: every 4th thrust a guaranteed crit) makes a weapon hit a full crit whatever
 ## the hero's crit chance, at his crit_damage as any crit (a poison or fire tick never crits).
 const HIT_CRIT := 2
+## HIT_BLAST (pass 103, lane PLAY): the hit is an explosion's (a Last Stand turret's boom, an `explosive` land blast, the
+## revive's wave): its push is never resisted by Endless's knock resistance (endless_knock_share)
+const HIT_BLAST := 4
 ## Whether the last hit damage() landed was a full crit (pass 61, lane WP2: the Sabre's Critical Thinking streak and the
 ## Whirlwind's refund read it right after their own call); false when the hit did not land.
 var last_crit := false
@@ -2068,11 +2071,13 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 			hp[i] = 0.0
 			if game:
 				game.fx.burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.9, 0.15, 0.2), 0.9)
-	if kb_force > 0.0:
+	# pass 103 (lane PLAY): Endless's knock resistance on a hero-side push (a hostile one is never resisted)
+	var ek_share: float = endless_knock_share(weapon_id, flags) if kb_force > 0.0 and not (weapon_id in HOSTILE_PUSH_IDS) else 1.0
+	if kb_force > 0.0 and ek_share > 0.0:
 		# push away along the hit direction; heavy creatures (size in metres) budge less, a resisting one by its share
 		# (pass 67: EnemyDef.knockback_resist, the Hammer Giant a third), the boss barely (its 0.15 on top of both)
 		var mass: float = maxf(size[i], 0.8)
-		var push: float = kb_force / mass * _t_kbt[type_idx[i]] * (0.15 if i == boss_index else 1.0)
+		var push: float = kb_force / mass * _t_kbt[type_idx[i]] * (0.15 if i == boss_index else 1.0) * ek_share
 		var d := Vector3(kb_dir.x, 0, kb_dir.z)
 		if d.length_squared() < 0.0001:
 			d = pos[i] - player.global_position if player else Vector3.FORWARD
@@ -2525,7 +2530,8 @@ func _bronco_kick(i: int, dir: Vector3, push: float, weapon_id: String, roll: fl
 	fly = fly.normalized() if fly.length_squared() > 0.0001 else Vector3.FORWARD
 	if not launch(i, BRONCO_HEIGHT, BRONCO_AIR, 0.0, weapon_id):
 		return false
-	var dist := clampf(BRONCO_AWAY_BASE + BRONCO_AWAY_PER * maxf(push, 0.0), BRONCO_AWAY_MIN, BRONCO_AWAY_MAX) * hero_knock_mult()
+	# pass 103: Endless's knock resistance shortens the throw as it does the push (endless_knock_share)
+	var dist := clampf(BRONCO_AWAY_BASE + BRONCO_AWAY_PER * maxf(push, 0.0), BRONCO_AWAY_MIN, BRONCO_AWAY_MAX) * hero_knock_mult() * endless_knock_share(weapon_id)
 	(_launched[i] as Dictionary)["drift"] = fly * (dist / BRONCO_AIR)
 	bronco_launches += 1
 	return true
@@ -2897,9 +2903,94 @@ func _hero_push(weapon_id: String) -> float:
 	return 1.0 if weapon_id in HOSTILE_PUSH_IDS else hero_knock_mult()
 
 
-## A blast from the hero's side throwing the crowd (throw_radius at the map's share of `force`).
-func hero_throw_radius(center: Vector3, r: float, force: float, except_i: int = -1) -> int:
-	return throw_radius(center, r, force * hero_knock_mult(), except_i)
+## A blast from the hero's side throwing the crowd (throw_radius at the map's share of `force`). Pass 103: `source` names
+## it for Endless's knock resistance ("nuke" is exempt; "" or any other id is resisted).
+func hero_throw_radius(center: Vector3, r: float, force: float, except_i: int = -1, source: String = "") -> int:
+	var share := endless_knock_share(source)
+	if share <= 0.0:
+		return 0
+	return throw_radius(center, r, force * hero_knock_mult() * share, except_i)
+
+
+# ---------------------------------------------------------------- pass 103 (lane PLAY): Endless's knock resistance
+## Garry (2026-10-24): "make it so the enemies get more and more knockback resistance with each minute (by minute 1.5
+## enemies don't have any knockback from not explosive weapons at all)". From Endless's start every push the hero's side
+## gives a creature (damage()'s kb_force, the throws of hero_throw_radius, Buck's Ram, the tornado's toss, the Guitarra
+## chord's bounce, Bucking Bronco's throw) is multiplied by 1 - WaveTimeline.endless_knock_resist(Endless's seconds),
+## on top of the creature's own knockback_resist, unless it is EXPLOSIVE (knock_is_explosive): a weapon carrying the
+## map's exempt tag ("explosive"), a source id the map names (the nuke, the revive, Powder Keg, a loose rocket, a hostile
+## blast) or a hit flagged HIT_BLAST. Hostile pushes (the Sniper's beam, an eruption, a charger), the pull, a corpse's
+## throw and the hero's own knockback are not touched. `endless_knock_override` >= 0 replaces the resistance (tests).
+var endless_knock_override := -1.0
+## source id -> whether its push is explosive (knock_is_explosive), for the map and stage it was worked out on
+var _knock_explosive_cache := {}
+var _knock_cache_map := -1
+var _knock_cache_stage := -1
+
+
+## The resistance (0..1) Endless gives every creature against a non-explosive push now (0 outside Endless).
+func endless_knock_resist() -> float:
+	if endless_knock_override >= 0.0:
+		return clampf(endless_knock_override, 0.0, 1.0)
+	if not Run.endless:
+		return 0.0
+	var m: MapDef = Run.map
+	if m == null or m.timeline == null:
+		return 0.0
+	return m.timeline.endless_knock_resist(Run.endless_time, Run.stage)
+
+
+## The share of a hero-side push from `source` (a weapon id, a named source, "") with hit `flags` a creature still takes
+## from Endless's resistance: 1 outside Endless or for an explosive push, else 1 - endless_knock_resist().
+func endless_knock_share(source: String = "", flags: int = 0) -> float:
+	var r := endless_knock_resist()
+	if r <= 0.0:
+		return 1.0
+	if knock_is_explosive(source, flags):
+		return 1.0
+	return 1.0 - r
+
+
+## Whether a push from `source` with hit `flags` is explosive (Endless's resistance leaves it whole): HIT_BLAST, a source
+## id in the map's knock_resist_exempt_sources, or a weapon (or evolution) whose def carries knock_resist_exempt_tag.
+func knock_is_explosive(source: String, flags: int = 0) -> bool:
+	if (flags & HIT_BLAST) != 0:
+		return true
+	if source == "":
+		return false
+	var m: MapDef = Run.map
+	var mid: int = m.get_instance_id() if m != null else 0
+	if mid != _knock_cache_map or Run.stage != _knock_cache_stage:
+		_knock_explosive_cache.clear()
+		_knock_cache_map = mid
+		_knock_cache_stage = Run.stage
+	if not _knock_explosive_cache.has(source):
+		_knock_explosive_cache[source] = _knock_source_explosive(source, m.timeline if m != null else null)
+	return bool(_knock_explosive_cache[source])
+
+
+## knock_is_explosive's answer for one source id, worked out (no cache).
+func _knock_source_explosive(source: String, tl: WaveTimeline) -> bool:
+	var srcs: PackedStringArray = tl.endless_knock_exempt_sources(Run.stage) if tl != null else PackedStringArray(WaveTimeline.ENDLESS_KNOCK_EXEMPT_SOURCES)
+	if srcs.has(source):
+		return true
+	var tag := tl.endless_knock_exempt_tag(Run.stage) if tl != null else WaveTimeline.ENDLESS_KNOCK_EXEMPT_TAG
+	if tag == "":
+		return false
+	var def: WeaponDef = null
+	var wi: WeaponInstance = Run.weapon_instance(source)
+	if wi != null:
+		def = wi.def
+	else:
+		def = Registry.weapon(source)
+	return def != null and def.tags.has(tag)
+
+
+## Forget the worked-out answers (tests that change the map's exempt keys mid-run).
+func knock_cache_clear() -> void:
+	_knock_explosive_cache.clear()
+	_knock_cache_map = -1
+	_knock_cache_stage = -1
 
 
 ## `flags` (pass 76, lane DYN): damage()'s hit flags for every creature in the blast (HIT_MINI: the dynamite's mass mini
@@ -3814,7 +3905,7 @@ func _physics_process(delta: float) -> void:
 				squash[i] = 0.55
 				flash[i] = 0.6
 				lift_cd[i] = 4.0
-				kb[i] = Vector3(cos(lift_a[i]), 0, sin(lift_a[i])) * 12.0 * hero_knock_mult()
+				kb[i] = Vector3(cos(lift_a[i]), 0, sin(lift_a[i])) * 12.0 * hero_knock_mult() * endless_knock_share()
 				damage(i, max_hp[i] * 0.08, "", Vector3.ZERO, 0.0)
 			continue
 		if lift_cd[i] > 0.0:
@@ -3986,7 +4077,7 @@ func _physics_process(delta: float) -> void:
 			if Run.has_perk("ram") and Run.momentum >= Run.perk_param("ram", "from", 0.99) and state[i] != STATE_CHARGE and i != boss_index:
 				var away := pos[i] - ppos
 				away.y = 0.0
-				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti] * hero_knock_mult()
+				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti] * hero_knock_mult() * endless_knock_share("ram")
 				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0) + Run.perk_param("ram", "per_level", 0.0) * float(Run.card_level())
 				damage(i, th, "", away, 0.0)
 				if game:

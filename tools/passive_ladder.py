@@ -113,7 +113,7 @@ TEXT = {
     "loose_change": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
     "magnet": "Every few seconds, at random, pulls every EXP gem within 6 m to you. Rungs reach farther and pull more often.",
     "pocket_watch": "Power-ups you pick up last 20% longer, more each rung (+76% once Evolved); at levels 1, 3 and Evolved they also drop more often (+14% in all).",
-    "powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
+    "powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a twelfth of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
     "siesta": "Standing still heals you: +1.4 health a second, more each rung.",
     "skedaddle": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
     "snake_oil": "Heals can fill your health past full, up to 25% of max HP more, shown pink on your health bar. Regen stops at full.",

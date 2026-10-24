@@ -47,7 +47,7 @@ params = {
 },
 "final": {
 "breath": {
-"knock": 7.0,
+"knock": 4.7,
 "look": {
 "intensity": 1.8
 }

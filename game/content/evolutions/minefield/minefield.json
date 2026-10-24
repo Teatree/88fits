@@ -9,6 +9,9 @@
   "max_level": 1,
   "behavior": "MineLayer",
   "targeting": "ground",
+  "tags": [
+    "explosive"
+  ],
   "base": {
     "damage": 40,
     "cooldown": 1.4,

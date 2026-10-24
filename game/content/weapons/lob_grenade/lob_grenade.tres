@@ -50,6 +50,7 @@ value = 0.3
 [resource]
 script = ExtResource("2_yk424")
 behavior = "Lobber"
+tags = ["explosive"]
 targeting = "densest"
 base = {
 "amount": 1.0,

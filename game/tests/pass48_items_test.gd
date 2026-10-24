@@ -24,7 +24,7 @@ const TEXT := {
 	# (pass 95: the lines name the ladder's numbers)
 	"phoenix_feather": "Two seconds after you fall, you get back up at half health (more with Second Wind) with the revive's blast. Once a run; it never levels up.",
 	"skedaddle": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
-	"powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
+	"powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a twelfth of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
 	"loose_change": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
 	"gas_mask": "1% damage reduction for every poisoned enemy, up to 12% (20% at level 2, 30% once Evolved).",
 	"hot_streak": "Kills make you stronger for the rest of the run: +7% attack damage per 1,000 kills (more each rung), up to +100%.",
@@ -527,13 +527,13 @@ func test_powder_keg_rolls_on_its_own_stat_and_records_as_itself() -> void:
 	for k in range(4):
 		Run.add_or_level_passive("powder_keg")
 	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.155, 0.0001)
-	# the blast is the item's own source (Results names it by the item): a quarter of the body's health within 2.4 m (Game's
-	# constants read off its script, so this suite compiles without the whole game)
+	# the blast is the item's own source (Results names it by the item): a twelfth of the body's health within 2.4 m (pass
+	# 103: a third of pass 48's quarter; Game's constants read off its script, so this suite compiles without the whole game)
 	var consts: Dictionary = (load("res://game/Game.gd") as GDScript).get_script_constant_map()
 	assert_str(str(consts["POWDER_KEG"])).is_equal("powder_keg")
 	assert_object(Registry.passive(str(consts["POWDER_KEG"]))).is_not_null()
 	assert_float(float(consts["KEG_RADIUS"])).is_equal_approx(2.4, 0.0001)
-	assert_float(float(consts["KEG_FRAC"])).is_equal_approx(0.25, 0.0001)
+	assert_float(float(consts["KEG_FRAC"])).is_equal_approx(0.25 / 3.0, 0.0001)
 	# Game reads the stats these items give by their names
 	var game_src := FileAccess.get_file_as_string("res://game/Game.gd")
 	assert_bool(game_src.contains("get_stat(\"powder_keg_chance\"")).is_true()

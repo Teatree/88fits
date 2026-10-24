@@ -6,6 +6,9 @@
   "weight": 7,
   "behavior": "Lobber",
   "targeting": "densest",
+  "tags": [
+    "explosive"
+  ],
   "base": {
     "damage": 25,
     "cooldown": 2.2,

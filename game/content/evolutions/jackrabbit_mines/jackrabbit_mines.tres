@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("2_rp8ic")
 behavior = "MineLayer"
+tags = ["explosive"]
 targeting = "ground"
 base = {
 "amount": 2.0,
