@@ -306,7 +306,7 @@ func test_the_goblins_are_back_and_the_skeletons_kept() -> void:
 			ids.append(str(ev["enemy"]))
 	assert_bool(ids.has("skeleton")).is_true()
 	assert_bool(ids.has("skeleton_knight")).is_true()
-	assert_bool(ids.has("goblin")).is_false()
+	# (Garry, 2026-10-24: he put the goblin back on his roster, row r30, in the Level Editor: not pinned any more)
 	# (Garry, 2026-10-13: he put the goblin runt back on his stage-1 roster, row r2, so it is in play again: whichever
 	# goblin is on the roster is not retired, pass66_shape_test's rule)
 	if ids.has("goblin_runt"):

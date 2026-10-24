@@ -4,6 +4,11 @@ extends Node3D
 
 const PLAYER_SCENE := preload("res://player/Player.tscn")
 const RESULTS := "res://ui/ResultsScreen.tscn"
+## Pass 102 (lane STEADY): the most 60 Hz world steps one drawn frame runs while this scene plays (Godot's default, 8,
+## everywhere else: the title and the menus keep real time). A frame that would owe more runs these and Godot cuts the
+## frame's delta by the rest, so the whole game slows a little together instead of piling up steps (the catch-up spiral
+## of Garry's phone run). 2: never slows a device that holds 30 fps.
+const CATCH_UP_STEPS := 2
 
 @onready var world: Node3D = $World
 @onready var enemies: EnemyManager = $EnemyManager
@@ -79,6 +84,8 @@ var arena_cards := false
 
 
 func _ready() -> void:
+	# pass 102 (lane STEADY): the world's catch-up capped while the game plays (put back in _exit_tree)
+	Engine.max_physics_steps_per_frame = CATCH_UP_STEPS
 	# a tool's launch file first (pass 66): its `arena` opens the debug arena as the title's ARENA does (the Level
 	# Editor's "Test in game" launches the editor binary straight into it, _launch_in_arena)
 	var debug_launch := _read_debug_launch()
@@ -705,6 +712,11 @@ func _tick_dummies(delta: float) -> void:
 			rec["dead_t"] = float(rec["dead_t"]) - delta
 			if float(rec["dead_t"]) < 0.0:
 				_stand_dummy(rec)
+
+
+## Pass 102 (lane STEADY): the menus get Godot's own catch-up back (the project's value, 8).
+func _exit_tree() -> void:
+	Engine.max_physics_steps_per_frame = int(ProjectSettings.get_setting("physics/common/max_physics_steps_per_frame", 8))
 
 
 ## Out of the arena, back to the title, the save as it was (kills, chests, gold and unlocks from the arena all go).

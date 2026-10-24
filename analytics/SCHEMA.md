@@ -1,4 +1,4 @@
-# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74, schema 3 since pass 101)
+# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74, schema 3 since pass 101, schema 4 since pass 102)
 
 One JSON file per run, written by `game/core/systems/RunAnalytics.gd` (a Game child created for every real run; the
 arena never records, and a launch file saying `"analytics": false` skips it). It is written when the run ends; a
@@ -12,6 +12,15 @@ without an end is written as `result: "quit"`. Godot writes the JSON with its ke
 `frame_max`, `frame_p95`), the shots in flight (`proj`) and the pickups lying (`pickups`), and the header's
 `frame_timing`. An older file lacks them: the Frame time card and the Performance charts hide, its CSV has no such
 column, everything else reads as before.
+
+**Schema 4** (pass 102, lane STEADY) adds the keys marked *(4)*: what each second's frames cost (`steps`, `steps_max`,
+`phys_ms`, `phys_max`, `proc_ms`, `proc_max`, `rest_ms`, `lost_ms`; `core/systems/WorkClock.gd`), the header's `work`
+and `heat`, and `frame_timing.max_steps`. Since pass 102 the world's catch-up is capped at two 60 Hz steps a drawn frame while the
+game plays (`Game.CATCH_UP_STEPS` sets `Engine.max_physics_steps_per_frame`; the menus keep Godot's 8): a frame that would owe more runs two and the game slows a little (Godot
+shortens every `_process` delta by the steps it dropped, so weapons, effects, the clocks and the world slow together),
+and `lost_ms` says how much. Godot's own `Performance.TIME_PROCESS` / `TIME_PHYSICS_PROCESS` hold only the slowest frame
+of each wall second (updated once a second), so the means are measured by WorkClock's two marker nodes, the first and
+the last of every `_physics_process` and `_process`. An older file lacks them: the work charts and the heat table hide.
 
 ## Where the files go
 
@@ -70,7 +79,9 @@ column, everything else reads as before.
 | `quests` *(2)* | every counted quest not done as the run began: `{id: {name, before, after, need, done}}` (its progress as the run began and as it ended, what it needs, done now). Pass 100: the in-one-run build quests (`hero_level` with the run's hero, `item_level`, `evolve_item`, `weapon_paths`, `items_maxed`) are counted too, their progress this run's (before 0 or 1, after the best the run reached) |
 | `crowd` *(2)* | the crowd's counters at the end, those above zero: `special_chests`, `hot_chests` (Hot Sauce), `sniper_aims`, `sniper_shots`, `sniper_hero_hits`, `sniper_cancels` (the Saiga Sniper); since pass 95 `despawned` (regular creatures that vanished far from the hero and out of view, never a kill) and `despawned_by` `{creature id: count}` |
 | `fps` *(2)* | `{avg, low}`: the mean frame rate and the 1 % low (a window only; the frame clock PostHog's run_summary has; frames over 250 ms are left out of it as pauses) |
-| `frame_timing` *(3)* | what the rows' frame times mean: `valid` (false when the wall clock is not a player's frame rate), `why` (`headless`: nothing was drawn; `fixed_fps`: run under `--fixed-fps`, the game stepped a fixed time a frame however long it took; `""` when valid), `max_fps` (`Engine.max_fps` as the run began; 0 = no cap but vsync's), `frame_cap` (`Settings.frame_cap`: 60 or 0 = the screen's max; pass 101: 60 by default on a phone), `vsync` (`DisplayServer.VSyncMode`: 0 off, 1 on, 2 adaptive, 3 mailbox), `refresh_hz` (the screen's refresh rate; -1 unknown), `physics_hz` (the world's ticks a second, 60) |
+| `frame_timing` *(3)* | what the rows' frame times mean: `valid` (false when the wall clock is not a player's frame rate), `why` (`headless`: nothing was drawn; `fixed_fps`: run under `--fixed-fps`, the game stepped a fixed time a frame however long it took; `""` when valid), `max_fps` (`Engine.max_fps` as the run began; 0 = no cap but vsync's), `frame_cap` (`Settings.frame_cap`: 60 or 0 = the screen's max; pass 101: 60 by default on a phone), `vsync` (`DisplayServer.VSyncMode`: 0 off, 1 on, 2 adaptive, 3 mailbox), `refresh_hz` (the screen's refresh rate; -1 unknown), `physics_hz` (the world's ticks a second, 60); *(4)* `max_steps` (`Engine.max_physics_steps_per_frame` as the run began, 2 = `Game.CATCH_UP_STEPS`: the most world steps a drawn frame runs) |
+| `work` *(4)* | `{frames, steps, lost_s}`: the frames WorkClock counted, the world steps they ran and the world seconds the cap dropped over the run (absent without a counted frame) |
+| `heat` *(4)* | the same crowd's cost minute by minute: `{band (50), bucket_s (60), minutes, frame_ms: {band floor: [each minute's mean frame ms with that many creatures alive, or null]}, work_ms: {the same for the frame's CPU work: its world steps' time + its process time}}`; a cell needs 5 s of its minute in the band (`RunAnalytics.HEAT_BAND`, `HEAT_MIN_SECS`). Work rising along a band's row is the device heating up (or a heavier build: the build snapshots say which). Absent without schema 4 rows |
 | `names` | `{id: display name}` for every id the file mentions (weapons, passives, perks, mutations, creatures, pickups, structures; *(2)* Elite modifiers, talents, the totem gifts, the cards an offer showed) |
 | `hit_log` | the hero's last 30 s of hits as the Down! screen shows them: `{t (the stage clock), by, id (the creature), kind (melee/ranged/boss/heal), role, colour, fx, raw, dealt, shield, note (evaded, shield, broke, star, ...), hp, fatal}`; a named heal has `kind: heal` and `amount`; only on a finished run |
 | `samples` | the rows below |
@@ -134,6 +145,11 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `frame_ms`, `frame_max`, `frame_p95` *(3)* | those frames' mean wall time, the slowest one and the 95th percentile (nearest rank), in ms, 0.1 steps; absent when `frames` is 0. fps = 1000 / `frame_ms`. Meaningless when the header's `frame_timing.valid` is false |
 | `proj` *(3)* | shots in flight at the row (`ProjectileManager.count`: every round, lob and hostile shot) |
 | `pickups` *(3)* | gems and coins lying at the row (`PickupManager.count`) |
+| `steps`, `steps_max` *(4)* | the world's 60 Hz steps (the crowd, the shots, the hero, the pickups) run in this second's counted frames, and the most in one frame (at most `frame_timing.max_steps`); absent when `frames` is 0 |
+| `phys_ms`, `phys_max` *(4)* | a world step's mean time and the slowest step, in ms (0.01 / 0.1 steps; from the first `_physics_process` to the last); absent without a step |
+| `proc_ms`, `proc_max` *(4)* | the frame's process callbacks (weapons, Fx, the HUD, the director, ...), mean and slowest, in ms (first `_process` to last) |
+| `rest_ms` *(4)* | the rest of the frame (its wall time less its world steps and process): drawing, the wait for the GPU and the screen (with vsync, idle time too), mean ms. A frame's CPU work = `steps` x `phys_ms` / `frames` + `proc_ms` |
+| `lost_ms` *(4)* | world time the catch-up cap dropped in this second, ms (a frame that ran `max_steps` steps and took longer than its delta; absent at 0, and never counted when `frame_timing.valid` is false). The world ran at 1000 / (1000 + `lost_ms`) of real time |
 | `stats` | the player sheet: max_hp, damage_reduction, regen, move_speed, might, cooldown, area, projectile_speed, duration, amount, magnet, luck, greed, xp_gain, lifesteal, evade, crit_chance, crit_damage, thorns, execute_frac, overkill, haste, shield_max, ricochet, cooldown_on_kill; pass 47 adds still_regen, still_might, barrel_speed, barrel_seconds, xp_drop_chance, elite_damage, debuff_duration, difficulty, skips, banishes (the stage's); pass 62 adds powerup_duration, powerup_chance (`RunAnalytics.STAT_KEYS`; their words in the header's `stat_names`) |
 | `weapons` | `[{id, level, mut: [mutation ids], dmg, cd, amount, pierce, area, est}]` from each weapon's folded sheet |
 | `passives`, `lines` *(2)*, `perks` | `{id: level}` (the passive items; *(2)* the lines apart), `[ids]` (before pass 46 also `lines`, `{id: rank}`) |
@@ -252,6 +268,10 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
   `m_frame_max` (the minute's slowest frame), `m_frame_p95` (the mean of its seconds' 95th percentiles), `m_proj`,
   `m_pickups` (shots in flight and pickups lying, means a second); and `frame_cap` (`Engine.max_fps` as the run began),
   `frame_valid` (`frame_timing.valid`), beside the older `fps_avg`, `fps_low`.
+- `run_summary` *(4)*: the minute folds of the work (only from a record whose rows carry them): `m_phys_ms` (a world
+  step's mean time), `m_proc_ms`, `m_rest_ms` (means a frame), `m_work_ms` (the frame's CPU work: steps' time + process),
+  `m_steps` (world steps a frame), `m_steps_max`, `m_lost_s` (world seconds the cap dropped); and the heat table as
+  `heat_band`, `heat_frame_ms`, `heat_work_ms` (the header's `heat`).
 - `run_summary` (one a run): `m_gold_in`, `m_gold_out` (gold in and out in each bucket, sums), `gold_by_source`
   (`{source: gold}`), `gold_spent_by` (`{sink: gold}`), `gold_greed` (what greed added; inside the sources' totals), next
   to the older `m_gold` (the purse at the bucket's end) and `m_banked` (what a Strongbox banked so far).
@@ -368,7 +388,8 @@ byte): UTF-8 with a BOM (Excel), comma-separated, numbers with a dot, CR LF line
   order above (only those the run has; pass 78 put pass 77's `xp_total`, `hp_lost`, `hp_healed`, `boss_now`, `near3`,
   `near6` among them; pass 101 *(3)* `frames`, `frame_ms`, `frame_max`, `frame_p95`, `proj`, `pickups` after them), a key
   the row leaves out written as 0 (`boss_hp`, `boss_now` empty: no boss up; `frame_ms`, `frame_max`, `frame_p95` empty: no
-  frame that second); (pass 82) then
+  frame that second; pass 102 *(4)* `steps`, `steps_max`, `phys_ms`, `phys_max`, `proc_ms`, `proc_max`, `rest_ms`,
+  `lost_ms` after `pickups`, empty without a counted frame, `lost_ms` 0); (pass 82) then
   `chests`, `powerups`, `totems`, picked up so far (counted from the events: *Chests, power-ups and totems*); then each
   per-second map flattened as `group.key` (`dmg.revolver`, `took.goblin`, `healed_by.Heart`, ...; missing = 0); then the
   carried snapshots, filled forward to every second until the next: `mults.*`, `stats.*`,

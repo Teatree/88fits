@@ -530,6 +530,8 @@ func _ready() -> void:
 
 func _on_build_changed() -> void:
 	_pstats_dirty = true
+	# pass 102 (lane HITS): damage()'s crit and Guillotine numbers read again
+	_hs_sheet = null
 
 
 ## The hero's numbers this manager reads (pass 47), read again only when marked stale: every tick and on a build change.
@@ -1253,6 +1255,7 @@ func register_type(def: EnemyDef) -> int:
 	_t_mm.append(mm)
 	_t_badge.append(str(t["badge"]))
 	_t_hit_ok.append(1 if def.frames_of("hit") > 0 else 0)
+	_hits_type_added(def)
 	_t_charge.append(1 if def.charge.size() > 0 else 0)
 	for a: String in ANIM_NAMES:
 		_t_off.append(def.frame_offset(a))
@@ -2019,13 +2022,15 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	if weapon_id != "" and not green and not hot:
 		# Counterpunch (pass 69): the attack after an evade hits double (Run.counterpunch_mult, 1 otherwise)
 		dealt *= Run.counterpunch_mult(weapon_id)
-		var cc: float = Run.player_sheet.get_stat("crit_chance", 0.0)
+		# pass 102 (lane HITS): the hero's crit numbers as this tick read them (_hit_stats)
+		_hit_stats()
+		var cc: float = _hs_crit
 		# Trick Shot (pass 69): the weapon's own proc_mult on its crit, Vulture and Cold Snap chances
 		var tpm: float = Run.trick_proc_mult(weapon_id)
 		cc *= tpm
 		# HIT_CRIT (pass 62): a forced crit needs no roll
 		if (flags & HIT_CRIT) != 0 or (cc > 0.0 and randf() < cc):
-			dealt *= Run.player_sheet.get_stat("crit_damage", 2.0)
+			dealt *= _hs_critd
 			crit = true
 			# Vulture (pass 47c): a crit may heal the hero a little
 			if _crit_heal > 0.0 and randf() < _crit_heal * tpm and game and game.player and not game.player.dead:
@@ -2037,7 +2042,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	# a mini crit (pass 48, HIT_MINI): half a crit's extra damage, when no full crit rolled
 	var mini := false
 	if not crit and (flags & HIT_MINI) != 0:
-		dealt *= 1.0 + (Run.player_sheet.get_stat("crit_damage", 2.0) - 1.0) * 0.5
+		_hit_stats()
+		dealt *= 1.0 + (_hs_critd - 1.0) * 0.5
 		mini = true
 	var hp_before: float = hp[i]
 	hp[i] -= dealt
@@ -2055,9 +2061,10 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		if rec > 0.0:
 			Run.add_damage(weapon_id, rec)
 	# Guillotine: a weapon hit finishes anything but a boss that is already below the threshold
-	if hp[i] > 0.0 and weapon_id != "" and i != boss_index and str((types[type_idx[i]]["def"] as EnemyDef).archetype) != "boss":
-		var ex: float = Run.player_sheet.get_stat("execute_frac", 0.0)
-		if ex > 0.0 and hp[i] <= max_hp[i] * ex:
+	_hit_stats()
+	if _hs_exec > 0.0 and hp[i] > 0.0 and weapon_id != "" and i != boss_index and str((types[type_idx[i]]["def"] as EnemyDef).archetype) != "boss":
+		var ex: float = _hs_exec
+		if hp[i] <= max_hp[i] * ex:
 			hp[i] = 0.0
 			if game:
 				game.fx.burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.9, 0.15, 0.2), 0.9)
@@ -2078,7 +2085,7 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	if hp[i] <= 0.0 and undying[i] == 1:
 		# a training dummy (pass 48): it never falls; the hit showed, its statuses stay, and it is whole again
 		hp[i] = max_hp[i]
-		Audio.play(str(def.sfx.get("hit", "")), pos[i])
+		_hit_sound(i, crit)
 		return false
 	if hp[i] <= 0.0:
 		var overflow: float = -hp[i]
@@ -2099,7 +2106,7 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		return true
 	# pass 73 (lane SNIPER): flee on hit, and a hit Vulture Raider's rockets shake and slow
 	_on_hit_reactions(i, def, dealt, green or hot)
-	Audio.play(str(def.sfx.get("hit", "")), pos[i])
+	_hit_sound(i, crit)
 	return false
 
 
@@ -2114,6 +2121,9 @@ func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duratio
 	if scaled:
 		# Ducktape stretches it, and Lingering Light (pass 54, Solenne's hidden perk)
 		duration *= debuff_mult() * _ll_longer
+	# pass 102 (lane HITS): the clocks up to date before a source is set again
+	_poison_flush(i)
+	_poison_min[i] = minf(_poison_min[i], duration)
 	var src: Dictionary = poison_src[i]
 	var fresh := src.is_empty()
 	if src.has(weapon_id):
@@ -2601,11 +2611,14 @@ func ignite(i: int, weapon_id: String, dmg_per_tick: float, duration: float, spr
 	# creature a shot. A fire jumping on from a burning creature has its own odds (the spread) and never rolls.
 	if from_enemy < 0 and not ignite_roll(i, weapon_id, _ignite_chance(weapon_id)):
 		return
+	# pass 102 (lane HITS): the clocks up to date before a source is set again
+	_fire_flush(i)
 	var src: Dictionary = fire_src[i]
 	var fresh := src.is_empty()
 	# Ducktape (pass 47) stretches the burn; "dur" keeps the item's own seconds, so a fire that jumps on is stretched once,
 	# not once more at every jump
 	var burn: float = duration * debuff_mult() * _ll_longer
+	_fire_min[i] = minf(_fire_min[i], burn)
 	# blue fire (pass 48): a source whose weapon burns blue (WeaponInstance.blue_fire: Methanol, Moonshine) burns blue,
 	# and so does every creature it jumps to (the jump keeps the source's id)
 	var blue := _burns_blue(weapon_id)
@@ -2676,55 +2689,87 @@ func has_element(i: int, element: String) -> bool:
 ## Runs the fire clocks of one enemy: expires sources, every FIRE_TICK seconds deals the sum of their ticks, and
 ## every source rolls to jump onto each creature this one is touching.
 func _tick_fire(i: int, delta: float) -> void:
+	if prof_hits:
+		var t0 := Time.get_ticks_usec()
+		_tick_fire_body(i, delta)
+		_us_fire += Time.get_ticks_usec() - t0
+		return
+	_tick_fire_body(i, delta)
+
+
+func _tick_fire_body(i: int, delta: float) -> void:
 	var src: Dictionary = fire_src[i]
 	if src.is_empty():
 		return
-	var total := 0.0
-	var best_id := ""
-	var best := 0.0
-	var gone := false
-	for k in src.keys():
-		var e: Dictionary = src[k]
-		e["t"] = float(e["t"]) - delta
-		if float(e["t"]) <= 0.0:
-			# Prairie Fire (pass 70): a burn that runs out jumps on
-			_prairie_jump(i, true, str(k), e)
-			src.erase(k)
-			gone = true
-			continue
-		var part: float = float(e["dmg"])
-		total += part
-		if part > best:
-			best = part
-			best_id = str(k)
-	if src.is_empty():
-		fire_blue[i] = 0
-		return
-	if gone and fire_blue[i] == 1:
-		# a blue source burnt out (pass 48): blue while one is left
-		var still := 0
+	# pass 102 (lane HITS): the sources' clocks run lazily (_fire_tick_clocks): the dictionaries are walked only when a
+	# source may have run out, with the very same subtractions; the ones that ran out jump on (Prairie Fire) and go, in
+	# their order, as before
+	if _fire_tick_clocks(i, delta):
 		for k in src.keys():
-			if bool((src[k] as Dictionary).get("blue", false)):
-				still = 1
-				break
-		fire_blue[i] = still
-	# flames lick up the whole time it burns, not only on the damage ticks
+			var e: Dictionary = src[k]
+			if float(e["t"]) <= 0.0:
+				# Prairie Fire (pass 70): a burn that runs out jumps on
+				_prairie_jump(i, true, str(k), e)
+				src.erase(k)
+		if src.is_empty():
+			fire_blue[i] = 0
+			return
+		if fire_blue[i] == 1:
+			# a blue source burnt out (pass 48): blue while one is left
+			var still := 0
+			for k in src:
+				if bool((src[k] as Dictionary).get("blue", false)):
+					still = 1
+					break
+			fire_blue[i] = still
+	# flames lick up the whole time it burns, not only on the damage ticks (pass 102: only where they can be seen, and
+	# further apart when many burn on the screen, fire_puff_every)
+	var seen := _status_fx_seen(i)
+	if seen:
+		_burn_drawn_n += 1
 	fire_puff[i] -= delta
 	if fire_puff[i] <= 0.0:
-		fire_puff[i] = 0.18
-		if game and game.has_method("fx_fire"):
-			game.fx_fire(pos[i] + Vector3(0, size[i] * 0.3, 0), size[i], fire_blue[i] == 1)
+		fire_puff[i] = fire_puff_every()
+		_fx_check()
+		if _fx_fire_ok and seen:
+			fire_fx_drawn += 1
+			if prof_hits:
+				var t1 := Time.get_ticks_usec()
+				game.fx_fire(pos[i] + Vector3(0, size[i] * 0.3, 0), size[i], fire_blue[i] == 1)
+				_us_fx += Time.get_ticks_usec() - t1
+			else:
+				game.fx_fire(pos[i] + Vector3(0, size[i] * 0.3, 0), size[i], fire_blue[i] == 1)
+		elif _fx_fire_ok:
+			fire_fx_skipped += 1
 	fire_tick[i] -= delta
 	if fire_tick[i] <= 0.0:
 		fire_tick[i] = FIRE_TICK
-		# spread first, so a creature that dies of this tick still passes its fire on
+		var tt0 := Time.get_ticks_usec() if prof_hits else 0
+		# the sum of the sources' ticks and the biggest one's weapon (the run's damage goes to it), in the sources' order
+		var total := 0.0
+		var best_id := ""
+		var best := 0.0
+		for k in src:
+			var part: float = float((src[k] as Dictionary)["dmg"])
+			total += part
+			if part > best:
+				best = part
+				best_id = str(k)
+		# spread first, so a creature that dies of this tick still passes its fire on; the neighbours are looked up once
+		# for all the sources (pass 102: the same creatures, in the same order, so the same rolls)
+		var near := PackedInt32Array()
+		var looked := false
 		for k in src.keys():
 			var e: Dictionary = src[k]
 			var chance := float(e["spread"])
 			if chance <= 0.0:
 				continue
-			for j in indices_in_radius(pos[i], radius[i] + 1.2):
-				if j == i or j == int(e["from"]) or alive[j] == 0 or state[j] == STATE_DYING or j == boss_index:
+			if not looked:
+				near = indices_in_radius(pos[i], radius[i] + 1.2)
+				looked = true
+			var from_j := int(e["from"])
+			for j in near:
+				if j == i or j == from_j or alive[j] == 0 or state[j] == STATE_DYING or j == boss_index:
 					continue
 				var touch: float = radius[i] + radius[j] + 0.25
 				var d := pos[j] - pos[i]
@@ -2737,40 +2782,62 @@ func _tick_fire(i: int, delta: float) -> void:
 					# every caught fire spreads at a fixed fraction of the original weapon's chance, however far down the chain
 					ignite(j, str(k), float(e["dmg"]), float(e["dur"]), float(e["root"]) * CHILD_SPREAD, i, float(e["root"]))
 		_pstats()
+		var td0 := Time.get_ticks_usec() if prof_hits else 0
 		# White Phosphorus's extra, and Lingering Light's harder ticks (pass 54)
 		damage(i, (total) * (1.0 + _fire_vuln) * _ll_harder, best_id, Vector3.ZERO, 0.0, false, true)
+		if prof_hits:
+			var tn := Time.get_ticks_usec()
+			_us_fire_dmg += tn - td0
+			_us_fire_tick += tn - tt0
 
 
 ## Runs the poison clocks of one enemy: expires sources, and every POISON_TICK seconds deals the sum of their ticks.
 func _tick_poison(i: int, delta: float) -> void:
+	if prof_hits:
+		var t0 := Time.get_ticks_usec()
+		_tick_poison_body(i, delta)
+		_us_poison += Time.get_ticks_usec() - t0
+		return
+	_tick_poison_body(i, delta)
+
+
+func _tick_poison_body(i: int, delta: float) -> void:
 	var src: Dictionary = poison_src[i]
 	if src.is_empty():
 		return
-	var total := 0.0
-	var best_id := ""
-	var best := 0.0
-	for k in src.keys():
-		var e: Dictionary = src[k]
-		e["t"] = float(e["t"]) - delta
-		if float(e["t"]) <= 0.0:
-			# Prairie Fire (pass 70): a poison that runs out jumps on
-			_prairie_jump(i, false, str(k), e)
-			src.erase(k)
-			continue
-		var part: float = float(e["dmg"]) * int(e["stacks"])
-		total += part
-		if part > best:
-			best = part
-			best_id = str(k)
-	if src.is_empty():
-		return
+	# pass 102 (lane HITS): the clocks run lazily (_poison_tick_clocks, as the burns'), the run-out ones jumping on and
+	# going in their order; the sum only on the tick that deals it
+	if _poison_tick_clocks(i, delta):
+		for k in src.keys():
+			var e: Dictionary = src[k]
+			if float(e["t"]) <= 0.0:
+				# Prairie Fire (pass 70): a poison that runs out jumps on
+				_prairie_jump(i, false, str(k), e)
+				src.erase(k)
+		if src.is_empty():
+			return
 	poison_tick[i] -= delta
 	if poison_tick[i] <= 0.0:
 		poison_tick[i] = POISON_TICK
+		var total := 0.0
+		var best_id := ""
+		var best := 0.0
+		for k in src:
+			var e: Dictionary = src[k]
+			var part: float = float(e["dmg"]) * int(e["stacks"])
+			total += part
+			if part > best:
+				best = part
+				best_id = str(k)
 		# Lingering Light (pass 54) makes every tick harder
 		_pstats()
+		var tp0 := Time.get_ticks_usec() if prof_hits else 0
 		var was_dead := damage(i, total * _ll_harder, best_id, Vector3.ZERO, 0.0, true)
-		if game and game.has_method("fx_poison"):
+		if prof_hits:
+			_us_poison_dmg += Time.get_ticks_usec() - tp0
+		# the puff only where it can be seen (pass 102)
+		_fx_check()
+		if _fx_poison_ok and _status_fx_seen(i):
 			game.fx_poison(pos[i] + Vector3(0, size[i] * 0.5, 0))
 		if was_dead:
 			return
@@ -2868,6 +2935,8 @@ func blast_count(center: Vector3, r: float) -> int:
 
 
 func _die(i: int, weapon_id: String) -> void:
+	# pass 102 (lane HITS): its burns' and poisons' clocks up to date (Blight hands on what is left)
+	status_clocks_now(i)
 	held[i] = 0
 	var def: EnemyDef = types[type_idx[i]]["def"]
 	var elite: EliteModDef = elites[elite_idx[i]] if elite_idx[i] >= 0 else null
@@ -3947,6 +4016,8 @@ func _physics_process(delta: float) -> void:
 	# the burrows' mounds swell with their wind-ups (pass 60), after the runner has moved the timers
 	_tick_mounds()
 	_ticks += 1
+	# pass 102 (lane HITS): the burning count the flames' pace reads next tick, and the probe's timings
+	_hits_tick_end()
 	Perf.add("enemies.sim", t0)
 
 
@@ -8106,3 +8177,263 @@ func _tail_end(i: int, cancelled: bool) -> void:
 		cooldown[i] = maxf(cooldown[i], TAIL_CHARGE_REST)
 	if cancelled:
 		tail_cancels += 1
+
+
+# ---------------------------------------------------------------- pass 102 (lane HITS): cheaper hits in a huge crowd
+## Garry's phone run: late Endless, ~100+ creatures round the hero, nearly all burning and poisoned, cost more than a
+## frame. Every number a hit, a burn or a poison deals is unchanged; only the work and the drawing around them is less:
+## - the hit sound (HIT_SOUND_GAP_MS): a hit that does not kill plays its creature's hit sound at most once every
+##   HIT_SOUND_GAP_MS milliseconds per sound (every creature that shares a sound shares the gap); a crit always plays
+##   its own (Audio's voice limit still holds), a kill plays the death sound as before. The gate is checked before any
+##   lookup, so a dropped sound costs one compare.
+## - the flames (FIRE_FX_FULL): a burning creature licks up a flame every FIRE_PUFF seconds while at most FIRE_FX_FULL
+##   burning creatures are drawn; more than that and every one's flames come at FIRE_PUFF x drawn burning / FIRE_FX_FULL
+##   (the screen keeps about the same number of flames: the particle pool was full and dropped most of them anyway). A
+##   creature off the screen (drawn_vis 0) shows no flame and no poison puff (no one could see them).
+## - the burn's and the poison's clocks (_tick_fire_body, _tick_poison_body): the same sums in the same order, without
+##   a key list made every tick; the spread looks for neighbours once per tick of the creature, not once per source.
+const HIT_SOUND_GAP_MS := 120
+const FIRE_PUFF := 0.18
+const FIRE_FX_FULL := 80
+## the probe's switches: timings to Perf ("hits.fire", "hits.poison", "hits.sound", "hits.fx"), and the before-and-after
+## (hit_sound_gap_ms 0 plays every hit's sound, fire_fx_full 0 draws every flame and puff as before)
+static var prof_hits := false
+static var hit_sound_gap_ms := HIT_SOUND_GAP_MS
+static var fire_fx_full := FIRE_FX_FULL
+var _us_fire := 0
+var _us_poison := 0
+var _us_sound := 0
+var _us_fx := 0
+var _us_fire_tick := 0
+var _us_fire_dmg := 0
+var _us_poison_dmg := 0
+## per type: which hit sound it plays (an index into _hit_ids; -1 none); per sound: its id and when it may play again
+var _t_hit_slot := PackedInt32Array()
+var _hit_ids := PackedStringArray()
+var _hit_next_ms := PackedInt64Array()
+## hit sounds asked for and played, and the ones the gap let go (tests and the probe read them); flames and poison puffs
+## drawn and the ones skipped
+var hit_sounds := 0
+var hit_sounds_gated := 0
+var fire_fx_drawn := 0
+var fire_fx_skipped := 0
+## burning creatures drawn this tick (counted as they burn) and last tick's count, which sets the flames' pace
+var _burn_drawn_n := 0
+var _burn_drawn_last := 0
+## Game (or a test's stub) can show flames and poison puffs: read once per game object
+var _fx_game: Object = null
+var _fx_fire_ok := false
+var _fx_poison_ok := false
+
+
+## A creature type was added: the slot of its hit sound (one slot per sound id, shared).
+func _hits_type_added(def: EnemyDef) -> void:
+	var id := str(def.sfx.get("hit", ""))
+	if id == "":
+		_t_hit_slot.append(-1)
+		return
+	var slot := _hit_ids.find(id)
+	if slot < 0:
+		_hit_ids.append(id)
+		_hit_next_ms.append(0)
+		slot = _hit_ids.size() - 1
+	_t_hit_slot.append(slot)
+
+
+## A hit that did not kill creature `i`: its hit sound, unless one of the same sound began less than HIT_SOUND_GAP_MS ago
+## (a crit always plays).
+func _hit_sound(i: int, crit: bool) -> void:
+	var ti: int = type_idx[i]
+	if ti < 0 or ti >= _t_hit_slot.size():
+		return
+	var slot: int = _t_hit_slot[ti]
+	if slot < 0:
+		return
+	var now := Time.get_ticks_msec()
+	if not crit and hit_sound_gap_ms > 0:
+		if now < _hit_next_ms[slot]:
+			hit_sounds_gated += 1
+			return
+		_hit_next_ms[slot] = now + hit_sound_gap_ms
+	hit_sounds += 1
+	if prof_hits:
+		var t0 := Time.get_ticks_usec()
+		Audio.play(_hit_ids[slot], pos[i])
+		_us_sound += Time.get_ticks_usec() - t0
+		return
+	Audio.play(_hit_ids[slot], pos[i])
+
+
+## Whether the game shows flames and poison puffs (a test's stub may have neither).
+func _fx_check() -> void:
+	if _fx_game == game:
+		return
+	_fx_game = game
+	_fx_fire_ok = game != null and game.has_method("fx_fire")
+	_fx_poison_ok = game != null and game.has_method("fx_poison")
+
+
+## The seconds between two flames of one burning creature now: FIRE_PUFF, stretched when more than FIRE_FX_FULL burning
+## creatures were drawn last tick.
+func fire_puff_every() -> float:
+	if fire_fx_full <= 0 or _burn_drawn_last <= fire_fx_full:
+		return FIRE_PUFF
+	return FIRE_PUFF * float(_burn_drawn_last) / float(fire_fx_full)
+
+
+## Whether creature `i`'s flame or poison puff would be seen (fire_fx_full 0: always, as before).
+func _status_fx_seen(i: int) -> bool:
+	return fire_fx_full <= 0 or drawn_vis.size() != MAX or drawn_vis[i] == 1
+
+
+## End of a physics tick: the burning count for the next tick's flames, and the probe's timings into Perf.
+func _hits_tick_end() -> void:
+	_burn_drawn_last = _burn_drawn_n
+	_burn_drawn_n = 0
+	if prof_hits:
+		var now := Time.get_ticks_usec()
+		Perf.add("hits.fire", now - _us_fire)
+		Perf.add("hits.poison", now - _us_poison)
+		Perf.add("hits.sound", now - _us_sound)
+		Perf.add("hits.fx", now - _us_fx)
+		Perf.add("hits.fire.tick", now - _us_fire_tick)
+		Perf.add("hits.fire.dmg", now - _us_fire_dmg)
+		Perf.add("hits.poison.dmg", now - _us_poison_dmg)
+		_us_fire_tick = 0
+		_us_fire_dmg = 0
+		_us_poison_dmg = 0
+		_us_fire = 0
+		_us_poison = 0
+		_us_sound = 0
+		_us_fx = 0
+
+
+# ---------------------------------------------------------------- pass 102 (lane HITS): the lazy clocks
+## A burn's or a poison's seconds left ("t" in its source) went down by the tick's delta on every physics tick, for every
+## source of every creature: a dictionary walk each tick for each burning or poisoned creature. Now each creature keeps
+## how many ticks are owed (_fire_pn / _poison_pn) of which delta (_fire_pd / _poison_pd), and the smallest "t" when its
+## clocks were last brought up to date (_fire_min / _poison_min, an underestimate is safe). The owed ticks are paid,
+## subtraction by subtraction as before (so every "t" is the same float to the last bit), when they may have run a
+## source out (owed x delta reaching the smallest "t" less LAZY_SAFE), when the delta changes, before ignite() or
+## poison() sets a source, and when the creature dies (status_clocks_now: Blight reads what is left). Whatever reads a
+## source's "t" from outside calls status_clocks_now(i) first.
+const LAZY_SAFE := 1.0e-6
+var _fire_pn := PackedInt32Array()
+var _fire_pd := PackedFloat64Array()
+var _fire_min := PackedFloat64Array()
+var _poison_pn := PackedInt32Array()
+var _poison_pd := PackedFloat64Array()
+var _poison_min := PackedFloat64Array()
+
+
+func _lazy_ready() -> void:
+	if _fire_pn.size() == MAX:
+		return
+	_fire_pn.resize(MAX); _fire_pn.fill(0)
+	_fire_pd.resize(MAX); _fire_pd.fill(0.0)
+	_fire_min.resize(MAX); _fire_min.fill(0.0)
+	_poison_pn.resize(MAX); _poison_pn.fill(0)
+	_poison_pd.resize(MAX); _poison_pd.fill(0.0)
+	_poison_min.resize(MAX); _poison_min.fill(0.0)
+
+
+## Creature `i`'s burns and poisons with every owed tick paid: their "t" as the eager clocks would have them now.
+func status_clocks_now(i: int) -> void:
+	if i < 0 or i >= MAX:
+		return
+	_fire_flush(i)
+	_poison_flush(i)
+
+
+## One tick of creature `i`'s burn clocks: owed, or paid when a source may run out. True when one did run out (its "t"
+## at or under 0; the caller lets it go).
+func _fire_tick_clocks(i: int, delta: float) -> bool:
+	_lazy_ready()
+	if _fire_pn[i] > 0 and _fire_pd[i] != delta:
+		_fire_flush(i)
+	_fire_pd[i] = delta
+	_fire_pn[i] += 1
+	if float(_fire_pn[i]) * delta < _fire_min[i] - LAZY_SAFE:
+		return false
+	return _fire_flush(i)
+
+
+## Pays creature `i`'s owed burn ticks; true when a source is at or under 0 after it. Sets the smallest "t" left over the
+## sources still above 0 (INF for none).
+func _fire_flush(i: int) -> bool:
+	_lazy_ready()
+	return _flush_src(fire_src[i] as Dictionary, i, true)
+
+
+func _poison_tick_clocks(i: int, delta: float) -> bool:
+	_lazy_ready()
+	if _poison_pn[i] > 0 and _poison_pd[i] != delta:
+		_poison_flush(i)
+	_poison_pd[i] = delta
+	_poison_pn[i] += 1
+	if float(_poison_pn[i]) * delta < _poison_min[i] - LAZY_SAFE:
+		return false
+	return _poison_flush(i)
+
+
+func _poison_flush(i: int) -> bool:
+	_lazy_ready()
+	return _flush_src(poison_src[i] as Dictionary, i, false)
+
+
+func _flush_src(src: Dictionary, i: int, fire: bool) -> bool:
+	var n: int = _fire_pn[i] if fire else _poison_pn[i]
+	var d: float = _fire_pd[i] if fire else _poison_pd[i]
+	var low := INF
+	var gone := false
+	for k in src:
+		var e: Dictionary = src[k]
+		var t: float = float(e["t"])
+		for r in range(n):
+			t -= d
+		if n > 0:
+			e["t"] = t
+		if t <= 0.0:
+			gone = true
+		elif t < low:
+			low = t
+	if fire:
+		_fire_pn[i] = 0
+		_fire_min[i] = low
+	else:
+		_poison_pn[i] = 0
+		_poison_min[i] = low
+	return gone
+
+
+# ---------------------------------------------------------------- pass 102 (lane HITS): damage()'s hero numbers
+## StatSheet.get_stat walks every effect the hero carries (a late build: well over a hundred) for each stat; damage() read
+## crit_chance, crit_damage and execute_frac (Guillotine) that way on every hit, a fire or poison tick included. They are
+## read once and kept until the next physics tick, a build change (Run.build_changed), a new sheet (rebuild_sheets) or a
+## change made to it (StatSheet.version: set_base, add_effect, remove_source...; a tool or test editing it by hand is seen
+## at once), so every hit reads the same value as before:
+## the sheet edits that send no build_changed (the might, speed and evade ramps) never touch these three.
+var _hs_sheet: Object = null
+var _hs_ver := -1
+var _hs_tick := -1
+var _hs_crit := 0.0
+var _hs_critd := 2.0
+var _hs_exec := 0.0
+
+
+func _hit_stats() -> void:
+	var s: StatSheet = Run.player_sheet
+	if s == _hs_sheet and _hs_tick == _tick and s != null and s.version == _hs_ver:
+		return
+	_hs_sheet = s
+	_hs_tick = _tick
+	if s == null:
+		_hs_ver = -1
+		_hs_crit = 0.0
+		_hs_critd = 2.0
+		_hs_exec = 0.0
+		return
+	_hs_ver = s.version
+	_hs_crit = s.get_stat("crit_chance", 0.0)
+	_hs_critd = s.get_stat("crit_damage", 2.0)
+	_hs_exec = s.get_stat("execute_frac", 0.0)

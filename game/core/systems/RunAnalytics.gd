@@ -25,12 +25,18 @@
 ## gems and coins lying (pickups), so the frame rate charts against the crowd, the stage and the minute; the header's
 ## frame_timing says whether the clock means anything (valid false for a headless run or one under --fixed-fps) and
 ## what capped it (the frame cap, vsync, the screen's rate); summary() folds the same into its minutes.
+## Pass 102 (lane STEADY), schema 4: every row carries what its frames cost (WorkClock: steps, steps_max: the world's 60 Hz
+## steps run and the most in one frame; phys_ms, phys_max: a world step's mean and slowest time; proc_ms, proc_max: the
+## frame's process callbacks; rest_ms: the rest of the frame, drawing and waiting; lost_ms: world time the catch-up cap
+## dropped), frame_timing adds max_steps, and the end header's `heat` (and summary()'s heat_*) holds each minute's mean
+## frame and work time at each crowd band of HEAT_BAND creatures, so a phone heating up shows as the same crowd costing
+## more minute after minute.
 class_name RunAnalytics
 extends Node
 
 static var I: RunAnalytics = null
 
-const SCHEMA := 3
+const SCHEMA := 4
 ## Pass 74: the run files a phone keeps in user://analytics/runs (the newest by name: a name is the run's start stamp);
 ## the PC keeps every one (prunes_here).
 const KEEP_FILES := 50
@@ -38,7 +44,7 @@ const KEEP_FILES := 50
 const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
 ## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
 const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents",
-	"talent_forms", "totems", "stat_names", "build_text"]
+	"talent_forms", "totems", "stat_names", "build_text", "heat"]
 ## The Totem Poles' gifts (pass 73), by path as Run reads them.
 const TOTEM_BOONS := preload("res://core/systems/TotemBoons.gd")
 ## The player stats a sheet snapshot carries (StatSheet.PLAYER_DEFAULTS minus the bookkeeping ones; pass 47 added the
@@ -62,6 +68,10 @@ const FRAME_GAP_MS := 250.0
 ## The run summary stays well under PostHog's ~32 KB an event (Analytics.EVENT_MAX): past this it is folded into
 ## two-minute buckets, then four, ...
 const SUMMARY_MAX := 24000
+## Pass 102 (lane STEADY): the crowd bands the heat table compares minutes in (creatures alive, rounded down to it), and
+## the seconds a minute needs in a band for its cell.
+const HEAT_BAND := 50
+const HEAT_MIN_SECS := 5
 ## Where a run's gold comes from (pass 61, Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)"):
 ## the `source` every Run.add_gold call names. coins = a creature's dropped coin; loose_change, gold_dust, boss_coins,
 ## loot_cache, blasting_cap, barrel (pass 87: a black barrel's coins) = coins of those origins (PickupManager.mark_coin); elite_purse, boss_purse = a kill's
@@ -84,6 +94,8 @@ var game: Node
 var play_t := 0.0            # unpaused play seconds: the x axis (Run.elapsed is the stage clock and freezes in boss and portal phases)
 var header: Dictionary = {}
 var samples: Array = []
+## Pass 102 (lane STEADY): the frames' work clock (WorkClock, a child; null before begin)
+var work: WorkClock = null
 var events: Array = []
 var via := "card"            # how the next item arrives: card|path|starter|chest|boss_chest|stranger|shop|debug (set by Game before applying)
 var abandoned := false
@@ -226,6 +238,11 @@ func begin(p_game: Node) -> void:
 	header["stat_names"] = RunAnalytics.stat_names()
 	# pass 101 (lane FPS): what the frame clock means in this process and what caps it
 	header["frame_timing"] = RunAnalytics.frame_timing()
+	# pass 102 (lane STEADY): what each frame cost (the rows' steps, phys_ms, proc_ms, rest_ms, lost_ms)
+	work = WorkClock.new()
+	work.name = "WorkClock"
+	work.count_lost = bool(header["frame_timing"].get("valid", false))
+	add_child(work)
 	# pass 87 (lane STOOLS): the stage this run plays (a stage run since pass 87: Game started it before the recorder)
 	header.merge(stage_header(), true)
 	Analytics.run_begin(str(header["run_id"]))
@@ -608,6 +625,8 @@ func tick(delta: float) -> void:
 	play_t += delta
 	_acc_t += delta
 	_frame()
+	if work:
+		work.tick_frame()
 	if _acc_t >= 1.0:
 		_acc_t -= 1.0
 		_sample()
@@ -649,7 +668,7 @@ static func frame_timing() -> Dictionary:
 				why = "fixed_fps"
 	return {"valid": why == "", "why": why, "max_fps": Engine.max_fps, "frame_cap": int(Settings.frame_cap),
 		"vsync": int(DisplayServer.window_get_vsync_mode()), "refresh_hz": snappedf(DisplayServer.screen_get_refresh_rate(), 0.1),
-		"physics_hz": Engine.physics_ticks_per_second}
+		"physics_hz": Engine.physics_ticks_per_second, "max_steps": Engine.max_physics_steps_per_frame}
 
 
 ## Pass 101 (lane FPS): the second's frames into the row, always (0 frames is said, so a record shows it measured):
@@ -877,6 +896,9 @@ func _sample() -> void:
 			_mults_last = m
 	# pass 101 (lane FPS): the second's frames, the shots and the pickups
 	_put_frames(row)
+	# pass 102 (lane STEADY): the second's world steps and their time, the process and the rest, the time lost to the cap
+	if work:
+		work.put_second(row)
 	_put_drawn(row)
 	# the build, only when it changed (and not more than once in SNAPSHOT_EVERY unless an item was picked)
 	if _sheet_dirty and (_item_since_snapshot or play_t - _last_snapshot_t >= SNAPSHOT_EVERY):
@@ -1031,6 +1053,12 @@ func _fill_end(with_log: bool, banked: int = 0) -> void:
 	var fps := fps_stats()
 	if not fps.is_empty() and not bool(header.get("headless", false)):
 		header["fps"] = {"avg": fps["fps_avg"], "low": fps["fps_low"]}
+	# pass 102 (lane STEADY): the run's frames and world steps, the world time the cap dropped, and the heat table
+	if work and work.frames_total > 0:
+		header["work"] = {"frames": work.frames_total, "steps": work.steps_total, "lost_s": snappedf(work.lost_total, 0.01)}
+	var heat := RunAnalytics.heat_table(samples)
+	if not heat.is_empty():
+		header["heat"] = heat
 	header["names"] = _names()
 	if with_log and game and is_instance_valid(game):
 		var player = game.get("player")
@@ -1373,7 +1401,121 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 	if seen_drawn:
 		out["m_proj"] = _ints(proj)
 		out["m_pickups"] = _ints(pickups)
+	# pass 102 (lane STEADY): what the minutes' frames cost and the heat table (schema 4 rows only)
+	out.merge(RunAnalytics.work_summary(rows, bucket_s, n), true)
 	return out
+
+
+## Pass 102 (lane STEADY): the work keys of summary() from schema 4 rows ({} when no row has them), `n` buckets of
+## `bucket_s`: m_phys_ms = a world step's mean time (over the minute's steps), m_proc_ms = the frame's process time and
+## m_rest_ms = the rest of the frame (drawing, waiting; means over its frames), m_work_ms = the CPU work of a frame
+## (its steps' time + its process time, mean), m_steps = world steps a frame (mean), m_steps_max = the most in one frame,
+## m_lost_s = world seconds the catch-up cap dropped; heat_band, heat_frame_ms, heat_work_ms = heat_table's.
+static func work_summary(rows: Array, bucket_s: float, n: int) -> Dictionary:
+	var fr := _zeros(n)
+	var st := _zeros(n)
+	var st_max := _zeros(n)
+	var ph := _zeros(n)
+	var pr := _zeros(n)
+	var rest := _zeros(n)
+	var lost := _zeros(n)
+	var seen := false
+	for r in rows:
+		if not (r is Dictionary) or not (r as Dictionary).has("steps"):
+			continue
+		var row: Dictionary = r
+		var f := float(row.get("frames", 0))
+		if f <= 0.0:
+			continue
+		seen = true
+		var i := clampi(_bucket_of(float(row.get("t", 0.0)), bucket_s), 0, maxi(n - 1, 0))
+		var s := float(row.get("steps", 0))
+		fr[i] += f
+		st[i] += s
+		st_max[i] = maxf(st_max[i], float(row.get("steps_max", 0)))
+		ph[i] += s * float(row.get("phys_ms", 0.0))
+		pr[i] += f * float(row.get("proc_ms", 0.0))
+		rest[i] += f * float(row.get("rest_ms", 0.0))
+		lost[i] += float(row.get("lost_ms", 0)) / 1000.0
+	if not seen or n <= 0:
+		return {}
+	var m_ph := _zeros(n)
+	var m_pr := _zeros(n)
+	var m_rest := _zeros(n)
+	var m_work := _zeros(n)
+	var m_st := _zeros(n)
+	for i in range(n):
+		if st[i] > 0.0:
+			m_ph[i] = ph[i] / st[i]
+		if fr[i] > 0.0:
+			m_pr[i] = pr[i] / fr[i]
+			m_rest[i] = rest[i] / fr[i]
+			m_work[i] = (ph[i] + pr[i]) / fr[i]
+			m_st[i] = st[i] / fr[i]
+	var out := {"m_phys_ms": _snaps(m_ph, 0.01), "m_proc_ms": _snaps(m_pr, 0.01), "m_rest_ms": _snaps(m_rest, 0.1),
+		"m_work_ms": _snaps(m_work, 0.01), "m_steps": _snaps(m_st, 0.01), "m_steps_max": _ints(st_max), "m_lost_s": _snaps(lost, 0.01)}
+	var heat := heat_table(rows, bucket_s)
+	if not heat.is_empty():
+		out["heat_band"] = heat["band"]
+		out["heat_frame_ms"] = heat["frame_ms"]
+		out["heat_work_ms"] = heat["work_ms"]
+	return out
+
+
+## Pass 102 (lane STEADY): the heat table from schema 4 rows ({} without them): {band: HEAT_BAND, bucket_s, minutes,
+## frame_ms: {band floor: [the minute's mean frame ms at that crowd, or null]}, work_ms: {the same for the frame's CPU
+## work: its world steps' time + its process time}}. A row's band is its creatures alive rounded down to HEAT_BAND; a
+## cell needs HEAT_MIN_SECS seconds of its minute in the band. Read a band's row along the minutes: the same crowd costing
+## more later is heat (or a heavier build: the build snapshots say which).
+static func heat_table(rows: Array, bucket_s: float = 60.0) -> Dictionary:
+	var acc := {}   # band -> {minute -> [secs, frames, frame ms x frames, work ms x frames]}
+	var n := 0
+	for r in rows:
+		if not (r is Dictionary) or not (r as Dictionary).has("steps"):
+			continue
+		var row: Dictionary = r
+		var f := float(row.get("frames", 0))
+		if f <= 0.0 or not row.has("frame_ms"):
+			continue
+		var i := _bucket_of(float(row.get("t", 0.0)), bucket_s)
+		n = maxi(n, i + 1)
+		var band := int(floor(float(row.get("alive", 0)) / float(HEAT_BAND))) * HEAT_BAND
+		var work_ms := (float(row.get("steps", 0)) * float(row.get("phys_ms", 0.0)) + f * float(row.get("proc_ms", 0.0))) / f
+		if not acc.has(band):
+			acc[band] = {}
+		var cells: Dictionary = acc[band]
+		if not cells.has(i):
+			cells[i] = [0.0, 0.0, 0.0, 0.0]
+		var c: Array = cells[i]
+		c[0] = float(c[0]) + 1.0
+		c[1] = float(c[1]) + f
+		c[2] = float(c[2]) + f * float(row.get("frame_ms", 0.0))
+		c[3] = float(c[3]) + f * work_ms
+	if acc.is_empty():
+		return {}
+	var bands: Array = acc.keys()
+	bands.sort()
+	var frame := {}
+	var work_d := {}
+	for band in bands:
+		var fa: Array = []
+		var wa: Array = []
+		var any := false
+		for i in range(n):
+			var c = (acc[band] as Dictionary).get(i)
+			if c != null and float(c[0]) >= float(HEAT_MIN_SECS) and float(c[1]) > 0.0:
+				fa.append(snappedf(float(c[2]) / float(c[1]), 0.1))
+				wa.append(snappedf(float(c[3]) / float(c[1]), 0.01))
+				any = true
+			else:
+				fa.append(null)
+				wa.append(null)
+		if any:
+			frame[str(band)] = fa
+			work_d[str(band)] = wa
+	if frame.is_empty():
+		return {}
+	return {"band": HEAT_BAND, "bucket_s": int(bucket_s), "minutes": n, "frame_ms": frame, "work_ms": work_d}
 
 
 ## summary() in minute buckets, folded into two-minute ones (then four, ...) while it is bigger than `max_bytes`.

@@ -1997,3 +1997,42 @@ Tests: `selftest_GEMINI98.py` runs a fake agy (a small script that answers like 
 log-in error, a timeout and an empty answer). It covers the sheet numbering round trip, the cap, the ledger rows, the
 inbox cleanup, the settings append on a temp copy, Gemini first with the fallback, the planner, the routes over HTTP
 and the page's model under Node.
+
+## Pass 103: the cap's units, the Composition colours, a Save that always ends
+
+**The cap counts load, the hard cap counts bodies.** The cap curve (the Cap lane, now titled "Cap (load)") is in load
+units: each creature counts its `cap_share` (a goblin, a skeleton, a scorpion or the werewolf 0.5, the imp 0.6, most 1,
+the Hammer Giant 2.5), so 500 of cap holds about 1,000 half-share creatures. `hard_cap` is a count of bodies whatever
+their share. The crowd is held under the lower of the two. `cap_max` cuts the curve first: a point above it changes
+nothing (the game's `WaveTimeline.cap_at` takes `mini(curve + cap_per_stage × stage, cap_max)`).
+
+- The On screen lane's yellow line is the **limit in bodies**: the lower of the cap at the crowd's mix (cap ÷ the load a
+  body then) and the hard cap. Its hover card gives the three numbers: "cap X load = Y bodies at this mix (Z load a
+  body)", "hard cap N bodies", the one that binds outlined, and when cap_max cuts the curve there, what the curve asked
+  for. The hard cap's dashed line is always in sight (a note when it is far above the chart).
+- The Cap lane draws the hard cap **in load at the mix** (hard cap × the load a body, red dashed): where the cap curve
+  runs above it, the hard cap binds. When `cap_max` is under the curve, the curve above it is dashed and faint, the
+  cut is a labelled orange line, and the checks warn ("cap_max (150) is under your cap curve ...").
+- Warnings: "cap never binds" for a stage where the hard cap is lower at every second, with the cap under which it
+  starts to count (hard cap × the stage's median load a body). Go to selects the cap.
+- The ruler readout and the clock say "cap N load"; the readout adds the bodies, the hard cap and the limit.
+
+**Composition colours.** The hover card has a colour swatch to the left of each creature's icon, in the colour the chart
+draws it with (one function, `compColorOf` = `TimelineModel.compColor` over `App.creatureColor`, made unique among the
+lane's layers by `TimelineModel.compPalette`: the page's 16 creature colours repeat on a map with more creatures, and the
+Skeleton and the Imp shared one; a creature past the ten largest in view is drawn in the grey "others" band and its
+swatch says so). Under the section's explanation a legend
+lists every layer the lane draws: swatch, icon, name.
+
+**Save.** A map Save waits `SAVE_LOCK_WAIT` (8 s, server.py) for the Godot lock instead of two silent minutes, then queues
+the `import` job (or joins one already queued for the map) and answers with `import_job`, `import_joined` and `lock`
+{who, age_s}. The status line counts the seconds while it waits, then says "import queued as job ...: the Godot lock is
+held by <who> for N" and follows the job (`GET /api/job/<id>`, every 3 s, into the job it was merged into) until it ends
+in "import OK (job ... ran)", "IMPORT FAILED in job ...: <error>" or cancelled. A Save the server never answers is
+given up after 180 s with a message; `S.saving` is reset in a `finally`, so the line never stays at "Saving and
+importing…". Other imports (asset saves) keep `LOCK_WAIT` (120 s).
+
+Tests: `selftest_LE103.py` (effectiveLimit and capBinding under Node, the fixture's estimate second by second, capCut on
+hand-made timelines and on Red Canyon as the file says it, the swatches' one colour source, write_map on a temp copy with
+a fake lock holder and a fake queue, a Save from every stage window over HTTP, the page's words for every answer and job
+state).

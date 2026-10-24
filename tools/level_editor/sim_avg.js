@@ -695,6 +695,42 @@ const SimAvg = (() => {
       out.proj = rows.map((r0) => int(isObj(r0) ? r0.proj : 0));
       out.pickups = rows.map((r0) => int(isObj(r0) ? r0.pickups : 0));
     }
+    Object.assign(out, workSeries(rows));
+    return out;
+  }
+
+  /** Pass 102 (lane STEADY): a schema 4 record's work series, one value a row ({} without them; a second without a
+   *  frame carries the last, the seconds before the first take the first): world_ms = the world update's time a frame
+   *  (its steps x a step's mean), proc_ms = the process callbacks a frame, rest_ms = the rest (drawing, waiting), work_ms
+   *  = world_ms + proc_ms (the CPU's share), steps_frame = world steps a frame, world_speed = the world's pace against the
+   *  wall clock (1000 / (1000 + lost_ms): below 1 while the catch-up cap holds the world back). CPU times, so a headless
+   *  record keeps them too. */
+  function workSeries(rows) {
+    const out = {};
+    if (!rows.some((r0) => isObj(r0) && own(r0, 'steps'))) return out;
+    const keys = ['world_ms', 'proc_ms', 'rest_ms', 'work_ms', 'steps_frame', 'world_speed'];
+    const raw = {};
+    for (const k of keys) raw[k] = [];
+    for (const r0 of rows) {
+      const r = isObj(r0) ? r0 : {};
+      const f = fl(r.frames);
+      const has = own(r, 'steps') && f > 0;
+      const world = has ? fl(r.steps) * fl(r.phys_ms) / f : null;
+      const proc = has ? fl(r.proc_ms) : null;
+      raw.world_ms.push(has ? snapped(world, 0.01) : null);
+      raw.proc_ms.push(proc);
+      raw.rest_ms.push(has ? fl(r.rest_ms) : null);
+      raw.work_ms.push(has ? snapped(world + proc, 0.01) : null);
+      raw.steps_frame.push(has ? snapped(fl(r.steps) / f, 0.01) : null);
+      raw.world_speed.push(has ? snapped(1000 / (1000 + fl(r.lost_ms)), 0.001) : null);
+    }
+    const firstOk = raw.work_ms.findIndex((v) => v != null);
+    if (firstOk < 0) return out;
+    for (const k of keys) {
+      const a = raw[k];
+      let last = a[firstOk] != null ? a[firstOk] : 0;
+      out[k] = a.map((v) => { if (v != null) last = v; return last; });
+    }
     return out;
   }
 
@@ -1006,7 +1042,7 @@ const SimAvg = (() => {
 
   return { SCHEMA, DPS_WINDOW, RATE_WINDOW, TROUBLE_FRAC, LEVEL_SERIES, CUM_SERIES, RATE_SERIES, BAND_SERIES, MEDIAN_SERIES, BREAKDOWNS,
     pyRound, fracBits, num, clockS, r, pct, median, rolling, playerGrid, markers, aggregate, nameOf,
-    snapped, step, eventsOut, series, evoIdsOf, fromRecord, frameSeries,
+    snapped, step, eventsOut, series, evoIdsOf, fromRecord, frameSeries, workSeries,
     OVERLAY_SCHEMA, OVERLAY_SERIES, OVERLAY_BANDS, OVERLAY_MEDIANS, OVERLAY_RULES, overlayRows, overlay };
 })();
 

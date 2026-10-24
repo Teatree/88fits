@@ -21,7 +21,7 @@ const Timeline = (() => {
   const RULER_H = 60, CAP_H = 124, CURVE_H = 84, ROW_H = 36, ROSTER_HEAD = 40, EV_H = 92, SP_H = 42, PATH_H = 32, PAD = 6;
   const ALT_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9', '#e66767', '#4cb5c3'];
   const HANDLE = 8;
-  const CAP_HELP = 'The points are the control points of the live cap curve (how many creatures may be alive): linear between them, flat before the first and after the last. They are not spawn events: the director spawns up to the cap on its own interval.';
+  const CAP_HELP = 'The points are the control points of the live cap curve (how many creatures may be alive): linear between them, flat before the first and after the last. They are not spawn events: the director spawns up to the cap on its own interval. The cap counts LOAD, not bodies: each creature counts its cap_share (a goblin, a skeleton, a scorpion or the werewolf 0.5, the imp 0.6, most 1, the Hammer Giant 2.5), so 500 of cap holds about 1,000 half-share creatures. The hard cap (dashed) counts bodies; the crowd is held under the lower of the two (the On screen lane draws that limit in bodies).';
   // pass 58: the Actual HP x / ATK x lanes above their curves
   const ACT_HELP = {
     hp: 'The HP multiple the creatures really come with (pass 58): each roster row and wave keeps the HP curve of its own start (or its HP override) for its whole life. Solid: the average over what spawns round each second, weighted by how many each row spawns; dashed: the largest; dotted: the intended HP × curve. The HP × lane\'s scale while the rows fit under it; higher multiples give this lane its own (up to 1.5 times as tall) and a ▲ marks anything past the top. Hover for the rows behind the numbers; click for the curve.',
@@ -63,10 +63,10 @@ const Timeline = (() => {
   // say which lanes each holds, in order
   const LANE_SPEC = {
     ruler: ['Time', null, 'ruler', ''],
-    alive: ['On screen', null, '', 'creatures alive at each second: the estimate, the Sim, the cap in bodies, the floor (FIELDS.LANES: alive)'],
+    alive: ['On screen', null, '', 'creatures alive at each second: the estimate, the Sim, the limit in bodies (the lower of the cap at the crowd\'s mix and the hard cap), the floor (FIELDS.LANES: alive)'],
     challenge: ['To clear', null, '', 'seconds of the hero\'s damage to clear the screen (FIELDS.LANES: challenge)'],
     composition: ['Composition', null, '', 'who the crowd is made of, % (FIELDS.LANES: composition)'],
-    cap: ['Cap', null, '', CAP_HELP],
+    cap: ['Cap (load)', null, '', CAP_HELP],
     floor: ['Floor', { text: '+ Floor', title: 'start a floor curve (the least creatures alive) at 20 from 0:00', onclick: () => addFloor() }, '', 'the floor curve: the least creatures alive on the regular channel (floor_curve); click to edit, drag its points, double-click to add or remove one'],
     spawned: ['Spawned so far', null, '', SPAWN_HELP],
     hp_act: ['Actual HP ×', null, '', ACT_HELP.hp],
@@ -483,6 +483,11 @@ const Timeline = (() => {
   }
 
   let simSelect = null, simNote = null, groupSel = null;
+  // pass 103 (lane LE): the Composition lane's layers as drawn last (the hover card's swatches and the legend read them)
+  let compLegend = null, compShown = [], compFolded = false, compMap = {};
+  /** The colour the Composition lane draws a creature with (one source: the chart, the hover card and the legend):
+   *  its creature colour, made unique among the lane's layers (compPalette), the others' grey when folded. */
+  const compColorOf = (id) => TimelineModel.compColor(id, compShown, (c) => compMap[c] || App.creatureColor(c), compFolded);
   function buildSectionControls(s) {
     const id = s.sec.id;
     const stop = (e) => e.stopPropagation();
@@ -506,7 +511,7 @@ const Timeline = (() => {
       return;
     }
     if (id === 'onscreen') {
-      s.body.appendChild(explainStrip('onscreen', [lg('sw-alive', 'estimate (regular channel)'), lg('sw-hell', 'hell channel'), lg('sw-sim', 'Sim'), lg('sw-capb', 'cap in bodies'), lg('sw-floor', 'floor'), lg('sw-hard', 'hard cap'), lg('sw-full', 'cap full: rows starve')]));
+      s.body.appendChild(explainStrip('onscreen', [lg('sw-alive', 'estimate (regular channel)'), lg('sw-hell', 'hell channel'), lg('sw-sim', 'Sim'), lg('sw-capb', 'limit in bodies: the lower of the cap and the hard cap', 'the cap (load units) turned into bodies at the crowd\'s mix, or the hard cap (bodies) where that is lower; hover the lane for the three numbers and which one binds'), lg('sw-floor', 'floor'), lg('sw-hard', 'hard cap (bodies)'), lg('sw-full', 'cap full: rows starve')]));
       return;
     }
     if (id === 'challenge') {
@@ -536,6 +541,9 @@ const Timeline = (() => {
       s.ctl.appendChild(miniSelect([{ v: 'alive', label: 'on screen', help: 'shares of the creatures alive' }, { v: 'spawned', label: 'spawned in the past N s', help: 'shares of what spawned in the past N seconds (the "past" box in the top bar)' }], prefs.comp, (v) => setPref('comp', v), 'what the shares are of'));
       s.ctl.appendChild(miniSelect([{ v: 'est', label: 'estimate', help: 'the Spawned so far estimate' }, { v: 'sim', label: 'Sim', help: 'the Sim picked in Ruler and controls (on screen only)' }], prefs.compSrc, (v) => setPref('compSrc', v), 'whose numbers'));
       s.body.appendChild(explainStrip('composition', [lg('sw-comp', 'one colour per creature: hover for the names, the counts and the shares')]));
+      // pass 103 (lane LE): the creatures the lane draws, each with its colour (filled at every render)
+      compLegend = el('div', { class: 'tl-strip tl-comp-legend', 'data-comp-legend': '1' });
+      s.body.appendChild(compLegend);
       return;
     }
     if (id === 'rows') {
@@ -920,7 +928,10 @@ const Timeline = (() => {
     const played = (t) => Math.max(0, t - App.stageStart(Math.min(App.stageAt(t), App.stages() - 1)));
     const baseDps = typeof PowerModel !== 'undefined' ? PowerModel.BASE_DPS : 20.4;
     const baseEhp = typeof PowerModel !== 'undefined' ? PowerModel.BASE_EHP : 100;
+    // pass 103 (lane LE): the effective limit in bodies (the lower of the cap at the mix and the hard cap) and which binds
+    const hardCap = Number(tl.hard_cap) || 0;
     const v = { n, ser, t: ser.t, alive: ser.alive, reg: new Float64Array(n), hell: new Float64Array(n), cap: new Float64Array(n), capB: new Float64Array(n), full: new Uint8Array(n),
+      lim: new Float64Array(n), per: new Float64Array(n), limits: new Array(n), hard: hardCap,
       hp: new Float64Array(n), bite: new Float64Array(n), threat: new Float64Array(n), dps: new Float64Array(n), dpsSim: new Uint8Array(n), ehp: new Float64Array(n), ehpSim: new Uint8Array(n), clear: new Array(n).fill(null), bars: new Array(n).fill(null), crowd: new Array(n) };
     for (let j = 0; j < n; j++) {
       const t = ser.t[j];
@@ -932,6 +943,9 @@ const Timeline = (() => {
       const load = pt.load != null ? Number(pt.load) : L.load;
       v.reg[j] = L.bodies; v.hell[j] = L.hellBodies; v.cap[j] = cap;
       v.capB[j] = TimelineModel.capBodies(cap, load, L.bodies, 1);
+      const EL = TimelineModel.effectiveLimit(cap, load, L.bodies, hardCap, 1);
+      v.lim[j] = EL.limit; v.per[j] = EL.per;
+      v.limits[j] = { t, binds: EL.binds, capBodies: EL.capBodies, hard: EL.hard, per: EL.per, alive: L.bodies, raw: App.capRawAt(t) };
       v.full[j] = pt.full != null ? (Number(pt.full) >= 0.5 ? 1 : 0) : (cap > 0 && load >= cap * TimelineModel.FULL_AT ? 1 : 0);
       const cr = TimelineModel.crowdAt(ser, j, numbersOf);
       v.crowd[j] = cr;
@@ -994,6 +1008,8 @@ const Timeline = (() => {
     for (const p of fc) maxV = Math.max(maxV, Number(p[1]) || 0);
     if (simOv && simOv.alive) for (const a of simOv.alive) if (a != null) maxV = Math.max(maxV, a);
     if (hard > 0) maxV = Math.min(maxV, hard * 1.05);
+    // pass 103 (lane LE): the hard cap always in sight unless it is far above everything else (then a note says so)
+    if (hard > 0 && hard <= maxV * 3) maxV = Math.max(maxV, hard * 1.05);
     maxV *= 1.1;
     const top = 12, bottom = ALIVE_H - 8;
     const y = (val) => bottom - (Math.min(Math.max(0, val), maxV) / maxV) * (bottom - top);
@@ -1009,7 +1025,7 @@ const Timeline = (() => {
     if (hard > 0 && hard <= maxV) {
       g.appendChild(svg('line', { x1: 0, x2: w, y1: y(hard), y2: y(hard), class: 'hard-cap' }));
       g.appendChild(svg('text', { x: 4, y: y(hard) - 3, class: 'hard-cap-text', text: `hard cap ${hard} bodies` }));
-    }
+    } else if (hard > 0) g.appendChild(svg('text', { x: 4, y: top + 2, class: 'hard-cap-text', text: `hard cap ${hard} bodies (above the chart)` }));
     // the estimate: the regular channel's bodies, the hell channel's on top
     const xs = Array.from(v.t, (t) => x(t));
     const regUp = xs.map((px, j) => `${px},${y(v.reg[j])}`);
@@ -1020,8 +1036,9 @@ const Timeline = (() => {
       g.appendChild(svg('polygon', { points: hellUp.concat(regUp.slice().reverse()).join(' '), class: 'alive-hell' }));
     }
     g.appendChild(svg('polyline', { points: xs.map((px, j) => `${px},${y(v.alive[j])}`).join(' '), class: 'alive-line' }));
-    // the cap in bodies at the crowd's mix
-    g.appendChild(svg('polyline', { points: xs.map((px, j) => `${px},${y(isFinite(v.capB[j]) ? v.capB[j] : maxV)}`).join(' '), class: 'capb-line' }));
+    // pass 103 (lane LE): the effective limit in bodies: the cap at the crowd's mix or the hard cap, whichever is lower
+    // (where the hard cap binds the line runs on the hard cap's own line)
+    g.appendChild(svg('polyline', { points: xs.map((px, j) => `${px},${y(isFinite(v.lim[j]) ? v.lim[j] : maxV)}`).join(' '), class: 'capb-line' }));
     // the floor
     if (fc.length) {
       let pts = '';
@@ -1052,7 +1069,8 @@ const Timeline = (() => {
     box.appendChild(el('div', { class: 'vc-big' }, el('b', { text: fmtCount(v.alive[j]) }), ` alive${v.hell[j] > 0.5 ? ` (${fmtCount(v.reg[j])} regular, ${fmtCount(v.hell[j])} hell)` : ''}`,
       simOv && simAt(simOv.alive, v.t[j]) != null ? el('span', { class: 'muted' }, ` · the Sim: ${fmtCount(simAt(simOv.alive, v.t[j]))}${simOv.capFull && simAt(simOv.capFull, v.t[j]) > 0.05 ? `, its cap full ${Math.round(simAt(simOv.capFull, v.t[j]) * 100)}% of the second` : ''}`) : null));
     const fc = Array.isArray(tl.floor_curve) && tl.floor_curve.length ? Model.samplePoints(tl.floor_curve.slice().sort((a, b) => a[0] - b[0]), v.t[j]) : null;
-    box.appendChild(el('div', { class: 'hc-line' }, `cap ${v.cap[j]} load units ≈ `, el('b', { text: `${fmtCount(v.capB[j])} bodies` }), ' at this mix', fc != null ? ` · floor ${Math.round(fc)}` : ' · no floor'));
+    limitLines(box, j);
+    box.appendChild(el('div', { class: 'hc-line' }, fc != null ? `floor ${Math.round(fc)} alive` : 'no floor'));
     if (v.full[j]) {
       const st = v.starving(j);
       box.appendChild(el('div', { class: 'hc-line bad-line' }, el('b', { text: 'The cap is full here: ' }), st.length ? `waiting for room: ${st.slice(0, 6).map(srcWords).join(', ')}${st.length > 6 ? ` and ${st.length - 6} more` : ''}` : 'every row open now still came in the past 5 s'));
@@ -1068,8 +1086,34 @@ const Timeline = (() => {
       for (const cpt of comp) grid.appendChild(el('div', { class: 'vc-r' }, el('i', { class: 'vc-sw', style: `background:${App.creatureColor(cpt.id)}` }), el('span', { text: App.creatureName(cpt.id) }), el('b', { text: fmtCount(cpt.n) }), el('span', { class: 'muted', text: `${Math.round(cpt.share * 100)}%` })));
       box.appendChild(grid);
     }
-    box.appendChild(el('div', { class: 'sp-note', text: `An estimate: the director's rules second by second, the hero killing ${App.turnoverSource() === 'your number' ? 'your' : 'the'} kill rate's share of the crowd each second (Ruler and controls). The cap counts load units (cap_share), so it is shown as the bodies it holds at the crowd's mix.` }));
+    box.appendChild(el('div', { class: 'sp-note', text: `An estimate: the director's rules second by second, the hero killing ${App.turnoverSource() === 'your number' ? 'your' : 'the'} kill rate's share of the crowd each second (Ruler and controls). The cap counts load units (cap_share), so it is shown as the bodies it holds at the crowd's mix; the line is the lower of that and the hard cap.` }));
     return box;
+  }
+
+  /** Pass 103 (lane LE): "; your curve says 503 here, cap_max 150 cuts it" when cap_max is under the curve (else ''). */
+  function capMaxNote(raw, cap) {
+    const mx = App.tl().cap_max;
+    if (mx == null || mx === '' || !(raw > Number(mx)) || cap > Number(mx) + 0.5) return '';
+    return `; your curve says ${fmtCount(raw)} here, cap_max ${mx} cuts it`;
+  }
+
+  /** Pass 103 (lane LE): the three numbers of the crowd's limit at point j with their meaning, the one that binds named
+   *  (the On screen card; Garry's "which is the correct one?"). */
+  function limitLines(box, j) {
+    const v = view;
+    const L = v.limits[j];
+    const hardTxt = isFinite(L.hard) ? `${fmtCount(L.hard)} bodies` : 'none';
+    box.appendChild(el('div', { class: 'hc-line limit-head' }, 'Limit now: ', el('b', { text: `${fmtCount(v.lim[j])} bodies` }), ', the lower of:'));
+    const capRow = el('div', { class: 'hc-line limit-row' + (L.binds === 'cap' ? ' binds' : '') },
+      el('b', { text: `cap ${fmtCount(v.cap[j])} load` }), ` (the Cap lane, load units: a creature counts its cap_share, a goblin 0.5) = ${fmtCount(L.capBodies)} bodies at this mix (${fmtN(L.per, 2)} load a body)`,
+      capMaxNote(L.raw, v.cap[j]));
+    const hardRow = el('div', { class: 'hc-line limit-row' + (L.binds === 'hard' ? ' binds' : '') },
+      el('b', { text: `hard cap ${hardTxt}` }), ' (hard_cap: a count of bodies, whatever their share)');
+    box.appendChild(capRow);
+    box.appendChild(hardRow);
+    box.appendChild(el('div', { class: 'hc-line ' + (L.binds === 'hard' ? 'bad-line' : 'muted') }, L.binds === 'hard'
+      ? `The hard cap binds here: the cap's ${fmtCount(v.cap[j])} would hold ${fmtCount(L.capBodies)} bodies, so the cap number changes nothing at this second (it counts under about ${fmtCount(Math.floor(L.hard * L.per))} load at this mix).`
+      : 'The cap binds here: it is what holds the crowd at this second.'));
   }
 
   // ------------------------------------------------------------------ Challenge (pass 84)
@@ -1219,6 +1263,8 @@ const Timeline = (() => {
     g.appendChild(svg('rect', { x: 0, y: 0, width: w, height: COMP_H, class: 'sp-hit' }));
     const acc = samples.map(() => 0);
     const layers = shown.concat(ids.length > 10 ? ['__other'] : []);
+    compShown = shown; compFolded = ids.length > 10;
+    compMap = TimelineModel.compPalette(shown, App.creatureColor, App.CREATURE_COLORS);
     for (const id of layers) {
       const lower = acc.slice();
       samples.forEach((sm, k) => {
@@ -1227,13 +1273,14 @@ const Timeline = (() => {
       });
       const up = ts.map((t, k) => `${x(t)},${y(Math.min(acc[k], 1))}`);
       const dn = ts.map((t, k) => `${x(t)},${y(Math.min(lower[k], 1))}`).reverse();
-      g.appendChild(svg('polygon', { points: up.concat(dn).join(' '), class: 'comp-area', fill: id === '__other' ? '#5a5955' : App.creatureColor(id) }, svg('title', {}, id === '__other' ? 'every other creature' : App.creatureName(id))));
+      g.appendChild(svg('polygon', { points: up.concat(dn).join(' '), class: 'comp-area', fill: compColorOf(id), 'data-comp': id }, svg('title', {}, id === '__other' ? 'every other creature' : App.creatureName(id))));
     }
     for (const f of [0.25, 0.5, 0.75]) {
       g.appendChild(svg('line', { x1: 0, x2: w, y1: y(f), y2: y(f), class: 'grid' }));
       g.appendChild(svg('text', { x: 4, y: y(f) - 2, class: 'grid-text', text: `${f * 100}%` }));
     }
     hovers.composition = (t) => compCard(t);
+    fillCompLegend(layers);
     s.appendChild(g);
     const what = prefs.compSrc === 'sim' && simOv ? 'the Sim, on screen' : prefs.comp === 'spawned' ? `spawned in the past ${winSecs} s` : 'on screen, the estimate';
     lanes.composition.label.querySelector('.lane-sub').textContent = what;
@@ -1250,10 +1297,25 @@ const Timeline = (() => {
     const all = all0.reduce((a, o) => a + o.n, 0);
     box.appendChild(el('div', { class: 'vc-big' }, el('b', { text: fmtCount(all) }), ` creatures, ${list.length} kind${list.length === 1 ? '' : 's'}`));
     const grid = el('div', { class: 'vc-grid' });
-    for (const o of list.slice(0, 14)) grid.appendChild(el('div', { class: 'vc-r' }, el('img', { src: App.iconFor(o.id), alt: '' }), el('span', { text: App.creatureName(o.id) }), el('b', { text: `${Math.round(o.share * 100)}%` }), el('span', { class: 'muted', text: fmtCount(o.n) })));
+    // pass 103 (lane LE; Garry: "add a colour box next to the enemy icon (to the left of it) so I can tell which enemy is
+    // which"): the swatch is the chart's own colour for the creature (grey when the lane folds it into the others)
+    for (const o of list.slice(0, 14)) grid.appendChild(el('div', { class: 'vc-r vc-comp' }, el('i', { class: 'vc-sw', style: `background:${compColorOf(o.id)}`, title: compShown.includes(o.id) || !compFolded ? 'its colour on the chart' : 'drawn in the grey of every other creature' }), el('img', { src: App.iconFor(o.id), alt: '' }), el('span', {}, App.creatureName(o.id), compFolded && !compShown.includes(o.id) ? el('small', { class: 'muted', text: ' (in the grey others band)' }) : null), el('b', { text: `${Math.round(o.share * 100)}%` }), el('span', { class: 'muted', text: fmtCount(o.n) })));
     box.appendChild(grid);
     if (list.length > 14 || all0.length > list.length) box.appendChild(el('div', { class: 'hc-line muted', text: `… and ${Math.max(0, list.length - 14) + (all0.length - list.length)} more under one each` }));
     return box;
+  }
+
+  /** Pass 103 (lane LE): the Composition legend: every layer the lane draws, its colour, icon and name. */
+  function fillCompLegend(layers) {
+    if (!compLegend) return;
+    clear(compLegend);
+    if (!layers.length) { compLegend.appendChild(el('span', { class: 'muted small', text: 'nobody in view' })); return; }
+    compLegend.appendChild(el('span', { class: 'muted small', text: 'Colours: ' }));
+    for (const id of layers) {
+      compLegend.appendChild(el('span', { class: 'lg-item comp-lg', 'data-comp': id, title: id === '__other' ? 'every creature past the ten largest in view' : App.creatureName(id) },
+        el('i', { class: 'lg-sw', style: `background:${compColorOf(id)}` }), id === '__other' ? null : el('img', { src: App.iconFor(id), alt: '' }),
+        id === '__other' ? 'others' : App.creatureName(id)));
+    }
   }
 
   // ------------------------------------------------------------------ the floor curve's lane (pass 84)
@@ -1376,6 +1438,19 @@ const Timeline = (() => {
           out.push({ level: 'warn', kind: 'difficulty jump', t: v.t[j], key: topKey,
             text: `The crowd's HP on screen jumps ×${fmtN(jp.f, 1)} in one second at ${fmtT(v.t[j])} (${fmtCount(v.hp[j - 1])} → ${fmtCount(v.hp[j])} HP)${topKey ? `: mostly ${srcWords(topKey)} (≈${fmtCount(topN)})` : ''}.`, short: `×${fmtN(jp.f, 1)} jump at ${fmtT(v.t[j])}` });
         }
+        // pass 103 (lane LE): a stage where the cap never binds (the hard cap is lower at every second): the cap number
+        // does nothing there, the hard cap holds the crowd
+        if (v.hard > 0) {
+          const wins = App.stageList().map((sw) => ({ i: sw.i, a: sw.start, b: sw.end, name: sw.name }));
+          const cbs = TimelineModel.capBinding(v.limits.filter(Boolean), wins);
+          for (const cb of cbs) {
+            if (!cb.never) continue;
+            const sw = wins[cb.i];
+            out.push({ level: 'warn', kind: 'cap never binds', t: cb.a, key: 'cap',
+              text: `The cap never binds in stage ${cb.i + 1} (${sw.name}): at the crowd's mix it holds at least ${fmtCount(cb.minCapBodies)} bodies at every second, more than the hard cap of ${fmtCount(cb.hard)} bodies, so the hard cap decides how many are alive there and the cap curve changes nothing. The cap starts to count under about ${fmtCount(cb.capToBind)} load (${fmtCount(cb.hard)} bodies × ${fmtN(cb.per, 2)} load a body, the stage's typical mix).`,
+              short: `stage ${cb.i + 1}: the cap never binds (hard cap ${fmtCount(cb.hard)} holds)` });
+          }
+        }
         // the floor above the cap
         const fc = Array.isArray(tl.floor_curve) ? tl.floor_curve.filter((p) => Array.isArray(p)).slice().sort((a, b) => a[0] - b[0]) : [];
         if (fc.length) {
@@ -1402,6 +1477,7 @@ const Timeline = (() => {
       if (r) { delete secState.rows; delete secState['group:' + groupOf(r, prefs.group).key]; saveSecState(); }
       App.select({ kind: 'roster', i }, { scroll: true });
     } else if (wn.key === 'floor') { delete secState.curves; saveSecState(); App.select({ kind: 'floor' }); }
+    else if (wn.key === 'cap') { delete secState.curves; saveSecState(); App.select({ kind: 'cap' }); }   // pass 103 (lane LE)
     if (wn.t != null) scrollToTime(wn.t);
   }
 
@@ -1558,14 +1634,35 @@ const Timeline = (() => {
       s.appendChild(svg('text', { x: 4, y: y(v) - 2, class: 'grid-text', text: v }));
     }
     if (hard > 0) {
-      s.appendChild(svg('line', { x1: 0, x2: w, y1: y(hard), y2: y(hard), class: 'hard-cap' }));
-      s.appendChild(svg('text', { x: 4, y: y(hard) - 3, class: 'hard-cap-text', text: `hard cap ${hard} bodies` }));
+      // pass 103 (lane LE): the hard cap counts bodies and this lane counts load, so with an estimate it is drawn in load
+      // at the crowd's mix (hard cap × the load a body then): where the cap curve runs above it, the hard cap binds
+      const hv = view && view.n ? view : null;
+      if (hv) {
+        let hp = '';
+        for (let j = 0; j < hv.n; j++) hp += `${x(hv.t[j])},${y(Math.min(hard * hv.per[j], maxV))} `;
+        s.appendChild(svg('polyline', { points: hp, class: 'hard-cap hard-cap-load' }, svg('title', {}, `the hard cap of ${hard} bodies turned into load at the crowd's mix (${hard} × the load a body): where the cap curve is above this line the hard cap binds and the cap number changes nothing`)));
+        const j0 = Math.max(0, TimelineModel.indexAt(hv.ser, T0 + 1));
+        s.appendChild(svg('text', { x: 4, y: y(Math.min(hard * hv.per[j0], maxV)) - 3, class: 'hard-cap-text', text: `hard cap ${hard} bodies ≈ ${Math.round(hard * hv.per[j0])} load at the mix` }));
+      } else {
+        s.appendChild(svg('line', { x1: 0, x2: w, y1: y(hard), y2: y(hard), class: 'hard-cap' }));
+        s.appendChild(svg('text', { x: 4, y: y(hard) - 3, class: 'hard-cap-text', text: `hard cap ${hard} bodies` }));
+      }
     }
     // the hell channel's cap (a share of the regular one per stage)
     if ((d.hell_cap || []).some((h) => Number(h) > 0)) {
       let pts = '';
       for (let px = 0; px <= x(end); px += 4) pts += `${px},${y(App.hellCapAt(tAtPx(px)))} `;
       s.appendChild(svg('polyline', { points: pts, class: 'hell-cap' }, svg('title', {}, 'the hell channel\'s cap (hell_cap × the regular cap)')));
+    }
+    // pass 103 (lane LE): cap_max cuts the curve: the part above it dashed and faint, the cut line named (a point above
+    // cap_max changes nothing; the On screen lane and its hover read the cut cap)
+    const cut = App.capCut();
+    if (cut.cut) {
+      let rp = '';
+      for (let px = 0; px <= x(end); px += 3) rp += `${px},${y(Math.min(App.capRawAt(tAtPx(px)), maxV))} `;
+      s.appendChild(svg('polyline', { points: rp, class: 'cap-raw' }, svg('title', {}, `the cap your curve asks for; cap_max (${cut.max}) cuts it, so above ${cut.max} it changes nothing`)));
+      s.appendChild(svg('line', { x1: 0, x2: w, y1: y(cut.max), y2: y(cut.max), class: 'cap-max-line' }));
+      s.appendChild(svg('text', { x: Math.max(60, x(end) * 0.35), y: y(cut.max) - 3, class: 'cap-max-text', text: `cap_max ${cut.max} load: the curve above this line is cut to it (the cap in play)` }));
     }
     // the effective cap, sampled (cap_max and cap_per_stage apply on top of the curve)
     let pts = '';
@@ -1610,7 +1707,7 @@ const Timeline = (() => {
       // pass 54: every point carries its cap as a faint label (the time and the value in full on hover); pass 61: the
       // point a drag has snapped to is ringed
       const c = svg('g', { class: 'cap-point' + (snapIs('cap', k) ? ' snap-target' : ''), transform: `translate(${x(Number(p[0]) || 0)}, ${y(Number(p[1]) || 0)})` },
-        svg('title', {}, `${fmtT(p[0])} → cap ${p[1]}: a control point of the cap curve, not a spawn event (drag; double-click to remove)`),
+        svg('title', {}, `${fmtT(p[0])} → cap ${p[1]} load units (a creature counts its cap_share: a goblin 0.5): a control point of the cap curve, not a spawn event (drag; double-click to remove)`),
         svg('circle', { r: 6 }), svg('text', { x: 8, y: -7, class: 'pt-text', text: String(p[1]) }), svg('text', { x: 8, y: 13, class: 'pt-time', text: fmtT(p[0]) }));
       c.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
@@ -1624,7 +1721,7 @@ const Timeline = (() => {
     if (!(d.cap_curve || []).length) s.appendChild(svg('text', { x: 8, y: top + 12, class: 'hint-text', text: `straight line: cap_start ${d.cap_start} + ${d.cap_per_minute} a minute (double-click the line to start a curve)` }));
     const b = issueBadge('cap', 14, 14);
     if (b) s.appendChild(b);
-    lanes.cap.label.querySelector('.lane-sub').textContent = `${plural((d.cap_curve || []).length, 'control point')} · hard ${hard}`;
+    lanes.cap.label.querySelector('.lane-sub').textContent = `load units (a goblin counts 0.5) · ${plural((d.cap_curve || []).length, 'control point')} · hard cap ${hard} bodies`;
   }
 
   // ------------------------------------------------------------------ spawned so far (pass 57)
@@ -3311,7 +3408,11 @@ const Timeline = (() => {
     const hp = App.hpMultAt(t), dm = App.dmgMultAt(t);
     const cap = App.capAt(t), hell = App.hellCapAt(t);
     readout.appendChild(el('div', { class: 'ro-head' }, el('b', { text: fmtT(t) }), ` · ${App.stageName(s)} · hero level ${App.S.level}`));
-    readout.appendChild(el('div', { class: 'ro-line' }, `cap ${cap}`, hell > 0 ? ` + hell ${Math.floor(hell)}` : ''));
+    // pass 103 (lane LE): the cap in its unit, and the limit in bodies with the one that binds when the estimate is drawn
+    const lj = view && view.n ? TimelineModel.indexAt(view.ser, t) : -1;
+    const LL = lj >= 0 ? view.limits[lj] : null;
+    readout.appendChild(el('div', { class: 'ro-line' }, `cap ${cap} load${capMaxNote(App.capRawAt(t), cap)}`, hell > 0 ? ` + hell ${Math.floor(hell)}` : '',
+      LL ? ` ≈ ${fmtCount(LL.capBodies)} bodies at the mix · hard cap ${isFinite(LL.hard) ? fmtCount(LL.hard) : 'none'} · limit ${fmtCount(view.lim[lj])} bodies (the ${LL.binds === 'hard' ? 'hard cap' : 'cap'} binds)` : ''));
     const sp = lastSpawn ? Model.estimateAt(lastSpawn.est, t) : null;
     if (sp) readout.appendChild(el('div', { class: 'ro-line' }, `spawned so far ≈ ${fmtCount(sp.all)}`, el('small', { text: ` (estimate; ${fmtCount(sp.col)} coloured, ${fmtCount(sp.elite + sp.special + sp.boss)} Elites, specials and bosses)` })));
     readout.appendChild(el('div', { class: 'ro-line' }, `HP ×${fmtN(hp.total, 2)}`, el('small', { text: ` (a row starting now: time ${fmtN(hp.time, 2)} × stage ${fmtN(hp.stage, 2)} × level ${fmtN(hp.level, 2)} × creature ${fmtN(hp.creature, 2)})` })));

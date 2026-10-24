@@ -118,7 +118,7 @@ roster = [{
 "id": "r55",
 "pace": "waves",
 "pack": 30.0,
-"pattern": "scatter",
+"pattern": "ring",
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
@@ -265,9 +265,12 @@ roster = [{
 "variant": "DM-F",
 "weights": [[368.0, 5.4]]
 }, {
+"count": 10.0,
 "enemy": "buckshot_dwarf",
+"every": 10.0,
 "id": "r19",
-"pack": 2.0,
+"pace": "waves",
+"pack": 10.0,
 "pattern": "scatter",
 "stats": {
 "hp_mult": 0.26,
@@ -277,25 +280,6 @@ roster = [{
 "until": 632.0,
 "weights": [[431.0, 1.0], [632.0, 1.4]]
 }, {
-"enemy": "fire_ant",
-"id": "r20",
-"pack": 6.0,
-"stats": {
-"hp_mult": 0.26
-},
-"t": 431.0,
-"until": 578.0,
-"weights": [[431.0, 5.0], [578.0, 6.0]]
-}, {
-"enemy": "blue_slime",
-"id": "r18",
-"stats": {
-"hp_mult": 0.26
-},
-"t": 431.0,
-"until": 578.0,
-"weights": [[430.0, 6.0], [577.0, 4.0]]
-}, {
 "enemy": "armadillo",
 "id": "r22",
 "pack": 100.0,
@@ -304,43 +288,80 @@ roster = [{
 "hp_mult": 0.54,
 "size": [1.0, 1.35]
 },
-"t": 578.0,
-"until": 646.0,
-"weights": [[578.0, 8.0], [646.0, 8.0]]
+"t": 453.0,
+"until": 597.0,
+"weights": [[453.0, 8.0], [521.0, 8.0]]
 }, {
-"enemy": "skeleton",
+"enemy": "desert_spider",
 "id": "r23",
-"pack": 6.0,
-"stats": {
-"hp_mult": 0.67
-},
-"t": 646.0,
-"until": 835.0,
-"variant": "SK-E",
-"weights": [[646.0, 6.0], [835.0, 5.0]]
-}, {
-"enemy": "skeleton_knight",
-"id": "r24",
-"pack": 4.0,
-"pattern": "scatter",
-"stats": {
-"hp_mult": 1.34
-},
-"t": 646.0,
-"until": 835.0,
-"variant": "KN-E",
-"weights": [[646.0, 2.5], [835.0, 3.0]]
-}, {
-"enemy": "dust_mummy",
-"id": "r25",
+"interval": 0.5,
 "pack": 2.0,
 "pattern": "scatter",
 "stats": {
+"hp_mult": 0.67,
+"tint": {
+"amount": 1.0,
+"hue": [254.0, 275.0],
+"sat": 0.82,
+"val": 0.23
+}
+},
+"t": 575.0,
+"until": 667.0,
+"weights": [[575.0, 6.0], [764.0, 5.0]]
+}, {
+"count": 35.0,
+"enemy": "skeleton",
+"every": 30.0,
+"id": "r18",
+"pace": "waves",
+"pack": 35.0,
+"pattern": "ring",
+"stats": {
+"hp_mult": 0.67
+},
+"t": 714.0,
+"until": 723.0,
+"variant": "SK-A",
+"weights": [[714.0, 6.0], [903.0, 5.0]]
+}, {
+"enemy": "skeleton",
+"id": "r20",
+"pack": 1.0,
+"stats": {
+"hp_mult": 1.0
+},
+"t": 646.0,
+"until": 765.0,
+"variant": "SK-A",
+"weights": [[646.0, 6.0], [835.0, 5.0]]
+}, {
+"enemy": "skeleton_knight",
+"every": 15.0,
+"id": "r24",
+"pace": "waves",
+"pack": 10.0,
+"pattern": "pack",
+"stats": {
+"hp_mult": 1.0
+},
+"t": 646.0,
+"until": 765.0,
+"variant": "KN-A",
+"weights": [[646.0, 2.5], [835.0, 3.0]]
+}, {
+"enemy": "dust_mummy",
+"every": 15.0,
+"id": "r25",
+"pace": "waves",
+"pack": 2.0,
+"pattern": "ring",
+"stats": {
 "hp_mult": 0.71
 },
-"t": 667.0,
-"until": 1030.0,
-"weights": [[667.0, 0.8], [807.0, 1.4], [1030.0, 1.4]]
+"t": 835.0,
+"until": 911.0,
+"weights": [[835.0, 0.8], [975.0, 1.4], [1198.0, 1.4]]
 }, {
 "enemy": "spit_cactus",
 "id": "r26",
@@ -351,72 +372,71 @@ roster = [{
 "max_alive": 4.0
 },
 "t": 667.0,
-"until": 807.0,
-"weights": [[667.0, 1.2], [807.0, 1.2]]
+"until": 765.0,
+"weights": [[667.0, 5.0], [807.0, 5.0]]
 }, {
 "enemy": "bull_beetle",
+"every": 25.0,
 "id": "r27",
-"pack": 1.0,
-"pattern": "scatter",
+"pace": "waves",
+"pack": 5.0,
+"pattern": "ring",
 "stats": {
 "hp_mult": 0.77,
 "max_alive": 2.0
 },
-"t": 723.0,
-"until": 1030.0,
-"weights": [[723.0, 0.8], [1030.0, 1.0]]
+"t": 730.0,
+"until": 835.0,
+"weights": [[730.0, 0.8], [1037.0, 1.0]]
 }, {
+"count": 10.0,
 "enemy": "buckshot_dwarf",
+"every": 10.0,
 "id": "r28",
-"pack": 2.0,
+"pace": "waves",
+"pack": 1.0,
 "pattern": "scatter",
 "stats": {
 "hp_mult": 0.8,
-"max_alive": 3.0
-},
-"t": 730.0,
-"until": 1030.0,
-"weights": [[730.0, 0.8], [1030.0, 1.2]]
-}, {
-"enemy": "werewolf",
-"id": "r29",
-"pack": 36.0,
-"pattern": "ring",
-"stats": {
-"hp_mult": 1.48,
-"size": [1.4, 1.9],
+"max_alive": 3.0,
 "tint": {
-"amount": 0.5,
-"hue": [350.0, 12.0],
+"amount": 0.34,
+"hue": [42.0, 96.0],
 "sat": 0.85,
-"val": 0.8
+"val": 0.3
 }
 },
-"t": 835.0,
-"until": 1030.0,
-"weights": [[835.0, 8.0], [883.0, 8.0], [884.0, 4.0], [1030.0, 4.0]]
+"t": 730.0,
+"until": 835.0,
+"weights": [[730.0, 0.8], [1030.0, 1.2]]
 }, {
-"enemy": "red_goblin",
+"count": 20.0,
+"enemy": "goblin",
+"every": 5.0,
 "id": "r30",
-"pack": 6.0,
+"pace": "waves",
+"pack": 1.0,
+"pattern": "scatter",
 "stats": {
 "hp_mult": 1.64
 },
-"t": 883.0,
-"until": 1030.0,
-"variant": "RG-B",
-"weights": [[883.0, 5.0], [1030.0, 6.0]]
+"t": 723.0,
+"until": 870.0,
+"weights": [[723.0, 5.0], [870.0, 6.0]]
 }, {
-"enemy": "red_goblin_runt",
+"count": 10.0,
+"enemy": "goblin_runt",
+"every": 20.0,
 "id": "r31",
-"pack": 5.0,
+"pace": "waves",
+"pack": 1.0,
+"pattern": "scatter",
 "stats": {
 "hp_mult": 1.64
 },
-"t": 883.0,
-"until": 1030.0,
-"variant": "RR-B",
-"weights": [[883.0, 3.0], [1030.0, 3.0]]
+"t": 750.0,
+"until": 870.0,
+"weights": [[750.0, 3.0], [897.0, 3.0]]
 }, {
 "enemy": "spit_cactus",
 "id": "r51",
@@ -745,8 +765,9 @@ roster = [{
 "stats": {
 "hp_mult": 0.57
 },
-"t": 681.0,
-"weights": [[681.0, 1.0]]
+"t": 835.0,
+"until": 923.0,
+"weights": [[835.0, 1.0]]
 }, {
 "banner": "SWARM!",
 "count": 20.0,

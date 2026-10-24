@@ -454,7 +454,11 @@ func test_the_boss_down_opens_a_countdown_then_endless_waves_grow() -> void:
 	assert_bool(Run.endless).is_true()
 	assert_float(d.portal_seconds_left()).is_equal(-1.0)
 	assert_int(Run.endless_wave()).is_equal(1)
-	assert_int(em.alive_count()).is_equal(mini(tl.endless_wave_size(1, 1), tl.hard_cap))
+	# the first wave at once, as big as the stage's late pool allows (Garry's map decides: each late row's max_alive caps
+	# its packs, WaveDirector._endless_room; on 2026-10-24 his Nightfall's last minute held only a spit cactus row (4) and
+	# a hammer giant row (2), so 6): never more than the wave size or the hard cap, never nothing
+	assert_int(em.alive_count()).is_greater(0)
+	assert_int(em.alive_count()).is_less_equal(mini(tl.endless_wave_size(1, 1), tl.hard_cap))
 	assert_float(d.xp_share()).is_equal_approx(tl.endless_value("xp_share", 1), 0.0001)
 	assert_float(float(w["pk"].endless_coin_chance)).is_equal_approx(tl.endless_value("coin_chance", 1), 0.0001)
 	# the pool is the stage's late roster (its last roster_window seconds), not a later stage's creature

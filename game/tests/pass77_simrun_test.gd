@@ -685,8 +685,10 @@ func test_the_fast_mode_skips_the_drawing_and_keeps_the_numbers() -> void:
 	Run.held_time = 0.0
 	assert_int(Run._rebuild_clock_ms()).is_equal(12500)
 	Run.sim_mode = false
-	assert_int(absi(Run._rebuild_clock_ms() - Time.get_ticks_msec())).is_less(50)
-	assert_float(absf(Run.rule_seconds() - Time.get_ticks_msec() * 0.001)).is_less(0.05)
+	# pass 102 (lane STEADY): in play the game's own clock (Run.play_clock, the frames' deltas), no longer the wall clock,
+	# re-pinned on purpose (pass102_steady_test)
+	assert_int(Run._rebuild_clock_ms()).is_equal(int(Run.play_clock * 1000.0))
+	assert_float(Run.rule_seconds()).is_equal(Run.play_clock)
 	# every run sim (either mode) counts the run's clock where a rule counts real time (an orbiter's repeat hits too)
 	Run.sim_clock = true
 	assert_int(Run._rebuild_clock_ms()).is_equal(12500)

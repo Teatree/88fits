@@ -451,6 +451,18 @@ const SimModel = (() => {
         { key: 'proj', label: 'shots in flight', color: SLOTS[1], values: ser(res, 'proj') || [], width: 1.5 },
         { key: 'pickups', label: 'pickups lying', color: SLOTS[3], values: ser(res, 'pickups') || [], dash: SHORT_DASH, width: 1.5 }],
       overlay: [] });
+    // pass 102 (lane STEADY): what the frames cost (run records of schema 4)
+    if (has('work_ms')) push('perf', { id: 'frame_work', title: 'What a frame cost', fmt: 'num', unit: 'ms a frame',
+      how: `Each second's frames, ${playingNote}: the world update (its 60 Hz steps; a slow frame runs at most two since pass 102, and past that the game slows a little instead of piling up steps), the process callbacks (weapons, effects, the HUD, the director) and the rest of the frame (drawing, waiting for the GPU and the screen; with vsync it includes idle time). Work = world + process, the CPU's share: the same crowd costing more work later is the device heating up.`,
+      lines: [{ key: 'world_ms', label: 'world update', color: SLOTS[0], values: ser(res, 'world_ms') || [] },
+        { key: 'proc_ms', label: 'process', color: SLOTS[6], values: ser(res, 'proc_ms') || [], width: 1.5 },
+        { key: 'rest_ms', label: 'rest (drawing, waiting)', color: SLOTS[4], values: ser(res, 'rest_ms') || [], dash: SHORT_DASH, width: 1 }],
+      overlay: ov('work_ms', 'mean', `${cmpName}: work`) });
+    if (has('world_speed')) push('perf', { id: 'world_speed', title: 'World speed and steps', fmt: 'num', unit: 'x real time / steps',
+      how: `How fast the world ran against the wall clock (1 = full speed; below 1 while the catch-up cap holds it back) and the world steps a drawn frame ran (1 at 60 fps, 2 at 30 fps; never more than the cap), ${playingNote}.`,
+      lines: [{ key: 'world_speed', label: 'world speed', color: SLOTS[1], values: ser(res, 'world_speed') || [] },
+        { key: 'steps_frame', label: 'steps a frame', color: SLOTS[2], values: ser(res, 'steps_frame') || [], width: 1.5 }],
+      overlay: [] });
     for (const c of out) { c.bands = c.bands || []; c.overlay = c.overlay || []; c.lines = c.lines.filter((l) => l.values && l.values.length); }
     return out;
   }

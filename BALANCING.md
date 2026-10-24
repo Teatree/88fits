@@ -6498,3 +6498,65 @@ Numbers measured: see report / status_CROWD.md (overlap per cell size, the off-s
   oldest are let go first (a strip still drawn by a material stays alive regardless).
 - A look's icon (other than the one played) loads when the look is worn or drawn (passives' card looks, creature and hero
   looks).
+
+## 47. Pass 102 (v0.87): the late-Endless slowdown fixed, the Level Editor's cap made clear
+
+Garry's words: tools/dl/p102/REQUEST.md. Each lane's rules.
+
+### 47.STEADY No catch-up spiral, and the timings that show heat
+
+- **The world's catch-up is capped at 2 steps a frame while the game plays** (`Game.CATCH_UP_STEPS` = 2, set on
+  `Engine.max_physics_steps_per_frame` by Game._ready and put back to Godot's 8 by Game._exit_tree, so the title and
+  the menus keep real time; was 8 everywhere). The world (the crowd, the shots, the hero, the pickups) steps at 60 Hz; a drawn
+  frame that took longer than 2 steps' worth (33.3 ms, below 30 fps) runs only 2 and the game runs slower than real time
+  by the rest, instead of piling up to 8 steps a frame (the catch-up spiral of Garry's phone run, 15-27 fps). Why 2: it
+  never slows a device that holds 30 fps; at a phone 2.2x the PC on the pinned wave-48 crowd the model gives 24 fps at
+  79% speed instead of 13 fps (cap 3: 18 fps at 90%; cap 1 would slow any frame under 60 fps).
+- **The slowdown rule: the whole game slows together.** Godot cuts a frame's process delta by the steps it dropped
+  (measured: a 50 ms frame under cap 2 gets a 33.3 ms delta), so everything on `_process` (weapons' cooldowns and fire,
+  Fx, damage numbers, the HUD, the stage and buffs' clocks, the director, timers, tweens, Magnet, totems) advances by
+  the world's time, not the wall's. The one rule that read the wall clock in play, `Run.rule_seconds()` (an orbiter's
+  repeat hits, the sheet's rebuild throttle, the burst gaps, the companions' bob), now reads `Run.play_clock` (the
+  frames' deltas summed; it stops while the tree is paused). The title and the menus run outside the Game scene
+  with Godot's 8 (real time); inside a run the pause screen, the card screens and the HUD's tweens share the game's
+  delta, which only differs from real time while a frame runs past 33 ms (a paused world costs little). Visual-only wall-clock wobbles (string shimmer, claws, halos, sparks, shield
+  pulse, shader TIME) stay on real time. `--fixed-fps` (the sim, the Watch, probes) skips the cap.
+- **Known, older than pass 102 (unchanged):** a weapon's cooldown restarts on the frame it fires (`cooldown_left =
+  cooldown`), so its period rounds up to whole frames: at 30 fps (or while the cap holds the world back) a 1.0 s
+  Revolver fires every 1.00-1.03 s (steady_check: 1.005 free, 1.014 at 30 fps, 1.024-1.037 overloaded).
+- Run record (schema 4): `RunAnalytics.HEAT_BAND` = 50 creatures a crowd band, `HEAT_MIN_SECS` = 5 s of a minute in a
+  band for its heat cell.
+
+### 47.HITS Cheaper hits in a huge crowd: damage numbers, fire and poison, the hit sound
+
+No damage, burn, poison or Endless number changed. These rules change only what is shown and heard, and how much
+work the game does for it.
+
+1. **Damage numbers when the screen is full** (ui/DamageNumbers.gd). From `CROWD` = 40 numbers in the air (of `CAP`
+   60) the screen counts as full. Then:
+   - a hit on a creature that still has a number of the same kind showing whole (younger than LIFE x HOLD =
+     0.9 x 0.68 = 0.61 s) adds to that number: a running total that pops (BUMP) instead of a new number. A crit
+     that joins turns the number a crit (yellow, crit size), as a crit within MERGE always did;
+   - a plain hit with no number to join is let go unless it is at least `BIG_SHARE` (1.0) x the mean of the creature
+     hit numbers in the air (only the biggest show); a crit or a mini crit with no number to join always shows (its
+     own number, its hop);
+   - a fire or poison tick with no number to join is let go once `TICK_CAP_CROWD` = 12 ticks are up (TICK_CAP 30
+     below the crowd);
+   - at CAP the oldest number is reused for the new one (nothing allocated per hit).
+   Below 40 numbers everything is as in pass 101. The hero's numbers (hurt, shield, heal, EVADE, BLOCK) are never
+   thinned. Settings.damage_numbers (the player's switch) and a tool's `suppressed` work as before.
+2. **The hit sound** (EnemyManager.HIT_SOUND_GAP_MS = 120). A hit that does not kill plays its creature's hit sound
+   at most once every 120 ms per sound id (creatures that share a sound share the gap; at most ~8 a second per sound;
+   Audio's voice limit of `voices` per 0.4 s still applies on top). A crit always plays its hit sound; a kill plays the
+   death sound as before. The training dummy's hit (it never dies) follows the same rule.
+3. **Flames on burning creatures** (EnemyManager.FIRE_PUFF = 0.18 s, FIRE_FX_FULL = 80). A burning creature licks up a
+   flame every 0.18 s while at most 80 burning creatures are drawn; above that every one's flames come every
+   0.18 x (drawn burning / 80) s (216 burning on the screen: one every 0.49 s; the screen keeps about the same number of
+   flames, as the particle pool of 400 was full and dropped most of them anyway). A creature off the screen
+   (EnemyManager.drawn_vis 0) shows no flame and no poison puff. The burn itself, its ticks and its spread are unchanged.
+4. **Burn and poison bookkeeping**: the same sums in the same order (a test runs pass 101's code beside the new one over
+   one scene and seed and gets the same damage to the last bit, the same kills and the same spread dice); no rule.
+5. **damage()'s hero numbers** (EnemyManager._hit_stats): crit_chance, crit_damage and execute_frac are read from the
+   hero's sheet once and kept until the next physics tick, a build change, a new sheet or any change to the sheet's list
+   of effects; every hit reads the same values as before (StatSheet.get_stat walks every effect, which a late build has
+   by the hundred). No rule; listed so nobody looks for one.

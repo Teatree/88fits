@@ -323,10 +323,12 @@ func test_damage_numbers_keep_the_newest_sixty() -> void:
 	var dn := _numbers()
 	for k in range(70):
 		dn.add(100 + k, Vector3.ZERO, 3.0)
-	assert_int(dn.count()).is_equal(DamageNumbers.CAP)
+	# pass 102 (lane HITS, re-pinned on purpose): a full screen (DamageNumbers.CROWD, 40) holds that many creature
+	# numbers, the newest pushing the oldest out; CAP (60) is still the most there can be
+	assert_int(dn.count()).is_equal(DamageNumbers.CROWD)
 	assert_int(DamageNumbers.CAP).is_equal(60)
-	assert_int((dn.live()[0] as DamageNumbers.Num).who).is_equal(110)
-	assert_int((dn.live()[59] as DamageNumbers.Num).who).is_equal(169)
+	assert_int((dn.live()[0] as DamageNumbers.Num).who).is_equal(130)
+	assert_int((dn.live()[DamageNumbers.CROWD - 1] as DamageNumbers.Num).who).is_equal(169)
 
 
 func test_damage_numbers_colour_and_size_by_kind() -> void:

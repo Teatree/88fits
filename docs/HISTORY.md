@@ -3946,3 +3946,77 @@ only its dummies and loads a look when it is picked or spawned; the title lets t
 opens on. The JSON (the Level Editor's format) did not change; import_json writes the new .tres; readers take a texture as
 well (old .tres, the stand-in looks of arena_check and touch_audit). The cards' unplayed looks' icons, and creature and
 hero look icons, load when worn too.
+
+**Pass 102 (2026-10-24, v0.87): the phone's late-Endless slowdown.** Garry's phone run (v0.86, Pixel 8 Pro) held 60 fps up to 300 creatures until late Endless, then fell to 15-27. A probe (game/tools/_p102_PHONE_repro.gd, tools/dl/p102/status_REPRO.md) found it was neither his build (0-10%) nor mainly heat: Endless creatures (HP x1.11 a 10 s wave) stop dying, crowd round the hero burning and poisoned, and once a phone frame passes 16.7 ms the 60 Hz physics catch-up spirals. Garry: "Let's go with those fixes yea" (five fixes; Endless numbers untouched). Lanes STEADY and HITS. Incident: a hell_check loaded EnemyManager.gd while lane HITS was half-way through saving it, came up without enemies and looped for ~90 minutes holding the Godot lock, blocking Garry's Level Editor imports (the lanes then waited for his queued imports; hell_check and steady_check now stop on their own; shared files are written in one complete write). The next morning Garry asked for Level Editor fixes (the cap in load vs bodies, composition swatches, a Stage 2 save that hung): lane LE (tools/dl/p103/brief_LE.md) is merged here too; its answer: Red Canyon's `cap_max` 150 cuts his 500 cap curve.
+
+**Lane STEADY (fixes 1 and 5: no catch-up spiral; the timings that show heat).** Godot 4.7 measured first
+(game/tools/_p102_STEADY_delta.gd, _p102_STEADY_perfmon.gd): with `max_physics_steps_per_frame` N a long frame runs N
+world steps and Godot cuts its process delta by the dropped ones (a 50 ms frame: cap 8 -> 3 steps, delta 50 ms; cap 2
+-> 2 steps, delta 33.3 ms), so everything on `_process` already slows with the world; and `Performance.TIME_PROCESS` /
+`TIME_PHYSICS_PROCESS` hold only the slowest frame of each wall second, refreshed once a second. Changes: the cap is 2
+while the game plays (`Game.CATCH_UP_STEPS` on `Engine.max_physics_steps_per_frame`, Godot's 8 back on leaving, so the
+menus keep real time; the model tools/dl/p102/STEADY/spiral_cap.py: never slows
+a device at 30 fps or better, the pinned wave-48 crowd on a phone 2.2x the PC goes from 13 fps to 24 fps at 79% world
+speed; cap 3 would give 18 fps); the last wall-clock gameplay rule, `Run.rule_seconds()` (orbiter repeat hits, burst
+gaps, the rebuild throttle, the companions' bob), reads the new `Run.play_clock` (the frames' deltas) in play; the run
+record is schema 4: core/systems/WorkClock.gd (two marker nodes at priority -2^30 / +2^30 bracket every
+`_physics_process` and `_process`) puts each second's `steps`, `steps_max`, `phys_ms`, `phys_max`, `proc_ms`,
+`proc_max`, `rest_ms`, `lost_ms` on its row, the header gains `frame_timing.max_steps`, `work` and `heat` (each
+minute's mean frame and work ms per 50-creature crowd band, so a phone heating up shows as the same crowd costing more
+later; no start/end benchmark, which would cost play time), summary() gains m_phys_ms ... m_lost_s and heat_*; the
+dashboard's Frame time card draws "What a frame cost" (world, process, rest; steps a frame, world speed) and the heat
+table; analytics_csv.py and the page's csv-lib write the 8 columns after `pickups`; sim_avg.js `workSeries` and
+sim_model.js charts `frame_work`, `world_speed`. Proof: game/tools/steady_check.gd (headless: free, 30 fps, overloaded
+and the old cap 8: game time = world time = run clock = rules' clock in every phase, the Revolver's period its cooldown
+within a frame, creatures walking the same share of their speed a world second; overloaded under cap 2 the frames stay
+at ~54 ms, world x0.61, against ~94 ms and 5.7 steps a frame under cap 8), tests/pass102_steady_test.gd, the probe's new
+knobs busy_tick= busy_frame= steps= (before/after numbers in tools/dl/p102/status_STEADY.md), selftest_STEADY102.py.
+Re-pinned on purpose: schema 3 -> 4 (pass45, pass74, pass101 tests, smoke_run), Run.rule_seconds in play (pass77).
+
+**Cheaper hits in a huge crowd** (Garry's phone run: late Endless, ~200 creatures burning and poisoned round the hero,
+the numbers at their cap; "Let's go with those fixes"). No damage, burn, poison or Endless number changed.
+- **Damage numbers** (ui/DamageNumbers.gd): measured first with the probe's new `prof=1` (Perf keys numbers.add /
+  numbers.step / numbers.draw): drawing is the cost (~0.5 ms a frame on the PC at 60 numbers), adding ~0.1. From
+  `CROWD` 40 numbers in the air a hit joins its creature's number while it still shows whole (a running total that
+  pops; a joining crit turns it a crit), a small plain hit or a tick with nothing to join is let go (only hits at least
+  the mean in the air, crits and mini crits show; ticks at most `TICK_CAP_CROWD` 12), a number that does show takes the
+  oldest one's place (a full screen holds 40 creature numbers, not 60), and at CAP the oldest is reused (nothing
+  allocated). A
+  merge is one lookup (`_newest`, by creature and kind) instead of a walk down the list; the draw sorts by size with an
+  engine sort instead of a script comparison. Below 40 numbers nothing changed; the hero's numbers are never thinned.
+- **Burns and poisons** (EnemyManager): the sources' clocks run lazily (owed ticks paid subtraction by subtraction when a
+  source may run out, before ignite/poison set one, on death: status_clocks_now), the burn's sum is made only on the tick
+  that deals it, the spread looks for neighbours once per tick of a creature (not per source); a test runs pass 101's
+  code beside it over one scene and seed: the same damage to the last bit, the same kills and spread dice. Flames come
+  every FIRE_PUFF 0.18 s up to `FIRE_FX_FULL` 80 burning creatures drawn, further apart above it; none (and no poison
+  puff) off the screen.
+- **The hit sound**: a non-killing hit sounds at most once every `HIT_SOUND_GAP_MS` 120 ms per sound id (a crit always),
+  the gate checked before any lookup (EnemyManager._hit_sound; per-type sound slots).
+- Probe (game/tools/_p102_PHONE_repro.gd): `prof=1`, `hits=old` (pass 101's rules), `shot=<prefix>`.
+- Tests: game/tests/pass102_HITS_test.gd.
+- **damage()'s hero numbers**: crit_chance, crit_damage and execute_frac were read with StatSheet.get_stat (a walk over
+  every effect the hero carries) on every hit, fire and poison ticks included; now kept per (sheet, StatSheet.version,
+  physics tick) (EnemyManager._hit_stats; StatSheet.version bumped by set_base/set_bases/add_effect/remove_source/
+  clear_effects).
+- **Measured** (PC, build B, Endless wave 48, 240 creatures standing still round the hero, prof on, old rules vs new in
+  back-to-back runs): numbers.draw 0.46 -> 0.32 ms (60 -> 40 numbers), numbers.add 0.10 -> 0.06, hit sounds 0.08 -> 0.03
+  (23,600 -> 6,100 played in the run), fire 0.65 -> 0.58 (its damage() calls 0.23 -> 0.19), poison 0.27 -> 0.24, flames
+  0.04 -> 0.02 (22,400 -> 9,400 drawn), enemies.sim 3.66 -> 3.50, all timed systems 9.84 -> 9.06, wall 10.13 -> 9.64 ms a
+  frame. Pinned at the map's edge (S walk, no prof): wall 7.82 -> 7.38, enemies.sim 2.89 -> 2.68, particles 308 -> 208.
+- Old tests re-pinned on purpose: pass46_ui_test (keep_the_newest_sixty: a full screen holds CROWD) and pass47_hero_test
+  (burn ticks never crowd out the hits: CROWD).
+
+Pass 103 lane LE (Level Editor, tools only). Garry asked which of the cap and the On screen lane's "cap in bodies" is
+right, for colour boxes in the Composition hover, and why Stage 2's Save sat at "Saving and importing...". The cap
+counts load (cap_share), the hard cap counts bodies, and Red Canyon's cap_max 150 cuts his 500 curve to 150 load: the
+Cap lane now says "Cap (load)", draws cap_max's cut (and the checks warn about it) and the hard cap in load at the mix;
+the On screen lane draws the effective limit in bodies (the lower of the cap at the mix and the hard cap) and its
+hover gives the three numbers with the one that binds; a Timeline warning names a stage where the cap never binds
+(TimelineModel.effectiveLimit, capBinding). The Composition hover has a swatch left of each icon in the chart's own
+colour, a live legend lists the layers, and the layers get unique colours (compPalette: the 16 creature colours
+repeated, Skeleton = Imp). The Save hang was not stage-specific: every map Save waited LOCK_WAIT 120 s for the Godot
+lock (held ~90 min by a hung hell_check) before queueing an import; now SAVE_LOCK_WAIT 8 s, the answer names the
+import job (a second Save joins a queued one) and the holder, the page counts the seconds, follows the job to import
+OK / failed / cancelled, gives up after 180 s, and always resets. The queued j20261024-011203-2678 was merged into
+j20261024-010448-b3aa, which imported red_canyon at 01:26 once the lock freed. selftest_LE103.py; docs/level_editor.md
+"Pass 103".

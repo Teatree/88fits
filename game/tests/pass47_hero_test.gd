@@ -123,10 +123,11 @@ func test_burn_ticks_never_crowd_out_the_hits() -> void:
 	for k in range(DamageNumbers.TICK_CAP + 10):
 		dn.add(200 + k, Vector3.ZERO, 3.0, false, false, true)
 	assert_int(dn.count()).is_equal(DamageNumbers.TICK_CAP)
-	# the hits still find room, and push out the oldest when the pool is full
+	# the hits still find room, and push out the oldest when the pool is full (pass 102, re-pinned on purpose: a full
+	# screen holds DamageNumbers.CROWD creature numbers)
 	for k in range(DamageNumbers.CAP):
 		dn.add(400 + k, Vector3.ZERO, 9.0)
-	assert_int(dn.count()).is_equal(DamageNumbers.CAP)
+	assert_int(dn.count()).is_equal(DamageNumbers.CROWD)
 	var ticks := 0
 	for m: DamageNumbers.Num in dn.live():
 		if m.kind != DamageNumbers.KIND_HIT:

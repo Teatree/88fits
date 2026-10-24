@@ -170,10 +170,8 @@ func test_non_melee_creatures_come_in_small_numbers() -> void:
 		if d == null or not _special(d):
 			continue
 		specials += 1
-		var pack := int(r.get("pack", d.pack_size))
-		assert_int(pack).override_failure_message("%s row %s packs %d" % [d.id, str(r.get("id", "")), pack]).is_less_equal(2)
-		for p in r.get("weights", []):
-			assert_float(float(p[1])).override_failure_message("%s row %s weight %s" % [d.id, str(r.get("id", "")), str(p[1])]).is_less_equal(1.5)
+		# (Garry, 2026-10-24: he sets these rows' packs and weights himself in the Level Editor, e.g. the Buckshot Dwarf
+		# in packs of 10 and the Spit Cactus at weight 5; pass 62's small numbers are not pinned any more, max_alive is)
 		var st: Dictionary = r.get("stats", {}) if r.get("stats") is Dictionary else {}
 		var most := int(st.get("max_alive", d.max_alive))
 		if d.brain != "chase":
@@ -191,7 +189,8 @@ func test_every_row_plays_a_creature_that_is_in_play() -> void:
 		assert_object(d).override_failure_message("unknown creature " + str(r.get("enemy", ""))).is_not_null()
 		if d == null:
 			continue
-		assert_bool(d.retired or d.hidden).override_failure_message(d.id + " is retired or hidden").is_false()
+		# (Garry put the retired goblin back on his roster, row r30, 2026-10-24: it spawns all the same; only hidden fails)
+		assert_bool(d.hidden).override_failure_message(d.id + " is hidden").is_false()
 		var v := str(r.get("variant", ""))
 		if v != "":
 			assert_bool(d.variants.has(v)).override_failure_message("%s has no look %s" % [d.id, v]).is_true()

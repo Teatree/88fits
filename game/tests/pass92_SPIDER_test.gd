@@ -24,11 +24,9 @@ func test_the_spider_loads_and_no_map_brings_it_yet() -> void:
 	assert_float(d.knockback).is_greater(0.0)
 	assert_float(d.hp).is_greater(0.0)
 	assert_bool(d.blood.a > 0.0).is_true()
-	# Garry places it: no roster row, wave or event of any map names it
-	for id in DirAccess.get_directories_at("res://content/maps"):
-		var path := "res://content/maps/%s/%s.json" % [id, id]
-		if FileAccess.file_exists(path):
-			assert_bool(FileAccess.get_file_as_string(path).contains("desert_spider")).override_failure_message(id).is_false()
+	# Garry places it himself (2026-10-24: he put it on Red Canyon's roster, row r23): wherever a map names it, the
+	# spider is in play (not retired or hidden)
+	assert_bool(d.retired or d.hidden).is_false()
 
 
 func test_four_looks_on_the_same_drivers_from_least_to_most_cartoony() -> void:

@@ -504,8 +504,19 @@ func _analytics_check() -> String:
 		return "the revive's or the Nuke's damage is not in the run file (%s)" % str(totals.keys())
 	# pass 74 (schema 2): a tool's run, the header's new blocks, the boss's HP as it came, a totem gift's offer
 	# pass 101 (lane FPS): schema 3: every row its frames, the header its frame_timing (a headless run's marked not valid)
-	if int(mine.get("schema", 0)) != 3:
-		return "the run file is schema %s, not 3" % str(mine.get("schema", "?"))
+	# pass 102 (lane STEADY): schema 4: the rows' work times (steps, phys_ms, proc_ms, rest_ms), the header's work block
+	if int(mine.get("schema", 0)) != 4:
+		return "the run file is schema %s, not 4" % str(mine.get("schema", "?"))
+	var worked := 0
+	for r in (mine.get("samples", []) as Array):
+		if r is Dictionary and (r as Dictionary).has("steps") and (r as Dictionary).has("proc_ms"):
+			worked += 1
+			if int((r as Dictionary).get("steps_max", 0)) > int((mine.get("frame_timing", {}) as Dictionary).get("max_steps", 2)) or int((mine.get("frame_timing", {}) as Dictionary).get("max_steps", 0)) != 2:
+				return "a row ran more world steps in a frame than the cap: %s" % str(r)
+	if worked < (mine.get("samples", []) as Array).size() / 2:
+		return "only %d of %d rows carry their work times" % [worked, (mine.get("samples", []) as Array).size()]
+	if not (mine.get("work") is Dictionary) or int((mine["work"] as Dictionary).get("frames", 0)) <= 0:
+		return "the run file has no work block: %s" % str(mine.get("work"))
 	var ftm = mine.get("frame_timing")
 	if not (ftm is Dictionary) or not (ftm as Dictionary).has("valid") or (DisplayServer.get_name() == "headless" and bool((ftm as Dictionary).get("valid", true))):
 		return "the run file's frame_timing is missing or calls a headless clock valid: %s" % str(ftm)

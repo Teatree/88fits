@@ -1202,3 +1202,16 @@ b.zone-hard { color: #ff6b6b; background: none; }
 .stg-conf-line.warn { color: var(--warn); }
 .stg-conf-acts { display: flex; gap: 6px; margin-top: 3px; }
 .insp-help.warn { color: var(--warn); }
+
+/* pass 103 (lane LE): the crowd's limit (the cap in load at the mix vs the hard cap in bodies) and the Composition colours */
+.hard-cap-load { fill: none; }
+.hc-line.limit-head { margin-top: 5px; }
+.hc-line.limit-row { padding-left: 10px; color: var(--muted); font-size: 11.5px; }
+.hc-line.limit-row.binds { color: var(--ink); border-left: 2px solid #ffd166; padding-left: 8px; }
+.vc-r.vc-comp { grid-template-columns: 10px 16px 1fr auto auto; }
+.tl-comp-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.lg-item.comp-lg img { width: 14px; height: 14px; object-fit: contain; }
+.lg-item.comp-lg .lg-sw { width: 12px; height: 12px; }
+.cap-raw { fill: none; stroke: #3987e5; stroke-width: 1.2; stroke-dasharray: 3 3; opacity: 0.45; }
+.cap-max-line { stroke: #ffb366; stroke-width: 1; stroke-dasharray: 2 3; }
+.cap-max-text { fill: #ffb366; font-size: 10px; }

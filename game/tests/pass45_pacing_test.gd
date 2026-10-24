@@ -177,7 +177,7 @@ func test_the_skeletons_are_the_fodder_and_the_knights_come_with_them() -> void:
 		assert_float(ratio).override_failure_message("skeletons per knight at %d s: %.2f" % [int(t), ratio]).is_between(0.95, 3.05)
 	# the goblin stays in the content, out of the roster; the runt is back on Garry's roster since 2026-10-13 (row r2):
 	# whichever is on it is in play (pass66_shape_test)
-	assert_bool(rows.has("goblin")).is_false()
+	# (Garry, 2026-10-24: the goblin is back on his roster, row r30: not pinned any more)
 	assert_object(Registry.enemy("goblin_runt")).is_not_null()
 	if rows.has("goblin_runt"):
 		assert_bool(Registry.enemy("goblin_runt").retired).is_false()

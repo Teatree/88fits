@@ -243,12 +243,14 @@
   const BOM = '﻿';
   // the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp and boss_now empty (no boss
   // up). Pass 78: the pass-77 keys xp_total, hp_lost, hp_healed, boss_now, near3, near6 (tools/analytics_csv.py the same)
+  // pass 102 (lane STEADY): the work keys after pickups (steps ... lost_ms: what the second's frames cost, schema 4)
   const BASE = ['t', 'clock', 'stage', 'phase', 'wave', 'level', 'xp', 'xp_next', 'xp_total', 'hp', 'hp_max', 'shield', 'invuln', 'gold',
     'banked', 'kills', 'adren', 'cresc', 'desp', 'steady', 'est_total', 'took_raw', 'hits', 'evaded', 'shielded', 'healed',
     'regen', 'hp_lost', 'hp_healed', 'elite_kills', 'alive', 'cap', 'load', 'hard_cap', 'press', 'press_hp', 'press_dmg',
-    'boss_hp', 'boss_now', 'specials_alive', 'near3', 'near6', 'frames', 'frame_ms', 'frame_max', 'frame_p95', 'proj', 'pickups'];
-  // pass 101 (lane FPS): a second without a frame has no frame times (empty, not 0)
-  const EMPTY_WHEN_MISSING = ['boss_hp', 'boss_now', 'frame_ms', 'frame_max', 'frame_p95'];
+    'boss_hp', 'boss_now', 'specials_alive', 'near3', 'near6', 'frames', 'frame_ms', 'frame_max', 'frame_p95', 'proj', 'pickups',
+    'steps', 'steps_max', 'phys_ms', 'phys_max', 'proc_ms', 'proc_max', 'rest_ms', 'lost_ms'];
+  // pass 101 (lane FPS): a second without a frame has no frame times (empty, not 0); pass 102: nor work times (lost_ms 0)
+  const EMPTY_WHEN_MISSING = ['boss_hp', 'boss_now', 'frame_ms', 'frame_max', 'frame_p95', 'steps', 'steps_max', 'phys_ms', 'phys_max', 'proc_ms', 'proc_max', 'rest_ms'];
   // the second's tallies by id, flattened as group.key; a missing one is 0
   const MAPS = ['est', 'dmg', 'took', 'took_kind', 'hits_by', 'healed_by', 'killed', 'spawned', 'alive_by', 'gold_in', 'gold_out'];
   // the build's snapshots: on a row only when they changed; carried forward to every second until the next one
@@ -554,6 +556,7 @@
     const A = () => new Float64Array(n);
     const S = { run, n, schema: +run.schema || 1, has: new Uint8Array(n), hp: A(), hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), regen: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(), specials: A(), hpMult: A(), dmgMult: A(), timeScale: A(), adren: A(), cresc: A(), desp: A(), steady: A(), power: A(), fullDps: A(), ehp: A(),
       frames: A(), frameMs: A(), frameMax: A(), frameP95: A(), proj: A(), pickups: A(), hasFrames: false, hasDrawn: false,
+      steps: A(), stepsMax: A(), stepsPerFrame: A(), physMs: A(), physMax: A(), physFrame: A(), procMs: A(), procMax: A(), restMs: A(), workMs: A(), lostMs: A(), hasWork: false,
       dmgBy: {}, estBy: {}, tookBy: {}, hitsBy: {}, healedBy: {}, killedBy: {}, spawnedBy: {}, aliveBy: {}, tookKind: { melee: A(), ranged: A(), boss: A() }, snaps: [] };
     const byAdd = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] += +obj[k] || 0; } };
     const bySet = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] = +obj[k] || 0; } };
@@ -574,6 +577,14 @@
       // pass 101 (lane FPS): the second's frames (schema 3; NaN = no frame that second, a gap in the chart), the shots and pickups
       if (r.frames != null) { S.hasFrames = true; S.frames[s] = +r.frames || 0; S.frameMs[s] = r.frame_ms != null ? +r.frame_ms : NaN; S.frameMax[s] = r.frame_max != null ? +r.frame_max : NaN; S.frameP95[s] = r.frame_p95 != null ? +r.frame_p95 : NaN; }
       if (r.frames != null || r.proj != null || r.pickups != null) S.hasDrawn = true;
+      // pass 102 (lane STEADY): what the second's frames cost (schema 4): the world's steps and their time, the process, the rest, the time the cap dropped
+      if (r.steps != null) {
+        S.hasWork = true; const fr = Math.max(+r.frames || 0, 1);
+        S.steps[s] = +r.steps || 0; S.stepsMax[s] = +r.steps_max || 0; S.stepsPerFrame[s] = (+r.steps || 0) / fr;
+        S.physMs[s] = +r.phys_ms || 0; S.physMax[s] = +r.phys_max || 0; S.physFrame[s] = (+r.steps || 0) * (+r.phys_ms || 0) / fr;
+        S.procMs[s] = +r.proc_ms || 0; S.procMax[s] = +r.proc_max || 0; S.restMs[s] = +r.rest_ms || 0;
+        S.workMs[s] = S.physFrame[s] + S.procMs[s]; S.lostMs[s] = +r.lost_ms || 0;
+      }
       S.proj[s] = r.proj || 0; S.pickups[s] = r.pickups || 0;
       if (r.mults) curM = r.mults;
       if (curM) { S.hpMult[s] = (curM.stage || 1) * (curM.hp_t || 1) * (curM.lvl_hp || 1); S.dmgMult[s] = (curM.stage || 1) * (curM.dmg_t || 1) * (curM.lvl_dmg || 1); S.timeScale[s] = curM.time_scale || 1; }
@@ -585,6 +596,7 @@
     }
     S.hasMults = !!curM;
     if (S.hasFrames) for (let s = 0; s < n; s++) if (!S.has[s]) { S.frameMs[s] = NaN; S.frameMax[s] = NaN; S.frameP95[s] = NaN; }
+    if (S.hasWork) for (let s = 0; s < n; s++) if (!S.has[s] || !(S.frames[s] > 0)) { S.physFrame[s] = NaN; S.procMs[s] = NaN; S.restMs[s] = NaN; S.workMs[s] = NaN; S.stepsPerFrame[s] = NaN; S.physMs[s] = NaN; }
     for (let s = 1; s < n; s++) if (!S.has[s]) { for (const k of STATE) S[k][s] = S[k][s - 1]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][s - 1]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][s - 1]; }
     // the first row is second 1 (a row closes a second): the seconds before it take its state, not zeros
     const first = S.has.indexOf(1);
@@ -1389,7 +1401,40 @@
     }
     timeTable(c, S, [{ label: 'fps', data: fps, d: 1 }, { label: 'frames', data: S.frames, d: 0 }, { label: 'mean ms', data: S.frameMs, d: 1 }, { label: 'p95 ms', data: S.frameP95, d: 1 }, { label: 'slowest ms', data: S.frameMax, d: 1 },
       { label: 'alive', data: S.alive, d: 0 }, { label: 'shots', data: S.proj, d: 0 }, { label: 'pickups', data: S.pickups, d: 0 }, { label: 'stage', data: S.stage, d: 0 }]);
+    renderWork(c, S);
     grid.appendChild(c);
+  }
+  // pass 102 (lane STEADY): what the frames cost (schema 4): the world update (its 60 Hz steps, at most the cap a frame),
+  // the process callbacks, the rest (drawing, waiting for the GPU and the screen), the world time the cap dropped; and
+  // the heat table: the same crowd's work minute by minute
+  function renderWork(c, S) {
+    if (!S.hasWork) return;
+    const ft = S.run.frame_timing || {};
+    const cap = ft.max_steps || 2;
+    c.appendChild(el('h3', null, 'What a frame cost'));
+    c.appendChild(el('p', 'desc', 'The world update (the crowd, the shots, the hero, the pickups) runs in 60 Hz steps; a slow frame runs up to ' + cap + ' of them, and past that the game slows a little (the lost time) instead of piling up steps. ' +
+      'World speed: 1 while the device keeps up, below 1 while the cap holds the world back. World: the steps’ time a frame. Process: weapons, effects, the HUD, the director. Rest: drawing and the wait for the GPU and the screen (with vsync it includes idle time). Work = world + process, the CPU’s share; the same crowd costing more work later is heat.'));
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      const mo = markerOpts(S, {});
+      timeChart(multiBox(m, 'ms a frame', 220), S, [line('world update', S.physFrame, ROLE.real, { fill: true, d: 2, unit: ' ms' }), line('process', S.procMs, ROLE.est, { d: 2, unit: ' ms', borderWidth: 1.5 }),
+        line('rest (drawing, waiting)', S.restMs, COL.s[4], { d: 1, unit: ' ms', borderWidth: 1, borderDash: [5, 3] })], { markers: { bands: mo.bands, stages: mo.stages } });
+      timeChart(multiBox(m, 'world steps', 220), S, [line('steps a frame', S.stepsPerFrame, ROLE.alive, { d: 2 }), line('most in one frame', S.stepsMax, COL.crit, { d: 0, borderWidth: 1, stepped: true }),
+        line('world speed (1 = full)', Float64Array.from(S.lostMs, (v, i) => (S.frames[i] > 0 ? 1000 / (1000 + v) : NaN)), COL.gray, { d: 2, borderWidth: 1 })], { markers: { bands: mo.bands, stages: mo.stages } });
+      c.appendChild(m);
+    }
+    timeTable(c, S, [{ label: 'world ms', data: S.physFrame, d: 2 }, { label: 'step ms', data: S.physMs, d: 2 }, { label: 'slowest step', data: S.physMax, d: 1 }, { label: 'process ms', data: S.procMs, d: 2 },
+      { label: 'slowest process', data: S.procMax, d: 1 }, { label: 'rest ms', data: S.restMs, d: 1 }, { label: 'work ms', data: S.workMs, d: 2 }, { label: 'steps', data: S.steps, d: 0 },
+      { label: 'most steps', data: S.stepsMax, d: 0 }, { label: 'lost ms', data: S.lostMs, d: 0 }, { label: 'alive', data: S.alive, d: 0 }]);
+    const h = S.run.heat;
+    if (h && h.work_ms && Object.keys(h.work_ms).length) {
+      c.appendChild(el('h3', null, 'Heat: the same crowd, minute by minute'));
+      c.appendChild(el('p', 'desc', 'Each row is a crowd band (' + h.band + ' creatures wide); each cell that minute’s mean work a frame (ms) and frame time, when the minute spent ' + 5 + ' s or more in the band. Work rising along a row is the phone slowing down (heat) or a heavier build (the build snapshots say which).'));
+      const mins = h.minutes || 0, bands = Object.keys(h.work_ms).sort((a, b) => +a - +b);
+      const cols = [{ label: 'creatures' }].concat(Array.from({ length: mins }, (_, i) => ({ label: 'min ' + (i + 1) })));
+      const rows = bands.map((b) => [b + '–' + (+b + h.band - 1)].concat(Array.from({ length: mins }, (_, i) => { const w = h.work_ms[b][i], f = (h.frame_ms[b] || [])[i]; return w == null ? '' : fmtN(w, 1) + ' / ' + fmtN(f, 1); })));
+      tableView(c, cols, rows);
+    }
   }
   function renderRates(grid, S) {
     const c = card('Spawned and killed per second', '10 s means. Kills above spawns means the hero is winning the room.');

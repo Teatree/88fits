@@ -31,10 +31,14 @@ BOM = "﻿"
 BASE = ["t", "clock", "stage", "phase", "wave", "level", "xp", "xp_next", "xp_total", "hp", "hp_max", "shield", "invuln", "gold",
         "banked", "kills", "adren", "cresc", "desp", "steady", "est_total", "took_raw", "hits", "evaded", "shielded", "healed",
         "regen", "hp_lost", "hp_healed", "elite_kills", "alive", "cap", "load", "hard_cap", "press", "press_hp", "press_dmg",
-        "boss_hp", "boss_now", "specials_alive", "near3", "near6", "frames", "frame_ms", "frame_max", "frame_p95", "proj", "pickups"]
+        "boss_hp", "boss_now", "specials_alive", "near3", "near6", "frames", "frame_ms", "frame_max", "frame_p95", "proj", "pickups",
+        # pass 102 (lane STEADY): what the second's frames cost (schema 4)
+        "steps", "steps_max", "phys_ms", "phys_max", "proc_ms", "proc_max", "rest_ms", "lost_ms"]
 # pass 101 (lane FPS): the second's frames (schema 3; a second without a frame has no frame times: empty, not 0), the shots
 # in flight and the pickups lying; a record from before has none of these columns
-EMPTY_WHEN_MISSING = ["boss_hp", "boss_now", "frame_ms", "frame_max", "frame_p95"]
+# pass 102 (lane STEADY): nor work times (a missing lost_ms is 0)
+EMPTY_WHEN_MISSING = ["boss_hp", "boss_now", "frame_ms", "frame_max", "frame_p95", "steps", "steps_max", "phys_ms", "phys_max",
+                      "proc_ms", "proc_max", "rest_ms"]
 # the second's tallies by id, flattened as group.key; a missing one is 0
 MAPS = ["est", "dmg", "took", "took_kind", "hits_by", "healed_by", "killed", "spawned", "alive_by", "gold_in", "gold_out"]
 # the build's snapshots: on a row only when they changed; carried forward to every second until the next one
@@ -47,7 +51,7 @@ HISTORY_FIRST = ["file", "stamp", "started", "version", "schema", "tool", "headl
                  "specials_killed", "elites_killed", "killer", "totems", "talents", "build"]
 # RunAnalytics.INDEX_SKIP: the header blocks the index leaves out
 INDEX_SKIP = ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents", "talent_forms",
-              "totems", "stat_names", "build_text"]
+              "totems", "stat_names", "build_text", "heat"]
 # pass 82 (lane STATS): chests, power-ups and totems picked up so far, three columns after the row's own; the rule is
 # game/tools/sim_run.gd pickup_kind() and tools/level_editor/sim_model.js pickupKind() (the page's csv-lib counts with it)
 PICKUP_KEYS = ["chests", "powerups", "totems"]

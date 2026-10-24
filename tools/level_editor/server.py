@@ -74,6 +74,10 @@ KEEP_BACKUPS = 30
 IMPORT_TIMEOUT = 120
 # how long a Save waits for the Godot lock before it queues an `import` job instead (seconds)
 LOCK_WAIT = 120
+# pass 103 (lane LE; Garry: "Stage 2 save is not working, it's just saying `Saving and importing...` and nothing is
+# happening"): the map's Save waits this long, not LOCK_WAIT: two silent minutes read as a hang. The page then says who
+# holds the lock and follows the queued import job until it has run.
+SAVE_LOCK_WAIT = 8
 ID_RE = re.compile(r"^[a-z0-9_]+$")
 CODE_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -1113,37 +1117,76 @@ def run_import(target, who="level_editor save"):
     """JSON -> .tres for one or more content folders (`maps/red_canyon`, `enemies/skeleton,quests/unlock_x`), under the
     repo-wide Godot lock with the PC save kept aside (tools/locks.py); (ok, output tail). ok is None when the lock was
     busy for LOCK_WAIT seconds: then an `import` job is queued when jobs.py is here, and the tail says so."""
+    info = run_import_info(target, who, LOCK_WAIT)
+    return info["ok"], info["output"]
+
+
+def _queued_import(targets):
+    """Pass 103 (lane LE): a queued (not yet started) import job that already covers every one of `targets`, or None: a
+    second Save while the lock is held joins it (the job reads the JSON when it runs) instead of piling up another."""
+    m = jobs_module()
+    if m is None or not hasattr(m, "list"):
+        return None
+    try:
+        jl = m.list() or {}
+    except Exception:
+        return None
+    for j in jl.get("jobs") or []:
+        if j.get("kind") == "import" and j.get("state") == "queued":
+            have = [str(x) for x in ((j.get("spec") or {}).get("targets") or [])]
+            if all(str(t) in have for t in targets):
+                return j
+    return None
+
+
+def run_import_info(target, who="level_editor save", wait=None):
+    """Pass 103 (lane LE): run_import with what the page needs to follow a queued import: {ok (True | False | None:
+    the lock was busy for `wait` seconds), output (the tail), job (the queued import job's id, or None), joined (the
+    job was already queued for these targets), lock ({who, age_s} of the holder when it was busy)}."""
+    out = {"ok": False, "output": "", "job": None, "joined": False, "lock": None}
     if not os.path.isfile(GODOT):
-        return False, ("Godot binary not found at %s: the JSON is saved, but the game plays the .tres. Run the import "
+        out["output"] = ("Godot binary not found at %s: the JSON is saved, but the game plays the .tres. Run the import "
                        "yourself: Godot --headless --path game --script res://tools/import_json.gd -- only=%s"
                        % (GODOT, target))
+        return out
     args = ["--headless", "--path", GAME, "--script", "res://tools/import_json.gd", "--", "only=%s" % target]
-    lk = locks.acquire("godot", who, note="import_json only=%s" % target, timeout=LOCK_WAIT, log=lambda m: None)
+    lk = locks.acquire("godot", who, note="import_json only=%s" % target, timeout=LOCK_WAIT if wait is None else wait, log=lambda m: None)
     if lk is None:
         s = locks.status("godot") or {}
         holder = "%s%s" % (s.get("who", "?"), (" / " + s["job"]) if s.get("job") else "")
-        job = _enqueue("import", {"kind": "content", "id": target}, {"targets": target.split(",")}, "import %s" % target)
-        more = ("an import job was queued instead (%s)" % job["job"]["id"]) if job.get("job") else \
-            ("no import job could be queued: %s" % job.get("error", "the jobs module is not here yet"))
-        return None, "the Godot lock has been held by %s for %d s: %s" % (holder, int(s.get("age_s", 0)), more)
+        targets = target.split(",")
+        have = _queued_import(targets)
+        if have is not None:
+            job = {"job": have}
+            out["joined"] = True
+            more = "the import job %s already queued for it will import it" % have["id"]
+        else:
+            job = _enqueue("import", {"kind": "content", "id": target}, {"targets": targets}, "import %s" % target)
+            more = ("an import job was queued instead (%s)" % job["job"]["id"]) if job.get("job") else \
+                ("no import job could be queued: %s" % job.get("error", "the jobs module is not here yet"))
+        out.update(ok=None, job=(job.get("job") or {}).get("id"), lock={"who": holder, "age_s": int(s.get("age_s", 0))},
+                   output="the Godot lock has been held by %s for %d s: %s" % (holder, int(s.get("age_s", 0)), more))
+        return out
     try:
         locks.keep_save()
         try:
             p = subprocess.run([GODOT] + args, capture_output=True, text=True, timeout=IMPORT_TIMEOUT, cwd=ROOT,
                                encoding="utf-8", errors="replace")
         except subprocess.TimeoutExpired:
-            return False, "the import did not finish in %d s" % IMPORT_TIMEOUT
+            out["output"] = "the import did not finish in %d s" % IMPORT_TIMEOUT
+            return out
         except OSError as e:
-            return False, "could not run the import: %s" % e
+            out["output"] = "could not run the import: %s" % e
+            return out
         finally:
             locks.restore_save()
     finally:
         lk.release()
     text = (p.stdout or "") + (p.stderr or "")
     lines = [l for l in text.replace("\r", "").split("\n") if l.strip()]
-    tail = "\n".join(lines[-12:])
-    ok = p.returncode == 0 and "SCRIPT ERROR" not in text and "import_json: wrote" in text
-    return ok, tail
+    out["output"] = "\n".join(lines[-12:])
+    out["ok"] = p.returncode == 0 and "SCRIPT ERROR" not in text and "import_json: wrote" in text
+    return out
 
 
 def write_map(map_id, data):
@@ -1169,9 +1212,11 @@ def write_map(map_id, data):
         with open(tmp, "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
         os.replace(tmp, path)
-    import_ok, output = run_import("maps/%s" % map_id)
+    # pass 103 (lane LE): a short wait for the Godot lock, then the queued import job and its holder go back to the page
+    imp = run_import_info("maps/%s" % map_id, wait=SAVE_LOCK_WAIT)
     return {"ok": True, "wrote": rel(path), "backup": backup_rel,
-            "import_ok": import_ok, "output": output}
+            "import_ok": imp["ok"], "output": imp["output"], "import_job": imp["job"], "import_joined": imp["joined"],
+            "lock": imp["lock"]}
 
 
 # ---------------------------------------------------------------- a creature's default look (pass 54), the blood (pass 58)

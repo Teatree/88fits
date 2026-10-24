@@ -80,21 +80,27 @@ var base: Dictionary = {}
 ## its words ("talent:grit:0", "totem:wolf", "passive:brawn", "trait:solenne"), what the pause Stats tab groups, names and
 ## draws a source by; the source's words when none is given (remove_source still goes by the words).
 var entries: Array = []
+## Pass 102 (lane HITS): one more on every change made through the functions below (a reader that keeps a number it read,
+## EnemyManager._hit_stats, reads it again when this moved).
+var version := 0
 
 
 func set_base(stat: String, v: float) -> void:
 	base[stat] = v
+	version += 1
 
 
 func set_bases(d: Dictionary) -> void:
 	for k in d.keys():
 		base[str(k)] = float(d[k])
+	version += 1
 
 
 func add_effect(e: Effect, source: String = "", sid: String = "") -> void:
 	if e == null or e.stat == "":
 		return
 	entries.append({"effect": e, "source": source, "sid": sid if sid != "" else source})
+	version += 1
 
 
 func add_effects(list: Array, source: String = "", sid: String = "") -> void:
@@ -115,10 +121,12 @@ func remove_source(source: String) -> void:
 		if en["source"] != source:
 			keep.append(en)
 	entries = keep
+	version += 1
 
 
 func clear_effects() -> void:
 	entries.clear()
+	version += 1
 
 
 func has_stat(stat: String) -> bool:

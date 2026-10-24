@@ -215,6 +215,11 @@ var sim_mode := false
 ## run): the rules that count real time count the run's own clock instead (rule_seconds), as a phone's real time is its
 ## game time while a headless run goes 2.5 to 4.5 times faster than real time.
 var sim_clock := false
+## Pass 102 (lane STEADY): the game's own clock in play, seconds: every unpaused frame's delta, which Godot shortens when
+## the world falls behind (Game.CATCH_UP_STEPS = 2 while the game plays: a frame runs at most two 60 Hz world steps and
+## the frame's delta loses the steps it dropped), so the rules that read rule_seconds() slow down with the world instead
+## of running on the wall clock while the crowd crawls. It stops while the tree is paused, like the world.
+var play_clock := 0.0
 ## Poisoned creatures alive right now (pass 48: EnemyManager counts them once a tick; Gas Mask reads it).
 var poisoned_alive := 0
 ## Phoenix Feather (pass 48): its one free revive this run is spent (phoenix_ready / use_phoenix).
@@ -1444,13 +1449,20 @@ func tick_timed() -> Array:
 ## game time), the buffs' clock in a run sim (sim_clock or sim_mode: a headless run goes 2.5 to 4.5 times faster than real
 ## time, so on real time an orbiter's saws hit a creature that many times less often, the bonus lags, and how much
 ## depends on the machine's speed).
+## Pass 102 (lane STEADY): in play it is the game's own clock (play_clock: the frames' deltas), no longer the wall clock,
+## so when the world slows under load (the capped catch-up) these rules slow with it.
 func rule_seconds() -> float:
-	return buff_clock() if (sim_clock or sim_mode) else Time.get_ticks_msec() * 0.001
+	return buff_clock() if (sim_clock or sim_mode) else play_clock
 
 
 ## The rebuild throttle's clock (DESPERADO_REBUILD_MS) in milliseconds: rule_seconds' clock.
 func _rebuild_clock_ms() -> int:
-	return int(buff_clock() * 1000.0) if (sim_clock or sim_mode) else Time.get_ticks_msec()
+	return int(buff_clock() * 1000.0) if (sim_clock or sim_mode) else int(play_clock * 1000.0)
+
+
+## Pass 102 (lane STEADY): play_clock advances by the frame's delta (the autoload pauses with the tree).
+func _process(delta: float) -> void:
+	play_clock += delta
 
 
 ## Seconds left of a timed buff by its id (pass 47: Barrel Rush's boost for the HUD), 0 when there is none.

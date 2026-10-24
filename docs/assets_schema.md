@@ -2957,3 +2957,102 @@ No new JSON keys: the content JSON (the Level Editor's authoring format) is unch
 - New helpers: `EnemyDef/CharacterDef.strip_path()` (the path drawn, without loading), `look_strip_path(code)` (a look's
   strip path without a copy), `JsonContent.strip_of(dir, file)` (path when the file exists, else "").
 - `LookArt.KEEP_MB` = 160: unpinned strips kept after their last ask (MB at 4 bytes a pixel).
+
+## Pass 102: new keys
+
+### No catch-up spiral, and the timings that show heat (lane STEADY)
+
+#### The cap (game/game/Game.gd)
+- `Game.CATCH_UP_STEPS` = 2: Game._ready sets `Engine.max_physics_steps_per_frame` to it, Game._exit_tree puts the
+  project's value back (Godot's default 8; project.godot unchanged), so only play is capped and the title/menus keep
+  real time. Godot cuts a capped frame's process delta by the steps it dropped (measured in 4.7), so every `_process`
+  slows with the world. `--fixed-fps` skips the cap (the sim, the Watch, perf probes are unaffected).
+
+#### Run (core/autoload/Run.gd)
+- `Run.play_clock` (float, seconds, starts 0 at launch, never reset): the frames' deltas summed in Run._process (pauses
+  with the tree). `Run.rule_seconds()` / `_rebuild_clock_ms()` read it in play (were `Time.get_ticks_msec()`); a run sim
+  still reads `buff_clock()`.
+
+#### WorkClock (core/systems/WorkClock.gd, new; a RunAnalytics child)
+- `EDGE` = 1 << 30 (marker priorities), `steps_cap` (int, Engine.max_physics_steps_per_frame at start), `count_lost`
+  (bool, frame_timing.valid), `ticked_frame`, `frames_total`, `steps_total`, `lost_total`; `tick_frame()`,
+  `add_frame(wall_us, steps, phys_us, phys_step_max, proc_us, delta)`, `put_second(row)`.
+
+#### Run record, schema 4 (core/systems/RunAnalytics.gd; analytics/SCHEMA.md)
+Row (absent when the second had no counted frame):
+- `steps` int: world steps run in the second; `steps_max` int: most in one frame (<= max_steps)
+- `phys_ms` float 0.01: a world step's mean ms; `phys_max` float 0.1: the slowest step
+- `proc_ms` float 0.01: the frame's process callbacks, mean ms; `proc_max` float 0.1: slowest
+- `rest_ms` float 0.1: the rest of the frame (drawing, GPU/screen wait, vsync idle), mean ms
+- `lost_ms` int: world time the cap dropped this second (absent at 0; never when frame_timing.valid is false)
+Header:
+- `frame_timing.max_steps` int (2)
+- `work` {frames, steps, lost_s} (end; absent without a counted frame)
+- `heat` {band 50, bucket_s 60, minutes, frame_ms: {band floor: [per minute mean or null]}, work_ms: {...}} (end;
+  absent without schema 4 rows); in INDEX_SKIP (RunAnalytics and tools/analytics_csv.py)
+- consts `HEAT_BAND` = 50, `HEAT_MIN_SECS` = 5; static `work_summary(rows, bucket_s, n)`, `heat_table(rows, bucket_s)`
+PostHog run_summary (summary()): `m_phys_ms`, `m_proc_ms`, `m_rest_ms`, `m_work_ms`, `m_steps`, `m_steps_max`,
+`m_lost_s`, `heat_band`, `heat_frame_ms`, `heat_work_ms` (only from schema 4 rows).
+
+#### Readers
+- analytics/dashboard.html: prep() reads the row keys (S.steps, stepsMax, stepsPerFrame, physMs, physMax, physFrame,
+  procMs, procMax, restMs, workMs, lostMs, hasWork); renderWork() inside the Frame time card (ms a frame: world update,
+  process, rest; world steps: steps a frame, most in one frame, world speed = 1000/(1000+lost_ms)); the heat table from
+  run.heat; csv-lib BASE gains the 8 keys after `pickups` (EMPTY_WHEN_MISSING all but lost_ms).
+- tools/analytics_csv.py: the same BASE/EMPTY_WHEN_MISSING, INDEX_SKIP + "heat".
+- tools/level_editor/sim_avg.js: `workSeries(rows)` (exported) -> world_ms, proc_ms, rest_ms, work_ms, steps_frame,
+  world_speed (one value a row, carried over frameless seconds); sim_model.js charts `frame_work` ("What a frame cost")
+  and `world_speed` ("World speed and steps") in Performance.
+
+#### Tools
+- game/tools/steady_check.gd -- phases=free,30,over[,spiral] hold=12 out=<dir> (exit 0 pass, 1 fail, 2 watchdog)
+- game/tools/_p102_PHONE_repro.gd gains busy_tick=<ms>, busy_frame=<ms>, steps=<n>; rows gain cap, busy_tick,
+  busy_frame, steps_mean, steps_max, world_speed.
+
+### Cheaper hits in a huge crowd: damage numbers, fire and poison, the hit sound (lane HITS)
+
+No JSON keys. Code constants and tool switches only:
+
+| where | name | type | default | meaning |
+|---|---|---|---|---|
+| ui/DamageNumbers.gd | CROWD | const int | 40 | numbers in the air from which the screen counts as full |
+| ui/DamageNumbers.gd | TICK_CAP_CROWD | const int | 12 | fire/poison tick numbers with nothing to join allowed once full |
+| ui/DamageNumbers.gd | BIG_SHARE | const float | 1.0 | a new plain hit must reach this share of the mean creature hit in the air once full |
+| ui/DamageNumbers.gd | crowd_from | static var int | CROWD | where full starts (a probe sets 1<<30 for pass 101's rule) |
+| ui/DamageNumbers.gd | prof | static var bool | false | Perf keys numbers.add / numbers.step / numbers.draw |
+| ui/DamageNumbers.gd | crowd_merged, crowd_dropped | var int | 0 | hits joined / let go because the screen was full |
+| core/systems/EnemyManager.gd | HIT_SOUND_GAP_MS | const int | 120 | ms between two non-killing hit sounds of one sound id |
+| core/systems/EnemyManager.gd | FIRE_PUFF | const float | 0.18 | s between two flames of one burning creature (the old literal) |
+| core/systems/EnemyManager.gd | FIRE_FX_FULL | const int | 80 | drawn burning creatures that get flames at FIRE_PUFF; more stretch it |
+| core/systems/EnemyManager.gd | hit_sound_gap_ms, fire_fx_full | static var int | the consts | 0 = pass 101's behaviour (probe `hits=old`) |
+| core/systems/EnemyManager.gd | prof_hits | static var bool | false | Perf keys hits.fire / hits.poison / hits.sound / hits.fx |
+| core/systems/EnemyManager.gd | hit_sounds, hit_sounds_gated, fire_fx_drawn, fire_fx_skipped | var int | 0 | counters for tests and the probe |
+| core/systems/EnemyManager.gd | fire_puff_every() | func -> float | | the flames' gap now |
+| game/tools/_p102_PHONE_repro.gd | prof=1, hits=old | args | | the timings above; pass 101's rules |
+| core/systems/StatSheet.gd | version | var int | 0 | +1 on set_base, set_bases, add_effect, remove_source, clear_effects (readers that keep a value re-read when it moved) |
+| core/systems/EnemyManager.gd | _hit_stats() | func | | crit_chance, crit_damage, execute_frac kept per (sheet, version, physics tick) for damage() |
+| core/systems/EnemyManager.gd | status_clocks_now(i) | func | | pays creature i's owed burn/poison clock ticks (call before reading a source's "t") |
+
+### The Level Editor: the cap in load and bodies, the composition swatches, saves that never hang (lane LE)
+
+server.py
+- `SAVE_LOCK_WAIT` (int seconds, 8): how long a map Save waits for the Godot lock before it queues (or joins) an
+  `import` job. `LOCK_WAIT` (120) is unchanged for every other import (asset saves, looks, creates).
+- `run_import_info(target, who, wait)` -> {ok True|False|None, output, job (id|None), joined (bool), lock ({who, age_s}|None)}.
+  `run_import(target, who)` keeps its (ok, tail) answer and LOCK_WAIT.
+- `_queued_import(targets)`: a queued (not started) import job covering the targets, which a Save joins.
+- POST /api/map/<id> answer gains (additive): `import_job` (the queued/joined import job id or null), `import_joined`
+  (bool), `lock` ({who, age_s} of the holder when it was busy, else null). `import_ok`, `output`, `wrote`, `backup` as before.
+
+app.js (App API additions): `capRawAt(t)` (the cap the curve asks for before cap_max), `capCut()` ({raw, max, cut}),
+`CREATURE_COLORS` (the page's creature palette). Page-only: `saveOutcome(res, when)`, `importJobLine(job, base, lk, now)`,
+`fmtAge(s)`, `watchImport(jobId, base, token, lk)`, `SAVE_TIMEOUT_MS` (180000).
+
+timeline_model.js (TimelineModel additions): `effectiveLimit(cap, load, bodies, hard, defShare)` -> {cap, per, capBodies,
+hard, limit, binds 'cap'|'hard'}; `capBinding(limits, windows)` -> per window {i, a, b, n, capSecs, hardSecs, never,
+minCapBodies, per, hard, capToBind}; `compColor(id, shown, colorOf, folded)`; `compPalette(shown, colorOf, palette)`;
+`OTHER_COLOR` ('#5a5955'); RECIPES.onscreen gains a `limit` line.
+
+New rules (editor only, for BALANCING.md if the lead wants them there): a check warning when `cap_max` is under the cap
+curve ("those points change nothing"); a Timeline warning "cap never binds" for a stage where the hard cap is lower at
+every second of the estimate, with the cap under which it starts to count (hard_cap x the stage's median load a body).

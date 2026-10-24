@@ -21,6 +21,14 @@ var _giant_slams := 0
 var _ring_r0 := -1.0   # pass 48: the ring's radius and the play clock 3 s into the fight, to time its closing
 var _ring_t0 := 0.0
 var _play_t := 0.0     # seconds the game ran unpaused (the ring closes only then)
+# pass 102 (lane STEADY): bounded. A run whose game came up without its enemy manager or director (a script that failed
+# to compile: another lane's half-saved EnemyManager.gd once looped this check for 90 minutes on SCRIPT ERRORs while it
+# held the Godot lock) stops after BROKEN_MAX frames, and any run stops at WALL_MAX_MS of wall time.
+const WALL_MAX_MS := 900000
+const BROKEN_MAX := 60
+var _wall0 := 0
+var _broken := 0
+var _done := false
 
 
 func _init() -> void:
@@ -31,6 +39,7 @@ func _init() -> void:
 
 
 func _start() -> void:
+	_wall0 = Time.get_ticks_msec()
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": "guitarra", "level": 4, "character": "calavera", "map": "red_canyon", "stage": 3}))
 	f.close()
@@ -45,6 +54,16 @@ func _start() -> void:
 
 
 func _tick() -> void:
+	if _done:
+		return
+	if Time.get_ticks_msec() - _wall0 > WALL_MAX_MS:
+		_finish("watchdog: %d s of wall time" % (WALL_MAX_MS / 1000))
+		return
+	if _game != null and is_instance_valid(_game) and (_game.get("enemies") == null or _game.get("director") == null):
+		_broken += 1
+		if _broken >= BROKEN_MAX:
+			_finish("the game has no enemy manager or director after %d frames (a script failed to compile?)" % _broken)
+		return
 	var dt: float = root.get_process_delta_time()
 	_t += dt
 	if _game != null and is_instance_valid(_game) and not _game.paused:
@@ -229,6 +248,9 @@ func _hell_ids() -> Array:
 
 
 func _finish(why: String) -> void:
+	if _done:
+		return
+	_done = true
 	var want: Array = _hell_ids() + ["hammer_giant", "hell_tint", "rumble", "giant_windup", "ring", "ring_rate", "brand_lines", "ring_gone", "endless", "portal_countdown"]
 	var missing: Array = []
 	for k in want:

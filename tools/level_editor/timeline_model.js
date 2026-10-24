@@ -254,6 +254,65 @@ const TimelineModel = (() => {
     return per > 1e-6 ? cap / per : cap;
   }
 
+  // pass 103 (lane LE; Garry: "I specify the cap to be something (mostly just 500 all the way through) and then the `cap
+  // in bodies` line ... gives me a different set of numbers that don't match. Which is the correct one?"): both, in
+  // different units. The cap counts LOAD (each creature its cap_share: a goblin 0.5, the Hammer Giant 2.5), the hard cap
+  // counts BODIES, and the crowd is held under the lower of the two: the effective limit, drawn on the On screen lane.
+  /** The crowd's limit at one second. `cap` in load units, `load`/`bodies` the regular crowd then, `hard` the map's
+   *  hard_cap in bodies (none = Infinity). {cap, per (load a body at the mix), capBodies, hard, limit (bodies), binds
+   *  'cap' | 'hard'}: a tie is the cap's. */
+  function effectiveLimit(cap, load, bodies, hard, defShare) {
+    const per = bodies > 1e-6 ? load / bodies : Math.max(num(defShare, 1), 0.05);
+    const cb = capBodies(num(cap, 0), load, bodies, defShare);
+    const h = num(hard, 0) > 0 ? num(hard, 0) : Infinity;
+    return { cap: num(cap, 0), per, capBodies: cb, hard: h, limit: Math.min(cb, h), binds: cb <= h ? 'cap' : 'hard' };
+  }
+
+  /** Whether the cap ever binds, per window. `limits` [{t, binds, capBodies, hard, per, alive}] (one a second of the
+   *  estimate), `windows` [{i, a, b}] (run seconds, a stage each). Per window: {i, a, b, n, capSecs, hardSecs, never (the
+   *  cap binds at no second), minCapBodies (the fewest bodies the cap held), per (the median load a body while anyone
+   *  is alive, else 1), capToBind (the cap in load units under which it starts to count: hard × per, rounded down)}. */
+  function capBinding(limits, windows) {
+    return (windows || []).map((w) => {
+      let n = 0, capSecs = 0, hardSecs = 0, minCb = Infinity, hard = Infinity;
+      const pers = [];
+      for (const L of limits || []) {
+        if (!(L.t >= w.a && L.t < w.b)) continue;
+        n++;
+        if (L.binds === 'cap') capSecs++; else hardSecs++;
+        if (L.capBodies < minCb) minCb = L.capBodies;
+        if (isFinite(L.hard)) hard = Math.min(hard, L.hard);
+        if (num(L.alive, 0) >= 1) pers.push(L.per);
+      }
+      pers.sort((p, q) => p - q);
+      const per = pers.length ? pers[Math.floor(pers.length / 2)] : 1;
+      return { i: w.i, a: w.a, b: w.b, n, capSecs, hardSecs, never: n > 0 && capSecs === 0, minCapBodies: minCb, per,
+        hard, capToBind: isFinite(hard) ? Math.floor(hard * per) : null };
+    });
+  }
+
+  /** The Composition lane's colour of a creature: its own (`colorOf`, App.creatureColor) when it is one of the lane's
+   *  layers (`shown`, the ten largest over the view), the "every other creature" grey when the lane folds it into others. */
+  const OTHER_COLOR = '#5a5955';
+  /** The Composition lane's layers' colours, all different: each creature keeps its own (`colorOf`) unless an earlier
+   *  (larger) layer already has that colour; then it takes the first `palette` colour no layer uses yet (the page's
+   *  creature colours repeat after 16 creatures, so two layers could share one). {id: colour}. */
+  function compPalette(shown, colorOf, palette) {
+    const out = {}, used = new Set();
+    for (const id of shown || []) {
+      let c = colorOf(id);
+      if (used.has(c)) c = (palette || []).find((p) => !used.has(p) && p !== OTHER_COLOR) || c;
+      out[id] = c;
+      used.add(c);
+    }
+    return out;
+  }
+  function compColor(id, shown, colorOf, folded) {
+    if (id === '__other') return OTHER_COLOR;
+    if (shown && folded && !shown.includes(id)) return OTHER_COLOR;
+    return colorOf(id);
+  }
+
   /** Seconds where the regular channel's load sits at the cap: load ≥ cap × FULL_AT (the estimate refills every spawn
    *  check, so a full cap reads a hair under it). */
   const FULL_AT = 0.97;
@@ -403,6 +462,7 @@ const TimelineModel = (() => {
         ['estimate', 'the Spawned so far estimate\'s crowd: it plays the director\'s rules second by second (the cap, the weights, the spawn checks, the waves, every row\'s schedule) and assumes the hero kills the kill rate\'s share of the living crowd each second (the box in Ruler and controls).'],
         ['Sim', 'the run sim\'s real alive count (the average of its runs at each run second), dashed, when the map has a finished Sim (Ruler and controls picks which).'],
         ['cap', 'the map\'s cap curve turned into bodies: the cap counts load units (a creature counts its cap_share: the skeleton 0.5, so 100 of cap holds 200 skeletons), so the line is cap ÷ the average load per body alive then.'],
+        ['limit', 'pass 103: the line drawn is the effective limit in bodies, the lower of the cap at the crowd\'s mix (above) and the hard cap (hard_cap, a count of bodies whatever their share). Where the hard cap is lower it is what holds the crowd and the cap curve changes nothing there (the Warnings say so); the hover names the one that binds.'],
         ['floor', 'the floor curve (floor_curve): the least creatures alive the director keeps on the regular channel; while fewer are alive it draws the continuous rows at once (within the cap).'],
         ['red', 'seconds where the regular channel\'s load is at the cap (97% of it or more): the director has no room, and rows that wanted to spawn starve. Hover a red stretch for the rows.'],
       ],
@@ -441,7 +501,7 @@ const TimelineModel = (() => {
     ROLES, ROLE_IDS, roleOf, roleInfo, roleColor, suggestRole,
     paceOf, everyRange, quantityText,
     turnoverAt, aliveSeries, indexAt, compositionAt, spawnedBetween,
-    loadAt, capBodies, FULL_AT, STARVE_S, STARVE_SHARE, starvingAt,
+    loadAt, capBodies, effectiveLimit, capBinding, compColor, compPalette, OTHER_COLOR, FULL_AT, STARVE_S, STARVE_SHARE, starvingAt,
     ZONES, BAR_ZONES, zoneOf, typicalPower, typicalHero, crowdAt,
     overlappingTwins, floorOverCap, biggestJump, RECIPES,
   };

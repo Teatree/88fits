@@ -314,6 +314,24 @@ const App = (() => {
     return Math.max(0, Math.min(Math.floor(base), mx));
   }
 
+  /** Pass 103 (lane LE): the cap the curve asks for at t before cap_max cuts it (the curve plus cap_per_stage). */
+  function capRawAt(t) {
+    return Math.max(0, Math.floor(curveAt(t) + (Number(tl().cap_per_stage) || 0) * stageAt(t)));
+  }
+
+  /** Pass 103 (lane LE): the highest the cap curve asks for over the run (control points and the stage steps), and
+   *  cap_max: {raw, max (Infinity when none), cut (true when cap_max is under the curve somewhere)}. */
+  function capCut() {
+    const d = tl();
+    const mx = d.cap_max == null || d.cap_max === '' ? Infinity : Number(d.cap_max);
+    let raw = 0;
+    const end = runEnd();
+    const ts = [0, end].concat((d.cap_curve || []).filter((p) => Array.isArray(p)).map((p) => Math.min(Number(p[0]) || 0, end)));
+    for (const w of stageList()) ts.push(w.start, Math.max(w.start, w.end - 1e-3));
+    for (const t of ts) raw = Math.max(raw, capRawAt(t));
+    return { raw, max: mx, cut: isFinite(mx) && raw > mx };
+  }
+
   function hellCapAt(t) {
     const hc = tl().hell_cap || [];
     if (!hc.length) return 0;
@@ -993,6 +1011,9 @@ const App = (() => {
     if (!inOrder(cc.filter(isPair))) mark('cap', 'warn', 'the cap curve is not in time order (Save sorts it)');
     if (cc.some((p) => !isPair(p))) mark('cap', 'error', 'a cap point is not [seconds, cap]');
     if (d.hard_cap != null && d.cap_max != null && Number(d.hard_cap) < Number(d.cap_max)) mark('cap', 'warn', `hard_cap (${d.hard_cap}) is under cap_max (${d.cap_max}): the hard cap wins`);
+    // pass 103 (lane LE; Garry's 500 against the On screen lane's numbers): cap_max cuts the curve, so a point above it
+    // changes nothing
+    { const cc = capCut(); if (cc.cut) mark('cap', 'warn', `cap_max (${cc.max}) is under your cap curve (it asks for up to ${cc.raw}): the cap is ${cc.max} load wherever the curve is above it, so those points change nothing (raise cap_max in the Cap panel, or lower the points)`); }
     // pass 84: the floor curve (the least creatures alive)
     if (d.floor_curve != null) {
       const fc = d.floor_curve;
@@ -1063,22 +1084,111 @@ const App = (() => {
     }
     if (!dirty()) { status('Nothing to save'); return; }
     { const before = snapshot(); if (tidy(S.tl)) pushHistory(before); }
+    // pass 103 (lane LE; Garry: "Stage 2 save is not working, it's just saying `Saving and importing...` and nothing is
+    // happening"): the server waited up to two silent minutes for the Godot lock. Now the line counts the seconds, the
+    // server queues the import after a short wait and says who holds the lock, the page follows that job to its end,
+    // and whatever happens the line ends in saved / saved + import queued (the job) / failed with the reason.
     S.saving = true;
-    status('Saving and importing…', 'busy');
-    updateTopBar();
+    const token = ++saveSeq;
+    importWatch = null;
+    const t0 = Date.now();
+    const busyText = () => `Saving and importing… ${Math.round((Date.now() - t0) / 1000)} s (the import waits for the Godot lock first)`;
+    status(busyText(), 'busy');
+    const tick = setInterval(() => { if (S.saving && saveSeq === token) status(busyText(), 'busy'); }, 1000);
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const limit = setTimeout(() => { if (ctl) ctl.abort(); }, SAVE_TIMEOUT_MS);
     try {
-      const r = await fetch('/api/map/' + S.mapId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(S.map) });
-      const res = await r.json();
+      updateTopBar();
+      const r = await fetch('/api/map/' + S.mapId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(S.map), signal: ctl ? ctl.signal : undefined });
+      let res;
+      try { res = await r.json(); } catch (_) { throw new Error(`HTTP ${r.status}: the server's answer was not JSON`); }
       if (!res.ok) throw new Error(res.error || `HTTP ${r.status}`);
       S.saved = JSON.stringify(S.map);
-      const when = new Date().toLocaleTimeString();
-      if (res.import_ok) status(`Saved ${res.wrote} at ${when} · import OK · backup ${res.backup.split('/').pop()}`, 'good', res.output);
-      else status(`Saved ${res.wrote} at ${when} · IMPORT FAILED (the game still plays the old .tres)`, 'bad', res.output);
+      const o = saveOutcome(res, new Date().toLocaleTimeString());
+      status(o.text, o.kind, res.output);
+      if (o.watch) watchImport(o.watch, o.text, token, res.lock ? { who: res.lock.who, age_s: Number(res.lock.age_s) || 0, at: Date.now() } : null);
     } catch (e) {
-      status('Save failed: ' + e.message, 'bad');
+      const aborted = e && (e.name === 'AbortError' || /abort/i.test(String(e.message)));
+      status(aborted ? `Save: no answer from the server in ${Math.round(SAVE_TIMEOUT_MS / 1000)} s; the file may be written (Revert shows what is on disk after a reload), the import did not report` : 'Save failed: ' + (e && e.message ? e.message : e), 'bad');
+    } finally {
+      clearInterval(tick);
+      clearTimeout(limit);
+      S.saving = false;
+      try { render('all'); } catch (e) { console.error('render after save', e); }
     }
-    S.saving = false;
-    render('all');
+  }
+
+  // pass 103 (lane LE): the server answers within SAVE_LOCK_WAIT (8 s) + the import (IMPORT_TIMEOUT, 120 s): past this the
+  // page stops waiting and says so
+  const SAVE_TIMEOUT_MS = 180000;
+  let saveSeq = 0, importWatch = null;
+
+  /** Pass 103 (lane LE): the status line for a map Save's answer: {text, kind, watch (the import job to follow)}. Pure. */
+  function saveOutcome(res, when) {
+    const where = `Saved ${res.wrote} at ${when}`;
+    if (res.import_ok) return { text: `${where} · import OK · backup ${String(res.backup || '').split('/').pop()}`, kind: 'good' };
+    if (res.import_ok === null || res.import_ok === undefined) {
+      const lk = res.lock || null;
+      const held = lk ? `the Godot lock is held by ${lk.who} for ${fmtAge(lk.age_s)}` : 'the Godot lock is busy';
+      if (res.import_job) {
+        return { text: `${where} · import ${res.import_joined ? 'joins the queued job' : 'queued as job'} ${res.import_job}: ${held}; it runs when the lock frees (the game plays the old .tres until then)`, kind: 'busy', watch: res.import_job };
+      }
+      return { text: `${where} · NOT IMPORTED: ${held} and no import job could be queued (${res.output || 'no reason given'}); the game plays the old .tres`, kind: 'bad' };
+    }
+    return { text: `${where} · IMPORT FAILED (the game still plays the old .tres): ${String(res.output || '').split('\n').filter(Boolean).slice(-1)[0] || 'no output'}`, kind: 'bad' };
+  }
+
+  /** Seconds as the status line says them: "45 s", "12 min", "1 h 21 min". */
+  function fmtAge(s) {
+    const v = Math.max(0, Math.round(Number(s) || 0));
+    if (v < 120) return `${v} s`;
+    if (v < 3600) return `${Math.round(v / 60)} min`;
+    return `${Math.floor(v / 3600)} h ${Math.round((v % 3600) / 60)} min`;
+  }
+
+  /** Pass 103 (lane LE): what the status line says about a queued import job: {done, text, kind}. `job` the record from
+   *  GET /api/job/<id> (a merged one: done with merged_into, followed by the caller). Pure. */
+  function importJobLine(job, base, lk, now) {
+    const st = job ? String(job.state || '') : 'gone';
+    const id = job ? job.id : '?';
+    if (st === 'done') return { done: true, text: `${base.split(' · import ')[0]} · import OK (job ${id} ran)`, kind: 'good' };
+    if (st === 'failed' || st === 'interrupted') return { done: true, text: `${base.split(' · import ')[0]} · IMPORT FAILED in job ${id}: ${job.error || st} (the game still plays the old .tres; the Jobs tab has its log)`, kind: 'bad' };
+    if (st === 'cancelled') return { done: true, text: `${base.split(' · import ')[0]} · the import job ${id} was cancelled: NOT IMPORTED (the game plays the old .tres; Save again to queue it)`, kind: 'bad' };
+    if (st === 'gone') return { done: true, text: `${base.split(' · import ')[0]} · the import job is no longer in the queue (look at the Jobs tab)`, kind: 'bad' };
+    const lw = job.lock_waits && typeof job.lock_waits === 'object' ? Object.entries(job.lock_waits)[0] : null;
+    // the holder as the job names it; how long the lock has been held when the Save's answer named the same holder
+    const age = lk && lw && String(lw[1]).startsWith(String(lk.who)) ? ` for ${fmtAge(lk.age_s + Math.max(0, ((now || Date.now()) - lk.at) / 1000))}` : '';
+    const wait = lw ? `waiting for the ${lw[0] === 'godot' ? 'Godot' : lw[0]} lock, held by ${lw[1]}${age}` : st === 'running' ? 'importing now' : 'queued behind other jobs in the Godot lane';
+    return { done: false, text: `${base.split(' · import ')[0]} · import job ${id}: ${wait}; the game plays the old .tres until it has run`, kind: 'busy' };
+  }
+
+  /** Pass 103 (lane LE): follow a queued import job every 3 s until it has run (a merged job is followed into the one it
+   *  joined); the status line is updated while it still shows ours, else the end comes as a toast. A new Save stops it. */
+  function watchImport(jobId, base, token, lk) {
+    let id = jobId, mine = base, misses = 0;
+    importWatch = { id, token };
+    const step = async () => {
+      if (saveSeq !== token || !importWatch || importWatch.token !== token) return;
+      let job = null;
+      try {
+        const r = await fetch('/api/job/' + encodeURIComponent(id));
+        if (r.ok) job = await r.json();
+        else if (r.status !== 404) throw new Error(`HTTP ${r.status}`);
+        misses = 0;
+      } catch (_) {
+        if (++misses < 20) { setTimeout(step, 3000); return; }
+      }
+      if (saveSeq !== token) return;
+      const rec = job && job.job ? job.job : job;
+      if (rec && rec.state === 'done' && rec.merged_into && rec.merged_into !== id) { id = rec.merged_into; importWatch.id = id; setTimeout(step, 500); return; }
+      const line = importJobLine(rec && rec.id ? rec : null, base, lk);
+      const sEl = document.getElementById('status');
+      const ours = sEl && sEl.textContent === mine;
+      if (ours) { status(line.text, line.kind); mine = line.text; } else if (line.done) toast(line.text);
+      if (line.done) { importWatch = null; return; }
+      setTimeout(step, 3000);
+    };
+    setTimeout(step, 1500);
   }
 
   function revert() {
@@ -1189,7 +1299,7 @@ const App = (() => {
     // pass 87: in a stage tab the stage run's own clock comes first ("2:10 in stage 2 · 9:20 on the map")
     const vs = viewStage();
     const own = vs != null ? `${fmtT(Math.max(0, t - stageStart(vs)))} into stage ${vs + 1} · map ` : '';
-    c.textContent = `${own}${fmtT(t)} · ${stageName(stageAt(t))} · cap ${capAt(t)}${extra ? ' · ' + extra : ''}`;
+    c.textContent = `${own}${fmtT(t)} · ${stageName(stageAt(t))} · cap ${capAt(t)} load${extra ? ' · ' + extra : ''}`;
   }
 
   // ------------------------------------------------------------------ toasts
@@ -1285,8 +1395,8 @@ const App = (() => {
   document.addEventListener('DOMContentLoaded', init);
 
   return {
-    S, init, loadMap, refreshCreatures, creature, creatureName, elite, pickup, variantOk, iconFor, playCode, creatureColor,
-    tl, stageLength, stages, runEnd, viewEnd, stageAt, stageName, stageMult, samplePoints, capAt, hellCapAt,
+    S, init, loadMap, refreshCreatures, creature, creatureName, elite, pickup, variantOk, iconFor, playCode, creatureColor, CREATURE_COLORS,
+    tl, stageLength, stages, runEnd, viewEnd, stageAt, stageName, stageMult, samplePoints, capAt, capRawAt, capCut, hellCapAt,
     // pass 87 (lane STOOLS): the stage windows and the stage tabs
     stageList, stageStart, stageEnd, stageLen, stageWindow, viewStage, viewStart, setStageView, portalSeconds,
     hpTimeMult, dmgTimeMult, hpMultAt, dmgMultAt, creatureAt, rowNumbers, eventNumbers, sourceName, actual, actualAt, knockbackOf, rowWeight, rosterAt, waveEnd, wavesAt, nextEvent,

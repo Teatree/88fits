@@ -111,8 +111,24 @@ const HERO_UP := 1.35
 const HERO_SIDE := 84.0
 const HERO_WORD_OUT := 24.0
 const HERO_WORD_UP := 44.0
+## Pass 102 (lane HITS, Garry: "fewer damage numbers when the screen is full"): from CROWD numbers in the air the screen
+## counts as full. Then a hit on a creature that still has a number of its kind showing whole (younger than LIFE x HOLD)
+## adds to it, the running total popping (BUMP), in place of the MERGE window (a crit joining turns it a crit, yellow and
+## big, as within MERGE); a plain hit with no number to join is let go unless it is at least BIG_SHARE of the mean
+## creature hit in the air (only the biggest show), a crit or a mini crit with none to join always shows; a fire or poison tick
+## with no number to join is let go once TICK_CAP_CROWD ticks are up. A creature number that shows on a full screen
+## takes the oldest one's place, so the screen holds CROWD of them, not CAP (Garry: "show fewer once the cap is reached");
+## at CAP the oldest is reused for any new one (nothing allocated). The hero's numbers are never thinned.
+const CROWD := 40
+const TICK_CAP_CROWD := 12
+const BIG_SHARE := 1.0
 
 static var I: DamageNumbers = null
+## Pass 102 (lane HITS): a probe's switch: the time add(), step() and _draw() take goes to Perf as "numbers.add",
+## "numbers.step" and "numbers.draw".
+static var prof := false
+## Where the full screen starts (CROWD; a probe's before-and-after sets it past CAP to play the pass 101 rule).
+static var crowd_from := CROWD
 
 
 ## One number in the air.
@@ -146,6 +162,14 @@ var _headless := false
 var _dirty := false
 var _side := 1.0        # which way the next creature number leans (it alternates)
 var _ticks := 0         # fire and poison numbers in the air (TICK_CAP)
+## pass 102 (lane HITS): the newest number of each kind on each creature (and the hero), key _key(who, kind), so a merge
+## is one lookup instead of a walk down the list; the mean creature hit in the air (step() works it out), the bar a new
+## plain hit clears once the screen is full; what was let go and joined for it (tools read them)
+var _newest: Dictionary = {}
+var _big_floor := 0.0
+var crowd_dropped := 0
+var crowd_merged := 0
+var _us_add := 0
 
 
 func _init() -> void:
@@ -182,16 +206,39 @@ func enabled() -> bool:
 func add(i: int, at: Vector3, amount: float, crit: bool = false, green: bool = false, hot: bool = false, mini: bool = false) -> void:
 	if amount <= 0.0 or not enabled():
 		return
+	if prof:
+		var t0 := Time.get_ticks_usec()
+		_add(i, at, amount, crit, green, hot, mini)
+		_us_add += Time.get_ticks_usec() - t0
+		return
+	_add(i, at, amount, crit, green, hot, mini)
+
+
+func _add(i: int, at: Vector3, amount: float, crit: bool, green: bool, hot: bool, mini: bool) -> void:
 	var is_mini := mini and not crit
 	var kind := KIND_HOT if hot else (KIND_GREEN if green else KIND_HIT)
-	if i >= 0 and _merge(i, kind, amount, MERGE, crit, is_mini):
-		return
+	# pass 102 (lane HITS): a full screen joins a creature's number while it shows whole, and lets the small hits go
+	var crowded := _live.size() >= crowd_from
+	if i >= 0:
+		var win := LIFE * HOLD if crowded else MERGE
+		if _merge(i, kind, amount, win, crit, is_mini):
+			if win > MERGE:
+				crowd_merged += 1
+			return
+	if crowded:
+		if kind != KIND_HIT:
+			if _ticks >= TICK_CAP_CROWD:
+				crowd_dropped += 1
+				return
+		elif not crit and not is_mini and amount < _big_floor * BIG_SHARE:
+			crowd_dropped += 1
+			return
 	if kind != KIND_HIT and _ticks >= TICK_CAP:
 		return
 	var cam := _camera()
 	if cam and not _on_screen(cam, at):
 		return
-	var n := Num.new()
+	var n := _fresh(crowd_from if crowded else CAP)
 	n.who = i
 	n.kind = kind
 	n.at = at
@@ -246,7 +293,7 @@ func _hero(kind: int, amount: float, window: float) -> void:
 		return
 	if _merge(HERO, kind, amount, window, false, false):
 		return
-	var n := Num.new()
+	var n := _fresh()
 	n.who = HERO
 	n.kind = kind
 	n.at = _hero_world()
@@ -261,27 +308,52 @@ func _hero(kind: int, amount: float, window: float) -> void:
 ## Adds `amount` to the newest number of `kind` on `who` born within `window`; false when there is none. A crit joining
 ## a number makes it a crit; a mini crit joining a plain one makes it a mini crit.
 func _merge(who: int, kind: int, amount: float, window: float, crit: bool, mini: bool = false) -> bool:
-	# newest first: past the window every older number is older still
-	for k in range(_live.size() - 1, -1, -1):
-		var m: Num = _live[k]
-		if m.age >= window:
-			return false
-		if m.who == who and m.kind == kind:
-			m.amount += amount
-			if crit and kind == KIND_HIT:
-				m.crit = true
-				m.mini = false
-			elif mini and kind == KIND_HIT and not m.crit:
-				m.mini = true
-			m.text = ""
-			m.bump = 1.0
-			_dirty = true
-			return true
-	return false
+	# the newest of its kind on it (pass 102: one lookup; the walk down the list found the same one): every older one is
+	# older still
+	var found = _newest.get(_key(who, kind))
+	if found == null:
+		return false
+	var m: Num = found
+	if m.age >= window:
+		return false
+	m.amount += amount
+	if crit and kind == KIND_HIT:
+		m.crit = true
+		m.mini = false
+	elif mini and kind == KIND_HIT and not m.crit:
+		m.mini = true
+	m.text = ""
+	m.bump = 1.0
+	_dirty = true
+	return true
+
+
+## The `_newest` key of kind `kind` on `who` (a creature's index, or HERO).
+static func _key(who: int, kind: int) -> int:
+	return (who + 4) * 8 + kind
+
+
+## A number to fill in (pass 102): the oldest one, let go and reused, when `limit` (CAP; a full screen's creature numbers
+## CROWD) are in the air, else a new one.
+func _fresh(limit: int = CAP) -> Num:
+	if _live.size() < mini(limit, CAP):
+		return Num.new()
+	var n: Num = _drop_oldest()
+	n.age = 0.0
+	n.crit = false
+	n.mini = false
+	n.tilt = 0.0
+	n.bump = 0.0
+	n.nudge = Vector2.ZERO
+	n.drift = 0.0
+	n.text = ""
+	n.width = 0.0
+	return n
 
 
 func _push(n: Num) -> void:
 	_live.append(n)
+	_newest[_key(n.who, n.kind)] = n
 	if _is_tick(n):
 		_ticks += 1
 	if _live.size() > CAP:
@@ -289,10 +361,14 @@ func _push(n: Num) -> void:
 	_dirty = true
 
 
-func _drop_oldest() -> void:
+func _drop_oldest() -> Num:
 	var gone: Num = _live.pop_front()
 	if _is_tick(gone):
 		_ticks -= 1
+	var k := _key(gone.who, gone.kind)
+	if _newest.get(k) == gone:
+		_newest.erase(k)
+	return gone
 
 
 static func _is_tick(n: Num) -> bool:
@@ -310,6 +386,7 @@ func count() -> int:
 
 func clear() -> void:
 	_live.clear()
+	_newest.clear()
 	_ticks = 0
 	_dirty = true
 
@@ -415,10 +492,17 @@ static func alpha_at(age: float) -> float:
 
 ## Ages every number by `delta` seconds and lets the spent ones go (the tests call it in place of frames).
 func step(delta: float) -> void:
+	var sum := 0.0
+	var hits := 0
 	for n: Num in _live:
 		n.age += delta
 		if n.bump > 0.0:
 			n.bump = maxf(n.bump - delta * 6.0, 0.0)
+		if n.who >= 0 and n.kind == KIND_HIT:
+			sum += n.amount
+			hits += 1
+	# pass 102 (lane HITS): the mean creature hit in the air, the bar a new plain hit clears once the screen is full
+	_big_floor = sum / float(hits) if hits > 0 else 0.0
 	# born in order, one life for all, ageing together: the spent ones are at the front
 	while not _live.is_empty() and (_live[0] as Num).age >= LIFE:
 		_drop_oldest()
@@ -441,7 +525,15 @@ func _process(delta: float) -> void:
 		if not _live.is_empty():
 			clear()
 	elif not _frozen():
-		step(delta)
+		if prof:
+			var t0 := Time.get_ticks_usec()
+			step(delta)
+			Perf.add("numbers.step", t0)
+		else:
+			step(delta)
+	if prof:
+		Perf.add("numbers.add", Time.get_ticks_usec() - _us_add)
+		_us_add = 0
 	if _headless:
 		_dirty = false
 	elif _dirty or not _live.is_empty():
@@ -504,6 +596,15 @@ func _hero_anchor(cam: Camera3D) -> Vector2:
 func _draw() -> void:
 	if _live.is_empty():
 		return
+	if prof:
+		var t0 := Time.get_ticks_usec()
+		_draw_all()
+		Perf.add("numbers.draw", t0)
+		return
+	_draw_all()
+
+
+func _draw_all() -> void:
 	var cam := _camera()
 	if cam == null or _font == null:
 		return
@@ -555,14 +656,21 @@ func _draw() -> void:
 func _draw_set(items: Array) -> void:
 	if items.is_empty():
 		return
-	items.sort_custom(func(x, y): return size_of(x[0]) < size_of(y[0]))
+	# the numbers of one type size together (pass 102: an engine sort of size x 1024 + place in place of a script
+	# comparison for every pair; numbers of one size keep their order)
+	var order := PackedInt32Array()
+	order.resize(items.size())
+	for j in range(items.size()):
+		order[j] = size_of(items[j][0]) * 1024 + j
+	order.sort()
 	# the player's size setting (pass 47b: small, normal, large)
 	var k := 1.0
 	if _settings != null and _settings.has_method("float_scale"):
 		k = float(_settings.float_scale())
-	for it in items:
+	for o in order:
+		var it: Array = items[o & 1023]
 		var n: Num = it[0]
-		var px := size_of(n)
+		var px := o >> 10
 		var a: float = it[3]
 		var s: float = it[2] * k
 		draw_set_transform(it[1], n.tilt, Vector2(s, s))
@@ -570,9 +678,10 @@ func _draw_set(items: Array) -> void:
 		var ol := int(round(px * OUTLINE_FRAC))
 		draw_string_outline(_font, base + SHADOW, n.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, px, ol, Color(W.INK, a * SHADOW_ALPHA))
 		draw_string_outline(_font, base, n.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, px, ol, Color(W.INK, a))
-	for it in items:
+	for o in order:
+		var it: Array = items[o & 1023]
 		var n: Num = it[0]
-		var px := size_of(n)
+		var px := o >> 10
 		var s: float = it[2] * k
 		draw_set_transform(it[1], n.tilt, Vector2(s, s))
 		draw_string(_font, Vector2(-n.width * 0.5, px * 0.36), n.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, px, Color(colour_of(n), float(it[3])))

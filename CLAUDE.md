@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-23, pass 101, version 0.86)
+## Status (2026-10-24, pass 102, version 0.87)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.86). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.87). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -430,6 +430,12 @@ weapon queries); creatures not drawn steer every 4th tick (bosses, Elites, near 
 `Settings.frame_cap` (60 on phones, the developer menu's Frame rate row); run record schema 3 with frame times a
 second (`frame_timing`, the dashboard's Frame time card); looks load on demand (`sprite_path`, core/data/LookArt.gd
 cache, core/systems/RunLooks.gd pins a run's set under the spawn beam): boot 2.3 GB of pictures -> 121 MB, a run ~0.4 GB.
+Pass 102 (performance + Level Editor): a run caps the world's catch-up at `Game.CATCH_UP_STEPS` 2 a frame (an
+overloaded phone slows the whole game together instead of spiralling; menus keep 8); `Run.play_clock` for rule
+seconds; run record schema 4 (core/systems/WorkClock.gd: steps, phys/proc/rest ms a second, a per-minute heat table);
+damage numbers merge and thin past 40 on screen, fire/poison clocks lazy, flames thinned past 80 burning, hit sounds
+120 ms apart, crit stats cached (StatSheet.version); Level Editor: the cap shown as load with `cap_max`'s cut and the
+effective limit in bodies, composition swatches, map saves wait 8 s then follow their import job.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =
