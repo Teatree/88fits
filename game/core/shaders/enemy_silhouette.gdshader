@@ -12,7 +12,9 @@
 // props, structures, the portal, signs, barrels, the wall, the cliffs); a creature or the hero in front writes 1.
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_test_inverted, depth_draw_never, blend_mix;
-stencil_mode read, compare_equal, 2;
+// Pass 105 (lane LOOK): the scenery writes 4 and the structures and barrels 5 (SceneryStencil.VALUE, .STRUCTURE): drawn where
+// 4 <= the stencil (Godot compares the reference against the stored value), behind either.
+stencil_mode read, compare_less_or_equal, 4;
 
 uniform sampler2D sprite : source_color, filter_linear_mipmap, repeat_disable;
 uniform float frames = 8.0;

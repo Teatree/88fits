@@ -46,7 +46,8 @@ func test_red_canyon_opens_with_twenty_bodies_and_keeps_the_old_line_from_the_fi
 	# pass 54 and 56 (re-pinned): Garry draws the curve in the Level Editor (2026-10-07: seventeen points, rushes and
 	# drops), so the test checks the game plays the curve his map file holds instead of pinning his numbers
 	_check_curve(tl)
-	assert_int(tl.cap_max).is_equal(150)
+	# (pass 105 re-pin: cap_max is Garry's: 150 until 2026-10-24, then 500 so his curve counts; only that it is set)
+	assert_int(tl.cap_max).is_greater(0)
 
 func test_the_boss_fight_keeps_six_in_ten() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline

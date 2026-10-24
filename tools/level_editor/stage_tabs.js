@@ -11,6 +11,10 @@ const StageTabs = (() => {
   /** A colour the Stages menu's swatch shows for "no tint". */
   const SAND = '#cfae84';
   const ACTORS_DEF = 0.35;
+  /** Pass 105 (lane LOOK): the shares the game takes when the filter names none (StageLook STRUCTURES_DEFAULT,
+   *  ITEMS_DEFAULT). */
+  const STRUCTURES_DEF = 0.3;
+  const ITEMS_DEF = 0;
 
   // ------------------------------------------------------------------ the strip
 
@@ -221,6 +225,12 @@ const StageTabs = (() => {
     const f = StageModel.filterOf(e);
     const fe = U.isObj(e.filter) ? e.filter : {};
     let actors = fe.actors != null && isFinite(Number(fe.actors)) ? Number(fe.actors) : ACTORS_DEF;
+    // pass 105 (lane LOOK): the structures' and barrels' share, the weapons' models' share
+    const shares = {
+      structures: fe.structures != null && isFinite(Number(fe.structures)) ? Number(fe.structures) : STRUCTURES_DEF,
+      items: fe.items != null && isFinite(Number(fe.items)) ? Number(fe.items) : ITEMS_DEF,
+    };
+    const SHARE_DEF = { structures: STRUCTURES_DEF, items: ITEMS_DEF };
     const canvas = el('canvas', { class: 'stg-swatch', width: 260, height: 92 });
     const live = { color: f.color, strength: f.strength };
     const redraw = () => drawSwatch(canvas, live, actors, StageModel.bossOf(tl, i));
@@ -229,6 +239,9 @@ const StageTabs = (() => {
         StageModel.setField(d, i, 'filter', { color: live.color, strength: live.strength });
         const ee = d.stage_list.filter(U.isObj)[i];
         if (actors !== ACTORS_DEF || fe.actors != null) ee.filter.actors = Math.round(actors * 100) / 100;
+        for (const k of ['structures', 'items']) {
+          if (shares[k] !== SHARE_DEF[k] || fe[k] != null) ee.filter[k] = Math.round(shares[k] * 100) / 100;
+        }
         App.S.sel = { kind: 'stage', i };
       });
       if (what) App.toast(what, { undo: true, ms: 2000 });
@@ -252,6 +265,17 @@ const StageTabs = (() => {
     act.addEventListener('input', () => { actors = Number(act.value); aOut.textContent = `${Math.round(actors * 100)}%`; redraw(); });
     act.addEventListener('change', () => writeFilter());
     form.appendChild(fieldRow('On creatures', 'how much of the tint the creatures and the hero take (lane SLOOK\'s `actors`, 35% when unset): lower keeps them brighter than the world', el('span', { class: 'stg-range-box' }, act, aOut)));
+    // pass 105 (lane LOOK): the structures and barrels, the weapons' 3D models (the shots, the creatures' shots and the
+    // chests are never tinted)
+    const shareRow = (k, label, help) => {
+      const r = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: shares[k], 'data-path': `stage.filter.${k}`, class: 'stg-range' });
+      const o = el('span', { class: 'stg-range-out', text: `${Math.round(shares[k] * 100)}%` });
+      r.addEventListener('input', () => { shares[k] = Number(r.value); o.textContent = `${Math.round(shares[k] * 100)}%`; });
+      r.addEventListener('change', () => writeFilter());
+      form.appendChild(fieldRow(label, help, el('span', { class: 'stg-range-box' }, r, o)));
+    };
+    shareRow('structures', 'On structures', 'how much of the tint the structures, the portal and the barrels take (`structures`, 30% when unset): lower keeps them brighter than the ground');
+    shareRow('items', 'On weapons\' models', 'how much of the tint the weapons\' own 3D models take: held guns, companions, orbiters, mines, the turret (`items`, 0% when unset: untinted). The shots, the creatures\' shots and the chests are never tinted');
     form.appendChild(el('div', { class: 'frow' }, el('div', { class: 'flabel', text: 'Preview' }), el('div', { class: 'fctl' }, canvas, el('div', { class: 'muted small', text: 'the map\'s sand, rock and wall colours and the boss: daylight above, this stage below (a red ring stays untinted). The game\'s pictures: lane SLOOK\'s stage_shots.gd.' }))));
     form.appendChild(fieldRow('Hell ground', 'the red hell ground and walls of today\'s stage 3 (RedCanyon.set_hell)', Forms.boolInput ? Forms.boolInput({ key: 'stage.hell' }, !!e.hell, (v) => set('hell', !!v)) : el('input', { type: 'checkbox', checked: !!e.hell, onchange: (ev) => set('hell', ev.target.checked) })));
     // what lies in it

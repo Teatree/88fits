@@ -49,7 +49,8 @@ func _ensure() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://core/shaders/sprite_billboard.gdshader")
 	if scenery:
-		_mat.shader = SceneryStencil.scenery_shader(_mat.shader)
+		# pass 105 (lane LOOK): every scenery painting is a structure or the portal, which the stage's filter darkens less
+		_mat.shader = SceneryStencil.scenery_shader(_mat.shader, SceneryStencil.STRUCTURE)
 	material_override = _mat
 	if outline_when_hidden:
 		enable_outline()

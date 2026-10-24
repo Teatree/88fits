@@ -98,7 +98,8 @@ func test_the_quads() -> void:
 		var mat := mi.material_override as ShaderMaterial
 		assert_int(mat.render_priority).is_equal(LOOK.PRIORITY)
 		assert_str(mat.shader.code).contains("blend_mul")
-	assert_str((q[0].material_override as ShaderMaterial).shader.code).contains("stencil_mode read, compare_not_equal, 1;")
+	# (pass 105, lane LOOK, re-pinned: one quad a stencil value; the world's reads the sand's 0, the scenery has its own)
+	assert_str((q[0].material_override as ShaderMaterial).shader.code).contains("stencil_mode read, compare_equal, 0;")
 	assert_str((q[1].material_override as ShaderMaterial).shader.code).contains("stencil_mode read, compare_equal, 1;")
 	var got: Vector3 = (q[0].material_override as ShaderMaterial).get_shader_parameter("mult")
 	assert_vector(got).is_equal_approx(LOOK.screen_mult(Color(0.5, 0.6, 0.9)), Vector3.ONE * 0.0001)

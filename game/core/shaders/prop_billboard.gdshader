@@ -10,7 +10,8 @@ render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;
 // the creatures, the hero, the props and the structures wherever they overlap, in front of a painting's plane or not.
 // Pass 72 (lane SPEC): a prop is scenery and writes 2 (SceneryStencil.VALUE), so a creature it hides is outlined
 // (enemy_silhouette reads 2) while one hidden by another creature (1) is not; the gems read 0 (nothing painted).
-stencil_mode write, compare_always, 2;
+// Pass 105 (lane LOOK): scenery writes 4 now (SceneryStencil.VALUE; the table is in StageStencil's header).
+stencil_mode write, compare_always, 4;
 
 uniform sampler2D sprite : source_color, filter_linear_mipmap, repeat_disable;
 uniform float alpha_cut = 0.5;

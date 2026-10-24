@@ -13,6 +13,12 @@
 ##    (ACTORS_DEFAULT when the filter names none), so they stay brighter than the ground and still read.
 ## A white factor hides the quads (stage 1 costs nothing). A map without stage_list plays as before pass 87: no
 ## filter and hell from the third stage on (s >= 2).
+## Pass 105 (lane LOOK; Garry: the structures darkened "quite a bit less", the weapons' 3D models not "so dimmed", the
+## shots, the creatures' shots and the chests not at all, the barrels "highlighted a bit"): the quads read the stencil
+## values of StageStencil's table, one quad a value: the sand (0) and the scenery (4) at `strength`, the creatures and
+## the hero (1) at `strength` x `actors`, the structures, the portal and the barrels (5) at `strength` x `structures`
+## (STRUCTURES_DEFAULT), the weapons' models (2) at `strength` x `items` (ITEMS_DEFAULT: none, its quad hidden); the shots
+## and the chests (3) have no quad. Four quads drawn in a filtered stage (two before), none in a white one.
 ##
 ## Game makes one at its first stage_started (StageLook.of) and hands it every stage that starts (show_stage): the
 ## run's first stage takes its look at once, a later one (the old flow, endless) over FADE_SECONDS.
@@ -29,6 +35,11 @@ const SHADER := preload("res://core/shaders/stage_filter.gdshader")
 const PRIORITY := -7
 ## The share of the filter's strength the creatures and the hero take when the filter names no `actors`.
 const ACTORS_DEFAULT := 0.35
+## Pass 105 (lane LOOK): the share the structures, the portal and the barrels take when the filter names no `structures`.
+const STRUCTURES_DEFAULT := 0.3
+## Pass 105 (lane LOOK): the share the weapons' own 3D models take when the filter names no `items` (0: untinted, like the
+## shots; chosen by eye on the pass's captures).
+const ITEMS_DEFAULT := 0.0
 ## Seconds a stage's look takes to come in when the stage changes during a run (the first stage's is there at once).
 const FADE_SECONDS := 3.0
 ## The stencil the paintings that are not scenery write (PickupManager.PAINTING_STENCIL).
@@ -41,17 +52,21 @@ var camera: Camera3D
 ## The stage shown (-1 before the first) and its stage_list entry ({} on a map without one).
 var stage := -1
 var entry: Dictionary = {}
-## The factors drawn now (white = none) and the ones being faded to.
+## The factors drawn now (white = none) and the ones being faded to (pass 105: the structures' and the items' too).
 var env_mult := Color.WHITE
 var actor_mult := Color.WHITE
-var _from_env := Color.WHITE
-var _from_actor := Color.WHITE
-var _to_env := Color.WHITE
-var _to_actor := Color.WHITE
+var structure_mult := Color.WHITE
+var item_mult := Color.WHITE
+var _from := [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]
+var _to := [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]
 var _tween: Tween
 var _env_quad: MeshInstance3D
 var _actor_quad: MeshInstance3D
-static var _actor_shader: Shader
+## Pass 105 (lane LOOK): the scenery's (the same factor as the sand), the structures' and the items' quads.
+var _scenery_quad: MeshInstance3D
+var _structure_quad: MeshInstance3D
+var _item_quad: MeshInstance3D
+static var _quad_shaders: Dictionary = {}
 
 
 ## The game's StageLook, made on first use (a child of `game` named NODE_NAME).
@@ -81,7 +96,7 @@ func show_stage(s: int, seconds: float = -1.0) -> void:
 	entry = entry_of(tl, s)
 	var fade: float = (0.0 if first else FADE_SECONDS) if seconds < 0.0 else seconds
 	var mults: Array = filter_mults(entry)
-	set_mults(mults[0], mults[1], fade)
+	set_mults(mults[0], mults[1], fade, mults[2], mults[3])
 	var map: Node = game.get("map") if game else null
 	if map and map.has_method("set_hell"):
 		map.set_hell(1.0 if hell_of(tl, s) else 0.0, maxf(fade, 0.01))
@@ -122,30 +137,43 @@ static func hell_of(tl: WaveTimeline, s: int) -> bool:
 	return bool(entry_of(tl, s).get("hell", false))
 
 
-## [world factor, creatures' factor] for a stage entry: white.lerp(color, strength) and white.lerp(color, strength x
-## actors). No filter, a bad colour or strength 0: white (nothing drawn).
+## [world factor, creatures' factor, structures' factor, items' factor] for a stage entry: white.lerp(color, strength)
+## and white.lerp(color, strength x share) for `actors`, `structures` and `items` (pass 105). No filter, a bad colour or
+## strength 0: white (nothing drawn).
 static func filter_mults(e: Dictionary) -> Array:
 	var f = e.get("filter", {})
 	if not (f is Dictionary):
-		return [Color.WHITE, Color.WHITE]
+		return [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]
 	var c: Color = WaveTimeline.color_of(f.get("color", "#ffffff"), Color.WHITE)
 	c.a = 1.0
 	var k := clampf(float(f.get("strength", 0.0)), 0.0, 1.0)
-	var a := clampf(float(f.get("actors", ACTORS_DEFAULT)), 0.0, 1.0)
-	return [Color.WHITE.lerp(c, k), Color.WHITE.lerp(c, k * a)]
+	var a := share_of(f, "actors", ACTORS_DEFAULT)
+	var st := share_of(f, "structures", STRUCTURES_DEFAULT)
+	var it := share_of(f, "items", ITEMS_DEFAULT)
+	return [Color.WHITE.lerp(c, k), Color.WHITE.lerp(c, k * a), Color.WHITE.lerp(c, k * st), Color.WHITE.lerp(c, k * it)]
+
+
+## A filter's share `key` (actors, structures, items) clamped to 0..1, `def` when it names none or a bad one (pass 105).
+static func share_of(f: Dictionary, key: String, def: float) -> float:
+	var v = f.get(key, def)
+	if not (v is float or v is int):
+		return def
+	return clampf(float(v), 0.0, 1.0)
 
 
 # ---------------------------------------------------------------- the quads
 
-## Draws the world at `env` and the creatures at `actors`, fading from what is drawn over `seconds`.
-func set_mults(env: Color, actors: Color, seconds: float = 0.0) -> void:
+## Draws the world at `env`, the creatures at `actors`, the structures at `structures` and the weapons' models at
+## `items`, fading from what is drawn over `seconds`. Pass 105: `structures` and `items` left out (null, the old callers'
+## two factors) take their default share of `env`: white.lerp(env, share) is white.lerp(color, strength x share).
+func set_mults(env: Color, actors: Color, seconds: float = 0.0, structures = null, items = null) -> void:
 	if _tween:
 		_tween.kill()
 		_tween = null
-	_from_env = env_mult
-	_from_actor = actor_mult
-	_to_env = env
-	_to_actor = actors
+	var st: Color = structures if structures is Color else Color.WHITE.lerp(env, STRUCTURES_DEFAULT)
+	var it: Color = items if items is Color else Color.WHITE.lerp(env, ITEMS_DEFAULT)
+	_from = [env_mult, actor_mult, structure_mult, item_mult]
+	_to = [env, actors, st, it]
 	if seconds <= 0.0 or not is_inside_tree():
 		_blend(1.0)
 		return
@@ -154,22 +182,32 @@ func set_mults(env: Color, actors: Color, seconds: float = 0.0) -> void:
 
 
 func _blend(t: float) -> void:
-	env_mult = _from_env.lerp(_to_env, t)
-	actor_mult = _from_actor.lerp(_to_actor, t)
+	env_mult = (_from[0] as Color).lerp(_to[0], t)
+	actor_mult = (_from[1] as Color).lerp(_to[1], t)
+	structure_mult = (_from[2] as Color).lerp(_to[2], t)
+	item_mult = (_from[3] as Color).lerp(_to[3], t)
 	_show(env_mult, actor_mult)
 
 
 func _show(env: Color, actors: Color) -> void:
 	var need_env := not _is_white(env)
 	var need_actor := not _is_white(actors)
-	if (need_env or need_actor) and _env_quad == null:
+	var need_struct := not _is_white(structure_mult)
+	var need_item := not _is_white(item_mult)
+	if (need_env or need_actor or need_struct or need_item) and _env_quad == null:
 		_build()
-	if _env_quad:
-		_env_quad.visible = need_env
-		(_env_quad.material_override as ShaderMaterial).set_shader_parameter("mult", screen_mult(env))
-	if _actor_quad:
-		_actor_quad.visible = need_actor
-		(_actor_quad.material_override as ShaderMaterial).set_shader_parameter("mult", screen_mult(actors))
+	_set_quad(_env_quad, need_env, env)
+	_set_quad(_scenery_quad, need_env, env)
+	_set_quad(_actor_quad, need_actor, actors)
+	_set_quad(_structure_quad, need_struct, structure_mult)
+	_set_quad(_item_quad, need_item, item_mult)
+
+
+func _set_quad(q: MeshInstance3D, on: bool, c: Color) -> void:
+	if q == null:
+		return
+	q.visible = on
+	(q.material_override as ShaderMaterial).set_shader_parameter("mult", screen_mult(c))
 
 
 static func _is_white(c: Color) -> bool:
@@ -198,6 +236,10 @@ func _build() -> void:
 		return
 	_env_quad = _quad("StageFilter", SHADER)
 	_actor_quad = _quad("StageFilterActors", actor_shader())
+	# pass 105 (lane LOOK): one quad a stencil value (StageStencil's table)
+	_scenery_quad = _quad("StageFilterScenery", quad_shader(StageStencil.SCENERY))
+	_structure_quad = _quad("StageFilterStructures", quad_shader(StageStencil.STRUCTURE))
+	_item_quad = _quad("StageFilterItems", quad_shader(StageStencil.ITEM))
 
 
 func _quad(qname: String, shader: Shader) -> MeshInstance3D:
@@ -222,13 +264,29 @@ func _quad(qname: String, shader: Shader) -> MeshInstance3D:
 
 ## The creatures' copy of the filter's shader: the same code drawn only on stencil ACTOR_STENCIL.
 static func actor_shader() -> Shader:
-	if _actor_shader == null:
+	return quad_shader(ACTOR_STENCIL)
+
+
+## The filter's shader drawn only where the stencil is `value` (pass 105; the file's own reads 0, the sand): one copy a
+## value, shared.
+static func quad_shader(value: int) -> Shader:
+	if value == StageStencil.SAND:
+		return SHADER
+	if not _quad_shaders.has(value):
 		var s := Shader.new()
-		s.code = SHADER.code.replace("stencil_mode read, compare_not_equal, %d;" % ACTOR_STENCIL, "stencil_mode read, compare_equal, %d;" % ACTOR_STENCIL)
-		_actor_shader = s
-	return _actor_shader
+		s.code = SHADER.code.replace("stencil_mode read, compare_equal, %d;" % StageStencil.SAND, "stencil_mode read, compare_equal, %d;" % value)
+		_quad_shaders[value] = s
+	return _quad_shaders[value]
 
 
 ## The quads (tests, tools): [world, creatures], null before the first filter.
 func quads() -> Array:
 	return [_env_quad, _actor_quad]
+
+
+## Every quad (pass 105; tests, tools): {name: quad} for sand, scenery, actors, structures, items; empty before the first
+## filter.
+func all_quads() -> Dictionary:
+	if _env_quad == null:
+		return {}
+	return {"sand": _env_quad, "scenery": _scenery_quad, "actors": _actor_quad, "structures": _structure_quad, "items": _item_quad}

@@ -6620,3 +6620,26 @@ Game.KEG_FRAC 0.25 -> **0.25 / 3 (0.0833)**: the blast deals a twelfth of the de
 within 2.4 m, at every rank (the damage never depended on the rank). The chance is unchanged (6.5%, +2% a rung, Evolved
 +3%: 15.5% at rank 5); the knock (9) unchanged and exempt from Endless's resistance. Card text: "a twelfth of its max
 health".
+
+## 49. Pass 105 (v0.89): structures, items, shots, barrels and chests out from under the stage filter
+
+Garry's words: tools/dl/p105/brief_LOOK.md. The rules:
+
+- A filtered stage (Nightfall, Blood Moon) darkens by what is nearest at a pixel (StageStencil's stencil table):
+  the sand, the water and the scenery (props, signs, wall, cliffs) at the filter's `strength`; the creatures and the hero
+  at `strength` x `actors` (0.35); **the structures, the portal and the barrels at `strength` x `structures` (0.3)**;
+  **the weapons' own 3D models at `strength` x `items` (0: untinted)**; **every shot (the hero's and the creatures'),
+  boulders, bomblets, boss attacks' projectiles, stalactites, the Tarantula Hawk, the chests and the falling Supply Drop:
+  never**. Telegraphs, shadows, gems, coins, outlines and see-through effects stay drawn after the filter, untinted.
+- `items` default 0, chosen by eye on the captures (tools/dl/p105/LOOK/contact_a.png, contact_b.png): at 0.15 the tint
+  is about 5-9% (invisible at phone size) and would cost one more full-screen quad; untinted they read clearly and do
+  not look pasted on (they are lit by the map's own light and fog).
+- No lift (emission) was added to any creature shot: untinted, every kind read on both dark grounds in the captures
+  (the pellet, dark metal by design, is the weakest; its Sundown look must not change).
+- Sundown (no filter) draws no quad; its look is unchanged except where a gem or a creature's outline met a weapon's
+  model, a shot or a chest: those now write their own stencil, so a gem no longer draws over them and an outline no
+  longer shows through them (before, they kept whatever lay behind them).
+- Cost: in a filtered stage 4 full-screen quads (sand, scenery, creatures, structures; was 2; +1 when `items` > 0);
+  the marking adds no draw call (measured: 198 draws with the marks and without, same frozen frame).
+- Not changed (said so, not asked): Fx's opaque debris boxes (barrel splinters, chips) and the Strongbox's coin stream
+  still take the filter like the ground.

@@ -174,6 +174,9 @@ func _ready() -> void:
 	enemies.enemy_died.connect(_on_enemy_died)
 	projectiles.game = self
 	pickups.game = self
+	# pass 105 (lane LOOK): the weapons' models, the shots and the chests write their own stencil (StageStencil), so the stage's
+	# filter darkens them by their own share or not at all
+	StageStencil.of(self)
 	_spit_kind = projectiles.register_kind(_spit_mesh(), _spit_material(), 1.0)
 	_harpoon_kind = projectiles.register_kind(_harpoon_mesh(), _harpoon_material(), 1.0)
 	# custom data: the loose rocket's blink and heat reach its shader per instance (pass 45); white instance colours so its
@@ -1575,6 +1578,7 @@ func _tick_supply(delta: float) -> void:
 	m.emission = Color(1.0, 0.45, 0.1)
 	m.emission_energy_multiplier = 0.4
 	pod.material_override = m
+	StageStencil.tag(pod, StageStencil.CLEAR)  # pass 105: never darkened by the stage's filter
 	add_child(pod)
 	pod.global_position = at + Vector3(0, 28.0, 0)
 	var tw := create_tween()
@@ -3502,6 +3506,7 @@ func stalactite(at: Vector3, fall: float, spike_scale: float = 1.0, height: floa
 	m.scale = Vector3.ONE * spike_scale
 	m.position = at + Vector3(0, height, 0)
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	StageStencil.tag(m, StageStencil.CLEAR)  # pass 105: a creature's shot, never darkened by the stage's filter
 	add_child(m)
 	var tw := create_tween()
 	tw.tween_property(m, "position:y", at.y + 0.55 * spike_scale, fall).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)

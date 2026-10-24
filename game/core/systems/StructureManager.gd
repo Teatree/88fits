@@ -487,7 +487,7 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 			s.visual = (load(path) as PackedScene).instantiate()
 		else:
 			s.visual = _fallback_visual(def)
-		SceneryStencil.mark_tree(s.visual)
+		SceneryStencil.mark_tree(s.visual, SceneryStencil.STRUCTURE)  # pass 105: a structure (the filter's share)
 		s.add_child(s.visual)
 		s.visual.rotation.y = _rng.randf() * TAU
 	_add_shadow(s, def, at)
@@ -993,7 +993,7 @@ func _grey_out(n: Node) -> void:
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.42, 0.4, 0.4)
 		mat.roughness = 1.0
-		(n as MeshInstance3D).material_override = SceneryStencil.mark(mat)
+		(n as MeshInstance3D).material_override = SceneryStencil.mark(mat, SceneryStencil.STRUCTURE)
 	for c in n.get_children():
 		_grey_out(c)
 

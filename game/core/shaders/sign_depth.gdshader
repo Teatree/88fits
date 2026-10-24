@@ -12,7 +12,8 @@
 // Pass 72 (lane SPEC): a sign is scenery and writes stencil 2 (SceneryStencil.VALUE): a creature it hides is outlined.
 shader_type spatial;
 render_mode skip_vertex_transform, cull_back, shadows_disabled;
-stencil_mode write, compare_always, 2;
+// Pass 105 (lane LOOK): 4 now (SceneryStencil.VALUE; the table is in StageStencil's header).
+stencil_mode write, compare_always, 4;
 
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform float roughness : hint_range(0.0, 1.0) = 0.9;

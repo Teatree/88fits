@@ -36,10 +36,10 @@ func test_timeline_cap_grows() -> void:
 	# again since 2026-10-16), so only its shape is pinned: positive all through the run, never past the hard cap
 	for t: float in [0.0, 60.0, 300.0, 600.0, 1200.0, 3600.0]:
 		assert_int(m.timeline.cap_at(t)).is_greater(0)
-		if m.timeline.hard_cap > 0:
-			assert_int(m.timeline.cap_at(t)).is_less_equal(m.timeline.hard_cap)
-	# pass 29: six times the start by the end (150), never the hundreds the first timeline had
-	assert_bool(m.timeline.cap_max <= 200).is_true()
+	# pass 105 re-pin: Garry raised cap_max to 500 (2026-10-24, after pass 102 showed it cut his curve); the cap is in load
+	# and may sit above the hard cap (in bodies), which then binds: only a positive cap within cap_max is pinned
+	for t2: float in [0.0, 600.0, 3600.0]:
+		assert_int(m.timeline.cap_at(t2)).is_less_equal(maxi(m.timeline.cap_max, 1))
 
 
 func test_pickups_are_content() -> void:

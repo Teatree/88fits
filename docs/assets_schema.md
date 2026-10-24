@@ -3077,3 +3077,23 @@ Code: EnemyManager.HIT_BLAST (= 4, damage()/damage_radius() flags), endless_knoc
 flags), knock_is_explosive(source, flags), knock_cache_clear(), endless_knock_override (tests);
 hero_throw_radius(center, r, force, except_i, source = ""); WaveTimeline.endless_knock_resist(seconds, i),
 endless_knock_exempt_tag(i), endless_knock_exempt_sources(i), ENDLESS_KNOCK_EXEMPT_TAG, ENDLESS_KNOCK_EXEMPT_SOURCES.
+
+## Pass 105: new keys
+
+### Map `timeline_data.stage_list[k].filter` (new, optional; Garry's entries need nothing)
+| key | type | default | meaning |
+|---|---|---|---|
+| `structures` | float 0..1 | 0.3 (`StageLook.STRUCTURES_DEFAULT`) | share of the filter's `strength` the structures, the portal and the barrels take (lighter than the ground, which takes 1.0) |
+| `items` | float 0..1 | 0.0 (`StageLook.ITEMS_DEFAULT`) | share the weapons' own 3D models take (held guns, companions, orbiters, mines, the turret, the Salt, the decoy, the trampoline, what a weapon behaviour draws itself). 0 = untinted and its quad is not drawn |
+(beside lane SLOOK's `actors`, 0.35). A bad value or none: the default. Level Editor: stage card "Its look": sliders "On structures" and "On weapons' models" (`stage.filter.structures`, `stage.filter.items`), written only when set or moved off the default (as `actors`).
+
+Never tinted (no key): every ProjectileManager shot (the hero's and the creatures': spit, pellets, spikes, shards, harpoons, the Raider's rocket, the dynamite, the King's tumbleweeds), boulders, bomblets, boss attacks' projectiles (BossAttackFx), the Tarantula Hawk, stalactites, the chests (all kinds), the falling Supply Drop pod.
+
+### Stencil table (code: core/systems/StageStencil.gd header)
+0 sand/water/sky/unmarked, 1 creatures+hero+power-ups+flowers, 2 weapons' models (StageStencil.ITEM), 3 shots+chests (StageStencil.CLEAR), 4 scenery (SceneryStencil.VALUE, was 2), 5 structures+portal+barrels (SceneryStencil.STRUCTURE, new). Creature outlines read `4 <= stencil`; gems/coins read `== 0`.
+
+### Code API (new)
+- `StageStencil` (core/systems/StageStencil.gd): `of(game)`, `tag(node, value)`, `mark_tree(root)`, `marked(material, value)`, `written(material)`, `is_opaque(material)`, `value_for(node)` (class roots), `META` (&"stage_stencil" node meta), `prune()`.
+- `StageLook.filter_mults(e)` now returns 4 colours [world, creatures, structures, items]; `set_mults(env, actors, seconds, structures = null, items = null)` (old 2-factor callers: structures = white.lerp(env, 0.3), items white); `share_of(f, key, def)`; `quad_shader(value)`; `all_quads()`; vars `structure_mult`, `item_mult`.
+- `SceneryStencil.mark/mark_tree/is_marked/scenery_shader(..., value = VALUE)`; `SceneryStencil.STRUCTURE := 5`.
+- Tool: `game/tools/_p105_LOOK_shots.gd -- out=<dir> [mode=static|weapons] [looks=0,1,2] [ab=1]` (windowed, --fixed-fps 60, watchdog 240 s).

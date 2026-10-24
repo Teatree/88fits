@@ -260,4 +260,6 @@ func test_rows_carry_their_hp_ramp_and_stay_under_the_caps() -> void:
 		assert_float(late).is_greater(early)
 	for k in range(0, int(tl.total_length()) + 100, 5):
 		assert_int(tl.cap_at(float(k), 2)).is_less_equal(tl.cap_max)
-	assert_int(tl.hard_cap).is_greater_equal(tl.cap_max)  # pass 85 re-pin: Garry's hard cap (300 since 2026-10-17)
+	# pass 105 re-pin: the cap (load) may exceed the hard cap (bodies) since Garry's cap_max 500 (2026-10-24): the hard
+	# cap then binds (the Level Editor warns); only that both are set is pinned
+	assert_int(tl.hard_cap).is_greater(0)

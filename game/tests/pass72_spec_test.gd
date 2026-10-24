@@ -358,10 +358,12 @@ func test_the_games_chest_chance_is_about_one_in_three() -> void:
 # ---------------------------------------------------------------- 4. the outline: only behind scenery
 
 func test_the_outline_reads_the_scenerys_stencil_and_scenery_writes_it() -> void:
-	assert_int(SceneryStencil.VALUE).is_equal(2)
+	# (pass 105, lane LOOK, re-pinned: the scenery writes 4 and the structures and barrels 5, StageStencil's table; the
+	# outline reads 4 <= the stencil, behind either)
+	assert_int(SceneryStencil.VALUE).is_equal(4)
 	assert_int(SceneryStencil.VALUE).is_not_equal(PickupManager.PAINTING_STENCIL)
 	var sil := (load("res://core/shaders/enemy_silhouette.gdshader") as Shader).code
-	assert_str(sil).contains("stencil_mode read, compare_equal, %d;" % SceneryStencil.VALUE)
+	assert_str(sil).contains("stencil_mode read, compare_less_or_equal, %d;" % SceneryStencil.VALUE)
 	assert_str(sil).contains("depth_test_inverted")
 	# the creatures and the hero write the painting's 1 (so an outline never shows over them)
 	for path in ["res://core/shaders/enemy_billboard.gdshader", "res://core/shaders/sprite_billboard.gdshader"]:
@@ -384,19 +386,21 @@ func test_the_outline_reads_the_scenerys_stencil_and_scenery_writes_it() -> void
 
 func test_painted_structures_and_the_portal_draw_as_scenery() -> void:
 	var base: Shader = load("res://core/shaders/sprite_billboard.gdshader")
-	var sc := SceneryStencil.scenery_shader(base)
+	# (pass 105, lane LOOK, re-pinned: a painted structure and the portal write SceneryStencil.STRUCTURE, which the stage's
+	# filter darkens less and the outline still reads)
+	var sc := SceneryStencil.scenery_shader(base, SceneryStencil.STRUCTURE)
 	assert_object(sc).is_not_same(base)
-	assert_str(sc.code).contains("stencil_mode write, compare_always, %d;" % SceneryStencil.VALUE)
+	assert_str(sc.code).contains("stencil_mode write, compare_always, %d;" % SceneryStencil.STRUCTURE)
 	assert_str(sc.code).not_contains("stencil_mode write, compare_always, %d;" % PickupManager.PAINTING_STENCIL)
 	# built once, shared
-	assert_object(SceneryStencil.scenery_shader(base)).is_same(sc)
+	assert_object(SceneryStencil.scenery_shader(base, SceneryStencil.STRUCTURE)).is_same(sc)
 	# the code is the hero's otherwise
-	assert_str(sc.code.replace("compare_always, %d;" % SceneryStencil.VALUE, "compare_always, %d;" % PickupManager.PAINTING_STENCIL)).is_equal(base.code)
+	assert_str(sc.code.replace("compare_always, %d;" % SceneryStencil.STRUCTURE, "compare_always, %d;" % PickupManager.PAINTING_STENCIL)).is_equal(base.code)
 	var bs: BillboardSprite = auto_free(BillboardSprite.new())
 	bs.scenery = true
 	add_child(bs)
 	assert_object((bs.material_override as ShaderMaterial).shader).is_same(sc)
-	assert_bool(SceneryStencil.is_marked(bs.material_override)).is_true()
+	assert_bool(SceneryStencil.is_marked(bs.material_override, SceneryStencil.STRUCTURE)).is_true()
 	var hero: BillboardSprite = auto_free(BillboardSprite.new())
 	add_child(hero)
 	assert_object((hero.material_override as ShaderMaterial).shader).is_same(base)
@@ -404,14 +408,15 @@ func test_painted_structures_and_the_portal_draw_as_scenery() -> void:
 	# the sources that make them say so
 	assert_str(FileAccess.get_file_as_string("res://core/systems/StructureManager.gd")).contains("bs.scenery = true")
 	assert_str(FileAccess.get_file_as_string("res://core/systems/Portal.gd")).contains("bs.scenery = true")
-	assert_str(FileAccess.get_file_as_string("res://core/systems/StructureManager.gd")).contains("SceneryStencil.mark_tree(s.visual)")
+	assert_str(FileAccess.get_file_as_string("res://core/systems/StructureManager.gd")).contains("SceneryStencil.mark_tree(s.visual, SceneryStencil.STRUCTURE)")
 
 
 func test_the_wall_the_cliffs_and_the_barrels_are_marked() -> void:
 	var rc := FileAccess.get_file_as_string("res://world/maps/red_canyon/RedCanyon.gd")
 	assert_str(rc).contains("add_child(SceneryStencil.mark_tree(_boundary_wall(")
 	assert_str(rc).contains("add_child(SceneryStencil.mark_tree(_ridge(arena_radius + 4.0")
-	assert_str(FileAccess.get_file_as_string("res://core/systems/BarrelField.gd")).contains("SceneryStencil.mark_tree(mmi)")
+	# (pass 105, lane LOOK, re-pinned: the barrels with the structures)
+	assert_str(FileAccess.get_file_as_string("res://core/systems/BarrelField.gd")).contains("SceneryStencil.mark_tree(mmi, SceneryStencil.STRUCTURE)")
 
 
 func test_mark_and_mark_tree() -> void:

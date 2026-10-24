@@ -96,7 +96,7 @@ func _launch(d: Dictionary) -> void:
 func _prepare_shaders() -> void:
 	_new_sil = load("res://core/shaders/enemy_silhouette.gdshader")
 	_old_sil = Shader.new()
-	_old_sil.code = _new_sil.code.replace("stencil_mode read, compare_equal, 2;", "")
+	_old_sil.code = _new_sil.code.replace("stencil_mode read, compare_less_or_equal, 4;", "")  # pass 105: the outline reads 4 <= the stencil
 
 
 func _set_outline(which: String) -> void:

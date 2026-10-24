@@ -254,7 +254,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-24, pass 103, version 0.88)
+## Status (2026-10-24, pass 105, version 0.89)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -264,7 +264,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.88). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.89). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -442,6 +442,9 @@ tagged `explosive` and the sources in `knock_resist_exempt_sources` keep their p
 knock 3.3, Fire Eater 4.7; Powder Keg a twelfth of the body's max HP (Game.KEG_FRAC).
 Pass 104 (docs): the design bible rebuilt for pass 103 (fresh captures from game/tools/screenshot_run.gd, played looks in
 the generated sections, each section leading with what is true now and a collapsed history block; 12.4 MB).
+Pass 105: the stage filter tells six stencil values apart (core/systems/StageStencil.gd): sand 0 and scenery 4 at
+`strength`, actors 1 at `actors`, weapons' 3D models 2 at `items` (0), shots and chests 3 never tinted, structures,
+the portal and barrels 5 at `structures` (0.3); one quad per tinted value; the creature outline reads stencil >= 4.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =
