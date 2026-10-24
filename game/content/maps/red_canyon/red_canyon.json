@@ -83,7 +83,7 @@
     ],
     "cap_start": 10,
     "cap_per_minute": 7.81,
-    "cap_max": 150,
+    "cap_max": 500,
     "hard_cap": 300,
     "cap_curve": [
       [
@@ -559,7 +559,7 @@
       {
         "id": "r22",
         "t": 453,
-        "until": 597,
+        "until": 606,
         "enemy": "armadillo",
         "weights": [
           [

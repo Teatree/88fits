@@ -15,7 +15,7 @@ hell_cap = [0.0, 0.3, 0.4]
 speed_per_stage = 0.1
 cap_start = 10
 cap_per_minute = 7.81
-cap_max = 150
+cap_max = 500
 cap_curve = [[0.0, 500.0], [480.0, 500.0]]
 boss_cap_frac = 0.6
 portal_cap = -1
@@ -289,7 +289,7 @@ roster = [{
 "size": [1.0, 1.35]
 },
 "t": 453.0,
-"until": 597.0,
+"until": 606.0,
 "weights": [[453.0, 8.0], [521.0, 8.0]]
 }, {
 "enemy": "desert_spider",

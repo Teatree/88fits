@@ -18,6 +18,10 @@ var _blade_shot := false
 var _fire_target := -1
 var _fire_next := 0.0
 var _fire_n := 0
+const WATCHDOG_S := 240.0
+var _wall := 0.0   # pass 104: real seconds since the start (the watchdog; _t is wound back after inserted captures)
+var _mark := 0.0   # pass 104: when an inserted capture block started
+var _sniper := -1
 
 
 func _init() -> void:
@@ -39,6 +43,10 @@ func _start() -> void:
 	f.store_string(JSON.stringify({"weapon": _weapon, "level": 4, "character": _character, "map": _map, "map_seed": 88}))
 	f.close()
 	root.get_node("Save").data["runs_started"] = 1
+	# pass 104: no debug buttons on the captures (in memory only; godot.sh puts the PC save back)
+	var st := root.get_node("Settings")
+	for k in ["debug_modal_buttons", "free_revive_button", "hit_log", "debug_panel", "debug_mode"]:
+		st.set(k, false)
 	_run = root.get_node("Run")
 	change_scene_to_file("res://game/Game.tscn")
 	process_frame.connect(_tick)
@@ -54,6 +62,12 @@ func _shot(name: String) -> void:
 
 func _tick() -> void:
 	_t += root.get_process_delta_time()
+	_wall += root.get_process_delta_time()
+	# pass 104 (lane BIBLE): a watchdog, so a capture that stalls never holds the Godot lock (the whole run takes ~120 s)
+	if _wall > WATCHDOG_S:
+		print("screenshot_run: watchdog at step ", _step, " after ", int(_t), " s")
+		quit(3)
+		return
 	if _game == null and _step < 7:
 		_game = current_scene
 		if _game and "no_random_chests" in _game:
@@ -567,7 +581,7 @@ func _tick() -> void:
 			_game.camera.snap_to(_game.player)
 		_step = 3301
 	elif _step == 3301 and _t > 50.5:
-		_shot("45_strongbox")
+		print("screenshot_run: 45_strongbox skipped (the Strongbox is out of play)")
 		# banked: the balloon lifts the box off and away; the next shot a few seconds into the climb
 		var bank2 = _find_structure("gold_bank")
 		if bank2 and not bank2.used:
@@ -575,7 +589,7 @@ func _tick() -> void:
 			_game.structures._use(bank2)
 		_step = 3302
 	elif _step == 3302 and _t > 53.7:
-		_shot("45b_strongbox_away")
+		print("screenshot_run: 45b_strongbox_away skipped")
 		# the Oil Slick (pass 33): a Molotov with the path thrown at a pack eight metres north; drops fall from the bottle
 		# along the throw and each one lands as a small burning spill
 		_game.player.global_position = Vector3(6, 1, 8)
@@ -805,7 +819,97 @@ func _tick() -> void:
 			_game.enemies.spawn_pack("goblin", dd.global_position, 10)
 		_step = 60
 	elif _step == 60 and _t > 80.3:
-		_shot("05b_tornado")
+		# pass 104 (lane BIBLE): the dust devil frame (it showed the Gila) gives way to the stage looks, a Totem Pole and
+		# its gifts, the Dragon's Breath and the Saiga Sniper; _t is wound back after them so the later clock holds
+		_mark = _t
+		_game.enemies.kill_all(false)
+		_game.projectiles.clear_all()
+		_game.hud.hide_boss()
+		_game.player.global_position = Vector3(4, 1, 10)
+		_game.player.velocity = Vector3.ZERO
+		_game.camera.snap_to(_game.player)
+		load("res://core/systems/StageLook.gd").of(_game).show_stage(1, 0.0)
+		_game.weapon_host.process_mode = Node.PROCESS_MODE_DISABLED
+		_game.enemies.spawn_pack("skeleton", _game.player.global_position + Vector3(-2.0, 0, -7.0), 8)
+		_game.enemies.spawn_pack("goblin", _game.player.global_position + Vector3(3.5, 0, -5.0), 10)
+		_step = 1040
+	elif _step == 1040 and _t > _mark + 1.6:
+		_shot("60_nightfall")
+		_game.enemies.kill_all(false)
+		load("res://core/systems/StageLook.gd").of(_game).show_stage(2, 0.0)
+		for id in ["imp", "hellhound", "hammer_giant"]:
+			if root.get_node("Registry").enemies.has(id):
+				_game.enemies.spawn_pack(id, _game.player.global_position + Vector3(randf_range(-4, 4), 0, -6.0), 3 if id == "hammer_giant" else 7)
+		_step = 1041
+	elif _step == 1041 and _t > _mark + 3.4:
+		_shot("61_blood_moon")
+		_game.enemies.kill_all(false)
+		load("res://core/systems/StageLook.gd").of(_game).show_stage(0, 0.0)
+		var tp = _find_structure("totem_pole")
+		if tp:
+			_game.player.global_position = tp.global_position + Vector3(1.4, 0.5, 2.6)
+			_game.player.velocity = Vector3.ZERO
+			_game.camera.snap_to(_game.player)
+		_step = 1042
+	elif _step == 1042 and _t > _mark + 4.6:
+		_shot("62_totem")
+		var regt = root.get_node("Registry")
+		if regt.structures.has("totem_pole"):
+			_game.use_structure(regt.structure("totem_pole"), _game.player.global_position)
+		_step = 1043
+	elif _step == 1043 and _t > _mark + 6.2:
+		_shot("62b_spirit_pole")
+		if _game.totem_screen and _game.totem_screen.visible and not _game.totem_screen.offer().is_empty():
+			_game.totem_screen._finish(_game.totem_screen.offer()[0])
+		if _game.totem_screen:
+			_game.totem_screen._hide()
+		_step = 1044
+	elif _step == 1044 and _t > _mark + 7.0:
+		if _game.resume_gate and _game.resume_gate.visible:
+			_game.resume_gate.tap()
+		_game.set_paused(false)
+		# the Dragon's Breath (pass 95): a pack in front of his face, the breath started on cue
+		_game.player.global_position = Vector3(6, 1, 8)
+		_game.player.facing = 0.0
+		_game.player.velocity = Vector3.ZERO
+		_game.camera.snap_to(_game.player)
+		while _run.weapons.size() >= _run.weapon_cap():
+			_run.weapons.remove_at(0)
+		_run.build_changed.emit()
+		_run.add_weapon(root.get_node("Registry").weapon("dragons_breath"), 3)
+		_game.weapon_host.process_mode = Node.PROCESS_MODE_INHERIT
+		for k in range(8):
+			var bi: int = _game.enemies.spawn("goblin", _game.player.global_position + Vector3(-1.5 + (k % 4) * 1.0, 0, -3.0 - (k / 4) * 1.2), null, 1.0, 30.0)
+			if bi >= 0:
+				_game.enemies.speed[bi] = 0.0
+		_step = 1045
+	elif _step == 1045 and _t > _mark + 7.4:
+		if _game._behaviors.has("dragons_breath"):
+			_game._behaviors["dragons_breath"].cooldown_left = 0.0
+			_game._behaviors["dragons_breath"]._fire()
+		else:
+			print("screenshot_run: no dragons_breath behaviour; have ", _game._behaviors.keys())
+		_step = 1046
+	elif _step == 1046 and _t > _mark + 8.3:
+		_shot("63_dragons_breath")
+		_game.enemies.kill_all(false)
+		_game.projectiles.clear_all()
+		_game.weapon_host.process_mode = Node.PROCESS_MODE_DISABLED
+		# the Saiga Sniper (pass 73): held in shot north of the hero, caught while its red lines gather on him
+		_sniper = -1
+		if root.get_node("Registry").enemies.has("saiga_sniper"):
+			_sniper = _game.enemies.spawn("saiga_sniper", _game.player.global_position + Vector3(2.0, 0, -11.0), null, 1.0, 40.0)
+		_step = 1047
+	elif _step == 1047:
+		if _sniper >= 0 and _game.enemies.alive[_sniper] == 1:
+			var sp: Vector3 = _game.player.global_position + Vector3(2.0, 0, -11.0)
+			_game.enemies.pos[_sniper] = Vector3(sp.x, _game.map.height_at(sp.x, sp.z), sp.z)
+		if _t > _mark + 12.4:
+			_shot("64_saiga_sniper")
+			_step = 1048
+	elif _step == 1048 and _t > _mark + 12.6:
+		_game.weapon_host.process_mode = Node.PROCESS_MODE_INHERIT
+		_t = 80.31
 		_game = null
 		print("screenshot_run: changing to title")
 		var err := change_scene_to_file("res://ui/TitleScreen.tscn")
@@ -813,6 +917,23 @@ func _tick() -> void:
 		_step = 7
 	elif _step == 7 and _t > 82.4:
 		_shot("06_title")
+		# pass 104: the hero drawer open, then the hero's Wanted sheet
+		_mark = _t
+		if current_scene and current_scene.has_method("open_drawer"):
+			current_scene.open_drawer()
+		_step = 7001
+	elif _step == 7001 and _t > _mark + 1.0:
+		_shot("65_hero_drawer")
+		if current_scene and current_scene.has_method("close_drawer"):
+			current_scene.close_drawer()
+		_step = 7002
+	elif _step == 7002 and _t > _mark + 1.8:
+		if current_scene and current_scene.has_method("open_sheet"):
+			current_scene.open_sheet()
+		_step = 7003
+	elif _step == 7003 and _t > _mark + 2.8:
+		_shot("65b_hero_sheet")
+		_t = 82.41
 		change_scene_to_file("res://ui/HomesteadScreen.tscn")
 		_step = 8
 	elif _step == 8 and _t > 83.2:
@@ -842,6 +963,17 @@ func _tick() -> void:
 		_step = 11
 	elif _step == 11 and _t > 86.2:
 		_shot("10_settings")
+		# pass 104: the Stages menu, stage 1 beaten and the King met (the save goes back after the run, godot.sh)
+		_mark = _t
+		var sv2 = root.get_node("Save")
+		sv2.data["stages_beaten"] = {"red_canyon": [true, false, false]}
+		sv2.data["last_map"] = "red_canyon"
+		sv2.data["seen"] = {"enemy": ["tumbleweed_king"]}
+		change_scene_to_file("res://ui/StagesScreen.tscn")
+		_step = 1101
+	elif _step == 1101 and _t > _mark + 1.5:
+		_shot("66_stages")
+		_t = 86.21
 		# the debug arena (pass 33.4): the panel's tabs over an empty field, then a crowd from the roster at 8:00
 		_run.arena_next = true
 		change_scene_to_file("res://game/Game.tscn")
@@ -868,11 +1000,11 @@ func _tick() -> void:
 		current_scene.arena_panel.set_clock(8.0)
 		current_scene.arena_panel.crowd(160)
 		_step = 94
-	elif _step == 94 and _t > 93.3:
+	elif _step == 94 and _t > 95.8:
 		_shot("57d_arena_crowd")
 		current_scene.leave_arena()
 		_step = 95
-	elif _step == 95 and _t > 94.3:
+	elif _step == 95 and _t > 96.8:
 		quit(0)
 
 

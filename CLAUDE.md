@@ -440,6 +440,8 @@ Pass 103: Endless `hp_growth` 0.15, `atk_growth` 0.095 (the lead's guess for Gar
 non-explosive knockback more each second of Endless (`knock_resist_max` 1.0 over `knock_resist_seconds` 90; weapons
 tagged `explosive` and the sources in `knock_resist_exempt_sources` keep their push; EnemyManager.HIT_BLAST); Backdraft
 knock 3.3, Fire Eater 4.7; Powder Keg a twelfth of the body's max HP (Game.KEG_FRAC).
+Pass 104 (docs): the design bible rebuilt for pass 103 (fresh captures from game/tools/screenshot_run.gd, played looks in
+the generated sections, each section leading with what is true now and a collapsed history block; 12.4 MB).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

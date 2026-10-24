@@ -25,9 +25,27 @@ for a in sys.argv[1:]:
         SHOTS = a.split("=", 1)[1]
 
 
-def to_webp(png, name, quality=82):
+SHOT_W = 720   # pass 104: captures are 1080 wide; 720 is plenty for the page and its zoom, and halves the bytes
+
+
+def to_webp(png, name, quality=80):
     im = Image.open(png).convert("RGB")
+    if im.width > SHOT_W:
+        im = im.resize((SHOT_W, round(im.height * SHOT_W / im.width)), Image.LANCZOS)
     im.save(os.path.join(IMG, name + ".webp"), "WEBP", quality=quality, method=6)
+
+
+def shrink_old_shots(names):
+    """Older captures still at 1080 wide (no PNG this build) brought to SHOT_W once, in place (pass 104)."""
+    for name in names:
+        p = os.path.join(IMG, name + ".webp")
+        if not name[:1].isdigit() or not os.path.exists(p):
+            continue
+        im = Image.open(p)
+        if im.width > SHOT_W and im.height > im.width:
+            im = im.convert("RGB").resize((SHOT_W, round(im.height * SHOT_W / im.width)), Image.LANCZOS)
+            im.save(p, "WEBP", quality=80, method=6)
+            print("shrunk", name)
 
 
 def uri(name):
@@ -47,8 +65,11 @@ CHAR_ORDER = ["idle", "run", "turn", "hit", "die", "cheer", "idle_f", "run_f", "
 
 
 def strip_frames(folder, id_):
-    d = json.load(open(os.path.join(folder, id_ + ".json"), encoding="utf-8"))
-    im = Image.open(os.path.join(folder, id_ + "_sprite.png")).convert("RGBA")
+    """The strip of the look `id_` is played in (pass 104: variants[variant].sprite/anims/strip_cols, else the base)."""
+    kind = os.path.basename(os.path.dirname(folder))
+    d = _load_type(kind).get(id_) or json.load(open(os.path.join(folder, id_ + ".json"), encoding="utf-8"))
+    sprite = d.get("sprite") if d.get("sprite") and os.path.exists(os.path.join(folder, str(d.get("sprite")))) else id_ + "_sprite.png"
+    im = Image.open(os.path.join(folder, sprite)).convert("RGBA")
     cell = int(d.get("frame_px", 128))
     cols = int(d.get("strip_cols", im.width // cell))
     order = ENEMY_ORDER if "attack" in d.get("anims", {}) else CHAR_ORDER
@@ -75,11 +96,59 @@ def stack(rows, name):
     out.save(os.path.join(IMG, name + ".webp"), "WEBP", quality=74, method=6)   # pass 79: 84 pushed the page past 16 MB
 
 
+def stage_windows(tl=None):
+    """[(name, start, end)] of the map's stage_list (pass 87: each stage is its own run, a window of the one timeline)."""
+    if tl is None:
+        tl = json.load(open(os.path.join("game", "content", "maps", "red_canyon", "red_canyon.json"), encoding="utf-8"))["timeline_data"]
+    out = []
+    t0 = 0.0
+    for k, s_ in enumerate(tl.get("stage_list", [])):
+        ln = float(s_.get("length", tl.get("stage_length", 430)))
+        out.append((s_.get("name", "Stage %d" % (k + 1)), t0, t0 + ln))
+        t0 += ln
+    if not out:
+        ln = float(tl.get("stage_length", 430))
+        out = [("Stage %d" % (k + 1), k * ln, (k + 1) * ln) for k in range(int(tl.get("stages", 3)))]
+    return out
+
+
+def stage_index(t, tl=None):
+    """0-based stage of a second of the one timeline (the last stage for anything past its end: Endless)."""
+    w = stage_windows(tl)
+    for k, (_, a, b) in enumerate(w):
+        if t < b:
+            return k
+    return len(w) - 1
+
+
+def stage_clock(t, tl=None):
+    """A second of the one timeline as the player reads it: "Nightfall 2:25" (the stage's own clock)."""
+    w = stage_windows(tl)
+    k = stage_index(t, tl)
+    rel = max(t - w[k][1], 0.0)
+    return "%s %d:%02d" % (w[k][0], int(rel) // 60, int(rel) % 60)
+
+
+def roster_arrivals(tl):
+    """{creature: the first second a roster row brings it} (pass 104: the earliest row, not the last one read; a row's
+    `enemy` may be one id, a list (pass 84) or "roster", the mix of the rows live then, which names no creature)."""
+    out = {}
+    for r in tl.get("roster", []):
+        if not isinstance(r, dict) or r.get("role") == "elite" or r.get("enemy") == "roster":
+            continue
+        e = r.get("enemy")
+        for x in (e if isinstance(e, list) else [e]):
+            if isinstance(x, str) and x and x != "roster":
+                t = float(r.get("t", 0))
+                out[x] = min(out.get(x, t), t)
+    return out
+
+
 def creature_order():
     """Every creature in the order the timeline meets it: roster by arrival, then the Elites, then the bosses, so the cast
     sheet and the creature table come from the same data and neither can forget a creature."""
     tl = json.load(open(os.path.join("game", "content", "maps", "red_canyon", "red_canyon.json"), encoding="utf-8"))["timeline_data"]
-    arrive = {r["enemy"]: float(r.get("t", 0)) for r in tl.get("roster", [])}
+    arrive = roster_arrivals(tl)
     ids = [("enemies", i) for i, _ in sorted(arrive.items(), key=lambda kv: kv[1])]
     # the specials come on their own clock (pass 33.4), after the roster
     for row in tl.get("specials", {}).get("pool", []):
@@ -107,10 +176,14 @@ def cast_sheet():
     f2 = font(17)
     for t, id_ in ids:
         folder = os.path.join(CONTENT, t, id_)
-        if not os.path.exists(os.path.join(folder, id_ + "_sprite.png")):
+        wd = _load_type(t).get(id_, {})
+        if not os.path.exists(os.path.join(folder, wd.get("sprite") or id_ + "_sprite.png")) or wd.get("hidden"):
             continue
         d, cell, off, frame = strip_frames(folder, id_)
-        icon = Image.open(os.path.join(folder, id_ + "_icon.png")).convert("RGBA").resize((H, H), Image.LANCZOS)
+        ip = os.path.join(folder, d.get("_icon", id_ + "_icon.png"))
+        if not os.path.exists(ip):
+            ip = os.path.join(folder, id_ + "_icon.png")
+        icon = Image.open(ip).convert("RGBA").resize((H, H), Image.LANCZOS)
         n = int(d.get("anims", {}).get("run", 0))
         picks = [off["run"] + int(k * n / 6) for k in range(6)] if n else []
         row = Image.new("RGBA", (H + 20 + 6 * (H + 6) + 240, H + 10), (26, 24, 34, 255))
@@ -121,14 +194,14 @@ def cast_sheet():
         dr = ImageDraw.Draw(row)
         x = H + 20 + 6 * (H + 6) + 14
         dr.text((x, H // 2 - 26), d["name"], fill=(240, 236, 248, 255), font=f)
-        dr.text((x, H // 2 + 4), "%s / %s" % (d.get("archetype", ""), d.get("brain", "")), fill=(135, 127, 158, 255), font=f2)
+        dr.text((x, H // 2 + 4), "%s / %s%s" % (d.get("archetype", ""), d.get("brain", ""), ("  · " + d["_look"]) if d.get("_look") else ""), fill=(135, 127, 158, 255), font=f2)
         rows.append(row)
     if rows:
         stack(rows, "cast")
 
 
 def hero_cycles():
-    """Astro: five views x eight of the 24 run frames, then the nine-frame hit reaction."""
+    """Astro: five views x eight of the run frames, then the front's hit reaction (all its frames)."""
     folder = os.path.join(CONTENT, "characters", "astro")
     if not os.path.exists(os.path.join(folder, "astro_sprite.png")):
         return
@@ -155,8 +228,32 @@ def hero_cycles():
     stack(rows, "hero_cycles")
 
 
+def _sheet_icons():
+    """Every icon in play, grouped by kind, each in its played look; a passive item's Evolved icon after its own (pass 95);
+    hidden, retired and shelved content left out (pass 104)."""
+    out = []
+    for t in ("characters", "weapons", "mutations", "evolutions", "passives", "perks", "pickups", "enemies", "bosses"):   # structures: paintings, their icons are placeholders
+        if not os.path.isdir(os.path.join(CONTENT, t)):
+            continue
+        items = _load_type(t)
+        for id_ in sorted(items, key=lambda k: (items[k].get("name", k))):
+            d = items[id_]
+            if d.get("hidden") or d.get("retired") or d.get("shelved") or id_.startswith("training_dummy"):
+                continue
+            folder = os.path.join(CONTENT, t, id_)
+            p = os.path.join(folder, d.get("_icon", id_ + "_icon.png"))
+            if not os.path.exists(p):
+                p = os.path.join(folder, id_ + "_icon.png")
+            if os.path.exists(p):
+                out.append(p)
+            ev = os.path.join(folder, id_ + "_icon_evolved.png")
+            if t == "passives" and os.path.exists(ev):
+                out.append(ev)
+    return out
+
+
 def icon_sheet():
-    icons = sorted(glob.glob(os.path.join(CONTENT, "*", "*", "*_icon.png")))
+    icons = _sheet_icons()
     S = 96
     cols = 10
     rows = (len(icons) + cols - 1) // cols
@@ -172,8 +269,8 @@ def fire_gif(shots):
     frames = sorted(glob.glob(os.path.join(shots, "fire_seq_*.png"))) if shots else []
     if not frames:
         return
-    ims = [Image.open(f).convert("RGB").crop((300, 560, 900, 1160)).resize((300, 300), Image.LANCZOS) for f in frames[::2]]
-    ims = [im.quantize(colors=48, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for im in ims]
+    ims = [Image.open(f).convert("RGB").crop((300, 560, 900, 1160)).resize((240, 240), Image.LANCZOS) for f in frames[::2]]   # pass 104: 240 px, 32 colours (the page under 15.5 MB)
+    ims = [im.quantize(colors=32, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for im in ims]
     ims[0].save(os.path.join(IMG, "fire.gif"), save_all=True, append_images=ims[1:], duration=200, loop=0, optimize=True)
 
 
@@ -181,7 +278,7 @@ def creature_rows():
     """The creature table from the content: every enemy and boss, ordered by when the map's roster brings them in."""
     import glob
     tl = json.load(open(os.path.join("game", "content", "maps", "red_canyon", "red_canyon.json"), encoding="utf-8"))["timeline_data"]
-    arrive = {r["enemy"]: float(r.get("t", 0)) for r in tl.get("roster", [])}
+    arrive = roster_arrivals(tl)
     # when the Elites come, read off the timeline (pass 46: the clock was stretched, the times must follow it)
     elite_times = {}
     elite_every = None
@@ -195,15 +292,16 @@ def creature_rows():
             elite_every = ev
         if ev.get("type") == "boss" and ev.get("enemy") not in boss_ids:
             boss_ids.append(ev.get("enemy"))
-    defs = {}
-    for f in glob.glob(os.path.join("game", "content", "enemies", "*", "*.json")) + glob.glob(os.path.join("game", "content", "bosses", "*", "*.json")):
-        if f.endswith("_ai.json"):
-            continue
-        d = json.load(open(f, encoding="utf-8"))
-        defs[d["id"]] = d
+    # pass 84: Elites-every is a roster row (role elite, enemy "roster", every N s)
+    for r in tl.get("roster", []):
+        if isinstance(r, dict) and r.get("role") == "elite" and elite_every is None:
+            elite_every = {"t": r.get("t", 0), "interval": r.get("every", r.get("interval", 90)), "until": r.get("until")}
+    # every creature and boss in the look it is played in (pass 104)
+    defs = dict(_load_type("enemies"))
+    defs.update(_load_type("bosses"))
 
     def mmss(t):
-        return "%d:%02d" % (int(t) // 60, int(t) % 60)
+        return stage_clock(float(t), tl)
 
     def numbers(d):
         parts = []
@@ -242,12 +340,12 @@ def creature_rows():
         if not d:
             continue
         st = int(r.get("stage", 1)) if isinstance(r, dict) else 1
-        when = ("special from %s" % mmss(float(sp.get("from", 150)))) if st <= 1 else ("special from stage %d" % st)
+        when = ("special from %s" % mmss(float(sp.get("from", 150)))) if st <= 1 else ("special from %s" % stage_windows(tl)[min(st, len(stage_windows(tl))) - 1][0])
         rows.append(row(d, "%s · %s" % (when, d.get("flavour", ""))))
     if elite_every is not None:
         iv = elite_every.get("interval", 90)
         iv_text = ("%g–%g s" % (float(iv[0]), float(iv[-1]))) if isinstance(iv, list) else ("%g s" % float(iv))
-        rows.append('      <tr><td class="it-i"></td><td><span class="name">Elite variants</span><span class="sub">every %s from %s</span></td><td>base brain</td><td class="num">1.4–1.6× size</td><td>Any roster creature with a modifier: armoured, swift, splitting, exploding (never the spit cactus or a special: <code>can_be_elite</code>). Always a chest.</td></tr>' % (
+        rows.append('      <tr><td class="it-i"></td><td><span class="name">Coloured Elites</span><span class="sub">one every %s from %s (the roster row <i>Elites every</i>)</span></td><td>base brain</td><td class="num">1.4–1.6× size</td><td>A creature drawn from the mix live at that second, wearing a modifier: shielded, speedy, splitter or explosive (never one with <code>can_be_elite</code> off, never a special). Always a chest.</td></tr>' % (
             iv_text, mmss(float(elite_every.get("t", 0)))))
     for id_ in sorted(elite_times):
         d = defs.get(id_)
@@ -258,7 +356,7 @@ def creature_rows():
         if d:
             rows.append(row(d, "boss", "boss"))
     # pass 53: creatures that are in the content but on no row (the Red Goblins and the Werewolf wait for the Level Editor)
-    waiting = [d for i, d in sorted(defs.items()) if i not in placed and not d.get("retired") and not d.get("hidden")
+    waiting = [d for i, d in sorted(defs.items()) if i not in placed and not d.get("retired") and not d.get("hidden") and not d.get("shelved")
                and not i.startswith("training_dummy") and d.get("archetype") not in ("boss",) and i != "tumbleweed_minion"]
     if waiting:
         rows.append('      <tr class="it-grp"><td colspan="5">In the content, on no row yet: place them with the Level Editor (tools\\level_editor.cmd) · %d</td></tr>' % len(waiting))
@@ -267,14 +365,77 @@ def creature_rows():
     return "\n".join(rows)
 
 
-def _load_type(t):
-    out = {}
-    for f in glob.glob(os.path.join("game", "content", t, "*", "*.json")):
-        if os.path.basename(f) != os.path.basename(os.path.dirname(f)) + ".json":
-            continue
-        d = json.load(open(f, encoding="utf-8"))
-        out[d["id"]] = d
+_RAW = {}
+_WORN = {}
+
+
+def _raw_type(t):
+    """Every <id>.json of a content type as written (cached)."""
+    if t not in _RAW:
+        out = {}
+        for f in glob.glob(os.path.join("game", "content", t, "*", "*.json")):
+            if os.path.basename(f) != os.path.basename(os.path.dirname(f)) + ".json":
+                continue
+            d = json.load(open(f, encoding="utf-8"))
+            out[d["id"]] = d
+        _RAW[t] = out
+    return _RAW[t]
+
+
+_LOOK_WORDS = ("name", "flavour", "text", "noun", "nouns")
+_LOOK_ART = ("sprite", "anims", "strip_cols", "frame_px", "fps", "head")
+
+
+def _look_entry(d, code, folder):
+    """The look `code` of a JSON (its variants[code]) when its files are on disk, else None."""
+    if not code:
+        return None
+    e = (d.get("variants") or {}).get(code)
+    if not isinstance(e, dict):
+        return None
+    for k in ("icon", "sprite"):
+        if e.get(k) and not os.path.exists(os.path.join(folder, e[k])):
+            return None
+    return e
+
+
+def _family_code(t, d):
+    """The look code an item plays (pass 104, lane BIBLE: the bible shows the game as it is played): a weapon family wears
+    its weapon's `variant` (ItemLooks, pass 76), a card or passive item its own `variant` (the cards' B), a creature, boss or
+    hero its `variant` (Registry.played_look)."""
+    W = _raw_type("weapons")
+    if t == "weapons":
+        return str(d.get("variant", d.get("variant_base", "A")))
+    if t == "mutations":
+        w = W.get(d.get("weapon", ""), {})
+        return str(w.get("variant", w.get("variant_base", ""))) if w else ""
+    if t == "evolutions":
+        w = W.get(d.get("evolved_from", ""), {}) or next((x for x in W.values() if x.get("evolves_into") == d.get("id")), {})
+        return str(w.get("variant", w.get("variant_base", ""))) if w else ""
+    return str(d.get("variant", "") or "")
+
+
+def _wear(t, d):
+    """A copy of `d` in the look it is played in: the look's words and art over the top level; `_icon` the icon file."""
+    folder = os.path.join(CONTENT, t, d["id"])
+    out = dict(d)
+    out["_icon"] = d["id"] + "_icon.png"
+    e = _look_entry(d, _family_code(t, d), folder)
+    if e:
+        for k in _LOOK_WORDS + _LOOK_ART:
+            if k in e:
+                out[k] = e[k]
+        if e.get("icon"):
+            out["_icon"] = e["icon"]
+        out["_look"] = _family_code(t, d)
     return out
+
+
+def _load_type(t):
+    """Every item of a type as the game plays it (its played look worn), cached."""
+    if t not in _WORN:
+        _WORN[t] = {k: _wear(t, v) for k, v in _raw_type(t).items()}
+    return _WORN[t]
 
 
 def _esc(s):
@@ -503,8 +664,10 @@ def pic_uri(p, px=ICON_PX):
 
 
 def icon_uri(kind, id_):
-    """An item's icon as a small embedded WebP (its <id>_icon.png)."""
-    return pic_uri(os.path.join(CONTENT, kind, id_, id_ + "_icon.png"))
+    """An item's icon as a small embedded WebP: the icon of the look it is played in (pass 104), else its <id>_icon.png."""
+    d = _load_type(kind).get(id_, {}) if os.path.isdir(os.path.join(CONTENT, kind)) else {}
+    name = d.get("_icon", id_ + "_icon.png")
+    return pic_uri(os.path.join(CONTENT, kind, id_, name))
 
 
 def creature_pic(d, px=72):
@@ -513,7 +676,9 @@ def creature_pic(d, px=72):
     kind = "bosses" if d.get("archetype") == "boss" else "enemies"
     folder = os.path.join(CONTENT, kind, d["id"])
     v = (d.get("variants") or {}).get(d.get("variant", ""), {})
-    name = v.get("icon") if isinstance(v, dict) and v.get("icon") else d["id"] + "_icon.png"
+    name = d.get("_icon") or (v.get("icon") if isinstance(v, dict) and v.get("icon") else d["id"] + "_icon.png")
+    if not os.path.exists(os.path.join(folder, name)):
+        name = d["id"] + "_icon.png"
     u = pic_uri(os.path.join(folder, name), 160)
     if not u:
         return '<span class="it-noico" style="width:%dpx;height:%dpx"></span>' % (px, px)
@@ -710,7 +875,8 @@ def _first_arrival(enemy_id):
     tl = _timeline()
     best = -1.0
     for row in tl.get("roster", []):
-        if isinstance(row, dict) and row.get("enemy") == enemy_id:
+        e = row.get("enemy") if isinstance(row, dict) else None
+        if enemy_id in (e if isinstance(e, list) else [e]):
             t = float(row.get("t", 0))
             best = t if best < 0 or t < best else best
     for ev in tl.get("events", []):
@@ -722,7 +888,8 @@ def _first_arrival(enemy_id):
     sp = tl.get("specials", {}) if isinstance(tl.get("specials"), dict) else {}
     for row in sp.get("pool", []):
         if isinstance(row, dict) and row.get("enemy") == enemy_id:
-            t = float(sp.get("from", 0)) + max(float(row.get("stage", 1)) - 1.0, 0.0) * float(tl.get("stage_length", 300))
+            st_ = int(row.get("stage", 1))
+            t = max(float(sp.get("from", 0)), stage_windows(tl)[min(max(st_, 1), len(stage_windows(tl))) - 1][1])
             best = t if best < 0 or t < best else best
     return best
 
@@ -734,11 +901,14 @@ def quest_stage(q):
     stage_len = max(float(_timeline().get("stage_length", 300)), 1.0)
     if t in ("kills_of_enemy", "kills_in_run_of_enemy"):
         a = _first_arrival(c.get("enemy", ""))
-        return int(a // stage_len) + 1 if a >= 0 else 0
+        return stage_index(a, _timeline()) + 1 if a >= 0 else 0
     if t in ("kill_boss", "reach_stage", "extract_after_stage"):
         return int(c.get("stage", 1))
     if t in ("survive_minutes", "survive_minutes_no_lift"):
-        return int(-(-float(c.get("minutes", 0)) * 60.0 // stage_len))
+        # pass 87 (QuestTracker.stage_hint): the first stage at least that long (a run plays one stage), else the last
+        need = float(c.get("minutes", 0)) * 60.0
+        w = stage_windows(_timeline())
+        return next((k + 1 for k, (_, a0, b0) in enumerate(w) if b0 - a0 >= need), len(w))
     if t == "evolve_any":
         return 2
     if t in ("reach_level", "hero_level"):
@@ -802,7 +972,8 @@ def _lock_chips(kind, id_):
 
 _BEHAVIOUR = {"ProjectileEmitter": "shots", "Orbiter": "orbit", "Lobber": "lobs", "Beam": "chain lightning", "Spawner": "turret",
               "MissilePod": "homing", "Thruster": "blade", "LaserBeam": "beam", "Smasher": "hammer", "GravityGun": "grab & throw",
-              "ConeWave": "cone wave", "MineLayer": "mines"}
+              "ConeWave": "cone wave", "MineLayer": "mines", "FireBreath": "fire breath", "SunScepter": "sun beam",
+              "Frisbee": "curving discs", "SaltShaker": "salt patches"}
 _BLAST_M = {"Lobber", "MissilePod", "MineLayer"}   # their area is a blast radius in metres; elsewhere it is a scale
 
 
@@ -1033,8 +1204,15 @@ def item_passive_rows():
     for pid in sorted(ids, key=lambda k: (grp(k), rank(k), P[k].get("name", k))):
         p = P[pid]
         chips, notes = _passive_chips(pid, p, D)
-        rows.append('      <tr class="it-p%s"><td class="it-i">%s</td><td><span class="name">%s</span>%s%s<span class="sub">%s</span></td><td class="it-what">%s</td><td class="num" data-label="levels">%d</td>%s</tr>' % (
-            " it-off" if p.get("hidden") else "", _ico("passives", pid, 40), _esc(p.get("name", pid)), _rarity_chip(p), _element_chip(p), _esc(p.get("flavour", "")),
+        if p.get("single"):
+            chips.append(_chip("e", "one-shot", "one level, off the rarity ladder, never offered again (pass 100)"))
+        ev = os.path.join(CONTENT, "passives", pid, pid + "_icon_evolved.png")
+        evo_ico = ""
+        if os.path.exists(ev) and not p.get("single"):
+            u = pic_uri(ev)
+            evo_ico = '<img class="it-ico" src="%s" width="28" height="28" alt="" loading="lazy" title="its Evolved rung" style="background:%s;box-shadow:inset 0 0 0 2px %s;vertical-align:middle;margin-left:6px">' % (u, PLATE["evolved"], PLATE["ring"]) if u else ""
+        rows.append('      <tr class="it-p%s"><td class="it-i">%s</td><td><span class="name">%s</span>%s%s%s<span class="sub">%s</span></td><td class="it-what">%s</td><td class="num" data-label="levels">%d</td>%s</tr>' % (
+            " it-off" if p.get("hidden") else "", _ico("passives", pid, 40), _esc(p.get("name", pid)), _rarity_chip(p), _element_chip(p), evo_ico, _esc(p.get("flavour", "")),
             # a passive item's price (Beer's max HP) is its trade: this table has no trade column, so it rides in the text
             _esc(_passive_effect(p) + ((" · trade: " + p["trade"]) if p.get("trade") else "")), int(p.get("max_level", 5)), _status_cell(chips, notes)))
     return "\n".join(rows)
@@ -1098,8 +1276,8 @@ def item_counts():
     plain = sum(1 for p in P.values() if not _is_line(p))
     locked = len(_locks())
     return ("<b>%d weapons</b> (%d hidden), each with its mutations (<b>%d</b> in all, %d of them a hero's own) and its evolution (<b>%d</b>); "
-            "<b>%d lines</b> and the %d they evolve into; <b>%d passive items</b>. %d of the weapons, lines and passives are locked "
-            "behind a quest.") % (len(W), hw, len(M), hm, len(E), lines, lines, plain, locked)
+            "<b>%d cards</b> (lines in the code) and the %d they evolve into; <b>%d passive items</b>. %d of the weapons, cards and "
+            "passives are locked behind a quest.") % (len(W), hw, len(M), hm, len(E), lines, lines, plain, locked)
 
 
 def unlock_rows():
@@ -1158,6 +1336,7 @@ def main():
             missing.append(name)
             return '<img class="shot" alt="%s (capture missing)">' % alt
         return '<img class="shot" src="%s" alt="%s">' % (uri(name), alt)
+    shrink_old_shots(sorted(set(re.findall(r"\{\{IMG:([^|}]+)\|", html))))
     html = re.sub(r"\{\{IMG:([^|}]+)\|([^}]*)\}\}", img, html)
 
     def gif(m):
