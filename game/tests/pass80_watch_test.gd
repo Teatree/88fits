@@ -376,7 +376,7 @@ func test_decision_log_csv() -> void:
 	var lines := csv.strip_edges().split("\n")
 	assert_int(lines.size()).is_equal(2)
 	assert_str(lines[0]).is_equal(",".join(PackedStringArray(DATA.CSV_COLUMNS)))
-	assert_str(lines[1]).is_equal("61.0,61.0,4,card,tommy_gun,Tommy Gun,\"+18% DPS: Tommy Gun to Lv 4, the favourite\",tommy_gun=1.3 | snake_oil=0.9,120.0,,,")
+	assert_str(lines[1]).is_equal("61.0,61.0,4,card,tommy_gun,Tommy Gun,\"+18% DPS: Tommy Gun to Lv 4, the favourite\",tommy_gun=1.3 | snake_oil=0.9,120.0,,,,bot")
 
 
 # ---------------------------------------------------------------- the command line

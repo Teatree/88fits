@@ -358,6 +358,8 @@ def _file_checks(check, server):
     tl = d["timeline_data"]
     check(not MT.has_legacy(tl), "SPAWN84: Red Canyon spawns through rows only (no swarm / elite / elite_every event, no waves[])")
     once = [r for r in tl["roster"] if r.get("pace") == "once"]
-    check(len(once) >= 5 and all(isinstance(r.get("weights"), list) and r.get("name") for r in once), "SPAWN84: Red Canyon's swarms are named once rows with presence")
+    # pass 106 re-pin: Garry also makes unnamed once rows (r19, r30 on 2026-10-25): the named swarms are still there
+    named = [r for r in once if r.get("name")]
+    check(len(named) >= 5 and all(isinstance(r.get("weights"), list) for r in once), "SPAWN84: Red Canyon's swarms are named once rows with presence")
     ids = [r.get("id") for r in tl["roster"]]
     check(len(ids) == len(set(ids)), "SPAWN84: Red Canyon's row ids are unique")

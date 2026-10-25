@@ -84,7 +84,7 @@
     "cap_start": 10,
     "cap_per_minute": 7.81,
     "cap_max": 500,
-    "hard_cap": 300,
+    "hard_cap": 500,
     "cap_curve": [
       [
         0,
@@ -270,7 +270,7 @@
       {
         "id": "r21",
         "t": 245,
-        "until": 315,
+        "until": 266,
         "enemy": "cactus_walker",
         "weights": [
           [
@@ -288,9 +288,10 @@
         ],
         "pack": 30,
         "stats": {
-          "hp_mult": 0.8,
+          "hp_mult": 0.84,
           "size": 1.25,
-          "damage_mult": 1.25
+          "damage_mult": 1.25,
+          "speed": 1.25
         },
         "pattern": "ring",
         "pace": "waves",
@@ -300,9 +301,39 @@
         "role": "fodder"
       },
       {
+        "id": "r58",
+        "t": 270,
+        "until": 315,
+        "enemy": "cactus_walker",
+        "weights": [
+          [
+            270,
+            5.4
+          ],
+          [
+            331,
+            10.1
+          ],
+          [
+            362,
+            10.6
+          ]
+        ],
+        "pack": 10,
+        "stats": {
+          "hp_mult": 0.82,
+          "size": 1.25,
+          "damage_mult": 1.25,
+          "speed": 1.25
+        },
+        "pattern": "scatter",
+        "role": "fodder",
+        "interval": 3
+      },
+      {
         "id": "r55",
         "t": 315,
-        "until": 376,
+        "until": 332,
         "enemy": "werewolf",
         "weights": [
           [
@@ -320,8 +351,11 @@
         ],
         "pack": 30,
         "stats": {
-          "hp_mult": 0.8,
-          "size": 1.25,
+          "hp_mult": 1.55,
+          "size": [
+            1.25,
+            2.3
+          ],
           "damage_mult": 1.25
         },
         "pattern": "ring",
@@ -329,6 +363,38 @@
         "every": 5,
         "count": 50,
         "role": "fodder"
+      },
+      {
+        "id": "r59",
+        "t": 332,
+        "until": 389,
+        "enemy": "werewolf",
+        "weights": [
+          [
+            332,
+            5.4
+          ],
+          [
+            393,
+            10.1
+          ],
+          [
+            424,
+            10.6
+          ]
+        ],
+        "pack": 15,
+        "stats": {
+          "hp_mult": 1.5,
+          "size": [
+            1.25,
+            2.3
+          ],
+          "damage_mult": 1.25
+        },
+        "pattern": "scatter",
+        "role": "fodder",
+        "interval": 2.5
       },
       {
         "id": "r3",
@@ -534,22 +600,63 @@
       {
         "id": "r19",
         "t": 431,
-        "until": 632,
+        "until": 443,
         "enemy": "buckshot_dwarf",
         "weights": [
           [
             431,
-            1.0
+            5.0
           ],
           [
-            632,
-            1.4
+            451,
+            5.0
+          ],
+          [
+            451,
+            1
+          ],
+          [
+            640,
+            1
           ]
         ],
         "pack": 10,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.26,
+          "hp_mult": 0.6,
+          "max_alive": 10
+        },
+        "pace": "once",
+        "count": 10,
+        "respect_cap": false
+      },
+      {
+        "id": "r56",
+        "t": 443,
+        "until": 667,
+        "enemy": "buckshot_dwarf",
+        "weights": [
+          [
+            443,
+            5.0
+          ],
+          [
+            463,
+            5.0
+          ],
+          [
+            463,
+            1
+          ],
+          [
+            652,
+            1
+          ]
+        ],
+        "pack": 10,
+        "pattern": "scatter",
+        "stats": {
+          "hp_mult": 0.4,
           "max_alive": 3
         },
         "pace": "waves",
@@ -560,7 +667,7 @@
         "id": "r22",
         "t": 453,
         "until": 606,
-        "enemy": "armadillo",
+        "enemy": "desert_spider",
         "weights": [
           [
             453,
@@ -571,21 +678,24 @@
             8.0
           ]
         ],
-        "pack": 100,
+        "pack": 15,
         "pattern": "in_front",
         "stats": {
           "size": [
             1.0,
-            1.35
+            2.0
           ],
-          "hp_mult": 0.54
-        }
+          "hp_mult": 0.2,
+          "speed": 2
+        },
+        "pace": "waves",
+        "every": 5
       },
       {
         "id": "r23",
         "t": 575,
         "until": 667,
-        "enemy": "desert_spider",
+        "enemy": "armadillo",
         "weights": [
           [
             575,
@@ -598,19 +708,10 @@
         ],
         "pack": 2,
         "stats": {
-          "hp_mult": 0.67,
-          "tint": {
-            "hue": [
-              254,
-              275
-            ],
-            "sat": 0.82,
-            "val": 0.23,
-            "amount": 1
-          }
+          "hp_mult": 0.67
         },
         "pattern": "scatter",
-        "interval": 0.5
+        "interval": 3.0
       },
       {
         "id": "r18",
@@ -656,7 +757,8 @@
         "pack": 1,
         "stats": {
           "hp_mult": 1.0
-        }
+        },
+        "interval": 1.75
       },
       {
         "id": "r24",
@@ -781,7 +883,7 @@
               96
             ],
             "sat": 0.85,
-            "val": 0.3,
+            "val": 0.73,
             "amount": 0.34
           }
         },
@@ -791,6 +893,30 @@
       },
       {
         "id": "r30",
+        "t": 780,
+        "until": 789,
+        "enemy": "goblin",
+        "weights": [
+          [
+            780,
+            5.0
+          ],
+          [
+            927,
+            6.0
+          ]
+        ],
+        "pack": 50,
+        "stats": {
+          "hp_mult": 1.64
+        },
+        "pace": "once",
+        "pattern": "ring",
+        "count": 50,
+        "ring_radius": 15
+      },
+      {
+        "id": "r57",
         "t": 723,
         "until": 870,
         "enemy": "goblin",
@@ -839,16 +965,16 @@
       },
       {
         "id": "r51",
-        "t": 890,
-        "until": 1030,
+        "t": 901,
+        "until": 946,
         "enemy": "spit_cactus",
         "weights": [
           [
-            890,
+            901,
             1.0
           ],
           [
-            1030,
+            1041,
             1.4
           ]
         ],
@@ -857,7 +983,8 @@
         "stats": {
           "hp_mult": 1.66,
           "max_alive": 4
-        }
+        },
+        "interval": 4
       },
       {
         "id": "r32",
@@ -880,7 +1007,45 @@
           "hp_mult": 0.85,
           "max_alive": 2,
           "damage_mult": 0.7
-        }
+        },
+        "pace": "waves",
+        "every": 20,
+        "count": 5
+      },
+      {
+        "id": "r29",
+        "t": 911,
+        "until": 1030,
+        "enemy": "lesser_scorpion",
+        "weights": [
+          [
+            911,
+            0.6
+          ],
+          [
+            1030,
+            0.8
+          ]
+        ],
+        "pack": 20,
+        "pattern": "scatter",
+        "stats": {
+          "hp_mult": 0.85,
+          "max_alive": 2,
+          "damage_mult": 0.7,
+          "tint": {
+            "hue": [
+              0,
+              25
+            ],
+            "sat": 0.85,
+            "val": 1,
+            "amount": 0.66
+          }
+        },
+        "pace": "waves",
+        "every": 10,
+        "count": 20
       },
       {
         "id": "r10",
@@ -1418,7 +1583,6 @@
         "ring_radius": 16,
         "respect_cap": false,
         "respect_hard_cap": false,
-        "banner": "SWARM!",
         "role": "swarm",
         "stats": {
           "hp_mult": 0.57
@@ -1428,11 +1592,11 @@
       {
         "id": "r9",
         "name": "Armadillo charge",
-        "t": 946,
-        "enemy": "armadillo",
+        "t": 960,
+        "enemy": "bull_beetle",
         "weights": [
           [
-            946,
+            960,
             1
           ]
         ],
@@ -1655,8 +1819,8 @@
       "speed": 1.1,
       "hp_growth": 0.15,
       "atk_growth": 0.095,
-      "speed_growth": 0.015,
-      "speed_max": 1.6,
+      "speed_growth": 0.04,
+      "speed_max": 2.4,
       "xp_share": 0.35,
       "coin_chance": 0.05,
       "roster_window": 60,

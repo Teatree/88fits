@@ -44,6 +44,7 @@ fps = {
 knockback = 4.81
 head = 0.556
 shadow = {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -78,6 +79,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_a.png",
 "note": "Near-realistic desert wolf spider (the least cartoony)",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -115,6 +117,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_b.png",
 "note": "Mild cartoon tarantula: big shiny eyes, a grumpy frown",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -152,6 +155,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_c.png",
 "note": "Exaggerated: a huge round abdomen, chunky legs, angry eyes (side and bd walks from the first run on the plain clay; front, fd, back and death on spider_walk_c, front and back softened)",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -189,6 +193,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_d.png",
 "note": "Very exaggerated: huge furious eyes, big fangs, tiny legs",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -226,6 +231,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_e.png",
 "note": "SP-B in light purple (lavender and lilac) on the fixed walk (spider_walk_v2: every foot steps along the body)",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -263,6 +269,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_f.png",
 "note": "SP-B in light blue (pale sky and powder blue) on the fixed walk (spider_walk_v2: every foot steps along the body)",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -300,6 +307,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_g.png",
 "note": "Pass 94: SP-A's realism in the house style, light purple, as close to the 3D model as it gets, on Klein with many iterations: the clay repainted (img2img from the tinted clay), 28 steps, many seeds per view picked by eye; walked on spider_walk_v4 (the legs as capsules, the model's cones rounded)",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45
@@ -337,6 +345,7 @@ variants = {
 "icon": "res://content/enemies/desert_spider/desert_spider_icon_h.png",
 "note": "Pass 94: SP-A's realism in the house style, light purple, as close to the 3D model as it gets, on Flux.2 dev with many iterations: the clay repainted (img2img from the tinted clay), 40 steps without Turbo, several seeds per view picked by eye; walked on spider_walk_v4 (the legs as capsules, the model's cones rounded)",
 "shadow": {
+"die_drop": -0.15,
 "drop": 0.06,
 "scale": [1.45, 1.5],
 "up": 0.45

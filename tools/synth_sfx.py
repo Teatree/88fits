@@ -356,7 +356,67 @@ def sniper_shot():
     return fade_out(y, 40)
 
 
+# ------------------------------------------------------------------ the War Drum's moment (pass 106, lane DRUM)
+# Garry: "a small melody of drums" while time stands still. A taiko-like war drum: each centre hit ("don") a membrane
+# whose pitch drops as it lands (two upper modes over it and a skin slap on top), a rim hit ("ka") a dry wood click;
+# the last hit a big one with a sub boom and a long tail. The hits and their strengths are the structure's own
+# `params.moment.hits` (content/structures/war_drum/war_drum.json), so the sound and the picture's slaps land together.
+DRUM_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "game", "content", "structures", "war_drum", "war_drum.json")
+
+
+def drum_don(t, at, s, big=False):
+    tt = t - at
+    on = tt >= 0
+    y = np.zeros_like(t)
+    f0 = 68.0 if big else 96.0
+    fr = f0 * (1.0 + 0.55 * np.exp(-np.maximum(tt, 0) / 0.035))
+    ph = 2 * np.pi * np.cumsum(np.where(on, fr, 0.0)) / SR
+    tau = 0.6 if big else 0.11 + 0.1 * s
+    e = np.zeros_like(t)
+    e[on] = env_ad(tt[on], 0.002, tau)
+    y += s * (np.sin(ph) + 0.32 * np.sin(1.59 * ph) * e ** 1.6 + 0.14 * np.sin(2.14 * ph) * e ** 2.4) * e
+    # the skin slap: a short burst of darkened noise
+    n = np.convolve(rng.normal(0, 1.0, len(t)), np.ones(10) / 10, mode="same")
+    slap = np.zeros_like(t)
+    slap[on] = env_ad(tt[on], 0.0005, 0.012)
+    y += 0.5 * s * n * slap
+    if big:
+        y += partial(t, 44.0, 0.9, 0.7, 0.004, at) + partial(t, 131.0, 0.25, 0.25, 0.002, at)
+    return y
+
+
+def drum_ka(t, at, s):
+    n = rng.normal(0, 1.0, len(t))
+    hp = n - np.convolve(n, np.ones(3) / 3, mode="same")
+    tt = t - at
+    on = tt >= 0
+    e = np.zeros_like(t)
+    e[on] = env_ad(tt[on], 0.0004, 0.006)
+    return s * (partial(t, 1180.0, 0.6, 0.03, 0.0005, at) + partial(t, 1870.0, 0.35, 0.02, 0.0005, at) + 0.5 * hp * e)
+
+
+def war_drum_beat():
+    import json
+    m = json.load(open(DRUM_JSON, encoding="utf-8"))["params"]["moment"]
+    t = t_of(float(m.get("seconds", 2.2)))
+    y = np.zeros_like(t)
+    for h in m["hits"]:
+        at, s = float(h["t"]), float(h.get("s", 1.0))
+        if h.get("rim"):
+            y += drum_ka(t, at, s)
+        else:
+            y += drum_don(t, at, s, bool(h.get("big", False)))
+    # a hall round it: a few late copies, darker and quieter, so the drum sounds big
+    dry = y.copy()
+    for d, g in ((0.061, 0.32), (0.097, 0.24), (0.143, 0.17), (0.211, 0.11), (0.297, 0.07)):
+        k = int(SR * d)
+        late = np.convolve(np.concatenate([np.zeros(k), dry[:-k]]), np.ones(6) / 6, mode="same")
+        y += g * late
+    return fade_out(y, 60)
+
+
 SOUNDS = {
+    "st_war_drum_beat": war_drum_beat,
     "en_sniper_aim": sniper_aim,
     "en_sniper_lock": sniper_lock,
     "en_sniper_shot": sniper_shot,

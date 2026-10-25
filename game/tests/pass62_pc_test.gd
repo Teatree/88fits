@@ -174,7 +174,8 @@ func test_non_melee_creatures_come_in_small_numbers() -> void:
 		# in packs of 10 and the Spit Cactus at weight 5; pass 62's small numbers are not pinned any more, max_alive is)
 		var st: Dictionary = r.get("stats", {}) if r.get("stats") is Dictionary else {}
 		var most := int(st.get("max_alive", d.max_alive))
-		if d.brain != "chase":
+		# a once row (a swarm) is bounded by its count (pass 106: Garry's r9 sends 20 Bull Beetles at once)
+		if d.brain != "chase" and str(r.get("pace", "")) != "once":
 			assert_int(most).override_failure_message("%s row %s has no max_alive" % [d.id, str(r.get("id", ""))]).is_greater(0)
 	assert_int(specials).is_greater_equal(6)
 

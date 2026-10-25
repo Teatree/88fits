@@ -204,6 +204,174 @@
         "run": 22,
         "die": 12
       }
+    },
+    "ANT-E": {
+      "note": "Pass 106: an armoured fire ant from Garry's armored-beetle 3D model (auto-rigged, a made six-legged walk and a dead-on-its-back death), bright red-orange, on Klein 28 with the house-style anchor: the clay in the model's own colours repainted",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "armant_walk_v3",
+        "noun": "an ant",
+        "blockout": "a rough grey 3D model of a heavily armoured insect: a small head at the front with two short mandibles and two thin elbowed antennae, a big domed armoured body covered in long sharp spikes, and six jointed legs, three on each side, each ending in a small hooked foot; its rough surface and blotchy colours are only the model's, not part of the ant",
+        "anatomy": "exactly six legs, three on each side, each leg one single continuous jointed limb that starts at the body and ends in one foot, exactly one head with two mandibles and two antennae, no wings, no tail, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its small head with the mandibles and antennae at the right end, the spiked armoured body behind it at the left, the six legs below",
+          "front": "seen from the front and a little above, walking towards the viewer: its head with the two mandibles at the bottom middle, nearest the viewer, the spiked armoured body behind and above it, the legs spreading to both sides",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head with the mandibles at the lower right, nearest the viewer, the spiked armoured body at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the spiked armoured body nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from behind and a little above, walking away from the viewer: the spiked armoured back nearest the viewer in the middle, the head hidden beyond it, the legs spreading to both sides"
+        },
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "motion": "scuttling in place on its six legs like a real ant, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of three, the body level, the spiked armour rigid",
+        "anim_negative": "extra legs, seven legs, eight legs, four legs, legs merging, a leg growing from the head, wings, a tail, two heads, a second ant, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a cartoon face, eyebrows, a mouth",
+        "death_drivers": "armant_death_v2",
+        "dead": "lying dead on its back, its six legs curled up in the air",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "wan": {
+          "lora": false,
+          "steps": 20,
+          "cfg": 3.5
+        },
+        "prompt": "a heavily armoured fire ant warrior with glossy red-orange chitin armour plates, darker blood-red edges and seams, long sharp spikes with black tips standing up all over its domed armoured back, a dark red head with two curved black mandibles, small glossy black eyes and two elbowed antennae, six jointed red-orange legs with black feet, the whole ant the bright red-orange of a real fire ant",
+        "detail": "a real ant's head, mandibles and jointed legs, hard shiny armour plates, menacing, no cartoon face, no eyebrows, no mouth, no teeth",
+        "init": {
+          "denoise": 0.88,
+          "tint": "#D9582E",
+          "blur": 6
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 28
+        },
+        "death_motion": "it jerks, rolls over onto its back and lies dead with its six red-orange legs curled up in the air like a real dead ant, its spiked armoured back underneath, the same red-orange colours as the reference all over, nothing green",
+        "outline_color": "#2A0E08",
+        "side_seeds": 4,
+        "death_keep": [
+          0,
+          3,
+          4,
+          8,
+          10,
+          13,
+          17,
+          24
+        ],
+        "walk_seeds": {
+          "back": 1
+        }
+      },
+      "sprite": "fire_ant_sprite_e.png",
+      "icon": "fire_ant_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.898,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "ANT-F": {
+      "note": "Pass 106: the same armoured fire ant on Flux.2 dev 40 (cleaner silhouettes), a darker soldier: crimson and black plates with ember cracks",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "armant_walk_v3",
+        "noun": "an ant",
+        "blockout": "a rough grey 3D model of a heavily armoured insect: a small head at the front with two short mandibles and two thin elbowed antennae, a big domed armoured body covered in long sharp spikes, and six jointed legs, three on each side, each ending in a small hooked foot; its rough surface and blotchy colours are only the model's, not part of the ant",
+        "anatomy": "exactly six legs, three on each side, each leg one single continuous jointed limb that starts at the body and ends in one foot, exactly one head with two mandibles and two antennae, no wings, no tail, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its small head with the mandibles and antennae at the right end, the spiked armoured body behind it at the left, the six legs below",
+          "front": "seen from the front and a little above, walking towards the viewer: its head with the two mandibles at the bottom middle, nearest the viewer, the spiked armoured body behind and above it, the legs spreading to both sides",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head with the mandibles at the lower right, nearest the viewer, the spiked armoured body at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the spiked armoured body nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from behind and a little above, walking away from the viewer: the spiked armoured back nearest the viewer in the middle, the head hidden beyond it, the legs spreading to both sides"
+        },
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "motion": "scuttling in place on its six legs like a real ant, each foot stepping forward through the air and pushing back along the ground, the legs stepping in two alternating sets of three, the body level, the spiked armour rigid",
+        "anim_negative": "extra legs, seven legs, eight legs, four legs, legs merging, a leg growing from the head, wings, a tail, two heads, a second ant, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a cartoon face, eyebrows, a mouth",
+        "death_drivers": "armant_death_v2",
+        "dead": "lying dead on its back, its six legs curled up in the air",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "wan": {
+          "lora": false,
+          "steps": 20,
+          "cfg": 3.5
+        },
+        "prompt": "a heavily armoured fire ant soldier with dark crimson and black chitin armour plates, thin glowing orange ember cracks between the plates, long black spikes with ember-orange tips standing up all over its domed armoured back, a black-red head with two big curved black mandibles, small glossy black eyes and two elbowed antennae, six jointed dark red legs with black feet, a dark red fire ant",
+        "detail": "a real ant's head, mandibles and jointed legs, hard glossy armour plates, menacing, no cartoon face, no eyebrows, no mouth, no teeth",
+        "init": {
+          "denoise": 0.85,
+          "tint": "#9C2A1E"
+        },
+        "painter": {
+          "model": "dev",
+          "steps": 40,
+          "guidance": 4.0,
+          "turbo": false
+        },
+        "death_motion": "it jerks, rolls over onto its back and lies dead with its six dark red legs curled up in the air like a real dead ant, its spiked black and crimson armoured back underneath, the same colours as the reference all over, nothing green",
+        "outline_color": "#1E0806",
+        "side_seeds": 4,
+        "death_keep": [
+          0,
+          3,
+          4,
+          7,
+          8,
+          11,
+          15,
+          24
+        ]
+      },
+      "sprite": "fire_ant_sprite_f.png",
+      "icon": "fire_ant_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.891,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
     }
   },
   "variant_base": "",

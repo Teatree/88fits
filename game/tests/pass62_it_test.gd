@@ -288,6 +288,9 @@ func test_power_ups_off_the_ground_last_longer_and_a_structure_does_not() -> voi
 	# the War Drum's buff: its own 30 s, the watch does nothing to it
 	var drum: StructureDef = Registry.structure("war_drum")
 	g.use_structure(drum, at)
+	# pass 106 (lane DRUM): the drum's moment plays first (time stands still); its boost starts as it ends
+	if g.drum_moment != null and g.drum_moment.playing:
+		g.drum_moment.skip()
 	var dl := -1.0
 	for tb: Dictionary in Run.timed:
 		if str(tb["id"]) == "structure:war_drum":

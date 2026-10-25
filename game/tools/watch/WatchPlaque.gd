@@ -18,6 +18,8 @@ var shown := ""
 var _want := {}
 var _want_ms := 0
 var _title: Label
+## pass 106: the caption over the words: BOT, or YOU while you play (the words' `cap`)
+var _cap: Label
 var _sub: Label
 var _dot: ColorRect
 var _style: StyleBoxFlat
@@ -57,6 +59,7 @@ func _ready() -> void:
 	h.add_child(v)
 	var cap := Label.new()
 	cap.text = "BOT"
+	_cap = cap
 	cap.add_theme_font_size_override("font_size", 10)
 	cap.add_theme_color_override("font_color", Color(0.56, 0.6, 0.68))
 	v.add_child(cap)
@@ -140,6 +143,8 @@ func _apply(d: Dictionary) -> void:
 	shown = str(d.get("text", ""))
 	_want = {}
 	_title.text = shown
+	if _cap != null:
+		_cap.text = str(d.get("cap", "BOT"))
 	_sub.text = str(d.get("sub", ""))
 	_sub.visible = _sub.text != ""
 	var col: Color = TONES.get(str(d.get("tone", "goal")), TONES["goal"])
@@ -173,6 +178,13 @@ static func words_of(info: Dictionary) -> Dictionary:
 	if bool(info.get("down_wait", false)):
 		return {"text": "Down!", "sub": "waiting for you: R revives him, E ends the run", "tone": "danger"}
 	var scr: Array = Array(str(info.get("screens", "")).split(",", false))
+	# pass 106: you play (T, the "You play" button): no bot goal to show; a screen waits for your click
+	if bool(info.get("hand", false)):
+		if scr.has("cards"):
+			return {"text": "You play", "sub": "your pick: click a card", "tone": "screen", "cap": "YOU"}
+		if not scr.is_empty():
+			return {"text": "You play", "sub": "your turn: click on the screen", "tone": "screen", "cap": "YOU"}
+		return {"text": "You play", "sub": "WASD, the arrows or drag in the view  ·  T gives it back to the bot", "tone": "calm", "cap": "YOU"}
 	if scr.has("revive"):
 		return {"text": "Down!", "sub": "answering Down! (%s)" % str(info.get("death", "end")), "tone": "danger"}
 	if scr.has("cards"):

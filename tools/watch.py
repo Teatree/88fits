@@ -197,6 +197,8 @@ def build_args(a, talents, label, ref, ref_label, lock_path, setup=None):
         out.append("setup=" + os.path.abspath(setup).replace("\\", "/"))
     if a.paused:
         out.append("paused=1")
+    if bool(getattr(a, "hand", False)):
+        out.append("hand=1")
     if ref:
         out += ["ref=" + ref.replace("\\", "/"), "ref_label=" + ref_label]
     if a.stub:
@@ -327,6 +329,7 @@ def main(argv=None):
     ap.add_argument("--stub", action="store_true", help="the Watch's stand-in bot instead of tools/bot/Bot.gd")
     ap.add_argument("--sound", action="store_true", help="start with the sound on (pass 85: off by default)")
     ap.add_argument("--mute", action="store_true", help="start with the sound off (the default since pass 85)")
+    ap.add_argument("--hand", action="store_true", help="pass 106: start in your hands (\"You play\": WASD, the arrows, a drag in the phone view; T or the button beside Pause gives him to the bot)")
     ap.add_argument("--go", action="store_true", help="start the run at once, no Hero Settings pop-up first (--autoquit implies it)")
     ap.add_argument("--no-numbers", action="store_true", help="no floating damage numbers")
     ap.add_argument("--size", default="", help="the window, WxH (default 1920x1080, fitted to the screen)")
@@ -339,7 +342,7 @@ def main(argv=None):
     ap.add_argument("--shots-at", default="", help="play seconds, comma-separated")
     ap.add_argument("--log-speed", default="30", help="the log's speed line every this many wall seconds")
     ap.add_argument("--profile", action="store_true", help="the log's speed line also says what a frame costs (drawn and not)")
-    ap.add_argument("--actions", default="", help="checks: <p|w><seconds>:<pause|go|step|level|speed=x|shot=name|end|say>,...")
+    ap.add_argument("--actions", default="", help="checks: <p|w><seconds>:<pause|go|step|level|speed=x|shot=name|end|say|hand|bot|handbtn|key=T|hold=W/60|circle=x/y/r/frames[/loops]|card=i>,...")
     ap.add_argument("--skip-draw", default="1", help="1 (default): above 1x the frames not drawn skip the drawing work; 0 keeps it")
     ap.add_argument("--log", default="", help="Godot's log file (default tools/dl/watch/logs/watch_<time>.log)")
     a = ap.parse_args(argv)

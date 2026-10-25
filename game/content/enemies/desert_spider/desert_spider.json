@@ -63,7 +63,8 @@
       1.5
     ],
     "up": 0.45,
-    "drop": 0.06
+    "drop": 0.06,
+    "die_drop": -0.15
   },
   "variant_base": "",
   "variants": {

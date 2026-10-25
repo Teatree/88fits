@@ -166,6 +166,24 @@ var _was_dead := false
 var _phoenix_was := false
 var _auto_left := -1.0
 
+## Pass 106 (lane WATCH; Garry: "Add functionality which allows me to take over the play. Nothing changes with the UI, but
+## There is now a button next to 'Pause' which lets me control the sequence myself. When it's on, the speed ups work the
+## same way as for the bot. I can pause and turn the bot controls back on when I want to."): `hand` on (the "Bot plays" /
+## "You play" button beside Pause, or T) the bot is never ticked: the hero's own PlayerInput is switched on, so WASD, the
+## arrows and the mouse dragged in the phone view (finger_event: the phone's touch, the game's one-thumb stick) steer him,
+## and every screen (the cards, a chest, a totem, the Shop, the Stranger, the portal, Down!) waits for his clicks. The
+## clock (pause, the speeds, a step, the run to a level-up) is the same for both. Off again, the hero's input is muted and
+## the bot plans afresh from where he stands (on_revived: its goal, hold, hunt and danger memory cleared); a screen up
+## then is the bot's after HOLD_S. The choice outlives a Restart (a new run starts in the hands it was in). Recorded:
+## the recorder's "takeover" / "handback" events (id "watch", n), the header's watch.hand ([[from, to] play s], `to` the
+## latest hand-played second while it is on) and watch.hand_s, a "takeover" / "handback" row in the decision log, and
+## the CSV's `driver` column (bot | hand) on every row; the charts mark each stretch's ends.
+var hand := false
+var hand_stretches: Array = []
+var hand_count := 0
+## a check's keys held: [{key (Key), frames}] released when their frames run out (the action hold=<key>/<frames>)
+var _held_keys: Array = []
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -213,6 +231,8 @@ func _read_args() -> void:
 	_log_left = _log_every
 	clock.set_speed(float(args.get("speed", "1")))
 	clock.paused = str(args.get("paused", "0")) == "1"
+	# pass 106: hand=1 starts in your hands
+	hand = str(args.get("hand", "0")) == "1"
 	for k in args:
 		var key := str(k)
 		if key.begins_with("bot."):
@@ -634,6 +654,9 @@ func _reset_run_state() -> void:
 	_was_dead = false
 	_phoenix_was = false
 	_auto_left = -1.0
+	# pass 106: the stretches are each run's own; `hand` (who plays) carries over
+	hand_stretches = []
+	hand_count = 0
 	if view != null and sub != null:
 		view.texture = sub.get_texture()
 		view.modulate = Color(1, 1, 1)
@@ -726,6 +749,8 @@ func _on_frame() -> void:
 	_take_shot_if_due()
 	_run_actions()
 	_drive_clicks()
+	_drive_held_keys()
+	_hand_tick()
 	if not _pending.is_empty() and ended and _restart_frame >= 0 and Engine.get_process_frames() >= _restart_frame:
 		_begin_run(_pending, true)
 		return
@@ -812,6 +837,10 @@ func _attach() -> void:
 	_make_bot()
 	# pass 82: a click in the phone view never steers the hero, nor do the keys (the bot's writes still drive him)
 	_mute_hero_input()
+	# pass 106: a run that starts in your hands (the choice made before it): your input on, a stretch from its start
+	if hand:
+		_hand_input(true)
+		_hand_note(true)
 	if hdr is Dictionary:
 		hdr["watch"]["bot"] = bot_kind
 		var o := {}
@@ -842,7 +871,11 @@ func _make_bot() -> void:
 
 
 func _on_decided(entry: Dictionary) -> void:
-	data.add_decision(entry)
+	var d := entry
+	if not d.has("driver"):
+		d = entry.duplicate()
+		d["driver"] = "bot"
+	data.add_decision(d)
 	_refresh_left = minf(_refresh_left, 0.25)
 
 
@@ -884,6 +917,11 @@ func _tick_bot(wall_dt: float) -> void:
 	if watch_handles_death() and game.revive_screen and game.revive_screen.visible:
 		if not down_wait and _auto_left < 0.0:
 			_fell(game.player)
+		return
+	# pass 106: you play: the bot neither steers nor answers a screen (they wait for your clicks); no stuck count
+	if hand:
+		_screen_key = ""
+		_screen_up = 0.0
 		return
 	# pass 82: the game paused by its own screen (the player's): the bot neither answers it nor plays; no stuck count
 	if game_pause_up():
@@ -975,7 +1013,7 @@ func _fell(p) -> void:
 	down_by = fatal_words(p.damage_log)
 	var e := {"t": snappedf(down_at, 0.1), "clock": snappedf(down_clock, 0.1), "kind": "down", "offered": [], "taken": "",
 		"reason": "fell to %s at %s of play%s" % [down_by, DATA.mmss(down_at), "; the Watch stands him up" if death == "auto" else "; waiting: R revives, E ends the run"],
-		"level": int(run_node().level), "dps_before": 0.0}
+		"level": int(run_node().level), "dps_before": 0.0, "driver": driver_now()}
 	data.add_decision(e)
 	print("watch: DOWN at %s of play (clock %s) to %s%s" % [DATA.mmss(down_at), DATA.mmss(down_clock), down_by, ": revive (R) or end (E)" if death != "auto" else ""])
 	if death == "auto":
@@ -1037,7 +1075,7 @@ func watch_revive(blast: bool = false) -> bool:
 			hdr["watch_revives"] = revive_count
 	data.add_decision({"t": snappedf(play_t(), 0.1), "clock": snappedf(float(run_node().elapsed), 0.1), "kind": "revive", "offered": [],
 		"taken": "", "reason": "revived %s (#%d): full health, %s" % ["by the Watch" if death == "auto" else "by hand", revive_count,
-		"with the revive blast" if blast else "no blast, the crowd as it is"], "level": int(run_node().level), "dps_before": 0.0})
+		"with the revive blast" if blast else "no blast, the crowd as it is"], "level": int(run_node().level), "dps_before": 0.0, "driver": driver_now()})
 	if bot != null and bot.has_method("on_revived"):
 		bot.on_revived()
 	if not (game.get("_modal_queue") as Array).is_empty():
@@ -1202,7 +1240,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				handled = false
 		KEY_D:
-			panel.set_hurt_tab(not panel.show_hurt)
+			# pass 106: while you play, D is WASD's right (the tab keeps its button)
+			if hand:
+				handled = false
+			else:
+				panel.set_hurt_tab(not panel.show_hurt)
+		KEY_T:
+			toggle_hand()
 		_:
 			handled = false
 	if handled:
@@ -1299,7 +1343,7 @@ func setup_open() -> bool:
 func plaque_words() -> Dictionary:
 	var info := {"ended": ended, "setup": setup_open(), "started": _game_ok() or ended, "screens": "", "path": false,
 		"spawning": false, "intent": "", "goal": {}, "hold": false, "nearest": INF, "flee_d": 0.0, "bot": bot_kind, "death": death,
-		"down_wait": down_wait}
+		"down_wait": down_wait, "hand": hand}
 	if _game_ok() and not ended:
 		info["screens"] = screen_key()
 		info["spawning"] = bool(game.get("spawning"))
@@ -1561,8 +1605,17 @@ func _run_actions() -> void:
 			panel.set_hurt_tab(true)
 		"hpchart":
 			panel.set_hurt_tab(false)
+		# pass 106 (checks): you play / the bot plays (the button's own call); key=, hold=, circle=, card= below
+		"hand":
+			set_hand(true)
+		"bot":
+			set_hand(false)
+		"handbtn":
+			panel.press_hand_button()
 		_:
-			if what.begins_with("hover="):
+			if _hand_action(what):
+				pass
+			elif what.begins_with("hover="):
 				panel.check_hover(what.substr(6))
 			elif what.begins_with("setup.") and setup != null and setup.visible:
 				setup_action(what.substr(6))
@@ -1725,6 +1778,9 @@ func status_words() -> String:
 		parts.append("to the next level-up")
 	else:
 		parts.append("running " + CLOCK.label(clock.speed))
+	# pass 106: who plays
+	if hand and not ended:
+		parts.append("you play (T gives it back)")
 	if not ended and not clock.paused and not clock.game_hold and clock.reached > 0.0:
 		parts.append("reached %.1fx%s" % [clock.reached, " (short)" if clock.short() else ""])
 	parts.append("panel %.2f ms, bot %.2f ms a frame" % [panel_ms, bot_ms])
@@ -1741,6 +1797,9 @@ func end_words() -> String:
 	# pass 90: and how often the Watch stood him up
 	if revive_count > 0:
 		t += "Revived %d× (at %s).  " % [revive_count, ", ".join(PackedStringArray(revive_times.map(func(x) -> String: return DATA.mmss(float(x)))))]
+	# pass 106: and what you played yourself
+	if not hand_stretches.is_empty():
+		t += "You played %s in %d stretch%s.  " % [DATA.mmss(hand_seconds(hand_stretches)), hand_stretches.size(), "" if hand_stretches.size() == 1 else "es"]
 	var rec := str(end_info.get("record", ""))
 	t += "Record: [url=%s]%s[/url]" % [rec, _short(rec)]
 	if end_info.has("csv"):
@@ -1866,7 +1925,15 @@ func _drive_clicks() -> void:
 	var left: Array = []
 	for c in _clicks:
 		c["frames"] = int(c["frames"]) - 1
-		if c.has("from"):
+		if c.has("circle"):
+			# pass 106: a thumb swept round a circle (thumb_circle), let go where it is
+			var fc := 1.0 - float(maxi(int(c["frames"]), 0)) / float(maxi(int(c["n"]), 1))
+			var ang := TAU * float(c["loops"]) * fc
+			var wc := canvas_to_window((c["circle"] as Vector2) + Vector2(cos(ang), sin(ang)) * float(c["r"]))
+			_send_motion(wc, wc - (c["last"] as Vector2))
+			c["last"] = wc
+			c["at"] = wc
+		elif c.has("from"):
 			# a drag: the mouse moves on with the button held, the last step on the end itself
 			var f := 1.0 - float(maxi(int(c["frames"]), 0)) / float(maxi(int(c["n"]), 1))
 			var w: Vector2 = (c["from"] as Vector2).lerp(c["at"], f)
@@ -1958,3 +2025,173 @@ static func _collect_sliders(n: Node, out: Array) -> void:
 		if c is TouchSlider and (c as Control).is_visible_in_tree():
 			out.append(c)
 		_collect_sliders(c, out)
+
+
+# ---------------------------------------------------------------- pass 106: you play, and the bot again
+
+## Who plays now, for the decision log's `driver`: "hand" or "bot".
+func driver_now() -> String:
+	return "hand" if hand else "bot"
+
+
+## The "Bot plays" / "You play" button beside Pause, and T.
+func toggle_hand() -> void:
+	set_hand(not hand)
+
+
+## You play (`on`) or the bot (off). Mid-run: the hero's input switched, the stretch noted; the bot plans afresh from
+## where he stands when it gets him back (on_revived clears its goal, hold, hunt, breakout and danger memory), and a
+## screen up then is its to answer after HOLD_S. Before a run or after one only the choice is kept: the next run starts
+## in those hands.
+func set_hand(on: bool) -> void:
+	if on == hand:
+		return
+	hand = on
+	if _attached and _game_ok() and not ended:
+		_hand_input(on)
+		_hand_note(on)
+		if not on:
+			_screen_key = ""
+			_screen_held = 0.0
+			_screen_up = 0.0
+			if bot != null and bot.has_method("on_revived"):
+				bot.on_revived()
+	print("watch: %s at %s of play" % ["you play" if on else "the bot plays", DATA.mmss(play_t())])
+	_refresh_left = 0.0
+	_charts_dirty = true
+	_chart_left = 0.0
+
+
+## The hero's own input on (you play: WASD, the arrows, the finger the mouse makes in the phone view) or muted (the
+## bot's writes drive him). Either way the stick starts at rest: no push of the bot's left over, no finger held.
+func _hand_input(on: bool) -> void:
+	var p = game.get("player") if _game_ok() else null
+	var inp = p.get("input") if p != null else null
+	if inp == null:
+		return
+	if inp.has_method("force_release"):
+		inp.force_release()
+	inp.set("wants_move", false)
+	inp.set("stick_dir", Vector2.ZERO)
+	inp.set("keyboard", false)
+	inp.set("enabled", on)
+	# a mouse button already held is no thumb on the stick: the next press is
+	_finger_down = false
+
+
+## A stretch begins (`on`) or ends at this second of play: the recorder's event, the header, the decision log.
+func _hand_note(on: bool) -> void:
+	var t := snappedf(play_t(), 0.1)
+	var last := 0.0
+	if on:
+		hand_count += 1
+		hand_stretches.append([t, t])
+	elif not hand_stretches.is_empty():
+		(hand_stretches[-1] as Array)[1] = t
+		last = t - float((hand_stretches[-1] as Array)[0])
+	var secs := hand_seconds(hand_stretches)
+	if ra != null and is_instance_valid(ra):
+		ra.event("takeover" if on else "handback", "watch", 0, {"n": hand_count, "hand_s": snappedf(secs, 0.1)})
+		_hand_header()
+	var run := run_node()
+	data.add_decision({"t": t, "clock": snappedf(float(run.elapsed), 0.1), "kind": "takeover" if on else "handback", "offered": [],
+		"taken": "", "reason": ("you took over (#%d)" % hand_count) if on else ("back to the bot after %s by hand: it plans afresh" % DATA.mmss(last)),
+		"level": int(run.level), "dps_before": 0.0, "driver": "hand" if on else "bot"})
+	_refresh_left = 0.0
+
+
+## The header's watch.hand ([[from, to] play seconds], the Watch's own array: a live stretch's `to` moves with it) and
+## watch.hand_s (the seconds played by hand).
+func _hand_header() -> void:
+	if ra == null or not is_instance_valid(ra):
+		return
+	var hdr = ra.get("header")
+	if not (hdr is Dictionary):
+		return
+	if not (hdr.get("watch") is Dictionary):
+		hdr["watch"] = {}
+	hdr["watch"]["hand"] = hand_stretches
+	hdr["watch"]["hand_s"] = snappedf(hand_seconds(hand_stretches), 0.1)
+
+
+## Every frame while you play: the live stretch reaches this second (so a run that ends in your hands, by a fall, the
+## portal or End run, records it to its end).
+func _hand_tick() -> void:
+	if not hand or not _attached or ended or hand_stretches.is_empty() or not _game_ok():
+		return
+	var st: Array = hand_stretches[-1]
+	var t := snappedf(play_t(), 0.1)
+	if t > float(st[1]):
+		st[1] = t
+		if ra != null and is_instance_valid(ra) and ra.get("header") is Dictionary and (ra.header.get("watch") is Dictionary):
+			ra.header["watch"]["hand_s"] = snappedf(hand_seconds(hand_stretches), 0.1)
+
+
+## The seconds of play in `stretches` ([[from, to], ...]; pure; tested).
+static func hand_seconds(stretches: Array) -> float:
+	var s := 0.0
+	for x in stretches:
+		if x is Array and (x as Array).size() >= 2:
+			s += maxf(float(x[1]) - float(x[0]), 0.0)
+	return s
+
+
+## The checks' hands (actions=): key=<name> (a key pressed and let go: T toggles, as you would), hold=<name>/<frames>
+## (a key held that many frames: W, A, S, D, Up...), circle=<x>/<y>/<r>/<frames>[/<loops>] (a thumb pressed at x, y of
+## the game's canvas and swept round a circle of r canvas px over the frames, then lifted: the hero walks a circle on
+## the one-thumb stick) and card=<i> (a click on the level-up's i-th card). True when `what` was one of them.
+func _hand_action(what: String) -> bool:
+	if what.begins_with("key=") or what.begins_with("hold="):
+		var bits := what.substr(what.find("=") + 1).split("/")
+		var k := OS.find_keycode_from_string(bits[0])
+		if k == KEY_NONE:
+			print("watch: no key '%s'" % bits[0])
+			return true
+		var n := 2 if what.begins_with("key=") else (int(bits[1]) if bits.size() > 1 else 60)
+		_send_key(k, true)
+		_held_keys.append({"key": k, "frames": maxi(n, 1)})
+		return true
+	if what.begins_with("circle="):
+		var b := what.substr(7).split("/")
+		if b.size() >= 4 and _game_ok():
+			thumb_circle(Vector2(float(b[0]), float(b[1])), float(b[2]), int(b[3]), float(b[4]) if b.size() > 4 else 1.0)
+		return true
+	if what.begins_with("card="):
+		var cs = game.get("cards") if _game_ok() else null
+		var i := int(what.substr(5))
+		if cs != null and cs.visible and i >= 0 and i < (cs._cards as Array).size():
+			click_canvas(canvas_middle(cs._cards[i]))
+		else:
+			print("watch: no card %d to click" % i)
+		return true
+	return false
+
+
+## A check's thumb: the mouse pressed at `c` on the game's canvas (the stick's base there), then moved round a circle of
+## `r` canvas px about it, `loops` times over `frames` frames, then let go, all through the window's own input.
+func thumb_circle(c: Vector2, r: float, frames: int, loops: float = 1.0) -> void:
+	var wc := canvas_to_window(c)
+	_send_mouse(wc, true)
+	_clicks.append({"circle": c, "r": r, "loops": loops, "n": maxi(frames, 2), "frames": maxi(frames, 2), "last": wc, "at": wc})
+
+
+func _send_key(k: Key, pressed: bool) -> void:
+	var e := InputEventKey.new()
+	e.keycode = k
+	e.physical_keycode = k
+	e.pressed = pressed
+	Input.parse_input_event(e)
+
+
+## The checks' keys held: each let go when its frames run out.
+func _drive_held_keys() -> void:
+	if _held_keys.is_empty():
+		return
+	var left: Array = []
+	for h in _held_keys:
+		h["frames"] = int(h["frames"]) - 1
+		if int(h["frames"]) <= 0:
+			_send_key(h["key"], false)
+		else:
+			left.append(h)
+	_held_keys = left

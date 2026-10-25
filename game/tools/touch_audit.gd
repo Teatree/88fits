@@ -77,6 +77,9 @@
 ## the HUD's clock at the stage's own 00:00). portal_expire (run with portal): the stage clear's countdown running out
 ## closes it by itself (`expired`, no decision); endless_banner (run with hud): Endless shows its banner and the clock's
 ## WAVE tag, and a finger on the tag still pauses (the strip takes it).
+## Pass 106 (lane DRUM): drum: the War Drum used in the run stops time for its moment; real taps on the drum, the dim and
+## the pause disc while it plays are swallowed (nothing opens, the moment plays on, the run stays paused); it ends by
+## itself and the run goes on; the HUD shows the boost's plate with its seconds (a finger on it opens nothing).
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -1427,6 +1430,8 @@ func _in_game() -> void:
 		g.set_paused(false)
 	if _want("totem"):
 		await _totem(g)
+	if _want("drum"):
+		await _drum(g)
 	if _want("revive"):
 		# the player's debug mode shows the last hits on Down! (pass 46: they moved there from Results), so its list and
 		# buttons are tapped too; put back after and written back, since a save in between keeps the settings it saw
@@ -1501,6 +1506,68 @@ func _in_game() -> void:
 				a.arena_panel._refresh()
 				await _wait(0.4)
 				await _confirm_audit("arena_confirm", a.arena_panel, func(): a.arena_panel._ask_leave())
+
+
+## The War Drum's moment and its plate (pass 106, lane DRUM): see the header.
+func _drum(g) -> void:
+	var d = root.get_node("Registry").structure("war_drum")
+	if d == null:
+		_count("drum", false)
+		_fail("drum", "content/structures/war_drum", "no such structure")
+		return
+	var run = root.get_node("Run")
+	g.use_structure(d, g.player.global_position)
+	await _frames(2)
+	var dm = g.drum_moment
+	var up: bool = dm != null and dm.visible and bool(dm.playing) and g.paused
+	_count("drum", up)
+	if not up:
+		_fail("drum", "the moment", "using the drum did not stop time for its moment")
+		return
+	var eaten: int = dm.touches_eaten
+	var pb: Control = g.hud.get("_pause_btn")
+	var spots: Array = [Vector2(540, 900), Vector2(540, 1700), Vector2(100, 300)]
+	if pb:
+		spots.append(pb.get_global_rect().get_center())
+	for at in spots:
+		await _tap(at)
+	var held: bool = bool(dm.playing) and g.paused and not g.pause_screen.visible and int(dm.touches_eaten) >= eaten + spots.size()
+	_count("drum", held)
+	if not held:
+		_fail("drum", "the moment", "a tap during it was not swallowed (or opened the pause menu, or ended it)")
+	var w := 0.0
+	while w < 4.0 and bool(dm.playing):
+		await _wait(0.1)
+		w += 0.1
+	await _wait(0.2)
+	var after: bool = not bool(dm.playing) and not dm.visible and not g.paused and run.boost_left("structure:war_drum") > 0.0
+	_count("drum", after)
+	if not after:
+		_fail("drum", "the moment", "it did not end by itself into the boost and the running game")
+		dm.skip()
+		g.modal_reset()
+		g.set_paused(false)
+		return
+	await _wait(0.3)
+	var plate: Control = null
+	for c in g.hud._buffs.get_children():
+		if str(c.get_meta("buff", "")) == "structure:war_drum":
+			plate = c
+	var shows: bool = plate != null and _visible_in_tree(plate) and int(str(plate.get("level_text"))) > 0
+	_count("drum_plate", shows)
+	if not shows:
+		_fail("drum_plate", "the boost's plate", "no plate with its seconds on the HUD")
+		return
+	# the plate only shows: a finger on it opens nothing and leaves the run running (as the power-ups' plates)
+	await _tap(plate.get_global_rect().get_center())
+	await _wait(0.3)
+	var calm: bool = not g.paused and not g.pause_screen.visible and g.visible_modals().is_empty()
+	_count("drum_plate", calm)
+	if not calm:
+		_fail("drum_plate", "the boost's plate", "a tap on it opened something or paused the run")
+		if g.pause_screen.visible:
+			g.close_pause()
+	await _wait(0.2)
 
 
 ## The resume gate under a finger on the HUD's strip (pass 56): after a level-up's pick, a tap under the clock, at the

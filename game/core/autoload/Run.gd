@@ -1498,6 +1498,22 @@ func _speed_boost(id: String, label: String, sp: float, secs: float) -> void:
 	add_timed_effects(id, label, [Effect.make("move_speed", "mul", sp, "player")], secs, true)
 
 
+## Pass 106 (lane DRUM): a running timed buff's effects swapped for `effects`, its clock kept (the War Drum's boost
+## while a Berserk or a Sprint starts or ends beside it: DrumBoost's stacking rule). False when no buff has that id.
+func retune_timed(id: String, effects: Array) -> bool:
+	for tb in timed:
+		if tb["id"] == id:
+			player_sheet.remove_source(str(tb["source"]))
+			tb["effects"] = effects
+			player_sheet.add_effects(effects, str(tb["source"]))
+			haste = player_sheet.get_stat("haste", 1.0)
+			for w in weapons:
+				w.rebuild(player_sheet, weapons)
+			build_changed.emit()
+			return true
+	return false
+
+
 ## The debug arena's hand on the build (pass 33.4): the item `id` of `kind` (weapon, evolution, passive, perk, mutation)
 ## at level `n`, 0 taking it away, past the rules the cards keep but not past the slots: five weapons, five lines (as many
 ## as it likes in the arena), passive items without a cap (pass 47). Returns the level it ended at.

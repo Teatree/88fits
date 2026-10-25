@@ -16,6 +16,7 @@ speed_per_stage = 0.1
 cap_start = 10
 cap_per_minute = 7.81
 cap_max = 500
+hard_cap = 500
 cap_curve = [[0.0, 500.0], [480.0, 500.0]]
 boss_cap_frac = 0.6
 portal_cap = -1
@@ -105,12 +106,29 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 0.8,
-"size": 1.25
+"hp_mult": 0.84,
+"size": 1.25,
+"speed": 1.25
 },
 "t": 245.0,
-"until": 315.0,
+"until": 266.0,
 "weights": [[245.0, 5.4], [306.0, 10.1], [337.0, 10.6]]
+}, {
+"enemy": "cactus_walker",
+"id": "r58",
+"interval": 3.0,
+"pack": 10.0,
+"pattern": "scatter",
+"role": "fodder",
+"stats": {
+"damage_mult": 1.25,
+"hp_mult": 0.82,
+"size": 1.25,
+"speed": 1.25
+},
+"t": 270.0,
+"until": 315.0,
+"weights": [[270.0, 5.4], [331.0, 10.1], [362.0, 10.6]]
 }, {
 "count": 50.0,
 "enemy": "werewolf",
@@ -122,12 +140,27 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 0.8,
-"size": 1.25
+"hp_mult": 1.55,
+"size": [1.25, 2.3]
 },
 "t": 315.0,
-"until": 376.0,
+"until": 332.0,
 "weights": [[315.0, 5.4], [376.0, 10.1], [407.0, 10.6]]
+}, {
+"enemy": "werewolf",
+"id": "r59",
+"interval": 2.5,
+"pack": 15.0,
+"pattern": "scatter",
+"role": "fodder",
+"stats": {
+"damage_mult": 1.25,
+"hp_mult": 1.5,
+"size": [1.25, 2.3]
+},
+"t": 332.0,
+"until": 389.0,
+"weights": [[332.0, 5.4], [393.0, 10.1], [424.0, 10.6]]
 }, {
 "count": 30.0,
 "enemy": "lesser_scorpion",
@@ -267,44 +300,56 @@ roster = [{
 }, {
 "count": 10.0,
 "enemy": "buckshot_dwarf",
-"every": 10.0,
 "id": "r19",
+"pace": "once",
+"pack": 10.0,
+"pattern": "scatter",
+"respect_cap": false,
+"stats": {
+"hp_mult": 0.6,
+"max_alive": 10.0
+},
+"t": 431.0,
+"until": 443.0,
+"weights": [[431.0, 5.0], [451.0, 5.0], [451.0, 1.0], [640.0, 1.0]]
+}, {
+"count": 10.0,
+"enemy": "buckshot_dwarf",
+"every": 10.0,
+"id": "r56",
 "pace": "waves",
 "pack": 10.0,
 "pattern": "scatter",
 "stats": {
-"hp_mult": 0.26,
+"hp_mult": 0.4,
 "max_alive": 3.0
 },
-"t": 431.0,
-"until": 632.0,
-"weights": [[431.0, 1.0], [632.0, 1.4]]
+"t": 443.0,
+"until": 667.0,
+"weights": [[443.0, 5.0], [463.0, 5.0], [463.0, 1.0], [652.0, 1.0]]
 }, {
-"enemy": "armadillo",
+"enemy": "desert_spider",
+"every": 5.0,
 "id": "r22",
-"pack": 100.0,
+"pace": "waves",
+"pack": 15.0,
 "pattern": "in_front",
 "stats": {
-"hp_mult": 0.54,
-"size": [1.0, 1.35]
+"hp_mult": 0.2,
+"size": [1.0, 2.0],
+"speed": 2.0
 },
 "t": 453.0,
 "until": 606.0,
 "weights": [[453.0, 8.0], [521.0, 8.0]]
 }, {
-"enemy": "desert_spider",
+"enemy": "armadillo",
 "id": "r23",
-"interval": 0.5,
+"interval": 3.0,
 "pack": 2.0,
 "pattern": "scatter",
 "stats": {
-"hp_mult": 0.67,
-"tint": {
-"amount": 1.0,
-"hue": [254.0, 275.0],
-"sat": 0.82,
-"val": 0.23
-}
+"hp_mult": 0.67
 },
 "t": 575.0,
 "until": 667.0,
@@ -327,6 +372,7 @@ roster = [{
 }, {
 "enemy": "skeleton",
 "id": "r20",
+"interval": 1.75,
 "pack": 1.0,
 "stats": {
 "hp_mult": 1.0
@@ -403,17 +449,31 @@ roster = [{
 "amount": 0.34,
 "hue": [42.0, 96.0],
 "sat": 0.85,
-"val": 0.3
+"val": 0.73
 }
 },
 "t": 730.0,
 "until": 835.0,
 "weights": [[730.0, 0.8], [1030.0, 1.2]]
 }, {
+"count": 50.0,
+"enemy": "goblin",
+"id": "r30",
+"pace": "once",
+"pack": 50.0,
+"pattern": "ring",
+"ring_radius": 15.0,
+"stats": {
+"hp_mult": 1.64
+},
+"t": 780.0,
+"until": 789.0,
+"weights": [[780.0, 5.0], [927.0, 6.0]]
+}, {
 "count": 20.0,
 "enemy": "goblin",
 "every": 5.0,
-"id": "r30",
+"id": "r57",
 "pace": "waves",
 "pack": 1.0,
 "pattern": "scatter",
@@ -440,24 +500,50 @@ roster = [{
 }, {
 "enemy": "spit_cactus",
 "id": "r51",
+"interval": 4.0,
 "pack": 2.0,
 "pattern": "scatter",
 "stats": {
 "hp_mult": 1.66,
 "max_alive": 4.0
 },
-"t": 890.0,
-"until": 1030.0,
-"weights": [[890.0, 1.0], [1030.0, 1.4]]
+"t": 901.0,
+"until": 946.0,
+"weights": [[901.0, 1.0], [1041.0, 1.4]]
 }, {
+"count": 5.0,
 "enemy": "hammer_giant",
+"every": 20.0,
 "id": "r32",
+"pace": "waves",
 "pack": 1.0,
 "pattern": "scatter",
 "stats": {
 "damage_mult": 0.7,
 "hp_mult": 0.85,
 "max_alive": 2.0
+},
+"t": 911.0,
+"until": 1030.0,
+"weights": [[911.0, 0.6], [1030.0, 0.8]]
+}, {
+"count": 20.0,
+"enemy": "lesser_scorpion",
+"every": 10.0,
+"id": "r29",
+"pace": "waves",
+"pack": 20.0,
+"pattern": "scatter",
+"stats": {
+"damage_mult": 0.7,
+"hp_mult": 0.85,
+"max_alive": 2.0,
+"tint": {
+"amount": 0.66,
+"hue": [0.0, 25.0],
+"sat": 0.85,
+"val": 1.0
+}
 },
 "t": 911.0,
 "until": 1030.0,
@@ -751,7 +837,6 @@ roster = [{
 "t": 301.0,
 "weights": [[301.0, 1.0]]
 }, {
-"banner": "SWARM!",
 "count": 24.0,
 "enemy": "fire_ant",
 "id": "r8",
@@ -771,7 +856,7 @@ roster = [{
 }, {
 "banner": "SWARM!",
 "count": 20.0,
-"enemy": "armadillo",
+"enemy": "bull_beetle",
 "id": "r9",
 "name": "Armadillo charge",
 "pace": "once",
@@ -782,8 +867,8 @@ roster = [{
 "stats": {
 "hp_mult": 1.84
 },
-"t": 946.0,
-"weights": [[946.0, 1.0]]
+"t": 960.0,
+"weights": [[960.0, 1.0]]
 }, {
 "banner": "SWARM!",
 "count": 30.0,
@@ -1022,8 +1107,8 @@ endless = {
 "portal_seconds": 60.0,
 "roster_window": 60.0,
 "speed": 1.1,
-"speed_growth": 0.015,
-"speed_max": 1.6,
+"speed_growth": 0.04,
+"speed_max": 2.4,
 "wave_growth": 2.0,
 "wave_size": 30.0,
 "xp_share": 0.35

@@ -6643,3 +6643,112 @@ Garry's words: tools/dl/p105/brief_LOOK.md. The rules:
   the marking adds no draw call (measured: 198 draws with the marks and without, same frozen frame).
 - Not changed (said so, not asked): Fx's opaque debris boxes (barrel splinters, chips) and the Strongbox's coin stream
   still take the filter like the ground.
+
+## 50. Pass 106 (v0.90): Endless faster, the War Drum, the Watch by hand, fire ants from a beetle
+
+Garry's words: tools/dl/p106/REQUEST.md. Each lane's rules.
+
+### 50.ENDLESS Endless creatures faster, the live ones too; the spider's death above its shadow
+
+#### Endless speed: steeper, and live (the lead's numbers; Garry gave none)
+
+Red Canyon `timeline_data.endless`: `speed_growth` 0.015 -> **0.04**, `speed_max` 1.6 -> **2.4** (`speed` 1.1 unchanged;
+the HP/ATK growth and pass 103's knock resistance untouched). Linear as before: wave k = 1.1 x (1 + 0.04 x (k - 1)),
+never past 2.4. Waves every 10 s.
+
+| Endless time | wave | speed x before | speed x now |
+|---|---|---|---|
+| 0:00 | 1 | 1.10 | 1.10 |
+| 1:00 | 7 | 1.20 | 1.36 |
+| 2:00 | 13 | 1.30 | 1.63 |
+| 3:00 | 19 | 1.40 | 1.89 |
+| 4:00 | 25 | 1.50 | 2.16 |
+| 5:00 | 31 | 1.60 (cap) | 2.40 (cap, from wave 31) |
+
+**New rule (live speed):** every new Endless wave's speed factor reaches every regular creature already alive, not only
+the new spawns: its walk speed becomes its own base x the CURRENT wave's factor (speed x new / old, the factor it carries
+kept per creature, so it never applies twice). Creatures alive from before Endless began (factor 1) get it at wave 1.
+Bosses, Elites by their kind and creatures wearing an elite modifier keep their speed (none come in Endless). A fresh
+run starts at factor 1. Code: EnemyManager.set_endless_speed (called from WaveDirector._tick_endless), e_speed,
+endless_speed_live.
+
+Measured (game/tools/_p106_ENDLESS_kite.gd: the difficulty probe's kiting autopilot dropped into Endless after Sundown at
+wave 20 for 60 s, the Drifter, Mirror 1.5, HP lost a minute in max-HP units, refilled below 40 %):
+
+| build (probe) | before (0.015 / 1.6) | now (0.04 / 2.4) |
+|---|---|---|
+| b2 (the 14:20 build, level 30) | 6.1 maxHP/min, 353 kills/min | 7.3 maxHP/min, 448 kills/min |
+| b1 (the 7:10 build, level 22), seed 11 / 12 | 3.8 / 8.2 maxHP/min | 37.4 / 37.4 maxHP/min |
+| b1 at 0.025 / 2.0 | | 5.9 maxHP/min |
+| b1 at 0.03 / 2.2 | | 32.8 maxHP/min |
+
+At wave 20 the crowd's median walk is 2.51 m/s (was 1.83), its fastest 3.0 (was 2.2), the hero 3.57: no creature
+outruns him yet; at the cap (x2.4) the fastest late-roster creatures reach about 3.75 m/s. A mid build (b2) still kites
+at wave 20 (+20 % damage taken); a stage-1-end build (b1) that never grew is caught by the faster ring (it was already
+losing 4-8 maxHP a minute before, i.e. dying in 8-16 s). The cliff for b1 lies between growth 0.025 and 0.03: Garry's
+knob if wave 20 should stay survivable for a weak build.
+
+Note for the lead: after Nightfall the Endless pool held only 3-4 creatures alive at a time in the probe (Garry's
+Nightfall's last minute: a spit cactus row and a hammer giant row with max_alive limits, as pass 87's test notes), so
+Endless after stage 2 is nearly empty on today's map whatever the speed.
+
+#### Desert Spider: the death on its shadow
+
+Cause: its shadow sits far up the screen (`shadow.up` 0.45 m at size 1.3: 0.35 of its size, about twice any other
+creature's, tuned for the walking pose whose legs splay down the screen), while the death frames (SP-G, SP-H) lie low and
+narrow in the cell (rows 86-136 of 160 against the walk's 72-148); and the last 0.3 s of every death (DIE_SINK) squashes
+the painting down onto the foot point, which is below this shadow. So the corpse lay on the shadow's lower edge and then
+sank under it.
+
+Fix: Desert Spider `shadow.die_drop` **-0.15** (lifts the death painting 0.15 of the cell up the billboard, eased in over
+the strip). **New rule:** a NEGATIVE die_drop holds its lift through the end-of-death sink (not scaled by the squash), so
+the body flattens into the middle of its shadow; a positive die_drop (the Red Goblin's 0.2) sinks with the squash as
+before (pass 88). No other creature has a negative die_drop.
+
+### 50.DRUM The War Drum: time stops for a drum moment, then a 15 s boost
+
+#### The War Drum (content/structures/war_drum, effect "buff" with params.moment)
+- **Boost**: 15 s (params.seconds; was 30) on the buffs' clock, so the hero's buff_duration stretches it as every
+  structure's buff (Solenne 1.25x); the Pocket Watch does not (a structure, as before). Effects (params.effects):
+  might mul +1.0 (x2 attack damage; Berserk x1.5), haste mul +1.0 (x2 weapon speed = every cooldown halved; Berserk x2),
+  move_speed mul +0.15 (+15%), knockback add +3 and mul +0.5 on every weapon (target all_weapons:
+  (base + 3) x 1.5, e.g. Revolver 2 -> 7.5, Tommy Gun 0.6 -> 5.4, Hammer 10 -> 19.5; the map's hero_knockback_mult 0.5
+  and the creatures' knockback_resist / Endless resistance still apply after). Area +25% is gone.
+  Was: might +50%, area +25% for 30 s.
+- **The stacking rule** (params.stack, DrumBoost.stacked_effects): while a timed buff named by a rule's `with` runs
+  beside the drum's boost, each drum effect on one of the rule's `stats` gives `keep` of its bonus (value x keep):
+  - with "rage" (the Berserk power-up), stats might + haste, keep 0.5: the drum's x2 damage and x2 weapon speed become
+    x1.5 each, so together damage = 1.5 x 1.5 = x2.25 (not x3), weapon speed = 2 x 1.5 = x3 (not x4);
+  - with "sprint" (the Sprint power-up), stat move_speed, keep 0.5: the drum's +15% becomes +7.5%
+    (Sprint +40% x 1.075).
+  Checked every frame: a Berserk or Sprint starting or ending while the drum runs retunes the drum's part at once
+  (Run.retune_timed). Only the drum's part is reduced; the power-ups give their whole effect.
+- **The moment** (params.moment): 2.2 s with time stopped (the run paused through the one-screen rule, Modal.DRUM,
+  priority 35: after a chest's 40, before the level cards' 30): the run clock, the buffs' clock, creatures,
+  projectiles, timers stand still; every one-shot sound effect stops (weapon loops hold with the run), the music holds
+  at its position and goes on from there; touches are swallowed. The boost starts when it ends (so its 15 s are all
+  in play), then the usual 1 s of blinking grace any screen gives. In the run sim (sim_mode) the moment is skipped and
+  the boost starts at once (the paused moment costs no game time either way).
+- **One use per drum**: unchanged (StructureManager: used, the spent painting); another drum used while one runs
+  starts the 15 s again (Run.add_timed_effects, as every structure buff).
+- **HUD**: a timed plate (the drum's icon on the drum's red, W.ROCK, its seconds) for any structure buff whose params
+  carry `plate: true` (HUD.plate_key "structure:<id>").
+- **Look while it runs** (params.aura): a ground ring under the hero thumping every 0.5 s (accents 1, 0.45, 0.7, 0.45)
+  with a red wave racing out 1.65-3 m on every beat, red speed lines (3 heights) and red streaks while he runs; the
+  Berserk's flames at his feet show too (haste above 1, as before).
+
+### 50.WATCH The Watch: take the bot's run over and hand it back
+
+- The Watch's "You play" (T): while on, the bot is never ticked: it neither steers nor answers any screen; nothing
+  answers for you (the Watch's stuck report is off too). Every screen waits for your click.
+- Handing back: the hero's own input is muted again and the stick released; the bot clears its plan (Bot.on_revived: goal,
+  hold, hunt, breakout, danger memory) and re-plans from where he stands; a screen open at that moment is the bot's after
+  HOLD_S (0.8 wall s at 1x), as any screen.
+- The clock (Pause, the speeds 0.25x..8x, +/-, Step, Next level-up) is the same for you and the bot; Down! ("ask") is the
+  Watch's box for both.
+- Who plays outlives a Restart: a new run starts in the hands the last one ended in (`hand=1` / `--hand` starts there).
+
+### 50.ANT Two Fire Ant looks from Garry's armored-beetle model
+
+No gameplay rule or number changed: two new art looks of the Fire Ant (ANT-E, ANT-F, both fresh), the ant keeps playing
+ANT-A with its stats untouched.

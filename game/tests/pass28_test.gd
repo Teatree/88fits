@@ -40,7 +40,8 @@ func test_the_roster_keeps_arriving_through_every_stage() -> void:
 	for ev in tl.events:
 		if str(ev.get("type", "")) == "swarm":
 			swarms.append(str(ev.get("enemy", "")))
-	assert_bool(ids.has("armadillo") or swarms.has("armadillo")).is_true()
+	# (pass 106 re-pin: Garry's "Armadillo charge" swarm r9 sends Bull Beetles since 2026-10-25: the armadillo is his to
+	# place, not pinned any more)
 	# the harpooner is a special since pass 33.4: it comes on the specials' clock, from stage 2
 	var pool: Array = []
 	for row in tl.specials.get("pool", []):

@@ -853,7 +853,9 @@ def _group_ops(check, server):
     import jobs as J0
     with TempWorld() as W:
         jobs = W.jobs
-        now = time.time()
+        # a fixed mid-day clock (pass 106: on the night the clocks went back, "an hour ago" in local time fell in the
+        # repeated hour and the synthetic jobs' local stamps read an hour off): the roll-up is given `now` explicitly
+        now = time.mktime((2026, 10, 20, 12, 0, 0, 0, 0, -1))
         recs = _synthetic_queue(jobs.JOBS_DIR, now)
         check(len(recs) == 50, "the synthetic queue has 50 records")
         ledger = os.path.join(W.tmp, "ledger.json")

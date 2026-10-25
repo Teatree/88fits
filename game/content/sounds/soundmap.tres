@@ -126,6 +126,7 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/st_barrel_break.wav" id="106_hnqb7"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_fanfare.wav" id="107_qt2ln"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_jackpot.wav" id="108_p6aee"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/st_war_drum_beat.wav" id="109_6a21h"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/wd_gust.wav" id="109_etrcm"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_chest_knock.wav" id="110_trye0"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_thor_zap.wav" id="111_0acob"]
@@ -845,6 +846,15 @@ entries = {
 "stream": ExtResource("91_d1815"),
 "voices": 1,
 "volume_db": -4.0
+},
+"st_war_drum_beat": {
+"category": "pickup",
+"file": "real/st_war_drum_beat.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("109_6a21h"),
+"voices": 1,
+"volume_db": -2.0
 },
 "ui_buy": {
 "category": "ui",

@@ -4062,3 +4062,66 @@ TIME-driven glows, creature frames and the run-to-run barrel order differ, as be
 is that a gem or an outline no longer draws over a weapon's model, a shot or a chest. Filtered stages: +2 draw calls (4
 quads), the marking itself 0 (A/B on one frozen frame: 198 = 198). Captures tools/dl/p105/LOOK/contact_{a,b,sundown}.png,
 tool game/tools/_p105_LOOK_shots.gd; tests game/tests/pass105_LOOK_test.gd (12), pass72_spec and pass87_slook re-pinned.
+
+**Pass 106 (2026-10-25, v0.90): Endless faster, the War Drum a big moment, the Watch playable by hand, two fire ants from a beetle model.** Garry's message: tools/dl/p106/REQUEST.md (verbatim). Four lanes: ENDLESS, DRUM, WATCH, ANT. Gemini's subscription quota was still spent (until 2026-10-29 13:00), so lane ANT's frame checks fell back as designed; see its paragraph.
+
+Lane ENDLESS (Garry: "Increase the movement speed of enemies more dramatically and also apply the speed increase to all
+the enemies that are already spawned"; "Desert Spider dead animations seems to be below the shadow"). Endless's speed
+ramp is steeper on Red Canyon (`endless.speed_growth` 0.015 -> 0.04, `speed_max` 1.6 -> 2.4: x1.36 at 1:00, x1.63 at
+2:00, x1.89 at 3:00, the cap x2.4 at 5:00, was x1.20 / 1.30 / 1.40 / 1.60; the lead's numbers, Garry gave none) and every
+new wave's factor reaches the creatures already alive: EnemyManager keeps the factor each walk speed carries (`e_speed`,
+set at the spawn from `endless_speed_live`) and `set_endless_speed` re-scales the living regular crowd by new / old at
+each wave (WaveDirector._tick_endless), so it never stacks and the crowd from before Endless speeds up too; bosses,
+Elites and elite-modified creatures keep their speed. The spider's death lay below its shadow because its shadow sits
+far up the screen (`shadow.up` 0.45, about twice any other creature's, set for the walking pose whose legs splay down
+the screen) while the death frames lie low in the cell, and the end-of-death sink squashes the painting onto the foot
+point under the shadow; its JSON now lifts the death (`shadow.die_drop` -0.15) and a negative die_drop holds through the
+sink (EnemyManager.die_sink; a positive one, the Red Goblin's, is unchanged). Tests pass106_ENDLESS_test.gd; captures
+tools/dl/p106/ENDLESS/ (spider_before_after_s0/s1.png); the probe game/tools/_p106_ENDLESS_kite.gd (the difficulty probe
+dropped into Endless at a chosen wave, with the crowd's speeds against the hero's).
+
+Lane DRUM (pass 106; Garry: the War Drum "quite underwhelming ... should be more powerful and longer lasting than the
+Rage Power-up ... a big deal"): using the War Drum now stops time for a 2.2 s moment (ui/DrumMoment.gd, a screen of the
+one-screen rule, Game.Modal.DRUM): the run paused, every one-shot sound stopped and the music held where it is
+(Audio.stop_effects, hold_music), the structure's own painting cut out on its blue screen (tools/make_drum_moment.py ->
+art/ui/drum/war_drum_big.png; the icon, a grey placeholder until now, cut from it too) fades in big in the middle of a
+red dusk, nine slaps from params.moment.hits each squash it on its stand with a damped spring back, flash its head,
+send waves out (ink-edged) and burst ink slap lines from its rim, the drum alone shakes; the last, big slap flashes the
+sky and brings in the boost in words; a synthesised taiko melody (tools/synth_sfx.py st_war_drum_beat, the same hits)
+plays with it; every touch is swallowed; then the music goes on from where it stopped and the boost starts
+(core/systems/DrumBoost.gd): 15 s of x2 attack damage, x2 weapon speed, knockback +3 then x1.5 on every weapon and +15%
+move speed, with the stacking rule (params.stack: beside a Berserk the drum's damage and weapon speed are x1.5, beside a
+Sprint its move speed +7.5%; retuned live, Run.retune_timed), red speed lines and streaks while he runs and a ground ring
+thumping every 0.5 s with a wave racing out on each beat; the HUD shows a red timed plate with the drum's icon
+(params.plate, HUD.plate_key "structure:<id>"). One use per drum as before. Tests pass106_DRUM_test (5), content_test
+and pass62_it_test re-pinned, touch_audit `drum`, capture tools/_p106_DRUM_shot.gd.
+
+Pass 106, lane WATCH (tools only; Garry: "Add functionality which allows me to take over the play ... a button next to
+'Pause' ... the speed ups work the same way as for the bot. I can pause and turn the bot controls back on"): the Watch's
+"Bot plays" / "You play" button beside Pause (and T). While you play the bot is never ticked; the hero's own PlayerInput
+is switched on, so WASD, the arrows and the mouse dragged in the phone view (pass 82's finger_event: the phone's touch on
+the game's floating stick) steer him, and the cards, chests, totems, the Shop and every screen wait for your clicks; the
+clock is the same. T again mutes his input and the bot re-plans from where he stands (on_revived) and takes any open
+screen. The record notes the stretches: events takeover/handback, header watch.hand [[from, to]] + watch.hand_s, decision
+rows takeover/handback and the CSV's new last column `driver` (bot | hand); the charts mark each stretch's ends, the plaque
+says YOU / You play. tools/watch.py --hand starts in your hands; check verbs hand, bot, handbtn, key=, hold=, circle=,
+card=. Files: game/tools/watch/Watch.gd, WatchPanel.gd, WatchPlaque.gd, WatchData.gd, tools/watch.py; test
+game/tests/pass106_WATCH_test.gd (6 cases); pass80_watch_test's CSV line re-pinned for the `driver` column.
+
+Lane ANT (pass 106): **two new Fire Ant looks from Garry's armored-beetle 3D model**. The model
+(tools/dl/uploads/3d/a-heavily-armored-beetle-3d-model-free) is one textured AI mesh with no rig and no clip, so a new
+tool rigs it: `tools/blender_autorig_legs.py` (weld, drop loose spines, measure each vertex's thickness with an inward
+ray and a ring median, take the six feet as the low thin extremes farthest out, each leg the shortest mesh walk from foot
+to belly cut at the hip where it thickens or nears the middle line, knee/ankle on the path, cut-off claws joined to their
+leg, a head bone at the neck; `drop_antenna=1` removes the model's single straight antenna, `antennae=elbowed` adds two
+elbowed ones), writing a .blend that `blender_depth_drivers.py` walks (`armant_walk_v3`: mode=gait step=track, every foot
+ok in gait_check) and kills (`armant_death_v2`: flip_curl roll 170, curl 65: on its back, legs up). Looks (both `fresh`,
+the ant still plays ANT-A): **ANT-E** on Klein 28 with the house-style anchor (bright red-orange armoured fire ant,
+black-tipped spikes) and **ANT-F** on Flux.2 dev 40 (a darker crimson soldier with ember cracks), the clay in the
+model's own colours repainted (paint_mode repaint), walked on Wan 2.2 Fun Control without the speed LoRA. Picks by eye:
+E side k3, F side k2, F back c0 (the first back painted a face towards the viewer); E's back walk re-rolled once (no
+change), death_keep picked by eye for both. Gemini could not be tested: the subscription quota spent on 2026-10-22 still
+held (one real call answered "quota reached, resets in 108 h"); the evaluator ran as designed with the local model as
+the fallback (noisy: "colour" on every frame, "face" on back views), and the frames were checked by eye on numbered
+sheets; the Gemini sheets are kept with a one-line command per look for after 2026-10-29 13:00. Test pass106_ANT_test.gd;
+capture game/tools/_p106_ANT_shots.gd.

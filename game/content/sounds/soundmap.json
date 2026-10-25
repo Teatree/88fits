@@ -797,6 +797,13 @@
       "volume_db": -4,
       "file": "real/st_teleport.wav"
     },
+    "st_war_drum_beat": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -2,
+      "file": "real/st_war_drum_beat.wav"
+    },
     "w_guitarra_strum": {
       "category": "weapon",
       "voices": 3,

@@ -165,6 +165,72 @@ variants = {
 "sprite": "res://content/enemies/fire_ant/fire_ant_sprite_d.png",
 "sprite_file": "fire_ant_sprite_d.png",
 "strip_cols": 91
+},
+"ANT-E": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.898,
+"icon": "res://content/enemies/fire_ant/fire_ant_icon_e.png",
+"note": "Pass 106: an armoured fire ant from Garry's armored-beetle 3D model (auto-rigged, a made six-legged walk and a dead-on-its-back death), bright red-orange, on Klein 28 with the house-style anchor: the clay in the model's own colours repainted",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/fire_ant/fire_ant_sprite_e.png",
+"sprite_file": "fire_ant_sprite_e.png",
+"strip_cols": 91
+},
+"ANT-F": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.891,
+"icon": "res://content/enemies/fire_ant/fire_ant_icon_f.png",
+"note": "Pass 106: the same armoured fire ant on Flux.2 dev 40 (cleaner silhouettes), a darker soldier: crimson and black plates with ember cracks",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/fire_ant/fire_ant_sprite_f.png",
+"sprite_file": "fire_ant_sprite_f.png",
+"strip_cols": 91
 }
 }
 variant = "ANT-A"

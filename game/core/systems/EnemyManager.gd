@@ -1468,6 +1468,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		esz *= vsize
 	vtint[i] = vt
 	hp[i] = ehp; max_hp[i] = ehp; speed[i] = esp * pace; dmg[i] = edm; dr[i] = ear
+	# pass 106 (lane ENDLESS): the Endless speed factor this walk speed carries (stage_speed_mult holds it in Endless)
+	_endless_speed_spawn(i)
 	radius[i] = rad * scale_mult * (elite.scale_mult if elite else 1.0) * vsize
 	_max_r = maxf(_max_r, radius[i])
 	size[i] = esz
@@ -3798,6 +3800,48 @@ func is_alive(i: int) -> bool:
 	return i >= 0 and i < MAX and alive[i] == 1 and state[i] != STATE_DYING
 
 
+## Pass 106 (lane ENDLESS; Garry: "Increase the movement speed of enemies more dramatically and also apply the speed
+## increase to all the enemies that are already spawned"). `endless_speed_live` is the current Endless wave's speed
+## factor (WaveTimeline.endless_mults "speed"; 1 outside Endless); `e_speed[i]` the factor creature i's walk speed carries
+## now. A spawn carries the live one (stage_speed_mult holds it in Endless, WaveDirector._apply_mults); set_endless_speed
+## (WaveDirector._tick_endless, every new wave) re-scales every living regular creature from the factor it carries to the
+## new one (speed x new / old), so the factor is never applied twice and the creatures alive from before Endless (which
+## carry 1) get it too. A boss, an Elite by its kind and a creature wearing an elite modifier keep their speed.
+var endless_speed_live := 1.0
+var e_speed := PackedFloat32Array()
+
+
+func _endless_speed_arrays() -> void:
+	if e_speed.size() != MAX:
+		e_speed.resize(MAX)
+		e_speed.fill(1.0)
+
+
+func _endless_speed_spawn(i: int) -> void:
+	_endless_speed_arrays()
+	e_speed[i] = endless_speed_live
+
+
+## The live Endless speed factor `m` (> 0) on every living regular creature; returns how many were re-scaled.
+func set_endless_speed(m: float) -> int:
+	_endless_speed_arrays()
+	m = maxf(m, 0.01)
+	endless_speed_live = m
+	var n := 0
+	for i in range(MAX):
+		if alive[i] != 1 or state[i] == STATE_DYING:
+			continue
+		if i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
+			continue
+		var f: float = e_speed[i] if e_speed[i] > 0.0 else 1.0
+		if is_equal_approx(f, m):
+			continue
+		speed[i] *= m / f
+		e_speed[i] = m
+		n += 1
+	return n
+
+
 # ---------------------------------------------------------------- simulation
 
 func _physics_process(delta: float) -> void:
@@ -5584,6 +5628,12 @@ static func die_drop_of(def: EnemyDef) -> float:
 ## frame (`k` 0, the hit), all of it on its last (`k` 1, the body on the ground), so the fall lands on the shadow.
 func die_sink(i: int, k: float, sq: float, cam_up: Vector3) -> Vector3:
 	var dd: float = _t_ddrop[type_idx[i]] if type_idx[i] < _t_ddrop.size() else 0.0
+	# pass 106 (lane ENDLESS; Garry: "Desert Spider dead animations seems to be below the shadow"): a NEGATIVE die_drop
+	# lifts the death painting up the billboard onto a shadow that sits up the screen (the spider's `up`), and the lift
+	# holds through the sink at the end (squash), so the body flattens into its shadow, not onto the foot point below it;
+	# a positive one (the Red Goblin's) sinks with the squash as before
+	if dd < 0.0:
+		return cam_up * (dd * clampf(k, 0.0, 1.0) * size[i])
 	return cam_up * (dd * clampf(k, 0.0, 1.0) * size[i] * maxf(sq, 0.2)) if dd != 0.0 else Vector3.ZERO
 
 

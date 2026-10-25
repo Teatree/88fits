@@ -37,6 +37,9 @@ var stranger_screen: StrangerScreen
 ## until the editor imports it)
 const TOTEM_SCREEN := preload("res://ui/TotemScreen.gd")
 var totem_screen: TOTEM_SCREEN
+## pass 106 (lane DRUM): the War Drum's moment (made on its first use, over every screen) and its boost on the hero
+var drum_moment: DrumMoment = null
+var drum_boost: DrumBoost = null
 var paused := false
 var hud: HUD
 ## the floating damage numbers (pass 46, DamageNumbers): on the UI layer under the HUD
@@ -1022,8 +1025,9 @@ func close_pause() -> void:
 ##   rule, as before; the openers mark _modal themselves, so a direct _show_next_level_cards still holds the turn.
 ##   With Settings.debug_mode on, _check_one_modal prints an error the frame two of these screens are visible.
 ## pass 73 (lane STRUCT): TOTEM, the Totem Pole's gifts, waits with the shop and the Stranger
-enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM}
-const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10}
+## pass 106 (lane DRUM): DRUM, the War Drum's moment (time stands still while it plays), before the level cards
+enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM, DRUM}
+const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10, Modal.DRUM: 35}
 ## a boss's chest goes before an ordinary one that fell beside it
 const BOSS_CHEST_BUMP := 5
 ## the beat between one screen closing and the next opening (the run paused meanwhile), and the longer one after the
@@ -1152,7 +1156,8 @@ func _open_next_modal() -> void:
 func visible_modals() -> Array:
 	var out: Array = []
 	for pair in [["cards", cards], ["chest", chest_screen], ["portal", portal_dialog], ["revive", revive_screen],
-			["shop", structure_shop], ["stranger", stranger_screen], ["totem", totem_screen], ["pause", pause_screen]]:
+			["shop", structure_shop], ["stranger", stranger_screen], ["totem", totem_screen], ["pause", pause_screen],
+			["drum", drum_moment]]:
 		var n = pair[1]
 		if n != null and is_instance_valid(n) and (n as CanvasItem).visible:
 			# pass 95 (lead): the Spirit Pole plays a 0.42 s close after its pick (`_done`) while the next screen may
@@ -2304,6 +2309,10 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 				pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)), 3.0), "loot_cache")
 			hud.toast("+%d gold and gems" % gold, UiKit.ACCENT)
 		"buff":
+			# pass 106 (lane DRUM): a buff with a `moment` (the War Drum) stops time for its show, then boosts (_use_drum)
+			if p.get("moment") is Dictionary:
+				_use_drum(def)
+				return
 			Run.add_timed_effects("structure:" + def.id, def.display_name, def.effects, float(p.get("seconds", 30.0)))
 			hud.toast("%s: %s for %d s" % [def.display_name.to_upper(), TextGen.describe_effects(def.effects), int(p.get("seconds", 30.0))], def.color)
 		"level_up":
@@ -2315,6 +2324,47 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			_use_totem(def, at)
 		_:
 			hud.toast(def.display_name, def.color)
+
+
+## Pass 106 (lane DRUM): a buff structure with a `moment` used (the War Drum, use_structure's "buff"). Time stops: the
+## run pauses behind its moment (ui/DrumMoment.gd, a screen of the one-screen rule, Modal.DRUM), every sound effect
+## stops and the music holds where it is (Audio.stop_effects, hold_music); the drum plays its slaps and its melody for
+## params.moment.seconds, every touch swallowed; then the music goes on from where it stopped, the boost starts
+## (DrumBoost.start: params.effects for params.seconds, the stacking rule) and the run goes on. The run sim (nothing
+## drawn) and a run already over take the boost at once.
+func _use_drum(def: StructureDef) -> void:
+	if drum_boost == null:
+		drum_boost = DrumBoost.new()
+		drum_boost.name = "DrumBoost"
+		drum_boost.game = self
+		add_child(drum_boost)
+	if Run.sim_mode or _ended:
+		_drum_boost_start(def)
+		return
+	_request_modal(Modal.DRUM, func() -> bool:
+		_modal = Modal.DRUM
+		if drum_moment == null or not is_instance_valid(drum_moment):
+			drum_moment = DrumMoment.new()
+			drum_moment.name = "DrumMoment"
+			ui.add_child(drum_moment)
+		Audio.stop_effects()
+		Audio.hold_music(true)
+		set_paused(true)
+		var rules := DrumBoost.stack_rules(def)
+		var effs := DrumBoost.stacked_effects(def.effects, rules, DrumBoost.withs_running(rules))
+		drum_moment.open(def, DrumBoost.summary(effs, Run.buff_seconds(float(def.params.get("seconds", 15.0)))))
+		drum_moment.finished.connect(func() -> void:
+			Audio.hold_music(false)
+			_drum_boost_start(def)
+			_modal_done({}, false), CONNECT_ONE_SHOT)
+		return true)
+
+
+func _drum_boost_start(def: StructureDef) -> void:
+	drum_boost.start(def)
+	# short: the moment has said what it gives (the HUD's plate counts the seconds)
+	if hud:
+		hud.toast("%s: %d s" % [def.display_name.to_upper(), int(round(drum_boost.left()))], def.color)
 
 
 ## A Totem Pole used (pass 73, lane STRUCT; use_structure's "totem"): its menu of gifts (ui/TotemScreen.gd) through the

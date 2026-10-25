@@ -67,7 +67,8 @@ func test_structures_are_content() -> void:
 		assert_bool(Registry.structures.has(id)).override_failure_message("missing structure " + id).is_true()
 	var drum: StructureDef = Registry.structure("war_drum")
 	assert_str(drum.effect_kind).is_equal("buff")
-	assert_int(drum.effects.size()).is_equal(2)
+	# pass 106 (lane DRUM): damage, weapon speed, move speed and knockback (add and mul)
+	assert_int(drum.effects.size()).is_equal(5)
 	assert_float(Registry.structure("uber_magnet").weight).is_less(Registry.structure("healing_well").weight)
 	var m: MapDef = Registry.map("red_canyon")
 	# pass 73: a structure that stands its own count (params.per_map, the Totem Poles) is not in the draw

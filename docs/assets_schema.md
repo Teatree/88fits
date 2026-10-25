@@ -3097,3 +3097,104 @@ Never tinted (no key): every ProjectileManager shot (the hero's and the creature
 - `StageLook.filter_mults(e)` now returns 4 colours [world, creatures, structures, items]; `set_mults(env, actors, seconds, structures = null, items = null)` (old 2-factor callers: structures = white.lerp(env, 0.3), items white); `share_of(f, key, def)`; `quad_shader(value)`; `all_quads()`; vars `structure_mult`, `item_mult`.
 - `SceneryStencil.mark/mark_tree/is_marked/scenery_shader(..., value = VALUE)`; `SceneryStencil.STRUCTURE := 5`.
 - Tool: `game/tools/_p105_LOOK_shots.gd -- out=<dir> [mode=static|weapons] [looks=0,1,2] [ab=1]` (windowed, --fixed-fps 60, watchdog 240 s).
+
+## Pass 106: new keys
+
+### Endless creatures faster, the live ones too; the spider's death above its shadow (lane ENDLESS)
+
+No new JSON key. Values changed and one existing key used in a new way:
+
+- Map `timeline_data.endless.speed_growth` (number, map default in WaveTimeline.ENDLESS_DEFAULTS 0.02): Red Canyon 0.015 -> **0.04**.
+- Map `timeline_data.endless.speed_max` (number, default 1.6): Red Canyon 1.6 -> **2.4**.
+  Both stay on the Level Editor's Endless card ("Speed growth a wave", "Speed at most x"). The card's help text for
+  speed_growth still says "a lil bit in Speed" (Garry's pass 87 words); the lead may want it to read "each wave's factor
+  reaches every creature alive (pass 106)".
+- Creature `shadow.die_drop` (number, -0.5..0.5, default 0; pass 88): a NEGATIVE value now LIFTS the death painting up
+  the billboard by that share of the cell (eased in over the death strip, like a positive one), and the lift holds through
+  the end-of-death sink (the squash), so the body flattens into a shadow that sits up the screen. Positive values (the Red
+  Goblin's 0.2) behave exactly as before. Desert Spider: `shadow.die_drop` **-0.15** (new in its JSON).
+
+Code (no JSON): EnemyManager `endless_speed_live` (float, 1 outside Endless), `e_speed` (PackedFloat32Array, the
+Endless factor each creature's walk speed carries), `set_endless_speed(m) -> int` (re-scales the living regular crowd,
+returns how many changed); WaveDirector calls it at every new Endless wave (_tick_endless) and at a run's start.
+
+### The War Drum: time stops for a drum moment, then a 15 s boost (lane DRUM)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| params.moment | dict | absent | when present, using the structure stops time for this show first (ui/DrumMoment.gd), then the buff starts (core/systems/DrumBoost.gd) |
+| params.moment.seconds | float | 2.2 | how long the moment lasts (real seconds) |
+| params.moment.fade_in / fade_out | float | 0.3 / 0.4 | the drum's fade in at the start, out at the end |
+| params.moment.sound | sound id | "" | played on its own player from the first frame (st_war_drum_beat, synthesised by tools/synth_sfx.py from the same hits) |
+| params.moment.picture | res path | the icon | the picture in the middle of the screen (res://art/ui/drum/war_drum_big.png, tools/make_drum_moment.py) |
+| params.moment.head | [x, y, r] | [0.524, 0.399, 0.266] | the drum head's circle as shares of the picture (x, y of width/height; r of the width): where waves and flashes go |
+| params.moment.hits | [{t, s, rim?, big?}] | [] | slaps: at t s, strength s (squash, waves, shake), rim = at the head's edge (a click), big = the last one (three waves, the sky flash, the words) |
+| params.stack | [{with, stats, keep}] | [] | the stacking rule: while timed buff `with` (a power-up id) runs, the boost's effects on `stats` give `keep` of their bonus |
+| params.plate | bool | false | the buff shows a timed plate on the HUD (the structure's icon, on red) |
+| params.aura | dict | absent | the look while it runs: `beat` s between beats (0.5), `accents` per beat ([1]), `radius` of the wave (3 m), `wave_seconds` (0.55), `color` (the ring's and waves' red) |
+
+New sound id: `st_war_drum_beat` (category pickup, voices 1, volume -2 dB, real/st_war_drum_beat.wav).
+New code API: Run.retune_timed(id, effects) -> bool; Audio.stop_effects(), Audio.hold_music(on), Audio.music_position();
+Game.Modal.DRUM, Game.drum_moment (DrumMoment), Game.drum_boost (DrumBoost); HUD.plate_key / plate_def take
+"structure:<id>".
+
+### The Watch: take the bot's run over and hand it back (lane WATCH)
+
+Watch command line (watch_main.gd -- ...; tools/watch.py flag in brackets)
+- `hand=1` [`--hand`]: the run starts in your hands ("You play"). Default 0 (the bot plays, as before).
+- `actions=` new verbs (checks): `hand` / `bot` (set who plays), `handbtn` (presses the "Bot plays"/"You play" button),
+  `key=<name>` (a key pressed and let go two frames later, e.g. key=T), `hold=<name>/<frames>` (a key held, e.g. hold=W/120;
+  WASD and the arrows go through the Input map), `circle=<x>/<y>/<r>/<frames>[/<loops>]` (the mouse pressed at x, y of the
+  game's 1080-wide canvas and swept round a circle of r canvas px over the frames, then lifted: the one-thumb stick),
+  `card=<i>` (a click on the level-up's i-th card).
+
+Keys / controls in the window
+- `T` or the button beside Pause ("Bot plays" unpressed / "You play" pressed): who plays.
+- While you play: WASD, the arrows, or the left mouse dragged in the phone view (the phone's touch, the game's floating
+  stick); clicks on every screen (cards, chests, totems, the Shop, the Stranger, the portal, TAP TO GO, Down!).
+  `D` is WASD's right then (the Damage taken tab keeps its button); every other key as before.
+
+The run record (analytics/runs/tools/<stamp>.json)
+- events `takeover` / `handback`: {t, clock, kind, id "watch", n (the stretch's number), hand_s (seconds by hand so far)}.
+- header `watch.hand`: [[from, to], ...] play seconds of each stretch you played (a live stretch's `to` follows the play, so
+  a run that ends in your hands records it to its end); `watch.hand_s`: their total.
+
+The decision log (<stamp>_decisions.csv)
+- new last column `driver`: "bot" or "hand" (who played when the row was written); new row kinds `takeover`
+  ("you took over (#n)") and `handback` ("back to the bot after m:ss by hand: it plans afresh"); neither gets a DPS change.
+
+The panel
+- charts: a blue mark where you took over ("You took over at 1:02"), a grey one where the bot came back ("The bot again
+  at 2:10, after 1:08 by hand"); the goal plaque says "YOU / You play" with what to do; the status line "you play (T gives
+  it back)"; Threat's Intent "you play"; the end box "You played m:ss in n stretches".
+
+### Two Fire Ant looks from Garry's armored-beetle model (lane ANT)
+
+#### tools/blender_autorig_legs.py (NEW, Blender CLI; `-- key=value`)
+| key | type | default | meaning |
+|---|---|---|---|
+| src | path | (required) | the unrigged model (glb/fbx/obj/zip/blend) |
+| out | path | (required) | the rigged .blend written (+ <out>.json report, <out>.npz check data) |
+| legs | int | 6 | how many legs to find |
+| forward | -Y/+Y/-X/+X/yaw:<deg> | -Y | the way the model faces |
+| weld | float | 0.00001 | merge-by-distance before the analysis (a GLB split at every UV seam) |
+| drop_small | int | 40 | loose parts under this many vertices are deleted (floating spines) |
+| thin | float | 0.075 | a vertex is "thin" under this x height of inward-ray thickness |
+| feet_z | float | 0.25 | feet are thin vertices below this share of the height, farthest out from the middle |
+| sep | float | 0.15 | two feet are at least this share of the length apart |
+| hip | float | 0.12 | the hip is where the foot-to-belly walk gets thicker than this x height (4 vertices running) |
+| hip_x | float | 0.6 | ... or comes within this share of the body's half-width of the middle line |
+| grow | float | 2.0 | non-thin vertices within grow x the leg's median thickness of its bones join the leg |
+| ankle | float | 0.8 | the ankle sits this share of the way from the knee to the foot along the leg |
+| head_cut | auto / float | auto | the head bone's share of the body length from the front (auto: the neck, where the top jumps) |
+| drop_antenna | 0/1 | 0 | delete hair-thin parts reaching 8% past the head's front (the model's one straight antenna) |
+| antennae | "" / elbowed | "" | add two elbowed tapered antennae on the head bone |
+| antenna_len | float | 0.3 | each antenna's length, a share of the body length |
+| antenna_radius | float | 0.012 | its radius, a share of the body length |
+| debug | path | "" | an npz of positions, thickness and leg labels for a plot |
+Bones: root > body > head, body > leg_<L|R><n>_1 > _2 > _3 (hip-knee, knee-ankle, ankle-foot): blender_gait's LEG_WORDS
+find them, `body` is their common parent. Read the .blend with blender_depth_drivers.py `src=` and pass `albedo=`.
+
+#### fire_ant.json (content; no new keys)
+variants ANT-E, ANT-F: method creature_ctl, the existing recipe keys only (drivers armant_walk_v3, death_drivers
+armant_death_v2, death_keep, paint_mode repaint, anchor, clay_src look, clay_fill, init, painter, wan, ...). fresh: true.

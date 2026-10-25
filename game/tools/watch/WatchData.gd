@@ -18,7 +18,7 @@ const THREAT_S := 10
 ## the recorder's event kinds that bring an item (RunAnalytics.ITEM_KINDS)
 const ITEM_KINDS := ["weapon", "passive", "mutation", "perk", "evolution", "passive_evolution"]
 const CSV_COLUMNS := ["t", "clock", "level", "kind", "taken", "taken_name", "reason", "offered", "est_dps_before",
-	"real_dps_before", "real_dps_after_30s", "real_change_pct"]
+	"real_dps_before", "real_dps_after_30s", "real_change_pct", "driver"]
 
 var t := PackedFloat32Array()
 var clock := PackedFloat32Array()
@@ -197,7 +197,8 @@ func fill_decisions(now: float, final: bool = false) -> int:
 			continue
 		# a walking goal (pass 82: or a hunt's end) changes no build: no DPS change of its own
 		# (pass 90: nor a fall or a revive the Watch logged, nor a push out of a ring)
-		if str(d.get("kind", "")) in ["goal", "special", "down", "revive", "breakout"]:
+		# (pass 106: nor your takeover or the bot's return)
+		if str(d.get("kind", "")) in ["goal", "special", "down", "revive", "breakout", "takeover", "handback"]:
 			d["filled"] = true
 			continue
 		var at := float(d.get("t", 0.0))
@@ -504,7 +505,8 @@ static func csv_row(fields: Array) -> String:
 	return ",".join(parts)
 
 
-## The decision log as CSV (CSV_COLUMNS), one line a decision, `names` {id: name} for the taken one's name.
+## The decision log as CSV (CSV_COLUMNS), one line a decision, `names` {id: name} for the taken one's name. Pass 106: the
+## last column, `driver`, says who played then: "bot", or "hand" (you, the Watch's "You play").
 func decisions_csv(names: Dictionary = {}) -> String:
 	var lines := PackedStringArray([csv_row(CSV_COLUMNS)])
 	for d in decisions:
@@ -515,7 +517,8 @@ func decisions_csv(names: Dictionary = {}) -> String:
 		var taken := str(d.get("taken", ""))
 		lines.append(csv_row([_num(d.get("t", 0.0)), _num(d.get("clock", 0.0)), int(d.get("level", 0)), str(d.get("kind", "")),
 			taken, str(names.get(taken, "")), str(d.get("reason", "")), " | ".join(offered), _num(d.get("dps_before", "")),
-			_pos(d.get("real_before", -1.0)), _pos(d.get("real_after", -1.0)), _num(d.get("real_change", NAN))]))
+			_pos(d.get("real_before", -1.0)), _pos(d.get("real_after", -1.0)), _num(d.get("real_change", NAN)),
+			str(d.get("driver", "bot"))]))
 	return "\n".join(lines) + "\n"
 
 

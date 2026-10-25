@@ -7,21 +7,78 @@
   "effect": "buff",
   "weight": 2,
   "params": {
-    "seconds": 30,
+    "seconds": 15,
     "effects": [
       {
         "stat": "might",
         "op": "mul",
-        "value": 0.5,
+        "value": 1.0,
         "target": "player"
       },
       {
-        "stat": "area",
+        "stat": "haste",
         "op": "mul",
-        "value": 0.25,
+        "value": 1.0,
         "target": "player"
+      },
+      {
+        "stat": "move_speed",
+        "op": "mul",
+        "value": 0.15,
+        "target": "player"
+      },
+      {
+        "stat": "knockback",
+        "op": "add",
+        "value": 3.0,
+        "target": "all_weapons"
+      },
+      {
+        "stat": "knockback",
+        "op": "mul",
+        "value": 0.5,
+        "target": "all_weapons"
       }
-    ]
+    ],
+    "stack": [
+      {
+        "with": "rage",
+        "stats": ["might", "haste"],
+        "keep": 0.5
+      },
+      {
+        "with": "sprint",
+        "stats": ["move_speed"],
+        "keep": 0.5
+      }
+    ],
+    "plate": true,
+    "moment": {
+      "seconds": 2.2,
+      "fade_in": 0.3,
+      "fade_out": 0.4,
+      "sound": "st_war_drum_beat",
+      "picture": "res://art/ui/drum/war_drum_big.png",
+      "head": [0.524, 0.399, 0.266],
+      "hits": [
+        {"t": 0.36, "s": 0.85},
+        {"t": 0.6, "s": 0.6},
+        {"t": 0.72, "s": 0.45, "rim": true},
+        {"t": 0.84, "s": 0.7},
+        {"t": 1.08, "s": 0.5},
+        {"t": 1.17, "s": 0.55},
+        {"t": 1.26, "s": 0.6},
+        {"t": 1.35, "s": 0.7},
+        {"t": 1.56, "s": 1.0, "big": true}
+      ]
+    },
+    "aura": {
+      "beat": 0.5,
+      "accents": [1.0, 0.45, 0.7, 0.45],
+      "radius": 3.0,
+      "wave_seconds": 0.55,
+      "color": "#FF3B2F"
+    }
   },
   "color": "#FF5F6B",
   "prop": "war_drum",

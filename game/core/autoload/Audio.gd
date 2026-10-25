@@ -271,3 +271,24 @@ func pause_all(paused: bool) -> void:
 		p.stream_paused = paused
 	for p in _music.values():
 		p.stream_paused = paused
+
+
+## Pass 106 (lane DRUM, the War Drum's moment: "everything stops, including music"): every one-shot playing now stops
+## (the loops a weapon keeps hold with the paused run and go on after it).
+func stop_effects() -> void:
+	for p in _players:
+		if p.playing:
+			p.stop()
+
+
+## The music held where it is (on) and given back from there (off): its stream paused, its position kept.
+func hold_music(on: bool) -> void:
+	for p in _music.values():
+		(p as AudioStreamPlayer).stream_paused = on
+
+
+## Where the track playing is, in seconds (-1 with none; tests: the moment gives the music back where it stopped).
+func music_position() -> float:
+	if not _music.has(_music_now):
+		return -1.0
+	return (_music[_music_now] as AudioStreamPlayer).get_playback_position()

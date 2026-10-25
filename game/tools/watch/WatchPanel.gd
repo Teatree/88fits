@@ -53,6 +53,8 @@ var _title: Label
 var _sub: Label
 var _speed_btns: Dictionary = {}
 var _pause_btn: Button
+## pass 106: who plays, beside Pause ("Bot plays" / "You play", T)
+var _hand_btn: Button
 var _window_btn: Button
 var _sound_btn: Button
 var _goals_btn: Button
@@ -307,6 +309,12 @@ func _header() -> Control:
 	_pause_btn = _button("Pause", "pause or go on (Space)", func() -> void: watch.toggle_pause())
 	_pause_btn.custom_minimum_size = Vector2(76, 0)
 	row.add_child(_pause_btn)
+	# pass 106 (Garry: "a button next to 'Pause' which lets me control the sequence myself"): pressed, you play
+	_hand_btn = _button("Bot plays", "who plays (T): the bot, or you: WASD, the arrows or the mouse dragged in the phone view like a thumb; the cards, chests, totems, the Shop and every screen wait for your clicks. The speeds, Pause and Step work the same. Press again to give him back to the bot (it plans afresh from where he stands)",
+		func() -> void: watch.toggle_hand())
+	_hand_btn.toggle_mode = true
+	_hand_btn.custom_minimum_size = Vector2(92, 0)
+	row.add_child(_hand_btn)
 	var keys := ["1", "2", "3", "4", "5", "6"]
 	for i in range(CLOCK.SPEEDS.size()):
 		var s := float(CLOCK.SPEEDS[i])
@@ -552,6 +560,7 @@ func refresh() -> void:
 	_title.text = "%s  ·  %s" % [w.hero_name(), stage_txt if stage_txt != "" else ("Hero Settings: choose the run, then Start Run" if w.setup_open() and game == null else "starting…")]
 	_sub.text = w.header_words()
 	_pause_btn.text = "Go on" if clk.paused else "Pause"
+	_show_hand(w)
 	for s in _speed_btns:
 		var bt: Button = _speed_btns[s]
 		bt.set_pressed_no_signal(not clk.paused and clk.mode == "" and absf(float(s) - clk.speed) < 0.001)
@@ -926,6 +935,10 @@ func _threat_text(w: Node, data, game: Node) -> void:
 	var bot = w.bot
 	var intent := str(bot.get("intent")) if bot != null else "-"
 	var goal = bot.get("goal") if bot != null else {}
+	# pass 106: while you play the bot has no intent of its own
+	if bool(w.get("hand")):
+		intent = "you play"
+		goal = {}
 	var gtxt := ""
 	if goal is Dictionary and not (goal as Dictionary).is_empty():
 		gtxt = str(goal.get("what", ""))
@@ -987,6 +1000,8 @@ func update_charts() -> void:
 	var cols := 360
 	var ref: Dictionary = watch.ref
 	var marks: Array = fall_marks(data.falls, watch)
+	# pass 106: where you took over and where the bot came back
+	marks += hand_marks(watch.get("hand_stretches") if watch.get("hand_stretches") is Array else [], bool(watch.get("hand")) and not bool(watch.get("ended")))
 	for c in _charts:
 		c.x0 = x0
 		c.x1 = x1
@@ -1082,6 +1097,38 @@ static func fall_marks(falls: Array, w) -> Array:
 			m["tip"] = GOOD
 			m["name"] = str(m["name"]) + (" · revived" if rv == "watch" else " · up again (%s)" % rv)
 		out.append(m)
+	return out
+
+
+## Pass 106: the button's words and its pressed look follow who plays (a press of T too).
+func _show_hand(w) -> void:
+	if _hand_btn == null:
+		return
+	var on := bool(w.get("hand"))
+	_hand_btn.set_pressed_no_signal(on)
+	_hand_btn.text = "You play" if on else "Bot plays"
+
+
+## A check's press on the button, the way a click goes (its pressed signal).
+func press_hand_button() -> void:
+	if _hand_btn != null:
+		_hand_btn.pressed.emit()
+
+
+## Pass 106: the stretches you played as the charts' marks (pure; tested): a blue line where you took over ("You took
+## over at 1:02"), a grey one where the bot came back ("The bot again at 2:10, after 1:08 by hand"); the live stretch
+## (`live`: you play now) has no end mark yet.
+static func hand_marks(stretches: Array, live: bool) -> Array:
+	var out: Array = []
+	for i in range(stretches.size()):
+		var st = stretches[i]
+		if not (st is Array) or (st as Array).size() < 2:
+			continue
+		var a := float(st[0])
+		var b := float(st[1])
+		out.append({"x": a, "color": Color(0.43, 0.71, 1.0, 0.85), "name": "You took over at %s" % DATA.mmss(a)})
+		if not (live and i == stretches.size() - 1):
+			out.append({"x": b, "color": Color(0.6, 0.64, 0.72, 0.85), "name": "The bot again at %s, after %s by hand" % [DATA.mmss(b), DATA.mmss(b - a)]})
 	return out
 
 

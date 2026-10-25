@@ -1025,7 +1025,8 @@ func _refresh_buffs() -> void:
 			if def == null:
 				continue
 			var p := WPlate.new().for_def(def, BUFF_PX)
-			p.fill = W.SAGE
+			# pass 106 (lane DRUM): a structure's boost (the War Drum) on the drum's red, the power-ups on sage
+			p.fill = W.ROCK if k.begins_with("structure:") else W.SAGE
 			p.icon_frac = 0.66
 			p.level_size = 20
 			p.name = "buff"
@@ -1059,6 +1060,11 @@ static func plate_key(id: String) -> String:
 		return id
 	if FlowerField.is_buff(id):
 		return FlowerField.MUTATION
+	# pass 106 (lane DRUM): a structure's buff whose params ask for a plate (the War Drum's boost, "structure:war_drum")
+	if id.begins_with("structure:"):
+		var sd: StructureDef = Registry.structure(id.trim_prefix("structure:"))
+		if sd != null and bool(sd.params.get("plate", false)):
+			return id
 	return ""
 
 
@@ -1067,6 +1073,8 @@ static func plate_def(k: String) -> ContentDef:
 	if k == FlowerField.MUTATION:
 		var m: ContentDef = Registry.mutation(k)
 		return m if m != null else Registry.pickup(str(FlowerField.KINDS[0]))
+	if k.begins_with("structure:"):
+		return Registry.structure(k.trim_prefix("structure:"))
 	return Registry.pickup(k)
 
 

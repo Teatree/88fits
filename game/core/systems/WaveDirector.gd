@@ -106,6 +106,8 @@ func start(p_map: MapDef) -> void:
 	_enter_stage_window()
 	running = true
 	var em: EnemyManager = game.enemies
+	# pass 106 (lane ENDLESS): no Endless speed on a fresh run's creatures
+	em.set_endless_speed(_endless_speed)
 	for a in map.skins.keys():
 		em.register_type(Registry.enemy(map.skins[a]))
 	if map.boss != "":
@@ -1007,6 +1009,8 @@ func _tick_endless(delta: float) -> void:
 	_endless_wave = w
 	_endless_speed = float(timeline.endless_mults(w, Run.stage)["speed"])
 	_apply_mults()
+	# pass 106 (lane ENDLESS): the wave's speed reaches every creature already on the sand too, not only the new ones
+	game.enemies.set_endless_speed(_endless_speed)
 	spawn_endless_wave(w)
 	endless_wave_started.emit(w)
 
