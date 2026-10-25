@@ -92,7 +92,7 @@ const Model = (() => {
   // strength}, hell, shot}); stage k's window starts at the sum of the earlier lengths and its boss fires at its end (the
   // game's WaveTimeline.stage_window, lane SGAME). A map without one has `stages` windows of `stage_length` (today's
   // play exactly). A malformed entry (not an object) is skipped; a length under 1 s is the old stage_length.
-  const STAGE_LIST_KEYS = ['id', 'name', 'length', 'boss', 'description', 'difficulty', 'filter', 'hell', 'shot'];
+  const STAGE_LIST_KEYS = ['id', 'name', 'length', 'boss', 'description', 'difficulty', 'filter', 'hell', 'shot', 'xp_mult'];  // pass 107: xp_mult (lane XPT)
   /** Whether the map has its own stage_list (the stage tabs edit it; without one they show the fallback windows). */
   const hasStageList = (tl) => Array.isArray(tl && tl.stage_list) && tl.stage_list.some(isObj);
   /** Every stage's window: [{i, id, name, start, end, length, boss, entry (the map's own object, null for the fallback)}]. */

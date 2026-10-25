@@ -17,6 +17,11 @@
   },
   "params": {
     "fire_forward": true,
+    "night_tint": {
+      "albedo": "#E9D59C",
+      "emission": "#B89A5A",
+      "energy": 0.35
+    },
     "radius": 0.7,
     "roll_radius": 0.6
   },

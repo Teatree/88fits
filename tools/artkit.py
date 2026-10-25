@@ -240,6 +240,74 @@ def tint_range(img, ranges, to_hue, sat_set=0.55, value_mult=0.6, min_sat=0.06, 
     return Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "RGBA")
 
 
+def _smooth(e0, e1, x):
+    t = np.clip((x - e0) / max(e1 - e0, 1e-6), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
+def lift_range(img, ranges, to_hue, sat_set=None, sat_mult=1.0, v_lo=0.5, v_hi=1.0, gamma=1.0, min_sat=0.0, max_sat=1.01,
+               min_val=0.0, src_hi=1.0, soft=0.04, hue_soft=0.0, to_hue_dark=None, mass=0, grow=None, mass_sat=None, keep_edge=0):
+    """Recolour a material lighter (pass 107: the white beetle shells, the bright fire ants, the bone scorpion): a visible
+    pixel whose hue is inside one of `ranges` (degrees; 340-360,0-40 for a red that wraps), whose saturation is between
+    `min_sat` and `max_sat` and whose value is at least `min_val` takes hue `to_hue`, saturation `sat_set` (absolute) or
+    `sat_mult` times its own when `sat_set` is None, and a value remapped from [min_val, src_hi] onto [v_lo, v_hi] with
+    `gamma` (the shading order kept, the whole range lifted). Dark lines and the outline (under `min_val`) stay as they
+    are; the saturation and value edges are blended over +-`soft` so no hard pixel seam shows where the selection ends.
+    `hue_soft` (degrees) fades the selection out past each hue range's ends instead of cutting it; `to_hue_dark`, when
+    given, is the hue of the darkest selected shades, blended to `to_hue` at the brightest (gold whose shadows go amber,
+    not olive). `mass` (pixels) keeps only the material's areas (its hue, value and a saturation of at least `mass_sat`, default
+    0.4 of `min_sat`, so its glints count) at least 2*mass+1 thick (a morphological opening: a beetle's shell, not its thin legs of the same red), grown back by `grow` pixels (default mass + 2) so the shell's rim comes
+    with it. `keep_edge` (pixels) leaves the figure's outer band that wide as it is (an icon's grey outer stroke, as dark
+    as the body it surrounds). tint_range only scales value down, remap_hues keeps it: neither turns a red or black shell white."""
+    a = np.asarray(img.convert("RGBA")).astype(np.float32) / 255.0
+    h, s, v = _rgb_to_hsv(a[..., :3])
+    deg = h * 360.0
+    hit = np.zeros(h.shape, dtype=np.float32)
+    hs = float(hue_soft)
+    for lo, hi in ranges:
+        if hs > 0.0:
+            # distance in degrees outside [lo, hi] (on the circle), faded over hs
+            dl = np.mod(float(lo) - deg, 360.0)
+            dh = np.mod(deg - float(hi), 360.0)
+            inside = (deg >= float(lo)) & (deg <= float(hi))
+            dist = np.where(inside, 0.0, np.minimum(dl, dh))
+            hit = np.maximum(hit, 1.0 - _smooth(0.0, hs, dist))
+        else:
+            hit = np.maximum(hit, ((deg >= float(lo)) & (deg <= float(hi))).astype(np.float32))
+    w = hit * (a[..., 3] > 0.02)
+    body = (w > 0.5) & (v >= float(min_val)) & (s >= (0.4 * float(min_sat) if mass_sat is None else float(mass_sat)))  # the material, its glints too
+    sf = float(soft)
+    if min_sat > 0.0:
+        w = w * _smooth(min_sat - sf, min_sat + sf, s)
+    if max_sat < 1.0:
+        w = w * (1.0 - _smooth(max_sat - sf, max_sat + sf, s))
+    if min_val > 0.0:
+        w = w * _smooth(min_val - sf, min_val + sf, v)
+    if int(mass) > 0:
+        k = 2 * int(mass) + 1
+        g = 2 * int(int(mass) + 2 if grow is None else grow) + 1
+        core = Image.fromarray((body * 255).astype(np.uint8), "L")
+        core = core.filter(ImageFilter.MinFilter(k)).filter(ImageFilter.MaxFilter(k)).filter(ImageFilter.MaxFilter(g))
+        core = core.filter(ImageFilter.GaussianBlur(1.0))
+        w = w * (np.asarray(core).astype(np.float32) / 255.0)
+    if int(keep_edge) > 0:
+        inner = Image.fromarray(((a[..., 3] > 0.5) * 255).astype(np.uint8), "L")
+        inner = inner.filter(ImageFilter.MinFilter(2 * int(keep_edge) + 1)).filter(ImageFilter.GaussianBlur(0.7))
+        w = w * (np.asarray(inner).astype(np.float32) / 255.0)
+    if not (w > 0.0).any():
+        return img
+    t = np.clip((v - float(min_val)) / max(float(src_hi) - float(min_val), 1e-6), 0.0, 1.0) ** float(gamma)
+    nv = float(v_lo) + (float(v_hi) - float(v_lo)) * t
+    ns = np.full_like(s, float(sat_set)) if sat_set is not None else np.clip(s * float(sat_mult), 0.0, 1.0)
+    if to_hue_dark is None:
+        nh = np.full_like(h, (float(to_hue) / 360.0) % 1.0)
+    else:
+        nh = ((float(to_hue_dark) + (float(to_hue) - float(to_hue_dark)) * t) / 360.0) % 1.0
+    rgb = _hsv_to_rgb(nh, ns, nv)
+    a[..., :3] = a[..., :3] * (1.0 - w[..., None]) + rgb * w[..., None]
+    return Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "RGBA")
+
+
 def grade(img, hue=(0.5, 0.72), sat_mul=1.8, sat_range=(0.04, 0.45), hue_shift=0.0, sat_max=0.6):
     """A hue-selective grade for a still: pixels whose hue sits in `hue` and whose saturation is inside `sat_range`
     get their saturation multiplied (capped at `sat_max`) and their hue shifted by `hue_shift`. A blue-grey garment

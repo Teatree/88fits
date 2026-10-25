@@ -14,6 +14,15 @@ last frame of the source beside the result for a look. Works on a single icon to
 skeletons): a pale material turned dark and saturated (artkit.tint_range): the hue is set, the saturation set to
 `--set-sat`, the value multiplied by `--value`; pixels darker than `--min-val` (lines, sockets, the outline) and anything
 grey or cool (the knight's steel) are left alone.
+`--mode lift --ranges 340-360,0-40 --to 40 --set-sat 0.1 --v-lo 0.55 --v-hi 1 --gamma 1 --min-sat 0.6 --min-val 0.3
+--src-hi 1 --soft 0.04` (pass 107, the white beetle shells, the bright ants, the bone scorpion; artkit.lift_range): the
+selected pixels take hue `--to`, saturation `--set-sat` (or `--sat` times their own when it is absent) and a value
+remapped from [min-val, src-hi] onto [v-lo, v-hi]; anything darker than `--min-val` (lines, the outline) stays; the
+edges of the selection are blended over +-`--soft`, the hue ranges' ends over `--hue-soft` degrees; `--to-dark <hue>`
+gives the darkest shades their own hue (gold with amber shadows); `--mass 3 [--grow 5]` keeps only selected areas at
+least 7 px thick (pixels of the hue, value and saturation >= `--mass-sat`, default 0.4 x min-sat), grown back
+5 px (the shell, not the thin legs of the same red); `--keep-edge 4` leaves the figure's outer 4 px as they are (an
+icon's grey outer stroke). Ranges wrap by listing two (340-360,0-40).
 """
 import os
 import sys
@@ -45,7 +54,16 @@ def main():
     min_sat = float(opt("min-sat", "0.2"))
     max_sat = float(opt("max-sat", "1.01"))
     img = Image.open(src).convert("RGBA")
-    if opt("mode", "hue") == "tint":
+    if opt("mode", "hue") == "lift":
+        # pass 107: a material made lighter (white shells, bright ants, a bone scorpion); value remapped onto [v-lo, v-hi]
+        ss = opt("set-sat")
+        out = artkit.lift_range(img, ranges, to, None if ss is None else float(ss), sat, float(opt("v-lo", "0.5")),
+                                float(opt("v-hi", "1.0")), float(opt("gamma", "1.0")), min_sat, max_sat,
+                                float(opt("min-val", "0.0")), float(opt("src-hi", "1.0")), float(opt("soft", "0.04")),
+                                float(opt("hue-soft", "0")), None if opt("to-dark") is None else float(opt("to-dark")),
+                                int(opt("mass", "0")), None if opt("grow") is None else int(opt("grow")),
+                                None if opt("mass-sat") is None else float(opt("mass-sat")), int(opt("keep-edge", "0")))
+    elif opt("mode", "hue") == "tint":
         # pass 54: a pale material to a dark saturated one (the dark-blue skeletons); value is scaled, saturation set
         out = artkit.tint_range(img, ranges, to, float(opt("set-sat", "0.55")), float(opt("value", "0.6")), min_sat, max_sat,
                                 float(opt("min-val", "0.3")))

@@ -773,8 +773,18 @@ func stage_filter(i: int) -> Dictionary:
 	return {"color": color_of(fd.get("color", "#000000"), Color.BLACK), "strength": clampf(float(fd.get("strength", 0.0)), 0.0, 1.0)}
 
 
+## Pass 107 (lane XPT): stage `i`'s XP multiplier on every kill's XP (Garry: Stage 2's "EXP drop is too high ... a
+## slightly faster level up progression than Stage 1, but not by much"): the entry's `xp_mult`, default 1 (no change),
+## never below 0. Each stage is a fresh level-1 run since pass 87, so a stage whose roster is rich in XP (Nightfall's
+## beetles, mummies, giants) levelled a fresh hero far faster than Sundown; this is the stage's own knob for it.
+func stage_xp_mult(i: int) -> float:
+	var e := _stage_raw(i)
+	return maxf(float(e.get("xp_mult", 1.0)), 0.0)
+
+
 ## Stage `i`'s entry with every key filled (the Stages menu, analytics): index, id, name, length, boss, description,
-## difficulty, filter {color "#rrggbb", strength}, hell, shot ("" when the entry names none), start, end.
+## difficulty, filter {color "#rrggbb", strength}, hell, shot ("" when the entry names none), start, end, xp_mult
+## (pass 107).
 func stage_entry(i: int) -> Dictionary:
 	var e := _stage_raw(i)
 	var k := stage_clamp(i)
@@ -782,7 +792,8 @@ func stage_entry(i: int) -> Dictionary:
 	return {"index": k, "id": stage_id(k), "name": stage_name(k), "length": stage_len(k), "boss": stage_boss(k),
 		"description": str(e.get("description", "")), "difficulty": str(e.get("difficulty", "")),
 		"filter": {"color": "#" + (f["color"] as Color).to_html(false), "strength": float(f["strength"])},
-		"hell": stage_hell(k), "shot": str(e.get("shot", "")), "start": stage_start(k), "end": stage_end(k)}
+		"hell": stage_hell(k), "shot": str(e.get("shot", "")), "start": stage_start(k), "end": stage_end(k),
+		"xp_mult": stage_xp_mult(k)}
 
 
 # ---------------------------------------------------------------- Endless after a stage (pass 87, lane SGAME)

@@ -1961,6 +1961,8 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 	# pass 87 (lane SGAME): Endless's kills drop a share of their XP (endless.xp_share; Garry: "modest amounts")
 	if director:
 		xp_scale *= director.xp_share()
+		# pass 107 (lane XPT): the stage's own XP multiplier (stage_list entry `xp_mult`, 1 without one)
+		xp_scale *= director.stage_xp_mult()
 	pickups.drop_from(def, at, xp_scale, elite != null)
 	# Prospector (pass 47): a chance of one more XP gem, the size this creature mostly drops
 	var xp_chance: float = Run.player_sheet.get_stat("xp_drop_chance", 0.0)

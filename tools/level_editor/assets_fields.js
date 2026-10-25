@@ -125,7 +125,9 @@ const AFIELDS = (() => {
     ProjectileEmitter: ['aura', 'burst', 'burst_gap', 'double_every', 'double_gap', 'double_tap', 'drum_axis', 'drum_scale', 'drum_step', 'familiar', 'fan_step_deg', 'fire_blind', 'hip_shot', 'look', 'momentum_rounds', 'no_shells', 'radius', 'radius_mult', 'shockwave', 'silver', 'speed_mult', 'sweep_deg', 'scatter_deg', 'tint', 'blast',
       'amount_mode', 'free_throw', 'tracer_color',
       // pass 69: Alley-Oop's launch and the ball's Heat look (lane BB), May's Trigger Happy (lane HERO)
-      'launch', 'heat_look', 'fire_without_target', 'stream'],
+      'launch', 'heat_look', 'fire_without_target', 'stream',
+      // pass 107 (lane XPT): the shot's colours while the stage plays a filter (Nightfall, Blood Moon; ProjectileEmitter.night_look_on)
+      'night_tint'],
     Smasher: ['giant_slayer', 'smash', 'thor'],
     Spawner: ['max_turrets', 'max_turrets_mult', 'turret', 'turret_fire_rate', 'magnet', 'tracer', 'focus'],
     SunScepter: ['familiar', 'gold_dust', 'handle_ring', 'shine', 'staff_tint', 'sun', 'zenith'],

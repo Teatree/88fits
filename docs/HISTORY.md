@@ -4125,3 +4125,27 @@ held (one real call answered "quota reached, resets in 108 h"); the evaluator ra
 the fallback (noisy: "colour" on every frame, "face" on back views), and the frames were checked by eye on numbered
 sheets; the Gemini sheets are kept with a one-line command per look for after 2026-10-29 13:00. Test pass106_ANT_test.gd;
 capture game/tools/_p106_ANT_shots.gd.
+
+**Pass 107 (2026-10-26, v0.91): white, gold and rose recolours for Nightfall, Stage 2's XP tamed, the Tumbleweed pale at night, the boss that never came.** Garry's message: tools/dl/p107/REQUEST.md (verbatim). Lanes RECOLOUR and XPT, then the lead (the rows' looks, and the hell_check failure traced to a full creature pool, see LEAD).
+
+Pass 107 (lane RECOLOUR): six recolour looks, all fresh, none played: the Bull Beetle BB-E (bone-white shell) and BB-F
+(pearl, cool blue-white shell) from BB-C, the head, horns, legs, eyes, mouthparts and outline untouched; the Fire Ant
+ANT-G (bright gold, amber shadows) and ANT-H (pale rose) from ANT-E; the Lesser Scorpion LS-D (bone) and LS-E (gold,
+yellower than the sand) from LS-B. Pixel work only: tools/recolour_strip.py gained `--mode lift` (artkit.lift_range: a
+value remap onto a lighter range with soft selection edges, `--hue-soft`, `--to-dark` for gold that shades amber not
+olive, `--mass/--grow` to take a beetle's shell but not its thin legs of the same red, `--keep-edge` for an icon's outer
+stroke); the recipes live in tools/dl/p107/RECOLOUR/make.py and each entry's recipe (`recolour_of`, `recolour_passes`).
+Every frame checked on contact sheets at phone size and in-game in Sundown and Nightfall beside the originals
+(game/tools/_p107_RECOLOUR_shots.gd). Tests game/tests/pass107_RECOLOUR_test.gd; the Level Editor selftest's two
+Lesser Scorpion pins (3 looks, next codes LS-D/LS-E) now read the file.
+
+The lead set Stage 2's rows to the new looks (Garry: "go ahead and already set those to be the selected enemy looks in
+the Timeline of the Stage 2"): Bull Beetle r27 BB-E and swarm r9 BB-F, Lesser Scorpion r29 LS-D, Fire Ant swarm r8 ANT-G.
+**The boss that never came** (found while hell_check failed at random, also on HEAD: 3 runs in 4): the map's hard_cap
+(500) is above EnemyManager.MAX (320), so a late stage-3 crowd fills the pool, and kill_all's dying bodies keep their
+slots while their deaths play; when the stage's boss was due, spawn() returned -1, the director had already gone into its
+boss phase (the clock stopped, the Brander's ring drawn then dropped), no boss lived to die, so no portal and no Endless:
+a run stuck for good. `EnemyManager.spawn_boss` now makes a slot first (`_room_for_boss`: the dying body nearest its end,
+else the farthest creature the despawn rule may take, else the farthest that is not a boss), and the Elite boss events
+do the same (WaveDirector._spawn_elite_boss). Regression test game/tests/pass107_bossroom_test.gd. The pool still fills
+in stage 3 because the hard cap is above it: Garry's call (raise MAX, at a performance cost, or lower the hard cap).

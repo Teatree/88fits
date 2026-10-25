@@ -299,6 +299,74 @@
         "run": 20,
         "die": 12
       }
+    },
+    "BB-E": {
+      "note": "Pass 107 recolour of BB-C: a bone-white shell (warm ivory, hue 38, a faint saturation), the head, horns, legs, eyes, mouthparts and outline as they are; every frame of the BB-C strip lifted (tools/recolour_strip.py --mode lift, the shell's reds 350-26 only where thick enough to be shell, then its glints)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "BB-C",
+        "recolour_passes": [
+          "--mode lift --ranges 350-360,0-26 --hue-soft 3 --mass 3 --grow 4 --mass-sat 0.46 --to 38 --set-sat 0.10 --v-lo 0.50 --v-hi 1.0 --gamma 0.9 --min-sat 0.62 --min-val 0.28 --src-hi 0.95 --soft 0.06",
+          "--mode lift --ranges 3-40 --hue-soft 3 --to 38 --set-sat 0.08 --v-lo 0.88 --v-hi 1.0 --gamma 1 --min-sat 0.22 --max-sat 0.80 --min-val 0.88 --src-hi 1.0 --soft 0.05"
+        ]
+      },
+      "sprite": "bull_beetle_sprite_e.png",
+      "icon": "bull_beetle_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 83,
+      "head": 0.688,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "BB-F": {
+      "note": "Pass 107 recolour of BB-C: a pearl shell (cool blue-white, hue 205), everything else as BB-C; the same lift as BB-E with a cool cast (tools/recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "BB-C",
+        "recolour_passes": [
+          "--mode lift --ranges 350-360,0-26 --hue-soft 3 --mass 3 --grow 4 --mass-sat 0.46 --to 205 --set-sat 0.07 --v-lo 0.52 --v-hi 1.0 --gamma 0.9 --min-sat 0.62 --min-val 0.28 --src-hi 0.95 --soft 0.06",
+          "--mode lift --ranges 3-40 --hue-soft 3 --to 205 --set-sat 0.05 --v-lo 0.88 --v-hi 1.0 --gamma 1 --min-sat 0.22 --max-sat 0.80 --min-val 0.88 --src-hi 1.0 --soft 0.05"
+        ]
+      },
+      "sprite": "bull_beetle_sprite_f.png",
+      "icon": "bull_beetle_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 83,
+      "head": 0.688,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
     }
   },
   "variant_base": "BB-C",

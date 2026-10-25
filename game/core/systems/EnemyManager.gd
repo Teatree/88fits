@@ -1592,8 +1592,48 @@ func spawn_ring(def_id: String, count: int, center: Vector3, ring_radius: float,
 
 
 ## A boss (or whatever a boss event names): a boss or an Elite by its kind keeps its own rules whatever `src` says (pass 58).
+## Pass 107 (fix): the boss always comes. With every one of the MAX slots taken (the map's hard_cap is above MAX, so a late
+## crowd fills the pool, and a cleared field's bodies keep their slots while their deaths play), spawn() returned -1:
+## the director had already gone into its boss phase (the clock stopped, the ring up), no boss lived to die, and the
+## stage never reached its portal. A slot is made first (_room_for_boss).
 func spawn_boss(def_id: String, at: Vector3, variant := "", overrides := {}, src := {}) -> int:
+	if free_list.is_empty():
+		_room_for_boss()
 	return spawn(def_id, at, null, 1.0, 1.0, variant, overrides, src)
+
+
+## One slot freed for a boss when the pool is full (pass 107 fix): the dying body nearest its end goes at once (its death
+## was ending anyway), else the regular creature farthest from the hero vanishes as the despawn rule's would
+## (despawn_kind: never a boss, an Elite, a special, a held one ...), else, when none may, the farthest creature that is
+## not a boss. False when nothing could give way.
+func _room_for_boss() -> bool:
+	var best := -1
+	var best_t := INF
+	for i in range(MAX):
+		if alive[i] == 1 and state[i] == STATE_DYING and timer[i] < best_t:
+			best_t = timer[i]
+			best = i
+	if best >= 0:
+		_free(best)
+		return true
+	var ppos: Vector3 = player.global_position if player != null and is_instance_valid(player) else Vector3.ZERO
+	# first a creature the despawn rule could take; only when there is none (a pool of fresh, still-rising spawns, of
+	# specials and Elites) any creature but a boss
+	for strict: bool in [true, false]:
+		var far := -1
+		var far_d := -1.0
+		for i in range(MAX):
+			if strict and not despawn_kind(i):
+				continue
+			if not strict and (alive[i] == 0 or state[i] == STATE_DYING or i == boss_index or (types[type_idx[i]]["def"] as EnemyDef).archetype == "boss"):
+				continue
+			var d := Vector2(pos[i].x - ppos.x, pos[i].z - ppos.z).length_squared()
+			if d > far_d:
+				far_d = d
+				far = i
+		if far >= 0:
+			return despawn(far)
+	return false
 
 
 func _clamp_arena(p: Vector3) -> Vector3:

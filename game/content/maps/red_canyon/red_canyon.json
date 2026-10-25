@@ -54,6 +54,7 @@
         "boss": "gila_grande",
         "description": "Night falls on the canyon. Tougher, and longer.",
         "difficulty": "Medium",
+        "xp_mult": 0.7,
         "filter": {
           "color": "#3D55C8",
           "strength": 0.48
@@ -838,6 +839,7 @@
         "t": 730,
         "until": 835,
         "enemy": "bull_beetle",
+        "variant": "BB-E",
         "weights": [
           [
             730,
@@ -1017,6 +1019,7 @@
         "t": 911,
         "until": 1030,
         "enemy": "lesser_scorpion",
+        "variant": "LS-D",
         "weights": [
           [
             911,
@@ -1571,6 +1574,7 @@
         "name": "Ant swarm",
         "t": 835,
         "enemy": "fire_ant",
+        "variant": "ANT-G",
         "weights": [
           [
             835,
@@ -1594,6 +1598,7 @@
         "name": "Armadillo charge",
         "t": 960,
         "enemy": "bull_beetle",
+        "variant": "BB-F",
         "weights": [
           [
             960,

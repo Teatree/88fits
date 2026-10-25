@@ -433,6 +433,7 @@ roster = [{
 },
 "t": 730.0,
 "until": 835.0,
+"variant": "BB-E",
 "weights": [[730.0, 0.8], [1037.0, 1.0]]
 }, {
 "count": 10.0,
@@ -547,6 +548,7 @@ roster = [{
 },
 "t": 911.0,
 "until": 1030.0,
+"variant": "LS-D",
 "weights": [[911.0, 0.6], [1030.0, 0.8]]
 }, {
 "channel": "hell",
@@ -852,6 +854,7 @@ roster = [{
 },
 "t": 835.0,
 "until": 923.0,
+"variant": "ANT-G",
 "weights": [[835.0, 1.0]]
 }, {
 "banner": "SWARM!",
@@ -868,6 +871,7 @@ roster = [{
 "hp_mult": 1.84
 },
 "t": 960.0,
+"variant": "BB-F",
 "weights": [[960.0, 1.0]]
 }, {
 "banner": "SWARM!",
@@ -1076,7 +1080,8 @@ stage_list = [{
 "id": "s2",
 "length": 600.0,
 "name": "Nightfall",
-"shot": "res://art/ui/stages/red_canyon_s2.jpg"
+"shot": "res://art/ui/stages/red_canyon_s2.jpg",
+"xp_mult": 0.7
 }, {
 "boss": "brander",
 "description": "Hell opens under a blood moon. Few come back.",

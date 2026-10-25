@@ -5861,6 +5861,12 @@ and their rows spawn again near him, which is the same crowd density with no tel
   spawn again near the hero on their next check. Counted in the run record (`despawned`, by creature).
 - **Where it is off**: the debug arena (creatures are spawned there to be looked at); a manager without a director
   (tests, tools) unless one calls `set_despawn`.
+- **Room for a boss** (pass 107 fix, EnemyManager.spawn_boss / `_room_for_boss`): the map's `hard_cap` (500) is above
+  the pool's 320 bodies (EnemyManager.MAX), so a late crowd fills every slot, and a cleared field's bodies keep theirs
+  while their deaths play. A boss that finds no free slot now takes one: the dying body nearest its end goes at once,
+  else the regular creature farthest from the hero vanishes as a despawn does (on or off the screen, whatever its age),
+  else the farthest creature that is not a boss. Before, the boss simply did not come while the director had begun its
+  fight (the clock stopped, the Brander's ring up and gone): the stage never reached its portal or Endless.
 - **The older rule it replaces for regular creatures** (found by the probe, undocumented until now: WaveDirector
   `_cull_behind`, every 0.5 s, since an early pass): anything more than 30 m BEHIND the hero (behind = more than ~107
   degrees off his facing; never the boss, the Elite boss or an artillery creature) was moved up to a fresh spawn point
@@ -6752,3 +6758,14 @@ before (pass 88). No other creature has a negative die_drop.
 
 No gameplay rule or number changed: two new art looks of the Fire Ant (ANT-E, ANT-F, both fresh), the ant keeps playing
 ANT-A with its stats untouched.
+
+## 51. Pass 107 (v0.91): recolours, Stage 2's XP, the night Tumbleweed, room for a boss
+
+Garry's words: tools/dl/p107/REQUEST.md. Each lane's rules.
+
+### 51.XPT Stage 2's XP near Stage 1's pace; the Tumbleweed pale at night
+
+- **Stage XP multiplier** (new rule): a stage_list entry's `xp_mult` (default 1, floor 0) multiplies every kill's XP in that stage (the gems a kill drops and Prospector's extra gem), through its boss, portal and Endless (Endless: times `endless.xp_share` as well). Red Canyon Nightfall (s2) = **0.7**; Sundown and Blood Moon unchanged (1).
+- Why 0.7: run sim (Drifter, quarter board 1.5, bot default, death=keep, 12 players, limit 600 s). Before, Nightfall reached the levels Sundown reaches before its boss (3..17) in 0.74 of Sundown's time (geometric mean; levels 6-10 in 0.53-0.61 of the time). At 0.7 the geometric mean is 0.89 (11% sooner, inside the asked 5-15%). The shape still differs: Nightfall's roster is XP-rich from its first second (Buckshot Dwarves 10.8 XP a kill, Desert Spiders 9.6, against Sundown's opening goblins/skeletons/scorpions at 1.9), while Sundown speeds up only in its last three minutes (beetles 120, mummies 24): so at 0.7 levels 6-10 still come ~30% sooner and levels 14-17 10-35% later. A flat multiplier cannot match both ends; matching the shape is a roster edit (Garry's, see the report).
+- **Night shot colours** (new rule): a weapon's `params.night_tint` replaces its shots' colours while the stage look has a filter (Nightfall, Blood Moon). Tumbleweed bleached straw #E9D59C, Dust Devil pale ash #D6D0C6. Sundown unchanged.
+- Stage 3 (Blood Moon) shows the same front-loading (level 14.7 at 3:00 against Sundown's 7.2; reported, not changed).

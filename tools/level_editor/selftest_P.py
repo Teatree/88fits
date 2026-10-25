@@ -211,6 +211,8 @@ def checks(check, run_node, server):
         expect.append((anims, kind, scols, px, total))
     heroes = [os.path.join(CONTENT, "characters", h, h + ".json") for h in ("drifter", "astro", "calavera", "ironwood", "solenne")]
     ls = _load(strips[0][1])
+    # pass 107: the Lesser Scorpion has more looks now (LS-D, LS-E recolours); the skip check keeps its first three
+    ls = dict(ls, variants={k: v for k, v in ls["variants"].items() if k in ("LS-A", "LS-B", "LS-C")})
     codes_q = [
         [ls, "lesser_scorpion", ["lesser_scorpion_sprite_d.png", "lesser_scorpion_icon_b.png"], 3],
         [{}, "dune_scorpion", [], 2],

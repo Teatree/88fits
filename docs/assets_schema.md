@@ -3198,3 +3198,28 @@ find them, `body` is their common parent. Read the .blend with blender_depth_dri
 #### fire_ant.json (content; no new keys)
 variants ANT-E, ANT-F: method creature_ctl, the existing recipe keys only (drivers armant_walk_v3, death_drivers
 armant_death_v2, death_keep, paint_mode repaint, anchor, clay_src look, clay_fill, init, painter, wan, ...). fresh: true.
+
+## Pass 107: new keys
+
+### Six recolour looks for the Bull Beetle, the Fire Ant and the Lesser Scorpion (lane RECOLOUR)
+
+tools/recolour_strip.py `--mode lift` (artkit.lift_range; additive, hue/tint modes unchanged: a tint rerun of SK-A
+reproduces skeleton_sprite_e.png byte for byte):
+- `--ranges a-b,c-d` hue ranges (degrees), `--to` hue, `--set-sat` absolute saturation (else `--sat` x own saturation)
+- `--v-lo`, `--v-hi` (default 0.5, 1.0): value remapped from [`--min-val`, `--src-hi`] onto [v-lo, v-hi] with `--gamma` (1.0)
+- `--min-sat`, `--max-sat`, `--min-val`: the selection (darker than min-val, i.e. lines and outline, stays); `--soft` (0.04) blends those edges
+- `--hue-soft` (deg, 0): fades the hue ranges' ends; `--to-dark <hue>`: the darkest shades' hue, blended to `--to` at the brightest
+- `--mass N` (0 = off) + `--grow G` (N+2) + `--mass-sat` (0.4 x min-sat): only areas of the material at least 2N+1 px thick (morphological opening), grown back G px: a beetle shell without its same-red legs
+- `--keep-edge N` (0): the figure's outer N px left as they are (the scorpion icon's grey outer stroke)
+
+Look entry recipe of a recolour look (no method; like SK-E's `tint_of`): `recolour_of` (source code),
+`recolour_passes` (the recolour_strip.py argument strings, applied in turn to the strip and the icon),
+`recolour_icon_extra` (optional: extra args for the icon only). Not a Level Editor job method: the LE's `recolour`
+method stays hue/tint; a lift rerun is `python tools/dl/p107/RECOLOUR/make.py --final`.
+
+### Stage 2's XP near Stage 1's pace; the Tumbleweed pale at night (lane XPT)
+
+| key | where | type | default | meaning |
+|---|---|---|---|---|
+| `xp_mult` | `timeline_data.stage_list[k]` (map JSON) | number >= 0 | 1 (absent) | Every kill's XP in that stage times this (WaveTimeline.stage_xp_mult -> WaveDirector.stage_xp_mult -> Game._drop_from_kill, before the gems are spawned; also Prospector's extra gem). Holds through the stage's boss, its portal and its Endless (times Endless's own `xp_share`). Red Canyon: s2 (Nightfall) 0.7; s1, s3 none. Level Editor: stage card, "Its window" section, row "XP from kills" (empty or 1 removes the key). In `stage_entry()` (analytics, Stages menu) as `xp_mult`. |
+| `night_tint` | weapon / evolution / mutation `params` (ProjectileEmitter) | dict like `tint`: `albedo`, `emission`, `energy` (+ `roughness`, `metallic`, ...) | absent = no night look | The shot's colours while the game's StageLook shows a stage whose filter is on (stage_list filter strength > 0: Nightfall, Blood Moon; never Sundown). Wins over the day `tint` (a mutation's too, e.g. Thorns). Drawn as one tinted copy of the shot's kind (ProjectileManager.tinted_kind), replacing the day kind for that run: no extra draw calls. Tumbleweed `{"albedo": "#E9D59C", "emission": "#B89A5A", "energy": 0.35}` (bleached straw), Dust Devil `{"albedo": "#D6D0C6", "emission": "#8C857A", "energy": 0.45}` (pale ash). Listed in vocab.PARAMS_KEYS.ProjectileEmitter and assets_fields.js. |

@@ -480,6 +480,9 @@ func _spawn_elite_boss(id: String, variant := "", stats := {}) -> void:
 	# where the hero is headed, as before the spawn sides (pass 54: the schema keeps the Elite bosses on the old rule); an
 	# Elite by its kind keeps its own numbers (pass 58), the event's fixed ones reach only a regular creature it names
 	var en := event_numbers(id, variant, stats)
+	# pass 107 (fix): an Elite boss comes like the stage's boss, a slot made when the pool is full (EnemyManager._room_for_boss)
+	if em.free_list.is_empty():
+		em._room_for_boss()
 	var i := em.spawn(id, _facing_point(), null, 1.0, 1.0, variant, en["stats"], en["src"])
 	if i >= 0:
 		elite_index = i
@@ -1128,6 +1131,14 @@ func xp_share() -> float:
 	if phase != Phase.ENDLESS or timeline == null:
 		return 1.0
 	return maxf(timeline.endless_value("xp_share", Run.stage), 0.0)
+
+
+## Pass 107 (lane XPT): the stage's own XP multiplier on a kill's XP (Game's drop; its stage_list entry's `xp_mult`,
+## 1 without one or without a timeline). It holds through the stage's boss, its portal and its Endless (times xp_share).
+func stage_xp_mult() -> float:
+	if timeline == null:
+		return 1.0
+	return timeline.stage_xp_mult(Run.stage)
 
 
 func _spawn_burst(due: Array = []) -> void:

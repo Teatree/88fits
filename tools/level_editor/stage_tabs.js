@@ -220,6 +220,9 @@ const StageTabs = (() => {
     form.appendChild(fieldRow('Length', 'seconds from the stage\'s start to its boss (mm:ss works). Changing it moves the later stages and everything in them; you choose whether this stage\'s own rows keep their times or stretch with it', Forms.secondsInput({ key: 'stage.length', def: w.length }, w.length, (v) => lengthConfirm(conf, i, v), { path: 'stage.length' })));
     form.appendChild(conf);
     form.appendChild(fieldRow('Boss', 'the boss at the window\'s end (its boss event moves with the end; the stage run ends when it falls)', Forms.enemyPick(StageModel.bossOf(tl, i), (v) => { App.apply((d) => { StageModel.setBoss(d, i, v); App.S.sel = { kind: 'stage', i }; }); }, { prefer: 'boss', path: 'stage.boss', emptyLabel: 'no boss' })));
+    // pass 107 (lane XPT): the stage's XP from kills (stage_list entry `xp_mult`, WaveTimeline.stage_xp_mult)
+    form.appendChild(fieldRow('XP from kills', 'every kill\'s XP in this stage times this (`xp_mult`, 1 when unset; it holds through the boss, the portal and Endless). Each stage is a fresh level-1 run, so a stage whose creatures are rich in XP levels the hero much faster: lower it to slow the levels (0.5 = half the XP); empty = 1',
+      Forms.numberInput({ key: 'stage.xp_mult', def: 1, min: 0, step: 0.05 }, e.xp_mult != null ? e.xp_mult : null, (v) => set('xp_mult', v, `Stage ${i + 1}'s XP from kills: x${v == null ? 1 : v}`), { path: 'stage.xp_mult', placeholder: 1 })));
     // the look
     form.appendChild(el('div', { class: 'fsection' }, el('h3', { text: 'Its look', title: 'lane SLOOK\'s filter: the world multiplied by the colour at this strength; the creatures and the hero by their share of it, so they stay brighter; telegraphs, gems and coins are drawn over it untinted' })));
     const f = StageModel.filterOf(e);

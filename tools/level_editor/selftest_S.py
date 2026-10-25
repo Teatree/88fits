@@ -953,12 +953,16 @@ def routes_checks(check, server):
         st, body, h = get("/api/templates/pickup")
         check(st == 404, "/api/templates of a non-edit kind is a 404")
         st, body, h = get("/api/content/enemy/lesser_scorpion")
-        check(st == 200 and body["ok"] and body["json"]["id"] == "lesser_scorpion" and body["text"].startswith("{") and len(body["looks"]) == 3 and "lesser_scorpion_sprite_b.png" in body["files"]
+        check(st == 200 and body["ok"] and body["json"]["id"] == "lesser_scorpion" and body["text"].startswith("{") and len(body["looks"]) == len(json.loads(body["text"])["variants"]) >= 3 and "lesser_scorpion_sprite_b.png" in body["files"]
               and body["deletable"] is False and isinstance(body["mtime"], float), "/api/content/enemy/lesser_scorpion: text, json, looks, files, mtime")
+        _ls_doc = json.loads(body["text"]) if st == 200 else {"variants": {"LS-C": {}}}
         st, body, h = get("/api/content/weapon/revolver")
         check(st == 200 and body["refs"]["characters"] == ["drifter"] and "silver_bullet" in body["refs"]["mutations"] and body["path_missing"] == [], "/api/content/weapon/revolver: refs and an empty path_missing")
         st, body, h = get("/api/content/enemy/lesser_scorpion/next_codes?n=2")
-        check(st == 200 and body["codes"] == ["LS-D", "LS-E"], "/api/content/.../next_codes?n=2")
+        # pass 107: read the file (LS-D and LS-E are recolours since then): the two codes after the last look
+        _ls_codes = sorted(_ls_doc["variants"])
+        _ls_next = [("LS-" + chr(ord(_ls_codes[-1][-1]) + k)) for k in (1, 2)]
+        check(st == 200 and body["codes"] == _ls_next, "/api/content/.../next_codes?n=2 (%s)" % _ls_next)
         st, body, h = get("/api/content/pickup/heart")
         check(st == 404, "/api/content of a non-edit kind is a 404")
         st, body, h = get("/api/drivers")

@@ -233,8 +233,10 @@ func _silver() -> bool:
 func _kind() -> int:
 	# worked out again only when the weapon's params are a new fold (every rebuild makes a new dictionary), so a volley
 	# does not turn its tint and thorns into keys every pull
-	if _kind_cache >= 0 and is_same(inst.params, _kind_params):
+	var night := night_look_on()
+	if _kind_cache >= 0 and is_same(inst.params, _kind_params) and _kind_night == night:
 		return _kind_cache
+	_kind_night = night
 	var k := _colour_kind()
 	var sp = look().get("spikes")
 	if sp is Dictionary and k >= 0 and game.projectiles.has_method("spiked_kind"):
@@ -246,10 +248,38 @@ func _kind() -> int:
 
 var _kind_cache := -1
 var _kind_params = null
+var _kind_night := false
+
+
+## Pass 107 (lane XPT): whether the shot wears its night colours now: the weapon's params name `night_tint` (a `tint`
+## dictionary: albedo, emission, energy, ...) and the game's stage look shows a stage with a world filter (its
+## stage_list entry's filter strength above 0: Nightfall, Blood Moon; never Sundown). Garry: the Tumbleweed's dark-brown
+## ball was "not visible on stage 2". Read off the game's StageLook, so a test world or a tool without one plays the day.
+func night_look_on() -> bool:
+	if inst == null or not (inst.params.get("night_tint") is Dictionary):
+		return false
+	return stage_filter_on(game)
+
+
+## Whether `p_game`'s StageLook shows a stage whose filter is on (WaveTimeline.stage_filter strength > 0 for the stage
+## it shows); false without a StageLook, a map or a stage shown.
+static func stage_filter_on(p_game: Node) -> bool:
+	if p_game == null:
+		return false
+	var sl := p_game.get_node_or_null(StageLook.NODE_NAME) as StageLook
+	if sl == null or sl.stage < 0:
+		return false
+	var map: MapDef = Run.map
+	if map == null or map.timeline == null:
+		return false
+	return float(map.timeline.stage_filter(sl.stage).get("strength", 0.0)) > 0.0
 
 
 func _colour_kind() -> int:
 	if not _silver():
+		# pass 107 (lane XPT): the night colours win over the day tint (a mutation's own `tint` too) while a filter is on
+		if night_look_on():
+			return tint_kind(inst.params["night_tint"])
 		var tint = inst.params.get("tint")
 		if tint is Dictionary:
 			return tint_kind(tint)

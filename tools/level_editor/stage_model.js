@@ -327,8 +327,8 @@ const StageModel = (() => {
     return { i: k, boss: entries[k].boss, event: !!(be || id) };
   }
 
-  /** One key of stage s's entry set (name, description, difficulty, hell, shot, filter): the value as given; an empty
-   *  word removes an optional key. */
+  /** One key of stage s's entry set (name, description, difficulty, hell, shot, filter, xp_mult): the value as given; an
+   *  empty word removes an optional key (xp_mult: empty or 1 removes it). */
   function setField(tl, s, key, value) {
     ensureList(tl);
     const entries = tl.stage_list.filter(isObj);
@@ -336,6 +336,9 @@ const StageModel = (() => {
     const e = entries[k];
     if (key === 'filter') e.filter = { color: HEX.test(String(value && value.color)) ? String(value.color).toLowerCase() : FILTER_DEF.color, strength: Math.round(Math.min(1, Math.max(0, num(value && value.strength, 0))) * 100) / 100 };
     else if (key === 'hell') e.hell = !!value;
+    // pass 107 (lane XPT): the stage's XP multiplier on every kill (WaveTimeline.stage_xp_mult): a number >= 0, rounded to
+    // 0.001; empty or 1 removes the key (1 is the game's default)
+    else if (key === 'xp_mult') { const v = value === '' || value == null ? 1 : Math.max(0, num(value, 1)); if (Math.abs(v - 1) < 1e-9) delete e.xp_mult; else e.xp_mult = Math.round(v * 1000) / 1000; }
     else if (value === '' || value == null) { if (key === 'name') e.name = `Stage ${k + 1}`; else e[key] = ''; }
     else e[key] = String(value);
     return e;
@@ -362,6 +365,7 @@ const StageModel = (() => {
       const f = isObj(e.filter) ? e.filter : null;
       if (f && f.color != null && !HEX.test(String(f.color))) out.push({ i, level: 'warn', msg: `stage ${i + 1}: the filter colour ${f.color} is not #rrggbb` });
       if (f && f.strength != null && !(num(f.strength, -1) >= 0 && num(f.strength, 2) <= 1)) out.push({ i, level: 'warn', msg: `stage ${i + 1}: the filter strength must be 0 to 1` });
+      if (e.xp_mult != null && !(typeof e.xp_mult === 'number' && isFinite(e.xp_mult) && e.xp_mult >= 0)) out.push({ i, level: 'warn', msg: `stage ${i + 1}: XP from kills (xp_mult) must be a number of 0 or more` });
       if (!bossOf(tl, i)) out.push({ i, level: 'warn', msg: `stage ${i + 1} has no boss at its end (${M.clockText(M.stageEnd(tl, i))}): a stage run ends at its boss` });
     });
     return out;

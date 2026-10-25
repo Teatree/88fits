@@ -304,6 +304,74 @@
         "run": 20,
         "die": 12
       }
+    },
+    "LS-D": {
+      "note": "Pass 107 recolour of LS-B: a bone-white scorpion (hue 42, saturation 0.22), the black outline kept, the plates' shading lifted (tools/recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "LS-B",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --to 42 --set-sat 0.22 --v-lo 0.50 --v-hi 1.0 --gamma 0.85 --min-sat 0 --min-val 0.09 --src-hi 0.75 --soft 0.03"
+        ],
+        "recolour_icon_extra": "--keep-edge 4"
+      },
+      "sprite": "lesser_scorpion_sprite_d.png",
+      "icon": "lesser_scorpion_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.831,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "LS-E": {
+      "note": "Pass 107 recolour of LS-B: a gold scorpion (hue 52, amber shadows at 36, saturation 0.85), yellower and darker-lined than the sand, the black outline kept (tools/recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "LS-B",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --to 52 --to-dark 36 --set-sat 0.85 --v-lo 0.50 --v-hi 1.0 --gamma 0.8 --min-sat 0 --min-val 0.09 --src-hi 0.75 --soft 0.03"
+        ],
+        "recolour_icon_extra": "--keep-edge 4"
+      },
+      "sprite": "lesser_scorpion_sprite_e.png",
+      "icon": "lesser_scorpion_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.831,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
     }
   },
   "sprite": "lesser_scorpion_sprite_b.png",

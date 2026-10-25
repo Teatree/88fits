@@ -212,6 +212,80 @@ variants = {
 "sprite": "res://content/enemies/bull_beetle/bull_beetle_sprite_d.png",
 "sprite_file": "bull_beetle_sprite_d.png",
 "strip_cols": 83
+},
+"BB-E": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.688,
+"icon": "res://content/enemies/bull_beetle/bull_beetle_icon_e.png",
+"note": "Pass 107 recolour of BB-C: a bone-white shell (warm ivory, hue 38, a faint saturation), the head, horns, legs, eyes, mouthparts and outline as they are; every frame of the BB-C strip lifted (tools/recolour_strip.py --mode lift, the shell's reds 350-26 only where thick enough to be shell, then its glints)",
+"shadow": {
+"drop": 0.07,
+"scale": [1.45, 1.7],
+"up": 0.35
+},
+"shelved": false,
+"sprite": "res://content/enemies/bull_beetle/bull_beetle_sprite_e.png",
+"sprite_file": "bull_beetle_sprite_e.png",
+"strip_cols": 83
+},
+"BB-F": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.688,
+"icon": "res://content/enemies/bull_beetle/bull_beetle_icon_f.png",
+"note": "Pass 107 recolour of BB-C: a pearl shell (cool blue-white, hue 205), everything else as BB-C; the same lift as BB-E with a cool cast (tools/recolour_strip.py --mode lift)",
+"shadow": {
+"drop": 0.07,
+"scale": [1.45, 1.7],
+"up": 0.35
+},
+"shelved": false,
+"sprite": "res://content/enemies/bull_beetle/bull_beetle_sprite_f.png",
+"sprite_file": "bull_beetle_sprite_f.png",
+"strip_cols": 83
 }
 }
 variant = "BB-C"

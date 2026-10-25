@@ -48,6 +48,11 @@ params = {
 }
 },
 "fire_forward": true,
+"night_tint": {
+"albedo": "#D6D0C6",
+"emission": "#8C857A",
+"energy": 0.45
+},
 "radius": 0.9,
 "return": true,
 "roll_radius": 0.75
