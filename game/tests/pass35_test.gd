@@ -98,14 +98,15 @@ func test_the_chosen_art_variants_are_in_play() -> void:
 	assert_str(Registry.enemy("goblin").variant).is_equal("GOB-D")
 	assert_str(Registry.enemy("goblin_runt").variant).is_equal("RUN-D")
 	var ant: EnemyDef = Registry.enemy("fire_ant")
-	assert_str(ant.variant).is_equal("ANT-A")
+	# (Garry picked ANT-E, eight directions, on 2026-10-25: ANT-A is pinned as a look, not as the played one)
+	assert_bool(ant.variants.has("ANT-A")).is_true()
 	# ANT-A walks up and down only, like every other creature: no side or diagonal sets
 	var anims: Dictionary = ant.variants["ANT-A"]["anims"]
 	for k in ["run_s", "idle_s", "run_bd", "run_fd"]:
 		assert_bool(anims.has(k)).override_failure_message("ANT-A still has " + k).is_false()
 	assert_int(int(anims.get("run", 0))).is_greater(0)
 	assert_int(int(anims.get("run_b", 0))).is_greater(0)
-	assert_bool(ant.anims.has("run_s")).is_false()
+	assert_bool(ant.variants["ANT-A"]["anims"].has("run_s")).is_false()
 
 
 # ---------------------------------------------------------------- the Sabre

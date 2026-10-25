@@ -16,10 +16,15 @@ func _doc() -> Dictionary:
 	return JSON.parse_string(FileAccess.get_file_as_string(JP))
 
 
-func test_the_ant_keeps_playing_its_look() -> void:
+func test_the_ant_plays_garrys_pick() -> void:
+	# Garry picked ANT-E on 2026-10-25 ("ANT-E is what I choose"), with its own shadow (it had stood above it)
 	var d := _doc()
-	assert_str(str(d["variant"])).is_equal("ANT-A")
-	assert_str(Registry.enemy("fire_ant").variant).is_equal("ANT-A")
+	assert_str(str(d["variant"])).is_equal("ANT-E")
+	assert_str(Registry.enemy("fire_ant").variant).is_equal("ANT-E")
+	var sh: Dictionary = d["variants"]["ANT-E"].get("shadow", {})
+	assert_float(float(sh.get("up", 0.0))).is_greater(0.0)
+	assert_float(float(sh.get("drop", 0.0))).is_greater(0.0)
+	assert_bool(d["variants"]["ANT-E"].has("fresh")).is_false()
 
 
 func test_two_armoured_looks_from_the_beetle_model() -> void:
@@ -35,7 +40,8 @@ func test_two_armoured_looks_from_the_beetle_model() -> void:
 		assert_str(str(r["prompt"])).contains("fire ant")
 		assert_str(str(r["anatomy"])).contains("exactly six legs")
 		assert_int(int(r["directions"])).is_equal(8)
-		assert_bool(bool(e.get("fresh", false))).override_failure_message(code).is_true()
+		# fresh until Garry approves: ANT-E approved and played since 2026-10-25, ANT-F still fresh
+		assert_bool(bool(e.get("fresh", false))).override_failure_message(code).is_equal(code != "ANT-E")
 		assert_bool(bool(e.get("shelved", false))).is_false()
 
 
@@ -79,5 +85,5 @@ func test_the_game_loads_the_new_looks_and_their_walks_move() -> void:
 						changed += 1
 				assert_int(changed).override_failure_message("%s %s" % [code, a]).is_equal(n - 1)
 			k += n
-	# the played look is untouched by the new ones
-	assert_str(str(_doc()["variant"])).is_equal("ANT-A")
+	# the played look is one of its own (ANT-E since Garry's pick)
+	assert_bool((_doc()["variants"] as Dictionary).has(str(_doc()["variant"]))).is_true()
