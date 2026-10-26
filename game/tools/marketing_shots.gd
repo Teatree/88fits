@@ -244,6 +244,12 @@ func _launch(hero: String, stage: int, map_seed: int) -> bool:
 	em.set_despawn({})
 	em.colour_after_kills = 0
 	em.vis_force = 1
+	# no power-up lying about (a stray Magnet once lay under the HUD's top strip)
+	if g.get("pickups") and g.pickups:
+		for sp in g.pickups.specials:
+			if is_instance_valid(sp):
+				sp.queue_free()
+		g.pickups.specials.clear()
 	# the structures stand as scenery only: a hero staged inside one's ring would charge it (its pie, a coloured wedge on
 	# the sand, then its use: a heal, a drum, a gift screen); their rings and pies are the StructureManager's own children
 	if g.get("structures") and g.structures:
@@ -435,12 +441,33 @@ func _clear_props(at: Vector3, fwd: Vector3, x0: float, x1: float, z0: float, z1
 	# the barrels and the signposts standing there go too (their own nodes), and every ground shadow left in the box (the
 	# barrels', the signs' and the structures' lie in the scenery's shadow field)
 	for c in g.get_children():
-		if c.name == "Barrels" or c.name == "Signs":
+		if c.name == "Signs":
 			for b in c.get_children():
 				if b is Node3D and b.name != "Warm":
 					var q: Vector3 = (b as Node3D).global_position - at
 					if q.dot(right) >= x0 and q.dot(right) <= x1 and q.dot(fwd) >= z0 and q.dot(fwd) <= z1:
 						(b as Node3D).visible = false
+	# the barrels are instances of the field's MultiMeshes: one in the box is put out as its break does, without the burst
+	var bf = g.get("barrels")
+	if bf != null:
+		var gone := Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
+		for i in range(bf.pos.size()):
+			if bf.alive[i] == 0:
+				continue
+			var q3: Vector3 = bf.pos[i] - at
+			if q3.dot(right) >= x0 and q3.dot(right) <= x1 and q3.dot(fwd) >= z0 and q3.dot(fwd) <= z1:
+				bf.alive[i] = 0
+				var k: int = bf._index_in[i]
+				if bf.light[i] == 0:
+					bf._body_dark.set_instance_transform(k, gone)
+					if bf._hoops:
+						bf._hoops.set_instance_transform(k, gone)
+				else:
+					bf._body_light.set_instance_transform(k, gone)
+					if bf._hoops_light:
+						bf._hoops_light.set_instance_transform(k, gone)
+				if i < bf.shadows.size() and bf.shadows[i] >= 0:
+					props.hide_shadow(bf.shadows[i])
 	var sat = props.get("_shadow_at")
 	if sat is PackedVector3Array:
 		for i in range(props.shadow_count()):
@@ -543,16 +570,256 @@ func _screen_spots(n: int, x0: float, x1: float, y0: float, y1: float, gap: floa
 
 
 ## Painted props laid into the picture by where they should stand in it: [id, sx, sy, scale, flip] each, the spot the
-## ground under that screen point (PropField.add, the painting itself; the map's own scatter stays).
-func _set_props(list: Array) -> void:
+## ground under that screen point (PropField.add, the painting itself; the map's own scatter stays). Returns their
+## pictures (Rect2, pixels): no creature is placed behind one (its outline over the prop would read as a strange shape).
+func _set_props(list: Array) -> Array:
+	var rects: Array = []
 	var props = g.map.get("props")
 	if props == null:
-		return
+		return rects
 	for e in list:
 		var at := _ground_ray(_mx(float(e[1])), float(e[2]))
 		var fl: bool = bool(e[4]) if e.size() > 4 else false
 		var ok: bool = props.add(str(e[0]), at, float(e[3]), fl != _mirror, 0.02, true)
+		var h: float = float(props.height_of(str(e[0]))) * float(e[3])
+		rects.append(_rect_px(at, h, 0.8, 1.0))
 		_log("prop %s at %s: %s" % [str(e[0]), str(at.snapped(Vector3(0.1, 0.1, 0.1))), str(ok)])
+	return rects
+
+
+## The picture of a billboard `size` m tall standing on `p` (its quad faces the camera: up the camera's up from its foot,
+## `wf` of its size wide, `hf` of it tall), in pixels.
+func _rect_px(p: Vector3, size: float, wf: float = 0.9, hf: float = 0.85) -> Rect2:
+	var cam: Camera3D = g.camera.camera
+	var b: Basis = cam.global_transform.basis
+	var feet: Vector2 = cam.unproject_position(p)
+	var top: Vector2 = cam.unproject_position(p + b.y.normalized() * size * hf)
+	var side: Vector2 = cam.unproject_position(p + b.x.normalized() * size * wf * 0.5)
+	var hw := absf(side.x - feet.x)
+	return Rect2(Vector2(feet.x - hw, minf(top.y, feet.y)), Vector2(hw * 2.0, absf(feet.y - top.y)))
+
+
+## The pictures of the scenery standing in the frame: every placed prop (its painting's height x its scale), barrel and
+## signpost whose foot is on the screen, so no creature is placed half behind one (a branch through a scorpion).
+func _scenery_rects() -> Array:
+	var out: Array = []
+	var cam: Camera3D = g.camera.camera
+	var vr: Rect2 = root.get_visible_rect().grow(200.0)
+	var props = g.map.get("props")
+	if props != null:
+		for row: Dictionary in props.placed:
+			var at: Vector3 = row["pos"]
+			if cam.is_position_behind(at) or not vr.has_point(cam.unproject_position(at)):
+				continue
+			var h: float = float(props.height_of(str(row.get("look", row["id"])))) * float(row.get("scale", 1.0))
+			out.append(_rect_px(at, h, 0.8, 1.0))
+	for c in g.get_children():
+		if c.name == "Signs":
+			for b in c.get_children():
+				if b is Node3D and (b as Node3D).visible and b.name != "Warm":
+					var q: Vector3 = (b as Node3D).global_position
+					if not cam.is_position_behind(q) and vr.has_point(cam.unproject_position(q)):
+						out.append(_rect_px(q, 2.6, 0.9, 1.0))
+	var bf = g.get("barrels")
+	if bf != null:
+		for i in range(bf.pos.size()):
+			var q4: Vector3 = bf.pos[i]
+			if bf.alive[i] == 1 and not cam.is_position_behind(q4) and vr.has_point(cam.unproject_position(q4)):
+				out.append(_rect_px(q4, 1.3, 1.1, 1.0))
+	return out
+
+
+## How much two pictures overlap: their shared area over the smaller one's (0 apart, 1 one inside the other).
+static func _overlap(a: Rect2, b: Rect2) -> float:
+	var i := a.intersection(b)
+	if not i.has_area():
+		return 0.0
+	return (i.size.x * i.size.y) / maxf(minf(a.size.x * a.size.y, b.size.x * b.size.y), 1.0)
+
+
+## A cast's creatures dealt out: [id, look, scale, special] each (`cast` rows: [id, count, look, scale min, scale max,
+## specials among them]), in the tool's own shuffled order.
+func _deal(cast: Array) -> Array:
+	var out: Array = []
+	var k := _f("scale", 0.82)
+	for c in cast:
+		for j in range(int(c[1])):
+			out.append([str(c[0]), str(c[2]), _rng.randf_range(float(c[3]), float(c[4])) * k, j < int(c[5])])
+	_shuffle(out)
+	return out
+
+
+## The height of the quad a dealt creature will stand in (its size x its scale, x1.5 for a special).
+func _planned_size(d: Array) -> float:
+	var def = _reg.enemy(str(d[0]))
+	var s: float = float(def.size) if def != null else 1.5
+	return s * float(d[2]) * (1.5 if bool(d[3]) else 1.0)
+
+
+## The cast placed one by one, biggest first, each on the ground under a random point of the picture's region `o`
+## {x0, x1, y0, y1 (shares of the frame), bias (> 1 crowds them towards x0)}: whole in the frame; at least `depth_min` m
+## farther than the hero along the camera's look, so its walk to him shows its front, front-diagonal or side view (a
+## scorpion's back-diagonal view, its far claw raised beside its tail, reads as a second tail); `keep_off` m from him;
+## out of the water unless `lake_ok`; and its picture overlapping no picture in `occupied` (the hero's, the props', the
+## big ones', every one placed before it) by more than `ov_max` of the smaller (no merged silhouettes, no tail seeming
+## to grow out of another body). One that finds no spot in `tries` is left out. Every one stands (speed 0, so the
+## spacing holds); _face_views turns them to the hero mid-stride at the freeze. Returns the indices spawned.
+func _place_cast(deal: Array, occupied: Array, o: Dictionary) -> Array:
+	var em = g.enemies
+	var hp: Vector3 = g.player.global_position
+	var yaw: float = float(g.camera.yaw)
+	var cf := Vector3(-sin(yaw), 0, -cos(yaw))
+	var cr := Vector3(-cf.z, 0, cf.x)
+	# biggest first (order=size, the default) or as dealt (order=random)
+	var order: Array = deal.duplicate()
+	if str(o.get("order", "size")) == "size":
+		order.sort_custom(func(a, b) -> bool: return _planned_size(a) > _planned_size(b))
+	var made: Array = []
+	var skipped := 0
+	var why := {"depth": 0, "near": 0, "lake": 0, "frame": 0, "overlap": 0}
+	for d in order:
+		var sz := _planned_size(d)
+		var placed := false
+		for tries in range(int(o.get("tries", 600))):
+			var u := pow(_rng.randf(), float(o.get("bias", 1.0)))
+			var p := _ground_ray(lerpf(float(o["x0"]), float(o["x1"]), u), _rng.randf_range(float(o["y0"]), float(o["y1"])))
+			if (p - hp).dot(cf) < float(o.get("depth_min", -1000.0)):
+				why["depth"] += 1
+				continue
+			# its walk to the hero at least `min_angle` degrees off the camera's look: the side view or a more frontal one
+			var hd: Vector3 = hp - p
+			if absf(atan2(hd.dot(cr), hd.dot(cf))) < deg_to_rad(float(o.get("min_angle", 75.0))):
+				why["depth"] += 1
+				continue
+			var dist := Vector2(p.x - hp.x, p.z - hp.z).length()
+			if dist < float(o.get("keep_off", 3.0)):
+				why["near"] += 1
+				continue
+			# a special stands past the weapons' target priority reach (10 m), so the volley goes to the nearest creature
+			# and the guns aim across the picture, not up it at a special far off
+			if bool(d[3]) and dist < float(o.get("special_min", 0.0)):
+				why["near"] += 1
+				continue
+			if not bool(o.get("lake_ok", true)) and bool(em.in_lake(p)):
+				why["lake"] += 1
+				continue
+			if not _in_frame(p, sz * 0.85, sz * 0.45):
+				why["frame"] += 1
+				continue
+			# the whole quad's width (a side view's claws and tail reach its edges), up to the stinger's top; one that does
+			# not fit tries smaller, down to `shrink` of its dealt size, so the gaps fill with smaller ones
+			var r := Rect2()
+			var k := 1.0
+			var clear := false
+			for kk: float in [1.0, 0.86, 0.74, 0.64, float(o.get("shrink", 0.56))]:
+				r = _rect_px(p, sz * kk, float(o.get("wf", 1.0)), float(o.get("hf", 0.9)))
+				# a little air round it too (`pad` of its height): touching quads still let a tail meet a claw
+				r = r.grow(r.size.y * float(o.get("pad", 0.06)))
+				clear = true
+				for q in occupied:
+					if _overlap(r, q) > float(o.get("ov_max", 0.05)):
+						clear = false
+						break
+				if clear:
+					k = kk
+					break
+			if not clear:
+				why["overlap"] += 1
+				continue
+			var i := _spawn(str(d[0]), p, float(d[2]) * k, str(d[1]), bool(d[3]), float(o.get("hp", 400.0)), 60.0)
+			if i >= 0:
+				em.speed[i] = 0.0
+				occupied.append(r)
+				made.append(i)
+			placed = true
+			break
+		if not placed:
+			skipped += 1
+	_log("placed %d of %d (%d found no clear spot); rejections %s" % [made.size(), deal.size(), skipped, str(why)])
+	return made
+
+
+## The big ones ([id, look, scale, sx, sy]) standing under their points of the picture, still; their pictures added to
+## `occupied`. Returns their indices.
+func _place_bigs(bigs: Array, occupied: Array) -> Array:
+	var em = g.enemies
+	var made: Array = []
+	for b in bigs:
+		var sx := _mx(float(b[3]))
+		var sy := float(b[4])
+		var p := _ground_ray(sx, sy)
+		# a big one never wades (the water hides its legs): out along a widening spiral of the picture to dry ground
+		var step := 0
+		while bool(em.in_lake(p)) and step < 80:
+			step += 1
+			var ang := float(step) * 2.4
+			var rad := 0.012 * float(step)
+			p = _ground_ray(clampf(sx + cos(ang) * rad, 0.05, 0.95), clampf(sy + sin(ang) * rad * 0.6, 0.25, 0.9))
+		var i := _spawn(str(b[0]), p, float(b[2]), str(b[1]))
+		if i >= 0:
+			em.speed[i] = 0.0
+			var def = _reg.enemy(str(b[0]))
+			occupied.append(_rect_px(p, float(def.size) * float(b[2]), 1.0, 0.9))
+			made.append(i)
+	return made
+
+
+## At the freeze: every creature shown walking at the hero, mid-stride. An eight-way one takes the view its walk to him
+## gives (EnemyManager's sectors: back, back-diagonal, side, front-diagonal, front), except that a back or back-diagonal
+## view becomes the side view (a scorpion's back views read as two tails or three prongs) and an Elite (the Dune
+## Scorpion) shows its front-diagonal view at least, so its one stinger reads; a front-and-back one its front set when
+## its walk comes towards the camera. Then the crowd is drawn again.
+func _face_views() -> void:
+	var em = g.enemies
+	var hp: Vector3 = g.player.global_position
+	var yaw: float = float(g.camera.yaw)
+	var cf := Vector3(-sin(yaw), 0, -cos(yaw))
+	var cr := Vector3(-cf.z, 0, cf.x)
+	var turned := 0
+	var counts := {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
+	for i in range(int(_C.get("MAX", 320))):
+		if em.alive[i] == 0 or em.state[i] == int(_C.get("STATE_DYING", 3)) or i == em.boss_index:
+			continue
+		var face: Vector3 = hp - em.pos[i]
+		face.y = 0.0
+		if face.length() < 0.05:
+			continue
+		var fwd := face.dot(cf)
+		var right := face.dot(cr)
+		var t: int = em.type_idx[i]
+		var def = em.types[t]["def"]
+		if em.state[i] == int(_C.get("STATE_SPAWN", 5)):
+			em.state[i] = int(_C.get("STATE_MOVE", 0))
+			em.timer[i] = 0.0
+		em.vel[i] = face.normalized() * 1.2
+		if em._t_eight[t] == 1:
+			var a := absf(atan2(right, fwd))
+			var v := 0
+			if a < PI * 0.125:
+				v = 1
+			elif a < PI * 0.375:
+				v = 3
+			elif a < PI * 0.625:
+				v = 2
+			elif a < PI * 0.875:
+				v = 4
+			if v == 1 or v == 3:
+				v = 2
+				turned += 1
+			if str(def.archetype) == "elite" and v == 2:
+				v = 4
+			em.view[i] = v
+			em.flip[i] = 1 if right < 0.0 else 0
+			counts[v] = int(counts[v]) + 1
+		elif fwd < 0.0:
+			em.away[i] = 0
+	em._render()
+	# and no power-up on the sand (a barrel the volley broke, a drop): the picture is the fight
+	if g.get("pickups") and g.pickups:
+		for sp in g.pickups.specials:
+			if is_instance_valid(sp):
+				(sp as Node3D).visible = false
+	_log("views at the freeze (front 0, back 1, side 2, back-diag 3, front-diag 4): %s; %d turned from a back view" % [str(counts), turned])
 
 
 ## The hit flashes off and the crowd drawn again as it stands (a frozen frame mid-flash is a white blob).
@@ -579,7 +846,10 @@ func _freeze() -> void:
 
 ## Every weapon fires now (the frozen frame then holds its rounds in the air), its clock then set as a pull sets it.
 func _fire_all() -> void:
+	var only: PackedStringArray = _s("fire_only", "").split(",", false)
 	for id in g._behaviors.keys():
+		if not only.is_empty() and not only.has(str(id)):
+			continue
 		var b = g._behaviors[id]
 		if b != null and b.has_method("_fire"):
 			b.cooldown_left = 0.0
@@ -596,11 +866,74 @@ func _weapons_free(on: bool) -> void:
 			b.cooldown_left = 0.0 if on else 1.0e6
 
 
+## The guns' directions from the hero: across the picture towards the crowd's side (the camera's right, or its left when
+## the hero stands on the right), `gun_a` and `gun_b` degrees turned into the picture (negative: towards the camera).
+func _gun_dirs() -> Array:
+	var b: Basis = g.camera.camera.global_transform.basis
+	var right := Vector3(b.x.x, 0, b.x.z).normalized() * (1.0 if _mirror else -1.0)
+	var into := Vector3(-b.z.x, 0, -b.z.z).normalized()
+	var out: Array = []
+	for a: float in [deg_to_rad(_f("gun_a", 30.0)), deg_to_rad(_f("gun_b", -25.0))]:
+		out.append((right * cos(a) + into * sin(a)).normalized())
+	return out
+
+
+## The companion guns (the Revolver's and the Tommy Gun's familiars orbit the hero, starting at a random angle each run):
+## where each should float at the freeze, a direction from the hero (flat), set by the shot; _pin_familiars sets their
+## orbits so they arrive there, _familiar_rects gives the pictures to keep clear of the crowd.
+var _fam_dirs: Array = []
+
+
+func _familiars() -> Array:
+	var out: Array = []
+	for id in g._behaviors.keys():
+		var b = g._behaviors[id]
+		if b != null and b.get("_familiar") != null and b.get("_orbit") != null:
+			out.append(b)
+	return out
+
+
+## The guns' orbits set so that `lead` seconds from now they are at _fam_dirs (the orbit runs on at its speed).
+func _pin_familiars(lead: float) -> void:
+	var fams := _familiars()
+	for k in range(mini(fams.size(), _fam_dirs.size())):
+		var d: Vector3 = _fam_dirs[k]
+		var b = fams[k]
+		b._orbit = atan2(d.z, d.x) - float(b._familiar_param("speed", 1.4)) * lead
+
+
+## The guns put on their pinned spots at once (the orbit set, the follow snapped: Player-side easing skipped), so the
+## volley that follows leaves from where they are drawn.
+func _snap_familiars() -> void:
+	var fams := _familiars()
+	for k in range(mini(fams.size(), _fam_dirs.size())):
+		var d: Vector3 = _fam_dirs[k]
+		var b = fams[k]
+		b._orbit = atan2(d.z, d.x)
+		if b.has_method("_place_familiar"):
+			b._place_familiar(0.0)
+
+
+## The pictures of the guns at their pinned spots (a gun, its muzzle flash and its first metre of tracer: generous).
+func _familiar_rects(fwd: Vector3) -> Array:
+	var out: Array = []
+	var fams := _familiars()
+	var hp: Vector3 = g.player.global_position
+	for k in range(mini(fams.size(), _fam_dirs.size())):
+		var b = fams[k]
+		var d: Vector3 = _fam_dirs[k]
+		var c: Vector3 = hp + d * float(b._familiar_param("radius", 1.25)) + Vector3(0, float(b._familiar_param("height", 1.35)), 0)
+		var r := _rect_px(c + fwd * 0.6 - Vector3(0, 0.55, 0), 1.1, 2.4, 1.0)
+		out.append(r)
+	return out
+
+
 ## The staged moment's last `walk` seconds, then the freeze: the crowd walks with the weapons held (no smoke, no numbers
 ## from shots before the one that counts), then every weapon fires at once and the world stops `flight` seconds later
 ## (fire=0: no shot at all), the hit flashes off.
 func _volley(walk: float) -> void:
 	_weapons_free(false)
+	_pin_familiars(maxf(walk, 0.05) + (_f("flight", 0.16) if _b("fire", true) else 0.0))
 	if not _b("knock", false):
 		# the staged crowd takes no knockback: a hit creature would turn its back on the hero for the frame (its view
 		# follows its velocity, and the shove is part of it)
@@ -608,6 +941,7 @@ func _volley(walk: float) -> void:
 		for t in range(em.types.size()):
 			em._t_kbt[t] = 0.0
 	await _wait(maxf(walk, 0.05))
+	_snap_familiars()
 	if _b("fire", true):
 		if g.get("damage_numbers") and g.damage_numbers:
 			g.damage_numbers.clear()
@@ -616,6 +950,15 @@ func _volley(walk: float) -> void:
 	_freeze()
 	_calm()
 	_log_marks()
+	# where the companion guns float at the freeze (pixels), against where they were pinned
+	var cam: Camera3D = g.camera.camera
+	var fams := _familiars()
+	for k in range(fams.size()):
+		var fp: Vector3 = fams[k]._familiar.global_position
+		var want := "-"
+		if k < _fam_dirs.size():
+			want = str((_fam_dirs[k] as Vector3).snapped(Vector3(0.01, 0.01, 0.01)))
+		_log("gun %d at %s (screen %s), orbit %.2f, pinned dir %s; hero at screen %s" % [k, str(fp.snapped(Vector3(0.01, 0.01, 0.01))), str(cam.unproject_position(fp).round()), float(fams[k]._orbit), want, str(cam.unproject_position(g.player.global_position).round())])
 
 
 ## Every ground mark on the sand at the freeze (Telegraphs' children: rings, discs, lines), for the log: a staged frame
@@ -708,59 +1051,33 @@ func _crowd_shot(name: String, hero: String, at: Vector3, look: Vector3, cast: A
 	var frames := _hframings()
 	_frame_h(at, look, frames[0])
 	_hero_view(float(g.camera.yaw))
-	_clear_props(at, fwd, -16.0, 16.0, -8.0, 34.0)
-	_hide_structures(at + fwd * 10.0, 40.0)
+	# the picture's ground cleared of the map's scatter (from just behind the hero to the wall, the frame's width), so no
+	# creature stands behind a painting; a few of the map's paintings laid round the frame instead
+	_clear_props(at, look, -26.0, 26.0, -6.0, 42.0)
+	_hide_structures(at + look * 12.0, 40.0)
+	var occupied: Array = [_rect_px(g.player.global_position, HERO_H, 0.5, 1.0)]
 	if _b("props", true):
 		_set_props(props)
+	occupied.append_array(_scenery_rects())
+	# the companion guns float beside him on the crowd's side, clear of his body (a gun drawn over him reads as a third hand
+	# holding it), never over a creature
+	_fam_dirs = _gun_dirs()
+	occupied.append_array(_familiar_rects(fwd))
 	await _wait(0.3)
-	var total := 0
-	for c in cast:
-		total += int(c[1])
-	# side on: under the picture's far part from him, thinning towards him, behind his depth or a little in front of it
 	var cam: Camera3D = g.camera.camera
 	var feet_y: float = cam.unproject_position(g.player.global_position).y / root.get_visible_rect().size.y
 	_frame_box = Rect2(0.04, 0.03, 0.96 - _f("box_x", 0.075), 0.95) if _mirror else Rect2(_f("box_x", 0.075), 0.03, 0.96 - _f("box_x", 0.075), 0.95)
-	var spots := _screen_spots(total, _mx(_f("x0", 0.14)), _mx(_f("x1", 0.62)), _f("y0", 0.30), _f("y1", feet_y + _f("below", 0.12)), _f("gap", 1.25), _f("tall", 2.2), _f("half_w", 1.0), _f("bias", 1.3), _f("keep_off", 3.0))
+	_place_bigs(bigs, occupied)
+	var made := _place_cast(_deal(cast), occupied, {"x0": _mx(_f("x0", 0.04)), "x1": _mx(_f("x1", 0.66)), "y0": _f("y0", 0.27),
+		"y1": feet_y + _f("below", 0.15), "bias": _f("bias", 1.3), "keep_off": _f("keep_off", 3.0), "depth_min": _f("depth_min", -1000.0),
+		"min_angle": _f("min_angle", 75.0), "ov_max": _f("ov_max", 0.03), "lake_ok": _b("lake_ok", false), "order": _s("order", "random"),
+		"pad": _f("pad", 0.08), "shrink": _f("shrink", 0.56), "special_min": _f("special_min", 11.0)})
 	_frame_box = Rect2(0.02, 0.03, 0.96, 0.95)
-	_shuffle(spots)
-	# the cast dealt out over the spots in a shuffled order, so a short list of spots still mixes every look; the specials
-	# on the far half of the spots (the weapons take the nearest special first: one beside the hero drew every round and
-	# its splashes into a pink pool at his feet)
-	var deal: Array = []
-	for c in cast:
-		for j in range(int(c[1])):
-			deal.append([c, j < int(c[5])])
-	_shuffle(deal)
-	var hp: Vector3 = g.player.global_position
-	var far: Array = spots.duplicate()
-	far.sort_custom(func(a: Vector3, b: Vector3) -> bool: return Vector2(a.x - hp.x, a.z - hp.z).length() > Vector2(b.x - hp.x, b.z - hp.z).length())
-	far = far.slice(0, maxi(int(far.size() * 0.5), 1))
-	var plain_spots: Array = spots.duplicate()
-	var placed := 0
-	for d in deal:
-		if not bool(d[1]) or far.is_empty():
-			continue
-		var at_s: Vector3 = far.pop_at(_rng.randi_range(0, far.size() - 1))
-		plain_spots.erase(at_s)
-		var c0: Array = d[0]
-		_spawn(str(c0[0]), at_s, _rng.randf_range(float(c0[3]), float(c0[4])), str(c0[2]), true)
-		placed += 1
-	var k := 0
-	for d in deal:
-		if bool(d[1]):
-			continue
-		if k >= plain_spots.size():
-			break
-		var c: Array = d[0]
-		_spawn(str(c[0]), plain_spots[k], _rng.randf_range(float(c[3]), float(c[4])), str(c[2]), false)
-		k += 1
-		placed += 1
-	_log("%s: %d placed on %d of %d spots" % [name, placed, spots.size(), total])
-	for b in bigs:
-		_spawn(str(b[0]), _ground_ray(_mx(float(b[3])), float(b[4])), float(b[2]), str(b[1]))
+	_log("%s: %d creatures" % [name, made.size()])
 	_badges(_b("badges", false))
 	g.enemies._rebuild_grid()
-	await _volley(_f("freeze", 1.1))
+	await _volley(_f("freeze", 0.25))
+	_face_views()
 	for f in range(frames.size()):
 		_frame_h(at, look, frames[f])
 		await _shot("%s_%s_%s" % [name, hero, str(frames[f].get("name", str(f)))])
@@ -782,7 +1099,7 @@ var _cam_default := "a"
 func _hframings() -> Array:
 	var presets := {
 		"k": {"name": "k", "yaw": 0.0, "pitch": 19.0, "fov": 40.0, "hx": 0.72, "hy": 0.66, "hf": 0.28},
-		"a": {"name": "a", "yaw": 0.0, "pitch": 12.0, "fov": 44.0, "hx": 0.74, "hy": 0.65, "hf": 0.36},
+		"a": {"name": "a", "yaw": 0.0, "pitch": 14.0, "fov": 44.0, "hx": 0.74, "hy": 0.70, "hf": 0.34},
 		"w": {"name": "w", "yaw": 0.0, "pitch": 16.0, "fov": 44.0, "hx": 0.76, "hy": 0.68, "hf": 0.25},
 		"b": {"name": "b", "yaw": -18.0, "pitch": 17.0, "fov": 40.0, "hx": 0.72, "hy": 0.70, "hf": 0.24},
 		"c": {"name": "c", "yaw": 18.0, "pitch": 20.0, "fov": 42.0, "hx": 0.30, "hy": 0.72, "hf": 0.24},
@@ -818,44 +1135,27 @@ func _play() -> void:
 	_hide_structures(at, 30.0)
 	g.camera.snap_to(g.player)
 	await _wait(0.4)
-	# a crowd closing in from every side, thickest up the screen (where they come from as he walks north), scorpions of
-	# every look and size, a few specials, two Dune Scorpions (crowned Elites) at the back
-	var looks := ["LS-B", "LS-B", "LS-B", "LS-D", "LS-E"]
-	var n := _i("count", 58)
-	var placed: Array = []
-	var tries := 0
-	while placed.size() < n and tries < 4000:
-		tries += 1
-		# up the screen twice as often as down it
-		var a := _rng.randf_range(-PI, PI)
-		if sin(a) > 0.0 and _rng.randf() < 0.55:
-			a = -a
-		var r := _rng.randf_range(_f("r0", 3.6), _f("r1", 10.5))
-		var p: Vector3 = at + Vector3(cos(a) * r * 0.7, 0, sin(a) * r)
-		if Vector2(p.x - at.x, p.z - at.z).length() < _f("keep_off", 3.1):
-			continue
-		if not g.camera.on_screen(p + Vector3(0, 0.8, 0), -40.0):
-			continue
-		var ok := true
-		for q: Vector3 in placed:
-			if Vector2(p.x - q.x, p.z - q.z).length() < _f("gap", 1.05):
-				ok = false
-				break
-		if ok:
-			placed.append(p)
-	for k in range(placed.size()):
-		_spawn("lesser_scorpion", placed[k], _rng.randf_range(0.85, 1.4), str(looks[_rng.randi() % looks.size()]), k < 3)
-	_spawn("dune_scorpion", at + Vector3(-2.6, 0, -11.5), 1.15, "SC-C")
-	_spawn("dune_scorpion", at + Vector3(3.2, 0, -13.5), 1.1, "SC-A")
+	# a crowd closing in from the top of the screen and both sides (none below him: a scorpion walking up the screen shows
+	# its back view, which reads as two tails), scorpions of every look and size, three specials, two Dune Scorpions
+	# (crowned Elites) at the back; every picture clear of the others (no merged silhouettes) and of the hero's
+	var occupied: Array = [_rect_px(g.player.global_position, HERO_H, 0.5, 1.0)]
+	occupied.append_array(_scenery_rects())
+	_place_bigs([["dune_scorpion", "SC-C", 1.15, 0.33, 0.27], ["dune_scorpion", "SC-A", 1.1, 0.68, 0.24]], occupied)
+	var feet_y: float = g.camera.camera.unproject_position(g.player.global_position).y / root.get_visible_rect().size.y
+	var cast := [["lesser_scorpion", 3, "LS-B", 1.0, 1.25, 3], ["lesser_scorpion", 30, "LS-B", 0.85, 1.4, 0],
+		["lesser_scorpion", 10, "LS-D", 0.85, 1.4, 0], ["lesser_scorpion", 10, "LS-E", 0.85, 1.4, 0]]
+	var made := _place_cast(_deal(cast), occupied, {"x0": 0.02, "x1": 0.98, "y0": _f("y0", 0.15), "y1": _f("y1", feet_y + 0.12),
+		"bias": 1.0, "keep_off": _f("keep_off", 3.6), "depth_min": _f("depth_min", -1000.0), "min_angle": _f("min_angle", 62.0),
+		"ov_max": _f("ov_max", 0.03), "order": _s("order", "random"), "special_min": _f("special_min", 8.0)})
 	_badges(true)
 	g.enemies._rebuild_grid()
-	_log("play: %d scorpions round the hero" % placed.size())
+	_log("play: %d scorpions round the hero" % made.size())
 	# the thumb on the stick for the last moment: stepping up-left, so the ring and its knob show
 	_weapons_free(false)
 	var em = g.enemies
 	for t in range(em.types.size()):
 		em._t_kbt[t] = 0.0
-	await _wait(maxf(_f("freeze", 1.3) - 0.3, 0.05))
+	await _wait(maxf(_f("freeze", 0.5) - 0.3, 0.05))
 	var inp = g.player.input
 	var vs: Vector2 = root.get_visible_rect().size
 	inp.origin = Vector2(vs.x * 0.5, vs.y * 0.80)
@@ -868,6 +1168,7 @@ func _play() -> void:
 	await _wait(_f("flight", 0.16))
 	_freeze()
 	_calm()
+	_face_views()
 	await _shot("play_%s_hud" % hero)
 	_numbers(false)
 	await _shot("play_%s_hud_nonum" % hero)
@@ -960,6 +1261,11 @@ func _bloodmoon() -> void:
 
 # ---------------------------------------------------------------- the bosses
 
+## The pictures of the props a boss shot laid (its crowd keeps clear of them), and the hero's look in it.
+var _prop_rects: Array = []
+var _boss_fwd := Vector3.FORWARD
+
+
 ## boss=king|gila|brander: [boss id, stage (0-based), its attacks forced one after another ([name, seconds to let it run
 ## before the next]; the last one's seconds are the freeze), its crowd [id, count, look, scale min, scale max, specials]].
 const BOSSES := {
@@ -988,13 +1294,16 @@ func _boss() -> void:
 	var face := _f("face", 66.0)
 	var fwd: Vector3 = look.rotated(Vector3.UP, deg_to_rad(-face if _mirror else face))
 	_place_hero(at, fwd)
+	_boss_fwd = fwd
 	var frames := _hframings()
 	_frame_h(at, look, frames[0])
+	_fam_dirs = _gun_dirs()
 	_hero_view(float(g.camera.yaw))
 	_clear_props(at, fwd, -18.0, 18.0, -8.0, 36.0)
 	_hide_structures(at + fwd * 10.0, 40.0)
+	_prop_rects = []
 	if _b("props", true):
-		_set_props(HELL_PROPS if which.begins_with("brander") else (NIGHT_PROPS if which == "gila" else SWARM_PROPS_SIDE))
+		_prop_rects = _set_props(HELL_PROPS if which.begins_with("brander") else (NIGHT_PROPS if which == "gila" else SWARM_PROPS_SIDE))
 	await _wait(0.3)
 	var em = g.enemies
 	# the boss big under its point of the picture
@@ -1032,8 +1341,10 @@ func _boss() -> void:
 		secs = _f("freeze", secs)
 		var cw := minf(_f("crowd_walk", 0.7), secs)
 		await _wait(maxf(secs - cw, 0.02))
+		_pin_familiars(cw)
 		_boss_crowd(b[3], bp)
 		await _wait(maxf(cw - _f("flight", 0.16), 0.02))
+		_snap_familiars()
 		if _b("fire", true):
 			if g.get("damage_numbers") and g.damage_numbers:
 				g.damage_numbers.clear()
@@ -1041,6 +1352,7 @@ func _boss() -> void:
 		await _wait(_f("flight", 0.16))
 	_freeze()
 	_calm()
+	_face_views()
 	_log_marks()
 	for f in range(frames.size()):
 		_frame_h(at, look, frames[f])
@@ -1057,34 +1369,28 @@ func _boss_crowd(cast: Array, bp: Vector3) -> void:
 	var em = g.enemies
 	var cam: Camera3D = g.camera.camera
 	var feet_y: float = cam.unproject_position(g.player.global_position).y / root.get_visible_rect().size.y
-	var total := 0
-	for c in cast:
-		total += int(c[1])
-	var spots := _screen_spots(total + 12, _mx(_f("x0", 0.10)), _mx(_f("x1", 0.64)), _f("y0", 0.32), _f("y1", feet_y + _f("below", -0.02)), _f("gap", 1.3), 2.0, 1.0, 1.0, _f("keep_off", 4.5))
-	var keep: Array = []
-	for p in spots:
-		if Vector2((p as Vector3).x - bp.x, (p as Vector3).z - bp.z).length() > _f("boss_clear", 4.2):
-			keep.append(p)
-	_shuffle(keep)
-	var deal: Array = []
-	for c in cast:
-		for j in range(int(c[1])):
-			deal.append(c)
-	_shuffle(deal)
-	for k in range(mini(keep.size(), deal.size())):
-		var c: Array = deal[k]
-		_spawn(str(c[0]), keep[k], _rng.randf_range(float(c[3]), float(c[4])), str(c[2]))
+	var occupied: Array = [_rect_px(g.player.global_position, HERO_H, 0.5, 1.0)]
+	occupied.append_array(_scenery_rects())
+	occupied.append_array(_familiar_rects(_boss_fwd))
+	if em.boss_index >= 0:
+		var bs := float(em.size[em.boss_index])
+		occupied.append(_rect_px(em.pos[em.boss_index], bs, 1.2, (bs * 0.95 + 2.6) / maxf(bs, 0.1)))
+	var made := _place_cast(_deal(cast), occupied, {"x0": _mx(_f("x0", 0.10)), "x1": _mx(_f("x1", 0.64)), "y0": _f("y0", 0.32),
+		"y1": feet_y + _f("below", 0.06), "bias": 1.0, "keep_off": _f("keep_off", 4.5), "depth_min": _f("depth_min", -1000.0),
+		"min_angle": _f("min_angle", 75.0), "ov_max": _f("ov_max", 0.03), "lake_ok": false, "order": _s("order", "random")})
 	for t in range(em.types.size()):
 		em._t_kbt[t] = 0.0
 	_badges(_b("badges", false))
 	em._rebuild_grid()
-	_log("boss crowd %d at %s" % [mini(keep.size(), deal.size()), str(bp)])
+	_log("boss crowd %d at %s" % [made.size(), str(bp)])
 
 
 # ---------------------------------------------------------------- the horde (the gameplay camera, a late build)
 
 const HORDE_BUILD := ["golden_revolver", "chicago_typewriter", "saw_halo", "loudmouth", "roman_candle"]
-const HORDE_MIX := [["skeleton", 5], ["skeleton_knight", 3], ["werewolf", 2], ["dust_mummy", 2], ["fire_ant", 4], ["lesser_scorpion", 4],
+## (no Lesser Scorpions: in a crowd this thick one always stands half behind another, or walks up the screen in its back
+## view, and reads as two-tailed)
+const HORDE_MIX := [["skeleton", 5], ["skeleton_knight", 3], ["werewolf", 2], ["dust_mummy", 2], ["fire_ant", 4],
 	["red_goblin", 3], ["bull_beetle", 1], ["spit_cactus", 1], ["buckshot_dwarf", 1], ["cactus_walker", 2], ["blue_slime", 1]]
 
 
@@ -1123,7 +1429,10 @@ func _horde() -> void:
 		# round him (his weapons keep one)
 		var a := _rng.randf() * TAU
 		var up := sin(a) < 0.0
-		var r := _rng.randf_range(_f("r0", 4.6), _f("r1", 24.0) if up else _f("r1s", 9.0))
+		# below him (nearer the camera) fewer and farther off: a creature there stands over him in the picture
+		if not up and _rng.randf() < _f("down_skip", 0.45):
+			continue
+		var r := _rng.randf_range(_f("r0", 4.6), _f("r1", 24.0)) if up else _rng.randf_range(_f("r0s", 6.0), _f("r1s", 10.0))
 		if up and _rng.randf() < 0.35:
 			r = _rng.randf_range(_f("r0", 4.6), 12.0)
 		var p: Vector3 = at + Vector3(cos(a) * r * (0.7 if not up else 0.9), 0, sin(a) * r)
@@ -1154,6 +1463,7 @@ func _horde() -> void:
 	await _wait(_f("last", 0.3))
 	_freeze()
 	_calm()
+	_face_views()
 	await _shot("horde_%s_hud" % hero)
 	# the same moment with the damage numbers switched off (the game's own Settings switch), then without the HUD too
 	_numbers(false)

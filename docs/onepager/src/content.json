@@ -217,44 +217,44 @@
   },
   "hud": [
     {
-      "x": 66,
+      "x": 30,
       "y": 1.6,
       "t": "The XP bar",
       "s": "Fills with every gem; when it is full, three cards are dealt."
     },
     {
-      "x": 50,
-      "y": 10.6,
+      "x": 63,
+      "y": 6.0,
       "t": "The stage clock",
       "s": "Counts to the boss: 7:10 in Sundown. The level sits to its left."
     },
     {
-      "x": 67.5,
-      "y": 5.8,
+      "x": 75.5,
+      "y": 6.0,
       "t": "Gold and pause",
       "s": "The run's purse, and the only button on screen."
     },
     {
-      "x": 32,
-      "y": 10.9,
+      "x": 50,
+      "y": 11.2,
       "t": "Five weapons, five Cards",
       "s": "Each with its level on the corner, always in view."
     },
     {
-      "x": 12,
-      "y": 40.5,
+      "x": 26.5,
+      "y": 21.5,
       "t": "Specials and Elites",
       "s": "A special glows in its own colour, an Elite wears a crown; the guns pick them first."
     },
     {
-      "x": 57.5,
-      "y": 61.5,
+      "x": 58.5,
+      "y": 61.2,
       "t": "The hero",
       "s": "His health bar under him; being hurt jiggles the bar, never the screen."
     },
     {
-      "x": 35.5,
-      "y": 71.5,
+      "x": 33.5,
+      "y": 80,
       "t": "The stick",
       "s": "Appears wherever the thumb lands; lift to stop."
     }

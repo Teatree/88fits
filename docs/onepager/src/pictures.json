@@ -288,7 +288,7 @@
     "src": [
       "tools/dl/onepager/tools/a_creature/03_depth_walk.png"
     ],
-    "w": 1400,
+    "w": 1500,
     "alpha": true,
     "trim": true
   },
@@ -304,7 +304,7 @@
     "src": [
       "tools/dl/onepager/tools/a_creature/05_painted_views.png"
     ],
-    "w": 1500,
+    "w": 1400,
     "alpha": true,
     "trim": true
   },
@@ -312,15 +312,7 @@
     "src": [
       "tools/dl/onepager/tools/a_creature/06_walk_side.png"
     ],
-    "w": 1400,
-    "alpha": true,
-    "trim": true
-  },
-  "a_eight": {
-    "src": [
-      "tools/dl/onepager/tools/a_creature/06b_eight_directions.png"
-    ],
-    "w": 900,
+    "w": 924,
     "alpha": true,
     "trim": true
   },
@@ -376,7 +368,7 @@
     "src": [
       "tools/dl/onepager/tools/b_puppet/07_painted_run.png"
     ],
-    "w": 1300,
+    "w": 748,
     "alpha": true,
     "trim": true
   },
@@ -414,9 +406,9 @@
   },
   "d_scorp": {
     "src": [
-      "tools/dl/onepager/tools/d_looks/02_looks_dune_scorpion.png"
+      "tools/dl/onepager/tools/d_looks/02d_looks_dune_scorpion_3.png"
     ],
-    "w": 1600,
+    "w": 1200,
     "alpha": true,
     "trim": true
   },
@@ -587,7 +579,7 @@
   },
   "ui_results": {
     "src": [
-      "tools/dl/onepager/shots/ui/results_top.png"
+      "tools/dl/onepager/shots/ui/results_chart.png"
     ],
     "w": 720
   },
@@ -602,5 +594,13 @@
       "tools/dl/onepager/shots/ui/08_collection.png"
     ],
     "w": 720
+  },
+  "a_dirs": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/07_directions.png"
+    ],
+    "w": 1500,
+    "alpha": true,
+    "trim": true
   }
 }
