@@ -36,7 +36,7 @@ A pitch deck in the spirit of `_REFERENCES/BB-KrazyRobots_KickOff_v002.pdf`: a c
 | 14 | Controls and HUD, with numbered call-outs | in-engine portrait with the HUD |
 | 15 | Game flow and meta loop | eight screens of the current build |
 | 16 | Production: velocity, counts, how a pass runs | chart from the pass dates |
-| 17 | Art workflow: a 3D model becomes a creature (the Bull Beetle) | the pipeline's own steps |
+| 17 | Art workflow: a 3D model becomes a creature (the Fire Ant) | the pipeline's own steps |
 | 18 | Art workflow: the Puppet (May) | the pipeline's own steps |
 | 19 | Art workflow: icons from our own 3D, one creature many looks | the Tommy Gun, the Dune Scorpion, the Bull Beetle |
 | 20 | Tools: the Level Editor | its Timeline, a look playing, an art request |

@@ -170,11 +170,10 @@ ul.ticks li::before { content: ""; position: absolute; left: 0; top: .48em; widt
 #s00 .wanted { font: 700 calc(var(--u) * 1.1)/1 var(--mono); letter-spacing: .5em; margin-right: -.5em; text-transform: uppercase; color: var(--ink); }
 #s00 h1 { font-size: calc(var(--u) * 10.5); line-height: .9; color: var(--ink); text-shadow: calc(var(--u) * .42) calc(var(--u) * .42) 0 var(--brass); }
 #s00 .tagline { font: 700 calc(var(--u) * 1.35)/1 var(--mono); letter-spacing: .42em; margin-right: -.42em; text-transform: uppercase; color: var(--blood); margin-top: calc(var(--u) * .5); }
-#s00 .pitch-plate { position: absolute; right: calc(var(--u) * 4.2); top: calc(var(--u) * 16.4); max-width: calc(var(--u) * 31);
-  display: grid; gap: calc(var(--u) * .6); text-align: right; }
-#s00 .pitch-plate .meta { display: none; }
-#s00 .pitch { font: italic 600 calc(var(--u) * 1.5)/1.28 var(--body); color: var(--ink);
-  text-shadow: 0 0 calc(var(--u) * .5) rgba(243,230,200,.95), 0 0 calc(var(--u) * .2) rgba(243,230,200,.95); }
+#s00 .pitch-plate { position: absolute; left: calc(var(--u) * 2.6); bottom: calc(var(--u) * 2.4); max-width: calc(var(--u) * 40);
+  background: var(--paper); border: max(2px, calc(var(--u) * .18)) solid var(--ink); box-shadow: calc(var(--u) * .4) calc(var(--u) * .4) 0 var(--ink);
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 1.4); display: grid; gap: calc(var(--u) * .6); }
+#s00 .pitch { font: italic 400 calc(var(--u) * 1.55)/1.28 var(--body); color: var(--ink); }
 #s00 .meta { font: 500 calc(var(--u) * .74)/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
 #s00 .credit { position: absolute; right: calc(var(--u) * 1.6); bottom: calc(var(--u) * 1.2); font: 500 calc(var(--u) * .74)/1 var(--mono);
   letter-spacing: .14em; text-transform: uppercase; color: rgba(243,230,200,.9); text-shadow: 0 1px 3px rgba(0,0,0,.8); }
@@ -419,7 +418,6 @@ ul.ticks li::before { content: ""; position: absolute; left: 0; top: .48em; widt
 #s16 .g { display: grid; grid-template-columns: calc(var(--u) * 18) 1fr calc(var(--u) * 18); gap: calc(var(--u) * 2); height: 100%; align-items: center; }
 #s16 .io { margin: 0; display: grid; gap: calc(var(--u) * .6); align-content: center; }
 #s16 .io .fr { aspect-ratio: 1 / 1; border-radius: 50%; background: radial-gradient(circle at 50% 45%, rgba(110,140,190,.28), rgba(0,0,0,0) 68%); }
-#s16 .io:last-child .fr { border-radius: 0; background: none; }
 #s16 .io .t { font-size: calc(var(--u) * 1.0); text-align: center; }
 #s16 .io .label { text-align: center; color: var(--brass); }
 #s16 .ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(var(--u) * .65); border-left: max(1px, calc(var(--u) * .1)) solid rgba(201,147,47,.45); border-right: max(1px, calc(var(--u) * .1)) solid rgba(201,147,47,.45); padding-inline: calc(var(--u) * 1.4); }
@@ -482,10 +480,9 @@ ul.ticks li::before { content: ""; position: absolute; left: 0; top: .48em; widt
 #s21 .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 2.2); align-content: start; max-width: calc(var(--u) * 60); }
 #s21 .three .title { font-size: calc(var(--u) * 2.0); color: var(--brass); margin-bottom: calc(var(--u) * .6); }
 #s21 .three .t { color: var(--paper); font-size: calc(var(--u) * 1.3); }
-#s21 .next { max-width: calc(var(--u) * 46); border-top: 1px solid rgba(243,230,200,.4); padding-top: calc(var(--u) * 1.1); display: grid; gap: calc(var(--u) * .6); }
+#s21 .next { max-width: calc(var(--u) * 58); border-top: 1px solid rgba(243,230,200,.4); padding-top: calc(var(--u) * 1.1); display: grid; gap: calc(var(--u) * .6); }
 #s21 .next .label { color: var(--brass); }
 .sf.dark { color: rgba(243,230,200,.75); border-top-color: rgba(243,230,200,.3); }
-#s21 .sf.dark { max-width: calc(var(--u) * 56); }
 .sf.dark .pg { color: var(--paper); }
 #s21 .next ul.ticks li { color: var(--paper); font-size: calc(var(--u) * 1.2); }
 #s21 .next ul.ticks li::before { border-color: var(--paper); }
@@ -523,9 +520,7 @@ a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px 
   #s00.slide .board { aspect-ratio: 4 / 5; }
   #s00 .bg { object-position: 62% 50%; }
   #s00 .logo { right: 18px; top: 22px; } #s00 h1 { font-size: 64px !important; }
-  #s00 .pitch-plate { top: auto; left: 14px; right: 14px; bottom: 14px; max-width: none; text-align: left; gap: 6px;
-    background: var(--paper); border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 10px 12px; }
-  #s00 .pitch { font-size: 17px; text-shadow: none; } #s00 .pitch-plate .meta { display: block; } #s00 .credit { display: none; }
+  #s00 .pitch-plate { left: 14px; right: 14px; bottom: 14px; max-width: none; } #s00 .pitch { font-size: 17px; } #s00 .credit { display: none; }
   #s05b .posters { grid-template-columns: 1fr 1fr !important; }
   #s09 .posse { height: auto; overflow: visible; border: 0; box-shadow: none; }
   #s09 .posse .fr { position: static; aspect-ratio: 7 / 3; border: 2px solid var(--ink); }
@@ -578,7 +573,7 @@ a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px 
       <p class="pitch">A one-thumb survivor-shooter for phones held upright, in a painted desert that wants you dead.</p>
       <p class="meta">Kick-off one pager &middot; v001 &middot; 26 October 2026 &middot; playable today on Android and Windows, build 0.91</p>
     </div>
-    <span class="credit">Kick-off one pager v001 &middot; 26 Oct 2026 &middot; concept art</span>
+    <span class="credit">Concept art</span>
   </div>
 </section>
 
@@ -1009,18 +1004,18 @@ a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px 
     <header class="sh">
       <p class="kicker">No. {{NO}} &middot; <b>Behind the scenes: the art workflow</b></p>
       <h2>Any 3D model becomes a painted, animated creature</h2>
-      <p class="sub">Our own method, here on the Bull Beetle: the model's own walk is rendered as depth, and the painting follows it frame by frame.</p>
+      <p class="sub">Our own method, here on the Fire Ant: the model's walk is rendered as depth, and the painting follows it frame by frame.</p>
     </header>
     <div class="bd g">
-      <figure class="io"><p class="label">In</p><div class="fr"><img src="{{IMG:a_model}}" alt="A rigged rhino-beetle 3D model"></div><p class="t">A rigged rhino-beetle model with its own walk clip.</p></figure>
+      <figure class="io"><p class="label">In</p><div class="fr"><img src="{{IMG:a_model}}" alt="A free armoured-beetle 3D model"></div><p class="t">A free 3D model of a beetle: one mesh, no rig, no animation.</p></figure>
       <ol class="ladder">
-        <li><span class="n">2</span><p class="t">Our Blender tools render it as clay in the five views the game needs.</p><div class="fr"><img src="{{IMG:a_clay}}" alt="Clay renders in five views"></div></li>
-        <li><span class="n">3</span><p class="t">Its walk clip, legs swung wider to read at game size, rendered as depth frame by frame.</p><div class="fr"><img src="{{IMG:a_depth}}" alt="Depth frames of the walk"></div></li>
-        <li><span class="n">4</span><p class="t">Flux.2 repaints the side view in our house style; three seeds, one picked by eye.</p><div class="fr"><img src="{{IMG:a_cands}}" alt="Three painted candidates, one picked"></div></li>
-        <li><span class="n">5</span><p class="t">The other views are painted to match the pick.</p><div class="fr"><img src="{{IMG:a_views}}" alt="The beetle painted from the front, the side and behind"></div></li>
-        <li><span class="n">6</span><p class="t">Wan 2.2 walks each painting along its depth video; mirrored, the views cover every direction.</p><div class="fr"><img src="{{IMG:a_dirs}}" alt="The painted beetle walking in five directions"></div></li>
+        <li><span class="n">2</span><p class="t">Our Blender tools rig six legs, add antennae and render clay in the five game views.</p><div class="fr"><img src="{{IMG:a_clay}}" alt="Clay renders in five views"></div></li>
+        <li><span class="n">3</span><p class="t">A walk is made for the rig and rendered as depth, frame by frame.</p><div class="fr"><img src="{{IMG:a_depth}}" alt="Depth frames of the walk"></div></li>
+        <li><span class="n">4</span><p class="t">Flux.2 repaints the side view in our house style; four seeds, one picked by eye.</p><div class="fr"><img src="{{IMG:a_cands}}" alt="Four painted candidates, one picked"></div></li>
+        <li><span class="n">5</span><p class="t">The other four views are painted to match the pick.</p><div class="fr"><img src="{{IMG:a_views}}" alt="Five painted views"></div></li>
+        <li><span class="n">6</span><p class="t">Wan 2.2 walks each painting along its depth video; the loop is cut, keyed and packed.</p><div class="fr"><img src="{{IMG:a_walk}}" alt="The painted walk cycle"></div></li>
       </ol>
-      <figure class="io"><p class="label">Out</p><div class="fr"><img src="{{IMG:a_walk}}" alt="Two strides of the painted walk, each under its depth frame"></div><p class="t">Every painted frame follows its depth frame: the beetle walks exactly as the model does.</p></figure>
+      <figure class="io"><p class="label">Out</p><div class="fr"><img src="{{IMG:a_eight}}" alt="The fire ant walking in eight directions"></div><p class="t">A fire ant walking in all eight directions; the game mirrors three of them.</p></figure>
     </div>
     <footer class="sf"><span>Blender, Flux.2 and Wan 2.2 on a local GPU server, queued from the Level Editor; a new look takes 10 to 15 minutes</span><span class="pg"></span></footer>
   </div>
@@ -1067,7 +1062,7 @@ a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px 
       <div class="row">
         <div class="rowlab"><span class="title">One creature, many looks</span><span class="cap">painted again, or recoloured frame by frame; the designer picks which one plays</span></div>
         <div class="looks">
-          <figure class="lk"><div class="fr"><img src="{{IMG:d_scorp}}" alt="The Dune Scorpion in two of its looks: black with a red sting, and pale sand"></div><p class="t">The Dune Scorpion Elite in two of its painted looks</p></figure>
+          <figure class="lk"><div class="fr"><img src="{{IMG:d_scorp}}" alt="The Dune Scorpion in four looks"></div><p class="t">The Dune Scorpion Elite, painted four ways</p></figure>
           <figure class="lk"><div class="fr"><img src="{{IMG:d_beetle}}" alt="The Bull Beetle in red, white and pearl"></div><p class="t">The Bull Beetle recoloured for the night: no new painting</p></figure>
         </div>
       </div>
@@ -1143,7 +1138,7 @@ a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px 
             <li>More heroes, creatures and maps from the same pipeline, steered by what the test says.</li>
           </ul></div>
       </div>
-      <footer class="sf dark"><span>88fits &middot; kick-off one pager v001 &middot; 26 October 2026</span><span class="pg"></span></footer>
+      <footer class="sf dark"><span>88fits &middot; kick-off one pager v001 &middot; 26 October 2026 &middot; the design bible and the market test plan hold the detail</span><span class="pg"></span></footer>
     </div>
   </div>
 </section>
