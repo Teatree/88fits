@@ -1,0 +1,606 @@
+{
+  "_": "The lead's picks: picture key -> source (first existing of src), crop as fractions (x0, y0, x1, y1), largest w/h kept, alpha, q. tools/make_onepager.py turns each into docs/onepager/img/<key>.webp.",
+  "key_art": {
+    "src": [
+      "tools/dl/onepager/concept/keyart_main.png"
+    ],
+    "w": 1920,
+    "q": 86
+  },
+  "swarm": {
+    "src": [
+      "tools/dl/onepager/shots/swarm_drifter_a_m.png"
+    ],
+    "w": 1600,
+    "q": 85
+  },
+  "swarm_portrait_hud": {
+    "src": [
+      "tools/dl/onepager/shots/horde_drifter_hud_nonum.png"
+    ],
+    "w": 720
+  },
+  "nightfall": {
+    "src": [
+      "tools/dl/onepager/shots/nightfall_fadeaway_k.png"
+    ],
+    "w": 1000
+  },
+  "bloodmoon": {
+    "src": [
+      "tools/dl/onepager/shots/bloodmoon_calavera_a_still.png"
+    ],
+    "w": 1000
+  },
+  "pil_thumb": {
+    "src": [
+      "tools/dl/onepager/shots/play_drifter_hud.png"
+    ],
+    "crop": [
+      0.1,
+      0.5,
+      0.9,
+      1.0
+    ],
+    "w": 600
+  },
+  "pil_portrait": {
+    "src": [
+      "tools/dl/onepager/shots/play_drifter_clean.png"
+    ],
+    "w": 600
+  },
+  "pil_cards": {
+    "src": [
+      "tools/dl/onepager/shots/ui/ui_levelup.png"
+    ],
+    "w": 600
+  },
+  "pil_crowd": {
+    "src": [
+      "tools/dl/onepager/shots/horde_drifter_clean.png"
+    ],
+    "crop": [
+      0.0,
+      0.18,
+      1.0,
+      0.86
+    ],
+    "w": 600
+  },
+  "pil_goofy": {
+    "src": [
+      "tools/dl/onepager/shots/boss_king_drifter_k.png"
+    ],
+    "crop": [
+      0.02,
+      0.0,
+      0.5,
+      0.95
+    ],
+    "w": 600
+  },
+  "pil_data": {
+    "src": [
+      "tools/dl/onepager/tools/tooling/02_le_enemies.png"
+    ],
+    "crop": [
+      0.0,
+      0.08,
+      0.36,
+      0.75
+    ],
+    "w": 700
+  },
+  "ref_megabonk": {
+    "src": [
+      "tools/dl/onepager/refs/megabonk/steam_ss_03.jpg"
+    ],
+    "w": 960
+  },
+  "ref_megabonk2": {
+    "src": [
+      "tools/dl/onepager/refs/megabonk/press_destructoid_stage_portal.jpg"
+    ],
+    "w": 560
+  },
+  "ref_vs": {
+    "src": [
+      "tools/dl/onepager/refs/vampire_survivors/wiki_level_up_screen.jpg"
+    ],
+    "w": 960
+  },
+  "ref_brotato": {
+    "src": [
+      "tools/dl/onepager/refs/brotato/wiki_shop.jpg"
+    ],
+    "w": 960
+  },
+  "ref_archero": {
+    "src": [
+      "tools/dl/onepager/refs/archero/gplay_ss_03.png"
+    ],
+    "w": 420
+  },
+  "ref_survivorio": {
+    "src": [
+      "tools/dl/onepager/refs/survivor_io/gplay_ss_07.png"
+    ],
+    "w": 420
+  },
+  "ref_shoptitans": {
+    "src": [
+      "tools/dl/onepager/refs/shop_titans/icons_collage_8.png"
+    ],
+    "w": 560,
+    "alpha": true
+  },
+  "ref_wanted": {
+    "src": [
+      "tools/dl/onepager/refs/wanted_poster/commons_jesse_james_reward_1881.jpg"
+    ],
+    "crop": [
+      0.0,
+      0.0,
+      1.0,
+      0.72
+    ],
+    "w": 520
+  },
+  "style_world": {
+    "src": [
+      "tools/dl/onepager/shots/swarm_drifter_w.png"
+    ],
+    "crop": [
+      0.45,
+      0.28,
+      1.0,
+      0.98
+    ],
+    "w": 720
+  },
+  "style_ui": {
+    "src": [
+      "tools/dl/onepager/shots/ui/06_title.png"
+    ],
+    "w": 720
+  },
+  "concept_s1": {
+    "src": [
+      "tools/dl/onepager/concept/stage1_sundown.png"
+    ],
+    "w": 1000
+  },
+  "concept_s2": {
+    "src": [
+      "tools/dl/onepager/concept/stage2_nightfall.png"
+    ],
+    "w": 1000
+  },
+  "concept_s3": {
+    "src": [
+      "tools/dl/onepager/concept/stage3_bloodmoon.png"
+    ],
+    "w": 1000
+  },
+  "boss_king": {
+    "src": [
+      "tools/dl/onepager/shots/boss_king_drifter_k.png"
+    ],
+    "w": 720
+  },
+  "boss_gila": {
+    "src": [
+      "tools/dl/onepager/shots/boss_gila_fadeaway_k.png"
+    ],
+    "w": 720
+  },
+  "boss_brander": {
+    "src": [
+      "tools/dl/onepager/shots/boss_brander_drifter_k.png"
+    ],
+    "w": 720
+  },
+  "bestiary": {
+    "src": [
+      "tools/dl/onepager/shots/bestiary.png"
+    ],
+    "crop": [
+      0.0,
+      0.24,
+      1.0,
+      1.0
+    ],
+    "w": 2000,
+    "q": 85
+  },
+  "hud_shot": {
+    "src": [
+      "tools/dl/onepager/shots/play_drifter_hud.png"
+    ],
+    "w": 720
+  },
+  "flow_run": {
+    "src": [
+      "tools/dl/onepager/shots/play_drifter_hud.png"
+    ],
+    "w": 540
+  },
+  "ed_main": {
+    "src": [
+      "tools/dl/onepager/tools/tooling/01_le_timeline.png"
+    ],
+    "w": 1920
+  },
+  "ed_side1": {
+    "src": [
+      "tools/dl/onepager/tools/tooling/02b_le_look_player.png"
+    ],
+    "w": 1300
+  },
+  "ed_side2": {
+    "src": [
+      "tools/dl/onepager/tools/tooling/06_le_jobs_request.png"
+    ],
+    "w": 1300
+  },
+  "tool_sim": {
+    "src": [
+      "tools/dl/onepager/tools/tooling/08_sim_who_is_alive.png"
+    ],
+    "w": 1300
+  },
+  "tool_watch": {
+    "src": [
+      "tools/dl/onepager/tools/tooling/11_watch_boss.png"
+    ],
+    "crop": [
+      0.0,
+      0.0,
+      1.0,
+      0.62
+    ],
+    "w": 1300
+  },
+  "tool_dash": {
+    "src": [
+      "tools/dl/onepager/tools/tooling/10b_dashboard_weapons.png"
+    ],
+    "w": 1300
+  },
+  "a_model": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/01_model.png"
+    ],
+    "w": 900,
+    "alpha": true,
+    "trim": true
+  },
+  "a_clay": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/02_clay_views.png"
+    ],
+    "w": 1400,
+    "alpha": true,
+    "trim": true
+  },
+  "a_depth": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/03_depth_walk.png"
+    ],
+    "w": 1400,
+    "alpha": true,
+    "trim": true
+  },
+  "a_cands": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/04_side_candidates.png"
+    ],
+    "w": 1500,
+    "alpha": true,
+    "trim": true
+  },
+  "a_views": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/05_painted_views.png"
+    ],
+    "w": 1500,
+    "alpha": true,
+    "trim": true
+  },
+  "a_walk": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/06_walk_side.png"
+    ],
+    "w": 1400,
+    "alpha": true,
+    "trim": true
+  },
+  "a_eight": {
+    "src": [
+      "tools/dl/onepager/tools/a_creature/06b_eight_directions.png"
+    ],
+    "w": 900,
+    "alpha": true,
+    "trim": true
+  },
+  "p_paint": {
+    "src": [
+      "tools/dl/onepager/tools/b_puppet/01_painting.png"
+    ],
+    "h": 800,
+    "alpha": true,
+    "trim": true
+  },
+  "p_apose": {
+    "src": [
+      "tools/dl/onepager/tools/b_puppet/02_apose.png"
+    ],
+    "w": 1100,
+    "alpha": true,
+    "trim": true
+  },
+  "p_shape": {
+    "src": [
+      "tools/dl/onepager/tools/b_puppet/03_shape.png"
+    ],
+    "w": 1100,
+    "alpha": true,
+    "trim": true
+  },
+  "p_rig": {
+    "src": [
+      "tools/dl/onepager/tools/b_puppet/04b_rig_blender.png"
+    ],
+    "w": 900,
+    "alpha": true,
+    "trim": true
+  },
+  "p_mixamo": {
+    "src": [
+      "tools/dl/onepager/tools/b_puppet/05_mixamo_run.png"
+    ],
+    "w": 1500,
+    "alpha": true,
+    "trim": true
+  },
+  "p_guides": {
+    "src": [
+      "tools/dl/onepager/tools/b_puppet/06_guides.png"
+    ],
+    "w": 1100,
+    "alpha": true,
+    "trim": true
+  },
+  "p_run": {
+    "src": [
+      "tools/dl/onepager/tools/b_puppet/07_painted_run.png"
+    ],
+    "w": 1300,
+    "alpha": true,
+    "trim": true
+  },
+  "c_render": {
+    "src": [
+      "tools/dl/onepager/tools/c_icons/01_render.png"
+    ],
+    "w": 700,
+    "alpha": true,
+    "trim": true
+  },
+  "c_cands": {
+    "src": [
+      "tools/dl/onepager/tools/c_icons/02_candidates.png"
+    ],
+    "w": 1600,
+    "alpha": true,
+    "trim": true
+  },
+  "c_icon": {
+    "src": [
+      "tools/dl/onepager/tools/c_icons/03_icon_tommy_gun.png"
+    ],
+    "w": 600,
+    "alpha": true,
+    "trim": true
+  },
+  "c_evo": {
+    "src": [
+      "tools/dl/onepager/tools/c_icons/03b_icon_chicago_typewriter.png"
+    ],
+    "w": 600,
+    "alpha": true,
+    "trim": true
+  },
+  "d_scorp": {
+    "src": [
+      "tools/dl/onepager/tools/d_looks/02_looks_dune_scorpion.png"
+    ],
+    "w": 1600,
+    "alpha": true,
+    "trim": true
+  },
+  "d_beetle": {
+    "src": [
+      "tools/dl/onepager/tools/d_looks/01_recolour_bull_beetle.png"
+    ],
+    "w": 1400,
+    "alpha": true,
+    "trim": true
+  },
+  "v_survivorio": {
+    "src": [
+      "tools/dl/onepager/refs/survivor_io/gplay_icon.jpg"
+    ],
+    "w": 160
+  },
+  "v_archero": {
+    "src": [
+      "tools/dl/onepager/refs/archero/gplay_icon.png"
+    ],
+    "w": 160
+  },
+  "v_vs": {
+    "src": [
+      "tools/dl/onepager/refs/vampire_survivors/gplay_icon.jpg"
+    ],
+    "w": 160
+  },
+  "v_monster": {
+    "src": [
+      "tools/dl/onepager/refs/_market_scan/monster_survivors/appstore_icon.png"
+    ],
+    "w": 160
+  },
+  "v_megabonk": {
+    "src": [
+      "tools/dl/onepager/refs/megabonk/steam_library_600x900_2x.jpg"
+    ],
+    "crop": [
+      0.0,
+      0.0,
+      1.0,
+      0.667
+    ],
+    "w": 240
+  },
+  "b_megabonk": {
+    "src": [
+      "tools/dl/onepager/refs/megabonk/steam_ss_03.jpg"
+    ],
+    "crop": [
+      0.0,
+      0.18,
+      1.0,
+      0.82
+    ],
+    "w": 520
+  },
+  "b_vs": {
+    "src": [
+      "tools/dl/onepager/refs/vampire_survivors/steam_ss_01.jpg"
+    ],
+    "crop": [
+      0.0,
+      0.15,
+      1.0,
+      0.85
+    ],
+    "w": 520
+  },
+  "b_survivorio": {
+    "src": [
+      "tools/dl/onepager/refs/survivor_io/gplay_ss_07.png"
+    ],
+    "crop": [
+      0.0,
+      0.3,
+      1.0,
+      0.55
+    ],
+    "w": 520
+  },
+  "b_archero": {
+    "src": [
+      "tools/dl/onepager/refs/archero/gplay_ss_06.png"
+    ],
+    "crop": [
+      0.0,
+      0.08,
+      1.0,
+      0.33
+    ],
+    "w": 520
+  },
+  "b_88": {
+    "src": [
+      "tools/dl/onepager/shots/swarm_drifter_a_m.png"
+    ],
+    "crop": [
+      0.0,
+      0.2,
+      1.0,
+      0.82
+    ],
+    "w": 520
+  },
+  "key_lone": {
+    "src": [
+      "tools/dl/onepager/concept/keyart_lone.png"
+    ],
+    "w": 1400
+  },
+  "poster_drifter": {
+    "src": [
+      "tools/dl/onepager/concept/wanted_drifter.png"
+    ],
+    "w": 560
+  },
+  "poster_calavera": {
+    "src": [
+      "tools/dl/onepager/concept/wanted_calavera.png"
+    ],
+    "w": 560
+  },
+  "posse": {
+    "src": [
+      "tools/dl/onepager/concept/posse.png"
+    ],
+    "w": 2000,
+    "q": 85
+  },
+  "ui_title": {
+    "src": [
+      "tools/dl/onepager/shots/ui/06_title.png"
+    ],
+    "w": 720
+  },
+  "ui_drawer": {
+    "src": [
+      "tools/dl/onepager/shots/ui/65_hero_drawer.png"
+    ],
+    "w": 720
+  },
+  "ui_stages": {
+    "src": [
+      "tools/dl/onepager/shots/ui/66_stages.png"
+    ],
+    "w": 720
+  },
+  "ui_cards": {
+    "src": [
+      "tools/dl/onepager/shots/ui/ui_levelup.png"
+    ],
+    "w": 720
+  },
+  "ui_mutation": {
+    "src": [
+      "tools/dl/onepager/shots/ui/ui_mutation.png"
+    ],
+    "w": 720
+  },
+  "ui_chest": {
+    "src": [
+      "tools/dl/onepager/shots/ui/13_chest.png"
+    ],
+    "w": 720
+  },
+  "ui_results": {
+    "src": [
+      "tools/dl/onepager/shots/ui/results_top.png"
+    ],
+    "w": 720
+  },
+  "ui_upgrade": {
+    "src": [
+      "tools/dl/onepager/shots/ui/07_homestead.png"
+    ],
+    "w": 720
+  },
+  "ui_quest": {
+    "src": [
+      "tools/dl/onepager/shots/ui/08_collection.png"
+    ],
+    "w": 720
+  }
+}

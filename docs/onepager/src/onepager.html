@@ -1,0 +1,1212 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>88fits Kick-off</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="The 88fits kick-off one pager: a one-thumb, portrait survivor-shooter in a painted anime desert, its market, references, loops, heroes, builds, production and the art and tools behind it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,800;1,400;1,600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a wall of 16:9 wanted-poster boards, one per slide, nailed to dark wood; every size is in --u (1% of a
+   board's width) so a slide scales as one picture, and under 900px wide the boards reflow into one readable column.
+   The palette, faces and hard ink shadows are the game's own Wanted kit (game/ui/wanted/W.gd). */
+:root {
+  --wall: #1d1510;
+  --wall-2: #271c15;
+  --paper: #f3e6c8;
+  --aged: #e2cfa4;
+  --ink: #241b14;
+  --ink-soft: #5a4a3a;
+  --brass: #c9932f;
+  --brass-ink: #8a6420;
+  --rock: #b4472b;
+  --blood: #7d1f16;
+  --sage: #6e8b5e;
+  --turq: #3f8f8a;
+  --plum: #4a3358;
+  --rare: #3e6e9e;
+  --night: #151b24;
+  --night-2: #1f2733;
+  --night-ink: #efe4c9;
+  --night-soft: #b8ac92;
+  --display: "Alfa Slab One", Rockwell, "Roboto Slab", Georgia, serif;
+  --body: "Bitter", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--wall); }
+body {
+  margin: 0;
+  background-color: var(--wall);
+  background-image: repeating-linear-gradient(90deg, rgba(255,235,200,.025) 0 2px, transparent 2px 210px),
+                    linear-gradient(180deg, var(--wall-2), var(--wall) 40%);
+  color: var(--ink);
+  font-family: var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 72px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.deck { display: grid; gap: 44px; justify-items: center; }
+.slide { width: 100%; max-width: 1600px; container-type: inline-size; --u: 1cqw; scroll-margin-top: 20px; }
+.board {
+  position: relative; aspect-ratio: 16 / 9; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; row-gap: calc(var(--u) * 1.3);
+  padding: calc(var(--u) * 2.5) calc(var(--u) * 3.2) calc(var(--u) * 1.5);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(ellipse at 50% 45%, rgba(255,250,235,.35), rgba(255,250,235,0) 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 62%, rgba(110,70,25,.16) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .25 0 0 0 0 .12 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  border: max(2px, calc(var(--u) * .2)) solid var(--ink);
+  box-shadow: calc(var(--u) * .55) calc(var(--u) * .55) 0 #0a0705;
+}
+.board::before, .board::after {
+  content: ""; position: absolute; top: calc(var(--u) * .9); width: calc(var(--u) * 1.05); height: calc(var(--u) * 1.05);
+  border-radius: 50%; background: radial-gradient(circle at 35% 32%, #f6dc98, var(--brass) 48%, #5d3f10 100%);
+  box-shadow: 0 0 0 max(1px, calc(var(--u) * .1)) var(--ink), calc(var(--u) * .12) calc(var(--u) * .14) 0 rgba(0,0,0,.35);
+  z-index: 3;
+}
+.board::before { left: calc(var(--u) * .9); }
+.board::after { right: calc(var(--u) * .9); }
+
+/* the slide header, body and footer */
+.sh { display: grid; gap: calc(var(--u) * .35); max-width: 78%; }
+.kicker { margin: 0; font: 700 calc(var(--u) * .92)/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--rock); }
+.kicker b { color: var(--ink); font-weight: 700; }
+h1, h2 { margin: 0; font-family: var(--display); font-weight: 400; text-wrap: balance; }
+h2 { font-size: calc(var(--u) * 3.05); line-height: 1.04; letter-spacing: .005em; }
+.sub { margin: calc(var(--u) * .2) 0 0; font: italic 400 calc(var(--u) * 1.32)/1.32 var(--body); color: var(--ink-soft); max-width: 62ch; }
+.bd { min-height: 0; }
+.sf { display: flex; justify-content: space-between; align-items: baseline; font: 500 calc(var(--u) * .74)/1 var(--mono);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); border-top: max(1px, calc(var(--u) * .08)) solid rgba(36,27,20,.35);
+  padding-top: calc(var(--u) * .55); }
+.sf .pg { color: var(--ink); }
+
+/* shared text pieces */
+p { margin: 0; }
+.t { font: 400 calc(var(--u) * 1.16)/1.42 var(--body); }
+.t + .t { margin-top: calc(var(--u) * .7); }
+.lead { font: 600 calc(var(--u) * 1.45)/1.3 var(--body); }
+.cap { font: 500 calc(var(--u) * .78)/1.35 var(--mono); color: var(--ink-soft); letter-spacing: .01em; }
+.label { font: 700 calc(var(--u) * .78)/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.plate { display: inline-block; font: 700 calc(var(--u) * .74)/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  padding: calc(var(--u) * .32) calc(var(--u) * .5); background: var(--brass); color: var(--ink);
+  border: max(1px, calc(var(--u) * .1)) solid var(--ink); box-shadow: calc(var(--u) * .18) calc(var(--u) * .18) 0 var(--ink); }
+.plate.rock { background: var(--rock); color: var(--paper); }
+.plate.sage { background: var(--sage); color: var(--paper); }
+.plate.paper { background: var(--paper); }
+.title { font: 400 calc(var(--u) * 1.5)/1.08 var(--display); }
+.num { font: 800 calc(var(--u) * 2.6)/1 var(--body); letter-spacing: -.01em; }
+ul.ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: calc(var(--u) * .5); }
+ul.ticks li { position: relative; padding-left: calc(var(--u) * 1.5); font: 400 calc(var(--u) * 1.1)/1.38 var(--body); }
+ul.ticks li::before { content: ""; position: absolute; left: 0; top: .48em; width: calc(var(--u) * .62); height: calc(var(--u) * .62);
+  background: var(--rock); border: max(1px, calc(var(--u) * .08)) solid var(--ink); transform: rotate(45deg); }
+
+/* framed pictures */
+.shot { margin: 0; position: relative; display: grid; gap: calc(var(--u) * .5); align-content: start; min-width: 0; }
+.shot .fr { position: relative; overflow: hidden; background: var(--ink);
+  border: max(2px, calc(var(--u) * .16)) solid var(--ink); box-shadow: calc(var(--u) * .32) calc(var(--u) * .32) 0 var(--ink); }
+.shot .fr img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cut { display: block; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
+.tag { position: absolute; left: calc(var(--u) * .6); top: calc(var(--u) * .6); z-index: 2; }
+
+/* phones */
+.phone { margin: 0; position: relative; background: #0e0b09; border-radius: calc(var(--u) * 2.1);
+  padding: calc(var(--u) * .62); box-shadow: 0 0 0 max(2px, calc(var(--u) * .16)) var(--ink), calc(var(--u) * .4) calc(var(--u) * .4) 0 var(--ink); }
+.phone img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: calc(var(--u) * 1.5); aspect-ratio: 9 / 16; }
+.phone::after { content: ""; position: absolute; top: calc(var(--u) * 1.15); left: 50%; width: calc(var(--u) * .7); height: calc(var(--u) * .7);
+  margin-left: calc(var(--u) * -.35); border-radius: 50%; background: #000; box-shadow: 0 0 0 1px #333; }
+
+/* night boards: the behind-the-scenes section */
+.board.night { background-color: var(--night); background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(80,110,160,.18), rgba(0,0,0,0) 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .8 0 0 0 0 .8 0 0 0 0 .9 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  color: var(--night-ink); }
+.night .kicker { color: var(--brass); }
+.night .kicker b { color: var(--night-ink); }
+.night .sub, .night .cap, .night .label { color: var(--night-soft); }
+.night .sf { color: var(--night-soft); border-top-color: rgba(239,228,201,.25); }
+.night .sf .pg { color: var(--night-ink); }
+.night .shot .fr { border-color: #050608; box-shadow: calc(var(--u) * .32) calc(var(--u) * .32) 0 #050608; }
+
+/* charts (tokens: the series wear rock and rare blue; text wears ink) */
+.chart { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--mono); }
+.chart .grid { stroke: rgba(36,27,20,.16); stroke-width: 1; fill: none; }
+.chart .tick { fill: var(--ink-soft); font-size: 13px; }
+.chart .axis-lab { fill: var(--ink); font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.chart .ph-stage { fill: rgba(201,147,47,.10); }
+.chart .ph-boss { fill: rgba(180,71,43,.16); }
+.chart .ph-portal { fill: rgba(63,143,138,.13); }
+.chart .ph-end { fill: rgba(36,27,20,.07); }
+.chart .ph-lab { fill: var(--ink-soft); font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.chart .a-crowd { fill: rgba(180,71,43,.16); }
+.chart .l-crowd { fill: none; stroke: var(--rock); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .l-level { fill: none; stroke: var(--rare); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart .crowd-lab { fill: var(--ink); font-family: var(--body); font-style: italic; font-size: 14px; }
+.chart .mark { stroke: var(--ink); stroke-width: 1; opacity: .5; }
+.chart .mark-lab, .chart .end-lab { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.chart .halo { paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
+.chart .dot-crowd { fill: var(--rock); stroke: var(--paper); stroke-width: 2; }
+.chart .dot-level { fill: var(--rare); stroke: var(--paper); stroke-width: 2; }
+.chart .a-vel { fill: rgba(180,71,43,.12); }
+.chart .l-vel { fill: none; stroke: var(--rock); stroke-width: 2.5; stroke-linejoin: round; }
+.chart .dot-vel { fill: var(--rock); stroke: var(--paper); stroke-width: 2; }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .cross { stroke: var(--ink); stroke-width: 1; opacity: 0; pointer-events: none; }
+.chart .hover.on .cross { opacity: .7; }
+.readout { position: absolute; pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 5;
+  background: var(--paper); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 6px 9px;
+  font: 500 12px/1.45 var(--mono); color: var(--ink-soft); white-space: nowrap; }
+.readout b { color: var(--ink); font-size: 14px; }
+.readout i { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 6px; }
+.readout.on { opacity: 1; }
+
+/* ---------- 00 cover ---------- */
+.board.bleed { padding: 0; display: block; }
+#s00 .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#s00 .logo { position: absolute; right: calc(var(--u) * 4.2); top: calc(var(--u) * 1.9); display: grid; justify-items: end; gap: calc(var(--u) * .5); text-align: right; }
+#s00 .wanted { font: 700 calc(var(--u) * 1.1)/1 var(--mono); letter-spacing: .5em; margin-right: -.5em; text-transform: uppercase; color: var(--ink); }
+#s00 h1 { font-size: calc(var(--u) * 10.5); line-height: .9; color: var(--ink); text-shadow: calc(var(--u) * .42) calc(var(--u) * .42) 0 var(--brass); }
+#s00 .tagline { font: 700 calc(var(--u) * 1.35)/1 var(--mono); letter-spacing: .42em; margin-right: -.42em; text-transform: uppercase; color: var(--blood); margin-top: calc(var(--u) * .5); }
+#s00 .pitch-plate { position: absolute; left: calc(var(--u) * 2.6); bottom: calc(var(--u) * 2.4); max-width: calc(var(--u) * 40);
+  background: var(--paper); border: max(2px, calc(var(--u) * .18)) solid var(--ink); box-shadow: calc(var(--u) * .4) calc(var(--u) * .4) 0 var(--ink);
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 1.4); display: grid; gap: calc(var(--u) * .6); }
+#s00 .pitch { font: italic 400 calc(var(--u) * 1.55)/1.28 var(--body); color: var(--ink); }
+#s00 .meta { font: 500 calc(var(--u) * .74)/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+#s00 .credit { position: absolute; right: calc(var(--u) * 1.6); bottom: calc(var(--u) * 1.2); font: 500 calc(var(--u) * .74)/1 var(--mono);
+  letter-spacing: .14em; text-transform: uppercase; color: rgba(243,230,200,.9); text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+
+/* ---------- 01 positioning ---------- */
+#s01 .g { display: grid; grid-template-columns: 1.15fr .62fr 1fr; gap: calc(var(--u) * 2.6); height: 100%; align-items: start; }
+#s01 .specs { margin: calc(var(--u) * 1.2) 0 0; display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * .5) calc(var(--u) * 1.1);
+  border-top: max(1px, calc(var(--u) * .12)) solid var(--ink); padding-top: calc(var(--u) * 1); }
+#s01 .specs dt { font: 700 calc(var(--u) * .78)/1.5 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--rock); }
+#s01 .specs dd { margin: 0; font: 400 calc(var(--u) * 1.04)/1.35 var(--body); }
+#s01 .phone { width: 100%; margin-top: calc(var(--u) * .3); }
+#s01 .venn svg { display: block; width: 100%; height: auto; overflow: visible; }
+#s01 .venn .c1 { fill: rgba(62,110,158,.14); stroke: var(--rare); stroke-width: 3; }
+#s01 .venn .c2 { fill: rgba(180,71,43,.13); stroke: var(--rock); stroke-width: 3; }
+#s01 .venn .vl { font: 400 21px/1 var(--display); fill: var(--ink); }
+#s01 .venn .vs { font: 500 14px/1 var(--mono); fill: var(--ink-soft); letter-spacing: .04em; }
+#s01 .venn .vc { font: 400 24px/1 var(--display); fill: var(--ink); }
+#s01 .venn .cap { margin-top: calc(var(--u) * .6); }
+#s01 .market { margin-top: calc(var(--u) * 1.1); display: grid; gap: calc(var(--u) * .45); border-top: max(1px, calc(var(--u) * .12)) solid var(--ink); padding-top: calc(var(--u) * .8); }
+#s01 .market p:not(.label) { font: 400 calc(var(--u) * .98)/1.32 var(--body); }
+#s01 .market b { font-weight: 800; color: var(--rock); }
+
+/* ---------- 02 in the engine ---------- */
+#s02 .g { display: grid; grid-template-columns: 2.05fr 1fr; grid-template-rows: 1fr 1fr; gap: calc(var(--u) * 1.6) calc(var(--u) * 1.8); height: 100%; }
+#s02 .big { grid-row: 1 / 3; }
+#s02 .shot { grid-template-rows: minmax(0, 1fr) auto; height: 100%; }
+#s02 .shot .fr { height: 100%; }
+
+/* ---------- 03 pillars ---------- */
+#s03 .g { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: calc(var(--u) * 1.4) calc(var(--u) * 1.8); height: 100%; }
+#s03 .pl { display: grid; grid-template-columns: calc(var(--u) * 11) 1fr; gap: calc(var(--u) * 1.1); align-items: start; min-width: 0; }
+#s03 .pl .fr { height: calc(var(--u) * 15.6); }
+#s03 .pl .fr img { object-position: var(--pos, 50% 50%); }
+#s03 .pl .title { font-size: calc(var(--u) * 1.55); margin: calc(var(--u) * .2) 0 calc(var(--u) * .5); }
+#s03 .pl .t { font-size: calc(var(--u) * 1.06); }
+#s03 .pl .no { font: 700 calc(var(--u) * .78)/1 var(--mono); letter-spacing: .14em; color: var(--rock); }
+
+/* ---------- 04 references ---------- */
+#s04 .g { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: auto auto; gap: calc(var(--u) * 1.4) calc(var(--u) * 1.6); }
+#s04 .ref { display: grid; gap: calc(var(--u) * .55); align-content: start; min-width: 0; }
+#s04 .ref.wide { grid-column: span 2; }
+#s04 .ref .fr { aspect-ratio: 16 / 9; }
+#s04 .ref .name { display: flex; align-items: baseline; gap: calc(var(--u) * .7); flex-wrap: wrap; }
+#s04 .ref .name .title { font-size: calc(var(--u) * 1.5); }
+#s04 .ref .name .cap { text-transform: uppercase; letter-spacing: .1em; }
+#s04 dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * .3) calc(var(--u) * .7); }
+#s04 dt { font: 700 calc(var(--u) * .72)/1.6 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--sage); }
+#s04 dt.skip { color: var(--rock); }
+#s04 dd { margin: 0; font: 400 calc(var(--u) * .98)/1.34 var(--body); }
+#s04 .mobile { grid-column: span 3; display: grid; grid-template-columns: calc(var(--u) * 8.4) 1fr; gap: calc(var(--u) * 1.3); align-items: start; }
+#s04 .mobile .phone { border-radius: calc(var(--u) * 1.3); padding: calc(var(--u) * .4); }
+#s04 .mobile .phone img { border-radius: calc(var(--u) * .9); }
+#s04 .mobile .phone::after { display: none; }
+
+/* ---------- 05 visual style ---------- */
+#s05 .g { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 1.8); height: 100%; }
+#s05 .layer { display: grid; grid-template-rows: auto calc(var(--u) * 20) auto auto auto; gap: calc(var(--u) * .7); min-width: 0; align-content: start; }
+#s05 .layer .title { font-size: calc(var(--u) * 1.4); }
+#s05 .layer .ours { height: 100%; }
+#s05 .layer .ours .fr { height: calc(var(--u) * 20); }
+#s05 .layer .ours .fr img { height: 100%; }
+#s05 .layer .ours.paperbg .fr { background: var(--aged); }
+#s05 .layer .ref { display: grid; grid-template-columns: calc(var(--u) * 8) 1fr; gap: calc(var(--u) * .8); align-items: center; }
+#s05 .layer .ref .fr { aspect-ratio: 4 / 3; box-shadow: calc(var(--u) * .2) calc(var(--u) * .2) 0 var(--ink); }
+#s05 .layer .t { font-size: calc(var(--u) * 1.02); }
+
+/* ---------- 05b key art ---------- */
+#s05b .g { display: grid; grid-template-columns: 1.72fr 1fr; gap: calc(var(--u) * 2.4); height: 100%; align-items: start; }
+#s05b .hero-art .fr { aspect-ratio: 16 / 9; }
+#s05b .posters { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 1.3); align-content: start; }
+#s05b .posters .cap { grid-column: 1 / -1; }
+#s05b .poster { margin: 0; position: relative; container-type: inline-size; box-shadow: calc(var(--u) * .32) calc(var(--u) * .32) 0 rgba(36,27,20,.85); }
+#s05b .poster img { display: block; width: 100%; height: auto; aspect-ratio: 2 / 3; object-fit: cover; }
+#s05b .pt { position: absolute; left: 10%; right: 10%; display: grid; justify-items: center; text-align: center; color: rgba(36,27,20,.92); }
+#s05b .pt.top { top: var(--top); height: 13%; align-content: center; }
+#s05b .pt.bot { top: var(--bot); height: 15%; align-content: center; gap: 1.6cqw; }
+#s05b .pt .w { font: 400 14.5cqw/1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+#s05b .pt .n { font: 400 8cqw/1 var(--display); text-transform: uppercase; }
+#s05b .pt .f { font: italic 400 4.5cqw/1.2 var(--body); color: var(--ink-soft); white-space: nowrap; }
+#s05b .pt .r { font: 400 6.4cqw/1 var(--display); text-transform: uppercase; color: var(--blood); }
+
+/* ---------- 06 benchmark ---------- */
+#s06 .wrap { overflow-x: auto; min-width: 0; }
+#s06 table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+#s06 th, #s06 td { text-align: left; vertical-align: top; padding: calc(var(--u) * .3) calc(var(--u) * .7);
+  font: 400 calc(var(--u) * .84)/1.28 var(--body); border-bottom: max(1px, calc(var(--u) * .06)) solid rgba(36,27,20,.22); }
+#s06 thead th { vertical-align: bottom; border-bottom: max(2px, calc(var(--u) * .14)) solid var(--ink); padding-bottom: calc(var(--u) * .5); }
+#s06 thead .game { display: grid; gap: calc(var(--u) * .35); }
+#s06 thead .game .fr { aspect-ratio: 16 / 6; border-width: max(1px, calc(var(--u) * .12)); box-shadow: calc(var(--u) * .2) calc(var(--u) * .2) 0 var(--ink); }
+#s06 thead .game .title { font-size: calc(var(--u) * 1.18); }
+#s06 tbody th { font: 700 calc(var(--u) * .7)/1.5 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--rock); width: calc(var(--u) * 9.6); }
+#s06 .us { background: rgba(201,147,47,.2); }
+#s06 thead .us { background: transparent; }
+#s06 td.us { font-weight: 600; }
+#s06 .src { margin-top: calc(var(--u) * .6); }
+#s06 .scroll-hint { display: none; }
+@media screen and (max-width: 899px) { #s06 .scroll-hint { display: block; margin-top: 8px; } }
+
+/* ---------- 07 action loop ---------- */
+#s07 .g { display: grid; grid-template-columns: 1.25fr 1fr; gap: calc(var(--u) * 2.6); height: 100%; }
+#s07 .loop { position: relative; height: 100%; }
+#s07 .loop svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+#s07 .ring { fill: none; stroke: var(--ink); stroke-width: 3; }
+#s07 .arrow { fill: var(--ink); }
+#s07 .node { position: absolute; width: calc(var(--u) * 13.6); transform: translate(-50%, -50%); text-align: center;
+  background: var(--paper); border: max(2px, calc(var(--u) * .16)) solid var(--ink); box-shadow: calc(var(--u) * .25) calc(var(--u) * .25) 0 var(--ink);
+  padding: calc(var(--u) * .55) calc(var(--u) * .7); }
+#s07 .node b { display: block; font: 400 calc(var(--u) * 1.2)/1.05 var(--display); }
+#s07 .node span { display: block; margin-top: calc(var(--u) * .25); font: 400 calc(var(--u) * .9)/1.25 var(--body); color: var(--ink-soft); }
+#s07 .node .n { position: absolute; left: calc(var(--u) * -.9); top: calc(var(--u) * -.9); width: calc(var(--u) * 1.9); height: calc(var(--u) * 1.9);
+  display: grid; place-items: center; border-radius: 50%; background: var(--rock); color: var(--paper); font: 700 calc(var(--u) * .9)/1 var(--mono);
+  border: max(1px, calc(var(--u) * .12)) solid var(--ink); margin: 0; }
+#s07 .hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; }
+#s07 .hub b { display: block; font: 400 calc(var(--u) * 2.2)/1 var(--display); }
+#s07 .hub span { font: 700 calc(var(--u) * .8)/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+#s07 .side { display: grid; grid-template-rows: auto 1fr auto; gap: calc(var(--u) * 1.2); min-height: 0; }
+#s07 .screens { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 1.2); min-height: 0; }
+#s07 .screens .fr { aspect-ratio: 9 / 16; }
+#s07 .exit { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * .9); align-items: center;
+  border: max(2px, calc(var(--u) * .16)) solid var(--ink); background: var(--aged); padding: calc(var(--u) * .8) calc(var(--u) * 1); }
+#s07 .exit .t { font-size: calc(var(--u) * 1.02); }
+
+/* ---------- 08 a real run ---------- */
+#s08 .g { display: grid; grid-template-columns: 1fr calc(var(--u) * 21); gap: calc(var(--u) * 2.4); height: 100%; }
+#s08 .plot { position: relative; min-width: 0; align-self: start; }
+#s08 .tiles { display: grid; gap: calc(var(--u) * .95); align-content: start; }
+#s08 .tile { border-left: max(2px, calc(var(--u) * .3)) solid var(--rock); padding: calc(var(--u) * .2) 0 calc(var(--u) * .2) calc(var(--u) * 1); }
+#s08 .tile .num { font-size: calc(var(--u) * 2.35); }
+#s08 .tile .cap { margin-top: calc(var(--u) * .25); }
+#s08 details { margin-top: calc(var(--u) * .6); font: 500 calc(var(--u) * .78)/1.4 var(--mono); color: var(--ink-soft); }
+#s08 details summary { cursor: pointer; }
+#s08 details table { border-collapse: collapse; margin-top: 6px; }
+#s08 details td, #s08 details th { padding: 2px 10px 2px 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- 09 heroes ---------- */
+#s09 .bd { display: grid; }
+#s09 .posse { margin: 0; position: relative; height: 100%; min-height: 0; overflow: hidden;
+  border: max(2px, calc(var(--u) * .16)) solid var(--ink); box-shadow: calc(var(--u) * .32) calc(var(--u) * .32) 0 var(--ink); }
+#s09 .posse .fr { position: absolute; inset: 0; }
+#s09 .posse .fr img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+#s09 .whos { position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+  background: linear-gradient(180deg, rgba(24,14,8,0) 0%, rgba(24,14,8,.78) 34%, rgba(24,14,8,.9) 100%); }
+#s09 .who { position: absolute; left: var(--x); bottom: calc(var(--u) * 1.0); width: 11.2%; transform: translateX(-50%); text-align: center; display: grid; gap: calc(var(--u) * .22); }
+#s09 .who .name { font: 400 calc(var(--u) * 1.32)/1.05 var(--display); color: var(--paper); }
+#s09 .who .wpn { font: 700 calc(var(--u) * .7)/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--brass); }
+#s09 .who .tr { font: 400 calc(var(--u) * .86)/1.28 var(--body); color: rgba(243,230,200,.92); }
+#s09 .who .price { font: 500 calc(var(--u) * .7)/1.3 var(--mono); color: rgba(243,230,200,.7); }
+
+/* ---------- 10 stages ---------- */
+#s10 .g { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 2); height: 100%; }
+#s10 .st { display: grid; grid-template-rows: auto auto 1fr; gap: calc(var(--u) * .8); min-width: 0; min-height: 0; }
+#s10 .st .fr { aspect-ratio: 16 / 9; }
+#s10 .st .head { display: flex; justify-content: space-between; align-items: baseline; gap: calc(var(--u) * 1); }
+#s10 .st .head .title { font-size: calc(var(--u) * 1.7); }
+#s10 .st .boss { display: grid; grid-template-columns: 1.25fr 1fr; gap: calc(var(--u) * 1); align-items: start; }
+#s10 .st .boss .fr { aspect-ratio: 16 / 10; }
+#s10 .st .t { font-size: calc(var(--u) * .98); }
+
+/* ---------- 11 bestiary ---------- */
+#s11 .g { display: grid; grid-template-rows: auto auto; gap: calc(var(--u) * 1.6); height: 100%; align-content: start; }
+#s11 .line .fr { aspect-ratio: {{AR:bestiary}}; background: var(--aged); }
+#s11 .line { min-height: 0; display: grid; gap: calc(var(--u) * .5); }
+#s11 .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 2); }
+#s11 .facts .t { font-size: calc(var(--u) * 1); }
+#s11 .facts .title { font-size: calc(var(--u) * 1.25); margin-bottom: calc(var(--u) * .35); }
+
+/* ---------- 12 builds ---------- */
+#s12 .g { display: grid; grid-template-columns: 1.1fr 1fr; gap: calc(var(--u) * 2.6); height: 100%; }
+#s12 .kinds { display: grid; gap: calc(var(--u) * 1.1); align-content: start; }
+#s12 .kind { display: grid; grid-template-columns: calc(var(--u) * 6.4) 1fr; gap: calc(var(--u) * 1.2); align-items: start;
+  border-bottom: max(1px, calc(var(--u) * .08)) solid rgba(36,27,20,.25); padding-bottom: calc(var(--u) * 1); }
+#s12 .kind .num { font-size: calc(var(--u) * 3.1); color: var(--rock); }
+#s12 .kind .title { font-size: calc(var(--u) * 1.35); margin-bottom: calc(var(--u) * .3); }
+#s12 .kind .t { font-size: calc(var(--u) * 1.02); }
+#s12 .right { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: calc(var(--u) * 1.3); min-height: 0; }
+#s12 .icons .fr { height: 100%; background: var(--aged); }
+#s12 .icons { min-height: 0; }
+#s12 .icons .fr img { object-fit: contain; }
+#s12 .combo { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * 1.2); align-items: center;
+  background: var(--ink); color: var(--paper); padding: calc(var(--u) * 1) calc(var(--u) * 1.3); box-shadow: calc(var(--u) * .32) calc(var(--u) * .32) 0 var(--brass); }
+#s12 .combo .num { font-size: calc(var(--u) * 3.2); color: var(--brass); }
+#s12 .combo .t { font-size: calc(var(--u) * 1.02); color: var(--paper); }
+
+/* ---------- 13 one thumb ---------- */
+#s13 .g { display: grid; grid-template-columns: calc(var(--u) * 21.5) 1fr 1fr; gap: calc(var(--u) * 2.6); height: 100%; align-items: start; }
+#s13 .phone { position: relative; }
+#s13 .phone .scr { position: relative; }
+#s13 .pin { position: absolute; width: calc(var(--u) * 1.9); height: calc(var(--u) * 1.9); margin: calc(var(--u) * -.95) 0 0 calc(var(--u) * -.95);
+  border-radius: 50%; display: grid; place-items: center; background: var(--rock); color: var(--paper);
+  font: 700 calc(var(--u) * .9)/1 var(--mono); border: max(2px, calc(var(--u) * .14)) solid var(--paper);
+  box-shadow: 0 0 0 max(1px, calc(var(--u) * .1)) var(--ink); z-index: 2; }
+#s13 ol.callouts { margin: 0; padding: 0; list-style: none; display: grid; gap: calc(var(--u) * .85); counter-reset: c; }
+#s13 ol.callouts li { display: grid; grid-template-columns: calc(var(--u) * 2.4) 1fr; gap: calc(var(--u) * .5); align-items: start; counter-increment: c; }
+#s13 ol.callouts li::before { content: counter(c); width: calc(var(--u) * 1.9); height: calc(var(--u) * 1.9); border-radius: 50%; display: grid; place-items: center;
+  background: var(--rock); color: var(--paper); font: 700 calc(var(--u) * .9)/1 var(--mono); border: max(1px, calc(var(--u) * .1)) solid var(--ink); }
+#s13 ol.callouts b { display: block; font: 400 calc(var(--u) * 1.15)/1.1 var(--display); }
+#s13 ol.callouts span { display: block; margin-top: calc(var(--u) * .2); font: 400 calc(var(--u) * .98)/1.32 var(--body); }
+#s13 .rules .title { font-size: calc(var(--u) * 1.4); margin-bottom: calc(var(--u) * .9); }
+
+/* ---------- 14 flow and meta ---------- */
+#s14 .g { display: grid; grid-template-rows: auto 1fr; gap: calc(var(--u) * 1.6); height: 100%; }
+#s14 .flow { display: grid; grid-template-columns: repeat(8, 1fr); gap: calc(var(--u) * 1.3); }
+#s14 .flow .shot .fr { aspect-ratio: 9 / 16; }
+#s14 .flow .shot .fr img { object-position: 50% 0; }
+#s14 .flow .shot { position: relative; }
+#s14 .flow .shot:not(:last-child)::after { content: "\2192"; position: absolute; right: calc(var(--u) * -1.15); top: calc(var(--u) * 6);
+  font: 700 calc(var(--u) * 1.3)/1 var(--mono); color: var(--rock); }
+#s14 .flow .cap { text-align: center; color: var(--ink); font-weight: 700; }
+#s14 .meta { display: grid; grid-template-columns: 1.15fr 1fr; gap: calc(var(--u) * 2.4); min-height: 0; }
+#s14 .meta .loop { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 1); align-content: start; }
+#s14 .step { background: var(--paper); border: max(2px, calc(var(--u) * .14)) solid var(--ink); box-shadow: calc(var(--u) * .22) calc(var(--u) * .22) 0 var(--ink);
+  padding: calc(var(--u) * .7) calc(var(--u) * .8); position: relative; }
+#s14 .step b { display: block; font: 400 calc(var(--u) * 1.2)/1.1 var(--display); }
+#s14 .step span { display: block; margin-top: calc(var(--u) * .3); font: 400 calc(var(--u) * .95)/1.32 var(--body); color: var(--ink-soft); }
+#s14 .step:not(:nth-child(4n))::after { content: "\2192"; position: absolute; right: calc(var(--u) * -1.0); top: 40%; font: 700 calc(var(--u) * 1.05)/1 var(--mono); color: var(--rock); }
+#s14 .back { grid-column: 1 / -1; font: 700 calc(var(--u) * .78)/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--rock); text-align: center; }
+#s14 .meta .t { font-size: calc(var(--u) * 1.06); }
+
+/* ---------- 15 production ---------- */
+#s15 .g { display: grid; grid-template-columns: 1.25fr 1fr; grid-template-rows: auto auto; gap: calc(var(--u) * 2) calc(var(--u) * 2.6); height: 100%; align-content: space-between; }
+#s15 .pass { grid-column: 1 / -1; list-style: none; margin: 0; padding: calc(var(--u) * 1) 0 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 2.2);
+  border-top: max(1px, calc(var(--u) * .12)) solid var(--ink); counter-reset: p; }
+#s15 .pass li { position: relative; counter-increment: p; display: grid; gap: calc(var(--u) * .3); padding-left: calc(var(--u) * 2.6); }
+#s15 .pass li::before { content: counter(p); position: absolute; left: 0; top: 0; width: calc(var(--u) * 1.9); height: calc(var(--u) * 1.9); border-radius: 50%;
+  display: grid; place-items: center; background: var(--rock); color: var(--paper); font: 700 calc(var(--u) * .9)/1 var(--mono); border: max(1px, calc(var(--u) * .1)) solid var(--ink); }
+#s15 .pass li:not(:last-child)::after { content: "\2192"; position: absolute; right: calc(var(--u) * -1.6); top: calc(var(--u) * .2); font: 700 calc(var(--u) * 1.2)/1 var(--mono); color: var(--rock); }
+#s15 .pass b { font: 400 calc(var(--u) * 1.15)/1.1 var(--display); }
+#s15 .pass span { font: 400 calc(var(--u) * .95)/1.32 var(--body); color: var(--ink-soft); }
+#s15 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 1.1) calc(var(--u) * 1.4); align-content: start; }
+#s15 .tile { border-left: max(2px, calc(var(--u) * .3)) solid var(--brass); padding-left: calc(var(--u) * .8); }
+#s15 .tile .num { font-size: calc(var(--u) * 2.1); }
+#s15 .tile .cap { margin-top: calc(var(--u) * .2); color: var(--ink); }
+#s15 .tile.qa { border-left-color: var(--sage); }
+#s15 .tile.big .num { font-size: calc(var(--u) * 2.6); }
+#s15 .left { display: grid; grid-template-rows: auto auto; gap: calc(var(--u) * 1); align-content: start; }
+#s15 .left .t { font-size: calc(var(--u) * 1.04); }
+
+/* ---------- 16-18 art workflow ---------- */
+.night .fr.dark, .night .io .fr, .night .pp .fr, .night .ic .fr, .night .lk .fr, .night .ladder .fr { background: transparent; border: 0; box-shadow: none; overflow: visible; }
+.night img.contain, .night .io img, .night .pp img, .night .ic img, .night .lk img, .night .ladder img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.night .n { font: 700 calc(var(--u) * .78)/1 var(--mono); letter-spacing: .14em; color: var(--brass); text-transform: uppercase; }
+#s16 .g { display: grid; grid-template-columns: calc(var(--u) * 18) 1fr calc(var(--u) * 18); gap: calc(var(--u) * 2); height: 100%; align-items: center; }
+#s16 .io { margin: 0; display: grid; gap: calc(var(--u) * .6); align-content: center; }
+#s16 .io .fr { aspect-ratio: 1 / 1; border-radius: 50%; background: radial-gradient(circle at 50% 45%, rgba(110,140,190,.28), rgba(0,0,0,0) 68%); }
+#s16 .io .t { font-size: calc(var(--u) * 1.0); text-align: center; }
+#s16 .io .label { text-align: center; color: var(--brass); }
+#s16 .ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(var(--u) * .65); border-left: max(1px, calc(var(--u) * .1)) solid rgba(201,147,47,.45); border-right: max(1px, calc(var(--u) * .1)) solid rgba(201,147,47,.45); padding-inline: calc(var(--u) * 1.4); }
+#s16 .ladder li { display: grid; grid-template-columns: calc(var(--u) * 1.9) calc(var(--u) * 12.5) 1fr; gap: calc(var(--u) * .9); align-items: center; }
+#s16 .ladder .n { width: calc(var(--u) * 1.9); height: calc(var(--u) * 1.9); border-radius: 50%; display: grid; place-items: center; background: var(--brass); color: var(--ink); letter-spacing: 0; }
+#s16 .ladder .t { font-size: calc(var(--u) * .92); line-height: 1.3; }
+#s16 .ladder .fr { height: calc(var(--u) * 6.1); }
+#s16 .ladder img { object-position: 0 50%; }
+#s17 .g { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: auto auto; gap: calc(var(--u) * 1.4) calc(var(--u) * 1.2); align-content: center; height: 100%; }
+#s17 .pp { margin: 0; display: grid; gap: calc(var(--u) * .4); align-content: start; min-width: 0; }
+#s17 .pp .t { font-size: calc(var(--u) * .92); line-height: 1.3; }
+#s17 .p1 { grid-column: span 2; } #s17 .p2 { grid-column: span 4; } #s17 .p3 { grid-column: span 3; } #s17 .p4 { grid-column: span 3; }
+#s17 .p5 { grid-column: span 5; } #s17 .p6 { grid-column: span 3; } #s17 .p7 { grid-column: span 4; }
+#s17 .p1 .fr, #s17 .p2 .fr, #s17 .p3 .fr, #s17 .p4 .fr { height: calc(var(--u) * 15.5); }
+#s17 .p5 .fr, #s17 .p6 .fr, #s17 .p7 .fr { height: calc(var(--u) * 11); }
+#s17 .p4 img, #s17 .p6 img { border-radius: calc(var(--u) * .4); }
+#s18 .g { display: grid; grid-template-rows: auto auto; gap: calc(var(--u) * 1.8); align-content: center; height: 100%; }
+#s18 .rowlab { display: flex; align-items: baseline; gap: calc(var(--u) * 1.2); margin-bottom: calc(var(--u) * .8); flex-wrap: wrap; }
+#s18 .rowlab .title { font-size: calc(var(--u) * 1.45); }
+#s18 .icons { display: grid; grid-template-columns: 1fr 2.6fr 1fr 1fr; gap: calc(var(--u) * 2); align-items: start; }
+#s18 .ic, #s18 .lk { margin: 0; display: grid; gap: calc(var(--u) * .4); min-width: 0; position: relative; }
+#s18 .ic .fr { height: calc(var(--u) * 12); }
+#s18 .ic:not(:last-child)::after { content: "\2192"; position: absolute; right: calc(var(--u) * -1.6); top: calc(var(--u) * 5.2); font: 700 calc(var(--u) * 1.3)/1 var(--mono); color: var(--brass); }
+#s18 .ic .t, #s18 .lk .t { font-size: calc(var(--u) * .95); line-height: 1.3; }
+#s18 .looks { display: grid; grid-template-columns: 1.1fr 1fr; gap: calc(var(--u) * 3); align-items: end; }
+#s18 .lk .fr { height: calc(var(--u) * 9.5); }
+.night .facts3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 2); border-top: 1px solid rgba(239,228,201,.25); padding-top: calc(var(--u) * 1); }
+.night .facts3 .t { font-size: calc(var(--u) * 1.0); color: var(--night-ink); }
+.night .facts3 b { color: var(--brass); font-weight: 700; }
+
+/* ---------- 19-20 tools ---------- */
+#s19 .g { display: grid; grid-template-columns: 1.62fr 1fr; gap: calc(var(--u) * 2.2); height: 100%; }
+#s19 .main { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: calc(var(--u) * .5); min-height: 0; }
+#s19 .main .fr { height: 100%; }
+#s19 .main .fr img { object-position: 0 0; }
+#s19 .side { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)) auto; gap: calc(var(--u) * 1.2); min-height: 0; }
+#s19 .side .shot { grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+#s19 .side .fr { height: 100%; }
+#s19 .side .fr img { object-position: 0 0; }
+#s19 ul.ticks li { font-size: calc(var(--u) * 1.0); }
+#s20 .g { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: calc(var(--u) * 1.6) calc(var(--u) * 2.4); height: 100%; }
+#s20 .tool { display: grid; grid-template-columns: 1fr 1.5fr; grid-template-rows: minmax(0, 1fr) auto; gap: calc(var(--u) * .7) calc(var(--u) * 1.2); min-width: 0; min-height: 0; }
+#s20 .tool .shot, #s20 .tool .term { grid-column: 1 / -1; height: 100%; min-height: 0; }
+#s20 .tool .shot { grid-template-rows: minmax(0, 1fr); }
+#s20 .tool .shot .fr { height: 100%; }
+#s20 .tool .fr img { object-position: 0 0; }
+#s20 .tool .title { font-size: calc(var(--u) * 1.35); align-self: start; }
+#s20 .tool .t { font-size: calc(var(--u) * .98); line-height: 1.36; }
+.night .term { margin: 0; background: #07090c; border: max(2px, calc(var(--u) * .16)) solid #050608; box-shadow: calc(var(--u) * .32) calc(var(--u) * .32) 0 #050608;
+  padding: calc(var(--u) * .9); font: 500 calc(var(--u) * .74)/1.55 var(--mono); color: #b9d7a8; overflow: hidden; white-space: pre-wrap; }
+.night .term .dim { color: #6f7f8f; }
+.night .term .ok { color: #8fe08f; }
+
+/* ---------- 21 summary ---------- */
+#s21 .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#s21 .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,12,6,.93) 0%, rgba(20,12,6,.86) 50%, rgba(20,12,6,.35) 72%, rgba(20,12,6,.05) 100%); }
+#s21 .in { position: absolute; inset: 0; padding: calc(var(--u) * 3) calc(var(--u) * 4); display: grid; grid-template-rows: auto 1fr auto; gap: calc(var(--u) * 1.6); color: var(--paper); }
+#s21 .kicker { color: var(--brass); }
+#s21 h2 { color: var(--paper); font-size: calc(var(--u) * 4.2); }
+#s21 .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 2.2); align-content: start; max-width: calc(var(--u) * 60); }
+#s21 .three .title { font-size: calc(var(--u) * 2.0); color: var(--brass); margin-bottom: calc(var(--u) * .6); }
+#s21 .three .t { color: var(--paper); font-size: calc(var(--u) * 1.3); }
+#s21 .next { max-width: calc(var(--u) * 58); border-top: 1px solid rgba(243,230,200,.4); padding-top: calc(var(--u) * 1.1); display: grid; gap: calc(var(--u) * .6); }
+#s21 .next .label { color: var(--brass); }
+.sf.dark { color: rgba(243,230,200,.75); border-top-color: rgba(243,230,200,.3); }
+.sf.dark .pg { color: var(--paper); }
+#s21 .next ul.ticks li { color: var(--paper); font-size: calc(var(--u) * 1.2); }
+#s21 .next ul.ticks li::before { border-color: var(--paper); }
+
+/* keyboard focus */
+a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
+
+/* ---------- phones and narrow windows: one readable column ---------- */
+@media screen and (max-width: 899px) {
+  .slide { --u: 10.5px; }
+  .board { aspect-ratio: auto; padding: 26px 18px 16px; row-gap: 16px; }
+  .sh { max-width: none; }
+  h2 { font-size: 30px; }
+  .board .g, #s18 .icons, #s18 .looks, #s09 .row, #s05 .layer .ref, #s12 .kind, #s14 .flow, #s14 .meta,
+  #s14 .meta .loop, #s15 .tiles, #s21 .three, #s07 .screens, #s10 .st .boss, #s11 .facts, #s03 .pl, .night .facts3 {
+    grid-template-columns: 1fr 1fr !important; grid-template-rows: none !important; height: auto !important; }
+  .board .g { grid-template-columns: 1fr !important; }
+  .board .g > *, #s02 .big { grid-column: auto !important; grid-row: auto !important; }
+  #s02 .shot .fr, #s05 .layer .ours .fr, #s19 .main .fr, #s19 .side .fr, #s20 .tool .shot, #s20 .tool .term, #s12 .icons .fr { height: auto; aspect-ratio: 16 / 10; }
+  #s20 .tool { grid-template-columns: 1fr !important; grid-template-rows: none !important; }
+  #s15 .pass { grid-template-columns: 1fr 1fr; } #s15 .pass li::after { display: none; }
+  #s16 .ladder li { grid-template-columns: 2em 1fr; } #s16 .ladder .fr { grid-column: 1 / -1; height: auto; aspect-ratio: 5 / 1; }
+  #s17 .pp .fr, #s18 .ic .fr, #s18 .lk .fr { height: auto; aspect-ratio: 16 / 10; } #s20 .tool { grid-template-columns: 1fr !important; }
+  #s18 .ic::after { display: none; }
+  #s05 .layer, #s19 .side, #s19 .main, #s11 .line, #s12 .right, #s16 .g, #s17 .g, #s18 .g, #s20 .g { grid-template-rows: none !important; }
+  #s03 .pl .fr { height: auto; aspect-ratio: 4 / 5; }
+  #s09 .hero { grid-template-rows: none; }
+  #s09 .hero .fig { height: 230px; }
+  #s07 .loop { height: auto; aspect-ratio: 1 / 1.05; }
+  #s07 .node { width: 38%; }
+  #s14 .flow .shot::after, #s14 .step::after { display: none; }
+  #s01 .phone { max-width: 260px; }
+  #s13 .phone { max-width: 300px; }
+  #s04 .ref.wide, #s04 .mobile { grid-column: auto; }
+  #s00.slide .board { aspect-ratio: 4 / 5; }
+  #s00 .bg { object-position: 62% 50%; }
+  #s00 .logo { right: 18px; top: 22px; } #s00 h1 { font-size: 64px !important; }
+  #s00 .pitch-plate { left: 14px; right: 14px; bottom: 14px; max-width: none; } #s00 .pitch { font-size: 17px; } #s00 .credit { display: none; }
+  #s05b .posters { grid-template-columns: 1fr 1fr !important; }
+  #s09 .posse { height: auto; overflow: visible; border: 0; box-shadow: none; }
+  #s09 .posse .fr { position: static; aspect-ratio: 7 / 3; border: 2px solid var(--ink); }
+  #s09 .whos { position: static; height: auto; background: none; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  #s09 .who { position: static; transform: none; width: auto; text-align: left; }
+  #s09 .who .name, #s09 .who .tr { color: var(--ink); } #s09 .who .price { color: var(--ink-soft); } #s09 .who .wpn { color: var(--rock); }
+  #s21.slide .board { aspect-ratio: auto; }
+  #s21 .in { position: relative; padding: 26px 20px; }
+  .tag { position: static; }
+  #s06 table { min-width: 880px; }
+  #s06 .wrap { margin-inline: -4px; padding-bottom: 6px; }
+  #s04 .mobile { grid-template-columns: 118px 1fr !important; }
+  #s04 .mobile .phone { border-radius: 14px; padding: 4px; }
+  #s00 .wanted { font-size: 10px; } #s00 .tagline { font-size: 11px; letter-spacing: .28em; margin-right: -.28em; }
+  #s17 .pp .fr, #s18 .ic .fr, #s18 .lk .fr, #s16 .io .fr { height: auto !important; aspect-ratio: auto !important; }
+  #s17 .pp img, #s18 .ic img, #s18 .lk img, #s16 .io img { height: auto; }
+  #s16 .io { max-width: 300px; justify-self: center; }
+}
+@media screen and (max-width: 520px) {
+  .board .g, #s18 .icons, #s18 .looks, #s12 .kind, #s14 .flow, #s14 .meta .loop, #s15 .tiles, #s21 .three, #s07 .screens, #s11 .facts, .night .facts3 {
+    grid-template-columns: 1fr !important; }
+  #s09 .row, #s14 .flow, #s07 .screens { grid-template-columns: 1fr 1fr !important; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- print: one 1600x900 page a slide ---------- */
+@page { size: 1600px 900px; margin: 0; }
+@media print {
+  html, body { background: #fff !important; }
+  body { padding: 0; }
+  .deck { gap: 0; display: block; }
+  .slide { width: 1600px; max-width: none; height: 900px; break-after: page; page-break-after: always; break-inside: avoid; }
+  .board { width: 1600px; height: 900px; border: 0; box-shadow: none; }
+  .readout, details { display: none !important; }
+}
+</style>
+
+<main class="deck">
+
+<!-- 00 COVER -->
+<section class="slide" id="s00" aria-label="Cover">
+  <div class="board bleed">
+    <img class="bg" src="{{IMG:key_art}}" alt="Concept art: the Drifter, Solenne, Calavera and Fadeaway hold the line as scorpions of every size pour out of a red canyon at sundown">
+    <div class="logo">
+      <p class="wanted">&#9733; Wanted &#9733;</p>
+      <h1>88fits</h1>
+      <p class="tagline">Drag &middot; Dodge &middot; Survive</p>
+    </div>
+    <div class="pitch-plate">
+      <p class="pitch">A one-thumb survivor-shooter for phones held upright, in a painted desert that wants you dead.</p>
+      <p class="meta">Kick-off one pager &middot; v001 &middot; 26 October 2026 &middot; playable today on Android and Windows, build 0.91</p>
+    </div>
+    <span class="credit">Concept art</span>
+  </div>
+</section>
+
+<!-- 01 POSITIONING -->
+<section class="slide" id="s01" aria-label="01 Positioning">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Positioning</b></p>
+      <h2>Megabonk's run, held upright, under one thumb</h2>
+    </header>
+    <div class="bd g">
+      <div>
+        <p class="lead">88fits is a survivor-shooter for a phone held upright: drag to run, and the guns aim themselves.</p>
+        <p class="t" style="margin-top:calc(var(--u)*.8)">A small, goofy hero crosses a painted desert on real 3D ground while hundreds of creatures pour in. Every level-up deals three cards, and the build mutates and evolves. A stage lasts 7 to 13 minutes and ends with a boss, a portal and a choice: bank the gold, or stay for Endless.</p>
+        <dl class="specs">
+          <dt>Genre</dt><dd>Survivor-like roguelite: painted heroes on 3D ground</dd>
+          <dt>Platforms</dt><dd>Android phones in portrait; Windows PC</dd>
+          <dt>Controls</dt><dd>One thumb: a floating joystick, automatic fire</dd>
+          <dt>Session</dt><dd>7 to 13 minute stages, then Endless</dd>
+          <dt>Audience</dt><dd>18 to 45, players of Vampire Survivors, Survivor.io and Archero; Tier-1 English Android first</dd>
+          <dt>Model</dt><dd>Free to play, rewarded ads, small IAP later; the market test decides</dd>
+          <dt>Engine</dt><dd>Godot 4.7; every hero, item and creature is data</dd>
+        </dl>
+      </div>
+      <figure class="phone"><img src="{{IMG:swarm_portrait_hud}}" alt="A portrait gameplay frame: the hero in a crowd of scorpions under the slim HUD strip"></figure>
+      <figure class="venn" style="margin:0">
+        <p class="label" style="margin-bottom:calc(var(--u)*.6)">Where it sits</p>
+        {{VENN}}
+        <p class="cap">{{VENN_CAP}}</p>
+        <div class="market"><p class="label">The genre pays</p>
+          <p><b>1M copies in two weeks</b> and 117,336 players at once: Megabonk, October 2025</p>
+          <p><b>$476M</b> lifetime in-app revenue: Survivor.io (AppMagic, February 2026)</p>
+          <p><b>27M+ players</b> on all platforms: Vampire Survivors (April 2026)</p>
+        </div>
+      </figure>
+    </div>
+    <footer class="sf"><span>88fits &middot; kick-off one pager</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 02 IN THE ENGINE -->
+<section class="slide" id="s02" aria-label="02 In the engine">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>In the engine</b></p>
+      <h2>Frames from the current build, not mock-ups</h2>
+    </header>
+    <div class="bd g">
+      <figure class="shot big"><div class="fr"><img src="{{IMG:swarm}}" alt="{{ALT:swarm}}"></div><figcaption class="cap">{{CAP:swarm}}</figcaption></figure>
+      <figure class="shot"><div class="fr"><img src="{{IMG:nightfall}}" alt="{{ALT:nightfall}}"></div><figcaption class="cap">{{CAP:nightfall}}</figcaption></figure>
+      <figure class="shot"><div class="fr"><img src="{{IMG:bloodmoon}}" alt="{{ALT:bloodmoon}}"></div><figcaption class="cap">{{CAP:bloodmoon}}</figcaption></figure>
+    </div>
+    <footer class="sf"><span>Staged in the engine: the game's own art, light, shadows and stage filters; the crowd and the moment are set up, nothing is painted over</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 03 PILLARS -->
+<section class="slide" id="s03" aria-label="03 Pillars">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Pillars</b></p>
+      <h2>Six promises the whole game keeps</h2>
+    </header>
+    <div class="bd g">
+      <div class="pl"><div class="shot"><div class="fr"><img src="{{IMG:pil_thumb}}" alt="The floating joystick under the thumb"></div></div>
+        <div><p class="no">01</p><p class="title">One thumb, zero menus</p><p class="t">Every in-run action is hold, slide or tap. Anything that needs a second finger is cut or automated.</p></div></div>
+      <div class="pl"><div class="shot"><div class="fr"><img src="{{IMG:pil_portrait}}" alt="A tall portrait frame showing the crowd ahead of the hero"></div></div>
+        <div><p class="no">02</p><p class="title">Portrait is the point</p><p class="t">The tall screen shows more ahead than beside. Threat comes from the top, and steering through it is the skill.</p></div></div>
+      <div class="pl"><div class="shot"><div class="fr"><img src="{{IMG:pil_cards}}" alt="The level-up screen dealing three cards"></div></div>
+        <div><p class="no">03</p><p class="title">Cards go brr</p><p class="t">Five weapons, five cards, passive items without a cap, mutations and evolutions. Runs feel different because builds do.</p></div></div>
+      <div class="pl"><div class="shot"><div class="fr"><img src="{{IMG:pil_crowd}}" alt="Hundreds of creatures around the hero"></div></div>
+        <div><p class="no">04</p><p class="title">A crowd, not a queue</p><p class="t">Dozens of creatures from the first minute and hundreds in Endless, each one a little different. A problem you can read.</p></div></div>
+      <div class="pl"><div class="shot"><div class="fr" style="background:var(--aged)"><img src="{{IMG:pil_goofy}}" alt="Painted heroes and creatures in the house style"></div></div>
+        <div><p class="no">05</p><p class="title">Goofy and readable</p><p class="t">Anime heroes and creatures painted as 2.5D cut-outs on real 3D ground. Silly on purpose, clear at a glance on a phone.</p></div></div>
+      <div class="pl"><div class="shot"><div class="fr"><img src="{{IMG:pil_data}}" alt="The Level Editor's creature form"></div></div>
+        <div><p class="no">06</p><p class="title">Content is data</p><p class="t">A new weapon, creature or hero is a folder of data and pictures, never new code, made and tuned in our Level Editor.</p></div></div>
+    </div>
+    <footer class="sf"><span>The design bible's pillars, section 01</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 04 REFERENCES -->
+<section class="slide" id="s04" aria-label="04 References">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>References: how it plays</b></p>
+      <h2>Each reference lends one thing, and we say which</h2>
+    </header>
+    <div class="bd g">
+      <div class="ref wide"><div class="shot"><div class="fr"><img src="{{IMG:ref_megabonk}}" alt="Megabonk: a third-person hero in a 3D field of enemies"></div></div>
+        <div class="name"><span class="title">Megabonk</span><span class="cap">3D &middot; third person &middot; goofy</span></div>
+        <dl><dt>Take</dt><dd>The tone, stages that end in a boss and a portal, unlocks earned by in-run challenges, an upgrade board, shrines worth a detour.</dd><dt class="skip">Skip</dt><dd>Parkour, jumping, landscape.</dd></dl></div>
+      <div class="ref wide"><div class="shot"><div class="fr"><img src="{{IMG:ref_vs}}" alt="Vampire Survivors: a hero in a dense 2D horde"></div></div>
+        <div class="name"><span class="title">Vampire Survivors</span><span class="cap">2D &middot; the genre template</span></div>
+        <dl><dt>Take</dt><dd>Auto-fire, five plus five slots, pick 1 of 3, evolutions opened at a chest, XP gems and the magnet, chests that spin.</dd><dt class="skip">Skip</dt><dd>The 30-minute timer, the arcana, the item flood.</dd></dl></div>
+      <div class="ref wide"><div class="shot"><div class="fr"><img src="{{IMG:ref_brotato}}" alt="Brotato: the stats and shop screen"></div></div>
+        <div class="name"><span class="title">Brotato</span><span class="cap">stat transparency</span></div>
+        <dl><dt>Take</dt><dd>Every number on show, with where it came from (our pause screen's Stats tab).</dd><dt class="skip">Skip</dt><dd>The shop between waves, discrete waves.</dd></dl></div>
+      <div class="mobile"><figure class="phone"><img src="{{IMG:ref_archero}}" alt="Archero in portrait"></figure>
+        <div class="ref"><div class="name"><span class="title">Archero</span><span class="cap">portrait &middot; one thumb</span></div>
+        <dl><dt>Take</dt><dd>Portrait HUD habits, full-width cards sized for thumbs, short chapters with a boss at the end, a title that is one big Play button.</dd><dt class="skip">Skip</dt><dd>Stop-to-shoot, rooms and doors, equipment gacha.</dd></dl></div></div>
+      <div class="mobile"><figure class="phone"><img src="{{IMG:ref_survivorio}}" alt="Survivor.io in portrait"></figure>
+        <div class="ref"><div class="name"><span class="title">Survivor.io</span><span class="cap">portrait Vampire Survivors</span></div>
+        <dl><dt>Take</dt><dd>Proof the genre reads in portrait: the slim top strip, the floating joystick, a camera that never rotates.</dd><dt class="skip">Skip</dt><dd>The monetisation layers.</dd></dl></div></div>
+    </div>
+    <footer class="sf"><span>Screenshots: each game's store page ({{REF_SRC}})</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 05 VISUAL STYLE -->
+<section class="slide" id="s05" aria-label="05 Visual style">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Visual style</b></p>
+      <h2>Megabonk meets a Saturday-morning anime western</h2>
+    </header>
+    <div class="bd g">
+      <div class="layer"><p class="label">Layer 1</p>
+        <div class="shot ours paperbg"><div class="fr"><img class="cut" src="{{IMG:style_heroes}}" alt="Our heroes in the house style"></div></div>
+        <p class="title">Painted cut-outs</p>
+        <p class="t">Heroes and creatures are painted, cel-shaded 2.5D sprites in eight directions: crisp line, flat saturated colour, a dark outline that holds on sand.</p></div>
+      <div class="layer"><p class="label">Layer 2</p>
+        <div class="shot ours"><div class="fr"><img src="{{IMG:style_world}}" alt="Our 3D ground, barrels and props"></div></div>
+        <p class="title">Real 3D underneath</p>
+        <p class="t">The ground, the guns, pickups, barrels and blasts are 3D, as in Megabonk; the cut-outs stand on it with real shadows.</p>
+        <div class="ref"><div class="shot"><div class="fr"><img src="{{IMG:ref_megabonk2}}" alt="Megabonk's 3D world"></div></div><p class="cap">Megabonk: the 3D field we take the feel from</p></div></div>
+      <div class="layer"><p class="label">Layer 3</p>
+        <div class="shot ours paperbg"><div class="fr"><img src="{{IMG:icons_grid}}" alt="Our item icons" style="object-fit:contain;padding:calc(var(--u)*.8)"></div></div>
+        <p class="title">One bold object</p>
+        <p class="t">Every icon is one object with a thick black outline, painted from our own 3D models where one exists.</p>
+        <div class="ref"><div class="shot"><div class="fr"><img src="{{IMG:ref_shoptitans}}" alt="Shop Titans item icons"></div></div><p class="cap">Shop Titans: the icon house style</p></div></div>
+      <div class="layer"><p class="label">Layer 4</p>
+        <div class="shot ours"><div class="fr"><img src="{{IMG:style_ui}}" alt="Our Wanted-poster interface"></div></div>
+        <p class="title">Wanted posters</p>
+        <p class="t">The interface is printed paper: slab type, brass, wax seals and hard ink shadows, the same on every screen.</p>
+        <div class="ref"><div class="shot"><div class="fr"><img src="{{IMG:ref_wanted}}" alt="A historic wanted poster"></div></div><p class="cap">{{CAP:ref_wanted}}</p></div></div>
+    </div>
+    <footer class="sf"><span>Every hero, creature and icon is painted by our own pipeline (No. {{NO:s16}} to {{NO:s18}})</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 05b KEY ART -->
+<section class="slide" id="s05b" aria-label="Key art">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Key art</b></p>
+      <h2>What the store page and the ads will look like</h2>
+      <p class="sub">Concept art painted on our own server from the title-screen heroes and the game's creatures: a feature graphic, a trailer's end card, a wanted poster for every hero.</p>
+    </header>
+    <div class="bd g">
+      <figure class="shot hero-art"><div class="fr"><img src="{{IMG:key_lone}}" alt="Concept art: the Drifter alone, revolver up, as scorpions of every size flood out of the canyon"></div>
+        <figcaption class="cap">The Drifter alone against scorpions of every size: the store's feature graphic</figcaption></figure>
+      <div class="posters">
+        <figure class="poster" style="--top:6.5%;--bot:77%">
+          <img src="{{IMG:poster_drifter}}" alt="A wanted poster of the Drifter">
+          <div class="pt top"><span class="w">Wanted</span></div>
+          <div class="pt bot"><span class="n">The Drifter</span><span class="f">Wide hat. Long coat. Longer road.</span><span class="r">$5,000 reward</span></div>
+        </figure>
+        <figure class="poster" style="--top:5.5%;--bot:74.5%">
+          <img src="{{IMG:poster_calavera}}" alt="A wanted poster of Calavera">
+          <div class="pt top"><span class="w">Wanted</span></div>
+          <div class="pt bot"><span class="n">Calavera</span><span class="f">He plays. They dance. Briefly.</span><span class="r">$3,000 reward</span></div>
+        </figure>
+        <p class="cap">A wanted poster for every hero: store screenshots, social posts, a sticker sheet. The words are set on the painting, so every hero's flavour line fits.</p>
+      </div>
+    </div>
+    <footer class="sf"><span>Flux.2 Klein on our GPU server, the heroes' title cut-outs and the creatures' own paintings as references; several seeds each, picked by eye</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 06 BENCHMARK -->
+<section class="slide" id="s06" aria-label="06 Benchmark">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Benchmark</b></p>
+      <h2>Megabonk's run on Survivor.io's screen</h2>
+    </header>
+    <div class="bd">
+      <div class="wrap">{{BENCH}}</div>
+      <p class="cap scroll-hint">Swipe the table sideways for every game.</p>
+    </div>
+    <footer class="sf"><span>{{BENCH_SRC}}</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 07 ACTION LOOP -->
+<section class="slide" id="s07" aria-label="07 Core gameplay">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Core gameplay</b></p>
+      <h2>The action loop: steer, collect, choose, grow</h2>
+    </header>
+    <div class="bd g">
+      <div class="loop">
+        {{LOOP}}
+        <div class="hub"><b>The run</b><span>7&ndash;13 minutes</span></div>
+      </div>
+      <div class="side">
+        <p class="t">{{LOOP_STAT}}</p>
+        <div class="screens">
+          <figure class="shot"><div class="fr"><img src="{{IMG:ui_cards}}" alt="The level-up cards"></div><figcaption class="cap">Pick 1 of 3</figcaption></figure>
+          <figure class="shot"><div class="fr"><img src="{{IMG:ui_mutation}}" alt="A mutation level-up"></div><figcaption class="cap">A mutation level-up</figcaption></figure>
+          <figure class="shot"><div class="fr"><img src="{{IMG:ui_chest}}" alt="A chest's reel"></div><figcaption class="cap">A chest's reel</figcaption></figure>
+        </div>
+        <div class="exit"><span class="plate rock">Out</span><p class="t">At the stage's end: <b>the boss</b>. Then 60 seconds to walk into the portal and <b>extract</b> with the gold, or stay for <b>Endless</b>: a big wave, then a tougher one every 10 seconds.</p></div>
+      </div>
+    </div>
+    <footer class="sf"><span>One loop, no menus in between</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 08 A REAL RUN -->
+<section class="slide" id="s08" aria-label="08 A real run">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>A real run</b></p>
+      <h2>17 minutes on a Pixel 8 Pro, second by second</h2>
+      <p class="sub">One recorded run from the game's own telemetry: the Drifter clears Sundown, kills the Tumbleweed King, then stays for Endless.</p>
+    </header>
+    <div class="bd g">
+      <div class="plot">{{CHART:run}}<div class="readout" id="run-readout"></div></div>
+      <div class="tiles">
+        <div class="tile"><p class="num">{{RUN:kills}}</p><p class="cap">creatures killed</p></div>
+        <div class="tile"><p class="num">{{RUN:max_alive}}</p><p class="cap">on screen at once, at its peak</p></div>
+        <div class="tile"><p class="num">{{RUN:endless_wave}}</p><p class="cap">Endless waves survived</p></div>
+        <div class="tile"><p class="num">{{RUN:level}}</p><p class="cap">hero level reached</p></div>
+        <div class="tile"><p class="num">{{RUN:frame}} ms</p><p class="cap">median frame time: 60 fps on a phone</p></div>
+        <details><summary>The numbers, minute by minute</summary><div id="run-table"></div></details>
+      </div>
+    </div>
+    <footer class="sf"><span>Source: the game's run record from a player's phone, 23 October 2026, build 0.86</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 09 HEROES -->
+<section class="slide" id="s09" aria-label="Heroes">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>The posse</b></p>
+      <h2>Eight heroes, eight ways to survive</h2>
+      <p class="sub">Each brings a start weapon, a favourite item, a trait that grows every level, perks and a hero mutation. The Drifter is free; the others are earned with a quest, then bought with gold.</p>
+    </header>
+    <div class="bd">
+      <figure class="posse">
+        <div class="fr"><img src="{{IMG:posse}}" alt="Concept art: the eight heroes side by side on red sand: Astro, Ironwood, Solenne, the Drifter, Calavera, Fadeaway, Jezyk and May"></div>
+        <div class="whos">
+        <div class="who" style="--x:8.50%"><p class="name">Astro</p><p class="wpn">Gravity Gun</p><p class="tr">Space Suit: +2 max HP a level, heals on level-up</p><p class="price">300 gold</p></div>
+        <div class="who" style="--x:20.00%"><p class="name">Ironwood</p><p class="wpn">Spear</p><p class="tr">Enduring: regenerates faster every level</p><p class="price">300 gold</p></div>
+        <div class="who" style="--x:31.75%"><p class="name">Solenne</p><p class="wpn">Sun Scepter</p><p class="tr">Magic Hour: her burns and slows last longer</p><p class="price">Quest, then 1,500</p></div>
+        <div class="who" style="--x:43.00%"><p class="name">The Drifter</p><p class="wpn">Revolver</p><p class="tr">Long Road: +1% crit chance a level</p><p class="price">Free</p></div>
+        <div class="who" style="--x:54.50%"><p class="name">Calavera</p><p class="wpn">Guitarra</p><p class="tr">Last Dance: +1% damage a level</p><p class="price">Quest, then 300</p></div>
+        <div class="who" style="--x:69.25%"><p class="name">Fadeaway</p><p class="wpn">Basketball</p><p class="tr">Footwork: evades more every level</p><p class="price">Quest, then 1,750</p></div>
+        <div class="who" style="--x:80.00%"><p class="name">Je&#380;yk</p><p class="wpn">Frisbee</p><p class="tr">Full Tilt: unstoppable while unhit</p><p class="price">Quest, then 2,000</p></div>
+        <div class="who" style="--x:91.50%"><p class="name">May</p><p class="wpn">Big Mouth</p><p class="tr">No Time: cooldowns shrink every level</p><p class="price">Quest, then 2,500</p></div>
+        </div>
+      </figure>
+    </div>
+    <footer class="sf"><span>Concept art painted from the eight title-screen cut-outs; prices in gold earned in runs</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 10 STAGES AND BOSSES -->
+<section class="slide" id="s10" aria-label="10 Stages and bosses">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Stages and bosses</b></p>
+      <h2>Sundown, Nightfall, Blood Moon</h2>
+      <p class="sub">Each stage is its own run from level 1 on Red Canyon, longer and meaner than the last, and each ends with its boss.</p>
+    </header>
+    <div class="bd g">
+      <div class="st"><div class="shot"><div class="fr"><img src="{{IMG:concept_s1}}" alt="{{ALT:concept_s1}}"></div></div>
+        <div class="head"><span class="title">Sundown</span><span class="plate sage">7:10 &middot; Easy</span></div>
+        <div class="boss"><div class="shot"><div class="fr"><img src="{{IMG:boss_king}}" alt="The Tumbleweed King in the game"></div></div>
+          <div><p class="label">Boss</p><p class="title" style="font-size:calc(var(--u)*1.25)">The Tumbleweed King</p><p class="t">Rolls in with a court of tumbleweeds and stomps the ground in three hops.</p></div></div></div>
+      <div class="st"><div class="shot"><div class="fr"><img src="{{IMG:concept_s2}}" alt="{{ALT:concept_s2}}"></div></div>
+        <div class="head"><span class="title">Nightfall</span><span class="plate">10:00 &middot; Medium</span></div>
+        <div class="boss"><div class="shot"><div class="fr"><img src="{{IMG:boss_gila}}" alt="The Gila Grande in the game"></div></div>
+          <div><p class="label">Boss</p><p class="title" style="font-size:calc(var(--u)*1.25)">The Gila Grande</p><p class="t">Burrows, waits three seconds, erupts where you were about to be, and rains cactus.</p></div></div></div>
+      <div class="st"><div class="shot"><div class="fr"><img src="{{IMG:concept_s3}}" alt="{{ALT:concept_s3}}"></div></div>
+        <div class="head"><span class="title">Blood Moon</span><span class="plate rock">13:00 &middot; Hard</span></div>
+        <div class="boss"><div class="shot"><div class="fr"><img src="{{IMG:boss_brander}}" alt="The Brander in the game"></div></div>
+          <div><p class="label">Boss</p><p class="title" style="font-size:calc(var(--u)*1.25)">The Brander</p><p class="t">Hell opens: a red ground, its own crowd, and a ring of fire that closes in.</p></div></div></div>
+    </div>
+    <footer class="sf"><span>Top: concept art painted from the game's creatures and bosses. Bottom: each boss in the engine.</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 11 BESTIARY -->
+<section class="slide" id="s11" aria-label="11 The bestiary">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>The bestiary</b></p>
+      <h2>28 creatures, each with its own brain</h2>
+    </header>
+    <div class="bd g">
+      <figure class="shot line"><div class="fr"><img src="{{IMG:bestiary}}" alt="{{ALT:bestiary}}"></div><figcaption class="cap">{{CAP:bestiary}}</figcaption></figure>
+      <div class="facts">
+        <div><p class="title">Brains, not stats</p><p class="t">Chasers, flockers, chargers, kamikazes, kiters, casters, healers, ambushers and artillery: each creature behaves, not only hits.</p></div>
+        <div><p class="title">Specials</p><p class="t">A rare creature glows in its own colour: 15 times the health, a 35% chance of a chest. The weapons pick it out first.</p></div>
+        <div><p class="title">Elites and odd jobs</p><p class="t">Four Elite modifiers (explosive, shielded, speedy, splitter), a sniper with a map-wide beam, a harpooner that reels you in.</p></div>
+        <div><p class="title">Many looks</p><p class="t">Most creatures have several painted looks (white, gold, rose shells for the night): 99 creature looks so far.</p></div>
+      </div>
+    </div>
+    <footer class="sf"><span>Every creature is a folder of data: a new one needs no code</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 12 BUILDS -->
+<section class="slide" id="s12" aria-label="12 Builds">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Builds</b></p>
+      <h2>Five weapons, five cards, and no cap on the rest</h2>
+    </header>
+    <div class="bd g">
+      <div class="kinds">
+        <div class="kind"><p class="num">24</p><div><p class="title">Weapons, five at a time</p><p class="t">Each levels to 5 and has three path mutations (an Element, a Volume, a Motion), offered as mutation level-ups at set minutes. Level 5 with all three paths evolves at the next chest: 24 evolutions.</p></div></div>
+        <div class="kind"><p class="num">21</p><div><p class="title">Cards, five at a time</p><p class="t">Tarot lines (The Sun, The Tower, The Hydra) that level to 4 and then rise: "The Sun Risen".</p></div></div>
+        <div class="kind"><p class="num">34</p><div><p class="title">Passive items, no cap</p><p class="t">Beer, a Pocket Watch, Snake Oil: each climbs the rarity ladder one rung an upgrade, up to Legendary and an Evolved form.</p></div></div>
+        <div class="kind"><p class="num">9</p><div><p class="title">Hero mutations</p><p class="t">A hero's own twist on a favourite weapon: the Drifter's Fire in the Hole, Calavera's Danza Macabra, May's Trigger Happy.</p></div></div>
+      </div>
+      <div class="right">
+        <figure class="shot icons"><div class="fr"><img src="{{IMG:icons_grid}}" alt="A grid of our weapon, card and item icons"></div></figure>
+        <div class="combo"><p class="num">60M+</p><p class="t">loadouts for any hero (four more weapons from 18 or 19, five cards from 21) before a single passive item, mutation or evolution.</p></div>
+      </div>
+    </div>
+    <footer class="sf"><span>Counts: the content folders on 26 October 2026, only what is in play</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 13 ONE THUMB -->
+<section class="slide" id="s13" aria-label="13 Controls and HUD">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Controls and HUD</b></p>
+      <h2>Everything happens under one thumb</h2>
+    </header>
+    <div class="bd g">
+      <figure class="phone"><div class="scr"><img src="{{IMG:hud_shot}}" alt="An in-run frame with the HUD: a ring of scorpions round the Drifter, the joystick under the thumb">{{HUD_PINS}}</div></figure>
+      <ol class="callouts">{{HUD_LIST}}</ol>
+      <div class="rules"><p class="title">The rules we hold to</p>
+        <ul class="ticks">
+          <li>No aiming, no fire button, no jump button.</li>
+          <li>The joystick appears wherever the thumb lands; lift to stop.</li>
+          <li>The camera never rotates: the stick maps straight to the screen.</li>
+          <li>The hero's hurt jiggles the health bar, never the screen.</li>
+          <li>Cards are full-width and sized for a thumb.</li>
+          <li>Touch is read raw, never as a mouse, and every control is proven by a scripted finger: 1,754 controls on every build.</li>
+        </ul></div>
+    </div>
+    <footer class="sf"><span>Design bible, sections 03 and 04</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 14 FLOW AND META -->
+<section class="slide" id="s14" aria-label="14 Game flow and meta">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Game flow and meta loop</b></p>
+      <h2>Every run pays, even a death</h2>
+    </header>
+    <div class="bd g">
+      <div class="flow">
+        <figure class="shot"><div class="fr"><img src="{{IMG:ui_title}}" alt="The title screen"></div><figcaption class="cap">Title</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:ui_drawer}}" alt="The hero drawer"></div><figcaption class="cap">Pick a hero</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:ui_stages}}" alt="The stages menu"></div><figcaption class="cap">Pick a stage</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:flow_run}}" alt="A run"></div><figcaption class="cap">The run</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:ui_clear}}" alt="Stage clear: extract or Endless"></div><figcaption class="cap">Extract or Endless</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:ui_results}}" alt="The results screen"></div><figcaption class="cap">Results</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:ui_upgrade}}" alt="The Upgrade board"></div><figcaption class="cap">Upgrade</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:ui_quest}}" alt="The Collection: what was met, and the quests that open the rest"></div><figcaption class="cap">Collection, quests</figcaption></figure>
+      </div>
+      <div class="meta">
+        <div class="loop">
+          <div class="step"><b>Bank gold</b><span>Every run's purse comes home, a death too; Elites and bosses pay five times.</span></div>
+          <div class="step"><b>Upgrade</b><span>Eight talents, two forms each, six ranks: Grit, Stride, Fortune, Stakes...</span></div>
+          <div class="step"><b>Unlock</b><span>30 quests open 5 heroes, 11 weapons and 12 passive items.</span></div>
+          <div class="step"><b>Go deeper</b><span>Beat a stage to open the next; raise Stakes for more gold and XP.</span></div>
+          <p class="back">&#8634; and back to the title, one step stronger</p>
+        </div>
+        <div><p class="t">No energy, no timers, no gacha: every unlock is earned in play. The Collection shows only what you have met, so it fills as you explore. On the map, totem poles, a shop, a stranger's deals and teleports give each run its own detours.</p></div>
+      </div>
+    </div>
+    <footer class="sf"><span>Screens from the current build</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 15 PRODUCTION -->
+<section class="slide" id="s15" aria-label="15 Production">
+  <div class="board">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Production</b></p>
+      <h2>107 passes in 45 days, played on a phone after every one</h2>
+    </header>
+    <div class="bd g">
+      <div class="left">
+        <div>{{CHART:velocity}}</div>
+        <p class="t">One designer steers from a phone; code, art, sound and tests are made with Claude and local AI models. Each pass ends with every test green and a signed Android build plus a PC build in Google Drive, so the newest game is always one tap away.</p>
+      </div>
+      <div class="tiles">
+        <div class="tile big"><p class="num">0.91</p><p class="cap">build, playable on Android and PC</p></div>
+        <div class="tile qa big"><p class="num">2,365</p><p class="cap">automated tests, green every pass</p></div>
+        <div class="tile qa big"><p class="num">1,754</p><p class="cap">controls touched by a scripted finger</p></div>
+        <div class="tile"><p class="num">8</p><p class="cap">heroes</p></div>
+        <div class="tile"><p class="num">24</p><p class="cap">weapons, 24 evolutions</p></div>
+        <div class="tile"><p class="num">81</p><p class="cap">mutations</p></div>
+        <div class="tile"><p class="num">55</p><p class="cap">cards and passive items</p></div>
+        <div class="tile"><p class="num">31</p><p class="cap">creatures and bosses</p></div>
+        <div class="tile"><p class="num">124</p><p class="cap">painted, animated looks</p></div>
+        <div class="tile"><p class="num">141</p><p class="cap">generated sound effects</p></div>
+        <div class="tile"><p class="num">30</p><p class="cap">quests</p></div>
+        <div class="tile qa"><p class="num">9</p><p class="cap">live telemetry boards</p></div>
+      </div>
+      <ol class="pass">
+        <li><b>The designer's list</b><span>Typed on the phone after a play session: what to add, what felt wrong</span></li>
+        <li><b>Lanes in parallel</b><span>Code, art, data and tools split into briefs, each lane on its own files</span></li>
+        <li><b>Every check</b><span>2,365 tests, a smoke run, the arena check, 1,754 controls touched</span></li>
+        <li><b>On the phone</b><span>A signed Android build and a PC build in Google Drive; the history and balancing logs updated</span></li>
+      </ol>
+    </div>
+    <footer class="sf"><span>Pass dates: docs/HISTORY.md and the project log; counts: content folders, 26 October 2026</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 16 ART: A 3D MODEL BECOMES A CREATURE -->
+<section class="slide" id="s16" aria-label="16 Art workflow: a 3D model becomes a creature">
+  <div class="board night">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Behind the scenes: the art workflow</b></p>
+      <h2>Any 3D model becomes a painted, animated creature</h2>
+      <p class="sub">Our own method, here on the Fire Ant: the model's walk is rendered as depth, and the painting follows it frame by frame.</p>
+    </header>
+    <div class="bd g">
+      <figure class="io"><p class="label">In</p><div class="fr"><img src="{{IMG:a_model}}" alt="A free armoured-beetle 3D model"></div><p class="t">A free 3D model of a beetle: one mesh, no rig, no animation.</p></figure>
+      <ol class="ladder">
+        <li><span class="n">2</span><p class="t">Our Blender tools rig six legs, add antennae and render clay in the five game views.</p><div class="fr"><img src="{{IMG:a_clay}}" alt="Clay renders in five views"></div></li>
+        <li><span class="n">3</span><p class="t">A walk is made for the rig and rendered as depth, frame by frame.</p><div class="fr"><img src="{{IMG:a_depth}}" alt="Depth frames of the walk"></div></li>
+        <li><span class="n">4</span><p class="t">Flux.2 repaints the side view in our house style; four seeds, one picked by eye.</p><div class="fr"><img src="{{IMG:a_cands}}" alt="Four painted candidates, one picked"></div></li>
+        <li><span class="n">5</span><p class="t">The other four views are painted to match the pick.</p><div class="fr"><img src="{{IMG:a_views}}" alt="Five painted views"></div></li>
+        <li><span class="n">6</span><p class="t">Wan 2.2 walks each painting along its depth video; the loop is cut, keyed and packed.</p><div class="fr"><img src="{{IMG:a_walk}}" alt="The painted walk cycle"></div></li>
+      </ol>
+      <figure class="io"><p class="label">Out</p><div class="fr"><img src="{{IMG:a_eight}}" alt="The fire ant walking in eight directions"></div><p class="t">A fire ant walking in all eight directions; the game mirrors three of them.</p></figure>
+    </div>
+    <footer class="sf"><span>Blender, Flux.2 and Wan 2.2 on a local GPU server, queued from the Level Editor; a new look takes 10 to 15 minutes</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 17 ART: THE PUPPET -->
+<section class="slide" id="s17" aria-label="17 Art workflow: the Puppet">
+  <div class="board night">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Behind the scenes: the art workflow</b></p>
+      <h2>The Puppet: a painting becomes its own 3D guide</h2>
+      <p class="sub">For heroes: May's painting is turned into a rigged 3D body, so any motion fits her proportions before the video model paints it.</p>
+    </header>
+    <div class="bd g">
+      <figure class="pp p1"><div class="fr"><img src="{{IMG:p_paint}}" alt="May as painted"></div><p class="n">1 &middot; Painting</p><p class="t">May as painted for the game</p></figure>
+      <figure class="pp p2"><div class="fr"><img src="{{IMG:p_apose}}" alt="May redrawn arms-out from three sides"></div><p class="n">2 &middot; A-pose</p><p class="t">Redrawn arms-out from three sides</p></figure>
+      <figure class="pp p3"><div class="fr"><img src="{{IMG:p_shape}}" alt="May's 3D body"></div><p class="n">3 &middot; 3D body</p><p class="t">Hunyuan3D 2 builds one body from the three drawings</p></figure>
+      <figure class="pp p4"><div class="fr"><img src="{{IMG:p_rig}}" alt="May's skeleton in Blender"></div><p class="n">4 &middot; Rig</p><p class="t">A Blender skeleton with Mixamo bone names</p></figure>
+      <figure class="pp p5"><div class="fr"><img src="{{IMG:p_mixamo}}" alt="A Mixamo run on May's body"></div><p class="n">5 &middot; Motion</p><p class="t">A stock Mixamo run, retargeted onto her body</p></figure>
+      <figure class="pp p6"><div class="fr"><img src="{{IMG:p_guides}}" alt="May's stick-figure and depth guides"></div><p class="n">6 &middot; Guides</p><p class="t">Her own stick figure and depth, frame by frame</p></figure>
+      <figure class="pp p7"><div class="fr"><img src="{{IMG:p_run}}" alt="May's painted run"></div><p class="n">7 &middot; Painted run</p><p class="t">Wan 2.2 paints her run on those guides</p></figure>
+    </div>
+    <footer class="sf"><span>Hunyuan3D 2, Blender and Mixamo for the body; Wan 2.2 for the paint; all on our own server</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 18 ART: ICONS AND LOOKS -->
+<section class="slide" id="s18" aria-label="18 Art workflow: icons and looks">
+  <div class="board night">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Behind the scenes: the art workflow</b></p>
+      <h2>One model, many pictures: icons and looks</h2>
+    </header>
+    <div class="bd g">
+      <div class="row">
+        <div class="rowlab"><span class="title">Icons from our own 3D</span><span class="cap">the gun in the hand and the gun on the card are the same gun</span></div>
+        <div class="icons">
+          <figure class="ic"><div class="fr"><img src="{{IMG:c_render}}" alt="The Tommy Gun rendered from our model"></div><p class="n">1 &middot; Render</p><p class="t">The game's own model, from the icon's angle</p></figure>
+          <figure class="ic wide"><div class="fr"><img src="{{IMG:c_cands}}" alt="Four painted candidates"></div><p class="n">2 &middot; Seeds</p><p class="t">Flux.2 paints four in our style; one is picked</p></figure>
+          <figure class="ic"><div class="fr"><img src="{{IMG:c_icon}}" alt="The finished Tommy Gun icon"></div><p class="n">3 &middot; Icon</p><p class="t">Keyed, outlined: the card's icon</p></figure>
+          <figure class="ic"><div class="fr"><img src="{{IMG:c_evo}}" alt="The Chicago Typewriter icon"></div><p class="n">4 &middot; Evolution</p><p class="t">The same render, gilded: the Chicago Typewriter</p></figure>
+        </div>
+      </div>
+      <div class="row">
+        <div class="rowlab"><span class="title">One creature, many looks</span><span class="cap">painted again, or recoloured frame by frame; the designer picks which one plays</span></div>
+        <div class="looks">
+          <figure class="lk"><div class="fr"><img src="{{IMG:d_scorp}}" alt="The Dune Scorpion in four looks"></div><p class="t">The Dune Scorpion Elite, painted four ways</p></figure>
+          <figure class="lk"><div class="fr"><img src="{{IMG:d_beetle}}" alt="The Bull Beetle in red, white and pearl"></div><p class="t">The Bull Beetle recoloured for the night: no new painting</p></figure>
+        </div>
+      </div>
+    </div>
+    <footer class="sf"><span>124 creature and hero looks and every icon in the game were made this way</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 19 TOOLS: THE LEVEL EDITOR -->
+<section class="slide" id="s19" aria-label="19 The Level Editor">
+  <div class="board night">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Behind the scenes: our tools</b></p>
+      <h2>The Level Editor: the whole game on one page</h2>
+    </header>
+    <div class="bd g">
+      <figure class="shot main"><div class="fr"><img src="{{IMG:ed_main}}" alt="The Level Editor's Timeline"></div><figcaption class="cap">The Timeline: Sundown's crowd, challenge and make-up, second by second, drawn from the rows a designer edits</figcaption></figure>
+      <div class="side">
+        <figure class="shot"><div class="fr"><img src="{{IMG:ed_side1}}" alt="A creature's look playing with its recipe"></div><figcaption class="cap">A look playing, with the recipe that painted it</figcaption></figure>
+        <figure class="shot"><div class="fr"><img src="{{IMG:ed_side2}}" alt="An art request with its candidates"></div><figcaption class="cap">An art request: budgets, workflows, candidates</figcaption></figure>
+        <ul class="ticks">
+          <li>Every stage's timeline: creature rows, waves, events and curves.</li>
+          <li>Every creature, hero and item as a form, its animations playing.</li>
+          <li>Art queued to the local AI, checked by a vision model, fixed frame by frame.</li>
+        </ul>
+      </div>
+    </div>
+    <footer class="sf"><span>A local web page built for this game only; it writes the game's own data files and imports them</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 20 TOOLS: SIM, WATCH, TELEMETRY, SHIP -->
+<section class="slide" id="s20" aria-label="Sim, Watch, telemetry and builds">
+  <div class="board night">
+    <header class="sh">
+      <p class="kicker">No. {{NO}} &middot; <b>Behind the scenes: our tools</b></p>
+      <h2>Bots that play it, data that judges it, a build in one step</h2>
+    </header>
+    <div class="bd g">
+      <div class="tool"><figure class="shot"><div class="fr"><img src="{{IMG:tool_watch}}" alt="The Watch: the bot's run on the left, its numbers and charts updating beside it"></div></figure>
+        <p class="title">The Watch</p><p class="t">A bot plays the real game in a window while its numbers, charts and decisions update live. Press T and play it yourself.</p></div>
+      <div class="tool"><figure class="shot"><div class="fr"><img src="{{IMG:tool_sim}}" alt="The run sim: who is alive each second, by creature, over five bot runs"></div></figure>
+        <p class="title">The run sim</p><p class="t">Five bot runs at once, every second averaged into charts: a balance change is measured before anyone plays it.</p></div>
+      <div class="tool"><figure class="shot"><div class="fr"><img src="{{IMG:tool_dash}}" alt="The dashboard: each weapon's share of the damage, second by second"></div></figure>
+        <p class="title">Telemetry</p><p class="t">Every player's run lands in our dashboards: which weapon carried, how the build grew, what hurt the hero.</p></div>
+      <div class="tool"><pre class="term">{{SHIP_LOG}}</pre>
+        <p class="title">One step to the phone</p><p class="t">One command runs every test, signs the Android build, makes the PC build and drops both in Google Drive.</p></div>
+    </div>
+    <footer class="sf"><span>Built for 88fits and kept in the repository beside the game</span><span class="pg"></span></footer>
+  </div>
+</section>
+
+<!-- 21 SUMMARY -->
+<section class="slide" id="s21" aria-label="Summary">
+  <div class="board bleed">
+    <img class="bg" src="{{IMG:key_art}}" alt="">
+    <div class="shade"></div>
+    <div class="in">
+      <header class="sh">
+        <p class="kicker">No. {{NO}} &middot; <b style="color:var(--paper)">Summary</b></p>
+        <h2>88fits, in three lines</h2>
+      </header>
+      <div style="display:grid;gap:calc(var(--u)*2.2);align-content:start">
+        <div class="three">
+          <div><p class="title">The game</p><p class="t">Megabonk's run, held upright under one thumb: a crowd, three cards, a build that evolves, a boss, a portal.</p></div>
+          <div><p class="title">The content</p><p class="t">8 heroes, 24 weapons, 28 creatures, 3 stages and their bosses, all data, all painted by our own pipeline.</p></div>
+          <div><p class="title">The machine</p><p class="t">A new creature in an evening, a tested build on the phone after every change, real players' runs on our dashboards.</p></div>
+        </div>
+        <div class="next"><p class="label">Proposed next steps</p>
+          <ul class="ticks">
+            <li>The market test already planned: a Play store listing, three ads, a read of install price and day-1 and day-7 retention, from $500.</li>
+            <li>The production build for the store, which the pipeline already makes: no debug options, only the art the game shows.</li>
+            <li>More heroes, creatures and maps from the same pipeline, steered by what the test says.</li>
+          </ul></div>
+      </div>
+      <footer class="sf dark"><span>88fits &middot; kick-off one pager v001 &middot; 26 October 2026 &middot; the design bible and the market test plan hold the detail</span><span class="pg"></span></footer>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script type="application/json" id="run-series">{{DATA:run}}</script>
+<script>
+(function () {
+  // one slide per arrow key (left / right), the slides' ids (#s00..#s21) as links
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  function current() {
+    var best = 0, bestD = Infinity;
+    slides.forEach(function (s, i) { var d = Math.abs(s.getBoundingClientRect().top); if (d < bestD) { bestD = d; best = i; } });
+    return best;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    var k = e.key, i = current();
+    if (k === 'ArrowRight' || k === 'j') { e.preventDefault(); slides[Math.min(slides.length - 1, i + 1)].scrollIntoView({ behavior: 'smooth' }); }
+    if (k === 'ArrowLeft' || k === 'k') { e.preventDefault(); slides[Math.max(0, i - 1)].scrollIntoView({ behavior: 'smooth' }); }
+  });
+  if (location.hash && /^#s\d\d[a-z]?$/.test(location.hash)) { var el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
+
+  // the run chart: a crosshair and a readout, plus the minute-by-minute table
+  var series = [];
+  try { series = JSON.parse(document.getElementById('run-series').textContent); } catch (err) { series = []; }
+  var g = document.querySelector('#s08 .hover');
+  var box = document.getElementById('run-readout');
+  if (g && box && series.length) {
+    var svg = g.ownerSVGElement, cross = g.querySelector('.cross'), hit = g.querySelector('.hit');
+    var x0 = +g.getAttribute('data-x0'), x1 = +g.getAttribute('data-x1'), T = +g.getAttribute('data-t');
+    function mmss(s) { s = Math.round(s); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+    function show(evt) {
+      var pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+      var loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+      var t = Math.max(0, Math.min(T, (loc.x - x0) / (x1 - x0) * T));
+      var best = series[0];
+      for (var i = 0; i < series.length; i++) { if (Math.abs(series[i][0] - t) < Math.abs(best[0] - t)) best = series[i]; }
+      var cx = x0 + (x1 - x0) * best[0] / T;
+      cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); g.classList.add('on');
+      box.textContent = '';
+      var rows = [['', mmss(best[0])], ['#b4472b', best[1] + ' on screen'], ['#3e6e9e', 'level ' + best[2]], ['', best[3].toLocaleString('en-GB') + ' killed']];
+      rows.forEach(function (r, i) {
+        var line = document.createElement('div');
+        if (r[0]) { var key = document.createElement('i'); key.style.background = r[0]; line.appendChild(key); }
+        var v = document.createElement(i === 1 ? 'b' : 'span'); v.textContent = r[1]; line.appendChild(v);
+        box.appendChild(line);
+      });
+      var host = box.parentNode.getBoundingClientRect(), sb = svg.getBoundingClientRect();
+      var px = sb.left - host.left + sb.width * cx / svg.viewBox.baseVal.width;
+      box.style.left = Math.min(host.width - 150, px + 12) + 'px'; box.style.top = '40px'; box.classList.add('on');
+    }
+    function hide() { g.classList.remove('on'); box.classList.remove('on'); }
+    hit.addEventListener('pointermove', show); hit.addEventListener('pointerleave', hide);
+  }
+  var tb = document.getElementById('run-table');
+  if (tb && series.length) {
+    var t = document.createElement('table'), head = document.createElement('tr');
+    ['minute', 'on screen', 'level', 'killed'].forEach(function (h) { var th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
+    t.appendChild(head);
+    for (var m = 0; m * 60 <= series[series.length - 1][0]; m++) {
+      var s = series.reduce(function (a, b) { return Math.abs(b[0] - m * 60) < Math.abs(a[0] - m * 60) ? b : a; });
+      var tr = document.createElement('tr');
+      [m + ':00', s[1], s[2], s[3].toLocaleString('en-GB')].forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+      t.appendChild(tr);
+    }
+    tb.appendChild(t);
+  }
+})();
+</script>

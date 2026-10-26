@@ -92,6 +92,8 @@ python tools/gen_sand.py   # pass 82: the four new sands (Klein paintings, seam 
 python tools/gen_prop_variants.py && python tools/prop_shadows.py   # pass 83: painted prop variants (Klein, the style anchor + the original's raw render; props.json `variant_of`, `weight`; PropField picks by a hash of the spot) and every painting's ground shadow (props.json `shadow`: width, depth, offsets, strength); bash tools/godot.sh ... --script res://tools/menu_backdrop.gd rewrites art/ui/wanted/menu_backdrop.jpg from the composed title scene (art/ui/title_scene.json)
 python tools/gen_totem_icons.py   # pass 83: the totem gifts' carved segments (a head painted on green in the pole's style, keyed and laid on one cedar block) and the crest -> game/art/ui/totem/spirit_<id>.png, crest.png (usage in its header)
 python tools/make_pipeline_figs.py && python tools/make_bible.py   # bible section 15b's step-by-step art pictures (from tools/dl/ intermediates), then the bible
+python tools/make_onepager.py [--pdf] [--force]   # the kick-off one pager (2026-10-26): docs/onepager/src/onepager.html + content.json + pictures.json -> docs/onepager/88fits_OnePager.html (self-contained) and, with --pdf, the PDF through headless Edge; pictures cut once into docs/onepager/img/
+bash tools/godot.sh --audio-driver Dummy --resolution 1920x1080 --path D:/_projects/88fits/game --script res://tools/marketing_shots.gd -- out=<dir> shot=swarm|nightfall|bloodmoon|boss|play|horde|bestiary|ui|scout   # staged in-engine marketing stills, frozen and captured (every argument in its header; 1080x1920 for play, horde, ui; bounded by a watchdog)
 python tools/ai_sfx.py [--dry-run | --gen-only | --auto | --bind | --report | --docs | --only ids | --cands N | --pick id=k | --volume id=dB]   # pass 60: every sound effect from Stable Audio (Garry's app at http://127.0.0.1:7861/, AudioGen on 7860 as the alternate) -> content/sounds/real/<id>.wav + the soundmap rows; then --import + import_json -- only=sounds; python tools/make_sfx_review.py -> docs/sfx_review.html + tools/dl/sfx60/sfx_review.zip (the voice barks are gone; gen_voice.py lives in tools/dl/backup/)
 python tools/icon_sand.py [--gamma 0.8] [--splash] [--compare out.png]   # pass 61: the launcher icon's sand a touch lighter (only the sand; the old source tools/dl/app_icon/icon_src_v046.png), then gen_art.app_icon and make_splash
 "$GODOT" --audio-driver Dummy --fixed-fps 60 --resolution 504x1122 --path D:/_projects/88fits/game --script res://tools/_p61_pk_bench.gd   # pass 61: the pickups benchmark (N gems lying, the hero walking, a vacuum): ms a frame for "pickups", the whole frame, draw calls
@@ -548,7 +550,9 @@ Blender models from Garry's references in `_REFERENCES/` (git-ignored).
 
 **Docs.** The design bible is built from `docs/design/src/` by `python tools/make_bible.py` (edit the parts, not the
 output) and published at https://claude.ai/artifact/2onXrvqpGH3uqwPEstVYhr; `BALANCING.md` (where every number lives);
-`docs/HISTORY.md` (every pass); `docs/art_guide.html` (Garry's guide to every art method, the stats and where things
+`docs/HISTORY.md` (every pass); the kick-off one pager `docs/onepager/` (a cover and 22 slides, HTML + PDF, built by
+`tools/make_onepager.py`, published at https://claude.ai/artifact/QJJocYePEYfXkv1978SLuZ; `reference_review.md` reviews the
+Krazy Robots reference deck, `benchmark_sources.md` holds every market figure with its source); `docs/art_guide.html` (Garry's guide to every art method, the stats and where things
 show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/artifact/CcDTWtyzDiEG32i3N2MY4W).
 
 **Working rules learnt the hard way** (details in HISTORY.md's lessons and the memory):
