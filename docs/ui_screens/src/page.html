@@ -1,0 +1,64 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>88fits Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Baloo+2:wght@500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+{{CSS}}
+</style>
+<div class="wrap">
+  <div class="eyebrow">88fits · build 0.91 · 27 October 2026</div>
+  <h1>88fits Screens</h1>
+  <p class="lede">Every screen of 88fits as it is today: what it is for, when it appears, what each control does and the rules behind it, with captures from the current build. It replaces the pass 38 UI review, which showed the game before the Wanted redesign.</p>
+  <p class="meta">{{COUNTS}}</p>
+
+  <section class="box">
+    <h2>How the screens connect</h2>
+    <div class="flow">
+      <div><b>Start</b>Loading, then the play-data question on a first launch.</div>
+      <div><b>Title</b>Pick a hero (swipe, the drawer or the sheet), then PLAY. Upgrade, Collection and Settings hang off it.</div>
+      <div><b>Stages</b>Once Sundown is beaten, PLAY opens the stage list; each stage is its own run.</div>
+      <div><b>The run</b>The spawn beam, then the HUD. Level-ups, chests, structures and pause stop the run one screen at a time.</div>
+      <div><b>The stage's end</b>The boss falls, a portal opens: extract within 60 s or Endless begins.</div>
+      <div><b>Results</b>The gold banked, the run's story; then Play again, Upgrade or the title.</div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>One screen at a time</h2>
+    <p>Only one screen that pauses the run can be up. When two are due, the higher priority goes first and the other waits its turn. While the hero is down, only Down! may open: level-ups are kept for later.</p>
+    <div class="tbl"><table class="prio">
+      <tr><td>70</td><td>Down!</td></tr>
+      <tr><td>60</td><td>The portal (stage clear)</td></tr>
+      <tr><td>45 / 40</td><td>A boss's chest / a chest</td></tr>
+      <tr><td>35</td><td>The War Drum's moment</td></tr>
+      <tr><td>30</td><td>Level-up cards</td></tr>
+      <tr><td>20</td><td>A mutation offer</td></tr>
+      <tr><td>10</td><td>The shop, the Stranger, a Totem</td></tr>
+    </table></div>
+    <p>After level-up cards, a mutation or a chest, the run waits for <b>TAP TO GO</b> so the thumb can grip again; the other screens hand straight back.</p>
+  </section>
+
+  <nav class="index" aria-label="Screens">{{NAV}}</nav>
+
+  {{BODY}}
+
+  <section class="box" id="found">
+    <h2>Found while writing this</h2>
+    <ul>
+      <li><b>The ad revive is free.</b> Down!'s "GET UP · WATCH AN AD" revives at once and plays no ad; it still uses one of the run's chances.</li>
+      <li><b>Screen shake works differently in two places.</b> Settings has a 0-150% slider; the pause screen has an on/off switch, and turning it back on there resets a custom value to 100%.</li>
+      <li><b>The Totem has no way out.</b> A gift must be picked; there is no close button.</li>
+      <li><b>The War Drum's moment cannot be skipped.</b> Every touch is swallowed for its 2.2 seconds.</li>
+      <li><b>The back gesture does nothing in a run.</b> It is only logged; Esc on a PC opens and closes the pause.</li>
+      <li><b>The title's map line does nothing yet.</b> It steps through maps, and Red Canyon is the only one.</li>
+      <li><b>NEW BEST needs an earlier best.</b> A first run never shows the seal.</li>
+      <li><b>Small text slips:</b> Settings' wipe row says "asks twice" but asks once; the Upgrade board's code notes still describe free form switching (gone since pass 63); the in-run debug panel's notes point to a switch that now lives in the developer menu.</li>
+      <li><b>One dead screen:</b> the old meta shop only forwards to Upgrade, and nothing in the game opens it.</li>
+    </ul>
+  </section>
+
+  <footer>Built by <code>tools/make_ui_screens.py</code> from <code>docs/ui_screens/src/</code>. Captures: <code>game/tools/wanted_shots.gd</code> (every Wanted screen state), <code>game/tools/uidoc_shots.gd</code> (the War Drum), the one pager's captures and the design bible's. Some captures show the small debug buttons a tester build has on (the "debug" tab on the cards, "hold time" and "respawn" on Down!); players never see them.</footer>
+</div>

@@ -552,7 +552,10 @@ Blender models from Garry's references in `_REFERENCES/` (git-ignored).
 output) and published at https://claude.ai/artifact/2onXrvqpGH3uqwPEstVYhr; `BALANCING.md` (where every number lives);
 `docs/HISTORY.md` (every pass); the kick-off one pager `docs/onepager/` (a cover and 22 slides, HTML + PDF, built by
 `tools/make_onepager.py`, published at https://claude.ai/artifact/QJJocYePEYfXkv1978SLuZ; `reference_review.md` reviews the
-Krazy Robots reference deck, `benchmark_sources.md` holds every market figure with its source); `docs/art_guide.html` (Garry's guide to every art method, the stats and where things
+Krazy Robots reference deck, `benchmark_sources.md` holds every market figure with its source); the UI reference `docs/ui_screens/` (every
+screen: purpose, when it shows, each control, the rules, captures; HTML + PDF, built by `tools/make_ui_screens.py [--pdf]` from
+`docs/ui_screens/src/` (screens.json is the text), extra captures by game/tools/uidoc_shots.gd, published at
+https://claude.ai/artifact/48aBTGN7SoCGhKjq73SUD5); `docs/art_guide.html` (Garry's guide to every art method, the stats and where things
 show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/artifact/CcDTWtyzDiEG32i3N2MY4W).
 
 **Working rules learnt the hard way** (details in HISTORY.md's lessons and the memory):

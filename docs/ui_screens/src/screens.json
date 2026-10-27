@@ -1,0 +1,1442 @@
+[
+ {
+  "id": "boot_loading",
+  "name": "Loading screen (LOADING bar)",
+  "file": "game/ui/Boot.gd",
+  "when": "The first scene at app start. Godot's boot splash (art/ui/splash.png; on Android the system splash first) covers the engine start and the autoloads; Boot.gd then draws the same picture in the same place and fills the bar while the title loads on a thread, then dissolves (0.25 s) into the title. Nothing pauses; no input.",
+  "purpose": "Show load progress between the engine's splash and the title so there is no visible jump.",
+  "controls": [],
+  "shows": [
+   "The splash picture: badge disc, title, tag line, the empty bar with the word LOADING (baked into the picture by tools/make_splash.py)",
+   "A brass fill painted into the bar's track (to 65% during the threaded load, 95% after the title's build, full at its first frame)"
+  ],
+  "rules": [
+   "The bar never goes back; it creeps between the loader's few real steps (CREEP_TAU / CREEP_STOP, Boot.gd:62-67).",
+   "If the threaded load stalls for 10 s the title is loaded directly (STALL, Boot.gd:79); if it cannot load at all a rock-red line says 'The title screen did not load. Please close the game and start it again.' and the screen stays (Boot.gd:336).",
+   "The camera-cutout ink band (CutoutBand autoload) waits while this shows and fades in with the title."
+  ],
+  "debug_only": false,
+  "states": [
+   "loading (bar filling)",
+   "failed load (error line)"
+  ]
+ },
+ {
+  "id": "consent_card",
+  "name": "PLAY DATA (\"A quick word\")",
+  "file": "game/ui/wanted/WConsent.gd",
+  "when": "Over the title, 0.8 s after it comes in (TitleScreen.gd:246, CONSENT_DELAY), the first time a build that can send analytics starts and the question has not been answered (Analytics.consent_needed()). Closes on an answer; the back gesture leaves it unanswered and it comes again next launch.",
+  "purpose": "Ask once whether anonymous play data may be sent (PostHog).",
+  "controls": [
+   {
+    "name": "NO THANKS",
+    "does": "Declines: nothing is sent and anything waiting is deleted (Analytics.answer_consent(false)). The answer is kept in the save, through a wipe."
+   },
+   {
+    "name": "OK",
+    "does": "Accepts: what waited is sent. From then on Settings' 'Anonymous play data' switch is the answer."
+   },
+   {
+    "name": "Dim around the card",
+    "does": "Does nothing: the card wants an answer."
+   }
+  ],
+  "shows": [
+   "Star line 'A quick word', title PLAY DATA",
+   "Body (WConsent.body_text): what is sent (the items you pick, where you fall, how smoothly it runs), that you appear only as your generated player name (e.g. 'Dusty Coyote 41'), that it asks a few questions after a run now and then, and that both can be turned off in Settings"
+  ],
+  "rules": [
+   "Until answered nothing is sent or written to disk (Analytics.awaiting_consent).",
+   "Not shown at all when the build's analytics key file is empty."
+  ],
+  "debug_only": false,
+  "states": [
+   "first launch, unanswered"
+  ]
+ },
+ {
+  "id": "title",
+  "name": "Title (WANTED · 88fits)",
+  "file": "game/ui/TitleScreen.gd",
+  "when": "After the loading screen; also from every hub screen's back square, Results' Main Menu, and leaving the arena. The back gesture on the title quits the app, after first closing the hero sheet, a buy question or the drawer (TitleScreen.gd:143).",
+  "purpose": "Pick a hero and start a run in one tap; reach the Upgrade board, the Collection and Settings.",
+  "controls": [
+   {
+    "name": "Hero (swipe sideways over the hero row or the plaque)",
+    "does": "Steps to the previous or next hero in the carousel (at least 90 px sideways and 1.5x more sideways than vertical; TitleScreen.gd:1193). The new hero runs in from the side the finger went."
+   },
+   {
+    "name": "Arrow squares left and right of the hero (Prev / Next)",
+    "does": "Previous / next hero, as a swipe."
+   },
+   {
+    "name": "Hero plaque (tap)",
+    "does": "Opens the hero's sheet (WHeroSheet). A swipe that starts on the plaque changes hero instead."
+   },
+   {
+    "name": "Hero Collections button (the square left of the plaque, a 3x3 grid glyph missing its last square)",
+    "does": "Opens the hero drawer over the preview; while it is open the glyph is a close X and a tap closes it."
+   },
+   {
+    "name": "BUY · <coin> <price> (over a hero on sale)",
+    "does": "Enough gold: asks 'Buy this hero?' ('<N> gold from your purse. Yours to play from then on.', buttons 'Buy · N' / 'Not now'); confirmed, spends the gold (Save.buy_hero, gold sink 'hero'), lifts the black mask with a burst and he is playable. Not enough: the locked sound only; a note under BUY says how much is missing (TitleScreen.gd:1135)."
+   },
+   {
+    "name": "PLAY (reads LOCKED for a hero not owned)",
+    "does": "Owned hero: remembers the hero and map; once the map's first stage is beaten opens the Stages menu, otherwise starts stage 1 (Run.choose_stage(0)) and loads the run. LOCKED: the locked sound, nothing else (TitleScreen.gd:876)."
+   },
+   {
+    "name": "Map line under PLAY ('Red Canyon · best 7:10 · Lv 22 · stage 1 · 1,234 kills')",
+    "does": "A tap steps to the next open map when there is more than one (only Red Canyon today, so it does nothing). Hidden until a run has been played, unless several maps are open."
+   },
+   {
+    "name": "Upgrade (turquoise, breathing glow; a brass '!' when a rank is affordable)",
+    "does": "Opens the Upgrade board."
+   },
+   {
+    "name": "Collection",
+    "does": "Opens the Collection."
+   },
+   {
+    "name": "Settings",
+    "does": "Opens Settings."
+   },
+   {
+    "name": "ARENA (top right)",
+    "does": "Only in the player's debug mode and never in the prod build: starts the debug arena (TitleScreen.gd:205)."
+   }
+  ],
+  "shows": [
+   "Gold plate top-left (the purse)",
+   "Star line 'Wanted', the 88fits logo, 'Drag · Dodge · Survive'",
+   "The hero: in the default 'live' look (Settings.menu_style) the map itself behind the UI with the hero standing in it as a run draws him and his start weapon's companion circling him (ui/TitleStage.gd); in the 'painted' look his painted cut-out over the desert still",
+   "A dot per hero under him (brass the one shown, half-aged a locked one)",
+   "The plaque: name ('The Drifter' for the Drifter), flavour (at most 2 lines), up to three trait numbers with short labels (HP, DEFENCE, SPEED, CRIT / LV...; a debuff in dark red), the START weapon and FAVOURITE item plates in their level's colour",
+   "The map line with the best run"
+  ],
+  "rules": [
+   "Carousel order: owned heroes, then those on sale, then locked ones (Registry.heroes_for_drawer); hidden heroes only with the developer menu's preview switch.",
+   "A hero not owned: a full black silhouette, name 'Unknown', '?' for each number, his start weapon and favourite as black mystery plates with '?', PLAY reads LOCKED.",
+   "Locked (unlock quest not done): a 'To unlock' Requirement card over the plaque with the quest text and a progress bar, and a padlock on his chest. On sale (quest done, not bought): the BUY column over his figure.",
+   "Opens on the last played hero if he is owned, else the first owned one.",
+   "The plaque is one size for every hero and state (PLAQUE_H 200, pass 73).",
+   "Quests the save already satisfies are completed quietly on entry (QuestTracker.check_all(false)).",
+   "Hangs from the top and bottom edges and keeps clear of the camera cutout (W.safe_top()). Music mu_title."
+  ],
+  "debug_only": false,
+  "states": [
+   "owned hero (PLAY)",
+   "hero on sale (BUY over him, PLAY reads LOCKED)",
+   "locked hero (Requirement card, padlock, silhouette)",
+   "purse short of a price (BUY plus shortfall note)",
+   "a talent rank affordable (glow and '!')",
+   "player debug mode (ARENA)",
+   "painted vs live title look",
+   "first launch (no map line yet)"
+  ]
+ },
+ {
+  "id": "hero_drawer",
+  "name": "Heroes (hero drawer)",
+  "file": "game/ui/wanted/WHeroDrawer.gd",
+  "when": "Opened by the title's Hero Collections button, over the hero preview under the title's top block. Closes on a tap outside the panel, the button (now a close X), back or Esc.",
+  "purpose": "See every hero at once and jump to one without swiping.",
+  "controls": [
+   {
+    "name": "Hero tile (badge and name)",
+    "does": "Shows that hero on the title (he runs in behind the drawer); the drawer stays open and his tile turns brass."
+   },
+   {
+    "name": "The two rows (drag sideways)",
+    "does": "Scroll when the tiles are wider than the panel (TouchScroll, horizontal)."
+   },
+   {
+    "name": "Anywhere outside the panel",
+    "does": "Closes the drawer; the tap reaches nothing behind it. A drag that ends there does not close it."
+   }
+  ],
+  "shows": [
+   "Star line 'Heroes'",
+   "Every hero that is not hidden as a badge tile, two rows (the first half on top), each in the look he is played in",
+   "Not owned: a black silhouette badge with '?' on an aged tile, and under it his price with a coin (on sale) or 'Locked'"
+  ],
+  "rules": [
+   "Same list and order as the carousel.",
+   "While it is open the title's swipe is off (the drawer takes sideways drags)."
+  ],
+  "debug_only": false,
+  "states": [
+   "every hero owned",
+   "some on sale / locked",
+   "rows scrolling"
+  ]
+ },
+ {
+  "id": "hero_sheet",
+  "name": "Hero sheet (Wanted poster)",
+  "file": "game/ui/wanted/WHeroSheet.gd",
+  "when": "A tap on the title's hero plaque. Closes on CLOSE, a tap on the dim outside the card, the back gesture or Esc.",
+  "purpose": "The hero's CV: who he is, his signature stat, the stats a run starts with and his items.",
+  "controls": [
+   {
+    "name": "CLOSE",
+    "does": "Closes the sheet."
+   },
+   {
+    "name": "Dim outside the card",
+    "does": "Closes the sheet."
+   },
+   {
+    "name": "Card (drag up/down)",
+    "does": "Scrolls when it is taller than the screen; a paper fade at the foot says there is more."
+   }
+  ],
+  "shows": [
+   "Portrait (the badge of the look he is played in), star line 'Wanted', the name, the slogan, 'Trait · <name>'",
+   "Signature stat: the trait's rule in words, its step a level in big numbers, and what it comes to at levels 1, 10, 20 and 40",
+   "'Stats · a run's start' (', your upgrades in' when the Upgrade board has ranks): every stat a run starts with, his signature stats in sage, multipliers as percents",
+   "Items: the start weapon (' · favourite' when it is also his favourite), the favourite weapon/card/item and what finding it gives (a bonus level, or 'Found full.'), any weapon only he can find, his hero mutation, his perks; each with its plate and the level-up card's words"
+  ],
+  "rules": [
+   "A hero not owned: 'Unknown' under a black badge, no slogan or trait, '?' for the signature and every stat, every item a mystery plate with its role and '?', and 'Unknown until this hero is yours.'",
+   "Locked: a 'To unlock' box with the quest and its progress. On sale: 'On sale' with his price and 'Requirement met: ... Buy on the title with BUY.'",
+   "Keeps clear of the camera cutout."
+  ],
+  "debug_only": false,
+  "states": [
+   "owned hero",
+   "hero on sale",
+   "locked hero",
+   "a long sheet scrolling"
+  ]
+ },
+ {
+  "id": "stages_menu",
+  "name": "Stages (\"Choose a Stage\")",
+  "file": "game/ui/StagesScreen.gd",
+  "when": "From the title's PLAY once the map's first stage has been beaten, on every PLAY from then on (StagesScreen.opens_for, StagesScreen.gd:356). The back square, Esc or the back gesture return to the title.",
+  "purpose": "Choose which stage of the map to play; each stage is its own fresh run with the chosen hero.",
+  "controls": [
+   {
+    "name": "Back square",
+    "does": "Back to the title."
+   },
+   {
+    "name": "Stage card (open)",
+    "does": "Starts that stage as a fresh level-1 run from its window's start (Run.choose_stage(i)) (StagesScreen.gd:327)."
+   },
+   {
+    "name": "Stage card (locked)",
+    "does": "Refused: the locked sound and the card shakes; nothing starts (StagesScreen.gd:316)."
+   }
+  ],
+  "shows": [
+   "Header 'Stages', the chosen hero's badge on the right",
+   "'Red Canyon · <hero>' and the call 'Choose a Stage'",
+   "A card per stage of timeline_data.stage_list (Sundown, Nightfall, Blood Moon): its picture (art/ui/stages/<map>_s<k>.jpg; striped until it exists) with STAGE k and the name, 'Difficulty: Easy / Medium / Hard / Extremely Hard' in the stage's colour (sage the first, rock the last and hell stages, brass between), the description, the time to its boss and the boss",
+   "A sage BEATEN stamp on a beaten stage"
+  ],
+  "rules": [
+   "Stage 1 is always open; stage k+1 opens once stage k is beaten (Save.stage_unlocked, Save.stages_beaten).",
+   "A locked card is aged, its picture darkened with a padlock, and says 'To unlock': 'Beat the Tumbleweed King' once that boss has been met, else 'Beat Stage k' (StagesScreen.gd:385).",
+   "A boss not met yet (Save.enemy_met) is a silhouette named 'Boss not encountered yet'."
+  ],
+  "debug_only": false,
+  "states": [
+   "only stage 1 beaten",
+   "all stages beaten",
+   "boss not met yet"
+  ]
+ },
+ {
+  "id": "upgrade_board",
+  "name": "Upgrade (the Mirror)",
+  "file": "game/ui/HomesteadScreen.gd",
+  "when": "From the title's Upgrade button or Results' Upgrade button. Back square / Esc / back gesture: closes an open talent sheet first, else to the title.",
+  "purpose": "The meta progression: spend banked gold on permanent talent ranks that hold for every hero.",
+  "controls": [
+   {
+    "name": "Back square",
+    "does": "Closes an open talent sheet, else back to the title."
+   },
+   {
+    "name": "Talent tile (8: Grit, Drive, Stride, Study, Fortune, Choice, Nerve, Stakes)",
+    "does": "Opens that talent's sheet over a sepia dim. A locked talent (behind an unlock quest) plays the locked sound and shows its quest text on the tile instead of a price."
+   },
+   {
+    "name": "Sheet: <FORM> · <coin> <price> (one buy button per form, e.g. PADDING / PLATE)",
+    "does": "Buys the next rank in that form (Save.buy_talent). Each rank keeps the form it was bought in ('Rank N: choose one. It stays; Take it all back is the only way to choose again.'). Locked when the purse is short (the locked sound)."
+   },
+   {
+    "name": "Sheet: FULL",
+    "does": "Shown at the sixth rank; locked."
+   },
+   {
+    "name": "Sheet: Close, or the dim",
+    "does": "Closes the sheet."
+   },
+   {
+    "name": "'Take it all back · <refund> of the <spent> spent comes back' (underlined link at the foot)",
+    "does": "Asks 'Take it all back?' (WConfirm: 'Take it back' / 'Keep them'); confirmed, every rank goes and half the gold spent comes back (Save.REFUND_FRAC 0.5). With nothing spent it reads 'Nothing to take back' and only plays the locked sound (HomesteadScreen.gd:550)."
+   }
+  ],
+  "shows": [
+   "Header 'Upgrade' with the gold plate",
+   "YOUR UPGRADES strip: a chip per talent with ranks (its live form's icon and x<rank>), or a hint when empty",
+   "The mirror (two brass eyes in dark glass) and 'Something looks back. It wants gold.'",
+   "A 2-column grid of talent tiles: the name, both forms' icons ('or') while a rank is left, a rank bar of six slots (a bought rank shows its form's icon on a raised plate, an unbought one a dashed slot), 'Each rank: <A> or <B>' or what the ranks give now, and the next rank's price on a paper tag (or 'Full')",
+   "The sheet: the name, the rank bar large, the flavour, 'Rank r of 6 owned · <effects>' or 'No ranks yet', then each form's icon, name, what a rank gives and '· n owned'"
+  ],
+  "rules": [
+   "Eight talents, two forms, six ranks each; every rank is bought in one form and keeps it (Save.talent_picks); prices per talent and rank (TalentDef.cost_of_rank), the board sorted by first-rank price (Registry.talents_list).",
+   "Forms: Grit Padding (+10% max HP) / Plate (+6% damage reduction); Drive Muscle (+6% damage) / Tempo (-5% cooldown); Stride Boots (+5% move speed) / Lodestone (+18% pickup reach); Study Field Notes (+10% XP) / Poultice (+0.3 regen); Fortune Omen (+0.12 luck) / Greed (+12% gold); Choice Reroll (+1 reroll a run) / Banish (+1 banish a stage); Nerve Skip (+1 skip a stage) / Second Wind (+1 revive at ranks 1, 3, 5; +15% revive health at 2, 4, 6); Stakes (id spite) Difficulty (creatures +10% HP and attack, +4% speed a rank) / Boss (bosses and Elites the same) - Stakes also gives a hidden +5% XP and coins a rank (MirrorDanger.gd).",
+   "Once after the pass 88 migration, two toasts over the mirror: 'SPITE IS NOW STAKES' and '+N GOLD BACK FOR k RANKS' (Save.board_note).",
+   "The board does not scroll under an open sheet.",
+   "Stale doc: the file's header comment still says switching forms is free and keeps the ranks; the code since pass 63 fixes each rank's form."
+  ],
+  "debug_only": false,
+  "states": [
+   "empty board (no ranks)",
+   "some ranks bought",
+   "a talent full",
+   "a locked talent (quest text)",
+   "purse short (buy locked)",
+   "Take it all back question"
+  ]
+ },
+ {
+  "id": "collection",
+  "name": "Collection",
+  "file": "game/ui/CollectionScreen.gd",
+  "when": "From the title's Collection button. Back: an item page returns to the grid, the grid to the title. The developer menu's 'Hidden items' opens it in a Hidden mode (title 'Hidden', no tabs; back returns to the developer menu).",
+  "purpose": "Browse every weapon, card (line), passive, perk and enemy the player has met, and what locked ones need.",
+  "controls": [
+   {
+    "name": "Back square",
+    "does": "Page -> grid -> title (or the developer menu in Hidden mode)."
+   },
+   {
+    "name": "Tabs: Weapons, Cards, Passives, Perks, Enemies",
+    "does": "Switch the grid; the open tab shows its found count in the header ('n / m')."
+   },
+   {
+    "name": "Tile (found)",
+    "does": "Opens the item's page."
+   },
+   {
+    "name": "Tile (not found yet)",
+    "does": "Locked sound only ('Not found yet' / 'Not met yet' under an aged plate showing the icon's shadow)."
+   },
+   {
+    "name": "Tile (behind an unlock quest)",
+    "does": "Opens the requirement page: the aged plate, 'Locked · <kind>', the quest text, its progress, which stage can do it ('Any stage will do' / 'Stage N only'), and 'What it does'."
+   },
+   {
+    "name": "Grid / page (drag)",
+    "does": "Scrolls."
+   }
+  ],
+  "shows": [
+   "Header 'Collection' with the tab's found count; '<n> kills all time' at the foot",
+   "Tiles: the plate in its colour (weapons light blue, cards light yellow, passives their rarity) and the name; danger badges on enemies (a boss skull in rock, an Elite crown in ember, a special's gear in brass) on the plate's corner and a frame in that colour",
+   "Locked tiles: the quest's words and a brass progress bar 'x / y'",
+   "Item page: plate, kind line ('Weapon · 5 levels', 'Card · 4 levels', 'Passive · <rarity> · no upgrades', 'Enemy · boss'...), full text, kills with it ('<n> kills with it, all time'), Levels grid, for a weapon 'Mutations · take one a stage' (heroes' own marked, e.g. 'CALAVERA ONLY') and 'Evolution · once it is full' ('Not yet found. Open a chest with every mutation taken and the weapon at its top level.'), for a line its evolution, for an enemy its Numbers (HP, speed, damage, 'takes n% less') and 'Killed n times'"
+  ],
+  "rules": [
+   "Hidden content, retired enemies and other heroes' own items are left out; what is found is per save (Save.seen, kills).",
+   "Evolutions and mutations live on their weapon's page; heroes are on the title, not here.",
+   "Tabs and grid sit under the camera cutout (W.safe_top())."
+  ],
+  "debug_only": false,
+  "states": [
+   "fresh save (mostly 'Not found yet')",
+   "locked item (quest bar)",
+   "weapon page with mutations and evolution",
+   "enemy page",
+   "Hidden mode (developer)"
+  ]
+ },
+ {
+  "id": "settings",
+  "name": "Settings",
+  "file": "game/ui/SettingsScreen.gd",
+  "when": "From the title's Settings button. Back square / Esc / back gesture: to the title (a question up is cancelled first).",
+  "purpose": "Player options, privacy switches, wiping the save, and the hidden doors to the debug options and the developer menu.",
+  "controls": [
+   {
+    "name": "Back square",
+    "does": "Back to the title."
+   },
+   {
+    "name": "Camera: Fixed ('north stays up') / Follow ('swings behind the hero')",
+    "does": "Two-way choice, saved at once (Settings.camera_mode)."
+   },
+   {
+    "name": "Joystick size (slider 60-140%)",
+    "does": "Settings.stick_size 0.6-1.4."
+   },
+   {
+    "name": "Screen shake (slider 0-150%)",
+    "does": "Settings.screen_shake 0-1.5."
+   },
+   {
+    "name": "Sound / Music (sliders, 5 steps)",
+    "does": "sfx_volume / music_volume 0-1."
+   },
+   {
+    "name": "Damage numbers / Heal numbers / XP numbers / Coin numbers (switches)",
+    "does": "Turn each kind of floating text on or off."
+   },
+   {
+    "name": "Floating text size: Small / Normal / Large",
+    "does": "Settings.float_size."
+   },
+   {
+    "name": "First-play hints (switch)",
+    "does": "Turns the hints on/off. Ten taps on it in one visit flip the player's debug mode (on, or off on a later visit); not in the prod build (SettingsScreen.gd:304)."
+   },
+   {
+    "name": "Show the hints again next run: Reset",
+    "does": "Forgets which hints were seen; the button reads 'Done' for 1.2 s."
+   },
+   {
+    "name": "Anonymous play data (switch)",
+    "does": "Settings.analytics; off deletes what waits to be sent. A line under it says what goes, or that this build's key file is empty."
+   },
+   {
+    "name": "Questions after a run (switch)",
+    "does": "Settings.surveys; off also tells PostHog (survey_opt_out)."
+   },
+   {
+    "name": "Debug panel (only while the player's debug mode is on)",
+    "does": "Main menu: Painted ('the hero's portrait') / Live ('the level, the hero in it'); switches: 'Ranged weapons aim only on screen', 'Pierce damage drop-off', 'Full hero knockback', 'Fire forward' (Sabre, Spear, Hammer, Frisbee, Tumbleweed, Basketball fire where the hero faces until a creature is within 75% of range)."
+   },
+   {
+    "name": "Wipe (rock button, 'Wipe the save')",
+    "does": "Asks 'Wipe the save?' ('Gold, unlocks, talents, quests and records: everything goes, and nothing brings it back.', 'Wipe' / 'Keep it'); confirmed, Save.wipe() and the board rebuilds."
+   },
+   {
+    "name": "Version line '88fits v0.91 · <player name>' (hold 2 s)",
+    "does": "Opens the developer menu; it turns brass halfway; sliding the finger 40 px away cancels. Not in the prod build (SettingsScreen.gd:347)."
+   }
+  ],
+  "shows": [
+   "The panels above",
+   "Over the version line: when the save was last written ('saved 3 min ago', '· from the backup'), or 'save failed · <error>' in rock",
+   "After the ten taps, the version line says 'debug options ON · arena on the title, any item on level-up, hold, respawn and the last hits on Down!' (or OFF) for 3 s"
+  ],
+  "rules": [
+   "Every control saves at once.",
+   "Small mismatch: the wipe row's subline says 'asks twice' but it asks once (one WConfirm)."
+  ],
+  "debug_only": false,
+  "states": [
+   "normal",
+   "player debug mode on (Debug panel shown)",
+   "analytics key file empty",
+   "save error line"
+  ]
+ },
+ {
+  "id": "player_debug_mode",
+  "name": "Player debug mode (not a screen)",
+  "file": "game/ui/SettingsScreen.gd",
+  "when": "Flipped by ten taps on Settings' 'First-play hints' switch in one visit (SettingsScreen.gd:304), or by the developer menu's 'Debug mode' row. Locked off in the prod build (Settings.PROD_LOCKED).",
+  "purpose": "Lets a tester reach the debug arena and test helpers without the developer menu.",
+  "controls": [],
+  "shows": [
+   "Title: the ARENA button top right",
+   "Settings: the Debug panel (title look, four test switches)",
+   "Level-up cards: the small 'debug' button (the debug hand)",
+   "Down!: the hit log of the last 30 s, 'respawn' (free revive) and 'hold time'",
+   "Arena HERO tab also lists heroes out of play"
+  ],
+  "rules": [
+   "Settings.debug_mode; also makes Game print an error the frame two modal screens are visible (Game._check_one_modal, Game.gd:1190)."
+  ],
+  "debug_only": true,
+  "states": [
+   "on",
+   "off"
+  ]
+ },
+ {
+  "id": "dev_menu",
+  "name": "developer · v0.91",
+  "file": "game/ui/DevMenu.gd",
+  "when": "Holding Settings' version line for 2 s (dev builds only). Back square / back gesture: closes a question or survey card first, then back to Settings.",
+  "purpose": "Every test switch and readout in one ink list, kept away from the player's screens.",
+  "controls": [
+   {
+    "name": "Arena ›",
+    "does": "Starts the debug arena."
+   },
+   {
+    "name": "Debug mode (the player's: 10 taps on the hints switch)",
+    "does": "ON/OFF."
+   },
+   {
+    "name": "Debug panel in run",
+    "does": "ON/OFF: the in-run DebugPanel shows at the start of every run."
+   },
+   {
+    "name": "Debug buttons on modals",
+    "does": "ON/OFF: the 'debug' button on the level-up screen (the debug hand)."
+   },
+   {
+    "name": "Free revive button",
+    "does": "ON/OFF: 'respawn' and 'hold time' on Down!."
+   },
+   {
+    "name": "Hit log on Down! · copy",
+    "does": "ON/OFF: the last 30 seconds' hits list on Down!."
+   },
+   {
+    "name": "Hidden heroes as locked on the title",
+    "does": "ON/OFF: hidden heroes join the carousel as locked previews."
+   },
+   {
+    "name": "Heroes · own every one (n / m)",
+    "does": "Owns every hero that is for sale, no gold or quest."
+   },
+   {
+    "name": "Heroes · forget the bought ones ›",
+    "does": "Takes back every bought hero."
+   },
+   {
+    "name": "Pierce damage drop-off / Full hero knockback / Fire forward (...)",
+    "does": "The same switches as Settings' Debug panel."
+   },
+   {
+    "name": "Frame rate · 60 or the screen's max (N Hz)",
+    "does": "Steps Settings.frame_cap (60 / MAX)."
+   },
+   {
+    "name": "Arena dummies · health / count / patrol; Arena attackers · health; Arena Elite dummy and Boss dummy · health and behaviour",
+    "does": "Each row steps through its values on a tap (UNDYING or 100..10000 HP; 10..30 dummies; patrol ON/OFF; behaviour stand/patrol/melee/ranged)."
+   },
+   {
+    "name": "Top inset · camera cutout",
+    "does": "Steps AUTO / 0 / 80 / 130 / 180 px to preview the screens under a cutout."
+   },
+   {
+    "name": "Last run's last second / Recent system pauses",
+    "does": "Show or hide user://breadcrumb.txt and user://pauses.txt (the last six system pause events)."
+   },
+   {
+    "name": "Hidden items · n ›",
+    "does": "Opens the Collection in Hidden mode."
+   },
+   {
+    "name": "Analytics · send now (a ping goes too) ›",
+    "does": "Pushes the queue to PostHog with a dev_ping."
+   },
+   {
+    "name": "Surveys · reset (counted runs, answered, shown) ›",
+    "does": "Asks 'Reset surveys?' ('Reset' / 'Keep'), then every survey can be asked again; the play-data answer stays."
+   },
+   {
+    "name": "Surveys · fetch now ›",
+    "does": "Fetches the surveys from PostHog."
+   },
+   {
+    "name": "Surveys · show one now ›",
+    "does": "Opens the next unanswered survey card over this menu with its real events."
+   },
+   {
+    "name": "Surveys · next run asks",
+    "does": "ON/OFF: arms the next counted run to bring a survey."
+   },
+   {
+    "name": "Surveys · counted runs (a tap: +1)",
+    "does": "Adds one counted run (to reach a '[run N]' survey)."
+   }
+  ],
+  "shows": [
+   "Analytics · PostHog readout (whether the key file has a key - never the key - whether anything is sent and why not, the queue, events sent this session, the last send)",
+   "Surveys readout (fetched surveys and their tags, counted runs, session, armed, answered and dismissed ids)",
+   "Save file: its full path, where the boot read it from, the last write (and error), whether a backup exists"
+  ],
+  "rules": [
+   "Ink background, JetBrains Mono; rows wrap so nothing is wider than the screen.",
+   "Switches save at once; the survey rows work in a release build.",
+   "None of it exists in the prod build."
+  ],
+  "debug_only": true,
+  "states": [
+   "default",
+   "survey card shown over it",
+   "reset surveys question"
+  ]
+ },
+ {
+  "id": "spawn_beam",
+  "name": "Run start (spawn beam)",
+  "file": "game/game/Game.gd",
+  "when": "The start of every run: the stage's look (filter) is set first (Game._show_stage_look_now), then a beam of light holds for 0.5 s and the hero falls down it onto the sand (Game.gd:761, SPAWN_HOLD; smootherstep fall). Nothing spawns and the pause cannot open while it plays (open_pause returns while `spawning`).",
+  "purpose": "A short arrival before play starts.",
+  "controls": [
+   {
+    "name": "Any press, drag or key during it",
+    "does": "Hurries the rest of the sequence (SPAWN_HURRY times faster; Game.gd ~911)."
+   }
+  ],
+  "shows": [
+   "The beam and the falling hero over the stage-tinted map"
+  ],
+  "rules": [
+   "The tool launches and the arena can skip it (user://debug_launch.json 'no spawn beam')."
+  ],
+  "debug_only": false,
+  "states": [
+   "Sundown (no filter)",
+   "Nightfall (blue filter)",
+   "Blood Moon (red ground, red filter)"
+  ]
+ },
+ {
+  "id": "hud",
+  "name": "In-run HUD",
+  "file": "game/ui/HUD.gd",
+  "when": "Whenever a run is playing. It steps aside (hides) while any paused modal is up; the tap-to-continue gate brings it back so the picked card can fly to its slot. Hidden entirely in the run sim's fast mode.",
+  "purpose": "Everything the player reads while playing, with nothing interactive between y 700 and 1600 except the joystick.",
+  "controls": [
+   {
+    "name": "Top strip (anywhere on the rail, plates or slots; the brass pause disc at its right)",
+    "does": "Pauses: opens the pause screen (HUD.pause_requested -> Game.open_pause). PlayerInput's thumb zone starts just below the strip (HUD.band_h)."
+   },
+   {
+    "name": "Anywhere below the strip (drag)",
+    "does": "The floating joystick: a ring (55% ink over a faint paper disc, a paper knob) appears under the thumb and steers the hero; its size follows Settings 'Joystick size'. Keyboard play on PC draws none."
+   }
+  ],
+  "shows": [
+   "XP rail: a 65 px ink rail across the top edge with a purple fill (RAIL_H, pass 61)",
+   "Top row of paper plates: 'LV n' on the left, the clock centred, the run's gold with a coin, the brass pause disc on the right",
+   "Mutation-next mark: while a mutation offer is due and a weapon has a pick open (Run.mutlvl_pending) the LV plate turns mutation plum with paper letters and 'MUTATION NEXT' sits at the XP rail's end (HUD.gd:315)",
+   "Clock plate modes: the stage's own time on paper; while the portal waits, the seconds left before Endless on rock with 'ENDLESS IN' under it (pulsing in its last seconds); in Endless the time survived in it on ink with 'WAVE n' under it (HUD.gd:1264)",
+   "Slots: 5 weapon slots from the left, 5 card (line) slots from the right, 72 px each; a held item is its plate in its level's colour with a level tag (and a weapon's mutation dots, glowing when it waits to evolve); empty slots are dashed and see-through. Passive items are not on the HUD (the pause Build tab lists them)",
+   "Power-up plates under the slots: sage plates with the seconds left for timed pickups (Berserk, Sprint, the Magnet power-up...) and Pollen; the War Drum's boost on its drum red (structure buffs with params.plate; HUD.gd:1003)",
+   "Build-up words under the plates: Adrenaline stacks, Crescendo, Steady Hand, Gas Mask's reduction, SKEDADDLE, Hot Streak's damage (HUD.buff_parts)",
+   "Boss name (paper slab with ink outline, its badge) and HP bar while a boss lives (Game: director.boss_started -> HUD.show_boss)",
+   "Toasts under all that (WToasts): one at a time, 1.2 s each, in green (health), purple (XP) or paper; some carry an icon (a Totem spirit's face)",
+   "Banner at 38% of the screen height for 2 s (WBanner): BOSS DOWN, EVOLVED · NAME (ember, with icon), UNLOCKED: NAME, A NEW HERO IS FOR SALE, ENDLESS (rock), PHOENIX FEATHER, REVIVED, DICE: ..., DEBUG ARENA",
+   "Edge pointers (WPointer): a paper tag on the left or right edge with a triangle in the target's colour and its name and distance, for the boss (rock), the portal (sage) and the Elite (ember) while they are off screen",
+   "The hero's bars under him (HP, shield, Snake Oil's overheal past full in pink); a hit jiggles the bars sideways instead of shaking the screen (HUD.shake_hp_bar)",
+   "'+N XP' and '+N' gold with a coin rising from the hero (batched over a quarter second)",
+   "A full-screen colour flash for the nuke or a harpoon hit"
+  ],
+  "rules": [
+   "The strip sits W.safe_top() lower on a phone with a camera cutout; a long arena build splits the slots into two rows and makes the strip taller.",
+   "First-play hints sit in the toast slot (see hints).",
+   "No hero gauge for any hero since pass 69."
+  ],
+  "debug_only": false,
+  "states": [
+   "early run (empty slots)",
+   "full build (5 + 5)",
+   "mutation next",
+   "boss fight (boss bar, pointer)",
+   "power-ups up",
+   "portal countdown (ENDLESS IN)",
+   "Endless (WAVE n)",
+   "camera cutout"
+  ]
+ },
+ {
+  "id": "hints",
+  "name": "First-play hints",
+  "file": "game/ui/Hints.gd",
+  "when": "In the first 30 s of a run while Settings 'First-play hints' is on, each once per save (Save.hint ids).",
+  "purpose": "Teach the controls without a tutorial.",
+  "controls": [],
+  "shows": [
+   "'Drag anywhere to walk' until the hero moves",
+   "'He shoots by himself' ('She shoots by herself' / 'They shoot by themselves' by the hero's pronoun) for a few seconds after",
+   "'The purple is XP' until the first gem (gives up after a while)",
+   "'Tap the pause disc for your build' at 1:30 of a run (once, Hints.gd:102)",
+   "After the first Totem gift: 'Totem gifts last the whole run'",
+   "On the level-up screen the dry line reads 'Pick one. The plate's colour says what it is.' on a save's first offers (CardScreen.HINT_LINE); banish mode's first use explains more"
+  ],
+  "rules": [
+   "Shown in the HUD's toast slot; Settings 'Show the hints again next run: Reset' forgets them."
+  ],
+  "debug_only": false,
+  "states": [
+   "first run"
+  ]
+ },
+ {
+  "id": "damage_numbers",
+  "name": "Floating numbers",
+  "file": "game/ui/DamageNumbers.gd",
+  "when": "During play, each kind while its Settings switch is on (Damage / Heal / XP / Coin numbers). Frozen while paused, hidden while a modal is up.",
+  "purpose": "Show damage dealt and taken and healing, MMO style.",
+  "controls": [],
+  "shows": [
+   "Creature hits: white numbers at the hit point (orange for fire ticks, purple for poison); crits big and yellow with a hop, mini crits paler",
+   "On the hero: damage taken in red and shield soak in blue on his left, healing in green on his right, EVADE and BLOCK words",
+   "Merging: hits on one creature close together add into one number; past 40 on screen they thin (pass 102); at most CAP live"
+  ],
+  "rules": [
+   "Size from Settings 'Floating text size' (Small / Normal / Large).",
+   "A hit off screen gets no number."
+  ],
+  "debug_only": false,
+  "states": [
+   "normal hits",
+   "crits",
+   "burning crowd"
+  ]
+ },
+ {
+  "id": "level_up",
+  "name": "LEVEL UP · LEVEL N",
+  "file": "game/ui/CardScreen.gd",
+  "when": "Each level the hero gains, requested through Game's one-screen rule (Modal.CARDS, priority 30; Game.gd:1825). The run pauses; levels gained meanwhile are banked and shown one after another. A level with nothing left to offer pays +10 gold instead ('Nothing left to pick. +10 gold'). Closes on a pick, a skip; then the tap-to-continue gate.",
+  "purpose": "Choose one of three upgrades: a new item or the next level of one held.",
+  "controls": [
+   {
+    "name": "Item card (one of three)",
+    "does": "Takes it (CardPool.apply); the card is remembered so the gate flies it to its HUD slot. A held card sits on its shadow with a brass band."
+   },
+   {
+    "name": "REROLL ×N",
+    "does": "A fresh set of three; uses one reroll (1 a run by default, +1 a rank of Choice/Reroll). Ends banish mode. At 0: 'No rerolls left. The Choice upgrade gives more.' (CardScreen.gd:961)."
+   },
+   {
+    "name": "SKIP ×N",
+    "does": "Closes with nothing; uses one of the stage's skips (2 a stage, shared with chests and mutation offers; Nerve/Skip adds). At 0: 'No skips left this stage.'"
+   },
+   {
+    "name": "BANISH ×N",
+    "does": "Enters banish mode: the title turns to a red BANISH (star line 'Strike one off'), a line explains ('Tap a new item to strike it from this run. It will not be offered again.'; longer the first time), cards that may go wear a red BANISH stamp, items already held are dimmed 'YOU HAVE THIS', an evolution of a held item 'EVOLVES YOURS'. Tap a card to strike it: stamped BANISHED, a replacement drops in, one banish used (1 a stage by default). Locked at 0 or when nothing on the table can go ('Nothing here can be banished: you already have all of these.')."
+   },
+   {
+    "name": "CANCEL (BANISH in banish mode)",
+    "does": "Leaves banish mode."
+   },
+   {
+    "name": "A refused card in banish mode",
+    "does": "Shakes and says why: 'You have X: banishing it would lock its upgrades.', 'X evolves what you have: it can't be banished.', 'X is a mutation: mutations can't be banished.', 'Gold cannot be banished.'"
+   },
+   {
+    "name": "debug (small button bottom right; developer 'Debug buttons on modals' or player debug mode)",
+    "does": "Opens the debug hand."
+   }
+  ],
+  "shows": [
+   "A rainbow full XP rail along the top edge",
+   "Star line 'Level up', the title 'LEVEL N' over a turning brass shine, a sunburst and confetti on entry, the dry line 'Pick one. The desert waits.'",
+   "Three item cards dropping in one after another: plate (kind by colour, corner glyph), kind word, name, level stars, one effect line; a tag UPGRADE (brass) / NEW (sage) / EVOLUTION (ember); an upgrade lists its changes ('Damage 12 -> 15') and its new stars pulse; the hero's favourite has a brass heart and the word FAVOURITE",
+   "Bottom row REROLL ×N · SKIP ×N · BANISH ×N"
+  ],
+  "rules": [
+   "Always three cards (luck only changes rarity odds; pass 52).",
+   "Skips and banishes refill at every stage start (Run.refill_choices, Run.gd:1002); rerolls are per run.",
+   "Never offered: banished items, quest-locked items not held, hidden items, other heroes' own weapons, stage-3-only items before stage 3, a weapon's base once it has evolved (BALANCING.md).",
+   "A long list shrinks to fit above the buttons; layout under the camera cutout."
+  ],
+  "debug_only": false,
+  "states": [
+   "normal offer",
+   "banish mode",
+   "out of rerolls/skips/banishes (locked buttons)",
+   "first offer with hint line"
+  ]
+ },
+ {
+  "id": "resume_gate",
+  "name": "TAP TO GO (resume gate)",
+  "file": "game/ui/ResumeGate.gd",
+  "when": "After a level-up pick, a mutation pick or a chest closes and no other screen waits (Game._modal_done through_gate, Game.gd:1100). The shop, the Stranger, the Totem, the drum, the portal and Down! resume without it.",
+  "purpose": "Let the player re-grip before the run goes on, and show where the pick went.",
+  "controls": [
+   {
+    "name": "Any touch",
+    "does": "Resumes the run (with 1 s of blinking invulnerability) and the same touch can start the joystick. A touch on the HUD strip is kept by the gate so it does not also open the pause."
+   }
+  ],
+  "shows": [
+   "The dim lifting from 78% to 40% sepia",
+   "The picked card shrinking and flying (turning -8 degrees) into its HUD slot, which takes a brass border and level tag (a passive flies into the pause disc)",
+   "'TAP TO GO' and 'Still paused. They'll wait.' at y 1500"
+  ],
+  "rules": [
+   "Not a screen of its own, but it counts as one for the one-screen rule (a request waits for the tap)."
+  ],
+  "debug_only": false,
+  "states": [
+   "after a pick",
+   "after a skip (nothing flies)"
+  ]
+ },
+ {
+  "id": "mutation_offer",
+  "name": "Pick a mutation (mutation level-up)",
+  "file": "game/ui/CardScreen.gd",
+  "when": "A mutation offer falls due on the stage's path_times and replaces the hero's next level-up's three cards (Run.mutlvl_*; Game._mutlvl_open, Game.gd:1901); the HUD's MUTATION NEXT mark warns of it. Also through Modal.PATH (priority 20) for tools. The run pauses; closes on a pick or a skip, then the gate.",
+  "purpose": "Take one of a weapon's path mutations (its three paths lead to its evolution).",
+  "controls": [
+   {
+    "name": "Weapon reel (WWeaponReel)",
+    "does": "Runs first: the hero's weapons with an open path slide past a brass window, ticking and slowing, and stop on the weapon picked at random (Run.next_path_weapon); a single weapon only wobbles. A tap anywhere skips to the landing; a second tap goes on at once."
+   },
+   {
+    "name": "Mutation card",
+    "does": "Takes that mutation (CardPool.apply); toast in mutation purple."
+   },
+   {
+    "name": "SKIP ×N (single, centred)",
+    "does": "Closes with nothing; uses one of the stage's skips ('Mutation skipped'). At 0: 'No skips left this stage.'"
+   }
+  ],
+  "shows": [
+   "Head: 'Level N! Pick a mutation' (or 'Pick a mutation'), the weapon's plate (shine behind it once the reel lands), its name, the word 'Mutation' and its mutation rivets (taken / offered)",
+   "The mutation cards under it",
+   "The rainbow XP rail, full"
+  ],
+  "rules": [
+   "No REROLL or BANISH here; mutations can never be banished.",
+   "All three path mutations plus the weapon at level 5 = its evolution at a chest."
+  ],
+  "debug_only": false,
+  "states": [
+   "reel spinning",
+   "reel landed with cards",
+   "no skips left"
+  ]
+ },
+ {
+  "id": "chest",
+  "name": "CHEST (★ LOOT ★) / MUTATION CHEST (★ A PATH OPENS ★)",
+  "file": "game/ui/ChestScreen.gd",
+  "when": "Touching a chest on the ground (Elite and special drops, the boss's chest, Dice ambush) -> Game.open_chest (Modal.CHEST, priority 40, a boss's +5; Game.gd:2604). The run pauses. A boss chest also vacuums every pickup on the map in ('THE SPOILS COME TO YOU'). Closes on TAKE IT or SKIP, then the gate.",
+  "purpose": "The run's reward moment: a slot-machine reel lands on one item.",
+  "controls": [
+   {
+    "name": "Tap during the chest's opening",
+    "does": "Skips to the spin."
+   },
+   {
+    "name": "Tap during a spin",
+    "does": "Hurries the rest into 0.6 s."
+   },
+   {
+    "name": "TAKE IT",
+    "does": "Takes the landed item (Run.chest_take); toast 'Chest: <line>'."
+   },
+   {
+    "name": "SKIP ×N",
+    "does": "Closes with nothing; uses one of the stage's skips ('Chest skipped'). Locked on gold ('Gold goes straight into the purse.') and at 0 ('No skips left this stage.'); with no skip the chest cannot be let go."
+   },
+   {
+    "name": "BANISH ×N",
+    "does": "Strikes the landed item from the run (Run.chest_banish) and the reel spins again (~2 s) to a new roll, the chest staying open. Only a new item can go: refused with 'Gold cannot be banished.', 'An evolution cannot be banished.', 'A mutation cannot be banished.', 'You have X. Only new items can be banished.' At 0: 'No banishes left this stage.'"
+   }
+  ],
+  "shows": [
+   "Star line 'Loot' and CHEST in brass (a boss's: 'A path opens' and MUTATION CHEST in purple, violet light)",
+   "The chest (WChest) dropping in on the lower third, knocking three times and throwing its lid open, its light rising into the reel's row; a turning shine behind it",
+   "The reel of plates running sideways for about four seconds and landing; the landed plate grows to 420 px with a brass glow",
+   "Under it: the kind word with UPGRADE / NEW / EVOLUTION tag, the name, the stars (an upgrade's new ones pulse), the effect line or change rows; GOLD: 'Straight into the purse.'; the favourite's heart",
+   "SKIP ×N · BANISH ×N · TAKE IT"
+  ],
+  "rules": [
+   "A boss chest's reel runs past the open paths only (mutations).",
+   "Slot-machine sounds: lever, spin loop, clunk, jackpot (WSlotSound).",
+   "The HUD steps aside."
+  ],
+  "debug_only": false,
+  "states": [
+   "ordinary chest",
+   "boss mutation chest",
+   "landed on gold",
+   "landed on an evolution",
+   "after a banish respin",
+   "no skips left"
+  ]
+ },
+ {
+  "id": "shop",
+  "name": "THE SHOP (One visit only)",
+  "file": "game/ui/StructureShop.gd",
+  "when": "Using the shop structure on the map (stand in its ring until its pie fills; StructureManager) -> Modal.SHOP (priority 10; Game.gd:2290). The run pauses. Empty offer: '+50 gold' toast instead. Closes on a purchase or LEAVE (or Esc on PC); the run resumes straight (no gate).",
+  "purpose": "Spend the run's gold on one of three items.",
+  "controls": [
+   {
+    "name": "Item card (price is the button)",
+    "does": "Buys it if the run's gold covers it (Run.spend_gold, sink 'shop'); toast 'Bought!'. One purchase and the stall is spent. A card you cannot afford is aged at 60% with '· N short' and plays the locked sound."
+   },
+   {
+    "name": "LEAVE",
+    "does": "Closes without buying; the stall is spent too."
+   }
+  ],
+  "shows": [
+   "Star line 'One visit only', THE SHOP, the run's gold plate",
+   "'You hold': a wrapping row of plates for every weapon and passive held",
+   "Three item cards with their prices"
+  ],
+  "rules": [
+   "Prices are about half a stage's gold (stage 1-3; Endless stays on stage 3) x kind (weapon > line > passive/perk) x rarity x (1 + a step per level held) (StructureShop.price_of).",
+   "The stack shrinks to fit above LEAVE under a camera cutout."
+  ],
+  "debug_only": false,
+  "states": [
+   "affordable cards",
+   "some cards short",
+   "long build tray (two rows, smaller plates)"
+  ]
+ },
+ {
+  "id": "stranger",
+  "name": "THE STRANGER (★ NO NAME ★)",
+  "file": "game/ui/StrangerScreen.gd",
+  "when": "Using the hooded figure structure -> Modal.STRANGER (priority 10; Game.gd:2269). The run pauses. Empty offer: '+60 gold' instead ('The Stranger had nothing for you.'). Closes on DEAL or WALK AWAY; the run resumes straight.",
+  "purpose": "A bargain: one item for a share of max HP for the rest of the run.",
+  "controls": [
+   {
+    "name": "DEAL",
+    "does": "Takes the item and pays the HP (Run.stranger_take); toast 'The deal: <line>, for N% of your health'."
+   },
+   {
+    "name": "WALK AWAY",
+    "does": "Refuses; toast 'The Stranger is gone. Only his cloak stays.'"
+   }
+  ],
+  "shows": [
+   "Plum-black dim, star line 'No name', THE STRANGER",
+   "His cut-out holding the item (placeholder until art/ui/wanted/stranger.png exists) and the quote '“A piece of you, for a piece of the world.”'",
+   "The deal panel: the item as a card; 'The price · max HP for the rest of the run' as a bar losing its end in hatched rock, 'max -> new max'; 'No reroll. No second offer. He does not haggle.'"
+  ],
+  "rules": [
+   "Either way he is gone afterwards (only the cloak stays on the sand).",
+   "The HP cost is a fraction of max HP (offer.hp_cost, default 0.15).",
+   "Under a camera cutout the panel rises and the portrait shrinks so nothing runs under the buttons."
+  ],
+  "debug_only": false,
+  "states": [
+   "offer shown"
+  ]
+ },
+ {
+  "id": "totem",
+  "name": "Spirit Pole (★ TOTEM k OF n ★)",
+  "file": "game/ui/TotemScreen.gd",
+  "when": "Using a Totem Pole (10-12 a map) -> Modal.TOTEM (priority 10; Game.gd:2379). The pole's ring flashes, the run pauses. A pole with nothing to offer only shows its name. Closes on a pick (no way out otherwise); the run resumes straight.",
+  "purpose": "Pick one of three small permanent-for-the-run stat gifts.",
+  "controls": [
+   {
+    "name": "Gift row (its carved segment and its tag)",
+    "does": "Takes that gift (Run.take_totem_boon): the chosen face flies to the toast slot, the rest drops away; toast '<Spirit> · +2% move speed' with the face."
+   },
+   {
+    "name": "Anywhere else",
+    "does": "Nothing; there is no close button. Dragging off a held row cancels the press."
+   }
+  ],
+  "shows": [
+   "'★ TOTEM k OF n ★' (this gift's count of the map's poles)",
+   "A carved pole on the left: the thunderbird crest on top, three spirit segments with carved faces on a cedar post",
+   "A nailed paper tag beside each: the amount big with its stat ('+2%' 'move speed'), the spirit ('Le-loo, the Wolf'), a roll gauge showing which third of its range the roll landed in (brass on a top third)"
+  ],
+  "rules": [
+   "The pole greys as the gift is taken.",
+   "Gifts stack for the run (Run.totem_boons); the first one taught by the hint 'Totem gifts last the whole run'."
+  ],
+  "debug_only": false,
+  "states": [
+   "three gifts offered",
+   "a top-third roll (brass)"
+  ]
+ },
+ {
+  "id": "drum_moment",
+  "name": "War Drum moment",
+  "file": "game/ui/DrumMoment.gd",
+  "when": "Using the War Drum structure -> Modal.DRUM (priority 35, before the level cards; Game.gd:2337). Time stops: the run pauses, every sound effect stops and the music holds. Lasts params.moment.seconds (2.2 s), then the boost starts and the run resumes straight.",
+  "purpose": "A short drum show that announces a 15 s boost.",
+  "controls": [
+   {
+    "name": "Any touch",
+    "does": "Swallowed while it plays (counted in touches_eaten); it cannot be skipped by the player."
+   }
+  ],
+  "shows": [
+   "The drum (cut from its painting) fading in centre screen, squashing and springing on each slap, waves and ink slap lines from each hit; the last big hit flashes the screen and brings in the boost in words (DrumBoost.summary: e.g. '×2 DAMAGE · ×2 ATTACK SPEED · +15% SPEED' plus knockback)",
+   "After it: a rock-red HUD plate counting the boost's seconds, and a toast '<NAME>: 15 s'"
+  ],
+  "rules": [
+   "The boost (DrumBoost): x2 damage and attack speed, knockback, +15% speed for 15 s; halved where Rage or Sprint already boost (params.stack).",
+   "The run sim and an ended run take the boost without the moment."
+  ],
+  "debug_only": false,
+  "states": [
+   "playing",
+   "boost plate on the HUD"
+  ]
+ },
+ {
+  "id": "pause",
+  "name": "PAUSED",
+  "file": "game/ui/PauseScreen.gd",
+  "when": "A tap on the HUD's top strip or pause disc, Esc on PC, or the app going to the background (Game.gd:1238). Not during the spawn beam, after the run ended, or while another screen is up. The Android back gesture in a run is ignored (only logged). Closes on RESUME (or Esc).",
+  "purpose": "Look at the build and the stats, change a few options, or abandon the run.",
+  "controls": [
+   {
+    "name": "Tabs: Build / Stats / Options",
+    "does": "Switch the board."
+   },
+   {
+    "name": "Build: an item row",
+    "does": "Opens on its numbers (a stat grid), its mutation chips and what evolving still needs."
+   },
+   {
+    "name": "Stats: a stat cell",
+    "does": "Opens its sources card: 'At the start' (base, hero, Upgrade board) and 'This run' (cards, items, perks, mutations, levels, Totem gifts, the Stranger, timed buffs) with amounts."
+   },
+   {
+    "name": "Options: Sound / Music sliders",
+    "does": "As Settings."
+   },
+   {
+    "name": "Options: Screen shake (switch)",
+    "does": "On = 1.0, off = 0 (a switch here, a 0-150% slider in Settings: turning it on here resets a custom value to 100%)."
+   },
+   {
+    "name": "Options: Damage / Heal / XP / Coin numbers, Floating text size",
+    "does": "As Settings."
+   },
+   {
+    "name": "Options: Abandon (rock)",
+    "does": "Asks 'Abandon the run?' ('The run ends here, and the N gold picked up so far comes home with you.', 'Abandon' / 'Keep playing'); confirmed, the run ends and goes to Results (Game.abandon_run)."
+   },
+   {
+    "name": "RESUME",
+    "does": "Closes the pause; any screen asked for meanwhile comes next."
+   },
+   {
+    "name": "Board (drag)",
+    "does": "Scrolls."
+   }
+  ],
+  "shows": [
+   "'PAUSED' and '<stage clock> · Stage N' (or 'Endless')",
+   "Build: groups Weapons (n / 5), Cards (n / 5), Passives ('n · not on the HUD'), Perks; each row the plate, stars and what it does; a spent once-a-run item (Phoenix Feather) reads '(used)'",
+   "Stats: 'Changed this run' count, a breakdown card (max HP by default), two columns of every stat with change pills (sage better, rock worse) since the run's start",
+   "Options: the purse with a coin 'picked up so far is kept · asks first'"
+  ],
+  "rules": [
+   "The pause screen counts as a screen for the one-screen rule.",
+   "Esc closes the abandon question first, then the pause."
+  ],
+  "debug_only": false,
+  "states": [
+   "Build tab",
+   "Build row opened",
+   "Stats tab with a source card",
+   "Options tab",
+   "abandon question"
+  ]
+ },
+ {
+  "id": "last_stand_fx",
+  "name": "Last Stand (slowed time overlay)",
+  "file": "game/ui/LastStandFx.gd",
+  "when": "When the Last Stand passive fires (toast 'LAST STAND'): the engine runs slowed for Run.LAST_STAND_SECONDS of real time; it gives the clock back while any screen pauses the run.",
+  "purpose": "Show the passive's slow-motion damage window.",
+  "controls": [],
+  "shows": [
+   "The world drained to a cold blue-grey with a red rim swelling with a heartbeat (core/shaders/last_stand.gdshader)"
+  ],
+  "rules": [
+   "Ends at once if the hero falls or the run ends."
+  ],
+  "debug_only": false,
+  "states": [
+   "active"
+  ]
+ },
+ {
+  "id": "down_revive",
+  "name": "DOWN! (★ 1 CHANCE LEFT ★)",
+  "file": "game/ui/ReviveScreen.gd",
+  "when": "1.2 s after the hero falls (Game.gd:2793), through Modal.REVIVE, which beats every other screen (priority 70): while he is down only Down! may open; level-ups are banked and chests/offers wait until he stands. Not shown when Phoenix Feather is ready (he stands up by himself, banner PHOENIX FEATHER). The run pauses. Closes on a decision or when the 8 s count runs out (= stay down).",
+  "purpose": "Revive once (plus Upgrade revives) or end the run.",
+  "controls": [
+   {
+    "name": "GET UP · WATCH AN AD",
+    "does": "Revives at the revive_hp share (half, more with Second Wind) with a blast that clears round him (Game._revive); uses a chance. It is a stand-in: no ad plays. Locked when no chance is left ('NO CHANCES LEFT')."
+   },
+   {
+    "name": "STAY DOWN (rock)",
+    "does": "Asks 'Stay down?' ('The run ends here, and the N gold comes home with you.', 'Stay down' / 'Not yet'), the count held meanwhile; confirmed, the run ends -> Results."
+   },
+   {
+    "name": "respawn (top right; developer 'Free revive button' or player debug mode)",
+    "does": "A free revive that does not use a chance."
+   },
+   {
+    "name": "hold time (debug)",
+    "does": "Holds the count."
+   },
+   {
+    "name": "Hit log: hold / copy (debug or developer 'Hit log')",
+    "does": "hold pauses the count ('go on' resumes); copy puts the last 30 s as text on the clipboard ('copied')."
+   }
+  ],
+  "shows": [
+   "Rock dim, 'N CHANCE(S) LEFT', DOWN!",
+   "A paper disc with the seconds counting down (8) and 'get up'; ticks in the last 3",
+   "'<killer> put you down.' with its badge (or 'Something put you down.')",
+   "'<clock> · N kills · Lv N'",
+   "'Stay down and the <coin> N gold still comes home.'",
+   "Debug only: the last 30 s list, newest first: time before the fall, badge, the creature's name in its colour, what it cost or healed, a red X on the fatal hit"
+  ],
+  "rules": [
+   "One chance a run plus Nerve/Second Wind's revives (1 + revives - used).",
+   "The gold revive was removed in pass 77 (GOLD_COST 150 and the 'gold' path remain in code, unused).",
+   "A death banks the purse like an extraction (pass 70)."
+  ],
+  "debug_only": false,
+  "states": [
+   "1 chance left",
+   "no chances left (GET UP locked)",
+   "debug with hit log",
+   "stay down question"
+  ]
+ },
+ {
+  "id": "portal",
+  "name": "STAGE N CLEAR (BOSS DOWN)",
+  "file": "game/ui/PortalDialog.gd",
+  "when": "After the stage's boss dies a portal opens (toast 'PORTAL OPEN: extract before Endless') and a 60 s countdown to Endless starts (HUD clock 'ENDLESS IN'). Walking into the portal asks through Modal.PORTAL (priority 60; Game.gd:2658). The run pauses but the countdown keeps running while the dialog is up (Game.tick_portal_countdown). Closes on EXTRACT, NOT YET, back/Esc, or by itself when the countdown ends.",
+  "purpose": "Leave with the run's gold before Endless, or keep fighting.",
+  "controls": [
+   {
+    "name": "Extract ('Safe · run ends', the run's gold big in brass)",
+    "does": "Ends the run as extracted (Save 'extract_<map>_<n>', totals) -> Results."
+   },
+   {
+    "name": "NOT YET (or back / Esc)",
+    "does": "Closes with no decision; the run goes on, toast 'The portal waits'; the dialog asks again once the hero steps out and walks back in."
+   }
+  ],
+  "shows": [
+   "A BOSS DOWN tag and 'STAGE N CLEAR'",
+   "The Extract road",
+   "The Endless card (not a road): 'Endless', 'Starts in' with the seconds counting down (rock in its last seconds), what Endless is, and 'The N gold comes home either way.'",
+   "A footer saying what NOT YET means"
+  ],
+  "rules": [
+   "If the countdown runs out with the dialog up, it closes itself and Endless starts behind it (Game._on_endless_started, Game.gd:2720).",
+   "There is no 'continue to the next stage' since pass 87: each stage is its own run."
+  ],
+  "debug_only": false,
+  "states": [
+   "countdown running",
+   "countdown in its last seconds (rock)"
+  ]
+ },
+ {
+  "id": "endless",
+  "name": "Endless (HUD state, ENDLESS banner)",
+  "file": "game/ui/HUD.gd",
+  "when": "When the portal's countdown ends without an extraction: the portal closes, an ENDLESS banner in rock, then a big wave and a stronger one every 10 s until the hero falls (WaveDirector; timeline_data.endless).",
+  "purpose": "An open-ended score attack after the stage's boss.",
+  "controls": [],
+  "shows": [
+   "Clock plate on ink with the time survived in Endless and 'WAVE n' under it, pulsing on each new wave"
+  ],
+  "rules": [
+   "Creatures grow in HP, attack and speed each wave and resist non-explosive knockback more over 90 s (BALANCING.md, pass 103/106).",
+   "0.35 XP share, rare coins.",
+   "The run ends only by death or abandon; Results reads 'Fell in Endless'."
+  ],
+  "debug_only": false,
+  "states": [
+   "wave 1",
+   "late waves"
+  ]
+ },
+ {
+  "id": "results",
+  "name": "Results (★ EXTRACTED ★ / ★ RUN OVER ★ / ★ FELL IN ENDLESS ★)",
+  "file": "game/ui/ResultsScreen.gd",
+  "when": "1.2 s after any run ends (extract, stay down / count out, abandon) (Game.end_run, Game.gd:2965). Back gesture: dismisses a survey card first, else to the title. No header or back square.",
+  "purpose": "Tell the run's story: the gold banked, the kills and damage over time, and what was unlocked.",
+  "controls": [
+   {
+    "name": "Anywhere but a button (tap)",
+    "does": "First tap hurries the sequence playing (SPEED_UP), a second ends it (ResultsScreen.gd:817)."
+   },
+   {
+    "name": "PLAY AGAIN",
+    "does": "Starts the same stage again with the same hero."
+   },
+   {
+    "name": "Upgrade (turquoise)",
+    "does": "Opens the Upgrade board."
+   },
+   {
+    "name": "Main Menu",
+    "does": "Back to the title."
+   },
+   {
+    "name": "Board (drag)",
+    "does": "Scrolls freely once the show is over (held at the top while the first sequence plays)."
+   }
+  ],
+  "shows": [
+   "Star line (Extracted / Fell in Endless / Run over), the stage line ('STAGE 1 · SUNDOWN · BEATEN') in the stage colour, the run time big, 'Endless m:ss · wave n' when it ran, 'Lv N · N kills · N chests · N evolutions'",
+   "Hero panel: his badge (played look), 'Banked' counting up along the run's purse curve, the purse before and after; a NEW BEST seal when the run beat a previous best by 0.5 s (ResultsScreen.gd:222)",
+   "Run performance: the kills chart drawn left to right with badges (a grave for each fall, a skull per boss, a crown per Elite, a gear per special), Kills and Damage counters, then 'Damage dealt': a row per source (plate or '?', name, damage number over a share bar, percent) arriving as the line reaches the moment each joined",
+   "'Unlocked this run': each unlock landing with an UNLOCKED (or FOR SALE for a hero) stamp; 'Unlock progress': bars filling from where they stood (this run's part in sage)"
+  ],
+  "rules": [
+   "A death and an abandon bank the purse like an extraction (pass 70).",
+   "A run of 60 s or more may bring the end-of-run survey 1.4 s after the show ends.",
+   "Music mu_results."
+  ],
+  "debug_only": false,
+  "states": [
+   "extracted",
+   "run over (died)",
+   "fell in Endless",
+   "new best",
+   "with unlocks",
+   "survey over it"
+  ]
+ },
+ {
+  "id": "survey",
+  "name": "Survey card (\"A quick word\")",
+  "file": "game/ui/wanted/WSurvey.gd",
+  "when": "Over the Results screen 1.4 s after its show ends, when Analytics has a survey due (Analytics.survey_after_run: runs of 60 s or more, at most one every 3 counted runs, never twice a session, '[after N]' / '[run N]' tags from PostHog, never in the arena or without consent, Settings 'Questions after a run' on). Also from the developer menu's 'Surveys · show one now'.",
+  "purpose": "Ask the player a few questions written in PostHog Surveys.",
+  "controls": [
+   {
+    "name": "Rating numbers / choice buttons / text box",
+    "does": "Answer the page's question (a rating row with its two labels; single choice; multiple choice 'Pick any that fit.'; a text box 'Type here' that raises the phone keyboard and lifts the card above it)."
+   },
+   {
+    "name": "NEXT / SEND",
+    "does": "NEXT keeps the answer and turns the page; SEND on the last page sends every answer ('survey sent'). Needs an answer unless the question is optional."
+   },
+   {
+    "name": "NOT NOW (or the back gesture)",
+    "does": "Dismisses; PostHog hears 'survey dismissed'; answers so far are not sent."
+   },
+   {
+    "name": "Don't ask me again (under the card)",
+    "does": "Dismisses and turns Settings' 'Questions after a run' off (survey_opt_out)."
+   },
+   {
+    "name": "Dim",
+    "does": "Nothing."
+   }
+  ],
+  "shows": [
+   "Star line 'A quick word', '1 / 3' progress, the question and its line"
+  ],
+  "rules": [
+   "A finger outside the text box drops its focus (hides the keyboard)."
+  ],
+  "debug_only": false,
+  "states": [
+   "rating page",
+   "choice page",
+   "text page with keyboard"
+  ]
+ },
+ {
+  "id": "confirm",
+  "name": "Question card (★ HOLD ON ★)",
+  "file": "game/ui/wanted/WConfirm.gd",
+  "when": "Before any deed that cannot be undone: buying a hero, Take it all back, wiping the save, abandoning the run, staying down, leaving the arena, resetting surveys. One per host; works paused or not.",
+  "purpose": "The kit's one confirmation pop-up.",
+  "controls": [
+   {
+    "name": "Way out (paper, left: 'Not now', 'Keep them', 'Keep it', 'Keep playing', 'Not yet', 'Stay', 'Keep')",
+    "does": "Cancels."
+   },
+   {
+    "name": "The deed (rock or primary, right)",
+    "does": "Does it."
+   },
+   {
+    "name": "Dim, back gesture, Esc",
+    "does": "Cancel."
+   }
+  ],
+  "shows": [
+   "'Hold on' star line, the question in slab, one plain line on what is lost, an ink rule, the two buttons"
+  ],
+  "rules": [
+   "Replaced every old 'Sure? Tap again' button (pass 45)."
+  ],
+  "debug_only": false,
+  "states": [
+   "any of the questions above"
+  ]
+ },
+ {
+  "id": "debug_hand",
+  "name": "Debug hand",
+  "file": "game/ui/DebugHand.gd",
+  "when": "From the 'debug' button on the level-up screen (developer 'Debug buttons on modals' or the player's debug mode).",
+  "purpose": "Hand over any weapon, evolution, line, passive, perk or mutation at any level to try a build.",
+  "controls": [
+   {
+    "name": "Item rows with a level box",
+    "does": "Tap to choose items and set how many levels of each."
+   },
+   {
+    "name": "Give",
+    "does": "Hands them over and closes; the offer underneath stays standing."
+   }
+  ],
+  "shows": [
+   "A list of every item in the game (a line handed over as the passive it is)"
+  ],
+  "rules": [
+   "Old UiKit look, not the Wanted kit."
+  ],
+  "debug_only": true,
+  "states": [
+   "open over the level-up"
+  ]
+ },
+ {
+  "id": "debug_panel",
+  "name": "Debug panel (in run)",
+  "file": "game/ui/DebugPanel.gd",
+  "when": "In a run when the developer menu's 'Debug panel in run' is on (shown from the start), or toggled with F1 on a PC (not in prod; Game.gd:1233). Not paused.",
+  "purpose": "Quick cheats while playing.",
+  "controls": [
+   {
+    "name": "Spawn 50 walkers / Spawn 100 swarmers",
+    "does": "Spawns packs of the map's 'walker' / 'swarmer' skins (Red Canyon: skeleton, fire_ant) 12 m ahead."
+   },
+   {
+    "name": "Spawn elite / Spawn boss",
+    "does": "Spawns an Elite / the map's boss."
+   },
+   {
+    "name": "Level up",
+    "does": "One level."
+   },
+   {
+    "name": "+500 gold",
+    "does": "Gold."
+   },
+   {
+    "name": "God mode",
+    "does": "Toggles invulnerability."
+   },
+   {
+    "name": "Kill all",
+    "does": "Kills every creature."
+   },
+   {
+    "name": "Vacuum",
+    "does": "Pulls every pickup in."
+   },
+   {
+    "name": "Chest here",
+    "does": "A chest 2 m ahead."
+   },
+   {
+    "name": "Give random weapon",
+    "does": "A weapon not held."
+   },
+   {
+    "name": "Max all held",
+    "does": "Maxes every held item."
+   }
+  ],
+  "shows": [
+   "'fps · alive · proj · gems' line"
+  ],
+  "rules": [
+   "Old UiKit look; its header comment says 'enable in Options', but the switch is in the developer menu."
+  ],
+  "debug_only": true,
+  "states": [
+   "visible"
+  ]
+ },
+ {
+  "id": "debug_arena",
+  "name": "Debug arena (ArenaPanel)",
+  "file": "game/ui/ArenaPanel.gd",
+  "when": "From the title's ARENA (player debug mode) or the developer menu's 'Arena'. The map and the hero with nothing coming unless asked ('DEBUG ARENA' banner). The game waits while the bottom sheet is open. Leaving returns to the title; nothing done here reaches the save.",
+  "purpose": "A test room for every creature, item, hero, look and drop.",
+  "controls": [
+   {
+    "name": "Quick column (right edge): ARENA / AGAIN / CLEAR / WAVES (HOLD while running) / LV +1",
+    "does": "Open the sheet; repeat the last spawn; clear every creature and shot; run or hold the real wave director; level the hero. A status line under them."
+   },
+   {
+    "name": "ENEMY tab",
+    "does": "Every creature by group (roster, specials, Elites, bosses, retired) with how many, where (near, ring, far), an Elite modifier and hold still; a boss comes as a real boss."
+   },
+   {
+    "name": "WAVES tab",
+    "does": "Arena clock, a crowd from the roster at that minute, a swarm of one kind, the director run or held, an Elite or special now."
+   },
+   {
+    "name": "ITEMS tab",
+    "does": "Every weapon (mutations and evolution stacked under it), evolution, line, passive, perk with - / + / max past the caps, INFO (what the player reads), EVO; Card look and Weapon looks rows."
+   },
+   {
+    "name": "HERO tab",
+    "does": "Swap hero in place, the hero's looks as chips ('USE FROM NOW ON' keeps one), levels (+1, +5, +10, to 30), level-up cards on/off, god mode, heal, a hit, Go down (the real fall), gold, rerolls."
+   },
+   {
+    "name": "DROPS tab",
+    "does": "Every power-up by the hero, a chest, a boss chest, gem or coin showers."
+   },
+   {
+    "name": "WORLD tab",
+    "does": "Game speed, freeze the crowd, kill/remove everything, camera zoom, stats overlay, training dummies and attacking dummies, the field, 'Leave the arena' (asks 'Leave the arena?' 'Back to the title. Nothing done here is kept.', 'Leave' / 'Stay')."
+   }
+  ],
+  "shows": [
+   "Bottom sheet with six tabs (ENEMY, WAVES, ITEMS, HERO, DROPS, WORLD)",
+   "Art variants section with look chips (shelved looks behind a choice)"
+  ],
+  "rules": [
+   "A death respawns the hero at once (Game.arena_respawn) unless HERO's Go down.",
+   "The quick column keeps under the boss bar and the camera cutout.",
+   "Old UiKit look."
+  ],
+  "debug_only": true,
+  "states": [
+   "sheet closed (quick column)",
+   "each tab open"
+  ]
+ },
+ {
+  "id": "shop_screen_legacy",
+  "name": "Upgrade (old meta shop forwarder)",
+  "file": "game/ui/ShopScreen.gd",
+  "when": "Never from the game's UI: nothing links to ShopScreen.tscn except tools/smoke_run.gd's screen list.",
+  "purpose": "Forwards an old route to the Upgrade board.",
+  "controls": [
+   {
+    "name": "Open Upgrade",
+    "does": "Goes to the Upgrade board."
+   }
+  ],
+  "shows": [
+   "'The shop is the Upgrade board now.'"
+  ],
+  "rules": [
+   "Dead screen (old UiKit look)."
+  ],
+  "debug_only": false,
+  "states": []
+ }
+]
