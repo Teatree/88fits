@@ -15,7 +15,7 @@ value = 0.25
 script = ExtResource("2_3w3bq")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.173
 
 [sub_resource type="Resource" id="Resource_05vki"]
 script = ExtResource("2_3w3bq")
@@ -30,16 +30,22 @@ value = 0.25
 
 [sub_resource type="Resource" id="Resource_ponup"]
 script = ExtResource("2_3w3bq")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_0fn7n"]
+script = ExtResource("2_3w3bq")
 stat = "speed"
 value = 4.0
 
-[sub_resource type="Resource" id="Resource_0fn7n"]
+[sub_resource type="Resource" id="Resource_mdkl3"]
 script = ExtResource("2_3w3bq")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
-[sub_resource type="Resource" id="Resource_mdkl3"]
+[sub_resource type="Resource" id="Resource_b7qe7"]
 script = ExtResource("2_3w3bq")
 stat = "damage"
 op = "mul"
@@ -50,14 +56,14 @@ script = ExtResource("3_05vki")
 tags = ["thrown"]
 base = {
 "amount": 1.0,
-"cooldown": 1.5,
+"cooldown": 1.7647,
 "damage": 22.0,
 "knockback": 4.0,
 "pierce": 99.0,
 "range": 11.0,
 "speed": 20.0
 }
-levels = [[], [SubResource("Resource_obcj2"), SubResource("Resource_3w3bq")], [SubResource("Resource_05vki"), SubResource("Resource_rurrr")], [SubResource("Resource_ponup")], [SubResource("Resource_0fn7n"), SubResource("Resource_mdkl3")]]
+levels = [[], [SubResource("Resource_obcj2"), SubResource("Resource_3w3bq")], [SubResource("Resource_05vki"), SubResource("Resource_rurrr"), SubResource("Resource_ponup")], [SubResource("Resource_0fn7n")], [SubResource("Resource_mdkl3"), SubResource("Resource_b7qe7")]]
 max_level = 5
 evolves_into = "war_lance"
 sfx = {

@@ -20,6 +20,14 @@
 ## up to HEAT_ENERGY, clearly hot at the top). The Hellfire Battery's overpressure (params.overpressure {every}): at full
 ## pressure every `every`th volley is a double volley. Pass 81 (lane POLISH): the bees' line is `params.missile.trail_style`
 ## (dash, buzz, bumble, zip, beads; ProjectileManager.BEE_LOOKS, "dash" without one) and `trail_color`, handed to each bee.
+## Pass 109 (lane VFX; Garry: "there are some flaps that open on the top of it. Looks like they are clipping through and it
+## looks broken. The launch animation should be that of the Launcher looking up and shooting up"): a launcher whose
+## `params.familiar.launch_pitch` (degrees) is above 0 looks up before a volley (LAUNCH_RAISE_RATE; the first rocket waits
+## until it is RAISED_SHARE of the way up, at most RAISE_WAIT s), fires every rocket from the open end of the tube in turn
+## (its Tip, along the tubes: launch_dir, fanned a little), holds there through the volley and settles back after
+## LAUNCH_SETTLE s; its tube cluster never turns (the quarter turns pushed the tubes through the box's top) and the kick no
+## longer swells the cluster. `params.missile.rise` (ProjectileManager.launch_missile) keeps the rockets climbing through
+## their corkscrew before they turn onto their targets.
 class_name MissilePod
 extends WeaponBehavior
 
@@ -31,6 +39,15 @@ const RED_BEE := Color(1.0, 0.18, 0.12)
 const HEAT_COLOR := Color(1.0, 0.36, 0.08)
 const HEAT_ENERGY := 1.4
 const STEAM := Color(0.93, 0.92, 0.9)
+## Pass 109: the look up (how fast it rises, how fast it settles), the share of the way up the first rocket waits for,
+## the longest it waits, and the seconds it stays up after the volley's last rocket.
+const LAUNCH_RAISE_RATE := 14.0
+const LAUNCH_SETTLE_RATE := 5.0
+const RAISED_SHARE := 0.8
+const RAISE_WAIT := 0.2
+const LAUNCH_SETTLE := 0.3
+## How wide the volley fans round the tubes' line when the launcher looks up (a share of the level fan).
+const UP_FAN := 0.35
 
 var _familiar: Node3D
 var _orbit := 0.0
@@ -70,6 +87,12 @@ var _heat_shown := -1.0
 var _top_volleys := 0
 var _fired := false
 var _cluster_spins := true
+## Pass 109: the launcher's look up (radians now, and where it is going), the seconds it holds there after a launch, and
+## how long the next rocket has waited for it.
+var _pitch := 0.0
+var _pitch_want := 0.0
+var _hold_up := 0.0
+var _raise_wait := 0.0
 ## Double volleys the overpressure gave (tests).
 var doubled := 0
 
@@ -79,7 +102,8 @@ func _on_setup() -> void:
 	_orbit = randf() * TAU
 	_entrance = visual.get_node_or_null("Familiar/Body/Entrance") as Node3D
 	_cluster = visual.get_node_or_null("Familiar/Body/Cluster")
-	_cluster_spins = bool(inst.params.get("cluster_spin", true))
+	# pass 109: a launcher that looks up fires its tubes in turn and never turns the cluster
+	_cluster_spins = bool(inst.params.get("cluster_spin", true)) and launch_pitch() <= 0.0
 	_tips.clear()
 	# every tip the cluster has, Tip1 up (pass 53: the pod's four, the Hellfire Battery's six)
 	var k := 1
@@ -279,7 +303,8 @@ func _tick_pod(delta: float) -> void:
 		return
 	_cluster.rotation.z = lerp_angle(_cluster.rotation.z, _spin_target, clampf(delta * 12.0, 0.0, 1.0))
 	_kick = maxf(_kick - delta * 6.0, 0.0)
-	_cluster.scale = Vector3(1.0 + 0.12 * _kick, 1.0 + 0.12 * _kick, 1.0 - 0.1 * _kick)
+	# pass 109: the kick squashes the cluster along the tubes only (swelling it pushed the tubes through the box)
+	_cluster.scale = Vector3(1.0, 1.0, 1.0 - 0.1 * _kick)
 	if _queue.is_empty() and not _empty.is_empty():
 		_reload_t -= delta
 		if _reload_t <= 0.0:
@@ -306,6 +331,48 @@ func _familiar_param(key: String, default: float) -> float:
 	return float(f.get(key, default)) if f is Dictionary else default
 
 
+## Pass 109: how far the launcher looks up for a volley, in radians (`params.familiar.launch_pitch` degrees; 0 = it fires
+## level as before: the bees' hive).
+func launch_pitch() -> float:
+	return deg_to_rad(clampf(_familiar_param("launch_pitch", 0.0), 0.0, 85.0)) if inst else 0.0
+
+
+## The look up eased each tick: up while a volley is queued or just fired (LAUNCH_SETTLE), back down after.
+func _tick_pitch(delta: float) -> void:
+	var lp := launch_pitch()
+	if lp <= 0.0:
+		_pitch = 0.0
+		return
+	_hold_up = maxf(_hold_up - delta, 0.0)
+	_pitch_want = lp if (not _queue.is_empty() or _hold_up > 0.0) else 0.0
+	if _pitch < _pitch_want:
+		_pitch = minf(_pitch + LAUNCH_RAISE_RATE * delta * maxf(_pitch_want - _pitch, 0.15), _pitch_want)
+	else:
+		_pitch = lerpf(_pitch, _pitch_want, clampf(delta * LAUNCH_SETTLE_RATE, 0.0, 1.0))
+
+
+## The launcher's look up now (radians; tests and the capture).
+func pitch() -> float:
+	return _pitch
+
+
+## Whether the next rocket may leave: a launcher that looks up waits until it is RAISED_SHARE of the way up (RAISE_WAIT s
+## at most, so a slow frame never holds a volley back).
+func _raised(delta: float) -> bool:
+	var lp := launch_pitch()
+	if lp <= 0.0 or _pitch >= lp * RAISED_SHARE:
+		_raise_wait = 0.0
+		return true
+	_raise_wait += delta
+	return _raise_wait >= RAISE_WAIT
+
+
+## Where a launcher that looks up points its tubes: the pod's own forward (its yaw and its pitch).
+func launch_dir() -> Vector3:
+	var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
+	return (aim * cos(_pitch) + Vector3(0, sin(_pitch), 0)).normalized()
+
+
 func _place(delta: float) -> void:
 	if _familiar == null:
 		return
@@ -319,16 +386,20 @@ func _place(delta: float) -> void:
 	want -= aim * 0.12 * _recoil
 	_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 8.0, 0.0, 1.0))
 	_familiar.rotation.y = _aim_yaw
-	_familiar.rotation.x = -0.3 * _recoil
+	# pass 109: a launcher that looks up dips back a little on each launch instead of nodding forward
+	_familiar.rotation.x = (_pitch - 0.1 * _recoil) if launch_pitch() > 0.0 else -0.3 * _recoil
 	_familiar.rotation.z = sin(t * 1.9) * 0.06
 
 
 func _tick(delta: float) -> void:
+	_tick_pitch(delta)
 	if not _queue.is_empty():
 		_queue_t -= delta
-		if _queue_t <= 0.0:
+		if _queue_t <= 0.0 and _raised(delta):
 			_queue_t = LAUNCH_GAP
 			_launch_one()
+			if launch_pitch() > 0.0:
+				_hold_up = LAUNCH_SETTLE
 	var enemies: EnemyManager = game.enemies
 	# the pod faces what its seekers will go for (pass 48: the strong and the close for a priority weapon); seekers hunt
 	# off the screen too (pass 54)
@@ -377,6 +448,19 @@ func _launch_point() -> Vector3:
 	return (_familiar.global_position if _familiar else player.aim_origin(player.forward())) + Vector3(0, 0.2, 0)
 
 
+## Pass 109: the open end of tube `n` (its Tip, Tip1 up in turn, a little past it along the tubes); a pod without tips
+## (the Missile Massacre's) fires from the front of its middle, Vector3.INF without a pod.
+func _muzzle_of(n: int) -> Vector3:
+	if _tips.is_empty():
+		if _familiar and _familiar.is_inside_tree():
+			return _familiar.global_position + launch_dir() * 0.45
+		return Vector3.INF
+	var tip: Node3D = _tips[n % _tips.size()]
+	if not is_instance_valid(tip) or not tip.is_inside_tree():
+		return Vector3.INF
+	return tip.global_position + launch_dir() * 0.08
+
+
 ## A Tarantula Hawk from the pod at the strongest creature near that no hawk holds yet (TarantulaHawk.pick).
 func _send_hawk(cfg: Dictionary) -> void:
 	var from := _launch_point()
@@ -410,6 +494,13 @@ func _launch_one() -> void:
 	# a fan: alternate sides of the aim, wider for the later ones, all tilted up; the corkscrew does the rest
 	var side: float = (1.0 if k % 2 == 0 else -1.0) * (0.3 + 0.22 * float(k / 2))
 	var dir: Vector3 = (aim + aim.rotated(Vector3.UP, PI * 0.5) * side + Vector3(0, 0.9, 0)).normalized()
+	# pass 109: a launcher that looks up fires out of the open end of the tube whose turn it is, along its tubes (fanned a
+	# little round them), so the rockets visibly leave the muzzle going up
+	if launch_pitch() > 0.0:
+		var muzzle := _muzzle_of(_next_tube)
+		if muzzle != Vector3.INF:
+			from = muzzle
+		dir = (launch_dir() + aim.rotated(Vector3.UP, PI * 0.5) * side * UP_FAN).normalized()
 	var red := pollen_on()
 	var params := {
 		"wander": _missile_param("wander", 0.5),
@@ -417,6 +508,7 @@ func _launch_one() -> void:
 		"spiral": _missile_param("spiral", 7.0),
 		"life": _missile_param("life", 4.5),
 		"trail": 4 if red else int(_missile_param("trail", 1.0)),
+		"rise": _missile_param("rise", 0.3),
 	}
 	# pass 81 (lane POLISH): the bees' trail look and colour (ProjectileManager.BEE_LOOKS; "" = the default look)
 	var m = inst.params.get("missile", {})

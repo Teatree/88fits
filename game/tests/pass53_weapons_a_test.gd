@@ -611,10 +611,11 @@ func test_the_hellfire_battery_starts_hot_keeps_half_on_a_hit_and_doubles_every_
 	for k in range(1, 7):
 		assert_str(hf_scene).contains('[node name="Tube%d" type="MeshInstance3D" parent="Familiar/Body/Cluster"]' % k)
 	assert_bool(mp.visual.get_node_or_null("Familiar/Body/Cluster/Merged_Tube1") != null or mp.visual.get_node_or_null("Familiar/Body/Cluster/Tube6") != null).is_true()
-	# the plain pod's cluster still turns, with its four tips
+	# the plain pod has its four tips; since pass 109 it looks up to fire (familiar.launch_pitch) and its cluster no longer
+	# turns (Garry: the turning tubes clipped through the box)
 	var pod := _pod(w, _inst("rocket_pod"))
 	assert_int(pod._tips.size()).is_equal(4)
-	assert_bool(pod._cluster_spins).is_true()
+	assert_bool(pod._cluster_spins).is_false()
 	# at full pressure every fourth volley is a double volley
 	_creature(em, Vector3(4, 0, 0))
 	em._rebuild_grid()

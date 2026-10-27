@@ -14,7 +14,7 @@ value = 0.25
 script = ExtResource("2_6l2o3")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.173
 
 [sub_resource type="Resource" id="Resource_ibshn"]
 script = ExtResource("2_6l2o3")
@@ -23,21 +23,27 @@ value = 1.0
 
 [sub_resource type="Resource" id="Resource_wtbsb"]
 script = ExtResource("2_6l2o3")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_gjl1g"]
+script = ExtResource("2_6l2o3")
 stat = "damage"
 op = "mul"
 value = 0.3
 
-[sub_resource type="Resource" id="Resource_gjl1g"]
+[sub_resource type="Resource" id="Resource_3vonp"]
 script = ExtResource("2_6l2o3")
 stat = "range"
 value = 2.0
 
-[sub_resource type="Resource" id="Resource_3vonp"]
+[sub_resource type="Resource" id="Resource_yn6gr"]
 script = ExtResource("2_6l2o3")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_yn6gr"]
+[sub_resource type="Resource" id="Resource_vkurf"]
 script = ExtResource("2_6l2o3")
 stat = "cooldown"
 op = "mul"
@@ -49,14 +55,14 @@ behavior = "Frisbee"
 tags = ["disc"]
 base = {
 "amount": 1.0,
-"cooldown": 1.2,
+"cooldown": 1.4118,
 "damage": 14.0,
 "knockback": 1.5,
 "pierce": 999.0,
 "range": 12.0,
 "speed": 13.0
 }
-levels = [[], [SubResource("Resource_202d1"), SubResource("Resource_6l2o3")], [SubResource("Resource_ibshn")], [SubResource("Resource_wtbsb"), SubResource("Resource_gjl1g")], [SubResource("Resource_3vonp"), SubResource("Resource_yn6gr")]]
+levels = [[], [SubResource("Resource_202d1"), SubResource("Resource_6l2o3")], [SubResource("Resource_ibshn"), SubResource("Resource_wtbsb")], [SubResource("Resource_gjl1g"), SubResource("Resource_3vonp")], [SubResource("Resource_yn6gr"), SubResource("Resource_vkurf")]]
 max_level = 5
 evolves_into = "flying_saucer"
 sfx = {

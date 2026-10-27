@@ -214,7 +214,8 @@ func test_a_slightly_bigger_blast_and_twice_the_knockback() -> void:
 	# the rest of the weapon's numbers are untouched
 	assert_float(float(gp.base["area"])).is_equal_approx(3.0, 0.0001)
 	assert_float(float(lg.base["damage"])).is_equal_approx(25.0, 0.0001)
-	assert_float(float(lg.base["cooldown"])).is_equal_approx(2.2, 0.0001)
+	# (pass 109: 2.2 / 0.85, level 1 of the attack-speed ramp, BALANCING.md 52.ATKSPD)
+	assert_float(float(lg.base["cooldown"])).is_equal_approx(2.5882, 0.0001)
 	assert_float(float(gp.base["damage"])).is_equal_approx(45.0, 0.0001)
 	assert_float(_inst("lob_grenade").stat("knockback")).is_equal_approx(14.0, 0.0001)
 	# the fuse is a rule in the base params of both, so every look has it

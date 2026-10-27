@@ -23,6 +23,10 @@ depth=tight (the default, pass 49's lesson): each view's own depth range, neares
 mapped onto bright..dark, and the frames are written Raw (the default AgX view transform squeezed every depth video into
 one flat grey shape, and Wan walked the far legs on nothing). depth=wide is one range for all views (the first beetle
 run); both are written Raw.
+zoom=1.0 (pass 109): the orthographic frame this many times tighter (written to meta.json "zoom"), for a view whose
+figure is small in the shared frame (an armadillo seen head-on: Wan smeared its legs at ~100 px); gen_ctl divides that
+view's walk size by it, so the creature keeps one size as it turns. Use it with views= on a driver of its own (the recipe's
+view_drivers) and fit_ref for that view.
 amp=1.7 (pass 49): the bones matching `amp_bones` swing that much wider round their own average pose over the cycle (the
 axis kept, the angle scaled), so a real creature's small step reads at sprite size; the default pattern matches leg
 names (leg, thigh, calf, shin, foot, toe, tarsus, femur, tibia); the beetle's unnamed legs need amp_bones=^Bone\\.00[345].
@@ -386,6 +390,7 @@ def main():
     _label, _yaw, _basis, fwd_vec = R.forward_guess(arm, alias)
     fwd = R.forward_vector(A.get("forward", "-Y"), fwd_vec)
     cam = R.make_camera(size)
+    zoom = float(A.get("zoom", "1") or 1.0)
 
     # ------------------------------------------------------------ materials
     def depth_material():
@@ -453,7 +458,7 @@ def main():
             raise SystemExit("blender_depth_drivers: view %r is not one of %s" % (view, ", ".join(R.VIEWS)))
         d = os.path.join(out, view)
         os.makedirs(d, exist_ok=True)
-        R.place_camera(cam, target, dist, fwd, R.VIEWS[view], pitch, ortho)
+        R.place_camera(cam, target, dist, fwd, R.VIEWS[view], pitch, ortho / zoom)
         at(0)
         # clay first, so a bad framing shows before the depth frames
         R.set_material(body, clay)
@@ -504,7 +509,7 @@ def main():
             "action": act.name if act is not None else None, "range": [f0, f1], "clip_range": [F0, F1], "start": A.get("start"), "end": A.get("end"), "fps": fps,
             "frames": N, "cycles": CYCLES, "total": total, "views": views, "depth": depth_mode, "depth_ranges": ranges,
             "amp": amp, "amp_bones": amp_re if abs(amp - 1.0) > 0.001 else None, "amp_matched": amp_matched, "smooth": smooth, "drop_islands": int(A.get("drop_islands", "0") or 0) or None, "dropped": dropped or None, "skin": skin or None, "skin_radius": float(A.get("skin_radius", "0.06") or 0.06) if skin else None,
-            "pitch": pitch, "size": size, "extent": extent, "forward": A.get("forward", "-Y"), "inplace": inplace,
+            "pitch": pitch, "size": size, "extent": extent, "zoom": zoom, "forward": A.get("forward", "-Y"), "inplace": inplace,
             "albedo": os.path.relpath(albedo, R.REPO).replace("\\", "/") if albedo else None, "scale_applied": factor,
             "notes": "", "legs": legs.describe() if legs else None,
             ("gait" if mode == "gait" else "death"): gopt if proc else None}

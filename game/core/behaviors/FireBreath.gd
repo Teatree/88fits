@@ -21,6 +21,11 @@
 ## Cheap, visible: pooled flame billboards streaming down the cone (Fx.breath_jet), a few embers, a wash of light on the
 ## sand under it (Telegraphs.wash) and a scorch that fades where it burnt; the lighter's pop as it starts; a whoosh loop
 ## for the duration (Audio.play_loop, `sfx.loop`) over the start sound (`sfx.fire`). Numbers: BALANCING.md §41.
+## Pass 109 (lane VFX; Garry: "Doesn't look like anything at the moment ... more like fire and more like breath? Maybe a
+## simple cheap 3d particle thing?"): the flames are particles now (core/systems/BreathFlames.gd: soft puffs thrown out of
+## his mouth, fast there and slowing down the cone, white-hot to orange to red to smoke, and a bright core at the mouth),
+## pointed along his facing every frame of the breath and left to burn out when it ends; Fx.breath_jet is no longer
+## called. The wash on the sand and the scorch stay.
 class_name FireBreath
 extends WeaponBehavior
 
@@ -33,8 +38,8 @@ const STILL_DEFAULTS := {"seconds": 2.0, "duration_mult": 2.0, "damage_mult": 1.
 const MIN_DEG := 15.0
 const RING_DEG := 359.0
 ## The estimate's crowd is WeaponInstance.BREATH_CATCH (HeroPower.crowd_of).
-## The look: flames emitted every FX_EVERY seconds, this many a go at intensity 1 (about 40 alive at once over a 5 m
-## cone), the wash on the sand redrawn every WASH_EVERY, the scorch left at the end.
+## The look: the wash on the sand redrawn every WASH_EVERY, the scorch left at the end (pass 109: the flames are
+## BreathFlames' particles; FX_EVERY and FX_FLAMES were Fx.breath_jet's pace, kept for the tools that read them).
 const FX_EVERY := 0.045
 const FX_FLAMES := 3
 const WASH_EVERY := 0.22
@@ -56,6 +61,8 @@ var _ready_for := 0.0
 var _fx_t := 0.0
 var _wash_t := 0.0
 var _loop_on := false
+## Pass 109: the breath's particles (made at the first breath, never in a run sim).
+var _flames: BreathFlames
 ## Diagnostics and tests: breaths started, still ones among them, ticks landed, shoves, the creatures the last tick hit.
 var breaths := 0
 var still_breaths := 0
@@ -222,6 +229,7 @@ func _start(still: bool, ring: bool) -> void:
 	var at := origin()
 	sfx("fire", at)
 	_loop_start()
+	_flames_start()
 	var fx = game.get("fx")
 	if fx and fx.has_method("burst"):
 		fx.burst(at + dir() * 0.25, LIGHTER, 0.3)
@@ -256,6 +264,8 @@ func _end() -> void:
 	_breath_t = 0.0
 	_next_tick.clear()
 	_loop_stop()
+	if _flames:
+		_flames.stop()
 	var tg = game.get("telegraphs")
 	if tg and tg.has_method("scorch") and not Run.sim_mode:
 		var reach := stat("range", 5.0)
@@ -305,11 +315,11 @@ func _burn_tick() -> void:
 
 # ---------------------------------------------------------------- the look and the sound
 
-## The flames streaming down the cone (Fx.breath_jet), a few embers, the wash of light on the sand.
+## The flames streaming down the cone (pass 109: BreathFlames, pointed from his face along his facing), the wash of light
+## on the sand.
 func _show(delta: float) -> void:
 	if Run.sim_mode:
 		return
-	var fx = game.get("fx")
 	var reach := stat("range", 5.0)
 	var deg := 360.0 if _ring else cone_deg()
 	var d := dir()
@@ -317,11 +327,9 @@ func _show(delta: float) -> void:
 	var k := intensity()
 	# the last tenth of a second thins out, so the breath dies away instead of stopping dead
 	var fade := clampf(_breath_t / 0.12, 0.0, 1.0)
-	_fx_t -= delta
-	if fx and fx.has_method("breath_jet") and _fx_t <= 0.0:
-		_fx_t = FX_EVERY
-		var n: int = maxi(int(round(float(FX_FLAMES) * k * (1.6 if _ring else 1.0) * fade)), 0 if fade < 0.3 else 1)
-		fx.breath_jet(at, d, reach, deg, n, 0.55 * sqrt(k), blue(), _ring)
+	# pass 109: the particles follow his face and his facing (BreathFlames)
+	if _flames:
+		_flames.follow(at, d)
 	_wash_t -= delta
 	if _wash_t <= 0.0:
 		_wash_t = WASH_EVERY
@@ -334,6 +342,21 @@ func _show(delta: float) -> void:
 			var col := BLUE if blue() else ORANGE
 			# a ring's wash is a whole disc under him for 4-7 s: dimmer, a glow rather than a plate (the captures)
 			tg.wash(g, d, reach, deg, WASH_EVERY * 2.2, col, 0.28 * minf(k, 1.6) * fade * (0.55 if _ring else 1.0))
+
+
+## Pass 109: the particles start with the breath (made the first time), fitted to its reach, width, colour and look.
+func _flames_start() -> void:
+	if Run.sim_mode or game == null:
+		return
+	if _flames == null or not is_instance_valid(_flames):
+		_flames = BreathFlames.make(game)
+	_flames.start(stat("range", 5.0), 360.0 if _ring else cone_deg(), _ring, blue(), intensity())
+	_flames.follow(origin(), dir())
+
+
+## The particles (tests and the capture; null before the first breath).
+func flames() -> BreathFlames:
+	return _flames
 
 
 ## The loop id: `sfx.loop` ("" = none).
@@ -373,3 +396,6 @@ func _process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	_loop_stop()
+	if _flames and is_instance_valid(_flames):
+		_flames.queue_free()
+	_flames = null

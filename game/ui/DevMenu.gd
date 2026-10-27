@@ -198,6 +198,12 @@ func _refresh() -> void:
 	_list.add_child(_row("Hidden items · %d" % hidden, "›", func():
 		CollectionScreen.hidden_only = true
 		UiFx.go(get_tree(), "res://ui/CollectionScreen.tscn")))
+	# pass 109: the first-run Dynamite offer (FtueDynamite): TAKEN once the Dynamite was picked; a tap brings it back
+	var ftue_row := _row("First-run Dynamite offer · a tap brings it back", "TAKEN" if FtueDynamite.taken() else "DUE", func():
+		FtueDynamite.reset()
+		_refresh())
+	ftue_row.name = "FtueDynamiteRow"
+	_list.add_child(ftue_row)
 	# PostHog (pass 57): the key file, whether anything goes and why not, the queue and the last send; never the key
 	var an := _box()
 	an.name = "Analytics"

@@ -15,7 +15,7 @@ value = 0.25
 script = ExtResource("1_smvov")
 stat = "cooldown"
 op = "mul"
-value = -0.15
+value = -0.2189
 
 [sub_resource type="Resource" id="Resource_e7w21"]
 script = ExtResource("1_smvov")
@@ -31,16 +31,22 @@ value = 0.25
 
 [sub_resource type="Resource" id="Resource_f7mbw"]
 script = ExtResource("1_smvov")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_4t1lu"]
+script = ExtResource("1_smvov")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_4t1lu"]
+[sub_resource type="Resource" id="Resource_k3qhb"]
 script = ExtResource("1_smvov")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
-[sub_resource type="Resource" id="Resource_k3qhb"]
+[sub_resource type="Resource" id="Resource_onn10"]
 script = ExtResource("1_smvov")
 stat = "damage"
 op = "mul"
@@ -54,12 +60,12 @@ targeting = "ground"
 base = {
 "amount": 1.0,
 "area": 2.4,
-"cooldown": 2.6,
+"cooldown": 3.0588,
 "damage": 28.0,
 "knockback": 9.0,
 "lifetime": 25.0
 }
-levels = [[], [SubResource("Resource_1khjf"), SubResource("Resource_2rwqc")], [SubResource("Resource_e7w21"), SubResource("Resource_8v23b")], [SubResource("Resource_f7mbw")], [SubResource("Resource_4t1lu"), SubResource("Resource_k3qhb")]]
+levels = [[], [SubResource("Resource_1khjf"), SubResource("Resource_2rwqc")], [SubResource("Resource_e7w21"), SubResource("Resource_8v23b"), SubResource("Resource_f7mbw")], [SubResource("Resource_4t1lu")], [SubResource("Resource_k3qhb"), SubResource("Resource_onn10")]]
 max_level = 5
 evolves_into = "jackrabbit_mines"
 sfx = {

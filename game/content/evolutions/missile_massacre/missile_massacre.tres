@@ -31,11 +31,13 @@ params = {
 "familiar": {
 "bob": 0.1,
 "height": 1.65,
+"launch_pitch": 60.0,
 "radius": 1.25,
 "speed": 0.9
 },
 "missile": {
 "life": 5.0,
+"rise": 0.75,
 "spiral": 8.0,
 "trail": 1.0,
 "turn": 6.5,

@@ -1881,7 +1881,8 @@ func _show_next_level_cards() -> bool:
 		# pass 79 (lane MUT): a mutation level-up shows its offer in place of the three cards (Run.mutlvl_take, M2-M3)
 		if _mutlvl_open():
 			return true
-		var offer := CardPool.level_up_offer(3)
+		# pass 109: the first-run Dynamite offer takes the first card screen of level 4 or later (FtueDynamite)
+		var offer: Array = FtueDynamite.offer(3) if FtueDynamite.due(Run.level - _pending_levels) else CardPool.level_up_offer(3)
 		if offer.is_empty():
 			Run.add_gold(10, "empty_offer")
 			hud.toast("Nothing left to pick. +10 gold", UiKit.INK2)
@@ -1928,6 +1929,7 @@ func _on_card_chosen(card: Dictionary) -> void:
 		var t1 := Time.get_ticks_usec()
 		var line := CardPool.apply(card)
 		Perf.add("card.apply", t1)
+		FtueDynamite.note_pick(card)
 		hud.toast(line, UiKit.ACCENT)
 	var t2 := Time.get_ticks_usec()
 	Save.mark_hint("cards")
@@ -3369,9 +3371,35 @@ static func paint_white(mm: MultiMesh) -> void:
 ## The rocket's paint (its vertex colours) on a shader that lights only the hot exhaust, and turns the whole of it
 ## white-hot by the instance's heat (pass 45: a loose rocket blinks red and white, then burns white through its climb
 ## and dive). Pass 48: dark on the sand, no longer a red glow all over.
+## Pass 109 (lane VFX; Garry: the rocket "is still very easy to miss ... I want it to be very very visible"): unshaded,
+## hazard-striped, a blinking nose, a rim (rocket.gdshader), then three next passes: a hot halo and a black edge round
+## it (rocket_outline.gdshader, two grown copies pushed behind it: ROCKET_HALO and ROCKET_EDGE metres) and its shape
+## through whatever stands in front of it (rocket_xray.gdshader). Four draws for every rocket in the air together.
+const ROCKET_HALO := 0.055
+const ROCKET_EDGE := 0.095
+const ROCKET_HALO_COLOR := Color(1.0, 0.55, 0.0)
+
+
 func _rocket_material() -> Material:
 	var m := ShaderMaterial.new()
 	m.shader = preload("res://core/shaders/rocket.gdshader")
+	var outline: Shader = preload("res://core/shaders/rocket_outline.gdshader")
+	var halo := ShaderMaterial.new()
+	halo.shader = outline
+	halo.set_shader_parameter("color", ROCKET_HALO_COLOR)
+	halo.set_shader_parameter("grow", ROCKET_HALO)
+	halo.set_shader_parameter("flash", 0.75)
+	var edge := ShaderMaterial.new()
+	edge.shader = outline
+	edge.set_shader_parameter("color", Color(0.02, 0.01, 0.0))
+	edge.set_shader_parameter("grow", ROCKET_EDGE)
+	# behind the halo, so the halo wins where both are
+	edge.set_shader_parameter("depth_push", 0.9)
+	var xray := ShaderMaterial.new()
+	xray.shader = preload("res://core/shaders/rocket_xray.gdshader")
+	m.next_pass = halo
+	halo.next_pass = edge
+	edge.next_pass = xray
 	return m
 
 

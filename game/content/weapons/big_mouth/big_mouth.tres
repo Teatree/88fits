@@ -20,25 +20,31 @@ value = 0.4
 script = ExtResource("1_46v6r")
 stat = "cooldown"
 op = "mul"
-value = -0.15
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_vihw5"]
+script = ExtResource("1_46v6r")
+stat = "cooldown"
+op = "mul"
+value = -0.2137
+
+[sub_resource type="Resource" id="Resource_15lai"]
 script = ExtResource("1_46v6r")
 stat = "damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_15lai"]
+[sub_resource type="Resource" id="Resource_kfbdn"]
 script = ExtResource("1_46v6r")
 stat = "range"
 value = 3.0
 
-[sub_resource type="Resource" id="Resource_kfbdn"]
+[sub_resource type="Resource" id="Resource_vqcmk"]
 script = ExtResource("1_46v6r")
 stat = "duration"
 value = 0.5
 
-[sub_resource type="Resource" id="Resource_vqcmk"]
+[sub_resource type="Resource" id="Resource_m7dcp"]
 script = ExtResource("1_46v6r")
 stat = "damage"
 op = "mul"
@@ -49,14 +55,14 @@ script = ExtResource("2_dassk")
 behavior = "LaserBeam"
 base = {
 "amount": 1.0,
-"cooldown": 3.2,
+"cooldown": 3.7647,
 "damage": 9.0,
 "duration": 2.0,
 "knockback": 0.0,
 "pierce": 99.0,
 "range": 13.0
 }
-levels = [[], [SubResource("Resource_dassk"), SubResource("Resource_s4tjk")], [SubResource("Resource_ybeac"), SubResource("Resource_vihw5")], [SubResource("Resource_15lai")], [SubResource("Resource_kfbdn"), SubResource("Resource_vqcmk")]]
+levels = [[], [SubResource("Resource_dassk"), SubResource("Resource_s4tjk"), SubResource("Resource_ybeac")], [SubResource("Resource_vihw5"), SubResource("Resource_15lai")], [SubResource("Resource_kfbdn")], [SubResource("Resource_vqcmk"), SubResource("Resource_m7dcp")]]
 max_level = 5
 evolves_into = "loudmouth"
 sfx = {

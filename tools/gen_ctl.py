@@ -85,6 +85,14 @@ def _width(img, depth=False):
     return float(xs.max() - xs.min() + 1) if len(xs) else 0.0
 
 
+def driver_zoom(drv):
+    """pass 109: how many times tighter a driver's frame is than the shared one (blender_depth_drivers zoom=; 1 without)."""
+    try:
+        return float(json.load(open(os.path.join(drv, "meta.json"), encoding="utf-8")).get("zoom") or 1.0)
+    except (OSError, ValueError):
+        return 1.0
+
+
 def model_scale(frames, ctl_dir, first=12):
     """How much to resize a walk so it has its model's size: Wan follows the painting's scale, and Klein paints some views
     bigger than their clay (pass 46: the scorpion's front walk came out 23% wider than its depth video, the back as wide),
@@ -517,7 +525,8 @@ def main():
         ref = fit_to_ctl(src, os.path.join(vdrv, view), share=share) if share > 0 else src
         frames, _ = animate.cycle_control(ref, key + "_ctl_" + view, cdir, wseed, prompt=motion,
                                           negative_extra=str(recipe.get("anim_negative", d.get("anim_negative", ""))), wan=recipe.get("wan"))
-        k = model_scale(frames, os.path.join(vdrv, view))
+        # pass 109: a driver rendered with zoom= (meta.json "zoom") walks the view bigger; its walk goes back to true size
+        k = model_scale(frames, os.path.join(vdrv, view)) / driver_zoom(vdrv)
         sizes[view] = k
         walks[view] = [drop_islands(f) for f in resized(frames, k)]
     log("  model scale per view: " + ", ".join("%s %.2f" % (v, k) for v, k in sizes.items()))

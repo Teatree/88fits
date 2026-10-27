@@ -12,7 +12,7 @@
   ],
   "base": {
     "damage": 14,
-    "cooldown": 1.1,
+    "cooldown": 1.2941,
     "amount": 1,
     "area": 1.0,
     "knockback": 4.0,
@@ -31,13 +31,18 @@
         "stat": "area",
         "op": "mul",
         "value": 0.15
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.12
+        "value": -0.186
       },
       {
         "stat": "amount",

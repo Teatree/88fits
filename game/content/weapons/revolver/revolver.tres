@@ -15,7 +15,7 @@ value = 0.25
 script = ExtResource("1_re1is")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.173
 
 [sub_resource type="Resource" id="Resource_aw0ce"]
 script = ExtResource("1_re1is")
@@ -29,17 +29,23 @@ value = 1.0
 
 [sub_resource type="Resource" id="Resource_v5pfy"]
 script = ExtResource("1_re1is")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_ael43"]
+script = ExtResource("1_re1is")
 stat = "damage"
 op = "mul"
 value = 0.3
 
-[sub_resource type="Resource" id="Resource_ael43"]
+[sub_resource type="Resource" id="Resource_fv18o"]
 script = ExtResource("1_re1is")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
-[sub_resource type="Resource" id="Resource_fv18o"]
+[sub_resource type="Resource" id="Resource_g7ltw"]
 script = ExtResource("1_re1is")
 stat = "amount"
 value = 1.0
@@ -50,14 +56,14 @@ tags = ["gun"]
 targeting = "priority"
 base = {
 "amount": 1.0,
-"cooldown": 1.0,
+"cooldown": 1.1765,
 "damage": 20.0,
 "knockback": 2.0,
 "pierce": 1.0,
 "range": 14.0,
 "speed": 33.0
 }
-levels = [[], [SubResource("Resource_5ayrc"), SubResource("Resource_87dax")], [SubResource("Resource_aw0ce"), SubResource("Resource_a46im")], [SubResource("Resource_v5pfy")], [SubResource("Resource_ael43"), SubResource("Resource_fv18o")]]
+levels = [[], [SubResource("Resource_5ayrc"), SubResource("Resource_87dax")], [SubResource("Resource_aw0ce"), SubResource("Resource_a46im"), SubResource("Resource_v5pfy")], [SubResource("Resource_ael43")], [SubResource("Resource_fv18o"), SubResource("Resource_g7ltw")]]
 max_level = 5
 evolves_into = "golden_revolver"
 sfx = {

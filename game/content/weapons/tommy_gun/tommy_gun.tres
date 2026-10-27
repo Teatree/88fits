@@ -18,27 +18,39 @@ value = 0.25
 
 [sub_resource type="Resource" id="Resource_jwkvf"]
 script = ExtResource("1_ih4tt")
+stat = "cooldown"
+op = "mul"
+value = -0.0811
+
+[sub_resource type="Resource" id="Resource_wy63a"]
+script = ExtResource("1_ih4tt")
 stat = "amount"
 value = 2.0
 
-[sub_resource type="Resource" id="Resource_wy63a"]
+[sub_resource type="Resource" id="Resource_jyo58"]
 script = ExtResource("1_ih4tt")
 stat = "damage"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_jyo58"]
+[sub_resource type="Resource" id="Resource_32bit"]
+script = ExtResource("1_ih4tt")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_6gotf"]
 script = ExtResource("1_ih4tt")
 stat = "amount"
 value = 2.0
 
-[sub_resource type="Resource" id="Resource_32bit"]
+[sub_resource type="Resource" id="Resource_g60dv"]
 script = ExtResource("1_ih4tt")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
-[sub_resource type="Resource" id="Resource_6gotf"]
+[sub_resource type="Resource" id="Resource_7vefo"]
 script = ExtResource("1_ih4tt")
 stat = "damage"
 op = "mul"
@@ -49,7 +61,7 @@ script = ExtResource("2_conqo")
 targeting = "priority"
 base = {
 "amount": 6.0,
-"cooldown": 1.4,
+"cooldown": 1.6471,
 "damage": 3.0,
 "knockback": 0.6,
 "pierce": 2.0,
@@ -57,7 +69,7 @@ base = {
 "speed": 22.0,
 "spread_deg": 8.0
 }
-levels = [[], [SubResource("Resource_1elit"), SubResource("Resource_gvh8r")], [SubResource("Resource_jwkvf"), SubResource("Resource_wy63a")], [SubResource("Resource_jyo58")], [SubResource("Resource_32bit"), SubResource("Resource_6gotf")]]
+levels = [[], [SubResource("Resource_1elit"), SubResource("Resource_gvh8r"), SubResource("Resource_jwkvf")], [SubResource("Resource_wy63a"), SubResource("Resource_jyo58"), SubResource("Resource_32bit")], [SubResource("Resource_6gotf")], [SubResource("Resource_g60dv"), SubResource("Resource_7vefo")]]
 max_level = 5
 evolves_into = "chicago_typewriter"
 sfx = {

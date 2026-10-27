@@ -8,7 +8,7 @@
   "targeting": "random",
   "base": {
     "damage": 12,
-    "cooldown": 1.6,
+    "cooldown": 1.8824,
     "chains": 2,
     "range": 9,
     "amount": 1,
@@ -27,13 +27,18 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.2
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.1
+        "value": -0.1675
       },
       {
         "stat": "chains",

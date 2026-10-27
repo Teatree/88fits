@@ -8,7 +8,7 @@
   "targeting": "densest_healthy",
   "base": {
     "damage": 8,
-    "cooldown": 2.4,
+    "cooldown": 2.8235,
     "amount": 1,
     "area": 2.0,
     "range": 10,
@@ -31,13 +31,18 @@
         "stat": "area",
         "op": "mul",
         "value": 0.15
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.12
+        "value": -0.186
       },
       {
         "stat": "fire_spread",

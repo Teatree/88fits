@@ -82,7 +82,7 @@ func _main() -> void:
 	_save = root.get_node("Save")
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
-	var in_run := ["backdrop", "backdrop_arena", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results", "hud_stage"]
+	var in_run := ["backdrop", "backdrop_arena", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results", "hud_stage", "hud_kills"]
 	var any_run := false
 	for n in in_run:
 		if _want(n):
@@ -436,6 +436,8 @@ func _in_run() -> void:
 		await _down()
 	if _want("hud_stage"):
 		await _hud_stage()
+	if _want("hud_kills"):
+		await _hud_kills()
 	if _want("stageclear"):
 		await _stage_clear()
 	if _want("results"):
@@ -903,6 +905,42 @@ func _hud_stage() -> void:
 	g.hud.test_stage_clock = {}
 	g.hud.tick(0.0)
 	g.hud._banner.visible = false
+
+
+## 06h/06i/06j (pass 109): the kill counter under the clock (WKillCount): at rest after a slow minute (1,234 kills), at
+## the peak of a hot ding after kills poured in at 40 a second, and under the Endless tag. The run is paused for each
+## shot so the ding is frozen where it is wanted (the counter is ticked by hand).
+func _hud_kills() -> void:
+	_clear_ui()
+	_build([["weapon", "hornet_nest", 3], ["weapon", "boomstick", 2], ["weapon", "molotov", 3], ["passive", "magnet", 2]])
+	_hud_common(6, 0.5, 86, 140.0)
+	var kc = g.hud.kill_counter()
+	g.set_paused(true)
+	_run.kills = 1234
+	kc.tick(0.0, 1234)
+	kc.rate = 0.0
+	kc.tick(5.0, 1234)
+	g.hud.tick(0.0)
+	await _wait(0.3)
+	await _shot("06h-hud-kills-rest")
+	# hot: 40 kills a second for two seconds, then the frame a ding lands
+	for i in 120:
+		_run.kills += 1 if i % 3 != 0 else 0
+		kc.tick(1.0 / 60.0, _run.kills)
+	kc.set("_since", 1.0)
+	_run.kills += 2
+	kc.tick(0.0, _run.kills)
+	await _shot("06i-hud-kills-hot")
+	g.hud.test_stage_clock = {"endless": true, "endless_wave": 2, "endless_seconds": 12.0}
+	g.hud.tick(0.0)
+	kc.rate = 0.0
+	kc.tick(5.0, _run.kills)
+	await _wait(0.3)
+	await _shot("06j-hud-kills-endless")
+	g.hud.test_stage_clock = {}
+	g.hud.tick(0.0)
+	g.hud._banner.visible = false
+	g.set_paused(false)
 
 
 ## 16: extracted at 10:00, stage 2, a new best; damage by every kind of source; Turret Buddy unlocked. Pass 72: the

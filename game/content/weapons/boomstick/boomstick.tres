@@ -20,25 +20,31 @@ value = 0.2
 script = ExtResource("2_5kki5")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_u2jn2"]
+script = ExtResource("2_5kki5")
+stat = "cooldown"
+op = "mul"
+value = -0.1675
+
+[sub_resource type="Resource" id="Resource_dfeho"]
 script = ExtResource("2_5kki5")
 stat = "amount"
 value = 2.0
 
-[sub_resource type="Resource" id="Resource_dfeho"]
+[sub_resource type="Resource" id="Resource_6evrd"]
 script = ExtResource("2_5kki5")
 stat = "knockback"
 value = 2.0
 
-[sub_resource type="Resource" id="Resource_6evrd"]
+[sub_resource type="Resource" id="Resource_s6flg"]
 script = ExtResource("2_5kki5")
 stat = "damage"
 op = "mul"
 value = 0.3
 
-[sub_resource type="Resource" id="Resource_s6flg"]
+[sub_resource type="Resource" id="Resource_5fqn0"]
 script = ExtResource("2_5kki5")
 stat = "pierce"
 value = 1.0
@@ -48,7 +54,7 @@ script = ExtResource("2_7mrvs")
 targeting = "forward"
 base = {
 "amount": 5.0,
-"cooldown": 1.4,
+"cooldown": 1.6471,
 "damage": 6.0,
 "knockback": 8.0,
 "pierce": 0.0,
@@ -56,7 +62,7 @@ base = {
 "speed": 16.0,
 "spread_deg": 35.0
 }
-levels = [[], [SubResource("Resource_5kki5"), SubResource("Resource_l40a8")], [SubResource("Resource_jemry"), SubResource("Resource_u2jn2")], [SubResource("Resource_dfeho")], [SubResource("Resource_6evrd"), SubResource("Resource_s6flg")]]
+levels = [[], [SubResource("Resource_5kki5"), SubResource("Resource_l40a8"), SubResource("Resource_jemry")], [SubResource("Resource_u2jn2"), SubResource("Resource_dfeho")], [SubResource("Resource_6evrd")], [SubResource("Resource_s6flg"), SubResource("Resource_5fqn0")]]
 max_level = 5
 evolves_into = "blunderbuss"
 sfx = {

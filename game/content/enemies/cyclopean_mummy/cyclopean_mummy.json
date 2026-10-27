@@ -182,6 +182,97 @@
       },
       "head": 0.983,
       "fresh": true
+    },
+    "CM-D": {
+      "note": "Pass 109: CM-C's walk with the back still painted again from Garry's back picture: the mace carried over the right shoulder, its handle hidden, the left arm hanging free (CM-C's back arm twisted in and the mace clipped through the body)",
+      "recipe": {
+        "method": "creature_pose2",
+        "front_ref": "tools/dl/uploads/2d/cyclopean_mummy_front.png",
+        "back_ref": "tools/dl/uploads/2d/cyclopean_mummy_back_shoulder.png",
+        "picture_use": "as_is",
+        "screen": "auto",
+        "stand": "still",
+        "death": "collapse",
+        "dead_hint": "a collapsed heap of loose cream-white bandages lying flat, the big green eye shut on top, two pointed ears sticking out and the spiked mace lying across the heap, no ground, no sand",
+        "anim_negative": "dropping the mace, two maces, a second eye, two eyes, a mouth, extra arms, extra legs, the mace handle across its back, the handle sticking out at its side, a twisted arm, an arm bent backwards",
+        "pose": "cmummy_walk_hold_1eye",
+        "gait": "walking in place on the spot like on a treadmill with heavy bandy-legged steps, the spiked mace held up at its right shoulder, its one big eye staring ahead",
+        "anim_seed": 21,
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "d",
+        "seed_offset": 2855,
+        "art_prompt": "a squat goblin mummy: its big round head and pot belly wrapped in one mass of thick cream-white bandages, one huge glowing green cat-eye with a black slit pupil staring out of the wrappings in the middle of its head, two long pointed goblin ears poking out at the sides, wiry grey-brown goblin arms and bandy legs, a ragged dark brown loincloth, a black iron spiked ball mace on a long dark shaft held in both hands",
+        "motion": "plodding forward in place with heavy bandy-legged steps, the spiked mace held up at its shoulder",
+        "back_hint": "Seen from behind: the bandaged round back of its head and body, the two pointed ears and the mace poking out at the sides, no eye visible."
+      },
+      "sprite": "cyclopean_mummy_sprite_d.png",
+      "icon": "cyclopean_mummy_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.989,
+      "fresh": true
+    },
+    "CM-E": {
+      "note": "Pass 109: CM-D on another seed",
+      "recipe": {
+        "method": "creature_pose2",
+        "front_ref": "tools/dl/uploads/2d/cyclopean_mummy_front.png",
+        "back_ref": "tools/dl/uploads/2d/cyclopean_mummy_back_shoulder.png",
+        "picture_use": "as_is",
+        "screen": "auto",
+        "stand": "still",
+        "death": "collapse",
+        "dead_hint": "a collapsed heap of loose cream-white bandages lying flat, the big green eye shut on top, two pointed ears sticking out and the spiked mace lying across the heap, no ground, no sand",
+        "anim_negative": "dropping the mace, two maces, a second eye, two eyes, a mouth, extra arms, extra legs, the mace handle across its back, the handle sticking out at its side, a twisted arm, an arm bent backwards",
+        "pose": "cmummy_walk_hold_1eye",
+        "gait": "walking in place on the spot like on a treadmill with heavy bandy-legged steps, the spiked mace held up at its right shoulder, its one big eye staring ahead",
+        "anim_seed": 44,
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "2 of 3 painted",
+          "reused": [
+            "cyclopean_mummy_dead"
+          ]
+        },
+        "stills": "",
+        "art_prompt": "a squat goblin mummy: its big round head and pot belly wrapped in one mass of thick cream-white bandages, one huge glowing green cat-eye with a black slit pupil staring out of the wrappings in the middle of its head, two long pointed goblin ears poking out at the sides, wiry grey-brown goblin arms and bandy legs, a ragged dark brown loincloth, a black iron spiked ball mace on a long dark shaft held in both hands",
+        "motion": "plodding forward in place with heavy bandy-legged steps, the spiked mace held up at its shoulder",
+        "back_hint": "Seen from behind: the bandaged round back of its head and body, the two pointed ears and the mace poking out at the sides, no eye visible."
+      },
+      "sprite": "cyclopean_mummy_sprite_e.png",
+      "icon": "cyclopean_mummy_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.989,
+      "fresh": true
     }
   }
 }

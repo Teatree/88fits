@@ -8,7 +8,7 @@
   "targeting": "forward",
   "base": {
     "damage": 6,
-    "cooldown": 1.4,
+    "cooldown": 1.6471,
     "amount": 5,
     "spread_deg": 35,
     "range": 6,
@@ -29,13 +29,18 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.2
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.1
+        "value": -0.1675
       },
       {
         "stat": "amount",

@@ -127,6 +127,60 @@ variants = {
 "sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_c.png",
 "sprite_file": "cyclopean_mummy_sprite_c.png",
 "strip_cols": 40
+},
+"CM-D": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.989,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_d.png",
+"note": "Pass 109: CM-C's walk with the back still painted again from Garry's back picture: the mace carried over the right shoulder, its handle hidden, the left arm hanging free (CM-C's back arm twisted in and the mace clipped through the body)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_d.png",
+"sprite_file": "cyclopean_mummy_sprite_d.png",
+"strip_cols": 40
+},
+"CM-E": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.989,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_e.png",
+"note": "Pass 109: CM-D on another seed",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_e.png",
+"sprite_file": "cyclopean_mummy_sprite_e.png",
+"strip_cols": 40
 }
 }
 variant = "CM-0"

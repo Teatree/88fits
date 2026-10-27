@@ -41,6 +41,15 @@ static var rng: RandomNumberGenerator = null
 ## weapon whose evolution is held is never offered (pass 58 review: it came back as NEW, so banishable, and taken it was
 ## a second copy that already carried the whole path, a second evolution one chest later).
 static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
+	var out := _pick(candidates(exclude), count, {"weapon_new": 1, "perk": 1})
+	if exclude.is_empty():
+		Run.note_offer(out)
+	return out
+
+
+## Every card a level-up could hold now, each with its weight (level_up_offer draws from them; pass 109's first-run
+## Dynamite offer, FtueDynamite, takes the two lowest-rarity of them).
+static func candidates(exclude: Array = []) -> Array:
 	var cands: Array = []
 	var weapon_slot_free := Run.weapons.size() < Run.weapon_cap()
 	var line_slot_free := Run.held_lines().size() < Run.line_cap()
@@ -83,10 +92,7 @@ static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 		for pk: PerkDef in Registry.perks_of(Run.character.id):
 			if not Run.perks.has(pk.id) and not Run.banished.has(pk.id) and not exclude.has(pk.id):
 				cands.append(_card("perk", pk, 0, 1, weight_of(pk, 0) * 4.0))
-	var out := _pick(cands, count, {"weapon_new": 1, "perk": 1})
-	if exclude.is_empty():
-		Run.note_offer(out)
-	return out
+	return cands
 
 
 ## The weight of one card (pass 47): the formula at the top of this file. `level_from` is the level held (0 = new);

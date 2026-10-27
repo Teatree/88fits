@@ -23,26 +23,32 @@ value = 0.15
 script = ExtResource("1_s1w3i")
 stat = "cooldown"
 op = "mul"
-value = -0.12
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_g0sfe"]
+script = ExtResource("1_s1w3i")
+stat = "cooldown"
+op = "mul"
+value = -0.186
+
+[sub_resource type="Resource" id="Resource_u8543"]
 script = ExtResource("1_s1w3i")
 stat = "fire_spread"
 value = 0.1
 
-[sub_resource type="Resource" id="Resource_u8543"]
+[sub_resource type="Resource" id="Resource_c3fjh"]
 script = ExtResource("1_s1w3i")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_c3fjh"]
+[sub_resource type="Resource" id="Resource_wsy06"]
 script = ExtResource("1_s1w3i")
 stat = "area"
 op = "mul"
 value = 0.15
 
-[sub_resource type="Resource" id="Resource_wsy06"]
+[sub_resource type="Resource" id="Resource_fc1na"]
 script = ExtResource("1_s1w3i")
 stat = "fire_duration"
 value = 0.6
@@ -54,7 +60,7 @@ targeting = "densest_healthy"
 base = {
 "amount": 1.0,
 "area": 2.0,
-"cooldown": 2.4,
+"cooldown": 2.8235,
 "damage": 8.0,
 "fire_damage": 4.0,
 "fire_duration": 1.8,
@@ -63,7 +69,7 @@ base = {
 "range": 10.0,
 "speed": 10.0
 }
-levels = [[], [SubResource("Resource_84lem"), SubResource("Resource_keo0u")], [SubResource("Resource_p7bql"), SubResource("Resource_g0sfe")], [SubResource("Resource_u8543")], [SubResource("Resource_c3fjh"), SubResource("Resource_wsy06")]]
+levels = [[], [SubResource("Resource_84lem"), SubResource("Resource_keo0u"), SubResource("Resource_p7bql")], [SubResource("Resource_g0sfe"), SubResource("Resource_u8543")], [SubResource("Resource_c3fjh")], [SubResource("Resource_wsy06"), SubResource("Resource_fc1na")]]
 max_level = 5
 evolves_into = "moonshine"
 sfx = {

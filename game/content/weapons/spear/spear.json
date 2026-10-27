@@ -13,7 +13,7 @@
   ],
   "base": {
     "damage": 22,
-    "cooldown": 1.5,
+    "cooldown": 1.7647,
     "amount": 1,
     "pierce": 99,
     "speed": 20,
@@ -32,7 +32,7 @@
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.1
+        "value": -0.173
       }
     ],
     [
@@ -45,6 +45,11 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.075
       }
     ],
     [

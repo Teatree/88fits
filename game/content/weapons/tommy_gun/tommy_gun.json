@@ -8,7 +8,7 @@
   "targeting": "priority",
   "base": {
     "damage": 3,
-    "cooldown": 1.4,
+    "cooldown": 1.6471,
     "amount": 6,
     "spread_deg": 8,
     "pierce": 2,
@@ -29,6 +29,11 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
@@ -41,6 +46,11 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.075
       }
     ],
     [

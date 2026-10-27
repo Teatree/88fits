@@ -12,7 +12,7 @@
   ],
   "base": {
     "damage": 14,
-    "cooldown": 2.2,
+    "cooldown": 2.5882,
     "amount": 3,
     "area": 1.5,
     "speed": 13,
@@ -32,13 +32,18 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.12
+        "value": -0.186
       },
       {
         "stat": "area",
@@ -75,13 +80,15 @@
       "turn": 5.5,
       "spiral": 7.0,
       "life": 4.5,
-      "trail": 1
+      "trail": 1,
+      "rise": 0.75
     },
     "familiar": {
       "radius": 1.25,
       "height": 1.65,
       "speed": 0.9,
-      "bob": 0.1
+      "bob": 0.1,
+      "launch_pitch": 60
     }
   },
   "sfx": {

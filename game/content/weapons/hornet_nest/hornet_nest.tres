@@ -20,25 +20,31 @@ value = 0.3
 script = ExtResource("1_e2c5j")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_bn5we"]
+script = ExtResource("1_e2c5j")
+stat = "cooldown"
+op = "mul"
+value = -0.1675
+
+[sub_resource type="Resource" id="Resource_88tw7"]
 script = ExtResource("1_e2c5j")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_88tw7"]
+[sub_resource type="Resource" id="Resource_c3twh"]
 script = ExtResource("1_e2c5j")
 stat = "damage"
 op = "mul"
 value = 0.3
 
-[sub_resource type="Resource" id="Resource_c3twh"]
+[sub_resource type="Resource" id="Resource_rejie"]
 script = ExtResource("1_e2c5j")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_rejie"]
+[sub_resource type="Resource" id="Resource_402lm"]
 script = ExtResource("1_e2c5j")
 stat = "cooldown"
 op = "mul"
@@ -52,13 +58,13 @@ targeting = "priority"
 base = {
 "amount": 2.0,
 "area": 0.0,
-"cooldown": 1.0,
+"cooldown": 1.1765,
 "damage": 5.0,
 "knockback": 1.0,
 "range": 11.0,
 "speed": 15.0
 }
-levels = [[], [SubResource("Resource_yuxcn"), SubResource("Resource_buk75")], [SubResource("Resource_ro7go"), SubResource("Resource_bn5we")], [SubResource("Resource_88tw7")], [SubResource("Resource_c3twh"), SubResource("Resource_rejie")]]
+levels = [[], [SubResource("Resource_yuxcn"), SubResource("Resource_buk75"), SubResource("Resource_ro7go")], [SubResource("Resource_bn5we"), SubResource("Resource_88tw7")], [SubResource("Resource_c3twh")], [SubResource("Resource_rejie"), SubResource("Resource_402lm")]]
 max_level = 5
 evolves_into = "hive_queen"
 sfx = {

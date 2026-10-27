@@ -123,9 +123,9 @@ variants = {
 "run": 20.0
 },
 "front_faces": "right",
-"head": 0.394,
+"head": 0.519,
 "icon": "res://content/enemies/armadillo/armadillo_icon_f.png",
-"note": "Pass 108: cartoon / anime, bigger angry eyes and exaggerated proportions (a bigger head and longer legs on the made trot armadillo_walk_toon_v1), the curl into a ball as the death",
+"note": "Pass 109 (painted again): cartoon / anime, angry eyes, exaggerated proportions with the body bigger than the head and longer legs (made trot armadillo_walk_toon_v2: body x1.35, head x0.72 of it, legs x1.9, a longer stride), every view repainted on the model's clay so the diagonals are true three-quarter views, the curl into a ball as the death",
 "shadow": {},
 "shelved": false,
 "sprite": "res://content/enemies/armadillo/armadillo_sprite_f.png",
@@ -156,9 +156,9 @@ variants = {
 "run": 20.0
 },
 "front_faces": "right",
-"head": 0.356,
+"head": 0.531,
 "icon": "res://content/enemies/armadillo/armadillo_icon_g.png",
-"note": "Pass 108: ARM-F with another skin colour pattern (its side painted as an edit of ARM-F's side): striped shell, pale face with a dark mask",
+"note": "Pass 109 (painted again): ARM-F with another skin colour pattern (its side an edit of ARM-F's): striped shell, pale face with a dark mask",
 "shadow": {},
 "shelved": false,
 "sprite": "res://content/enemies/armadillo/armadillo_sprite_g.png",

@@ -293,7 +293,8 @@ func test_heat_stroke_sets_its_share_alight_and_flicker_strikes_sooner_and_thinn
 	# Flicker: 30% sooner, 25% less, the pillars thinner and yellower (re-pinned in pass 61: her Magic Hour no longer
 	# touches the cooldown)
 	var fl := _inst("sun_scepter", ["flicker"])
-	assert_float(fl.stat("cooldown", 0.0)).is_equal_approx(1.1 * 0.7, 0.0001)
+	# (pass 109: the base cooldown is the attack-speed ramp's level 1, read from the JSON)
+	assert_float(fl.stat("cooldown", 0.0)).is_equal_approx(float(Registry.weapon("sun_scepter").base["cooldown"]) * 0.7, 0.0001)
 	assert_float(fl.stat("damage", 0.0)).is_equal_approx(14.0 * 0.75, 0.0001)
 	var sun: Dictionary = fl.params["sun"]
 	assert_float(float(sun["thin"])).is_equal_approx(0.7, 0.0001)
@@ -391,7 +392,8 @@ func test_the_cards_say_what_the_sceptre_does() -> void:
 	for k in ["damage", "cooldown", "amount", "radius", "dps"]:
 		assert_bool(names.has(k)).override_failure_message("no row " + k).is_true()
 	# a pillar counts for 1.6 creatures (re-pinned in pass 61: her Magic Hour no longer runs the cooldown at 0.87)
-	assert_float(base.dps_estimate()).is_equal_approx(14.0 * 1.6 / 1.1, 0.01)
+	# (pass 109: over level 1's cooldown, 1.1 / 0.85, the attack-speed ramp, BALANCING.md 52.ATKSPD)
+	assert_float(base.dps_estimate()).is_equal_approx(14.0 * 1.6 / float(Registry.weapon("sun_scepter").base["cooldown"]), 0.01)
 	assert_str(TextGen.stat_name("buff_duration")).is_equal("buff duration")
 	assert_str(TextGen.stat_name("heal_mult")).is_equal("healing")
 	assert_str(Registry.mutation("heat_stroke").text).contains("35%")
@@ -414,7 +416,8 @@ func test_solenne_lands_with_her_trait_and_her_sceptre() -> void:
 	assert_float(s.get_stat("buff_duration", 0.0)).is_equal_approx(1.0, 0.0001)
 	assert_float(s.get_stat("debuff_duration", 0.0)).is_equal_approx(1.015, 0.0001)
 	var sc := Run.add_weapon(Registry.weapon("sun_scepter"), 1)
-	assert_float(sc.stat("cooldown", 0.0)).is_equal_approx(1.1, 0.0001)
+	# (pass 109: the sceptre's own level-1 cooldown, 1.1 / 0.85, the attack-speed ramp; her trait leaves it alone)
+	assert_float(sc.stat("cooldown", 0.0)).is_equal_approx(float(Registry.weapon("sun_scepter").base["cooldown"]), 0.0001)
 	# re-pinned in pass 62 (Garry: "Change the Solenne favorite item to be a Molotov instead of Haste"): Haste is
 	# nothing special to her now (level 1, behind its quest like everyone's), and her favourite is the Molotov
 	var haste: PassiveDef = Registry.passive("haste")

@@ -94,6 +94,8 @@ var _lv_plate: PanelContainer
 var _lv: WText
 var _timer_plate: PanelContainer
 var _timer: WText
+## pass 109: the run's kill counter under the clock (WKillCount)
+var _kills: WKillCount
 var _gold_plate: PanelContainer
 var _gold: WText
 var _pause_btn: WTap
@@ -240,6 +242,10 @@ func _build_band() -> void:
 	_timer_plate.add_child(_timer)
 	_timer_plate.position = Vector2(400, TOP_Y)
 	_top.add_child(_timer_plate)
+	# pass 109: the kill counter, centred under the clock (under its tag while one hangs there; _place_kills)
+	_kills = WKillCount.new()
+	_kills.name = "KillCounter"
+	_top.add_child(_kills)
 	_gold_plate = _plate()
 	var gr := HBoxContainer.new()
 	gr.add_theme_constant_override("separation", 10)
@@ -299,6 +305,7 @@ func _fit_top() -> void:
 	_pause_btn.position = Vector2(w - 36 - DISC, TOP_Y - 2)
 	_pause_btn.size = Vector2(DISC, DISC)
 	_place_stage_tag()
+	_place_kills()
 	_fit_mut_word()
 
 
@@ -1110,6 +1117,7 @@ static func buff_parts() -> Array:
 func tick(delta: float) -> void:
 	# pass 87 (lane SUI): the stage's clock, the portal's count or Endless's time (_tick_stage_clock)
 	_tick_stage_clock()
+	_kills.tick(delta, Run.kills)
 	if _timer_plate.size.x > 0.0 and absf(_timer_plate.get_combined_minimum_size().x - _timer_plate.size.x) > 1.0:
 		_fit_top()
 	_refresh_buffs()
@@ -1341,6 +1349,7 @@ func _set_clock_mode(mode: String) -> void:
 			_stage_tag.visible = false
 	_fit_top()
 	_place_stage_tag()
+	_place_kills()
 
 
 ## The tag hangs from the clock plate's foot, centred under it (over the gap between the weapons and the lines).
@@ -1361,6 +1370,25 @@ func _pulse_stage_tag() -> void:
 	_stage_tag.scale = Vector2.ONE * 1.22
 	var tw := _stage_tag.create_tween()
 	tw.tween_property(_stage_tag, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+## Pass 109: the kill counter's row hangs KILLS_GAP under the clock plate's foot (its hard shadow included), or under the
+## ENDLESS IN / WAVE n tag while that shows, centred on the clock: over the gap between the weapons and the lines.
+const KILLS_GAP := 10.0
+
+
+func _place_kills() -> void:
+	if _kills == null:
+		return
+	var y := _timer_plate.position.y + _timer_plate.size.y + KILLS_GAP
+	if _stage_tag != null and _stage_tag.visible:
+		y = _stage_tag.position.y + _stage_tag.size.y + KILLS_GAP
+	_kills.position = Vector2(_timer_plate.position.x + _timer_plate.size.x * 0.5, y)
+
+
+## The kill counter (tests, captures).
+func kill_counter() -> WKillCount:
+	return _kills
 
 
 ## Which clock the plate shows now: "" (the stage's), "portal" or "endless" (tests and tools).

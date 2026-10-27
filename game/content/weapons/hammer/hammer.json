@@ -11,7 +11,7 @@
   ],
   "base": {
     "damage": 20,
-    "cooldown": 2.4,
+    "cooldown": 2.8235,
     "amount": 1,
     "range": 4.6,
     "area": 1.0,
@@ -30,6 +30,11 @@
         "stat": "area",
         "op": "mul",
         "value": 0.2
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
@@ -42,6 +47,11 @@
         "stat": "amount",
         "op": "add",
         "value": 1
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.075
       }
     ],
     [

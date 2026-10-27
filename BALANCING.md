@@ -113,6 +113,7 @@ are drawn one at a time from everything that may be offered, in proportion to it
 | **Choices**: 2 skips and 1 banish a stage, shared with the mutation tables and chests; 1 reroll a run (the Mirror adds more). A skip pays nothing; a banish swaps that one card and keeps the item out for the run. **Pass 58** (Garry: "Banish option should not allow Banishing items that Player already has, because this way they can lock themselves out of progression"): a banish never strikes an item you hold (a weapon, a line or a passive item at any level), an evolution, or a path mutation of a weapon you hold; a new item, a perk or a hero's own optional mutation may go. With nothing banishable on the table the button locks and says why; a refused tap spends nothing. Chests follow the same rule. Once a weapon evolves, its base weapon is never offered again (level-ups, the Stranger); a hero's own mutation banished from a boss chest never comes back | `Run.refill_choices`, `Run.banish_refusal`, `CardPool.banishable` |
 | The hero's **favourite** says FAVOURITE on its card and comes at a bonus level (Calavera's Skull Rain, Ironwood's Brawn at level 2) | `Run.first_passive_level`, `CardPool.apply_favourite` |
 | Nothing left to offer: +10 gold instead | `Game._show_next_level_cards` |
+| **First-run Dynamite offer** (pass 109, Garry: "make it so Player always gets a dynamite stick offered to him on his 3rd level up ... among the worst items ... This will only stop happening when Player actually chooses the dynamite"): in every run, the first card screen of level 4 or later (his 3rd level-up; when that one is a mutation level-up, the next card screen) holds the Dynamite Stick (`lob_grenade`) as a new weapon, whatever its unlock quest, beside the two lowest-rarity cards the draw could offer then (common first, ties at random; never a new weapon, a perk, the hero's favourite, an evolution or a level that maxes an item that evolves), the Dynamite at a random place. Once a Dynamite card is picked at a level-up, the save's once-flag `ftue_dynamite_taken` ends it for good; picking it unlocks nothing for later runs. Not in the arena, nor when he holds it (or its evolution) or has no free weapon slot; a reroll or a banish's redraw draws normally. The developer menu's "First-run Dynamite offer" row brings it back | `FtueDynamite`, `Game._show_next_level_cards` |
 
 ## 3. Waves and pacing
 `game/content/maps/red_canyon/red_canyon.json`, the `timeline_data` block:
@@ -6769,3 +6770,49 @@ Garry's words: tools/dl/p107/REQUEST.md. Each lane's rules.
 - Why 0.7: run sim (Drifter, quarter board 1.5, bot default, death=keep, 12 players, limit 600 s). Before, Nightfall reached the levels Sundown reaches before its boss (3..17) in 0.74 of Sundown's time (geometric mean; levels 6-10 in 0.53-0.61 of the time). At 0.7 the geometric mean is 0.89 (11% sooner, inside the asked 5-15%). The shape still differs: Nightfall's roster is XP-rich from its first second (Buckshot Dwarves 10.8 XP a kill, Desert Spiders 9.6, against Sundown's opening goblins/skeletons/scorpions at 1.9), while Sundown speeds up only in its last three minutes (beetles 120, mummies 24): so at 0.7 levels 6-10 still come ~30% sooner and levels 14-17 10-35% later. A flat multiplier cannot match both ends; matching the shape is a roster edit (Garry's, see the report).
 - **Night shot colours** (new rule): a weapon's `params.night_tint` replaces its shots' colours while the stage look has a filter (Nightfall, Blood Moon). Tumbleweed bleached straw #E9D59C, Dust Devil pale ash #D6D0C6. Sundown unchanged.
 - Stage 3 (Blood Moon) shows the same front-loading (level 14.7 at 3:00 against Sundown's 7.2; reported, not changed).
+
+## 52. Pass 109: the weapons' attack speed ramps up over their first upgrades
+
+### 52.ATKSPD Level 1 slower, level 3 as before (new rule)
+
+Garry: "The starting attack speed of all weapons should be reduced -15%, by upgrade 3 the attack speed is back to being
+what it is now on upgrade 3. So the upgrade 2 is supposed to be only -7.5% of the current upgrade 2 attack speed."
+
+- **The rule**: a weapon's attack speed (1 / its cooldown as its levels make it) is **85%** of the pass 108 number at level 1,
+  **92.5%** at level 2, and exactly the pass 108 number at levels 3, 4 and 5. The hero's own attack speed (the Haste line,
+  traits, talents, Berserk) is a multiplier on top and is unchanged.
+- **How it is encoded** (content only, `content/weapons/<id>/<id>.json`): `base.cooldown` = old / 0.85 (rounded to 4
+  decimals); the level-2 entry carries one more cooldown factor 0.85 / 0.925 (x0.9189, "−8% cooldown") and the level-3
+  entry one more factor 0.925 (x0.925, "−8% cooldown"), each multiplied into that level's existing cooldown effect when it
+  has one, so a card shows one cooldown line (the Revolver's level 2 "−17% cooldown" = x0.9 x 0.9189; the Big Mouth's
+  level 3 "−21% cooldown" = x0.85 x 0.925). The Turret Buddy's level 3 is an add, so it is solved instead: −1.6175 s
+  (7.0588 x 0.9189 − 1.6175 x 0.9189 = 5.0 s, as before). Levels 4 and 5 are untouched, and level 1 stays `[]`.
+- **Which weapons**: all 27 whose cooldown is their attack clock, hidden ones included (Flare Gun, Peashooter, Poison
+  Dart, the old `spear`), so one unhidden later follows the rule. **Not** the three Orbiters (Orbit Saws, Branding Iron,
+  Rattlesnake): their `cooldown` is the gap between one blade's hits on one creature, while their rate comes from the
+  blades' spin and count. **Not** the evolutions (they replace a maxed weapon, which is past level 3) and not the
+  mutations (their cooldown effects are multipliers, so they keep their share).
+- Older paragraphs that quote a weapon's base cooldown or its level-2/3 cooldown cut (the Basketball's 14.13, the Salt,
+  the Frisbee, the Sun Scepter, the Dragon's Breath) give the pass 108 numbers; levels 3-5 still read true.
+- Check: `python tools/check_attack_ramp.py [--ref a60ceda]` (every weapon's new / old attack speed per level against the
+  commit before pass 109; the orbiters and the evolutions unchanged).
+
+### 52.VFX The Raider's rocket that pops, the Rocket Pod that looks up, the breath as particles (lane VFX; looks, one timing rule)
+- **The Vulture Raider's rocket** (core/shaders/rocket.gdshader + rocket_outline + rocket_xray, Game._rocket_material): no
+  number changes (speed, turn, hit radius, size pulse as before). Unshaded hazard stripes (black and yellow, 7.5 a metre),
+  the nose cone and red parts blinking red/white at 3 Hz, a rim; a hot halo `ROCKET_HALO` 0.055 m and a black edge
+  `ROCKET_EDGE` 0.095 m round it (both write stencil 3: no stage filter dims them); its shape seen through anything in
+  front of it. Four draws for all rockets together. Its smoke puffs now leave from its tail (`ROCKET_TAIL_M` 0.75 m behind
+  its middle) instead of over its body.
+- **The Rocket Pod family** (`params.familiar.launch_pitch` 60 degrees, `params.missile.rise` 0.75 on the Rocket Pod, the
+  Hellfire Battery and the Missile Massacre; MissilePod): the launcher looks up before a volley and **the first rocket
+  waits until it is 80% of the way up, at most 0.2 s** (`RAISED_SHARE`, `RAISE_WAIT`; at 60 fps it is about 0.12 s): the
+  only timing change, the next volley's cooldown is unchanged. The rockets leave the open end of the tube in turn along the
+  tubes (fanned at `UP_FAN` 0.35 of the old fan) and keep climbing through their corkscrew (`rise`: the nose eases to
+  0.75 instead of 0.3) before they turn onto their targets; the launcher holds up 0.3 s after the last one and settles.
+  The pod's cluster no longer turns a quarter per launch (a launcher with `launch_pitch` never does) and the kick only
+  squashes it along the tubes. The Killer Bees' hive has no `launch_pitch`: unchanged.
+- **The Dragon's Breath** (core/systems/BreathFlames.gd): no number changes; the look is two CPUParticles3D: flames (64
+  alive at intensity 1, x intensity, x1.6 for a ring, 130 at most; 0.5 s life; first speed fitted so they travel 95% of
+  the reach, slowing to 20%; spread = half the cone, flattened 0.65) and a core at the mouth (18, 0.18 s). Fx.breath_jet
+  is no longer called; the wash and the scorch stay.

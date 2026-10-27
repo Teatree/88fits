@@ -19,34 +19,46 @@ value = 0.2
 
 [sub_resource type="Resource" id="Resource_r86cd"]
 script = ExtResource("1_e4q5a")
+stat = "cooldown"
+op = "mul"
+value = -0.0811
+
+[sub_resource type="Resource" id="Resource_tie6w"]
+script = ExtResource("1_e4q5a")
 stat = "range"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_tie6w"]
+[sub_resource type="Resource" id="Resource_u8vb3"]
 script = ExtResource("1_e4q5a")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_u8vb3"]
+[sub_resource type="Resource" id="Resource_bd18a"]
+script = ExtResource("1_e4q5a")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_1drw5"]
 script = ExtResource("1_e4q5a")
 stat = "damage"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_bd18a"]
+[sub_resource type="Resource" id="Resource_xmtgw"]
 script = ExtResource("1_e4q5a")
 stat = "range"
 op = "mul"
 value = 0.15
 
-[sub_resource type="Resource" id="Resource_1drw5"]
+[sub_resource type="Resource" id="Resource_qc36t"]
 script = ExtResource("1_e4q5a")
 stat = "area"
 op = "mul"
 value = 0.15
 
-[sub_resource type="Resource" id="Resource_xmtgw"]
+[sub_resource type="Resource" id="Resource_ywa8y"]
 script = ExtResource("1_e4q5a")
 stat = "amount"
 value = 1.0
@@ -59,12 +71,12 @@ targeting = "densest"
 base = {
 "amount": 1.0,
 "area": 1.0,
-"cooldown": 2.4,
+"cooldown": 2.8235,
 "damage": 20.0,
 "knockback": 10.0,
 "range": 4.6
 }
-levels = [[], [SubResource("Resource_jh2qy"), SubResource("Resource_mtujd")], [SubResource("Resource_r86cd"), SubResource("Resource_tie6w")], [SubResource("Resource_u8vb3")], [SubResource("Resource_bd18a"), SubResource("Resource_1drw5"), SubResource("Resource_xmtgw")]]
+levels = [[], [SubResource("Resource_jh2qy"), SubResource("Resource_mtujd"), SubResource("Resource_r86cd")], [SubResource("Resource_tie6w"), SubResource("Resource_u8vb3"), SubResource("Resource_bd18a")], [SubResource("Resource_1drw5")], [SubResource("Resource_xmtgw"), SubResource("Resource_qc36t"), SubResource("Resource_ywa8y")]]
 max_level = 5
 evolves_into = "earthshaker"
 sfx = {

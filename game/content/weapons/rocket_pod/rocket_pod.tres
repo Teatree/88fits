@@ -20,26 +20,32 @@ value = 0.25
 script = ExtResource("1_neawg")
 stat = "cooldown"
 op = "mul"
-value = -0.12
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_bafhi"]
+script = ExtResource("1_neawg")
+stat = "cooldown"
+op = "mul"
+value = -0.186
+
+[sub_resource type="Resource" id="Resource_vpfp2"]
 script = ExtResource("1_neawg")
 stat = "area"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_vpfp2"]
+[sub_resource type="Resource" id="Resource_jtqd0"]
 script = ExtResource("1_neawg")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_jtqd0"]
+[sub_resource type="Resource" id="Resource_ia05c"]
 script = ExtResource("1_neawg")
 stat = "damage"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_ia05c"]
+[sub_resource type="Resource" id="Resource_ut5d7"]
 script = ExtResource("1_neawg")
 stat = "amount"
 value = 2.0
@@ -51,13 +57,13 @@ tags = ["homing", "explosive"]
 base = {
 "amount": 3.0,
 "area": 1.5,
-"cooldown": 2.2,
+"cooldown": 2.5882,
 "damage": 14.0,
 "knockback": 3.0,
 "range": 12.0,
 "speed": 13.0
 }
-levels = [[], [SubResource("Resource_crxc3"), SubResource("Resource_bvome")], [SubResource("Resource_ogjuu"), SubResource("Resource_bafhi")], [SubResource("Resource_vpfp2")], [SubResource("Resource_jtqd0"), SubResource("Resource_ia05c")]]
+levels = [[], [SubResource("Resource_crxc3"), SubResource("Resource_bvome"), SubResource("Resource_ogjuu")], [SubResource("Resource_bafhi"), SubResource("Resource_vpfp2")], [SubResource("Resource_jtqd0")], [SubResource("Resource_ia05c"), SubResource("Resource_ut5d7")]]
 max_level = 5
 evolves_into = "hellfire_battery"
 sfx = {
@@ -70,11 +76,13 @@ params = {
 "familiar": {
 "bob": 0.1,
 "height": 1.65,
+"launch_pitch": 60.0,
 "radius": 1.25,
 "speed": 0.9
 },
 "missile": {
 "life": 4.5,
+"rise": 0.75,
 "spiral": 7.0,
 "trail": 1.0,
 "turn": 5.5,

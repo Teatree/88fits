@@ -32,13 +32,15 @@
       "turn": 6.5,
       "spiral": 8.0,
       "life": 5.0,
-      "trail": 1
+      "trail": 1,
+      "rise": 0.75
     },
     "familiar": {
       "radius": 1.25,
       "height": 1.65,
       "speed": 0.9,
-      "bob": 0.1
+      "bob": 0.1,
+      "launch_pitch": 60
     },
     "final": {
       "cluster": {

@@ -20,25 +20,31 @@ value = 1.0
 script = ExtResource("2_fneh5")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_bmlvy"]
+script = ExtResource("2_fneh5")
+stat = "cooldown"
+op = "mul"
+value = -0.1675
+
+[sub_resource type="Resource" id="Resource_rjm48"]
 script = ExtResource("2_fneh5")
 stat = "damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_rjm48"]
+[sub_resource type="Resource" id="Resource_7xshk"]
 script = ExtResource("2_fneh5")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_7xshk"]
+[sub_resource type="Resource" id="Resource_vwjlk"]
 script = ExtResource("2_fneh5")
 stat = "pierce"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_vwjlk"]
+[sub_resource type="Resource" id="Resource_w8yve"]
 script = ExtResource("2_fneh5")
 stat = "damage"
 op = "mul"
@@ -49,14 +55,14 @@ script = ExtResource("2_8ld32")
 targeting = "priority"
 base = {
 "amount": 1.0,
-"cooldown": 0.9,
+"cooldown": 1.0588,
 "damage": 8.0,
 "knockback": 4.0,
 "pierce": 0.0,
 "range": 9.0,
 "speed": 14.0
 }
-levels = [[], [SubResource("Resource_fneh5"), SubResource("Resource_5486l")], [SubResource("Resource_t4qnk"), SubResource("Resource_bmlvy")], [SubResource("Resource_rjm48")], [SubResource("Resource_7xshk"), SubResource("Resource_vwjlk")]]
+levels = [[], [SubResource("Resource_fneh5"), SubResource("Resource_5486l"), SubResource("Resource_t4qnk")], [SubResource("Resource_bmlvy"), SubResource("Resource_rjm48")], [SubResource("Resource_7xshk")], [SubResource("Resource_vwjlk"), SubResource("Resource_w8yve")]]
 max_level = 5
 evolves_into = "pea_cannon"
 sfx = {

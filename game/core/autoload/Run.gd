@@ -185,6 +185,8 @@ var mutation_misses: Dictionary = {}  # weapon family id -> offers in a row with
 var perks: Array = []                 # perk ids taken
 var perk_gap := 5                     # offers since a perk card was shown (a perk is offered at most once in five)
 var path_slot := 0                    # the next path slot of the stage (WaveTimeline.path_times)
+## Pass 109: the first-run Dynamite offer (FtueDynamite) has had its card screen this run (once a run at most).
+var ftue_dynamite_shown := false
 ## pass 79 (lane MUT): the mutation offers that fell due on the stage's path_times and wait for a level-up (each makes
 ## the hero's next level-up a mutation level-up; mutlvl_*), the mutation level-ups whose screen has not opened yet, and
 ## the level-ups that were mutation offers
@@ -295,6 +297,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	mutation_misses = {}
 	perks = []
 	perk_gap = 5
+	ftue_dynamite_shown = false
 	path_slot = 0
 	mutlvl_due = 0
 	mutlvl_ready = 0

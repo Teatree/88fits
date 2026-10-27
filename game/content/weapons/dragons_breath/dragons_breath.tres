@@ -19,38 +19,44 @@ value = 0.5
 script = ExtResource("2_a2ftk")
 stat = "cooldown"
 op = "mul"
-value = -0.12
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_siwp0"]
+script = ExtResource("2_a2ftk")
+stat = "cooldown"
+op = "mul"
+value = -0.186
+
+[sub_resource type="Resource" id="Resource_myugl"]
 script = ExtResource("2_a2ftk")
 stat = "fire_damage"
 op = "mul"
 value = 0.5
 
-[sub_resource type="Resource" id="Resource_myugl"]
+[sub_resource type="Resource" id="Resource_nwwuj"]
 script = ExtResource("2_a2ftk")
 stat = "damage"
 op = "mul"
 value = 0.35
 
-[sub_resource type="Resource" id="Resource_nwwuj"]
+[sub_resource type="Resource" id="Resource_vga15"]
 script = ExtResource("2_a2ftk")
 stat = "area"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_vga15"]
+[sub_resource type="Resource" id="Resource_smsww"]
 script = ExtResource("2_a2ftk")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
-[sub_resource type="Resource" id="Resource_smsww"]
+[sub_resource type="Resource" id="Resource_gri3p"]
 script = ExtResource("2_a2ftk")
 stat = "range"
 value = 0.5
 
-[sub_resource type="Resource" id="Resource_gri3p"]
+[sub_resource type="Resource" id="Resource_55ikc"]
 script = ExtResource("2_a2ftk")
 stat = "duration"
 value = 1.0
@@ -62,7 +68,7 @@ targeting = "forward"
 base = {
 "amount": 1.0,
 "area": 1.0,
-"cooldown": 9.0,
+"cooldown": 10.5882,
 "damage": 32.0,
 "duration": 2.0,
 "fire_damage": 6.0,
@@ -70,7 +76,7 @@ base = {
 "fire_spread": 0.3,
 "range": 5.0
 }
-levels = [[], [SubResource("Resource_jcl3h"), SubResource("Resource_a2ftk")], [SubResource("Resource_ecihj"), SubResource("Resource_siwp0")], [SubResource("Resource_myugl"), SubResource("Resource_nwwuj")], [SubResource("Resource_vga15"), SubResource("Resource_smsww"), SubResource("Resource_gri3p")]]
+levels = [[], [SubResource("Resource_jcl3h"), SubResource("Resource_a2ftk"), SubResource("Resource_ecihj")], [SubResource("Resource_siwp0"), SubResource("Resource_myugl")], [SubResource("Resource_nwwuj"), SubResource("Resource_vga15")], [SubResource("Resource_smsww"), SubResource("Resource_gri3p"), SubResource("Resource_55ikc")]]
 max_level = 5
 evolves_into = "fire_eater"
 sfx = {

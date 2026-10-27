@@ -20,25 +20,31 @@ value = 0.4
 script = ExtResource("2_rfens")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_swffb"]
+script = ExtResource("2_rfens")
+stat = "cooldown"
+op = "mul"
+value = -0.1675
+
+[sub_resource type="Resource" id="Resource_gdbt3"]
 script = ExtResource("2_rfens")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_gdbt3"]
+[sub_resource type="Resource" id="Resource_ki8ii"]
 script = ExtResource("2_rfens")
 stat = "poison_stacks"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_ki8ii"]
+[sub_resource type="Resource" id="Resource_8lh1t"]
 script = ExtResource("2_rfens")
 stat = "poison_damage"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_8lh1t"]
+[sub_resource type="Resource" id="Resource_3xklf"]
 script = ExtResource("2_rfens")
 stat = "area"
 value = 0.5
@@ -50,7 +56,7 @@ targeting = "densest_healthy"
 base = {
 "amount": 1.0,
 "area": 2.2,
-"cooldown": 2.2,
+"cooldown": 2.5882,
 "damage": 6.0,
 "knockback": 2.0,
 "poison_damage": 3.0,
@@ -59,7 +65,7 @@ base = {
 "range": 11.0,
 "speed": 12.0
 }
-levels = [[], [SubResource("Resource_gstfg"), SubResource("Resource_rfens")], [SubResource("Resource_e3akl"), SubResource("Resource_swffb")], [SubResource("Resource_gdbt3")], [SubResource("Resource_ki8ii"), SubResource("Resource_8lh1t")]]
+levels = [[], [SubResource("Resource_gstfg"), SubResource("Resource_rfens"), SubResource("Resource_e3akl")], [SubResource("Resource_swffb"), SubResource("Resource_gdbt3")], [SubResource("Resource_ki8ii")], [SubResource("Resource_8lh1t"), SubResource("Resource_3xklf")]]
 max_level = 5
 evolves_into = "grave_hail"
 sfx = {

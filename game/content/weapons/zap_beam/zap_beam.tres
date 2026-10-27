@@ -20,25 +20,31 @@ value = 0.2
 script = ExtResource("2_r8tns")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_887o3"]
+script = ExtResource("2_r8tns")
+stat = "cooldown"
+op = "mul"
+value = -0.1675
+
+[sub_resource type="Resource" id="Resource_0g86e"]
 script = ExtResource("2_r8tns")
 stat = "chains"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_0g86e"]
+[sub_resource type="Resource" id="Resource_qrq2d"]
 script = ExtResource("2_r8tns")
 stat = "damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_qrq2d"]
+[sub_resource type="Resource" id="Resource_s7ecw"]
 script = ExtResource("2_r8tns")
 stat = "chains"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_s7ecw"]
+[sub_resource type="Resource" id="Resource_baajs"]
 script = ExtResource("2_r8tns")
 stat = "damage"
 op = "mul"
@@ -51,12 +57,12 @@ targeting = "random"
 base = {
 "amount": 1.0,
 "chains": 2.0,
-"cooldown": 1.6,
+"cooldown": 1.8824,
 "damage": 12.0,
 "knockback": 3.0,
 "range": 9.0
 }
-levels = [[], [SubResource("Resource_r8tns"), SubResource("Resource_y1fi3")], [SubResource("Resource_7u84o"), SubResource("Resource_887o3")], [SubResource("Resource_0g86e")], [SubResource("Resource_qrq2d"), SubResource("Resource_s7ecw")]]
+levels = [[], [SubResource("Resource_r8tns"), SubResource("Resource_y1fi3"), SubResource("Resource_7u84o")], [SubResource("Resource_887o3"), SubResource("Resource_0g86e")], [SubResource("Resource_qrq2d")], [SubResource("Resource_s7ecw"), SubResource("Resource_baajs")]]
 max_level = 5
 evolves_into = "storm_cloud"
 sfx = {

@@ -8,7 +8,7 @@
   "targeting": "healthy",
   "base": {
     "damage": 2,
-    "cooldown": 1.1,
+    "cooldown": 1.2941,
     "amount": 1,
     "pierce": 0,
     "speed": 16,
@@ -30,7 +30,7 @@
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.12
+        "value": -0.1913
       }
     ],
     [
@@ -43,6 +43,11 @@
         "stat": "poison_stacks",
         "op": "add",
         "value": 1
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.075
       }
     ],
     [

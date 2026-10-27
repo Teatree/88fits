@@ -15,7 +15,7 @@ value = 0.25
 script = ExtResource("1_jn410")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.173
 
 [sub_resource type="Resource" id="Resource_7nws2"]
 script = ExtResource("1_jn410")
@@ -32,14 +32,20 @@ value = 0.25
 script = ExtResource("1_jn410")
 stat = "cooldown"
 op = "mul"
-value = -0.12
+value = -0.075
 
 [sub_resource type="Resource" id="Resource_8lf3n"]
+script = ExtResource("1_jn410")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_jkpjm"]
 script = ExtResource("1_jn410")
 stat = "range"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_jkpjm"]
+[sub_resource type="Resource" id="Resource_tx4t5"]
 script = ExtResource("1_jn410")
 stat = "damage"
 op = "mul"
@@ -52,11 +58,11 @@ tags = ["melody"]
 base = {
 "amount": 1.0,
 "area": 1.0,
-"cooldown": 1.4,
+"cooldown": 1.6471,
 "damage": 14.0,
 "range": 6.0
 }
-levels = [[], [SubResource("Resource_6cl7l"), SubResource("Resource_mwhn6")], [SubResource("Resource_7nws2"), SubResource("Resource_qlwr3")], [SubResource("Resource_whrww")], [SubResource("Resource_8lf3n"), SubResource("Resource_jkpjm")]]
+levels = [[], [SubResource("Resource_6cl7l"), SubResource("Resource_mwhn6")], [SubResource("Resource_7nws2"), SubResource("Resource_qlwr3"), SubResource("Resource_whrww")], [SubResource("Resource_8lf3n")], [SubResource("Resource_jkpjm"), SubResource("Resource_tx4t5")]]
 max_level = 5
 evolves_into = "requiem"
 sfx = {

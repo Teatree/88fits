@@ -169,7 +169,7 @@
       "fresh": true
     },
     "ARM-F": {
-      "note": "Pass 108: cartoon / anime, bigger angry eyes and exaggerated proportions (a bigger head and longer legs on the made trot armadillo_walk_toon_v1), the curl into a ball as the death",
+      "note": "Pass 109 (painted again): cartoon / anime, angry eyes, exaggerated proportions with the body bigger than the head and longer legs (made trot armadillo_walk_toon_v2: body x1.35, head x0.72 of it, legs x1.9, a longer stride), every view repainted on the model's clay so the diagonals are true three-quarter views, the curl into a ball as the death",
       "recipe": {
         "method": "creature_ctl",
         "noun": "an armadillo",
@@ -191,17 +191,33 @@
         "screen": "green",
         "outline_frac": 0.014,
         "side_seeds": 4,
-        "drivers": "armadillo_walk_toon_v1",
-        "prompt": "a cartoon anime armadillo with a glossy banded sandy-brown shell, a pink-tan snout, big upright ears, stubby clawed legs, slightly exaggerated cute proportions with a big head, two big round eyes with small black pupils, heavy angry eyebrows slanting down and a grumpy frown, angry and determined",
-        "detail": "a cartoon face with big angry eyes on the front of its head, chunky exaggerated proportions",
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "drivers": "armadillo_walk_toon_v2",
+        "prompt": "a cartoon anime armadillo with exaggerated proportions: a big, bulky, round domed banded shell body and a small head, a glossy banded sandy-brown shell, a pink-tan snout, upright ears, sturdy clawed legs that stride out from under the shell, two big round eyes with small black pupils, heavy angry eyebrows slanting down and a grumpy frown, angry and determined",
+        "detail": "a cartoon face with big angry eyes on the front of its small head, the body much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
+        "view_words": {
+          "front": "its face seen straight from the front: two big angry eyes under heavy brows on either side of the long snout, the snout pointing down towards the viewer, the tail completely hidden behind the body",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings on the rear of the shell: the back of the shell is plain smooth armour bands, only the ear tips of the head show beyond it"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v2z"
+        },
+        "fit_ref": [
+          "front"
+        ],
         "painter": {
           "model": "klein",
           "steps": 0,
-          "stills": "2 of 5 painted",
+          "stills": "reused",
           "reused": [
             "armadillo_armf_side",
+            "armadillo_armf_front",
             "armadillo_armf_fd",
-            "armadillo_armf_bd"
+            "armadillo_armf_bd",
+            "armadillo_armf_back"
           ]
         }
       },
@@ -223,7 +239,7 @@
         "idle_fd": 4
       },
       "strip_cols": 91,
-      "head": 0.394,
+      "head": 0.519,
       "fps": {
         "run": 20,
         "die": 12
@@ -231,7 +247,7 @@
       "fresh": true
     },
     "ARM-G": {
-      "note": "Pass 108: ARM-F with another skin colour pattern (its side painted as an edit of ARM-F's side): striped shell, pale face with a dark mask",
+      "note": "Pass 109 (painted again): ARM-F with another skin colour pattern (its side an edit of ARM-F's): striped shell, pale face with a dark mask",
       "recipe": {
         "method": "creature_ctl",
         "noun": "an armadillo",
@@ -253,13 +269,37 @@
         "screen": "green",
         "outline_frac": 0.014,
         "side_seeds": 4,
-        "drivers": "armadillo_walk_toon_v1",
-        "prompt": "a cartoon anime armadillo with a glossy banded sandy-brown shell, a pink-tan snout, big upright ears, stubby clawed legs, slightly exaggerated cute proportions with a big head, two big round eyes with small black pupils, heavy angry eyebrows slanting down and a grumpy frown, angry and determined, its shell banded in alternating light sand-yellow and dark chocolate-brown stripes, a pale cream face and snout with a darker brown mask around its angry eyes, dark brown ears and legs",
-        "detail": "a cartoon face with big angry eyes on the front of its head, chunky exaggerated proportions",
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "drivers": "armadillo_walk_toon_v2",
+        "prompt": "a cartoon anime armadillo with exaggerated proportions: a big, bulky, round domed banded shell body and a small head, a glossy banded sandy-brown shell, a pink-tan snout, upright ears, sturdy clawed legs that stride out from under the shell, two big round eyes with small black pupils, heavy angry eyebrows slanting down and a grumpy frown, angry and determined, its shell banded in alternating light sand-yellow and dark chocolate-brown stripes, a pale cream face and snout with a darker brown mask around its angry eyes, dark brown ears and legs",
+        "detail": "a cartoon face with big angry eyes on the front of its small head, the body much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
         "keep": "its striped shell in alternating light sand-yellow and dark chocolate-brown bands and the dark mask round its eyes",
+        "view_words": {
+          "front": "its face seen straight from the front: two big angry eyes under heavy brows on either side of the long snout, the snout pointing down towards the viewer, the tail completely hidden behind the body",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings on the rear of the shell: the back of the shell is plain smooth armour bands, only the ear tips of the head show beyond it",
+          "fd": "its whole shell banded in strongly contrasting stripes, light cream-yellow bands alternating with dark chocolate-brown bands exactly like the side painting, the same pale cream and dark brown, not tan, not orange",
+          "bd": "its whole shell banded in strongly contrasting stripes, light cream-yellow bands alternating with dark chocolate-brown bands exactly like the side painting, the same pale cream and dark brown, not tan, not orange"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v2z"
+        },
+        "fit_ref": [
+          "front"
+        ],
         "painter": {
           "model": "klein",
-          "steps": 0
+          "steps": 0,
+          "stills": "reused",
+          "reused": [
+            "armadillo_armg_side",
+            "armadillo_armg_front",
+            "armadillo_armg_fd",
+            "armadillo_armg_bd",
+            "armadillo_armg_back"
+          ]
         }
       },
       "sprite": "armadillo_sprite_g.png",
@@ -280,7 +320,7 @@
         "idle_fd": 4
       },
       "strip_cols": 91,
-      "head": 0.356,
+      "head": 0.531,
       "fps": {
         "run": 20,
         "die": 12

@@ -8,7 +8,7 @@
   "targeting": "priority",
   "base": {
     "damage": 4,
-    "cooldown": 6.0,
+    "cooldown": 7.0588,
     "lifetime": 12,
     "range": 8,
     "amount": 1,
@@ -38,13 +38,18 @@
         "stat": "lifetime",
         "op": "add",
         "value": 4
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "add",
-        "value": -1
+        "value": -1.6175
       },
       {
         "stat": "damage",

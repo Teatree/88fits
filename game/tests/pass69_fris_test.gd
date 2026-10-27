@@ -549,7 +549,8 @@ func test_the_frisbee_is_whole_and_in_play() -> void:
 	assert_bool(ev.is_evolution).is_true()
 	assert_str(ev.behavior).is_equal("Frisbee")
 	assert_float(float(f.base["damage"])).is_equal_approx(14.0, 0.001)
-	assert_float(float(f.base["cooldown"])).is_equal_approx(1.2, 0.001)
+	# pass 109: 1.2 / 0.85, level 1 of the attack-speed ramp (level 3 still 1.08 s, BALANCING.md 52.ATKSPD)
+	assert_float(float(f.base["cooldown"])).is_equal_approx(1.4118, 0.001)
 	assert_float(float(f.base["speed"])).is_equal_approx(13.0, 0.001)
 	assert_float(float(f.base["range"])).is_equal_approx(12.0, 0.001)
 	# the Revolver's own Trick Shot is still the Revolver's

@@ -15,7 +15,7 @@ value = 0.2
 script = ExtResource("1_8jwhp")
 stat = "cooldown"
 op = "mul"
-value = -0.12
+value = -0.1913
 
 [sub_resource type="Resource" id="Resource_e2kgj"]
 script = ExtResource("1_8jwhp")
@@ -30,16 +30,22 @@ value = 1.0
 
 [sub_resource type="Resource" id="Resource_8ebnl"]
 script = ExtResource("1_8jwhp")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_3o08y"]
+script = ExtResource("1_8jwhp")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_3o08y"]
+[sub_resource type="Resource" id="Resource_ulljh"]
 script = ExtResource("1_8jwhp")
 stat = "poison_damage"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_ulljh"]
+[sub_resource type="Resource" id="Resource_ivri2"]
 script = ExtResource("1_8jwhp")
 stat = "cooldown"
 op = "mul"
@@ -50,7 +56,7 @@ script = ExtResource("1_vy7vr")
 targeting = "healthy"
 base = {
 "amount": 1.0,
-"cooldown": 1.1,
+"cooldown": 1.2941,
 "damage": 2.0,
 "knockback": 0.5,
 "pierce": 0.0,
@@ -60,7 +66,7 @@ base = {
 "range": 9.0,
 "speed": 16.0
 }
-levels = [[], [SubResource("Resource_id6uf"), SubResource("Resource_8unav")], [SubResource("Resource_e2kgj"), SubResource("Resource_o5odp")], [SubResource("Resource_8ebnl")], [SubResource("Resource_3o08y"), SubResource("Resource_ulljh")]]
+levels = [[], [SubResource("Resource_id6uf"), SubResource("Resource_8unav")], [SubResource("Resource_e2kgj"), SubResource("Resource_o5odp"), SubResource("Resource_8ebnl")], [SubResource("Resource_3o08y")], [SubResource("Resource_ulljh"), SubResource("Resource_ivri2")]]
 max_level = 5
 evolves_into = "plague_volley"
 sfx = {

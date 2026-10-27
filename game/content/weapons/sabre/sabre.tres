@@ -21,26 +21,32 @@ value = 0.2
 script = ExtResource("1_xab5y")
 stat = "cooldown"
 op = "mul"
-value = -0.12
+value = -0.0811
 
 [sub_resource type="Resource" id="Resource_t272n"]
+script = ExtResource("1_xab5y")
+stat = "cooldown"
+op = "mul"
+value = -0.186
+
+[sub_resource type="Resource" id="Resource_wdn7y"]
 script = ExtResource("1_xab5y")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_wdn7y"]
+[sub_resource type="Resource" id="Resource_o08gb"]
 script = ExtResource("1_xab5y")
 stat = "damage"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_o08gb"]
+[sub_resource type="Resource" id="Resource_26381"]
 script = ExtResource("1_xab5y")
 stat = "range"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_26381"]
+[sub_resource type="Resource" id="Resource_a2173"]
 script = ExtResource("1_xab5y")
 stat = "amount"
 value = 1.0
@@ -53,12 +59,12 @@ targeting = "priority"
 base = {
 "amount": 1.0,
 "area": 1.0,
-"cooldown": 1.1,
+"cooldown": 1.2941,
 "damage": 16.0,
 "knockback": 6.0,
 "range": 2.6
 }
-levels = [[], [SubResource("Resource_cxtc7"), SubResource("Resource_d2vsb")], [SubResource("Resource_wqb54"), SubResource("Resource_t272n")], [SubResource("Resource_wdn7y")], [SubResource("Resource_o08gb"), SubResource("Resource_26381")]]
+levels = [[], [SubResource("Resource_cxtc7"), SubResource("Resource_d2vsb"), SubResource("Resource_wqb54")], [SubResource("Resource_t272n"), SubResource("Resource_wdn7y")], [SubResource("Resource_o08gb")], [SubResource("Resource_26381"), SubResource("Resource_a2173")]]
 max_level = 5
 evolves_into = "whirlwind"
 sfx = {

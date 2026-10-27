@@ -19,27 +19,39 @@ value = 0.1
 
 [sub_resource type="Resource" id="Resource_ci38h"]
 script = ExtResource("2_vi8j1")
+stat = "cooldown"
+op = "mul"
+value = -0.0811
+
+[sub_resource type="Resource" id="Resource_7bp80"]
+script = ExtResource("2_vi8j1")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_7bp80"]
+[sub_resource type="Resource" id="Resource_73b60"]
+script = ExtResource("2_vi8j1")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_xlc6w"]
 script = ExtResource("2_vi8j1")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
-[sub_resource type="Resource" id="Resource_73b60"]
+[sub_resource type="Resource" id="Resource_5bvn5"]
 script = ExtResource("2_vi8j1")
 stat = "damage"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_xlc6w"]
+[sub_resource type="Resource" id="Resource_euntq"]
 script = ExtResource("2_vi8j1")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_5bvn5"]
+[sub_resource type="Resource" id="Resource_twceo"]
 script = ExtResource("2_vi8j1")
 stat = "area"
 op = "mul"
@@ -53,11 +65,11 @@ targeting = "ground"
 base = {
 "amount": 1.0,
 "area": 1.0,
-"cooldown": 1.6,
+"cooldown": 1.8824,
 "damage": 6.0,
 "duration": 4.0
 }
-levels = [[], [SubResource("Resource_vi8j1"), SubResource("Resource_vh0ws")], [SubResource("Resource_ci38h")], [SubResource("Resource_7bp80"), SubResource("Resource_73b60")], [SubResource("Resource_xlc6w"), SubResource("Resource_5bvn5")]]
+levels = [[], [SubResource("Resource_vi8j1"), SubResource("Resource_vh0ws"), SubResource("Resource_ci38h")], [SubResource("Resource_7bp80"), SubResource("Resource_73b60")], [SubResource("Resource_xlc6w"), SubResource("Resource_5bvn5")], [SubResource("Resource_euntq"), SubResource("Resource_twceo")]]
 max_level = 5
 evolves_into = "hiwa_kai"
 sfx = {

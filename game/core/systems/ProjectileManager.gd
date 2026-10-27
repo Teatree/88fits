@@ -1550,7 +1550,8 @@ func launch_missile(p_kind: int, from: Vector3, dir: Vector3, speed: float, dama
 	missiles_by_weapon[wid0] = int(missiles_by_weapon.get(wid0, 0)) + 1
 	area[i] = p_area
 	extra[i] = {"speed": speed, "wander": float(params.get("wander", 0.5)), "turn": float(params.get("turn", 6.0)), "spiral": float(params.get("spiral", 7.0)),
-		"age": 0.0, "target": -1, "phase": randf() * TAU, "range": p_range, "trail": int(params.get("trail", 1))}
+		"age": 0.0, "target": -1, "phase": randf() * TAU, "range": p_range, "trail": int(params.get("trail", 1)),
+		"rise": float(params.get("rise", 0.3))}
 	_trail_t[i] = 0.0
 	# pass 81 (lane POLISH): a bee's trail look (params.trail_style, BEE_TRAIL_STYLE without one; _bee_trail)
 	_bee_trail_start(i, params)
@@ -1593,6 +1594,8 @@ func has_rocket_of(shooter: int) -> bool:
 ## climb again from `mult` (never lower). It shakes for `shake` seconds: its position jitters ROCKET_SHAKE_M and its turn
 ## ROCKET_SHAKE_DEG, fading out. From EnemyManager._on_hit_reactions. Returns how many rockets it reached.
 const ROCKET_SHAKE_M := 0.16
+## Pass 109 (lane VFX): metres behind a Raider's rocket's middle its smoke puffs leave from (its tail, at its drawn size).
+const ROCKET_TAIL_M := 0.75
 const ROCKET_SHAKE_DEG := 16.0
 ## diagnostics and tests
 var rocket_slows := 0
@@ -1768,10 +1771,12 @@ func _fly_rocket(i: int, delta: float, map) -> void:
 		# a bright red and white smoke line, thick, so the rocket is seen coming from across the screen
 		_trail_t[i] = 0.03
 		extra[i]["puff"] = int(extra[i].get("puff", 0)) + 1
+		# pass 109 (lane VFX): the puffs leave from its tail (ROCKET_TAIL_M behind its middle), not over its painted body
+		var tail: Vector3 = pos[i] - (vel[i].normalized() if vel[i].length_squared() > 0.0001 else Vector3.ZERO) * ROCKET_TAIL_M
 		if int(extra[i]["puff"]) % 2 == 0:
-			_drop_trail(pos[i], Color(1.0, 0.15, 0.1, 0.9), 1.6)
+			_drop_trail(tail, Color(1.0, 0.15, 0.1, 0.9), 1.6)
 		else:
-			_drop_trail(pos[i], Color(1.0, 0.85, 0.8, 0.85), 1.0)
+			_drop_trail(tail, Color(1.0, 0.85, 0.8, 0.85), 1.0)
 	if player and not player.dead:
 		var d := player.global_position + Vector3(0, 0.9, 0) - pos[i]
 		if d.length() < radius[i] + 0.6:
@@ -1949,10 +1954,11 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 	var heading: Vector3 = vel[i].normalized() if vel[i].length_squared() > 0.0001 else Vector3.FORWARD
 	var wander: float = float(p["wander"])
 	if age < wander:
-		# the corkscrew: the yaw swings on a sine while the nose eases towards level, at reduced speed
+		# the corkscrew: the yaw swings on a sine while the nose eases towards level, at reduced speed (pass 109: towards
+		# `rise`, params.missile.rise: a launcher that looks up keeps its rockets climbing out of the tubes)
 		var ph: float = float(p["phase"]) + age * float(p["spiral"])
 		heading = heading.rotated(Vector3.UP, sin(ph) * 6.5 * delta)
-		heading.y = lerpf(heading.y, 0.3, clampf(delta * 3.0, 0.0, 1.0))
+		heading.y = lerpf(heading.y, float(p.get("rise", 0.3)), clampf(delta * 3.0, 0.0, 1.0))
 		heading = heading.normalized()
 		spd *= 0.65
 	else:

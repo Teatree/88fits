@@ -15,7 +15,7 @@ value = 0.25
 script = ExtResource("2_ddemo")
 stat = "cooldown"
 op = "mul"
-value = -0.1
+value = -0.173
 
 [sub_resource type="Resource" id="Resource_s8ron"]
 script = ExtResource("2_ddemo")
@@ -30,16 +30,22 @@ value = 0.2
 
 [sub_resource type="Resource" id="Resource_7ls8x"]
 script = ExtResource("2_ddemo")
+stat = "cooldown"
+op = "mul"
+value = -0.075
+
+[sub_resource type="Resource" id="Resource_q8jqc"]
+script = ExtResource("2_ddemo")
 stat = "damage"
 op = "mul"
 value = 0.3
 
-[sub_resource type="Resource" id="Resource_q8jqc"]
+[sub_resource type="Resource" id="Resource_onb7h"]
 script = ExtResource("2_ddemo")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_onb7h"]
+[sub_resource type="Resource" id="Resource_t56ny"]
 script = ExtResource("2_ddemo")
 stat = "cooldown"
 op = "mul"
@@ -51,14 +57,14 @@ tags = ["ball"]
 targeting = "priority"
 base = {
 "amount": 1.0,
-"cooldown": 1.4,
+"cooldown": 1.6471,
 "damage": 20.0,
 "knockback": 4.0,
 "pierce": 0.0,
 "range": 9.0,
 "speed": 16.0
 }
-levels = [[], [SubResource("Resource_njbwh"), SubResource("Resource_ddemo")], [SubResource("Resource_s8ron"), SubResource("Resource_gkevb")], [SubResource("Resource_7ls8x")], [SubResource("Resource_q8jqc"), SubResource("Resource_onb7h")]]
+levels = [[], [SubResource("Resource_njbwh"), SubResource("Resource_ddemo")], [SubResource("Resource_s8ron"), SubResource("Resource_gkevb"), SubResource("Resource_7ls8x")], [SubResource("Resource_q8jqc")], [SubResource("Resource_onb7h"), SubResource("Resource_t56ny")]]
 max_level = 5
 evolves_into = "slam_dunk"
 sfx = {

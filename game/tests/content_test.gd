@@ -22,10 +22,11 @@ func test_every_weapon_evolution_resolves() -> void:
 func test_json_roundtrip_effects() -> void:
 	var d := JsonContent.load_json("res://content/weapons/boomstick/boomstick.json")
 	var w: WeaponDef = JsonContent.build("weapons", d, "res://content/weapons/boomstick/")
-	# pass 48: five weapon levels (pairs of the old eight folded together, tools/compress_levels.py), the same seven effects
+	# pass 48: five weapon levels (pairs of the old eight folded together, tools/compress_levels.py), the same seven effects;
+	# pass 109: eight, level 2 gained the attack-speed ramp's cooldown factor (BALANCING.md 52.ATKSPD)
 	assert_int(w.levels.size()).is_equal(5)
 	assert_int(w.max_level).is_equal(5)
-	assert_int(w.effects_for_level(5).size()).is_equal(7)
+	assert_int(w.effects_for_level(5).size()).is_equal(8)
 	var eff: Effect = w.effects_at_level(2)[0]
 	assert_str(eff.stat).is_equal("amount")
 

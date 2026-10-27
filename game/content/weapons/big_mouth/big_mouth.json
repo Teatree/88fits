@@ -8,7 +8,7 @@
   "targeting": "nearest",
   "base": {
     "damage": 9,
-    "cooldown": 3.2,
+    "cooldown": 3.7647,
     "duration": 2.0,
     "range": 13,
     "amount": 1,
@@ -55,13 +55,18 @@
         "stat": "duration",
         "op": "add",
         "value": 0.4
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.15
+        "value": -0.2137
       },
       {
         "stat": "damage",

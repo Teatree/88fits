@@ -9,7 +9,7 @@
   "tags": [],
   "base": {
     "damage": 32,
-    "cooldown": 9.0,
+    "cooldown": 10.5882,
     "amount": 1,
     "duration": 2.0,
     "range": 5.0,
@@ -31,13 +31,18 @@
         "stat": "range",
         "op": "add",
         "value": 0.5
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.0811
       }
     ],
     [
       {
         "stat": "cooldown",
         "op": "mul",
-        "value": -0.12
+        "value": -0.186
       },
       {
         "stat": "fire_damage",
