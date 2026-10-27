@@ -65,6 +65,105 @@ variants = {
 "sprite": "res://content/enemies/armadillo/armadillo_sprite.png",
 "sprite_file": "armadillo_sprite.png",
 "strip_cols": 40
+},
+"ARM-E": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.481,
+"icon": "res://content/enemies/armadillo/armadillo_icon_e.png",
+"note": "Pass 108: realistic, on Garry's armadillo model (_REFERENCES/3d/armadillo.zip): a made trot (armadillo_walk_v2) and the model's own curl into a ball as the death (armadillo_ball_v1)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_e.png",
+"sprite_file": "armadillo_sprite_e.png",
+"strip_cols": 91
+},
+"ARM-F": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.394,
+"icon": "res://content/enemies/armadillo/armadillo_icon_f.png",
+"note": "Pass 108: cartoon / anime, bigger angry eyes and exaggerated proportions (a bigger head and longer legs on the made trot armadillo_walk_toon_v1), the curl into a ball as the death",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_f.png",
+"sprite_file": "armadillo_sprite_f.png",
+"strip_cols": 91
+},
+"ARM-G": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.356,
+"icon": "res://content/enemies/armadillo/armadillo_icon_g.png",
+"note": "Pass 108: ARM-F with another skin colour pattern (its side painted as an edit of ARM-F's side): striped shell, pale face with a dark mask",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_g.png",
+"sprite_file": "armadillo_sprite_g.png",
+"strip_cols": 91
 }
 }
 variant = "ARM-0"

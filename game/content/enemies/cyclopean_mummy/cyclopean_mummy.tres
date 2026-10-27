@@ -1,0 +1,163 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon.png" id="1_cw5ok"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_fmy4i"]
+
+[resource]
+script = ExtResource("2_fmy4i")
+archetype = "tank"
+doc = "A squat goblin wrapped head to belly in bandages, one big green slit-pupilled eye staring out of the wrappings; it plods after the hero with a spiked mace held up at its shoulder."
+hp = 60.0
+speed = 0.85
+damage = 14.0
+radius = 0.6
+size = 1.9
+pack_size = 2
+drops = {
+"chest": 0.014,
+"gold": 0.2,
+"medium": 1.0,
+"small": 1.0
+}
+sprite_path = "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite.png"
+sprite_file = "cyclopean_mummy_sprite.png"
+frame_px = 176
+knockback = 6.36
+blood = Color(0.60784316, 0.20392157, 0.9098039, 1)
+variants = {
+"CM-0": {
+"anims": {
+"attack": 2,
+"die": 1,
+"hit": 1,
+"idle": 2,
+"run": 2
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {},
+"front_faces": "right",
+"head": 0.86,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon.png",
+"note": "the top-level strip, before the Level Editor's looks",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite.png",
+"sprite_file": "cyclopean_mummy_sprite.png",
+"strip_cols": 0
+},
+"CM-A": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.994,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_a.png",
+"note": "Pass 108: Garry's turnaround as the front and back stills; a run on a Mixamo stride fitted to its body with the mace held at the shoulder (cmummy_run_hold)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_a.png",
+"sprite_file": "cyclopean_mummy_sprite_a.png",
+"strip_cols": 40
+},
+"CM-B": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.977,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_b.png",
+"note": "Pass 108: CM-A's run on another seed",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_b.png",
+"sprite_file": "cyclopean_mummy_sprite_b.png",
+"strip_cols": 40
+},
+"CM-C": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.983,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_c.png",
+"note": "Pass 108: a walk on a Mixamo stride fitted to its body with the mace held at the shoulder (cmummy_walk_hold)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_c.png",
+"sprite_file": "cyclopean_mummy_sprite_c.png",
+"strip_cols": 40
+}
+}
+variant = "CM-0"
+sfx = {
+"die": "en_mummy_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 4.0
+variance = {
+"size": 0.12,
+"special": {
+"damage": 2.0,
+"hp": 15.0,
+"size": 1.5,
+"tint": "#24485A",
+"tint_strength": 0.6,
+"xp": 3.0
+},
+"special_chance": 0.0267,
+"speed": 0.1,
+"tint_strength": 0.22,
+"tints": ["#FFFFFF", "#FFE0B0", "#B0C8C8", "#C8A880"]
+}
+id = "cyclopean_mummy"
+display_name = "Cyclopean Mummy"
+flavour = "One eye, one mace, no patience."
+icon = ExtResource("1_cw5ok")
+icon_file = "cyclopean_mummy_icon.png"
+placeholder = {
+"color": "#D8CBA8",
+"ears": "none",
+"eyes": 2.0,
+"shape": "tall"
+}

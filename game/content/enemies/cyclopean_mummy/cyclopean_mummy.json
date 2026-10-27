@@ -1,0 +1,187 @@
+{
+  "id": "cyclopean_mummy",
+  "name": "Cyclopean Mummy",
+  "flavour": "One eye, one mace, no patience.",
+  "archetype": "tank",
+  "brain": "chase",
+  "hp": 60,
+  "speed": 0.85,
+  "damage": 14,
+  "knockback": 6.36,
+  "radius": 0.6,
+  "size": 1.9,
+  "blood": "#9B34E8",
+  "pack_size": 2,
+  "drops": {
+    "medium": 1.0,
+    "small": 1.0,
+    "gold": 0.2,
+    "chest": 0.014
+  },
+  "frame_px": 176,
+  "xp_mult": 4.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_mummy_die"
+  },
+  "placeholder": {
+    "color": "#D8CBA8",
+    "ears": "none",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a squat goblin mummy: its big round head and pot belly wrapped in one mass of thick cream-white bandages, one huge glowing green cat-eye with a black slit pupil staring out of the wrappings in the middle of its head, two long pointed goblin ears poking out at the sides, wiry grey-brown goblin arms and bandy legs, a ragged dark brown loincloth, a black iron spiked ball mace on a long dark shaft held in both hands",
+  "variance": {
+    "size": 0.12,
+    "speed": 0.1,
+    "tints": [
+      "#FFFFFF",
+      "#FFE0B0",
+      "#B0C8C8",
+      "#C8A880"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.0267,
+    "special": {
+      "size": 1.5,
+      "hp": 15.0,
+      "damage": 2.0,
+      "xp": 3.0,
+      "tint": "#24485A",
+      "tint_strength": 0.6
+    }
+  },
+  "motion": "plodding forward in place with heavy bandy-legged steps, the spiked mace held up at its shoulder",
+  "doc": "A squat goblin wrapped head to belly in bandages, one big green slit-pupilled eye staring out of the wrappings; it plods after the hero with a spiked mace held up at its shoulder.",
+  "back_hint": "Seen from behind: the bandaged round back of its head and body, the two pointed ears and the mace poking out at the sides, no eye visible.",
+  "dead_hint": "a collapsed heap of loose cream-white bandages lying on the ground, the big green eye shut on top, the spiked mace lying across the heap",
+  "variant_base": "CM-0",
+  "variants": {
+    "CM-0": {
+      "note": "the top-level strip, before the Level Editor's looks"
+    },
+    "CM-A": {
+      "note": "Pass 108: Garry's turnaround as the front and back stills; a run on a Mixamo stride fitted to its body with the mace held at the shoulder (cmummy_run_hold)",
+      "recipe": {
+        "method": "creature_pose2",
+        "front_ref": "tools/dl/uploads/2d/cyclopean_mummy_front.png",
+        "back_ref": "tools/dl/uploads/2d/cyclopean_mummy_back.png",
+        "picture_use": "as_is",
+        "screen": "auto",
+        "stand": "still",
+        "death": "collapse",
+        "dead_hint": "a collapsed heap of loose cream-white bandages lying flat, the big green eye shut on top, two pointed ears sticking out and the spiked mace lying across the heap, no ground, no sand",
+        "anim_negative": "dropping the mace, two maces, a second eye, two eyes, a mouth, extra arms, extra legs",
+        "pose": "cmummy_run_hold_1eye",
+        "gait": "running in place on the spot like on a treadmill, gripping the spiked mace held up at its right shoulder with both hands, its one big eye staring ahead",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        }
+      },
+      "sprite": "cyclopean_mummy_sprite_a.png",
+      "icon": "cyclopean_mummy_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.994,
+      "fresh": true
+    },
+    "CM-B": {
+      "note": "Pass 108: CM-A's run on another seed",
+      "recipe": {
+        "method": "creature_pose2",
+        "front_ref": "tools/dl/uploads/2d/cyclopean_mummy_front.png",
+        "back_ref": "tools/dl/uploads/2d/cyclopean_mummy_back.png",
+        "picture_use": "as_is",
+        "screen": "auto",
+        "stand": "still",
+        "death": "collapse",
+        "dead_hint": "a collapsed heap of loose cream-white bandages lying flat, the big green eye shut on top, two pointed ears sticking out and the spiked mace lying across the heap, no ground, no sand",
+        "anim_negative": "dropping the mace, two maces, a second eye, two eyes, a mouth, extra arms, extra legs",
+        "pose": "cmummy_run_hold_1eye",
+        "gait": "running in place on the spot like on a treadmill, gripping the spiked mace held up at its right shoulder with both hands, its one big eye staring ahead",
+        "anim_seed": 7,
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "2 of 3 painted",
+          "reused": [
+            "cyclopean_mummy_dead"
+          ]
+        }
+      },
+      "sprite": "cyclopean_mummy_sprite_b.png",
+      "icon": "cyclopean_mummy_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.977,
+      "fresh": true
+    },
+    "CM-C": {
+      "note": "Pass 108: a walk on a Mixamo stride fitted to its body with the mace held at the shoulder (cmummy_walk_hold)",
+      "recipe": {
+        "method": "creature_pose2",
+        "front_ref": "tools/dl/uploads/2d/cyclopean_mummy_front.png",
+        "back_ref": "tools/dl/uploads/2d/cyclopean_mummy_back.png",
+        "picture_use": "as_is",
+        "screen": "auto",
+        "stand": "still",
+        "death": "collapse",
+        "dead_hint": "a collapsed heap of loose cream-white bandages lying flat, the big green eye shut on top, two pointed ears sticking out and the spiked mace lying across the heap, no ground, no sand",
+        "anim_negative": "dropping the mace, two maces, a second eye, two eyes, a mouth, extra arms, extra legs",
+        "pose": "cmummy_walk_hold_1eye",
+        "gait": "walking in place on the spot like on a treadmill with heavy bandy-legged steps, gripping the spiked mace held up at its right shoulder with both hands, its one big eye staring ahead",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "2 of 3 painted",
+          "reused": [
+            "cyclopean_mummy_dead"
+          ]
+        }
+      },
+      "sprite": "cyclopean_mummy_sprite_c.png",
+      "icon": "cyclopean_mummy_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.983,
+      "fresh": true
+    }
+  }
+}

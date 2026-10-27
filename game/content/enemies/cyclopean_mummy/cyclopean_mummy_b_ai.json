@@ -1,0 +1,77 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a squat goblin mummy: its big round head and pot belly wrapped in one mass of thick cream-white bandages, one huge glowing green cat-eye with a black slit pupil staring out of the wrappings in the middle of its head, two long pointed goblin ears poking out at the sides, wiry grey-brown goblin arms and bandy legs, a ragged dark brown loincloth, a black iron spiked ball mace on a long dark shaft held in both hands",
+ "renders": {
+  "front": {
+   "picture": "tools/dl/uploads/2d/cyclopean_mummy_front.png",
+   "as_is": true,
+   "screen": "green",
+   "view": "front"
+  },
+  "back": {
+   "picture": "tools/dl/uploads/2d/cyclopean_mummy_back.png",
+   "as_is": true,
+   "screen": "green",
+   "view": "back"
+  },
+  "dead": {
+   "seed": 22898,
+   "prompt": "This exact creature a collapsed heap of loose cream-white bandages lying flat, the big green eye shut on top, two pointed ears sticking out and the spiked mace lying across the heap, no ground, no sand, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/cyclopean_mummy_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 108,
+     "right": 157,
+     "top": 161,
+     "bottom": 97,
+     "height": 765,
+     "width": 758
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "method": "creature_pose2",
+  "front_ref": "tools/dl/uploads/2d/cyclopean_mummy_front.png",
+  "back_ref": "tools/dl/uploads/2d/cyclopean_mummy_back.png",
+  "picture_use": "as_is",
+  "screen": "auto",
+  "stand": "still",
+  "death": "collapse",
+  "dead_hint": "a collapsed heap of loose cream-white bandages lying flat, the big green eye shut on top, two pointed ears sticking out and the spiked mace lying across the heap, no ground, no sand",
+  "anim_negative": "dropping the mace, two maces, a second eye, two eyes, a mouth, extra arms, extra legs",
+  "pose": "cmummy_run_hold_1eye",
+  "gait": "running in place on the spot like on a treadmill, gripping the spiked mace held up at its right shoulder with both hands, its one big eye staring ahead",
+  "anim_seed": 7
+ },
+ "clip_kind": {
+  "front": "pose",
+  "back": "pose",
+  "die": "procedural"
+ },
+ "screen": "green",
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": "cmummy_run_hold_1eye"
+ },
+ "qa_online": null
+}

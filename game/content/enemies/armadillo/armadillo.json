@@ -107,6 +107,185 @@
         "back_hint": "Seen from behind: the domed banded shell, the thick armoured tail and the two big ears poking up over it, no face visible.",
         "screen": "green"
       }
+    },
+    "ARM-E": {
+      "note": "Pass 108: realistic, on Garry's armadillo model (_REFERENCES/3d/armadillo.zip): a made trot (armadillo_walk_v2) and the model's own curl into a ball as the death (armadillo_ball_v1)",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the legs at both sides",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from behind and a little above, walking away from the viewer: the round back of the shell nearest the viewer in the middle with the tail trailing down from it, the head hidden beyond it, the ear tips showing"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "side_seeds": 4,
+        "drivers": "armadillo_walk_v2",
+        "prompt": "a realistic nine-banded armadillo with a leathery grey-tan banded shell of overlapping plates, small dark eyes, pinkish-grey skin on its long snout, ears and legs, sharp curved claws",
+        "detail": "real armadillo anatomy and proportions, natural colours, no cartoon face, no eyebrows, small eyes, not cute",
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        }
+      },
+      "sprite": "armadillo_sprite_e.png",
+      "icon": "armadillo_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.481,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-F": {
+      "note": "Pass 108: cartoon / anime, bigger angry eyes and exaggerated proportions (a bigger head and longer legs on the made trot armadillo_walk_toon_v1), the curl into a ball as the death",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the legs at both sides, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "side_seeds": 4,
+        "drivers": "armadillo_walk_toon_v1",
+        "prompt": "a cartoon anime armadillo with a glossy banded sandy-brown shell, a pink-tan snout, big upright ears, stubby clawed legs, slightly exaggerated cute proportions with a big head, two big round eyes with small black pupils, heavy angry eyebrows slanting down and a grumpy frown, angry and determined",
+        "detail": "a cartoon face with big angry eyes on the front of its head, chunky exaggerated proportions",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "2 of 5 painted",
+          "reused": [
+            "armadillo_armf_side",
+            "armadillo_armf_fd",
+            "armadillo_armf_bd"
+          ]
+        }
+      },
+      "sprite": "armadillo_sprite_f.png",
+      "icon": "armadillo_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.394,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-G": {
+      "note": "Pass 108: ARM-F with another skin colour pattern (its side painted as an edit of ARM-F's side): striped shell, pale face with a dark mask",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the legs at both sides, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "side_seeds": 4,
+        "drivers": "armadillo_walk_toon_v1",
+        "prompt": "a cartoon anime armadillo with a glossy banded sandy-brown shell, a pink-tan snout, big upright ears, stubby clawed legs, slightly exaggerated cute proportions with a big head, two big round eyes with small black pupils, heavy angry eyebrows slanting down and a grumpy frown, angry and determined, its shell banded in alternating light sand-yellow and dark chocolate-brown stripes, a pale cream face and snout with a darker brown mask around its angry eyes, dark brown ears and legs",
+        "detail": "a cartoon face with big angry eyes on the front of its head, chunky exaggerated proportions",
+        "keep": "its striped shell in alternating light sand-yellow and dark chocolate-brown bands and the dark mask round its eyes",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        }
+      },
+      "sprite": "armadillo_sprite_g.png",
+      "icon": "armadillo_icon_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.356,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
     }
   }
 }
