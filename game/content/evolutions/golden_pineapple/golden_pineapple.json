@@ -25,6 +25,9 @@
     "model_scale": 1.0,
     "model_metallic": 0.45,
     "model_roughness": 0.3,
+    "blast_fx": {
+      "color": "#FFC21F"
+    },
     "fuse": {
       "seconds": 1.0,
       "out_before": 0.5,

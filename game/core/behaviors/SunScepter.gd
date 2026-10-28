@@ -244,9 +244,9 @@ func visible_targets() -> Array:
 		return out
 	var hero := player.global_position
 	var scr = em.get("onscreen")
-	var screen: PackedByteArray = scr if (scr is PackedByteArray and (scr as PackedByteArray).size() == EnemyManager.MAX) else PackedByteArray()
-	var use_screen := screen.size() == EnemyManager.MAX
-	for i in range(EnemyManager.MAX):
+	var screen: PackedByteArray = scr if (scr is PackedByteArray and (scr as PackedByteArray).size() == em.pool_max) else PackedByteArray()
+	var use_screen := screen.size() == em.pool_max
+	for i in range(em.pool_max):
 		if em.alive[i] == 0 or em.state[i] == EnemyManager.STATE_DYING or em.hidden[i] == 1 or em.held[i] == 1:
 			continue
 		if use_screen and screen[i] == 0:

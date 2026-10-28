@@ -173,9 +173,10 @@ def checks(check, run_node, server):
             continue
         sp = vr.get("special") or {}
         # (pass 72, lane SPEC, re-pinned: the game's specials are x1.5 size, x15 HP and drop a chest at 0.35 now)
-        if not (float(vr["special_chance"]) <= 0.0401 and sp.get("size") == 1.5 and sp.get("hp") == 15.0 and sp.get("damage") == 2.0):
+        # (pass 110, lane ECON, re-pinned: a third of the chance again, at most 0.0133, and ATK x3.5)
+        if not (float(vr["special_chance"]) <= 0.0134 and sp.get("size") == 1.5 and sp.get("hp") == 15.0 and sp.get("damage") == 3.5):
             bad_rows.append(cid)
-    check(not bad_rows, "every creature with a special chance: a third of the old chance at most 0.04 (pass 69), size 1.5, HP x15 (pass 72), ATK x2: %s" % bad_rows)
+    check(not bad_rows, "every creature with a special chance: a ninth of the old chance, at most 0.0133 (pass 69, pass 110), size 1.5, HP x15 (pass 72), ATK x3.5 (pass 110): %s" % bad_rows)
 
     # ---------------------------------------------------------------- the server's map Save keeps the new keys
     tmp = tempfile.mkdtemp(prefix="le_selftest_EN_")

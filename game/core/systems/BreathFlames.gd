@@ -58,6 +58,15 @@ var _ring := false
 var _blue := false
 ## Breaths started (tests).
 var starts := 0
+## Pass 110 (lane VFX; Garry: "when Player hero is facing up, or up-left or up-right the Fire Breath visual renders behind
+## the hero 2.5d art asset"): the hero's face is 1.45 m up and his painting leans back with the camera, so the fire
+## leaving his face is in front of the painting's plane and drew over him whichever way he faced. While the camera sees
+## his back (his back and back-diagonal views, FireBreath: Player.faces_away) the puffs draw at BEHIND_PRIORITY in the
+## see-through queue, before his second pass (BillboardSprite.OVER_PRIORITY), so his painting covers them wherever they
+## cross it, as it covers his speed trails; in his other views at 0, over him as before. The whole fire (the puffs share
+## one material) switches at the view change.
+const BEHIND_PRIORITY := -2
+var behind := false
 
 
 ## A BreathFlames under `parent` (the game: the puffs live in the world, not on the weapon).
@@ -180,6 +189,23 @@ func follow(at: Vector3, dir: Vector3) -> void:
 	d = d.normalized()
 	var b := Basis() if _ring else Basis.looking_at(d, Vector3.UP)
 	global_transform = Transform3D(b, at)
+
+
+## Pass 110: the fire behind the hero (`on`: his back views) or over him.
+func set_behind(on: bool) -> void:
+	if on == behind:
+		return
+	behind = on
+	for p: CPUParticles3D in [flames, core]:
+		var m := (p.mesh as QuadMesh).material as ShaderMaterial if p.mesh is QuadMesh else null
+		if m:
+			m.render_priority = BEHIND_PRIORITY if on else 0
+
+
+## The see-through queue's place the puffs draw at now (tests).
+func draw_priority() -> int:
+	var m = (flames.mesh as QuadMesh).material if flames.mesh is QuadMesh else null
+	return (m as ShaderMaterial).render_priority if m is ShaderMaterial else 0
 
 
 ## The breath ends: no new puffs, the ones in the air burn out.

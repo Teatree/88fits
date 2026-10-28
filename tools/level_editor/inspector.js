@@ -40,6 +40,9 @@ const Inspector = (() => {
     const item = App.selected();
     if (!sel || !item) issues(container);
     else if (sel.kind === 'roster') rosterForm(container, item, sel.i);
+    // pass 110 (lane BOSS): a boss fight window's row (the same form, on the fight's clock) and a window's card
+    else if (sel.kind === 'bossrow') rosterForm(container, item, sel.i, bossEnv(sel.s, sel.i, item));
+    else if (sel.kind === 'bossfight') bossFightForm(container, sel.s);
     else if (sel.kind === 'wave') waveForm(container, item, sel.i);
     else if (sel.kind === 'event') eventForm(container, item, sel.i);
     else if (sel.kind === 'cap') capForm(container);
@@ -779,27 +782,59 @@ const Inspector = (() => {
     return { det, body };
   }
 
-  function rosterForm(container, r, i) {
-    const key = `roster:${i}`;
+  /** The roster row's form: its env (pass 110) says whose row it is. A roster row's: the run clock, the view's end,
+   *  App.rosterAt's shares, the order and pacing actions on the roster, Split at cursor, the estimate's mini-chart. */
+  function rosterEnv(i) {
     const rows = App.tl().roster || [];
+    return {
+      kind: 'roster', key: `roster:${i}`, rows, label: 'Spawn row', boss: false,
+      t0: (r) => r.t, end: (r) => (r.until == null || r.until === '' ? App.viewEnd() : Number(r.until)), endNote: (r) => (r.until == null || r.until === '' ? Infinity : Number(r.until)),
+      rosterAt: (t) => App.rosterAt(t), move: (d) => App.moveRow(i, d), convert: (pace) => App.convertRow(i, pace), split: true,
+      untilWord: 'end',
+    };
+  }
+
+  /** Pass 110 (lane BOSS): a boss fight window's row in the same form: times on the fight's clock (0:00 = the boss
+   *  arrives, its cycle's end for "to the end"), its numbers fixed at the stage's end (the fight's moment on the run
+   *  clock, a hair before it so the stage is the right one), the window's shares, its own order and pacing, no Split; a
+   *  per-cycle summary in place of the run estimate's mini-chart. */
+  function bossEnv(s, i, r0) {
+    const b = App.bossBlock(s);
+    const len = Model.bossFightLen(b);
+    const tRun = Math.max(App.stageEnd(s) - 1e-3, 0);
+    return {
+      kind: 'bossrow', key: `bossrow:${s}:${i}`, rows: App.bossRows(s), label: `Boss fight row · stage ${s + 1}`, boss: true, s, len,
+      t0: () => tRun, end: (r) => Model.bossRowEnd(b, r), endNote: null,
+      rosterAt: (t) => App.bossRowsAt(s, t), move: (d) => App.moveBossRow(s, i, d), convert: (pace) => App.convertRow(i, pace, r0), split: false,
+      untilWord: `the cycle's end (${fmtT(len)})`,
+    };
+  }
+
+  function rosterForm(container, r, i, envIn) {
+    const env = envIn || rosterEnv(i);
+    const key = env.key;
+    const rows = env.rows;
     const pace = TimelineModel.paceOf(r);
-    const title = () => `${r.name ? r.name + ': ' : ''}${Timeline.enemyWords(r)} · ${fmtT(r.t)} → ${r.until == null ? 'end' : fmtT(r.until)}`;
+    const clockWord = env.boss ? ' on the fight clock' : '';
+    const title = () => `${r.name ? r.name + ': ' : ''}${Timeline.enemyWords(r)} · ${fmtT(r.t)} → ${r.until == null || r.until === '' ? env.untilWord : fmtT(r.until)}${clockWord}`;
     const cutT = Timeline.cursorT;
     const tEnd = r.until == null || r.until === '' ? App.viewEnd() : Number(r.until);
-    const canSplit = cutT != null && cutT > (Number(r.t) || 0) && cutT < tEnd;
-    const titleEl = header(container, 'Spawn row', title(), key, [
-      { text: '▲', title: 'move the row up (Alt+↑): the order is for this page only, the game draws by weight', disabled: i === 0, cls: 'order', onclick: () => App.moveRow(i, -1) },
-      { text: '▼', title: 'move the row down (Alt+↓)', disabled: i >= rows.length - 1, cls: 'order', onclick: () => App.moveRow(i, 1) },
+    const canSplit = env.split && cutT != null && cutT > (Number(r.t) || 0) && cutT < tEnd;
+    const actions = [
+      { text: '▲', title: `move the row up (Alt+↑): the order is for this page only, the game draws by weight`, disabled: i === 0, cls: 'order', onclick: () => env.move(-1) },
+      { text: '▼', title: 'move the row down (Alt+↓)', disabled: i >= rows.length - 1, cls: 'order', onclick: () => env.move(1) },
       ...listActions(),
-      { text: canSplit ? `Split at ${fmtT(cutT)}` : 'Split at cursor', title: canSplit ? `two rows: this one until ${fmtT(cutT)}, a copy from ${fmtT(cutT)} (its numbers fixed afresh there: the HP curve steps up)` : 'hover the timeline over this row\'s span first: the second under the pointer is where it splits', disabled: !canSplit, onclick: () => App.splitRow(i, cutT) },
-      pace !== 'once' ? { text: '→ once', title: 'pace it as one wave at its start (+ Offset): Per wave creatures, then nothing', onclick: () => App.convertRow(i, 'once') } : null,
-      pace !== 'waves' ? { text: '→ waves', title: 'pace it as waves every 30 s (Every)', onclick: () => App.convertRow(i, 'waves') } : null,
-      pace !== 'continuous' ? { text: '→ continuous', title: 'draw it into the cap by its weight at every spawn check (the waves keys go)', onclick: () => App.convertRow(i, 'continuous') } : null,
-    ].filter(Boolean), `${r.id ? `id ${r.id} · ` : ''}row ${i + 1} of ${rows.length} · ${TimelineModel.quantityText(r, Model.rowWaveCount(r, App.creature(Timeline.firstEnemy(r))), null)}${TimelineModel.roleOf(r) ? ` · ${TimelineModel.roleOf(r)}` : ''}`);
+    ];
+    if (env.split) actions.push({ text: canSplit ? `Split at ${fmtT(cutT)}` : 'Split at cursor', title: canSplit ? `two rows: this one until ${fmtT(cutT)}, a copy from ${fmtT(cutT)} (its numbers fixed afresh there: the HP curve steps up)` : 'hover the timeline over this row\'s span first: the second under the pointer is where it splits', disabled: !canSplit, onclick: () => App.splitRow(i, cutT) });
+    if (pace !== 'once') actions.push({ text: '→ once', title: env.boss ? 'pace it as one wave at its start (+ Offset) in every cycle: Per wave creatures, then nothing until the next cycle' : 'pace it as one wave at its start (+ Offset): Per wave creatures, then nothing', onclick: () => env.convert('once') });
+    if (pace !== 'waves') actions.push({ text: '→ waves', title: 'pace it as waves every 30 s (Every)', onclick: () => env.convert('waves') });
+    if (pace !== 'continuous') actions.push({ text: '→ continuous', title: env.boss ? 'draw it by its weight at every spawn check, into the room under Max count (the waves keys go)' : 'draw it into the cap by its weight at every spawn check (the waves keys go)', onclick: () => env.convert('continuous') });
+    const titleEl = header(container, env.label, title(), key, actions, `${r.id ? `id ${r.id} · ` : ''}row ${i + 1} of ${rows.length}${env.boss ? ' in the window' : ''} · ${TimelineModel.quantityText(r, Model.rowWaveCount(r, App.creature(Timeline.firstEnemy(r))), null)}${TimelineModel.roleOf(r) ? ` · ${TimelineModel.roleOf(r)}` : ''}`);
+    if (env.boss) container.appendChild(el('p', { class: 'insp-help bf-help', text: `A row of stage ${env.s + 1}'s boss fight window: its times are seconds of the fight (0:00 = the boss arrives), its cycle ${fmtT(env.len)} long and starting afresh until the boss dies. It spawns into the room under the window's Max count (bodies), never by the stage's cap. Its creatures' HP and ATK are fixed at the fight's moment on the run clock (${fmtT(App.stageEnd(env.s))}, the stage's end), like a row starting at the stage's last second.` }));
     const c = App.creature(Timeline.firstEnemy(r));
     const form = el('div', { class: 'form' });
     // pass 58: the row's numbers are fixed from its start; its look (its own variant, else the default) for the colours
-    const octx = { t0: () => r.t, from: 'row', look: () => r.variant, modded: !!r.elite };
+    const octx = { t0: () => env.t0(r), from: env.boss ? 'fight' : 'row', look: () => r.variant, modded: !!r.elite };
     const groups = {};
     for (const g of ROW_GROUPS) { groups[g.id] = igroup(g); form.appendChild(groups[g.id].det); }
     const groupOfKey = (k) => (ROW_GROUPS.find((g) => g.keys.includes(k)) || ROW_GROUPS[1]).id;
@@ -812,32 +847,37 @@ const Inspector = (() => {
       if (def.drawn && !Model.rowDrawn(r)) continue;
       if (def.ring && r.pattern !== 'ring') continue;
       const host = groups[groupOfKey(def.key)].body;
-      if (def.key === 'pace') { host.appendChild(paceRow(def, r, c)); continue; }
-      if (def.key === 'enemy') { host.appendChild(Forms.row(def, rowEnemyControl(r), { cls: 'wide-ctl' })); continue; }
+      // pass 110: a window has one limit (its Max count): no channel
+      if (def.key === 'channel' && env.boss) {
+        host.appendChild(el('div', { class: 'muted small bf-note', text: r.channel != null && r.channel !== '' && r.channel !== 'regular' ? `Channel: "${r.channel}" is ignored in a boss fight window (every row counts against its Max count); clear it in the JSON or leave it.` : 'Channel: none in a boss fight window: every row counts against its Max count.' }));
+        continue;
+      }
+      if (def.key === 'pace') { host.appendChild(paceRow(def, r, c, env)); continue; }
+      if (def.key === 'enemy') { host.appendChild(Forms.row(def, rowEnemyControl(r, env), { cls: 'wide-ctl' })); continue; }
       if (def.key === 'variant' && r.enemy === 'roster') continue;
       if (def.type === 'weights') {
         // the Presence boxes follow a dragged bar or point (the review of pass 58: the time stayed put until the drop)
-        const pres = Forms.weightsBlock(r);
+        const pres = Forms.weightsBlock(r, { rosterAt: env.rosterAt });
         if (pres.refresh) liveFns.push(pres.refresh);
         host.appendChild(Forms.row(def, pres, { cls: 'wide-ctl' }));
         continue;
       }
       if (def.type === 'overrides') continue;
-      host.appendChild(fieldFor(def, r, Object.assign({ enemyId: Timeline.firstEnemy(r), placeholders: { pack: c ? c.pack_size : '', count: Model.rowWaveCount({ pack: r.pack, stats: r.stats }, c), interval: spawnCheck() }, note: def.key === 'pattern' ? patternNote('roster', r) : def.key === 'interval' ? intervalNote(r) : def.key === 'special' ? rowSpecialNote(r, c) : null }, octx)));
+      host.appendChild(fieldFor(def, r, Object.assign({ enemyId: Timeline.firstEnemy(r), placeholders: { pack: c ? c.pack_size : '', count: Model.rowWaveCount({ pack: r.pack, stats: r.stats }, c), interval: spawnCheck() }, note: def.key === 'pattern' ? patternNote('roster', r) : def.key === 'interval' ? intervalNote(r, env) : def.key === 'special' ? rowSpecialNote(r, c) : null }, octx)));
     }
     // the row's HP and ATK (pass 58 review: in sight with Overrides closed, following a dragged bar) and its mini-chart
     const est = groups.estimate.body;
-    if (c) est.appendChild(numbersLine(c, () => (U.isObj(r.stats) ? r.stats : {}), () => r.t, 'row', null, '', () => (r.until == null || r.until === '' ? Infinity : Number(r.until))));
-    est.appendChild(miniChart(i, r));
+    if (c) est.appendChild(numbersLine(c, () => (U.isObj(r.stats) ? r.stats : {}), () => env.t0(r), env.boss ? 'fight' : 'row', null, '', env.endNote ? () => env.endNote(r) : null));
+    est.appendChild(env.boss ? bossCycleNote(env.s, i) : miniChart(i, r));
     const facts = el('div', { class: 'row-facts' });
     const fill = () => {
       clear(facts);
       const t0 = Math.max(Number(r.t) || 0, 0);
-      const open = App.rosterAt(t0).find((o) => o.i === i);
+      const open = env.rosterAt(t0).find((o) => o.row === r);
       const lines = [];
       // pass 81 (lane PACE): a waves row is not in the draw (unless it trickles): its weight only gates its waves
-      if (open && !open.drawn) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: it comes as ${TimelineModel.paceOf(r) === 'once' ? 'one wave' : 'waves'}, not in the draw (a weight of 0 holds its waves).`);
-      else if (open) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: ${Math.round(open.norm * 100)}% of its channel's draw.`);
+      if (open && !open.drawn) lines.push(`At ${fmtT(t0)}${clockWord} this row weighs ${fmtN(open.w, 2)}: it comes as ${TimelineModel.paceOf(r) === 'once' ? 'one wave' : 'waves'}, not in the draw (a weight of 0 holds its waves).`);
+      else if (open) lines.push(`At ${fmtT(t0)}${clockWord} this row weighs ${fmtN(open.w, 2)}: ${Math.round(open.norm * 100)}% of ${env.boss ? 'the window\'s' : 'its channel\'s'} draw.`);
       lines.push('The order of the rows is for this page only: the game draws a burst by the weights, whatever the order.');
       for (const l of lines) facts.appendChild(el('p', { class: 'muted small', text: l }));
     };
@@ -855,7 +895,7 @@ const Inspector = (() => {
 
   /** Who a row brings (pass 84; INTERFACES.md / keys_SPAWN.md): one creature, a list drawn at random by `enemy_weights`,
    *  or "roster" (the coloured-elite draw by the open rows' Elite weight). The switch keeps the first creature. */
-  function rowEnemyControl(r) {
+  function rowEnemyControl(r, env) {
     const mode = r.enemy === 'roster' ? 'roster' : Array.isArray(r.enemy) ? 'list' : 'one';
     const wrap = el('div', { class: 'enemy-mode' });
     const first = Timeline.firstEnemy(r) || firstCreature();
@@ -893,7 +933,9 @@ const Inspector = (() => {
         write(ids.concat([nx]), ws ? ws.concat([1]) : null);
       } }));
     } else {
-      wrap.appendChild(el('div', { class: 'muted small', text: 'each creature drawn from the rows open at that second by their Elite weight (each row\'s Overrides -> Elite -> Elite weight), with that row\'s look and HP and ATK: the coloured-elite draw. Set an Elite modifier below for coloured elites.' }));
+      wrap.appendChild(el('div', { class: 'muted small', text: env && env.boss
+        ? 'each creature drawn from this window\'s own rows open at that second of the fight (one creature, no elite modifier, not special, not once) by their Elite weight (each row\'s Overrides -> Elite -> Elite weight), with that row\'s look and HP and ATK. Set an Elite modifier below for coloured elites.'
+        : 'each creature drawn from the rows open at that second by their Elite weight (each row\'s Overrides -> Elite -> Elite weight), with that row\'s look and HP and ATK: the coloured-elite draw. Set an Elite modifier below for coloured elites.' }));
     }
     return wrap;
   }
@@ -947,7 +989,7 @@ const Inspector = (() => {
    *  the waves-only keys (the game ignores them on a continuous row); Waves sets Every to 30 when the row has none, so its
    *  ticks show at once; Once (pass 84) drops Every. The note under it says when the row's creatures come, kept up to date
    *  while the bar is dragged. */
-  function paceRow(def, r, c) {
+  function paceRow(def, r, c, env) {
     const value = r.pace == null || r.pace === '' ? 'continuous' : String(r.pace);
     const ctl = Forms.select(def.options, value, (v) => App.apply(() => {
       if (v === 'waves') {
@@ -962,7 +1004,7 @@ const Inspector = (() => {
       }
     }), { path: 'pace' });
     const note = el('span', { class: 'pace-note' });
-    const fill = () => { clear(note); for (const part of paceNote(r, c)) note.appendChild(typeof part === 'string' ? document.createTextNode(part) : part); };
+    const fill = () => { clear(note); for (const part of paceNote(r, c, env)) note.appendChild(typeof part === 'string' ? document.createTextNode(part) : part); };
     fill();
     liveFns.push(fill);
     return Forms.row(def, ctl, { note });
@@ -970,8 +1012,10 @@ const Inspector = (() => {
 
   /** The words under Pacing (pass 81): a continuous row's draw (the map's spawn check and bursts), or a waves row's waves:
    *  how many, every how often, from when to when, the first few seconds, the ones its presence holds back, the cap. */
-  function paceNote(r, c) {
+  function paceNote(r, c, env) {
     const tl = App.tl();
+    // pass 110 (lane BOSS): a boss fight window's row, in the window's words (the fight clock, Max count, the cycle)
+    if (env && env.boss) return bossPaceNote(r, c, env);
     if (!Model.rowPaced(r)) {
       const si = tl.spawn_interval == null ? 0.5 : Number(tl.spawn_interval);
       const lo = tl.burst_min == null ? 5 : Number(tl.burst_min), hi = tl.burst_max == null ? 20 : Number(tl.burst_max);
@@ -1005,6 +1049,131 @@ const Inspector = (() => {
     return out;
   }
 
+  /** Pass 110 (lane BOSS): the words under a window row's Pacing: when its creatures come in each cycle of the fight. */
+  function bossPaceNote(r, c, env) {
+    const tl = App.tl();
+    const len = env.len;
+    const name = c ? U.plural(c.name) : 'creatures';
+    const si = tl.spawn_interval == null ? 0.5 : Number(tl.spawn_interval);
+    const lo = tl.burst_min == null ? 5 : Number(tl.burst_min), hi = tl.burst_max == null ? 20 : Number(tl.burst_max);
+    const end = Model.bossRowEnd(App.bossBlock(env.s), r);
+    const span = `from ${fmtT(r.t)} to ${fmtT(end)} of every ${fmtT(len)} cycle`;
+    if (!Model.rowPaced(r)) {
+      const every = Model.rowHasInterval(r) ? `on its own clock, every ${fmtN(Model.rowDrawInterval(r, si), 2)} s (Draw every)` : `at every spawn check (every ${fmtN(si, 2)} s)`;
+      return [b('Continuous: '), `drawn by its weight ${every}, ${span}: a burst of ${lo}–${hi} creatures shared by the window's open rows, cut to the room under the window's Max count (bodies). It keeps the fight topped up to Max count while it is open. A yellow tick along its bar at each draw.`];
+    }
+    const n = Model.rowWaveCount(r, c);
+    const capWords = r.respect_cap === false ? 'On top of Max count, all at once (the hard cap still holds).' : 'Into the room under Max count; the rest as room frees, until its next wave or the cycle\'s end.';
+    if (TimelineModel.paceOf(r) === 'once') {
+      const at = Model.rowWaveStart(r);
+      const held = !(App.rowWeight(r, at) > 0);
+      return [b('Once a cycle: '), `${n} ${name} at ${fmtT(at)} of every cycle${held ? ' (its presence is 0 then: it does not come)' : ''}, so once every ${fmtT(len)} while the boss lives. `, capWords, r.trickle ? ' Also drawn continuously while it is open.' : ''];
+    }
+    const come = Model.rowEtchTimes(r, end - 1e-6, tl.weight_late_t);
+    const first = come.slice(0, 5).map((t) => fmtT(t)).join(', ') + (come.length > 5 ? ', …' : '');
+    const every = Model.rowWaveEvery(r);
+    return [b('Waves: '), `${n} ${name} `, every > 0 ? `every ${fmtN(every, 2)} s` : 'once', ` ${span}: `, come.length ? `${come.length} wave${come.length === 1 ? '' : 's'} a cycle (${first})` : 'no wave comes in the cycle', '. ', capWords, r.trickle ? ' Also drawn continuously between its waves.' : ' Not drawn between its waves.'];
+  }
+
+  /** Pass 110 (lane BOSS): the "In the estimate" group of a window row: what it brings in a cycle (the window's cycle
+   *  estimate, model.js bossFightCycle: the hero kills the page's kill rate of the crowd a second, the fight starts with
+   *  only the boss alive). */
+  function bossCycleNote(s, i) {
+    const box = el('div', { class: 'bf-cycle-note' });
+    const cy = bossCycle(s);
+    const row = cy ? cy.rows.find((x) => x.i === i) : null;
+    if (!cy || !row) { box.appendChild(el('p', { class: 'muted small', text: 'no estimate for this row (pick a creature)' })); return box; }
+    const last = cy.cycles - 1;
+    const sp = row.spawned[last], all = cy.spawned[last];
+    const waves = row.waves[last];
+    box.appendChild(el('p', { class: 'fhelp fnote' }, b('In a cycle: '), `≈${fmtN(sp, 1)} creatures${waves ? ` in ${waves} wave${waves === 1 ? '' : 's'}` : ''}, ${all > 0 ? Math.round((sp / all) * 100) : 0}% of the ≈${fmtN(all, 0)} the window brings in a ${fmtT(cy.length)} cycle once it has settled (cycle ${last + 1}; the first cycle: ≈${fmtN(row.spawned[0], 1)}).`));
+    box.appendChild(el('p', { class: 'muted small', text: `An estimate: the hero kills ${Math.round(cy.turnover * 100)}% of the crowd a second (the page's kill rate), the fight starts with only the boss alive and the boss counts against Max count ${cy.max < 0 ? '(none: the hard cap)' : cy.max}. The stage's leftover crowd and the boss's own summons also take room in a real fight.` }));
+    return box;
+  }
+
+  /** Stage s's cycle estimate (model.js bossFightCycle) at the page's kill rate (a single number: the Estimate box, else
+   *  the default), cached per map state. */
+  let cycleCache = { key: '', v: null };
+  function bossCycle(s) {
+    const a = App.S.assume || {};
+    const tv = typeof a.turnover === 'number' ? a.turnover : (App.S.fit && typeof App.S.fit.turnover === 'number' ? App.S.fit.turnover : Model.EST_DEF.turnover);
+    const key = JSON.stringify([App.S.mapId, App.S.enemiesRev, s, tv, Model.bossFight(App.tl(), s), App.tl().hard_cap, App.tl().spawn_interval, App.tl().burst_min, App.tl().burst_max]);
+    if (cycleCache.key === key) return cycleCache.v;
+    const v = Model.bossFightCycle(App.tl(), s, App.S.byId, { turnover: tv, cycles: 2 });
+    cycleCache = { key, v };
+    return v;
+  }
+
+  /** Pass 110 (lane BOSS): a boss fight window's card: its switch, length and Max count, what it does in words, its rows,
+   *  the cycle estimate, Remove; for a stage without one, what the fight does today and "Add a boss fight window". */
+  function bossFightForm(container, s) {
+    const w = App.stageWindow(s);
+    const bossId = typeof StageModel !== 'undefined' ? StageModel.bossOf(App.tl(), s) : w.boss;
+    const bossName = bossId ? App.creatureName(bossId) : 'no boss';
+    const block = App.bossBlock(s);
+    const key = `bossfight:${s}`;
+    const acts = block ? [{ text: 'Remove window', danger: true, title: 'delete this window and its rows (the fight plays as before: the stage\'s last rows at boss_cap_frac of the cap); Ctrl+Z undoes', onclick: () => { if (confirm(`Remove stage ${s + 1}'s boss fight window and its ${Model.bossFightRows(block).length} rows? The fight then plays as before (Ctrl+Z undoes).`)) App.removeBossFight(s); } }] : [];
+    header(container, 'Boss fight', `Stage ${s + 1} · ${w.name} · vs ${bossName}`, key, acts, block ? `${Model.bossFightRows(block).length} rows · ${fmtT(Model.bossFightLen(block))} cycle · Max count ${Model.bossFightMax(block) < 0 ? 'none' : Model.bossFightMax(block)}${block.enabled === false ? ' · OFF' : ''}` : 'no window');
+    const capNow = Math.floor(App.capAt(Math.max(w.end - 1e-3, 0)) * (App.tl().boss_cap_frac == null ? 0.3 : Number(App.tl().boss_cap_frac)));
+    if (!block) {
+      container.appendChild(el('p', { class: 'insp-help', text: `Today this fight spawns from the stage's own rows still open at its end (${fmtT(w.end)}), into ${App.tl().boss_cap_frac == null ? 0.3 : App.tl().boss_cap_frac} of the cap (≈${capNow} load), for as long as the boss lives, on top of the boss's own summons.` }));
+      container.appendChild(el('p', { class: 'insp-help', text: 'A boss fight window replaces that: from the boss\'s arrival until it dies only the window\'s rows spawn, as a cycle (2:00 by default) that starts again and again, under its own Max count. You set its rows up as you set up the stage\'s: continuous, waves or once.' }));
+      container.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn', type: 'button', text: 'Add a boss fight window', onclick: () => App.addBossFight(s) })));
+      return;
+    }
+    const mid = bossName.replace(/^The\s/, 'the ');
+    container.appendChild(el('p', { class: 'insp-help', text: `From the moment ${mid} arrives until it dies, only these rows spawn: the stage's rows, the floor and the specials' clock stop; ${mid}'s own summons still come (never past the hard cap). The fight clock starts at 0:00 as it arrives; every ${fmtT(Model.bossFightLen(block))} the cycle starts again: a once row comes again, a waves row restarts from its start, what a wave still owed is dropped. Every row spawns into the room under Max count (bodies alive: the boss, its summons and what is left of the stage's crowd count too), unless its Respect the cap is off.` }));
+    const form = el('div', { class: 'form' });
+    const on = el('input', { type: 'checkbox', 'data-path': 'boss_fight.enabled' });
+    on.checked = block.enabled !== false;
+    on.addEventListener('change', () => App.setBossFight(s, 'enabled', on.checked ? null : false));
+    form.appendChild(Forms.row({ key: 'enabled', label: 'On', help: 'off keeps the window and its rows in the file but plays the fight as before (the stage\'s last rows at boss_cap_frac of the cap): for comparing' }, on));
+    const num = (k, label, help, def, min, intOnly) => {
+      const inp = el('input', { type: 'number', class: 'num short', step: intOnly ? 1 : 'any', min, value: block[k] == null ? '' : block[k], placeholder: String(def), 'data-path': `boss_fight.${k}`, title: help });
+      inp.addEventListener('change', () => {
+        const v = U.parseNum(inp.value);
+        if (v == null) { App.setBossFight(s, k, null); return; }
+        App.setBossFight(s, k, intOnly ? Math.round(v) : v);
+      });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+      return Forms.row({ key: k, label, help }, inp);
+    };
+    form.appendChild(num('length', 'Cycle length (s)', 'seconds of one cycle: the rows\' times run from 0:00 to this, then the cycle starts again (empty: 120)', Model.BOSS_FIGHT_DEF.length, 1, false));
+    form.appendChild(num('max_count', 'Max count', 'the most creatures alive during the fight, counted as bodies: the boss, its summons and what is left of the stage\'s crowd count too; -1 = no limit but the hard cap (empty: 40)', Model.BOSS_FIGHT_DEF.max_count, -1, true));
+    container.appendChild(form);
+    container.appendChild(el('p', { class: 'muted small', text: `For comparison: without a window this fight would keep ≈${capNow} load (boss_cap_frac ${App.tl().boss_cap_frac == null ? 0.3 : App.tl().boss_cap_frac} of the cap at ${fmtT(w.end)}); the hard cap is ${App.tl().hard_cap} bodies.` }));
+    // the rows, each a button that opens it
+    const rows = Model.bossFightRows(block);
+    const list = el('div', { class: 'bf-rowlist' });
+    rows.forEach((r, i) => {
+      const fid = Timeline.firstEnemy(r);
+      list.appendChild(el('button', { class: 'bf-rowbtn', type: 'button', onclick: () => App.select({ kind: 'bossrow', s, i }) },
+        fid ? el('img', { src: App.iconFor(fid, r.variant), width: 18, height: 18, alt: '' }) : el('span', { text: '★' }),
+        el('span', { text: `${r.name ? r.name + ': ' : ''}${Timeline.enemyWords(r)}` }),
+        el('small', { class: 'muted', text: ` ${fmtT(r.t)}–${fmtT(Model.bossRowEnd(block, r))} · ${TimelineModel.quantityText(r, Model.rowWaveCount(r, App.creature(fid)), null)}` })));
+    });
+    if (!rows.length) list.appendChild(el('div', { class: 'muted small', text: 'no rows yet: nothing spawns in the fight but the boss\'s own summons' }));
+    container.appendChild(section('Rows', 'click one to edit it'));
+    container.appendChild(list);
+    const addRow = el('div', { class: 'alt-actions' });
+    for (const [k, label] of [['continuous', '+ continuous'], ['waves', '+ waves'], ['once', '+ once']]) addRow.appendChild(el('button', { class: 'btn small', type: 'button', text: label, onclick: () => App.newBossRow(s, k, 0) }));
+    container.appendChild(addRow);
+    // the cycle estimate
+    const cy = bossCycle(s);
+    if (cy) {
+      container.appendChild(section('In a cycle (estimate)', 'the window played by the game\'s rules for two cycles, in expected numbers'));
+      const t = el('table', { class: 'kv wide' });
+      t.appendChild(el('tr', {}, el('td', { text: 'row' }), el('td', { text: 'waves a cycle' }), el('td', { text: 'creatures, cycle 1' }), el('td', { text: 'cycle 2' })));
+      for (const x of cy.rows) {
+        const r = rows[x.i];
+        t.appendChild(el('tr', {}, el('td', { text: `${r && r.name ? r.name + ': ' : ''}${r ? Timeline.enemyWords(r) : x.id}` }), el('td', { text: x.pace === 'continuous' ? '—' : String(x.waves[cy.cycles - 1]) }), el('td', { text: fmtN(x.spawned[0], 1) }), el('td', { text: fmtN(x.spawned[cy.cycles - 1], 1) })));
+      }
+      t.appendChild(el('tr', { class: 'bf-total' }, el('td', { text: 'all' }), el('td', { text: '' }), el('td', { text: fmtN(cy.spawned[0], 0) }), el('td', { text: fmtN(cy.spawned[cy.cycles - 1], 0) })));
+      container.appendChild(t);
+      container.appendChild(el('p', { class: 'muted small', text: `Most alive at once ≈${fmtN(cy.peak, 0)} (the boss in)${cy.max >= 0 ? (cy.full > 0 ? `; at Max count ${cy.max} for ≈${fmtT(cy.full)} of the ${fmtT(cy.length * cy.cycles)}` : `; it never reaches Max count ${cy.max}`) : ''}. The hero kills ${Math.round(cy.turnover * 100)}% of the crowd a second (the page's kill rate), the fight starts with only the boss alive: the stage's leftovers and the boss's summons are not in it, and they take room under Max count in a real fight. The run charts above (On screen, Spawned so far) still model a boss fight without its window.` }));
+    }
+  }
+
   /** The map's spawn check (seconds): Settings → Spawning → Spawn check every (pass 83: a row's Draw every placeholder). */
   function spawnCheck() {
     const si = App.tl().spawn_interval;
@@ -1014,20 +1183,22 @@ const Inspector = (() => {
   /** The words under a row's Draw every (pass 83, lane TIMELINE; Garry: "for Continuous spawning, I would still like to
    *  control the interval of continuous spawning, the 0.7s can be a default"): at the spawn check with the other rows,
    *  or on its own clock, with what a draw holds at the row's start and how that compares with the spawn check. */
-  function intervalNote(r) {
+  function intervalNote(r, env) {
     const tl = App.tl();
     const si = spawnCheck();
     const lo = tl.burst_min == null ? 5 : Number(tl.burst_min), hi = tl.burst_max == null ? 20 : Number(tl.burst_max);
     const t0 = Math.max(Number(r.t) || 0, 0);
-    const i = (tl.roster || []).indexOf(r);
-    const open = App.rosterAt(t0).find((o) => o.i === i);
+    // pass 110 (lane BOSS): a window row's share among the window's open rows, its burst in creatures under Max count
+    const boss = !!(env && env.boss);
+    const open = (env ? env.rosterAt(t0) : App.rosterAt(t0)).find((o) => o.row === r);
     const sh = open ? open.norm : 0;
     const per = ((lo + hi) / 2) * sh;
-    const shTxt = `${Math.round(sh * 100)}% of the open rows' weight at ${fmtT(t0)}`;
-    if (!Model.rowHasInterval(r)) return [b('At the spawn check: '), `drawn every ${fmtN(si, 2)} s together with the other rows (Settings → Spawning), ${shTxt}: about ${fmtN(per, 1)} load units a draw while the cap has room. Type a number to give it its own clock.`];
+    const unit = boss ? 'creatures' : 'load units', room = boss ? 'Max count has room' : 'the cap has room';
+    const shTxt = `${Math.round(sh * 100)}% of the open rows' weight at ${fmtT(t0)}${boss ? ' of the fight' : ''}`;
+    if (!Model.rowHasInterval(r)) return [b('At the spawn check: '), `drawn every ${fmtN(si, 2)} s together with the other rows (Settings → Spawning), ${shTxt}: about ${fmtN(per, 1)} ${unit} a draw while ${room}. Type a number to give it its own clock.`];
     const iv = Model.rowDrawInterval(r, si);
-    const out = [b('Own clock: '), `a draw every ${fmtN(iv, 2)} s from ${fmtT(t0)}${Number(r.interval) < Model.ROW_INTERVAL_MIN ? ` (${r.interval} counts as ${Model.ROW_INTERVAL_MIN})` : ''}, each about ${fmtN(per, 1)} load units (a burst of ${lo}–${hi} × ${shTxt}), `];
-    out.push(Math.abs(iv - si) < 1e-9 ? 'as often as the spawn check: the same amount, on its own beat.' : `${fmtN(si / iv, 2)}× as often as at the spawn check (every ${fmtN(si, 2)} s), so about ${fmtN(si / iv, 2)}× the creatures while the cap has room.`);
+    const out = [b('Own clock: '), `a draw every ${fmtN(iv, 2)} s from ${fmtT(t0)}${Number(r.interval) < Model.ROW_INTERVAL_MIN ? ` (${r.interval} counts as ${Model.ROW_INTERVAL_MIN})` : ''}, each about ${fmtN(per, 1)} ${unit} (a burst of ${lo}–${hi} × ${shTxt}), `];
+    out.push(Math.abs(iv - si) < 1e-9 ? 'as often as the spawn check: the same amount, on its own beat.' : `${fmtN(si / iv, 2)}× as often as at the spawn check (every ${fmtN(si, 2)} s), so about ${fmtN(si / iv, 2)}× the creatures while ${room}.`);
     out.push(' Clear the box to draw it at the spawn check again.');
     return out;
   }
@@ -1296,8 +1467,11 @@ const Inspector = (() => {
     container.appendChild(el('p', { class: 'insp-help', text: 'Click a bar, block or marker to edit it. Drag to move; drag a right edge to set its end. Hover anything for its card (HP and ATK at that second). Delete removes, Ctrl+Z undoes, arrows nudge by a second (Shift: ten), Alt+↑/↓ moves a roster row, Ctrl+S saves.' }));
     const list = el('div', { class: 'issue-list' });
     const toSel = (key) => {
-      const [kind, i] = key.split(':');
+      const [kind, i, j] = key.split(':');
       if (kind === 'settings') return App.switchTab('settings');
+      // pass 110 (lane BOSS): a boss fight window ("bossfight:<stage>") and its rows ("bossrow:<stage>:<i>")
+      if (kind === 'bossfight') return App.select({ kind, s: Number(i) }, { scroll: true });
+      if (kind === 'bossrow') return App.select({ kind, s: Number(i), i: Number(j) }, { scroll: true });
       App.select(i == null ? { kind } : { kind, i: Number(i) }, { scroll: true });
     };
     for (const e of errors) list.appendChild(el('button', { class: 'issue-row error', type: 'button', onclick: () => toSel(e.key) }, el('b', { text: 'error' }), el('span', { text: `${issueName(e.key)}: ${e.msg}` })));
@@ -1320,6 +1494,13 @@ const Inspector = (() => {
     if (kind === 'hp') return 'HP curve';
     if (kind === 'stage') { const w = App.stageWindow(Number(i)); return `stage ${Number(i) + 1} (${w.name})`; }
     if (kind === 'dmg') return 'damage curve';
+    // pass 110 (lane BOSS)
+    if (kind === 'bossfight') return `stage ${Number(i) + 1}'s boss fight window`;
+    if (kind === 'bossrow') {
+      const j = Number(key.split(':')[2]);
+      const r = App.bossRows(Number(i))[j];
+      return r ? `stage ${Number(i) + 1} boss fight row ${r.id || j + 1} (${r.name || App.creatureName(Array.isArray(r.enemy) ? r.enemy[0] : r.enemy)} @ ${fmtT(r.t)})` : `stage ${Number(i) + 1} boss fight row ${j + 1}`;
+    }
     return kind;
   }
 

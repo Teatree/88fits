@@ -15,7 +15,7 @@
   "drops": {
     "small": 1.0,
     "gold": 0.01,
-    "chest": 0.0014
+    "chest": 0.0002
   },
   "frame_px": 128,
   "sfx": {
@@ -40,11 +40,11 @@
       "#B0E0FF"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.0333,
+    "special_chance": 0.0111,
     "special": {
       "size": 1.5,
       "hp": 15.0,
-      "damage": 2.0,
+      "damage": 3.5,
       "xp": 3.0,
       "tint": "#5A1A80",
       "tint_strength": 0.6

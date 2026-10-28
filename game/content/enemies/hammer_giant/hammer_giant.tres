@@ -6,14 +6,14 @@
 [resource]
 script = ExtResource("1_010kc")
 archetype = "brute"
-doc = "The giant: slow, three metres of it, 280 HP. Close enough, it raises the hammer (a red ring) and smacks the floor for 42 and a throw across the sand. Never more than three; now and then a chest (8%) or a Berserk (12%) falls from one."
+doc = "The giant: slow, three metres of it, 280 HP. Close enough, it raises the hammer (a red ring) and smacks the floor for 42 and a throw across the sand. Never more than three; now and then a Berserk (12%) falls from one (a chest almost never: 0.02%, as from every regular creature since pass 110)."
 hp = 280.0
 speed = 0.95
 damage = 14.0
 radius = 1.1
 size = 3.4
 drops = {
-"chest": 0.08,
+"chest": 0.0002,
 "gold": 0.5,
 "large": 1.0,
 "medium": 1.0,

@@ -16,7 +16,7 @@
     "small": 1.0,
     "medium": 0.05,
     "gold": 0.02,
-    "chest": 0.0028
+    "chest": 0.0002
   },
   "frame_px": 160,
   "sfx": {
@@ -41,11 +41,11 @@
       "#DDE6F4"
     ],
     "tint_strength": 0.18,
-    "special_chance": 0.04,
+    "special_chance": 0.0133,
     "special": {
       "size": 1.5,
       "hp": 15.0,
-      "damage": 2.0,
+      "damage": 3.5,
       "xp": 3.0,
       "tint": "#6E1A2A",
       "tint_strength": 0.45

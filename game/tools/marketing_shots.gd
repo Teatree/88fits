@@ -1369,6 +1369,17 @@ func _ui() -> void:
 	# the level-up cards, every card landed
 	_run.add_xp(_run.xp_to_next() + 1.0)
 	if await _until(func() -> bool: return g.cards.visible and not g.cards._offer.is_empty(), 4.0):
+		# pass 110 (the store shots): offer=type:id:from:to,... sets the three cards top to bottom
+		# (weapon:sabre:0:1,weapon:tommy_gun:3:4,passive:snake_oil:0:1: a common Sabre, the Tommy Gun's epic level, Snake Oil)
+		if _s("offer", "") != "":
+			var offer: Array = []
+			for part in _s("offer", "").split(","):
+				var b: PackedStringArray = part.split(":")
+				var def = _reg.weapon(b[1]) if b[0] == "weapon" else _reg.passive(b[1])
+				if def != null:
+					offer.append({"type": b[0], "id": def.id, "def": def, "level_from": int(b[2]), "level_to": int(b[3]),
+						"is_new": int(b[2]) == 0, "weight": 1.0})
+			g.cards.show_offer(offer, "LEVEL %d!" % _run.level, false)
 		await _wait(_f("settle", 2.2))
 		await _shot("ui_levelup")
 	await _close_screens()

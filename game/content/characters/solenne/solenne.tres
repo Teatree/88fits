@@ -25,7 +25,7 @@ favourite_bonus = {
 }
 start_weapon = "sun_scepter"
 availability = "purchase"
-price = 1500
+price = 2500
 sprite_path = "res://content/characters/solenne/solenne_sprite_b.png"
 sprite_file = "solenne_sprite_b.png"
 anims = {

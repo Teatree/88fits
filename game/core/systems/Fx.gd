@@ -7,6 +7,11 @@ class_name Fx
 extends Node3D
 
 const MAX_P := 400
+## Pass 110 (lane VFX): room past MAX_P that only the effects marked `must` may take (an Elite's burst, a rocket's
+## explosion, the sparks of a launch...). Before, `must` only spared an effect the budget's thinning: at the cap (a
+## late-game crowd holds the pool at 394 of 400) it was dropped like the rest. The pools hold POOL_MAX.
+const MUST_RESERVE := 120
+const POOL_MAX := MAX_P + MUST_RESERVE
 
 # per particle
 var _pos := PackedVector3Array()
@@ -157,9 +162,9 @@ static func want_lights() -> bool:
 
 
 func _ready() -> void:
-	_pos.resize(MAX_P); _vel.resize(MAX_P); _age.resize(MAX_P); _life.resize(MAX_P)
-	_s0.resize(MAX_P); _s1.resize(MAX_P); _a0.resize(MAX_P); _a1.resize(MAX_P); _grav.resize(MAX_P)
-	_col.resize(MAX_P); _shard.resize(MAX_P); _seed.resize(MAX_P); _blue.resize(MAX_P)
+	_pos.resize(POOL_MAX); _vel.resize(POOL_MAX); _age.resize(POOL_MAX); _life.resize(POOL_MAX)
+	_s0.resize(POOL_MAX); _s1.resize(POOL_MAX); _a0.resize(POOL_MAX); _a1.resize(POOL_MAX); _grav.resize(POOL_MAX)
+	_col.resize(POOL_MAX); _shard.resize(POOL_MAX); _seed.resize(POOL_MAX); _blue.resize(POOL_MAX)
 	var s := SphereMesh.new()
 	s.radius = 0.5
 	s.height = 1.0
@@ -173,6 +178,7 @@ func _ready() -> void:
 	_note_mm = _note_pool()
 	_dust_mm = _dust_pool()
 	_blood_pool()
+	_blast_pool()
 	_build_bolt_meshes()
 	# one invisible note far under the map on the first frames, so the note shader compiles with the rest of the start
 	# (under the spawn beam), not on the guitar's first chord
@@ -223,7 +229,7 @@ func _flame_pool() -> MultiMesh:
 	mm.use_colors = true
 	mm.use_custom_data = true
 	mm.mesh = q
-	mm.instance_count = MAX_P
+	mm.instance_count = POOL_MAX
 	mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
@@ -246,7 +252,7 @@ func _note_pool() -> MultiMesh:
 	mm.use_colors = true
 	mm.use_custom_data = true
 	mm.mesh = q
-	mm.instance_count = MAX_P
+	mm.instance_count = POOL_MAX
 	mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
@@ -274,7 +280,7 @@ func _dust_pool() -> MultiMesh:
 	mm.use_colors = true
 	mm.use_custom_data = true
 	mm.mesh = q
-	mm.instance_count = MAX_P
+	mm.instance_count = POOL_MAX
 	mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
@@ -474,7 +480,7 @@ func _pool(mesh: Mesh, alpha: bool) -> MultiMesh:
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	mm.mesh = mesh
-	mm.instance_count = MAX_P
+	mm.instance_count = POOL_MAX
 	mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
@@ -503,7 +509,7 @@ func _busy_skip() -> bool:
 func _emit(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: float, a1: float, col: Color, grav := 0.0, shard := false, must := false) -> void:
 	if Run.sim_mode:
 		return
-	if _n >= MAX_P:
+	if _n >= (POOL_MAX if must else MAX_P):
 		return
 	if not must and _busy_skip():
 		return
@@ -519,7 +525,7 @@ func _emit(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: flo
 func _emit_flame(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, col: Color, must := false, blue := false) -> void:
 	if Run.sim_mode:
 		return
-	if _n >= MAX_P:
+	if _n >= (POOL_MAX if must else MAX_P):
 		return
 	if not must and _busy_skip():
 		return
@@ -537,7 +543,7 @@ func _emit_flame(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, c
 func _emit_dust(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: float, col: Color, must := false, noise_seed := -1.0) -> void:
 	if Run.sim_mode:
 		return
-	if _n >= MAX_P:
+	if _n >= (POOL_MAX if must else MAX_P):
 		return
 	if not must and _busy_skip():
 		return
@@ -559,10 +565,11 @@ func drop(at: Vector3, fall: float, blue: bool = false) -> void:
 	_emit(at, Vector3(0, -0.5, 0), maxf(fall, 0.05), 0.2, 0.14, 1.0, 1.0, DROP_BLUE if blue else Color(1.0, 0.62, 0.2), 24.0)
 
 
-func burst(at: Vector3, color: Color, size: float = 1.0, strength: float = 1.0) -> void:
+## `must` (pass 110): never thinned by the budget and allowed into the pool's reserve (the Nuke's flash).
+func burst(at: Vector3, color: Color, size: float = 1.0, strength: float = 1.0, must := false) -> void:
 	# the coloured cloud that grows and fades, and a hot white core that pops first so the burst has a snap
-	_emit(at, Vector3.ZERO, 0.34, 0.2, size * 2.2, 0.9, 0.0, color)
-	_emit(at, Vector3.ZERO, 0.16, 0.1, size * 1.1, 0.95, 0.0, Color(1, 1, 1))
+	_emit(at, Vector3.ZERO, 0.34, 0.2, size * 2.2, 0.9, 0.0, color, 0.0, false, must)
+	_emit(at, Vector3.ZERO, 0.16, 0.1, size * 1.1, 0.95, 0.0, Color(1, 1, 1), 0.0, false, must)
 	if strength > 1.0:
 		burst_strength(at, color, size, strength)
 
@@ -1274,6 +1281,7 @@ func _process(delta: float) -> void:
 		return
 	var t0 := Time.get_ticks_usec()
 	_tick_blood(delta)
+	_tick_blasts()
 	_draw_bolts(delta)
 	var i := 0
 	var ns := 0
@@ -1657,3 +1665,360 @@ func stomp_dust(at: Vector3, r: float, size: float = 1.0) -> void:
 		var ca := phase + TAU * (float(k) + 0.5) / 8.0
 		var cv := Vector3(cos(ca), 0.0, sin(ca)) * randf_range(1.5, 3.0) * w * 0.5 + Vector3(0, randf_range(3.0, 5.0), 0)
 		_emit(at + Vector3(cos(ca) * 0.3 * w, 0.25, sin(ca) * 0.3 * w), cv, randf_range(0.5, 0.75), 0.1 * w, 0.07 * w, 1.0, 0.9, CLOD, 12.0, true, true)
+
+
+# ---- pass 110 (lane VFX): the hero's explosions: new functions below this line ----
+
+## Garry: "Explosions - at some point became quite invisible. And I mean for all the explosive weapons. Can you make them
+## better?" Every blast of the hero's weapons was Fx.burst: a see-through pale-orange ball that fades in a third of a
+## second. Two things hid it. Pass 61 made the sand paler (its painting's mean from 203,162,102 to 215,189,146): the
+## ball is drawn almost in the sand's own colour, and only the thin ring showed. And the ball came out of the shared pool
+## without `must`: past a third full the budget dropped a third of them, past three quarters two thirds, and at the cap
+## (a late-game crowd holds it at 394 of 400) all of them.
+## Now a blast is drawn by a pool of its own (the death splash's recipe: a ring of BLAST_MAX quads animated entirely by
+## core/shaders/blast_fx.gdshader from what was written once, so it costs nothing a frame and nothing can crowd it out),
+## in the fire's cel look with a dark rim, so it reads on the pale sand and under the stage filters (it is see-through,
+## drawn after the filter's quads, so never darkened): a white-hot flash, a lumpy fireball (a hot heart that shrinks,
+## the colour cooling to embers and smoke, a dark rim, breaking up as it burns out) a little wider than the blast's
+## radius, dark smoke rising out of it, sparks and clods flung out; and on the ground (weapon_blast) a shock ring racing
+## out to the real radius, a scorch that lingers, and a short kick of the camera only for a big one.
+## 768 pieces: a full blast writes about 35 and a cheap one 6, so the ring holds every piece of a missile swarm's second
+## (BLAST_BUSY full blasts every BLAST_BUSY_SECONDS) without cutting a smoke puff short.
+const BLAST_MAX := 768
+## Drawn over the death splashes (BLOOD_PRIORITY 1): a blast that kills a pack stays the thing that reads.
+const BLAST_PRIORITY := 2
+## Styles: a weapon tagged `explosive` blasts in full; a lobbed flask or skull without the tag (the Molotov, Skull Rain)
+## only splashes (a smaller flash and ball, two puffs, a few sparks; no clods, scorch or kick).
+const BLAST_FULL := 0
+const BLAST_SPLASH := 1
+## What blast() did: nothing (the run sim), merged into a blast that had just gone off beside it, cheap, full.
+const BLAST_NONE := 0
+const BLAST_MERGED := 1
+const BLAST_CHEAP := 2
+const BLAST_DONE := 3
+## Colours: the plain blast, a fire weapon's (Incendiary, Thermobaric, Napalm), poison's, blue fire's (Methanol, Blue
+## Flame); a weapon names its own in `params.blast_fx.color` (the Golden Pineapple's gold).
+const BLAST_ORANGE := Color(1.0, 0.5, 0.1)
+const BLAST_FIRE := Color(1.0, 0.36, 0.06)
+const BLAST_POISON := Color(0.42, 0.85, 0.2)
+const BLAST_BLUE := Color(0.28, 0.56, 1.0)
+const BLAST_GOLD := Color(1.0, 0.76, 0.12)
+const BLAST_SMOKE := Color(0.4, 0.35, 0.31)
+const BLAST_CLOD := Color(0.3, 0.2, 0.12)
+## The fireball's width against the blast's radius (its lumpy edge sits at about 0.88 of it: the ball shows about 0.62 r
+## round, growing to 0.7 r as it burns; its lumps reach about as far), its life in seconds at a 2.5 m blast, the flash's
+## width (about 0.8 r round) and life. The shock ring on the sand marks the real radius.
+const BLAST_BALL := 1.4
+const BLAST_BALL_LIFE := 0.36
+const BLAST_FLASH := 1.7
+const BLAST_FLASH_LIFE := 0.09
+## How far up the screen the flash's and the ball's middle stands over the blast's foot, in their own sizes (they show
+## about 0.44 of their size round, so their lower edge dips a little under the foot's line, which `toward` keeps out of
+## the sand).
+const BLAST_LIFT := 0.3
+## A blast within BLAST_MERGE_SHARE of the larger radius of one that went off less than BLAST_MERGE_SECONDS ago only
+## adds a few sparks to it (a volley of rockets on one pack, bomblets landing together).
+const BLAST_MERGE_SECONDS := 0.12
+const BLAST_MERGE_SHARE := 0.6
+## The budget: past BLAST_BUSY blasts in the last BLAST_BUSY_SECONDS the rest go off cheap (the flash, the ball and a few
+## sparks: no smoke, lumps or clods).
+const BLAST_BUSY := 6
+const BLAST_BUSY_SECONDS := 0.3
+## The camera's kick (weapon_blast): none for a blast under BLAST_KICK_FROM m, then BLAST_KICK_PER a metre more (x its
+## power), BLAST_KICK_MAX at most, never two within BLAST_KICK_GAP seconds; Settings' screen shake scales it (0 = off,
+## CameraRig.shake). The rockets of a pod and the bomblets never kick.
+const BLAST_KICK_FROM := 2.2
+const BLAST_KICK_PER := 0.3
+const BLAST_KICK_MAX := 0.6
+const BLAST_KICK_GAP := 0.25
+## The ground (weapon_blast): the shock ring races out to the radius over BLAST_RING_SECONDS, BLAST_RING_WIDTH of it wide;
+## a full blast of BLAST_SCORCH_FROM m or more leaves a scorch BLAST_SCORCH_SHARE of its radius round (held
+## BLAST_SCORCH_HOLD s, then fading over BLAST_SCORCH_FADE s), none where one was laid less than BLAST_SCORCH_GAP s ago
+## within half the radius (a carpet of scorches under a missile swarm).
+const BLAST_RING_SECONDS := 0.3
+const BLAST_RING_WIDTH := 0.22
+const BLAST_SCORCH_FROM := 1.2
+const BLAST_SCORCH_SHARE := 0.62
+const BLAST_SCORCH_HOLD := 1.2
+const BLAST_SCORCH_FADE := 2.2
+const BLAST_SCORCH_GAP := 1.0
+const BLAST_SCORCH_IN := Color(0.12, 0.07, 0.05, 0.62)
+const BLAST_SCORCH_OUT := Color(0.22, 0.14, 0.09, 0.0)
+
+var _blast_mm: MultiMesh
+var _blast_mat: ShaderMaterial
+var _blast_head := 0
+var _blast_used := 0
+var _blast_last := -1.0
+var _blast_end := PackedFloat32Array()
+var _blast_kind := PackedByteArray()
+## the blasts of the last moment ({at, r, t}: merging and the budget) and the scorches of the last second ({at, r, t})
+var _blast_recent: Array = []
+var _scorch_recent: Array = []
+var _kick_t := -10.0
+## its own random sequence: the shared one is replayed by the tests, and a blast must not shift it
+var _blast_rng := RandomNumberGenerator.new()
+## Diagnostics and tests: blasts drawn (full or cheap), merged, cheap, scorches laid, kicks given.
+var blasts := 0
+var blasts_merged := 0
+var blasts_cheap := 0
+var blast_scorches := 0
+var blast_kicks := 0
+## The last blast drawn (not merged): {at, r, power, style, col, ball (the fireball's width), pieces} (tests, tools).
+var last_blast: Dictionary = {}
+
+
+## The blast pool (pass 110): unit quads the blast shader moves, sizes and faces to the camera. Like the blood pool its
+## transforms are data, so both bounding boxes are fixed.
+func _blast_pool() -> void:
+	_blast_end.resize(BLAST_MAX)
+	_blast_kind.resize(BLAST_MAX)
+	_blast_rng.randomize()
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = q
+	mm.instance_count = BLAST_MAX
+	mm.visible_instance_count = 0
+	mm.custom_aabb = AABB(Vector3(-200, -80, -200), Vector3(400, 120, 400))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Blasts"
+	mmi.multimesh = mm
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://core/shaders/blast_fx.gdshader")
+	mat.set_shader_parameter("noise_tex", load("res://art/fx/fire_noise.png"))
+	mat.render_priority = BLAST_PRIORITY
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -80, -200), Vector3(400, 120, 400))
+	add_child(mmi)
+	_blast_mm = mm
+	_blast_mat = mat
+	# one piece far under the map, so the shader compiles with the start (under the spawn beam), not on the first blast
+	_blast_piece(Vector3(0, -60.0, 0), Vector3.ZERO, 0.1, 0.1, 0.0, 0.5, 0.0, 0.0, Color(1, 1, 1), 1.0, 0.0, 1, 0.0, 0.0)
+	_blast_commit()
+	_blast_end[0] = 0.0
+
+
+## One piece into the ring: it starts at `at` `delay` seconds from now and flies on `vel` (its speed dying away by
+## `drag` a second) under `grav`, from `s0` to `s1` metres across over `life` seconds; `stretch` a spark's length per m/s;
+## `kind` (the shader's: 0 flash, 1 fireball, 2 smoke, 3 spark, 4 clod); `toward` metres towards the camera.
+func _blast_piece(at: Vector3, vel: Vector3, s0: float, s1: float, grav: float, life: float, delay: float, stretch: float, col: Color, alpha: float, seed_v: float, kind: int, toward: float, drag: float) -> void:
+	var i := _blast_head
+	_blast_head = (_blast_head + 1) % BLAST_MAX
+	_blast_used = maxi(_blast_used, i + 1)
+	var birth := _blood_clock + delay
+	_blast_mm.set_instance_transform(i, Transform3D(Basis(vel, Vector3(s0, s1, grav), Vector3(birth, maxf(life, 0.01), stretch)), at))
+	_blast_mm.set_instance_color(i, Color(col.r, col.g, col.b, clampf(alpha, 0.0, 1.0)))
+	_blast_mm.set_instance_custom_data(i, Color(seed_v, float(kind), toward, drag))
+	_blast_end[i] = birth + life
+	_blast_kind[i] = kind
+	_blast_last = maxf(_blast_last, birth + life)
+
+
+## After a blast's pieces are written: the pool draws as far as it has been used, and the shader's clock is now.
+func _blast_commit() -> void:
+	_blast_mm.visible_instance_count = _blast_used
+	_blast_mat.set_shader_parameter("now", _blood_clock)
+
+
+## The pool's clock (Fx's, advanced by _tick_blood); it stops drawing once its last piece is gone.
+func _tick_blasts() -> void:
+	if _blast_mm == null or _blast_mm.visible_instance_count == 0:
+		return
+	if _blood_clock > _blast_last:
+		_blast_mm.visible_instance_count = 0
+		return
+	_blast_mat.set_shader_parameter("now", _blood_clock)
+
+
+## A blast on the sand at `at` (its foot on the ground), `r` metres round, in `col` (BLAST_ORANGE and the rest, or a
+## weapon's own), `style` BLAST_FULL or BLAST_SPLASH, `power` its strength (1 a plain blast; the Heavy Warhead's
+## blast_fx.scale more: more sparks, clods and smoke). Returns what it did (BLAST_NONE .. BLAST_DONE). Only the pieces in
+## the air: weapon_blast adds the ground and the camera.
+func blast(at: Vector3, r: float, col: Color = BLAST_ORANGE, style: int = BLAST_FULL, power: float = 1.0) -> int:
+	if Run.sim_mode or _blast_mm == null:
+		return BLAST_NONE
+	r = maxf(r, 0.4)
+	var pw: float = clampf(power, 0.5, 3.0)
+	var now := _blood_clock
+	# the last moment's blasts: one beside this that has just gone off takes it in (a few sparks more)
+	var keep: Array = []
+	for e: Dictionary in _blast_recent:
+		if now - float(e["t"]) < BLAST_BUSY_SECONDS:
+			keep.append(e)
+	_blast_recent = keep
+	for e: Dictionary in _blast_recent:
+		var d := Vector2(at.x - (e["at"] as Vector3).x, at.z - (e["at"] as Vector3).z).length()
+		if now - float(e["t"]) < BLAST_MERGE_SECONDS and d < BLAST_MERGE_SHARE * maxf(r, float(e["r"])):
+			blasts_merged += 1
+			_blast_sparks(at + Vector3(0, clampf(r * 0.5, 0.5, 2.0), 0), r, col, 3)
+			_blast_commit()
+			return BLAST_MERGED
+	var cheap := _blast_recent.size() >= BLAST_BUSY
+	_blast_recent.append({"at": at, "r": r, "t": now})
+	blasts += 1
+	if cheap:
+		blasts_cheap += 1
+	var splash := style == BLAST_SPLASH
+	var rng := _blast_rng
+	var head0 := _blast_head
+	# the flash and the ball stand on the blast's foot like a painting (the shader: their quad faces the camera through
+	# the foot, its middle BLAST_LIFT of its size up the screen), drawn `toward` metres towards the camera so the sand never
+	# cuts their lower edge, while a hero standing a few metres in front of the foot still covers them; `c` is where the
+	# sparks and the smoke come from, about the ball's middle
+	var hb: float = clampf(r * 0.5, 0.5, 2.0)
+	var c := at + Vector3(0, hb, 0)
+	var foot := at + Vector3(0, 0.05, 0)
+	var toward: float = minf(r * 0.25, 1.2)
+	var size_k: float = clampf(r / 2.5, 0.75, 1.35)
+	# a stronger blast (the Heavy Warhead's scale) draws a bigger ball and flash than its radius; its ring stays true
+	var grow: float = 1.0 + 0.35 * (pw - 1.0)
+	var ball_w: float = r * (BLAST_BALL * 0.85 if splash else BLAST_BALL) * grow
+	var ball_life: float = BLAST_BALL_LIFE * clampf(sqrt(r / 2.5), 0.8, 1.25) * (0.75 if splash else (0.9 + 0.1 * pw))
+	var smoke_col := BLAST_SMOKE.lerp(Color(col.r * 0.4, col.g * 0.4, col.b * 0.4), 0.2)
+	var phase := rng.randf() * TAU
+	# written in the order they are drawn: smoke at the bottom, then the clods, the lumps, the ball, sparks, the flash
+	if not cheap:
+		var ns: int = 2 if splash else 4 + int(pw)
+		for j in range(ns):
+			var a := phase + TAU * (float(j) + rng.randf() * 0.6) / float(ns)
+			var out := Vector3(cos(a), 0.0, sin(a))
+			var o := at + out * rng.randf_range(0.1, 0.3) * r + Vector3(0, hb * rng.randf_range(0.6, 1.0), 0)
+			var v := out * rng.randf_range(0.4, 0.9) * r * 0.6 + Vector3(0, rng.randf_range(0.9, 1.6), 0)
+			_blast_piece(o, v, 0.4 * r, rng.randf_range(0.9, 1.2) * r, -0.5, rng.randf_range(0.8, 1.1),
+				ball_life * rng.randf_range(0.3, 0.55), 0.0, smoke_col, 0.4 if splash else 0.52, rng.randf(), 2, toward * 0.8, 1.4)
+	if not cheap and not splash:
+		var nd: int = 5 + int(2.0 * pw)
+		for j in range(nd):
+			var a2 := rng.randf() * TAU
+			var out2 := Vector3(cos(a2), 0.0, sin(a2))
+			var v2 := out2 * rng.randf_range(2.0, 4.5) * (0.6 + 0.2 * r) + Vector3(0, rng.randf_range(4.5, 7.5), 0)
+			var cs := BLAST_CLOD.lerp(Color(0.16, 0.11, 0.07), rng.randf())
+			_blast_piece(at + out2 * 0.25 * r + Vector3(0, 0.3, 0), v2, rng.randf_range(0.16, 0.26) * size_k, 0.0, 20.0,
+				rng.randf_range(0.55, 0.85), 0.0, 0.0, cs, 1.0, rng.randf(), 4, 0.3, 0.3)
+		# three lumps round the ball, pushed out a little, so its outline billows
+		for j in range(3):
+			var a3 := phase + TAU * (float(j) + 0.3 + rng.randf() * 0.4) / 3.0
+			var out3 := Vector3(cos(a3), 0.0, sin(a3))
+			var o3 := foot + out3 * 0.32 * r
+			_blast_piece(o3, out3 * r * 1.2, ball_w * 0.3, ball_w * rng.randf_range(0.5, 0.58), 0.0,
+				ball_life * rng.randf_range(0.8, 0.92), rng.randf_range(0.0, 0.035), BLAST_LIFT * rng.randf_range(0.6, 1.1), col, 1.0, rng.randf(), 1, toward * 0.95, 5.0)
+	# the fireball
+	_blast_piece(foot, Vector3.ZERO, ball_w * 0.35, ball_w, 0.0, ball_life, 0.0, BLAST_LIFT, col, 1.0, rng.randf(), 1, toward, 0.0)
+	# sparks
+	var nk: int = 4 if cheap else (6 if splash else 10 + int(4.0 * pw))
+	_blast_sparks(c, r, col, nk)
+	# the flash on top
+	var fw: float = r * BLAST_FLASH * (0.7 if splash else 1.0) * grow
+	_blast_piece(foot, Vector3.ZERO, fw * 0.36, fw, 0.0, BLAST_FLASH_LIFE * (0.75 if splash else 1.0), 0.0, BLAST_LIFT,
+		col, 1.0, rng.randf(), 0, toward + 0.05, 0.0)
+	_blast_commit()
+	last_blast = {"at": at, "r": r, "power": pw, "style": style, "col": col, "ball": ball_w, "pieces": _blast_head - head0 if _blast_head >= head0 else _blast_head + BLAST_MAX - head0}
+	return BLAST_CHEAP if cheap else BLAST_DONE
+
+
+## `n` sparks flung out of `c` and falling, drawn long along their flight.
+func _blast_sparks(c: Vector3, r: float, col: Color, n: int) -> void:
+	var rng := _blast_rng
+	var sk: float = clampf(r / 2.5, 0.8, 1.2)
+	var reach: float = clampf(0.55 + 0.18 * r, 0.7, 1.4)
+	for j in range(n):
+		var a := rng.randf() * TAU
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var v := out * rng.randf_range(6.0, 11.0) * reach + Vector3(0, rng.randf_range(2.5, 6.5), 0)
+		var s0: float = rng.randf_range(0.2, 0.28) * sk
+		_blast_piece(c + out * 0.2 * r, v, s0, s0 * 0.4, 16.0, rng.randf_range(0.3, 0.55), 0.0, 0.1, col, 1.0, rng.randf(), 3, 0.6, 1.2)
+
+
+## The hero's weapons' blast (pass 110): blast() in the air at `at` on the ground (its height taken from the map), and
+## on the sand a shock ring racing out to the radius, a scorch for a full one (one at a spot a second), and a short kick
+## of the camera for a big one (BLAST_KICK_*, scaled by Settings' screen shake). `game` gives the map, the ground marks
+## and the camera (Fx's parent when null); anything it lacks is left out.
+func weapon_blast(at: Vector3, r: float, col: Color = BLAST_ORANGE, style: int = BLAST_FULL, power: float = 1.0, game: Node = null) -> int:
+	if game == null:
+		game = get_parent()
+	var ground := at
+	var map = game.get("map") if game else null
+	if map != null and map.has_method("height_at"):
+		ground.y = float(map.height_at(at.x, at.z))
+	var how := blast(ground, r, col, style, power)
+	if how == BLAST_NONE:
+		return how
+	var tg = game.get("telegraphs") if game else null
+	if tg != null and how != BLAST_MERGED:
+		if tg.has_method("race_ring"):
+			tg.race_ring(ground, r, BLAST_RING_SECONDS, Color(col.r, col.g, col.b, 0.9), BLAST_RING_WIDTH)
+		if style == BLAST_FULL and r >= BLAST_SCORCH_FROM and tg.has_method("scorch") and _scorch_free(ground, r):
+			tg.scorch(ground, r * BLAST_SCORCH_SHARE, BLAST_SCORCH_IN, BLAST_SCORCH_OUT, BLAST_SCORCH_HOLD, BLAST_SCORCH_FADE)
+			blast_scorches += 1
+	var cam = game.get("camera") if game else null
+	if cam != null and cam.has_method("shake") and style == BLAST_FULL:
+		var k := blast_kick(r, power)
+		if k > 0.0 and _blood_clock - _kick_t >= BLAST_KICK_GAP:
+			_kick_t = _blood_clock
+			blast_kicks += 1
+			cam.shake(k)
+	return how
+
+
+## The camera's kick for a blast `r` metres round at `power` (before Settings' screen shake): 0 under BLAST_KICK_FROM.
+static func blast_kick(r: float, power: float = 1.0) -> float:
+	return clampf((r - BLAST_KICK_FROM) * BLAST_KICK_PER * clampf(power, 0.5, 2.0), 0.0, BLAST_KICK_MAX)
+
+
+## Whether a scorch may be laid at `at` (none within half of `r` laid less than BLAST_SCORCH_GAP s ago); notes it.
+func _scorch_free(at: Vector3, r: float) -> bool:
+	var keep: Array = []
+	for e: Dictionary in _scorch_recent:
+		if _blood_clock - float(e["t"]) < BLAST_SCORCH_GAP:
+			keep.append(e)
+	_scorch_recent = keep
+	for e: Dictionary in _scorch_recent:
+		var d := Vector2(at.x - (e["at"] as Vector3).x, at.z - (e["at"] as Vector3).z).length()
+		if d < 0.5 * maxf(r, float(e["r"])):
+			return false
+	_scorch_recent.append({"at": at, "r": r, "t": _blood_clock})
+	return true
+
+
+## A weapon's blast colour: its `params.blast_fx.color` when it names one (the Golden Pineapple), else by its element
+## (fire, blue fire, poison), else the plain blast's orange.
+static func blast_colour(w: WeaponInstance, element: String = "") -> Color:
+	if w != null:
+		var bfx = w.params.get("blast_fx")
+		if bfx is Dictionary and (bfx as Dictionary).has("color"):
+			return Color(str((bfx as Dictionary)["color"]))
+	if element == "poison":
+		return BLAST_POISON
+	if element == "fire":
+		return BLAST_BLUE if (w != null and w.blue_fire()) else BLAST_FIRE
+	return BLAST_ORANGE
+
+
+## A weapon's blast style: full for a weapon tagged `explosive`, else the splash.
+static func blast_style(w: WeaponInstance) -> int:
+	if w != null and w.def != null and w.def.tags.has("explosive"):
+		return BLAST_FULL
+	return BLAST_SPLASH
+
+
+## How many blast pieces are showing or about to (tests).
+func blast_count() -> int:
+	var n := 0
+	for i in range(_blast_used):
+		if _blast_end[i] > _blood_clock:
+			n += 1
+	return n
+
+
+## How many pieces of `kind` are showing or about to (tests: a full blast has its flash, ball, smoke, sparks and clods).
+func blast_kind_count(kind: int) -> int:
+	var n := 0
+	for i in range(_blast_used):
+		if _blast_end[i] > _blood_clock and _blast_kind[i] == kind:
+			n += 1
+	return n

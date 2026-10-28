@@ -14,7 +14,7 @@ damage = 16.0
 radius = 0.8
 size = 2.0
 drops = {
-"chest": 0.021,
+"chest": 0.0002,
 "gold": 0.3,
 "large": 1.0,
 "medium": 1.0
@@ -298,14 +298,14 @@ xp_mult = 4.0
 variance = {
 "size": 0.15,
 "special": {
-"damage": 2.0,
+"damage": 3.5,
 "hp": 15.0,
 "size": 1.5,
 "tint": "#4A1A6A",
 "tint_strength": 0.6,
 "xp": 3.0
 },
-"special_chance": 0.0267,
+"special_chance": 0.0089,
 "speed": 0.1,
 "tint_strength": 0.22,
 "tints": ["#FFFFFF", "#FFB070", "#A8C8FF", "#C09070"]

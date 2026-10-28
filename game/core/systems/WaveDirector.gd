@@ -69,6 +69,9 @@ var _run_events: Array = []
 ## jumped (a tool); past this many the rhythm starts again from now instead of replaying every burst since.
 const WAVE_BURSTS_PER_TICK := 8
 const SWARM_COLOR := Color(0.94, 0.63, 0.35)
+## Pass 110 (lane BOSS): the stage's boss-fight window as this fight plays it (BossFightWindow; active from the boss's
+## arrival to its death when the stage has one: then only its rows spawn, under its own max_count; boss_window_on).
+var boss_window := BossFightWindow.new()
 
 
 func start(p_map: MapDef) -> void:
@@ -96,6 +99,8 @@ func start(p_map: MapDef) -> void:
 	# pass 84 (lane SPAWN): the once and waves rows' chance and t_jitter, rolled once for this run (no dice without them)
 	_roll_rows()
 	_starve84.clear()
+	# pass 110 (lane BOSS): no boss-fight window plays until this run's boss arrives
+	boss_window.stop()
 	# pass 87 (lane SGAME): no countdown, no Endless yet; a stage run starts at its window (what came before it never comes)
 	_portal_left = -1.0
 	_endless_wave = 0
@@ -123,6 +128,22 @@ func start(p_map: MapDef) -> void:
 func stop() -> void:
 	running = false
 	elite_index = -1
+	boss_window.stop()
+
+
+## Pass 110 (lane BOSS): whether the boss fight in play spawns from its stage's window (BossFightWindow) instead of the
+## stage's rows.
+func boss_window_on() -> bool:
+	return phase == Phase.BOSS and boss_window.active
+
+
+## Pass 110 (lane BOSS; the lead: "boss summons keep their own rules but must not push past the hard cap"): how many of
+## `want` summons a boss's spawn_ring may bring now: all of them while the map's hard cap (bodies) has room, else what is
+## left of it. EnemyManager.summon_count asks it; without a timeline, all of them.
+func summon_room(want: int) -> int:
+	if timeline == null or game == null or game.get("enemies") == null:
+		return want
+	return clampi(want, 0, maxi(timeline.hard_cap - int(game.enemies.alive_count()), 0))
 
 
 func _apply_mults() -> void:
@@ -184,6 +205,9 @@ func next_elite_at(t: float, interval: float) -> float:
 func current_cap() -> int:
 	var cap := timeline.cap_at(Run.elapsed, Run.stage)
 	if phase == Phase.BOSS:
+		# pass 110 (lane BOSS): a fight that plays its stage's window keeps the window's own max_count (bodies)
+		if boss_window.active:
+			return boss_window.cap_value()
 		return int(cap * timeline.boss_cap_frac)
 	if phase == Phase.ENDLESS:
 		# pass 87 (lane SGAME): the crowd Endless keeps up between its waves, x the stage-end cap (the frozen clock's)
@@ -235,11 +259,15 @@ func _process(delta: float) -> void:
 		tick_portal_countdown(delta)
 	elif phase == Phase.ENDLESS:
 		_tick_endless(delta)
+	elif boss_window_on():
+		# pass 110 (lane BOSS): the fight clock of the stage's boss-fight window, its waves and its own-interval rows
+		boss_window.tick(delta)
 	if phase != Phase.NORMAL:
 		# the stage clock stands still; the buffs' clock does not (Run.buff_clock, pass 47)
 		Run.held_time += delta
-	# the specials' clock in the stage and its boss fight (pass 87: not in the portal wait nor in Endless)
-	if phase == Phase.NORMAL or phase == Phase.BOSS:
+	# the specials' clock in the stage and its boss fight (pass 87: not in the portal wait nor in Endless; pass 110: nor
+	# in a fight that plays its window, where only the window's rows spawn)
+	if phase == Phase.NORMAL or (phase == Phase.BOSS and not boss_window.active):
 		_tick_specials(delta)
 	_spawn_t -= delta
 	if _spawn_t <= 0.0:
@@ -247,9 +275,11 @@ func _process(delta: float) -> void:
 		# pass 87: Endless keeps its crowd up from the stage's late roster (_endless_fill) instead of the roster's draw
 		if phase == Phase.ENDLESS:
 			_endless_fill()
+		elif boss_window_on():
+			boss_window.spawn_check()
 		else:
 			_spawn_burst()
-	if phase != Phase.ENDLESS:
+	if phase != Phase.ENDLESS and not boss_window_on():
 		# pass 83 (lane TIMELINE): the continuous rows with their own `interval` draw on their own clocks
 		_tick_row_intervals(delta)
 		# pass 84 (lane SPAWN): the density floor (floor_curve; nothing without one)
@@ -372,6 +402,8 @@ func _start_boss(id: String, where: Vector3 = Vector3.INF, variant := "", stats 
 	if def == null:
 		return
 	phase = Phase.BOSS
+	# pass 110 (lane BOSS): the stage's boss-fight window, when it has one, plays from now until the boss dies
+	boss_window.begin(self, Run.stage)
 	var em: EnemyManager = game.enemies
 	var mb: MapBase = game.map
 	# the arena may name the spot; the timeline's boss comes up on the flats. A boss keeps its own rules (pass 58: the
@@ -821,6 +853,8 @@ func _on_boss_died(_def: EnemyDef, at: Vector3) -> void:
 	if phase == Phase.ENDLESS:
 		return
 	phase = Phase.PORTAL
+	# pass 110 (lane BOSS): the fight is over, so is its window
+	boss_window.stop()
 	_portal_t = 0.0
 	# the boss's own chest: it holds a mutation, and opening it is what calls every gem, coin and chest in (pass 30)
 	game.pickups.spawn_chest(at + Vector3(2.0, 0, 0), true)
@@ -1198,11 +1232,13 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 	while burst > 0.0 and bodies > 0:
 		var pick := _rng.randf() * total_w
 		var chosen: Dictionary = roster[0]
+		var ci := 0
 		for k in range(roster.size()):
 			if float(ws[k]) <= 0.0:
 				# a row at weight 0 is never drawn (randf() may return exactly 0)
 				continue
 			chosen = roster[k]
+			ci = k
 			pick -= float(ws[k])
 			if pick <= 0.0:
 				break
@@ -1223,6 +1259,17 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 		var n: int = mini(mini(pack, maxi(int(ceil(burst / share)), 1)), bodies)
 		if pattern == "single":
 			n = 1
+		# pass 110 (lane BOSS): a creature's max_alive holds inside one burst too (_roster_open checks it once, before the
+		# burst, and a burst of several packs went past it: Nightfall's cacti, max alive 4, stood 14 strong); a row whose
+		# creature is at its limit leaves the rest of this burst
+		if def.max_alive > 0:
+			n = mini(n, def.max_alive - (game.enemies as EnemyManager).alive_of(def.id))
+			if n <= 0:
+				total_w -= float(ws[ci])
+				ws[ci] = 0.0
+				if total_w <= 0.000001:
+					break
+				continue
 		# the row's numbers as its first spawn of the run fixed them (pass 58, R1); pass 84: a row with the new keys
 		# spawns through _spawn_drawn84 (its pick, elite, special, ring_radius, banner)
 		if _row_new84(chosen, -1):
@@ -2068,7 +2115,7 @@ func _cull_behind() -> void:
 	var em: EnemyManager = game.enemies
 	var player: Node3D = game.player
 	var fwd: Vector3 = player.forward()
-	for i in range(EnemyManager.MAX):
+	for i in range(em.pool_max):
 		if em.alive[i] == 0 or i == em.boss_index or i == elite_index:
 			continue
 		if (em.types[em.type_idx[i]]["def"] as EnemyDef).brain == "artillery":
@@ -2491,6 +2538,12 @@ func _floor_fill() -> void:
 		var n: int = mini(mini(mini(pack, lack), bodies), maxi(int(ceil(room / share)), 1))
 		if str(row.get("pattern", "pack")) == "single":
 			n = 1
+		# pass 110 (lane BOSS): the creature's max_alive holds inside one fill too (_burst_from's rule)
+		if def.max_alive > 0:
+			n = mini(n, def.max_alive - em.alive_of(def.id))
+			if n <= 0:
+				rows = rows.filter(func(x) -> bool: return not is_same(x, row))
+				continue
 		var before := em.alive_count()
 		if _row_new84(row, -1):
 			_spawn_drawn84(row, def, n)

@@ -25,8 +25,16 @@ extends Node3D
 ## pull both scale by it, and so does the cap (2.6 becomes 1 + 1.6 x 0.7 = 2.12)
 @export var zoom_amount := 0.7
 var _zoom := 1.0
-## a tool's hand on the zoom (the capture's far-zoom frame): > 0 holds it there
-var zoom_override := 0.0
+## a tool's hand on the zoom (the capture's far-zoom frame): > 0 holds it there (pass 110: exported, so the editor's
+## Remote inspector can set it while the game runs; 1 = the base distance, below 1 nearer)
+@export var zoom_override := 0.0
+## Screenshot framing (pass 110, lane ARENA; Garry: "everything above [a caption band] centered around the Player
+## hero"): where the hero's middle (FRAME_HERO_MID m above his feet) sits on the screen, as a share of its height from
+## the top (0.5 = the centre; 0.35 = the centre of what lies above a 30 % caption band). Below 0 = off: the fixed
+## camera's own fixed_focus_ahead (every run). Read every frame, so nothing in the game pulls it back; the debug arena's
+## SHOTS tab and its FRAME button set it, and so can the editor's Remote inspector while the game runs.
+@export_range(-1.0, 0.95, 0.01) var frame_hero_y := -1.0
+const FRAME_HERO_MID := 0.9
 @export_group("Follow (chase)")
 @export var follow_pitch_deg := 50.0
 @export var follow_distance := 21.5
@@ -136,6 +144,25 @@ func _process(delta: float) -> void:
 	Perf.add("camera", _t0)
 
 
+## How far north of the hero the fixed camera looks (pass 110): fixed_focus_ahead, or with the screenshot framing on
+## (frame_hero_y >= 0) the distance that puts his middle at that share of the screen's height at this `distance` and
+## `pitch` (radians) and the camera's fov (keep_height: the fov spans the height). The camera at the focus F plus
+## (0, sin p, cos p) x distance, looking at F, sees a point `a` m south of F and `h` m up at the screen's height
+## n x tan(fov / 2) (n = 1 - 2 x the share, up positive) when h cos p - a sin p = n t (distance - h sin p - a cos p).
+func focus_ahead(distance: float, pitch: float) -> float:
+	if frame_hero_y < 0.0 or camera == null:
+		return fixed_focus_ahead
+	var n := 1.0 - 2.0 * clampf(frame_hero_y, 0.05, 0.95)
+	var t := tan(deg_to_rad(camera.fov) * 0.5)
+	var sp := sin(pitch)
+	var cp := cos(pitch)
+	var h := FRAME_HERO_MID
+	var den := n * t * cp - sp
+	if absf(den) < 0.001:
+		return fixed_focus_ahead
+	return (n * t * (distance - h * sp) - h * cp) / den
+
+
 ## Critically damped spring towards a target angle (Unity's SmoothDampAngle, wrapped for radians).
 func _damp_angle(current: float, to: float, smooth_time: float, delta: float) -> float:
 	var omega := 2.0 / maxf(smooth_time, 0.0001)
@@ -198,7 +225,8 @@ func _update(delta: float) -> void:
 	_height = lerpf(_height, ty, clampf(delta * 4.0, 0.0, 1.0))
 	var want := Vector3(target.global_position.x, _height, target.global_position.z) + _lead_dir * lead
 	if fixed:
-		want += Vector3(0, 0, -fixed_focus_ahead)
+		# (pass 110: the screenshot framing's own distance when it is on, focus_ahead)
+		want += Vector3(0, 0, -focus_ahead(distance, pitch))
 	_focus = want if (delta >= 1.0 or fixed) else _damp_vec(_focus, want, focus_smooth_time, delta)
 	var back := -_forward() * cos(pitch) * distance
 	var up := Vector3(0, sin(pitch) * distance, 0)

@@ -45,7 +45,147 @@
           "strength": 0.0
         },
         "hell": false,
-        "shot": "res://art/ui/stages/red_canyon_s1.jpg"
+        "shot": "res://art/ui/stages/red_canyon_s1.jpg",
+        "boss_fight": {
+          "enabled": true,
+          "length": 120,
+          "max_count": 25,
+          "roster": [
+            {
+              "id": "bf1-1",
+              "name": "Goblin trickle",
+              "t": 0,
+              "enemy": "red_goblin",
+              "variant": "RG-B",
+              "weights": [
+                [
+                  0,
+                  5.0
+                ],
+                [
+                  120,
+                  5.0
+                ]
+              ],
+              "pack": 3,
+              "pattern": "scatter",
+              "interval": 3,
+              "stats": {
+                "hp_mult": 1.0,
+                "drops": {
+                  "medium": 0
+                }
+              },
+              "role": "fodder"
+            },
+            {
+              "id": "bf1-2",
+              "name": "Werewolf trickle",
+              "t": 0,
+              "enemy": "werewolf",
+              "weights": [
+                [
+                  0,
+                  3.0
+                ],
+                [
+                  120,
+                  3.0
+                ]
+              ],
+              "pack": 2,
+              "pattern": "scatter",
+              "interval": 4,
+              "stats": {
+                "hp_mult": 1.2,
+                "size": [
+                  1.25,
+                  2.0
+                ]
+              },
+              "role": "fodder"
+            },
+            {
+              "id": "bf1-3",
+              "name": "Dynamite pair",
+              "t": 20,
+              "enemy": "spit_cactus",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "waves",
+              "every": 60,
+              "count": 2,
+              "pattern": "scatter",
+              "stats": {
+                "max_alive": 2
+              },
+              "role": "ranged"
+            },
+            {
+              "id": "bf1-4",
+              "name": "Beetle charge",
+              "t": 50,
+              "enemy": "bull_beetle",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "once",
+              "count": 2,
+              "pattern": "in_front",
+              "respect_cap": false,
+              "stats": {
+                "max_alive": 2,
+                "drops": {
+                  "large": 0.1
+                }
+              },
+              "role": "tank"
+            },
+            {
+              "id": "bf1-5",
+              "name": "Goblin ring",
+              "t": 75,
+              "enemy": "red_goblin",
+              "variant": "RG-B",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "once",
+              "count": 12,
+              "pattern": "ring",
+              "respect_cap": false,
+              "stats": {
+                "hp_mult": 1.0,
+                "drops": {
+                  "medium": 0
+                }
+              },
+              "role": "swarm"
+            }
+          ]
+        }
       },
       {
         "id": "s2",
@@ -60,7 +200,180 @@
           "strength": 0.48
         },
         "hell": false,
-        "shot": "res://art/ui/stages/red_canyon_s2.jpg"
+        "shot": "res://art/ui/stages/red_canyon_s2.jpg",
+        "boss_fight": {
+          "enabled": true,
+          "length": 120,
+          "max_count": 30,
+          "roster": [
+            {
+              "id": "bf2-1",
+              "name": "Skeleton trickle",
+              "t": 0,
+              "enemy": "skeleton",
+              "variant": "SK-A",
+              "weights": [
+                [
+                  0,
+                  5.0
+                ],
+                [
+                  120,
+                  5.0
+                ]
+              ],
+              "pack": 3,
+              "pattern": "scatter",
+              "interval": 2.5,
+              "stats": {
+                "hp_mult": 0.6
+              },
+              "role": "fodder"
+            },
+            {
+              "id": "bf2-2",
+              "name": "Goblin trickle",
+              "t": 0,
+              "enemy": "goblin",
+              "weights": [
+                [
+                  0,
+                  3.0
+                ],
+                [
+                  120,
+                  3.0
+                ]
+              ],
+              "pack": 4,
+              "pattern": "scatter",
+              "interval": 3,
+              "stats": {
+                "hp_mult": 1.0,
+                "size": [
+                  1.2,
+                  1.8
+                ]
+              },
+              "role": "fodder"
+            },
+            {
+              "id": "bf2-3",
+              "name": "Buckshot pair",
+              "t": 15,
+              "enemy": "buckshot_dwarf",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "waves",
+              "every": 40,
+              "count": 2,
+              "pattern": "scatter",
+              "stats": {
+                "hp_mult": 0.6,
+                "max_alive": 3,
+                "damage_mult": 2,
+                "tint": {
+                  "hue": [
+                    42,
+                    96
+                  ],
+                  "sat": 0.85,
+                  "val": 0.73,
+                  "amount": 0.34
+                }
+              },
+              "role": "ranged"
+            },
+            {
+              "id": "bf2-4",
+              "name": "Beetle charge",
+              "t": 45,
+              "enemy": "bull_beetle",
+              "variant": "BB-F",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "once",
+              "count": 3,
+              "pattern": "in_front",
+              "respect_cap": false,
+              "stats": {
+                "hp_mult": 1.0,
+                "max_alive": 3
+              },
+              "role": "tank"
+            },
+            {
+              "id": "bf2-5",
+              "name": "Spider rush",
+              "t": 80,
+              "enemy": "desert_spider",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "once",
+              "count": 8,
+              "pattern": "ring",
+              "respect_cap": false,
+              "stats": {
+                "size": [
+                  1.0,
+                  2.0
+                ],
+                "hp_mult": 0.25,
+                "speed": 2
+              },
+              "role": "swarm"
+            },
+            {
+              "id": "bf2-6",
+              "name": "Hammer giant",
+              "t": 100,
+              "enemy": "hammer_giant",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "once",
+              "count": 1,
+              "pattern": "scatter",
+              "stats": {
+                "hp_mult": 0.55,
+                "max_alive": 1,
+                "damage_mult": 0.7
+              },
+              "role": "tank"
+            }
+          ]
+        }
       },
       {
         "id": "s3",
@@ -74,7 +387,168 @@
           "strength": 0.6
         },
         "hell": true,
-        "shot": "res://art/ui/stages/red_canyon_s3.jpg"
+        "shot": "res://art/ui/stages/red_canyon_s3.jpg",
+        "boss_fight": {
+          "enabled": true,
+          "length": 120,
+          "max_count": 40,
+          "roster": [
+            {
+              "id": "bf3-1",
+              "name": "Imp trickle",
+              "t": 0,
+              "enemy": "imp",
+              "weights": [
+                [
+                  0,
+                  6.0
+                ],
+                [
+                  120,
+                  6.0
+                ]
+              ],
+              "pack": 4,
+              "pattern": "scatter",
+              "interval": 2,
+              "stats": {
+                "hp_mult": 0.35
+              },
+              "role": "fodder"
+            },
+            {
+              "id": "bf3-2",
+              "name": "Hellhound trickle",
+              "t": 0,
+              "enemy": "hellhound",
+              "weights": [
+                [
+                  0,
+                  3.0
+                ],
+                [
+                  120,
+                  3.0
+                ]
+              ],
+              "pack": 2,
+              "pattern": "scatter",
+              "interval": 3,
+              "stats": {
+                "hp_mult": 0.35
+              },
+              "role": "fodder"
+            },
+            {
+              "id": "bf3-3",
+              "name": "Knight trickle",
+              "t": 0,
+              "enemy": "skeleton_knight",
+              "variant": "KN-E",
+              "weights": [
+                [
+                  0,
+                  2.0
+                ],
+                [
+                  120,
+                  2.0
+                ]
+              ],
+              "pack": 3,
+              "pattern": "scatter",
+              "interval": 4,
+              "stats": {
+                "hp_mult": 0.6,
+                "tint": {
+                  "hue": [
+                    8,
+                    32
+                  ],
+                  "sat": 0.9,
+                  "val": 1.0,
+                  "amount": 0.5
+                }
+              },
+              "role": "fodder"
+            },
+            {
+              "id": "bf3-4",
+              "name": "Buckshot pair",
+              "t": 10,
+              "enemy": "buckshot_dwarf",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "waves",
+              "every": 30,
+              "count": 2,
+              "pattern": "scatter",
+              "stats": {
+                "hp_mult": 0.6,
+                "max_alive": 3
+              },
+              "role": "ranged"
+            },
+            {
+              "id": "bf3-5",
+              "name": "Beetle charge",
+              "t": 40,
+              "enemy": "bull_beetle",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "once",
+              "count": 2,
+              "pattern": "in_front",
+              "respect_cap": false,
+              "stats": {
+                "hp_mult": 0.3,
+                "max_alive": 2
+              },
+              "role": "tank"
+            },
+            {
+              "id": "bf3-6",
+              "name": "Ant ring",
+              "t": 75,
+              "enemy": "fire_ant",
+              "variant": "ANT-B",
+              "weights": [
+                [
+                  0,
+                  1.0
+                ],
+                [
+                  120,
+                  1.0
+                ]
+              ],
+              "pace": "once",
+              "count": 16,
+              "pattern": "ring",
+              "respect_cap": false,
+              "stats": {
+                "hp_mult": 0.45
+              },
+              "role": "swarm"
+            }
+          ]
+        }
       }
     ],
     "stage_mults": [
@@ -447,7 +921,7 @@
         },
         "pace": "waves",
         "every": 5,
-        "count": 10,
+        "count": 20,
         "role": "fodder"
       },
       {
@@ -625,7 +1099,8 @@
         "pattern": "scatter",
         "stats": {
           "hp_mult": 0.6,
-          "max_alive": 10
+          "max_alive": 10,
+          "damage_mult": 3
         },
         "pace": "once",
         "count": 10,
@@ -658,7 +1133,8 @@
         "pattern": "scatter",
         "stats": {
           "hp_mult": 0.4,
-          "max_alive": 3
+          "max_alive": 3,
+          "damage_mult": 3
         },
         "pace": "waves",
         "every": 10,
@@ -680,7 +1156,7 @@
           ]
         ],
         "pack": 15,
-        "pattern": "in_front",
+        "pattern": "scatter",
         "stats": {
           "size": [
             1.0,
@@ -712,21 +1188,21 @@
           "hp_mult": 0.67
         },
         "pattern": "scatter",
-        "interval": 3.0
+        "interval": 10.0
       },
       {
         "id": "r18",
-        "t": 714,
-        "until": 723,
+        "t": 608,
+        "until": 617,
         "enemy": "skeleton",
         "variant": "SK-A",
         "weights": [
           [
-            714,
+            608,
             6.0
           ],
           [
-            903,
+            797,
             5.0
           ]
         ],
@@ -741,17 +1217,17 @@
       },
       {
         "id": "r20",
-        "t": 646,
-        "until": 765,
+        "t": 608,
+        "until": 667,
         "enemy": "skeleton",
         "variant": "SK-A",
         "weights": [
           [
-            646,
+            608,
             6.0
           ],
           [
-            835,
+            797,
             5.0
           ]
         ],
@@ -763,17 +1239,17 @@
       },
       {
         "id": "r24",
-        "t": 646,
-        "until": 765,
+        "t": 608,
+        "until": 667,
         "enemy": "skeleton_knight",
         "variant": "KN-A",
         "weights": [
           [
-            646,
+            608,
             2.5
           ],
           [
-            835,
+            797,
             3.0
           ]
         ],
@@ -804,13 +1280,17 @@
             1.4
           ]
         ],
-        "pack": 2,
+        "pack": 10,
         "pattern": "ring",
         "stats": {
-          "hp_mult": 0.71
+          "hp_mult": 0.81,
+          "size": [
+            2.1,
+            2.7
+          ]
         },
         "pace": "waves",
-        "every": 15
+        "every": 25
       },
       {
         "id": "r26",
@@ -832,7 +1312,8 @@
         "stats": {
           "max_alive": 4,
           "hp_mult": 0.71
-        }
+        },
+        "interval": 4
       },
       {
         "id": "r27",
@@ -854,7 +1335,7 @@
         "pattern": "ring",
         "stats": {
           "hp_mult": 0.77,
-          "max_alive": 2
+          "max_alive": 3
         },
         "pace": "waves",
         "every": 25
@@ -887,7 +1368,8 @@
             "sat": 0.85,
             "val": 0.73,
             "amount": 0.34
-          }
+          },
+          "damage_mult": 2
         },
         "pace": "waves",
         "every": 10,
@@ -934,12 +1416,25 @@
         ],
         "pack": 1,
         "stats": {
-          "hp_mult": 1.64
+          "hp_mult": 1.64,
+          "tint": {
+            "hue": [
+              100,
+              184
+            ],
+            "sat": 0.85,
+            "val": 1,
+            "amount": 0.04
+          },
+          "size": [
+            1.2,
+            1.8
+          ]
         },
         "pace": "waves",
         "every": 5,
         "pattern": "scatter",
-        "count": 20
+        "count": 35
       },
       {
         "id": "r31",
@@ -968,7 +1463,7 @@
       {
         "id": "r51",
         "t": 901,
-        "until": 946,
+        "until": 1030,
         "enemy": "spit_cactus",
         "weights": [
           [
@@ -987,6 +1482,35 @@
           "max_alive": 4
         },
         "interval": 4
+      },
+      {
+        "id": "r61",
+        "t": 978,
+        "until": 1002,
+        "enemy": "blue_slime",
+        "weights": [
+          [
+            978,
+            1.0
+          ],
+          [
+            1118,
+            1.4
+          ]
+        ],
+        "pack": 60,
+        "pattern": "ring",
+        "stats": {
+          "hp_mult": 1.66,
+          "max_alive": 4,
+          "size": [
+            1.2,
+            1.8
+          ],
+          "speed_mult": 0.6
+        },
+        "pace": "once",
+        "count": 60
       },
       {
         "id": "r32",
@@ -1015,6 +1539,36 @@
         "count": 5
       },
       {
+        "id": "r60",
+        "t": 714,
+        "until": 755,
+        "enemy": "hammer_giant",
+        "weights": [
+          [
+            714,
+            0.6
+          ],
+          [
+            833,
+            0.8
+          ]
+        ],
+        "pack": 1,
+        "pattern": "scatter",
+        "stats": {
+          "hp_mult": 0.55,
+          "max_alive": 2,
+          "damage_mult": 0.7,
+          "drops": {
+            "medium": 0.1,
+            "gold": 1
+          }
+        },
+        "pace": "waves",
+        "every": 20,
+        "count": 5
+      },
+      {
         "id": "r29",
         "t": 911,
         "until": 1030,
@@ -1030,25 +1584,20 @@
             0.8
           ]
         ],
-        "pack": 20,
+        "pack": 45,
         "pattern": "scatter",
         "stats": {
-          "hp_mult": 0.85,
-          "max_alive": 2,
+          "hp_mult": 1.0,
+          "max_alive": 450,
           "damage_mult": 0.7,
-          "tint": {
-            "hue": [
-              0,
-              25
-            ],
-            "sat": 0.85,
-            "val": 1,
-            "amount": 0.66
-          }
+          "size": [
+            1.7,
+            2.2
+          ]
         },
         "pace": "waves",
         "every": 10,
-        "count": 20
+        "count": 30
       },
       {
         "id": "r10",
@@ -1581,21 +2130,34 @@
             1
           ]
         ],
-        "pace": "once",
-        "count": 24,
-        "pattern": "ring",
-        "ring_radius": 16,
+        "pace": "waves",
+        "count": 25,
+        "pattern": "scatter",
         "respect_cap": false,
         "respect_hard_cap": false,
         "role": "swarm",
         "stats": {
-          "hp_mult": 0.57
+          "hp_mult": 0.57,
+          "size": [
+            1.65,
+            2.5
+          ],
+          "tint": {
+            "hue": [
+              0,
+              66
+            ],
+            "sat": 1,
+            "val": 0.69,
+            "amount": 0.15
+          }
         },
-        "until": 923
+        "until": 923,
+        "every": 12
       },
       {
         "id": "r9",
-        "name": "Armadillo charge",
+        "name": "Bull Beetle Charge",
         "t": 960,
         "enemy": "bull_beetle",
         "variant": "BB-F",
@@ -1606,7 +2168,7 @@
           ]
         ],
         "pace": "once",
-        "count": 20,
+        "count": 5,
         "pattern": "in_front",
         "respect_cap": false,
         "respect_hard_cap": false,
@@ -1847,8 +2409,9 @@
     ],
     "colour_after_kills": 50,
     "special_defaults": {
-      "chest_chance": 0.35,
-      "max_alive": 3
+      "chest_chance": 1.0,
+      "max_alive": 1,
+      "damage": 3.5
     },
     "creature_hp_mult": 1.3,
     "creature_damage_mult": 1.25,
@@ -1866,9 +2429,9 @@
       "enabled": true,
       "mode": "seconds",
       "seconds": {
-        "tumbleweed_king": 25,
-        "gila_grande": 40,
-        "brander": 60
+        "tumbleweed_king": 40,
+        "gila_grande": 60,
+        "brander": 80
       },
       "exponent": 0.5,
       "window": 45,

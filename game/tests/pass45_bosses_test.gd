@@ -391,7 +391,9 @@ func test_the_specials_have_fifty_health_and_no_armour() -> void:
 
 func test_the_giants_drops_are_rarer() -> void:
 	var gi: EnemyDef = Registry.enemy("hammer_giant")
-	assert_float(float(gi.drops.get("chest", 0.0))).is_equal_approx(0.08, 0.0001)
+	# (pass 110, lane ECON, re-pinned: Garry's "the chance of Chest falling out of a normal enemy is next to nothing":
+	# every regular creature 0.0002, the giant's 0.08 too)
+	assert_float(float(gi.drops.get("chest", 0.0))).is_equal_approx(0.0002, 0.00001)
 	assert_float(float((gi.drops.get("pickup", {}) as Dictionary).get("chance", 0.0))).is_equal_approx(0.12, 0.0001)
 
 

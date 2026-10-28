@@ -216,10 +216,11 @@ def checks(check, run_node, server):
     # ---------------------------------------------------------------- fields.js
     fl = res["fields"]
     secs = fl["sections"]
-    check([s["id"] for s in secs] == ["controls", "onscreen", "challenge", "composition", "spawned", "rows", "events", "curves", "warnings"],
+    # pass 110 (lane BOSS): "Boss fights" after the spawn rows
+    check([s["id"] for s in secs] == ["controls", "onscreen", "challenge", "composition", "spawned", "rows", "bossfight", "events", "curves", "warnings"],
           "TIMELINE84: the sections top to bottom: %s" % [s["id"] for s in secs])
     kinds = {s["id"]: s["kind"] for s in secs}
-    check(all(kinds[k] == "view" for k in ["onscreen", "challenge", "composition", "spawned", "warnings"]) and all(kinds[k] == "edit" for k in ["controls", "rows", "events", "curves"]),
+    check(all(kinds[k] == "view" for k in ["onscreen", "challenge", "composition", "spawned", "warnings"]) and all(kinds[k] == "edit" for k in ["controls", "rows", "bossfight", "events", "curves"]),
           "TIMELINE84: every section is marked view only or editing: %s" % kinds)
     check(all(len(s["what"]) > 30 for s in secs), "TIMELINE84: every section says what it is")
     lanes_in = [ln for s in secs for ln in s["lanes"]]
@@ -261,11 +262,12 @@ def checks(check, run_node, server):
                  "Model.creatureDifficulty", "lifetimes from the Sim", "function goTo(wn)"]:
         check(frag in tlj, "TIMELINE84: timeline.js has %s" % frag)
     insp = _read("inspector.js")
-    for frag in ["const ROW_GROUPS = [", "function igroup(g, sub)", "function rowEnemyControl(r)", "function miniChart(i, r)", "App.splitRow(i, cutT)",
-                 "App.convertRow(i, 'once')", "function floorForm(container)", "function portalForm(container)", "enemy_weights"]:
+    # pass 110 (lane BOSS): rowEnemyControl, convertRow and the → once action take a window row too (env, row)
+    for frag in ["const ROW_GROUPS = [", "function igroup(g, sub)", "function rowEnemyControl(r", "function miniChart(i, r)", "App.splitRow(i, cutT)",
+                 "App.convertRow(i, pace)", "function floorForm(container)", "function portalForm(container)", "enemy_weights"]:
         check(frag in insp, "TIMELINE84: inspector.js has %s" % frag)
     app = _read("app.js")
-    for frag in ["function legacyConvert(tld)", "M.convertLegacy(tld", "function newRowPreset(kind, t)", "function splitRow(i, t)", "function convertRow(i, pace)",
+    for frag in ["function legacyConvert(tld)", "M.convertLegacy(tld", "function newRowPreset(kind, t)", "function splitRow(i, t)", "function convertRow(i, pace",
                  "function rowKeyIssues(r, key, mark)", "a floor point is not [seconds, creatures]", "life: S.useSimLife && S.simLife"]:
         check(frag in app, "TIMELINE84: app.js has %s" % frag)
     html = _read("index.html")

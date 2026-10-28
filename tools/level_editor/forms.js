@@ -563,13 +563,15 @@ const Forms = (() => {
 
   /** A roster row's presence keyframes (pass 54): time, weight, the row's share of its channel at that time, at least two
    *  points to remove one. */
-  function weightsBlock(r) {
+  function weightsBlock(r, opts) {
+    // pass 110 (lane BOSS): a boss fight window's row reads its shares from the window's open rows (opts.rosterAt)
+    const rosterAt = opts && typeof opts.rosterAt === 'function' ? opts.rosterAt : App.rosterAt;
     return pointsTable(() => (Array.isArray(r.weights) ? r.weights : []), {
       path: 'weights', valueLabel: 'weight', step: 0.5, minPoints: 2, first: [Number(r.t) || 0, 5],
       ensure: () => { if (!Array.isArray(r.weights)) r.weights = Model.keyframesOf(r, App.tl().weight_late_t); return r.weights; },
       extra: (p) => {
         const t = Number(p[0]) || 0;
-        const open = App.rosterAt(t).find((o) => o.row === r);
+        const open = rosterAt(t).find((o) => o.row === r);
         // pass 81 (lane PACE): a row paced as waves is not in the draw; its weight only holds its waves at 0
         if (open && !open.drawn) return open.w > 0 ? 'waves' : 'held';
         return open ? `${Math.round(open.norm * 100)}%` : 'closed';

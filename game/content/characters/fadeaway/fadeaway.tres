@@ -24,7 +24,7 @@ favourite_passive_bonus = {
 "value": 3.0
 }
 availability = "purchase"
-price = 1750
+price = 3000
 sprite_path = "res://content/characters/fadeaway/fadeaway_sprite_e.png"
 sprite_file = "fadeaway_sprite_e.png"
 anims = {

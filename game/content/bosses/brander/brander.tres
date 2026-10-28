@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_1ri8u")
 archetype = "boss"
-doc = "Stage 3's boss. It draws a ring of fire round the fight that closes in for forty seconds and burns whoever stands outside it; its iron leaves burning lines on the sand for nine seconds; a charge, a slam, rings of imps. Pays three chests and forty coins."
+doc = "Stage 3's boss. It draws a ring of fire round the fight that closes in for forty seconds and burns whoever stands outside it; its iron leaves burning lines on the sand for nine seconds; a charge, a slam, rings of imps. Pays three chests and a hundred coins (pass 110: half of pass 70's 200)."
 brain = "boss"
 hp = 10880.0
 speed = 1.55
@@ -15,7 +15,7 @@ radius = 2.2
 size = 5.2
 drops = {
 "chests": 3.0,
-"coins": 200.0,
+"coins": 100.0,
 "gold": 1.0,
 "large": 1.0
 }

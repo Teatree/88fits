@@ -32,6 +32,9 @@ sfx = {
 visual = ExtResource("3_klqd4")
 visual_file = "golden_pineapple_visual.tscn"
 params = {
+"blast_fx": {
+"color": "#FFC21F"
+},
 "final": {
 "bomblet_area": 1.4,
 "bomblet_damage_mult": 0.4,

@@ -232,7 +232,7 @@ func _fire() -> bool:
 ## The target line: at creature `t`, or along the hero's facing when it is gone.
 func _aim_at(t: int) -> void:
 	var em: EnemyManager = game.enemies
-	if t < 0 or t >= EnemyManager.MAX or em.alive[t] == 0:
+	if t < 0 or t >= em.pool_max or em.alive[t] == 0:
 		return
 	var d: Vector3 = em.pos[t] - player.global_position
 	d.y = 0.0
@@ -293,7 +293,7 @@ func _end_phase() -> void:
 		_combo = 2
 		var em: EnemyManager = game.enemies
 		var t := target
-		if t < 0 or t >= EnemyManager.MAX or em.alive[t] == 0 or em.state[t] == EnemyManager.STATE_DYING:
+		if t < 0 or t >= em.pool_max or em.alive[t] == 0 or em.state[t] == EnemyManager.STATE_DYING:
 			# the thrust half of Heartseeker's crit stroke reaches further (pass 62: _reach)
 			t = aim_index(player.global_position, _reach() + 0.6)
 		if t >= 0:
@@ -1109,7 +1109,7 @@ func tip_glow() -> float:
 
 ## A hit of the crit stroke that landed as a crit: counted, and a red burst on it over the gold one every crit gets.
 func _note_crit_hit(em: EnemyManager, i: int) -> void:
-	if not _phase_crit() or not em.last_crit or i < 0 or i >= EnemyManager.MAX:
+	if not _phase_crit() or not em.last_crit or i < 0 or i >= em.pool_max:
 		return
 	crit_hits += 1
 	var fx = game.get("fx") if game else null

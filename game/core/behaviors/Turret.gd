@@ -273,10 +273,14 @@ func _last_stand() -> void:
 		em.damage_radius(global_position, r, dmg, owner_behavior.inst.def.id, float((boom as Dictionary).get("knockback", 9.0)), bflags)
 		owner_behavior.inst.kills += Run.kills - before
 	var fx = game.get("fx")
-	if fx and fx.has_method("explosion"):
-		fx.explosion(global_position, r * 0.45)
-	if game.has_method("fx_burst"):
-		game.fx_burst(global_position + Vector3(0, 0.4, 0), Color(1.0, 0.62, 0.25), r * 0.6)
+	if fx and fx.has_method("weapon_blast"):
+		# pass 110 (lane VFX): Fx's blast at the Last Stand's radius
+		fx.weapon_blast(global_position, r, Fx.BLAST_ORANGE, Fx.BLAST_FULL, 1.0, game)
+	else:
+		if fx and fx.has_method("explosion"):
+			fx.explosion(global_position, r * 0.45)
+		if game.has_method("fx_burst"):
+			game.fx_burst(global_position + Vector3(0, 0.4, 0), Color(1.0, 0.62, 0.25), r * 0.6)
 	Audio.play("w_lob_boom", global_position)
 	booms += 1
 

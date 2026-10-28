@@ -16,7 +16,7 @@
     "medium": 1.0,
     "small": 1.0,
     "gold": 0.2,
-    "chest": 0.014
+    "chest": 0.0002
   },
   "anims": {
     "idle": 4,
@@ -50,11 +50,11 @@
       "#C8A880"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.0267,
+    "special_chance": 0.0089,
     "special": {
       "size": 1.5,
       "hp": 15.0,
-      "damage": 2.0,
+      "damage": 3.5,
       "xp": 3.0,
       "tint": "#24485A",
       "tint_strength": 0.6

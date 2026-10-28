@@ -114,6 +114,8 @@ var _boss_warned := false
 var _boss_ten := false
 var _xp_frac := 0.0
 var _slots_bottom: float = BAND_H
+## pass 110: the height of the slots' first row as laid out (_refresh_rows), the kill counter's middle (_place_kills)
+var _slot_row_h: float = WEAPON_PX
 var _ring_pos := Vector2.ZERO
 var _ring_alpha := 0.0
 var _stick := Vector2.ZERO
@@ -170,13 +172,18 @@ func _ready() -> void:
 	_layout_toasts()
 
 
+## Pass 110 (lane ARENA): hidden for the debug arena's clean screenshot (the bars, the joystick, the toasts, all of it).
+var clean_hidden := false
+
+
 ## While a modal that pauses the run is up (level-up, chest, shop, pause...), the HUD steps aside; the gate brings it
 ## back so the card can land in its slot.
 func _process(_delta: float) -> void:
 	# pass 77 (lane SIMRUN): the run sim's fast mode shows no HUD
 	if Run.sim_mode:
 		return
-	var covered := false
+	# pass 110 (lane ARENA): the debug arena's clean capture hides the HUD for a screenshot (ArenaPanel.set_clean)
+	var covered := clean_hidden
 	for m in get_tree().get_nodes_in_group("wanted_modal"):
 		if (m as CanvasItem).visible:
 			covered = true
@@ -595,6 +602,8 @@ func _refresh_rows() -> void:
 					_slot_nodes[(it[0] as ContentDef).id] = p
 				x += side + SLOT_GAP * k
 				row_h = maxf(row_h, side)
+		if y == 0.0:
+			_slot_row_h = row_h
 		y += row_h + ROW_GAP
 	var inset := W.safe_top()
 	_rail.offset_top = inset
@@ -608,6 +617,7 @@ func _refresh_rows() -> void:
 	band_h = maxf(float(BAND_H) + inset, _slots_bottom + 14.0)
 	_band.offset_bottom = band_h
 	_layout_toasts()
+	_place_kills()
 	Perf.add("hud.rows", t0)
 
 
@@ -1374,16 +1384,28 @@ func _pulse_stage_tag() -> void:
 
 ## Pass 109: the kill counter's row hangs KILLS_GAP under the clock plate's foot (its hard shadow included), or under the
 ## ENDLESS IN / WAVE n tag while that shows, centred on the clock: over the gap between the weapons and the lines.
+## Pass 110 (lane VFX; Garry: "Move the Kill Counter so it's vertically centered to the vertical center of the Item
+## drawer"): its row's middle sits on the middle of the item slots' row (the first row when a long arena hand splits
+## them), still centred under the clock between the weapons and the lines: about 30 px lower than pass 109's spot. The
+## ENDLESS IN / WAVE n tag ends about 11 px above it; should a taller tag ever reach it, the counter stays KILLS_TAG_GAP
+## under the tag (a ding grows it 6 px up at most).
 const KILLS_GAP := 10.0
+const KILLS_TAG_GAP := 6.0
 
 
 func _place_kills() -> void:
 	if _kills == null:
 		return
-	var y := _timer_plate.position.y + _timer_plate.size.y + KILLS_GAP
+	var y := SLOT_Y + _slot_row_h * 0.5 - _kills.row_height() * 0.5
+	y = maxf(y, _timer_plate.position.y + _timer_plate.size.y + KILLS_TAG_GAP)
 	if _stage_tag != null and _stage_tag.visible:
-		y = _stage_tag.position.y + _stage_tag.size.y + KILLS_GAP
+		y = maxf(y, _stage_tag.position.y + _stage_tag.size.y + KILLS_TAG_GAP)
 	_kills.position = Vector2(_timer_plate.position.x + _timer_plate.size.x * 0.5, y)
+
+
+## The middle of the item slots' (first) row in the top bar's space (pass 110: the kill counter's middle sits on it).
+func slots_middle_y() -> float:
+	return SLOT_Y + _slot_row_h * 0.5
 
 
 ## The kill counter (tests, captures).

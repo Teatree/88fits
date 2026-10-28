@@ -604,7 +604,7 @@ const AFIELDS = (() => {
       { key: 'drops.medium', label: 'Medium gem', type: 'number', min: 0, max: 1, step: 0.01, help: 'chance of a 5-XP gem (+ luck x 0.1)' },
       { key: 'drops.large', label: 'Large gem', type: 'number', min: 0, max: 1, step: 0.01, help: 'chance of a 25-XP gem' },
       { key: 'drops.gold', label: 'Coins', type: 'number', min: 0, max: 1, step: 0.005, help: 'chance of 1-3 coins, x (1 + luck)' },
-      { key: 'drops.chest', label: 'Chest', type: 'number', min: 0, max: 1, step: 0.001, help: 'chance of a chest (an elite always drops one)' },
+      { key: 'drops.chest', label: 'Chest', type: 'number', min: 0, max: 1, step: 0.001, help: 'chance of a chest (an elite always drops one). Pass 110: every regular creature 0.0002, about one chest in 5,000 kills; a coloured special drops its own (Settings -> Coloured specials, Chest chance 1 = always)' },
       { key: 'drops.pickup.id', label: 'Own power-up', type: 'pickup', help: 'a power-up of its own' },
       { key: 'drops.pickup.chance', label: 'Own power-up chance', type: 'number', min: 0, max: 1, step: 0.01 },
       { key: 'drops.coins', label: 'Boss coins', type: 'int', min: 0, def: 12, only: isBoss, help: 'boss only: coins worth 5 each' },

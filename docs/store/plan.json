@@ -1,0 +1,7 @@
+[
+ {"src": "tools/dl/p110/store_raw/s1_swarm_c1100.png", "out": "docs/store/01_swarm.png", "big": "SURROUNDED", "small": "Thousands of foes at once!", "colour": "rock", "seed": 11},
+ {"src": "tools/dl/p110/store_raw/s2_boss_b2.0.png", "out": "docs/store/02_boss.png", "big": "BOSS FIGHTS", "small": "Read the ground. Strike back!", "colour": "rare", "seed": 12},
+ {"src": "tools/dl/p110/store_raw/s3_hell_b1.2.png", "out": "docs/store/03_hell.png", "big": "BLOOD MOON", "small": "Raise hell right back!", "colour": "ink", "seed": 13},
+ {"src": "tools/dl/p110/store_raw/ui/ui_levelup.png", "out": "docs/store/04_level_up.png", "big": "BUILD YOUR ARSENAL", "small": "Hundreds of combos", "colour": "epic", "seed": 14, "fit": 0.86, "top": 30},
+ {"src": "tools/dl/p110/store_raw/ui/ui_totem.png", "out": "docs/store/05_totem.png", "big": "SPIRIT TOTEMS", "small": "Carve your own luck", "colour": "turquoise", "seed": 15, "fit": 0.93, "top": 0}
+]

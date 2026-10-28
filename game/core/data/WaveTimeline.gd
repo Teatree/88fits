@@ -796,6 +796,64 @@ func stage_entry(i: int) -> Dictionary:
 		"xp_mult": stage_xp_mult(k)}
 
 
+# ---------------------------------------------------------------- a stage's boss-fight window (pass 110, lane BOSS)
+
+## Garry (2026-10-28): "I'd like some control over which enemies spawn during the Boss fight. Just add a 2 minute window
+## in the Timeline where I can set up the cycle of enemies that will be spawning ... as long as the Boss Fight is
+## continuing it will be those enemies at that pace that will be spawning." A stage entry's `boss_fight` block:
+##   enabled    false keeps the block but plays the fight as before (default true)
+##   length     seconds of one cycle (default BOSS_FIGHT_LENGTH_DEFAULT, at least 1); the cycle loops while the boss lives
+##   max_count  the most creatures alive (BODIES, whatever their cap share) while the window spawns: the boss, its
+##              summons and what is left of the stage's crowd count too; -1 = no limit but the hard cap (default 40)
+##   roster     spawn rows with the roster's keys, every time on the FIGHT clock (0 = the boss arrives): t, until (absent
+##              = the cycle's end), the presence keyframes, offset
+## WaveDirector plays it through BossFightWindow from the boss's arrival until it dies; without a block (or enabled
+## false) the fight keeps boss_cap_frac of the cap and draws the stage's last rows, as before.
+const BOSS_FIGHT_LENGTH_DEFAULT := 120.0
+const BOSS_FIGHT_MAX_COUNT_DEFAULT := 40
+
+
+## Stage `i`'s boss-fight window as the map has it, {} when it has none or it is switched off (enabled false).
+func boss_fight(i: int) -> Dictionary:
+	var bf = _stage_raw(i).get("boss_fight")
+	if not (bf is Dictionary) or not bool((bf as Dictionary).get("enabled", true)):
+		return {}
+	return bf
+
+
+## Whether stage `i`'s boss fight plays its own window.
+func has_boss_fight(i: int) -> bool:
+	return not boss_fight(i).is_empty()
+
+
+## Seconds of one cycle of stage `i`'s window (BOSS_FIGHT_LENGTH_DEFAULT without one), never under 1.
+func boss_fight_length(i: int) -> float:
+	return maxf(float(boss_fight(i).get("length", BOSS_FIGHT_LENGTH_DEFAULT)), 1.0)
+
+
+## The most bodies alive while stage `i`'s window spawns (-1 = no limit but the hard cap).
+func boss_fight_max_count(i: int) -> int:
+	return maxi(int(boss_fight(i).get("max_count", BOSS_FIGHT_MAX_COUNT_DEFAULT)), -1)
+
+
+## Stage `i`'s window rows (the Dictionaries only), [] without a window.
+func boss_fight_rows(i: int) -> Array:
+	var ro = boss_fight(i).get("roster", [])
+	return (ro as Array).filter(func(r) -> bool: return r is Dictionary) if ro is Array else []
+
+
+## The rows of `rows` open at fight second `ct` of a cycle (t <= ct < until; no until = open to the cycle's end).
+static func boss_fight_open(rows: Array, ct: float) -> Array:
+	var out: Array = []
+	for r in rows:
+		if not (r is Dictionary):
+			continue
+		if ct < float(r.get("t", 0.0)) or (r.get("until") != null and ct >= float(r["until"])):
+			continue
+		out.append(r)
+	return out
+
+
 # ---------------------------------------------------------------- Endless after a stage (pass 87, lane SGAME)
 
 ## Garry (2026-10-17): "Player kills the boss and the Portal that appears shows a 1 minute timer before the Endless Mode

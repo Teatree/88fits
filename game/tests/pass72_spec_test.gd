@@ -180,7 +180,8 @@ func test_every_creature_in_play_carries_x15_hp_and_x1_5_size() -> void:
 		var sp: Dictionary = d["variance"]["special"]
 		assert_float(float(sp["size"])).override_failure_message(def.id + " size").is_equal(1.5)
 		assert_float(float(sp["hp"])).override_failure_message(def.id + " hp").is_equal(15.0)
-		assert_float(float(sp["damage"])).override_failure_message(def.id + " damage").is_equal(2.0)
+		# (pass 110, lane ECON, re-pinned: Garry's "Increase ATK of Specials quite a bit": x3.5, was x2)
+		assert_float(float(sp["damage"])).override_failure_message(def.id + " damage").is_equal(3.5)
 		# no creature names its own chest chance: the map's or the game's 0.35 applies
 		assert_bool(sp.has("chest_chance")).override_failure_message(def.id + " chest").is_false()
 		# the .tres the game plays says the same

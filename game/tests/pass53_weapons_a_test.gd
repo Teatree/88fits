@@ -333,25 +333,27 @@ func test_heavy_warhead_hits_harder_throws_twice_as_far_and_blasts_bigger() -> v
 	var mp0 := _pod(w, plain)
 	var j := pm.launch_missile(mp0.projectile_kind, Vector3(0, 1.5, 0), Vector3(1, 0, 0), 13.0, 10.0, 1.5, 12.0, plain, {"wander": 0.0, "life": 3.0, "trail": 1}, 3.0)
 	assert_float(pm.radius[j]).is_equal_approx(0.3, 0.0001)
-	# the blast reads stronger: the burst, ring and kick at 1.5x the blast (the game's fx_burst), and on top of it the
-	# flash and a ring of sparks (Fx.burst_strength: ten more particles than a plain burst)
-	var g: Node = w["g"]
+	# the blast reads stronger (pass 110, re-pinned on purpose, lane VFX: the blast is Fx.weapon_blast's own pool, no longer
+	# the game's fx_burst and Fx.burst_strength): its ring at the real radius, its power 1.5 (the blast_fx scale), so a
+	# bigger fireball than a plain blast of that radius and more sparks, clods and smoke
 	pm.life[i] = 0.001
-	var n0: int = fx._n
 	pm._physics_process(DT)
 	assert_int(pm.alive[i]).is_equal(0)
-	var last: Dictionary = g.bursts[g.bursts.size() - 1]
-	assert_float(float(last["size"])).is_equal_approx(heavy.stat("area") * 1.5, 0.001)
-	assert_int(fx._n - n0).is_greater_equal(10)
-	# a plain rocket's blast is the blast's own size, and no extra
+	var heavy_blast: Dictionary = fx.last_blast.duplicate()
+	assert_float(float(heavy_blast["r"])).is_equal_approx(heavy.stat("area"), 0.001)
+	assert_float(float(heavy_blast["power"])).is_equal_approx(1.5, 0.001)
+	assert_float(float(heavy_blast["ball"])).is_greater(heavy.stat("area") * Fx.BLAST_BALL * 1.1)
+	# a plain rocket's blast: power 1, a fireball of its own radius (the clock moved on, so it is not merged into the last)
+	fx._process(0.5)
 	pm.life[j] = 0.001
-	n0 = fx._n
 	pm._physics_process(DT)
-	last = g.bursts[g.bursts.size() - 1]
-	assert_float(float(last["size"])).is_equal_approx(1.5, 0.001)
-	assert_int(fx._n - n0).is_equal(0)
+	var plain_blast: Dictionary = fx.last_blast
+	assert_float(float(plain_blast["r"])).is_equal_approx(1.5, 0.001)
+	assert_float(float(plain_blast["power"])).is_equal_approx(1.0, 0.001)
+	assert_float(float(plain_blast["ball"])).is_equal_approx(1.5 * Fx.BLAST_BALL, 0.001)
+	assert_int(int(heavy_blast["pieces"])).is_greater(int(plain_blast["pieces"]))
 	# Fx.burst itself takes a strength: a strong one adds the flash, a ball and sparks
-	n0 = fx._n
+	var n0: int = fx._n
 	fx.burst(Vector3.ZERO, Color.WHITE, 1.0)
 	assert_int(fx._n - n0).is_equal(2)
 	n0 = fx._n
@@ -656,12 +658,15 @@ func test_last_stand_blows_a_turret_up_as_it_goes() -> void:
 	em._rebuild_grid()
 	var hp_near: float = em.hp[near]
 	var hp_far: float = em.hp[far]
-	var bursts0: int = g.bursts.size()
+	# pass 110 (re-pinned on purpose, lane VFX): the boom is Fx's blast (Fx.weapon_blast), no longer the game's fx_burst
+	var fx: Fx = w["fx"]
+	var blasts0: int = fx.blasts
 	t.expire()
 	assert_int(t.booms).is_equal(1)
 	assert_float(hp_near - em.hp[near]).is_equal_approx(sp.stat("damage") * 4.0, 0.001)
 	assert_float(hp_far - em.hp[far]).is_equal_approx(0.0, 0.0001)
-	assert_int(g.bursts.size()).is_greater(bursts0)
+	assert_int(fx.blasts).is_greater(blasts0)
+	assert_float(float(fx.last_blast["r"])).is_equal_approx(float(boom["radius"]), 0.001)
 	# only once, however often it is told to go
 	t.expire()
 	assert_int(t.booms).is_equal(1)

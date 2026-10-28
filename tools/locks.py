@@ -414,7 +414,10 @@ def _main(argv):
         return 1
     if cmd == "godot":
         args = argv[argv.index("--") + 1:] if "--" in argv else argv[2:]
-        rc, _ = run_godot(args, who="cli godot", stream=True)
+        # pass 110: GODOT_TIMEOUT=<seconds> kills a Godot that runs past it (a gdUnit run that printed its summary and
+        # then hung in teardown held the lock for an hour in pass 109); unset = no limit, as before
+        tmo = float(os.environ.get("GODOT_TIMEOUT", "0") or 0) or None
+        rc, _ = run_godot(args, who="cli godot", stream=True, timeout=tmo)
         return rc
     print(__doc__)
     return 2

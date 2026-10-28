@@ -48,7 +48,7 @@
   "drops": {
     "small": 1.0,
     "gold": 0.05,
-    "chest": 0.004
+    "chest": 0.0002
   },
   "frame_px": 160,
   "xp_mult": 3.5,

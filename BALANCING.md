@@ -6816,3 +6816,296 @@ what it is now on upgrade 3. So the upgrade 2 is supposed to be only -7.5% of th
   alive at intensity 1, x intensity, x1.6 for a ring, 130 at most; 0.5 s life; first speed fitted so they travel 95% of
   the reach, slowing to 20%; spread = half the cone, flattened 0.65) and a core at the mouth (18, 0.18 s). Fx.breath_jet
   is no longer called; the wash and the scorch stay.
+
+## 53. Pass 110: chests and specials, coins and prices, boss fight windows, explosions, the arena's screenshot tools
+
+### 53.ECON Fewer chests, fewer but deadlier specials, half the big coins, a steeper Upgrade board, dearer heroes
+
+Garry: "Reduce the number of chests to make them feel more special. Basically make it so the chance of Chest falling out
+of a normal enemy is next to nothing while the Special versions of those enemies still guarantee a chest. Since that's
+the case let's reduce the number of Specials in the end. Increase ATK of Specials quite a bit." and "Reduce the coins
+gain from Boss, Elite and Specials. By 50%. Mirror costs should be more exponential (Polynomial) while the increases stay
+the same. Starting point prices should stay the same though. Normalize the Hero costs as well. And increase them."
+
+**Chests.**
+- **Every regular creature** (anything not an Elite or a boss, the special creature types Rocketeer, Saiga Sniper and
+  Harpooner included) drops a chest at `drops.chest` **0.0002**: about one chest in 5,000 kills, ~0.5 a 10-minute run
+  (was 0.0014-0.03 by creature, the Hammer Giant 0.08, the Harpooner 0.35). Its JSON number, so a creature may be given
+  its own again in the Level Editor.
+- **A coloured special always drops a chest**: the map's `timeline_data.special_defaults.chest_chance` **1.0** (was
+  0.35). Hot Sauce's extra roll is unchanged (a special can still, rarely, drop two).
+- **Elites** (their kind or a modifier) always drop one, the **bosses** their boss chest and `drops.chests` - 1 more,
+  the Bounty Hunter's bounty and the dice's ambush one each: all unchanged.
+- **Fewer specials**: one at a time, the map's `special_defaults.max_alive` **1** (was 3), and every creature's
+  `variance.special_chance` a third again (4 decimals: 0.04 -> 0.0133, 0.0333 -> 0.0111, 0.0267 -> 0.0089, 0.02 ->
+  0.0067, 0.0167 -> 0.0056; a ninth of what they were before pass 69). The forced Special Goblin (r6, 2:00) still comes.
+  The game's fallbacks for a map without these keys (EnemyDef.SPECIAL_DEFAULTS chest 0.35, SPECIAL_MAX_ALIVE 3) are
+  unchanged; Red Canyon names its own.
+- Measured (run sim: Drifter, quarter board, explorer bot, death = keep playing, 10 players, stage 1 to 10:00 with the
+  King, stage 2 to 11:00; tools/dl/sim/runs/p110-econ-*):
+
+  | per run | Sundown before | Sundown after | Nightfall before | Nightfall after |
+  |---|---|---|---|---|
+  | coloured specials that came | 22.9 | 8.3 | 13.9 | 3.5 |
+  | specials killed / their chests | 21.2 / 7.7 | 7.9 / 7.9 | 13.1 / 5.0 | 3.3 / 3.3 |
+  | chests from regular creatures (kills x chance) | ~9.4 | ~0.5 | ~11.3 | ~0.4 |
+  | chests opened (every source) | 18.2 | 11.3 | 15.8 | 5.8 |
+  | a special lives (s) | 49 | 38 | 87 | 137 |
+
+  With one alive at a time, how many come is held mostly by how long each lives: in Nightfall a special lives over two
+  minutes against the bot, so only 3-4 come in eleven minutes. Max alive 2 (Settings -> Coloured specials) would about
+  double them; the chance (the Enemies tab) sets the gap after one dies.
+
+**Specials' ATK.** x**3.5** (was x2): every creature's own `variance.special.damage` 3.5, and the map's
+`special_defaults.damage` 3.5 for a creature that leaves it empty. It multiplies what a creature's `damage` drives: its
+bite and its charge (each touch still at most `contact_cap` 22% of the hero's max HP, so the heavy biters such as the
+mummies were already at the cap with x2), its straight shots, spit, buckshot and thrown dynamite. Not the fixed blasts
+(the Horned Toad's death burst, the Sand Crab's own blast). HP x15, size x1.5, XP as before.
+
+**Coins** (Elites, bosses and specials only; a regular creature's coin is unchanged).
+- Elite purse `Game.ELITE_PURSE` [225, 150] (was [450, 300]): 225 on Sundown, 375 on Nightfall, 525 on Blood Moon.
+- Boss purse `Game.BOSS_PURSE` [650, 350] (was [1300, 700]); the bosses' coins on the sand `drops.coins` King 30, Gila
+  75, Brander 100 (were 60, 150, 200), `Game.BOSS_COINS` 30 for a boss that names none.
+- An Elite's or a boss's own coin `PickupManager.BIG_COIN_MULT` 2.5 (was 5): 1-3 x 2.5, the half coin paid by chance
+  (MirrorDanger.scaled_count), so exactly half on average.
+- **A special's own coin** (new rule): its creature's ordinary `drops.gold` roll, now at `PickupManager.SPECIAL_COIN_MULT`
+  0.5 of the chance (EnemyManager.died_special -> Game._drop_from_kill -> PickupManager.drop_from's `coin_mult`). Specials
+  never had a coin bonus of their own, so this changes almost nothing in gold; the cut that matters is the purses.
+- Mira's Motherlode (x1.5) and the Stakes' bounty still multiply the halved purses.
+- Measured gold a run: Sundown 2,716 -> 1,809 (-33%: boss purse 1,040 -> 650, Elite purses 900 -> 450, boss coins 213
+  -> 150); Nightfall 5,015 -> 2,325 (-54%: Elite purses 4,050 -> 1,800).
+
+**The Upgrade board** (content/talents/*/cost): rank k costs **k x k times rank 1** (a quadratic): rank 1 is pass 88's
+price, unchanged; every rank's effect is unchanged.
+
+| talent | before (ranks 1-6) | after |
+|---|---|---|
+| Stakes | 100, 180, 300, 450, 650, 900 | 100, 400, 900, 1,600, 2,500, 3,600 |
+| Fortune | 300, 540, 900, 1,350, 1,950, 2,700 | 300, 1,200, 2,700, 4,800, 7,500, 10,800 |
+| Choice | 325, 585, 975, 1,465, 2,115, 2,925 | 325, 1,300, 2,925, 5,200, 8,125, 11,700 |
+| Drive | 375, 675, 1,125, 1,690, 2,440, 3,375 | 375, 1,500, 3,375, 6,000, 9,375, 13,500 |
+| Study | 400, 720, 1,200, 1,800, 2,600, 3,600 | 400, 1,600, 3,600, 6,400, 10,000, 14,400 |
+| Stride | 425, 765, 1,275, 1,915, 2,765, 3,825 | 425, 1,700, 3,825, 6,800, 10,625, 15,300 |
+| Grit | 450, 810, 1,350, 2,025, 2,925, 4,050 | 450, 1,800, 4,050, 7,200, 11,250, 16,200 |
+| Nerve | 500, 900, 1,500, 2,250, 3,250, 4,500 | 500, 2,000, 4,500, 8,000, 12,500, 18,000 |
+
+- The whole board: 74,190 -> 261,625 gold (x3.5). With the halved purses (~1,800 a Sundown run instead of ~2,700) that
+  is about 145 Sundown runs to fill it instead of about 27. A gentler curve, k^1.5 (rank 6 at 14.7x rank 1, the board
+  x1.7), is the same edit with other numbers.
+- Ranks already bought keep their form and are never repriced; the next one costs the new price. Take it all back
+  returns half of the gold **actually spent** (`Save.talent_spent`), so a rank bought cheap never refunds at the new
+  price. The board's order (by rank 1's price) is unchanged.
+
+**Heroes** (content/characters/*/price): every hero on sale costs **500 gold x his place in the title order**.
+
+| hero (place) | before | after |
+|---|---|---|
+| Drifter (1) | free | free |
+| Ironwood (2) | 300 | 1,000 |
+| Astro (3) | 300 | 1,500 |
+| Calavera (4) | 300 | 2,000 |
+| Solenne (5) | 1,500 | 2,500 |
+| Fadeaway (6) | 1,750 | 3,000 |
+| Jeżyk (7) | 2,000 | 3,500 |
+| May (8) | 2,500 | 4,000 |
+
+All seven: 8,650 -> 17,500. Ironwood and Astro are still sold for gold alone, the rest after their unlock quest
+(unchanged); Mira stays hidden (9,999, unattainable), Dad hidden. Buying is unchanged (Registry.hero_state, the drawer's
+BUY, Save.buy_hero).
+
+Tests: game/tests/pass110_econ_test.gd; re-pinned pass46_ui (the talent curve), pass69_en and pass72_spec (the chance a
+ninth of pass 69's old one, ATK x3.5), pass45_bosses (the giant's chest), pass70_econ (the purses, the boss coins, the
+big coin, the board's scale), pass61_an (the Elite purse read from Game.elite_purse), pass83_meta (the two gold-only
+heroes cheaper than the rest); tools/level_editor/selftest_EN.py (ATK x3.5, the chance at most 0.0133).
+
+### 53.ARENA The debug arena's screenshot tools (arena only; no run changes)
+
+Garry, for the Google Play screenshots: "Ability to Spawn more than 1500 enemies in Arena (at once) + Ability to Spawn a
+variety of enemies at once (in chunks of types of enemies, and in scatter as well as an option)", "Ability to slow down
+time /2 and /4", "Ability to stop all enemy movement (while they still face the hero all the time)", and the hero
+centred above a caption band, held by the camera. None of it reaches a run: every rule below is the debug arena's.
+
+- **The pool.** A run keeps `EnemyManager.MAX` **320** creatures (unchanged). The arena grows the pool when a crowd needs
+  more (`EnemyManager.grow_pool`, up to `ARENA_MAX` **3,000**), keeping every creature; it never shrinks while the arena
+  is open (leaving the arena drops it with the scene).
+- **The big crowd** (SHOTS tab, `ArenaPanel.mass_spawn`, `ui/ArenaShots.gd`): presets 100 / 500 / 1,000 / 1,500 / 2,000
+  and -100 / -10 / +10 / +100 steps; one or more creatures and looks picked (none lit = the look the game plays), the
+  count split evenly between them (a tool may give each its own count). Every spot is on the ground the camera sees (the
+  screen grown by **12 %** of its width on each side), inside the arena's wall less 2 m, off the rocks' paintings and out
+  of the lakes, and never inside the **clear circle** (default **4 m**; None, 2, 3, 4, 5, 6, 8 m).
+  - **Ring**: an even cover (a hex lattice jittered by 0.32 of its spacing) from the clear circle out to the screen's
+    edges, or a band **3 / 6 / 10 m** deep; the kinds mixed.
+  - **Scatter**: spread at random over the same ground, the kinds mixed.
+  - **Chunks**: one group a kind, a disc holding its share at the packing (**Loose 0.6, Normal 1.2, Tight 2.4**
+    creatures a square metre), the groups round the hero from screen-up, squeezed to the portrait screen's width and
+    pushed apart until no two touch.
+  - Defaults: up at once (**no growing out of the sand**, no dust), **no specials** (none rolls its special), the field
+    **cleared first** (the training dummies too); each creature faces the hero from its first frame. AGAIN repeats it.
+- **The freeze** (`EnemyManager.crowd_freeze`; FREEZE in the quick column, key F): no creature walks, steers, bites,
+  attacks, aims or drifts (its push, the crowd's shove and a tornado's swirl are dropped; a wind-up, a charge or a
+  scripted attack is let go); the boss's and the casters' scripts, the Saiga Snipers' aims and the Scorpion Elite's tail
+  beams wait; a frozen crowd never despawns. Each creature keeps turning to face the hero (its view and mirror as when it
+  walks at him). **Walk in place** (the default) keeps the walk cycle going at the creature's own walk pace; **Pose**
+  holds every picture on its frame. Hits, damage numbers, deaths, thrown bodies, burns and poisons go on: a frozen
+  creature takes damage and dies as usual. A creature still rising out of the sand finishes rising.
+- **The game's speed**: **1x, ½, ¼** (quick column, keys 1 / 2 / 4; WORLD also has 2x) set `Engine.time_scale`, so the
+  world, the shots, the effects, the particles, the hero, the camera's easing and the shaders' clock slow together (a few
+  cosmetic wobbles read the wall clock: the shield's pulse, a sparkle's twinkle, the tumbleweeds' sway; sounds keep their
+  pitch). The arena puts its speed back if something else sets the clock to 1 (Last Stand's end).
+- **The framing** (`CameraRig.frame_hero_y`; FRAME, key C; SHOTS' Caption band None / 20 / 25 / **30** / 35 / 40 % and
+  -1 % / +1 %): the hero's middle (**0.9 m** above his feet) sits at the middle of what lies above the caption band
+  ((1 - band) / 2 of the screen's height from the top: 35 % for a 30 % band), worked out every frame from the camera's
+  distance, pitch and field of view (the fixed camera; `focus_ahead`), so walking, a hit or a dash never pulls it away.
+  Off, the camera looks its usual **3.3 m** ahead of him. Zoom: Auto (the game's) or a held distance 0.4x to 4x of the
+  base, in 0.1 steps. The band guide (a darkened band and a cross where his middle goes) shows while framing, never in a
+  clean capture.
+- **Clean capture** (HIDE UI, key H): the arena's column, the stats overlay and the HUD (bars, joystick, toasts, boss bar;
+  kept when SHOTS' "HIDE hides" says Controls only) hide (and the damage numbers if SHOTS says Hide); an invisible **180 px** square in the top-left corner (or H) brings
+  them back; a line says so for **3 s**. SAVE PNG / F12 hides everything for two drawn frames, saves the screen at the
+  window's size to user://screenshots/arena_<date>.png and puts back what was showing.
+- **The capture tool** game/tools/store_shots.gd stages the same from arguments (hero, look, weapons, level, stage look,
+  sand, spot, crowd with counts, layout, clear circle, depth, packing, freeze, band or hero_y, zoom, boss, advance, speed,
+  fire) and saves a PNG at the window's size (run it at 1080x1920); bounded by a 150 s watchdog and a frame cap.
+
+Tests: game/tests/pass110_arena_test.gd; tools/arena_check.gd (a ring of 2,000, the freeze, the speed keys, the framing,
+hiding and the corner), tools/touch_audit.gd arena_shots (real fingers on the SHOTS tab and the quick column).
+
+### 53.VFX The hero's explosions drawn again, the breath behind him, the kill counter on the item row (lane VFX; looks only, no damage or radius changes)
+
+Garry: "Explosions - at some point became quite invisible. And I mean for all the explosive weapons. Can you make them
+better?", "when Player hero is facing up, or up-left or up-right the Fire Breath visual renders behind the hero 2.5d art
+asset" and "Move the Kill Counter so it's vertically centered to the vertical center of the Item drawer."
+- **Why the blasts vanished.** Every hero blast was one see-through pale-orange ball (Fx.burst) fading in a third of a
+  second, plus a thin ring. Pass 61 made the sand paler (its painting's mean 203,162,102 -> 215,189,146), so the ball was
+  drawn almost in the sand's own colour; and the ball came from the shared effect pool without `must`, which drops a third
+  of such effects past a third full, two thirds past three quarters and all of them at its cap (a late-game crowd keeps it
+  at 394 of 400). In a real fight most blasts showed only their ring.
+- **New rule: every hero blast is drawn by its own pool** (Fx.weapon_blast / Fx.blast, core/shaders/blast_fx.gdshader;
+  768 pieces, written once, animated by the shader; nothing else can crowd it out; see-through, so the stage filter never
+  dims it; drawn over the death splashes). A full blast: a white-hot **flash** (about 0.8 x the radius round, 0.09 s), a
+  cartoon **fireball** with a dark rim and cel shading (about 0.62 x the radius round growing to 0.7, plus three lumps;
+  0.36 s at a 2.5 m blast, x sqrt(r / 2.5) within 0.8..1.25), 4-5 **smoke** puffs rising for about a second, 10-16 **sparks**
+  and 5-9 **clods** flung out, a **shock ring** racing out to the real damage radius over 0.3 s, and a **scorch** 0.62 x the
+  radius round (1.2 s, then fading over 2.2 s; at most one per spot a second, only for blasts of 1.2 m and more).
+  The damage radius is unchanged everywhere; the ring marks it.
+- **Who uses it.** Lobbed and fired blasts (ProjectileManager._explode: the Dynamite Stick/grenade family, the Golden
+  Pineapple and its bomblets, the Cluster Bomb, the Rocket Pod, Hellfire Battery and Missile Massacre), Land Mines and
+  their evolutions (Mine), Cluster Munitions' bomblets (Bomblets, power 0.8), the Turret Buddy's Last Stand (Turret),
+  Powder Keg (Game._powder_keg, 2.4 m) and the Dynamite Bandit's stick (it hurts the hero, so it reads like his own).
+  **Style:** a weapon tagged `explosive` blasts in full; a lobbed flask or skull without the tag (the Molotov, Skull Rain,
+  their evolutions) only **splashes** (a smaller flash and ball, two lighter puffs, six sparks; no clods, scorch or kick).
+  **Colour:** a weapon's own `params.blast_fx.color` (new key; the Golden Pineapple's gold `#FFC21F`), else fire
+  weapons' orange-red, blue fire's blue, poison's green, else orange. **Power:** the Heavy Warhead's / Hellfire's
+  `blast_fx.scale` (1.5 / 1.8) is the blast's power: the ball and flash 1 + 0.35 x (power - 1) bigger than the radius
+  (the ring stays at the real radius), more sparks, clods and smoke.
+- **New rule: merging and the budget.** A blast within 0.6 x the larger radius of one that went off less than 0.12 s ago
+  only adds three sparks to it. Past 6 blasts in 0.3 s the rest go off cheap (flash, ball, four sparks).
+- **New rule: the camera's kick.** It used to shake 0.5 on every lobbed or fired blast and every mine. Now only a blast of
+  more than 2.2 m kicks, by 0.3 a metre past that (x its power, within 0.5..2), 0.6 at most, never twice within 0.25 s,
+  and Settings' screen shake scales it as before (0 = none). A level-1 Dynamite Stick (2.8 m) kicks 0.18, a level-5 one
+  (3.8 m) 0.48; Rocket Pod rockets (1.5-2 m), bomblets and splashes never kick.
+- **New rule: a reserve for the effects that must show.** The shared effect pool holds 400 + 120: the 120 are only for
+  effects marked `must` (the Raider's explosion, a launch's dust, the Nuke's flash, which is now `must`); before, at the
+  cap they were dropped like the rest.
+- **The Dragon's Breath behind him** (BreathFlames.set_behind, FireBreath.flames_behind, Player.faces_away): while the
+  camera sees his back (his back and back-diagonal views: walking up, up-left or up-right the screen) the fire draws
+  before his painting's second pass, so his painting covers it where they cross; in his side and front views over him as
+  before. The whole fire switches when his view changes. A ring of fire (Held Breath) always stays over him.
+- **The kill counter** (HUD._place_kills): its middle sits on the middle of the item slots' row (the first row if a long
+  arena hand splits them), still centred under the clock between the weapons and the lines: about 30 px lower than pass
+  109's spot. The ENDLESS IN / WAVE n tag ends about 11 px above it, so neither moves; should a taller tag ever reach it,
+  the counter keeps 6 px under the tag (`KILLS_TAG_GAP`).
+
+Tests: game/tests/pass110_vfx_test.gd (re-pinned on purpose: pass53_weapons_a's Heavy Warhead and Last Stand blasts and
+pass85_bandit's stick, which recorded the old fx_burst). Captures: tools/dl/p110/boom/ (game/tools/_p110_boom_shots.gd),
+tools/dl/p110/hud/.
+
+### 53.BOSS Boss fight windows: what spawns while the boss lives (new rule, Garry's to edit)
+
+Garry: "Currently I don't quite understand which enemies are going to be spawning during the Boss fight. During
+Tumbleweed King there seem to be mostly Split Cactus enemies and they are endless and don't seem to follow the Max Count
+rule either ... Just add a 2 minute window in the Timeline where I can set up the cycle of enemies that will be spawning
+... They should be in lower numbers, but still a hazard. Do this for each Stage."
+
+**Why it was so before.** The run clock stops at the stage's end while the boss lives, so the director kept drawing the
+roster rows still open at that second (WaveDirector reads them a second early, 7:09 on Sundown) into `boss_cap_frac` of
+the cap: 0.6 x Red Canyon's 500 = 300 load. Waves and once rows stop in a fight (they tick only in the normal phase), so
+on Sundown only the continuous rows were left: the Spit Cactus row r54 (open 5:57 to 7:10, its own draw every 6 s, no
+Max alive), a burst of 3 to 12 every 6 s into 300 load of room. Nothing ever closed it: the King's fight became 45 to 63
+Spit Cacti and climbing (probe below), plus the specials' clock (a Saiga Sniper). Nightfall's fight drew its one
+continuous row too (r51, Spit Cactus, Max alive 4: yet 5 to 14 alive, see "Max alive inside one burst"), Blood Moon's
+every late row: some 230 creatures for the whole fight.
+
+**The rule (game/core/systems/BossFightWindow.gd; keys docs/waves_schema.md "Pass 110").** A stage entry's
+`boss_fight` {enabled, length 120, max_count 40, roster} holds spawn rows on the fight's own clock (0 = the boss
+arrives). From the boss's arrival until it dies only those rows spawn: the stage's rows, the own-interval rows, the
+density floor and the specials' clock stand still. The cycle loops every `length` s (rows start afresh each cycle: a
+once row comes again, waves restart from t + offset, owed creatures are dropped, chance and jitter rolled again).
+`max_count` is **bodies** alive (the boss, his summons and the stage's leftovers count): continuous rows top the fight up
+to it (a burst of burst_min..burst_max **creatures** at each spawn check or own interval, by presence weight); waves and
+once rows bring their count into its room (the rest owed) unless Respect the cap is off (then on top; the hard cap
+still holds). A row's Max alive holds (all living ones of that creature count, leftovers too). Numbers are fixed at the
+row's first spawn from the stage's end on the run clock (HP / ATK curves there, the hero's level then) x the stage
+multiplier x the row's overrides. A stage without a window (or with On off) fights exactly as before.
+
+**New rule: a boss's summons stop at the hard cap.** A boss's spawn_ring (the King's 16 tumbleweeds, the Gila's 12 sand
+lizards, the Brander's 14 imps) keeps its count, its numbers and its never-special rule, but brings at most what is left
+of the map's hard cap in bodies (WaveDirector.summon_room via EnemyManager.summon_count). With or without a window. On
+Red Canyon (hard cap 500 > the pool's 320) it changes nothing today.
+
+**New rule: Max alive inside one burst.** A creature's `max_alive` (its own or its row's Overrides) was checked once,
+before a burst; a burst of several packs could go past it (Nightfall's Spit Cacti, Max alive 4, stood 14 strong in the
+Gila's fight). The roster's draw and the density floor now cut every pack to what is left of it, and a row whose creature
+is at its limit leaves the rest of that burst (WaveDirector._burst_from, _floor_fill). Waves rows, Endless and the
+windows already held it.
+
+**The cycles (red_canyon.json, stage_list[k].boss_fight; Garry's to tune in the Level Editor's Boss fights section).**
+Each row's creature and look are from its stage's own roster; HP x are set so a creature comes about as tough as the
+stage's last rows of it (they are fixed at the stage's end, later than those rows, so the factor is a bit lower).
+
+*Sundown vs the Tumbleweed King: a 2:00 cycle, Max count 25 bodies.*
+
+| row | creature (look, overrides) | pace | how many | why |
+|---|---|---|---|---|
+| bf1-1 Goblin trickle | Red Goblin RG-B (HP x1.0, no medium gems, as r1) | continuous, own draw every 3 s, weight 5 | packs of 3, scattered | the stage's own fodder keeps the King company: easy kills, XP, never a wall |
+| bf1-2 Werewolf trickle | Werewolf (HP x1.2, size 1.25-2) | continuous, every 4 s, weight 3 | packs of 2 | the stage's last fodder, a little tougher |
+| bf1-3 Dynamite pair | Spit Cactus (Max alive 2) | waves every 60 s from 0:20 (0:20, 1:20) | 2 a wave | dynamite to dodge while he rolls and stomps; never more than two (it was 45 to 63) |
+| bf1-4 Beetle charge | Bull Beetle (Max alive 2) | once at 0:50, from the top of the screen, on top of the Max count | 2 | charge lines crossing his roll lines |
+| bf1-5 Goblin ring | Red Goblin RG-B (HP x1.0) | once at 1:15, a ring round the hero, on top | 12 | a short swarm to break out of |
+
+*Nightfall vs the Gila Grande: 2:00, Max count 30.*
+
+| row | creature | pace | how many | why |
+|---|---|---|---|---|
+| bf2-1 Skeleton trickle | Skeleton SK-A (HP x0.6) | continuous, every 2.5 s, weight 5 | packs of 3 | the stage's fodder |
+| bf2-2 Goblin trickle | Goblin (HP x1.0, size 1.2-1.8, as r57) | continuous, every 3 s, weight 3 | packs of 4 | the stage's fodder |
+| bf2-3 Buckshot pair | Buckshot Dwarf (HP x0.6, ATK x2, Max alive 3, r28's yellow tint) | waves every 40 s from 0:15 (0:15, 0:55, 1:35) | 2 a wave | a cone of pellets while the spikes rain |
+| bf2-4 Beetle charge | Bull Beetle BB-F (HP x1.0, Max alive 3) | once at 0:45, from the top, on top | 3 | lines to dodge between the eruptions |
+| bf2-5 Spider rush | Desert Spider (HP x0.25, size 1-2, speed 2, as r22) | once at 1:20, a ring, on top | 8 | a fast ring as the cycle peaks |
+| bf2-6 Hammer giant | Hammer Giant (HP x0.55, ATK x0.7, Max alive 1, as r60) | once at 1:40 | 1 | a slow brute that takes the safe ground away |
+
+*Blood Moon vs the Brander: 2:00, Max count 40.*
+
+| row | creature | pace | how many | why |
+|---|---|---|---|---|
+| bf3-1 Imp trickle | Imp (HP x0.35) | continuous, every 2 s, weight 6 | packs of 4 | hell's fodder (no channel in a window) |
+| bf3-2 Hellhound trickle | Hellhound (HP x0.35) | continuous, every 3 s, weight 3 | packs of 2 | fast fodder that chases him through the brand lines |
+| bf3-3 Knight trickle | Skeleton Knight KN-E (HP x0.6, r46's ember tint) | continuous, every 4 s, weight 2 | packs of 3 | the stage's sturdier fodder |
+| bf3-4 Buckshot pair | Buckshot Dwarf (HP x0.6, Max alive 3) | waves every 30 s from 0:10 | 2 a wave | pellets while the ring closes |
+| bf3-5 Beetle charge | Bull Beetle (HP x0.3, Max alive 2) | once at 0:40, from the top, on top | 2 | charges across the burning ring |
+| bf3-6 Ant ring | Fire Ant ANT-B (HP x0.45, as r53) | once at 1:15, a ring, on top | 16 | the swarm moment |
+
+**Measured** (game/tools/_p110_BOSS_fight_probe.gd: Calavera, the difficulty probe's b1 build at level 22 for Sundown, b2
+at 25 for the others, dropped in 60 s before the boss, the hero never hurt, the boss held alive for 150 s of fight; alive
+= bodies, the boss included; tools/dl/p110/boss/):
+
+| fight | before (no window) | with the window |
+|---|---|---|
+| Sundown, the King | 118 alive as he came; Spit Cacti 22 -> 63 and still climbing, mean 72 over 150 s, 57 in the second half; at the end 45 cacti and a Saiga Sniper | 100 as he came (50 mummies, 22 cacti, 21 beetles from the stage's last minute), gone by about 0:40; then mean 26, at most 39 (with his 16-tumbleweed ring); at the end 12 goblins, 9 werewolves, 2 cacti |
+| Nightfall, the Gila | 44 as she came; then 4 to 26: 5 to 14 Spit Cacti, her lizards, a Saiga Sniper; mean 13 | 37 as she came; mean 29, at most 40: skeletons, goblins, her lizards, 2-3 dwarves, the beetles, the spiders, the giant |
+| Blood Moon, the Brander | 317 as he came; 190 to 300 all fight (every late row kept coming), mean 244 | 309 as he came, burnt down by his ring within 10 s; then mean 30, at most 43: imps, hellhounds, knights, the dwarf pairs, the beetles, the ant ring |
+
+The first stretch of each fight is still the stage's own leftover crowd (nothing new comes while it is over Max count);
+once it is gone the fight settles at the window's numbers.
+
+Tests: game/tests/pass110_boss_window_test.gd (9), tools/level_editor/selftest_BOSS110.py (66).

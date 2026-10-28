@@ -14,7 +14,7 @@ radius = 0.6
 size = 1.9
 pack_size = 2
 drops = {
-"chest": 0.014,
+"chest": 0.0002,
 "gold": 0.2,
 "medium": 1.0,
 "small": 1.0
@@ -181,6 +181,60 @@ variants = {
 "sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_e.png",
 "sprite_file": "cyclopean_mummy_sprite_e.png",
 "strip_cols": 40
+},
+"CM-F": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.983,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_f.png",
+"note": "Pass 110: CM-C's walk with both hands on the mace from behind (the back driver's left arm held at the hip where Garry's back picture grips the handle's end; CM-D/E's left arm hung loose)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_f.png",
+"sprite_file": "cyclopean_mummy_sprite_f.png",
+"strip_cols": 40
+},
+"CM-G": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.977,
+"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_g.png",
+"note": "Pass 110: CM-F on another seed",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_g.png",
+"sprite_file": "cyclopean_mummy_sprite_g.png",
+"strip_cols": 40
 }
 }
 variant = "CM-0"
@@ -192,14 +246,14 @@ xp_mult = 4.0
 variance = {
 "size": 0.12,
 "special": {
-"damage": 2.0,
+"damage": 3.5,
 "hp": 15.0,
 "size": 1.5,
 "tint": "#24485A",
 "tint_strength": 0.6,
 "xp": 3.0
 },
-"special_chance": 0.0267,
+"special_chance": 0.0089,
 "speed": 0.1,
 "tint_strength": 0.22,
 "tints": ["#FFFFFF", "#FFE0B0", "#B0C8C8", "#C8A880"]

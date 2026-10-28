@@ -204,11 +204,14 @@ func _tinnitus() -> Dictionary:
 ## count is the creature's, by its serial: a new creature in the slot starts again).
 func tinnitus_hit(i: int, every: int) -> bool:
 	var em: EnemyManager = game.enemies
-	if _tin_count.size() != EnemyManager.MAX:
-		_tin_count.resize(EnemyManager.MAX)
-		_tin_serial.resize(EnemyManager.MAX)
-		_tin_count.fill(0)
-		_tin_serial.fill(-1)
+	# pass 110 (lane ARENA): the pool's size (the arena's grows), new slots counted from nothing
+	var was := _tin_count.size()
+	if was != em.pool_max:
+		_tin_count.resize(em.pool_max)
+		_tin_serial.resize(em.pool_max)
+		for k in range(was, em.pool_max):
+			_tin_count[k] = 0
+			_tin_serial[k] = -1
 	var s: int = em.serial[i]
 	if _tin_serial[i] != s:
 		_tin_serial[i] = s

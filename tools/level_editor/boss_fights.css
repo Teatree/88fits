@@ -1,0 +1,43 @@
+/* Pass 110 (lane BOSS): the Timeline's "Boss fights" section (boss_fights.js) and the window's card (inspector.js). */
+.tl-bossfights { padding: 8px 12px 12px; white-space: normal; }
+.bf-intro { margin: 0 0 8px; max-width: 1200px; line-height: 1.4; }
+.bf-intro b { color: var(--ink); }
+.bf-panel { border: 1px solid var(--border); border-left: 4px solid rgba(217,179,106,0.55); border-radius: 6px; background: var(--surface); margin: 0 0 10px; padding: 6px 8px 4px; }
+.bf-panel.selected { border-color: var(--sel); }
+.bf-panel.none { border-left-color: var(--axis); background: var(--surface-2); }
+.bf-panel.off { opacity: 0.72; }
+.bf-panel.has-error { border-left-color: var(--crit); }
+.bf-panel.has-warn { border-left-color: var(--warn); }
+.bf-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 30px; }
+.bf-head .spacer { flex: 1; }
+.bf-name { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid transparent; border-radius: 5px; color: var(--ink-2); font: inherit; padding: 2px 6px; cursor: pointer; }
+.bf-name:hover { border-color: var(--border-2); color: var(--ink); }
+.bf-name b { color: var(--ink); }
+.bf-iss { display: inline-block; width: 15px; height: 15px; line-height: 15px; text-align: center; border-radius: 50%; font-size: 10px; font-weight: 800; background: var(--warn); color: #000; }
+.bf-iss.error { background: var(--crit); color: #fff; }
+.bf-ctl { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--ink-2); }
+.bf-ctl input[type="number"] { width: 64px; }
+.bf-adds { display: inline-flex; align-items: center; gap: 4px; }
+.bf-today { max-width: 640px; }
+.bf-offnote { color: var(--warn); margin: 2px 0 4px; }
+.bf-svg, .bf-spark-svg { display: block; overflow: visible; }
+.bf-grid { stroke: var(--grid); stroke-width: 1; }
+.bf-grid.big { stroke: var(--axis); }
+.bf-loop { stroke: #e6a04a; stroke-width: 1.5; stroke-dasharray: 5 4; }
+.bf-loop-text { fill: #e6a04a; font-size: 10.5px; }
+.bf-label { cursor: pointer; }
+.bf-label-bg { fill: var(--surface-2); stroke: transparent; }
+.bf-label:hover .bf-label-bg { stroke: var(--border-2); }
+.bf-label.selected .bf-label-bg { stroke: var(--sel); }
+.bf-bar { cursor: grab; }
+.bf-dragtag { fill: var(--sel); font-size: 11px; font-weight: 700; }
+.bf-spark { margin: 0 0 4px; }
+.bf-alive { fill: none; stroke: #8fb3d9; stroke-width: 1.6; }
+.bf-max { stroke: var(--sel); stroke-width: 1.2; stroke-dasharray: 4 3; }
+/* the window's card */
+.bf-rowlist { display: flex; flex-direction: column; gap: 3px; margin: 4px 0 8px; }
+.bf-rowbtn { display: flex; align-items: center; gap: 6px; text-align: left; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; color: var(--ink-2); font: inherit; font-size: 0.82rem; padding: 4px 6px; cursor: pointer; }
+.bf-rowbtn:hover { border-color: var(--ink-2); color: var(--ink); }
+.bf-total td { font-weight: 700; color: var(--ink); }
+.bf-help { border-left: 3px solid rgba(217,179,106,0.55); padding-left: 8px; }
+.bf-note { margin: 2px 0 6px; }

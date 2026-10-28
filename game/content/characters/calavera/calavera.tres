@@ -25,7 +25,7 @@ favourite_bonus = {
 }
 start_weapon = "guitarra"
 availability = "purchase"
-price = 300
+price = 2000
 sprite_path = "res://content/characters/calavera/calavera_sprite.png"
 sprite_file = "calavera_sprite.png"
 anims = {

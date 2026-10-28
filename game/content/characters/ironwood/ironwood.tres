@@ -30,7 +30,7 @@ favourite_passive_bonus = {
 "value": 2.0
 }
 availability = "purchase"
-price = 300
+price = 1000
 sprite_path = "res://content/characters/ironwood/ironwood_sprite.png"
 sprite_file = "ironwood_sprite.png"
 anims = {

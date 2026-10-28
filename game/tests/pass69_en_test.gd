@@ -72,7 +72,8 @@ func spawn(_k, _at, _v = 0.0) -> int:
 	return -1
 """
 
-## special_chance before pass 69 (the content as it stood); every one is a third of it now, to 4 decimals.
+## special_chance before pass 69 (the content as it stood); every one is a third of it since pass 69, and a third of that
+## again since pass 110 (lane ECON; Garry: "reduce the number of Specials"): a ninth, to 4 decimals.
 const OLD_CHANCE := {"armadillo": 0.06, "blue_slime": 0.1, "buckshot_dwarf": 0.05, "bull_beetle": 0.08,
 	"dust_mummy": 0.08, "fire_ant": 0.1, "goblin": 0.12, "goblin_runt": 0.1, "hellhound": 0.08, "hobgoblin": 0.1,
 	"horned_toad": 0.08, "imp": 0.1, "jackalope": 0.1, "red_goblin": 0.12, "red_goblin_runt": 0.1, "sand_crab": 0.08,
@@ -156,12 +157,13 @@ func test_every_creature_special_is_rarer_bigger_tougher_and_harder() -> void:
 	for id: String in OLD_CHANCE.keys():
 		var d := _json("res://content/enemies/%s/%s.json" % [id, id])
 		var vr: Dictionary = d["variance"]
-		assert_float(float(vr["special_chance"])).override_failure_message(id + " chance").is_equal_approx(snappedf(float(OLD_CHANCE[id]) / 3.0, 0.0001), 0.00001)
+		assert_float(float(vr["special_chance"])).override_failure_message(id + " chance").is_equal_approx(snappedf(float(OLD_CHANCE[id]) / 9.0, 0.0001), 0.00001)
 		var sp: Dictionary = vr["special"]
 		# (pass 72, lane SPEC, re-pinned: Garry's "bigger ... higher HP": x1.5 and x15 since pass 72)
 		assert_float(float(sp["size"])).override_failure_message(id + " size").is_equal(1.5)
 		assert_float(float(sp["hp"])).override_failure_message(id + " hp").is_equal(15.0)
-		assert_float(float(sp["damage"])).override_failure_message(id + " damage").is_equal(2.0)
+		# (pass 110, lane ECON, re-pinned: Garry's "Increase ATK of Specials quite a bit": x3.5, was x2)
+		assert_float(float(sp["damage"])).override_failure_message(id + " damage").is_equal(3.5)
 		# the XP stays as it was (3 on every one of them)
 		assert_float(float(sp["xp"])).override_failure_message(id + " xp").is_equal(3.0)
 		# and the .tres the game plays says the same
@@ -349,7 +351,8 @@ func test_the_forced_special_spawns_once_at_its_second_x10_x2_x125_without_a_ban
 	var plain_dmg := def.damage * em.f_stage[i] * em.f_lvd[i] * em.creature_damage_mult * em.f_dmt[i]
 	# (pass 72, lane SPEC, re-pinned: x15 and x1.5 since pass 72, the creature's own block)
 	assert_float(em.max_hp[i] / plain_hp).is_equal_approx(15.0, 0.001)
-	assert_float(em.dmg[i] / plain_dmg).is_equal_approx(2.0, 0.001)
+	# (pass 110, lane ECON, re-pinned: x3.5 ATK, the creature's own block)
+	assert_float(em.dmg[i] / plain_dmg).is_equal_approx(3.5, 0.001)
 	# exactly x1.25 the creature's size: a special drops the plain ones' spread (red goblins roll 0.8-1.2 of theirs)
 	assert_float(float(def.variance.get("size", 0.0))).is_greater(0.0)
 	assert_float(em.size[i] / def.size).is_equal_approx(1.5, 0.0001)

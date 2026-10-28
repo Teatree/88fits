@@ -2223,11 +2223,19 @@ func _explode(i: int) -> void:
 	if bfx is Dictionary:
 		strength = maxf(float((bfx as Dictionary).get("scale", 1.0)), 1.0)
 		fx_r *= strength
-	var fx_col: Color = {"poison": Color(0.45, 0.95, 0.35), "fire": Color(1.0, 0.45, 0.15)}.get(element, Color(1.0, 0.7, 0.3))
-	game.fx_burst(pos[i], fx_col, fx_r)
-	if strength > 1.0 and game.get("fx") != null and game.fx.has_method("burst_strength"):
-		game.fx.burst_strength(pos[i], fx_col, fx_r, strength, bool((bfx as Dictionary).get("flash", true)))
-	game.camera.shake(0.5)
+	var gfx = game.get("fx")
+	if gfx != null and gfx.has_method("weapon_blast"):
+		# pass 110 (lane VFX; Garry: the explosions "became quite invisible"): Fx's own blast pool, in the weapon's colour
+		# (Fx.blast_colour: its blast_fx.color, its element, else orange), full for an `explosive` weapon and a splash for
+		# a flask or a skull (Fx.blast_style); its ring at the real radius, the Heavy Warhead's scale as its power (a
+		# bigger ball, more sparks); the camera kicks only for a big one (Fx.BLAST_KICK_*), no longer 0.5 every blast
+		gfx.weapon_blast(pos[i], area[i], Fx.blast_colour(w, element), Fx.blast_style(w), strength, game)
+	else:
+		var fx_col: Color = {"poison": Color(0.45, 0.95, 0.35), "fire": Color(1.0, 0.45, 0.15)}.get(element, Color(1.0, 0.7, 0.3))
+		game.fx_burst(pos[i], fx_col, fx_r)
+		if strength > 1.0 and gfx != null and gfx.has_method("burst_strength"):
+			gfx.burst_strength(pos[i], fx_col, fx_r, strength, bool((bfx as Dictionary).get("flash", true)))
+		game.camera.shake(0.5)
 	# Cluster Munitions (pass 53, params.cluster): the blast may scatter bomblets on the sand round it (Bomblets). The
 	# cluster is read off the weapon's params, never the shot's extra (a missile's extra is its flight, so the old
 	# `bomblets` key there never reached a rocket); a bomb's own bomblets never cluster
@@ -4081,7 +4089,11 @@ func _dynamite_blast(i: int) -> void:
 	if push > 0.0 and game.get("enemies"):
 		game.enemies.throw_radius(ground, r * float(bl.get("push_radius", 1.0)), push)
 	# the hero's Dynamite Stick's blast (_explode): the burst with its ground ring and kick, and the camera's shake
-	if game.has_method("fx_burst"):
+	# (pass 110, lane VFX: Fx's blast like the hero's, so the one that hurts him reads as well as his own)
+	var gfx = game.get("fx")
+	if gfx != null and gfx.has_method("weapon_blast"):
+		gfx.weapon_blast(at, r, Fx.BLAST_ORANGE, Fx.BLAST_FULL, 1.0, game)
+	elif game.has_method("fx_burst"):
 		game.fx_burst(at, Color(1.0, 0.7, 0.3), r)
 	if game.get("camera") and game.camera.has_method("shake"):
 		game.camera.shake(float(bl.get("shake", 0.5)))

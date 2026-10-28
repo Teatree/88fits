@@ -2294,6 +2294,268 @@ const Model = (() => {
     return best;
   }
 
+  // ------------------------------------------------------------------ boss fight windows (pass 110, lane BOSS)
+  //
+  // Garry (2026-10-28): "Currently I don't quite understand which enemies are going to be spawning during the Boss fight
+  // ... Just add a 2 minute window in the Timeline where I can set up the cycle of enemies that will be spawning.
+  // Basically I will be able to set them up as I always do with the knowledge that as long as the Boss Fight is continuing
+  // it will be those enemies at that pace that will be spawning." A stage's window is its stage_list entry's `boss_fight`
+  // block: {enabled (default on), length (seconds of one cycle, 120), max_count (the most creatures alive, BODIES, 40;
+  // -1 = the hard cap only), roster (spawn rows with the roster's keys, every time on the fight's own clock: 0 = the boss
+  // arrives)}. From the boss's arrival until it dies only these rows spawn (the stage's rows, the floor and the specials'
+  // clock stop; the boss's own summons still come), and every `length` seconds the cycle starts afresh. The game's rule:
+  // game/core/systems/BossFightWindow.gd (docs/waves_schema.md "Pass 110").
+
+  /** A new window's numbers (the game's defaults for a block that leaves one out). */
+  const BOSS_FIGHT_DEF = { length: 120, max_count: 40 };
+  /** The keys of a boss_fight block. */
+  const BOSS_FIGHT_KEYS = ['enabled', 'length', 'max_count', 'roster'];
+
+  /** Stage s's stage_list entry (the map's own object), null on a map without a stage list or past its stages. */
+  function bossFightEntry(tl, s) {
+    if (!hasStageList(tl)) return null;
+    const L = stageList(tl);
+    const k = Math.floor(num(s, -1));
+    return k >= 0 && k < L.length ? L[k].entry : null;
+  }
+  /** Stage s's boss_fight block as the file has it (on or off), null when it has none. */
+  function bossFight(tl, s) {
+    const e = bossFightEntry(tl, s);
+    return e && isObj(e.boss_fight) ? e.boss_fight : null;
+  }
+  /** Whether stage s's fight plays its window: a block that is not switched off (enabled false keeps it but plays the
+   *  fight as before). */
+  const bossFightOn = (tl, s) => { const b = bossFight(tl, s); return !!b && b.enabled !== false; };
+  /** A block's cycle in seconds (its `length`, default 120, at least 1). */
+  const bossFightLen = (b) => Math.max(num(isObj(b) ? b.length : null, BOSS_FIGHT_DEF.length), 1);
+  /** A block's Max count in bodies (default 40; -1 = no limit but the hard cap). */
+  const bossFightMax = (b) => Math.trunc(num(isObj(b) ? b.max_count : null, BOSS_FIGHT_DEF.max_count));
+  /** A block's rows (its `roster`, [] when it has none). */
+  const bossFightRows = (b) => (isObj(b) && Array.isArray(b.roster) ? b.roster : []);
+  /** A new window: the defaults and no rows. */
+  const newBossFight = () => ({ length: BOSS_FIGHT_DEF.length, max_count: BOSS_FIGHT_DEF.max_count, roster: [] });
+  /** Where a window row stops on the fight clock: its until, else the cycle's end; never past the cycle's end. */
+  function bossRowEnd(b, r) {
+    const len = bossFightLen(b);
+    const u = r && r.until != null && r.until !== '' ? num(r.until, len) : len;
+    return Math.min(u, len);
+  }
+  /** The window's rows open at fight second `ct` (t <= ct < until, inside the cycle), as App.rosterAt gives the
+   *  roster's: [{row, i, w (its presence then), paced, drawn, hell: false, norm (its share of the drawn rows' weight then:
+   *  one limit, no channels)}]. */
+  function bossFightRowsAt(b, ct, lateT) {
+    const len = bossFightLen(b);
+    const open = [];
+    bossFightRows(b).forEach((r, i) => {
+      if (!isObj(r)) return;
+      const start = num(r.t, 0), until = r.until == null || r.until === '' ? Infinity : num(r.until, Infinity);
+      if (ct >= start && ct < until && ct < len) open.push({ row: r, i, w: rowWeight(r, ct, lateT), paced: rowPaced(r), drawn: rowDrawn(r), hell: false, norm: 0 });
+    });
+    const total = open.filter((o) => o.drawn).reduce((a, o) => a + o.w, 0) || 1;
+    for (const o of open) if (o.drawn) o.norm = o.w / total;
+    return open;
+  }
+  /** Every id the windows' rows use (a Set). */
+  function bossRowIds(tl) {
+    const used = new Set();
+    for (const w of hasStageList(tl) ? stageList(tl) : []) {
+      for (const r of bossFightRows(w.entry && w.entry.boss_fight)) if (isObj(r) && typeof r.id === 'string' && r.id !== '') used.add(r.id);
+    }
+    return used;
+  }
+  /** A fresh id for a window row of stage s: "bf<stage>-<n>", used by no window row and no roster row. */
+  function newBossRowId(tl, s) {
+    const used = bossRowIds(tl);
+    for (const r of Array.isArray(tl && tl.roster) ? tl.roster : []) if (isObj(r) && typeof r.id === 'string') used.add(r.id);
+    const pre = `bf${Math.max(0, Math.floor(num(s, 0))) + 1}-`;
+    let n = 1;
+    while (used.has(pre + n)) n++;
+    return pre + n;
+  }
+
+  /** The windows' own checks (a row's common checks, the creature, its pacing, its overrides, are the page's: app.js runs
+   *  every window row through the roster row's): [{key ('bossfight:<s>' | 'bossrow:<s>:<i>'), level, msg}]. */
+  function bossFightChecks(tl) {
+    const out = [];
+    if (!hasStageList(tl)) return out;
+    const hardN = num(tl.hard_cap, Infinity);
+    const hard = hardN > 0 ? hardN : Infinity;
+    const ids = new Map();
+    for (const w of stageList(tl)) {
+      const e = w.entry;
+      if (!e || e.boss_fight == null) continue;
+      const s = w.i, key = `bossfight:${s}`, b = e.boss_fight;
+      const push = (k, level, msg) => out.push({ key: k, level, msg });
+      if (!isObj(b)) { push(key, 'error', 'boss_fight must be a block {enabled, length, max_count, roster}'); continue; }
+      if (b.enabled != null && typeof b.enabled !== 'boolean') push(key, 'error', 'On is on or off (enabled true / false)');
+      if (b.length != null && !(typeof b.length === 'number' && isFinite(b.length) && b.length >= 1)) push(key, 'error', `the cycle's length is a number of seconds, at least 1 (got ${JSON.stringify(b.length)})`);
+      if (b.max_count != null && !(typeof b.max_count === 'number' && Number.isInteger(b.max_count) && b.max_count >= -1)) push(key, 'error', `Max count is a whole number of creatures, -1 for no limit but the hard cap (got ${JSON.stringify(b.max_count)})`);
+      else if (bossFightMax(b) === 0) push(key, 'warn', 'Max count 0: only rows with Respect the cap off spawn in the fight');
+      else if (bossFightMax(b) > hard) push(key, 'warn', `Max count ${bossFightMax(b)} is above the hard cap (${hard} bodies): the hard cap binds first`);
+      if (b.roster != null && !Array.isArray(b.roster)) { push(key, 'error', 'the window\'s rows must be a list'); continue; }
+      const len = bossFightLen(b);
+      const rows = bossFightRows(b);
+      if (b.enabled !== false && !rows.length) push(key, 'warn', 'no rows: nothing spawns in the fight but the boss\'s own summons (+ Row adds one)');
+      rows.forEach((r, i) => {
+        const rk = `bossrow:${s}:${i}`;
+        if (!isObj(r)) { push(rk, 'error', 'a row must be a block {t, enemy, ...}'); return; }
+        const t = num(r.t, 0);
+        if (t >= len) push(rk, 'warn', `it starts at ${clockText(t)}, at or after the cycle's end (${clockText(len)}): it never spawns`);
+        if (r.until != null && r.until !== '' && num(r.until, 0) > len + 1e-9) push(rk, 'warn', `until (${clockText(num(r.until, 0))}) is past the cycle's end (${clockText(len)}): the row stops there and starts again with the next cycle`);
+        if (Array.isArray(r.weights) && r.weights.some((p) => Array.isArray(p) && (num(p[0], 0) < 0 || num(p[0], 0) > len + 1e-9))) push(rk, 'warn', `a presence point outside the cycle (0:00–${clockText(len)}): only the line inside the cycle counts`);
+        if (r.channel != null && r.channel !== '' && r.channel !== 'regular') push(rk, 'warn', `Channel (${r.channel}) means nothing in a boss fight window: every row counts against its Max count`);
+        if (typeof r.id === 'string' && r.id !== '') {
+          if (ids.has(r.id)) push(rk, 'error', `the row id "${r.id}" is used twice in the boss fight windows`);
+          else ids.set(r.id, rk);
+        }
+      });
+    }
+    return out;
+  }
+
+  /** The steps a second of the cycle estimate plays. */
+  const BOSS_CYCLE_HZ = 10;
+  /** What stage s's window brings over `cycles` cycles (default 2), an estimate in expected numbers like the Spawned so
+   *  far lane's, played by the game's rules (BossFightWindow.gd) on the fight's clock from the boss's arrival: the hero
+   *  kills `turnover` of the crowd a second (default EST_DEF.turnover); the fight starts with only the boss alive (`start`
+   *  more bodies left over from the stage, default 0); the boss counts as a body against Max count. Each step: the waves
+   *  and once rows fall due (t + offset + k × every, the middle of a range; a presence of 0 holds a wave; a chance below 1
+   *  scales it), bring `count` cut to the hard cap, the creature's max_alive and (Respect the cap) the room under Max
+   *  count, at least one while there is any, the rest owed until the next wave; coloured-elite rows (elite without a
+   *  pattern) come on top; at each spawn check (every spawn_interval from the boss's arrival, or a row's own Draw every
+   *  from when it opens) the drawn rows bring a mean burst ((burst_min + burst_max) / 2 creatures) times their share of the
+   *  drawn rows' weight, cut to the room. At each new cycle every row starts afresh (what a wave owed is dropped). A
+   *  creature named by id must be in `byId` (the page's creature list) for its pack and max_alive; a list counts as its
+   *  first. {length, max, cycles, turnover, alive [bodies a second, the boss in], spawned [per cycle], peak, full (seconds
+   *  at Max count), rows [{i, id, enemy, pace, waves [per cycle], spawned [per cycle], perWave}]}; null without a window. */
+  function bossFightCycle(tl, s, byId, opts) {
+    const b = bossFight(tl, s);
+    if (!b) return null;
+    const o = isObj(opts) ? opts : {};
+    const by = isObj(byId) ? byId : {};
+    const len = bossFightLen(b), max = bossFightMax(b);
+    const hardN = num(tl.hard_cap, 300);
+    const hard = hardN > 0 ? hardN : 300;
+    const si = num(tl.spawn_interval, 0.5) > 0 ? num(tl.spawn_interval, 0.5) : 0.5;
+    const lo = Math.max(Math.trunc(num(tl.burst_min, 5)), 0), hi = Math.max(Math.trunc(num(tl.burst_max, 20)), lo);
+    const burstMean = (lo + hi) / 2;
+    const lateT = num(tl.weight_late_t, DEF.weight_late_t);
+    const tv = Math.max(num(o.turnover, EST_DEF.turnover), 0);
+    const cycles = Math.max(1, Math.min(10, Math.trunc(num(o.cycles, 2))));
+    const dt = 1 / BOSS_CYCLE_HZ;
+    const steps = Math.round(cycles * len * BOSS_CYCLE_HZ);
+    const checkSteps = Math.max(1, Math.round(si * BOSS_CYCLE_HZ));
+    const rows = [];
+    bossFightRows(b).forEach((r, i) => {
+      if (!isObj(r)) return;
+      const id = Array.isArray(r.enemy) ? String(r.enemy[0] || '') : r.enemy === ROW_ENEMY_ROSTER ? '' : String(r.enemy == null ? '' : r.enemy);
+      const c = by[id] || null;
+      const st = isObj(r.stats) ? r.stats : {};
+      const maxAlive = Math.trunc(num(st.max_alive, num(c && c.max_alive, 0)));
+      rows.push({ r, i, id, c, maxAlive: rowSingleEnemy(r) ? maxAlive : 0, paced: rowPaced(r), drawn: rowDrawn(r), timer: rowTimer(r),
+        eliteArr: !!rowElite(r) && !('pattern' in r), p: rowPaced(r) ? clamp(num(r.chance, 1), 0, 1) : 1,
+        t: num(r.t, 0), until: r.until == null || r.until === '' ? Infinity : num(r.until, Infinity),
+        own: rowHasInterval(r), ivSteps: rowHasInterval(r) ? Math.max(1, Math.round(rowDrawInterval(r, si) * BOSS_CYCLE_HZ)) : 0,
+        perWave: rowWaveCount(r, c), wk: -1, owed: 0, next: null, left: 0, seen: false,
+        waves: new Array(cycles).fill(0), spawned: new Array(cycles).fill(0) });
+    });
+    let alive = Math.max(num(o.start, 0), 0);
+    const aliveBy = {};
+    const spawned = new Array(cycles).fill(0);
+    const series = [];
+    let peak = 1 + alive, full = 0;
+    let cyc = 0;
+    const room = () => (max < 0 ? Infinity : max - (alive + 1));
+    const hardRoom = () => hard - (alive + 1);
+    const put = (x, n) => {
+      if (!(n > 0)) return;
+      alive += n;
+      aliveBy[x.id] = (aliveBy[x.id] || 0) + n;
+      x.spawned[cyc] += n;
+      spawned[cyc] += n;
+    };
+    const owedSpawn = (x) => {
+      let n = x.owed;
+      n = x.r.respect_hard_cap === false ? Math.min(n, Math.max(MAX_BODIES - alive - 1, 0)) : Math.min(n, Math.max(hardRoom(), 0));
+      if (x.maxAlive > 0) n = Math.min(n, Math.max(x.maxAlive - (aliveBy[x.id] || 0), 0));
+      if (n > 0 && x.r.respect_cap !== false) {
+        const rm = room();
+        if (!(rm > 0)) return;
+        n = Math.min(n, Math.max(rm, 1));
+      }
+      if (!(n > 0)) return;
+      put(x, n);
+      x.owed = Math.max(x.owed - n, 0);
+    };
+    for (let k = 0; k <= steps; k++) {
+      const ft = k * dt;
+      const c2 = Math.min(Math.floor(ft / len + 1e-9), cycles - 1);
+      if (k === steps) { series.push(alive + 1); break; }
+      if (c2 !== cyc || k === 0) {
+        cyc = c2;
+        for (const x of rows) { x.wk = -1; x.owed = 0; x.next = null; x.left = 0; x.seen = false; }
+      }
+      const ct = ft - cyc * len;
+      if (k % BOSS_CYCLE_HZ === 0) series.push(alive + 1);
+      // the hero's kills this step
+      const f = Math.min(tv * dt, 1);
+      alive *= 1 - f;
+      for (const id of Object.keys(aliveBy)) aliveBy[id] *= 1 - f;
+      const isOpen = (x) => ct >= x.t && ct < x.until && ct < len;
+      // the waves and once rows
+      for (const x of rows) {
+        if (!x.paced || !isOpen(x) || !(x.p > 0)) continue;
+        const start = rowWaveStart(x.r), every = rowWaveEvery(x.r);
+        if (ct < start - 1e-9) continue;
+        let i, wt;
+        if (x.timer) {
+          if (x.next == null) x.next = start;
+          if (ct < x.next - 1e-9) continue;
+          i = x.wk + 1; wt = ct;
+          x.next = every > 0 ? ct + every : Infinity;
+        } else {
+          i = every > 0 ? Math.floor((ct - start) / every + 1e-6) : 0;
+          if (i <= x.wk) continue;
+          wt = start + (every > 0 ? i * every : 0);
+        }
+        x.wk = i; x.owed = 0;
+        if (!(rowWeight(x.r, wt, lateT) > 0)) continue;
+        x.waves[cyc] += 1;
+        if (x.eliteArr) { put(x, Math.max(Math.trunc(num(x.r.count, 1)), 1) * x.p); continue; }
+        x.owed = x.perWave * x.p;
+        owedSpawn(x);
+      }
+      // the spawn check: what a wave still owes first, then the drawn rows
+      const check = k % checkSteps === 0;
+      if (check) for (const x of rows) if (x.paced && x.owed > 0) { if (!isOpen(x)) x.owed = 0; else owedSpawn(x); }
+      const drawn = rows.filter((x) => x.drawn && isOpen(x) && !(x.maxAlive > 0 && (aliveBy[x.id] || 0) >= x.maxAlive - 1e-9));
+      const due = [];
+      for (const x of drawn) {
+        if (x.own) {
+          if (!x.seen) { x.seen = true; x.left = 0; }
+          x.left -= 1;
+          if (x.left <= 0) { due.push(x); x.left = x.ivSteps; }
+        } else if (check) due.push(x);
+      }
+      if (due.length) {
+        let total = 0, part = 0;
+        for (const x of drawn) total += rowWeight(x.r, ct, lateT);
+        for (const x of due) part += rowWeight(x.r, ct, lateT);
+        if (total > 0 && part > 0) {
+          const rm = room();
+          const n = Math.min(burstMean * (part / total), rm > 0 ? rm : 0, Math.max(hardRoom(), 0));
+          if (n > 0) for (const x of due) put(x, n * rowWeight(x.r, ct, lateT) / part);
+        }
+      }
+      peak = Math.max(peak, alive + 1);
+      if (max >= 0 && alive + 1 >= max - 0.5) full += dt;
+    }
+    return {
+      length: len, max, cycles, turnover: tv, alive: series, spawned, peak, full: round(full, 1),
+      rows: rows.map((x) => ({ i: x.i, id: x.id, enemy: x.r.enemy, pace: rowPaced(x.r) ? String(x.r.pace) : 'continuous', perWave: x.perWave, waves: x.waves, spawned: x.spawned })),
+    };
+  }
+
   const api = {
     DEF, FORMULA_DEF, isObj, num, clamp, round, samplePoints, formulaAt, curveMode, curveMult, hasCurve, hpTimeMult, dmgTimeMult,
     stageLength, stages, runEnd, stageAt, stageMult, rowWeight, keyframesOf, convertRow, normaliseRoster, newRowId,
@@ -2318,6 +2580,11 @@ const Model = (() => {
     ROW84_KEYS, ROW_ROLES, ROW_ENEMY_ROSTER, SWARM_RING_RADIUS, rowSingleEnemy, rowElite, rowInMix, rowTimer,
     eventToRow, waveToRows, convertLegacy, hasLegacy,
     DEFAULT_LEVEL_CURVE, DEFAULT_LEVEL_CURVE_SOURCE, levelAt, creatureDifficulty, estimateSeries,
+  });
+  // pass 110 (lane BOSS): the boss fight windows (stage_list[k].boss_fight)
+  Object.assign(api, {
+    BOSS_FIGHT_DEF, BOSS_FIGHT_KEYS, BOSS_CYCLE_HZ, bossFightEntry, bossFight, bossFightOn, bossFightLen, bossFightMax, bossFightRows,
+    newBossFight, bossRowEnd, bossFightRowsAt, bossRowIds, newBossRowId, bossFightChecks, bossFightCycle,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

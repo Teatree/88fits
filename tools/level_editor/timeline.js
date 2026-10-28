@@ -315,6 +315,16 @@ const Timeline = (() => {
 
   function scrollToSelection() {
     const sel = App.S.sel;
+    // pass 110 (lane BOSS): a boss fight window or its row: its section opened, its stage's panel in view (the stage tab
+    // switched to the window's stage when another stage's tab is open)
+    if (sel && (sel.kind === 'bossrow' || sel.kind === 'bossfight')) {
+      const vs = App.viewStage();
+      if (vs != null && vs !== sel.s) { App.setStageView(sel.s); fit(); }
+      if (isCollapsed('bossfight')) { delete secState.bossfight; saveSecState(); render(); }
+      const panel = root ? root.querySelector(`[data-bf-stage="${sel.s}"]`) : null;
+      if (panel && panel.scrollIntoView) panel.scrollIntoView({ block: 'nearest' });
+      return;
+    }
     if (!sel || sel.i == null) return;
     const it = App.selected();
     if (!it) return;
@@ -385,6 +395,10 @@ const Timeline = (() => {
     if (open('composition')) renderComposition(w);
     if (open('spawned')) renderSpawned(w, res); else syncSpawnControls();
     if (open('rows')) { renderRoster(w); renderWaves(w); }
+    // pass 110 (lane BOSS): the boss fight windows
+    if (open('bossfight') && bfHost && typeof BossFights !== 'undefined') {
+      try { BossFights.render(bfHost); } catch (e) { console.error('boss fights', e); }
+    }
     if (open('events')) { renderEvents(w); renderSpecials(w); renderPaths(w); }
     if (open('curves')) {
       renderCap(w);
@@ -564,7 +578,13 @@ const Timeline = (() => {
     if (id === 'warnings') {
       s.body.appendChild(el('div', { class: 'tl-strip tl-warn', 'data-warnings': '1' }));
     }
+    // pass 110 (lane BOSS): each stage's boss fight window on its own clock (boss_fights.js draws it at every render)
+    if (id === 'bossfight') {
+      bfHost = el('div', { class: 'tl-strip tl-bossfights', 'data-bossfights': '1' });
+      s.body.appendChild(bfHost);
+    }
   }
+  let bfHost = null;
 
   /** "lifetimes from the Sim": the estimate lets each creature the shown Sim measured live its measured seconds (lane
    *  SPAWN's opts.life) instead of the kill rate (pass 84). */
@@ -663,6 +683,7 @@ const Timeline = (() => {
         return `cap ${App.capAt(0)} → ${App.capAt(App.runEnd() - 1)} · floor ${fc.length ? `${fc.length} points` : 'none'} · HP ×${fmtN(App.hpTimeMult(0), 2)} → ×${fmtN(App.hpTimeMult(App.runEnd()), 2)} · ATK ×${fmtN(App.dmgTimeMult(0), 2)} → ×${fmtN(App.dmgTimeMult(App.runEnd()), 2)}`;
       }
       if (id === 'warnings') { const ws = warningsOf(); return ws.length ? `${ws.length} found: ${ws.slice(0, 2).map((x) => x.short || x.text).join(' · ')}${ws.length > 2 ? ' …' : ''}` : 'nothing found'; }
+      if (id === 'bossfight' && typeof BossFights !== 'undefined') return BossFights.summary();
     } catch (e) { console.error('section summary', id, e); }
     return '';
   }
@@ -3365,6 +3386,8 @@ const Timeline = (() => {
   let lastCursorT = null;             // pass 84: the second under the pointer last (the inspector's Split at cursor)
   function onHover(e) {
     if (drag || pan || !App.S.map) return;
+    // pass 110 (lane BOSS): the boss fight panels run on the fight's own clock: no run-clock cursor or readout over them
+    if (e.target && e.target.closest && e.target.closest('.tl-bossfights')) { hideCursor(); return; }
     const t = tAt(e.clientX);
     if (t < 0 || e.clientX < svgLeft()) { hideCursor(); return; }
     lastCursorT = Math.max(0, Math.round(t));

@@ -262,6 +262,12 @@ func face_origin(dir: Vector3) -> Vector3:
 	return global_position + Vector3(0, FACE_UP, 0) + d.normalized() * FACE_FORWARD
 
 
+## Pass 110 (lane VFX): whether the camera sees his back: his back and back-diagonal views (walking up, up-left or
+## up-right the screen; _animate's eight sectors). The Dragon's Breath draws behind him then (BreathFlames.set_behind).
+func faces_away() -> bool:
+	return _view == "" or _view == "_bd"
+
+
 ## Pass 95 (lane BREATH): seconds he has stood still AND unhit (Held Breath's rule: "being hit by anything breaks up this
 ## effect"): his still seconds (still_seconds, untouched: Steady Hand keeps reading those), or the seconds since the last
 ## hit that landed on his star, his shield or his health (take_damage: an evaded or immune hit is a miss and does not

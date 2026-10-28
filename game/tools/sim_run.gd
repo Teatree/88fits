@@ -1281,10 +1281,15 @@ func _sv_check(em, dir) -> void:
 	var hell := hell_ids(dir)
 	var c := crowd_now(em, hell)
 	var bodies_full: bool = int(em.alive_count()) >= int(tl.hard_cap)
-	var reg_full: bool = cap > 0 and (float(c["load"]) >= float(cap) or bodies_full)
+	# pass 110 (lane BOSS): a boss fight that plays its stage's window counts bodies against the window's max_count, and
+	# the stage's rows do not spawn then (they never starve in it)
+	var win: bool = dir.has_method("boss_window_on") and bool(dir.boss_window_on())
+	var reg_full: bool = cap > 0 and ((int(em.alive_count()) >= cap if win else float(c["load"]) >= float(cap)) or bodies_full)
 	var hell_full: bool = cap > 0 and (float(c["load_hell"]) >= float(tl.hell_cap_at(int(_run.stage))) * float(cap) or bodies_full)
 	if reg_full:
 		_sv_full += 1
+	if win:
+		return
 	var normal: bool = int(dir.phase) == 0
 	var t: float = float(_run.elapsed) if normal else float(_run.elapsed) - 1.0
 	var row_waves = dir.get("_row_waves")

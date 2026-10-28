@@ -274,13 +274,17 @@ func _blast(i: int) -> void:
 		em.damage_radius(at, radius[i], dmg[i], w.def.id if w else "", kbf[i])
 		if w:
 			w.kills += Run.kills - before
-	if game and game.has_method("fx_burst"):
-		game.fx_burst(at + Vector3(0, 0.2, 0), Color(1.0, 0.72, 0.3), radius[i])
 	var fx = game.get("fx") if game else null
-	if fx and fx.has_method("burst_strength"):
-		fx.burst_strength(at, Color(1.0, 0.6, 0.2), radius[i] * 0.6, 1.4, false)
-	if fx and fx.has_method("sand"):
-		fx.sand(at, 0.5)
+	if fx and fx.has_method("weapon_blast"):
+		# pass 110 (lane VFX): Fx's blast, a little lighter than a full one (power 0.8: a bomblet is a small pop)
+		fx.weapon_blast(at, radius[i], Fx.blast_colour(w, w.element() if w else ""), Fx.BLAST_FULL, 0.8, game)
+	else:
+		if game and game.has_method("fx_burst"):
+			game.fx_burst(at + Vector3(0, 0.2, 0), Color(1.0, 0.72, 0.3), radius[i])
+		if fx and fx.has_method("burst_strength"):
+			fx.burst_strength(at, Color(1.0, 0.6, 0.2), radius[i] * 0.6, 1.4, false)
+		if fx and fx.has_method("sand"):
+			fx.sand(at, 0.5)
 	Audio.play(str(w.def.sfx.get("hit", "w_lob_boom")) if w else "w_lob_boom", at)
 
 

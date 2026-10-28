@@ -1965,7 +1965,8 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 		xp_scale *= director.xp_share()
 		# pass 107 (lane XPT): the stage's own XP multiplier (stage_list entry `xp_mult`, 1 without one)
 		xp_scale *= director.stage_xp_mult()
-	pickups.drop_from(def, at, xp_scale, elite != null)
+	# pass 110 (lane ECON): a variance special's own coin comes half as often (PickupManager.SPECIAL_COIN_MULT)
+	pickups.drop_from(def, at, xp_scale, elite != null, PickupManager.SPECIAL_COIN_MULT if enemies and enemies.died_special else 1.0)
 	# Prospector (pass 47): a chance of one more XP gem, the size this creature mostly drops
 	var xp_chance: float = Run.player_sheet.get_stat("xp_drop_chance", 0.0)
 	if xp_chance > 0.0:
@@ -2004,9 +2005,12 @@ func _salt_luck_at(at: Vector3) -> float:
 ## purses (90 + 60 a stage, 260 + 140 a stage), [base, per stage] before Mira's Motherlode; a boss's coins on the sand
 ## are its drops.coins (x5 in the bosses' JSON), BOSS_COINS when it names none (was 12); an Elite's or a boss's own coin
 ## (drops.gold) is worth PickupManager.BIG_COIN_MULT times a creature's.
-const ELITE_PURSE := [450, 300]
-const BOSS_PURSE := [1300, 700]
-const BOSS_COINS := 60
+## Pass 110 (lane ECON; Garry: "Reduce the coins gain from Boss, Elite and Specials. By 50%"): every one halved, the
+## purses [450, 300] -> [225, 150] and [1300, 700] -> [650, 350], BOSS_COINS 60 -> 30 (the bosses' drops.coins halved in
+## their JSON), BIG_COIN_MULT 5 -> 2.5 and a special's own coin half as often (PickupManager.SPECIAL_COIN_MULT).
+const ELITE_PURSE := [225, 150]
+const BOSS_PURSE := [650, 350]
+const BOSS_COINS := 30
 
 
 ## An Elite's purse on stage index `stage` (0 = stage 1), before Motherlode.
@@ -2097,9 +2101,8 @@ const KEG_COLOUR := Color(1.0, 0.55, 0.15)
 
 func _powder_keg(at: Vector3, dead_max_hp: float) -> void:
 	enemies.damage_radius(at, KEG_RADIUS, dead_max_hp * KEG_FRAC, POWDER_KEG, KEG_KNOCK)
-	fx.burst(at + Vector3(0, 0.5, 0), KEG_COLOUR, 1.1)
-	if telegraphs and map:
-		telegraphs.flash_ring(Vector3(at.x, map.height_at(at.x, at.z) + 0.05, at.z), KEG_RADIUS, KEG_COLOUR, 0.3)
+	# pass 110 (lane VFX): Fx's blast at the keg's radius (it had been a pale puff and a thin ring)
+	fx.weapon_blast(at, KEG_RADIUS, KEG_COLOUR, Fx.BLAST_FULL, 1.0, self)
 	Audio.play("it_keg_boom", at)
 
 
@@ -3751,8 +3754,9 @@ func nuke_blast(at: Vector3, radius: float, damage: float, knock: float) -> void
 	tw.tween_property(wall, "scale", Vector3(radius, 1.0, radius), 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(wmat, "albedo_color:a", 0.0, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(func(): wall.queue_free())
-	fx.burst(at + Vector3(0, 1.0, 0), Color(1.0, 0.95, 0.8), 6.0)
-	fx.burst(at + Vector3(0, 0.6, 0), Color(1.0, 0.55, 0.2), 9.0)
+	# pass 110 (lane VFX): never thinned by the effect budget (a busy screen had dropped the Nuke's flash)
+	fx.burst(at + Vector3(0, 1.0, 0), Color(1.0, 0.95, 0.8), 6.0, 1.0, true)
+	fx.burst(at + Vector3(0, 0.6, 0), Color(1.0, 0.55, 0.2), 9.0, 1.0, true)
 	for k in range(14):
 		var a := TAU * float(k) / 14.0
 		fx.sand(at + Vector3(cos(a), 0.1, sin(a)) * radius * 0.5, 1.2)
@@ -4423,7 +4427,7 @@ func _tick_hell(delta: float) -> void:
 	# the crowd burns out there too, so the fight stays inside
 	var cb := float(cfg.get("creature_burn", 0.12)) * 0.5
 	if cb > 0.0:
-		for i in range(EnemyManager.MAX):
+		for i in range(enemies.pool_max):
 			if enemies.alive[i] == 1 and i != enemies.boss_index and (enemies.types[enemies.type_idx[i]]["def"] as EnemyDef).archetype != "boss":
 				var ep := enemies.pos[i] - c
 				ep.y = 0.0

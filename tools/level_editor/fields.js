@@ -504,6 +504,9 @@ const FIELDS = (() => {
     { id: 'composition', kind: 'view', name: 'Composition', what: 'who the crowd is made of, as % of it', lanes: ['composition'] },
     { id: 'spawned', kind: 'view', name: 'Spawned so far', what: 'every creature a run has spawned by each second (a running total, the estimate)', lanes: ['spawned'] },
     { id: 'rows', kind: 'edit', name: 'Spawn rows', what: 'every creature group with its schedule (continuous, waves, once): drag a bar, click it to edit everything about it; hold the right mouse button and drag to pan', lanes: ['roster', 'waves'] },
+    // pass 110 (lane BOSS; Garry: "Just add a 2 minute window in the Timeline where I can set up the cycle of enemies that
+    // will be spawning" during the boss fight): each stage's boss fight window, on its own clock (boss_fights.js)
+    { id: 'bossfight', kind: 'edit', name: 'Boss fights', what: 'what spawns while each stage\'s boss lives: a cycle of spawn rows on the fight\'s own clock (0:00 = the boss arrives), looping until the boss dies, under its own Max count', lanes: [] },
     { id: 'events', kind: 'edit', name: 'Events', what: 'bosses, Elite mini-bosses, the specials\' clock, the portal waves and the mutation offers', lanes: ['events', 'specials', 'paths'] },
     { id: 'curves', kind: 'edit', name: 'Curves', what: 'the cap, the floor, the HP × and ATK × curves (drag their points; the Actual lanes show what the rows really carry)', lanes: ['cap', 'floor', 'hp_act', 'hp', 'dmg_act', 'dmg'] },
     { id: 'warnings', kind: 'view', name: 'Warnings', what: 'what the estimate and the checks found, each with a link to the second and the row', lanes: [] },

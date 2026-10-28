@@ -332,8 +332,14 @@ func _blast(r: float, dmg: float, kb: float) -> void:
 			game.spawn_cloud(global_position, w, r * 0.8, el)
 		if Run.kills > before and int(w.params.get("gold_on_kill", 0)) > 0:
 			game.pickups.mark_coin(game.pickups.spawn(PickupManager.KIND_COIN, global_position, 3.0), "blasting_cap")
-	game.fx_burst(global_position + Vector3(0, 0.3, 0), Color(1.0, 0.72, 0.3), r)
-	game.camera.shake(0.5)
+	# pass 110 (lane VFX): Fx's blast (a flash, a fireball, smoke, sparks, clods, its ring and a scorch; a kick only for
+	# a big one), in the mine's element's colour
+	var gfx = game.get("fx")
+	if gfx != null and gfx.has_method("weapon_blast"):
+		gfx.weapon_blast(global_position, r, Fx.blast_colour(w, w.element() if w else ""), Fx.BLAST_FULL, 1.0, game)
+	else:
+		game.fx_burst(global_position + Vector3(0, 0.3, 0), Color(1.0, 0.72, 0.3), r)
+		game.camera.shake(0.5)
 	owner_behavior.sfx("hit", global_position)
 	blasts += 1
 

@@ -24,12 +24,23 @@
 ##   DROPS  every power-up on the sand by the hero, a chest, a boss chest, a shower of gems or coins.
 ##   WORLD  game speed, freezing the crowd, killing or removing everything, the camera's zoom, the stats overlay, leaving;
 ##          the training dummies (pass 48; pass 49: the patrol, the attacking dummies, the Elite and the Boss dummy).
+##   SHOTS  (pass 110) staging a store screenshot: a big crowd (100 to 2,000 and more, the pool grows past the run's 320
+##          for the arena alone) of any creatures and looks picked together, laid out as a ring round a clear circle, a
+##          scatter or a chunk a kind; the game's speed (1x, half, quarter); the freeze (no creature moves, each faces the
+##          hero); the screenshot framing (the hero centred above a caption band, held every frame); hiding the HUD and
+##          the controls; a PNG.
+## Pass 110 also puts the time row (1x / ½ / ¼), FREEZE, FRAME and HIDE UI in the quick column, keys for the PC (1, 2, 4
+## the speed, F the freeze, C the framing, H the hiding, F12 a clean PNG) and, while hidden, an invisible spot in the
+## top-left corner that brings everything back by touch.
 ## Nothing done here reaches the save (Game.leave_arena puts the save back as it was when the arena opened). A death here
 ## respawns the hero at once (pass 49, Game.arena_respawn); HERO's "Go down" is the real fall.
 class_name ArenaPanel
 extends Control
 
-const TABS := [["enemy", "ENEMY"], ["waves", "WAVES"], ["items", "ITEMS"], ["hero", "HERO"], ["drops", "DROPS"], ["world", "WORLD"]]
+const TABS := [["enemy", "ENEMY"], ["waves", "WAVES"], ["items", "ITEMS"], ["hero", "HERO"], ["drops", "DROPS"], ["world", "WORLD"], ["shots", "SHOTS"]]
+## pass 110 (lane ARENA): the crowds' layouts (ArenaShots, by path: a new script's class name is unknown until the editor
+## imports it)
+const SHOTS := preload("res://ui/ArenaShots.gd")
 const SHEET_H := 1180
 ## The quick column's top (pass 56): COLUMN_TOP under the camera cutout, and COLUMN_GAP under the boss's plate and bar
 ## while one is up and reaches lower (it sat at a fixed y 380, so with a 130 px inset, or under the power-ups, the boss's
@@ -77,8 +88,44 @@ const INFO_KEY := "info:"
 var _info_fills: Array = []
 # WORLD
 var _speed := 1.0
-var _frozen := false
 var _zoom := 0.0
+# SHOTS (pass 110, lane ARENA): the big crowd's picks (creature id -> its look codes; [] = the look the game plays), its
+# count, layout and options; the freeze (EnemyManager.FREEZE_*) and the last one used; the framing and its caption band
+# (a share of the screen's height); the clean capture
+var _crowd_pick: Dictionary = {}
+var _crowd_n := 1000
+var _crowd_layout := "ring"
+var _crowd_clear := 4.0
+var _crowd_depth := 0.0
+var _crowd_density := 1.2
+var _crowd_rise := false
+var _crowd_specials := false
+var _crowd_replace := true
+var _freeze := 0
+var _freeze_last := 1
+var _frame_on := false
+var _band := 0.3
+var _guide_on := true
+var _clean := false
+var _hide_hud := true
+var _numbers := true
+var _dbg_was := false
+var _last_png := ""
+var _speed_btns: Dictionary = {}
+var _freeze_btn: Button
+var _frame_btn: Button
+var _hide_btn: Button
+var _corner: Button
+var _guide: Control
+var _hint: Label
+var _hint_t := 0.0
+## Crowd counts on the SHOTS tab (Garry: "more than 1500"), and the steps of its - / + row.
+const CROWD_PRESETS := [100, 500, 1000, 1500, 2000]
+const CROWD_STEPS := [-100, -10, 10, 100]
+## The invisible spot that brings the controls back while hidden (canvas pixels from the top-left corner).
+const CORNER_PX := 180.0
+## Seconds the "how to bring them back" line shows after hiding.
+const HINT_SECONDS := 3.0
 # scrolling by hand (a drag that starts on a button never reaches a ScrollContainer on a phone): TouchScroll
 var _touch: TouchScroll
 
@@ -90,6 +137,7 @@ func _ready() -> void:
 	_build_toolbar()
 	_build_sheet()
 	_sheet.visible = false
+	_build_overlay()
 
 
 # ---------------------------------------------------------------- the quick column
@@ -111,10 +159,43 @@ func _build_toolbar() -> void:
 	_waves_btn = _tool("WAVES", _toggle_waves)
 	col.add_child(_waves_btn)
 	col.add_child(_tool("LV +1", func(): _levels(1)))
+	# pass 110 (lane ARENA): the game's speed, the freeze, the framing and hiding everything, one tap each
+	var tr := UiKit.hbox(6)
+	tr.name = "TimeRow"
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for sp in [[1.0, "1x"], [0.5, "½"], [0.25, "¼"]]:
+		var v: float = sp[0]
+		var b := UiKit.button(str(sp[1]), 22, false, 64)
+		b.name = "Speed_%d" % int(round(1.0 / v))
+		b.custom_minimum_size = Vector2(56, 64)
+		b.modulate.a = 0.9
+		b.pressed.connect(func(): set_speed(v))
+		tr.add_child(b)
+		_speed_btns[v] = b
+	col.add_child(tr)
+	_freeze_btn = _tool("FREEZE", toggle_freeze)
+	_freeze_btn.name = "FreezeButton"
+	col.add_child(_freeze_btn)
+	_frame_btn = _tool("FRAME", func(): set_framing(not _frame_on))
+	_frame_btn.name = "FrameButton"
+	col.add_child(_frame_btn)
+	_hide_btn = _tool("HIDE UI", func(): set_clean(true))
+	_hide_btn.name = "HideButton"
+	col.add_child(_hide_btn)
+	_sync_quick()
 	_status = UiKit.outline(UiKit.label("", 20, UiKit.INK, HORIZONTAL_ALIGNMENT_RIGHT), 4)
 	_status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(_status)
+	# pass 110: the status lines hang from the column's right edge and grow to the left, so a long line no longer widens
+	# the column past the screen's edge (it did: "again: ..." pushed the buttons and the text off the right side)
+	var hold := Control.new()
+	hold.name = "StatusHolder"
+	hold.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hold.custom_minimum_size = Vector2(0, 112)
+	_status.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_status.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	hold.add_child(_status)
+	col.add_child(hold)
 
 
 ## Where the quick column starts: COLUMN_TOP under the camera cutout (W.safe_top()), and COLUMN_GAP under the boss's
@@ -225,6 +306,8 @@ func _refresh() -> void:
 			_drops_tab()
 		"world":
 			_world_tab()
+		"shots":
+			_shots_tab()
 	_scroll.scroll_vertical = keep
 
 
@@ -1360,15 +1443,10 @@ func _shower(kind: int, n: int, value: float) -> void:
 # ---------------------------------------------------------------- WORLD
 
 func _world_tab() -> void:
-	_choice("Game speed", [[0.25, "0.25x"], [0.5, "0.5x"], [1.0, "1x"], [2.0, "2x"]], _speed, func(v):
-		_speed = float(v)
-		Engine.time_scale = _speed)
-	_choice("Freeze crowd", [[false, "No"], [true, "Yes"]], _frozen, func(v):
-		_frozen = bool(v)
-		game.enemies.process_mode = Node.PROCESS_MODE_DISABLED if _frozen else Node.PROCESS_MODE_INHERIT)
-	_choice("Camera zoom", [[0.0, "Auto"], [1.0, "1x"], [1.5, "1.5x"], [2.0, "2x"], [2.6, "2.6x"]], _zoom, func(v):
-		_zoom = float(v)
-		game.camera.zoom_override = _zoom)
+	_choice("Game speed", [[0.25, "0.25x"], [0.5, "0.5x"], [1.0, "1x"], [2.0, "2x"]], _speed, func(v): set_speed(float(v)))
+	# pass 110 (lane ARENA): the freeze faces the hero and lets deaths play (it used to stop the creatures' node whole)
+	_choice("Freeze crowd", freeze_options(), _freeze, func(v): set_freeze(int(v)))
+	_choice("Camera zoom", [[0.0, "Auto"], [1.0, "1x"], [1.5, "1.5x"], [2.0, "2x"], [2.6, "2.6x"]], _zoom, func(v): set_zoom(float(v)))
 	# pass 82 (lane SAND): the five sands on the spot for this visit (a run plays the map file's: the Level Editor's World card)
 	if game.map and game.map.has_method("set_sand"):
 		_choice("Sand", sand_options(), str(game.map.get("sand_id")), func(v): game.map.call("set_sand", str(v))).name = "SandChoice"
@@ -1531,23 +1609,561 @@ func _do_again() -> void:
 		_again.call()
 
 
+# ---------------------------------------------------------------- SHOTS (pass 110, lane ARENA)
+
+## The SHOTS tab (Garry's arena list for the store screenshots): a big crowd of picked creatures and looks laid out round
+## the hero, the game's speed, the freeze, the screenshot framing and the clean capture. Rows named for the touch audit.
+func _shots_tab() -> void:
+	_section("Big crowd")
+	_note("Pick one or more creatures (and their looks) below, a count and a layout, then SPAWN CROWD. Ring: the whole screen but a clear circle round the hero. Scatter: mixed at random. Chunks: each kind its own group round the hero.")
+	var presets: Array = []
+	for c in CROWD_PRESETS:
+		presets.append([int(c), str(c)])
+	_choice("How many", presets, _crowd_n, func(v): _crowd_n = int(v)).name = "CrowdCount"
+	var adj := UiKit.hbox(8)
+	adj.name = "CrowdAdjust"
+	adj.mouse_filter = Control.MOUSE_FILTER_PASS
+	for st in CROWD_STEPS:
+		var d: int = st
+		var b := UiKit.button(("%+d" % d), 20, false, 64)
+		b.pressed.connect(func(): _crowd_n = clampi(_crowd_n + d, 1, EnemyManager.ARENA_MAX); _refresh())
+		adj.add_child(b)
+		if d == -10:
+			var l := UiKit.label("%d creatures" % _crowd_n, 24, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
+			l.custom_minimum_size = Vector2(230, 0)
+			adj.add_child(l)
+	_content.add_child(adj)
+	_choice("Layout", [["ring", "Ring"], ["scatter", "Scatter"], ["chunks", "Chunks"]], _crowd_layout, func(v): _crowd_layout = str(v)).name = "CrowdLayout"
+	_choice("Clear circle", [[0.0, "None"], [2.0, "2 m"], [3.0, "3 m"], [4.0, "4 m"], [5.0, "5 m"], [6.0, "6 m"], [8.0, "8 m"]], _crowd_clear, func(v): _crowd_clear = float(v)).name = "CrowdClear"
+	_choice("Ring depth", [[0.0, "To the edges"], [3.0, "3 m"], [6.0, "6 m"], [10.0, "10 m"]], _crowd_depth, func(v): _crowd_depth = float(v)).name = "CrowdDepth"
+	_choice("Chunk packing", [[0.6, "Loose"], [1.2, "Normal"], [2.4, "Tight"]], _crowd_density, func(v): _crowd_density = float(v)).name = "CrowdPacking"
+	_choice("Rise from sand", [[false, "No, at once"], [true, "Yes"]], _crowd_rise, func(v): _crowd_rise = bool(v)).name = "CrowdRise"
+	_choice("Specials", [[false, "None"], [true, "Allowed"]], _crowd_specials, func(v): _crowd_specials = bool(v)).name = "CrowdSpecials"
+	_choice("Clear first", [[true, "Yes"], [false, "No, add"]], _crowd_replace, func(v): _crowd_replace = bool(v)).name = "CrowdReplace"
+	var entries := crowd_entries()
+	_note(_crowd_summary(entries))
+	var go := _buttons([["SPAWN CROWD", spawn_crowd], ["Remove all", func(): _clear_field(); close()]], 84, 26)
+	go.name = "CrowdSpawn"
+	_crowd_picker()
+	_section("Time")
+	_choice("Game speed", [[1.0, "1x"], [0.5, "½x"], [0.25, "¼x"]], _speed, func(v): set_speed(float(v))).name = "ShotsSpeed"
+	_note("Everything slows together: creatures, shots, effects, the hero. Keys 1, 2 and 4; the quick column's 1x ½ ¼.")
+	_section("Freeze")
+	_choice("Freeze crowd", freeze_options(), _freeze, func(v): set_freeze(int(v))).name = "ShotsFreeze"
+	_note("No creature walks, attacks or drifts; each keeps turning to face the hero. Walk in place keeps their legs going, Pose holds each picture still. Shots still hit and deaths still play. Key F; the quick column's FREEZE.")
+	_section("Screenshot framing")
+	_choice("Framing", [[false, "Off"], [true, "On"]], _frame_on, func(v): set_framing(bool(v))).name = "ShotsFraming"
+	_choice("Caption band", [[0.0, "None"], [0.2, "20%"], [0.25, "25%"], [0.3, "30%"], [0.35, "35%"], [0.4, "40%"]], _band, func(v): set_band(float(v))).name = "ShotsBand"
+	var bt := UiKit.hbox(8)
+	bt.name = "ShotsBandFine"
+	bt.mouse_filter = Control.MOUSE_FILTER_PASS
+	var bm := UiKit.button("-1%", 20, false, 64)
+	bm.custom_minimum_size = Vector2(150, 64)
+	bm.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	bm.pressed.connect(func(): set_band(_band - 0.01); _refresh())
+	bt.add_child(bm)
+	var bl := UiKit.label("band %d%% · hero at %d%% from the top" % [int(round(_band * 100.0)), int(round(frame_y() * 100.0))], 22, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
+	bl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bt.add_child(bl)
+	var bp := UiKit.button("+1%", 20, false, 64)
+	bp.custom_minimum_size = Vector2(150, 64)
+	bp.size_flags_horizontal = Control.SIZE_SHRINK_END
+	bp.pressed.connect(func(): set_band(_band + 0.01); _refresh())
+	bt.add_child(bp)
+	_content.add_child(bt)
+	_choice("Band guide", [[true, "Show"], [false, "Hide"]], _guide_on, func(v): _guide_on = bool(v); _update_guide()).name = "ShotsGuide"
+	var zr := UiKit.hbox(8)
+	zr.name = "ShotsZoom"
+	zr.mouse_filter = Control.MOUSE_FILTER_PASS
+	var zl0 := UiKit.label("Zoom", 22, UiKit.INK2)
+	zl0.custom_minimum_size = Vector2(150, 0)
+	zr.add_child(zl0)
+	var za := UiKit.button("Auto", 20, _zoom <= 0.0, 64)
+	za.pressed.connect(func(): set_zoom(0.0); _refresh())
+	zr.add_child(za)
+	var zm := UiKit.button("-0.1", 20, false, 64)
+	zm.pressed.connect(func(): set_zoom(_zoom_now() - 0.1); _refresh())
+	zr.add_child(zm)
+	var zl := UiKit.label("%.1fx" % _zoom_now(), 24, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
+	zl.custom_minimum_size = Vector2(110, 0)
+	zr.add_child(zl)
+	var zp := UiKit.button("+0.1", 20, false, 64)
+	zp.pressed.connect(func(): set_zoom(_zoom_now() + 0.1); _refresh())
+	zr.add_child(zp)
+	_content.add_child(zr)
+	_note("With framing on, the hero's middle sits in the middle of everything above the caption band, every frame (walking, a hit or a dash cannot pull the camera back). Zoom: 1x is the game's distance, lower is nearer. Key C; the quick column's FRAME.")
+	_section("Clean capture")
+	_choice("HIDE hides", [[true, "HUD and controls"], [false, "Controls only"]], _hide_hud, func(v): _hide_hud = bool(v)).name = "ShotsHideWhat"
+	_choice("Damage numbers", [[true, "Show"], [false, "Hide"]], _numbers, func(v): _numbers = bool(v)).name = "ShotsNumbers"
+	var cap := _buttons([["HIDE HUD & CONTROLS", func(): set_clean(true)], ["SAVE PNG", func(): capture_png()]], 80, 24)
+	cap.name = "ShotsCapture"
+	_note("HIDE: this panel and its buttons go, the HUD too unless Controls only (and the damage numbers if hidden above); tap the top-left corner of the screen (or press H) to bring them back. SAVE PNG (for the PC; F12): a clean picture of the screen at the window's size into the game's screenshots folder. On a phone, HIDE and take the phone's own screenshot.%s" % (("\nLast: " + _last_png) if _last_png != "" else ""))
+
+
+## Every creature that can join a crowd (no boss, no training dummy), by the ENEMY tab's groups: a chip each that picks
+## it or drops it, and under a picked one with more than one look a chip per look (none lit = the look the game plays).
+## Chips `Crowd_<id>`, looks `CrowdLook_<id>_<code>`.
+func _crowd_picker() -> void:
+	_section("Creatures to spawn")
+	var any := false
+	for group in enemy_groups():
+		var title: String = group[0]
+		if title == "Bosses" or title == "Training dummies":
+			continue
+		var defs: Array = group[1]
+		if defs.is_empty():
+			continue
+		_content.add_child(UiKit.label(title, 22, UiKit.INK3))
+		var row := _chip_flow("CrowdGroup_" + title.replace(" ", "_"))
+		for d: EnemyDef in defs:
+			var on := _crowd_pick.has(d.id)
+			var b := UiKit.button(d.display_name + (" ✓" if on else ""), 20, on, 64)
+			b.name = "Crowd_" + d.id
+			b.pressed.connect(func(): toggle_crowd(d.id); _refresh())
+			row.add_child(b)
+			any = true
+		_content.add_child(row)
+		for d: EnemyDef in defs:
+			if not _crowd_pick.has(d.id):
+				continue
+			var codes: Array = d.variant_codes(_show_shelved)
+			if codes.size() < 2:
+				continue
+			var lr := _chip_flow("CrowdLooks_" + d.id)
+			var l := UiKit.label(d.display_name + " looks", 20, UiKit.INK2)
+			l.custom_minimum_size = Vector2(150, 0)
+			lr.add_child(l)
+			var held: Array = _crowd_pick[d.id]
+			for code in codes:
+				var c := str(code)
+				var b2 := UiKit.button(c + (" ●" if c == d.variant else ""), 20, held.has(c), 64)
+				b2.name = "CrowdLook_%s_%s" % [d.id, c]
+				b2.pressed.connect(func(): toggle_crowd_look(d.id, c); _refresh())
+				lr.add_child(b2)
+			_content.add_child(lr)
+	if not any:
+		_note("No creatures to pick.")
+
+
+## Picks creature `id` for the crowd, or drops it (with its looks).
+func toggle_crowd(id: String) -> void:
+	if _crowd_pick.has(id):
+		_crowd_pick.erase(id)
+	else:
+		_crowd_pick[id] = []
+
+
+## Picks look `code` of creature `id` for the crowd (the creature too), or drops it.
+func toggle_crowd_look(id: String, code: String) -> void:
+	var held: Array = _crowd_pick.get(id, [])
+	if held.has(code):
+		held.erase(code)
+	else:
+		held.append(code)
+	_crowd_pick[id] = held
+
+
+## The crowd's kinds as [id, look code] pairs, by id: a picked creature once a look picked, or once in the look the game
+## plays ("") when none is.
+func crowd_entries() -> Array:
+	var out: Array = []
+	var ids: Array = _crowd_pick.keys()
+	ids.sort()
+	for id in ids:
+		var codes: Array = _crowd_pick[id]
+		if codes.is_empty():
+			out.append([str(id), ""])
+		else:
+			for c in codes:
+				out.append([str(id), str(c)])
+	return out
+
+
+func _crowd_summary(entries: Array) -> String:
+	if entries.is_empty():
+		return "Nothing picked yet: tap the creatures below."
+	var names: Array = []
+	for e in entries:
+		var d: EnemyDef = Registry.enemy(str(e[0]))
+		names.append((d.display_name if d else str(e[0])) + ((" " + str(e[1])) if str(e[1]) != "" else ""))
+	return "%d creatures as %s, about %d of each: %s." % [_crowd_n, _crowd_layout, int(ceil(float(_crowd_n) / float(entries.size()))), ", ".join(names)]
+
+
+## The crowd's options as mass_spawn reads them.
+func crowd_opts() -> Dictionary:
+	return {"layout": _crowd_layout, "clear_r": _crowd_clear, "depth": _crowd_depth, "density": _crowd_density,
+		"rise": _crowd_rise, "specials": _crowd_specials, "replace": _crowd_replace}
+
+
+## SPAWN CROWD: the picks, the count and the options now, kept for AGAIN; the sheet closes.
+func spawn_crowd() -> void:
+	var entries := crowd_entries()
+	if entries.is_empty():
+		_flash_hint("Pick a creature on SHOTS first")
+		return
+	var n := _crowd_n
+	var opts := crowd_opts()
+	_act("crowd of %d (%s)" % [n, str(opts["layout"])], func() -> void: mass_spawn(entries, n, opts))
+	close()
+
+
+## `n` creatures of `entries` ([id, look code] pairs, "" = the look the game plays; with a third number on every one, the
+## crowd is split by those numbers instead of evenly, a tool's per-kind counts) laid out round the hero at once
+## (ArenaShots.layout on the ground the camera sees): `opts` layout ("ring", "scatter", "chunks"), clear_r (m kept clear
+## round him), depth (a ring's depth, 0 = to the screen's edges), density (a chunk's creatures a square metre), rise
+## (false: up at once, no growing out of the sand), specials (false: none rolls its special), replace (true: the field
+## emptied first), seed. The pool grows past the run's 320 when the arena needs it (EnemyManager.grow_pool). Returns how
+## many came.
+func mass_spawn(entries: Array, n: int, opts: Dictionary = {}) -> int:
+	var em: EnemyManager = game.enemies
+	if entries.is_empty() or n <= 0:
+		return 0
+	if bool(opts.get("replace", true)):
+		_clear_field()
+	var center: Vector3 = game.player.global_position
+	var rng := RandomNumberGenerator.new()
+	if opts.has("seed"):
+		rng.seed = int(opts["seed"])
+	else:
+		rng.randomize()
+	_camera_now()
+	var cam: Camera3D = game.camera.camera if game.camera else null
+	var poly := SHOTS.footprint(cam, center)
+	var lim: float = em.arena_radius - 2.0
+	var ctx: Dictionary = EnemyManager._clear_ctx(game.map, center, 0.0, 80.0)
+	var ok := func(p: Vector2) -> bool:
+		return p.length() <= lim and EnemyManager._clear_in(ctx, Vector3(p.x, 0.0, p.y))
+	var weights: Array = []
+	for e in entries:
+		if (e as Array).size() >= 3:
+			weights.append(float(e[2]))
+	if weights.size() != entries.size():
+		weights = []
+	var spots: Array = SHOTS.layout(mini(n, EnemyManager.ARENA_MAX), entries.size(), str(opts.get("layout", "ring")),
+		Vector2(center.x, center.z), poly, float(opts.get("clear_r", 4.0)), float(opts.get("depth", 0.0)),
+		float(opts.get("density", 1.2)), ok, rng, weights)
+	var short := spots.size() - em.free_list.size()
+	if short > 0:
+		em.grow_pool(em.pool_max + short + 16)
+	var defs: Array = []
+	for e in entries:
+		var d: EnemyDef = Registry.enemy_with(str(e[0]), str(e[1]))
+		defs.append(d)
+		if d:
+			em.register_type(d)
+	var rise := bool(opts.get("rise", false))
+	var keep_rise := [em.spawn_rise_s, em.spawn_rise_big_s]
+	var keep_plain := em.force_plain
+	if not rise:
+		em.spawn_rise_s = 0.0
+		em.spawn_rise_big_s = 0.0
+	if not bool(opts.get("specials", false)):
+		em.force_plain = true
+	var came := 0
+	for pair in spots:
+		var k: int = pair[0]
+		if defs[k] == null:
+			continue
+		var p: Vector2 = pair[1]
+		var e: Array = entries[k]
+		var i := em.spawn(str(e[0]), Vector3(p.x, center.y, p.y), null, 1.0, 1.0, str(e[1]))
+		if i < 0:
+			continue
+		came += 1
+		if not rise and em.state[i] == EnemyManager.STATE_SPAWN:
+			# up and standing at once: a screenshot's crowd does not wait out the spawn's settle
+			em.state[i] = EnemyManager.STATE_MOVE
+			em.timer[i] = 0.0
+			em.squash[i] = 1.0
+		# facing the hero from the first frame
+		em._face_toward(i, em.type_idx[i], center - em.pos[i])
+	em.spawn_rise_s = keep_rise[0]
+	em.spawn_rise_big_s = keep_rise[1]
+	em.force_plain = keep_plain
+	return came
+
+
+## The freeze choices (EnemyManager.FREEZE_*).
+static func freeze_options() -> Array:
+	return [[EnemyManager.FREEZE_OFF, "Off"], [EnemyManager.FREEZE_WALK, "Walk in place"], [EnemyManager.FREEZE_POSE, "Pose"]]
+
+
+## The game's speed (Engine.time_scale: the world, the shots, the effects, the particles, the hero and the shaders' clock
+## together); 1 is normal.
+func set_speed(v: float) -> void:
+	_speed = clampf(v, 0.05, 4.0)
+	Engine.time_scale = _speed
+	_sync_quick()
+
+
+## The crowd's freeze (EnemyManager.crowd_freeze); the last mode used is what FREEZE and F turn on again.
+func set_freeze(mode: int) -> void:
+	_freeze = clampi(mode, 0, 2)
+	if _freeze != 0:
+		_freeze_last = _freeze
+	if game and game.enemies:
+		game.enemies.crowd_freeze = _freeze
+	_sync_quick()
+
+
+func toggle_freeze() -> void:
+	set_freeze(0 if _freeze != 0 else _freeze_last)
+
+
+## Where the framed hero's middle sits: the middle of what lies above the caption band, as a share of the screen's height.
+func frame_y() -> float:
+	return (1.0 - _band) * 0.5
+
+
+## The screenshot framing on or off (CameraRig.frame_hero_y, held every frame).
+func set_framing(on: bool) -> void:
+	_frame_on = on
+	if game and game.camera:
+		game.camera.frame_hero_y = frame_y() if on else -1.0
+	_camera_now()
+	_update_guide()
+	_sync_quick()
+
+
+## The camera put where it now belongs at once (CameraRig.snap_to): the sheet pauses the game, and the camera's own
+## follow waits with it, so a framing or a zoom set here (and the ground a crowd is laid on) would lag a frame behind.
+func _camera_now() -> void:
+	if game and game.camera and game.player:
+		game.camera.snap_to(game.player)
+
+
+## The caption band's share of the screen's height (0 to 0.6); the framing follows at once when it is on.
+func set_band(b: float) -> void:
+	_band = clampf(snappedf(b, 0.01), 0.0, 0.6)
+	if _frame_on:
+		set_framing(true)
+	_update_guide()
+
+
+## The camera's zoom held (CameraRig.zoom_override; 0 = the game's own, by speed and level).
+func set_zoom(z: float) -> void:
+	_zoom = clampf(z, 0.4, 4.0) if z > 0.0 else 0.0
+	if game and game.camera:
+		game.camera.zoom_override = _zoom
+	_camera_now()
+
+
+func _zoom_now() -> float:
+	if _zoom > 0.0:
+		return _zoom
+	return float(game.camera.zoom()) if game and game.camera else 1.0
+
+
+## The clean capture: the quick column, the stats overlay, the HUD (HUD.clean_hidden; kept with "Controls only",
+## _hide_hud false) and (with Damage numbers hidden) the numbers go, and an invisible spot in the top-left corner
+## (CORNER_PX) brings them back; `on` false puts them back.
+func set_clean(on: bool) -> void:
+	if on == _clean:
+		_update_guide()
+		return
+	_clean = on
+	if on:
+		close()
+	if game:
+		if game.hud:
+			var hide_hud := on and _hide_hud
+			game.hud.clean_hidden = hide_hud
+			game.hud.visible = not hide_hud
+		if game.debug_panel:
+			if on:
+				_dbg_was = game.debug_panel.visible
+				game.debug_panel.visible = false
+			else:
+				game.debug_panel.visible = _dbg_was
+		if game.damage_numbers:
+			game.damage_numbers.visible = not on or _numbers
+	_col.visible = not on
+	_corner.visible = on
+	_update_guide()
+	if on:
+		_flash_hint("Tap the top-left corner (or press H) to bring the controls back")
+	else:
+		_hint.visible = false
+
+
+func is_clean() -> bool:
+	return _clean
+
+
+## A clean PNG of the screen (SAVE PNG, F12): the sheet shut, the HUD and the controls hidden for two drawn frames, the
+## picture taken, everything as it was. `path` "" saves into user://screenshots (its place on this machine is noted on
+## the tab and in the hint). Returns the file's path on the disk.
+func capture_png(path: String = "") -> String:
+	var was := _clean
+	set_clean(true)
+	_hint.visible = false
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	if path == "":
+		DirAccess.make_dir_recursive_absolute("user://screenshots")
+		path = "user://screenshots/arena_%s.png" % Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
+	var err := img.save_png(path)
+	set_clean(was)
+	_last_png = ProjectSettings.globalize_path(path) if err == OK else "(could not save: error %d)" % err
+	_flash_hint("Saved " + _last_png)
+	return _last_png
+
+
+## The quick column's buttons lit as things stand: the speed playing, FREEZE while frozen, FRAME while framed.
+func _sync_quick() -> void:
+	for v in _speed_btns.keys():
+		_lit(_speed_btns[v], is_equal_approx(float(v), _speed))
+	if _freeze_btn:
+		_lit(_freeze_btn, _freeze != 0)
+		_freeze_btn.text = "FROZEN" if _freeze != 0 else "FREEZE"
+	if _frame_btn:
+		_lit(_frame_btn, _frame_on)
+
+
+## A quick-column button lit (gold) or not; its boxes carry no padding, so three speed buttons fit the column's width.
+static func _lit(b: Button, on: bool) -> void:
+	var bg := UiKit.ACCENT if on else UiKit.BG3
+	var rim := Color(0, 0, 0, 0) if on else UiKit.LINE
+	var rw := 0 if on else 3
+	var r: int = mini(int(b.custom_minimum_size.y) / 2, 30)
+	b.add_theme_stylebox_override("normal", UiKit.stylebox(bg, r, rim, rw, true, true, false))
+	b.add_theme_stylebox_override("hover", UiKit.stylebox(bg.lightened(0.08), r, rim, rw, true, true, false))
+	b.add_theme_stylebox_override("pressed", UiKit.stylebox(bg.darkened(0.12), r, rim, rw, false, false, false))
+
+
+## The overlay (pass 110): the caption band's guide under everything, the corner spot that brings the controls back, the
+## hint line.
+func _build_overlay() -> void:
+	_guide = BandGuide.new()
+	_guide.name = "BandGuide"
+	UiKit.fullscreen(_guide)
+	_guide.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_guide.visible = false
+	add_child(_guide)
+	move_child(_guide, 0)
+	_corner = Button.new()
+	_corner.name = "ShowControls"
+	_corner.flat = true
+	_corner.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed", "focus", "disabled", "hover_pressed"]:
+		_corner.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	_corner.position = Vector2.ZERO
+	_corner.size = Vector2(CORNER_PX, CORNER_PX)
+	_corner.custom_minimum_size = Vector2(CORNER_PX, CORNER_PX)
+	_corner.visible = false
+	_corner.pressed.connect(func(): set_clean(false))
+	add_child(_corner)
+	_hint = UiKit.outline(UiKit.label("", 26, UiKit.INK, HORIZONTAL_ALIGNMENT_CENTER), 5)
+	_hint.name = "ShotsHint"
+	_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_hint.offset_left = -500
+	_hint.offset_right = 500
+	_hint.offset_top = 240
+	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hint.visible = false
+	add_child(_hint)
+
+
+func _flash_hint(text: String) -> void:
+	_hint.text = text
+	_hint.visible = true
+	_hint.modulate.a = 1.0
+	_hint_t = HINT_SECONDS
+
+
+func _update_guide() -> void:
+	if _guide == null:
+		return
+	_guide.visible = _frame_on and _guide_on and not _clean and _band > 0.0
+	_guide.set("band", _band)
+	_guide.queue_redraw()
+
+
+## The PC's keys in the arena (pass 110): 1 / 2 / 4 the speed (1x, ½, ¼), F the freeze, C the framing, H hiding the HUD
+## and the controls, F12 a clean PNG. True when the key was one of them.
+func arena_key(k: InputEventKey) -> bool:
+	if k.ctrl_pressed or k.alt_pressed or k.meta_pressed:
+		return false
+	match k.keycode:
+		KEY_1, KEY_KP_1:
+			set_speed(1.0)
+		KEY_2, KEY_KP_2:
+			set_speed(0.5)
+		KEY_4, KEY_KP_4:
+			set_speed(0.25)
+		KEY_F:
+			toggle_freeze()
+		KEY_C:
+			set_framing(not _frame_on)
+		KEY_H:
+			set_clean(not _clean)
+		KEY_F12:
+			capture_png()
+		_:
+			return false
+	if _sheet.visible:
+		_refresh()
+	return true
+
+
+## The caption band's guide (pass 110): the band darkened at the screen's foot with its top edge drawn, and a cross where
+## the framed hero's middle sits (the middle of what lies above it). Shown while framing with the guide on; never in a
+## clean capture.
+class BandGuide extends Control:
+	var band := 0.3
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		var top := h * (1.0 - band)
+		draw_rect(Rect2(0, top, w, h - top), Color(0.0, 0.0, 0.0, 0.38))
+		draw_line(Vector2(0, top), Vector2(w, top), Color(1.0, 0.71, 0.18, 0.9), 4.0)
+		var c := Vector2(w * 0.5, top * 0.5)
+		var col := Color(1.0, 1.0, 1.0, 0.7)
+		draw_line(c - Vector2(46, 0), c + Vector2(46, 0), col, 3.0)
+		draw_line(c - Vector2(0, 46), c + Vector2(0, 46), col, 3.0)
+		draw_arc(c, 30.0, 0.0, TAU, 32, col, 3.0)
+
+
 # ---------------------------------------------------------------- per frame
 
 func _process(delta: float) -> void:
 	if game == null:
 		return
 	place_column(game.get("hud"))
+	# pass 110 (lane ARENA): the arena's speed stands (Last Stand's slow and its end put a clock of 1 back)
+	if not is_equal_approx(_speed, 1.0) and is_equal_approx(Engine.time_scale, 1.0):
+		Engine.time_scale = _speed
+	if _hint.visible:
+		_hint_t -= delta / maxf(Engine.time_scale, 0.05)
+		_hint.modulate.a = clampf(_hint_t, 0.0, 1.0)
+		if _hint_t <= 0.0:
+			_hint.visible = false
 	_status_t -= delta
 	if _status_t <= 0.0:
 		_status_t = 0.25
 		var d: WaveDirector = game.director
-		_status.text = "%s · stage %d\n%d alive · waves %s\nagain: %s" % [_mmss(Run.elapsed), Run.stage + 1, game.enemies.count_alive,
-			"on" if d.running else "held", _again_name if _again_name != "" else "-"]
+		var bits: Array = []
+		if not is_equal_approx(_speed, 1.0):
+			bits.append("speed x%s" % ("½" if is_equal_approx(_speed, 0.5) else ("¼" if is_equal_approx(_speed, 0.25) else str(snappedf(_speed, 0.01)))))
+		if _freeze != 0:
+			bits.append("frozen")
+		if _frame_on:
+			bits.append("framed")
+		_status.text = "%s · stage %d\n%d alive · waves %s\nagain: %s%s" % [_mmss(Run.elapsed), Run.stage + 1, game.enemies.count_alive,
+			"on" if d.running else "held", _again_name if _again_name != "" else "-", ("\n" + " · ".join(bits)) if not bits.is_empty() else ""]
 		_waves_btn.text = "HOLD" if d.running else "WAVES"
 	if _sheet.visible and _touch:
 		_touch.process()
 
 
 func _input(event: InputEvent) -> void:
+	# pass 110 (lane ARENA): the PC's keys (arena_key)
+	if event is InputEventKey and event.pressed and not event.echo and not WConfirm.is_open(self):
+		if arena_key(event as InputEventKey):
+			get_viewport().set_input_as_handled()
+			return
 	if _sheet.visible and _touch and not WConfirm.is_open(self):
 		_touch.input(event)

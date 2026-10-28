@@ -94,6 +94,8 @@ python tools/gen_totem_icons.py   # pass 83: the totem gifts' carved segments (a
 python tools/make_pipeline_figs.py && python tools/make_bible.py   # bible section 15b's step-by-step art pictures (from tools/dl/ intermediates), then the bible
 python tools/make_onepager.py [--pdf] [--force]   # the kick-off one pager (2026-10-26): docs/onepager/src/onepager.html + content.json + pictures.json -> docs/onepager/88fits_OnePager.html (self-contained) and, with --pdf, the PDF through headless Edge; pictures cut once into docs/onepager/img/
 bash tools/godot.sh --audio-driver Dummy --resolution 1920x1080 --path D:/_projects/88fits/game --script res://tools/marketing_shots.gd -- out=<dir> shot=swarm|nightfall|bloodmoon|boss|play|horde|bestiary|ui|scout   # staged in-engine marketing stills, frozen and captured (every argument in its header; 1080x1920 for play, horde, ui; bounded by a watchdog)
+GODOT_TIMEOUT=600 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/store_shots.gd -- out=<png> hero=drifter stage=1 crowd=lesser_scorpion:1100 layout=ring clear=2.8 freeze=walk band=0.185 zoom=0.65 fire=0   # pass 110: a staged store screenshot from the arena (every argument in its header)
+python tools/make_store_shots.py --plan docs/store/plan.json   # pass 110: the Google Play set: raw captures + a caption band (torn Wanted paper, a colour a shot) -> docs/store/0N_*.png
 python tools/ai_sfx.py [--dry-run | --gen-only | --auto | --bind | --report | --docs | --only ids | --cands N | --pick id=k | --volume id=dB]   # pass 60: every sound effect from Stable Audio (Garry's app at http://127.0.0.1:7861/, AudioGen on 7860 as the alternate) -> content/sounds/real/<id>.wav + the soundmap rows; then --import + import_json -- only=sounds; python tools/make_sfx_review.py -> docs/sfx_review.html + tools/dl/sfx60/sfx_review.zip (the voice barks are gone; gen_voice.py lives in tools/dl/backup/)
 python tools/icon_sand.py [--gamma 0.8] [--splash] [--compare out.png]   # pass 61: the launcher icon's sand a touch lighter (only the sand; the old source tools/dl/app_icon/icon_src_v046.png), then gen_art.app_icon and make_splash
 "$GODOT" --audio-driver Dummy --fixed-fps 60 --resolution 504x1122 --path D:/_projects/88fits/game --script res://tools/_p61_pk_bench.gd   # pass 61: the pickups benchmark (N gems lying, the hero walking, a vacuum): ms a frame for "pickups", the whole frame, draw calls
@@ -256,7 +258,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-27, pass 109, version 0.92)
+## Status (2026-10-28, pass 110, version 0.93)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -266,7 +268,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.92). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.93). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -287,7 +289,7 @@ work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 
 `stage_mults` [1, 2.2, 3.34] x the HP/ATK curve at the row's start x (1 + level_*_per_level x (hero level - 1)) x
 `creature_*_mult`, fixed per row from its start. Specials (pass 69): a third as often as before, x10 HP, x2 ATK, x1.25
 size, a glowing rim in a colour Garry sets per creature (`variance.special`, map default `special_defaults`); one forced
-special Red Goblin (a swarm event with `special: true`). Pass 72: specials x1.5 size, x15 HP, a 35% chest, at most 3 alive
+special Red Goblin (a swarm event with `special: true`). Pass 72: specials x1.5 size, x15 HP, a 35% chest, at most 3 alive (pass 110: a sure chest, 1 alive, x3.5 ATK)
 (`special_defaults`); creature outlines only behind scenery (stencil 2 = scenery, core/systems/SceneryStencil.gd); every
 push the hero's side gives x `hero_knockback_mult` (0.5); a boss's HP x clamp((recent DPS / reference)^0.5, 0.75, 3)
 (`boss_hp_scaling`, refs King 600 / Gila 4500 / Brander 20000); custom boss attacks are content
@@ -464,6 +466,13 @@ level-4 card screen of every run until picked once); weapons' attack speed 85% /
 before from 3 (BALANCING 52.ATKSPD, tools/check_attack_ramp.py; orbiters out); the Raider's rocket in hazard stripes with
 a beacon, outline and x-ray (rocket*.gdshader); the Rocket Pod pitches up and fires up; the Dragon's Breath as particles
 (core/systems/BreathFlames.gd); armadillo ARM-F/G repainted (fresh), Cyclopean Mummy CM-D/E (fresh); depth drivers `zoom=`.
+Pass 110: regular creatures' chests 0.0002, specials always drop one but come a third as often (max_alive 1) with x3.5
+ATK; Elite/boss coins halved; the Upgrade board's rank k costs k^2 x rank 1; heroes 500 x title place (BALANCING 53.ECON);
+**boss fight windows** (`stage_list[k].boss_fight`: only its rows spawn while the boss lives, a 120 s loop under its Max
+count; the Level Editor's Boss fights section; 53.BOSS); hero blasts in their own FX pool (Fx.blast, blast_fx.gdshader);
+the breath behind the hero facing away; the arena's SHOTS tab, time 1/2 and 1/4, FREEZE, screenshot framing, HIDE UI
+(53.ARENA; game/tools/store_shots.gd); the store screenshots in docs/store/ (tools/make_store_shots.py --plan
+docs/store/plan.json); CM-F/G (fresh); the armadillo's shadow; `GODOT_TIMEOUT=<s>` on tools/godot.sh kills a hung Godot.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

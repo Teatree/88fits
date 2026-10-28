@@ -12,7 +12,7 @@ radius = 0.45
 size = 1.15
 pack_size = 6
 drops = {
-"chest": 0.003,
+"chest": 0.0002,
 "gold": 0.03,
 "medium": 0.15,
 "small": 1.0
@@ -37,6 +37,11 @@ fps = {
 damage_reduction = 0.25
 knockback = 3.8
 head = 0.894
+shadow = {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+}
 blood = Color(0.78431374, 0.078431375, 0.11764706, 1)
 variants = {
 "ARM-0": {
@@ -60,7 +65,11 @@ variants = {
 "head": 0.894,
 "icon": "res://content/enemies/armadillo/armadillo_icon.png",
 "note": "the top-level strip, before the Level Editor's looks",
-"shadow": {},
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
 "shelved": false,
 "sprite": "res://content/enemies/armadillo/armadillo_sprite.png",
 "sprite_file": "armadillo_sprite.png",
@@ -93,7 +102,11 @@ variants = {
 "head": 0.481,
 "icon": "res://content/enemies/armadillo/armadillo_icon_e.png",
 "note": "Pass 108: realistic, on Garry's armadillo model (_REFERENCES/3d/armadillo.zip): a made trot (armadillo_walk_v2) and the model's own curl into a ball as the death (armadillo_ball_v1)",
-"shadow": {},
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
 "shelved": false,
 "sprite": "res://content/enemies/armadillo/armadillo_sprite_e.png",
 "sprite_file": "armadillo_sprite_e.png",
@@ -126,7 +139,11 @@ variants = {
 "head": 0.519,
 "icon": "res://content/enemies/armadillo/armadillo_icon_f.png",
 "note": "Pass 109 (painted again): cartoon / anime, angry eyes, exaggerated proportions with the body bigger than the head and longer legs (made trot armadillo_walk_toon_v2: body x1.35, head x0.72 of it, legs x1.9, a longer stride), every view repainted on the model's clay so the diagonals are true three-quarter views, the curl into a ball as the death",
-"shadow": {},
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
 "shelved": false,
 "sprite": "res://content/enemies/armadillo/armadillo_sprite_f.png",
 "sprite_file": "armadillo_sprite_f.png",
@@ -159,7 +176,11 @@ variants = {
 "head": 0.531,
 "icon": "res://content/enemies/armadillo/armadillo_icon_g.png",
 "note": "Pass 109 (painted again): ARM-F with another skin colour pattern (its side an edit of ARM-F's): striped shell, pale face with a dark mask",
-"shadow": {},
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
 "shelved": false,
 "sprite": "res://content/enemies/armadillo/armadillo_sprite_g.png",
 "sprite_file": "armadillo_sprite_g.png",
@@ -176,14 +197,14 @@ xp_mult = 2.6
 variance = {
 "size": 0.12,
 "special": {
-"damage": 2.0,
+"damage": 3.5,
 "hp": 15.0,
 "size": 1.5,
 "tint": "#5A3A2A",
 "tint_strength": 0.55,
 "xp": 3.0
 },
-"special_chance": 0.02,
+"special_chance": 0.0067,
 "speed": 0.1,
 "tint_strength": 0.22,
 "tints": ["#FFFFFF", "#FFE0B8", "#D8C8A8", "#E8B888"]

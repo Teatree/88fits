@@ -267,10 +267,10 @@ func test_the_stick_never_hurts_in_the_air_lies_a_second_then_blows_inside_its_r
 			var bl: Array = hero.get("blasts")
 			assert_int(bl.size()).is_equal(1)
 			assert_float((bl[0]["v"] as Vector3).x).is_greater(0.0)
-		# the hero's stick's burst
-		var bursts: Array = g.get("bursts")
-		assert_int(bursts.size()).is_greater_equal(1)
-		assert_float(float(bursts[-1]["size"])).is_equal_approx(r, 0.001)
+		# the hero's stick's blast (pass 110, re-pinned on purpose, lane VFX: Fx's blast pool, at the blast's radius)
+		var fxn: Fx = g.get("fx")
+		assert_int(fxn.blasts).is_greater_equal(1)
+		assert_float(float(fxn.last_blast["r"])).is_equal_approx(r, 0.001)
 
 
 func test_the_lying_stick_keeps_pulsing_and_its_spark_burns_at_the_fuse() -> void:

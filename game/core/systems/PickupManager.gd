@@ -1168,7 +1168,12 @@ func _toss_tick(i: int, delta: float, map) -> void:
 
 ## An Elite's or a boss's own coin (drops.gold) is worth this many times a creature's (pass 70, Garry: "Make Elites and
 ## Bosses give much more Coins"; their purses are Game.ELITE_PURSE / BOSS_PURSE).
-const BIG_COIN_MULT := 5.0
+## Pass 110 (lane ECON; Garry: "Reduce the coins gain from Boss, Elite and Specials. By 50%"): 5 -> 2.5 (a coin of 1-3 x
+## 2.5, the fraction paid by chance in MirrorDanger.scaled_count, so on average exactly half of pass 70's).
+const BIG_COIN_MULT := 2.5
+## Pass 110 (lane ECON): a variance special's own coin (its creature's drops.gold roll) comes this share as often; the
+## purses and BIG_COIN_MULT are the Elites' and bosses' half.
+const SPECIAL_COIN_MULT := 0.5
 
 
 ## The factor on the drops.gold coin of `def`: BIG_COIN_MULT for an Elite (its kind, or a creature wearing an Elite
@@ -1184,7 +1189,8 @@ static func big_coin_mult(def: EnemyDef, is_elite: bool) -> float:
 var endless_coin_chance := 1.0
 
 
-func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> void:
+## `coin_mult` (pass 110) scales the chance of its coin: SPECIAL_COIN_MULT for a variance special, 1 for the rest.
+func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool, coin_mult: float = 1.0) -> void:
 	var d := def.drops
 	var luck: float = Run.player_sheet.get_stat("luck", 0.0)
 	# pass 87 (lane SGAME): Endless's coins, only endless_coin_chance of the time
@@ -1197,7 +1203,7 @@ func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> v
 		spawn(KIND_GEM_M, at, 5.0 * xp_scale)
 	if randf() < float(d.get("large", 0.0)):
 		spawn(KIND_GEM_L, at, 25.0 * xp_scale)
-	if randf() < float(d.get("gold", 0.0)) * (1.0 + luck):
+	if randf() < float(d.get("gold", 0.0)) * (1.0 + luck) * coin_mult:
 		# pass 87 (lane FIXES): the black barrels' coins come out of the creatures' (coin_debt, COIN_DEBT_SHARE of them)
 		var cv := _after_coin_debt(float(1 + randi() % 3) * big_coin_mult(def, is_elite))
 		# pass 88 (lane MIRROR): the Stakes' bounty on its kind, a fraction paid by chance (MirrorDanger.scaled_count)

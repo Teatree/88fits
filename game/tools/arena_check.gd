@@ -11,6 +11,11 @@
 ## Pass 55: the HERO tab swaps in every hero in play and back (his trait on the sheet, his strip on the Player), shows
 ## every look of every hero that has more than one, keeps one (Save.hero_look, past the sandbox) and puts the kept look
 ## back as it was; a stand-in second look is lent to the first hero when no hero has two yet.
+## Pass 110 (lane ARENA): the SHOTS controls: a crowd of 2,000 Lesser Scorpions in a ring (the pool grows past the run's
+## 320, nobody inside the clear circle), the freeze (a second later nobody has moved, every one still alive turned to the
+## hero, a hit still kills), the speed buttons and keys (Engine.time_scale), the framing (the hero's middle at the share
+## asked), hiding the HUD and the controls and the corner that brings them back; the rest of the check runs on the grown
+## pool.
 ##   "$GODOT" --headless --path game --script res://tools/arena_check.gd
 extends SceneTree
 
@@ -107,6 +112,13 @@ func _tick() -> void:
 				_patrol_off = maxf(_patrol_off, absf(em11.pos[_patroller].z - _patrol_from.z))
 			if _t > 4.5:
 				_attack_checks()
+				_shots_start()
+				_step = 20
+				_t = 0.0
+		20:
+			# pass 110: the frozen crowd a second (and a half) later
+			if _t > 1.5:
+				_shots_checks()
 				_step = 1
 		1:
 			var p = _game.arena_panel
@@ -367,6 +379,106 @@ func _attack_checks() -> void:
 	root.get_node("Settings").dummy_patrol = _patrol_keep
 	_game.apply_dummy_settings()
 	p.god = true
+
+
+## Pass 110 (lane ARENA): the SHOTS tab's crowd and controls through the panel's own calls. A ring of 2,000 Lesser
+## Scorpions round the hero with a 4 m clear circle (the pool grows), frozen walking in place; the speed by the panel and
+## by the keys; the framing; hiding everything and the corner. _shots_checks reads the crowd a moment later.
+var _shots_pos: Dictionary = {}
+var _shots_victim := -1
+
+
+func _shots_start() -> void:
+	var p = _game.arena_panel
+	var em = _game.enemies
+	var hero: Vector3 = _game.player.global_position
+	p.set_freeze(1)
+	var came: int = p.mass_spawn([["lesser_scorpion", ""]], 2000, {"layout": "ring", "clear_r": 4.0, "seed": 7})
+	print("arena_check: SHOTS ring of %d Lesser Scorpions came, alive %d, pool %d (a run's %d)" % [came, em.count_alive, em.pool_max, em.MAX])
+	if came < 1900 or em.pool_max < 2000:
+		_fail("a ring of 2000 brought %d (pool %d)" % [came, em.pool_max])
+	var inside := 0
+	for i in range(em.pool_max):
+		if em.is_alive(i):
+			_shots_pos[i] = em.pos[i]
+			if Vector2(em.pos[i].x - hero.x, em.pos[i].z - hero.z).length() < 3.9:
+				inside += 1
+	if inside > 0:
+		_fail("%d creatures inside the ring's clear circle" % inside)
+	# the speed: the buttons' call and the keys (1, 2, 4)
+	p.set_speed(0.5)
+	if not is_equal_approx(Engine.time_scale, 0.5):
+		_fail("half speed left the clock at %.2f" % Engine.time_scale)
+	for pair in [[KEY_4, 0.25], [KEY_1, 1.0]]:
+		var k := InputEventKey.new()
+		k.keycode = pair[0]
+		k.pressed = true
+		p.arena_key(k)
+		if not is_equal_approx(Engine.time_scale, float(pair[1])):
+			_fail("key %d left the clock at %.2f" % [int(pair[0]), Engine.time_scale])
+	# the framing: the hero's middle at the share asked
+	p.set_band(0.3)
+	p.set_framing(true)
+	if absf(float(_game.camera.frame_hero_y) - 0.35) > 0.001:
+		_fail("the framing asked for %.3f" % float(_game.camera.frame_hero_y))
+
+
+func _shots_checks() -> void:
+	var p = _game.arena_panel
+	var em = _game.enemies
+	var hero: Vector3 = _game.player.global_position
+	var moved := 0
+	var turned := 0
+	var asked := 0
+	var still := 0
+	for i in _shots_pos.keys():
+		if not em.is_alive(i) or em.state[i] == 3:
+			continue
+		still += 1
+		if Vector2(em.pos[i].x - (_shots_pos[i] as Vector3).x, em.pos[i].z - (_shots_pos[i] as Vector3).z).length() > 0.02:
+			moved += 1
+		# facing the hero: one well off to the side mirrors towards him (flip 1 = heading screen-left)
+		var dx: float = hero.x - em.pos[i].x
+		if absf(dx) > 3.0 and absf(hero.z - em.pos[i].z) < 2.0:
+			asked += 1
+			if (em.flip[i] == 1) == (dx < 0.0):
+				turned += 1
+		if _shots_victim < 0 and em.is_dummy(i) == false:
+			_shots_victim = i
+	print("arena_check: SHOTS frozen: %d standing, %d moved, %d of %d beside the hero face him" % [still, moved, turned, asked])
+	if moved > 0:
+		_fail("%d frozen creatures moved" % moved)
+	if asked > 0 and turned < asked:
+		_fail("%d of %d frozen creatures beside the hero do not face him" % [asked - turned, asked])
+	if _shots_victim >= 0:
+		em.damage(_shots_victim, 1.0e9, "arena_check")
+		if em.is_alive(_shots_victim) and em.state[_shots_victim] != 3:
+			_fail("a frozen creature took a killing hit and stood")
+	# the framing held: the hero's middle at 35 % of the screen's height
+	var cam: Camera3D = _game.camera.camera
+	var vs: Vector2 = cam.get_viewport().get_visible_rect().size
+	var sy: float = cam.unproject_position(hero + Vector3(0, 0.9, 0)).y / maxf(vs.y, 1.0)
+	print("arena_check: SHOTS framing: the hero's middle at %.1f%% of the height (35%% asked)" % (sy * 100.0))
+	if absf(sy - 0.35) > 0.02:
+		_fail("the framed hero's middle sits at %.3f of the height, 0.35 asked" % sy)
+	# hiding everything, and the corner bringing it back
+	p.set_clean(true)
+	if _game.hud.visible or p._col.visible or not p._corner.visible:
+		_fail("HIDE left the HUD (%s) or the column (%s) up, or no corner (%s)" % [str(_game.hud.visible), str(p._col.visible), str(p._corner.visible)])
+	p._corner.pressed.emit()
+	if _game.hud.clean_hidden or not p._col.visible or p._corner.visible:
+		_fail("the corner did not bring the controls back")
+	var kf := InputEventKey.new()
+	kf.keycode = KEY_F
+	kf.pressed = true
+	p.arena_key(kf)
+	if int(em.crowd_freeze) != 0:
+		_fail("F did not let the crowd go")
+	p.set_framing(false)
+	if float(_game.camera.frame_hero_y) >= 0.0:
+		_fail("the framing stayed on")
+	p.set_freeze(0)
+	p._clear_field()
 
 
 ## Pass 55, the HERO tab through the panel's own calls: every hero in play swapped in (the run's hero, the Player's def,

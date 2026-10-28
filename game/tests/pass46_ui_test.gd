@@ -225,7 +225,9 @@ func test_a_full_talent_reads_its_six_ranks() -> void:
 # ---------------------------------------------------------------- six ranks
 
 func test_every_talent_has_six_ranks_on_the_steepening_curve() -> void:
-	var mult := [1.0, 1.8, 3.0, 4.5, 6.5, 9.0]
+	# (pass 110, lane ECON, re-pinned: Garry's "Mirror costs should be more exponential (Polynomial) ... Starting point
+	# prices should stay the same": rank k costs k x k times the first, was x1.8, x3, x4.5, x6.5, x9)
+	var mult := [1.0, 4.0, 9.0, 16.0, 25.0, 36.0]
 	assert_int(Registry.talents_list().size()).is_equal(8)
 	for td: TalentDef in Registry.talents_list():
 		assert_int(td.ranks).override_failure_message(td.id).is_equal(6)
@@ -233,9 +235,8 @@ func test_every_talent_has_six_ranks_on_the_steepening_curve() -> void:
 		assert_int(td.cost.size()).override_failure_message(td.id + " prices").is_equal(6)
 		var first := int(td.cost[0])
 		for k in range(6):
-			# today's first three kept, then x4.5, x6.5 and x9 of the first, to the nearest 5
-			if k >= 3:
-				assert_int(int(td.cost[k])).override_failure_message("%s rank %d" % [td.id, k + 1]).is_equal(int(5 * round(first * float(mult[k]) / 5.0)))
+			# every rank k x k times the first (pass 110; the first rank's price is pass 88's)
+			assert_int(int(td.cost[k])).override_failure_message("%s rank %d" % [td.id, k + 1]).is_equal(int(round(first * float(mult[k]))))
 			if k > 0:
 				assert_int(int(td.cost[k])).is_greater(int(td.cost[k - 1]))
 		assert_int(td.cost_of_rank(5)).is_equal(int(td.cost[5]))

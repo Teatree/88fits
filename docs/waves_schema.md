@@ -1063,3 +1063,56 @@ SGAME's: keys_SGAME.md; the filter's `actors` is lane SLOOK's: keys_SLOOK.md). D
 - A Stage filter (`#stagefilter`, remembered as `runwatch.stage`): every list (history, opened runs, remote runs) by
   stage_id (an older run by the stage it ended in); the summary's Stage tile, the facts' Stage and How it ended, the
   history's stage name / outcome / endless columns.
+
+## Pass 110: a stage's boss-fight window (lane BOSS)
+
+Garry (2026-10-28): "Just add a 2 minute window in the Timeline where I can set up the cycle of enemies that will be
+spawning ... as long as the Boss Fight is continuing it will be those enemies at that pace that will be spawning."
+
+#### timeline_data.stage_list[k].boss_fight (Object, optional)
+| key | type [default] | meaning |
+|---|---|---|
+| `enabled` | bool [true] | false keeps the block but the fight plays as before |
+| `length` | seconds [120] | one cycle; at least 1 (`WaveTimeline.BOSS_FIGHT_LENGTH_DEFAULT`) |
+| `max_count` | int [40] | the most creatures alive (**bodies**, whatever their cap share) while the window spawns: the boss, its summons and what is left of the stage's crowd count; -1 = no limit but `hard_cap` (`BOSS_FIGHT_MAX_COUNT_DEFAULT`) |
+| `roster` | Array [[]] | spawn rows with the roster's keys (Pass 53, 54, 57, 58, 81, 83, 84), every time on the **fight clock** (0 = the boss arrives): `t`, `until` (absent = the cycle's end), the `weights` keyframes, `offset` |
+
+Rows read every roster key as on `timeline_data.roster`, with these differences: `channel` is ignored (one limit:
+`max_count`); `chance` and `t_jitter` are rolled per cycle; "roster" as the creature draws from the window's own open mix
+rows (one creature, no elite, not special, not once) by their Elite weight; `id` is the editor's label ("bf<stage>-<n>").
+
+#### The rule (game/core/systems/BossFightWindow.gd; WaveDirector `boss_window`, `boss_window_on()`)
+- From the boss's arrival (`WaveDirector._start_boss` -> `BossFightWindow.begin(director, Run.stage)`) until it dies
+  (`_on_boss_died` -> `stop()`), a stage with an enabled block spawns **only** its rows: the stage's rows, the own-interval
+  rows, the density floor and the specials' clock stand still. A stage without one keeps today's fight (`boss_cap_frac`
+  of the cap, the stage's last rows drawn).
+- The fight clock is real seconds since the boss arrived (a paused game holds it); the cycle loops every `length`: every
+  row's state starts afresh (a once row comes again, a waves row's schedule restarts from t + offset, what a wave still
+  owed is dropped).
+- Continuous rows (and waves rows with `trickle`) draw at the director's spawn check (`spawn_interval`) or on their own
+  `interval` clock: a burst of burst_min..burst_max **creatures** x their share of the open drawn rows' weight (Pass 83),
+  cut to the room under `max_count` and the hard cap, by the presence weight at the fight clock.
+- Waves / once rows: `count` a wave, cut to the room under `max_count` with `respect_cap` (default; at least one while any
+  room), the rest owed until the row's next wave or its end (each spawn check first); `respect_cap` false = on top of
+  `max_count`; the hard cap holds unless `respect_hard_cap` is false. An elite row without a `pattern` brings coloured-elite
+  arrivals (`WaveDirector._spawn_elite`), on top of every limit as on the roster. `max_alive` (the row's or the
+  creature's) holds, counting every living one of that creature (the stage's leftovers too).
+- Numbers (Pass 58's R1): each row's creatures are fixed at its first spawn of the run from `stage_end(k)` on the run clock
+  (`WaveDirector.source_for("boss<k>:<id>#<i>", stage_end, stats)`: the HP and ATK curves there, the hero's level then),
+  times the stage multiplier at the spawn and the row's overrides.
+- `WaveDirector.current_cap()` in such a fight returns `max_count` (the hard cap for -1), in bodies.
+- A boss's own `spawn_ring` summons keep their rules but are cut to the hard cap's room
+  (`WaveDirector.summon_room(want)`, asked through `EnemyManager.summon_count`), with or without a window.
+- Headless runs log each window spawn as `spawn84 bossfight <id> <n> <clock>`.
+
+#### Code API
+- WaveTimeline: `boss_fight(i)` ({} when none or off), `has_boss_fight(i)`, `boss_fight_length(i)`,
+  `boss_fight_max_count(i)`, `boss_fight_rows(i)`, static `boss_fight_open(rows, ct)`; consts
+  `BOSS_FIGHT_LENGTH_DEFAULT` 120, `BOSS_FIGHT_MAX_COUNT_DEFAULT` 40.
+- BossFightWindow (RefCounted): `begin(director, stage) -> bool`, `stop()`, `tick(delta)`, `spawn_check()`,
+  `cap_value()`, `room()`, `hard_room()`, `cycle_time()`, `key_of(row, k)`, `row_state(k)`; fields `active`, `stage`,
+  `length`, `max_count`, `rows`, `clock`, `cycle`, `cycles`, `came_by` {key: creatures}, `came_total`.
+- WaveDirector: `boss_window`, `boss_window_on()`, `summon_room(want)`. EnemyManager: `summon_count(want)`.
+- The Level Editor's side (Boss fights section, the row form, the checks, model.js helpers): docs/level_editor.md
+  "Pass 110". Tests: game/tests/pass110_boss_window_test.gd, tools/level_editor/selftest_BOSS110.py. Probe:
+  game/tools/_p110_BOSS_fight_probe.gd (`stage= build= level= hero= secs= before= seed= window=0|1`).

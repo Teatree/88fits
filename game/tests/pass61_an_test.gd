@@ -384,11 +384,12 @@ func test_a_real_run_counts_every_coin_in_and_out() -> void:
 	assert_str(str(pm.coin_from.get(tossed, ""))).is_equal("loose_change")
 	pm._collect(tossed)
 	assert_bool(pm.coin_from.has(tossed)).is_false()
-	# an Elite's purse (450 on stage 1 since pass 70: x5 of 90), a chest's gold, the developer's
+	# an Elite's purse (450 on stage 1 since pass 70: x5 of 90; 225 since pass 110, read from Game.elite_purse), a chest's
+	# gold, the developer's
 	g._kill_effects(Registry.enemy("dune_scorpion"), at, null, "")
 	Run.chest_take({"type": "gold", "id": "", "def": null, "gold": 50, "level_from": 0, "level_to": 0, "is_new": false})
 	Run.add_gold(1000, "debug")
-	_same(ra.gold_in_total, {"coins": 3, "gold_dust": 2, "loose_change": 10, "elite_purse": 450, "chest": 50, "debug": 1000})
+	_same(ra.gold_in_total, {"coins": 3, "gold_dust": 2, "loose_change": 10, "elite_purse": Game.elite_purse(0), "chest": 50, "debug": 1000})
 	# the shop: a card bought at its price
 	var host := Control.new()
 	host.size = Vector2(1080, 1920)
@@ -445,7 +446,7 @@ func test_a_real_run_counts_every_coin_in_and_out() -> void:
 	ra.header["stamp"] = "test-p61-%d" % Time.get_ticks_usec()
 	ra.finish()
 	_drop_record(ra)
-	var earned := 3 + 2 + 10 + 450 + 50 + 1000 + 40
+	var earned := 3 + 2 + 10 + Game.elite_purse(0) + 50 + 1000 + 40
 	var spent := price + 150
 	assert_int(purse).is_equal(earned - spent - boxed)
 	# run_end
@@ -468,7 +469,7 @@ func test_a_real_run_counts_every_coin_in_and_out() -> void:
 	var sums := _events("run_summary")
 	assert_int(sums.size()).is_equal(1)
 	var s: Dictionary = sums[0]
-	_same(s["gold_by_source"], {"debug": 1000, "elite_purse": 450, "chest": 50, "bounty": 40, "loose_change": 10, "coins": 3, "gold_dust": 2})
+	_same(s["gold_by_source"], {"debug": 1000, "elite_purse": Game.elite_purse(0), "chest": 50, "bounty": 40, "loose_change": 10, "coins": 3, "gold_dust": 2})
 	_same(s["gold_spent_by"], {"shop": price, "revive": 150})
 	var m_in := 0
 	for v in s["m_gold_in"]:

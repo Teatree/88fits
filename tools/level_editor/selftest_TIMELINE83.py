@@ -313,7 +313,8 @@ def checks(check, run_node, server):
     m = re.search(r'<label class="win-box" title="([^"]+)"', html)
     check(bool(m) and "N seconds" in m.group(1) and "Spawned so far" in m.group(1), "TIMELINE83: the window box carries its hint")
     insp = open(os.path.join(HERE, "inspector.js"), encoding="utf-8").read()
-    check("shareForm" not in insp and "if (def.drawn && !Model.rowDrawn(r)) continue;" in insp and "function intervalNote(r)" in insp,
+    # pass 110 (lane BOSS): intervalNote(r, env) takes a boss fight window row too
+    check("shareForm" not in insp and "if (def.drawn && !Model.rowDrawn(r)) continue;" in insp and "function intervalNote(r" in insp,
           "TIMELINE83: inspector.js: no Share table; Draw every only on a drawn row, with its note")
     app = open(os.path.join(HERE, "app.js"), encoding="utf-8").read()
     for frag in ["draw every must be a number of seconds above 0", "draw every means nothing on a row paced as waves", "over 4× as often as the spawn check"]:

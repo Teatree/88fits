@@ -15,7 +15,7 @@
     "small": 1.0,
     "medium": 0.05,
     "gold": 0.02,
-    "chest": 0.0028
+    "chest": 0.0002
   },
   "radius": 0.45,
   "size": 1.2,
@@ -61,11 +61,11 @@
       "#FFB0B0"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.04,
+    "special_chance": 0.0133,
     "special": {
       "size": 1.5,
       "hp": 15.0,
-      "damage": 2.0,
+      "damage": 3.5,
       "xp": 3.0,
       "tint": "#8A1428",
       "tint_strength": 0.6

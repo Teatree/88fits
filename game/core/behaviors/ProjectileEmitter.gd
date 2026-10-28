@@ -706,7 +706,7 @@ static func _shown_under(n: Node, root: Node) -> bool:
 ## (aim_index: the nearest, or the strong and the close), else `fallback`.
 func _from_familiar(fallback: Vector3, t: int = -1) -> Vector3:
 	var em: EnemyManager = game.enemies
-	if t < 0 or t >= EnemyManager.MAX or em.alive[t] == 0:
+	if t < 0 or t >= em.pool_max or em.alive[t] == 0:
 		t = aim_index(player.global_position, stat("range", 9.0))
 	if t < 0:
 		return fallback

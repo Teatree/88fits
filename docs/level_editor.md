@@ -2036,3 +2036,65 @@ Tests: `selftest_LE103.py` (effectiveLimit and capBinding under Node, the fixtur
 hand-made timelines and on Red Canyon as the file says it, the swatches' one colour source, write_map on a temp copy with
 a fake lock holder and a fake queue, a Save from every stage window over HTTP, the page's words for every answer and job
 state).
+
+## Pass 110: boss fight windows
+
+Garry (2026-10-28): "Just add a 2 minute window in the Timeline where I can set up the cycle of enemies that will be
+spawning. Basically I will be able to set them up as I always do with the knowledge that as long as the Boss Fight is
+continuing it will be those enemies at that pace that will be spawning."
+
+**What it is.** Each stage can have a **boss fight window**: a short cycle of spawn rows (2:00 by default) that plays from
+the moment the stage's boss arrives until it dies, over and over. While the boss lives, *only* the window's rows spawn:
+the stage's own rows, the rows with their own Draw every, the floor and the specials' clock all stop. The boss's own
+summons (its spawn ring) still come, never past the hard cap. A stage without a window plays its fight as before (the
+stage's rows still open at its end, into `boss_cap_frac` of the cap: on Red Canyon 0.6 × 500 = 300 load, which is why the
+Tumbleweed King's fight filled with Spit Cacti that never stopped).
+
+**How to use it, step by step.**
+1. Open the **Timeline** tab. Under **Spawn rows** there is a new section, **Boss fights**, with one panel per stage (the
+   All tab shows every stage; a stage tab shows its own).
+2. On a stage's panel press **Add a boss fight window**. It gets a 2:00 cycle, **Max count 40** and no rows yet.
+3. Set **Max count**: the most creatures alive during the fight, counted as **bodies** (not load): the boss itself, its
+   summons and whatever is left of the stage's crowd count too. -1 = no limit but the hard cap. **Cycle** sets the
+   cycle's length in seconds. **On** switches the window off without losing it (the fight then plays as before), handy
+   for comparing.
+4. Press **+ Row → continuous / waves / once**. A row appears as a bar on the panel's own clock: **0:00 is the moment the
+   boss arrives**, the dashed orange line at the right is where the cycle starts again.
+5. **Drag** a bar to move it, drag its **left or right end** to change its start or its end (whole seconds; 5 s steps with
+   Snap on, hold Alt to drag freely). Dragging the right end to the cycle's end removes the end (the row runs to the end
+   of every cycle).
+6. **Click** a bar (or its name) to edit it in the inspector: it is **the same form as a stage row** (Schedule, Creature,
+   Where and how, Presence, Overrides), with the times in seconds of the fight. Duplicate (Ctrl+D), Delete, the arrows
+   (nudge a second, Shift ten), Alt+↑/↓ (order) and Undo all work as on the Rows lane.
+7. Click the stage's name on the panel for the **window's card**: what the window does in words, its rows, and a table of
+   what each row brings in a cycle.
+8. **Save** as always (the window is written into the stage's entry in `stage_list`).
+
+**The rules in short** (the game's: `game/core/systems/BossFightWindow.gd`, keys in docs/waves_schema.md "Pass 110"):
+- The cycle starts again every Cycle seconds: a **once** row comes again in every cycle, a **waves** row restarts its
+  waves from its start (+ Offset), what a wave could not bring is dropped, Chance and Jitter are rolled again.
+- A **continuous** row is drawn at every spawn check (Settings → Spawning, or its own Draw every): a burst of burst_min to
+  burst_max *creatures*, shared by the open rows by their presence weight, cut to the room under Max count. So a
+  continuous row keeps the fight topped up to Max count.
+- A **waves / once** row brings its Per wave into the room under Max count (at least one while there is any room), the
+  rest as room frees until its next wave; with **Respect the cap** off it comes on top of Max count (the hard cap still
+  holds).
+- **Channel** means nothing in a window (one limit: Max count). Max alive on a row or a creature holds as always.
+- **HP and ATK**: a window row's creatures take the numbers of the fight's moment on the run clock: the HP and ATK curves
+  at the stage's end, the stage's multiplier, the hero's level when it first spawns, and the row's own overrides (like a
+  row that starts at the stage's last second).
+
+**What the charts show.** Under each window's rows a small line estimates the crowd over two cycles against Max count
+(dashed): the hero kills the page's kill rate of the crowd a second and the fight starts with only the boss alive, so
+the stage's leftovers and the boss's summons are not in it. The run charts above (On screen, Spawned so far, the warnings)
+**still model a boss fight without its window** (the stage's last rows at boss_cap_frac, for the estimate's boss fight
+seconds). The checks: a window row gets every check a stage row gets, plus the window's own (a cycle under 1 s, a Max
+count that is not a whole number of -1 or more, a row starting after the cycle's end, an end or presence points past the
+cycle, a channel, an id used twice, an empty window); errors block Save as always.
+
+Files: `tools/level_editor/boss_fights.js` (the section, its drag), `boss_fights.css`; model.js's window helpers
+(`BOSS_FIGHT_DEF`, `bossFightEntry`, `bossFight`, `bossFightOn`, `bossFightLen`, `bossFightMax`, `bossFightRows`,
+`newBossFight`, `bossRowEnd`, `bossFightRowsAt`, `bossRowIds`, `newBossRowId`, `bossFightChecks`, `bossFightCycle`);
+app.js (`{kind: 'bossrow', s, i}` and `{kind: 'bossfight', s}` selections, `addBossFight`, `removeBossFight`,
+`setBossFight`, `newBossRow`, `moveBossRow`, `shiftBossRow`, the row checks shared with the roster's); inspector.js (the
+row form with a window env, the window's card). Self-test: `selftest_BOSS110.py`.

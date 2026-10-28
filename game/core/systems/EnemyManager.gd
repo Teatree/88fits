@@ -14,6 +14,19 @@ signal creature_dying(i: int, weapon_id: String)
 signal cleared
 
 const MAX := 320
+## Pass 110 (lane ARENA): the pool's size, every per-creature array and MultiMesh this long: MAX in every run, grown in
+## the debug arena only (grow_pool) for a screenshot's crowd, up to ARENA_MAX.
+var pool_max := MAX
+const ARENA_MAX := 3000
+## Pass 110 (lane ARENA; Garry: "Ability to stop all enemy movement (while they still face the hero all the time)"): the
+## debug arena's freeze for staging a screenshot. FREEZE_WALK: no creature walks, steers, bites, attacks, aims or drifts
+## (knockback, vortices), each keeps turning to face the hero and walks in place; FREEZE_POSE: the same with every picture
+## held on its frame. Hits, deaths, bodies thrown, burns and poisons go on; a frozen crowd never despawns. 0 = off (every
+## run). _frozen_tick.
+const FREEZE_OFF := 0
+const FREEZE_WALK := 1
+const FREEZE_POSE := 2
+var crowd_freeze := FREEZE_OFF
 const CELL := 2.5
 const STATE_MOVE := 0
 const STATE_WINDUP := 1
@@ -199,6 +212,9 @@ var xp_scale := PackedFloat32Array()
 ## The dying creature's whole XP scale while enemy_died is out (pass 47): its type's xp_mult, ×4 for an elite variant
 ## and its variance special's own `xp` (Game had paid the first two only, so the dark specials never paid more).
 var died_xp_scale := 0.0
+## Pass 110 (lane ECON): whether the dying creature was a variance special, while enemy_died is out (Game halves its own
+## coin's chance: PickupManager.SPECIAL_COIN_MULT).
+var died_special := false
 var vtint := PackedColorArray()   # per-spawn tint (rgb) and strength (a) from the def's variance block
 var vspecial := PackedByteArray()  # 1 = rolled its variance special (the dark, big one): the hit log names its colour
 ## Pass 69 (lane EN): a variance special's glow, 0..1 (EnemyDef.special_value "glow"): the emissive rim
@@ -497,39 +513,96 @@ var _drawn := -1
 
 func _ready() -> void:
 	_rng.randomize()
-	pos.resize(MAX); vel.resize(MAX); kb.resize(MAX); hp.resize(MAX); max_hp.resize(MAX)
-	speed.resize(MAX); dmg.resize(MAX); radius.resize(MAX); size.resize(MAX); dr.resize(MAX); blown.resize(MAX)
-	hidden.resize(MAX); held.resize(MAX); atk_i.resize(MAX); atk_t.resize(MAX); atk_target.resize(MAX); frenzy_t.resize(MAX)
-	freeze_t.resize(MAX); stun_t.resize(MAX); onscreen.resize(MAX)
-	# pass 101 (lane CROWD): the draw flags and the steer clocks
-	drawn_vis.resize(MAX); drawn_vis.fill(1); _vis_hold.resize(MAX); _st_last.resize(MAX); _st_last.fill(-1)
-	serial.resize(MAX); hamper_t.resize(MAX); hamper_f.resize(MAX); status_tint.resize(MAX); status_t.resize(MAX)
-	fire_blue.resize(MAX); undying.resize(MAX); home.resize(MAX)
-	dummy_mode.resize(MAX); dummy_roam.resize(MAX); patrol_dir.resize(MAX); shove_t.resize(MAX)
-	ign_t.resize(MAX); ign_ok.resize(MAX); ign_w.resize(MAX)
-	slow_t.resize(MAX); slow_f.resize(MAX); mark_t.resize(MAX); mark_mult.resize(MAX); spin_t.resize(MAX); spin_to.resize(MAX); hold_t.resize(MAX)
-	type_idx.resize(MAX); elite_idx.resize(MAX); state.resize(MAX); timer.resize(MAX); cooldown.resize(MAX)
-	anim_t.resize(MAX); flash.resize(MAX); squash.resize(MAX); flip.resize(MAX); contact_cd.resize(MAX)
-	alive.resize(MAX); charge_dir.resize(MAX); xp_scale.resize(MAX); vtint.resize(MAX); vspecial.resize(MAX)
-	vglow.resize(MAX)
-	fixed.resize(MAX); f_stage.resize(MAX); f_hpt.resize(MAX); f_lvh.resize(MAX); f_dmt.resize(MAX); f_lvd.resize(MAX)
-	f_bsz.resize(MAX); f_tu.resize(MAX)
-	lift_mode.resize(MAX); lift_peak.resize(MAX); lift_knock.resize(MAX)
-	away.resize(MAX); view.resize(MAX); poison_tick.resize(MAX); flash_green.resize(MAX)
-	poison_src.resize(MAX); fire_src.resize(MAX); fire_tick.resize(MAX); flash_hot.resize(MAX); fire_puff.resize(MAX)
-	# pass 60: everyone starts up on the sand, meaning to go nowhere, free to turn
-	rise_t.resize(MAX); rise_t.fill(1.0); intent.resize(MAX); view_t.resize(MAX)
-	# pass 73 (lane GROUND): how fast each one rises or sinks
-	rise_v.resize(MAX)
-	for i in range(MAX):
-		poison_src[i] = {}; fire_src[i] = {}; lift_t.resize(MAX); lift_d.resize(MAX); lift_h.resize(MAX); lift_a.resize(MAX); lift_cd.resize(MAX)
-	for i in range(MAX - 1, -1, -1):
-		free_list.append(i)
+	_size_slots(0)
 	elites = Registry.elites_list()
 	_build_shadows()
 	if not Run.build_changed.is_connected(_on_build_changed):
 		Run.build_changed.connect(_on_build_changed)
 
+
+
+## Every per-creature array at pool_max slots, the slots from `from` on started as _ready starts them (pass 110, lane
+## ARENA: _ready's own block, shared with grow_pool), and those slots on the free list after the ones already free
+## (pop_back hands out the lowest index first, as before).
+func _size_slots(from: int) -> void:
+	var n := pool_max
+	pos.resize(n); vel.resize(n); kb.resize(n); hp.resize(n); max_hp.resize(n)
+	speed.resize(n); dmg.resize(n); radius.resize(n); size.resize(n); dr.resize(n); blown.resize(n)
+	hidden.resize(n); held.resize(n); atk_i.resize(n); atk_t.resize(n); atk_target.resize(n); frenzy_t.resize(n)
+	freeze_t.resize(n); stun_t.resize(n); onscreen.resize(n)
+	# pass 101 (lane CROWD): the draw flags and the steer clocks
+	drawn_vis.resize(n); _vis_hold.resize(n); _st_last.resize(n)
+	serial.resize(n); hamper_t.resize(n); hamper_f.resize(n); status_tint.resize(n); status_t.resize(n)
+	fire_blue.resize(n); undying.resize(n); home.resize(n)
+	dummy_mode.resize(n); dummy_roam.resize(n); patrol_dir.resize(n); shove_t.resize(n)
+	ign_t.resize(n); ign_ok.resize(n); ign_w.resize(n)
+	slow_t.resize(n); slow_f.resize(n); mark_t.resize(n); mark_mult.resize(n); spin_t.resize(n); spin_to.resize(n); hold_t.resize(n)
+	type_idx.resize(n); elite_idx.resize(n); state.resize(n); timer.resize(n); cooldown.resize(n)
+	anim_t.resize(n); flash.resize(n); squash.resize(n); flip.resize(n); contact_cd.resize(n)
+	alive.resize(n); charge_dir.resize(n); xp_scale.resize(n); vtint.resize(n); vspecial.resize(n)
+	vglow.resize(n)
+	fixed.resize(n); f_stage.resize(n); f_hpt.resize(n); f_lvh.resize(n); f_dmt.resize(n); f_lvd.resize(n)
+	f_bsz.resize(n); f_tu.resize(n)
+	lift_mode.resize(n); lift_peak.resize(n); lift_knock.resize(n)
+	away.resize(n); view.resize(n); poison_tick.resize(n); flash_green.resize(n)
+	poison_src.resize(n); fire_src.resize(n); fire_tick.resize(n); flash_hot.resize(n); fire_puff.resize(n)
+	# pass 60: everyone starts up on the sand, meaning to go nowhere, free to turn
+	rise_t.resize(n); intent.resize(n); view_t.resize(n)
+	# pass 73 (lane GROUND): how fast each one rises or sinks
+	rise_v.resize(n)
+	lift_t.resize(n); lift_d.resize(n); lift_h.resize(n); lift_a.resize(n); lift_cd.resize(n)
+	for i in range(from, n):
+		drawn_vis[i] = 1
+		_st_last[i] = -1
+		rise_t[i] = 1.0
+		poison_src[i] = {}
+		fire_src[i] = {}
+	var add: Array = []
+	for i in range(n - 1, from - 1, -1):
+		add.append(i)
+	free_list = add + free_list
+
+
+## Pass 110 (lane ARENA; Garry: "Ability to Spawn more than 1500 enemies in Arena (at once)"): the pool grown to `n`
+## slots, at most ARENA_MAX, never shrunk. Every per-creature array keeps what it holds (_size_slots), the arrays sized
+## lazily follow (their new slots as they would start), the grids are sized again on the next tick, and every type's
+## MultiMesh and the shadows' are made that long (the draw writes every drawn instance each frame, so nothing is lost).
+## Only the debug arena calls it: a run keeps MAX, its numbers and its cost unchanged. Returns the pool's size now.
+func grow_pool(n: int) -> int:
+	n = mini(n, ARENA_MAX)
+	if n <= pool_max:
+		return pool_max
+	var old := pool_max
+	pool_max = n
+	_size_slots(old)
+	if not _wade_k.is_empty():
+		_wade_k.resize(n)
+		for i in range(old, n):
+			_wade_k[i] = 1.0
+	if not e_speed.is_empty():
+		e_speed.resize(n)
+		for i in range(old, n):
+			e_speed[i] = 1.0
+	if not spawn_at.is_empty():
+		spawn_at.resize(n)
+		summoned.resize(n)
+	if not _fire_pn.is_empty():
+		_fire_pn.resize(n); _fire_pd.resize(n); _fire_min.resize(n)
+		_poison_pn.resize(n); _poison_pd.resize(n); _poison_min.resize(n)
+	# the grids' next-links are sized with the grids (_rebuild_grid, _sep_grid_size): sized again on the next tick
+	_gw = 0
+	_sw = 0
+	_bg_n = 0
+	for td in types:
+		var mm: MultiMesh = (td as Dictionary)["mm"]
+		mm.visible_instance_count = 0
+		mm.instance_count = n
+	if _shadow_mm:
+		_shadow_mm.visible_instance_count = 0
+		_shadow_mm.instance_count = n
+	# drawn again at once
+	_drawn = -1
+	return pool_max
 
 func _on_build_changed() -> void:
 	_pstats_dirty = true
@@ -576,7 +649,7 @@ func debuff_mult() -> float:
 
 ## Big Game Hunter's prey (pass 47): the boss, an Elite (its kind) or a creature wearing an elite modifier.
 func is_big_game(i: int) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0:
+	if i < 0 or i >= pool_max or alive[i] == 0:
 		return false
 	return i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1
 
@@ -613,7 +686,7 @@ func host_of(i: int) -> float:
 ## (`size`, `tint_u`: a child re-rolled them, so a splitter of a [1, 3] row could burst into children bigger than itself,
 ## each a different colour).
 func src_of(i: int) -> Dictionary:
-	if i < 0 or i >= MAX:
+	if i < 0 or i >= pool_max:
 		return {}
 	var out: Dictionary = {}
 	if fixed[i] == 1:
@@ -641,11 +714,20 @@ func brood_numbers(id: String) -> Dictionary:
 	return {"stats": {}, "src": now_src()}
 
 
+## Pass 110 (lane BOSS): how many of `want` a boss's summons (its spawn_ring) may bring now: the director's summon_room
+## (never past the map's hard cap, bodies; they keep every other rule of their own), `want` without a director.
+func summon_count(want: int) -> int:
+	var d = game.get("director") if game else null
+	if d != null and d.has_method("summon_room"):
+		return int(d.summon_room(want))
+	return want
+
+
 ## The shove creature `i`'s bite gives the hero, m/s (pass 54, Garry: every creature its own number): its def's
 ## hit_knockback() (its own `knockback`, a row's override, else the default from its damage), BIG_KNOCK times for a boss,
 ## an Elite or a creature wearing an elite modifier. 0 for no creature.
 func bite_knock(i: int) -> float:
-	if i < 0 or i >= MAX or alive[i] == 0 or type_idx[i] < 0 or type_idx[i] >= types.size():
+	if i < 0 or i >= pool_max or alive[i] == 0 or type_idx[i] < 0 or type_idx[i] >= types.size():
 		return 0.0
 	var def: EnemyDef = types[type_idx[i]]["def"]
 	return def.hit_knockback() * (BIG_KNOCK if is_big_game(i) else 1.0)
@@ -655,7 +737,7 @@ func bite_knock(i: int) -> float:
 ## them), each tested a little above its feet against the screen grown by SCREEN_MARGIN_M at the hero's feet. Without a
 ## camera that can say (tools, tests, a stand-in rig) every creature counts as on the screen.
 func refresh_onscreen(parity: int = -1) -> void:
-	if onscreen.size() != MAX:
+	if onscreen.size() != pool_max:
 		return
 	var rig = game.get("camera") if game != null else null
 	var cam: Camera3D = null
@@ -666,7 +748,7 @@ func refresh_onscreen(parity: int = -1) -> void:
 		return
 	var ppm: float = float((rig as Node).call("pixels_per_metre")) if (rig as Node).has_method("pixels_per_metre") else 90.0
 	var rect := cam.get_viewport().get_visible_rect().grow(SCREEN_MARGIN_M * ppm)
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 0 or (parity >= 0 and (i & 1) != parity):
 			continue
 		var p := pos[i] + Vector3(0, 0.6 + lift_h[i], 0)
@@ -677,7 +759,7 @@ func refresh_onscreen(parity: int = -1) -> void:
 
 ## A fresh spawn (pass 101): drawn until its first check says otherwise, its hold full, no steer yet (_steer_dt).
 func _vis_spawn(i: int) -> void:
-	if drawn_vis.size() != MAX:
+	if drawn_vis.size() != pool_max:
 		return
 	drawn_vis[i] = 1
 	_vis_hold[i] = VIS_HOLD
@@ -690,7 +772,7 @@ func _vis_spawn(i: int) -> void:
 ## VIS_HOLD ticks more, so nothing flickers at an edge. Without a camera that can say (refresh_onscreen's rule) every
 ## creature is drawn; vis_force overrides the rule (tools, tests).
 func refresh_drawn(parity: int = -1) -> void:
-	if drawn_vis.size() != MAX:
+	if drawn_vis.size() != pool_max:
 		return
 	if vis_force >= 0:
 		drawn_vis.fill(1 if vis_force > 0 else 0)
@@ -721,7 +803,7 @@ func refresh_drawn(parity: int = -1) -> void:
 	var cam_b := _vis_cam_move * VIS_LOOK_TICKS
 	var cam_t := _vis_cam_turn * VIS_LOOK_TICKS
 	var step := 1 if parity < 0 else 2
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 0 or (parity >= 0 and (i & 1) != parity):
 			continue
 		_vis_bounds_into(i, cam_up, scf)
@@ -903,7 +985,7 @@ func _steer_dt(i: int, delta: float, sdt: float) -> float:
 ## Whether the ranged weapons' picks skip what is off the screen (pass 54): unless the caller asks for `any_screen`, while
 ## Settings.ranged_on_screen and screen_filter_on are both on.
 func _screen_only(any_screen: bool) -> bool:
-	return not any_screen and screen_filter_on and onscreen.size() == MAX and Settings.ranged_on_screen
+	return not any_screen and screen_filter_on and onscreen.size() == pool_max and Settings.ranged_on_screen
 
 
 ## Whether creature `i` may be a ranged weapon's pick (pass 54): it is on the screen, or the pick may be anywhere.
@@ -1081,8 +1163,8 @@ var _wading := PackedInt32Array()
 
 func _wade_tick() -> void:
 	_lake_refresh()
-	if _wade_k.size() != MAX:
-		_wade_k.resize(MAX)
+	if _wade_k.size() != pool_max:
+		_wade_k.resize(pool_max)
 		_wade_k.fill(1.0)
 	for i in _wading:
 		_wade_k[i] = 1.0
@@ -1106,7 +1188,7 @@ func _wade_tick() -> void:
 
 ## The rule for one creature now (tools and tests; the tick reads _wade_k, marked by the same rule).
 func _wade_mult(i: int) -> float:
-	if _wade_slow <= 0.0 or i < 0 or i >= MAX or alive[i] == 0 or not in_lake(pos[i]):
+	if _wade_slow <= 0.0 or i < 0 or i >= pool_max or alive[i] == 0 or not in_lake(pos[i]):
 		return 1.0
 	if lift_h[i] > 0.05 or hidden[i] == 1 or held[i] == 1 or rise_t[i] < 1.0 or state[i] == STATE_DYING:
 		return 1.0
@@ -1120,7 +1202,7 @@ func _build_shadows() -> void:
 	quad.size = Vector2(1, 1)
 	quad.orientation = PlaneMesh.FACE_Y
 	_shadow_mm.mesh = quad
-	_shadow_mm.instance_count = MAX
+	_shadow_mm.instance_count = pool_max
 	_shadow_mm.visible_instance_count = 0
 	_shadow_mmi = MultiMeshInstance3D.new()
 	_shadow_mmi.multimesh = _shadow_mm
@@ -1181,7 +1263,10 @@ func lift_radius(center: Vector3, radius: float, duration: float = 1.6) -> int:
 
 ## Tornado: airborne enemies near the centre swirl around it and drift with it.
 func swirl(center: Vector3, radius: float, delta: float) -> void:
-	for i in range(MAX):
+	# pass 110 (lane ARENA): nothing drifts in the arena's freeze
+	if crowd_freeze != 0:
+		return
+	for i in range(pool_max):
 		if alive[i] == 0 or lift_t[i] <= 0.0 or lift_mode[i] == 1:
 			continue
 		var d := pos[i] - center
@@ -1212,7 +1297,7 @@ func register_type(def: EnemyDef) -> int:
 	var quad := QuadMesh.new()
 	quad.size = Vector2(1, 1)
 	mm.mesh = quad
-	mm.instance_count = MAX
+	mm.instance_count = pool_max
 	mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
@@ -1350,7 +1435,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	blown[i] = 0
 	held[i] = 0
 	# on the screen until the next refresh says otherwise (pass 54)
-	if onscreen.size() == MAX:
+	if onscreen.size() == pool_max:
 		onscreen[i] = 1
 	# pass 101 (lane CROWD): drawn until its first check says otherwise, and no steer yet
 	_vis_spawn(i)
@@ -1609,7 +1694,7 @@ func spawn_boss(def_id: String, at: Vector3, variant := "", overrides := {}, src
 func _room_for_boss() -> bool:
 	var best := -1
 	var best_t := INF
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 1 and state[i] == STATE_DYING and timer[i] < best_t:
 			best_t = timer[i]
 			best = i
@@ -1622,7 +1707,7 @@ func _room_for_boss() -> bool:
 	for strict: bool in [true, false]:
 		var far := -1
 		var far_d := -1.0
-		for i in range(MAX):
+		for i in range(pool_max):
 			if strict and not despawn_kind(i):
 				continue
 			if not strict and (alive[i] == 0 or state[i] == STATE_DYING or i == boss_index or (types[type_idx[i]]["def"] as EnemyDef).archetype == "boss"):
@@ -1989,7 +2074,7 @@ static func _inside(p: Vector3, lim: float) -> Vector3:
 ## Everything on the field dies (`reward`: as a kill, with its drops) or simply goes. An undying training dummy (pass 48)
 ## never dies, so a kill leaves it standing; going takes it like anything else.
 func kill_all(reward: bool = false) -> void:
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 1 and state[i] != STATE_DYING:
 			if reward:
 				if undying[i] == 0:
@@ -2003,14 +2088,14 @@ func kill_all(reward: bool = false) -> void:
 ## Whether creature `i` is a training dummy (pass 48: the `dummy` brain, the debug arena's): it drops nothing and counts
 ## for no quest, and it never bites unless it is set to melee (pass 49, set_dummy_mode).
 func is_dummy(i: int) -> bool:
-	return i >= 0 and i < MAX and alive[i] == 1 and _t_dummy[type_idx[i]] == 1
+	return i >= 0 and i < pool_max and alive[i] == 1 and _t_dummy[type_idx[i]] == 1
 
 
 ## A training dummy's behaviour (pass 49, Game sets it as the dummy stands and when the arena's settings change): one of
 ## DUMMY_STAND, DUMMY_PATROL, DUMMY_MELEE, DUMMY_RANGED; `roam`, whether it patrols while it has nothing to hit; `dir`, the
 ## way its beat sets off (+1 east, -1 west; 0 keeps the way it has). A change of behaviour drops a spit it was winding up.
 func set_dummy_mode(i: int, mode: int, roam: bool = false, dir: float = 0.0) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0:
+	if i < 0 or i >= pool_max or alive[i] == 0:
 		return
 	if dummy_mode[i] != mode and state[i] == STATE_WINDUP:
 		state[i] = STATE_MOVE
@@ -2028,7 +2113,7 @@ func set_dummy_mode(i: int, mode: int, roam: bool = false, dir: float = 0.0) -> 
 ## floating number shows the whole hit.
 func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vector3.ZERO, kb_force: float = 0.0, green: bool = false, hot: bool = false, flags: int = 0) -> bool:
 	last_crit = false
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return false
 	var dealt: float = amount * (1.0 - dr[i])
 	# Big Game Hunter (pass 47): more on a boss, an Elite or an elite-modded creature, from all the hero sends (the
@@ -2161,7 +2246,7 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 ## `scaled` (pass 47): the duration is stretched by Ducktape's debuff_duration; false for a clock already stretched
 ## (Blight handing on what is left of a poison).
 func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duration: float, scaled: bool = true) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return
 	# the item's own seconds (pass 70: a Prairie Fire jump starts from them)
 	var own := duration
@@ -2187,7 +2272,7 @@ func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duratio
 ## A slow: the stronger of the two when one is already on. A frac of 1 is a pin (the Spear). `scaled` (pass 47): the
 ## seconds are stretched by Ducktape's debuff_duration; a hero's perk (Serenade, Trail Dust) passes false.
 func slow(i: int, frac: float, seconds: float, scaled: bool = true) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0:
+	if i < 0 or i >= pool_max or alive[i] == 0:
 		return
 	if scaled:
 		seconds *= debuff_mult()
@@ -2199,7 +2284,7 @@ func slow(i: int, frac: float, seconds: float, scaled: bool = true) -> void:
 ## bite's and a shot's cooldown, a wind-up, a boss's script) run at 1 - frac while it lasts (attack_clock). A boss takes
 ## half the frac. `scaled` stretches the seconds by Ducktape's debuff_duration, as slow() does; the stronger of two holds.
 func hamper(i: int, frac: float, seconds: float, scaled: bool = true) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return
 	var f := clampf(frac, 0.0, 1.0)
 	if i == boss_index or (types[type_idx[i]]["def"] as EnemyDef).archetype == "boss":
@@ -2220,7 +2305,7 @@ func attack_clock(i: int) -> float:
 ## burn's or a poison's tint; a frozen creature's ice blue still wins. The colour's alpha is its strength (the shader mixes
 ## 65% of it). A new call replaces the old tint and its clock.
 func set_status_tint(i: int, col: Color, seconds: float) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0:
+	if i < 0 or i >= pool_max or alive[i] == 0:
 		return
 	status_tint[i] = col
 	status_t[i] = maxf(seconds, 0.0)
@@ -2239,7 +2324,7 @@ func hostile_clock() -> float:
 ## Burn: "every status the game applies"): `scaled` stretches the seconds by debuff_duration (Ducktape, Slow Burn), as
 ## slow() does.
 func freeze(i: int, seconds: float, scaled: bool = true) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return
 	if scaled:
 		seconds *= debuff_mult()
@@ -2261,7 +2346,7 @@ func freeze(i: int, seconds: float, scaled: bool = true) -> void:
 ## Pass 70 (lane LINES, Slow Burn: "every status the game applies"): `scaled` stretches the seconds by debuff_duration
 ## (Ducktape, Slow Burn), as slow() does; it never was before.
 func stun(i: int, seconds: float, scaled: bool = true) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or seconds <= 0.0:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or seconds <= 0.0:
 		return
 	if i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
 		return
@@ -2298,7 +2383,7 @@ func stun(i: int, seconds: float, scaled: bool = true) -> void:
 
 ## Whether creature `i` is stunned right now (pass 53).
 func is_stunned(i: int) -> bool:
-	return i >= 0 and i < MAX and alive[i] == 1 and stun_t[i] > 0.0
+	return i >= 0 and i < pool_max and alive[i] == 1 and stun_t[i] > 0.0
 
 
 func slow_radius(center: Vector3, r: float, frac: float, seconds: float, scaled: bool = true) -> void:
@@ -2310,7 +2395,7 @@ func slow_radius(center: Vector3, r: float, frac: float, seconds: float, scaled:
 
 ## The bees' old twister (a Hornet Nest path until pass 30): the creature is lifted for `seconds`, cannot walk or bite, and drifts towards `to`.
 func twist(i: int, seconds: float, to: Vector3) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return
 	spin_t[i] = seconds
 	spin_to[i] = to
@@ -2329,7 +2414,7 @@ func twist(i: int, seconds: float, to: Vector3) -> void:
 ## its archetype or a modifier), a held, buried or dying creature, or one already in the air (lift_t > 0). Returns
 ## whether it went up.
 func bounce(i: int, height: float, seconds: float, knock: Vector3 = Vector3.ZERO) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return false
 	if i == boss_index or elite_idx[i] >= 0 or lift_t[i] > 0.0 or seconds <= 0.0:
 		return false
@@ -2373,7 +2458,7 @@ var landings := 0
 
 ## The roll (pass 69): 0 nothing, 1 thrown up, 2 big game took the fall at once. `roll` (tests) replaces the random draw.
 func try_launch(i: int, hit_damage: float, weapon_id: String, cfg: Dictionary, roll: float = -1.0) -> int:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return 0
 	var chance := clampf(float(cfg.get("chance", 0.15)), 0.0, 1.0)
 	var r: float = roll if roll >= 0.0 else _rng.randf()
@@ -2429,7 +2514,7 @@ func launch(i: int, height: float, seconds: float, fall: float, weapon_id: Strin
 
 ## Whether creature `i` may be thrown up now (pass 69): alive, not big game, on its feet and free.
 func can_launch(i: int) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or state[i] == STATE_SPAWN:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or state[i] == STATE_SPAWN:
 		return false
 	if hidden[i] == 1 or held[i] == 1 or lift_t[i] > 0.0 or rise_t[i] < 1.0 or i == tethered_i:
 		return false
@@ -2438,7 +2523,7 @@ func can_launch(i: int) -> bool:
 
 ## Whether creature `i` is up in the air from a launch now (tests, other systems).
 func is_launched(i: int) -> bool:
-	return i >= 0 and i < MAX and alive[i] == 1 and lift_t[i] > 0.0 and _launch_of(i)
+	return i >= 0 and i < pool_max and alive[i] == 1 and lift_t[i] > 0.0 and _launch_of(i)
 
 
 ## Whether slot `i` holds a live launch entry (its creature's own, not a stale one).
@@ -2560,7 +2645,7 @@ func _pstats_lines(s: StatSheet) -> void:
 func _bronco_kick(i: int, dir: Vector3, push: float, weapon_id: String, roll: float = -1.0) -> bool:
 	if _bronco <= 0.0 or weapon_id == "" or weapon_id == "revive" or weapon_id == "loose_rocket":
 		return false
-	if i < 0 or i >= MAX or hp[i] <= 0.0 or not can_launch(i):
+	if i < 0 or i >= pool_max or hp[i] <= 0.0 or not can_launch(i):
 		return false
 	var r: float = roll if roll >= 0.0 else _rng.randf()
 	if r >= _bronco:
@@ -2594,7 +2679,7 @@ func _bronco_drift(i: int, delta: float) -> void:
 ## Prairie Fire's jump (pass 70): source `wid` (`e`, its entry in fire_src or poison_src of creature `i`) goes on to the
 ## nearest creature within PRAIRIE_R that lacks it. Returns the creature it reached, -1 for none.
 func _prairie_jump(i: int, fire: bool, wid: String, e: Dictionary) -> int:
-	if _prairie_hops <= 0 or i < 0 or i >= MAX:
+	if _prairie_hops <= 0 or i < 0 or i >= pool_max:
 		return -1
 	var hops := int(e.get("hops", 0))
 	if hops >= _prairie_hops:
@@ -2647,13 +2732,13 @@ func _prairie_on_death(i: int) -> void:
 
 
 func is_poisoned(i: int) -> bool:
-	return i >= 0 and i < MAX and not (poison_src[i] as Dictionary).is_empty()
+	return i >= 0 and i < pool_max and not (poison_src[i] as Dictionary).is_empty()
 
 
 ## Fire from one item: a new source, or the same source's timer reset. `from_enemy` is the creature it jumped
 ## from (-1 when a weapon lit it); `spread` is this fire's own chance to jump on, per tick, per touching creature.
 func ignite(i: int, weapon_id: String, dmg_per_tick: float, duration: float, spread: float, from_enemy: int = -1, root_spread: float = -1.0) -> void:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return
 	# a weapon that sets only some of what it hits alight (pass 51, params.ignite_chance: Dragon's Breath, 60%): one roll a
 	# creature a shot. A fire jumping on from a burning creature has its own odds (the spread) and never rolls.
@@ -2721,7 +2806,7 @@ func _burns_blue(weapon_id: String) -> bool:
 
 
 func is_burning(i: int) -> bool:
-	return i >= 0 and i < MAX and not (fire_src[i] as Dictionary).is_empty()
+	return i >= 0 and i < pool_max and not (fire_src[i] as Dictionary).is_empty()
 
 
 ## True when the creature carries the given element ("poison" or "fire"); "" is never carried.
@@ -3120,10 +3205,12 @@ func _die(i: int, weapon_id: String) -> void:
 	died_xp_scale = xp_scale[i]
 	died_max_hp = max_hp[i]
 	died_size = size[i]
+	died_special = vspecial[i] == 1
 	enemy_died.emit(def, pos[i], elite, weapon_id)
 	died_xp_scale = 0.0
 	died_max_hp = 0.0
 	died_size = 0.0
+	died_special = false
 	_hot_sauce_pay(i, def, elite)
 	_special_chest_drop(i, def, elite)
 	if RunAnalytics.I and vspecial[i] == 1: RunAnalytics.I.special_killed(def, special_chests, weapon_id)
@@ -3254,7 +3341,7 @@ func _sep_grid_size() -> void:
 		_s_half = sh
 		_sw = int(sh * 2.0 / sep_cell) + 1
 		_s_head.resize(_sw * _sw)
-		_s_next.resize(MAX)
+		_s_next.resize(pool_max)
 
 
 ## Another separation cell size (pass 101: the overlap measure's sizes; 2.5 is the pass 33.8 separation exactly): "wide"
@@ -3274,7 +3361,7 @@ func _rebuild_grid() -> void:
 		_g_half = half
 		_gw = int(half * 2.0 / CELL) + 1
 		_g_head.resize(_gw * _gw)
-		_g_next.resize(MAX)
+		_g_next.resize(pool_max)
 	_g_head.fill(-1)
 	# pass 101 (lane CROWD): the separation's grid, on the same rule (_sep_grid_size)
 	_sep_grid_size()
@@ -3282,7 +3369,7 @@ func _rebuild_grid() -> void:
 	_big.clear()
 	_grid_max_r = 0.0
 	# backwards, so every cell lists its creatures in index order
-	for i in range(MAX - 1, -1, -1):
+	for i in range(pool_max - 1, -1, -1):
 		if alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 			continue
 		# (pass 101: _gcol and _scol inline: a call each cost more than the sum; int() of a sum past 0 is its floor, and
@@ -3465,7 +3552,7 @@ func refresh_crowd_stats() -> void:
 	var total := 0.0
 	var n := 0
 	var poisoned := 0
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 0 or state[i] == STATE_DYING:
 			continue
 		total += max_hp[i]
@@ -3600,7 +3687,7 @@ func crowd_speed(at: Vector3, r: float) -> float:
 ## Pass 79 (lane WORLD): one creature's own ground velocity on the world's clock (a priority target the dynamite is led
 ## onto: a special, an Elite, the boss), as crowd_velocity counts it. Vector3.ZERO for one gone or still rising.
 func walk_velocity(i: int) -> Vector3:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or rise_t[i] < 1.0:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or rise_t[i] < 1.0:
 		return Vector3.ZERO
 	var v := vel[i] * time_scale
 	v.y = 0.0
@@ -3656,7 +3743,7 @@ func alive_count() -> int:
 ## The crowd against the director's cap: each living creature counts its `cap_share` (the fodder counts half).
 func cap_load() -> float:
 	var load := 0.0
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 1 and state[i] != STATE_DYING:
 			load += float(types[type_idx[i]].get("share", 1.0))
 	return load
@@ -3674,7 +3761,7 @@ func hit_info(i: int, kind: String, fx: Array = []) -> Dictionary:
 	var elite := false
 	var role := ""
 	var colour := ""
-	if i >= 0 and i < MAX and type_idx[i] >= 0 and type_idx[i] < types.size():
+	if i >= 0 and i < pool_max and type_idx[i] >= 0 and type_idx[i] < types.size():
 		var def: EnemyDef = types[type_idx[i]]["def"]
 		name = def.display_name
 		id = def.id
@@ -3705,11 +3792,11 @@ func alive_of(id: String) -> int:
 	var n := 0
 	if tis.size() == 1:
 		var ti: int = tis[0]
-		for i in range(MAX):
+		for i in range(pool_max):
 			if alive[i] == 1 and type_idx[i] == ti and state[i] != STATE_DYING:
 				n += 1
 		return n
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 1 and state[i] != STATE_DYING and tis.has(type_idx[i]):
 			n += 1
 	return n
@@ -3722,7 +3809,7 @@ func load_of(id: String) -> float:
 	if tis.is_empty():
 		return 0.0
 	var load := 0.0
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 1 and state[i] != STATE_DYING and tis.has(type_idx[i]):
 			load += float(types[type_idx[i]].get("share", 1.0))
 	return load
@@ -3751,7 +3838,7 @@ func tether_pull(i: int, ppos: Vector3, length: float) -> float:
 ## Whether the Gravity Gun may take creature `i` (pass 35): an ordinary creature on its feet; never a boss, an Elite,
 ## an elite-modded one, a special (EnemyDef.can_be_grabbed false: the rocketeer, the harpooner) or one already held.
 func grabbable(i: int) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return false
 	if lift_t[i] > 0.0 or i == boss_index or elite_idx[i] >= 0 or i == tethered_i:
 		return false
@@ -3804,7 +3891,7 @@ func drag_radius(center: Vector3, r: float, speed_mps: float, delta: float) -> v
 
 ## Out of the grip, on the ground where the gun left it (pos), a little squashed from the landing.
 func release(i: int) -> void:
-	if i < 0 or i >= MAX:
+	if i < 0 or i >= pool_max:
 		return
 	held[i] = 0
 	lift_h[i] = 0.0
@@ -3837,7 +3924,7 @@ func position_of(i: int) -> Vector3:
 
 
 func is_alive(i: int) -> bool:
-	return i >= 0 and i < MAX and alive[i] == 1 and state[i] != STATE_DYING
+	return i >= 0 and i < pool_max and alive[i] == 1 and state[i] != STATE_DYING
 
 
 ## Pass 106 (lane ENDLESS; Garry: "Increase the movement speed of enemies more dramatically and also apply the speed
@@ -3852,8 +3939,8 @@ var e_speed := PackedFloat32Array()
 
 
 func _endless_speed_arrays() -> void:
-	if e_speed.size() != MAX:
-		e_speed.resize(MAX)
+	if e_speed.size() != pool_max:
+		e_speed.resize(pool_max)
 		e_speed.fill(1.0)
 
 
@@ -3868,7 +3955,7 @@ func set_endless_speed(m: float) -> int:
 	m = maxf(m, 0.01)
 	endless_speed_live = m
 	var n := 0
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] != 1 or state[i] == STATE_DYING:
 			continue
 		if i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
@@ -3880,6 +3967,85 @@ func set_endless_speed(m: float) -> int:
 		e_speed[i] = m
 		n += 1
 	return n
+
+
+## The arena's freeze (pass 110, crowd_freeze): one living creature's tick while the crowd is frozen. It finishes coming
+## up out of the sand where it stands; a wind-up, a charge or a scripted attack is let go (it stands); its push and its
+## walk are dropped every tick; its flash and squash settle; it turns to face the hero (_face_toward) and, in
+## FREEZE_WALK, its legs go at its walk's pace; its burns and poisons tick on.
+func _frozen_tick(i: int, ti: int, delta: float) -> void:
+	vel[i] = Vector3.ZERO
+	kb[i] = Vector3.ZERO
+	intent[i] = Vector3.ZERO
+	flash[i] = maxf(flash[i] - delta * 6.0, 0.0)
+	if state[i] == STATE_SPAWN:
+		timer[i] -= delta
+		squash[i] = lerp(squash[i], 1.0, delta * 10.0)
+		_tick_emerge(i, delta)
+		if timer[i] <= 0.0:
+			state[i] = STATE_MOVE
+	else:
+		if state[i] != STATE_MOVE:
+			state[i] = STATE_MOVE
+			charge_dir[i] = Vector3.ZERO
+		squash[i] = lerp(squash[i], 1.0, delta * 10.0)
+		if rise_t[i] < 1.0 and rise_v[i] >= 0.0:
+			_tick_rise(i, delta)
+	if view_t[i] > 0.0:
+		view_t[i] -= delta
+	if player:
+		_face_toward(i, ti, player.global_position - pos[i])
+	if crowd_freeze == FREEZE_WALK:
+		var run_fps: float = _t_run_fps[ti]
+		anim_t[i] += delta * (run_fps if run_fps > 0.0 else 10.0) * maxf(pace, 0.3)
+	_tick_poison(i, delta)
+	if alive[i] == 0:
+		return
+	_tick_fire(i, delta)
+
+
+## Creature `i` (of type `ti`) turned to face along `face` (pass 110, the arena's freeze): the physics tick's own choice
+## of view and mirror for a heading (an eight-direction creature's five views with their hysteresis and VIEW_MIN, the
+## mirror's dead band, a plain one's back set), kept apart so a run's tick is untouched.
+func _face_toward(i: int, ti: int, face: Vector3) -> void:
+	face.y = 0.0
+	if face.length_squared() <= 0.04:
+		return
+	var len := face.length()
+	var cf := _cf_tick
+	if _t_eight[ti] == 1:
+		var cr := Vector3(-cf.z, 0, cf.x)
+		var right := face.dot(cr)
+		var a := absf(atan2(right, face.dot(cf)))
+		var want := 0
+		if a < PI * 0.125:
+			want = 1
+		elif a < PI * 0.375:
+			want = 3
+		elif a < PI * 0.625:
+			want = 2
+		elif a < PI * 0.875:
+			want = 4
+		var cur := int(view[i])
+		if want != cur:
+			if a >= float(VIEW_LO[cur]) - VIEW_HYST and a <= float(VIEW_HI[cur]) + VIEW_HYST:
+				want = cur
+			elif view_t[i] > 0.0:
+				want = cur
+			else:
+				view_t[i] = VIEW_MIN
+		view[i] = want
+		if right < -FLIP_BAND * len:
+			flip[i] = 1
+		elif right > FLIP_BAND * len:
+			flip[i] = 0
+	else:
+		if face.x < -FLIP_BAND * len:
+			flip[i] = 1
+		elif face.x > FLIP_BAND * len:
+			flip[i] = 0
+		var fwd := face.dot(cf)
+		away[i] = 1 if fwd > len * 0.2 else (0 if fwd < -len * 0.2 else away[i])
 
 
 # ---------------------------------------------------------------- simulation
@@ -3922,7 +4088,7 @@ func _physics_process(delta: float) -> void:
 	var crowd_hp := 0.0
 	var crowd_n := 0
 	var poisoned := 0
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 0:
 			continue
 		var ti := type_idx[i]
@@ -3950,6 +4116,10 @@ func _physics_process(delta: float) -> void:
 			anim_t[i] += delta * 20.0
 			flash[i] = max(flash[i] - delta * 3.0, 0.0)
 			squash[i] = lerp(squash[i], 1.0, delta * 6.0)
+			continue
+		if crowd_freeze != 0:
+			# pass 110 (lane ARENA): the arena's freeze, a tick of its own (_frozen_tick)
+			_frozen_tick(i, ti, delta)
 			continue
 		if lift_t[i] > 0.0 and _launch_of(i):
 			# pass 69: Alley-Oop's launch, its own flight (no brain, no bite) and its landing's damage
@@ -4183,11 +4353,13 @@ func _physics_process(delta: float) -> void:
 			player.take_damage(touch, pos[i], binfo)
 	_mean_max_hp = crowd_hp / float(crowd_n) if crowd_n > 0 else 0.0
 	Run.poisoned_alive = poisoned
-	_update_boss(delta, ppos)
-	# pass 73 (lane SNIPER): the Saiga Snipers' aims, locks and shots
-	_tick_snipers(delta, ppos)
-	# pass 95 (lane BOSS): the Scorpion Elite's tail beams, after the Saiga's (SniperFx.begin() ran in _tick_snipers)
-	_tick_tails(delta, ppos)
+	# pass 110 (lane ARENA): a frozen crowd's scripts, aims and beams wait with it
+	if crowd_freeze == 0:
+		_update_boss(delta, ppos)
+		# pass 73 (lane SNIPER): the Saiga Snipers' aims, locks and shots
+		_tick_snipers(delta, ppos)
+		# pass 95 (lane BOSS): the Scorpion Elite's tail beams, after the Saiga's (SniperFx.begin() ran in _tick_snipers)
+		_tick_tails(delta, ppos)
 	# the burrows' mounds swell with their wind-ups (pass 60), after the runner has moved the timers
 	_tick_mounds()
 	_ticks += 1
@@ -5004,7 +5176,7 @@ var _fooled: Dictionary = {}         # index -> its spawn serial when it was foo
 
 ## Whether creature `i` can be fooled: alive, up, not dying, not buried, never a boss (Elites are fooled too).
 func foolable(i: int) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] != 0:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] != 0:
 		return false
 	if i == boss_index:
 		return false
@@ -5067,7 +5239,7 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_stomps(delta, ppos)
 	if boss_index >= 0:
 		_update_attacks(boss_index, delta, ppos)
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 1 and i != boss_index:
 			var adef: EnemyDef = types[type_idx[i]]["def"]
 			# casters live by their script; any other Elite with one runs it between whatever its brain does. The script
@@ -5218,7 +5390,8 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					var bn := brood_numbers(bid)
 					# pass 73 (lane GROUND): a summon is never a variance special
 					force_plain = true
-					spawn_ring(bid, int(atk.get("count", 10)), pos[i], 5.0, "", bn["stats"], bn["src"])
+					# pass 110 (lane BOSS): never past the map's hard cap (summon_count)
+					spawn_ring(bid, summon_count(int(atk.get("count", 10))), pos[i], 5.0, "", bn["stats"], bn["src"])
 					force_plain = false
 					state[i] = STATE_MOVE
 				"slam_at":
@@ -5478,7 +5651,7 @@ func _badge_mm(kind: String) -> MultiMesh:
 
 ## The badge a creature wears right now ("" for none): its type's (an elite modifier never adds one).
 func badge_of(i: int) -> String:
-	if i < 0 or i >= MAX or alive[i] == 0:
+	if i < 0 or i >= pool_max or alive[i] == 0:
 		return ""
 	return str(types[type_idx[i]]["badge"])
 
@@ -5507,6 +5680,9 @@ func _strip_of(i: int, t: int) -> int:
 	# shoving it is no walk)
 	var mv: Vector3 = intent[i] if _t_faces[t] == 1 else vel[i]
 	var move := A_IDLE if st == STATE_SPAWN or mv.length_squared() < 0.04 else A_RUN
+	# pass 110 (lane ARENA): the arena's freeze walks in place
+	if crowd_freeze == FREEZE_WALK and st == STATE_MOVE:
+		move = A_RUN
 	var a := move
 	if st == STATE_DYING:
 		a = A_DIE
@@ -5859,7 +6035,7 @@ func _render() -> void:
 	var vp := get_viewport()
 	var eye_cam: Camera3D = vp.get_camera_3d() if vp else null
 	var eye: Vector3 = eye_cam.global_position if eye_cam else Vector3.INF
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 0 or hidden[i] == 1:
 			continue
 		# pass 101 (lane CROWD): only what the camera can see (refresh_drawn), its shadow and badge with it
@@ -5968,7 +6144,7 @@ func _render() -> void:
 			mm.set_instance_color(counters[t], Color(1, 1, 1, 0))
 			counters[t] += 1
 		types[t]["mm"].visible_instance_count = counters[t]
-	if _warm_at != Vector3.INF and shadow_n < MAX:
+	if _warm_at != Vector3.INF and shadow_n < pool_max:
 		# one shadow in the warm-up pit too, so its blend shader compiles behind the spawn beam (pass 47)
 		_shadow_mm.set_instance_transform(shadow_n, Transform3D(Basis().scaled(Vector3(0.5, 1, 0.3)), _warm_at))
 		shadow_n += 1
@@ -6007,7 +6183,7 @@ func set_target_priority(cfg: Dictionary) -> void:
 ## Whether creature `i` is one the weapons take first (pass 73): a coloured variance special, a gear-badge special (the
 ## Vulture Raider, the harpooner, the Saiga Sniper), an Elite (by its kind, or wearing an elite modifier) or the boss.
 func is_priority(i: int) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0:
+	if i < 0 or i >= pool_max or alive[i] == 0:
 		return false
 	_grow_prio()
 	return vspecial[i] == 1 or elite_idx[i] >= 0 or i == boss_index or _t_prio[type_idx[i]] == 1
@@ -6073,7 +6249,7 @@ func _priority_list() -> PackedInt32Array:
 	_prio_serial = _serial
 	_grow_prio()
 	_prio_list.clear()
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 0 or state[i] == STATE_DYING:
 			continue
 		if vspecial[i] == 1 or elite_idx[i] >= 0 or i == boss_index or _t_prio[type_idx[i]] == 1:
@@ -6109,7 +6285,7 @@ func _on_hit_reactions(i: int, def: EnemyDef, dealt: float, tick: bool) -> void:
 ## `seconds` it runs straight away from the hero at its speed x `speed_mult` (_flee_steer), its brain idle. A new hit
 ## starts the clock again (the run is never faster). Never a boss, nor one held, buried or in the air. True when it runs.
 func flee_start(i: int, def: EnemyDef = null) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return false
 	if def == null:
 		def = types[type_idx[i]]["def"]
@@ -6452,7 +6628,7 @@ func _sniper_fire(i: int, def: EnemyDef, s: Dictionary) -> void:
 	var push := float(bm.get("push", 3.0))
 	var side := Vector3(-dir.z, 0.0, dir.x)
 	var hit := PackedInt32Array()
-	for j in range(MAX):
+	for j in range(pool_max):
 		if j == i or alive[j] == 0 or state[j] == STATE_DYING or hidden[j] == 1 or held[j] == 1:
 			continue
 		if beam_distance(pos[j], from, dir, length) <= half + radius[j]:
@@ -7811,7 +7987,7 @@ func mirror_factor(big: bool, what: String) -> float:
 
 ## The attack factor creature `i` carries (its kind's: host_of multiplies every hit it throws by it).
 func _mirror_attack_of(i: int) -> float:
-	if i < 0 or i >= MAX or type_idx[i] < 0 or type_idx[i] >= types.size():
+	if i < 0 or i >= pool_max or type_idx[i] < 0 or type_idx[i] >= types.size():
 		return 1.0
 	return mirror_factor(MirrorDanger.is_big(types[type_idx[i]]["def"]), "attack")
 
@@ -7850,9 +8026,9 @@ func despawn_enabled() -> bool:
 ## spawn() calls it last: the creature's birth on the despawn clock and its summoned flag (sized here, lazily, so the
 ## pools' resize block is not touched).
 func _despawn_note_spawn(i: int) -> void:
-	if spawn_at.size() != MAX:
-		spawn_at.resize(MAX)
-		summoned.resize(MAX)
+	if spawn_at.size() != pool_max:
+		spawn_at.resize(pool_max)
+		summoned.resize(pool_max)
 	spawn_at[i] = _despawn_clock
 	summoned[i] = 1 if force_plain else 0
 
@@ -7873,7 +8049,7 @@ func age_of(i: int) -> float:
 func can_despawn(i: int, ppos: Vector3) -> bool:
 	if not despawn_kind(i):
 		return false
-	if onscreen.size() == MAX and onscreen[i] == 1:
+	if onscreen.size() == pool_max and onscreen[i] == 1:
 		return false
 	if age_of(i) < float(despawn_cfg.get("grace", WaveTimeline.DESPAWN_DEFAULTS["grace"])):
 		return false
@@ -7887,7 +8063,7 @@ func can_despawn(i: int, ppos: Vector3) -> bool:
 ## can_despawn says), whatever its distance, screen or age. WaveDirector._cull_behind leaves these to the rule and moves
 ## up only the others, as it did before pass 95.
 func despawn_kind(i: int) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return false
 	if i == boss_index or elite_idx[i] >= 0 or vspecial[i] == 1 or held[i] == 1 or undying[i] == 1 or i == tethered_i:
 		return false
@@ -7899,7 +8075,7 @@ func despawn_kind(i: int) -> bool:
 	var def: EnemyDef = types[ti]["def"]
 	if def.archetype == "boss" or def.archetype == "elite":
 		return false
-	if summoned.size() == MAX and summoned[i] == 1 and boss_index >= 0:
+	if summoned.size() == pool_max and summoned[i] == 1 and boss_index >= 0:
 		return false
 	return true
 
@@ -7909,7 +8085,8 @@ func despawn_kind(i: int) -> bool:
 ## rolled only when the share is above 0, so the run's sequence never moves at the default). How many went.
 func _tick_despawn(delta: float, ppos: Vector3) -> int:
 	_despawn_clock += delta
-	if not despawn_enabled():
+	# pass 110 (lane ARENA): a frozen crowd (the arena's screenshot) never despawns
+	if not despawn_enabled() or crowd_freeze != 0:
 		return 0
 	_despawn_t -= delta
 	if _despawn_t > 0.0:
@@ -7917,7 +8094,7 @@ func _tick_despawn(delta: float, ppos: Vector3) -> int:
 	_despawn_t = maxf(float(despawn_cfg.get("every", WaveTimeline.DESPAWN_DEFAULTS["every"])), 0.05)
 	var keep := clampf(float(despawn_cfg.get("keep_share", 0.0)), 0.0, 1.0)
 	var n := 0
-	for i in range(MAX):
+	for i in range(pool_max):
 		if alive[i] == 0 or not can_despawn(i, ppos):
 			continue
 		if keep > 0.0 and _rng.randf() < keep:
@@ -7930,7 +8107,7 @@ func _tick_despawn(delta: float, ppos: Vector3) -> int:
 ## Creature `i` vanishes, leaving nothing: no death, no drops, no kill, no corpse (the opposite of _die); the live
 ## counts drop in _free as for a death. True when it went.
 func despawn(i: int) -> bool:
-	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING:
 		return false
 	var def: EnemyDef = types[type_idx[i]]["def"]
 	held[i] = 0
@@ -8332,7 +8509,7 @@ func beam_hit(i: int, from: Vector3, dir: Vector3, length: float, width: float, 
 	var push := float(bm.get("push", 3.0))
 	var side := Vector3(-dir.z, 0.0, dir.x)
 	var hit := PackedInt32Array()
-	for j in range(MAX):
+	for j in range(pool_max):
 		if j == i or alive[j] == 0 or state[j] == STATE_DYING or hidden[j] == 1 or held[j] == 1:
 			continue
 		if beam_distance(pos[j], from, dir, length) <= half + radius[j]:
@@ -8464,7 +8641,7 @@ func fire_puff_every() -> float:
 
 ## Whether creature `i`'s flame or poison puff would be seen (fire_fx_full 0: always, as before).
 func _status_fx_seen(i: int) -> bool:
-	return fire_fx_full <= 0 or drawn_vis.size() != MAX or drawn_vis[i] == 1
+	return fire_fx_full <= 0 or drawn_vis.size() != pool_max or drawn_vis[i] == 1
 
 
 ## End of a physics tick: the burning count for the next tick's flames, and the probe's timings into Perf.
@@ -8508,19 +8685,19 @@ var _poison_min := PackedFloat64Array()
 
 
 func _lazy_ready() -> void:
-	if _fire_pn.size() == MAX:
+	if _fire_pn.size() == pool_max:
 		return
-	_fire_pn.resize(MAX); _fire_pn.fill(0)
-	_fire_pd.resize(MAX); _fire_pd.fill(0.0)
-	_fire_min.resize(MAX); _fire_min.fill(0.0)
-	_poison_pn.resize(MAX); _poison_pn.fill(0)
-	_poison_pd.resize(MAX); _poison_pd.fill(0.0)
-	_poison_min.resize(MAX); _poison_min.fill(0.0)
+	_fire_pn.resize(pool_max); _fire_pn.fill(0)
+	_fire_pd.resize(pool_max); _fire_pd.fill(0.0)
+	_fire_min.resize(pool_max); _fire_min.fill(0.0)
+	_poison_pn.resize(pool_max); _poison_pn.fill(0)
+	_poison_pd.resize(pool_max); _poison_pd.fill(0.0)
+	_poison_min.resize(pool_max); _poison_min.fill(0.0)
 
 
 ## Creature `i`'s burns and poisons with every owed tick paid: their "t" as the eager clocks would have them now.
 func status_clocks_now(i: int) -> void:
-	if i < 0 or i >= MAX:
+	if i < 0 or i >= pool_max:
 		return
 	_fire_flush(i)
 	_poison_flush(i)

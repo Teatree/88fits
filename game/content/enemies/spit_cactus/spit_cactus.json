@@ -16,7 +16,7 @@
     "small": 1.0,
     "medium": 0.25,
     "gold": 0.05,
-    "chest": 0.007
+    "chest": 0.0002
   },
   "anims": {
     "idle": 4,
@@ -99,11 +99,11 @@
       "#FFE68A"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.0333,
+    "special_chance": 0.0111,
     "special": {
       "size": 1.5,
       "hp": 15.0,
-      "damage": 2.0,
+      "damage": 3.5,
       "xp": 3.0,
       "tint": "#5E2080",
       "tint_strength": 0.6

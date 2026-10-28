@@ -330,6 +330,8 @@ func _show(delta: float) -> void:
 	# pass 109: the particles follow his face and his facing (BreathFlames)
 	if _flames:
 		_flames.follow(at, d)
+		# pass 110 (lane VFX): behind him while the camera sees his back
+		_flames.set_behind(flames_behind())
 	_wash_t -= delta
 	if _wash_t <= 0.0:
 		_wash_t = WASH_EVERY
@@ -352,6 +354,15 @@ func _flames_start() -> void:
 		_flames = BreathFlames.make(game)
 	_flames.start(stat("range", 5.0), 360.0 if _ring else cone_deg(), _ring, blue(), intensity())
 	_flames.follow(origin(), dir())
+	_flames.set_behind(flames_behind())
+
+
+## Pass 110 (lane VFX): whether the fire draws behind the hero: while the camera sees his back (his back and
+## back-diagonal views, Player.faces_away), never for a ring (Held Breath's fire all round him stays over him).
+func flames_behind() -> bool:
+	if _ring or player == null or not player.has_method("faces_away"):
+		return false
+	return bool(player.faces_away())
 
 
 ## The particles (tests and the capture; null before the first breath).

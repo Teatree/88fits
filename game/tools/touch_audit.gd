@@ -1495,6 +1495,8 @@ func _in_game() -> void:
 				a.arena_panel._refresh()
 				await _wait(0.4)
 				await _arena_dummies(a.arena_panel)
+				# pass 110 (lane ARENA): the screenshot controls under real fingers
+				await _arena_shots(a.arena_panel)
 			# the HERO tab's heroes and looks under real fingers (pass 55); on its own (only=arena_hero) its controls are
 			# audited first, as the tab loop above does in a whole run
 			if _want("arena_hero"):
@@ -2083,6 +2085,80 @@ func _hero_tab(panel) -> void:
 
 
 ## The button with `text` in the WORLD tab's row called `row_name` (pass 49), else null.
+## Pass 110 (lane ARENA): arena_shots (run with arena): the screenshot controls under real fingers. On the SHOTS tab a
+## creature's chip picks it and Scatter sets the layout; in the quick column ½ and ¼ and 1x set the game's speed, FREEZE
+## freezes the crowd and lets it go, FRAME frames the hero and lets go, HIDE UI hides the HUD and the column, and a tap on
+## the invisible top-left corner brings them back. Everything is put back after.
+func _arena_shots(panel) -> void:
+	var g = panel.game
+	panel.open()
+	panel._tab = "shots"
+	panel._refresh()
+	await _wait(0.4)
+	var chip: Button = panel._sheet.find_child("Crowd_lesser_scorpion", true, false) as Button
+	var had: bool = panel._crowd_pick.has("lesser_scorpion")
+	if chip == null:
+		_count("arena_shots", false)
+		_fail("arena_shots", "Crowd_lesser_scorpion", "no chip on SHOTS")
+	else:
+		await _tap(await _spot(chip))
+		await _wait(0.3)
+		var ok_pick: bool = panel._crowd_pick.has("lesser_scorpion") != had
+		_count("arena_shots", ok_pick)
+		if not ok_pick:
+			_fail("arena_shots", "Crowd_lesser_scorpion", "the tap did not pick it")
+	var lay := _row_button(panel, "CrowdLayout", "Scatter")
+	if lay == null:
+		_count("arena_shots", false)
+		_fail("arena_shots", "CrowdLayout Scatter", "not on SHOTS")
+	else:
+		await _tap(await _spot(lay))
+		await _wait(0.3)
+		_count("arena_shots", str(panel._crowd_layout) == "scatter")
+		if str(panel._crowd_layout) != "scatter":
+			_fail("arena_shots", "CrowdLayout Scatter", "the layout is %s" % str(panel._crowd_layout))
+	panel._crowd_layout = "ring"
+	if panel._crowd_pick.has("lesser_scorpion") != had:
+		panel.toggle_crowd("lesser_scorpion")
+	panel.close()
+	await _wait(0.3)
+	# the quick column: [button name, what must hold after the tap, its words]
+	var checks: Array = [
+		["Speed_2", func() -> bool: return is_equal_approx(Engine.time_scale, 0.5), "half speed"],
+		["Speed_4", func() -> bool: return is_equal_approx(Engine.time_scale, 0.25), "quarter speed"],
+		["Speed_1", func() -> bool: return is_equal_approx(Engine.time_scale, 1.0), "full speed"],
+		["FreezeButton", func() -> bool: return int(g.enemies.crowd_freeze) != 0, "frozen"],
+		["FreezeButton", func() -> bool: return int(g.enemies.crowd_freeze) == 0, "let go"],
+		["FrameButton", func() -> bool: return float(g.camera.frame_hero_y) > 0.0, "framed"],
+		["FrameButton", func() -> bool: return float(g.camera.frame_hero_y) < 0.0, "framing off"],
+		["HideButton", func() -> bool: return bool(g.hud.clean_hidden) and not panel._col.visible and panel._corner.visible, "hidden"],
+	]
+	for spec in checks:
+		var b: Button = panel._col.find_child(str(spec[0]), true, false) as Button
+		if b == null or not _visible_in_tree(b):
+			_count("arena_shots", false)
+			_fail("arena_shots", str(spec[0]), "not in the quick column")
+			continue
+		await _tap(await _spot(b))
+		await _wait(0.2)
+		var ok: bool = (spec[1] as Callable).call()
+		_count("arena_shots", ok)
+		if not ok:
+			_fail("arena_shots", str(spec[0]), "the tap did not leave it %s" % str(spec[2]))
+	# the corner brings everything back
+	if panel._corner.visible:
+		await _tap(await _spot(panel._corner))
+		await _wait(0.2)
+	var back: bool = not bool(g.hud.clean_hidden) and panel._col.visible and not panel._corner.visible
+	_count("arena_shots", back)
+	if not back:
+		_fail("arena_shots", "ShowControls", "a tap on the top-left corner did not bring the controls back")
+	panel.set_speed(1.0)
+	panel.set_freeze(0)
+	panel.set_framing(false)
+	panel.set_clean(false)
+
+
 func _row_button(panel, row_name: String, text: String) -> Button:
 	var row: Node = panel._sheet.find_child(row_name, true, false)
 	if row == null:

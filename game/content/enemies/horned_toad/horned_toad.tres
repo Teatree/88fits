@@ -14,7 +14,7 @@ radius = 0.55
 size = 1.3
 pack_size = 2
 drops = {
-"chest": 0.005,
+"chest": 0.0002,
 "gold": 0.06,
 "medium": 0.8,
 "small": 0.4
@@ -53,14 +53,14 @@ xp_mult = 3.5
 variance = {
 "size": 0.15,
 "special": {
-"damage": 2.0,
+"damage": 3.5,
 "hp": 15.0,
 "size": 1.5,
 "tint": "#3A2A8A",
 "tint_strength": 0.6,
 "xp": 3.0
 },
-"special_chance": 0.0267,
+"special_chance": 0.0089,
 "speed": 0.12,
 "tint_strength": 0.22,
 "tints": ["#FFFFFF", "#FFD6A0", "#D0C0A0", "#E0A070"]

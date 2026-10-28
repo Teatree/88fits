@@ -31,7 +31,7 @@ favourite_bonus = {
 }
 start_weapon = "gravity_gun"
 availability = "purchase"
-price = 300
+price = 1500
 sprite_path = "res://content/characters/astro/astro_sprite.png"
 sprite_file = "astro_sprite.png"
 anims = {

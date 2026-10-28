@@ -47,7 +47,7 @@ momentum = {
 "speed_bonus": 0.8
 }
 availability = "purchase"
-price = 2000
+price = 3500
 sprite_path = "res://content/characters/buck/buck_sprite_f.png"
 sprite_file = "buck_sprite_f.png"
 anims = {

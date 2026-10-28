@@ -89,10 +89,12 @@ func test_the_prices_climb_with_the_title_order() -> void:
 			continue
 		assert_int(c.price).override_failure_message("%s %d after %d" % [c.id, c.price, last]).is_greater_equal(last)
 		last = c.price
-	# the two sold for gold alone are the cheapest
+	# the two sold for gold alone are the cheapest (pass 110, lane ECON, re-pinned: cheaper than every hero behind a
+	# requirement; they no longer share one price, the ladder is 500 x the title place)
 	for id: String in MONEY_ONLY:
 		for c: CharacterDef in _locked_heroes():
-			assert_int(_hero(id).price).override_failure_message(c.id).is_less_equal(c.price)
+			if not MONEY_ONLY.has(c.id):
+				assert_int(_hero(id).price).override_failure_message(c.id).is_less_equal(c.price)
 
 
 func test_a_save_that_freed_ironwood_by_his_old_quest_keeps_him() -> void:

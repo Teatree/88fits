@@ -11,13 +11,21 @@
   "radius": 0.45,
   "size": 1.15,
   "blood": "#C8141E",
+  "shadow": {
+    "scale": [
+      1.35,
+      1.5
+    ],
+    "up": 0.3,
+    "drop": 0.065
+  },
   "pack_size": 6,
   "cap_share": 0.5,
   "drops": {
     "small": 1.0,
     "medium": 0.15,
     "gold": 0.03,
-    "chest": 0.003
+    "chest": 0.0002
   },
   "frame_px": 160,
   "xp_mult": 2.6,
@@ -44,11 +52,11 @@
       "#E8B888"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.02,
+    "special_chance": 0.0067,
     "special": {
       "size": 1.5,
       "hp": 15.0,
-      "damage": 2.0,
+      "damage": 3.5,
       "xp": 3.0,
       "tint": "#5A3A2A",
       "tint_strength": 0.55

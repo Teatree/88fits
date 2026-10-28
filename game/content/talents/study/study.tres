@@ -23,7 +23,7 @@ target = "player"
 script = ExtResource("2_befde")
 order = 5
 ranks = 6
-cost = [400.0, 720.0, 1200.0, 1800.0, 2600.0, 3600.0]
+cost = [400.0, 1600.0, 3600.0, 6400.0, 10000.0, 14400.0]
 forms = [{
 "effects": [SubResource("Resource_lpptv")],
 "icon": ExtResource("2_lpptv"),
