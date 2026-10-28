@@ -77,10 +77,10 @@
 ## the HUD's clock at the stage's own 00:00). portal_expire (run with portal): the stage clear's countdown running out
 ## closes it by itself (`expired`, no decision); endless_banner (run with hud): Endless shows its banner and the clock's
 ## WAVE tag, and a finger on the tag still pauses (the strip takes it).
-## Pass 111 (lane WANTED): wanted (run alone with only=wanted): with a finished run behind the save, PLAY and a stage's card
-## open the Bounty Board; its posters and buttons answer a finger; a real tap picks a poster, TAKE IT and No bounty make
-## their choice, the back square goes to the Stages menu, and a real No bounty starts the run. stages_play taps No bounty
-## when the board comes between the card and the run.
+## Pass 112 (lane WANTED): wanted (run alone with only=wanted): the floating Wanted posters over a run (the launch's
+## `bounty_board`): the three posters and No bounty answer a finger (muted); a real tap on a poster takes it (stamped,
+## flown into the HUD's bounty plate, the contract running, the run going on); in a second run a real No bounty blows
+## them away (no contract, the run going on). Pass 111's full-screen board before the run is gone.
 ## Pass 106 (lane DRUM): drum: the War Drum used in the run stops time for its moment; real taps on the drum, the dim and
 ## the pause disc while it plays are swallowed (nothing opens, the moment plays on, the run stays paused); it ends by
 ## itself and the run goes on; the HUD shows the boost's plate with its seconds (a finger on it opens nothing).
@@ -541,7 +541,7 @@ func _run() -> void:
 	if _want("stages") or _want("stages_play"):
 		await _stages_menu()
 	if _want("wanted"):
-		await _wanted_board()
+		await _bounty_posters()
 	await _in_game()
 	_report()
 
@@ -1912,14 +1912,6 @@ func _stages_menu() -> void:
 		else:
 			var at2: Vector2 = await _spot(c2)
 			await _tap(at2)
-			# pass 111 (lane WANTED): a save that has finished a run meets the Bounty Board first: "No bounty" for real
-			await _wait(0.9)
-			if current_scene and current_scene.scene_file_path == "res://ui/WantedBoardScreen.tscn":
-				var nb: Control = current_scene.find_child("NoBounty", true, false)
-				if nb:
-					await _tap(nb.get_global_rect().get_center())
-				else:
-					_fail("stages_play", "No bounty", "the Bounty Board has no No bounty button")
 			var w := 0.0
 			while w < 8.0 and not (current_scene and current_scene.scene_file_path == "res://game/Game.tscn" and current_scene.get("hud") != null):
 				await _wait(0.2)
@@ -1949,100 +1941,59 @@ func _stages_menu() -> void:
 	save.flush()
 
 
-## Pass 111 (lane WANTED): the Bounty Board under real fingers (run with only=wanted). A save that has finished a run, stage
-## 1 beaten: PLAY on the title, then Stage 1's card on the Stages menu, opens the board; its three posters, TAKE IT, No
-## bounty and the back square are audited (muted); a real tap on a poster picks it (the brass ring, TAKE IT open); a real
-## TAKE IT and a real No bounty each make their choice (held on the screen); the back square goes to the Stages menu; and
-## a real No bounty from a fresh board starts the run. The save's totals, stages, boards, hero and map go back after.
-func _wanted_board() -> void:
+## Pass 112 (lane WANTED): the floating Wanted posters under real fingers (see the header). The save's boards go back.
+func _bounty_posters() -> void:
 	var save = root.get_node("Save")
-	var keep := {"totals": (save.data.get("totals", {}) as Dictionary).duplicate(true), "stages": (save.data.get("stages_beaten", {}) as Dictionary).duplicate(true),
-		"wanted": save.data.get("wanted"), "hero": save.data.get("last_character"), "map": save.data.get("last_map")}
-	save.data["totals"]["runs"] = maxi(int(save.data["totals"].get("runs", 0)), 2)
-	save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
-	save.data["last_map"] = "red_canyon"
-	save.data["last_character"] = "drifter"
-	change_scene_to_file("res://ui/TitleScreen.tscn")
-	await _wait(1.4)
-	var play: Control = current_scene.get("_play")
-	if play and not bool(play.get("locked")):
-		await _tap(play.get_global_rect().get_center())
-		await _wait(1.0)
-	if current_scene and current_scene.scene_file_path == "res://ui/StagesScreen.tscn":
-		for c in current_scene.call("cards"):
-			if int(c.get_meta("stage", -1)) == 0:
-				var at0: Vector2 = await _spot(c)
-				await _tap(at0)
-				break
-		await _wait(1.2)
-	var on_board: bool = current_scene != null and current_scene.scene_file_path == "res://ui/WantedBoardScreen.tscn"
-	_count("wanted", on_board)
-	if not on_board:
-		_fail("wanted", "PLAY", "a save with a finished run did not meet the Bounty Board before the run")
-		change_scene_to_file("res://ui/WantedBoardScreen.tscn")
-		await _wait(1.4)
-	var board = current_scene
-	board.set("hold_start", true)
-	await _audit("wanted", board)
-	var cards: Array = board.call("cards")
-	if cards.size() != 3:
-		_fail("wanted", "posters", "%d posters, not three" % cards.size())
-	if cards.size() >= 2:
-		var at1: Vector2 = await _spot(cards[1])
-		await _tap(at1)
-		await _wait(0.3)
-		var ok: bool = int(board.call("picked")) == 1 and bool(cards[1].get("selected")) and not bool(board.get("_take").get("locked"))
-		_count("wanted", ok)
-		if not ok:
-			_fail("wanted", _name_of(cards[1]), "a real tap did not pick the poster (or TAKE IT stayed shut)")
-	for spec in [["Take", "taken"], ["NoBounty", "none"]]:
-		board.set("chosen", "")
-		var b: Control = board.find_child(str(spec[0]), true, false)
-		if b == null:
-			_fail("wanted", str(spec[0]), "not found")
+	var keep_w = save.data.get("wanted")
+	for k in 2:
+		var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
+		f.store_string(JSON.stringify({"weapon": "revolver", "level": 1, "character": "drifter", "map": "red_canyon", "map_seed": 5, "bounty_board": true, "analytics": false}))
+		f.close()
+		change_scene_to_file("res://game/Game.tscn")
+		var w := 0.0
+		while w < 6.0 and not (current_scene and current_scene.get("bounty_posters") != null and current_scene.bounty_posters.visible):
+			await _wait(0.2)
+			w += 0.2
+		var g = current_scene
+		var bp = g.get("bounty_posters") if g else null
+		var up: bool = bp != null and bp.visible and bool(g.paused)
+		_count("wanted", up)
+		if not up:
+			_fail("wanted", "posters", "the floating posters did not come over the paused run")
 			continue
-		await _tap(b.get_global_rect().get_center())
-		await _wait(0.3)
-		var got := str(board.get("chosen"))
-		_count("wanted", got == str(spec[1]))
-		if got != str(spec[1]):
-			_fail("wanted", str(spec[0]), "a real tap made the choice '%s', not '%s'" % [got, spec[1]])
-	# the back square: the Stages menu (it opens for the map: stage 1 beaten)
-	var back: Control = board.get("header").get("back_button")
-	await _tap(back.get_global_rect().get_center())
-	await _wait(1.0)
-	var to_stages: bool = current_scene != null and current_scene.scene_file_path == "res://ui/StagesScreen.tscn"
-	_count("wanted", to_stages)
-	if not to_stages:
-		_fail("wanted", "back square", "a tap did not go back to the Stages menu")
-	# a real No bounty starts the run
-	root.get_node("Run").call("choose_stage", 0)
-	change_scene_to_file("res://ui/WantedBoardScreen.tscn")
-	await _wait(1.4)
-	var nb: Control = current_scene.find_child("NoBounty", true, false)
-	if nb:
-		await _tap(nb.get_global_rect().get_center())
-	var w := 0.0
-	while w < 8.0 and not (current_scene and current_scene.scene_file_path == "res://game/Game.tscn" and current_scene.get("hud") != null):
-		await _wait(0.2)
-		w += 0.2
-	var started: bool = current_scene != null and current_scene.scene_file_path == "res://game/Game.tscn"
-	_count("wanted", started)
-	if not started:
-		_fail("wanted", "No bounty", "a real tap did not start the run")
-	else:
-		current_scene.player.god = true
-		change_scene_to_file("res://ui/TitleScreen.tscn")
+		g.player.god = true
 		await _wait(1.0)
-	save.data["totals"] = keep["totals"]
-	save.data["stages_beaten"] = keep["stages"]
-	if keep["wanted"] == null:
+		var cards: Array = bp.cards()
+		if cards.size() != 3:
+			_fail("wanted", "posters", "%d posters, not three" % cards.size())
+		if k == 0:
+			await _audit("wanted", bp)
+			# a real tap on the second poster takes it
+			var at: Vector2 = await _spot(cards[mini(1, cards.size() - 1)])
+			await _tap(at)
+			await _wait(1.6)
+			var wr = g.get_node_or_null("WantedRun")
+			var ok: bool = str(bp.chosen) == "taken" and not bp.visible and wr != null and wr.plate() != null 				and is_instance_valid(wr.plate()) and wr.plate().modulate.a > 0.9 and not bool(g.paused)
+			_count("wanted", ok)
+			if not ok:
+				_fail("wanted", "a poster", "a real tap did not take it into the HUD plate and go on (chosen %s, contract %s, paused %s)" % [str(bp.chosen), str(wr != null), str(g.paused)])
+		else:
+			var nb: Control = bp.find_child("NoBounty", true, false)
+			if nb == null:
+				_fail("wanted", "No bounty", "not found")
+				continue
+			await _tap(nb.get_global_rect().get_center())
+			await _wait(1.0)
+			var none_ok: bool = str(bp.chosen) == "none" and not bp.visible and g.get_node_or_null("WantedRun") == null and not bool(g.paused)
+			_count("wanted", none_ok)
+			if not none_ok:
+				_fail("wanted", "No bounty", "a real tap did not blow the posters away and go on without a contract")
+	change_scene_to_file("res://ui/TitleScreen.tscn")
+	await _wait(1.0)
+	if keep_w == null:
 		save.data.erase("wanted")
 	else:
-		save.data["wanted"] = keep["wanted"]
-	save.data["last_character"] = keep["hero"]
-	save.data["last_map"] = keep["map"]
-	root.get_node("Run").set("stage_next", 0)
+		save.data["wanted"] = keep_w
 	save.request_save()
 	save.flush()
 

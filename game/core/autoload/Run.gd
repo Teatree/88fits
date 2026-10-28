@@ -2037,9 +2037,7 @@ func boss_chest_mutations() -> Array:
 ## the level-up's weights (pass 47: CardPool.weight_of, so luck and the level decay count here too), else a purse of
 ## gold. A boss's chest holds a path pick (boss_chest_mutations) while one is open.
 func chest_roll(boss: bool = false) -> Dictionary:
-	# pass 111 (lane CHEST): the chest type's own knobs, the map's chest_contents (WorldChests.CONTENT_DEFAULTS = today's)
-	var cc := WorldChests.contents_of(map.timeline.chest_contents if map != null and map.timeline != null else {}, boss)
-	if boss and bool(cc.get("mutation", true)):
+	if boss:
 		# the boss's chest holds a path pick: any mutation still open on any weapon held, the Stranger's loophole
 		var muts := boss_chest_mutations()
 		if not muts.is_empty():
@@ -2049,9 +2047,9 @@ func chest_roll(boss: bool = false) -> Dictionary:
 	if w:
 		var into: WeaponDef = Registry.weapon(w.def.evolves_into)
 		return {"type": "evolution", "id": into.id, "def": into, "src_id": w.def.id, "level_from": 0, "level_to": 1, "is_new": true}
-	var r := CardPool.pick_one(chest_candidates(float(cc["new_item_weight"])))
+	var r := CardPool.pick_one(chest_candidates())
 	if r.is_empty():
-		return {"type": "gold", "id": "", "def": null, "gold": int(cc["gold"]), "level_from": 0, "level_to": 0, "is_new": false}
+		return {"type": "gold", "id": "", "def": null, "gold": 50, "level_from": 0, "level_to": 0, "is_new": false}
 	return r
 
 
@@ -2061,12 +2059,10 @@ func chest_roll(boss: bool = false) -> Dictionary:
 ## A new passive item's weight in a chest, against the upgrades of what the hero holds (the lead's pass 47 call: at
 ## full weight new items took about three fifths of an early chest, where a chest has always mostly levelled the build;
 ## at 0.45 they take about two fifths).
-## Pass 111 (lane CHEST): the map's chest_contents `new_item_weight` sets it per chest type (chest_roll); this is the
-## game's default.
 const CHEST_NEW_MULT := 0.45
 
 
-func chest_candidates(new_mult: float = CHEST_NEW_MULT) -> Array:
+func chest_candidates() -> Array:
 	var out: Array = []
 	for wi in weapons:
 		if wi.def.is_evolution or wi.level >= wi.def.max_level or banished.has(wi.def.id):
@@ -2086,7 +2082,7 @@ func chest_candidates(new_mult: float = CHEST_NEW_MULT) -> Array:
 		if p.evolves_into != "" and passives.has(p.evolves_into):
 			continue
 		var c := {"type": "passive", "id": p.id, "def": p, "level_from": 0, "level_to": first_passive_level(p),
-			"is_new": true, "weight": CardPool.weight_of(p, 0) * new_mult}
+			"is_new": true, "weight": CardPool.weight_of(p, 0) * CHEST_NEW_MULT}
 		if is_favourite(p):
 			c["favourite"] = true
 		out.append(c)

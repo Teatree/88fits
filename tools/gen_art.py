@@ -1623,9 +1623,23 @@ def process(type_, folder, id_):
                                     {"subject": "the same creature, " + vname + " view", "view": None, "subjects_max": 1, "ref_h": figure_height(img)}, seed + k)
                 info["renders"][vname] = inf
                 v_cell = finish(v_img, cell, 0.86, True, None, CF, stand_h, CO)[0]
-                v_run = video_cycle(v_img, ak + "_walk_" + vname, motion + ", " + walk_prompt, seed + k, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, scale_mul=run_scale_of(d, vname))
+                v_run = None
+                if clip:
+                    # pass 112 (the Monk): a humanoid creature in eight directions walks every view on its OpenPose
+                    # driver (the driver's own side / bd / fd views; "pose_views" {view: driver} names another per view),
+                    # one sprite frame per driver frame like its front and back
+                    vdrv = str((d.get("pose_views") or {}).get(vname, clip))
+                    # "walk_seeds" {view: n} walks that view again on another seed (move its ai_anim folder aside first)
+                    wsd = seed + k + 1000 * int((d.get("walk_seeds") or {}).get(vname, 0))
+                    v_run = pose_cycle(v_img, ak + "_pose_" + vname, vdrv, vname, wsd, cell, base, motion, CF, CO,
+                                       negative_extra=str(d.get("anim_negative", "")), motion=str(d.get("gait", "walking in place on the spot like on a treadmill")),
+                                       scale_mul=run_scale_of(d, vname))
+                if v_run is None:
+                    v_run = video_cycle(v_img, ak + "_walk_" + vname, motion + ", " + walk_prompt, seed + k, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, scale_mul=run_scale_of(d, vname))
+                    kinds[vname] = "free" if v_run is not None else "procedural"
+                else:
+                    kinds[vname] = "pose"
                 info["clips"]["walk_" + vname] = v_run is not None
-                kinds[vname] = "free" if v_run is not None else "procedural"
                 views[suffix] = (v_cell, v_run)
         if clip and run_f and run_b and str(d.get("stand", "walk")) != "still":
             # a pose-driven walk stands, winds up, flinches and falls apart in the walk's own pose (the still may not

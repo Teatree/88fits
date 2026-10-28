@@ -335,8 +335,7 @@ func start(i: int) -> void:
 	Save.request_save()
 	# the live title's world was kept for the way back: a run builds its own (TitleScreen._leave_for_a_run)
 	load("res://ui/TitleStage.gd").forget()
-	# pass 111 (lane WANTED): the Bounty Board first once the save has finished a run (WantedBoard.run_scene)
-	go(WantedBoard.run_scene())
+	go("res://game/Game.tscn")
 
 
 ## A refused tap: the card shakes sideways and settles.

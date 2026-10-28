@@ -903,8 +903,7 @@ func _on_play() -> void:
 		return
 	Run.choose_stage(0)
 	_leave_for_a_run()
-	# pass 111 (lane WANTED): the Bounty Board first once the save has finished a run (WantedBoard.run_scene)
-	UiFx.go(get_tree(), WantedBoard.run_scene())
+	UiFx.go(get_tree(), "res://game/Game.tscn")
 
 
 ## A run starting lets the live look's world go (pass 52): the run builds its own map, and never carries two.

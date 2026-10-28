@@ -7115,6 +7115,9 @@ Tests: game/tests/pass110_boss_window_test.gd (9), tools/level_editor/selftest_B
 
 ### 54.CHEST Map chests every now and then, never seen arriving; a power-up out of a chest, left for the player to fetch
 
+**Reverted in pass 112** (Garry meant barrels): none of the rules below play any more; chests are as in pass 110. The
+same asks, for barrels: 55.BARREL.
+
 Garry: "Chests should respawn every now and then. They should also have a chance of a power up dropping from them. The
 power ups don't immediately get claimed and used by the hero. They jump far enough out for it to be a conscious decision
 for the Player. I should be able to set the frequency and content probabilities of both chest types on LevelEditor.
@@ -7420,3 +7423,234 @@ Astro, Calavera and Ironwood have one look each.
 
 Tests: game/tests/pass111_skins_test.gd (14); re-pinned pass81_prod_test (a hero keeps his played look and his skins);
 tools/touch_audit.gd hero_skins; tools/level_editor/selftest_SKINS111.py.
+
+## 55. Pass 112: the Monk, barrels instead of chests, floating Wanted posters, the breaking chain, the run that follows the hero's speed
+
+### 55.MONK The Monk: a squad that walks as one, stops as one and fires bright blue spheres as one (new creature, new rules)
+
+Garry: "New Bullet Hell Enemy - Monk ... they move at a group, meaning they all use the same direction logic, and try
+their best to keep the same distance from each other. Also they attack at the same time. They don't attack often, about
+half as often as Split Cactus, and ... they fully stop for 3 seconds when attacking. They run away like the Spit Cactus
+as well, but they do it all together. Same attack distance ... They spawn in groups of 10, 20 or 30 ... Projectile Shot -
+a bright, very noticeable blue energy sphere. Does not touch other enemies. The range of the projectile is about 25%
+further than that of Drifter's Revolver." Content: content/enemies/monk (brain `squad`, its `squad` block); code:
+core/systems/Squads.gd (the squads), core/systems/EnergyOrbs.gd + core/shaders/energy_orb.gdshader (the spheres). The
+Monk is on **no stage's roster**: Garry places it in the Level Editor.
+
+**The Monk's numbers** (content/enemies/monk/monk.json; every one Garry's to change there or in the Level Editor):
+- HP **14** (the Spit Cactus 18), walk **1.3** m/s (the cactus 1.15), bite and sphere damage **8** (the cactus's spit),
+  bite knockback 4.81, radius 0.55, size 1.85, blood "#CF1717". All of them grow with the stage, the HP/ATK curves, the
+  hero's level and the Stakes exactly as every creature's do.
+- Drops like a regular creature: a small gem always, a medium one 15%, a coin 3%, a chest 0.0002 (pass 110); XP x2.0
+  (the cactus x3.0: a squad is many monks).
+- Never an Elite (`can_be_elite` false), never a coloured special (`variance.special_chance` 0); a light size spread
+  (8%), no speed spread (a squad walks at one pace), pale tints (white, warm, lilac at 0.15).
+- `pack_size` 20 (the sizes' mean: what the Level Editor's charts and any spawn path that does not know squads use).
+
+**Squads (new rule).** Monks spawned together are one squad.
+- A roster row's draw brings **one whole squad**: its size drawn from `squad.sizes` **[10, 20, 30]** by `squad.weights`
+  **[1, 1, 1]** (a third each), or the row's own **Pack** when the row sets one. The spawn check's burst never cuts a
+  squad, and a squad takes the rest of that burst (one squad a draw). Whatever the row's pattern (scatter, single,
+  ring, in front), a squad comes as a pack at one spawn point, in its formation.
+- **Never a partial squad:** when the cap, the hard cap, the pool's free slots or the creature's max_alive cannot take the
+  drawn size, the squad comes as the largest of its sizes that fits (30 -> 20 -> 10); when not even 10 fits it **waits**
+  (the row sits out that burst). A row's own Pack never shrinks: it waits until it fits.
+- A waves row (pace waves / once) owes its `count`, else its Pack, else one drawn size; it pays one squad a spawn check
+  (at most 30 a squad: a count of 40 comes as 30 + 10), each squad whole or waiting as above.
+- A few paths that do not know squads still bring them in one piece: Endless waves (at most 12 a pack there), the
+  portal wave, the old `waves` list; and monks spawned one by one in the same moment (a ring with a ring radius, the
+  arena's swarm) join one squad when they stand within 8.5 m of its first monk, else start their own.
+- In the debug arena the ENEMY tab's "1" brings one squad of a drawn size; 5, 20 and 50 bring that many in squads of at
+  most 30 (50 = 30 + 20).
+- The Level Editor's Timeline charts count a continuous Monk row as one squad of its Pack (else 20) a draw.
+
+**How a squad moves (new rule).** One decision for the whole squad, made at its centre:
+- Its centre walks like a kiting Spit Cactus at the monks' walk: it **backs off** straight away from the hero while the
+  squad's **near edge** (the centre's distance less the formation's radius) is nearer than **5.5 - 0.5 = 5 m**, **walks
+  in** while the near edge is farther than **8 m**, and **stands** in between (`keep_distance` 5.5, `range` 8: the
+  cactus's numbers; `band_from` "center" measures from the middle instead). A 20-squad's radius is about 3.5 m, so its
+  middle stands about 8.5 to 11.5 m off the hero and its far side about 15 m.
+- Every monk keeps its own slot of a round hex formation **1.4 m** between neighbours (`spacing`) round the centre; it
+  steers to its slot at the squad's walk plus **2.5 x** the gap (`gain`), at most **1.5 x** its own walk (`catch_up`).
+  When monks die the formation is made again for those left (the middle slots first, each to the nearest monk): it
+  shrinks and closes up.
+- They all face where the squad walks (backing off they turn their backs on the hero and walk away, as one), and face
+  the hero while they stand. The crowd's push and the rocks still work on every monk; the centre slides along the arena's
+  wall and is pushed out of a rock; it never gets more than **1.2 m** ahead of its monks (`leash`: a blocked squad waits
+  for its stragglers). A squad still coming up out of the sand (more than half of it) waits for it.
+- Far from the hero (pass 111's far speed) the whole squad speeds up together, read at its centre.
+- Stuns, slows, freezes, pins, launches, grabs and knockback act on each monk as on any creature; the others carry on.
+
+**The volley (new rule).** One clock for the whole squad:
+- A volley may start **5.2 s** after the last one started (`cooldown`; the Spit Cactus throws every 2.6 s: half as
+  often), the first **1.5 s** (+ up to 1 s at random per squad) after the squad forms (`first`), and only while the
+  squad stands in its band.
+- Then **every monk that is free** (on its feet, not stunned, frozen, held by the Gravity Gun, buried, in the air,
+  spinning or fleeing) **stops dead** for **3.0 s** (`hold`): no walking at all; a hit's push and the crowd can still
+  nudge it. Its hands rise over the first **0.5 s** (`rise`: the attack strip's wind-up frames), then stay up (its
+  hands-up frames, one after the other twice a second, `breath_fps` 2).
+- A blue glow gathers above its hood between its raised hands, from a fifth of the sphere's size to all of it (`glow.from`
+  0.2), rising with the hands (`hands` {up 1.8, from_up 1.2, forward 0.25}: metres at its size, as a muzzle).
+- At **1.0 s** (`release`) every monk still in its pose looses **one sphere at the hero in the same tick**, aimed at where
+  he stands then (`orb.lead` 0: no lead). A monk stunned, launched or grabbed during the stop sits that volley out. The
+  attack sound (w_sun_warn) plays once as the hands rise, the shot (w_zap_fire) once as the spheres leave.
+- The 0.5 / 1.0 / 3.0 s are **plain seconds on every map** (Garry: "about 3 seconds"): unlike the other creatures'
+  wind-ups, the map's pace knob (Red Canyon's move_pace 0.9 x creature_speed_mult 0.9 = 0.81) does not stretch them;
+  High Noon's slow-down still slows them, as it slows every creature's clock. The 5.2 s cooldown is plain seconds too, so
+  a squad in its band walks for about 2.2 s between stops.
+
+**The sphere (new rule).** `squad.orb`:
+- A bright blue ball **0.5 m** across (`size`; colour "#2F7BFF": a white-hot core, the blue, a darker blue rim that reads
+  on the sand, a soft blue halo), breathing 12% either way three times a second, a faint trail of blue beads (one every
+  0.04 s, fading over 0.35 s). Never darkened by a stage filter (Nightfall and Blood Moon show it as bright as Sundown).
+- Slow: **4 m/s** on the creatures' shot clock (High Noon and the pace knob slow it like every hostile shot: 3.24 m/s on
+  Red Canyon). Straight along the line it left on; it comes down from the hands to **1 m** over the sand (`hover`) in
+  0.35 s and follows the ground there.
+- It touches **nothing but the hero**: it flies through every creature, rock and shot. It is gone after **17.5 m**
+  (`range`: 1.25 x the Revolver's 14 m; it bursts into a puff), or when it reaches the hero: his body within 0.22 m
+  (`hit_radius`) + 0.5 m of it, in the usual height band. He takes the monk's damage x `damage_mult` 1 as a hostile
+  shot's hit (an evade, the shield and the blink after a hit apply as to any shot; a sphere that reaches him in that
+  blink is spent too), and, as every plain shot since pass 89, **no push** (`orb.knockback` above 0 would make it a
+  special push).
+- All the spheres in the air, the gathering glows and the beads are one draw call.
+
+**The art's attack strip (for the looks).** A Monk look's `attack` strip is laid out front | back (`attack_views`
+"front_back"): in each half the first frames are the hands rising (played through once over `rise`), the rest the hands
+up (looping at `breath_fps`); with two frames a half the first rises and the second holds. A squad monk shows its attack
+strip through a hit and in every view (the front half from the front and side views, the back half from behind and the
+back diagonals). The death is the look's own strip (a fall on the face).
+
+**The run sim's bot** steps out of the line of a sphere within 6 m flying at him (game/tools/bot/BotLegs.gd).
+
+Tests: game/tests/pass112_monk_test.gd (12); re-pinned pass338_test (the frame table knows the squad's attack rule);
+tools/level_editor/selftest_P.py (13 brain blocks). Captures: game/tools/_p112_MONK_shots.gd -> tools/dl/p112/monk/shots/.
+
+### 55.BARREL Barrels come back now and then, never seen arriving; a power-up out of a smashed barrel, left for the player to fetch (54.CHEST reverted)
+
+Garry: "Chests - when I was talking about chest appearing and stuff I actually meant barrels. Not chests. So apply
+whatever I said in that prompt to barrels, and revert the chests to be as they were."
+
+**Chests as they were.** Pass 111's map chests, the CHEST edge tag, the power-up out of a chest and the chest-content
+settings are gone (54.CHEST): chests come only from drops again (pass 110's rules), the reel is pass 110's.
+
+Every number below is the map's (`timeline_data.barrels`; Settings -> Barrels in the Level Editor); a map without the
+block plays today's barrels (no respawn, no power-up, the same gems and coins). Keys and code: docs/waves_schema.md
+"Pass 112".
+
+**Barrels come back (new rules).**
+- The map starts with its 35 barrels as before. A smashed one comes back: the first **45 s** into the stage, then one
+  every **40 to 60 s** (rolled each time), only while fewer than **35** stand (the start's count: only smashed ones come
+  back, the map never fills past its start); a turn that finds 35 standing is skipped and the next waits its full time.
+  No cap a stage: at most 8 come back in Sundown, 12 in Nightfall, 15 in Blood Moon (one a turn, plus the boss fight's).
+- The clock runs in the stage and in the boss fight; it stands still in the portal's countdown and in Endless, and never
+  runs in the debug arena.
+- **Never seen arriving**: the barrel and its shadow are outside the camera's real view by **2 m** when it appears (the
+  camera's frustum, so the late-run zoom-out is covered). It comes back **20 to 40 m** from the hero (out to 60 m when the
+  camera shows all of that), by the start's own rules: inside the arena, off the boss flats' middle, out of the water,
+  off the rocks, never behind a painting or inside a structure, 6.5 m from any barrel standing.
+- **22%** of them come back black (the start's own share). A black one that comes back holds 1-5 coins rolled then; they
+  are extra gold (the creatures' coins hold back only the start's barrels' coins, pass 87).
+- No edge tag points at barrels: with 35 on the map one would always be showing.
+
+**A power-up out of a smashed barrel (new rule).**
+- A **brown** barrel throws a power-up **8%** of the time, a **black** one **30%**, drawn from the same mix as the kills'
+  drops (Heart 6, Berserk 3, Sprint 3, Shield 2, Magnet 2, Nuke 2 of 18), on top of its gems and coins (unchanged: brown 8
+  small gems; black 10 small, 4 medium and its 1-5 coins).
+- It is thrown **5 to 7 m** on a visible hop (6 m: 0.76 s in the air, 3.1 m up), landing on a clear spot (inside the
+  arena, off the rocks and the water, not behind a painting, 1.2 m from any other power-up), first turned away from the
+  hero and wholly on the screen below the HUD's top strip, then anywhere on the screen, then anywhere: the player sees
+  where it lands.
+- In the air it cannot be taken and its clock stands still; on the sand it lies its own lifetime (Heart 22 s, the others
+  40 s) and the hero walks over for it or leaves it. Nothing pulls it in: not the hero's magnet, not a coin bag's own
+  pull (off for a thrown one), not the Magnet power-up, not a vacuum.
+
+**Measured** (run sim, the pass 110 setup: Drifter, quarter board, explorer bot, death = keep playing, 10 players, seed
+1, stage 1 to 10:00 with the King; tools/dl/sim/runs/p112-barrel-s1-before and -after; "before" is today's code with no
+`barrels` block):
+
+| per run | before | after |
+|---|---|---|
+| barrels smashed | 17.6 | 22.2 (+4.6) |
+| power-ups picked up | 15.7 | 16.2 |
+| gold from barrels | 21.7 | 25.4 |
+| chests opened | 9.6 | 10.8 |
+| hero level at 10:00 | 25.5 | 26.3 |
+| deaths (kept playing) | 9.5 | 9.9 |
+
+At 22 barrels a run the chances throw about 2.8 power-ups (22 x (0.78 x 8% + 0.22 x 30%)); the bot picked up 0.5 more
+than before, inside the runs' spread (6 a player), so it fetches only some of them. A real-run probe
+(game/tools/_p112_BARREL_probe.gd, Sundown 0:00-7:10, the hero smashing the nearest barrel every 12 s): 36 smashed,
+**8 came back** (at 0:45, 1:31, 2:16, 3:13, 3:57, 4:48, 5:47, 6:35), all eight off the screen when they appeared,
+**6 power-ups thrown** (17% of 36), each landing 5.2-7.0 m from its barrel and 5.8-8.0 m from the hero, all six on the
+screen, none touched until he walked over.
+
+Tests: game/tests/pass112_barrel_test.gd (12), tools/level_editor/selftest_BARREL112.py.
+
+### 55.WANTED The Wanted posters float in over the run after the descent (54.WANTED's board screen gone)
+
+Garry: "Wanted Poster - this should appear at the beginning of a run right after the descend sequence. And make it so
+it's not a full screen, but more like floating posters instead. Similar logic though."
+
+**What changed (new rules; everything else is 54.WANTED as it was).**
+- The full-screen Bounty Board before the run is gone: PLAY on the title, a stage's card on the Stages menu and PLAY
+  AGAIN on the Results go straight into the run again, as before pass 111.
+- **When**: `Game.BOUNTY_AFTER_LAND` **0.7 s** after the hero lands from the spawn beam (the dust settled; divided by the
+  beam's hurry when the player sped the descent up), on the run's clock (it waits while the run is paused). Only after
+  the real descent: a tool's instant start never shows them unless its launch says `bounty_board: true`.
+- **Who**: as before, only once the save has finished `unlock.runs` **1** run (a first-time player never sees them),
+  never in the debug arena, never when a tool's launch names its own `bounty` ("none", "roll" or a contract), and only
+  when at least one poster can be posted.
+- **The one-screen rule**: the posters are a screen of the rule (`Modal.BOUNTY`, priority **25**: after the level cards
+  30 and the War Drum 35, before a mutation offer 20 and the shop, the Stranger and the totems 10). The run pauses under
+  them; a level-up, a chest or anything else that comes meanwhile waits its turn and opens after them, never two at once.
+- **How they look**: the board's three posters (54.WANTED's roll, weights, eligibility, numbers, rewards, art) hang on
+  strings from above the screen's top edge, each by its nail, under a light dim (**0.34**; the card screens use 0.78) with
+  the run seen behind them; they drop in on their strings and sway gently (**2.6°** either way, about one swing in three
+  seconds, each its own pace, a 5 px bob). "WANTED" and a line over them, "No bounty" under them; the HUD steps aside
+  while they hang.
+- **A tap on a poster takes it** (one tap, no confirm): it is stamped TAKEN, the other two drop away, the HUD comes back
+  and the poster flies into the bounty plate on the right under the item row (about **0.85 s** from the tap), the plate
+  pops in as it lands, and the run goes on with a second of grace (no TAP TO GO gate). **"No bounty"**: the wind blows the
+  three away off the right edge (**0.5 s**) and the run goes on without a contract. A second tap does nothing.
+- **The same three** still come back if the run is left at the posters (the app closed, the run abandoned there): the
+  board kept in the save (54.WANTED) is forgotten only when a poster is taken or "No bounty" is tapped.
+- **Re-rolls** (`rerolls`, **0** by default): with N, a "Re-roll" button over "No bounty" drops three new posters, N times
+  per board.
+- The HUD plate, the pause screen's row, the Results' BOUNTY panel, the pay at the run's end and the run record are
+  unchanged.
+- **Tools**: the run sim starts instantly (no posters). The Watch's bot answers "No bounty" (its option `bounty`:
+  "none" by default, "random", "first"). smoke_run's launch asks for the posters and takes the first; touch_audit
+  `wanted` taps every control, then takes a poster for real and, in a second run, taps No bounty for real.
+
+Tests: game/tests/pass112_wanted_test.gd (8), the updated pass111_wanted_test.gd (18).
+
+### 55.ENEMY The harpoon's chain breaks, the hero's run follows his speed, the bombs and harpoons ready from the start
+
+**The chain breaks (looks only).** Garry: "Harpooner - the chain should break when it breaks. Like there should be a
+visual of this." When the rope ends any other way than a miss's reel (its 5 s run out, the harpooner killed, a
+teleport, the hero falling; Game.tether_end while the run goes on), the chain snaps where it hung: `break.at` **0.55**
+of the way from the hand (give or take 0.08), a clank of sparks and a white tink (`tink` **1.1** m) at the break, **8**
+iron bits flung out, a metallic hit sound (`w_spear_hit`). The hand's half springs back `recoil` **70%** of the way to
+the harpooner's hand, the hook's half drops where it broke, both loose ends lash `whip` **0.55** m across and die away,
+the halves fall flat on the sand, the hook drops off the hero to his feet, and over the last 40% of `seconds` **0.9**
+every link and the hook shrink away. A miss still reels home as in 54.ENEMY. The keys are `ranged.harpoon_fx.break` (the
+Level Editor's Harpoon look row). Nothing in the gameplay changes.
+
+**The run cycle follows his speed (new rule).** Garry: "moving slowly should slow down the hero's animation." His run
+cycle plays at his walk's share of his full speed (his move speed with every buff): a stick pushed half way plays it at
+half speed, the harpoon's rope (walking away from the harpooner: 70%), the oasis water (90%) and a wall he runs into slow
+it as much as they slow him. It never plays slower than **0.35** of the painted rate (he never freezes mid-stride) or
+faster than **1.0** (a Sprint or Rage keeps the cycle as painted, as before), and follows his speed at **12** a second.
+A hero's JSON may set its own `run_anim` {min, max, follow} (the Heroes tab's "Run cycle follows his speed").
+
+**Bombs and harpoons ready from the start (no rule change).** Garry: "the new bombs and harpoons take a second to load
+when they are first seen. Make it so they are preloaded during the loading of the run". Under the spawn beam the
+warm-up now also loads every creature's thrown model (the bomb, the dynamite stick) and draws the harpoon's chain and
+hook, the bomb's fuse smoke and the Monk's energy orbs once; and it lasts at least **6** drawn frames (it lasted 0.3 s,
+which the run's first slow frames could use up in one or two frames, so the pipelines it drew were not all ready). The
+probe (game/tools/_p112_ENEMY_firstuse.gd, PC, vsync off): the first bomb throw's worst frame 12 to 14 ms before (plus
+6 ms the frame before), 2.4 to 4.8 ms after; the first harpoon 20 to 22 ms before, 2.4 to 4.5 ms after; the first chain
+break 13 to 18 ms before, 2.8 to 3.7 ms after; a quiet frame is 1.5 ms. A phone compiles far slower than this PC, so
+the hitch it removes there is larger.
+
+Tests: game/tests/pass112_enemy_test.gd (12).

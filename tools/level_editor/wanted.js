@@ -3,7 +3,8 @@
 // Make it so I can set up the weights of each different task probability. Always a choice of 3. I should be able to set up
 // some difficulty score for it. It should also scale with Player progression ... Have it as a separate tab in the
 // LevelEditor (and just for lols add a simulated visual wanted poster UI imitation on the same page that I can 'roll'
-// myself)". The page edits game/content/wanted/wanted.json (the game's WantedBoard.gd reads it at boot): the board's
+// myself)". Pass 112: the posters float in over the run right after the hero's descent (ui/BountyPosters.gd), no longer a
+// full-screen board before the run. The page edits game/content/wanted/wanted.json (the game's WantedBoard.gd reads it at boot): the board's
 // switches, the reward formula with a live table, and every task type (on, weight with its resulting chances, difficulty,
 // its numbers per stage, its words). Beside it, "Try the board": Roll draws three posters with the unsaved config in the
 // browser (wanted_model.js mirrors the game's roll) from the map's own timeline (the Timeline tab's, unsaved edits too),
@@ -109,7 +110,7 @@ const Wanted = (() => {
     }
     if (!S.draft) { page.appendChild(el('p', { class: 'muted', text: 'Loading the Bounty Board…' })); panel.appendChild(page); return; }
     page.appendChild(head());
-    page.appendChild(el('p', { class: 'lead wtd-lead', html: 'Before a stage run (from a player\'s <b>second</b> run on) the game nails up <b>three Wanted posters</b>: the player takes one, or none. Each poster is a <b>task type</b> drawn by its <b>weight</b>; its number (kills, seconds, level...) is rolled in that stage\'s range, which grows with <b>progression</b> (the stages the player has beaten); its <b>difficulty</b> is where that number fell between the range\'s easy and hard end; its <b>gold</b> comes from the difficulty. Done, it pays at the run\'s end. Only creatures the player has met and items he has seen and unlocked can be targets. Roll the board on the right to see it as a player would.' }));
+    page.appendChild(el('p', { class: 'lead wtd-lead', html: 'At the start of a stage run, right after the hero\'s descent (from a player\'s <b>second</b> run on), <b>three Wanted posters</b> float in over the paused game on strings: the player taps one to take it (it is stamped and flies into the HUD\'s bounty plate), or taps No bounty (they blow away). Each poster is a <b>task type</b> drawn by its <b>weight</b>; its number (kills, seconds, level...) is rolled in that stage\'s range, which grows with <b>progression</b> (the stages the player has beaten); its <b>difficulty</b> is where that number fell between the range\'s easy and hard end; its <b>gold</b> comes from the difficulty. Done, it pays at the run\'s end. Only creatures the player has met and items he has seen and unlocked can be targets. Roll the posters on the right to see them as a player would.' }));
     const iss = M.issues(cfg());
     if (S.msg) page.appendChild(el('div', { class: 'ferr warn' }, el('span', { text: S.msg + ' ' }), el('button', { class: 'btn small', type: 'button', text: 'Reload', onclick: reload })));
     if (iss.errors.length || iss.warnings.length) {
@@ -166,11 +167,11 @@ const Wanted = (() => {
 
   function boardCard() {
     const c = cfg();
-    return card('The board', 'who sees it and how many posters',
-      row('On', 'off: the game never shows the board', check(c.enabled !== false, (v) => edit((d) => { d.enabled = v; }), 'Show the Bounty Board', 'enabled')),
+    return card('The posters', 'who sees them and how many',
+      row('On', 'off: the game never shows the posters', check(c.enabled !== false, (v) => edit((d) => { d.enabled = v; }), 'Show the Wanted posters after the descent', 'enabled')),
       row('Posters', 'how many posters to pick from (Garry: always 3; the screen has room for 1 to 3)', numBox(c.choices, (v) => edit((d) => { d.choices = Math.max(1, Math.min(3, Math.round(v || 3))); }), { min: 1, max: 3, step: 1, path: 'choices' })),
-      row('Re-rolls', 'how many times a player may roll a board again before choosing (0 = never)', numBox(c.rerolls, (v) => edit((d) => { d.rerolls = Math.max(0, Math.round(v || 0)); }), { min: 0, step: 1, path: 'rerolls' })),
-      row('Opens after', 'finished runs before the board shows: 1 = from the second run on (a first-time player never sees it)', numBox((c.unlock || {}).runs, (v) => edit((d) => { d.unlock = Object.assign({}, d.unlock, { runs: Math.max(1, Math.round(v || 1)) }); }), { min: 1, step: 1, path: 'unlock.runs' })),
+      row('Re-rolls', 'how many times a player may roll the posters again before choosing (a Re-roll button beside No bounty; 0 = never)', numBox(c.rerolls, (v) => edit((d) => { d.rerolls = Math.max(0, Math.round(v || 0)); }), { min: 0, step: 1, path: 'rerolls' })),
+      row('Opens after', 'finished runs before the posters show: 1 = from the second run on (a first-time player never sees them)', numBox((c.unlock || {}).runs, (v) => edit((d) => { d.unlock = Object.assign({}, d.unlock, { runs: Math.max(1, Math.round(v || 1)) }); }), { min: 1, step: 1, path: 'unlock.runs' })),
       row('Targets', 'what a poster may name', check(c.creatures_met_only !== false, (v) => edit((d) => { d.creatures_met_only = v; }), 'only creatures the player has met', 'creatures_met_only'),
         check(c.items_seen_only !== false, (v) => edit((d) => { d.items_seen_only = v; }), 'only items he has seen (his own gun always)', 'items_seen_only')),
       row('Numbers grow', 'each stage beaten makes every range this much bigger (a lower-is-harder number this much smaller): 0.15 = +15% a stage beaten', numBox((c.progress || {}).param_growth, (v) => edit((d) => { d.progress = Object.assign({}, d.progress, { param_growth: Math.max(0, v || 0) }); }), { min: 0, step: 0.05, path: 'progress.param_growth' }), el('span', { class: 'muted small', text: 'per stage beaten' })));
@@ -333,7 +334,7 @@ const Wanted = (() => {
   function simPane(ctx) {
     const sim = S.sim;
     const pane = el('aside', { class: 'wtd-sim' });
-    pane.appendChild(el('div', { class: 'wtd-sim-head' }, el('h3', { text: 'Try the board' }), el('span', { class: 'muted small', text: 'with the config as it is on this page, saved or not' })));
+    pane.appendChild(el('div', { class: 'wtd-sim-head' }, el('h3', { text: 'Try the posters' }), el('span', { class: 'muted small', text: 'as they float in after the descent, with the config as it is on this page, saved or not' })));
     const stages = typeof App !== 'undefined' && App.stageList ? App.stageList() : [];
     const stSel = el('select', { 'data-path': 'sim.stage' });
     stages.forEach((s, i) => stSel.appendChild(el('option', { value: i, text: `Stage ${i + 1} · ${s.name}`, selected: i === sim.stage })));
@@ -352,7 +353,7 @@ const Wanted = (() => {
       el('label', { class: 'wtd-l wtd-prog' }, el('span', {}, 'Stages beaten ', pOut), pIn),
       el('div', { class: 'wtd-togs' }, tog('metAll', 'met every creature'), tog('seenAll', 'seen every item'), tog('unlocks', 'every unlock done'))));
     pane.appendChild(el('div', { class: 'wtd-roll-row' },
-      el('button', { class: 'btn primary wtd-roll', type: 'button', text: '🎲  Roll the board', onclick: () => roll() }),
+      el('button', { class: 'btn primary wtd-roll', type: 'button', text: '🎲  Roll the posters', onclick: () => roll() }),
       el('span', { class: 'muted small', text: sim.posters.length ? `roll #${sim.seed}` : '' })));
     const board = el('div', { class: 'wtd-board' });
     if (!sim.posters.length) board.appendChild(el('p', { class: 'muted', text: 'Nothing can be posted here with these settings (no type has a target). Tick "met every creature" or turn a type on.' }));

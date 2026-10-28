@@ -276,6 +276,9 @@ func _old_strip(em: EnemyManager, i: int, def: EnemyDef) -> String:
 		anim = "idle"
 	if em.flash[i] > 0.6 and def.frames_of("hit") > 0 and st != EnemyManager.STATE_DYING:
 		anim = "hit"
+	# pass 112 (lane MONK): a squad creature holds its raised hands (the attack strip) through a hit and in every view
+	if st == EnemyManager.STATE_ATTACK and def.is_squad() and em.held[i] == 0:
+		return "attack"
 	if def.frames_of("run_s") > 0 and def.anims.has("run_s"):
 		if st == EnemyManager.STATE_CHARGE:
 			anim = "run"

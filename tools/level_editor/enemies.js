@@ -13,7 +13,7 @@ const Enemies = (() => {
   const M = AssetsModel, F = AFIELDS;
   const RED = 'rgba(237, 74, 92, 0.9)';
   // which brains read a block (EnemyManager.gd:2858-3365); "any" = every creature
-  const READ_BY = { ranged: ['kite', 'ambush', 'dummy'], charge: ['charge'], kamikaze: ['kamikaze'], artillery: ['artillery'], caster: ['caster'], support: ['support'], ambush: ['ambush'], death_burst: ['any'], boss: ['any'], elite: ['elite archetype'], sniper: ['sniper'], flee_on_hit: ['any'] };
+  const READ_BY = { ranged: ['kite', 'ambush', 'dummy'], charge: ['charge'], kamikaze: ['kamikaze'], artillery: ['artillery'], caster: ['caster'], support: ['support'], ambush: ['ambush'], death_burst: ['any'], boss: ['any'], elite: ['elite archetype'], sniper: ['sniper'], squad: ['squad'], flee_on_hit: ['any'] };
 
   function render(pane, doc) {
     const iss = Assets.issuesOf(doc);

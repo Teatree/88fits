@@ -2774,10 +2774,14 @@ func _warm_looks(_at: Vector3) -> void:
 
 ## Warm-up: one instance of every kind at `at` (Vector3.INF stops it), so the instanced shader variants compile early.
 var _warm_at := Vector3.INF
+## pass 112 (lane ENEMY): the warm-up's kinds drawn at this size (Warmup draws them tiny inside the spawn beam: a draw
+## that puts pixels on the screen, not one hidden under the sand, is what compiles a shot's pipeline for good)
+var _warm_scale := 1.0
 
 
-func warm_draw(at: Vector3) -> void:
+func warm_draw(at: Vector3, scale: float = 1.0) -> void:
 	_warm_at = at
+	_warm_scale = maxf(scale, 0.001)
 	if at != Vector3.INF:
 		# Frag's spikes (pass 47) are drawn by their own kind: registered here so its material compiles behind the beam
 		shrapnel_kind()
@@ -2786,7 +2790,7 @@ func warm_draw(at: Vector3) -> void:
 		if at == Vector3.INF:
 			mm.visible_instance_count = 0
 		else:
-			mm.set_instance_transform(0, Transform3D(Basis(), at))
+			mm.set_instance_transform(0, Transform3D(Basis().scaled(Vector3.ONE * _warm_scale), at))
 			if bool(kd.get("custom", false)):
 				mm.set_instance_custom_data(0, Color(0.0, 0.0, 0.0, 0.0))
 			mm.visible_instance_count = 1
@@ -2862,7 +2866,7 @@ func _render() -> void:
 	_render_sparks()
 	for k in range(kinds.size()):
 		if _warm_at != Vector3.INF:
-			kinds[k]["mm"].set_instance_transform(counters[k], Transform3D(Basis(), _warm_at))
+			kinds[k]["mm"].set_instance_transform(counters[k], Transform3D(Basis().scaled(Vector3.ONE * _warm_scale), _warm_at))
 			if bool(kinds[k].get("custom", false)):
 				kinds[k]["mm"].set_instance_custom_data(counters[k], Color(0.0, 0.0, 0.0, 0.0))
 			counters[k] += 1

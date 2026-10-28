@@ -1,0 +1,318 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a hooded desert monk in a long all-covering brown hooded robe that falls to the ground and hides the feet, the robe a warm earthy brown with darker brown folds, a deep pointed hood whose shadow completely hides the face (only darkness inside the hood: no face, no eyes, no mouth, no skin), both hands tucked together in front of the belly inside the wide joined sleeves, a plain rope belt with hanging knots, a string of wooden prayer beads, a humble, quiet, slightly hunched figure like the robed Monk unit of an old fantasy strategy game",
+ "renders": {
+  "front": {
+   "seed": 3811,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a hooded desert monk in a long all-covering brown hooded robe that falls to the ground and hides the feet, the robe a warm earthy brown with darker brown folds, a deep pointed hood whose shadow completely hides the face (only darkness inside the hood: no face, no eyes, no mouth, no skin), both hands tucked together in front of the belly inside the wide joined sleeves, a plain rope belt with hanging knots, a string of wooden prayer beads, a humble, quiet, slightly hunched figure like the robed Monk unit of an old fantasy strategy game. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 335,
+     "right": 338,
+     "top": 71,
+     "bottom": 59,
+     "height": 893,
+     "width": 350
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "back": {
+   "seed": 3812,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. Seen from behind, both arms bend forward along its sides so the hands are hidden in front of the body: no hands visible from behind. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 329,
+     "right": 331,
+     "top": 70,
+     "bottom": 60,
+     "height": 893,
+     "width": 363
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "side": {
+   "seed": 3814,
+   "prompt": "Turn this exact creature to show a full-body side view in strict profile, facing to the right of the frame, standing, the hood hides the face in profile too, the hands together in front inside the sleeves. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 366,
+     "right": 368,
+     "top": 80,
+     "bottom": 62,
+     "height": 881,
+     "width": 289
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "bd": {
+   "seed": 3815,
+   "prompt": "Turn this exact creature to a three-quarter back view: turned 45 degrees away from the viewer so it faces the upper right of the frame, its back and right side visible, standing, seen three-quarters from behind: the back of the hood and the robe, the arms going forward to the hands hidden in front of the body. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 350,
+     "right": 345,
+     "top": 74,
+     "bottom": 53,
+     "height": 896,
+     "width": 328
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "fd": {
+   "seed": 3816,
+   "prompt": "Turn this exact creature to a three-quarter front view: turned 45 degrees so it faces the lower right of the frame, face visible, standing, seen three-quarters from the front: the dark inside of the hood with no face, the hands together in front inside the sleeves. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 353,
+     "right": 345,
+     "top": 72,
+     "bottom": 58,
+     "height": 893,
+     "width": 325
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "attack_front": {
+   "seed": 3822,
+   "prompt": "The reference image shows this exact creature: keep its face, horns, fur, clothes, colors and proportions exactly, and redraw it full body with both arms raised high above its hood, the wide sleeves fallen back to the elbows, both hands open with the palms up towards the sky, standing perfectly still, nothing in its hands, the hood still hiding the face. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole creature and everything it holds inside the picture, one of each thing it holds, no ground, no shadow. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 186,
+     "right": 195,
+     "top": 71,
+     "bottom": 59,
+     "height": 893,
+     "width": 642
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "attack_back": {
+   "seed": 3823,
+   "prompt": "The reference image shows this exact creature seen from behind: keep it seen directly from behind, no face visible, keep its colors and proportions, and redraw it full body seen from behind, both arms raised high above the hood, the sleeves fallen back to the elbows, open hands up towards the sky. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole creature and everything it holds inside the picture, one of each thing it holds, no ground, no shadow. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 285,
+     "right": 289,
+     "top": 66,
+     "bottom": 60,
+     "height": 897,
+     "width": 449
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "windup_front": {
+   "seed": 3824,
+   "prompt": "The reference image shows this exact creature: keep its face, clothes, colors and proportions exactly, and redraw it full body starting to raise both arms: the hands coming out of the sleeves and rising to the height of its chest, palms up, the sleeves slipping back, the hood still hiding the face. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole creature and everything it holds inside the picture, one of each thing it holds, no ground, no shadow. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 213,
+     "right": 210,
+     "top": 71,
+     "bottom": 59,
+     "height": 893,
+     "width": 600
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "windup_back": {
+   "seed": 3825,
+   "prompt": "The reference image shows this exact creature seen from behind: keep it seen directly from behind, no face visible, keep its colors and proportions, and redraw it full body seen from behind, starting to raise both arms to the height of its shoulders, the elbows out to the sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole creature and everything it holds inside the picture, one of each thing it holds, no ground, no shadow. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 254,
+     "right": 254,
+     "top": 70,
+     "bottom": 60,
+     "height": 893,
+     "width": 515
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  },
+  "dead": {
+   "seed": 3820,
+   "prompt": "This exact creature fallen forward flat on its face: lying face down on the ground towards the viewer, the hood and the top of its head nearest the viewer at the bottom of the picture, both arms stretched out ahead past the hood, the robe spread out behind it, motionless; seen from the front and a little above; no ground, no sand, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/monk_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 59,
+     "right": 75,
+     "top": 245,
+     "bottom": 214,
+     "height": 564,
+     "width": 889
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   }
+  }
+ },
+ "recipe_ran": {
+  "method": "creature_pose2",
+  "directions": 8,
+  "pose": "monk_walk_clasp_noface",
+  "stand": "still",
+  "screen": "auto",
+  "gait": "walking slowly in place on the spot like on a treadmill with calm steps, the hands kept together in front inside the sleeves the whole time, the hood still",
+  "anim_negative": "a face, eyes, a mouth, skin inside the hood, swinging arms, hands apart, a weapon, a staff, extra arms, bare feet showing, the hood falling back",
+  "view_hints": {
+   "side": "the hood hides the face in profile too, the hands together in front inside the sleeves",
+   "bd": "seen three-quarters from behind: the back of the hood and the robe, the arms going forward to the hands hidden in front of the body",
+   "fd": "seen three-quarters from the front: the dark inside of the hood with no face, the hands together in front inside the sleeves"
+  },
+  "back_hint": "Seen from behind, both arms bend forward along its sides so the hands are hidden in front of the body: no hands visible from behind.",
+  "attack_views": "front_back",
+  "windup_hint": "starting to raise both arms: the hands coming out of the sleeves and rising to the height of its chest, palms up, the sleeves slipping back, the hood still hiding the face",
+  "aim_hint": "with both arms raised high above its hood, the wide sleeves fallen back to the elbows, both hands open with the palms up towards the sky, standing perfectly still, nothing in its hands, the hood still hiding the face",
+  "windup_back_hint": "seen from behind, starting to raise both arms to the height of its shoulders, the elbows out to the sides",
+  "aim_back_hint": "seen from behind, both arms raised high above the hood, the sleeves fallen back to the elbows, open hands up towards the sky",
+  "death": "clip",
+  "death_frames": 8,
+  "dead_hint": "fallen forward flat on its face: lying face down on the ground towards the viewer, the hood and the top of its head nearest the viewer at the bottom of the picture, both arms stretched out ahead past the hood, the robe spread out behind it, motionless; seen from the front and a little above; no ground, no sand",
+  "prompt": "a hooded desert monk in a long all-covering brown hooded robe that falls to the ground and hides the feet, the robe a warm earthy brown with darker brown folds, a deep pointed hood whose shadow completely hides the face (only darkness inside the hood: no face, no eyes, no mouth, no skin), both hands tucked together in front of the belly inside the wide joined sleeves, a plain rope belt with hanging knots, a string of wooden prayer beads, a humble, quiet, slightly hunched figure like the robed Monk unit of an old fantasy strategy game",
+  "seed_offset": 0,
+  "art_prompt": "a hooded desert monk in a long all-covering brown hooded robe that falls to the ground and hides the feet, the robe a warm earthy brown with darker brown folds, a deep pointed hood whose shadow completely hides the face (only darkness inside the hood: no face, no eyes, no mouth, no skin), both hands tucked together in front of the belly inside the wide joined sleeves, a plain rope belt with hanging knots, a string of wooden prayer beads, a humble, quiet, slightly hunched figure like the robed Monk unit of an old fantasy strategy game",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "",
+  "motion": "waddling in place, swaying from side to side"
+ },
+ "clip_kind": {
+  "front": "pose",
+  "back": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose",
+  "die": "flf"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": "monk_walk_clasp_noface",
+  "walk_side": true,
+  "walk_bd": true,
+  "walk_fd": true
+ },
+ "attack_slid_px": {
+  "windup_front": 0,
+  "front": 0,
+  "windup_back": 0,
+  "back": 0
+ },
+ "qa_online": null
+}

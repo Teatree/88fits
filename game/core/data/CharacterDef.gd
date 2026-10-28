@@ -67,6 +67,10 @@ var _sprite: Texture2D = null
 @export var strip_cols: int = 0
 ## Frames per second per animation prefix, e.g. {"run": 28}; unlisted ones use the sprite player's defaults.
 @export var fps: Dictionary = {}
+## Pass 112 (lane ENEMY; Garry: "moving slowly should slow down the hero's animation"): his run cycle plays at his walk's
+## share of his full speed (Player.run_rate): {"min": the slowest it plays (never frozen mid-stride), "max": the fastest,
+## "follow": how fast the rate follows his speed, 1/s}. {} = Player.RUN_ANIM_DEFAULTS.
+@export var run_anim: Dictionary = {}
 ## Art variants (pass 55, the creatures' scheme of pass 34): code -> {sprite, sprite_file, anims, fps, strip_cols, frame_px,
 ## icon, title, note}, every strip the hero can be drawn with ("SOL-A".."SOL-D", Solenne's walks). `variant` is the look the
 ## game plays unless the player kept another (Save.hero_look, the arena's HERO tab); its art is the def's own. Only the art

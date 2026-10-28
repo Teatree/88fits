@@ -6,11 +6,16 @@ to be accompanied by impressive visuals."
 
 Proposals only; nothing is built yet. Each boss gets two options to choose from.
 
+Garry (follow-up): "those attacks should last a while. Some 5+ seconds during which player is supposed to try and survive."
+Every pattern below now lasts at least 6 seconds of bullets after its tell; the durations are in each entry and are content
+(`duration`), so they can be stretched in the Level Editor.
+
 ## Rules all of them share
 - **Rare.** Once per fight on the first try: the first time the boss drops below 60% HP. Then at most once every 45 s.
   - It never comes in the first 15 s of the fight.
   - Content keys: `phase_at` 0.6, `cooldown` 45.
-- **Hard to hurt while it lasts.** The boss takes 80% less damage (`guard` 0.8) for the attack's 6–9 s.
+- **Long enough to be a survival test.** 6 to 10 s of bullets after a 1.2–1.5 s tell (never under 5 s; `duration`).
+- **Hard to hurt while it lasts.** The boss takes 80% less damage (`guard` 0.8) for the whole attack.
   - A visible shell shows it (a glowing aura, a shield of tumbleweeds or scales, a fire pillar).
   - Hits on it spark and show small grey numbers, so the player can tell their damage is being blocked.
 - **A payoff.** When the attack ends the boss is "spent" for 2.5 s: it takes +50% damage and stands still. The player learns
@@ -44,8 +49,8 @@ Proposals only; nothing is built yet. Each boss gets two options to choose from.
 
 **B. Royal Decree**
 - **Wind-up:** the King slams down and unrolls a giant scroll (a 2.5D painting).
-- **Pattern:** four rings of thorny burrs roll outwards, each with a gap in a different place. The player has to read each ring
-  and step through its gap.
+- **Pattern:** for 7 s, a ring of thorny burrs rolls outwards every 1.2 s (six rings), each with its gap in a different place.
+  The player has to read each ring and step through its gap.
 - **Guard:** a golden glow round the King while he reads the decree.
 
 ## Gila Grande (Nightfall)
@@ -61,7 +66,7 @@ Proposals only; nothing is built yet. Each boss gets two options to choose from.
 **B. Needle Storm**
 - **Pattern:** she burrows. The ground cracks in a cross, and lines of cactus needles rise from the cracks and slide slowly
   across the arena like moving walls, each with a gap.
-- **Guard:** she is underground and can't be hit at all. The attack is 6 s, the shortest of the set, to make up for it.
+- **Guard:** she is underground and can't be hit at all. The attack is 6 s (five walls), the shortest of the set, to make up for it.
 - **End:** she erupts where the walls met and stays spent for 2.5 s.
 
 ## The Brander (Blood Moon)
@@ -79,8 +84,8 @@ Proposals only; nothing is built yet. Each boss gets two options to choose from.
 
 **B. Forge Rain**
 - **Wind-up:** he raises the iron to the blood moon.
-- **Pattern:** molten drops fall in an advancing grid across the arena, with a warning circle 0.8 s before each drop lands.
-  Under the grid, rows of slow sparks sweep sideways.
+- **Pattern:** for 8 s, molten drops fall in a grid that advances across the arena row by row, with a warning circle 0.8 s
+  before each drop lands. Under the grid, rows of slow sparks sweep sideways.
 - **Guard:** a shower of embers round him.
 
 ## Next steps if one is picked

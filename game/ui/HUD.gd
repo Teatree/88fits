@@ -57,7 +57,6 @@ static var band_h := float(BAND_H)
 const PORTAL_GREEN := W.SAGE
 const ELITE_ORANGE := W.EMBER
 const BOSS_RED := W.ROCK
-const CHEST_BRASS := W.BRASS   # pass 111 (lane CHEST): a world chest's edge tag
 ## The strip's slots (pass 47, Garry: the caps are a static six and six; pass 52: five and five, Run.MAX_WEAPONS and
 ## Run.MAX_LINES): weapons, then lines.
 const WEAPON_SLOTS := 5
@@ -1181,13 +1180,6 @@ func _tick_arrow() -> void:
 		var ep: Vector3 = game.director.elite_position()
 		if ep != Vector3.INF:
 			_edge_arrow(ep, ELITE_ORANGE, "ELITE")
-	# pass 111 (lane CHEST): the nearest chest the map laid on its own clock while it is off the screen (the map's
-	# world_chests.pointer), brass; a boss's chest in the XP bar's violet
-	var pk = game.get("pickups")
-	if pk != null and pk.has_method("pointer_chest"):
-		var pc = pk.pointer_chest()
-		if pc != null:
-			_edge_arrow((pc as Node3D).global_position, W.EPIC if bool(pc.boss) else CHEST_BRASS, "CHEST")
 	# (pass 49, Garry: "don't show the HUD guide to where the Flowers are": Pollen's flowers have no pointers; its buff
 	# has a plate among the power-ups, _refresh_buffs)
 	_sync_pointers()

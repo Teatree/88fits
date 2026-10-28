@@ -1,4 +1,5 @@
-## Pass 111, lane WANTED: the Bounty Board (core/systems/WantedBoard.gd, core/systems/WantedRun.gd, ui/WantedBoardScreen.gd,
+## Pass 111, lane WANTED: the Bounty Board (core/systems/WantedBoard.gd, core/systems/WantedRun.gd (pass 112: the posters
+## float over the run, ui/BountyPosters.gd, pass112_wanted_test.gd),
 ## ui/wanted/WPoster.gd; content/wanted/wanted.json; BALANCING.md 54.WANTED). Garry: "Wanted Poster functionality ... extra
 ## coin rewards for completing harder tasks ... the weights of each different task probability. Always a choice of 3 ...
 ## some difficulty score ... scale with Player progression. Should not show locked items, heroes, enemies as a goal ...
@@ -9,7 +10,7 @@
 ##  4. the numbers grow with progression, the difficulty follows the number, the reward follows both;
 ##  5. every task type is completed (or failed) by what the run does;
 ##  6. the reward is paid only when the contract is done, once, at the run's end;
-##  7. a board stays the same until a choice is made; the choice reaches the next run once;
+##  7. a board stays the same until a choice is made; a choice forgets it;
 ##  8. the poster, the pause row and the Results' panel; the real run attaches and settles it.
 extends GdUnitTestSuite
 
@@ -21,12 +22,10 @@ func before_test() -> void:
 	Save._dirty = false
 	Run.arena = false
 	WantedBoard.set_config({})
-	WantedBoard.next = {}
 
 
 func after_test() -> void:
 	WantedBoard.set_config({})
-	WantedBoard.next = {}
 	WantedRun.current = null
 	Run.arena = false
 	Run.stage_beaten = false
@@ -96,12 +95,10 @@ func test_a_first_time_player_gets_no_board() -> void:
 	assert_int(Save.total("runs")).is_equal(0)
 	assert_bool(WantedBoard.unlocked()).is_false()
 	assert_bool(WantedBoard.due(MAP, 0, "drifter")).is_false()
-	assert_str(WantedBoard.run_scene()).is_equal(WantedBoard.GAME)
 	# one finished run opens it
 	Save.add_total("runs", 1)
 	assert_bool(WantedBoard.unlocked()).is_true()
 	assert_bool(WantedBoard.due(MAP, 0, "drifter")).is_true()
-	assert_str(WantedBoard.run_scene()).is_equal(WantedBoard.SCREEN)
 	# a config that asks for three runs waits for them; one switched off never shows
 	var cfg := WantedBoard.config().duplicate(true)
 	cfg["unlock"] = {"runs": 3}
@@ -112,7 +109,7 @@ func test_a_first_time_player_gets_no_board() -> void:
 	cfg["enabled"] = false
 	WantedBoard.set_config(cfg)
 	assert_bool(WantedBoard.unlocked()).is_false()
-	assert_str(WantedBoard.run_scene()).is_equal(WantedBoard.GAME)
+	assert_bool(WantedBoard.due(MAP, 0, "drifter")).is_false()
 
 
 # ---------------------------------------------------------------- 2. nothing locked, hidden or unmet
@@ -528,16 +525,14 @@ func test_a_board_stays_the_same_until_a_choice_is_made() -> void:
 	# another hero or stage is a board of its own
 	var other := WantedBoard.board_for(MAP, 1, "drifter", _rng(3))
 	assert_int(other.size()).is_equal(3)
-	# the choice reaches the next run once, and every kept board goes
+	# a choice forgets every kept board and counts a poster taken; "No bounty" counts nothing
 	WantedBoard.choose(a[1])
 	assert_bool((WantedBoard.store()["boards"] as Dictionary).is_empty()).is_true()
 	assert_int(int(WantedBoard.store()["taken"])).is_equal(1)
-	var got := WantedBoard.take_next()
-	assert_str(str(got["type"])).is_equal(str(a[1]["type"]))
-	assert_bool(WantedBoard.take_next().is_empty()).is_true()
-	# "No bounty": the run starts with none
+	WantedBoard.board_for(MAP, 0, "drifter", _rng(4))
 	WantedBoard.choose({})
-	assert_bool(WantedBoard.take_next().is_empty()).is_true()
+	assert_bool((WantedBoard.store()["boards"] as Dictionary).is_empty()).is_true()
+	assert_int(int(WantedBoard.store()["taken"])).is_equal(1)
 	# a new board after the choice is a new roll (kept again)
 	var c := WantedBoard.board_for(MAP, 0, "drifter", _rng(99))
 	assert_int(c.size()).is_equal(3)
@@ -617,43 +612,18 @@ func test_the_pause_row_and_the_results_panel() -> void:
 	assert_object(WantedRun.results_panel({})).is_null()
 
 
-func test_the_board_screen_takes_a_poster_and_no_bounty() -> void:
-	Save.add_total("runs", 1)
-	_meet_everything()
-	Save.data["last_character"] = "drifter"
-	Save.data["last_map"] = MAP
-	Run.choose_stage(0)
-	var s = auto_free(load("res://ui/WantedBoardScreen.tscn").instantiate())
-	s.hold_start = true
-	add_child(s)
-	await get_tree().process_frame
-	assert_int((s.cards() as Array).size()).is_equal(3)
-	assert_int(s.picked()).is_equal(-1)
-	assert_bool(bool(s.get("_take").locked)).is_true()
-	s._on_poster(1)
-	assert_int(s.picked()).is_equal(1)
-	assert_bool(((s.cards() as Array)[1] as WPoster).selected).is_true()
-	assert_bool(bool(s.get("_take").locked)).is_false()
-	s._on_take()
-	assert_str(str(s.chosen)).is_equal("taken")
-	s._on_none()
-	assert_str(str(s.chosen)).is_equal("none")
-	# the same three as the store kept
-	var kept: Array = (WantedBoard.store()["boards"] as Dictionary)["%s|0|drifter" % MAP]["posters"]
-	assert_str(JSON.stringify(kept)).is_equal(JSON.stringify(s.posters))
-
-
 func test_a_real_run_attaches_the_pick_shows_the_plate_and_settles() -> void:
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": "revolver", "level": 1, "character": "drifter", "map": MAP, "map_seed": 11, "analytics": false}))
 	f.close()
-	WantedBoard.next = {"type": "kill_total", "n": 1, "target": "", "reward": 150, "d": 1.0, "skulls": 1, "name": "Sundown",
-		"text": "Kill 1 creatures", "stage": 0, "map": MAP, "hero": "drifter", "P": 0, "still": {"kind": "art", "id": "chest"}}
 	var g: Game = auto_free(load("res://game/Game.tscn").instantiate())
 	add_child(g)
 	await get_tree().create_timer(0.4).timeout
+	# pass 112: the contract the floating posters hand over (Game._on_bounty_taken)
+	g._on_bounty_taken({"type": "kill_total", "n": 1, "target": "", "reward": 150, "d": 1.0, "skulls": 1, "name": "Sundown",
+		"text": "Kill 1 creatures", "stage": 0, "map": MAP, "hero": "drifter", "P": 0, "still": {"kind": "art", "id": "chest"}})
 	assert_object(WantedRun.current).is_not_null()
-	assert_bool(WantedBoard.next.is_empty()).is_true()
+	WantedRun.current.pop_plate()
 	assert_object(WantedRun.current.plate()).is_not_null()
 	assert_bool(WantedRun.current.plate().get_parent() == g.hud).is_true()
 	g.director.stop()

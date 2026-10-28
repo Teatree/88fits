@@ -1156,82 +1156,88 @@ A key left out (the whole block too) plays `WaveTimeline.FAR_SPEED_DEFAULTS`. Re
 - The run sim (tools/sim_batch.py) plays the game's own code, so its runs follow the block too.
 - Tests: game/tests/pass111_enemy_test.gd; tools/level_editor/selftest_ENEMY111.py.
 
-## Pass 111: map chests and what a chest holds (lane CHEST)
+## Pass 111: map chests (lane CHEST), reverted in pass 112
 
-Garry (2026-10-28): "Chests should respawn every now and then. They should also have a chance of a power up dropping
-from them. The power ups don't immediately get claimed and used by the hero. They jump far enough out for it to be a
-conscious decision for the Player. I should be able to set the frequency and content probabilities of both chest types
-on LevelEditor. Chests never spawn where Player can see them."
+Pass 111's `world_chests` (chests laid off the screen on a clock, a CHEST edge tag) and `chest_contents` (a power-up out
+of an opened chest, the reel's knobs per chest type) were taken out again in pass 112: Garry meant barrels ("when I was
+talking about chest appearing and stuff I actually meant barrels. Not chests ... revert the chests to be as they were").
+Chests play as in pass 110; the map names neither key. The same asks, applied to barrels: "Pass 112: barrels" below.
 
-#### timeline_data.world_chests (Object, optional; no block = no map chests, as before pass 111)
+## Pass 112: barrels come back and throw power-ups (lane BARREL)
+
+Garry (2026-10-28): "Chests - when I was talking about chest appearing and stuff I actually meant barrels. Not chests.
+So apply whatever I said in that prompt to barrels" (pass 111's words: "should respawn every now and then. They should
+also have a chance of a power up dropping from them. The power ups don't immediately get claimed and used by the hero.
+They jump far enough out for it to be a conscious decision for the Player. I should be able to set the frequency and
+content probabilities of both [barrel] types on LevelEditor. [They] never spawn where Player can see them").
+
+#### timeline_data.barrels (Object, optional; no block = today's barrels)
+`{"respawn": {...}, "brown": {...}, "black": {...}}`. The start's placement is unchanged (BarrelField: 35 barrels by the
+map's seed, 22% black plus two that are always black).
+
+`respawn`:
 | key | type [default] | meaning |
 |---|---|---|
-| `enabled` | bool [false] | true lays map chests; left out or false: none |
-| `first` | seconds [60] | of the chests' clock before the first one is due |
-| `every` | seconds or [min, max] [[90, 130]] | from one to the next, rolled each time; under 5 counts as 5 |
-| `max_on_map` | int [2] | map chests lying unopened at most; a turn that finds that many is skipped (the next one waits its full `every`); 0 = no limit. Dropped chests never count |
-| `max_per_stage` | int [0] | map chests a stage at most; 0 = no limit |
-| `min_dist`, `max_dist` | metres [25, 45] | how far from the hero (flat); when every spot of that band is on the screen the band past it to 1.5 x `max_dist` is tried |
-| `boss_chance` | 0..1 [0] | the chance a map chest is the boss's chest (violet, a mutation, calls the map in when opened) |
-| `lifetime` | seconds [150] | one lying unopened this long vanishes the first moment it is off the screen; 0 = never |
-| `view_margin` | metres [3] | how far past the camera's view the chest, its 4.6 m pool of light and its 9 m beam must keep when it appears |
-| `in_boss`, `in_portal`, `in_endless` | bool [true, false, false] | whether the clock runs (and chests come) in the boss fight, the portal's countdown, Endless |
-| `pointer` | bool [true] | the HUD's edge tag "CHEST n m" (brass; violet for a boss chest) at the nearest map chest while it is off the screen |
+| `enabled` | bool [false] | true lays barrels again; left out or false: none come back |
+| `first` | seconds [45] | of the respawn clock before the first is due |
+| `every` | seconds or [min, max] [[40, 60]] | from one to the next, rolled each time; under 5 counts as 5 |
+| `max_lying` | int [35] | barrels standing at most, the start's included (35 = only smashed ones come back); a turn that finds that many standing is skipped (the next waits its full `every`); 0 = no limit |
+| `max_per_stage` | int [0] | respawns a stage at most; 0 = no limit |
+| `min_dist`, `max_dist` | metres [20, 40] | how far from the hero (flat); when every spot of that band is on the screen the band past it to 1.5 x `max_dist` is tried |
+| `black_chance` | 0..1 [0.22] | the chance one that comes back is black (the start's own share, BarrelField.LIGHT_FRAC) |
+| `view_margin` | metres [2] | how far past the camera's view the barrel and its shadow must keep when it appears |
+| `in_boss`, `in_portal`, `in_endless` | bool [true, false, false] | whether the clock runs (and barrels come back) in the boss fight, the portal's countdown, Endless |
 
-Red Canyon: enabled, first 60, every [90, 130], max_on_map 2, max_per_stage 5, 25-45 m, boss_chance 0, lifetime 150,
-view_margin 3, in the boss fight only: about 4 map chests in Sundown, 5 in Nightfall and Blood Moon.
-
-#### timeline_data.chest_contents (Object, optional): {"normal": {...}, "boss": {...}}
-| key | type [default] | meaning |
+`brown` / `black` (what each kind holds):
+| key | type [default brown / black] | meaning |
 |---|---|---|
-| `powerup_chance` | 0..1 [0] | the chance a power-up is thrown out when this chest type opens (on top of the reel) |
+| `powerup_chance` | 0..1 [0 / 0] | the chance smashing it throws a power-up out, on top of its gems and coins |
 | `powerups` | [{id, weight}] or {id: weight} [[]] | which one, by weight; empty = the map's `pickups.roster` (the drops' mix) |
-| `throw_distance` | metres or [min, max] [[5, 7]] | how far from the chest it lands |
-| `new_item_weight` | number [0.45] | the reel's weight of a passive item not held yet against an upgrade (Run.CHEST_NEW_MULT) |
-| `gold` | int [50] | the reel's gold when nothing can grow |
-| `mutation` (boss only) | bool [true] | the boss's chest holds a mutation while one is open; false = it rolls like a normal chest |
+| `throw_distance` | metres or [min, max] [[5, 7]] | how far from the barrel it lands |
+| `gems_small` | int [8 / 10] | small XP gems it bursts into (each 1 + 0.15 x the hero's card level) |
+| `gems_medium` | int [0 / 4] | medium XP gems (each 4 small) |
+| `coins` | int or [min, max] [0 / [1, 5]] | its coins, rolled per barrel (BarrelField.COIN_MIN..COIN_MAX for black) |
 
-Red Canyon: normal 0.35, boss 0.5, both with the drops' mix written out (heart 6, rage 3, sprint 3, shield 2,
-magnet_pulse 2, nuke 2), throw [5, 7], 0.45, 50, the boss chest's mutation on.
+Red Canyon: respawn on, first 45, every [40, 60], max_lying 35, 20-40 m, black 22%, margin 2, in the boss fight only;
+brown power-up 8%, black 30%, both with the drops' mix written out (heart 6, rage 3, sprint 3, shield 2, magnet_pulse 2,
+nuke 2), throw [5, 7]; gems and coins as before (8; 10 + 4 and 1-5 coins).
 
-#### The rules (game/core/systems/WorldChests.gd; PickupManager's world_* host methods, throw_chest_powerup)
-- The clock (`WorldChests.clock`) counts the seconds of the phases it runs in, from the run's start (each stage is its
-  own run since pass 87). A due turn: past `max_per_stage` none come any more; with `max_on_map` lying the turn is
-  skipped; else a spot is searched (48 tries in the band, 48 in the far band) and the chest laid (`spawn_chest(at, boss,
-  world = true)`); no spot: tried again 3 s later.
-- A spot is never seen: every sphere the chest can draw in (`SEEN_SPHERES`: the chest with its pool, its beam to 8.2 m)
-  lies outside the camera's frustum (Camera3D.get_frustum) by `view_margin`. It is inside 0.86 of the arena's radius (the
-  structures' round, short of the fort wall), off every rock's painted foot and out of the water
-  (`EnemyManager.spawn_clear`, the water 2.5 m clear), out of every painting's cover band (`BarrelField.in_cover`), 3 m
-  past every structure's ring and 8 m from any chest.
-- Only while the director runs a stage: never in the debug arena (`Run.arena`), never before or after the run.
-- A map chest past `lifetime` vanishes (checked once a second) only while nothing of it is on the screen; one pulled by a
-  boss kill's vacuum never does.
-- A chest opened by the hero (PickupManager._check_chests; a pulled boss-kill chest too) rolls its type's
-  `powerup_chance` on the chests' own dice (seeded from the run's seed in the sim). The power-up is drawn by weight, then
-  thrown (`Powerup.throw_to`): a hop 0.55 s + 0.035 s a metre long, 1.8 m + 0.22 m a metre high (6 m: 0.76 s, 3.1 m up),
-  landing `throw_distance` m from the chest on a clear spot (in the arena, off the rocks' feet and the water, out of the
-  cover bands, 1.2 m from any power-up) chosen in this order: within 80 degrees of straight away from the hero AND wholly
-  on the screen below the HUD's strip; any way on the screen; any way. In the air it is never taken and its lifetime
-  stands still; it is never pulled by a magnet (`no_magnet`: a coin bag's own pull too); the vacuums never touched
-  power-ups. It then lies its own `lifetime` (content/pickups/<id>). The game pauses for the reel, so the hop plays as the
-  reel closes.
-- `Run.chest_roll(boss)` reads its type's `new_item_weight`, `gold` and (boss) `mutation`; an evolution that is ready
-  still comes first.
+#### The rules (game/core/systems/BarrelSpawns.gd; BarrelField's spawn_* host methods, respawn_at, _throw_powerup)
+- The respawn clock (`BarrelSpawns.clock`) counts the seconds of the phases it runs in, from the run's start (each stage
+  is its own run). A due turn: past `max_per_stage` none come any more; with `max_lying` standing the turn is skipped;
+  else a spot is searched (48 tries in the band, 48 in the far band) and a barrel laid there; no spot: tried again 3 s
+  later. Only while the director runs a stage, never in the debug arena (`Run.arena`).
+- A spot is never seen: the barrel with its shadow (`SEEN_SPHERES`: 0.75 m round its middle) lies outside the camera's
+  frustum by `view_margin`. It keeps the start's rules (BarrelField.spawn_ok: inside 0.92 of the arena's radius, off the
+  flats' middle, out of the water, off the rocks, out of every painting's cover band and structure ring) and MIN_GAP
+  (6.5 m) from every barrel standing.
+- The kind is rolled (`black_chance`); it takes a smashed barrel's slot of that kind (its instance and its shadow stand
+  up there), else one of its kind's BarrelField.SPARE (24) spare instances, else a smashed slot of the other kind.
+- A respawned barrel's coins are rolled from its kind's `coins` on the barrels' own dice and are extra gold: only the
+  start's barrels are held back from the creatures' first coins (pass 87's coin debt).
+- Smashing a barrel (BarrelField._break) bursts its kind's gems and coins, then rolls its kind's `powerup_chance` on the
+  barrels' own dice (seeded from the run's seed in the sim); the power-up is drawn by weight and thrown
+  (`PickupManager.throw_powerup`, `Powerup.throw_to`): a hop 0.55 s + 0.035 s a metre long, 1.8 m + 0.22 m a metre high
+  (6 m: 0.76 s, 3.1 m up), landing `throw_distance` m from the barrel on a clear spot (in the arena, off the rocks' feet
+  and the water, out of the cover bands, 1.2 m from any power-up) chosen in this order: within 80 degrees of straight
+  away from the hero AND wholly on the screen below the HUD's strip; any way on the screen; any way. In the air it is
+  never taken and its lifetime stands still; it is never pulled by a magnet (`no_magnet`: a coin bag's own pull too);
+  the vacuums never touched power-ups. It then lies its own `lifetime` (content/pickups/<id>).
+- No edge tag points at barrels (35 standing on the map: a tag would always be up).
 
 #### Code API
-- WorldChests (RefCounted, reads no autoload): consts `DEFAULTS`, `CONTENT_DEFAULTS`, `EVERY_MIN` 5, `RETRY_S` 3,
-  `TRIES` 48, `FAR_BAND` 1.5, `EDGE_SHARE` 0.86, `CHEST_CLEAR` 8, `STRUCTURE_CLEAR` 3, `WATER_CLEAR` 2.5, `COVER_CLEAR`
-  1.5, `THROW_CLEAR` 1.2, `THROW_TRIES` 16, `SEEN_SPHERES`, `PHASE_*`; static `cfg_of(block)`, `contents_of(block, boss)`,
-  `weight_list(v)`, `pick_weighted(list, rng)`, `range_of(v, fallback)`, `roll(range, rng)`, `phase_allowed(cfg, phase)`,
-  `seen(planes, p, margin)`, `expected_in(cfg, length)`; instance `setup(block, seed)`, `tick(host, delta, phase)`,
-  `spawn_now(host) -> bool`, `find_spot(host)`; fields `cfg`, `on`, `clock`, `next_at`, `spawned`, `skipped`, `missed`,
-  `expired`, `rng`.
-- PickupManager: `world`, `world_chests()`, `chest_powerups`, `view_camera()`, `world_hero()`, `world_planes()`,
-  `world_spot_ctx()`, `world_spot_ok(p, ctx)`, `world_lying()`, `world_expire(lifetime, margin)`, `pointer_chest()`,
-  `throw_chest_powerup(at, boss, force_id = "") -> Powerup`, `chest_throw_spot(at, dist, rng)`; `spawn_chest(at, boss,
-  world = false) -> Chest`; `spawn_special(...) -> Powerup`. Chest: `world`, `born`. Powerup: `flying`, `no_magnet`,
-  `throw_to(from, to)`, `throw_point(f)`. HUD: `CHEST_BRASS`, the tag in `_tick_arrow`. Run: `chest_candidates(new_mult)`.
-- The Level Editor's side: docs/level_editor.md "Pass 111". Tests: game/tests/pass111_chest_test.gd,
-  tools/level_editor/selftest_CHEST111.py. Capture: game/tools/_p111_CHEST_shots.gd; probe (a real run, the hero walked
-  to each map chest and power-up): game/tools/_p111_CHEST_probe.gd.
+- BarrelSpawns (RefCounted, reads no autoload): consts `RESPAWN_DEFAULTS`, `CONTENT_DEFAULTS`, `TYPES`, `EVERY_MIN` 5,
+  `RETRY_S` 3, `TRIES` 48, `FAR_BAND` 1.5, `SEEN_SPHERES`, `PHASE_*`; static `respawn_of(block)`, `contents_of(block,
+  black)` (coins as Vector2i, throw_distance as Vector2), `weight_list(v)`, `pick_weighted(list, rng)`, `range_of(v,
+  fallback)`, `roll(range, rng)`, `phase_allowed(cfg, phase)`, `seen(planes, p, margin)`, `turns_in(cfg, length)`;
+  instance `setup(block, seed)`, `tick(host, delta, phase)`, `spawn_now(host) -> bool`, `find_spot(host)`; fields `cfg`,
+  `on`, `clock`, `next_at`, `spawned`, `skipped`, `missed`, `rng`.
+- BarrelField: `SPARE`, `spawns`, `respawned`, `powerups_thrown`, `contents(black)`, `respawn_clock()`, `spawn_hero()`,
+  `spawn_planes()`, `spawn_ctx()`, `spawn_ok(p, ctx)`, `respawn_at(at, black) -> bool`, `_slot_for(kind)`,
+  `_throw_powerup(contents, at, pickups)`.
+- PickupManager: `throw_powerup(def, at, dist, rng) -> Powerup`, `powerup_throw_spot(at, dist, rng)`, `view_camera()`,
+  `thrown_powerups`, `THROW_TRIES`, `THROW_CLEAR`; `spawn_special(...) -> Powerup`. Powerup: `flying`, `no_magnet`,
+  `throw_to(from, to)`, `throw_point(f)`.
+- The Level Editor's side: docs/level_editor.md "Pass 112". Tests: game/tests/pass112_barrel_test.gd,
+  tools/level_editor/selftest_BARREL112.py. Capture: game/tools/_p112_BARREL_shots.gd; probe (a real run, the hero
+  smashing a barrel every few seconds): game/tools/_p112_BARREL_probe.gd.

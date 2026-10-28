@@ -1,12 +1,13 @@
-## The run's bounty contract (pass 111, lane WANTED): the poster picked on the Bounty Board (WantedBoard.next), followed
-## through the run. Game attaches it once the run has started (attach: never in the debug arena; a tool's launch may name
-## a contract with `bounty`, or "roll" for the board's first poster); it counts what the run's own tallies do not
-## (specials, Elites, the gold gained, the boss fight's seconds, the lowest health), says DONE or FAILED the moment it
-## knows, shows a small plate under the HUD's strip on the right (the target's icon and the progress), a row at the top of
-## the pause screen's Build tab, and at the run's end (settle, from Game.end_run) pays the reward into the save (in the
-## config's currency, gold by default: Currency.add), only when
-## done, whatever the end (a death too, as the purse is), and leaves its record in Run.last_result["bounty"] for the
-## Results' BOUNTY row and the run record (RunAnalytics). Rules: BALANCING.md 54.WANTED.
+## The run's bounty contract (pass 111, lane WANTED): the Wanted poster the player took, followed through the run. Pass
+## 112: the posters float in over the run once the hero has landed from the spawn beam (ui/BountyPosters.gd,
+## Game._offer_bounty), and the one taken starts here (begin); a tool's launch may name a contract with `bounty`, or
+## "roll" for the first poster the board would roll (attach); never in the debug arena. It counts what the run's own
+## tallies do not (specials, Elites, the gold gained, the boss fight's seconds, the lowest health), says DONE or FAILED the
+## moment it knows, shows a small plate under the HUD's strip on the right (the target's icon and the progress), a row at
+## the top of the pause screen's Build tab, and at the run's end (settle, from Game.end_run) pays the reward into the save
+## (in the config's currency, gold by default: Currency.add), only when done, whatever the end (a death too, as the purse
+## is), and leaves its record in Run.last_result["bounty"] for the Results' BOUNTY row and the run record (RunAnalytics).
+## Rules: BALANCING.md 54.WANTED, 55.WANTED.
 class_name WantedRun
 extends Node
 
@@ -39,10 +40,10 @@ var _plate_label: WText
 var _family: Array = []
 
 
-## Starts following the board's pick for this run (Game._ready, after the HUD): the contract WantedBoard.next holds, or
-## the launch's `bounty` (a contract, or "roll": the first poster the board would roll). Null with none.
+## A tool's contract for this run (Game._ready, after the HUD): the launch's `bounty` (a contract, or "roll": the first
+## poster the board would roll; "none" or nothing: none). Null with none.
 static func attach(g: Node, launch: Dictionary = {}) -> WantedRun:
-	var c := WantedBoard.take_next()
+	var c: Dictionary = {}
 	var lb = launch.get("bounty")
 	if lb is Dictionary and not (lb as Dictionary).is_empty():
 		c = (lb as Dictionary).duplicate(true)
@@ -54,6 +55,16 @@ static func attach(g: Node, launch: Dictionary = {}) -> WantedRun:
 	if c.is_empty():
 		current = null
 		return null
+	return begin(g, c)
+
+
+## The contract `c` followed from now on in game `g` (the poster taken on the floating posters, or a tool's): the tracker
+## under the Game, its plate on the HUD. A second one in the same run replaces nothing (the first stays).
+static func begin(g: Node, c: Dictionary) -> WantedRun:
+	if c.is_empty():
+		return null
+	if current != null and is_instance_valid(current) and current.game == g:
+		return current
 	var w := WantedRun.new()
 	w.name = "WantedRun"
 	w.game = g
@@ -358,6 +369,22 @@ func _place_plate() -> void:
 ## The plate (tests, captures): null without one.
 func plate() -> Control:
 	return _plate
+
+
+## Pass 112: the plate waits unseen while the taken poster flies to it (BountyPosters), then pops in (pop_plate).
+func hide_plate() -> void:
+	if _plate:
+		_plate.modulate.a = 0.0
+
+
+func pop_plate() -> void:
+	if _plate == null:
+		return
+	_plate.pivot_offset = _plate.size * 0.5
+	_plate.scale = Vector2.ONE * 1.25
+	var tw := _plate.create_tween().set_parallel(true)
+	tw.tween_property(_plate, "modulate:a", 1.0, 0.12)
+	tw.tween_property(_plate, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 # ---------------------------------------------------------------- the pause screen and the Results

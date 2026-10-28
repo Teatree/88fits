@@ -1344,7 +1344,9 @@ func register_type(def: EnemyDef) -> int:
 	_t_eight.append(1 if bool(t["eight"]) else 0)
 	_t_run_fps.append(float(t["run_fps"]))
 	_t_die_fps.append(float(t["die_fps"]))
-	_t_faces.append(1 if def.brain in ["caster", "kite", "artillery", "support", "sniper"] else 0)
+	_t_faces.append(1 if def.brain in ["caster", "kite", "artillery", "support", "sniper", "squad"] else 0)
+	# pass 112 (lane MONK): a squad type (Squads: one walk and one volley per squad)
+	_t_squad.append(1 if def.brain == "squad" else 0)
 	_t_face_fix.append(_face_fix(def.front_faces))
 	_t_face_fix.append(_face_fix(def.back_faces))
 	# pass 111 (lane ENEMY): a look with its own left-heading sets (_lr_strip, _face_bit)
@@ -1657,15 +1659,21 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	_emerge_start(i, def)
 	# pass 95 (lane WORLD): when it came and whether a boss or a caster summoned it (the despawn rule reads both)
 	_despawn_note_spawn(i)
+	# pass 112 (lane MONK): a squad creature joins its squad (Squads.on_spawn)
+	if _t_squad[t] == 1:
+		_sq().on_spawn(i)
 	return i
 
 
 ## `n` of a creature spread round `center` (its art variant and overrides passed on, pass 53; its source's fixed numbers,
-## pass 58). Returns how many came.
+## pass 58). Returns how many came. Pass 112 (lane MONK): a squad creature's `n` come as one squad on its formation
+## (Squads.spawn_pack).
 func spawn_pack(def_id: String, center: Vector3, n: int, elite: EliteModDef = null, variant := "", overrides := {}, src := {}) -> int:
 	var def: EnemyDef = Registry.enemy_with(def_id, variant, overrides)
 	if def == null:
 		return 0
+	if def.is_squad():
+		return _sq().spawn_pack(def_id, def, center, n, elite, variant, overrides, src)
 	var spread: float = clamp(0.6 * sqrt(float(n)) * def.radius * 2.0, 1.0, 6.0)
 	var came := 0
 	for k in range(n):
@@ -4097,6 +4105,10 @@ func _physics_process(delta: float) -> void:
 	# pass 47: Ducktape, Big Game Hunter, Hot Sauce and White Phosphorus with it)
 	_pstats_dirty = true
 	_pstats()
+	# pass 112 (lane MONK): every squad's one walk and one volley clock, before its members steer (Squads.tick); a frozen
+	# crowd's squads wait with it
+	if squads != null and crowd_freeze == 0:
+		squads.tick(delta, ppos)
 	# the crowd's numbers, kept as the loop passes (pass 48): its mean max HP (priority_index) and the poisoned (Gas Mask)
 	var crowd_hp := 0.0
 	var crowd_n := 0
@@ -4270,6 +4282,9 @@ func _physics_process(delta: float) -> void:
 					else:
 						view_t[i] = VIEW_MIN
 				view[i] = want
+				# pass 112 (lane MONK): a squad creature's attack strip shows its back half in the back views (Squads)
+				if _t_squad[ti] == 1:
+					away[i] = 1 if want == 1 or want == 3 else 0
 				# side and diagonal sets face screen-right; mirror them when heading left, with a dead band about
 				# straight up and down so a heading that wobbles about the vertical never flips the picture
 				var len := face.length()
@@ -4577,6 +4592,9 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 							state[i] = STATE_WINDUP
 							timer[i] = float(def.ranged.get("telegraph", 0.6)) / pace
 							_telegraph_shot(i, def, ppos, dir, dist)
+				"squad":
+					# pass 112 (lane MONK): to its slot round its squad's centre, which walks for the whole squad (Squads)
+					desired = squads.steer(i, spd) if squads != null else Vector3.ZERO
 				"charge":
 					desired = dir * spd
 					if cooldown[i] <= 0.0 and dist < float(def.charge.get("trigger_range", 6.0)):
@@ -4736,6 +4754,9 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	vel[i] = desired + sep * (sep_w * _steer_k)
 	# what the brain meant, before the crowd's push (pass 60): a ranged creature's facing and walk read this
 	intent[i] = desired
+	# pass 112 (lane MONK): a squad member means its squad's heading (Squads.intent_of), not its steps to its slot
+	if squads != null and state[i] == STATE_MOVE and _t_squad[type_idx[i]] == 1:
+		intent[i] = squads.intent_of(i, desired)
 
 
 ## Creature `j` shoved aside by charger `i` heading `head` (pass 50, Garry: "push enemies out of the way, always to the
@@ -5729,6 +5750,9 @@ func _strip_of(i: int, t: int) -> int:
 		a = A_ATTACK
 	if flash[i] > 0.6 and _t_hit_ok[t] == 1 and st != STATE_DYING:
 		a = A_HIT
+	# pass 112 (lane MONK): a squad creature holds its raised hands through a hit and in every view (Squads.attack_frame)
+	if st == STATE_ATTACK and _t_squad[t] == 1 and held[i] == 0:
+		return A_ATTACK
 	if _t_eight[t] == 1:
 		# eight-direction creatures: chargers keep their directional run while charging and hold the idle set while winding up
 		if st == STATE_CHARGE:
@@ -6073,6 +6097,8 @@ func drawn_frame(i: int) -> Vector2i:
 		frame = _attack_view_frame(i, t, shown)
 	if strip == A_ATTACK and _t_throw[t] == 1:
 		frame = _throw_frame(i, t, shown)
+	if strip == A_ATTACK and _t_squad[t] == 1 and squads != null:
+		frame = squads.attack_frame(i, t, shown)
 	return Vector2i(frame, 1 if _face_bit(flip[i], t, _face_strip(i, t, strip)) > 0.5 else 0)
 
 
@@ -6122,6 +6148,9 @@ func _render() -> void:
 		if strip == A_ATTACK and _t_throw[t] == 1:
 			# pass 85 (lane BANDIT): a throw's wind-up or release frames (_throw_frame)
 			frame = _throw_frame(i, t, shown)
+		if strip == A_ATTACK and _t_squad[t] == 1 and squads != null:
+			# pass 112 (lane MONK): a squad's hands rising, then held up (Squads.attack_frame)
+			frame = squads.attack_frame(i, t, shown)
 		var sq := squash[i]
 		# procedural bob while moving
 		if strip == A_RUN:
@@ -6240,6 +6269,15 @@ var priority_picks := 0
 var _t_prio := PackedByteArray()
 ## per type: 1 when its attack strip holds the front and the back views (EnemyDef.attack_views "front_back")
 var _t_atkv := PackedByteArray()
+## pass 112 (lane MONK): per type, 1 for a squad creature (the squad brain); the squads themselves (made on first use)
+var _t_squad := PackedByteArray()
+var squads: Squads = null
+
+
+func _sq() -> Squads:
+	if squads == null:
+		squads = Squads.new(self)
+	return squads
 
 
 func set_target_priority(cfg: Dictionary) -> void:

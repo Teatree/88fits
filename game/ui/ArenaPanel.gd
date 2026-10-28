@@ -594,6 +594,20 @@ func _spawn_enemy_now(def: EnemyDef, n: int, place: String, mod_id: String, hold
 				game.add_attacker(str(kind))
 			return
 	var elite: EliteModDef = Registry.elites.get(mod_id) if mod_id != "" else null
+	# pass 112 (lane MONK): a squad creature comes as squads (its formation round the point): "1" is one squad of a size
+	# drawn from its squad.sizes, any other count that many in squads of at most its largest size
+	if def.is_squad():
+		var sizes: Array = []
+		if n <= 1:
+			sizes.append(def.squad_roll(randf()))
+		else:
+			var left := n
+			while left > 0:
+				sizes.append(mini(left, def.squad_max()))
+				left -= def.squad_max()
+		for s in range(sizes.size()):
+			em.spawn_pack(def.id, _place_point(place, s, sizes.size()), int(sizes[s]), elite, def.variant_code)
+		return
 	for k in range(n):
 		var i: int = em.spawn(def.id, _place_point(place, k, n), elite, 1.0, 1.0, def.variant_code)
 		if i < 0:

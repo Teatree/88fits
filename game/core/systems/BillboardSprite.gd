@@ -12,6 +12,9 @@ const LOOPS := ["idle", "run", "turn", "attack"]
 var animation := ""
 var frame := 0.0
 var playing := false
+## Pass 112 (lane ENEMY): a multiplier on the playing animation's frame rate (the hero's run follows his speed,
+## Player.run_rate); 1 = as authored.
+var rate := 1.0
 var _anims: Dictionary = {}   # name -> {"offset": int, "count": int}
 var _fps: Dictionary = {}     # prefix -> frames per second, from the content def
 var _total := 1
@@ -249,7 +252,7 @@ func _process(delta: float) -> void:
 	if not playing or not _anims.has(animation):
 		return
 	var n := int(_anims[animation]["count"])
-	frame += delta * _speed(animation)
+	frame += delta * _speed(animation) * rate
 	if frame >= n:
 		if _loops(animation):
 			frame = fmod(frame, float(n))

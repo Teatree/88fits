@@ -10,6 +10,11 @@
 ## on the rare ones, a MultiMesh each).
 ## Barrel Rush (pass 47, a passive): every barrel he smashes starts or refreshes a speed boost (Run.barrel_rush) and the
 ## game shows it on him (Game.barrel_rush_fx).
+## Pass 112 (lane BARREL; Garry: barrels "should respawn every now and then ... a chance of a power up dropping from
+## them ... never spawn where Player can see them"): the map's `timeline_data.barrels` block (core/systems/BarrelSpawns.gd)
+## lays broken barrels again on a clock, off the screen (respawn_at, spawn_ok), and says what each type holds (its gems,
+## its coins, the chance of a power-up thrown out of it for the hero to fetch: _throw_powerup). The start's placement is
+## as before.
 class_name BarrelField
 extends Node3D
 
@@ -64,11 +69,23 @@ const SHADOW_A := 0.5
 const SHADOW_TALL := 0.9
 var shadows: PackedInt32Array = PackedInt32Array()
 var _part_xf: Dictionary = {}   # "body" / "hoops" -> Transform3D: where each part stands inside the model (pass 53)
+## Pass 112 (lane BARREL): the respawn clock (made at its first tick from the map's `barrels` block and the run's seed; a
+## test or a tool may hand one in), each kind's MultiMeshes' spare room for respawns past the broken slots (SPARE), the
+## barrels' own dice (power-ups, a respawn's coins), and how many barrels came back and power-ups were thrown this run.
+var spawns: BarrelSpawns = null
+const SPARE := 24
+var _dice := RandomNumberGenerator.new()
+var respawned := 0
+var powerups_thrown := 0
 
 
 func setup(p_game: Node, p_map: MapBase) -> void:
 	game = p_game
 	map = p_map
+	if Run.rng_seed != 0:
+		_dice.seed = hash([Run.rng_seed, "barrels"])
+	else:
+		_dice.randomize()
 	var meshes := _meshes()
 	if meshes.is_empty():
 		return
@@ -85,10 +102,10 @@ func setup(p_game: Node, p_map: MapBase) -> void:
 	for i in pos.size():
 		if light[i] == 0:
 			dark_n += 1
-	_body_dark = _multimesh(meshes["body"], dark_n, _wood(DARK))
-	_body_light = _multimesh(meshes["body"], pos.size() - dark_n, _black())
-	_hoops = _multimesh(meshes["hoops"], dark_n, null)
-	_hoops_light = _multimesh(meshes["hoops"], pos.size() - dark_n, _brass())
+	_body_dark = _multimesh(meshes["body"], dark_n, _wood(DARK), SPARE)
+	_body_light = _multimesh(meshes["body"], pos.size() - dark_n, _black(), SPARE)
+	_hoops = _multimesh(meshes["hoops"], dark_n, null, SPARE)
+	_hoops_light = _multimesh(meshes["hoops"], pos.size() - dark_n, _brass(), SPARE)
 	var kd := 0
 	var kl := 0
 	for i in pos.size():
@@ -185,11 +202,12 @@ func _brass() -> StandardMaterial3D:
 	return m
 
 
-func _multimesh(mesh: Mesh, n: int, mat: Material) -> MultiMesh:
+## `spare` instances past `n` wait unseen for respawns (pass 112: the count cannot grow without clearing the transforms).
+func _multimesh(mesh: Mesh, n: int, mat: Material, spare: int = 0) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
-	mm.instance_count = maxi(n, 1)
+	mm.instance_count = maxi(n + spare, 1)
 	mm.visible_instance_count = n
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
@@ -320,9 +338,11 @@ static func structure_position(s: Node3D) -> Vector3:
 	return s.global_position if s.is_inside_tree() else s.position
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if game == null or pos.is_empty() or bool(game.get("paused")) or game.player == null or game.player.dead:
 		return
+	# pass 112 (lane BARREL): broken barrels come back now and then, off the screen
+	_tick_spawns(delta)
 	var pp: Vector3 = game.player.global_position
 	for i in pos.size():
 		if alive[i] == 0:
@@ -361,15 +381,19 @@ func _break(i: int) -> void:
 	# pass 79 (lane MUT): the card levels (Run.card_level), so a barrel pays at a minute what it paid before
 	var per := 1.0 + float(Run.card_level()) * 0.15
 	var pk = game.pickups
+	# pass 112 (lane BARREL): what this kind holds, the map's `barrels` block (today's when it names none: a brown one 8
+	# small gems, a black one 10 small and 4 medium and its 1-5 coins)
+	var cc := contents(light[i] == 1)
 	if pk:
-		var n_small := 8 if light[i] == 0 else 10
-		for k in n_small:
+		for k in int(cc["gems_small"]):
 			pk.spawn(pk.KIND_GEM_S, at + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5)), per)
-		if light[i] == 1:
-			for k in 4:
-				pk.spawn(pk.KIND_GEM_M, at + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.6, 0.6)), per * 4.0)
-			# pass 87 (lane FIXES): and its coins
+		for k in int(cc["gems_medium"]):
+			pk.spawn(pk.KIND_GEM_M, at + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.6, 0.6)), per * 4.0)
+		# pass 87 (lane FIXES): and its coins (a black one's; a brown one's only when the map gives it some)
+		if light[i] == 1 or (i < coins.size() and coins[i] > 0):
 			_drop_coins(i, at, pk)
+		# pass 112 (lane BARREL): now and then a power-up hops out of it, for the hero to fetch or leave
+		_throw_powerup(cc, at, pk)
 	Audio.play("st_barrel_break", at)
 	if game.camera:
 		game.camera.shake(0.45 if light[i] == 1 else 0.3)
@@ -380,12 +404,15 @@ func _break(i: int) -> void:
 
 ## Each black barrel's coins (pass 87, lane FIXES): COIN_MIN..COIN_MAX (uniform, whole), rolled once per map on the run's
 ## seed (its own dice, after the spots, so the spots are as before); a brown barrel holds none.
+## Pass 112 (lane BARREL): each kind's count from the map's `barrels` block (`coins`: today's 1-5 black, none brown).
 func _roll_coins() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = Run.map_seed * 31 + 11
 	coins.resize(pos.size())
+	var ranges := [contents(false)["coins"], contents(true)["coins"]]
 	for i in pos.size():
-		coins[i] = rng.randi_range(COIN_MIN, COIN_MAX) if light[i] == 1 else 0
+		var r: Vector2i = ranges[light[i]]
+		coins[i] = rng.randi_range(r.x, r.y) if r.y > 0 else 0
 
 
 ## All the coins the map's barrels hold (broken or not).
@@ -400,7 +427,8 @@ func coins_total() -> int:
 ## hand), worth COIN_VALUE each, scattered round it like its gems, each marked as the "barrel" gold source. Returns how
 ## many.
 func _drop_coins(i: int, at: Vector3, pk) -> int:
-	var n: int = coins[i] if i < coins.size() and coins[i] > 0 else randi_range(COIN_MIN, COIN_MAX)
+	var r: Vector2i = contents(light[i] == 1)["coins"]
+	var n: int = coins[i] if i < coins.size() and coins[i] > 0 else randi_range(r.x, r.y)
 	for k in n:
 		var c: int = pk.spawn(pk.KIND_COIN, at + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.6, 0.6)), COIN_VALUE)
 		if pk.has_method("mark_coin"):
@@ -425,3 +453,167 @@ func alive_count() -> int:
 	for i in alive.size():
 		n += alive[i]
 	return n
+
+
+# ---------------------------------------------------------------- respawns, contents, power-ups (pass 112, lane BARREL)
+
+## The map's `barrels` block: the director's timeline's, else the run's map's ({} in a test without either).
+func _timeline() -> WaveTimeline:
+	var d = game.get("director") if game != null else null
+	if d != null and d.get("timeline") is WaveTimeline:
+		return d.get("timeline")
+	return Run.map.timeline if Run.map != null else null
+
+
+func _block() -> Dictionary:
+	var tl := _timeline()
+	return tl.barrels if tl != null else {}
+
+
+## What a barrel of this kind holds (`black` the black kind; BarrelSpawns.contents_of): gems_small, gems_medium, coins
+## (Vector2i), powerup_chance, powerups, throw_distance.
+func contents(black: bool) -> Dictionary:
+	return BarrelSpawns.contents_of(_block(), black)
+
+
+func respawn_clock() -> BarrelSpawns:
+	if spawns == null:
+		spawns = BarrelSpawns.new()
+		spawns.setup(_block(), int(Run.rng_seed))
+	return spawns
+
+
+## One tick of the respawn clock: only while the director runs a stage (never in the debug arena, nor in a test's game
+## without a director), in the phases the block lets its clock run in.
+func _tick_spawns(delta: float) -> void:
+	var d = game.get("director") if game != null else null
+	if d == null or not bool(d.get("running")) or Run.arena:
+		return
+	respawn_clock().tick(self, delta, int(d.get("phase")))
+
+
+## A power-up thrown out of a barrel smashed at `at` (pass 112): its kind's `powerup_chance` on the barrels' own dice,
+## drawn by weight from its `powerups` (none listed: the map's power-up drops roster), thrown `throw_distance` m away on
+## a visible hop (PickupManager.throw_powerup: away from the hero and on the screen where it can be, never taken in the
+## air, never pulled by a magnet, lying its own lifetime). The power-up, or null when none came.
+func _throw_powerup(cc: Dictionary, at: Vector3, pk) -> Powerup:
+	var chance := float(cc["powerup_chance"])
+	if pk == null or not pk.has_method("throw_powerup") or chance <= 0.0 or _dice.randf() >= chance:
+		return null
+	var list: Array = cc["powerups"]
+	if list.is_empty():
+		var tl := _timeline()
+		if tl != null:
+			list = BarrelSpawns.weight_list(tl.pickups.get("roster", []))
+	var def: PickupDef = Registry.pickup(BarrelSpawns.pick_weighted(list, _dice))
+	if def == null:
+		return null
+	powerups_thrown += 1
+	return pk.throw_powerup(def, at, cc["throw_distance"], _dice)
+
+
+# BarrelSpawns' host: the hero, the camera's view, the spot rules, a barrel laid again
+
+func spawn_hero() -> Vector3:
+	if game == null or game.get("player") == null:
+		return Vector3.INF
+	return (game.player as Node3D).global_position
+
+
+## The camera's frustum planes, facing out (empty without a camera: nobody sees).
+func spawn_planes() -> Array:
+	var rig = game.get("camera") if game != null else null
+	var cam: Camera3D = null
+	if rig is Camera3D:
+		cam = rig
+	elif rig is Object and is_instance_valid(rig) and rig.get("camera") is Camera3D:
+		cam = rig.get("camera")
+	if cam == null and is_inside_tree():
+		cam = get_viewport().get_camera_3d()
+	return Array(cam.get_frustum()) if cam != null and cam.is_inside_tree() else []
+
+
+## What the spot rules read, gathered once a search: the paintings' cover bands and the structures' rings.
+func spawn_ctx() -> Dictionary:
+	return {"covers": _covers(), "rings": structure_rings(game)}
+
+
+## `p` grounded when a barrel may stand there, Vector3.INF when not: the start's rules (_place: inside 0.92 of the
+## arena's radius, off the flats' middle, out of the water, off the rocks, out of every painting's cover band and
+## structure ring) and MIN_GAP from every barrel standing.
+func spawn_ok(p: Vector3, ctx: Dictionary) -> Vector3:
+	var q := Vector2(p.x, p.z)
+	for i in pos.size():
+		if alive[i] == 1 and q.distance_to(Vector2(pos[i].x, pos[i].z)) < MIN_GAP:
+			return Vector3.INF
+	if map == null:
+		return Vector3(p.x, 0.0, p.z)
+	if q.length() > map.arena_radius * 0.92:
+		return Vector3.INF
+	if (q - Vector2(map.flats_center.x, map.flats_center.z)).length() < map.flats_radius * 0.5:
+		return Vector3.INF
+	if map.has_method("in_water") and map.in_water(Vector3(p.x, 0, p.z)):
+		return Vector3.INF
+	for o: Vector3 in map.obstacles:
+		if q.distance_to(Vector2(o.x, o.y)) < o.z + RADIUS + 0.9:
+			return Vector3.INF
+	if in_cover(ctx.get("covers", []), q, RADIUS):
+		return Vector3.INF
+	for g: Vector3 in ctx.get("rings", []):
+		if q.distance_to(Vector2(g.x, g.y)) < g.z + RADIUS + RING_CLEAR:
+			return Vector3.INF
+	return Vector3(p.x, map.height_at(p.x, p.z), p.z)
+
+
+## A barrel laid again at `at` (pass 112): a broken one of its kind stands up there (its slot, its instance, its shadow),
+## else a new one from its kind's spare instances, else (none of either) one of the other kind. Its coins are rolled from
+## its kind's `coins` (extra gold: only the start's barrels are held back from the creatures' coins). False when no slot.
+func respawn_at(at: Vector3, black: bool) -> bool:
+	var t := 1 if black else 0
+	var i := _slot_for(t)
+	if i < 0:
+		t = 1 - t
+		i = _slot_for(t)
+	if i < 0:
+		return false
+	pos[i] = at
+	alive[i] = 1
+	var r: Vector2i = contents(t == 1)["coins"]
+	coins[i] = _dice.randi_range(r.x, r.y) if r.y > 0 else 0
+	var body := _body_light if t == 1 else _body_dark
+	var hoops := _hoops_light if t == 1 else _hoops
+	if body:
+		body.set_instance_transform(_index_in[i], instance_transform(i, "body"))
+	if hoops:
+		hoops.set_instance_transform(_index_in[i], instance_transform(i, "hoops"))
+	var props = map.get("props") if map else null
+	if props is PropField:
+		if shadows[i] >= 0:
+			(props as PropField).move_shadow(shadows[i], at)
+		else:
+			shadows[i] = (props as PropField).add_shadow(at, SHADOW_W, SHADOW_D, SHADOW_A, SHADOW_TALL)
+	respawned += 1
+	return true
+
+
+## A slot for a barrel of kind `t` (1 black): the first broken one of that kind, else a new one on a spare instance of
+## its MultiMeshes (the arrays grow by one); -1 when there is neither.
+func _slot_for(t: int) -> int:
+	for k in pos.size():
+		if alive[k] == 0 and light[k] == t:
+			return k
+	var body := _body_light if t == 1 else _body_dark
+	if body == null or body.visible_instance_count >= body.instance_count:
+		return -1
+	var n := body.visible_instance_count
+	body.visible_instance_count = n + 1
+	var hoops := _hoops_light if t == 1 else _hoops
+	if hoops:
+		hoops.visible_instance_count = n + 1
+	pos.append(Vector3.ZERO)
+	light.append(t)
+	alive.append(0)
+	coins.append(0)
+	_index_in.append(n)
+	shadows.append(-1)
+	return pos.size() - 1

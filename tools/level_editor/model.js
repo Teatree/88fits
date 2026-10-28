@@ -1009,6 +1009,12 @@ const Model = (() => {
         if (!(x.w > 0)) continue;
         const p = x.w / W;
         let n = x.single ? 1 : x.pack;
+        if (x.squad) {
+          // pass 112 (lane MONK): a squad creature comes as one whole squad (its pack: the row's, else the creature's
+          // pack_size, the Monk's 20 = its sizes' mean), never cut by the burst, and that draw takes the rest of it
+          out[k] += mass * p * (x.room < x.pack ? 0 : x.pack);
+          continue;
+        }
         const fit = rem / x.s;
         if (fit < n) n = fit;
         if (x.room < n) n = x.room;
@@ -1136,6 +1142,8 @@ const Model = (() => {
           arch: c.archetype === 'boss' || c.kind === 'boss' ? 'boss' : c.archetype === 'elite' ? 'elite' : 'regular',
           share: num(st.cap_share, num(c.cap_share, 1)),
           pack: Math.max(trunc(num(st.pack, num(c.pack_size, 1))), 1),
+          // pass 112 (lane MONK): the squad brain (whole squads, burstOnce)
+          squad: c.brain === 'squad',
           maxAlive: trunc(num(st.max_alive, num(c.max_alive, 0))),
           canBeElite: st.can_be_elite != null ? !!st.can_be_elite : c.can_be_elite !== false,
           eliteWeight: Math.max(num(st.elite_weight, 1), 0),
@@ -1611,7 +1619,7 @@ const Model = (() => {
       const t = now();
       // pass 84 (lane SPAWN): a list or "roster" row draws its picks (their load per body the shares' mean)
       const pk = list.map((c) => rowPicks(c.x, t));
-      const rows = list.map((c, i) => ({ w: pk[i].length ? rowWeight(c.x.r, t, lateT) : 0, s: Math.max(c.x.one ? c.x.d.share : picksShare(pk[i]), 0.05), pack: c.x.pack, single: c.x.single, room: c.room }));
+      const rows = list.map((c, i) => ({ w: pk[i].length ? rowWeight(c.x.r, t, lateT) : 0, s: Math.max(c.x.one ? c.x.d.share : picksShare(pk[i]), 0.05), pack: c.x.pack, single: c.x.single, room: c.room, squad: !!(c.x.one && c.x.d && c.x.d.squad) }));
       const got = burstAvg(rows, room, bLo, bHi, frac);
       let sum = 0;
       for (const n of got) sum += n;

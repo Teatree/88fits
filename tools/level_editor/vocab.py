@@ -19,11 +19,12 @@ NOTE = "a new kind needs code: ask Claude"
 # ---------------------------------------------------------------- creatures (EnemyManager.gd, EnemyDef.gd, JsonContent._enemy)
 
 # the brains `_steer` dispatches on (EnemyManager.gd `match def.brain:`); an unknown brain chases
-BRAINS = ["chase", "flock", "kite", "charge", "kamikaze", "artillery", "boss", "dummy", "ambush", "caster", "support", "sniper"]
+BRAINS = ["chase", "flock", "kite", "charge", "kamikaze", "artillery", "boss", "dummy", "ambush", "caster", "support", "sniper",
+          "squad"]  # pass 112 (lane MONK): one walk and one volley per squad (core/systems/Squads.gd)
 # the blocks a brain reads (the form opens these cards first; any block may be added to any brain: "untested in play")
 BRAIN_BLOCKS = {"chase": [], "flock": [], "kite": ["ranged"], "charge": ["charge"], "kamikaze": ["kamikaze"],
                 "artillery": ["artillery"], "boss": ["boss"], "dummy": ["ranged"], "ambush": ["ambush", "ranged"],
-                "caster": ["caster", "boss"], "support": ["support"], "sniper": ["sniper"]}
+                "caster": ["caster", "boss"], "support": ["support"], "sniper": ["sniper"], "squad": ["squad"]}
 # only `boss` and `elite` change behaviour; the rest are labels (and the map's skin roles)
 ARCHETYPES = ["walker", "swarmer", "spitter", "brute", "tank", "runner", "elite", "boss"]
 ARCHETYPES_MEANINGFUL = ["elite", "boss"]
@@ -88,6 +89,10 @@ BLOCKS = {
     "sniper": {"stand_off": 26.0, "flee_range": 0.0, "follow": 38.0, "first": 2.5, "aim": 2.0, "lock": 1.0, "interval": 9.0,
                "interval_jitter": 1.5, "recover": 2.5, "spoil_on_hit": True, "cone_deg": 44.0, "lines": 14, "beam": {}, "muzzle": {}},
     "flee_on_hit": {"seconds": 1.0, "speed_mult": 1.8, "interrupts": True},
+    # pass 112 (lane MONK): the squad brain's block (EnemyDef.SQUAD_DEFAULTS, core/systems/Squads.gd)
+    "squad": {"sizes": [10, 20, 30], "weights": [1.0, 1.0, 1.0], "spacing": 1.4, "keep_distance": 5.5, "range": 8.0,
+              "band_from": "edge", "cooldown": 5.2, "first": 1.5, "rise": 0.5, "release": 1.0, "hold": 3.0, "breath_fps": 2.0,
+              "gain": 2.5, "catch_up": 1.5, "leash": 1.2, "hands": {}, "orb": {}, "glow": {}},
 }
 # the sub-blocks' keys (same shape), for the forms' nested rows
 SUBBLOCKS = {
@@ -101,6 +106,12 @@ SUBBLOCKS = {
                     "knockback": 5.0, "creature_frac": 0.05, "creature_max": 40.0, "push": 3.0, "sparks": 1.5},
     "sniper.muzzle": {"up": 0.0, "side": 0.0, "forward": 0.0},
     "boss.ring": {"radius": 21.0, "min_radius": 8.0, "shrink": 42.0, "hold": 8.0, "burn": 0.07, "creature_burn": 0.12},
+    # pass 112 (lane MONK)
+    "squad.hands": {"up": 1.75, "from_up": 1.05, "side": 0.0, "forward": 0.2},
+    "squad.orb": {"speed": 4.0, "range": 17.5, "size": 0.5, "hit_radius": 0.22, "damage_mult": 1.0, "lead": 0.0, "hover": 1.0,
+                  "knockback": 0.0, "color": "#2F7BFF", "pulse_hz": 3.0, "pulse": 0.12, "trail": {}},
+    "squad.orb.trail": {"every": 0.04, "life": 0.35, "size": 0.6, "alpha": 0.45},
+    "squad.glow": {"from": 0.2},
 }
 DROP_KEYS = {"small": 0.0, "medium": 0.0, "large": 0.0, "gold": 0.0, "chest": 0.0, "pickup": {"id": "", "chance": 0.0},
              "coins": 12, "chests": 1}

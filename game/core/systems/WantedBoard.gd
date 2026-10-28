@@ -2,13 +2,15 @@
 ## harder tasks ... a nice config for me to be able to set it up easily in LevelEditor ... weights of each different task
 ## ... Always a choice of 3 ... some difficulty score ... scale with Player progression ... Should not show locked items,
 ## heroes, enemies as a goal ... NOT available for Players who are playing for the first time").
-## Before a stage run (Play on the title, a card on the Stages menu, PLAY AGAIN on the Results) the player picks one of
-## `choices` Wanted posters, or none (ui/WantedBoardScreen.gd). Each poster is a task of one type drawn by its `weight`
+## Pass 112 (Garry: "this should appear at the beginning of a run right after the descend sequence. And make it so it's
+## not a full screen, but more like floating posters instead"): once the hero has landed from the spawn beam, `choices`
+## Wanted posters float in over the paused run (ui/BountyPosters.gd, Game._offer_bounty) and the player takes one, or none
+## (pass 111's full-screen board before the run is gone). Each poster is a task of one type drawn by its `weight`
 ## among the types that have a target this run; its number is rolled in the stage's range grown with progression, its
 ## difficulty is where that number fell in the range (the type's `difficulty` [easy end, hard end]), its reward comes
 ## from the difficulty. The run tracks it (core/systems/WantedRun.gd) and pays it at its end, only when done.
 ## Everything Garry tunes is content/wanted/wanted.json (the Level Editor's Wanted tab, tools/level_editor/wanted.js,
-## whose wanted_model.js mirrors the pure functions here); every rule is in BALANCING.md 54.WANTED.
+## whose wanted_model.js mirrors the pure functions here); every rule is in BALANCING.md 54.WANTED and 55.WANTED.
 ## The pure part (roll, make_contract, difficulty_of, reward_for, scaled_range, eligible_types, type_chances) reads only
 ## its arguments: a config and a context (context() builds it from the Registry and the save), so the tests and the
 ## editor roll the same posters from the same facts.
@@ -16,8 +18,6 @@ class_name WantedBoard
 extends RefCounted
 
 const CONFIG_PATH := "res://content/wanted/wanted.json"
-const SCREEN := "res://ui/WantedBoardScreen.tscn"
-const GAME := "res://game/Game.tscn"
 ## The save's own key (no other code reads it): {boards: {"map|stage|hero": {"hash", "posters"}}, taken, done, paid}.
 const SAVE_KEY := "wanted"
 ## The source the reward is banked under (Currency.add, Save.add_gold for gold; "bounty" is the Bounty Hunter perk's run
@@ -54,9 +54,6 @@ const MAX_CHOICES := 3
 
 static var _cfg: Dictionary = {}
 static var _cfg_loaded := false
-## The contract the board's pick hands to the next run: {} nothing chosen (no board was shown), {"none": true} "No
-## bounty", else the poster (Game takes it once: take_next).
-static var next: Dictionary = {}
 
 
 # ---------------------------------------------------------------- the config
@@ -134,22 +131,13 @@ static func progress_level(map_id: String) -> int:
 	return n
 
 
-## Whether a run of stage `stage` on `map_id` with hero `hero_id` opens the board first: it is unlocked and the stage
+## Whether a run of stage `stage` on `map_id` with hero `hero_id` is offered the posters: it is unlocked and the stage
 ## has at least one poster to offer.
 static func due(map_id: String, stage: int, hero_id: String) -> bool:
 	if not unlocked():
 		return false
 	var ctx := context(map_id, stage, hero_id)
 	return not ctx.is_empty() and not eligible_types(config(), ctx).is_empty()
-
-
-## Where a stage run starting now goes (the title's PLAY, a Stages card, the Results' PLAY AGAIN): the board when it is
-## due for the save's map and hero and the stage chosen (Run.stage_next), else straight into the run.
-static func run_scene() -> String:
-	var map_id := str(Save.data.get("last_map", "red_canyon"))
-	var hero_id := str(Save.data.get("last_character", Save.DEFAULT_HERO))
-	next = {}
-	return SCREEN if due(map_id, Run.stage_next, hero_id) else GAME
 
 
 # ---------------------------------------------------------------- the context: what this run can target
@@ -626,9 +614,9 @@ static func store() -> Dictionary:
 	return s
 
 
-## The posters for a run of `stage` on `map_id` with `hero_id`: the ones rolled for it before (until a choice is made:
-## going back and in again shows the same three, so a board is not re-rolled by leaving it), else a new roll kept in
-## the save. [] when the board is not due.
+## The posters for a run of `stage` on `map_id` with `hero_id`: the ones rolled for it before (until a choice is made: a
+## run left at the posters, the app closed or the run abandoned there, meets the same three again, so a board is not
+## re-rolled by leaving it), else a new roll kept in the save. [] for an unknown map or hero.
 static func board_for(map_id: String, stage: int, hero_id: String, rng: RandomNumberGenerator = null) -> Array:
 	var cfg := config()
 	var ctx := context(map_id, stage, hero_id)
@@ -672,18 +660,10 @@ static func reroll(map_id: String, stage: int, hero_id: String) -> Array:
 	return posters
 
 
-## The player's choice (a poster, or {} for "No bounty"): handed to the next run, and every kept board is gone (the next
-## board is a new roll).
+## The player's choice on the floating posters (a poster, or {} for "No bounty"): every kept board is gone (the next run
+## rolls a new one) and a poster taken is counted. Game starts the contract itself (WantedRun.begin).
 static func choose(contract: Dictionary) -> void:
-	next = contract.duplicate(true) if not contract.is_empty() else {"none": true}
 	store()["boards"] = {}
 	if not contract.is_empty():
 		store()["taken"] = int(store().get("taken", 0)) + 1
 	Save.request_save()
-
-
-## Game takes the board's choice once (the poster, or {} for none or no board).
-static func take_next() -> Dictionary:
-	var c := next
-	next = {}
-	return c if not bool(c.get("none", false)) else {}

@@ -155,6 +155,12 @@ var tint_range: Dictionary = {}
 ## creature_frac, creature_max, push, sparks}, muzzle {up, side, forward}} (EnemyManager._sniper_*). Pass 81: flee_range
 ## defaults to 0 (never runs), `spoil_on_hit` (default true) drops its aim on a hit (EnemyManager.sniper_spoil_on_hit)
 @export var sniper: Dictionary = {}
+## Pass 112 (lane MONK): the squad brain (the Monk): {sizes, weights, spacing, keep_distance, range, band_from, cooldown,
+## first, rise, release, hold, breath_fps, gain, catch_up, leash, hands {up, from_up, side, forward}, orb {speed, range,
+## size, hit_radius, damage_mult, lead, hover, knockback, color, pulse_hz, pulse, trail {every, life, size, alpha}}, glow
+## {from}}; every key optional (SQUAD_DEFAULTS). Creatures spawned together are one squad: one movement decision, one
+## attack clock (core/systems/Squads.gd), their spheres flown by core/systems/EnergyOrbs.gd. {} = none.
+@export var squad: Dictionary = {}
 ## Pass 73 (lane SNIPER): flee on hit, for any creature: {seconds, speed_mult, interrupts}. A hit that lands stops its
 ## wind-up or aim (`interrupts`) and it runs straight away from the hero at its speed x `speed_mult` for `seconds`
 ## (EnemyManager.flee_start). {} = none.
@@ -312,6 +318,8 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 	# pass 73 (lane SNIPER): the sniper's block and flee on hit, as deep copies too (a row may override them)
 	v.sniper = sniper.duplicate(true)
 	v.flee_on_hit = flee_on_hit.duplicate(true)
+	# pass 112 (lane MONK): the squad's block too (a row may override its sizes, its clock, its sphere)
+	v.squad = squad.duplicate(true)
 	v.pickup_weights = pickup_weights.duplicate(true)
 	# pass 58: `size` may be a range [min, max] (each creature rolls its own; `size_mult` scales both ends), and `tint` a
 	# colour range; a plain size goes through the direct fields as before
@@ -343,7 +351,7 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 	v.pack_size = maxi(v.pack_size, 1)
 	if stats.get("pickup_weights") is Dictionary:
 		v.pickup_weights = (stats["pickup_weights"] as Dictionary).duplicate(true)
-	for block: String in ["ranged", "charge", "drops", "elite", "kamikaze", "artillery", "sniper", "flee_on_hit"]:
+	for block: String in ["ranged", "charge", "drops", "elite", "kamikaze", "artillery", "sniper", "flee_on_hit", "squad"]:
 		if stats.get(block) is Dictionary:
 			v.set(block, deep_merge(v.get(block), stats[block]))
 	if stats.get("boss") is Dictionary:
@@ -370,6 +378,9 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 			v.kamikaze["windup"] = float(v.kamikaze.get("windup", 0.35)) / rate
 		if not v.boss.is_empty():
 			v.boss["cooldown_between"] = float(v.boss.get("cooldown_between", 2.0)) / rate
+		# pass 112 (lane MONK): a squad's volleys come `rate` times as often
+		if v.brain == "squad":
+			v.squad["cooldown"] = float(v.squad.get("cooldown", SQUAD_DEFAULTS["cooldown"])) / rate
 	var psm := float(stats.get("projectile_speed_mult", 1.0))
 	if psm > 0.0 and psm != 1.0:
 		if v.ranged.has("speed"):
@@ -382,6 +393,11 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 		for a in v.boss.get("attacks", []):
 			if a is Dictionary and (a as Dictionary).has("speed"):
 				a["speed"] = float(a["speed"]) * psm
+		# pass 112 (lane MONK): a squad's spheres fly `psm` times as fast (their range unchanged)
+		if v.brain == "squad":
+			var ob: Dictionary = (v.squad.get("orb", {}) as Dictionary).duplicate(true) if v.squad.get("orb") is Dictionary else {}
+			ob["speed"] = float(ob.get("speed", SQUAD_DEFAULTS["orb"]["speed"])) * psm
+			v.squad["orb"] = ob
 	var kbm := float(stats.get("knockback_mult", 1.0))
 	if kbm >= 0.0 and kbm != 1.0:
 		for block: String in ["charge", "ranged", "kamikaze"]:
@@ -653,3 +669,92 @@ func frame_offset(anim: String) -> int:
 			return n
 		n += int(anims.get(k, 0))
 	return 0
+
+
+# ---------------------------------------------------------------- pass 112 (lane MONK): the squad brain
+
+## Every key of the `squad` block with the game's own numbers (Squads reads the block laid over these, deep_merge):
+##   sizes [10, 20, 30] / weights [1, 1, 1]  how many come together (a roster row's `pack` wins), drawn by the weights
+##   spacing 1.4      metres between two neighbours of the formation (a hex blob round its centre)
+##   keep_distance 5.5 / range 8.0   the kite's band (the Spit Cactus's): backs off nearer than keep - 0.5, walks in past
+##                    range, stands and may attack between; measured from the formation's near edge (`band_from` "edge")
+##                    or its centre ("center")
+##   cooldown 5.2     seconds from one volley's start to the next (half as often as the Spit Cactus's 2.6)
+##   first 1.5        seconds after it forms before its first volley may start (+ up to 1 s at random per squad)
+##   rise 0.5 / release 1.0 / hold 3.0   seconds into the stop: the hands are up, the spheres leave, it walks again
+##                    (plain seconds: the map's pace knob never stretches them; High Noon slows them)
+##   breath_fps 2.0   the hands-up frames' breath while they hold
+##   gain 2.5, catch_up 1.5, leash 1.2   a member steers to its slot at `gain` x the gap on top of the squad's walk, at
+##                    most `catch_up` x its own walk; the centre waits when the members are `leash` m behind it
+##   hands {up 1.75, from_up 1.05, side 0, forward 0.2}   where the glow gathers (metres at the def's size, as a muzzle):
+##                    rising from `from_up` to `up` while the hands rise
+##   orb {...}        the sphere (EnergyOrbs): speed 4 m/s, range 17.5 m (1.25 x the Revolver's 14), size 0.5 m across,
+##                    hit_radius 0.22 (+ the hero's 0.5), damage_mult 1 (x the monk's damage, its stage and level),
+##                    lead 0 (a share of the hero's run over the flight), hover 1.0 m over the sand, knockback 0 (a plain
+##                    shot: no push), color "#2F7BFF", pulse_hz 3, pulse 0.12, trail {every 0.04, life 0.35, size 0.6,
+##                    alpha 0.45}
+##   glow {from 0.2}  the gathering glow starts at this share of the sphere's size and is full at the release
+const SQUAD_DEFAULTS := {
+	"sizes": [10, 20, 30], "weights": [1.0, 1.0, 1.0], "spacing": 1.4, "keep_distance": 5.5, "range": 8.0,
+	"band_from": "edge", "cooldown": 5.2, "first": 1.5, "rise": 0.5, "release": 1.0, "hold": 3.0, "breath_fps": 2.0,
+	"gain": 2.5, "catch_up": 1.5, "leash": 1.2,
+	"hands": {"up": 1.75, "from_up": 1.05, "side": 0.0, "forward": 0.2},
+	"orb": {"speed": 4.0, "range": 17.5, "size": 0.5, "hit_radius": 0.22, "damage_mult": 1.0, "lead": 0.0, "hover": 1.0,
+		"knockback": 0.0, "color": "#2F7BFF", "pulse_hz": 3.0, "pulse": 0.12,
+		"trail": {"every": 0.04, "life": 0.35, "size": 0.6, "alpha": 0.45}},
+	"glow": {"from": 0.2},
+}
+
+
+## Whether this creature fights as a squad (the squad brain).
+func is_squad() -> bool:
+	return brain == "squad"
+
+
+## Its squad block laid over SQUAD_DEFAULTS (a new dictionary).
+func squad_cfg() -> Dictionary:
+	return deep_merge(SQUAD_DEFAULTS, squad)
+
+
+## The squad sizes it may come in (whole numbers of at least 1, in the block's order); [pack_size] when the block has none.
+func squad_sizes() -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var s = squad_cfg().get("sizes", [])
+	if s is Array:
+		for v in s:
+			if (v is float or v is int) and int(v) >= 1:
+				out.append(int(v))
+	if out.is_empty():
+		out.append(maxi(pack_size, 1))
+	return out
+
+
+## The largest squad it comes in.
+func squad_max() -> int:
+	var m := 1
+	for v: int in squad_sizes():
+		m = maxi(m, v)
+	return m
+
+
+## One squad's size drawn by the block's `weights` (one weight per size; a missing one weighs 1, 0 never comes; all 0 =
+## the first size). `u` is a roll in 0..1.
+func squad_roll(u: float) -> int:
+	var sizes := squad_sizes()
+	var w = squad_cfg().get("weights", [])
+	var ws := PackedFloat32Array()
+	var total := 0.0
+	for k in range(sizes.size()):
+		var x := 1.0
+		if w is Array and k < (w as Array).size() and ((w as Array)[k] is float or (w as Array)[k] is int):
+			x = maxf(float((w as Array)[k]), 0.0)
+		ws.append(x)
+		total += x
+	if total <= 0.0:
+		return sizes[0]
+	var pick := clampf(u, 0.0, 0.999999) * total
+	for k in range(sizes.size()):
+		pick -= ws[k]
+		if pick < 0.0:
+			return sizes[k]
+	return sizes[sizes.size() - 1]

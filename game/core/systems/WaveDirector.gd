@@ -756,6 +756,12 @@ static func _look_of(id: String, variant: String) -> String:
 ## (source_for / fixed_numbers), handed to every creature; {} = the live numbers.
 func _spawn_group(id: String, n: int, pattern: String, pack: int, mod: EliteModDef, variant: String, stats: Dictionary, point: Callable = Callable(), src: Dictionary = {}) -> int:
 	var em: EnemyManager = game.enemies
+	# pass 112 (lane MONK): a squad creature always comes as a pack, the whole call one squad (never more than its largest
+	# size a squad), whatever the row's pattern and pack: the callers that know squads hand one squad (squad_take)
+	var sqdef: EnemyDef = Registry.enemy(id)
+	if sqdef != null and sqdef.is_squad():
+		pattern = "pack"
+		pack = mini(maxi(n, 1), sqdef.squad_max())
 	if pattern == "ring":
 		return _spawn_ring_group(id, n, mod, variant, stats, src)
 	if pattern == "in_front":
@@ -1274,6 +1280,17 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 				if total_w <= 0.000001:
 					break
 				continue
+		# pass 112 (lane MONK): a squad creature comes as one whole squad, never cut by the burst; a squad that does not fit
+		# waits, and the row sits out the rest of this burst (squad_take)
+		var sq_n := squad_take(def, chosen, 0, mini(bodies, int(floor(room / share))))
+		if sq_n == 0:
+			total_w -= float(ws[ci])
+			ws[ci] = 0.0
+			if total_w <= 0.000001:
+				break
+			continue
+		if sq_n > 0:
+			n = sq_n
 		# the row's numbers as its first spawn of the run fixed them (pass 58, R1); pass 84: a row with the new keys
 		# spawns through _spawn_drawn84 (its pick, elite, special, ring_radius, banner)
 		if _row_new84(chosen, -1):
@@ -1282,6 +1299,9 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 			_spawn_group(def.id, n, pattern, pack, null, str(chosen.get("variant", "")), _stats_of(chosen), Callable(), _row_src(chosen))
 		burst -= float(n) * share
 		bodies -= n
+		# pass 112 (lane MONK): a squad is a draw of its own: it takes the rest of this burst
+		if sq_n > 0:
+			break
 	return bodies
 
 
@@ -1640,7 +1660,8 @@ func _tick_row_waves() -> void:
 		if def == null:
 			continue
 		st["waves"] = int(st["waves"]) + 1
-		st["owed"] = WaveTimeline.row_wave_count(r, def.pack_size)
+		# (pass 112, lane MONK: a squad creature's wave owes one squad's size drawn, squad_pack)
+		st["owed"] = WaveTimeline.row_wave_count(r, squad_pack(def))
 		_row_wave_spawn(r, st, def)
 
 
@@ -1650,6 +1671,15 @@ func _tick_row_waves() -> void:
 ## (_row_src: the same as its trickle's). Whatever does not fit stays owed (_row_waves_owed). Returns how many came.
 func _row_wave_spawn(r: Dictionary, st: Dictionary, def: EnemyDef) -> int:
 	var em: EnemyManager = game.enemies
+	# pass 112 (lane MONK): a squad creature's wave comes one whole squad a call (squad_take); what does not fit waits
+	if def.is_squad():
+		var sq_n := squad_take(def, r, int(st["owed"]), _squad_fit(def, r))
+		if sq_n <= 0:
+			return 0
+		var sc := _spawn_group(def.id, sq_n, "pack", sq_n, null, str(r.get("variant", "")), _stats_of(r), Callable(), _row_src(r))
+		st["owed"] = maxi(int(st["owed"]) - sc, 0)
+		st["came"] = int(st["came"]) + sc
+		return sc
 	var n := int(st["owed"])
 	# pass 84 (lane SPAWN): respect_hard_cap false = only the body limit (EnemyManager.MAX), as a swarm event was
 	if bool(r.get("respect_hard_cap", true)):
@@ -2264,7 +2294,8 @@ func _tick_row84(r: Dictionary, k: int, t: float) -> void:
 	var pdef: EnemyDef = null
 	if not pick.is_empty():
 		pdef = Registry.enemy_with(str(pick["id"]), str(pick["variant"]), pick["stats"])
-	st["owed"] = WaveTimeline.row_wave_count(r, pdef.pack_size if pdef else 1)
+	# (pass 112, lane MONK: a squad creature's wave owes one squad's size drawn, squad_pack)
+	st["owed"] = WaveTimeline.row_wave_count(r, squad_pack(pdef) if pdef else 1)
 	_row_spawn84(r, k, st)
 
 
@@ -2368,6 +2399,9 @@ func _row_spawn84(r: Dictionary, k: int, st: Dictionary) -> int:
 			_starve84[key] = Run.elapsed
 			return 0
 		n = mini(n, maxi(int(ceil(room / maxf(def.cap_share if def else 1.0, 0.05))), 1))
+	# pass 112 (lane MONK): a squad creature's wave comes one whole squad a call (squad_take); what does not fit waits
+	if def != null and def.is_squad():
+		n = squad_take(def, r, int(st["owed"]), _squad_fit(def, r))
 	if n <= 0:
 		if int(st["owed"]) > 0:
 			_starve84[key] = Run.elapsed
@@ -2548,6 +2582,13 @@ func _floor_fill() -> void:
 			if n <= 0:
 				rows = rows.filter(func(x) -> bool: return not is_same(x, row))
 				continue
+		# pass 112 (lane MONK): one whole squad (squad_take); a squad that does not fit leaves the row out of this fill
+		var sq_n := squad_take(def, row, 0, mini(bodies, int(floor(room / share))))
+		if sq_n == 0:
+			rows = rows.filter(func(x) -> bool: return not is_same(x, row))
+			continue
+		if sq_n > 0:
+			n = sq_n
 		var before := em.alive_count()
 		if _row_new84(row, -1):
 			_spawn_drawn84(row, def, n)
@@ -2608,3 +2649,55 @@ func _log84(kind: String, id: String, n: int) -> void:
 	if n <= 0 or DisplayServer.get_name() != "headless":
 		return
 	print("spawn84 %s %s %d %.1f" % [kind, id, n, Run.elapsed])
+
+
+# ---------------------------------------------------------------- pass 112 (lane MONK): squads
+
+## How many of squad creature `def` one draw of row `row` brings (EnemyDef.squad; -1 for any other creature: the caller's
+## own rule then): the row's `pack` when it names one, else `want` when the caller owes that many (a waves row: its count,
+## or one squad's size drawn, squad_pack; a want past the creature's largest size comes as several squads, one a call),
+## else a size drawn from the creature's `squad.sizes` by its `weights`. It comes whole when `fit` (what the cap and the
+## hard cap still take, the pool's free slots and the creature's max_alive) holds it; else as the largest of its sizes
+## that fits (a row's own pack never shrinks); else 0: the squad waits (never a partial squad).
+func squad_take(def: EnemyDef, row: Dictionary, want: int, fit: int) -> int:
+	if def == null or not def.is_squad():
+		return -1
+	var em: EnemyManager = game.enemies
+	fit = mini(fit, em.free_list.size())
+	if def.max_alive > 0:
+		fit = mini(fit, def.max_alive - em.alive_of(def.id))
+	var own := int(row.get("pack", 0)) if row.get("pack") != null else 0
+	var s := own
+	if s <= 0:
+		s = mini(want, def.squad_max()) if want > 0 else def.squad_roll(_rng.randf())
+	elif want > 0:
+		s = mini(s, want)
+	if s <= fit:
+		return maxi(s, 0)
+	if own > 0:
+		return 0
+	var best := 0
+	for z: int in def.squad_sizes():
+		if z <= fit and z <= s:
+			best = maxi(best, z)
+	return best
+
+
+## What a waves row `r` may still bring of `def` now (squad_take's `fit`): the hard cap's room (unless respect_hard_cap is
+## false) and, with respect_cap (the default), its channel's room counted in bodies of `def`.
+func _squad_fit(def: EnemyDef, r: Dictionary) -> int:
+	var em: EnemyManager = game.enemies
+	var fit := em.pool_max
+	if bool(r.get("respect_hard_cap", true)):
+		fit = mini(fit, timeline.hard_cap - em.alive_count())
+	if bool(r.get("respect_cap", true)):
+		fit = mini(fit, int(floor(_channel_room(str(r.get("channel", "regular"))) / maxf(def.cap_share, 0.05))))
+	return fit
+
+
+## A waves row's count for `def` when the row names neither `count` nor `pack` (WaveTimeline.row_wave_count's fallback):
+## one squad's size drawn by its weights for a squad creature, its pack size for any other.
+func squad_pack(def: EnemyDef) -> int:
+	if def == null:
+		return 1
+	return def.squad_roll(_rng.randf()) if def.is_squad() else def.pack_size

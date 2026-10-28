@@ -6,9 +6,6 @@ extends Node3D
 var boss := false
 var opened := false
 var pulled := false        # flying to the hero (a boss kill pulls every chest in)
-## pass 111 (lane CHEST): laid by the map on its own clock (WorldChests), not dropped; and when (PickupManager's clock)
-var world := false
-var born := 0.0
 ## the pool of light on the sand, and where the chest stood when its slope was last read (pass 52)
 var _pool: MeshInstance3D
 var _pool_at := Vector3.INF

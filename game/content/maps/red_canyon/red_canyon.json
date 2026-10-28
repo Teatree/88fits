@@ -2413,63 +2413,26 @@
       "max_alive": 1,
       "damage": 3.5
     },
-    "world_chests": {
-      "enabled": true,
-      "first": 60,
-      "every": [
-        90,
-        130
-      ],
-      "max_on_map": 2,
-      "max_per_stage": 5,
-      "min_dist": 25,
-      "max_dist": 45,
-      "boss_chance": 0.0,
-      "lifetime": 150,
-      "view_margin": 3,
-      "in_boss": true,
-      "in_portal": false,
-      "in_endless": false,
-      "pointer": true
-    },
-    "chest_contents": {
-      "normal": {
-        "powerup_chance": 0.35,
-        "powerups": [
-          {
-            "id": "heart",
-            "weight": 6
-          },
-          {
-            "id": "rage",
-            "weight": 3
-          },
-          {
-            "id": "sprint",
-            "weight": 3
-          },
-          {
-            "id": "shield",
-            "weight": 2
-          },
-          {
-            "id": "magnet_pulse",
-            "weight": 2
-          },
-          {
-            "id": "nuke",
-            "weight": 2
-          }
+    "barrels": {
+      "respawn": {
+        "enabled": true,
+        "first": 45,
+        "every": [
+          40,
+          60
         ],
-        "throw_distance": [
-          5,
-          7
-        ],
-        "new_item_weight": 0.45,
-        "gold": 50
+        "max_lying": 35,
+        "max_per_stage": 0,
+        "min_dist": 20,
+        "max_dist": 40,
+        "black_chance": 0.22,
+        "view_margin": 2,
+        "in_boss": true,
+        "in_portal": false,
+        "in_endless": false
       },
-      "boss": {
-        "powerup_chance": 0.5,
+      "brown": {
+        "powerup_chance": 0.08,
         "powerups": [
           {
             "id": "heart",
@@ -2500,9 +2463,48 @@
           5,
           7
         ],
-        "new_item_weight": 0.45,
-        "gold": 50,
-        "mutation": true
+        "gems_small": 8,
+        "gems_medium": 0,
+        "coins": 0
+      },
+      "black": {
+        "powerup_chance": 0.3,
+        "powerups": [
+          {
+            "id": "heart",
+            "weight": 6
+          },
+          {
+            "id": "rage",
+            "weight": 3
+          },
+          {
+            "id": "sprint",
+            "weight": 3
+          },
+          {
+            "id": "shield",
+            "weight": 2
+          },
+          {
+            "id": "magnet_pulse",
+            "weight": 2
+          },
+          {
+            "id": "nuke",
+            "weight": 2
+          }
+        ],
+        "throw_distance": [
+          5,
+          7
+        ],
+        "gems_small": 10,
+        "gems_medium": 4,
+        "coins": [
+          1,
+          5
+        ]
       }
     },
     "creature_hp_mult": 1.3,

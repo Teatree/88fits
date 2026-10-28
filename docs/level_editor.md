@@ -2143,58 +2143,63 @@ each look's `skin`, `skin_quests` {CODE: quest} and (the list) `skins_on_sale`. 
 (the server side), `skins.js` + `skins.css` (the section), vocab.py (`currency_records`, `beat_stage`, unlock type `skin`).
 Self-test: `selftest_SKINS111.py`. **server.py changed: restart the editor server** to get the new routes.
 
-## Pass 111: the Chests card (map chests, and what each chest type holds)
+## Pass 111: the Chests card (removed in pass 112)
 
-Garry (2026-10-28): "Chests should respawn every now and then. They should also have a chance of a power up dropping
-from them ... I should be able to set the frequency and content probabilities of both chest types on LevelEditor ...
-Chests never spawn where Player can see them."
+Pass 111's Chests card (map chests and what each chest type holds) is gone: Garry meant barrels. Chests play as in pass
+110. The same controls, for barrels: "Pass 112: the Barrels card" below.
 
-**Where.** The **Settings** tab, the **Chests** card (after Coloured specials). Hover a label or press its "?" for what
-it does; an empty box plays the game's number (the grey one). Undo, Save and the checks work as on every card.
+## Pass 112: the Barrels card (barrels coming back, and what each barrel kind holds)
 
-**Map chests (the top half).** On top of the chests creatures drop, the map now lays a chest of its own every now and
-then, always somewhere off the screen, on open sand, 25 to 45 m from the hero. A brass tag on the edge of the screen
-says where the nearest one is ("CHEST 33 m").
-1. **Chests appear on the map**: tick it on or off. Off = only the chests creatures drop, as before.
-2. **First after** and **Then every**: when the first comes (seconds into the stage) and the gap to the next (one number,
-   or a range: 90 to 130 = somewhere between, rolled each time). The line under the rows says about how many a stage
-   that makes (Red Canyon: Sundown 4, Nightfall 5, Blood Moon 5).
-3. **Most lying at once**: if that many lie unopened, the next one is skipped, so chests the player ignores never pile
-   up. **Most a stage**: a cap per stage (0 = none; Red Canyon 5).
+Garry (2026-10-28): "when I was talking about chest appearing and stuff I actually meant barrels. Not chests. So apply
+whatever I said in that prompt to barrels" (barrels "should respawn every now and then ... a chance of a power up
+dropping from them ... I should be able to set the frequency and content probabilities of both [barrel] types on
+LevelEditor ... never spawn where Player can see them").
+
+**Where.** The **Settings** tab, the **Barrels** card (the last one, after World). Hover a label or press its "?" for
+what it does; an empty box plays the game's number (the grey one). Undo, Save and the checks work as on every card.
+
+**Barrels coming back (the top half).** The map still starts with its 35 barrels. Now a smashed one comes back now and
+then, always somewhere off the screen, on open sand, 20 to 40 m from the hero.
+1. **Broken barrels come back**: tick it on or off. Off = only the start's barrels, as before.
+2. **First after** and **Then every**: when the first may come back (seconds into the stage) and the gap to the next
+   (one number, or a range: 40 to 60 = somewhere between, rolled each time). The line under the rows says at most how
+   many that makes in a stage.
+3. **Most standing**: barrels standing at once, the start's included. 35 (the start's count) means only smashed ones
+   come back; a bigger number lets the map fill up past its start. **Most a stage**: a cap per stage (0 = none).
 4. **Distance from / to**: how far from the hero to lay it. The game always checks the camera's real view, so it never
-   pops in on the screen, whatever these say; **Keep off screen by** is the extra metres past the edge.
-5. **Lies for**: after this many seconds an unopened one disappears, but only at a moment it is off the screen.
-6. **Boss chest chance**: the share of map chests that are the violet boss chest (Red Canyon 0).
-7. **During the boss fight / the portal countdown / In Endless**: whether chests keep coming then.
-8. **Point at it**: the edge tag on or off.
+   pops in on the screen; **Keep off screen by** is the extra metres past the edge.
+5. **Black barrel chance**: how many of the ones that come back are the black kind (22%, as at the start).
+6. **During the boss fight / the portal countdown / In Endless**: whether they keep coming back then.
 
-**What a chest holds (the bottom half), for the Normal chest and the Boss chest separately.**
-1. **Power-up chance**: the chance a power-up hops out when the chest is opened, on top of what its reel gives (Red
-   Canyon: normal 35%, boss 50%). It lands **Throw distance** metres away (5 to 7), on the screen where possible and
-   away from the hero, and lies there for its usual time: the player decides whether to walk over. Nothing pulls it in
-   (not the magnet, not the boss chest's call).
+There is no edge tag pointing at barrels (unlike the boss, the portal and the Elite): with 35 on the map one would
+always be showing.
+
+**What a barrel holds (the bottom half), for the Brown barrel and the Black barrel separately.**
+1. **Power-up chance**: the chance a power-up hops out when it is smashed, on top of its gems and coins (Red Canyon:
+   brown 8%, black 30%). It lands **Throw distance** metres away (5 to 7), on the screen where possible and away from the
+   hero, and lies there for its usual time: the player decides whether to walk over. Nothing pulls it in.
 2. **Which power-up**: the list with a weight each; the % beside a weight is its share. Empty = the same mix as the
-   Power-up drops card ("Copy that mix here to edit" fills it in so you can change it). "+ power-up" adds one, "×"
-   removes one.
-3. **New item weight**: on the reel, how much a passive item the hero does not hold yet weighs against an upgrade of what
-   he holds (0.45 as always; 0 = a chest only upgrades).
-4. **Gold when nothing can grow**: the reel's purse when there is nothing left to give (50).
-5. **Holds a mutation** (Boss chest only): on = the boss chest gives a mutation while one is open, as always.
+   Power-up drops card ("Copy that mix here to edit" fills it in). "+ power-up" adds one, "×" removes one.
+3. **Small gems / Medium gems**: the XP it bursts into (brown 8 small; black 10 small and 4 medium, as always).
+4. **Coins**: one number or a range (black 1 to 5, as always; brown none). The start's coins are held back from the
+   creatures' first coins of the run (pass 87); a barrel that came back pays its coins on top.
 
-**Checks** (errors stop Save): a negative number, an `every` or throw range whose max is under its min, a chance over
-100%, an unknown power-up id. Warnings: a chest every few seconds, a throw under 2 m (lands at the hero's feet), a short
-lifetime, no limit on chests lying with no lifetime, a chance with nothing to draw from.
+**Checks** (errors stop Save): a negative number, an `every`, throw or coins range whose max is under its min, a chance
+over 100%, gems that are not whole numbers, an unknown power-up id. Warnings: a barrel back every few seconds, no limit
+on barrels standing, a throw under 2 m (lands at the hero's feet), a power-up from over half of them, a chance with
+nothing to draw from.
 
-Files: `tools/level_editor/chest_model.js` (the maths, a copy of game/core/systems/WorldChests.gd's tables and rules;
-`cfgOf`, `contentsOf`, `weightList`, `drawList`, `shares`, `expectedIn`, `issues`), `chest_card.js` (the count line and
-the two chest types' blocks), fields.js (the rows, group 'Chests', the contents rows `block: 'chest_contents'`),
-settings.js (draws the block), app.js (the checks), index.html (the scripts). Keys and rules: docs/waves_schema.md
-"Pass 111". Self-test: `selftest_CHEST111.py`. No server.py change: a reload of the page is enough.
+Files: `tools/level_editor/barrel_model.js` (the maths, a copy of game/core/systems/BarrelSpawns.gd's tables and rules;
+`respawnOf`, `contentsOf`, `weightList`, `drawList`, `shares`, `turnsIn`, `issues`), `barrel_card.js` (the count line and
+the two kinds' blocks), fields.js (the rows, group 'Barrels', the contents rows `block: 'barrel_contents'`), settings.js
+(draws the block), app.js (the checks), index.html (the scripts); forms.js's range box names its unit (`def.unit`: m,
+coins). Keys and rules: docs/waves_schema.md "Pass 112". Self-test: `selftest_BARREL112.py`. No server.py change: a
+reload of the page is enough.
 
 ## Pass 111: Wanted (the Bounty Board)
 
-The **Wanted** tab edits `game/content/wanted/wanted.json`, the Bounty Board the game shows before a stage run (from a
-player's second run on): three Wanted posters, each a task (kill N of a creature, beat the boss in time, reach a level,
+The **Wanted** tab edits `game/content/wanted/wanted.json`, the Bounty Board: right after the hero's descent at the
+start of a stage run (pass 112; from a player's second run on) three Wanted posters float in over the paused game, each a task (kill N of a creature, beat the boss in time, reach a level,
 open chests...), the player takes one or none, and a poster done pays its gold when the run ends. The rules and every
 number: BALANCING.md 54.WANTED.
 
@@ -2207,8 +2212,8 @@ number: BALANCING.md 54.WANTED.
   where a poster's number falls between its range's ends sets its skulls and gold). The arrow opens the rest: the
   number's range per stage (and what it becomes at the simulator's stages beaten), the step, the type's own extras,
   and the words on the poster ({n} {target} {hero} {stage} {boss} {time}).
-- **Try the board** (right): pick a stage, a hero, how many stages beaten, and whether the player has met and seen
-  everything; **Roll the board** draws three posters with the config as it is on the page (saved or not) from the map's
+- **Try the posters** (right; they hang on strings and sway as in the game): pick a stage, a hero, how many stages beaten, and whether the player has met and seen
+  everything; **Roll the posters** draws three posters with the config as it is on the page (saved or not) from the map's
   own timeline (the Timeline tab's, unsaved edits too), drawn as the game draws them with the real pictures. Click one
   to pick it.
 - **Save board** (or Ctrl+S on this tab) writes the file (a backup in tools/level_editor/backups first). No import: the

@@ -8,7 +8,9 @@
 ## it), `draw` (every frame the hook flies or the hero is roped: taut and rattling while it hauls, a little sag while it
 ## holds), `hooked` (a clank of sparks at the hero and at the hand, the chain snapping taut with a shudder, a short camera
 ## kick through CameraRig.shake, so the screen-shake setting holds), `missed` (the chain goes slack and the hook is reeled
-## back to the hand), `release` (the rope ends: hidden). The numbers are the creature's `ranged.harpoon_fx` over DEFAULTS
+## back to the hand), `release` (the rope ends: hidden), `snap_break` (pass 112: the rope breaks: the chain snaps with sparks
+## and a tink, the two halves whip and fall and shrink away, the hook drops off the hero), `warm` (pass 112: drawn once under
+## the spawn beam, Warmup). The numbers are the creature's `ranged.harpoon_fx` over DEFAULTS
 ## (configure). Parented under the ProjectileManager, so the stage filter never darkens it (StageStencil.CLEAR, like
 ## every shot). Nothing runs in the sim (Run.sim_mode) but the hidden state.
 class_name HarpoonChain
@@ -27,6 +29,10 @@ const DEFAULTS := {
 	"hit": {"shake": 0.35, "snap": 0.35, "sfx": "w_hammer_hit"},
 	"miss": {"reel": 0.6, "sfx": "w_hammer_swing"},
 	"rattle": 0.035,
+	# pass 112 (lane ENEMY): the rope breaking (snap_break): where along it (0 the hand .. 1 the hook), the loose ends' whip
+	# (m), how long until it is gone (s), how far the hand's half springs back (a share of it), the metal bits flung out,
+	# the tink's size
+	"break": {"at": 0.55, "whip": 0.55, "seconds": 0.9, "recoil": 0.7, "bits": 8, "tink": 1.1, "sfx": "w_spear_hit"},
 }
 ## the links' modes (draw)
 const FLY := 0
@@ -46,11 +52,22 @@ var _snap_t := -1.0
 var _reel_t := -1.0
 var _reel_from := Vector3.ZERO
 var _reel_shooter := -1
+## pass 112: the break under way (snap_break; -1 = none): its clock, the shooter, the chain's ends and where it broke, the
+## hook where it hung and the point it led away from, the hook's shrink
+var _brk_t := -1.0
+var _brk_shooter := -1
+var _brk_a := Vector3.ZERO
+var _brk_b := Vector3.ZERO
+var _brk_p := Vector3.ZERO
+var _hook_at := Vector3.INF
+var _hook_from := Vector3.ZERO
+var _hook_k := 1.0
 ## diagnostics and tests: links drawn on the last draw, launches, hook-ins, misses reeled, and the last draw's ends
 var links_drawn := 0
 var launches := 0
 var hooks := 0
 var reels := 0
+var breaks := 0
 var last_a := Vector3.ZERO
 var last_b := Vector3.ZERO
 var last_mode := -1
@@ -180,6 +197,8 @@ func _process(delta: float) -> void:
 			_snap_t = -1.0
 	if _reel_t >= 0.0:
 		_tick_reel(delta)
+	if _brk_t >= 0.0:
+		_tick_break(delta)
 
 
 ## Where creature `i`'s chain leaves its hand, aiming at `toward` (EnemyManager.muzzle_point with the block's `hand`).
@@ -224,6 +243,8 @@ func launch(from: Vector3, dir: Vector3) -> void:
 	_launch_t = 0.0
 	_snap_t = -1.0
 	_reel_t = -1.0
+	_brk_t = -1.0
+	_hook_k = 1.0
 	launches += 1
 	if Run.sim_mode:
 		return
@@ -244,6 +265,15 @@ func draw(a: Vector3, b: Vector3, sag: float, mode: int) -> void:
 	last_mode = mode
 	if Run.sim_mode or _mm == null or not a.is_finite() or not b.is_finite():
 		return
+	var k := _lay(a, b, sag, mode, 0, 1.0, 0.0, true)
+	_mm.visible_instance_count = k
+	links_drawn = k
+
+
+## Lays the links from `a` to `b` into the MultiMesh from instance `k0` on (draw, and both halves of a break); `scale`
+## shrinks every link (a broken half going), `whip` throws its loose end (the `b` end when `loose_b`, else the `a` end)
+## that many metres across the chain. Returns the next free instance.
+func _lay(a: Vector3, b: Vector3, sag: float, mode: int, k0: int, scale: float, whip: float, loose_b: bool) -> int:
 	var ch: Dictionary = cfg["chain"]
 	var link := maxf(float(ch.get("link", 0.56)), 0.08)
 	var width := maxf(float(ch.get("width", 0.4)), 0.04)
@@ -267,11 +297,25 @@ func draw(a: Vector3, b: Vector3, sag: float, mode: int) -> void:
 	if mode == FLY and _launch_t >= 0.0:
 		wave = float((cfg["launch"] as Dictionary).get("wave", 0.22)) * exp(-_launch_t * 2.5)
 	var rattle := float(cfg.get("rattle", 0.035)) if mode == TAUT else 0.0
-	var k := 0
+	var k := k0
+	if scale <= 0.01:
+		return k
+	link *= scale
+	width *= scale
+	thick *= scale
 	for j in range(n):
+		if k >= MAX_LINKS:
+			break
 		var f := (float(j) + 0.5) * pitch / maxf(span, 0.001)
 		var p := _point(a, b, f, s, side, wave, rattle, shud, span)
 		var q := _point(a, b, minf(f + 0.02, 1.0), s, side, wave, rattle, shud, span)
+		if whip != 0.0:
+			# a loose end lashes across: most at the end that broke, nothing where it is still held
+			var e := f if loose_b else 1.0 - f
+			p += side * whip * e * e
+			var fq := minf(f + 0.02, 1.0)
+			var eq := fq if loose_b else 1.0 - fq
+			q += side * whip * eq * eq
 		var t := (q - p)
 		t = t.normalized() if t.length_squared() > 0.000001 else along
 		var sd := t.cross(to_cam)
@@ -286,8 +330,7 @@ func draw(a: Vector3, b: Vector3, sag: float, mode: int) -> void:
 			bs = Basis(t * link, sd * (thick / 0.2), nf * width * 0.85)
 		_mm.set_instance_transform(k, Transform3D(bs, p))
 		k += 1
-	_mm.visible_instance_count = k
-	links_drawn = k
+	return k
 
 
 ## A point `f` of the way along the chain from `a` to `b`: the sag hanging it down in the middle, the wave running from the
@@ -323,7 +366,9 @@ func show_hook(at: Vector3, from: Vector3) -> void:
 	var d := at - from
 	if d.length_squared() < 0.0001:
 		d = Vector3.FORWARD
-	var hs := float(cfg.get("hook_scale", 1.3)) * ProjectileManager.CHUNK
+	_hook_at = at
+	_hook_from = from
+	var hs := float(cfg.get("hook_scale", 1.3)) * ProjectileManager.CHUNK * _hook_k
 	_hook.global_transform = Transform3D(Basis.looking_at(d.normalized(), Vector3.UP if absf(d.normalized().dot(Vector3.UP)) < 0.95 else Vector3.RIGHT).scaled(Vector3(hs, hs, hs)), at)
 	_hook.visible = true
 
@@ -391,8 +436,10 @@ func _tick_reel(delta: float) -> void:
 func release() -> void:
 	_launch_t = -1.0
 	_snap_t = -1.0
-	if _reel_t >= 0.0:
+	if _reel_t >= 0.0 or _brk_t >= 0.0:
 		return
+	_hook_at = Vector3.INF
+	_hook_k = 1.0
 	if _mm != null:
 		_mm.visible_instance_count = 0
 	if _hook != null:
@@ -403,3 +450,121 @@ func release() -> void:
 ## Whether a miss's reel is under way (Game leaves the chain to it).
 func reeling() -> bool:
 	return _reel_t >= 0.0
+
+
+# ---------------------------------------------------------------- pass 112 (lane ENEMY): the chain breaks
+## Garry (pass 112): "Harpooner - the chain should break when it breaks. Like there should be a visual of this." When the
+## rope ends any other way than a clean miss's reel (its time runs out, the harpooner dies, a teleport, the hero falls:
+## Game.tether_end), the chain snaps where it hung (`break.at` of the way from the hand, give or take a little): a clank
+## of sparks and a white tink at the break, a few iron bits flung out (Fx.splinters), the hand's half springs back
+## `break.recoil` of its length towards the harpooner's hand and both loose ends lash `break.whip` m across, dying away, as
+## the halves drop to the sand; the hook falls off the hero to his feet; over the last 40% of `break.seconds` every link
+## and the hook shrink away. Nothing in the sim.
+
+## The rope broke (Game.tether_end): the chain snaps as it was last drawn; `shooter` the harpooner (its hand is followed
+## while it lives). Nothing drawn (nothing to break) = released.
+func snap_break(shooter: int) -> void:
+	_launch_t = -1.0
+	_snap_t = -1.0
+	_reel_t = -1.0
+	if Run.sim_mode or links_drawn <= 0 or not last_a.is_finite() or not last_b.is_finite():
+		_brk_t = -1.0
+		release()
+		return
+	var bc: Dictionary = cfg["break"]
+	_brk_t = 0.0
+	_brk_shooter = shooter
+	_brk_a = last_a
+	_brk_b = last_b
+	var f := clampf(float(bc.get("at", 0.55)) + randf_range(-0.08, 0.08), 0.15, 0.85)
+	_brk_p = last_a.lerp(last_b, f)
+	if _hook_at == Vector3.INF:
+		_hook_at = last_b
+		_hook_from = last_a
+	_hook_k = 1.0
+	breaks += 1
+	var fx = game.get("fx") if game != null else null
+	if fx != null:
+		var along := (last_b - last_a).normalized()
+		if fx.has_method("clang_spark"):
+			fx.clang_spark(_brk_p, along)
+		if fx.has_method("mote"):
+			# the tink: a white flash at the break and a wider pale one
+			var tk := float(bc.get("tink", 1.1))
+			fx.mote(_brk_p, Vector3.ZERO, 0.18, tk, Color(1.0, 1.0, 1.0, 1.0))
+			fx.mote(_brk_p, Vector3.ZERO, 0.32, tk * 1.8, Color(0.85, 0.9, 1.0, 0.45))
+		if fx.has_method("splinters") and int(bc.get("bits", 8)) > 0:
+			var ch: Dictionary = cfg["chain"]
+			fx.splinters(_brk_p - Vector3(0, 0.45, 0), Color.from_string(str(ch.get("colour", "#8A8A94")), Color(0.54, 0.54, 0.58)), int(bc.get("bits", 8)), 0.14)
+	Audio.play(str(bc.get("sfx", "")), _brk_p)
+
+
+## Whether a break is under way (its halves still falling).
+func breaking() -> bool:
+	return _brk_t >= 0.0
+
+
+func _tick_break(delta: float) -> void:
+	_brk_t += delta
+	var bc: Dictionary = cfg["break"]
+	var secs := maxf(float(bc.get("seconds", 0.9)), 0.1)
+	var u := clampf(_brk_t / secs, 0.0, 1.0)
+	if u >= 1.0 or _mm == null:
+		_brk_t = -1.0
+		_hook_k = 1.0
+		release()
+		return
+	# the hand's end follows the harpooner while it lives
+	var hand := hand_of(_brk_shooter, _brk_b)
+	if not hand.is_finite():
+		hand = _brk_a
+	var whip := float(bc.get("whip", 0.55)) * exp(-_brk_t * 6.0) * sin(_brk_t * 32.0)
+	var fade := 1.0 - smoothstep(0.6, 1.0, u)
+	var d1 := 1.0 - minf(u * 2.2, 1.0)
+	var drop := 1.0 - d1 * d1
+	# the hand's half: its loose end springs back towards the hand and drops to the sand
+	var end_a := _brk_p.lerp(hand, float(bc.get("recoil", 0.7)) * drop)
+	end_a.y = lerpf(_brk_p.y, _ground(end_a) + 0.1, drop)
+	# the hook's half: its loose end drops where it broke, the hook falls off the hero to his feet
+	var start_b := _brk_p
+	start_b.y = lerpf(_brk_p.y, _ground(_brk_p) + 0.1, drop)
+	var hook := _hook_at
+	var hook_down := Vector3(hook.x, _ground(hook) + 0.12, hook.z)
+	var hf := minf(u * 1.8, 1.0)
+	hook = hook.lerp(hook_down, hf * hf)
+	_hook_k = fade
+	# (a slack sag while they fall, none once they lie on the sand: a sag there would bury their middles)
+	var sag := 0.08 * (1.0 - drop)
+	var k := _lay(hand, end_a, sag, SLACK, 0, fade, whip, true)
+	k = _lay(start_b, eye_of(hook, start_b), sag, SLACK, k, fade, -whip, false)
+	_mm.visible_instance_count = k
+	links_drawn = k
+	if fade > 0.02:
+		show_hook(hook, start_b)
+	elif _hook != null:
+		_hook.visible = false
+
+
+func _ground(p: Vector3) -> float:
+	var map = game.get("map") if game != null else null
+	if map != null and map.has_method("height_at"):
+		return map.height_at(p.x, p.z)
+	return 0.0
+
+
+## Drawn once under the spawn beam (pass 112, Warmup): a short chain with both turns of link and the hook at `at`, so the
+## links' material, its outline pass and the hook's compile before the first throw (Vector3.INF = put away again).
+func warm(at: Vector3) -> void:
+	if _mm == null:
+		return
+	if at == Vector3.INF:
+		_mm.visible_instance_count = 0
+		if _hook != null:
+			_hook.visible = false
+		_hook_at = Vector3.INF
+		links_drawn = 0
+		return
+	var k := _lay(at, at + Vector3(2.0, 0.0, 0.0), 0.0, SLACK, 0, 1.0, 0.0, true)
+	_mm.visible_instance_count = k
+	links_drawn = k
+	show_hook(at + Vector3(2.4, 0.0, 0.0), at)

@@ -433,6 +433,19 @@ func _screens() -> void:
 	if ts and ts.visible and not ts._done:
 		_totem(ts)
 		return
+	# pass 112 (lane WANTED): the floating Wanted posters after the landing: "No bounty" (the option `bounty`, default
+	# "none"; "random" takes one at random, "first" the first), so a run's numbers stay the run's own
+	var bp = g.get("bounty_posters")
+	if bp and bp.visible and not bp.is_done():
+		var how := str(opts.get("bounty", "none"))
+		var n: int = (bp.cards() as Array).size()
+		var pick := -1
+		if how == "random" and n > 0:
+			pick = rng.randi() % n
+		elif how == "first" and n > 0:
+			pick = 0
+		bp.choose(pick)
+		return
 
 
 ## A level-up's card: pass 77's tiers (opts.cards "tier"), else the scores; a decision entry either way.

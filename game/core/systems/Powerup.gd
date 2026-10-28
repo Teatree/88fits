@@ -12,10 +12,11 @@ var _ring: MeshInstance3D
 var _light: OmniLight3D
 ## whether the ring lies on the slope yet (pass 52: done on the first frame, once the pickup stands where it was dropped)
 var _laid := false
-## Pass 111 (lane CHEST; Garry: "The power ups don't immediately get claimed and used by the hero. They jump far enough
-## out for it to be a conscious decision for the Player"): one thrown out of a chest (throw_to) is in the air on a hop
-## until it lands (`flying`: never taken, its lifetime not running, its ring hidden), and never pulled by a magnet
-## (`no_magnet`: a coin bag's own pull included; a vacuum never touched power-ups): the hero walks to it, or leaves it.
+## Pass 112 (lane BARREL; Garry: "The power ups don't immediately get claimed and used by the hero. They jump far enough
+## out for it to be a conscious decision for the Player"): one thrown out of a smashed barrel (throw_to,
+## PickupManager.throw_powerup) is in the air on a hop until it lands (`flying`: never taken, its lifetime not running,
+## its ring hidden), and never pulled by a magnet (`no_magnet`: a coin bag's own pull included; a vacuum never touched
+## power-ups): the hero walks to it, or leaves it.
 var flying := false
 var no_magnet := false
 var _from := Vector3.ZERO
@@ -24,7 +25,7 @@ var _fly_t := 0.0
 var _fly_dur := 0.0
 var _apex := 0.0
 ## The hop: THROW_TIME + THROW_TIME_PER_M x its length in the air, its top THROW_APEX + THROW_APEX_PER_M x its length
-## over the line from the chest to where it lands (6 m: 0.76 s, 3.1 m up).
+## over the line from the barrel to where it lands (6 m: 0.76 s, 3.1 m up).
 const THROW_TIME := 0.55
 const THROW_TIME_PER_M := 0.035
 const THROW_APEX := 1.8
@@ -108,7 +109,7 @@ func _lay_ring() -> void:
 	_ring.position = n * 0.06
 
 
-## Thrown out of a chest (pass 111): from `from` (the chest) on a hop to `to` (on the sand), in the air until it lands.
+## Thrown out (pass 112): from `from` (a smashed barrel) on a hop to `to` (on the sand), in the air until it lands.
 func throw_to(from: Vector3, to: Vector3) -> void:
 	_from = from
 	_to = to

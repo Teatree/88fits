@@ -310,6 +310,23 @@ func danger_push(game: Node, me: Vector3) -> Vector3:
 			dr.y = 0.0
 			if dr.length_squared() < 100.0 and dr.length_squared() > 0.0001:
 				danger += dr.normalized() * 3.0
+	# pass 112 (lane MONK): a squad's energy sphere within 6 m flying at him: a step out of its line
+	var sqs = em.get("squads")
+	if sqs != null and sqs.orbs != null and is_instance_valid(sqs.orbs) and sqs.orbs.count > 0:
+		var ob = sqs.orbs
+		for k in range(ob.MAX):
+			if ob.alive[k] != 1:
+				continue
+			var dr2: Vector3 = me - ob.pos[k]
+			dr2.y = 0.0
+			var l2 := dr2.length_squared()
+			var fly: Vector3 = ob.dir[k]
+			if l2 > 36.0 or l2 < 0.0001 or dr2.dot(fly) <= 0.0:
+				continue
+			var off: Vector3 = dr2 - fly * dr2.dot(fly)
+			if off.length_squared() < 0.0001:
+				off = Vector3(-fly.z, 0.0, fly.x)
+			danger += off.normalized() * 2.0
 	return danger
 
 

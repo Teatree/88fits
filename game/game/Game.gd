@@ -37,6 +37,8 @@ var stranger_screen: StrangerScreen
 ## until the editor imports it)
 const TOTEM_SCREEN := preload("res://ui/TotemScreen.gd")
 var totem_screen: TOTEM_SCREEN
+## pass 112 (lane WANTED): the floating Wanted posters after the landing (BountyPosters, _offer_bounty)
+var bounty_posters: BountyPosters
 ## pass 106 (lane DRUM): the War Drum's moment (made on its first use, over every screen) and its boost on the hero
 var drum_moment: DrumMoment = null
 var drum_boost: DrumBoost = null
@@ -274,6 +276,11 @@ func _ready() -> void:
 	totem_screen = TOTEM_SCREEN.new()
 	totem_screen.name = "TotemScreen"
 	ui.add_child(totem_screen)
+	bounty_posters = BountyPosters.new()
+	bounty_posters.game = self
+	ui.add_child(bounty_posters)
+	bounty_posters.taken.connect(_on_bounty_taken)
+	bounty_posters.closed.connect(_on_bounty_closed)
 	resume_gate = ResumeGate.new()
 	resume_gate.hud = hud
 	ui.add_child(resume_gate)
@@ -288,10 +295,9 @@ func _ready() -> void:
 	debug_panel.game = self
 	ui.add_child(debug_panel)
 	hud.pause_requested.connect(open_pause)
-	# pass 111 (lane WANTED): the Bounty Board's pick for this run (WantedRun: its progress, the HUD plate, its pay at the
-	# end); the debug arena takes none and lets the pick go
-	if Run.arena: WantedBoard.take_next()
-	else: WantedRun.attach(self, debug_launch)
+	# pass 111 (lane WANTED): a tool's own contract for this run (the launch's `bounty`; WantedRun: its progress, the HUD
+	# plate, its pay at the end); pass 112: the player's comes from the floating posters after the landing (_offer_bounty)
+	if not Run.arena: WantedRun.attach(self, debug_launch)
 	# music
 	if mapdef:
 		var run_music = mapdef.music.get("run", [])
@@ -323,6 +329,8 @@ func _ready() -> void:
 		# everything the run can draw, drawn once under the hero, so no first-appearance hitch
 		Warmup.run(self)
 		_start_run()
+		# pass 112 (lane WANTED): a tool's instant start may ask for the floating posters (`bounty_board`: true)
+		if bool(debug_launch.get("bounty_board", false)): _offer_bounty(true)
 
 
 func _read_debug_launch() -> Dictionary:
@@ -361,6 +369,51 @@ func _launch_in_arena(launch: Dictionary) -> void:
 			arena_panel.spawn_enemy_n(d, int(launch.get("count", 3)))
 		else:
 			push_warning("debug_launch: no creature '%s' to spawn" % id)
+
+
+## Pass 112 (lane WANTED; Garry: "this should appear at the beginning of a run right after the descend sequence ... more
+## like floating posters"): BOUNTY_AFTER_LAND seconds after the hero lands from the beam, the board's posters float in
+## over the paused run (BountyPosters) through the one-screen rule (Modal.BOUNTY: after the level cards, before a path
+## offer). Not for a first-time player (WantedBoard.unlocked: a finished run behind the save) unless `forced` (a tool's
+## launch `bounty_board`), never in the debug arena, never when the run has a contract already (a tool's `bounty`) or
+## when no poster can be posted. The same three come back for a run left at the posters (WantedBoard.board_for).
+const BOUNTY_AFTER_LAND := 0.7
+
+
+func _offer_bounty(forced: bool = false) -> void:
+	if _ended or Run.arena or Run.map == null or Run.character == null or launch_info.has("bounty"):
+		return
+	if WantedRun.current != null and is_instance_valid(WantedRun.current) and WantedRun.current.game == self:
+		return
+	if not forced and not WantedBoard.unlocked():
+		return
+	var list := WantedBoard.board_for(Run.map.id, Run.stage, Run.character.id)
+	if list.is_empty():
+		return
+	_request_modal(Modal.BOUNTY, _open_bounty.bind(list), 0, true)
+
+
+func _open_bounty(list: Array) -> bool:
+	set_paused(true)
+	bounty_posters.open(list)
+	return true
+
+
+## A poster taken (BountyPosters.taken): the board forgotten (the next run rolls a new one), the contract started, its
+## plate unseen until the poster has flown into it.
+func _on_bounty_taken(c: Dictionary) -> void:
+	WantedBoard.choose(c)
+	var w := WantedRun.begin(self, c)
+	if w:
+		w.hide_plate()
+
+
+## The posters gone (BountyPosters.closed): "No bounty" forgets the board too; the run goes on straight (no gate), with
+## its second of grace.
+func _on_bounty_closed(c: Dictionary) -> void:
+	if c.is_empty():
+		WantedBoard.choose({})
+	_modal_done({}, false)
 
 
 func _start_run() -> void:
@@ -966,6 +1019,8 @@ func _spawn_land_now() -> void:
 	create_tween().tween_callback(func(): camera.zoom_override = 0.0).set_delay(SPAWN_SETTLE / spawn_rate)
 	_spawn_hand_over_finger()
 	_start_run()
+	# pass 112 (lane WANTED): the floating Wanted posters, once the landing's dust has settled (a pause-respecting timer)
+	get_tree().create_timer(BOUNTY_AFTER_LAND / spawn_rate, false).timeout.connect(func(): _offer_bounty(bool(launch_info.get("bounty_board", false))))
 
 
 ## A finger that went down during the sequence and is still down becomes the stick (pass 64): he walks off at once.
@@ -1034,8 +1089,9 @@ func close_pause() -> void:
 ##   With Settings.debug_mode on, _check_one_modal prints an error the frame two of these screens are visible.
 ## pass 73 (lane STRUCT): TOTEM, the Totem Pole's gifts, waits with the shop and the Stranger
 ## pass 106 (lane DRUM): DRUM, the War Drum's moment (time stands still while it plays), before the level cards
-enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM, DRUM}
-const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10, Modal.DRUM: 35}
+## pass 112 (lane WANTED): BOUNTY, the floating Wanted posters after the landing, after the level cards, before a path offer
+enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM, DRUM, BOUNTY}
+const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10, Modal.DRUM: 35, Modal.BOUNTY: 25}
 ## a boss's chest goes before an ordinary one that fell beside it
 const BOSS_CHEST_BUMP := 5
 ## the beat between one screen closing and the next opening (the run paused meanwhile), and the longer one after the
@@ -1165,7 +1221,7 @@ func visible_modals() -> Array:
 	var out: Array = []
 	for pair in [["cards", cards], ["chest", chest_screen], ["portal", portal_dialog], ["revive", revive_screen],
 			["shop", structure_shop], ["stranger", stranger_screen], ["totem", totem_screen], ["pause", pause_screen],
-			["drum", drum_moment]]:
+			["drum", drum_moment], ["bounty", bounty_posters]]:
 		var n = pair[1]
 		if n != null and is_instance_valid(n) and (n as CanvasItem).visible:
 			# pass 95 (lead): the Spirit Pole plays a 0.42 s close after its pick (`_done`) while the next screen may
@@ -4146,6 +4202,9 @@ func tether_start(shooter: int, cfg: Dictionary) -> void:
 func tether_end() -> void:
 	if tether_i >= 0 and player:
 		fx.burst(player.global_position + Vector3(0, 1.0, 0), Color(0.9, 0.8, 0.6), 0.8)
+	# pass 112 (lane ENEMY; Garry: "the chain should break when it breaks"): a rope that ends while the run goes on snaps
+	# (HarpoonChain.snap_break: its time ran out, the harpooner died, a teleport, the hero fell); a run's end only hides it
+	var broke_of := tether_i if (tether_i >= 0 and not _ended) else -1
 	tether_i = -1
 	tether_t = 0.0
 	if player:
@@ -4153,9 +4212,12 @@ func tether_end() -> void:
 	enemies.tethered_i = -1
 	if _rope:
 		_rope.visible = false
-	# pass 111 (lane ENEMY): the chain and its hook go with the rope
+	# pass 111 (lane ENEMY): the chain and its hook go with the rope (pass 112: broken, unless the run is over)
 	if _chain:
-		_chain.release()
+		if broke_of >= 0:
+			_chain.snap_break(broke_of)
+		else:
+			_chain.release()
 
 
 func _tick_tether(delta: float) -> void:

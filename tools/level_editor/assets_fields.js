@@ -22,7 +22,9 @@ const AFIELDS = (() => {
       opt('boss', 'boss', 'runs the attack script (the boss block)'), opt('dummy', 'dummy', 'the arena dummies: stands still'), opt('ambush', 'ambush', 'hides in the sand until the hero is near (the ambush block, ranged for its silk)'),
       opt('caster', 'caster', 'keeps away and casts from the attack script (caster + boss blocks)'), opt('support', 'support', 'heals and frenzies the crowd round it (the support block)'),
       // pass 73 (lane SNIPER)
-      opt('sniper', 'sniper', 'walks in like the kite to its range (never runs), freezes to aim a gathering red-line laser across the map (the sniper block)')],
+      opt('sniper', 'sniper', 'walks in like the kite to its range (never runs), freezes to aim a gathering red-line laser across the map (the sniper block)'),
+      // pass 112 (lane MONK)
+      opt('squad', 'squad', 'comes and fights as a squad (the squad block, the Monk): those spawned together walk as one group in a formation, keep the kite\'s band, and all stop and fire at once')],
     archetypes: [opt('walker', 'walker', 'a label'), opt('swarmer', 'swarmer', 'a label'), opt('spitter', 'spitter', 'a label'), opt('brute', 'brute', 'a label'), opt('tank', 'tank', 'a label'), opt('runner', 'runner', 'a label'),
       opt('elite', 'elite (mini-boss)', 'its HP follows elite.hp_mult_per_stage, a crown, a chest every time, never stunned or grabbed'), opt('boss', 'boss', 'the stage boss: boss.hp_mult_per_stage, the bar, the skull, the purse')],
     telegraphs: [opt('none'), opt('line', 'line', 'a red line ahead'), opt('ring', 'ring', 'a ring round the creature'), opt('ring_at_hero', 'ring at the hero', 'a ring where the hero stands (slam_at, burrow and boulder need it)'),
@@ -425,7 +427,7 @@ const AFIELDS = (() => {
       { key: 'throw_jump', label: 'Throw hop (m)', type: 'number', min: 0, step: 0.05, def: 0, help: 'a thrower hops this high as it throws' },
       { key: 'dynamite', label: 'Dynamite', type: 'json', help: 'the throw for Shot look "dynamite": {speed 9, fuse 1, out_before 0.5, lead 0.35, lead_max 2.5, model, scale, tip, halo_r, hand {up, side, forward}, blast {radius, knockback, lift, push, push_radius}}' },
       { key: 'bomb', label: 'Bomb', type: 'json', help: 'the throw for Shot look "bomb" (pass 111): the Dynamite keys and model "res://art/props/enemy_bomb.glb", scale (1 = 0.6 m across), arc_height (m: the top of its arc over the hand; same spot, same time in the air), arc_ratio (0.75: at most that times the throw\'s length, so a short throw stays low), tumble (radians a second), land_dust, halo_back (the red pulse glows behind it), material {roughness, metallic, specular, rim, fog (false = black stays black under the haze)}, spark {color, size, glow}, trail {style "line", colour, alpha, width, life, puffs (s between smoke puffs), smoke (their colour), sparks (s between sparks)}' },
-      { key: 'harpoon_fx', label: 'Harpoon look', type: 'json', help: 'pass 111: the harpoon\'s chain and hook: hand {up, side, forward}, chain {link 0.56, width 0.4, thick 0.13, colour, outline, outline_px, overlap 0.3}, hook_scale 1.3, windup {lean 16 (degrees it rears back), glint 0.5}, launch {sparks, streak (colour, "none" = off), streak_width, streak_life, wave, sfx}, hit {shake (camera kick, times the screen-shake setting), snap, sfx}, miss {reel (s to reel the hook home), sfx}, rattle. Looks only: the throw\'s timings and the pull are the numbers above' },
+      { key: 'harpoon_fx', label: 'Harpoon look', type: 'json', help: 'pass 111: the harpoon\'s chain and hook: hand {up, side, forward}, chain {link 0.56, width 0.4, thick 0.13, colour, outline, outline_px, overlap 0.3}, hook_scale 1.3, windup {lean 16 (degrees it rears back), glint 0.5}, launch {sparks, streak (colour, "none" = off), streak_width, streak_life, wave, sfx}, hit {shake (camera kick, times the screen-shake setting), snap, sfx}, miss {reel (s to reel the hook home), sfx}, rattle, break {at 0.55 (where along it the chain snaps), whip 0.55 (m the loose ends lash), seconds 0.9 (till the halves are gone), recoil 0.7 (how far the hand\'s half springs back), bits 8, tink 1.1, sfx} (pass 112: the rope ending any other way than a miss). Looks only: the throw\'s timings and the pull are the numbers above' },
     ] },
     charge: { label: 'Charge', help: 'the charge brain: winds up, rushes at charge speed, bites x1.5', rows: [
       { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 0.8, help: 'x 1/pace; a line telegraph of the distance + 4 m' },
@@ -506,13 +508,34 @@ const AFIELDS = (() => {
       { key: 'beam', label: 'Beam', type: 'json', help: '{length 60 (m across the map), width 0.5, seconds 0.15 (how long it shows), damage_from "rocketeer" + damage_mult 0.7 (the hero takes that share of that creature\'s rocket damage, at the sniper\'s own stage), damage 15.4 (used without damage_from), knockback 5, creature_frac 0.05 + creature_max 40 (what each creature on the line takes), push 3 (m off the line), sparks 1.5 (s they shimmer)}' },
       { key: 'muzzle', label: 'Muzzle', type: 'json', help: '{up, side, forward} in metres at the def\'s size: where the lines and the beam leave, the rifle\'s end as painted (side = towards the barrel, screen-right in the painting)' },
     ] },
+    // pass 112 (lane MONK): the squad brain (core/systems/Squads.gd, EnergyOrbs.gd); every key optional (EnemyDef.SQUAD_DEFAULTS)
+    squad: { label: 'Squad', help: 'the squad brain (the Monk): the creatures one pack brings are one squad (a roster row\'s whole draw: a size from Sizes by Size weights, or the row\'s own Pack; never cut by the burst, never a partial squad: when it does not fit it comes as the largest size that fits, else it waits). The squad has one centre that walks like a kiting Spit Cactus (its band from the formation\'s near edge), every member keeps its own slot of a hex blob Spacing m apart round it, facing the squad\'s heading. Every Cooldown s (start to start) while it stands in its band every member stops for Stop s (plain seconds on every map): its hands rise (the attack strip\'s wind-up frames), hold up (the hands-up frames), a blue glow gathers between them, and at Release at s every one looses one sphere at the hero in the same tick', rows: [
+      { key: 'sizes', label: 'Sizes', type: 'json', help: '[10, 20, 30]: how many come together; a roster row\'s Pack wins' },
+      { key: 'weights', label: 'Size weights', type: 'json', help: '[1, 1, 1]: one weight per size (0 = never)' },
+      { key: 'spacing', label: 'Spacing (m)', type: 'number', min: 0.3, step: 0.1, def: 1.4, help: 'between two neighbours of the formation' },
+      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 5.5, help: 'backs off together when its near edge is nearer the hero than this - 0.5 (the Spit Cactus\'s)' },
+      { key: 'range', label: 'Range (m)', type: 'number', min: 0, def: 8, help: 'walks in while its near edge is farther than this; between, it stands and may attack' },
+      { key: 'band_from', label: 'Band measured from', type: 'select', options: () => [opt('edge', 'near edge', 'the formation\'s nearest members (the default)'), opt('center', 'centre', 'the formation\'s middle')], def: 'edge', help: 'where the band above is measured from' },
+      { key: 'cooldown', label: 'Cooldown (s)', type: 'number', min: 0.1, step: 0.1, def: 5.2, help: 'from one volley\'s start to the next (the Spit Cactus: 2.6)' },
+      { key: 'first', label: 'First after (s)', type: 'number', min: 0, step: 0.1, def: 1.5, help: 'after it forms, + up to 1 s at random' },
+      { key: 'rise', label: 'Hands rise (s)', type: 'number', min: 0, step: 0.05, def: 0.5, help: 'the wind-up frames (plain seconds)' },
+      { key: 'release', label: 'Release at (s)', type: 'number', min: 0, step: 0.05, def: 1, help: 'into the stop: the spheres leave (plain seconds)' },
+      { key: 'hold', label: 'Stop (s)', type: 'number', min: 0, step: 0.1, def: 3, help: 'the whole stop: then it walks again (plain seconds: 3 = 3 s on every map)' },
+      { key: 'breath_fps', label: 'Breath (frames/s)', type: 'number', min: 0, step: 0.5, def: 2, help: 'the hands-up frames one after the other while they hold' },
+      { key: 'gain', label: 'Slot pull', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'a member walks to its slot at this x the gap on top of the squad\'s walk' },
+      { key: 'catch_up', label: 'Catch-up x', type: 'number', min: 1, step: 0.1, def: 1.5, help: 'at most this x its own walk' },
+      { key: 'leash', label: 'Leash (m)', type: 'number', min: 0.1, step: 0.1, def: 1.2, help: 'the centre waits when its members are this far behind it' },
+      { key: 'hands', label: 'Hands', type: 'json', help: '{up 1.75, from_up 1.05, side 0, forward 0.2}: where the glow gathers, metres at the creature\'s size (as a muzzle), rising from from_up to up with the hands' },
+      { key: 'orb', label: 'Sphere', type: 'json', help: '{speed 4, range 17.5, size 0.5, hit_radius 0.22, damage_mult 1, lead 0, hover 1, knockback 0, color "#2F7BFF", pulse_hz 3, pulse 0.12, trail {every 0.04, life 0.35, size 0.6, alpha 0.45}}: flies straight on the creatures\' shot clock, through every creature, hurts only the hero (its damage x the creature\'s), gone at range m' },
+      { key: 'glow', label: 'Glow', type: 'json', help: '{from 0.2}: the gathering glow starts at this share of the sphere\'s size' },
+    ] },
     flee_on_hit: { label: 'Flee on hit', help: 'any creature: a hit that lands (never a poison or fire tick) sends it running straight away from the hero for Runs for s at its speed × Speed ×; with Spoils its attack it drops a wind-up, aim or scripted attack under way (that shot never comes). A new hit starts the run again (never faster). Never a boss', rows: [
       { key: 'seconds', label: 'Runs for (s)', type: 'number', min: 0, step: 0.1, def: 1, help: 'how long one hit sends it running (0 = off)' },
       { key: 'speed_mult', label: 'Speed ×', type: 'number', min: 0, step: 0.1, def: 1.8, help: 'its walk times this while it runs' },
       { key: 'interrupts', label: 'Spoils its attack', type: 'bool', def: true, help: 'the hit drops a wind-up, an aim or a scripted attack under way' },
     ] },
   };
-  const BLOCK_ORDER = ['ranged', 'charge', 'kamikaze', 'artillery', 'sniper', 'caster', 'support', 'ambush', 'death_burst', 'flee_on_hit', 'boss', 'elite'];
+  const BLOCK_ORDER = ['ranged', 'charge', 'kamikaze', 'artillery', 'sniper', 'squad', 'caster', 'support', 'ambush', 'death_burst', 'flee_on_hit', 'boss', 'elite'];
 
   // ------------------------------------------------------------------ the attack script's names (EnemyManager.gd:3696-3882)
 
@@ -654,7 +677,7 @@ const AFIELDS = (() => {
       // pass 73 (lane SNIPER): the sniper brain's three sounds
       { key: 'sfx.aim', label: 'Aim (sniper)', type: 'sfx', group: 'en_', only: (d) => d.brain === 'sniper', help: 'the sniper brain: as its aim starts and the lines gather' },
       { key: 'sfx.lock', label: 'Lock (sniper)', type: 'sfx', group: 'en_', only: (d) => d.brain === 'sniper', help: 'the sniper brain: as the line locks, before the hold' },
-      { key: 'sfx.shot', label: 'Shot (sniper)', type: 'sfx', group: 'en_', only: (d) => d.brain === 'sniper', help: 'the sniper brain: the laser crossing the map' },
+      { key: 'sfx.shot', label: 'Shot (sniper, squad)', type: 'sfx', group: 'en_', only: (d) => d.brain === 'sniper' || d.brain === 'squad', help: 'the sniper brain: the laser crossing the map; the squad brain (pass 112): once a volley as its spheres leave (the Attack sound plays once as the hands rise)' },
     ]),
     T('Looks', [
       { key: 'variant_base', label: 'Base look', type: 'readonly', help: 'the code of the top-level strip' },
@@ -786,6 +809,8 @@ const AFIELDS = (() => {
       { key: 'strip_cols', label: 'Strip columns', type: 'int', min: 0, def: 0 },
       { key: 'anims', label: 'Frames per animation', type: 'anims', help: 'CHAR_ORDER: idle, run, turn, hit, die, cheer, idle_f, run_f, idle_s, run_s, idle_bd, run_bd, idle_fd, run_fd, hit_f, hit_s, hit_bd, hit_fd' },
       { key: 'fps', label: 'Frame rates', type: 'fps_table', keys: ['run', 'hit', 'die', 'idle', 'cheer'], help: 'BillboardSprite: run 14, hit 6, die 5, idle 4, cheer 4 when absent (the heroes carry run 36, hit 12, die 8)' },
+      // pass 112 (lane ENEMY): the run cycle follows his walk (Player.run_rate)
+      { key: 'run_anim', label: 'Run cycle follows his speed', type: 'json', help: 'pass 112: his run cycle plays at his walk\'s share of his full speed (a half-pushed stick, the harpoon\'s rope, the water, a wall he runs into slow it): {min 0.35 (the slowest it plays, never frozen mid-stride), max 1.0 (the fastest; above 1 a Sprint would speed it up too), follow 12 (how quickly it catches up, 1/s)}. Empty = the game\'s' },
     ]),
   );
 

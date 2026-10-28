@@ -268,14 +268,11 @@ func far_speed_cfg() -> Dictionary:
 		else:
 			out[k] = float(v) if (v is float or v is int) else float(dv)
 	return out
-## Pass 111 (lane CHEST; Garry: "Chests should respawn every now and then ... Chests never spawn where Player can see
-## them"): chests the map lays on a clock of its own, off the screen (core/systems/WorldChests.gd). Read as it is;
-## WorldChests.DEFAULTS fill the keys it leaves out; no block at all = no world chests (as before pass 111).
-@export var world_chests: Dictionary = {}
-## Pass 111 (lane CHEST; Garry: "a chance of a power up dropping from them ... I should be able to set the frequency and
-## content probabilities of both chest types"): what a chest holds, {"normal": {...}, "boss": {...}} (the power-up thrown
-## out of it, its reel's new-item weight and gold; WorldChests.CONTENT_DEFAULTS fill gaps: no power-up, today's reel).
-@export var chest_contents: Dictionary = {}
+## Pass 112 (lane BARREL; Garry: barrels "should respawn every now and then ... a chance of a power up dropping from
+## them ... never spawn where Player can see them"): {"respawn": {...}, "brown": {...}, "black": {...}}: the clock that
+## lays barrels again off the screen and what each barrel type holds (core/systems/BarrelSpawns.gd; read as it is, its
+## RESPAWN_DEFAULTS and CONTENT_DEFAULTS fill gaps; no block = today's barrels: no respawn, no power-up).
+@export var barrels: Dictionary = {}
 
 
 ## One number of despawn (pass 95): the map's, else DESPAWN_DEFAULTS' ("enabled" as 1 / 0).

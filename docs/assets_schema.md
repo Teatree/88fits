@@ -3271,6 +3271,16 @@ Models: `art/props/enemy_bomb.glb` (tools/blender_bomb.py; prints the fuse tip f
 (tools/blender_harpoon.py). The Spit Cactus plays the bomb (its `dynamite` block kept); the harpooner carries
 `harpoon_fx`. Rules and numbers: BALANCING.md §54.ENEMY. Captures: game/tools/_p111_ENEMY_shots.gd.
 
+## Pass 112 (lane ENEMY): the chain's break, the hero's run cycle
+
+| key | where | type | default | meaning |
+|---|---|---|---|---|
+| `ranged.harpoon_fx.break` | creature JSON | object | {at 0.55, whip 0.55, seconds 0.9, recoil 0.7, bits 8, tink 1.1, sfx "w_spear_hit"} | the chain snapping when the rope ends any other way than a miss's reel (HarpoonChain.snap_break): where along it, the loose ends' lash (m), how long till the halves are gone, how far the hand's half springs back, the iron bits, the tink's size, the sound |
+| `run_anim` | hero JSON | object | {min 0.35, max 1.0, follow 12} (Player.RUN_ANIM_DEFAULTS) | the run cycle's rate = his walk / his full speed, held to [min, max], easing at `follow` a second (Player.run_rate; CharacterDef.run_anim) |
+
+Rules and numbers: BALANCING.md §55.ENEMY. Captures: game/tools/_p112_HARPOON_shots.gd; the first-use probe
+game/tools/_p112_ENEMY_firstuse.gd (`nowarm=1` = the warm-up as pass 111 had it, `parts=1 [prewarm=pit|tiny|visible]`).
+
 ## Pass 111 (lane SKINS): looks sold as skins, the currency registry
 
 Garry: "first you complete a goal, then you get access to buying skins ... choose which Looks can be purchased, what
@@ -3310,3 +3320,51 @@ fill, border, currency)` and a WButton part `{"coin": px, "currency": id}` draw 
    Editor's currency selects list it once the editor's server is restarted).
 3. Pay it out where it is earned: `Currency.add("gems", n, "<source>")` (a run's end, a contract, a quest reward).
    Only a purse that shows its balance on a screen (the title's and the Upgrade board's gold plates show gold) needs code.
+
+## Pass 112 (lane MONK): the squad brain (creature JSON `brain: "squad"`, `squad`)
+
+A creature with `brain` "squad" comes and fights in squads (the Monk, content/enemies/monk; core/systems/Squads.gd, the
+spheres core/systems/EnergyOrbs.gd). Every key of `squad` is optional: the defaults are EnemyDef.SQUAD_DEFAULTS (the
+Level Editor's Squad block shows them grey). Rules and numbers: BALANCING.md §55.MONK.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `squad.sizes` | [int] | [10, 20, 30] | how many come together (one squad); a roster row's `pack` wins |
+| `squad.weights` | [number] | [1, 1, 1] | one weight per size (0 = never; all 0 = the first size) |
+| `squad.spacing` | m | 1.4 | between two neighbours of the hex formation round the squad's centre |
+| `squad.keep_distance` | m | 5.5 | the centre backs off while the band distance is under this - 0.5 |
+| `squad.range` | m | 8.0 | the centre walks in while the band distance is over this; between, it stands and may attack |
+| `squad.band_from` | "edge" \| "center" | "edge" | the band distance: from the formation's near edge (the centre's distance less its radius) or its centre |
+| `squad.cooldown` | s | 5.2 | from one volley's start to the next (plain seconds) |
+| `squad.first` | s | 1.5 | after the squad forms (+ up to 1 s at random) before its first volley |
+| `squad.rise` | s | 0.5 | the hands rise: the attack strip's wind-up frames (plain seconds) |
+| `squad.release` | s | 1.0 | into the stop: every member still in its pose fires (plain seconds) |
+| `squad.hold` | s | 3.0 | the whole stop (plain seconds: never stretched by the map's pace; High Noon slows it) |
+| `squad.breath_fps` | frames/s | 2.0 | the hands-up frames, one after the other, while they hold |
+| `squad.gain` | 1/s | 2.5 | a member's pull to its slot (x the gap, on top of the squad's walk) |
+| `squad.catch_up` | x | 1.5 | a member walks at most this x its own walk |
+| `squad.leash` | m | 1.2 | the centre waits while its members' mean is this far behind it |
+| `squad.hands` | {up, from_up, side, forward} | {1.75, 1.05, 0, 0.2} | where the glow gathers and the sphere leaves: metres at the creature's size (EnemyManager.muzzle_point), `up` rising from `from_up` over `rise` (the Monk: 1.8 / 1.2 / 0 / 0.25) |
+| `squad.orb.speed` | m/s | 4.0 | on the creatures' shot clock (hostile_clock) |
+| `squad.orb.range` | m | 17.5 | flown, then it bursts |
+| `squad.orb.size` | m | 0.5 | the ball's diameter (the halo reaches twice it) |
+| `squad.orb.hit_radius` | m | 0.22 | + the hero's 0.5 m, flat, in the hostile shots' height band |
+| `squad.orb.damage_mult` | x | 1.0 | x the creature's damage (its stage, level, curves) |
+| `squad.orb.lead` | share | 0.0 | of the hero's run over the flight added to the aim |
+| `squad.orb.hover` | m | 1.0 | over the sand, reached 0.35 s after the hands |
+| `squad.orb.knockback` | m/s | 0.0 | 0 = a plain shot (no push since pass 89); above 0 = a special push of that much |
+| `squad.orb.color` | "#rrggbb" | "#2F7BFF" | the ball, its rim and halo, its trail and glow |
+| `squad.orb.pulse_hz`, `squad.orb.pulse` | Hz, share | 3.0, 0.12 | the breath of its size |
+| `squad.orb.trail` | {every, life, size, alpha} | {0.04, 0.35, 0.6, 0.45} | a bead every `every` s, fading over `life` s, `size` x the ball |
+| `squad.glow.from` | share | 0.2 | the gathering glow starts at this share of the ball's size, full at the release |
+| `sfx.attack`, `sfx.shot` | sound id | | once a volley: as the hands rise, as the spheres leave |
+
+- A look's `attack` strip for a squad creature: `attack_views` "front_back" (the front half | the back half); in each half
+  the first half of its frames are the hands rising, the rest the hands up (8 frames: 2 + 2 a view; 4 frames: 1 + 1).
+- Roster rows need nothing new: a row's `pack` is its squad's size; `count` (waves rows) is paid one squad a spawn
+  check; the pattern is always a pack at one spawn point. Row `stats` may override any `squad` key (deep-merged);
+  `attack_rate_mult` divides `squad.cooldown`, `projectile_speed_mult` multiplies `squad.orb.speed`.
+- Code API: EnemyDef.is_squad(), squad_cfg(), squad_sizes(), squad_max(), squad_roll(u); WaveDirector.squad_take(def,
+  row, want, fit), squad_pack(def); EnemyManager.squads (Squads: list, cfg_of, spawn_pack, on_spawn, tick, steer,
+  intent_of, attack_frame, orbs_node); EnergyOrbs.fire(from, along, speed, range, damage, look, info).
+- Capture: game/tools/_p112_MONK_shots.gd (`-- out=<dir> [only=north,south] [look=MK-A] [preview_views=0|1]`).

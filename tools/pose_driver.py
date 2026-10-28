@@ -243,6 +243,24 @@ def extract():
             c.target = e
             c.track_axis = "TRACK_Y"
         print("pose_driver: right hand held up at the shoulder")
+    if a.get("arms") == "clasp":
+        # pass 112 (the Monk, Garry: "the arms ... put together like in HoMM3"): both hands meet in front of the belly, tucked
+        # into the sleeves, through the whole stride: each upper arm hangs down and a little forward, each forearm points
+        # in to one spot before the stomach, so the arms never swing and the back view shows the same clasp (not mirrored)
+        side_v = fwd.cross(up)
+        shr, shl = joint("RightArm", f0), joint("LeftArm", f0)
+        mid = (shr + shl) * 0.5
+        meet = mid + fwd * float(a.get("clasp_fwd", 0.24)) - up * float(a.get("clasp_drop", 0.36))
+        for side, sgn, sh in (("Right", 1.0, shr), ("Left", -1.0, shl)):
+            el = sh + fwd * 0.08 - up * 0.26 + side_v * sgn * 0.04
+            for bone, tgt in ((side + "Arm", el), (side + "ForeArm", meet + side_v * sgn * 0.02)):
+                e = bpy.data.objects.new("clasp_" + bone, None)
+                sc.collection.objects.link(e)
+                e.location = tgt
+                c = pb[bone].constraints.new("DAMPED_TRACK")
+                c.target = e
+                c.track_axis = "TRACK_Y"
+        print("pose_driver: hands clasped before the belly")
     def skeleton(f):
         """Every point the drivers draw at source frame f, in world space: the body joints, the head's base and top,
         and the 21 points of each hand (under "l:<bone>" / "r:<bone>")."""

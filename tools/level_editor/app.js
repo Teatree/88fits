@@ -1183,8 +1183,8 @@ const App = (() => {
     validateCurve('dmg', d.damage_curve, mark, 'the damage curve');
     // pass 82 (lane XP): the XP growth type's checks (xp_model.js: a level needing 0 XP or less, an unknown type, ...)
     if (typeof XpModel !== 'undefined') for (const m of XpModel.issues(d)) mark('settings', m.level, `XP per level: ${m.msg}`);
-    // pass 111 (lane CHEST): the map chests' and the chest contents' checks (chest_model.js; errors block Save)
-    if (typeof ChestModel !== 'undefined') for (const m of ChestModel.issues(d, (S.pickups || []).map((p) => p.id))) mark('settings', m.level, `Chests: ${m.msg}`);
+    // pass 112 (lane BARREL): the barrels' respawn and contents checks (barrel_model.js; errors block Save)
+    if (typeof BarrelModel !== 'undefined') for (const m of BarrelModel.issues(d, (S.pickups || []).map((p) => p.id))) mark('settings', m.level, `Barrels: ${m.msg}`);
     const ss = d.spawn_sides;
     if (ss != null) {
       if (!U.isObj(ss)) mark('settings', 'error', 'spawn_sides must be a block {mode, top, bottom, left, right, ...}');

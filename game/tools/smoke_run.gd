@@ -28,9 +28,7 @@ var _boss_n := 1          # boss=2: jump to the second boss with a stage-2 build
 var _evolve_all := false  # evolve=all: every base weapon added, maxed, mutated twice and evolved in the live game
 var _evolved := false
 var _portal_decided := 0
-var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/HomesteadScreen.tscn", "res://ui/DevMenu.tscn",
-	# pass 111 (lane WANTED): the Bounty Board opens whole (the run itself starts from a launch file and never meets it)
-	"res://ui/WantedBoardScreen.tscn"]
+var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/HomesteadScreen.tscn", "res://ui/DevMenu.tscn"]
 var _screen_i := -1
 var _screen_t := 0.0
 var _cards_picked := 0
@@ -39,7 +37,10 @@ var _errors: Array = []
 var _last_clear := -1
 var _start_unix := 0.0
 var _game_t := -1.0        # the tool's clock when the Game scene appeared
-var _spawn_seen := false   # the spawn beam (pass 45): the hero high in the beam after the first second
+var _spawn_seen := false
+## pass 112 (lane WANTED): the floating Wanted posters met and their contract looked at
+var _bounty_seen := false
+var _bounty_checked := false   # the spawn beam (pass 45): the hero high in the beam after the first second
 var _landed_checked := false
 var _chest_banished := false  # the chest's BANISH once (pass 47: the reel spins again to a new roll)
 var _numbers_seen := 0        # the most numbers in the air at once (pass 47, DamageNumbers keeps its list headless)
@@ -84,7 +85,8 @@ func _start() -> void:
 	_start_unix = Time.get_unix_time_from_system()
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	# pass 87 (lane SGAME): boss=2 plays stage 2 as its own run (the launch's `stage`)
-	f.store_string(JSON.stringify({"weapon": _weapon, "level": 3, "character": _character, "map": _map, "spawn": true, "stage": maxi(_boss_n, 1)}))
+	# pass 112 (lane WANTED): `bounty_board` shows the floating Wanted posters after the landing whatever the save
+	f.store_string(JSON.stringify({"weapon": _weapon, "level": 3, "character": _character, "map": _map, "spawn": true, "stage": maxi(_boss_n, 1), "bounty_board": true}))
 	f.close()
 	var save := root.get_node("Save")
 	save.data["runs_started"] = 1
@@ -179,6 +181,21 @@ func _tick_run(dt: float) -> void:
 		if not tp.is_empty():
 			_game.totem_screen._pick(tp[0])
 			print("smoke_run: the totem -> %s" % str(tp[0].boon.get("id", "")))
+	# pass 112 (lane WANTED): the floating Wanted posters after the landing: the first is taken (its contract and plate
+	# looked at a moment later); a run that never meets them is an error at the end
+	var bp = _game.get("bounty_posters")
+	if bp and bp.visible and not bp.is_done():
+		_bounty_seen = true
+		var n: int = (bp.cards() as Array).size()
+		bp.choose(0)
+		print("smoke_run: the Wanted posters (%d) -> took the first" % n)
+	if _bounty_seen and not _bounty_checked and not _game.paused and not (bp and bp.visible):
+		_bounty_checked = true
+		var wr = _game.get_node_or_null("WantedRun")
+		if wr == null or wr.plate() == null:
+			_errors.append("the Wanted poster taken started no contract (or no HUD plate)")
+		else:
+			print("smoke_run: bounty %s, plate %s" % [str(wr.contract.get("type", "")), wr.progress_text()])
 	if _game.portal_dialog and _game.portal_dialog.visible:
 		if not _declined and _game.portal_dialog.has_signal("declined"):
 			# pass 48: "Not yet" the first time: unpaused, the portal still there; out past 2.5 m and back in, it asks again
@@ -438,6 +455,8 @@ func _finish(problem: String) -> void:
 		print(l)
 	if not _perf and _declined and not _asked_again:
 		_errors.append("the portal never asked again after Not yet")
+	if not _perf and not _bounty_checked:
+		_errors.append("the floating Wanted posters never came after the landing (or their contract was not looked at)")
 	var ok: bool = problem == "" and _errors.is_empty() and _portal_decided >= 1 and _cards_picked >= 3
 	if problem != "":
 		_errors.append(problem)

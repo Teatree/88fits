@@ -12,6 +12,15 @@ const PIT := Vector3(0, -8.0, 0)
 ## pass 70: by path, so Warmup never waits on the class cache
 const TRAMPOLINE := preload("res://core/systems/Trampoline.gd")
 const FRAMES_S := 0.3
+## Pass 112 (lane ENEMY): and at least this many frames drawn (the run's first frames can take most of FRAMES_S between
+## them, and a pipeline only compiles on a frame that is drawn)
+const MIN_FRAMES := 6
+var _drawn_frames := 0
+## Pass 112 (lane ENEMY): a probe sets this Engine meta to leave out the creatures' throws, the harpoon's chain, the fuse
+## smoke and the energy orbs, and with the value "all" MIN_FRAMES as well (game/tools/_p112_ENEMY_firstuse.gd measures
+## the first throw with and without them: the warm-up as pass 111 had it).
+const SKIP_CREATURE_FX_META := &"warmup_skip_creature_fx"
+const ENERGY_ORB_SHADER := "res://core/shaders/energy_orb.gdshader"
 
 var _labels: Control
 
@@ -22,9 +31,9 @@ static func run(game: Node) -> void:
 	game.add_child(w)
 	w.position = game.player.global_position + PIT
 	w._build(game)
-	# the timer runs paused or not, then everything goes
+	# the timer runs paused or not, then everything goes (pass 112: once at least MIN_FRAMES frames have been drawn too)
 	var t := game.get_tree().create_timer(FRAMES_S, true, false, true)
-	t.timeout.connect(func(): w._finish(game))
+	t.timeout.connect(func(): w._finish_when_drawn(game))
 
 
 func _build(game: Node) -> void:
@@ -85,7 +94,14 @@ func _build(game: Node) -> void:
 						break
 				root.free()
 	_warm_mutation_shots(pm)
+	# pass 112 (lane ENEMY; Garry: "the new bombs and harpoons take a second to load when they are first seen"): every
+	# creature's thrown model (the bomb, the dynamite stick) is loaded and registered here, so warm_draw below draws it
+	var creature_fx := not Engine.has_meta(SKIP_CREATURE_FX_META)
+	if creature_fx:
+		_warm_creature_shots(pm)
 	pm.warm_draw(global_position)
+	if creature_fx:
+		_warm_creature_fx(game)
 	# pass 76 (lane MOLO): the flames on the bottles' wicks, every style (core/shaders/wick_flame.gdshader) once
 	if pm.has_method("warm_wick_flames"):
 		pm.warm_wick_flames(global_position)
@@ -213,6 +229,55 @@ func _warm_mutation_shots(pm: ProjectileManager) -> void:
 				pm.tinted_kind(int(_shot_kinds[wid]), hm.params["tint"])
 
 
+## Pass 112 (lane ENEMY): the kinds a creature's throw is drawn with (EnemyManager.throw_block: a "bomb" shot's block, a
+## "dynamite" shot's), registered now for every creature that throws, as ProjectileManager.dynamite_kind would on the first
+## throw: the model loaded from disk and its material (the bomb's glossy, fog-free one) made, so warm_draw compiles them.
+func _warm_creature_shots(pm: ProjectileManager) -> void:
+	if not pm.has_method("dynamite_kind"):
+		return
+	for def: EnemyDef in Registry.enemies.values():
+		if def == null or def.retired or not EnemyManager.throws_dynamite(def):
+			continue
+		var blocks: Array = [EnemyManager.throw_block(def)]
+		# the other block too, so switching the shot in the Level Editor costs nothing either
+		for key in ["dynamite", "bomb"]:
+			if def.ranged.get(key) is Dictionary and not blocks.has(def.ranged[key]):
+				blocks.append(def.ranged[key])
+		for dy: Dictionary in blocks:
+			var look = dy.get("material", {})
+			pm.dynamite_kind(str(dy.get("model", ProjectileManager.DYN_MODEL)), float(dy.get("scale", 1.0)), look if look is Dictionary else {})
+
+
+## Pass 112 (lane ENEMY): what the creatures' shots draw besides their models, once under the beam: the harpooner's chain
+## and hook (HarpoonChain.warm: the links' material with its outline pass, the hook's own), the bomb's puffs of fuse smoke
+## (Fx.smoke_puff: the dust pool) and the Monk's energy orbs (energy_orb.gdshader on a MultiMesh laid out as
+## core/systems/EnergyOrbs.gd lays its own: colours and custom data, the same variant).
+func _warm_creature_fx(game: Node) -> void:
+	if game.has_method("harpoon_chain"):
+		game.harpoon_chain().warm(global_position + Vector3(-1.0, 0.6, 1.5))
+	if game.get("fx") != null and game.fx.has_method("smoke_puff"):
+		game.fx.smoke_puff(global_position + Vector3(0, 0.5, 0), Vector3.ZERO, 0.25, 0.2, 0.3, Color(0.35, 0.33, 0.32, 0.6))
+	if ResourceLoader.exists(ENERGY_ORB_SHADER):
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.use_custom_data = true
+		var q := QuadMesh.new()
+		q.size = Vector2(1, 1)
+		mm.mesh = q
+		mm.instance_count = 1
+		mm.set_instance_transform(0, Transform3D(Basis().scaled(Vector3(0.3, 0.3, 0.3)), global_position + Vector3(1.0, 0.5, 0)))
+		mm.set_instance_color(0, Color(1, 1, 1, 0.5))
+		mm.set_instance_custom_data(0, Color(0, 0, 0, 0))
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		var sm := ShaderMaterial.new()
+		sm.shader = load(ENERGY_ORB_SHADER)
+		mmi.material_override = sm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mmi)
+
+
 func _flat(c: Color, alpha: bool, cull_off: bool) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -234,6 +299,21 @@ func _quad(mat: Material) -> void:
 	add_child(mi)
 
 
+func _process(_delta: float) -> void:
+	_drawn_frames += 1
+
+
+## FRAMES_S is up: finish once MIN_FRAMES frames have been drawn under the beam (at most 2 s more).
+func _finish_when_drawn(game: Node) -> void:
+	var waited := 0
+	# (the probe's "before": SKIP_CREATURE_FX_META set to "all" leaves this out too, as pass 111 finished)
+	var least := 0 if str(Engine.get_meta(SKIP_CREATURE_FX_META, "")) == "all" else MIN_FRAMES
+	while _drawn_frames < least and waited < 120 and is_instance_valid(game) and is_inside_tree():
+		await get_tree().process_frame
+		waited += 1
+	_finish(game)
+
+
 func _finish(game: Node) -> void:
 	if is_instance_valid(_labels):
 		_labels.queue_free()
@@ -245,4 +325,7 @@ func _finish(game: Node) -> void:
 			game.projectiles.warm_wick_flames(Vector3.INF)
 	if is_instance_valid(game) and game.get("pickups") and game.pickups.has_method("warm_draw"):
 		game.pickups.warm_draw(Vector3.INF)
+	# pass 112 (lane ENEMY): the chain put away again
+	if is_instance_valid(game) and game.get("_chain") != null:
+		game._chain.warm(Vector3.INF)
 	queue_free()

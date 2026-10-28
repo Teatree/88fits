@@ -378,6 +378,9 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	e.sniper = snp if snp is Dictionary else {}
 	var foh = d.get("flee_on_hit", {})
 	e.flee_on_hit = foh if foh is Dictionary else {}
+	# pass 112 (lane MONK): the squad brain's block (Squads)
+	var sqd = d.get("squad", {})
+	e.squad = sqd if sqd is Dictionary else {}
 	e.attack_views = str(d.get("attack_views", ""))
 	# pass 85 (lane BANDIT): a throw's attack strip (wind-up | release per view), and the played look's own layout
 	e.attack_throw = bool(d.get("attack_throw", false))
@@ -455,6 +458,9 @@ static func _character(d: Dictionary, dir: String) -> CharacterDef:
 	c.strip_cols = int(d.get("strip_cols", 0))
 	var fp = d.get("fps", {})
 	c.fps = fp if fp is Dictionary else {}
+	# pass 112 (lane ENEMY): the run cycle's rate following his speed (Player.run_rate; {} = the game's)
+	var ra = d.get("run_anim", {})
+	c.run_anim = ra if ra is Dictionary else {}
 	var an = d.get("anims", {"idle": 2, "run": 4, "turn": 1, "hit": 1, "die": 1, "cheer": 1})
 	c.anims = an if an is Dictionary else {}
 	c.sprite_file = str(d.get("sprite", str(d.get("id", "")) + "_sprite.png"))
@@ -790,11 +796,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 111 (lane ENEMY): far creatures walk faster (read as it is; WaveTimeline.FAR_SPEED_DEFAULTS fill gaps)
 	var fsp = t.get("far_speed", {})
 	w.far_speed = fsp if fsp is Dictionary else {}
-	# pass 111 (lane CHEST): the world chests' clock and both chest types' contents (WorldChests' defaults fill gaps)
-	var wch = t.get("world_chests", {})
-	w.world_chests = wch if wch is Dictionary else {}
-	var chc = t.get("chest_contents", {})
-	w.chest_contents = chc if chc is Dictionary else {}
+	# pass 112 (lane BARREL): the barrels' respawn clock and both barrel types' contents (BarrelSpawns' defaults fill gaps)
+	var brl = t.get("barrels", {})
+	w.barrels = brl if brl is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

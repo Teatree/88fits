@@ -390,6 +390,9 @@ func _physics_process(delta: float) -> void:
 		shield_pts = minf(shield_pts, smax)
 	elif shield_pts > 0.0:
 		shield_pts = 0.0
+	# pass 112 (lane ENEMY): how fast he really walks (the stick's walk, slowed by the rope, the water or a wall), for the
+	# run cycle's rate (run_rate)
+	_walk_speed = minf(planar.length(), stepped.length() / maxf(delta, 0.0001))
 	_animate(delta, planar.length() > 0.1, on_floor)
 	if airborne:
 		_air_look()
@@ -508,6 +511,38 @@ func _note_hp() -> void:
 		Run.note_hp(hp, max_hp)
 
 
+# ---------------------------------------------------------------- pass 112 (lane ENEMY): the run cycle follows his walk
+## Garry (pass 112): "moving slowly should slow down the hero's animation." His run cycle plays at his walk's share of his
+## full speed (max_speed: his move speed with every buff, so a Sprint or Rage that makes him faster keeps the cycle as
+## authored): a half-pushed stick, the harpoon's rope (walking away from it), the water's slow or a wall he runs into
+## slow it down, never under `min` (he never freezes mid-stride), never over `max`; the rate follows his speed at
+## `follow` a second. The hero's JSON `run_anim` over RUN_ANIM_DEFAULTS (CharacterDef.run_anim).
+const RUN_ANIM_DEFAULTS := {"min": 0.35, "max": 1.0, "follow": 12.0}
+var _walk_speed := 0.0
+var _run_rate := 1.0
+
+
+## The run cycle's rate for a walk of `speed` m/s against his full `full` m/s, by `cfg` (min, max).
+static func run_rate(speed: float, full: float, cfg: Dictionary = {}) -> float:
+	var lo := clampf(float(cfg.get("min", RUN_ANIM_DEFAULTS["min"])), 0.05, 1.0)
+	var hi := maxf(float(cfg.get("max", RUN_ANIM_DEFAULTS["max"])), lo)
+	if full <= 0.01:
+		return 1.0
+	return clampf(speed / full, lo, hi)
+
+
+## This frame's run rate, easing towards run_rate at the hero's `follow`.
+func _run_rate_step(delta: float) -> float:
+	var cfg: Dictionary = RUN_ANIM_DEFAULTS.duplicate()
+	var own = character.get("run_anim") if character != null else null
+	if own is Dictionary:
+		for k in (own as Dictionary).keys():
+			cfg[k] = own[k]
+	var want := run_rate(_walk_speed, max_speed(), cfg)
+	_run_rate = lerpf(_run_rate, want, clampf(delta * float(cfg.get("follow", 12.0)), 0.0, 1.0))
+	return _run_rate
+
+
 func _animate(delta: float, moving: bool, on_floor: bool) -> void:
 	# momentum shows on the ground: puffs at the heels as it builds, streaks behind him near full
 	if momentum and moving and on_floor and Run.momentum > 0.15:
@@ -534,6 +569,8 @@ func _animate(delta: float, moving: bool, on_floor: bool) -> void:
 	var anim := _anim_for("hit" if _hit_pose > 0.0 else ("run" if moving else "idle"))
 	if sprite.animation != anim and sprite.has_animation(anim):
 		sprite.play(anim)
+	# pass 112 (lane ENEMY): the run cycle plays at his walk's share of his full speed (run_rate); everything else as authored
+	sprite.rate = _run_rate_step(delta) if anim.begins_with("run") else 1.0
 	sprite.set_flip(_flip and _view in ["_s", "_bd", "_fd"])
 	_bob = _bob + delta * (10.0 if moving else 3.0)
 	var bob := sin(_bob) * (0.03 if moving else 0.015)

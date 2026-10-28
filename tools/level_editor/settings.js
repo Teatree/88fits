@@ -30,8 +30,8 @@ const Settings = (() => {
           if (def.block === 'spawn_sides') card.appendChild(el('div', { class: 'block-row' }, el('h3', { class: 'block-title', text: 'Spawn sides' }), Forms.spawnSidesBlock(tl)));
           // pass 82 (lane XP): the XP card's growth type, its numbers, XP needed × and the two charts (xp_card.js)
           else if (def.block === 'xp_curve' && typeof XpCard !== 'undefined') { card.classList.add('xpc-card'); card.appendChild(XpCard.block(tl)); }
-          // pass 111 (lane CHEST): under the map chests' rows, about how many a stage, then what each chest type holds
-          else if (def.block === 'chest_contents' && typeof ChestCard !== 'undefined') { card.classList.add('tall'); card.appendChild(el('p', { class: 'muted small chest-summary', text: ChestCard.summary(tl) })); card.appendChild(ChestCard.block(tl)); }
+          // pass 112 (lane BARREL): under the respawn rows, about how many come back a stage, then what each barrel kind holds
+          else if (def.block === 'barrel_contents' && typeof BarrelCard !== 'undefined') { card.classList.add('tall'); card.appendChild(el('p', { class: 'muted small barrel-summary', text: BarrelCard.summary(tl) })); card.appendChild(BarrelCard.block(tl)); }
           continue;
         }
         // pass 83 (lane SCALE): a row that only counts in another mode stays out of sight (the pegged Boss HP numbers)

@@ -1101,28 +1101,12 @@ far_speed = {
 "max_mult": 2.0,
 "ramp": 6.0
 }
-world_chests = {
-"boss_chance": 0.0,
-"enabled": true,
-"every": [90.0, 130.0],
-"first": 60.0,
-"in_boss": true,
-"in_endless": false,
-"in_portal": false,
-"lifetime": 150.0,
-"max_dist": 45.0,
-"max_on_map": 2.0,
-"max_per_stage": 5.0,
-"min_dist": 25.0,
-"pointer": true,
-"view_margin": 3.0
-}
-chest_contents = {
-"boss": {
-"gold": 50.0,
-"mutation": true,
-"new_item_weight": 0.45,
-"powerup_chance": 0.5,
+barrels = {
+"black": {
+"coins": [1.0, 5.0],
+"gems_medium": 4.0,
+"gems_small": 10.0,
+"powerup_chance": 0.3,
 "powerups": [{
 "id": "heart",
 "weight": 6.0
@@ -1144,10 +1128,11 @@ chest_contents = {
 }],
 "throw_distance": [5.0, 7.0]
 },
-"normal": {
-"gold": 50.0,
-"new_item_weight": 0.45,
-"powerup_chance": 0.35,
+"brown": {
+"coins": 0.0,
+"gems_medium": 0.0,
+"gems_small": 8.0,
+"powerup_chance": 0.08,
 "powerups": [{
 "id": "heart",
 "weight": 6.0
@@ -1168,6 +1153,20 @@ chest_contents = {
 "weight": 2.0
 }],
 "throw_distance": [5.0, 7.0]
+},
+"respawn": {
+"black_chance": 0.22,
+"enabled": true,
+"every": [40.0, 60.0],
+"first": 45.0,
+"in_boss": true,
+"in_endless": false,
+"in_portal": false,
+"max_dist": 40.0,
+"max_lying": 35.0,
+"max_per_stage": 0.0,
+"min_dist": 20.0,
+"view_margin": 2.0
 }
 }
 rock_color = "#785C5E"
