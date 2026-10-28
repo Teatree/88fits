@@ -1,0 +1,15 @@
+{
+  "id": "skin_may_may_b",
+  "name": "May · Midnight Mime",
+  "condition": {
+    "type": "beat_stage",
+    "map": "red_canyon",
+    "stage": 2,
+    "hero": "may"
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "may:MAY-B"
+  },
+  "icon": "res://content/characters/may/may_icon_g.png"
+}

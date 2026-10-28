@@ -77,9 +77,19 @@
 ## the HUD's clock at the stage's own 00:00). portal_expire (run with portal): the stage clear's countdown running out
 ## closes it by itself (`expired`, no decision); endless_banner (run with hud): Endless shows its banner and the clock's
 ## WAVE tag, and a finger on the tag still pauses (the strip takes it).
+## Pass 111 (lane WANTED): wanted (run alone with only=wanted): with a finished run behind the save, PLAY and a stage's card
+## open the Bounty Board; its posters and buttons answer a finger; a real tap picks a poster, TAKE IT and No bounty make
+## their choice, the back square goes to the Stages menu, and a real No bounty starts the run. stages_play taps No bounty
+## when the board comes between the card and the run.
 ## Pass 106 (lane DRUM): drum: the War Drum used in the run stops time for its moment; real taps on the drum, the dim and
 ## the pause disc while it plays are swallowed (nothing opens, the moment plays on, the run stays paused); it ends by
 ## itself and the run goes on; the HUD shows the boost's plate with its seconds (a finger on it opens nothing).
+## Pass 111 (lane SKINS): hero_skins (run with title, or alone with only=hero_skins): the hero sheet of a hero who sells a
+## look, owned, its goal done and the gold for it: every control on it answers a finger (muted; a swipe that starts on a
+## Looks tile scrolls the sheet and presses nothing), the buy question is audited
+## and cancelled, a real tap on the look to buy asks and the real deed buys it (its price spent once, worn, the title's
+## hero in it), a real tap on the look every player owns wears it again, a real tap on a locked look buys nothing and
+## asks nothing; a hero not owned shows no Looks. The save's gold, heroes, quests and skins are put back after.
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -473,6 +483,8 @@ func _run() -> void:
 		await _hero_sheet()
 	if _want("title") or _want("hero_drawer") or _want("hero_buy"):
 		await _hero_drawer()
+	if _want("title") or _want("hero_skins"):
+		await _hero_skins()
 	if _want("title") or _want("title_live"):
 		await _title_live()
 	await _screen("settings", "res://ui/SettingsScreen.tscn")
@@ -528,6 +540,8 @@ func _run() -> void:
 		await _spawn_skip()
 	if _want("stages") or _want("stages_play"):
 		await _stages_menu()
+	if _want("wanted"):
+		await _wanted_board()
 	await _in_game()
 	_report()
 
@@ -824,6 +838,125 @@ func _hero_drawer() -> void:
 	save.data["gold"] = kept_gold
 	save.data["heroes_owned"] = kept_owned
 	save.data["last_character"] = kept_last
+
+
+## The hero sheet's Looks (pass 111, lane SKINS; see the header): real fingers on the tiles, the buy question, the deed,
+## wearing the owned look again, a locked look.
+func _hero_skins() -> void:
+	var save = root.get_node("Save")
+	var reg = root.get_node("Registry")
+	var kept := {}
+	for k in ["gold", "heroes_owned", "quests_done", "skins_owned", "skin_worn", "hero_look", "last_character"]:
+		kept[k] = save.data[k].duplicate(true) if (save.data.get(k) is Array or save.data.get(k) is Dictionary) else save.data.get(k)
+	# a hero who sells a look (the first in the content), owned for the audit
+	var hero = null
+	var code := ""
+	for c in reg.sorted_characters():
+		for k in c.variants.keys():
+			if c.sells_skin(str(k)):
+				hero = c
+				code = str(k)
+				break
+		if hero:
+			break
+	if hero == null:
+		print("touch_audit: hero_skins: no look is sold, skipped")
+		return
+	if not save.owns_hero(hero.id):
+		save.heroes_owned().append(hero.id)
+	(save.data["skins_owned"] as Array).erase(reg.skin_key(hero.id, code))
+	save.data["skin_worn"] = {}
+	save.data["hero_look"] = {}
+	var q = reg.skin_quest(hero, code)
+	if q and not save.quest_done(q.id):
+		(save.data["quests_done"] as Array).append(q.id)
+	var price: int = hero.skin_price(code)
+	save.data["gold"] = price + 250
+	change_scene_to_file("res://ui/TitleScreen.tscn")
+	await _wait(1.4)
+	var t = current_scene
+	t._index = maxi((t._heroes as Array).find(hero), 0)
+	t._show_hero(0)
+	t._place()
+	await _wait(0.4)
+	t.open_sheet()
+	await _wait(0.7)
+	var sheet: Control = t.find_child("HeroSheet", false, false)
+	var looks: Control = sheet.find_child("Looks", true, false) if sheet else null
+	_count("hero_skins", looks != null)
+	if looks == null:
+		_fail("hero_skins", "Looks", "the sheet of %s, who sells %s, has no Looks" % [hero.id, code])
+		return
+	# the whole sheet: the tiles, CLOSE, and the list scrolled by a swipe that starts on a tile (which must not press it)
+	await _audit("hero_skins", sheet)
+	await _confirm_audit("hero_skins_confirm", sheet, func(): sheet.call("ask_buy_look", code))
+	# a real tap on the look to buy asks, the real deed buys it
+	var tile: Control = sheet.find_child("Look_" + code, true, false)
+	var at: Vector2 = await _spot(tile)
+	var gold0: int = save.gold()
+	await _tap(at)
+	await _wait(0.5)
+	var ask: Node = null
+	for n in sheet.get_children():
+		if _is_kit(n, "WConfirm") and not bool(n.get("_done")):
+			ask = n
+	_count("hero_skins", ask != null)
+	if ask == null:
+		_fail("hero_skins", "Look_" + code, "a real tap on a look to buy did not ask")
+	else:
+		var deed: Control = ask.find_child("Confirm", true, false)
+		await _tap(deed.get_global_rect().get_center())
+		await _wait(0.8)
+		var worn: bool = reg.played_look(hero).look_code() == code
+		var bought: bool = save.owns_skin(reg.skin_key(hero.id, code)) and save.gold() == gold0 - price and worn
+		_count("hero_skins", bought)
+		if not bought:
+			_fail("hero_skins", "Confirm", "the deed did not buy and wear %s (gold %d -> %d, worn %s)" % [code, gold0, save.gold(), str(worn)])
+		var drawn: bool = t._stage == null or (t._stage.hero_sprite() != null)
+		_count("hero_skins", drawn)
+	# a real tap on the look every player owns wears it again
+	var home: Control = sheet.find_child("Look_" + hero.home_look(), true, false)
+	if home:
+		var at2: Vector2 = await _spot(home)
+		await _tap(at2)
+		await _wait(0.4)
+		var back: bool = reg.played_look(hero).look_code() == hero.home_look()
+		_count("hero_skins", back)
+		if not back:
+			_fail("hero_skins", "Look_" + hero.home_look(), "a real tap did not wear the look every player owns")
+	# a locked look: the goal undone, a real tap buys nothing and asks nothing
+	(save.data["skins_owned"] as Array).erase(reg.skin_key(hero.id, code))
+	if q:
+		(save.data["quests_done"] as Array).erase(q.id)
+		sheet.call("_fill_looks")
+		await _wait(0.3)
+		var lt: Control = sheet.find_child("Look_" + code, true, false)
+		var g1: int = save.gold()
+		var at3: Vector2 = await _spot(lt)
+		await _tap(at3)
+		await _wait(0.4)
+		var asked := false
+		for n in sheet.get_children():
+			if _is_kit(n, "WConfirm") and not bool(n.get("_done")):
+				asked = true
+		var nothing: bool = str(lt.get_meta("state")) == "locked" and not asked and save.gold() == g1 and not save.owns_skin(reg.skin_key(hero.id, code))
+		_count("hero_skins", nothing)
+		if not nothing:
+			_fail("hero_skins", "Look_" + code, "a real tap on a locked look bought or asked")
+	sheet.call("close")
+	await _wait(0.3)
+	# a hero not owned shows no Looks
+	(save.data["heroes_owned"] as Array).erase(hero.id)
+	var s2: Control = load("res://ui/wanted/WHeroSheet.gd").open(t, hero, true)
+	await _wait(0.4)
+	var none: bool = s2.find_child("Looks", true, false) == null
+	_count("hero_skins", none)
+	if not none:
+		_fail("hero_skins", "Looks", "a hero not owned sells looks")
+	s2.call("close")
+	await _wait(0.3)
+	for k in kept.keys():
+		save.data[k] = kept[k]
 
 
 ## The live title (pass 52, Settings.menu_style "live": the level itself behind the UI, ui/TitleStage.gd): the 3D view
@@ -1779,6 +1912,14 @@ func _stages_menu() -> void:
 		else:
 			var at2: Vector2 = await _spot(c2)
 			await _tap(at2)
+			# pass 111 (lane WANTED): a save that has finished a run meets the Bounty Board first: "No bounty" for real
+			await _wait(0.9)
+			if current_scene and current_scene.scene_file_path == "res://ui/WantedBoardScreen.tscn":
+				var nb: Control = current_scene.find_child("NoBounty", true, false)
+				if nb:
+					await _tap(nb.get_global_rect().get_center())
+				else:
+					_fail("stages_play", "No bounty", "the Bounty Board has no No bounty button")
 			var w := 0.0
 			while w < 8.0 and not (current_scene and current_scene.scene_file_path == "res://game/Game.tscn" and current_scene.get("hud") != null):
 				await _wait(0.2)
@@ -1803,6 +1944,104 @@ func _stages_menu() -> void:
 				await _wait(1.0)
 	save.data["stages_beaten"] = keep_beaten
 	save.data["last_map"] = keep_map
+	root.get_node("Run").set("stage_next", 0)
+	save.request_save()
+	save.flush()
+
+
+## Pass 111 (lane WANTED): the Bounty Board under real fingers (run with only=wanted). A save that has finished a run, stage
+## 1 beaten: PLAY on the title, then Stage 1's card on the Stages menu, opens the board; its three posters, TAKE IT, No
+## bounty and the back square are audited (muted); a real tap on a poster picks it (the brass ring, TAKE IT open); a real
+## TAKE IT and a real No bounty each make their choice (held on the screen); the back square goes to the Stages menu; and
+## a real No bounty from a fresh board starts the run. The save's totals, stages, boards, hero and map go back after.
+func _wanted_board() -> void:
+	var save = root.get_node("Save")
+	var keep := {"totals": (save.data.get("totals", {}) as Dictionary).duplicate(true), "stages": (save.data.get("stages_beaten", {}) as Dictionary).duplicate(true),
+		"wanted": save.data.get("wanted"), "hero": save.data.get("last_character"), "map": save.data.get("last_map")}
+	save.data["totals"]["runs"] = maxi(int(save.data["totals"].get("runs", 0)), 2)
+	save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
+	save.data["last_map"] = "red_canyon"
+	save.data["last_character"] = "drifter"
+	change_scene_to_file("res://ui/TitleScreen.tscn")
+	await _wait(1.4)
+	var play: Control = current_scene.get("_play")
+	if play and not bool(play.get("locked")):
+		await _tap(play.get_global_rect().get_center())
+		await _wait(1.0)
+	if current_scene and current_scene.scene_file_path == "res://ui/StagesScreen.tscn":
+		for c in current_scene.call("cards"):
+			if int(c.get_meta("stage", -1)) == 0:
+				var at0: Vector2 = await _spot(c)
+				await _tap(at0)
+				break
+		await _wait(1.2)
+	var on_board: bool = current_scene != null and current_scene.scene_file_path == "res://ui/WantedBoardScreen.tscn"
+	_count("wanted", on_board)
+	if not on_board:
+		_fail("wanted", "PLAY", "a save with a finished run did not meet the Bounty Board before the run")
+		change_scene_to_file("res://ui/WantedBoardScreen.tscn")
+		await _wait(1.4)
+	var board = current_scene
+	board.set("hold_start", true)
+	await _audit("wanted", board)
+	var cards: Array = board.call("cards")
+	if cards.size() != 3:
+		_fail("wanted", "posters", "%d posters, not three" % cards.size())
+	if cards.size() >= 2:
+		var at1: Vector2 = await _spot(cards[1])
+		await _tap(at1)
+		await _wait(0.3)
+		var ok: bool = int(board.call("picked")) == 1 and bool(cards[1].get("selected")) and not bool(board.get("_take").get("locked"))
+		_count("wanted", ok)
+		if not ok:
+			_fail("wanted", _name_of(cards[1]), "a real tap did not pick the poster (or TAKE IT stayed shut)")
+	for spec in [["Take", "taken"], ["NoBounty", "none"]]:
+		board.set("chosen", "")
+		var b: Control = board.find_child(str(spec[0]), true, false)
+		if b == null:
+			_fail("wanted", str(spec[0]), "not found")
+			continue
+		await _tap(b.get_global_rect().get_center())
+		await _wait(0.3)
+		var got := str(board.get("chosen"))
+		_count("wanted", got == str(spec[1]))
+		if got != str(spec[1]):
+			_fail("wanted", str(spec[0]), "a real tap made the choice '%s', not '%s'" % [got, spec[1]])
+	# the back square: the Stages menu (it opens for the map: stage 1 beaten)
+	var back: Control = board.get("header").get("back_button")
+	await _tap(back.get_global_rect().get_center())
+	await _wait(1.0)
+	var to_stages: bool = current_scene != null and current_scene.scene_file_path == "res://ui/StagesScreen.tscn"
+	_count("wanted", to_stages)
+	if not to_stages:
+		_fail("wanted", "back square", "a tap did not go back to the Stages menu")
+	# a real No bounty starts the run
+	root.get_node("Run").call("choose_stage", 0)
+	change_scene_to_file("res://ui/WantedBoardScreen.tscn")
+	await _wait(1.4)
+	var nb: Control = current_scene.find_child("NoBounty", true, false)
+	if nb:
+		await _tap(nb.get_global_rect().get_center())
+	var w := 0.0
+	while w < 8.0 and not (current_scene and current_scene.scene_file_path == "res://game/Game.tscn" and current_scene.get("hud") != null):
+		await _wait(0.2)
+		w += 0.2
+	var started: bool = current_scene != null and current_scene.scene_file_path == "res://game/Game.tscn"
+	_count("wanted", started)
+	if not started:
+		_fail("wanted", "No bounty", "a real tap did not start the run")
+	else:
+		current_scene.player.god = true
+		change_scene_to_file("res://ui/TitleScreen.tscn")
+		await _wait(1.0)
+	save.data["totals"] = keep["totals"]
+	save.data["stages_beaten"] = keep["stages"]
+	if keep["wanted"] == null:
+		save.data.erase("wanted")
+	else:
+		save.data["wanted"] = keep["wanted"]
+	save.data["last_character"] = keep["hero"]
+	save.data["last_map"] = keep["map"]
 	root.get_node("Run").set("stage_next", 0)
 	save.request_save()
 	save.flush()

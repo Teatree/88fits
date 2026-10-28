@@ -16,6 +16,8 @@
 <link rel="stylesheet" href="requests.css">
 <link rel="stylesheet" href="eyes.css">
 <link rel="stylesheet" href="boss_fights.css">
+<link rel="stylesheet" href="skins.css">
+<link rel="stylesheet" href="wanted.css">
 </head>
 <body>
 <!-- the glyphs every lane and chip uses: <use href="#g-name"> (pass 53); they take their fill from the <use> -->
@@ -58,6 +60,7 @@
   <button type="button" data-tab="jobs" title="pass 66: the local AI's jobs: queued, running, waiting for a pick, done">Jobs<span id="jobs-badge" class="jobs-badge" hidden></span></button>
   <button type="button" data-tab="drivers" title="pass 93: every driver in tools/dl/drivers (the 3D motions the video model paints over): play them frame by frame with their frame numbers, the clay and look stills, the folder">Drivers</button>
   <button type="button" data-tab="bossattacks" title="pass 72: custom boss attacks: make, name, tune with a preview, give to a boss">Boss attacks</button>
+  <button type="button" data-tab="wanted" title="pass 111: the Bounty Board: the Wanted posters a player picks before a stage run (task types, weights, difficulty, the reward), and a board you can roll">Wanted</button>
   <button type="button" data-tab="instructions">Instructions</button>
   <span id="issues" class="issues good" title="what the checks say (the inspector lists them when nothing is selected)">no issues</span>
   <span class="spacer"></span>
@@ -89,6 +92,7 @@
   <section id="tab-items" class="tab-panel page" hidden></section>
   <section id="tab-jobs" class="tab-panel page" hidden></section>
   <section id="tab-bossattacks" class="tab-panel page" hidden></section>
+  <section id="tab-wanted" class="tab-panel page" hidden></section>
   <section id="tab-drivers" class="tab-panel page" hidden></section>
   <section id="tab-sim" class="tab-panel page" hidden></section>
   <section id="tab-instructions" class="tab-panel page" hidden></section>
@@ -123,6 +127,8 @@
 <script src="typed_forms.js"></script>
 <script src="enemies.js"></script>
 <script src="heroes.js"></script>
+<!-- pass 111 (lane SKINS): the Heroes tab's Skins section (a hero's looks offered to the players, their goals) -->
+<script src="skins.js"></script>
 <script src="items.js"></script>
 <!-- pass 96 (lane PAGE): the Jobs tab's page-free part (the card signature without the clock, the connection line, the request
      card's fold; selftest_PAGE96.py runs it under Node); jobs.js falls back to its own copies when it is missing -->
@@ -150,7 +156,15 @@
      Node by selftest_XP82.py) -->
 <script src="xp_model.js"></script>
 <script src="xp_card.js"></script>
+<!-- pass 111 (lane CHEST): the Chests card (Settings): the map's own chests and what each chest type holds, on page-free
+     maths (chest_model.js, also run under Node by selftest_CHEST111.py) -->
+<script src="chest_model.js"></script>
+<script src="chest_card.js"></script>
 <script src="boss_attacks.js"></script>
+<!-- pass 111 (lane WANTED): the Wanted tab (the Bounty Board's config and a board to roll), on page-free maths
+     (wanted_model.js, the game's WantedBoard.gd mirrored, also run under Node by selftest_WANTED111.py) -->
+<script src="wanted_model.js"></script>
+<script src="wanted.js"></script>
 <!-- pass 77 (lane SIMUI): the Sim tab, on its page-free maths (sim_model.js, also run under Node by selftest_SIM77.py) -->
 <script src="sim_model.js"></script>
 <!-- pass 78 (lane DASH): the Sim's chart drawing, shared with analytics/dashboard.html -->

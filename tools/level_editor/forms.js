@@ -378,7 +378,8 @@ const Forms = (() => {
       onChange([x == null ? y : x, y]);
     };
     a.addEventListener('change', fire); b.addEventListener('change', fire);
-    return el('span', { class: 'interval' }, a, el('span', { class: 'hint', text: 'to' }), b, el('span', { class: 'hint', text: 's' }));
+    // pass 111 (lane CHEST): a range in another unit (a chest's throw distance in metres) names it in `def.unit`
+    return el('span', { class: 'interval' }, a, el('span', { class: 'hint', text: 'to' }), b, el('span', { class: 'hint', text: def.unit != null ? def.unit : 's' }));
   }
 
   /** A short list of numbers, one box each, with add / remove (stage_mults, hell_cap, weapon_cap...). */

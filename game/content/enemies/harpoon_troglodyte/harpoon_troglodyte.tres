@@ -39,6 +39,45 @@ fps = {
 ranged = {
 "cooldown": 5.5,
 "harpoon": true,
+"harpoon_fx": {
+"chain": {
+"colour": "#8A8A94",
+"link": 0.56,
+"outline": "#140E0C",
+"outline_px": 0.022,
+"overlap": 0.3,
+"thick": 0.13,
+"width": 0.4
+},
+"hand": {
+"forward": 0.25,
+"side": 0.55,
+"up": 1.45
+},
+"hit": {
+"sfx": "w_hammer_hit",
+"shake": 0.35,
+"snap": 0.35
+},
+"hook_scale": 1.3,
+"launch": {
+"sfx": "w_spear_throw",
+"sparks": 7.0,
+"streak": "#FFF1D0",
+"streak_life": 0.22,
+"streak_width": 0.22,
+"wave": 0.22
+},
+"miss": {
+"reel": 0.6,
+"sfx": "w_hammer_swing"
+},
+"rattle": 0.035,
+"windup": {
+"glint": 0.5,
+"lean": 16.0
+}
+},
 "keep_distance": 12.0,
 "lead": true,
 "life": 1.4,

@@ -189,6 +189,8 @@ const TypedForms = (() => {
       // pass 100 (lane QUESTS): the build quests name a hero and an item (weapon, card, passive item, with its evolution)
       hero: (id) => { const h = (Assets.S.lists.heroes || []).find((x) => x.id === id); return h ? (h.name || id) : ''; },
       items: fl ? { weapons: fl.weapons.concat(fl.evolutions || []), passives: fl.passives, mutations: fl.mutations || [] } : null,
+      // pass 111 (lane SKINS): beat_stage names its stage from the map's stage_list (Nightfall), while the map loads "stage 2"
+      stage: (mapId, k) => { const tl = Assets.mapTl(mapId || 'red_canyon'); const sl = tl && Array.isArray(tl.stage_list) ? tl.stage_list : []; const e = sl[k - 1]; return e && e.name ? String(e.name) : ''; },
     };
     return M.questText(q, nm);
   }

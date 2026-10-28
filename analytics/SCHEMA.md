@@ -77,6 +77,7 @@ the last of every `_physics_process` and `_process`. An older file lacks them: t
 | `totals` | `Run`'s `damage_by_weapon`, `kills_by_weapon`, `kills_by_enemy` |
 | `timeline` *(2)* | the Results screen's story (`Run.timeline`) without its second-by-second samples: `markers` `[[t, kind]]` (kind `special`, `elite`, `boss`: a kill; `down`: the hero fell), `stages` `[[t, stage index]]`, `sources` `{damage id: {owned, hit}}` (the play second it was first owned / first hit; -1 never), `start_weapon` |
 | `quests` *(2)* | every counted quest not done as the run began: `{id: {name, before, after, need, done}}` (its progress as the run began and as it ended, what it needs, done now). Pass 100: the in-one-run build quests (`hero_level` with the run's hero, `item_level`, `evolve_item`, `weapon_paths`, `items_maxed`) are counted too, their progress this run's (before 0 or 1, after the best the run reached) |
+| `bounty` | (pass 111) the Bounty Board's contract the run took (absent with none or with "No bounty"): `type` (`kill_enemy`, `kill_weapon`, `kill_specials`, `kill_elites`, `kill_total`, `boss_fast`, `hp_floor`, `beat_stage`, `hero_level`, `max_weapon`, `evolve_item`, `open_chests`, `collect_coins`), `target` (a creature, boss, weapon or card id; "" none), `n` (the number asked), `d` (its difficulty), `reward` (gold when done), `P` (the stages beaten when it was rolled), `stage` (1-based), `have` / `need` (how far it came), `done`, `failed`, `paid` (the gold banked for it at the end: 0 unless done), `name`, `text`, `still` (the poster's picture: `{kind, id, badge}`); BALANCING.md 54.WANTED |
 | `crowd` *(2)* | the crowd's counters at the end, those above zero: `special_chests`, `hot_chests` (Hot Sauce), `sniper_aims`, `sniper_shots`, `sniper_hero_hits`, `sniper_cancels` (the Saiga Sniper); since pass 95 `despawned` (regular creatures that vanished far from the hero and out of view, never a kill) and `despawned_by` `{creature id: count}` |
 | `fps` *(2)* | `{avg, low}`: the mean frame rate and the 1 % low (a window only; the frame clock PostHog's run_summary has; frames over 250 ms are left out of it as pauses) |
 | `frame_timing` *(3)* | what the rows' frame times mean: `valid` (false when the wall clock is not a player's frame rate), `why` (`headless`: nothing was drawn; `fixed_fps`: run under `--fixed-fps`, the game stepped a fixed time a frame however long it took; `""` when valid), `max_fps` (`Engine.max_fps` as the run began; 0 = no cap but vsync's), `frame_cap` (`Settings.frame_cap`: 60 or 0 = the screen's max; pass 101: 60 by default on a phone), `vsync` (`DisplayServer.VSyncMode`: 0 off, 1 on, 2 adaptive, 3 mailbox), `refresh_hz` (the screen's refresh rate; -1 unknown), `physics_hz` (the world's ticks a second, 60); *(4)* `max_steps` (`Engine.max_physics_steps_per_frame` as the run began, 2 = `Game.CATCH_UP_STEPS`: the most world steps a drawn frame runs) |
@@ -172,6 +173,7 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `evolution`, `passive_evolution` | `id` (the evolved form), `from`; *(2)* `line: true` on a line's |
 | `offer` | (pass 57) an offer the card screen settled: `id` (the pick, absent when skipped), `level` (the hero's), `route` (`level_up`, or `path` for a weapon's mutation offer: since pass 79 a mutation level-up), `cards` / `kinds` / `levels` (what was on the table: ids, `weapon`/`passive`/`perk`/`mutation`, the level each would reach), `skipped`, `decision_ms` (from showing to the pick), `weapon` (a path offer's family), `left` (skips left, when skipped), `rerolls`, `banished` ([ids]) |
 | `chest` | `id` (what the reel landed on, empty for gold), `level` (level_to), `roll` (`weapon`, `passive`, `evolution`, `mutation`, `gold`), `take`; pass 47: `skip` true and `left` (the stage's skips left) when let go (before pass 47: false = sold, then `gold`), `boss` |
+| `bounty_taken`, `bounty_done`, `bounty_failed` | (pass 111) `id` the contract's type, `level` its number, `target`, `reward`; `bounty_taken` also `d` (its difficulty), at the run's start |
 | `skip` | pass 47: `left` (the stage's skips left; skipping pays nothing now; before, `gold`); `id: "path"` when a mutation offer was skipped |
 | `banish` | `id` (the card struck); pass 47: `where: "chest"` and `roll` when struck from a chest |
 | `reroll` | |
@@ -288,6 +290,9 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
   `app_open.gold` (the balance at every launch) it draws the bank's balance over time.
 - `hero_bought` (pass 69: a hero bought with BUY on the title): `hero` (his id), `price`, `currency` (gold), `gold_after`;
   its spend is also a `gold_meta` with reason `hero`.
+- `skin_bought` (pass 111: a look bought on the hero sheet): `hero`, `look` (the look code), `price`, `currency`,
+  `balance_after` (that currency's); its spend is also a `gold_meta` with reason `skin` (extra `hero`, `look`, `price`,
+  `currency`). `skin_worn` (a look worn from the sheet): `hero`, `look`. The run's `hero_look` is the worn look.
 - The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse.
 
 ## What reaches PostHog

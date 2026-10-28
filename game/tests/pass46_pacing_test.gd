@@ -248,8 +248,15 @@ func test_no_tint_and_no_special_before_fifty_kills() -> void:
 			tinted += 1
 		specials += em.vspecial[i]
 	assert_int(tinted).is_equal(150)
+	# pass 110 cut the specials' chance to a third (0.0067 for the skeleton): one in 150 is expected, so the dice are
+	# rolled over ten batches of 150 (the pool holds 320) before asking for at least one special
+	for b in range(9):
+		em.kill_all(false)
+		for k in range(150):
+			var i := em.spawn("skeleton", Vector3(float(k % 15) * 2.0 - 15.0, 0, float(k / 15) * 2.0 - 10.0))
+			specials += em.vspecial[i]
 	assert_int(specials).is_greater(0)
-	assert_int(specials).is_less(60)
+	assert_int(specials).is_less(150)
 	Run.kills = 0
 
 

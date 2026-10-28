@@ -497,8 +497,15 @@ var _t_cv := PackedFloat32Array()
 const CV_N := 8
 var _t_ok := PackedByteArray()     # eight-direction: the strip exists (frames_of > 0 and in the anims)
 var _t_okb := PackedByteArray()    # the back strip counts (frames_of > 0, as the old check read it): run_b, idle_b
-const ANIM_NAMES := ["run", "idle", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
-const N_ANIMS := 13
+const ANIM_NAMES := ["run", "idle", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd", "run_l", "idle_l", "attack_l", "hit_l", "run_bl", "idle_bl"]
+const N_ANIMS := 19
+## Pass 111 (lane ENEMY; Garry: the Cyclopean Mummy "always facing the face direction ... by changing the spritesheet
+## itself"): the left-heading strip (13..18) each of the first seven shows while a creature whose look has its own left
+## sets (EnemyDef.has_left_sets) heads screen-left; -1 = none (the death has one set). Such a type is never mirrored.
+const LEFT_OF := [13, 14, 15, 16, -1, 17, 18]
+const A_LEFT0 := 13
+## per type (pass 111): 1 when its look carries its own left-heading sets (EnemyDef.has_left_sets)
+var _t_lsets := PackedByteArray()
 const A_RUN := 0
 const A_IDLE := 1
 const A_ATTACK := 2
@@ -1340,6 +1347,12 @@ func register_type(def: EnemyDef) -> int:
 	_t_faces.append(1 if def.brain in ["caster", "kite", "artillery", "support", "sniper"] else 0)
 	_t_face_fix.append(_face_fix(def.front_faces))
 	_t_face_fix.append(_face_fix(def.back_faces))
+	# pass 111 (lane ENEMY): a look with its own left-heading sets (_lr_strip, _face_bit)
+	_t_lsets.append(1 if def.has_left_sets() else 0)
+	# pass 111 (lane ENEMY): who walks faster far from the hero (far_kind_of)
+	_t_far.append(far_kind_of(def))
+	# pass 111 (lane ENEMY): a thrower that rears back through its wind-up (rear_numbers: the lean, the wind-up's seconds)
+	_t_rear.append_array(rear_numbers(def))
 	_t_mm.append(mm)
 	_t_badge.append(str(t["badge"]))
 	_t_hit_ok.append(1 if def.frames_of("hit") > 0 else 0)
@@ -4439,10 +4452,18 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	# pass 73 (lane SNIPER): flee on hit: straight away from the hero, no brain while it runs (_flee_steer)
 	if not _flee.is_empty() and _flee.has(i) and _flee_steer(i, dir, spd, dt):
 		return
+	# pass 111 (lane ENEMY): far from the hero a regular creature (and a boss) walks faster (far_speed_k); one compare for
+	# everything inside the distance
+	if far_speed_on and dist > _far_d:
+		spd *= far_speed_k(i, dist)
 	match state[i]:
 		STATE_WINDUP:
 			# a hampered creature winds up slower (pass 48)
+			var t_was: float = timer[i]
 			timer[i] -= dt * attack_clock(i)
+			# pass 111 (lane ENEMY): a thrower that rears back flashes a glint off its hook just before the throw
+			if t_was > REAR_GLINT and timer[i] <= REAR_GLINT and _t_rear[type_idx[i] * 2] > 0.0 and game != null and game.has_method("harpoon_chain"):
+				game.harpoon_chain().glint(i, pos[i] + charge_dir[i] * 5.0)
 			desired = Vector3.ZERO
 			if def.brain == "charge" and timer[i] > 0.0:
 				_paw(i, dt)
@@ -4818,6 +4839,15 @@ func charge_pose(i: int, scr: Vector3) -> Vector4:
 		var ph := anim_t[i] * PI / 6.0
 		return Vector4(shake * 0.25 * sin(clock * TAU * 23.0), absf(sin(ph)) * BOUNCE * size[i], 1.0 + 0.05 * cos(ph * 2.0),
 			-lean * charge_dir[i].dot(scr))
+	# pass 111 (lane ENEMY): a thrower with a rear-back (ranged.harpoon_fx.windup.lean) leans away from its aim through the
+	# wind-up, crouching a little, and trembles just before the throw (the release pops it upright, REAR_POP)
+	var rb := type_idx[i] * 2
+	if state[i] == STATE_WINDUP and rb + 1 < _t_rear.size() and _t_rear[rb] > 0.0:
+		var total: float = _t_rear[rb + 1] / maxf(pace, 0.05)
+		var f := clampf(1.0 - timer[i] / maxf(total, 0.01), 0.0, 1.0)
+		var e := f * f * (3.0 - 2.0 * f)
+		var tremble := 0.03 * size[i] * smoothstep(0.7, 1.0, f) * sin(clock * TAU * 19.0)
+		return Vector4(tremble, 0.0, 1.0 - REAR_CROUCH * e, _t_rear[rb] * e * charge_dir[i].dot(scr))
 	return Vector4(0.0, 0.0, 1.0, 0.0)
 
 
@@ -4873,6 +4903,9 @@ func _do_attack(i: int, def: EnemyDef, ppos: Vector3) -> void:
 			params["harpoon"] = true
 			params["shooter"] = i
 			params["tether"] = def.ranged.get("tether", {})
+			# pass 111 (lane ENEMY): the chain's and the hook's look (HarpoonChain), and the throw's pop out of the rear-back
+			params["harpoon_fx"] = def.ranged.get("harpoon_fx", {})
+			squash[i] = REAR_POP
 		game.enemy_shot_straight(from, target, float(def.ranged.get("projectile_speed", 12.0)), dmg[i], float(def.ranged.get("splash", 0.8)), params)
 	elif game.has_method("enemy_spit"):
 		game.enemy_spit(from, ppos, float(def.ranged.get("projectile_speed", 6.0)), dmg[i], float(def.ranged.get("splash", 1.2)), hit_info(i, "ranged", ["spit"]))
@@ -5991,8 +6024,12 @@ static func _face_fix(s: String) -> int:
 ## The mirror bit the shader sees for creature `i`'s strip (pass 45): the tick's `flip` ("heading screen-left") as it
 ## is, inverted for a front or back painting that turns the other way (the hellhound's front cycle runs down-left, so
 ## as painted it looked away from the hero on both sides), cleared for one painted straight on. Side and diagonal sets
-## (strips 7..12) always face right, so only the front set (0..4) and the back set (5, 6) read the table.
+## (strips 7..12) always face right, so only the front set (0..4) and the back set (5, 6) read the table. Pass 111 (lane
+## ENEMY): a type whose look has its own left-heading sets is never mirrored on its front, back and left sets (0..6,
+## 13..18): the sheet shows each way as painted (_lr_strip picks the set).
 func _face_bit(f: int, t: int, strip: int) -> float:
+	if _t_lsets[t] == 1 and (strip < 7 or strip >= A_LEFT0):
+		return 0.0
 	var fix: int = _t_face_fix[t * 2 + (1 if strip == 5 or strip == 6 else 0)]
 	if fix == 1:
 		return 1.0 - float(f)
@@ -6009,6 +6046,34 @@ func _face_strip(i: int, t: int, strip: int) -> int:
 	if strip == A_ATTACK and _t_atkv[t] == 1 and away[i] == 1:
 		return 5
 	return strip
+
+
+## The strip creature `i` of type `t` is drawn from for its chosen strip `strip` (_strip_of; pass 111, lane ENEMY): while
+## it heads screen-left (`flip`) a type with its own left-heading sets shows the left copy of its front or back set
+## (LEFT_OF: run_l, idle_l, attack_l, hit_l, run_bl, idle_bl), when the look has that one; else the strip itself (the
+## death, the side and diagonal sets, every other type). Never mirrored (_face_bit).
+func _lr_strip(i: int, t: int, strip: int) -> int:
+	if _t_lsets[t] == 0 or flip[i] == 0 or strip < 0 or strip >= LEFT_OF.size():
+		return strip
+	var l: int = LEFT_OF[strip]
+	if l < 0 or _t_cnt[t * N_ANIMS + l] <= 0 or _t_ok[t * N_ANIMS + l] == 0:
+		return strip
+	return l
+
+
+## The frame of type `t`'s sheet creature `i` is drawn with now and whether the picture is mirrored (pass 111: what the
+## render puts on the MultiMesh, for the tests and the captures): x = frame index, y = 1 mirrored / 0 as painted.
+func drawn_frame(i: int) -> Vector2i:
+	var t := type_idx[i]
+	var strip := _strip_of(i, t)
+	var shown := _lr_strip(i, t, strip)
+	var n := _t_cnt[t * N_ANIMS + shown]
+	var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
+	if strip == A_ATTACK and _t_atkv[t] == 1:
+		frame = _attack_view_frame(i, t, shown)
+	if strip == A_ATTACK and _t_throw[t] == 1:
+		frame = _throw_frame(i, t, shown)
+	return Vector2i(frame, 1 if _face_bit(flip[i], t, _face_strip(i, t, strip)) > 0.5 else 0)
 
 
 func _render() -> void:
@@ -6047,14 +6112,16 @@ func _render() -> void:
 		var s := size[i]
 		var st := state[i]
 		var strip := _strip_of(i, t)
-		var n := _t_cnt[t * N_ANIMS + strip]
-		var frame := _t_off[t * N_ANIMS + strip] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
+		# pass 111 (lane ENEMY): heading left, a look's own left-heading copy of the strip (_lr_strip; the strip itself else)
+		var shown := _lr_strip(i, t, strip)
+		var n := _t_cnt[t * N_ANIMS + shown]
+		var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
 		if strip == A_ATTACK and _t_atkv[t] == 1:
 			# pass 73 (lane SNIPER): the front or the back half of an attack strip painted both ways (the sniper's aim)
-			frame = _attack_view_frame(i, t)
+			frame = _attack_view_frame(i, t, shown)
 		if strip == A_ATTACK and _t_throw[t] == 1:
 			# pass 85 (lane BANDIT): a throw's wind-up or release frames (_throw_frame)
-			frame = _throw_frame(i, t)
+			frame = _throw_frame(i, t, shown)
 		var sq := squash[i]
 		# procedural bob while moving
 		if strip == A_RUN:
@@ -6366,9 +6433,10 @@ func _along_wall(i: int, d: Vector3) -> Vector3:
 
 ## The frame of the `attack` strip creature `i` shows (pass 73, EnemyDef.attack_views "front_back"): the strip's first half
 ## is painted from the front and its second half from the back; the half its facing shows (away), at the attack's pace.
-func _attack_view_frame(i: int, t: int) -> int:
-	var n := _t_cnt[t * N_ANIMS + A_ATTACK]
-	var off := _t_off[t * N_ANIMS + A_ATTACK]
+func _attack_view_frame(i: int, t: int, strip: int = A_ATTACK) -> int:
+	# (pass 111: `strip` is the attack strip drawn, A_ATTACK or its left-heading copy)
+	var n := _t_cnt[t * N_ANIMS + strip]
+	var off := _t_off[t * N_ANIMS + strip]
 	if n < 2:
 		return off
 	var half := n >> 1
@@ -7873,16 +7941,30 @@ var last_dynamite_aim := Vector3.ZERO
 var last_dynamite_lead := 0.0
 
 
-## Whether def `def` throws dynamite.
+## Whether def `def` throws dynamite (pass 111: or a bomb, `ranged.shot` "bomb": the same throw by its own block).
 static func throws_dynamite(def: EnemyDef) -> bool:
-	return def != null and str(def.ranged.get("shot", "")) == "dynamite"
+	if def == null:
+		return false
+	var shot := str(def.ranged.get("shot", ""))
+	return shot == "dynamite" or shot == "bomb"
+
+
+## The block a thrower throws by (pass 111, lane ENEMY): `ranged.bomb` for a "bomb" shot (its own model, arc, trail;
+## ProjectileManager's bomb section), else `ranged.dynamite`; a bomb without its own block throws by the dynamite's.
+static func throw_block(def: EnemyDef) -> Dictionary:
+	if def == null:
+		return {}
+	if str(def.ranged.get("shot", "")) == "bomb" and def.ranged.get("bomb") is Dictionary:
+		return def.ranged["bomb"]
+	var dy = def.ranged.get("dynamite", {})
+	return dy if dy is Dictionary else {}
 
 
 ## Where creature `i` (of `def`) throws its dynamite at the hero standing at `ppos` moving at `hero_v`: his feet plus
 ## `lead` x his flat velocity x the stick's flight (the spit's arc time, on the creatures' clock: 1/hostile_clock as long),
 ## the lead at most `lead_max` metres.
 func dynamite_aim(i: int, def: EnemyDef, ppos: Vector3, hero_v: Vector3) -> Vector3:
-	var dy: Dictionary = def.ranged.get("dynamite", {})
+	var dy: Dictionary = throw_block(def)
 	var spd := float(dy.get("speed", def.ranged.get("projectile_speed", 9.0)))
 	var flat := Vector3(ppos.x - pos[i].x, 0.0, ppos.z - pos[i].z)
 	var t: float = clampf(maxf(flat.length(), 0.5) / maxf(spd, 1.0), 0.4, 2.0) / maxf(hostile_clock(), 0.05)
@@ -7899,7 +7981,8 @@ func dynamite_aim(i: int, def: EnemyDef, ppos: Vector3, hero_v: Vector3) -> Vect
 
 ## The throw: the stick leaves creature `i`'s hand for dynamite_aim's spot (ProjectileManager.hostile_dynamite).
 func _throw_dynamite(i: int, def: EnemyDef, ppos: Vector3) -> void:
-	var dy: Dictionary = def.ranged.get("dynamite", {})
+	var dy: Dictionary = throw_block(def)
+	var what := "bomb" if str(def.ranged.get("shot", "")) == "bomb" else "dynamite"
 	var hv: Vector3 = player.velocity if player != null and "velocity" in player else Vector3.ZERO
 	var at := dynamite_aim(i, def, ppos, hv)
 	last_dynamite_aim = at
@@ -7910,9 +7993,9 @@ func _throw_dynamite(i: int, def: EnemyDef, ppos: Vector3) -> void:
 	if pm != null and pm.has_method("hostile_dynamite"):
 		var bl = dy.get("blast", {})
 		var r := float((bl as Dictionary).get("radius", def.ranged.get("splash", 1.2))) if bl is Dictionary else float(def.ranged.get("splash", 1.2))
-		pm.hostile_dynamite(from, at, float(dy.get("speed", def.ranged.get("projectile_speed", 9.0))), dmg[i], r, dy, hit_info(i, "ranged", ["dynamite"]))
+		pm.hostile_dynamite(from, at, float(dy.get("speed", def.ranged.get("projectile_speed", 9.0))), dmg[i], r, dy, hit_info(i, "ranged", [what]))
 	elif game != null and game.has_method("enemy_spit"):
-		game.enemy_spit(from, at, float(dy.get("speed", 9.0)), dmg[i], float(def.ranged.get("splash", 1.2)), hit_info(i, "ranged", ["dynamite"]))
+		game.enemy_spit(from, at, float(dy.get("speed", 9.0)), dmg[i], float(def.ranged.get("splash", 1.2)), hit_info(i, "ranged", [what]))
 
 
 ## After a throw (the wind-up ran out and the shot is gone) a creature with `ranged.release_hold` stands in its release
@@ -7948,9 +8031,10 @@ func _throw_hold_tick(i: int, def: EnemyDef, dt: float) -> void:
 ## The frame of a throw's `attack` strip creature `i` shows (pass 85, EnemyDef.attack_throw): the view's half (front, or
 ## back with attack_views "front_back") split in two, the wind-up frames while it winds up and the release frames while it
 ## holds the throw, each set at the attack's pace.
-func _throw_frame(i: int, t: int) -> int:
-	var n := _t_cnt[t * N_ANIMS + A_ATTACK]
-	var off := _t_off[t * N_ANIMS + A_ATTACK]
+func _throw_frame(i: int, t: int, strip: int = A_ATTACK) -> int:
+	# (pass 111: `strip` is the attack strip drawn, A_ATTACK or its left-heading copy)
+	var n := _t_cnt[t * N_ANIMS + strip]
+	var off := _t_off[t * N_ANIMS + strip]
 	var half := n
 	if _t_atkv[t] == 1 and n >= 2:
 		half = n >> 1
@@ -8126,6 +8210,87 @@ func despawn(i: int) -> bool:
 	despawned_by[def.id] = int(despawned_by.get(def.id, 0)) + 1
 	if RunAnalytics.I: RunAnalytics.I.despawned(def)
 	return true
+
+
+# ---------------------------------------------------------------- far speed (pass 111, lane ENEMY)
+## Garry (pass 111): "Regular Enemies should walk considerably faster when they are far enough from the Player. This is
+## an option that I can control and switch off ... This should also apply to Bosses, but not to Elites or Special
+## Enemies." The map's `timeline_data.far_speed` as the director hands it (WaveTimeline.far_speed_cfg: enabled, distance,
+## max_mult, ramp, bosses): beyond `distance` m (flat) from the hero the walk a creature's brain chooses (_steer's `spd`)
+## is multiplied by far_speed_mult, rising smoothly from 1 to `max_mult` over the next `ramp` m. Per type (_t_far,
+## far_kind_of): a regular creature, a boss (only while `bosses`), or never (an Elite by its kind, a special type with the
+## gear badge, a training dummy); per creature never one wearing an Elite modifier or a coloured special. A charge, a
+## boss's scripted roll, a flee or a push never reads `spd`, so they keep their speed. Cheap: one compare per steer inside
+## the distance.
+const FAR_NEVER := 0
+const FAR_REGULAR := 1
+const FAR_BOSS := 2
+var far_speed_on := false
+var _far_d := 14.0
+var _far_ramp := 6.0
+var _far_max := 2.0
+var _far_bosses := true
+var _t_far := PackedByteArray()
+
+
+## The director hands the map's block over (WaveTimeline.far_speed_cfg); {} or enabled false = off.
+func set_far_speed(cfg: Dictionary) -> void:
+	far_speed_on = cfg != null and bool(cfg.get("enabled", false)) and float(cfg.get("max_mult", 1.0)) != 1.0
+	if cfg == null or cfg.is_empty():
+		return
+	_far_d = maxf(float(cfg.get("distance", 14.0)), 0.0)
+	_far_ramp = maxf(float(cfg.get("ramp", 6.0)), 0.0)
+	_far_max = maxf(float(cfg.get("max_mult", 2.0)), 0.0)
+	_far_bosses = bool(cfg.get("bosses", true))
+
+
+## Which far-speed kind a def is: FAR_BOSS for a boss, FAR_NEVER for an Elite by its kind, a special type (the gear
+## badge: the Vulture Raider, the harpooner, the Saiga Sniper) or a training dummy, FAR_REGULAR for the rest.
+static func far_kind_of(def: EnemyDef) -> int:
+	if def == null or def.archetype == "elite" or def.brain == "dummy" or def.badge_for() == "gear":
+		return FAR_NEVER
+	return FAR_BOSS if def.archetype == "boss" else FAR_REGULAR
+
+
+## The walk's multiplier `dist` m from the hero: 1 inside `distance`, then up to `max_mult` along a smoothstep over `ramp`
+## m (a ramp of 0 jumps straight to it).
+static func far_speed_mult(dist: float, distance: float, ramp: float, max_mult: float) -> float:
+	if dist <= distance:
+		return 1.0
+	var f := 1.0 if ramp <= 0.0 else clampf((dist - distance) / ramp, 0.0, 1.0)
+	return 1.0 + (max_mult - 1.0) * f * f * (3.0 - 2.0 * f)
+
+
+## Pass 111 (lane ENEMY; Garry: the harpoon's "whole shooting ... sequence more impressive and noticeable"): a thrower
+## whose `ranged.harpoon_fx.windup.lean` (degrees) is above 0 rears back through its wind-up (charge_pose: leaning away
+## from its aim by up to that much, crouching REAR_CROUCH of its height, trembling over the last 30%, a glint off its hook
+## REAR_GLINT s before the throw, HarpoonChain.glint), and the throw pops
+## it upright (squash REAR_POP, settling back as every squash does). Per type: the lean (radians) and the wind-up's seconds.
+const REAR_CROUCH := 0.1
+const REAR_POP := 1.18
+## the glint flashes off the hook this many seconds before the throw
+const REAR_GLINT := 0.3
+var _t_rear := PackedFloat32Array()
+
+
+## A def's rear-back numbers: [lean in radians (0 = none), its wind-up's seconds (ranged.telegraph)].
+static func rear_numbers(def: EnemyDef) -> PackedFloat32Array:
+	var lean := 0.0
+	var fx = def.ranged.get("harpoon_fx", {}) if def != null else {}
+	if fx is Dictionary and (fx as Dictionary).get("windup") is Dictionary:
+		lean = deg_to_rad(clampf(float((fx["windup"] as Dictionary).get("lean", 0.0)), 0.0, 40.0))
+	elif fx is Dictionary and not (fx as Dictionary).is_empty():
+		lean = deg_to_rad(float(HarpoonChain.DEFAULTS["windup"]["lean"]))
+	var tele := float(def.ranged.get("telegraph", 0.6)) if def != null else 0.6
+	return PackedFloat32Array([lean, maxf(tele, 0.05)])
+
+
+## Creature `i`'s walk multiplier at `dist` m from the hero (1 for one the rule never takes).
+func far_speed_k(i: int, dist: float) -> float:
+	var kind: int = _t_far[type_idx[i]]
+	if kind == FAR_NEVER or (kind == FAR_BOSS and not _far_bosses) or elite_idx[i] >= 0 or vspecial[i] == 1:
+		return 1.0
+	return far_speed_mult(dist, _far_d, _far_ramp, _far_max)
 
 
 # ---------------------------------------------------------------- pass 95 (lane BOSS): the King's stomp

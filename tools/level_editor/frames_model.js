@@ -5,15 +5,17 @@
 // the flags), what a version is in words, the compatibility warnings of another look's frames, a frame list typed.
 // selftest_VACE95.py runs it under Node. A slot is a frame's index in its animation (0-based), the number on the sheet.
 const FramesModel = (() => {
-  const VIEWS = ['front', 'fd', 'side', 'bd', 'back'];
-  const VIEW_LABEL = { front: 'front', fd: 'front ¾', side: 'side', bd: 'back ¾', back: 'back' };
+  // pass 111 (lane ENEMY): front_l / back_l are a creature's left-heading sets (idle_l, run_l, attack_l, hit_l; run_bl,
+  // idle_bl: frames_store.SUFFIX), shown unmirrored while it heads screen-left
+  const VIEWS = ['front', 'fd', 'side', 'bd', 'back', 'front_l', 'back_l'];
+  const VIEW_LABEL = { front: 'front', fd: 'front ¾', side: 'side', bd: 'back ¾', back: 'back', front_l: 'front, heading left', back_l: 'back, heading left' };
   const ANIM_LABEL = { idle: 'idle', run: 'run', attack: 'attack', hit: 'hit', die: 'die', turn: 'turn', cheer: 'cheer' };
   const SPEEDS = [2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 36];
   const ZOOMS = [1, 2, 3];
   const SOURCE_TEXT = { installed: 'the installed frame (the strip)', reroll: 're-rolled by a job (the strip)', vace: 'painted anew by VACE', copied: 'copied from another look', repaint: 'repainted', neighbour: 'filled from a neighbour',
     old_roll: 'an old roll (a generation moved aside)', archived: 'an archived strip' };   // pass 96: the marks the picker shows where the store has them (AN-06's import is Phase 4)
   // pass 96 (lane PAGE, Garry's decision 1): the frame label everywhere, the JS twin of frames_store.label_of
-  const VIEW_WORD = { front: 'Front', fd: 'Front ¾', side: 'Side', bd: 'Back ¾', back: 'Back' };
+  const VIEW_WORD = { front: 'Front', fd: 'Front ¾', side: 'Side', bd: 'Back ¾', back: 'Back', front_l: 'Front heading left', back_l: 'Back heading left' };
   const SOURCE_OPTIONS = [{ v: '', label: 'any source' }, { v: 'installed', label: 'installed' }, { v: 'reroll', label: 're-rolled' }, { v: 'vace', label: 'VACE' }, { v: 'copied', label: 'copied' },
     { v: 'repaint', label: 'repainted' }, { v: 'neighbour', label: 'filled from a neighbour' }, { v: 'old_roll', label: 'old roll' }, { v: 'archived', label: 'archived' }];
   const TIME_OPTIONS = [{ v: 0, label: 'any time' }, { v: 1, label: 'the last day' }, { v: 7, label: 'the last week' }, { v: 30, label: 'the last month' }];

@@ -196,3 +196,71 @@ func variant_shelved(code: String) -> bool:
 func variant_note(code: String) -> String:
 	var e = variants.get(code)
 	return str((e as Dictionary).get("note", "")) if e is Dictionary else ""
+
+
+# ---------------------------------------------------------------- pass 111 (lane SKINS): looks sold as skins
+
+## The name the look every player owns reads as (its own `skin.name` when the JSON gives one).
+const HOME_SKIN_NAME := "Classic"
+
+
+## The look every player owns (pass 111): the one the game plays (`variant`), else the base; "" for a hero with one art.
+func home_look() -> String:
+	if variant != "" and variants.has(variant):
+		return variant
+	return ""
+
+
+## Look `code`'s skin entry (`variants[CODE].skin` in the JSON: {purchasable, name, price, currency_type, unlock_quest});
+## {} when it has none.
+func skin_of(code: String) -> Dictionary:
+	var e = variants.get(code)
+	var s = (e as Dictionary).get("skin") if e is Dictionary else null
+	return s if s is Dictionary else {}
+
+
+## Whether look `code` is offered to players as a skin (pass 111): marked purchasable, painted (a strip of its own, or
+## the base's), not shelved, and not the look every player owns already.
+func sells_skin(code: String) -> bool:
+	if not variants.has(code) or code == home_look() or variant_shelved(code):
+		return false
+	return bool(skin_of(code).get("purchasable", false))
+
+
+## The name players read for look `code`: its skin's `name`, else HOME_SKIN_NAME for the owned look, else "Look <CODE>".
+func skin_name(code: String) -> String:
+	var n := str(skin_of(code).get("name", "")).strip_edges()
+	if n != "":
+		return n
+	return HOME_SKIN_NAME if code == home_look() or code == "" else "Look %s" % code
+
+
+## Its price (0 = free once its goal is done).
+func skin_price(code: String) -> int:
+	return maxi(int(skin_of(code).get("price", 0)), 0)
+
+
+## The currency its price is in, as the JSON names it ("gold" when it names none; Currency.of reads an unknown one as gold).
+func skin_currency(code: String) -> String:
+	var c := str(skin_of(code).get("currency_type", "gold"))
+	return c if c != "" else "gold"
+
+
+## The quest id its JSON names (`skin.unlock_quest`, "" none); Registry.skin_quest finds the quest by its `unlocks` first.
+func skin_quest_id(code: String) -> String:
+	return str(skin_of(code).get("unlock_quest", ""))
+
+
+## The full-body still the hero sheet shows for look `code` (pass 111): `skin.still` in the hero's folder, else
+## <id>_still_<code, lower case, '-' as '_'>.png (tools/skin_stills.py cuts it from the strip's front idle frame); ""
+## when there is none on disk (the sheet shows the look's badge).
+func look_still_path(code: String) -> String:
+	if code == "":
+		code = home_look()
+	if code == "":
+		return ""
+	var f := str(skin_of(code).get("still", ""))
+	if f == "":
+		f = "%s_still_%s.png" % [id, code.to_lower().replace("-", "_")]
+	var p := f if f.begins_with("res://") else source_dir.path_join(f) if source_dir != "" else ""
+	return p if p != "" and ResourceLoader.exists(p) else ""

@@ -1172,6 +1172,9 @@ static func quest_text(q: QuestDef) -> String:
 			return "Earn %d gold, all time." % int(c.get("count", 0))
 		"reach_stage":
 			return "Reach stage %d." % int(c.get("stage", 1))
+		# pass 111 (lane SKINS): "Beat Nightfall with May." / "Beat Nightfall."
+		"beat_stage":
+			return beat_stage_text(c)
 		# pass 100 (lane QUESTS): levels, upgrades and evolutions (quest_build_text)
 		"hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed":
 			return quest_build_text(c)
@@ -1249,6 +1252,23 @@ static func creature_count(id: String, n: int) -> String:
 	if n <= 1:
 		return "the " + name
 	return "%d %s" % [n, name + ("es" if name.ends_with("s") or name.ends_with("x") else "s")]
+
+
+## Pass 111 (lane SKINS): a beat_stage goal's words: the stage's name from the map's stage_list (its "Stage N" when the
+## map names none), then the hero when it names one: "Beat Nightfall with May.", "Beat Nightfall."
+static func beat_stage_text(c: Dictionary) -> String:
+	var reg := _registry()
+	var k := int(c.get("stage", 1)) - 1
+	var map_id := str(c.get("map", ""))
+	var m: MapDef = reg.map(map_id if map_id != "" else "red_canyon") if reg else null
+	var stage_word := "stage %d" % (k + 1)
+	if m and m.timeline and k >= 0 and k < m.timeline.stage_count():
+		stage_word = m.timeline.stage_name(k)
+	var hero := str(c.get("hero", ""))
+	if hero == "":
+		return "Beat %s." % stage_word
+	var h: CharacterDef = reg.character(hero) if reg else null
+	return "Beat %s with %s." % [stage_word, h.display_name if h else hero.capitalize()]
 
 
 static func map_name(id: String) -> String:

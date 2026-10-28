@@ -27,7 +27,9 @@ const AFIELDS = (() => {
       opt('elite', 'elite (mini-boss)', 'its HP follows elite.hp_mult_per_stage, a crown, a chest every time, never stunned or grabbed'), opt('boss', 'boss', 'the stage boss: boss.hp_mult_per_stage, the bar, the skull, the purse')],
     telegraphs: [opt('none'), opt('line', 'line', 'a red line ahead'), opt('ring', 'ring', 'a ring round the creature'), opt('ring_at_hero', 'ring at the hero', 'a ring where the hero stands (slam_at, burrow and boulder need it)'),
       opt('sector', 'sector', 'a wedge ahead'), opt('fan', 'fan', 'several lines over a spread'), opt('spokes', 'spokes', 'lines all round')],
-    shotKinds: [opt('', 'spit (the default)'), opt('pellet'), opt('spike'), opt('shard'), opt('harpoon', 'harpoon', 'set by `harpoon: true` in the game')],
+    shotKinds: [opt('', 'spit (the default)'), opt('pellet'), opt('spike'), opt('shard'), opt('harpoon', 'harpoon', 'set by `harpoon: true` in the game'),
+      // pass 85 / pass 111 (lane ENEMY): the thrown explosives, each by its own block below
+      opt('dynamite', 'dynamite', 'a stick of dynamite thrown from the hand (the Dynamite block)'), opt('bomb', 'bomb', 'a big black bomb on a high arc with a smoke trail (the Bomb block)')],
     badges: [opt('', 'none (the default)'), opt('crown', 'crown', 'shown for the elite archetype only'), opt('skull'), opt('gear'), opt('none', 'none (explicit)')],
     faces: [opt('right', 'right', 'painted heading screen-right, mirrored heading left (the default)'), opt('left', 'left', 'painted heading left: the mirror is inverted'), opt('straight', 'straight', 'never mirrored')],
     pronouns: [opt('he'), opt('she'), opt('they')],
@@ -37,7 +39,12 @@ const AFIELDS = (() => {
     availability: [opt('available', 'free', 'owned from the start, nothing to pay; with a requirement: owned the moment its quest is done'),
       opt('purchase', 'to buy', 'on the title and in the hero drawer as a black silhouette: locked until his requirement is done (none = on sale at once), then BUY for the price'),
       opt('hidden', 'hidden', 'out of play: not on the title, not in the drawer; his perks and hero mutation hidden too')],
-    currencies: [opt('gold', 'gold', 'coins: the only currency Save.buy_hero spends')],
+    // pass 111 (lane SKINS): the currencies come from the registry (content/currencies, the server's vocab
+    // `currency_records`, which Assets.vocab puts in place of this list); gold only stands in until the vocab is read
+    // (as the server's vocab.CURRENCIES does when the folder has none)
+    currencies: [opt('gold', 'Gold', 'stand-in until the server\'s currency registry (content/currencies) is read')],
+    // pass 111: the maps a quest's condition may name (the server's vocab `maps`, the map folders)
+    maps: [opt('red_canyon', 'Red Canyon')],
     rarities: [opt('common'), opt('uncommon'), opt('rare'), opt('epic'), opt('legendary', 'legendary', 'no item uses it; the tests pin four rarities among passive items')],
     rarityPlate: { common: '#d2cfc7', uncommon: '#8cc97a', rare: '#6b9fd8', epic: '#a585c8', legendary: '#e0a060' },
     behaviors: ['Beam', 'ConeWave', 'GravityGun', 'LaserBeam', 'Lobber', 'MineLayer', 'MissilePod', 'Orbiter', 'ProjectileEmitter', 'Smasher', 'Spawner', 'SunScepter', 'Thruster'].map((b) => opt(b))
@@ -58,7 +65,9 @@ const AFIELDS = (() => {
       // pass 100 (lane QUESTS): levels, upgrades and evolutions, all in one run (QuestDef's header)
       opt('hero_level', 'reach a level with a hero', '{hero, level} in one run'), opt('item_level', 'an item to a level', '{kind, id?, level | rung} in one run'),
       opt('evolve_item', 'evolve an item', '{id} or {kind}: a weapon at a chest, a card into its Risen card, a passive item onto Evolved'), opt('weapon_paths', 'all of a weapon\'s mutations', '{weapon?} in one run'),
-      opt('items_maxed', 'items at max level at once', '{kind, count}')],
+      opt('items_maxed', 'items at max level at once', '{kind, count}'),
+      // pass 111 (lane SKINS): a stage's boss killed in a run of that stage
+      opt('beat_stage', 'beat a stage (with a hero)', '{map, stage, hero?}: that stage\'s boss killed in a run of that stage, with that hero (empty = any hero)')],
     questItemKinds: [opt('any', 'any item'), opt('weapon'), opt('card', 'card', 'a line (its Risen form counts it maxed)'), opt('passive', 'passive item', 'climbs the rarity ladder')],
     questRungs: [opt('', 'none: use Level'), opt('uncommon'), opt('rare'), opt('epic'), opt('legendary'), opt('evolved', 'Evolved', 'the top rung')],
     screens: [opt('', 'by the placeholder colour'), opt('green'), opt('blue')],
@@ -411,6 +420,12 @@ const AFIELDS = (() => {
       { key: 'land_only', label: 'Hurts on landing only', type: 'bool', def: false, help: 'an arcing spit hurts where it lands and draws a red landing ring' },
       { key: 'trail', label: 'Trail', type: 'json', help: '{color "#62F27F", alpha, size 1.0, life 1.4, step 0.055}: read from the base creature, never from a row override' },
       { key: 'pulse', label: 'Pulse', type: 'json', help: '{hz 3, size 0.12, glow 0.3, halo 1.6, color "#9CFF6E"}' },
+      // pass 85 (lane BANDIT) / pass 111 (lane ENEMY): the throwers' blocks and the harpoon's look
+      { key: 'release_hold', label: 'Release hold (s)', type: 'number', min: 0, step: 0.05, def: 0, help: 'a thrower stands in its release pose this long after the throw before it walks again' },
+      { key: 'throw_jump', label: 'Throw hop (m)', type: 'number', min: 0, step: 0.05, def: 0, help: 'a thrower hops this high as it throws' },
+      { key: 'dynamite', label: 'Dynamite', type: 'json', help: 'the throw for Shot look "dynamite": {speed 9, fuse 1, out_before 0.5, lead 0.35, lead_max 2.5, model, scale, tip, halo_r, hand {up, side, forward}, blast {radius, knockback, lift, push, push_radius}}' },
+      { key: 'bomb', label: 'Bomb', type: 'json', help: 'the throw for Shot look "bomb" (pass 111): the Dynamite keys and model "res://art/props/enemy_bomb.glb", scale (1 = 0.6 m across), arc_height (m: the top of its arc over the hand; same spot, same time in the air), arc_ratio (0.75: at most that times the throw\'s length, so a short throw stays low), tumble (radians a second), land_dust, halo_back (the red pulse glows behind it), material {roughness, metallic, specular, rim, fog (false = black stays black under the haze)}, spark {color, size, glow}, trail {style "line", colour, alpha, width, life, puffs (s between smoke puffs), smoke (their colour), sparks (s between sparks)}' },
+      { key: 'harpoon_fx', label: 'Harpoon look', type: 'json', help: 'pass 111: the harpoon\'s chain and hook: hand {up, side, forward}, chain {link 0.56, width 0.4, thick 0.13, colour, outline, outline_px, overlap 0.3}, hook_scale 1.3, windup {lean 16 (degrees it rears back), glint 0.5}, launch {sparks, streak (colour, "none" = off), streak_width, streak_life, wave, sfx}, hit {shake (camera kick, times the screen-shake setting), snap, sfx}, miss {reel (s to reel the hook home), sfx}, rattle. Looks only: the throw\'s timings and the pull are the numbers above' },
     ] },
     charge: { label: 'Charge', help: 'the charge brain: winds up, rushes at charge speed, bites x1.5', rows: [
       { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 0.8, help: 'x 1/pace; a line telegraph of the distance + 4 m' },
@@ -583,8 +598,8 @@ const AFIELDS = (() => {
       { key: 'shadow.up', label: 'Shadow up (m)', type: 'number', step: 0.05, help: 'how high the blob sits (divided by size)' },
       { key: 'shadow.drop', label: 'Shadow drop', type: 'number', min: -0.5, max: 0.5, step: 0.02, help: '−0.5..0.5' },
       { key: 'head', label: 'Head (share of the cell)', type: 'number', min: 0, max: 1, step: 0.01, def: 0.86, help: 'where the top of the figure is: the badge sits there, the sand sink reads it; measured by the art tools' },
-      { key: 'front_faces', label: 'Front faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the front set' },
-      { key: 'back_faces', label: 'Back faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the back set' },
+      { key: 'front_faces', label: 'Front faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the front set (ignored for a look with left-heading sets idle_l / run_l: pass 111, never mirrored)' },
+      { key: 'back_faces', label: 'Back faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the back set (ignored for a look with left-heading sets: pass 111)' },
       // pass 73 (lane SNIPER): an attack strip painted from the front and the back (the Saiga Sniper's aim)
       { key: 'attack_views', label: 'Attack strip views', type: 'select', options: [opt('', 'front only (the default)', 'every attack frame faces the camera'), opt('front_back', 'front, then back', 'the attack strip\'s first half is painted from the front, its second half from the back; the game shows the half his facing shows')], def: '', help: 'how the attack frames are painted' },
       { key: 'badge', label: 'Badge', type: 'select', options: (v) => v.badges, def: '', help: 'the icon over its head; the crown shows only on the elite archetype' },
@@ -647,7 +662,7 @@ const AFIELDS = (() => {
       { key: 'directions', label: 'Directions painted', type: 'select', options: (v) => v.directions, def: 2, help: 'art recipe: 2 (front and back) or 8' },
       { key: 'frame_px', label: 'Cell (px)', type: 'int', min: 16, def: 128, help: 'the strip\'s cell size (the placeholder\'s cell; the shader slices by count)' },
       { key: 'strip_cols', label: 'Strip columns', type: 'int', min: 0, def: 0, help: '0 = one row; a packed strip\'s column count (written by the art tools)' },
-      { key: 'anims', label: 'Frames per animation', type: 'anims', help: 'in the fixed order idle, run, attack, hit, die, run_b, idle_b, run_s, idle_s, run_bd, idle_bd, run_fd, idle_fd (the art tools write them)' },
+      { key: 'anims', label: 'Frames per animation', type: 'anims', help: 'in the fixed order idle, run, attack, hit, die, run_b, idle_b, run_s, idle_s, run_bd, idle_bd, run_fd, idle_fd, then the optional left-heading sets idle_l, run_l, attack_l, hit_l, run_bl, idle_bl (pass 111: a strip with idle_l or run_l is never mirrored; it shows those frames as painted while it heads screen-left, the ordinary ones heading right; tools/add_left_sets.py adds them as copies; the art tools write the rest)' },
       { key: 'fps', label: 'Frame rates', type: 'fps_table', keys: ['run', 'die'], help: 'run 0 = 10 fps x pace; die 6' },
     ]),
     T('Art words', [
@@ -725,7 +740,7 @@ const AFIELDS = (() => {
       // pass 69 (lane UI wired it: Registry.hero_state owned | buyable | locked | hidden): changing it keeps `hidden` in step
       { key: 'availability', label: 'Availability', type: 'select', options: (v) => v.availability, def: 'available', help: 'free = owned from the start (with a Requirement: owned once its quest is done); to buy = on the title and in the hero drawer as a black silhouette, locked until the Requirement is done, then BUY for the price; hidden = out of play. A bought hero is kept in the save (heroes_owned)', after: (d, v) => { const hide = v === 'hidden'; if ('hidden' in d || hide) d.hidden = hide; } },
       { key: 'price', label: 'Price', type: 'int', min: 0, def: 0, only: (d) => d.availability === 'purchase', help: 'what BUY costs, spent from the gold he banked (Save.buy_hero; the Coins board\'s sink "hero"). 0 = free once the requirement is done' },
-      { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase', help: 'only gold can be spent today' },
+      { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase', help: 'the currency the price is paid in (content/currencies)' },
     ]),
     T('Art words', [
       { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'the painter\'s subject (default "a small goofy hero called <name>, <flavour>")' },
@@ -949,12 +964,12 @@ const AFIELDS = (() => {
     { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total', 'items_maxed'].includes((q.condition || {}).type) },
     { key: 'condition.enemy', label: 'Creature', type: 'enemy', only: (q) => ['kills_of_enemy', 'kills_in_run_of_enemy'].includes((q.condition || {}).type) },
     { key: 'condition.weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', only: (q) => ['kills_with_weapon', 'weapon_paths'].includes((q.condition || {}).type), help: 'weapon_paths: empty = any weapon' },
-    { key: 'condition.map', label: 'Map', type: 'text', only: (q) => ['extract_after_stage', 'kill_boss'].includes((q.condition || {}).type), help: 'red_canyon' },
-    { key: 'condition.stage', label: 'Stage', type: 'int', min: 1, only: (q) => ['extract_after_stage', 'kill_boss', 'reach_stage'].includes((q.condition || {}).type) },
+    { key: 'condition.map', label: 'Map', type: 'select', options: (v) => v.maps, def: 'red_canyon', only: (q) => ['extract_after_stage', 'kill_boss', 'beat_stage'].includes((q.condition || {}).type), help: 'the map (pass 111: a select of the map folders)' },
+    { key: 'condition.stage', label: 'Stage', type: 'int', min: 1, only: (q) => ['extract_after_stage', 'kill_boss', 'reach_stage', 'beat_stage'].includes((q.condition || {}).type), help: 'counted from 1 (beat_stage: 1 Sundown, 2 Nightfall, 3 Blood Moon on Red Canyon: the map\'s stage_list)' },
     { key: 'condition.level', label: 'Level', type: 'int', min: 1, only: (q) => ['reach_level', 'hero_level', 'item_level'].includes((q.condition || {}).type) },
     { key: 'condition.minutes', label: 'Minutes', type: 'number', min: 0, only: (q) => ['survive_minutes', 'survive_minutes_no_lift'].includes((q.condition || {}).type) },
     // pass 100 (lane QUESTS): the build quests' fields
-    { key: 'condition.hero', label: 'Hero', type: 'id_select', kind: 'hero', only: (q) => (q.condition || {}).type === 'hero_level', help: 'the hero the level is reached with (pick one the player can own: a chain on a later quest dead-ends)' },
+    { key: 'condition.hero', label: 'Hero', type: 'id_select', kind: 'hero', only: (q) => ['hero_level', 'beat_stage'].includes((q.condition || {}).type), help: 'the hero the level is reached (or the stage beaten) with (pick one the player can own: a chain on a later quest dead-ends); beat_stage: empty = any hero' },
     { key: 'condition.kind', label: 'Item kind', type: 'select', options: (v) => v.questItemKinds, def: 'any', only: (q) => ['item_level', 'evolve_item', 'items_maxed'].includes((q.condition || {}).type), help: 'which items count; an Item below wins over it' },
     { key: 'condition.id', label: 'Item', type: 'id_select', kind: 'any_item', only: (q) => ['item_level', 'evolve_item'].includes((q.condition || {}).type), help: 'empty = any item of the kind; a weapon, a card or a passive item (an evolved form\'s id works too)' },
     { key: 'condition.rung', label: 'Rung', type: 'select', options: (v) => v.questRungs, def: '', only: (q) => (q.condition || {}).type === 'item_level', help: 'passive items only: the rarity rung to reach (their level count differs by rarity: common 6 .. epic 3); set, it replaces Level' },
@@ -1127,7 +1142,8 @@ const AFIELDS = (() => {
       E('order', (d) => d.order != null && !isInt(d.order), 'order is a whole number'),
       E('availability', (d, c) => d.availability != null && !vals(vocabOf(c).availability).includes(str(d.availability)), (d) => `unknown availability "${d.availability}" (hidden / available / purchase)`),
       E('price', (d) => d.price != null && !(isInt(d.price) && d.price >= 0), 'price is a whole number of 0 or more'),
-      E('currency_type', (d, c) => d.currency_type != null && !vals(vocabOf(c).currencies).includes(str(d.currency_type)), (d) => `unknown currency "${d.currency_type}" (gold)`),
+      // pass 111 (lane SKINS): checked against the registry once the server's vocab is in (an empty list checks nothing)
+      E('currency_type', (d, c) => d.currency_type != null && vals(vocabOf(c).currencies).length > 0 && !vals(vocabOf(c).currencies).includes(str(d.currency_type)), (d, c) => `unknown currency "${d.currency_type}" (content/currencies: ${vals(vocabOf(c).currencies).join(', ')})`),
       E('trait_per_level', (d, c) => badEffects(d.trait_per_level, 'player', vocabOf(c)).length > 0, (d, c) => `trait_per_level: ${badEffects(d.trait_per_level, 'player', vocabOf(c)).join('; ')}`),
       E('trait', (d, c) => badEffects(d.trait, 'player', vocabOf(c)).length > 0, (d, c) => `trait: ${badEffects(d.trait, 'player', vocabOf(c)).join('; ')}`),
       E('favourite_bonus.effects', (d, c) => isObj(d.favourite_bonus) && badEffects(d.favourite_bonus.effects, 'any', vocabOf(c)).length > 0, (d, c) => `favourite_bonus.effects: ${badEffects(d.favourite_bonus.effects, 'any', vocabOf(c)).join('; ')}`),

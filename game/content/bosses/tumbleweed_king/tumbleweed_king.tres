@@ -14,7 +14,7 @@ damage = 20.0
 radius = 2.2
 size = 5.0
 drops = {
-"coins": 30.0,
+"coins": 15.0,
 "gold": 1.0,
 "large": 1.0
 }

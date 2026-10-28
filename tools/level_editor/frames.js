@@ -28,6 +28,7 @@ const Frames = (() => {
     + 'The flags are deterministic hints (a jump from both neighbours, a footprint off the median, an empty frame, a loop seam, a silhouette unlike the driver\'s): they miss ghost legs and faces on backs, so look. '
     + 'Each method has a repair rule (methods.json): VACE runs where a clip or a driver exists; a procedural animation (an idle, an attack, a hit, a hop walk) is refused unless you tick "fill freely anyway", because the still is the thing to fix there. '
     + 'A repair job\'s new frames are staged when it lands (unless the slot is pinned or you staged a choice meanwhile). A failed merge or import puts the old strip back and stages your frames again. '
+    + 'Pass 111: a creature whose strip has left-heading sets (tools/add_left_sets.py) shows tabs "front, heading left" (idle, run, attack, hit) and "back, heading left" (run, idle): the game plays those frames as they are while the creature walks screen-left and the ordinary ones while it walks right, never mirroring either, so turn or nudge a frame there and Export to change which way it faces. '
     + 'Where frames live: the strip under game/content/ (what the game plays), the clip cache under tools/dl/ai_anim/ (what the video model painted), every version under tools/dl/frames/, the old strip of every export under tools/level_editor/backups/<id>/ (the newest 30 kept).';
 
   async function fetchJson(url, dflt) {

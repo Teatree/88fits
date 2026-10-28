@@ -106,6 +106,17 @@ func _default() -> Dictionary:
 		# pass 87 (lane SGAME): the stages beaten per map (a stage's boss killed), map id -> [bool, ...] by stage index
 		# (stage_beaten, stage_unlocked); filled once from the old flags and kill totals (_migrate_stages)
 		"stages_beaten": {},
+		# pass 111 (lane SKINS): every currency but gold (gold keeps its own key "gold"): currency id -> balance
+		# (currency_balance, add_currency, spend_currency; core/systems/Currency.gd)
+		"wallets": {},
+		# pass 111 (lane SKINS): the looks bought as skins ("<hero>:<CODE>", Registry.skin_key; owns_skin, buy_skin) and
+		# the look each hero wears by the player's choice (hero id -> CODE; skin_worn, set_skin_worn). A save from before
+		# has neither: every hero wears the look the game plays, the one every player owns
+		"skins_owned": [],
+		"skin_worn": {},
+		# pass 111 (lane SKINS): what the Upgrade board cost in a currency other than gold (gold's total stays in
+		# "talent_spent"): currency id -> spent; Take it all back pays half of each back
+		"talent_spent_in": {},
 	}
 
 
@@ -604,6 +615,7 @@ func add_gold(n: int, source: String = "other", extra: Dictionary = {}) -> void:
 	gold_changed.emit(gold())
 	if add > 0:
 		gold_moved.emit(add, source, gold(), extra)
+		currency_moved.emit("gold", add, source, gold(), extra)
 	request_save()
 
 
@@ -615,8 +627,132 @@ func spend_gold(n: int, sink: String = "other", extra: Dictionary = {}) -> bool:
 	gold_changed.emit(gold())
 	if n > 0:
 		gold_moved.emit(-n, sink, gold(), extra)
+		currency_moved.emit("gold", -n, sink, gold(), extra)
 	request_save()
 	return true
+
+
+# ---------------------------------------------------------------- every currency (pass 111, lane SKINS)
+
+## A currency's balance moved (pass 111): every currency, gold too (add_gold and spend_gold send it beside gold_moved
+## and gold_changed, which still come as before, so the analytics read what they always did). core/systems/Currency.gd
+## is the API the screens call.
+signal currency_moved(currency: String, delta: int, reason: String, balance: int, extra: Dictionary)
+
+
+## The balance of currency `id`: gold under the old "gold" key, any other under "wallets"[id] (0 when it has none).
+func currency_balance(id: String) -> int:
+	if id == "gold" or id == "":
+		return gold()
+	var w = data.get("wallets")
+	return int((w as Dictionary).get(id, 0)) if w is Dictionary else 0
+
+
+func _wallets() -> Dictionary:
+	if not (data.get("wallets") is Dictionary):
+		data["wallets"] = {}
+	return data["wallets"]
+
+
+## `n` of currency `id` into the save, `source` from where (Currency.add): gold through add_gold.
+func add_currency(id: String, n: int, source: String = "other", extra: Dictionary = {}) -> void:
+	var add := maxi(n, 0)
+	if id == "gold" or id == "":
+		add_gold(add, source, extra)
+		return
+	_wallets()[id] = currency_balance(id) + add
+	request_save()
+	if add > 0:
+		currency_moved.emit(id, add, source, currency_balance(id), extra)
+
+
+## `n` of currency `id` out of the save for `sink` (Currency.spend): false, nothing spent, when the balance is short.
+func spend_currency(id: String, n: int, sink: String = "other", extra: Dictionary = {}) -> bool:
+	var cost := maxi(n, 0)
+	if id == "gold" or id == "":
+		return spend_gold(cost, sink, extra)
+	if currency_balance(id) < cost:
+		return false
+	_wallets()[id] = currency_balance(id) - cost
+	request_save()
+	if cost > 0:
+		currency_moved.emit(id, -cost, sink, currency_balance(id), extra)
+	return true
+
+
+# ---------------------------------------------------------------- looks sold as skins (pass 111, lane SKINS)
+
+## The skins bought, as "<hero>:<CODE>" keys (Registry.skin_key). A look every player owns is never listed.
+func skins_owned() -> Array:
+	var s = data.get("skins_owned")
+	if not (s is Array):
+		s = []
+		data["skins_owned"] = s
+	return s
+
+
+func owns_skin(key: String) -> bool:
+	return skins_owned().has(key)
+
+
+## The look hero `id` wears by the player's choice ("" = none: the look the game plays). Registry.worn_skin reads it
+## only while the look is his (owned, not shelved).
+func skin_worn(id: String) -> String:
+	var w = data.get("skin_worn")
+	return str((w as Dictionary).get(id, "")) if w is Dictionary else ""
+
+
+## Wears look `code` on hero `id` from now on ("" = the look every player owns). The sheet's choice is the player's own,
+## so it also lets go of a look the arena kept for him (Save.hero_look, a debug choice that would win over it).
+func set_skin_worn(id: String, code: String) -> void:
+	if not (data.get("skin_worn") is Dictionary):
+		data["skin_worn"] = {}
+	var w: Dictionary = data["skin_worn"]
+	if code == "":
+		w.erase(id)
+	else:
+		w[id] = code
+	if hero_look(id) != "":
+		set_hero_look(id, "")
+	request_save()
+
+
+## Buys look `code` of hero `c` (pass 111): only a look Registry.skin_state calls "buyable" (sold, its goal done, not
+## owned) of a hero the player owns, for its price in its currency (Currency.of: an unknown one reads as gold), spent
+## with the sink "skin" (the event carries the hero, the look and the price). True when it is owned after it.
+func buy_skin(c: CharacterDef, code: String) -> bool:
+	if c == null or Registry.hero_state(c) != "owned" or Registry.skin_state(c, code) != "buyable":
+		return false
+	var price := c.skin_price(code)
+	var cur := Currency.of(c.skin_currency(code))
+	if not spend_currency(cur, price, "skin", {"hero": c.id, "look": code, "price": price, "currency": cur}):
+		return false
+	var key := Registry.skin_key(c.id, code)
+	if not owns_skin(key):
+		skins_owned().append(key)
+	request_save()
+	return true
+
+
+## The developer menu's "Looks · own every one" (and the tests'): every look sold marked bought, nothing spent. Returns
+## how many.
+func own_every_skin() -> int:
+	var n := 0
+	for c: CharacterDef in Registry.characters.values():
+		for code in c.variants.keys():
+			var key := Registry.skin_key(c.id, str(code))
+			if c.sells_skin(str(code)) and not owns_skin(key):
+				skins_owned().append(key)
+				n += 1
+	request_save()
+	return n
+
+
+## The developer menu's "Looks · forget the bought ones": every skin bought and worn forgotten (the gold stays spent).
+func forget_skins() -> void:
+	data["skins_owned"] = []
+	data["skin_worn"] = {}
+	request_save()
 
 
 # ---------------------------------------------------------------- heroes to buy (pass 69)
@@ -658,9 +794,12 @@ func _keep_freed_heroes() -> void:
 func buy_hero(c: CharacterDef) -> bool:
 	if c == null or Registry.hero_state(c) != "buyable":
 		return false
-	if c.currency_type != "gold":
-		return false
-	if not spend_gold(maxi(c.price, 0), "hero", {"hero": c.id, "price": maxi(c.price, 0)}):
+	# pass 111 (lane SKINS): paid in his `currency_type` through Currency (an id the content lacks reads as gold)
+	var cur := Currency.of(c.currency_type)
+	var extra := {"hero": c.id, "price": maxi(c.price, 0)}
+	if cur != "gold":
+		extra["currency"] = cur
+	if not spend_currency(cur, maxi(c.price, 0), "hero", extra):
 		return false
 	if not owns_hero(c.id):
 		heroes_owned().append(c.id)
@@ -734,7 +873,12 @@ func buy_talent(def: TalentDef, form: int = 0) -> bool:
 		return false
 	form = clampi(form, 0, 1)
 	var cost := def.cost_of_rank(rank)
-	if cost < 0 or not spend_gold(cost, "talent", {"talent": def.id, "rank": rank + 1, "form": form}):
+	# pass 111 (lane SKINS): in the talent's `currency_type` (gold), through Currency
+	var cur := Currency.of(def.currency_type)
+	var extra := {"talent": def.id, "rank": rank + 1, "form": form}
+	if cur != "gold":
+		extra["currency"] = cur
+	if cost < 0 or not spend_currency(cur, cost, "talent", extra):
 		return false
 	picks.append(form)
 	# pass 88 (lane MIRROR): a Stakes rank bought is never taken for an old Spite rank (a save wiped since its load)
@@ -743,9 +887,22 @@ func buy_talent(def: TalentDef, form: int = 0) -> bool:
 	var all: Dictionary = data.get("talents", {})
 	all[def.id] = {"picks": picks, "rank": picks.size(), "form": form}
 	data["talents"] = all
-	data["talent_spent"] = talent_spent() + cost
+	if cur == "gold":
+		data["talent_spent"] = talent_spent() + cost
+	else:
+		if not (data.get("talent_spent_in") is Dictionary):
+			data["talent_spent_in"] = {}
+		data["talent_spent_in"][cur] = talent_spent_in(cur) + cost
 	request_save()
 	return true
+
+
+## What the board cost in currency `cur` (pass 111): gold is talent_spent, any other its own total.
+func talent_spent_in(cur: String) -> int:
+	if cur == "gold" or cur == "":
+		return talent_spent()
+	var d = data.get("talent_spent_in")
+	return int((d as Dictionary).get(cur, 0)) if d is Dictionary else 0
 
 
 func talent_spent() -> int:
@@ -770,9 +927,17 @@ func talent_refund_all() -> int:
 		for id in (all as Dictionary).keys():
 			ranks += talent_rank(str(id))
 	var info := {"ranks": ranks, "spent": talent_spent()}
+	# pass 111 (lane SKINS): a rank paid in another currency comes back half in that currency
+	var other = data.get("talent_spent_in")
 	data["talents"] = {}
 	data["talent_spent"] = 0
+	data["talent_spent_in"] = {}
 	add_gold(back, "talent_refund", info)
+	if other is Dictionary:
+		for cur in (other as Dictionary).keys():
+			var half := int(floor(float(int(other[cur])) * REFUND_FRAC))
+			if half > 0:
+				add_currency(str(cur), half, "talent_refund", {"spent": int(other[cur])})
 	request_save()
 	return back
 

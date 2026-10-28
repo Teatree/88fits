@@ -4,6 +4,7 @@
   "flavour": "Hit harder, or hit sooner.",
   "order": 4,
   "ranks": 6,
+  "currency_type": "gold",
   "cost": [
     375,
     1500,

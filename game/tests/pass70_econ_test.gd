@@ -197,19 +197,20 @@ func test_every_hero_on_sale_costs_his_new_price() -> void:
 
 func test_elite_and_boss_purses_are_five_times_pass_44s() -> void:
 	# (pass 110, lane ECON, re-pinned: Garry's "Reduce the coins gain from Boss, Elite and Specials. By 50%": x5 of pass
-	# 44's, then halved: x2.5)
+	# 44's, then halved: x2.5; pass 111, lane WANTED: halved again, x1.25, the purse's half coin dropped)
 	for s in 4:
-		assert_int(Game.elite_purse(s)).is_equal(int(2.5 * (90 + 60 * s)))
-		assert_int(Game.boss_purse(s)).is_equal(int(2.5 * (260 + 140 * s)))
-	assert_int(Game.BOSS_COINS).is_equal(30)
-	# the bosses' coins on the sand: x5 of pass 69's (12 by default, 30, 40), halved in pass 110
-	assert_int(int(Registry.enemy("tumbleweed_king").drops.get("coins", 0))).is_equal(30)
-	assert_int(int(Registry.enemy("gila_grande").drops.get("coins", 0))).is_equal(75)
-	assert_int(int(Registry.enemy("brander").drops.get("coins", 0))).is_equal(100)
-	# an Elite's or a boss's own coin is worth 2.5 creatures' coins (5 until pass 110); a plain creature's stays
-	assert_float(PickupManager.big_coin_mult(Registry.enemy("dune_scorpion"), false)).is_equal(2.5)
-	assert_float(PickupManager.big_coin_mult(Registry.enemy("goblin"), true)).is_equal(2.5)
-	assert_float(PickupManager.big_coin_mult(Registry.enemy("brander"), false)).is_equal(2.5)
+		assert_int(Game.elite_purse(s)).is_equal(int(1.25 * (90 + 60 * s)))
+		assert_int(Game.boss_purse(s)).is_equal(int(1.25 * (260 + 140 * s)))
+	assert_int(Game.BOSS_COINS).is_equal(15)
+	# the bosses' coins on the sand: x5 of pass 69's (12 by default, 30, 40), halved in pass 110 and again in pass 111
+	assert_int(int(Registry.enemy("tumbleweed_king").drops.get("coins", 0))).is_equal(15)
+	assert_int(int(Registry.enemy("gila_grande").drops.get("coins", 0))).is_equal(37)
+	assert_int(int(Registry.enemy("brander").drops.get("coins", 0))).is_equal(50)
+	# an Elite's or a boss's own coin is worth 1.25 creatures' coins (5 until pass 110, 2.5 until pass 111); a plain
+	# creature's stays
+	assert_float(PickupManager.big_coin_mult(Registry.enemy("dune_scorpion"), false)).is_equal(1.25)
+	assert_float(PickupManager.big_coin_mult(Registry.enemy("goblin"), true)).is_equal(1.25)
+	assert_float(PickupManager.big_coin_mult(Registry.enemy("brander"), false)).is_equal(1.25)
 	assert_float(PickupManager.big_coin_mult(Registry.enemy("goblin"), false)).is_equal(1.0)
 
 
@@ -221,16 +222,16 @@ func test_a_real_elite_and_boss_kill_pay_the_new_gold() -> void:
 	var at: Vector3 = g.player.global_position + Vector3(6, 0, 0)
 	Run.run_gold = 0
 	g._kill_effects(Registry.enemy("dune_scorpion"), at, null, "")
-	# (pass 110, lane ECON, re-pinned: the purses halved)
-	assert_int(Run.run_gold).is_equal(225)
+	# (pass 110, lane ECON, re-pinned: the purses halved; pass 111, lane WANTED: halved again)
+	assert_int(Run.run_gold).is_equal(112)
 	# a regular creature in an Elite's modifier pays the same purse
 	g._kill_effects(Registry.enemy("goblin"), at, Registry.elites.get("speedy"), "")
-	assert_int(Run.run_gold).is_equal(450)
-	# the King: his purse at once and thirty coins on the sand (sixty until pass 110)
+	assert_int(Run.run_gold).is_equal(224)
+	# the King: his purse at once and fifteen coins on the sand (sixty until pass 110, thirty until pass 111)
 	var coins_before: int = g.pickups.coins
 	g._kill_effects(Registry.enemy("tumbleweed_king"), at, null, "")
-	assert_int(Run.run_gold).is_equal(450 + 650)
-	assert_int(g.pickups.coins - coins_before).is_equal(30)
+	assert_int(Run.run_gold).is_equal(224 + 325)
+	assert_int(g.pickups.coins - coins_before).is_equal(15)
 
 
 # ---------------------------------------------------------------- 4. no Strongbox

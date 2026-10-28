@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/may/may_icon_g.png" id="1_mbvsv"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_8dkvk"]
+
+[resource]
+script = ExtResource("2_8dkvk")
+condition = {
+"hero": "may",
+"map": "red_canyon",
+"stage": 2.0,
+"type": "beat_stage"
+}
+unlocks = {
+"id": "may:MAY-B",
+"type": "skin"
+}
+id = "skin_may_may_b"
+display_name = "May · Midnight Mime"
+icon = ExtResource("1_mbvsv")
+icon_file = "res://content/characters/may/may_icon_g.png"

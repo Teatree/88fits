@@ -15,6 +15,8 @@ routes are listed in docs/level_editor.md ("The API (for scripts)"); in short:
                             POST /api/content/<kind> (create from a template), /api/content/<kind>/<id>/save|variant|
                             retire|availability|delete|make_path|look, /api/content/<kind>/<id>/look/<code>,
                             /api/upload, /api/test_launch
+    skins (111, skins_io):  GET /api/currencies[/<id>/icon]; POST /api/content/hero/<id>/skin/<CODE> {purchasable, name,
+                            price, currency_type, quest: {condition, quest_text} | null | absent}
     the jobs (66, jobs.py): GET /api/jobs[?since=rev], /api/job/<id>, /api/jobs/specs, /api/jobs/defaults?kind=&target=
                             (68); POST /api/jobs, /api/jobs/<id>[/cancel|requeue|pick|install|move|delete]; pass 97:
                             GET /api/jobs?since=rev&delta=1 -> {rev, changed, removed, delta[, order, full, unchanged]}
@@ -149,6 +151,8 @@ import requests_io as REQIO  # noqa: E402  (pass 96, lane REQ: the art requests,
 import events as EV  # noqa: E402  (pass 97, lane PROGRESS: the events log tools/dl/jobs/events.jsonl; on only in main())
 import ops_io as OPSIO  # noqa: E402  (pass 97, lane PROGRESS: /api/ops, /api/events, /api/jobs/archived, server.log)
 import eyes_io as EYESIO  # noqa: E402  (pass 98, lane GEMINI: /api/eyes, Check with Gemini, the frames' eyes)
+import skins_io as SKINIO  # noqa: E402  (pass 111, lane SKINS: a hero's looks sold as skins, the currency registry)
+import wanted_io as WIO  # noqa: E402  (pass 111, lane WANTED: the Bounty Board's config, /api/wanted...)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -577,6 +581,8 @@ def look_records(kind, cid, folder, d, json_path=None):
         if kind == "hero":
             # pass 68 (D8): a look's own title cut-out (art/ui/wanted/<file>), picked from its hero_title candidates
             rec["title_file"] = str(entry.get("title", "")) if entry.get("title") else ""
+            # pass 111 (lane SKINS): the look sold to the players ({purchasable, name, price, currency_type, unlock_quest})
+            rec["skin"] = SKINIO.skin_of(entry)
         return rec
 
     if base_code and base_code not in vs:
@@ -875,6 +881,9 @@ def list_heroes():
         rec = hero_record(cid, folder, d, path, perks.get(cid, []), muts.get(cid, []), weps.get(cid, []),
                           quests.get(("character", cid)), precs.get(cid, []))
         rec["deletable"] = cid in ledger
+        # pass 111 (lane SKINS): each look's goal quest by code, and how many looks are on sale
+        rec["skin_quests"] = SKINIO.skin_quests(cid, rec["looks"], quests)
+        rec["skins_on_sale"] = SKINIO.on_sale(rec["looks"])
         out.append(rec)
     out.sort(key=lambda r: (r["hidden_in_play"], r["order"] if isinstance(r["order"], (int, float)) else 100, r["id"]))
     return out
@@ -1588,6 +1597,8 @@ def read_content(kind, cid):
            "combos_seen": sorted(combos_seen()) if kind in ("enemy", "boss") else []}
     if kind == "weapon":
         out["path_missing"] = weapon_path_missing(cid)
+    if kind == "hero":
+        out["skin_quests"] = SKINIO.skin_quests(cid, out["looks"], quests)   # pass 111 (lane SKINS)
     return out
 
 
@@ -2015,8 +2026,10 @@ def set_availability(kind, cid, body):
         if price is not None and (not isinstance(price, (int, float)) or isinstance(price, bool) or price < 0):
             return {"ok": False, "error": "price must be a whole number >= 0", "status": 400}
         cur = body.get("currency_type", None)
-        if cur is not None and cur not in VOCAB.CURRENCIES:
-            return {"ok": False, "error": "currency_type must be one of %s" % ", ".join(VOCAB.CURRENCIES), "status": 400}
+        # pass 111 (lane SKINS): any currency of the registry (content/currencies), not gold alone
+        cur_ids = VOCAB.currency_ids(CONTENT)
+        if cur is not None and cur not in cur_ids:
+            return {"ok": False, "error": "currency_type must be one of the currencies in content/currencies: %s" % ", ".join(cur_ids), "status": 400}
         if "quest" in body and body["quest"] is not None and not (isinstance(body["quest"], dict) and isinstance(body["quest"].get("condition"), dict)
                                                                    and str(body["quest"]["condition"].get("type", "")) in VOCAB.QUEST_TYPES):
             return {"ok": False, "error": "the requirement needs a condition whose type is one of %s" % ", ".join(sorted(VOCAB.QUEST_TYPES)), "status": 400}
@@ -4069,6 +4082,9 @@ class Handler(BaseHTTPRequestHandler):
         # ---- pass 66
         if parts == ["vocab"]:
             return self._send(200, VOCAB.table(CONTENT, GAME, combos_seen()))
+        if parts[:1] == ["currencies"]:
+            # pass 111 (lane SKINS): the currency registry and its icons (skins_io.py)
+            return SKINIO.api_get(self, sys.modules[__name__], parts, query)
         if parts == ["methods"]:
             return self._send(200, methods_table())
         if parts == ["heroes"]:
@@ -4103,6 +4119,9 @@ class Handler(BaseHTTPRequestHandler):
         if parts[:1] == ["boss_attacks"]:
             # pass 72 (lane BOSS): the custom boss attacks (boss_attacks_io.py)
             return BAIO.api_get(self, sys.modules[__name__], parts[1:], query)
+        if parts[:1] == ["wanted"]:
+            # pass 111 (lane WANTED): the Bounty Board's config and the poster imitation's pictures (wanted_io.py)
+            return WIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if len(parts) == 2 and parts[0] == "templates":
             if parts[1] not in EDIT_KINDS:
                 return self._error(404, "unknown kind %s" % parts[1])
@@ -4445,6 +4464,9 @@ class Handler(BaseHTTPRequestHandler):
             if parts[:2] == ["api", "boss_attacks"]:
                 # pass 72 (lane BOSS): new, save, assign, delete (boss_attacks_io.py)
                 return BAIO.api_post(self, sys.modules[__name__], parts[2:])
+            if parts[:2] == ["api", "wanted"]:
+                # pass 111 (lane WANTED): the Bounty Board's config saved (wanted_io.py)
+                return WIO.api_post(self, sys.modules[__name__], parts[2:])
             return self._error(404, "unknown API path")
         except Exception as e:
             import traceback
@@ -4491,6 +4513,11 @@ class Handler(BaseHTTPRequestHandler):
                     return self._result(look_op(kind, cid, data.get("codes"), str(data.get("op", "")), data))
                 return self._result(add_look(kind, cid, data.get("code"), data.get("note", ""), data.get("recipe")))
             return self._error(404, "unknown content op %s" % op)
+        if len(parts) == 4 and parts[2] == "skin":
+            # pass 111 (lane SKINS): a hero's look offered to the players and its goal (skins_io.set_skin)
+            if kind != "hero" or not CODE_RE.match(parts[3]):
+                return self._error(400, "skins are a hero's looks: /api/content/hero/<id>/skin/<CODE>")
+            return self._result(SKINIO.set_skin(sys.modules[__name__], cid, parts[3], data))
         if len(parts) == 4 and parts[2] == "look":
             code = parts[3]
             if not CODE_RE.match(code):
@@ -4774,6 +4801,8 @@ def main():
     port = free_port(args.port)
     if port != args.port:
         print("port %d is busy, using %d" % (args.port, port))
+    # pass 111: the page loads ~60 scripts at once; the stdlib's backlog of 5 refused some and left it half-loaded
+    ThreadingHTTPServer.request_queue_size = 128
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     httpd.daemon_threads = True
     url = "http://127.0.0.1:%d/" % port

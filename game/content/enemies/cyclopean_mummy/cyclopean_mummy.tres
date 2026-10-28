@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon.png" id="1_cw5ok"]
+[ext_resource type="Texture2D" path="res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon_f.png" id="1_cw5ok"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_fmy4i"]
 
 [resource]
@@ -19,10 +19,31 @@ drops = {
 "medium": 1.0,
 "small": 1.0
 }
-sprite_path = "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite.png"
-sprite_file = "cyclopean_mummy_sprite.png"
+anims = {
+"attack": 2.0,
+"attack_l": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"hit_l": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
+}
+sprite_path = "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite_f.png"
+sprite_file = "cyclopean_mummy_sprite_f.png"
 frame_px = 176
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
 knockback = 6.36
+head = 0.983
 blood = Color(0.60784316, 0.20392157, 0.9098039, 1)
 variants = {
 "CM-0": {
@@ -50,12 +71,18 @@ variants = {
 "CM-A": {
 "anims": {
 "attack": 2.0,
+"attack_l": 2.0,
 "die": 5.0,
 "hit": 1.0,
+"hit_l": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
 },
 "attack_throw": false,
 "attack_views": "",
@@ -77,12 +104,18 @@ variants = {
 "CM-B": {
 "anims": {
 "attack": 2.0,
+"attack_l": 2.0,
 "die": 5.0,
 "hit": 1.0,
+"hit_l": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
 },
 "attack_throw": false,
 "attack_views": "",
@@ -104,12 +137,18 @@ variants = {
 "CM-C": {
 "anims": {
 "attack": 2.0,
+"attack_l": 2.0,
 "die": 5.0,
 "hit": 1.0,
+"hit_l": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
 },
 "attack_throw": false,
 "attack_views": "",
@@ -131,12 +170,18 @@ variants = {
 "CM-D": {
 "anims": {
 "attack": 2.0,
+"attack_l": 2.0,
 "die": 5.0,
 "hit": 1.0,
+"hit_l": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
 },
 "attack_throw": false,
 "attack_views": "",
@@ -158,12 +203,18 @@ variants = {
 "CM-E": {
 "anims": {
 "attack": 2.0,
+"attack_l": 2.0,
 "die": 5.0,
 "hit": 1.0,
+"hit_l": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
 },
 "attack_throw": false,
 "attack_views": "",
@@ -185,12 +236,18 @@ variants = {
 "CM-F": {
 "anims": {
 "attack": 2.0,
+"attack_l": 2.0,
 "die": 5.0,
 "hit": 1.0,
+"hit_l": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
 },
 "attack_throw": false,
 "attack_views": "",
@@ -212,12 +269,18 @@ variants = {
 "CM-G": {
 "anims": {
 "attack": 2.0,
+"attack_l": 2.0,
 "die": 5.0,
 "hit": 1.0,
+"hit_l": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bl": 4.0,
+"idle_l": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bl": 12.0,
+"run_l": 12.0
 },
 "attack_throw": false,
 "attack_views": "",
@@ -237,7 +300,7 @@ variants = {
 "strip_cols": 40
 }
 }
-variant = "CM-0"
+variant = "CM-F"
 sfx = {
 "die": "en_mummy_die",
 "hit": "en_goblin_hit"

@@ -31,7 +31,7 @@ BADGES = ["", "crown", "skull", "gear", "none"]
 FACES = ["right", "left", "straight"]
 TELEGRAPHS = ["line", "ring", "ring_at_hero", "sector", "fan", "spokes", "none"]
 # `ranged.shot` / `spit_volley.shot`: the projectile's look; anything else is the green spit; `harpoon: true` is its own kind
-SHOT_KINDS = ["", "pellet", "spike", "shard", "harpoon"]
+SHOT_KINDS = ["", "pellet", "spike", "shard", "harpoon", "dynamite", "bomb"]  # pass 111 (lane ENEMY): the throwers' two
 # the keys every attack of a `boss.attacks` script shares, with the game's defaults (None = no default: absent means off)
 ATTACK_COMMON = {"name": "", "windup": 1.0, "telegraph": "none", "reach": None, "min_range": None, "max_range": None,
                  "chance": None}  # pass 95 (lane BOSS): rolled as its turn comes; a miss skips to the next attack
@@ -70,7 +70,9 @@ TELEGRAPH_KEYS = {"line": {"length": None}, "ring": {"radius": 6.0}, "ring_at_he
 BLOCKS = {
     "ranged": {"keep_distance": 5.0, "range": 8.0, "telegraph": 0.6, "cooldown": 2.5, "straight": False, "cone_deg": None,
                "count": 5, "projectile_speed": None, "splash": None, "life": None, "shot": "", "knockback": 0.0,
-               "pull": None, "harpoon": False, "tether": {}, "lead": False, "land_only": False, "trail": {}, "pulse": {}},
+               "pull": None, "harpoon": False, "tether": {}, "lead": False, "land_only": False, "trail": {}, "pulse": {},
+               # pass 85 / pass 111 (lane ENEMY): the throwers' blocks and the harpoon's look
+               "release_hold": 0.0, "throw_jump": 0.0, "dynamite": {}, "bomb": {}, "harpoon_fx": {}},
     "charge": {"windup": 0.8, "speed": 9.0, "duration": 0.7, "cooldown": 4.0, "trigger_range": 6.0, "knockback": 0.0,
                "shake": 0.0, "crouch": 0.0, "legs": 1.0, "lean": 0.0, "dust": 0.0, "shove": 0.0, "shove_walk": 0.0},
     "kamikaze": {"trigger": 1.1, "windup": 0.35, "radius": 2.6, "damage": 26.0, "knockback": 9.0},
@@ -115,7 +117,8 @@ ENEMY_DEFAULTS = {"archetype": "walker", "brain": "chase", "hp": 10.0, "speed": 
                   "max_alive": 0, "xp_mult": 1.0, "can_be_elite": True, "can_be_grabbed": True,
                   "pickup_chance_mult": 1.0, "frame_px": 128, "strip_cols": 0}
 BLOOD_DEFAULT = "#C70D0D"
-ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
+ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd",
+               "idle_l", "run_l", "attack_l", "hit_l", "run_bl", "idle_bl"]   # pass 111: the optional left-heading sets
 ENEMY_ANIMS_DEFAULT = {"idle": 2, "run": 2, "attack": 2, "hit": 1, "die": 1}
 ENEMY_FPS_DEFAULT = {"run": 10.0, "die": 6.0}
 # the recipe keys gen_art reads from a creature JSON or a look's `recipe` (tools only)
@@ -136,6 +139,8 @@ CTL_RECIPE_KEYS = ["drivers", "prompt", "noun", "detail", "blockout", "words", "
 PRONOUNS = ["he", "she", "they"]
 SPECIALS = ["cannot_stop", "momentum", "auto_magnet", "motherlode"]
 AVAILABILITY = ["hidden", "available", "purchase"]
+# pass 111 (lane SKINS): the currencies are content now (content/currencies/<id>/<id>.json, read by currency_records()
+# below at call time); this is only what stands in when that folder has none (the game's default currency_type)
 CURRENCIES = ["gold"]
 FAVOURITE_BONUS_TYPES = ["level", "effects"]
 FAVOURITE_PASSIVE_BONUS_TYPES = ["max", "level", "effects"]
@@ -450,11 +455,13 @@ QUEST_TYPES = {
     # may stay empty where the header says so)
     "hero_level": ["hero", "level"], "item_level": ["kind", "id", "level", "rung"], "evolve_item": ["id", "kind"],
     "weapon_paths": ["weapon"], "items_maxed": ["kind", "count"],
+    # pass 111 (lane SKINS): a stage's boss killed in a run of that stage, with that hero ("" = any hero; stage 1-based)
+    "beat_stage": ["map", "stage", "hero"],
 }
 # pass 100 (lane QUESTS): the item kinds and rarity rungs the build quests take
 QUEST_ITEM_KINDS = ["any", "weapon", "card", "passive"]
 QUEST_RUNGS = ["uncommon", "rare", "epic", "legendary", "evolved"]
-UNLOCK_TYPES = ["character", "weapon", "passive", "map", "talent", "mode"]
+UNLOCK_TYPES = ["character", "weapon", "passive", "map", "talent", "mode", "skin"]   # pass 111: skin {id: "<hero>:<CODE>"}
 QUEST_TEMPLATE_CONDITION = {"type": "kills_total", "count": 400}
 
 # ---------------------------------------------------------------- placeholders (PlaceholderArt.gd)
@@ -490,6 +497,36 @@ def folder_ids(content_dir, type_folder):
     return sorted(d for d in os.listdir(base) if os.path.isfile(os.path.join(base, d, d + ".json")))
 
 
+def currency_records(content_dir):
+    """Pass 111 (lane SKINS): the currency registry, content/currencies/<id>/<id>.json ({id, name, flavour, order, icon
+    (res://), colour, word}), sorted by order then id. When that folder holds none, the one currency the game has always
+    had (gold, CharacterDef's default) stands in, marked `fallback`."""
+    out = []
+    base = os.path.join(content_dir, "currencies")
+    for cid in folder_ids(content_dir, "currencies"):
+        try:
+            with open(os.path.join(base, cid, cid + ".json"), "r", encoding="utf-8") as f:
+                d = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(d, dict) or str(d.get("id", cid)) != cid:
+            continue
+        order = d.get("order", 100)
+        out.append({"id": cid, "name": str(d.get("name", cid)), "flavour": str(d.get("flavour", "")),
+                    "order": order if isinstance(order, (int, float)) and not isinstance(order, bool) else 100,
+                    "icon": str(d.get("icon", "")), "colour": str(d.get("colour", "")), "word": str(d.get("word", cid))})
+    if not out:
+        out = [{"id": c, "name": c.capitalize(), "flavour": "", "order": 0, "icon": "res://art/ui/wanted/coin.png",
+                "colour": "#C9932F", "word": c, "fallback": True} for c in CURRENCIES]
+    out.sort(key=lambda r: (r["order"], r["id"]))
+    return out
+
+
+def currency_ids(content_dir):
+    """Pass 111: the ids of the currency registry in its order (what a price's currency_type may name)."""
+    return [r["id"] for r in currency_records(content_dir)]
+
+
 def table(content_dir, game_dir=None, combos_seen=()):
     """The dict GET /api/vocab serves: every table above plus what is read from the content at call time."""
     return {
@@ -501,7 +538,10 @@ def table(content_dir, game_dir=None, combos_seen=()):
         "sfx_hooks": SFX_HOOKS, "enemy_defaults": ENEMY_DEFAULTS, "blood_default": BLOOD_DEFAULT,
         "enemy_order": ENEMY_ORDER, "enemy_anims_default": ENEMY_ANIMS_DEFAULT, "enemy_fps_default": ENEMY_FPS_DEFAULT,
         "enemy_art_keys": ENEMY_ART_KEYS, "ctl_recipe_keys": CTL_RECIPE_KEYS,
-        "pronouns": PRONOUNS, "specials": SPECIALS, "availability": AVAILABILITY, "currencies": CURRENCIES,
+        "pronouns": PRONOUNS, "specials": SPECIALS, "availability": AVAILABILITY,
+        # pass 111 (lane SKINS): the currency registry (content/currencies), its ids and its records (name, icon, colour)
+        "currencies": currency_ids(content_dir), "currency_records": currency_records(content_dir),
+        "maps": folder_ids(content_dir, "maps"),
         "favourite_bonus_types": FAVOURITE_BONUS_TYPES, "favourite_passive_bonus_types": FAVOURITE_PASSIVE_BONUS_TYPES,
         "momentum_keys": MOMENTUM_KEYS, "char_order": CHAR_ORDER, "char_anims_default": CHAR_ANIMS_DEFAULT,
         "char_fps_default": CHAR_FPS_DEFAULT, "hero_defaults": HERO_DEFAULTS, "hero_art_keys": HERO_ART_KEYS, "hero_views": HERO_VIEWS,

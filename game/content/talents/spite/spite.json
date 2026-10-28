@@ -4,6 +4,7 @@
   "flavour": "Raise the stakes: on the whole crowd, or on the big ones.",
   "order": 1,
   "ranks": 6,
+  "currency_type": "gold",
   "cost": [
     100,
     400,

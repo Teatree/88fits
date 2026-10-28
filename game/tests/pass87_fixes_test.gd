@@ -156,7 +156,7 @@ func test_the_stick_leaves_the_painted_hand_from_behind_too() -> void:
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var i := _bandit(em, Vector3.ZERO)
-	var hand: Dictionary = Registry.enemy("spit_cactus").ranged["dynamite"]["hand"]
+	var hand: Dictionary = EnemyManager.throw_block(Registry.enemy("spit_cactus"))["hand"]
 	assert_float(float(hand["side"])).is_greater(0.0)
 	em.state[i] = EnemyManager.STATE_WINDUP
 	var scr := Vector3(-em._cf_tick.z, 0, em._cf_tick.x)

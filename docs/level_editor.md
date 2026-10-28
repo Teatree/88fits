@@ -2098,3 +2098,122 @@ Files: `tools/level_editor/boss_fights.js` (the section, its drag), `boss_fights
 app.js (`{kind: 'bossrow', s, i}` and `{kind: 'bossfight', s}` selections, `addBossFight`, `removeBossFight`,
 `setBossFight`, `newBossRow`, `moveBossRow`, `shiftBossRow`, the row checks shared with the roster's); inspector.js (the
 row form with a window env, the window's card). Self-test: `selftest_BOSS110.py`.
+
+## Pass 111: Skins (a hero's looks players can buy)
+
+**What it is.** Any painted look of a hero can be offered to the players as a **skin**: they buy it (gold today, any
+currency in `content/currencies`) and wear it. A skin can have a **goal**: a quest that must be done before it can be
+bought ("Beat Nightfall with May."). The look a hero is played in (his `variant`) is every player's already and is never
+sold; a shelved or not-yet-painted look cannot be sold either.
+
+**How to set one up, step by step.**
+1. Open the **Heroes** tab and press **Edit** on the hero.
+2. Open **Skins (looks players can buy)**, under Looks & previews. Every look is a row: its round badge, a still from its
+   strip (hover it to play), its code, its note and its chips (played, NEW, shelved, not painted).
+3. Tick **Purchasable**. The row opens: type the **Name** players read (a name is suggested; *Suggest* puts another in
+   the box), the **Price** (0 = free once the goal is done) and pick the **Currency**.
+4. For a goal press **+ Add a goal**. It starts as *beat a stage* on Red Canyon, stage 1, with this hero. Change the stage
+   (its name shows beside the number: 1 Sundown, 2 Nightfall, 3 Blood Moon), empty the hero for *any hero*, or pick any
+   other condition (the same list as a hero's Requirement: kills, levels, items, ...). The words the game shows are under
+   the goal and in the line *In the game: ...*.
+5. Press the row's **Save**. Each row saves on its own; the hero's *Save asset* does not write skins.
+
+**What Save writes** (and imports both at once, as the Requirement does):
+- the look's entry in `content/characters/<hero>/<hero>.json`: `variants[CODE].skin = {"purchasable", "name", "price",
+  "currency_type", "unlock_quest"}` (written in place, every other key and look untouched, a backup first);
+- the goal: `content/quests/skin_<hero>_<code>/skin_<hero>_<code>.json` (the code lower-cased, `-` -> `_`: MAY-B ->
+  `skin_may_may_b`) with `"unlocks": {"type": "skin", "id": "<hero>:<CODE>"}`, the condition (only its type's keys), the
+  name "<Hero> · <skin name>", the optional words, and the look's badge as its icon.
+**Remove goal** moves the quest folder to `tools/level_editor/backups/deleted/` and clears `unlock_quest`: the look is
+then on sale at once. **Revert** drops a row's unsaved edits. The hero card in the list says "N skins on sale".
+
+**Currencies.** `content/currencies/<id>/<id>.json` ({id, name, flavour, order, icon, colour, word}; only gold today) is
+the list every price picks from: the hero's Availability price and each skin's price. The server refuses a currency that
+is not in that folder (with no folder at all, gold stands in).
+
+**The new quest condition** `beat_stage` {map, stage (1-based), hero ("" = any hero)}: that stage's boss killed in a run
+of that stage with that hero. It is in every quest form (heroes' Requirements, items' unlock quests, skin goals); the Map
+row of every quest form is a select of the map folders now.
+
+For scripts: `GET /api/currencies` -> [{id, name, flavour, icon, icon_url, colour, word, order}], `GET
+/api/currencies/<id>/icon`, `POST /api/content/hero/<id>/skin/<CODE>` {purchasable?, name?, price?, currency_type?,
+quest?: {condition, quest_text?, name?} | null (remove the goal) | left out (leave it)} -> {ok, wrote, skin, quest,
+backup, import_ok, output, moved_to}; a field left out keeps its value. `/api/heroes` and `/api/content/hero/<id>` carry
+each look's `skin`, `skin_quests` {CODE: quest} and (the list) `skins_on_sale`. Files: `tools/level_editor/skins_io.py`
+(the server side), `skins.js` + `skins.css` (the section), vocab.py (`currency_records`, `beat_stage`, unlock type `skin`).
+Self-test: `selftest_SKINS111.py`. **server.py changed: restart the editor server** to get the new routes.
+
+## Pass 111: the Chests card (map chests, and what each chest type holds)
+
+Garry (2026-10-28): "Chests should respawn every now and then. They should also have a chance of a power up dropping
+from them ... I should be able to set the frequency and content probabilities of both chest types on LevelEditor ...
+Chests never spawn where Player can see them."
+
+**Where.** The **Settings** tab, the **Chests** card (after Coloured specials). Hover a label or press its "?" for what
+it does; an empty box plays the game's number (the grey one). Undo, Save and the checks work as on every card.
+
+**Map chests (the top half).** On top of the chests creatures drop, the map now lays a chest of its own every now and
+then, always somewhere off the screen, on open sand, 25 to 45 m from the hero. A brass tag on the edge of the screen
+says where the nearest one is ("CHEST 33 m").
+1. **Chests appear on the map**: tick it on or off. Off = only the chests creatures drop, as before.
+2. **First after** and **Then every**: when the first comes (seconds into the stage) and the gap to the next (one number,
+   or a range: 90 to 130 = somewhere between, rolled each time). The line under the rows says about how many a stage
+   that makes (Red Canyon: Sundown 4, Nightfall 5, Blood Moon 5).
+3. **Most lying at once**: if that many lie unopened, the next one is skipped, so chests the player ignores never pile
+   up. **Most a stage**: a cap per stage (0 = none; Red Canyon 5).
+4. **Distance from / to**: how far from the hero to lay it. The game always checks the camera's real view, so it never
+   pops in on the screen, whatever these say; **Keep off screen by** is the extra metres past the edge.
+5. **Lies for**: after this many seconds an unopened one disappears, but only at a moment it is off the screen.
+6. **Boss chest chance**: the share of map chests that are the violet boss chest (Red Canyon 0).
+7. **During the boss fight / the portal countdown / In Endless**: whether chests keep coming then.
+8. **Point at it**: the edge tag on or off.
+
+**What a chest holds (the bottom half), for the Normal chest and the Boss chest separately.**
+1. **Power-up chance**: the chance a power-up hops out when the chest is opened, on top of what its reel gives (Red
+   Canyon: normal 35%, boss 50%). It lands **Throw distance** metres away (5 to 7), on the screen where possible and
+   away from the hero, and lies there for its usual time: the player decides whether to walk over. Nothing pulls it in
+   (not the magnet, not the boss chest's call).
+2. **Which power-up**: the list with a weight each; the % beside a weight is its share. Empty = the same mix as the
+   Power-up drops card ("Copy that mix here to edit" fills it in so you can change it). "+ power-up" adds one, "×"
+   removes one.
+3. **New item weight**: on the reel, how much a passive item the hero does not hold yet weighs against an upgrade of what
+   he holds (0.45 as always; 0 = a chest only upgrades).
+4. **Gold when nothing can grow**: the reel's purse when there is nothing left to give (50).
+5. **Holds a mutation** (Boss chest only): on = the boss chest gives a mutation while one is open, as always.
+
+**Checks** (errors stop Save): a negative number, an `every` or throw range whose max is under its min, a chance over
+100%, an unknown power-up id. Warnings: a chest every few seconds, a throw under 2 m (lands at the hero's feet), a short
+lifetime, no limit on chests lying with no lifetime, a chance with nothing to draw from.
+
+Files: `tools/level_editor/chest_model.js` (the maths, a copy of game/core/systems/WorldChests.gd's tables and rules;
+`cfgOf`, `contentsOf`, `weightList`, `drawList`, `shares`, `expectedIn`, `issues`), `chest_card.js` (the count line and
+the two chest types' blocks), fields.js (the rows, group 'Chests', the contents rows `block: 'chest_contents'`),
+settings.js (draws the block), app.js (the checks), index.html (the scripts). Keys and rules: docs/waves_schema.md
+"Pass 111". Self-test: `selftest_CHEST111.py`. No server.py change: a reload of the page is enough.
+
+## Pass 111: Wanted (the Bounty Board)
+
+The **Wanted** tab edits `game/content/wanted/wanted.json`, the Bounty Board the game shows before a stage run (from a
+player's second run on): three Wanted posters, each a task (kill N of a creature, beat the boss in time, reach a level,
+open chests...), the player takes one or none, and a poster done pays its gold when the run ends. The rules and every
+number: BALANCING.md 54.WANTED.
+
+- **The board**: on/off, how many posters (3), re-rolls (0), after how many finished runs it opens (1), whether a poster
+  may only name creatures the player has met and items he has seen, and how much every range grows per stage beaten.
+- **Reward**: the formula (base + per point x difficulty) x (1 + growth x stages beaten) x the stage's multiplier,
+  rounded; the currency it pays in; and a live table of what a 1 to 5 skull poster pays at 0 to 3 stages beaten.
+- **Task types**: one row each: on, its **weight** (a slider and a box), its **chance** ("first": its share of the weight;
+  "on the board": the chance it is one of the three posters, exact), its **difficulty** (the easy end, the hard end:
+  where a poster's number falls between its range's ends sets its skulls and gold). The arrow opens the rest: the
+  number's range per stage (and what it becomes at the simulator's stages beaten), the step, the type's own extras,
+  and the words on the poster ({n} {target} {hero} {stage} {boss} {time}).
+- **Try the board** (right): pick a stage, a hero, how many stages beaten, and whether the player has met and seen
+  everything; **Roll the board** draws three posters with the config as it is on the page (saved or not) from the map's
+  own timeline (the Timeline tab's, unsaved edits too), drawn as the game draws them with the real pictures. Click one
+  to pick it.
+- **Save board** (or Ctrl+S on this tab) writes the file (a backup in tools/level_editor/backups first). No import: the
+  game reads the JSON when it starts. Undo, Revert as on the other tabs.
+
+Routes (wanted_io.py): `GET /api/wanted`, `POST /api/wanted/save` {json, base_mtime}, `GET /api/wanted/art/<stages|
+badges|wanted|fonts>/<file>`. The page's roll is wanted_model.js, the game's WantedBoard.gd mirrored (selftest_WANTED111.py
+pins the same numbers as game/tests/pass111_wanted_test.gd). The server needs a restart to know the routes.

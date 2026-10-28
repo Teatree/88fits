@@ -19,9 +19,24 @@
 ## preload("res://ui/wanted/WHeroSheet.gd").open(host, hero, locked).
 ## Names for tools: "HeroSheet", "Dim", "Card", "Scroll", "Body", "Close", "Portrait", "Name", "Slogan", "Locked",
 ## "Signature", "Stats", "Items", "Item_<role>_<id>" (role start, favourite, own, mutation, perk).
+## Pass 111 (lane SKINS; Garry: "add the UI support for this. Make it easy to access for each hero. ... first you
+## complete a goal, then you get access to buying skins"): LOOKS, right under the header of a hero the player owns (a
+## hero not owned sells none): a tile for each look he can wear or work towards (Registry.skins_of: the look every
+## player owns first, then those sold as skins), its full-body still (tools/skin_stills.py; the look's badge without
+## one), its name and where the player stands with it: WORN (brass), OWNED ("Tap to wear"), BUY (the price in its
+## currency's icon; a tap asks, WConfirm, then pays through Currency and wears it) or LOCKED (the goal in the quests'
+## words and how far along it is). Names: "Looks", "LookGrid", "Look_<CODE>" (meta "look" and "state": worn, owned,
+## buyable, locked). `look_changed` tells the title to draw him in the new look.
 extends Control
 
 signal closed
+## Pass 111 (lane SKINS): the player wore or bought a look of `hero` (the title draws him in it at once).
+signal look_changed(code: String)
+
+## The Looks tiles: three a row, the still this tall.
+const LOOK_COLS := 3
+const LOOK_STILL_H := 230.0
+const LOOK_BADGE := 150.0
 
 ## The card's margins on the screen (the hard shadow adds its 12 px on the right and the foot).
 const SIDE := 36.0
@@ -54,6 +69,9 @@ var close_btn: WButton
 var _touch: TouchScroll
 var _fade: TextureRect
 var _done := false
+## pass 111 (lane SKINS): the header's badge and the Looks section (rebuilt when a look is worn or bought)
+var _portrait: TextureRect
+var _looks_v: VBoxContainer
 var _dim_down := false
 var _dim_from := Vector2.ZERO
 
@@ -112,6 +130,9 @@ func _build() -> void:
 	if locked:
 		body.add_child(_spacer(28.0))
 		body.add_child(_locked_box())
+	# pass 111 (lane SKINS): his looks, near the top (a hero not owned sells none)
+	elif not Registry.skins_of(hero).is_empty():
+		_looks()
 	_signature()
 	_stats()
 	_items()
@@ -162,6 +183,7 @@ func _header() -> Control:
 	# the badge of the look he is played in (pass 68, Registry.played_look: the kept look, else his JSON's `variant`);
 	# `hero` stays his own def
 	tr.texture = Registry.played_look(hero).icon
+	_portrait = tr
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	tr.custom_minimum_size = Vector2(PORTRAIT, PORTRAIT)
@@ -225,7 +247,7 @@ func _locked_box() -> Control:
 		row.name = "Price"
 		row.add_theme_constant_override("separation", 12)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(WCoin.make(40.0))
+		row.add_child(WCoin.make(40.0, W.BRASS, 3.0, Currency.of(hero.currency_type)))
 		var pr := W.slab_text(W.num(maxi(hero.price, 0)), 40, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 		pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(pr)
@@ -492,6 +514,216 @@ static func describe(def: ContentDef, level: int, sheet: StatSheet) -> String:
 	return def.flavour
 
 
+# ---------------------------------------------------------------- the looks (pass 111, lane SKINS)
+
+## LOOKS: the section, then its tiles (_fill_looks).
+func _looks() -> void:
+	_looks_v = _section("Looks", "Looks")
+	_fill_looks()
+
+
+## The tiles again (a look worn or bought): the section's title stays, the rest is made anew.
+func _fill_looks() -> void:
+	if _looks_v == null:
+		return
+	for k in range(_looks_v.get_child_count() - 1, 0, -1):
+		var c := _looks_v.get_child(k)
+		_looks_v.remove_child(c)
+		c.queue_free()
+	var worn := worn_code()
+	var to_earn := false
+	for code: String in Registry.skins_of(hero):
+		if Registry.skin_state(hero, code) != "owned":
+			to_earn = true
+	var how := "Reach a look's goal, then buy it." if to_earn else "Tap a look to wear it."
+	var line := W.serif_text("Wearing %s. %s" % [hero.skin_name(worn), how],
+		24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+	line.name = "Wearing"
+	_looks_v.add_child(line)
+	var grid := GridContainer.new()
+	grid.name = "LookGrid"
+	grid.columns = LOOK_COLS
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 18)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for code: String in Registry.skins_of(hero):
+		grid.add_child(_look_tile(code, worn))
+	_looks_v.add_child(grid)
+
+
+## The look he wears in the sheet's terms: the worn skin, else the look every player owns.
+func worn_code() -> String:
+	var w := Registry.worn_skin(hero)
+	return w if w != "" else hero.home_look()
+
+
+## Where the player stands with look `code`: worn, owned, buyable or locked.
+func look_state(code: String) -> String:
+	return "worn" if code == worn_code() else Registry.skin_state(hero, code)
+
+
+## One look: its still (or badge), its name, and its state at the foot.
+func _look_tile(code: String, worn: String) -> WTap:
+	var st := "worn" if code == worn else Registry.skin_state(hero, code)
+	var t := WTap.new()
+	t.name = "Look_" + code
+	t.set_meta("look", code)
+	t.set_meta("state", st)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var fill := W.BRASS if st == "worn" else (W.AGED if st == "locked" else W.PAPER)
+	var b := W.box(fill, 4, 5).pad(12, 12, 12, 14)
+	t.box = b
+	t.box_down = b.pressed()
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.add_child(v)
+	var look: CharacterDef = hero.variant_def(code)
+	var still := hero.look_still_path(code)
+	if still != "":
+		var tr := TextureRect.new()
+		tr.name = "Still"
+		tr.texture = load(still) as Texture2D
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.custom_minimum_size = Vector2(0, LOOK_STILL_H)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if st == "locked":
+			tr.modulate = Color(1, 1, 1, 0.6)
+		v.add_child(tr)
+	else:
+		var p := WPlate.new().for_def(look, LOOK_BADGE, false, 0)
+		p.name = "Badge"
+		p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		if st == "locked":
+			p.modulate = Color(1, 1, 1, 0.6)
+		v.add_child(p)
+	var nm := W.text(hero.skin_name(code), W.slab(), 26, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 28.0, true)
+	nm.name = "LookName"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(nm)
+	v.add_child(_look_foot(code, st))
+	t.pressed.connect(func(): _on_look(code))
+	return t
+
+
+## The tile's foot: WORN, "Tap to wear", the price (aged with what is missing when the purse is short), or LOCKED with
+## the goal and its progress.
+func _look_foot(code: String, st: String) -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Foot"
+	box.add_theme_constant_override("separation", 6)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	match st:
+		"worn":
+			var l := W.label("Worn", 20, W.INK, 0.15)
+			l.align = HORIZONTAL_ALIGNMENT_CENTER
+			box.add_child(l)
+		"owned":
+			var l2 := W.label("Tap to wear", 18, W.INK_SOFT, 0.12)
+			l2.align = HORIZONTAL_ALIGNMENT_CENTER
+			box.add_child(l2)
+		"buyable":
+			var cur := Currency.of(hero.skin_currency(code))
+			var price := hero.skin_price(code)
+			var can := Currency.can_afford(cur, price)
+			var row := HBoxContainer.new()
+			row.name = "Price"
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			row.add_theme_constant_override("separation", 8)
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(WCoin.make(30.0, W.BRASS if can else W.AGED, 3.0, cur))
+			var pr := W.slab_text(W.num(price), 30, W.INK if can else W.INK_SOFT, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+			pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(pr)
+			box.add_child(row)
+			if not can:
+				var more := W.serif_text("%s more %s" % [W.num(price - Currency.balance(cur)), Currency.word_of(cur)], 20,
+					W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0, true, false)
+				more.name = "Short"
+				box.add_child(more)
+		_:
+			var l3 := W.label("Locked", 18, W.ROCK, 0.15)
+			l3.align = HORIZONTAL_ALIGNMENT_CENTER
+			box.add_child(l3)
+			var words := Registry.skin_requirement_text(hero, code)
+			var g := W.serif_text(words if words != "" else "Not on sale yet.", 20, W.INK, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, true)
+			g.name = "Goal"
+			g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			box.add_child(g)
+			var q := Registry.skin_quest(hero, code)
+			var pr2 := QuestTracker.progress(q) if q else Vector2i.ZERO
+			if pr2.y > 0:
+				var bar := WBar.make(clampf(float(pr2.x) / float(pr2.y), 0.0, 1.0), W.BRASS, 26.0, 3, 0)
+				bar.name = "Progress"
+				bar.text = "%s / %s" % [W.num(mini(pr2.x, pr2.y)), W.num(pr2.y)]
+				bar.text_px = 16
+				box.add_child(bar)
+	return box
+
+
+## A tile tapped: an owned look is worn, a look to buy asks first, a locked one only says so.
+func _on_look(code: String) -> void:
+	if _done:
+		return
+	match look_state(code):
+		"worn":
+			pass
+		"owned":
+			wear(code)
+		"buyable":
+			ask_buy_look(code)
+		_:
+			Audio.play("ui_locked")
+
+
+## Wears look `code` from now on (the look every player owns = none kept): the badge above, the tiles, the title.
+func wear(code: String) -> void:
+	if Registry.skin_state(hero, code) != "owned":
+		return
+	Save.set_skin_worn(hero.id, "" if code == hero.home_look() else code)
+	Analytics.track("skin_worn", {"hero": hero.id, "look": code})
+	_after_look_change(code)
+
+
+## A look on sale: with the price in the purse it asks (WConfirm); short of it, it only says so.
+func ask_buy_look(code: String) -> void:
+	if Registry.skin_state(hero, code) != "buyable":
+		return
+	var cur := Currency.of(hero.skin_currency(code))
+	var price := hero.skin_price(code)
+	if not Currency.can_afford(cur, price):
+		Audio.play("ui_locked")
+		return
+	WConfirm.open(self, "Buy this look?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price), hero_name(hero)],
+		"Buy · %s" % W.num(price), "Not now", func(): buy_look(code))
+
+
+## The purchase: paid through Currency (Save.buy_skin, the sink "skin"), worn at once, a burst over its tile.
+func buy_look(code: String) -> bool:
+	var cur := Currency.of(hero.skin_currency(code))
+	var price := hero.skin_price(code)
+	if not Save.buy_skin(hero, code):
+		Audio.play("ui_locked")
+		_fill_looks()
+		return false
+	Audio.play("ui_buy")
+	Analytics.track("skin_bought", {"hero": hero.id, "look": code, "price": price, "currency": cur, "balance_after": Currency.balance(cur)})
+	Save.set_skin_worn(hero.id, code)
+	_after_look_change(code)
+	var tile: Control = find_child("Look_" + code, true, false)
+	if tile:
+		WCelebrate.burst(self, tile.get_global_rect().get_center() - global_position, get_child_count(), 1.2)
+	return true
+
+
+func _after_look_change(code: String) -> void:
+	if _portrait:
+		_portrait.texture = Registry.played_look(hero).icon
+	_fill_looks()
+	look_changed.emit(code)
+
+
 # ---------------------------------------------------------------- pieces
 
 ## A labelled part of the sheet under an ink rule: returns the box its rows go in.
@@ -590,9 +822,11 @@ func _input(event: InputEvent) -> void:
 	var esc := event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE
 	if esc or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		close()
+		# pass 111 (lane SKINS): a look's question goes first
+		if not WConfirm.dismiss(self):
+			close()
 		return
-	if _touch:
+	if _touch and not WConfirm.is_open(self):
 		_touch.input(event)
 
 

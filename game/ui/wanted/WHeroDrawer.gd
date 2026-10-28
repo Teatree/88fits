@@ -147,7 +147,7 @@ func _tile(h: CharacterDef) -> WTap:
 			row.add_theme_constant_override("separation", 6)
 			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.custom_minimum_size.y = 28.0
-			row.add_child(WCoin.make(22.0))
+			row.add_child(WCoin.make(22.0, W.BRASS, 3.0, Currency.of(h.currency_type)))
 			var pr := W.slab_text(W.num(h.price), 22, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 28.0)
 			pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			row.add_child(pr)

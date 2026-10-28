@@ -72,6 +72,10 @@ var _harpoon_proj := -1
 var _harpoon_shooter := -1
 var _rope: MeshInstance3D
 var _rope_mesh: ImmediateMesh
+## pass 111 (lane ENEMY): the harpooner's fat chain and its hook (core/systems/HarpoonChain.gd; harpoon_chain), and where
+## the hook flew last (a miss reels it home from there)
+var _chain: HarpoonChain
+var _harpoon_last := Vector3.INF
 var _rope_dark: StandardMaterial3D
 var _rope_light: StandardMaterial3D
 var _behaviors: Dictionary = {}    # weapon id -> WeaponBehavior
@@ -284,6 +288,10 @@ func _ready() -> void:
 	debug_panel.game = self
 	ui.add_child(debug_panel)
 	hud.pause_requested.connect(open_pause)
+	# pass 111 (lane WANTED): the Bounty Board's pick for this run (WantedRun: its progress, the HUD plate, its pay at the
+	# end); the debug arena takes none and lets the pick go
+	if Run.arena: WantedBoard.take_next()
+	else: WantedRun.attach(self, debug_launch)
 	# music
 	if mapdef:
 		var run_music = mapdef.music.get("run", [])
@@ -1443,7 +1451,12 @@ func _check_quests() -> void:
 		var def: ContentDef = unlock_banner_def(q)
 		# pass 69: a hero on sale is not his yet: the banner says so and keeps him unknown; pass 76: only while he is on
 		# sale (Registry.hero_state; check_all never returns a hero owned already)
-		if def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable":
+		if str(q.unlocks.get("type", "")) == "skin" and def is CharacterDef:
+			# pass 111 (lane SKINS): a look's goal done: on sale (or his at once when it is free), with its badge
+			var sc := def as CharacterDef
+			var free := Registry.skin_state(sc, sc.look_code()) == "owned"
+			hud.banner(("NEW LOOK: " if free else "NEW LOOK FOR SALE: ") + sc.skin_name(sc.look_code()), UiKit.GOOD, sc.icon)
+		elif def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable":
 			hud.banner("A NEW HERO IS FOR SALE", UiKit.GOOD, null)
 		else:
 			hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
@@ -1453,6 +1466,9 @@ func _check_quests() -> void:
 ## What the run's UNLOCKED banner for quest `q` draws: the item it opens, with its own icon (pass 44), a hero in the look
 ## he is played in (pass 68, Registry.art_of); null when it opens nothing the Registry has (the banner names the quest).
 static func unlock_banner_def(q: QuestDef) -> ContentDef:
+	# pass 111 (lane SKINS): a skin's goal draws that look itself, not the one he is played in
+	if str(q.unlocks.get("type", "")) == "skin":
+		return Registry.unlocked_by(q)
 	return Registry.art_of(Registry.unlocked_by(q))
 
 
@@ -2008,9 +2024,13 @@ func _salt_luck_at(at: Vector3) -> float:
 ## Pass 110 (lane ECON; Garry: "Reduce the coins gain from Boss, Elite and Specials. By 50%"): every one halved, the
 ## purses [450, 300] -> [225, 150] and [1300, 700] -> [650, 350], BOSS_COINS 60 -> 30 (the bosses' drops.coins halved in
 ## their JSON), BIG_COIN_MULT 5 -> 2.5 and a special's own coin half as often (PickupManager.SPECIAL_COIN_MULT).
-const ELITE_PURSE := [225, 150]
-const BOSS_PURSE := [650, 350]
-const BOSS_COINS := 30
+## Pass 111 (lane WANTED; Garry: "To balance this out [the Bounty Board's gold], reduce the coin rewards from non-regular
+## enemies even further"): halved again, [225, 150] -> [112, 75] (the half coin dropped), [650, 350] -> [325, 175],
+## BOSS_COINS 30 -> 15, the bosses' drops.coins halved again in their JSON (30 / 75 / 100 -> 15 / 37 / 50),
+## BIG_COIN_MULT 2.5 -> 1.25 and SPECIAL_COIN_MULT 0.5 -> 0.25.
+const ELITE_PURSE := [112, 75]
+const BOSS_PURSE := [325, 175]
+const BOSS_COINS := 15
 
 
 ## An Elite's purse on stage index `stage` (0 = stage 1), before Motherlode.
@@ -2982,6 +3002,8 @@ func end_run() -> void:
 	# the run's gold comes home with the hero, whatever the end (pass 70: bank_run_end)
 	var map_id := Run.map.id if Run.map else ""
 	bank_run_end(map_id)
+	# pass 111 (lane WANTED): a bounty done is paid now, beside the purse (Run.last_result["bounty"] for the Results)
+	WantedRun.settle()
 	# pass 87 (lane SGAME): the best time is the seconds played (a stage run's clock starts at its window)
 	Save.record_run(map_id, Run.run_time(), Run.level, Run.stage + 1, Run.kills)
 	# after the run is counted, so "play N runs" sees this one
@@ -3100,6 +3122,11 @@ func enemy_shot_straight(from: Vector3, target: Vector3, speed: float, damage: f
 	if bool(params.get("harpoon", false)) and pi >= 0:
 		_harpoon_proj = pi
 		_harpoon_shooter = int(params.get("shooter", -1))
+		# pass 111 (lane ENEMY): the chain pays out from the hand (HarpoonChain.launch), the hook at its block's size
+		var ch := harpoon_chain()
+		ch.configure(params.get("harpoon_fx", {}))
+		projectiles.psize[pi] = float(ch.cfg.get("hook_scale", 1.3))
+		ch.launch(from, dir.normalized())
 
 
 ## The Tumbleweed King's volley (pass 45): `count` tumbleweeds roll out from `at` in every direction, the first down
@@ -3127,21 +3154,24 @@ func tumbleweed_volley(at: Vector3, first: Vector3, count: int, speed: float, da
 # ---------------------------------------------------------------- the harpoon tether
 
 func _harpoon_mesh() -> Mesh:
-	var b := BoxMesh.new()
-	b.size = Vector3(0.07, 0.07, 1.0)
-	return b
+	# pass 111 (lane ENEMY): the barbed hook (art/props/harpoon_hook.glb; the old red box without the file)
+	return HarpoonChain.hook_mesh()
 
 
 func _harpoon_material() -> Material:
-	# bright red, lit from inside: the one thing on the line the hero must not be under
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(1.0, 0.12, 0.08)
-	m.emission_enabled = true
-	m.emission = Color(1.0, 0.2, 0.1)
-	m.emission_energy_multiplier = 2.0
-	m.metallic = 0.2
-	m.roughness = 0.4
-	return m
+	# pass 111 (lane ENEMY): the hook's iron and its red shaft, outlined (HarpoonChain.hook_material)
+	return HarpoonChain.hook_material()
+
+
+## The harpooner's chain (pass 111, lane ENEMY), made on first use under the shots (never darkened by a stage filter);
+## EnemyManager asks it for the wind-up's glint.
+func harpoon_chain() -> HarpoonChain:
+	if _chain == null:
+		_chain = HarpoonChain.new()
+		_chain.name = "HarpoonChain"
+		projectiles.add_child(_chain)
+		_chain.setup(self)
+	return _chain
 
 
 ## Lead shot from the dwarf's blunderbuss: a small dark ball, dull, so a cone of five reads as buckshot.
@@ -4108,6 +4138,9 @@ func tether_start(shooter: int, cfg: Dictionary) -> void:
 	hud.toast("HOOKED!", UiKit.DANGER)
 	hint_once("harpoon", "HOOKED: walking away drags it and slows you. Walk to it, or kill it, to get free.")
 	Audio.play("en_beetle_charge", player.global_position)
+	# pass 111 (lane ENEMY): the hook bites: a clank at him and at the hand, the chain snaps taut, a short camera kick
+	var hk := player.global_position + Vector3(0, 0.85, 0)
+	harpoon_chain().hooked(hk, harpoon_chain().hand_of(shooter, hk))
 
 
 func tether_end() -> void:
@@ -4120,6 +4153,9 @@ func tether_end() -> void:
 	enemies.tethered_i = -1
 	if _rope:
 		_rope.visible = false
+	# pass 111 (lane ENEMY): the chain and its hook go with the rope
+	if _chain:
+		_chain.release()
 
 
 func _tick_tether(delta: float) -> void:
@@ -4146,15 +4182,31 @@ func _tick_tether(delta: float) -> void:
 				fx.drag_dust(enemies.pos[tether_i], gap.normalized() if gap.length_squared() > 0.0001 else Vector3.FORWARD)
 		else:
 			_tether_dust = 0.0
-		# taut while it pulls, a little sag while it holds
-		_draw_rope(enemies.pos[tether_i] + Vector3(0, 1.3, 0), hp + Vector3(0, 0.85, 0), 0.015 if moved > 0.002 else 0.06)
+		# taut while it pulls, a little sag while it holds (pass 111, lane ENEMY: the fat chain from the harpooner's hand to
+		# the hook stuck in him, rattling while it hauls; HarpoonChain)
+		var ch := harpoon_chain()
+		var hk := hp + Vector3(0, 0.85, 0)
+		var hand := ch.hand_of(tether_i, hk)
+		if not hand.is_finite():
+			hand = enemies.pos[tether_i] + Vector3(0, 1.3, 0)
+		ch.draw(hand, ch.eye_of(hk, hand), 0.015 if moved > 0.002 else 0.06, HarpoonChain.TAUT if moved > 0.002 else HarpoonChain.SLACK)
+		ch.show_hook(hk, hand)
 	elif _harpoon_proj >= 0:
-		# the harpoon in the air: the rope pays out behind it from the thrower
+		# the harpoon in the air: the rope pays out behind it from the thrower (pass 111: the chain, to the hook's eye)
 		var p := _harpoon_proj
 		if p < projectiles.alive.size() and projectiles.alive[p] == 1 and projectiles.hostile[p] == 1 and projectiles.extra[p].has("harpoon") and enemies.is_alive(_harpoon_shooter):
-			_draw_rope(enemies.pos[_harpoon_shooter] + Vector3(0, 1.3, 0), projectiles.pos[p], 0.03)
+			var ch := harpoon_chain()
+			var at: Vector3 = projectiles.pos[p]
+			var hand := ch.hand_of(_harpoon_shooter, at)
+			if not hand.is_finite():
+				hand = enemies.pos[_harpoon_shooter] + Vector3(0, 1.3, 0)
+			ch.draw(hand, ch.eye_of(at, hand), 0.03, HarpoonChain.FLY)
+			_harpoon_last = at
 		else:
+			# a miss (pass 111): the chain goes slack and the hook is reeled home
 			_harpoon_proj = -1
+			if _chain:
+				_chain.missed(_harpoon_last, _harpoon_shooter)
 			if _rope:
 				_rope.visible = false
 	elif _rope and _rope.visible:

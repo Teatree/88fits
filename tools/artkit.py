@@ -414,7 +414,12 @@ def keep_top(img, margin=2):
     return canvas
 
 
-ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
+# pass 111 (lane ENEMY): six optional LEFT-heading sets after idle_fd (tools/add_left_sets.py adds them; a strip that
+# has them is never mirrored by the game: idle_l/run_l/attack_l/hit_l are the front set heading screen-left, run_bl/idle_bl
+# the back set heading left; die has none). The painting pipelines (gen_art, gen_ctl, gen_ant) never produce them.
+ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd",
+               "idle_l", "run_l", "attack_l", "hit_l", "run_bl", "idle_bl"]
+LEFT_SETS = {"idle_l": "idle", "run_l": "run", "attack_l": "attack", "hit_l": "hit", "run_bl": "run_b", "idle_bl": "idle_b"}
 CHAR_ORDER = ["idle", "run", "turn", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd", "idle_fd", "run_fd", "hit_f", "hit_s", "hit_bd", "hit_fd"]
 
 

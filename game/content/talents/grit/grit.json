@@ -4,6 +4,7 @@
   "flavour": "Thicker skin, or harder bones.",
   "order": 7,
   "ranks": 6,
+  "currency_type": "gold",
   "cost": [
     450,
     1800,

@@ -13,7 +13,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 GAME = os.path.join(ROOT, "game")
 
-ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
+ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd",
+               "idle_l", "run_l", "attack_l", "hit_l", "run_bl", "idle_bl"]   # pass 111: the optional left-heading sets
 CHAR_ORDER = ["idle", "run", "turn", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd", "idle_fd", "run_fd", "hit_f", "hit_s", "hit_bd", "hit_fd"]
 SUFFIX = {"enemy": {"front": "", "back": "_b", "side": "_s", "bd": "_bd", "fd": "_fd"}, "hero": {"back": "", "front": "_f", "side": "_s", "bd": "_bd", "fd": "_fd"}}
 CHAIN = {"hero": {"": [""], "_bd": ["_bd", "_s", ""], "_s": ["_s", "_bd", "_fd", ""], "_fd": ["_fd", "_s", "_f"], "_f": ["_f", "_fd", ""]},

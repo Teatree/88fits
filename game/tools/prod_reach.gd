@@ -17,7 +17,7 @@
 ##    weapon pinned so is not in play: its path is not walked;
 ##  - every quest that is shown (Registry.quest_visible) whose unlock is kept (or unlocks no item).
 ## Looks: a hero and a card keep only the look the game plays (the JSON's `variant`; a fresh save keeps none of its
-## own), "promoted" to the base when it was not; a creature keeps its base, the look it plays and every look a map row
+## own), "promoted" to the base when it was not (pass 111: a hero also keeps every look sold as a skin); a creature keeps its base, the look it plays and every look a map row
 ## or event names (paired with its `enemy`; a code named without one is matched to every creature that has it). A
 ## weapon family keeps all its looks. Everything else is dropped, with the reason.
 extends RefCounted
@@ -49,7 +49,8 @@ static func plan(reg: Node) -> Dictionary:
 			_add(st, w, "a weapon in play", true)
 	for p in reg.base_passives():
 		_add(st, p, "a %s in play" % ("card" if p.is_line() else "passive item"), true)
-	for dict_name in ["talents", "elites", "pickups", "structures"]:
+	# pass 111 (lane SKINS): and every currency
+	for dict_name in ["talents", "elites", "pickups", "structures", "currencies"]:
 		for d in (reg.get(dict_name) as Dictionary).values():
 			if not d.hidden:
 				_add(st, d, "not hidden (%s)" % dict_name, true)
@@ -306,6 +307,11 @@ static func _looks(reg: Node, keep: Dictionary) -> Dictionary:
 				keep_codes.append(play)
 			elif base != "":
 				keep_codes.append(base)
+			# pass 111 (lane SKINS): and every look a player can buy and wear (CharacterDef.sells_skin)
+			if type == "characters":
+				for c in (vs as Dictionary).keys():
+					if def.sells_skin(str(c)) and not keep_codes.has(str(c)):
+						keep_codes.append(str(c))
 		else:
 			for c in [base, play]:
 				if str(c) != "" and not keep_codes.has(str(c)):

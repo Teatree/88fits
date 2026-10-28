@@ -10,6 +10,9 @@ extends ContentDef
 @export var ranks: int = 3
 ## gold for each rank, one entry a rank (as many as `ranks`)
 @export var cost: Array = []
+## Pass 111 (lane SKINS): the currency the ranks are paid in (content/currencies; "gold", the only one; an id the
+## content lacks reads as gold, Currency.of)
+@export var currency_type: String = "gold"
 ## two entries: {"name", "text", "effects": [Effect]}, and optionally "rank_effects": [[Effect], ...] (pass 46): one list
 ## a rank, for a form whose ranks are not all the same step (rank 2 is lists 0 and 1); without it every rank is `effects`;
 ## "icon" (Texture2D) and "icon_file" (pass 61, form_icon)

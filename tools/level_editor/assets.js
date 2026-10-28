@@ -127,6 +127,8 @@ const Assets = (() => {
       else if (Array.isArray(val)) v[k2] = val.map((x) => (typeof x === 'string' ? x : x.v || x.id));
     }
     if (sv.combos_seen) v.combos_seen = sv.combos_seen;
+    // pass 111 (lane SKINS): the currencies by the registry's names and icons (content/currencies)
+    if (Array.isArray(sv.currency_records) && sv.currency_records.length) v.currencies = sv.currency_records.map((c) => ({ v: c.id, label: c.name || c.id, help: c.flavour || '', icon: `/api/currencies/${encodeURIComponent(c.id)}/icon` }));
     return v;
   }
 

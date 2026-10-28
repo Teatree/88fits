@@ -32,7 +32,12 @@ const StripPlayer = (() => {
   const PPM = 94;
   const HOLD_S = 0.6;                 // a one-shot animation (hit, die, cheer) holds its last frame this long, then loops
   const HERO_SIZE = 1.9;              // Player.gd:165: the hero's quad is 1.9 m tall
-  const ENEMY_ORDER = ['idle', 'run', 'attack', 'hit', 'die', 'run_b', 'idle_b', 'run_s', 'idle_s', 'run_bd', 'idle_bd', 'run_fd', 'idle_fd'];
+  // pass 111 (lane ENEMY): six optional left-heading sets after idle_fd (artkit.LEFT_SETS, tools/add_left_sets.py)
+  const ENEMY_ORDER = ['idle', 'run', 'attack', 'hit', 'die', 'run_b', 'idle_b', 'run_s', 'idle_s', 'run_bd', 'idle_bd', 'run_fd', 'idle_fd',
+    'idle_l', 'run_l', 'attack_l', 'hit_l', 'run_bl', 'idle_bl'];
+  // the key a creature with left sets shows heading screen-left in place of each right-heading one (EnemyManager: shown
+  // unmirrored, and its right-heading frames unmirrored too; die has no left copy). `left sets` = idle_l or run_l > 0.
+  const LEFT_OF = { idle: 'idle_l', run: 'run_l', attack: 'attack_l', hit: 'hit_l', run_b: 'run_bl', idle_b: 'idle_bl' };
   const CHAR_ORDER = ['idle', 'run', 'turn', 'hit', 'die', 'cheer', 'idle_f', 'run_f', 'idle_s', 'run_s', 'idle_bd', 'run_bd', 'idle_fd', 'run_fd', 'hit_f', 'hit_s', 'hit_bd', 'hit_fd'];
   // the key suffix of each view, per kind: a creature's base set is its front, a hero's base set is his back
   const SUFFIX = { enemy: { front: '', back: '_b', side: '_s', bd: '_bd', fd: '_fd' }, hero: { back: '', front: '_f', side: '_s', bd: '_bd', fd: '_fd' } };
@@ -46,8 +51,8 @@ const StripPlayer = (() => {
   const BASE_ONLY = { enemy: ['attack', 'hit', 'die'], hero: ['die', 'cheer', 'turn'] };
   const BASE_ANIMS = { enemy: ['idle', 'run', 'attack', 'hit', 'die'], hero: ['idle', 'run', 'turn', 'hit', 'die', 'cheer'] };
   const LOOPS = ['idle', 'run', 'turn', 'attack'];                       // BillboardSprite.LOOPS; the others hold their last frame
-  const VIEW_OF_SUFFIX = { enemy: { '': 'front', '_b': 'back', '_s': 'side', '_bd': 'bd', '_fd': 'fd' }, hero: { '': 'back', '_f': 'front', '_s': 'side', '_bd': 'bd', '_fd': 'fd' } };
-  const VIEW_LABEL = { front: 'front', back: 'back', side: 'side', bd: 'back ¾', fd: 'front ¾' };
+  const VIEW_OF_SUFFIX = { enemy: { '': 'front', '_b': 'back', '_s': 'side', '_bd': 'bd', '_fd': 'fd', '_l': 'front_l', '_bl': 'back_l' }, hero: { '': 'back', '_f': 'front', '_s': 'side', '_bd': 'bd', '_fd': 'fd' } };
+  const VIEW_LABEL = { front: 'front', back: 'back', side: 'side', bd: 'back ¾', fd: 'front ¾', front_l: 'front, heading left', back_l: 'back, heading left' };
   // W.gd:37 RARITY_PLATE (the game's five plate colours); /api/vocab's rarity_plate wins when the page has it
   const RARITY_PLATE = { common: '#d2cfc7', uncommon: '#8cc97a', rare: '#6b9fd8', epic: '#a585c8', legendary: '#e0a060' };
 
@@ -80,17 +85,28 @@ const StripPlayer = (() => {
     const c = cols > 0 ? cols : Math.max(1, k + 1);
     return [(k % c) * framePx, Math.floor(k / c) * framePx];
   }
-  /** The strip key (anim, dir) plays: {key, suffix, asked, fell, view, ok}. `fell` = another view stands in (the control
-   *  says "(plays back view)"); `ok` false = the strip has no frames for it at all. */
-  function animKey(kind, anims, anim, dir) {
+  /** Pass 111 (lane ENEMY): whether a creature's strip carries left-heading sets (EnemyManager: idle_l or run_l). */
+  function hasLeftSets(kind, anims) { return kindOf(kind) === 'enemy' && !!(anims && (anims.idle_l > 0 || anims.run_l > 0)); }
+  /** The strip key (anim, dir) plays: {key, suffix, asked, fell, view, ok, left}. `fell` = another view stands in (the
+   *  control says "(plays back view)"); `ok` false = the strip has no frames for it at all. Pass 111: `facing` 'left' on
+   *  a creature with left sets plays the left set of a front or back key (idle -> idle_l, run_b -> run_bl, ...; die and the
+   *  side / diagonal views stay), `left` true then: the game mirrors nothing of such a creature. */
+  function animKey(kind, anims, anim, dir, facing) {
     const k = kindOf(kind);
     const base = String(anim || 'idle');
     const has = (key) => !!(anims && anims[key] > 0);
-    if (BASE_ONLY[k].includes(base) || !dir) return { key: base, suffix: '', asked: '', fell: false, view: VIEW_OF_SUFFIX[k][''], ok: has(base) };
+    const lsets = hasLeftSets(k, anims);
+    const toLeft = (r) => {
+      if (!lsets) return r;
+      r.left = true;
+      if (facing !== 'left' || (r.view !== 'front' && r.view !== 'back') || !LEFT_OF[r.key] || !has(LEFT_OF[r.key])) return r;
+      return Object.assign(r, { key: LEFT_OF[r.key], view: r.view === 'back' ? 'back_l' : 'front_l', ok: true });
+    };
+    if (BASE_ONLY[k].includes(base) || !dir) return toLeft({ key: base, suffix: '', asked: '', fell: false, view: VIEW_OF_SUFFIX[k][''], ok: has(base) });
     const asked = SUFFIX[k][dir] != null ? SUFFIX[k][dir] : '';
     const chain = CHAIN[k][asked] || [asked, ''];
-    for (const s of chain) if (has(base + s)) return { key: base + s, suffix: s, asked, fell: s !== asked, view: VIEW_OF_SUFFIX[k][s], ok: true };
-    return { key: base + asked, suffix: asked, asked, fell: false, view: VIEW_OF_SUFFIX[k][asked], ok: false };
+    for (const s of chain) if (has(base + s)) return toLeft({ key: base + s, suffix: s, asked, fell: s !== asked, view: VIEW_OF_SUFFIX[k][s], ok: true });
+    return toLeft({ key: base + asked, suffix: asked, asked, fell: false, view: VIEW_OF_SUFFIX[k][asked], ok: false });
   }
   /** Frames per second the preview plays `anim` at (a preview rate: the game walks at fps.run x pace and stands at 3). */
   function previewFps(kind, anim, fps) {
@@ -108,10 +124,12 @@ const StripPlayer = (() => {
   /** Is the drawn frame mirrored? EnemyManager._face_bit: side and diagonal sets mirror when heading left; a creature's
    *  front and back sets too, inverted by front_faces / back_faces "left", never for "straight"; a hero's base and front
    *  views never (Player mirrors only its side and diagonal views). */
-  function mirror(kind, view, facing, frontFaces, backFaces) {
+  function mirror(kind, view, facing, frontFaces, backFaces, anims) {
     const left = facing === 'left';
     if (view === 'side' || view === 'bd' || view === 'fd') return left;
     if (kindOf(kind) === 'hero') return false;
+    // pass 111 (lane ENEMY): a creature with left sets is never mirrored front or back (its sheet says which way it faces)
+    if (view === 'front_l' || view === 'back_l' || hasLeftSets(kind, anims)) return false;
     const faces = String(view === 'back' ? (backFaces || 'right') : (frontFaces || 'right'));
     if (faces === 'left') return !left;
     if (faces === 'straight') return false;
@@ -316,7 +334,7 @@ const StripPlayer = (() => {
       this.dirSel = el('select', { class: 'sp-sel sp-dir', title: 'the view: which way the figure faces and heads' });
       this.dirSel.addEventListener('change', () => { const d = dirList(this.kind, this.anims).find((x) => x.v === this.dirSel.value); if (d) { this.dir = d.dir; this.facing = d.facing; this.resolve(); this.draw(); this.updateLine(); } });
       // heading left (a 2-way creature strip mirrors its front and back when heading left)
-      this.leftCb = el('input', { type: 'checkbox', title: 'heading screen-left: the game mirrors the front and back sets of a creature (EnemyDef.front_faces / back_faces say which way the painting turns)' });
+      this.leftCb = el('input', { type: 'checkbox', title: 'heading screen-left: the game mirrors the front and back sets of a creature (EnemyDef.front_faces / back_faces say which way the painting turns); a creature with left-heading sets (idle_l, run_l, ...: pass 111) plays those instead, never mirrored' });
       this.leftCb.addEventListener('change', () => this.setFacing(this.leftCb.checked ? 'left' : 'right'));
       this.leftWrap = el('label', { class: 'sp-cb' }, this.leftCb, el('span', { text: '⇋ left' }));
       // transport
@@ -360,13 +378,13 @@ const StripPlayer = (() => {
 
     // ---- state
     resolve() {
-      const r = animKey(this.kind, this.anims, this.anim, this.dir);
+      const r = animKey(this.kind, this.anims, this.anim, this.dir, this.facing);
       const ord = order(this.kind);
       const off = r.ok ? frameOffset(this.anims, r.key, ord) : -1;
       const count = r.ok ? Number(this.anims[r.key] || 0) : 0;
       const base = String(this.anim).split('_')[0];
       this.resolved = { key: r.key, view: r.view, fell: r.fell, ok: r.ok && off >= 0 && count > 0, offset: off, count, fps: previewFps(this.kind, this.anim, this.fps), loops: LOOPS.includes(base), asked: r.asked };
-      this.mirrored = mirror(this.kind, r.view, this.facing, this.frontFaces, this.backFaces);
+      this.mirrored = mirror(this.kind, r.view, this.facing, this.frontFaces, this.backFaces, this.anims);
       if (this.frameIdx >= count) this.frameIdx = 0;
       if (this.scrub) { this.scrub.max = Math.max(0, count - 1); this.scrub.value = this.frameIdx; }
       this.updateLine();
@@ -710,7 +728,7 @@ const StripPlayer = (() => {
 
   return {
     create, createSeq, stats, closeModal, openImage, IconPreview, CutoutPreview, plateFor,
-    MAX_ANIMATING, LRU_MAX, PPM, HERO_SIZE, RARITY_PLATE, ENEMY_ORDER, CHAR_ORDER, SUFFIX, CHAIN, BASE_ONLY, LOOPS,
+    MAX_ANIMATING, LRU_MAX, PPM, HERO_SIZE, RARITY_PLATE, ENEMY_ORDER, CHAR_ORDER, SUFFIX, CHAIN, BASE_ONLY, LOOPS, LEFT_OF, hasLeftSets,
     animKey, previewFps, mirror, dirList, animList, frameOffset, totalFrames, cell, order, viewLabel, kindOf,
   };
 })();

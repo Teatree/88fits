@@ -86,6 +86,7 @@ const Heroes = (() => {
     if (h.favourite_passive) plates.appendChild(el('span', { class: 'plate', title: 'FAVOURITE passive' }, el('img', { src: `/icon/passive/${h.favourite_passive}`, alt: '' }), el('span', { text: `favourite ${nameOf('passive', h.favourite_passive)}` })));
     const looks = Array.isArray(h.looks) ? h.looks : [];
     plates.appendChild(el('span', { class: 'plate muted', text: `${looks.length} look${looks.length === 1 ? '' : 's'}${looks.filter((l) => l.fresh).length ? ` · ${looks.filter((l) => l.fresh).length} new` : ''}${looks.filter((l) => l.shelved).length ? ` · ${looks.filter((l) => l.shelved).length} shelved` : ''}` }));
+    if (typeof Skins !== 'undefined') { const sk = Skins.cardLine(h); if (sk) plates.appendChild(sk); }   // pass 111 (lane SKINS): "2 skins on sale"
     mid.appendChild(plates);
     mid.appendChild(el('div', { class: 'ccard-actions' }, el('button', { class: 'btn small' + (editing ? ' primary' : ''), type: 'button', text: editing ? 'Editing' : 'Edit', onclick: () => Assets.open('hero', h.id) })));
     art.appendChild(mid);
@@ -124,6 +125,8 @@ const Heroes = (() => {
     pane.appendChild(sec('Art words', Assets.rows(doc, defs, 'Art words', iss).concat([newDriver, puppetBox]), { foot: 'The words gen_art.py sends for the base look; title_* and badge.* feed gen_title_heroes.py and the badge job. Each look\'s own recipe (in Looks) overrides the clip keys.' }));
     const lookChips = [el('span', { class: 'achip', text: `${doc.looks.length} look${doc.looks.length === 1 ? '' : 's'}` })];
     pane.appendChild(sec('Looks & previews', [Assets.looksSection(doc, iss), previews(doc)].concat(Assets.rows(doc, defs, 'Looks & previews', iss)), { open: true, chips: lookChips, keys: ['looks', 'variant', 'variant_base', 'anims', 'strip_cols', 'frame_px', 'fps'] }));
+    // pass 111 (lane SKINS): the looks offered to the players (skins.js: each row saves on its own through the skin route)
+    if (typeof Skins !== 'undefined') pane.appendChild(sec('Skins (looks players can buy)', [Skins.section(doc)], { id: 'Skins', open: true, chips: Skins.chips(doc), keys: ['skins'] }));
   }
 
   /** hidden and availability kept in step (pass 69, lane UI's rule in JsonContent.build: only availability "hidden"

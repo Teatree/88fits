@@ -1094,6 +1094,82 @@ oases = {
 "max": 3.0,
 "min": 2.0
 }
+far_speed = {
+"bosses": true,
+"distance": 14.0,
+"enabled": true,
+"max_mult": 2.0,
+"ramp": 6.0
+}
+world_chests = {
+"boss_chance": 0.0,
+"enabled": true,
+"every": [90.0, 130.0],
+"first": 60.0,
+"in_boss": true,
+"in_endless": false,
+"in_portal": false,
+"lifetime": 150.0,
+"max_dist": 45.0,
+"max_on_map": 2.0,
+"max_per_stage": 5.0,
+"min_dist": 25.0,
+"pointer": true,
+"view_margin": 3.0
+}
+chest_contents = {
+"boss": {
+"gold": 50.0,
+"mutation": true,
+"new_item_weight": 0.45,
+"powerup_chance": 0.5,
+"powerups": [{
+"id": "heart",
+"weight": 6.0
+}, {
+"id": "rage",
+"weight": 3.0
+}, {
+"id": "sprint",
+"weight": 3.0
+}, {
+"id": "shield",
+"weight": 2.0
+}, {
+"id": "magnet_pulse",
+"weight": 2.0
+}, {
+"id": "nuke",
+"weight": 2.0
+}],
+"throw_distance": [5.0, 7.0]
+},
+"normal": {
+"gold": 50.0,
+"new_item_weight": 0.45,
+"powerup_chance": 0.35,
+"powerups": [{
+"id": "heart",
+"weight": 6.0
+}, {
+"id": "rage",
+"weight": 3.0
+}, {
+"id": "sprint",
+"weight": 3.0
+}, {
+"id": "shield",
+"weight": 2.0
+}, {
+"id": "magnet_pulse",
+"weight": 2.0
+}, {
+"id": "nuke",
+"weight": 2.0
+}],
+"throw_distance": [5.0, 7.0]
+}
+}
 rock_color = "#785C5E"
 wall_colors = {
 "beams": "#4F3626",

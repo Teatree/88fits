@@ -38,12 +38,12 @@ A **look** is one painted strip (and, for a creature, its icon) of an asset. The
 | `.icon_picked` | entry | bool | absent | **pass 68**: the icon was picked from candidates; gen_art, gen_ctl and a recolour leave it in place on the look's later runs |
 | `.title` | entry (heroes) | file | absent | **pass 68**: the look's own title cut-out, a file name under `res://art/ui/wanted/` (`hero_<id>_<letter>.png`, written by a cut-out pick for the look); the Painted title shows the played look's, else `hero_<id>.png`; the Live title (the default) has no cut-out |
 | `.note` | entry | text | `""` | shown on the look cards and the arena chips |
-| `.anims` | entry | `{name: frames}` | the base's | the frame counts in the strip's fixed order: creatures `idle run attack hit die run_b idle_b run_s idle_s run_bd idle_bd run_fd idle_fd`; heroes `idle run turn hit die cheer idle_f run_f idle_s run_s idle_bd run_bd idle_fd run_fd hit_f hit_s hit_bd hit_fd`. A strip has 8 directions when `run_s > 0`, else 2 |
+| `.anims` | entry | `{name: frames}` | the base's | the frame counts in the strip's fixed order: creatures `idle run attack hit die run_b idle_b run_s idle_s run_bd idle_bd run_fd idle_fd` then the optional left-heading sets `idle_l run_l attack_l hit_l run_bl idle_bl` (**pass 111**, see its section); heroes `idle run turn hit die cheer idle_f run_f idle_s run_s idle_bd run_bd idle_fd run_fd hit_f hit_s hit_bd hit_fd`. A strip has 8 directions when `run_s > 0`, else 2 |
 | `.strip_cols` | entry | int | the base's / one row | columns of the strip grid (`min(frames, 16000 / frame_px)`); frame k sits at `((k % cols) * frame_px, floor(k / cols) * frame_px)` |
 | `.fps` | entry | `{run, die, hit}` | the base's | the rates the game reads: creatures `run` (× the map's pace; 10 when 0) and `die` (6); heroes by name prefix (`run` 14, `hit`, `die`), the rest BillboardSprite's table |
 | `.head` | entry | 0..1 | the base's | where the head sits in the cell from the top (the hit flash, the elite crown) |
 | `.frame_px` | entry (heroes) | int | the base's | a hero look may have its own cell size; a creature look always uses the base's |
-| `.front_faces`, `.back_faces` | entry or top | `right` \| `left` \| `straight` | `right` | which way the front (or back) painting turns: the game mirrors it for heading left under `right`, the other way round under `left`, never under `straight`. Side and diagonal sets always face right |
+| `.front_faces`, `.back_faces` | entry or top | `right` \| `left` \| `straight` | `right` | which way the front (or back) painting turns: the game mirrors it for heading left under `right`, the other way round under `left`, never under `straight`. Side and diagonal sets always face right. **Pass 111**: ignored for a look whose strip has left-heading sets (`idle_l` or `run_l`): such a look is never mirrored |
 | `.shelved` | entry | bool | absent | **pass 66**: the look stays in the JSON but is hidden from the arena chips and every default list (`variant_codes()`); a map row that names the code still plays it. The look in play (`variant`) cannot be shelved |
 | `.fresh` | entry | bool | absent | **pass 66**, page-only: painted by a job and not yet looked at (the NEW chip). Approve deletes the key; the game ignores it |
 | `.recipe` | entry | object | absent | *tool-only*: what the art job reads for this code (`method` plus the method's recipe fields: `pose`, `motion`, `death`, `drivers`, `words`, ...; see `tools/level_editor/methods.json`). It keeps only what differs from the creature's own art words: gen_art does `d.update(recipe)`, so an absent word inherits the top-level one (the editor shows the value that applies with its source: own, inherited, default) |
@@ -3223,3 +3223,90 @@ method stays hue/tint; a lift rerun is `python tools/dl/p107/RECOLOUR/make.py --
 |---|---|---|---|---|
 | `xp_mult` | `timeline_data.stage_list[k]` (map JSON) | number >= 0 | 1 (absent) | Every kill's XP in that stage times this (WaveTimeline.stage_xp_mult -> WaveDirector.stage_xp_mult -> Game._drop_from_kill, before the gems are spawned; also Prospector's extra gem). Holds through the stage's boss, its portal and its Endless (times Endless's own `xp_share`). Red Canyon: s2 (Nightfall) 0.7; s1, s3 none. Level Editor: stage card, "Its window" section, row "XP from kills" (empty or 1 removes the key). In `stage_entry()` (analytics, Stages menu) as `xp_mult`. |
 | `night_tint` | weapon / evolution / mutation `params` (ProjectileEmitter) | dict like `tint`: `albedo`, `emission`, `energy` (+ `roughness`, `metallic`, ...) | absent = no night look | The shot's colours while the game's StageLook shows a stage whose filter is on (stage_list filter strength > 0: Nightfall, Blood Moon; never Sundown). Wins over the day `tint` (a mutation's too, e.g. Thorns). Drawn as one tinted copy of the shot's kind (ProjectileManager.tinted_kind), replacing the day kind for that run: no extra draw calls. Tumbleweed `{"albedo": "#E9D59C", "emission": "#B89A5A", "energy": 0.35}` (bleached straw), Dust Devil `{"albedo": "#D6D0C6", "emission": "#8C857A", "energy": 0.45}` (pale ash). Listed in vocab.PARAMS_KEYS.ProjectileEmitter and assets_fields.js. |
+
+## Pass 111 (lane ENEMY): left-heading sets in a creature strip
+
+Garry (the Cyclopean Mummy): "instead it's always facing the face direction. But I want you to achieve this by changing
+the spritesheet itself instead of just doing this in code ... I want to still make tiny changes to where the Mummy is
+facing, but I want to do it myself."
+
+| key | where | type | default | meaning |
+|---|---|---|---|---|
+| `anims.idle_l`, `anims.run_l`, `anims.attack_l`, `anims.hit_l` | a creature look's `anims` (entry or top) | int frames | absent | the front set as shown while the creature heads **screen-left**: idle, walk, attack, hit |
+| `anims.run_bl`, `anims.idle_bl` | same | int frames | absent | the back set (walking away from the camera) as shown while it heads screen-left |
+
+- Order: appended after `idle_fd`, so the full creature order is `idle run attack hit die run_b idle_b run_s idle_s
+  run_bd idle_bd run_fd idle_fd idle_l run_l attack_l hit_l run_bl idle_bl` (EnemyDef.frame_offset, artkit.ENEMY_ORDER,
+  every tool's copy). A strip without them is laid out exactly as before.
+- Rule (EnemyManager): a look whose strip has `idle_l` or `run_l` is **never mirrored** by the game. Heading screen-right
+  it shows its ordinary frames as painted; heading screen-left it shows the left set as painted (each left strip it has
+  stands in for its right one: idle -> idle_l, run -> run_l, attack -> attack_l, hit -> hit_l, run_b -> run_bl, idle_b ->
+  idle_bl; a left strip it lacks shows the right one, unmirrored). `die` has no left copy: the death plays as painted
+  whichever way it was heading. `front_faces` / `back_faces` are ignored for such a look. Side and diagonal sets of an
+  eight-direction strip keep their mirror.
+- Making them: `python tools/add_left_sets.py --id <creature> --looks CODE,CODE | all [--base] [--force] [--dry-run]`
+  appends the left sets as unmirrored copies of the right-heading frames (so the creature always faces as painted),
+  keeps the look's `strip_cols` (the new frames fill the next rows; every existing frame stays where it was), backs the
+  old PNG up under `tools/dl/p111/enemy/left_sets_backup/`, and writes the six counts into the look's `anims` with a
+  small text edit (the file's layout kept). A look that already has them is skipped unless `--force` (rebuilt from the
+  right-heading frames, throwing away any edits to the left frames). Then `--import` and `import_json.gd -- only=enemies/<id>`.
+- Editing them: in the Level Editor's Frames view the groups "front, heading left" (idle, run, attack, hit) and
+  "back, heading left" (run, idle) list every left frame like any other (versions, copy from another group or look,
+  Export packs the strip with artkit.pack_strip, which may re-flow the grid's columns); or in an image editor on the PNG
+  (frame k at column k % strip_cols, row k // strip_cols).
+- The painting pipelines (gen_art, gen_ctl, gen_ant, a Level Editor re-roll) never produce left sets: a repaint writes the
+  look's `anims` whole, so its left sets are gone and the look mirrors again until add_left_sets.py runs on it again.
+- The Cyclopean Mummy's looks CM-A..CM-G carry them since pass 111 (copies of their own frames: 40 + 35 frames, 40
+  columns, 7040 x 352 px); the placeholder top-level strip (CM-0) does not.
+
+## Pass 111 (lane ENEMY): the creatures' bomb and the harpoon's chain (creature JSON `ranged`)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `ranged.shot` | `"bomb"` | | throws by `ranged.bomb` (EnemyManager.throw_block); `"dynamite"` throws by `ranged.dynamite` as since pass 85 |
+| `ranged.bomb` | object | | the `ranged.dynamite` keys (speed, fuse, out_before, lead, lead_max, model, scale, tip, halo_r, hand, blast) and: `arc_height` (m over the hand at the top; 0 = the plain arc), `arc_ratio` (0.6: the top at most that x the throw's length), `tumble` (rad/s, end over end), `halo_back` (bool: the pulse halo behind the shot), `land_dust` (a puff of sand on landing, its size), `material` {roughness, metallic, specular, rim, fog}, `spark` {color, size, glow}, `trail` {style, colour, alpha, width, life, puffs, smoke, sparks} (ProjectileManager.BOMB_TRAIL) |
+| `ranged.harpoon_fx` | object | HarpoonChain.DEFAULTS | looks only: `hand` {up, side, forward}, `chain` {link, width, thick, colour, outline, outline_px, overlap}, `hook_scale`, `windup` {lean (deg), glint}, `launch` {sparks, streak, streak_width, streak_life, wave, sfx}, `hit` {shake, snap, sfx}, `miss` {reel, sfx}, `rattle` |
+
+Models: `art/props/enemy_bomb.glb` (tools/blender_bomb.py; prints the fuse tip for `tip`), `art/props/harpoon_hook.glb`
+(tools/blender_harpoon.py). The Spit Cactus plays the bomb (its `dynamite` block kept); the harpooner carries
+`harpoon_fx`. Rules and numbers: BALANCING.md §54.ENEMY. Captures: game/tools/_p111_ENEMY_shots.gd.
+
+## Pass 111 (lane SKINS): looks sold as skins, the currency registry
+
+Garry: "first you complete a goal, then you get access to buying skins ... choose which Looks can be purchased, what
+goals Players have to complete to get access to those and how much they should cost. As well as choice of currency ...
+get everything ready for the currency selection functionality in every place where it matters." Rules: BALANCING.md
+§54.SKINS. Editor: the Heroes tab's **Skins** block (docs/level_editor.md "Pass 111").
+
+| key | where | type | default | meaning |
+|---|---|---|---|---|
+| `skin.purchasable` | a hero look `variants[CODE]` | bool | false | the look is sold to players (never the played look, never a shelved one) |
+| `skin.name` | same | string | "Look CODE" ("Classic" for the played look) | the name the hero sheet shows |
+| `skin.price` | same | int >= 0 | 0 | its price; 0 = his as soon as its goal is done |
+| `skin.currency_type` | same | currency id | "gold" | what the price is paid in (content/currencies; an unknown id reads as gold) |
+| `skin.unlock_quest` | same | quest id | "" | its goal's quest (found first by the quest's `unlocks` {type skin, id "<hero>:<CODE>"}); "" = on sale at once |
+| `skin.still` | same | file name | `<hero>_still_<code_slug>.png` | the full-body still the sheet's tile shows (tools/skin_stills.py cuts it) |
+| `unlocks.type` "skin", `unlocks.id` "<hero>:<CODE>" | content/quests/skin_<hero>_<code_slug>/ | | | a skin's goal (code_slug = the code lower-cased, '-' as '_') |
+| `condition.type` "beat_stage" {map, stage, hero} | a quest | | | in one run of stage `stage` (1-based) on `map`, kill its boss with `hero` ("" any) |
+| `currency_type` | content/talents/<id>/<id>.json | currency id | "gold" | what the talent's ranks are paid in |
+| `currency_type` | a hero (pass 69 key) | currency id | "gold" | what his price is paid in (now paid through Currency, any registry id) |
+| content/currencies/<id>/<id>.json | `id`, `name`, `flavour`, `order`, `icon` (res:// path or a file in the folder), `colour` (#hex), `word` | | | a currency (CurrencyDef, Registry.currencies) |
+
+Save keys (Save.gd, all with defaults; a save from before reads as none): `skins_owned` ["<hero>:<CODE>", ...],
+`skin_worn` {hero: CODE}, `wallets` {currency id: balance} (every currency but gold, which stays in `gold`),
+`talent_spent_in` {currency id: spent} (the board in a currency other than gold).
+
+The API every price goes through (core/systems/Currency.gd, static; tools and other lanes may call it):
+`Currency.balance(id)`, `Currency.add(id, n, source, extra := {})`, `Currency.spend(id, n, reason, extra := {}) -> bool`,
+`Currency.can_afford(id, n)`, `Currency.of(id)` (the id as the game reads it), `Currency.icon(id)`, `name_of`, `word_of`,
+`colour`, `price_words(id, n)` ("2,000 gold"), `Currency.ids()`. `Save.currency_moved(currency, delta, reason, balance,
+extra)` fires for every currency (gold's `gold_moved` and `gold_changed` still fire as before). Price plates: `WCoin.make(px,
+fill, border, currency)` and a WButton part `{"coin": px, "currency": id}` draw the currency's own icon.
+
+**Adding a currency later** (one folder, no code):
+1. `content/currencies/gems/gems.json`: `{"id": "gems", "name": "Gems", "word": "gems", "order": 1, "icon": "gems_icon.png", "colour": "#3FA7D6"}`
+   and its icon `gems_icon.png` in that folder; then `--import` and `import_json.gd -- only=currencies`.
+2. Price anything in it: a hero's `currency_type`, a talent's `currency_type`, a skin's `skin.currency_type` (the Level
+   Editor's currency selects list it once the editor's server is restarted).
+3. Pay it out where it is earned: `Currency.add("gems", n, "<source>")` (a run's end, a contract, a quest reward).
+   Only a purse that shows its balance on a screen (the title's and the Upgrade board's gold plates show gold) needs code.

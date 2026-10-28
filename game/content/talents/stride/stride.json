@@ -4,6 +4,7 @@
   "flavour": "Cover the ground, or pull it to you.",
   "order": 6,
   "ranks": 6,
+  "currency_type": "gold",
   "cost": [
     425,
     1700,

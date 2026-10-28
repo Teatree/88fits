@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CurrencyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://art/ui/wanted/coin.png" id="1_c4ljb"]
+[ext_resource type="Script" path="res://core/data/CurrencyDef.gd" id="2_edbut"]
+
+[resource]
+script = ExtResource("2_edbut")
+word = "gold"
+id = "gold"
+display_name = "Gold"
+flavour = "Banked at the end of every run; spent on heroes, the Upgrade board and looks."
+icon = ExtResource("1_c4ljb")
+icon_file = "res://art/ui/wanted/coin.png"

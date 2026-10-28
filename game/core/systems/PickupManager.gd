@@ -1170,10 +1170,12 @@ func _toss_tick(i: int, delta: float, map) -> void:
 ## Bosses give much more Coins"; their purses are Game.ELITE_PURSE / BOSS_PURSE).
 ## Pass 110 (lane ECON; Garry: "Reduce the coins gain from Boss, Elite and Specials. By 50%"): 5 -> 2.5 (a coin of 1-3 x
 ## 2.5, the fraction paid by chance in MirrorDanger.scaled_count, so on average exactly half of pass 70's).
-const BIG_COIN_MULT := 2.5
+## Pass 111 (lane WANTED; Garry: "To balance this out [the Bounty Board's gold], reduce the coin rewards from non-regular
+## enemies even further"): halved again, 2.5 -> 1.25.
+const BIG_COIN_MULT := 1.25
 ## Pass 110 (lane ECON): a variance special's own coin (its creature's drops.gold roll) comes this share as often; the
-## purses and BIG_COIN_MULT are the Elites' and bosses' half.
-const SPECIAL_COIN_MULT := 0.5
+## purses and BIG_COIN_MULT are the Elites' and bosses' half. Pass 111 (lane WANTED): halved again, 0.5 -> 0.25.
+const SPECIAL_COIN_MULT := 0.25
 
 
 ## The factor on the drops.gold coin of `def`: BIG_COIN_MULT for an Elite (its kind, or a creature wearing an Elite
@@ -1846,6 +1848,8 @@ func _physics_process(delta: float) -> void:
 	_attractors.clear()
 	_check_chests(player, delta)
 	_check_specials(player, delta)
+	# pass 111 (lane CHEST): the map's own chests, laid off the screen now and then
+	_tick_world(delta)
 	_ticks += 1
 	Perf.add("pickups", t0)
 
@@ -2102,16 +2106,20 @@ func _glint(i: int) -> void:
 		fx.mote(pos[i], Vector3(randf_range(-0.6, 0.6), 1.8, randf_range(-0.6, 0.6)), 0.3, 0.24, GLINT_COLOURS[clampi(kind[i], 0, GLINT_COLOURS.size() - 1)])
 
 
-func spawn_chest(at: Vector3, boss: bool = false) -> void:
+## Pass 111 (lane CHEST): `world` = laid by the map's own clock (WorldChests), not dropped.
+func spawn_chest(at: Vector3, boss: bool = false, world: bool = false) -> Chest:
 	var c := Chest.new()
 	c.boss = boss
+	c.world = world
+	c.born = _time
 	add_child(c)
 	c.global_position = at
 	chests.append(c)
+	return c
 
 
 ## `quiet`: no fanfare (the drop passives' cake slices and coin bags fall often).
-func spawn_special(def: PickupDef, at: Vector3, quiet: bool = false) -> void:
+func spawn_special(def: PickupDef, at: Vector3, quiet: bool = false) -> Powerup:
 	var p := Powerup.new()
 	p.setup(def)
 	add_child(p)
@@ -2119,6 +2127,7 @@ func spawn_special(def: PickupDef, at: Vector3, quiet: bool = false) -> void:
 	specials.append(p)
 	if not quiet:
 		Audio.play("pk_chest_open", at)
+	return p
 
 
 ## Whether a special pickup of id `id` lies on the ground now, waiting to be taken (pass 67: Fadeaway's Timeout comes one
@@ -2136,10 +2145,14 @@ func _check_specials(player: Node3D, delta: float = 0.0) -> void:
 	for p in specials:
 		if not is_instance_valid(p) or p.taken:
 			continue
+		# pass 111 (lane CHEST): one thrown out of a chest is not his until it lands
+		if bool(p.get("flying")):
+			keep.append(p)
+			continue
 		var d: Vector3 = player.global_position - p.global_position
 		d.y = 0.0
-		# a coin bag picks up like coins: inside the magnet's reach it flies to the hero
-		if bool(p.def.params.get("magnet", false)) and d.length() < magnet * 1.6 and delta > 0.0:
+		# a coin bag picks up like coins: inside the magnet's reach it flies to the hero (pass 111: never one a chest threw)
+		if bool(p.def.params.get("magnet", false)) and not bool(p.get("no_magnet")) and d.length() < magnet * 1.6 and delta > 0.0:
 			p.global_position += d.normalized() * minf(d.length(), (8.0 + magnet * 6.0) * delta)
 		if d.length() < 1.25 and not _down:
 			p.collect_anim()
@@ -2166,6 +2179,8 @@ func _check_chests(player: Node3D, delta: float = 0.0) -> void:
 			c.opened = true
 			game.open_chest(c.global_position, c.boss)
 			c.open_anim()
+			# pass 111 (lane CHEST): now and then a power-up hops out (chest_contents: its chance, which, how far)
+			throw_chest_powerup(c.global_position, c.boss)
 		else:
 			keep.append(c)
 	chests = keep
@@ -2515,3 +2530,243 @@ static func _magnet_consider(best: Array, p: Vector3, d2: float, n: int) -> void
 	best.insert(k, [p, d2])
 	if best.size() > n:
 		best.resize(n)
+
+
+# ---------------------------------------------------------------- the world chests and the chests' power-ups (pass 111, lane CHEST)
+
+## The map's own chests' clock (core/systems/WorldChests.gd, the map's `timeline_data.world_chests`), made at the first
+## tick from the run's map and seed; a test or a tool may hand one in. Its dice also roll the chests' power-ups.
+var world: WorldChests = null
+## Power-ups thrown out of chests this run (tests, the capture).
+var chest_powerups := 0
+
+
+func world_chests() -> WorldChests:
+	if world == null:
+		world = WorldChests.new()
+		var tl := _timeline()
+		world.setup(tl.world_chests if tl != null else {}, int(Run.rng_seed))
+	return world
+
+
+## The run's timeline: the director's, else the run's map's (null in a test without either).
+func _timeline() -> WaveTimeline:
+	var d = game.get("director") if game != null else null
+	if d != null and d.get("timeline") is WaveTimeline:
+		return d.get("timeline")
+	return Run.map.timeline if Run.map != null else null
+
+
+## One tick of the world chests: only while the director runs a stage (never in the debug arena, nor in a test's game
+## without a director), in the phases the block lets its clock run in.
+func _tick_world(delta: float) -> void:
+	var d = game.get("director") if game != null else null
+	if d == null or not bool(d.get("running")) or Run.arena:
+		return
+	world_chests().tick(self, delta, int(d.get("phase")))
+
+
+## The camera the screen is drawn with (the rig's, else the viewport's; null without one in the tree).
+func view_camera() -> Camera3D:
+	var rig = game.get("camera") if game != null else null
+	var cam: Camera3D = null
+	if rig is Camera3D:
+		cam = rig
+	elif rig is Object and is_instance_valid(rig) and rig.get("camera") is Camera3D:
+		cam = rig.get("camera")
+	if cam == null and is_inside_tree():
+		cam = get_viewport().get_camera_3d()
+	return cam if cam != null and cam.is_inside_tree() else null
+
+
+# WorldChests' host: the hero, the camera's view, the spot rules, the chests lying, the lifetime
+
+func world_hero() -> Vector3:
+	return _hero_at()
+
+
+## The camera's frustum planes, facing out (empty without a camera: nobody sees).
+func world_planes() -> Array:
+	var cam := view_camera()
+	return Array(cam.get_frustum()) if cam != null else []
+
+
+## What the spot rules read, gathered once a search: the map, the paintings' cover bands, the structures' rings, the
+## chests lying.
+func world_spot_ctx() -> Dictionary:
+	var map = game.get("map") if game != null else null
+	var ctx := {"map": map, "covers": [], "rings": [], "chests": []}
+	if map != null:
+		ctx["covers"] = BarrelField.covers_of(game, map)
+		ctx["rings"] = BarrelField.structure_rings(game)
+	for c in chests:
+		if is_instance_valid(c) and not c.opened:
+			(ctx["chests"] as Array).append(c.global_position)
+	return ctx
+
+
+## `p` grounded when a world chest may stand there (WorldChests' rules), Vector3.INF when not: inside the walkable round,
+## off the rocks' feet and the water, not behind a painting, clear of the structures and the other chests.
+func world_spot_ok(p: Vector3, ctx: Dictionary) -> Vector3:
+	var map = ctx.get("map")
+	if map != null:
+		var ar = map.get("arena_radius")
+		if ar != null and Vector2(p.x, p.z).length() > float(ar) * WorldChests.EDGE_SHARE:
+			return Vector3.INF
+		if not EnemyManager.spawn_clear(map, p):
+			return Vector3.INF
+		if map.has_method("in_water"):
+			var w := WorldChests.WATER_CLEAR
+			for o: Vector3 in [Vector3.ZERO, Vector3(w, 0, 0), Vector3(-w, 0, 0), Vector3(0, 0, w), Vector3(0, 0, -w)]:
+				if map.in_water(p + o):
+					return Vector3.INF
+		if BarrelField.in_cover(ctx.get("covers", []), Vector2(p.x, p.z), WorldChests.COVER_CLEAR):
+			return Vector3.INF
+		for ring: Vector3 in ctx.get("rings", []):
+			if Vector2(p.x - ring.x, p.z - ring.y).length() < ring.z + WorldChests.STRUCTURE_CLEAR:
+				return Vector3.INF
+	for q: Vector3 in ctx.get("chests", []):
+		if Vector2(p.x - q.x, p.z - q.z).length() < WorldChests.CHEST_CLEAR:
+			return Vector3.INF
+	return Vector3(p.x, map.height_at(p.x, p.z) if map != null else p.y, p.z)
+
+
+## World chests lying unopened now.
+func world_lying() -> int:
+	var n := 0
+	for c in chests:
+		if is_instance_valid(c) and c.world and not c.opened:
+			n += 1
+	return n
+
+
+## World chests lying unopened past `lifetime` seconds vanish, each only while nothing of it is on the screen (`margin`
+## m past the view). Returns how many went.
+func world_expire(lifetime: float, margin: float) -> int:
+	if lifetime <= 0.0:
+		return 0
+	var planes := world_planes()
+	var gone := 0
+	var keep: Array = []
+	for c in chests:
+		if is_instance_valid(c) and c.world and not c.opened and not c.pulled and _time - c.born >= lifetime \
+				and not WorldChests.seen(planes, c.global_position, margin):
+			c.queue_free()
+			gone += 1
+			continue
+		keep.append(c)
+	if gone > 0:
+		chests = keep
+	return gone
+
+
+## The world chest the HUD's edge tag points at (the nearest one lying unopened; the HUD shows the tag only while it is
+## off the screen), null when the map's block says no pointer or none lies.
+func pointer_chest() -> Chest:
+	if world == null or not world.on or not bool(world.cfg.get("pointer", true)):
+		return null
+	var hero := _hero_at()
+	if hero == Vector3.INF:
+		return null
+	var best: Chest = null
+	var best_d := INF
+	for c in chests:
+		if is_instance_valid(c) and c.world and not c.opened and not c.pulled:
+			var d := Vector2(c.global_position.x - hero.x, c.global_position.z - hero.z).length_squared()
+			if d < best_d:
+				best_d = d
+				best = c
+	return best
+
+
+## A chest at `at` was opened (pass 111): its type's `powerup_chance` (the map's chest_contents) throws a power-up out of
+## it, drawn from its `powerups` by weight (none listed: the map's power-up drops roster), on a hop landing
+## `throw_distance` m away, away from the hero, on a clear spot (chest_throw_spot). `force_id` throws that one whatever
+## the chance (tools, tests). The power-up, or null when none came.
+func throw_chest_powerup(at: Vector3, boss: bool, force_id: String = "") -> Powerup:
+	var tl := _timeline()
+	var cc := WorldChests.contents_of(tl.chest_contents if tl != null else {}, boss)
+	var dice := world_chests().rng
+	var id := force_id
+	if id == "":
+		var chance := float(cc["powerup_chance"])
+		if chance <= 0.0 or dice.randf() >= chance:
+			return null
+		var list: Array = cc["powerups"]
+		if list.is_empty() and tl != null:
+			list = WorldChests.weight_list(tl.pickups.get("roster", []))
+		id = WorldChests.pick_weighted(list, dice)
+	var def: PickupDef = Registry.pickup(id)
+	if def == null:
+		return null
+	var to := chest_throw_spot(at, cc["throw_distance"], dice)
+	var p := spawn_special(def, at, true)
+	p.throw_to(at, to)
+	chest_powerups += 1
+	return p
+
+
+## Where a power-up thrown out of a chest at `at` lands: `dist` m (rolled in its range) away, inside the arena, off the
+## rocks' feet and the water, out of the paintings' cover bands, THROW_CLEAR from any power-up lying, and where the player sees it land (a portrait screen
+## shows only ~6.5 m either side of the hero at the run's start, so "away from him" alone often threw it off the side):
+## first turned away from the hero (within 80 degrees of straight away) and wholly on the screen below the HUD's strip
+## (_throw_seen), then any way on the screen, then any way at all; the chest's own distance towards the arena's middle
+## when nothing is clear.
+func chest_throw_spot(at: Vector3, dist: Vector2, dice: RandomNumberGenerator) -> Vector3:
+	var map = game.get("map") if game != null else null
+	var hero := _hero_at()
+	var away := Vector2(at.x - hero.x, at.z - hero.z) if hero != Vector3.INF else Vector2.ZERO
+	var base := away.angle() if away.length_squared() > 0.0001 else dice.randf() * TAU
+	var cam := view_camera()
+	# never behind a painting's cover band (a palm, a cactus) where the player cannot see it lie
+	var covers: Array = BarrelField.covers_of(game, map) if map != null else []
+	for pass_k in range(3):
+		var spread := deg_to_rad(80.0) if pass_k == 0 else PI
+		for k in range(WorldChests.THROW_TRIES):
+			var a := base + dice.randf_range(-1.0, 1.0) * spread
+			var d := WorldChests.roll(dist, dice)
+			var q := Vector3(at.x + cos(a) * d, at.y, at.z + sin(a) * d)
+			if not _throw_ok(q, map, covers):
+				continue
+			q.y = map.height_at(q.x, q.z) if map != null else at.y
+			if pass_k < 2 and not _throw_seen(cam, q):
+				continue
+			return q
+	var inward := Vector2(-at.x, -at.z)
+	inward = inward.normalized() if inward.length_squared() > 0.0001 else Vector2(0.0, -1.0)
+	var q := Vector3(at.x + inward.x * dist.x, at.y, at.z + inward.y * dist.x)
+	q.y = map.height_at(q.x, q.z) if map != null else at.y
+	return q
+
+
+## Whether a power-up lying at `q` shows whole on the screen (its icon and ring THROW_VIEW_PAD m inside every edge of the
+## camera's view) and below the HUD's strip of slots. True without a camera.
+const THROW_VIEW_PAD := 1.0
+
+
+func _throw_seen(cam: Camera3D, q: Vector3) -> bool:
+	if cam == null:
+		return true
+	var c := q + Vector3(0.0, 0.6, 0.0)
+	for pl: Plane in cam.get_frustum():
+		if pl.distance_to(c) > -(0.9 + THROW_VIEW_PAD):
+			return false
+	var vp := cam.get_viewport().get_visible_rect().size
+	return cam.unproject_position(c).y > HUD.band_h * vp.x / 1080.0 + 60.0
+
+
+func _throw_ok(q: Vector3, map, covers: Array = []) -> bool:
+	if map != null:
+		var ar = map.get("arena_radius")
+		if ar != null and Vector2(q.x, q.z).length() > float(ar) - 3.0:
+			return false
+		if not EnemyManager.spawn_clear(map, q):
+			return false
+		if BarrelField.in_cover(covers, Vector2(q.x, q.z), WorldChests.THROW_CLEAR):
+			return false
+	for p in specials:
+		if is_instance_valid(p) and not p.taken:
+			var o: Vector3 = p._to if bool(p.flying) else p.global_position
+			if Vector2(q.x - o.x, q.z - o.z).length() < WorldChests.THROW_CLEAR:
+				return false
+	return true

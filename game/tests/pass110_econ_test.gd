@@ -281,14 +281,16 @@ func test_a_special_red_goblin_bites_for_three_and_a_half_times_a_plain_one() ->
 # ---------------------------------------------------------------- 2. coins
 
 func test_the_elite_and_boss_gold_is_half_of_pass_70s() -> void:
+	# (pass 111, lane WANTED, re-pinned: Garry's "reduce the coin rewards from non-regular enemies even further": halved
+	# again, a quarter of pass 70's, the purse's half coin dropped)
 	for s in 4:
-		assert_int(Game.elite_purse(s)).is_equal((450 + 300 * s) / 2)
-		assert_int(Game.boss_purse(s)).is_equal((1300 + 700 * s) / 2)
-	assert_int(Game.BOSS_COINS).is_equal(30)
-	assert_float(PickupManager.BIG_COIN_MULT).is_equal(2.5)
-	assert_float(PickupManager.SPECIAL_COIN_MULT).is_equal(0.5)
-	# the bosses' coins on the sand, half of pass 70's 60 / 150 / 200
-	var half := {"tumbleweed_king": 30, "gila_grande": 75, "brander": 100}
+		assert_int(Game.elite_purse(s)).is_equal((450 + 300 * s) / 4)
+		assert_int(Game.boss_purse(s)).is_equal((1300 + 700 * s) / 4)
+	assert_int(Game.BOSS_COINS).is_equal(15)
+	assert_float(PickupManager.BIG_COIN_MULT).is_equal(1.25)
+	assert_float(PickupManager.SPECIAL_COIN_MULT).is_equal(0.25)
+	# the bosses' coins on the sand, a quarter of pass 70's 60 / 150 / 200 (the Gila's half coin dropped)
+	var half := {"tumbleweed_king": 15, "gila_grande": 37, "brander": 50}
 	for id: String in half.keys():
 		assert_int(int(Registry.enemy(id).drops.get("coins", 0))).override_failure_message(id).is_equal(int(half[id]))
 
@@ -312,7 +314,8 @@ func test_a_coin_factor_scales_the_chance_of_the_coin() -> void:
 				coins += 1
 		got.append(float(coins) / float(n))
 	assert_float(float(got[0])).is_equal_approx(minf(1.0 + luck, 1.0), 0.02)
-	assert_float(float(got[1])).is_equal_approx(minf((1.0 + luck) * 0.5, 1.0), 0.05)
+	# (pass 111, lane WANTED, re-pinned: the special's factor read from the constant, 0.25 since pass 111)
+	assert_float(float(got[1])).is_equal_approx(minf((1.0 + luck) * PickupManager.SPECIAL_COIN_MULT, 1.0), 0.05)
 	assert_float(float(got[2])).is_equal(0.0)
 
 

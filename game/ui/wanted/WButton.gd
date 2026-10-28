@@ -68,7 +68,8 @@ func set_parts(parts: Array) -> void:
 	for p in parts:
 		if p is Dictionary and p.has("coin"):
 			flush.call()
-			_row.add_child(WCoin.make(float(p["coin"]), p.get("fill", W.BRASS), float(p.get("border", 3.0))))
+			# pass 111 (lane SKINS): {"coin": px, "currency": id} draws that currency's icon (gold's coin by default)
+			_row.add_child(WCoin.make(float(p["coin"]), p.get("fill", W.BRASS), float(p.get("border", 3.0)), str(p.get("currency", "gold"))))
 		elif p is Array:
 			# [text, colour] or [text, colour, px] (a smaller number beside the word: "RANK 2 ○ 252")
 			if p.size() > 2:

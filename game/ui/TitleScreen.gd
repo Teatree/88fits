@@ -86,6 +86,8 @@ var _line: WText
 ## The item plates (START, FAVOURITE) on the plaque's right; the trait's numbers flow under the flavour (pass 73).
 var _stats: HBoxContainer
 var _trait: HFlowContainer
+## pass 111 (lane SKINS): the plaque's "Details ›" (reads "Looks · Details ›" for a hero with looks)
+var _details: WText
 var _play: WButton
 var _map_tap: WTap
 var _map_line: WText
@@ -144,7 +146,9 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		# the hero's sheet up (pass 61): back closes it, the game stays
 		if sheet_open():
-			_sheet.call("close")
+			# pass 111 (lane SKINS): a look's question on the sheet goes first
+			if not WConfirm.dismiss(_sheet):
+				_sheet.call("close")
 			return
 		# pass 69: the buy question, then the hero drawer, before the game goes
 		if WConfirm.dismiss(self):
@@ -386,6 +390,7 @@ func _build_lower() -> void:
 	more.name = "Details"
 	more.align = HORIZONTAL_ALIGNMENT_RIGHT
 	right.add_child(more)
+	_details = more
 	_play = WButton.make(["PLAY"], 84, WButton.PRIMARY, 6, 10, 22.0, 22.0, 84.0)
 	_play.pressed.connect(_on_play)
 	add_child(_play)
@@ -603,6 +608,9 @@ func _show_plaque(c: CharacterDef) -> void:
 	_play.set_parts(["LOCKED" if locked else "PLAY"])
 	if not locked:
 		Save.data["last_character"] = c.id
+	# pass 111 (lane SKINS): a hero with looks to wear or earn says so where the sheet is opened
+	if _details:
+		_details.text = ("Looks · Details ›" if not locked and not Registry.skins_of(c).is_empty() else "Details ›").to_upper()
 	_show_unknown(c)
 
 
@@ -839,12 +847,12 @@ func _draw_mark() -> void:
 
 ## Whether the purse buys the next rank of any open talent.
 func _rank_affordable() -> bool:
-	var gold := Save.gold()
 	for def: TalentDef in Registry.talents_list():
 		if not Registry.is_unlocked("talent", def.id):
 			continue
 		var cost := def.cost_of_rank(Save.talent_rank(def.id))
-		if cost >= 0 and cost <= gold:
+		# pass 111 (lane SKINS): in the talent's own currency
+		if cost >= 0 and Currency.can_afford(def.currency_type, cost):
 			return true
 	return false
 
@@ -895,7 +903,8 @@ func _on_play() -> void:
 		return
 	Run.choose_stage(0)
 	_leave_for_a_run()
-	UiFx.go(get_tree(), "res://game/Game.tscn")
+	# pass 111 (lane WANTED): the Bounty Board first once the save has finished a run (WantedBoard.run_scene)
+	UiFx.go(get_tree(), WantedBoard.run_scene())
 
 
 ## A run starting lets the live look's world go (pass 52): the run builds its own map, and never carries two.
@@ -988,11 +997,13 @@ func _show_unknown(c: CharacterDef) -> void:
 			bar.text_px = 20
 			line.add_child(bar)
 	elif st == "buyable":
-		var short := maxi(c.price, 0) - Save.gold()
-		_buy.set_parts(["BUY", {"coin": 46, "fill": W.PAPER}, [W.num(maxi(c.price, 0)), null, 52]])
+		# pass 111 (lane SKINS): in his currency (Currency), its own icon on the button
+		var cur := Currency.of(c.currency_type)
+		var short := maxi(c.price, 0) - Currency.balance(cur)
+		_buy.set_parts(["BUY", {"coin": 46, "fill": W.PAPER, "currency": cur}, [W.num(maxi(c.price, 0)), null, 52]])
 		_buy.locked = short > 0
 		_buy_note_box.visible = short > 0
-		_buy_note.text = "%s more gold" % W.num(short) if short > 0 else ""
+		_buy_note.text = "%s more %s" % [W.num(short), Currency.word_of(cur)] if short > 0 else ""
 
 
 ## The card over the plaque, its width, its foot just over the dots (it covers the black figure's feet); the BUY over the
@@ -1138,10 +1149,10 @@ func ask_buy() -> void:
 	var c: CharacterDef = _heroes[_index]
 	if _state(c) != "buyable":
 		return
-	if Save.gold() < maxi(c.price, 0):
+	if not Currency.can_afford(c.currency_type, maxi(c.price, 0)):
 		Audio.play("ui_locked")
 		return
-	WConfirm.open(self, "Buy this hero?", "%s gold from your purse. Yours to play from then on." % W.num(maxi(c.price, 0)),
+	WConfirm.open(self, "Buy this hero?", "%s from your purse. Yours to play from then on." % Currency.price_words(c.currency_type, maxi(c.price, 0)),
 		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c))
 
 
@@ -1153,7 +1164,7 @@ func _buy_now(c: CharacterDef) -> void:
 		_place()
 		return
 	Audio.play("ui_buy")
-	Analytics.track("hero_bought", {"hero": c.id, "price": maxi(c.price, 0), "currency": c.currency_type, "gold_after": Save.gold()})
+	Analytics.track("hero_bought", {"hero": c.id, "price": maxi(c.price, 0), "currency": Currency.of(c.currency_type), "gold_after": Save.gold()})
 	_refresh_gold()
 	# the carousel's order follows what is owned: he moves up among the owned heroes and stays the one shown
 	_heroes = _roster()
@@ -1186,6 +1197,17 @@ func open_sheet() -> void:
 	var c: CharacterDef = _heroes[_index]
 	_swipe_id = -2
 	_sheet = WHeroSheetScript.open(self, c, _is_locked(c))
+	# pass 111 (lane SKINS): a look worn or bought on the sheet: the purse and the hero behind it at once
+	_sheet.connect("look_changed", func(_code: String): _on_sheet_look(c))
+
+
+## The sheet's look changed (pass 111, lane SKINS): the gold plate, and the hero drawn again in the look he wears now.
+func _on_sheet_look(c: CharacterDef) -> void:
+	_refresh_gold()
+	if _heroes.is_empty() or _heroes[_index] != c:
+		return
+	_show_hero(0)
+	_place()
 
 
 ## A sideways swipe over the hero changes it; the finger is read here so it works wherever it lands in the row, and

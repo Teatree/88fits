@@ -71,9 +71,11 @@ BACKUPS = os.path.join(REPO, "tools", "level_editor", "backups")
 KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "hero": "characters"}
 ENEMY_ORDER = list(artkit.ENEMY_ORDER)
 CHAR_ORDER = list(artkit.CHAR_ORDER)
-VIEWS = ("front", "fd", "side", "bd", "back")
+VIEWS = ("front", "fd", "side", "bd", "back", "front_l", "back_l")
 # the strip key's suffix per view: a creature's base set is its front, a hero's base set is his back
-SUFFIX = {"enemy": {"front": "", "back": "_b", "side": "_s", "bd": "_bd", "fd": "_fd"},
+# pass 111 (lane ENEMY): a creature's optional left-heading sets (artkit.LEFT_SETS: idle_l, run_l, attack_l, hit_l = the
+# front set heading screen-left, run_bl, idle_bl = the back set) are two more "views" of their own, front_l and back_l
+SUFFIX = {"enemy": {"front": "", "back": "_b", "side": "_s", "bd": "_bd", "fd": "_fd", "front_l": "_l", "back_l": "_bl"},
           "hero": {"back": "", "front": "_f", "side": "_s", "bd": "_bd", "fd": "_fd"}}
 LOOPS = ("idle", "run")
 ID_RE = re.compile(r"^[a-z0-9_]+$")
@@ -90,7 +92,8 @@ STORE_VERSION = 1
 RETENTION = {"strip_backups": 30, "repair_days": 90}
 # pass 96 (lane PAGE, Garry's decisions 1 and 10): the label every page and result names a frame by, and the rule that
 # a frame version is never deleted (the Delete button is gone; delete_version refuses, kept so callers still work)
-VIEW_WORD = {"front": "Front", "fd": "Front ¾", "side": "Side", "bd": "Back ¾", "back": "Back"}
+VIEW_WORD = {"front": "Front", "fd": "Front ¾", "side": "Side", "bd": "Back ¾", "back": "Back",
+             "front_l": "Front heading left", "back_l": "Back heading left"}
 NEVER_DELETED = ("frame versions are never deleted (pass 96, Garry's rule): every version of every frame is kept for reuse; "
                  "stage another one instead")
 
@@ -189,7 +192,7 @@ def order_of(kind):
 def anim_parts(kind, key):
     """A strip key split into (base, view): run_s -> (run, side); a key without a suffix is the kind's base view."""
     pk = player_kind(kind)
-    for sfx, view in (("_bd", "bd"), ("_fd", "fd"), ("_b", "back"), ("_s", "side"), ("_f", "front")):
+    for sfx, view in (("_bd", "bd"), ("_fd", "fd"), ("_bl", "back_l"), ("_b", "back"), ("_s", "side"), ("_f", "front"), ("_l", "front_l")):
         if key.endswith(sfx) and SUFFIX[pk].get(view) == sfx:
             return key[: -len(sfx)], view
     return key, ("back" if pk == "hero" else "front")

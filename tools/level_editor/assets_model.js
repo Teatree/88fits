@@ -8,7 +8,10 @@
 // page and in the self-test.
 const AssetsModel = (() => {
   // the fixed pack order of an enemy strip (EnemyDef.gd:521-527) and of a hero strip (Player.gd:165, artkit.CHAR_ORDER)
-  const ENEMY_ORDER = ['idle', 'run', 'attack', 'hit', 'die', 'run_b', 'idle_b', 'run_s', 'idle_s', 'run_bd', 'idle_bd', 'run_fd', 'idle_fd'];
+  // pass 111 (lane ENEMY): six optional left-heading sets after idle_fd (artkit.LEFT_SETS; shown unmirrored heading left)
+  const ENEMY_ORDER = ['idle', 'run', 'attack', 'hit', 'die', 'run_b', 'idle_b', 'run_s', 'idle_s', 'run_bd', 'idle_bd', 'run_fd', 'idle_fd',
+    'idle_l', 'run_l', 'attack_l', 'hit_l', 'run_bl', 'idle_bl'];
+  const LEFT_OF = { idle: 'idle_l', run: 'run_l', attack: 'attack_l', hit: 'hit_l', run_b: 'run_bl', idle_b: 'idle_bl' };
   const CHAR_ORDER = ['idle', 'run', 'turn', 'hit', 'die', 'cheer', 'idle_f', 'run_f', 'idle_s', 'run_s', 'idle_bd', 'run_bd', 'idle_fd', 'run_fd', 'hit_f', 'hit_s', 'hit_bd', 'hit_fd'];
   const ENEMY_SUFFIX = { front: '', back: '_b', side: '_s', bd: '_bd', fd: '_fd' };
   const HERO_SUFFIX = { back: '', front: '_f', side: '_s', bd: '_bd', fd: '_fd' };
@@ -161,20 +164,25 @@ const AssetsModel = (() => {
   /** Whether the drawn frame is mirrored: side / diagonal sets face screen-right as painted and mirror heading left
    *  (EnemyManager.gd:2695-2701, Player.gd:459); an enemy's front and back sets mirror too, inverted by front_faces /
    *  back_faces "left", never for "straight" (EnemyDef.gd:77-80); a hero's back and front sets never mirror. */
-  function mirror(kind, dir, facing, frontFaces, backFaces) {
+  function mirror(kind, dir, facing, frontFaces, backFaces, anims) {
     const left = facing === 'left';
     if (dir === 'side' || dir === 'bd' || dir === 'fd') return left;
     if (kind === 'hero') return false;
+    // pass 111 (lane ENEMY): a creature with left sets (idle_l or run_l) is never mirrored front or back
+    if (hasLeftSets(anims)) return false;
     const faces = dir === 'back' ? (backFaces || 'right') : (frontFaces || 'right');
     if (faces === 'straight') return false;
     return faces === 'left' ? !left : left;
   }
 
+  /** Pass 111 (lane ENEMY): whether a creature strip carries left-heading sets (EnemyManager: idle_l or run_l). */
+  function hasLeftSets(anims) { return !!(anims && (Number(anims.idle_l) > 0 || Number(anims.run_l) > 0)); }
+
   /** The rate a preview plays an animation at (approximate: the game runs an enemy's `run` by its speed when fps.run is
    *  0, EnemyManager.gd:2727; die 6 and the hero's SPEEDS table, BillboardSprite.gd:9). */
   function previewFps(kind, anim, fps) {
     const f = isObj(fps) ? fps : {};
-    const base = anim.replace(/_(b|s|bd|fd|f)$/, '');
+    const base = anim.replace(/_(b|s|bd|fd|f|l|bl)$/, '');
     if (kind === 'hero') {
       if (base === 'run') return num(f.run, 14) || 14;
       if (base === 'hit') return num(f.hit, 12) || 12;
@@ -576,6 +584,15 @@ const AssetsModel = (() => {
       case 'reach_stage': return `Reach stage ${n('stage', 1)}.`;
       // pass 100 (lane QUESTS): TextGen.quest_build_text
       case 'hero_level': case 'item_level': case 'evolve_item': case 'weapon_paths': case 'items_maxed': return questBuildText(c, nm);
+      // pass 111 (lane SKINS): "Beat Nightfall with May." (`nm.stage(map, k)` names stage k from the map's stage_list;
+      // hero "" = any hero: "Beat Nightfall.")
+      case 'beat_stage': {
+        const k = n('stage', 1);
+        const sn = (nm.stage && nm.stage(String(c.map || 'red_canyon'), k)) || `stage ${k}`;
+        const hid = String(c.hero || '');
+        const who = hid ? ((nm.hero && nm.hero(hid)) || hid.replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase())) : '';
+        return who ? `Beat ${sn} with ${who}.` : `Beat ${sn}.`;
+      }
       default: return 'Complete a challenge.';
     }
   }
@@ -710,7 +727,7 @@ const AssetsModel = (() => {
 
   const api = {
     STILLS_RE, STILLS_HELP, stillsProblem, badStills,   // pass 70
-    ENEMY_ORDER, CHAR_ORDER, ENEMY_SUFFIX, HERO_SUFFIX, HERO_FALLBACK, ID_RE, HEX_RE,
+    ENEMY_ORDER, CHAR_ORDER, ENEMY_SUFFIX, HERO_SUFFIX, HERO_FALLBACK, ID_RE, HEX_RE, LEFT_OF, hasLeftSets,   // pass 111: the left sets
     PLAYER_DEFAULTS, PLAYER_EXTRA, STAT_FLOORS, STATS, WEAPON_DEFAULTS, WEAPON_EXTRA, PREFIX, HERO_WORDS, HERO_NOTES, HERO_LOWER,
     isObj, num, isNum, order, frameOffset, offsets, totalFrames, cell, rows, directions, animKey, mirror, previewFps,
     prefixOf, suffixAt, usedSuffixes, nextCodes, codeFiles, slugOk, slugify,

@@ -7109,3 +7109,314 @@ The first stretch of each fight is still the stage's own leftover crowd (nothing
 once it is gone the fight settles at the window's numbers.
 
 Tests: game/tests/pass110_boss_window_test.gd (9), tools/level_editor/selftest_BOSS110.py (66).
+
+
+## 54. Pass 111: map chests, the Bounty Board, hero skins and the currency layer, far creatures faster, the mummy's own left frames, the bomb and the chain
+
+### 54.CHEST Map chests every now and then, never seen arriving; a power-up out of a chest, left for the player to fetch
+
+Garry: "Chests should respawn every now and then. They should also have a chance of a power up dropping from them. The
+power ups don't immediately get claimed and used by the hero. They jump far enough out for it to be a conscious decision
+for the Player. I should be able to set the frequency and content probabilities of both chest types on LevelEditor.
+Chests never spawn where Player can see them."
+
+Every number below is the map's (`timeline_data.world_chests`, `timeline_data.chest_contents`; Settings -> Chests in
+the Level Editor); the game's own defaults (a map without the blocks) are today's: no map chests, no power-up out of a
+chest, the reel as before. Keys and code: docs/waves_schema.md "Pass 111".
+
+**Map chests (new rules).**
+- On top of the chests creatures drop (pass 110's rules unchanged), the map lays a chest of its own: the first **60 s**
+  into the stage, then one every **90 to 130 s** (rolled each time), at most **5 a stage**. The clock runs in the stage
+  and in the boss fight; it stands still in the portal's countdown and in Endless, and never runs in the debug arena.
+- At most **2** lie unopened at once: a turn that finds 2 lying is skipped (the next waits its full 90-130 s), so chests
+  the player ignores never pile up. Dropped chests never count.
+- **Never seen arriving**: the chest, its pool of light (4.6 m) and its 9 m beam are all outside the camera's real view
+  by **3 m** when it appears (tested against the camera's frustum, so the late-run zoom-out is covered). It is laid
+  **25 to 45 m** from the hero (out to 67.5 m when the camera shows all of that), inside the walkable round (0.86 of the
+  arena's radius: short of the fort wall), off the rocks, 2.5 m out of the water, never behind a painting (a palm or a
+  cactus), 3 m past a structure's ring and 8 m from another chest; no spot: it tries again 3 s later.
+- **Lies for 150 s**: past that an unopened one disappears, only at a moment it is off the screen. A boss chest's call
+  (the vacuum) pulling it to the hero keeps it.
+- **Found by a tag**: the nearest map chest lying off the screen gets an edge tag like the boss's, the portal's and the
+  Elite's: "CHEST 33 m", brass (violet for a boss chest). Dropped chests get no tag (they fall where the fight is).
+- Boss chest chance **0**: every map chest is a normal chest.
+
+**A power-up out of a chest (new rule).**
+- When a chest is opened (any chest: a map chest, a special's, an Elite's, a boss's), a power-up hops out of it with
+  its type's chance: **normal 35%**, **boss 50%**, drawn from the same mix as the kills' drops (Heart 6, Rage 3, Sprint 3,
+  Shield 2, Magnet 2, Nuke 2 of 18).
+- It is thrown **5 to 7 m** from the chest on a visible hop (6 m: 0.76 s in the air, 3.1 m up), landing on a clear spot
+  (inside the arena, off the rocks and the water, not behind a painting, 1.2 m from any other power-up), first turned
+  away from the hero and wholly on the screen below the HUD's top strip, then anywhere on the screen, then anywhere.
+  The screen is narrow (about 6.5 m either side of the hero early in a run), so "on the screen" wins over "straight
+  away from him": the player sees where it lands.
+- In the air it cannot be taken and its clock stands still; on the sand it lies its own lifetime (Heart 22 s, the
+  others 40 s) and the hero walks over for it or leaves it. Nothing pulls it in: not the hero's magnet, not a coin bag's
+  own pull, not the Magnet power-up, not the boss chest's "everything comes to you" call (those never touched power-ups;
+  the coin bag's pull is now off for one a chest threw).
+- The game pauses for the chest's reel, so the hop plays as the reel closes.
+
+**The reel's knobs, now per chest type** (unchanged numbers): a passive item not held yet weighs **0.45** against an
+upgrade (pass 47's CHEST_NEW_MULT), the reel pays **50 gold** when nothing can grow, the boss chest holds a **mutation**
+while one is open; an evolution that is ready still comes first.
+
+**Measured** (run sim, the pass 110 setup: Drifter, quarter board, explorer bot, death = keep playing, 10 players, seed
+1, stage 1 to 10:00 with the King; tools/dl/sim/runs/p111-chest-s1-before and -after; the after run had no stage cap,
+which Sundown's 430 s never reaches):
+
+| per run | before (no map chests) | after |
+|---|---|---|
+| chests opened (every source) | 11.5 | 15.0 (+3.5) |
+| power-ups picked up | 16.8 | 17.0 |
+| deaths (kept playing) | 7.8 | 5.8 |
+| gold | 1,586 | 1,618 |
+
+The bot opens about 3.5 of the ~4-5 map chests a Sundown run (it sees a chest from 45 m and goes for it; a real player
+follows the tag). The power-ups it picked up hardly moved: chests throw about 1.2 more a run at 35% x 3.5, which is
+inside the runs' spread (6 a player). A real-run probe (game/tools/_p111_CHEST_probe.gd, Sundown 0:00-6:50, the hero
+walked to every map chest): 4 map chests at 1:00, 2:59, 4:37, 6:43 (gaps 119, 98, 126 s), all four off the screen when
+they appeared, 6 chests opened, 1 power-up thrown (a Sprint, 6.0 m from its chest, 6.7 m from the hero, on the screen,
+untouched until he walked to it).
+
+Tests: game/tests/pass111_chest_test.gd (15), tools/level_editor/selftest_CHEST111.py (36).
+
+### 54.WANTED The Bounty Board: Wanted posters before a stage run, paid when done; the big coins halved again
+
+Garry: "Wanted Poster functionality ... It should function exactly as you described - extra coin rewards for completing
+harder tasks. Make a nice config for me to be able to set it up easily in LevelEditor. Make it so I can set up the
+weights of each different task probability. Always a choice of 3. I should be able to set up some difficulty score for
+it. It should also scale with Player progression. Should not show locked items, heroes, enemies as a goal ... To balance
+this out, reduce the coin rewards from non-regular enemies even further. The Wanted Poster is NOT available for Players
+who are playing for the first time."
+
+Every number is `game/content/wanted/wanted.json` (the Level Editor's **Wanted** tab); the game reads it when it starts
+(core/systems/WantedBoard.gd). Code: WantedBoard.gd (the roll), WantedRun.gd (the run), ui/WantedBoardScreen.gd and
+ui/wanted/WPoster.gd (the screen), tools/level_editor/wanted_model.js (the same roll in the page).
+
+**When the board shows (new rules).**
+- Before every stage run started from the menus: PLAY on the title (stage 1 while the Stages menu is shut), a stage's
+  card on the Stages menu, and PLAY AGAIN on the Results. A tool's run (smoke, sim, Watch, the arena) never meets it.
+- Only once the save has finished `unlock.runs` **1** run (Save totals `runs`: every run that reached its end, a death
+  too). A first-time player's first run has no board. `enabled` false: never.
+- `choices` **3** posters, three different task types; the board needs at least one type with a target, else it is
+  skipped and the run starts.
+- **The same three come back**: the posters rolled for a stage, map and hero are kept in the save (`wanted.boards`)
+  until a choice is made, so leaving the board and coming back does not roll it again. Another stage or hero is a board
+  of its own. Taking a poster or "No bounty" forgets every kept board; the next run gets a fresh roll.
+- `rerolls` **0**: no re-roll button. With N, the board shows "Re-roll" (a fresh three; N times per board).
+- "No bounty" starts the run without one. Backing out (the back square) goes to the Stages menu, or the title.
+
+**Which types can be posted, and their targets.** A type is in the draw when it is `on`, weighs more than 0 and has a
+target this run:
+- `creatures_met_only` **true**: a creature or boss is a target only once the save has met it (Save.enemy_met: seen on
+  the sand or killed). `items_seen_only` **true**: a weapon or card only once seen in a run; the hero's own gun always.
+- Never hidden, retired, quest-locked (an item's unlock quest not done), another hero's own weapon, a weapon or card
+  whose `from_stage` is later than this stage, a training dummy, or a boss for the creature tasks. The hero on a poster
+  is the run's own (owned: he was picked to play).
+- Creatures: on **this stage's roster** (a row naming one creature, no Elite modifier, not all specials, not a one-off)
+  for at least `min_seconds` **40** inside the stage's window, counted once where rows overlap; drawn by those seconds.
+
+**The draw.** Types by `weight` without putting back: the first poster's type is weight / total of the eligible
+types; the next from the rest. The Wanted tab shows both chances per type ("first" and "on the board", exact).
+
+**The number, the difficulty, the reward (new rules).**
+- `n` holds one [easy end, hard end] range per stage (the last one for a later stage). Progression **P** = the stages
+  of this map the save has beaten (0 to 3). The range is x(1 + `progress.param_growth` **0.15** x P) (a type may name
+  its own `growth`); where a lower number is harder (the boss's seconds) it is divided by that instead. `max` caps it
+  (the health floor 90%). The number is rolled evenly in the range and rounded to `step`.
+- A creature is never asked for more than `per_minute_cap` **30** a minute of its seconds on the roster (Sundown's
+  Bull Beetles, 1.2 minutes on the roster: at most 35). Elites never more than the stage brings (its `elite_boss`
+  events plus its Elite rows' waves in the window).
+- **Difficulty** = the type's `difficulty` [easy, hard]: easy at the range's easy end, hard at its hard end, straight
+  between (a capped number below the range is the easy end); one decimal. Skulls on the poster = the difficulty
+  rounded, 1 to 5. A weapon that is not the hero's own adds `other_bonus` **1**. Types without a number: Beat the
+  stage (easy end when the stage was beaten before, hard end when never), Get a weapon to its top level (easy end +
+  other bonus), Evolve (a card: easy end; his own weapon: hard end).
+- **Gold** = (`base` **40** + `per_point` **60** x difficulty) x (1 + `progress_growth` **0.5** x P) x `stage_mult`
+  [**1, 1.25, 1.5**] by stage, rounded to `round` **5**. On Sundown (Nightfall x1.25, Blood Moon x1.5):
+
+  | difficulty | 0 stages beaten | 1 | 2 | 3 |
+  |---|---|---|---|---|
+  | 1 skull | 100 | 150 | 200 | 250 |
+  | 2 | 160 | 240 | 320 | 400 |
+  | 3 | 220 | 330 | 440 | 550 |
+  | 4 | 280 | 420 | 560 | 700 |
+  | 5 | 340 | 510 | 680 | 850 |
+
+**The default task types** (weight; difficulty easy -> hard; the number per stage Sundown / Nightfall / Blood Moon,
+before progression; what the poster shows):
+
+| type | weight | difficulty | number | poster |
+|---|---|---|---|---|
+| Kill N of a creature `kill_enemy` | 14 | 1 -> 3 | 40-120 / 50-150 / 60-180, step 5, cap 30 a minute on the roster | the creature's front still |
+| Kill N with a weapon `kill_weapon` | 10 | 1 -> 3 (+1 not his own) | 150-450 / 200-600 / 250-750, step 25; his own gun 3x as likely | the weapon's icon |
+| Kill N specials `kill_specials` | 8 | 1.5 -> 3.5 | 3-8 / 4-10 / 5-12 | a geared creature met on the stage, gear badge |
+| Kill N Elites `kill_elites` | 6 | 2 -> 3.5 | 1-2 / 2-4 / 3-5, never past the stage's Elites | an Elite met, crown badge |
+| Kill N creatures `kill_total` | 6 | 1 -> 2.5 | 800-1,600 / 1,000-2,200 / 1,400-3,000, step 50 | the stage's picture, skull badge |
+| Beat the boss within T `boss_fast` | 5 | 2.5 -> 4.5 | 45-75 / 60-100 / 80-130 s (lower is harder), step 5 | the boss's still (met only) |
+| Beat the boss, never under P% HP `hp_floor` | 5 | 2.5 -> 4.5 | 30-60%, step 5, max 90 | the hero, heart badge (boss met only) |
+| Beat the stage as the hero `beat_stage` | 6 | 1.5 (beaten before) / 3.5 (never) | | the stage's picture |
+| Reach hero level L `hero_level` | 8 | 1 -> 3 | 14-22 / 16-26 / 18-30 | the hero's cut-out |
+| Get a weapon to its top level `max_weapon` | 7 | 1.5 (+1 not his own) | its top level (5) | the weapon's icon |
+| Evolve an item `evolve_item` | 5 | 2.5 (a card) / 4 (his weapon) | | the item's icon |
+| Open N chests `open_chests` | 8 | 1 -> 2.5 | 4-8 / 6-11 / 8-14 | the chest |
+| Collect N gold `collect_coins` | 8 | 1 -> 2.5 | 250-600 / 400-900 / 600-1,300, step 25 | the coin |
+
+**How each is counted in the run** (this run only; the debug arena never):
+- Kills of a creature (Run.kills_by_enemy), with a weapon (its family: the weapon and its evolution, Run.kills_by_weapon),
+  in all (Run.kills); specials (a coloured special or a creature with the gear badge) and Elites (an Elite's kind or a
+  creature in an Elite modifier, never a boss) counted as they die; the hero's level (his highest this run); chests
+  opened (a skipped chest counts, as the run's own tally); gold picked up (after greed, every source; the bounty's own
+  pay never counts).
+- A weapon to its top level, an evolution: what the run holds (an evolved weapon counts as maxed).
+- Beat the stage: the stage's boss killed. The health floor: the hero's health (a share of his max) never under P% from
+  the run's start until the boss dies; going under fails it at once (a death and a revive do).
+- The boss in time: from the boss's arrival to his death on the run's clock (pauses do not count); past the seconds with
+  him alive fails it at once; another boss's death counts for nothing.
+
+**Done, failed, paid.** DONE the moment it is met (a banner "BOUNTY DONE" with the target's icon, a toast "BOUNTY +N
+GOLD", the HUD plate turns green). FAILED the moment it cannot be met any more (the plate greys). The gold is paid at the
+run's end into the save (source `wanted_contract`), **only when done**, whatever the end (a death or an abandon too, as
+the purse comes home since pass 70), once. The Results show a BOUNTY panel (+N, or how far it came, or FAILED) and the
+gold line before -> after counts it. The HUD's plate sits on the right under the item row (under the boss's bar while a
+boss lives): the target's icon, "BOUNTY", the progress ("15 / 35", "0:32 left", "low 64%", "DONE"). The pause screen's
+Build tab lists it first. The run record carries `bounty` {type, target, n, d, reward, P, stage, have, need, done,
+failed, paid, name, text, still} and the events `bounty_taken`, `bounty_done`, `bounty_failed`.
+
+**The big coins halved again** (Garry: "reduce the coin rewards from non-regular enemies even further"; a regular
+creature's coin unchanged):
+
+| what | pass 110 | pass 111 |
+|---|---|---|
+| Elite purse `Game.ELITE_PURSE` (Sundown / Nightfall / Blood Moon) | [225, 150]: 225 / 375 / 525 | [112, 75]: 112 / 187 / 262 |
+| Boss purse `Game.BOSS_PURSE` | [650, 350]: 650 / 1,000 / 1,350 | [325, 175]: 325 / 500 / 675 |
+| Boss coins on the sand `drops.coins` (King / Gila / Brander), `Game.BOSS_COINS` | 30 / 75 / 100, 30 | 15 / 37 / 50, 15 |
+| An Elite's or a boss's own coin `PickupManager.BIG_COIN_MULT` | 2.5 | 1.25 |
+| A coloured special's own coin `PickupManager.SPECIAL_COIN_MULT` (its chance) | 0.5 | 0.25 |
+
+The half coin of the odd numbers is dropped (112, 37). A Sundown run that kills the King gives up about 325 + 75 (the
+boss) and about 115 an Elite, roughly 500 of the ~1,600 the run sim measured in pass 110 (53.ECON); a 1 to 3 skull
+bounty pays 100 to 220 back on Sundown before progression.
+
+Tests: game/tests/pass111_wanted_test.gd (19), the re-pinned pass70_econ_test.gd and pass110_econ_test.gd,
+tools/level_editor/selftest_WANTED111.py; touch_audit `wanted`.
+
+### 54.ENEMY The mummy faces as painted, the black bomb, far creatures walk faster, the harpoon's chain
+
+**The Cyclopean Mummy faces as its sheet is painted (new rule, art only).** Garry: "Cyclops Mummy ... Let's make it so
+that Cyclops Mummy doesn't actually do that, instead it's always facing the face direction. But I want you to achieve
+this by changing the spritesheet itself". A creature look may carry its own left-heading sets after the usual ones:
+`idle_l`, `run_l`, `attack_l`, `hit_l` (the front set while it heads screen-left) and `run_bl`, `idle_bl` (the back set
+heading left); the death has one set. A look that has `idle_l` or `run_l` is **never mirrored by code**: heading left it
+shows its left sets, heading right its usual sets, both exactly as painted; a left set the look lacks shows the right
+one unmirrored; `front_faces` / `back_faces` do not apply to it. Every Cyclopean Mummy look (CM-A..CM-G) now has left
+sets that are plain copies of its right-heading frames, so the mummy always looks the way it is painted, whichever way it
+walks. Every other creature mirrors as before. A repaint of a look (gen_art, gen_ctl, a Level Editor re-roll) writes the
+usual sets only and the look mirrors again until `python tools/add_left_sets.py --id <id> --looks <CODE>` is run.
+
+**The Spit Cactus throws a black bomb (looks; one timing rule).** Garry: "Make it into one of those black round bombs
+instead. Make it bigger and make the arch of its flight more obvious. It functions the same otherwise". `ranged.shot`
+"bomb" throws by `ranged.bomb` (the `ranged.dynamite` block stays for "dynamite"): the same speed 9, fuse 1 s (out 0.5 s
+before), lead 0.35 (at most 2.5 m), hand, blast (2 m, knockback 7, lift 2, push 10 x 1.2), ring and pulse as the stick.
+- A glossy black ball 0.6 m across (scale 1; the stick was about 0.43 m long and a few cm thick) with a metal collar and
+  a sparking cord fuse (spark 0.2, the stick's 0.13, its glow 0.45 of the usual so it does not tint the ball). It is
+  kept out of the map's warm haze (`material.fog` false), which had browned it, and its red pulse glows behind it
+  (`halo_back`), round its edge, instead of over it.
+- **Higher arc, same time, same spot (new rule):** the top of its arc is `arc_height` **4.5 m** over the hand (the stick's
+  was about 1.2 m), at most `arc_ratio` **0.75** x the throw's length (a 4 m throw tops out 3 m up). It keeps the
+  stick's time in the air (the throw's length / 9 m/s, 0.4 to 2 s) and lands on the same spot, so it falls under a
+  stronger gravity of its own (about 113 m/s^2 on a 5 m throw, 52 on an 8 m one; never less than the usual 24). The red ring and
+  the fuse last exactly as long as before.
+- It tumbles end over end at 4 rad/s (the stick turned at 11), trails a dark smoke ribbon from its fuse (0.3 m wide,
+  0.85 s), a grey puff every 0.045 s and an orange spark every 0.03 s, and lands with a puff of sand (0.6). Never darkened
+  by a stage filter, like every shot.
+
+**Far creatures walk faster (new rule, Garry's to switch).** Garry: "Regular Enemies should walk considerably faster when
+they are far enough from the Player ... an option that I can control and switch off ... also ... Bosses, but not ...
+Elites or Special Enemies." Map `timeline_data.far_speed` (Settings -> Scaling in the Level Editor):
+- `enabled` **on**, `distance` **14 m**, `ramp` **6 m**, `max_mult` **2.0**, `bosses` **on**: a creature farther than
+  14 m (flat) from the hero walks faster, smoothly: x1 at 14 m, x1.5 at 17 m, x2 from 20 m out. The screen shows about
+  12 m to the sides and 20 m up and down and the roster's rings come at 18 m, so the speed-up starts just off the sides
+  of the screen and a new ring (18 m out) arrives at about x1.74.
+- Only the walk the brain chooses (chase, flock, kite, a kamikaze's run, a boss walking between attacks) is multiplied,
+  on top of every other speed (Creature speed x, the stage, Endless, slows). A charge, a boss's roll or jump, a flee on
+  hit, a push, a pull or a throw keep their own speed.
+- Never an Elite (by its kind or an Elite modifier), a special type (the Vulture Raider, the harpooner, the Saiga Sniper),
+  a coloured special or a training dummy. The arena plays it too; the despawn rule is unchanged. The run sim plays it
+  (it runs the game's code), so sim numbers from before this pass are a little gentler on the hero.
+
+**The harpoon is a fat chain (looks only).** Garry: "Make it look like a fat chain so it's easier to understand what it
+does. Make the whole shooting of the harpoon sequence more impressive and noticeable." `ranged.harpoon_fx` (looks):
+- The rope is a chain of chunky iron links 0.56 m long, 0.4 m wide, 0.13 m thick, outlined dark and kept out of the
+  map's haze, from the harpooner's hand (up 1.45 m, 0.55 m to its harpoon side) to a barbed iron hook with a red shaft
+  (1.3 x, about 1.75 m long as drawn; the old one was a thin red stick).
+- Wind-up (its 0.8 s telegraph, unchanged): it rears back up to 16 degrees away from its aim and crouches 10%,
+  trembling over the last 30%; a white glint flashes off the hook in its hand 0.3 s before the throw; the red aim line
+  as before.
+- Launch: sparks off the hand, a hot white streak behind the hook, the chain paying out with a wave running down it.
+- Hit: a clank of sparks at the hero and at the hand, the chain snaps taut with a shudder, and a **camera kick of 0.35**
+  (scaled by the player's screen-shake setting; pass 82 had removed the hook's shake with the hurt's).
+- While he is roped: the chain rattles when it hauls, sags a little when it holds; the hook sits in the hero.
+- Miss: the chain goes slack and the hook is reeled back to the hand in 0.6 s.
+- The gameplay is unchanged: the 0.8 s wind-up, 20 m/s, 19 m range, the lead, the 5 s rope, 70% walking away, the
+  5.5 s cooldown; the shot still flies from the body's middle (the chain is drawn from the hand).
+
+Tests: game/tests/pass111_enemy_test.gd (17), the re-pinned pass85_bandit_test.gd and pass87_fixes_test.gd;
+tools/level_editor/selftest_ENEMY111.py, selftest_LEFT111.py.
+
+### 54.SKINS Looks you earn and buy (skins), and every price ready for more than one currency
+
+Garry: "Skins - Also, good idea, add the UI support for this. Make it easy to access for each hero. The logic for skins
+will be similar to everything else - first you complete a goal, then you get access to buying skins." and "Add an
+option in LevelEditor for each hero to make it so I can choose which Looks can be purchased, what goals Players have to
+complete to get access to those and how much they should cost. As well as choice of currency ... get everything ready
+for the currency selection functionality in every place where it matters. We aren't adding new currency yet."
+
+**Skins (new rules).**
+- A hero's look (`variants[CODE]` in content/characters/<hero>/<hero>.json) is sold to players when its
+  `skin.purchasable` is on: `{"purchasable": true, "name": "Midnight Mime", "price": 2000, "currency_type": "gold",
+  "unlock_quest": "skin_may_may_b"}`. Edited in the Level Editor (Heroes tab, a hero, **Skins**).
+- **The look the game plays (the JSON's `variant`) is every player's** from the start; the sheet calls it "Classic"
+  (its own `skin.name` when the JSON gives one). A look not sold and not bought is never shown to players.
+- **Locked until its goal is done**: the quest whose `unlocks` is `{type: "skin", id: "<hero>:<CODE>"}` (else the one
+  `skin.unlock_quest` names; content/quests/skin_<hero>_<code>/). No goal = on sale at once. The goal's progress is the
+  quests' usual one (a counted goal shows its bar; an in-one-run goal completes during the run, with a banner "NEW LOOK
+  FOR SALE: <name>" and a line on the Results' "Unlocked this run").
+- **Then bought once** for `price` in `currency_type` (Save.buy_skin, the sink "skin"); only for a hero the player owns
+  (a locked hero's sheet sells nothing). **Price 0** = the look is his as soon as the goal is done (nothing to buy).
+- **Bought = worn at once**; any owned look is worn with a tap on its tile (Save.set_skin_worn). The worn look is what
+  he is played in everywhere (Registry.played_look: the run, the title, the badge, the drawer, the Results, the
+  analytics' hero_look). The arena's USE FROM NOW ON is a debug choice and wins over the worn skin; wearing a look from the
+  sheet lets that debug choice go.
+- A look **shelved** later (the Level Editor) is not shown or worn any more (he wears the played look); one bought stays
+  bought (it comes back if it is unshelved). A look bought and later made not purchasable stays his.
+- The production build keeps every look sold as a skin (tools/prod_reach.gd), beside the played one.
+- The sheet's tile shows a full-body still `<hero>_still_<code>.png` cut by `python tools/skin_stills.py` from the
+  look's strip (the front idle frame); without one it shows the look's badge.
+- New goal type **beat_stage {map, stage, hero}**: in one run of that stage (1-based) kill its boss with that hero
+  ("" = any hero): "Beat Nightfall with May.".
+
+**The first set** (prices about half the hero's own price of pass 110, so about one good run's purse):
+
+| hero | look | name | goal | price |
+|---|---|---|---|---|
+| May | MAY-B (black overalls and beret) | Midnight Mime | Beat Nightfall with May (beat_stage, stage 2) | 2,000 gold |
+| Fadeaway | FAD-B (the all-purple kit, his first painting) | Purple Reign | Reach level 20 with Fadeaway (hero_level) | 1,500 gold |
+
+Only these two heroes have a finished look that looks different from the one they wear: Solenne's other looks
+(SOL-A..G) and Jeżyk's BUC-D/E are the same outfit with another walk, his deer looks are shelved, and the Drifter,
+Astro, Calavera and Ironwood have one look each.
+
+**Currencies (nothing changes for the player).**
+- The currencies are content: content/currencies/<id>/<id>.json (`name`, `icon`, `colour`, `word`, `order`); only
+  **gold** (its icon the coin). Every price outside a run is shown with its currency's own icon (WCoin.currency) and paid
+  through core/systems/Currency.gd: a hero (`currency_type`), an Upgrade board rank (each talent's new `currency_type`,
+  "gold"), a skin (`skin.currency_type`).
+- **A currency id the content lacks reads as gold** (Currency.of; the Registry warns), so a price typed in a currency
+  not made yet is sold for gold rather than never. The Level Editor refuses ids not in the registry.
+- Gold stays in the save's "gold" key (every gold event and chart unchanged); any other currency would live in the save's
+  "wallets". Take it all back pays half of each currency spent on the board back in that currency.
+- Adding a currency: docs/assets_schema.md "Pass 111 (lane SKINS)".
+
+Tests: game/tests/pass111_skins_test.gd (14); re-pinned pass81_prod_test (a hero keeps his played look and his skins);
+tools/touch_audit.gd hero_skins; tools/level_editor/selftest_SKINS111.py.

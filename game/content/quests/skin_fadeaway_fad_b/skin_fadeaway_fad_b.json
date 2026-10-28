@@ -1,0 +1,14 @@
+{
+  "id": "skin_fadeaway_fad_b",
+  "name": "Fadeaway · Purple Reign",
+  "condition": {
+    "type": "hero_level",
+    "hero": "fadeaway",
+    "level": 20
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "fadeaway:FAD-B"
+  },
+  "icon": "res://content/characters/fadeaway/fadeaway_icon.png"
+}

@@ -60,7 +60,8 @@ def font(size):
     return ImageFont.load_default()
 
 
-ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
+ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd",
+               "idle_l", "run_l", "attack_l", "hit_l", "run_bl", "idle_bl"]   # pass 111: the optional left-heading sets
 CHAR_ORDER = ["idle", "run", "turn", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd", "idle_fd", "run_fd", "hit_f", "hit_s", "hit_bd", "hit_fd"]
 
 
@@ -822,6 +823,18 @@ def quest_text(q):
         return "Earn %d gold, all time." % n
     if t == "reach_stage":
         return "Reach stage %d." % int(c.get("stage", 1))
+    if t == "beat_stage":
+        # pass 111 (lane SKINS): "Beat Nightfall with May." (TextGen.beat_stage_text)
+        k = int(c.get("stage", 1))
+        stage = "stage %d" % k
+        sl = ((_items()["maps"].get(c.get("map") or "red_canyon", {}).get("timeline_data") or {}).get("stage_list") or [])
+        if 0 < k <= len(sl) and isinstance(sl[k - 1], dict):
+            stage = str(sl[k - 1].get("name") or "Stage %d" % k)
+        hero = str(c.get("hero", ""))
+        if not hero:
+            return "Beat %s." % stage
+        h = _items()["characters"].get(hero, {})
+        return "Beat %s with %s." % (stage, h.get("name", hero.title()))
     if t in ("hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed"):
         return _quest_build_text(c)
     return "Complete a challenge."

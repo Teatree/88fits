@@ -1050,6 +1050,10 @@ func _fill_end(with_log: bool, banked: int = 0) -> void:
 	header["quests"] = _quests()
 	header["crowd"] = _crowd()
 	header["gold_end"] = gold_end(banked)
+	# pass 111 (lane WANTED): the bounty taken on the board and how it ended (WantedRun.record; none: no key)
+	var bounty := WantedRun.record_now()
+	if not bounty.is_empty():
+		header["bounty"] = bounty
 	var fps := fps_stats()
 	if not fps.is_empty() and not bool(header.get("headless", false)):
 		header["fps"] = {"avg": fps["fps_avg"], "low": fps["fps_low"]}

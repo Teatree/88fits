@@ -101,6 +101,13 @@ variants = {
 "icon": "res://content/characters/fadeaway/fadeaway_icon.png",
 "note": "the first painting: five views on the Mixamo run, the back views on run_spread",
 "shelved": false,
+"skin": {
+"currency_type": "gold",
+"name": "Purple Reign",
+"price": 1500.0,
+"purchasable": true,
+"unlock_quest": "skin_fadeaway_fad_b"
+},
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_b.png",
 "sprite_file": "fadeaway_sprite_b.png",
 "strip_cols": 62,

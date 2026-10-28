@@ -164,6 +164,11 @@ func _fit_board() -> void:
 # ---------------------------------------------------------------- build
 
 func _build_tab() -> void:
+	# pass 111 (lane WANTED): the run's bounty on top, with how far it has come (WantedRun.pause_row)
+	var bounty := WantedRun.pause_row()
+	if bounty:
+		_group("Bounty", "")
+		_content.add_child(bounty)
 	if Run.weapons.is_empty() and Run.passives.is_empty():
 		_content.add_child(W.serif_text("Nothing yet.", 28, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	if not Run.weapons.is_empty():

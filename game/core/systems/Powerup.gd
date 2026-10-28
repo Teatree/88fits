@@ -12,6 +12,23 @@ var _ring: MeshInstance3D
 var _light: OmniLight3D
 ## whether the ring lies on the slope yet (pass 52: done on the first frame, once the pickup stands where it was dropped)
 var _laid := false
+## Pass 111 (lane CHEST; Garry: "The power ups don't immediately get claimed and used by the hero. They jump far enough
+## out for it to be a conscious decision for the Player"): one thrown out of a chest (throw_to) is in the air on a hop
+## until it lands (`flying`: never taken, its lifetime not running, its ring hidden), and never pulled by a magnet
+## (`no_magnet`: a coin bag's own pull included; a vacuum never touched power-ups): the hero walks to it, or leaves it.
+var flying := false
+var no_magnet := false
+var _from := Vector3.ZERO
+var _to := Vector3.ZERO
+var _fly_t := 0.0
+var _fly_dur := 0.0
+var _apex := 0.0
+## The hop: THROW_TIME + THROW_TIME_PER_M x its length in the air, its top THROW_APEX + THROW_APEX_PER_M x its length
+## over the line from the chest to where it lands (6 m: 0.76 s, 3.1 m up).
+const THROW_TIME := 0.55
+const THROW_TIME_PER_M := 0.035
+const THROW_APEX := 1.8
+const THROW_APEX_PER_M := 0.22
 
 
 func setup(p_def: PickupDef) -> void:
@@ -58,6 +75,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if taken:
 		return
+	if flying:
+		_fly(delta)
+		return
 	if not _laid:
 		_lay_ring()
 	_t += delta
@@ -86,6 +106,49 @@ func _lay_ring() -> void:
 	var n: Vector3 = map.normal_at(global_position.x, global_position.z, 0.8)
 	_ring.basis = MapBase.ground_basis(n)
 	_ring.position = n * 0.06
+
+
+## Thrown out of a chest (pass 111): from `from` (the chest) on a hop to `to` (on the sand), in the air until it lands.
+func throw_to(from: Vector3, to: Vector3) -> void:
+	_from = from
+	_to = to
+	var d := Vector2(to.x - from.x, to.z - from.z).length()
+	_fly_dur = THROW_TIME + THROW_TIME_PER_M * d
+	_apex = THROW_APEX + THROW_APEX_PER_M * d
+	_fly_t = 0.0
+	flying = true
+	no_magnet = true
+	if is_inside_tree():
+		global_position = from
+	if _ring:
+		_ring.visible = false
+
+
+## Where the hop has it `f` (0..1) of the way: along the line, a parabola `_apex` high over it.
+func throw_point(f: float) -> Vector3:
+	var p := _from.lerp(_to, clampf(f, 0.0, 1.0))
+	p.y += 4.0 * _apex * f * (1.0 - f)
+	return p
+
+
+func _fly(delta: float) -> void:
+	_fly_t += delta
+	var f := clampf(_fly_t / maxf(_fly_dur, 0.01), 0.0, 1.0)
+	global_position = throw_point(f)
+	if _sprite:
+		_sprite.position.y = 0.35
+	if f < 1.0:
+		return
+	# down: it lies where it landed, its ring laid on the sand there, with a little squash
+	flying = false
+	global_position = _to
+	_laid = false
+	if _ring:
+		_ring.visible = true
+	var size: float = scale.x
+	var tw := create_tween()
+	tw.tween_property(self, "scale", Vector3(size * 1.25, size * 0.75, size * 1.25), 0.07)
+	tw.tween_property(self, "scale", Vector3.ONE * size, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func collect_anim() -> void:

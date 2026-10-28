@@ -270,6 +270,22 @@ func _surveys_block() -> void:
 		_refresh_soon())
 	counted.name = "SurveyCounted"
 	_list.add_child(counted)
+	# pass 111 (lane SKINS), last so no row above moves: the looks sold as skins, all owned for a test, or none again (bought and worn forgotten)
+	var sold := 0
+	for c: CharacterDef in Registry.characters.values():
+		for code in c.variants.keys():
+			if c.sells_skin(str(code)):
+				sold += 1
+	var skins_row := _row("Looks · own every one", "%d / %d" % [Save.skins_owned().size(), sold], func():
+		Save.own_every_skin()
+		_refresh())
+	skins_row.name = "OwnEverySkin"
+	_list.add_child(skins_row)
+	var forget_skins := _row("Looks · forget the bought ones", "›", func():
+		Save.forget_skins()
+		_refresh())
+	forget_skins.name = "ForgetSkins"
+	_list.add_child(forget_skins)
 
 
 func _ask_reset_surveys() -> void:

@@ -1116,3 +1116,122 @@ rows (one creature, no elite, not special, not once) by their Elite weight; `id`
 - The Level Editor's side (Boss fights section, the row form, the checks, model.js helpers): docs/level_editor.md
   "Pass 110". Tests: game/tests/pass110_boss_window_test.gd, tools/level_editor/selftest_BOSS110.py. Probe:
   game/tools/_p110_BOSS_fight_probe.gd (`stage= build= level= hero= secs= before= seed= window=0|1`).
+
+## Pass 111: far creatures walk faster (lane ENEMY)
+
+Garry (2026-10-28): "Regular Enemies should walk considerably faster when they are far enough from the Player. This is an
+option that I can control and switch off if I don't like it. This should also apply to Bosses, but not to Elites or
+Special Enemies."
+
+#### timeline_data.far_speed (Object, optional)
+| key | type [default] | meaning |
+|---|---|---|
+| `enabled` | bool [true] | false = off: every creature walks at its own speed wherever it is |
+| `distance` | metres [14] | how far from the hero (flat) the speed-up starts; inside it nothing changes |
+| `ramp` | metres [6] | over how many metres past `distance` the multiplier grows (a smoothstep) to `max_mult`; 0 = all at once |
+| `max_mult` | number [2.0] | the walk's multiplier at `distance` + `ramp` and beyond (1 = no speed-up) |
+| `bosses` | bool [true] | a boss far from the hero walks faster by the same rule |
+
+A key left out (the whole block too) plays `WaveTimeline.FAR_SPEED_DEFAULTS`. Red Canyon's file names the defaults:
+`"far_speed": {"enabled": true, "distance": 14.0, "max_mult": 2.0, "ramp": 6.0, "bosses": true}`: x1 up to 14 m, x1.5 at
+17 m, x2 from 20 m (the screen shows about 12 m to the sides and 20 m up and down; the roster's rings come at 18 m).
+
+#### The rule (EnemyManager `far speed` section)
+- Only the walk a creature's brain chooses (`_steer`'s `spd`: chase, flock, kite, the kamikaze's run, a boss walking
+  between attacks, ...) is multiplied, on top of every other speed (creature_speed_mult, the stage, Endless, slows).
+  A charge, a boss's scripted roll or jump, a flee on hit, a push, a pull or a throw keep their own speed.
+- Never an Elite (by its kind, or one wearing an Elite modifier), a special type (the gear badge: the Vulture Raider,
+  the harpooner, the Saiga Sniper), a coloured variance special or a training dummy. Bosses only while `bosses`.
+- The arena plays it too (it is where the walks are looked at, as `creature_speed_mult`). The despawn rule is unchanged.
+- Cheap: one distance compare per steer for everything inside `distance`; the type's kind is read from a per-type table.
+
+#### Code API
+- WaveTimeline: `far_speed` (Dictionary), `FAR_SPEED_DEFAULTS`, `far_speed_cfg()`. JsonContent reads the block as it is.
+- WaveDirector `_apply_mults` -> `EnemyManager.set_far_speed(cfg)`.
+- EnemyManager: `far_speed_on`, `set_far_speed(cfg)`, static `far_kind_of(def)` (FAR_NEVER / FAR_REGULAR / FAR_BOSS),
+  static `far_speed_mult(dist, distance, ramp, max_mult)`, `far_speed_k(i, dist)`.
+- Level Editor: Settings, Scaling card, rows `far_speed.enabled` ("Far creatures walk faster"), `far_speed.distance`,
+  `far_speed.ramp`, `far_speed.max_mult` ("Far speed ×"), `far_speed.bosses` ("Bosses too"), with a line that reads the
+  multiplier at three distances; model.js `FAR_SPEED_DEFAULTS`, `farSpeedCfg`, `farSpeedMult`, `farSpeedIssues`.
+- The run sim (tools/sim_batch.py) plays the game's own code, so its runs follow the block too.
+- Tests: game/tests/pass111_enemy_test.gd; tools/level_editor/selftest_ENEMY111.py.
+
+## Pass 111: map chests and what a chest holds (lane CHEST)
+
+Garry (2026-10-28): "Chests should respawn every now and then. They should also have a chance of a power up dropping
+from them. The power ups don't immediately get claimed and used by the hero. They jump far enough out for it to be a
+conscious decision for the Player. I should be able to set the frequency and content probabilities of both chest types
+on LevelEditor. Chests never spawn where Player can see them."
+
+#### timeline_data.world_chests (Object, optional; no block = no map chests, as before pass 111)
+| key | type [default] | meaning |
+|---|---|---|
+| `enabled` | bool [false] | true lays map chests; left out or false: none |
+| `first` | seconds [60] | of the chests' clock before the first one is due |
+| `every` | seconds or [min, max] [[90, 130]] | from one to the next, rolled each time; under 5 counts as 5 |
+| `max_on_map` | int [2] | map chests lying unopened at most; a turn that finds that many is skipped (the next one waits its full `every`); 0 = no limit. Dropped chests never count |
+| `max_per_stage` | int [0] | map chests a stage at most; 0 = no limit |
+| `min_dist`, `max_dist` | metres [25, 45] | how far from the hero (flat); when every spot of that band is on the screen the band past it to 1.5 x `max_dist` is tried |
+| `boss_chance` | 0..1 [0] | the chance a map chest is the boss's chest (violet, a mutation, calls the map in when opened) |
+| `lifetime` | seconds [150] | one lying unopened this long vanishes the first moment it is off the screen; 0 = never |
+| `view_margin` | metres [3] | how far past the camera's view the chest, its 4.6 m pool of light and its 9 m beam must keep when it appears |
+| `in_boss`, `in_portal`, `in_endless` | bool [true, false, false] | whether the clock runs (and chests come) in the boss fight, the portal's countdown, Endless |
+| `pointer` | bool [true] | the HUD's edge tag "CHEST n m" (brass; violet for a boss chest) at the nearest map chest while it is off the screen |
+
+Red Canyon: enabled, first 60, every [90, 130], max_on_map 2, max_per_stage 5, 25-45 m, boss_chance 0, lifetime 150,
+view_margin 3, in the boss fight only: about 4 map chests in Sundown, 5 in Nightfall and Blood Moon.
+
+#### timeline_data.chest_contents (Object, optional): {"normal": {...}, "boss": {...}}
+| key | type [default] | meaning |
+|---|---|---|
+| `powerup_chance` | 0..1 [0] | the chance a power-up is thrown out when this chest type opens (on top of the reel) |
+| `powerups` | [{id, weight}] or {id: weight} [[]] | which one, by weight; empty = the map's `pickups.roster` (the drops' mix) |
+| `throw_distance` | metres or [min, max] [[5, 7]] | how far from the chest it lands |
+| `new_item_weight` | number [0.45] | the reel's weight of a passive item not held yet against an upgrade (Run.CHEST_NEW_MULT) |
+| `gold` | int [50] | the reel's gold when nothing can grow |
+| `mutation` (boss only) | bool [true] | the boss's chest holds a mutation while one is open; false = it rolls like a normal chest |
+
+Red Canyon: normal 0.35, boss 0.5, both with the drops' mix written out (heart 6, rage 3, sprint 3, shield 2,
+magnet_pulse 2, nuke 2), throw [5, 7], 0.45, 50, the boss chest's mutation on.
+
+#### The rules (game/core/systems/WorldChests.gd; PickupManager's world_* host methods, throw_chest_powerup)
+- The clock (`WorldChests.clock`) counts the seconds of the phases it runs in, from the run's start (each stage is its
+  own run since pass 87). A due turn: past `max_per_stage` none come any more; with `max_on_map` lying the turn is
+  skipped; else a spot is searched (48 tries in the band, 48 in the far band) and the chest laid (`spawn_chest(at, boss,
+  world = true)`); no spot: tried again 3 s later.
+- A spot is never seen: every sphere the chest can draw in (`SEEN_SPHERES`: the chest with its pool, its beam to 8.2 m)
+  lies outside the camera's frustum (Camera3D.get_frustum) by `view_margin`. It is inside 0.86 of the arena's radius (the
+  structures' round, short of the fort wall), off every rock's painted foot and out of the water
+  (`EnemyManager.spawn_clear`, the water 2.5 m clear), out of every painting's cover band (`BarrelField.in_cover`), 3 m
+  past every structure's ring and 8 m from any chest.
+- Only while the director runs a stage: never in the debug arena (`Run.arena`), never before or after the run.
+- A map chest past `lifetime` vanishes (checked once a second) only while nothing of it is on the screen; one pulled by a
+  boss kill's vacuum never does.
+- A chest opened by the hero (PickupManager._check_chests; a pulled boss-kill chest too) rolls its type's
+  `powerup_chance` on the chests' own dice (seeded from the run's seed in the sim). The power-up is drawn by weight, then
+  thrown (`Powerup.throw_to`): a hop 0.55 s + 0.035 s a metre long, 1.8 m + 0.22 m a metre high (6 m: 0.76 s, 3.1 m up),
+  landing `throw_distance` m from the chest on a clear spot (in the arena, off the rocks' feet and the water, out of the
+  cover bands, 1.2 m from any power-up) chosen in this order: within 80 degrees of straight away from the hero AND wholly
+  on the screen below the HUD's strip; any way on the screen; any way. In the air it is never taken and its lifetime
+  stands still; it is never pulled by a magnet (`no_magnet`: a coin bag's own pull too); the vacuums never touched
+  power-ups. It then lies its own `lifetime` (content/pickups/<id>). The game pauses for the reel, so the hop plays as the
+  reel closes.
+- `Run.chest_roll(boss)` reads its type's `new_item_weight`, `gold` and (boss) `mutation`; an evolution that is ready
+  still comes first.
+
+#### Code API
+- WorldChests (RefCounted, reads no autoload): consts `DEFAULTS`, `CONTENT_DEFAULTS`, `EVERY_MIN` 5, `RETRY_S` 3,
+  `TRIES` 48, `FAR_BAND` 1.5, `EDGE_SHARE` 0.86, `CHEST_CLEAR` 8, `STRUCTURE_CLEAR` 3, `WATER_CLEAR` 2.5, `COVER_CLEAR`
+  1.5, `THROW_CLEAR` 1.2, `THROW_TRIES` 16, `SEEN_SPHERES`, `PHASE_*`; static `cfg_of(block)`, `contents_of(block, boss)`,
+  `weight_list(v)`, `pick_weighted(list, rng)`, `range_of(v, fallback)`, `roll(range, rng)`, `phase_allowed(cfg, phase)`,
+  `seen(planes, p, margin)`, `expected_in(cfg, length)`; instance `setup(block, seed)`, `tick(host, delta, phase)`,
+  `spawn_now(host) -> bool`, `find_spot(host)`; fields `cfg`, `on`, `clock`, `next_at`, `spawned`, `skipped`, `missed`,
+  `expired`, `rng`.
+- PickupManager: `world`, `world_chests()`, `chest_powerups`, `view_camera()`, `world_hero()`, `world_planes()`,
+  `world_spot_ctx()`, `world_spot_ok(p, ctx)`, `world_lying()`, `world_expire(lifetime, margin)`, `pointer_chest()`,
+  `throw_chest_powerup(at, boss, force_id = "") -> Powerup`, `chest_throw_spot(at, dist, rng)`; `spawn_chest(at, boss,
+  world = false) -> Chest`; `spawn_special(...) -> Powerup`. Chest: `world`, `born`. Powerup: `flying`, `no_magnet`,
+  `throw_to(from, to)`, `throw_point(f)`. HUD: `CHEST_BRASS`, the tag in `_tick_arrow`. Run: `chest_candidates(new_mult)`.
+- The Level Editor's side: docs/level_editor.md "Pass 111". Tests: game/tests/pass111_chest_test.gd,
+  tools/level_editor/selftest_CHEST111.py. Capture: game/tools/_p111_CHEST_shots.gd; probe (a real run, the hero walked
+  to each map chest and power-up): game/tools/_p111_CHEST_probe.gd.

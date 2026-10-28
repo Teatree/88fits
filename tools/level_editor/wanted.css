@@ -1,0 +1,107 @@
+/* Pass 111, lane WANTED: the Wanted tab (wanted.js): the Bounty Board's config on the left, "Try the board" on the
+   right with HTML posters drawn as the game's (ui/wanted/WPoster.gd): sun-aged paper, torn edges, a brass nail, WANTED in
+   the game's own slab face, the still, the name, the task, the reward with the coin, five skulls. */
+@font-face { font-family: 'WantedSlab'; src: url('/api/wanted/art/fonts/AlfaSlabOne-Regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'WantedSerif'; src: url('/api/wanted/art/fonts/Bitter.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+
+.wtd { max-width: 1760px; }
+.wtd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.wtd-head h2 { margin: 0; font-size: 1.25rem; }
+.wtd-file { color: var(--muted); font-size: 0.78rem; }
+.wtd-lead { max-width: 1100px; color: var(--ink-2); margin: 4px 0 10px; }
+.wtd-issues { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.wtd-grid { display: grid; grid-template-columns: minmax(560px, 1fr) minmax(640px, 760px); gap: 18px; align-items: start; }
+@media (max-width: 1500px) { .wtd-grid { grid-template-columns: 1fr; } }
+.wtd-cfg { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.wtd-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px 12px; }
+.wtd-card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.wtd-card-head h3 { margin: 0; font-size: 1rem; }
+.wtd-hint { white-space: normal; flex: 1 1 260px; }
+.wtd .num.tiny { width: 66px; }
+.wtd-formula { margin: 2px 0 8px; color: var(--ink-2); font-size: 0.86rem; background: var(--surface-2); border-radius: 6px; padding: 6px 10px; }
+.wtd-sm { display: inline-flex; align-items: center; gap: 4px; }
+.wtd-sm small, .wtd-range small { color: var(--muted); font-size: 0.72rem; }
+.wtd-ex-head { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 4px; }
+.wtd-ex { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.wtd-ex th { color: var(--muted); font-weight: 500; font-size: 0.74rem; text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); }
+.wtd-ex th:first-child, .wtd-ex td:first-child { text-align: left; }
+.wtd-ex td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--grid); }
+.wtd-gold { color: #e9b84a; font-weight: 650; }
+.wtd-ex-sk img, .wtd-mini-sk img, .wtd-skulls img { width: 16px; height: 16px; vertical-align: middle; }
+.wtd-ex-sk img.off, .wtd-mini-sk img.off, .wtd-skulls img.off { opacity: 0.18; filter: grayscale(1); }
+.wtd-mini-sk img { width: 12px; height: 12px; }
+
+/* the task types */
+.wtd-tasks { display: flex; flex-direction: column; }
+.wtd-trow { display: grid; grid-template-columns: 26px minmax(170px, 1.3fr) 170px minmax(150px, 1fr) 230px 30px; gap: 8px; align-items: center; padding: 5px 2px; }
+.wtd-thead { color: var(--muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+.wtd-task { border-bottom: 1px solid var(--grid); }
+.wtd-task.open { background: var(--surface-2); border-radius: 8px; }
+.wtd-trow.off .wtd-tname, .wtd-trow.off .wtd-wcell { opacity: 0.45; }
+.wtd-tname { display: flex; flex-direction: column; min-width: 0; }
+.wtd-tname code { color: var(--muted); font-size: 0.72rem; }
+.wtd-wcell { display: flex; align-items: center; gap: 6px; }
+.wtd-w { width: 96px; accent-color: #c9932f; }
+.wtd-chance { display: flex; flex-direction: column; gap: 3px; }
+.wtd-bar { position: relative; display: block; height: 15px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.wtd-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(201,147,47,0.55); }
+.wtd-bar.board i { background: rgba(57,135,229,0.55); }
+.wtd-bar b { position: relative; font-size: 0.72rem; padding-left: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wtd-bar.first::after { content: 'first'; position: absolute; right: 5px; top: 0; font-size: 0.66rem; color: var(--muted); }
+.wtd-bar.board::after { content: 'on the board'; position: absolute; right: 5px; top: 0; font-size: 0.66rem; color: var(--muted); }
+.wtd-dif { display: flex; align-items: center; gap: 5px; }
+.wtd-tbody { padding: 2px 12px 10px 36px; }
+.wtd-tbody .frow { grid-template-columns: 120px minmax(0, 1fr); }
+.wtd-ranges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 4px 0 6px; }
+.wtd-range { display: inline-flex; align-items: center; gap: 5px; }
+
+/* "Try the board" */
+.wtd-sim { position: sticky; top: 0; background: #2a2016; border: 1px solid rgba(201,147,47,0.35); border-radius: 12px; padding: 12px 14px 16px;
+  background-image: radial-gradient(ellipse at 30% 20%, rgba(201,147,47,0.12), transparent 60%), repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 46px); }
+.wtd-sim-head { display: flex; align-items: baseline; gap: 10px; }
+.wtd-sim-head h3 { margin: 0; font-family: 'WantedSlab', Georgia, serif; font-weight: 400; font-size: 1.35rem; color: #f3e6c8; letter-spacing: 0.02em; }
+.wtd-sim-ctl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 10px 0 8px; }
+.wtd-l { display: flex; flex-direction: column; gap: 3px; color: #e2cfa4; font-size: 0.8rem; }
+.wtd-l select { max-width: none; }
+.wtd-prog input { width: 100%; accent-color: #c9932f; }
+.wtd-togs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.wtd-togs .cb { color: #e2cfa4; }
+.wtd-roll-row { display: flex; align-items: center; gap: 12px; margin: 6px 0 10px; }
+.wtd-roll { background: #c9932f !important; color: #241b14 !important; font-family: 'WantedSlab', Georgia, serif; font-weight: 400; font-size: 1rem; padding: 7px 18px; border: 3px solid #241b14 !important; box-shadow: 4px 4px 0 #241b14; }
+.wtd-roll:hover { background: #a8792a !important; }
+.wtd-roll:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #241b14; }
+.wtd-board { display: flex; justify-content: center; gap: 14px; padding: 18px 4px 14px; min-height: 470px; }
+.wtd-pick { color: #f3e6c8; font-size: 0.88rem; min-height: 22px; padding: 6px 4px 0; border-top: 1px solid rgba(243,230,200,0.15); }
+
+/* one poster: 316 x 610 in the game, drawn at 0.72 here */
+.wp-wrap { position: relative; width: 228px; height: 440px; flex: 0 0 auto; cursor: pointer; transform: rotate(var(--tilt)); transition: transform 0.14s ease-out; filter: drop-shadow(6px 8px 0 rgba(36,27,20,0.45)); }
+.wp-wrap:hover { transform: rotate(var(--tilt)) translateY(-3px); }
+.wp-wrap.picked { transform: rotate(0deg) scale(1.04); filter: drop-shadow(0 0 0 #c9932f) drop-shadow(0 0 7px rgba(201,147,47,0.95)) drop-shadow(6px 8px 0 rgba(36,27,20,0.45)); z-index: 2; }
+.wp { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: stretch; padding: 19px 17px 14px; color: #241b14;
+  background-color: #ecdcb7;
+  background-image: radial-gradient(circle at 0% 0%, rgba(168,121,42,0.28), transparent 38%), radial-gradient(circle at 100% 0%, rgba(168,121,42,0.22), transparent 34%),
+    radial-gradient(circle at 0% 100%, rgba(168,121,42,0.3), transparent 40%), radial-gradient(circle at 100% 100%, rgba(168,121,42,0.26), transparent 36%),
+    radial-gradient(ellipse at 60% 55%, rgba(226,207,164,0.6), transparent 70%); }
+.wp-frame { position: absolute; left: 9px; top: 9px; right: 9px; bottom: 12px; border: 1.5px solid rgba(36,27,20,0.55); pointer-events: none; }
+.wp-head { font-family: 'WantedSlab', Georgia, serif; font-size: 34px; line-height: 38px; text-align: center; letter-spacing: 1px; }
+.wp-rule { height: 9px; border-top: 2.5px solid #241b14; border-bottom: 1px solid #241b14; margin: 3px 0 5px; }
+.wp-pic { position: relative; height: 167px; background: #e8d8b0; border: 3px solid #241b14; overflow: hidden;
+  background-image: repeating-conic-gradient(from 0deg at 50% 62%, rgba(201,147,47,0.16) 0deg 9deg, transparent 9deg 30deg); }
+.wp-pic.stage { background-image: none; }
+.wp-still { position: absolute; inset: 7px 7px 3px; background-repeat: no-repeat; background-position: center; background-size: contain; }
+.wp-still.cell { background-repeat: no-repeat; }
+.wp-still.cover { inset: 0; background-size: cover; }
+.wp-still.cutout { background-size: 100% auto; background-position: top center; }
+.wp-badge { position: absolute; left: 3px; top: 3px; width: 42px; height: 42px; }
+.wp-name { font-family: 'WantedSlab', Georgia, serif; font-size: 23px; line-height: 24px; text-align: center; margin-top: 6px; word-break: break-word; }
+.wp-name.long { font-size: 17px; line-height: 19px; }
+.wp-task { font-family: 'WantedSerif', Georgia, serif; font-weight: 600; font-size: 17px; line-height: 20px; text-align: center; color: #5a4a3a; margin-top: 4px; }
+.wp-gap { flex: 1 1 auto; }
+.wp-rl { font-family: 'WantedSerif', Georgia, serif; font-weight: 600; font-size: 11px; letter-spacing: 3px; text-align: center; color: #5a4a3a; }
+.wp-reward { display: flex; align-items: center; justify-content: center; gap: 7px; }
+.wp-reward img { width: 29px; height: 29px; }
+.wp-reward span { font-family: 'WantedSlab', Georgia, serif; font-size: 33px; line-height: 36px; color: #a8792a; }
+.wp-skulls { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
+.wp-skulls img { width: 22px; height: 22px; }
+.wp-skulls img.off { opacity: 0.22; filter: grayscale(1) sepia(0.4); }
+.wp-nail { position: absolute; left: calc(50% - 11px); top: 4px; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 38% 35%, #f0c46a, #c9932f 55%, #8a6420); border: 3px solid #241b14; box-sizing: border-box; }

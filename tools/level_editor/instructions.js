@@ -24,6 +24,8 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    // pass 111 (lane SKINS): a hero's looks sold as skins, their goals, the currencies (skins.js writes the section)
+    if (typeof Skins !== 'undefined' && Skins.instructions) Skins.instructions(root);
     pass87Stages(root);     // pass 87 (lane STOOLS): the stage tabs, a stage's card, the estimate and the Sim per stage
     pass84Timeline(root);   // pass 84 (lane TIMELINE): the Timeline in sections, one spawning language
     // pass 83 (lane SCALE): boss HP by seconds of full DPS, the hero's power level (power_card.js writes the section)

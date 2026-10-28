@@ -1,0 +1,76 @@
+'use strict';
+// Pass 111 (lane CHEST): the Settings tab's Chests card. The map's own chests' rows (world_chests.*) are plain field rows
+// drawn by settings.js from fields.js; this draws the line under them (about how many a stage) and the block of what each
+// chest type holds (chest_contents.normal / .boss: the power-up chance, which power-up with its weights and shares, the
+// throw distance, the reel's new-item weight and gold, the boss chest's mutation). The maths: chest_model.js.
+const ChestCard = (() => {
+  const { el, fmtT } = U;
+
+  /** One line: about how many map chests each stage lays, or that they are off. */
+  function summary(tl) {
+    const c = ChestModel.cfgOf(tl.world_chests);
+    if (!c.enabled) return 'Map chests are off: only the chests creatures drop (specials always, Elites, bosses, the crowd 1 in 5,000).';
+    const per = App.stageList().map((w) => `${w.name} ${ChestModel.expectedIn(c, w.length)}`);
+    const every = c.every[0] === c.every[1] ? `${c.every[0]} s` : `${c.every[0]} to ${c.every[1]} s`;
+    return `About ${per.join(', ')} map chests in a stage's own time (the first at ${fmtT(c.first)}, then one every ${every})${c.in_boss ? ', and more while the boss fight lasts' : ''}; fewer when ${c.max_on_map || 'too many'} lie unopened (that turn is skipped) or when one cannot find a spot off the screen. On top of the chests creatures drop (the run sim, pass 111: 11.5 chests opened in a Sundown run without map chests, 15.0 with them).`;
+  }
+
+  /** The two chest types' contents (the rows with block 'chest_contents'). */
+  function block(tl) {
+    const wrap = el('div', { class: 'block-form chest-card' });
+    wrap.appendChild(el('h3', { class: 'block-title', text: 'What a chest holds' }));
+    wrap.appendChild(el('p', { class: 'muted small', text: 'Every chest still spins its reel (an evolution when one is ready, else an upgrade or a new item; the boss chest a mutation). On top of that a power-up may hop out of it and land a few metres away: the player chooses whether to walk over for it.' }));
+    for (const ty of ChestModel.TYPES) wrap.appendChild(typeBlock(tl, ty));
+    return wrap;
+  }
+
+  function typeBlock(tl, ty) {
+    const box = el('div', { class: 'chest-type', style: 'margin:8px 0 12px;padding-top:6px;border-top:1px solid var(--line, #3334)' });
+    box.appendChild(el('h4', { text: ty === 'boss' ? 'Boss chest (violet)' : 'Normal chest', style: 'margin:4px 0 6px' }));
+    for (const def of FIELDS.SCALARS.filter((d) => d.block === 'chest_contents' && d.key.startsWith(`chest_contents.${ty}.`))) {
+      const bare = def.label.replace(/^(Boss|Normal) chest: /, '');
+      const short = Object.assign({}, def, { label: bare.charAt(0).toUpperCase() + bare.slice(1) });
+      // the list takes the card's whole width (the power-ups' names are cut short beside the label)
+      if (def.type === 'chest_powerups') { box.appendChild(Forms.row(short, powerupsTable(tl, ty), { cls: 'wide-ctl' })); continue; }
+      box.appendChild(Forms.fieldRow(short, tl));
+    }
+    return box;
+  }
+
+  /** Which power-up comes out: the chest type's own list (power-up, weight with its share, ×), or, when it has none, the
+   *  drops roster it falls back to shown greyed with a button that copies it in to edit. */
+  function powerupsTable(tl, ty) {
+    const name = (id) => { const p = (App.S.pickups || []).find((x) => x.id === id); return p ? p.name : id; };
+    const own = U.getPath(tl, `chest_contents.${ty}.powerups`);
+    const list = Array.isArray(own) ? own : [];
+    const wrap = el('div', { class: 'chest-pu' });
+    if (!list.length) {
+      const dl = ChestModel.drawList(tl, ty);
+      const sh = ChestModel.shares(dl.list);
+      wrap.appendChild(el('p', { class: 'muted small', text: dl.list.length ? `None listed: the Power-up drops mix (${dl.list.map((r, k) => `${name(r.id)} ${Math.round(sh[k] * 100)}%`).join(', ')}).` : 'None listed and no Power-up drops roster: nothing comes out.' }));
+      wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: dl.list.length ? 'Copy that mix here to edit' : '+ power-up', onclick: () => App.apply((d) => {
+        const rows = dl.list.length ? dl.list.map((r) => ({ id: r.id, weight: r.weight })) : [{ id: 'heart', weight: 1 }];
+        U.setPath(d, `chest_contents.${ty}.powerups`, rows);
+      }) }));
+      return wrap;
+    }
+    const sh = ChestModel.shares(list);
+    const tbl = el('div', { class: 'mini-table' }, el('div', { class: 'mini-head' }, el('span', { text: 'power-up' }), el('span', { text: 'weight' }), el('span')));
+    list.forEach((r, k) => {
+      const pre = `chest_contents.${ty}.powerups.${k}`;
+      tbl.appendChild(el('div', { class: 'mini-row' },
+        el('span', { class: 'cell-ico' }, Forms.control(FIELDS.PICKUP_ROW[0], r, { pathPrefix: pre, allPickups: true })),
+        el('span', { class: 'with-hint' }, Forms.control(FIELDS.PICKUP_ROW[1], r, { pathPrefix: pre, cls: 'short' }), el('span', { class: 'hint', text: `${Math.round(sh[k] * 100)}%` })),
+        el('button', { class: 'x', type: 'button', text: '×', title: 'remove (removing the last one goes back to the Power-up drops mix)', onclick: () => App.apply(() => { list.splice(k, 1); if (!list.length) U.setPath(tl, `chest_contents.${ty}.powerups`, null); }) })));
+    });
+    tbl.appendChild(el('button', { class: 'btn small', type: 'button', text: '+ power-up', onclick: () => App.apply(() => {
+      const used = new Set(list.map((x) => x.id));
+      const p = (App.S.pickups || []).find((x) => !x.small && !used.has(x.id)) || (App.S.pickups || [])[0];
+      list.push({ id: p ? p.id : 'heart', weight: 1 });
+    }) }));
+    wrap.appendChild(tbl);
+    return wrap;
+  }
+
+  return { summary, block, powerupsTable };
+})();

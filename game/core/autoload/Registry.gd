@@ -19,6 +19,8 @@ var structures: Dictionary = {}
 var buildings: Dictionary = {}
 ## pass 72 (lane BOSS): the custom boss attacks (content/boss_attacks), by id
 var boss_attacks: Dictionary = {}
+## pass 111 (lane SKINS): the currencies prices are paid in (content/currencies, CurrencyDef; only gold), by id
+var currencies: Dictionary = {}
 var soundmap: SoundMap = SoundMap.new()
 var missing_icons: Array = []
 var problems: Array = []
@@ -34,6 +36,7 @@ func scan() -> void:
 	characters.clear(); talents.clear(); quests.clear(); maps.clear(); pickups.clear(); structures.clear()
 	missing_icons.clear(); problems.clear(); _enemy_cache.clear()
 	boss_attacks.clear()
+	currencies.clear()
 	for type: String in JsonContent.TYPES:
 		_scan_type(type)
 	_load_soundmap()
@@ -114,6 +117,8 @@ func _store(type: String, res: ContentDef) -> void:
 			buildings[res.id] = res
 		"boss_attacks":
 			boss_attacks[res.id] = res
+		"currencies":
+			currencies[res.id] = res
 
 
 func _load_soundmap() -> void:
@@ -171,6 +176,13 @@ func _validate() -> void:
 			problems.append("character %s favours missing weapon %s" % [c.id, c.favourite_weapon])
 		if c.favourite_passive != "" and not passives.has(c.favourite_passive):
 			problems.append("character %s favours missing passive %s" % [c.id, c.favourite_passive])
+		# pass 111 (lane SKINS): a price in a currency the content lacks is read as gold (Currency.of); say so
+		if c.availability == "purchase" and not currencies.is_empty() and not currencies.has(c.currency_type):
+			problems.append("character %s is priced in unknown currency %s (read as gold)" % [c.id, c.currency_type])
+		for code in c.variants.keys():
+			var sk := c.skin_of(str(code))
+			if bool(sk.get("purchasable", false)) and c.variant_shelved(str(code)):
+				problems.append("character %s look %s is sold as a skin but shelved (not offered)" % [c.id, code])
 	for m in maps.values():
 		for a in m.skins.keys():
 			if not enemies.has(m.skins[a]):
@@ -331,6 +343,9 @@ func played_look(c: CharacterDef) -> CharacterDef:
 	var code := Save.hero_look(c.id)
 	if code != "" and c.variant_shelved(code):
 		code = ""
+	# pass 111 (lane SKINS): no look kept from the arena (a debug choice, which wins): the skin the player wears
+	if code == "":
+		code = worn_skin(c)
 	return c.variant_def(code)
 
 
@@ -383,6 +398,11 @@ func unlocked_by(q: QuestDef) -> ContentDef:
 			return characters.get(id)
 		"map":
 			return maps.get(id)
+		"skin":
+			# pass 111 (lane SKINS): the hero in that look (its badge, its strip); null for a look he does not have
+			var c: CharacterDef = characters.get(id.get_slice(":", 0))
+			var code := id.get_slice(":", 1)
+			return c.variant_def(code) if c and c.variants.has(code) else null
 	return null
 
 
@@ -531,10 +551,85 @@ func heroes_for_drawer() -> Array:
 	return out
 
 
+# ---------------------------------------------------------------- looks sold as skins (pass 111, lane SKINS)
+
+## Garry: "The logic for skins will be similar to everything else - first you complete a goal, then you get access to
+## buying skins." A hero's look (`variants[CODE]`) whose `skin.purchasable` is on is sold to players: locked until its
+## goal is done (the quest whose `unlocks` is {type: "skin", id: "<hero>:<CODE>"}, else the one `skin.unlock_quest`
+## names; none = on sale at once), then bought for `skin.price` in `skin.currency_type` (Save.buy_skin), then worn from
+## the hero's sheet (Save.set_skin_worn). The look the game plays is every player's from the start (home_look).
+
+## The key a skin is saved and unlocked under: "<hero>:<CODE>".
+static func skin_key(hero_id: String, code: String) -> String:
+	return "%s:%s" % [hero_id, code]
+
+
+## The quest that gates look `code` of hero `c` (null: none, on sale at once).
+func skin_quest(c: CharacterDef, code: String) -> QuestDef:
+	if c == null:
+		return null
+	var q := quest_for("skin", skin_key(c.id, code))
+	if q == null and c.skin_quest_id(code) != "":
+		q = quests.get(c.skin_quest_id(code))
+	return q
+
+
+## Where the player stands with look `code` of hero `c` (pass 111): "owned" (the look every player owns, one bought, or
+## a free one whose goal is done), "buyable" (its goal done, not bought), "locked" (its goal not done) or "hidden" (not
+## sold: not purchasable, shelved, no such look; a hidden hero). A look bought once stays owned while it is not shelved,
+## even if it is no longer sold.
+func skin_state(c: CharacterDef, code: String) -> String:
+	if c == null or c.hidden or not c.variants.has(code) or c.variant_shelved(code):
+		return "hidden"
+	if code == c.home_look() or Save.owns_skin(skin_key(c.id, code)):
+		return "owned"
+	if not c.sells_skin(code):
+		return "hidden"
+	var q := skin_quest(c, code)
+	if q != null and not Save.quest_done(q.id):
+		return "locked"
+	return "owned" if c.skin_price(code) <= 0 else "buyable"
+
+
+## The looks hero `c`'s sheet shows (pass 111): the one every player owns first, then every other one not hidden
+## (skin_state), by code; [] when he has nothing to choose between.
+func skins_of(c: CharacterDef) -> Array:
+	if c == null or c.hidden or c.home_look() == "":
+		return []
+	var out: Array = [c.home_look()]
+	var rest: Array = []
+	for code in c.variants.keys():
+		if str(code) != c.home_look() and skin_state(c, str(code)) != "hidden":
+			rest.append(str(code))
+	rest.sort()
+	out.append_array(rest)
+	return out if out.size() > 1 else []
+
+
+## The look hero `c` wears by the player's choice (Save.skin_worn) while it is his ("" = the look every player owns).
+func worn_skin(c: CharacterDef) -> String:
+	if c == null:
+		return ""
+	var code := Save.skin_worn(c.id)
+	if code == "" or code == c.home_look() or skin_state(c, code) != "owned":
+		return ""
+	return code
+
+
+## What it takes to unlock look `code` in the quests' words ("" with no goal).
+func skin_requirement_text(c: CharacterDef, code: String) -> String:
+	var q := skin_quest(c, code)
+	return TextGen.quest_text(q) if q else ""
+
+
 ## Whether a quest is shown and tracked: not when what it unlocks is hidden (a hero, a weapon, a passive).
 func quest_visible(q: QuestDef) -> bool:
 	var what := str(q.unlocks.get("id", ""))
 	match str(q.unlocks.get("type", "")):
+		"skin":
+			# pass 111 (lane SKINS): a skin's goal while its hero is in play and the look is sold
+			var hc: CharacterDef = characters.get(what.get_slice(":", 0))
+			return hc != null and not hc.hidden and hc.sells_skin(what.get_slice(":", 1))
 		"character":
 			var c: CharacterDef = characters.get(what)
 			return c != null and not c.hidden

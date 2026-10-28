@@ -145,7 +145,8 @@ func _creature(em: EnemyManager, at: Vector3, id := "spit_cactus", hp_mult := 50
 
 
 func _dy() -> Dictionary:
-	return Registry.enemy("spit_cactus").ranged["dynamite"]
+	# pass 111 (lane ENEMY): the block the cactus throws by (a "bomb" shot throws by ranged.bomb, EnemyManager.throw_block)
+	return EnemyManager.throw_block(Registry.enemy("spit_cactus"))
 
 
 ## A stick thrown by the cactus at `i` from `from` to `target`, as _throw_dynamite throws it.
@@ -160,8 +161,11 @@ func _throw(w: Dictionary, i: int, from: Vector3, target: Vector3) -> int:
 
 func test_the_cactus_throws_red_pulsing_dynamite_faster_than_the_spit() -> void:
 	var r: Dictionary = Registry.enemy("spit_cactus").ranged
-	assert_str(str(r.get("shot", ""))).is_equal("dynamite")
-	var dy: Dictionary = r["dynamite"]
+	# pass 111 (lane ENEMY; Garry: "a nice black bomb ... instead of a dynamite stick"): the throw is the bomb now, by its
+	# own block; the dynamite's block stays for a "dynamite" shot
+	assert_str(str(r.get("shot", ""))).is_equal("bomb")
+	assert_bool(EnemyManager.throws_dynamite(Registry.enemy("spit_cactus"))).is_true()
+	var dy: Dictionary = _dy()
 	assert_float(float(dy["fuse"])).is_equal_approx(1.0, 0.0001)
 	assert_float(float(dy["out_before"])).is_equal_approx(0.5, 0.0001)
 	# faster than the spit's 5.4
@@ -170,7 +174,8 @@ func test_the_cactus_throws_red_pulsing_dynamite_faster_than_the_spit() -> void:
 	assert_float(float(dy["lead"])).is_greater(0.0)
 	assert_float(float(dy["lead"])).is_less(0.6)
 	assert_bool(ResourceLoader.exists(str(dy["model"]))).is_true()
-	assert_str(str(dy["model"])).contains("red")
+	assert_str(str(dy["model"])).contains("bomb")
+	assert_str(str(r["dynamite"]["model"])).contains("red")
 	# the pulse is kept, red
 	var c := Color(str(r["pulse"]["color"]))
 	assert_float(c.r).is_greater(0.8)
@@ -298,8 +303,10 @@ func test_the_lying_stick_keeps_pulsing_and_its_spark_burns_at_the_fuse() -> voi
 	assert_float(pm.vel[j].length()).is_equal(0.0)
 	pm._render()
 	assert_int(pm.sparks_drawn).is_equal(1)
-	# drawn with the red stick, not the spit's ball
-	assert_int(pm.kind[j]).is_equal(pm.dynamite_kind(str(_dy()["model"]), float(_dy().get("scale", 1.0))))
+	# drawn with the block's model (pass 111: the black bomb, its glossy look), not the spit's ball
+	var look = _dy().get("material", {})
+	assert_int(pm.kind[j]).is_equal(pm.dynamite_kind(str(_dy()["model"]), float(_dy().get("scale", 1.0)), look if look is Dictionary else {}))
+	assert_int(pm.kind[j]).is_not_equal(int(w["g"].get("_spit_kind")) if w["g"].get("_spit_kind") != null else -2)
 
 
 func test_the_blast_pushes_the_crowd_without_hurting_it() -> void:

@@ -1638,6 +1638,13 @@ func roll_dust(at: Vector3, back: Vector3, size: float = 1.0) -> void:
 	_emit_dust(o, v, randf_range(0.5, 0.75), 0.35 * w, randf_range(0.9, 1.3) * w, 0.62, DUST_TAN if randf() < 0.7 else DUST_PALE)
 
 
+## Pass 111 (lane ENEMY): a puff of smoke off a fuse (the Spit Cactus's bomb in flight, ProjectileManager._bomb_trail_tick):
+## a soft puff of `col` growing from `s0` to `s1` metres as it drifts along `vel` and fades over `life` seconds; thinned on a
+## busy screen like every dust.
+func smoke_puff(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, col: Color) -> void:
+	_emit_dust(at, vel, life, s0, s1, col.a, Color(col.r, col.g, col.b))
+
+
 ## Pass 95 (lane BOSS): the King's stomp landing (Game.stomp_wave): a ring of dust thrown out low all round the spot,
 ## racing out towards the stomp's `r` (the puffs cover about 0.6 r before they fade), a column up the middle, clods and
 ## grains flung up and out. Never thinned: the stomp is the attack's tell. `size` is the stomper's size in metres.

@@ -4,7 +4,7 @@
 class_name JsonContent
 extends RefCounted
 
-const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures", "boss_attacks"]
+const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures", "boss_attacks", "currencies"]
 ## Pass 76 (lane LOOKS): the weapon families' looks, preloaded (it has no class_name: see its header).
 const ItemLooks := preload("res://core/data/ItemLooks.gd")
 
@@ -56,6 +56,9 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 		"boss_attacks":
 			# pass 72 (lane BOSS): a custom boss attack
 			res = _boss_attack(d)
+		"currencies":
+			# pass 111 (lane SKINS): a currency (only gold)
+			res = _currency(d)
 		_:
 			push_error("JsonContent: unknown type %s" % type)
 			return null
@@ -492,6 +495,9 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 				b["note"] = str(e.get("note", ""))
 				b["shelved"] = bool(e.get("shelved", false))
 				b["title"] = str(e.get("title", ""))
+				# pass 111 (lane SKINS): the look sold as a skin (CharacterDef.skin_of)
+				if e.get("skin") is Dictionary:
+					b["skin"] = (e["skin"] as Dictionary).duplicate(true)
 				all[str(code)] = b
 			continue
 		var van = e.get("anims", c.anims)
@@ -502,6 +508,9 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 			"fps": vfp if vfp is Dictionary else c.fps, "strip_cols": int(e.get("strip_cols", 0)),
 			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon != "" else base_icon,
 			"title": str(e.get("title", "")), "note": str(e.get("note", "")), "shelved": bool(e.get("shelved", false))}
+		# pass 111 (lane SKINS): {purchasable, name, price, currency_type, unlock_quest}: the look sold as a skin
+		if e.get("skin") is Dictionary:
+			all[str(code)]["skin"] = (e["skin"] as Dictionary).duplicate(true)
 	if base_code != "" and not all.has(base_code):
 		all[base_code] = top
 	if all.is_empty():
@@ -562,6 +571,10 @@ static func _talent(d: Dictionary, dir: String) -> TalentDef:
 	t.ranks = int(d.get("ranks", 3))
 	var c = d.get("cost", [])
 	t.cost = c if c is Array else []
+	# pass 111 (lane SKINS): what the ranks are paid in
+	t.currency_type = str(d.get("currency_type", "gold"))
+	if t.currency_type == "":
+		t.currency_type = "gold"
 	var forms: Array = []
 	var tid := str(d.get("id", ""))
 	for f in (d.get("forms", []) as Array):
@@ -637,6 +650,15 @@ static func _building(d: Dictionary, _dir: String) -> BuildingDef:
 
 ## Pass 72 (lane BOSS): a custom boss attack (content/boss_attacks/<id>/<id>.json, BossAttackDef). Each group is read
 ## as the file has it (a key it leaves out plays BossAttackDef.DEFAULTS); a group that is not an object reads as empty.
+## Pass 111 (lane SKINS): a currency (CurrencyDef): its order, colour and word; its name and icon are the common keys.
+static func _currency(d: Dictionary) -> CurrencyDef:
+	var c := CurrencyDef.new()
+	c.order = int(d.get("order", 0))
+	c.colour = Color(str(d.get("colour", "#C9932F")))
+	c.word = str(d.get("word", ""))
+	return c
+
+
 static func _boss_attack(d: Dictionary) -> BossAttackDef:
 	var a := BossAttackDef.new()
 	a.attack_kind = str(d.get("kind", "rain"))
@@ -765,6 +787,14 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 95 (lane WORLD): far creatures despawn out of view (read as it is; WaveTimeline.DESPAWN_DEFAULTS fill gaps)
 	var dsp = t.get("despawn", {})
 	w.despawn = dsp if dsp is Dictionary else {}
+	# pass 111 (lane ENEMY): far creatures walk faster (read as it is; WaveTimeline.FAR_SPEED_DEFAULTS fill gaps)
+	var fsp = t.get("far_speed", {})
+	w.far_speed = fsp if fsp is Dictionary else {}
+	# pass 111 (lane CHEST): the world chests' clock and both chest types' contents (WorldChests' defaults fill gaps)
+	var wch = t.get("world_chests", {})
+	w.world_chests = wch if wch is Dictionary else {}
+	var chc = t.get("chest_contents", {})
+	w.chest_contents = chc if chc is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

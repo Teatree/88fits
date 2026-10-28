@@ -85,6 +85,9 @@ static func _satisfied(q: QuestDef, in_run: bool) -> bool:
 			return Save.total("gold_earned") >= int(c.get("count", 0))
 		"reach_stage":
 			return in_run and Run.stage + 1 >= int(c.get("stage", 1))
+		# pass 111 (lane SKINS): a stage beaten in a run of it (its boss killed), with the hero it names ("" any hero)
+		"beat_stage":
+			return in_run and beat_stage_now(c)
 		# pass 100 (lane QUESTS): levels, upgrades and evolutions in one run, read off the run's build (run_progress)
 		"hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed":
 			if not in_run:
@@ -139,7 +142,7 @@ static func stage_hint(q: QuestDef) -> int:
 			var t: float = first_arrival(tl, str(c.get("enemy", "")))
 			# pass 87 (lane SGAME): the stage whose window holds it
 			return tl.stage_at(t) + 1 if t >= 0.0 else 0
-		"kill_boss", "reach_stage":
+		"kill_boss", "reach_stage", "beat_stage":
 			return int(c.get("stage", 1))
 		"extract_after_stage":
 			return int(c.get("stage", 1))
@@ -167,6 +170,18 @@ static func stage_hint(q: QuestDef) -> int:
 		"items_maxed":
 			return 1 if int(c.get("count", 1)) <= 2 else 2
 	return 0
+
+
+## Pass 111 (lane SKINS): whether this run has beaten the stage a beat_stage condition {map, stage, hero} names: a run of
+## that stage (1-based `stage`) on that map ("" any map) whose boss fell (Run.stage_beaten), played by `hero` ("" any).
+static func beat_stage_now(c: Dictionary) -> bool:
+	if not Run.stage_beaten or Run.stage + 1 != int(c.get("stage", 1)):
+		return false
+	var map_id := str(c.get("map", ""))
+	if map_id != "" and (Run.map == null or Run.map.id != map_id):
+		return false
+	var hero := str(c.get("hero", ""))
+	return hero == "" or (Run.character != null and Run.character.id == hero)
 
 
 ## The first second a creature can come: its earliest roster row, event or special in the timeline (-1: never).

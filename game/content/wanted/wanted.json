@@ -1,0 +1,26 @@
+{
+  "doc": "The Bounty Board (pass 111, lane WANTED): before a stage run the player picks one of `choices` Wanted posters (or none); each is a task rolled from `tasks` by weight, its numbers from the stage's range grown with progression, its difficulty from where the number fell in that range, its reward from the difficulty. Paid only when done, at the run's end. Edited in the Level Editor's Wanted tab; every rule is in BALANCING.md 54.WANTED.",
+  "enabled": true,
+  "choices": 3,
+  "rerolls": 0,
+  "unlock": {"runs": 1},
+  "creatures_met_only": true,
+  "items_seen_only": true,
+  "progress": {"param_growth": 0.15},
+  "reward": {"base": 40, "per_point": 60, "progress_growth": 0.5, "stage_mult": [1.0, 1.25, 1.5], "round": 5, "currency": "gold"},
+  "tasks": [
+    {"type": "kill_enemy", "on": true, "weight": 14, "difficulty": [1.0, 3.0], "n": [[40, 120], [50, 150], [60, 180]], "step": 5, "per_minute_cap": 30, "min_seconds": 40, "name": "{target}", "text": "Kill {n} of them"},
+    {"type": "kill_weapon", "on": true, "weight": 10, "difficulty": [1.0, 3.0], "n": [[150, 450], [200, 600], [250, 750]], "step": 25, "start_weight": 3, "other_bonus": 1.0, "name": "{target}", "text": "Kill {n} with it"},
+    {"type": "kill_specials", "on": true, "weight": 8, "difficulty": [1.5, 3.5], "n": [[3, 8], [4, 10], [5, 12]], "step": 1, "name": "Specials", "text": "Kill {n} specials"},
+    {"type": "kill_elites", "on": true, "weight": 6, "difficulty": [2.0, 3.5], "n": [[1, 2], [2, 4], [3, 5]], "step": 1, "name": "Elites", "text": "Kill {n} Elites"},
+    {"type": "kill_total", "on": true, "weight": 6, "difficulty": [1.0, 2.5], "n": [[800, 1600], [1000, 2200], [1400, 3000]], "step": 50, "name": "{stage}", "text": "Kill {n} creatures"},
+    {"type": "boss_fast", "on": true, "weight": 5, "difficulty": [2.5, 4.5], "n": [[45, 75], [60, 100], [80, 130]], "step": 5, "name": "{boss}", "text": "Beat the boss within {time}"},
+    {"type": "hp_floor", "on": true, "weight": 5, "difficulty": [2.5, 4.5], "n": [[30, 60]], "step": 5, "max": 90, "name": "{hero}", "text": "Beat the boss, never under {n}% HP"},
+    {"type": "beat_stage", "on": true, "weight": 6, "difficulty": [1.5, 3.5], "name": "{stage}", "text": "Beat the stage as {hero}"},
+    {"type": "hero_level", "on": true, "weight": 8, "difficulty": [1.0, 3.0], "n": [[14, 22], [16, 26], [18, 30]], "step": 1, "name": "{hero}", "text": "Reach Lv {n}"},
+    {"type": "max_weapon", "on": true, "weight": 7, "difficulty": [1.5, 1.5], "start_weight": 3, "other_bonus": 1.0, "name": "{target}", "text": "Get it to Lv {n}"},
+    {"type": "evolve_item", "on": true, "weight": 5, "difficulty": [2.5, 4.0], "start_weight": 1, "name": "{target}", "text": "Evolve it"},
+    {"type": "open_chests", "on": true, "weight": 8, "difficulty": [1.0, 2.5], "n": [[4, 8], [6, 11], [8, 14]], "step": 1, "name": "Chests", "text": "Open {n} chests"},
+    {"type": "collect_coins", "on": true, "weight": 8, "difficulty": [1.0, 2.5], "n": [[250, 600], [400, 900], [600, 1300]], "step": 25, "name": "Gold", "text": "Collect {n} gold"}
+  ]
+}

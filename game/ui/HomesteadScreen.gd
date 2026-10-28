@@ -236,7 +236,7 @@ func _card(def: TalentDef) -> WTap:
 		if rank >= def.max_rank() or cost < 0:
 			tag = _tag("Full", W.AGED, 0)
 		else:
-			tag = _price(cost, Save.gold() >= cost)
+			tag = _price(cost, Currency.can_afford(def.currency_type, cost), def.currency_type)
 	tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	v.add_child(tag)
 	c.pressed.connect(func():
@@ -381,7 +381,7 @@ static func summary_talents() -> Array:
 
 ## The next rank's price: the coin and the number in ink on a paper tag; aged, coin and all, when the purse is short
 ## (pass 46: the tag was brass, and brass is kept for BUY).
-func _price(cost: int, can: bool) -> PanelContainer:
+func _price(cost: int, can: bool, cur: String = "gold") -> PanelContainer:
 	var p := PanelContainer.new()
 	p.name = "Price"
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -389,7 +389,8 @@ func _price(cost: int, can: bool) -> PanelContainer:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 10)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var coin := WCoin.make(32.0, W.BRASS if can else W.AGED, 3.0)
+	# pass 111 (lane SKINS): the icon of the talent's currency
+	var coin := WCoin.make(32.0, W.BRASS if can else W.AGED, 3.0, Currency.of(cur))
 	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(coin)
 	var t := W.slab_text(W.num(cost), 30, W.INK if can else W.INK_SOFT, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
@@ -517,9 +518,9 @@ func _form_offer(def: TalentDef, form: int, cost: int, sheet: PanelContainer) ->
 	words.add_child(W.serif_text(t, 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	row.add_child(words)
 	box.add_child(row)
-	var buy := WButton.make([def.form_name(form).to_upper(), {"coin": 40, "fill": W.PAPER}, [W.num(cost), null, 40]], 44, WButton.PRIMARY, 5, 8, 24.0, 24.0)
+	var buy := WButton.make([def.form_name(form).to_upper(), {"coin": 40, "fill": W.PAPER, "currency": Currency.of(def.currency_type)}, [W.num(cost), null, 40]], 44, WButton.PRIMARY, 5, 8, 24.0, 24.0)
 	buy.name = "Buy%d" % form
-	buy.locked = Save.gold() < cost
+	buy.locked = not Currency.can_afford(def.currency_type, cost)
 	buy.pressed.connect(func():
 		if buy.locked:
 			Audio.play("ui_locked")

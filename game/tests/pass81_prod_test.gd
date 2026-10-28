@@ -255,7 +255,13 @@ func test_heroes_and_cards_keep_only_the_look_they_play() -> void:
 		var key := REACH.folder_of(c)
 		if not looks.has(key):
 			continue
-		assert_array(looks[key]["keep"]).is_equal([c.variant])
+		# pass 111 (lane SKINS): and every look sold as a skin, after it
+		var want: Array = [c.variant]
+		for code in c.variants.keys():
+			if c.sells_skin(str(code)):
+				want.append(str(code))
+		assert_array(looks[key]["keep"]).contains_exactly_in_any_order(want)
+		assert_str(str(looks[key]["keep"][0])).is_equal(c.variant)
 		assert_bool(bool(looks[key]["promote"])).is_equal(c.variant != str(REACH.raw_json(c).get("variant_base", "")))
 	for p: PassiveDef in Registry.base_passives():
 		var key := REACH.folder_of(p)

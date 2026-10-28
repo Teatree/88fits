@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon.png" id="1_fx8c2"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_32wnf"]
+
+[resource]
+script = ExtResource("2_32wnf")
+condition = {
+"hero": "fadeaway",
+"level": 20.0,
+"type": "hero_level"
+}
+unlocks = {
+"id": "fadeaway:FAD-B",
+"type": "skin"
+}
+id = "skin_fadeaway_fad_b"
+display_name = "Fadeaway · Purple Reign"
+icon = ExtResource("1_fx8c2")
+icon_file = "res://content/characters/fadeaway/fadeaway_icon.png"

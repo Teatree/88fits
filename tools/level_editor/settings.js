@@ -30,6 +30,8 @@ const Settings = (() => {
           if (def.block === 'spawn_sides') card.appendChild(el('div', { class: 'block-row' }, el('h3', { class: 'block-title', text: 'Spawn sides' }), Forms.spawnSidesBlock(tl)));
           // pass 82 (lane XP): the XP card's growth type, its numbers, XP needed × and the two charts (xp_card.js)
           else if (def.block === 'xp_curve' && typeof XpCard !== 'undefined') { card.classList.add('xpc-card'); card.appendChild(XpCard.block(tl)); }
+          // pass 111 (lane CHEST): under the map chests' rows, about how many a stage, then what each chest type holds
+          else if (def.block === 'chest_contents' && typeof ChestCard !== 'undefined') { card.classList.add('tall'); card.appendChild(el('p', { class: 'muted small chest-summary', text: ChestCard.summary(tl) })); card.appendChild(ChestCard.block(tl)); }
           continue;
         }
         // pass 83 (lane SCALE): a row that only counts in another mode stays out of sight (the pegged Boss HP numbers)
@@ -59,6 +61,13 @@ const Settings = (() => {
       // pass 83 (lane SCALE): the power formula box, the chart of HP × by power and where the power is charted
       if (group === 'Hero power' && typeof PowerCard !== 'undefined') { card.classList.add('tall'); card.appendChild(PowerCard.block(tl)); }
       if (group === 'Scaling') card.appendChild(el('p', { class: 'muted small', text: 'An ordinary creature spawns with HP = its hp × the stage multiplier × the HP curve at that second × the hero-level factor × creature_hp_mult, and bites for its damage × the stage multiplier × the damage curve × the hero-level factor × creature_damage_mult. The hover cards on the Timeline show both for any second.' }));
+      // pass 111 (lane ENEMY): what the far-speed rows add up to, and a warning for a block that reads as a mistake
+      if (group === 'Scaling' && typeof Model.farSpeedMult === 'function') {
+        const fc = Model.farSpeedCfg(tl);
+        const at = [fc.distance, fc.distance + fc.ramp / 2, fc.distance + fc.ramp].map((d) => `${Math.round(d * 10) / 10} m ×${Model.farSpeedMult(tl, d + 1e-6, 'regular').toFixed(2)}`);
+        card.appendChild(el('p', { class: 'muted small', text: fc.enabled ? `Far creatures walk faster: ${at.join(', ')} and beyond (a regular creature${fc.bosses ? ' or a boss' : ''}; never an Elite or a special).` : 'Far creatures walk faster: off (every creature walks at its own speed wherever it is).' }));
+        for (const w of Model.farSpeedIssues(tl)) card.appendChild(el('p', { class: 'warn-text small', text: w }));
+      }
       grid.appendChild(card);
     }
     grid.appendChild(el('section', { class: 'card' }, el('h2', { text: 'Power-up drops' }), el('p', { class: 'muted small', text: 'What kills drop and how often; the harder the creature (its xp_mult) the likelier a drop and the more the hard_bias counts.' }), Forms.pickupsBlock(tl)));

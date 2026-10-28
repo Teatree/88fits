@@ -2556,6 +2556,38 @@ const Model = (() => {
     };
   }
 
+  // ------------------------------------------------------------------ pass 111 (lane ENEMY): far creatures walk faster
+  /** WaveTimeline.FAR_SPEED_DEFAULTS: the map's `far_speed` block's keys and the game's values for the missing ones. */
+  const FAR_SPEED_DEFAULTS = { enabled: true, distance: 14, max_mult: 2, ramp: 6, bosses: true };
+  /** The block whole, every key filled (WaveTimeline.far_speed_cfg). */
+  function farSpeedCfg(tl) {
+    const b = isObj(tl) && isObj(tl.far_speed) ? tl.far_speed : {};
+    const out = {};
+    for (const k of Object.keys(FAR_SPEED_DEFAULTS)) {
+      const dv = FAR_SPEED_DEFAULTS[k];
+      out[k] = typeof dv === 'boolean' ? (b[k] == null ? dv : !!b[k]) : num(b[k], dv);
+    }
+    return out;
+  }
+  /** The walk's multiplier `dist` m from the hero (EnemyManager.far_speed_mult): 1 inside the distance, then up to max_mult
+   *  along a smoothstep over the ramp; 1 when the rule is off, or for a boss while `bosses` is off (kind 'boss'); an Elite
+   *  or a special (kind 'never') is never sped up. */
+  function farSpeedMult(tl, dist, kind) {
+    const c = farSpeedCfg(tl);
+    if (!c.enabled || kind === 'never' || (kind === 'boss' && !c.bosses) || !(dist > c.distance)) return 1;
+    const f = c.ramp <= 0 ? 1 : clamp((dist - c.distance) / c.ramp, 0, 1);
+    return 1 + (c.max_mult - 1) * f * f * (3 - 2 * f);
+  }
+  /** What reads as a mistake in the block: a multiplier under 1 slows the far crowd instead, a negative distance or ramp. */
+  function farSpeedIssues(tl) {
+    const c = farSpeedCfg(tl);
+    const out = [];
+    if (c.max_mult < 1) out.push(`Far speed × ${c.max_mult} is under 1: far creatures would walk SLOWER than near ones`);
+    if (c.distance < 0) out.push('Far distance is negative');
+    if (c.ramp < 0) out.push('Far ramp is negative');
+    return out;
+  }
+
   const api = {
     DEF, FORMULA_DEF, isObj, num, clamp, round, samplePoints, formulaAt, curveMode, curveMult, hasCurve, hpTimeMult, dmgTimeMult,
     stageLength, stages, runEnd, stageAt, stageMult, rowWeight, keyframesOf, convertRow, normaliseRoster, newRowId,
@@ -2581,6 +2613,8 @@ const Model = (() => {
     eventToRow, waveToRows, convertLegacy, hasLegacy,
     DEFAULT_LEVEL_CURVE, DEFAULT_LEVEL_CURVE_SOURCE, levelAt, creatureDifficulty, estimateSeries,
   });
+  // pass 111 (lane ENEMY): far creatures walk faster (timeline_data.far_speed)
+  Object.assign(api, { FAR_SPEED_DEFAULTS, farSpeedCfg, farSpeedMult, farSpeedIssues });
   // pass 110 (lane BOSS): the boss fight windows (stage_list[k].boss_fight)
   Object.assign(api, {
     BOSS_FIGHT_DEF, BOSS_FIGHT_KEYS, BOSS_CYCLE_HZ, bossFightEntry, bossFight, bossFightOn, bossFightLen, bossFightMax, bossFightRows,

@@ -1183,6 +1183,8 @@ const App = (() => {
     validateCurve('dmg', d.damage_curve, mark, 'the damage curve');
     // pass 82 (lane XP): the XP growth type's checks (xp_model.js: a level needing 0 XP or less, an unknown type, ...)
     if (typeof XpModel !== 'undefined') for (const m of XpModel.issues(d)) mark('settings', m.level, `XP per level: ${m.msg}`);
+    // pass 111 (lane CHEST): the map chests' and the chest contents' checks (chest_model.js; errors block Save)
+    if (typeof ChestModel !== 'undefined') for (const m of ChestModel.issues(d, (S.pickups || []).map((p) => p.id))) mark('settings', m.level, `Chests: ${m.msg}`);
     const ss = d.spawn_sides;
     if (ss != null) {
       if (!U.isObj(ss)) mark('settings', 'error', 'spawn_sides must be a block {mode, top, bottom, left, right, ...}');
@@ -1235,6 +1237,8 @@ const App = (() => {
 
   async function save() {
     if (assetDoc()) { await Assets.save(S.tab); return; }
+    // pass 111 (lane WANTED): Ctrl+S on the Wanted tab saves the Bounty Board's config
+    if (S.tab === 'wanted' && typeof Wanted !== 'undefined') { await Wanted.save(); return; }
     if (!S.map || S.saving) return;
     const issues = validate();
     if (issues.errors.length) {
@@ -1397,6 +1401,8 @@ const App = (() => {
       else if (S.tab === 'sim' && typeof Sim !== 'undefined') Sim.render(panel);
       // pass 93 (lane PREVIEW): the driver library (drivers.js: its own state; reads tools/dl/drivers, writes nothing)
       else if (S.tab === 'drivers' && typeof Drivers !== 'undefined') Drivers.render(panel);
+      // pass 111 (lane WANTED): the Bounty Board (wanted.js: its own document, wanted.json; rolls from the map's timeline)
+      else if (S.tab === 'wanted' && typeof Wanted !== 'undefined') Wanted.render(panel);
       else if (assetsTab()) Assets.render(S.tab, panel);
     }
     updateTopBar();
@@ -1501,7 +1507,7 @@ const App = (() => {
       });
       lv.addEventListener('keydown', (e) => { if (e.key === 'Enter') lv.blur(); });
     }
-    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty())) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty()) || (typeof Wanted !== 'undefined' && Wanted.dirty())) { e.preventDefault(); e.returnValue = ''; } });
   }
 
   // only the buttons that carry data-tab: the zoom buttons share the nav (a click on "+" once switched to no tab at all)

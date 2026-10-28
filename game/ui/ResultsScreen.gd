@@ -212,7 +212,9 @@ func build() -> void:
 	_count.name = "Banked"
 	gr.add_child(_count)
 	gv.add_child(gr)
-	gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	# pass 111 (lane WANTED): a bounty done came home beside the purse (WantedRun.settle)
+	var bounty: Dictionary = res.get("bounty", {}) if res.get("bounty") is Dictionary else {}
+	gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked + int(bounty.get("paid", 0)))], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	if not Save.hint_seen("results"):
 		Save.mark_hint("results")
 		gv.add_child(W.serif_text("Your gold comes home, whatever the end. Spend it on Upgrades.",
@@ -238,6 +240,11 @@ func build() -> void:
 			seal.pivot_offset = Vector2(75, 75)
 			seal.rotation = deg_to_rad(12.0)
 			seal.position = Vector2(hero.size.x - 150.0 + 30.0, -44.0))
+	# pass 111 (lane WANTED): the run's bounty: what it paid, or how far it came (WantedRun.results_panel)
+	var bounty_panel := WantedRun.results_panel(bounty)
+	if bounty_panel:
+		content.add_child(_gap(28))
+		content.add_child(bounty_panel)
 	# the kills chart and its counters (pass 72)
 	_kills_total = int(s["kills"])
 	var dmg: Dictionary = s["damage_by_weapon"]
@@ -276,7 +283,8 @@ func build() -> void:
 	var again := WButton.make(["PLAY AGAIN"], 72, WButton.PRIMARY, 6, 10, 24.0, 0.0, 72.0)
 	# pass 87 (lane SUI): the same stage again (Game plays stage 1 unless a stage was chosen)
 	var again_stage := Run.stage
-	again.pressed.connect(func(): Run.choose_stage(again_stage); go("res://game/Game.tscn"))
+	# pass 111 (lane WANTED): through the Bounty Board once the save has finished a run (WantedBoard.run_scene)
+	again.pressed.connect(func(): Run.choose_stage(again_stage); go(WantedBoard.run_scene()))
 	col.add_child(again)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)
@@ -1162,11 +1170,15 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	# pass 69: a hero to buy is not his yet: on sale, still unknown (his badge black with a "?"); pass 76: only while
 	# Registry.hero_state says so (a hero owned already never reads FOR SALE)
 	var on_sale := def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable"
+	# pass 111 (lane SKINS): a look's goal: the look itself, FOR SALE until it is bought (or UNLOCKED when it is free)
+	var skin := str(q.unlocks.get("type", "")) == "skin" and def is CharacterDef
+	if skin:
+		on_sale = Registry.skin_state(def as CharacterDef, (def as CharacterDef).look_code()) == "buyable"
 	if def:
 		var pl := WPlate.new().for_def(def, 96.0)
 		pl.name = "Plate"
 		pl.icon_frac = 0.7
-		pl.mystery = on_sale
+		pl.mystery = on_sale and not skin
 		h.add_child(pl)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
@@ -1174,7 +1186,10 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# pass 72: the word is the stamp's (UNLOCKED, or FOR SALE on a hero to buy: _build_unlocks)
 	p.set_meta("on_sale", on_sale)
-	v.add_child(W.slab_text("A new hero" if on_sale else (def.display_name if def else q.display_name), 36, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 36.0))
+	var title := "A new hero" if on_sale else (def.display_name if def else q.display_name)
+	if skin:
+		title = "%s · %s" % [def.display_name, (def as CharacterDef).skin_name((def as CharacterDef).look_code())]
+	v.add_child(W.slab_text(title, 36, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 36.0))
 	h.add_child(v)
 	var why := W.serif_text(TextGen.quest_text(q), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, true)
 	why.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1196,6 +1211,9 @@ func _reward(q: QuestDef) -> ContentDef:
 			return Registry.played_look(Registry.character(id))
 		"map":
 			return Registry.map(id)
+		"skin":
+			# pass 111 (lane SKINS): the hero in that look
+			return Registry.unlocked_by(q)
 	return null
 
 

@@ -21,7 +21,8 @@ extends ContentDef
 @export var drops: Dictionary = {"small": 1.0, "gold": 0.02}
 ## Frames per animation, e.g. {"idle": 4, "run": 6, "attack": 2, "hit": 1, "die": 1, "run_b": 6, "idle_b": 4}
 ## (run_b / idle_b: the creature seen from behind, used while it walks away from the camera; eight-direction creatures
-## add run_s/idle_s, run_bd/idle_bd, run_fd/idle_fd, side and diagonals facing screen-right, mirrored for the other half)
+## add run_s/idle_s, run_bd/idle_bd, run_fd/idle_fd, side and diagonals facing screen-right, mirrored for the other half;
+## pass 111: idle_l/run_l/attack_l/hit_l/run_bl/idle_bl, the left-heading sets, frame_offset)
 @export var anims: Dictionary = {"idle": 2, "run": 2, "attack": 2, "hit": 1, "die": 1}
 ## Pass 101 (lane LOOKS): the strip is kept as a path (`sprite_path`, the res:// path JsonContent resolved; "" = no
 ## strip) and `sprite` loads it the first time something asks (LookArt: boot loads no strip; a run pins its own set,
@@ -636,10 +637,18 @@ func total_frames() -> int:
 	return max(n, 1)
 
 
+## Whether this look's strip carries its own left-heading sets (pass 111, lane ENEMY): idle_l or run_l with frames. The
+## optional sets (idle_l, run_l, attack_l, hit_l: the front set while it heads screen-left; run_bl, idle_bl: the back set
+## heading left) come last in the strip (frame_offset). A look that has them is never mirrored by code: EnemyManager
+## shows them while it heads left and the usual sets while it heads right, both as painted (tools/add_left_sets.py).
+func has_left_sets() -> bool:
+	return int(anims.get("idle_l", 0)) > 0 or int(anims.get("run_l", 0)) > 0
+
+
 func frame_offset(anim: String) -> int:
-	## Frame strips are packed in a fixed order so the shader can index them.
+	## Frame strips are packed in a fixed order so the shader can index them (pass 111: the left-heading sets last).
 	var n := 0
-	for k in ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]:
+	for k in ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd", "idle_l", "run_l", "attack_l", "hit_l", "run_bl", "idle_bl"]:
 		if k == anim:
 			return n
 		n += int(anims.get(k, 0))

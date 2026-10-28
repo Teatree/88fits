@@ -89,6 +89,13 @@ variants = {
 "icon": "res://content/characters/may/may_icon_g.png",
 "note": "",
 "shelved": false,
+"skin": {
+"currency_type": "gold",
+"name": "Midnight Mime",
+"price": 2000.0,
+"purchasable": true,
+"unlock_quest": "skin_may_may_b"
+},
 "sprite": "res://content/characters/may/may_sprite_b.png",
 "sprite_file": "may_sprite_b.png",
 "strip_cols": 62,

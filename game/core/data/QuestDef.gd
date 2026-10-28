@@ -29,8 +29,12 @@ extends ContentDef
 ##  weapon_paths {weapon?}              carry all of a weapon's path mutations (`weapon` = that family; empty = any)
 ##  items_maxed {kind, count}           hold `count` items of `kind` at their top level at once (a weapon at its max
 ##                                      level or evolved, a card at its max level or Risen, a passive item on Evolved)
+## Pass 111 (lane SKINS):
+##  beat_stage {map, stage, hero?}      in one run of stage `stage` (1-based) on `map`, kill its boss, with hero `hero`
+##                                      ("" any hero): "Beat Nightfall with May."
+## `unlocks` may also be {"type": "skin", "id": "<hero>:<CODE>"} (a hero's look sold as a skin, Registry.skin_state).
 @export var condition: Dictionary = {}
-## {"type": "character|weapon|passive|map|mode", "id": "..."}
+## {"type": "character|weapon|passive|map|mode|skin", "id": "..."} (a skin's id is "<hero>:<CODE>")
 @export var unlocks: Dictionary = {}
 ## Text shown in the collection when locked. Generated when empty.
 @export var quest_text: String = ""

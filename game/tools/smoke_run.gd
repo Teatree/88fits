@@ -28,7 +28,9 @@ var _boss_n := 1          # boss=2: jump to the second boss with a stage-2 build
 var _evolve_all := false  # evolve=all: every base weapon added, maxed, mutated twice and evolved in the live game
 var _evolved := false
 var _portal_decided := 0
-var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/HomesteadScreen.tscn", "res://ui/DevMenu.tscn"]
+var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/HomesteadScreen.tscn", "res://ui/DevMenu.tscn",
+	# pass 111 (lane WANTED): the Bounty Board opens whole (the run itself starts from a launch file and never meets it)
+	"res://ui/WantedBoardScreen.tscn"]
 var _screen_i := -1
 var _screen_t := 0.0
 var _cards_picked := 0

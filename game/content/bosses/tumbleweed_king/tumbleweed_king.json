@@ -15,7 +15,7 @@
   "drops": {
     "large": 1.0,
     "gold": 1.0,
-    "coins": 30
+    "coins": 15
   },
   "anims": {
     "idle": 4,

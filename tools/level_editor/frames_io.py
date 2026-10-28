@@ -45,7 +45,8 @@ import frames_store as FS  # noqa: E402
 ID_RE = re.compile(r"^[a-z0-9_]+$")
 CODE_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 KINDS = ("enemy", "boss", "hero")
-VIEWS = ("front", "fd", "side", "bd", "back")
+# pass 111 (lane ENEMY): front_l / back_l are a creature's left-heading sets (frames_store.SUFFIX)
+VIEWS = ("front", "fd", "side", "bd", "back", "front_l", "back_l")
 ANIMS = ("idle", "run", "attack", "hit", "die", "turn", "cheer")
 # the question the local vision model is asked about one frame (honestly labelled on the page: it misses extra limbs)
 ASK = ("You are checking one frame of a 2D game sprite animation of %s. Answer ONLY with one JSON object, no prose, with keys: "

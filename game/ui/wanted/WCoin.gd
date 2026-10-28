@@ -20,6 +20,14 @@ var side := 34.0:
 		queue_redraw()
 var fill := W.BRASS
 var border := 3.0
+## Pass 111 (lane SKINS): the currency the coin stands for (content/currencies): its own icon from the registry
+## (Currency.icon), gold's being the coin. Every price plate and BUY names the currency of what it sells.
+var currency := "gold":
+	set(v):
+		currency = v if v != "" else "gold"
+		queue_redraw()
+## icons of the other currencies, by id (gold keeps _art, which set_art can stand in for)
+static var _arts: Dictionary = {}
 
 
 func _init() -> void:
@@ -28,20 +36,33 @@ func _init() -> void:
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 
-static func make(px: float, f: Color = W.BRASS, b: float = 3.0) -> WCoin:
+static func make(px: float, f: Color = W.BRASS, b: float = 3.0, cur: String = "gold") -> WCoin:
 	var c := WCoin.new()
 	c.side = px
 	c.fill = f
 	c.border = b
+	c.currency = cur
 	return c
 
 
-## The painted coin, looked up once (null until art/ui/wanted/coin.png exists: the drawn disc stands in).
+## The painted coin, looked up once (null until art/ui/wanted/coin.png exists: the drawn disc stands in). Pass 111: the
+## gold currency's own icon (content/currencies/gold) when the registry has one, else ART.
 static func art() -> Texture2D:
 	if not _art_looked:
 		_art_looked = true
-		_art = (load(ART) as Texture2D) if ResourceLoader.exists(ART) else null
+		_art = Currency.icon("gold")
+		if _art == null:
+			_art = (load(ART) as Texture2D) if ResourceLoader.exists(ART) else null
 	return _art
+
+
+## The icon of currency `cur` (pass 111): gold's is art(); another's its registry icon (null: the drawn disc).
+static func art_of(cur: String) -> Texture2D:
+	if cur == "" or Currency.of(cur) == "gold":
+		return art()
+	if not _arts.has(cur):
+		_arts[cur] = Currency.icon(cur)
+	return _arts[cur]
 
 
 ## Tests and tools: draw `tex` as the coin (null = the drawn disc); `look_again` forgets it and looks for the file again.
@@ -51,7 +72,7 @@ static func set_art(tex: Texture2D, look_again: bool = false) -> void:
 
 
 func _draw() -> void:
-	var tex := art()
+	var tex := art_of(currency)
 	if tex:
 		draw_texture_rect(tex, Rect2(Vector2.ZERO, Vector2(side, side)), false, Color(1, 1, 1, AGED_ALPHA) if fill == W.AGED else Color.WHITE)
 		return

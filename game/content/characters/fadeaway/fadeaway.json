@@ -101,6 +101,13 @@
         "run": 36,
         "hit": 12,
         "die": 8
+      },
+      "skin": {
+        "purchasable": true,
+        "name": "Purple Reign",
+        "price": 1500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_fadeaway_fad_b"
       }
     },
     "FAD-C": {

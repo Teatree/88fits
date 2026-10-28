@@ -121,7 +121,14 @@
         "hit": 12,
         "die": 8
       },
-      "fresh": true
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Midnight Mime",
+        "price": 2000,
+        "currency_type": "gold",
+        "unlock_quest": "skin_may_may_b"
+      }
     },
     "MAY-C": {
       "recipe": {

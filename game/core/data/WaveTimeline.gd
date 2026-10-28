@@ -245,6 +245,37 @@ const OASES_DEFAULTS := {"min": 2, "max": 3, "extra_chance": 0.35, "gap": 10.0}
 ## enabled false = off. The debug arena never despawns.
 @export var despawn: Dictionary = {}
 const DESPAWN_DEFAULTS := {"enabled": true, "distance": 40.0, "grace": 6.0, "every": 0.5, "keep_share": 0.0}
+## Pass 111 (lane ENEMY; Garry: "Regular Enemies should walk considerably faster when they are far enough from the
+## Player. This is an option that I can control and switch off ... This should also apply to Bosses, but not to Elites or
+## Special Enemies"): {"enabled", "distance", "max_mult", "ramp", "bosses"}. A regular creature (and a boss while
+## `bosses`) farther than `distance` m (flat) from the hero walks faster, rising smoothly to `max_mult` times its walk
+## `ramp` m further out (EnemyManager.far_speed_mult). Never an Elite (by kind or modifier), a special type (the gear
+## badge: the Vulture Raider, the harpooner, the Saiga Sniper), a coloured special or a training dummy; never a charge,
+## a boss's scripted roll, a flee or a push (only the walk its brain chooses). A key left out (the whole block too) plays
+## FAR_SPEED_DEFAULTS; enabled false = off.
+@export var far_speed: Dictionary = {}
+const FAR_SPEED_DEFAULTS := {"enabled": true, "distance": 14.0, "max_mult": 2.0, "ramp": 6.0, "bosses": true}
+
+
+## The far-speed block whole, every key filled (pass 111): what EnemyManager.set_far_speed takes.
+func far_speed_cfg() -> Dictionary:
+	var out := {}
+	for k in FAR_SPEED_DEFAULTS:
+		var dv = FAR_SPEED_DEFAULTS[k]
+		var v = far_speed.get(k, dv)
+		if dv is bool:
+			out[k] = bool(v) if (v is bool or v is int or v is float) else dv
+		else:
+			out[k] = float(v) if (v is float or v is int) else float(dv)
+	return out
+## Pass 111 (lane CHEST; Garry: "Chests should respawn every now and then ... Chests never spawn where Player can see
+## them"): chests the map lays on a clock of its own, off the screen (core/systems/WorldChests.gd). Read as it is;
+## WorldChests.DEFAULTS fill the keys it leaves out; no block at all = no world chests (as before pass 111).
+@export var world_chests: Dictionary = {}
+## Pass 111 (lane CHEST; Garry: "a chance of a power up dropping from them ... I should be able to set the frequency and
+## content probabilities of both chest types"): what a chest holds, {"normal": {...}, "boss": {...}} (the power-up thrown
+## out of it, its reel's new-item weight and gold; WorldChests.CONTENT_DEFAULTS fill gaps: no power-up, today's reel).
+@export var chest_contents: Dictionary = {}
 
 
 ## One number of despawn (pass 95): the map's, else DESPAWN_DEFAULTS' ("enabled" as 1 / 0).

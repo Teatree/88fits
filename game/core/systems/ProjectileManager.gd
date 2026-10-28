@@ -404,8 +404,10 @@ func landing_of(i: int) -> Vector4:
 	var step := 1.0 / 60.0
 	var t := 0.0
 	var g := 0.0
+	# (pass 111: a shot's own gravity, "grav", the bomb's high arc)
+	var gk: float = float(extra[i]["grav"]) if (extra[i] is Dictionary and (extra[i] as Dictionary).has("grav")) else 24.0
 	while t < maxf(life[i], step):
-		v.y -= 24.0 * step
+		v.y -= gk * step
 		p += v * step
 		t += step
 		g = map.height_at(p.x, p.z) if map else 0.0
@@ -458,6 +460,9 @@ func _tick_pulse(i: int, dt: float) -> void:
 ## The halos round the pulsing shots _render gathered, drawn as beads of the trail MultiMesh after its own beads from
 ## instance `n` on (pass 62): `halo` times the shot's drawn radius, its colour at `glow` x the breath. Returns the count.
 func _draw_pulse_halos(n: int) -> int:
+	# pass 111 (lane ENEMY): a halo `halo_back` sits behind its shot (away from the camera by its own radius), so it glows
+	# round the black bomb's edge instead of tinting the bomb red
+	var cam: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
 	for i: int in _pulse_list:
 		if n >= TRAIL_MAX + HALO_MAX or alive[i] == 0 or not extra[i].has("pulse"):
 			continue
@@ -471,7 +476,10 @@ func _draw_pulse_halos(n: int) -> int:
 		var s: float = r0 * float(pl.get("halo", 1.6)) / HALO_BEAD_R
 		var ph := pulse_phase(i)
 		var c := Color(str(pl.get("color", "#9CFF6E")))
-		_trail_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(s, s, s)), pos[i]))
+		var at: Vector3 = pos[i]
+		if cam != null and extra[i].has("halo_back"):
+			at -= (cam.global_position - at).normalized() * s * HALO_BEAD_R
+		_trail_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(s, s, s)), at))
 		_trail_mm.set_instance_color(n, Color(c.r, c.g, c.b, float(pl.get("glow", 0.3)) * (0.25 + 0.75 * ph)))
 		n += 1
 	_pulse_list.clear()
@@ -677,7 +685,8 @@ func _physics_process(delta: float) -> void:
 				_fly_missile(i, dt, enemies, map)
 			continue
 		if arc[i] == 1:
-			vel[i].y -= 24.0 * dt
+			# pass 111 (lane ENEMY): a shot thrown on a higher arc in the same time falls under its own gravity ("grav")
+			vel[i].y -= (float(extra[i]["grav"]) if extra[i].has("grav") else 24.0) * dt
 		if ret[i] == 2 and player:
 			# coming home: steered at the hero, gone when it reaches him
 			var home := player.global_position + Vector3(0, hover[i], 0) - pos[i]
@@ -807,18 +816,26 @@ func _physics_process(delta: float) -> void:
 			# pass 62: a spit that breathes (ranged.pulse), on the creatures' clock like its flight
 			if extra[i].has("pulse"):
 				_tick_pulse(i, dt)
-			# pass 85 (lane BANDIT): a creature's dynamite tumbles end over end as it flies
+			# pass 85 (lane BANDIT): a creature's dynamite tumbles end over end as it flies (pass 111: at its block's `tumble`)
 			if extra[i].has("dynamite"):
-				spin[i] += dt * DYN_TUMBLE
+				spin[i] += dt * (float(extra[i]["tumble"]) if extra[i].has("tumble") else DYN_TUMBLE)
 			# pass 95 (lane BOSS): a tumbleweed's dust ribbon and puffs, every tick (_tumble_trail_tick)
 			if extra[i].has("tumble_trail"):
 				_tumble_trail_tick(i, delta)
+			# pass 111 (lane ENEMY): the bomb's smoke ribbon, puffs and sparks off its fuse (_bomb_trail_tick)
+			if extra[i].has("bomb_trail"):
+				_bomb_trail_tick(i, delta)
+			# pass 111 (lane ENEMY): a harpoon's whoosh, a hot streak riding behind the hook (_hook_streak_tick)
+			if extra[i].has("harpoon_fx"):
+				_hook_streak_tick(i)
 			_trail_t[i] -= delta
 			if _trail_t[i] <= 0.0:
 				_trail_t[i] = TRAIL_STEP
 				# silk is white; spit is green; a sun shard gold, lead smoke grey; a harpoon trails its rope (Game draws it)
 				var shot_kind := str(extra[i].get("shot", ""))
-				if extra[i].get("trail_look") is Dictionary:
+				if extra[i].has("bomb_trail"):
+					pass
+				elif extra[i].get("trail_look") is Dictionary:
 					# its shooter's own trail (pass 62, ranged.trail: the Spit Cactus's faint one)
 					_creature_trail(i)
 				elif extra[i].has("harpoon"):
@@ -2799,9 +2816,9 @@ func draw_basis(i: int) -> Basis:
 		var fwd := v.normalized()
 		var up := Vector3.UP if abs(fwd.dot(Vector3.UP)) < 0.95 else Vector3.RIGHT
 		bs = Basis.looking_at(fwd, up)
-	if extra[i].has("roll"):
+	if extra[i].has("roll") or extra[i].has("tumble_x"):
 		# a rolling shot (pass 45; the hero's tumbleweeds too since pass 55) turns about the axis across its travel (a
-		# wheel, its top going the way it flies), not along it
+		# wheel, its top going the way it flies), not along it; pass 111: so does a bomb's tumble (`tumble_x`)
 		bs = bs.rotated(bs.x, -spin[i]).scaled(Vector3(s, s, s) * psize[i])
 	else:
 		bs = bs.rotated(bs.z, spin[i]).scaled(Vector3(s, s, s) * psize[i])
@@ -3430,17 +3447,23 @@ func _render_sparks() -> void:
 				_fuse_smoke(fuse_tip(i), fx)
 			continue
 		var sp = fuse_of(weapon[i]).get("spark", {})
+		# pass 111 (lane ENEMY): a creature's throw names its own spark in its block (the bomb's bigger one)
+		if hostile[i] == 1 and ex.get("dynamite") is Dictionary and (ex["dynamite"] as Dictionary).get("spark") is Dictionary:
+			sp = ex["dynamite"]["spark"]
 		var sd: Dictionary = sp if sp is Dictionary else {}
 		var col := Color(str(sd.get("color", SPARK_COLOR)))
 		var hot := col.lightened(0.55)
 		var size := float(sd.get("size", SPARK_SIZE)) * (0.6 if ex.has("is_bomblet") else 1.0)
 		var at := fuse_tip(i)
 		var fl := randf_range(0.75, 1.25)
-		var g := size * SPARK_GLOW * fl
+		# pass 111 (lane ENEMY): a spark's `glow` scales its two glows (the bomb's are kept off the black ball, which they
+		# tinted brown)
+		var gm := maxf(float(sd.get("glow", 1.0)), 0.0)
+		var g := size * SPARK_GLOW * fl * gm
 		mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(g, g, g)), at))
 		mm.set_instance_color(n, Color(col.r, col.g, col.b, SPARK_GLOW_ALPHA))
 		n += 1
-		var gi := size * SPARK_GLOW_IN * fl
+		var gi := size * SPARK_GLOW_IN * fl * gm
 		mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(gi, gi, gi)), at))
 		mm.set_instance_color(n, Color(hot.r, hot.g, hot.b, SPARK_GLOW_IN_ALPHA))
 		n += 1
@@ -3962,8 +3985,9 @@ var _dyn_kinds: Dictionary = {}
 ## The kind a creature's dynamite of model `path` is drawn with at `scale` (registered once per model and scale: the
 ## model's first mesh, its vertex colours lit like the hero's stick: metallic 0, roughness 0.85); the spit's kind when the
 ## model is missing.
-func dynamite_kind(path: String, scale: float = 1.0) -> int:
-	var key := "%s|%s" % [path, scale]
+func dynamite_kind(path: String, scale: float = 1.0, look: Dictionary = {}) -> int:
+	# (pass 111, lane ENEMY: `look` is the block's `material` {roughness, metallic, rim, specular, fog}: the bomb is glossy)
+	var key := "%s|%s|%s" % [path, scale, look]
 	if _dyn_kinds.has(key):
 		return int(_dyn_kinds[key])
 	var k := -1
@@ -3981,8 +4005,17 @@ func dynamite_kind(path: String, scale: float = 1.0) -> int:
 				var mat := StandardMaterial3D.new()
 				mat.vertex_color_use_as_albedo = true
 				mat.albedo_color = Color.WHITE
-				mat.metallic = 0.0
-				mat.roughness = 0.85
+				mat.metallic = clampf(float(look.get("metallic", 0.0)), 0.0, 1.0)
+				mat.roughness = clampf(float(look.get("roughness", 0.85)), 0.0, 1.0)
+				if look.has("specular"):
+					mat.metallic_specular = clampf(float(look["specular"]), 0.0, 1.0)
+				if float(look.get("rim", 0.0)) > 0.0:
+					mat.rim_enabled = true
+					mat.rim = clampf(float(look["rim"]), 0.0, 1.0)
+					mat.rim_tint = 0.2
+				# `fog` false: black stays black under the map's warm haze (it browned the bomb; pass 70's trampoline mat)
+				if look.has("fog") and not bool(look["fog"]):
+					mat.set("disable_fog", true)
 				k = register_kind(mesh, mat, scale)
 	if k < 0 and game != null and game.get("_spit_kind") != null and int(game.get("_spit_kind")) >= 0:
 		k = int(game.get("_spit_kind"))
@@ -3997,17 +4030,160 @@ func hostile_dynamite(from: Vector3, target: Vector3, speed: float, damage: floa
 	var flat := Vector3(target.x - from.x, 0, target.z - from.z)
 	var dist: float = maxf(flat.length(), 0.5)
 	var t: float = clampf(dist / maxf(speed, 1.0), 0.4, 2.0)
-	var vy := ((target.y - from.y) + 0.5 * 24.0 * t * t) / t
+	# pass 111 (lane ENEMY): a block with `arc_height` flies the same time to the same spot on a higher arc (throw_gravity)
+	var g := throw_gravity(from.y, target.y, t, throw_apex(dy, dist))
+	var vy := ((target.y - from.y) + 0.5 * g * t * t) / t
 	var tip = dy.get("tip", DYN_TIP)
 	var params := {"info": info, "dynamite": dy, "land_only": true, "fz": Lobber._vec3(tip, Vector3.INF), "fz_lit": true, "fz_t": 0.0,
 		"fz_ob": float(dy.get("out_before", FUSE_OUT_BEFORE)), "halo_r0": float(dy.get("halo_r", DYN_HALO_R))}
-	var i := hostile_shot(dynamite_kind(str(dy.get("model", DYN_MODEL)), float(dy.get("scale", 1.0))), from, flat / t + Vector3(0, vy, 0), damage, radius, t + 2.0, true, params)
+	if g != 24.0:
+		params["grav"] = g
+	if dy.has("tumble"):
+		params["tumble"] = float(dy["tumble"])
+		params["tumble_x"] = true
+	if bool(dy.get("halo_back", false)):
+		params["halo_back"] = true
+	var mat_look: Dictionary = dy["material"] if dy.get("material") is Dictionary else {}
+	var i := hostile_shot(dynamite_kind(str(dy.get("model", DYN_MODEL)), float(dy.get("scale", 1.0)), mat_look), from, flat / t + Vector3(0, vy, 0), damage, radius, t + 2.0, true, params)
 	if i < 0:
 		return i
 	extra[i]["land_only"] = true
 	dynamite_thrown += 1
+	last_throw_apex = from.y + vy * vy / (2.0 * g)
+	_bomb_trail_start(i)
 	_dynamite_ring(i)
 	return i
+
+
+# ---------------------------------------------------------------- pass 111 (lane ENEMY): the bomb
+## Garry (pass 111): "Split Cactus - I decided that the Dynamite Projectile is not visible enough. Make it into one of
+## those black round bombs instead. Make it bigger and make the arch of its flight more obvious. It functions the same
+## otherwise, but a nice black bomb with a flight trail instead of a dynamite stick." A creature whose `ranged.shot` is
+## "bomb" throws by its `ranged.bomb` block (EnemyManager.throw_block; the same keys as `ranged.dynamite`, which stays for
+## "dynamite") with these more: `model`/`scale`/`tip` (art/props/enemy_bomb.glb, tools/blender_bomb.py: a glossy black
+## ball, a metal collar, a cord fuse), `material` {roughness, metallic, specular, rim} (dynamite_kind), `arc_height` (m:
+## the top of its arc over the hand; the flight keeps its time and its spot, so it falls under a stronger gravity of its
+## own, "grav", throw_gravity; at most `arc_ratio` x the throw's length, so a short throw is not a spike), `tumble`
+## (radians a second, end over end), `spark` {color, size} (the fuse's spark, flying and lying) and `trail` {style,
+## colour, alpha, width, life, puffs, smoke, sparks} (a smoke ribbon laid from the fuse along the arc in the tracers' ring,
+## a grey puff every `puffs` s and an orange spark flung off the fuse every `sparks` s, nothing in the sim). The fuse, the
+## ring, the blast and the push are the dynamite's.
+const BOMB_TRAIL := {"style": "line", "colour": "#2E2A28", "alpha": 0.5, "width": 0.3, "life": 0.85, "puffs": 0.045, "smoke": "#5A5552", "sparks": 0.03}
+## the top of a throw's arc may be at most this many times its length over the hand (a block without its own arc_ratio)
+const BOMB_ARC_RATIO := 0.6
+## tests: the top of the last creature throw's arc (world y), the bomb trails started, puffs and sparks dropped
+var last_throw_apex := 0.0
+var bomb_trails := 0
+var bomb_puffs := 0
+
+
+## The top a throw `dist` m long by block `dy` aims for over the hand (0 = the plain arc under the tick's gravity).
+static func throw_apex(dy: Dictionary, dist: float) -> float:
+	var h := float(dy.get("arc_height", 0.0))
+	if h <= 0.0:
+		return 0.0
+	return minf(h, maxf(float(dy.get("arc_ratio", BOMB_ARC_RATIO)), 0.05) * dist)
+
+
+## The gravity under which a throw from height `y0` lands at `y1` after `t` s with the top of its arc `apex` m over `y0`
+## (24, the tick's, for an apex of 0 or one the plain arc already reaches; never less). From vy = dh/t + g t/2 and
+## apex = vy^2 / 2g: (t/2)^2 g^2 + (dh - 2 apex) g + (dh/t)^2 = 0, the larger root.
+static func throw_gravity(y0: float, y1: float, t: float, apex: float) -> float:
+	if apex <= 0.0 or t <= 0.0:
+		return 24.0
+	var a := (y1 - y0) / t
+	var b := t * 0.5
+	var disc := apex * (apex - 2.0 * a * b)
+	if disc < 0.0:
+		return 24.0
+	return maxf(((apex - a * b) + sqrt(disc)) / (b * b), 24.0)
+
+
+## A harpoon in the air (pass 111): a streak in its block's `launch.streak` colour laid behind the hook every half
+## TRACER_SEG_MIN it flies, `streak_width` wide, gone in `streak_life` s (the tracers' "streak" style: hot at the head);
+## "" or "none" = no streak. Nothing in the sim.
+func _hook_streak_tick(i: int) -> void:
+	if Run.sim_mode:
+		return
+	var fx: Dictionary = extra[i]["harpoon_fx"] if extra[i]["harpoon_fx"] is Dictionary else {}
+	var lc: Dictionary = HarpoonChain.merged(fx)["launch"]
+	var sc := str(lc.get("streak", ""))
+	if sc == "" or sc == "none":
+		return
+	if not extra[i].has("hs_from"):
+		extra[i]["hs_from"] = pos[i]
+		extra[i]["hs_t0"] = clock
+		extra[i]["hs_col"] = Color.from_string(sc, Color(1.0, 0.95, 0.82))
+		return
+	var from: Vector3 = extra[i]["hs_from"]
+	var step := TRACER_SEG_MIN * 0.5
+	if from.distance_squared_to(pos[i]) < step * step:
+		return
+	_tracer_lay(from, pos[i], extra[i]["hs_col"], maxf(float(lc.get("streak_width", 0.22)), 0.02), maxf(float(lc.get("streak_life", 0.22)), 0.05),
+		float(extra[i]["hs_t0"]), clock, int(TRACER_STYLE_IDS["streak"]), -1.0)
+	extra[i]["hs_from"] = pos[i]
+	extra[i]["hs_t0"] = clock
+
+
+## A throw whose block has a `trail` starts its smoke at the fuse.
+func _bomb_trail_start(i: int) -> void:
+	var dy: Dictionary = extra[i].get("dynamite", {})
+	if not dy.get("trail") is Dictionary:
+		return
+	var cfg: Dictionary = BOMB_TRAIL.duplicate()
+	for k in (dy["trail"] as Dictionary).keys():
+		cfg[k] = dy["trail"][k]
+	var col := Color.from_string(str(cfg.get("colour", cfg.get("color", BOMB_TRAIL["colour"]))), Color(0.18, 0.16, 0.15))
+	col.a = clampf(float(cfg.get("alpha", BOMB_TRAIL["alpha"])), 0.0, 1.0)
+	var style := str(cfg.get("style", BOMB_TRAIL["style"]))
+	var smoke := Color.from_string(str(cfg.get("smoke", BOMB_TRAIL["smoke"])), Color(0.35, 0.33, 0.32))
+	extra[i]["bomb_trail"] = {"on": style != "none" and TRACER_STYLE_IDS.has(style), "ts": int(TRACER_STYLE_IDS.get(style, 0)), "tc": col,
+		"tw": maxf(float(cfg.get("width", BOMB_TRAIL["width"])), 0.02), "tl": maxf(float(cfg.get("life", BOMB_TRAIL["life"])), 0.05),
+		"puffs": maxf(float(cfg.get("puffs", BOMB_TRAIL["puffs"])), 0.0), "sparks": maxf(float(cfg.get("sparks", BOMB_TRAIL["sparks"])), 0.0),
+		"smoke": smoke, "from": fuse_tip(i), "t0": clock, "puff_t": 0.0, "spark_t": 0.0}
+	bomb_trails += 1
+
+
+## A bomb's tick in the air (after it moved): the ribbon's next stretch from the fuse once it has flown far enough, a puff
+## of smoke and a spark off the fuse when due.
+func _bomb_trail_tick(i: int, delta: float) -> void:
+	if Run.sim_mode:
+		return
+	var bt: Dictionary = extra[i]["bomb_trail"]
+	var tip := fuse_tip(i)
+	if bool(bt["on"]):
+		var from: Vector3 = bt["from"]
+		var step := TRACER_SEG_MIN * 0.5 * (2.0 if count > TRACER_BUSY else 1.0)
+		if from.distance_squared_to(tip) >= step * step:
+			_tracer_lay(from, tip, bt["tc"], float(bt["tw"]), float(bt["tl"]), float(bt["t0"]), clock, int(bt["ts"]), -1.0)
+			bt["from"] = tip
+			bt["t0"] = clock
+	var fx = game.get("fx") if game != null else null
+	if fx == null or not fx.has_method("mote"):
+		return
+	var back := -vel[i]
+	back = back.normalized() if back.length_squared() > 0.0001 else Vector3.ZERO
+	var every := float(bt["puffs"])
+	if every > 0.0:
+		bt["puff_t"] = float(bt["puff_t"]) - delta
+		if float(bt["puff_t"]) <= 0.0:
+			bt["puff_t"] = every
+			var sm: Color = bt["smoke"]
+			var at := tip + Vector3(randf_range(-0.05, 0.05), randf_range(-0.05, 0.05), randf_range(-0.05, 0.05))
+			var drift := back * randf_range(0.3, 0.8) + Vector3(0, randf_range(0.3, 0.7), 0)
+			if fx.has_method("smoke_puff"):
+				# a soft puff that grows as it drifts back off the fuse
+				fx.smoke_puff(at, drift, randf_range(0.55, 0.85), 0.18, randf_range(0.5, 0.7), Color(sm.r, sm.g, sm.b, 0.7))
+			else:
+				fx.mote(at, drift, randf_range(0.5, 0.8), randf_range(0.26, 0.38), Color(sm.r, sm.g, sm.b, 0.75))
+			bomb_puffs += 1
+	var se := float(bt["sparks"])
+	if se > 0.0:
+		bt["spark_t"] = float(bt["spark_t"]) - delta
+		if float(bt["spark_t"]) <= 0.0:
+			bt["spark_t"] = se * randf_range(0.6, 1.4)
+			var out := Vector3(randf_range(-1.0, 1.0), randf_range(-0.3, 1.0), randf_range(-1.0, 1.0)).normalized() * randf_range(1.5, 3.0)
+			fx.mote(tip, out + back * 1.5, randf_range(0.18, 0.32), 0.12, Color(1.0, randf_range(0.55, 0.85), 0.2, 1.0))
 
 
 ## The red ring on a creature's dynamite's spot: its blast radius, from the throw to the blast (the flight and the fuse,
@@ -4044,6 +4220,10 @@ func _dynamite_lie(i: int, ground: float) -> bool:
 	spin[i] = 0.0
 	pos[i].y = ground + _lie_lift(i)
 	dynamite_lain += 1
+	# pass 111 (lane ENEMY): a heavy bomb lands with a puff of sand (`land_dust`, its size)
+	var ld := float(dy.get("land_dust", 0.0))
+	if ld > 0.0 and game != null and game.get("fx") != null and game.fx.has_method("sand"):
+		game.fx.sand(Vector3(pos[i].x, ground + 0.05, pos[i].z), ld)
 	return true
 
 
