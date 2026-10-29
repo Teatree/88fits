@@ -13,14 +13,14 @@ any speed, with the taps drawn as rings. Runs from older builds have no recordin
 
 1. **Play a run on the phone** with the build in Drive (0.97 or later). Play data must be on (the card at the first
    start, or Settings). Play as you like; end the run any way (die, extract, or quit from the pause screen).
-2. **Wait a minute**, then on the PC open a terminal in the repo folder (`D:\_projects\88fits`) and run:
-
-       python tools/posthog_runs.py
-
-   Besides the runs it now also fetches the replays (one line each: `Lanky_Tinker_24/replays/20261029_140211_replay.json
-   drifter death stage 1, 6:12, build 0.97-20261029-1402-abc1234`).
-3. **Double-click `tools\replay.cmd`** (or run `python tools/replay.py --latest`). It opens the newest recording on the
-   build that recorded it. A window opens: the phone's screen on the left, the panel on the right, the reel at the bottom.
+2. **Double-click `toolseplay.cmd`** on the PC. A small menu asks what to do:
+   - **1) Download new runs from the phone, then list them** (fetches the replays from PostHog; wait a minute after
+     the run, or open the game on the phone again for a few seconds if it does not show),
+   - **2) List the runs on this PC** (newest first, numbered),
+   - **3) Watch a run** (type its number, Enter = the newest): it opens on the build that recorded it. A window opens:
+     the phone's screen on the left, the panel on the right, the reel at the bottom.
+   - **4) Quit.**
+   (`python tools/replay.py --latest | --list | <file>` and `python tools/posthog_runs.py` still work on their own.)
 
 A run you play on the PC exe (88fits.exe) is recorded too (in `%APPDATA%\Godot\app_userdata\88fits\analytics\replays\`)
 and `tools\replay.cmd` finds it without any download. A run from the editor binary goes to `analytics\runs\replays\`.

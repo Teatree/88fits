@@ -1,6 +1,6 @@
 @echo off
-rem 88fits replay (pass 114): double-click to watch the newest recorded run again, on the build that recorded it.
-rem   replay.cmd                 the newest recording (downloaded with tools\posthog_runs.py, or played on this PC)
+rem 88fits replay (pass 114): double-click for the menu: 1 download the phone's runs, 2 list them, 3 watch one.
+rem   replay.cmd                 the menu (download, list, watch)
 rem   replay.cmd --list          every recording;  replay.cmd <file>  plays one;  --speed 4 --seek 5:00 --paused
 rem How it works and what the header and the light mean: analytics\howto\04_replays.md
 setlocal
@@ -17,7 +17,7 @@ if not defined PY (
   exit /b 1
 )
 if "%~1"=="" (
-  %PY% tools\replay.py --latest
+  %PY% tools\replay.py --menu
 ) else (
   %PY% tools\replay.py %*
 )

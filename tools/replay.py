@@ -186,7 +186,10 @@ def main(argv=None):
     ap.add_argument("--demo", action="store_true")
     ap.add_argument("--demo-seek", default="")
     ap.add_argument("--quit-after", type=float, default=0.0)
+    ap.add_argument("--menu", action="store_true", help="the menu replay.cmd opens: download, list, replay")
     a = ap.parse_args(argv)
+    if a.menu:
+        return menu(a)
     if a.list:
         return cmd_list(a)
     if a.file:
@@ -201,6 +204,10 @@ def main(argv=None):
             say("no recordings found%s. On the phone: play a run with play data on, then run `python tools/posthog_runs.py`." %
                 (" for %s" % a.player if a.player else ""))
             return 1
+    return play(a, path, h)
+
+
+def play(a, path, h):
     say("the run: " + describe(h))
     say("the file: " + path)
     bid = str((h.get("build") or {}).get("id", ""))
@@ -226,6 +233,83 @@ def main(argv=None):
         if ans not in ("y", "yes"):
             return 2
     return run_exe(b["exe"], a, path, a.wait)
+
+
+# ---------------------------------------------------------------- the menu (replay.cmd; Garry: "why would I want this to
+# be a separate tool? Just make it so that when I run the cmd, it asks me and gives me options")
+
+def _numbered(a, limit=20):
+    """The recordings newest first, numbered from 1 (at most `limit` shown); the list of (path, header)."""
+    kept = {b["id"] for b in B.builds()}
+    recs = [(p, h) for p, h in B.recordings() if not a.player or str(h.get("player", "")).lower() == a.player.lower()]
+    if not recs:
+        print("\n  No recordings yet. Choose 1 to download the phone's runs (play a run on the phone first, play data on).")
+        return recs
+    print()
+    for i, (p, h) in enumerate(recs[:limit]):
+        bid = str((h.get("build") or {}).get("id", ""))
+        mark = "" if bid in kept or bid.startswith("editor-") else "  (its build is not on this PC)"
+        print("  %2d) %s%s" % (i + 1, describe(h), mark))
+    if len(recs) > limit:
+        print("      ... and %d older (python tools/replay.py --list shows all)" % (len(recs) - limit))
+    return recs
+
+
+def _download():
+    import posthog_runs as PR
+    print()
+    try:
+        # only what concerns the replays (the run records' own lines are posthog_runs.py's; runs from before 0.97 have none)
+        def log(m):
+            m = str(m)
+            if "replay" in m or "budget" in m or "not complete" in m or "failed" in m.lower():
+                print("  " + m.replace("run_replay parts", "replay parts in PostHog"), flush=True)
+        print("  Downloading from PostHog (a minute or so)...", flush=True)
+        PR.download(log=log)
+    except SystemExit as e:
+        print("  The download stopped: %s" % e)
+    except Exception as e:  # network, the key file, PostHog's budget: say it and stay in the menu
+        print("  The download failed: %s" % e)
+
+
+def _choose_and_play(a, recs):
+    if not recs:
+        return
+    ans = input("\n  Which run? Enter its number (Enter = 1, the newest): ").strip()
+    k = 1
+    if ans:
+        if not ans.isdigit() or not 1 <= int(ans) <= len(recs):
+            print("  There is no run %s." % ans)
+            return
+        k = int(ans)
+    path, h = recs[k - 1]
+    print()
+    play(a, path, h)
+    print("\n  The replay opens in its own window (Space pause, 1-7 speed, click the reel to jump, Esc closes it).")
+
+
+def menu(a):
+    while True:
+        print("\n88fits replays")
+        print("  1) Download new runs from the phone, then list them")
+        print("  2) List the runs on this PC")
+        print("  3) Watch a run")
+        print("  4) Quit")
+        try:
+            c = input("Choose 1-4: ").strip()
+        except EOFError:
+            return 0
+        if c == "1":
+            _download()
+            _numbered(a)
+        elif c == "2":
+            _numbered(a)
+        elif c == "3":
+            _choose_and_play(a, _numbered(a))
+        elif c in ("4", "q", "Q", ""):
+            return 0
+        else:
+            print("  Type 1, 2, 3 or 4.")
 
 
 if __name__ == "__main__":
