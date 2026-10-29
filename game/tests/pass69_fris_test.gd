@@ -37,7 +37,7 @@ var max_hp := 100.0
 var heals := 0
 func take_damage(_a: float, _f: Vector3, _i: Dictionary = {}) -> void:
 	pass
-func heal(_a: float, _s: String = "") -> void:
+func heal(_a: float, _s: String = "", _c: String = "") -> void:
 	heals += 1
 func forward() -> Vector3:
 	return Vector3.FORWARD

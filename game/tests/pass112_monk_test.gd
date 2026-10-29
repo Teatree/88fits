@@ -170,12 +170,14 @@ func _nn(em: EnemyManager, members: Array) -> Vector2:
 	return Vector2(lo, hi)
 
 
-## How far north of the hero a squad of `n` stands with its near edge 7 m off him (inside its 5..8 m band).
+## How far north of the hero a squad of `n` stands with its near edge in the middle of its band (pass 112: 7 m in the
+## 5..8 m band; pass 113 re-pin: the band is Garry's to tune, so the middle of keep_distance - 0.5 .. range).
 func _band_z(n: int) -> float:
 	var r := 0.0
 	for p: Vector3 in Squads.formation(n, float(_monk().squad_cfg()["spacing"])):
 		r = maxf(r, Vector2(p.x, p.z).length())
-	return -(r + 7.0)
+	var cfg := _monk().squad_cfg()
+	return -(r + (float(cfg["keep_distance"]) - 0.5 + float(cfg["range"])) * 0.5)
 
 
 func _the_squad(em: EnemyManager) -> Dictionary:
@@ -192,18 +194,23 @@ func test_the_monk_is_a_squad_of_10_20_or_30_with_the_cactus_band_and_half_its_r
 	assert_bool(m.is_squad()).is_true()
 	assert_array(Array(m.squad_sizes())).is_equal([10, 20, 30])
 	var cfg := m.squad_cfg()
-	# the same attack distance as the Spit Cactus, half as often
-	assert_float(float(cfg["keep_distance"])).is_equal_approx(float(c.ranged["keep_distance"]), 0.0001)
-	assert_float(float(cfg["range"])).is_equal_approx(float(c.ranged["range"]), 0.0001)
-	assert_float(float(cfg["cooldown"])).is_equal_approx(2.0 * float(c.ranged["cooldown"]), 0.0001)
+	# the same attack distance as the Spit Cactus, half as often (pass 112). Pass 113 re-pin: Garry tuned the Monk himself
+	# in the Level Editor (keep 4 m, range 6 m, a volley every 6.2 s, spacing 1.2), so what stays pinned is the shape: a
+	# band (backs off nearer than keep, walks in past range), never closer than the cactus keeps, a stop shorter than the
+	# time between volleys
+	assert_float(float(cfg["keep_distance"])).is_greater(0.0)
+	assert_float(float(cfg["range"])).is_greater(float(cfg["keep_distance"]))
+	assert_float(float(cfg["cooldown"])).is_greater_equal(float(c.ranged["cooldown"]))
+	assert_float(float(cfg["cooldown"])).is_greater(float(cfg["hold"]))
 	assert_float(float(cfg["hold"])).is_equal_approx(3.0, 0.0001)
 	assert_float(float(cfg["release"])).is_less(float(cfg["hold"]))
 	assert_float(float(cfg["rise"])).is_less_equal(float(cfg["release"]))
-	# the sphere: 25% past the Revolver's 14 m, slow, blue
+	# the sphere: 25% past the Revolver's 14 m, slow, blue; pass 113 (Garry: "extend the range of the projectiles by 50%",
+	# "a bit faster"): half as far again, 5 m/s
 	var wj = JSON.parse_string(FileAccess.get_file_as_string("res://content/weapons/revolver/revolver.json"))
 	var rev_range := float(wj["base"]["range"])
 	assert_float(rev_range).is_equal_approx(14.0, 0.0001)
-	assert_float(float(cfg["orb"]["range"])).is_equal_approx(rev_range * 1.25, 0.0001)
+	assert_float(float(cfg["orb"]["range"])).is_equal_approx(rev_range * 1.25 * 1.5, 0.0001)
 	assert_float(float(cfg["orb"]["speed"])).is_less_equal(5.0)
 	var col := Color(str(cfg["orb"]["color"]))
 	assert_float(col.b).is_greater(col.r + 0.4)
@@ -293,7 +300,8 @@ func test_the_squad_walks_in_with_one_heading_and_keeps_its_spacing() -> void:
 func test_the_squad_backs_off_together_when_the_hero_comes_close() -> void:
 	var w := _world()
 	var em: EnemyManager = w["em"]
-	em.spawn_pack("monk", Vector3(0, 0, -5), 10)
+	# pass 113 re-pin: right up against the hero (Garry's keep distance is 4 m now: at 5 m the squad was nearly in its band)
+	em.spawn_pack("monk", Vector3(0, 0, -3), 10)
 	_run(em, 30)
 	var sq := _the_squad(em)
 	var a0: Vector3 = sq["anchor"]
@@ -337,7 +345,7 @@ func test_every_member_stops_and_fires_in_the_same_tick_and_holds_its_pose_3s() 
 	var em: EnemyManager = w["em"]
 	var hero: Node3D = w["hero"]
 	var cfg := _monk().squad_cfg()
-	# in its band: the near edge 7 m off the hero
+	# in its band: the near edge in its middle
 	var z := _band_z(20)
 	em.spawn_pack("monk", Vector3(0, 0, z), 20)
 	_run(em, 30)
@@ -468,7 +476,7 @@ func test_the_attack_strip_rises_then_holds_front_and_back() -> void:
 
 # ---------------------------------------------------------------- the sphere
 
-func test_the_sphere_flies_through_creatures_and_is_gone_at_17_5_m() -> void:
+func test_the_sphere_flies_through_creatures_and_is_gone_at_its_range() -> void:
 	var w := _world(Vector3(40, 0, 40))
 	var em: EnemyManager = w["em"]
 	# a wall of skeletons across its line
@@ -496,9 +504,11 @@ func test_the_sphere_flies_through_creatures_and_is_gone_at_17_5_m() -> void:
 		assert_float(em.hp[j]).is_equal(hp0[j])
 		assert_int(em.alive[j]).is_equal(1)
 	assert_int(orbs.spent).is_equal(1)
-	assert_float(orbs.last_spent_flown).is_between(17.5, 17.5 + float(ob["speed"]) * DT + 0.01)
+	# pass 113: its range is the JSON's (26.25 m since Garry's +50%)
+	var reach := float(ob["range"])
+	assert_float(orbs.last_spent_flown).is_between(reach, reach + float(ob["speed"]) * DT + 0.01)
 	# slow: about range / speed seconds on the creatures' clock
-	assert_float(float(ticks) * DT).is_equal_approx(17.5 / (float(ob["speed"]) * em.hostile_clock()), 0.1)
+	assert_float(float(ticks) * DT).is_equal_approx(reach / (float(ob["speed"]) * em.hostile_clock()), 0.1)
 
 
 func test_the_sphere_hurts_the_hero_once_as_a_plain_shot() -> void:

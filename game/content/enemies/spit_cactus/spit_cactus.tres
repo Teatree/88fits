@@ -221,8 +221,8 @@ variance = {
 "tints": ["#FFFFFF", "#C8FF9C", "#6ADFBB", "#FFE68A"]
 }
 id = "spit_cactus"
-display_name = "Spit Cactus"
-flavour = "The only cactus that walks. Sadly."
+display_name = "Bomb Guy"
+flavour = "He's a guy. With a bomb"
 icon = ExtResource("1_gfchg")
 icon_file = "spit_cactus_icon.png"
 placeholder = {

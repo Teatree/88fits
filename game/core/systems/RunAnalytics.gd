@@ -44,7 +44,7 @@ const KEEP_FILES := 50
 const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
 ## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
 const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents",
-	"talent_forms", "totems", "stat_names", "build_text", "heat"]
+	"talent_forms", "totems", "stat_names", "build_text", "heat", "tasks"]
 ## The Totem Poles' gifts (pass 73), by path as Run reads them.
 const TOTEM_BOONS := preload("res://core/systems/TotemBoons.gd")
 ## The player stats a sheet snapshot carries (StatSheet.PLAYER_DEFAULTS minus the bookkeeping ones; pass 47 added the
@@ -1042,6 +1042,9 @@ func _fill_end(with_log: bool, banked: int = 0) -> void:
 	header["build_text"] = build_text(_build())
 	header["totals"] = {"damage_by_weapon": Run.damage_by_weapon.duplicate(), "kills_by_weapon": Run.kills_by_weapon.duplicate(),
 		"kills_by_enemy": Run.kills_by_enemy.duplicate()}
+	# pass 113 (lane TASKS): the task types' tallies (TaskTally.record: damage by weapon family, fire / poison damage, HP
+	# restored by item and by source, barrels broken, Totem gifts taken, whether they counted for quests)
+	header["tasks"] = TaskTally.record()
 	# pass 74 (schema 2): the trait as it ended, the totems' gifts, the Results' story, the quests, the crowd's counters,
 	# the gold's end block (run_end's), the frame rate (a window's only)
 	header["trait"] = _trait()

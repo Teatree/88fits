@@ -2222,3 +2222,15 @@ number: BALANCING.md 54.WANTED.
 Routes (wanted_io.py): `GET /api/wanted`, `POST /api/wanted/save` {json, base_mtime}, `GET /api/wanted/art/<stages|
 badges|wanted|fonts>/<file>`. The page's roll is wanted_model.js, the game's WantedBoard.gd mirrored (selftest_WANTED111.py
 pins the same numbers as game/tests/pass111_wanted_test.gd). The server needs a restart to know the routes.
+
+## Pass 113: the Dust devils card (lane TWISTER)
+
+Settings tab, the card after Barrels: every number of the map's `timeline_data.dust_devils` (the clock: Dust devils
+come, First after, Then every, Each lasts, Max alive; what one is: Grab radius, Speed, How it moves (across the view /
+drifts about / loops the flats), Passes the hero by, Forms this far away, Forms over, Fades over; what it does: Throws the
+hero up / out / again after, Creatures ride it; Toast the first one; During the boss fight / the portal countdown / In
+Endless). An empty box is the game's number, shown in grey (game/core/systems/DustDevils.gd DEFAULTS). Under the rows a
+line says how many come in each stage (its own time), when, for how long, how big the ring is, and warns when a block
+reads as a mistake (a life as long as the gap, Max alive 0, forming inside its own ring). The page's copy of the game's
+table and reader is tools/level_editor/dustdevil_card.js (selftest_TWISTER113.py checks it against the GDScript). No new
+server route: page files only (a reload shows it). Rules: docs/waves_schema.md "Pass 113", BALANCING.md 56.TWISTER.

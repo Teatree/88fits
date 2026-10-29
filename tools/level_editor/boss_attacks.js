@@ -18,7 +18,14 @@ const BossAttacks = (() => {
   // ------------------------------------------------------------------ the field table (BossAttackDef's groups)
 
   const o = (v, label, help) => ({ v, label: label || v, help: help || '' });
-  const LOOK_OPTS = [o('spike', 'spike: a barb, point first'), o('spit', 'spit: the Spit Cactus\'s ball'), o('pellet', 'pellet: a lead ball'), o('shard', 'shard: a golden sliver'), o('rock', 'rock: a stone'), o('fire', 'fire: a glowing ball')];
+  const LOOK_OPTS = [o('spike', 'spike: a barb, point first'), o('spit', 'spit: the Spit Cactus\'s ball'), o('pellet', 'pellet: a lead ball'), o('shard', 'shard: a golden sliver'), o('rock', 'rock: a stone'), o('fire', 'fire: a glowing ball'),
+    // pass 113 (lane BOSS): the bullet-heaven looks (a pattern draws only these: paintings with a thick ink outline)
+    o('burning_tumbleweed', 'burning tumbleweed (pattern)'), o('venom_blob', 'venom blob (pattern)'), o('brand_fireball', 'branded fireball (pattern)')];
+  // pass 113 (lane BOSS): a pattern's emitter shapes, aims, the boss's wind-up looks and his shells
+  const ESHAPE_OPTS = [o('spiral', 'spiral: arms turning as they fire'), o('ring', 'ring: all round, an opening facing its aim'), o('fan', 'fan: a spread of bullets'), o('sweep', 'sweep: a fan swinging left and right (a sprinkler)'), o('wall', 'wall: a line across, an opening in it'), o('rose', 'rose: a ring that opens into petals')];
+  const EAIM_OPTS = [o('hero', 'at the hero (as the bullets begin)'), o('track', 'at the hero, every volley'), o('fixed', 'fixed (due east)'), o('random', 'a random way, every volley')];
+  const TLOOK_OPTS = [o('none', 'none'), o('spin', 'spin: he spins up (the King)'), o('rear', 'rear: rears up, throat glowing (the Gila)'), o('drive', 'drive: drives his iron into the ground (the Brander)')];
+  const SHELL_OPTS = [o('none', 'none (his glowing rim only)'), o('tornado', 'tornado: a sand tornado round him'), o('scales', 'scales: a glow behind him, armour-bright'), o('pillar', 'pillar: a pillar of fire')];
   const SHAPE_OPTS = [o('rings', 'rings round the centre'), o('grid', 'a hex grid'), o('spiral', 'a sunflower spiral'), o('random', 'random, kept apart')];
   const ORDER_OPTS = [o('out', 'out: nearest first'), o('in', 'in: farthest first'), o('random', 'random'), o('sweep', 'sweep: round like a clock hand')];
   const AIM_OPTS = [o('hero', 'at the hero'), o('random', 'a random way'), o('fixed', 'fixed (due east)')];
@@ -32,9 +39,15 @@ const BossAttacks = (() => {
     o('ring', 'ring: rings racing out', 'rings racing out from the boss; each hits the hero once as it passes him'),
     o('slam', 'slam: a blast round the boss', 'a blast round the boss (or the hero\'s spot) after the wind-up'),
     o('script', 'script: a built-in with your numbers', 'one of the built-in attacks (rumble, slam, roll, ...) under its own name with its own numbers'),
+    // pass 113 (lane BOSS)
+    o('pattern', 'pattern: a bullet heaven (rare, long, guarded)', 'a bullet-heaven attack: never in the boss\'s cycle, it comes on its own trigger (not before 15 s of the fight, the first under 60% HP or 45 s in, then every 45 s); a big tell, then several seconds of slow bullets from its emitters while the boss is guarded; then he is spent and takes extra'),
   ];
+  const PAT = ['pattern'];
   const ALL = ['rain', 'volley', 'ring', 'slam'];
   const SHOTS = ['rain', 'volley'];
+  // (pass 113: the rows a pattern reads too)
+  const ALLP = ALL.concat(PAT);
+  const SHOTSP = SHOTS.concat(PAT);
   const SECTIONS = [
     ['projectile', 'Projectile', 'what flies: its look, colour and size, how it flies'],
     ['pattern', 'Pattern', 'where it lands or goes: the layout, the ranges, the gap rule'],
@@ -44,18 +57,25 @@ const BossAttacks = (() => {
     ['timing', 'Timing', 'wind-up, stagger, rest'],
     ['spew', 'Spew', 'a volley rain: the crouch, and the shots out of the boss\'s mouth (pass 73)'],
     ['sounds', 'Sounds', 'ids from content/sounds/soundmap.json'],
+    // pass 113 (lane BOSS): a bullet-heaven pattern's groups (its emitters are a list of their own above these)
+    ['trigger', 'When it comes', 'a pattern is never in his cycle: these say when it comes'],
+    ['tell', 'The tell (foreshadowing)', 'what warns the hero before the bullets'],
+    ['hit', 'A bullet\'s hit', 'what one bullet does to the hero'],
+    ['guard', 'Guard', 'how hard he is to hurt while it runs'],
+    ['spent', 'Spent (the payoff)', 'after the bullets: he stands dazed and takes extra'],
+    ['shell', 'His shell (the look)', 'what shows he is guarded'],
   ];
   const FIELDS = [
-    { g: 'projectile', k: 'look', label: 'Shot look', type: 'select', opts: LOOK_OPTS, kinds: SHOTS, help: 'the shot\'s shape: spike = a barb flying point first (the centipede\'s), spit = the Spit Cactus\'s ball, pellet = a small lead ball, shard = a flat golden sliver, rock = a stone, fire = a glowing ball' },
-    { g: 'projectile', k: 'tint', label: 'Colour', type: 'color', kinds: ALL, help: 'its colour: the body a darker shade, the colour itself glowing (a ring and a slam flash in it)' },
-    { g: 'projectile', k: 'size', label: 'Size ×', type: 'number', min: 0.1, step: 0.1, kinds: SHOTS, help: 'times the look\'s size (the barb is 0.8 m long at 1)' },
-    { g: 'projectile', k: 'glow', label: 'Glow', type: 'number', min: 0, max: 4, step: 0.1, kinds: SHOTS, help: 'how bright its colour glows: 0 none, 1 like the game\'s shots, 2 hot' },
+    { g: 'projectile', k: 'look', label: 'Shot look', type: 'select', opts: LOOK_OPTS, kinds: SHOTSP, help: 'the shot\'s shape: spike = a barb flying point first (the centipede\'s), spit = the Spit Cactus\'s ball, pellet = a small lead ball, shard = a flat golden sliver, rock = a stone, fire = a glowing ball' },
+    { g: 'projectile', k: 'tint', label: 'Colour', type: 'color', kinds: ALLP, help: 'its colour: the body a darker shade, the colour itself glowing (a ring and a slam flash in it)' },
+    { g: 'projectile', k: 'size', label: 'Size ×', type: 'number', min: 0.1, step: 0.1, kinds: SHOTSP, help: 'times the look\'s size (the barb is 0.8 m long at 1)' },
+    { g: 'projectile', k: 'glow', label: 'Glow', type: 'number', min: 0, max: 4, step: 0.1, kinds: SHOTSP, help: 'how bright its colour glows: 0 none, 1 like the game\'s shots, 2 hot' },
     { g: 'projectile', k: 'flight', label: 'Flight (s)', type: 'number', min: 0.1, step: 0.05, kinds: ['rain'], help: 'seconds each shot is in the air, from the boss\'s back to its spot (on the creatures\' clock: ×1/pace on the map)' },
     { g: 'projectile', k: 'arc', label: 'Arc (m)', type: 'number', min: 0, step: 0.5, kinds: ['rain'], help: 'how high its arc rises over the straight line' },
-    { g: 'projectile', k: 'trail', label: 'Trail', type: 'bool', kinds: ['rain'], help: 'three smaller copies follow each shot' },
+    { g: 'projectile', k: 'trail', label: 'Trail', type: 'bool', kinds: ['rain', 'pattern'], help: 'three smaller copies follow each shot' },
     { g: 'projectile', k: 'speed', label: 'Speed (m/s)', type: 'number', min: 0.5, step: 0.5, kinds: ['volley', 'ring'], help: 'volley: how fast a shot flies; ring: how fast the ring races out on average (fast at first, slowing)' },
-    { g: 'projectile', k: 'range', label: 'Range (m)', type: 'number', min: 1, step: 1, kinds: ['volley'], help: 'how far a shot flies (the warning lines are this long)' },
-    { g: 'projectile', k: 'hit_radius', label: 'Hit radius (m)', type: 'number', min: 0.05, step: 0.05, kinds: ['volley'], help: 'how close a shot must pass the hero\'s middle to hit him (+0.3 m for his body)' },
+    { g: 'projectile', k: 'range', label: 'Range (m)', type: 'number', min: 1, step: 1, kinds: ['volley', 'pattern'], help: 'how far a shot flies (the warning lines are this long)' },
+    { g: 'projectile', k: 'hit_radius', label: 'Hit radius (m)', type: 'number', min: 0.05, step: 0.05, kinds: ['volley', 'pattern'], help: 'how close a shot must pass the hero\'s middle to hit him (+0.3 m for his body)' },
     { g: 'pattern', k: 'shape', label: 'Layout', type: 'select', opts: SHAPE_OPTS, kinds: ['rain'], help: 'how the landing spots are laid out: rings round the centre, a hex grid, a sunflower spiral, or random spots kept a spacing apart' },
     { g: 'pattern', k: 'center', label: 'Centre', type: 'select', opts: CENTER_OPTS, kinds: ['rain', 'slam'], help: 'round the boss, or round the spot the hero stood on when the wind-up began' },
     { g: 'pattern', k: 'radius_min', label: 'Inner radius (m)', type: 'number', min: 0, step: 0.2, kinds: ['rain'], help: 'no spot nearer the centre than this (keep it past the boss\'s body: the Gila\'s is 2.4 m)' },
@@ -78,14 +98,14 @@ const BossAttacks = (() => {
     { g: 'telegraph', k: 'seconds', label: 'Circle shows (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'how long before a shot lands its circle shows (×1/pace on the map). The hero walks about 3 m a second: 0.9 s is time to step out of a 0.9 m circle. With All circles at once: how long before the spikes leave every circle lights up (the wind-up is made at least this long)' },
     { g: 'telegraph', k: 'all_at_once', label: 'All circles at once', type: 'bool', kinds: ['rain'], help: 'pass 73: every landing circle lights up together, Circle shows seconds before the shots leave (at the wind-up\'s start when the wind-up is no longer), full size from the start, and stays lit until its own shot lands, filling in as it comes down; off: each circle shows Circle shows seconds before its own shot lands' },
     { g: '_top', k: 'damage', label: 'Damage × bite', type: 'number', min: 0, step: 0.05, kinds: ALL, help: 'a hit takes this × the boss\'s bite (its JSON damage: the Gila\'s 24), then the stage, hero-level and map factors, as every scripted attack' },
-    { g: '_top', k: 'knockback', label: 'Knockback (m/s)', type: 'number', min: 0, step: 0.5, kinds: ALL, help: 'the shove where it hits him (an evade or the Invincibility bubble ignores it)' },
+    { g: '_top', k: 'knockback', label: 'Knockback (m/s)', type: 'number', min: 0, step: 0.5, kinds: ALLP, help: 'the shove where it hits him (an evade or the Invincibility bubble ignores it)' },
     { g: '_top', k: 'lift', label: 'Lift (m/s)', type: 'number', min: 0, step: 0.5, kinds: ALL, help: 'throws him up with the shove (0 = a plain shove)' },
     { g: 'timing', k: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, kinds: ALL, help: 'seconds the boss winds up first, the warning showing (×1/pace on the map); a boss\'s own entry may set its own' },
     { g: 'timing', k: 'stagger', label: 'Stagger (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'the rain arrives over this long: the first shot lands after its flight, the last this much later. A volley: every shot lands within this long of the others (the farthest a touch later)' },
-    { g: 'timing', k: 'cooldown', label: 'Rest after (s)', type: 'number', min: 0, step: 0.1, kinds: ALL, help: 'the rest after this attack before the next; 0 = the boss\'s own Between attacks' },
+    { g: 'timing', k: 'cooldown', label: 'Rest after (s)', type: 'number', min: 0, step: 0.1, kinds: ALLP, help: 'the rest after this attack before the next; 0 = the boss\'s own Between attacks' },
     { g: 'timing', k: 'hold', label: 'Stands (s)', type: 'number', min: -1, step: 0.1, kinds: ALL, help: 'seconds the boss stands still after it fires; -1 = while its shots leave (the stagger, the volleys)' },
-    { g: 'sounds', k: 'windup', label: 'Wind-up sound', type: 'sound', kinds: ALL, help: 'played as the wind-up starts (the boss\'s own attack sound plays anyway)' },
-    { g: 'sounds', k: 'fire', label: 'Fire sound', type: 'sound', kinds: ALL, help: 'played as the shots leave (a rain: every 0.35 s while they leave)' },
+    { g: 'sounds', k: 'windup', label: 'Wind-up sound', type: 'sound', kinds: ALLP, help: 'played as the wind-up starts (the boss\'s own attack sound plays anyway)' },
+    { g: 'sounds', k: 'fire', label: 'Fire sound', type: 'sound', kinds: ALLP, help: 'played as the shots leave (a rain: every 0.35 s while they leave)' },
     { g: 'sounds', k: 'land', label: 'Land sound', type: 'sound', kinds: ['rain'], help: 'played as shots land near the hero (at most one every 0.12 s)' },
     // pass 73 (lane GROUND; Garry: "the boss does his animation of all those projectiles flying out of his mouth but they
     // all land around the same time"): a volley rain's spew (read only with Landing = volley)
@@ -94,6 +114,36 @@ const BossAttacks = (() => {
     { g: 'spew', k: 'stretch', label: 'Spew stretch', type: 'number', min: 1, max: 2, step: 0.05, kinds: ['rain'], help: 'volley: how tall it rears up as it spews (1.25 = a quarter taller and narrower), easing back to 1 by itself' },
     { g: 'spew', k: 'mouth', label: 'Mouth height', type: 'number', min: 0, max: 1.2, step: 0.02, kinds: ['rain'], help: 'volley: where the shots leave from, this share of the boss\'s height up its painting (the Gila\'s mouth 0.62), a little in front of it' },
     { g: 'spew', k: 'burst', label: 'Burst (s)', type: 'number', min: 0, step: 0.02, kinds: ['rain'], help: 'volley: every shot leaves the mouth within this many seconds of the spew (keep it under the Stagger)' },
+    // pass 113 (lane BOSS; Garry: "For each of those attacks I expect to see them in the Boss Attacks section of the
+    // LevelEditor"): a bullet-heaven pattern's keys (its emitters have their own rows, EMITTER_FIELDS)
+    { g: 'projectile', k: 'wobble', label: 'Wobble', type: 'number', min: 0, max: 2, step: 0.1, kinds: PAT, help: 'pattern: how much a venom blob wobbles as it flies (0 a little, 1 a lot); only the venom blob reads it' },
+    { g: 'timing', k: 'duration', label: 'Bullets for (s)', type: 'number', min: 0.5, step: 0.5, kinds: PAT, help: 'pattern: seconds of bullets after the tell (Garry: "some 5+ seconds during which player is supposed to try and survive"); on the creatures\' clock (×1/pace on the map)' },
+    { g: 'timing', k: 'clear', label: 'Burn out (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: the bullets still flying when the bullets end shrink away over this many seconds and hurt nobody (0 = gone at once), so the payoff is a clear screen' },
+    { g: 'hit', k: 'hit_frac', label: 'A bullet takes (share of max HP)', type: 'number', min: 0, max: 1, step: 0.01, kinds: PAT, help: 'pattern: each bullet that touches the hero takes this share of his max HP (0.12 = 12%: about 8 hits from full without armour), then it is gone; an evade, the Shield power-up and the blink after a hit stop it as they stop any shot. The danger is the number of bullets, never one hit' },
+    { g: 'trigger', k: 'first_after', label: 'Not before (s)', type: 'number', min: 0, step: 1, kinds: PAT, help: 'pattern: never in the first this many seconds of the fight (Garry: "Make it so they don\'t trigger immediately")' },
+    { g: 'trigger', k: 'first_at_hp', label: 'First at HP below', type: 'number', min: 0, max: 1, step: 0.05, kinds: PAT, help: 'pattern: the first one comes when the boss falls to this share of his max HP (0.6 = 60%)...' },
+    { g: 'trigger', k: 'first_by', label: '...or at the latest (s)', type: 'number', min: 0, step: 1, kinds: PAT, help: 'pattern: ...or at the latest this many seconds into the fight, so a slow fight still sees one' },
+    { g: 'trigger', k: 'cooldown', label: 'Then every (s)', type: 'number', min: 0, step: 1, kinds: PAT, help: 'pattern: the next one comes this many seconds after the last one ended (its spent seconds over). Garry: "rare, something like once every 45s". It still waits for him to finish whatever attack he is in' },
+    { g: 'tell', k: 'seconds', label: 'Tell (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: how long the warning lasts before the first bullet (Garry: "Big foreshadowing"): the banner, the dark ground, the wind-up sound, the music ducking, his wind-up and his shell forming. He is guarded from its start' },
+    { g: 'tell', k: 'banner', label: 'Banner words', type: 'text', kinds: PAT, placeholder: 'the attack\'s name', help: 'pattern: the words across the screen as the tell starts (empty = the attack\'s name, in capitals)' },
+    { g: 'tell', k: 'banner_color', label: 'Banner colour', type: 'color', kinds: PAT, help: 'pattern: the banner\'s colour, and the ring pulsing at the edge of the dark ground' },
+    { g: 'tell', k: 'ring_radius', label: 'Dark ground (m)', type: 'number', min: 0, step: 0.5, kinds: PAT, help: 'pattern: the sand darkens in a circle this wide round him through the tell and the bullets (0 = none)' },
+    { g: 'tell', k: 'ring_color', label: 'Dark ground colour', type: 'color', kinds: PAT, help: 'pattern: the dark ground\'s colour' },
+    { g: 'tell', k: 'ring_alpha', label: 'Dark ground strength', type: 'number', min: 0, max: 1, step: 0.05, kinds: PAT, help: 'pattern: how dark the ground gets (0 not at all, 1 fully the colour)' },
+    { g: 'tell', k: 'duck_db', label: 'Music down (dB)', type: 'number', min: -40, max: 0, step: 1, kinds: PAT, help: 'pattern: the music drops this much through the tell and the bullets (-14 = to about a fifth), then comes back as he is spent; 0 = no change' },
+    { g: 'tell', k: 'look', label: 'His wind-up', type: 'select', opts: TLOOK_OPTS, kinds: PAT, help: 'pattern: how the boss himself winds up: spin (the King spins faster and faster), rear (the Gila rears up, her throat swelling and glowing in the bullets\' colour), drive (the Brander raises his iron and drives it into the ground with a blast); each has its spent look too (stars, slumping, a smoking iron)' },
+    { g: 'guard', k: 'share', label: 'Guard (share blocked)', type: 'number', min: 0, max: 0.95, step: 0.05, kinds: PAT, help: 'pattern: from the tell\'s start to the bullets\' end he takes this much less from every hit (0.8 = 80% less). His bar turns grey with GUARDED in it and hits on him spark and show small grey numbers' },
+    { g: 'guard', k: 'color', label: 'Blocked spark colour', type: 'color', kinds: PAT, help: 'pattern: the colour of the sparks a guarded hit throws off him' },
+    { g: 'spent', k: 'seconds', label: 'Spent for (s)', type: 'number', min: 0, step: 0.5, kinds: PAT, help: 'pattern: after the bullets he stands dazed this long (his bar reads DAZED): the payoff for surviving it' },
+    { g: 'spent', k: 'damage_taken', label: 'Spent damage ×', type: 'number', min: 0, step: 0.05, kinds: PAT, help: 'pattern: while spent every hit on him takes this many times as much (1.5 = 50% more)' },
+    { g: 'spent', k: 'still', label: 'Stands still while spent', type: 'bool', kinds: PAT, help: 'pattern: yes = he stands still while spent (no = he walks again, still taking the extra)' },
+    { g: 'shell', k: 'look', label: 'Shell', type: 'select', opts: SHELL_OPTS, kinds: PAT, help: 'pattern: what shows he is guarded, besides his own glowing rim: a sand tornado round him, a glow behind him like armour, or a pillar of fire; it forms through the tell and collapses or gutters out as he is spent' },
+    { g: 'shell', k: 'color', label: 'Shell colour', type: 'color', kinds: PAT, help: 'pattern: the shell\'s colour, and his rim while guarded' },
+    { g: 'shell', k: 'height', label: 'Shell height (m)', type: 'number', min: 1, step: 0.5, kinds: PAT, help: 'pattern: how tall the tornado or the pillar is (the hero is about 1.9 m)' },
+    { g: 'shell', k: 'radius', label: 'Shell radius (m)', type: 'number', min: 0.5, step: 0.1, kinds: PAT, help: 'pattern: how wide the tornado or the pillar is round him' },
+    { g: 'shell', k: 'opacity', label: 'Shell opacity', type: 'number', min: 0.5, max: 1, step: 0.05, kinds: PAT, help: 'pattern, the tornado (pass 113): how solid its dust is, 0.5 to 1 (lower lets the boss show through it; 0.62 for the King)' },
+    { g: 'shell', k: 'sigil_radius', label: 'Brand sigil (m)', type: 'number', min: 0, step: 0.5, kinds: PAT, help: 'pattern: a glowing brand sigil this wide (radius) burns into the sand under him through the tell and brightens through the bullets (0 = none; the Brander\'s is 6)' },
+    { g: 'shell', k: 'sigil_color', label: 'Sigil colour', type: 'color', kinds: PAT, help: 'pattern: the sigil\'s colour (it glows, so a dark sand never swallows it)' },
   ];
 
   // ------------------------------------------------------------------ data
@@ -324,7 +374,9 @@ const BossAttacks = (() => {
     }
     pane.appendChild(usedBy());
     if (kind === 'script') { pane.appendChild(scriptPane(d)); return pane; }
-    pane.appendChild(preview(d, kind));
+    // pass 113 (lane BOSS): a pattern's preview and its emitters
+    if (kind === 'pattern') { pane.appendChild(patternPreview(d)); pane.appendChild(emittersPane(d)); }
+    else pane.appendChild(preview(d, kind));
     for (const [g, title, sub] of SECTIONS) {
       const rows = FIELDS.filter((f) => f.g === g && f.kinds.includes(kind));
       if (!rows.length) continue;
@@ -343,7 +395,7 @@ const BossAttacks = (() => {
     const b = M.blank(v, x.id, x.name);
     const reads = (k) => new Set(FIELDS.filter((f) => f.kinds.includes(k)).map((f) => f.g + '.' + f.k));
     const had = reads(M.KINDS.includes(x.kind) ? x.kind : 'rain'), now = reads(v);
-    for (const g of ['projectile', 'pattern', 'landing', 'telegraph', 'timing', 'sounds', 'spew']) if (b[g] && (x[g] == null || typeof x[g] !== 'object')) x[g] = {};
+    for (const g of ['projectile', 'pattern', 'landing', 'telegraph', 'timing', 'sounds', 'spew', 'hit', 'trigger', 'guard', 'spent', 'tell', 'shell']) if (b[g] && (x[g] == null || typeof x[g] !== 'object')) x[g] = {};
     for (const f of FIELDS) {
       const key = f.g + '.' + f.k;
       if (!now.has(key) || f.g === '_top' || !b[f.g]) continue;
@@ -352,6 +404,12 @@ const BossAttacks = (() => {
     }
     if (v === 'script' && !x.script) { x.script = b.script; x.params = b.params; }
     if (v === 'rain' && !x.landing) x.landing = b.landing;
+    // pass 113 (lane BOSS): a pattern gets its blank's emitters and look when it has none
+    if (v === 'pattern') {
+      if (!Array.isArray(x.emitters) || !x.emitters.length) x.emitters = JSON.parse(JSON.stringify(b.emitters));
+      if (!Object.keys(M.BB_RADIUS).includes(String((x.projectile || {}).look))) x.projectile = Object.assign(x.projectile || {}, { look: b.projectile.look, tint: b.projectile.tint });
+      if (x.sounds && !x.sounds.windup) x.sounds.windup = b.sounds.windup;
+    }
     x.kind = v;
   }
 
@@ -385,6 +443,8 @@ const BossAttacks = (() => {
     if (f.type === 'select') ctl = Forms.select(f.opts, cur == null ? '' : cur, set, { path, emptyLabel: `— (${dflt})` });
     else if (f.type === 'bool') ctl = Forms.bool3Input({ key: path }, cur, set, { path, placeholder: dflt ? 'yes' : 'no' });
     else if (f.type === 'color') ctl = colorInput(cur, dflt, set, path);
+    // pass 113 (lane BOSS): words (the tell's banner)
+    else if (f.type === 'text') ctl = Forms.textInput({ key: path }, cur == null ? '' : cur, (v) => set(v === '' ? null : v), { path, placeholder: f.placeholder || (dflt || '') });
     else if (f.type === 'sound') {
       const sounds = (S.data && S.data.sounds) || [];
       ctl = Forms.select(sounds.map((x) => o(x)), cur == null ? '' : cur, set, { path, emptyLabel: dflt ? `— (${dflt})` : '— none' });
@@ -417,6 +477,156 @@ const BossAttacks = (() => {
     box.appendChild(body);
     return box;
   }
+
+  // ------------------------------------------------------------------ pass 113 (lane BOSS): a bullet-heaven pattern
+  // Its emitters (a list: add, remove, every key with the game's default in grey) and its preview from above (the tell,
+  // the bullets as they fly at any moment, spent; Play; the numbers in plain words).
+
+  const SH_ALL = ['spiral', 'ring', 'fan', 'sweep', 'wall', 'rose'];
+  const SH_ARMS = ['spiral', 'fan', 'sweep'];
+  /** BossAttackDef.EMITTER_DEFAULTS' keys: the shapes each row shows for (selftest_BOSS113.py: every key a row with help). */
+  const EMITTER_FIELDS = [
+    { k: 'shape', label: 'Shape', type: 'select', opts: ESHAPE_OPTS, shapes: SH_ALL, help: 'spiral: arms that turn as they fire (bullets fly straight out, so each arm curls); ring: bullets all round with an opening; fan: a spread of bullets round its aim; sweep: a fan swinging left and right like a garden sprinkler; wall: a line of bullets across its aim flying together; rose: a ring that opens into petals as it grows' },
+    { k: 'count', label: 'Bullets a volley', type: 'int', min: 1, step: 1, shapes: SH_ALL, help: 'spiral, fan, sweep: bullets on each arm; ring, rose: bullets all round; wall: bullets along the line' },
+    { k: 'arms', label: 'Arms', type: 'int', min: 1, step: 1, shapes: SH_ARMS, help: 'spiral, fan, sweep: that many arms evenly round (3 = three arms 120° apart)' },
+    { k: 'speed', label: 'Speed (m/s)', type: 'number', min: 0.1, step: 0.1, shapes: SH_ALL, help: 'how fast each bullet flies. The hero walks about 5 m/s: 2.5-4 is slow enough to weave through' },
+    { k: 'rate', label: 'Volleys a second', type: 'number', min: 0, step: 0.1, shapes: SH_ALL, help: 'how many volleys it fires a second while it is on (the first as it comes on)' },
+    { k: 'spin', label: 'Spin (°/s)', type: 'number', step: 1, shapes: SH_ALL, help: 'degrees a second the whole emitter turns (minus = the other way): the spiral\'s arms, a ring\'s opening, a fan' },
+    { k: 'reverse_at', label: 'Spin turns back at', type: 'number', min: -1, max: 1, step: 0.05, shapes: SH_ALL, help: 'the share of the bullets\' time at which the spin turns back the other way (0.5 = halfway: the King\'s arms reverse, so the safe lanes change); -1 = never' },
+    { k: 'spread_deg', label: 'Spread (°)', type: 'number', min: 0, max: 360, step: 1, shapes: SH_ARMS, help: 'spiral, fan, sweep: how wide each arm\'s bullets spread (with more than one bullet a volley)' },
+    { k: 'sweep_deg', label: 'Sweep wide (°)', type: 'number', min: 0, max: 360, step: 5, shapes: ['sweep'], help: 'sweep: how far it swings in all, from one side to the other' },
+    { k: 'sweep_hz', label: 'Sweeps a second', type: 'number', min: 0, step: 0.05, shapes: ['sweep'], help: 'sweep: whole swings (there and back) a second: 0.25 = one sweep across every 2 s' },
+    { k: 'gap', label: 'Opening', type: 'number', min: 0, step: 1, shapes: ['ring', 'wall'], help: 'ring: degrees left open, facing its aim; wall: metres of the line left open, at a random place each volley' },
+    { k: 'petals', label: 'Petals', type: 'int', min: 1, step: 1, shapes: ['rose'], help: 'rose: how many petals round it (bullets on a petal fly fastest)' },
+    { k: 'depth', label: 'Petal depth', type: 'number', min: 0, max: 1, step: 0.05, shapes: ['rose'], help: 'rose: how slow the bullets between the petals are: 0 = a plain ring, 0.75 = at a quarter of the speed, 1 = they stand still' },
+    { k: 'bloom_hz', label: 'Petals breathe (/s)', type: 'number', min: 0, step: 0.05, shapes: ['rose'], help: 'rose: the petals open and close this many times a second (the depth swinging between 0 and Petal depth); 0 = held' },
+    { k: 'turn_every', label: 'Turn every (s)', type: 'number', min: 0, step: 0.5, shapes: SH_ALL, help: 'a jump round every this many seconds (the Brander\'s mandala turns every 3 s); 0 = never' },
+    { k: 'turn_deg', label: 'Turn by (°)', type: 'number', step: 1, shapes: SH_ALL, help: 'how far each jump turns it (a five-petal rose: 36° = half a petal, so the petals come where the gaps were)' },
+    { k: 'offset_deg', label: 'Turned from its aim (°)', type: 'number', step: 1, shapes: SH_ALL, help: 'turned this far from its aim (60 with three arms puts the hero between two arms at the start)' },
+    { k: 'aim', label: 'Aim', type: 'select', opts: EAIM_OPTS, shapes: SH_ALL, help: 'hero: at the hero where he stands as the bullets begin; track: at the hero at every volley; fixed: due east; random: a new random way every volley (the opening of a ring somewhere else each time)' },
+    { k: 'start', label: 'From (share)', type: 'number', min: 0, max: 1, step: 0.05, shapes: SH_ALL, help: 'it is on from this share of the bullets\' time (0 = from the first moment)' },
+    { k: 'stop', label: 'To (share)', type: 'number', min: 0, max: 1, step: 0.05, shapes: SH_ALL, help: '...to this share (1 = to the end)' },
+    { k: 'pulse_every', label: 'On and off every (s)', type: 'number', min: 0, step: 0.5, shapes: SH_ALL, help: 'it comes on and goes off in a rhythm this long (0 = always on): the Gila\'s second fan comes on every second sweep' },
+    { k: 'pulse_on', label: '...on for (s)', type: 'number', min: 0, step: 0.5, shapes: SH_ALL, help: 'how long of each rhythm it is on' },
+    { k: 'pulse_at', label: '...first on at (s)', type: 'number', min: 0, step: 0.5, shapes: SH_ALL, help: 'when it first comes on (seconds into the bullets)' },
+    { k: 'finale_pull', label: 'Finale pull (s)', type: 'number', min: 0, step: 0.1, shapes: SH_ALL, help: 'the last this many seconds of the bullets it fires nothing and every bullet of it still flying turns back towards the boss (the Brander\'s finale: never stand between a fireball and him); 0 = none' },
+    { k: 'pull_speed', label: 'Pull speed (m/s)', type: 'number', min: 0.1, step: 0.5, shapes: SH_ALL, help: 'how fast the bullets come home in the finale' },
+    { k: 'width', label: 'Wall length (m)', type: 'number', min: 0, step: 0.5, shapes: ['wall'], help: 'wall: how long the line of bullets is' },
+  ];
+
+  function setEmitter(idx, k, v) {
+    edit((d) => {
+      if (!Array.isArray(d.emitters)) d.emitters = [];
+      const e = d.emitters[idx];
+      if (!e || typeof e !== 'object') return;
+      if (v == null || v === '') delete e[k]; else e[k] = v;
+    });
+  }
+
+  function emittersPane(d) {
+    const ems = Array.isArray(d.emitters) ? d.emitters : [];
+    const det = el('details', { class: 'asection batk-sec', open: true }, el('summary', {}, el('span', { class: 'asec-title', text: `Emitters (${ems.length})` }), el('span', { class: 'muted small', text: ' what fires the bullets: each its own shape and clock, all at once' })));
+    const body = el('div', { class: 'asec-body' });
+    ems.forEach((e, idx) => {
+      const full = M.emitterFull(e);
+      const box = el('div', { class: 'batk-emitter' });
+      box.appendChild(el('div', { class: 'batk-emitter-head' },
+        el('b', { text: `Emitter ${idx + 1}: ${full.shape}` }),
+        el('span', { class: 'spacer' }),
+        el('button', { class: 'btn small', type: 'button', text: 'Copy', title: 'add a copy of this emitter', onclick: () => edit((x) => { x.emitters.splice(idx + 1, 0, JSON.parse(JSON.stringify(e))); }) }),
+        el('button', { class: 'btn small danger', type: 'button', text: 'Remove', disabled: ems.length <= 1, title: ems.length <= 1 ? 'a pattern needs at least one emitter' : 'take this emitter out', onclick: () => edit((x) => { x.emitters.splice(idx, 1); }) })));
+      for (const f of EMITTER_FIELDS) {
+        if (!f.shapes.includes(String(full.shape))) continue;
+        const cur = e[f.k];
+        const dflt = M.EMITTER_DEFAULTS[f.k];
+        const path = `emitters.${idx}.${f.k}`;
+        const set = (v) => setEmitter(idx, f.k, v);
+        let ctl;
+        if (f.type === 'select') ctl = Forms.select(f.opts, cur == null ? '' : cur, set, { path, emptyLabel: `— (${dflt})` });
+        else ctl = Forms.numberInput({ key: path, min: f.min, max: f.max, step: f.step, int: f.type === 'int' }, cur, set, { path, placeholder: dflt, cls: 'short' });
+        box.appendChild(Forms.row({ key: path, label: f.label, help: f.help }, ctl, {}));
+      }
+      body.appendChild(box);
+    });
+    body.appendChild(el('div', { class: 'alt-actions' },
+      el('button', { class: 'btn small primary', type: 'button', text: '+ Add an emitter', onclick: () => edit((x) => { if (!Array.isArray(x.emitters)) x.emitters = []; x.emitters.push({ shape: 'ring', count: 12, speed: 3.0, rate: 1.0, aim: 'hero' }); }) })));
+    det.appendChild(body);
+    return det;
+  }
+
+  /** The pattern from above, to scale, at S.t seconds after the tell begins: the dark ground and the shell through the tell,
+   *  the bullets flying through the bullets' seconds (the hero 8 m off, standing still), spent; Play runs the clock. */
+  function patternPreview(d) {
+    const wrap = el('div', { class: 'batk-prev' });
+    const boss = scripted().find((c) => (recOf(S.open) || { used_by: [] }).used_by.includes(c.id)) || scripted().find((c) => c.kind === 'boss') || { radius: 2.4, damage: 24, name: 'boss' };
+    const bossR = M.num(boss.radius, 2.4);
+    const tell = Math.max(M.num(M.val(d, 'tell', 'seconds'), 2), 0);
+    const bul = M.patternDuration(d);
+    const spent = Math.max(M.num(M.val(d, 'spent', 'seconds'), 2.5), 0);
+    const total = tell + bul + spent;
+    if (S.t == null || S.t > total) S.t = tell + bul * 0.6;
+    const t = S.t;
+    const rng = Math.max(M.num(M.val(d, 'projectile', 'range'), 18), 0.5);
+    const extent = Math.max(rng, 10) + 2;
+    const W = 460, C = W / 2, ppm = (W / 2 - 8) / extent;
+    const X = (x) => C + x * ppm, Y = (z) => C + z * ppm;
+    const s = svg('svg', { class: 'batk-svg', viewBox: `0 0 ${W} ${W}`, width: W, height: W, role: 'img', 'aria-label': 'the pattern from above' });
+    s.appendChild(svg('rect', { x: 0, y: 0, width: W, height: W, rx: 10, class: 'bp-ground' }));
+    const tint = M.val(d, 'projectile', 'tint') || '#FF8A1F';
+    const heroAt = [0, -8];
+    const heroAim = Math.atan2(heroAt[1], heroAt[0]);
+    // the dark ground and the edge of the range
+    const rr = M.num(M.val(d, 'tell', 'ring_radius'), 9);
+    const dark = t < tell ? Math.min(t / Math.max(tell * 0.6, 0.01), 1) : (t < tell + bul ? 1 : Math.max(1 - (t - tell - bul) / Math.max(spent * 0.8, 0.01), 0));
+    if (rr > 0) s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: rr * ppm, fill: M.val(d, 'tell', 'ring_color') || '#140A06', 'fill-opacity': 0.45 * dark, stroke: M.val(d, 'tell', 'banner_color') || '#E8502A', 'stroke-width': 2, 'stroke-opacity': t < tell + bul ? 0.8 * dark : 0 }));
+    s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: rng * ppm, class: 'bp-edge' }));
+    const sig = M.num(M.val(d, 'shell', 'sigil_radius'), 0);
+    if (sig > 0 && t < total) s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: sig * ppm, fill: 'none', stroke: M.val(d, 'shell', 'sigil_color') || '#FF6A1A', 'stroke-width': 3, 'stroke-dasharray': '6 4', opacity: t < tell ? Math.min(t / Math.max(tell, 0.01), 1) : (t < tell + bul ? 1 : 0.3) }));
+    // the bullets
+    const look = String(M.val(d, 'projectile', 'look'));
+    const br = Math.max((M.BB_RADIUS[look] || 0.4) * M.num(M.val(d, 'projectile', 'size'), 1) * ppm, 2);
+    const aimOf = (e, k, t) => {
+      const aim = String(e.aim);
+      if (aim === 'fixed') return 0;
+      if (aim === 'random') return M.rng(S.seed * 31 + k * 977 + Math.round(t * 1000)).randf() * Math.PI * 2;
+      return heroAim;
+    };
+    let sim = null;
+    if (t >= tell && t < tell + bul) {
+      sim = M.simulate(d, 1 / 30, t - tell, aimOf);
+      for (const b of sim.at) s.appendChild(svg('circle', { cx: X(b.x), cy: Y(b.z), r: br, fill: tint, stroke: b.pull ? '#ffffff' : '#1a0d08', 'stroke-width': 1.6 }));
+    }
+    // the boss (his shell's colour while guarded), the hero to scale, a 5 m bar
+    const guarded = t < tell + bul;
+    s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: bossR * ppm, class: 'bp-boss', stroke: guarded ? (M.val(d, 'shell', 'color') || '#C9A46A') : '#e0a63a', 'stroke-width': guarded ? 5 : 3 }));
+    s.appendChild(svg('text', { x: X(0), y: Y(0) + 4, class: 'bp-label mid', text: boss.name || 'boss' }));
+    s.appendChild(svg('circle', { cx: X(heroAt[0]), cy: Y(heroAt[1]), r: Math.max(2.5, M.HERO_RADIUS * ppm), class: 'bp-hero' }));
+    s.appendChild(svg('text', { x: X(heroAt[0]) + 8, y: Y(heroAt[1]) + 4, class: 'bp-label', text: 'hero (to scale)' }));
+    s.appendChild(svg('line', { x1: 12, y1: W - 14, x2: 12 + 5 * ppm, y2: W - 14, class: 'bp-bar' }));
+    s.appendChild(svg('text', { x: 12, y: W - 19, class: 'bp-label', text: '5 m' }));
+    const phase = t < tell ? `the tell ${fmtN(t, 1)} / ${fmtN(tell, 1)} s: ${(M.val(d, 'tell', 'banner') || d.name || '').toUpperCase()}` : (t < tell + bul ? `bullets ${fmtN(t - tell, 1)} / ${fmtN(bul, 1)} s · ${sim ? sim.at.length : 0} in the air` : `spent ${fmtN(t - tell - bul, 1)} / ${fmtN(spent, 1)} s: DAZED`);
+    s.appendChild(svg('text', { x: W - 10, y: 18, class: 'bp-label end', text: phase }));
+    wrap.appendChild(s);
+    const side = el('div', { class: 'batk-prev-side' });
+    const slider = el('input', { type: 'range', min: 0, max: total, step: 0.01, value: t, 'data-path': 'preview.t' });
+    slider.addEventListener('input', () => { S.t = Number(slider.value); S.playing = false; redraw(); });
+    const play = el('button', { class: 'btn small', type: 'button', text: S.playing ? 'Pause' : '▶ Play', onclick: () => { if (S.playing) { S.playing = false; redraw(); return; } S.playing = true; if (S.t >= total - 0.02) S.t = 0; tick(total); } });
+    side.appendChild(el('div', { class: 'batk-prev-ctl' }, play, slider));
+    const all = M.simulate(d, 1 / 30, null, aimOf);
+    const facts = el('ul', { class: 'batk-facts small' });
+    const li = (h) => { const x = el('li'); x.innerHTML = h; facts.appendChild(x); };
+    const tr = (k) => M.num(M.val(d, 'trigger', k), M.DEFAULTS.trigger[k]);
+    li(`<b>When:</b> never in the first ${fmtN(tr('first_after'), 0)} s of the fight; the first when the boss falls under ${fmtN(tr('first_at_hp') * 100, 0)}% HP, or ${fmtN(tr('first_by'), 0)} s in at the latest; then ${fmtN(tr('cooldown'), 0)} s after the last one ended. Never in his attack cycle, and only between his attacks`);
+    li(`<b>${fmtN(tell, 1)} s tell</b> (banner, dark ground, wind-up sound, music down ${fmtN(-M.num(M.val(d, 'tell', 'duck_db'), -14), 0)} dB, his wind-up) → <b>${fmtN(bul, 1)} s of bullets</b> → <b>${fmtN(spent, 1)} s spent</b>: about ${fmtN(total, 1)} s in all (×1/pace on the map). Meanwhile no other attack of his and no new creatures from the boss fight's rows`);
+    li(`<b>${all.peak}</b> bullets in the air at most (at ${fmtN(all.peak_t, 1)} s), ${all.fired} in all over ${all.volleys} volleys (without a hero to hit)`);
+    li(`a bullet takes <b>${fmtN(M.num(M.val(d, 'hit', 'hit_frac'), 0.12) * 100, 0)}%</b> of the hero's max HP and is gone; the ones left when the bullets end burn out over ${fmtN(M.num(M.val(d, 'timing', 'clear'), 0.6), 1)} s, harmless`);
+    li(`guarded: he takes <b>${fmtN((1 - Math.min(Math.max(M.num(M.val(d, 'guard', 'share'), 0.8), 0), 0.95)) * 100, 0)}%</b> of every hit (grey numbers, a grey bar); spent: <b>×${fmtN(M.num(M.val(d, 'spent', 'damage_taken'), 1.5), 2)}</b>`);
+    side.appendChild(facts);
+    side.appendChild(el('p', { class: 'muted small', text: 'From above, to scale, the hero standing still 8 m off (track aims follow him there; random aims are one example). White-rimmed bullets are being pulled home by a finale.' }));
+    wrap.appendChild(side);
+    return wrap;
+  }
+
 
   // ------------------------------------------------------------------ the preview
 
@@ -612,6 +822,18 @@ const BossAttacks = (() => {
       'Every box shows the game\'s default in grey; <b>?</b> says what it does. Save attack (Ctrl+S). Ctrl+Z / Ctrl+Y step back and forth.',
       'Tick the bosses under <i>In the script of</i>: it goes to the end of their attack cycle (Enemies tab → the boss → <i>Attack script</i> to reorder it, give it a <i>Skip inside / beyond</i> range or its own wind-up for that boss).',
       '<b>Delete…</b> takes it out of every script first and moves the folder to the editor\'s backups.'));
+    // pass 113 (lane BOSS): the bullet-heaven patterns
+    root.appendChild(el('h3', { text: 'Pass 113: bullet-heaven patterns (kind "pattern")' }));
+    root.appendChild(p('Each boss has one: the King\'s <b>Royal Dust Devil</b>, the Gila\'s <b>Venom Monsoon</b>, the Brander\'s <b>Hellbrand Mandala</b>. A pattern is never part of the boss\'s attack cycle (its place in his script does not matter): it comes on its own <i>When it comes</i> numbers, and only between his attacks. Then a big tell (the banner, the dark ground, the wind-up sound, the music down, his own wind-up, his shell), several seconds of slow bullets from its <b>emitters</b>, and the payoff: he stands <b>spent</b>, taking extra. From the tell to the last bullet he is <b>guarded</b> (80% less damage: a grey bar, grey numbers). While it runs nothing else of his starts and the boss fight\'s rows bring nobody new.'));
+    how('Tune one', ol(
+      'Boss attacks tab → the attack (the ★ list) → the preview: drag the slider through the tell, the bullets and spent, or ▶ Play. The numbers under it say how many bullets are in the air at most.',
+      '<b>Emitters</b>: each is a spiral, ring, fan, sweep, wall or rose with its own speed and rhythm; <i>+ Add an emitter</i>, <i>Copy</i>, <i>Remove</i>. Every box shows the game\'s default in grey.',
+      '<b>When it comes</b>: not before (s), the first at HP below (share) or at the latest (s), then every (s).',
+      'Save attack (Ctrl+S): the next fight plays it.'));
+    const ek = el('ul', {});
+    for (const f of EMITTER_FIELDS) ek.appendChild(li(`<i>${f.label}</i> (<code>${f.k}</code>, ${f.shapes.join('/')}): ${f.help}`));
+    root.appendChild(el('h3', { text: 'Every emitter key' }));
+    root.appendChild(ek);
     const keys = el('ul', {});
     for (const [g, title] of SECTIONS) {
       const rows = FIELDS.filter((f) => f.g === g);
@@ -621,6 +843,6 @@ const BossAttacks = (() => {
     root.appendChild(keys);
   }
 
-  return { render, options, get, open, ids: () => attacks().map((a) => a.id), save, undo, redo, instructions, FIELDS, SECTIONS, S };
+  return { render, options, get, open, ids: () => attacks().map((a) => a.id), save, undo, redo, instructions, FIELDS, SECTIONS, EMITTER_FIELDS, S };
 })();
 if (typeof module !== 'undefined') module.exports = BossAttacks;

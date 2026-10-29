@@ -43,7 +43,35 @@ func _ensure_bus(name: String) -> void:
 
 func _apply_volumes() -> void:
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(SFX_BUS), linear_to_db(clamp(Settings.sfx_volume, 0.0001, 1.0)))
-	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(MUSIC_BUS), linear_to_db(clamp(Settings.music_volume, 0.0001, 1.0)))
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(MUSIC_BUS), linear_to_db(clamp(Settings.music_volume, 0.0001, 1.0)) + _duck_db)
+
+
+## Pass 113 (lane BOSS): the music ducked by `db` (negative; 0 gives it back) over `fade` seconds, on top of the player's
+## music volume: a boss's bullet-heaven pattern ducks it through its tell and its bullets (tell.duck_db). A run's end
+## (stop_music) gives it back.
+var _duck_db := 0.0
+var _duck_tw: Tween = null
+
+
+func duck_music(db: float, fade: float = 0.5) -> void:
+	var to := minf(db, 0.0)
+	if _duck_tw != null and _duck_tw.is_valid():
+		_duck_tw.kill()
+	_duck_tw = null
+	if fade <= 0.0 or not is_inside_tree():
+		_set_duck(to)
+		return
+	_duck_tw = create_tween()
+	_duck_tw.tween_method(_set_duck, _duck_db, to, fade)
+
+
+func music_duck() -> float:
+	return _duck_db
+
+
+func _set_duck(db: float) -> void:
+	_duck_db = db
+	_apply_volumes()
 
 
 func set_listener(pos: Vector3) -> void:
@@ -264,6 +292,9 @@ func stop_music() -> void:
 	_music_layers.clear()
 	_music_now = ""
 	_music_boss = false
+	# (pass 113: a duck a boss's pattern left on goes with the music)
+	if _duck_db != 0.0:
+		duck_music(0.0, 0.0)
 
 
 func pause_all(paused: bool) -> void:

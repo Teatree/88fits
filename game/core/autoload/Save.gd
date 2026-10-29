@@ -75,7 +75,10 @@ func _default() -> Dictionary:
 		"talents": {}, "talent_spent": 0,
 		"quests_done": [],
 		"totals": {"kills": 0, "kills_with_weapon": {}, "kills_of_enemy": {}, "chests": 0, "evolutions": 0, "runs": 0, "extracts": 0,
-			"pickups": 0, "gold_earned": 0},
+			"pickups": 0, "gold_earned": 0,
+			# pass 113 (lane TASKS, TaskTally): banked at each run's end: damage by weapon family, HP restored by item family
+			# and by source ("pickup:heart"), fire / poison damage, barrels broken, Totem gifts taken
+			"damage_with_weapon": {}, "heal_with_item": {}, "heal_with_source": {}, "element_damage": {}, "barrels": 0, "totems": 0},
 		"once": [],
 		"best_runs": {},
 		# what the player has met in a run, by kind (pass 44): the Collection shows only these

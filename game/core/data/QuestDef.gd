@@ -32,6 +32,18 @@ extends ContentDef
 ## Pass 111 (lane SKINS):
 ##  beat_stage {map, stage, hero?}      in one run of stage `stage` (1-based) on `map`, kill its boss, with hero `hero`
 ##                                      ("" any hero): "Beat Nightfall with May."
+## Pass 113 (lane TASKS; core/systems/TaskTally.gd counts them), totals across runs (banked at each run's end; the run going
+## on counts too, so one can complete mid-run), or inside one run with `"in_one_run": true`:
+##  damage_with_weapon {weapon, count}  damage dealt by the weapon's family (the weapon and its evolution; never overkill)
+##  heal_with_item {item, count}        HP restored by a card or passive item that heals (life steal, regen, Siesta,
+##                                      Vulture, Cake Slices: TaskTally.HEAL_STATS), split by each item's share of the stat;
+##                                      its evolved form counts for it
+##  heal_with_source {source, count}   HP restored by a power-up or a structure: `source` "pickup:heart" (the Heart),
+##                                      "structure:healing_well" (the Healing Well); "pickup:" / "structure:" = any of the kind
+##  element_damage {element, count}     fire (burns) or poison (poison ticks) damage the hero's side dealt; "" = both
+##  barrels_total {count}               barrels broken
+##  totems_total {count}                Totem gifts taken
+## `item_level` (pass 100) is the "Upgrade an item to level N" task; the Level Editor limits its level to the item's own.
 ## `unlocks` may also be {"type": "skin", "id": "<hero>:<CODE>"} (a hero's look sold as a skin, Registry.skin_state).
 @export var condition: Dictionary = {}
 ## {"type": "character|weapon|passive|map|mode|skin", "id": "..."} (a skin's id is "<hero>:<CODE>")

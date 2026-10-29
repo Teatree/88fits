@@ -118,6 +118,9 @@ func hard_room() -> int:
 func tick(delta: float) -> void:
 	if not active or length <= 0.0:
 		return
+	# pass 113 (lane BOSS): the fight clock stands still while the boss plays a bullet-heaven pattern (held)
+	if held():
+		return
 	clock += maxf(delta, 0.0)
 	var c := int(floor(clock / length))
 	if c != cycle:
@@ -129,11 +132,21 @@ func tick(delta: float) -> void:
 
 ## The director's spawn check in a fight with a window: what the waves still owe first, then the continuous draw.
 func spawn_check() -> void:
-	if not active:
+	if not active or held():
 		return
 	var ct := cycle_time()
 	_owed_all(ct)
 	_draw(ct, [])
+
+
+## Pass 113 (lane BOSS; Garry's spec: "the boss-fight window's rows pause for the attack, so the screen is the pattern and
+## the player"): true while a bullet-heaven pattern is under way (EnemyManager.pattern_holds: its tell, its bullets and
+## the boss's spent seconds). The window's rows bring nothing and its fight clock waits; the creatures already there stay.
+func held() -> bool:
+	if dir == null or dir.game == null:
+		return false
+	var em = dir.game.get("enemies")
+	return em != null and em.has_method("pattern_holds") and bool(em.pattern_holds())
 
 
 ## A new cycle (the fight's first, or the clock looped): every row starts afresh, the once and waves rows' chance and

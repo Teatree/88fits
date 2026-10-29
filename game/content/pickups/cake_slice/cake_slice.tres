@@ -8,6 +8,7 @@ script = ExtResource("2_gkrht")
 value = 0.06
 lifetime = 30.0
 params = {
+"credit_stat": "heal_drop",
 "quiet": true,
 "small": true
 }

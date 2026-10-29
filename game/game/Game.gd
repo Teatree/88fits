@@ -230,7 +230,8 @@ func _ready() -> void:
 	director.boss_started.connect(func(_def): Audio.music_boss(true, str(mapdef.music.get("boss", "mu_boss")) if mapdef else "mu_boss"))
 	enemies.boss_died.connect(func(_d, _p): Audio.music_boss(false))
 	Run.level_up.connect(_on_level_up)
-	Run.lifesteal_healed.connect(func(n): if player and not player.dead: player.heal(n))
+	# pass 113 (lane TASKS): credited to the items that give life steal (TaskTally)
+	Run.lifesteal_healed.connect(func(n): if player and not player.dead: player.heal(n, "", "stat:lifesteal"))
 	Run.build_changed.connect(_sync_weapons)
 	Run.hero_sheet_changed.connect(_on_hero_sheet_changed)
 	Run.weapon_evolved.connect(_on_evolved)
@@ -1499,6 +1500,19 @@ func _check_quests() -> void:
 	if s == _last_quest_check:
 		return
 	_last_quest_check = s
+	_announce_quests()
+
+
+## Pass 113: the quests done this moment checked and announced at once (WaveDirector: a boss has fallen, so a beat_stage
+## goal is met now), whatever second the five-second check last ran in.
+func check_quests_now() -> void:
+	if Run.arena:
+		return
+	_announce_quests()
+
+
+## Every quest the run has just completed, marked done, each with its banner (UNLOCKED, a hero or a look for sale).
+func _announce_quests() -> void:
 	for id in QuestTracker.check_all(true):
 		var q: QuestDef = Registry.quests[id]
 		if RunAnalytics.I: RunAnalytics.I.event("unlock", str(id))
@@ -2380,8 +2394,8 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 				return true)
 		"heal":
 			var amount: float = player.max_hp * float(p.get("fraction", 0.5))
-			# named, so the Down! list shows it (pass 46)
-			player.heal(amount, def.display_name)
+			# named, so the Down! list shows it (pass 46); pass 113 (lane TASKS): counted for the structure's own tasks
+			player.heal(amount, def.display_name, "structure:" + def.id)
 			hud.toast("+%d HP" % int(round(amount)), UiKit.GOOD)
 		"loot":
 			var gold := int(p.get("gold", 60))
@@ -2566,7 +2580,7 @@ func _roll_dice(def: StructureDef, at: Vector3) -> void:
 	var pick := str(outcomes[randi() % outcomes.size()])
 	match pick:
 		"heal":
-			player.heal(player.max_hp, def.display_name)
+			player.heal(player.max_hp, def.display_name, "structure:" + def.id)
 			hud.banner("DICE: FULL HEAL", UiKit.GOOD)
 		"gold":
 			Run.add_gold(150, "dice")
@@ -2594,8 +2608,11 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 	match def.effect_kind:
 		"heal":
 			var amount: float = player.max_hp * def.value
-			# the Heart, a Cake Slice: named, so the Down! list shows it (pass 46)
-			player.heal(amount, def.display_name)
+			# the Heart, a Cake Slice: named, so the Down! list shows it (pass 46). Pass 113 (lane TASKS): a power-up's heal
+			# counts for that power-up; one dropped by a hero's stat (`params.credit_stat`: the Cake Slice, heal_drop) for
+			# the items that give the stat
+			var cs := str(def.params.get("credit_stat", ""))
+			player.heal(amount, def.display_name, ("stat:" + cs) if cs != "" else ("pickup:" + def.id))
 			if not bool(def.params.get("quiet", false)):
 				hud.toast("+%d HP" % int(round(amount)), UiKit.GOOD)
 			Audio.play("pk_heart", at)
@@ -3058,6 +3075,8 @@ func end_run() -> void:
 	# the run's gold comes home with the hero, whatever the end (pass 70: bank_run_end)
 	var map_id := Run.map.id if Run.map else ""
 	bank_run_end(map_id)
+	# pass 113 (lane TASKS): the run's damage, healing, barrels and Totem gifts into the save's totals, once
+	TaskTally.bank()
 	# pass 111 (lane WANTED): a bounty done is paid now, beside the purse (Run.last_result["bounty"] for the Results)
 	WantedRun.settle()
 	# pass 87 (lane SGAME): the best time is the seconds played (a stage run's clock starts at its window)

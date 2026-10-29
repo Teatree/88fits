@@ -40,10 +40,25 @@ const TYPES := {
 	"evolve_item": {"target": "evolve", "param": false, "down": false},
 	"open_chests": {"target": "", "param": true, "down": false},
 	"collect_coins": {"target": "", "param": true, "down": false},
+	# pass 113 (lane TASKS): damage with a weapon, HP restored by an item or a source, an item to a level, barrels,
+	# Totem gifts, fire or poison damage (BALANCING 56.TASKS)
+	"damage_weapon": {"target": "weapon", "param": true, "down": false},
+	"heal_item": {"target": "item", "param": true, "down": false},
+	"heal_source": {"target": "source", "param": true, "down": false},
+	"item_level": {"target": "item", "param": false, "down": false},
+	"barrels": {"target": "", "param": true, "down": false},
+	"totems": {"target": "", "param": true, "down": false},
+	"element_damage": {"target": "element", "param": true, "down": false},
 }
 ## The order the types are listed in (the editor, the tests).
 const TYPE_ORDER := ["kill_enemy", "kill_weapon", "kill_specials", "kill_elites", "kill_total", "boss_fast", "hp_floor",
-	"beat_stage", "hero_level", "max_weapon", "evolve_item", "open_chests", "collect_coins"]
+	"beat_stage", "hero_level", "max_weapon", "evolve_item", "open_chests", "collect_coins", "damage_weapon", "heal_item",
+	"heal_source", "item_level", "barrels", "totems", "element_damage"]
+## Pass 113 (lane TASKS): the types whose number is rolled after the target is drawn, so a target's own factor in the
+## type's `target_mult` {id: factor} scales its range (a Cake heals far less than Death; a Healing Well less than Hearts).
+const TARGET_FIRST := ["damage_weapon", "heal_item", "heal_source", "element_damage"]
+## The elements' names on a poster (its {target}; {element} is the word in lower case).
+const ELEMENT_NAMES := {"fire": "Fire", "poison": "Poison"}
 ## The config's top keys when the file lacks one (a missing key never breaks the board).
 const DEFAULTS := {"enabled": true, "choices": 3, "rerolls": 0, "unlock": {"runs": 1}, "creatures_met_only": true,
 	"items_seen_only": true, "progress": {"param_growth": 0.15},
@@ -243,7 +258,97 @@ static func context(map_id: String, stage_i: int, hero_id: String) -> Dictionary
 		cards.append({"id": p.id, "name": p.display_name, "seen": Save.seen("passive", p.id),
 			"evolves": into != null and not into.hidden, "max_level": maxi(p.max_level, 1)})
 	ctx["cards"] = cards
+	_task_context(ctx, tl, k, weapons, cards)
 	return ctx
+
+
+## Pass 113 (lane TASKS): the facts the new types read, added to `ctx`: passive_items [{id, name, seen, max_level (its
+## ladder's top)}], heal_items [{id, name, kind card | passive, seen}] (TaskTally.heal_items, unlocked, open by this
+## stage), heal_sources [{kind pickup | structure, id, name}] (a healing power-up the map drops by kills or out of a
+## barrel, a healing structure the map places), totem_poles (the fewest Totem Poles the map stands: 0 with none) and
+## elements [{id, name}] (fire / poison when an item this hero may find carries it, a weapon's path mutations included).
+static func _task_context(ctx: Dictionary, tl: WaveTimeline, k: int, weapons: Array, cards: Array) -> void:
+	var items: Array = []
+	for p: PassiveDef in Registry.unlocked_passives():
+		if not p.is_item() or (p.from_stage > 0 and k + 1 < p.from_stage):
+			continue
+		items.append({"id": p.id, "name": p.display_name, "seen": Save.seen("passive", p.id), "max_level": p.ladder_top()})
+	ctx["passive_items"] = items
+	var heals: Array = []
+	for p: PassiveDef in TaskTally.heal_items():
+		if p.hidden or not Registry.is_unlocked("passive", p.id) or (p.from_stage > 0 and k + 1 < p.from_stage):
+			continue
+		heals.append({"id": p.id, "name": p.display_name, "kind": "card" if p.is_line() else "passive", "seen": Save.seen("passive", p.id)})
+	ctx["heal_items"] = heals
+	var sources: Array = []
+	var pick_ids: Array = []
+	for r in tl.pickups.get("roster", []):
+		if r is Dictionary and float((r as Dictionary).get("weight", 0.0)) > 0.0:
+			pick_ids.append(str((r as Dictionary).get("id", "")))
+	for kind_key in ["brown", "black"]:
+		var bk = tl.barrels.get(kind_key) if tl.barrels is Dictionary else null
+		if bk is Dictionary and float((bk as Dictionary).get("powerup_chance", 0.0)) > 0.0:
+			for r in (bk as Dictionary).get("powerups", []):
+				if r is Dictionary and float((r as Dictionary).get("weight", 0.0)) > 0.0:
+					pick_ids.append(str((r as Dictionary).get("id", "")))
+	for pid in pick_ids:
+		var pd: PickupDef = Registry.pickup(str(pid))
+		if TaskTally.pickup_heals(pd) and sources.filter(func(x: Dictionary) -> bool: return x["id"] == pd.id and x["kind"] == "pickup").is_empty():
+			sources.append({"kind": "pickup", "id": pd.id, "name": pd.display_name})
+	var placed: Array = _map_structures(tl)
+	var poles := 0
+	for sd: StructureDef in placed:
+		if TaskTally.structure_heals(sd):
+			sources.append({"kind": "structure", "id": sd.id, "name": sd.display_name})
+		if sd.effect_kind == "totem":
+			var pm := StructureManager.per_map_range(sd)
+			poles += maxi(pm.x, 0) if pm.x >= 0 else 1
+	ctx["heal_sources"] = sources
+	ctx["totem_poles"] = poles
+	var els: Array = []
+	for el: String in TaskTally.ELEMENTS:
+		if _element_reachable(el, weapons, cards, items):
+			els.append({"id": el, "name": str(ELEMENT_NAMES.get(el, el.capitalize()))})
+	ctx["elements"] = els
+
+
+## The structures map timeline `tl` places (its `structures.roster`, else every one; never a hidden one), as
+## StructureManager.setup draws them.
+static func _map_structures(tl: WaveTimeline) -> Array:
+	var roster: Array = tl.structures.get("roster", []) if tl.structures is Dictionary else []
+	var defs: Array = []
+	if tl.structures.is_empty():
+		return defs
+	if roster.is_empty():
+		defs = Registry.structures.values()
+	else:
+		for id in roster:
+			var d: StructureDef = Registry.structure(str(id))
+			if d:
+				defs.append(d)
+	defs = StructureManager.in_play(defs)
+	defs.sort_custom(func(a: StructureDef, b: StructureDef) -> bool: return a.id < b.id)
+	return defs
+
+
+## Whether element `el` can come into a run of these weapons (theirs, their evolution's, their path mutations'), cards and
+## passive items (Run.element_of reads an item's `element`, else its stats).
+static func _element_reachable(el: String, weapons: Array, cards: Array, items: Array) -> bool:
+	for w: Dictionary in weapons:
+		var wd: WeaponDef = Registry.weapon(str(w["id"]))
+		if wd == null:
+			continue
+		if Run.element_of(wd) == el:
+			return true
+		for md in Registry.mutations_of(wd.id):
+			if md is MutationDef and Run.element_of(md as ContentDef) == el:
+				return true
+	for list: Array in [cards, items]:
+		for x: Dictionary in list:
+			var pd: PassiveDef = Registry.passive(str(x["id"]))
+			if pd and Run.element_of(pd) == el:
+				return true
+	return false
 
 
 ## A creature a poster may name: there, not hidden, not retired, not a boss, not a training dummy.
@@ -304,6 +409,30 @@ static func targets_of(cfg: Dictionary, type: String, ctx: Dictionary) -> Array:
 			return [{"id": ""}] if int(ctx.get("elite_estimate", 0)) >= 1 else []
 		"beat_stage":
 			return [{"id": ""}] if str((ctx.get("boss", {}) as Dictionary).get("id", "")) != "" else []
+		# pass 113 (lane TASKS)
+		"damage_weapon":
+			return (ctx.get("weapons", []) as Array).filter(func(w: Dictionary) -> bool:
+				return bool(w.get("start", false)) or bool(w.get("seen", false)) or not seen_only)
+		"heal_item":
+			return (ctx.get("heal_items", []) as Array).filter(func(x: Dictionary) -> bool:
+				return bool(x.get("seen", false)) or not seen_only)
+		"heal_source":
+			return (ctx.get("heal_sources", []) as Array).duplicate()
+		"item_level":
+			var min_lv := maxi(int(tc.get("min_level", 2)), 1)
+			var out2: Array = []
+			for w: Dictionary in ctx.get("weapons", []):
+				if (bool(w.get("start", false)) or bool(w.get("seen", false)) or not seen_only) and int(w.get("max_level", 1)) >= min_lv:
+					out2.append(w.duplicate().merged({"kind": "weapon"}, true))
+			for list_key: String in ["cards", "passive_items"]:
+				for x: Dictionary in ctx.get(list_key, []):
+					if (bool(x.get("seen", false)) or not seen_only) and int(x.get("max_level", 1)) >= min_lv:
+						out2.append(x.duplicate().merged({"kind": "card" if list_key == "cards" else "passive"}, true))
+			return out2
+		"totems":
+			return [{"id": "totem_pole"}] if int(ctx.get("totem_poles", 0)) >= 1 else []
+		"element_damage":
+			return (ctx.get("elements", []) as Array).duplicate()
 	return [{"id": ""}]
 
 
@@ -413,6 +542,16 @@ static func scaled_range(cfg: Dictionary, type: String, tc: Dictionary, stage: i
 	return Vector2(lo, hi)
 
 
+## Pass 113 (lane TASKS): range `r` for target `id`, times the type's `target_mult` factor for it (1 when it has none):
+## a TARGET_FIRST type's numbers sized to what that target can give (Cake 0.25 of Death's healing).
+static func target_range(tc: Dictionary, r: Vector2, id: String) -> Vector2:
+	var tm = tc.get("target_mult")
+	if not (tm is Dictionary) or not (tm as Dictionary).has(id):
+		return r
+	var f := maxf(float((tm as Dictionary)[id]), 0.0)
+	return r * f
+
+
 ## A number in range `r` rounded to `step` (at least one step).
 static func roll_n(r: Vector2, step: float, rng: RandomNumberGenerator) -> int:
 	var v := lerpf(r.x, r.y, rng.randf())
@@ -506,7 +645,8 @@ static func make_contract(cfg: Dictionary, type: String, ctx: Dictionary, rng: R
 		"target": ""}
 	var d := lo
 	var n := 0
-	if bool((TYPES.get(type, {}) as Dictionary).get("param", false)):
+	# (pass 113: a TARGET_FIRST type rolls its number once its target is drawn)
+	if bool((TYPES.get(type, {}) as Dictionary).get("param", false)) and not TARGET_FIRST.has(type):
 		n = roll_n(r, step, rng)
 	match type:
 		"kill_enemy":
@@ -579,6 +719,57 @@ static func make_contract(cfg: Dictionary, type: String, ctx: Dictionary, rng: R
 		"collect_coins":
 			d = difficulty_of(lo, hi, n, r, down)
 			c["still"] = {"kind": "art", "id": "coin"}
+		# pass 113 (lane TASKS): BALANCING 56.TASKS
+		"damage_weapon":
+			var sw3 := float(tc.get("start_weight", 3.0))
+			var wp3 := _pick(cands, func(x: Dictionary) -> float: return sw3 if bool(x.get("start", false)) else 1.0, rng)
+			var r3 := target_range(tc, r, str(wp3["id"]))
+			n = roll_n(r3, step, rng)
+			var bonus3 := 0.0 if bool(wp3.get("start", false)) else float(tc.get("other_bonus", 1.0))
+			d = snappedf(difficulty_of(lo, hi, n, r3, down) + bonus3, 0.1)
+			c["target"] = str(wp3["id"])
+			c["target_kind"] = "weapon"
+			vars["target"] = str(wp3.get("name", wp3["id"]))
+			c["still"] = {"kind": "weapon", "id": str(wp3["id"])}
+		"heal_item", "heal_source", "element_damage":
+			var it3 := _pick(cands, func(_x: Dictionary) -> float: return 1.0, rng)
+			var id3 := str(it3.get("id", ""))
+			var r4 := target_range(tc, r, id3)
+			n = roll_n(r4, step, rng)
+			d = difficulty_of(lo, hi, n, r4, down)
+			c["target"] = id3
+			vars["target"] = str(it3.get("name", id3))
+			if type == "heal_item":
+				c["target_kind"] = str(it3.get("kind", "passive"))
+				c["still"] = {"kind": c["target_kind"], "id": id3}
+			elif type == "heal_source":
+				c["target_kind"] = str(it3.get("kind", "pickup"))
+				vars["targets"] = TextGen.plural_name(str(it3.get("name", id3)))
+				c["still"] = {"kind": c["target_kind"], "id": id3}
+			else:
+				c["target_kind"] = "element"
+				vars["element"] = id3
+				c["still"] = {"kind": "art", "id": id3}
+		"item_level":
+			var sw4 := float(tc.get("start_weight", 1.0))
+			var it4 := _pick(cands, func(x: Dictionary) -> float: return sw4 if bool(x.get("start", false)) else 1.0, rng)
+			var top := maxi(int(it4.get("max_level", 1)), 1)
+			var low := clampi(int(tc.get("min_level", 2)), 1, top)
+			n = mini(low + int(floor(rng.randf() * float(top - low + 1))), top)
+			d = difficulty_of(lo, hi, n, Vector2(low, top), false)
+			c["target"] = str(it4["id"])
+			c["target_kind"] = str(it4.get("kind", "weapon"))
+			vars["target"] = str(it4.get("name", it4["id"]))
+			c["still"] = {"kind": c["target_kind"], "id": str(it4["id"])}
+		"barrels":
+			d = difficulty_of(lo, hi, n, r, down)
+			c["still"] = {"kind": "art", "id": "barrel"}
+		"totems":
+			n = mini(n, maxi(int(ctx.get("totem_poles", 1)), 1))
+			d = difficulty_of(lo, hi, n, r, down)
+			c["target"] = "totem_pole"
+			c["target_kind"] = "structure"
+			c["still"] = {"kind": "structure", "id": "totem_pole"}
 		_:
 			return {}
 	if not vars.has("time"):

@@ -415,7 +415,40 @@ def war_drum_beat():
     return fade_out(y, 60)
 
 
+# ------------------------------------------------------------------ pass 113 (lane BOSS): the bullet-heaven wind-up
+# Garry: "Make it so these attacks are easy to detect as a Player. Big foreshadowing." The tell of every boss's pattern
+# (content/boss_attacks/*/ sounds.windup): 2 s of a rising alarm, so it is heard before it is seen: a brass-like saw
+# chord climbing an octave with a tremolo that quickens, a whoosh of wind swelling under it, a drum roll speeding up, all
+# in one crescendo to the moment the bullets begin.
+def boss_pattern_warn():
+    t = t_of(2.0)
+    u = np.clip(t / 2.0, 0, 1)
+    f = 110.0 * 2.0 ** (u ** 1.3)
+    y = np.zeros_like(t)
+    for mult, amp in ((1.0, 0.5), (1.5, 0.3), (2.0, 0.22), (3.0, 0.08)):
+        ph = 2 * np.pi * np.cumsum(f * mult) / SR
+        saw = 2.0 * ((ph / (2 * np.pi)) % 1.0) - 1.0
+        y += amp * (0.65 * saw + 0.35 * np.sin(ph))
+    rate = 4.0 + 18.0 * u ** 1.4
+    y *= 0.6 + 0.4 * np.sin(2 * np.pi * np.cumsum(rate) / SR)
+    # the wind: noise darkened less and less as it swells
+    n = rng.normal(0, 1.0, len(t))
+    dark = np.convolve(n, np.ones(24) / 24, mode="same")
+    bright = np.convolve(n, np.ones(5) / 5, mode="same")
+    y += (dark * (1.0 - u) + bright * u) * (0.25 + 0.9 * u ** 1.6) * 1.6
+    # the drum roll, speeding up
+    at = 0.0
+    gap = 0.26
+    while at < 1.95:
+        y += thump(t, at, 62.0, 0.35 + 0.65 * (at / 2.0))
+        at += gap
+        gap = max(gap * 0.86, 0.045)
+    y *= 0.35 + 0.65 * u ** 1.2
+    return fade_out(y, 25)
+
+
 SOUNDS = {
+    "en_boss_pattern_warn": boss_pattern_warn,
     "st_war_drum_beat": war_drum_beat,
     "en_sniper_aim": sniper_aim,
     "en_sniper_lock": sniper_lock,

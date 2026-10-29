@@ -15,6 +15,7 @@
   "art_prompt": "a small slice of layer cake with white icing, pink cream between its sponge layers, a red cherry on top and a small green plus sign in its lower right",
   "params": {
     "small": true,
-    "quiet": true
+    "quiet": true,
+    "credit_stat": "heal_drop"
   }
 }

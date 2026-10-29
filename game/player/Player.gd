@@ -416,7 +416,10 @@ func _tick_regen(delta: float) -> void:
 	if deep_breath_t > 0.0:
 		regen *= Run.perk_param("deep_breath", "mult", 4.0)
 	var rate := regen if regen > 0.0 and regen_hold <= 0.0 else 0.0
-	rate += siesta_rate()
+	# pass 113 (lane TASKS): regen's part and Siesta's apart, so each heals for its own items (TaskTally.note_regen)
+	var r_regen := rate
+	var r_still := siesta_rate()
+	rate += r_still
 	# Afterglow (pass 54, Solenne's perk): every heal on her is `heal_mult` times its size, her regen too
 	rate *= heal_mult()
 	if rate > 0.0 and hp < max_hp and not dead:
@@ -426,6 +429,7 @@ func _tick_regen(delta: float) -> void:
 		# Hot Springs (pass 69): regen's ticks count towards the pulse too (Snake Oil's overheal they never fill)
 		_note_heal_pulse(hp - before)
 		if RunAnalytics.I: RunAnalytics.I.regen(hp - before)
+		TaskTally.note_regen(hp - before, r_regen, r_still)
 		damaged.emit(hp, max_hp)
 	_flush_heal_batch(delta)
 
@@ -902,7 +906,10 @@ func max_momentum() -> bool:
 
 ## Health back. `source` names a pickup heal for the Down! list (the Heart, a Cake Slice, the Healing Well); regen,
 ## lifesteal and the level patch pass none and are not listed. A heal that gave nothing back is not listed either.
-func heal(amount: float, source: String = "") -> void:
+## Pass 113 (lane TASKS): `credit` names what the heal counts for in the task types (TaskTally.note_heal): "pickup:<id>",
+## "structure:<id>", or "stat:<healing stat>" for an item's heal (life steal, Vulture, a Cake Slice); "" counts for none
+## (the level patch, the arena's button).
+func heal(amount: float, source: String = "", credit: String = "") -> void:
 	if dead:
 		return
 	# Afterglow (pass 54): every heal is `heal_mult` times its size (1 without the perk)
@@ -913,6 +920,8 @@ func heal(amount: float, source: String = "") -> void:
 	var got := hp - before + _fill_overheal(amount - (hp - before))
 	_note_heal_pulse(got)
 	if RunAnalytics.I: RunAnalytics.I.healed(got, source)
+	if credit != "":
+		TaskTally.note_heal(credit, got)
 	# a green number on him (pass 47): pickups, lifesteal and the level patch as they come, lifesteal's points merged
 	if got >= 0.5 and DamageNumbers.I: DamageNumbers.I.hero_heal(got)
 	if source != "" and got >= 0.5:

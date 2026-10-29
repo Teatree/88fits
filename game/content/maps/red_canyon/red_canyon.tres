@@ -132,7 +132,7 @@ roster = [{
 }, {
 "count": 50.0,
 "enemy": "werewolf",
-"every": 5.0,
+"every": 15.0,
 "id": "r55",
 "pace": "waves",
 "pack": 30.0,
@@ -143,9 +143,9 @@ roster = [{
 "hp_mult": 1.55,
 "size": [1.25, 2.3]
 },
-"t": 315.0,
-"until": 332.0,
-"weights": [[315.0, 5.4], [376.0, 10.1], [407.0, 10.6]]
+"t": 317.0,
+"until": 334.0,
+"weights": [[317.0, 5.4], [378.0, 10.1], [409.0, 10.6]]
 }, {
 "enemy": "werewolf",
 "id": "r59",
@@ -233,6 +233,19 @@ roster = [{
 "until": 315.0,
 "weights": [[258.0, 1.2]]
 }, {
+"enemy": "monk",
+"id": "r62",
+"pace": "once",
+"pack": 20.0,
+"pattern": "pack",
+"role": "swarm",
+"stats": {
+"damage_mult": 2.0
+},
+"t": 355.0,
+"until": 368.0,
+"weights": [[356.0, 1.2]]
+}, {
 "enemy": "bull_beetle",
 "id": "r15",
 "interval": 6.0,
@@ -261,9 +274,9 @@ roster = [{
 "val": 1.0
 }
 },
-"t": 357.0,
-"until": 430.0,
-"weights": [[358.0, 1.2]]
+"t": 399.0,
+"until": 431.0,
+"weights": [[400.0, 1.2]]
 }, {
 "enemy": "bull_beetle",
 "id": "r4",
@@ -280,7 +293,7 @@ roster = [{
 "weights": [[389.0, 1.0]]
 }, {
 "count": 5.0,
-"enemy": "dust_mummy",
+"enemy": "cyclopean_mummy",
 "every": 5.0,
 "id": "r16",
 "pace": "waves",
@@ -288,6 +301,7 @@ roster = [{
 "pattern": "ring",
 "role": "fodder",
 "stats": {
+"damage_mult": 3.0,
 "hp": 20.0,
 "hp_mult": 10.0,
 "size": 2.0,
@@ -295,7 +309,6 @@ roster = [{
 },
 "t": 368.0,
 "until": 430.0,
-"variant": "DM-F",
 "weights": [[368.0, 5.4]]
 }, {
 "count": 10.0,
@@ -1168,6 +1181,24 @@ barrels = {
 "min_dist": 20.0,
 "view_margin": 2.0
 }
+}
+dust_devils = {
+"enabled": true,
+"every": [120.0, 180.0],
+"fade_seconds": 2.0,
+"first": 90.0,
+"form_seconds": 2.5,
+"life": [20.0, 30.0],
+"lift": 1.7,
+"max_alive": 1.0,
+"radius": 2.4,
+"speed": 1.4,
+"toss": {
+"cooldown": 1.2,
+"out": 3.6,
+"up": 8.0
+},
+"wander": "cross"
 }
 rock_color = "#785C5E"
 wall_colors = {

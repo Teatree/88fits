@@ -669,9 +669,16 @@ static func _boss_attack(d: Dictionary) -> BossAttackDef:
 	var a := BossAttackDef.new()
 	a.attack_kind = str(d.get("kind", "rain"))
 	a.doc = str(d.get("doc", ""))
-	for g: String in ["projectile", "pattern", "landing", "telegraph", "timing", "sounds", "params", "spew"]:
+	# (pass 113, lane BOSS: a pattern's groups, and its emitters list)
+	for g: String in ["projectile", "pattern", "landing", "telegraph", "timing", "sounds", "params", "hit", "trigger", "guard", "spent", "tell", "shell", "spew"]:
 		var v = d.get(g, {})
 		a.set(g, (v as Dictionary).duplicate(true) if v is Dictionary else {})
+	var em = d.get("emitters", [])
+	a.emitters = []
+	if em is Array:
+		for e in em:
+			if e is Dictionary:
+				a.emitters.append((e as Dictionary).duplicate(true))
 	a.damage = float(d.get("damage", 0.75))
 	a.knockback = float(d.get("knockback", 4.0))
 	a.lift = float(d.get("lift", 0.0))
@@ -799,6 +806,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 112 (lane BARREL): the barrels' respawn clock and both barrel types' contents (BarrelSpawns' defaults fill gaps)
 	var brl = t.get("barrels", {})
 	w.barrels = brl if brl is Dictionary else {}
+	# pass 113 (lane TWISTER): the dust devils' clock and numbers (DustDevils.DEFAULTS fill gaps)
+	var ddv = t.get("dust_devils", {})
+	w.dust_devils = ddv if ddv is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

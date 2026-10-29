@@ -71,6 +71,8 @@ boss = {
 "name": "spawn_ring",
 "telegraph": "none",
 "windup": 0.8
+}, {
+"name": "venom_monsoon"
 }],
 "cooldown_between": 2.2,
 "hp_mult_per_stage": 2.0

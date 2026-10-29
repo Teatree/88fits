@@ -258,7 +258,9 @@ def checks(check, run_node, server):
               "BOSS: delete is refused while a script names it")
         dc = BAIO.delete(server, "cactus_rain", True)
         names = [a.get("name") for a in json.loads(open(gila, encoding="utf-8").read())["boss"]["attacks"]]
-        check(dc["ok"] and "cactus_rain" not in names and len(names) == 3 and not os.path.exists(os.path.join(server.CONTENT, "boss_attacks", "cactus_rain"))
+        # (pass 113: the Gila's script is one longer, venom_monsoon: every entry but cactus_rain stays)
+        gila_names = [a.get("name") for a in json.loads(g0)["boss"]["attacks"] if isinstance(a, dict)]
+        check(dc["ok"] and "cactus_rain" not in names and len(names) == len(gila_names) - 1 and not os.path.exists(os.path.join(server.CONTENT, "boss_attacks", "cactus_rain"))
               and os.path.isdir(os.path.join(server.BACKUPS, "boss_attacks")) and os.listdir(os.path.join(server.BACKUPS, "boss_attacks")),
               "BOSS: delete with cascade leaves the scripts and moves the folder to the backups: %s" % names)
         # the server's own routes are wired

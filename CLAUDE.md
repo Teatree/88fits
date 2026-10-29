@@ -122,6 +122,8 @@ Do the parse check and the smoke run after any change to `core/`, `player/`, `ga
 - Pausing uses `get_tree().paused`; the UI CanvasLayer is `PROCESS_MODE_ALWAYS`. Systems also check `game.paused`.
 - A Container resets each child's `rotation` and `scale` whenever it sorts. A turned or scaled piece inside one (an open row's chevron, a tilted seal) sits in a plain Control holder, or is set again in `sort_children`.
 - `Font.get_height()` rounds ascent and descent up, so it runs a pixel taller than CSS `line-height: normal` (Chrome rounds each to nearest). Measure against the mocks with `W.normal_height()`.
+- An additive (`blend_add`) spatial shader gets the scene's fog added on top: a faint glow turns into a solid tube. Give
+  every additive effect shader `render_mode ... fog_disabled` (pass 113, the Brander's fire pillar).
 - Godot front faces are **clockwise**. A SurfaceTool mesh wound counter-clockwise is silently back-face culled; the terrain rendered as the sky's lower half for hours before anyone noticed. Check winding first when a generated mesh "has no texture".
 
 ## Architecture
@@ -260,7 +262,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-28, pass 112, version 0.95)
+## Status (2026-10-29, pass 113, version 0.96)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -269,8 +271,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.95). The PC exe carries game/icon.ico and
+parse check, all gdUnit tests (~2,558 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.96). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -486,6 +488,14 @@ as one; core/systems/Squads.gd, EnergyOrbs.gd; looks MK-A brown plays, MK-B whit
 pass 111's map chests reverted, **barrels** come back off screen and may throw out a power-up (`timeline_data.barrels`,
 core/systems/BarrelSpawns.gd, the Level Editor's Barrels card; 55.BARREL); the harpoon's chain snaps; the hero's run
 cycle follows his real speed; Warmup pre-draws the bomb, harpoon and orbs (55.ENEMY); pose_driver `arms=clasp`.
+Pass 113: **seven new task types** for quests (unlocks, skins) and Wanted posters (damage with a weapon, HP restored by an
+item or by a power-up/structure, an item to level N, barrels, totems, fire/poison damage; core/systems/TaskTally.gd banks
+a run's tallies at its end; 56.TASKS), each with its picture (art/ui/wanted/barrel.png, poison.png); **boss bullet heaven**:
+custom attack kind `pattern` (core/systems/BossPatterns.gd, BossPatternFx.gd; content/boss_attacks/royal_dust_devil,
+venom_monsoon, hellbrand_mandala; rare: not before 15 s, at 60% HP or 45 s, then 45 s apart; a 2 s tell, guarded x0.2,
+dazed x1.5; 56.BOSS); dust devils rare and tornado-shaped (core/systems/DustDevils.gd, TornadoFx.gd,
+`timeline_data.dust_devils`; 56.TWISTER); the Monk's volley flies as one cloud, 5 m/s, 26.25 m; a locked look is a dark
+silhouette; a look's goal met at a boss's fall is announced in the run (56.LEAD).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

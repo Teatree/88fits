@@ -837,6 +837,37 @@ def quest_text(q):
         return "Beat %s with %s." % (stage, h.get("name", hero.title()))
     if t in ("hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed"):
         return _quest_build_text(c)
+    if t in ("damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total"):
+        return _quest_task_text(c)
+    return "Complete a challenge."
+
+
+def _quest_task_text(c):
+    """Pass 113 (lane TASKS): TextGen.quest_task_text in Python, the task quests' words."""
+    D = _items()
+    t = c.get("type", "")
+    n = int(c.get("count", 0) or 0)
+    g = "{:,}".format(n)
+    cap = lambda s: str(s or "").replace("_", " ").title()
+    weapon = lambda i: D["weapons"].get(i) or D["evolutions"].get(i)
+    item = lambda i: ("the " + weapon(i).get("name", i)) if weapon(i) else D["passives"].get(i, {}).get("name", cap(i))
+    plural = lambda s: s + ("es" if s.endswith(("s", "x")) else "s")
+    tail = " in one run." if c.get("in_one_run") else "."
+    if t == "damage_with_weapon":
+        return "Deal %s damage with %s%s" % (g, item(c.get("weapon", "")) if c.get("weapon") else "a weapon", tail)
+    if t == "heal_with_item":
+        return "Restore %s HP with %s%s" % (g, item(c.get("item", "")) if c.get("item") else "an item", tail)
+    if t == "heal_with_source":
+        kind, _sep, sid = str(c.get("source", "") or "").partition(":")
+        what = plural(cap(sid)) if sid else ("structures" if kind == "structure" else "power-ups")
+        return "Restore %s HP with %s%s" % (g, what, tail)
+    if t == "element_damage":
+        el = str(c.get("element", "") or "")
+        return "Deal %s %s damage%s" % (g, el if el in ("fire", "poison") else "fire or poison", tail)
+    if t == "barrels_total":
+        return ("Break a barrel" if n == 1 else "Break %s barrels" % g) + tail
+    if t == "totems_total":
+        return ("Take a Totem gift" if n == 1 else "Take %s Totem gifts" % g) + tail
     return "Complete a challenge."
 
 
@@ -938,6 +969,15 @@ def quest_stage(q):
         return 1
     if t == "items_maxed":
         return 1 if int(c.get("count", 1)) <= 2 else 2
+    # pass 113 (lane TASKS): QuestTracker.stage_hint's task quests (a weapon or an item from a later stage says so)
+    if t == "damage_with_weapon":
+        w = _items()["weapons"].get(c.get("weapon", "")) or {}
+        return max(int(w.get("from_stage", 0) or 0), 1)
+    if t == "heal_with_item":
+        p = _items()["passives"].get(c.get("item", "")) or {}
+        return max(int(p.get("from_stage", 0) or 0), 1)
+    if t in ("heal_with_source", "element_damage", "barrels_total", "totems_total"):
+        return 1
     return 0
 
 

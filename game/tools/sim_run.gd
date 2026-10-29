@@ -537,7 +537,10 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 		"stage": _stage, "outcome": _stage_outcome(reason),
 		"boss_killed": bool(_run.get("stage_beaten")) if _run.get("stage_beaten") != null else false,
 		"endless_s": snappedf(float(_run.get("endless_time")) if _run.get("endless_time") != null and bool(_run.get("endless")) else 0.0, 0.1),
-		"stage_clock": snappedf(float(_run.call("stage_clock")) if _run.has_method("stage_clock") else float(_run.elapsed), 0.1)}
+		"stage_clock": snappedf(float(_run.call("stage_clock")) if _run.has_method("stage_clock") else float(_run.elapsed), 0.1),
+		# pass 113 (lane TASKS): the task types' tallies (Run's, by path: TaskTally names the autoloads)
+		"tasks": {"element_damage": _run.get("element_damage"), "healed_by_item": _run.get("healed_by_item"),
+			"healed_by_source": _run.get("healed_by_source"), "barrels": _run.get("barrels_broken"), "totems": _run.get("totems_taken")}}
 
 
 ## The player's JSON from the recorder's rows and events (in memory) and the tool's own: meta, the series, the events.

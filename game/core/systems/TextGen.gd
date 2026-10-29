@@ -1178,7 +1178,50 @@ static func quest_text(q: QuestDef) -> String:
 		# pass 100 (lane QUESTS): levels, upgrades and evolutions (quest_build_text)
 		"hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed":
 			return quest_build_text(c)
+		# pass 113 (lane TASKS): damage, healing, barrels, Totem gifts, fire and poison (quest_task_text)
+		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total":
+			return quest_task_text(c)
 	return "Complete a challenge."
+
+
+## Pass 113 (lane TASKS): the words of the task quests (QuestDef's header): "Deal 50,000 damage with the Revolver.",
+## "Restore 2,000 HP with Death.", "Restore 500 HP with Hearts.", "Restore 300 HP with Healing Wells.", "Deal 20,000 fire
+## damage.", "Break 40 barrels.", "Take 10 Totem gifts."; "... in one run." with `in_one_run`.
+static func quest_task_text(c: Dictionary) -> String:
+	var n := int(c.get("count", 0))
+	var tail := " in one run." if bool(c.get("in_one_run", false)) else "."
+	match str(c.get("type", "")):
+		"damage_with_weapon":
+			var wid := str(c.get("weapon", ""))
+			return "Deal %s damage with %s%s" % [grouped(n), quest_item_name(wid) if wid != "" else "a weapon", tail]
+		"heal_with_item":
+			var iid := str(c.get("item", ""))
+			return "Restore %s HP with %s%s" % [grouped(n), quest_item_name(iid) if iid != "" else "an item", tail]
+		"heal_with_source":
+			var src := str(c.get("source", ""))
+			var cut := src.find(":")
+			var kind := src.substr(0, cut) if cut > 0 else "pickup"
+			var sid := src.substr(cut + 1) if cut > 0 else ""
+			var what := "power-ups" if kind == "pickup" else "structures"
+			if sid != "":
+				var reg := _registry()
+				var d: ContentDef = (reg.pickup(sid) if kind == "pickup" else reg.structure(sid)) if reg else null
+				what = plural_name(d.display_name if d else sid.capitalize())
+			return "Restore %s HP with %s%s" % [grouped(n), what, tail]
+		"element_damage":
+			var el := str(c.get("element", ""))
+			var word := el if el == "fire" or el == "poison" else "fire or poison"
+			return "Deal %s %s damage%s" % [grouped(n), word, tail]
+		"barrels_total":
+			return ("Break a barrel%s" % tail) if n == 1 else "Break %s barrels%s" % [grouped(n), tail]
+		"totems_total":
+			return ("Take a Totem gift%s" % tail) if n == 1 else "Take %s Totem gifts%s" % [grouped(n), tail]
+	return "Complete a challenge."
+
+
+## "Hearts", "Healing Wells", "Boxes": a name made plural the way creature_count does it.
+static func plural_name(name: String) -> String:
+	return name + ("es" if name.ends_with("s") or name.ends_with("x") else "s")
 
 
 ## Pass 100 (lane QUESTS): the words of the build quests (QuestDef's header): "Reach level 15 with Drifter.", "Get the

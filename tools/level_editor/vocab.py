@@ -108,7 +108,7 @@ SUBBLOCKS = {
     "boss.ring": {"radius": 21.0, "min_radius": 8.0, "shrink": 42.0, "hold": 8.0, "burn": 0.07, "creature_burn": 0.12},
     # pass 112 (lane MONK)
     "squad.hands": {"up": 1.75, "from_up": 1.05, "side": 0.0, "forward": 0.2},
-    "squad.orb": {"speed": 4.0, "range": 17.5, "size": 0.5, "hit_radius": 0.22, "damage_mult": 1.0, "lead": 0.0, "hover": 1.0,
+    "squad.orb": {"aim": "cloud", "speed": 4.0, "range": 17.5, "size": 0.5, "hit_radius": 0.22, "damage_mult": 1.0, "lead": 0.0, "hover": 1.0,
                   "knockback": 0.0, "color": "#2F7BFF", "pulse_hz": 3.0, "pulse": 0.12, "trail": {}},
     "squad.orb.trail": {"every": 0.04, "life": 0.35, "size": 0.6, "alpha": 0.45},
     "squad.glow": {"from": 0.2},
@@ -468,10 +468,66 @@ QUEST_TYPES = {
     "weapon_paths": ["weapon"], "items_maxed": ["kind", "count"],
     # pass 111 (lane SKINS): a stage's boss killed in a run of that stage, with that hero ("" = any hero; stage 1-based)
     "beat_stage": ["map", "stage", "hero"],
+    # pass 113 (lane TASKS): across runs, or in one run with in_one_run (QuestDef's header; TaskTally counts them)
+    "damage_with_weapon": ["weapon", "count", "in_one_run"], "heal_with_item": ["item", "count", "in_one_run"],
+    "heal_with_source": ["source", "count", "in_one_run"], "element_damage": ["element", "count", "in_one_run"],
+    "barrels_total": ["count", "in_one_run"], "totems_total": ["count", "in_one_run"],
 }
 # pass 100 (lane QUESTS): the item kinds and rarity rungs the build quests take
 QUEST_ITEM_KINDS = ["any", "weapon", "card", "passive"]
 QUEST_RUNGS = ["uncommon", "rare", "epic", "legendary", "evolved"]
+# pass 113 (lane TASKS): the task quests' elements ("" = both) and heal source kinds ("pickup:heart", "structure:" any);
+# the types that take in_one_run
+QUEST_ELEMENTS = ["fire", "poison", ""]
+QUEST_SOURCE_KINDS = ["pickup", "structure"]
+QUEST_TASK_TYPES = ["damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total"]
+# PassiveDef.LADDER: a passive item's levels by rarity (common 6 .. legendary 2)
+_LADDER = ["common", "uncommon", "rare", "epic", "legendary"]
+
+
+def item_top_level(d, kind):
+    """The top level an item JSON `d` of `kind` (weapon, evolution, passive) reaches: a weapon's max_level, a card's (or an
+    evolved form's) max_level, a one-shot item's 1, a passive item's rarity ladder (PassiveDef.ladder_top)."""
+    if not isinstance(d, dict):
+        return 0
+    if kind in ("weapon", "evolution"):
+        return max(int(d.get("max_level", 8) or 1), 1)
+    if d.get("line") or d.get("evolves_from"):
+        return max(int(d.get("max_level", 8) or 1), 1)
+    if d.get("single"):
+        return 1
+    r = str(d.get("rarity", "common"))
+    i = _LADDER.index(r) if r in _LADDER else 0
+    return len(_LADDER) - 1 - i + 2
+
+
+def condition_problem(cond, top_of=None):
+    """'' when quest condition `cond` is one the game reads, else why not (pass 113): a known type; the task types' count
+    a whole number of 1 or more, in_one_run true or false, element fire / poison / "" (both), a heal source "pickup:<id>"
+    or "structure:<id>" ("pickup:" any power-up); an item_level that names an item asks for a level inside that item's own
+    levels when `top_of(id)` (its
+    top level, 0 unknown) is given (the Level Editor's Level box allows the same)."""
+    if not isinstance(cond, dict) or str(cond.get("type", "")) not in QUEST_TYPES:
+        return "the condition's type is one of %s" % ", ".join(sorted(QUEST_TYPES))
+    t = str(cond["type"])
+    if t in QUEST_TASK_TYPES:
+        n = cond.get("count")
+        if not (isinstance(n, (int, float)) and not isinstance(n, bool) and float(n).is_integer() and n >= 1):
+            return "%s: count is a whole number of 1 or more" % t
+        if "in_one_run" in cond and not isinstance(cond["in_one_run"], bool):
+            return "%s: in_one_run is true or false" % t
+    if t == "element_damage" and str(cond.get("element", "")) not in QUEST_ELEMENTS:
+        return "element_damage: element is fire, poison or empty (both)"
+    if t == "heal_with_source":
+        kind, _sep, sid = str(cond.get("source", "")).partition(":")
+        if kind not in QUEST_SOURCE_KINDS or not _sep or (sid and not re.match(r"^[a-z0-9_]+$", sid)):
+            return "heal_with_source: source is pickup:<id> or structure:<id> (pickup: or structure: for any)"
+    if t == "item_level" and cond.get("id") and not cond.get("rung") and top_of is not None:
+        top = top_of(str(cond["id"])) or 0
+        lv = cond.get("level")
+        if top > 0 and isinstance(lv, (int, float)) and not isinstance(lv, bool) and not (1 <= lv <= top):
+            return "item_level: %s has levels 1 to %d, not %s" % (cond["id"], top, lv)
+    return ""
 UNLOCK_TYPES = ["character", "weapon", "passive", "map", "talent", "mode", "skin"]   # pass 111: skin {id: "<hero>:<CODE>"}
 QUEST_TEMPLATE_CONDITION = {"type": "kills_total", "count": 400}
 
@@ -565,6 +621,7 @@ def table(content_dir, game_dir=None, combos_seen=()):
         "passive_defaults": PASSIVE_DEFAULTS, "passive_ladder": PASSIVE_LADDER, "mutation_defaults": MUTATION_DEFAULTS, "params_keys": PARAMS_KEYS,
         "quest_types": QUEST_TYPES, "unlock_types": UNLOCK_TYPES, "quest_template_condition": QUEST_TEMPLATE_CONDITION,
         "quest_item_kinds": QUEST_ITEM_KINDS, "quest_rungs": QUEST_RUNGS,
+        "quest_elements": QUEST_ELEMENTS, "quest_source_kinds": QUEST_SOURCE_KINDS,   # pass 113 (lane TASKS)
         "placeholder_shapes": PLACEHOLDER_SHAPES, "placeholder_ears": PLACEHOLDER_EARS, "placeholder_glyphs": PLACEHOLDER_GLYPHS,
         "sounds": sound_ids(content_dir), "elites": folder_ids(content_dir, "elites"), "pickups": folder_ids(content_dir, "pickups"),
         "combos_seen": sorted(combos_seen),

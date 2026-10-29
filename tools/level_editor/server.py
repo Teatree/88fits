@@ -243,6 +243,19 @@ def content_path(kind, cid):
     return None, None
 
 
+def item_top_level(cid):
+    """Pass 113 (lane TASKS): the top level item `cid` reaches (a weapon, an evolution, a card or a passive item: vocab's
+    item_top_level on its JSON), 0 when there is no such item."""
+    for kind in ("weapon", "evolution", "passive"):
+        _t, path = content_path(kind, cid)
+        if path:
+            try:
+                return VOCAB.item_top_level(load_json(path), kind)
+            except (OSError, ValueError):
+                return 0
+    return 0
+
+
 def id_exists_anywhere(cid):
     """The content type folder that already holds a folder named `cid`, or None."""
     for t in ALL_TYPES:
@@ -1439,7 +1452,8 @@ def references_to(kind, cid):
         u = d.get("unlocks") if isinstance(d.get("unlocks"), dict) else {}
         c = d.get("condition") if isinstance(d.get("condition"), dict) else {}
         # pass 100 (lane QUESTS): the build quests name an item (`id`) or a hero (`hero`)
-        if str(u.get("id", "")) == cid or cid in (str(c.get("enemy", "")), str(c.get("weapon", "")), str(c.get("id", "")), str(c.get("hero", ""))):
+        # pass 113 (lane TASKS): a healing item (`item`)
+        if str(u.get("id", "")) == cid or cid in (str(c.get("enemy", "")), str(c.get("weapon", "")), str(c.get("id", "")), str(c.get("hero", "")), str(c.get("item", ""))):
             out["quests"].append(qid)
     for wid, folder, path, d in _load_kind("weapon"):
         if str(d.get("evolves_into", "")) == cid or str(d.get("hero", "")) == cid:
@@ -2033,6 +2047,9 @@ def set_availability(kind, cid, body):
         if "quest" in body and body["quest"] is not None and not (isinstance(body["quest"], dict) and isinstance(body["quest"].get("condition"), dict)
                                                                    and str(body["quest"]["condition"].get("type", "")) in VOCAB.QUEST_TYPES):
             return {"ok": False, "error": "the requirement needs a condition whose type is one of %s" % ", ".join(sorted(VOCAB.QUEST_TYPES)), "status": 400}
+        # pass 113 (lane TASKS): the condition's values (an item_level inside the item's own levels, the task types' keys)
+        if isinstance(body.get("quest"), dict) and VOCAB.condition_problem(body["quest"].get("condition"), item_top_level):
+            return {"ok": False, "error": VOCAB.condition_problem(body["quest"].get("condition"), item_top_level), "status": 400}
         with _write_lock:
             src = cio.read_text(path)
             d = json.loads(src)
@@ -2073,6 +2090,10 @@ def set_availability(kind, cid, body):
                 return {"ok": False, "error": "the weapon cannot turn %s yet: its path is not complete" % avail,
                         "missing": missing, "status": 409}
         qtype = "weapon" if kind in ("weapon", "evolution") else "passive"
+        # pass 113 (lane TASKS): a quest lock's condition is one the game reads (an item_level inside the item's own levels)
+        qc = body.get("quest") if isinstance(body.get("quest"), dict) else {}
+        if avail == "locked" and isinstance(qc.get("condition"), dict) and qc["condition"].get("type") and VOCAB.condition_problem(qc["condition"], item_top_level):
+            return {"ok": False, "error": VOCAB.condition_problem(qc["condition"], item_top_level), "status": 400}
         with _write_lock:
             src = cio.read_text(path)
             d = json.loads(src)

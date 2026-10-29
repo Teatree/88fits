@@ -1,6 +1,6 @@
 {
   "id": "cactus_walker",
-  "name": "Cactus Walker",
+  "name": "Cactus",
   "flavour": "",
   "archetype": "walker",
   "brain": "chase",
@@ -58,7 +58,7 @@
   "back_hint": "Its back is a plain glossy blue dome with the drips, no eyes and no mouth visible.",
   "death": "squash",
   "directions": 2,
-  "doc": "Cactus Walker guy",
+  "doc": "Cactus guy",
   "variant_base": "CW-A",
   "variant": "CW-C",
   "sprite": "cactus_walker_sprite_a.png",

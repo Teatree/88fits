@@ -25,7 +25,8 @@
 ## crowd still nudge it) for `hold` plain seconds (never stretched by the map's pace; High Noon's slow-down still slows it): its hands rise (the attack strip's wind-up frames for
 ## `rise` s, attack_frame), then hold up (its hands-up frames, breathing at `breath_fps`); a blue glow gathers between its
 ## hands from `glow.from` of the sphere's size to all of it; at `release` s every one still in its pose looses one sphere
-## at the hero in the same tick (EnergyOrbs.fire: aimed at where he stands, + `orb.lead` of his run over the flight). A
+## at the hero in the same tick (EnergyOrbs.fire: aimed at where he stands, + `orb.lead` of his run over the flight; pass
+## 113: by default as one cloud, every sphere on the line from the volley's centre to him, `orb.aim`). A
 ## stun, a launch or a flee on hit takes a member out of the volley (it never fires); the rest go on.
 class_name Squads
 extends RefCounted
@@ -503,18 +504,31 @@ func _fire(sq: Dictionary, cfg: Dictionary, ppos: Vector3) -> void:
 	var lead := float(ob.get("lead", 0.0))
 	var u := float(cfg.get("release", 1.0))
 	last_fired = PackedInt32Array()
+	var shooters := PackedInt32Array()
+	var froms := PackedVector3Array()
 	for i: int in (sq["members"] as PackedInt32Array):
 		if not _held(i):
 			continue
-		var from := hands_at(i, cfg, u, ppos)
-		var aim := ppos
-		if lead > 0.0:
-			var fl := Vector2(ppos.x - from.x, ppos.z - from.z).length() / (speed * maxf(em.hostile_clock(), 0.05))
-			aim += hv * fl * lead
-		var d := Vector3(aim.x - from.x, 0.0, aim.z - from.z)
-		if d.length_squared() < 0.0001:
-			d = Vector3.FORWARD
-		o.fire(from, d.normalized(), speed, reach, em.dmg[i] * float(ob.get("damage_mult", 1.0)), ob, em.hit_info(i, "ranged", ["energy sphere"]))
+		shooters.append(i)
+		froms.append(hands_at(i, cfg, u, ppos))
+	if shooters.is_empty():
+		return
+	# pass 113 (Garry: "these projectiles actually move as a cloud ... where the center is aiming, where the hero actually
+	# is"): `aim` "cloud" (the default) flies every sphere along one line, the volley's centre's to the hero, so the volley
+	# keeps the squad's shape and its middle passes over his spot; "each" aims every sphere at him on its own (pass 112)
+	var cloud := str(ob.get("aim", "cloud")) != "each"
+	var cloud_d := Vector3.ZERO
+	if cloud:
+		var c := Vector3.ZERO
+		for f: Vector3 in froms:
+			c += f
+		c /= float(froms.size())
+		cloud_d = _aim_dir(c, ppos, hv, speed, lead)
+	for k in range(shooters.size()):
+		var i: int = shooters[k]
+		var from: Vector3 = froms[k]
+		var d := cloud_d if cloud else _aim_dir(from, ppos, hv, speed, lead)
+		o.fire(from, d, speed, reach, em.dmg[i] * float(ob.get("damage_mult", 1.0)), ob, em.hit_info(i, "ranged", ["energy sphere"]))
 		last_fired.append(i)
 	if last_fired.is_empty():
 		return
@@ -522,6 +536,18 @@ func _fire(sq: Dictionary, cfg: Dictionary, ppos: Vector3) -> void:
 	last_fire_tick = em._tick
 	var def: EnemyDef = em.types[int(sq["t"])]["def"]
 	Audio.play(str(def.sfx.get("shot", "")), sq["anchor"])
+
+
+## The flat unit line from `from` to the hero at `ppos` (+ `lead` of his run `hv` over the flight at `speed`).
+func _aim_dir(from: Vector3, ppos: Vector3, hv: Vector3, speed: float, lead: float) -> Vector3:
+	var aim := ppos
+	if lead > 0.0:
+		var fl := Vector2(ppos.x - from.x, ppos.z - from.z).length() / (speed * maxf(em.hostile_clock(), 0.05))
+		aim += hv * fl * lead
+	var d := Vector3(aim.x - from.x, 0.0, aim.z - from.z)
+	if d.length_squared() < 0.0001:
+		return Vector3.FORWARD
+	return d.normalized()
 
 
 ## The spheres' node, made on first use under the shots (never darkened by a stage filter), or under the manager.

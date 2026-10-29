@@ -302,7 +302,8 @@ func _open_locked(def: ContentDef) -> void:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(v)
 	v.add_child(W.label("Locked · " + _kind_line(def), 22, W.ROCK, 0.15))
-	v.add_child(W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", 32, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 32.0 * 1.3, true))
+	# pass 113 (lane TASKS): the goal's picture beside its words (the posters' still: the weapon, the barrel, the Heart...)
+	v.add_child(WPoster.with_picture(q, W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", 32, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 32.0 * 1.3, true), 40.0))
 	if q:
 		var pr := QuestTracker.progress(q)
 		if pr.y > 0:

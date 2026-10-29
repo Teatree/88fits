@@ -57,6 +57,9 @@
         "enemy": "sand_lizard",
         "count": 12,
         "telegraph": "none"
+      },
+      {
+        "name": "venom_monsoon"
       }
     ],
     "cooldown_between": 2.2

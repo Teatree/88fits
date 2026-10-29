@@ -85,7 +85,9 @@ const Wanted = (() => {
     return M.contextFrom({ tl, map: (typeof App !== 'undefined' && App.S.mapId) || 'red_canyon', stage: k, stages,
       creatures: (typeof App !== 'undefined' && App.S.enemies) || [], weapons: (S.items && S.items.weapons) || [],
       lines: (S.items && S.items.lines) || [], hero, P: S.sim.P, beaten: k < S.sim.P,
-      metAll: S.sim.metAll, seenAll: S.sim.seenAll, unlocksDone: S.sim.unlocks });
+      metAll: S.sim.metAll, seenAll: S.sim.seenAll, unlocksDone: S.sim.unlocks,
+      // pass 113 (lane TASKS): the passive items (item_level, heal_item) and the heal sources (tasks.js loads them)
+      passives: (S.items && S.items.passives) || [], sources: (typeof TaskPics !== 'undefined' && TaskPics.S.sources) || null });
   }
 
   function roll(quiet) {
@@ -314,10 +316,19 @@ const Wanted = (() => {
       const on = (ctx.creatures || []).filter((x) => !x.elite);
       if (on.length) body.appendChild(el('p', { class: 'muted small', text: `On Stage ${ctx.stage + 1}: ` + on.map((x) => `${x.name} ${Math.round(x.seconds)} s`).join(' · ') }));
     }
-    if (type === 'kill_weapon' || type === 'max_weapon' || type === 'evolve_item') {
-      body.appendChild(row('Start weight', type === 'evolve_item' ? 'how likely his own weapon is against one card' : 'how many times likelier his own weapon is than another one', numBox(tc.start_weight, (v) => setTask(type, (t) => { t.start_weight = Math.max(0, v || 0); }), { min: 0, step: 0.5, path: `t.${type}.start_weight` })));
-      if (type !== 'evolve_item') body.appendChild(row('Other bonus', 'difficulty added when the weapon is not his own (he has to find it first)', numBox(tc.other_bonus, (v) => setTask(type, (t) => { t.other_bonus = Math.max(0, v || 0); }), { min: 0, step: 0.5, path: `t.${type}.other_bonus` })));
+    if (type === 'kill_weapon' || type === 'max_weapon' || type === 'evolve_item' || type === 'damage_weapon' || type === 'item_level') {
+      body.appendChild(row('Start weight', type === 'evolve_item' ? 'how likely his own weapon is against one card' : (type === 'item_level' ? 'how many times likelier his own weapon is than another item' : 'how many times likelier his own weapon is than another one'), numBox(tc.start_weight, (v) => setTask(type, (t) => { t.start_weight = Math.max(0, v || 0); }), { min: 0, step: 0.5, path: `t.${type}.start_weight` })));
+      if (type !== 'evolve_item' && type !== 'item_level') body.appendChild(row('Other bonus', 'difficulty added when the weapon is not his own (he has to find it first)', numBox(tc.other_bonus, (v) => setTask(type, (t) => { t.other_bonus = Math.max(0, v || 0); }), { min: 0, step: 0.5, path: `t.${type}.other_bonus` })));
     }
+    // pass 113 (lane TASKS): the new types' own settings
+    if (type === 'item_level') {
+      body.appendChild(row('Min level', 'the lowest level a poster asks for (2: "get it to level 2"); the highest is each item\'s own top level', numBox(tc.min_level, (v) => setTask(type, (t) => { t.min_level = Math.max(1, Math.round(v || 2)); }), { min: 1, step: 1, path: `t.${type}.min_level` })));
+      const items = M.targetsOf(cfg(), type, ctx);
+      if (items.length) body.appendChild(el('p', { class: 'muted small', text: `Stage ${ctx.stage + 1}: ` + items.map((x) => `${x.name} 2–${x.max_level}`).join(' · ') }));
+    }
+    if (type === 'barrels') body.appendChild(row('Max', 'never more barrels than this (35 stand at the start, broken ones come back now and then)', numBox(tc.max, (v) => setTask(type, (t) => { if (v == null) delete t.max; else t.max = Math.max(1, Math.round(v)); }), { min: 1, step: 1, path: `t.${type}.max` })));
+    if (type === 'totems') body.appendChild(el('p', { class: 'muted small', text: `This map stands ${ctx.totem_poles || 0} Totem Poles at the least: never more gifts are asked.${(typeof TaskPics !== 'undefined' && TaskPics.S.sources) ? '' : ' (the structures are not read yet: restart the editor if this stays 0)'}` }));
+    if (M.TARGET_FIRST.includes(type)) body.appendChild(targetMults(type, tc, ctx));
     if (type === 'kill_elites') body.appendChild(el('p', { class: 'muted small', text: `Stage ${ctx.stage + 1} brings about ${ctx.elite_estimate} Elite${ctx.elite_estimate === 1 ? '' : 's'} (its Elite events and Elite rows): never more are asked.` }));
     const txt = (key, label, help) => {
       const inp = el('input', { type: 'text', class: 'txt wide', value: tc[key] || '', 'data-path': `t.${type}.${key}` });
@@ -327,6 +338,25 @@ const Wanted = (() => {
     body.appendChild(txt('name', 'Name', 'the big name on the poster: {target} {hero} {stage} {boss}'));
     body.appendChild(txt('text', 'Task line', 'what to do: {n} {target} {hero} {stage} {boss} {time}'));
     return body;
+  }
+
+  /** Pass 113 (lane TASKS): a factor per target on the type's range (`target_mult`): every target this stage can name,
+   *  with its range at the factor; empty = 1. */
+  function targetMults(type, tc, ctx) {
+    const tm = (tc.target_mult && typeof tc.target_mult === 'object') ? tc.target_mult : {};
+    const cands = M.targetsOf(Object.assign({}, cfg(), { items_seen_only: false, creatures_met_only: false }), type, ctx);
+    const box = el('div', { class: 'wtd-ranges' });
+    box.appendChild(el('span', { class: 'muted small', text: 'own factor (× the range; empty = 1)' }));
+    const ids = cands.map((x) => String(x.id)).concat(Object.keys(tm).filter((id) => !cands.some((x) => String(x.id) === id)));
+    if (!ids.length) box.appendChild(el('span', { class: 'muted small', text: 'nothing this stage can name' }));
+    for (const id of ids) {
+      const x = cands.find((c) => String(c.id) === id) || { id, name: id };
+      const r = M.targetRange(tc, M.scaledRange(cfg(), type, tc, ctx.stage, S.sim.P), id);
+      box.appendChild(el('span', { class: 'wtd-range' }, el('small', { text: x.name || id }),
+        numBox(tm[id], (v) => setTask(type, (t) => { const m = Object.assign({}, t.target_mult || {}); if (v == null) delete m[id]; else m[id] = Math.max(0, v); if (Object.keys(m).length) t.target_mult = m; else delete t.target_mult; }), { min: 0, step: 0.05, path: `t.${type}.target_mult.${id}`, cls: 'tiny', title: `${id}: 1 when empty` }),
+        el('small', { class: 'muted', text: `→ ${Math.round(r[0]).toLocaleString('en-US')}–${Math.round(r[1]).toLocaleString('en-US')}` })));
+    }
+    return box;
   }
 
   // ------------------------------------------------------------------ "Try the board"
@@ -410,6 +440,11 @@ const Wanted = (() => {
     } else if (s.kind === 'stage') {
       box.classList.add('cover');
       box.style.backgroundImage = `url("${ART}stages/${s.id}_s${Number(s.stage || 0) + 1}.jpg")`;
+    } else if (s.kind === 'passive' || s.kind === 'pickup' || s.kind === 'structure' || (s.kind === 'art' && s.id !== 'chest' && s.id !== 'coin')) {
+      // pass 113 (lane TASKS): a passive item's icon, the Heart's, a structure's (the Totem Pole, the Healing Well), the
+      // barrel, the fire, the poison flask (tasks.js knows their addresses)
+      const url = typeof TaskPics !== 'undefined' ? TaskPics.urlOf(s) : '';
+      if (url) box.style.backgroundImage = `url("${url}")`;
     } else if (s.kind === 'art') {
       box.style.backgroundImage = `url("${ART}wanted/${s.id === 'chest' ? 'chest_closed' : 'coin'}.png")`;
     } else if (s.kind === 'badge') {

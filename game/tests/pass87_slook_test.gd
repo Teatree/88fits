@@ -126,12 +126,12 @@ func test_draw_order() -> void:
 	gust.queue_free()
 	var dd := DustDevil.new()
 	add_child(dd)
-	var found := false
-	for c in dd.get_children():
-		if c is MeshInstance3D:
-			assert_int((c as MeshInstance3D).material_override.render_priority).is_less(LOOK.PRIORITY)
-			found = true
-	assert_bool(found).is_true()
+	# pass 113 (lane TWISTER): its look is a TornadoFx (funnel, wisps, skirt, debris) and a ring on the ground, all of it
+	var found := 0
+	for c in dd.find_children("*", "GeometryInstance3D", true, false):
+		assert_int((c as GeometryInstance3D).material_override.render_priority).is_less(LOOK.PRIORITY)
+		found += 1
+	assert_int(found).is_greater_equal(5)
 	dd.queue_free()
 
 

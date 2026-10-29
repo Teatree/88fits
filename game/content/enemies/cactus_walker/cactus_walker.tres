@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("2_t2tb5")
-doc = "Cactus Walker guy"
+doc = "Cactus guy"
 hp = 26.0
 speed = 1.7
 damage = 7.0
@@ -143,7 +143,7 @@ variance = {
 "tints": ["#FFFFFF", "#D8F0FF", "#C0FFF4", "#E0D8FF"]
 }
 id = "cactus_walker"
-display_name = "Cactus Walker"
+display_name = "Cactus"
 icon = ExtResource("9_ffn43")
 icon_file = "cactus_walker_icon_a.png"
 placeholder = {

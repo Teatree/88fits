@@ -10,6 +10,103 @@ extends Node3D
 var _pools: Dictionary = {}
 var drawn := 0   # instances drawn by the last finish() (tests)
 
+## Pass 113 (lane BOSS): the bullet-heaven looks are paintings drawn in code (core/shaders/boss_bullet.gdshader: a thick
+## ink outline, the trail behind along the flight, stencil 3 so no stage filter dims them), one MultiMesh an attack whose
+## buffer the pattern runner fills in one go (bb_draw: 16 floats a bullet, the transform then INSTANCE_CUSTOM). The body's
+## radius in metres at size 1 by look; the shader's look number.
+const BILLBOARD_LOOKS := ["burning_tumbleweed", "venom_blob", "brand_fireball"]
+const BB_RADIUS := {"burning_tumbleweed": 0.34, "venom_blob": 0.5, "brand_fireball": 0.4}
+const BB_SHADER := preload("res://core/shaders/boss_bullet.gdshader")
+## floats a bullet in the buffer: the 3 x 4 transform, then the custom data (no colour)
+const BB_STRIDE := 16
+## key -> {"mm": MultiMesh, "mmi": MultiMeshInstance3D, "mat": ShaderMaterial}
+var _bb: Dictionary = {}
+## bullets drawn by the last bb_draw of each key (tests)
+var bb_drawn: Dictionary = {}
+## the map's height grid for the bullets' shader (set_ground; Telegraphs' texture when the game has one)
+var _ground: Dictionary = {}
+
+
+static func is_billboard(look: String) -> bool:
+	return BILLBOARD_LOOKS.has(look)
+
+
+## A billboard look's body radius at size 1 (m).
+static func bb_radius(look: String) -> float:
+	return float(BB_RADIUS.get(look, 0.4))
+
+
+## The map's height grid for the bullets (Telegraphs' texture and numbers); without it a bullet's origin y is its height.
+func set_ground(tex: Texture2D, grid_n: int, half_size: float, resolution: float) -> void:
+	_ground = {"tex": tex, "grid_n": grid_n, "half": half_size, "res": resolution}
+	for key in _bb:
+		_ground_to((_bb[key] as Dictionary)["mat"])
+
+
+func has_ground() -> bool:
+	return not _ground.is_empty() and int(_ground.get("grid_n", 0)) >= 2 and _ground.get("tex") != null
+
+
+func _ground_to(mat: ShaderMaterial) -> void:
+	if not has_ground():
+		mat.set_shader_parameter("grid_n", 0)
+		return
+	mat.set_shader_parameter("heights", _ground["tex"])
+	mat.set_shader_parameter("grid_n", int(_ground["grid_n"]))
+	mat.set_shader_parameter("half_size", float(_ground["half"]))
+	mat.set_shader_parameter("resolution", float(_ground["res"]))
+
+
+## The bullets of one attack this tick: `buf` holds BB_STRIDE floats a bullet (its size / BB_STRIDE is the pool's
+## capacity: the runner grows it), the first `n` drawn. `key` names the attack's pool (its look, colour and glow).
+func bb_draw(key: String, look: String, tint: Color, glow: float, wobble: float, trail: bool, buf: PackedFloat32Array, n: int) -> void:
+	var p: Dictionary = _bb.get(key, {})
+	if p.is_empty():
+		p = _make_bb(look, tint, glow, wobble, trail)
+		_bb[key] = p
+	var mm: MultiMesh = p["mm"]
+	var cap := int(float(buf.size()) / float(BB_STRIDE))
+	if mm.instance_count != cap:
+		mm.instance_count = cap
+	if cap > 0:
+		mm.buffer = buf
+	mm.visible_instance_count = clampi(n, 0, cap)
+	bb_drawn[key] = clampi(n, 0, cap)
+
+
+## Nothing more of that attack's bullets drawn.
+func bb_clear(key: String) -> void:
+	var p: Dictionary = _bb.get(key, {})
+	if not p.is_empty():
+		(p["mm"] as MultiMesh).visible_instance_count = 0
+	bb_drawn[key] = 0
+
+
+func _make_bb(look: String, tint: Color, glow: float, wobble: float, trail: bool) -> Dictionary:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	var q := QuadMesh.new()
+	q.size = Vector2(2.0, 2.0)
+	mm.mesh = q
+	mm.instance_count = 0
+	var mat := ShaderMaterial.new()
+	mat.shader = BB_SHADER
+	mat.set_shader_parameter("look", maxi(BILLBOARD_LOOKS.find(look), 0))
+	mat.set_shader_parameter("tint", tint)
+	mat.set_shader_parameter("glow", glow)
+	mat.set_shader_parameter("wobble", wobble)
+	mat.set_shader_parameter("trail", 1.0 if trail else 0.0)
+	_ground_to(mat)
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Bullets_" + look
+	mmi.multimesh = mm
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -50, -200), Vector3(400, 150, 400))
+	add_child(mmi)
+	return {"mm": mm, "mmi": mmi, "mat": mat}
+
 
 func begin() -> void:
 	for key in _pools:

@@ -1502,12 +1502,37 @@ func _world_tab() -> void:
 	_note("Both stand apart from the field. Patrol walks left and right; Melee chases you within %d m of its spot and bites (the Elite for %d, the Boss for %d); Ranged spits like the Spit Cactus (for %d and %d). Both stand up again 5 s after they fall and pay nothing." % [
 		int(EnemyManager.DUMMY_CHASE), _dummy_hit("training_dummy_elite", false), _dummy_hit("training_dummy_boss", false),
 		_dummy_hit("training_dummy_elite", true), _dummy_hit("training_dummy_boss", true)])
+	# pass 113 (lane TWISTER): a dust devil on call (a run's own come on the map's clock, DustDevils)
+	_section("Dust devil")
+	_buttons([["CALL A DUST DEVIL", func(): call_dust_devil(); close()], ["SEND IT AWAY", send_dust_devils]], 72, 22).name = "DustDevilButtons"
+	_note("CALL A DUST DEVIL forms one on the screen near you with the map's numbers (Level Editor, Settings: Dust devils): it rises out of its dust over a couple of seconds, crosses the view, throws you if you step into its ring and lifts the creatures it passes. SEND IT AWAY makes every one standing fade out now. In a run they come on their own, rarely.")
 	_section("The field")
 	_buttons([["Kill all (with drops)", func(): game.enemies.kill_all(true); close()], ["Remove all", func(): _clear_field(); close()],
 		["Clear shots", func(): game.projectiles.clear_all()]])
 	_section("Leave")
 	_note("Back to the title. Nothing done in the arena is kept.")
 	_buttons([["Leave the arena", _ask_leave]], 90, 28)
+
+
+## The map's dust devils' clock (pass 113: RedCanyon's DustDevils node), or null on a map without one.
+func dust_devils() -> DustDevils:
+	var m = game.get("map") if game else null
+	var n = m.get_node_or_null("DustDevils") if m else null
+	return n as DustDevils
+
+
+## The WORLD tab's CALL A DUST DEVIL (pass 113): one on the screen near the hero now (DustDevils.call_one). Null when the
+## map has none or no spot was found.
+func call_dust_devil() -> DustDevil:
+	var dds := dust_devils()
+	return dds.call_one() if dds else null
+
+
+## SEND IT AWAY: every dust devil standing fades out now.
+func send_dust_devils() -> void:
+	var dds := dust_devils()
+	if dds:
+		dds.send_away()
 
 
 ## The WORLD tab's Stage look row (pass 87): every stage of the map's stage list as [index, its name].

@@ -266,6 +266,8 @@ const Skins = (() => {
       }
       box.appendChild(rowEl);
     }
+    // pass 113 (lane TASKS): the picture the game draws for the goal (tasks.js)
+    if (typeof TaskPics !== 'undefined') box.appendChild(TaskPics.row(draft));
     box.appendChild(el('div', { class: 'alt-actions' },
       el('button', { class: 'btn small ghost', type: 'button', text: q ? 'Cancel the goal edit' : 'Drop the new goal', onclick: () => { d.goal = null; redrawRow(doc, look.code); } }),
       el('span', { class: 'muted small', text: 'Save (below) writes the goal with the rest of the row.' })));

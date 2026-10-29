@@ -231,6 +231,8 @@ const TypedForms = (() => {
         else rowEl = Forms.fieldRow(def2, draft, { apply: (fn) => localApply(fn), pathPrefix: 'req' });
         box.appendChild(rowEl);
       }
+      // pass 113 (lane TASKS): the picture the game draws for the goal (tasks.js)
+      if (typeof TaskPics !== 'undefined') box.appendChild(TaskPics.row(draft));
       box.appendChild(el('div', { class: 'alt-actions' },
         el('button', { class: 'btn small primary', type: 'button', text: q ? 'Save requirement' : 'Create requirement', title: 'writes content/quests/unlock_' + doc.id + ' at once and imports it (the hero JSON is not touched)', onclick: async () => { const ok = await Assets.availabilityOp(doc, { availability: savedAvail, quest: { condition: draft.condition, quest_text: draft.quest_text || '', name: draft.name || '' } }); if (ok) doc.ui.reqDraft = null; } }),
         el('button', { class: 'btn small ghost', type: 'button', text: 'Cancel', onclick: () => { doc.ui.reqDraft = null; Assets.redraw(doc, 'editor'); } })));

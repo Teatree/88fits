@@ -1,7 +1,7 @@
 {
   "id": "spit_cactus",
-  "name": "Spit Cactus",
-  "flavour": "The only cactus that walks. Sadly.",
+  "name": "Bomb Guy",
+  "flavour": "He's a guy. With a bomb",
   "archetype": "spitter",
   "brain": "kite",
   "hp": 18,

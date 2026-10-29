@@ -1,0 +1,69 @@
+{
+  "id": "venom_monsoon",
+  "name": "Venom Monsoon",
+  "doc": "The Gila Grande's bullet heaven. VENOM MONSOON across the screen, the sand darkens round her, she rears up and her throat swells and glows purple; then for 7 s she sprays big, slow, wobbling venom blobs in a fan that sweeps left and right like a garden sprinkler, its middle always swinging across wherever you stand, and every second sweep adds a second, offset fan. The blobs leave little purple puddles where they fade (only a look). Her scales glow like armour: 80% less damage until it ends, then she collapses panting for 2.5 s taking 50% more. Not before 15 s into the fight; the first when she falls under 60% HP (or 45 s in at the latest); then 45 s after the last one.",
+  "kind": "pattern",
+  "projectile": {
+    "look": "venom_blob",
+    "tint": "#A93BEA",
+    "size": 1.0,
+    "glow": 1.2,
+    "range": 22.0,
+    "hit_radius": 0.42,
+    "trail": true,
+    "wobble": 0.6
+  },
+  "emitters": [
+    {"shape": "sweep", "count": 5, "spread_deg": 56.0, "speed": 2.8, "rate": 2.8, "sweep_deg": 150.0, "sweep_hz": 0.25, "aim": "track"},
+    {"shape": "sweep", "count": 4, "spread_deg": 40.0, "speed": 2.4, "rate": 2.4, "sweep_deg": 150.0, "sweep_hz": 0.25, "offset_deg": 50.0, "aim": "track", "pulse_every": 4.0, "pulse_on": 2.0, "pulse_at": 2.0}
+  ],
+  "hit": {
+    "hit_frac": 0.12
+  },
+  "damage": 0.0,
+  "knockback": 0.0,
+  "lift": 0.0,
+  "timing": {
+    "duration": 7.0,
+    "clear": 0.6,
+    "cooldown": 0.0
+  },
+  "trigger": {
+    "first_after": 15.0,
+    "first_at_hp": 0.6,
+    "first_by": 45.0,
+    "cooldown": 45.0
+  },
+  "guard": {
+    "share": 0.8,
+    "color": "#B9C3CE"
+  },
+  "spent": {
+    "seconds": 2.5,
+    "damage_taken": 1.5,
+    "still": true
+  },
+  "tell": {
+    "seconds": 2.0,
+    "banner": "VENOM MONSOON",
+    "banner_color": "#A93BEA",
+    "ring_radius": 9.5,
+    "ring_color": "#140A16",
+    "ring_alpha": 0.6,
+    "duck_db": -14.0,
+    "look": "rear"
+  },
+  "shell": {
+    "look": "scales",
+    "color": "#C77DFF",
+    "height": 6.0,
+    "radius": 3.0,
+    "sigil_radius": 0.0,
+    "sigil_color": "#FF6A1A"
+  },
+  "sounds": {
+    "windup": "en_boss_pattern_warn",
+    "fire": "en_cactus_spit",
+    "land": ""
+  }
+}

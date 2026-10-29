@@ -356,6 +356,8 @@ func _physics_process(delta: float) -> void:
 func _break(i: int) -> void:
 	alive[i] = 0
 	broken += 1
+	# pass 113 (lane TASKS): one barrel broken by the hero (brown and black alike), for the barrel tasks
+	Run.barrels_broken += 1
 	var at := pos[i]
 	var gone := Transform3D(Basis().scaled(Vector3.ZERO), at)
 	if light[i] == 0:

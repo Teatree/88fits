@@ -1,0 +1,70 @@
+{
+  "id": "royal_dust_devil",
+  "name": "Royal Dust Devil",
+  "doc": "The Tumbleweed King's bullet heaven. ROYAL DUST DEVIL across the screen, the sand darkens round him and he spins up into a sand tornado; then for 8 s three spiral arms of small burning tumbleweeds turn slowly outwards (the arms turn back the other way halfway, so the safe lanes change) while a ring with an opening in a new place rolls out every 1.7 s. He takes 80% less damage until it ends, then lies dizzy for 2.5 s taking 50% more. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one.",
+  "kind": "pattern",
+  "projectile": {
+    "look": "burning_tumbleweed",
+    "tint": "#FF8A1F",
+    "size": 1.0,
+    "glow": 1.2,
+    "range": 24.0,
+    "hit_radius": 0.3,
+    "trail": true,
+    "wobble": 0.0
+  },
+  "emitters": [
+    {"shape": "spiral", "arms": 3, "count": 2, "spread_deg": 8.0, "speed": 3.2, "rate": 4.5, "spin": 50.0, "reverse_at": 0.5, "aim": "hero", "offset_deg": 60.0},
+    {"shape": "ring", "count": 20, "speed": 2.4, "rate": 0.6, "gap": 80.0, "aim": "random", "start": 0.15, "stop": 0.9}
+  ],
+  "hit": {
+    "hit_frac": 0.12
+  },
+  "damage": 0.0,
+  "knockback": 0.0,
+  "lift": 0.0,
+  "timing": {
+    "duration": 8.0,
+    "clear": 0.6,
+    "cooldown": 0.0
+  },
+  "trigger": {
+    "first_after": 15.0,
+    "first_at_hp": 0.6,
+    "first_by": 45.0,
+    "cooldown": 45.0
+  },
+  "guard": {
+    "share": 0.8,
+    "color": "#B9C3CE"
+  },
+  "spent": {
+    "seconds": 2.5,
+    "damage_taken": 1.5,
+    "still": true
+  },
+  "tell": {
+    "seconds": 2.0,
+    "banner": "ROYAL DUST DEVIL",
+    "banner_color": "#E8502A",
+    "ring_radius": 9.0,
+    "ring_color": "#140A06",
+    "ring_alpha": 0.6,
+    "duck_db": -14.0,
+    "look": "spin"
+  },
+  "shell": {
+    "look": "tornado",
+    "color": "#C9A46A",
+    "height": 7.5,
+    "radius": 3.0,
+    "opacity": 0.62,
+    "sigil_radius": 0.0,
+    "sigil_color": "#FF6A1A"
+  },
+  "sounds": {
+    "windup": "en_boss_pattern_warn",
+    "fire": "en_boss_attack",
+    "land": ""
+  }
+}

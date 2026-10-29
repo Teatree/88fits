@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_icon.png" id="1_8fp6o"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_g4hdi"]
+
+[resource]
+script = ExtResource("2_g4hdi")
+condition = {
+"count": 55.0,
+"type": "runs_total"
+}
+unlocks = {
+"id": "solenne:SOL-A",
+"type": "skin"
+}
+quest_text = "somehting"
+id = "skin_solenne_sol_a"
+display_name = "Solenne · Canyon Red"
+icon = ExtResource("1_8fp6o")
+icon_file = "res://content/characters/solenne/solenne_icon.png"

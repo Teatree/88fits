@@ -1241,3 +1241,69 @@ nuke 2), throw [5, 7]; gems and coins as before (8; 10 + 4 and 1-5 coins).
 - The Level Editor's side: docs/level_editor.md "Pass 112". Tests: game/tests/pass112_barrel_test.gd,
   tools/level_editor/selftest_BARREL112.py. Capture: game/tools/_p112_BARREL_shots.gd; probe (a real run, the hero
   smashing a barrel every few seconds): game/tools/_p112_BARREL_probe.gd.
+
+## Pass 113: dust devils come now and then, and look like tornadoes (lane TWISTER)
+
+Garry (2026-10-28): "Tornadoes still don't look like tornadoes and are quite confusing. Make them rarer too." Before
+pass 113 one dust devil circled the flats for the whole run as a pale see-through cone; now one comes now and then,
+forms where the player can see it, crosses the view and goes again, and it is drawn as a tornado (TornadoFx).
+
+#### timeline_data.dust_devils (Object, optional; no block = the defaults below)
+| key | type [default] | meaning |
+|---|---|---|
+| `enabled` | bool [true] | false = none on this map |
+| `first` | seconds [90] | of the stage's own clock before the first may come |
+| `every` | seconds or [min, max] [[120, 180]] | from one forming to the next forming, rolled each time; under 10 counts as 10; one due while `max_alive` stand comes as soon as one has gone |
+| `life` | seconds or [min, max] [[20, 30]] | how long each one is there, its forming and fading included (at least form + fade + 1) |
+| `max_alive` | int [1] | the most at once |
+| `radius` | metres [2.4] | it lifts creatures within this; the hero is thrown within radius + 0.5 (the ring drawn on the sand) |
+| `speed` | m/s [1.4] | how fast it moves |
+| `wander` | "cross" / "drift" / "loop" ["cross"] | across the view on a line passing `miss` m to one side of where the hero stood when it formed (swaying ±0.35 rad, 0.11 Hz); a slow random wander; pass 44's loop round the flats (18 x 10 m round flats_center + (6, 0, 4)). Every kind but the loop turns back inside 0.85 of the arena's radius |
+| `miss` | metres [3] | (cross) how far to one side of the hero its line passes |
+| `form_dist` | metres [min, max] [[7, 11]] | how far from the hero it forms |
+| `form_seconds` | seconds [2.5] | forming: the skirt of dust first, then the funnel rising out of it; no grab meanwhile |
+| `fade_seconds` | seconds [2] | going: no grab, the funnel thins away, the dust puffs out |
+| `toss` | {up, out, cooldown} [{8, 3.6, 1.2}] | the hero's throw (pass 44's: 8 m/s up, 3.6 m/s away from its middle, once in 1.2 s); up 0 = never |
+| `lift` | seconds [1.7] | a creature's ride (EnemyManager.lift_radius: spun round it, flung out, 8% of its health on landing); 0 = none |
+| `warn` | bool [true] | the first one of a run toasts "DUST DEVIL: keep out of its ring" (never again that run) |
+| `in_boss`, `in_portal`, `in_endless` | bool [false, false, false] | whether the clock runs (and they come) in the boss fight, the portal's countdown, Endless; one standing when its phase ends fades away |
+
+Red Canyon writes the defaults out (enabled, first 90, every [120, 180], life [20, 30], max_alive 1, radius 2.4, speed
+1.4, cross, form 2.5, fade 2, toss {8, 3.6, 1.2}, lift 1.7): about 3 in Sundown, 4 in Nightfall, 5 in Blood Moon.
+
+#### The rules (game/core/systems/DustDevils.gd, game/world/features/DustDevil.gd)
+- The clock (`DustDevils.clock`) counts the seconds of the phases it runs in, from the stage's start (each stage is its
+  own run), only while the director runs and the game is not paused, never in the debug arena (its WORLD tab's CALL A
+  DUST DEVIL / SEND IT AWAY). Due (`next_at`): with `max_alive` standing it waits; else a spot is searched (40 tries) and
+  one forms; no spot: tried again 3 s later. The next is due `every` after this one formed.
+- A spot: `form_dist` m from the hero, inside the camera's frustum with its whole ring (radius + 0.5 m inside every
+  plane), inside 0.85 of the arena's radius, out of the water, half its ring clear of every rock.
+- Its life: forming (`form_seconds`; TornadoFx strength rising 0 to 1, the ring on the sand at half strength), standing
+  (it moves, grabs, the ring full), fading (the last `fade_seconds`, or from the moment it is sent away or its phase
+  ends; the puff at 55% of the fade), gone.
+- It grabs only while standing: the hero within radius + 0.5 m is thrown (`Player.launch`, `toss`); every grounded
+  creature within `radius` is lifted (`EnemyManager.lift_radius(pos, radius, lift)`) and the ones in the air swirl round
+  it (`swirl`, also through its fade).
+- Its sound `wd_dust_devil` loops while one stands: the row's volume, less 1.1 dB a metre past 6 m from the hero (the
+  nearest one), scaled by its strength; stopped when the game pauses or none stands; silent in the sim's fast mode.
+
+#### The look (game/core/systems/TornadoFx.gd: reusable, the King's Royal Dust Devil wears one too)
+- API: `height`, `radius_bottom`, `radius_top`, `color`, `spin` (turns a second), set any time; `set_strength(f)` 0..1
+  (0 draws nothing; rising: the skirt over 0..0.35, the funnel growing up over 0.2..1; falling: the funnel stays risen
+  and thins over 0.85..0, the skirt last); `burst()` (the collapse's puff, 1 s, drawn even at strength 0); optional
+  `opacity` (0.5..1, 0.94), `skirt_radius`, `lean`, `snake`, `debris`, `debris_size`; `parts()`, `clock()`, `drawing()`.
+  A new one starts at strength 1.
+- Four draw calls, nothing rebuilt per frame: the funnel and the wisps (one tube mesh, core/shaders/tornado_funnel.gdshader
+  layers 0 and 1), the skirt (tornado_skirt.gdshader), the debris (one MultiMesh, tornado_debris.gdshader, solid clods,
+  twigs, chips, a tumbleweed in eight). A dust devil adds its ring (core/shaders/dust_devil_ring.gdshader, draped on the
+  map's height grid like Telegraphs' marks).
+- Every material at render priority StageLook.PRIORITY - 1 (the ring - 2): before the stage's filter, so an evening or a
+  blood moon tints it like the sand. Only the dense dust writes depth, so the ground marks, shadows, gems and effects
+  drawn after the filter do not show through it.
+- The funnel writes stencil 4 (the scenery's): the filter tints it like the sand, and a creature behind it draws its
+  outline through it (enemy_silhouette). The skirt and the ring write none (a gem in front of them is never cut).
+- The map dust devil's size: height 7 m, foot 0.6 m, top 2.1 m, skirt 0.92 x radius, colour (0.70, 0.52, 0.34), 0.9
+  turns a second, 28 bits of debris. Script cost while one stands: about 0.12 ms a frame (Perf "dustdevil" 0.11,
+  "tornado" 0.01, on the PC); draw calls +6 (the tornado's 4, the ring, the creature outlines through it).
+- Tests: game/tests/pass113_TWISTER_test.gd, game/tests/pass87_slook_test.gd (test_draw_order),
+  tools/level_editor/selftest_TWISTER113.py. Captures: game/tools/_p113_TWISTER_shots.gd.

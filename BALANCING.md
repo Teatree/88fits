@@ -7654,3 +7654,265 @@ break 13 to 18 ms before, 2.8 to 3.7 ms after; a quiet frame is 1.5 ms. A phone 
 the hitch it removes there is larger.
 
 Tests: game/tests/pass112_enemy_test.gd (12).
+
+## 56. Pass 113: new task types, the bosses' bullet heaven, rare dust devils that look like tornadoes, the Monk's cloud, locked looks as silhouettes
+
+### 56.TWISTER Dust devils come now and then, form where you can see them, and look like tornadoes
+
+Garry (2026-10-28): "Tornadoes still don't look like tornadoes and are quite confusing. Make them rarer too."
+
+What changed, in plain words:
+- **Rarer.** The one dust devil that circled the middle of the map for the whole run is gone. Now one comes now and then:
+  the first 1:30 into a stage, then one every 2 to 3 minutes (rolled each time), each staying 20 to 30 seconds, never
+  more than one at a time. That is about 3 in Sundown, 4 in Nightfall and 5 in Blood Moon. They come only in a stage's own
+  time: none in the boss fight, the portal countdown or Endless, and one still standing when the boss arrives fades away.
+- **You see it coming.** It always forms on the screen, 7 to 11 m from the hero: a bank of dust churns up on the sand
+  first, then the funnel rises out of it over 2.5 seconds. While it forms it grabs nothing. Its reach is drawn on the
+  sand as a ring of swirling dust (2.9 m round its middle: faint while it forms, full while it can throw you, gone when
+  it leaves). The first one of a run says "DUST DEVIL: keep out of its ring" at the top of the screen, never again that
+  run. You hear it too (its wind loop, louder the nearer it is).
+- **It crosses the screen and leaves.** It moves at 1.4 m/s (you walk about 3.6) on a line across the view that passes
+  3 m to one side of where you stood when it formed, swaying a little; it turns back before the canyon wall. At the end
+  of its life it stops grabbing, its ring goes, the funnel thins away over 2 seconds and its dust puffs out.
+- **What it does is unchanged** (Garry did not ask): it throws the hero 8 m/s up and 3.6 m/s away from its middle when
+  he is inside its ring, at most once every 1.2 s; it lifts every creature within 2.4 m, spins it round, flings it out
+  and it lands hurt (8% of its health), as before.
+- **The look** (TornadoFx, also worn by the Tumbleweed King's Royal Dust Devil): a funnel narrow at the ground (0.6 m)
+  and wide at the top (2.1 m), 7 m tall (about four heroes), leaning and snaking a little, with dark bands and pale
+  streaks spiralling up it (four bands up its height, turning 0.9 times a second), a ragged top breaking up into the air,
+  a looser shell of pale wisps turning faster, a churning bank of dust round its foot as wide as its grab radius, and 28
+  bits of debris (clods, twigs, bark chips and, one in eight, a little tumbleweed) riding round and up it. It takes a
+  stage's evening or blood-moon tint like the sand it stands on, and a creature it spins shows its outline through the
+  dust (as one behind a cactus does).
+
+Every number is the map's (`timeline_data.dust_devils`; the Level Editor's Settings tab, card "Dust devils", next to
+Barrels, the game's numbers in grey; docs/waves_schema.md "Pass 113"): enabled, first, every, life, max_alive, radius,
+speed, wander (across the view / drifts about / the old loop round the flats), miss, form_dist, form_seconds,
+fade_seconds, toss {up, out, cooldown}, lift, warn, in_boss, in_portal, in_endless. The debug arena's WORLD tab has CALL
+A DUST DEVIL and SEND IT AWAY.
+
+New rules (none of these existed before pass 113):
+- 56.TWISTER.1 A dust devil forms only inside the camera's view with its whole ring, 7 to 11 m from the hero, on open
+  sand (inside 0.85 of the arena, out of the water, half its ring clear of every rock); a due one that finds no such spot
+  tries again 3 s later.
+- 56.TWISTER.2 It grabs (throws the hero, lifts creatures) only between the end of its forming and the start of its
+  fading; creatures already in the air keep swirling round it while it fades.
+- 56.TWISTER.3 The next one is due `every` seconds after the last one formed (start to start); one due while
+  `max_alive` stand comes as soon as one has gone.
+- 56.TWISTER.4 The clock runs only in the phases the block allows (by default the stage's own time); leaving them, every
+  one standing fades away at once.
+- 56.TWISTER.5 The first one of a run toasts once (`warn`).
+- 56.TWISTER.6 Its wind sound plays while one stands, quieter 1.1 dB a metre past 6 m and with its strength; it stops
+  while the game is paused.
+
+Tests: game/tests/pass113_TWISTER_test.gd; game/tests/pass87_slook_test.gd test_draw_order (every part before the
+filter); tools/level_editor/selftest_TWISTER113.py.
+
+### 56.TASKS Seven new task types, for unlocks, skins and the Wanted posters
+
+Garry: "Add the following task types everywhere in the game where we have tasks: Deal N Damage with Weapon (weapon
+picture); Restore N HP with Item (Life steal, Regen, Stand Still Regen, Crit Restore HP, etc); Restore N HP with (Heal
+Power-up, Structure); Upgrade Item to N Level (any item, only available levels); Destroy N Barrels; Claim N Totems; Deal
+N Poison/Fire damage ... This should apply as an addition to any place where we have tasks, so unlocking of heroes,
+unlocking of items, wanted functionality, etc."
+
+Every task type is now in all three places: an unlock quest (a hero's Requirement, an item's quest lock, a skin's
+goal: the Level Editor's Condition list) and a Wanted poster (the Wanted tab). Code: core/systems/TaskTally.gd (the
+counting), QuestTracker.gd (quests), WantedBoard.gd / WantedRun.gd (posters); words in TextGen.quest_task_text.
+
+**What each one counts (new rules).**
+- 56.TASKS.1 **Damage with a weapon** counts the damage the weapon's whole family deals (the weapon and its evolution:
+  the Revolver and the Golden Revolver together), what each creature still had in it (never the overkill), as the
+  Results screen's damage already counts it. A weapon's path mutations are its own damage. Kills with a weapon stay as
+  they were (only the exact weapon).
+- 56.TASKS.2 **Fire and poison damage** count the ticks of a burn (fire) and of a poison (poison) the hero's side
+  started, whatever started them: the Molotov's pool, the Dragon's Breath's flames, a fire or poison path mutation
+  (Accelerant, Blight, Venom...), Kindling, a fire spreading from creature to creature. A weapon's own direct hit is not
+  fire or poison damage even when the weapon is a fire one (the breath's cone, the Molotov's splash count as its
+  burns only); the boss's ring of fire burning the crowd and every hostile blast never count. The burn and poison ticks
+  also count as their weapon's damage (rule 1).
+- 56.TASKS.3 **HP restored with an item** counts the health an item actually gives back (none while the bar is full):
+  Death's (and Death Risen's) life steal, Temperance's (and Temperance Risen's) and Hot Springs' regen, Siesta's
+  stand-still regen, Vulture's crit heal, Cake's slices. An item heals because its levels give one of the healing stats
+  (life steal, regen, stand-still regen, crit heal chance, cake drop chance); no item is named in code, so a new healing
+  item counts by itself. When several sources give the same stat, each heal is split by their shares of it: Temperance
+  0.45 regen and Hot Springs 0.65 regen share a regen tick 41% / 59%; Ironwood's own regen (his trait), a talent's or a
+  Totem gift's is in the stat but counts for no item. Regen and Siesta together: each part goes to its own items. An
+  evolved card counts for its source (Death Risen heals "with Death"). Snake Oil heals nothing itself (it holds what
+  other heals spill over, which counts for whatever healed). Afterglow (Solenne's perk) makes every heal bigger: the
+  bigger heal counts.
+- 56.TASKS.4 **HP restored with a power-up or a structure** counts what the Heart (a power-up dropped by kills or out of
+  a barrel), the Healing Well and a dice shrine's full heal give back (none while the bar is full). A Cake Slice is not a
+  power-up: it counts for the Cake (its pickup names the stat that drops it, `params.credit_stat: "heal_drop"`). A quest
+  may name one source ("pickup:heart") or any of a kind ("pickup:" any healing power-up, "structure:" any healing
+  structure).
+- 56.TASKS.5 **An item to level N**: the existing `item_level` quest (pass 100, one run). The Level Editor only lets a
+  quest ask for levels the item has (1 to its top: a weapon's 5, a card's 4, a passive item's rarity ladder, common 6 ..
+  epic 3), and the server refuses one past them.
+- 56.TASKS.6 **Barrels**: one for every barrel the hero breaks, brown and black alike (the ones that come back too).
+- 56.TASKS.7 **Totem gifts**: one for every gift taken at a Totem Pole; a pole left without taking a gift counts for
+  nothing.
+
+**Quests count across runs, or in one run (new rules).**
+- 56.TASKS.8 The six quest types (damage_with_weapon, heal_with_item, heal_with_source, element_damage, barrels_total,
+  totems_total) add up across runs, like "Kill N with a weapon". Ticking **In one run** makes one count only inside a
+  single run: then its words end "in one run." and its bar shows only while a run is on (like "Reach level N").
+- 56.TASKS.9 What a run counts reaches the save once, at the run's end (a death, an abandon and extracting alike),
+  rounded to whole points. While the run is on, the quests read the save plus the run so far, so a quest can be
+  completed in the middle of a run (the UNLOCKED banner at once) and its bar moves during the run. A run left by closing
+  the app mid-run loses its counts, as it loses its purse.
+- 56.TASKS.10 Nothing counts in the debug arena, in the run sim, in the Watch or in any tool run (smoke_run, captures):
+  their counts never reach the save and never complete a quest. (A headless test may switch it on.)
+- 56.TASKS.11 Stage hints (the Collection's "Stage N can do it"): stage 1 for every task quest, or the stage a named
+  weapon or item first comes from (its `from_stage`).
+
+**The pictures (new).**
+- 56.TASKS.12 Every poster and quest of these types shows a picture: the weapon's icon, the item's icon, the Heart, the
+  Healing Well's painting, the item's icon (an item to level N), the barrel (painted this pass), the Totem Pole, the fire
+  (the damage sources' own) or the poison flask (painted this pass). The Collection's locked box and the hero sheet's
+  "To unlock" box now show a quest's picture (40 px) left of its words, for every quest that names one thing (a weapon,
+  a creature, an item, a hero, a stage, the chest, the coin, the barrel...); a quest about "any item" shows the words
+  alone.
+
+**The Wanted posters (new rules; everything else is 54.WANTED / 55.WANTED).** Each counts inside the run only. A type
+with nothing to target this run is never offered.
+
+| type | weight | difficulty | number Sundown / Nightfall / Blood Moon (before progression) | target |
+|---|---|---|---|---|
+| Deal N damage with a weapon `damage_weapon` | 8 | 1 -> 3 (+1 not his own) | 12,000-36,000 / 20,000-60,000 / 30,000-90,000, step 1,000 | as Kill N with a weapon: his own gun 3x as likely, a weapon seen and unlocked |
+| Restore N HP with an item `heal_item` | 5 | 1.5 -> 3.5 | 60-180 / 80-240 / 100-300, step 10, times the item's own factor | a card or passive item that heals, unlocked, open on the stage, seen |
+| Restore N HP with a power-up or structure `heal_source` | 4 | 1 -> 3 | 30-100 / 40-130 / 50-160, step 5, times the source's own factor | a healing power-up this map drops (its kill drops or its barrels) or a healing structure it places |
+| Get an item to level N `item_level` | 6 | 1 -> 3 from where N fell | N from 2 (`min_level`) to that item's own top level | his own gun (2x as likely) or a weapon, a card or a passive item seen; a one-level item never |
+| Break N barrels `barrels` | 6 | 1 -> 3 | 8-20 / 10-24 / 12-28, step 1, growth 0.1 a stage beaten, never past 40 | always (35 barrels stand on the map) |
+| Take N Totem gifts `totems` | 6 | 1 -> 3 | 3-6 / 4-7 / 4-8, never more than the map's poles (10) | when the map stands Totem Poles |
+| Deal N fire or poison damage `element_damage` | 5 | 1.5 -> 3.5 | 3,000-10,000 / 5,000-16,000 / 8,000-24,000, step 500 | fire or poison, when an item this hero may find carries it (a weapon's path mutations too) |
+
+- 56.TASKS.13 **A target's own factor** (`target_mult` on damage_weapon, heal_item, heal_source and element_damage):
+  the number range times that target's factor (empty = 1), the target drawn first; the difficulty is where the number
+  fell in its own range. Healing items: Death 1.5, Temperance 1, Hot Springs 0.7, Vulture 0.4, Siesta 0.3, Cake 0.2;
+  the Healing Well 0.6 (one well heals 35% of max health once).
+- 56.TASKS.14 The new posters pay by the same formula as the others (54.WANTED); with these weights they are about 29%
+  of the draw (40 of 136).
+
+**Where the numbers came from.** The run sim, Sundown, the Drifter, a quarter board, the explorer bot, 10 players, seed 1
+(tools/dl/sim/runs/p113-tasks-s1): the Revolver dealt 23,000-149,000 (half the runs under 30,000); fire 34,000 in the
+one run with a Molotov, poison 400-7,400 in the three with a poison path; Temperance restored 8-158 HP, Siesta 5-42 (the
+bot rarely stands still), Vulture 9-142, Hot Springs 57, Cake 9; the Heart 21-103 HP, the Healing Well 25-82 HP;
+barrels broken 11-32 (half at least 21); Totem gifts 4-10. Nightfall, the same setup (tools/dl/sim/runs/p113-tasks-s2,
+a fresh level-1 hero, 10:00): the Revolver 35,000-151,000 (half under 60,000), poison 18,000-29,000 in the three runs with
+a poison path, Temperance 89-205 HP, Hot Springs 57-230, Siesta 3-32, Vulture 3-25, Cake 20, the Heart 23-170, the
+Healing Well 42-85, barrels 16-30, Totem gifts 1-9. Garry's own played runs: life steal 350 HP in 3:53 and 732 HP in
+10:46. Death has no sim data (it is locked on a fresh save): its 1.5 is a guess, and so are the Blood Moon ranges (grown
+from Nightfall's).
+
+Tests: game/tests/pass113_TASKS_test.gd (12); tools/level_editor/selftest_TASKS113.py; the re-run pass100_QUESTS,
+pass111/112_wanted, pass111_skins, pass76_ui and their neighbours.
+
+### 56.BOSS Each boss has a bullet-heaven attack: rare, long, guarded, with a big warning
+
+Garry (2026-10-28): "Each of the Bosses needs a Bullet Heaven type of attack. Those attacks are supposed to be rare and
+powerful. And while the boss is doing them it should be more challenging for Player to damage the boss until the attack is
+done. This is supposed to be accompanied by impressive visuals." He picked option A of each boss in
+docs/concepts/boss_bullet_heaven.md: the King's **Royal Dust Devil**, the Gila's **Venom Monsoon** (no weak spot), the
+Brander's **Hellbrand Mandala**; and: "For each of those attacks I expect to see them in the Boss Attacks section of the
+LevelEditor", "incorporated in a smart way so that they make sense with other attacks", "don't trigger immediately, and are
+rare, something like once every 45s", "easy to detect as a Player. Big foreshadowing".
+
+The rules, in plain words (every number is the attack's own, on the Level Editor's Boss attacks tab; content/boss_attacks/
+royal_dust_devil, venom_monsoon, hellbrand_mandala, kind "pattern"):
+- **When it comes.** Never part of the boss's attack cycle (its place in his list does not matter). Never in the first
+  15 s of the fight (`trigger.first_after`). The first one comes when he falls under 60% HP (`first_at_hp`), or 45 s into
+  the fight at the latest (`first_by`), so a slow fight still sees one. After that, 45 s after the last one ended
+  (`cooldown`, counted from the end of his spent seconds). The fight clock is his: it starts when he arrives.
+- **Only between his attacks.** It waits until he is walking: not in a wind-up, a roll, a stomp, a burrow, a tail beam,
+  not standing for a rain, not still rising out of the sand, and none of his own shots still in the air.
+- **The warning (2 s, `tell.seconds`).** The attack's name across the screen in its colour with his badge; the sand
+  darkens in a circle 9 m round him with a pulsing ring at its edge (`tell.ring_*`); a loud rising alarm
+  (en_boss_pattern_warn); the music drops 14 dB (`tell.duck_db`) until the bullets end; his own wind-up (the King spins
+  faster and faster, the Gila rears up with her throat glowing, the Brander raises his iron and drives it in with a blast);
+  his shell forms (a sand tornado, a glow behind her, a pillar of fire, and the Brander's brand sigil burning into the
+  sand); a rumble of the camera. Like every wind-up it lasts x1/pace on the map.
+- **The bullets (`timing.duration`: King 8 s, Gila 7 s, Brander 9 s).** Slow (2-3.2 m/s; the hero walks about 5), big and
+  bright with a thick ink outline, never dimmed by Nightfall's or Blood Moon's filter. A bullet that touches the hero
+  takes 12% of his max HP (`hit.hit_frac`) and is gone; his armour, an evade, the Shield power-up and the blink after a
+  hit work as for any shot; no push (`knockback` 0). A bullet past its range (King 24 m, Gila 22 m, Brander 18 m) shrinks
+  away. When the bullets end, the ones still flying burn out over 0.6 s (`timing.clear`) and hurt nobody.
+- **Guarded.** From the warning's start to the last bullet he takes 80% less damage (`guard.share`): his bar turns grey
+  with GUARDED in it, his outline glows in his shell's colour, and hits on him spark grey and show small grey numbers.
+- **Spent (the payoff).** Then he stands dazed for 2.5 s (`spent.seconds`) taking 50% more (`spent.damage_taken`): his bar
+  reads DAZED in brass; the King's tornado collapses and stars circle his crown, the Gila slumps, the Brander's pillar
+  gutters out and his iron smokes.
+- **The rest of the fight waits.** While it runs (warning, bullets, spent) nothing else of his starts and he summons
+  nothing; he stands still (his touch still hurts); the boss fight's own rows (Timeline → Boss fights) bring nobody new and
+  their clock stands still; a boss fight without such a window holds its spawns too. The creatures already there stay.
+  After it, his cycle goes on after his usual rest between attacks (`timing.cooldown`, 0 = his own).
+- **What each one does.**
+  - Royal Dust Devil: three spiral arms of burning tumbleweeds (two side by side, 4.5 volleys a second, 3.2 m/s) turning
+    50°/s, turning back the other way halfway (the safe lanes change), the hero between two arms at the start; and a ring
+    of 20 with an 80° opening somewhere new every 1.7 s (2.4 m/s), from 15% to 90% of the time. About 280 in the air at its
+    peak.
+  - Venom Monsoon: big wobbling venom blobs in a fan of five over 56° that sweeps 150° left and right across wherever the
+    hero stands (one sweep every 2 s, 2.8 volleys a second, 2.8 m/s); every second sweep a second fan of four, 50° off.
+    The blobs leave purple puddles that fade in 2 s (only a look). About 130 in the air at its peak.
+  - Hellbrand Mandala: a five-petal rose of 30 branded fireballs every 1.2 s (the petals at 3 m/s, the dips between them at
+    a quarter of that, the petals opening and closing as the depth breathes), the mandala turning half a petal (36°) every
+    3 s so the safe lines move; a slow five-arm spiral under it (2 m/s). Its last second pulls every fireball still flying
+    straight back to him at 7.5 m/s: never stand between a fireball and the Brander. About 255 in the air at its peak.
+- **How hard (measured, game/tools/_p113_BOSS_probe.gd, 3 runs each, the hero 9 m off when it starts).** Standing still the
+  whole time: King 5-6 hits (68% of max HP), Gila 5 (60%), Brander 4 (48%). A careful player (looking 0.4 s ahead, 7-12 m
+  from the boss): 0 hits on all three. Danger comes from the number of bullets, never from one hit.
+
+Decisions of mine (not in the spec; say if they are wrong):
+- The tell is 2 s (the concept doc said 1.2-1.5 s; the brief asked for big foreshadowing).
+- The next one's 45 s run from the end of the spent seconds, not from the bullets' end.
+- The Mandala turns 36° (half a petal) every 3 s, not 72° ("a fifth of a turn" turns a five-petal rose onto itself: no
+  visible change).
+- The bullets left when it ends burn out (harmless) instead of flying on, so the spent seconds are a clear payoff.
+- The Gila's sprinkler sweeps across wherever the hero stands (otherwise standing behind her was safe), and the King's ring
+  opening is somewhere new each ring (otherwise one spot stayed safe all attack).
+- The ranges reach past the screen (18-24 m) so walking away during the warning does not escape it.
+- A bullet pushes nobody; the guard also covers the warning; the boss's touch still hurts while he stands.
+
+Tests: game/tests/pass113_BOSS_test.gd (15); tools/level_editor/selftest_BOSS113.py; selftest_BOSS.py re-pinned (the Gila's
+script is one entry longer); pass72_boss, pass73_ground, pass95_BOSS, pass110_boss_window re-run.
+
+### 56.LEAD The Monk's spheres fly as one cloud, faster and farther; a locked look is a dark silhouette; a look's goal met in a run is announced
+
+**The Monk's volley as a cloud (rule changed).** Garry: "right now all the projectiles move towards the hero. What should
+be happening is that these projectiles actually move as a cloud, kind of moving in the cloud where the center is aiming,
+where the hero actually is." `squad.orb.aim`:
+- **"cloud"** (the Monk, and the default for any squad): every sphere of a volley flies along **one line**, the line from
+  the volley's centre (the middle of all the spheres as they leave the hands) to where the hero stands then (+ `lead` of
+  his run, 0 for the Monk). The volley keeps the squad's shape as it flies: a block of blue spheres as wide as the squad
+  (about 5 m for 10 monks, 7 m for 30) whose middle passes over the hero's spot. Stepping sideways out of its path is the
+  dodge; standing still in the middle is a hit.
+- **"each"**: every sphere aimed at the hero on its own (pass 112's rule), so they all close in on him.
+- Faster: **5 m/s** (was 4; "a bit faster"; on Red Canyon's creature clock 4.05 m/s). The hero runs about 5 m/s, so he can
+  still step out of the cloud's way.
+- Farther: **26.25 m** (was 17.5; "extend the range of the projectiles by 50%"). Every sphere flies its 26.25 m from its
+  own start, so the whole cloud bursts together.
+- Nothing else changed: the squad still fires from its 5-8 m band, 3 s stops every 5.2 s, damage 8 a sphere.
+
+**The Monk's looks.** MK-A (brown, the one played), MK-B (white) and MK-C (dark blue) are approved (no longer "fresh";
+Garry: "they are all kind of ok"). The creature's base strip and icon (the "MON-0" look, what any place that shows the
+creature without a look sees) are now MK-A's brown robe instead of the placeholder ("Let's make the brown ones the
+default").
+
+**A locked look on the hero sheet (rule changed).** Garry: "when the Skin is LOCKED it displays the Skin Icon as a
+Darkened Silhouette." On the hero sheet's LOOKS row a look whose goal is not met yet shows its picture as a flat dark
+shape (the same silhouette as a hero not yet owned in the drawer); a look without a full-body still shows its badge as
+a black silhouette with a "?". Once the goal is met (on sale, owned or worn) it shows in its colours.
+
+**A look's goal met in a run is announced (fix).** Garry: "When Player unlocks it during a run there is a notification,
+similar to the other unlocks." A goal that completes when a boss falls (beat_stage: "Beat Nightfall with May.") was
+marked done silently by the boss's own check, so the run's banner never showed. The boss's fall now goes through the
+same check as every other unlock: the banner "NEW LOOK FOR SALE · <name>" (or "NEW LOOK · <name>" for a free one) with
+the look's badge and the unlock sound, at once. Goals that complete at the end of a run (runs_total) still show on the
+Results screen, as every unlock does.
+
+Tests: game/tests/pass113_lead_test.gd; re-pinned game/tests/pass112_monk_test.gd (the sphere's range: 1.5 x pass 112's).
+
+**The King's tornado lets him show through (the lead, at the merge).** A pattern attack's `shell.opacity` (0.5 to 1,
+default 0.94) sets how solid the tornado's dust is; the King's Royal Dust Devil uses **0.62**, so his crown and face show
+through the funnel while it guards him (at 0.94 the tornado hid him completely). The Level Editor's Boss attacks tab has
+the row "Shell opacity".

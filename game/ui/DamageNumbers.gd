@@ -77,6 +77,10 @@ const PALE := Color("e8f2ff")
 ## word reads EVADE (it was DODGE, pale like BLOCK) in its own ghostly lavender, beside the hero turning see-through
 ## (Player._evade_ghost_start).
 const EVADE := Color("cdb8ff")
+## Pass 113 (lane BOSS; Garry's spec: "Hits on it spark and show small grey numbers, so the player can tell their damage
+## is being blocked"): a hit on a boss guarded by his bullet-heaven pattern, grey and the size of a tick.
+const GUARD := Color("9aa3ad")
+const PX_GUARD := 40
 ## Type sizes in canvas px: a hit, a crit (bigger), a fire or poison tick (smaller); the hero's hurt, heal and words.
 ## Pass 54: a tenth up on pass 47's (48, 72, 58, 40, 54, 48, 40) for the lighter face.
 const PX := 52
@@ -141,6 +145,8 @@ class Num:
 	var crit := false
 	## a mini crit (pass 48, EnemyManager.HIT_MINI): a paler, smaller crit (a full crit joining it makes it a crit)
 	var mini := false
+	## pass 113 (lane BOSS): a hit a guarded boss shrugged most of: small and grey (GUARD, PX_GUARD)
+	var guarded := false
 	## px from where it is anchored, so a crowd's numbers do not sit on one another, and the sideways drift over its life
 	var nudge := Vector2.ZERO
 	var drift := 0.0
@@ -203,25 +209,26 @@ func enabled() -> bool:
 
 ## A number for creature `i` hit for `amount`, starting at the world point `at` (over the creature); `crit` a critical
 ## hit, `green` a poison tick (purple since pass 48; the name is the old one), `hot` a fire tick, `mini` a mini crit.
-func add(i: int, at: Vector3, amount: float, crit: bool = false, green: bool = false, hot: bool = false, mini: bool = false) -> void:
+## `guarded` (pass 113, lane BOSS: a boss in a bullet-heaven pattern takes most of a hit off) shows it small and grey.
+func add(i: int, at: Vector3, amount: float, crit: bool = false, green: bool = false, hot: bool = false, mini: bool = false, guarded: bool = false) -> void:
 	if amount <= 0.0 or not enabled():
 		return
 	if prof:
 		var t0 := Time.get_ticks_usec()
-		_add(i, at, amount, crit, green, hot, mini)
+		_add(i, at, amount, crit, green, hot, mini, guarded)
 		_us_add += Time.get_ticks_usec() - t0
 		return
-	_add(i, at, amount, crit, green, hot, mini)
+	_add(i, at, amount, crit, green, hot, mini, guarded)
 
 
-func _add(i: int, at: Vector3, amount: float, crit: bool, green: bool, hot: bool, mini: bool) -> void:
+func _add(i: int, at: Vector3, amount: float, crit: bool, green: bool, hot: bool, mini: bool, guarded: bool = false) -> void:
 	var is_mini := mini and not crit
 	var kind := KIND_HOT if hot else (KIND_GREEN if green else KIND_HIT)
 	# pass 102 (lane HITS): a full screen joins a creature's number while it shows whole, and lets the small hits go
 	var crowded := _live.size() >= crowd_from
 	if i >= 0:
 		var win := LIFE * HOLD if crowded else MERGE
-		if _merge(i, kind, amount, win, crit, is_mini):
+		if _merge(i, kind, amount, win, crit, is_mini, guarded):
 			if win > MERGE:
 				crowd_merged += 1
 			return
@@ -245,6 +252,7 @@ func _add(i: int, at: Vector3, amount: float, crit: bool, green: bool, hot: bool
 	n.amount = amount
 	n.crit = crit and kind == KIND_HIT
 	n.mini = is_mini and kind == KIND_HIT
+	n.guarded = guarded
 	n.tilt = randf_range(-0.14, 0.14) if n.crit else (randf_range(-0.08, 0.08) if n.mini else 0.0)
 	# neighbours lean apart: this one to one side, the next to the other, each drifting further out as it climbs
 	n.nudge = Vector2(_side * randf_range(SPREAD * 0.2, SPREAD), randf_range(-12.0, 8.0))
@@ -307,7 +315,7 @@ func _hero(kind: int, amount: float, window: float) -> void:
 
 ## Adds `amount` to the newest number of `kind` on `who` born within `window`; false when there is none. A crit joining
 ## a number makes it a crit; a mini crit joining a plain one makes it a mini crit.
-func _merge(who: int, kind: int, amount: float, window: float, crit: bool, mini: bool = false) -> bool:
+func _merge(who: int, kind: int, amount: float, window: float, crit: bool, mini: bool = false, guarded: bool = false) -> bool:
 	# the newest of its kind on it (pass 102: one lookup; the walk down the list found the same one): every older one is
 	# older still
 	var found = _newest.get(_key(who, kind))
@@ -317,6 +325,8 @@ func _merge(who: int, kind: int, amount: float, window: float, crit: bool, mini:
 	if m.age >= window:
 		return false
 	m.amount += amount
+	# (pass 113: a number keeps grey only while every hit in it was guarded)
+	m.guarded = m.guarded and guarded
 	if crit and kind == KIND_HIT:
 		m.crit = true
 		m.mini = false
@@ -342,6 +352,7 @@ func _fresh(limit: int = CAP) -> Num:
 	n.age = 0.0
 	n.crit = false
 	n.mini = false
+	n.guarded = false
 	n.tilt = 0.0
 	n.bump = 0.0
 	n.nudge = Vector2.ZERO
@@ -409,6 +420,8 @@ static func colour_of(n: Num) -> Color:
 			return EVADE
 		KIND_BLOCK:
 			return PALE
+	if n.guarded:
+		return GUARD
 	if n.crit:
 		return CRIT
 	return CRIT_MINI if n.mini else WHITE
@@ -418,6 +431,8 @@ static func colour_of(n: Num) -> Color:
 static func size_of(n: Num) -> int:
 	match n.kind:
 		KIND_HIT:
+			if n.guarded:
+				return PX_GUARD
 			return PX_CRIT if n.crit else (PX_MINI if n.mini else PX)
 		KIND_HURT, KIND_SHIELD:
 			return PX_HURT

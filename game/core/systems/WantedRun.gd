@@ -190,6 +190,27 @@ func progress() -> Vector2i:
 			return Vector2i(1 if Run.stage_beaten and not failed else 0, 1)
 		"boss_fast":
 			return Vector2i(1 if done else 0, 1)
+		# pass 113 (lane TASKS): this run's tallies (Run, TaskTally)
+		"damage_weapon":
+			var dmg := 0.0
+			for id in _family:
+				dmg += float(Run.damage_by_weapon.get(str(id), 0.0))
+			return Vector2i(int(floor(dmg)), n)
+		"heal_item":
+			return Vector2i(int(floor(float(Run.healed_by_item.get(target, 0.0)))), n)
+		"heal_source":
+			return Vector2i(int(floor(float(Run.healed_by_source.get("%s:%s" % [str(contract.get("target_kind", "pickup")), target], 0.0)))), n)
+		"element_damage":
+			return Vector2i(int(floor(float(Run.element_damage.get(target, 0.0)))), n)
+		"barrels":
+			return Vector2i(Run.barrels_broken, n)
+		"totems":
+			return Vector2i(Run.totems_taken, n)
+		"item_level":
+			var lv := 0
+			for e: Dictionary in QuestTracker.held_items("any", target):
+				lv = maxi(lv, int(e["level"]))
+			return Vector2i(mini(lv, n), n)
 	return Vector2i(0, 1)
 
 

@@ -182,7 +182,7 @@ const Enemies = (() => {
       const nameSel = Forms.select(F.attackOptions(), name, (v) => setKey('name', v), { path: `boss.attacks.${i}.name`, emptyLabel: 'name…' });
       const head = el('div', { class: 'atk-head' },
         el('span', { class: 'atk-n', text: `#${i + 1}` }), nameSel,
-        el('span', { class: 'muted small', text: spec ? spec.help : custom ? `custom attack "${custom.name || name}" (${custom.kind}): its own numbers are on the Boss attacks tab; the keys below override them for this boss` : (name ? 'an unknown name: the game does nothing for it' : '') }),
+        el('span', { class: 'muted small', text: spec ? spec.help : custom ? (custom.kind === 'pattern' ? `bullet heaven "${custom.name || name}" (pattern): never in this cycle and its place in the list does not matter: it comes on its own trigger (when, how long, how hard: all on the Boss attacks tab)` : `custom attack "${custom.name || name}" (${custom.kind}): its own numbers are on the Boss attacks tab; the keys below override them for this boss`) : (name ? 'an unknown name: the game does nothing for it' : '') }),
         custom ? el('button', { class: 'btn small', type: 'button', text: 'Open in Boss attacks', onclick: () => BossAttacks.open(name) }) : null,
         el('span', { class: 'atk-ops' },
           el('button', { class: 'btn small ghost', type: 'button', text: '▲', title: 'earlier', disabled: i === 0, onclick: () => write((arr) => { const [x] = arr.splice(i, 1); arr.splice(i - 1, 0, x); }) }),
@@ -287,7 +287,10 @@ const Enemies = (() => {
   /** The cycle as a line: per attack a red block (the wind-up x the pace), a hatched block (its active time), a grey gap
    *  (cooldown_between), the total labelled. */
   function sequenceLine(d, pf, mapId, tl) {
-    const seq = M.attackSequence(d.boss, pf);
+    // pass 113 (lane BOSS): a bullet-heaven pattern is never in the cycle (its own trigger plays it): left out of the line
+    const isPattern = (a) => { const c = typeof BossAttacks !== 'undefined' && BossAttacks.get ? BossAttacks.get(String((M.isObj(a) ? a.name : a) || '')) : null; return !!(c && c.kind === 'pattern'); };
+    const boss = M.isObj(d.boss) && Array.isArray(d.boss.attacks) ? Object.assign({}, d.boss, { attacks: d.boss.attacks.filter((a) => !isPattern(a)) }) : d.boss;
+    const seq = M.attackSequence(boss, pf);
     const W = 640, H = 64, left = 8, top = 10, barH = 22;
     const scale = (W - 16) / Math.max(seq.total, 0.001);
     const svg = U.svg('svg', { class: 'seq', viewBox: `0 0 ${W} ${H}`, width: '100%', height: H, preserveAspectRatio: 'none' });

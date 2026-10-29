@@ -79,6 +79,9 @@
         "damage": 18,
         "telegraph": "ring",
         "knockback": 6
+      },
+      {
+        "name": "royal_dust_devil"
       }
     ],
     "cooldown_between": 2.0

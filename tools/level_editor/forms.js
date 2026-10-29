@@ -466,16 +466,28 @@ const Forms = (() => {
   function control(def, obj, opts) {
     const o = opts || {};
     const value = U.getPath(obj, def.key);
+    // pass 113 (lane TASKS): `limits(obj)` {min, max, hint} narrows a number to what applies now (an item_level quest's
+    // Level to that item's own levels); a value past them is brought inside on the next change
+    const lim = typeof def.limits === 'function' ? (def.limits(obj) || {}) : {};
+    if (lim.min != null || lim.max != null) def = Object.assign({}, def, lim.min != null ? { min: lim.min } : {}, lim.max != null ? { max: lim.max } : {});
     // pass 66: an asset document hands its own apply (Assets.apply bound to the document); the map's is App.apply
     const applyFn = typeof o.apply === 'function' ? o.apply : App.apply;
-    const write = (v) => applyFn(() => {
+    const write = (v0) => applyFn(() => {
+      let v = v0;
+      if (typeof v === 'number' && lim.max != null) v = Math.min(v, lim.max);
+      if (typeof v === 'number' && lim.min != null) v = Math.max(v, lim.min);
       if (def.key.includes('.')) U.setPath(obj, def.key, v);
       else U.setKey(obj, def.key, v, def.def);
       if (o.after) o.after(v);
     }, o.what || 'all');
     const ctl = { path: o.pathPrefix ? `${o.pathPrefix}.${def.key}` : def.key, placeholder: o.placeholder, cls: o.cls, inherit: o.inherit, own: o.own };
     switch (def.type) {
-      case 'int': case 'number': return numberInput(def, value, write, ctl);
+      case 'int': case 'number': {
+        const box = numberInput(def, value, write, ctl);
+        if (!lim.hint) return box;
+        const over = typeof value === 'number' && ((lim.max != null && value > lim.max) || (lim.min != null && value < lim.min));
+        return el('span', { class: 'with-hint' }, box, el('span', { class: 'hint' + (over ? ' bad' : ''), text: over ? `${lim.hint}: ${value} is out of range` : lim.hint, 'data-limits': def.key }));
+      }
       case 'seconds': return secondsInput(def, value, write, ctl);
       case 'text': return textInput(def, value, write, ctl);
       case 'textarea': return textareaInput(def, value, write, Object.assign({ rows: o.rows }, ctl));

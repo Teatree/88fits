@@ -916,6 +916,8 @@ const Assets = (() => {
     if (kind === 'passive') return mk(fl.passives, 'passive');
     if (kind === 'mutation') return mk(fl.mutations, 'mutation');
     if (kind === 'any_item') return [{ group: 'Weapons', options: mk(fl.weapons, 'weapon') }, { group: 'Passives', options: mk(fl.passives, 'passive') }];
+    // pass 113 (lane TASKS): the healing items, the healing power-ups and structures (tasks.js)
+    if (kind === 'heal_item' || kind === 'heal_source') return typeof TaskPics !== 'undefined' ? TaskPics.options(kind, mk) : [];
     return [];
   }
   function idSelect(doc, def) {

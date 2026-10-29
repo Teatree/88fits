@@ -122,9 +122,17 @@ const BossModel = (() => {
   // ------------------------------------------------------------------ custom boss attacks
 
   // BossAttackDef's tables (selftest_BOSS.py reads them out of the GDScript and checks they agree)
-  const KINDS = ['rain', 'volley', 'ring', 'slam', 'script'];
+  const KINDS = ['rain', 'volley', 'ring', 'slam', 'script', 'pattern'];
   const SHAPES = ['rings', 'grid', 'spiral', 'random'];
-  const LOOKS = ['spike', 'spit', 'pellet', 'shard', 'rock', 'fire'];
+  const LOOKS = ['spike', 'spit', 'pellet', 'shard', 'rock', 'fire', 'burning_tumbleweed', 'venom_blob', 'brand_fireball'];
+  // pass 113 (lane BOSS): a bullet-heaven pattern's emitter shapes and aims, the boss's wind-up looks, his shells
+  // (BossAttackDef.EMITTER_SHAPES, EMITTER_AIMS, TELL_LOOKS, SHELLS; selftest_BOSS113.py checks them)
+  const EMITTER_SHAPES = ['spiral', 'ring', 'fan', 'sweep', 'wall', 'rose'];
+  const EMITTER_AIMS = ['hero', 'track', 'fixed', 'random'];
+  const TELL_LOOKS = ['none', 'spin', 'rear', 'drive'];
+  const SHELLS = ['none', 'tornado', 'scales', 'pillar'];
+  /** BossAttackFx.BB_RADIUS: a bullet-heaven look's body radius (m) at size 1. */
+  const BB_RADIUS = { burning_tumbleweed: 0.34, venom_blob: 0.5, brand_fireball: 0.4 };
   const ORDERS = ['out', 'in', 'random', 'sweep'];
   const AIMS = ['hero', 'random', 'fixed'];
   const CENTERS = ['boss', 'hero'];
@@ -134,13 +142,26 @@ const BossModel = (() => {
   const SCRIPTS = ['roll', 'spawn_ring', 'slam_at', 'blink', 'burrow', 'rain', 'erupt', 'spit_volley', 'slam', 'rumble',
     'brand', 'tumbleweed_volley', 'swoop', 'boulder', 'stomp', 'tail_sniper'];
   const DEFAULTS = {
-    projectile: { look: 'spike', tint: '#D0242F', size: 1.0, glow: 1.0, flight: 1.0, arc: 6.0, speed: 12.0, range: 18.0, hit_radius: 0.5, trail: true },
+    projectile: { look: 'spike', tint: '#D0242F', size: 1.0, glow: 1.0, flight: 1.0, arc: 6.0, speed: 12.0, range: 18.0, hit_radius: 0.5, trail: true, wobble: 0.0 },
     pattern: { shape: 'rings', center: 'boss', radius_min: 3.0, radius_max: 16.0, spacing: 3.2, count: 0, jitter: 0.2, gap: 1.0, turn: true, order: 'out', spread_deg: 360.0, aim: 'hero', waves: 1, wave_gap: 0.5, width: 1.2 },
     landing: { radius: 0.9, mode: 'stagger' },
     telegraph: { kind: 'circles', color: '#ED4A5C', seconds: 0.9, all_at_once: false },
-    timing: { windup: 1.0, stagger: 1.5, cooldown: 0.0, hold: -1.0 },
+    timing: { windup: 1.0, stagger: 1.5, cooldown: 0.0, hold: -1.0, duration: 8.0, clear: 0.6 },
     sounds: { windup: '', fire: 'en_boss_attack', land: '' },
     spew: { crouch: 0.35, burst: 0.12, mouth: 0.62, squash: 0.82, stretch: 1.25 },
+    // pass 113 (lane BOSS): a bullet-heaven pattern's groups
+    hit: { hit_frac: 0.12 },
+    trigger: { first_after: 15.0, first_at_hp: 0.6, first_by: 45.0, cooldown: 45.0 },
+    guard: { share: 0.8, color: '#B9C3CE' },
+    spent: { seconds: 2.5, damage_taken: 1.5, still: true },
+    tell: { seconds: 2.0, banner: '', banner_color: '#E8502A', ring_radius: 9.0, ring_color: '#140A06', ring_alpha: 0.5, duck_db: -14.0, look: 'none' },
+    shell: { look: 'none', color: '#C9A46A', height: 7.0, radius: 3.0, opacity: 0.94, sigil_radius: 0.0, sigil_color: '#FF6A1A' },
+  };
+  /** BossAttackDef.EMITTER_DEFAULTS: one emitter of a pattern, every key it leaves out. */
+  const EMITTER_DEFAULTS = {
+    shape: 'spiral', count: 1, arms: 1, speed: 3.0, rate: 4.0, spin: 0.0, reverse_at: -1.0, spread_deg: 60.0, sweep_deg: 0.0, sweep_hz: 0.0,
+    gap: 0.0, petals: 5, depth: 0.7, bloom_hz: 0.0, turn_every: 0.0, turn_deg: 0.0, offset_deg: 0.0, aim: 'hero', start: 0.0, stop: 1.0,
+    pulse_every: 0.0, pulse_on: 0.0, pulse_at: 0.0, finale_pull: 0.0, pull_speed: 7.0, width: 12.0,
   };
   const TOP_DEFAULTS = { damage: 0.75, knockback: 4.0, lift: 0.0 };
   /** The Player's body radius (Player.RADIUS), for the preview's hero. */
@@ -337,6 +358,164 @@ const BossModel = (() => {
   /** What one hit takes, from the boss's bite (its JSON damage) and the factors given (stage x level x hostile). */
   const hitDamage = (a, bite, factors) => topVal(a, 'damage') * num(bite, 0) * (factors == null ? 1 : factors);
 
+  // ------------------------------------------------------------------ pass 113 (lane BOSS): the bullet-heaven pattern
+  // BossAttackDef's emitter maths, line for line (the gdUnit test pass113_BOSS_test and selftest_BOSS113.py pin the same
+  // fixed emitters' numbers in both).
+
+  const fposmod = (a, b) => ((a % b) + b) % b;
+  const deg2rad = (d) => d * Math.PI / 180;
+  /** BossAttackDef.emitter_full. */
+  const emitterFull = (e) => Object.assign({}, EMITTER_DEFAULTS, isObj(e) ? e : {});
+  /** The pattern's emitters, each full (entries that are not objects left out). */
+  const emittersFull = (a) => (a && Array.isArray(a.emitters) ? a.emitters : []).filter(isObj).map(emitterFull);
+  const patternDuration = (a) => Math.max(num(val(a, 'timing', 'duration'), 8), 0.5);
+  /** BossAttackDef.pulling: the last finale_pull seconds of dur. */
+  function pulling(e, t, dur) {
+    const fp = num(e.finale_pull, 0);
+    return fp > 0 && t >= dur - fp && t < dur;
+  }
+  /** BossAttackDef.emitter_on. */
+  function emitterOn(e, t, dur) {
+    if (t < num(e.start, 0) * dur || t >= num(e.stop, 1) * dur) return false;
+    if (pulling(e, t, dur)) return false;
+    const every = num(e.pulse_every, 0);
+    if (every > 0) {
+      const at = num(e.pulse_at, 0);
+      if (t < at || fposmod(t - at, every) >= num(e.pulse_on, 0)) return false;
+    }
+    return true;
+  }
+  /** BossAttackDef.emitter_turned (degrees). */
+  function emitterTurned(e, t, dur) {
+    const spin = num(e.spin, 0);
+    let deg = spin * t;
+    const ra = num(e.reverse_at, -1);
+    if (ra >= 0 && t > ra * dur) { const tr = ra * dur; deg = spin * tr - spin * (t - tr); }
+    const te = num(e.turn_every, 0);
+    if (te > 0) deg += Math.floor(t / te) * num(e.turn_deg, 0);
+    return deg;
+  }
+  /** BossAttackDef.emitter_angle (radians). */
+  function emitterAngle(e, t, dur, aim) {
+    let deg = num(e.offset_deg, 0) + emitterTurned(e, t, dur);
+    if (String(e.shape) === 'sweep') deg += num(e.sweep_deg, 0) * 0.5 * Math.sin(TAU * num(e.sweep_hz, 0) * t);
+    return aim + deg2rad(deg);
+  }
+  /** BossAttackDef.rose_depth. */
+  function roseDepth(e, t) {
+    let depth = clamp(num(e.depth, 0.7), 0, 1);
+    const bh = num(e.bloom_hz, 0);
+    if (bh > 0) depth *= 0.5 + 0.5 * Math.cos(TAU * bh * t);
+    return depth;
+  }
+  /** BossAttackDef.volley: [[angle, speed, across], ...]. */
+  function volley(e, t, dur, aim, hole) {
+    const out = [];
+    const a = emitterAngle(e, t, dur, aim);
+    const n = Math.max(Math.trunc(num(e.count, 1)), 1);
+    const spd = Math.max(num(e.speed, 3), 0.1);
+    const shape = String(e.shape);
+    if (shape === 'ring') {
+      const gap = deg2rad(clamp(num(e.gap, 0), 0, 359));
+      for (let k = 0; k < n; k++) out.push([gap > 0 ? a + gap * 0.5 + (TAU - gap) * (k + 0.5) / n : a + TAU * k / n, spd, 0]);
+    } else if (shape === 'rose') {
+      const petals = Math.max(num(e.petals, 5), 1);
+      const depth = roseDepth(e, t);
+      for (let k = 0; k < n; k++) { const phi = TAU * k / n; const petal = 0.5 + 0.5 * Math.cos(petals * phi); out.push([a + phi, spd * (1 - depth + depth * petal), 0]); }
+    } else if (shape === 'wall') {
+      const w = Math.max(num(e.width, 12), 0);
+      const opening = Math.max(num(e.gap, 0), 0);
+      const at = (clamp(hole == null ? 0.5 : hole, 0, 1) - 0.5) * Math.max(w - opening, 0);
+      for (let k = 0; k < n; k++) {
+        const across = n > 1 ? -w * 0.5 + w * k / (n - 1) : 0;
+        if (opening > 0 && Math.abs(across - at) < opening * 0.5) continue;
+        out.push([a, spd, across]);
+      }
+    } else {
+      const arms = Math.max(Math.trunc(num(e.arms, 1)), 1);
+      const spread = deg2rad(clamp(num(e.spread_deg, 60), 0, 360));
+      for (let arm = 0; arm < arms; arm++) {
+        const ac = a + TAU * arm / arms;
+        for (let k = 0; k < n; k++) {
+          let ak = ac;
+          if (n > 1) ak = spread >= TAU - 0.001 ? ac + TAU * k / n : ac - spread * 0.5 + spread * k / (n - 1);
+          out.push([ak, spd, 0]);
+        }
+      }
+    }
+    return out;
+  }
+  /** BossAttackDef.emitter_volley_times: when the emitter fires over dur, stepped at dt (the game's runner's way). */
+  function emitterVolleyTimes(e, dur, dt) {
+    const out = [];
+    const rate = Math.max(num(e.rate, 4), 0);
+    const step = Math.max(dt || 1 / 60, 0.001);
+    let acc = 0, was = false;
+    for (let i = 0; i * step < dur; i++) {
+      const t = i * step;
+      const on = rate > 0 && emitterOn(e, t, dur);
+      if (on) { acc = was ? acc + step * rate : 1; while (acc >= 1) { acc -= 1; out.push(t); } }
+      was = on;
+    }
+    return out;
+  }
+  /** BossAttackDef.simulate: the pattern played out without a hero: {peak, peak_t, fired, volleys}; with `at` (seconds after
+   *  the bullets begin) also the bullets in the air then, [{x, z, k (its emitter), pull}], for the preview; `aimOf(e, k, t)`
+   *  gives an emitter's aim (radians; 0 = +x, the game's 'fixed'). */
+  function simulate(a, dt, at, aimOf) {
+    const step = dt || 1 / 30;
+    const dur = patternDuration(a);
+    const rng = Math.max(num(val(a, 'projectile', 'range'), 18), 0.5);
+    const ems = emittersFull(a);
+    const accs = ems.map(() => 0), was = ems.map(() => false);
+    let live = [];
+    let peak = 0, peakT = 0, fired = 0, volleys = 0;
+    let shot = null;
+    for (let i = 0; i * step < dur; i++) {
+      const t = i * step;
+      ems.forEach((e, k) => {
+        const on = num(e.rate, 4) > 0 && emitterOn(e, t, dur);
+        if (on) {
+          accs[k] = was[k] ? accs[k] + step * num(e.rate, 4) : 1;
+          while (accs[k] >= 1) {
+            accs[k] -= 1;
+            const aim = aimOf ? aimOf(e, k, t) : 0;
+            const v = volley(e, t, dur, aim, 0.5);
+            volleys++;
+            for (const [ang, spd, across] of v) {
+              const dx = Math.cos(ang), dz = Math.sin(ang);
+              live.push([-dz * across, dx * across, dx * spd, dz * spd, k]);
+              fired++;
+            }
+          }
+        }
+        was[k] = on;
+      });
+      const keep = [];
+      for (const b of live) {
+        const e = ems[b[4]];
+        if (pulling(e, t, dur)) {
+          const l = Math.hypot(b[0], b[1]);
+          const s = Math.max(num(e.pull_speed, 7), 0.1) * step;
+          if (l <= s + 0.5) continue;
+          b[0] *= 1 - s / l; b[1] *= 1 - s / l;
+        } else { b[0] += b[2] * step; b[1] += b[3] * step; }
+        if (Math.hypot(b[0], b[1]) > rng) continue;
+        keep.push(b);
+      }
+      live = keep;
+      if (live.length > peak) { peak = live.length; peakT = t; }
+      if (at != null && shot == null && t + step > at) shot = live.map((b) => ({ x: b[0], z: b[1], k: b[4], pull: pulling(ems[b[4]], t, dur) }));
+    }
+    return { peak, peak_t: peakT, fired, volleys, at: shot || [] };
+  }
+  /** BossAttackDef.pattern_due. */
+  function patternDue(a, fightT, hpFrac, runs, lastEnd) {
+    if (fightT < num(val(a, 'trigger', 'first_after'), 15)) return false;
+    if (runs <= 0) return hpFrac <= num(val(a, 'trigger', 'first_at_hp'), 0.6) || fightT >= num(val(a, 'trigger', 'first_by'), 45);
+    return fightT - lastEnd >= num(val(a, 'trigger', 'cooldown'), 45);
+  }
+
   /** The problems of an attack document (errors block a save, warnings do not). */
   function issues(a, ids) {
     const errors = [], warnings = [];
@@ -363,8 +542,30 @@ const BossModel = (() => {
       if (lay.pts.length > 200) warnings.push(`${lay.pts.length} spots: heavy on a phone (keep it under 200)`);
     }
     if (kind === 'volley' && num(pat.count, 1) * num(pat.waves, 1) > 120) warnings.push('more than 120 shots');
-    if (topVal(a, 'damage') <= 0) warnings.push('damage 0: it never hurts');
+    if (kind !== 'pattern' && topVal(a, 'damage') <= 0) warnings.push('damage 0: it never hurts');
     for (const c of [val(a, 'projectile', 'tint'), val(a, 'telegraph', 'color')]) if (c && !/^#[0-9a-fA-F]{6}$/.test(String(c))) errors.push(`a colour is #rrggbb: ${c}`);
+    // pass 113 (lane BOSS): a bullet-heaven pattern
+    if (kind === 'pattern') {
+      const ems = emittersFull(a);
+      if (!ems.length) errors.push('a pattern needs at least one emitter');
+      for (const e of ems) {
+        if (!EMITTER_SHAPES.includes(String(e.shape))) errors.push(`unknown emitter shape "${e.shape}" (${EMITTER_SHAPES.join(', ')})`);
+        if (!EMITTER_AIMS.includes(String(e.aim))) errors.push(`unknown emitter aim "${e.aim}" (${EMITTER_AIMS.join(', ')})`);
+        if (num(e.rate, 4) <= 0) warnings.push(`an emitter (${e.shape}) with rate 0 never fires`);
+        if (num(e.speed, 3) > 6) warnings.push(`an emitter flies at ${num(e.speed, 3)} m/s: faster than the hero (about 5 m/s) is hard to weave`);
+      }
+      if (!Object.keys(BB_RADIUS).includes(String(val(a, 'projectile', 'look')))) warnings.push('a pattern draws one of the bullet looks (burning_tumbleweed, venom_blob, brand_fireball); any other plays the first');
+      if (patternDuration(a) < 5) warnings.push('under 5 s of bullets (Garry: "some 5+ seconds during which player is supposed to try and survive")');
+      if (num(val(a, 'tell', 'seconds'), 2) < 1.2) warnings.push('a tell under 1.2 s (Garry: "Big foreshadowing")');
+      if (num(val(a, 'hit', 'hit_frac'), 0.12) >= 0.34) warnings.push('a bullet takes a third of his HP or more: danger should come from the density, never one-shots');
+      if (num(val(a, 'trigger', 'cooldown'), 45) < 20) warnings.push('a cooldown under 20 s (Garry: "rare, something like once every 45s")');
+      if (num(val(a, 'trigger', 'first_after'), 15) < 5) warnings.push('first after under 5 s (Garry: "Make it so they don\'t trigger immediately")');
+      if (!TELL_LOOKS.includes(String(val(a, 'tell', 'look')))) errors.push(`unknown wind-up look "${val(a, 'tell', 'look')}" (${TELL_LOOKS.join(', ')})`);
+      if (!SHELLS.includes(String(val(a, 'shell', 'look')))) errors.push(`unknown shell "${val(a, 'shell', 'look')}" (${SHELLS.join(', ')})`);
+      for (const c of [val(a, 'guard', 'color'), val(a, 'tell', 'banner_color'), val(a, 'tell', 'ring_color'), val(a, 'shell', 'color'), val(a, 'shell', 'sigil_color')]) if (c && !/^#[0-9a-fA-F]{6}$/.test(String(c))) errors.push(`a colour is #rrggbb: ${c}`);
+      const sim = simulate(a, 1 / 20);
+      if (sim.peak > 400) warnings.push(`${sim.peak} bullets in the air at once: heavy on a phone (keep it under 400)`);
+    }
     if (ids && ids.includes(String(a.id)) === false) { /* a new one */ }
     return { errors, warnings };
   }
@@ -374,6 +575,18 @@ const BossModel = (() => {
     const k = KINDS.includes(kind) ? kind : 'rain';
     const a = { id, name: name || id, doc: '', kind: k };
     if (k === 'script') return Object.assign(a, { script: 'slam', params: { windup: 1.0, radius: 6.0, damage: 30, knockback: 6, telegraph: 'ring' } });
+    // pass 113 (lane BOSS): a bullet-heaven pattern (boss_attacks_io.py blank() makes the same)
+    if (k === 'pattern') {
+      return Object.assign(a, {
+        projectile: { look: 'burning_tumbleweed', tint: '#FF8A1F', size: 1.0, glow: 1.2, range: 16.0, hit_radius: 0.35, trail: true, wobble: 0.0 },
+        emitters: [{ shape: 'spiral', arms: 3, count: 1, speed: 3.0, rate: 4.0, spin: 30.0, reverse_at: 0.5, aim: 'hero' }],
+        hit: Object.assign({}, DEFAULTS.hit), damage: 0.0, knockback: 0.0, lift: 0.0,
+        timing: { duration: 8.0, clear: 0.6, cooldown: 0.0 },
+        trigger: Object.assign({}, DEFAULTS.trigger), guard: Object.assign({}, DEFAULTS.guard), spent: Object.assign({}, DEFAULTS.spent),
+        tell: Object.assign({}, DEFAULTS.tell), shell: Object.assign({}, DEFAULTS.shell),
+        sounds: { windup: 'en_boss_pattern_warn', fire: 'en_boss_attack', land: '' },
+      });
+    }
     a.projectile = Object.assign({}, DEFAULTS.projectile);
     a.pattern = Object.assign({}, DEFAULTS.pattern);
     if (k === 'rain') a.landing = Object.assign({}, DEFAULTS.landing);
@@ -393,6 +606,8 @@ const BossModel = (() => {
     KINDS, SHAPES, LOOKS, ORDERS, AIMS, CENTERS, TELEGRAPHS, SCRIPTS, DEFAULTS, TOP_DEFAULTS, HERO_RADIUS, LANDING_MODES,
     val, patternFull, topVal, rng, points, smallestGap, landTimes, rainLayout, volleyDirs, ringFront, hitDamage, issues, blank, num,
     isVolley, litAtOnce, windupSeconds, volleyTimes,
+    EMITTER_SHAPES, EMITTER_AIMS, TELL_LOOKS, SHELLS, EMITTER_DEFAULTS, BB_RADIUS, emitterFull, emittersFull, patternDuration, pulling,
+    emitterOn, emitterTurned, emitterAngle, roseDepth, volley, emitterVolleyTimes, simulate, patternDue,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

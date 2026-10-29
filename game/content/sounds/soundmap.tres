@@ -69,6 +69,7 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_stamp.wav" id="56_hak36"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_stage_clear.wav" id="57_2ptiy"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/st_deposit.wav" id="58_v2i6p"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_boss_pattern_warn.wav" id="59_8nlyu"]
 [ext_resource type="AudioStream" path="res://content/sounds/music/mu_title.wav" id="59_ytoq0"]
 [ext_resource type="AudioStream" path="res://content/sounds/music/mu_run_1.wav" id="60_ibn11"]
 [ext_resource type="AudioStream" path="res://content/sounds/music/mu_run_2.wav" id="61_8jmeg"]
@@ -226,6 +227,15 @@ entries = {
 "loop": false,
 "pitch_spread": 0.04,
 "stream": ExtResource("49_fibt7"),
+"voices": 1,
+"volume_db": 0.0
+},
+"en_boss_pattern_warn": {
+"category": "enemy",
+"file": "real/en_boss_pattern_warn.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("59_8nlyu"),
 "voices": 1,
 "volume_db": 0.0
 },

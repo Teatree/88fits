@@ -105,3 +105,8 @@
 .bscale-how p { margin: 5px 0; color: var(--ink-2); }
 .bscale-how b { color: var(--ink); }
 .pcard .bscale-words { margin-top: 0; border-top: 0; }
+
+/* Pass 113 (lane BOSS): a bullet-heaven pattern's emitters, each a box of its own rows */
+.batk-emitter { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px 4px; margin: 0 0 10px; background: var(--surface-2); }
+.batk-emitter-head { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+.batk-emitter-head .spacer { flex: 1; }

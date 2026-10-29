@@ -699,7 +699,7 @@ const SQUAD_DEFAULTS := {
 	"band_from": "edge", "cooldown": 5.2, "first": 1.5, "rise": 0.5, "release": 1.0, "hold": 3.0, "breath_fps": 2.0,
 	"gain": 2.5, "catch_up": 1.5, "leash": 1.2,
 	"hands": {"up": 1.75, "from_up": 1.05, "side": 0.0, "forward": 0.2},
-	"orb": {"speed": 4.0, "range": 17.5, "size": 0.5, "hit_radius": 0.22, "damage_mult": 1.0, "lead": 0.0, "hover": 1.0,
+	"orb": {"aim": "cloud", "speed": 4.0, "range": 17.5, "size": 0.5, "hit_radius": 0.22, "damage_mult": 1.0, "lead": 0.0, "hover": 1.0,
 		"knockback": 0.0, "color": "#2F7BFF", "pulse_hz": 3.0, "pulse": 0.12,
 		"trail": {"every": 0.04, "life": 0.35, "size": 0.6, "alpha": 0.45}},
 	"glow": {"from": 0.2},

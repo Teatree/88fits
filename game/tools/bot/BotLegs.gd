@@ -327,6 +327,20 @@ func danger_push(game: Node, me: Vector3) -> Vector3:
 			if off.length_squared() < 0.0001:
 				off = Vector3(-fly.z, 0.0, fly.x)
 			danger += off.normalized() * 2.0
+	# pass 113 (lane BOSS): a boss's bullet-heaven bullet within 4 m flying at him: a step out of its line, harder the nearer
+	var pats = em.get("patterns")
+	if pats != null and pats.holds():
+		for b: Array in pats.bullets_near(me, 4.0):
+			var db := Vector3(me.x - float(b[0]), 0.0, me.z - float(b[1]))
+			var bv := Vector3(float(b[2]), 0.0, float(b[3]))
+			var l2b := db.length_squared()
+			if l2b < 0.0001 or bv.length_squared() < 0.0001 or db.dot(bv) <= 0.0:
+				continue
+			var bf := bv.normalized()
+			var side_off: Vector3 = db - bf * db.dot(bf)
+			if side_off.length_squared() < 0.0001:
+				side_off = Vector3(-bf.z, 0.0, bf.x)
+			danger += side_off.normalized() * 3.0 / maxf(sqrt(l2b), 0.5)
 	return danger
 
 

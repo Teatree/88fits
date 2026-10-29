@@ -52,7 +52,7 @@ func forward() -> Vector3:
 ## a stand-in for the HUD's numbers: it only writes down what it was handed
 const FAKE_NUMBERS := """extends DamageNumbers
 var calls: Array = []
-func add(i: int, at: Vector3, amount: float, crit: bool = false, green: bool = false, hot: bool = false, mini: bool = false) -> void:
+func add(i: int, at: Vector3, amount: float, crit: bool = false, green: bool = false, hot: bool = false, mini: bool = false, _guarded: bool = false) -> void:
 	calls.append({"i": i, "at": at, "amount": amount, "crit": crit, "green": green, "hot": hot, "mini": mini})
 """
 

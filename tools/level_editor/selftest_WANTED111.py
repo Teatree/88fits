@@ -68,7 +68,7 @@ process.stdin.on('end', () => {
   out.boards = [];
   for (let k = 0; k < stages.length; k++) {
     for (const metAll of [true, false]) {
-      const ctx = WM.contextFrom({ tl, map: 'red_canyon', stage: k, stages, creatures: q.enemies, weapons: q.items.weapons, lines: q.items.lines, hero, P: 0, beaten: false, metAll, seenAll: metAll, unlocksDone: metAll });
+      const ctx = WM.contextFrom({ tl, map: 'red_canyon', stage: k, stages, creatures: q.enemies, weapons: q.items.weapons, lines: q.items.lines, hero, P: 0, beaten: false, metAll, seenAll: metAll, unlocksDone: metAll, passives: q.items.passives, sources: q.sources });
       out.ctx.push({ k, metAll, creatures: ctx.creatures, elite_estimate: ctx.elite_estimate, weapons: ctx.weapons.map((w) => w.id), start: ctx.hero.start, boss: ctx.boss, cards: ctx.cards.map((c) => c.id) });
       const r2 = WM.mulberry32(1000 + k);
       const ch = WM.typeChances(WM.normalized(q.real), ctx);
@@ -119,7 +119,10 @@ def model_checks(check, run_node, server):
     cfg = json.loads(_read(GAME, "content", "wanted", "wanted.json"))
     with open(os.path.join(GAME, "content", "maps", "red_canyon", "red_canyon.json"), "r", encoding="utf-8") as f:
         mp = json.load(f)
-    q = {"cfg": cfg, "real": cfg, "map": mp, "enemies": server.list_creatures(), "items": server.list_items(), "heroes": server.list_heroes()}
+    import wanted_io as WIO
+    # pass 113 (lane TASKS): the heal sources and the Totem Poles come from the power-ups' and structures' files
+    q = {"cfg": cfg, "real": cfg, "map": mp, "enemies": server.list_creatures(), "items": server.list_items(), "heroes": server.list_heroes(),
+         "sources": WIO.sources(server)}
     r = run_node(q, RUNNER) or {}
     if not r:
         check(False, "WANTED111 wanted_model.js ran under Node")

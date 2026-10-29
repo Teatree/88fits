@@ -165,6 +165,10 @@ def clean_condition(srv, cond):
             return None, "beat_stage: no hero %s" % hero
         out["hero"] = hero
         out = {"type": ctype, "map": out["map"], "stage": out["stage"], "hero": out["hero"]}
+    # pass 113 (lane TASKS): the values the game reads (the task types' keys, an item_level inside the item's own levels)
+    prob = VOCAB.condition_problem(out, getattr(srv, "item_top_level", None))
+    if prob:
+        return None, prob
     return out, None
 
 

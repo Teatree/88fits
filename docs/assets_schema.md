@@ -3368,3 +3368,54 @@ Level Editor's Squad block shows them grey). Rules and numbers: BALANCING.md §5
   row, want, fit), squad_pack(def); EnemyManager.squads (Squads: list, cfg_of, spawn_pack, on_spawn, tick, steer,
   intent_of, attack_frame, orbs_node); EnergyOrbs.fire(from, along, speed, range, damage, look, info).
 - Capture: game/tools/_p112_MONK_shots.gd (`-- out=<dir> [only=north,south] [look=MK-A] [preview_views=0|1]`).
+
+## Pass 113 (lane TASKS): seven new task types (quests and Wanted posters)
+
+Rules: BALANCING.md 56.TASKS. Counting: core/systems/TaskTally.gd.
+
+### Quest conditions (`content/quests/<id>/<id>.json` `condition`)
+
+| Type | Key | Type | Default | Meaning |
+|---|---|---|---|---|
+| `damage_with_weapon` | `weapon` | weapon id | (required) | the damage the weapon's family deals (it and its evolution; never overkill) |
+| `heal_with_item` | `item` | card or passive item id | (required) | HP the item restores (life steal, regen, Siesta, Vulture, Cake Slices; its share of the stat; its Risen form counts for it) |
+| `heal_with_source` | `source` | `pickup:<id>` / `structure:<id>` | (required) | HP a power-up (`pickup:heart`) or a structure (`structure:healing_well`) restores; `pickup:` / `structure:` = any of the kind |
+| `element_damage` | `element` | `fire` / `poison` / "" | "" | burn (fire) or poison ticks the hero's side deals; "" both |
+| `barrels_total` | (count only) | | | barrels broken |
+| `totems_total` | (count only) | | | Totem gifts taken |
+| all six | `count` | int >= 1 | (required) | the amount (damage and HP in points) |
+| all six | `in_one_run` | bool | false | true: only one run's counts, progress only while a run is on; false: across runs |
+
+Save totals (`Save.data.totals`, banked at each run's end): `damage_with_weapon` {weapon family base id: damage},
+`heal_with_item` {item family base id: HP}, `heal_with_source` {"pickup:heart": HP}, `element_damage` {fire, poison},
+`barrels`, `totems` (all default 0 / {} on an old save). A pickup's `params.credit_stat` (the Cake Slice:
+`"heal_drop"`): its heal counts for the items giving that stat, not as a power-up.
+
+### Wanted task types (`content/wanted/wanted.json` `tasks`)
+
+`damage_weapon`, `heal_item`, `heal_source`, `item_level`, `barrels`, `totems`, `element_damage` (WantedBoard.TYPES).
+New keys: `target_mult` {target id: factor} on damage_weapon / heal_item / heal_source / element_damage (the range times
+the drawn target's factor, 1 when absent; WantedBoard.TARGET_FIRST rolls those numbers after the target); `min_level`
+(item_level, default 2: N from it to the item's own top level); `start_weight` on damage_weapon (3) and item_level (1);
+`other_bonus` on damage_weapon; `max` and `growth` as for the other types. Text placeholders: `{targets}` (heal_source:
+"Hearts", "Healing Wells"), `{element}` (element_damage: fire / poison). Poster stills: `{kind: passive | pickup |
+structure, id}`, `{kind: art, id: barrel | poison | fire}` (WPoster.ART; a structure draws its map painting
+art/sprites/props/st_<id>.png, else its icon).
+
+### Code and editor
+
+Game: QuestDef header; QuestTracker `_satisfied`, `progress`, `stage_hint`, `picture` / `picture_of`; TextGen
+`quest_task_text`, `plural_name`; WantedBoard `_task_context` (passive_items, heal_items, heal_sources, totem_poles,
+elements), `targets_of`, `make_contract`, `target_range`; WantedRun `progress`; WPoster `still_texture` (passive, pickup,
+structure, the new art), `with_picture` (the Collection's and the hero sheet's quest words); Run `element_damage`,
+`healed_by_item`, `healed_by_source`, `barrels_broken`, `totems_taken`, `tasks_banked`, `add_damage(id, amount,
+element)`; Player.heal(amount, source, credit); RunAnalytics header `tasks`; sim_run meta `tasks`.
+Level Editor: assets_fields.js questTypes (+6), questElements, QUEST_ROWS `condition.item` (kind heal_item),
+`condition.source` (kind heal_source), `condition.element`, `condition.in_one_run`, `condition.level`'s `limits`
+(itemLevelLimits); forms.js `limits` {min, max, hint}; assets_model.js questTaskText, questPicture, passiveHeals,
+itemTopLevel; tasks.js (TaskPics: the pickers, the Picture row under every quest editor); vocab.py QUEST_TYPES (+6),
+QUEST_ELEMENTS, QUEST_SOURCE_KINDS, item_top_level, condition_problem (used by server.py's hero and item ops and
+skins_io); server.py item_top_level, references_to by `condition.item`; wanted_model.js / wanted.js (the seven types,
+own factors, Min level, Max), wanted_io.py TYPES (+7), GET /api/wanted/sources, GET /api/wanted/structure_icon/<id>,
+art folder `sources`. Tests: game/tests/pass113_TASKS_test.gd, tools/level_editor/selftest_TASKS113.py.
+Capture: game/tools/_p113_TASKS_shots.gd (`-- out=<dir>`).

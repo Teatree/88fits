@@ -1,0 +1,92 @@
+[gd_resource type="Resource" script_class="BossAttackDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/BossAttackDef.gd" id="1_pppjt"]
+
+[resource]
+script = ExtResource("1_pppjt")
+attack_kind = "pattern"
+doc = "The Gila Grande's bullet heaven. VENOM MONSOON across the screen, the sand darkens round her, she rears up and her throat swells and glows purple; then for 7 s she sprays big, slow, wobbling venom blobs in a fan that sweeps left and right like a garden sprinkler, its middle always swinging across wherever you stand, and every second sweep adds a second, offset fan. The blobs leave little purple puddles where they fade (only a look). Her scales glow like armour: 80% less damage until it ends, then she collapses panting for 2.5 s taking 50% more. Not before 15 s into the fight; the first when she falls under 60% HP (or 45 s in at the latest); then 45 s after the last one."
+projectile = {
+"glow": 1.2,
+"hit_radius": 0.42,
+"look": "venom_blob",
+"range": 22.0,
+"size": 1.0,
+"tint": "#A93BEA",
+"trail": true,
+"wobble": 0.6
+}
+timing = {
+"clear": 0.6,
+"cooldown": 0.0,
+"duration": 7.0
+}
+sounds = {
+"fire": "en_cactus_spit",
+"land": "",
+"windup": "en_boss_pattern_warn"
+}
+damage = 0.0
+knockback = 0.0
+emitters = [{
+"aim": "track",
+"count": 5.0,
+"rate": 2.8,
+"shape": "sweep",
+"speed": 2.8,
+"spread_deg": 56.0,
+"sweep_deg": 150.0,
+"sweep_hz": 0.25
+}, {
+"aim": "track",
+"count": 4.0,
+"offset_deg": 50.0,
+"pulse_at": 2.0,
+"pulse_every": 4.0,
+"pulse_on": 2.0,
+"rate": 2.4,
+"shape": "sweep",
+"speed": 2.4,
+"spread_deg": 40.0,
+"sweep_deg": 150.0,
+"sweep_hz": 0.25
+}]
+hit = {
+"hit_frac": 0.12
+}
+trigger = {
+"cooldown": 45.0,
+"first_after": 15.0,
+"first_at_hp": 0.6,
+"first_by": 45.0
+}
+guard = {
+"color": "#B9C3CE",
+"share": 0.8
+}
+spent = {
+"damage_taken": 1.5,
+"seconds": 2.5,
+"still": true
+}
+tell = {
+"banner": "VENOM MONSOON",
+"banner_color": "#A93BEA",
+"duck_db": -14.0,
+"look": "rear",
+"ring_alpha": 0.6,
+"ring_color": "#140A16",
+"ring_radius": 9.5,
+"seconds": 2.0
+}
+shell = {
+"color": "#C77DFF",
+"height": 6.0,
+"look": "scales",
+"radius": 3.0,
+"sigil_color": "#FF6A1A",
+"sigil_radius": 0.0
+}
+id = "venom_monsoon"
+display_name = "Venom Monsoon"
+icon_file = "venom_monsoon_icon.png"

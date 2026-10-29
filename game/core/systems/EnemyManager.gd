@@ -2137,6 +2137,15 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	if i < 0 or i >= pool_max or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return false
 	var dealt: float = amount * (1.0 - dr[i])
+	# pass 113 (lane BOSS): a creature in a bullet-heaven pattern is guarded (x its guard: grey numbers, a grey spark) or
+	# spent (x its spent damage) (BossPatterns.mult)
+	var guarded := false
+	if patterns != null and not patterns.mult.is_empty() and patterns.mult.has(i):
+		var pmul: float = patterns.mult[i]
+		dealt *= pmul
+		if pmul < 1.0:
+			guarded = true
+			patterns.guard_spark(i)
 	# Big Game Hunter (pass 47): more on a boss, an Elite or an elite-modded creature, from all the hero sends (the
 	# revive's flat tenth and a dead rocketeer's loose rocket are not his to aim)
 	_pstats()
@@ -2185,7 +2194,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 			crit = true
 			# Vulture (pass 47c): a crit may heal the hero a little
 			if _crit_heal > 0.0 and randf() < _crit_heal * tpm and game and game.player and not game.player.dead:
-				game.player.heal(game.player.max_hp * CRIT_HEAL_FRAC, "Vulture")
+				# pass 113 (lane TASKS): credited to the items that give crit_heal_chance (TaskTally)
+				game.player.heal(game.player.max_hp * CRIT_HEAL_FRAC, "Vulture", "stat:crit_heal_chance")
 		# Cold Snap (pass 47c): a weapon hit may freeze the creature for a second, never a boss
 		if _freeze_chance > 0.0 and i != boss_index and randf() < _freeze_chance * tpm:
 			freeze(i, FREEZE_SECONDS)
@@ -2199,7 +2209,7 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	var hp_before: float = hp[i]
 	hp[i] -= dealt
 	# the floating number over it (pass 46): one call, nothing when the HUD has no numbers up (tools, tests, the setting off)
-	if DamageNumbers.I: DamageNumbers.I.add(i, pos[i] + Vector3(0, size[i] * 1.2 + lift_h[i], 0), dealt, crit, green, hot, mini)
+	if DamageNumbers.I: DamageNumbers.I.add(i, pos[i] + Vector3(0, size[i] * 1.2 + lift_h[i], 0), dealt, crit, green, hot, mini, guarded)
 	flash[i] = 1.0
 	flash_green[i] = 1 if green else 0
 	flash_hot[i] = 1 if hot else 0
@@ -2210,7 +2220,9 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		# recorded up to what it had left (pass 48: a 500 hit on 20 HP is 20 dealt; a zero ring records nothing)
 		var rec := minf(dealt, maxf(hp_before, 0.0))
 		if rec > 0.0:
-			Run.add_damage(weapon_id, rec)
+			# pass 113 (lane TASKS): a burn's tick (hot) is fire damage, a poison's (green) poison damage; a hostile hit
+			# (HOSTILE_PUSH_IDS) never counts as the hero's
+			Run.add_damage(weapon_id, rec, "" if not (hot or green) or weapon_id in HOSTILE_PUSH_IDS else ("fire" if hot else "poison"))
 	# Guillotine: a weapon hit finishes anything but a boss that is already below the threshold
 	_hit_stats()
 	if _hs_exec > 0.0 and hp[i] > 0.0 and weapon_id != "" and i != boss_index and str((types[type_idx[i]]["def"] as EnemyDef).archetype) != "boss":
@@ -5291,6 +5303,9 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_custom_attacks(delta, ppos)
 	# pass 95 (lane BOSS): the King's stomps under way (the hops and the landings)
 	_tick_stomps(delta, ppos)
+	# pass 113 (lane BOSS): the bullet-heaven patterns under way (the tell, the bullets, spent)
+	if patterns != null:
+		patterns.tick(delta, ppos)
 	if boss_index >= 0:
 		_update_attacks(boss_index, delta, ppos)
 	for i in range(pool_max):
@@ -5324,6 +5339,10 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 		vel[i] = Vector3.ZERO
 		return
 	var def: EnemyDef = types[type_idx[i]]["def"]
+	# pass 113 (lane BOSS): a bullet-heaven pattern under way owns the creature (the cycle waits); one that is due starts
+	# here, between attacks (BossPatterns.step)
+	if _pattern_step(i, def, delta, ppos):
+		return
 	var attacks: Array = def.boss.get("attacks", [])
 	# pass 72 (lane BOSS): the entries naming a custom attack (content/boss_attacks) resolved
 	attacks = custom_resolved(def, attacks)
@@ -6820,8 +6839,11 @@ func custom_resolved(def: EnemyDef, attacks: Array) -> Array:
 	for a in attacks:
 		var cdef: BossAttackDef = custom_attack_of(str((a as Dictionary).get("name", ""))) if a is Dictionary else null
 		if cdef != null:
-			out.append(cdef.runner_entry(a))
 			any = true
+			# pass 113 (lane BOSS): a bullet-heaven pattern is never in the cycle: its own trigger plays it (BossPatterns)
+			if cdef.is_pattern():
+				continue
+			out.append(cdef.runner_entry(a))
 		else:
 			out.append(a)
 	var res: Array = out if any else attacks
@@ -6845,6 +6867,40 @@ func _custom_fx_node() -> BossAttackFx:
 		_custom_fx.name = "BossAttackFx"
 		add_child(_custom_fx)
 	return _custom_fx
+
+
+## Pass 113 (lane BOSS): the bullet-heaven patterns (BossPatterns; content/boss_attacks kind "pattern"), made the first
+## time a creature whose script names one runs its script; null until then.
+var patterns: BossPatterns = null
+## a def's instance id -> whether its boss.attacks names a pattern (a script without one never makes the runner)
+var _pattern_has: Dictionary = {}
+
+
+## The attack runner's first question (_update_attacks): true while a pattern owns creature `i` (the cycle waits) or one
+## that is due starts now (BossPatterns.step).
+func _pattern_step(i: int, def: EnemyDef, delta: float, ppos: Vector3) -> bool:
+	if patterns == null:
+		var key: int = def.get_instance_id()
+		var has = _pattern_has.get(key)
+		if has == null:
+			has = false
+			for a in def.boss.get("attacks", []):
+				if not (a is Dictionary):
+					continue
+				var cdef: BossAttackDef = custom_attack_of(str((a as Dictionary).get("name", "")))
+				if cdef != null and cdef.is_pattern():
+					has = true
+					break
+			_pattern_has[key] = has
+		if not bool(has):
+			return false
+		patterns = BossPatterns.new(self)
+	return patterns.step(i, def, delta, ppos)
+
+
+## Whether a bullet-heaven pattern is under way: the boss-fight window's rows and the director's boss-fight spawns wait.
+func pattern_holds() -> bool:
+	return patterns != null and patterns.holds()
 
 
 ## The wind-up of a custom attack (the runner has set its timer: the wind-up x 1/pace): its aim and centre are fixed now,

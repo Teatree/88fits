@@ -84,6 +84,8 @@ boss = {
 "stomps": 3.0,
 "telegraph": "ring",
 "windup": 1.2
+}, {
+"name": "royal_dust_devil"
 }],
 "cooldown_between": 2.0,
 "hp_mult_per_stage": 2.0

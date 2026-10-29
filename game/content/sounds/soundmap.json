@@ -436,6 +436,13 @@
       "volume_db": -3,
       "file": "real/en_boss_attack.wav"
     },
+    "en_boss_pattern_warn": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": 0,
+      "file": "real/en_boss_pattern_warn.wav"
+    },
     "en_boss_die": {
       "category": "enemy",
       "voices": 1,

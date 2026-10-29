@@ -170,6 +170,13 @@ func _build(game: Node) -> void:
 		var sm := ShaderMaterial.new()
 		sm.shader = sh
 		_quad(sm)
+	# pass 113 (lane TWISTER): a small tornado (the funnel, skirt and debris shaders: the map's dust devils and the King's
+	# Royal Dust Devil) and a dust devil's ring on the ground
+	add_child(TornadoFx.warm_instance())
+	var ring_m := ShaderMaterial.new()
+	ring_m.shader = DustDevil.RING_SHADER
+	ring_m.set_shader_parameter("alpha", 0.5)
+	_quad(ring_m)
 	# the nodes that appear mid-run
 	var chest := Chest.new()
 	add_child(chest)

@@ -417,8 +417,37 @@ func set_boss_hp(hp: float, max_hp: float) -> void:
 	_boss_bar.value = hp / maxf(max_hp, 1.0)
 
 
+## Pass 113 (lane BOSS; Garry's spec: "The guard must read"): the boss's bar through his bullet-heaven pattern (BossPatterns):
+## 0 as ever (rock red), 1 guarded (grey, GUARDED in it: he shrugs most of every hit off), 2 spent (brass, DAZED in it: he
+## takes extra). The mode now is `boss_guard`.
+const BOSS_GUARD_FILL := Color("8e959c")
+const BOSS_DAZED_FILL := Color("e0a63a")
+var boss_guard := 0
+
+
+func set_boss_guard(mode: int) -> void:
+	boss_guard = mode
+	if _boss_bar == null:
+		return
+	match mode:
+		1:
+			_boss_bar.fill = BOSS_GUARD_FILL
+			_boss_bar.text = "GUARDED"
+		2:
+			_boss_bar.fill = BOSS_DAZED_FILL
+			_boss_bar.text = "DAZED"
+		_:
+			_boss_bar.fill = W.ROCK
+			_boss_bar.text = ""
+	_boss_bar.text_color = W.INK
+	# (inside the 30 px bar's 22 px fill)
+	_boss_bar.text_px = 18
+	_boss_bar.queue_redraw()
+
+
 func hide_boss() -> void:
 	_boss_box.visible = false
+	set_boss_guard(0)
 	_layout_toasts()
 
 

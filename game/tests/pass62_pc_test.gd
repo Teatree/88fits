@@ -64,8 +64,9 @@ func test_stage_one_is_garrys_as_he_left_it() -> void:
 		# Elites-every row runs into endless as its event did); only the continuous and waves rows end in the stage
 		if str(r.get("pace", "")) == "once" or str(r.get("elite", "")) != "":
 			continue
-		# no stage-1 row was stretched past 7:10
-		assert_float(float(r.get("until", 1e9))).override_failure_message(id + " until").is_less_equal(STAGE)
+		# no stage-1 row was stretched past 7:10 (pass 113 re-pin: Garry's own r54 ends at 7:11, a second into the boss's
+		# fight, so a second past the stage is his to keep)
+		assert_float(float(r.get("until", 1e9))).override_failure_message(id + " until").is_less_equal(STAGE + 1.0)
 		assert_float(float(r.get("until", 1e9))).override_failure_message(id + " until").is_greater(float(r.get("t", 0.0)))
 	# his events to 7:10, the King at 430 closing them
 	var king := false

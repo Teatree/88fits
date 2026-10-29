@@ -849,9 +849,12 @@ func _apply_hell(f: float) -> void:
 
 
 func _build_movers() -> void:
-	var dd := DustDevil.new()
-	dd.loop_center = flats_center + Vector3(6, 0, 4)
-	add_child(dd)
+	# pass 113 (lane TWISTER): the dust devils come now and then and go again (the clock: core/systems/DustDevils.gd, the
+	# map's timeline_data.dust_devils); the one that circled the flats all run is gone
+	var dds := DustDevils.new()
+	dds.name = "DustDevils"
+	dds.map = self
+	add_child(dds)
 	# gusts of dusty wind now and then (pass 44), the look of the desert and nothing else
 	var gust := DustGust.new()
 	gust.name = "DustGust"
@@ -866,7 +869,7 @@ func _build_movers() -> void:
 
 func bind_game(game: Node) -> void:
 	for c in get_children():
-		if c is DustDevil or c is DustGust:
+		if c is DustDevils or c is DustGust:
 			c.game = game
 
 

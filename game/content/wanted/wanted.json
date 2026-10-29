@@ -21,6 +21,13 @@
     {"type": "max_weapon", "on": true, "weight": 7, "difficulty": [1.5, 1.5], "start_weight": 3, "other_bonus": 1.0, "name": "{target}", "text": "Get it to Lv {n}"},
     {"type": "evolve_item", "on": true, "weight": 5, "difficulty": [2.5, 4.0], "start_weight": 1, "name": "{target}", "text": "Evolve it"},
     {"type": "open_chests", "on": true, "weight": 8, "difficulty": [1.0, 2.5], "n": [[4, 8], [6, 11], [8, 14]], "step": 1, "name": "Chests", "text": "Open {n} chests"},
-    {"type": "collect_coins", "on": true, "weight": 8, "difficulty": [1.0, 2.5], "n": [[250, 600], [400, 900], [600, 1300]], "step": 25, "name": "Gold", "text": "Collect {n} gold"}
+    {"type": "collect_coins", "on": true, "weight": 8, "difficulty": [1.0, 2.5], "n": [[250, 600], [400, 900], [600, 1300]], "step": 25, "name": "Gold", "text": "Collect {n} gold"},
+    {"type": "damage_weapon", "on": true, "weight": 8, "difficulty": [1.0, 3.0], "n": [[12000, 36000], [20000, 60000], [30000, 90000]], "step": 1000, "start_weight": 3, "other_bonus": 1.0, "name": "{target}", "text": "Deal {n} damage with it"},
+    {"type": "heal_item", "on": true, "weight": 5, "difficulty": [1.5, 3.5], "n": [[60, 180], [80, 240], [100, 300]], "step": 10, "target_mult": {"thirst": 1.5, "mend": 1.0, "hot_springs": 0.7, "vulture": 0.4, "siesta": 0.3, "cake": 0.2}, "name": "{target}", "text": "Restore {n} HP with it"},
+    {"type": "heal_source", "on": true, "weight": 4, "difficulty": [1.0, 3.0], "n": [[30, 100], [40, 130], [50, 160]], "step": 5, "target_mult": {"healing_well": 0.6}, "name": "{target}", "text": "Restore {n} HP with {targets}"},
+    {"type": "item_level", "on": true, "weight": 6, "difficulty": [1.0, 3.0], "min_level": 2, "start_weight": 2, "name": "{target}", "text": "Get it to Lv {n}"},
+    {"type": "barrels", "on": true, "weight": 6, "difficulty": [1.0, 3.0], "n": [[8, 20], [10, 24], [12, 28]], "step": 1, "max": 40, "growth": 0.1, "name": "Barrels", "text": "Break {n} barrels"},
+    {"type": "totems", "on": true, "weight": 6, "difficulty": [1.0, 3.0], "n": [[3, 6], [4, 7], [4, 8]], "step": 1, "name": "Totems", "text": "Take {n} Totem gifts"},
+    {"type": "element_damage", "on": true, "weight": 5, "difficulty": [1.5, 3.5], "n": [[3000, 10000], [5000, 16000], [8000, 24000]], "step": 500, "name": "{target}", "text": "Deal {n} {element} damage"}
   ]
 }

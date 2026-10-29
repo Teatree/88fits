@@ -807,20 +807,20 @@
       },
       {
         "id": "r55",
-        "t": 315,
-        "until": 332,
+        "t": 317,
+        "until": 334,
         "enemy": "werewolf",
         "weights": [
           [
-            315,
+            317,
             5.4
           ],
           [
-            376,
+            378,
             10.1
           ],
           [
-            407,
+            409,
             10.6
           ]
         ],
@@ -835,7 +835,7 @@
         },
         "pattern": "ring",
         "pace": "waves",
-        "every": 5,
+        "every": 15,
         "count": 50,
         "role": "fodder"
       },
@@ -981,6 +981,25 @@
         "role": "fodder"
       },
       {
+        "id": "r62",
+        "t": 355,
+        "enemy": "monk",
+        "weights": [
+          [
+            356,
+            1.2
+          ]
+        ],
+        "until": 368,
+        "pattern": "pack",
+        "pack": 20,
+        "role": "swarm",
+        "pace": "once",
+        "stats": {
+          "damage_mult": 2
+        }
+      },
+      {
         "id": "r15",
         "t": 306,
         "enemy": "bull_beetle",
@@ -1002,15 +1021,15 @@
       },
       {
         "id": "r54",
-        "t": 357,
+        "t": 399,
         "enemy": "spit_cactus",
         "weights": [
           [
-            358,
+            400,
             1.2
           ]
         ],
-        "until": 430,
+        "until": 431,
         "pattern": "scatter",
         "pack": 1,
         "interval": 6,
@@ -1050,7 +1069,7 @@
       {
         "id": "r16",
         "t": 368,
-        "enemy": "dust_mummy",
+        "enemy": "cyclopean_mummy",
         "weights": [
           [
             368,
@@ -1062,15 +1081,15 @@
           "hp": 20,
           "size": 2.0,
           "hp_mult": 10,
-          "speed": 1.75
+          "speed": 1.75,
+          "damage_mult": 3
         },
         "pattern": "ring",
         "pack": 7,
         "pace": "waves",
         "every": 5,
         "count": 5,
-        "role": "fodder",
-        "variant": "DM-F"
+        "role": "fodder"
       },
       {
         "id": "r19",
@@ -2412,6 +2431,30 @@
       "chest_chance": 1.0,
       "max_alive": 1,
       "damage": 3.5
+    },
+    "dust_devils": {
+      "enabled": true,
+      "first": 90,
+      "every": [
+        120,
+        180
+      ],
+      "life": [
+        20,
+        30
+      ],
+      "max_alive": 1,
+      "radius": 2.4,
+      "speed": 1.4,
+      "wander": "cross",
+      "form_seconds": 2.5,
+      "fade_seconds": 2.0,
+      "toss": {
+        "up": 8.0,
+        "out": 3.6,
+        "cooldown": 1.2
+      },
+      "lift": 1.7
     },
     "barrels": {
       "respawn": {

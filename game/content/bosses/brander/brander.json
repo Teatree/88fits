@@ -73,6 +73,9 @@
         "enemy": "imp",
         "count": 14,
         "telegraph": "none"
+      },
+      {
+        "name": "hellbrand_mandala"
       }
     ],
     "cooldown_between": 2.0

@@ -273,6 +273,10 @@ func far_speed_cfg() -> Dictionary:
 ## lays barrels again off the screen and what each barrel type holds (core/systems/BarrelSpawns.gd; read as it is, its
 ## RESPAWN_DEFAULTS and CONTENT_DEFAULTS fill gaps; no block = today's barrels: no respawn, no power-up).
 @export var barrels: Dictionary = {}
+## Pass 113 (lane TWISTER; Garry: tornadoes "quite confusing. Make them rarer too"): the dust devils' clock and numbers
+## (core/systems/DustDevils.gd; read as it is, DustDevils.DEFAULTS fill gaps; no block = the defaults: one every two to
+## three minutes from 1:30 of a stage, each 20 to 30 s).
+@export var dust_devils: Dictionary = {}
 
 
 ## One number of despawn (pass 95): the map's, else DESPAWN_DEFAULTS' ("enabled" as 1 / 0).

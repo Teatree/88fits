@@ -69,7 +69,16 @@ const AFIELDS = (() => {
       opt('evolve_item', 'evolve an item', '{id} or {kind}: a weapon at a chest, a card into its Risen card, a passive item onto Evolved'), opt('weapon_paths', 'all of a weapon\'s mutations', '{weapon?} in one run'),
       opt('items_maxed', 'items at max level at once', '{kind, count}'),
       // pass 111 (lane SKINS): a stage's boss killed in a run of that stage
-      opt('beat_stage', 'beat a stage (with a hero)', '{map, stage, hero?}: that stage\'s boss killed in a run of that stage, with that hero (empty = any hero)')],
+      opt('beat_stage', 'beat a stage (with a hero)', '{map, stage, hero?}: that stage\'s boss killed in a run of that stage, with that hero (empty = any hero)'),
+      // pass 113 (lane TASKS): across runs (the run going on counts too), or in one run with "In one run" ticked
+      opt('damage_with_weapon', 'damage with a weapon', '{weapon, count}: the damage the weapon and its evolution deal (never overkill)'),
+      opt('heal_with_item', 'HP restored by an item', '{item, count}: life steal, regen, Siesta, Vulture or Cake Slices from that card or passive item (its share when others heal the same way)'),
+      opt('heal_with_source', 'HP restored by a power-up or structure', '{source, count}: "pickup:heart" the Heart, "structure:healing_well" the Healing Well ("pickup:" any power-up)'),
+      opt('element_damage', 'fire or poison damage', '{element, count}: burns (fire) or poison ticks the hero\'s side deals (empty = both)'),
+      opt('barrels_total', 'barrels broken', '{count}'),
+      opt('totems_total', 'Totem gifts taken', '{count}: a gift taken at a Totem Pole')],
+    // pass 113 (lane TASKS): the elements the fire / poison quests take
+    questElements: [opt('fire', 'fire', 'burns'), opt('poison', 'poison', 'poison ticks'), opt('', 'both', 'fire and poison together')],
     questItemKinds: [opt('any', 'any item'), opt('weapon'), opt('card', 'card', 'a line (its Risen form counts it maxed)'), opt('passive', 'passive item', 'climbs the rarity ladder')],
     questRungs: [opt('', 'none: use Level'), opt('uncommon'), opt('rare'), opt('epic'), opt('legendary'), opt('evolved', 'Evolved', 'the top rung')],
     screens: [opt('', 'by the placeholder colour'), opt('green'), opt('blue')],
@@ -526,7 +535,7 @@ const AFIELDS = (() => {
       { key: 'catch_up', label: 'Catch-up x', type: 'number', min: 1, step: 0.1, def: 1.5, help: 'at most this x its own walk' },
       { key: 'leash', label: 'Leash (m)', type: 'number', min: 0.1, step: 0.1, def: 1.2, help: 'the centre waits when its members are this far behind it' },
       { key: 'hands', label: 'Hands', type: 'json', help: '{up 1.75, from_up 1.05, side 0, forward 0.2}: where the glow gathers, metres at the creature\'s size (as a muzzle), rising from from_up to up with the hands' },
-      { key: 'orb', label: 'Sphere', type: 'json', help: '{speed 4, range 17.5, size 0.5, hit_radius 0.22, damage_mult 1, lead 0, hover 1, knockback 0, color "#2F7BFF", pulse_hz 3, pulse 0.12, trail {every 0.04, life 0.35, size 0.6, alpha 0.45}}: flies straight on the creatures\' shot clock, through every creature, hurts only the hero (its damage x the creature\'s), gone at range m' },
+      { key: 'orb', label: 'Sphere', type: 'json', help: '{aim "cloud" (pass 113: the volley flies as one cloud, every sphere on the line from its centre to the hero; "each" = every sphere at the hero on its own), speed 4, range 17.5, size 0.5, hit_radius 0.22, damage_mult 1, lead 0, hover 1, knockback 0, color "#2F7BFF", pulse_hz 3, pulse 0.12, trail {every 0.04, life 0.35, size 0.6, alpha 0.45}}: flies straight on the creatures\' shot clock, through every creature, hurts only the hero (its damage x the creature\'s), gone at range m' },
       { key: 'glow', label: 'Glow', type: 'json', help: '{from 0.2}: the gathering glow starts at this share of the sphere\'s size' },
     ] },
     flee_on_hit: { label: 'Flee on hit', help: 'any creature: a hit that lands (never a poison or fire tick) sends it running straight away from the hero for Runs for s at its speed × Speed ×; with Spoils its attack it drops a wind-up, aim or scripted attack under way (that shot never comes). A new hit starts the run again (never faster). Never a boss', rows: [
@@ -983,21 +992,46 @@ const AFIELDS = (() => {
     ]),
   );
 
+  // pass 113 (lane TASKS): the task quests (they take "In one run")
+  const TASK_TYPES = ['damage_with_weapon', 'heal_with_item', 'heal_with_source', 'element_damage', 'barrels_total', 'totems_total'];
+  /** Pass 113 (Garry: "Upgrade Item to N Level (any item, only available levels)"): an item_level quest that names an item
+   *  asks only for its own levels, 1 .. its top (a weapon's max level, a card's, a passive item's rarity ladder); {} when
+   *  it names none or a rung (the rung list stays as it is). Read by Forms.control (`limits`). */
+  function itemLevelLimits(q) {
+    const c = (q && q.condition) || {};
+    if (c.type !== 'item_level' || !c.id || c.rung) return {};
+    const fl = typeof Assets !== 'undefined' && Assets.flatItems ? Assets.flatItems() : null;
+    if (!fl) return {};
+    const w = fl.weapons.find((x) => x.id === c.id) || (fl.evolutions || []).find((x) => x.id === c.id);
+    const p = w ? null : fl.passives.find((x) => x.id === c.id);
+    const rec = w || p;
+    if (!rec || typeof AssetsModel === 'undefined') return {};
+    const top = AssetsModel.itemTopLevel(rec, w ? 'weapon' : 'passive');
+    return { min: 1, max: top, hint: `1 to ${top} for ${rec.name || rec.id}` };
+  }
+
   const QUEST_ROWS = [
     { key: 'name', label: 'Name', type: 'text', help: 'the quest\'s title' },
     { key: 'condition.type', label: 'Condition', type: 'select', options: (v) => v.questTypes, def: 'kills_total', help: 'QuestTracker._satisfied; a new type needs code: ask Claude' },
-    { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total', 'items_maxed'].includes((q.condition || {}).type) },
+    { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total', 'items_maxed'].concat(TASK_TYPES).includes((q.condition || {}).type), help: 'pass 113: damage and HP are points (50000 = "Deal 50,000 damage")' },
     { key: 'condition.enemy', label: 'Creature', type: 'enemy', only: (q) => ['kills_of_enemy', 'kills_in_run_of_enemy'].includes((q.condition || {}).type) },
-    { key: 'condition.weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', only: (q) => ['kills_with_weapon', 'weapon_paths'].includes((q.condition || {}).type), help: 'weapon_paths: empty = any weapon' },
+    { key: 'condition.weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', only: (q) => ['kills_with_weapon', 'weapon_paths', 'damage_with_weapon'].includes((q.condition || {}).type), help: 'weapon_paths: empty = any weapon; damage_with_weapon: the weapon and its evolution count together' },
     { key: 'condition.map', label: 'Map', type: 'select', options: (v) => v.maps, def: 'red_canyon', only: (q) => ['extract_after_stage', 'kill_boss', 'beat_stage'].includes((q.condition || {}).type), help: 'the map (pass 111: a select of the map folders)' },
     { key: 'condition.stage', label: 'Stage', type: 'int', min: 1, only: (q) => ['extract_after_stage', 'kill_boss', 'reach_stage', 'beat_stage'].includes((q.condition || {}).type), help: 'counted from 1 (beat_stage: 1 Sundown, 2 Nightfall, 3 Blood Moon on Red Canyon: the map\'s stage_list)' },
-    { key: 'condition.level', label: 'Level', type: 'int', min: 1, only: (q) => ['reach_level', 'hero_level', 'item_level'].includes((q.condition || {}).type) },
+    { key: 'condition.level', label: 'Level', type: 'int', min: 1, only: (q) => ['reach_level', 'hero_level', 'item_level'].includes((q.condition || {}).type),
+      // pass 113 (lane TASKS): an item_level quest naming an item can only ask for that item's own levels (1 .. its top)
+      limits: (q) => itemLevelLimits(q) },
     { key: 'condition.minutes', label: 'Minutes', type: 'number', min: 0, only: (q) => ['survive_minutes', 'survive_minutes_no_lift'].includes((q.condition || {}).type) },
     // pass 100 (lane QUESTS): the build quests' fields
     { key: 'condition.hero', label: 'Hero', type: 'id_select', kind: 'hero', only: (q) => ['hero_level', 'beat_stage'].includes((q.condition || {}).type), help: 'the hero the level is reached (or the stage beaten) with (pick one the player can own: a chain on a later quest dead-ends); beat_stage: empty = any hero' },
     { key: 'condition.kind', label: 'Item kind', type: 'select', options: (v) => v.questItemKinds, def: 'any', only: (q) => ['item_level', 'evolve_item', 'items_maxed'].includes((q.condition || {}).type), help: 'which items count; an Item below wins over it' },
     { key: 'condition.id', label: 'Item', type: 'id_select', kind: 'any_item', only: (q) => ['item_level', 'evolve_item'].includes((q.condition || {}).type), help: 'empty = any item of the kind; a weapon, a card or a passive item (an evolved form\'s id works too)' },
     { key: 'condition.rung', label: 'Rung', type: 'select', options: (v) => v.questRungs, def: '', only: (q) => (q.condition || {}).type === 'item_level', help: 'passive items only: the rarity rung to reach (their level count differs by rarity: common 6 .. epic 3); set, it replaces Level' },
+    // pass 113 (lane TASKS): the task quests' fields (QuestDef's header; TaskTally counts them)
+    { key: 'condition.item', label: 'Healing item', type: 'id_select', kind: 'heal_item', only: (q) => (q.condition || {}).type === 'heal_with_item', help: 'a card or passive item that heals (its levels give life steal, regen, Siesta\'s stand-still regen, Vulture\'s crit heal or Cake Slices); its Risen form counts for it' },
+    { key: 'condition.source', label: 'Heal source', type: 'id_select', kind: 'heal_source', only: (q) => (q.condition || {}).type === 'heal_with_source', help: 'a healing power-up (the Heart) or a healing structure (the Healing Well) this game has, or "any power-up" / "any structure" (a Cake Slice is Cake\'s: a Healing item quest)' },
+    { key: 'condition.element', label: 'Element', type: 'select', options: (v) => v.questElements, def: 'fire', only: (q) => (q.condition || {}).type === 'element_damage', help: 'fire = burns, poison = poison ticks (both = together)' },
+    { key: 'condition.in_one_run', label: 'In one run', type: 'bool', def: false, only: (q) => TASK_TYPES.includes((q.condition || {}).type), help: 'ticked: only what one run does counts, and the progress shows only while a run is on; unticked: every run adds to it' },
     { key: 'quest_text', label: 'Quest text', type: 'textarea', help: 'optional: TextGen writes one when empty' },
   ];
 
@@ -1294,7 +1328,7 @@ const AFIELDS = (() => {
   const api = {
     VOCAB, statOptions, statKnown, statSetFor, playerStats, weaponStats, BASE_DEFAULTS, BASE_KEYS, PARAMS_KEYS, PARAMS_SHARED, paramsKnown,
     BLOCKS, BLOCK_ORDER, ATTACK_COMMON, ATTACKS, ATTACK_NAMES, attackOptions, attackTelegraph,
-    enemy, hero, weapon, evolution, passive, mutation, QUEST_ROWS, SECTIONS, RECIPES, WORDINGS, RULES, options, table, hexToHsv,
+    enemy, hero, weapon, evolution, passive, mutation, QUEST_ROWS, TASK_TYPES, itemLevelLimits, SECTIONS, RECIPES, WORDINGS, RULES, options, table, hexToHsv,
     // pass 69 (lane LE)
     perk, PARAM_GROUPS, paramGroupsFor, paramInherited, isBall, PERK_SPECIALS, PERK_PARAM_HELP, perkSpecialOptions, perkSpecialTable,
     // pass 95 (lane PASSIVES): the passive items' rarity ladder

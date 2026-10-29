@@ -94,6 +94,12 @@ static func _satisfied(q: QuestDef, in_run: bool) -> bool:
 				return false
 			var rp := run_progress(q)
 			return rp.y > 0 and rp.x >= rp.y
+		# pass 113 (lane TASKS): damage, healing, barrels, Totem gifts, fire and poison (TaskTally): the save's banked part
+		# and the run's part not banked yet, or the run's alone with `in_one_run`
+		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total":
+			if bool(c.get("in_one_run", false)) and not in_run:
+				return false
+			return TaskTally.amount(c) >= float(int(c.get("count", 0)))
 	return false
 
 
@@ -126,6 +132,11 @@ static func progress(q: QuestDef) -> Vector2i:
 		# record's before and after); outside a run they have none, like reach_level
 		"hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed":
 			return run_progress(q) if Run.active else Vector2i.ZERO
+		# pass 113 (lane TASKS): across runs (the run going on adds its part), or only while a run is on with `in_one_run`
+		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total":
+			if bool(c.get("in_one_run", false)) and not Run.active:
+				return Vector2i.ZERO
+			return Vector2i(int(floor(TaskTally.amount(c))), int(c.get("count", 0)))
 	return Vector2i.ZERO
 
 
@@ -169,6 +180,15 @@ static func stage_hint(q: QuestDef) -> int:
 			return 1
 		"items_maxed":
 			return 1 if int(c.get("count", 1)) <= 2 else 2
+		# pass 113 (lane TASKS): stage 1 can do them; a weapon or an item that only comes from a later stage says so
+		"damage_with_weapon":
+			var w: WeaponDef = Registry.weapon(str(c.get("weapon", "")))
+			return maxi(w.from_stage, 1) if w else 1
+		"heal_with_item":
+			var p: PassiveDef = Registry.passive(str(c.get("item", "")))
+			return maxi(p.from_stage, 1) if p else 1
+		"heal_with_source", "element_damage", "barrels_total", "totems_total":
+			return 1
 	return 0
 
 
@@ -337,3 +357,53 @@ static func item_kind_of(id: String, fallback: String = "any") -> String:
 	if p != null:
 		return "card" if p.is_line() else "passive"
 	return fallback
+
+
+# ---------------------------------------------------------------- pass 113 (lane TASKS): a quest's picture
+
+## The picture of quest `q` as the Wanted posters name one (WPoster.still_texture / thumb_texture read it): {kind, id, ...}
+## with kind weapon | card | passive | enemy | hero | pickup | structure | stage | art (barrel, fire, poison, chest, coin);
+## {} when the quest names nothing to draw (any item of a kind, a number of minutes). The Level Editor shows the same
+## picture beside the condition (assets_model.js questPicture).
+static func picture(q: QuestDef) -> Dictionary:
+	return picture_of(q.condition if q else {})
+
+
+static func picture_of(c: Dictionary) -> Dictionary:
+	match str(c.get("type", "")):
+		"kills_with_weapon", "damage_with_weapon", "weapon_paths":
+			var wid := str(c.get("weapon", ""))
+			return {"kind": "weapon", "id": wid} if wid != "" else {}
+		"kills_of_enemy", "kills_in_run_of_enemy":
+			var eid := str(c.get("enemy", ""))
+			return {"kind": "enemy", "id": eid} if eid != "" else {}
+		"heal_with_item":
+			var iid := str(c.get("item", ""))
+			return {"kind": item_kind_of(iid, "passive"), "id": iid} if iid != "" else {}
+		"item_level", "evolve_item":
+			var id := str(c.get("id", ""))
+			return {"kind": item_kind_of(id, "passive"), "id": id} if id != "" else {}
+		"heal_with_source":
+			var sp := TaskTally.source_parts(str(c.get("source", "")))
+			return {"kind": sp[0], "id": sp[1]} if sp[1] != "" and TaskTally.SOURCE_KINDS.has(sp[0]) else {}
+		"element_damage":
+			return {"kind": "art", "id": "poison" if str(c.get("element", "")) == "poison" else "fire"}
+		"barrels_total":
+			return {"kind": "art", "id": "barrel"}
+		"totems_total":
+			return {"kind": "structure", "id": "totem_pole"}
+		"open_chests":
+			return {"kind": "art", "id": "chest"}
+		"gold_total":
+			return {"kind": "art", "id": "coin"}
+		"hero_level":
+			var hid := str(c.get("hero", ""))
+			return {"kind": "hero", "id": hid} if hid != "" else {}
+		"beat_stage":
+			var bh := str(c.get("hero", ""))
+			if bh != "":
+				return {"kind": "hero", "id": bh}
+			return {"kind": "stage", "id": str(c.get("map", "red_canyon")), "stage": maxi(int(c.get("stage", 1)) - 1, 0)}
+		"kill_boss", "extract_after_stage", "reach_stage":
+			return {"kind": "stage", "id": str(c.get("map", "red_canyon")), "stage": maxi(int(c.get("stage", 1)) - 1, 0)}
+	return {}

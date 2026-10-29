@@ -64,6 +64,16 @@ var max_level_reached := 1
 var kills_by_enemy: Dictionary = {}
 var kills_by_weapon: Dictionary = {}
 var damage_by_weapon: Dictionary = {}
+## Pass 113 (lane TASKS, core/systems/TaskTally.gd): the run's tallies for the task types: fire and poison damage the hero's
+## side dealt {"fire", "poison"} (EnemyManager.damage's hot and green hits), HP restored by item (an item family's base
+## id, split by each item's share of the healing stat) and by source ("pickup:heart", "structure:healing_well"), barrels
+## broken, Totem gifts taken; banked into the save once at the run's end (tasks_banked).
+var element_damage: Dictionary = {}
+var healed_by_item: Dictionary = {}
+var healed_by_source: Dictionary = {}
+var barrels_broken := 0
+var totems_taken := 0
+var tasks_banked := false
 var chests_opened := 0
 var evolutions := 0
 var bosses_killed := 0
@@ -285,6 +295,13 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	kills_by_enemy.clear()
 	kills_by_weapon.clear()
 	damage_by_weapon.clear()
+	# pass 113 (lane TASKS): the task tallies start empty, not banked
+	element_damage.clear()
+	healed_by_item.clear()
+	healed_by_source.clear()
+	barrels_broken = 0
+	totems_taken = 0
+	tasks_banked = false
 	# pass 72 (lane BOSS): the DPS window starts empty
 	dps_reset()
 	chests_opened = 0
@@ -1712,8 +1729,11 @@ func trick_proc_mult(weapon_id: String) -> float:
 	return maxf(float(wi.params.get("proc_mult", 1.0)), 0.0)
 
 
-func add_damage(weapon_id: String, amount: float) -> void:
+func add_damage(weapon_id: String, amount: float, element: String = "") -> void:
 	damage_by_weapon[weapon_id] = float(damage_by_weapon.get(weapon_id, 0.0)) + amount
+	# pass 113 (lane TASKS): a burn's or a poison's tick (EnemyManager.damage's hot / green hit) counts as fire / poison
+	if element != "":
+		element_damage[element] = float(element_damage.get(element, 0.0)) + amount
 	# pass 72 (lane BOSS): the window the boss HP scaling reads
 	dps_note(amount)
 	if RunAnalytics.I: RunAnalytics.I.dealt(weapon_id, amount)
@@ -1856,6 +1876,8 @@ func take_totem_boon(boon: Dictionary) -> String:
 	if boon.is_empty() or str(boon.get("stat", "")) == "":
 		return ""
 	totem_boons.append(boon.duplicate())
+	# pass 113 (lane TASKS): one Totem gift taken (a pole used with nothing taken never reaches here)
+	totems_taken += 1
 	_note("totem", str(boon.get("id", "")), totem_boons.size(), {"stat": str(boon.get("stat", "")), "value": float(boon.get("value", 0.0))})
 	rebuild_sheets()
 	return TOTEM_BOONS.text(boon)

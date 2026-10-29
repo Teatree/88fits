@@ -584,6 +584,8 @@ const AssetsModel = (() => {
       case 'reach_stage': return `Reach stage ${n('stage', 1)}.`;
       // pass 100 (lane QUESTS): TextGen.quest_build_text
       case 'hero_level': case 'item_level': case 'evolve_item': case 'weapon_paths': case 'items_maxed': return questBuildText(c, nm);
+      // pass 113 (lane TASKS): TextGen.quest_task_text
+      case 'damage_with_weapon': case 'heal_with_item': case 'heal_with_source': case 'element_damage': case 'barrels_total': case 'totems_total': return questTaskText(c, nm);
       // pass 111 (lane SKINS): "Beat Nightfall with May." (`nm.stage(map, k)` names stage k from the map's stage_list;
       // hero "" = any hero: "Beat Nightfall.")
       case 'beat_stage': {
@@ -635,6 +637,90 @@ const AssetsModel = (() => {
       case 'items_maxed': { const k = n('count', 1); return `Hold ${k} ${kindWords(kind, false)}${k === 1 ? '' : 's'} at max level at once.`; }
       default: return 'Complete a challenge.';
     }
+  }
+  /** Pass 113 (lane TASKS): TextGen.quest_task_text, the words of the task quests: "Deal 50,000 damage with the
+   *  Revolver.", "Restore 2,000 HP with Death.", "Restore 500 HP with Hearts.", "Deal 20,000 fire damage.", "Break 40
+   *  barrels.", "Take 10 Totem gifts."; "... in one run." with in_one_run. `nm.items` names the items, `nm.source(kind,
+   *  id)` a power-up or a structure (else the id capitalised); a heal source is "pickup:heart" ("pickup:" any). */
+  function questTaskText(c, nm) {
+    const names = nm || {};
+    const n = Math.trunc(num(c.count, 0));
+    const grouped = (v) => String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const cap = (id) => String(id || '').replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase());
+    const it = names.items || {};
+    const weapon = (id) => (it.weapons || []).find((w) => w.id === id) || null;
+    const passive = (id) => (it.passives || []).find((p) => p.id === id) || null;
+    const itemName = (id) => { const w = weapon(id); if (w) return 'the ' + String(w.name || id); if (names.weapon && !passive(id)) { const wn = names.weapon(id); if (wn && wn !== id) return 'the ' + wn; } const p = passive(id); return p ? String(p.name || id) : cap(id); };
+    const plural = (s) => s + (/[sx]$/.test(s) ? 'es' : 's');
+    const tail = c.in_one_run ? ' in one run.' : '.';
+    switch (String(c.type || '')) {
+      case 'damage_with_weapon': return `Deal ${grouped(n)} damage with ${c.weapon ? itemName(String(c.weapon)) : 'a weapon'}${tail}`;
+      case 'heal_with_item': return `Restore ${grouped(n)} HP with ${c.item ? itemName(String(c.item)) : 'an item'}${tail}`;
+      case 'heal_with_source': {
+        const src = String(c.source || '');
+        const cut = src.indexOf(':');
+        const kind = cut > 0 ? src.slice(0, cut) : 'pickup';
+        const id = cut > 0 ? src.slice(cut + 1) : '';
+        let what = kind === 'pickup' ? 'power-ups' : 'structures';
+        if (id) what = plural((names.source && names.source(kind, id)) || cap(id));
+        return `Restore ${grouped(n)} HP with ${what}${tail}`;
+      }
+      case 'element_damage': {
+        const el = String(c.element || '');
+        return `Deal ${grouped(n)} ${el === 'fire' || el === 'poison' ? el : 'fire or poison'} damage${tail}`;
+      }
+      case 'barrels_total': return n === 1 ? `Break a barrel${tail}` : `Break ${grouped(n)} barrels${tail}`;
+      case 'totems_total': return n === 1 ? `Take a Totem gift${tail}` : `Take ${grouped(n)} Totem gifts${tail}`;
+      default: return 'Complete a challenge.';
+    }
+  }
+  /** Pass 113 (lane TASKS): QuestTracker.picture_of, a quest's picture as the Wanted posters name one: {kind, id, stage?}
+   *  (kind weapon | card | passive | enemy | hero | pickup | structure | stage | art), {} for none. `kindOf(id)` says
+   *  weapon / card / passive for an item id (the lists), else "passive". */
+  function questPicture(c, kindOf) {
+    const cc = isObj(c) ? c : {};
+    const k = (id) => (kindOf ? kindOf(id) : '') || 'passive';
+    const stage = () => ({ kind: 'stage', id: String(cc.map || 'red_canyon'), stage: Math.max(Math.trunc(num(cc.stage, 1)) - 1, 0) });
+    switch (String(cc.type || '')) {
+      case 'kills_with_weapon': case 'damage_with_weapon': case 'weapon_paths': return cc.weapon ? { kind: 'weapon', id: String(cc.weapon) } : {};
+      case 'kills_of_enemy': case 'kills_in_run_of_enemy': return cc.enemy ? { kind: 'enemy', id: String(cc.enemy) } : {};
+      case 'heal_with_item': return cc.item ? { kind: k(String(cc.item)), id: String(cc.item) } : {};
+      case 'item_level': case 'evolve_item': return cc.id ? { kind: k(String(cc.id)), id: String(cc.id) } : {};
+      case 'heal_with_source': { const src = String(cc.source || ''); const cut = src.indexOf(':'); const sk = cut > 0 ? src.slice(0, cut) : ''; const id = cut > 0 ? src.slice(cut + 1) : ''; return id && (sk === 'pickup' || sk === 'structure') ? { kind: sk, id } : {}; }
+      case 'element_damage': return { kind: 'art', id: String(cc.element || '') === 'poison' ? 'poison' : 'fire' };
+      case 'barrels_total': return { kind: 'art', id: 'barrel' };
+      case 'totems_total': return { kind: 'structure', id: 'totem_pole' };
+      case 'open_chests': return { kind: 'art', id: 'chest' };
+      case 'gold_total': return { kind: 'art', id: 'coin' };
+      case 'hero_level': return cc.hero ? { kind: 'hero', id: String(cc.hero) } : {};
+      case 'beat_stage': return cc.hero ? { kind: 'hero', id: String(cc.hero) } : stage();
+      case 'kill_boss': case 'extract_after_stage': case 'reach_stage': return stage();
+      default: return {};
+    }
+  }
+  /** Pass 113 (lane TASKS): the stats that heal the hero (TaskTally.HEAL_STATS) and whether a passive's levels (an
+   *  /api/items record) carry one: the items a heal_with_item quest and a heal_item poster may name. */
+  const HEAL_STATS = ['lifesteal', 'regen', 'still_regen', 'crit_heal_chance', 'heal_drop'];
+  function passiveHeals(p) {
+    if (!isObj(p)) return false;
+    for (const lv of Array.isArray(p.levels) ? p.levels : []) {
+      for (const e of Array.isArray(lv) ? lv : []) {
+        const t = String((e && e.target) || 'player');
+        if (isObj(e) && HEAL_STATS.includes(String(e.stat)) && num(e.value, 0) > 0 && !(t === 'all_weapons' || t.startsWith('weapon:') || t.startsWith('tag:'))) return true;
+      }
+    }
+    return false;
+  }
+  /** The top level an item can reach (QuestTracker's item_level range): a weapon's max_level, a card's max_level, a
+   *  passive item's rarity ladder (common 6 .. legendary 2; a one-shot item 1). `rec` an /api/items record. */
+  const LADDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+  function itemTopLevel(rec, kind) {
+    if (!isObj(rec)) return 0;
+    if (kind === 'weapon' || rec.kind === 'weapon' || rec.kind === 'evolution') return Math.max(Math.trunc(num(rec.max_level, 5)), 1);
+    if (rec.line || rec.evolves_from) return Math.max(Math.trunc(num(rec.max_level, 4)), 1);
+    if (rec.single) return 1;
+    const i = Math.max(LADDER.indexOf(String(rec.rarity || 'common')), 0);
+    return LADDER.length - 1 - i + 2;
   }
   /** A weapon's path: its non-hero, non-hidden mutation of each kind, the hero ones, the hidden ones. */
   function pathOf(weaponId, mutations) {
@@ -736,6 +822,7 @@ const AssetsModel = (() => {
     defaultKnockback, BLOCK_NAMES, NATURAL, naturalBlocks, blocksOf, combo, comboWords, enemyRecord, VOLLEY_START, VOLLEY_HIT, volleyReach, telegraphGeometry, attackActive, paceOf, attackSequence, revolverTTK, hitsToKill,
     availabilityOf, questFor, bandOf, pathOf, levelsSummary, issues,
     BAND, questText,   // pass 69
+    questTaskText, questPicture, HEAL_STATS, passiveHeals, itemTopLevel,   // pass 113 (lane TASKS)
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

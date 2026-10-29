@@ -119,7 +119,10 @@ func test_the_new_quest_types_count_and_progress() -> void:
 	q.condition = {"type": "kills_of_enemy", "enemy": "dune_scorpion", "count": 1}
 	assert_str(TextGen.quest_text(q)).is_equal("Kill the Dune Scorpion.")
 	q.condition = {"type": "kills_of_enemy", "enemy": "spit_cactus", "count": 30}
-	assert_str(TextGen.quest_text(q)).is_equal("Kill 30 Spit Cactuses.")
+	# pass 113 (re-pinned): Garry renames creatures in the Level Editor (the Spit Cactus is "Bomb Guy" since 2026-10-29),
+	# so the name is the content's, counted
+	var sc: String = Registry.enemy("spit_cactus").display_name
+	assert_str(TextGen.quest_text(q)).is_equal("Kill 30 %s%s." % [sc, "es" if sc.ends_with("s") or sc.ends_with("x") else "s"])
 	assert_int(QuestTracker.stage_hint(q)).is_equal(1)
 
 

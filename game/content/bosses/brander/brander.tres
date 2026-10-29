@@ -78,6 +78,8 @@ boss = {
 "name": "spawn_ring",
 "telegraph": "none",
 "windup": 0.8
+}, {
+"name": "hellbrand_mandala"
 }],
 "cooldown_between": 2.0,
 "hp_mult_per_stage": 2.0,

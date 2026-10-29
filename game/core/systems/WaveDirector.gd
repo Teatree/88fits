@@ -137,6 +137,15 @@ func boss_window_on() -> bool:
 	return phase == Phase.BOSS and boss_window.active
 
 
+## Pass 113 (lane BOSS): whether a boss's bullet-heaven pattern is under way (EnemyManager.pattern_holds): the fight's
+## spawns wait for it.
+func boss_pattern_holds() -> bool:
+	if game == null or game.get("enemies") == null:
+		return false
+	var em = game.enemies
+	return em.has_method("pattern_holds") and bool(em.pattern_holds())
+
+
 ## Pass 110 (lane BOSS; the lead: "boss summons keep their own rules but must not push past the hard cap"): how many of
 ## `want` summons a boss's spawn_ring may bring now: all of them while the map's hard cap (bodies) has room, else what is
 ## left of it. EnemyManager.summon_count asks it; without a timeline, all of them.
@@ -271,7 +280,10 @@ func _process(delta: float) -> void:
 		Run.held_time += delta
 	# the specials' clock in the stage and its boss fight (pass 87: not in the portal wait nor in Endless; pass 110: nor
 	# in a fight that plays its window, where only the window's rows spawn)
-	if phase == Phase.NORMAL or (phase == Phase.BOSS and not boss_window.active):
+	# pass 113 (lane BOSS): a boss fight without a window holds its spawns too while his bullet-heaven pattern runs (the
+	# window holds its own rows: BossFightWindow.held)
+	var pat_hold: bool = phase == Phase.BOSS and not boss_window.active and boss_pattern_holds()
+	if phase == Phase.NORMAL or (phase == Phase.BOSS and not boss_window.active and not pat_hold):
 		_tick_specials(delta)
 	_spawn_t -= delta
 	if _spawn_t <= 0.0:
@@ -281,9 +293,9 @@ func _process(delta: float) -> void:
 			_endless_fill()
 		elif boss_window_on():
 			boss_window.spawn_check()
-		else:
+		elif not pat_hold:
 			_spawn_burst()
-	if phase != Phase.ENDLESS and not boss_window_on():
+	if phase != Phase.ENDLESS and not boss_window_on() and not pat_hold:
 		# pass 83 (lane TIMELINE): the continuous rows with their own `interval` draw on their own clocks
 		_tick_row_intervals(delta)
 		# pass 84 (lane SPAWN): the density floor (floor_curve; nothing without one)
@@ -874,7 +886,13 @@ func _on_boss_died(_def: EnemyDef, at: Vector3) -> void:
 	if not Run.arena:
 		Save.mark_stage_beaten(map.id, Run.stage)
 	_portal_left = timeline.portal_seconds(Run.stage)
-	QuestTracker.check_run_events()
+	# pass 113 (Garry: a skin's goal reached in a run gets "a notification, similar to the other unlocks"): the quests a
+	# fallen boss completes (beat_stage: a look's goal) are checked through the game, which shows each one's banner; this
+	# check used to mark them done quietly, so the game's own check never saw them
+	if game and game.has_method("check_quests_now"):
+		game.check_quests_now()
+	else:
+		QuestTracker.check_run_events()
 	portal_ready.emit(at)
 	spawn_portal_wave()
 	stage_cleared.emit(Run.stage)

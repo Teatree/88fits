@@ -270,7 +270,7 @@ const Items = (() => {
     const ctl = el('div', { class: 'fctl' });
     const q = fl ? M.questFor(doc.id, fl.quests, kind) : null;
     const draft = doc.ui.questDraft;
-    const words = (qq) => { const c = M.isObj(qq.condition) ? qq.condition : {}; const t = F.VOCAB.questTypes.find((o) => o.v === c.type); const bits = ['count', 'enemy', 'weapon', 'map', 'stage', 'level', 'minutes', 'hero', 'kind', 'id', 'rung'].filter((k) => c[k] != null && c[k] !== '').map((k) => `${k} ${c[k]}`); return `${t ? t.label : c.type || '?'}${bits.length ? ' · ' + bits.join(', ') : ''}`; };
+    const words = (qq) => { const c = M.isObj(qq.condition) ? qq.condition : {}; const t = F.VOCAB.questTypes.find((o) => o.v === c.type); const bits = ['count', 'enemy', 'weapon', 'map', 'stage', 'level', 'minutes', 'hero', 'kind', 'id', 'rung', 'item', 'source_kind', 'element', 'in_one_run'].filter((k) => c[k] != null && c[k] !== '' && c[k] !== false).map((k) => `${k} ${c[k]}`); return `${t ? t.label : c.type || '?'}${bits.length ? ' · ' + bits.join(', ') : ''}`; };
     if (q && !draft) {
       ctl.appendChild(el('div', { class: 'small' }, el('b', { text: q.name || q.id }), el('span', { text: ` · ${words(q)}` }), el('span', { class: 'muted small', text: ` (${q.id}${q.quest_text ? ': "' + q.quest_text + '"' : ''})` })));
       ctl.appendChild(el('div', { class: 'alt-actions' },
@@ -294,6 +294,8 @@ const Items = (() => {
         else rowEl = Forms.fieldRow(def2, draft, { apply: (fn) => localApply(fn), pathPrefix: 'quest' });
         box.appendChild(rowEl);
       }
+      // pass 113 (lane TASKS): the picture the game draws for the goal (tasks.js)
+      if (typeof TaskPics !== 'undefined') box.appendChild(TaskPics.row(draft));
       box.appendChild(el('div', { class: 'alt-actions' },
         el('button', { class: 'btn small primary', type: 'button', text: q ? 'Save quest' : 'Create quest and lock', onclick: async () => { const ok = await Assets.availabilityOp(doc, { availability: 'locked', quest: draft }); if (ok) { doc.ui.questDraft = null; } } }),
         el('button', { class: 'btn small ghost', type: 'button', text: 'Cancel', onclick: () => { doc.ui.questDraft = null; Assets.redraw(doc, 'editor'); } })));

@@ -19,6 +19,11 @@
     "chest": 0.0002
   },
   "frame_px": 160,
+  "anims": {"idle": 4, "run": 12, "attack": 8, "hit": 1, "die": 8, "run_b": 12, "idle_b": 4, "run_s": 12, "idle_s": 4, "run_bd": 12, "idle_bd": 4, "run_fd": 12, "idle_fd": 4},
+  "strip_cols": 97,
+  "fps": {"run": 15, "die": 12},
+  "head": 0.994,
+  "attack_views": "front_back",
   "squad": {
     "sizes": [
       10,
@@ -30,11 +35,11 @@
       1.0,
       1.0
     ],
-    "spacing": 1.4,
-    "keep_distance": 5.5,
-    "range": 8.0,
+    "spacing": 1.2,
+    "keep_distance": 4.0,
+    "range": 6.0,
     "band_from": "edge",
-    "cooldown": 5.2,
+    "cooldown": 6.2,
     "first": 1.5,
     "rise": 0.5,
     "release": 1.0,
@@ -47,8 +52,9 @@
       "forward": 0.25
     },
     "orb": {
-      "speed": 4.0,
-      "range": 17.5,
+      "aim": "cloud",
+      "speed": 5.0,
+      "range": 26.25,
       "size": 0.5,
       "hit_radius": 0.22,
       "damage_mult": 1.0,
@@ -94,7 +100,7 @@
   "variant_base": "MON-0",
   "variants": {
     "MON-0": {
-      "note": "the top-level strip, before the Level Editor's looks"
+      "note": "the top-level strip: since pass 113 a copy of MK-A, the brown robe (Garry: \"Let's make the brown ones the default\"); before, a placeholder"
     },
     "MK-A": {
       "note": "Pass 112: the brown-robed Monk (Garry's HoMM3-style monk in our style), a clasped-hands 8-direction walk, a hands-up attack held 3 s, a face-first death",
@@ -153,7 +159,6 @@
         "die": 12
       },
       "head": 0.994,
-      "fresh": true,
       "attack_views": "front_back"
     },
     "MK-B": {
@@ -225,7 +230,6 @@
         "die": 12
       },
       "head": 1.0,
-      "fresh": true,
       "attack_views": "front_back"
     },
     "MK-C": {
@@ -285,7 +289,6 @@
         "die": 12
       },
       "head": 0.994,
-      "fresh": true,
       "attack_views": "front_back"
     }
   },

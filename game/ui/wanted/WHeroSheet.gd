@@ -25,8 +25,9 @@
 ## player owns first, then those sold as skins), its full-body still (tools/skin_stills.py; the look's badge without
 ## one), its name and where the player stands with it: WORN (brass), OWNED ("Tap to wear"), BUY (the price in its
 ## currency's icon; a tap asks, WConfirm, then pays through Currency and wears it) or LOCKED (the goal in the quests'
-## words and how far along it is). Names: "Looks", "LookGrid", "Look_<CODE>" (meta "look" and "state": worn, owned,
-## buyable, locked). `look_changed` tells the title to draw him in the new look.
+## words and how far along it is; pass 113: its still a dark silhouette until the goal is reached). Names: "Looks",
+## "LookGrid", "Look_<CODE>" (meta "look" and "state": worn, owned, buyable, locked). `look_changed` tells the title to
+## draw him in the new look.
 extends Control
 
 signal closed
@@ -256,7 +257,8 @@ func _locked_box() -> Control:
 		return p
 	v.add_child(W.label("To unlock", 20, W.ROCK, 0.15))
 	var words := TextGen.quest_text(q) if q else "Not in the game yet."
-	v.add_child(W.serif_text(words, 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	# pass 113 (lane TASKS): the goal's picture beside its words (the posters' still)
+	v.add_child(WPoster.with_picture(q, W.serif_text(words, 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true), 40.0))
 	if q:
 		var pr := QuestTracker.progress(q)
 		if pr.y > 0:
@@ -589,14 +591,19 @@ func _look_tile(code: String, worn: String) -> WTap:
 		tr.custom_minimum_size = Vector2(0, LOOK_STILL_H)
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if st == "locked":
-			tr.modulate = Color(1, 1, 1, 0.6)
+			# pass 113 (Garry: "when the Skin is LOCKED it displays the Skin Icon as a Darkened Silhouette"): the look's
+			# shape filled flat dark, as a hero not yet owned shows in the drawer and on his sheet
+			var sm := ShaderMaterial.new()
+			sm.shader = WPlaceholder.SILHOUETTE
+			tr.material = sm
 		v.add_child(tr)
 	else:
 		var p := WPlate.new().for_def(look, LOOK_BADGE, false, 0)
 		p.name = "Badge"
 		p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		if st == "locked":
-			p.modulate = Color(1, 1, 1, 0.6)
+			# pass 113: a locked look's badge as a black silhouette with its "?" (WPlate.mystery)
+			p.mystery = true
 		v.add_child(p)
 	var nm := W.text(hero.skin_name(code), W.slab(), 26, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 28.0, true)
 	nm.name = "LookName"

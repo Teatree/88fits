@@ -83,6 +83,13 @@ variants = {
 "icon": "res://content/characters/solenne/solenne_icon.png",
 "note": "Pass 54's walk on Garry's Walking_sun as first rendered: its side view turned a quarter away, her head grew walking down and shrank walking up.",
 "shelved": false,
+"skin": {
+"currency_type": "gold",
+"name": "Canyon Red",
+"price": 110.0,
+"purchasable": true,
+"unlock_quest": "skin_solenne_sol_a"
+},
 "sprite": "res://content/characters/solenne/solenne_sprite.png",
 "sprite_file": "solenne_sprite.png",
 "strip_cols": 62,

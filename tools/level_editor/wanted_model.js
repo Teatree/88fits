@@ -20,9 +20,25 @@ const WantedModel = (() => {
     evolve_item: { target: 'evolve', param: false, down: false },
     open_chests: { target: '', param: true, down: false },
     collect_coins: { target: '', param: true, down: false },
+    // pass 113 (lane TASKS): BALANCING 56.TASKS
+    damage_weapon: { target: 'weapon', param: true, down: false },
+    heal_item: { target: 'item', param: true, down: false },
+    heal_source: { target: 'source', param: true, down: false },
+    item_level: { target: 'item', param: false, down: false },
+    barrels: { target: '', param: true, down: false },
+    totems: { target: '', param: true, down: false },
+    element_damage: { target: 'element', param: true, down: false },
   };
   const TYPE_ORDER = ['kill_enemy', 'kill_weapon', 'kill_specials', 'kill_elites', 'kill_total', 'boss_fast', 'hp_floor',
-    'beat_stage', 'hero_level', 'max_weapon', 'evolve_item', 'open_chests', 'collect_coins'];
+    'beat_stage', 'hero_level', 'max_weapon', 'evolve_item', 'open_chests', 'collect_coins', 'damage_weapon', 'heal_item',
+    'heal_source', 'item_level', 'barrels', 'totems', 'element_damage'];
+  // pass 113: the types whose number is rolled once the target is drawn (its `target_mult` factor scales the range)
+  const TARGET_FIRST = ['damage_weapon', 'heal_item', 'heal_source', 'element_damage'];
+  const ELEMENT_NAMES = { fire: 'Fire', poison: 'Poison' };
+  // TaskTally.HEAL_STATS / ELEMENTS; PassiveDef.LADDER
+  const HEAL_STATS = ['lifesteal', 'regen', 'still_regen', 'crit_heal_chance', 'heal_drop'];
+  const ELEMENTS = ['fire', 'poison'];
+  const LADDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
   // what each type is, in Garry's words (the tab's cards), and what its extras mean
   const TYPE_INFO = {
     kill_enemy: { label: 'Kill N of a creature', help: 'a creature on this stage\'s roster for at least Min seconds (met before, when "creatures met only"), drawn by its seconds on the roster; never more than Cap a minute of those seconds; its front still on the poster' },
@@ -38,6 +54,14 @@ const WantedModel = (() => {
     evolve_item: { label: 'Evolve an item', help: 'his own weapon (when it evolves) or a card that evolves; difficulty: first value for a card, second for his weapon; Start weight = how likely his weapon is against one card' },
     open_chests: { label: 'Open N chests', help: 'chests opened or skipped in this run; the chest on the poster' },
     collect_coins: { label: 'Collect N gold', help: 'gold picked up in the run (after greed); the coin on the poster' },
+    // pass 113 (lane TASKS)
+    damage_weapon: { label: 'Deal N damage with a weapon', help: 'the damage the weapon and its evolution deal in the run (what the creature still had in it, never overkill); targets as Kill N with a weapon (his own Start weight times as likely, another one adds Other bonus); a weapon\'s own factor below scales its range; its icon on the poster' },
+    heal_item: { label: 'Restore N HP with an item', help: 'HP the item gives back in the run: life steal (Death), regen (Temperance, Hot Springs), Siesta\'s stand-still regen, Vulture\'s crit heal, Cake\'s slices (its share when two items heal the same way); a card or passive item that heals, unlocked and seen; each item\'s own factor below sizes its range (a Cake heals far less than Death); its icon on the poster' },
+    heal_source: { label: 'Restore N HP with a power-up or structure', help: 'HP the Heart or the Healing Well gives back in the run; only a healing power-up this map drops (kills or barrels) or a healing structure it places; a source\'s own factor below; its icon on the poster' },
+    item_level: { label: 'Get an item to level N', help: 'a weapon (his own or one seen), a card or a passive item (seen) to level N, N rolled between Min level and that item\'s own top level (a passive item\'s ladder: common 6 .. epic 3); difficulty from where N fell (the top level = the hard end); its icon on the poster' },
+    barrels: { label: 'Break N barrels', help: 'barrels the hero breaks in the run (brown and black); 35 stand at the start and broken ones come back now and then; Max caps the number; the barrel on the poster' },
+    totems: { label: 'Take N Totem gifts', help: 'gifts taken at the Totem Poles in the run (a pole left without a gift does not count); never more than the map\'s poles (10-12); the Totem Pole on the poster' },
+    element_damage: { label: 'Deal N fire or poison damage', help: 'burns (fire) or poison ticks the hero\'s side deals in the run; offered for an element an item this hero may find carries (a weapon\'s path mutations too); an element\'s own factor below; fire or the poison flask on the poster' },
   };
   const DEFAULTS = {
     enabled: true, choices: 3, rerolls: 0, unlock: { runs: 1 }, creatures_met_only: true, items_seen_only: true,
@@ -98,6 +122,21 @@ const WantedModel = (() => {
       }
       case 'kill_elites': return num(ctx.elite_estimate, 0) >= 1 ? [{ id: '' }] : [];
       case 'beat_stage': return (ctx.boss || {}).id ? [{ id: '' }] : [];
+      // pass 113 (lane TASKS)
+      case 'damage_weapon': return (ctx.weapons || []).filter((w) => w.start || w.seen || !seenOnly);
+      case 'heal_item': return (ctx.heal_items || []).filter((x) => x.seen || !seenOnly);
+      case 'heal_source': return (ctx.heal_sources || []).slice();
+      case 'item_level': {
+        const minLv = Math.max(Math.round(num(tc.min_level, 2)), 1);
+        const out = [];
+        for (const w of ctx.weapons || []) if ((w.start || w.seen || !seenOnly) && num(w.max_level, 1) >= minLv) out.push(Object.assign({}, w, { kind: 'weapon' }));
+        for (const key of ['cards', 'passive_items']) {
+          for (const x of ctx[key] || []) if ((x.seen || !seenOnly) && num(x.max_level, 1) >= minLv) out.push(Object.assign({}, x, { kind: key === 'cards' ? 'card' : 'passive' }));
+        }
+        return out;
+      }
+      case 'totems': return num(ctx.totem_poles, 0) >= 1 ? [{ id: 'totem_pole' }] : [];
+      case 'element_damage': return (ctx.elements || []).slice();
     }
     return [{ id: '' }];
   }
@@ -150,6 +189,15 @@ const WantedModel = (() => {
     return [lo, hi];
   }
 
+  /** Pass 113: range `r` for target `id`, times the type's `target_mult` factor for it (1 without one). */
+  function targetRange(tc, r, id) {
+    const tm = isObj(tc.target_mult) ? tc.target_mult : null;
+    if (!tm || !(id in tm)) return r;
+    const f = Math.max(num(tm[id], 0), 0);
+    return [r[0] * f, r[1] * f];
+  }
+  const plural = (s) => s + (/[sx]$/.test(s) ? 'es' : 's');
+
   function snapN(v, step) { const s = Math.max(num(step, 1), 1); return Math.max(Math.round(v / s) * s, s); }
   function rollN(r, step, rnd) { return snapN(r[0] + (r[1] - r[0]) * rnd(), step); }
 
@@ -197,7 +245,7 @@ const WantedModel = (() => {
     const c = { type, target: '', target_kind: '', n: 0, stage: k, map: ctx.map || '', hero: hero.id || '', P: p, still: {} };
     const vars = { hero: hero.name || '', stage: ctx.stage_name || '', boss: boss.name || '', target: '' };
     let d = lo, n = 0;
-    if ((TYPES[type] || {}).param) n = rollN(r, step, rnd);
+    if ((TYPES[type] || {}).param && !TARGET_FIRST.includes(type)) n = rollN(r, step, rnd);
     switch (type) {
       case 'kill_enemy': {
         const cr = pick(cands, (x) => num(x.seconds, 0), rnd);
@@ -253,6 +301,48 @@ const WantedModel = (() => {
       case 'hero_level': d = difficultyOf(lo, hi, n, r, down); c.still = { kind: 'hero', id: hero.id || '' }; break;
       case 'open_chests': d = difficultyOf(lo, hi, n, r, down); c.still = { kind: 'art', id: 'chest' }; break;
       case 'collect_coins': d = difficultyOf(lo, hi, n, r, down); c.still = { kind: 'art', id: 'coin' }; break;
+      // pass 113 (lane TASKS): WantedBoard.make_contract's new branches, draw for draw
+      case 'damage_weapon': {
+        const sw = num(tc.start_weight, 3);
+        const wp = pick(cands, (x) => (x.start ? sw : 1), rnd);
+        const r3 = targetRange(tc, r, wp.id);
+        n = rollN(r3, step, rnd);
+        const bonus = wp.start ? 0 : num(tc.other_bonus, 1);
+        d = round1(difficultyOf(lo, hi, n, r3, down) + bonus);
+        Object.assign(c, { target: wp.id, target_kind: 'weapon', still: { kind: 'weapon', id: wp.id } });
+        vars.target = wp.name || wp.id;
+        break;
+      }
+      case 'heal_item': case 'heal_source': case 'element_damage': {
+        const it = pick(cands, () => 1, rnd);
+        const id = String(it.id || '');
+        const r4 = targetRange(tc, r, id);
+        n = rollN(r4, step, rnd);
+        d = difficultyOf(lo, hi, n, r4, down);
+        c.target = id;
+        vars.target = it.name || id;
+        if (type === 'heal_item') { c.target_kind = it.kind || 'passive'; c.still = { kind: c.target_kind, id }; }
+        else if (type === 'heal_source') { c.target_kind = it.kind || 'pickup'; vars.targets = plural(String(it.name || id)); c.still = { kind: c.target_kind, id }; }
+        else { c.target_kind = 'element'; vars.element = id; c.still = { kind: 'art', id }; }
+        break;
+      }
+      case 'item_level': {
+        const sw = num(tc.start_weight, 1);
+        const it = pick(cands, (x) => (x.start ? sw : 1), rnd);
+        const top = Math.max(Math.round(num(it.max_level, 1)), 1);
+        const low = clamp(Math.round(num(tc.min_level, 2)), 1, top);
+        n = Math.min(low + Math.floor(rnd() * (top - low + 1)), top);
+        d = difficultyOf(lo, hi, n, [low, top], false);
+        Object.assign(c, { target: it.id, target_kind: it.kind || 'weapon', still: { kind: it.kind || 'weapon', id: it.id } });
+        vars.target = it.name || it.id;
+        break;
+      }
+      case 'barrels': d = difficultyOf(lo, hi, n, r, down); c.still = { kind: 'art', id: 'barrel' }; break;
+      case 'totems':
+        n = Math.min(n, Math.max(num(ctx.totem_poles, 1), 1));
+        d = difficultyOf(lo, hi, n, r, down);
+        Object.assign(c, { target: 'totem_pole', target_kind: 'structure', still: { kind: 'structure', id: 'totem_pole' } });
+        break;
       default: return null;
     }
     if (!('time' in vars)) vars.time = clockOf(n);
@@ -390,7 +480,107 @@ const WantedModel = (() => {
       const ev = p.evolved;
       ctx.cards.push({ id: p.id, name: p.name, seen: seen(p.id), evolves: !!(ev && !ev.hidden), max_level: Math.max(Math.round(num(p.max_level, 4)), 1), icon: p.icon_play || p.icon });
     }
+    taskContext(ctx, o, tl, k, seen);
     return ctx;
+  }
+
+  /** Pass 113 (lane TASKS): WantedBoard._task_context from the editor's data: passive_items, heal_items, heal_sources,
+   *  totem_poles, elements. `o.passives` the /api/items passive items, `o.lines` its cards (with `evolved`), `o.sources`
+   *  {pickups, structures} (/api/wanted/sources; none = no heal source, no Totem Pole). */
+  function taskContext(ctx, o, tl, k, seen) {
+    const okItem = (p) => p && !p.hidden && !(p.availability === 'locked' && !o.unlocksDone) && !(num(p.from_stage, 0) > 0 && k + 1 < num(p.from_stage, 0));
+    ctx.passive_items = [];
+    for (const p of (o.passives || []).slice().sort((a, b) => (a.id < b.id ? -1 : 1))) {
+      if (p.line || p.evolves_from || !okItem(p)) continue;
+      ctx.passive_items.push({ id: p.id, name: p.name, seen: seen(p.id), max_level: ladderTop(p) });
+    }
+    ctx.heal_items = [];
+    const byId = {};
+    for (const p of (o.lines || []).concat(o.passives || [])) { byId[p.id] = p; if (p.evolved) byId[p.evolved.id] = p.evolved; }
+    const base = (o.lines || []).concat(o.passives || []).filter((p) => !p.evolves_from).sort((a, b) => (a.id < b.id ? -1 : 1));
+    for (const p of base) {
+      const evo = p.evolved || (p.evolves_into ? byId[p.evolves_into] : null);
+      if (!(passiveHeals(p) || passiveHeals(evo)) || !okItem(p)) continue;
+      ctx.heal_items.push({ id: p.id, name: p.name, kind: p.line ? 'card' : 'passive', seen: seen(p.id) });
+    }
+    const src = isObj(o.sources) ? o.sources : { pickups: [], structures: [] };
+    const pk = {};
+    for (const p of src.pickups || []) pk[p.id] = p;
+    const ids = [];
+    for (const r of (isObj(tl.pickups) ? tl.pickups.roster : null) || []) if (isObj(r) && num(r.weight, 0) > 0) ids.push(String(r.id || ''));
+    for (const key of ['brown', 'black']) {
+      const b = isObj(tl.barrels) ? tl.barrels[key] : null;
+      if (isObj(b) && num(b.powerup_chance, 0) > 0) for (const r of b.powerups || []) if (isObj(r) && num(r.weight, 0) > 0) ids.push(String(r.id || ''));
+    }
+    ctx.heal_sources = [];
+    for (const id of ids) {
+      const p = pk[id];
+      if (p && p.effect === 'heal' && !p.small && !p.credit_stat && !ctx.heal_sources.some((x) => x.kind === 'pickup' && x.id === id)) ctx.heal_sources.push({ kind: 'pickup', id, name: p.name || id });
+    }
+    let poles = 0;
+    const plan = isObj(tl.structures) ? tl.structures : {};
+    if (Object.keys(plan).length) {
+      const roster = Array.isArray(plan.roster) ? plan.roster : [];
+      const all = src.structures || [];
+      const placed = (roster.length ? roster.map((id) => all.find((s) => s.id === id)).filter(Boolean) : all.slice()).filter((s) => !s.hidden).sort((a, b) => (a.id < b.id ? -1 : 1));
+      for (const s of placed) {
+        if (s.effect === 'heal' || (s.effect === 'dice' && (!Array.isArray(s.outcomes) || s.outcomes.includes('heal')))) ctx.heal_sources.push({ kind: 'structure', id: s.id, name: s.name || s.id });
+        if (s.effect === 'totem') poles += isObj(s.per_map) ? Math.max(Math.round(num(s.per_map.min, 1)), 0) : 1;
+      }
+    }
+    ctx.totem_poles = poles;
+    ctx.elements = [];
+    for (const el of ELEMENTS) if (elementReachable(el, ctx, o)) ctx.elements.push({ id: el, name: ELEMENT_NAMES[el] || el });
+  }
+
+  /** PassiveDef.ladder_top for an /api/items passive item record. */
+  function ladderTop(p) {
+    if (p.single) return 1;
+    const i = Math.max(LADDER.indexOf(String(p.rarity || 'common')), 0);
+    return LADDER.length - 1 - i + 2;
+  }
+  /** Whether a passive record's levels give the hero one of HEAL_STATS (TaskTally.passive_heals). */
+  function passiveHeals(p) {
+    if (!isObj(p)) return false;
+    for (const lv of Array.isArray(p.levels) ? p.levels : []) {
+      for (const e of Array.isArray(lv) ? lv : []) {
+        const t = String((e && e.target) || 'player');
+        if (isObj(e) && HEAL_STATS.includes(String(e.stat)) && num(e.value, 0) > 0 && !(t === 'all_weapons' || t.startsWith('weapon:') || t.startsWith('tag:'))) return true;
+      }
+    }
+    return false;
+  }
+  /** Run.element_of for a record: its `element`, else a weapon's base fire / poison damage, else a passive's fire_* /
+   *  poison_* stats. */
+  function elementOf(rec) {
+    if (!isObj(rec)) return '';
+    if (rec.element) return String(rec.element);
+    const b = isObj(rec.base) ? rec.base : null;
+    if (b) { if (num(b.fire_damage, 0) > 0) return 'fire'; if (num(b.poison_damage, 0) > 0) return 'poison'; return ''; }
+    for (const lv of Array.isArray(rec.levels) ? rec.levels : []) {
+      for (const e of Array.isArray(lv) ? lv : []) {
+        const st = String((e && e.stat) || '');
+        if (st.startsWith('fire_')) return 'fire';
+        if (st.startsWith('poison_')) return 'poison';
+      }
+    }
+    return '';
+  }
+  /** WantedBoard._element_reachable: a weapon of the context (its own element, its path mutations'), a card or a passive
+   *  item of it carries `el`. */
+  function elementReachable(el, ctx, o) {
+    const wById = {};
+    for (const w of o.weapons || []) wById[w.id] = w;
+    for (const w of ctx.weapons || []) {
+      const rec = wById[w.id];
+      if (!rec) continue;
+      if (elementOf(rec) === el) return true;
+      for (const m of rec.mutations || []) if (!m.hidden && !m.hero && String(m.element || '') === el) return true;
+    }
+    const pById = {};
+    for (const p of (o.lines || []).concat(o.passives || [])) pById[p.id] = p;
+    for (const x of (ctx.cards || []).concat(ctx.passive_items || [])) if (elementOf(pById[x.id]) === el) return true;
+    return false;
   }
 
   /** Registry.start_weapon_for: his `start_weapon`, else the first base weapon (by id) that is his alone and not hidden,
@@ -440,6 +630,7 @@ const WantedModel = (() => {
 
   return { TYPES, TYPE_ORDER, TYPE_INFO, DEFAULTS, MAX_CHOICES, normalized, taskCfg, union, targetsOf, eligibleTypes, typeChances,
     scaledRange, snapN, rollN, difficultyOf, skullsOf, rewardFor, fillText, clockOf, makeContract, roll, mulberry32,
-    rowWaveTimes, contextFrom, startWeaponFor, issues, choicesOf };
+    rowWaveTimes, contextFrom, startWeaponFor, issues, choicesOf,
+    TARGET_FIRST, ELEMENT_NAMES, HEAL_STATS, targetRange, ladderTop, passiveHeals, elementOf };   // pass 113 (lane TASKS)
 })();
 if (typeof module !== 'undefined') module.exports = WantedModel;

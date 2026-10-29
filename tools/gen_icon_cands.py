@@ -304,6 +304,16 @@ JOBS = {
                "subject": "one plain round gold coin seen straight from the front: a flat gold disc with one thick raised rim and "
                           "one simple flat five-pointed star in the middle, two flat tones of gold, no bevels, no notches, no "
                           "texture, no shine streaks"},
+    # pass 113 (the lead): the Wanted posters' pictures for "Destroy N barrels" (painted from barrel.glb's render) and
+    # "Deal N poison damage" (fire has art/ui/sources/fire.png)
+    "barrel": {"set": "113", "kind": "ui", "id": "barrel", "ref": "tools/dl/p113/LEAD/barrel_ref/icon_ref.png",
+               "subject": COPY + "a sturdy old wooden barrel standing upright: bulging warm brown wooden staves with darker "
+                          "grain, three dark iron hoops round it, a round lid of three planks on top, seen from a little "
+                          "above at a three-quarter angle"},
+    "poison": {"set": "113", "kind": "ui", "id": "poison", "screen": "blue",
+               "subject": "a round glass poison flask with a short neck and a cork, full of bubbling bright toxic green "
+                          "liquid, a small white skull and crossbones on its label, green drops dripping down its side "
+                          "and a few green bubbles rising from its mouth"},
     # the Results screen's damage rows that are not a weapon
     "src_fire": {"set": "47", "kind": "source", "id": "fire",
                  "subject": "a single bright flame: an orange outer fire with a yellow core, three licking tongues at its top"},

@@ -17,7 +17,9 @@ const PIC_H := 350.0
 const BADGE_PX := 58.0
 const SKULL_PX := 34.0
 const TEAR := 7.0
-const ART := {"chest": "res://art/ui/wanted/chest_closed.png", "coin": "res://art/ui/wanted/coin.png"}
+## Pass 113 (lane TASKS): the barrel and the poison flask (painted for the task types), the fire (the damage sources' own).
+const ART := {"chest": "res://art/ui/wanted/chest_closed.png", "coin": "res://art/ui/wanted/coin.png",
+	"barrel": "res://art/ui/wanted/barrel.png", "poison": "res://art/ui/wanted/poison.png", "fire": "res://art/ui/sources/fire.png"}
 const BADGE_PATH := "res://art/ui/badges/%s.png"
 ## The Stages menu's helpers: a stage's picture.
 const StagesScreenScript := preload("res://ui/StagesScreen.gd")
@@ -306,9 +308,20 @@ static func still_texture(still: Dictionary) -> Texture2D:
 		"weapon":
 			var w: WeaponDef = Registry.weapon(id)
 			return w.icon if w else null
-		"card":
+		"card", "passive":
 			var p: PassiveDef = Registry.passive(id)
 			return p.icon if p else null
+		# pass 113 (lane TASKS): a power-up's icon (the Heart), a structure's (the Healing Well, the Totem Pole)
+		"pickup":
+			var pk: PickupDef = Registry.pickup(id)
+			return pk.icon if pk else null
+		"structure":
+			# its painting on the map (art/sprites/props/st_<id>.png, the Healing Well's well), else its icon
+			var sp := "res://art/sprites/props/st_%s.png" % id
+			if ResourceLoader.exists(sp):
+				return load(sp)
+			var sd: StructureDef = Registry.structure(id)
+			return sd.icon if sd else null
 		"hero":
 			var c: CharacterDef = Registry.character(id)
 			if c == null:
@@ -337,6 +350,34 @@ static func still_texture(still: Dictionary) -> Texture2D:
 			var bp := BADGE_PATH % id
 			return load(bp) if ResourceLoader.exists(bp) else null
 	return null
+
+
+## Pass 113 (lane TASKS): a quest's words with its picture on their left (QuestTracker.picture: the poster's own still,
+## its small picture at `px`), for the Collection's locked box and the hero sheet's; the words alone when the quest names
+## nothing to draw. `words` keeps its own size and wraps in what is left of the row.
+static func with_picture(q: QuestDef, words: Control, px: float = 40.0) -> Control:
+	var still := QuestTracker.picture(q) if q else {}
+	var tex: Texture2D = thumb_texture(still) if not still.is_empty() else null
+	if tex == null:
+		return words
+	var h := HBoxContainer.new()
+	h.name = "QuestWords"
+	h.add_theme_constant_override("separation", 14)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pic := TextureRect.new()
+	pic.name = "QuestPicture"
+	pic.texture = tex
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if str(still.get("kind", "")) == "stage" else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.clip_contents = true
+	pic.custom_minimum_size = Vector2(px, px)
+	pic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(pic)
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(words)
+	return h
 
 
 ## The small picture of a poster's target (the HUD's plate, the pause screen, the Results' row): a creature's, a weapon's

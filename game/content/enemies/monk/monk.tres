@@ -148,25 +148,36 @@ variants = {
 },
 "MON-0": {
 "anims": {
-"attack": 2,
-"die": 1,
-"hit": 1,
-"idle": 2,
-"run": 2
+"attack": 8.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
 },
 "attack_throw": false,
-"attack_views": "",
+"attack_views": "front_back",
 "back_faces": "right",
-"fps": {},
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
 "front_faces": "right",
-"head": 0.86,
+"head": 0.994,
 "icon": "res://content/enemies/monk/monk_icon.png",
-"note": "the top-level strip, before the Level Editor's looks",
+"note": "the top-level strip: since pass 113 a copy of MK-A, the brown robe (Garry: \"Let's make the brown ones the default\"); before, a placeholder",
 "shadow": {},
 "shelved": false,
 "sprite": "res://content/enemies/monk/monk_sprite.png",
 "sprite_file": "monk_sprite.png",
-"strip_cols": 0
+"strip_cols": 97
 }
 }
 variant = "MK-A"
@@ -174,7 +185,7 @@ can_be_elite = false
 squad = {
 "band_from": "edge",
 "breath_fps": 2.0,
-"cooldown": 5.2,
+"cooldown": 6.2,
 "first": 1.5,
 "hands": {
 "forward": 0.25,
@@ -183,8 +194,9 @@ squad = {
 "up": 1.8
 },
 "hold": 3.0,
-"keep_distance": 5.5,
+"keep_distance": 4.0,
 "orb": {
+"aim": "cloud",
 "color": "#2F7BFF",
 "damage_mult": 1.0,
 "hit_radius": 0.22,
@@ -192,9 +204,9 @@ squad = {
 "lead": 0.0,
 "pulse": 0.12,
 "pulse_hz": 3.0,
-"range": 17.5,
+"range": 26.25,
 "size": 0.5,
-"speed": 4.0,
+"speed": 5.0,
 "trail": {
 "alpha": 0.45,
 "every": 0.04,
@@ -202,11 +214,11 @@ squad = {
 "size": 0.6
 }
 },
-"range": 8.0,
+"range": 6.0,
 "release": 1.0,
 "rise": 0.5,
 "sizes": [10.0, 20.0, 30.0],
-"spacing": 1.4,
+"spacing": 1.2,
 "weights": [1.0, 1.0, 1.0]
 }
 attack_views = "front_back"

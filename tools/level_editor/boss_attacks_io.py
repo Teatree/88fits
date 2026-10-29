@@ -23,23 +23,37 @@ import time
 import content_io as cio
 
 FOLDER = "boss_attacks"
-KINDS = ["rain", "volley", "ring", "slam", "script"]
+KINDS = ["rain", "volley", "ring", "slam", "script", "pattern"]
 # BossAttackDef.SCRIPTS: the built-in attack names (EnemyManager's runner); a custom attack never takes one as its id
 BUILTINS = ["roll", "spawn_ring", "slam_at", "blink", "burrow", "rain", "erupt", "spit_volley", "slam", "rumble",
             "brand", "tumbleweed_volley", "swoop", "boulder", "stomp", "tail_sniper"]
 # BossAttackDef.DEFAULTS (selftest_BOSS.py checks all three tables against the GDScript)
 DEFAULTS = {
     "projectile": {"look": "spike", "tint": "#D0242F", "size": 1.0, "glow": 1.0, "flight": 1.0, "arc": 6.0, "speed": 12.0,
-                   "range": 18.0, "hit_radius": 0.5, "trail": True},
+                   "range": 18.0, "hit_radius": 0.5, "trail": True, "wobble": 0.0},
     "pattern": {"shape": "rings", "center": "boss", "radius_min": 3.0, "radius_max": 16.0, "spacing": 3.2, "count": 0,
                 "jitter": 0.2, "gap": 1.0, "turn": True, "order": "out", "spread_deg": 360.0, "aim": "hero", "waves": 1,
                 "wave_gap": 0.5, "width": 1.2},
     "landing": {"radius": 0.9, "mode": "stagger"},
     "telegraph": {"kind": "circles", "color": "#ED4A5C", "seconds": 0.9, "all_at_once": False},
-    "timing": {"windup": 1.0, "stagger": 1.5, "cooldown": 0.0, "hold": -1.0},
+    "timing": {"windup": 1.0, "stagger": 1.5, "cooldown": 0.0, "hold": -1.0, "duration": 8.0, "clear": 0.6},
     "sounds": {"windup": "", "fire": "en_boss_attack", "land": ""},
     "spew": {"crouch": 0.35, "burst": 0.12, "mouth": 0.62, "squash": 0.82, "stretch": 1.25},
+    # pass 113 (lane BOSS): a bullet-heaven pattern's groups
+    "hit": {"hit_frac": 0.12},
+    "trigger": {"first_after": 15.0, "first_at_hp": 0.6, "first_by": 45.0, "cooldown": 45.0},
+    "guard": {"share": 0.8, "color": "#B9C3CE"},
+    "spent": {"seconds": 2.5, "damage_taken": 1.5, "still": True},
+    "tell": {"seconds": 2.0, "banner": "", "banner_color": "#E8502A", "ring_radius": 9.0, "ring_color": "#140A06",
+             "ring_alpha": 0.5, "duck_db": -14.0, "look": "none"},
+    "shell": {"look": "none", "color": "#C9A46A", "height": 7.0, "radius": 3.0, "opacity": 0.94, "sigil_radius": 0.0, "sigil_color": "#FF6A1A"},
 }
+# pass 113 (lane BOSS): BossAttackDef.EMITTER_DEFAULTS, one emitter of a pattern (selftest_BOSS113.py checks it)
+EMITTER_DEFAULTS = {"shape": "spiral", "count": 1, "arms": 1, "speed": 3.0, "rate": 4.0, "spin": 0.0, "reverse_at": -1.0,
+                    "spread_deg": 60.0, "sweep_deg": 0.0, "sweep_hz": 0.0, "gap": 0.0, "petals": 5, "depth": 0.7,
+                    "bloom_hz": 0.0, "turn_every": 0.0, "turn_deg": 0.0, "offset_deg": 0.0, "aim": "hero", "start": 0.0,
+                    "stop": 1.0, "pulse_every": 0.0, "pulse_on": 0.0, "pulse_at": 0.0, "finale_pull": 0.0,
+                    "pull_speed": 7.0, "width": 12.0}
 # the creature folders whose JSON may carry a script (boss.attacks)
 SCRIPTED = (("boss", "bosses"), ("enemy", "enemies"))
 
@@ -140,6 +154,11 @@ def _check(srv, aid, obj):
         return "unknown kind %s (%s)" % (obj.get("kind"), ", ".join(KINDS))
     if obj.get("kind") == "script" and str(obj.get("script", "")) not in BUILTINS:
         return "a script attack names one of the built-in attacks (%s)" % ", ".join(BUILTINS)
+    # pass 113 (lane BOSS): a pattern's emitters are a list of objects, at least one
+    if obj.get("kind") == "pattern":
+        em = obj.get("emitters")
+        if not isinstance(em, list) or not em or not all(isinstance(e, dict) for e in em):
+            return "a pattern needs a list of emitters (at least one)"
     return ""
 
 
@@ -149,6 +168,20 @@ def blank(kind, aid, name):
     a = {"id": aid, "name": name or aid, "doc": "", "kind": k}
     if k == "script":
         a.update({"script": "slam", "params": {"windup": 1.0, "radius": 6.0, "damage": 30, "knockback": 6, "telegraph": "ring"}})
+        return a
+    if k == "pattern":
+        # pass 113 (lane BOSS): a bullet-heaven pattern (boss_model.js blank() makes the same)
+        a.update({
+            "projectile": {"look": "burning_tumbleweed", "tint": "#FF8A1F", "size": 1.0, "glow": 1.2, "range": 16.0,
+                           "hit_radius": 0.35, "trail": True, "wobble": 0.0},
+            "emitters": [{"shape": "spiral", "arms": 3, "count": 1, "speed": 3.0, "rate": 4.0, "spin": 30.0, "reverse_at": 0.5,
+                          "aim": "hero"}],
+            "hit": dict(DEFAULTS["hit"]), "damage": 0.0, "knockback": 0.0, "lift": 0.0,
+            "timing": {"duration": 8.0, "clear": 0.6, "cooldown": 0.0},
+            "trigger": dict(DEFAULTS["trigger"]), "guard": dict(DEFAULTS["guard"]), "spent": dict(DEFAULTS["spent"]),
+            "tell": dict(DEFAULTS["tell"]), "shell": dict(DEFAULTS["shell"]),
+            "sounds": {"windup": "en_boss_pattern_warn", "fire": "en_boss_attack", "land": ""},
+        })
         return a
     a["projectile"] = dict(DEFAULTS["projectile"])
     a["pattern"] = dict(DEFAULTS["pattern"])
