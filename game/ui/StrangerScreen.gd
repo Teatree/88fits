@@ -137,5 +137,6 @@ func result() -> Dictionary:
 func _finish(took: bool) -> void:
 	if not visible:
 		return
+	RunReplay.note("stranger", {"took": took})
 	visible = false
 	closed.emit(took)

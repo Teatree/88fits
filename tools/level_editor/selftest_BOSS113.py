@@ -171,7 +171,8 @@ def checks(check, run_node, server):
     # the three contents: no error, a doc in words, a peak of bullets, the bosses naming them
     for (boss, aid), a, r in zip(TRIO, trio, res["trio"]):
         check(not r["issues"]["errors"], "BOSS113: %s has no error: %s" % (aid, r["issues"]))
-        check(a.get("kind") == "pattern" and len(str(a.get("doc", ""))) > 80 and 40 <= r["sim"]["peak"] <= 400,
+        # (pass 114, lane EDITOR: twice as long and twice as far, so up to 600 at once: the page's warning moved with it)
+        check(a.get("kind") == "pattern" and len(str(a.get("doc", ""))) > 80 and 40 <= r["sim"]["peak"] <= 600,
               "BOSS113: %s is a pattern with its doc and %d bullets at its peak" % (aid, r["sim"]["peak"]))
         bj = json.load(open(os.path.join(CONTENT, "bosses", boss, boss + ".json"), encoding="utf-8"))
         names = [x.get("name") for x in bj.get("boss", {}).get("attacks", []) if isinstance(x, dict)]

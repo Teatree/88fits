@@ -69,7 +69,7 @@ func _ready() -> void:
 	add_child(_cards)
 	_extract = _road("Extract", "Safe · run ends", W.SAGE, "strongbox", "strongbox\nart")
 	_extract.name = "Extract"
-	_extract.pressed.connect(func(): visible = false; decided.emit(true))
+	_extract.pressed.connect(extract)
 	var ev: VBoxContainer = _extract.get_meta("body")
 	ev.add_child(W.serif_text("This run's gold, banked", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	var g := HBoxContainer.new()
@@ -139,9 +139,19 @@ func _build_endless() -> void:
 
 
 ## Not now: the dialog closes with no decision (`declined`; Game unpauses and the portal re-arms once the hero is out).
+## EXTRACT tapped (pass 114: a function of its own, so a replay calls the same): the dialog goes, the run ends banked.
+func extract() -> void:
+	if not visible:
+		return
+	RunReplay.note("portal_extract")
+	visible = false
+	decided.emit(true)
+
+
 func decline() -> void:
 	if not visible:
 		return
+	RunReplay.note("portal_decline")
 	visible = false
 	declined.emit()
 
@@ -264,6 +274,12 @@ func seconds_left() -> float:
 
 
 func _game() -> Node:
+	# pass 114 (lane REPLAY): the game it sits in first (a replay's or the Watch's game is not the tree's current scene)
+	var up := get_parent()
+	while up != null:
+		if up.has_method("portal_seconds_left"):
+			return up
+		up = up.get_parent()
 	var t := get_tree()
 	if t == null:
 		return null
@@ -275,6 +291,8 @@ func _game() -> Node:
 ## behind it, every other screen holds the count); at 0 the game starts Endless and closes the dialog itself. A tool's
 ## pinned count, or no game at all, runs the dialog's own: at 0 it closes by itself (`expire`).
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if not visible:
 		return
 	var g := _game() if not seconds_source.is_valid() else null

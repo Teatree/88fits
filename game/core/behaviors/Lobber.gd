@@ -277,7 +277,7 @@ func _fire() -> bool:
 	var found := targets.size()
 	while targets.size() < amount:
 		var b: Vector3 = targets[targets.size() % found]
-		targets.append(b + Vector3(randf_range(-2.0, 2.0), 0, randf_range(-2.0, 2.0)))
+		targets.append(b + Vector3(Dice.r.randf_range(-2.0, 2.0), 0, Dice.r.randf_range(-2.0, 2.0)))
 	# the Golden Pineapple (pass 48): at the strongest creature in each crowd, the one it will stick to
 	# (pass 79: such a throw is never led, `unled`)
 	var unled: Array = []

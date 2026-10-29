@@ -376,7 +376,9 @@ func _ready() -> void:
 	_g_head.fill(-1)
 	_build_rings()
 	_wheel_next = floori(_time / IDLE_BUCKET)
-	_rng.randomize()
+	# pass 114 (lane REPLAY): the pickups' dice from the run's seed; the driver's group (Lockstep)
+	Dice.seed_rng(_rng, "pickups")
+	Lockstep.join(self)
 
 
 ## Sizes every per-slot array to `n` slots (pass 61: at the start and whenever the pool doubles), the new ones empty.
@@ -1040,12 +1042,12 @@ func spawn(p_kind: int, at: Vector3, v: float) -> int:
 	if free_list.is_empty():
 		_grow()
 	var i: int = free_list.pop_back()
-	pos[i] = at + Vector3(randf_range(-0.4, 0.4), 0.0, randf_range(-0.4, 0.4))
+	pos[i] = at + Vector3(Dice.r.randf_range(-0.4, 0.4), 0.0, Dice.r.randf_range(-0.4, 0.4))
 	# DROP_FROM over where it was let go, and as much higher again as its kind rests (the fix round of pass 56)
 	pos[i].y = _drop_y(p_kind, pos[i])
 	kind[i] = p_kind
 	value[i] = v
-	vel[i] = Vector3(randf_range(-1.5, 1.5), 3.0, randf_range(-1.5, 1.5))
+	vel[i] = Vector3(Dice.r.randf_range(-1.5, 1.5), 3.0, Dice.r.randf_range(-1.5, 1.5))
 	flying[i] = 0
 	phase[i] = PHASE_GROUND
 	phase_t[i] = 0.0
@@ -1124,8 +1126,8 @@ func toss_spot(at: Vector3, map = null) -> Vector3:
 		if ob is Array:
 			rocks = ob
 	for k in range(TOSS_TRIES):
-		var a := randf() * TAU
-		var d := randf_range(TOSS_MIN, TOSS_MAX)
+		var a := Dice.r.randf() * TAU
+		var d := Dice.r.randf_range(TOSS_MIN, TOSS_MAX)
 		var p := Vector3(at.x + cos(a) * d, at.y, at.z + sin(a) * d)
 		if Vector2(p.x, p.z).length() <= rim and not _on_rock(p, rocks):
 			return p
@@ -1196,23 +1198,23 @@ func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool, coin
 	var d := def.drops
 	var luck: float = Run.player_sheet.get_stat("luck", 0.0)
 	# pass 87 (lane SGAME): Endless's coins, only endless_coin_chance of the time
-	if endless_coin_chance < 1.0 and float(d.get("gold", 0.0)) > 0.0 and randf() >= endless_coin_chance:
+	if endless_coin_chance < 1.0 and float(d.get("gold", 0.0)) > 0.0 and Dice.r.randf() >= endless_coin_chance:
 		d = d.duplicate()
 		d["gold"] = 0.0
-	if randf() < float(d.get("small", 0.0)):
+	if Dice.r.randf() < float(d.get("small", 0.0)):
 		spawn(KIND_GEM_S, at, 1.0 * xp_scale)
-	if randf() < float(d.get("medium", 0.0)) + luck * 0.1:
+	if Dice.r.randf() < float(d.get("medium", 0.0)) + luck * 0.1:
 		spawn(KIND_GEM_M, at, 5.0 * xp_scale)
-	if randf() < float(d.get("large", 0.0)):
+	if Dice.r.randf() < float(d.get("large", 0.0)):
 		spawn(KIND_GEM_L, at, 25.0 * xp_scale)
-	if randf() < float(d.get("gold", 0.0)) * (1.0 + luck) * coin_mult:
+	if Dice.r.randf() < float(d.get("gold", 0.0)) * (1.0 + luck) * coin_mult:
 		# pass 87 (lane FIXES): the black barrels' coins come out of the creatures' (coin_debt, COIN_DEBT_SHARE of them)
-		var cv := _after_coin_debt(float(1 + randi() % 3) * big_coin_mult(def, is_elite))
+		var cv := _after_coin_debt(float(1 + Dice.r.randi() % 3) * big_coin_mult(def, is_elite))
 		# pass 88 (lane MIRROR): the Stakes' bounty on its kind, a fraction paid by chance (MirrorDanger.scaled_count)
 		cv = float(MirrorDanger.scaled_count(cv, MirrorDanger.factor_of(def, "bounty")))
 		if cv > 0.0:
 			spawn(KIND_COIN, at, cv)
-	if is_elite and randf() < 0.05 + luck * 0.1:
+	if is_elite and Dice.r.randf() < 0.05 + luck * 0.1:
 		spawn(KIND_VACUUM, at, 0.0)
 
 
@@ -1238,7 +1240,7 @@ func set_coin_debt(v: float) -> void:
 ## What drops of a creature's coin worth `v` (0: nothing): the bill takes it COIN_DEBT_SHARE of the time while anything is
 ## owed (`share` stands in for the share in tests).
 func _after_coin_debt(v: float, share: float = COIN_DEBT_SHARE) -> float:
-	if coin_debt <= 0.0 or v <= 0.0 or randf() >= share:
+	if coin_debt <= 0.0 or v <= 0.0 or Dice.r.randf() >= share:
 		return v
 	var take := minf(coin_debt, v)
 	coin_debt -= take
@@ -1266,7 +1268,7 @@ static func base_gem_kind(def: EnemyDef) -> int:
 func prospector(def: EnemyDef, at: Vector3, xp_scale: float, chance: float) -> bool:
 	# Eureka (pass 70): its vein rolls with the extra gem
 	vein(def, at, xp_scale)
-	if chance <= 0.0 or randf() >= chance:
+	if chance <= 0.0 or Dice.r.randf() >= chance:
 		return false
 	var k := base_gem_kind(def)
 	return spawn(k, at, float(GEM_VALUE[k]) * xp_scale) >= 0
@@ -1543,7 +1545,7 @@ func _start_trip(i: int, hero: Vector3, arc: bool = false, late: float = 0.0) ->
 		away = Vector3(pos[i].x - hero.x, 0.0, pos[i].z - hero.z)
 	var d := away.length()
 	if d < 0.02:
-		var a := randf() * TAU
+		var a := Dice.r.randf() * TAU
 		away = Vector3(cos(a), 0.0, sin(a))
 	arced[i] = 1 if arc else 0
 	arc_spin[i] = 0.0
@@ -1749,6 +1751,9 @@ var _down := false
 
 
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	_time += delta
 	if game == null or game.player == null:
 		return

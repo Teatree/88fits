@@ -221,7 +221,9 @@ const Creatures = (() => {
       busy = null;
       if (typeof Assets !== 'undefined') await Assets.refreshRecord(c.kind, c.id);
       await App.refreshCreatures();
-      if (res.import_ok) App.status(`${c.name} now plays ${code} (was ${res.was || 'its base'}) · ${res.wrote} · import OK · backup ${String(res.backup).split('/').pop()}`, 'good', res.output);
+      // pass 114 (lane EDITOR): Godot busy (a build, the tests): written, the import queued, the holder named
+      if (res.import_ok == null && (res.lock || res.import_job)) App.saveStatus(res, `${c.name} now plays ${code} (was ${res.was || 'its base'}) · ${res.wrote}`);
+      else if (res.import_ok) App.status(`${c.name} now plays ${code} (was ${res.was || 'its base'}) · ${res.wrote} · import OK · backup ${String(res.backup).split('/').pop()}`, 'good', res.output);
       else App.status(`${c.name} now plays ${code} in its JSON · IMPORT FAILED (the game still plays the old .tres)`, 'bad', res.output);
       App.toast(`${c.name}: ${code} is the default look`);
       return;   // refreshCreatures drew the tab again with the new look ringed
@@ -288,6 +290,7 @@ const Creatures = (() => {
       if (typeof Assets !== 'undefined') await Assets.refreshRecord(c.kind, c.id);
       await App.refreshCreatures();
       if (res.unchanged) App.status(`${c.name} already bleeds ${res.blood}: nothing written`, 'good');
+      else if (res.import_ok == null && (res.lock || res.import_job)) App.saveStatus(res, `${c.name} bleeds ${res.blood} (was ${res.was || 'the default red'}) · ${res.wrote}`);
       else if (res.import_ok) App.status(`${c.name} bleeds ${res.blood} (was ${res.was || 'the default red'}) · ${res.wrote} · import OK · backup ${String(res.backup).split('/').pop()}`, 'good', res.output);
       else App.status(`${c.name} bleeds ${res.blood} in its JSON · IMPORT FAILED (the game still plays the old .tres)`, 'bad', res.output);
       App.toast(`${c.name}: blood ${res.blood}`);

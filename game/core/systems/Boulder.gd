@@ -82,6 +82,8 @@ static func _mesh() -> Mesh:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if _done or game == null or game.paused:
 		return
 	if bool(game.get("_ended")):

@@ -475,6 +475,8 @@ static func label_width(lb: Label3D) -> float:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if arms.is_empty():
 		return
 	_poll_t += delta

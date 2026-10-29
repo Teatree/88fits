@@ -1138,9 +1138,87 @@ def backup(map_id, path):
 def run_import(target, who="level_editor save"):
     """JSON -> .tres for one or more content folders (`maps/red_canyon`, `enemies/skeleton,quests/unlock_x`), under the
     repo-wide Godot lock with the PC save kept aside (tools/locks.py); (ok, output tail). ok is None when the lock was
-    busy for LOCK_WAIT seconds: then an `import` job is queued when jobs.py is here, and the tail says so."""
-    info = run_import_info(target, who, LOCK_WAIT)
+    busy for SAVE_LOCK_WAIT seconds: then an `import` job is queued when jobs.py is here, and the tail says so.
+    Pass 114 (lane EDITOR; Garry: "oftentimes this is happening because the build is being built and I'm trying to make
+    changes in the level editor. This is preventing me from making saves"): every Save waits SAVE_LOCK_WAIT (8 s), not
+    LOCK_WAIT's two silent minutes (every caller has written its JSON before it asks); the queued job, its holder in plain
+    words (godot_holder) ride along on the answer (Handler._send adds them from _IMPORT_INFO)."""
+    info = run_import_info(target, who, SAVE_LOCK_WAIT)
     return info["ok"], info["output"]
+
+
+# pass 114 (lane EDITOR): the last import of this request's thread (run_import_info), so Handler._send can put the queued
+# job and the lock's holder on any answer that carries import_ok, whichever route made it
+_IMPORT_INFO = threading.local()
+
+# the steps of tools/ship.sh / ship_prod.sh as the build names them on the lock (locks.py note); a JSON saved before the
+# build's own JSON -> .tres step is in that build, one saved after is not (the lock's `imported` field says which)
+BUILD_SCRIPTS = (("ship_prod.sh", "the production build (ship_prod.sh)", "build"), ("ship.sh", "the build (ship.sh)", "build"))
+
+
+def godot_holder(s=None):
+    """Pass 114 (lane EDITOR): who holds the Godot lock, in plain words for the page (app.js importOutcome words it):
+    {who, age_s (as before), kind (build | tests | claude | launch | import | job | save | unknown | stale | other), label,
+    until (when it frees in words), step (a build's step), in_build (True: this build will take a JSON saved now;
+    False: it has passed its import, the next build will; None: cannot say), script, job, pid, alive}; None when free."""
+    if s is None:
+        s = locks.status("godot")
+    if not s:
+        return None
+    who = str(s.get("who") or "?")
+    job = str(s.get("job") or "")
+    note = str(s.get("note") or "")
+    out = {"who": "%s%s" % (who, (" / " + job) if job else ""), "age_s": int(s.get("age_s", 0)), "kind": "other",
+           "label": who, "until": "when it is done", "step": "", "in_build": None, "script": "", "job": job,
+           "pid": s.get("pid") or 0, "alive": s.get("alive")}
+    if not s.get("owner_file", True):
+        out.update(kind="unknown", label="an unknown process (the lock has no owner file)",
+                   until="only when someone clears it: python tools/locks.py status shows it, python tools/locks.py release godot --force clears it")
+        return out
+    if s.get("alive") is False:
+        out.update(kind="stale", label="a process that has ended (pid %s, %s)" % (s.get("pid"), who),
+                   until="as soon as the next import takes the lock (a dead owner's lock is reclaimed); python tools/locks.py status shows it")
+        return out
+    low = who.lower()
+    for name, label, kind in BUILD_SCRIPTS:
+        if name in low or (name == "ship.sh" and low.startswith("the build")):
+            imported = s.get("imported")
+            step = note
+            if imported in (True, 1, "1", "true", "yes"):
+                in_build = False
+            elif step in ("import",):
+                in_build = True
+            else:
+                in_build = None
+            out.update(kind=kind, label=label, step=step, in_build=in_build, until="when the build finishes")
+            return out
+    if job:
+        kind_of, title = "", ""
+        m = jobs_module()
+        try:
+            j = m.get(job) if m is not None and hasattr(m, "get") else None
+        except Exception:
+            j = None
+        if isinstance(j, dict):
+            kind_of, title = str(j.get("kind") or ""), str(j.get("title") or "")
+        if kind_of == "launch":
+            out.update(kind="launch", label="a Test-in-game window (job %s)" % job, until="when you close that game window")
+        elif kind_of in ("import", "register"):
+            out.update(kind="import", label="an import job (%s%s)" % (job, (": " + title) if title else ""), until="in a few seconds, when that import is done")
+        else:
+            out.update(kind="job", label="a Level Editor job (%s%s)" % (job, (": " + title) if title else ""), until="when that job is done")
+        return out
+    if low.startswith("level_editor save") or note.startswith("import_json"):
+        out.update(kind="save", label="another Save's import (%s)" % (note or who), until="in a few seconds, when that import is done")
+        return out
+    if low.startswith("cli godot") or low.startswith("claude"):
+        script = note
+        if "gdunit" in note.lower() or "res://tests" in note:
+            out.update(kind="tests", label="the tests (a script from Claude: %s)" % (note or "gdUnit"), script=note, until="when the tests finish")
+        else:
+            out.update(kind="claude", label="a script from Claude: %s" % (script or "a Godot command"), script=script, until="when that script finishes")
+        return out
+    return out
 
 
 def _queued_import(targets):
@@ -1176,6 +1254,7 @@ def run_import_info(target, who="level_editor save", wait=None):
     if lk is None:
         s = locks.status("godot") or {}
         holder = "%s%s" % (s.get("who", "?"), (" / " + s["job"]) if s.get("job") else "")
+        hold = godot_holder(s) or {"who": holder, "age_s": int(s.get("age_s", 0))}
         targets = target.split(",")
         have = _queued_import(targets)
         if have is not None:
@@ -1186,8 +1265,9 @@ def run_import_info(target, who="level_editor save", wait=None):
             job = _enqueue("import", {"kind": "content", "id": target}, {"targets": targets}, "import %s" % target)
             more = ("an import job was queued instead (%s)" % job["job"]["id"]) if job.get("job") else \
                 ("no import job could be queued: %s" % job.get("error", "the jobs module is not here yet"))
-        out.update(ok=None, job=(job.get("job") or {}).get("id"), lock={"who": holder, "age_s": int(s.get("age_s", 0))},
-                   output="the Godot lock has been held by %s for %d s: %s" % (holder, int(s.get("age_s", 0)), more))
+        out.update(ok=None, job=(job.get("job") or {}).get("id"), lock=hold,
+                   output="the Godot lock has been held by %s for %d s: %s" % (hold.get("label") or holder, int(s.get("age_s", 0)), more))
+        _IMPORT_INFO.last = out
         return out
     try:
         locks.keep_save()
@@ -4000,6 +4080,16 @@ class Handler(BaseHTTPRequestHandler):
             sys.stdout.flush()
 
     def _send(self, code, body, ctype="application/json; charset=utf-8", cache="no-store"):
+        # pass 114 (lane EDITOR): an answer whose import waits (import_ok None) carries the queued job and the lock's
+        # holder in plain words, whichever route made it (run_import_info keeps them for this request's thread)
+        if isinstance(body, dict) and "import_ok" in body and body.get("import_ok") is None:
+            info = getattr(_IMPORT_INFO, "last", None)
+            if isinstance(info, dict):
+                if body.get("import_job") is None:
+                    body["import_job"] = info.get("job")
+                body.setdefault("import_joined", info.get("joined"))
+                if not body.get("lock"):
+                    body["lock"] = info.get("lock")
         if isinstance(body, (dict, list)):
             body = json.dumps(body, ensure_ascii=False).encode("utf-8")
         elif isinstance(body, str):
@@ -4031,6 +4121,7 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, data, ctype, cache)
 
     def do_GET(self):
+        _IMPORT_INFO.last = None
         raw = self.path.split("?", 1)
         path = unquote(raw[0])
         query = parse_qs(raw[1]) if len(raw) > 1 else {}
@@ -4389,6 +4480,7 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, out)
 
     def do_POST(self):
+        _IMPORT_INFO.last = None
         refused = _request_guard(self)   # pass 97 (lane SAFE, WF-08): a foreign Host or Origin 403, a non-JSON body 415
         if refused:
             return _guard_refuse(self, refused)

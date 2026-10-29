@@ -420,6 +420,7 @@ func intro_playing() -> bool:
 func skip_intro() -> void:
 	if not intro_playing():
 		return
+	RunReplay.note("chest_intro")
 	_tw.custom_step(maxf(WChestScript.SPIN_AT - _tw.get_total_elapsed_time(), 0.0))
 
 
@@ -511,9 +512,20 @@ func _input(event: InputEvent) -> void:
 		if intro_playing():
 			skip_intro()
 		else:
-			var left := maxf(_spin_total - _tw.get_total_elapsed_time(), 0.1)
-			_tw.set_speed_scale(maxf(left / 0.6, 1.0))
+			hurry()
 		Audio.play("ui_tap")
+
+
+## A tap while the reel spins: what is left of it hurried into 0.6 s (pass 114: a function of its own, so a replay and the
+## bot call the same; the speed kept in the tween's meta for RunReplay's frame stretch).
+func hurry() -> void:
+	if _tw == null or not _tw.is_valid():
+		return
+	RunReplay.note("chest_hurry")
+	var left := maxf(_spin_total - _tw.get_total_elapsed_time(), 0.1)
+	var sp := maxf(left / 0.6, 1.0)
+	_tw.set_speed_scale(sp)
+	_tw.set_meta(&"speed", sp)
 
 
 func _land() -> void:
@@ -700,6 +712,7 @@ func _skip() -> void:
 func _banish() -> void:
 	if _spinning:
 		return
+	RunReplay.note("chest_banish")
 	# gold, an evolution, a mutation or the next level of something held: the header says why (pass 58)
 	var why := banish_refusal(_result)
 	if why != "":
@@ -774,6 +787,7 @@ func take_pick() -> Dictionary:
 func _finish(take: bool) -> void:
 	if _spinning:
 		return
+	RunReplay.note("chest_finish", {"take": take})
 	_spinning = true
 	slot.cancel()
 	var def: ContentDef = _result.get("def")

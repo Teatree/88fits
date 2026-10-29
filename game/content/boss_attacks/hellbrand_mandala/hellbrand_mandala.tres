@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1_5c641")
 attack_kind = "pattern"
-doc = "The Brander's bullet heaven. HELLBRAND MANDALA across the screen, the sand darkens round him and he drives his branding iron into the ground: a glowing brand sigil 12 m across burns into the sand under him. Then for 9 s slow branded fireballs bloom out of him in a five-petal rose (the petals race out, the dips between them crawl, the petals open and close), and every 3 s the mandala turns half a petal, so the safe lines move. In its last second every fireball still flying is pulled back towards him: never stand between a fireball and the Brander. He stands in a pillar of fire, taking 80% less damage until it ends; then the pillar gutters out, his iron smokes and he takes 50% more for 2.5 s. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one."
+doc = "The Brander's bullet heaven. HELLBRAND MANDALA across the screen, the sand darkens round him and he drives his branding iron into the ground: a glowing brand sigil 12 m across burns into the sand under him. Then for 18 s slow branded fireballs bloom out of him in a five-petal rose (the petals race out, the dips between them crawl, the petals open and close), and every 3 s the mandala turns half a petal, so the safe lines move. In its last second every fireball still flying is pulled back towards him: never stand between a fireball and the Brander. He stands in a pillar of fire, taking 80% less damage until it ends; then the pillar gutters out, his iron smokes and he takes 50% more for 2.5 s. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one is completely over (his smoking seconds too)."
 projectile = {
 "glow": 1.3,
 "hit_radius": 0.33,
 "look": "brand_fireball",
-"range": 18.0,
+"range": 36.0,
 "size": 1.0,
 "tint": "#FF6A1A",
 "trail": true,
@@ -19,7 +19,7 @@ projectile = {
 timing = {
 "clear": 0.6,
 "cooldown": 0.0,
-"duration": 9.0
+"duration": 18.0
 }
 sounds = {
 "fire": "w_flare_fire",
@@ -31,7 +31,7 @@ knockback = 0.0
 emitters = [{
 "aim": "hero",
 "bloom_hz": 0.35,
-"count": 30.0,
+"count": 24.0,
 "depth": 0.75,
 "finale_pull": 1.0,
 "offset_deg": 36.0,
@@ -48,7 +48,7 @@ emitters = [{
 "count": 1.0,
 "finale_pull": 1.0,
 "pull_speed": 7.5,
-"rate": 1.5,
+"rate": 1.2,
 "shape": "spiral",
 "speed": 2.0,
 "spin": 20.0,

@@ -73,6 +73,9 @@ func radius_px() -> float:
 
 
 func _process(_delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay sets the stick itself at each frame's start (RunReplay)
+	if Lockstep.replaying:
+		return
 	# PC: WASD or the arrows move the hero like a full stick push, whenever no finger is on the screen
 	if active_index == -1 and enabled and not ui_blocking:
 		var kv := Input.get_vector("move_left", "move_right", "move_up", "move_down")

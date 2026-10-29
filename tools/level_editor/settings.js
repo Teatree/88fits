@@ -78,7 +78,21 @@ const Settings = (() => {
     if (other.length) {
       const o = {};
       for (const k of other) o[k] = tl[k];
-      grid.appendChild(el('section', { class: 'card' }, el('h2', { text: 'Other keys (kept as they are)' }), el('p', { class: 'muted small', text: 'The editor does not know these; they are written back unchanged.' }), el('pre', { class: 'json', text: JSON.stringify(o, null, 2) })));
+      // pass 114 (lane EDITOR): editable as JSON (Apply replaces these keys of timeline_data as typed; a key taken out
+      // goes, a new one is added; one undoable edit)
+      const card = el('section', { class: 'card' }, el('h2', { text: 'Other keys (kept as they are)' }), el('p', { class: 'muted small', text: 'The editor has no boxes for these; they are written back as they are. Edit them as JSON below if you need to.' }));
+      if (typeof JsonEdit !== 'undefined') {
+        JsonEdit.inline(card, { summary: 'these keys as JSON', value: o, open: true, path: 'json.other', onApply: (v) => {
+          const bad = JsonEdit.mustBeObject(v);
+          if (bad) return bad;
+          const clash = Object.keys(v).filter((k) => KNOWN.has(k));
+          if (clash.length) return `${clash.join(', ')} ${clash.length > 1 ? 'have' : 'has'} its own boxes on this page: change ${clash.length > 1 ? 'them' : 'it'} there`;
+          App.apply((t) => { for (const k of other) delete t[k]; Object.assign(t, JSON.parse(JSON.stringify(v))); });
+          App.status('The other keys as typed are in the map (Ctrl+Z undoes; Save writes it)', 'good');
+          return '';
+        } });
+      } else card.appendChild(el('pre', { class: 'json', text: JSON.stringify(o, null, 2) }));
+      grid.appendChild(card);
     }
     page.appendChild(grid);
     container.appendChild(page);

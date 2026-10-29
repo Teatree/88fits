@@ -164,6 +164,7 @@ func _rerolls_left() -> int:
 func _on_reroll() -> void:
 	if _done or Run.map == null or Run.character == null:
 		return
+	RunReplay.note("bounty_reroll")
 	var fresh := WantedBoard.reroll(Run.map.id, Run.stage, Run.character.id)
 	if fresh.is_empty():
 		Audio.play("ui_locked")
@@ -207,6 +208,7 @@ func _draw_strings() -> void:
 func choose(i: int) -> void:
 	if _done or not visible:
 		return
+	RunReplay.note("bounty", {"i": i})
 	_done = true
 	if i < 0 or i >= posters.size():
 		chosen = "none"

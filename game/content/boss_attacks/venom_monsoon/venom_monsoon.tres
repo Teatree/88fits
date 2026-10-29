@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1_pppjt")
 attack_kind = "pattern"
-doc = "The Gila Grande's bullet heaven. VENOM MONSOON across the screen, the sand darkens round her, she rears up and her throat swells and glows purple; then for 7 s she sprays big, slow, wobbling venom blobs in a fan that sweeps left and right like a garden sprinkler, its middle always swinging across wherever you stand, and every second sweep adds a second, offset fan. The blobs leave little purple puddles where they fade (only a look). Her scales glow like armour: 80% less damage until it ends, then she collapses panting for 2.5 s taking 50% more. Not before 15 s into the fight; the first when she falls under 60% HP (or 45 s in at the latest); then 45 s after the last one."
+doc = "The Gila Grande's bullet heaven. VENOM MONSOON across the screen, the sand darkens round her, she rears up and her throat swells and glows purple; then for 14 s she sprays big, slow, wobbling venom blobs in a fan that sweeps left and right like a garden sprinkler, its middle always swinging across wherever you stand, and every second sweep adds a second, offset fan. The blobs leave little purple puddles where they fade (only a look). Her scales glow like armour: 80% less damage until it ends, then she collapses panting for 2.5 s taking 50% more. Not before 15 s into the fight; the first when she falls under 60% HP (or 45 s in at the latest); then 45 s after the last one is completely over (her panting seconds too)."
 projectile = {
 "glow": 1.2,
 "hit_radius": 0.42,
 "look": "venom_blob",
-"range": 22.0,
+"range": 44.0,
 "size": 1.0,
 "tint": "#A93BEA",
 "trail": true,
@@ -19,7 +19,7 @@ projectile = {
 timing = {
 "clear": 0.6,
 "cooldown": 0.0,
-"duration": 7.0
+"duration": 14.0
 }
 sounds = {
 "fire": "en_cactus_spit",
@@ -30,16 +30,16 @@ damage = 0.0
 knockback = 0.0
 emitters = [{
 "aim": "track",
-"count": 5.0,
+"count": 4.0,
 "rate": 2.8,
 "shape": "sweep",
 "speed": 2.8,
-"spread_deg": 56.0,
+"spread_deg": 52.5,
 "sweep_deg": 150.0,
 "sweep_hz": 0.25
 }, {
 "aim": "track",
-"count": 4.0,
+"count": 3.0,
 "offset_deg": 50.0,
 "pulse_at": 2.0,
 "pulse_every": 4.0,
@@ -47,7 +47,7 @@ emitters = [{
 "rate": 2.4,
 "shape": "sweep",
 "speed": 2.4,
-"spread_deg": 40.0,
+"spread_deg": 33.0,
 "sweep_deg": 150.0,
 "sweep_hz": 0.25
 }]

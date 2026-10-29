@@ -187,6 +187,8 @@ func busy() -> bool:
 # ---------------------------------------------------------------- the drawing
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	var dt := delta * time_scale
 	for b: Dictionary in _beams:
 		b["t"] = float(b["t"]) + dt

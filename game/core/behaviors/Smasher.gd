@@ -139,7 +139,7 @@ func _fire() -> bool:
 		var at: Vector3 = spots[k % spots.size()]
 		if k >= spots.size():
 			# more hammers than crowds: the extra ones land round the thickest, not on the same spot
-			at += Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)) * r * 0.6
+			at += Vector3(Dice.r.randf_range(-1.0, 1.0), 0.0, Dice.r.randf_range(-1.0, 1.0)) * r * 0.6
 		at.y = game.map.height_at(at.x, at.z) if game.map else at.y
 		var it := _take_node()
 		if it.is_empty():
@@ -354,7 +354,7 @@ func slayer_rolls() -> bool:
 		return false
 	if bool(gs.get("always", false)):
 		return true
-	return randf() < float(gs.get("chance", 0.35))
+	return Dice.r.randf() < float(gs.get("chance", 0.35))
 
 
 ## The crush on a big one: a gold flash ring round it, a gold burst on it, and a short kick of the camera.
@@ -389,7 +389,7 @@ func zap_targets(at: Vector3, r: float, reach: float, n: int) -> Array:
 ## `chance` of a blow: bolts off the blast's rim to the nearest creatures outside it, `frac` of the hammer's damage each.
 func _thor(at: Vector3, r: float, dmg: float) -> void:
 	var th = inst.params.get("thor")
-	if not (th is Dictionary) or randf() >= float(th.get("chance", 0.3)):
+	if not (th is Dictionary) or Dice.r.randf() >= float(th.get("chance", 0.3)):
 		return
 	var targets := zap_targets(at, r, float(th.get("reach", 7.0)), int(th.get("zaps", 3)))
 	if targets.is_empty():
@@ -444,11 +444,11 @@ func _quake(at: Vector3, qk: Dictionary, dmg: float) -> void:
 	var frac := float(qk.get("frac", 0.6))
 	var zap: Dictionary = qk["zap"] if qk.get("zap") is Dictionary else {}
 	var roll: Dictionary = qk["roll"] if qk.get("roll") is Dictionary else {}
-	var a0 := randf() * TAU
+	var a0 := Dice.r.randf() * TAU
 	var col := Color(1.0, 0.5, 0.15)
 	var cracks: Array = []
 	for k in range(n):
-		var a := a0 + TAU * float(k) / float(n) + randf_range(-0.2, 0.2)
+		var a := a0 + TAU * float(k) / float(n) + Dice.r.randf_range(-0.2, 0.2)
 		var dir := Vector3(cos(a), 0.0, sin(a))
 		cracks.append(dir)
 		game.telegraphs.line(at, dir, length, 0.9, col, width)

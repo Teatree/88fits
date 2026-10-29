@@ -23,6 +23,11 @@ var _ended := false
 var _save = null
 var _keep: Dictionary = {}
 var _legs = null
+## pass 114 (lane EDITOR): the pattern's tick cost while bullets fly
+var _us_sum := 0
+var _us_n := 0
+var _us_max := 0
+var _us_at := 0
 
 
 func _initialize() -> void:
@@ -130,6 +135,13 @@ func _main() -> void:
 			_drive(pilot, hero, em, bi)
 			await process_frame
 			peak = maxi(peak, p.bullet_count())
+			# pass 114 (lane EDITOR): the pattern's own tick cost (BossPatterns.last_us), its mean and its worst
+			if p.bullet_count() > 0:
+				_us_sum += p.last_us
+				_us_n += 1
+				if p.last_us > _us_max:
+					_us_max = p.last_us
+					_us_at = p.bullet_count()
 		var got: int = p.hits - h0
 		all_hits.append(got)
 		_log("%s %s run %d: %d hits (%.0f%% of max HP), peak %d bullets" % [boss_id, pilot, r + 1, got, 100.0 * got * cdef.num("hit", "hit_frac"), p.peak])
@@ -144,6 +156,7 @@ func _main() -> void:
 	var mean := float(sum) / maxf(float(all_hits.size()), 1.0)
 	_log("%s %s: hits a run %s, mean %.1f = %.0f%% of max HP (a bullet %.0f%%); peak %d bullets" % [boss_id, pilot, str(all_hits), mean,
 		100.0 * mean * cdef.num("hit", "hit_frac"), 100.0 * cdef.num("hit", "hit_frac"), peak])
+	_log("%s %s: pattern tick mean %.0f us, worst %d us (with %d bullets)" % [boss_id, pilot, float(_us_sum) / maxf(float(_us_n), 1.0), _us_max, _us_at])
 	_finish(0)
 
 

@@ -261,6 +261,8 @@ func set_value(key: String, value) -> void:
 	# pass 81 (lane PROD): the production build keeps its developer switches at the player's default
 	if PROD_LOCKED.has(key) and is_prod():
 		return
+	# pass 114 (lane REPLAY): a setting changed in a run (the pause screen) is replayed at its frame
+	RunReplay.note("setting", {"key": key, "value": value})
 	set(key, value)
 	changed.emit()
 	Save.request_save()

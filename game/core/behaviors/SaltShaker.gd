@@ -81,7 +81,7 @@ func _on_setup() -> void:
 			_contents = c
 	for c in shaker.find_children("Spout", "", true, false):
 		_spout = c as Node3D
-	_orbit = randf() * TAU
+	_orbit = Dice.r.randf() * TAU
 	refresh_marks()
 	if player:
 		_last_hero = player.global_position

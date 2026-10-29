@@ -509,11 +509,63 @@ const BossModel = (() => {
     }
     return { peak, peak_t: peakT, fired, volleys, at: shot || [] };
   }
-  /** BossAttackDef.pattern_due. */
-  function patternDue(a, fightT, hpFrac, runs, lastEnd) {
-    if (fightT < num(val(a, 'trigger', 'first_after'), 15)) return false;
-    if (runs <= 0) return hpFrac <= num(val(a, 'trigger', 'first_at_hp'), 0.6) || fightT >= num(val(a, 'trigger', 'first_by'), 45);
-    return fightT - lastEnd >= num(val(a, 'trigger', 'cooldown'), 45);
+  /** BossAttackDef.pattern_due (pass 114: `rolled` = this fight's rolls; a key it lacks plays its range's low end). */
+  function patternDue(a, fightT, hpFrac, runs, lastEnd, rolled) {
+    const v = (k) => (rolled && rolled[k] != null ? Number(rolled[k]) : triggerRange(a, k)[0]);
+    if (fightT < v('first_after')) return false;
+    if (runs <= 0) return hpFrac <= num(val(a, 'trigger', 'first_at_hp'), 0.6) || fightT >= v('first_by');
+    return fightT - lastEnd >= v('cooldown');
+  }
+
+  // pass 114 (lane EDITOR; Garry: "make it a range between 10 and 15 for example ... the cooldown only starts after
+  // those 10 seconds are done"): BossAttackDef.TRIGGER_RANGES, range_of, trigger_range
+  const TRIGGER_RANGES = ['first_after', 'first_by', 'cooldown'];
+  const isNum = (x) => typeof x === 'number' && isFinite(x);
+  /** BossAttackDef.range_of: [low, high] of a number (v, v) or a [min, max] list (sorted, never below 0); a one-number
+   *  list is that number; anything else is the default. */
+  function rangeOf(v, fallback) {
+    if (isNum(v)) { const f = Math.max(v, 0); return [f, f]; }
+    if (Array.isArray(v)) {
+      if (v.length === 1 && isNum(v[0])) { const g = Math.max(v[0], 0); return [g, g]; }
+      if (v.length === 2 && isNum(v[0]) && isNum(v[1])) { const lo = Math.max(v[0], 0), hi = Math.max(v[1], 0); return [Math.min(lo, hi), Math.max(lo, hi)]; }
+    }
+    const d = Math.max(num(fallback, 0), 0);
+    return [d, d];
+  }
+  function triggerRange(a, key) { return rangeOf(val(a, 'trigger', key), DEFAULTS.trigger[key]); }
+  /** What is wrong with a trigger key's value as the file holds it ('' when nothing): boss_attacks_io.py refuses the same. */
+  function triggerProblem(key, v) {
+    if (v == null) return '';
+    if (isNum(v)) return v < 0 ? `${key} is below 0` : '';
+    if (Array.isArray(v)) {
+      if (v.length !== 2 || !isNum(v[0]) || !isNum(v[1])) return `${key}: a range is two numbers, [min, max]`;
+      if (v[0] < 0 || v[1] < 0) return `${key}: the range is below 0`;
+      if (v[0] > v[1]) return `${key}: the range's min (${v[0]}) is above its max (${v[1]})`;
+      return '';
+    }
+    return `${key} is a number or a range [min, max]`;
+  }
+  /** "15 s" or "10–15 s". */
+  function fmtRange(r) {
+    const f = (x) => (Math.round(x * 10) / 10).toString();
+    return r[0] === r[1] ? `${f(r[0])} s` : `${f(r[0])}–${f(r[1])} s`;
+  }
+  /** Pass 114: when the fight's first `n` patterns can start and end, in fight seconds, each [earliest, latest]: the first
+   *  at the earliest when he falls under first_at_hp at once (the low end of Not before), at the latest at full HP (the
+   *  high end of Not before or of At the latest, whichever is later); each next one the cooldown after the one before
+   *  was completely over (its tell, its bullets and his spent seconds). His own attacks can only push one later (it
+   *  waits for him to finish one); ×1/pace on the map. [{k, start: [a, b], end: [a, b]}] */
+  function patternSchedule(a, n) {
+    const fa = triggerRange(a, 'first_after'), fb = triggerRange(a, 'first_by'), cd = triggerRange(a, 'cooldown');
+    const lasts = Math.max(num(val(a, 'tell', 'seconds'), 2), 0) + patternDuration(a) + Math.max(num(val(a, 'spent', 'seconds'), 2.5), 0);
+    const out = [];
+    let s = [fa[0], Math.max(fa[1], fb[1])];
+    for (let k = 1; k <= Math.max(1, n || 3); k++) {
+      const e = [s[0] + lasts, s[1] + lasts];
+      out.push({ k, start: s, end: e });
+      s = [e[0] + cd[0], e[1] + cd[1]];
+    }
+    return out;
   }
 
   /** The problems of an attack document (errors block a save, warnings do not). */
@@ -558,13 +610,19 @@ const BossModel = (() => {
       if (patternDuration(a) < 5) warnings.push('under 5 s of bullets (Garry: "some 5+ seconds during which player is supposed to try and survive")');
       if (num(val(a, 'tell', 'seconds'), 2) < 1.2) warnings.push('a tell under 1.2 s (Garry: "Big foreshadowing")');
       if (num(val(a, 'hit', 'hit_frac'), 0.12) >= 0.34) warnings.push('a bullet takes a third of his HP or more: danger should come from the density, never one-shots');
-      if (num(val(a, 'trigger', 'cooldown'), 45) < 20) warnings.push('a cooldown under 20 s (Garry: "rare, something like once every 45s")');
-      if (num(val(a, 'trigger', 'first_after'), 15) < 5) warnings.push('first after under 5 s (Garry: "Make it so they don\'t trigger immediately")');
+      // pass 114: each of the three a number or a range [min, max]; the warnings read its low end
+      for (const k of TRIGGER_RANGES) { const pr = triggerProblem(k, isObj(a.trigger) ? a.trigger[k] : undefined); if (pr) errors.push(pr); }
+      if (triggerRange(a, 'cooldown')[0] < 20) warnings.push('a cooldown under 20 s (Garry: "rare, something like once every 45s")');
+      if (triggerRange(a, 'first_after')[0] < 5) warnings.push('first after under 5 s (Garry: "Make it so they don\'t trigger immediately")');
+      if (triggerRange(a, 'first_by')[1] < triggerRange(a, 'first_after')[0]) warnings.push('"At the latest" is before "Not before": Not before decides when the first comes');
+      if (num(val(a, 'timing', 'clear'), 0.6) > Math.max(num(val(a, 'spent', 'seconds'), 2.5), 0)) warnings.push('the burn-out is longer than the spent seconds: the last bullets vanish at once when he recovers');
       if (!TELL_LOOKS.includes(String(val(a, 'tell', 'look')))) errors.push(`unknown wind-up look "${val(a, 'tell', 'look')}" (${TELL_LOOKS.join(', ')})`);
       if (!SHELLS.includes(String(val(a, 'shell', 'look')))) errors.push(`unknown shell "${val(a, 'shell', 'look')}" (${SHELLS.join(', ')})`);
       for (const c of [val(a, 'guard', 'color'), val(a, 'tell', 'banner_color'), val(a, 'tell', 'ring_color'), val(a, 'shell', 'color'), val(a, 'shell', 'sigil_color')]) if (c && !/^#[0-9a-fA-F]{6}$/.test(String(c))) errors.push(`a colour is #rrggbb: ${c}`);
       const sim = simulate(a, 1 / 20);
-      if (sim.peak > 400) warnings.push(`${sim.peak} bullets in the air at once: heavy on a phone (keep it under 400)`);
+      // pass 114: 600 (twice as long and twice as far: the King's Royal Dust Devil peaks at about 450; the pattern's tick
+      // measured at about 0.3 ms on the PC with 450 in the air, tools/dl/p114/EDITOR)
+      if (sim.peak > 600) warnings.push(`${sim.peak} bullets in the air at once: heavy on a phone (keep it under 600)`);
     }
     if (ids && ids.includes(String(a.id)) === false) { /* a new one */ }
     return { errors, warnings };
@@ -608,6 +666,7 @@ const BossModel = (() => {
     isVolley, litAtOnce, windupSeconds, volleyTimes,
     EMITTER_SHAPES, EMITTER_AIMS, TELL_LOOKS, SHELLS, EMITTER_DEFAULTS, BB_RADIUS, emitterFull, emittersFull, patternDuration, pulling,
     emitterOn, emitterTurned, emitterAngle, roseDepth, volley, emitterVolleyTimes, simulate, patternDue,
+    TRIGGER_RANGES, rangeOf, triggerRange, triggerProblem, fmtRange, patternSchedule,   // pass 114 (lane EDITOR)
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

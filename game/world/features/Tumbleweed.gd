@@ -7,6 +7,7 @@ var arena_radius := 66.0
 var map: MapBase
 var _speed := 3.0
 var _radius := 0.6
+var _wob := 0.0
 
 
 func setup(p_map: MapBase, p_wind: Vector3, r: float) -> void:
@@ -14,7 +15,7 @@ func setup(p_map: MapBase, p_wind: Vector3, r: float) -> void:
 	wind = p_wind.normalized()
 	_radius = r
 	arena_radius = p_map.arena_radius
-	_speed = randf_range(2.0, 4.0)
+	_speed = Dice.r.randf_range(2.0, 4.0)
 	if ResourceLoader.exists("res://art/props/tumbleweed.glb"):
 		var vis: Node3D = load("res://art/props/tumbleweed.glb").instantiate()
 		vis.scale = Vector3.ONE * (r / 0.8)
@@ -32,9 +33,19 @@ func setup(p_map: MapBase, p_wind: Vector3, r: float) -> void:
 		material_override = mat
 
 
+func _enter_tree() -> void:
+	# pass 114 (lane REPLAY): its ray queries the physics space, so a replay runs it in the same order as the hero's
+	# moves (the space's broadphase is rebuilt on a query after a move)
+	Lockstep.join(self)
+
+
 func _physics_process(delta: float) -> void:
+	if Lockstep.phys_skip():
+		return
 	var _t0 := Time.get_ticks_usec()
-	var v := wind * _speed + Vector3(sin(Time.get_ticks_msec() * 0.001 + position.x), 0, 0) * 0.4
+	# its wobble on the run's clock (the wall clock's differs in a replay)
+	var v := wind * _speed + Vector3(sin(_wob + position.x), 0, 0) * 0.4
+	_wob += delta
 	# a short ray ahead: mesas, rocks, the wreck and the wall bounce the ball instead of swallowing it
 	var space := get_world_3d().direct_space_state
 	if space:

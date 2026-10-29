@@ -327,9 +327,9 @@ const Assets = (() => {
       const changed = Array.isArray(res.changed) ? res.changed.length : null;
       const what = `${changed != null ? `${changed} key${changed === 1 ? '' : 's'}` : 'the JSON'}${Array.isArray(res.removed) && res.removed.length ? `, ${res.removed.length} removed` : ''}`;
       const backup = res.backup ? ` · backup ${String(res.backup).split(/[\\/]/).pop()}` : '';
-      if (res.import_ok === null || res.import_ok === undefined) App.status(`Saved ${what} to ${doc.file || doc.id} at ${when}${res.job ? ' · import queued as a job' : ''}${backup}`, 'good', res.output);
-      else if (res.import_ok) App.status(`Saved ${what} to ${doc.file || doc.id} at ${when} · import OK${backup}`, 'good', res.output);
-      else App.status(`Saved ${what} to ${doc.file || doc.id} at ${when} · IMPORT FAILED (the game still plays the old .tres)`, 'bad', res.output);
+      // pass 114 (lane EDITOR): one wording for every Save (App.importOutcome): the JSON is written at once; when Godot is
+      // busy (a build, the tests, a Test-in-game window) the line names who holds it and whether this build takes it
+      App.saveStatus(res, `Saved ${what} to ${doc.file || doc.id} at ${when}${backup}`);
       App.toast(`${doc.id} saved`);
       await refreshRecord(doc.kind, doc.id);
       await refreshList(tabOf(doc.kind) === 'creatures' ? 'enemies' : tabOf(doc.kind));
@@ -578,7 +578,7 @@ const Assets = (() => {
     acts.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Test in game', disabled: !canTest, title: canTest ? 'the debug arena with this one (a launch job holds the Godot lock while the window lives)' : 'items are tried in the arena by hand', onclick: () => testLaunch(doc) }));
     const more = el('details', { class: 'adocs amore' }, el('summary', { text: '⋯' }));
     const moreList = el('div', { class: 'adocs-list' });
-    moreList.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Show the JSON', onclick: () => jsonPeek(doc) }));
+    moreList.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Show / edit the JSON', title: 'the whole file as the editor holds it, editable: Apply takes it as typed (every key), Save writes it', onclick: () => jsonPeek(doc) }));
     if (o.extraActions) for (const b of o.extraActions) moreList.appendChild(b);
     moreList.appendChild(el('button', { class: 'btn small danger', type: 'button', text: 'Delete…', title: doc.deletable === false ? 'only ids created in the editor can be deleted (the created-ids ledger)' : 'move its folder to the backups', disabled: doc.deletable === false, onclick: () => deleteDoc(doc) }));
     more.appendChild(moreList);
@@ -592,12 +592,28 @@ const Assets = (() => {
     return h;
   }
 
+  /** Pass 114 (lane EDITOR; Garry: "Allow for editing the JSON directly in the 'Show JSON' window"): the document's whole
+   *  JSON in a big text box. Apply parses it (a mistake shown with its line, nothing changed) and the document takes it
+   *  exactly as typed, every key (also ones the form has no row for), as one undoable edit: marked unsaved, drawn again;
+   *  Save writes it as usual. Cancel leaves it as it was. Ctrl+S applies and saves. */
   function jsonPeek(doc) {
-    const box = el('div', { class: 'amodal-back' });
-    const closeIt = () => box.remove();
-    box.appendChild(el('div', { class: 'amodal wide' }, el('h3', { text: `${doc.id}.json as the editor holds it` }), el('pre', { class: 'json', text: JSON.stringify(doc.data, null, 2) }), el('div', { class: 'amodal-actions' }, el('button', { class: 'btn', type: 'button', text: 'Close', onclick: closeIt }))));
-    box.addEventListener('click', (e) => { if (e.target === box) closeIt(); });
-    document.body.appendChild(box);
+    if (typeof JsonEdit === 'undefined') { App.status('json_edit.js is not loaded: reload the page', 'bad'); return; }
+    JsonEdit.modal({
+      title: `${doc.id}.json as the editor holds it`,
+      note: `Edit any key, then Apply: the ${String(KIND_LABEL[doc.kind] || doc.kind).toLowerCase()} takes it as typed and is marked unsaved; Save writes the file (and imports it). The id stays ${doc.id}.`,
+      value: doc.data,
+      onApply: (v) => {
+        const bad = JsonEdit.mustBeObject(v);
+        if (bad) return bad;
+        if (v.id != null && String(v.id) !== String(doc.id)) return `the id must stay "${doc.id}" (this file is ${doc.id}.json)`;
+        apply(doc, (data) => { JsonEdit.replaceInto(data, v); }, 'all');
+        doc.badJson = {};
+        doc.ui.jsonText = {};
+        App.status(`${doc.id}: the JSON as typed is in the editor (unsaved: Save writes it)`, 'good');
+        return '';
+      },
+      onSave: () => save(tabOf(doc.kind)),
+    });
   }
 
   /** "▸ 1 error · 2 warnings": the list unfolds; each line jumps to its row. */

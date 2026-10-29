@@ -671,8 +671,9 @@ func test_the_watch_names_the_screens_up_and_the_rule_is_written_down() -> void:
 	var src := FileAccess.get_file_as_string("res://game/Game.gd")
 	assert_str(src).contains("THE RULE (pass 60")
 	assert_str(src).contains("one screen at a time, and death wins")
-	assert_str(src).contains("create_timer(delay, false)")
-	assert_str(src).contains("create_timer(1.2, false)")
+	# pass 114 (lane REPLAY): the run's own timers (Lockstep.after), pause-respecting as before (the `false`)
+	assert_str(src).contains("Lockstep.after(self, delay, false)")
+	assert_str(src).contains("Lockstep.after(self, 1.2, false)")
 	assert_str(src).not_contains("_chest_queue")
 	assert_str(src).not_contains("_path_pending")
 

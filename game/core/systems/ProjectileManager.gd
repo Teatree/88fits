@@ -124,6 +124,7 @@ var ricochets_any := 0
 
 
 func _ready() -> void:
+	Lockstep.join(self)
 	traces = EnergyTraces.new()
 	add_child(traces)
 	bomblets = Bomblets.new()
@@ -257,7 +258,7 @@ func fire(p_kind: int, from: Vector3, velocity: Vector3, damage: float, p_pierce
 	var i: int = free_list.pop_back()
 	pos[i] = from; vel[i] = velocity; life[i] = p_life; dmg[i] = damage; pierce[i] = p_pierce
 	kind[i] = p_kind; radius[i] = p_radius; kb[i] = knockback; area[i] = 0.0
-	hostile[i] = 0; arc[i] = 0; alive[i] = 1; spin[i] = randf() * TAU; homing[i] = 0
+	hostile[i] = 0; arc[i] = 0; alive[i] = 1; spin[i] = Dice.r.randf() * TAU; homing[i] = 0
 	ret[i] = 1 if (w and bool(w.params.get("return", false))) else 0
 	stuck[i] = -1
 	psize[i] = float(w.params.get("size_mult", 1.0)) if w else 1.0
@@ -315,7 +316,7 @@ func fire(p_kind: int, from: Vector3, velocity: Vector3, damage: float, p_pierce
 	# every pierce, takes it as a mini crit (EnemyManager.HIT_MINI)
 	if w:
 		var mc := float(w.params.get("mini_crit", 0.0))
-		if mc > 0.0 and randf() < mc:
+		if mc > 0.0 and Dice.r.randf() < mc:
 			extra[i]["mini"] = true
 	count += 1
 	return i
@@ -621,6 +622,9 @@ func claimed_spots() -> Array:
 
 
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	if game == null:
 		return
 	var t0 := Time.get_ticks_usec()
@@ -1005,7 +1009,7 @@ func _physics_process(delta: float) -> void:
 				# a shot that ricochets anyway (pass 48, params.ricochet_any) bounces at the end of its pierce instead
 				if w and w.params.get("ricochet_any") is Dictionary:
 					rc = 0.0
-				if rc > 0.0 and arc[i] == 0 and not extra[i].has("bounced") and randf() < rc:
+				if rc > 0.0 and arc[i] == 0 and not extra[i].has("bounced") and Dice.r.randf() < rc:
 					var nxt := _nearest_other(enemies, pos[i], 7.0, memo[i])
 					if nxt >= 0:
 						var to: Vector3 = enemies.pos[nxt] - pos[i]
@@ -1380,7 +1384,7 @@ func _curare_roll(e: int, cu: Dictionary) -> void:
 	if clock < float(s["ready"]) or clock - float(s["last"]) < CURARE_GAP:
 		return
 	s["last"] = clock
-	var roll: float = curare_roll if curare_roll >= 0.0 else randf()
+	var roll: float = curare_roll if curare_roll >= 0.0 else Dice.r.randf()
 	if roll < float(s["chance"]):
 		var secs: float = float(cu.get("seconds", 3.0))
 		em.hamper(e, float(cu.get("slow", 0.5)), secs)
@@ -1437,7 +1441,7 @@ func _burst_spawn(i: int) -> void:
 	if str(bs.get("kind", "shrapnel")) == "ember":
 		var ring := float(bs.get("ring", 2.0))
 		for k in range(n):
-			var a := TAU * float(k) / float(n) + randf_range(-0.2, 0.2)
+			var a := TAU * float(k) / float(n) + Dice.r.randf_range(-0.2, 0.2)
 			var target := pos[i] + Vector3(cos(a), 0, sin(a)) * ring
 			var j := lob(kind[i], pos[i] + Vector3(0, 0.6, 0), target, 7.0, dmg[i] * dm, float(bs.get("area", 1.2)), w, kb[i] * 0.5, {"is_burst": true})
 			if j >= 0:
@@ -1468,9 +1472,9 @@ func _shrapnel(i: int, w: WeaponInstance, bs: Dictionary, n: int, dm: float) -> 
 	var sp := float(bs.get("speed", 14.0))
 	var life_s := float(bs.get("life", 0.5))
 	var spike := shrapnel_kind()
-	var a0 := randf() * TAU
+	var a0 := Dice.r.randf() * TAU
 	for k in range(n):
-		var a := a0 + TAU * float(k) / float(maxi(n, 1)) + randf_range(-0.15, 0.15)
+		var a := a0 + TAU * float(k) / float(maxi(n, 1)) + Dice.r.randf_range(-0.15, 0.15)
 		var d := Vector3(cos(a), 0, sin(a))
 		var j := fire(spike, at + d * SHRAPNEL_OUT + Vector3(0, 0.3, 0), d * sp, dmg[i] * dm, int(bs.get("pierce", 0)), 0.22, life_s, w, kb[i] * 0.5)
 		if j >= 0:
@@ -1567,7 +1571,7 @@ func launch_missile(p_kind: int, from: Vector3, dir: Vector3, speed: float, dama
 	missiles_by_weapon[wid0] = int(missiles_by_weapon.get(wid0, 0)) + 1
 	area[i] = p_area
 	extra[i] = {"speed": speed, "wander": float(params.get("wander", 0.5)), "turn": float(params.get("turn", 6.0)), "spiral": float(params.get("spiral", 7.0)),
-		"age": 0.0, "target": -1, "phase": randf() * TAU, "range": p_range, "trail": int(params.get("trail", 1)),
+		"age": 0.0, "target": -1, "phase": Dice.r.randf() * TAU, "range": p_range, "trail": int(params.get("trail", 1)),
 		"rise": float(params.get("rise", 0.3))}
 	_trail_t[i] = 0.0
 	# pass 81 (lane POLISH): a bee's trail look (params.trail_style, BEE_TRAIL_STYLE without one; _bee_trail)
@@ -1708,7 +1712,7 @@ func kill_rockets_of(shooter: int) -> void:
 				p["loose"] = true
 				p["loose_t"] = 0.0
 				p["loose_phase"] = 0
-				p["wild"] = randf() * TAU
+				p["wild"] = Dice.r.randf() * TAU
 				p["target"] = -1
 				p["dive_at"] = Vector3.INF
 				p["loose_mark"] = -1
@@ -1819,7 +1823,7 @@ func _fly_loose(i: int, delta: float, map) -> void:
 	if phase == 0 and t >= LOOSE_BLINK:
 		phase = 1
 		p["loose_phase"] = 1
-		p["wild"] = randf() * TAU
+		p["wild"] = Dice.r.randf() * TAU
 		game.fx_burst(pos[i], Color(1.0, 0.9, 0.7), 1.0)
 		Audio.play("en_rocket_wild", pos[i])
 	elif phase == 1 and t >= LOOSE_BLINK + LOOSE_CLIMB:
@@ -2059,7 +2063,7 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 			w.kills += 1
 			# the Hive Queen (pass 48, params.flower_on_kill): a bee's kill now and then sprouts a flower where it fell
 			var fk := float(w.params.get("flower_on_kill", 0.0))
-			if fk > 0.0 and randf() < fk:
+			if fk > 0.0 and Dice.r.randf() < fk:
 				FlowerField.sprout(game, at_kill)
 		if w:
 			game.fx_hit(pos[i], w.def)
@@ -2257,7 +2261,7 @@ func _explode(i: int) -> void:
 	# cluster is read off the weapon's params, never the shot's extra (a missile's extra is its flight, so the old
 	# `bomblets` key there never reached a rocket); a bomb's own bomblets never cluster
 	var cl = w.params.get("cluster") if w else null
-	if cl is Dictionary and not (extra[i] as Dictionary).has("is_bomblet") and randf() < float((cl as Dictionary).get("chance", 0.0)):
+	if cl is Dictionary and not (extra[i] as Dictionary).has("is_bomblet") and Dice.r.randf() < float((cl as Dictionary).get("chance", 0.0)):
 		if bomblets:
 			bomblets.game = game
 			bomblets.scatter(w, pos[i], dmg[i], cl)
@@ -2268,7 +2272,7 @@ func _explode(i: int) -> void:
 		var bsize: float = psize[i] * float(params.get("bomblet_size", 1.0))
 		for k in range(lobbed):
 			var a := TAU * k / lobbed
-			var target := pos[i] + Vector3(cos(a), 0, sin(a)) * randf_range(1.5, 3.5)
+			var target := pos[i] + Vector3(cos(a), 0, sin(a)) * Dice.r.randf_range(1.5, 3.5)
 			var j := lob(kind[i], pos[i] + Vector3(0, 0.5, 0), target, 6.0, dmg[i] * float(params.get("bomblet_damage_mult", 0.5)), float(params.get("bomblet_area", 1.4)), w, kb[i] * 0.5, {"is_bomblet": true})
 			if j >= 0:
 				vel[j].y += 4.0
@@ -2302,7 +2306,7 @@ func _bounce_on(i: int, w: WeaponInstance) -> void:
 	if dir.length_squared() < 0.0001:
 		dir = Vector3(vel[i].x, 0.0, vel[i].z)
 	if dir.length_squared() < 0.0001:
-		var ar := randf() * TAU
+		var ar := Dice.r.randf() * TAU
 		dir = Vector3(cos(ar), 0.0, sin(ar))
 	dir = dir.normalized()
 	var dist: float = a0 * _nth(b.get("reach_mult"), k, 1.6 - 0.4 * float(k)) + _nth(b.get("reach_add"), k, 1.5 - 0.5 * float(k))
@@ -4267,7 +4271,7 @@ func _dynamite_blast(i: int) -> void:
 			dynamite_hits += 1
 			var kn := float(bl.get("knockback", 0.0))
 			if kn > 0.0 and player.has_method("blast") and str(player.get("last_outcome")) != "evaded":
-				var away: Vector3 = d if d.length_squared() > 0.01 else Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
+				var away: Vector3 = d if d.length_squared() > 0.01 else Vector3(Dice.r.randf_range(-1.0, 1.0), 0.0, Dice.r.randf_range(-1.0, 1.0))
 				player.blast(away.normalized() * kn, float(bl.get("lift", 0.0)))
 	var push := float(bl.get("push", 0.0))
 	if push > 0.0 and game.get("enemies"):

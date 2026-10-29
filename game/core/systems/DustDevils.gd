@@ -156,6 +156,8 @@ static func count_in(c: Dictionary, length: float) -> float:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	var t0 := Time.get_ticks_usec()
 	if game == null:
 		return

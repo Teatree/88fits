@@ -34,7 +34,8 @@
 ## Big foreshadowing"): kind `pattern`, a bullet-heaven attack (docs/concepts/boss_bullet_heaven.md, option A of each boss).
 ##  pattern  never in the boss's attack cycle: its own `trigger` schedules it (the first not before `first_after` fight
 ##          seconds, when his HP falls under `first_at_hp` of his max or at the latest `first_by` seconds in; then again
-##          `cooldown` seconds after the last one ended), and it starts only between his attacks. A `tell` of `seconds`
+##          `cooldown` seconds after the last one was completely over; pass 114: each of the three a number or a range
+##          [min, max] rolled from the fight's dice), and it starts only between his attacks. A `tell` of `seconds`
 ##          (the banner word, the ground darkening in a ring round him, the wind-up sound, the music ducking, his own
 ##          wind-up `look`, the `shell` forming), then `timing.duration` seconds of bullets from the `emitters` (each a
 ##          spiral, ring, fan, sweep, wall or rose of `projectile` shots flying straight out at their own speed, gone past
@@ -460,15 +461,76 @@ func spent_mult() -> float:
 
 
 ## Whether the pattern is due for a boss `fight_t` seconds into his fight with `hp_frac` of his max HP left, having played
-## `runs` patterns, the last ending (its spent seconds over) at fight second `last_end`: never before trigger.first_after;
-## the first when his HP is at or under first_at_hp or at the latest first_by seconds in; the next ones `cooldown` seconds
-## after the last one ended.
-func pattern_due(fight_t: float, hp_frac: float, runs: int, last_end: float) -> bool:
-	if fight_t < num("trigger", "first_after"):
+## `runs` patterns, the last ending (completely over: the tell, the bullets, their burn-out and his spent seconds) at fight
+## second `last_end`: never before trigger.first_after; the first when his HP is at or under first_at_hp or at the latest
+## first_by seconds in; the next ones `cooldown` seconds after the last one ended. Pass 114: `rolled` holds this fight's
+## rolls of the keys that take a range (roll_triggers; BossPatterns keeps them); a key it lacks plays its range's low end.
+func pattern_due(fight_t: float, hp_frac: float, runs: int, last_end: float, rolled: Dictionary = {}) -> bool:
+	if fight_t < trigger_value("first_after", rolled):
 		return false
 	if runs <= 0:
-		return hp_frac <= num("trigger", "first_at_hp") or fight_t >= num("trigger", "first_by")
-	return fight_t - last_end >= num("trigger", "cooldown")
+		return hp_frac <= num("trigger", "first_at_hp") or fight_t >= trigger_value("first_by", rolled)
+	return fight_t - last_end >= trigger_value("cooldown", rolled)
+
+
+## Pass 114 (lane EDITOR; Garry: "add the option of randomization for the starting pattern ... make it a range between 10
+## and 15 for example. Also ... those cooldowns should be after the attack is actually over"): trigger.first_after,
+## first_by and cooldown each take a number (as before) or a range [min, max]. A range is rolled from the fight's own
+## seeded dice (BossPatterns, never the global randf: a replay rolls the same): first_after and first_by once per fight,
+## the cooldown afresh after each attack (BALANCING 57.EDITOR).
+const TRIGGER_RANGES := ["first_after", "first_by", "cooldown"]
+
+
+## Trigger key `key` as (low, high): a number v is (v, v); [a, b] is sorted; never below 0; anything else (or a list that
+## is not two numbers) plays the default.
+func trigger_range(key: String) -> Vector2:
+	return range_of(val("trigger", key), float((DEFAULTS["trigger"] as Dictionary).get(key, 0.0)))
+
+
+static func range_of(v: Variant, fallback: float) -> Vector2:
+	if v is float or v is int:
+		var f := maxf(float(v), 0.0)
+		return Vector2(f, f)
+	if v is Array:
+		var a: Array = v
+		if a.size() == 1 and (a[0] is float or a[0] is int):
+			var g := maxf(float(a[0]), 0.0)
+			return Vector2(g, g)
+		if a.size() == 2 and (a[0] is float or a[0] is int) and (a[1] is float or a[1] is int):
+			var lo := maxf(float(a[0]), 0.0)
+			var hi := maxf(float(a[1]), 0.0)
+			return Vector2(minf(lo, hi), maxf(lo, hi))
+	var d := maxf(fallback, 0.0)
+	return Vector2(d, d)
+
+
+## Whether trigger key `key` is a range (its low and high ends differ).
+func trigger_is_range(key: String) -> bool:
+	var r := trigger_range(key)
+	return r.y > r.x
+
+
+## One roll of trigger key `key`: a range rolls uniformly from `rng` (one draw), a number plays as it is (no draw).
+func roll_trigger(key: String, rng: RandomNumberGenerator) -> float:
+	var r := trigger_range(key)
+	if r.y <= r.x or rng == null:
+		return r.x
+	return rng.randf_range(r.x, r.y)
+
+
+## A fight's rolls of the three keys, drawn in TRIGGER_RANGES' order from `rng`: {first_after, first_by, cooldown}.
+func roll_triggers(rng: RandomNumberGenerator) -> Dictionary:
+	var out := {}
+	for k: String in TRIGGER_RANGES:
+		out[k] = roll_trigger(k, rng)
+	return out
+
+
+## The value trigger key `key` plays now: this fight's roll in `rolled`, else its range's low end (a number: itself).
+func trigger_value(key: String, rolled: Dictionary = {}) -> float:
+	if rolled.has(key):
+		return float(rolled[key])
+	return trigger_range(key).x
 
 
 ## Whether emitter `e` (full) fires at `t` seconds into a `dur`-second pattern: between start and stop (shares of dur), in

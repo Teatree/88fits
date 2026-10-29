@@ -120,10 +120,13 @@ const BossAttacks = (() => {
     { g: 'timing', k: 'duration', label: 'Bullets for (s)', type: 'number', min: 0.5, step: 0.5, kinds: PAT, help: 'pattern: seconds of bullets after the tell (Garry: "some 5+ seconds during which player is supposed to try and survive"); on the creatures\' clock (×1/pace on the map)' },
     { g: 'timing', k: 'clear', label: 'Burn out (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: the bullets still flying when the bullets end shrink away over this many seconds and hurt nobody (0 = gone at once), so the payoff is a clear screen' },
     { g: 'hit', k: 'hit_frac', label: 'A bullet takes (share of max HP)', type: 'number', min: 0, max: 1, step: 0.01, kinds: PAT, help: 'pattern: each bullet that touches the hero takes this share of his max HP (0.12 = 12%: about 8 hits from full without armour), then it is gone; an evade, the Shield power-up and the blink after a hit stop it as they stop any shot. The danger is the number of bullets, never one hit' },
-    { g: 'trigger', k: 'first_after', label: 'Not before (s)', type: 'number', min: 0, step: 1, kinds: PAT, help: 'pattern: never in the first this many seconds of the fight (Garry: "Make it so they don\'t trigger immediately")' },
+    // pass 114 (lane EDITOR; Garry: "make it a range between 10 and 15 for example"): Not before, At the latest and Then
+    // every each take one number (fixed) or a range (min and max): the game rolls a number in the range from the fight's
+    // own dice (the same in a replay)
+    { g: 'trigger', k: 'first_after', label: 'Not before (s)', type: 'range', min: 0, step: 1, kinds: PAT, help: 'pattern: never in the first this many seconds of the fight (Garry: "Make it so they don\'t trigger immediately"). Fixed: one number. Range: the game picks a number between min and max once per fight (10 to 15 = somewhere from 10 s to 15 s, a new pick every fight)' },
     { g: 'trigger', k: 'first_at_hp', label: 'First at HP below', type: 'number', min: 0, max: 1, step: 0.05, kinds: PAT, help: 'pattern: the first one comes when the boss falls to this share of his max HP (0.6 = 60%)...' },
-    { g: 'trigger', k: 'first_by', label: '...or at the latest (s)', type: 'number', min: 0, step: 1, kinds: PAT, help: 'pattern: ...or at the latest this many seconds into the fight, so a slow fight still sees one' },
-    { g: 'trigger', k: 'cooldown', label: 'Then every (s)', type: 'number', min: 0, step: 1, kinds: PAT, help: 'pattern: the next one comes this many seconds after the last one ended (its spent seconds over). Garry: "rare, something like once every 45s". It still waits for him to finish whatever attack he is in' },
+    { g: 'trigger', k: 'first_by', label: '...or at the latest (s)', type: 'range', min: 0, step: 1, kinds: PAT, help: 'pattern: ...or at the latest this many seconds into the fight, so a slow fight still sees one. Fixed: one number. Range: picked between min and max once per fight' },
+    { g: 'trigger', k: 'cooldown', label: 'Then every (s)', type: 'range', min: 0, step: 1, kinds: PAT, help: 'pattern: the next one comes this many seconds after the last one is COMPLETELY over: the countdown starts only when his tell, all the bullets and his dazed (spent) seconds are done, so a 20 s attack with "every 45" means 45 s of fighting between two of them. Fixed: one number. Range: a new pick between min and max after every attack. Garry: "rare, something like once every 45s". It still waits for him to finish whatever attack he is in' },
     { g: 'tell', k: 'seconds', label: 'Tell (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: how long the warning lasts before the first bullet (Garry: "Big foreshadowing"): the banner, the dark ground, the wind-up sound, the music ducking, his wind-up and his shell forming. He is guarded from its start' },
     { g: 'tell', k: 'banner', label: 'Banner words', type: 'text', kinds: PAT, placeholder: 'the attack\'s name', help: 'pattern: the words across the screen as the tell starts (empty = the attack\'s name, in capitals)' },
     { g: 'tell', k: 'banner_color', label: 'Banner colour', type: 'color', kinds: PAT, help: 'pattern: the banner\'s colour, and the ring pulsing at the edge of the dark ground' },
@@ -226,7 +229,8 @@ const BossAttacks = (() => {
     S.base = JSON.parse(JSON.stringify(S.draft));
     S.mtime = r.data.mtime;
     S.msg = null;
-    App.status(r.data.import_ok ? `Saved ${S.open} · import OK` : `Saved ${S.open} · IMPORT NOT RUN (the game plays the old .tres until an import)`, r.data.import_ok ? 'good' : 'bad', r.data.output);
+    // pass 114 (lane EDITOR): the import waits (queued) while Godot is busy: App.importOutcome says who holds it
+    App.saveStatus(r.data, `Saved ${S.open} at ${new Date().toLocaleTimeString()}`);
     const keep = S.open;
     S.data = null; load(true);
     S.open = keep;
@@ -241,7 +245,7 @@ const BossAttacks = (() => {
     const r = await postJSON('/api/boss_attacks/new', body);
     if (!r.data.ok) { S.creating.error = r.data.error; redraw(); return; }
     S.creating = null;
-    App.status(`Made ${id}${r.data.import_ok ? ' · import OK' : ' · import not run'}`, r.data.import_ok ? 'good' : 'bad', r.data.output);
+    App.saveStatus(r.data, `Made ${id}`);
     S.data = await getJSON('/api/boss_attacks');
     S.open = null; S.draft = null; S.base = null;
     openAttack(id);
@@ -252,7 +256,7 @@ const BossAttacks = (() => {
     const r = await postJSON(`/api/boss_attacks/${S.open}/assign`, { creature: cid, on });
     S.busy = false;
     if (!r.data.ok) { App.status(`Could not ${on ? 'add it to' : 'take it out of'} ${cid}: ${r.data.error}`, 'bad'); redraw(); return; }
-    App.status(`${on ? 'Added to' : 'Taken out of'} ${cid}'s script (${r.data.attacks.join(', ')})${r.data.import_ok ? ' · import OK' : ' · import not run'}`, r.data.import_ok ? 'good' : 'bad', r.data.output);
+    App.saveStatus(r.data, `${on ? 'Added to' : 'Taken out of'} ${cid}'s script (${r.data.attacks.join(', ')})`);
     S.data = await getJSON('/api/boss_attacks');
     if (typeof App !== 'undefined' && App.refreshCreatures) App.refreshCreatures();
     redraw();
@@ -353,6 +357,8 @@ const BossAttacks = (() => {
       el('button', { class: 'btn small', type: 'button', text: 'Undo', disabled: !S.history.length, onclick: undo }),
       el('button', { class: 'btn small', type: 'button', text: 'Revert', disabled: !dirty(), onclick: revert }),
       el('button', { class: 'btn small primary' + (iss.errors.length && dirty() ? ' blocked' : ''), type: 'button', text: S.busy ? 'Saving…' : 'Save attack', disabled: !dirty() || S.busy, title: iss.errors.length ? iss.errors.join(' · ') : 'write the JSON and import it (Ctrl+S)', onclick: save }),
+      // pass 114 (lane EDITOR): the whole attack as JSON, editable (every key, also ones without a box)
+      el('button', { class: 'btn small', type: 'button', text: 'JSON…', title: 'show / edit the JSON: Apply takes it as typed (one undoable edit), Save attack writes it', onclick: jsonWindow }),
       el('button', { class: 'btn small danger', type: 'button', text: 'Delete…', onclick: () => { S.deleting = !S.deleting; redraw(); } })));
     if (S.msg) pane.appendChild(el('div', { class: 'ferr warn' }, el('span', { text: S.msg.text + ' ' }), el('button', { class: 'btn small', type: 'button', text: 'Reload', onclick: reload })));
     if (S.deleting) {
@@ -374,8 +380,8 @@ const BossAttacks = (() => {
     }
     pane.appendChild(usedBy());
     if (kind === 'script') { pane.appendChild(scriptPane(d)); return pane; }
-    // pass 113 (lane BOSS): a pattern's preview and its emitters
-    if (kind === 'pattern') { pane.appendChild(patternPreview(d)); pane.appendChild(emittersPane(d)); }
+    // pass 113 (lane BOSS): a pattern's preview and its emitters (pass 114: the how-to above them)
+    if (kind === 'pattern') { pane.appendChild(howtoBox()); pane.appendChild(patternPreview(d)); pane.appendChild(emittersPane(d)); }
     else pane.appendChild(preview(d, kind));
     for (const [g, title, sub] of SECTIONS) {
       const rows = FIELDS.filter((f) => f.g === g && f.kinds.includes(kind));
@@ -387,6 +393,25 @@ const BossAttacks = (() => {
       pane.appendChild(det);
     }
     return pane;
+  }
+
+  /** Pass 114 (lane EDITOR): the open attack's JSON in the big editable window (json_edit.js); Apply takes it as typed. */
+  function jsonWindow() {
+    if (!S.draft || typeof JsonEdit === 'undefined') return;
+    JsonEdit.modal({
+      title: `${S.open}.json as the editor holds it`,
+      note: 'Edit any key (every number, the emitters, a trigger range like "first_after": [10, 15]), then Apply: the attack takes it as typed and is marked unsaved; Save attack writes it. The id stays ' + S.open + '.',
+      value: S.draft,
+      onApply: (v) => {
+        const bad = JsonEdit.mustBeObject(v);
+        if (bad) return bad;
+        if (String(v.id) !== String(S.open)) return `the id must stay "${S.open}"`;
+        edit((d) => { JsonEdit.replaceInto(d, v); });
+        App.status(`${S.open}: the JSON as typed is in the editor (unsaved: Save attack writes it)`, 'good');
+        return '';
+      },
+      onSave: save,
+    });
   }
 
   /** A new kind keeps every number the two kinds share; the rows only the new kind reads take its blank's numbers (a
@@ -448,8 +473,37 @@ const BossAttacks = (() => {
     else if (f.type === 'sound') {
       const sounds = (S.data && S.data.sounds) || [];
       ctl = Forms.select(sounds.map((x) => o(x)), cur == null ? '' : cur, set, { path, emptyLabel: dflt ? `— (${dflt})` : '— none' });
-    } else ctl = Forms.numberInput({ key: path, min: f.min, max: f.max, step: f.step, int: f.type === 'int' }, cur, set, { path, placeholder: dflt, cls: 'short' });
+    } else if (f.type === 'range') ctl = rangeInput(f, cur, dflt, set, path);
+    else ctl = Forms.numberInput({ key: path, min: f.min, max: f.max, step: f.step, int: f.type === 'int' }, cur, set, { path, placeholder: dflt, cls: 'short' });
     return Forms.row({ key: path, label: f.label, help: f.help }, ctl, {});
+  }
+
+  /** Pass 114 (lane EDITOR): a trigger key that is one number or a range [min, max]: "fixed" shows one box (empty = the
+   *  game's default, in grey), "range" two (min, max: the game rolls a number between them; BossAttackDef.roll_trigger).
+   *  Switching keeps the number: fixed 15 -> range 15 to 15; range 10 to 15 -> fixed 10. A min above its max is shown at
+   *  once (and blocks the save, as boss_attacks_io.py refuses it). */
+  function rangeInput(f, cur, dflt, set, path) {
+    const isRange = Array.isArray(cur);
+    const lo = isRange ? cur[0] : cur;
+    const hi = isRange ? cur[1] : null;
+    const mode = Forms.select([o('fixed', 'fixed'), o('range', 'range (min to max)')], isRange ? 'range' : 'fixed', (v) => {
+      const base = M.num(isRange ? cur[0] : (cur == null ? dflt : cur), dflt);
+      if (v === 'range' && !isRange) set([base, base]);
+      else if (v !== 'range' && isRange) set(base);
+    }, { path: path + '.mode' });
+    const box = (val, key, ph, onv) => Forms.numberInput({ key: path + key, min: f.min, max: f.max, step: f.step }, val, onv, { path: path + key, placeholder: ph, cls: 'short' });
+    const wrap = el('span', { class: 'batk-range' }, mode);
+    if (!isRange) {
+      wrap.appendChild(box(cur, '', dflt, set));
+    } else {
+      wrap.appendChild(el('span', { class: 'muted small', text: ' min ' }));
+      wrap.appendChild(box(lo, '.min', dflt, (v) => set([v == null ? M.num(dflt, 0) : v, M.num(hi, M.num(dflt, 0))])));
+      wrap.appendChild(el('span', { class: 'muted small', text: ' max ' }));
+      wrap.appendChild(box(hi, '.max', dflt, (v) => set([M.num(lo, M.num(dflt, 0)), v == null ? M.num(dflt, 0) : v])));
+      const pr = M.triggerProblem(f.k, cur);
+      wrap.appendChild(el('span', { class: pr ? 'ferr bad small' : 'muted small', text: pr ? ` ${pr}` : (Number(lo) === Number(hi) ? ' (the same: no roll)' : ` rolled ${f.k === 'cooldown' ? 'after every attack' : 'once a fight'}`) }));
+    }
+    return wrap;
   }
 
   function colorInput(cur, dflt, set, path) {
@@ -513,6 +567,43 @@ const BossAttacks = (() => {
     { k: 'pull_speed', label: 'Pull speed (m/s)', type: 'number', min: 0.1, step: 0.5, shapes: SH_ALL, help: 'how fast the bullets come home in the finale' },
     { k: 'width', label: 'Wall length (m)', type: 'number', min: 0, step: 0.5, shapes: ['wall'], help: 'wall: how long the line of bullets is' },
   ];
+
+  /** Pass 114 (lane EDITOR; Garry: "Then tell me how I can edit this myself in the future"): the plain-words how-to of a
+   *  bullet heaven, the same as docs/howto/boss_bullet_heaven.md: which box changes what. [title, [steps]] */
+  const HOWTO = [
+    ['How long it lasts', [
+      '<b>Timing → Bullets for (s)</b>: the seconds of bullets after the warning (the King\'s Royal Dust Devil: 16). The warning (<b>Tell (s)</b>, 2) comes before it and his dazed seconds (<b>Spent for (s)</b>, 2.5) after it.',
+      'Each emitter\'s <b>From (share)</b> and <b>To (share)</b> are shares of that time (0.15 to 0.9 = from 15% to 90% of it), so a longer attack keeps its shape.']],
+    ['How far the bullets fly', [
+      '<b>Projectile → Range (m)</b>: a bullet shrinks away this far from where the boss stood (the King: 48 m; the screen shows about 12 m round the hero).',
+      'Each emitter\'s <b>Speed (m/s)</b>: how fast its bullets fly (the hero walks about 5). Faster bullets reach the range sooner, so fewer are in the air.']],
+    ['How far apart the bullets are (each emitter on its own)', [
+      '<b>Bullets a volley</b>: fewer = more room between them (a ring of 16 instead of 20 = a quarter more room).',
+      '<b>Spread (°)</b> (spiral, fan, sweep): a wider spread with the same bullets = more room between them.',
+      '<b>Opening</b> (ring: degrees left open; wall: metres left open): the gap to run through.',
+      '<b>Volleys a second</b>: lower = more room between one volley and the next along the same line.',
+      'The preview (▶ Play) shows the bullets to scale; the line under it says how many are in the air at most (keep it under 600 for the phone).']],
+    ['When it comes, and how often', [
+      '<b>When it comes → Not before (s)</b>: never sooner in the fight. <b>First at HP below</b>: the first comes when he falls under this share of his HP... <b>...or at the latest (s)</b>: ...or this many seconds in.',
+      '<b>Then every (s)</b>: the next one comes this many seconds after the last one is completely over (the warning, the bullets and his dazed seconds all done).',
+      'Each of the three can be <b>fixed</b> (one number) or a <b>range</b> (min and max): the game picks a number between them, Not before and At the latest once per fight, Then every after each attack. 10 to 15 = somewhere from 10 s to 15 s.',
+      'The line <b>In a fight</b> under the preview shows when the first three can start and end, earliest to latest.']],
+    ['Then', [
+      '<b>Save attack</b> (Ctrl+S). The next fight plays it. If the build (or the tests) holds Godot, the file is saved at once and the import follows by itself when Godot is free; the status line says whether the build being made includes it.',
+      'Ctrl+Z undoes, Revert goes back to the file as saved. <b>JSON…</b> (next to Save attack) opens the whole attack as text: change any key, even ones without a box, then Apply.']],
+  ];
+  function howtoBox() {
+    const det = el('details', { class: 'asection batk-sec batk-howto' }, el('summary', {}, el('span', { class: 'asec-title', text: 'How do I change it?' }), el('span', { class: 'muted small', text: ' how long, how far, how far apart, when (also docs/howto/boss_bullet_heaven.md)' })));
+    const body = el('div', { class: 'asec-body' });
+    for (const [title, steps] of HOWTO) {
+      body.appendChild(el('h4', { text: title }));
+      const ul = el('ul', { class: 'small' });
+      for (const st of steps) { const x = el('li'); x.innerHTML = st; ul.appendChild(x); }
+      body.appendChild(ul);
+    }
+    det.appendChild(body);
+    return det;
+  }
 
   function setEmitter(idx, k, v) {
     edit((d) => {
@@ -616,7 +707,14 @@ const BossAttacks = (() => {
     const facts = el('ul', { class: 'batk-facts small' });
     const li = (h) => { const x = el('li'); x.innerHTML = h; facts.appendChild(x); };
     const tr = (k) => M.num(M.val(d, 'trigger', k), M.DEFAULTS.trigger[k]);
-    li(`<b>When:</b> never in the first ${fmtN(tr('first_after'), 0)} s of the fight; the first when the boss falls under ${fmtN(tr('first_at_hp') * 100, 0)}% HP, or ${fmtN(tr('first_by'), 0)} s in at the latest; then ${fmtN(tr('cooldown'), 0)} s after the last one ended. Never in his attack cycle, and only between his attacks`);
+    // pass 114 (lane EDITOR): a range reads "10–15 s" (rolled once a fight; the cooldown after every attack), and the
+    // cooldown counts from the moment the attack is completely over
+    const rg = (k) => M.fmtRange(M.triggerRange(d, k));
+    li(`<b>When:</b> never in the first ${rg('first_after')} of the fight; the first when the boss falls under ${fmtN(tr('first_at_hp') * 100, 0)}% HP, or ${rg('first_by')} in at the latest; then ${rg('cooldown')} after the last one is <b>completely over</b> (his tell, the bullets and his spent seconds done). A range is a new pick ${M.TRIGGER_RANGES.some((k) => M.triggerRange(d, k)[0] !== M.triggerRange(d, k)[1]) ? 'between its min and max (Not before and At the latest once a fight, Then every after each attack)' : 'when you give one'}. Never in his attack cycle, and only between his attacks`);
+    // the fight's first three, earliest to latest (full HP the whole fight = the latest; under the HP share at once = the earliest)
+    const sched = M.patternSchedule(d, 3);
+    const span = (r) => (Math.abs(r[0] - r[1]) < 0.05 ? `${fmtN(r[0], 1)} s` : `${fmtN(r[0], 1)}–${fmtN(r[1], 1)} s`);
+    li(`<b>In a fight</b> (seconds since he arrived, earliest–latest; his own attacks can only make one later, ×1/pace on the map): ${sched.map((x) => `${['1st', '2nd', '3rd'][x.k - 1]} starts ${span(x.start)}, over ${span(x.end)}`).join(' · ')}`);
     li(`<b>${fmtN(tell, 1)} s tell</b> (banner, dark ground, wind-up sound, music down ${fmtN(-M.num(M.val(d, 'tell', 'duck_db'), -14), 0)} dB, his wind-up) → <b>${fmtN(bul, 1)} s of bullets</b> → <b>${fmtN(spent, 1)} s spent</b>: about ${fmtN(total, 1)} s in all (×1/pace on the map). Meanwhile no other attack of his and no new creatures from the boss fight's rows`);
     li(`<b>${all.peak}</b> bullets in the air at most (at ${fmtN(all.peak_t, 1)} s), ${all.fired} in all over ${all.volleys} volleys (without a hero to hit)`);
     li(`a bullet takes <b>${fmtN(M.num(M.val(d, 'hit', 'hit_frac'), 0.12) * 100, 0)}%</b> of the hero's max HP and is gone; the ones left when the bullets end burn out over ${fmtN(M.num(M.val(d, 'timing', 'clear'), 0.6), 1)} s, harmless`);
@@ -781,6 +879,7 @@ const BossAttacks = (() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', (e) => {
       if (typeof App === 'undefined' || App.S.tab !== 'bossattacks') return;
+      if (document.querySelector('.jedit-back')) return;   // pass 114: the JSON window has the keys while it is open
       const ctrl = e.ctrlKey || e.metaKey;
       if (!ctrl) return;
       const k = e.key.toLowerCase();
@@ -830,6 +929,9 @@ const BossAttacks = (() => {
       '<b>Emitters</b>: each is a spiral, ring, fan, sweep, wall or rose with its own speed and rhythm; <i>+ Add an emitter</i>, <i>Copy</i>, <i>Remove</i>. Every box shows the game\'s default in grey.',
       '<b>When it comes</b>: not before (s), the first at HP below (share) or at the latest (s), then every (s).',
       'Save attack (Ctrl+S): the next fight plays it.'));
+    // pass 114 (lane EDITOR): the how-to (the tab's "How do I change it?" fold; docs/howto/boss_bullet_heaven.md)
+    root.appendChild(el('h3', { text: 'Pass 114: change a bullet heaven yourself (how long, how far, how far apart, when)' }));
+    for (const [title, steps] of HOWTO) { root.appendChild(el('h4', { text: title })); const u = el('ul', {}); for (const st of steps) u.appendChild(li(st)); root.appendChild(u); }
     const ek = el('ul', {});
     for (const f of EMITTER_FIELDS) ek.appendChild(li(`<i>${f.label}</i> (<code>${f.k}</code>, ${f.shapes.join('/')}): ${f.help}`));
     root.appendChild(el('h3', { text: 'Every emitter key' }));

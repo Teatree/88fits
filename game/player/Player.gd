@@ -128,6 +128,7 @@ var camera_yaw_fn: Callable = Callable()
 
 
 func _ready() -> void:
+	Lockstep.join(self)
 	sheet = Run.player_sheet
 	input.touch_ended.connect(func(): lifted_thumb.emit())
 	_setup_sprite()
@@ -289,6 +290,9 @@ func _tick_hit_ago(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	var _t0 := Time.get_ticks_usec()
 	_note_hp()
 	if dead:
@@ -298,6 +302,8 @@ func _physics_process(delta: float) -> void:
 		_kb = Vector3.ZERO
 		velocity.y -= 24.0 * delta
 		move_and_slide()
+		# pass 114 (lane REPLAY): his place after the slide, kept (a recording) or taken from it (a replay)
+		RunReplay.hero_moved(self)
 		_stop_still()
 		Perf.add("player", _t0)
 		return
@@ -330,9 +336,11 @@ func _physics_process(delta: float) -> void:
 	var move_speed := sheet.get_stat("move_speed", 5.0) * Run.move_pace()
 	var planar := Vector3.ZERO
 	var prev_facing := facing
-	if input.wants_move and input.stick_dir.length() > 0.02:
+	# pass 114 (lane REPLAY): the stick as a recording keeps it (1/1024 steps, Lockstep.q2), so a replay steers the same
+	var stick := Lockstep.q2(input.stick_dir)
+	if input.wants_move and stick.length() > 0.02:
 		var cam_yaw: float = camera_yaw_fn.call() if camera_yaw_fn.is_valid() else facing
-		var d := input.stick_dir
+		var d := stick
 		var world := Vector3(d.x, 0, d.y).rotated(Vector3.UP, cam_yaw)
 		var target_yaw := atan2(-world.x, -world.z)
 		facing = lerp_angle(facing, target_yaw, clampf(delta * 22.0, 0.0, 1.0))
@@ -364,6 +372,9 @@ func _physics_process(delta: float) -> void:
 	_kb = _kb.lerp(Vector3.ZERO, delta * 6.0)
 	var before := global_position
 	move_and_slide()
+	# pass 114 (lane REPLAY): his place after the slide, kept (a recording) or taken from it (a replay): the physics
+	# engine's own last bits never part a replay
+	RunReplay.hero_moved(self)
 	var stepped := (global_position - before)
 	stepped.y = 0.0
 	distance_moved += stepped.length()
@@ -1037,7 +1048,7 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 		return
 	# Evade: a clean miss, no damage and no shove; Ghost Step leaves him untouchable a moment after it
 	var ev := sheet.get_stat("evade", 0.0)
-	if ev > 0.0 and randf() < minf(ev, 0.9):
+	if ev > 0.0 and Dice.r.randf() < minf(ev, 0.9):
 		invuln = maxf(invuln, sheet.get_stat("evade_invuln", 0.0))
 		_log_hit(amount, 0.0, 0.0, info, "evaded")
 		# Counterpunch (pass 69): the next attack is armed and the boost starts, before the evade is told (Game's burst)

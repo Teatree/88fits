@@ -231,6 +231,8 @@ func _orbit_point(a: float) -> Vector3:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if game == null or game.paused:
 		return
 	tick(delta)
@@ -243,7 +245,7 @@ func tick(delta: float) -> void:
 		# its prey is gone: no other, it drops
 		_enter(FALLING)
 		darting = false
-		_vel = Vector3(randf_range(-1.0, 1.0), 1.5, randf_range(-1.0, 1.0))
+		_vel = Vector3(Dice.r.randf_range(-1.0, 1.0), 1.5, Dice.r.randf_range(-1.0, 1.0))
 	match state:
 		FLY_IN:
 			_fly_in(delta)
@@ -274,7 +276,7 @@ func _turn(delta: float) -> void:
 	_tilt_a += TILT_TURN * delta
 	_switch_t -= delta
 	if _switch_t <= 0.0:
-		_switch_t = randf_range(SWITCH_MIN, SWITCH_MAX)
+		_switch_t = Dice.r.randf_range(SWITCH_MIN, SWITCH_MAX)
 		_dir = -_dir
 	_spin = move_toward(_spin, _dir, SWITCH_RATE * delta)
 	_ang += speed / orbit_radius() * _spin * (DART_SPIN if darting else 1.0) * delta
@@ -305,9 +307,9 @@ func _fly_in(delta: float) -> void:
 func _arrive() -> void:
 	_enter(HOLD)
 	_since = interval - FIRST_STING
-	_dir = 1.0 if randf() < 0.5 else -1.0
+	_dir = 1.0 if Dice.r.randf() < 0.5 else -1.0
 	_spin = _dir
-	_switch_t = randf_range(SWITCH_MIN, SWITCH_MAX)
+	_switch_t = Dice.r.randf_range(SWITCH_MIN, SWITCH_MAX)
 	_hold_t = 0.0
 	global_position = _orbit_point(_ang)
 	_floor()

@@ -35,7 +35,7 @@ func setup(p_inst: WeaponInstance, p_game: Node) -> void:
 	if visual and get("_familiar") == null:
 		_stray = visual.get_node_or_null("Familiar") as Node3D
 		if _stray:
-			_stray_orbit = randf() * TAU
+			_stray_orbit = Dice.r.randf() * TAU
 			_fly_stray(0.0)
 	refresh_marks()
 
@@ -470,6 +470,8 @@ func muzzle_flash(at: Vector3 = Vector3.INF, dir: Vector3 = Vector3.ZERO) -> voi
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if game == null or player == null or player.dead or game.paused:
 		return
 	var t0 := Time.get_ticks_usec()

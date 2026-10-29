@@ -70,7 +70,7 @@ func height_at(x: float, z: float) -> float:
 
 
 func random_point_on_ring(center: Vector3, r: float) -> Vector3:
-	var a := randf() * TAU
+	var a := Dice.r.randf() * TAU
 	return Vector3(center.x + cos(a) * r, 0, center.z + sin(a) * r)
 
 

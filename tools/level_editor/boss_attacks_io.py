@@ -56,6 +56,30 @@ EMITTER_DEFAULTS = {"shape": "spiral", "count": 1, "arms": 1, "speed": 3.0, "rat
                     "pull_speed": 7.0, "width": 12.0}
 # the creature folders whose JSON may carry a script (boss.attacks)
 SCRIPTED = (("boss", "bosses"), ("enemy", "enemies"))
+# pass 114 (lane EDITOR): BossAttackDef.TRIGGER_RANGES: a pattern's trigger keys that take a number or a range [min, max]
+TRIGGER_RANGES = ("first_after", "first_by", "cooldown")
+
+
+def _is_num(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def trigger_problem(key, v):
+    """What is wrong with trigger.<key> as written ('' when nothing): a number at or above 0, or [min, max] with
+    0 <= min <= max (boss_model.js triggerProblem says the same on the page)."""
+    if v is None:
+        return ""
+    if _is_num(v):
+        return "trigger.%s is below 0" % key if v < 0 else ""
+    if isinstance(v, list):
+        if len(v) != 2 or not all(_is_num(x) for x in v):
+            return "trigger.%s: a range is two numbers, [min, max]" % key
+        if v[0] < 0 or v[1] < 0:
+            return "trigger.%s: the range is below 0" % key
+        if v[0] > v[1]:
+            return "trigger.%s: the range's min (%s) is above its max (%s)" % (key, v[0], v[1])
+        return ""
+    return "trigger.%s is a number or a range [min, max]" % key
 
 
 def _dir(srv):
@@ -159,6 +183,14 @@ def _check(srv, aid, obj):
         em = obj.get("emitters")
         if not isinstance(em, list) or not em or not all(isinstance(e, dict) for e in em):
             return "a pattern needs a list of emitters (at least one)"
+    # pass 114 (lane EDITOR): Not before, At the latest and Then every: a number or a range [min, max], 0 <= min <= max
+    trig = obj.get("trigger")
+    if trig is not None and not isinstance(trig, dict):
+        return "trigger is a group of keys {first_after, first_at_hp, first_by, cooldown}"
+    for k in TRIGGER_RANGES:
+        pr = trigger_problem(k, (trig or {}).get(k))
+        if pr:
+            return pr
     return ""
 
 

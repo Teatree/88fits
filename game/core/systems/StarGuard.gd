@@ -81,6 +81,8 @@ func seconds_left() -> float:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	_t += delta
 	if _flare > 0.0:
 		_flare = maxf(_flare - delta, 0.0)

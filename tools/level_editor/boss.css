@@ -77,6 +77,9 @@
 .batk-sec .frow { grid-template-columns: 190px minmax(0, 1fr); }
 .batk-color { display: inline-flex; gap: 6px; align-items: center; }
 .batk-color input[type=color] { width: 36px; height: 26px; padding: 0; border: 1px solid var(--border-2); border-radius: 4px; background: none; }
+/* pass 114 (lane EDITOR): a trigger key fixed or a range (min, max) */
+.batk-range { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.batk-range select { min-width: 9em; }
 .batk-prev { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; margin: 10px 0; }
 .batk-svg { display: block; max-width: 100%; height: auto; border-radius: 10px; }
 .bp-ground { fill: #2a241c; stroke: var(--border-2); }

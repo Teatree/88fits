@@ -157,7 +157,7 @@ func pick_spot(here: Vector3, facing_dir: Vector3, dist: float) -> Vector3:
 	var em = game.get("enemies") if game else null
 	var best := here + s
 	var best_score := INF
-	var first_side := randf() < 0.5
+	var first_side := Dice.r.randf() < 0.5
 	for k in range(2):
 		var p: Vector3 = here + (s if (k == 0) == first_side else -s)
 		if m and m.has_method("clamp_to_arena"):

@@ -93,8 +93,25 @@ const Inspector = (() => {
     });
   }
 
+  /** Pass 114 (lane EDITOR): the row's, wave's or event's JSON, editable: Apply replaces that object in the timeline with
+   *  what is typed (every key, also ones without a box above), one undoable edit; a mistake is shown with its line. */
   function jsonPeek(container, obj) {
-    container.appendChild(el('details', { class: 'json-peek' }, el('summary', { text: 'JSON as it will be written' }), el('pre', { text: JSON.stringify(obj, null, 2) })));
+    if (typeof JsonEdit === 'undefined') {
+      container.appendChild(el('details', { class: 'json-peek' }, el('summary', { text: 'JSON as it will be written' }), el('pre', { text: JSON.stringify(obj, null, 2) })));
+      return;
+    }
+    JsonEdit.inline(container, {
+      summary: 'JSON as it will be written',
+      value: obj,
+      path: 'json.inline',
+      onApply: (v) => {
+        const bad = JsonEdit.mustBeObject(v);
+        if (bad) return bad;
+        App.apply(() => { JsonEdit.replaceInto(obj, v); });
+        App.status('The JSON as typed replaced it (Ctrl+Z undoes; Save writes the map)', 'good');
+        return '';
+      },
+    });
   }
 
   function listActions() {

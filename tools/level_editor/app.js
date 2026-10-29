@@ -1269,8 +1269,8 @@ const App = (() => {
       if (!res.ok) throw new Error(res.error || `HTTP ${r.status}`);
       S.saved = JSON.stringify(S.map);
       const o = saveOutcome(res, new Date().toLocaleTimeString());
-      status(o.text, o.kind, res.output);
-      if (o.watch) watchImport(o.watch, o.text, token, res.lock ? { who: res.lock.who, age_s: Number(res.lock.age_s) || 0, at: Date.now() } : null);
+      status(o.text, o.kind, o.detail || res.output);
+      if (o.watch) watchImport(o.watch, o.text, token, res.lock ? Object.assign({}, res.lock, { age_s: Number(res.lock.age_s) || 0, at: Date.now() }) : null);
     } catch (e) {
       const aborted = e && (e.name === 'AbortError' || /abort/i.test(String(e.message)));
       status(aborted ? `Save: no answer from the server in ${Math.round(SAVE_TIMEOUT_MS / 1000)} s; the file may be written (Revert shows what is on disk after a reload), the import did not report` : 'Save failed: ' + (e && e.message ? e.message : e), 'bad');
@@ -1287,19 +1287,99 @@ const App = (() => {
   const SAVE_TIMEOUT_MS = 180000;
   let saveSeq = 0, importWatch = null;
 
-  /** Pass 103 (lane LE): the status line for a map Save's answer: {text, kind, watch (the import job to follow)}. Pure. */
+  /** Pass 103 (lane LE): the status line for a map Save's answer: {text, kind, detail, watch (the import job to follow)}.
+   *  Pass 114: the words are importOutcome's (one wording for every Save). Pure. */
   function saveOutcome(res, when) {
     const where = `Saved ${res.wrote} at ${when}`;
-    if (res.import_ok) return { text: `${where} · import OK · backup ${String(res.backup || '').split('/').pop()}`, kind: 'good' };
-    if (res.import_ok === null || res.import_ok === undefined) {
-      const lk = res.lock || null;
-      const held = lk ? `the Godot lock is held by ${lk.who} for ${fmtAge(lk.age_s)}` : 'the Godot lock is busy';
-      if (res.import_job) {
-        return { text: `${where} · import ${res.import_joined ? 'joins the queued job' : 'queued as job'} ${res.import_job}: ${held}; it runs when the lock frees (the game plays the old .tres until then)`, kind: 'busy', watch: res.import_job };
-      }
-      return { text: `${where} · NOT IMPORTED: ${held} and no import job could be queued (${res.output || 'no reason given'}); the game plays the old .tres`, kind: 'bad' };
+    if (res.import_ok) return { text: `${where} · import OK · backup ${String(res.backup || '').split('/').pop()}`, kind: 'good', detail: res.output || '' };
+    return importOutcome(res, where);
+  }
+
+  /** Pass 114 (lane EDITOR; Garry: "Make the message about the Godot lock clearer - oftentimes this is happening because
+   *  the build is being built and I'm trying to make changes in the level editor"): who holds Godot, in plain words, from
+   *  the server's lock record (server.godot_holder: kind, label, until, step, in_build, age_s; an older server's {who,
+   *  age_s} reads as "<who>"): {name (who, capitalised for a sentence's start), short (the status line's few words),
+   *  sentence (who, since when, what happens: "The build (ship.sh) has been running for 6 min and holds Godot (now at
+   *  its tests)"), until ("when the build finishes"), build (this build will / will NOT / may not take the change, or
+   *  ''), buildShort, clear (how to clear a stuck lock, or '')}. Pure. */
+  function lockWords(lk) {
+    const l = lk || {};
+    const kind = String(l.kind || 'other');
+    const label = String(l.label || l.who || 'something');
+    const age = l.age_s != null ? fmtAge(l.age_s) : '';
+    const up = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+    const step = l.step ? ` (now at its ${l.step})` : '';
+    let sentence = `${up(label)} has held Godot${age ? ' for ' + age : ''}`;
+    let short = `${label}${age ? ', ' + age : ''}`;
+    let until = String(l.until || 'when it is done');
+    let build = '', buildShort = '', clear = '';
+    if (kind === 'build') {
+      sentence = `${up(label)} has been running${age ? ' for ' + age : ''} and holds Godot${step}`;
+      short = `${label}, running ${age || 'now'}`;
+      if (l.in_build === false) { build = 'This build will NOT include this change; the next one will.'; buildShort = 'not in this build'; }
+      else if (l.in_build === true) { build = 'This build will include this change: it has not read the JSON files yet.'; buildShort = 'goes into this build'; }
+      else { build = 'This build may not include this change (it may be reading the JSON files right now); the next one will.'; buildShort = 'may miss this build'; }
+    } else if (kind === 'unknown' || kind === 'stale') {
+      clear = 'If nothing of yours is running: python tools/locks.py status shows the lock and its owner, python tools/locks.py release godot --force clears it (or Force release on the Jobs tab).';
+      short = kind === 'stale' ? `a process that has ended left the lock${age ? ' (' + age + ')' : ''}` : `an unknown process${age ? ', ' + age : ''}`;
+    } else if (kind === 'launch') {
+      short = 'a Test-in-game window: close it';
     }
-    return { text: `${where} · IMPORT FAILED (the game still plays the old .tres): ${String(res.output || '').split('\n').filter(Boolean).slice(-1)[0] || 'no output'}`, kind: 'bad' };
+    if (!lk) { sentence = 'Something holds Godot'; short = 'Godot is busy'; until = 'when it is free'; }
+    return { name: up(label), short, sentence, until, build, buildShort, clear };
+  }
+
+  /** Pass 114 (lane EDITOR): the one status line for any Save's answer (the map, an enemy, a hero, an item, a boss attack,
+   *  a look, a skin): {text (one short line), kind (good | busy | bad), detail (the tooltip and the line's fold-out: who
+   *  holds Godot, since when, what happens next, then the import's output), watch (the import job to follow)}. `where`
+   *  starts the line ("Saved enemies/goblin.json at 12:03"). The JSON is always written at once; only the import waits.
+   *  Pure. */
+  function importOutcome(res, where) {
+    const r = res || {};
+    const out = String(r.output || '');
+    if (r.import_ok === true) return { text: `${where} · import OK`, kind: 'good', detail: out };
+    if (r.import_ok === false) return { text: `${where} · IMPORT FAILED (the game still plays the old .tres): ${out.split('\n').filter(Boolean).slice(-1)[0] || 'no output'}`, kind: 'bad', detail: out };
+    if (!r.lock && !r.import_job) return { text: where, kind: 'good', detail: out };
+    const w = lockWords(r.lock);
+    const job = r.import_job ? (r.import_joined ? `It joined the import job ${r.import_job} already queued for it` : `The import is queued as job ${r.import_job}`) : '';
+    if (!r.import_job) {
+      return { text: `${where} · NOT IMPORTED: Godot is held by ${w.short} and no import job could be queued`, kind: 'bad',
+        detail: [`Saved. ${w.sentence}, and no import job could be queued (${out || 'no reason given'}): the game plays the old .tres until an import runs (Save again later).`, w.clear].filter(Boolean).join(' ') };
+    }
+    const tail = w.buildShort ? ` · ${w.buildShort}` : '';
+    const detail = [`Saved. ${w.sentence}, so the import waits; it runs by itself ${w.until}.`, w.build, w.clear,
+      `${job} (the Jobs tab shows it); until it has run the game plays the old .tres.`].filter(Boolean).join(' ');
+    return { text: `${where} · the import waits for ${w.short} (queued as job ${r.import_job})${tail}`, kind: 'busy', watch: r.import_job, detail: out ? `${detail}\n\n${out}` : detail };
+  }
+
+  /** Pass 114 (lane EDITOR): every tab's Save line (Enemies, Heroes, Items, Boss attacks, looks, skins): importOutcome's
+   *  words on the status line (the detail its tooltip), then a queued import job followed every 3 s to its end (the line
+   *  updated while it still shows ours, else the end comes as a toast). Returns the outcome. */
+  function saveStatus(res, where) {
+    const o = importOutcome(res, where);
+    status(o.text, o.kind, o.detail);
+    if (!o.watch || typeof fetch === 'undefined') return o;
+    const lk = res && res.lock ? Object.assign({}, res.lock, { age_s: Number(res.lock.age_s) || 0, at: Date.now() }) : null;
+    let id = o.watch, mine = o.text, misses = 0;
+    const step = async () => {
+      let job = null;
+      try {
+        const r = await fetch('/api/job/' + encodeURIComponent(id));
+        if (r.ok) job = await r.json();
+        else if (r.status !== 404) throw new Error(`HTTP ${r.status}`);
+        misses = 0;
+      } catch (_) {
+        if (++misses < 20) { setTimeout(step, 3000); return; }
+      }
+      const rec = job && job.job ? job.job : job;
+      if (rec && rec.state === 'done' && rec.merged_into && rec.merged_into !== id) { id = rec.merged_into; setTimeout(step, 500); return; }
+      const line = importJobLine(rec && rec.id ? rec : null, o.text, lk);
+      const sEl = document.getElementById('status');
+      if (sEl && sEl.textContent === mine) { status(line.text, line.kind, o.detail); mine = line.text; } else if (line.done) toast(line.text);
+      if (!line.done) setTimeout(step, 3000);
+    };
+    setTimeout(step, 1500);
+    return o;
   }
 
   /** Seconds as the status line says them: "45 s", "12 min", "1 h 21 min". */
@@ -1315,15 +1395,18 @@ const App = (() => {
   function importJobLine(job, base, lk, now) {
     const st = job ? String(job.state || '') : 'gone';
     const id = job ? job.id : '?';
-    if (st === 'done') return { done: true, text: `${base.split(' · import ')[0]} · import OK (job ${id} ran)`, kind: 'good' };
-    if (st === 'failed' || st === 'interrupted') return { done: true, text: `${base.split(' · import ')[0]} · IMPORT FAILED in job ${id}: ${job.error || st} (the game still plays the old .tres; the Jobs tab has its log)`, kind: 'bad' };
-    if (st === 'cancelled') return { done: true, text: `${base.split(' · import ')[0]} · the import job ${id} was cancelled: NOT IMPORTED (the game plays the old .tres; Save again to queue it)`, kind: 'bad' };
-    if (st === 'gone') return { done: true, text: `${base.split(' · import ')[0]} · the import job is no longer in the queue (look at the Jobs tab)`, kind: 'bad' };
+    if (st === 'done') return { done: true, text: `${base.split(/ · (?:the )?import /)[0]} · import OK (job ${id} ran)`, kind: 'good' };
+    if (st === 'failed' || st === 'interrupted') return { done: true, text: `${base.split(/ · (?:the )?import /)[0]} · IMPORT FAILED in job ${id}: ${job.error || st} (the game still plays the old .tres; the Jobs tab has its log)`, kind: 'bad' };
+    if (st === 'cancelled') return { done: true, text: `${base.split(/ · (?:the )?import /)[0]} · the import job ${id} was cancelled: NOT IMPORTED (the game plays the old .tres; Save again to queue it)`, kind: 'bad' };
+    if (st === 'gone') return { done: true, text: `${base.split(/ · (?:the )?import /)[0]} · the import job is no longer in the queue (look at the Jobs tab)`, kind: 'bad' };
     const lw = job.lock_waits && typeof job.lock_waits === 'object' ? Object.entries(job.lock_waits)[0] : null;
     // the holder as the job names it; how long the lock has been held when the Save's answer named the same holder
     const age = lk && lw && String(lw[1]).startsWith(String(lk.who)) ? ` for ${fmtAge(lk.age_s + Math.max(0, ((now || Date.now()) - lk.at) / 1000))}` : '';
-    const wait = lw ? `waiting for the ${lw[0] === 'godot' ? 'Godot' : lw[0]} lock, held by ${lw[1]}${age}` : st === 'running' ? 'importing now' : 'queued behind other jobs in the Godot lane';
-    return { done: false, text: `${base.split(' · import ')[0]} · import job ${id}: ${wait}; the game plays the old .tres until it has run`, kind: 'busy' };
+    // (pass 114: the holder in the Save's plain words when the job names the same one: "the build (ship.sh)")
+    const same = lk && lw && String(lw[1]).startsWith(String(lk.who));
+    const holder = same && lk.label ? `${lk.label} (${lw[1]})` : lw ? lw[1] : '';
+    const wait = lw ? `waiting for the ${lw[0] === 'godot' ? 'Godot' : lw[0]} lock, held by ${holder}${age}${same && lk.until ? '; it runs by itself ' + lk.until : ''}` : st === 'running' ? 'importing now' : 'queued behind other jobs in the Godot lane';
+    return { done: false, text: `${base.split(/ · (?:the )?import /)[0]} · import job ${id}: ${wait}; the game plays the old .tres until it has run`, kind: 'busy' };
   }
 
   /** Pass 103 (lane LE): follow a queued import job every 3 s until it has run (a merged job is followed into the one it
@@ -1449,12 +1532,13 @@ const App = (() => {
     iss.className = 'issues ' + (ne ? 'bad' : nw ? 'warn' : 'good');
   }
 
-  /** The status line; `detail` (the import's output) unfolds under it on a failure, or on a click on the line. */
+  /** The status line; `detail` (the import's output; pass 114: who holds Godot and what happens next) is its tooltip
+   *  and unfolds under it on a failure, or on a click on the line. */
   function status(msg, kind, detail) {
     const s = document.getElementById('status');
     s.textContent = msg;
     s.className = 'status ' + (kind || '') + (detail ? ' has-detail' : '');
-    s.title = detail ? 'click for the import output' : '';
+    s.title = detail ? `${String(detail).slice(0, 1200)}\n\n(click the line to show this under it)` : '';
     const d = document.getElementById('status-detail');
     if (d) { d.textContent = detail || ''; d.hidden = !(detail && kind === 'bad'); }
   }
@@ -1575,6 +1659,7 @@ const App = (() => {
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
     newRow, newRowPreset, splitRow, convertRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,
     issuesFor, save, revert, exportJson, render, status, setClock, toast, switchTab, BOSS_WINDOW,
+    importOutcome, lockWords, saveStatus, fmtAge,   // pass 114 (lane EDITOR): one wording for every Save while Godot is busy
     route, applyRoute,   // pass 97 (lane LIVE): the hash routes
     // pass 110 (lane BOSS): the boss fight windows
     bossBlock, bossRows, bossRowsAt, addBossFight, removeBossFight, setBossFight, newBossRow, moveBossRow, moveBossRowTo, shiftBossRow, lateT,

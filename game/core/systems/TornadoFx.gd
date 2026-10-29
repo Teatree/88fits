@@ -169,6 +169,8 @@ func clock() -> float:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	if not _built:
 		return
 	var t0 := Time.get_ticks_usec()

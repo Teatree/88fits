@@ -239,6 +239,8 @@ func current_cap() -> int:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	var _t0 := Time.get_ticks_usec()
 	if not running or game.paused:
 		# the debug arena holds the director, and with it the stage clock: the buffs' clock runs on regardless (pass 49,

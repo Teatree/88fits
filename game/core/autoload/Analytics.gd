@@ -254,6 +254,10 @@ func runtime_block() -> String:
 func _read_runtime() -> String:
 	if DisplayServer.get_name() == "headless":
 		return "headless run"
+	# pass 114 (lane REPLAY): a replay's process (tools/replay.py, `-- replay=<file>`) sends nothing at all, not even app_open
+	for a in OS.get_cmdline_user_args():
+		if str(a).trim_prefix("--").begins_with("replay="):
+			return "a replay"
 	for a in OS.get_cmdline_args():
 		var s := str(a)
 		if s.ends_with("GdUnitCmdTool.gd") or s.contains("gdUnit4"):
@@ -673,6 +677,28 @@ func run_record(json: String, extra: Dictionary = {}) -> int:
 		if cut:
 			props["rows_left_out"] = true
 		if track("run_record", props):
+			n += 1
+	if n > 0:
+		save_queue()
+	return n
+
+
+## Pass 114 (lane REPLAY): a run's input recording (core/systems/RunReplay.gd, the replay file) as `run_replay` events,
+## cut like run_record (gzip + base64, parts of at most RECORD_PART_MAX characters; `format` "replay"), under the same
+## play-data consent and blocks (active(): never from tools, headless runs, the test runner, the arena, a sandboxed save,
+## so never from a replay or the sim). tools/posthog_runs.py downloads them into analytics/remote/<player>/replays/.
+func run_replay(json: String, extra: Dictionary = {}) -> int:
+	if json == "" or not active() or Lockstep.replaying:
+		return 0
+	var parts := record_parts(json)
+	if parts.is_empty():
+		return 0
+	var n := 0
+	for part in parts:
+		var props: Dictionary = (part as Dictionary).duplicate()
+		props.merge(extra, true)
+		props["format"] = "replay"
+		if track("run_replay", props):
 			n += 1
 	if n > 0:
 		save_queue()

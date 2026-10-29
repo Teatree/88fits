@@ -312,6 +312,8 @@ const Skins = (() => {
     const imp = data.import_ok === true ? 'imported' : data.import_ok === null ? 'the import was queued (the Godot lock is busy)' : data.unchanged ? '' : `import: ${data.output || 'not run'}`;
     App.toast(`${doc.id} ${look.code}: ${data.unchanged ? 'nothing changed' : (data.wrote || []).join(', ')}${imp ? ' · ' + imp : ''}`);
     if (data.import_ok === false && !data.unchanged) App.status(`${look.code} written, but ${imp}`, 'bad');
+    // pass 114 (lane EDITOR): Godot busy: the holder named, the queued import followed (App.importOutcome)
+    else if (data.import_ok == null && (data.lock || data.import_job)) App.saveStatus(data, `${doc.id} ${look.code}: written`);
     await Assets.refreshRecord('hero', doc.id);
     await Assets.refreshList('heroes');
     App.render('tab');

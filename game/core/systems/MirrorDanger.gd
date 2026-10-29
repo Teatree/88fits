@@ -65,5 +65,5 @@ static func factors() -> Dictionary:
 static func scaled_count(v: float, mult: float, roll: float = -1.0) -> int:
 	var x := maxf(v * mult, 0.0)
 	var whole := floorf(x)
-	var r := randf() if roll < 0.0 else roll
+	var r := Dice.r.randf() if roll < 0.0 else roll
 	return int(whole) + (1 if r < x - whole else 0)

@@ -231,7 +231,7 @@ func _on_setup() -> void:
 		_mouth.setup(load(MOUTH_STRIP), {"idle": 1, "open": 1}, ["idle", "open"], h)
 		_mouth.position.y = -h * 0.5
 		_mouth.play("idle")
-	_orbit = randf() * TAU
+	_orbit = Dice.r.randf() * TAU
 	_place(0.0)
 	_beam = MeshInstance3D.new()
 	var q := QuadMesh.new()

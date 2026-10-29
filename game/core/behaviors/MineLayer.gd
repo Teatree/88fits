@@ -63,7 +63,7 @@ func _doubles() -> bool:
 	if jb is Dictionary and bool((jb as Dictionary).get("double", false)):
 		return true
 	var p := float(inst.params.get("extra_supply", 0.0))
-	return p > 0.0 and randf() < p
+	return p > 0.0 and Dice.r.randf() < p
 
 
 func _fire() -> bool:
@@ -80,7 +80,7 @@ func _fire() -> bool:
 		game.add_child(mine)
 		var off := Vector3.ZERO
 		if k > 0:
-			off = Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5))
+			off = Vector3(Dice.r.randf_range(-1.5, 1.5), 0, Dice.r.randf_range(-1.5, 1.5))
 		var p: Vector3 = ahead + off
 		p.y = game.map.height_at(p.x, p.z) if game.map else 0.0
 		var feet: Vector3 = player.global_position

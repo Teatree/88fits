@@ -106,6 +106,8 @@ func _stand_in() -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	_t += delta
 	if _swirl:
 		# it breathes while it waits

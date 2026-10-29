@@ -88,7 +88,7 @@ process.stdin.on('end', () => {
   out.found = ['capRawAt', 'capCut', 'saveOutcome', 'fmtAge', 'importJobLine', 'watchImport', 'save'].map((n) => [n, fn(n).length > 0]);
   const ctx = { M, Infinity, Math, Number, String, Object, Date, isFinite, Array, console };
   vm.createContext(ctx);
-  vm.runInContext([fn('capRawAt'), fn('capCut'), fn('saveOutcome'), fn('fmtAge'), fn('importJobLine')].join('\n') +
+  vm.runInContext([fn('capRawAt'), fn('capCut'), fn('lockWords'), fn('importOutcome'), fn('saveOutcome'), fn('fmtAge'), fn('importJobLine')].join('\n') +
     `\nlet TL = null; const tl = () => TL; const curveAt = (t) => { const cc = TL.cap_curve || []; if (!cc.length) return (Number(TL.cap_start) || 0) + (Number(TL.cap_per_minute) || 0) * t / 60; return M.samplePoints(cc.slice().sort((a, b) => a[0] - b[0]), t); };
      const stageList = () => M.stageList(TL); const runEnd = () => { const l = M.stageList(TL); return l[l.length - 1].end; };
      const stageAt = (t) => { const l = M.stageList(TL); let s = 0; for (const w of l) if (t >= w.start) s = w.i; return s; };
@@ -242,10 +242,13 @@ def _node_checks(check, run_node, server):
     # ---------------------------------------------------------------- the page's words for a Save
     oc = res["outcomes"]
     check(oc[0]["kind"] == "good" and "import OK" in oc[0]["text"] and "red_canyon-x.json" in oc[0]["text"], "LE103 save: an import that ran: %s" % oc[0])
-    check(oc[1]["kind"] == "busy" and oc[1]["watch"] == "j1" and "queued as job j1" in oc[1]["text"] and "held by cli godot for 1 h 21 min" in oc[1]["text"],
+    # (pass 114, lane EDITOR: re-pinned to importOutcome's words, the same intent: the line names the queued job, the
+    # holder and how long it has held Godot; the tooltip says the import runs by itself)
+    check(oc[1]["kind"] == "busy" and oc[1]["watch"] == "j1" and "queued as job j1" in oc[1]["text"] and "the import waits for cli godot, 1 h 21 min" in oc[1]["text"]
+          and "it runs by itself" in oc[1]["detail"],
           "LE103 save: the lock held: saved + import queued with the job and the holder: %s" % oc[1])
-    check(oc[2]["watch"] == "j1" and "joins the queued job j1" in oc[2]["text"], "LE103 save: a second Save joins the queued job: %s" % oc[2])
-    check(oc[3]["kind"] == "bad" and not oc[3].get("watch") and "NOT IMPORTED" in oc[3]["text"] and "jobs module" in oc[3]["text"], "LE103 save: no job could be queued: failed with the reason: %s" % oc[3])
+    check(oc[2]["watch"] == "j1" and "queued as job j1" in oc[2]["text"] and "joined the import job j1 already queued" in oc[2]["detail"], "LE103 save: a second Save joins the queued job: %s" % oc[2])
+    check(oc[3]["kind"] == "bad" and not oc[3].get("watch") and "NOT IMPORTED" in oc[3]["text"] and "jobs module" in oc[3]["detail"], "LE103 save: no job could be queued: failed with the reason: %s" % oc[3])
     check(oc[4]["kind"] == "bad" and "IMPORT FAILED" in oc[4]["text"] and "SCRIPT ERROR" in oc[4]["text"], "LE103 save: a failed import names its last line: %s" % oc[4])
     check(all("Saving and importing" not in o["text"] for o in oc), "LE103 save: no answer leaves the line at 'Saving and importing…'")
     check(res["ages"] == ["5 s", "119 s", "2 min", "1 h 21 min", "2 h 1 min"], "LE103 save: fmtAge: %s" % res["ages"])
@@ -334,11 +337,12 @@ def _save_checks(check, server):
         server.JOBS = fj
         fl = _FakeLocks(saved["locks"], True)
         server.locks = fl
-        check(0 < server.SAVE_LOCK_WAIT <= 15 and server.LOCK_WAIT == 120, "LE103 save: a map Save waits %s s for the Godot lock (other imports keep %s s)" % (server.SAVE_LOCK_WAIT, server.LOCK_WAIT))
+        check(0 < server.SAVE_LOCK_WAIT <= 15, "LE103 save: a map Save waits %s s for the Godot lock" % server.SAVE_LOCK_WAIT)
         data = server.load_json(dst)
         t0 = time.time()
         r1 = server.write_map("red_canyon", json.loads(json.dumps(data)))
-        check(r1["ok"] and r1["import_ok"] is None and r1["import_job"] == "jT001" and r1["import_joined"] is False and r1["lock"] == {"who": "cli godot", "age_s": 4856}
+        check(r1["ok"] and r1["import_ok"] is None and r1["import_job"] == "jT001" and r1["import_joined"] is False and r1["lock"]["who"] == "cli godot"
+              and r1["lock"]["age_s"] == 4856 and r1["lock"]["kind"] == "claude"
               and "an import job was queued instead (jT001)" in r1["output"] and time.time() - t0 < 10,
               "LE103 save: the lock held: written, the import queued, the holder and its age in the answer: %s" % {k: r1.get(k) for k in ("import_ok", "import_job", "lock", "output")})
         check(fl.timeouts[-1] == ("godot", server.SAVE_LOCK_WAIT), "LE103 save: write_map waits SAVE_LOCK_WAIT, not LOCK_WAIT: %s" % fl.timeouts)
@@ -349,7 +353,8 @@ def _save_checks(check, server):
         r3 = server.write_map("red_canyon", json.loads(json.dumps(data)))
         check(r3["import_job"] == "jT002" and r3["import_joined"] is False and len(fj.jobs) == 2, "LE103 save: a running import is not joined (it may have read the file already): a new job: %s" % r3.get("output"))
         ok, out = server.run_import("maps/red_canyon")
-        check(ok is None and "queued" in out and fl.timeouts[-1] == ("godot", server.LOCK_WAIT), "LE103 save: run_import keeps its old answer and LOCK_WAIT: %s %s" % (ok, fl.timeouts[-1]))
+        # (pass 114, lane EDITOR: every Save path waits SAVE_LOCK_WAIT, not LOCK_WAIT's two minutes)
+        check(ok is None and "queued" in out and fl.timeouts[-1] == ("godot", server.SAVE_LOCK_WAIT), "LE103 save: run_import keeps its old answer and waits SAVE_LOCK_WAIT: %s %s" % (ok, fl.timeouts[-1]))
         server.locks = _FakeLocks(saved["locks"], False)
         r4 = server.write_map("red_canyon", json.loads(json.dumps(data)))
         check(r4["ok"] and r4["import_ok"] is False and r4["import_job"] is None and r4["lock"] is None and r4["output"].startswith(("could not run the import", "the import did not finish")),

@@ -47,7 +47,10 @@ OUT="$(cd "$OUT" && (pwd -W 2>/dev/null || pwd))"
 LOGS="$OUT/logs"
 T0=$(date +%s)
 TIMES=""
-step() { printf '\n== %s\n' "$1"; TS=$(date +%s); }
+# pass 114 (lane EDITOR): every step is written on the Godot lock (locks.py note): a JSON saved after the staging copy is
+# not in this build (the Level Editor's Save says so)
+IMPORTED=0
+step() { printf '\n== %s\n' "$1"; TS=$(date +%s); python tools/locks.py note godot "$1" --pid "${SHELL_PID:-0}" --set "imported=$IMPORTED" > /dev/null 2>&1; }
 took() { TIMES="$TIMES$(printf '%-28s %4d s' "$1" $(( $(date +%s) - TS )))\n"; }
 die() { echo "STOP: $1"; exit 1; }
 # one Godot run, its output in $LOGS/<name>.log (Godot prints nothing to a redirected console on Windows)
@@ -56,7 +59,7 @@ gd() { local name="$1"; shift; ( "$GODOT" --log-file "$LOGS/$name.log" "$@"; exi
 logline() { grep -E "$2" "$LOGS/$1.log" | head -n "${3:-5}"; }
 
 SHELL_PID="$(cat /proc/$$/winpid 2>/dev/null || echo 0)"
-python tools/locks.py acquire godot "ship_prod.sh" --pid "$SHELL_PID" || exit 1
+python tools/locks.py acquire godot "the production build (ship_prod.sh)" --pid "$SHELL_PID" || exit 1
 python tools/locks.py keep > /dev/null
 trap 'python tools/locks.py restore > /dev/null; python tools/locks.py release godot --pid "$SHELL_PID" > /dev/null' EXIT
 export LOCK_HELD_GODOT=1   # the Python helpers that run Godot (prod_probe.py) pass through this shell's lock
@@ -81,6 +84,7 @@ took "source checks"
 
 step "staging copy"
 python tools/prod_stage.py --stage "$STAGE" || die "the staging copy"
+IMPORTED=1
 took "staging copy"
 
 step "plan (what the game can show)"

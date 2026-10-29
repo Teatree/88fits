@@ -33,15 +33,18 @@ for a in "$@"; do
   [ "$a" = "--no-pc" ] && NO_PC=1
 done
 
-step() { printf '\n== %s\n' "$1"; }
+# pass 114 (lane EDITOR): every step is written on the Godot lock (locks.py note), so the Level Editor's Save can say what
+# the build is doing and whether a JSON saved now is in this build (before its "json -> tres" step) or the next one
+IMPORTED=0
+step() { printf '\n== %s\n' "$1"; python tools/locks.py note godot "$1" --pid "${SHELL_PID:-0}" --set "imported=$IMPORTED" > /dev/null 2>&1; }
 # pass 66: the whole ship holds the repo-wide Godot lock (one Godot process at a time with the lanes and the Level
 # Editor's job runner) and keeps the PC save aside (smoke_run plays on the real one), both given back at exit
 SHELL_PID="$(cat /proc/$$/winpid 2>/dev/null || echo 0)"   # this bash's own Windows pid: the lock's owner while it runs
-python tools/locks.py acquire godot "ship.sh $*" --pid "$SHELL_PID" || exit 1
+python tools/locks.py acquire godot "the build (ship.sh $*)" --pid "$SHELL_PID" || exit 1
 python tools/locks.py keep > /dev/null
 trap 'python tools/locks.py restore > /dev/null; python tools/locks.py release godot --pid "$SHELL_PID" > /dev/null' EXIT
 step "import"; python tools/lossy_imports.py; "$GODOT" $P --import > /dev/null 2>&1
-step "json -> tres"; "$GODOT" $P --script res://tools/import_json.gd 2>&1 | tail -n 1
+step "json -> tres"; "$GODOT" $P --script res://tools/import_json.gd 2>&1 | tail -n 1; IMPORTED=1
 step "parse check"; "$GODOT" $P --script res://tools/check_scripts.gd 2>&1 | grep -E "checked|SCRIPT ERROR" | head -n 5
 if grep -q "SCRIPT ERROR" <("$GODOT" $P --script res://tools/check_scripts.gd 2>&1); then echo "STOP: script errors"; exit 1; fi
 if [ "$QUICK" = "0" ]; then
@@ -61,6 +64,9 @@ if [ "$QUICK" = "0" ]; then
   echo "$OUT" | grep -E "controls answered|FAIL|SCRIPT ERROR" | head -n 8
   if ! echo "$OUT" | grep -q " 0 failures"; then echo "STOP: touch audit failed"; exit 1; fi
 fi
+# pass 114 (lane REPLAY): the build id (version, UTC time, git hash, dirty) stamped into the game before both exports
+# (game/config/build.json, git-ignored; every run's recording names it), so a replay can find the build that recorded it
+step "build stamp"; python tools/builds.py stamp
 step "export"
 if [ -f "$ROOT/tools/keys/keystore.env" ]; then
   # release build: smaller and faster, signed with the project keystore (same signature every time, so it updates in place)
@@ -120,6 +126,11 @@ if [ "$NO_PC" = "0" ]; then
     fi
   else
     echo "PC export failed: no $EXE"
+  fi
+  # pass 114 (lane REPLAY): the PC build kept for replays (builds/<build id>/88fits.exe + build.json; tools/builds.py
+  # prunes to the newest 6 and every build a recording on this PC names)
+  if [ "$PC_OK" = "1" ]; then
+    step "keep build"; python tools/builds.py keep "$EXE" || echo "WARNING: the build was not kept for replays"
   fi
   if [ "$PC_OK" = "1" ]; then
     for D in /e/"My Drive" /g/"My Drive" /h/"My Drive" /i/"My Drive" "$USERPROFILE/My Drive" "$USERPROFILE/Google Drive"; do

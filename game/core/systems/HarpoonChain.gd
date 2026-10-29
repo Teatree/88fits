@@ -188,6 +188,8 @@ func _build() -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	_clock += delta
 	if _launch_t >= 0.0:
 		_launch_t += delta

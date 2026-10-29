@@ -571,6 +571,8 @@ func _on_offer_chosen(card: Dictionary) -> void:
 ## hand's is kept as item_kind, the death's is `hit`. The event goes on to PostHog (Analytics.run_event); an item's
 ## waits for its est_after (the next build_changed) or the next event, whichever comes first.
 func event(kind: String, id: String = "", level: int = 0, extra: Dictionary = {}) -> void:
+	# pass 114 (lane REPLAY): the replay's reel marks the same moments
+	RunReplay.mark(kind, id, level)
 	var e := {"t": snappedf(play_t, 0.1), "clock": snappedf(Run.elapsed, 0.1), "kind": kind}
 	if id != "":
 		e["id"] = id

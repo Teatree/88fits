@@ -125,6 +125,8 @@ func live_count() -> int:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if game == null or game.paused:
 		return
 	_check -= delta
@@ -140,7 +142,7 @@ func _process(delta: float) -> void:
 		var ev = _cfg.get("every", [8, 12])
 		var lo: float = float(ev[0]) if ev is Array and (ev as Array).size() > 0 else 8.0
 		var hi: float = float(ev[1]) if ev is Array and (ev as Array).size() > 1 else lo
-		_next = randf_range(lo, maxf(hi, lo))
+		_next = Dice.r.randf_range(lo, maxf(hi, lo))
 		if live_count() < int(_cfg.get("max", 3)):
 			var at := _spot()
 			if at != Vector3.INF:
@@ -162,11 +164,11 @@ func _spot() -> Vector3:
 		head = Vector3(v.x, 0.0, v.z)
 	if head.length_squared() < 0.25 and hero.has_method("forward"):
 		head = hero.forward()
-	var ha: float = atan2(head.z, head.x) if head.length_squared() > 0.0001 else randf() * TAU
+	var ha: float = atan2(head.z, head.x) if head.length_squared() > 0.0001 else Dice.r.randf() * TAU
 	for k in range(28):
 		# the first tries ahead (within about 70 degrees of the heading), the rest anywhere round him
-		var a: float = ha + randf_range(-1.2, 1.2) if k < 16 else randf() * TAU
-		var p: Vector3 = hero.global_position + Vector3(cos(a), 0.0, sin(a)) * randf_range(near, far)
+		var a: float = ha + Dice.r.randf_range(-1.2, 1.2) if k < 16 else Dice.r.randf() * TAU
+		var p: Vector3 = hero.global_position + Vector3(cos(a), 0.0, sin(a)) * Dice.r.randf_range(near, far)
 		if _clear(p):
 			p.y = game.map.height_at(p.x, p.z) if game.map else hero.global_position.y
 			return p
@@ -200,7 +202,7 @@ func grow_at(at: Vector3, from_kill: bool = false) -> void:
 		return
 	if game and game.map:
 		at.y = game.map.height_at(at.x, at.z)
-	var id: String = KINDS[randi() % KINDS.size()]
+	var id: String = KINDS[Dice.r.randi() % KINDS.size()]
 	var def: PickupDef = Registry.pickup(id)
 	var node := Node3D.new()
 	node.name = "Flower"
@@ -209,7 +211,7 @@ func grow_at(at: Vector3, from_kill: bool = false) -> void:
 	var sprite := BillboardSprite.new()
 	node.add_child(sprite)
 	var tex: Texture2D = def.icon if def and def.icon else PlaceholderArt.icon(def, 128)
-	var size := randf_range(SIZE_MIN, SIZE_MAX)
+	var size := Dice.r.randf_range(SIZE_MIN, SIZE_MAX)
 	sprite.setup(tex, {"idle": 1}, ["idle"], HEIGHT * size)
 	sprite.set_squash(1.0, 0.0)
 	var blink := float(_cfg.get("blink", 4.0))
@@ -217,7 +219,7 @@ func grow_at(at: Vector3, from_kill: bool = false) -> void:
 	if def and def.lifetime > 0.0 and not _cfg.has("life"):
 		life = maxf(def.lifetime - blink, 1.0)
 	flowers.append({"node": node, "sprite": sprite, "def": def, "t": 0.0, "life": life, "blink": blink, "size": size,
-		"phase": randf() * TAU, "gone": false, "out": 0.0})
+		"phase": Dice.r.randf() * TAU, "gone": false, "out": 0.0})
 	grown += 1
 
 

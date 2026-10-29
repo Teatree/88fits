@@ -508,6 +508,8 @@ func _mat(color: Color, alpha: float) -> StandardMaterial3D:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	var t0 := Time.get_ticks_usec()
 	_advance(delta)
 	# pass 77 (lane SIMRUN): the run sim's fast mode keeps the marks' lives (the bot reads the warnings) but draws none

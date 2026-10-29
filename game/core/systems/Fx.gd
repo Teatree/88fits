@@ -1274,6 +1274,8 @@ func _ribbon(pts: Array, width: float, to_cam: Vector3) -> Mesh:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	# pass 77 (lane SIMRUN): the run sim's fast mode has no effects at all (nothing here moves a number): no particle,
 	# note, blood, bolt, trail or wind is made (the guards at the top of _emit, _emit_flame, _emit_dust, note, blood,
 	# lightning, speed_trail and wind) and none is aged or drawn

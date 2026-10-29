@@ -52,6 +52,7 @@ var _clock := 0.0
 
 
 func _ready() -> void:
+	Lockstep.join(self)
 	pos.resize(MAX); from_p.resize(MAX); to_p.resize(MAX); age.resize(MAX); life.resize(MAX); dmg.resize(MAX)
 	radius.resize(MAX); trigger.resize(MAX); kbf.resize(MAX); look_t.resize(MAX); chain.resize(MAX); alive.resize(MAX); order.resize(MAX)
 	weapon.resize(MAX)
@@ -129,8 +130,8 @@ func scatter(w: WeaponInstance, at: Vector3, damage: float, cfg: Dictionary) -> 
 		_serial += 1
 		order[i] = _serial
 		weapon[i] = w
-		var a := TAU * (float(k) + randf() * 0.6) / float(c["count"])
-		var r: float = randf_range(0.3, maxf(float(c["spread"]), 0.3))
+		var a := TAU * (float(k) + Dice.r.randf() * 0.6) / float(c["count"])
+		var r: float = Dice.r.randf_range(0.3, maxf(float(c["spread"]), 0.3))
 		from_p[i] = at
 		var to := at + Vector3(cos(a) * r, 0.0, sin(a) * r)
 		to.y = _ground(to)
@@ -143,7 +144,7 @@ func scatter(w: WeaponInstance, at: Vector3, damage: float, cfg: Dictionary) -> 
 		trigger[i] = float(c["trigger"])
 		kbf[i] = float(c["knockback"])
 		chain[i] = 1 if bool(c["chain"]) else 0
-		look_t[i] = randf() * LOOK_EVERY
+		look_t[i] = Dice.r.randf() * LOOK_EVERY
 		n += 1
 		scattered += 1
 	return n
@@ -208,6 +209,9 @@ func _ground(p: Vector3) -> float:
 
 
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	if game == null or count == 0 or bool(game.get("paused")):
 		return
 	step(delta)

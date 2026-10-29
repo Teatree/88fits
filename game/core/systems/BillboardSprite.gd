@@ -249,6 +249,8 @@ func play(anim: String) -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	if not playing or not _anims.has(animation):
 		return
 	var n := int(_anims[animation]["count"])

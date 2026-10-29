@@ -763,6 +763,7 @@ func _on_hold(row: GiftRow, on: bool) -> void:
 func _pick(row: GiftRow) -> void:
 	if _done or not visible or row == null:
 		return
+	RunReplay.note("totem", {"id": str(row.boon.get("id", "")), "i": _rows.find(row), "value": row.boon.get("value", 0.0)})
 	_done = true
 	W.sfx_first(["ui_totem", "ui_card_pick"])
 	var boon: Dictionary = row.boon

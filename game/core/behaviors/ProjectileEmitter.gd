@@ -138,7 +138,7 @@ func _on_setup() -> void:
 		_wing_l = _familiar.get_node_or_null("WingL")
 		_wing_r = _familiar.get_node_or_null("WingR")
 		_drum = _familiar.find_child("Drum", true, false)
-		_orbit = randf() * TAU
+		_orbit = Dice.r.randf() * TAU
 		_place_familiar(0.0)
 	_setup_ring()
 	# pass 69: a ball that shows its Heat has its heat copy made now, so the warm-up behind the spawn beam compiles it
@@ -422,7 +422,7 @@ func _start_punch(silver: bool) -> void:
 	var left := maxf(punch(), 0.0)
 	_punch_amp = minf((SILVER_PUNCH if silver else 1.0) + left * 0.5, KICK_STACK_MAX)
 	_punch_t = 0.0
-	_twist_sign = -1.0 if randf() < 0.5 else 1.0
+	_twist_sign = -1.0 if Dice.r.randf() < 0.5 else 1.0
 	if _fam_base_set:
 		_pose_punch()
 
@@ -468,7 +468,7 @@ func _maybe_trick_spin() -> void:
 		var next := cooldown_left if cooldown_left > 0.0 else maxf(stat("cooldown", 1.0), 0.05)
 		if _since_spin < float(sp.get("gap", SPIN_DEFAULTS["gap"])) or next < secs + 0.05:
 			return
-		if randf() >= float(sp.get("chance", SPIN_DEFAULTS["chance"])):
+		if Dice.r.randf() >= float(sp.get("chance", SPIN_DEFAULTS["chance"])):
 			return
 	_force_spin = false
 	_spin_t = 0.0
@@ -496,7 +496,7 @@ func _fire_burst_shot() -> void:
 		# to the target sent a tight round, the Revolver's, a metre wide of it)
 		dir = _from_familiar(dir)
 	# Sweep Fire: the rounds walk across a fan instead of scattering
-	var d: Vector3 = dir.rotated(Vector3.UP, float(b["angle"])) if b.has("angle") else dir.rotated(Vector3.UP, randf_range(-float(b["spread"]), float(b["spread"])))
+	var d: Vector3 = dir.rotated(Vector3.UP, float(b["angle"])) if b.has("angle") else dir.rotated(Vector3.UP, Dice.r.randf_range(-float(b["spread"]), float(b["spread"])))
 	var punchy := _familiar != null and not _fam_dict("kick").is_empty()
 	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else shot_origin(dir)
 	game.projectiles.fire(_kind(), from, d * float(b["speed"]), float(b["damage"]), int(b["pierce"]), float(b["prad"]), float(b["life"]), inst, float(b["knock"]))
@@ -1035,14 +1035,14 @@ func _blast_show(bl: Dictionary, hero: Vector3, d: Vector3, amount: int, speed: 
 	# the ghost pellets in the weapon's own look (pass 61: Dragon's Breath's orange down a Birdshot lane)
 	var k_draw := _kind()
 	for k in range(n):
-		var f: float = (float(k) + randf()) / float(n)
+		var f: float = (float(k) + Dice.r.randf()) / float(n)
 		var dd := d
 		var from := start
 		if cone:
 			dd = d.rotated(Vector3.UP, deg_to_rad(lerpf(-0.5, 0.5, f) * float(bl["deg"])))
 		else:
 			from = start + side * lerpf(-0.45, 0.45, f) * float(bl["width"])
-		var j := pm.fire(k_draw, from, dd * spd, 0.0, 0, 0.0, r / spd * randf_range(0.85, 1.0), inst, 0.0)
+		var j := pm.fire(k_draw, from, dd * spd, 0.0, 0, 0.0, r / spd * Dice.r.randf_range(0.85, 1.0), inst, 0.0)
 		if j >= 0:
 			pm.extra[j]["ghost"] = true
 

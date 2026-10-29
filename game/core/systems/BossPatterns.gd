@@ -17,7 +17,12 @@
 ##   - Guarded from the tell's start to the bullets' end: every hit on him x guard_mult (grey numbers, a grey spark, a grey
 ##     bar with GUARDED); spent: x spent_mult (the bar reads DAZED).
 ##   - After the spent seconds his cycle resumes after timing.cooldown (0: his cooldown_between); the next pattern is
-##     trigger.cooldown seconds after this one ended.
+##     trigger.cooldown seconds after this one ended: completely over, the tell, the bullets, their burn-out (inside the
+##     spent seconds) and the spent seconds themselves (last_end is set in _end, at the end of the spent stretch).
+##   - Pass 114 (lane EDITOR): trigger.first_after, first_by and cooldown may each be a range [min, max]: rolled from the
+##     creature's own dice (a RandomNumberGenerator seeded from the run's seed, the creature's slot and serial; never
+##     the global randf, so a replay rolls the same), first_after and first_by once per fight, the cooldown afresh at
+##     every end (_rolls_of, _end; BossAttackDef.roll_triggers).
 ##   - A bullet hits the hero once for hit.hit_frac of his max HP (Player.take_damage: an evade, the shield and the blink
 ##     after a hit apply as for any hostile shot) and is gone; past projectile.range m from where the pattern stood it
 ##     shrinks away in FADE s; the ones still flying when the bullets end burn out over timing.clear s, harmless.
@@ -55,7 +60,8 @@ const BEMI := 7
 var em: EnemyManager
 ## creature -> the pattern under way (begin .. _end)
 var runs: Dictionary = {}
-## creature -> {serial, fight (s), runs, last_end (fight s)}
+## creature -> {serial, fight (s), runs, last_end (fight s), rolls ({attack id: {first_after, first_by, cooldown}}),
+## rng (its seeded dice, pass 114)}
 var sched: Dictionary = {}
 ## creature -> what a hit on it is multiplied by now (guard_mult while guarded, spent_mult while spent)
 var mult: Dictionary = {}
@@ -117,8 +123,37 @@ func _sched_of(i: int) -> Dictionary:
 	var s = sched.get(i)
 	if s is Dictionary and int((s as Dictionary)["serial"]) == em.serial[i]:
 		return s
-	var fresh := {"serial": em.serial[i], "fight": 0.0, "runs": 0, "last_end": -1.0e9}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed_base(), "boss_pattern", i, em.serial[i]])
+	var fresh := {"serial": em.serial[i], "fight": 0.0, "runs": 0, "last_end": -1.0e9, "rolls": {}, "rng": rng}
 	sched[i] = fresh
+	return fresh
+
+
+## Pass 114 (lane EDITOR): what the fight's dice are seeded from: the run's seed (Run.run_seed when lane REPLAY's is there,
+## else the run sim's rng_seed, else the run's map_seed, which every run rolls or a tool forces), 1 without a Run.
+static func seed_base() -> int:
+	var loop = Engine.get_main_loop()
+	var run = (loop as SceneTree).root.get_node_or_null("Run") if loop is SceneTree else null
+	if run == null:
+		return 1
+	for k: String in ["run_seed", "rng_seed", "map_seed"]:
+		var v = run.get(k)
+		if (v is int or v is float) and int(v) != 0:
+			return int(v)
+	return 1
+
+
+## Pass 114 (lane EDITOR): this fight's rolls of `cdef`'s trigger (first_after and first_by once per fight, the cooldown
+## again at every end), drawn the first time the attack is asked about.
+func _rolls_of(s: Dictionary, cdef: BossAttackDef) -> Dictionary:
+	var rolls: Dictionary = s["rolls"]
+	var r = rolls.get(cdef.id)
+	if r is Dictionary:
+		return r
+	var fresh := cdef.roll_triggers(s["rng"])
+	fresh["def"] = cdef
+	rolls[cdef.id] = fresh
 	return fresh
 
 
@@ -150,7 +185,7 @@ func step(i: int, def: EnemyDef, delta: float, ppos: Vector3) -> bool:
 	var hpf: float = em.hp[i] / maxf(em.max_hp[i], 1.0)
 	for e: Array in pl:
 		var cdef: BossAttackDef = e[0]
-		if cdef.pattern_due(float(s["fight"]), hpf, int(s["runs"]), float(s["last_end"])):
+		if cdef.pattern_due(float(s["fight"]), hpf, int(s["runs"]), float(s["last_end"]), _rolls_of(s, cdef)):
 			begin(i, cdef, e[1], ppos)
 			return true
 	return false
@@ -314,7 +349,7 @@ func _fire_begin(i: int, run: Dictionary, ppos: Vector3) -> void:
 			"fixed":
 				aims[k] = 0.0
 			"random":
-				aims[k] = randf() * TAU
+				aims[k] = Dice.r.randf() * TAU
 			_:
 				aims[k] = aim
 	run["aims"] = aims
@@ -370,8 +405,8 @@ func _volley(i: int, run: Dictionary, k: int, e: Dictionary, t: float, ppos: Vec
 			aim = atan2(ppos.z - c.z, ppos.x - c.x)
 		"random":
 			# a way of its own every volley (a ring's opening in a new place each time)
-			aim = randf() * TAU
-	var v := BossAttackDef.volley(e, t, float(run["dur"]), aim, randf())
+			aim = Dice.r.randf() * TAU
+	var v := BossAttackDef.volley(e, t, float(run["dur"]), aim, Dice.r.randf())
 	var r0: float = em.radius[i] * SPAWN_AT
 	var b: PackedFloat32Array = run["b"]
 	run["b"] = PackedFloat32Array()
@@ -625,7 +660,12 @@ func _end(i: int, run: Dictionary, cut: bool) -> void:
 		em.squash[i] = 1.0
 		var s := _sched_of(i)
 		s["runs"] = int(s["runs"]) + 1
+		# completely over now (the tell, the bullets, their burn-out, the spent seconds): the cooldown counts from here,
+		# each attack's rolled afresh (pass 114)
 		s["last_end"] = float(s["fight"])
+		for rk in (s["rolls"] as Dictionary).keys():
+			var rr: Dictionary = s["rolls"][rk]
+			rr["cooldown"] = (rr["def"] as BossAttackDef).roll_trigger("cooldown", s["rng"])
 		_hud_guard(i, 0)
 	elif i == em.boss_index:
 		_hud_guard(i, 0)

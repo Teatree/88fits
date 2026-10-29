@@ -120,7 +120,7 @@ static func reset() -> void:
 
 
 static func _randf() -> float:
-	return CardPool.rng.randf() if CardPool.rng != null else randf()
+	return CardPool.rng.randf() if CardPool.rng != null else Dice.r.randf()
 
 
 static func _rand_index(n: int) -> int:

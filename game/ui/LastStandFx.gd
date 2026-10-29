@@ -48,14 +48,14 @@ func start(seconds: float = -1.0, slow: float = -1.0) -> void:
 		slow = Run.LAST_STAND_SCALE
 	if not active:
 		# the clock it goes back to: what it was (the arena's game speed), never a hit-stop's blink
-		_restore = Engine.time_scale if Engine.time_scale >= 0.2 else 1.0
+		_restore = Lockstep.time_scale() if Lockstep.time_scale() >= 0.2 else 1.0
 	active = true
 	left = seconds
 	_scale = clampf(slow, 0.05, 1.0)
 	_beat_t = 0.0
 	visible = true
 	if not held():
-		Engine.time_scale = _scale
+		Lockstep.set_time_scale(_scale)
 
 
 ## Whether the run stands still now (a screen up), so the clock goes back to normal and the seconds wait.
@@ -83,7 +83,8 @@ const MAX_STEP := 0.5
 
 
 func _process(delta: float) -> void:
-	tick_real(minf(delta / maxf(Engine.time_scale, 0.01), MAX_STEP))
+	# pass 114 (lane REPLAY): the game's own clock and scale (Lockstep: the recorded ones in a replay)
+	tick_real(minf(Lockstep.dt(delta) / maxf(Lockstep.time_scale(), 0.01), MAX_STEP))
 
 
 ## One step of `real` seconds of real time: the clock, the end, the look.
@@ -92,9 +93,9 @@ func tick_real(real: float) -> void:
 		if _over():
 			finish()
 		elif held():
-			Engine.time_scale = 1.0
+			Lockstep.set_time_scale(1.0)
 		else:
-			Engine.time_scale = _scale
+			Lockstep.set_time_scale(_scale)
 			left -= real
 			if left <= 0.0:
 				finish()
@@ -126,12 +127,12 @@ func finish() -> void:
 		return
 	active = false
 	left = 0.0
-	Engine.time_scale = _restore
+	Lockstep.set_time_scale(_restore)
 	Run.set_last_stand(false)
 
 
 func _exit_tree() -> void:
 	if active:
 		active = false
-		Engine.time_scale = 1.0
+		Lockstep.set_time_scale(1.0)
 		Run.set_last_stand(false)

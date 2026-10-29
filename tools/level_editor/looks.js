@@ -861,7 +861,9 @@ const LookGrid = (() => {
     const after = async (res, verb) => {
       if (res && res.cancelled) { App.status(`${id}: nothing changed`, ''); return; }
       if (!res || !res.ok) { App.status(`${id} ${who}: ${verb} refused: ${(res && res.error) || 'no answer'}`, 'bad', (res && res.output) || ''); fillIconPanel(wrap, kind, id, code, g, o); return; }
-      App.status(`${id} ${who}: ${verb} done · now ${(res.icon && res.icon.shown) || res.file || '?'}${res.import_ok === false ? ' · the import did not run (the game plays the old .tres until one runs)' : res.job ? ' · import queued' : ''}`,
+      // pass 114 (lane EDITOR): Godot busy: the import queued, the holder named (App.importOutcome)
+      if (res.import_ok == null && (res.lock || res.import_job)) App.saveStatus(res, `${id} ${who}: ${verb} done · now ${(res.icon && res.icon.shown) || res.file || '?'}`);
+      else App.status(`${id} ${who}: ${verb} done · now ${(res.icon && res.icon.shown) || res.file || '?'}${res.import_ok === false ? ' · the import did not run (the game plays the old .tres until one runs)' : res.job ? ' · import queued' : ''}`,
         res.import_ok === false ? 'bad' : 'good', res.output || '');
       if (typeof o.onChanged === 'function') await o.onChanged(res);
       else if (wrap.isConnected) iconPanelRefresh(wrap, kind, id, code, o);
@@ -983,7 +985,8 @@ const LookGrid = (() => {
     const res = await post(`/api/content/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/look/${encodeURIComponent(code)}`, body);
     s.busy = false;
     if (!res.ok) { App.status(`${id} ${code}: ${body.op} refused: ${res.error}`, 'bad', res.output || ''); redraw(); return res; }
-    if (res.import_ok === false) App.status(`${id} ${code}: ${body.op} written · IMPORT FAILED (the game plays the old .tres)`, 'bad', res.output || '');
+    if (res.import_ok == null && (res.lock || res.import_job)) App.saveStatus(res, `${id} ${code}: ${body.op} written`);
+    else if (res.import_ok === false) App.status(`${id} ${code}: ${body.op} written · IMPORT FAILED (the game plays the old .tres)`, 'bad', res.output || '');
     else App.status(`${id} ${code}: ${body.op} done${res.import_ok ? ' · import OK' : ''}${res.backup ? ' · backup ' + String(res.backup).split(/[\\/]/).pop() : ''}`, 'good', res.output || '');
     if (!quiet) await refresh(kind, id, record, s, res.looks, code, body.op);
     return res;
@@ -1006,7 +1009,8 @@ const LookGrid = (() => {
     s.busy = false;
     if (!res.ok) { App.status(`${id}: ${opName} refused: ${res.error}`, 'bad', res.output || ''); redraw(); return; }
     s.checked.clear();
-    App.status(`${id}: ${opName} ${list.length} looks done${res.import_ok ? ' · import OK' : res.import_ok === false ? ' · IMPORT FAILED' : ''}`, res.import_ok === false ? 'bad' : 'good', res.output || '');
+    if (res.import_ok == null && (res.lock || res.import_job)) App.saveStatus(res, `${id}: ${opName} ${list.length} looks done`);
+    else App.status(`${id}: ${opName} ${list.length} looks done${res.import_ok ? ' · import OK' : res.import_ok === false ? ' · IMPORT FAILED' : ''}`, res.import_ok === false ? 'bad' : 'good', res.output || '');
     await refresh(kind, id, record, s, res.looks);
   }
 

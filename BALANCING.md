@@ -7916,3 +7916,145 @@ Tests: game/tests/pass113_lead_test.gd; re-pinned game/tests/pass112_monk_test.g
 default 0.94) sets how solid the tornado's dust is; the King's Royal Dust Devil uses **0.62**, so his crown and face show
 through the funnel while it guards him (at 0.94 the tornado hid him completely). The Level Editor's Boss attacks tab has
 the row "Shell opacity".
+
+## 57. Pass 114: the Level Editor's JSON windows and Save while a build runs, the bullet heaven twice as long, replays, a new Spit Cactus look
+
+### 57.EDITOR The bullet heaven twice as long and twice as far with more room; its trigger as ranges; the cooldown from the true end; Saves while Godot is busy
+
+Garry (2026-10-29): "Tumbleweed King - Royal Attack should x2 last longer and the projectiles should fly x2 further and
+Increase spacing between projectiles a bit. Then tell me how I can edit this myself in the future. Same feedback for both
+Venom Monsoon and Hellbrand Mandala"; "add the option of randomization for the starting pattern ... make it a range
+between 10 and 15 for example. Also just to be clear, those cooldowns should be after the attack is actually over";
+"Make the message about the Godot lock clearer ... This is preventing me from making saves"; "Allow for editing the JSON
+directly in the 'Show JSON' window".
+
+**The three attacks (content/boss_attacks; every number on the Boss attacks tab).** Twice as long (`timing.duration`),
+twice as far (`projectile.range`), and about a quarter more room round every bullet (the angle to its neighbour times
+the distance to the next volley's bullet behind it). Each emitter's `start` / `stop` are shares of the duration, so the
+shape of the attack is the same over the longer time; its seconds-based rhythms (the Gila's sweep and pulse, the
+Brander's turn every 3 s, his 1 s finale pull) repeat more often. The tell (2 s), the spent seconds (2.5 s), the speeds,
+`hit_frac` and the triggers are as they were (the King's `first_by` 30 is Garry's own).
+- Royal Dust Devil: 8 -> **16 s**, 24 -> **48 m**; the spiral arms 4.5 -> **3.6** volleys a second (25% more room along
+  an arm; the two tumbleweeds side by side stay 8 deg apart, so the lanes between the arms keep their width); the ring
+  20 -> **16** tumbleweeds (17.5 deg apart, was 14; the 80 deg opening as it was).
+- Venom Monsoon: 7 -> **14 s**, 22 -> **44 m**; the main fan 5 blobs over 56 deg -> **4 over 52.5 deg** (17.5 deg apart,
+  was 14); the second fan 4 over 40 deg -> **3 over 33 deg** (16.5 deg apart, was 13.3).
+- Hellbrand Mandala: 9 -> **18 s**, 18 -> **36 m**; the rose 30 -> **24** fireballs (15 deg apart, was 12); the slow
+  spiral 1.5 -> **1.2** volleys a second.
+- Bullets in the air at most (no hero): King 284 -> **452**, Gila 132 -> **205**, Brander 255 -> **401**. The page's
+  warning and the tests' bound moved from 400 to **600**. The pattern's tick on the PC (game/tools/_p113_BOSS_probe.gd,
+  mean while bullets fly): King 0.16 -> 0.25 ms, Gila 0.09 -> 0.14 ms, Brander 0.14 -> 0.23 ms.
+- How hard (the same probe, the hero 9 m off when it starts, 3 runs each; hits a run, a hit 12% of max HP):
+
+  | | standing still | careful dodger | the run sim's bot |
+  |---|---|---|---|
+  | King | 5.3 -> **10** (64% -> 120% of max HP) | 0 -> **0.3** | 0 -> **0.3** |
+  | Gila | 5 -> **11** (60% -> 132%) | 0 -> **0** | 0 -> **0** |
+  | Brander | 4 -> **8** (48% -> 96%) | 0 -> **0** | 0 -> **0** |
+
+  Harder only for a hero who stands still (twice as long = about twice the hits: from full HP without armour or an evade
+  that is now a death in the King's and the Gila's); one who keeps moving still slips through.
+
+**Ranges (rule new).** `trigger.first_after` (Not before), `trigger.first_by` (At the latest) and `trigger.cooldown` (Then
+every) each take one number, as before, or a range `[min, max]` (0 <= min <= max; the server refuses anything else). The
+game picks a number between min and max: Not before and At the latest **once per fight** (when the boss is first free),
+Then every **afresh after each attack**. The dice are the fight's own (a RandomNumberGenerator per boss, seeded from the
+run's seed (Run.run_seed, lane REPLAY), the boss's slot and spawn serial), never the global dice, so a replay picks the
+same numbers. A fixed number takes no roll. The Boss attacks tab shows each as a "fixed / range" pair of boxes, and under
+the preview the fight's first three attacks as earliest-latest start and end times.
+
+**The cooldown starts when the attack is completely over (rule confirmed, made explicit).** Then every counts from the
+end of the spent (dazed) seconds: the tell, all the bullets, their burn-out (it happens inside the spent seconds; a
+burn-out longer than the spent seconds is cut there, and the page warns) and the dazed seconds are all done. A 20.5 s
+Royal Dust Devil with "every 45" leaves 45 s of normal fighting between two of them. He still finishes whatever attack he
+is in before the next one starts.
+
+**Saving while Godot is busy (rule changed).** Every Save in the Level Editor (the map, an enemy, a hero, an item, a boss
+attack, a look, a skin, a blood colour, the cards' look) writes the JSON at once. Its import (.tres) waits at most 8 s
+for the Godot lock (it waited 2 min before, except the map's), then is queued as an import job that runs by itself when
+Godot is free. The status line says who holds Godot in plain words, with the details in its tooltip (click the line to
+unfold them): the build (ship.sh / ship_prod.sh, with how long it has run and its step), the tests, a script from
+Claude (by name), a Test-in-game window, another import, an unknown or dead holder (with
+`python tools/locks.py status` / `release godot --force` to clear it). For a build it also says whether the build being
+made takes the change: saved before the build's own "json -> tres" step (ship_prod.sh: before its staging copy) = in
+this build; after it = **not in this build, the next one will**. ship.sh and ship_prod.sh write their step on the lock
+(`tools/locks.py note`).
+
+**JSON windows.** The Enemies / Heroes / Items document's "Show / edit the JSON", the Boss attacks tab's "JSON…", a roster
+row's, a wave's and an event's "JSON as it will be written" and the Settings tab's other keys are editable: Apply takes
+the JSON exactly as typed (every key, also ones without a box) as one undoable edit and marks it unsaved; a typing
+mistake is shown with its line and column and nothing changes; Cancel leaves it as it was. A document's id cannot be
+changed there. A job's spec and a driver's meta stay read-only (derived).
+
+How to change a bullet heaven yourself: docs/howto/boss_bullet_heaven.md (and the tab's "How do I change it?" fold).
+
+Tests: game/tests/pass114_EDITOR_test.gd (6), tools/level_editor/selftest_EDITOR114.py; re-pinned
+game/tests/pass113_BOSS_test.gd and selftest_BOSS113.py (the peak bound 400 -> 600), selftest_LE103.py (the Save's words,
+every Save waiting SAVE_LOCK_WAIT).
+
+### 57.REPLAY Every run recorded; replays on the build that recorded it (no gameplay number changed)
+
+Garry: "Go ahead and implement it as described in run_replay_options.md as Option 1 ... builds saved in some kind of a
+simple manner ... automatically selects the correct build ... well communicated which build is being replayed"; earlier:
+"slow down functionality and a progress reel", "navigate the timeline of that play ... slow it down as well". How-to:
+analytics/howto/04_replays.md; the file: analytics/SCHEMA.md "The replay file"; code: core/systems/RunReplay.gd,
+Lockstep.gd, Dice.gd, game/replay/ReplayViewer.gd, tools/replay.py, tools/builds.py.
+
+**The rules this pass adds (none changes a number the player sees):**
+- **The run's seed** (`Run.run_seed`): every run gets one at its start (Game._enter_tree, before any system is ready),
+  never 0; a replay forces the recording's. Every roll that can change a run comes from it: `Dice.r` (the rule dice)
+  or a system's own dice seeded from it (`Dice.seed_rng`: the crowd, the pickups, the squads, the camera's shake, the
+  director, the structures, the barrels, the dust devils, the cards, the totems, the bounty posters, the boss fights).
+  The global randf()/randi() stream is only the looks' (particles, sound pitch, damage numbers, UI flourishes). The map
+  seed's roll is taken whether a map seed is forced or not. `Run.play_clock` starts at 0 with each run.
+- **The stick** every rule reads is the thumb's in 1/1024 steps (`Lockstep.q2`; a step under a twentieth of a degree, unfelt; 0.5 and 1 stay exact).
+- **Rule timers** count the run's own frames (`Lockstep.after`: the bounty posters' beat, the next screen's beat, the
+  Down! waits, a delayed boom, a fire drop, a structure's lift, a dust devil's burst), firing at the frame's end as the
+  engine's timers did, paused with the run unless they ran through pauses before.
+- **The game's own time scale** (the hit-stop, Last Stand, the drum moment) goes through `Lockstep.set_time_scale` /
+  `time_scale()`: the same in play.
+- **What is recorded:** the run's seed, the build id, the hero, look, stage, map and its seed, the launch, the whole
+  save as the run began (`install_id` and `survey` blanked), the settings, the canvas and viewport size and the camera
+  cutout; every engine frame's world steps and deltas (run-length coded); the stick at each frame's start; every
+  choice a tap made by id (cards by item id, chests, the shop by card, the Stranger, totems by gift, the portal, Down!,
+  TAP TO GO, pause/resume/quit, the posters, the spawn hurry, a setting changed mid-run) with its frame; every finger
+  touch's place (the rings); the hero's exact place after each slide; checks every **5 s** of play (`CHECK_EVERY`) and
+  the hero's track every **0.5 s** (`TRACK_EVERY`); the run's events for the reel.
+- **Where:** `user://analytics/replays/<stamp>_replay.json` at the run's end; a phone keeps the newest **50**
+  (`KEEP_FILES`); the editor binary mirrors it to `analytics/runs/replays/`. Not in the arena, a tool, a headless run,
+  the sim, the Watch or a replay (a tool that asks: the launch's `replay_record`).
+- **Sent:** as `run_replay` (parts of at most 100,000 characters, like run_record) at the run's end, only with play data
+  on, never where run_record is never sent. No sampling: every run (the game has few players yet; sampling is a later
+  switch).
+- **Builds kept:** ship.sh stamps `game/config/build.json` (`<version>-<yyyymmdd-hhmm UTC>-<git>[-dirty]`) before both
+  exports and keeps the PC exe in `builds/<id>/` (git-ignored); `tools/builds.py prune` keeps every build a recording on
+  this PC names plus the newest **6** (`KEEP_NEWEST`). A `--no-pc` ship keeps no build, so its phone runs replay only
+  on the nearest one.
+- **The replay** runs with `--fixed-fps 64` and per frame 64 x k physics ticks (k = the recorded world steps, 1 or 2;
+  jitter fix 0) and a time scale that makes every engine delta the recorded one; it never runs in a prod build (Boot
+  opens it only outside prod; the prod presets leave game/replay/ out).
+- **The hero's place** after each of his slides is recorded and a replay puts him there (`RunReplay.hero_moved`): the
+  physics engine's own last bits (an internal order, another CPU) never part a replay through him.
+- **The safety net** after a drift (the light turns red): every 0.5 s the hero is pulled half way to his recorded track
+  point (when 0.25 m or more off) and his HP set to the recorded HP; a recorded card the replay does not offer is
+  swapped after **60** frames (`OFFER_WAIT`) for the offered card of the same kind (else the first), and a choice whose
+  screen never comes is dropped after **900** frames (`WAIT_FRAMES`); the viewer says each (`A` turns the net off).
+- **Speeds:** 0.1x, 0.25x, 0.5x, 1x, 2x, 4x, 8x by pacing the recorded frames on the wall clock (each frame lasts its
+  recorded time over the speed; above 1x at most 60 drawn a second), never by stretching a step.
+
+Measured (this PC; the proof game/tools/_p114_REPLAY_proof.gd, recordings with the bot driving):
+- **Exact replays** (every checkpoint's exact hash equal; recordings made with irregular frames on purpose):
+  a 12-minute run with real touch events (God mode, the King and his bullet heaven, Endless, 23 level-ups, 10 chests,
+  5 totems, 3 Strangers, a shop buy, 22 power-ups): **720 of 720 checks equal** headless, in the windowed viewer, and in
+  an exported PC exe (the release template replays the editor binary's recording bit for bit); a 4.8-minute natural run
+  (58 touches, 73 choices, 2 ad revives, a death): 286/286; frames at 47 fps (1 and 2 world steps a frame), 30 fps, 60
+  fps, and real time headless (~130 fps, 0 or 1 steps): all exact; the hero's place needed the recorded correction 0 to
+  3 times in 120 s (the physics engine's own last bits).
+- **Size:** a 12-minute run 0.42 MB of JSON with checks every 5 s; **about 0.5 MB for 15 minutes**, sent as about 0.48 MB
+  in 5 parts. Most of it is the hero's exact place a step (~0.23 MB) and the stick (~0.11 MB); a steady 60 fps phone's
+  frame timing is a few KB.
+- **Seeking** (this PC, frames run undrawn): to 2:30 in 30 s, to 4:58 in 70 s, the whole 12:00 in 2 min 51 s in the
+  editor binary and 2 min 21 s in the exported exe (about 4 to 5 x real time; a jump back starts the run again first).
+- **Builds kept:** 218.6 MB a build (the exe); six newest plus the named ones: about 1.3 GB.
+
+Tests: game/tests/pass114_REPLAY_test.gd.

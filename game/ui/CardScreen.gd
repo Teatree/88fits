@@ -580,6 +580,7 @@ func _set_button(b: WButton, parts: Array) -> void:
 func _skip() -> void:
 	if _picking:
 		return
+	RunReplay.note("card_skip")
 	if not Run.use_skip():
 		_say("No skips left this stage.")
 		Audio.play("ui_locked")
@@ -793,6 +794,8 @@ func header_foot() -> float:
 func _pick(card: Dictionary, button: Control = null) -> void:
 	if _picking:
 		return
+	# pass 114 (lane REPLAY): the player's pick by id (RunReplay replays it with the same card)
+	RunReplay.note("card", {"id": str(card.get("id", "")), "lv": int(card.get("level_to", -1)), "type": str(card.get("type", ""))})
 	if _banish_mode:
 		_banish_pick(card, button)
 		return
@@ -959,6 +962,7 @@ func take_pick() -> Dictionary:
 
 
 func _reroll() -> void:
+	RunReplay.note("card_reroll")
 	if Run.rerolls_left <= 0:
 		_say("No rerolls left. The Choice upgrade gives more.")
 		Audio.play("ui_locked")
@@ -979,6 +983,7 @@ func _reroll() -> void:
 func _toggle_banish() -> void:
 	if _picking or path_mode:
 		return
+	RunReplay.note("card_banish_mode")
 	if _banish_mode:
 		_set_banish(false)
 		header.set_line(_pick_line())

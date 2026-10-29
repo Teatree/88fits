@@ -179,7 +179,7 @@ func _launch(dir: Vector3, dist: float, n: int, side: float = 0.0) -> Dictionary
 	var pr := inst.params
 	var range_m := maxf(stat("range", 12.0), 1.0)
 	var theta := deg_to_rad(bend_deg(n, pr))
-	var sd := side if side != 0.0 else (-1.0 if randf() < 0.5 else 1.0)
+	var sd := side if side != 0.0 else (-1.0 if Dice.r.randf() < 0.5 else 1.0)
 	# it leaves from a point on its aim line START_OUT ahead of him, so it crosses the line again `dist` from him
 	var rate := turn_rate(theta, dist - START_OUT, range_m)
 	var pp: Vector3 = player.global_position
@@ -191,14 +191,14 @@ func _launch(dir: Vector3, dist: float, n: int, side: float = 0.0) -> Dictionary
 		"speed": maxf(stat("speed", 13.0), 1.0), "dmg": stat("damage", 14.0), "kb": stat("knockback", 1.5),
 		"height": height, "hit": {}, "n": 0, "carry": -1, "carry_serial": -1, "phase": 0, "glide_t": 0.0,
 		"loop_at": -1.0, "loop_t": -1.0, "looped": 0, "loop_c": Vector3.ZERO, "loop_p0": Vector3.ZERO, "loop_sense": 1.0,
-		"loop_ang": 0.0, "spin": randf() * TAU, "radius": disc_radius(), "hit_r": hit_radius(),
+		"loop_ang": 0.0, "spin": Dice.r.randf() * TAU, "radius": disc_radius(), "hit_r": hit_radius(),
 		"trail": PackedVector3Array(), "tage": PackedFloat32Array(), "tclock": 0.0, "haze_t": 0.0, "node": null,
 	}
 	var lp = pr.get("loop")
 	if lp is Dictionary:
 		var a := clampf(float((lp as Dictionary).get("from", 0.3)), 0.0, 1.0)
 		var b := clampf(float((lp as Dictionary).get("to", 0.7)), a, 1.0)
-		d["loop_at"] = range_m * randf_range(a, b)
+		d["loop_at"] = range_m * Dice.r.randf_range(a, b)
 	var mi := MeshInstance3D.new()
 	mi.mesh = _mesh
 	for s in range(mini(_mats.size(), _mesh.get_surface_count())):
@@ -373,7 +373,7 @@ func _stun_roll(em: EnemyManager, i: int) -> void:
 	if not st is Dictionary:
 		return
 	var chance := float((st as Dictionary).get("chance", 0.0)) * maxf(float(inst.params.get("proc_mult", 1.0)), 0.0)
-	if chance <= 0.0 or randf() >= chance:
+	if chance <= 0.0 or Dice.r.randf() >= chance:
 		return
 	em.stun(i, float((st as Dictionary).get("seconds", 1.0)))
 
@@ -384,7 +384,7 @@ func _try_carry(d: Dictionary, e: int) -> void:
 	if not cr is Dictionary or int(d["carry"]) >= 0:
 		return
 	var ch := float((cr as Dictionary).get("chance", 0.0))
-	if ch <= 0.0 or randf() >= ch:
+	if ch <= 0.0 or Dice.r.randf() >= ch:
 		return
 	var em: EnemyManager = game.enemies
 	if not em.grabbable(e):

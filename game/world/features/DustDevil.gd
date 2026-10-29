@@ -158,6 +158,8 @@ func end_now() -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	var t0 := Time.get_ticks_usec()
 	if game != null and bool(game.get("paused")):
 		return
@@ -182,7 +184,7 @@ func step(delta: float) -> void:
 		gone = true
 		if fx and fx.burst_t > 0.0 and is_inside_tree():
 			# the puff plays out, then it goes
-			get_tree().create_timer(TornadoFx.BURST_SECONDS, false).timeout.connect(queue_free)
+			Lockstep.after(self, TornadoFx.BURST_SECONDS, false).timeout.connect(queue_free)
 		else:
 			queue_free()
 

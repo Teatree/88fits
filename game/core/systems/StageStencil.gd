@@ -139,6 +139,8 @@ func _flush() -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	_sweep_t += delta
 	if _sweep_t < SWEEP_EVERY or _roots.is_empty():
 		return

@@ -59,11 +59,16 @@ var _focus_vel := Vector3.ZERO
 var _lead_dir := Vector3.ZERO
 var _shake := 0.0
 var _shake_vec := Vector3.ZERO
+## pass 114 (lane REPLAY): the shake's own dice from the run's seed (the camera decides what is on screen, which the
+## weapons and the crowd read: a shake from the looks' stream would part a replay)
+var _shake_rng := Dice.rng_for("camera")
 ## the rig's transform before the shake (hero_anchor projects through it, so the HUD's bars do not shake)
 var _rest_xf := Transform3D()
 
 
 func _ready() -> void:
+	# pass 114 (lane REPLAY): seeded once the run's seed is set (Game._enter_tree), not when the scene was made
+	Dice.seed_rng(_shake_rng, "camera")
 	camera.keep_aspect = Camera3D.KEEP_HEIGHT
 	camera.far = 260.0
 	camera.fov = fixed_fov if _mode() == 0 else follow_fov
@@ -136,6 +141,8 @@ func _forward() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	var _t0 := Time.get_ticks_usec()
 	if target == null:
 		Perf.add("camera", _t0)
@@ -232,7 +239,7 @@ func _update(delta: float) -> void:
 	var up := Vector3(0, sin(pitch) * distance, 0)
 	var cam_pos := _focus + back + up
 	if _shake > 0.001:
-		_shake_vec = Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * _shake * 0.35
+		_shake_vec = Vector3(_shake_rng.randf_range(-1, 1), _shake_rng.randf_range(-1, 1), _shake_rng.randf_range(-1, 1)) * _shake * 0.35
 		_shake = lerpf(_shake, 0.0, clampf(delta * 10.0, 0.0, 1.0))
 	else:
 		_shake_vec = Vector3.ZERO

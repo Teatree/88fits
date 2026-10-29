@@ -257,7 +257,7 @@ const Drivers = (() => {
       info.appendChild(el('div', {}, el('b', { text: `Used by ${used.length ? used.length : 'no'} look${used.length === 1 ? '' : 's'}${used.length ? ':' : ' (no enemy, boss or hero recipe names it)'} ` }),
         used.map((u) => el('span', { class: 'drv-used' + (u.played ? ' played' : ''), text: DM.usedText(u) }))));
       if (d.has_meta) {
-        const det = el('details', { class: 'drv-meta' }, el('summary', { text: 'meta.json (everything the tool recorded)' }), el('pre', { class: 'mono small', text: JSON.stringify(d.meta, null, 1) }));
+        const det = el('details', { class: 'drv-meta' }, el('summary', { text: 'meta.json (everything the tool recorded) · read-only (derived)' }), el('pre', { class: 'mono small', text: JSON.stringify(d.meta, null, 1) }));
         info.appendChild(det);
       } else info.appendChild(el('div', { class: 'muted small', text: 'no meta.json in this folder' + (d.parent ? `: ${d.parent}'s describes the model and the clip` : '') }));
       info.appendChild(el('details', { class: 'drv-meta' }, el('summary', { text: 'Where drivers are kept, and which file is what' }), el('p', { class: 'small', text: ROOT_HELP })));

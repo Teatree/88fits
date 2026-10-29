@@ -15,6 +15,9 @@ Force release removes it. A pid that is alive keeps its lock however old its bea
                                                        # itself is the owner, until that shell's `release` (or it dies)
     python tools/locks.py release comfy --pid $(cat /proc/$$/winpid) [--force]
     python tools/locks.py keep | restore               # the PC save aside / back (what `godot` does round a run)
+    python tools/locks.py note godot "tests" --pid $(cat /proc/$$/winpid) [--set imported=1]   # pass 114: the holder
+                                                       # says what it is doing now (ship.sh's step; the Level Editor's
+                                                       # Save words it: "the build (ship.sh) ... is at its tests")
     python tools/locks.py godot -- --headless --path D:/_projects/88fits/game --script res://tools/check_scripts.gd
         # takes the Godot lock, keeps the PC save aside, runs the Godot binary with those arguments, restores the save,
         # releases; the exit code is Godot's. `tools/godot.sh` is the bash wrapper over this.
@@ -264,6 +267,48 @@ def acquire(name, who, job="", note="", wait=True, poll=POLL_SECONDS, timeout=No
         return Lock(name, who)
 
 
+def set_note(name, note, fields=None, pid=None):
+    """Pass 114 (lane EDITOR): the holder's note (what it is doing now: a build's step) and any extra owner fields
+    (`imported`: the build has run its JSON -> .tres step) rewritten in owner.json; only by its owner (this process, its
+    parent or the shell `pid`). True when written."""
+    s = status(name)
+    if s is None or not s["owner_file"] or not _mine(s.get("pid"), pid):
+        return False
+    try:
+        with open(_owner_file(name), "r+", encoding="utf-8") as f:
+            o = json.load(f)
+            o["note"] = str(note)
+            o["beat"] = time.time()
+            for k, v in (fields or {}).items():
+                o[str(k)] = v
+            f.seek(0)
+            f.truncate()
+            json.dump(o, f)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def godot_note(args):
+    """Pass 114: a Godot command's arguments in a few words for the lock's note (the script, the tests, an export)."""
+    a = [str(x) for x in args]
+    out = []
+    for i, x in enumerate(a):
+        if x in ("--script", "-s") and i + 1 < len(a):
+            out.append(os.path.basename(a[i + 1]))
+        elif x == "-a" and i + 1 < len(a):
+            out.append(a[i + 1])
+        elif x in ("--export-release", "--export-debug", "--export-pack") and i + 1 < len(a):
+            out.append("export %s" % a[i + 1])
+        elif x == "--import":
+            out.append("--import")
+        elif x == "-e" or x == "--editor":
+            out.append("the editor")
+    if any("GdUnitCmdTool" in x for x in a):
+        out = ["gdUnit tests"] + [o for o in out if "GdUnitCmdTool" not in o]
+    return " ".join(out) or "a Godot window"
+
+
 def force_release(name):
     """Remove the lock folder whoever holds it (Garry's "Force release", and the stale reclaim). True when gone."""
     p = lock_path(name)
@@ -337,12 +382,12 @@ def restore_save():
     return done
 
 
-def run_godot(args, timeout=None, who="tool", job="", keep=True, godot=None, log=None, stream=False):
+def run_godot(args, timeout=None, who="tool", job="", keep=True, godot=None, log=None, stream=False, note=""):
     """Run the Godot binary with `args` under the godot lock, the PC save kept aside and put back after.
     Returns (returncode, output) with stdout+stderr as text (or ("", rc) streamed to this process's stdout when
     `stream`). A timeout kills Godot and returns -1."""
     godot = godot or GODOT
-    with held("godot", who, job=job, log=log):
+    with held("godot", who, job=job, note=note, log=log):
         if keep:
             keep_save()
         try:
@@ -417,8 +462,21 @@ def _main(argv):
         # pass 110: GODOT_TIMEOUT=<seconds> kills a Godot that runs past it (a gdUnit run that printed its summary and
         # then hung in teardown held the lock for an hour in pass 109); unset = no limit, as before
         tmo = float(os.environ.get("GODOT_TIMEOUT", "0") or 0) or None
-        rc, _ = run_godot(args, who="cli godot", stream=True, timeout=tmo)
+        # pass 114 (lane EDITOR): the note names what runs (the Level Editor's Save says "a script from Claude:
+        # smoke_run.gd"); GODOT_LOCK_WHO names another owner than "cli godot"
+        rc, _ = run_godot(args, who=os.environ.get("GODOT_LOCK_WHO") or "cli godot", stream=True, timeout=tmo, note=godot_note(args))
         return rc
+    if cmd == "note":
+        name = words[0] if words else "godot"
+        text = words[1] if len(words) > 1 else ""
+        fields = {}
+        for i, a in enumerate(argv):
+            if a == "--set" and i + 1 < len(argv) and "=" in argv[i + 1]:
+                k, v = argv[i + 1].split("=", 1)
+                fields[k] = True if v in ("1", "true", "yes") else False if v in ("0", "false", "no") else v
+        ok = set_note(name, text, fields, pid=_cli_pid(argv))
+        print(("noted %s: %s" % (name, text)) if ok else ("not noted: %s is not held by this shell" % name))
+        return 0 if ok else 1
     print(__doc__)
     return 2
 

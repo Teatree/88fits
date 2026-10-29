@@ -2234,3 +2234,24 @@ line says how many come in each stage (its own time), when, for how long, how bi
 reads as a mistake (a life as long as the gap, Max alive 0, forming inside its own ring). The page's copy of the game's
 table and reader is tools/level_editor/dustdevil_card.js (selftest_TWISTER113.py checks it against the GDScript). No new
 server route: page files only (a reload shows it). Rules: docs/waves_schema.md "Pass 113", BALANCING.md 56.TWISTER.
+
+## Pass 114: editable JSON windows, Saves while a build runs, bullet-heaven trigger ranges (lane EDITOR)
+
+- **Edit the JSON.** Enemies / Heroes / Items: the document's ⋯ → **Show / edit the JSON**; Boss attacks: **JSON…** next
+  to Save attack; Timeline: under a roster row, a wave or an event, **JSON as it will be written · edit it here**;
+  Settings: the map's other keys. Type, then **Apply** (Ctrl+Enter): the document takes the JSON exactly as typed (every
+  key, also ones without a box) as one undoable edit, marked unsaved; Save writes it (Ctrl+S in the window applies and
+  saves). A typing mistake is shown with its line and column and nothing changes; **Cancel** (Escape) leaves it as it
+  was. The id cannot change there. A job's spec and a driver's meta stay read-only (derived). (json_edit.js)
+- **Saving while Godot is busy.** Every Save writes the JSON at once; the import (.tres) waits at most 8 s, then is
+  queued as an import job that runs by itself when Godot is free. The status line names who holds Godot (the build and
+  its step, the tests, a script from Claude, a Test-in-game window, another import, an unknown or dead holder with how
+  to clear it) and, for a build, whether that build takes the change; hover the line for the details, click it to unfold
+  them. (server.py godot_holder, run_import; app.js lockWords / importOutcome / saveStatus; tools/locks.py `note`;
+  ship.sh / ship_prod.sh write their step on the lock.)
+- **Boss attacks → When it comes.** Not before, ...or at the latest and Then every each take **fixed** (one number) or
+  **range** (min, max): the game picks a number between them (Not before and At the latest once a fight, Then every after
+  each attack). Then every counts from the moment the attack is completely over (tell, bullets, spent). The line **In a
+  fight** under the preview shows when the first three can start and end, earliest to latest. The how-to is the tab's
+  **How do I change it?** fold and docs/howto/boss_bullet_heaven.md.
+- The Level Editor server needs a restart for the Save changes (server.py); the page files reload by themselves.

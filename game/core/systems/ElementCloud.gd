@@ -213,6 +213,8 @@ func _area_m2() -> float:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if game == null or game.paused:
 		return
 	_t += delta

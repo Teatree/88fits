@@ -314,6 +314,7 @@ func _make_card(card: Dictionary) -> WCard:
 func _buy(card: Dictionary, price: int, node: WCard) -> void:
 	if _done:
 		return
+	RunReplay.note("shop_buy", {"i": _offer.find(card), "id": str(card.get("id", "")), "price": price})
 	if Run.run_gold < price:
 		Audio.play("ui_locked")
 		return
@@ -328,6 +329,8 @@ func _buy(card: Dictionary, price: int, node: WCard) -> void:
 
 
 func _finish(bought: bool, line: String = "") -> void:
+	if not bought and visible:
+		RunReplay.note("shop_leave")
 	visible = false
 	if bought and line != "":
 		Run.build_changed.emit()

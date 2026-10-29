@@ -242,6 +242,7 @@ func is_finished() -> bool:
 
 ## A tap anywhere: spinning, straight to the landing; landed, straight on.
 func skip() -> void:
+	RunReplay.note("reel_skip")
 	if not _landed:
 		_land()
 	else:

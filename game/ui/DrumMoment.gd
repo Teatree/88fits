@@ -143,10 +143,12 @@ func _finish() -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if not playing:
 		return
 	# real seconds: a hit-stop that slowed the clock as the drum was used does not stretch the show
-	var dt := delta / maxf(Engine.time_scale, 0.01)
+	var dt := delta / maxf(Lockstep.time_scale(), 0.01)
 	t += dt
 	_slap_t += dt
 	while _next < _hits.size() and t >= float((_hits[_next] as Dictionary).get("t", 0.0)):

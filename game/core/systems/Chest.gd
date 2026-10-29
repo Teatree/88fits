@@ -147,6 +147,8 @@ func _shine(mode: int, size: Vector2, tint: Color, strength: float, at: Vector3)
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	_t += delta
 	_slope_pool()
 	if not opened:

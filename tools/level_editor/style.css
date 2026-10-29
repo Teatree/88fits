@@ -833,6 +833,18 @@ textarea.txt.area.bad { border-color: var(--crit); box-shadow: 0 0 0 1px var(--c
 .amodal-back { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 80; }
 .amodal { background: var(--surface); border: 1px solid var(--border-2); border-radius: 12px; padding: 16px 18px; max-width: 720px; max-height: 85vh; overflow: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
 .amodal.wide { max-width: 1000px; }
+/* pass 114 (lane EDITOR): the editable JSON window (json_edit.js): big, monospace, the whole height */
+.amodal.jedit { width: min(1100px, 94vw); max-width: none; height: 92vh; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; }
+.amodal.jedit h3 { margin: 0 0 4px; }
+.jedit-note { margin: 0 0 8px; }
+.jedit-text { flex: 1 1 auto; width: 100%; min-height: 200px; box-sizing: border-box; resize: none; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.8rem; line-height: 1.45; tab-size: 2; background: var(--page); color: var(--ink); border: 1px solid var(--border-2); border-radius: 6px; padding: 10px; white-space: pre; overflow: auto; }
+.jedit-text:focus { outline: 2px solid var(--sel); outline-offset: -1px; }
+.jedit-text[readonly] { color: var(--ink-2); }
+.jedit-text.inline { flex: none; resize: vertical; max-height: 70vh; margin-top: 6px; }
+.jedit-msg { margin: 6px 0 0; white-space: pre-wrap; }
+.jedit .amodal-actions { margin-top: 8px; align-items: center; }
+.jedit-state { margin-left: auto; }
+.jedit-inline.edited > summary { color: var(--warn, #e0a63a); }
 .amodal h3 { margin: 0 0 8px; }
 .amodal-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .adiff th { text-align: left; color: var(--muted); font-weight: 500; }

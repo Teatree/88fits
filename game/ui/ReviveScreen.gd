@@ -413,6 +413,7 @@ func _try(kind: String) -> void:
 
 
 func _toggle_hold() -> void:
+	RunReplay.note("revive_hold")
 	_held = not _held
 	_hold_btn.set_parts(["go on" if _held else "hold"])
 	_count.modulate.a = 0.45 if _held else 1.0
@@ -431,6 +432,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if not _open:
 		return
 	if _touch:
@@ -469,6 +472,8 @@ func _ask_give_up() -> void:
 func _decide(kind: String) -> void:
 	if not _open:
 		return
+	if kind != "timeout":
+		RunReplay.note("revive", {"kind": kind})
 	_open = false
 	if _touch:
 		_touch.reset()

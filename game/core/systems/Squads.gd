@@ -63,7 +63,7 @@ var glow_cols := PackedColorArray()
 
 func _init(p_em: EnemyManager = null) -> void:
 	em = p_em
-	_rng.randomize()
+	Dice.seed_rng(_rng, "squads")
 
 
 func _ensure() -> void:

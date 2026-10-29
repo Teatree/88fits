@@ -129,7 +129,7 @@ func _fire() -> bool:
 			inst.kills += 1
 		# Echo Zap (pass 53): a hit, first or chained, may queue smaller zaps on the same creature (never on a kill)
 		var asf = inst.params.get("echo_zap")
-		if asf is Dictionary and enemies.is_alive(current) and randf() < float((asf as Dictionary).get("chance", 0.0)):
+		if asf is Dictionary and enemies.is_alive(current) and Dice.r.randf() < float((asf as Dictionary).get("chance", 0.0)):
 			_queue_shock(enemies, current, damage, asf)
 		game.fx_hit(p, inst.def)
 		# next: nearest unhit within 5 m of the current one

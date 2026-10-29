@@ -7,6 +7,7 @@ the crowd's pressure, plus every build change and notable moment as an event. `d
 
 | You want to... | Open |
 |---|---|
+| **Watch a run again like a video** (your phone's or anyone's with play data on): the real game plays it on the PC, slow motion to 8x, a reel to jump anywhere, the taps as rings | [howto/04_replays.md](howto/04_replays.md): `python tools/posthog_runs.py`, then double-click `tools\replay.cmd` |
 | See **real players' runs** (your phone, friends) second by second, one run at a time or **averaged** for one player or several: download them from PostHog and open them in `dashboard.html` | [howto/03_remote_runs.md](howto/03_remote_runs.md), step by step. The same steps are on the dashboard itself: press **Remote runs**, then **How do I get players' runs?** |
 | See **one player's progress** on the PostHog boards (every chart filtered to them) | [howto/01_one_players_data.md](howto/01_one_players_data.md) |
 | Choose **when a survey appears**, add one for a given run, test it on the phone | [howto/02_surveys.md](howto/02_surveys.md) |

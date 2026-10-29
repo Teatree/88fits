@@ -562,7 +562,7 @@ func _stun_roll(em: EnemyManager, i: int) -> void:
 	if st.is_empty():
 		return
 	var chance := float(st.get("chance", 0.0))
-	if chance <= 0.0 or randf() >= chance:
+	if chance <= 0.0 or Dice.r.randf() >= chance:
 		return
 	if not em.has_method("stun"):
 		return

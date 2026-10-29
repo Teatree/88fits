@@ -90,6 +90,14 @@ var _run_started := false
 ## off the disk while it is open (pass 45), so nothing done in the arena is kept.
 var arena_panel: ArenaPanel = null
 var arena_cards := false
+## pass 114 (lane REPLAY): the save and settings as this run began, kept by RunReplay.before_run for the recording
+var _replay_snap: Dictionary = {}
+
+
+## Pass 114 (lane REPLAY): the run's seed before any of its systems is ready (they seed their own dice from it), and
+## the save and the settings as the run is about to start them (RunReplay).
+func _enter_tree() -> void:
+	_replay_snap = RunReplay.before_run(self)
 
 
 func _ready() -> void:
@@ -299,6 +307,8 @@ func _ready() -> void:
 	# pass 111 (lane WANTED): a tool's own contract for this run (the launch's `bounty`; WantedRun: its progress, the HUD
 	# plate, its pay at the end); pass 112: the player's comes from the floating posters after the landing (_offer_bounty)
 	if not Run.arena: WantedRun.attach(self, debug_launch)
+	# pass 114 (lane REPLAY): the run's input recording (or a replay's driver), and the run's own timers (Lockstep.after)
+	RunReplay.attach(self, debug_launch, _replay_snap)
 	# music
 	if mapdef:
 		var run_music = mapdef.music.get("run", [])
@@ -388,7 +398,7 @@ func _offer_bounty(forced: bool = false) -> void:
 		return
 	if not forced and not WantedBoard.unlocked():
 		return
-	var list := WantedBoard.board_for(Run.map.id, Run.stage, Run.character.id)
+	var list := WantedBoard.board_for(Run.map.id, Run.stage, Run.character.id, Dice.rng_for("bounty"))
 	if list.is_empty():
 		return
 	_request_modal(Modal.BOUNTY, _open_bounty.bind(list), 0, true)
@@ -971,7 +981,16 @@ static func spawn_ease(f: float) -> float:
 
 
 ## The player pressed, dragged or hit a key during the sequence (pass 64): the rest runs SPAWN_HURRY times as fast.
+## Pass 114 (lane REPLAY): the debug panel's God mode (and a tool's) through one place, so a recording keeps it and a
+## replay sets it at the same frame.
+func set_god(on: bool) -> void:
+	RunReplay.note("god", {"on": on})
+	if player:
+		player.god = on
+
+
 func spawn_hurry() -> void:
+	RunReplay.note("spawn_hurry")
 	if spawning and _spawn_t >= SPAWN_HURRY_AFTER:
 		spawn_rate = SPAWN_HURRY
 
@@ -1021,7 +1040,7 @@ func _spawn_land_now() -> void:
 	_spawn_hand_over_finger()
 	_start_run()
 	# pass 112 (lane WANTED): the floating Wanted posters, once the landing's dust has settled (a pause-respecting timer)
-	get_tree().create_timer(BOUNTY_AFTER_LAND / spawn_rate, false).timeout.connect(func(): _offer_bounty(bool(launch_info.get("bounty_board", false))))
+	Lockstep.after(self, BOUNTY_AFTER_LAND / spawn_rate, false).timeout.connect(func(): _offer_bounty(bool(launch_info.get("bounty_board", false))))
 
 
 ## A finger that went down during the sequence and is still down becomes the stick (pass 64): he walks off at once.
@@ -1053,12 +1072,14 @@ func set_paused(v: bool) -> void:
 func open_pause() -> void:
 	if paused or _ended or spawning:
 		return
+	RunReplay.note("pause")
 	set_paused(true)
 	Audio.play("ui_pause")
 	pause_screen.open()
 
 
 func close_pause() -> void:
+	RunReplay.note("resume")
 	pause_screen.close()
 	Audio.play("ui_resume")
 	set_paused(false)
@@ -1201,7 +1222,7 @@ func _open_next_modal_soon(beat: float) -> void:
 	if _modal_next_pending:
 		return
 	_modal_next_pending = true
-	get_tree().create_timer(beat).timeout.connect(func() -> void:
+	Lockstep.after(self, beat).timeout.connect(func() -> void:
 		_modal_next_pending = false
 		_open_next_modal())
 
@@ -1454,6 +1475,7 @@ func _on_evolved(id: String) -> void:
 # ---------------------------------------------------------------- run flow
 
 func _process(delta: float) -> void:
+	delta = Lockstep.dt(delta)
 	if spawning:
 		_tick_spawn(delta)
 		return
@@ -1649,8 +1671,8 @@ func _tick_supply(delta: float) -> void:
 	if _supply_t > 0.0:
 		return
 	_supply_t = Run.perk_param("supply_drop", "every", 40.0)
-	var a := randf() * TAU
-	var at: Vector3 = player.global_position + Vector3(cos(a), 0, sin(a)) * randf_range(3.5, 6.0)
+	var a := Dice.r.randf() * TAU
+	var at: Vector3 = player.global_position + Vector3(cos(a), 0, sin(a)) * Dice.r.randf_range(3.5, 6.0)
 	at.y = map.height_at(at.x, at.z) if map else 0.0
 	var warn := Run.perk_param("supply_drop", "warn", 1.5)
 	var r := Run.perk_param("supply_drop", "radius", 2.6)
@@ -1709,7 +1731,7 @@ static func supply_drop_pick(hp: float, max_hp: float) -> String:
 			break
 	if drops.is_empty():
 		return "magnet_pulse"
-	return str(drops[randi() % drops.size()])
+	return str(drops[Dice.r.randi() % drops.size()])
 
 
 ## Thruster Burst: when the crowd closes in, the suit fires her clear towards the emptiest ground and throws the ring.
@@ -1813,7 +1835,7 @@ func timeout_spot(here: Vector3, facing_dir: Vector3, side: float) -> Vector3:
 	var b := here - s
 	var na: int = enemies.indices_in_radius(a, 2.5).size()
 	var nb: int = enemies.indices_in_radius(b, 2.5).size()
-	var at: Vector3 = a if (na < nb or (na == nb and randf() < 0.5)) else b
+	var at: Vector3 = a if (na < nb or (na == nb and Dice.r.randf() < 0.5)) else b
 	if map:
 		at = map.clamp_to_arena(at)
 		at.y = map.height_at(at.x, at.z)
@@ -1877,7 +1899,7 @@ func _count_bounty() -> void:
 	if cands.is_empty():
 		return
 	_bounty_kills = 0
-	var b: int = cands[randi() % cands.size()]
+	var b: int = cands[Dice.r.randi() % cands.size()]
 	var mult := Run.perk_param("bounty_hunter", "hp_mult", 4.0)
 	enemies.hp[b] *= mult
 	enemies.max_hp[b] *= mult
@@ -2062,19 +2084,19 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 	# kill for their own small pickups
 	for pair in [["heal_drop", "cake_slice"], ["coin_drop", "coin_bag"]]:
 		var chance: float = Run.player_sheet.get_stat(str(pair[0]), 0.0)
-		if chance > 0.0 and randf() < chance:
+		if chance > 0.0 and Dice.r.randf() < chance:
 			var pd: PickupDef = Registry.pickup(str(pair[1]))
 			if pd:
-				pickups.spawn_special(pd, at + Vector3(randf_range(-0.4, 0.4), 0, randf_range(-0.4, 0.4)), true)
+				pickups.spawn_special(pd, at + Vector3(Dice.r.randf_range(-0.4, 0.4), 0, Dice.r.randf_range(-0.4, 0.4)), true)
 	# chests: every elite variant and the mini-boss, the odd regular creature (drops.chest in its JSON)
-	if elite != null or def.archetype == "elite" or (not no_random_chests and randf() < float(def.drops.get("chest", 0.0))):
+	if elite != null or def.archetype == "elite" or (not no_random_chests and Dice.r.randf() < float(def.drops.get("chest", 0.0))):
 		pickups.spawn_chest(at)
 	# a creature's own power-up (pass 43: the giant drops a Berserk one time in three, drops.pickup {id, chance})
 	var own = def.drops.get("pickup", {})
-	if own is Dictionary and randf() < float(own.get("chance", 0.0)):
+	if own is Dictionary and Dice.r.randf() < float(own.get("chance", 0.0)):
 		var od: PickupDef = Registry.pickup(str(own.get("id", "")))
 		if od:
-			pickups.spawn_special(od, at + Vector3(randf_range(-0.6, 0.6), 0, randf_range(-0.6, 0.6)))
+			pickups.spawn_special(od, at + Vector3(Dice.r.randf_range(-0.6, 0.6), 0, Dice.r.randf_range(-0.6, 0.6)))
 
 
 ## Thing About Luck (pass 69, lane SALT): the factor on the power-up roll for a creature killed at `at`, the highest any
@@ -2118,11 +2140,11 @@ static func boss_purse(stage: int) -> int:
 func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
 	# Powder Keg (pass 48, a passive item): a kill may blow the body up; a keg's own kills never roll again (no chains)
 	var keg: float = Run.player_sheet.get_stat("powder_keg_chance", 0.0)
-	if keg > 0.0 and _weapon_id != POWDER_KEG and randf() < keg:
+	if keg > 0.0 and _weapon_id != POWDER_KEG and Dice.r.randf() < keg:
 		_powder_keg(at, enemies.died_max_hp if enemies and enemies.died_max_hp > 0.0 else def.hp)
 	# Brimstone Brand (pass 43, stage 3): a kill may set the sand alight where the body fell, burning the crowd
 	var brand: float = Run.player_sheet.get_stat("brand_chance", 0.0)
-	if brand > 0.0 and randf() < brand and def.archetype != "boss":
+	if brand > 0.0 and Dice.r.randf() < brand and def.archetype != "boss":
 		var bw: WeaponInstance = Run.weapon_instance(_weapon_id) if _weapon_id != "" else null
 		var bz := spawn_zone(at, 2.2, 3.0, 6.0 * Run.player_sheet.get_stat("might", 1.0), 0.25, bw, 0.0, Color(1.0, 0.42, 0.1, 0.3))
 		bz.flames = true
@@ -2131,7 +2153,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 	# its coins `chance` of the time (SunScepter.gold_dust_coins); a training dummy pays nothing
 	if _weapon_id != "" and def.brain != "dummy":
 		for k in range(preload("res://core/behaviors/SunScepter.gd").gold_dust_coins(Run.weapon_instance(_weapon_id))):
-			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at, 1.0 + float(randi() % 2)), "gold_dust")
+			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at, 1.0 + float(Dice.r.randi() % 2)), "gold_dust")
 	# Grand Finale (pass 43, Calavera): a boss or an Elite going down takes a share of every creature's health with it
 	if (def.archetype == "boss" or def.archetype == "elite" or elite != null) and Run.has_perk("grand_finale"):
 		var fr := Run.perk_param("grand_finale", "radius", 14.0)
@@ -2164,7 +2186,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		_hell_lines.clear()
 		# the reward scales with the boss (drops.coins, drops.chests): the second boss pays for continuing
 		for k in range(MirrorDanger.scaled_count(float(def.drops.get("coins", BOSS_COINS)), MirrorDanger.factor_of(def, "bounty"))):
-			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5)), 5.0), "boss_coins")
+			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(Dice.r.randf_range(-2.5, 2.5), 0, Dice.r.randf_range(-2.5, 2.5)), 5.0), "boss_coins")
 		for k in range(int(def.drops.get("chests", 1)) - 1):
 			pickups.spawn_chest(at + Vector3(-2.0 - 1.6 * k, 0, 1.5))
 		hud.toast("A BOSS CHEST: open it to call everything in", Color(1.0, 0.82, 0.35))
@@ -2298,7 +2320,7 @@ func _on_player_hit() -> void:
 	_skedaddle()
 	# Loose Change (pass 48, a passive item): a hit may knock a coin out of him (PickupManager.toss_coin)
 	var lc: float = Run.player_sheet.get_stat("coin_on_hit", 0.0)
-	if lc > 0.0 and player and pickups and randf() < lc:
+	if lc > 0.0 and player and pickups and Dice.r.randf() < lc:
 		if pickups.toss_coin(player.global_position) >= 0:
 			Audio.play("it_coin_drop", player.global_position)
 	# Tough Love: a hit makes Dad hit harder and wider for a few seconds
@@ -2319,9 +2341,9 @@ func _on_player_hit() -> void:
 			hud.flash(Color(0.8, 0.1, 0.1, 0.25), 0.2)
 	if player and fx:
 		fx.sand(player.global_position, 0.7)
-	if not Run.arena and not paused and not get_tree().paused and player and not player.dead and Engine.time_scale >= 0.999:
-		Engine.time_scale = 0.08
-		get_tree().create_timer(0.045, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
+	if not Run.arena and not paused and not get_tree().paused and player and not player.dead and Lockstep.time_scale() >= 0.999:
+		Lockstep.set_time_scale(0.08)
+		get_tree().create_timer(0.045, true, false, true).timeout.connect(func(): Lockstep.set_time_scale(1.0))
 
 
 ## The hero finished using a structure (content/structures).
@@ -2401,9 +2423,9 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			var gold := int(p.get("gold", 60))
 			Run.add_gold(gold, "loot_cache")
 			for k in range(int(p.get("gems", 3))):
-				pickups.spawn(PickupManager.KIND_GEM_L, at + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)), 25.0)
+				pickups.spawn(PickupManager.KIND_GEM_L, at + Vector3(Dice.r.randf_range(-1.5, 1.5), 0, Dice.r.randf_range(-1.5, 1.5)), 25.0)
 			for k in range(int(p.get("coins", 4))):
-				pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)), 3.0), "loot_cache")
+				pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(Dice.r.randf_range(-1.5, 1.5), 0, Dice.r.randf_range(-1.5, 1.5)), 3.0), "loot_cache")
 			hud.toast("+%d gold and gems" % gold, UiKit.ACCENT)
 		"buff":
 			# pass 106 (lane DRUM): a buff with a `moment` (the War Drum) stops time for its show, then boosts (_use_drum)
@@ -2527,8 +2549,8 @@ func teleport_hero(def: StructureDef) -> void:
 	var far := Vector3.INF
 	var far_d := -1.0
 	for k in range(40):
-		var a := randf() * TAU
-		var q := Vector3(cos(a), 0.0, sin(a)) * randf_range(arena * 0.1, arena * 0.82)
+		var a := Dice.r.randf() * TAU
+		var q := Vector3(cos(a), 0.0, sin(a)) * Dice.r.randf_range(arena * 0.1, arena * 0.82)
 		var clear := true
 		if map:
 			for o: Vector3 in map.obstacles:
@@ -2577,7 +2599,7 @@ func teleport_hero(def: StructureDef) -> void:
 ## The dice shrine: one of its outcomes at random, each one honest about what it did.
 func _roll_dice(def: StructureDef, at: Vector3) -> void:
 	var outcomes: Array = def.params.get("outcomes", ["heal", "gold", "level", "swarm"])
-	var pick := str(outcomes[randi() % outcomes.size()])
+	var pick := str(outcomes[Dice.r.randi() % outcomes.size()])
 	match pick:
 		"heal":
 			player.heal(player.max_hp, def.display_name, "structure:" + def.id)
@@ -2911,14 +2933,14 @@ func _on_player_died() -> void:
 			if not camera.camera.is_position_behind(wp):
 				hud.fly_item(feather, camera.camera.unproject_position(wp), PHOENIX_COLOUR)
 		hud.banner("PHOENIX FEATHER", PHOENIX_COLOUR, feather.icon if feather else null)
-		await get_tree().create_timer(PHOENIX_DELAY, false).timeout
+		await Lockstep.after(self, PHOENIX_DELAY, false).timeout
 		if _ended or player == null:
 			return
 		_revive("phoenix")
 		return
 	# the fall plays out, on a pause-respecting clock (pass 60: behind a screen or the pause menu it waits), then Down!
 	# asks, in its turn (death wins: it goes first, and nothing else opens while he is down)
-	await get_tree().create_timer(1.2, false).timeout
+	await Lockstep.after(self, 1.2, false).timeout
 	if _ended or player == null or not player.dead:
 		return
 	_request_modal(Modal.REVIVE, _open_revive)
@@ -3088,11 +3110,15 @@ func end_run() -> void:
 	Run.end()
 	Audio.stop_music()
 	await get_tree().create_timer(1.2).timeout
+	# pass 114 (lane REPLAY): a replay stays on its last frame (the viewer is the scene; no Results)
+	if Lockstep.replaying:
+		return
 	set_paused(false)
 	UiFx.go(get_tree(), RESULTS)
 
 
 func abandon_run() -> void:
+	RunReplay.note("abandon")
 	if RunAnalytics.I: RunAnalytics.I.abandoned = true
 	Run.died = true
 	end_run()
@@ -3164,8 +3190,7 @@ func elite_explosion(center: Vector3, r: float, damage: float, delay: float, kno
 	if delay <= 0.0:
 		boom.call()
 		return
-	var t := get_tree().create_timer(delay, false)
-	t.timeout.connect(boom)
+	Lockstep.after(self, delay, false).timeout.connect(boom)
 
 
 func enemy_spit(from: Vector3, target: Vector3, speed: float, damage: float, splash: float, info: Dictionary = {}) -> void:
@@ -4388,7 +4413,7 @@ func oil_drip(at: Vector3, w: WeaponInstance, dp: Dictionary) -> void:
 	var land := Vector3(at.x, g, at.z)
 	var r := float(dp.get("radius", 0.8))
 	var slow := float(dp.get("slow", 0.35))
-	get_tree().create_timer(fall, false).timeout.connect(func() -> void:
+	Lockstep.after(self, fall, false).timeout.connect(func() -> void:
 		if not _ended:
 			spawn_cloud(land, w, r, "fire", {"slow": slow}))
 

@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1_cdvau")
 attack_kind = "pattern"
-doc = "The Tumbleweed King's bullet heaven. ROYAL DUST DEVIL across the screen, the sand darkens round him and he spins up into a sand tornado; then for 8 s three spiral arms of small burning tumbleweeds turn slowly outwards (the arms turn back the other way halfway, so the safe lanes change) while a ring with an opening in a new place rolls out every 1.7 s. He takes 80% less damage until it ends, then lies dizzy for 2.5 s taking 50% more. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one."
+doc = "The Tumbleweed King's bullet heaven. ROYAL DUST DEVIL across the screen, the sand darkens round him and he spins up into a sand tornado; then for 16 s three spiral arms of small burning tumbleweeds turn slowly outwards (the arms turn back the other way halfway, so the safe lanes change) while a ring with an opening in a new place rolls out every 1.7 s. He takes 80% less damage until it ends, then lies dizzy for 2.5 s taking 50% more. Not before 15 s into the fight; the first when he falls under 60% HP (or 30 s in at the latest); then 45 s after the last one is completely over (its dizzy seconds too)."
 projectile = {
 "glow": 1.2,
 "hit_radius": 0.3,
 "look": "burning_tumbleweed",
-"range": 24.0,
+"range": 48.0,
 "size": 1.0,
 "tint": "#FF8A1F",
 "trail": true,
@@ -19,7 +19,7 @@ projectile = {
 timing = {
 "clear": 0.6,
 "cooldown": 0.0,
-"duration": 8.0
+"duration": 16.0
 }
 sounds = {
 "fire": "en_boss_attack",
@@ -33,7 +33,7 @@ emitters = [{
 "arms": 3.0,
 "count": 2.0,
 "offset_deg": 60.0,
-"rate": 4.5,
+"rate": 3.6,
 "reverse_at": 0.5,
 "shape": "spiral",
 "speed": 3.2,
@@ -41,7 +41,7 @@ emitters = [{
 "spread_deg": 8.0
 }, {
 "aim": "random",
-"count": 20.0,
+"count": 16.0,
 "gap": 80.0,
 "rate": 0.6,
 "shape": "ring",
@@ -56,7 +56,7 @@ trigger = {
 "cooldown": 45.0,
 "first_after": 15.0,
 "first_at_hp": 0.6,
-"first_by": 45.0
+"first_by": 30.0
 }
 guard = {
 "color": "#B9C3CE",

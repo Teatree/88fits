@@ -28,7 +28,7 @@ func _ready() -> void:
 	_btn("Spawn boss", func(): if game and Run.map: game.director._start_boss(Run.map.boss))
 	_btn("Level up", func(): Run.add_xp(Run.xp_to_next() - Run.xp + 0.1))
 	_btn("+500 gold", func(): Run.add_gold(500, "debug"))
-	_btn("God mode", func(): if game: game.player.god = not game.player.god)
+	_btn("God mode", func(): if game: game.set_god(not game.player.god))
 	_btn("Kill all", func(): if game: game.enemies.kill_all(true))
 	_btn("Vacuum", func(): if game: game.pickups.vacuum_all())
 	_btn("Chest here", func(): if game: game.pickups.spawn_chest(game.player.global_position + game.player.forward() * 2.0))

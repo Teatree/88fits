@@ -115,7 +115,7 @@ def _q(s):
 
 # ---------------------------------------------------------------- finding and fetching
 
-def list_parts(since, until=None):
+def list_parts(since, until=None, event=EVENT):
     """Every run_record part since `since` (a datetime, UTC): [{uuid, ts, distinct_id, player_name, label}], oldest first,
     without the payloads (the cheap pass: the uuid, timestamp and distinct_id columns and the person's two names)."""
     out, seen = [], set()
@@ -124,7 +124,7 @@ def list_parts(since, until=None):
     while True:
         q = ("SELECT toString(uuid), toString(timestamp), distinct_id, coalesce(toString(person.properties.player_name), ''), "
              "coalesce(toString(person.properties.label), '') FROM events WHERE event = %s AND timestamp >= toDateTime(%s)%s "
-             "ORDER BY timestamp ASC LIMIT %d") % (_q(EVENT), _q(lo), hi, LIST_PAGE)
+             "ORDER BY timestamp ASC LIMIT %d") % (_q(event), _q(lo), hi, LIST_PAGE)
         _, rows = hogql(q)
         new = 0
         for r in rows:
@@ -138,7 +138,7 @@ def list_parts(since, until=None):
         lo = str(rows[-1][1])[:19]   # the next page from the last timestamp (the uuids seen are skipped)
 
 
-def fetch_parts(items):
+def fetch_parts(items, event=EVENT):
     """The parts' events with their properties: {uuid: properties}, FETCH_BATCH at a time, each query bounded by its
     parts' timestamps (PostHog sorts events by day: a narrow range reads little)."""
     out = {}
@@ -148,7 +148,7 @@ def fetch_parts(items):
         hi = max(str(x["ts"])[:19] for x in chunk)
         q = ("SELECT toString(uuid), properties FROM events WHERE event = %s AND timestamp >= toDateTime(%s) - INTERVAL 1 SECOND "
              "AND timestamp <= toDateTime(%s) + INTERVAL 1 SECOND AND toString(uuid) IN (%s) LIMIT %d") % (
-            _q(EVENT), _q(lo), _q(hi), ", ".join(_q(x["uuid"]) for x in chunk), len(chunk) * 2)
+            _q(event), _q(lo), _q(hi), ", ".join(_q(x["uuid"]) for x in chunk), len(chunk) * 2)
         _, rows = hogql(q)
         for r in rows:
             p = r[1]
@@ -421,10 +421,65 @@ def download(out_dir=OUT_DEFAULT, since=None, players=(), force=False, list_only
         report["new"] += 1
         log("  %s  %s  %s %s, %s, %s" % (rel, remote["received"][:16], rec.get("hero_name", rec.get("hero", "?")), rec.get("result", "?"),
                                           "%d:%02d" % divmod(int(float(rec.get("length") or 0)), 60), "dev" if remote["dev"] else "player"))
+    # pass 114 (lane REPLAY): the runs' input recordings too (run_replay), beside each player's runs
+    try:
+        report["replays"] = download_replays(out_dir, since, players, keys, force, log)
+    except BudgetSpent as e:
+        log("PostHog's read budget ran out before the replays (%s): run again later for them." % e)
     report["index"] = build_index(out_dir)
     report["runs"] = len(report["index"]["runs"])
     report["players"] = [p["key"] for p in report["index"]["players"]]
     return report
+
+
+## Pass 114 (lane REPLAY): the run_replay events (core/systems/RunReplay.gd's file, cut like run_record by
+## Analytics.run_replay) into <out>/<player>/replays/<stamp>_replay.json, which tools/replay.py plays. A recording's parts
+## are grouped by their md5 (the whole file's), so they join whatever the run's other properties are.
+REPLAY_EVENT = "run_replay"
+
+
+def download_replays(out_dir, since, players=(), keys=None, force=False, log=print):
+    items = [it for it in list_parts(since, event=REPLAY_EVENT) if wanted(it, players)]
+    keys = player_keys(items, keys or {})
+    have = set()
+    for root, _dirs, files in os.walk(out_dir):
+        if os.path.basename(root) == "replays":
+            for f in files:
+                if f.endswith(".uuids"):
+                    with open(os.path.join(root, f), encoding="utf-8") as fh:
+                        have.update(x.strip() for x in fh if x.strip())
+    todo = [it for it in items if force or it["uuid"] not in have]
+    log("run_replay parts since %s: %d (%d already downloaded)" % (since.strftime("%Y-%m-%d"), len(items), len(items) - len(todo)))
+    props = fetch_parts(todo, event=REPLAY_EVENT) if todo else {}
+    meta = {it["uuid"]: it for it in todo}
+    groups = {}
+    for uuid, p in props.items():
+        groups.setdefault(str(p.get("md5", "")), []).append((uuid, p))
+    new = 0
+    for md5, got in groups.items():
+        text, why = join_parts([p for _, p in got])
+        it = meta[got[0][0]]
+        if text is None:
+            log("  a replay of %s is not complete yet (%s): try again in a few minutes" % (player_name_of(it), why))
+            continue
+        try:
+            rec = json.loads(text)
+        except ValueError:
+            continue
+        folder = os.path.join(out_dir, keys[str(it["distinct_id"])], "replays")
+        os.makedirs(folder, exist_ok=True)
+        name = "%s_replay.json" % slug(str(rec.get("stamp") or md5[:12]))
+        with open(os.path.join(folder, name), "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+        with open(os.path.join(folder, name[:-5] + ".uuids"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("\n".join(sorted(u for u, _ in got)) + "\n")
+        new += 1
+        log("  %s/replays/%s  %s %s stage %s, %s, build %s" % (keys[str(it["distinct_id"])], name, rec.get("hero", "?"), rec.get("result", "?"),
+                                                        rec.get("stage", "?"), "%d:%02d" % divmod(int(float(rec.get("play_s") or 0)), 60),
+                                                        (rec.get("build") or {}).get("id", "?")))
+    if new:
+        log("%d new replay%s: python tools/replay.py --latest (or tools\\replay.cmd)" % (new, "" if new == 1 else "s"))
+    return new
 
 
 def main(argv=None):

@@ -99,7 +99,7 @@ var doubled := 0
 
 func _on_setup() -> void:
 	_familiar = visual.get_node_or_null("Familiar")
-	_orbit = randf() * TAU
+	_orbit = Dice.r.randf() * TAU
 	_entrance = visual.get_node_or_null("Familiar/Body/Entrance") as Node3D
 	_cluster = visual.get_node_or_null("Familiar/Body/Cluster")
 	# pass 109: a launcher that looks up fires its tubes in turn and never turns the cluster

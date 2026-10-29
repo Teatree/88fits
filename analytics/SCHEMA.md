@@ -351,6 +351,43 @@ super properties (the install's `distinct_id`, `dev`, `app_version`, `device`, .
   [the index row of each run + player, player_name, player_label, distinct_id, file, js, received, uuids, run_id, dev,
   parts]}`); the dashboard's *Remote runs* switch reads them. How-to: `analytics/howto/03_remote_runs.md`.
 
+## The replay file (pass 114)
+
+Garry: "Go ahead and implement it as described in run_replay_options.md as Option 1." Every run from the title (phone and
+PC, dev and prod; never the arena, a tool, a headless run, the sim or a replay) also writes its input recording
+(`core/systems/RunReplay.gd`): `user://analytics/replays/<stamp>_replay.json` (a phone keeps the newest 50; the editor
+binary also mirrors it to the repo's `analytics/runs/replays/`). `tools/replay.py` plays it on the build that made it
+(analytics/howto/04_replays.md; the rules: BALANCING.md 57.REPLAY). One JSON object:
+
+| key | meaning |
+|---|---|
+| `kind`, `schema` | `88fits_replay`, 1 |
+| `build` | the build that recorded it: `{id, version, utc, git, dirty}` from `game/config/build.json` (ship.sh stamps it before the exports); a run from the editor binary: `{id: "editor-<version>", unstamped: true}`; plus `engine` (Godot's version) and `editor` |
+| `recorded`, `recorded_utc`, `stamp` | when it began (local time string, Unix seconds, the file name's stamp) |
+| `player`, `platform`, `device`, `mobile` | the save's player name, OS name and model, whether a phone |
+| `hero`, `look`, `stage`, `map`, `map_seed`, `run_seed` | the run: hero id, the hero's look code from the save (`hero_look`), 1-based stage, map id, the map's layout seed, the run's seed (every rule's dice: Dice) |
+| `launch` | what the game started from: character, map, map_seed, stage, spawn (the beam), plus a tool's own plain keys |
+| `save` | the whole save as the run began (the Upgrade board, owned heroes and looks, quests, wanted board, skins, ...), `install_id` and `survey` blanked |
+| `settings` | `Settings.to_dict()` as the run began (camera, shake, frame cap, hero_knockback, fire_forward, pierce_falloff, ...) |
+| `canvas`, `vp_px`, `safe_top` | the game's canvas in design pixels, its viewport in real pixels, the camera cutout's inset: a replay draws the same view (what is on screen is a rule: weapons and the crowd read it) |
+| `d_ready`, `hz`, `check_every`, `track_every` | the delta of the frame the game was made in, the physics rate, the seconds between checks (5) and track points (0.5) |
+| `frames_n`, `frames`, `frames_runs` | the engine frames recorded and their timing: run-length coded runs of `[u32 count][u8 k + 16 x ran][f64 pd][f64 d][f64 ts]` (k = 60 Hz world steps that frame, ran = the run's world was not paused, pd = their delta, d = the frame's delta, ts = the game's time scale), gzip + base64 + `:<raw bytes>` |
+| `stick`, `stick_n` | the stick as the world steps read it at each frame's start, only its changes: `[u32 frame][u8 flags: 1 wants_move, 2 keyboard, 4 lifted_once][i16 x][i16 y]` (x, y as i16 in 1/1024 steps), gzip + base64 |
+| `origins` | the stick's base for the ghost: `[frame, x, y]` (canvas pixels) when it moves a pixel or more |
+| `hero_steps`, `hero_steps_n` | the hero's exact place after each of his slides: float32 bits of x, y, z as zigzag varints of their second differences, gzip + base64 (a replay puts him there: the physics engine's last bits never part it) |
+| `track`, `track_n` | every 0.5 s of play: `[u32 frame][i32 x cm][i32 z cm][f32 HP]` (the reel's HP line and the safety net) |
+| `decisions` | every choice a tap made: `{k, f, p, t, ...}`: kind (`card` with `id`/`lv`/`type`, `card_skip`, `card_reroll`, `card_banish_mode`, `reel_skip`, `chest_intro`, `chest_hurry`, `chest_finish` with `take`, `chest_banish`, `shop_buy` with `i`/`id`/`price`, `shop_leave`, `stranger` with `took`, `totem` with `id`/`i`/`value`, `portal_extract`, `portal_decline`, `revive` with `kind`, `revive_hold`, `gate`, `pause`, `resume`, `abandon`, `spawn_hurry`, `bounty` with `i`, `bounty_reroll`, `setting` with `key`/`value`), the frame, the phase (0 = between frames, a tap; 1 = at the frame's process start, a tool's driver), the play clock |
+| `taps` | every finger touch: `[frame, x, y, down 1/up 0, finger index]` in canvas pixels (the rings) |
+| `checks` | every 5 s of play and at the end: `{f, t, lv, xp, kills, gold, dice, x, z, hp, alive, crowd, cx, cz, shots, picks, h, b}`: rounded numbers to say what parted, `h` a hash of the exact values, `b` the exact float bits of clock, XP, x, z, HP (hex) |
+| `marks` | the run's events for the reel: `[frame, play clock, kind, id, level]` (RunAnalytics.event's) |
+| `result`, `end_reason`, `play_s`, `wall_s`, `level`, `kills`, `gold` | how and when it ended |
+
+**In PostHog** (`run_replay`, `Analytics.run_replay`): the same JSON gzipped, base64, cut into parts of at most 100,000
+characters, one event a part, `format` "replay", `part`/`parts`/`raw_bytes`/`gz_bytes`/`md5` as run_record's, plus
+`build_id`, `hero`, `stage`, `result`, `play_s`; sent at the run's end under the play-data consent, never from where
+run_record is never sent. `tools/posthog_runs.py` joins the parts by their md5 into
+`analytics/remote/<player>/replays/<stamp>_replay.json` (and a `.uuids` twin listing the parts it came from).
+
 ## Surveys (pass 59, pass 62)
 
 End-of-run surveys come from PostHog Surveys (`core/autoload/Analytics.gd`, the card `ui/wanted/WSurvey.gd`); the how-to

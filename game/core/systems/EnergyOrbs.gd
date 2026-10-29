@@ -79,6 +79,7 @@ var _drawn := -1
 
 
 func _ready() -> void:
+	Lockstep.join(self)
 	pos.resize(MAX); dir.resize(MAX); spd.resize(MAX); flown.resize(MAX); reach.resize(MAX); dmg.resize(MAX)
 	hit_r.resize(MAX); size.resize(MAX); h0.resize(MAX); hover.resize(MAX); age.resize(MAX); knock.resize(MAX)
 	col.resize(MAX); pulse_hz.resize(MAX); pulse_amp.resize(MAX); phase.resize(MAX)
@@ -181,6 +182,9 @@ func _ground(p: Vector3) -> float:
 
 
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	_ticks += 1
 	_clock += delta
 	if count <= 0:
@@ -252,6 +256,8 @@ func _bead(at: Vector3, s: float, life: float, c: Color) -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt): the camera and what is on screen follow it
+	delta = Lockstep.dt(delta)
 	# nothing in the air, gathering or fading: nothing to draw
 	if count <= 0 and _glows.is_empty() and _clock > _b_until:
 		if _mm.visible_instance_count != 0:

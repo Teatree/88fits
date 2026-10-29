@@ -60,7 +60,7 @@ func _on_setup() -> void:
 				_core_mat = (m as StandardMaterial3D).duplicate()
 				_core_mat.emission_enabled = true
 				mi.material_override = _core_mat
-		_orbit = randf() * TAU
+		_orbit = Dice.r.randf() * TAU
 		_place(0.0)
 
 
@@ -129,7 +129,7 @@ func _fire() -> bool:
 		# with no crowd to throw at it goes back down where it was, hard
 		var target: Vector3 = spots[k % spots.size()] if not spots.is_empty() else em.pos[e]
 		if spots.size() > 0 and k >= spots.size():
-			target += Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)) * 0.8
+			target += Vector3(Dice.r.randf_range(-1.0, 1.0), 0.0, Dice.r.randf_range(-1.0, 1.0)) * 0.8
 		_grips.append({"i": e, "phase": PH_GRAB, "t": 0.0, "from": em.pos[e], "rel": float(k) - float(taken.size() - 1) * 0.5,
 				"target": target, "bounced": false, "flip_t": 0.0, "slam": spots.is_empty()})
 		k += 1
@@ -164,7 +164,7 @@ func _throw_hole() -> void:
 		var to := _charge_to
 		if k > 0:
 			# the next ones land round the first, a hole's width apart
-			var a := TAU * float(k) / float(amount) + randf() * 0.5
+			var a := TAU * float(k) / float(amount) + Dice.r.randf() * 0.5
 			to += Vector3(cos(a), 0.0, sin(a)) * _g("blast", 1.9) * stat("area", 1.0) * 1.2
 		var lp: Dictionary = {"vortex": hb.duplicate(true)}
 		# Repulsor on the Singularity: the pop throws harder and wider
@@ -463,7 +463,7 @@ func _place(delta: float) -> void:
 	var want := player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 2.7) * float(fam.get("bob", 0.08)), sin(_orbit) * r)
 	want -= _aim_dir() * 0.18 * _recoil
 	if _open > 0.3:
-		want += Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 0.025 * _open
+		want += Vector3(Dice.r.randf_range(-1.0, 1.0), Dice.r.randf_range(-1.0, 1.0), Dice.r.randf_range(-1.0, 1.0)) * 0.025 * _open
 	_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 9.0, 0.0, 1.0))
 	_familiar.rotation = Vector3(-0.3 * _recoil + 0.12 * _open, _aim_yaw, sin(t * 2.1) * 0.06)
 	_recoil = maxf(_recoil - delta * 5.0, 0.0)

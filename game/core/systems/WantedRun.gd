@@ -48,8 +48,7 @@ static func attach(g: Node, launch: Dictionary = {}) -> WantedRun:
 	if lb is Dictionary and not (lb as Dictionary).is_empty():
 		c = (lb as Dictionary).duplicate(true)
 	elif str(lb) == "roll" and Run.map and Run.character:
-		var rng := RandomNumberGenerator.new()
-		rng.randomize()
+		var rng := Dice.rng_for("wanted_run")
 		var posters := WantedBoard.roll(WantedBoard.config(), WantedBoard.context(Run.map.id, Run.stage, Run.character.id), rng)
 		c = posters[0] if not posters.is_empty() else {}
 	if c.is_empty():
@@ -97,6 +96,8 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	var pl = game.get("player")
 	if pl and is_instance_valid(pl):
 		var frac: float = 0.0 if bool(pl.get("dead")) else float(pl.get("hp")) / maxf(float(pl.get("max_hp")), 1.0)

@@ -157,6 +157,8 @@ func running() -> bool:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if def == null:
 		return
 	var up: bool = running()

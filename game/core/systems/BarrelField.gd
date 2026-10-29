@@ -338,7 +338,15 @@ static func structure_position(s: Node3D) -> Vector3:
 	return s.global_position if s.is_inside_tree() else s.position
 
 
+func _enter_tree() -> void:
+	# pass 114 (lane REPLAY): the replay driver's group (Lockstep)
+	Lockstep.join(self)
+
+
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	if game == null or pos.is_empty() or bool(game.get("paused")) or game.player == null or game.player.dead:
 		return
 	# pass 112 (lane BARREL): broken barrels come back now and then, off the screen
@@ -388,9 +396,9 @@ func _break(i: int) -> void:
 	var cc := contents(light[i] == 1)
 	if pk:
 		for k in int(cc["gems_small"]):
-			pk.spawn(pk.KIND_GEM_S, at + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5)), per)
+			pk.spawn(pk.KIND_GEM_S, at + Vector3(Dice.r.randf_range(-0.5, 0.5), 0.3, Dice.r.randf_range(-0.5, 0.5)), per)
 		for k in int(cc["gems_medium"]):
-			pk.spawn(pk.KIND_GEM_M, at + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.6, 0.6)), per * 4.0)
+			pk.spawn(pk.KIND_GEM_M, at + Vector3(Dice.r.randf_range(-0.6, 0.6), 0.5, Dice.r.randf_range(-0.6, 0.6)), per * 4.0)
 		# pass 87 (lane FIXES): and its coins (a black one's; a brown one's only when the map gives it some)
 		if light[i] == 1 or (i < coins.size() and coins[i] > 0):
 			_drop_coins(i, at, pk)
@@ -430,9 +438,9 @@ func coins_total() -> int:
 ## many.
 func _drop_coins(i: int, at: Vector3, pk) -> int:
 	var r: Vector2i = contents(light[i] == 1)["coins"]
-	var n: int = coins[i] if i < coins.size() and coins[i] > 0 else randi_range(r.x, r.y)
+	var n: int = coins[i] if i < coins.size() and coins[i] > 0 else Dice.r.randi_range(r.x, r.y)
 	for k in n:
-		var c: int = pk.spawn(pk.KIND_COIN, at + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.6, 0.6)), COIN_VALUE)
+		var c: int = pk.spawn(pk.KIND_COIN, at + Vector3(Dice.r.randf_range(-0.6, 0.6), 0.5, Dice.r.randf_range(-0.6, 0.6)), COIN_VALUE)
 		if pk.has_method("mark_coin"):
 			pk.mark_coin(c, "barrel")
 	coins_dropped += n

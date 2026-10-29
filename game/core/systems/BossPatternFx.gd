@@ -149,7 +149,8 @@ func tell(k: float, delta: float) -> void:
 			if not _struck and k >= 0.7:
 				_struck = true
 				_strike()
-	if game and game.get("camera") and randf() < delta * 6.0:
+	# pass 114 (lane REPLAY): the shake moves the camera, which decides what is on screen (a rule): on the run's dice
+	if game and game.get("camera") and Dice.r.randf() < delta * 6.0:
 		game.camera.shake(0.25 + 0.35 * k)
 
 

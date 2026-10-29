@@ -519,7 +519,9 @@ var _drawn := -1
 
 
 func _ready() -> void:
-	_rng.randomize()
+	# pass 114 (lane REPLAY): the crowd's dice from the run's seed (Dice: Game._enter_tree seeds it first)
+	Dice.seed_rng(_rng, "enemies")
+	Lockstep.join(self)
 	_size_slots(0)
 	elites = Registry.elites_list()
 	_build_shadows()
@@ -806,7 +808,7 @@ func refresh_drawn(parity: int = -1) -> void:
 	var cam_up := cxf.basis.y
 	var cpos := cxf.origin
 	var scf := _cf_tick
-	var look_s := VIS_LOOK_TICKS / float(maxi(Engine.physics_ticks_per_second, 1))
+	var look_s := VIS_LOOK_TICKS / float(maxi(Lockstep.world_hz(), 1))
 	var cam_b := _vis_cam_move * VIS_LOOK_TICKS
 	var cam_t := _vis_cam_turn * VIS_LOOK_TICKS
 	var step := 1 if parity < 0 else 2
@@ -2189,15 +2191,15 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		var tpm: float = Run.trick_proc_mult(weapon_id)
 		cc *= tpm
 		# HIT_CRIT (pass 62): a forced crit needs no roll
-		if (flags & HIT_CRIT) != 0 or (cc > 0.0 and randf() < cc):
+		if (flags & HIT_CRIT) != 0 or (cc > 0.0 and Dice.r.randf() < cc):
 			dealt *= _hs_critd
 			crit = true
 			# Vulture (pass 47c): a crit may heal the hero a little
-			if _crit_heal > 0.0 and randf() < _crit_heal * tpm and game and game.player and not game.player.dead:
+			if _crit_heal > 0.0 and Dice.r.randf() < _crit_heal * tpm and game and game.player and not game.player.dead:
 				# pass 113 (lane TASKS): credited to the items that give crit_heal_chance (TaskTally)
 				game.player.heal(game.player.max_hp * CRIT_HEAL_FRAC, "Vulture", "stat:crit_heal_chance")
 		# Cold Snap (pass 47c): a weapon hit may freeze the creature for a second, never a boss
-		if _freeze_chance > 0.0 and i != boss_index and randf() < _freeze_chance * tpm:
+		if _freeze_chance > 0.0 and i != boss_index and Dice.r.randf() < _freeze_chance * tpm:
 			freeze(i, FREEZE_SECONDS)
 	last_crit = crit
 	# a mini crit (pass 48, HIT_MINI): half a crit's extra damage, when no full crit rolled
@@ -4084,6 +4086,9 @@ func _face_toward(i: int, ti: int, face: Vector3) -> void:
 # ---------------------------------------------------------------- simulation
 
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	if player == null:
 		return
 	var t0 := Time.get_ticks_usec()
@@ -5082,7 +5087,7 @@ func _tick_rains(delta: float, ppos: Vector3) -> void:
 			var at := ppos
 			if not bool(r["first"]):
 				var sp: float = float(r["spread"])
-				at = ppos + Vector3(randf_range(-sp, sp), 0, randf_range(-sp, sp))
+				at = ppos + Vector3(Dice.r.randf_range(-sp, sp), 0, Dice.r.randf_range(-sp, sp))
 			r["first"] = false
 			at.y = _height(at.x, at.z)
 			if game:
@@ -5134,7 +5139,7 @@ func _tick_rains(delta: float, ppos: Vector3) -> void:
 					game.shockwave(at, float(r["radius"]))
 				Audio.play("en_boss_attack", at)
 			elif game:
-				var jit := Vector3(randf_range(-0.6, 0.6), 0, randf_range(-0.6, 0.6))
+				var jit := Vector3(Dice.r.randf_range(-0.6, 0.6), 0, Dice.r.randf_range(-0.6, 0.6))
 				game.fx_lightning([at + Vector3(0, 11.0, 0) + jit * 2.0, at + Vector3(0, 6.0, 0) + jit, at + Vector3(0, 0.2, 0)])
 				game.fx_burst(at + Vector3(0, 0.3, 0), Color(1.0, 0.85, 0.45), float(r["radius"]) * 1.1)
 				if game.has_method("shockwave"):

@@ -316,6 +316,8 @@ func _muzzles() -> Array:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if owner_behavior == null or owner_behavior.game == null or owner_behavior.game.paused:
 		return
 	if _expiring:

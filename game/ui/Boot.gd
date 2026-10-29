@@ -142,6 +142,10 @@ var _dissolve_t := -1.0 # the dissolve, 0..1 (below 0: not started)
 
 
 func _ready() -> void:
+	# pass 114 (lane REPLAY): a replay's process (tools/replay.py: `-- replay=<file>`) opens the replay viewer, never the
+	# title; a prod build never does (and carries no viewer: export filter replay/*)
+	if _open_replay():
+		return
 	timings["engine"] = Time.get_ticks_msec()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build()
@@ -164,6 +168,30 @@ func _ready() -> void:
 		_recover("the threaded request was refused", false)
 		return
 	_loading = true
+
+
+const REPLAY_VIEWER := "res://replay/ReplayViewer.gd"
+
+
+func _open_replay() -> bool:
+	if Settings.is_prod():
+		return false
+	var want := false
+	for a in OS.get_cmdline_user_args():
+		if str(a).trim_prefix("--").begins_with("replay="):
+			want = true
+	if not want or not ResourceLoader.exists(REPLAY_VIEWER):
+		return false
+	var script = load(REPLAY_VIEWER)
+	if script == null:
+		return false
+	var v: Control = script.new()
+	v.name = "ReplayViewer"
+	get_tree().root.add_child.call_deferred(v)
+	(func() -> void:
+		get_tree().current_scene = v
+		queue_free()).call_deferred()
+	return true
 
 
 ## The picture, in the picture's own pixels inside `Art`, which _place puts where the boot splash drew it. Art is a

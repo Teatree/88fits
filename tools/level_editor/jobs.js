@@ -1339,7 +1339,7 @@ const Jobs = (() => {
     const u = ui(j.id);
     const fold = (key, summaryText, body) => { const d = el('details', { class: 'jfold', open: !!u.folds[key] }, el('summary', { text: summaryText }), body); d.addEventListener('toggle', () => { u.folds[key] = d.open; }); return d; };
     return group(j.equiv ? fold('equiv', 'the command Claude would type', el('div', { class: 'jequiv', text: j.equiv })) : null,
-      j.spec ? fold('spec', 'the spec', el('pre', { class: 'jlog', text: JSON.stringify(j.spec, null, 1) })) : null);
+      j.spec ? fold('spec', 'the spec · read-only (derived: the job as it was queued; its Edit button changes it)', el('pre', { class: 'jlog', text: JSON.stringify(j.spec, null, 1) })) : null);
   }
 
   /** What to pick and the candidates; the pick lives in S.ui (pass 96), the Pick button in the actions slot follows it. */

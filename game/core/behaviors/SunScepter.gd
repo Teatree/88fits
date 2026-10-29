@@ -188,8 +188,8 @@ func _on_setup() -> void:
 		if _glow.material_override is ShaderMaterial:
 			_glow_mat = (_glow.material_override as ShaderMaterial).duplicate() as ShaderMaterial
 			_glow.material_override = _glow_mat
-	_orbit = randf() * TAU
-	_clock = randf() * 10.0
+	_orbit = Dice.r.randf() * TAU
+	_clock = Dice.r.randf() * 10.0
 	_place(0.0)
 	_tick_glow(0.0)
 
@@ -278,7 +278,7 @@ func pick_targets(n: int) -> Array:
 			total += float(w)
 		if total <= 0.0:
 			break
-		var roll := randf() * total
+		var roll := Dice.r.randf() * total
 		var pick := -1
 		for j in range(weights.size()):
 			if float(weights[j]) <= 0.0:
@@ -328,8 +328,8 @@ func _fire() -> bool:
 			# nothing on the screen: it holds, and asks again in a moment (WeaponBehavior)
 			return false
 		for k in range(maxi(stat_int("amount", 1), 1)):
-			var a := randf() * TAU
-			var d := randf_range(EMPTY_REACH.x, EMPTY_REACH.y)
+			var a := Dice.r.randf() * TAU
+			var d := Dice.r.randf_range(EMPTY_REACH.x, EMPTY_REACH.y)
 			spots.append(_ground(player.global_position + Vector3(cos(a) * d, 0.0, sin(a) * d)))
 	strikes += 1
 	if not zp.is_empty():
@@ -488,7 +488,7 @@ static func gold_dust_coins(w: WeaponInstance) -> int:
 	var gd = w.params.get("gold_dust")
 	if not gd is Dictionary:
 		return 0
-	if randf() >= float((gd as Dictionary).get("chance", 0.3)):
+	if Dice.r.randf() >= float((gd as Dictionary).get("chance", 0.3)):
 		return 0
 	return maxi(int((gd as Dictionary).get("coins", 1)), 0)
 

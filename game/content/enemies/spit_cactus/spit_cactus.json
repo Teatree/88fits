@@ -214,6 +214,132 @@
       },
       "head": 0.956,
       "fresh": true
+    },
+    "SC-B": {
+      "note": "pass 114 (lane ART): the Bombmaker from Garry's _REFERENCES/2d/Bombmaker Dwarf Turnaround Sheet.png, made the way SC-A was (creature_free2): his sheet cut into its three figures (tools/dl/p114/ART/ref_*.png); the front redrawn from his front figure (front_from_picture, 5 seeds, c1), the back from our front with his back figure (c1), the release front from his throwing figure (c3), the release back from our back with our release front as the pose (cb21), the wind-ups as edits of our front and back (cw21, cw20), the dead painting (c3), all picked by eye (tools/dl/p114/ART/cands_*.png); free Wan walks front and back, the attack a throw (wind-up | release, front and back). SC-B and SC-C share every painting (stills \"bomb\"); only the walks' seed differs (seed_offset)",
+      "recipe": {
+        "stills": "bomb",
+        "art_prompt": "a short stout old dwarf bombmaker: a round black iron helmet shaped like a bomb with brass rivets, a wide round brim and a lit braided fuse curling up from its top with a bright orange spark, glowing yellow eyes in the shadow under the brim, a big bushy white beard and moustache, a red neckerchief, mustard-yellow sleeves, black overalls with a big orange star burst on the chest, brown leather straps with brass buckles, a wide brown leather belt with brown pouches and two small black bombs with orange stars hanging at his hips, big dark brown gloves, big dark brown boots, holding one big round black bomb with a short lit fuse up against his right shoulder in his right glove, his left arm hanging at his side, standing with his legs apart",
+        "motion": "a stout old dwarf walking in place with short heavy waddling steps, the big round black bomb held up at his right shoulder in his right glove the whole time, the lit fuse on his helmet bobbing",
+        "back_hint": "seen from behind: the back of his round black bomb helmet with the brass rivets and the lit braided fuse on top, the white beard showing at both sides under the brim, the yellow shirt with the brown leather straps crossed in an X, the wide brown belt with its pouches, the black trousers and the big boots, the big black bomb held up at his right shoulder in his right glove on the right of the picture, no face",
+        "dead_hint": "lying flat on his back sideways across the picture, his head on the left and his boots on the right, knocked out with his eyes shut, his round black bomb helmet tipped askew on his head, the big black bomb dropped beside his open glove with its fuse gone out; no ground, no sand, no shadow",
+        "aim_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head with the glove open and empty, the fingers spread, having just let go of the bomb, his left arm thrown out low to the side, one knee raised high and both boots off the ground",
+        "aim_back_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head on the right of the picture with the glove open and empty, his left arm thrown out low to the left side, one knee raised and both boots off the ground with the soles showing",
+        "windup_hint": "winding up to throw: the one big round black bomb in his right glove raised high behind his head on the left of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward toward the viewer on the right of the picture, pointing with the open glove, well away from his helmet; the braided fuse on top of his helmet still lit with its bright orange spark; legs apart, both boots on the ground",
+        "windup_back_hint": "winding up to throw: the one big round black bomb in his right glove raised high behind his head on the right of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward and to the left, pointing away from the viewer; the braided fuse on top of his helmet still lit with its bright orange spark; legs apart, both boots on the ground",
+        "attack_views": "front_back",
+        "attack_throw": true,
+        "aim_fit": 1.06,
+        "aim_match": false,
+        "remap_hues": {
+          "ranges": [
+            [
+              70,
+              170
+            ],
+            [
+              250,
+              330
+            ]
+          ],
+          "to": 30,
+          "sat": 0.5
+        },
+        "aim_lift": 0.03,
+        "cell_fill": 0.8,
+        "screen": "green",
+        "anim_negative": "extra arms, a third arm, extra legs, two bombs in his hand, the bomb disappearing, an explosion, fire, smoke, a gun",
+        "method": "creature_free2",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "seed_offset": 9946
+      },
+      "attack_views": "front_back",
+      "attack_throw": true,
+      "back_faces": "left",
+      "sprite": "spit_cactus_sprite_b.png",
+      "icon": "spit_cactus_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 8,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 46,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.931,
+      "fresh": true
+    },
+    "SC-C": {
+      "note": "pass 114 (lane ART): the Bombmaker again, the same paintings and recipe as SC-B (stills \"bomb\", picked by eye from Garry's Bombmaker Dwarf Turnaround Sheet.png); only the walks' seed differs (seed_offset 7588 against SC-B's 9946), so the front and back walks are other clips",
+      "recipe": {
+        "stills": "bomb",
+        "art_prompt": "a short stout old dwarf bombmaker: a round black iron helmet shaped like a bomb with brass rivets, a wide round brim and a lit braided fuse curling up from its top with a bright orange spark, glowing yellow eyes in the shadow under the brim, a big bushy white beard and moustache, a red neckerchief, mustard-yellow sleeves, black overalls with a big orange star burst on the chest, brown leather straps with brass buckles, a wide brown leather belt with brown pouches and two small black bombs with orange stars hanging at his hips, big dark brown gloves, big dark brown boots, holding one big round black bomb with a short lit fuse up against his right shoulder in his right glove, his left arm hanging at his side, standing with his legs apart",
+        "motion": "a stout old dwarf walking in place with short heavy waddling steps, the big round black bomb held up at his right shoulder in his right glove the whole time, the lit fuse on his helmet bobbing",
+        "back_hint": "seen from behind: the back of his round black bomb helmet with the brass rivets and the lit braided fuse on top, the white beard showing at both sides under the brim, the yellow shirt with the brown leather straps crossed in an X, the wide brown belt with its pouches, the black trousers and the big boots, the big black bomb held up at his right shoulder in his right glove on the right of the picture, no face",
+        "dead_hint": "lying flat on his back sideways across the picture, his head on the left and his boots on the right, knocked out with his eyes shut, his round black bomb helmet tipped askew on his head, the big black bomb dropped beside his open glove with its fuse gone out; no ground, no sand, no shadow",
+        "aim_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head with the glove open and empty, the fingers spread, having just let go of the bomb, his left arm thrown out low to the side, one knee raised high and both boots off the ground",
+        "aim_back_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head on the right of the picture with the glove open and empty, his left arm thrown out low to the left side, one knee raised and both boots off the ground with the soles showing",
+        "windup_hint": "winding up to throw: the one big round black bomb in his right glove raised high behind his head on the left of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward toward the viewer on the right of the picture, pointing with the open glove, well away from his helmet; the braided fuse on top of his helmet still lit with its bright orange spark; legs apart, both boots on the ground",
+        "windup_back_hint": "winding up to throw: the one big round black bomb in his right glove raised high behind his head on the right of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward and to the left, pointing away from the viewer; the braided fuse on top of his helmet still lit with its bright orange spark; legs apart, both boots on the ground",
+        "attack_views": "front_back",
+        "attack_throw": true,
+        "aim_fit": 1.06,
+        "aim_match": false,
+        "remap_hues": {
+          "ranges": [
+            [
+              70,
+              170
+            ],
+            [
+              250,
+              330
+            ]
+          ],
+          "to": 30,
+          "sat": 0.5
+        },
+        "aim_lift": 0.03,
+        "cell_fill": 0.8,
+        "screen": "green",
+        "anim_negative": "extra arms, a third arm, extra legs, two bombs in his hand, the bomb disappearing, an explosion, fire, smoke, a gun",
+        "method": "creature_free2",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "seed_offset": 7588
+      },
+      "attack_views": "front_back",
+      "attack_throw": true,
+      "back_faces": "left",
+      "sprite": "spit_cactus_sprite_c.png",
+      "icon": "spit_cactus_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 8,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 46,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.944,
+      "fresh": true
     }
   },
   "variant": "SC-A"

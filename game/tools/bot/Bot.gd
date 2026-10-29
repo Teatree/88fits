@@ -379,8 +379,14 @@ func _screens() -> void:
 		# pass 87 (lane STOOLS): EXTRACT with portal=extract, else "not yet" (the countdown runs on into Endless)
 		var out := str(opts.get("portal", "endless")) == "extract"
 		events.append({"t": snappedf(play_t(), 0.1), "clock": snappedf(_clock(), 0.1), "kind": "portal", "stage": int(_run.stage) + 1, "extract": out})
-		g.portal_dialog.visible = false
-		g.portal_dialog.decided.emit(out)
+		# pass 114: through the dialog's own functions (a tap's; RunReplay records them)
+		if out and g.portal_dialog.has_method("extract"):
+			g.portal_dialog.extract()
+		elif not out:
+			g.portal_dialog.decline()
+		else:
+			g.portal_dialog.visible = false
+			g.portal_dialog.decided.emit(out)
 		return
 	var cs = g.cards
 	if cs and cs.visible and not (cs._offer as Array).is_empty() and not cs._picking:
@@ -409,10 +415,8 @@ func _screens() -> void:
 					ch.skip_intro()
 				else:
 					_chest_tapped = true
-					var tw = ch.get("_tw")
-					if tw is Tween and (tw as Tween).is_valid():
-						var left := maxf(float(ch.get("_spin_total")) - (tw as Tween).get_total_elapsed_time(), 0.1)
-						(tw as Tween).set_speed_scale(maxf(left / 0.6, 1.0))
+					# pass 114: the chest's own hurry (a tap's; RunReplay records it)
+					ch.hurry()
 			return
 		_chest_tapped = false
 		_note_chest(ch)

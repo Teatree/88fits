@@ -1,21 +1,21 @@
 {
   "id": "hellbrand_mandala",
   "name": "Hellbrand Mandala",
-  "doc": "The Brander's bullet heaven. HELLBRAND MANDALA across the screen, the sand darkens round him and he drives his branding iron into the ground: a glowing brand sigil 12 m across burns into the sand under him. Then for 9 s slow branded fireballs bloom out of him in a five-petal rose (the petals race out, the dips between them crawl, the petals open and close), and every 3 s the mandala turns half a petal, so the safe lines move. In its last second every fireball still flying is pulled back towards him: never stand between a fireball and the Brander. He stands in a pillar of fire, taking 80% less damage until it ends; then the pillar gutters out, his iron smokes and he takes 50% more for 2.5 s. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one.",
+  "doc": "The Brander's bullet heaven. HELLBRAND MANDALA across the screen, the sand darkens round him and he drives his branding iron into the ground: a glowing brand sigil 12 m across burns into the sand under him. Then for 18 s slow branded fireballs bloom out of him in a five-petal rose (the petals race out, the dips between them crawl, the petals open and close), and every 3 s the mandala turns half a petal, so the safe lines move. In its last second every fireball still flying is pulled back towards him: never stand between a fireball and the Brander. He stands in a pillar of fire, taking 80% less damage until it ends; then the pillar gutters out, his iron smokes and he takes 50% more for 2.5 s. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one is completely over (his smoking seconds too).",
   "kind": "pattern",
   "projectile": {
     "look": "brand_fireball",
     "tint": "#FF6A1A",
     "size": 1.0,
     "glow": 1.3,
-    "range": 18.0,
+    "range": 36.0,
     "hit_radius": 0.33,
     "trail": true,
     "wobble": 0.0
   },
   "emitters": [
-    {"shape": "rose", "count": 30, "petals": 5, "depth": 0.75, "bloom_hz": 0.35, "speed": 3.0, "rate": 0.85, "turn_every": 3.0, "turn_deg": 36.0, "offset_deg": 36.0, "aim": "hero", "finale_pull": 1.0, "pull_speed": 7.5},
-    {"shape": "spiral", "arms": 5, "count": 1, "speed": 2.0, "rate": 1.5, "spin": 20.0, "aim": "hero", "start": 0.1, "finale_pull": 1.0, "pull_speed": 7.5}
+    {"shape": "rose", "count": 24, "petals": 5, "depth": 0.75, "bloom_hz": 0.35, "speed": 3.0, "rate": 0.85, "turn_every": 3.0, "turn_deg": 36.0, "offset_deg": 36.0, "aim": "hero", "finale_pull": 1.0, "pull_speed": 7.5},
+    {"shape": "spiral", "arms": 5, "count": 1, "speed": 2.0, "rate": 1.2, "spin": 20.0, "aim": "hero", "start": 0.1, "finale_pull": 1.0, "pull_speed": 7.5}
   ],
   "hit": {
     "hit_frac": 0.12
@@ -24,7 +24,7 @@
   "knockback": 0.0,
   "lift": 0.0,
   "timing": {
-    "duration": 9.0,
+    "duration": 18.0,
     "clear": 0.6,
     "cooldown": 0.0
   },

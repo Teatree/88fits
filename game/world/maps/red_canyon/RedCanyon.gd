@@ -863,8 +863,9 @@ func _build_movers() -> void:
 	for k in range(tumbleweeds):
 		var tw := Tumbleweed.new()
 		add_child(tw)
-		tw.setup(self, Vector3(1, 0, 0.3), randf_range(0.5, 0.9))
-		tw.global_position = Vector3(randf_range(-50, 50), 0, randf_range(-50, 50))
+		# pass 114 (lane REPLAY): on the run's dice (their rays query the physics space a replay must keep in step)
+		tw.setup(self, Vector3(1, 0, 0.3), Dice.r.randf_range(0.5, 0.9))
+		tw.global_position = Vector3(Dice.r.randf_range(-50, 50), 0, Dice.r.randf_range(-50, 50))
 
 
 func bind_game(game: Node) -> void:

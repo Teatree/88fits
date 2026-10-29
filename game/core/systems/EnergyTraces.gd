@@ -19,6 +19,7 @@ var _scan := 0.0
 
 
 func _ready() -> void:
+	Lockstep.join(self)
 	_mesh = ImmediateMesh.new()
 	_mi = MeshInstance3D.new()
 	_mi.mesh = _mesh
@@ -63,6 +64,9 @@ func clear() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# pass 114 (lane REPLAY): a replay's driver runs these steps itself (Lockstep)
+	if Lockstep.phys_skip():
+		return
 	if game == null or lines.is_empty():
 		return
 	_clock += delta

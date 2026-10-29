@@ -1,0 +1,269 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a short stout old dwarf bombmaker: a round black iron helmet shaped like a bomb with brass rivets, a wide round brim and a lit braided fuse curling up from its top with a bright orange spark, glowing yellow eyes in the shadow under the brim, a big bushy white beard and moustache, a red neckerchief, mustard-yellow sleeves, black overalls with a big orange star burst on the chest, brown leather straps with brass buckles, a wide brown leather belt with brown pouches and two small black bombs with orange stars hanging at his hips, big dark brown gloves, big dark brown boots, holding one big round black bomb with a short lit fuse up against his right shoulder in his right glove, his left arm hanging at his side, standing with his legs apart",
+ "renders": {
+  "front": {
+   "seed": 1022467,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of a short stout old dwarf bombmaker: a round black iron helmet shaped like a bomb with brass rivets, a wide round brim and a lit braided fuse curling up from its top with a bright orange spark, glowing yellow eyes in the shadow under the brim, a big bushy white beard and moustache, a red neckerchief, mustard-yellow sleeves, black overalls with a big orange star burst on the chest, brown leather straps with brass buckles, a wide brown leather belt with brown pouches and two small black bombs with orange stars hanging at his hips, big dark brown gloves, big dark brown boots, holding one big round black bomb with a short lit fuse up against his right shoulder in his right glove, his left arm hanging at his side, standing with his legs apart. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep the black bomb helmet with its lit fuse, the glowing yellow eyes, the white beard, the red neckerchief, the orange star on the black overalls, the one big black bomb in his right glove, the two small bombs on his belt. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/spit_cactus_bomb_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 128,
+     "right": 165,
+     "top": 49,
+     "bottom": 45,
+     "height": 929,
+     "width": 730
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 1037132,
+   "prompt": "The second reference image shows this same dwarf seen from behind: copy its back view from it: the back of his round black bomb helmet with the brass rivets and the wide round brim, the lit braided fuse curling up from its top with a bright orange spark, the white beard showing at both sides under the brim, the back of the mustard-yellow shirt with the brown leather straps crossed in an X with a brass ring where they cross, the wide brown belt with brown pouches, the black trousers and the big dark brown boots, legs apart, his left arm hanging with a dark brown glove on the left of the picture and the one big round black bomb with its lit fuse held up at his right shoulder in his right glove on the right of the picture; drawn in exactly the art style, colors and proportions of the first reference image, which shows him from the front. Full-body back view seen directly from behind, no face visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_bomb_front.png",
+    "88fits/bomb_ref_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 154,
+     "right": 98,
+     "top": 45,
+     "bottom": 42,
+     "height": 936,
+     "width": 771
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "attack_front": {
+   "seed": 3064759,
+   "prompt": "Show the dwarf of the first reference image in the pose of the second reference image: hopping up off the ground as he throws, his right arm flung straight up high above his head with the glove open and empty, the fingers spread, having just let go of the bomb, his left arm thrown out low to the side, one knee raised high and both boots off the ground. Copy the pose and the angle from the second reference image, but draw this exact stout old dwarf bombmaker: keep his round black bomb helmet with the brass rivets, the wide brim and the lit braided fuse on top, his glowing yellow eyes, his big bushy white beard and moustache, the red neckerchief, the mustard-yellow sleeves, the black overalls with the orange star burst on the chest, the brown leather straps with brass buckles, the wide brown belt with the brown pouch and the two small black bombs, the big dark brown gloves and the big dark brown boots, exactly the same colors and proportions of the first reference image. Nothing in his hands. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_bomb_front.png",
+    "88fits/bomb_ref_throw.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 174,
+     "right": 143,
+     "top": 34,
+     "bottom": 29,
+     "height": 960,
+     "width": 706
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "attack_back": {
+   "seed": 1064757,
+   "prompt": "The second reference image shows this same dwarf from the front, hopping up as he throws. Show the dwarf of the first reference image, seen directly from behind, in that same pose: his right arm flung straight up high above his head on the right of the picture with the glove open and empty, his left arm thrown out low to the left side, one knee raised and both boots off the ground with the soles showing, seen from behind with no face visible. Draw it in exactly the art style, colors and proportions of the first reference image: the back of his bomb helmet with its lit fuse, the white beard at the sides, the yellow shirt with the crossed brown straps, the brown belt with its pouches, the black trousers and the big boots. Nothing in his hands. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_bomb_back.png",
+    "88fits/spit_cactus_bomb_attack_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 128,
+     "right": 102,
+     "top": 31,
+     "bottom": 49,
+     "height": 943,
+     "width": 793
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "windup_front": {
+   "seed": 1071714,
+   "prompt": "The reference image shows this exact stout old dwarf bombmaker: keep his round black bomb helmet with the brass rivets, the wide brim and the lit braided fuse on top, his glowing yellow eyes, his big bushy white beard and moustache, the red neckerchief, the mustard-yellow sleeves, the black overalls with the orange star burst on the chest, the brown leather straps with brass buckles, the wide brown belt with the brown pouch and the two small black bombs, the big dark brown gloves and the big dark brown boots, exactly the same colors and proportions. Redraw him full body winding up to throw: the one big round black bomb in his right glove raised high behind his head on the left of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward toward the viewer on the right of the picture, pointing with the open glove, well away from his helmet; the braided fuse on top of his helmet still lit with its bright orange spark; his body leaning back a little, legs apart and knees bent, both boots on the ground, facing the viewer, one single bomb in his hand. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_bomb_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 99,
+     "right": 37,
+     "top": 40,
+     "bottom": 50,
+     "height": 933,
+     "width": 887
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "windup_back": {
+   "seed": 66316,
+   "prompt": "The reference image shows this exact old dwarf seen from behind. Keep him seen directly from behind, no face visible, keep his colors and proportions, and redraw him full body winding up to throw: the one big round black bomb in his right glove raised high behind his head on the right of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward and to the left, pointing away from the viewer, well away from his helmet; the braided fuse on top of his helmet still lit with its bright orange spark; legs apart and knees bent, both boots on the ground, one single bomb in his hand. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole figure inside the picture with space all round it, one single figure, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_bomb_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 77,
+     "right": 131,
+     "top": 30,
+     "bottom": 47,
+     "height": 946,
+     "width": 815
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 3037045,
+   "prompt": "This exact creature lying flat on his back sideways across the picture, his head on the left and his boots on the right, knocked out with his eyes shut, his round black bomb helmet tipped askew on his head, the big black bomb dropped beside his open glove with its fuse gone out; no ground, no sand, no shadow, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/spit_cactus_bomb_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 68,
+     "right": 82,
+     "top": 238,
+     "bottom": 235,
+     "height": 550,
+     "width": 873
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "stills": "bomb",
+  "art_prompt": "a short stout old dwarf bombmaker: a round black iron helmet shaped like a bomb with brass rivets, a wide round brim and a lit braided fuse curling up from its top with a bright orange spark, glowing yellow eyes in the shadow under the brim, a big bushy white beard and moustache, a red neckerchief, mustard-yellow sleeves, black overalls with a big orange star burst on the chest, brown leather straps with brass buckles, a wide brown leather belt with brown pouches and two small black bombs with orange stars hanging at his hips, big dark brown gloves, big dark brown boots, holding one big round black bomb with a short lit fuse up against his right shoulder in his right glove, his left arm hanging at his side, standing with his legs apart",
+  "motion": "a stout old dwarf walking in place with short heavy waddling steps, the big round black bomb held up at his right shoulder in his right glove the whole time, the lit fuse on his helmet bobbing",
+  "back_hint": "seen from behind: the back of his round black bomb helmet with the brass rivets and the lit braided fuse on top, the white beard showing at both sides under the brim, the yellow shirt with the brown leather straps crossed in an X, the wide brown belt with its pouches, the black trousers and the big boots, the big black bomb held up at his right shoulder in his right glove on the right of the picture, no face",
+  "dead_hint": "lying flat on his back sideways across the picture, his head on the left and his boots on the right, knocked out with his eyes shut, his round black bomb helmet tipped askew on his head, the big black bomb dropped beside his open glove with its fuse gone out; no ground, no sand, no shadow",
+  "aim_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head with the glove open and empty, the fingers spread, having just let go of the bomb, his left arm thrown out low to the side, one knee raised high and both boots off the ground",
+  "aim_back_hint": "hopping up off the ground as he throws, his right arm flung straight up high above his head on the right of the picture with the glove open and empty, his left arm thrown out low to the left side, one knee raised and both boots off the ground with the soles showing",
+  "windup_hint": "winding up to throw: the one big round black bomb in his right glove raised high behind his head on the left of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward toward the viewer on the right of the picture, pointing with the open glove, well away from his helmet; the braided fuse on top of his helmet still lit with its bright orange spark; legs apart, both boots on the ground",
+  "windup_back_hint": "winding up to throw: the one big round black bomb in his right glove raised high behind his head on the right of the picture, his right elbow up, the bomb's short fuse lit with a small bright spark; his left arm stretched straight out forward and to the left, pointing away from the viewer; the braided fuse on top of his helmet still lit with its bright orange spark; legs apart, both boots on the ground",
+  "attack_views": "front_back",
+  "attack_throw": true,
+  "aim_fit": 1.06,
+  "aim_match": false,
+  "remap_hues": {
+   "ranges": [
+    [
+     70,
+     170
+    ],
+    [
+     250,
+     330
+    ]
+   ],
+   "to": 30,
+   "sat": 0.5
+  },
+  "aim_lift": 0.03,
+  "cell_fill": 0.8,
+  "screen": "green",
+  "anim_negative": "extra arms, a third arm, extra legs, two bombs in his hand, the bomb disappearing, an explosion, fire, smoke, a gun",
+  "method": "creature_free2",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "seed_offset": 7588
+ },
+ "clip_kind": {
+  "front": "free",
+  "back": "free",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ },
+ "remap_hues": {
+  "ranges": [
+   [
+    70,
+    170
+   ],
+   [
+    250,
+    330
+   ]
+  ],
+  "to": 30,
+  "sat": 0.5
+ },
+ "attack_slid_px": {
+  "windup_front": 0,
+  "front": 0,
+  "windup_back": 0,
+  "back": 0
+ },
+ "qa_online": null
+}

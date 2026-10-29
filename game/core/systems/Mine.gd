@@ -137,6 +137,8 @@ func toss_to(to: Vector3) -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	if not is_instance_valid(owner_behavior):
 		# the weapon is gone (swapped or evolved): its mines go with it
 		queue_free()

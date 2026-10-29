@@ -230,9 +230,10 @@ func test_the_three_patterns_load_and_their_bosses_name_them() -> void:
 			assert_str(str(r.get("custom", r.get("name", "")))).is_not_equal(pair[1])
 		assert_int(resolved.size()).is_equal(names.size() - 1)
 		em.free()
-		# dangerous by density: a peak of bullets in the air (no hero), and Garry's rules spelt out in the file
+		# dangerous by density: a peak of bullets in the air (no hero), and Garry's rules spelt out in the file (pass 114:
+		# twice as long and twice as far, so up to 600 at once, the Level Editor's warning; pass114_EDITOR_test)
 		var sim := a.simulate()
-		assert_bool(int(sim["peak"]) >= 40 and int(sim["peak"]) <= 400).is_true()
+		assert_bool(int(sim["peak"]) >= 40 and int(sim["peak"]) <= 600).is_true()
 		assert_float(a.num("trigger", "first_after")).is_equal_approx(15.0, 0.001)
 		assert_float(a.num("trigger", "cooldown")).is_equal_approx(45.0, 0.001)
 		assert_float(a.guard_mult()).is_equal_approx(0.2, 0.0001)

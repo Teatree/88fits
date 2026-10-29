@@ -157,7 +157,7 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 		# every kind appears at least once per run; the rest of the count is drawn by weight
 		count = maxi(count, defs.size())
 		var picks: Array = defs.duplicate()
-		picks.shuffle()
+		Dice.shuffle(picks)
 		while picks.size() < count:
 			picks.append(_pick(defs))
 		var tries := 0
@@ -609,6 +609,8 @@ func _fallback_visual(def: StructureDef) -> Node3D:
 
 
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	var _t0 := Time.get_ticks_usec()
 	# a Strongbox taking coins bounces and shines whatever the hero is doing (pass 58)
 	for s: Structure in items:
@@ -931,7 +933,7 @@ func _on_coin(s: Structure, landed: int, count: int) -> void:
 func _on_stream_done(s: Structure) -> void:
 	s.streaming = false
 	if s.lift_waiting:
-		get_tree().create_timer(LIFT_BEAT, false).timeout.connect(func() -> void:
+		Lockstep.after(self, LIFT_BEAT, false).timeout.connect(func() -> void:
 			if is_instance_valid(s):
 				_lift(s))
 

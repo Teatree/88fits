@@ -119,8 +119,8 @@ func pick_spot(here: Vector3) -> Vector3:
 	var em := _enemies()
 	var best := here
 	for k in range(6):
-		var a := randf() * TAU
-		var p := here + Vector3(cos(a), 0.0, sin(a)) * randf_range(lo, hi)
+		var a := Dice.r.randf() * TAU
+		var p := here + Vector3(cos(a), 0.0, sin(a)) * Dice.r.randf_range(lo, hi)
 		if m and m.has_method("clamp_to_arena"):
 			p = m.clamp_to_arena(p)
 		best = p

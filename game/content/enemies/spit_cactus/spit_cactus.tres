@@ -193,6 +193,60 @@ variants = {
 "sprite": "res://content/enemies/spit_cactus/spit_cactus_sprite_a.png",
 "sprite_file": "spit_cactus_sprite_a.png",
 "strip_cols": 46
+},
+"SC-B": {
+"anims": {
+"attack": 8.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": true,
+"attack_views": "front_back",
+"back_faces": "left",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.931,
+"icon": "res://content/enemies/spit_cactus/spit_cactus_icon_b.png",
+"note": "pass 114 (lane ART): the Bombmaker from Garry's _REFERENCES/2d/Bombmaker Dwarf Turnaround Sheet.png, made the way SC-A was (creature_free2): his sheet cut into its three figures (tools/dl/p114/ART/ref_*.png); the front redrawn from his front figure (front_from_picture, 5 seeds, c1), the back from our front with his back figure (c1), the release front from his throwing figure (c3), the release back from our back with our release front as the pose (cb21), the wind-ups as edits of our front and back (cw21, cw20), the dead painting (c3), all picked by eye (tools/dl/p114/ART/cands_*.png); free Wan walks front and back, the attack a throw (wind-up | release, front and back). SC-B and SC-C share every painting (stills \"bomb\"); only the walks' seed differs (seed_offset)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/spit_cactus/spit_cactus_sprite_b.png",
+"sprite_file": "spit_cactus_sprite_b.png",
+"strip_cols": 46
+},
+"SC-C": {
+"anims": {
+"attack": 8.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": true,
+"attack_views": "front_back",
+"back_faces": "left",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.944,
+"icon": "res://content/enemies/spit_cactus/spit_cactus_icon_c.png",
+"note": "pass 114 (lane ART): the Bombmaker again, the same paintings and recipe as SC-B (stills \"bomb\", picked by eye from Garry's Bombmaker Dwarf Turnaround Sheet.png); only the walks' seed differs (seed_offset 7588 against SC-B's 9946), so the front and back walks are other clips",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/spit_cactus/spit_cactus_sprite_c.png",
+"sprite_file": "spit_cactus_sprite_c.png",
+"strip_cols": 46
 }
 }
 variant = "SC-A"

@@ -135,6 +135,7 @@ func _process(delta: float) -> void:
 func tap() -> void:
 	if not visible:
 		return
+	RunReplay.note("gate")
 	visible = false
 	if hud and _slot_id != "":
 		hud.mark_slot(_slot_id, false)

@@ -215,6 +215,12 @@ var forced_map_seed := 0
 var launch_override: Dictionary = {}
 ## Pass 77 (lane SIMRUN): the run's dice seed, 0 = random (every run but the run sim's); set by seed_dice.
 var rng_seed := 0
+## Pass 114 (lane REPLAY): the run's seed (never 0 once a run is under way): every rule's dice come from it (Dice,
+## seed_dice), so a recorded run replays exactly (RunReplay). Rolled fresh for each run by begin_run_seed (Game._enter_tree)
+## unless a replay or a tool forces it (`forced_run_seed`, the launch's `run_seed`, a run sim's rng_seed).
+var run_seed := 0
+var forced_run_seed := 0
+var _seed_maker := RandomNumberGenerator.new()
 ## Pass 77 (lane SIMRUN): the Totem Poles' gifts' own dice in a run sim (seed_dice); null in play (TotemBoons.offer rolls
 ## its own random ones).
 var totem_rng: RandomNumberGenerator = null
@@ -261,7 +267,9 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	active = true
 	character = p_character
 	map = p_map
-	map_seed = forced_map_seed if forced_map_seed != 0 else (randi() % 999983) + 1
+	# pass 114 (lane REPLAY): the roll is taken either way, so a replay (whose map seed is forced) keeps the dice in step
+	var map_roll := Dice.r.randi()
+	map_seed = forced_map_seed if forced_map_seed != 0 else (map_roll % 999983) + 1
 	timeline = RunTimeline.new()
 	elapsed = 0.0
 	held_time = 0.0
@@ -375,13 +383,36 @@ func seed_dice(s: int) -> void:
 		CardPool.rng = null
 		totem_rng = null
 		randomize()
+		Dice.reseed(0)
 		return
 	seed(hash([s, "global"]))
+	# pass 114 (lane REPLAY): the rule dice (Dice.r) and every system's own (Dice.seed_rng) follow the same seed
+	Dice.reseed(s)
 	var r := RandomNumberGenerator.new()
 	r.seed = hash([s, "cards"])
 	CardPool.rng = r
 	totem_rng = RandomNumberGenerator.new()
 	totem_rng.seed = hash([s, "totems"])
+
+
+## Pass 114 (lane REPLAY): the seed of the run about to start (Game._enter_tree calls it before any of the run's systems
+## is ready): `forced_run_seed` (a replay; the launch's `run_seed`, set by Game), else a run sim's rng_seed, else a fresh
+## one from the wall clock's own dice (never the global stream); then every rule's dice are seeded from it (seed_dice).
+func begin_run_seed(launch: Dictionary = {}) -> int:
+	var s := forced_run_seed
+	forced_run_seed = 0
+	if s == 0 and launch.has("run_seed"):
+		s = int(launch["run_seed"])
+	if s == 0 and rng_seed != 0:
+		s = rng_seed
+	if s == 0:
+		_seed_maker.seed = hash([Time.get_ticks_usec(), Time.get_unix_time_from_system(), OS.get_process_id()])
+		s = int(_seed_maker.randi() % 2000000000) + 1
+	run_seed = s
+	seed_dice(s)
+	# the game's own clock starts with the run, so a replay's rules count from the same zero as its recording
+	play_clock = 0.0
+	return s
 
 
 ## Every hero's 1% crit chance (pass 52, StatSheet.PLAYER_DEFAULTS) is left out under the test runner, so a suite that
@@ -1279,7 +1310,7 @@ func next_path_weapon() -> WeaponInstance:
 	var open := path_offer_instances()
 	if open.is_empty():
 		return null
-	return open[randi() % open.size()]
+	return open[Dice.r.randi() % open.size()]
 
 
 ## The weapons whose path may go on the table now (pass 54): those with a pick still open this stage and a mutation
@@ -1482,6 +1513,8 @@ func _rebuild_clock_ms() -> int:
 
 ## Pass 102 (lane STEADY): play_clock advances by the frame's delta (the autoload pauses with the tree).
 func _process(delta: float) -> void:
+	# pass 114 (lane REPLAY): the recorded frame's delta in a replay (Lockstep.dt)
+	delta = Lockstep.dt(delta)
 	play_clock += delta
 
 
@@ -1829,7 +1862,7 @@ func stranger_offer() -> Dictionary:
 			cands.append({"type": "passive", "id": p.id, "def": p, "level_from": lv, "level_to": mini(lv + 2, p.max_level), "is_new": false})
 	if cands.is_empty():
 		return {}
-	return cands[randi() % cands.size()]
+	return cands[Dice.r.randi() % cands.size()]
 
 
 ## The deal: the item to its offered level, and the cut off the hero's max HP.
@@ -2063,7 +2096,7 @@ func chest_roll(boss: bool = false) -> Dictionary:
 		# the boss's chest holds a path pick: any mutation still open on any weapon held, the Stranger's loophole
 		var muts := boss_chest_mutations()
 		if not muts.is_empty():
-			var m: MutationDef = muts[randi() % muts.size()]
+			var m: MutationDef = muts[Dice.r.randi() % muts.size()]
 			return {"type": "mutation", "id": m.id, "def": m, "level_from": 0, "level_to": 1, "is_new": true, "boss": true}
 	var w := any_evolution_ready()
 	if w:

@@ -41,16 +41,16 @@ func standing() -> Array:
 func _fire() -> bool:
 	var amount: int = max(stat_int("amount", 1), 1)
 	var cap := max_turrets()
-	var a0 := randf() * TAU
+	var a0 := Dice.r.randf() * TAU
 	for k in range(amount):
 		var t := Turret.new()
 		t.setup(self, _proto, _turret_mesh, _turret_mat)
 		game.add_child(t)
 		# one turret lands anywhere near the hero; a drop of several spreads round him instead of in a heap
-		var off := Vector3(randf_range(-1.2, 1.2), 0, randf_range(-1.2, 1.2))
+		var off := Vector3(Dice.r.randf_range(-1.2, 1.2), 0, Dice.r.randf_range(-1.2, 1.2))
 		if amount > 1:
-			var a := a0 + TAU * float(k) / float(amount) + randf_range(-0.25, 0.25)
-			off = Vector3(cos(a), 0, sin(a)) * randf_range(1.0, 1.6)
+			var a := a0 + TAU * float(k) / float(amount) + Dice.r.randf_range(-0.25, 0.25)
+			off = Vector3(cos(a), 0, sin(a)) * Dice.r.randf_range(1.0, 1.6)
 		var p: Vector3 = player.global_position + off
 		p.y = game.map.height_at(p.x, p.z) if game.map else 0.0
 		t.global_position = p

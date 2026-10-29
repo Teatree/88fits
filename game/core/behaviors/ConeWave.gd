@@ -74,7 +74,7 @@ func _on_setup() -> void:
 		_string_mat.emission_energy_multiplier = 0.0
 		_strings.material_override = _string_mat
 	_soundhole = _familiar.find_child("Soundhole", true, false) as Node3D
-	_orbit = randf() * TAU
+	_orbit = Dice.r.randf() * TAU
 	_place(0.0)
 
 
@@ -265,7 +265,7 @@ func _wave(dir: Vector3, mult: float, echo: bool) -> void:
 		# ones shoved less
 		var push := away
 		if side:
-			push = Vector3(-away.z, 0.0, away.x) * (1.0 if randf() < 0.5 else -1.0)
+			push = Vector3(-away.z, 0.0, away.x) * (1.0 if Dice.r.randf() < 0.5 else -1.0)
 		# pass 72: at the map's share of the hero's pushes (EnemyManager.hero_knock_mult, Red Canyon 0.5)
 		# pass 103: and Endless's knock resistance (EnemyManager.endless_knock_share); the hop stays
 		em.bounce(e, lift, lift_t, push * knock * kmul / maxf(em.size[e], 0.8) * em.hero_knock_mult() * em.endless_knock_share(wid))

@@ -235,7 +235,7 @@ static func _pick(cands: Array, count: int, limits: Dictionary = {}) -> Array:
 		var total := 0.0
 		for c in pool:
 			total += float(c["weight"])
-		var r := (rng.randf() if rng != null else randf()) * total
+		var r := (rng.randf() if rng != null else Dice.r.randf()) * total
 		var chosen: Dictionary = pool[0]
 		for c in pool:
 			r -= float(c["weight"])

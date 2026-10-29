@@ -355,6 +355,7 @@ const Items = (() => {
     if (!data.ok) { App.status(`Could not set the cards to ${code}: ${data.error || status}`, 'bad'); return; }
     const skipped = data.skipped || [];
     App.toast(`${(data.changed || []).length} of ${total} cards now play ${code}${(data.kept || []).length ? `, ${data.kept.length} already did` : ''}${skipped.length ? `; kept their own: ${skipped.map((x) => `${x.id} (${x.why})`).join(', ')}` : ''}${data.import_ok === false ? ' · the import did not run: ' + (data.output || '') : ''}`);
+    if (data.import_ok == null && (data.lock || data.import_job)) App.saveStatus(data, `The cards now play ${code}`);   // pass 114 (lane EDITOR): Godot busy: the holder named, the import followed
     for (const d of Object.values(Assets.S.docs)) if (d.kind === 'passive') await Assets.refreshRecord('passive', d.id);
     await Assets.refreshList('items');
     App.render('tab');
@@ -402,6 +403,7 @@ const Items = (() => {
     const { status, data } = await Assets.postJSON(`/api/content/passive/${encodeURIComponent(doc.id)}/variant`, { code });
     if (!data.ok) { App.status(`${doc.id}: ${data.error || status}`, 'bad'); return; }
     App.toast(`${doc.id} plays ${code}${data.import_ok === false ? ' · the import did not run: ' + (data.output || '') : ''}`);
+    if (data.import_ok == null && (data.lock || data.import_job)) App.saveStatus(data, `${doc.id} plays ${code}`);   // pass 114 (lane EDITOR): Godot busy: the holder named, the import followed
     await Assets.refreshRecord('passive', doc.id);
     await Assets.refreshList('items');
     App.render('tab');
@@ -488,6 +490,7 @@ const Items = (() => {
     const { status, data } = await Assets.postJSON(`/api/content/weapon/${encodeURIComponent(doc.id)}/variant`, { code });
     if (!data.ok) { App.status(`${doc.id}: ${data.error || status}`, 'bad'); return; }
     App.toast(`${doc.id} and its family play ${code}${data.import_ok === false ? ' · the import did not run: ' + (data.output || '') : ''}`);
+    if (data.import_ok == null && (data.lock || data.import_job)) App.saveStatus(data, `${doc.id} and its family play ${code}`);   // pass 114 (lane EDITOR): Godot busy: the holder named, the import followed
     await Assets.refreshRecord('weapon', doc.id);
     await Assets.refreshList('items');
     App.render('tab');
