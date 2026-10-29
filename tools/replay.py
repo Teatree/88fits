@@ -93,7 +93,38 @@ def viewer_args(a, path):
     return v
 
 
+## Builds stamped before this one draw the phone's camera-cutout band (CutoutBand) across the top of the whole replay
+## window, over the header that names the builds; the viewer hides it from the next build on. For those builds the
+## recording is handed over as a copy without the cutout (the phone view's HUD then starts at the top) - pass 114, lead.
+BAND_HIDDEN_FROM = "20261029-1930"
+
+
+def _stamp_of(exe):
+    parts = os.path.basename(os.path.dirname(exe)).split("-")
+    return "-".join(parts[1:3]) if len(parts) >= 3 else ""
+
+
+def without_cutout(exe, path):
+    if _stamp_of(exe) >= BAND_HIDDEN_FROM:
+        return path
+    try:
+        with open(path, encoding="utf-8") as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return path
+    if float(rec.get("safe_top") or 0.0) <= 0.0:
+        return path
+    rec["safe_top"] = 0.0
+    os.makedirs(LOG_DIR, exist_ok=True)
+    out = os.path.join(LOG_DIR, "no_cutout_" + os.path.basename(path))
+    with open(out, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(rec, f)
+    say("this build draws the phone's camera-cutout band over the header: playing a copy without the cutout")
+    return out
+
+
 def run_exe(exe, a, path, wait):
+    path = without_cutout(exe, path)
     cmd = [exe, "--fixed-fps", "64", "--resolution", "%dx%d" % (a.w, a.h), "--"] + viewer_args(a, path)
     say("starting: " + " ".join('"%s"' % c if " " in c else c for c in cmd))
     if a.dry_run:

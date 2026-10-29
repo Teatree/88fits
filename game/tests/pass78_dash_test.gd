@@ -189,10 +189,9 @@ func test_only_with_consent() -> void:
 	# "No thanks": everything that waited is gone
 	a.purge()
 	assert_int(a.queue.size()).is_equal(0)
-	# a yes: the record goes with the rest
+	# a yes: the record goes with the rest (pass 114: at once, as it is queued, not at the next flush)
 	Save.data["consent"] = "yes"
 	a.run_record(JSON.stringify({"schema": 2, "samples": [], "events": []}))
-	assert_bool(a.flush()).is_true()
 	assert_int(_calls.size()).is_equal(1)
 	assert_bool(str(_calls[0]["body"]).contains("\"run_record\"")).is_true()
 

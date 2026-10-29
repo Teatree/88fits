@@ -146,6 +146,8 @@ var _in_flight := 0
 var _requesting := false
 var _since_save := 0
 var _next_flush_ms := 0
+## pass 114 (lead): record or replay parts wait in the queue: send again 1 s after each request until it is empty
+var _hurry := false
 var _retry_at_ms := 0
 var _backoff := 0.0
 var _session_start := 0.0
@@ -602,6 +604,15 @@ func run_finish(end: Dictionary, summary: Dictionary) -> void:
 
 # ---------------------------------------------------------------- pass 78: the run's whole record
 
+## Pass 114 (lead): a run's record or replay parts go now, not at the next 30 s beat: a phone is often put away on the
+## Results screen, and Garry's first phone replay (2026-10-29) never arrived (the record went; the replay, queued ~1 s
+## later, waited in the phone's queue). Sends at once when the wire is free, else 1 s after the request on it ends.
+func _send_soon() -> void:
+	_hurry = true
+	if not flush():
+		_next_flush_ms = Time.get_ticks_msec() + 1000
+
+
 ## A run record's JSON (the file RunAnalytics writes) as run_record parts: gzip, base64, cut every `part_max`
 ## characters: [{part (1-based), parts, data, enc, format, raw_bytes, gz_bytes, md5 (of the JSON's UTF-8)}]; [] when it
 ## needs more than `parts_max` parts.
@@ -680,6 +691,7 @@ func run_record(json: String, extra: Dictionary = {}) -> int:
 			n += 1
 	if n > 0:
 		save_queue()
+		_send_soon()
 	return n
 
 
@@ -702,6 +714,7 @@ func run_replay(json: String, extra: Dictionary = {}) -> int:
 			n += 1
 	if n > 0:
 		save_queue()
+		_send_soon()
 	return n
 
 
@@ -946,8 +959,10 @@ func send_done(ok: bool, status: String, code: int = 0) -> void:
 			dropped += n
 		_backoff = 0.0
 		_retry_at_ms = 0
-		if queue.size() >= FLUSH_AT:
+		if queue.size() >= FLUSH_AT or (_hurry and not queue.is_empty()):
 			_next_flush_ms = Time.get_ticks_msec() + 1000
+		if queue.is_empty():
+			_hurry = false
 	else:
 		_backoff = BACKOFF_FIRST if _backoff <= 0.0 else minf(_backoff * 2.0, BACKOFF_MAX)
 		_retry_at_ms = Time.get_ticks_msec() + int(_backoff * 1000.0)

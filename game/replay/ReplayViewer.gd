@@ -131,6 +131,11 @@ func _ready() -> void:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		win.size = Vector2i(w, h)
 		win.title = "88fits replay"
+	# the camera cutout's ink band (an autoload over the whole window) would cover the header when the run was recorded on a
+	# phone with a cutout (the recording's safe_top); the phone view's HUD keeps its own band (pass 114, lead)
+	var band := get_node_or_null("/root/CutoutBand") as CanvasLayer
+	if band:
+		band.visible = false
 	Engine.physics_ticks_per_second = Lockstep.REPLAY_HZ
 	Engine.physics_jitter_fix = 0.0
 	Engine.max_fps = 0
