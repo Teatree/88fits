@@ -2,7 +2,7 @@
   "id": "choice",
   "name": "Choice",
   "flavour": "See another, or throw one away.",
-  "order": 3,
+  "order": 4,
   "ranks": 6,
   "currency_type": "gold",
   "cost": [

@@ -28,7 +28,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BOM = "﻿"
 # the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp and boss_now empty (no boss
 # up). Pass 78: the pass-77 keys xp_total, hp_lost, hp_healed, boss_now, near3, near6 (the page's list is the same)
-BASE = ["t", "clock", "stage", "phase", "wave", "level", "xp", "xp_next", "xp_total", "hp", "hp_max", "shield", "invuln", "gold",
+BASE = ["t", "clock", "stage", "phase", "wave", "level", "xp", "xp_next", "xp_total", "hp", "hp_max", "hp_min", "shield", "invuln", "gold",
         "banked", "kills", "adren", "cresc", "desp", "steady", "est_total", "took_raw", "hits", "evaded", "shielded", "healed",
         "regen", "hp_lost", "hp_healed", "elite_kills", "alive", "cap", "load", "hard_cap", "press", "press_hp", "press_dmg",
         "boss_hp", "boss_now", "specials_alive", "near3", "near6", "frames", "frame_ms", "frame_max", "frame_p95", "proj", "pickups",
@@ -37,7 +37,9 @@ BASE = ["t", "clock", "stage", "phase", "wave", "level", "xp", "xp_next", "xp_to
 # pass 101 (lane FPS): the second's frames (schema 3; a second without a frame has no frame times: empty, not 0), the shots
 # in flight and the pickups lying; a record from before has none of these columns
 # pass 102 (lane STEADY): nor work times (a missing lost_ms is 0)
-EMPTY_WHEN_MISSING = ["boss_hp", "boss_now", "frame_ms", "frame_max", "frame_p95", "steps", "steps_max", "phys_ms", "phys_max",
+# pass 115 (lane DASH): hp_min (schema 5) is on a row only when he went below the row's hp inside that second (empty: he
+# did not)
+EMPTY_WHEN_MISSING = ["boss_hp", "boss_now", "hp_min", "frame_ms", "frame_max", "frame_p95", "steps", "steps_max", "phys_ms", "phys_max",
                       "proc_ms", "proc_max", "rest_ms"]
 # the second's tallies by id, flattened as group.key; a missing one is 0
 MAPS = ["est", "dmg", "took", "took_kind", "hits_by", "healed_by", "killed", "spawned", "alive_by", "gold_in", "gold_out"]
@@ -51,7 +53,9 @@ HISTORY_FIRST = ["file", "stamp", "started", "version", "schema", "tool", "headl
                  "specials_killed", "elites_killed", "killer", "totems", "talents", "build"]
 # RunAnalytics.INDEX_SKIP: the header blocks the index leaves out
 INDEX_SKIP = ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents", "talent_forms",
-              "totems", "stat_names", "build_text", "heat"]
+              "totems", "stat_names", "build_text", "heat", "tasks",
+              # pass 115 (lane DASH): schema 5's big blocks (the board goes in as board_max / board_gold below)
+              "board", "weapon_sources", "weapon_family", "icons"]
 # pass 82 (lane STATS): chests, power-ups and totems picked up so far, three columns after the row's own; the rule is
 # game/tools/sim_run.gd pickup_kind() and tools/level_editor/sim_model.js pickupKind() (the page's csv-lib counts with it)
 PICKUP_KEYS = ["chests", "powerups", "totems"]
@@ -389,6 +393,11 @@ def index_row(d, fname):
             row["talents." + str(tid)] = n
             ranks += n
     row["talents"] = ranks
+    # pass 115 (lane DASH): the board's most ranks and what its ranks cost (schema 5; RunAnalytics.index_row the same)
+    bd = d.get("board")
+    if isinstance(bd, dict):
+        row["board_max"] = int(bd.get("max", 0) or 0)
+        row["board_gold"] = int(bd.get("gold", 0) or 0)
     row["totems"] = len(d["totems"]) if isinstance(d.get("totems"), list) else 0
     dbw = (d.get("totals") or {}).get("damage_by_weapon") or {}
     dmg, top, top_v = 0.0, "", -1.0

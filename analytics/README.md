@@ -16,6 +16,7 @@ the crowd's pressure, plus every build change and notable moment as an event. `d
 | Put the **bot's sim beside real players** | `dashboard.html`, **Compare with a sim**, then a sim's `result.json` from `tools/dl/sim/runs/<sim>/` |
 | Get **Excel / Google Sheets** files | the dashboard's **Download CSV** buttons, or `python tools/analytics_csv.py` for every run at once (below: *The dashboard*) |
 | See **chests, power-ups and totems** through a run | the dashboard's card *Chests, power-ups and totems* (one run) and the Sim's chart of the same name (one run, averages, the Level Editor's Sim tab); what counts is in [SCHEMA.md](SCHEMA.md), *Chests, power-ups and totems* |
+| See **each weapon's real damage over the run** and what shaped it (the items, the Upgrade board, the gifts), the **hero's level and items held**, his **health 5 seconds at a time**, the **Upgrade board** the run began with | `dashboard.html`, the cards *Each weapon's real DPS*, *Hero level and items held*, *Health, 5 seconds at a time*, *Upgrade board* (pass 115, below: *The dashboard*) |
 | Know **what a key in a run file means** | [SCHEMA.md](SCHEMA.md) |
 
 ## Where the runs land
@@ -49,6 +50,32 @@ banishes), chests, power-ups and totems (pass 82: the three counted through the 
 grow, how strong did the creatures get, stacking bonuses, the crowd against the cap, spawned against killed,
 progression, gold, quest progress and the history. Every card has a table view.
 
+Pass 115 (record schema 5, version 0.98; Garry: "Hero Level ... Individual Weapon Real DPS ... Show Current HP with bars
+... what level of Mirror Upgrade Player was"): four cards more.
+- **Upgrade board** (after the run's facts): every talent of the board the run began with, a square a rank (blue its
+  first form, amber its second, its picture inside; hover one for its line), the forms by name and the gold the ranks cost
+  at the build's prices (and what the save says was paid). The Remote runs list and the averages' runs list say the
+  board in short (`12 / 48`: ranks bought of the board's most).
+- **Hero level and items held** (after Hero power): his level each second beside the items he holds, stacked: weapons
+  (an evolution counts as its weapon), cards (the lines) and passive items; perks dashed apart (the hero's own, not items).
+- **Each weapon's real DPS**: the damage each weapon really dealt, a rolling mean of 5, 10 or 30 s (buttons on the card),
+  one line a weapon (its mutations and its evolution count as it; Powder Keg, the Nuke and other damage of their own
+  dashed); `log` draws the stage and Endless both readable (the card picks it by itself when Endless dwarfs the rest).
+  Under the chart, three rows of icons on the same time axis: **weapons** (taken, levelled, mutated, evolved), **items**
+  (the cards, passive items, perks and Totem gifts that changed a weapon's numbers, the Stranger's deals) and **boosts**
+  (power-ups, War Drums); hover one to read it and to see a dashed line at its moment on the chart. Under that, each
+  weapon with its damage, its share, its mean and peak DPS and **shaped by**: the icon of every item, Upgrade rank, gift
+  or bonus that changed its numbers by the run's end; hover one for what it did ("The Sun · Lv 2: +20% attack damage")
+  and the moments it was taken (dashed on the chart). Click a weapon's name to hide its line.
+- **Health, 5 seconds at a time** (after the health line): a bar every 5 s, green the lowest his health went in them
+  (% of his max HP), red on top the damage he took in them, blue under the line the health he got back; falls and
+  revives marked. The Sim's charts show the same bars in Danger's place (Danger, "health lost a second", is gone: the
+  Level Editor's Sim tab too), for one run and averaged over runs.
+
+A record from before 0.98 has no board prices, no weapon sources and no lowest health inside a second: each card says
+"not in this run's record (recorded before 0.98)" where that is missing and draws the rest (the board from the talents
+the record names, the bars from his health once a second, every pick marked under the weapons).
+
 **CSV downloads** (pass 74): the buttons at the top save this run second by second (`88fits_<stamp>_rows.csv`: one
 line a second, every column, maps as `group.key`), this run's events (`_events.csv`) and every run in the history
 (`_history.csv`, one line a run); every card's table has its own CSV button. UTF-8 with a BOM, commas, dot decimals:
@@ -60,7 +87,7 @@ Chart.js is vendored at `lib/chart.umd.js` (4.4.1) with a cdnjs fallback, so the
 ## The Sim's charts and averages (pass 78)
 
 Garry: "Add those charts to our Local Run Analytics dashboard so their formats match." Under the summary, **The Sim's
-charts for this run** draws the open run with the Level Editor's Sim tab's own charts (DPS, HP, deaths, danger, keeping
+charts for this run** draws the open run with the Level Editor's Sim tab's own charts (DPS, HP, deaths, health in 5 s bars (pass 115, in Danger's place), keeping
 up, close crowd, who is alive, what hurt, hits, healing, the cap, spawned and killed, creature strength, coins, damage
 by source, kills by creature, level, XP, the build): the same definitions (`tools/level_editor/sim_model.js`), drawing
 (`sim_plot.js`) and styles (`sim.css`), loaded from `../tools/level_editor/`, so a real run and a sim read alike. A

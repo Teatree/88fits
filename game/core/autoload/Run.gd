@@ -481,6 +481,10 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 	sheet.set_bases(StatSheet.PLAYER_DEFAULTS)
 	if not base_crit:
 		sheet.set_bases({"crit_chance": 0.0})
+	# pass 115 (lane META): a talent may own a stat's starting value, rank or none (Nerve: the revive's 40% health)
+	for tb: TalentDef in Registry.talents.values():
+		if not tb.base_stats.is_empty():
+			sheet.set_bases(tb.base_stats)
 	if c:
 		sheet.add_effects(c.trait_effects, c.display_name, "hero:" + c.id)
 		# the signature stat (pass 61): one effect per stat worth the level's whole bonus, named with the level; under

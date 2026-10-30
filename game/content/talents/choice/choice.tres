@@ -20,7 +20,7 @@ target = "player"
 
 [resource]
 script = ExtResource("2_70wpa")
-order = 3
+order = 4
 ranks = 6
 cost = [325.0, 1300.0, 2925.0, 5200.0, 8125.0, 11700.0]
 forms = [{

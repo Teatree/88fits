@@ -48,6 +48,11 @@ var _kb := Vector3.ZERO
 var tethered := false
 var tether_from := Vector3.ZERO
 var tether_away := 0.7
+## Pass 115 (lane BOSS): a boss's barrier (BossPatterns sets these while one stands, BossBarrier draws it): while fence_r
+## > 0 his middle never goes further than fence_r m (flat) from fence_c (keep_in_fence, after every move: a walk, a shove,
+## a throw, a leap); 0 = no barrier.
+var fence_c := Vector3.ZERO
+var fence_r := 0.0
 var _bob := 0.0
 var _tilt := 0.0
 var _flash := 0.0
@@ -372,6 +377,8 @@ func _physics_process(delta: float) -> void:
 	_kb = _kb.lerp(Vector3.ZERO, delta * 6.0)
 	var before := global_position
 	move_and_slide()
+	# pass 115 (lane BOSS): a boss's barrier holds him inside it (before his place is recorded)
+	keep_in_fence()
 	# pass 114 (lane REPLAY): his place after the slide, kept (a recording) or taken from it (a replay): the physics
 	# engine's own last bits never part a replay
 	RunReplay.hero_moved(self)
@@ -1300,6 +1307,30 @@ func leash_factor(dir: Vector3) -> float:
 	return leash_of(dir, global_position - tether_from, tether_away)
 
 
+## Pass 115 (lane BOSS): a boss's barrier holds him: past fence_r m (flat) from fence_c he is put back on that circle and
+## the outward part of his velocity and of a shove is dropped, so he slides along the wall instead of pressing into it.
+func keep_in_fence() -> void:
+	if fence_r <= 0.0:
+		return
+	var p := global_position
+	var dx := p.x - fence_c.x
+	var dz := p.z - fence_c.z
+	var d := sqrt(dx * dx + dz * dz)
+	if d <= fence_r or d < 0.0001:
+		return
+	var nx := dx / d
+	var nz := dz / d
+	global_position = Vector3(fence_c.x + nx * fence_r, p.y, fence_c.z + nz * fence_r)
+	var out := velocity.x * nx + velocity.z * nz
+	if out > 0.0:
+		velocity.x -= nx * out
+		velocity.z -= nz * out
+	var kout := _kb.x * nx + _kb.z * nz
+	if kout > 0.0:
+		_kb.x -= nx * kout
+		_kb.z -= nz * kout
+
+
 ## Wading (pass 80, lane OASIS; Garry: "make the water slow everyone down when they walk though it, not by a lot, just
 ## 10%"): his walking speed's factor, 1 - the map's water_slow (WaveTimeline, 0.1) while he stands in any lake (the map's
 ## in_water) on its floor; 1 in the air (Hang Time's flight, or more than WADE_AIR m over the ground: a launch, a leap),
@@ -1408,14 +1439,26 @@ func _die() -> void:
 	died.emit()
 
 
-func revive() -> void:
+func revive(phoenix: bool = false) -> void:
 	dead = false
-	# half his health unless Second Wind's ranks say more (pass 46: the revive_hp stat)
-	hp = clampf(max_hp * sheet.get_stat("revive_hp", 0.5), 1.0, max_hp)
+	# the revive_hp share of his health (pass 115: Nerve's 40% base, +10% a Second Wind rank; a Phoenix Feather never less
+	# than its own 50%)
+	hp = clampf(max_hp * revive_share(phoenix), 1.0, max_hp)
 	invuln = 2.0
 	sprite.play("idle")
 	Audio.play("pl_revive")
 	damaged.emit(hp, max_hp)
+
+
+## The share of his max HP a revive stands him up with (pass 115, lane META): the sheet's revive_hp (Nerve's base 40%
+## plus Second Wind's ranks); a Phoenix Feather's revive takes its `phoenix_hp` (50%) when that is more. 0..1.
+func revive_share(phoenix: bool = false) -> float:
+	if sheet == null:
+		return 0.5
+	var s := sheet.get_stat("revive_hp", 0.5)
+	if phoenix:
+		s = maxf(s, sheet.get_stat("phoenix_hp", 0.0))
+	return clampf(s, 0.0, 1.0)
 
 
 func cheer() -> void:

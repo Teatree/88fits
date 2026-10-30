@@ -123,7 +123,7 @@
       },
       "fresh": true,
       "skin": {
-        "purchasable": true,
+        "purchasable": false,
         "name": "Midnight Mime",
         "price": 2000,
         "currency_type": "gold",

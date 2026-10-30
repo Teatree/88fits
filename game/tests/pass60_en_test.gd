@@ -247,7 +247,8 @@ func test_the_scorpions_burrow_winds_up_a_second_longer_and_the_gilas_as_before(
 	# (pass 73, lane GROUND, re-pinned on purpose: the Gila's wind-up is its sink, three seconds under unseen and its
 	# warning: 0.6 + 3.0 + 0.4)
 	var gb := _attack("gila_grande", "burrow")
-	assert_float(float(gb["windup"])).is_equal_approx(float(gb.get("sink", 0.0)) + 3.0 + float(gb.get("warn", 0.4)), 0.001)
+	# (pass 115, lane BOSS: Garry's "+25% time before the Gila pops out": 3.75 s under, pass115_BOSS_test)
+	assert_float(float(gb["windup"])).is_equal_approx(float(gb.get("sink", 0.0)) + 3.75 + float(gb.get("warn", 0.4)), 0.001)
 	assert_float(EnemyManager.RISE_TIME).is_equal_approx(0.4, 0.0001)
 
 

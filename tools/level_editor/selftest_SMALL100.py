@@ -53,7 +53,9 @@ def content_checks(check):
     j = json.loads(_read(os.path.join(PASSIVES, "phoenix_feather", "phoenix_feather.json")) or "{}")
     levels = j.get("levels") or []
     check(j.get("single") is True and int(j.get("max_level", 0)) == 1 and len(levels) == 1
-          and [e.get("stat") for e in levels[0]] == ["phoenix_revive"] and float(levels[0][0].get("value", 0)) == 1.0,
+          and [e.get("stat") for e in levels[0]][:1] == ["phoenix_revive"] and float(levels[0][0].get("value", 0)) == 1.0
+          # pass 115 (lane META): beside it the feather's own least revive health (phoenix_hp 0.5, Player.revive_share)
+          and all(e.get("stat") in ("phoenix_revive", "phoenix_hp") for e in levels[0]),
           "SMALL100 content: Phoenix Feather is a one-shot item: single, max_level 1, one level of one free revive")
     check("revive_hp" not in json.dumps(levels), "SMALL100 content: Phoenix Feather carries no revive health rungs")
 

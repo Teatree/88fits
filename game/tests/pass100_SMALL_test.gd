@@ -45,8 +45,10 @@ func test_phoenix_is_one_level_off_the_ladder() -> void:
 		assert_object(ph.icon_at(lv)).is_same(ph.icon)
 		assert_str(W.rung_of(ph, lv)).is_equal(ph.rarity)
 	assert_bool(W.plate_fill(ph, 1).is_equal_approx(W.RARITY_PLATE[ph.rarity])).is_true()
-	# a level an old run may hold past the one adds nothing
-	assert_int(ph.effects_for_level(5).size()).is_equal(1)
+	# a level an old run may hold past the one adds nothing (pass 115: its one level is the free revive and the feather's
+	# own least revive health, phoenix_hp)
+	assert_int(ph.effects_for_level(1).size()).is_equal(2)
+	assert_int(ph.effects_for_level(5).size()).is_equal(2)
 	assert_array(ph.effects_at_level(2)).is_empty()
 	# apply_ladder keeps it at one level whatever the JSON says
 	var d := PassiveDef.new()
@@ -97,8 +99,9 @@ func test_a_fifty_percent_revive_once() -> void:
 	assert_int(Run.passive_level("phoenix_feather")).is_equal(1)
 	assert_int(Run.phoenix_count()).is_equal(1)
 	assert_bool(Run.phoenix_ready()).is_true()
-	# the feather adds no revive health: the hero's own, 50% without Second Wind
-	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(0.5, 0.0001)
+	# the feather adds no revive health: the hero's own is Nerve's 40% (pass 115) and the feather's revive takes its own
+	# half (phoenix_hp, Player.revive_share) when that is more
+	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(0.4, 0.0001)
 	var p: Player = auto_free(load("res://player/Player.tscn").instantiate())
 	add_child(p)
 	p.setup(Run.character)
@@ -108,7 +111,7 @@ func test_a_fifty_percent_revive_once() -> void:
 	# what Game._on_player_died does with it: spend it, stand him up
 	assert_bool(Run.phoenix_ready()).is_true()
 	Run.use_phoenix()
-	p.revive()
+	p.revive(true)
 	assert_float(p.hp).is_equal_approx(p.max_hp * 0.5, 0.001)
 	# spent: no second one, held and marked spent (the pause screen's "(used)"), never offered again
 	assert_bool(Run.phoenix_ready()).is_false()
@@ -119,19 +122,19 @@ func test_a_fifty_percent_revive_once() -> void:
 	Run.rebuild_sheets()
 	assert_bool(Run.phoenix_ready()).is_false()
 	# Second Wind's revive health reaches the feather's revive too (one rule for every revive): a fresh run, the
-	# feather held, a rank of Second Wind's health on the sheet
+	# feather held, revive health on the sheet past the feather's half (pass 115: 40% + 25% = 65%)
 	p.queue_free()
 	_start()
 	Run.add_or_level_passive("phoenix_feather")
 	var q: Player = auto_free(load("res://player/Player.tscn").instantiate())
 	add_child(q)
 	q.setup(Run.character)
-	Run.player_sheet.add_effects([Effect.make("revive_hp", "add", 0.15, "player")], "test")
+	Run.player_sheet.add_effects([Effect.make("revive_hp", "add", 0.25, "player")], "test")
 	q.hp = q.max_hp
 	q.take_damage(99999.0, Vector3.ZERO, {"by": "Goblin", "kind": "melee"})
 	assert_bool(Run.phoenix_ready()).is_true()
 	Run.use_phoenix()
-	q.revive()
+	q.revive(true)
 	assert_float(q.hp).is_equal_approx(q.max_hp * 0.65, 0.001)
 	Run.player_sheet.remove_source("test")
 

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_pppjt")
 attack_kind = "pattern"
-doc = "The Gila Grande's bullet heaven. VENOM MONSOON across the screen, the sand darkens round her, she rears up and her throat swells and glows purple; then for 14 s she sprays big, slow, wobbling venom blobs in a fan that sweeps left and right like a garden sprinkler, its middle always swinging across wherever you stand, and every second sweep adds a second, offset fan. The blobs leave little purple puddles where they fade (only a look). Her scales glow like armour: 80% less damage until it ends, then she collapses panting for 2.5 s taking 50% more. Not before 15 s into the fight; the first when she falls under 60% HP (or 45 s in at the latest); then 45 s after the last one is completely over (her panting seconds too)."
+doc = "The Gila Grande's bullet heaven. VENOM MONSOON across the screen, the sand darkens round her, she rears up and her throat swells and glows purple while a hedge of spiny cactus columns with venom blooms grows out of the sand 14 m round her and you (you are kept inside it; what flies at it stops there); then for 14 s she sprays big, slow, wobbling venom blobs in a fan that sweeps left and right like a garden sprinkler, its middle always swinging across wherever you stand, and every second sweep adds a second, offset fan. The blobs leave little purple puddles where they fade (only a look). Her scales glow like armour: 80% less damage until it ends, then the hedge falls apart and she collapses panting for 2.5 s taking 50% more. Not before 15 s into the fight; the first when she falls under 60% HP (or 45 s in at the latest); then 45 s after the last one is completely over (her panting seconds too)."
 projectile = {
 "glow": 1.2,
 "hit_radius": 0.42,
@@ -33,7 +33,7 @@ emitters = [{
 "count": 4.0,
 "rate": 2.8,
 "shape": "sweep",
-"speed": 2.8,
+"speed": 4.2,
 "spread_deg": 52.5,
 "sweep_deg": 150.0,
 "sweep_hz": 0.25
@@ -46,7 +46,7 @@ emitters = [{
 "pulse_on": 2.0,
 "rate": 2.4,
 "shape": "sweep",
-"speed": 2.4,
+"speed": 3.6,
 "spread_deg": 33.0,
 "sweep_deg": 150.0,
 "sweep_hz": 0.25
@@ -86,6 +86,23 @@ shell = {
 "radius": 3.0,
 "sigil_color": "#FF6A1A",
 "sigil_radius": 0.0
+}
+barrier = {
+"bullets": "stop",
+"color": "#FFFFFF",
+"creatures": "block",
+"fall_s": 1.0,
+"glow_color": "#9A44FF",
+"height": 1.8,
+"hero_block": true,
+"hold": "bullets",
+"inset": 1.0,
+"look": "cactus_fence",
+"radius": 14.0,
+"radius_mode": "fixed",
+"rise_s": 0.8,
+"spread_s": 0.6,
+"thickness": 0.8
 }
 id = "venom_monsoon"
 display_name = "Venom Monsoon"

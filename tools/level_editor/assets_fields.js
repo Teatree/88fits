@@ -325,6 +325,16 @@ const AFIELDS = (() => {
         P('missile.trail_style', 'Look', 'select', 'dash', 'dash (the game\'s own) = the cartoon bee\'s dotted flight path: dark honey-brown dashes, gone in under half a second; buzz = a thin honey-brown squiggle weaving either side of the flight; bumble = the dashes weaving like the buzz; zip = a short tapered gold streak; beads = pass 49\'s dark beads that linger 1.4 s', { options: [opt('dash', 'dash'), opt('buzz', 'buzz'), opt('bumble', 'bumble'), opt('zip', 'zip'), opt('beads', 'beads')] }),
         P('missile.trail_color', 'Colour', 'swatch', null, 'the line\'s colour; empty = the look\'s own (dash and bumble dark honey-brown, buzz honey, zip gold); never Pollen\'s red'),
       ] },
+    // pass 115 (lane POLISH; Garry: "Beehive's Flowers are hard to detect, make bigger and slightly animated")
+    { id: 'pollen_look', label: 'Pollen flowers (their look)', behaviors: ['MissilePod'], show: 'set',
+      present: ['pollen.flower_size', 'pollen.sway', 'pollen.pulse', 'pollen.halo'],
+      src: 'core/systems/FlowerField.gd (FLOWER_SIZE, SWAY_DEG, PULSE, HALO)',
+      help: 'how the flowers Pollen grows on the sand look (their timing, distance and buff are the other pollen keys in the JSON box): bigger, gently swaying and breathing, with a soft ring under each so they are easy to spot on every stage', rows: [
+        P('pollen.flower_size', 'Flower size ×', 'number', 1.6, 'x every flower\'s height (each is 0.58 to 0.9 m at 1, a cake slice; 1.6 = 0.92 to 1.44 m, about half to three quarters of the hero\'s height). The hero still picks one when he walks within 1.2 m of its foot', { min: 0.25, step: 0.05 }),
+        P('pollen.sway', 'Sway (degrees)', 'number', 9, 'how far each way it leans as it sways in the wind, about once every 3.7 s (pass 48 to 114: 4)', { min: 0, max: 45, step: 1 }),
+        P('pollen.pulse', 'Breathing', 'number', 0.07, 'the share it grows and shrinks by as it breathes, about once every 2 s (0.07 = 7% bigger and smaller); 0 = still', { min: 0, max: 0.5, step: 0.01 }),
+        P('pollen.halo', 'Ring under it', 'number', 0.55, 'how solid the soft ring on the sand under each flower is (in its colour, paler, breathing with it; never darkened by Nightfall or the Blood Moon); 0 = no ring', { min: 0, max: 1, step: 0.05 }),
+      ] },
     // pass 80 (lane TRAIL): the tracer's look, one key away (research and pictures in tools/dl/p80/TRAIL/)
     { id: 'tracer', label: 'Tracer (the trail behind every round)', behaviors: ['ProjectileEmitter'], show: 'set',
       present: ['tracer', 'tracer_style', 'tracer_color', 'tracer_alpha', 'tracer_width', 'tracer_life', 'tracer_hot', 'tracer_clear'],

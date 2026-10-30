@@ -1,4 +1,5 @@
-## Title (Wanted 01/02), with play setup merged in: the gold plate, "★ WANTED ★ / 88fits / DRAG · DODGE · SURVIVE", the
+## Title (Wanted 01/02), with play setup merged in: the gold plate, "★ WANTED ★ / OUTLAW / SURVIVORS" (pass 115; it was
+## "88fits / DRAG · DODGE · SURVIVE"), the
 ## hero full-body (art/ui/wanted/hero_<id>.png, since pass 68 the played look's own `title` when it has one; a striped
 ## slot until painted) between two arrow squares, swipe or tap
 ## to change, a dot per hero under it, the hero plaque (name, italic line, the trait's numbers and the favourite's plate:
@@ -60,6 +61,9 @@ const PLATES_MAX := 2
 const MAP_UP := 200.0
 ## A finger that travels this far sideways over the hero changes it.
 const SWIPE := 90.0
+## The game's big word in the slab (pass 115: OUTLAW, 953 px wide at 190, inside the 1080 px canvas with its 10 px
+## shadow; "88fits" was 210).
+const LOGO_PX := 190
 ## The trait's numbers under short names (the rest fall back to TextGen's stat names: ATTACK DAMAGE, AREA OF EFFECT,
 ## COIN GAIN since pass 45, so the words live in one place).
 const SHORT := {"max_hp": "HP", "damage_reduction": "DEFENCE", "move_speed": "SPEED", "magnet": "REACH",
@@ -230,11 +234,16 @@ func _ready() -> void:
 	var wanted := WStarLine.make("Wanted", 26, W.INK, 0.4)
 	wanted.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	stack.add_child(wanted)
-	var logo := W.slab_text("88fits", 210, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 199.5)
+	# pass 115 (Garry: "we just write 'Outlaw' with big fat text and the 'Drag Dodge Survive' is replaced with simply
+	# 'Survivors'"): OUTLAW in the slab at LOGO_PX (it is wider than "88fits" was, so it fits the 1080 px with room for its
+	# shadow) in the same 199.5 px line box, so nothing under it moves; SURVIVORS where the tagline was, in its style
+	var logo := W.slab_text(W.GAME_WORD.to_upper(), LOGO_PX, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 199.5)
+	logo.name = "Logo"
 	logo.shadow = 10
 	logo.shadow_color = W.BRASS
 	stack.add_child(logo)
-	var tag := W.label("Drag · Dodge · Survive", 30, W.INK, 0.3)
+	var tag := W.label(W.GAME_LINE, 30, W.INK, 0.3)
+	tag.name = "Tagline"
 	tag.align = HORIZONTAL_ALIGNMENT_CENTER
 	tag.custom_minimum_size.y = 6.0 + 36.0
 	tag.valign = VERTICAL_ALIGNMENT_BOTTOM

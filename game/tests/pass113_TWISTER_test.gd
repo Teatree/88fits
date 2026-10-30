@@ -139,12 +139,13 @@ func test_the_defaults_make_them_rare_and_the_block_reads_as_it_is() -> void:
 	assert_bool(c["enabled"]).is_true()
 	assert_float(c["first"]).is_equal(90.0)
 	assert_object(c["every"]).is_equal(Vector2(120.0, 180.0))
-	assert_object(c["life"]).is_equal(Vector2(20.0, 30.0))
+	# pass 115 (lane POLISH) re-pinned: three times as long, a bigger radius, a higher throw
+	assert_object(c["life"]).is_equal(Vector2(60.0, 90.0))
 	assert_int(c["max_alive"]).is_equal(1)
-	assert_float(c["radius"]).is_equal(2.4)
+	assert_float(c["radius"]).is_equal(3.0)
 	assert_str(c["wander"]).is_equal("cross")
 	# the hero's throw and the creatures' ride are pass 44's
-	assert_float(c["toss"]["up"]).is_equal(8.0)
+	assert_float(c["toss"]["up"]).is_equal(9.5)
 	assert_float(c["toss"]["out"]).is_equal(3.6)
 	assert_float(c["toss"]["cooldown"]).is_equal(1.2)
 	assert_float(c["lift"]).is_equal(1.7)
@@ -328,11 +329,11 @@ func test_the_heros_toss_is_pass_44s_and_creatures_are_lifted() -> void:
 	dd.step(float(dds.cfg["form_seconds"]) * 0.9)
 	assert_array(hero.launches).is_empty()
 	assert_float(em.lift_t[i]).is_equal(0.0)
-	# formed: thrown up and out (8 up, 3.6 out, away from its middle), once in 1.2 s; the creature lifted
+	# formed: thrown up and out (9.5 up since pass 115, 3.6 out, away from its middle), once in 1.2 s; the creature lifted
 	dd.step(float(dds.cfg["form_seconds"]) * 0.2)
 	assert_int(hero.launches.size()).is_equal(1)
 	var v: Vector3 = hero.launches[0]
-	assert_float(v.y).is_equal(8.0)
+	assert_float(v.y).is_equal(9.5)
 	assert_float(Vector2(v.x, v.z).length()).is_equal_approx(3.6, 0.001)
 	assert_float(v.x).is_less(0.0)
 	assert_float(em.lift_t[i]).is_greater(0.0)

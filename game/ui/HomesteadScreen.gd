@@ -225,7 +225,7 @@ func _card(def: TalentDef) -> WTap:
 	v.add_child(rank_bar(def, picks, TILE_SLOT, TILE_SLOT_GAP))
 	var line := "Each rank: %s or %s" % [def.form_name(0), def.form_name(1)]
 	if rank > 0:
-		line = TextGen.describe_effects(held_effects(def))
+		line = held_line(def)
 	v.add_child(W.serif_text(line, 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	var tag: Control
 	if locked:
@@ -367,7 +367,20 @@ static func held_effects(def: TalentDef) -> Array:
 		var n := Save.talent_count(def.id, form)
 		if n > 0:
 			out.append_array(def.summed_effects(form, n))
+	# pass 115 (lane META): a stat whose starting value the talent owns reads as its whole value ("revive with 60%
+	# health", TextGen.SET_TEXT), not as the ranks' step over it
+	for k in out.size():
+		var e: Effect = out[k]
+		if e.op == "add" and def.base_stats.has(e.stat):
+			out[k] = Effect.make(e.stat, "set", def.base_of(e.stat, 0.0) + e.value, e.target)
 	return out
+
+
+## The line a talent's ranks read as (pass 115): TextGen's words with the first letter a capital ("Revive with 60%
+## health"; "+2 skips, revive with 60% health").
+static func held_line(def: TalentDef) -> String:
+	var s := TextGen.describe_effects(held_effects(def))
+	return s.substr(0, 1).to_upper() + s.substr(1) if s != "" else s
 
 
 ## The talents the summary lists: those with at least one rank, in board order.
@@ -587,7 +600,16 @@ const NOTE_TOP := 450.0
 ## full) as two toasts the first time the board opens after it, then forgotten.
 func _show_board_note() -> void:
 	var n := Save.board_note()
-	if str(n.get("kind", "")) != "stakes_refund":
+	var words: Array = []
+	if str(n.get("kind", "")) == "stakes_refund":
+		words.append_array(note_words(n))
+		Save.clear_board_note()
+	# pass 115 (lane META): Nerve's cheaper ranks and Second Wind's new effect (Save._migrate_nerve), after the Stakes'
+	var nn := Save.nerve_note()
+	if str(nn.get("kind", "")) == "nerve_refund":
+		words.append_array(nerve_words(nn))
+		Save.clear_nerve_note()
+	if words.is_empty():
 		return
 	_note_toasts = WToasts.new()
 	_note_toasts.name = "NoteToasts"
@@ -595,15 +617,28 @@ func _show_board_note() -> void:
 	_note_toasts.offset_top = NOTE_TOP
 	_note_toasts.offset_bottom = NOTE_TOP + 200.0
 	add_child(_note_toasts)
-	for t in note_words(n):
+	for t in words:
 		_note_toasts.push(t)
-	Save.clear_board_note()
 
 
 ## The note's toasts: ["SPITE IS NOW STAKES", "+2,900 GOLD BACK FOR 3 RANKS"].
 static func note_words(n: Dictionary) -> Array:
 	var ranks := int(n.get("ranks", 0))
 	return ["SPITE IS NOW STAKES", "+%s GOLD BACK FOR %d RANK%s" % [W.num(int(n.get("gold", 0))), ranks, "" if ranks == 1 else "S"]]
+
+
+## The Nerve note's toasts (pass 115): ["NERVE COSTS LESS NOW", "+800 GOLD BACK FOR 3 RANKS"] when gold came back, then
+## "SECOND WIND: REVIVE HEALTH" when the save holds a Second Wind rank (its revives became revive health).
+static func nerve_words(n: Dictionary) -> Array:
+	var out: Array = []
+	var ranks := int(n.get("ranks", 0))
+	var gold := int(n.get("gold", 0))
+	if gold > 0:
+		out.append("NERVE COSTS LESS NOW")
+		out.append("+%s GOLD BACK FOR %d RANK%s" % [W.num(gold), ranks, "" if ranks == 1 else "S"])
+	if int(n.get("second_wind", 0)) > 0:
+		out.append("SECOND WIND: REVIVE HEALTH")
+	return out
 
 
 func _process(delta: float) -> void:

@@ -176,6 +176,8 @@ func load_save() -> void:
 	_migrate_stages()
 	# pass 88 (lane MIRROR): Spite's old Thorns / Thirst ranks paid back in full, once
 	_migrate_stakes()
+	# pass 115 (lane META): Nerve's ranks cost less now; what an older save paid over the new price comes back, once
+	_migrate_nerve()
 	_survey_counted_from_runs()
 	Settings.from_dict(data.get("settings", {}))
 	last_saved_unix = int(data.get("saved_at", 0))
@@ -887,6 +889,9 @@ func buy_talent(def: TalentDef, form: int = 0) -> bool:
 	# pass 88 (lane MIRROR): a Stakes rank bought is never taken for an old Spite rank (a save wiped since its load)
 	if def.id == "spite":
 		mark_once(STAKES_ONCE)
+	# pass 115 (lane META): nor a Nerve rank bought at the new price for an old one
+	if def.id == "nerve":
+		mark_once(NERVE_ONCE)
 	var all: Dictionary = data.get("talents", {})
 	all[def.id] = {"picks": picks, "rank": picks.size(), "form": form}
 	data["talents"] = all
@@ -974,6 +979,56 @@ func _migrate_stakes() -> int:
 		data["board_note"] = {"kind": "stakes_refund", "gold": back, "ranks": ranks}
 	mark_once(STAKES_ONCE)
 	return back
+
+
+# ---------------------------------------------------------------- pass 115 (lane META): Nerve cheaper, Second Wind revive health
+
+## What a Nerve rank is counted as having cost when a save from before pass 115 holds it: pass 88's prices, rank by rank.
+## The save keeps no price a rank (only the board's total, talent_spent); pass 88's list sold Nerve from 2026-10-18 until
+## pass 110's dearer one (500, 2,000, 4,500, ...) on 2026-10-28, so it is what most ranks were bought at and it never
+## pays back more than a rank bought since pass 88 cost.
+const NERVE_OLD_COST := [500, 900, 1500, 2250, 3250, 4500]
+const NERVE_ONCE := "nerve_v115"
+
+
+## Once per save (the once-flag NERVE_ONCE, set on every save, a new one too, and by buying a Nerve rank, so a rank bought
+## at the new price is never paid back): Nerve's ranks stay as they were bought (Skip or Second Wind, the same count; a
+## Second Wind rank gives +10% revive health now instead of a revive), and for each the gold its NERVE_OLD_COST is over
+## the talent's new price (content/talents/nerve) comes back, never more than the board has cost in all (talent_spent;
+## a board set by a tool cost nothing and gets nothing), the spent total lowered by as much. A note for the Upgrade
+## board's toasts (nerve_note) is left when gold came back or a Second Wind rank changed. Returns the gold paid back.
+func _migrate_nerve() -> int:
+	if once(NERVE_ONCE):
+		return 0
+	var ranks := talent_rank("nerve")
+	var back := 0
+	var def = Registry.talents.get("nerve")
+	if ranks > 0 and def is TalentDef:
+		for k in range(ranks):
+			var now := (def as TalentDef).cost_of_rank(k)
+			if now >= 0:
+				back += maxi(int(NERVE_OLD_COST[mini(k, NERVE_OLD_COST.size() - 1)]) - now, 0)
+		back = mini(back, talent_spent())
+	var winds := talent_count("nerve", 1)
+	if back > 0:
+		data["talent_spent"] = maxi(talent_spent() - back, 0)
+		add_gold(back, "talent_refund", {"talent": "nerve", "ranks": ranks, "why": NERVE_ONCE})
+	if back > 0 or winds > 0:
+		data["board_note_nerve"] = {"kind": "nerve_refund", "gold": back, "ranks": ranks, "second_wind": winds}
+	mark_once(NERVE_ONCE)
+	return back
+
+
+## The Nerve note the Upgrade board shows once as toasts ({kind, gold, ranks, second_wind}; {} none).
+func nerve_note() -> Dictionary:
+	var n = data.get("board_note_nerve", {})
+	return n if n is Dictionary else {}
+
+
+func clear_nerve_note() -> void:
+	if data.has("board_note_nerve"):
+		data.erase("board_note_nerve")
+		request_save()
 
 
 ## The note the Upgrade board shows once as a toast ({kind, gold, ranks}; {} none).

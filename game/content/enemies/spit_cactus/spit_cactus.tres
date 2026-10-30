@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_icon_a.png" id="1_gfchg"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_n38pk"]
+[ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_icon_b.png" id="1_nnqwi"]
 
 [resource]
 script = ExtResource("1_n38pk")
@@ -29,8 +29,8 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite_path = "res://content/enemies/spit_cactus/spit_cactus_sprite_a.png"
-sprite_file = "spit_cactus_sprite_a.png"
+sprite_path = "res://content/enemies/spit_cactus/spit_cactus_sprite_b.png"
+sprite_file = "spit_cactus_sprite_b.png"
 frame_px = 160
 strip_cols = 46
 fps = {
@@ -136,7 +136,7 @@ ranged = {
 }
 }
 knockback = 4.81
-head = 0.956
+head = 0.931
 blood = Color(0.8117647, 0.09019608, 0.09019608, 1)
 back_faces = "left"
 variants = {
@@ -249,7 +249,7 @@ variants = {
 "strip_cols": 46
 }
 }
-variant = "SC-A"
+variant = "SC-B"
 can_be_elite = false
 attack_views = "front_back"
 attack_throw = true
@@ -277,7 +277,7 @@ variance = {
 id = "spit_cactus"
 display_name = "Bomb Guy"
 flavour = "He's a guy. With a bomb"
-icon = ExtResource("1_gfchg")
+icon = ExtResource("1_nnqwi")
 icon_file = "spit_cactus_icon.png"
 placeholder = {
 "color": "#5FA35A",

@@ -93,7 +93,7 @@ variants = {
 "currency_type": "gold",
 "name": "Midnight Mime",
 "price": 2000.0,
-"purchasable": true,
+"purchasable": false,
 "unlock_quest": "skin_may_may_b"
 },
 "sprite": "res://content/characters/may/may_sprite_b.png",

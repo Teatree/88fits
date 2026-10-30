@@ -2770,7 +2770,7 @@ func _pause_stats(g) -> void:
 	ps._scroll.scroll_vertical = 0
 	ps._refresh()
 	await _wait(0.5)
-	for stat in ["move_speed", "cooldown", "revives"]:
+	for stat in ["move_speed", "cooldown", "revive_hp"]:
 		var cell: Control = ps._content.find_child("Stat_" + stat, true, false)
 		if cell == null:
 			_count("pause_stats", false)

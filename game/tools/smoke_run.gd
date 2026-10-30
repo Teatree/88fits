@@ -526,8 +526,17 @@ func _analytics_check() -> String:
 	# pass 74 (schema 2): a tool's run, the header's new blocks, the boss's HP as it came, a totem gift's offer
 	# pass 101 (lane FPS): schema 3: every row its frames, the header its frame_timing (a headless run's marked not valid)
 	# pass 102 (lane STEADY): schema 4: the rows' work times (steps, phys_ms, proc_ms, rest_ms), the header's work block
-	if int(mine.get("schema", 0)) != 4:
-		return "the run file is schema %s, not 4" % str(mine.get("schema", "?"))
+	# pass 115 (lane DASH): schema 5: the header's Upgrade board, what shaped each held weapon, the evolutions' families
+	# and every id's icon (the dashboard's new cards); a row's hp_min only when he dipped inside its second
+	if int(mine.get("schema", 0)) != 5:
+		return "the run file is schema %s, not 5" % str(mine.get("schema", "?"))
+	if not (mine.get("board") is Dictionary) or ((mine["board"] as Dictionary).get("talents", []) as Array).is_empty():
+		return "the run file has no Upgrade board: %s" % str(mine.get("board"))
+	for k in ["weapon_sources", "weapon_family", "icons"]:
+		if not (mine.get(k) is Dictionary):
+			return "the run file has no " + k
+	if ((mine["icons"] as Dictionary)).is_empty():
+		return "the run file names no icon"
 	var worked := 0
 	for r in (mine.get("samples", []) as Array):
 		if r is Dictionary and (r as Dictionary).has("steps") and (r as Dictionary).has("proc_ms"):

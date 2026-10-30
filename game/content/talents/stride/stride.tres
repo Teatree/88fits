@@ -22,7 +22,7 @@ target = "player"
 
 [resource]
 script = ExtResource("2_lsivf")
-order = 6
+order = 7
 ranks = 6
 cost = [425.0, 1700.0, 3825.0, 6800.0, 10625.0, 15300.0]
 forms = [{

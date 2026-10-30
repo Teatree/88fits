@@ -420,7 +420,7 @@ func _toggle_hold() -> void:
 
 
 func _copy() -> void:
-	DisplayServer.clipboard_set("88fits · the last 30 seconds before going down, newest first\n" + _log_text)
+	DisplayServer.clipboard_set(W.GAME_NAME + " · the last 30 seconds before going down, newest first\n" + _log_text)
 	_copy_btn.set_parts(["copied"])
 	get_tree().create_timer(1.4, true).timeout.connect(func(): if is_instance_valid(_copy_btn): _copy_btn.set_parts(["copy"]))
 

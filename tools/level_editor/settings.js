@@ -66,8 +66,10 @@ const Settings = (() => {
       // pass 111 (lane ENEMY): what the far-speed rows add up to, and a warning for a block that reads as a mistake
       if (group === 'Scaling' && typeof Model.farSpeedMult === 'function') {
         const fc = Model.farSpeedCfg(tl);
-        const at = [fc.distance, fc.distance + fc.ramp / 2, fc.distance + fc.ramp].map((d) => `${Math.round(d * 10) / 10} m ×${Model.farSpeedMult(tl, d + 1e-6, 'regular').toFixed(2)}`);
-        card.appendChild(el('p', { class: 'muted small', text: fc.enabled ? `Far creatures walk faster: ${at.join(', ')} and beyond (a regular creature${fc.bosses ? ' or a boss' : ''}; never an Elite or a special).` : 'Far creatures walk faster: off (every creature walks at its own speed wherever it is).' }));
+        const at = [fc.distance, fc.distance + fc.ramp / 4, fc.distance + fc.ramp / 2, fc.distance + fc.ramp].map((d) => `${Math.round(d * 10) / 10} m ×${Model.farSpeedMult(tl, d + 1e-6, 'regular').toFixed(2)}`);
+        // pass 115 (lane POLISH): the cap in words
+        const cap = fc.max_speed > 0 ? ` The speed-up never takes a walk past ${fc.max_speed} m/s (a skeleton walks about 1.3 m/s, a Blood Moon fire ant 2.7; Jeżyk at full Momentum runs about 5.5 at level 10, 7.5 at level 20 with The Chariot 4).` : ' No speed cap.';
+        card.appendChild(el('p', { class: 'muted small', text: fc.enabled ? `Far creatures walk faster: ${at.join(', ')} and beyond (a regular creature${fc.bosses ? ' or a boss' : ''}; never an Elite or a special).${cap}` : 'Far creatures walk faster: off (every creature walks at its own speed wherever it is).' }));
         for (const w of Model.farSpeedIssues(tl)) card.appendChild(el('p', { class: 'warn-text small', text: w }));
       }
       grid.appendChild(card);

@@ -221,7 +221,8 @@ func test_the_kings_rows_are_the_stomp_and_the_trail() -> void:
 	assert_float(float(j.get("height", 0.0))).is_equal_approx(2.2, 0.0001)
 	assert_float(float(j.get("up", 0.0))).is_equal_approx(0.35, 0.0001)
 	assert_float(float(j.get("down", 0.0))).is_equal_approx(0.2, 0.0001)
-	assert_float(float(st.get("radius", 0.0))).is_equal_approx(6.0, 0.0001)
+	# (pass 115, lane BOSS: 6.0 x 1.25, Garry's "Increase the range of the Tumbleweed King thump attack. Increase by 25%")
+	assert_float(float(st.get("radius", 0.0))).is_equal_approx(7.5, 0.0001)
 	# 60% of the old slam's 30 a stomp
 	assert_float(float(st.get("damage", 0.0))).is_equal_approx(18.0, 0.0001)
 	assert_str(str(st.get("telegraph", ""))).is_equal("ring")
@@ -398,7 +399,8 @@ func test_the_stomp_jumps_three_times_and_lands_gap_apart() -> void:
 	_begin(em, b, si)
 	# the wind-up's ring, as any attack's: the radius, 1.2 s
 	assert_int((g.rings as Array).size()).is_equal(1)
-	assert_float(float(g.rings[0]["r"])).is_equal_approx(6.0, 0.001)
+	# (pass 115: the row's radius, 7.5 since Garry's +25%: the ring grows with the reach)
+	assert_float(float(g.rings[0]["r"])).is_equal_approx(float(row["radius"]), 0.001)
 	assert_float(float(g.rings[0]["dur"])).is_equal_approx(1.2 / em.pace, 0.001)
 	_fire(em, b)
 	# the run: the pose held (the runner's fire step parked), the first hop's ring runs on from the wind-up's
@@ -427,7 +429,7 @@ func test_the_stomp_jumps_three_times_and_lands_gap_apart() -> void:
 	assert_int(em.stomp_hero_hits).is_equal(3)
 	assert_int((hero.hits as Array).size()).is_equal(3)
 	assert_int((g.waves as Array).size()).is_equal(3)
-	assert_float(float(g.waves[0]["r"])).is_equal_approx(6.0, 0.001)
+	assert_float(float(g.waves[0]["r"])).is_equal_approx(float(row["radius"]), 0.001)
 	assert_float(float(g.waves[0]["size"])).is_equal_approx(em.size[b], 0.001)
 	# (each phase ends on the first tick at or past its length: up to a tick's slack a phase)
 	assert_float(float(times[1]) - float(times[0])).is_equal_approx(EnemyManager.stomp_period(row) / em.pace, 4.0 * DT)
@@ -458,7 +460,8 @@ func test_the_stomp_jumps_three_times_and_lands_gap_apart() -> void:
 
 
 func test_a_hero_out_of_the_radius_sees_the_waves_and_takes_nothing() -> void:
-	var w := _world(Vector3(7.0, 0, 0))
+	# (pass 115: 1 m past the row's radius, as pass 95's 7 m was past its 6: the radius 7.5 since Garry's +25%)
+	var w := _world(Vector3(float(_row(Registry.enemy("tumbleweed_king"), "stomp")["radius"]) + 1.0, 0, 0))
 	var em: EnemyManager = w["em"]
 	var g: Node = w["g"]
 	var hero: Node3D = w["hero"]

@@ -95,11 +95,12 @@ process.stdin.on('end', () => {
   out.fastLine = M.settingsLine({ players: 2, limit: 120, board: 0, death: 'end', seed: 1, hero: 'drifter', fast: false }, 'Drifter');
   out.fastClean = [M.cleanSettings({}).settings.fast, M.cleanSettings({ fast: false }).settings.fast, M.cleanSettings({ fast: 'off' }).settings.fast, M.cleanSettings({ fast: true }).settings.fast];
   out.sections = M.SECTIONS.map((x) => x.id);
-  out.secOf = {}; for (const c of defs) if (['dps', 'playing', 'danger', 'gold', 'build'].includes(c.id)) out.secOf[c.id] = c.section;
+  out.secOf = {}; for (const c of defs) if (['dps', 'playing', 'hp5', 'gold', 'build'].includes(c.id)) out.secOf[c.id] = c.section;
   out.lacking = M.missing(q.res);
   out.lackingBare = M.missing(q.bare);
   out.idsBare = M.charts(q.bare, null, {}).map((c) => c.id);
-  const dg = defs.find((c) => c.id === 'danger');
+  // pass 115 (lane DASH): Danger gave way to the 5 s health bars (the health back drawn under the line)
+  const dg = defs.find((c) => c.id === 'hp5');
   const rg = M.chartRange(dg);
   out.range = [rg.lo, rg.hi, M.yTicksRange(rg.lo, rg.hi, 5)];
   out.board = [M.setRank('AAB', 2), M.setRank('AB', 4), M.setRank('', 3, 1), M.picksWords('AAB', [{ name: 'Padding' }, { name: 'Plate' }]),
@@ -723,7 +724,7 @@ def _page_checks(check, run_node, SB, tmp):
            {"s": dict(SB.DEFAULTS), "speed": {"play_per_wall": 3.0, "slow": 2.6, "workers": 10, "boot_s": 20}, "cores": 16, "sync": 20}]
     clean = [{"players": 0}, {"players": 5, "workers": 9}, {"limit": 5}, {"death": "no"}, {}]
     bare = json.loads(json.dumps(res))
-    for k in ("danger", "danger_net", "keep_up", "boss_s", "near3", "near6", "trouble", "hits_ps", "spawned_ps", "kills_ps", "mult_hp", "mult_dmg", "cap"):
+    for k in ("danger", "danger_net", "hp_low5", "took5", "healed5", "keep_up", "boss_s", "near3", "near6", "trouble", "hits_ps", "spawned_ps", "kills_ps", "mult_hp", "mult_dmg", "cap"):
         bare["series"].pop(k, None)
     for k in ("took_by", "healed_by", "held_by"):
         bare["breakdowns"].pop(k, None)
@@ -734,22 +735,23 @@ def _page_checks(check, run_node, SB, tmp):
     if not out:
         return
     # pass 82 (lane STATS): "pickups" (chests, power-ups, totems) after the kills
-    check(out["ids"] == ["dps", "hp", "playing", "deaths", "danger", "keep_up", "near", "alive_by", "trouble", "hurt", "hits", "heal", "cap", "flow",
+    # pass 115 (lane DASH): Danger gave way to "hp5", the 5 s health bars, in its place
+    check(out["ids"] == ["dps", "hp", "playing", "deaths", "hp5", "keep_up", "near", "alive_by", "trouble", "hurt", "hits", "heal", "cap", "flow",
                          "strength", "gold", "dmg", "kills", "pickups", "level", "xp", "build"],
           "page: the charts in Garry's order, the difficulty ones round 2's (made-up runs carry every field): %s" % out["ids"])
-    check(out["sections"] == ["hero", "death", "difficulty", "rewards", "growth", "perf"] and out["secOf"] == {"dps": "hero", "playing": "death", "danger": "difficulty",
+    check(out["sections"] == ["hero", "death", "difficulty", "rewards", "growth", "perf"] and out["secOf"] == {"dps": "hero", "playing": "death", "hp5": "difficulty",
                                                                                                        "gold": "rewards", "build": "growth"},
           "page: the five sections: %s" % out["sections"])
     check(out["lacking"] == [] and len(out["lackingBare"]) == 9 and out["idsBare"] == ["dps", "hp", "playing", "deaths", "alive_by", "gold", "dmg", "kills", "pickups", "level", "xp"],
           "page: a result without round 2's data draws the rest and names what is missing: %s" % out["idsBare"])
     check(out["range"][0] < 0 and 0 in out["range"][2] and out["range"][2][0] == out["range"][0] and out["range"][2][-1] == out["range"][1],
-          "page: an axis below 0 for the net danger, with 0 a tick: %s" % out["range"])
+          "page: an axis below 0 for the health back under the line, with 0 a tick: %s" % out["range"])
     check(all(h[2] > 60 for h in out["how"]), "page: every chart says what it shows and how it was averaged")
     hw = {h[0]: h for h in out["how"]}
     check(hw["dps"][3] == 2 and hw["dps"][4] == 1 and hw["hp"][3] == 2 and hw["alive_by"][5] >= 2 and hw["kills"][5] >= 2 and hw["dmg"][5] >= 2,
           "page: DPS real + estimate with a band, HP and max HP, the stacks: %s" % out["how"])
     ov = {o[0]: o for o in out["overlays"]}
-    check(all(ov[k][1] == 1 for k in ("dps", "hp", "playing", "deaths", "danger", "keep_up", "near", "alive_by", "gold", "dmg", "kills", "level", "xp"))
+    check(all(ov[k][1] == 1 for k in ("dps", "hp", "playing", "deaths", "hp5", "keep_up", "near", "alive_by", "gold", "dmg", "kills", "level", "xp"))
           and ov["dps"][2] == "compared: real DPS", "page: the charts get the compared sim's line: %s" % out["overlays"][:3])
     check(out["raw"] == ["dps_raw", 0], "page: the per-second DPS has no band: %s" % out["raw"])
     check(dict(out["max"])["playing"] == 100 and all(m[1] > 0 for m in out["max"]), "page: the axis tops (the share chart to 100%%): %s" % out["max"])

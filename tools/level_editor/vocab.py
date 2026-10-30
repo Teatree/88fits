@@ -229,6 +229,8 @@ PLAYER_DEFAULTS = {
     # pass 88 (lane MIRROR): the Upgrade board's Stakes (MirrorDanger.gd)
     "danger_hp": 0.0, "danger_attack": 0.0, "danger_speed": 0.0, "danger_bounty": 0.0,
     "boss_danger_hp": 0.0, "boss_danger_attack": 0.0, "boss_danger_speed": 0.0, "boss_danger_bounty": 0.0,
+    # pass 115 (lane META): the Phoenix Feather's least revive health (Player.revive_share)
+    "phoenix_hp": 0.0,
 }
 # player stats the code reads that are not in PLAYER_DEFAULTS (default 0 from get_stat); content uses them all
 PLAYER_STATS_EXTRA = {"brand_chance": 0.0, "fire_vuln": 0.0, "poison_slow": 0.0, "poison_pass": 0.0}
@@ -290,9 +292,11 @@ STAT_NAMES = {
     "danger_bounty": ["", "hidden"], "boss_danger_hp": ["boss and Elite HP", "pct"],
     "boss_danger_attack": ["boss and Elite attack", "pct"], "boss_danger_speed": ["boss and Elite speed", "pct"],
     "boss_danger_bounty": ["", "hidden"],
+    "phoenix_hp": ["", "hidden"],
 }
 # pass 69: what each new stat does, in a line (the effect pickers show it); lane PAS's help texts
 STAT_HELP = {
+    "phoenix_hp": "Phoenix Feather (pass 115): the least share of max HP its revive stands the hero up with (0.5 = half); the plain revive health (revive_hp: Nerve's 40% base, +10% a Second Wind rank) wins when it is more",
     "counter_damage": "Counterpunch: after an evade the next weapon to fire hits for 1 + this (1.0 = double) with every hit, until it fires again or 1 s passes",
     "counter_haste": "Counterpunch: weapon speed (haste) during the boost after an evade",
     "counter_speed": "Counterpunch: move speed during the boost after an evade",

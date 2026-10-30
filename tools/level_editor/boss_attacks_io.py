@@ -47,7 +47,15 @@ DEFAULTS = {
     "tell": {"seconds": 2.0, "banner": "", "banner_color": "#E8502A", "ring_radius": 9.0, "ring_color": "#140A06",
              "ring_alpha": 0.5, "duck_db": -14.0, "look": "none"},
     "shell": {"look": "none", "color": "#C9A46A", "height": 7.0, "radius": 3.0, "opacity": 0.94, "sigil_radius": 0.0, "sigil_color": "#FF6A1A"},
+    # pass 115 (lane BOSS): a pattern's barrier
+    "barrier": {"look": "none", "radius_mode": "range", "radius": 16.0, "inset": 1.0, "height": 1.8, "thickness": 0.8,
+                "rise_s": 0.8, "spread_s": 0.6, "fall_s": 1.0, "hold": "bullets", "color": "#FFFFFF", "glow_color": "#FF8A1F",
+                "hero_block": True, "creatures": "block", "bullets": "stop"},
 }
+# pass 115 (lane BOSS): BossAttackDef.BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS, BARRIER_CREATURES, BARRIER_BULLETS
+# (selftest_BOSS115.py checks them against the game)
+BARRIER_CHOICES = {"look": ["none", "tumbleweed_fence", "cactus_fence", "iron_fence"], "radius_mode": ["range", "fixed"],
+                   "hold": ["bullets", "spent"], "creatures": ["block", "pass"], "bullets": ["stop", "pass"]}
 # pass 113 (lane BOSS): BossAttackDef.EMITTER_DEFAULTS, one emitter of a pattern (selftest_BOSS113.py checks it)
 EMITTER_DEFAULTS = {"shape": "spiral", "count": 1, "arms": 1, "speed": 3.0, "rate": 4.0, "spin": 0.0, "reverse_at": -1.0,
                     "spread_deg": 60.0, "sweep_deg": 0.0, "sweep_hz": 0.0, "gap": 0.0, "petals": 5, "depth": 0.7,
@@ -191,6 +199,14 @@ def _check(srv, aid, obj):
         pr = trigger_problem(k, (trig or {}).get(k))
         if pr:
             return pr
+    # pass 115 (lane BOSS): the barrier's choices are the game's (a number box takes any number: the game holds it)
+    bar = obj.get("barrier")
+    if bar is not None and not isinstance(bar, dict):
+        return "barrier is a group of keys {look, radius_mode, radius, ...}"
+    for k, choices in BARRIER_CHOICES.items():
+        v = (bar or {}).get(k)
+        if v is not None and v not in choices:
+            return "barrier.%s is one of %s" % (k, ", ".join(choices))
     return ""
 
 
@@ -211,7 +227,7 @@ def blank(kind, aid, name):
             "hit": dict(DEFAULTS["hit"]), "damage": 0.0, "knockback": 0.0, "lift": 0.0,
             "timing": {"duration": 8.0, "clear": 0.6, "cooldown": 0.0},
             "trigger": dict(DEFAULTS["trigger"]), "guard": dict(DEFAULTS["guard"]), "spent": dict(DEFAULTS["spent"]),
-            "tell": dict(DEFAULTS["tell"]), "shell": dict(DEFAULTS["shell"]),
+            "tell": dict(DEFAULTS["tell"]), "shell": dict(DEFAULTS["shell"]), "barrier": dict(DEFAULTS["barrier"]),
             "sounds": {"windup": "en_boss_pattern_warn", "fire": "en_boss_attack", "land": ""},
         })
         return a

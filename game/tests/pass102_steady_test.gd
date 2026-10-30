@@ -172,8 +172,9 @@ func test_the_markers_bracket_every_callback_and_count_live_frames() -> void:
 
 func test_schema_4_rows_and_header() -> void:
 	var ra := _recorder(_fake_game())
-	assert_int(RunAnalytics.SCHEMA).is_equal(4)
-	assert_int(int(ra.header["schema"])).is_equal(4)
+	# pass 115 (lane DASH): schema 5 (pass115_DASH_test), re-pinned on purpose
+	assert_int(RunAnalytics.SCHEMA).is_equal(5)
+	assert_int(int(ra.header["schema"])).is_equal(5)
 	# (the test runner plays no Game: Godot's own 8)
 	assert_int(int(ra.header["frame_timing"]["max_steps"])).is_equal(Engine.max_physics_steps_per_frame)
 	ra.work.add_frame(20000, 1, 6000, 6000, 5000, 1.0 / 60.0)

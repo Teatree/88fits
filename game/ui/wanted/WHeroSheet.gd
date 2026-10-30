@@ -50,7 +50,7 @@ const PLATE := 128.0
 const LEVELS := [1, 10, 20, 40]
 ## The stats a run starts with, in this order (TextGen's names).
 const STATS := ["max_hp", "regen", "regen_delay", "damage_reduction", "move_speed", "might", "crit_chance", "crit_damage",
-	"area", "cooldown", "projectile_speed", "duration", "debuff_duration", "magnet", "luck", "greed", "xp_gain", "revives"]
+	"area", "cooldown", "projectile_speed", "duration", "debuff_duration", "magnet", "luck", "greed", "xp_gain", "revive_hp"]
 ## Player stats held as a multiplier of 1, shown as a percent ("100%" attack damage, "87%" cooldown).
 const MULTS := ["might", "cooldown", "area", "projectile_speed", "duration", "debuff_duration", "buff_duration", "greed",
 	"xp_gain", "heal_mult", "haste"]

@@ -117,6 +117,8 @@ func _build(game: Node) -> void:
 	var sb: Node3D = preload("res://core/systems/SunBeams.gd").new()
 	add_child(sb)
 	sb.warm(global_position)
+	# pass 115 (lane BOSS): a boss barrier's pieces on their MultiMesh shader (lit and glowing)
+	BossBarrier.warm(self)
 	# pass 61 (lane WP2): Rust's blades on a MultiMesh as the saws draw them (the instanced variant), and the Sabre's
 	# crit streak
 	var rmm := MultiMesh.new()

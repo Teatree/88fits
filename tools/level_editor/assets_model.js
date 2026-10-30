@@ -34,7 +34,7 @@ const AssetsModel = (() => {
     // pass 70 (lane LINES): the evolved lines' twists
     bronco_chance: 0, debuff_jump: 0, star_block_every: 0, gem_sweep_every: 0, vein_chance: 0, gold_might: 0,
     // pass 88 (lane MIRROR): the Upgrade board's Stakes
-    danger_hp: 0, danger_attack: 0, danger_speed: 0, danger_bounty: 0, boss_danger_hp: 0, boss_danger_attack: 0, boss_danger_speed: 0, boss_danger_bounty: 0,
+    danger_hp: 0, danger_attack: 0, danger_speed: 0, danger_bounty: 0, boss_danger_hp: 0, boss_danger_attack: 0, boss_danger_speed: 0, boss_danger_bounty: 0, phoenix_hp: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -74,6 +74,7 @@ const AssetsModel = (() => {
     danger_hp: ['enemy HP', 'pct'], danger_attack: ['enemy attack', 'pct'], danger_speed: ['enemy speed', 'pct'], danger_bounty: ['', 'hidden'],
     boss_danger_hp: ['boss and Elite HP', 'pct'], boss_danger_attack: ['boss and Elite attack', 'pct'], boss_danger_speed: ['boss and Elite speed', 'pct'],
     boss_danger_bounty: ['', 'hidden'],
+    phoenix_hp: ['', 'hidden'],
   };
   // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
   const STAT_HELP = {

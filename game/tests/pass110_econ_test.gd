@@ -77,8 +77,9 @@ func spawn(_k, _at, _v = 0.0) -> int:
 
 ## Every regular creature's drops.chest (about one chest in 5,000 kills).
 const REGULAR_CHEST := 0.0002
-## Each talent's first rank as pass 88 priced it ("Starting point prices should stay the same").
-const FIRST_RANK := {"choice": 325, "drive": 375, "fortune": 300, "grit": 450, "nerve": 500, "spite": 100, "stride": 425,
+## Each talent's first rank as pass 88 priced it ("Starting point prices should stay the same"); pass 115 (lane META,
+## re-pinned): Nerve 150, Garry: "skips and this new revive thing are not valuable at all, rebalance ... their prices".
+const FIRST_RANK := {"choice": 325, "drive": 375, "fortune": 300, "grit": 450, "nerve": 150, "spite": 100, "stride": 425,
 	"study": 400}
 ## A hero on sale costs this much gold for each place in the title order (Ironwood, 2nd, 1,000; May, 8th, 4,000).
 const HERO_STEP := 500

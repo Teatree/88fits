@@ -60,6 +60,7 @@ const SimModel = (() => {
     if (v == null || !isFinite(v)) return '–';
     if (fmt === 'pct') return `${Math.round(v)}%`;
     if (fmt === 'pct1') return `${(Math.round(v * 10) / 10).toFixed(1)}%`;
+    if (fmt === 'pcta') return `${Math.round(Math.abs(v))}%`;   // pass 115: a bar under the line says its size
     if (fmt === 'sec') return v >= 90 ? fmtT(v) : `${Math.round(v * 10) / 10} s`;
     if (fmt === 'mult') return `×${(Math.round(v * 100) / 100).toString()}`;
     if (fmt === 'int') return fmtNum(Math.round(v));
@@ -331,11 +332,17 @@ const SimModel = (() => {
     const killFold = fold(bds.kills_by, names, FOLD, creatureColors);
     const aliveFold = fold(bds.alive_by, names, FOLD, creatureColors);
     const hurtFold = fold(bds.took_by, names, FOLD, creatureColors);
-    if (has('danger')) push('difficulty', { id: 'danger', title: 'Danger: health lost a second', fmt: 'pct1', unit: '% of max HP a second',
-      how: `How much of his max health the hero loses each second before healing (the line), and after it (dashed: below 0 = healing more than he loses). 2% means a full bar lasts 50 s at that rate. ${one ? 'Over' : 'Each run over'} ${win} s, ${playingNote}${bandTail}.`,
-      lines: [{ key: 'danger', label: 'lost (before healing)', color: SLOTS[7], values: ser(res, 'danger') || [] },
-        { key: 'danger_net', label: 'net (after healing)', color: SLOTS[7], values: ser(res, 'danger_net') || [], dash: SHORT_DASH, width: 1.5 }],
-      bands: band('danger', SLOTS[7]), overlay: ov('danger', 'mean', `${cmpName}: lost`) });
+    // pass 115 (lane DASH; Garry: "Danger Health Lost a second is a weird metric ... Just show Current HP instead with
+    // bars. Show different coloured bars for damage taken. Make it be per 5 seconds"): Danger (health lost a second, 5 s)
+    // gave way to bars every hp_bucket seconds: the lowest health, the damage taken on top, the health back under the line
+    // (the danger series are still in the result; nothing draws them)
+    const hb = (res.rules || {}).hp_bucket || 5;
+    if (has('hp_low5')) push('difficulty', { id: 'hp5', title: `Health, ${hb} seconds at a time`, fmt: 'pcta', unit: '% of max HP',
+      how: `One bar every ${hb} s: the lowest the hero's health went in those seconds (green, % of his max HP: the lowest moment inside a second where the run reports it, else his health each second), the damage he took in them on top (red, % of max HP, after shields and armour) and the health he got back (blue, under the line: heals and regen), ${one ? 'for this run' : 'each run first, then ' + playingNote}. A tall red bar on a short green one is a hard ${hb} s.`,
+      bars: { step: hb, items: [{ key: 'hp_low5', label: 'lowest health', color: SLOTS[2], values: ser(res, 'hp_low5') || [] },
+        { key: 'took5', label: 'damage taken', color: SLOTS[7], values: ser(res, 'took5') || [], on: 'hp_low5' },
+        { key: 'healed5', label: 'health back', color: SLOTS[0], values: ser(res, 'healed5') || [], below: true }].filter((b) => b.values.length) },
+      lines: [], overlay: ov('hp_low5', 'mean', `${cmpName}: lowest health`) });
     if (has('keep_up')) push('difficulty', { id: 'keep_up', title: 'Keeping up with the crowd', fmt: 'sec', unit: 'seconds of his damage',
       how: 'How many seconds of his own damage the hero would need to kill every creature alive, the boss left out: rising = falling behind the crowd, flat or falling = keeping up. Dashed: the boss alone, seconds of his damage to kill it.' +
         (one ? ' For this run (blank where his damage is under 1 a second).' : ' The middle run at each second (a crowd over a DPS jumps where the DPS is small), the band the middle 80%.'),
@@ -484,7 +491,7 @@ const SimModel = (() => {
     if (!res || !res.series) return [];
     const s = res.series, b = res.breakdowns || {};
     const out = [];
-    if (!s.danger) out.push('Danger (needs the runs\' health lost a second: took)');
+    if (!s.hp_low5) out.push('Health in 5 s bars (needs the runs\' health and damage taken each second: hp, hp_max, took; a sim from pass 115 on)');
     if (!s.keep_up) out.push('Keeping up (needs the crowd\'s HP and the DPS)');
     if (!s.near3) out.push('Close crowd (needs near3)');
     if (!b.took_by) out.push('What hurt the hero (needs took_by)');
@@ -526,6 +533,8 @@ const SimModel = (() => {
     for (const l of c.lines) { m = Math.max(m, maxOf(l.values)); lo = Math.min(lo, minOf(l.values)); }
     for (const b of c.bands) { m = Math.max(m, maxOf(b.hi)); lo = Math.min(lo, minOf(b.lo)); }
     if (c.stack) m = Math.max(m, maxOf(totalOf(c.stack)));
+    // pass 115 (lane DASH): bars: a bar drawn on another's top counts with it, one drawn under the line goes below 0
+    if (c.bars) for (const b of barParts(c)) { m = Math.max(m, maxOf(b.top)); lo = Math.min(lo, minOf(b.bottom)); }
     for (const l of c.overlay) { m = Math.max(m, maxOf(l.values)); lo = Math.min(lo, minOf(l.values)); }
     const hi = c.yMax || niceMax(m > 0 ? m : 1, 4);
     if (!(lo < 0)) return { lo: 0, hi };
@@ -542,10 +551,29 @@ const SimModel = (() => {
     return out;
   }
 
-  /** What the chart reads at second t: [{label, value, color, kind: line|band|stack|total|overlay, dash, sub}]. */
+  /** Pass 115 (lane DASH): a bar chart's bars as drawn: [{item, bottom, top}] per second (null: no bar), a bar `on`
+   *  another sitting on its top, a bar `below` going down from 0. A bucket's bars stand on its first second. */
+  function barParts(c) {
+    const items = (c.bars && c.bars.items) || [];
+    const byKey = {};
+    for (const b of items) byKey[b.key] = b;
+    return items.map((b) => {
+      const base = b.on && byKey[b.on] ? byKey[b.on].values : null;
+      const bottom = b.values.map((v, i) => (v == null ? null : b.below ? -v : (base && base[i] != null ? base[i] : 0)));
+      const top = b.values.map((v, i) => (v == null ? null : b.below ? 0 : (base && base[i] != null ? base[i] : 0) + v));
+      return { item: b, bottom, top };
+    });
+  }
+
+  /** What the chart reads at second t: [{label, value, color, kind: line|band|stack|total|overlay|bar, dash, sub}]. */
   function readout(c, t) {
     const at = (arr) => (arr && t >= 0 && t < arr.length ? arr[t] : null);
     const rows = [];
+    // pass 115 (lane DASH): a bar chart reads the bucket the second falls in (the bucket's own first second)
+    if (c.bars) {
+      const st = c.bars.step || 1, t0 = Math.floor(Math.max(0, t) / st) * st;
+      for (const b of c.bars.items) rows.push({ label: b.label + (st > 1 ? ` (${fmtT(t0)}–${fmtT(t0 + st - 1)})` : ''), value: b.values && t0 < b.values.length ? b.values[t0] : null, color: b.color, kind: 'bar', dash: null, sub: '' });
+    }
     for (const l of c.lines) {
       const band = c.bands.find((b) => b.color === l.color && l.dash == null);
       rows.push({ label: l.label, value: at(l.values), color: l.color, kind: 'line', dash: l.dash || null,
@@ -569,6 +597,7 @@ const SimModel = (() => {
   function table(c, step, T) {
     const cols = [];
     for (const l of c.lines) cols.push({ label: l.label, values: l.values });
+    if (c.bars) for (const b of c.bars.items) cols.push({ label: b.label, values: b.values });
     for (const b of c.bands) { cols.push({ label: `${b.label}: low (10%)`, values: b.lo }); cols.push({ label: `${b.label}: high (90%)`, values: b.hi }); }
     if (c.stack) {
       for (const p of c.stack.items.concat(c.stack.other ? [c.stack.other] : [])) cols.push({ label: p.label, values: p.values });
@@ -715,6 +744,7 @@ const SimModel = (() => {
   function tickLabel(v, max, fmt) {
     if (fmt === 'pct') return `${Math.round(v)}%`;
     if (fmt === 'pct1') return `${Math.round(v * 10) / 10}%`;
+    if (fmt === 'pcta') return `${Math.round(Math.abs(v))}%`;
     if (fmt === 'mult') return `×${Math.round(v * 100) / 100}`;
     if (fmt === 'sec') return max >= 120 ? fmtT(v) : `${Math.round(v * 10) / 10} s`;   // one unit for the whole axis
     if (v === 0) return '0';
@@ -740,7 +770,7 @@ const SimModel = (() => {
 
   return {
     SLOTS, OTHER, COMPARE, COMPARE_DASH, SHORT_DASH, FOLD, BOARDS, DEATHS, DEFAULTS, tickLabel, shortName,
-    SECTIONS, missing, chartRange, yTicksRange, TALENT_ORDER, MAX_RANK, boardRanks, boardWords, setRank, presetOf, picksWords,
+    SECTIONS, missing, chartRange, yTicksRange, barParts, TALENT_ORDER, MAX_RANK, boardRanks, boardWords, setRank, presetOf, picksWords,
     runsIn, fmtT, parseT, fmtNum, fmtVal, boardLabel, niceStep, niceMax, yTicks, timeTicks, smooth, fold, totalOf, charts, chartMax,
     readout, table, csv, settingsLine, tiles, cleanSettings, speedAt, etaSeconds, fmtDuration, maxOf, firstSeen,
     PICKUP_SERIES, PICKUP_KEYS, isSmall, pickupKind, pickupTimes, pickupCounts, pickupTotals,

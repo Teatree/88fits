@@ -106,7 +106,7 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 0.84,
+"hp_mult": 1.0,
 "size": 1.25,
 "speed": 1.25
 },
@@ -122,7 +122,7 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 0.82,
+"hp_mult": 1.0,
 "size": 1.25,
 "speed": 1.25
 },
@@ -130,7 +130,7 @@ roster = [{
 "until": 315.0,
 "weights": [[270.0, 5.4], [331.0, 10.1], [362.0, 10.6]]
 }, {
-"count": 50.0,
+"count": 75.0,
 "enemy": "werewolf",
 "every": 15.0,
 "id": "r55",
@@ -140,7 +140,7 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 1.55,
+"hp_mult": 2.0,
 "size": [1.25, 2.3]
 },
 "t": 317.0,
@@ -229,8 +229,12 @@ roster = [{
 "pack": 1.0,
 "pattern": "scatter",
 "role": "fodder",
+"stats": {
+"max_alive": 5.0
+},
 "t": 257.0,
 "until": 315.0,
+"variant": "SC-B",
 "weights": [[258.0, 1.2]]
 }, {
 "enemy": "monk",
@@ -254,11 +258,32 @@ roster = [{
 "stats": {
 "drops": {
 "large": 0.1
-}
+},
+"max_alive": 4.0
 },
 "t": 306.0,
 "until": 347.0,
 "weights": [[306.0, 1.0]]
+}, {
+"count": 1.0,
+"enemy": "bull_beetle",
+"id": "r63",
+"pace": "once",
+"pack": 1.0,
+"pattern": "in_front",
+"role": "tank",
+"stats": {
+"damage_mult": 1.5,
+"drops": {
+"large": 0.1
+},
+"hp_mult": 1.5,
+"max_alive": 4.0,
+"size": 3.0
+},
+"t": 150.0,
+"until": 155.0,
+"weights": [[150.0, 1.0]]
 }, {
 "enemy": "spit_cactus",
 "id": "r54",
@@ -267,6 +292,7 @@ roster = [{
 "pattern": "scatter",
 "role": "fodder",
 "stats": {
+"max_alive": 8.0,
 "tint": {
 "amount": 0.09,
 "hue": [297.0, 360.0],
@@ -286,7 +312,8 @@ roster = [{
 "stats": {
 "drops": {
 "large": 0.1
-}
+},
+"max_alive": 6.0
 },
 "t": 389.0,
 "until": 420.0,
@@ -298,12 +325,12 @@ roster = [{
 "id": "r16",
 "pace": "waves",
 "pack": 7.0,
-"pattern": "ring",
+"pattern": "scatter",
 "role": "fodder",
 "stats": {
 "damage_mult": 3.0,
 "hp": 20.0,
-"hp_mult": 10.0,
+"hp_mult": 12.0,
 "size": 2.0,
 "speed": 1.75
 },
@@ -1109,17 +1136,19 @@ oases = {
 }
 far_speed = {
 "bosses": true,
-"distance": 14.0,
+"curve": "ease_out",
+"distance": 12.0,
 "enabled": true,
-"max_mult": 2.0,
-"ramp": 6.0
+"max_mult": 3.0,
+"max_speed": 6.0,
+"ramp": 24.0
 }
 barrels = {
 "black": {
 "coins": [1.0, 5.0],
 "gems_medium": 4.0,
 "gems_small": 10.0,
-"powerup_chance": 0.3,
+"powerup_chance": 0.15,
 "powerups": [{
 "id": "heart",
 "weight": 6.0
@@ -1145,7 +1174,7 @@ barrels = {
 "coins": 0.0,
 "gems_medium": 0.0,
 "gems_small": 8.0,
-"powerup_chance": 0.08,
+"powerup_chance": 0.04,
 "powerups": [{
 "id": "heart",
 "weight": 6.0
@@ -1188,15 +1217,18 @@ dust_devils = {
 "fade_seconds": 2.0,
 "first": 90.0,
 "form_seconds": 2.5,
-"life": [20.0, 30.0],
+"life": [60.0, 90.0],
 "lift": 1.7,
+"lift_height": 4.5,
 "max_alive": 1.0,
-"radius": 2.4,
+"opacity": 0.7,
+"radius": 3.0,
+"size": 1.25,
 "speed": 1.4,
 "toss": {
 "cooldown": 1.2,
 "out": 3.6,
-"up": 8.0
+"up": 9.5
 },
 "wander": "cross"
 }

@@ -3,6 +3,15 @@
 class_name W
 extends RefCounted
 
+# --- the game's name -------------------------------------------------------------------------------------------------
+## What the player reads as the game's name (pass 115, Garry: "Rename the game to Outlaw Survivors, but only in the game
+## itself. Don't change anything in the code and such"): the title's big word, the line under it, and the two together
+## wherever a line names the game (the Settings version line, Down!'s copied log). The project, the packages, the
+## launcher label, the save folder, PostHog and every identifier keep "88fits".
+const GAME_NAME := "Outlaw Survivors"
+const GAME_WORD := "Outlaw"
+const GAME_LINE := "Survivors"
+
 # --- colour ----------------------------------------------------------------------------------------------------------
 const PAPER := Color("f3e6c8")          ## panels, cards, buttons, HUD plates
 const AGED := Color("e2cfa4")           ## unselected tabs, locked cards, empty tracks, empty stars

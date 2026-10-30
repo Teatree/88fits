@@ -5,6 +5,7 @@
     python tools/replay.py --latest --player "Lanky Tinker"
     python tools/replay.py <file>                   # one recording (a *_replay.json)
     python tools/replay.py --list [--player NAME]   # every recording: when, who, hero, stage, result, its build, kept?
+    python tools/replay.py --board [<file> | --latest]   # pass 115: only print the Upgrade board the run began with
     options: --speed 0.25|0.5|1|2|4|8  --paused  --seek 5:00  --sound  --w 1600 --h 900
              --nearest (play on the nearest build without asking when the right one is gone)  --dry-run
              --shots <dir> --demo --quit-after <s>  (the scripted capture tour)
@@ -48,6 +49,69 @@ def describe(h):
     return "%s | %s | %s stage %s | %s at %d:%02d | level %s | build %s" % (
         h.get("recorded", "?"), h.get("player") or "?", h.get("hero", "?"), h.get("stage", "?"), res, int(secs) // 60, int(secs) % 60,
         h.get("level", "?"), b.get("id", "?"))
+
+
+# ---------------------------------------------------------------- pass 115 (lane DASH; Garry: "I need to know Player
+# Mirror Upgrades while watching the replay"): the Upgrade board the recording's save began with, in the terminal (any
+# recording, any build: the viewer of a build from 0.98 on shows it in its window too)
+
+def _talent_defs():
+    """The board's talents from game/content/talents (the repo as it is now), in the board's order (TalentDef.board_before:
+    the cheaper first rank first, then `order`, then the id)."""
+    out = []
+    base = os.path.join(ROOT, "game", "content", "talents")
+    for tid in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+        f = os.path.join(base, tid, tid + ".json")
+        try:
+            with open(f, encoding="utf-8") as fh:
+                d = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        cost = [int(x) for x in d.get("cost") or []]
+        forms = [str((x or {}).get("name", "")) for x in (d.get("forms") or [])][:2]
+        out.append({"id": str(d.get("id", tid)), "name": str(d.get("name", tid)), "ranks": int(d.get("ranks", 3)), "cost": cost,
+                    "order": int(d.get("order", 0)), "forms": forms + [""] * (2 - len(forms))})
+    out.sort(key=lambda t: (t["cost"][0] if t["cost"] else 0, t["order"], t["id"]))
+    return out
+
+
+def _picks(t):
+    """A save's talent entry as its ranks' forms (Save.talent_picks): picks, else an old {form, rank}."""
+    if not isinstance(t, dict):
+        return []
+    if isinstance(t.get("picks"), list):
+        return [min(1, max(0, int(f))) for f in t["picks"]]
+    return [min(1, max(0, int(t.get("form", 0))))] * int(t.get("rank", 0) or 0)
+
+
+def board_lines(path):
+    """The Upgrade board the recorded run began with, as lines of plain text (A = a rank of its first form, B its second,
+    - not bought); [] when the recording has no save."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return []
+    sv = rec.get("save") if isinstance(rec, dict) else None
+    if not isinstance(sv, dict) or not isinstance(sv.get("talents"), dict):
+        return ["the Upgrade board: not in this recording"]
+    tal = sv["talents"]
+    rows, ranks, most, gold = [], 0, 0, 0
+    for t in _talent_defs():
+        pk = _picks(tal.get(t["id"]))
+        g = sum(t["cost"][k] for k in range(len(pk)) if k < len(t["cost"]))
+        ranks += len(pk)
+        most += t["ranks"]
+        gold += g
+        n0 = pk.count(0)
+        words = ", ".join(w for w in ("%s x%d" % (t["forms"][0], n0) if n0 else "", "%s x%d" % (t["forms"][1], len(pk) - n0) if len(pk) - n0 else "") if w)
+        marks = "".join("AB"[f] for f in pk) + "-" * max(0, t["ranks"] - len(pk))
+        rows.append("    %-10s %d/%d  %s  %s" % (t["name"], len(pk), t["ranks"], marks, words or "no rank"))
+    spent = sv.get("talent_spent")
+    head = "the Upgrade board the run began with: %d of %d ranks, %s gold at today's prices%s" % (
+        ranks, most, "{:,}".format(gold), ("; the save says %s was paid" % "{:,}".format(int(spent))) if spent is not None and int(spent) != gold else "")
+    look = str(rec.get("look") or "")
+    return [head] + rows + (["the hero's look: " + look] if look else [])
 
 
 def pick_latest(player=""):
@@ -187,11 +251,21 @@ def main(argv=None):
     ap.add_argument("--demo-seek", default="")
     ap.add_argument("--quit-after", type=float, default=0.0)
     ap.add_argument("--menu", action="store_true", help="the menu replay.cmd opens: download, list, replay")
+    ap.add_argument("--board", action="store_true", help="only print the Upgrade board the run began with (pass 115)")
     a = ap.parse_args(argv)
     if a.menu:
         return menu(a)
     if a.list:
         return cmd_list(a)
+    if a.board:
+        path = os.path.abspath(a.file) if a.file else pick_latest(a.player)[0]
+        if not path:
+            say("no recordings found")
+            return 1
+        say("the file: " + path)
+        for ln in board_lines(path):
+            say(ln)
+        return 0
     if a.file:
         path = os.path.abspath(a.file)
         h = B.read_header(path)
@@ -210,6 +284,9 @@ def main(argv=None):
 def play(a, path, h):
     say("the run: " + describe(h))
     say("the file: " + path)
+    # pass 115 (lane DASH): the Upgrade board it began with (the viewer of a build from 0.98 on shows it too: B folds it)
+    for ln in board_lines(path):
+        say(ln)
     bid = str((h.get("build") or {}).get("id", ""))
     if bid.startswith("editor-") or bid.startswith("dev-"):
         say("recorded from the editor binary, not a shipped build: it replays on the repo AS IT IS NOW (if the code or "

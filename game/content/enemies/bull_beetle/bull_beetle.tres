@@ -10,7 +10,7 @@ doc = "The charger: it crouches and shakes, legs scrabbling, while a red line sh
 brain = "charge"
 hp = 70.0
 speed = 1.35
-damage = 16.0
+damage = 25.0
 radius = 0.8
 size = 2.0
 drops = {
@@ -49,11 +49,11 @@ charge = {
 "dust": 1.0,
 "lean": 7.0,
 "legs": 2.5,
-"shake": 0.09,
+"shake": 0.11,
 "shove": 2.8,
 "shove_walk": 1.0,
-"speed": 9.0,
-"trigger_range": 6.5,
+"speed": 11.0,
+"trigger_range": 7.5,
 "windup": 0.8
 }
 knockback = 6.8

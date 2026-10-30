@@ -243,14 +243,15 @@ func test_every_talent_has_six_ranks_on_the_steepening_curve() -> void:
 		assert_int(td.cost_of_rank(6)).is_equal(-1)
 
 
-func test_second_wind_alternates_a_revive_and_revive_health() -> void:
+func test_second_wind_is_revive_health_a_rank() -> void:
+	# pass 115 (lane META, re-pinned): Second Wind alternated a revive and +15% revive health until pass 115; Garry: "Change
+	# the Revive to only affect the amount of HP Player gets when they revive": +10% revive health every rank, no revives
 	var nerve: TalentDef = Registry.talent("nerve")
 	var form := -1
 	for f in nerve.forms.size():
 		if nerve.form_name(f) == "Second Wind":
 			form = f
 	assert_int(form).is_greater_equal(0)
-	assert_int(((nerve.forms[form] as Dictionary).get("rank_effects", []) as Array).size()).is_equal(6)
 	for r in range(1, 7):
 		var revives := 0.0
 		var hp := 0.0
@@ -259,10 +260,9 @@ func test_second_wind_alternates_a_revive_and_revive_health() -> void:
 				revives += e.value
 			elif e.stat == "revive_hp":
 				hp += e.value
-		# ranks 1, 3, 5 a revive; 2, 4, 6 +15% health on getting up
-		assert_float(revives).override_failure_message("rank %d" % r).is_equal_approx(float(ceili(r / 2.0)), 0.0001)
-		assert_float(hp).override_failure_message("rank %d" % r).is_equal_approx(0.15 * float(floori(r / 2.0)), 0.0001)
-	assert_str(TextGen.describe_effects(nerve.summed_effects(form, 4))).is_equal("+2 revives, +30% health on revive")
+		assert_float(revives).override_failure_message("rank %d" % r).is_equal(0.0)
+		assert_float(hp).override_failure_message("rank %d" % r).is_equal_approx(0.1 * float(r), 0.0001)
+	assert_str(TextGen.describe_effects(nerve.summed_effects(form, 4))).is_equal("+40% health on revive")
 	# and it reaches the hero's sheet
 	_fresh_save()
 	_start()
@@ -270,8 +270,8 @@ func test_second_wind_alternates_a_revive_and_revive_health() -> void:
 	var h0 := Run.player_sheet.get_stat("revive_hp", 0.5)
 	Save.data["talents"] = {"nerve": {"form": form, "rank": 4}}
 	_start()
-	assert_float(Run.player_sheet.get_stat("revives", 0.0)).is_equal_approx(r0 + 2.0, 0.0001)
-	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(h0 + 0.3, 0.0001)
+	assert_float(Run.player_sheet.get_stat("revives", 0.0)).is_equal_approx(r0, 0.0001)
+	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(h0 + 0.4, 0.0001)
 	Save.data["talents"] = {}
 	Run.end()
 

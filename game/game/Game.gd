@@ -2562,6 +2562,9 @@ func teleport_hero(def: StructureDef) -> void:
 		# pass 85 (lane WORLD): never out next to a Teleport (params.land_clear)
 		if clear and structures != null and not structures.teleport_landing_ok(def, q):
 			clear = false
+		# pass 115 (lane BOSS): while a boss's barrier holds him, never out past it (1 m inside the hold)
+		if clear and player.fence_r > 0.0 and Vector2(q.x - player.fence_c.x, q.z - player.fence_c.z).length() > player.fence_r - 1.0:
+			clear = false
 		if not clear:
 			continue
 		var dd := Vector2(q.x - from.x, q.z - from.z).length()
@@ -2978,7 +2981,8 @@ func _revive(kind: String) -> void:
 		Run.spend_gold(mini(ReviveScreen.GOLD_COST, Run.run_gold), "revive")
 	if kind != "debug" and kind != "phoenix":
 		Run.revives_used += 1
-	player.revive()
+	# pass 115: a Phoenix Feather's revive keeps its own floor (Player.revive_share)
+	player.revive(kind == "phoenix")
 	# he comes back with a bang: a wave a third of the nuke's that clears everything but the big ones
 	revive_blast()
 	# pass 103: a blast (HIT_BLAST), so Endless's knock resistance leaves its throw whole

@@ -17,6 +17,15 @@ extends ContentDef
 ## a rank, for a form whose ranks are not all the same step (rank 2 is lists 0 and 1); without it every rank is `effects`;
 ## "icon" (Texture2D) and "icon_file" (pass 61, form_icon)
 @export var forms: Array = []
+## Pass 115 (lane META): the player stats whose starting value this talent owns, {stat: value}, put on every hero's sheet
+## with or without a rank (Run.hero_sheet, over StatSheet.PLAYER_DEFAULTS), so the number its ranks raise from lives
+## beside them: Nerve's {"revive_hp": 0.4}, the revive's 40% that Second Wind takes to 100%.
+@export var base_stats: Dictionary = {}
+
+
+## The starting value this talent gives `stat` (base_stats), or `fallback` when it owns none.
+func base_of(stat: String, fallback: float) -> float:
+	return float(base_stats.get(stat, fallback))
 
 
 func form_name(form: int) -> String:

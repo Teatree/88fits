@@ -130,7 +130,8 @@ def checks(check, run_node, server):
     rows = {a["name"]: a for a in king["boss"]["attacks"]}
     check("stomp" in rows and "slam" not in rows, "BOSS95: the King's slam row is the stomp")
     st = rows.get("stomp", {})
-    check(st.get("stomps") == 3 and abs(float(st.get("gap", 0)) - 0.45) < 1e-9 and st.get("jump") == {"height": 2.2, "up": 0.35, "down": 0.2} and st.get("damage") == 18 and st.get("radius") == 6.0 and st.get("telegraph") == "ring",
+    # (pass 115, lane BOSS: the radius 6.0 -> 7.5, Garry's "Increase the range of the Tumbleweed King thump attack ... by 25%")
+    check(st.get("stomps") == 3 and abs(float(st.get("gap", 0)) - 0.45) < 1e-9 and st.get("jump") == {"height": 2.2, "up": 0.35, "down": 0.2} and st.get("damage") == 18 and st.get("radius") == 7.5 and st.get("telegraph") == "ring",
           "BOSS95: the King's stomp row carries the brief's numbers")
     tr = rows.get("tumbleweed_volley", {}).get("trail", {})
     check(all(k in tr for k in ("style", "colour", "alpha", "width", "life", "puffs")), "BOSS95: the King's volley row carries its trail look")

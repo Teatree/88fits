@@ -224,6 +224,26 @@ const SimPlot = (() => {
         base = top.map((v, i) => (v == null ? base[i] : v));
       }
     }
+    // pass 115 (lane DASH): bars, one a bucket of c.bars.step seconds at the bucket's middle (a bar on another's top, one
+    // under the line), and the falls (red) and revives (green) of the runs as ticks on the base line
+    if (c.bars) {
+      const st = c.bars.step || 1;
+      const bw = Math.max(1, ((pw * st) / T) * 0.86);
+      for (const p of M.barParts(c)) {
+        let dd = '';
+        for (let t0 = 0; t0 <= T; t0 += st) {
+          const lo = p.bottom[t0], hi = p.top[t0];
+          if (lo == null || hi == null || Math.abs(hi - lo) < 1e-9) continue;
+          const xc = x(Math.min(T, t0 + (st - 1) / 2)), y0 = y(lo), y1 = y(hi);
+          dd += `M${(xc - bw / 2).toFixed(1)},${Math.min(y0, y1).toFixed(1)}h${bw.toFixed(1)}v${Math.abs(y0 - y1).toFixed(1)}h${(-bw).toFixed(1)}Z`;
+        }
+        if (dd) s.appendChild(svg('path', { d: dd, fill: p.item.color, 'fill-opacity': 0.82, stroke: 'none' }));
+      }
+      // a fall points down onto the base line, a revive up from just under it (one at the same second stays apart)
+      const tick = (t, cls, words, d) => s.appendChild(svg('path', { d: `M${x(t).toFixed(1)},${d}`, class: cls }, svg('title', { text: words })));
+      for (const t of mk.deaths || []) tick(t, 'sim-fall', `a fall at ${M.fmtT(t)}`, `${(H - B).toFixed(1)}l-4,-7h8z`);
+      for (const t of mk.revives || []) tick(t, 'sim-revive', `a revive at ${M.fmtT(t)}`, `${(H - B + 1).toFixed(1)}l-4,7h8z`);
+    }
     for (const b of c.bands) s.appendChild(svg('path', { d: areaD(b.lo, b.hi, x, y, T, pw), fill: b.color, 'fill-opacity': 0.16, stroke: 'none' }));
     for (const l of c.overlay) s.appendChild(svg('path', { d: pathD(l.values, x, y, T, pw), fill: 'none', stroke: M.COMPARE, 'stroke-width': 1.75, 'stroke-dasharray': M.COMPARE_DASH, 'stroke-linejoin': 'round' }));
     for (const l of c.lines) s.appendChild(svg('path', { d: pathD(l.values, x, y, T, pw), fill: 'none', stroke: l.color, 'stroke-width': l.width || 2, 'stroke-dasharray': l.dash || null, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
@@ -286,7 +306,7 @@ const SimPlot = (() => {
       clear(read);
       read.appendChild(el('span', { class: 'sim-read-when', text: when }));
       for (const row of M.readout(c, t)) {
-        const key = row.kind === 'stack' ? keyBox(row.color) : row.kind === 'total' ? keyLine('#c3c2b7') : keyLine(row.color, row.dash);
+        const key = row.kind === 'stack' || row.kind === 'bar' ? keyBox(row.color) : row.kind === 'total' ? keyLine('#c3c2b7') : keyLine(row.color, row.dash);
         read.appendChild(el('span', { class: 'sim-read-item' + (row.kind === 'overlay' ? ' cmp' : '') + (row.kind === 'stack' && !row.value ? ' zero' : '') }, key,
           el('b', { text: M.fmtVal(row.value, c.fmt) }), el('span', { class: 'muted', text: ' ' + row.label }),
           row.sub ? el('span', { class: 'muted small', text: row.kind === 'stack' ? ` (${row.sub})` : ` (middle 80%: ${row.sub})` }) : null));

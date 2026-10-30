@@ -14,6 +14,12 @@
         "op": "add",
         "value": 1,
         "target": "player"
+      },
+      {
+        "stat": "phoenix_hp",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
       }
     ]
   ],

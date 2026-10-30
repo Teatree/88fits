@@ -1,8 +1,13 @@
 """The boot splash (pass 54, Garry: Godot's logo gone at start-up): `game/art/ui/splash.png`, 1080 x 1920, the Wanted
 paper, the launcher painting (`game/icon.png`) as a disc 560 px across in a 6 px ink ring with a hard ink shadow,
-"88fits" under it in Alfa Slab at 140 px in ink with the title screen's hard brass shadow (8 px), and "A survivor
-shooter" in Bitter italic at 36 px in the soft ink. The colours are read from game/ui/wanted/W.gd, so the splash follows
-the UI's palette.
+the game's name under it in Alfa Slab at 140 px in ink with the title screen's hard brass shadow (8 px), and a line in
+Bitter. The colours are read from game/ui/wanted/W.gd, so the splash follows the UI's palette.
+
+Pass 115 (Garry: "Rename the game to Outlaw Survivors, but only in the game itself ... we just write 'Outlaw' with big
+fat text and the 'Drag Dodge Survive' is replaced with simply 'Survivors'"): the name is OUTLAW (it was "88fits") and
+the line under it SURVIVORS (it was "A survivor shooter" in Bitter italic 36 px), set the way the title sets its line:
+Bitter 600 capitals at TAG_PX with TAG_TRACK em after every letter, in ink. The words are W.gd's GAME_WORD and
+GAME_LINE, read like the colours.
 
 Pass 58 (Garry: "for like a second or 2 right before the Main Menu loads I see a kind of a broken version of our Loading
 screen - with brown lines at the top and bottom visible ... My phone is a Pixel 8 pro, might be resolution thing"): the
@@ -44,7 +49,8 @@ RING = 6
 SHADOW = 10           # the disc's hard shadow, down and right
 TITLE_PX = 140
 TITLE_SHADOW = 8
-TAG_PX = 36
+TAG_PX = 30           # the line under the name, as the title screen sets it (W.label, Bitter 600 capitals)
+TAG_TRACK = 0.3       # letter-spacing in em after every letter (the title's tagline: W.label(..., 30, W.INK, 0.3))
 GAP_TITLE = 70        # from the disc's ring to the title's ink
 GAP_TAG = 30
 # the loading bar under the line, drawn empty in the picture (Boot.gd paints its fill): the bar's outer box with its
@@ -73,6 +79,15 @@ def w_color(name):
         raise SystemExit("W.gd has no %s" % name)
     h = m.group(1)
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def w_string(name):
+    """A string constant of the Wanted UI kit (`const NAME := "..."` in W.gd): the game's name words (pass 115)."""
+    src = open(os.path.join(GAME, "ui", "wanted", "W.gd"), encoding="utf-8").read()
+    m = re.search(r'^const %s := "([^"]*)"' % name, src, re.M)
+    if not m:
+        raise SystemExit("W.gd has no %s" % name)
+    return m.group(1)
 
 
 def disc_mask(diameter, canvas, centre):
@@ -104,20 +119,43 @@ def text_box(draw, text, font):
 
 def fonts():
     slab = ImageFont.truetype(os.path.join(FONTS, "AlfaSlabOne-Regular.ttf"), TITLE_PX)
-    italic = ImageFont.truetype(os.path.join(FONTS, "Bitter-Italic.ttf"), TAG_PX)
-    italic.set_variation_by_axes([400])
-    return slab, italic
+    line = ImageFont.truetype(os.path.join(FONTS, "Bitter.ttf"), TAG_PX)
+    line.set_variation_by_axes([600])
+    return slab, line
+
+
+def tracked_box(text, font, track_px):
+    """The ink box (left, top, width, height) of `text` set letter by letter with `track_px` after every letter but the
+    last, as W.label's FontVariation spacing does: left and top against the pen at (0, baseline 0)."""
+    d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    x = 0.0
+    l = t = 10 ** 6
+    r = b = -10 ** 6
+    for ch in text:
+        bl, bt, br, bb = d.textbbox((x, 0), ch, font=font, anchor="ls")
+        if br > bl:
+            l, t, r, b = min(l, bl), min(t, bt), max(r, br), max(b, bb)
+        x += font.getlength(ch) + track_px
+    return l, t, r - l, b - t
+
+
+def tracked_text(d, text, font, track_px, x_left, baseline, color):
+    """`text` drawn letter by letter from the pen at (x_left, baseline), `track_px` after every letter."""
+    x = x_left
+    for ch in text:
+        d.text((x, baseline), ch, font=font, fill=color, anchor="ls")
+        x += font.getlength(ch) + track_px
 
 
 def layout():
     """Where everything goes, in the picture's pixels: the disc's centre, the title's and the line's ink boxes, and
     under them the loading bar (x, y, w, h of its outer box; Boot.gd fills its track) and its word (the top of its line
     box). The whole group, from the ring's top to the word's foot, sits in the middle of the paper."""
-    slab, italic = fonts()
+    slab, line = fonts()
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    title, tag = "88fits", "A survivor shooter"
+    title, tag = w_string("GAME_WORD").upper(), w_string("GAME_LINE").upper()
     tl, tt, tw, th = text_box(d, title, slab)
-    gl, gt, gw, gh = text_box(d, tag, italic)
+    gl, gt, gw, gh = tracked_box(tag, line, round(TAG_PX * TAG_TRACK))
     group = (ICON + RING * 2 + GAP_TITLE + th + GAP_TAG + gh + GAP_BAR + BAR_H + BAR_SHADOW + GAP_LABEL + LABEL_BOX)
     top = round((SIZE[1] - group) * 0.5)
     cx = SIZE[0] * 0.5
@@ -128,7 +166,7 @@ def layout():
     bar = (round(cx - BAR_W * 0.5), bar_y, BAR_W, BAR_H)
     label_y = bar_y + BAR_H + BAR_SHADOW + GAP_LABEL
     return {
-        "slab": slab, "italic": italic, "title": title, "tag": tag, "centre": (cx, cy),
+        "slab": slab, "line": line, "title": title, "tag": tag, "centre": (cx, cy),
         "title_box": (tl, tt, tw, th), "tag_box": (gl, gt, gw, gh), "title_y": ty, "tag_y": gy,
         "bar": bar, "label_y": label_y, "group": (top, top + group),
     }
@@ -175,7 +213,8 @@ def splash():
     d.text((tx - tl + TITLE_SHADOW, ty - tt + TITLE_SHADOW), L["title"], font=L["slab"], fill=brass)
     d.text((tx - tl, ty - tt), L["title"], font=L["slab"], fill=ink)
     gl, gt, gw, gh = L["tag_box"]
-    d.text((cx - gw * 0.5 - gl, L["tag_y"] - gt), L["tag"], font=L["italic"], fill=soft)
+    # the line in ink, as the title sets it; its ink box centred and its top at tag_y
+    tracked_text(d, L["tag"], L["line"], round(TAG_PX * TAG_TRACK), cx - gw * 0.5 - gl, L["tag_y"] - gt, ink)
     empty_bar(d, L["bar"], ink, aged)
     bar_word(d, L["label_y"], soft)
     rgb = img.convert("RGB")

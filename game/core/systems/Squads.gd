@@ -312,7 +312,7 @@ func _tick_one(sq: Dictionary, delta: float, ppos: Vector3) -> void:
 	var dir := flat / dist if dist > 0.001 else Vector3.ZERO
 	# far from the hero the whole squad walks faster together (pass 111's far_speed, read at the anchor)
 	if em.far_speed_on and dist > em._far_d:
-		spd *= em.far_speed_k(m[0], dist)
+		spd *= em.far_speed_k(m[0], dist, spd)
 	var edge := dist - (0.0 if str(cfg.get("band_from", "edge")) == "center" else float(sq["radius"]))
 	var keep := float(cfg.get("keep_distance", 5.5))
 	var rng := float(cfg.get("range", 8.0))

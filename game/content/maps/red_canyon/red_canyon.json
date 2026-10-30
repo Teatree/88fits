@@ -763,7 +763,7 @@
         ],
         "pack": 30,
         "stats": {
-          "hp_mult": 0.84,
+          "hp_mult": 1.0,
           "size": 1.25,
           "damage_mult": 1.25,
           "speed": 1.25
@@ -796,7 +796,7 @@
         ],
         "pack": 10,
         "stats": {
-          "hp_mult": 0.82,
+          "hp_mult": 1.0,
           "size": 1.25,
           "damage_mult": 1.25,
           "speed": 1.25
@@ -826,7 +826,7 @@
         ],
         "pack": 30,
         "stats": {
-          "hp_mult": 1.55,
+          "hp_mult": 2.0,
           "size": [
             1.25,
             2.3
@@ -836,7 +836,7 @@
         "pattern": "ring",
         "pace": "waves",
         "every": 15,
-        "count": 50,
+        "count": 75,
         "role": "fodder"
       },
       {
@@ -978,7 +978,11 @@
         "pattern": "scatter",
         "pack": 1,
         "interval": 6,
-        "role": "fodder"
+        "role": "fodder",
+        "variant": "SC-B",
+        "stats": {
+          "max_alive": 5
+        }
       },
       {
         "id": "r62",
@@ -1015,9 +1019,36 @@
         "stats": {
           "drops": {
             "large": 0.1
-          }
+          },
+          "max_alive": 4
         },
         "role": "fodder"
+      },
+      {
+        "id": "r63",
+        "t": 150,
+        "enemy": "bull_beetle",
+        "weights": [
+          [
+            150,
+            1.0
+          ]
+        ],
+        "until": 155,
+        "pattern": "in_front",
+        "stats": {
+          "drops": {
+            "large": 0.1
+          },
+          "max_alive": 4,
+          "damage_mult": 1.5,
+          "hp_mult": 1.5,
+          "size": 3
+        },
+        "role": "tank",
+        "pace": "once",
+        "count": 1,
+        "pack": 1
       },
       {
         "id": "r54",
@@ -1043,7 +1074,8 @@
             "sat": 0.87,
             "val": 1,
             "amount": 0.09
-          }
+          },
+          "max_alive": 8
         }
       },
       {
@@ -1062,7 +1094,8 @@
         "stats": {
           "drops": {
             "large": 0.1
-          }
+          },
+          "max_alive": 6
         },
         "role": "fodder"
       },
@@ -1080,11 +1113,11 @@
         "stats": {
           "hp": 20,
           "size": 2.0,
-          "hp_mult": 10,
+          "hp_mult": 12,
           "speed": 1.75,
           "damage_mult": 3
         },
-        "pattern": "ring",
+        "pattern": "scatter",
         "pack": 7,
         "pace": "waves",
         "every": 5,
@@ -2440,21 +2473,24 @@
         180
       ],
       "life": [
-        20,
-        30
+        60,
+        90
       ],
       "max_alive": 1,
-      "radius": 2.4,
+      "radius": 3.0,
       "speed": 1.4,
       "wander": "cross",
       "form_seconds": 2.5,
       "fade_seconds": 2.0,
       "toss": {
-        "up": 8.0,
+        "up": 9.5,
         "out": 3.6,
         "cooldown": 1.2
       },
-      "lift": 1.7
+      "lift": 1.7,
+      "lift_height": 4.5,
+      "size": 1.25,
+      "opacity": 0.7
     },
     "barrels": {
       "respawn": {
@@ -2475,7 +2511,7 @@
         "in_endless": false
       },
       "brown": {
-        "powerup_chance": 0.08,
+        "powerup_chance": 0.04,
         "powerups": [
           {
             "id": "heart",
@@ -2511,7 +2547,7 @@
         "coins": 0
       },
       "black": {
-        "powerup_chance": 0.3,
+        "powerup_chance": 0.15,
         "powerups": [
           {
             "id": "heart",
@@ -2593,10 +2629,12 @@
     "water_slow": 0.1,
     "far_speed": {
       "enabled": true,
-      "distance": 14.0,
-      "max_mult": 2.0,
-      "ramp": 6.0,
-      "bosses": true
+      "distance": 12.0,
+      "max_mult": 3.0,
+      "ramp": 24.0,
+      "bosses": true,
+      "curve": "ease_out",
+      "max_speed": 6.0
     },
     "sand": "ripples_pebbles",
     "oases": {

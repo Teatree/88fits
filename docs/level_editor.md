@@ -1149,7 +1149,7 @@ for the details), and says in its own words what it shows and how it was average
 | | **Player HP** | health and max health (dashed), the band the middle 80% |
 | Death | **Runs still playing** | the share of the runs not yet ended |
 | | **Deaths so far** | falls per run (revived or not), counted over every run: an ended run keeps its count |
-| How hard is each second? | **Danger: health lost a second** | how much of his max health the hero loses each second before healing (the line) and after it (dashed: below 0 = he heals more than he loses). 2% means a full bar lasts 50 s |
+| How hard is each second? | **Health, 5 seconds at a time** (pass 115, in Danger's place; Garry: "Danger Health Lost a second is a weird metric ... Just show Current HP instead with bars ... per 5 seconds") | a bar every 5 s: green the lowest his health went in them (% of max HP), red on top the damage he took in them, blue under the line the health he got back; each run's bars first, then averaged; falls (red) and revives (green) ticked on the base line. A sim from before pass 115 has no bars (named under the section) |
 | | **Keeping up with the crowd** | how many seconds of his own damage he would need to kill every creature alive, the boss left out: rising = falling behind, flat or falling = keeping up. Dashed: the boss alone. The middle run at each second, not the mean (a crowd over a DPS jumps where the DPS is small) |
 | | **Close crowd** | creatures within 3 m of the hero (and 6 m, dashed): the ones that can reach him now |
 | | **Who is alive** | the crowd split by creature |
@@ -1169,7 +1169,8 @@ for the details), and says in its own words what it shows and how it was average
 
 A chart the runs cannot draw (the game's runner did not report its numbers) is left out and named under the section.
 Crowd HP and crowd attack are no longer charts: a sum of the whole crowd's health counts the boss, and a sum of every
-creature's hit is never what can land at once; Danger, Keeping up and Close crowd say how hard a second is instead.
+creature's hit is never what can land at once; the health bars (Danger until pass 115), Keeping up and Close crowd say
+how hard a second is instead.
 
 A chart's average is over the runs **still playing** at that second (Runs still playing says how many): late in a sim
 where many runs died, the average is of the stronger runs. The splits show the 7 biggest and the rest as Other (hover:

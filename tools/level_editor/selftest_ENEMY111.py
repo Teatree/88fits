@@ -63,8 +63,9 @@ def checks(check, run_node, server):
     wt = _read(GAME, "core", "data", "WaveTimeline.gd")
     m = re.search(r"const FAR_SPEED_DEFAULTS := (\{.*?\})", wt)
     dflt = json.loads(m.group(1)) if m else {}
-    check(dflt == {"enabled": True, "distance": 14.0, "max_mult": 2.0, "ramp": 6.0, "bosses": True},
-          "ENEMY111: WaveTimeline.FAR_SPEED_DEFAULTS are the rule's numbers (on, 14 m, x2, 6 m ramp, bosses): %s" % dflt)
+    # pass 115 (lane POLISH) re-pinned: 12 m, x3 over a 24 m ramp, quick then levelling off, never past 6 m/s
+    check(dflt == {"enabled": True, "distance": 12.0, "max_mult": 3.0, "ramp": 24.0, "bosses": True, "curve": "ease_out", "max_speed": 6.0},
+          "ENEMY111: WaveTimeline.FAR_SPEED_DEFAULTS are the rule's numbers (on, 12 m, x3, 24 m ramp, bosses, ease_out, 6 m/s): %s" % dflt)
     check("func far_speed_cfg() -> Dictionary" in wt and "@export var far_speed: Dictionary" in wt, "ENEMY111: WaveTimeline carries the block and fills it")
     mp = json.loads(_read(CONTENT, "maps", "red_canyon", "red_canyon.json"))
     tl = mp.get("timeline_data", {})
@@ -74,10 +75,10 @@ def checks(check, run_node, server):
     else:
         rows = {r[0]: r for r in res["rows"]}
         want = {"far_speed." + k for k in dflt}
-        check(set(rows) == want, "ENEMY111: fields.js has exactly the five far_speed rows: %s" % sorted(rows))
+        check(set(rows) == want, "ENEMY111: fields.js has exactly the far_speed rows of the defaults (seven since pass 115): %s" % sorted(rows))
         check(all(r[1] == "Scaling" and r[4] and r[5] is None for r in rows.values()), "ENEMY111: every far_speed row sits in the Scaling card, explained, no block")
         defs = {k: rows["far_speed." + k][3] for k in dflt if "far_speed." + k in rows}
-        check(all(float(defs[k]) == float(dflt[k]) if not isinstance(dflt[k], bool) else defs[k] == dflt[k] for k in defs),
+        check(all(defs[k] == dflt[k] if isinstance(dflt[k], (bool, str)) else float(defs[k]) == float(dflt[k]) for k in defs),
               "ENEMY111: the rows' grey numbers are the game's: %s" % defs)
         check({k: res["defaults"][k] for k in dflt} == {k: (dflt[k] if isinstance(dflt[k], bool) else dflt[k]) for k in dflt},
               "ENEMY111: model.js FAR_SPEED_DEFAULTS are the game's: %s" % res["defaults"])
@@ -88,7 +89,9 @@ def checks(check, run_node, server):
             if not fs["enabled"] or d <= fs["distance"]:
                 return 1.0
             f = 1.0 if fs["ramp"] <= 0 else min(max((d - fs["distance"]) / fs["ramp"], 0.0), 1.0)
-            return 1.0 + (fs["max_mult"] - 1.0) * f * f * (3.0 - 2.0 * f)
+            # pass 115 (lane POLISH): the curve's shape (EnemyManager.far_speed_mult's match)
+            s = {"linear": f, "ease_out": 1.0 - (1.0 - f) * (1.0 - f), "ease_in": f * f}.get(fs.get("curve", "smooth"), f * f * (3.0 - 2.0 * f))
+            return 1.0 + (fs["max_mult"] - 1.0) * s
         want_m = [game_mult(d) for d in (5, 14, 17, 20, 40)]
         check(all(abs(a - b) < 1e-9 for a, b in zip(res["mult"], want_m)), "ENEMY111: farSpeedMult is the game's curve on the map's block: %s" % res["mult"])
         check(res["never"] == 1 and res["off"] == 1 and res["bossOff"] == 1 and abs(res["boss"] - want_m[-1]) < 1e-9,
@@ -109,10 +112,10 @@ def checks(check, run_node, server):
     wd = _read(GAME, "core", "systems", "WaveDirector.gd")
     check("em.set_far_speed(timeline.far_speed_cfg())" in wd, "ENEMY111: the director hands the block to the crowd")
     em = _read(GAME, "core", "systems", "EnemyManager.gd")
-    check("func set_far_speed(cfg: Dictionary) -> void" in em and "static func far_speed_mult(dist: float, distance: float, ramp: float, max_mult: float) -> float" in em
-          and "spd *= far_speed_k(i, dist)" in em, "ENEMY111: EnemyManager plays it on the walk its brain chooses")
+    check("func set_far_speed(cfg: Dictionary) -> void" in em and "static func far_speed_mult(dist: float, distance: float, ramp: float, max_mult: float, curve: int = 0) -> float" in em
+          and "spd *= far_speed_k(i, dist, spd)" in em, "ENEMY111: EnemyManager plays it on the walk its brain chooses")
     blk = tl.get("far_speed")
-    check(blk is None or (isinstance(blk, dict) and all(k in dflt and isinstance(v, (int, float, bool)) for k, v in blk.items())),
+    check(blk is None or (isinstance(blk, dict) and all(k in dflt and isinstance(v, (int, float, bool, str)) for k, v in blk.items())),
           "ENEMY111: Red Canyon's far_speed block holds only the rule's keys: %s" % blk)
     # the content
     sc = json.loads(_read(CONTENT, "enemies", "spit_cactus", "spit_cactus.json"))

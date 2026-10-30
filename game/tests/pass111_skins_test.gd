@@ -112,8 +112,9 @@ func test_every_sold_look_is_painted_named_and_gated_by_a_real_goal() -> void:
 			assert_object(q).override_failure_message(msg + ": no goal").is_not_null()
 			assert_bool(Registry.quest_visible(q)).override_failure_message(msg).is_true()
 			assert_str(TextGen.quest_text(q)).override_failure_message(msg).is_not_equal("Complete a challenge.")
-	# the first set (pass 111): at least two looks are on sale
-	assert_int(sold).is_greater_equal(2)
+	# (pass 111 pinned at least two on sale; pass 115: Garry takes looks off sale in the editor (Solenne's Canyon Red,
+	# May's Midnight Mime), so how many are on sale is his: every one that is must be whole, above)
+	assert_int(sold).is_greater_equal(0)
 
 
 # ---------------------------------------------------------------- owning, buying, wearing

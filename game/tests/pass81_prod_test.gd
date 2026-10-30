@@ -242,11 +242,21 @@ func test_every_creature_boss_and_summon_the_map_brings_is_kept_with_the_looks_i
 			var key := REACH.folder_of(Registry.enemy(str(row["enemy"])))
 			assert_bool(looks.has(key)).override_failure_message("%s has no looks entry" % key).is_true()
 			assert_array(looks[key]["keep"]).override_failure_message("%s %s" % [key, row["variant"]]).contains([str(row["variant"])])
+	# the codes each creature's rows name (pass 115, the lead: look codes are per creature: Garry's spit_cactus row naming
+	# SC-B must not count for the dune scorpion's own SC-B, which the plan rightly drops)
+	var named_by: Dictionary = {}
+	for row in (raw["timeline_data"]["roster"] as Array) + (raw["timeline_data"]["events"] as Array):
+		if row is Dictionary and row.get("variant") is String and row.get("enemy") is String and Registry.enemy(str(row["enemy"])) != null:
+			var fk := REACH.folder_of(Registry.enemy(str(row["enemy"])))
+			if not named_by.has(fk):
+				named_by[fk] = {}
+			(named_by[fk] as Dictionary)[str(row["variant"])] = true
 	for key: String in looks:
 		var lk: Dictionary = looks[key]
 		assert_array(lk["keep"]).contains([str(lk["play"])])
 		for code in lk["drop"]:
-			assert_bool(named.has(str(code)) and lk["kind"] == "creature").override_failure_message("%s drops %s, which the map names" % [key, code]).is_false()
+			var mine: bool = named_by.has(key) and (named_by[key] as Dictionary).has(str(code))
+			assert_bool(mine and lk["kind"] == "creature").override_failure_message("%s drops %s, which the map names" % [key, code]).is_false()
 
 
 func test_heroes_and_cards_keep_only_the_look_they_play() -> void:

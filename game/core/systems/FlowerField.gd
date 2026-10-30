@@ -11,8 +11,29 @@
 ## Pass 49 (Garry: "don't show the HUD guide to where the Flowers are ... since it's a kind of a power-up it should show
 ## up in the HUD as well"): nothing points at the flowers any more; while the buff runs the HUD shows it as a timed
 ## power-up plate with Pollen's icon and its seconds left, one plate however many weapons carry it (is_buff).
+## Pass 115 (lane POLISH; Garry: "Beehive's Flowers are hard to detect, make bigger and slightly animated"): the Pollen
+## settings may carry `flower_size` (x every flower's height; FLOWER_SIZE 1.6 when absent), `sway` (degrees each way its
+## sway leans; SWAY_DEG), `pulse` (the share it breathes bigger and smaller by; PULSE) and `halo` (how opaque a soft ring
+## in its colour, paler, lies on the sand under it, breathing with it; 0 = none; HALO). The halo is see-through, so it is
+## drawn after the stage's filter in its own colour (StageStencil: see-through materials are never tinted), and reads on
+## Nightfall's blue and the Blood Moon's red. Picking is as before (PICK_R round its foot). Cheap: one ring and one
+## material a flower, a few numbers a frame for the at most `max` + KILL_EXTRA flowers.
 class_name FlowerField
 extends Node3D
+
+## The keys' defaults (the reads below spell them out, so the Level Editor's selftest finds them).
+const FLOWER_SIZE := 1.6
+const SWAY_DEG := 9.0
+const PULSE := 0.07
+const HALO := 0.55
+## Radians a second: the sway (pass 48's 1.7) and the breathing.
+const SWAY_W := 1.7
+const PULSE_W := 3.1
+## The halo's radius (m) at a flower's size 1 before flower_size, its band's share of that, and how much of the way to
+## white its colour is.
+const HALO_R := 0.42
+const HALO_BAND := 0.22
+const HALO_PALE := 0.45
 
 const GROUP := "flower_field"
 const KINDS := ["pollen_poppy", "pollen_marigold", "pollen_lupine"]
@@ -211,16 +232,60 @@ func grow_at(at: Vector3, from_kill: bool = false) -> void:
 	var sprite := BillboardSprite.new()
 	node.add_child(sprite)
 	var tex: Texture2D = def.icon if def and def.icon else PlaceholderArt.icon(def, 128)
-	var size := Dice.r.randf_range(SIZE_MIN, SIZE_MAX)
+	# pass 115 (lane POLISH): x flower_size (1.6)
+	var size := Dice.r.randf_range(SIZE_MIN, SIZE_MAX) * flower_size(_cfg)
 	sprite.setup(tex, {"idle": 1}, ["idle"], HEIGHT * size)
 	sprite.set_squash(1.0, 0.0)
 	var blink := float(_cfg.get("blink", 4.0))
 	var life := float(_cfg.get("life", 15.0))
 	if def and def.lifetime > 0.0 and not _cfg.has("life"):
 		life = maxf(def.lifetime - blink, 1.0)
+	var col: Color = def.color if def else Color(1.0, 0.45, 0.7)
+	var halo := _halo(node, col, size)
 	flowers.append({"node": node, "sprite": sprite, "def": def, "t": 0.0, "life": life, "blink": blink, "size": size,
-		"phase": Dice.r.randf() * TAU, "gone": false, "out": 0.0})
+		"phase": Dice.r.randf() * TAU, "gone": false, "out": 0.0, "halo": halo})
 	grown += 1
+
+
+## A weapon's Pollen settings' flower size (pass 115): x every flower's height.
+static func flower_size(cfg: Dictionary) -> float:
+	return clampf(float(cfg.get("flower_size", 1.6)), 0.25, 4.0)
+
+
+## Pass 115 (lane POLISH): the soft ring under a flower of `size` (its height share) in `col`, paler, laid on the slope
+## under `node`; null when the settings' halo is 0.
+func _halo(node: Node3D, col: Color, size: float) -> MeshInstance3D:
+	var a := clampf(float(_cfg.get("halo", 0.55)), 0.0, 1.0)
+	if a <= 0.0:
+		return null
+	var mi := MeshInstance3D.new()
+	mi.name = "Halo"
+	var tm := TorusMesh.new()
+	var r := HALO_R * size
+	tm.outer_radius = r
+	tm.inner_radius = r * (1.0 - HALO_BAND)
+	tm.rings = 24
+	tm.ring_segments = 6
+	mi.mesh = tm
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var pale := col.lerp(Color(1, 1, 1), HALO_PALE)
+	m.albedo_color = Color(pale.r, pale.g, pale.b, a)
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.set_meta("alpha", a)
+	node.add_child(mi)
+	var map = game.get("map") if game else null
+	if map != null and map.has_method("normal_at"):
+		var n: Vector3 = map.normal_at(node.global_position.x, node.global_position.z, 0.8)
+		mi.basis = MapBase.ground_basis(n)
+		mi.position = n * 0.05
+	else:
+		mi.position.y = 0.05
+	mi.scale = Vector3(0.01, 0.35, 0.01)
+	return mi
 
 
 func _tick_flowers(delta: float) -> void:
@@ -231,6 +296,7 @@ func _tick_flowers(delta: float) -> void:
 		if not is_instance_valid(node):
 			continue
 		var sprite: BillboardSprite = f["sprite"]
+		var halo = f.get("halo")
 		f["t"] = float(f["t"]) + delta
 		var t: float = f["t"]
 		if bool(f["gone"]):
@@ -238,19 +304,32 @@ func _tick_flowers(delta: float) -> void:
 			f["out"] = float(f["out"]) + delta
 			var k: float = clampf(1.0 - float(f["out"]) / SHRINK, 0.0, 1.0)
 			sprite.set_squash(k, k)
+			if halo is MeshInstance3D and is_instance_valid(halo):
+				(halo as MeshInstance3D).scale = Vector3(maxf(k, 0.01), 0.35, maxf(k, 0.01))
 			if k <= 0.0:
 				(node as Node).queue_free()
 				continue
 			keep.append(f)
 			continue
-		# rising out of the sand with a little overshoot, then a gentle sway
+		# rising out of the sand with a little overshoot, then a gentle sway and (pass 115) a breathing pulse
 		var g: float = clampf(t / GROW, 0.0, 1.0)
 		var y: float = 1.0 if g >= 1.0 else (1.0 + 0.15 * sin(g * PI)) * (1.0 - pow(1.0 - g, 3.0))
-		sprite.set_squash(1.0, y)
-		sprite.set_roll(sin(t * 1.7 + float(f["phase"])) * 0.07)
+		var ph: float = float(f["phase"])
+		var br: float = sin(t * PULSE_W + ph * 1.3)
+		var p: float = 1.0 + clampf(float(_cfg.get("pulse", 0.07)), 0.0, 0.5) * br * g
+		sprite.set_squash(p, y * p)
+		sprite.set_roll(sin(t * SWAY_W + ph) * deg_to_rad(clampf(float(_cfg.get("sway", 9.0)), 0.0, 45.0)))
 		var end: float = float(f["life"]) + float(f["blink"])
 		# its last seconds blink, so it never just vanishes
 		sprite.visible = t < float(f["life"]) or int((end - t) * 5.0) % 2 == 0
+		if halo is MeshInstance3D and is_instance_valid(halo):
+			var hm: MeshInstance3D = halo
+			var hs: float = maxf(g * (1.0 + 0.08 * br), 0.01)
+			hm.scale = Vector3(hs, 0.35, hs)
+			hm.visible = sprite.visible
+			var mat := hm.material_override as StandardMaterial3D
+			if mat:
+				mat.albedo_color.a = float(hm.get_meta("alpha", HALO)) * (0.8 + 0.2 * br)
 		if t >= end:
 			sprite.visible = true
 			f["gone"] = true

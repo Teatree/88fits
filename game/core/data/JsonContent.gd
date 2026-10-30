@@ -581,6 +581,14 @@ static func _talent(d: Dictionary, dir: String) -> TalentDef:
 	t.currency_type = str(d.get("currency_type", "gold"))
 	if t.currency_type == "":
 		t.currency_type = "gold"
+	# pass 115 (lane META): the stats whose starting value the talent owns (Nerve's revive health), numbers only
+	var bs = d.get("base_stats", {})
+	t.base_stats = {}
+	if bs is Dictionary:
+		for k in (bs as Dictionary).keys():
+			var v = (bs as Dictionary)[k]
+			if v is float or v is int:
+				t.base_stats[str(k)] = float(v)
 	var forms: Array = []
 	var tid := str(d.get("id", ""))
 	for f in (d.get("forms", []) as Array):
@@ -670,7 +678,8 @@ static func _boss_attack(d: Dictionary) -> BossAttackDef:
 	a.attack_kind = str(d.get("kind", "rain"))
 	a.doc = str(d.get("doc", ""))
 	# (pass 113, lane BOSS: a pattern's groups, and its emitters list)
-	for g: String in ["projectile", "pattern", "landing", "telegraph", "timing", "sounds", "params", "hit", "trigger", "guard", "spent", "tell", "shell", "spew"]:
+	# (pass 115, lane BOSS: a pattern's barrier)
+	for g: String in ["projectile", "pattern", "landing", "telegraph", "timing", "sounds", "params", "hit", "trigger", "guard", "spent", "tell", "shell", "spew", "barrier"]:
 		var v = d.get(g, {})
 		a.set(g, (v as Dictionary).duplicate(true) if v is Dictionary else {})
 	var em = d.get("emitters", [])

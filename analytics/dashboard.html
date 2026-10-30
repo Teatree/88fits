@@ -91,7 +91,7 @@
   .tbl { display: none; overflow-x: auto; max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
   .tbl.always { display: block; }
   .card.table .tbl { display: block; }
-  .card.table .plot, .card.table .multi, .card.table .mkey, .card.table .lanes, .card.table .tiles, .card.table .facts, .card.table .meters { display: none; }
+  .card.table .plot, .card.table .multi, .card.table .mkey, .card.table .lanes, .card.table .tiles, .card.table .facts, .card.table .meters, .card.table .board, .card.table .wrows, .card.table .istrip { display: none; }
   .tblbar { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 12px 0 4px; }
   .tblbar .desc { margin: 0; }
   table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
@@ -165,6 +165,51 @@
   .picker .players label.on { border-color: rgba(57,135,229,0.75); }
   .note { color: var(--ink-2); font-size: 0.86rem; margin: 6px 0; }
   .warnline { background: rgba(250,178,25,0.08); border: 1px solid rgba(250,178,25,0.35); border-radius: 8px; padding: 6px 10px; font-size: 0.84rem; margin: 8px 0; }
+  /* pass 115 (lane DASH): icons, the hover hints, the marker strip under a time chart, the weapons' rows, the board */
+  .ico { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 4px; overflow: hidden; vertical-align: middle; }
+  .ico img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .ico.ico-txt { background: var(--surface-3); color: var(--ink-2); font-size: 0.7rem; font-weight: 600; }
+  .hovertip { position: absolute; z-index: 60; display: none; max-width: 340px; background: #0d0d0df2; color: var(--ink); border: 1px solid var(--axis); border-radius: 7px; padding: 7px 10px; font-size: 0.8rem; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,0.45); }
+  .hovertip b { display: block; margin-bottom: 2px; }
+  .hovertip div { color: var(--ink-2); }
+  .istrip { position: relative; margin: 2px 0 6px; }
+  .istrip .irow { position: relative; display: flex; align-items: stretch; border-top: 1px solid var(--grid); }
+  .istrip .irow-lbl { flex: none; color: var(--muted); font-size: 0.7rem; line-height: 1.1; padding: 4px 14px 0 0; text-align: right; overflow: hidden; }
+  .istrip .irow-in { position: absolute; top: 0; bottom: 0; }
+  .istrip .imark { position: absolute; transform: translateX(-50%); cursor: default; border-radius: 4px; outline: none; }
+  .istrip .imark:hover, .istrip .imark:focus { outline: 2px solid var(--ink-2); z-index: 5; }
+  .istrip .imark.dim { opacity: 0.45; }
+  .wrows { display: grid; gap: 6px; margin-top: 8px; }
+  .wrow { display: grid; grid-template-columns: minmax(170px, 250px) minmax(220px, 300px) 1fr; gap: 10px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 0.84rem; }
+  .wrow.off { opacity: 0.45; }
+  .wrow .wname { display: flex; align-items: center; gap: 7px; min-width: 0; cursor: pointer; }
+  .wrow .wname .sw { width: 12px; height: 4px; border-radius: 2px; flex: none; }
+  .wrow .wname .tx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wrow .wname .tx small { color: var(--muted); display: block; font-size: 0.74rem; }
+  .wrow .wnums { color: var(--ink-2); font-variant-numeric: tabular-nums; font-size: 0.8rem; }
+  .wrow .wnums b { color: var(--ink); font-weight: 600; }
+  .wrow .wsrc { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 0; }
+  .wrow .wsrc .lbl { color: var(--muted); font-size: 0.74rem; margin-right: 2px; }
+  .wrow .wsrc .ico { cursor: default; outline: none; border: 1px solid transparent; }
+  .wrow .wsrc .ico:hover, .wrow .wsrc .ico:focus { border-color: var(--ink-2); }
+  .wrow .wsrc .none { color: var(--muted); font-size: 0.78rem; }
+  .board { display: grid; gap: 6px; margin-top: 8px; }
+  .brow { display: grid; grid-template-columns: minmax(130px, 190px) auto 1fr minmax(70px, max-content); gap: 10px; align-items: center; font-size: 0.84rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+  .brow .bname { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .brow .pips { display: flex; gap: 3px; }
+  .brow .pip { width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--axis); display: inline-flex; align-items: center; justify-content: center; outline: none; }
+  .brow .pip.f0 { border-color: rgba(57,135,229,0.85); background: rgba(57,135,229,0.12); }
+  .brow .pip.f1 { border-color: rgba(201,133,0,0.9); background: rgba(201,133,0,0.12); }
+  .brow .pip .ico { width: 20px !important; height: 20px !important; }
+  .brow .bforms { color: var(--ink-2); min-width: 0; }
+  .brow .bgold { color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+  .brow.empty0 { opacity: 0.55; }
+  .oldnote { color: var(--muted); font-size: 0.8rem; font-style: italic; }
+  .seg.small button { padding: 2px 8px; font-size: 0.76rem; }
+  @media (max-width: 560px) {
+    .wrow { grid-template-columns: 1fr; }
+    .brow { grid-template-columns: 1fr; }
+  }
 </style>
 <!-- pass 78: the Sim tab's own chart definitions (sim_model.js), averaging (sim_avg.js), drawing (sim_plot.js) and
      styles (sim.css), from the Level Editor beside this folder: one copy for both pages -->
@@ -244,13 +289,14 @@
   // the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp and boss_now empty (no boss
   // up). Pass 78: the pass-77 keys xp_total, hp_lost, hp_healed, boss_now, near3, near6 (tools/analytics_csv.py the same)
   // pass 102 (lane STEADY): the work keys after pickups (steps ... lost_ms: what the second's frames cost, schema 4)
-  const BASE = ['t', 'clock', 'stage', 'phase', 'wave', 'level', 'xp', 'xp_next', 'xp_total', 'hp', 'hp_max', 'shield', 'invuln', 'gold',
+  const BASE = ['t', 'clock', 'stage', 'phase', 'wave', 'level', 'xp', 'xp_next', 'xp_total', 'hp', 'hp_max', 'hp_min', 'shield', 'invuln', 'gold',
     'banked', 'kills', 'adren', 'cresc', 'desp', 'steady', 'est_total', 'took_raw', 'hits', 'evaded', 'shielded', 'healed',
     'regen', 'hp_lost', 'hp_healed', 'elite_kills', 'alive', 'cap', 'load', 'hard_cap', 'press', 'press_hp', 'press_dmg',
     'boss_hp', 'boss_now', 'specials_alive', 'near3', 'near6', 'frames', 'frame_ms', 'frame_max', 'frame_p95', 'proj', 'pickups',
     'steps', 'steps_max', 'phys_ms', 'phys_max', 'proc_ms', 'proc_max', 'rest_ms', 'lost_ms'];
   // pass 101 (lane FPS): a second without a frame has no frame times (empty, not 0); pass 102: nor work times (lost_ms 0)
-  const EMPTY_WHEN_MISSING = ['boss_hp', 'boss_now', 'frame_ms', 'frame_max', 'frame_p95', 'steps', 'steps_max', 'phys_ms', 'phys_max', 'proc_ms', 'proc_max', 'rest_ms'];
+  // pass 115 (lane DASH): hp_min (schema 5) is on a row only when he went below the row's hp inside that second (empty: he did not)
+  const EMPTY_WHEN_MISSING = ['boss_hp', 'boss_now', 'hp_min', 'frame_ms', 'frame_max', 'frame_p95', 'steps', 'steps_max', 'phys_ms', 'phys_max', 'proc_ms', 'proc_max', 'rest_ms'];
   // the second's tallies by id, flattened as group.key; a missing one is 0
   const MAPS = ['est', 'dmg', 'took', 'took_kind', 'hits_by', 'healed_by', 'killed', 'spawned', 'alive_by', 'gold_in', 'gold_out'];
   // the build's snapshots: on a row only when they changed; carried forward to every second until the next one
@@ -527,8 +573,21 @@
           ctx.fillStyle = COL.surface; mark(5.5);
           ctx.fillStyle = d.color; mark(3.5);
         }
+        // pass 115 (lane DASH): the moments a hovered icon stands for (its picks, its level-ups), drawn over the lines
+        for (const t of o.hl || []) {
+          const px = x.getPixelForValue(t);
+          ctx.strokeStyle = COL.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+          ctx.beginPath(); ctx.moveTo(px, a.top); ctx.lineTo(px, a.bottom); ctx.stroke(); ctx.setLineDash([]);
+        }
         ctx.restore();
       },
+    });
+    // pass 115 (lane DASH): an icon strip under a time chart (iconStrip(): the markers as icons) follows the chart's plot
+    // area: its rows start where the plot starts and are as wide; the icons move when the width changes
+    Chart.register({
+      id: 'iconStrip',
+      // (a function kept on the chart itself: Chart.js calls a function among the options as a scriptable option)
+      afterRender(chart) { if (typeof chart.$iconPlace === 'function') chart.$iconPlace(chart); },
     });
     // the crosshair: a hairline at the hovered second
     Chart.register({
@@ -554,7 +613,7 @@
     const rows = (run.samples || []).slice().sort((p, q) => p.t - q.t);
     const n = rows.length ? Math.round(rows[rows.length - 1].t) + 1 : 0;
     const A = () => new Float64Array(n);
-    const S = { run, n, schema: +run.schema || 1, has: new Uint8Array(n), hp: A(), hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), regen: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(), specials: A(), hpMult: A(), dmgMult: A(), timeScale: A(), adren: A(), cresc: A(), desp: A(), steady: A(), power: A(), fullDps: A(), ehp: A(),
+    const S = { run, n, schema: +run.schema || 1, has: new Uint8Array(n), hp: A(), hpMin: A(), hasHpMin: false, hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), regen: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(), specials: A(), hpMult: A(), dmgMult: A(), timeScale: A(), adren: A(), cresc: A(), desp: A(), steady: A(), power: A(), fullDps: A(), ehp: A(),
       frames: A(), frameMs: A(), frameMax: A(), frameP95: A(), proj: A(), pickups: A(), hasFrames: false, hasDrawn: false,
       steps: A(), stepsMax: A(), stepsPerFrame: A(), physMs: A(), physMax: A(), physFrame: A(), procMs: A(), procMax: A(), restMs: A(), workMs: A(), lostMs: A(), hasWork: false,
       dmgBy: {}, estBy: {}, tookBy: {}, hitsBy: {}, healedBy: {}, killedBy: {}, spawnedBy: {}, aliveBy: {}, tookKind: { melee: A(), ranged: A(), boss: A() }, snaps: [] };
@@ -567,6 +626,9 @@
       S.has[s] = 1;
       if (r.hp_max) hpMax = r.hp_max;
       S.hp[s] = r.hp || 0; S.hpMax[s] = hpMax; S.shield[s] = r.shield || 0; S.invuln[s] = r.invuln ? 1 : 0;
+      // pass 115 (lane DASH): the lowest he touched inside the second (schema 5; on the row only when below its hp)
+      if (r.hp_min != null) S.hasHpMin = true;
+      S.hpMin[s] = r.hp_min != null ? Math.min(+r.hp_min, r.hp || 0) : (r.hp || 0);
       S.est[s] = r.est_total || 0; S.alive[s] = r.alive || 0; S.cap[s] = r.cap || 0; S.load[s] = r.load || 0; S.hardCap[s] = r.hard_cap || 0;
       S.press[s] = r.press || 0; S.pressHp[s] = r.press_hp || 0; S.pressDmg[s] = r.press_dmg || 0;
       S.level[s] = r.level || 1; S.xpFrac[s] = r.xp_next ? Math.min(1, (r.xp || 0) / r.xp_next) : 0; S.gold[s] = r.gold || 0; S.banked[s] = r.banked || 0; S.kills[s] = r.kills || 0;
@@ -597,10 +659,10 @@
     S.hasMults = !!curM;
     if (S.hasFrames) for (let s = 0; s < n; s++) if (!S.has[s]) { S.frameMs[s] = NaN; S.frameMax[s] = NaN; S.frameP95[s] = NaN; }
     if (S.hasWork) for (let s = 0; s < n; s++) if (!S.has[s] || !(S.frames[s] > 0)) { S.physFrame[s] = NaN; S.procMs[s] = NaN; S.restMs[s] = NaN; S.workMs[s] = NaN; S.stepsPerFrame[s] = NaN; S.physMs[s] = NaN; }
-    for (let s = 1; s < n; s++) if (!S.has[s]) { for (const k of STATE) S[k][s] = S[k][s - 1]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][s - 1]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][s - 1]; }
+    for (let s = 1; s < n; s++) if (!S.has[s]) { S.hpMin[s] = S.hp[s - 1]; for (const k of STATE) S[k][s] = S[k][s - 1]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][s - 1]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][s - 1]; }
     // the first row is second 1 (a row closes a second): the seconds before it take its state, not zeros
     const first = S.has.indexOf(1);
-    for (let s = 0; s < first; s++) { for (const k of STATE) S[k][s] = S[k][first]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][first]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][first]; }
+    for (let s = 0; s < first; s++) { S.hpMin[s] = S.hp[first]; for (const k of STATE) S[k][s] = S[k][first]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][first]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][first]; }
     S.realR10 = roll(S.real, 10); S.killedR10 = roll(S.killed, 10); S.spawnedR10 = roll(S.spawned, 10); S.tookR10 = roll(S.took, 10);
     S.dmgByR15 = {}; for (const k in S.dmgBy) S.dmgByR15[k] = roll(S.dmgBy[k], 15);
     // the weapons in slot order (the build's order, then anything else that dealt damage), non-weapon sources apart
@@ -795,7 +857,9 @@
     renderSummary($main, S);
     renderSim($main, S);
     const grid = el('div', 'grid'); $main.appendChild(grid);
-    const steps = [renderFacts, renderPower, renderHeroPower, renderPressure, renderRatio, renderHealth, renderEnemies, renderHitLog, renderBosses, renderSpecials,
+    // pass 115 (lane DASH): the Upgrade board after the run's facts; level and items, then each weapon's real DPS, after the
+    // hero's power; health in 5 s bars after the health line
+    const steps = [renderFacts, renderBoard, renderPower, renderHeroPower, renderLevelItems, renderWeaponDps, renderPressure, renderRatio, renderHealth, renderHealth5, renderEnemies, renderHitLog, renderBosses, renderSpecials,
       renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderPickups, renderTotems, renderHealing, renderSurvival, renderStats,
       renderMults, renderStacks, renderCrowd, renderFrames, renderRates, renderProgress, renderGold, renderQuests];
     for (const f of steps) {
@@ -1501,6 +1565,456 @@
     grid.appendChild(c);
   }
 
+  // ------------------------------------------------------------ pass 115 (lane DASH): the board, level and items, each weapon's real DPS, health in 5 s bars
+  // Garry (pass 115): "Hero Level (don't replace hero power), but add Hero Level ... Hero Items Count as well";
+  // "Individual Weapon Real DPS ... For each item that was affected by other items we list those as icons as well (with
+  // highlight hint to show what they did) ... a graph over time just like everything else. Where new items that affect
+  // the DPS, power-ups, war Drums and upgrades are all displayed"; "Danger Health Lost a second is a weird metric ... Just
+  // show Current HP instead with bars. Show different coloured bars for damage taken. Make it be per 5 seconds"; "There
+  // should be info about what level of Mirror Upgrade Player was when they played". A record from before 0.98 (schema 5)
+  // has no board prices, no weapon sources and no lowest HP inside a second: each card says so and draws what it can.
+  const OLD_WORDS = 'not in this run\'s record (recorded before 0.98)';
+  const BOARD_MAX_OLD = 48;   // eight talents of six ranks: an older record's board (it names only the talents with a rank)
+  const HP_BUCKET = 5;        // the health bars' seconds
+  const DPS_WINDOWS = [5, 10, 30];
+  // the hero's stats every weapon folds in or its hits read (RunAnalytics.WEAPON_FEED): a Totem gift of one shaped them
+  const FEED = ['might', 'cooldown', 'haste', 'area', 'projectile_speed', 'duration', 'amount', 'crit_chance', 'crit_damage', 'elite_damage', 'ricochet', 'overkill', 'execute_frac', 'debuff_duration'];
+  const ICON_DIRS = { weapon: ['weapons', 'evolutions'], evolution: ['evolutions', 'weapons'], passive: ['passives'], passive_evolution: ['passives'], line: ['passives'], line_evolution: ['passives'], mutation: ['mutations'], perk: ['perks'], pickup: ['pickups'], structure: ['structures'] };
+  const ALL_DIRS = ['weapons', 'evolutions', 'passives', 'mutations', 'perks', 'pickups', 'structures'];
+  const VIA_WORDS = { starter: 'the starting weapon', card: 'a level-up card', path: 'a mutation level-up', chest: 'a chest', boss_chest: 'the boss chest', stranger: 'the Stranger', shop: 'bought at the shop', debug: 'the debug hand' };
+  const SRC_KIND_WORDS = { passive: 'passive item or card', favourite: 'the hero\'s favourite', perk: 'perk', mutation: 'mutation', talent: 'Upgrade board', trait: 'the hero\'s trait', hero: 'the hero', momentum: 'the hero\'s momentum', totem: 'Totem gift', stranger: 'the Stranger', buff: 'a boost running at the end', weapon: 'a weapon', bonus: 'the hero\'s favourite' };
+
+  /** Where an id's icon may be, in order: the record's own path (schema 5: `icons`, the look the run played), then the
+   *  content folders an id of that kind lives in (an older record: the base look's icon); relative to this page
+   *  (../game/ is res://). `key` "talent:<id>[:<form>]", "hero:<id>", a totem gift's id with kind "totem", else an id. */
+  function iconCands(S, key, kind) {
+    const out = [];
+    const ic = (S && S.run && S.run.icons) || {};
+    const add = (p) => { if (p && !out.includes(p)) out.push(p); };
+    const k = String(key || '');
+    if (ic[k]) add('../game/' + ic[k]);
+    if (k.startsWith('talent:')) { const p = k.split(':'); add('../game/content/talents/' + p[1] + '/' + p[1] + (p.length > 2 ? '_' + p[2] : '') + '_icon.png'); return out; }
+    if (k.startsWith('hero:')) { const id = k.slice(5); add('../game/content/characters/' + id + '/' + id + '_icon.png'); return out; }
+    if (kind === 'totem') { add('../game/art/ui/totem/spirit_' + k + '.png'); return out; }
+    if (!k) return out;
+    for (const d of (ICON_DIRS[kind] || ALL_DIRS)) add('../game/content/' + d + '/' + k + '/' + k + '_icon.png');
+    return out;
+  }
+  /** An icon (the first file of iconCands that loads), else the name's first letter in a grey square. */
+  function iconEl(S, key, kind, size, label, path) {
+    const cands = path ? ['../game/' + path].concat(iconCands(S, key, kind)) : iconCands(S, key, kind);
+    const box = el('span', 'ico'); box.style.width = size + 'px'; box.style.height = size + 'px';
+    const letter = () => { box.textContent = String(label || key || '?').replace(/^the\s+/i, '').charAt(0).toUpperCase(); box.classList.add('ico-txt'); };
+    if (!cands.length) { letter(); return box; }
+    const img = document.createElement('img'); img.alt = label || ''; img.decoding = 'async';
+    let i = 0;
+    img.onerror = () => { i++; if (i < cands.length) img.src = cands[i]; else { img.remove(); letter(); } };
+    img.src = cands[0]; box.appendChild(img);
+    return box;
+  }
+  // the page's one hover hint: a title line and the lines under it, over (or under) the thing hovered
+  let TIP = null;
+  function tipShow(target, lines) {
+    if (!TIP) { TIP = el('div', 'hovertip'); document.body.appendChild(TIP); }
+    TIP.textContent = '';
+    let first = true;
+    for (const ln of lines || []) { if (ln == null || ln === '') continue; TIP.appendChild(el(first ? 'b' : 'div', null, ln)); first = false; }
+    if (first) return;
+    TIP.style.display = 'block';
+    const r = target.getBoundingClientRect(), tw = TIP.offsetWidth, th = TIP.offsetHeight;
+    let x = r.left + r.width / 2 - tw / 2, y = r.top - th - 8;
+    if (y < 4) y = r.bottom + 8;
+    x = Math.max(4, Math.min(document.documentElement.clientWidth - tw - 4, x));
+    TIP.style.left = (x + window.scrollX) + 'px'; TIP.style.top = (y + window.scrollY) + 'px';
+  }
+  function tipHide() { if (TIP) TIP.style.display = 'none'; }
+  /** A hover (or keyboard focus) hint on a node; `on(true|false)` hears it come and go (the chart's highlight). */
+  function hoverTip(node, lines, on) {
+    node.tabIndex = 0;
+    const enter = () => { tipShow(node, typeof lines === 'function' ? lines() : lines); if (on) on(true); };
+    const leave = () => { tipHide(); if (on) on(false); };
+    node.addEventListener('mouseenter', enter); node.addEventListener('mouseleave', leave);
+    node.addEventListener('focus', enter); node.addEventListener('blur', leave);
+  }
+  const verb = (k) => (SRC_KIND_WORDS[k] || k || 'a source');
+
+  // ---- the Upgrade board
+  /** A record's board: {rows: [{id, name, max, picks, forms, texts, gold}], ranks, max, gold, spent, full} from schema
+   *  5's `board`; from an older record's `talents` / `talent_forms` (only the talents with a rank, no most and no prices:
+   *  full false); null without either (a record from before 0.60). */
+  function boardOf(run) {
+    if (!run) return null;
+    const b = run.board;
+    if (b && Array.isArray(b.talents)) {
+      return { rows: b.talents.map((t) => ({ id: String(t.id), name: t.name || titleCase(t.id), max: +t.max || 0, picks: Array.isArray(t.picks) ? t.picks.map(Number) : [], forms: t.forms || [], texts: t.texts || [], gold: t.gold != null ? +t.gold : null })),
+        ranks: +b.ranks || 0, max: +b.max || 0, gold: b.gold != null ? +b.gold : null, spent: b.spent != null && +b.spent >= 0 ? +b.spent : null, full: true };
+    }
+    if (run.talents && typeof run.talents === 'object' && !Array.isArray(run.talents)) {
+      const names = run.names || {}, forms = run.talent_forms || {};
+      const rows = Object.keys(run.talents).map((id) => ({ id, name: names[id] || titleCase(id), max: 0, picks: (Array.isArray(run.talents[id]) ? run.talents[id] : []).map(Number), forms: forms[id] || [], texts: [], gold: null }));
+      return { rows, ranks: rows.reduce((a, t) => a + t.picks.length, 0), max: 0, gold: null, spent: null, full: false };
+    }
+    return null;
+  }
+  /** "12 / 48": ranks bought of the board's most (an older record: of 48), from a record or an index row. */
+  function boardShort(r) {
+    if (!r) return '–';
+    if (typeof r.talents === 'number') return r.talents + ' / ' + (+r.board_max || BOARD_MAX_OLD);
+    const b = boardOf(r);
+    return b ? b.ranks + ' / ' + (b.max || BOARD_MAX_OLD) : '–';
+  }
+  function renderBoard(grid, S) {
+    const r = S.run, b = boardOf(r);
+    const c = card('Upgrade board', 'The Upgrade board (the Mirror) as this run began: every talent, its ranks bought and the form of each rank (blue: its first form, amber: its second; hover a rank for its line), and the gold those ranks cost.', { wide: true, slug: 'upgrade-board' });
+    if (!b) { c.appendChild(el('p', 'oldnote', 'The Upgrade board is not in this run\'s record (recorded before 0.60).')); grid.appendChild(c); return; }
+    const tiles = el('div', 'tiles');
+    const withRank = b.rows.filter((t) => t.picks.length).length;
+    tileIn(tiles, 'Ranks bought', b.ranks + ' of ' + (b.max || BOARD_MAX_OLD), b.full ? withRank + ' of ' + b.rows.length + ' talents have a rank' : 'of 48 (eight talents of six ranks); the most per talent is ' + OLD_WORDS);
+    tileIn(tiles, 'Gold in the board', b.gold != null ? fmtI(b.gold) : '–', b.gold != null ? 'its ranks at this build\'s prices' + (b.spent === 0 && b.ranks > 0 ? ' · nothing paid: a board a tool or the developer menu set' : (b.spent != null && b.spent !== b.gold ? ' · the save says ' + fmtI(b.spent) + ' was paid' : '')) : 'the gold is ' + OLD_WORDS);
+    c.appendChild(tiles);
+    const box = el('div', 'board');
+    for (const t of b.rows) {
+      const row = el('div', 'brow' + (t.picks.length ? '' : ' empty0'));
+      const nm = el('div', 'bname'); nm.appendChild(iconEl(S, 'talent:' + t.id, 'talent', 26, t.name)); nm.appendChild(el('b', null, t.name)); row.appendChild(nm);
+      const pips = el('div', 'pips');
+      const n = Math.max(t.max || 0, t.picks.length);
+      for (let k = 0; k < n; k++) {
+        const f = t.picks[k];
+        const p = el('span', 'pip' + (f === 0 ? ' f0' : f === 1 ? ' f1' : ''));
+        if (f === 0 || f === 1) {
+          p.appendChild(iconEl(S, 'talent:' + t.id + ':' + f, 'talent', 20, t.forms[f] || 'AB'[f]));
+          hoverTip(p, [t.name + ', rank ' + (k + 1) + ': ' + (t.forms[f] || (f ? 'its second form' : 'its first form')), t.texts[f] || '']);
+        } else hoverTip(p, [t.name + ', rank ' + (k + 1) + ': not bought']);
+        pips.appendChild(p);
+      }
+      row.appendChild(pips);
+      const n0 = t.picks.filter((x) => x === 0).length, n1 = t.picks.length - n0;
+      row.appendChild(el('div', 'bforms', t.picks.length ? [n0 ? (t.forms[0] || 'first form') + ' ×' + n0 : '', n1 ? (t.forms[1] || 'second form') + ' ×' + n1 : ''].filter(Boolean).join(' · ') : 'no rank'));
+      row.appendChild(el('div', 'bgold', t.gold != null ? fmtI(t.gold) + ' gold' : ''));
+      box.appendChild(row);
+    }
+    if (!b.full) box.appendChild(el('p', 'oldnote', 'Only the talents with a rank are listed: the other talents, each talent\'s most ranks and the gold are ' + OLD_WORDS + '.'));
+    c.appendChild(box);
+    tableView(c, [{ label: 'talent' }, { label: 'id' }, { label: 'ranks', num: true, d: 0 }, { label: 'most', num: true, d: 0 }, { label: 'forms by rank' }, { label: 'first form' }, { label: 'second form' }, { label: 'gold', num: true, d: 0 }],
+      b.rows.map((t) => [t.name, t.id, t.picks.length, t.max || '', t.picks.map((x) => (x ? 'B' : 'A')).join(''), t.forms[0] || '', t.forms[1] || '', t.gold != null ? t.gold : '']));
+    grid.appendChild(c);
+  }
+
+  // ---- level and items held
+  /** Items held each second from the build's snapshots (carried forward): weapons (an evolution counts as its weapon),
+   *  cards (the lines), passive items, perks. */
+  function heldSeries(S) {
+    const out = { weapons: new Float64Array(S.n), lines: new Float64Array(S.n), passives: new Float64Array(S.n), perks: new Float64Array(S.n) };
+    const snaps = S.snaps.filter((x) => x.weapons || x.passives || x.lines);
+    let si = 0, cur = snaps[0] || null;
+    for (let s = 0; s < S.n; s++) {
+      while (si < snaps.length && snaps[si].s <= s) { cur = snaps[si]; si++; }
+      if (!cur) continue;
+      out.weapons[s] = Array.isArray(cur.weapons) ? cur.weapons.length : 0;
+      out.lines[s] = Object.keys(cur.lines || {}).length;
+      out.passives[s] = Object.keys(cur.passives || {}).length;
+      out.perks[s] = Array.isArray(cur.perks) ? cur.perks.length : 0;
+    }
+    return out;
+  }
+  function renderLevelItems(grid, S) {
+    if (!S.n) return;
+    const h = heldSeries(S);
+    const items = Float64Array.from(h.weapons, (v, i) => v + h.lines[i] + h.passives[i]);
+    const cardsApart = S.schema >= 2;
+    const c = card('Hero level and items held', 'Left: the hero\'s level each second. Right: how many items he holds, stacked: weapons (an evolution counts as its weapon), cards (the lines, the fortune cards' + (cardsApart ? '' : '; a record from before 0.60 counts them with the passive items') + ') and passive items; the top edge is the count. Perks (the hero\'s own) are not items: the dashed line. Read beside Hero power above.', { wide: true, slug: 'level-and-items' });
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      const mo = markerOpts(S, {});
+      const mk = { bands: mo.bands, stages: mo.stages.filter((x) => !/^W\d/.test(x.label)), events: mo.events.filter((e) => e.line) };
+      const lv = timeChart(multiBox(m, 'level', 220), S, [line('level', S.level, ROLE.level, { stepped: true, fill: true, d: 0 })], { markers: mk, y: { ticks: { precision: 0, maxTicksLimit: 6 } } });
+      lv.options.plugins.legend.display = false; lv.update();
+      const area = (label, arr, color) => line(label, arr, color, { stepped: true, fill: true, backgroundColor: alpha(color, 0.55), borderColor: COL.surface, borderWidth: 1, d: 0 });
+      const ds = [area('weapons', h.weapons, COL.s[0]), area('cards', h.lines, COL.s[6]), area('passive items', h.passives, COL.s[2]),
+        line('items held', items, COL.ink2, { stepped: true, borderWidth: 1.5, d: 0 }), line('perks (not counted)', h.perks, COL.s[3], { stepped: true, borderDash: [5, 3], borderWidth: 1.5, d: 0 })];
+      const ch = timeChart(multiBox(m, 'items held', 220), S, ds, { markers: mk, y: { stacked: false, ticks: { precision: 0, maxTicksLimit: 6 } } });
+      // the three kinds stack; the total and the perks are lines on their own
+      ch.options.scales.y.stacked = false;
+      for (const d0 of ch.data.datasets.slice(0, 3)) d0.stack = 'held';
+      ch.data.datasets[0].fill = 'origin'; ch.data.datasets[1].fill = '-1'; ch.data.datasets[2].fill = '-1';
+      const cum = [h.weapons, Float64Array.from(h.weapons, (v, i) => v + h.lines[i]), items];
+      ch.data.datasets.slice(0, 3).forEach((d0, k) => { d0.data = pts(cum[k]); d0.raw = [h.weapons, h.lines, h.passives][k]; });
+      ch.options.plugins.tooltip.callbacks.label = (it) => ' ' + fmtN(it.dataset.raw ? it.dataset.raw[it.dataIndex] : it.parsed.y, 0) + '  ' + it.dataset.label;
+      ch.update();
+      c.appendChild(m);
+    }
+    const lvUps = evs(S, 'level').length;
+    c.appendChild(el('p', 'desc', 'Level ' + fmtI(S.level[S.n - 1]) + ' at the end (' + lvUps + ' level-ups) · ' + fmtI(items[S.n - 1]) + ' items held: ' + fmtI(h.weapons[S.n - 1]) + ' weapons, ' + fmtI(h.lines[S.n - 1]) + ' cards, ' + fmtI(h.passives[S.n - 1]) + ' passive items' + (h.perks[S.n - 1] ? ' · ' + fmtI(h.perks[S.n - 1]) + ' perks' : '') + '.'));
+    timeTable(c, S, [{ label: 'level', data: S.level, d: 0 }, { label: 'items held', data: items, d: 0 }, { label: 'weapons', data: h.weapons, d: 0 }, { label: 'cards', data: h.lines, d: 0 }, { label: 'passive items', data: h.passives, d: 0 }, { label: 'perks', data: h.perks, d: 0 }]);
+    grid.appendChild(c);
+  }
+
+  // ---- each weapon's real DPS
+  /** An id's family: an evolution's base weapon (schema 5's weapon_family, else the evolution events' `from`). */
+  function familyOf(S) {
+    const fam = Object.assign({}, S.run.weapon_family || {});
+    for (const e of S.events) if (e.kind === 'evolution' && e.id && e.from && !fam[e.id]) fam[e.id] = e.from;
+    return (id) => { let f = id, k = 0; while (fam[f] && fam[f] !== f && k++ < 5) f = fam[f]; return f; };
+  }
+  /** {sid: [{weapon, w}]}: which weapon each source shaped and how (schema 5's weapon_sources; {} before). */
+  function sourcesBySid(S) {
+    const out = {};
+    const ws = S.run.weapon_sources || {};
+    for (const wid of Object.keys(ws)) for (const x of ws[wid] || []) { if (!x || !x.s) continue; (out[x.s] = out[x.s] || []).push({ weapon: wid, w: x.w || '', n: x.n || '', k: x.k || '', i: x.i || '' }); }
+    return out;
+  }
+  /** The moments a source joined or grew (its pick events): a passive's or card's levels, a perk, a mutation, a Totem
+   *  gift, the Stranger's deal; [] for what was there from the start (the board, the hero, his trait). */
+  function sourceTimes(S, sid) {
+    const i = sid.indexOf(':'); const kind = i > 0 ? sid.slice(0, i) : sid; const id = i > 0 ? sid.slice(i + 1).split(':')[0] : '';
+    const kinds = { passive: ['passive', 'passive_evolution', 'line', 'line_evolution'], favourite: ['passive'], perk: ['perk'], mutation: ['mutation'], totem: ['totem'], weapon: ['weapon', 'evolution'] }[kind];
+    if (kind === 'stranger') return S.events.filter((e) => e.kind === 'stranger').map((e) => e.t);
+    if (!kinds) return [];
+    return S.events.filter((e) => kinds.includes(e.kind) && String(e.id) === id).map((e) => e.t);
+  }
+  /** The marks under the weapons' chart, by row: weapons (taken, a level, a mutation, an evolution), items (the cards,
+   *  passive items and perks that changed a weapon's numbers, Totem gifts of a weapon stat, the Stranger's deals),
+   *  boosts (every power-up and the War Drum). [{t, row, key, kind, label, lines}] */
+  function dpsMarks(S, famOf, bySid, fresh) {
+    const out = [];
+    const wn = (id) => S.name(id);
+    // what a source did to the weapons: one line when it did the same to every weapon it shaped
+    const shaped = (sid) => {
+      const l = bySid[sid] || [];
+      if (l.length > 1 && l.every((x) => x.w === l[0].w)) return ['every weapon held at the end: ' + l[0].w];
+      return l.map((x) => S.name(x.weapon) + ': ' + x.w);
+    };
+    for (const e of S.events) {
+      const t = e.t, at = fmtT(t) + ' · ';
+      const how = e.via ? ' (' + (VIA_WORDS[e.via] || e.via) + ')' : '';
+      const est = e.est_before != null && e.est_after != null ? 'the build\'s estimate ' + fmtN(e.est_before) + ' → ' + fmtN(e.est_after) + ' DPS' : '';
+      if (e.kind === 'weapon') out.push({ t, row: 'weapons', key: e.id, kind: 'weapon', label: wn(e.id), lines: [at + wn(e.id) + (e.new ? ' joined at level ' + (e.level || 1) : ' to level ' + (e.level || '?')) + how, est] });
+      else if (e.kind === 'evolution') out.push({ t, row: 'weapons', key: e.id, kind: 'evolution', label: wn(e.id), lines: [at + '★ ' + wn(e.from) + ' evolved into ' + wn(e.id) + how, est] });
+      else if (e.kind === 'mutation') out.push({ t, row: 'weapons', key: e.id, kind: 'mutation', label: wn(e.id), lines: [at + wn(e.id) + (e.hero ? ' (hero mutation)' : ' (mutation)') + (e.weapon ? ' on ' + wn(e.weapon) : '') + how, est].concat(shaped('mutation:' + e.id)) });
+      else if (['passive', 'passive_evolution', 'line', 'line_evolution', 'perk'].includes(e.kind)) {
+        const sid = (e.kind === 'perk' ? 'perk:' : 'passive:') + e.id;
+        const sh = shaped(sid).concat(e.kind === 'perk' ? [] : shaped('favourite:' + e.id));
+        if (fresh && !sh.length) continue;
+        const what = e.kind === 'perk' ? 'perk' : (e.line || e.kind.startsWith('line') ? 'card' : 'passive item');
+        out.push({ t, row: 'items', key: e.id, kind: e.kind === 'perk' ? 'perk' : 'passive', label: wn(e.id), lines: [at + wn(e.id) + (e.level > 1 ? ' to level ' + e.level : '') + ' (' + what + ')' + how, est].concat(fresh ? sh : ['which weapons it changed is ' + OLD_WORDS]) });
+      } else if (e.kind === 'totem' && FEED.includes(String(e.stat || ''))) out.push({ t, row: 'items', key: e.id, kind: 'totem', label: wn(e.id), lines: [at + 'Totem gift: ' + wn(e.id), S.statName(e.stat) + ' ' + ((+e.value || 0) >= 0 ? '+' : '') + (+(+e.value || 0).toFixed(3))].concat(shaped('totem:' + e.id)) });
+      else if (e.kind === 'stranger') out.push({ t, row: 'items', key: e.id, kind: e.type === 'weapon' ? 'weapon' : e.type === 'mutation' ? 'mutation' : 'passive', label: wn(e.id), lines: [at + 'the Stranger\'s deal: ' + wn(e.id) + (e.level ? ' at level ' + e.level : ''), 'for ' + fmtPct(e.cost) + ' of max HP'] });
+      else if (e.kind === 'pickup' && !(e.small === true || (typeof e.small === 'number' && e.small !== 0))) out.push({ t, row: 'boosts', key: e.id, kind: 'pickup', label: wn(e.id), lines: [at + wn(e.id) + ' (power-up' + (e.effect ? ': ' + e.effect : '') + ')'] });
+      else if (e.kind === 'structure' && (e.id === 'war_drum' || e.effect === 'buff')) out.push({ t, row: 'boosts', key: e.id, kind: 'structure', label: wn(e.id), lines: [at + wn(e.id) + (e.id === 'war_drum' ? ' (the drum moment, then its boost)' : ' (a boost)')] });
+    }
+    return out;
+  }
+  /** The icon strip under a time chart: one row a kind of mark, each mark an icon at its second (hover: what it was, a
+   *  dashed line on the chart at it). Rows lay their icons in up to three lanes so they do not cover each other. */
+  function iconStrip(c, S, marks, rows) {
+    const strip = el('div', 'istrip');
+    const SZ = 18, LANES = 3;
+    const built = rows.map(([key, label]) => {
+      const row = el('div', 'irow'); const lbl = el('div', 'irow-lbl', label); const inner = el('div', 'irow-in');
+      row.appendChild(lbl); row.appendChild(inner); strip.appendChild(row);
+      const mine = marks.filter((m) => m.row === key).sort((a, b) => a.t - b.t).map((m) => {
+        const ic = iconEl(S, m.key, m.kind, SZ, m.label); ic.classList.add('imark'); inner.appendChild(ic);
+        hoverTip(ic, m.lines, (on) => { const ch = strip._chart; if (!ch) return; ch.options.plugins.markers = Object.assign({}, ch.options.plugins.markers, { hl: on ? [m.t] : [] }); ch.draw(); });
+        return { m, ic };
+      });
+      return { row, lbl, inner, mine };
+    }).filter((r) => { if (!r.mine.length) { r.row.remove(); return false; } return true; });
+    let lastW = -1;
+    const place = (chart) => {
+      const a = chart.chartArea; if (!a) return;
+      const w = Math.round(a.right - a.left);
+      if (w === lastW) return; lastW = w;
+      const x = chart.scales.x;
+      for (const r of built) {
+        r.lbl.style.width = a.left + 'px'; r.inner.style.left = a.left + 'px'; r.inner.style.width = w + 'px';
+        const right = [];
+        for (const it of r.mine) {
+          const px = x.getPixelForValue(it.m.t) - a.left;
+          let lane = right.findIndex((rr) => px - SZ / 2 >= rr + 1);
+          if (lane < 0 && right.length < LANES) { lane = right.length; right.push(-1e9); }
+          if (lane < 0) lane = right.indexOf(Math.min(...right));
+          right[lane] = px + SZ / 2;
+          it.ic.style.left = px + 'px'; it.ic.style.top = (3 + lane * (SZ + 2)) + 'px';
+        }
+        r.row.style.height = (6 + Math.max(1, right.length) * (SZ + 2)) + 'px';
+      }
+    };
+    c.appendChild(strip);
+    return { strip, place, any: built.length > 0 };
+  }
+  function renderWeaponDps(grid, S) {
+    if (!S.n) return;
+    const famOf = familyOf(S);
+    const fresh = !!S.run.weapon_sources;
+    const bySid = sourcesBySid(S);
+    // the lines: every weapon family that dealt damage or was held (the build's order), then the other damage sources
+    const fams = [], members = {};
+    for (const id of S.weaponIds) { const f = famOf(id); if (!members[f]) { members[f] = []; fams.push(f); } if (!members[f].includes(id)) members[f].push(id); }
+    for (const id of Object.keys(S.dmgBy)) { const f = famOf(id); if (members[f] && !members[f].includes(id)) members[f].push(id); }
+    const totalDmg = Object.keys(S.dmgBy).reduce((a, k) => a + total(S.dmgBy[k]), 0) || 1;
+    const others = S.otherDmg.filter((id) => !members[famOf(id)]).map((id) => [id, total(S.dmgBy[id])]).sort((a, b) => b[1] - a[1]);
+    const ownLines = others.filter((o) => o[1] >= 0.02 * totalDmg).map((o) => o[0]);
+    const folded = others.filter((o) => !ownLines.includes(o[0])).map((o) => o[0]);
+    const raw = {};
+    for (const f of fams) { const a = new Float64Array(S.n); for (const id of members[f]) if (S.dmgBy[id]) for (let i = 0; i < S.n; i++) a[i] += S.dmgBy[id][i]; raw[f] = a; }
+    for (const id of ownLines) raw[id] = S.dmgBy[id];
+    if (folded.length) { const a = new Float64Array(S.n); for (const id of folded) for (let i = 0; i < S.n; i++) a[i] += S.dmgBy[id][i]; raw.__other = a; }
+    const keys = fams.concat(ownLines).concat(folded.length ? ['__other'] : []);
+    if (!keys.length) return;
+    // colours: a weapon keeps the colour every other card gives it; the other sources take the slots left, then grey
+    const used = new Set(fams.map((f) => weaponColor(S, f)));
+    const free = [6, 5, 7, 4, 3, 2, 1, 0].map((i) => COL.s[i]).filter((x) => !used.has(x));
+    const color = {};
+    for (const f of fams) color[f] = weaponColor(S, f);
+    for (const id of ownLines) color[id] = free.length ? free.shift() : COL.gray;
+    color.__other = COL.gray;
+    const label = (k) => (k === '__other' ? 'other sources (' + folded.map(S.name).join(', ') + ')' : S.name(k));
+    let W = 10;
+    try { W = +localStorage.getItem('runwatch.wdps') || 10; } catch (e) { /* fine */ }
+    if (!DPS_WINDOWS.includes(W)) W = 10;
+    // a log scale: Endless's damage can dwarf the stage's (a value under 1 DPS is drawn at 1)
+    // (no choice made yet: log when the run's peak dwarfs its middle, as Endless's does)
+    let LOG = null;
+    try { const v = localStorage.getItem('runwatch.wdps_log'); LOG = v === '1' ? true : v === '0' ? false : null; } catch (e) { /* fine */ }
+    const c = card('Each weapon\'s real DPS', 'The damage each weapon actually dealt, a second at a time, as a rolling mean (pick the seconds, and log for a run whose Endless dwarfs the rest; a mutation and an evolution count as their weapon), one line each; the other damage sources (Powder Keg, blasts...) dashed. Under it every moment that changed a weapon: a weapon taken or levelled, a mutation, an evolution, the cards, passive items, perks and Totem gifts that changed a weapon\'s numbers, the Stranger\'s deals, and the boosts (power-ups, War Drums). Hover an icon: what it was and when (a dashed line on the chart). Below: each weapon with the items that shaped its numbers by the end.', { wide: true, slug: 'weapon-dps' });
+    const seg = el('div', 'seg small');
+    for (const w0 of DPS_WINDOWS) { const b0 = el('button', w0 === W ? 'on' : null, w0 + ' s'); b0.type = 'button'; b0.title = 'a rolling mean over ' + w0 + ' s'; b0.onclick = () => { try { localStorage.setItem('runwatch.wdps', String(w0)); } catch (e) { /* fine */ } keepScroll(render); }; seg.appendChild(b0); }
+    const seg2 = el('div', 'seg small');
+    for (const [lg, word] of [[false, 'linear'], [true, 'log']]) { const b0 = el('button', lg === LOG ? 'on' : null, word); b0.type = 'button'; b0.title = lg ? 'a log scale: the stage and Endless both readable (under 1 DPS is drawn at 1)' : 'a plain scale from 0'; b0.onclick = () => { try { localStorage.setItem('runwatch.wdps_log', lg ? '1' : '0'); } catch (e) { /* fine */ } keepScroll(render); }; seg2.appendChild(b0); }
+    c.querySelector('.acts').prepend(seg2);
+    c.querySelector('.acts').prepend(seg);
+    const sm = {}; for (const k of keys) sm[k] = roll(raw[k], W);
+    if (LOG === null) {
+      const all = []; for (const k of keys) for (const v of sm[k]) if (v > 0) all.push(v);
+      all.sort((a, b) => a - b);
+      LOG = all.length > 20 && all[all.length - 1] > 12 * all[Math.floor(all.length * 0.5)];
+      for (const b0 of seg2.querySelectorAll('button')) b0.classList.toggle('on', (b0.textContent === 'log') === LOG);
+    }
+    let ch = null;
+    if (chartReady()) {
+      const ds = keys.map((k) => line(label(k) + ' (' + W + ' s)', LOG ? Float64Array.from(sm[k], (v) => Math.max(1, v)) : sm[k], color[k], { d: 0, borderWidth: fams.includes(k) ? 2 : 1.5, borderDash: fams.includes(k) ? undefined : [5, 3] }));
+      const mo = markerOpts(S, { portal: true });
+      // the y axis a fixed width, so the icon strip's row names fit in front of the plot
+      const yw = { afterFit: (sc) => { sc.width = 72; } };
+      ch = timeChart(plot(c, 'tall'), S, ds, { markers: { bands: mo.bands, stages: mo.stages, events: mo.events.filter((e) => e.line), hl: [] }, y: LOG ? Object.assign({ type: 'logarithmic', min: 1, beginAtZero: false }, yw) : yw });
+      ch.options.plugins.legend.display = false;
+      const marks = dpsMarks(S, famOf, bySid, fresh);
+      const st = iconStrip(c, S, marks, [['weapons', 'weapons'], ['items', 'items'], ['boosts', 'boosts']]);
+      st.strip._chart = ch;
+      ch.$iconPlace = st.place;
+      ch.update();
+      if (!fresh) c.appendChild(el('p', 'oldnote', 'Which items changed which weapon is ' + OLD_WORDS + ': every card, passive item and perk taken is marked.'));
+    }
+    // the weapons one by one: their numbers and what shaped them
+    const bw = ((S.run.build || {}).weapons || []);
+    const rows = el('div', 'wrows');
+    const hl = (ts) => { if (!ch) return; ch.options.plugins.markers = Object.assign({}, ch.options.plugins.markers, { hl: ts }); ch.draw(); };
+    keys.forEach((k, idx) => {
+      const isW = fams.includes(k);
+      const row = el('div', 'wrow');
+      const nm = el('div', 'wname'); const sw = el('span', 'sw'); sw.style.background = color[k]; nm.appendChild(sw);
+      const endIds = isW ? bw.filter((w) => famOf(w.id) === k) : [];
+      const endW = endIds[endIds.length - 1];
+      nm.appendChild(iconEl(S, endW ? endW.id : k, isW ? 'weapon' : null, 26, label(k)));
+      const tx = el('span', 'tx'); tx.appendChild(document.createTextNode(endW && endW.id !== k ? S.name(k) + ' → ' + S.name(endW.id) : label(k)));
+      tx.appendChild(el('small', null, isW ? (endW ? 'Lv ' + endW.level + (endW.mutations && endW.mutations.length ? ' · ' + endW.mutations.map(S.name).join(', ') : '') : 'not held at the end') : (k === '__other' ? 'below 2% of the damage each' : 'its own damage, not a weapon')));
+      nm.appendChild(tx); nm.title = 'show or hide its line';
+      nm.onclick = () => { if (!ch) return; const vis = ch.isDatasetVisible(idx); ch.setDatasetVisibility(idx, !vis); row.classList.toggle('off', vis); ch.update(); };
+      row.appendChild(nm);
+      const tot = total(raw[k]); let first = -1; for (let i = 0; i < S.n; i++) if (raw[k][i] > 0) { first = i; break; }
+      const held = first >= 0 ? S.n - first : 0; let peak = 0; for (const v of sm[k]) if (v > peak) peak = v;
+      const nums = el('div', 'wnums'); nums.appendChild(el('b', null, fmtN(tot) + ' damage')); nums.appendChild(document.createTextNode(' · ' + fmtPct(tot / totalDmg) + ' of it'));
+      nums.appendChild(el('div', null, fmtN(held ? tot / held : 0) + ' DPS from its first hit · peak ' + fmtN(peak) + ' (' + W + ' s)'));
+      row.appendChild(nums);
+      const src = el('div', 'wsrc');
+      if (!isW) src.appendChild(el('span', 'none', k === '__other' ? '' : 'its own item: no weapon\'s numbers'));
+      else if (!fresh) src.appendChild(el('span', 'none', 'What shaped it: ' + OLD_WORDS));
+      else {
+        const list = [];
+        for (const w of endIds) for (const x of (S.run.weapon_sources || {})[w.id] || []) if (!list.some((y) => y.s === x.s)) list.push(x);
+        if (!list.length) src.appendChild(el('span', 'none', endW ? 'nothing changed its numbers' : 'not held at the end: its sources are recorded for the weapons held then'));
+        else {
+          src.appendChild(el('span', 'lbl', 'shaped by'));
+          for (const x of list) {
+            const sid = String(x.s || ''); const ts = sourceTimes(S, sid);
+            const key = sid.includes(':') ? sid.slice(sid.indexOf(':') + 1) : sid;
+            const ic = iconEl(S, sid.startsWith('talent:') ? sid : (sid.startsWith('trait:') || sid.startsWith('hero:') || sid.startsWith('momentum:') ? 'hero:' + key : key), null, 24, x.n, x.i);
+            const when = ts.length ? 'taken at ' + ts.map(fmtT).join(', ') : (['talent', 'hero', 'trait', 'bonus'].includes(x.k) ? 'there from the start' : '');
+            // a passive source is a card (a line) or a passive item: its pick events and the build say which
+            const kw = x.k === 'passive' ? (S.events.some((e) => String(e.id) === key && (e.line || String(e.kind).startsWith('line'))) || ((S.run.build || {}).lines || {})[key] != null ? 'card' : 'passive item') : verb(x.k);
+            hoverTip(ic, [x.n || sid, kw + ': ' + (x.w || ''), when], (on) => hl(on ? ts : []));
+            src.appendChild(ic);
+          }
+        }
+      }
+      row.appendChild(src);
+      rows.appendChild(row);
+    });
+    c.appendChild(rows);
+    timeTable(c, S, keys.map((k) => ({ label: label(k) + ' dps (' + W + ' s)', data: sm[k] })).concat(keys.map((k) => ({ label: label(k) + ' this second', data: raw[k] }))));
+    grid.appendChild(c);
+  }
+
+  // ---- health in 5 s bars
+  /** Every HP_BUCKET seconds: the lowest health the hero touched (% of max HP; schema 5's hp_min, an older record its
+   *  once-a-second readings), the damage he took and the health he got back (heals and regen) in those seconds (% of
+   *  max HP), his health at the bucket's end. [{t0, t1, low, took, heal, end, tookHp, healHp, max}] */
+  function hpBuckets(S, B) {
+    const out = [];
+    for (let t0 = 0; t0 < S.n; t0 += B) {
+      let lo = Infinity, tk = 0, hl = 0, tkHp = 0, hlHp = 0, mx = 0, endV = null;
+      for (let s = t0; s < Math.min(S.n, t0 + B); s++) {
+        const m = S.hpMax[s] > 0 ? S.hpMax[s] : mx; if (!(m > 0)) continue; mx = m;
+        lo = Math.min(lo, Math.max(0, Math.min(S.hp[s], S.hpMin[s])) / m);
+        tk += S.took[s] / m; hl += (S.healed[s] + S.regen[s]) / m; tkHp += S.took[s]; hlHp += S.healed[s] + S.regen[s];
+        endV = S.hp[s] / m;
+      }
+      if (!(mx > 0)) continue;
+      out.push({ t0, t1: Math.min(S.n - 1, t0 + B), low: 100 * lo, took: 100 * tk, heal: 100 * hl, end: 100 * (endV || 0), tookHp: tkHp, healHp: hlHp, max: mx });
+    }
+    return out;
+  }
+  function renderHealth5(grid, S) {
+    if (!S.n) return;
+    const B = HP_BUCKET, bk = hpBuckets(S, B);
+    if (!bk.length) return;
+    const exact = S.schema >= 5 || S.hasHpMin;
+    const c = card('Health, ' + B + ' seconds at a time', 'One bar every ' + B + ' s. Green: the lowest the hero\'s health went in those seconds (% of his max HP); red, on top: the damage he took in them (% of max HP, after shields and armour); blue, under the line: the health he got back (heals and regen). Falls in red lines, revives in green, bosses shaded. ' + (exact ? 'The lowest is the lowest moment inside each second.' : 'This record has his health once a second only: the lowest moment inside a second is ' + OLD_WORDS + '.'), { wide: true, slug: 'health-5s' });
+    if (chartReady()) {
+      const cv = plot(c, 'tall');
+      const mid = (b) => (b.t0 + b.t1) / 2;
+      const mk = markerOpts(S, {});
+      const ch = new Chart(cv, {
+        type: 'bar',
+        data: { datasets: [
+          { label: 'lowest health', data: bk.map((b) => ({ x: mid(b), y: b.low })), backgroundColor: alpha(COL.s[2], 0.85), stack: 'hp', borderWidth: 0, barPercentage: 0.92, categoryPercentage: 1, borderRadius: 0 },
+          { label: 'damage taken', data: bk.map((b) => ({ x: mid(b), y: b.took })), backgroundColor: alpha(COL.crit, 0.9), stack: 'hp', borderWidth: 0, barPercentage: 0.92, categoryPercentage: 1, borderRadius: 0 },
+          { label: 'health back', data: bk.map((b) => ({ x: mid(b), y: -b.heal })), backgroundColor: alpha(COL.s[0], 0.8), stack: 'hp', borderWidth: 0, barPercentage: 0.92, categoryPercentage: 1, borderRadius: 0 },
+          { type: 'line', label: '30 %', data: [{ x: 0, y: 30 }, { x: S.n - 1, y: 30 }], borderColor: alpha(COL.serious, 0.8), borderWidth: 1, borderDash: [4, 3], pointRadius: 0, pointHoverRadius: 0 },
+        ] },
+        options: {
+          responsive: true, maintainAspectRatio: false, parsing: false, normalized: true,
+          interaction: { mode: 'nearest', axis: 'x', intersect: false },
+          scales: { x: Object.assign(xScale(S), { stacked: true }), y: { stacked: true, grid: { color: COL.grid }, border: { display: false }, ticks: { maxTicksLimit: 8, callback: (v) => (v < 0 ? '+' + Math.abs(v) : v) + ' %' } } },
+          plugins: {
+            legend: { display: true, position: 'top', align: 'start', labels: { filter: (it) => it.text !== '30 %' } },
+            markers: { bands: mk.bands, stages: mk.stages, events: mk.events.filter((e) => e.line) },
+            tooltip: { filter: (it) => it.dataset.label !== '30 %', callbacks: {
+              title: (items) => { const b = items.length ? bk[items[0].dataIndex] : null; return b ? 'play ' + fmtT(b.t0) + '–' + fmtT(b.t1) + '  ·  clock ' + fmtT(S.clock[b.t0] || 0) : ''; },
+              label: (it) => { const b = bk[it.dataIndex]; if (!b) return ''; if (it.datasetIndex === 0) return ' lowest ' + fmtN(b.low, 0) + ' % (at the end ' + fmtN(b.end, 0) + ' %)'; if (it.datasetIndex === 1) return ' took ' + fmtN(b.took, 0) + ' % of max HP (' + fmtN(b.tookHp) + ' HP)'; return ' got back ' + fmtN(b.heal, 0) + ' % (' + fmtN(b.healHp) + ' HP)'; } } },
+          },
+        },
+      });
+      CHARTS.push(ch);
+      mkey(c, [['lowest health', COL.s[2]], ['damage taken', COL.crit], ['health back (under the line)', COL.s[0]], ['down', COL.crit], ['revived', COL.good], ['boss fight', alpha(COL.s[7], 0.5)]]);
+    }
+    const low = bk.reduce((a, b) => Math.min(a, b.low), 100); const worst = bk.reduce((a, b) => (b.took > a.took ? b : a), bk[0]);
+    c.appendChild(el('p', 'desc', 'Lowest of the run: ' + fmtN(low, 0) + ' % · the hardest ' + B + ' s: ' + fmtT(worst.t0) + '–' + fmtT(worst.t1) + ', ' + fmtN(worst.took, 0) + ' % of his max HP taken.'));
+    tableView(c, [colT('from (play)'), colT('to (play)'), { label: 'lowest health %', num: true, d: 0, csv: 'lowest_pct' }, { label: 'health at the end %', num: true, d: 0, csv: 'end_pct' }, { label: 'damage taken %', num: true, d: 1, csv: 'took_pct' }, { label: 'health back %', num: true, d: 1, csv: 'healed_pct' }, { label: 'damage taken HP', num: true }, { label: 'health back HP', num: true }, { label: 'max HP', num: true }],
+      bk.map((b) => [b.t0, b.t1, r4(b.low), r4(b.end), r4(b.took), r4(b.heal), r4(b.tookHp), r4(b.healHp), r4(b.max)]));
+    grid.appendChild(c);
+  }
+
   // ------------------------------------------------------------ pass 78: the Sim's charts, averages, remote runs
   // Garry: "Add those charts to our Local Run Analytics dashboard so their formats match" and "I want to see it for one
   // player in particular or as an average for several players". Every run here (played, a tool's, opened from a file or
@@ -1607,6 +2121,9 @@
     facts.push(['Runs', entries.length + (devs ? ' (' + devs + ' developer run' + (devs > 1 ? 's' : '') + ')' : '')]);
     facts.push(['Players', players.join(', ')]);
     facts.push(['Heroes', heroes.join(', ')]);
+    // pass 115 (lane DASH): the Upgrade boards the runs began with (ranks bought / the most), each with how many runs had it
+    const boards = {}; for (const e of entries) { const k = boardShort(e.run); boards[k] = (boards[k] || 0) + 1; }
+    facts.push(['Upgrade boards', Object.entries(boards).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ranks' + (entries.length > 1 ? ' (' + v + ' run' + (v > 1 ? 's' : '') + ')' : '')).join(' · ')]);
     if (starts.length) facts.push(['Played', starts[0].replace('T', ' ') + (starts.length > 1 ? ' to ' + starts[starts.length - 1].replace('T', ' ') : '')]);
     facts.push(['Game versions', versions.map((v) => 'v' + v).join(', ') || '?']);
     facts.push(['How they ended', Object.entries(results).map(([k, v]) => v + ' ' + k.toLowerCase()).join(' · ')]);
@@ -1623,13 +2140,14 @@
     // the runs one by one (each opens with every card)
     const c = card(entries.length === 1 ? 'The run' : 'The ' + entries.length + ' runs one by one', 'Each run as the average counted it: its end, its level, kills, coins, chests, power-ups and totems at its own end. Open shows it alone with every card.', { wide: true, slug: 'average-runs' });
     const tb = document.createElement('table'); const thead = document.createElement('thead'); const tr = document.createElement('tr');
-    for (const h of ['player', 'started', 'hero', 'ended', 'at', 'deaths', 'level', 'kills', 'coins', 'chests · power-ups · totems', 'build', '']) tr.appendChild(el('th', null, h));
+    // pass 115 (lane DASH): the Upgrade board each run began with (ranks bought / the most)
+    for (const h of ['player', 'started', 'hero', 'ended', 'at', 'deaths', 'level', 'board', 'kills', 'coins', 'chests · power-ups · totems', 'build', '']) tr.appendChild(el('th', null, h));
     thead.appendChild(tr); tb.appendChild(thead); const body = document.createElement('tbody');
     res.players.forEach((p, i) => {
       const e = entries[i]; const r = e.run; const row = document.createElement('tr');
-      const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), fmtN(p.kills), fmtN(p.gold),
+      const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), boardShort(r), fmtN(p.kills), fmtN(p.gold),
         p.chests == null ? '–' : p.chests + ' · ' + p.powerups + ' · ' + p.totems, r.build_text || ''];
-      cells.forEach((v, j) => row.appendChild(el('td', j === 10 ? 'wrap' : (j >= 5 && j <= 9 ? 'num' : null), v)));
+      cells.forEach((v, j) => row.appendChild(el('td', j === 11 ? 'wrap' : (j >= 5 && j <= 10 ? 'num' : null), v)));
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button'; b.disabled = !Array.isArray(r.samples); b.onclick = () => openRun(r); td.appendChild(b); row.appendChild(td);
       body.appendChild(row);
     });
@@ -1797,7 +2315,8 @@
     c.appendChild(acts);
     const list = el('div', 'plist'); const t = document.createElement('table');
     const th = document.createElement('thead'); const htr = document.createElement('tr');
-    for (const h of ['', 'player', 'started', 'hero', 'ended', 'play', 'stage', 'level', 'kills', 'version', '']) htr.appendChild(el('th', null, h));
+    // pass 115 (lane DASH): the Upgrade board's ranks bought of its most
+    for (const h of ['', 'player', 'started', 'hero', 'ended', 'play', 'stage', 'level', 'board', 'kills', 'version', '']) { const th0 = el('th', null, h); if (h === 'board') th0.title = 'the Upgrade board as the run began: ranks bought / the most (48 for a record from before 0.98)'; htr.appendChild(th0); }
     th.appendChild(htr); t.appendChild(th);
     const tb = document.createElement('tbody');
     for (const r of rows) {
@@ -1805,8 +2324,8 @@
       const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = PICK.has('r:' + r.file);
       cb.onchange = () => { if (cb.checked) PICK.add('r:' + r.file); else PICK.delete('r:' + r.file); render(); };
       const td0 = el('td'); td0.appendChild(cb); tr.appendChild(td0);
-      const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (r.outcome ? ' · ' + (OUTCOME_WORDS[r.outcome] || r.outcome) : '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), stageWords(r), String(Math.round(r.level || 1)), fmtN(r.kills || 0), 'v' + (r.version || '?')];
-      cells.forEach((v, j) => tr.appendChild(el('td', j >= 4 && j <= 7 ? 'num' : null, v)));
+      const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (r.outcome ? ' · ' + (OUTCOME_WORDS[r.outcome] || r.outcome) : '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), stageWords(r), String(Math.round(r.level || 1)), boardShort(r), fmtN(r.kills || 0), 'v' + (r.version || '?')];
+      cells.forEach((v, j) => tr.appendChild(el('td', j >= 4 && j <= 8 ? 'num' : null, v)));
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button';
       b.onclick = async () => { b.disabled = true; const rec = await remoteRecord(r); b.disabled = false; if (rec && rec.samples) openRun(rec); else alert('Could not load ' + r.file + ' (download again with tools/posthog_runs.py).'); };
       td.appendChild(b); tr.appendChild(td);

@@ -87,8 +87,8 @@ variants = {
 "currency_type": "gold",
 "name": "Canyon Red",
 "price": 110.0,
-"purchasable": true,
-"unlock_quest": "skin_solenne_sol_a"
+"purchasable": false,
+"unlock_quest": ""
 },
 "sprite": "res://content/characters/solenne/solenne_sprite.png",
 "sprite_file": "solenne_sprite.png",

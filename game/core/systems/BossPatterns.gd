@@ -26,6 +26,10 @@
 ##   - A bullet hits the hero once for hit.hit_frac of his max HP (Player.take_damage: an evade, the shield and the blink
 ##     after a hit apply as for any hostile shot) and is gone; past projectile.range m from where the pattern stood it
 ##     shrinks away in FADE s; the ones still flying when the bullets end burn out over timing.clear s, harmless.
+##   - Pass 115 (lane BOSS): a pattern with a `barrier` (BossAttackDef.barrier_on) begins only with the hero within its
+##     reach (in_reach; due while he is out, it waits), raises its wall with the tell (_wall_up: the hero held inside it
+##     through Player.fence_r, the crowd kept on its side, the bullets stopped at its inner face, BossBarrier its look)
+##     and lets it fall as the bullets end (or with hold "spent" at the end) or whenever the pattern ends (_wall_down).
 class_name BossPatterns
 extends RefCounted
 
@@ -77,6 +81,14 @@ var peak := 0
 var ended := 0
 var cancelled := 0
 var last: Dictionary = {}
+## pass 115 (lane BOSS): ticks a due pattern waited for the hero to come in reach; walls raised; creatures and hero moves
+## the walls held back; bullets that vanished at a wall
+var reach_waits := 0
+var walls := 0
+var wall_holds := 0
+var wall_stops := 0
+## the last wall raised (tests, the probe): {c, r, hero_limit, up}
+var last_wall: Dictionary = {}
 ## microseconds the last tick took (Perf "boss.pattern" too)
 var last_us := 0
 
@@ -186,9 +198,28 @@ func step(i: int, def: EnemyDef, delta: float, ppos: Vector3) -> bool:
 	for e: Array in pl:
 		var cdef: BossAttackDef = e[0]
 		if cdef.pattern_due(float(s["fight"]), hpf, int(s["runs"]), float(s["last_end"]), _rolls_of(s, cdef)):
+			# pass 115 (lane BOSS): THE REACH RULE: with a barrier it begins only with the hero within its reach; due while
+			# he is out of it, it waits (its clock goes on, nothing is rolled again) and begins the tick he comes in
+			if not in_reach(i, cdef, ppos):
+				reach_waits += 1
+				s["waiting"] = cdef.id
+				continue
+			s["waiting"] = ""
 			begin(i, cdef, e[1], ppos)
 			return true
 	return false
+
+
+## Pass 115: whether the hero at `ppos` is within pattern `cdef`'s reach of creature `i` (its barrier_reach(), flat; always
+## true without a barrier).
+func in_reach(i: int, cdef: BossAttackDef, ppos: Vector3) -> bool:
+	var reach: float = cdef.barrier_reach()
+	if reach == INF:
+		return true
+	var c: Vector3 = em.pos[i]
+	var dx := ppos.x - c.x
+	var dz := ppos.z - c.z
+	return dx * dx + dz * dz <= reach * reach
 
 
 ## Whether creature `i` is between attacks: walking (STATE_MOVE), up out of the sand, not standing for a rain, not hidden
@@ -225,7 +256,7 @@ func begin(i: int, cdef: BossAttackDef, entry: Dictionary, ppos: Vector3) -> voi
 		"look": look, "tint": tint, "glow": glow, "wobble": cdef.num("projectile", "wobble"), "trail": cdef.flag("projectile", "trail"),
 		"key": BossAttackFx.pool_key(look, tint, glow) + "|pattern",
 		"radius": BossAttackFx.bb_radius(look) * maxf(cdef.num("projectile", "size"), 0.05),
-		"range": maxf(cdef.num("projectile", "range"), 0.5), "hit_r": maxf(cdef.num("projectile", "hit_radius"), 0.05),
+		"range": cdef.bullet_reach(), "hit_r": maxf(cdef.num("projectile", "hit_radius"), 0.05),
 		"hit_frac": maxf(cdef.num("hit", "hit_frac"), 0.0), "info": em.hit_info(i, "ranged", words),
 		"n": 0, "b": PackedFloat32Array(), "buf": PackedFloat32Array(), "volleys": 0, "fired": 0, "hits": 0, "peak": 0, "sfx_at": -10.0, "glow0": em.vglow[i],
 		"fxn": null, "flip_t": 0.0}
@@ -245,6 +276,9 @@ func begin(i: int, cdef: BossAttackDef, entry: Dictionary, ppos: Vector3) -> voi
 	em.vel[i] = Vector3.ZERO
 	em.intent[i] = Vector3.ZERO
 	mult[i] = cdef.guard_mult()
+	# pass 115 (lane BOSS): the barrier rises with the tell, round where he stands (the hero inside it: the reach rule)
+	if cdef.barrier_on():
+		_wall_up(i, run, cdef, ppos)
 	# his shell on his own painting: a rim in the shell's colour and a touch of it over him (the guard reads on him)
 	var sc := BossAttackDef.color_of(cdef.text("shell", "color"), Color(0.8, 0.6, 0.4))
 	em.vglow[i] = 1.0
@@ -330,6 +364,8 @@ func tick(delta: float, ppos: Vector3) -> void:
 					continue
 		_bullets(i, run, dc, ppos)
 		_draw(i, run)
+		# pass 115 (lane BOSS): the crowd kept on its side of the barrier
+		_wall_hold_crowd(i, run)
 	last_us = Time.get_ticks_usec() - t0
 	Perf.add("boss.pattern", t0)
 
@@ -339,7 +375,9 @@ func tick(delta: float, ppos: Vector3) -> void:
 func _fire_begin(i: int, run: Dictionary, ppos: Vector3) -> void:
 	run["phase"] = FIRE
 	var c: Vector3 = em.pos[i]
-	run["c0"] = c
+	# (pass 115: with a barrier the bullets' reach is measured from the wall's middle, where he stood at the tell)
+	var wall = run.get("wall")
+	run["c0"] = (wall as Dictionary)["c"] if wall is Dictionary else c
 	var aim := atan2(ppos.z - c.z, ppos.x - c.x)
 	run["aim"] = aim
 	var ems: Array = run["ems"]
@@ -458,6 +496,8 @@ func _bullets(i: int, run: Dictionary, dc: float, ppos: Vector3) -> void:
 	var hero_ok: bool = pl != null and not bool(pl.get("dead"))
 	var hx := ppos.x
 	var hz := ppos.z
+	var wall = run.get("wall")
+	var wall_stop: bool = wall is Dictionary and bool((wall as Dictionary)["up"]) and bool((wall as Dictionary)["stop"])
 	var k := 0
 	while k < n:
 		var o := k * B
@@ -489,6 +529,12 @@ func _bullets(i: int, run: Dictionary, dc: float, ppos: Vector3) -> void:
 				var oz := z - c0.z
 				if ox * ox + oz * oz > rng2:
 					b[o + BFADE] = FADE
+					if wall_stop:
+						# pass 115: it hits the barrier: it stops there and shrinks away, with a spark
+						b[o + BVX] = 0.0
+						b[o + BVZ] = 0.0
+						wall_stops += 1
+						_wall_spark(run, x, z, hx, hz)
 					_puddle(run, x, z)
 				elif hero_ok:
 					var hx2 := x - hx
@@ -623,6 +669,10 @@ func _spent_begin(i: int, run: Dictionary) -> void:
 			b[k * B + BFADE] = clear if fd <= 0.0 else minf(fd, clear)
 		run["b"] = b
 	_hud_guard(i, 2)
+	# pass 115 (lane BOSS): the barrier falls apart as the bullets end (barrier.hold "bullets"; "spent" keeps it up to
+	# the end of his dazed seconds)
+	if not cdef.barrier_holds_spent():
+		_wall_down(run)
 	if Audio.has_method("duck_music"):
 		Audio.duck_music(0.0, 0.8)
 	if not bool(run["still"]):
@@ -635,6 +685,8 @@ func _spent_begin(i: int, run: Dictionary) -> void:
 func _end(i: int, run: Dictionary, cut: bool) -> void:
 	runs.erase(i)
 	mult.erase(i)
+	# pass 115 (lane BOSS): whatever ended it, the barrier lets the hero go and falls apart
+	_wall_down(run)
 	if em.game != null:
 		var fx: BossAttackFx = em._custom_fx_node()
 		fx.bb_clear(str(run["key"]))
@@ -766,3 +818,143 @@ func bullet_count() -> int:
 	for key in runs.keys():
 		n += int((runs[key] as Dictionary)["n"])
 	return n
+
+
+# ---------------------------------------------------------------- pass 115 (lane BOSS): the barrier
+
+## Seconds between two sparks of bullets hitting a barrier, and how near the hero one must be to spark (m: on his screen).
+const WALL_SPARK_GAP := 0.06
+const WALL_SPARK_NEAR := 20.0
+
+
+## The barrier goes up round where creature `i` stands (the tell's start): its rules live here (the hero held inside it
+## through Player.fence_r, the crowd on its side, the bullets stopped at it), its look is a BossBarrier (made only when
+## there is a game; the rules never need it). `ppos` is the hero's place: the rise starts on his side.
+func _wall_up(i: int, run: Dictionary, cdef: BossAttackDef, ppos: Vector3) -> void:
+	var c: Vector3 = em.pos[i]
+	var side := PackedByteArray()
+	side.resize(em.pool_max)
+	var ser := PackedInt32Array()
+	ser.resize(em.pool_max)
+	ser.fill(-1)
+	# every creature's side as it rises (one that comes later takes the side it is on then: _wall_hold_crowd)
+	var r0 := cdef.barrier_radius()
+	for j in range(em.pool_max):
+		if em.alive[j] == 1:
+			var pj: Vector3 = em.pos[j]
+			ser[j] = em.serial[j]
+			side[j] = 1 if Vector2(pj.x - c.x, pj.z - c.z).length() < r0 else 0
+	var w := {"c": c, "r": r0, "half": cdef.barrier_half(), "hero_limit": cdef.barrier_hero_limit(),
+		"up": true, "crowd": cdef.barrier_blocks_creatures(), "stop": cdef.barrier_stops_bullets(), "hero": null,
+		"side": side, "ser": ser, "fx": null, "spark_t": 0.0, "boss": i}
+	run["wall"] = w
+	walls += 1
+	var pl = em.player
+	if cdef.barrier_blocks_hero() and pl != null and is_instance_valid(pl) and "fence_r" in pl:
+		pl.set("fence_c", c)
+		pl.set("fence_r", float(w["hero_limit"]))
+		w["hero"] = weakref(pl)
+	last_wall = {"id": cdef.id, "c": c, "r": float(w["r"]), "hero_limit": float(w["hero_limit"]), "up": true,
+		"hero_at": ppos, "reach": cdef.barrier_reach()}
+	if em.game != null:
+		var node := BossBarrier.new()
+		node.name = "BossBarrier_" + cdef.id
+		em.add_child(node)
+		node.setup(em.game, cdef, c, float(w["r"]), ppos)
+		w["fx"] = node
+
+
+## The barrier comes down (the bullets' end, the spent seconds' end, or the pattern called off): the hero let go (only
+## if the hold on him is still this wall's), its look falls apart. Once.
+func _wall_down(run: Dictionary) -> void:
+	var w = run.get("wall")
+	if not (w is Dictionary) or not bool((w as Dictionary)["up"]):
+		return
+	w["up"] = false
+	var hr = w["hero"]
+	if hr is WeakRef:
+		var pl = (hr as WeakRef).get_ref()
+		if pl != null and is_instance_valid(pl) and absf(float(pl.get("fence_r")) - float(w["hero_limit"])) < 0.0001:
+			pl.set("fence_r", 0.0)
+	var fx = w["fx"]
+	if fx != null and is_instance_valid(fx):
+		fx.fall()
+	w["fx"] = null
+	last_wall["up"] = false
+
+
+## Whether creature `i`'s pattern has its barrier standing now (tests, the probe, the bot).
+func wall_up(i: int) -> bool:
+	var run = runs.get(i)
+	if not (run is Dictionary):
+		return false
+	var w = (run as Dictionary).get("wall")
+	return w is Dictionary and bool((w as Dictionary)["up"])
+
+
+## The barrier standing now, if any: {c, r, half, hero_limit} (the first pattern's that has one), {} without.
+func standing_wall() -> Dictionary:
+	for key in runs.keys():
+		var w = (runs[key] as Dictionary).get("wall")
+		if w is Dictionary and bool((w as Dictionary)["up"]):
+			return {"c": w["c"], "r": w["r"], "half": w["half"], "hero_limit": w["hero_limit"]}
+	return {}
+
+
+## Every creature but the boss kept on the side of the barrier it was on as it rose (a creature that arrives later takes
+## the side it is on then): inside, its body never past the inner face; outside, never past the outer face. Its place
+## only (its steering and its shoves go on: one pressing on the wall stays at it). The boss stands in the middle.
+func _wall_hold_crowd(bi: int, run: Dictionary) -> void:
+	var w = run.get("wall")
+	if not (w is Dictionary) or not bool((w as Dictionary)["up"]) or not bool((w as Dictionary)["crowd"]):
+		return
+	var c: Vector3 = w["c"]
+	var r := float(w["r"])
+	var h := float(w["half"])
+	var side: PackedByteArray = w["side"]
+	var ser: PackedInt32Array = w["ser"]
+	w["side"] = PackedByteArray()
+	w["ser"] = PackedInt32Array()
+	var al: PackedByteArray = em.alive
+	var sr: PackedInt32Array = em.serial
+	var rad: PackedFloat32Array = em.radius
+	var st: PackedInt32Array = em.state
+	var ps: PackedVector3Array = em.pos
+	var n := mini(em.pool_max, side.size())
+	for j in range(n):
+		if al[j] == 0 or j == bi or st[j] == EnemyManager.STATE_DYING:
+			continue
+		var p: Vector3 = ps[j]
+		var dx := p.x - c.x
+		var dz := p.z - c.z
+		var d := sqrt(dx * dx + dz * dz)
+		if ser[j] != sr[j]:
+			ser[j] = sr[j]
+			side[j] = 1 if d < r else 0
+		if side[j] == 1:
+			var lim := maxf(r - h - rad[j], 0.0)
+			if d > lim:
+				em.pos[j] = BossAttackDef.keep_within(p, c, lim)
+				wall_holds += 1
+		else:
+			var lim2 := r + h + rad[j]
+			if d < lim2:
+				em.pos[j] = BossAttackDef.keep_beyond(p, c, lim2)
+				wall_holds += 1
+	w["side"] = side
+	w["ser"] = ser
+
+
+## A bullet hits the barrier at (x, z): a small spark in its colour where the hero can see it, at most one every
+## WALL_SPARK_GAP s (a look: the run's dice are never read).
+func _wall_spark(run: Dictionary, x: float, z: float, hx: float, hz: float) -> void:
+	if em.game == null or em.game.get("fx") == null:
+		return
+	var w: Dictionary = run["wall"]
+	var now := Time.get_ticks_msec() * 0.001
+	if now < float(w["spark_t"]):
+		return
+	if (x - hx) * (x - hx) + (z - hz) * (z - hz) > WALL_SPARK_NEAR * WALL_SPARK_NEAR:
+		return
+	w["spark_t"] = now + WALL_SPARK_GAP
+	em.game.fx.hit(Vector3(x, em._height(x, z) + LIFT, z), run["tint"])

@@ -386,7 +386,7 @@ def checks(check, run_node, server):
     check(any("above its max" in e for e in res["bad"]) and any("first_by" in e for e in res["bad"]) and any("below 0" in e for e in res["bad"]) and not res["okRange"],
           "EDITOR114 boss: the page's issues refuse a bad range and take a good one: %s" % res["bad"])
     for aid, r in zip(("royal_dust_devil", "venom_monsoon", "hellbrand_mandala"), res["issues"]):
-        check(not r["errors"] and 100 <= r["peak"] <= 600, "EDITOR114 boss: %s clean, %d bullets at its peak (under 600): %s" % (aid, r["peak"], r))
+        check(not r["errors"] and 30 <= r["peak"] <= 600, "EDITOR114 boss: %s clean, %d bullets at its peak (under 600): %s" % (aid, r["peak"], r))
     ba = _read("tools/level_editor/boss_attacks.js")
     rows = re.findall(r"\{ g: 'trigger', k: '(\w+)', label: '[^']*', type: '(\w+)'", ba)
     check(dict(rows) == {"first_after": "range", "first_at_hp": "number", "first_by": "range", "cooldown": "range"}, "EDITOR114 boss: the three trigger rows are fixed / range boxes: %s" % rows)

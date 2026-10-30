@@ -1,7 +1,7 @@
 {
   "id": "hellbrand_mandala",
   "name": "Hellbrand Mandala",
-  "doc": "The Brander's bullet heaven. HELLBRAND MANDALA across the screen, the sand darkens round him and he drives his branding iron into the ground: a glowing brand sigil 12 m across burns into the sand under him. Then for 18 s slow branded fireballs bloom out of him in a five-petal rose (the petals race out, the dips between them crawl, the petals open and close), and every 3 s the mandala turns half a petal, so the safe lines move. In its last second every fireball still flying is pulled back towards him: never stand between a fireball and the Brander. He stands in a pillar of fire, taking 80% less damage until it ends; then the pillar gutters out, his iron smokes and he takes 50% more for 2.5 s. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one is completely over (his smoking seconds too).",
+  "doc": "The Brander's bullet heaven. HELLBRAND MANDALA across the screen, the sand darkens round him and he drives his branding iron into the ground: a glowing brand sigil 12 m across burns into the sand under him and an iron fence of white-hot spears and branding irons rises out of the sand 14 m round him and you (you are kept inside it; what flies at it stops there). Then for 18 s slow branded fireballs bloom out of him in a five-petal rose (the petals race out, the dips between them crawl, the petals open and close), and every 3 s the mandala turns half a petal, so the safe lines move. In its last second every fireball still flying is pulled back towards him: never stand between a fireball and the Brander. He stands in a pillar of fire, taking 80% less damage until it ends; then the fence falls apart, the pillar gutters out, his iron smokes and he takes 50% more for 2.5 s. Not before 15 s into the fight; the first when he falls under 60% HP (or 45 s in at the latest); then 45 s after the last one is completely over (his smoking seconds too).",
   "kind": "pattern",
   "projectile": {
     "look": "brand_fireball",
@@ -14,8 +14,8 @@
     "wobble": 0.0
   },
   "emitters": [
-    {"shape": "rose", "count": 24, "petals": 5, "depth": 0.75, "bloom_hz": 0.35, "speed": 3.0, "rate": 0.85, "turn_every": 3.0, "turn_deg": 36.0, "offset_deg": 36.0, "aim": "hero", "finale_pull": 1.0, "pull_speed": 7.5},
-    {"shape": "spiral", "arms": 5, "count": 1, "speed": 2.0, "rate": 1.2, "spin": 20.0, "aim": "hero", "start": 0.1, "finale_pull": 1.0, "pull_speed": 7.5}
+    {"shape": "rose", "count": 24, "petals": 5, "depth": 0.75, "bloom_hz": 0.35, "speed": 4.5, "rate": 0.85, "turn_every": 3.0, "turn_deg": 36.0, "offset_deg": 36.0, "aim": "hero", "finale_pull": 1.0, "pull_speed": 11.25},
+    {"shape": "spiral", "arms": 5, "count": 1, "speed": 3.0, "rate": 1.2, "spin": 20.0, "aim": "hero", "start": 0.1, "finale_pull": 1.0, "pull_speed": 11.25}
   ],
   "hit": {
     "hit_frac": 0.12
@@ -60,6 +60,23 @@
     "radius": 2.6,
     "sigil_radius": 6.0,
     "sigil_color": "#FF7A1F"
+  },
+  "barrier": {
+    "look": "iron_fence",
+    "radius_mode": "fixed",
+    "radius": 14.0,
+    "inset": 1.0,
+    "height": 1.8,
+    "thickness": 0.8,
+    "rise_s": 0.8,
+    "spread_s": 0.6,
+    "fall_s": 1.0,
+    "hold": "bullets",
+    "color": "#FFFFFF",
+    "glow_color": "#FF6A1A",
+    "hero_block": true,
+    "creatures": "block",
+    "bullets": "stop"
   },
   "sounds": {
     "windup": "en_boss_pattern_warn",

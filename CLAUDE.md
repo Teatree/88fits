@@ -124,6 +124,8 @@ Do the parse check and the smoke run after any change to `core/`, `player/`, `ga
 - `Font.get_height()` rounds ascent and descent up, so it runs a pixel taller than CSS `line-height: normal` (Chrome rounds each to nearest). Measure against the mocks with `W.normal_height()`.
 - An additive (`blend_add`) spatial shader gets the scene's fog added on top: a faint glow turns into a solid tube. Give
   every additive effect shader `render_mode ... fog_disabled` (pass 113, the Brander's fire pillar).
+- In the Compatibility renderer a MultiMesh with custom data but no instance colours multiplies the shader's vertex
+  colour by the custom data (near-black paint): turn `use_colors` on and set every instance colour white (pass 115).
 - Godot front faces are **clockwise**. A SurfaceTool mesh wound counter-clockwise is silently back-face culled; the terrain rendered as the sky's lower half for hours before anyone noticed. Check winding first when a generated mesh "has no texture".
 
 ## Architecture
@@ -262,7 +264,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-29, pass 114, version 0.97)
+## Status (2026-10-30, pass 115, version 0.98)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -271,8 +273,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~2,581 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.97). The PC exe carries game/icon.ico and
+parse check, all gdUnit tests (~2,623 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.98). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -506,6 +508,13 @@ git-ignored builds/<id>/, tools/builds.py; `python tools/replay.py --latest`, to
 writes at once and names the Godot lock's holder in plain words (ship.sh takes it as "the build"); the bullet heaven
 twice as long and far with more room, its trigger `[min, max]` ranges (57.EDITOR, docs/howto/boss_bullet_heaven.md);
 the Spit Cactus's Bombmaker looks SC-B/SC-C (fresh).
+Pass 115: the name on screen is **Outlaw Survivors** (`W.GAME_NAME`; code, packages, launcher labels and files stay
+88fits); the dashboard's Upgrade board, Hero level and items, Each weapon's real DPS and Health 5 s at a time cards
+(record schema 5: `hp_min`, `board`, `weapon_sources`; Danger replaced in the Sim charts too), the replay's board panel;
+bullet heaven x1.5 faster inside a per-boss **barrier** 14 m round the boss (core/systems/BossBarrier.gd; the attack
+waits for the hero in reach; 58.BOSS, 58.LEAD); the King's stomp 7.5 m, the Gila 3.75 s under; `far_speed` a capped
+ramp (x3 by 36 m, never past 6 m/s); dust devils 60-90 s; Nerve's Second Wind is revive health only (40% base via
+TalentDef `base_stats`, 100% at six; Nerve 150 gold a first rank).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

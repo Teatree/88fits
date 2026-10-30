@@ -113,11 +113,11 @@
         "die": 8
       },
       "skin": {
-        "purchasable": true,
+        "purchasable": false,
         "name": "Canyon Red",
         "price": 110,
         "currency_type": "gold",
-        "unlock_quest": "skin_solenne_sol_a"
+        "unlock_quest": ""
       }
     },
     "SOL-B": {

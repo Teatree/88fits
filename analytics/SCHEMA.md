@@ -1,4 +1,4 @@
-# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74, schema 3 since pass 101, schema 4 since pass 102)
+# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74, schema 3 since pass 101, schema 4 since pass 102, schema 5 since pass 115)
 
 One JSON file per run, written by `game/core/systems/RunAnalytics.gd` (a Game child created for every real run; the
 arena never records, and a launch file saying `"analytics": false` skips it). It is written when the run ends; a
@@ -22,6 +22,14 @@ and `lost_ms` says how much. Godot's own `Performance.TIME_PROCESS` / `TIME_PHYS
 of each wall second (updated once a second), so the means are measured by WorkClock's two marker nodes, the first and
 the last of every `_physics_process` and `_process`. An older file lacks them: the work charts and the heat table hide.
 
+**Schema 5** (pass 115, v0.98, lane DASH) adds the keys marked *(5)*: a row's `hp_min` (the lowest health inside its
+second), the header's `board` (the whole Upgrade board), `weapon_sources` (what shaped each held weapon), `weapon_family`
+(an evolution's base weapon) and `icons` (every id's icon file), and the index's `board_max` / `board_gold`. They feed the
+dashboard's cards *Upgrade board*, *Hero level and items held*, *Each weapon's real DPS* and *Health, 5 seconds at a
+time*. An older file lacks them: those cards say "not in this run's record (recorded before 0.98)" where they need one
+and draw what the older keys give (the board from `talents` / `talent_forms`, the health bars from `hp` once a second,
+every pick marked under the weapons); its CSV has no `hp_min` column.
+
 ## Where the files go
 
 - Always `user://analytics/runs/<stamp>.json`: on the PC that is `%APPDATA%\Godot\app_userdata\88fits\analytics\runs\`
@@ -38,13 +46,13 @@ the last of every `_physics_process` and `_process`. An older file lacks them: t
 - The dashboard opens from `file://` and reads the `.js` files with script tags; a file input or a drop opens any run
   file. Its *Tool runs* switch loads `runs/tools/`.
 
-`schema` is 2 (1 before pass 74). Numbers are snapped to 0.1 (stats to 0.001, multipliers and the boss bar to 0.01).
+`schema` is 5 (1 before pass 74, 2 from pass 74, 3 from pass 101, 4 from pass 102). Numbers are snapped to 0.1 (stats to 0.001, multipliers and the boss bar to 0.01).
 
 ## Header
 
 | key | meaning |
 |---|---|
-| `schema` | 2 (1 before pass 74) |
+| `schema` | 5 (see the schema notes above) |
 | `version` | `application/config/version` |
 | `hero`, `hero_name` | the character id and name |
 | `hero_look` *(2)* | the art look he was played in (`Registry.played_look`, e.g. `SOL-B`; "" for his own) |
@@ -67,6 +75,7 @@ the last of every `_physics_process` and `_process`. An older file lacks them: t
 | `gold_end` *(2)* | the run's gold as PostHog's `run_end` has it: `gold_earned`, `gold_spent`, `gold_greed`, `gold_debug`, `gold_strongbox`, `gold_purse`, `gold_banked`, `gold_lost`, `gold_before`, `gold_after` (see *Gold*) |
 | `talents` *(2)* | the Upgrade board as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
 | `talent_forms` *(2)* | `{talent id: [first form's name, second form's name]}` for those talents |
+| `board` *(5)* | the whole Upgrade board as the run began (`RunAnalytics.board`), in the board's order (`Registry.talents_list`): `talents: [{id, name, max (the most ranks it takes), picks ([0, 1, ...]: each rank's form, 0 its first), forms ([first form's name, second's]), texts (their lines), gold (what its ranks cost at this build's prices: TalentDef.cost_of_rank)}]` (every talent, a rank or not), `ranks` (bought), `max` (the board's most), `gold` (summed), `spent` (`Save.talent_spent`: what the save says was paid; a price changed since, a board set by a tool or the developer menu (0) make it differ) |
 | `settings` *(2)* | `{pierce_falloff, debug_mode, dev}`: pierce drop-off, the player's debug mode, and whether the run counts as a developer's (`Analytics.is_dev`) |
 | `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80), `xp_curve` (the growth type played and its numbers, defaults filled in; pass 82), and since pass 83 `boss_hp_scaling.mode` ("seconds" or "dps") and `boss_hp_scaling.seconds` {boss: seconds of full DPS}, `power_hp_scaling` (1 = off) and `power_hp_max`; since pass 89 `hero_special_knock` (the share of a special attack's push that reaches the hero) |
 | `stat_names` *(2)* | `{stat: the pause screen's words}` (TextGen) for every stat a snapshot carries |
@@ -84,6 +93,9 @@ the last of every `_physics_process` and `_process`. An older file lacks them: t
 | `frame_timing` *(3)* | what the rows' frame times mean: `valid` (false when the wall clock is not a player's frame rate), `why` (`headless`: nothing was drawn; `fixed_fps`: run under `--fixed-fps`, the game stepped a fixed time a frame however long it took; `""` when valid), `max_fps` (`Engine.max_fps` as the run began; 0 = no cap but vsync's), `frame_cap` (`Settings.frame_cap`: 60 or 0 = the screen's max; pass 101: 60 by default on a phone), `vsync` (`DisplayServer.VSyncMode`: 0 off, 1 on, 2 adaptive, 3 mailbox), `refresh_hz` (the screen's refresh rate; -1 unknown), `physics_hz` (the world's ticks a second, 60); *(4)* `max_steps` (`Engine.max_physics_steps_per_frame` as the run began, 2 = `Game.CATCH_UP_STEPS`: the most world steps a drawn frame runs) |
 | `work` *(4)* | `{frames, steps, lost_s}`: the frames WorkClock counted, the world steps they ran and the world seconds the cap dropped over the run (absent without a counted frame) |
 | `heat` *(4)* | the same crowd's cost minute by minute: `{band (50), bucket_s (60), minutes, frame_ms: {band floor: [each minute's mean frame ms with that many creatures alive, or null]}, work_ms: {the same for the frame's CPU work: its world steps' time + its process time}}`; a cell needs 5 s of its minute in the band (`RunAnalytics.HEAT_BAND`, `HEAT_MIN_SECS`). Work rising along a band's row is the device heating up (or a heavier build: the build snapshots say which). Absent without schema 4 rows |
+| `weapon_sources` *(5)* | `{weapon id: [source]}` for every weapon held at the end (`RunAnalytics.weapon_sources_of`): each source that changed its numbers: on the hero's sheet an effect aimed at it (every weapon, this one, one of its tags) or one of the hero's stats every weapon folds in or its hits read (`RunAnalytics.WEAPON_FEED`: attack damage, cooldown, Berserk's weapon speed, area, projectile speed, duration, extra projectiles, crit chance and damage, damage to Elites and bosses, ricochet, overkill, execute, debuff duration), its mutations and the favourite's bonus (its own level is the weapon itself, left out). A source: `{s` (its stable id, StatSheet's `sid`: `passive:<id>`, `perk:<id>`, `mutation:<id>`, `talent:<id>:<form>`, `trait:<hero>`, `hero:<hero>`, `totem:<gift>`, `stranger`, `buff:<id>`, `bonus`), `n` (its name as the pause Stats tab says it), `k` (its kind), `w` (what it did, its amounts summed per stat: "+30% attack damage, −12% cooldown"), `i` (its icon, as in `icons`)`}` |
+| `weapon_family` *(5)* | `{evolution id: its base weapon's id}` for every evolution the run dealt damage with or held (the dashboard draws an evolution on its weapon's line) |
+| `icons` *(5)* | `{key: icon file}` as res:// paths without "res://" (`content/weapons/revolver/revolver_icon.png`; the dashboard reads `../game/<path>`): every id in `names` that is a weapon, passive item, card, perk, mutation, power-up or structure (the look the run played: the Dynamite Stick's for `lob_grenade`), a Totem gift's carved face (`art/ui/totem/spirit_<id>.png`), `talent:<id>` and `talent:<id>:<form>` (the board's pictures), `hero:<id>` (his badge in the look he played); an icon made in memory is left out |
 | `names` | `{id: display name}` for every id the file mentions (weapons, passives, perks, mutations, creatures, pickups, structures; *(2)* Elite modifiers, talents, the totem gifts, the cards an offer showed) |
 | `hit_log` | the hero's last 30 s of hits as the Down! screen shows them: `{t (the stage clock), by, id (the creature), kind (melee/ranged/boss/heal), role, colour, fx, raw, dealt, shield, note (evaded, shield, broke, star, ...), hp, fatal}`; a named heal has `kind: heal` and `amount`; only on a finished run |
 | `samples` | the rows below |
@@ -110,6 +122,7 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `level`, `xp`, `xp_next` | the hero's level, XP into it, XP the level needs |
 | `xp_total` | (pass 77) every XP point gained so far (`Run.xp_gained`, after Field Notes), cumulative |
 | `hp`, `hp_max`, `shield`, `invuln` | health, max, Energy Shield points, 1 while invulnerable |
+| `hp_min` *(5)* | the lowest health he touched inside the second (read every drawn frame and after every hit), only when below the row's `hp` (a hit then a heal inside one second: Garry watched his hero drop to 20% between two rows); never below 0 |
 | `gold`, `banked` | the purse and what a Strongbox banked |
 | `gold_in`, `gold_out` | (pass 61) `{source: gold that came in this second}` and `{sink: gold spent this second}` (see *Gold*); gold that came while the game was paused lands on the next row, and what no row took by the end goes into the last one, so the rows sum to the run's totals |
 | `kills` | the run total |
@@ -382,6 +395,11 @@ binary also mirrors it to the repo's `analytics/runs/replays/`). `tools/replay.p
 | `marks` | the run's events for the reel: `[frame, play clock, kind, id, level]` (RunAnalytics.event's) |
 | `result`, `end_reason`, `play_s`, `wall_s`, `level`, `kills`, `gold` | how and when it ended |
 
+**The Upgrade board in the viewer** (pass 115): the viewer reads the board from `save.talents` (and `save.talent_spent`)
+with this build's talents (`RunAnalytics.board`) and shows it under its numbers (B folds it); the header names the look
+(`look`). Only builds from 0.98 on show it; `python tools/replay.py` prints the board in the terminal for any recording
+(`--board <file>` prints only that).
+
 **In PostHog** (`run_replay`, `Analytics.run_replay`): the same JSON gzipped, base64, cut into parts of at most 100,000
 characters, one event a part, `format` "replay", `part`/`parts`/`raw_bytes`/`gz_bytes`/`md5` as run_record's, plus
 `build_id`, `hero`, `stage`, `result`, `play_s`; sent at the run's end under the play-data consent, never from where
@@ -420,6 +438,9 @@ counted run on a new install). The record on the phone is the save's `survey` ke
   `talents` (ranks bought, all talents) and `talents.<id>` (each), `totems` (gifts taken), `damage` (all damage dealt),
   `top_source` (the source that dealt the most), `dps_end` (the build's estimate at the end), `build` (`build_text`),
   `hp_lost`, `hits_taken`, `bosses` (killed), `specials_killed`, `elites_killed`, `killer` (what put him down last).
+- *(5)* `board_max` (the board's most ranks) and `board_gold` (what its ranks cost) from the header's `board`; `board`,
+  `weapon_sources`, `weapon_family` and `icons` stay out of the index (and `tasks`, as the game's index always left it
+  out; `tools/analytics_csv.py` leaves it out too since pass 115).
 
 ## CSV (pass 74)
 
@@ -431,7 +452,7 @@ byte): UTF-8 with a BOM (Excel), comma-separated, numbers with a dot, CR LF line
   order above (only those the run has; pass 78 put pass 77's `xp_total`, `hp_lost`, `hp_healed`, `boss_now`, `near3`,
   `near6` among them; pass 101 *(3)* `frames`, `frame_ms`, `frame_max`, `frame_p95`, `proj`, `pickups` after them), a key
   the row leaves out written as 0 (`boss_hp`, `boss_now` empty: no boss up; `frame_ms`, `frame_max`, `frame_p95` empty: no
-  frame that second; pass 102 *(4)* `steps`, `steps_max`, `phys_ms`, `phys_max`, `proc_ms`, `proc_max`, `rest_ms`,
+  frame that second; pass 115 *(5)* `hp_min` after `hp_max`, empty when he did not dip below the row's hp; pass 102 *(4)* `steps`, `steps_max`, `phys_ms`, `phys_max`, `proc_ms`, `proc_max`, `rest_ms`,
   `lost_ms` after `pickups`, empty without a counted frame, `lost_ms` 0); (pass 82) then
   `chests`, `powerups`, `totems`, picked up so far (counted from the events: *Chests, power-ups and totems*); then each
   per-second map flattened as `group.key` (`dmg.revolver`, `took.goblin`, `healed_by.Heart`, ...; missing = 0); then the

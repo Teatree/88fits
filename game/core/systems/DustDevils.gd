@@ -23,7 +23,15 @@
 ##   fade_seconds   seconds it takes to go: it stops grabbing, thins away and its dust puffs out.
 ##   toss           {up, out, cooldown}: the hero's throw (pass 44's: 8 m/s up, 3.6 m/s out, once in 1.2 s).
 ##   lift           seconds a creature rides it (EnemyManager.lift_radius: spun round it, flung out, hurt on landing).
+##   lift_height    metres a creature of size 1 rides up at its highest (x its size; pass 113 and before: 3.2).
+##   size           the funnel's size (1 = 7 m tall, 0.6 m across the foot, 2.1 m across the top: pass 113's look); the
+##                  dust round its foot follows `radius`.
+##   opacity        how solid the funnel and its dust are, 0.5..1 (pass 113: 0.94; the skirt of dust 0.98 of it).
 ##   warn           true: the first one of a run says "DUST DEVIL" in a toast (never again that run).
+## Pass 115 (lane POLISH; Garry: "Tornado should be a bit bigger, last 3 times longer when it does appear, be a bit more
+## transparent and lift both enemies and heroes a bit higher"): radius 2.4 -> 3.0 and size 1.25, life [20, 30] ->
+## [60, 90], opacity 0.94 -> 0.7, toss.up 8 -> 9.5 m/s (the hero's throw 1.33 -> 1.88 m high under his 24 m/s2),
+## lift_height 3.2 -> 4.5 m.
 ##   in_boss, in_portal, in_endless   whether the clock runs (and they come) in the boss fight, the portal's countdown and
 ##                  Endless; one standing when its phase ends fades away.
 ## The clock counts only the seconds of the phases it runs in; the debug arena runs no clock (its WORLD tab calls one in).
@@ -31,10 +39,11 @@ class_name DustDevils
 extends Node3D
 
 const DEFAULTS := {
-	"enabled": true, "first": 90.0, "every": [120.0, 180.0], "life": [20.0, 30.0], "max_alive": 1,
-	"radius": 2.4, "speed": 1.4, "wander": "cross", "miss": 3.0, "form_dist": [7.0, 11.0],
+	"enabled": true, "first": 90.0, "every": [120.0, 180.0], "life": [60.0, 90.0], "max_alive": 1,
+	"radius": 3.0, "speed": 1.4, "wander": "cross", "miss": 3.0, "form_dist": [7.0, 11.0],
 	"form_seconds": 2.5, "fade_seconds": 2.0,
-	"toss": {"up": 8.0, "out": 3.6, "cooldown": 1.2}, "lift": 1.7,
+	"toss": {"up": 9.5, "out": 3.6, "cooldown": 1.2}, "lift": 1.7, "lift_height": 4.5,
+	"size": 1.25, "opacity": 0.7,
 	"warn": true, "in_boss": false, "in_portal": false, "in_endless": false,
 }
 const WANDERS := ["cross", "drift", "loop"]
@@ -89,22 +98,26 @@ static func config_of(block) -> Dictionary:
 	out["first"] = maxf(_num(out["first"], 90.0), 0.0)
 	var ev := range_of(out["every"], Vector2(120.0, 180.0))
 	out["every"] = Vector2(maxf(ev.x, EVERY_MIN), maxf(ev.y, EVERY_MIN))
-	var lf := range_of(out["life"], Vector2(20.0, 30.0))
+	var lf := range_of(out["life"], Vector2(60.0, 90.0))
 	out["form_seconds"] = maxf(_num(out["form_seconds"], 2.5), 0.1)
 	out["fade_seconds"] = maxf(_num(out["fade_seconds"], 2.0), 0.1)
 	var least := float(out["form_seconds"]) + float(out["fade_seconds"]) + 1.0
 	out["life"] = Vector2(maxf(lf.x, least), maxf(lf.y, least))
 	out["max_alive"] = maxi(int(_num(out["max_alive"], 1.0)), 0)
-	out["radius"] = maxf(_num(out["radius"], 2.4), 0.2)
+	out["radius"] = maxf(_num(out["radius"], 3.0), 0.2)
 	out["speed"] = maxf(_num(out["speed"], 1.4), 0.0)
 	out["wander"] = str(out["wander"]) if WANDERS.has(str(out["wander"])) else "cross"
 	out["miss"] = _num(out["miss"], 3.0)
 	var fd := range_of(out["form_dist"], Vector2(7.0, 11.0))
 	out["form_dist"] = Vector2(maxf(fd.x, 0.0), maxf(fd.y, maxf(fd.x, 0.0)))
 	var ts: Dictionary = out["toss"] if out["toss"] is Dictionary else {}
-	out["toss"] = {"up": maxf(_num(ts.get("up", 8.0), 8.0), 0.0), "out": _num(ts.get("out", 3.6), 3.6),
+	out["toss"] = {"up": maxf(_num(ts.get("up", 9.5), 9.5), 0.0), "out": _num(ts.get("out", 3.6), 3.6),
 		"cooldown": maxf(_num(ts.get("cooldown", 1.2), 1.2), 0.0)}
 	out["lift"] = maxf(_num(out["lift"], 1.7), 0.0)
+	# pass 115 (lane POLISH): how high a creature rides, the funnel's size, how solid it is
+	out["lift_height"] = maxf(_num(out["lift_height"], 4.5), 0.0)
+	out["size"] = clampf(_num(out["size"], 1.25), 0.25, 4.0)
+	out["opacity"] = clampf(_num(out["opacity"], 0.7), 0.5, 1.0)
 	for k in ["warn", "in_boss", "in_portal", "in_endless"]:
 		out[k] = _bool(out[k])
 	return out

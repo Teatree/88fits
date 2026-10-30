@@ -21,7 +21,7 @@ target = "player"
 
 [resource]
 script = ExtResource("2_befde")
-order = 5
+order = 6
 ranks = 6
 cost = [400.0, 1600.0, 3600.0, 6400.0, 10000.0, 14400.0]
 forms = [{

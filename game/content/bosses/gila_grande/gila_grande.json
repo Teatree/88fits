@@ -36,7 +36,7 @@
       },
       {
         "name": "burrow",
-        "windup": 4.0,
+        "windup": 4.85,
         "radius": 5.0,
         "damage": 32,
         "knockback": 9,
@@ -44,7 +44,7 @@
         "sink": 0.6,
         "rise": 0.6,
         "predict": 0.6,
-        "warn": 0.4,
+        "warn": 0.5,
         "throw_up": 2.5,
         "throw_out": 4.0,
         "creature_up": 2.5,

@@ -45,6 +45,29 @@
 ##          {seconds} taking `damage_taken` x damage; his cycle resumes after timing.cooldown (0: his cooldown_between).
 ##          While it runs (tell, bullets, spent) nothing else of his starts and the boss-fight window's rows stand still.
 ##          EnemyManager's _pattern_* runs it, BossAttackFx draws the bullets (one MultiMesh), BossPatternFx the rest.
+##
+## Pass 115 (lane BOSS; Garry: "add a barrier that appears around the boss and the hero. This makes it so this Boss attack
+## should only happen if Player is within the range of as far as the projectiles reach. Each boss has their own barrier
+## ... a 3d object ... appear with animation and should be easy to 'read' as a barrier ... Avoid making it so the Player
+## gets stuck in this barrier when it goes up. Barrier falls apart and disappears when the attack is done"): a pattern's
+## `barrier` group (DEFAULTS.barrier; BossPatterns runs its rules, BossBarrier draws it), on when its `look` is not "none":
+##   look          none | tumbleweed_fence (the King's) | cactus_fence (the Gila's) | iron_fence (the Brander's)
+##   radius_mode   range: the wall stands `inset` m inside the bullets' range (projectile.range) round where he starts;
+##                 fixed: `radius` m round him
+##   height        how tall it stands (m; the hero is about 1.9)
+##   thickness     how thick (m): the hero stops at its inner face and the bullets vanish there
+##   rise_s        seconds each stretch takes to come up out of the sand; the rise starts with the tell, nearest the hero
+##                 first, and runs round the ring over spread_s
+##   fall_s        seconds each piece takes to topple, roll and sink as it falls apart (starting at random over spread_s)
+##   hold          bullets: it falls apart as the bullets end (he is dazed); spent: it stands through his dazed seconds too
+##   color         over its own paint (#FFFFFF = as made); glow_color its glowing bits (embers, venom, hot iron)
+##   hero_block    the hero cannot cross it while it stands (his walk, a shove, a throw, a leap: he slides along it)
+##   creatures     block: every creature stays on its side of it while it stands; pass: they walk through
+##   bullets       stop: a bullet vanishes at its inner face (a spark); pass: it flies on to its range
+## THE REACH RULE (with a barrier): the pattern begins only with the hero within barrier_reach() of the boss (the wall's
+## inner face less his body and BARRIER_KEEP, never past the range). Due while he is out of reach, it waits: no new roll,
+## no reset, it begins as soon as he comes in reach (and the boss is free). So the wall never rises on him: at the rise he
+## stands at least BARRIER_KEEP m inside its inner face, and from the rise he is kept inside it (BALANCING 58.BOSS).
 class_name BossAttackDef
 extends ContentDef
 
@@ -57,6 +80,13 @@ const EMITTER_SHAPES := ["spiral", "ring", "fan", "sweep", "wall", "rose"]
 const EMITTER_AIMS := ["hero", "track", "fixed", "random"]
 const TELL_LOOKS := ["none", "spin", "rear", "drive"]
 const SHELLS := ["none", "tornado", "scales", "pillar"]
+## Pass 115: a pattern's barrier: its looks (BossBarrier builds each), radius modes, how long it holds, what creatures and
+## bullets do at it.
+const BARRIER_LOOKS := ["none", "tumbleweed_fence", "cactus_fence", "iron_fence"]
+const BARRIER_MODES := ["range", "fixed"]
+const BARRIER_HOLDS := ["bullets", "spent"]
+const BARRIER_CREATURES := ["block", "pass"]
+const BARRIER_BULLETS := ["stop", "pass"]
 const ORDERS := ["out", "in", "random", "sweep"]
 const AIMS := ["hero", "random", "fixed"]
 const CENTERS := ["boss", "hero"]
@@ -88,6 +118,9 @@ const DEFAULTS := {
 	"tell": {"seconds": 2.0, "banner": "", "banner_color": "#E8502A", "ring_radius": 9.0, "ring_color": "#140A06",
 		"ring_alpha": 0.5, "duck_db": -14.0, "look": "none"},
 	"shell": {"look": "none", "color": "#C9A46A", "height": 7.0, "radius": 3.0, "opacity": 0.94, "sigil_radius": 0.0, "sigil_color": "#FF6A1A"},
+	"barrier": {"look": "none", "radius_mode": "range", "radius": 16.0, "inset": 1.0, "height": 1.8, "thickness": 0.8,
+		"rise_s": 0.8, "spread_s": 0.6, "fall_s": 1.0, "hold": "bullets", "color": "#FFFFFF", "glow_color": "#FF8A1F",
+		"hero_block": true, "creatures": "block", "bullets": "stop"},
 }
 
 ## Pass 113: one emitter of a pattern (its `emitters` list) with the game's defaults for every key it leaves out (the Level
@@ -148,6 +181,8 @@ const EMITTER_DEFAULTS := {"shape": "spiral", "count": 1, "arms": 1, "speed": 3.
 @export var spent: Dictionary = {}
 @export var tell: Dictionary = {}
 @export var shell: Dictionary = {}
+## pass 115, kind "pattern": the wall round the boss and the hero while it runs (DEFAULTS.barrier; see barrier_on())
+@export var barrier: Dictionary = {}
 
 
 func kind() -> String:
@@ -676,7 +711,8 @@ static func emitter_volley_times(e: Dictionary, dur: float, dt: float = 1.0 / 60
 ## Returns {peak (most in the air at once), peak_t, fired (bullets in all), volleys}. Stepped at `dt`.
 func simulate(dt: float = 1.0 / 30.0) -> Dictionary:
 	var dur := pattern_duration()
-	var rng_m := maxf(num("projectile", "range"), 0.5)
+	# (pass 115: a barrier that stops the bullets ends their flight at its inner face)
+	var rng_m := bullet_reach()
 	var ems := emitters_full()
 	var accs: Array = []
 	var was: Array = []
@@ -729,3 +765,103 @@ func simulate(dt: float = 1.0 / 30.0) -> Dictionary:
 			peak_t = t
 		step_i += 1
 	return {"peak": peak, "peak_t": peak_t, "fired": fired, "volleys": volleys}
+
+
+# ---------------------------------------------------------------- pass 115 (lane BOSS): the barrier
+
+## The hero's body round his middle (Player.tscn's capsule): he stops this far inside the wall's inner face.
+const BARRIER_HERO_R := 0.45
+## THE REACH RULE's room: the pattern begins only with the hero at least this far inside the wall's inner face (his body
+## included), so the wall never rises on him.
+const BARRIER_KEEP := 0.5
+## The smallest wall (m round the boss): a fixed radius or a short range never makes a ring he cannot stand in.
+const BARRIER_MIN_R := 3.0
+
+
+## Whether this pattern raises a barrier (its barrier.look is one of BARRIER_LOOKS other than "none").
+func barrier_on() -> bool:
+	if attack_kind != "pattern":
+		return false
+	var lk := text("barrier", "look")
+	return lk != "none" and BARRIER_LOOKS.has(lk)
+
+
+## The wall's middle line round where the pattern stands (m): `inset` inside the range (radius_mode "range") or `radius`
+## (radius_mode "fixed"); never under BARRIER_MIN_R plus half its thickness.
+func barrier_radius() -> float:
+	var r := 0.0
+	if text("barrier", "radius_mode") == "fixed":
+		r = num("barrier", "radius")
+	else:
+		r = maxf(num("projectile", "range"), 0.5) - maxf(num("barrier", "inset"), 0.0)
+	return maxf(r, BARRIER_MIN_R + barrier_half())
+
+
+## Half the wall's thickness (m, at least 0.1).
+func barrier_half() -> float:
+	return maxf(num("barrier", "thickness"), 0.2) * 0.5
+
+
+## How far from the middle the hero may stand while the wall stands (his middle; the inner face less his body).
+func barrier_hero_limit() -> float:
+	return barrier_radius() - barrier_half() - BARRIER_HERO_R
+
+
+## THE REACH RULE: how near the boss the hero must be for the pattern to begin (m): within the bullets' range and at least
+## BARRIER_KEEP inside the limit his middle is held to; without a barrier, no limit (INF).
+func barrier_reach() -> float:
+	if not barrier_on():
+		return INF
+	return minf(maxf(num("projectile", "range"), 0.5), barrier_hero_limit() - BARRIER_KEEP)
+
+
+## Whether the wall keeps the hero in / the creatures on their side / stops the bullets.
+func barrier_blocks_hero() -> bool:
+	return barrier_on() and flag("barrier", "hero_block")
+
+
+func barrier_blocks_creatures() -> bool:
+	return barrier_on() and text("barrier", "creatures") != "pass"
+
+
+func barrier_stops_bullets() -> bool:
+	return barrier_on() and text("barrier", "bullets") != "pass"
+
+
+## Whether the wall stands through the spent seconds too (hold "spent"); else it falls apart as the bullets end.
+func barrier_holds_spent() -> bool:
+	return text("barrier", "hold") == "spent"
+
+
+## How far from the middle a bullet flies before it is gone (m): the range, or the wall's inner face when that is nearer
+## and the wall stops bullets.
+func bullet_reach() -> float:
+	var r := maxf(num("projectile", "range"), 0.5)
+	if barrier_stops_bullets():
+		r = minf(r, barrier_radius() - barrier_half())
+	return r
+
+
+## A point's flat place kept within `limit` m of `c` (x, z; its y as it was): the wall's hold on the hero (Player) and on
+## a creature inside it.
+static func keep_within(p: Vector3, c: Vector3, limit: float) -> Vector3:
+	var dx := p.x - c.x
+	var dz := p.z - c.z
+	var d := sqrt(dx * dx + dz * dz)
+	if d <= limit or d < 0.0001:
+		return p
+	var k := maxf(limit, 0.0) / d
+	return Vector3(c.x + dx * k, p.y, c.z + dz * k)
+
+
+## A point's flat place kept at least `limit` m from `c` (a creature outside the wall); one at the very middle goes east.
+static func keep_beyond(p: Vector3, c: Vector3, limit: float) -> Vector3:
+	var dx := p.x - c.x
+	var dz := p.z - c.z
+	var d := sqrt(dx * dx + dz * dz)
+	if d >= limit:
+		return p
+	if d < 0.0001:
+		return Vector3(c.x + limit, p.y, c.z)
+	var k := limit / d
+	return Vector3(c.x + dx * k, p.y, c.z + dz * k)

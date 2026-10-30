@@ -70,6 +70,7 @@ USER_DIR_NAME = "88fits_sim"
 HISTORY_KEEP = 10
 PROGRESS_EVERY = 10          # sim_run.gd's progress line, play seconds
 DPS_WINDOW = 5               # seconds a player's DPS is smoothed over before the averaging
+HP_BUCKET = 5                # pass 115 (lane DASH): the health bars' seconds (hp_low5, took5, healed5)
 FOLD_DEFAULT = 7             # the page folds a breakdown to this many entries + "Other"
 SCHEMA = 1
 
@@ -1467,6 +1468,38 @@ def _derive_difficulty(d, series, end, T):
             series["danger_net"] = _rolling(net, end, DPS_WINDOW)
     if hp and hm:
         series["trouble"] = [(100.0 if (hp[s_] or 0.0) < TROUBLE_FRAC * hm[s_] else 0.0) if s_ <= end and hm[s_] else None for s_ in range(T + 1)]
+    # pass 115 (lane DASH; Garry: "Just show Current HP instead with bars. Show different coloured bars for damage taken.
+    # Make it be per 5 seconds"): every HP_BUCKET seconds of a run, the lowest health it touched (% of max HP: its hp_min
+    # where the run reports it, else its HP each second), the damage it took and the health it got back in them (% of max
+    # HP); each value on every second of its bucket, so the runs average second by second (sim_avg.js the same)
+    if hp and hm and took:
+        low = series.get("hp_min") or hp
+        lo5, tk5 = [None] * (T + 1), [None] * (T + 1)
+        hl5 = [None] * (T + 1) if healed else None
+        for b0 in range(0, end + 1, HP_BUCKET):
+            b1 = min(end, b0 + HP_BUCKET - 1)
+            lo, tk, hl = None, 0.0, 0.0
+            for s_ in range(b0, b1 + 1):
+                m = hm[s_]
+                if not m:
+                    continue
+                v = max(0.0, min(hp[s_] or 0.0, low[s_] if low[s_] is not None else (hp[s_] or 0.0))) / m
+                if lo is None or v < lo:
+                    lo = v
+                tk += (took[s_] or 0.0) / m
+                if healed:
+                    hl += (healed[s_] or 0.0) / m
+            if lo is None:
+                continue
+            for s_ in range(b0, b1 + 1):
+                lo5[s_] = 100.0 * lo
+                tk5[s_] = 100.0 * tk
+                if hl5 is not None:
+                    hl5[s_] = 100.0 * hl
+        series["hp_low5"] = lo5
+        series["took5"] = tk5
+        if hl5 is not None:
+            series["healed5"] = hl5
     if series.get("kills"):
         k = series["kills"]
         per = [max(0.0, (k[s_] or 0.0) - (k[s_ - 1] or 0.0)) if s_ > 0 else (k[0] or 0.0) for s_ in range(end + 1)] + [None] * (T - end)
@@ -2078,7 +2111,7 @@ def aggregate(players, settings, meta=None, game_dir=None):
     res = {"schema": SCHEMA, "meta": dict(meta or {}), "settings": s, "names": names, "t": list(range(T + 1)), "playing": playing,
            "series": out_series, "breakdowns": out_bd, "markers": mk, "players": plist, "summary": summary,
            "rules": {"dps_window": DPS_WINDOW, "rate_window": RATE_WINDOW, "trouble": TROUBLE_FRAC, "bands": list(BAND_SERIES),
-                     "medians": list(MEDIAN_SERIES), "fold": FOLD_DEFAULT}}
+                     "medians": list(MEDIAN_SERIES), "fold": FOLD_DEFAULT, "hp_bucket": HP_BUCKET}}
     res["meta"].setdefault("hero_name", names.get(s["hero"], s["hero"]))
     bc = board_check(s, ok)
     if bc:

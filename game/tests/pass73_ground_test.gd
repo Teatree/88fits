@@ -561,7 +561,10 @@ func test_the_gila_hides_three_seconds_then_erupts_where_the_hero_is_heading() -
 		hidden_t += DT
 	assert_int(g.rings.size()).is_equal(1)
 	assert_float(t).is_between(wind - warn - 0.05, wind - warn + 0.05)
-	assert_float(hidden_t + 2.0 * DT).is_between(3.0 / em.pace - 0.1, 3.0 / em.pace + 0.1)
+	# (pass 115, lane BOSS: the wait under the sand is the file's wind-up less the sink and the warning: 3.0 s, x1.25 since
+	# pass 115 = 3.75 s, Garry's "increase the time it takes for the Gila to pop out of the ground by 25%")
+	assert_float(hidden_t + 2.0 * DT).is_between(wind - sink - warn - 0.1, wind - sink - warn + 0.1)
+	assert_float(float(atk["windup"]) - float(atk["sink"]) - float(atk["warn"])).is_equal_approx(3.75, 0.0001)
 	# the warning: where he will be `predict` seconds on, for what is left of the wind-up
 	var ring: Dictionary = g.rings[0]
 	var want: Vector3 = hero.global_position + hero.velocity * float(atk["predict"])

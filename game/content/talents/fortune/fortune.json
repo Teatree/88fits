@@ -2,7 +2,7 @@
   "id": "fortune",
   "name": "Fortune",
   "flavour": "Better cards, or fatter purses.",
-  "order": 2,
+  "order": 3,
   "ranks": 6,
   "currency_type": "gold",
   "cost": [

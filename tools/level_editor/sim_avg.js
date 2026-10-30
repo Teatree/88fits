@@ -20,6 +20,7 @@ const SimAvg = (() => {
   // ------------------------------------------------------------------ sim_batch.py's constants
   const SCHEMA = 1;
   const DPS_WINDOW = 5;
+  const HP_BUCKET = 5;   // pass 115 (lane DASH): the health bars' seconds (hp_low5, took5, healed5), sim_batch's twin
   const RATE_WINDOW = 10;
   const TROUBLE_FRAC = 0.30;
   const FOLD_DEFAULT = 7;
@@ -183,6 +184,36 @@ const SimAvg = (() => {
       }
     }
     if (hp && hm) series.trouble = range((s) => (s <= end && hm[s] ? ((hp[s] || 0) < TROUBLE_FRAC * hm[s] ? 100.0 : 0.0) : null));
+    // pass 115 (lane DASH; Garry: "Just show Current HP instead with bars. Show different coloured bars for damage taken.
+    // Make it be per 5 seconds"): every HP_BUCKET seconds of a run, the lowest health it touched (% of max HP: its hp_min
+    // where the run reports it, else its HP each second), the damage it took and the health it got back in them (% of max
+    // HP); each value on every second of its bucket, so the runs average second by second (sim_batch.py the same)
+    if (hp && hm && took) {
+      const low = series.hp_min || hp;
+      const lo5 = new Array(T + 1).fill(null), tk5 = new Array(T + 1).fill(null);
+      const hl5 = healed ? new Array(T + 1).fill(null) : null;
+      for (let b0 = 0; b0 <= end; b0 += HP_BUCKET) {
+        const b1 = Math.min(end, b0 + HP_BUCKET - 1);
+        let lo = null, tk = 0.0, hl = 0.0;
+        for (let s = b0; s <= b1; s++) {
+          const m = hm[s];
+          if (!m) continue;
+          const v = Math.max(0.0, Math.min(hp[s] || 0.0, low[s] != null ? low[s] : (hp[s] || 0.0))) / m;
+          if (lo === null || v < lo) lo = v;
+          tk += (took[s] || 0.0) / m;
+          if (healed) hl += (healed[s] || 0.0) / m;
+        }
+        if (lo === null) continue;
+        for (let s = b0; s <= b1; s++) {
+          lo5[s] = 100.0 * lo;
+          tk5[s] = 100.0 * tk;
+          if (hl5) hl5[s] = 100.0 * hl;
+        }
+      }
+      series.hp_low5 = lo5;
+      series.took5 = tk5;
+      if (hl5) series.healed5 = hl5;
+    }
     if (series.kills) {
       const k = series.kills;
       const per = [];
@@ -511,7 +542,7 @@ const SimAvg = (() => {
     for (let s = 0; s <= T; s++) tt.push(s);
     const res = { schema: SCHEMA, meta: Object.assign({}, meta || {}), settings: st, names: nm, t: tt, playing, series: outSeries,
       breakdowns: outBd, markers: mk, players: plist, summary,
-      rules: { dps_window: DPS_WINDOW, rate_window: RATE_WINDOW, trouble: TROUBLE_FRAC, bands: BAND_SERIES.slice(), medians: MEDIAN_SERIES.slice(), fold: FOLD_DEFAULT } };
+      rules: { dps_window: DPS_WINDOW, rate_window: RATE_WINDOW, trouble: TROUBLE_FRAC, bands: BAND_SERIES.slice(), medians: MEDIAN_SERIES.slice(), fold: FOLD_DEFAULT, hp_bucket: HP_BUCKET } };
     if (!own(res.meta, 'hero_name')) res.meta.hero_name = nm[st.hero] || st.hero;
     const ms = ok.map((p) => p.d.meta || {});
     const unl = Array.from(new Set(ms.filter((m) => m.unlocks).map((m) => String(m.unlocks)))).sort(cmpStr);
@@ -775,6 +806,9 @@ const SimAvg = (() => {
     // not false: never a headless or --fixed-fps run); the shots and pickups whenever the record has them. A record
     // from before pass 101 has none of these: their charts hide.
     Object.assign(out, frameSeries(rows, rec));
+    // pass 115 (lane DASH): schema 5's lowest health inside each second (hp_min; the row's hp where it did not dip), only
+    // from a record that has it: the 5 s health bars read it, a sim's runs (no hp_min) read their HP each second
+    if (seen('hp_min')) out.hp_min = rows.map((r0) => { const r = isObj(r0) ? r0 : {}; return snapped(Math.min(fl(r.hp), r.hp_min != null ? fl(r.hp_min) : fl(r.hp)), 0.1); });
     const dmgTotal = out.dmg_total.length ? out.dmg_total[out.dmg_total.length - 1] : 0;
     out.meta = { schema: SCHEMA, source: 'record', record_schema: Number(rec.schema) || 1, hero: String(rec.hero || ''), hero_name: String(rec.hero_name || rec.hero || ''),
       hero_look: String(rec.hero_look || ''), start_weapon: String((rec.timeline && rec.timeline.start_weapon) || ''), seed: rec.seed,
@@ -1040,7 +1074,7 @@ const SimAvg = (() => {
       starving: bds.starving || { order: [], share: {} }, rows, life_by: lifeOut, deaths, bosses: blist, rules: Object.assign({}, OVERLAY_RULES) };
   }
 
-  return { SCHEMA, DPS_WINDOW, RATE_WINDOW, TROUBLE_FRAC, LEVEL_SERIES, CUM_SERIES, RATE_SERIES, BAND_SERIES, MEDIAN_SERIES, BREAKDOWNS,
+  return { SCHEMA, DPS_WINDOW, HP_BUCKET, RATE_WINDOW, TROUBLE_FRAC, LEVEL_SERIES, CUM_SERIES, RATE_SERIES, BAND_SERIES, MEDIAN_SERIES, BREAKDOWNS,
     pyRound, fracBits, num, clockS, r, pct, median, rolling, playerGrid, markers, aggregate, nameOf,
     snapped, step, eventsOut, series, evoIdsOf, fromRecord, frameSeries, workSeries,
     OVERLAY_SCHEMA, OVERLAY_SERIES, OVERLAY_BANDS, OVERLAY_MEDIANS, OVERLAY_RULES, overlayRows, overlay };

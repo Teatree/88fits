@@ -2566,33 +2566,49 @@ const Model = (() => {
 
   // ------------------------------------------------------------------ pass 111 (lane ENEMY): far creatures walk faster
   /** WaveTimeline.FAR_SPEED_DEFAULTS: the map's `far_speed` block's keys and the game's values for the missing ones. */
-  const FAR_SPEED_DEFAULTS = { enabled: true, distance: 14, max_mult: 2, ramp: 6, bosses: true };
+  // pass 115 (lane POLISH): the ramp's shape (`curve`, EnemyManager.FAR_CURVES) and the cap in m/s (`max_speed`, 0 = none)
+  const FAR_SPEED_DEFAULTS = { enabled: true, distance: 12, max_mult: 3, ramp: 24, bosses: true, curve: 'ease_out', max_speed: 6 };
+  const FAR_CURVES = ['smooth', 'linear', 'ease_out', 'ease_in'];
   /** The block whole, every key filled (WaveTimeline.far_speed_cfg). */
   function farSpeedCfg(tl) {
     const b = isObj(tl) && isObj(tl.far_speed) ? tl.far_speed : {};
     const out = {};
     for (const k of Object.keys(FAR_SPEED_DEFAULTS)) {
       const dv = FAR_SPEED_DEFAULTS[k];
-      out[k] = typeof dv === 'boolean' ? (b[k] == null ? dv : !!b[k]) : num(b[k], dv);
+      if (typeof dv === 'boolean') out[k] = b[k] == null ? dv : !!b[k];
+      else if (typeof dv === 'string') out[k] = FAR_CURVES.includes(b[k]) ? b[k] : dv;
+      else out[k] = num(b[k], dv);
     }
     return out;
   }
-  /** The walk's multiplier `dist` m from the hero (EnemyManager.far_speed_mult): 1 inside the distance, then up to max_mult
-   *  along a smoothstep over the ramp; 1 when the rule is off, or for a boss while `bosses` is off (kind 'boss'); an Elite
-   *  or a special (kind 'never') is never sped up. */
-  function farSpeedMult(tl, dist, kind) {
+  /** The curve's share 0..1 at `f` 0..1 of the ramp (EnemyManager.far_speed_mult's match). */
+  function farCurve(curve, f) {
+    if (curve === 'linear') return f;
+    if (curve === 'ease_out') return 1 - (1 - f) * (1 - f);
+    if (curve === 'ease_in') return f * f;
+    return f * f * (3 - 2 * f);
+  }
+  /** The walk's multiplier `dist` m from the hero (EnemyManager.far_speed_k): 1 inside the distance, then up to max_mult
+   *  along the curve over the ramp; 1 when the rule is off, or for a boss while `bosses` is off (kind 'boss'); an Elite
+   *  or a special (kind 'never') is never sped up. `walk` (m/s, optional): the creature's own walk, so the cap
+   *  (max_speed) is applied as the game does (never under 1). */
+  function farSpeedMult(tl, dist, kind, walk) {
     const c = farSpeedCfg(tl);
     if (!c.enabled || kind === 'never' || (kind === 'boss' && !c.bosses) || !(dist > c.distance)) return 1;
     const f = c.ramp <= 0 ? 1 : clamp((dist - c.distance) / c.ramp, 0, 1);
-    return 1 + (c.max_mult - 1) * f * f * (3 - 2 * f);
+    let m = 1 + (c.max_mult - 1) * farCurve(c.curve, f);
+    if (c.max_speed > 0 && walk > 0 && walk * m > c.max_speed) m = Math.max(1, c.max_speed / walk);
+    return m;
   }
-  /** What reads as a mistake in the block: a multiplier under 1 slows the far crowd instead, a negative distance or ramp. */
+  /** What reads as a mistake in the block: a multiplier under 1 slows the far crowd instead, a negative distance or ramp,
+   *  a negative cap. */
   function farSpeedIssues(tl) {
     const c = farSpeedCfg(tl);
     const out = [];
     if (c.max_mult < 1) out.push(`Far speed × ${c.max_mult} is under 1: far creatures would walk SLOWER than near ones`);
     if (c.distance < 0) out.push('Far distance is negative');
     if (c.ramp < 0) out.push('Far ramp is negative');
+    if (c.max_speed < 0) out.push('Far speed cap is negative');
     return out;
   }
 
@@ -2623,6 +2639,8 @@ const Model = (() => {
   });
   // pass 111 (lane ENEMY): far creatures walk faster (timeline_data.far_speed)
   Object.assign(api, { FAR_SPEED_DEFAULTS, farSpeedCfg, farSpeedMult, farSpeedIssues });
+  // pass 115 (lane POLISH): the far-speed curve's shapes
+  Object.assign(api, { FAR_CURVES, farCurve });
   // pass 110 (lane BOSS): the boss fight windows (stage_list[k].boss_fight)
   Object.assign(api, {
     BOSS_FIGHT_DEF, BOSS_FIGHT_KEYS, BOSS_CYCLE_HZ, bossFightEntry, bossFight, bossFightOn, bossFightLen, bossFightMax, bossFightRows,

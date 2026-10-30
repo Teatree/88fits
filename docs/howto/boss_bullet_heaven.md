@@ -22,7 +22,9 @@ The tab has the same help in its **How do I change it?** fold, above the preview
 
 - **Projectile → Range (m)**: a bullet shrinks away this many metres from where the boss stood. Now: King 48, Gila 44,
   Brander 36. (The phone shows about 12 m round the hero.)
-- Each emitter's **Speed (m/s)**: how fast its bullets fly (the hero walks about 5).
+- Each emitter's **Speed (m/s)**: how fast its bullets fly (the hero walks about 5). Pass 115 made every one 50% faster
+  (the King's arms 4.8, his rings 3.6; the Gila's fans 4.2 and 3.6; the Brander's rose 4.5, his spiral 3.0, his finale
+  pull 11.25).
 
 ## How far apart the bullets are
 
@@ -47,6 +49,33 @@ Each emitter (a spiral, ring, fan, sweep, wall or rose) has its own boxes:
   and type both. The game then picks a number between them: **Not before** and **At the latest** once per fight, **Then
   every** afresh after each attack. "Not before: range 10 to 15" = somewhere between 10 s and 15 s, different every fight.
 - The line **In a fight** under the preview shows when the first three can start and end, earliest to latest.
+
+## The barrier (pass 115)
+
+Each of the three raises its own 3D wall out of the sand as the warning begins, round the boss and you: the King a fence
+of staked, smouldering tumbleweeds and ropes, the Gila a hedge of spiny organ-pipe cactus with purple venom blooms, the
+Brander an iron fence with white-hot spear heads, a red-hot rail and branding irons. It comes up on your side first and
+runs round the ring; it holds you inside while the bullets fly; it falls apart (the posts topple and sink, the
+tumbleweeds roll away) as the bullets end and the boss is dazed. The rows are in the tab's **The barrier** section.
+
+- **The reach rule.** With a barrier the attack only begins when you are within its reach of the boss (the preview's
+  white dashed circle; the line **Barrier:** under the preview says how far). When it is due and you are further off,
+  it waits, and begins the moment you come in (its clock is not reset). So the wall never comes up on you: you always
+  stand at least half a metre inside it when it rises.
+- **Barrier**: the look (tumbleweed fence, cactus fence, iron fence) or **none** (no wall and no reach rule).
+- **Where it stands**: **range** = the **Inset** (1 m) inside the bullets' **Range**, so every spot inside can be hit
+  (now: King 47 m, Gila 43 m, Brander 35 m round him; you are held within about 0.85 m of it); **fixed** = at the
+  **Radius** you type. The phone shows about 12 m round you: at the range the wall is off the screen until you run out
+  to it; **fixed** at 12 to 16 m keeps it on the screen while you dodge (the bullets then vanish at it).
+- **Height**, **Thickness**: how tall and thick it is (you stop at its inner face, the bullets vanish there).
+- **Rise (s)**, **Spread (s)**, **Fall (s)**: how long a stretch takes to come up, how long the rise takes to run round
+  the ring, how long a piece takes to fall apart.
+- **Stands**: **until the bullets end** (it falls as he is dazed and you are free to go) or **until his dazed seconds
+  end too**.
+- **Barrier colour ×** (times its own paint; white = as made) and **Glow colour** (the embers, the blooms, the hot iron).
+- **Holds the hero**: you cannot cross it while it stands (walking, shoved, thrown or leaping, you slide along it; a
+  Teleport lands you inside it). **Creatures**: kept on their side (the ones outside pile up against it) or walk through.
+  **Bullets at it**: vanish at it with a spark, or fly on to their range.
 
 ## Anything else
 

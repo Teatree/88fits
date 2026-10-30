@@ -116,7 +116,7 @@ def checks(check, run_node, server):
           and dflt and all(abs(float(sc["spawn_rise." + k][2]) - float(v)) < 1e-9 for k, v in dflt.items()),
           "GROUND: fields.js has the spawn_rise rows, explained, the game's defaults in grey: %s / %s" % (list(sc), dflt))
     jc = _read(GAME, "core", "data", "JsonContent.gd")
-    check('t.get("spawn_rise", {})' in jc and '"spew"]' in jc, "GROUND: JsonContent reads the map's spawn_rise and a boss attack's spew")
+    check('t.get("spawn_rise", {})' in jc and '"spew"' in jc, "GROUND: JsonContent reads the map's spawn_rise and a boss attack's spew")
     # the content: the two burrows, the map's block
     gila = json.loads(_read(CONTENT, "bosses", "gila_grande", "gila_grande.json"))
     scorp = json.loads(_read(CONTENT, "enemies", "dune_scorpion", "dune_scorpion.json"))

@@ -83,6 +83,12 @@ const LEAN_MAX := 0.25
 	set(v):
 		opacity = clampf(v, 0.5, 1.0)
 		_dirty = true
+## How solid the dust skirt round its foot is (0.4..1; 0.92 default, pass 113's). Pass 115 (lane POLISH): the map's dust
+## devils thin it with their funnel (DustDevil: opacity x SKIRT_SHARE).
+@export var skirt_opacity := 0.92:
+	set(v):
+		skirt_opacity = clampf(v, 0.4, 1.0)
+		_dirty = true
 @export var lean := 0.14
 @export var snake := 0.085:
 	set(v):
@@ -325,6 +331,7 @@ func _apply_all() -> void:
 	(_funnel.material_override as ShaderMaterial).set_shader_parameter("alpha_max", opacity)
 	(_wisps.material_override as ShaderMaterial).set_shader_parameter("alpha_max", opacity)
 	var sm := _skirt.material_override as ShaderMaterial
+	sm.set_shader_parameter("alpha_max", skirt_opacity)
 	sm.set_shader_parameter("r_inner", radius_bottom * 0.55)
 	sm.set_shader_parameter("r_outer", sr)
 	sm.set_shader_parameter("bank", clampf(0.35 + radius_bottom * 0.6, 0.4, 1.6))

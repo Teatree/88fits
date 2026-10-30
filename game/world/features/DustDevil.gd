@@ -20,6 +20,8 @@ const R_BOTTOM := 0.6
 const R_TOP := 2.1
 const COLOR := Color(0.7, 0.52, 0.34)
 const SPIN := 0.9
+## Pass 115 (lane POLISH): the skirt of dust at this share of the funnel's opacity (pass 113: 0.92 of 0.94).
+const SKIRT_SHARE := 0.98
 ## The ring band's width (m, inside the reach) and its alpha while forming (a warning) and standing.
 const RING_BAND := 0.5
 const RING_WARN := 0.5
@@ -37,7 +39,7 @@ const LOOP_OFFSET := Vector3(6, 0, 4)
 var game: Node
 var map: Node
 var cfg: Dictionary = {}
-var radius := 2.4
+var radius := 3.0
 var speed := 1.4
 var wander := "cross"
 var life := 25.0
@@ -88,9 +90,13 @@ func _ready() -> void:
 		radius = float(cfg["radius"])
 	fx = TornadoFx.new()
 	fx.name = "Tornado"
-	fx.height = HEIGHT
-	fx.radius_bottom = R_BOTTOM
-	fx.radius_top = R_TOP
+	# pass 115 (lane POLISH): the map's `size` and `opacity` (DustDevils.config_of)
+	var sz := float(cfg.get("size", 1.0))
+	fx.height = HEIGHT * sz
+	fx.radius_bottom = R_BOTTOM * sz
+	fx.radius_top = R_TOP * sz
+	fx.opacity = float(cfg.get("opacity", 0.94))
+	fx.skirt_opacity = fx.opacity * SKIRT_SHARE
 	fx.color = COLOR
 	fx.spin = SPIN
 	# the skirt of dust reaches nearly to its grab radius, so the cloud at its foot is what grabs
@@ -256,7 +262,7 @@ func _grab(delta: float) -> void:
 	if em != null:
 		var secs := float(cfg.get("lift", 1.7))
 		if secs > 0.0:
-			lifted += int(em.lift_radius(global_position, radius, secs))
+			lifted += int(em.lift_radius(global_position, radius, secs, float(cfg.get("lift_height", EnemyManager.TORNADO_LIFT_H))))
 		em.swirl(global_position, radius, delta)
 
 

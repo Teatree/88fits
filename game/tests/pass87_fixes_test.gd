@@ -112,8 +112,9 @@ func _bandit(em: EnemyManager, at: Vector3) -> int:
 
 func test_the_bandit_faces_right_from_the_front_and_left_from_the_back() -> void:
 	var raw: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/enemies/spit_cactus/spit_cactus.json"))
-	assert_str(str(raw["variant"])).is_equal("SC-A")
-	var entry: Dictionary = raw["variants"]["SC-A"]
+	# (pass 115: Garry plays the Bombmaker SC-B, made like SC-A with the same keys; whichever thrower he plays)
+	assert_array(["SC-A", "SC-B", "SC-C"]).contains([str(raw["variant"])])
+	var entry: Dictionary = raw["variants"][str(raw["variant"])]
 	# the key lives in the look's own entry (the green cactus SC-0 keeps the default)
 	assert_str(str(entry.get("back_faces", ""))).is_equal("left")
 	assert_bool(entry.has("front_faces")).is_false()

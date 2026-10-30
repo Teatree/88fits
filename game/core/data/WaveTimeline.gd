@@ -253,8 +253,12 @@ const DESPAWN_DEFAULTS := {"enabled": true, "distance": 40.0, "grace": 6.0, "eve
 ## badge: the Vulture Raider, the harpooner, the Saiga Sniper), a coloured special or a training dummy; never a charge,
 ## a boss's scripted roll, a flee or a push (only the walk its brain chooses). A key left out (the whole block too) plays
 ## FAR_SPEED_DEFAULTS; enabled false = off.
+## Pass 115 (lane POLISH; Garry: "the speedup increases the further they are away from the player ... an upper bound ...
+## heroes like Jezyk can still outrun the enemies quite a bit, but not as much as right now"): `curve` (the ramp's shape:
+## "smooth", "linear", "ease_out", "ease_in"; EnemyManager.FAR_CURVES) and `max_speed` (m/s the boost never takes a walk
+## past; 0 = no bound). The defaults: x1 to 12 m, rising quickly then levelling off to x3 at 36 m, never past 6 m/s.
 @export var far_speed: Dictionary = {}
-const FAR_SPEED_DEFAULTS := {"enabled": true, "distance": 14.0, "max_mult": 2.0, "ramp": 6.0, "bosses": true}
+const FAR_SPEED_DEFAULTS := {"enabled": true, "distance": 12.0, "max_mult": 3.0, "ramp": 24.0, "bosses": true, "curve": "ease_out", "max_speed": 6.0}
 
 
 ## The far-speed block whole, every key filled (pass 111): what EnemyManager.set_far_speed takes.
@@ -265,6 +269,8 @@ func far_speed_cfg() -> Dictionary:
 		var v = far_speed.get(k, dv)
 		if dv is bool:
 			out[k] = bool(v) if (v is bool or v is int or v is float) else dv
+		elif dv is String:
+			out[k] = str(v) if v is String and str(v) in ["smooth", "linear", "ease_out", "ease_in"] else dv
 		else:
 			out[k] = float(v) if (v is float or v is int) else float(dv)
 	return out

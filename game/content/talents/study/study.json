@@ -2,7 +2,7 @@
   "id": "study",
   "name": "Study",
   "flavour": "Learn faster, or mend slower.",
-  "order": 5,
+  "order": 6,
   "ranks": 6,
   "currency_type": "gold",
   "cost": [

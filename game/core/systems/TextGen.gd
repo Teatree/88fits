@@ -40,7 +40,7 @@ const STATS := {
 	"barrel_speed": ["move speed after a barrel", "pct"], "barrel_seconds": ["barrel boost", "sec"],
 	"xp_drop_chance": ["extra XP gem chance", "pct"], "elite_damage": ["damage to Elites and bosses", "pct"],
 	# pass 48, the new passive items
-	"phoenix_revive": ["free revive", "count"], "hurt_speed": ["move speed after a hit", "pct"],
+	"phoenix_revive": ["free revive", "count"], "phoenix_hp": ["", "hidden"], "hurt_speed": ["move speed after a hit", "pct"],
 	"hurt_speed_seconds": ["boost after a hit", "sec"], "powder_keg_chance": ["chance a kill blows up", "pct"],
 	"coin_on_hit": ["chance a hit knocks a coin out", "pct"], "gas_mask_cap": ["damage reduction from poisoned enemies", "pct"],
 	"kill_might": ["attack damage per 1,000 kills", "pct"],
@@ -79,6 +79,10 @@ const PRIORITY_WHO := "the strongest enemy nearby"
 ## Words in front of a stat's amount (pass 46: Desperado's bonus is a ceiling, "up to +12% attack damage as health falls"
 ## a level, +60% at level 5; pass 48: Gas Mask's is too, one point a poisoned enemy).
 const PREFIX := {"desperado": "up to ", "gas_mask_cap": "up to "}
+## A stat's whole value said as a sentence (pass 115, lane META): a "set" effect of these stats reads "{v}" filled with its
+## value, the Upgrade board's Nerve line "revive with 60% health" (HomesteadScreen.held_effects folds the talent's own
+## base into its ranks for it).
+const SET_TEXT := {"revive_hp": "revive with {v} health"}
 
 const RARITY_NAMES := {"common": "Common", "uncommon": "Uncommon", "rare": "Rare", "epic": "Epic", "legendary": "Legendary"}
 
@@ -164,7 +168,10 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 				_:
 					out = _signed(e.value) + (" " + name if with_name else "")
 		"set":
-			out = (name + " = " if with_name else "= ") + format_value(e.stat, e.value)
+			if with_name and SET_TEXT.has(e.stat):
+				out = str(SET_TEXT[e.stat]).replace("{v}", format_value(e.stat, e.value))
+			else:
+				out = (name + " = " if with_name else "= ") + format_value(e.stat, e.value)
 	if e.op != "set" and PREFIX.has(e.stat):
 		out = str(PREFIX[e.stat]) + out
 	if e.target == "all_weapons":

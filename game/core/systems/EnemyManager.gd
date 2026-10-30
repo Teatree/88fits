@@ -1255,8 +1255,13 @@ func _cam_up() -> Vector3:
 	return Vector3(0, 0.695, 0) + _cf_tick * 0.719
 
 
-## Tornado: every grounded enemy inside the radius is thrown into the air for `duration` seconds.
-func lift_radius(center: Vector3, radius: float, duration: float = 1.6) -> int:
+## A tornado's ride at its highest, metres a creature of size 1 goes up (pass 44 to 114's; the bees' old twister keeps it).
+const TORNADO_LIFT_H := 3.2
+
+
+## Tornado: every grounded enemy inside the radius is thrown into the air for `duration` seconds, `height` m (x its size)
+## up at the top of the ride (pass 115, lane POLISH: the map's dust_devils.lift_height).
+func lift_radius(center: Vector3, radius: float, duration: float = 1.6, height: float = TORNADO_LIFT_H) -> int:
 	var n := 0
 	for i in indices_in_radius(center, radius):
 		if lift_t[i] > 0.0 or lift_cd[i] > 0.0 or state[i] == STATE_DYING or i == boss_index:
@@ -1264,6 +1269,7 @@ func lift_radius(center: Vector3, radius: float, duration: float = 1.6) -> int:
 		lift_mode[i] = 0
 		lift_t[i] = duration
 		lift_d[i] = duration
+		lift_peak[i] = maxf(height, 0.0)
 		lift_a[i] = atan2(pos[i].z - center.z, pos[i].x - center.x)
 		kb[i] = Vector3.ZERO
 		n += 1
@@ -2438,6 +2444,7 @@ func twist(i: int, seconds: float, to: Vector3) -> void:
 		lift_mode[i] = 0
 		lift_t[i] = seconds
 		lift_d[i] = seconds
+		lift_peak[i] = TORNADO_LIFT_H
 		lift_a[i] = atan2(pos[i].z - to.z, pos[i].x - to.x)
 	kb[i] = Vector3.ZERO
 	if game:
@@ -4190,7 +4197,8 @@ func _physics_process(delta: float) -> void:
 			# tossed by a tornado: rises, spins, drops, then lands with a thump; no steering meanwhile
 			lift_t[i] -= delta
 			var f := 1.0 - clampf(lift_t[i] / maxf(lift_d[i], 0.01), 0.0, 1.0)
-			lift_h[i] = sin(f * PI) * 3.2 * maxf(size[i], 0.6)
+			# pass 115 (lane POLISH): the ride's height from the tornado that took it (lift_radius's height, twist's 3.2)
+			lift_h[i] = sin(f * PI) * lift_peak[i] * maxf(size[i], 0.6)
 			lift_a[i] += delta * 7.0
 			anim_t[i] += delta * 14.0
 			flip[i] = 1 if int(lift_a[i] * 1.5) % 2 == 0 else 0
@@ -4487,7 +4495,7 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	# pass 111 (lane ENEMY): far from the hero a regular creature (and a boss) walks faster (far_speed_k); one compare for
 	# everything inside the distance
 	if far_speed_on and dist > _far_d:
-		spd *= far_speed_k(i, dist)
+		spd *= far_speed_k(i, dist, spd)
 	match state[i]:
 		STATE_WINDUP:
 			# a hampered creature winds up slower (pass 48)
@@ -8321,14 +8329,23 @@ func despawn(i: int) -> bool:
 ## gear badge, a training dummy); per creature never one wearing an Elite modifier or a coloured special. A charge, a
 ## boss's scripted roll, a flee or a push never reads `spd`, so they keep their speed. Cheap: one compare per steer inside
 ## the distance.
+## Pass 115 (lane POLISH; Garry: "let's make it so that the speedup increases the further they are away from the player
+## ... This increase has an upper bound and it's such that heroes like Jezyk can still outrun the enemies quite a bit,
+## but not as much as right now"): the ramp's shape is the block's `curve` (FAR_CURVES: "smooth" pass 111's S-curve,
+## "linear", "ease_out" quick at first and levelling off at max_mult, "ease_in" slow at first), and `max_speed` (m/s, 0 =
+## none) bounds the boost: it never takes a walk past that many metres a second (a walk already faster keeps its own
+## speed, it is never slowed), so a hero who runs faster than max_speed always gains on a far crowd.
 const FAR_NEVER := 0
 const FAR_REGULAR := 1
 const FAR_BOSS := 2
+const FAR_CURVES := ["smooth", "linear", "ease_out", "ease_in"]
 var far_speed_on := false
-var _far_d := 14.0
-var _far_ramp := 6.0
-var _far_max := 2.0
+var _far_d := 12.0
+var _far_ramp := 24.0
+var _far_max := 3.0
 var _far_bosses := true
+var _far_curve := 2
+var _far_cap := 6.0
 var _t_far := PackedByteArray()
 
 
@@ -8337,10 +8354,12 @@ func set_far_speed(cfg: Dictionary) -> void:
 	far_speed_on = cfg != null and bool(cfg.get("enabled", false)) and float(cfg.get("max_mult", 1.0)) != 1.0
 	if cfg == null or cfg.is_empty():
 		return
-	_far_d = maxf(float(cfg.get("distance", 14.0)), 0.0)
-	_far_ramp = maxf(float(cfg.get("ramp", 6.0)), 0.0)
-	_far_max = maxf(float(cfg.get("max_mult", 2.0)), 0.0)
+	_far_d = maxf(float(cfg.get("distance", 12.0)), 0.0)
+	_far_ramp = maxf(float(cfg.get("ramp", 24.0)), 0.0)
+	_far_max = maxf(float(cfg.get("max_mult", 3.0)), 0.0)
 	_far_bosses = bool(cfg.get("bosses", true))
+	_far_curve = maxi(FAR_CURVES.find(str(cfg.get("curve", "ease_out"))), 0)
+	_far_cap = maxf(float(cfg.get("max_speed", 0.0)), 0.0)
 
 
 ## Which far-speed kind a def is: FAR_BOSS for a boss, FAR_NEVER for an Elite by its kind, a special type (the gear
@@ -8351,13 +8370,22 @@ static func far_kind_of(def: EnemyDef) -> int:
 	return FAR_BOSS if def.archetype == "boss" else FAR_REGULAR
 
 
-## The walk's multiplier `dist` m from the hero: 1 inside `distance`, then up to `max_mult` along a smoothstep over `ramp`
-## m (a ramp of 0 jumps straight to it).
-static func far_speed_mult(dist: float, distance: float, ramp: float, max_mult: float) -> float:
+## The walk's multiplier `dist` m from the hero: 1 inside `distance`, then up to `max_mult` over `ramp` m (a ramp of 0
+## jumps straight to it) along `curve` (an index into FAR_CURVES: 0 smoothstep, 1 a straight line, 2 ease-out 1-(1-f)^2,
+## 3 ease-in f^2).
+static func far_speed_mult(dist: float, distance: float, ramp: float, max_mult: float, curve: int = 0) -> float:
 	if dist <= distance:
 		return 1.0
 	var f := 1.0 if ramp <= 0.0 else clampf((dist - distance) / ramp, 0.0, 1.0)
-	return 1.0 + (max_mult - 1.0) * f * f * (3.0 - 2.0 * f)
+	var s := f * f * (3.0 - 2.0 * f)
+	match curve:
+		1:
+			s = f
+		2:
+			s = 1.0 - (1.0 - f) * (1.0 - f)
+		3:
+			s = f * f
+	return 1.0 + (max_mult - 1.0) * s
 
 
 ## Pass 111 (lane ENEMY; Garry: the harpoon's "whole shooting ... sequence more impressive and noticeable"): a thrower
@@ -8384,12 +8412,16 @@ static func rear_numbers(def: EnemyDef) -> PackedFloat32Array:
 	return PackedFloat32Array([lean, maxf(tele, 0.05)])
 
 
-## Creature `i`'s walk multiplier at `dist` m from the hero (1 for one the rule never takes).
-func far_speed_k(i: int, dist: float) -> float:
+## Creature `i`'s walk multiplier at `dist` m from the hero (1 for one the rule never takes); `spd` its walk now (m/s, 0 =
+## unknown): with the block's max_speed the boost stops where the walk reaches it (pass 115), never under 1.
+func far_speed_k(i: int, dist: float, spd: float = 0.0) -> float:
 	var kind: int = _t_far[type_idx[i]]
 	if kind == FAR_NEVER or (kind == FAR_BOSS and not _far_bosses) or elite_idx[i] >= 0 or vspecial[i] == 1:
 		return 1.0
-	return far_speed_mult(dist, _far_d, _far_ramp, _far_max)
+	var m := far_speed_mult(dist, _far_d, _far_ramp, _far_max, _far_curve)
+	if _far_cap > 0.0 and spd > 0.0 and spd * m > _far_cap:
+		m = maxf(1.0, _far_cap / spd)
+	return m
 
 
 # ---------------------------------------------------------------- pass 95 (lane BOSS): the King's stomp

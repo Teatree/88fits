@@ -45,6 +45,10 @@ var numbers: Label
 var light: Label
 var light_dot: ColorRect
 var log_box: RichTextLabel
+## pass 115 (lane DASH; Garry: "I need to know Player Mirror Upgrades while watching the replay"): the Upgrade board the
+## run began with (the recording's save), under the numbers; B or a click on its title folds it
+var board_label: RichTextLabel
+var _board_open := true
 var chart: Control
 var reel: Control
 var seek_box: PanelContainer
@@ -540,6 +544,8 @@ func _input(e: InputEvent) -> void:
 			if rr:
 				rr.set("assist", not bool(rr.get("assist")))
 				_note("Safety net " + ("on" if bool(rr.get("assist")) else "off"))
+		KEY_B:
+			toggle_board()
 		KEY_M:
 			_sound = not _sound
 			AudioServer.set_bus_mute(0, not _sound)
@@ -781,6 +787,17 @@ func _build_ui() -> void:
 	numbers.add_theme_font_size_override("font_size", 16)
 	numbers.add_theme_color_override("font_color", INK)
 	panel.add_child(numbers)
+	board_label = RichTextLabel.new()
+	board_label.bbcode_enabled = true
+	board_label.fit_content = true
+	board_label.scroll_active = false
+	board_label.custom_minimum_size = Vector2(PANEL_W - 20, 0)
+	board_label.add_theme_font_size_override("normal_font_size", 14)
+	board_label.add_theme_font_size_override("bold_font_size", 15)
+	board_label.add_theme_color_override("default_color", INK)
+	board_label.meta_clicked.connect(func(_m): toggle_board())
+	panel.add_child(board_label)
+	_refresh_board()
 	chart = Control.new()
 	chart.custom_minimum_size = Vector2(PANEL_W - 20, 150)
 	chart.draw.connect(_draw_chart)
@@ -793,13 +810,14 @@ func _build_ui() -> void:
 	log_box = RichTextLabel.new()
 	log_box.bbcode_enabled = true
 	log_box.scroll_following = true
-	log_box.custom_minimum_size = Vector2(PANEL_W - 20, 220)
+	# pass 115 (lane DASH): 110 (was 220): the Upgrade board above it takes its room, the log still fills what is left
+	log_box.custom_minimum_size = Vector2(PANEL_W - 20, 110)
 	log_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	log_box.add_theme_font_size_override("normal_font_size", 14)
 	log_box.add_theme_color_override("default_color", INK)
 	panel.add_child(log_box)
 	var keys := Label.new()
-	keys.text = "Keys: Space pause · . one frame · 1-7 speed 0.1x-8x · +/- faster/slower · ←/→ 5 s (Shift 30 s) · Home start · A safety net · M sound · Esc quit. Click the reel to jump."
+	keys.text = "Keys: Space pause · . one frame · 1-7 speed 0.1x-8x · +/- faster/slower · ←/→ 5 s (Shift 30 s) · Home start · A safety net · B Upgrade board · M sound · Esc quit. Click the reel to jump."
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	keys.custom_minimum_size = Vector2(PANEL_W - 20, 0)
 	keys.add_theme_color_override("font_color", DIM)
@@ -910,6 +928,49 @@ func _refresh_ui(f: int) -> void:
 	_refresh_buttons()
 
 
+## Pass 115 (lane DASH): the Upgrade board as the recorded run began (its save's talents, RunAnalytics.board on this
+## build's talents): every talent's ranks as dots (blue its first form, amber its second, hollow not bought) and its forms
+## by name, two talents a row; folded to its one title line by B or a click on it.
+func _refresh_board() -> void:
+	if board_label == null:
+		return
+	var sv = plan.get("save", {})
+	if not (sv is Dictionary) or not ((sv as Dictionary).get("talents") is Dictionary):
+		board_label.text = "[color=#9a9a9e]Upgrade board: not in this recording.[/color]" if not plan.is_empty() else ""
+		return
+	var b := RunAnalytics.board((sv as Dictionary)["talents"], int((sv as Dictionary).get("talent_spent", -1)))
+	var head := "[url=board][b]Upgrade board[/b][/url]  %d of %d ranks · %s gold  [url=board][color=#9a9a9e](%s)[/color][/url]" % [int(b["ranks"]),
+		int(b["max"]), TextGen.grouped(int(b["gold"])), "B: fold" if _board_open else "B: open"]
+	if not _board_open:
+		board_label.text = head
+		return
+	var cells := PackedStringArray()
+	for t in b["talents"]:
+		var picks: Array = t["picks"]
+		var forms: Array = t["forms"]
+		var dots := ""
+		for k in range(maxi(int(t["max"]), picks.size())):
+			if k < picks.size():
+				dots += "[color=%s]●[/color]" % ("#5aa0ff" if int(picks[k]) == 0 else "#f0a830")
+			else:
+				dots += "[color=#55555a]○[/color]"
+		var n0 := picks.count(0)
+		var n1 := picks.size() - n0
+		var words := PackedStringArray()
+		if n0 > 0:
+			words.append("%s ×%d" % [str(forms[0]), n0])
+		if n1 > 0:
+			words.append("%s ×%d" % [str(forms[1]), n1])
+		var w := " · ".join(words) if not words.is_empty() else "[color=#9a9a9e]none[/color]"
+		cells.append("[cell][b]%s[/b] [font_size=19]%s[/font_size]  %s     [/cell]" % [str(t["name"]), dots, w])
+	board_label.text = head + "\n[table=2]" + "".join(cells) + "[/table]"
+
+
+func toggle_board() -> void:
+	_board_open = not _board_open
+	_refresh_board()
+
+
 func _refresh_header() -> void:
 	var b: Dictionary = plan.get("build", {})
 	var mine := RunReplay.build_info()
@@ -917,8 +978,10 @@ func _refresh_header() -> void:
 	var when := str(plan.get("recorded", ""))
 	var who := str(plan.get("player", "")) if str(plan.get("player", "")) != "" else "a player"
 	var result: String = {"death": "died", "extract": "extracted", "abandon": "quit", "end": "ended"}.get(str(plan.get("result", "")), str(plan.get("result", "")))
+	# pass 115 (lane DASH): the look the hero wore (the recording's save's hero_look)
+	var look := str(plan.get("look", ""))
 	var line1 := "[b]Replaying %s's run of %s[/b]  ·  %s on stage %d  ·  %s at %s  ·  level %d, %d kills" % [who, when,
-		_hero_name(str(plan.get("hero", ""))), int(plan.get("stage", 0)), result, mmss(float(plan.get("play_s", 0.0))),
+		_hero_name(str(plan.get("hero", ""))) + (" (look %s)" % look if look != "" else ""), int(plan.get("stage", 0)), result, mmss(float(plan.get("play_s", 0.0))),
 		int(plan.get("level", 0)), int(plan.get("kills", 0))]
 	var rec := _build_words(b)
 	var here := _build_words(mine)

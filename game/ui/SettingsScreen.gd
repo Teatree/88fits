@@ -337,10 +337,10 @@ func _wipe_now() -> void:
 	_refresh()
 
 
-## The foot line (pass 59): the build and the player's name in PostHog, "88fits v0.45 · Dusty Coyote 41", so a tester can
-## read it out.
+## The foot line (pass 59): the build and the player's name in PostHog, "Outlaw Survivors v0.98 · Dusty Coyote 41" (the
+## game's name since pass 115, W.GAME_NAME; "88fits" before), so a tester can read it out.
 static func version_line() -> String:
-	return "88fits v%s · %s" % [str(ProjectSettings.get_setting("application/config/version", "")), Save.player_name()]
+	return "%s v%s · %s" % [W.GAME_NAME, str(ProjectSettings.get_setting("application/config/version", "")), Save.player_name()]
 
 
 ## Holding the version line for 2 s opens the developer menu; lifting or sliding the finger away cancels it.

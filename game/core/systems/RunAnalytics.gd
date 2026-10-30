@@ -31,12 +31,18 @@
 ## dropped), frame_timing adds max_steps, and the end header's `heat` (and summary()'s heat_*) holds each minute's mean
 ## frame and work time at each crowd band of HEAT_BAND creatures, so a phone heating up shows as the same crowd costing
 ## more minute after minute.
+## Pass 115 (lane DASH), schema 5: a row carries `hp_min`, the lowest health the hero touched inside its second (only
+## when below the row's `hp`: Garry watched his hero drop to 20% between two rows); the header adds `board` (the whole
+## Upgrade board as the run began: every talent, its ranks and their forms, what the ranks cost), `weapon_sources`
+## (every item, talent, gift or bonus that changed each held weapon's numbers at the end, in words, with its icon),
+## `weapon_family` (an evolution's base weapon) and `icons` (every id's icon as a res:// path without the prefix), so
+## the dashboard can draw each weapon's real DPS with what shaped it.
 class_name RunAnalytics
 extends Node
 
 static var I: RunAnalytics = null
 
-const SCHEMA := 4
+const SCHEMA := 5
 ## Pass 74: the run files a phone keeps in user://analytics/runs (the newest by name: a name is the run's start stamp);
 ## the PC keeps every one (prunes_here).
 const KEEP_FILES := 50
@@ -44,7 +50,12 @@ const KEEP_FILES := 50
 const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
 ## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
 const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents",
-	"talent_forms", "totems", "stat_names", "build_text", "heat", "tasks"]
+	"talent_forms", "totems", "stat_names", "build_text", "heat", "tasks", "board", "weapon_sources", "weapon_family", "icons"]
+## Pass 115 (lane DASH): the hero's stats every weapon's numbers fold in (WeaponInstance.rebuild: attack damage, cooldown,
+## Berserk's weapon speed, area, projectile speed, duration, extra projectiles) and the ones its hits read (crits, damage
+## to Elites and bosses, ricochet, overkill, execute, debuff duration): a source of one of these shaped every weapon.
+const WEAPON_FEED := ["might", "cooldown", "haste", "area", "projectile_speed", "duration", "amount", "crit_chance",
+	"crit_damage", "elite_damage", "ricochet", "overkill", "execute_frac", "debuff_duration"]
 ## The Totem Poles' gifts (pass 73), by path as Run reads them.
 const TOTEM_BOONS := preload("res://core/systems/TotemBoons.gd")
 ## The player stats a sheet snapshot carries (StatSheet.PLAYER_DEFAULTS minus the bookkeeping ones; pass 47 added the
@@ -169,6 +180,9 @@ var _hits_by: Dictionary = {}
 var _special_chests_seen := 0
 # pass 74: names the Registry does not know (a totem gift's id -> its title)
 var _extra_names: Dictionary = {}
+# pass 115 (lane DASH): the lowest health the hero touched since the last row (INF = none read yet), and the hero
+var _hp_low := INF
+var _hero: Node = null
 
 
 ## The one line Game._ready needs: a recorder under the game, begun. `launch` is the debug launch file the run started
@@ -233,6 +247,8 @@ func begin(p_game: Node) -> void:
 	header["hero_look"] = Analytics.hero_look_of(hero)
 	header["talents"] = _talents()
 	header["talent_forms"] = _talent_forms()
+	# pass 115 (lane DASH): the whole board, every talent with its ranks, forms and price (schema 5)
+	header["board"] = RunAnalytics.board()
 	header["settings"] = _settings()
 	header["map_settings"] = RunAnalytics.map_settings(mapdef.timeline if mapdef else null)
 	header["stat_names"] = RunAnalytics.stat_names()
@@ -325,6 +341,9 @@ func took(info: Dictionary, raw: float, lost: float, shield: float, note: String
 		_evaded += 1
 	_last_hit_key = key
 	_last_hit_kind = kind
+	# pass 115 (lane DASH): the health the hit left him with, into the second's lowest
+	if lost > 0.0:
+		_note_hp()
 
 
 ## EnemyManager.spawn: `def` is the resolved (possibly variant) EnemyDef.
@@ -627,11 +646,24 @@ func tick(delta: float) -> void:
 	play_t += delta
 	_acc_t += delta
 	_frame()
+	_note_hp()
 	if work:
 		work.tick_frame()
 	if _acc_t >= 1.0:
 		_acc_t -= 1.0
 		_sample()
+
+
+## Pass 115 (lane DASH): the hero's health now into the second's lowest (every drawn frame and every hit he takes; reads
+## only). The row's `hp_min` when it went below the row's own `hp`.
+func _note_hp() -> void:
+	if _hero == null or not is_instance_valid(_hero):
+		_hero = game.get("player") if game != null and is_instance_valid(game) else null
+		if _hero == null:
+			return
+	var v = _hero.get("hp")
+	if v != null:
+		_hp_low = minf(_hp_low, float(v))
 
 
 ## The frame clock (pass 57): this frame's wall time since the last unpaused one, into its millisecond bin.
@@ -769,9 +801,14 @@ func _sample() -> void:
 	if player != null:
 		row["hp"] = snappedf(float(player.hp), 0.1)
 		row["hp_max"] = snappedf(float(player.max_hp), 0.1)
+		# pass 115 (lane DASH): the lowest he touched inside the second, when below the row's hp (schema 5)
+		var low := minf(_hp_low, float(player.hp))
+		if low < float(player.hp) - 0.05:
+			row["hp_min"] = snappedf(maxf(low, 0.0), 0.1)
 		_putf(row, "shield", float(player.shield_pts))
 		if float(player.invuln) > 0.0:
 			row["invuln"] = 1
+	_hp_low = INF
 	_put(row, "gold", Run.run_gold)
 	_put(row, "banked", Run.banked_gold)
 	# the second's gold by source and by sink (pass 61)
@@ -1069,6 +1106,10 @@ func _fill_end(with_log: bool, banked: int = 0) -> void:
 	if not heat.is_empty():
 		header["heat"] = heat
 	header["names"] = _names()
+	# pass 115 (lane DASH): what shaped each held weapon, an evolution's base weapon, and every id's icon (schema 5)
+	header["weapon_sources"] = _weapon_sources()
+	header["weapon_family"] = _weapon_family()
+	header["icons"] = _icons()
 	if with_log and game and is_instance_valid(game):
 		var player = game.get("player")
 		if player != null and player.get("damage_log") != null:
@@ -1739,6 +1780,229 @@ func _talent_forms() -> Dictionary:
 	return out
 
 
+## Pass 115 (lane DASH; Garry: "There should be info about what level of Mirror Upgrade Player was when they played"):
+## the whole Upgrade board, in the board's order (Registry.talents_list): every talent with its name, the most ranks it
+## takes (`max`), the form of each rank bought (`picks`: 0 its first form, 1 its second), both forms' names and lines,
+## and the gold those ranks cost at the prices of this build (TalentDef.cost_of_rank); then the board's ranks bought, its
+## most, that gold summed and what the save says was paid for them (`spent`: Save.talent_spent; a price changed since
+## makes the two differ). `save_talents` reads another save's "talents" block ({id: {picks, rank, form}}: the replay's
+## save, ReplayViewer) instead of this phone's; `spent` is then that save's talent_spent (pass it in, -1 = unknown).
+static func board(save_talents: Variant = null, spent: int = -1) -> Dictionary:
+	var rows: Array = []
+	var ranks := 0
+	var most := 0
+	var gold := 0
+	for t in Registry.talents_list():
+		var d := t as TalentDef
+		if d == null:
+			continue
+		var picks: Array = Save.talent_picks(d.id) if save_talents == null else RunAnalytics.picks_in(save_talents, d.id)
+		var g := 0
+		for k in picks.size():
+			g += maxi(d.cost_of_rank(k), 0)
+		rows.append({"id": d.id, "name": d.display_name, "max": d.max_rank(), "picks": picks, "gold": g,
+			"forms": [d.form_name(0), d.form_name(1)], "texts": [d.form_text(0), d.form_text(1)]})
+		ranks += picks.size()
+		most += d.max_rank()
+		gold += g
+	return {"talents": rows, "ranks": ranks, "max": most, "gold": gold,
+		"spent": Save.talent_spent() if save_talents == null else spent}
+
+
+## A save's talent block read the way Save.talent_picks reads its own: the form of each rank ([0, 1, 0]); an old
+## {form, rank} as that form `rank` times; [] for none.
+static func picks_in(save_talents: Variant, id: String) -> Array:
+	var out: Array = []
+	if not (save_talents is Dictionary):
+		return out
+	var t = (save_talents as Dictionary).get(id, {})
+	if not (t is Dictionary):
+		return out
+	var p = (t as Dictionary).get("picks")
+	if p is Array:
+		for f in p:
+			out.append(clampi(int(f), 0, 1))
+		return out
+	for k in range(int((t as Dictionary).get("rank", 0))):
+		out.append(clampi(int((t as Dictionary).get("form", 0)), 0, 1))
+	return out
+
+
+## Pass 115 (lane DASH; Garry: "For each item that was affected by other items we list those as icons as well (with
+## highlight hint to show what they did)"): {weapon id: [source]} for every weapon held at the end: each source that
+## changed its numbers (weapon_sources_of), in the order the sheets list them.
+func _weapon_sources() -> Dictionary:
+	var out := {}
+	if Run.player_sheet == null:
+		return out
+	for w in Run.weapons:
+		var list := RunAnalytics.weapon_sources_of(w, Run.player_sheet)
+		if not list.is_empty():
+			out[w.def.id] = list
+	return out
+
+
+## What shaped one weapon's numbers: every source on the hero's sheet aimed at it (all weapons, this weapon, one of its
+## tags), every source of a hero stat it folds in or its hits read (WEAPON_FEED: attack damage, cooldown, area, crits...),
+## its own mutations and the favourite's bonus; its level is the weapon itself and left out. One entry a source id
+## (StatSheet's `sid`: three ranks of one talent are one), its amounts summed per stat (a "mul" compounded):
+## {s: the source id, n: its name (StatSources.describe_source), k: its kind (passive, perk, mutation, talent, trait,
+## hero, totem, stranger, buff, bonus, ...), w: what it did in words ("+30% attack damage, −12% cooldown"), i: its icon
+## (a res:// path without the prefix; "" without one)}. Sources that word to nothing (hidden stats) are left out.
+static func weapon_sources_of(w: WeaponInstance, player: StatSheet) -> Array:
+	var acc := {}
+	var order: Array = []
+	for en in player.entries:
+		var e: Effect = en["effect"]
+		var aimed := StatSheet.aims_at_weapons(e)
+		if aimed:
+			if not (e.target == "all_weapons" or e.target == "weapon:" + w.def.id or (e.target.begins_with("tag:") and w.def.tags.has(e.target.trim_prefix("tag:")))):
+				continue
+		elif not WEAPON_FEED.has(e.stat):
+			continue
+		RunAnalytics._ws_add(acc, order, str(en.get("sid", en["source"])), str(en["source"]), e)
+	for en in w.sheet.entries:
+		var src := str(en["source"])
+		if src == "bonus" or src.begins_with("mutation:"):
+			RunAnalytics._ws_add(acc, order, src, src, en["effect"])
+	var out: Array = []
+	for sid in order:
+		var a: Dictionary = acc[sid]
+		var words: Array = []
+		for key in a["keys"]:
+			var parts := str(key).split("|")
+			var x := Effect.make(parts[0], parts[1], float(a["parts"][key]), "")
+			var s := TextGen.describe_effect(x, true)
+			if s != "":
+				words.append(s)
+		if words.is_empty():
+			continue
+		var r := {"s": sid, "w": ", ".join(PackedStringArray(words))}
+		if sid == "bonus":
+			var c: CharacterDef = Run.character
+			r["n"] = (c.display_name + "'s favourite") if c != null else "Favourite bonus"
+			r["k"] = "bonus"
+			r["i"] = RunAnalytics.icon_path(Registry.played_look(c).icon if c != null and Registry.played_look(c) != null else null)
+		else:
+			var d := StatSources.describe_source(sid, str(a["source"]), int(a["count"]))
+			r["n"] = str(d.get("name", sid))
+			r["k"] = str(d.get("kind", ""))
+			r["i"] = RunAnalytics.icon_path(d.get("icon"))
+			# a Totem gift: its spirit's carved face (the pole's own icon when it has none)
+			if r["k"] == "totem" and RunAnalytics.spirit_path(sid.trim_prefix("totem:")) != "":
+				r["i"] = RunAnalytics.spirit_path(sid.trim_prefix("totem:"))
+		out.append(r)
+	return out
+
+
+## One effect into weapon_sources_of's sums: by source id, then by stat and op ("mul" compounded, "set" the last, "add"
+## summed).
+static func _ws_add(acc: Dictionary, order: Array, sid: String, source: String, e: Effect) -> void:
+	if e == null or e.stat == "":
+		return
+	if not acc.has(sid):
+		acc[sid] = {"source": source, "parts": {}, "keys": [], "count": 0}
+		order.append(sid)
+	var a: Dictionary = acc[sid]
+	var key := e.stat + "|" + e.op
+	if not (a["parts"] as Dictionary).has(key):
+		a["parts"][key] = 0.0
+		(a["keys"] as Array).append(key)
+	var v := float(a["parts"][key])
+	match e.op:
+		"mul":
+			v = (1.0 + v) * (1.0 + e.value) - 1.0
+		"set":
+			v = e.value
+		_:
+			v += e.value
+	a["parts"][key] = v
+	a["count"] = int(a["count"]) + 1
+
+
+## {weapon id: its base weapon's id} for every evolution the run dealt damage with or held (WeaponDef.evolved_from), so
+## the dashboard draws an evolution on its weapon's line.
+func _weapon_family() -> Dictionary:
+	var ids := {}
+	for k in Run.damage_by_weapon:
+		ids[str(k)] = true
+	for w in Run.weapons:
+		ids[w.def.id] = true
+	var out := {}
+	for id in ids:
+		var d: WeaponDef = Registry.weapon(str(id))
+		if d != null and d.is_evolution and d.evolved_from != "":
+			out[str(id)] = d.evolved_from
+	return out
+
+
+## {id: icon path} for every item, power-up, structure and talent the record names (the header's names, the talents'
+## forms as "talent:<id>:<form>", the hero as "hero:<id>" in the look he played), as res:// paths without "res://"
+## (analytics/dashboard.html reads them from ../game/); an icon made in memory (no file) is left out.
+func _icons() -> Dictionary:
+	var out := {}
+	for id in header.get("names", {}):
+		var d: ContentDef = _icon_def(str(id))
+		if d != null:
+			var p := RunAnalytics.icon_path(d.get("icon"))
+			if p != "":
+				out[str(id)] = p
+		elif RunAnalytics.spirit_path(str(id)) != "":
+			# a Totem gift's spirit (art/ui/totem, the Spirit Pole's carved faces)
+			out[str(id)] = RunAnalytics.spirit_path(str(id))
+	for t in Registry.talents_list():
+		var td := t as TalentDef
+		if td == null:
+			continue
+		var p0 := RunAnalytics.icon_path(td.icon)
+		if p0 != "":
+			out["talent:" + td.id] = p0
+		for f in 2:
+			var pf := RunAnalytics.icon_path(td.form_icon(f))
+			if pf != "":
+				out["talent:%s:%d" % [td.id, f]] = pf
+	var c: CharacterDef = Run.character
+	if c != null:
+		var look: CharacterDef = Registry.played_look(c)
+		var ph := RunAnalytics.icon_path(look.icon if look != null else c.icon)
+		if ph != "":
+			out["hero:" + c.id] = ph
+	return out
+
+
+## The content an id names, for its icon: a weapon, passive, perk, mutation, power-up or structure (no creatures).
+func _icon_def(id: String) -> ContentDef:
+	var d: ContentDef = Registry.weapon(id)
+	if d == null:
+		d = Registry.passive(id)
+	if d == null:
+		d = Registry.perk(id)
+	if d == null:
+		d = Registry.mutation(id)
+	if d == null:
+		d = Registry.pickup(id)
+	if d == null:
+		d = Registry.structure(id)
+	return d
+
+
+## A Totem gift's carved face (art/ui/totem/spirit_<id>.png, TotemScreen's) as the record keeps a path; "" without one.
+static func spirit_path(id: String) -> String:
+	var p := "res://art/ui/totem/spirit_%s.png" % id
+	return p.trim_prefix("res://") if id != "" and ResourceLoader.exists(p) else ""
+
+
+## A texture's file as the record keeps it: its res:// path without "res://" ("content/weapons/revolver/revolver_icon.png");
+## "" for none or one made in memory.
+static func icon_path(tex: Variant) -> String:
+	if not (tex is Texture2D):
+		return ""
+	var p := (tex as Texture2D).resource_path
+	if not p.begins_with("res://") or p.contains("::"):
+		return ""
+	return p.trim_prefix("res://")
+
+
 ## The words the pause screen uses for every stat the record's snapshots carry (TextGen.stat_name: "attack damage", not
 ## "might"), so the dashboard needs no content folder for them.
 static func stat_names() -> Dictionary:
@@ -1990,6 +2254,11 @@ func index_row() -> Dictionary:
 			row["talents." + str(id)] = n
 			ranks += n
 	row["talents"] = ranks
+	# pass 115 (lane DASH): the board's most ranks and what its ranks cost (schema 5's board; absent before it)
+	var bd = header.get("board")
+	if bd is Dictionary:
+		row["board_max"] = int((bd as Dictionary).get("max", 0))
+		row["board_gold"] = int((bd as Dictionary).get("gold", 0))
 	row["totems"] = (header["totems"] as Array).size() if header.get("totems") is Array else 0
 	var dmg := 0.0
 	var top := ""

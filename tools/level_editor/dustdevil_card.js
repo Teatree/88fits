@@ -6,10 +6,11 @@
 // long, how big. selftest_TWISTER113.py runs it under Node and checks the copy against the GDScript.
 const DustDevilCard = (() => {
   const DEFAULTS = {
-    enabled: true, first: 90, every: [120, 180], life: [20, 30], max_alive: 1,
-    radius: 2.4, speed: 1.4, wander: 'cross', miss: 3, form_dist: [7, 11],
+    enabled: true, first: 90, every: [120, 180], life: [60, 90], max_alive: 1,
+    radius: 3, speed: 1.4, wander: 'cross', miss: 3, form_dist: [7, 11],
     form_seconds: 2.5, fade_seconds: 2,
-    toss: { up: 8, out: 3.6, cooldown: 1.2 }, lift: 1.7,
+    toss: { up: 9.5, out: 3.6, cooldown: 1.2 }, lift: 1.7, lift_height: 4.5,
+    size: 1.25, opacity: 0.7,
     warn: true, in_boss: false, in_portal: false, in_endless: false,
   };
   const WANDERS = ['cross', 'drift', 'loop'];
@@ -37,21 +38,25 @@ const DustDevilCard = (() => {
     o.first = Math.max(num(o.first, 90), 0);
     const ev = rangeOf(o.every, [120, 180]);
     o.every = [Math.max(ev[0], EVERY_MIN), Math.max(ev[1], EVERY_MIN)];
-    const lf = rangeOf(o.life, [20, 30]);
+    const lf = rangeOf(o.life, [60, 90]);
     o.form_seconds = Math.max(num(o.form_seconds, 2.5), 0.1);
     o.fade_seconds = Math.max(num(o.fade_seconds, 2), 0.1);
     const least = o.form_seconds + o.fade_seconds + 1;
     o.life = [Math.max(lf[0], least), Math.max(lf[1], least)];
     o.max_alive = Math.max(Math.trunc(num(o.max_alive, 1)), 0);
-    o.radius = Math.max(num(o.radius, 2.4), 0.2);
+    o.radius = Math.max(num(o.radius, 3), 0.2);
     o.speed = Math.max(num(o.speed, 1.4), 0);
     o.wander = WANDERS.includes(String(o.wander)) ? String(o.wander) : 'cross';
     o.miss = num(o.miss, 3);
     const fd = rangeOf(o.form_dist, [7, 11]);
     o.form_dist = [Math.max(fd[0], 0), Math.max(fd[1], Math.max(fd[0], 0))];
     const ts = isObj(o.toss) ? o.toss : {};
-    o.toss = { up: Math.max(num(ts.up, 8), 0), out: num(ts.out, 3.6), cooldown: Math.max(num(ts.cooldown, 1.2), 0) };
+    o.toss = { up: Math.max(num(ts.up, 9.5), 0), out: num(ts.out, 3.6), cooldown: Math.max(num(ts.cooldown, 1.2), 0) };
     o.lift = Math.max(num(o.lift, 1.7), 0);
+    // pass 115 (lane POLISH): how high a creature rides, the funnel's size, how solid it is
+    o.lift_height = Math.max(num(o.lift_height, 4.5), 0);
+    o.size = Math.min(Math.max(num(o.size, 1.25), 0.25), 4);
+    o.opacity = Math.min(Math.max(num(o.opacity, 0.7), 0.5), 1);
     for (const k of ['warn', 'in_boss', 'in_portal', 'in_endless']) o[k] = bool(o[k]);
     return o;
   }
@@ -75,7 +80,8 @@ const DustDevilCard = (() => {
     return `About ${per || 'a few a stage'} (each stage's own time${extra.length ? ` plus ${extra.join(', ')}` : ''}): the first at ${mmss(c.first)}, then one ${ev}, ` +
       `at most ${c.max_alive} at once. Each forms on the screen ${span(c.form_dist, 'm')} from the hero (its dust first, the funnel rising over ${c.form_seconds} s), ` +
       `lasts ${span(c.life, 's')} and fades over ${c.fade_seconds} s. It throws the hero inside its ring (${(c.radius + HERO_REACH).toFixed(1)} m, drawn on the sand) ` +
-      `${c.toss.up} m/s up and ${c.toss.out} m/s out, and lifts creatures within ${c.radius} m for ${c.lift} s. ${c.warn ? 'The first one of a run says "DUST DEVIL".' : 'No toast.'}`;
+      `${c.toss.up} m/s up (about ${(c.toss.up * c.toss.up / 48).toFixed(1)} m high) and ${c.toss.out} m/s out, and lifts creatures within ${c.radius} m for ${c.lift} s, ${c.lift_height} m up (× their size). ` +
+      `Its funnel is ${(7 * c.size).toFixed(1)} m tall, ${Math.round(c.opacity * 100)}% solid. ${c.warn ? 'The first one of a run says "DUST DEVIL".' : 'No toast.'}`;
   }
 
   /** The card's extra block: the paragraph and any warnings (drawn under the rows by settings.js). */

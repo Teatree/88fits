@@ -131,6 +131,17 @@ const BossModel = (() => {
   const EMITTER_AIMS = ['hero', 'track', 'fixed', 'random'];
   const TELL_LOOKS = ['none', 'spin', 'rear', 'drive'];
   const SHELLS = ['none', 'tornado', 'scales', 'pillar'];
+  // pass 115 (lane BOSS): a pattern's barrier (BossAttackDef.BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS,
+  // BARRIER_CREATURES, BARRIER_BULLETS; the hero's body and the reach rule's room BARRIER_HERO_R, BARRIER_KEEP, the
+  // smallest wall BARRIER_MIN_R; selftest_BOSS115.py checks them)
+  const BARRIER_LOOKS = ['none', 'tumbleweed_fence', 'cactus_fence', 'iron_fence'];
+  const BARRIER_MODES = ['range', 'fixed'];
+  const BARRIER_HOLDS = ['bullets', 'spent'];
+  const BARRIER_CREATURES = ['block', 'pass'];
+  const BARRIER_BULLETS = ['stop', 'pass'];
+  const BARRIER_HERO_R = 0.45;
+  const BARRIER_KEEP = 0.5;
+  const BARRIER_MIN_R = 3.0;
   /** BossAttackFx.BB_RADIUS: a bullet-heaven look's body radius (m) at size 1. */
   const BB_RADIUS = { burning_tumbleweed: 0.34, venom_blob: 0.5, brand_fireball: 0.4 };
   const ORDERS = ['out', 'in', 'random', 'sweep'];
@@ -156,6 +167,8 @@ const BossModel = (() => {
     spent: { seconds: 2.5, damage_taken: 1.5, still: true },
     tell: { seconds: 2.0, banner: '', banner_color: '#E8502A', ring_radius: 9.0, ring_color: '#140A06', ring_alpha: 0.5, duck_db: -14.0, look: 'none' },
     shell: { look: 'none', color: '#C9A46A', height: 7.0, radius: 3.0, opacity: 0.94, sigil_radius: 0.0, sigil_color: '#FF6A1A' },
+    // pass 115 (lane BOSS): a pattern's barrier (BossAttackDef.DEFAULTS.barrier; selftest_BOSS115.py checks it)
+    barrier: { look: 'none', radius_mode: 'range', radius: 16.0, inset: 1.0, height: 1.8, thickness: 0.8, rise_s: 0.8, spread_s: 0.6, fall_s: 1.0, hold: 'bullets', color: '#FFFFFF', glow_color: '#FF8A1F', hero_block: true, creatures: 'block', bullets: 'stop' },
   };
   /** BossAttackDef.EMITTER_DEFAULTS: one emitter of a pattern, every key it leaves out. */
   const EMITTER_DEFAULTS = {
@@ -462,10 +475,39 @@ const BossModel = (() => {
   /** BossAttackDef.simulate: the pattern played out without a hero: {peak, peak_t, fired, volleys}; with `at` (seconds after
    *  the bullets begin) also the bullets in the air then, [{x, z, k (its emitter), pull}], for the preview; `aimOf(e, k, t)`
    *  gives an emitter's aim (radians; 0 = +x, the game's 'fixed'). */
+  // pass 115 (lane BOSS): the barrier (BossAttackDef.barrier_on, barrier_radius, barrier_half, barrier_hero_limit,
+  // barrier_reach, barrier_stops_bullets, bullet_reach; selftest_BOSS115.py checks them against the game)
+  function barrierOn(a) {
+    if (!a || a.kind !== 'pattern') return false;
+    const lk = String(val(a, 'barrier', 'look'));
+    return lk !== 'none' && BARRIER_LOOKS.includes(lk);
+  }
+  const barrierHalf = (a) => Math.max(num(val(a, 'barrier', 'thickness'), 0.8), 0.2) * 0.5;
+  function barrierRadius(a) {
+    const r = String(val(a, 'barrier', 'radius_mode')) === 'fixed'
+      ? num(val(a, 'barrier', 'radius'), 16)
+      : Math.max(num(val(a, 'projectile', 'range'), 18), 0.5) - Math.max(num(val(a, 'barrier', 'inset'), 1), 0);
+    return Math.max(r, BARRIER_MIN_R + barrierHalf(a));
+  }
+  const barrierHeroLimit = (a) => barrierRadius(a) - barrierHalf(a) - BARRIER_HERO_R;
+  /** THE REACH RULE: how near the boss the hero must be for the pattern to begin (Infinity without a barrier). */
+  function barrierReach(a) {
+    if (!barrierOn(a)) return Infinity;
+    return Math.min(Math.max(num(val(a, 'projectile', 'range'), 18), 0.5), barrierHeroLimit(a) - BARRIER_KEEP);
+  }
+  const barrierStopsBullets = (a) => barrierOn(a) && String(val(a, 'barrier', 'bullets')) !== 'pass';
+  /** How far a bullet flies before it is gone: the range, or the wall's inner face when nearer and it stops bullets. */
+  function bulletReach(a) {
+    let r = Math.max(num(val(a, 'projectile', 'range'), 18), 0.5);
+    if (barrierStopsBullets(a)) r = Math.min(r, barrierRadius(a) - barrierHalf(a));
+    return r;
+  }
+
   function simulate(a, dt, at, aimOf) {
     const step = dt || 1 / 30;
     const dur = patternDuration(a);
-    const rng = Math.max(num(val(a, 'projectile', 'range'), 18), 0.5);
+    // (pass 115: a barrier that stops the bullets ends their flight at its inner face: bulletReach)
+    const rng = bulletReach(a);
     const ems = emittersFull(a);
     const accs = ems.map(() => 0), was = ems.map(() => false);
     let live = [];
@@ -545,6 +587,8 @@ const BossModel = (() => {
     }
     return `${key} is a number or a range [min, max]`;
   }
+  /** A number to one decimal ("12.5", "48"). */
+  const fmt1 = (x) => (Math.round(x * 10) / 10).toString();
   /** "15 s" or "10–15 s". */
   function fmtRange(r) {
     const f = (x) => (Math.round(x * 10) / 10).toString();
@@ -619,6 +663,20 @@ const BossModel = (() => {
       if (!TELL_LOOKS.includes(String(val(a, 'tell', 'look')))) errors.push(`unknown wind-up look "${val(a, 'tell', 'look')}" (${TELL_LOOKS.join(', ')})`);
       if (!SHELLS.includes(String(val(a, 'shell', 'look')))) errors.push(`unknown shell "${val(a, 'shell', 'look')}" (${SHELLS.join(', ')})`);
       for (const c of [val(a, 'guard', 'color'), val(a, 'tell', 'banner_color'), val(a, 'tell', 'ring_color'), val(a, 'shell', 'color'), val(a, 'shell', 'sigil_color')]) if (c && !/^#[0-9a-fA-F]{6}$/.test(String(c))) errors.push(`a colour is #rrggbb: ${c}`);
+      // pass 115 (lane BOSS): the barrier
+      if (!BARRIER_LOOKS.includes(String(val(a, 'barrier', 'look')))) errors.push(`unknown barrier look "${val(a, 'barrier', 'look')}" (${BARRIER_LOOKS.join(', ')})`);
+      if (!BARRIER_MODES.includes(String(val(a, 'barrier', 'radius_mode')))) errors.push(`unknown barrier radius mode "${val(a, 'barrier', 'radius_mode')}" (${BARRIER_MODES.join(', ')})`);
+      if (!BARRIER_HOLDS.includes(String(val(a, 'barrier', 'hold')))) errors.push(`unknown barrier hold "${val(a, 'barrier', 'hold')}" (${BARRIER_HOLDS.join(', ')})`);
+      if (!BARRIER_CREATURES.includes(String(val(a, 'barrier', 'creatures')))) errors.push(`unknown barrier creatures "${val(a, 'barrier', 'creatures')}" (${BARRIER_CREATURES.join(', ')})`);
+      if (!BARRIER_BULLETS.includes(String(val(a, 'barrier', 'bullets')))) errors.push(`unknown barrier bullets "${val(a, 'barrier', 'bullets')}" (${BARRIER_BULLETS.join(', ')})`);
+      for (const c of [val(a, 'barrier', 'color'), val(a, 'barrier', 'glow_color')]) if (c && !/^#[0-9a-fA-F]{6}$/.test(String(c))) errors.push(`a colour is #rrggbb: ${c}`);
+      if (barrierOn(a)) {
+        const rngM = Math.max(num(val(a, 'projectile', 'range'), 18), 0.5);
+        if (barrierRadius(a) - barrierHalf(a) > rngM + 0.01) warnings.push(`the barrier stands at ${fmt1(barrierRadius(a))} m, past the bullets' range (${fmt1(rngM)} m): a hero between them is out of reach`);
+        if (barrierReach(a) < 6) warnings.push(`the hero must stand within ${fmt1(barrierReach(a))} m of the boss for it to begin: very little room inside the barrier`);
+        if (Math.max(num(val(a, 'barrier', 'rise_s'), 0.8), 0) + Math.max(num(val(a, 'barrier', 'spread_s'), 0.6), 0) > Math.max(num(val(a, 'tell', 'seconds'), 2), 0)) warnings.push('the barrier is still rising when the bullets begin (Rise + Spread is longer than the tell)');
+        if (!val(a, 'barrier', 'hero_block')) warnings.push("the barrier does not hold the hero: he can walk out of the bullets' reach");
+      }
       const sim = simulate(a, 1 / 20);
       // pass 114: 600 (twice as long and twice as far: the King's Royal Dust Devil peaks at about 450; the pattern's tick
       // measured at about 0.3 ms on the PC with 450 in the air, tools/dl/p114/EDITOR)
@@ -642,6 +700,7 @@ const BossModel = (() => {
         timing: { duration: 8.0, clear: 0.6, cooldown: 0.0 },
         trigger: Object.assign({}, DEFAULTS.trigger), guard: Object.assign({}, DEFAULTS.guard), spent: Object.assign({}, DEFAULTS.spent),
         tell: Object.assign({}, DEFAULTS.tell), shell: Object.assign({}, DEFAULTS.shell),
+        barrier: Object.assign({}, DEFAULTS.barrier),
         sounds: { windup: 'en_boss_pattern_warn', fire: 'en_boss_attack', land: '' },
       });
     }
@@ -667,6 +726,8 @@ const BossModel = (() => {
     EMITTER_SHAPES, EMITTER_AIMS, TELL_LOOKS, SHELLS, EMITTER_DEFAULTS, BB_RADIUS, emitterFull, emittersFull, patternDuration, pulling,
     emitterOn, emitterTurned, emitterAngle, roseDepth, volley, emitterVolleyTimes, simulate, patternDue,
     TRIGGER_RANGES, rangeOf, triggerRange, triggerProblem, fmtRange, patternSchedule,   // pass 114 (lane EDITOR)
+    BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS, BARRIER_CREATURES, BARRIER_BULLETS, BARRIER_HERO_R, BARRIER_KEEP, BARRIER_MIN_R,   // pass 115 (lane BOSS)
+    barrierOn, barrierRadius, barrierHalf, barrierHeroLimit, barrierReach, barrierStopsBullets, bulletReach,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

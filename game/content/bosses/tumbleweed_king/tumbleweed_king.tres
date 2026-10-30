@@ -80,7 +80,7 @@ boss = {
 },
 "knockback": 6.0,
 "name": "stomp",
-"radius": 6.0,
+"radius": 7.5,
 "stomps": 3.0,
 "telegraph": "ring",
 "windup": 1.2

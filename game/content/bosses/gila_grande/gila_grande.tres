@@ -63,8 +63,8 @@ boss = {
 "telegraph": "none",
 "throw_out": 4.0,
 "throw_up": 2.5,
-"warn": 0.4,
-"windup": 4.0
+"warn": 0.5,
+"windup": 4.85
 }, {
 "count": 12.0,
 "enemy": "sand_lizard",

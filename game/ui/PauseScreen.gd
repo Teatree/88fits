@@ -352,7 +352,7 @@ static func evolve_note(inst: WeaponInstance) -> String:
 const SOURCES := preload("res://core/systems/StatSources.gd")
 
 const STATS := ["damage_reduction", "regen", "move_speed", "might", "cooldown", "area", "projectile_speed", "duration", "amount",
-	"magnet", "luck", "greed", "xp_gain", "lifesteal", "evade", "crit_chance", "thorns", "execute_frac", "revives"]
+	"magnet", "luck", "greed", "xp_gain", "lifesteal", "evade", "crit_chance", "thorns", "execute_frac", "revive_hp"]
 
 ## Pass 76 (lane UI; Garry: "Stats in pause menu. Mark the stats that were changed since the start of the game. Provide
 ## some minimal info on which items are doing the stat changes underneath somewhere. Think like a good game UI designer

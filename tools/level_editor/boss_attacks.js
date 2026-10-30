@@ -25,6 +25,12 @@ const BossAttacks = (() => {
   const ESHAPE_OPTS = [o('spiral', 'spiral: arms turning as they fire'), o('ring', 'ring: all round, an opening facing its aim'), o('fan', 'fan: a spread of bullets'), o('sweep', 'sweep: a fan swinging left and right (a sprinkler)'), o('wall', 'wall: a line across, an opening in it'), o('rose', 'rose: a ring that opens into petals')];
   const EAIM_OPTS = [o('hero', 'at the hero (as the bullets begin)'), o('track', 'at the hero, every volley'), o('fixed', 'fixed (due east)'), o('random', 'a random way, every volley')];
   const TLOOK_OPTS = [o('none', 'none'), o('spin', 'spin: he spins up (the King)'), o('rear', 'rear: rears up, throat glowing (the Gila)'), o('drive', 'drive: drives his iron into the ground (the Brander)')];
+  // pass 115 (lane BOSS): a pattern's barrier (BossAttackDef.BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS, ...)
+  const BLOOK_OPTS = [o('none', 'none (no barrier, no reach rule)'), o('tumbleweed_fence', 'tumbleweed fence: staked tumbleweeds and ropes, smouldering (the King)'), o('cactus_fence', 'cactus fence: spiny organ-pipe cactus with venom blooms (the Gila)'), o('iron_fence', 'iron fence: black bars with white-hot spear heads and branding irons (the Brander)')];
+  const BMODE_OPTS = [o('range', 'at the bullets\' range (less the Inset)'), o('fixed', 'at a fixed radius')];
+  const BHOLD_OPTS = [o('bullets', 'until the bullets end (falls as he is dazed)'), o('spent', 'until his dazed seconds end too')];
+  const BCRE_OPTS = [o('block', 'kept on their side'), o('pass', 'walk through it')];
+  const BBUL_OPTS = [o('stop', 'vanish at it (a spark)'), o('pass', 'fly on through it')];
   const SHELL_OPTS = [o('none', 'none (his glowing rim only)'), o('tornado', 'tornado: a sand tornado round him'), o('scales', 'scales: a glow behind him, armour-bright'), o('pillar', 'pillar: a pillar of fire')];
   const SHAPE_OPTS = [o('rings', 'rings round the centre'), o('grid', 'a hex grid'), o('spiral', 'a sunflower spiral'), o('random', 'random, kept apart')];
   const ORDER_OPTS = [o('out', 'out: nearest first'), o('in', 'in: farthest first'), o('random', 'random'), o('sweep', 'sweep: round like a clock hand')];
@@ -64,6 +70,8 @@ const BossAttacks = (() => {
     ['guard', 'Guard', 'how hard he is to hurt while it runs'],
     ['spent', 'Spent (the payoff)', 'after the bullets: he stands dazed and takes extra'],
     ['shell', 'His shell (the look)', 'what shows he is guarded'],
+    // pass 115 (lane BOSS)
+    ['barrier', 'The barrier', 'a 3D wall round him and the hero while it runs: the hero cannot run out of the bullets\' reach'],
   ];
   const FIELDS = [
     { g: 'projectile', k: 'look', label: 'Shot look', type: 'select', opts: LOOK_OPTS, kinds: SHOTSP, help: 'the shot\'s shape: spike = a barb flying point first (the centipede\'s), spit = the Spit Cactus\'s ball, pellet = a small lead ball, shard = a flat golden sliver, rock = a stone, fire = a glowing ball' },
@@ -147,6 +155,24 @@ const BossAttacks = (() => {
     { g: 'shell', k: 'opacity', label: 'Shell opacity', type: 'number', min: 0.5, max: 1, step: 0.05, kinds: PAT, help: 'pattern, the tornado (pass 113): how solid its dust is, 0.5 to 1 (lower lets the boss show through it; 0.62 for the King)' },
     { g: 'shell', k: 'sigil_radius', label: 'Brand sigil (m)', type: 'number', min: 0, step: 0.5, kinds: PAT, help: 'pattern: a glowing brand sigil this wide (radius) burns into the sand under him through the tell and brightens through the bullets (0 = none; the Brander\'s is 6)' },
     { g: 'shell', k: 'sigil_color', label: 'Sigil colour', type: 'color', kinds: PAT, help: 'pattern: the sigil\'s colour (it glows, so a dark sand never swallows it)' },
+    // pass 115 (lane BOSS; Garry: "add a barrier that appears around the boss and the hero. This makes it so this Boss
+    // attack should only happen if Player is within the range of as far as the projectiles reach ... Avoid making it so
+    // the Player gets stuck in this barrier when it goes up. Barrier falls apart and disappears when the attack is done")
+    { g: 'barrier', k: 'look', label: 'Barrier', type: 'select', opts: BLOOK_OPTS, kinds: PAT, help: 'pattern: a 3D wall that comes up out of the sand round the boss and the hero as the tell begins (nearest the hero first), holds him inside while the bullets fly, then falls apart and sinks. With a barrier THE REACH RULE plays: the attack only begins with the hero within its reach of the boss (the preview\'s dashed circle); when it is due and he is further off, it waits and begins the moment he comes in (its clock is not reset). So the wall never comes up on him: he stands at least 0.5 m inside it. none = no wall and no reach rule' },
+    { g: 'barrier', k: 'radius_mode', label: 'Where it stands', type: 'select', opts: BMODE_OPTS, kinds: PAT, help: 'pattern: range = the Inset inside the bullets\' Range (Projectile), so every spot inside it can be hit; fixed = at the Radius below. The phone shows about 12 m round the hero' },
+    { g: 'barrier', k: 'radius', label: 'Radius (m, fixed)', type: 'number', min: 3, step: 0.5, kinds: PAT, help: 'pattern, Where it stands = fixed: the wall\'s middle this far from where the boss stands (the hero is held 0.85 m inside it at the default thickness)' },
+    { g: 'barrier', k: 'inset', label: 'Inset (m, range)', type: 'number', min: 0, step: 0.5, kinds: PAT, help: 'pattern, Where it stands = range: the wall stands this far inside the bullets\' Range' },
+    { g: 'barrier', k: 'height', label: 'Height (m)', type: 'number', min: 0.5, max: 4, step: 0.1, kinds: PAT, help: 'pattern: how tall the wall is (the hero is about 1.9 m); its pieces grow with it' },
+    { g: 'barrier', k: 'thickness', label: 'Thickness (m)', type: 'number', min: 0.2, max: 3, step: 0.1, kinds: PAT, help: 'pattern: how thick it is: the hero stops at its inner face, the bullets vanish there, the creatures outside stop at its outer face' },
+    { g: 'barrier', k: 'rise_s', label: 'Rise (s)', type: 'number', min: 0.1, step: 0.1, kinds: PAT, help: 'pattern: seconds each stretch takes to come up out of the sand (a little overshoot and a wobble)' },
+    { g: 'barrier', k: 'spread_s', label: 'Spread (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: the rise runs round the ring from the hero\'s side to the far side over this long (0 = all at once); the pieces also fall apart at random over this long' },
+    { g: 'barrier', k: 'fall_s', label: 'Fall (s)', type: 'number', min: 0.1, step: 0.1, kinds: PAT, help: 'pattern: seconds each piece takes to topple (or roll away) and sink as the barrier falls apart' },
+    { g: 'barrier', k: 'hold', label: 'Stands', type: 'select', opts: BHOLD_OPTS, kinds: PAT, help: 'pattern: bullets = it falls apart as the bullets end, as he is dazed (the hero is free to go); spent = it stands through his dazed seconds too' },
+    { g: 'barrier', k: 'color', label: 'Barrier colour x', type: 'color', kinds: PAT, help: 'pattern: times the wall\'s own paint (#FFFFFF = as made; a darker colour darkens it)' },
+    { g: 'barrier', k: 'glow_color', label: 'Glow colour', type: 'color', kinds: PAT, help: 'pattern: the colour of its glowing bits (the King\'s embers, the Gila\'s venom blooms, the Brander\'s white-hot iron)' },
+    { g: 'barrier', k: 'hero_block', label: 'Holds the hero', type: 'bool', kinds: PAT, help: 'pattern: the hero cannot cross it while it stands (walking, shoved, thrown, leaping: he slides along it; a Teleport lands inside it)' },
+    { g: 'barrier', k: 'creatures', label: 'Creatures', type: 'select', opts: BCRE_OPTS, kinds: PAT, help: 'pattern: block = every creature stays on the side it was on as it rose (the ones outside pile up against it); pass = they walk through it' },
+    { g: 'barrier', k: 'bullets', label: 'Bullets at it', type: 'select', opts: BBUL_OPTS, kinds: PAT, help: 'pattern: stop = a bullet that reaches its inner face stops there and shrinks away with a spark; pass = it flies on to its Range' },
   ];
 
   // ------------------------------------------------------------------ data
@@ -420,7 +446,7 @@ const BossAttacks = (() => {
     const b = M.blank(v, x.id, x.name);
     const reads = (k) => new Set(FIELDS.filter((f) => f.kinds.includes(k)).map((f) => f.g + '.' + f.k));
     const had = reads(M.KINDS.includes(x.kind) ? x.kind : 'rain'), now = reads(v);
-    for (const g of ['projectile', 'pattern', 'landing', 'telegraph', 'timing', 'sounds', 'spew', 'hit', 'trigger', 'guard', 'spent', 'tell', 'shell']) if (b[g] && (x[g] == null || typeof x[g] !== 'object')) x[g] = {};
+    for (const g of ['projectile', 'pattern', 'landing', 'telegraph', 'timing', 'sounds', 'spew', 'hit', 'trigger', 'guard', 'spent', 'tell', 'shell', 'barrier']) if (b[g] && (x[g] == null || typeof x[g] !== 'object')) x[g] = {};
     for (const f of FIELDS) {
       const key = f.g + '.' + f.k;
       if (!now.has(key) || f.g === '_top' || !b[f.g]) continue;
@@ -588,6 +614,12 @@ const BossAttacks = (() => {
       '<b>Then every (s)</b>: the next one comes this many seconds after the last one is completely over (the warning, the bullets and his dazed seconds all done).',
       'Each of the three can be <b>fixed</b> (one number) or a <b>range</b> (min and max): the game picks a number between them, Not before and At the latest once per fight, Then every after each attack. 10 to 15 = somewhere from 10 s to 15 s.',
       'The line <b>In a fight</b> under the preview shows when the first three can start and end, earliest to latest.']],
+    // pass 115 (lane BOSS)
+    ['The barrier round him and the hero', [
+      '<b>The barrier → Barrier</b>: its look (the King\'s tumbleweed fence, the Gila\'s cactus fence, the Brander\'s iron fence) or none. It comes up out of the sand as the warning begins, on the hero\'s side first, holds him inside while the bullets fly and falls apart as the bullets end (<b>Stands</b>: or when his dazed seconds end).',
+      'With a barrier the attack only begins when the hero is within its reach of the boss (the white dashed circle in the preview); due while he is further off, it waits and begins the moment he comes in. So the wall never comes up on him.',
+      '<b>Where it stands</b>: range = the <b>Inset</b> inside the bullets\' Range (every spot inside can be hit; off the screen until he runs out to it); fixed = at the <b>Radius</b> you type (12 to 16 m keeps it on the screen while he dodges; the bullets vanish at it).',
+      '<b>Rise</b>, <b>Spread</b>, <b>Fall</b> (s): how it comes up and falls apart; <b>Creatures</b>: kept on their side or walking through; <b>Bullets at it</b>: vanish at it or fly on.']],
     ['Then', [
       '<b>Save attack</b> (Ctrl+S). The next fight plays it. If the build (or the tests) holds Godot, the file is saved at once and the import follows by itself when Godot is free; the status line says whether the build being made includes it.',
       'Ctrl+Z undoes, Revert goes back to the file as saved. <b>JSON…</b> (next to Save attack) opens the whole attack as text: change any key, even ones without a box, then Apply.']],
@@ -658,7 +690,8 @@ const BossAttacks = (() => {
     if (S.t == null || S.t > total) S.t = tell + bul * 0.6;
     const t = S.t;
     const rng = Math.max(M.num(M.val(d, 'projectile', 'range'), 18), 0.5);
-    const extent = Math.max(rng, 10) + 2;
+    // (pass 115: room for a barrier standing past the range)
+    const extent = Math.max(rng, 10, M.barrierOn(d) ? M.barrierRadius(d) + M.barrierHalf(d) : 0) + 2;
     const W = 460, C = W / 2, ppm = (W / 2 - 8) / extent;
     const X = (x) => C + x * ppm, Y = (z) => C + z * ppm;
     const s = svg('svg', { class: 'batk-svg', viewBox: `0 0 ${W} ${W}`, width: W, height: W, role: 'img', 'aria-label': 'the pattern from above' });
@@ -671,6 +704,22 @@ const BossAttacks = (() => {
     const dark = t < tell ? Math.min(t / Math.max(tell * 0.6, 0.01), 1) : (t < tell + bul ? 1 : Math.max(1 - (t - tell - bul) / Math.max(spent * 0.8, 0.01), 0));
     if (rr > 0) s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: rr * ppm, fill: M.val(d, 'tell', 'ring_color') || '#140A06', 'fill-opacity': 0.45 * dark, stroke: M.val(d, 'tell', 'banner_color') || '#E8502A', 'stroke-width': 2, 'stroke-opacity': t < tell + bul ? 0.8 * dark : 0 }));
     s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: rng * ppm, class: 'bp-edge' }));
+    // pass 115 (lane BOSS): the barrier (its thickness to scale, coming up through the tell from the hero's side, falling
+    // apart as the bullets end or as he recovers) and the reach rule's circle (dashed: the hero must be inside it for the
+    // attack to begin)
+    if (M.barrierOn(d)) {
+      const BCOL = { tumbleweed_fence: '#7A5230', cactus_fence: '#3E8A44', iron_fence: '#2E2828' };
+      const br0 = M.barrierRadius(d), bh = M.barrierHalf(d);
+      const rise = Math.max(M.num(M.val(d, 'barrier', 'rise_s'), 0.8), 0.05) + Math.max(M.num(M.val(d, 'barrier', 'spread_s'), 0.6), 0);
+      const fallAt = tell + bul + (String(M.val(d, 'barrier', 'hold')) === 'spent' ? spent : 0);
+      const fall = Math.max(M.num(M.val(d, 'barrier', 'fall_s'), 1), 0.05) + Math.max(M.num(M.val(d, 'barrier', 'spread_s'), 0.6), 0);
+      const up = t < fallAt ? Math.min(t / rise, 1) : Math.max(1 - (t - fallAt) / fall, 0);
+      if (up > 0) {
+        s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: br0 * ppm, fill: 'none', stroke: BCOL[String(M.val(d, 'barrier', 'look'))] || '#7A5230', 'stroke-width': Math.max(2 * bh * ppm, 3), opacity: 0.85 * up }));
+        s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: br0 * ppm, fill: 'none', stroke: M.val(d, 'barrier', 'glow_color') || '#FF8A1F', 'stroke-width': 1.5, 'stroke-dasharray': '2 7', opacity: up }));
+      }
+      s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: Math.max(M.barrierReach(d), 0) * ppm, fill: 'none', stroke: '#ffffff', 'stroke-width': 1.2, 'stroke-dasharray': '5 5', opacity: 0.55 }));
+    }
     const sig = M.num(M.val(d, 'shell', 'sigil_radius'), 0);
     if (sig > 0 && t < total) s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: sig * ppm, fill: 'none', stroke: M.val(d, 'shell', 'sigil_color') || '#FF6A1A', 'stroke-width': 3, 'stroke-dasharray': '6 4', opacity: t < tell ? Math.min(t / Math.max(tell, 0.01), 1) : (t < tell + bul ? 1 : 0.3) }));
     // the bullets
@@ -717,6 +766,11 @@ const BossAttacks = (() => {
     li(`<b>In a fight</b> (seconds since he arrived, earliest–latest; his own attacks can only make one later, ×1/pace on the map): ${sched.map((x) => `${['1st', '2nd', '3rd'][x.k - 1]} starts ${span(x.start)}, over ${span(x.end)}`).join(' · ')}`);
     li(`<b>${fmtN(tell, 1)} s tell</b> (banner, dark ground, wind-up sound, music down ${fmtN(-M.num(M.val(d, 'tell', 'duck_db'), -14), 0)} dB, his wind-up) → <b>${fmtN(bul, 1)} s of bullets</b> → <b>${fmtN(spent, 1)} s spent</b>: about ${fmtN(total, 1)} s in all (×1/pace on the map). Meanwhile no other attack of his and no new creatures from the boss fight's rows`);
     li(`<b>${all.peak}</b> bullets in the air at most (at ${fmtN(all.peak_t, 1)} s), ${all.fired} in all over ${all.volleys} volleys (without a hero to hit)`);
+    // pass 115 (lane BOSS): the barrier in words
+    if (M.barrierOn(d)) {
+      const lk = { tumbleweed_fence: 'a tumbleweed fence', cactus_fence: 'a cactus fence', iron_fence: 'an iron fence' }[String(M.val(d, 'barrier', 'look'))] || 'a barrier';
+      li(`<b>Barrier:</b> ${lk} ${fmtN(M.barrierRadius(d), 1)} m round him (the hero held within ${fmtN(M.barrierHeroLimit(d), 1)} m of him${M.val(d, 'barrier', 'hero_block') ? '' : ': <b>off</b>, he can walk through it'}); it begins <b>only with the hero within ${fmtN(M.barrierReach(d), 1)} m</b> (the dashed circle: due while he is further off, it waits for him to come in); bullets ${M.barrierStopsBullets(d) ? `vanish at it (${fmtN(M.bulletReach(d), 1)} m)` : 'fly through it'}; creatures ${String(M.val(d, 'barrier', 'creatures')) === 'pass' ? 'walk through it' : 'stay on their side'}; it falls apart ${String(M.val(d, 'barrier', 'hold')) === 'spent' ? 'when his dazed seconds end' : 'as the bullets end'}`);
+    }
     li(`a bullet takes <b>${fmtN(M.num(M.val(d, 'hit', 'hit_frac'), 0.12) * 100, 0)}%</b> of the hero's max HP and is gone; the ones left when the bullets end burn out over ${fmtN(M.num(M.val(d, 'timing', 'clear'), 0.6), 1)} s, harmless`);
     li(`guarded: he takes <b>${fmtN((1 - Math.min(Math.max(M.num(M.val(d, 'guard', 'share'), 0.8), 0), 0.95)) * 100, 0)}%</b> of every hit (grey numbers, a grey bar); spent: <b>×${fmtN(M.num(M.val(d, 'spent', 'damage_taken'), 1.5), 2)}</b>`);
     side.appendChild(facts);

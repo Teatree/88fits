@@ -75,7 +75,7 @@
           "up": 0.35,
           "down": 0.2
         },
-        "radius": 6.0,
+        "radius": 7.5,
         "damage": 18,
         "telegraph": "ring",
         "knockback": 6

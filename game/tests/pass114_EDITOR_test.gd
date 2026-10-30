@@ -22,6 +22,8 @@ const PASS113 := {
 }
 ## the most bullets in the air at once a shipped pattern may have (BossAttackDef.simulate; the Level Editor warns past it)
 const PEAK_CAP := 600
+## Pass 115 (lane BOSS): every emitter's speed 1.5 x pass 114's (Garry: "increase the speed of projectiles by 50%").
+const PASS115_SPEED := 1.5
 
 const FAKE_GAME := """extends Node
 var player: Node3D
@@ -363,14 +365,17 @@ func test_the_three_attacks_last_twice_as_long_fly_twice_as_far_and_leave_more_r
 			var e: Dictionary = ems[k]
 			var o: Dictionary = BossAttackDef.emitter_full(old["emitters"][k])
 			assert_str(str(e["shape"])).is_equal(str(o["shape"]))
-			# the pattern's shape over the longer time: its on and off shares as they were, the speed as it was
+			# the pattern's shape over the longer time: its on and off shares as they were, the speed as it was (pass 115,
+			# lane BOSS: Garry's "increase the speed of projectiles by 50%": 1.5 x it, pass115_BOSS_test)
 			assert_float(float(e["start"])).is_equal_approx(float(o["start"]), 0.0001)
 			assert_float(float(e["stop"])).is_equal_approx(float(o["stop"]), 0.0001)
-			assert_float(float(e["speed"])).is_equal_approx(float(o["speed"]), 0.0001)
-			# about a quarter more room round every bullet
-			var grew := _room(e) / _room(o)
+			assert_float(float(e["speed"])).is_equal_approx(float(o["speed"]) * PASS115_SPEED, 0.0001)
+			# about a quarter more room round every bullet (pass 115: the room along a line grows with the speed too, so
+			# that part is taken out here: what pass 114 made of the counts, spreads and rates)
+			var grew := _room(e) / _room(o) / PASS115_SPEED
 			assert_bool(grew >= 1.2 and grew <= 1.35).override_failure_message("%s emitter %d: room x%.3f" % [id, k + 1, grew]).is_true()
 		# its words name the new seconds; the most in the air at once under the cap
 		assert_str(a.doc).contains("for %d s" % int(a.pattern_duration()))
 		var sim := a.simulate()
-		assert_bool(int(sim["peak"]) >= 100 and int(sim["peak"]) <= PEAK_CAP).override_failure_message("%s peak %d" % [id, int(sim["peak"])]).is_true()
+		# (pass 115, the lead: the bullets stop at the 14 m wall, so fewer are in the air at once; the screen as dense)
+		assert_bool(int(sim["peak"]) >= 30 and int(sim["peak"]) <= PEAK_CAP).override_failure_message("%s peak %d" % [id, int(sim["peak"])]).is_true()

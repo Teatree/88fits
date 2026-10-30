@@ -8058,3 +8058,260 @@ Measured (this PC; the proof game/tools/_p114_REPLAY_proof.gd, recordings with t
 - **Builds kept:** 218.6 MB a build (the exe); six newest plus the named ones: about 1.3 GB.
 
 Tests: game/tests/pass114_REPLAY_test.gd.
+
+## 58. Pass 115 (v0.98)
+
+### 58.META The game's name on screen, and Nerve: revive health only, cheap
+
+Garry (2026-10-30): "Rename the game to `Outlaw Survivors`, but only in the game itself. Don't change anything in the code
+and such. Wherever we have the title written we just write "Outlaw" with big fat text and the "Drag Dodge Survive" is
+replaced with simply "Survivors"" and "Change the Revive to only affect the amount of HP Player gets when they revive in
+the `Nerve` section. To make it so that the player, by default in the beginning, gets revived with 40% of their health.
+By the end of this upgrade in Nerve, if it's all at max, [the player] gets revived with 100% of their health. Also skips
+and this new revive thing are not valuable at all, rebalance their ordering in the view as well as their prices
+accordingly."
+
+**The name** (`W.GAME_NAME` "Outlaw Survivors", `W.GAME_WORD` "Outlaw", `W.GAME_LINE` "Survivors" in game/ui/wanted/W.gd):
+- The title: **OUTLAW** in the slab (Alfa Slab One) at `TitleScreen.LOGO_PX` 190 (953 px wide, "88fits" was 652 at 210:
+  OUTLAW at 210 would run off the 1080 px canvas), ink with the 10 px brass shadow, in the same 199.5 px line box, so
+  nothing under it moves; **SURVIVORS** where "Drag · Dodge · Survive" was, in its style (Bitter 600 capitals, 30 px,
+  0.3 em tracking, ink).
+- The boot splash and loading screen (game/art/ui/splash.png, `python tools/make_splash.py`): OUTLAW at 140 px with its
+  brass shadow, SURVIVORS under it as the title sets its line (it was "A survivor shooter" in Bitter italic 36 px); the
+  loading bar moved up 4 px with the shorter line (Boot.gd's BAR and LABEL_Y, written by the tool). splash_icon.png has no
+  words and did not change.
+- The Settings version line ("Outlaw Survivors v0.98 · <player name>") and Down!'s copied hit log header.
+- Left as "88fits" (not "in the game itself", or Garry asked to keep them): the project name (project.godot
+  `config/name`: also the PC window's title bar and the save folder's name), the Android launcher labels ("88fits Dev",
+  the prod build's "88fits"), the PC exe's product name and file name, the packages, PostHog (`88fits-godot`), the replay
+  viewer's window title "88fits replay" (a tool), every code identifier and folder, the docs and the store screenshots.
+
+**Nerve** (content/talents/nerve/nerve.json):
+- **Revive health starts at 40%**: the talent's new `base_stats` {"revive_hp": 0.4} (TalentDef.base_stats, a reusable
+  primitive: a talent may own a player stat's starting value; Run.hero_sheet sets it on every hero's sheet, ranks or none,
+  over StatSheet.PLAYER_DEFAULTS' 0.5). Every revive reads it: Down!'s one chance a run (the ad), the debug revive.
+- **Second Wind is +10% revive health a rank** (`revive_hp` add 0.1, every rank alike: 50, 60, 70, 80, 90, 100% at six) and
+  gives **no revives**. It was +1 revive at ranks 1, 3, 5 and +15% revive health at 2, 4, 6 (from a 50% base). Nothing in
+  the game gives `revives` now: Down! offers its one chance a run.
+- **Skip** is unchanged (+1 skip a stage, a rank).
+- The board says it in plain words: a talent's line folds its base into its ranks (HomesteadScreen.held_effects /
+  held_line, TextGen.SET_TEXT): "Revive with 60% health", "+2 skips, revive with 50% health". The pause Stats tab and the
+  hero sheet list "Health on revive" where they listed "Revives" (which nothing raises any more).
+- **Phoenix Feather keeps half health** (new rule, lane META's call: Garry set the feather at "50% HP on revive" on
+  2026-10-23, and a plain revive now starts lower): the feather's level gives `phoenix_hp` 0.5 (a hidden stat), and its
+  revive stands him up at the larger of `revive_hp` and `phoenix_hp` (Player.revive_share): 50% with 0 or 1 Second Wind
+  ranks, then 60% .. 100%. Set `phoenix_hp` to 0 in its JSON to make the feather follow the plain revive's 40%.
+
+**The price** (rank k = k x k x rank 1, pass 110's ladder kept):
+
+| talent | first rank | ranks 1-6 | total |
+|---|---|---|---|
+| Nerve before | 500 | 500, 2,000, 4,500, 8,000, 12,500, 18,000 | 45,500 |
+| **Nerve now** | **150** | **150, 600, 1,350, 2,400, 3,750, 5,400** | **13,650** |
+
+Why 150: pass 88 priced by measured power (the run sim's impact): the power talents (Grit, Stride, Study, Drive) 0.15-0.23
+sit at 375-450; Fortune (Omen weak, Greed income) 300 and Choice (rerolls, banishes) 325 are the "a player values them,
+a bot cannot show it" band. Nerve was the dearest at 500 because Second Wind was a whole extra life a rank. Now it is at
+most +60 points of health on one revive a run, and Skip one more pass a stage: Garry calls both "not valuable at all",
+so Nerve sits under Fortune and Choice at about a third of the power band, and over Stakes (100), which is a challenge
+that pays gold back and stays first.
+
+**The board's order** (by the first rank's price, then `order`, rewritten 1-8 to agree): Stakes 100, **Nerve 150**,
+Fortune 300, Choice 325, Drive 375, Study 400, Stride 425, Grit 450 (Nerve was last). The whole board: 261,625 -> 229,775.
+
+**Ranks already bought** (Save._migrate_nerve, once a save: once-flag `nerve_v115`, set on every save, a new one too, and
+by buying a Nerve rank): they stay, the same count in the same forms (a Second Wind rank now gives +10% revive health).
+The gold each was paid over its new price comes back. The save keeps no price a rank, so each is counted at **pass 88's
+price** (500, 900, 1,500, 2,250, 3,250, 4,500: what Nerve sold at from 2026-10-18 to pass 110 on 2026-10-28; never more
+than a rank bought since pass 88 cost): ranks 1-3 bring back 350, 300 and 150; ranks 4-6 cost more now than they did at
+pass 88, so they bring nothing (never a negative). Never more than the board has cost in all (`talent_spent`; a board a
+tool wrote cost nothing and gets nothing), and the spent total is lowered by as much, so Take it all back still returns
+half of what was really paid. The Upgrade board says so once in toasts: "NERVE COSTS LESS NOW", "+800 GOLD BACK FOR 3
+RANKS", and "SECOND WIND: REVIVE HEALTH" when a Second Wind rank is held. (The Stakes' refund of pass 88 was in full and
+took the ranks away, because its new forms made the game harder; Nerve's ranks keep doing what their names say.)
+Garry's PC save holds no Nerve rank: nothing changes on it. A phone save with Nerve ranks gets its toasts the first time
+the Upgrade board opens.
+
+Tests: game/tests/pass115_META_test.gd (re-pinned: pass46_ui_test's Second Wind, pass100_SMALL_test's feather,
+pass110_econ_test's first ranks).
+
+### 58.POLISH Far creatures catch up harder, a bigger and longer tornado, rarer barrel power-ups, bigger moving Pollen flowers
+
+Garry (2026-10-30): "let's make it so that the speedup increases the further they are away from the player. Because
+there are times when I can still outrun some enemies quite a lot. This increase has an upper bound and it's such that
+heroes like Jezyk can still outrun the enemies quite a bit, but not as much as right now." / "Tornado should be a bit
+bigger, last 3 times longer when it does appear, be a bit more transparent and lift both enemies and heroes a bit
+higher." / "The probability of barrels dropping power-ups should be decreased by half." / "Beehive's Flowers are hard to
+detect, make bigger and slightly animated."
+
+**Far creatures** (map `timeline_data.far_speed`, Settings -> Scaling; 54.ENEMY's rule, the same creatures, the same
+"only the walk" limits):
+- `distance` **14 -> 12 m**, `ramp` **6 -> 24 m**, `max_mult` **2.0 -> 3.0**, new `curve` **"ease_out"** (quick at
+  first, levelling off; pass 111's S-curve is "smooth"; "linear" and "ease_in" too), new `max_speed` **6.0 m/s**.
+- The multiplier: 10 m x1 (x1 before), 14 m x1.32 (x1), 17 m x1.75 (x1.5), 20 m x2.11 (x2), 25 m x2.58 (x2), 30 m x2.88
+  (x2), 36 m and beyond x3 (x2). Never below pass 111's at any distance; full speed just inside the 40 m despawn line.
+- **New rule: the speed cap.** The boost never takes a walk past `max_speed` m/s; a creature already faster (a row's own
+  speed boost) keeps its own walk, it is never slowed. 0 = no cap. This is the "upper bound": a hero who runs faster than
+  6 m/s always gains on a far crowd.
+- Walks (m/s, the map's pace 0.9 x Creature speed x 0.9 and the stage's speed; the hero runs straight away):
+
+  | | own | 10 m | 20 m | 30 m | 40 m |
+  |---|---|---|---|---|---|
+  | skeleton, Sundown | 1.30 | 1.30 / 1.30 | 2.59 / 2.74 | 2.59 / 3.73 | 2.59 / 3.89 |
+  | goblin runt, Nightfall | 2.05 | 2.05 / 2.05 | 4.10 / 4.33 | 4.10 / 5.89 | 4.10 / 6.00 |
+  | fire ant, Blood Moon | 2.72 | 2.72 / 2.72 | 5.44 / 5.75 | 5.44 / 6.00 | 5.44 / 6.00 |
+  | desert spider, Blood Moon (fastest regular on the map) | 2.92 | 2.92 / 2.92 | 5.83 / 6.00 | 5.83 / 6.00 | 5.83 / 6.00 |
+  | Brander (boss), Blood Moon | 1.51 | 1.51 / 1.51 | 3.01 / 3.18 | 3.01 / 4.33 | 3.01 / 4.52 |
+  | runt rush row r2 (its own x3), Sundown | 5.59 | 5.59 / 5.59 | 11.18 / 6.00 | 11.18 / 6.00 | 11.18 / 6.00 |
+
+  (before / after). Heroes, measured from the run's sheet (game/tests/pass115_POLISH_test.gd): the Drifter 3.24; Jeżyk
+  at level 1 without Momentum 2.78, at level 10 with full Momentum 5.45, at level 20 with full Momentum and The Chariot
+  at level 4 7.51 (Sprint's power-up x1.4 on top). So a fast Jeżyk still gains at least 1.5 m/s on any far crowd; a
+  level-10 Jeżyk gains 1.6 m/s on a far skeleton (2.9 under pass 111) and is caught by a far Blood Moon fire ant or
+  spider; a slow hero is caught up to 12 m by everything, then the crowd walks at its own speed.
+- Side effects: Garry's fast rows (r2's goblin runts x3, r22's spiders x2) arrive from far at 6 m/s instead of 11 and
+  10.7; Endless's sped-up creatures are capped at 6 m/s far away too (their own walk is never slowed). Squads (the
+  Monk) follow the same rule at their anchor.
+
+**The tornado** (map `timeline_data.dust_devils`, Settings -> Dust devils; 56.TWISTER's dust devils):
+- `life` **[20, 30] -> [60, 90] s** (x3). With `every` [120, 180] one now stands about half of each stage after 1:30;
+  crossing the view at 1.4 m/s it is on the screen about 15 to 20 s of that, then keeps going off the screen (the extra
+  life is mostly spent out of sight unless the hero follows it; "drifts about" or a lower speed keep it in view longer).
+- `radius` **2.4 -> 3.0 m** (the ring the hero is thrown from 2.9 -> 3.5 m), new `size` **1.25** (the funnel 7 -> 8.75 m
+  tall, its foot 0.6 -> 0.75 m, its top 2.1 -> 2.6 m across).
+- New `opacity` **0.7** (the funnel's 0.94 before, x0.75; its skirt of dust 0.98 of it: 0.92 -> 0.69). Creatures and the
+  hero inside and behind it show through more; it still reads as a tornado on Sundown and Nightfall.
+- `toss.up` **8 -> 9.5 m/s**: the hero goes about **1.33 -> 1.88 m** up (x1.41 under his 24 m/s2; measured 1.45 -> 2.01
+  m in the arena), `toss.out` 3.6 and `cooldown` 1.2 kept: thrown out of the ring within two throws, never stuck in it.
+- New `lift_height` **4.5 m** (x its size; it was a fixed 3.2): creatures ride about 1.4 times as high (`lift` 1.7 s
+  kept). The bees' old twister keeps 3.2 (EnemyManager.TORNADO_LIFT_H).
+
+**Barrels' power-ups** (map `timeline_data.barrels`), half of the build Garry played (pass 114): brown `powerup_chance`
+**0.08 -> 0.04** (already set so by Garry in the Level Editor before this pass; kept), black **0.3 -> 0.15**.
+
+**The Beehive's Pollen flowers** (content/mutations/pollen `params.pollen`; core/systems/FlowerField.gd):
+- New `flower_size` **1.6**: each flower 0.58-0.9 m -> 0.92-1.44 m tall. Picking unchanged (within 1.2 m of its foot).
+- New `sway` **9 degrees** each way (pass 48's 4), the same 3.7 s sway; new `pulse` **0.07**: it breathes 7% bigger
+  and smaller about every 2 s.
+- New `halo` **0.55**: a soft ring on the sand under each flower in its colour (paler), its outer radius 0.42 m x the
+  flower's size (0.54 to 0.84 m), breathing with it; see-through, so the stage filters never darken it (it reads on Nightfall's blue and the Blood
+  Moon's red). 0 = no ring.
+
+Tests: game/tests/pass115_POLISH_test.gd (re-pinned: pass111_enemy_test's empty-block x2 -> x3, pass113_TWISTER_test's
+defaults and the 8 m/s throw; Level Editor selftest_ENEMY111.py and selftest_TWISTER113.py, selftest_L69.py reads
+FlowerField.gd for the Pollen rows).
+
+### 58.BOSS The King's thump reaches further, the Gila stays under longer, the bullet heaven flies faster inside a barrier
+
+Garry (2026-10-30): "Increase the range of the Tumbleweed King thump attack. Increase by 25%"; "Gila Boss, increase the
+time it takes for the Gila to pop out of the ground by 25% to give Player more time to escape"; "Special Boss Attacks ...
+increase the speed of projectiles by 50% for all of them"; "add a barrier that appears around the boss and the hero. This
+makes it so this Boss attack should only happen if Player is within the range of as far as the projectiles reach. Each
+boss has their own barrier, but the object should be a 3d object, should appear with animation and should be easy to
+'read' as a barrier so Player doesn't wonder what this is. Avoid making it so the Player gets stuck in this barrier when it
+goes up. Barrier falls apart and disappears when the attack is done."
+
+**The King's thump** (his `stomp`, the three hops with waves; content/bosses/tumbleweed_king): `radius` **6.0 -> 7.5 m**.
+The one number is the whole reach: the red warning ring before each hop, the wave racing over the sand and the hit (the
+hero within radius + 0.5 m, as before) all read it, so the warning grew with it.
+
+**The Gila's burrow** (content/bosses/gila_grande): `windup` **4.0 -> 4.85 s**, `warn` **0.4 -> 0.5 s**; `sink` 0.6 as it
+was. So the time under the sand unseen is 3.0 -> **3.75 s** and the red ring where she will come up shows 0.4 -> **0.5 s**
+before she erupts: everything she spends in the ground x1.25 (on Red Canyon, pace 0.81: 3.7 -> 4.63 s unseen, 0.49 ->
+0.62 s of ring). The sinking (in sight) and her rise are as they were. Decision of mine: the warning grew too (the brief:
+"its warning on the ground follows it"); it is the part that gives the time to escape.
+
+**The bullet heaven 50% faster** (content/boss_attacks): every emitter's `speed` x1.5, the ranges as they were:
+- Royal Dust Devil: the spiral arms 3.2 -> **4.8 m/s**, the rings 2.4 -> **3.6 m/s** (range 48 m).
+- Venom Monsoon: the main fan 2.8 -> **4.2 m/s**, the second fan 2.4 -> **3.6 m/s** (range 44 m).
+- Hellbrand Mandala: the rose 3.0 -> **4.5 m/s**, the slow spiral 2.0 -> **3.0 m/s**, and the finale's pull home 7.5 ->
+  **11.25 m/s** (also a projectile speed; range 36 m).
+- The hero walks about 5 m/s: the King's arms now fly nearly as fast as he walks. Faster bullets with the same volleys a
+  second are further apart along their lines and fewer are in the air: at the peak (no hero) King 452 -> **338**, Gila 205
+  -> **161**, Brander 401 -> **286**. The page's warning (an emitter over 6 m/s) is not reached.
+
+**The barrier** (a pattern's new `barrier` group; BossAttackDef, BossPatterns, Player.keep_in_fence, BossBarrier,
+BarrierMeshes, core/shaders/boss_barrier.gdshader; the Level Editor's Boss attacks tab, section "The barrier"):
+- **Where.** A ring round where the boss stands as the warning begins. `radius_mode` "range" (the three): `inset` 1 m
+  inside the bullets' range: King **47 m**, Gila **43 m**, Brander **35 m** round him. "fixed": at `radius` (16 by
+  default). Never under 3 m + half its thickness. `thickness` 0.8 m: the hero's middle is held within the inner face less
+  his body (0.45 m): King 46.15, Gila 42.15, Brander 34.15 m.
+- **The reach rule (new).** With a barrier the pattern begins only with the hero within reach of the boss: his middle at
+  least 0.5 m (`BARRIER_KEEP`) inside where he is held, and never past the range: King **45.65 m**, Gila **41.65 m**,
+  Brander **33.65 m**. When it is due and he is further off, it waits: its clock goes on, nothing is rolled again, and it
+  begins on the first tick he is in reach (and the boss is between attacks, as before). Without a barrier (look "none")
+  there is no reach rule (pass 113's behaviour).
+- **Never trapped.** Because of the reach rule the wall never comes up on him: at the rise he stands at least 0.5 m
+  inside the face he is held at (at the wall's middle line +- 0.3 m it waits). From the rise he is held inside: after
+  every move (his walk, a shove, a throw, a leap, a tornado's lift, a dash) his flat place is kept within the limit and
+  the outward part of his velocity and of a shove is dropped, so he slides along it. A Teleport while it stands lands him
+  only inside it (1 m inside the hold; no landing inside = no teleport).
+- **When it stands.** It rises with the warning (each stretch `rise_s` 0.8 s out of the sand with a little overshoot,
+  the stretch on the hero's side first, round the ring over `spread_s` 0.6 s: up within 1.4 s, inside the 2 s warning)
+  and holds through the bullets; `hold` "bullets" (the three): it falls apart as the bullets end, as he is dazed (the hero
+  is free then); "spent": through his dazed seconds too. It also comes down whenever the pattern is called off (the boss
+  killed or gone). It falls over `fall_s` 1.0 s per piece, the pieces starting at random over `spread_s`.
+- **Creatures** (`creatures` "block", the three): every creature stays on the side it was on as it rose (one that comes
+  later takes the side it is on): the ones inside never past the inner face, the ones outside never past the outer face
+  (they pile up against it); only their place is held. "pass": they walk through. The boss stands in the middle.
+- **Bullets** (`bullets` "stop", the three): a pattern bullet that reaches the inner face stops there and shrinks away
+  (0.3 s, harmless) with a small spark in its colour where the hero can see (one every 0.06 s at most); so the bullets
+  reach 46.6 / 42.6 / 34.6 m instead of 48 / 44 / 36. "pass": they fly on to the range. Other shots (the creatures') pass
+  through it.
+- **The looks** (3D, built in code from simple shapes, lit by the scene, glowing bits in `glow_color`; they write the
+  structures' stencil, so the stage filters tint them a third as much as the sand and a creature behind one is outlined):
+  - the King's **tumbleweed fence** (`glow_color` #FF8A1F): rough wooden stakes with rope wraps and two sagging ropes, a
+    hedge of three dark tumbleweeds a stretch (1.8 m), smouldering with orange embers; as it falls the stakes topple and
+    the tumbleweeds roll away across the line, bounce once and sink;
+  - the Gila's **cactus fence** (#9A44FF): three ribbed organ-pipe cactus columns a stretch (1.3 m) with pale spines,
+    clumps of long thorns, purple venom blooms on their tops; they topple and sink;
+  - the Brander's **iron fence** (#FF6A1A): black iron bars with orange-hot spear heads, a red-hot lower rail and a black
+    upper one, and every fourth post a branding iron with a glowing brand (a ring and a cross); the bars topple and sink.
+  - `height` 1.8 m (the hero is about 1.9), `color` #FFFFFF (times its paint). Stretches past the map's edge are not
+    made: the map's own wall closes the ring there. The rise throws up sand and a thud where the hero can see, the fall
+    sand and a crash (en_boulder_land, st_barrel_break). Its own seeded dice (never the run's).
+- **What the hero sees.** At the range the wall stands 35-47 m from the boss: the phone shows about 12 m round the hero,
+  so while he dodges near the boss it is off the screen, and he meets it only when he runs out (it is there, rising on his
+  side first, when he is near the edge as it comes up). Decision of mine (the brief's): the barrier at the bullets' range,
+  so every spot inside can be hit, Garry's pass 114 "fly x2 further" kept. To see it during the fight: Where it stands =
+  fixed, Radius 12-16 m (the capture king_fixed14_*.png; the bullets then vanish at it).
+- **Cost** (game/tools/_p115_BOSS_cost.gd, the PC): the pieces built once a run (the King's 3.6 ms, the Gila's 1.3, the
+  Brander's 0.4; the iron fence's under the spawn beam, Warmup), each ring laid out as the warning begins in about 5 ms
+  (King 165 stretches / 1,485 pieces, Gila 208 / 1,512, Brander 130 / 1,040, fewer where the ring leaves the map), then
+  0.01 ms a frame (the whole rise and fall run in the shader). One MultiMesh per kind of piece and 14 m of ring, so only
+  the stretches on the screen are drawn (3-4 stretches' MultiMeshes, about 12-16 draw calls, when he stands at it).
+- **How hard** (game/tools/_p113_BOSS_probe.gd, 3 runs each, the hero 9 m off when it starts; a hit 12% of max HP; the
+  barrier at 35-47 m does not reach these pilots):
+
+  | | standing still | careful dodger (0.4 s look-ahead) | the run sim's bot |
+  |---|---|---|---|
+  | King | 8.3 -> **8.0** (100% -> 96%) | 0.7 -> **0.7** | 0.3 -> **0** |
+  | Gila | 11 -> **13** (132% -> 156%) | 0 -> **0** | 0 -> **0** |
+  | Brander | 8 -> **9** (96% -> 108%) | 0 -> **0** | 0 -> **0** |
+
+  Standing still costs a little more (the Gila and the Brander one bullet more); a hero who keeps moving still slips
+  through (the probe's dodger sees 0.4 s ahead perfectly; a person reacts later, and the bullets now cover in that time
+  half as much ground again: 1.9 m instead of 1.3 for the King's arms, so it is harder for a player than these numbers
+  say). The bullets are faster but further apart along their lines, so the field is thinner.
+
+Decisions of mine (not in the spec; say if they are wrong):
+- The barrier at the bullets' range (as the brief says), not on the screen: he sees it only near the edge. Fixed 12-16 m
+  would show it while he dodges (one dropdown and one number per attack).
+- It falls apart as the bullets end, not after the dazed seconds (`hold` "bullets"; "spent" is one choice away).
+- Creatures keep to their side; bullets vanish at it; other shots pass through it.
+- The pattern waits (does not start) when he is at the wall's line; the wall is never pushed out to fit him.
+- The Gila's warning ring grew with her wait (0.4 -> 0.5 s); the Brander's finale pull got the 50% too.
+- The rise and fall sounds are existing ones (en_boulder_land, st_barrel_break), played where he can see the wall.
+
+Tests: game/tests/pass115_BOSS_test.gd (15); re-pinned pass114_EDITOR_test (the speed x1.5, the room from the counts),
+pass95_BOSS_test (the stomp's 7.5 m ring, wave and the hero 1 m past it), pass73_ground_test (the Gila under 3.75 s);
+tools/level_editor/selftest_BOSS115.py (45), selftest_BOSS95.py and selftest_GROUND.py re-pinned. Captures:
+tools/dl/p115/BOSS/shots/ (king_s1, gila_s2 Nightfall, brander_s3 Blood Moon, king_fixed14_s1), lab3/ (close ups).
+
+### 58.LEAD The lead's calls (pass 115)
+- **The bullet-heaven barrier stands 14 m round the boss** (`barrier.radius_mode` "fixed", `radius` 14 in all three
+  attacks), not at the bullets' range (35-47 m) as 58.BOSS built it: at the range it was off screen in every normal fight,
+  and Garry asked for a wall the player reads at a glance and is not trapped in. With it the reach rule reads the wall:
+  the attack begins only with the hero within about 13 m of the boss, and every bullet stops at the wall's inner face,
+  so the 2x range of pass 114 now matters only if he sets `radius_mode` back to "range" (Level Editor, Boss attacks,
+  Barrier: "Where it stands").

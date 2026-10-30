@@ -15,11 +15,15 @@ params = {
 "blink": 4.0,
 "every": [8.0, 12.0],
 "far": 18.0,
+"flower_size": 1.6,
+"halo": 0.55,
 "life": 15.0,
 "max": 3.0,
 "near": 10.0,
+"pulse": 0.07,
 "seconds": 5.0,
-"speed_mult": 1.5
+"speed_mult": 1.5,
+"sway": 9.0
 }
 }
 id = "pollen"

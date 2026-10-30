@@ -148,22 +148,26 @@ def py_config(gd, block):
     o["first"] = max(_num(o["first"], 90.0), 0.0)
     ev = _range(o["every"], [120.0, 180.0])
     o["every"] = [max(ev[0], gd["EVERY_MIN"]), max(ev[1], gd["EVERY_MIN"])]
-    lf = _range(o["life"], [20.0, 30.0])
+    lf = _range(o["life"], [60.0, 90.0])
     o["form_seconds"] = max(_num(o["form_seconds"], 2.5), 0.1)
     o["fade_seconds"] = max(_num(o["fade_seconds"], 2.0), 0.1)
     least = o["form_seconds"] + o["fade_seconds"] + 1.0
     o["life"] = [max(lf[0], least), max(lf[1], least)]
     o["max_alive"] = max(int(_num(o["max_alive"], 1.0)), 0)
-    o["radius"] = max(_num(o["radius"], 2.4), 0.2)
+    o["radius"] = max(_num(o["radius"], 3.0), 0.2)
     o["speed"] = max(_num(o["speed"], 1.4), 0.0)
     o["wander"] = str(o["wander"]) if str(o["wander"]) in gd["WANDERS"] else "cross"
     o["miss"] = _num(o["miss"], 3.0)
     fd = _range(o["form_dist"], [7.0, 11.0])
     o["form_dist"] = [max(fd[0], 0.0), max(fd[1], max(fd[0], 0.0))]
     ts = o["toss"] if isinstance(o["toss"], dict) else {}
-    o["toss"] = {"up": max(_num(ts.get("up", 8.0), 8.0), 0.0), "out": _num(ts.get("out", 3.6), 3.6),
+    o["toss"] = {"up": max(_num(ts.get("up", 9.5), 9.5), 0.0), "out": _num(ts.get("out", 3.6), 3.6),
                  "cooldown": max(_num(ts.get("cooldown", 1.2), 1.2), 0.0)}
     o["lift"] = max(_num(o["lift"], 1.7), 0.0)
+    # pass 115 (lane POLISH): the ride's height, the funnel's size and opacity
+    o["lift_height"] = max(_num(o["lift_height"], 4.5), 0.0)
+    o["size"] = min(max(_num(o["size"], 1.25), 0.25), 4.0)
+    o["opacity"] = min(max(_num(o["opacity"], 0.7), 0.5), 1.0)
     for k in ("warn", "in_boss", "in_portal", "in_endless"):
         o[k] = _bool(o[k])
     return o
@@ -200,9 +204,11 @@ def checks(check, run_node, server):
     check(_same(t["EVERY_MIN"], gd["EVERY_MIN"]) and _same(t["HERO_REACH"], gd["HERO_REACH"]) and t["WANDERS"] == gd["WANDERS"],
           "TWISTER113: the least gap, the hero's reach past the radius and the wanders match: %s" % t)
     d = gd["DEFAULTS"]
-    check(d["enabled"] is True and d["first"] == 90 and d["every"] == [120, 180] and d["life"] == [20, 30] and d["max_alive"] == 1
-          and d["toss"] == {"up": 8.0, "out": 3.6, "cooldown": 1.2} and d["lift"] == 1.7 and d["radius"] == 2.4,
-          "TWISTER113: the game's defaults: rare (from 1:30, one every 2 to 3 minutes, 20 to 30 s each, one at a time), pass 44's toss and lift")
+    # pass 115 (lane POLISH) re-pinned: 60 to 90 s each, a 3 m radius, a 9.5 m/s throw, creatures 4.5 m up, size 1.25, 0.7 solid
+    check(d["enabled"] is True and d["first"] == 90 and d["every"] == [120, 180] and d["life"] == [60, 90] and d["max_alive"] == 1
+          and d["toss"] == {"up": 9.5, "out": 3.6, "cooldown": 1.2} and d["lift"] == 1.7 and d["radius"] == 3.0
+          and d["lift_height"] == 4.5 and d["size"] == 1.25 and d["opacity"] == 0.7,
+          "TWISTER113: the game's defaults: rare (from 1:30, one every 2 to 3 minutes, 60 to 90 s each since pass 115, one at a time), the throw and the ride")
 
     # the reader against the Python copy
     bad = [(b, got, py_config(gd, b)) for b, got in zip(CASES, res["configs"]) if not _same(got, py_config(gd, b))]

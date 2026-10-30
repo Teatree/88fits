@@ -144,7 +144,9 @@ SOURCES = {
     "ProjectileEmitter": ("core/behaviors/ProjectileEmitter.gd", "core/systems/ProjectileManager.gd", "core/systems/EnemyManager.gd",
                           "core/systems/TextGen.gd"),
     # pass 81 (lane POLISH): the bees' trail look (missile.trail_style / trail_color)
-    "MissilePod": ("core/behaviors/MissilePod.gd", "core/systems/ProjectileManager.gd"),
+    "MissilePod": ("core/behaviors/MissilePod.gd", "core/systems/ProjectileManager.gd",
+                   # pass 115 (lane POLISH): the Pollen flowers' look (pollen.flower_size, sway, pulse, halo)
+                   "core/systems/FlowerField.gd"),
     # pass 95 (lane BREATH): the Dragon's Breath's `breath` group (the still block, the look, the shove)
     "FireBreath": ("core/behaviors/FireBreath.gd", "core/systems/WeaponInstance.gd", "player/Player.gd"),
 }

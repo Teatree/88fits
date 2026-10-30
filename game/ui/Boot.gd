@@ -31,8 +31,8 @@ const SPLASH_SIZE := Vector2(1080, 1920)
 ## The bar's outer box and the top of its word's line box, in the picture's pixels. The bar's empty look (its hard
 ## shadow, its ink border, its aged track) and the word are in the picture under its last line; this screen paints the
 ## fill into the track (written by tools/make_splash.py, which lays the picture out round them).
-const BAR := Rect2(280, 1364, 520, 34)
-const LABEL_Y := 1419.0
+const BAR := Rect2(280, 1360, 520, 34)
+const LABEL_Y := 1415.0
 const BAR_BORDER := 4
 const BAR_SHADOW := 5
 const LABEL_PX := 28

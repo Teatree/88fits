@@ -13,7 +13,8 @@ any speed, with the taps drawn as rings. Runs from older builds have no recordin
 
 1. **Play a run on the phone** with the build in Drive (0.97 or later). Play data must be on (the card at the first
    start, or Settings). Play as you like; end the run any way (die, extract, or quit from the pause screen).
-2. **Double-click `toolseplay.cmd`** on the PC. A small menu asks what to do:
+2. **Double-click `tools
+eplay.cmd`** on the PC. A small menu asks what to do:
    - **1) Download new runs from the phone, then list them** (fetches the replays from PostHog; wait a minute after
      the run, or open the game on the phone again for a few seconds if it does not show),
    - **2) List the runs on this PC** (newest first, numbered),
@@ -41,6 +42,12 @@ and `tools\replay.cmd` finds it without any download. A run from the editor bina
   as a ghost under the thumb (the base and the knob).
 - **The screens** (cards, chests, the shop, the Stranger, totems, the portal, Down!) appear as they did, and the choice
   is made by name, never by screen position: the log on the right says what was picked (`2:41  Picked Mule Kick`).
+- **The Upgrade board** (pass 115, under the numbers): the board the player had when the run began, every talent with a
+  dot a rank (blue its first form, amber its second, hollow not bought) and the forms by name, its ranks of the board's
+  most and the gold they cost. `B` (or a click on its title) folds it to one line. The header names the hero's look.
+  Only a build from 0.98 on shows it in its window; for **any** recording, `python tools/replay.py` prints the board in
+  the terminal before the window opens, and `python tools/replay.py --board <file>` (or `--board --latest`) prints only
+  the board.
 - **The chart**: the recorded HP (red) and level (gold) over the whole run, with a white line where the replay is.
 - **The reel** (bottom): the whole run, left to right. Gold marks: level-ups and picks; red: bosses and big hits; white:
   going down; blue: revives, power-ups, the portal. Hover a mark to read it, **click anywhere to jump there**.
@@ -57,6 +64,7 @@ and `tools\replay.cmd` finds it without any download. A run from the editor bina
 | Home | | back to the start |
 | click the reel | | jump to that moment |
 | A | | the safety net on / off |
+| B | | the Upgrade board open / folded (pass 115) |
 | M | | sound on / off (off at the start) |
 | Esc | | close |
 

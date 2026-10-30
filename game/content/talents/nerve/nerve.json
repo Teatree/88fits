@@ -2,17 +2,20 @@
   "id": "nerve",
   "name": "Nerve",
   "flavour": "Pass on one more, or get back up.",
-  "order": 8,
+  "order": 2,
   "ranks": 6,
   "currency_type": "gold",
   "cost": [
-    500,
-    2000,
-    4500,
-    8000,
-    12500,
-    18000
+    150,
+    600,
+    1350,
+    2400,
+    3750,
+    5400
   ],
+  "base_stats": {
+    "revive_hp": 0.4
+  },
   "forms": [
     {
       "name": "Skip",
@@ -28,64 +31,14 @@
     },
     {
       "name": "Second Wind",
-      "text": "+1 revive at ranks 1, 3, 5; +15% revive health at 2, 4, 6.",
+      "text": "+10% health on revive a rank: 40% up to 100%.",
       "effects": [
         {
-          "stat": "revives",
+          "stat": "revive_hp",
           "op": "add",
-          "value": 1.0,
+          "value": 0.1,
           "target": "player"
         }
-      ],
-      "rank_effects": [
-        [
-          {
-            "stat": "revives",
-            "op": "add",
-            "value": 1.0,
-            "target": "player"
-          }
-        ],
-        [
-          {
-            "stat": "revive_hp",
-            "op": "add",
-            "value": 0.15,
-            "target": "player"
-          }
-        ],
-        [
-          {
-            "stat": "revives",
-            "op": "add",
-            "value": 1.0,
-            "target": "player"
-          }
-        ],
-        [
-          {
-            "stat": "revive_hp",
-            "op": "add",
-            "value": 0.15,
-            "target": "player"
-          }
-        ],
-        [
-          {
-            "stat": "revives",
-            "op": "add",
-            "value": 1.0,
-            "target": "player"
-          }
-        ],
-        [
-          {
-            "stat": "revive_hp",
-            "op": "add",
-            "value": 0.15,
-            "target": "player"
-          }
-        ]
       ]
     }
   ],

@@ -406,10 +406,11 @@ func test_a_throw_strip_shows_its_wind_up_then_its_release_in_the_views_half() -
 
 func test_the_dynamite_bandit_is_the_cactus_played_look_with_a_throw_strip() -> void:
 	var def: EnemyDef = Registry.enemy("spit_cactus")
-	assert_str(def.variant).is_equal("SC-A")
+	# (pass 115: Garry plays the Bombmaker SC-B, made like SC-A; any of the thrower looks may be the played one)
+	assert_array(["SC-A", "SC-B", "SC-C"]).contains([def.variant])
 	assert_bool(def.variants.has("SC-A")).is_true()
 	assert_bool(def.variants.has("SC-0")).is_true()
-	assert_str(def.sprite_file).is_equal("spit_cactus_sprite_a.png")
+	assert_bool(str(def.sprite_file).get_file() == str((def.variants[def.variant] as Dictionary)["sprite"]).get_file()).override_failure_message("%s vs %s" % [def.sprite_file, (def.variants[def.variant] as Dictionary)["sprite"]]).is_true()
 	assert_object(def.sprite).is_not_null()
 	# the throw: a wind-up | release half from the front and from behind
 	assert_str(def.attack_views).is_equal("front_back")

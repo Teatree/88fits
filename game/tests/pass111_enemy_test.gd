@@ -383,11 +383,15 @@ func test_the_map_names_far_speed_and_the_defaults_fill_it() -> void:
 		var want = own.get(k, WaveTimeline.FAR_SPEED_DEFAULTS[k])
 		if want is bool:
 			assert_bool(bool(cfg[k])).is_equal(want)
+		elif want is String:
+			# pass 115 (lane POLISH): the curve's name
+			assert_str(str(cfg[k])).is_equal(want)
 		else:
 			assert_float(float(cfg[k])).is_equal_approx(float(want), 0.0001)
 	var empty := WaveTimeline.new()
 	assert_bool(bool(empty.far_speed_cfg()["enabled"])).is_true()
-	assert_float(float(empty.far_speed_cfg()["max_mult"])).is_equal(2.0)
+	# pass 115 (lane POLISH) re-pinned: x3 (pass 111's x2)
+	assert_float(float(empty.far_speed_cfg()["max_mult"])).is_equal(3.0)
 
 
 func test_the_multiplier_rises_smoothly_past_the_distance() -> void:

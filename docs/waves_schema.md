@@ -1127,14 +1127,18 @@ Special Enemies."
 | key | type [default] | meaning |
 |---|---|---|
 | `enabled` | bool [true] | false = off: every creature walks at its own speed wherever it is |
-| `distance` | metres [14] | how far from the hero (flat) the speed-up starts; inside it nothing changes |
-| `ramp` | metres [6] | over how many metres past `distance` the multiplier grows (a smoothstep) to `max_mult`; 0 = all at once |
-| `max_mult` | number [2.0] | the walk's multiplier at `distance` + `ramp` and beyond (1 = no speed-up) |
+| `distance` | metres [12] | how far from the hero (flat) the speed-up starts; inside it nothing changes (pass 111: 14) |
+| `ramp` | metres [24] | over how many metres past `distance` the multiplier grows (along `curve`) to `max_mult`; 0 = all at once (pass 111: 6) |
+| `max_mult` | number [3.0] | the walk's multiplier at `distance` + `ramp` and beyond (1 = no speed-up) (pass 111: 2.0) |
 | `bosses` | bool [true] | a boss far from the hero walks faster by the same rule |
+| `curve` | "smooth" \| "linear" \| "ease_out" \| "ease_in" ["ease_out"] | pass 115: the ramp's shape: smooth = pass 111's smoothstep, linear, ease_out = 1-(1-f)^2 (quick, then levelling off), ease_in = f^2 |
+| `max_speed` | m/s [6.0] | pass 115: the boost never takes a walk past this (a walk already faster keeps its own speed, never slowed); 0 = no cap |
 
-A key left out (the whole block too) plays `WaveTimeline.FAR_SPEED_DEFAULTS`. Red Canyon's file names the defaults:
-`"far_speed": {"enabled": true, "distance": 14.0, "max_mult": 2.0, "ramp": 6.0, "bosses": true}`: x1 up to 14 m, x1.5 at
-17 m, x2 from 20 m (the screen shows about 12 m to the sides and 20 m up and down; the roster's rings come at 18 m).
+A key left out (the whole block too) plays `WaveTimeline.FAR_SPEED_DEFAULTS`. Red Canyon's file names the defaults (pass
+115): `"far_speed": {"enabled": true, "distance": 12.0, "max_mult": 3.0, "ramp": 24.0, "bosses": true, "curve":
+"ease_out", "max_speed": 6.0}`: x1 up to 12 m, x1.32 at 14 m, x2.11 at 20 m, x2.58 at 25 m, x2.88 at 30 m, x3 from 36 m
+(just inside the 40 m despawn line), never past 6 m/s (Jeżyk at full Momentum: 5.5 m/s at level 10, 7.5 at level 20
+with The Chariot 4). Pass 111 had x1 to 14 m, x1.5 at 17 m, x2 from 20 m, no cap.
 
 #### The rule (EnemyManager `far speed` section)
 - Only the walk a creature's brain chooses (`_steer`'s `spd`: chase, flock, kite, the kamikaze's run, a boss walking
@@ -1149,7 +1153,8 @@ A key left out (the whole block too) plays `WaveTimeline.FAR_SPEED_DEFAULTS`. Re
 - WaveTimeline: `far_speed` (Dictionary), `FAR_SPEED_DEFAULTS`, `far_speed_cfg()`. JsonContent reads the block as it is.
 - WaveDirector `_apply_mults` -> `EnemyManager.set_far_speed(cfg)`.
 - EnemyManager: `far_speed_on`, `set_far_speed(cfg)`, static `far_kind_of(def)` (FAR_NEVER / FAR_REGULAR / FAR_BOSS),
-  static `far_speed_mult(dist, distance, ramp, max_mult)`, `far_speed_k(i, dist)`.
+  static `far_speed_mult(dist, distance, ramp, max_mult, curve := 0)` (curve an index into `FAR_CURVES`),
+  `far_speed_k(i, dist, spd := 0.0)` (with the walk `spd`, the boost stops at `max_speed`; pass 115).
 - Level Editor: Settings, Scaling card, rows `far_speed.enabled` ("Far creatures walk faster"), `far_speed.distance`,
   `far_speed.ramp`, `far_speed.max_mult` ("Far speed ×"), `far_speed.bosses` ("Bosses too"), with a line that reads the
   multiplier at three distances; model.js `FAR_SPEED_DEFAULTS`, `farSpeedCfg`, `farSpeedMult`, `farSpeedIssues`.
@@ -1254,22 +1259,26 @@ forms where the player can see it, crosses the view and goes again, and it is dr
 | `enabled` | bool [true] | false = none on this map |
 | `first` | seconds [90] | of the stage's own clock before the first may come |
 | `every` | seconds or [min, max] [[120, 180]] | from one forming to the next forming, rolled each time; under 10 counts as 10; one due while `max_alive` stand comes as soon as one has gone |
-| `life` | seconds or [min, max] [[20, 30]] | how long each one is there, its forming and fading included (at least form + fade + 1) |
+| `life` | seconds or [min, max] [[60, 90]] | how long each one is there, its forming and fading included (at least form + fade + 1) (pass 113: [20, 30]) |
 | `max_alive` | int [1] | the most at once |
-| `radius` | metres [2.4] | it lifts creatures within this; the hero is thrown within radius + 0.5 (the ring drawn on the sand) |
+| `radius` | metres [3.0] | it lifts creatures within this; the hero is thrown within radius + 0.5 (the ring drawn on the sand) (pass 113: 2.4) |
 | `speed` | m/s [1.4] | how fast it moves |
 | `wander` | "cross" / "drift" / "loop" ["cross"] | across the view on a line passing `miss` m to one side of where the hero stood when it formed (swaying ±0.35 rad, 0.11 Hz); a slow random wander; pass 44's loop round the flats (18 x 10 m round flats_center + (6, 0, 4)). Every kind but the loop turns back inside 0.85 of the arena's radius |
 | `miss` | metres [3] | (cross) how far to one side of the hero its line passes |
 | `form_dist` | metres [min, max] [[7, 11]] | how far from the hero it forms |
 | `form_seconds` | seconds [2.5] | forming: the skirt of dust first, then the funnel rising out of it; no grab meanwhile |
 | `fade_seconds` | seconds [2] | going: no grab, the funnel thins away, the dust puffs out |
-| `toss` | {up, out, cooldown} [{8, 3.6, 1.2}] | the hero's throw (pass 44's: 8 m/s up, 3.6 m/s away from its middle, once in 1.2 s); up 0 = never |
+| `toss` | {up, out, cooldown} [{9.5, 3.6, 1.2}] | the hero's throw (9.5 m/s up since pass 115: about 1.9 m high under his 24 m/s2, pass 44's 8 about 1.3 m; 3.6 m/s away from its middle, once in 1.2 s); up 0 = never |
 | `lift` | seconds [1.7] | a creature's ride (EnemyManager.lift_radius: spun round it, flung out, 8% of its health on landing); 0 = none |
+| `lift_height` | metres [4.5] | pass 115: how high a creature of size 1 rides at the top (x its size; EnemyManager.TORNADO_LIFT_H 3.2 before) |
+| `size` | number [1.25] | pass 115: the funnel's size (1 = 7 m tall, 0.6 m foot, 2.1 m top); the dust at its foot follows `radius` |
+| `opacity` | 0.5..1 [0.7] | pass 115: how solid the funnel is (TornadoFx.opacity; pass 113's 0.94), its skirt of dust 0.98 of it |
 | `warn` | bool [true] | the first one of a run toasts "DUST DEVIL: keep out of its ring" (never again that run) |
 | `in_boss`, `in_portal`, `in_endless` | bool [false, false, false] | whether the clock runs (and they come) in the boss fight, the portal's countdown, Endless; one standing when its phase ends fades away |
 
-Red Canyon writes the defaults out (enabled, first 90, every [120, 180], life [20, 30], max_alive 1, radius 2.4, speed
-1.4, cross, form 2.5, fade 2, toss {8, 3.6, 1.2}, lift 1.7): about 3 in Sundown, 4 in Nightfall, 5 in Blood Moon.
+Red Canyon writes the defaults out (enabled, first 90, every [120, 180], life [60, 90], max_alive 1, radius 3.0, speed
+1.4, cross, form 2.5, fade 2, toss {9.5, 3.6, 1.2}, lift 1.7, lift_height 4.5, size 1.25, opacity 0.7; pass 115): about 3
+in Sundown, 4 in Nightfall, 5 in Blood Moon.
 
 #### The rules (game/core/systems/DustDevils.gd, game/world/features/DustDevil.gd)
 - The clock (`DustDevils.clock`) counts the seconds of the phases it runs in, from the stage's start (each stage is its
