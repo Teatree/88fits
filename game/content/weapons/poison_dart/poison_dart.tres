@@ -1,58 +1,58 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8jwhp"]
 [ext_resource type="Texture2D" path="res://content/weapons/poison_dart/poison_dart_icon.png" id="1_id6uf"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_vy7vr"]
-[ext_resource type="PackedScene" path="res://content/weapons/poison_dart/poison_dart_visual.tscn" id="2_8jwhp"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_8unav"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_e2kgj"]
+[ext_resource type="PackedScene" path="res://content/weapons/poison_dart/poison_dart_visual.tscn" id="4_o5odp"]
 
 [sub_resource type="Resource" id="Resource_id6uf"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "poison_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_8unav"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "cooldown"
 op = "mul"
 value = -0.1913
 
 [sub_resource type="Resource" id="Resource_e2kgj"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "poison_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_o5odp"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "poison_stacks"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_8ebnl"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "cooldown"
 op = "mul"
 value = -0.075
 
 [sub_resource type="Resource" id="Resource_3o08y"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_ulljh"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "poison_damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_ivri2"]
-script = ExtResource("1_8jwhp")
+script = ExtResource("2_8unav")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
 [resource]
-script = ExtResource("1_vy7vr")
+script = ExtResource("3_e2kgj")
 targeting = "healthy"
 base = {
 "amount": 1.0,
@@ -73,7 +73,7 @@ sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("2_8jwhp")
+visual = ExtResource("4_o5odp")
 visual_file = "poison_dart_visual.tscn"
 params = {
 "familiar": {

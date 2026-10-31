@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/bristle/bristle_icon_b.png" id="1_g1s7f"]
+[ext_resource type="Texture2D" path="res://content/passives/bristle/bristle_icon_b.png" id="1_eg2c6"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_g1s7f"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_1ro7p"]
 
@@ -61,7 +61,7 @@ variant_base = "A"
 id = "bristle"
 display_name = "The Thorn"
 flavour = "The Thorn turns up. Whoever touches you bleeds for it."
-icon = ExtResource("1_g1s7f")
+icon = ExtResource("1_eg2c6")
 icon_file = "bristle_icon.png"
 placeholder = {
 "color": "#80C060",

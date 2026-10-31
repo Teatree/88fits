@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_qhq5a"]
-[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_icon_c.png" id="7_3oknf"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_icon_c.png" id="1_hec2e"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_qusyu"]
 
 [resource]
-script = ExtResource("2_qhq5a")
+script = ExtResource("2_qusyu")
 doc = "Stage 2's hell crowd: a bouncing blue jelly, four times a goblin's health and twice its bite, five to a pack on top of the regular roster. It bursts into a puddle when it dies."
 hp = 26.0
 speed = 1.7
@@ -173,7 +173,7 @@ variance = {
 id = "blue_slime"
 display_name = "Blue Slime"
 flavour = "It is not water. Do not drink it."
-icon = ExtResource("7_3oknf")
+icon = ExtResource("1_hec2e")
 icon_file = "blue_slime_icon.png"
 placeholder = {
 "color": "#2E7BFF",

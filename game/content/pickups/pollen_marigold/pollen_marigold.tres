@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PickupDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_5h7el"]
 [ext_resource type="Texture2D" path="res://content/pickups/pollen_marigold/pollen_marigold_icon.png" id="1_phkyw"]
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="2_vewrl"]
 
 [resource]
-script = ExtResource("1_5h7el")
+script = ExtResource("2_vewrl")
 effect_kind = "pollen"
 value = 0.0
 duration = 5.0

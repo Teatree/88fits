@@ -1,31 +1,31 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_b1smd"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_r747c"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_f.png" id="12_18qhc"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_r747c"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_f.png" id="2_4jnfx"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_ihfma"]
 
 [sub_resource type="Resource" id="Resource_r747c"]
-script = ExtResource("1_b1smd")
+script = ExtResource("1_r747c")
 stat = "area"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_4jnfx"]
-script = ExtResource("1_b1smd")
+script = ExtResource("1_r747c")
 stat = "move_speed"
 op = "mul"
 value = 0.01
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ihfma"]
-script = ExtResource("1_b1smd")
+script = ExtResource("1_r747c")
 stat = "move_speed"
 op = "mul"
 value = -0.15
 target = "player"
 
 [resource]
-script = ExtResource("2_r747c")
+script = ExtResource("3_ihfma")
 trait_effects = [SubResource("Resource_ihfma")]
 level_trait = [SubResource("Resource_4jnfx")]
 order = 7
@@ -285,7 +285,7 @@ variant = "BUC-F"
 id = "buck"
 display_name = "Jeżyk"
 flavour = "The little hedgehog of the block. Slow to start, impossible to stop."
-icon = ExtResource("12_18qhc")
+icon = ExtResource("2_4jnfx")
 icon_file = "buck_icon.png"
 placeholder = {
 "color": "#141418",

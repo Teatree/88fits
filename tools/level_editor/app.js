@@ -279,6 +279,10 @@ const App = (() => {
   const AFTER_STAGE = 120;
   /** The run clock where the view starts: 0, or the open stage's window start. */
   const viewStart = () => (viewStage() == null ? 0 : stageStart(viewStage()));
+  /** Pass 116 (lane EDITOR): the second a stage tab's clock starts at (null on All: the map clock), and a map second
+   *  written on that clock ("1:05 (map 8:15)" on a stage tab). */
+  const stageOffset = () => (viewStage() == null ? null : stageStart(viewStage()));
+  const fmtClock = (t) => { const off = stageOffset(); return off == null || t == null || t === '' ? U.fmtT(t) : `${U.fmtT(Number(t) - off)} (map ${U.fmtT(t)})`; };
   /** The axis runs a little into endless, so open rows and timers show where they go on; a stage tab shows its window,
    *  the portal's timer after its boss and two minutes of Endless. */
   const viewEnd = () => (viewStage() == null
@@ -1239,6 +1243,7 @@ const App = (() => {
     if (assetDoc()) { await Assets.save(S.tab); return; }
     // pass 111 (lane WANTED): Ctrl+S on the Wanted tab saves the Bounty Board's config
     if (S.tab === 'wanted' && typeof Wanted !== 'undefined') { await Wanted.save(); return; }
+    if (S.tab === 'mirror' && typeof Mirror !== 'undefined') { await Mirror.save(); return; }
     if (!S.map || S.saving) return;
     const issues = validate();
     if (issues.errors.length) {
@@ -1486,6 +1491,8 @@ const App = (() => {
       else if (S.tab === 'drivers' && typeof Drivers !== 'undefined') Drivers.render(panel);
       // pass 111 (lane WANTED): the Bounty Board (wanted.js: its own document, wanted.json; rolls from the map's timeline)
       else if (S.tab === 'wanted' && typeof Wanted !== 'undefined') Wanted.render(panel);
+      // pass 116 (lane EDITOR): the Upgrade board's talents (mirror.js, talents_io.py)
+      else if (S.tab === 'mirror' && typeof Mirror !== 'undefined') Mirror.render(panel);
       else if (assetsTab()) Assets.render(S.tab, panel);
     }
     updateTopBar();
@@ -1591,7 +1598,7 @@ const App = (() => {
       });
       lv.addEventListener('keydown', (e) => { if (e.key === 'Enter') lv.blur(); });
     }
-    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty()) || (typeof Wanted !== 'undefined' && Wanted.dirty())) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty()) || (typeof Wanted !== 'undefined' && Wanted.dirty()) || (typeof Mirror !== 'undefined' && Mirror.dirty())) { e.preventDefault(); e.returnValue = ''; } });
   }
 
   // only the buttons that carry data-tab: the zoom buttons share the nav (a click on "+" once switched to no tab at all)
@@ -1654,7 +1661,7 @@ const App = (() => {
     S, init, loadMap, refreshCreatures, creature, creatureName, elite, pickup, variantOk, iconFor, playCode, creatureColor, CREATURE_COLORS,
     tl, stageLength, stages, runEnd, viewEnd, stageAt, stageName, stageMult, samplePoints, capAt, capRawAt, capCut, hellCapAt,
     // pass 87 (lane STOOLS): the stage windows and the stage tabs
-    stageList, stageStart, stageEnd, stageLen, stageWindow, viewStage, viewStart, setStageView, portalSeconds,
+    stageList, stageStart, stageEnd, stageLen, stageWindow, viewStage, viewStart, setStageView, portalSeconds, stageOffset, fmtClock,
     hpTimeMult, dmgTimeMult, hpMultAt, dmgMultAt, creatureAt, rowNumbers, eventNumbers, sourceName, actual, actualAt, knockbackOf, rowWeight, rosterAt, waveEnd, wavesAt, nextEvent,
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
     newRow, newRowPreset, splitRow, convertRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,

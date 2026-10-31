@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/multishot/multishot_icon_b.png" id="1_oqepf"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_h1hc5"]
+[ext_resource type="Texture2D" path="res://content/passives/multishot/multishot_icon_b.png" id="1_h1hc5"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_oqepf"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_rj2of"]
 
 [sub_resource type="Resource" id="Resource_h1hc5"]
 script = ExtResource("2_oqepf")
@@ -11,7 +11,7 @@ value = 1.0
 target = "player"
 
 [resource]
-script = ExtResource("2_h1hc5")
+script = ExtResource("3_rj2of")
 line = true
 levels = [[SubResource("Resource_h1hc5")]]
 max_level = 4
@@ -56,7 +56,7 @@ display_name = "The Hydra"
 flavour = "The Hydra: cut one head, two more spit. More things flying."
 rarity = "rare"
 weight = 7.0
-icon = ExtResource("1_oqepf")
+icon = ExtResource("1_h1hc5")
 icon_file = "multishot_icon.png"
 placeholder = {
 "color": "#7FD07A",

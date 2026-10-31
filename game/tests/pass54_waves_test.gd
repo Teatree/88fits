@@ -648,7 +648,7 @@ func test_red_canyon_in_the_pass_54_shape() -> void:
 		assert_bool(row.has("weights")).override_failure_message(str(row)).is_true()
 		assert_bool(row.has("weight") or row.has("weight_late")).override_failure_message(str(row)).is_false()
 		var rid := str(row.get("id", ""))
-		assert_bool(rid.begins_with("r")).override_failure_message(str(row)).is_true()
+		assert_bool(rid.begins_with("r") or rid.begins_with("s3")).override_failure_message(str(row)).is_true()  # pass 116: stage 3 rows s3a1..s3g2
 		assert_bool(ids.has(rid)).override_failure_message("two rows are " + rid).is_false()
 		ids[rid] = true
 	# and the director draws from them

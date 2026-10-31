@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jpedq"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_3j77w"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3j77w"]
 [ext_resource type="Texture2D" path="res://content/mutations/venom_arc/venom_arc_icon.png" id="2_8w66y"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_lj0sw"]
 
 [sub_resource type="Resource" id="Resource_3j77w"]
-script = ExtResource("1_jpedq")
+script = ExtResource("1_3j77w")
 stat = "poison_damage"
 value = 4.0
 
 [sub_resource type="Resource" id="Resource_8w66y"]
-script = ExtResource("1_jpedq")
+script = ExtResource("1_3j77w")
 stat = "poison_stacks"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_lj0sw"]
-script = ExtResource("1_jpedq")
+script = ExtResource("1_3j77w")
 stat = "poison_duration"
 value = 8.0
 
 [resource]
-script = ExtResource("2_3j77w")
+script = ExtResource("3_lj0sw")
 weapon = "zap_beam"
 mutation_kind = "element"
 text = "The arc carries poison."

@@ -1,0 +1,21 @@
+/* pass 116 (lane EDITOR): the Mirror tab (mirror.js) */
+.mir-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.mir-bar h2 { margin: 0 8px 0 0; }
+.mir-strip { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 14px; }
+.mir-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; text-decoration: none; color: inherit; padding: 4px 6px; border-radius: 6px; background: rgba(255,255,255,0.04); }
+.mir-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 10px 12px; margin: 0 0 14px; background: rgba(255,255,255,0.02); }
+.mir-card.changed { border-color: #d9a441; }
+.mir-head { display: flex; gap: 12px; align-items: flex-start; }
+.mir-idx { font-size: 22px; font-weight: 700; opacity: 0.7; min-width: 36px; }
+.mir-title h3 { margin: 0 0 6px; }
+.mir-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 3px 0; }
+.mir-img { border-radius: 8px; background: #2a2622; object-fit: contain; }
+.mir-img.none { display: flex; align-items: center; justify-content: center; font-size: 10px; opacity: 0.5; }
+.mir-ranks { border-collapse: collapse; margin: 10px 0 4px; }
+.mir-ranks th, .mir-ranks td { border: 1px solid rgba(255,255,255,0.08); padding: 3px 6px; text-align: left; vertical-align: middle; }
+.mir-form { display: flex; gap: 8px; align-items: center; }
+.mir-forms { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+.mir-formbox { flex: 1 1 420px; border-top: 1px dashed rgba(255,255,255,0.12); padding-top: 6px; }
+/* pass 116 (lane EDITOR): the Timeline's row numbers and the stage tabs' counts */
+.gut-idx { min-width: 22px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; color: #c9b98a; opacity: 0.85; }
+.stg-tab .stg-count { font-size: 0.72rem; color: #c9b98a; margin-left: 4px; }

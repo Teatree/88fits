@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_3maa1"]
-[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_g.png" id="17_b4j42"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_mummy/dust_mummy_icon_g.png" id="1_0ecwr"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_ymoj1"]
 
 [resource]
-script = ExtResource("1_3maa1")
+script = ExtResource("2_ymoj1")
 archetype = "tank"
 doc = "The wall: slow, thick, fourteen damage a touch. It arrives when a build must have area damage or a way around."
 hp = 60.0
@@ -342,7 +342,7 @@ variance = {
 id = "dust_mummy"
 display_name = "Dust Mummy"
 flavour = "Slow. Very, very slow. Still coming."
-icon = ExtResource("17_b4j42")
+icon = ExtResource("1_0ecwr")
 icon_file = "dust_mummy_icon.png"
 placeholder = {
 "color": "#D8CBA8",

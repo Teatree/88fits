@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/almanac/almanac_icon_b.png" id="1_qqx00"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_yqbdd"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_r62ks"]
+[ext_resource type="Texture2D" path="res://content/passives/almanac/almanac_icon_b.png" id="1_r62ks"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_qqx00"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_trxcw"]
 
 [sub_resource type="Resource" id="Resource_r62ks"]
-script = ExtResource("1_yqbdd")
+script = ExtResource("2_qqx00")
 stat = "xp_gain"
 op = "mul"
 value = 0.5
 target = "player"
 
 [resource]
-script = ExtResource("2_r62ks")
+script = ExtResource("3_trxcw")
 line = true
 levels = [[SubResource("Resource_r62ks")]]
 repeat_last_level = false
@@ -57,7 +57,7 @@ display_name = "The Sage Risen"
 flavour = "The Sage writes every lesson down, and the weather besides."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_qqx00")
+icon = ExtResource("1_r62ks")
 icon_file = "almanac_icon.png"
 placeholder = {
 "color": "#FFB84A",

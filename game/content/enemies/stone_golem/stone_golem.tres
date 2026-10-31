@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/stone_golem/stone_golem_icon.png" id="1_nyxo2"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_hiuso"]
+[ext_resource type="Texture2D" path="res://content/enemies/stone_golem/stone_golem_icon.png" id="1_yo5dj"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_nyxo2"]
 
 [resource]
-script = ExtResource("2_hiuso")
+script = ExtResource("2_nyxo2")
 archetype = "elite"
 doc = "The Elite that fights at every range: a slow stone golem that smacks the ground in front of it when the hero stands close; from a little further out it marks a half-disc in his direction as wide as the dwarf's wedge and buries it in falling stalactites (one hit and a throw for a hero still inside, the crowd scattered). From anywhere at all it marks a ring the size of the scorpion's burrow on the hero's spot and hurls a boulder across the map onto it: a blast that hurts and throws him and everything else round it."
 hp = 750.0
@@ -102,7 +102,7 @@ variance = {
 id = "stone_golem"
 display_name = "Stone Golem"
 flavour = "The canyon stood up."
-icon = ExtResource("1_nyxo2")
+icon = ExtResource("1_yo5dj")
 icon_file = "stone_golem_icon.png"
 placeholder = {
 "color": "#C8A060",

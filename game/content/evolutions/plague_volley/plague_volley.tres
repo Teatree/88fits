@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/evolutions/plague_volley/plague_volley_icon.png" id="1_07xp3"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_l22xk"]
-[ext_resource type="PackedScene" path="res://content/evolutions/plague_volley/plague_volley_visual.tscn" id="2_07xp3"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_s4tgp"]
+[ext_resource type="PackedScene" path="res://content/evolutions/plague_volley/plague_volley_visual.tscn" id="3_sr3u8"]
 
 [resource]
-script = ExtResource("1_l22xk")
+script = ExtResource("2_s4tgp")
 targeting = "healthy"
 base = {
 "amount": 3.0,
@@ -27,7 +27,7 @@ sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("2_07xp3")
+visual = ExtResource("3_sr3u8")
 visual_file = "plague_volley_visual.tscn"
 params = {
 "familiar": {

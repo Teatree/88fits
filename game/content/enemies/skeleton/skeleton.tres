@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_40gku"]
-[ext_resource type="Texture2D" path="res://content/enemies/skeleton/skeleton_icon_a.png" id="5_gpiij"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton/skeleton_icon_a.png" id="1_agirx"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_88nap"]
 
 [resource]
-script = ExtResource("1_40gku")
+script = ExtResource("2_88nap")
 doc = "The crowd since pass 45: bare bones walking in with their arms at their sides, five to a pack, half a slot each against the cap. Everything else is measured against it. It falls over backwards when it dies."
 speed = 1.6
 damage = 3.0
@@ -199,7 +199,7 @@ variance = {
 id = "skeleton"
 display_name = "Skeleton"
 flavour = "It does not know it is dead. It knows you are not."
-icon = ExtResource("5_gpiij")
+icon = ExtResource("1_agirx")
 icon_file = "skeleton_icon.png"
 placeholder = {
 "color": "#EEE8DA",

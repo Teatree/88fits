@@ -99,7 +99,8 @@ func test_the_monk_numbers_faster_and_half_as_far_again_and_a_cloud() -> void:
 	# pass 112: 4 m/s, 17.5 m; "a bit faster", "extend the range of the projectiles by 50%"
 	assert_float(float(ob["speed"])).is_greater(4.0)
 	assert_float(float(ob["speed"])).is_less_equal(5.0)
-	assert_float(float(ob["range"])).is_equal_approx(17.5 * 1.5, 0.0001)
+	# pass 116 (lane FIGHT): doubled again
+	assert_float(float(ob["range"])).is_equal_approx(17.5 * 1.5 * 2.0, 0.0001)
 
 
 func test_a_volley_flies_as_one_cloud_whose_middle_crosses_the_hero() -> void:

@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/magnet/magnet_icon.png" id="1_6d6vi"]
 [ext_resource type="Texture2D" path="res://content/passives/magnet/magnet_icon_evolved.png" id="1_t41ta"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_6d6vi"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_t41ta"]
+[ext_resource type="Texture2D" path="res://content/passives/magnet/magnet_icon.png" id="2_ggvfj"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_u66uy"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_fnyua"]
 
 [sub_resource type="Resource" id="Resource_t41ta"]
-script = ExtResource("2_t41ta")
+script = ExtResource("3_u66uy")
 stat = "xp_pull_radius"
 value = 6.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ggvfj"]
-script = ExtResource("2_t41ta")
+script = ExtResource("3_u66uy")
 stat = "xp_pull_radius"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_u66uy"]
-script = ExtResource("2_t41ta")
+script = ExtResource("3_u66uy")
 stat = "xp_pull_rate"
 value = 0.5
 target = "player"
 
 [sub_resource type="Resource" id="Resource_fnyua"]
-script = ExtResource("2_t41ta")
+script = ExtResource("3_u66uy")
 stat = "xp_pull_radius"
 value = 1.5
 target = "player"
 
 [sub_resource type="Resource" id="Resource_53v8r"]
-script = ExtResource("2_t41ta")
+script = ExtResource("3_u66uy")
 stat = "xp_pull_rate"
 value = 0.5
 target = "player"
 
 [resource]
-script = ExtResource("2_6d6vi")
+script = ExtResource("4_fnyua")
 levels = [[SubResource("Resource_t41ta")], [SubResource("Resource_ggvfj"), SubResource("Resource_u66uy")], [SubResource("Resource_fnyua"), SubResource("Resource_53v8r")]]
 repeat_last_level = false
 max_level = 3
@@ -48,7 +48,7 @@ display_name = "Magnet"
 flavour = "Gems come to you."
 rarity = "epic"
 weight = 6.0
-icon = ExtResource("1_6d6vi")
+icon = ExtResource("2_ggvfj")
 icon_file = "magnet_icon.png"
 placeholder = {
 "color": "#8A69F2",

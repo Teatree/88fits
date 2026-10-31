@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_q41nf"]
 [ext_resource type="Texture2D" path="res://content/mutations/last_stand/last_stand_icon.png" id="1_vlbi0"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_g1jwj"]
 
 [resource]
-script = ExtResource("1_q41nf")
+script = ExtResource("2_g1jwj")
 weapon = "turret_buddy"
 mutation_kind = "element"
 text = "A turret that despawns explodes: a 3 m blast for 4× its shot's damage, throwing them back."

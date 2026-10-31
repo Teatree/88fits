@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_x7mkx"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_i66li"]
 [ext_resource type="Texture2D" path="res://content/perks/long_day/long_day_icon.png" id="2_e365c"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_i66li"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="3_0xqnt"]
 
 [sub_resource type="Resource" id="Resource_i66li"]
-script = ExtResource("1_x7mkx")
+script = ExtResource("1_i66li")
 stat = "buff_duration"
 op = "mul"
 value = 1.0
 target = "player"
 
 [resource]
-script = ExtResource("2_i66li")
+script = ExtResource("3_0xqnt")
 hero = "solenne"
 text = "Her power-ups and every other buff on her last twice as long."
 effects = [SubResource("Resource_i66li")]

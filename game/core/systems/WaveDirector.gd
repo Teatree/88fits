@@ -47,6 +47,12 @@ var _elite_held: Array = []
 var _elite_retry := 0.0    # the run clock at which the held ones are asked about again
 var elite_index := -1            # the mini-boss while it lives (the HUD points at it)
 var _rng := RandomNumberGenerator.new()
+## Pass 116 (lane REPLAY): the Elites' (modifier, creature), the specials' and the per-kill power-up drops' own dice, so a
+## kill more or less (float drift between the phone and the PC, a crowd one body bigger) never moves which Elite comes
+var _elite_rng := RandomNumberGenerator.new()
+var _special_rng := RandomNumberGenerator.new()
+var _drop_rng := RandomNumberGenerator.new()
+var _dice_seeded := false
 var _pickup_t := -1.0          # seconds until the next pickup; negative = none scheduled
 var running := false
 ## The creatures the last portal wave brought (pass 48: tools and tests read it).
@@ -87,6 +93,10 @@ func start(p_map: MapDef) -> void:
 	# pass 77 (lane SIMRUN): the run sim's seed (Run.seed_dice) makes the director's dice repeatable
 	if Run.rng_seed != 0:
 		_rng.seed = hash([Run.rng_seed, "director"])
+	Dice.seed_rng(_elite_rng, "director_elites")
+	Dice.seed_rng(_special_rng, "director_specials")
+	Dice.seed_rng(_drop_rng, "director_drops")
+	_dice_seeded = true
 	# pass 58: every row and wave fixes its numbers afresh at its first spawn of this run
 	forget_sources()
 	# pass 53: the events' jitter and chance and the waves' alternatives, rolled once for this run
@@ -624,7 +634,8 @@ func source_for(key: String, t0: float, stats: Dictionary) -> Dictionary:
 		return s
 	var made := fixed_numbers(t0, stats)
 	if ew > 0 and timeline != null:
-		var m: Dictionary = timeline.endless_mults(ew, Run.stage)
+		# pass 116 (lane RESULTS): the growth steps reached, not the wave's number (endless_growth_share)
+		var m: Dictionary = timeline.endless_mults_steps(Run.endless_growth_steps(), Run.stage)
 		made["hp_time"] = float(made["hp_time"]) * float(m["hp"])
 		made["dmg_time"] = float(made["dmg_time"]) * float(m["atk"])
 		made["endless_wave"] = ew
@@ -859,6 +870,14 @@ func _in_front_point() -> Vector3:
 
 ## The camera's yaw in the hero's convention (0 = -Z, straight up the screen under the fixed camera, which never turns);
 ## the follow camera's own yaw when it has one (pass 54's spawn sides, pass 57's in_front).
+## Pass 116 (lane REPLAY): the director's dice as one number, for a replay's checks (RunReplay.check_values `wd`).
+func dice_digest() -> int:
+	# 0 before the run's start seeds them (a fresh RandomNumberGenerator starts from its own random state)
+	if not _dice_seeded:
+		return 0
+	return hash([_rng.state, _elite_rng.state, _special_rng.state, _drop_rng.state])
+
+
 func _camera_yaw() -> float:
 	return game.camera.current_yaw() if game.get("camera") and game.camera and game.camera.has_method("current_yaw") else 0.0
 
@@ -1058,6 +1077,8 @@ func start_endless() -> void:
 	_portal_left = -1.0
 	Run.endless = true
 	Run.endless_time = 0.0
+	Run.endless_growth_lag = 0.0
+	Run.endless_time_lag = 0.0
 	_endless_wave = 0
 	_endless_pool = endless_rows()
 	if game.get("pickups") and game.pickups:
@@ -1070,16 +1091,30 @@ func start_endless() -> void:
 ## creatures that little faster (_apply_mults), the wave's creatures round the hero.
 func _tick_endless(delta: float) -> void:
 	Run.endless_time += delta
+	# pass 116 (lane RESULTS): growth at open_task_growth of its pace while the run's Wanted poster is open
+	var share := endless_growth_share()
+	Run.endless_time_lag += delta * (1.0 - share)
 	var w: int = timeline.endless_wave_at(Run.endless_time, Run.stage)
 	if w <= _endless_wave:
 		return
+	# every wave past the first adds a growth step, or only `share` of one (the rest is held back for good)
+	Run.endless_growth_lag += (1.0 - share) * float(w - maxi(_endless_wave, 1))
 	_endless_wave = w
-	_endless_speed = float(timeline.endless_mults(w, Run.stage)["speed"])
+	_endless_speed = float(timeline.endless_mults_steps(Run.endless_growth_steps(), Run.stage)["speed"])
 	_apply_mults()
 	# pass 106 (lane ENDLESS): the wave's speed reaches every creature already on the sand too, not only the new ones
 	game.enemies.set_endless_speed(_endless_speed)
 	spawn_endless_wave(w)
 	endless_wave_started.emit(w)
+
+
+## Pass 116 (lane RESULTS): the share of a whole growth step Endless takes now: the map's `endless.open_task_growth`
+## (0.33) while the run's Wanted poster is open (taken, neither done nor failed), else 1.
+func endless_growth_share() -> float:
+	var wr := WantedRun.current
+	if wr != null and is_instance_valid(wr) and not wr.done and not wr.failed and timeline != null:
+		return clampf(timeline.endless_value("open_task_growth", Run.stage), 0.0, 1.0)
+	return 1.0
 
 
 ## The late roster Endless draws from: the mix rows (WaveTimeline.row_in_mix: one creature, no elite, not a special, not a
@@ -1535,7 +1570,7 @@ func _wave_burst(w: Dictionary, ws: Dictionary) -> int:
 		if el == "random":
 			var list := Registry.elites_list()
 			if not list.is_empty():
-				mod = list[_rng.randi() % list.size()]
+				mod = list[_elite_rng.randi() % list.size()]
 		else:
 			mod = Registry.elites.get(el)
 	# the wave's numbers as its first burst of the run fixed them, from its `t` and the rolled alt's stats (pass 58, R1)
@@ -1783,12 +1818,12 @@ func _tick_specials(delta: float) -> void:
 		return
 	if special_t < 0.0:
 		var iv: Array = sp.get("interval", [20.0, 40.0])
-		special_t = _rng.randf_range(float(iv[0]), float(iv[iv.size() - 1]))
+		special_t = _special_rng.randf_range(float(iv[0]), float(iv[iv.size() - 1]))
 	special_t -= delta
 	if special_t > 0.0:
 		return
 	special_t = -1.0
-	var id: String = pool[_rng.randi() % pool.size()]
+	var id: String = pool[_special_rng.randi() % pool.size()]
 	var em: EnemyManager = game.enemies
 	em.register_type(Registry.enemy(id))
 	# a special's numbers are the moment it comes (pass 58, R1), or a row's that brings it then (event_numbers)
@@ -1863,7 +1898,7 @@ func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool, luck: float = 1.0
 	if roster.is_empty() or per_kill <= 0.0:
 		return
 	var hardness: float = def.xp_mult * (2.0 if elite else 1.0)
-	if _rng.randf() >= per_kill * hardness:
+	if _drop_rng.randf() >= per_kill * hardness:
 		return
 	var total := 0.0
 	var weights: Array = []
@@ -1871,7 +1906,7 @@ func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool, luck: float = 1.0
 		var w: float = float(r.get("weight", 1.0)) * (1.0 + float(r.get("hard_bias", 0.0)) * hardness / 3.0)
 		weights.append(w)
 		total += w
-	var pick := _rng.randf() * total
+	var pick := _drop_rng.randf() * total
 	var chosen: Dictionary = roster[0]
 	for k in range(roster.size()):
 		pick -= float(weights[k])
@@ -1881,7 +1916,7 @@ func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool, luck: float = 1.0
 	var pdef: PickupDef = Registry.pickup(str(chosen.get("id", "")))
 	if pdef == null:
 		return
-	var p := at + Vector3(_rng.randf_range(-0.8, 0.8), 0, _rng.randf_range(-0.8, 0.8))
+	var p := at + Vector3(_drop_rng.randf_range(-0.8, 0.8), 0, _drop_rng.randf_range(-0.8, 0.8))
 	p.y = (game.map as MapBase).height_at(p.x, p.z)
 	game.pickups.spawn_special(pdef, p)
 
@@ -2047,8 +2082,8 @@ func _weighted_elite_row(rows: Array) -> Dictionary:
 		ws.append(w)
 		total += w
 	if total <= 0.0:
-		return rows[_rng.randi() % rows.size()]
-	var pick := _rng.randf() * total
+		return rows[_elite_rng.randi() % rows.size()]
+	var pick := _elite_rng.randf() * total
 	var last: Dictionary = rows[rows.size() - 1]
 	for k in range(rows.size()):
 		if float(ws[k]) <= 0.0:
@@ -2134,7 +2169,7 @@ func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}) 
 		var list := Registry.elites_list()
 		if list.is_empty():
 			return
-		mod = list[_rng.randi() % list.size()]
+		mod = list[_elite_rng.randi() % list.size()]
 	var def: EnemyDef = Registry.enemy_with(enemy_id, variant, stats)
 	if def == null:
 		return

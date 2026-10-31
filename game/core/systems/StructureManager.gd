@@ -147,6 +147,8 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 			if d:
 				defs.append(d)
 	defs = in_play(defs)
+	# pass 116 (lane REPLAY): by id, so the shuffle below is the same on every device (the folder scan's order is not)
+	defs.sort_custom(func(a: StructureDef, b: StructureDef) -> bool: return a.id < b.id)
 	# pass 73: the structures that stand their own count (params.per_map, the Totem Poles) come after the draw
 	var apart := placed_apart(defs)
 	defs = drawn(defs)

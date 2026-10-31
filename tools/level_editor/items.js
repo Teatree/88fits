@@ -361,6 +361,12 @@ const Items = (() => {
     App.render('tab');
   }
 
+  /** Pass 116 (lane EDITOR): "Re-roll icon…" on a look tile: the icon candidates job form for that look, its words
+   *  (the look's recipe subject and style), screen and file filled in, every field editable; the pick keeps the old icon. */
+  function rerollBtn(doc, code) {
+    return el('button', { class: 'btn small', type: 'button', text: 'Re-roll icon…', title: `new candidates of ${code}'s icon from the words that painted it (editable), new seeds, pick one by eye; the old icon is kept`, onclick: () => Assets.openJobForm(doc, { method: 'icon_cands', mode: 'icon', code }) });
+  }
+
   /** A card's looks in its editor (Art): each look's icon on the card's plate at 112 px and at the HUD's 48, its code and
    *  note, PLAYS on the one the game plays, "Play this look" (its JSON's variant, then an import), Show (the icon preview
    *  and "+ Icon candidates" follow the look shown: a repaint lands in that look) and the words it was painted from. */
@@ -389,6 +395,7 @@ const Items = (() => {
       const acts = el('div', { class: 'alt-actions' });
       if (!l.default) acts.appendChild(el('button', { class: 'btn small primary', type: 'button', text: 'Play this look', disabled: !l.exists, title: l.exists ? 'writes this card\'s variant and imports it' : 'its icon is not painted yet', onclick: () => playLook(doc, l.code) }));
       acts.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: shown ? 'Shown above' : 'Show', title: 'the icon preview and "+ Icon candidates" follow the look shown', onclick: () => { doc.ui.look = shown ? null : l.code; Assets.redraw(doc, 'editor'); } }));
+      if (!l.base) acts.appendChild(rerollBtn(doc, l.code));
       tile.appendChild(acts);
       const r = M.isObj(l.recipe) ? l.recipe : null;
       if (r) tile.appendChild(el('details', { class: 'small' }, el('summary', { text: 'painted from' }), el('pre', { class: 'recipe-words', text: [r.subject ? 'subject: ' + r.subject : '', r.style ? 'style: ' + r.style : '', r.screen ? 'screen: ' + r.screen : '', l.painted ? 'pick: ' + JSON.stringify(l.painted) : ''].filter(Boolean).join('\n\n') })));
@@ -451,6 +458,7 @@ const Items = (() => {
         const acts = el('div', { class: 'alt-actions' });
         if (!l.default) acts.appendChild(el('button', { class: 'btn small primary', type: 'button', text: 'Play this look', disabled: !l.exists, title: l.exists ? 'writes this weapon\'s variant (its whole family plays it) and imports it' : 'a file its entry names is not on disk yet', onclick: () => playFamilyLook(doc, l.code) }));
         acts.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: shown ? 'Shown above' : 'Show', title: 'the icon preview and "+ Icon candidates" follow the look shown', onclick: () => { doc.ui.look = shown ? null : l.code; Assets.redraw(doc, 'editor'); } }));
+        acts.appendChild(rerollBtn(doc, l.code));
         tile.appendChild(acts);
         grid.appendChild(tile);
       }
@@ -478,7 +486,7 @@ const Items = (() => {
       tile.appendChild(el('figcaption', {}, el('b', { text: `${l.code} · ${l.name || doc.data.name || doc.id}` }), l.default ? el('span', { class: 'achip good', text: 'wears' }) : null,
         l.shelved ? el('span', { class: 'achip hidden', text: 'shelved' }) : null, l.fresh ? el('span', { class: 'achip', text: 'unreviewed' }) : null,
         !l.exists ? el('span', { class: 'achip bad', text: 'files missing' }) : null, el('div', { class: 'muted small', text: l.note || (l.base ? 'the top level' : '') })));
-      tile.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small ghost', type: 'button', text: shown ? 'Shown above' : 'Show', title: 'the icon preview and "+ Icon candidates" follow the look shown', onclick: () => { doc.ui.look = shown ? null : l.code; Assets.redraw(doc, 'editor'); } })));
+      tile.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small ghost', type: 'button', text: shown ? 'Shown above' : 'Show', title: 'the icon preview and "+ Icon candidates" follow the look shown', onclick: () => { doc.ui.look = shown ? null : l.code; Assets.redraw(doc, 'editor'); } }), rerollBtn(doc, l.code)));
       grid.appendChild(tile);
     }
     wrap.appendChild(grid);

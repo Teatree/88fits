@@ -1,39 +1,39 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_maj8t"]
-[ext_resource type="Texture2D" path="res://content/talents/drive/drive_0_icon.png" id="2_7ekha"]
-[ext_resource type="Texture2D" path="res://content/talents/drive/drive_icon.png" id="2_c7fsi"]
-[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_oaynd"]
-[ext_resource type="Texture2D" path="res://content/talents/drive/drive_1_icon.png" id="3_wrwip"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_7ekha"]
+[ext_resource type="Texture2D" path="res://content/talents/drive/drive_0_icon.png" id="2_wrwip"]
+[ext_resource type="Texture2D" path="res://content/talents/drive/drive_1_icon.png" id="3_1ld2p"]
+[ext_resource type="Texture2D" path="res://content/talents/drive/drive_icon.png" id="4_5h01y"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="5_jvykt"]
 
 [sub_resource type="Resource" id="Resource_7ekha"]
-script = ExtResource("1_maj8t")
+script = ExtResource("1_7ekha")
 stat = "might"
 op = "mul"
 value = 0.06
 target = "player"
 
 [sub_resource type="Resource" id="Resource_wrwip"]
-script = ExtResource("1_maj8t")
+script = ExtResource("1_7ekha")
 stat = "cooldown"
 op = "mul"
 value = -0.05
 target = "player"
 
 [resource]
-script = ExtResource("2_oaynd")
+script = ExtResource("5_jvykt")
 order = 5
 ranks = 6
 cost = [375.0, 1500.0, 3375.0, 6000.0, 9375.0, 13500.0]
 forms = [{
 "effects": [SubResource("Resource_7ekha")],
-"icon": ExtResource("2_7ekha"),
+"icon": ExtResource("2_wrwip"),
 "icon_file": "drive_0_icon.png",
 "name": "Muscle",
 "text": "+6% attack damage a rank."
 }, {
 "effects": [SubResource("Resource_wrwip")],
-"icon": ExtResource("3_wrwip"),
+"icon": ExtResource("3_1ld2p"),
 "icon_file": "drive_1_icon.png",
 "name": "Tempo",
 "text": "-5% cooldown a rank."
@@ -41,7 +41,7 @@ forms = [{
 id = "drive"
 display_name = "Drive"
 flavour = "Hit harder, or hit sooner."
-icon = ExtResource("2_c7fsi")
+icon = ExtResource("4_5h01y")
 icon_file = "drive_icon.png"
 placeholder = {
 "color": "#C9A227",

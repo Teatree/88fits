@@ -1,59 +1,59 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/land_mine/land_mine_icon.png" id="1_1khjf"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_smvov"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_vrt8g"]
-[ext_resource type="PackedScene" path="res://content/weapons/land_mine/land_mine_visual.tscn" id="4_2rwqc"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_2rwqc"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_e7w21"]
+[ext_resource type="PackedScene" path="res://content/weapons/land_mine/land_mine_visual.tscn" id="4_8v23b"]
 
 [sub_resource type="Resource" id="Resource_1khjf"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_2rwqc"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "cooldown"
 op = "mul"
 value = -0.2189
 
 [sub_resource type="Resource" id="Resource_e7w21"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "area"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_8v23b"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_f7mbw"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "cooldown"
 op = "mul"
 value = -0.075
 
 [sub_resource type="Resource" id="Resource_4t1lu"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_k3qhb"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
 [sub_resource type="Resource" id="Resource_onn10"]
-script = ExtResource("1_smvov")
+script = ExtResource("2_2rwqc")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [resource]
-script = ExtResource("2_vrt8g")
+script = ExtResource("3_e7w21")
 behavior = "MineLayer"
 tags = ["explosive"]
 targeting = "ground"
@@ -72,7 +72,7 @@ sfx = {
 "hit": "w_lob_boom",
 "place": "w_mine_arm"
 }
-visual = ExtResource("4_2rwqc")
+visual = ExtResource("4_8v23b")
 visual_file = "land_mine_visual.tscn"
 params = {
 "max_mines": 8.0,

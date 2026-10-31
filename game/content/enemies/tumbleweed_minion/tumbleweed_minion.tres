@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_c.png" id="1_gnkwv"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_oi5i7"]
+[ext_resource type="Texture2D" path="res://content/enemies/tumbleweed_minion/tumbleweed_minion_icon_c.png" id="1_lcvqb"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_7bp8e"]
 
 [resource]
-script = ExtResource("2_oi5i7")
+script = ExtResource("2_7bp8e")
 doc = "The Tumbleweed King's own: little tumbleweed knights in commoner caps, goblins in all but looks and a touch faster. The King's ring calls them instead of goblins."
 hp = 6.0
 speed = 2.0
@@ -199,7 +199,7 @@ variance = {
 id = "tumbleweed_minion"
 display_name = "Tumbleweed Minion"
 flavour = "Sworn to the crown. Not sure which one."
-icon = ExtResource("1_gnkwv")
+icon = ExtResource("1_lcvqb")
 icon_file = "tumbleweed_minion_icon.png"
 placeholder = {
 "color": "#B8863E",

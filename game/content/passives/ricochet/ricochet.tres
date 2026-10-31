@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/ricochet/ricochet_icon_evolved.png" id="1_fmg5g"]
-[ext_resource type="Texture2D" path="res://content/passives/ricochet/ricochet_icon.png" id="1_sejey"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vbni0"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_sejey"]
+[ext_resource type="Texture2D" path="res://content/passives/ricochet/ricochet_icon.png" id="2_u3tew"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_dj61b"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_d20cs"]
 
 [sub_resource type="Resource" id="Resource_fmg5g"]
-script = ExtResource("1_vbni0")
+script = ExtResource("3_dj61b")
 stat = "ricochet"
 value = 0.25
 target = "player"
 
 [sub_resource type="Resource" id="Resource_u3tew"]
-script = ExtResource("1_vbni0")
+script = ExtResource("3_dj61b")
 stat = "ricochet"
 value = 0.13
 target = "player"
 
 [sub_resource type="Resource" id="Resource_dj61b"]
-script = ExtResource("1_vbni0")
+script = ExtResource("3_dj61b")
 stat = "ricochet"
 value = 0.13
 target = "player"
 
 [sub_resource type="Resource" id="Resource_d20cs"]
-script = ExtResource("1_vbni0")
+script = ExtResource("3_dj61b")
 stat = "ricochet"
 value = 0.13
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ajwmi"]
-script = ExtResource("1_vbni0")
+script = ExtResource("3_dj61b")
 stat = "ricochet"
 value = 0.2
 target = "player"
 
 [resource]
-script = ExtResource("2_sejey")
+script = ExtResource("4_d20cs")
 levels = [[SubResource("Resource_fmg5g")], [SubResource("Resource_u3tew")], [SubResource("Resource_dj61b")], [SubResource("Resource_d20cs")], [SubResource("Resource_ajwmi")]]
 max_level = 5
 evolved_icon = ExtResource("1_fmg5g")
@@ -45,7 +45,7 @@ display_name = "Ricochet"
 flavour = "A killing shot bounces to the next one, softer. Once."
 rarity = "uncommon"
 weight = 6.0
-icon = ExtResource("1_sejey")
+icon = ExtResource("2_u3tew")
 icon_file = "ricochet_icon.png"
 placeholder = {
 "color": "#B0B8C8",

@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5b5p3"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_dmjq4"]
 [ext_resource type="Texture2D" path="res://content/mutations/flame_blade/flame_blade_icon.png" id="2_8wv2h"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_dmjq4"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ah02x"]
 
 [sub_resource type="Resource" id="Resource_dmjq4"]
-script = ExtResource("1_5b5p3")
+script = ExtResource("1_dmjq4")
 stat = "fire_damage"
 value = 4.0
 
 [sub_resource type="Resource" id="Resource_8wv2h"]
-script = ExtResource("1_5b5p3")
+script = ExtResource("1_dmjq4")
 stat = "fire_duration"
 value = 1.8
 
 [sub_resource type="Resource" id="Resource_ah02x"]
-script = ExtResource("1_5b5p3")
+script = ExtResource("1_dmjq4")
 stat = "fire_spread"
 value = 0.4
 
 [resource]
-script = ExtResource("2_dmjq4")
+script = ExtResource("3_ah02x")
 weapon = "sabre"
 mutation_kind = "element"
 text = "Cuts burn."

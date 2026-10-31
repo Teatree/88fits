@@ -110,6 +110,11 @@ var _step_timer := 0.0
 var _moved_emitted := false
 var _hit_pose := 0.0
 var shield_t := 0.0
+## Pass 116 (lane FIGHT): May's Invisible Box (core/systems/MimeBox.gd sets it): seconds the box has left; while it stands
+## every hit is blocked as the Shield power-up blocks it. box_hits counts the blocked hits, box_hit_from the last one's source.
+var box_t := 0.0
+var box_hits := 0
+var box_hit_from := Vector3.ZERO
 var _shield_node: MeshInstance3D
 var _shield_mat: ShaderMaterial
 var _shield_hit := 0.0
@@ -735,7 +740,7 @@ func special_push(v: Vector3) -> void:
 ## Energy Shield line's points still take the shove of what they catch, and the blink after a hit or a revive is no
 ## bubble. Pass 70: nor while Hang Time's trampoline has him in the air (airborne).
 func knock_immune() -> bool:
-	return shield_t > 0.0 or airborne
+	return shield_t > 0.0 or box_t > 0.0 or airborne
 
 
 ## A landed hit's shove (pass 54): `v` (m/s, flat) on top of whatever moves him, past the shove's grace, the whole never
@@ -1046,7 +1051,19 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	if shield_t > 0.0:
 		# the shield power-up takes it: a flash on the sphere, nothing on the hero, and (pass 60) no shove either
 		_shield_hit = 1.0
+		if box_t > 0.0:
+			# pass 116: the Invisible Box stands outside the bubble, so it shows the hit too
+			box_hits += 1
+			box_hit_from = from
 		_log_hit(amount, 0.0, 0.0, info, "power-up")
+		last_outcome = "shield"
+		if DamageNumbers.I: DamageNumbers.I.hero_block()
+		return
+	if box_t > 0.0:
+		# pass 116: May's Invisible Box takes it like the shield (no damage, no shove); the box shows the hit (MimeBox)
+		box_hits += 1
+		box_hit_from = from
+		_log_hit(amount, 0.0, 0.0, info, "box")
 		last_outcome = "shield"
 		if DamageNumbers.I: DamageNumbers.I.hero_block()
 		return

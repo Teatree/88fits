@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/mutations/fan_the_hammer/fan_the_hammer_icon.png" id="1_5v15t"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_bksnf"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_hs18c"]
 
 [resource]
-script = ExtResource("1_bksnf")
+script = ExtResource("2_hs18c")
 weapon = "peashooter"
 mutation_kind = "hero"
 hero = "drifter"

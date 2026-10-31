@@ -510,7 +510,7 @@ static func describe(def: ContentDef, level: int, sheet: StatSheet) -> String:
 	if def is PassiveDef:
 		return WItem.effect({"def": def, "level_from": 0, "level_to": maxi(level, 1), "evolve": (def as PassiveDef).is_evolved()})
 	if def is PerkDef:
-		return (def as PerkDef).text
+		return TextGen.perk_text(def as PerkDef)
 	if def is MutationDef:
 		return (def as MutationDef).text
 	return def.flavour

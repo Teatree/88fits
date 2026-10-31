@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PickupDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/pickups/magnet_pulse/magnet_pulse_icon.png" id="1_86hll"]
-[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_toh24"]
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="2_u7n1b"]
 
 [resource]
-script = ExtResource("1_toh24")
+script = ExtResource("2_u7n1b")
 effect_kind = "magnet"
 value = 0.0
 duration = 10.0

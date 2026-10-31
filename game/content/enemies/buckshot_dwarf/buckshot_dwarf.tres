@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_p468y"]
-[ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_icon_a.png" id="5_ha0kc"]
+[ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_icon_a.png" id="1_gocc0"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_pvaee"]
 
 [resource]
-script = ExtResource("1_p468y")
+script = ExtResource("2_pvaee")
 archetype = "spitter"
 doc = "Stage 1's other gun: a fat, evil dwarf with a blunderbuss longer than he is tall who waddles in to five metres, well inside the cactus's reach, and fires five pellets in a cone (a red wedge on the ground for most of a second). Twice the cactus's health; the answer is to step out of the wedge, not away."
 brain = "kite"
@@ -134,7 +134,7 @@ variance = {
 id = "buckshot_dwarf"
 display_name = "Buckshot Dwarf"
 flavour = "Short fuse. Shorter legs. Very long gun."
-icon = ExtResource("5_ha0kc")
+icon = ExtResource("1_gocc0")
 icon_file = "buckshot_dwarf_icon.png"
 placeholder = {
 "color": "#C08050",

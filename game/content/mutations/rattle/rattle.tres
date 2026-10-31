@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2dvgc"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_c4b4r"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_c4b4r"]
 [ext_resource type="Texture2D" path="res://content/mutations/rattle/rattle_icon.png" id="2_vkglx"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_xpi7g"]
 
 [sub_resource type="Resource" id="Resource_c4b4r"]
-script = ExtResource("1_2dvgc")
+script = ExtResource("1_c4b4r")
 stat = "poison_slow"
 value = 0.3
 target = "player"
 
 [resource]
-script = ExtResource("2_c4b4r")
+script = ExtResource("3_xpi7g")
 weapon = "rattlesnake"
 mutation_kind = "element"
 text = "Poisoned creatures move 30% slower."

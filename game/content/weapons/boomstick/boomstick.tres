@@ -1,56 +1,56 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/boomstick/boomstick_icon.png" id="1_5kki5"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_5kki5"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_7mrvs"]
-[ext_resource type="PackedScene" path="res://content/weapons/boomstick/boomstick_visual.tscn" id="3_7mrvs"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_l40a8"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_jemry"]
+[ext_resource type="PackedScene" path="res://content/weapons/boomstick/boomstick_visual.tscn" id="4_u2jn2"]
 
 [sub_resource type="Resource" id="Resource_5kki5"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_l40a8"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_jemry"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_u2jn2"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "cooldown"
 op = "mul"
 value = -0.1675
 
 [sub_resource type="Resource" id="Resource_dfeho"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_6evrd"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "knockback"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_s6flg"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [sub_resource type="Resource" id="Resource_5fqn0"]
-script = ExtResource("2_5kki5")
+script = ExtResource("2_l40a8")
 stat = "pierce"
 value = 1.0
 
 [resource]
-script = ExtResource("2_7mrvs")
+script = ExtResource("3_jemry")
 targeting = "forward"
 base = {
 "amount": 5.0,
@@ -69,7 +69,7 @@ sfx = {
 "fire": "w_boom_fire",
 "hit": "w_boom_hit"
 }
-visual = ExtResource("3_7mrvs")
+visual = ExtResource("4_u2jn2")
 visual_file = "boomstick_visual.tscn"
 params = {
 "pierce_falloff": {

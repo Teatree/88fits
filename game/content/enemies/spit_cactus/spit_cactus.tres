@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_n38pk"]
 [ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_icon_b.png" id="1_nnqwi"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_wvjsf"]
 
 [resource]
-script = ExtResource("1_n38pk")
+script = ExtResource("2_wvjsf")
 archetype = "spitter"
 doc = "The first ranged creature: keeps 5 m off and lobs a spit that lands in a red ring. Teaches sidestepping."
 brain = "kite"

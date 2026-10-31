@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_begve"]
-[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon.png" id="1_p1m03"]
-[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_b.png" id="3_wt5rr"]
-[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_c.png" id="4_0jsam"]
-[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_d.png" id="5_6hrc5"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon.png" id="1_wt5rr"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_0jsam"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_b.png" id="3_6hrc5"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_c.png" id="4_kxq13"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_d.png" id="5_ws5nd"]
 
 [resource]
-script = ExtResource("1_begve")
+script = ExtResource("2_0jsam")
 weapon = "lob_grenade"
 mutation_kind = "volume"
 text = "The burst throws six steel spikes out past the blast."
@@ -28,7 +28,7 @@ variants = {
 "B": {
 "flavour": "Saves the undertaker a trip.",
 "fresh": true,
-"icon": ExtResource("3_wt5rr"),
+"icon": ExtResource("3_6hrc5"),
 "icon_file": "frag_icon_b.png",
 "name": "Coffin Nails",
 "note": "B · the stick (or the bundle) in red paper; nails in its words",
@@ -40,7 +40,7 @@ variants = {
 "C": {
 "flavour": "Saves the undertaker a trip.",
 "fresh": true,
-"icon": ExtResource("4_0jsam"),
+"icon": ExtResource("4_kxq13"),
 "icon_file": "frag_icon_c.png",
 "name": "Coffin Nails",
 "note": "C · the stick (or the bundle) in red paper; nails in its words",
@@ -52,7 +52,7 @@ variants = {
 "D": {
 "flavour": "Saves the undertaker a trip.",
 "fresh": true,
-"icon": ExtResource("5_6hrc5"),
+"icon": ExtResource("5_ws5nd"),
 "icon_file": "frag_icon_d.png",
 "name": "Coffin Nails",
 "note": "D · the stick (or the bundle) in red paper; nails in its words",
@@ -68,7 +68,7 @@ display_name = "Frag"
 flavour = "The pieces are the point."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("1_p1m03")
+icon = ExtResource("1_wt5rr")
 icon_file = "frag_icon.png"
 placeholder = {
 "color": "#A0A890",

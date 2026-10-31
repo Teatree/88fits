@@ -1,60 +1,60 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon.png" id="1_c0d5c"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_c0d5c"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_yk424"]
-[ext_resource type="PackedScene" path="res://content/weapons/lob_grenade/lob_grenade_visual.tscn" id="3_yk424"]
-[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_b.png" id="4_j2c1t"]
-[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_c.png" id="5_gpbls"]
-[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_d.png" id="6_1bixm"]
+[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon.png" id="1_j2c1t"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_gpbls"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_1bixm"]
+[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_b.png" id="4_ikrwc"]
+[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_c.png" id="5_jpxn0"]
+[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_d.png" id="6_k2ab8"]
+[ext_resource type="PackedScene" path="res://content/weapons/lob_grenade/lob_grenade_visual.tscn" id="7_lpd3n"]
 
 [sub_resource type="Resource" id="Resource_j2c1t"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_gpbls"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "area"
 value = 0.5
 
 [sub_resource type="Resource" id="Resource_1bixm"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_ikrwc"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "cooldown"
 op = "mul"
 value = -0.1675
 
 [sub_resource type="Resource" id="Resource_jpxn0"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_k2ab8"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_lpd3n"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "area"
 value = 0.5
 
 [sub_resource type="Resource" id="Resource_1ug4m"]
-script = ExtResource("2_c0d5c")
+script = ExtResource("2_gpbls")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [resource]
-script = ExtResource("2_yk424")
+script = ExtResource("3_1bixm")
 behavior = "Lobber"
 tags = ["explosive"]
 targeting = "densest"
@@ -74,7 +74,7 @@ sfx = {
 "fire": "w_lob_throw",
 "hit": "w_lob_boom"
 }
-visual = ExtResource("3_yk424")
+visual = ExtResource("7_lpd3n")
 visual_file = "lob_grenade_visual.tscn"
 params = {
 "fuse": {
@@ -102,7 +102,7 @@ variants = {
 "B": {
 "flavour": "Light it. Lob it. Count to one.",
 "fresh": true,
-"icon": ExtResource("4_j2c1t"),
+"icon": ExtResource("4_ikrwc"),
 "icon_file": "lob_grenade_icon_b.png",
 "name": "Dynamite Stick",
 "note": "B · classic paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape",
@@ -130,7 +130,7 @@ variants = {
 "C": {
 "flavour": "Light it. Lob it. Count to one.",
 "fresh": true,
-"icon": ExtResource("5_gpbls"),
+"icon": ExtResource("5_jpxn0"),
 "icon_file": "lob_grenade_icon_c.png",
 "name": "Dynamite Stick",
 "note": "C · chunky cartoon stick: rounded ends, a cream label in black borders, a black curly fuse; the bundle four sticks tied with rope and a bow",
@@ -158,7 +158,7 @@ variants = {
 "D": {
 "flavour": "Light it. Lob it. Count to one.",
 "fresh": true,
-"icon": ExtResource("6_1bixm"),
+"icon": ExtResource("6_k2ab8"),
 "icon_file": "lob_grenade_icon_d.png",
 "name": "Dynamite Stick",
 "note": "D · waxed miner's stick: crimped ends, a printed band, a silver blasting cap and a tarred fuse; the bundle seven sticks in copper wire",
@@ -191,7 +191,7 @@ display_name = "Lob Grenade"
 flavour = "Big numbers on big groups."
 rarity = "rare"
 weight = 7.0
-icon = ExtResource("1_c0d5c")
+icon = ExtResource("1_j2c1t")
 icon_file = "lob_grenade_icon.png"
 placeholder = {
 "color": "#5C7A3A",

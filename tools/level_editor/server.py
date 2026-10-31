@@ -153,6 +153,7 @@ import ops_io as OPSIO  # noqa: E402  (pass 97, lane PROGRESS: /api/ops, /api/ev
 import eyes_io as EYESIO  # noqa: E402  (pass 98, lane GEMINI: /api/eyes, Check with Gemini, the frames' eyes)
 import skins_io as SKINIO  # noqa: E402  (pass 111, lane SKINS: a hero's looks sold as skins, the currency registry)
 import wanted_io as WIO  # noqa: E402  (pass 111, lane WANTED: the Bounty Board's config, /api/wanted...)
+import talents_io as TALIO  # noqa: E402  (pass 116, lane EDITOR: the Mirror tab, /api/talents...)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -4234,6 +4235,9 @@ class Handler(BaseHTTPRequestHandler):
         if parts[:1] == ["wanted"]:
             # pass 111 (lane WANTED): the Bounty Board's config and the poster imitation's pictures (wanted_io.py)
             return WIO.api_get(self, sys.modules[__name__], parts[1:], query)
+        if parts[:1] == ["talents"]:
+            # pass 116 (lane EDITOR): the Mirror tab's talents and their icons (talents_io.py)
+            return TALIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if len(parts) == 2 and parts[0] == "templates":
             if parts[1] not in EDIT_KINDS:
                 return self._error(404, "unknown kind %s" % parts[1])
@@ -4580,6 +4584,9 @@ class Handler(BaseHTTPRequestHandler):
             if parts[:2] == ["api", "wanted"]:
                 # pass 111 (lane WANTED): the Bounty Board's config saved (wanted_io.py)
                 return WIO.api_post(self, sys.modules[__name__], parts[2:])
+            if parts[:2] == ["api", "talents"]:
+                # pass 116 (lane EDITOR): a talent saved and imported (talents_io.py)
+                return TALIO.api_post(self, sys.modules[__name__], parts[2:])
             return self._error(404, "unknown API path")
         except Exception as e:
             import traceback

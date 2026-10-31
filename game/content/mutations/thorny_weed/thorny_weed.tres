@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_fq7vo"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_6oxh1"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_6oxh1"]
 [ext_resource type="Texture2D" path="res://content/mutations/thorny_weed/thorny_weed_icon.png" id="2_l55ku"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_basjx"]
 
 [sub_resource type="Resource" id="Resource_6oxh1"]
-script = ExtResource("1_fq7vo")
+script = ExtResource("1_6oxh1")
 stat = "poison_damage"
 value = 3.0
 
 [sub_resource type="Resource" id="Resource_l55ku"]
-script = ExtResource("1_fq7vo")
+script = ExtResource("1_6oxh1")
 stat = "poison_stacks"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_basjx"]
-script = ExtResource("1_fq7vo")
+script = ExtResource("1_6oxh1")
 stat = "poison_duration"
 value = 8.0
 
 [resource]
-script = ExtResource("2_6oxh1")
+script = ExtResource("3_basjx")
 weapon = "tumbleweed"
 mutation_kind = "element"
 text = "Whatever it rolls over is poisoned."

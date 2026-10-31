@@ -295,6 +295,7 @@ func test_elites_every_as_a_row_fires_as_the_event_did() -> void:
 		var dir := _director(w, _tl({"roster": mix.duplicate(true) + ([row.duplicate(true)] if k == 1 else []),
 			"events": [ev.duplicate(true)] if k == 0 else [], "burst_min": 0, "burst_max": 0}))
 		dir._rng.seed = 3
+		dir._elite_rng.seed = 3  # pass 116: the Elite rolls have their own stream
 		em._rng.seed = 5
 		var fired: Array = []
 		for s in range(290, 700):

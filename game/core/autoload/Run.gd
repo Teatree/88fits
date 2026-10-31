@@ -43,6 +43,11 @@ var stage_index: int:
 		return stage
 var stage_next := 0
 var endless_time := 0.0
+## Pass 116 (lane RESULTS): what Endless's growth has lost to an open Wanted poster: growth steps (a wave played with
+## the poster open adds only open_task_growth of a step) and seconds of the knock resistance's climb; 0 without one, so
+## the growth is the wave's own (endless_growth_steps, endless_growth_seconds; WaveDirector._tick_endless).
+var endless_growth_lag := 0.0
+var endless_time_lag := 0.0
 var stage_beaten := false
 var level := 1
 var xp := 0.0
@@ -220,6 +225,8 @@ var rng_seed := 0
 ## unless a replay or a tool forces it (`forced_run_seed`, the launch's `run_seed`, a run sim's rng_seed).
 var run_seed := 0
 var forced_run_seed := 0
+## Pass 116 (lane REPLAY): the seed a tool set through seed_dice (the run sim, the Watch), 0 in play.
+var tool_seed := 0
 var _seed_maker := RandomNumberGenerator.new()
 ## Pass 77 (lane SIMRUN): the Totem Poles' gifts' own dice in a run sim (seed_dice); null in play (TotemBoons.offer rolls
 ## its own random ones).
@@ -278,6 +285,8 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	endless = false
 	# pass 87 (lane SGAME): a run starts outside Endless, its boss not killed (start_stage moves it to its stage)
 	endless_time = 0.0
+	endless_growth_lag = 0.0
+	endless_time_lag = 0.0
 	stage_beaten = false
 	level = 1
 	xp = 0.0
@@ -378,6 +387,12 @@ func end() -> void:
 ## the build a seed grows stays close when the fight drifts) and the director's (WaveDirector.start reads rng_seed), so
 ## one simulated player is repeatable on the same content as far as the game allows; 0 puts them back to random.
 func seed_dice(s: int) -> void:
+	# pass 116 (lane REPLAY): the seed a tool asked for (begin_run_seed reuses only this one, never a run's own)
+	tool_seed = s
+	_apply_dice(s)
+
+
+func _apply_dice(s: int) -> void:
 	rng_seed = s
 	if s == 0:
 		CardPool.rng = null
@@ -403,13 +418,15 @@ func begin_run_seed(launch: Dictionary = {}) -> int:
 	forced_run_seed = 0
 	if s == 0 and launch.has("run_seed"):
 		s = int(launch["run_seed"])
-	if s == 0 and rng_seed != 0:
-		s = rng_seed
+	# pass 116 (lane REPLAY): a tool's seed (seed_dice), never the last run's: every run used to repeat the first run's
+	# seed until the app closed, since seeding a run set rng_seed
+	if s == 0 and tool_seed != 0:
+		s = tool_seed
 	if s == 0:
 		_seed_maker.seed = hash([Time.get_ticks_usec(), Time.get_unix_time_from_system(), OS.get_process_id()])
 		s = int(_seed_maker.randi() % 2000000000) + 1
 	run_seed = s
-	seed_dice(s)
+	_apply_dice(s)
 	# the game's own clock starts with the run, so a replay's rules count from the same zero as its recording
 	play_clock = 0.0
 	return s
@@ -2229,6 +2246,19 @@ func stage_mult() -> float:
 	return map.timeline.stage_mult(stage)
 
 
+## Pass 116 (lane RESULTS): the growth steps Endless has reached: the wave's (wave - 1) less what an open Wanted poster
+## held back (endless_growth_lag); 0 outside Endless.
+func endless_growth_steps() -> float:
+	if not endless:
+		return 0.0
+	return maxf(float(endless_wave() - 1) - endless_growth_lag, 0.0)
+
+
+## Pass 116: the seconds of Endless its knock resistance has climbed (endless_time less what an open poster held back).
+func endless_growth_seconds() -> float:
+	return maxf(endless_time - endless_time_lag, 0.0)
+
+
 ## Seconds into Endless (0 before it; pass 87: Endless's own clock, endless_time).
 func endless_seconds() -> float:
 	return endless_time if endless else 0.0
@@ -2262,6 +2292,8 @@ func start_stage(i: int) -> void:
 	path_slot = 0
 	endless = false
 	endless_time = 0.0
+	endless_growth_lag = 0.0
+	endless_time_lag = 0.0
 	stage_beaten = false
 	stage_changed.emit(stage)
 

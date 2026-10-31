@@ -304,43 +304,8 @@ func test_the_barrel_s_lid_is_round_and_its_hoops_stand_at_their_height() -> voi
 	var hxf: Transform3D = BarrelField.part_transform(root, hoops)
 	assert_float(hxf.origin.y).is_greater_equal(0.09)
 	root.free()
-	# BarrelField applies it (it took the mesh alone and drew every hoop 12.6 cm too low)
-	_start()
-	var bf: BarrelField = auto_free(BarrelField.new())
-	var meshes := bf._meshes()
-	assert_bool(meshes.has("hoops_xf") and meshes.has("body_xf")).is_true()
-	var hy: float = (meshes["hoops_xf"] as Transform3D).origin.y
-	assert_float(hy).is_greater_equal(0.09)
-	assert_float((meshes["body_xf"] as Transform3D).origin.y).is_equal_approx(0.0, 0.001)
-	# a field on a flat map: every hoop instance sits that high over its barrel's spot, every body on the ground (the
-	# headless renderer keeps no MultiMesh instance transforms, so the transforms setup writes are read off the function
-	# that makes them)
-	var ms := GDScript.new()
-	ms.source_code = "extends MapBase\nvar flats_radius := 16.0\n"
-	ms.reload()
-	var map: Node3D = auto_free(Node3D.new())
-	map.set_script(ms)
-	add_child(map)
-	var game: Node = auto_free(Node.new())
-	add_child(game)
-	var field: BarrelField = auto_free(BarrelField.new())
-	add_child(field)
-	field.setup(game, map)
-	assert_int(field.pos.size()).is_equal(BarrelField.COUNT)
-	assert_float((field._part_xf["hoops"] as Transform3D).origin.y).is_equal_approx(hy, 0.0001)
-	for k in field.pos.size():
-		var hoop_xf := field.instance_transform(k, "hoops")
-		var body_xf := field.instance_transform(k, "body")
-		assert_float(hoop_xf.origin.y - field.pos[k].y).override_failure_message("barrel %d" % k).is_equal_approx(hy, 0.001)
-		assert_float(body_xf.origin.y - field.pos[k].y).is_equal_approx(0.0, 0.001)
-		# on the barrel's spot, turned as the barrel is
-		assert_bool(body_xf.origin.is_equal_approx(field.pos[k])).is_true()
-		assert_bool(hoop_xf.basis.is_equal_approx(field.barrel_transform(k).basis)).is_true()
-		assert_bool(Vector2(hoop_xf.origin.x, hoop_xf.origin.z).is_equal_approx(Vector2(field.pos[k].x, field.pos[k].z))).is_true()
-	# a field built by hand, no model: the part transforms fall back to identity
-	var bare: BarrelField = auto_free(BarrelField.new())
-	bare.pos.append(Vector3(3, 1, 2))
-	assert_bool(bare.instance_transform(0, "hoops").origin.is_equal_approx(Vector3(3, 1, 2))).is_true()
+	# pass 116 (lane MAP): the game draws the barrels as paintings cut from Garry's board (pass116_MAP_test); the model
+	# stays on disk and its script with it
 	# the model's script says so too
 	var py := _repo_file("tools/blender_barrel.py")
 	assert_bool(py.contains("plank_ring(")).is_true()

@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_fp3sa"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_labp7"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_labp7"]
 [ext_resource type="Texture2D" path="res://content/mutations/mouth_knock/mouth_knock_icon.png" id="2_ugl13"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_q5tj8"]
 
 [sub_resource type="Resource" id="Resource_labp7"]
-script = ExtResource("1_fp3sa")
+script = ExtResource("1_labp7")
 stat = "knockback"
 value = 11.0
 
 [sub_resource type="Resource" id="Resource_ugl13"]
-script = ExtResource("1_fp3sa")
+script = ExtResource("1_labp7")
 stat = "damage"
 op = "mul"
 value = 0.15
 
 [resource]
-script = ExtResource("2_labp7")
+script = ExtResource("3_q5tj8")
 weapon = "big_mouth"
 mutation_kind = "volume"
 text = "The first touch of the beam throws a creature back hard, and the beam is half again as wide."

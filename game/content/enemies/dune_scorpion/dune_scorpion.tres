@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_mvnul"]
-[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_icon_d.png" id="11_v2jv0"]
+[ext_resource type="Texture2D" path="res://content/enemies/dune_scorpion/dune_scorpion_icon_d.png" id="1_fliem"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_0ccuo"]
 
 [resource]
-script = ExtResource("1_mvnul")
+script = ExtResource("2_0ccuo")
 archetype = "elite"
 doc = "The Elite that fights up close: it charges down a red line, and between charges it sinks into the sand and bursts up under the hero's feet (throwing him and the crowd a little), slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him. Pass 95: now and then (7 in 10 turns, never with the hero within 5 m) it freezes and its tail aims the Saiga Sniper's beam at him three times in a row, each aimed afresh: twice the Saiga's damage a beam, the same red lines, lock and laser."
 brain = "charge"
@@ -47,7 +47,7 @@ charge = {
 "duration": 0.8,
 "knockback": 11.0,
 "speed": 11.0,
-"trigger_range": 8.0,
+"trigger_range": 9.9,
 "windup": 0.9
 }
 knockback = 7.0
@@ -326,7 +326,7 @@ xp_mult = 12.0
 id = "dune_scorpion"
 display_name = "Dune Scorpion"
 flavour = "Half a boss. All of the attitude."
-icon = ExtResource("11_v2jv0")
+icon = ExtResource("1_fliem")
 icon_file = "dune_scorpion_icon.png"
 placeholder = {
 "color": "#B86A2E",

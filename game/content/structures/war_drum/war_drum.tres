@@ -1,45 +1,45 @@
 [gd_resource type="Resource" script_class="StructureDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_dcdq6"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vs636"]
 [ext_resource type="Texture2D" path="res://content/structures/war_drum/war_drum_icon.png" id="2_engci"]
-[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="2_vs636"]
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="3_5mot7"]
 
 [sub_resource type="Resource" id="Resource_vs636"]
-script = ExtResource("1_dcdq6")
+script = ExtResource("1_vs636")
 stat = "might"
 op = "mul"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_engci"]
-script = ExtResource("1_dcdq6")
+script = ExtResource("1_vs636")
 stat = "haste"
 op = "mul"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_5mot7"]
-script = ExtResource("1_dcdq6")
+script = ExtResource("1_vs636")
 stat = "move_speed"
 op = "mul"
 value = 0.15
 target = "player"
 
 [sub_resource type="Resource" id="Resource_1ap5c"]
-script = ExtResource("1_dcdq6")
+script = ExtResource("1_vs636")
 stat = "knockback"
 value = 3.0
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_dmu4n"]
-script = ExtResource("1_dcdq6")
+script = ExtResource("1_vs636")
 stat = "knockback"
 op = "mul"
 value = 0.5
 target = "all_weapons"
 
 [resource]
-script = ExtResource("2_vs636")
+script = ExtResource("3_5mot7")
 effect_kind = "buff"
 params = {
 "aura": {

@@ -1,36 +1,36 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon.png" id="1_174sl"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_m68yq"]
 [ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon_evolved.png" id="1_mvw2h"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_174sl"]
+[ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon.png" id="2_3b5m5"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_ywjk6"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_yxt5c"]
 
 [sub_resource type="Resource" id="Resource_mvw2h"]
-script = ExtResource("1_m68yq")
+script = ExtResource("3_ywjk6")
 stat = "kill_might"
 value = 0.07
 target = "player"
 
 [sub_resource type="Resource" id="Resource_3b5m5"]
-script = ExtResource("1_m68yq")
+script = ExtResource("3_ywjk6")
 stat = "kill_might"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ywjk6"]
-script = ExtResource("1_m68yq")
+script = ExtResource("3_ywjk6")
 stat = "kill_might"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_yxt5c"]
-script = ExtResource("1_m68yq")
+script = ExtResource("3_ywjk6")
 stat = "kill_might"
 value = 0.06
 target = "player"
 
 [resource]
-script = ExtResource("2_174sl")
+script = ExtResource("4_yxt5c")
 levels = [[SubResource("Resource_mvw2h")], [SubResource("Resource_3b5m5")], [SubResource("Resource_ywjk6")], [SubResource("Resource_yxt5c")]]
 max_level = 4
 text = "Kills make you stronger for the rest of the run: +7% attack damage per 1,000 kills (more each rung), up to +100%."
@@ -40,7 +40,7 @@ display_name = "Hot Streak"
 flavour = "It only gets hotter."
 rarity = "rare"
 weight = 6.0
-icon = ExtResource("1_174sl")
+icon = ExtResource("2_3b5m5")
 icon_file = "hot_streak_icon.png"
 placeholder = {
 "color": "#E0542A",

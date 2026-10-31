@@ -427,6 +427,9 @@ PERK_SPECIALS = {
     "trampoline": {"by": "special", "params": {"every": 20.0, "first": 10.0, "side": 3.5, "lifetime": 30.0, "radius": 1.1, "uses": 1.0,
                                                "launch_height": 4.0, "launch_distance": 8.0, "air_time": 1.1, "air_control": 0.35},
                    "help": "Hang Time: after `first` s, then `every` s after the last one folded, a 3D trampoline drops `side` m beside the hero and stands `lifetime` s; walking onto it (within `radius` m of its middle) throws him `launch_height` m up and `launch_distance` m along the way he walked, `air_time` s in the air, the stick steering at `air_control` of his walking speed, untouchable up there; it folds after `uses` jumps"},
+    # pass 116 (lane FIGHT): May's Invisible Box (core/systems/MimeBox.gd)
+    "box": {"by": "special", "params": {"every": 25.0, "first": 10.0, "seconds": 3.0, "width": 2.0, "height": 2.4, "spin": 0.35},
+            "help": "Invisible Box: after `first` s, then every `every` s, a see-through box `width` x `height` m with white edges stands round the hero for `seconds` s, turning `spin` turns a second; it blocks every hit like the Shield power-up and drawn over its bubble"},
     "overdrive": {"by": "id", "params": {"every": 5.0, "step": 0.05, "max": 0.25},
                   "help": "Jeżyk's Overdrive: every `every` s at full momentum is one gear of `step` attack damage, up to `max`; a hit that lands drops every gear"},
     "ram": {"by": "id", "params": {"thorns_mult": 3.0, "flat": 12.0, "per_level": 0.0, "shove": 9.0, "from": 0.99},

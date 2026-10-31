@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/mutations/static_field/static_field_icon.png" id="1_7tjol"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_okhsl"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_huchu"]
 
 [resource]
-script = ExtResource("1_okhsl")
+script = ExtResource("2_huchu")
 weapon = "zap_beam"
 text = "Every hit leaves a shocking patch for 2 s."
 vfx = "blue crackling discs on the ground under every hit"

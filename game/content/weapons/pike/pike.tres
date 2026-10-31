@@ -1,59 +1,59 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/pike/pike_icon.png" id="1_8lbaj"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_sxqfe"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_8lbaj"]
-[ext_resource type="PackedScene" path="res://content/weapons/pike/pike_visual.tscn" id="3_nndpq"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_nndpq"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_a2so5"]
+[ext_resource type="PackedScene" path="res://content/weapons/pike/pike_visual.tscn" id="4_uvm3r"]
 
 [sub_resource type="Resource" id="Resource_8lbaj"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_nndpq"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "cooldown"
 op = "mul"
 value = -0.1913
 
 [sub_resource type="Resource" id="Resource_a2so5"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "range"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_uvm3r"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "knockback"
 op = "mul"
 value = 0.3
 
 [sub_resource type="Resource" id="Resource_iwile"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "cooldown"
 op = "mul"
 value = -0.075
 
 [sub_resource type="Resource" id="Resource_mbdi8"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_8c31y"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_5m5mk"]
-script = ExtResource("1_sxqfe")
+script = ExtResource("2_nndpq")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [resource]
-script = ExtResource("2_8lbaj")
+script = ExtResource("3_a2so5")
 behavior = "Thruster"
 tags = ["blade"]
 targeting = "priority"
@@ -72,7 +72,7 @@ sfx = {
 "fire": "w_saw_hit",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("3_nndpq")
+visual = ExtResource("4_uvm3r")
 visual_file = "pike_visual.tscn"
 params = {
 "fire_forward": true,

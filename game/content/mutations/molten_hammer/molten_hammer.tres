@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_l8ohe"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_3uyg8"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3uyg8"]
 [ext_resource type="Texture2D" path="res://content/mutations/molten_hammer/molten_hammer_icon.png" id="2_r27sm"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ef66y"]
 
 [sub_resource type="Resource" id="Resource_3uyg8"]
-script = ExtResource("1_l8ohe")
+script = ExtResource("1_3uyg8")
 stat = "fire_damage"
 value = 5.0
 
 [sub_resource type="Resource" id="Resource_r27sm"]
-script = ExtResource("1_l8ohe")
+script = ExtResource("1_3uyg8")
 stat = "fire_duration"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_ef66y"]
-script = ExtResource("1_l8ohe")
+script = ExtResource("1_3uyg8")
 stat = "fire_spread"
 value = 0.4
 
 [resource]
-script = ExtResource("2_3uyg8")
+script = ExtResource("3_ef66y")
 weapon = "hammer"
 mutation_kind = "element"
 text = "Impacts set everything in the blast on fire."

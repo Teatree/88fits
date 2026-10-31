@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_010kc"]
-[ext_resource type="Texture2D" path="res://content/enemies/hammer_giant/hammer_giant_icon_a.png" id="7_m20vh"]
+[ext_resource type="Texture2D" path="res://content/enemies/hammer_giant/hammer_giant_icon_a.png" id="1_xh8t3"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_23x0u"]
 
 [resource]
-script = ExtResource("1_010kc")
+script = ExtResource("2_23x0u")
 archetype = "brute"
 doc = "The giant: slow, three metres of it, 280 HP. Close enough, it raises the hammer (a red ring) and smacks the floor for 42 and a throw across the sand. Never more than three; now and then a Berserk (12%) falls from one (a chest almost never: 0.02%, as from every regular creature since pass 110)."
 hp = 280.0
@@ -214,7 +214,7 @@ variance = {
 id = "hammer_giant"
 display_name = "Hammer Giant"
 flavour = "Slow to arrive. Sudden when it does."
-icon = ExtResource("7_m20vh")
+icon = ExtResource("1_xh8t3")
 icon_file = "hammer_giant_icon.png"
 placeholder = {
 "color": "#8A7A66",

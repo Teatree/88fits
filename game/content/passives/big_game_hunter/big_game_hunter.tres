@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/big_game_hunter/big_game_hunter_icon.png" id="1_7lcjh"]
 [ext_resource type="Texture2D" path="res://content/passives/big_game_hunter/big_game_hunter_icon_evolved.png" id="1_n68hb"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_qiveq"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_7lcjh"]
+[ext_resource type="Texture2D" path="res://content/passives/big_game_hunter/big_game_hunter_icon.png" id="2_lggxu"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_gwp8t"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_v3phk"]
 
 [sub_resource type="Resource" id="Resource_n68hb"]
-script = ExtResource("1_qiveq")
+script = ExtResource("3_gwp8t")
 stat = "elite_damage"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_lggxu"]
-script = ExtResource("1_qiveq")
+script = ExtResource("3_gwp8t")
 stat = "elite_damage"
 value = 0.12
 target = "player"
 
 [sub_resource type="Resource" id="Resource_gwp8t"]
-script = ExtResource("1_qiveq")
+script = ExtResource("3_gwp8t")
 stat = "elite_damage"
 value = 0.12
 target = "player"
 
 [sub_resource type="Resource" id="Resource_v3phk"]
-script = ExtResource("1_qiveq")
+script = ExtResource("3_gwp8t")
 stat = "elite_damage"
 value = 0.12
 target = "player"
 
 [sub_resource type="Resource" id="Resource_rn15r"]
-script = ExtResource("1_qiveq")
+script = ExtResource("3_gwp8t")
 stat = "elite_damage"
 value = 0.18
 target = "player"
 
 [resource]
-script = ExtResource("2_7lcjh")
+script = ExtResource("4_v3phk")
 levels = [[SubResource("Resource_n68hb")], [SubResource("Resource_lggxu")], [SubResource("Resource_gwp8t")], [SubResource("Resource_v3phk")], [SubResource("Resource_rn15r")]]
 max_level = 5
 evolved_icon = ExtResource("1_n68hb")
@@ -45,7 +45,7 @@ display_name = "Big Game Hunter"
 flavour = "The bigger they come, the better the wall looks."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_7lcjh")
+icon = ExtResource("2_lggxu")
 icon_file = "big_game_hunter_icon.png"
 placeholder = {
 "color": "#E8E0D0",

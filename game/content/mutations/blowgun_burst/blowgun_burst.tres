@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jbdks"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_pbyoo"]
 [ext_resource type="Texture2D" path="res://content/mutations/blowgun_burst/blowgun_burst_icon.png" id="2_g42p5"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_pbyoo"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_rarb4"]
 
 [sub_resource type="Resource" id="Resource_pbyoo"]
-script = ExtResource("1_jbdks")
+script = ExtResource("1_pbyoo")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_g42p5"]
-script = ExtResource("1_jbdks")
+script = ExtResource("1_pbyoo")
 stat = "damage"
 op = "mul"
 value = -0.3
 
 [resource]
-script = ExtResource("2_pbyoo")
+script = ExtResource("3_rarb4")
 weapon = "poison_dart"
 mutation_kind = "volume"
 text = "Three darts a shot, −30% damage."

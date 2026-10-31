@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/evolutions/minefield/minefield_icon.png" id="1_g3nee"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_jhdch"]
-[ext_resource type="PackedScene" path="res://content/evolutions/minefield/minefield_visual.tscn" id="3_cxy75"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_cxy75"]
+[ext_resource type="PackedScene" path="res://content/evolutions/minefield/minefield_visual.tscn" id="3_ao4eg"]
 
 [resource]
-script = ExtResource("1_jhdch")
+script = ExtResource("2_cxy75")
 behavior = "MineLayer"
 tags = ["explosive"]
 targeting = "ground"
@@ -25,7 +25,7 @@ sfx = {
 "hit": "w_lob_boom",
 "place": "w_mine_arm"
 }
-visual = ExtResource("3_cxy75")
+visual = ExtResource("3_ao4eg")
 visual_file = "minefield_visual.tscn"
 params = {
 "max_mines": 16.0,

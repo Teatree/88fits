@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="boss_fights.css">
 <link rel="stylesheet" href="skins.css">
 <link rel="stylesheet" href="wanted.css">
+<link rel="stylesheet" href="mirror.css">
 </head>
 <body>
 <!-- the glyphs every lane and chip uses: <use href="#g-name"> (pass 53); they take their fill from the <use> -->
@@ -61,6 +62,7 @@
   <button type="button" data-tab="drivers" title="pass 93: every driver in tools/dl/drivers (the 3D motions the video model paints over): play them frame by frame with their frame numbers, the clay and look stills, the folder">Drivers</button>
   <button type="button" data-tab="bossattacks" title="pass 72: custom boss attacks: make, name, tune with a preview, give to a boss">Boss attacks</button>
   <button type="button" data-tab="wanted" title="pass 111: the Bounty Board: the Wanted posters a player picks before a stage run (task types, weights, difficulty, the reward), and a board you can roll">Wanted</button>
+  <button type="button" data-tab="mirror" title="pass 116: the Upgrade board (the Mirror): every talent with its pictures, both forms, the six ranks with their prices and effects, in the board's order">Mirror</button>
   <button type="button" data-tab="instructions">Instructions</button>
   <span id="issues" class="issues good" title="what the checks say (the inspector lists them when nothing is selected)">no issues</span>
   <span class="spacer"></span>
@@ -93,6 +95,7 @@
   <section id="tab-jobs" class="tab-panel page" hidden></section>
   <section id="tab-bossattacks" class="tab-panel page" hidden></section>
   <section id="tab-wanted" class="tab-panel page" hidden></section>
+  <section id="tab-mirror" class="tab-panel page" hidden></section>
   <section id="tab-drivers" class="tab-panel page" hidden></section>
   <section id="tab-sim" class="tab-panel page" hidden></section>
   <section id="tab-instructions" class="tab-panel page" hidden></section>
@@ -169,6 +172,8 @@
      (wanted_model.js, the game's WantedBoard.gd mirrored, also run under Node by selftest_WANTED111.py) -->
 <script src="wanted_model.js"></script>
 <script src="wanted.js"></script>
+<!-- pass 116 (lane EDITOR): the Mirror tab (talents_io.py) -->
+<script src="mirror.js"></script>
 <!-- pass 113 (lane TASKS): the task types' quest rows: a condition's picture, the healing items' and heal sources' pickers -->
 <script src="tasks.js"></script>
 <!-- pass 77 (lane SIMUI): the Sim tab, on its page-free maths (sim_model.js, also run under Node by selftest_SIM77.py) -->

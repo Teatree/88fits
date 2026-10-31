@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_aj6kf"]
-[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_a.png" id="5_onl8u"]
+[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_a.png" id="1_be2va"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_rjfxn"]
 
 [resource]
-script = ExtResource("1_aj6kf")
+script = ExtResource("2_rjfxn")
 archetype = "runner"
 doc = "The runner: a fat blue lizard nearly as fast as an ant with a goblin's bite, so a pack closes before a slow build can turn."
 brain = "flock"
@@ -175,7 +175,7 @@ id = "sand_lizard"
 display_name = "Sand Lizard"
 flavour = "Blue blood. Warm sand. Fast feet."
 hidden = true
-icon = ExtResource("5_onl8u")
+icon = ExtResource("1_be2va")
 icon_file = "sand_lizard_icon.png"
 placeholder = {
 "color": "#3060D0",

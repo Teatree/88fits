@@ -1,23 +1,23 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5j0mg"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_ag3kh"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ag3kh"]
 [ext_resource type="Texture2D" path="res://content/mutations/buddy_squad/buddy_squad_icon.png" id="2_ft5u5"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ax5vt"]
 
 [sub_resource type="Resource" id="Resource_ag3kh"]
-script = ExtResource("1_5j0mg")
+script = ExtResource("1_ag3kh")
 stat = "amount"
 op = "mul"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_ft5u5"]
-script = ExtResource("1_5j0mg")
+script = ExtResource("1_ag3kh")
 stat = "damage"
 op = "mul"
 value = -0.4
 
 [resource]
-script = ExtResource("2_ag3kh")
+script = ExtResource("3_ax5vt")
 weapon = "turret_buddy"
 mutation_kind = "volume"
 text = "Twice the turrets a drop and twice as many standing, −40% damage each."

@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PickupDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_buhda"]
 [ext_resource type="Texture2D" path="res://content/pickups/pollen_lupine/pollen_lupine_icon.png" id="1_d2iq1"]
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="2_f4qmp"]
 
 [resource]
-script = ExtResource("1_buhda")
+script = ExtResource("2_f4qmp")
 effect_kind = "pollen"
 value = 0.0
 duration = 5.0

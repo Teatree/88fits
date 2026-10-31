@@ -1,70 +1,70 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_e4q5a"]
 [ext_resource type="Texture2D" path="res://content/weapons/hammer/hammer_icon.png" id="1_jh2qy"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_jh2qy"]
-[ext_resource type="PackedScene" path="res://content/weapons/hammer/hammer_visual.tscn" id="3_mtujd"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_mtujd"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_r86cd"]
+[ext_resource type="PackedScene" path="res://content/weapons/hammer/hammer_visual.tscn" id="4_tie6w"]
 
 [sub_resource type="Resource" id="Resource_jh2qy"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_mtujd"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "area"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_r86cd"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_tie6w"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "range"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_u8vb3"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_bd18a"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "cooldown"
 op = "mul"
 value = -0.075
 
 [sub_resource type="Resource" id="Resource_1drw5"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_xmtgw"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "range"
 op = "mul"
 value = 0.15
 
 [sub_resource type="Resource" id="Resource_qc36t"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "area"
 op = "mul"
 value = 0.15
 
 [sub_resource type="Resource" id="Resource_ywa8y"]
-script = ExtResource("1_e4q5a")
+script = ExtResource("2_mtujd")
 stat = "amount"
 value = 1.0
 
 [resource]
-script = ExtResource("2_jh2qy")
+script = ExtResource("3_r86cd")
 behavior = "Smasher"
 tags = ["melee"]
 targeting = "densest"
@@ -83,7 +83,7 @@ sfx = {
 "fire": "w_hammer_swing",
 "hit": "w_hammer_hit"
 }
-visual = ExtResource("3_mtujd")
+visual = ExtResource("4_tie6w")
 visual_file = "hammer_visual.tscn"
 params = {
 "fire_forward": true,

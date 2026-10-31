@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_f0uby"]
-[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_g.png" id="15_g1yb0"]
+[ext_resource type="Texture2D" path="res://content/enemies/desert_spider/desert_spider_icon_g.png" id="1_28jym"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_tmarq"]
 
 [resource]
-script = ExtResource("2_f0uby")
+script = ExtResource("2_tmarq")
 archetype = "swarmer"
 doc = "Pass 92: a desert spider walked on Garry's 3D spider (made eight-legged) by the scorpion's method, four looks from near-real to very cartoony, and a death that rolls it onto its back with its legs curled up. Fire-ant numbers for now; no map brings it yet: Garry places it in the Level Editor."
 hp = 36.0
@@ -365,7 +365,7 @@ xp_mult = 2.4
 id = "desert_spider"
 display_name = "Desert Spider"
 flavour = "Eight legs, no manners."
-icon = ExtResource("15_g1yb0")
+icon = ExtResource("1_28jym")
 icon_file = "desert_spider_icon.png"
 placeholder = {
 "color": "#8A6A44",

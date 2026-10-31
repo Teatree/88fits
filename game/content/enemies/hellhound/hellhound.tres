@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_4kqqn"]
-[ext_resource type="Texture2D" path="res://content/enemies/hellhound/hellhound_icon.png" id="1_c1nxu"]
+[ext_resource type="Texture2D" path="res://content/enemies/hellhound/hellhound_icon.png" id="1_0qt8l"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_c1nxu"]
 
 [resource]
-script = ExtResource("1_4kqqn")
+script = ExtResource("2_c1nxu")
 archetype = "runner"
 doc = "Stage 3's runner: faster than anything on the sand, five times a goblin's health, packs of four on top of the regular roster. It closes the gap a slow build lives on."
 hp = 30.0
@@ -63,7 +63,7 @@ variance = {
 id = "hellhound"
 display_name = "Hellhound"
 flavour = "Good dog. Bad news."
-icon = ExtResource("1_c1nxu")
+icon = ExtResource("1_0qt8l")
 icon_file = "hellhound_icon.png"
 placeholder = {
 "color": "#2A1A1A",

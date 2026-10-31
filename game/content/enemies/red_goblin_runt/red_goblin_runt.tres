@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/red_goblin_runt/red_goblin_runt_icon.png" id="1_syoh2"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_ktqem"]
+[ext_resource type="Texture2D" path="res://content/enemies/red_goblin_runt/red_goblin_runt_icon.png" id="1_b5w75"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_6528k"]
 
 [resource]
-script = ExtResource("2_ktqem")
+script = ExtResource("2_6528k")
 doc = "The runt in red: the skeleton's numbers, a runt's dagger. Placed by the Level Editor."
 speed = 1.6
 damage = 3.0
@@ -117,7 +117,7 @@ variance = {
 id = "red_goblin_runt"
 display_name = "Red Runt"
 flavour = "Small, red and quick to stab."
-icon = ExtResource("1_syoh2")
+icon = ExtResource("1_b5w75")
 icon_file = "red_goblin_runt_icon.png"
 placeholder = {
 "color": "#C8352A",

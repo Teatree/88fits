@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/perks/crescendo/crescendo_icon.png" id="1_1ysl7"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_3tlkr"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_sqid2"]
 
 [resource]
-script = ExtResource("1_3tlkr")
+script = ExtResource("2_sqid2")
 hero = "calavera"
 text = "Every kill raises his attack damage 1%, up to +40%. A hit drops it back to nothing."
 special = "crescendo"

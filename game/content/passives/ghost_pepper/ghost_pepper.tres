@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/ghost_pepper/ghost_pepper_icon_b.png" id="1_hnc6u"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_kpxnl"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_yty2k"]
+[ext_resource type="Texture2D" path="res://content/passives/ghost_pepper/ghost_pepper_icon_b.png" id="1_yty2k"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_hnc6u"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_18t1c"]
 
 [sub_resource type="Resource" id="Resource_yty2k"]
-script = ExtResource("1_kpxnl")
+script = ExtResource("2_hnc6u")
 stat = "difficulty"
 value = 1.6
 target = "player"
 
 [resource]
-script = ExtResource("2_yty2k")
+script = ExtResource("3_18t1c")
 line = true
 levels = [[SubResource("Resource_yty2k")]]
 repeat_last_level = false
@@ -56,7 +56,7 @@ display_name = "The Devil Risen"
 flavour = "The Devil laughs. Even the dead come back for seconds."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_hnc6u")
+icon = ExtResource("1_yty2k")
 icon_file = "ghost_pepper_icon.png"
 placeholder = {
 "color": "#FFB84A",

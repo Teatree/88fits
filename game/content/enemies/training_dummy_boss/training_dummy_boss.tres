@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_4dwn4"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_cfeu8"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_5bndn"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_4dwn4"]
 
 [resource]
-script = ExtResource("2_cfeu8")
+script = ExtResource("2_4dwn4")
 archetype = "elite"
 doc = "The debug arena's Boss dummy (pass 49): the biggest training dummy, with a boss's skull drawn at a boss's size but an Elite by its kind (never the run's boss: no bar, no portal), standing apart from the field; its health and behaviour (stand, patrol, melee for 30, ranged for 22) are the arena's settings, and it stands up again 5 s after it falls and pays nothing."
 brain = "dummy"
@@ -70,7 +70,7 @@ id = "training_dummy_boss"
 display_name = "Boss Dummy"
 flavour = "The biggest sack of straw in the canyon."
 hidden = true
-icon = ExtResource("1_4dwn4")
+icon = ExtResource("1_5bndn")
 icon_file = "res://content/enemies/training_dummy/training_dummy_icon.png"
 placeholder = {
 "color": "#C8A060",

@@ -369,18 +369,8 @@ func test_tags_still_spread_on_a_stretched_sign() -> void:
 # ---------------------------------------------------------------- the launcher icon
 
 func test_the_icon_sand_is_lighter_and_the_hat_untouched() -> void:
-	# v0.46's icon_192.png: the top band of sand averaged (0.892, 0.753, 0.485), the foot (0.816, 0.603, 0.328), a patch of
-	# the hat's crown (0.265, 0.161, 0.117)
-	var top := _png_mean("res://icon_192.png", Rect2(0, 0, 1, 40.0 / 192.0))
-	var foot := _png_mean("res://icon_192.png", Rect2(0, 160.0 / 192.0, 1, 32.0 / 192.0))
-	var hat := _png_mean("res://icon_192.png", Rect2(80.0 / 192.0, 80.0 / 192.0, 30.0 / 192.0, 20.0 / 192.0))
-	assert_float(top.get_luminance()).is_greater(Color(0.892, 0.753, 0.485).get_luminance() + 0.02)
-	assert_float(foot.get_luminance()).is_greater(Color(0.816, 0.603, 0.328).get_luminance() + 0.02)
-	# slightly: still sand, never white
-	assert_float(top.s).is_greater(0.3)
-	assert_float(top.get_luminance()).is_less(Color(0.892, 0.753, 0.485).get_luminance() + 0.12)
-	var old_hat := Color(0.265, 0.161, 0.117)
-	assert_float(absf(hat.r - old_hat.r) + absf(hat.g - old_hat.g) + absf(hat.b - old_hat.b)).override_failure_message(str(hat)).is_less(0.006)
+	# pass 116 re-pin: the launcher icon is Garry's gunslinger picture (tools/make_app_icon.py); the v0.46 sand checks
+	# retired with the old painting; every size still loads
 	# the same picture at every launcher size, the adaptive plate the painting's own mean
 	for p in ["res://icon.png", "res://icon_192.png", "res://icon_fg_432.png", "res://icon_bg_432.png"]:
 		var img := Image.new()

@@ -15,6 +15,12 @@
 ## lays broken barrels again on a clock, off the screen (respawn_at, spawn_ok), and says what each type holds (its gems,
 ## its coins, the chance of a power-up thrown out of it for the hero to fetch: _throw_powerup). The start's placement is
 ## as before.
+## Pass 116 (lane MAP; Garry: three kinds "from scratch", looking like his "Barrel Variant Terrain Comparison Board"): the
+## barrels are 2.5D paintings now, cut straight from that board (tools/cut_barrels.py -> art/sprites/barrels/
+## barrel_exp.png, barrel_coins.png, barrel_powerup.png), one camera-facing MultiMesh a kind drawn by
+## prop_billboard.gdshader writing the structures' stencil (5). `light` holds each barrel's kind: 0 exp (brown, iron
+## hoops: gems), 1 coins (gold hoops: gems and coins, pass 87's black barrel), 2 powerup (a white stripe: only a power-up).
+## The kinds' shares and contents are the map's `barrels` block (BarrelSpawns.CONTENT_DEFAULTS `weight`).
 class_name BarrelField
 extends Node3D
 
@@ -55,10 +61,20 @@ var broken := 0
 var coins_dropped := 0
 ## The coins each spot's barrel holds (pass 87): COIN_MIN..COIN_MAX for a black one, 0 for a brown one (_roll_coins).
 var coins: PackedByteArray = PackedByteArray()
+## pass 116: one billboard MultiMesh a kind (exp, coins, powerup); the names are pass 48's (dark = exp, light = coins)
 var _body_dark: MultiMesh
 var _body_light: MultiMesh
-var _hoops: MultiMesh          # the common barrels' iron hoops
-var _hoops_light: MultiMesh    # the rare barrels' brass hoops (pass 48)
+var _body_power: MultiMesh
+## pass 116: each kind's painting and its height on the ground (metres the square picture stands; the painted barrel's
+## own height is a little under it). Heights keep the board's sizes: the coins barrel a touch bigger.
+const SPRITES := ["res://art/sprites/barrels/barrel_exp.png", "res://art/sprites/barrels/barrel_coins.png",
+	"res://art/sprites/barrels/barrel_powerup.png"]
+const QUAD_M := [1.06, 1.15, 1.12]
+## the white of the power-up barrel's stripe and the gold of the coins barrel's hoops (their splinters)
+const STRIPE := Color(0.92, 0.92, 0.9)
+const GOLD := Color(0.86, 0.66, 0.2)
+const IRON := Color(0.36, 0.36, 0.38)
+static var _shader_5: Shader = null
 var _index_in: PackedInt32Array = PackedInt32Array()   # a barrel's instance index inside its body (and hoop) MultiMesh
 ## Pass 83 (lane SCENE; Garry: "barrels, signs, and structures too. Want them to feel like they are part of the world"):
 ## each barrel stands on a ground shadow in the scenery's shadow MultiMesh (PropField.add_shadow, the map's props), this
@@ -68,7 +84,6 @@ const SHADOW_D := 0.66
 const SHADOW_A := 0.5
 const SHADOW_TALL := 0.9
 var shadows: PackedInt32Array = PackedInt32Array()
-var _part_xf: Dictionary = {}   # "body" / "hoops" -> Transform3D: where each part stands inside the model (pass 53)
 ## Pass 112 (lane BARREL): the respawn clock (made at its first tick from the map's `barrels` block and the run's seed; a
 ## test or a tool may hand one in), each kind's MultiMeshes' spare room for respawns past the broken slots (SPARE), the
 ## barrels' own dice (power-ups, a respawn's coins), and how many barrels came back and power-ups were thrown this run.
@@ -86,39 +101,26 @@ func setup(p_game: Node, p_map: MapBase) -> void:
 		_dice.seed = hash([Run.rng_seed, "barrels"])
 	else:
 		_dice.randomize()
-	var meshes := _meshes()
-	if meshes.is_empty():
-		return
-	# each part's place inside the model (pass 53: the hoops' node stands 0.126 m up; dropped, every hoop drew 12.6 cm
-	# too low and the bottom one sat half in the sand)
-	_part_xf = {"body": meshes.get("body_xf", Transform3D.IDENTITY), "hoops": meshes.get("hoops_xf", Transform3D.IDENTITY)}
 	_place()
 	# pass 87 (lane FIXES): the black barrels' coins, and the creatures' coins hold back as much (PickupManager.coin_debt)
 	_roll_coins()
 	var pk = game.get("pickups") if game != null else null
 	if pk != null and pk.has_method("set_coin_debt"):
 		pk.set_coin_debt(float(coins_total()))
-	var dark_n := 0
+	var n := [0, 0, 0]
 	for i in pos.size():
-		if light[i] == 0:
-			dark_n += 1
-	_body_dark = _multimesh(meshes["body"], dark_n, _wood(DARK), SPARE)
-	_body_light = _multimesh(meshes["body"], pos.size() - dark_n, _black(), SPARE)
-	_hoops = _multimesh(meshes["hoops"], dark_n, null, SPARE)
-	_hoops_light = _multimesh(meshes["hoops"], pos.size() - dark_n, _brass(), SPARE)
-	var kd := 0
-	var kl := 0
+		n[light[i]] += 1
+	_body_dark = _billboards(0, n[0], SPARE)
+	_body_light = _billboards(1, n[1], SPARE)
+	_body_power = _billboards(2, n[2], SPARE)
+	var k := [0, 0, 0]
 	for i in pos.size():
-		if light[i] == 0:
-			_body_dark.set_instance_transform(kd, instance_transform(i, "body"))
-			_hoops.set_instance_transform(kd, instance_transform(i, "hoops"))
-			_index_in.append(kd)
-			kd += 1
-		else:
-			_body_light.set_instance_transform(kl, instance_transform(i, "body"))
-			_hoops_light.set_instance_transform(kl, instance_transform(i, "hoops"))
-			_index_in.append(kl)
-			kl += 1
+		var t: int = light[i]
+		var mm := _mm_of(t)
+		if mm:
+			mm.set_instance_transform(k[t], instance_transform(i, "body"))
+		_index_in.append(k[t])
+		k[t] += 1
 	_add_shadows()
 
 
@@ -130,37 +132,47 @@ func _add_shadows() -> void:
 		shadows.append(props.add_shadow(pos[i], SHADOW_W, SHADOW_D, SHADOW_A, SHADOW_TALL) if props is PropField else -1)
 
 
-## A barrel's own place on the map: turned by its index (no two face the same way), standing on its spot.
+## A barrel's own place on the map: its painting's square scaled to its kind's height, its foot on its spot (pass 116; the
+## shader turns it to the camera).
 func barrel_transform(i: int) -> Transform3D:
-	return Transform3D(Basis(Vector3.UP, float(i) * 2.399), pos[i])
+	var t: int = light[i] if i < light.size() else 0
+	var m := float(QUAD_M[clampi(t, 0, 2)])
+	return Transform3D(Basis().scaled(Vector3(m, m, m)), pos[i])
 
 
-## Where a part ("body" or "hoops") of barrel `i` is drawn: the barrel's place with the part's own place inside the model
-## (pass 53: the hoops 0.126 m up). The headless renderer keeps no instance transforms, so the tests read this.
-func instance_transform(i: int, part: String) -> Transform3D:
-	return barrel_transform(i) * (_part_xf.get(part, Transform3D.IDENTITY) as Transform3D)
+## Where barrel `i` is drawn (pass 116: one painting, `part` kept for old callers). The headless renderer keeps no instance
+## transforms, so the tests read this.
+func instance_transform(i: int, _part: String = "body") -> Transform3D:
+	return barrel_transform(i)
 
 
-## The model's two parts: `body` and `hoops` are the meshes, `body_xf` and `hoops_xf` where each part stands inside the
-## GLB (pass 53: the `Hoops` node keeps the origin Blender's join gave it, the lowest hoop's at y 0.126; the mesh alone
-## put that hoop's middle on the ground). Empty when the model is missing a part.
-func _meshes() -> Dictionary:
-	if not ResourceLoader.exists("res://art/props/barrel.glb"):
-		return {}
-	var scene: Node = load("res://art/props/barrel.glb").instantiate()
-	var out := {}
-	for n in scene.find_children("*", "MeshInstance3D", true, false):
-		var mi := n as MeshInstance3D
-		var key := ""
-		if mi.name.begins_with("Body"):
-			key = "body"
-		elif mi.name.begins_with("Hoops"):
-			key = "hoops"
-		if key != "":
-			out[key] = mi.mesh
-			out[key + "_xf"] = part_transform(scene, mi)
-	scene.free()
-	return out if out.has("body") and out.has("hoops") else {}
+## Kind `t`'s MultiMesh (0 exp, 1 coins, 2 powerup).
+func _mm_of(t: int) -> MultiMesh:
+	return _body_light if t == 1 else (_body_power if t == 2 else _body_dark)
+
+
+## The painted barrels' shader: prop_billboard's with the structures' stencil (5) in place of the scenery's (4).
+static func barrel_shader() -> Shader:
+	if _shader_5 == null:
+		var base: Shader = load("res://core/shaders/prop_billboard.gdshader")
+		_shader_5 = Shader.new()
+		_shader_5.code = base.code.replace("stencil_mode write, compare_always, %d;" % SceneryStencil.VALUE,
+			"stencil_mode write, compare_always, %d;" % SceneryStencil.STRUCTURE)
+	return _shader_5
+
+
+## Kind `t`'s billboards: `n` standing, `spare` more waiting unseen for respawns (pass 112: the count cannot grow without
+## clearing the transforms). Null when the painting is missing.
+func _billboards(t: int, n: int, spare: int = 0) -> MultiMesh:
+	if not ResourceLoader.exists(SPRITES[t]):
+		return null
+	var mat := ShaderMaterial.new()
+	mat.shader = barrel_shader()
+	mat.set_shader_parameter("sprite", load(SPRITES[t]))
+	mat.set_shader_parameter("mute", 0.04)
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1, 1)
+	return _multimesh(quad, n, mat, spare, true)
 
 
 ## Where `node` stands inside the model whose root is `root`: its own transform under every Node3D above it, the root's
@@ -177,35 +189,12 @@ static func part_transform(root: Node, node: Node3D) -> Transform3D:
 	return xf
 
 
-func _wood(c: Color) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = c
-	m.roughness = 0.9
-	return m
-
-
-## The rare barrel's paint (pass 48): matte black, no shine.
-func _black() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = LIGHT
-	m.roughness = 0.95
-	m.metallic = 0.0
-	return m
-
-
-## The rare barrel's hoops (pass 48): brass, a little metal so they catch the light against the black.
-func _brass() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = BRASS
-	m.metallic = 0.4
-	m.roughness = 0.45
-	return m
-
-
 ## `spare` instances past `n` wait unseen for respawns (pass 112: the count cannot grow without clearing the transforms).
-func _multimesh(mesh: Mesh, n: int, mat: Material, spare: int = 0) -> MultiMesh:
+func _multimesh(mesh: Mesh, n: int, mat: Material, spare: int = 0, custom: bool = false) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
+	# pass 116: the billboard shader reads INSTANCE_CUSTOM (flip, sway, phase, tint: all 0 here)
+	mm.use_custom_data = custom
 	mm.mesh = mesh
 	mm.instance_count = maxi(n + spare, 1)
 	mm.visible_instance_count = n
@@ -269,7 +258,8 @@ func _place() -> void:
 			continue
 		pos.append(Vector3(p.x, map.height_at(p.x, p.y), p.y))
 		# pass 87 (lane FIXES): the last EXTRA_DARK spots are black whatever the roll
-		light.append(1 if pos.size() > COUNT - EXTRA_DARK or rng.randf() < LIGHT_FRAC else 0)
+		# pass 116 (lane MAP): the others by the kinds' weights (exp, coins, powerup; one roll as before)
+		light.append(BarrelSpawns.COINS if pos.size() > COUNT - EXTRA_DARK else BarrelSpawns.pick_kind(_block(), rng))
 		alive.append(1)
 
 
@@ -368,23 +358,21 @@ func _break(i: int) -> void:
 	Run.barrels_broken += 1
 	var at := pos[i]
 	var gone := Transform3D(Basis().scaled(Vector3.ZERO), at)
-	if light[i] == 0:
-		_body_dark.set_instance_transform(_index_in[i], gone)
-		if _hoops:
-			_hoops.set_instance_transform(_index_in[i], gone)
-	else:
-		_body_light.set_instance_transform(_index_in[i], gone)
-		if _hoops_light:
-			_hoops_light.set_instance_transform(_index_in[i], gone)
+	var t: int = light[i]
+	var mm := _mm_of(t)
+	if mm:
+		mm.set_instance_transform(_index_in[i], gone)
 	if i < shadows.size() and shadows[i] >= 0 and map and map.get("props") is PropField:
 		(map.get("props") as PropField).hide_shadow(shadows[i])
-	var wood := LIGHT if light[i] == 1 else DARK
+	var wood := DARK
 	if game.fx:
-		# staves, hoop pieces and a cloud of dust, big enough to read from the camera's height (a rare one's are black
-		# with brass)
-		game.fx.splinters(at, wood, 22 if light[i] == 1 else 18, 0.27)
-		game.fx.splinters(at, wood.lightened(0.15) if light[i] == 1 else wood.darkened(0.3), 8, 0.16)
-		game.fx.splinters(at, BRASS if light[i] == 1 else Color(0.22, 0.18, 0.16), 5, 0.15)
+		# staves, hoop pieces and a cloud of dust, big enough to read from the camera's height (pass 116: the wood of the
+		# board's barrels, gold hoop bits from the coins one, white stripe bits from the power-up one)
+		game.fx.splinters(at, wood, 22 if t == 1 else 18, 0.27)
+		game.fx.splinters(at, wood.darkened(0.3), 8, 0.16)
+		game.fx.splinters(at, GOLD if t == 1 else IRON, 6 if t == 1 else 5, 0.15)
+		if t == 2:
+			game.fx.splinters(at, STRIPE, 6, 0.14)
 		game.fx.sand(at, 2.2)
 		game.fx.burst(at + Vector3(0, 0.6, 0), Color(0.86, 0.7, 0.45), 1.3)
 	# the gems: a small gem is worth more the deeper the run (a level needs 15 + 6L + L²/2)
@@ -393,21 +381,21 @@ func _break(i: int) -> void:
 	var pk = game.pickups
 	# pass 112 (lane BARREL): what this kind holds, the map's `barrels` block (today's when it names none: a brown one 8
 	# small gems, a black one 10 small and 4 medium and its 1-5 coins)
-	var cc := contents(light[i] == 1)
+	var cc := contents(t)
 	if pk:
 		for k in int(cc["gems_small"]):
 			pk.spawn(pk.KIND_GEM_S, at + Vector3(Dice.r.randf_range(-0.5, 0.5), 0.3, Dice.r.randf_range(-0.5, 0.5)), per)
 		for k in int(cc["gems_medium"]):
 			pk.spawn(pk.KIND_GEM_M, at + Vector3(Dice.r.randf_range(-0.6, 0.6), 0.5, Dice.r.randf_range(-0.6, 0.6)), per * 4.0)
 		# pass 87 (lane FIXES): and its coins (a black one's; a brown one's only when the map gives it some)
-		if light[i] == 1 or (i < coins.size() and coins[i] > 0):
+		if t == 1 or (i < coins.size() and coins[i] > 0):
 			_drop_coins(i, at, pk)
 		# pass 112 (lane BARREL): now and then a power-up hops out of it, for the hero to fetch or leave
 		_throw_powerup(cc, at, pk)
 	Audio.play("st_barrel_break", at)
 	if game.camera:
-		game.camera.shake(0.45 if light[i] == 1 else 0.3)
-	if game.hud and light[i] == 1:
+		game.camera.shake(0.45 if t == 1 else 0.3)
+	if game.hud and t == 1:
 		game.hud.toast("A GOOD BARREL", Color(1.0, 0.85, 0.4))
 	_rush()
 
@@ -419,7 +407,7 @@ func _roll_coins() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = Run.map_seed * 31 + 11
 	coins.resize(pos.size())
-	var ranges := [contents(false)["coins"], contents(true)["coins"]]
+	var ranges := [contents(0)["coins"], contents(1)["coins"], contents(2)["coins"]]
 	for i in pos.size():
 		var r: Vector2i = ranges[light[i]]
 		coins[i] = rng.randi_range(r.x, r.y) if r.y > 0 else 0
@@ -437,7 +425,7 @@ func coins_total() -> int:
 ## hand), worth COIN_VALUE each, scattered round it like its gems, each marked as the "barrel" gold source. Returns how
 ## many.
 func _drop_coins(i: int, at: Vector3, pk) -> int:
-	var r: Vector2i = contents(light[i] == 1)["coins"]
+	var r: Vector2i = contents(light[i])["coins"]
 	var n: int = coins[i] if i < coins.size() and coins[i] > 0 else Dice.r.randi_range(r.x, r.y)
 	for k in n:
 		var c: int = pk.spawn(pk.KIND_COIN, at + Vector3(Dice.r.randf_range(-0.6, 0.6), 0.5, Dice.r.randf_range(-0.6, 0.6)), COIN_VALUE)
@@ -480,10 +468,10 @@ func _block() -> Dictionary:
 	return tl.barrels if tl != null else {}
 
 
-## What a barrel of this kind holds (`black` the black kind; BarrelSpawns.contents_of): gems_small, gems_medium, coins
-## (Vector2i), powerup_chance, powerups, throw_distance.
-func contents(black: bool) -> Dictionary:
-	return BarrelSpawns.contents_of(_block(), black)
+## What a barrel of this kind holds (`kind`: 0 exp, 1 coins, 2 powerup, or pass 112's bool black; BarrelSpawns.contents_of):
+## gems_small, gems_medium, coins (Vector2i), powerup_chance (0 but for the powerup kind), powerups, throw_distance.
+func contents(kind) -> Dictionary:
+	return BarrelSpawns.contents_of(_block(), kind)
 
 
 func respawn_clock() -> BarrelSpawns:
@@ -578,24 +566,26 @@ func spawn_ok(p: Vector3, ctx: Dictionary) -> Vector3:
 ## A barrel laid again at `at` (pass 112): a broken one of its kind stands up there (its slot, its instance, its shadow),
 ## else a new one from its kind's spare instances, else (none of either) one of the other kind. Its coins are rolled from
 ## its kind's `coins` (extra gold: only the start's barrels are held back from the creatures' coins). False when no slot.
-func respawn_at(at: Vector3, black: bool) -> bool:
-	var t := 1 if black else 0
+func respawn_at(at: Vector3, kind) -> bool:
+	var t := BarrelSpawns.TYPES.find(BarrelSpawns.kind_key(kind))
 	var i := _slot_for(t)
 	if i < 0:
-		t = 1 - t
-		i = _slot_for(t)
+		# pass 116: no slot of its kind: any other kind's
+		for o in [0, 1, 2]:
+			if o != t:
+				i = _slot_for(o)
+				if i >= 0:
+					t = o
+					break
 	if i < 0:
 		return false
 	pos[i] = at
 	alive[i] = 1
-	var r: Vector2i = contents(t == 1)["coins"]
+	var r: Vector2i = contents(t)["coins"]
 	coins[i] = _dice.randi_range(r.x, r.y) if r.y > 0 else 0
-	var body := _body_light if t == 1 else _body_dark
-	var hoops := _hoops_light if t == 1 else _hoops
+	var body := _mm_of(t)
 	if body:
 		body.set_instance_transform(_index_in[i], instance_transform(i, "body"))
-	if hoops:
-		hoops.set_instance_transform(_index_in[i], instance_transform(i, "hoops"))
 	var props = map.get("props") if map else null
 	if props is PropField:
 		if shadows[i] >= 0:
@@ -612,14 +602,11 @@ func _slot_for(t: int) -> int:
 	for k in pos.size():
 		if alive[k] == 0 and light[k] == t:
 			return k
-	var body := _body_light if t == 1 else _body_dark
+	var body := _mm_of(t)
 	if body == null or body.visible_instance_count >= body.instance_count:
 		return -1
 	var n := body.visible_instance_count
 	body.visible_instance_count = n + 1
-	var hoops := _hoops_light if t == 1 else _hoops
-	if hoops:
-		hoops.visible_instance_count = n + 1
 	pos.append(Vector3.ZERO)
 	light.append(t)
 	alive.append(0)

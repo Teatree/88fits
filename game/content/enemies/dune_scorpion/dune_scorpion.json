@@ -39,7 +39,7 @@
     "speed": 11.0,
     "duration": 0.8,
     "cooldown": 3.2,
-    "trigger_range": 8.0,
+    "trigger_range": 9.9,
     "knockback": 11.0
   },
   "elite": {

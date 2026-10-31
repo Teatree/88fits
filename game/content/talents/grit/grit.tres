@@ -1,38 +1,38 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xe2lu"]
-[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_txams"]
-[ext_resource type="Texture2D" path="res://content/talents/grit/grit_0_icon.png" id="2_txh88"]
-[ext_resource type="Texture2D" path="res://content/talents/grit/grit_icon.png" id="2_uoxua"]
-[ext_resource type="Texture2D" path="res://content/talents/grit/grit_1_icon.png" id="3_pkr3m"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_txh88"]
+[ext_resource type="Texture2D" path="res://content/talents/grit/grit_0_icon.png" id="2_pkr3m"]
+[ext_resource type="Texture2D" path="res://content/talents/grit/grit_1_icon.png" id="3_wqxv2"]
+[ext_resource type="Texture2D" path="res://content/talents/grit/grit_icon.png" id="4_xl50g"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="5_cwuin"]
 
 [sub_resource type="Resource" id="Resource_txh88"]
-script = ExtResource("1_xe2lu")
+script = ExtResource("1_txh88")
 stat = "max_hp"
 op = "mul"
 value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_pkr3m"]
-script = ExtResource("1_xe2lu")
+script = ExtResource("1_txh88")
 stat = "damage_reduction"
 value = 0.06
 target = "player"
 
 [resource]
-script = ExtResource("2_txams")
+script = ExtResource("5_cwuin")
 order = 8
 ranks = 6
 cost = [450.0, 1800.0, 4050.0, 7200.0, 11250.0, 16200.0]
 forms = [{
 "effects": [SubResource("Resource_txh88")],
-"icon": ExtResource("2_txh88"),
+"icon": ExtResource("2_pkr3m"),
 "icon_file": "grit_0_icon.png",
 "name": "Padding",
 "text": "+10% max HP a rank."
 }, {
 "effects": [SubResource("Resource_pkr3m")],
-"icon": ExtResource("3_pkr3m"),
+"icon": ExtResource("3_wqxv2"),
 "icon_file": "grit_1_icon.png",
 "name": "Plate",
 "text": "+6% damage reduction a rank: every hit lands lighter."
@@ -40,7 +40,7 @@ forms = [{
 id = "grit"
 display_name = "Grit"
 flavour = "Thicker skin, or harder bones."
-icon = ExtResource("2_uoxua")
+icon = ExtResource("4_xl50g")
 icon_file = "grit_icon.png"
 placeholder = {
 "color": "#C9A227",

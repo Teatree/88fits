@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_buvwj"]
-[ext_resource type="Texture2D" path="res://content/enemies/dust_shaman/dust_shaman_icon.png" id="1_hd6xs"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_shaman/dust_shaman_icon.png" id="1_t4j7n"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_hd6xs"]
 
 [resource]
-script = ExtResource("1_buvwj")
+script = ExtResource("2_hd6xs")
 archetype = "spitter"
 doc = "Keeps seven metres off and every four seconds mends the creatures around it for a quarter of their health and drives them for three seconds (a green ring, green sparks on each). Kill it first."
 brain = "support"
@@ -72,7 +72,7 @@ variance = {
 id = "dust_shaman"
 display_name = "Dust Shaman"
 flavour = "Kill it first. Everyone around it agrees."
-icon = ExtResource("1_hd6xs")
+icon = ExtResource("1_t4j7n")
 icon_file = "dust_shaman_icon.png"
 placeholder = {
 "color": "#8A9A60",

@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_1ri8u"]
-[ext_resource type="Texture2D" path="res://content/bosses/brander/brander_icon.png" id="1_a6rpm"]
+[ext_resource type="Texture2D" path="res://content/bosses/brander/brander_icon.png" id="1_d6ii4"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_a6rpm"]
 
 [resource]
-script = ExtResource("1_1ri8u")
+script = ExtResource("2_a6rpm")
 archetype = "boss"
 doc = "Stage 3's boss. It draws a ring of fire round the fight that closes in for forty seconds and burns whoever stands outside it; its iron leaves burning lines on the sand for nine seconds; a charge, a slam, rings of imps. Pays three chests and a hundred coins (pass 110: half of pass 70's 200)."
 brain = "boss"
@@ -102,7 +102,7 @@ xp_mult = 90.0
 id = "brander"
 display_name = "The Brander"
 flavour = "Hell has a foreman. He brought the iron."
-icon = ExtResource("1_a6rpm")
+icon = ExtResource("1_d6ii4")
 icon_file = "brander_icon.png"
 placeholder = {
 "color": "#8A1A1A",

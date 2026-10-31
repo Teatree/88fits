@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="QuestDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_en6eo"]
 [ext_resource type="Texture2D" path="res://content/quests/unlock_dad/unlock_dad_icon.png" id="1_ixvw6"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_1lio1"]
 
 [resource]
-script = ExtResource("1_en6eo")
+script = ExtResource("2_1lio1")
 condition = {
 "count": 500.0,
 "type": "kills_with_weapon",

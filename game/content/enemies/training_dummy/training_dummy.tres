@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_47rqv"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_5qya5"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_sey8s"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_47rqv"]
 
 [resource]
-script = ExtResource("2_5qya5")
+script = ExtResource("2_47rqv")
 archetype = "brute"
 doc = "The debug arena's punching bag: it stands where it is put, takes every hit like a creature and never hits back."
 brain = "dummy"
@@ -44,7 +44,7 @@ id = "training_dummy"
 display_name = "Training Dummy"
 flavour = "It never complains."
 hidden = true
-icon = ExtResource("1_47rqv")
+icon = ExtResource("1_sey8s")
 icon_file = "training_dummy_icon.png"
 placeholder = {
 "color": "#C8A060",

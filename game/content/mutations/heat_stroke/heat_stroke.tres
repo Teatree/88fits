@@ -1,21 +1,21 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vggjo"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tmdvo"]
 [ext_resource type="Texture2D" path="res://content/mutations/heat_stroke/heat_stroke_icon.png" id="2_hidpx"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_tmdvo"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_72nhd"]
 
 [sub_resource type="Resource" id="Resource_tmdvo"]
-script = ExtResource("1_vggjo")
+script = ExtResource("1_tmdvo")
 stat = "fire_damage"
 value = 4.0
 
 [sub_resource type="Resource" id="Resource_hidpx"]
-script = ExtResource("1_vggjo")
+script = ExtResource("1_tmdvo")
 stat = "fire_duration"
 value = 1.8
 
 [resource]
-script = ExtResource("2_tmdvo")
+script = ExtResource("3_72nhd")
 weapon = "sun_scepter"
 mutation_kind = "element"
 text = "35% of the enemies its pillars hit catch fire: 4 damage every 0.6 s for 3.6 s."

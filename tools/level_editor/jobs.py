@@ -2532,8 +2532,15 @@ def candidate_defaults(kind, target):
             put("subject", who, src)
         else:
             put("character", who, src)
+    elif is_look and str(recipe.get("subject") or recipe.get("art_prompt") or "").strip():
+        # pass 116 (lane EDITOR): an item look (a card's B-E framing, a family look) re-rolls from the words that painted
+        # it, not the base item's art_prompt (Garry's card icon came back as a plain object)
+        k = "subject" if str(recipe.get("subject") or "").strip() else "art_prompt"
+        put("subject", str(recipe[k]).strip(), "the look's recipe (%s)" % k)
     else:
         put("subject", str(doc.get("art_prompt") or "").strip(), "art_prompt" if doc.get("art_prompt") else "")
+    if kind == "icon_cands" and is_look and str(recipe.get("style") or "").strip():
+        put("style", str(recipe["style"]).strip(), "the look's recipe (style)")
     put("ref", ref or "", ref_src)
     variant = code if is_look else ""
     if kind == "hero_badge":
@@ -2574,8 +2581,50 @@ def candidate_defaults(kind, target):
         else:
             put("file", os.path.basename(str(doc.get("icon") or (cid + "_icon.png"))), "the icon the game reads")
     full = _resolve_pic(fields.get("ref"))
-    return {"kind": kind, "target": {"kind": tkind, "id": cid, "code": code}, "fields": fields, "sources": sources,
-            "ref_url": _pic_url(fields.get("ref")) if fields.get("ref") else None, "ref_exists": bool(full)}
+    out = {"kind": kind, "target": {"kind": tkind, "id": cid, "code": code}, "fields": fields, "sources": sources,
+           "ref_url": _pic_url(fields.get("ref")) if fields.get("ref") else None, "ref_exists": bool(full)}
+    if kind == "icon_cands":
+        # pass 116 (lane EDITOR): the pieces gen_icon_cands.icon_words joins, so the form shows the words sent; and the
+        # seed the shown icon was painted on (its look's `painted`), when recorded
+        out["words"] = icon_word_parts()
+        painted = st["entry"].get("painted") if is_look and isinstance(st["entry"].get("painted"), dict) else None
+        out["painted"] = painted
+        out["tool_kind"] = KIND_FOLDERS.get(tkind) or tkind
+    return out
+
+
+_words_cache = {"mtime": None, "parts": {}}
+
+
+def icon_word_parts():
+    """Pass 116 (lane EDITOR): gen_art's ICON_STYLE / BG_GREEN and gen_icon_cands' COPY / REF_CREATURE, read as literals
+    from their sources (the tools import comfy, which must not load in the editor): {style, bg_green, bg_blue, copy,
+    ref_creature}; {} when they cannot be read."""
+    paths = [os.path.join(TOOLS, "gen_art.py"), os.path.join(TOOLS, "gen_icon_cands.py")]
+    try:
+        mt = tuple(os.path.getmtime(x) for x in paths)
+    except OSError:
+        return {}
+    if _words_cache["mtime"] == mt:
+        return _words_cache["parts"]
+    vals = {}
+    for path in paths:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                tree = ast.parse(f.read())
+        except (OSError, SyntaxError, ValueError):
+            continue
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)                     and node.targets[0].id in ("ICON_STYLE", "BG_GREEN", "COPY", "REF_CREATURE"):
+                try:
+                    vals[node.targets[0].id] = ast.literal_eval(node.value)
+                except ValueError:
+                    pass
+    bg = str(vals.get("BG_GREEN", ""))
+    parts = {"style": str(vals.get("ICON_STYLE", "")), "bg_green": bg, "bg_blue": bg.replace("bright green (#00FF00)", "bright blue (#0000FF)"),
+             "copy": str(vals.get("COPY", "")), "ref_creature": str(vals.get("REF_CREATURE", ""))}
+    _words_cache.update(mtime=mt, parts=parts)
+    return parts
 
 
 def _seed_candidates(kind, target, spec):

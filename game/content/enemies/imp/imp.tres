@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_601ch"]
-[ext_resource type="Texture2D" path="res://content/enemies/imp/imp_icon.png" id="1_bg0pl"]
+[ext_resource type="Texture2D" path="res://content/enemies/imp/imp_icon.png" id="1_h0y34"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_bg0pl"]
 
 [resource]
-script = ExtResource("1_601ch")
+script = ExtResource("2_bg0pl")
 archetype = "runner"
 doc = "Stage 3's fodder: faster than a runt, twice its health, six to a pack, on top of the regular roster. The Brander calls rings of them."
 hp = 14.0
@@ -62,7 +62,7 @@ variance = {
 id = "imp"
 display_name = "Imp"
 flavour = "Small. Red. Everywhere."
-icon = ExtResource("1_bg0pl")
+icon = ExtResource("1_h0y34")
 icon_file = "imp_icon.png"
 placeholder = {
 "color": "#C8302A",

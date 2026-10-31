@@ -2,8 +2,8 @@
 
 [ext_resource type="Texture2D" path="res://content/weapons/rattlesnake/rattlesnake_icon.png" id="1_viuen"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_3s3cw"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_viuen"]
-[ext_resource type="PackedScene" path="res://content/weapons/rattlesnake/rattlesnake_visual.tscn" id="3_3s3cw"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_hfvfl"]
+[ext_resource type="PackedScene" path="res://content/weapons/rattlesnake/rattlesnake_visual.tscn" id="4_kv68u"]
 
 [sub_resource type="Resource" id="Resource_viuen"]
 script = ExtResource("2_3s3cw")
@@ -44,7 +44,7 @@ stat = "poison_stacks"
 value = 1.0
 
 [resource]
-script = ExtResource("2_viuen")
+script = ExtResource("3_hfvfl")
 behavior = "Orbiter"
 targeting = "orbit"
 base = {
@@ -65,7 +65,7 @@ sfx = {
 "hit": "w_snake_bite",
 "loop": "w_snake_rattle"
 }
-visual = ExtResource("3_3s3cw")
+visual = ExtResource("4_kv68u")
 visual_file = "rattlesnake_visual.tscn"
 params = {
 "spin_speed": 4.2

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/thirst/thirst_icon_b.png" id="1_la4ov"]
+[ext_resource type="Texture2D" path="res://content/passives/thirst/thirst_icon_b.png" id="1_y1hv3"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_la4ov"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_dfxbo"]
 
@@ -61,7 +61,7 @@ variant_base = "A"
 id = "thirst"
 display_name = "Death"
 flavour = "Death drinks with you. Their blood, less of yours."
-icon = ExtResource("1_la4ov")
+icon = ExtResource("1_y1hv3")
 icon_file = "thirst_icon.png"
 placeholder = {
 "color": "#C03050",

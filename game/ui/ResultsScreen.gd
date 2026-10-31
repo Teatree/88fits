@@ -61,6 +61,16 @@ const POP_FADE := 0.5
 const JOINT_TIME := 3.2
 const ROW_BEAT := 0.12
 const ROW_FADE := 0.2
+## Pass 116 (lane RESULTS, Garry: "the progress for the task counts up like for other things on that screen ... the
+## reward ... very clearly indicated as coins and it being added to the total Coins after the count is done"): after the
+## gold, the bounty's panel fades in and its bar fills from 0 to how far the run came in BOUNTY_STAMP_AT of BOUNTY_TIME,
+## then the stamp lands (PAID in sage, FAILED in rock, NOT DONE in soft ink) and the reward's row shows; a paid one then
+## sends BOUNTY_FLY coins up to the Banked count in BOUNTY_PAY_TIME, the count ticking up with the coin's chink, the
+## purse line after it. The reward was paid once already, at the run's end (WantedRun.settle): this only shows it.
+const BOUNTY_TIME := 1.6
+const BOUNTY_STAMP_AT := 0.7
+const BOUNTY_PAY_TIME := 1.1
+const BOUNTY_FLY := 6
 ## Before the first part (the board's own slide-in).
 const LEAD_IN := 0.35
 const PAUSE := 2.0
@@ -130,6 +140,11 @@ var _touch_id := -1
 var _touch_on_button := false
 var _gold_shown := -1
 var _coin_ms := 0
+## Pass 116 (lane RESULTS): the bounty's panel in the show: {"panel", "bar", "count", "stamp", "coins" (the reward's row),
+## "coin", "coin_num", "have", "need", "paid", "landed", "fly": the flying coins}; {} without a bounty.
+var _bounty: Dictionary = {}
+var _gold_before := 0
+var _after_line: WText
 var _mark_ms := 0
 
 
@@ -214,7 +229,11 @@ func build() -> void:
 	gv.add_child(gr)
 	# pass 111 (lane WANTED): a bounty done came home beside the purse (WantedRun.settle)
 	var bounty: Dictionary = res.get("bounty", {}) if res.get("bounty") is Dictionary else {}
-	gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked + int(bounty.get("paid", 0)))], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	# pass 116 (lane RESULTS): the purse line takes the bounty's coins only once they have flown in (_part_bounty_pay)
+	_gold_before = before
+	_after_line = W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_after_line.name = "PurseLine"
+	gv.add_child(_after_line)
 	if not Save.hint_seen("results"):
 		Save.mark_hint("results")
 		gv.add_child(W.serif_text("Your gold comes home, whatever the end. Spend it on Upgrades.",
@@ -241,7 +260,8 @@ func build() -> void:
 			seal.rotation = deg_to_rad(12.0)
 			seal.position = Vector2(hero.size.x - 150.0 + 30.0, -44.0))
 	# pass 111 (lane WANTED): the run's bounty: what it paid, or how far it came (WantedRun.results_panel)
-	var bounty_panel := WantedRun.results_panel(bounty)
+	# pass 116 (lane RESULTS): the Results' own panel, played in the show (_bounty_panel, _part_bounty, _part_bounty_pay)
+	var bounty_panel := _bounty_panel(bounty)
 	if bounty_panel:
 		content.add_child(_gap(28))
 		content.add_child(bounty_panel)
@@ -547,6 +567,10 @@ func _progress_row(c: Dictionary) -> Dictionary:
 func _plan() -> void:
 	_parts.clear()
 	_add(1, "gold", GOLD_TIME, _part_gold)
+	if not _bounty.is_empty():
+		_add(1, "bounty", BOUNTY_TIME, _part_bounty)
+		if int(_bounty["paid"]) > 0:
+			_add(1, "bounty_pay", BOUNTY_PAY_TIME, _part_bounty_pay)
 	_add(1, "pop", POP_TIME, _part_pop)
 	_add(1, "chart", _joint_time, _part_chart)
 	if _unlock_box:
@@ -615,6 +639,180 @@ func _part_gold(f: float, live: bool) -> void:
 		_coin_ms = Time.get_ticks_msec()
 		W.sfx("pk_coin")
 	_gold_shown = iv
+
+
+## Pass 116 (lane RESULTS): the bounty's panel in the show (one poster a run: the one taken, WantedRun). Built hidden;
+## its bar, its count ("0 / 60" counting up), its stamp and the reward as coins: the coin and "+240" in gold.
+func _bounty_panel(rec: Dictionary) -> Control:
+	if rec.is_empty():
+		return null
+	var have := int(rec.get("have", 0))
+	var need := maxi(int(rec.get("need", 0)), 1)
+	var paid_n := int(rec.get("paid", 0))
+	var p := PanelContainer.new()
+	p.name = "BountyPanel"
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(34, 22, 34, 24))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(v)
+	v.add_child(W.label("Bounty", 22, W.INK_SOFT))
+	# the poster's row without its right-hand word (the stamp and the coins say it)
+	v.add_child(WantedRun.row_for(rec, ""))
+	var bh := HBoxContainer.new()
+	bh.add_theme_constant_override("separation", 16)
+	bh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bar := WBar.make(0.0, W.SAGE if paid_n > 0 else W.BRASS, 26.0, 4, 0)
+	bar.name = "BountyBar"
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bh.add_child(bar)
+	var count := W.slab_text("", 26, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	count.name = "BountyCount"
+	count.custom_minimum_size.x = 190
+	bh.add_child(count)
+	v.add_child(bh)
+	# the reward: the coin and its number in gold (Garry: "right now it's just brownish text, could mean anything");
+	# a bounty not done shows what it would have paid, faded
+	var coins := HBoxContainer.new()
+	coins.name = "BountyReward"
+	coins.add_theme_constant_override("separation", 12)
+	coins.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var reward_n := paid_n if paid_n > 0 else int(rec.get("reward", 0))
+	var say := W.serif_text("Reward paid" if paid_n > 0 else "Would have paid", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	say.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	coins.add_child(say)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	coins.add_child(sp)
+	var coin := WCoin.make(56.0, W.BRASS if paid_n > 0 else W.AGED, 4.0)
+	coin.name = "BountyCoin"
+	coins.add_child(coin)
+	var cn := W.slab_text("+%s" % W.num(reward_n), 52, W.BRASS if paid_n > 0 else W.INK_SOFT, HORIZONTAL_ALIGNMENT_LEFT, 56.0)
+	cn.name = "BountyCoins"
+	cn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if paid_n > 0:
+		cn.stroke = 6
+		cn.stroke_color = W.INK
+		cn.shadow = 3
+	coins.add_child(cn)
+	coins.modulate.a = 0.0
+	v.add_child(coins)
+	var word := "PAID" if paid_n > 0 else ("FAILED" if bool(rec.get("failed", false)) else "NOT DONE")
+	var stamp := WStamp.make(word, W.SAGE if paid_n > 0 else (W.ROCK if word == "FAILED" else W.INK_SOFT), 34)
+	stamp.name = "BountyStamp"
+	stamp.visible = false
+	p.add_child(stamp)
+	p.sort_children.connect(func():
+		stamp.size = stamp.stamp_size()
+		stamp.pivot_offset = stamp.size * 0.5
+		stamp.rotation = deg_to_rad(-8.0)
+		stamp.position = Vector2(p.size.x - stamp.size.x - 10.0, -stamp.size.y * 0.35))
+	p.modulate.a = 0.0
+	_bounty = {"panel": p, "bar": bar, "count": count, "stamp": stamp, "coins": coins, "coin": coin, "coin_num": cn,
+		"have": mini(have, need), "need": need, "paid": paid_n, "landed": false, "fly": []}
+	_fill_bounty(0.0)
+	return p
+
+
+func _fill_bounty(k: float) -> void:
+	var need := float(_bounty["need"])
+	var now := lerpf(0.0, float(_bounty["have"]), clampf(k, 0.0, 1.0))
+	(_bounty["bar"] as WBar).value = now / need
+	(_bounty["count"] as WText).text = "%s / %s" % [W.num(int(round(now))), W.num(int(need))]
+
+
+## The bounty's record shown (tests, captures): {} without one.
+func bounty_view() -> Dictionary:
+	return _bounty
+
+
+## The bounty part: the panel fades in, the bar and its count fill from nothing to how far the run came (a tick as it
+## climbs), then the stamp slams down and the reward's row shows.
+func _part_bounty(f: float, live: bool) -> void:
+	var p: Control = _bounty["panel"]
+	if p.modulate.a <= 0.0 and live:
+		_follow_into(p)
+	p.modulate.a = 1.0 if f >= 1.0 else maxf(p.modulate.a, clampf(f / 0.15, 0.0, 1.0))
+	var k := _ease_out(clampf(f / BOUNTY_STAMP_AT, 0.0, 1.0))
+	var was := (_bounty["count"] as WText).text
+	_fill_bounty(k)
+	if live and was != (_bounty["count"] as WText).text and Time.get_ticks_msec() - _coin_ms > 70:
+		_coin_ms = Time.get_ticks_msec()
+		W.sfx("ui_reel_tick")
+	if f >= BOUNTY_STAMP_AT and not bool(_bounty["landed"]):
+		_bounty["landed"] = true
+		var stamp: WStamp = _bounty["stamp"]
+		stamp.visible = true
+		stamp.slam(0.16 / _speed if live else 0.0)
+		if live:
+			W.sfx("ui_stamp")
+			if int(_bounty["paid"]) > 0:
+				p.modulate = Color(1.6, 1.6, 1.5, 1.0)
+				create_tween().tween_property(p, "modulate", Color.WHITE, 0.4 / _speed)
+	if f >= BOUNTY_STAMP_AT:
+		(_bounty["coins"] as Control).modulate.a = 1.0 if f >= 1.0 else clampf((f - BOUNTY_STAMP_AT) / 0.15, 0.0, 1.0)
+	if f >= 1.0:
+		p.modulate = Color.WHITE
+
+
+## A paid bounty's coins fly from its reward up to the Banked count, which ticks up by the reward (the coin's chink), and
+## the purse line takes them in; the reward's number stays as what it paid.
+func _part_bounty_pay(f: float, live: bool) -> void:
+	var paid_n := int(_bounty["paid"])
+	var fly: Array = _bounty["fly"]
+	var from_c: Control = _bounty["coin"]
+	if live and fly.is_empty() and f < 1.0 and from_c.is_inside_tree() and _count.is_inside_tree():
+		for i in BOUNTY_FLY:
+			var c := WCoin.make(44.0, W.BRASS, 3.0)
+			c.top_level = true
+			c.z_index = 10
+			c.visible = false
+			add_child(c)
+			fly.append(c)
+	var a: Vector2 = from_c.get_global_rect().get_center() if from_c.is_inside_tree() else Vector2.ZERO
+	var b: Vector2 = (_count.get_global_rect().position + Vector2(50.0, _count.size.y * 0.5)) if _count.is_inside_tree() else a
+	var landed := 0
+	for i in fly.size():
+		var c: WCoin = fly[i]
+		if not is_instance_valid(c):
+			continue
+		var t0 := float(i) / float(BOUNTY_FLY) * 0.45
+		var t := clampf((f - t0) / 0.5, 0.0, 1.0)
+		if t >= 1.0 or f >= 1.0:
+			landed += 1
+			c.visible = false
+			continue
+		c.visible = t > 0.0
+		var mid := (a + b) * 0.5 + Vector2(-150.0 + 60.0 * float(i), -120.0)
+		var q := a.lerp(mid, t).lerp(mid.lerp(b, t), t)
+		c.position = q - Vector2(22, 22)
+		c.scale = Vector2.ONE * lerpf(1.0, 0.75, t)
+	var got := 0
+	if fly.is_empty():
+		got = int(round(float(paid_n) * _ease_out(f)))
+	else:
+		got = int(round(float(paid_n) * float(landed) / float(fly.size())))
+	if f >= 1.0:
+		got = paid_n
+		for c in fly:
+			if is_instance_valid(c):
+				c.queue_free()
+		fly.clear()
+	var iv := _banked + got
+	_count.text = "+" + W.num(iv)
+	if live and iv > _gold_shown:
+		W.sfx("pk_coin")
+		_count.pivot_offset = _count.size * 0.5
+		_count.scale = Vector2.ONE * 1.12
+		create_tween().tween_property(_count, "scale", Vector2.ONE, 0.12 / _speed)
+	if f >= 1.0 and not live:
+		_count.scale = Vector2.ONE
+	_gold_shown = iv
+	if _after_line:
+		_after_line.text = "%s → %s" % [W.num(_gold_before), W.num(_gold_before + iv)]
 
 
 ## The chart block pops in once the gold is counted (pass 74): the panel from POP_FROM of its size past its size and

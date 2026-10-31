@@ -1057,6 +1057,16 @@ const Assets = (() => {
     return wrap;
   }
 
+  /** Pass 116 (lane EDITOR): the look an item's icon is drawn in when none is shown: a card's or a family's `variant`
+   *  (a weapon's mutations and evolution follow the weapon, which the page does not read here: their own `variant` if any). */
+  function playedItemLook(doc) {
+    if (!['passive', 'weapon', 'evolution', 'mutation'].includes(doc.kind)) return '';
+    const v = doc.data && doc.data.variant ? String(doc.data.variant) : '';
+    const vs = doc.data && doc.data.variants && typeof doc.data.variants === 'object' ? doc.data.variants : {};
+    if (!v || !vs[v] || v === String(doc.data.variant_base || '')) return '';
+    return v;
+  }
+
   /** The icon at 128 (the hero sheet's plate), 64 and 36, on its rarity plate (items) or round (heroes). */
   function iconPreview(doc, def) {
     const v = vocab();
@@ -1074,7 +1084,7 @@ const Assets = (() => {
     const lookCode = candidateCode(doc, doc.ui && doc.ui.look);
     wrap.appendChild(el('div', { class: 'icon-actions' },
       round ? el('button', { class: 'btn small', type: 'button', text: lookCode ? `+ Badge candidates for ${lookCode}…` : '+ Badge candidates…', title: `paint round badge candidates and pick one by eye (a job): the hero's words and ${lookCode ? lookCode + '\'s' : 'the base look\'s'} front still as the reference${shownWhere('badge') ? '; ' + shownWhere('badge') : ''}`, onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge', code: lookCode || undefined }) })
-        : el('button', { class: 'btn small', type: 'button', text: '+ Icon candidates…', title: 'paint several icons and pick one by eye (a job)', onclick: () => openJobForm(doc, { method: 'icon_cands', mode: 'icon', code: lookCode || undefined }) }),
+        : el('button', { class: 'btn small primary', type: 'button', text: `Re-roll icon${(lookCode || playedItemLook(doc)) ? ' ' + (lookCode || playedItemLook(doc)) : ''}…`, title: 'pass 116: paint new candidates of this icon from the words that made it (editable: the subject, the style, the screen, a reference picture, the seeds) and pick one by eye; the old icon is kept (a job)', onclick: () => openJobForm(doc, { method: 'icon_cands', mode: 'icon', code: lookCode || playedItemLook(doc) || undefined }) }),
       el('span', { class: 'muted small', text: round ? `the round badge (128: the hero sheet's plate): ${shownWhere('badge') || 'the hero sheet, the results'}` : `on its ${doc.data.rarity || 'common'} plate (W.RARITY_PLATE)` })));
     // pass 76 (lane ICON): an item's icon now (the look shown, else its own), Revert icon, its changes and every icon on
     // disk with "Use for ..." (heroes and creatures have the same panel in their look grid's stage)

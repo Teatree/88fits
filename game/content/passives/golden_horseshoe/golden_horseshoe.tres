@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/golden_horseshoe/golden_horseshoe_icon_b.png" id="1_ki7ic"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_u57ir"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_8xlej"]
+[ext_resource type="Texture2D" path="res://content/passives/golden_horseshoe/golden_horseshoe_icon_b.png" id="1_8xlej"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ki7ic"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_romgy"]
 
 [sub_resource type="Resource" id="Resource_8xlej"]
-script = ExtResource("1_u57ir")
+script = ExtResource("2_ki7ic")
 stat = "luck"
 value = 0.6
 target = "player"
 
 [resource]
-script = ExtResource("2_8xlej")
+script = ExtResource("3_romgy")
 line = true
 levels = [[SubResource("Resource_8xlej")]]
 repeat_last_level = false
@@ -56,7 +56,7 @@ display_name = "The Star Risen"
 flavour = "The Star hangs over the door, open end up, so the luck stays in."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_ki7ic")
+icon = ExtResource("1_8xlej")
 icon_file = "golden_horseshoe_icon.png"
 placeholder = {
 "color": "#FFB84A",

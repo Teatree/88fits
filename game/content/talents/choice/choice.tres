@@ -1,37 +1,37 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2qpam"]
-[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_70wpa"]
-[ext_resource type="Texture2D" path="res://content/talents/choice/choice_icon.png" id="2_qnekd"]
-[ext_resource type="Texture2D" path="res://content/talents/choice/choice_0_icon.png" id="2_xi683"]
-[ext_resource type="Texture2D" path="res://content/talents/choice/choice_1_icon.png" id="3_mxoig"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xi683"]
+[ext_resource type="Texture2D" path="res://content/talents/choice/choice_0_icon.png" id="2_mxoig"]
+[ext_resource type="Texture2D" path="res://content/talents/choice/choice_1_icon.png" id="3_l7mfe"]
+[ext_resource type="Texture2D" path="res://content/talents/choice/choice_icon.png" id="4_qeddh"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="5_wes8p"]
 
 [sub_resource type="Resource" id="Resource_xi683"]
-script = ExtResource("1_2qpam")
+script = ExtResource("1_xi683")
 stat = "rerolls"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_mxoig"]
-script = ExtResource("1_2qpam")
+script = ExtResource("1_xi683")
 stat = "banishes"
 value = 1.0
 target = "player"
 
 [resource]
-script = ExtResource("2_70wpa")
+script = ExtResource("5_wes8p")
 order = 4
 ranks = 6
 cost = [325.0, 1300.0, 2925.0, 5200.0, 8125.0, 11700.0]
 forms = [{
 "effects": [SubResource("Resource_xi683")],
-"icon": ExtResource("2_xi683"),
+"icon": ExtResource("2_mxoig"),
 "icon_file": "choice_0_icon.png",
 "name": "Reroll",
 "text": "+1 reroll a run, a rank."
 }, {
 "effects": [SubResource("Resource_mxoig")],
-"icon": ExtResource("3_mxoig"),
+"icon": ExtResource("3_l7mfe"),
 "icon_file": "choice_1_icon.png",
 "name": "Banish",
 "text": "+1 banish a stage, a rank."
@@ -39,7 +39,7 @@ forms = [{
 id = "choice"
 display_name = "Choice"
 flavour = "See another, or throw one away."
-icon = ExtResource("2_qnekd")
+icon = ExtResource("4_qeddh")
 icon_file = "choice_icon.png"
 placeholder = {
 "color": "#C9A227",

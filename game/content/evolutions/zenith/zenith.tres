@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/evolutions/zenith/zenith_icon.png" id="1_onuy1"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_qeg7u"]
-[ext_resource type="PackedScene" path="res://content/evolutions/zenith/zenith_visual.tscn" id="2_onuy1"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_hj60l"]
+[ext_resource type="PackedScene" path="res://content/evolutions/zenith/zenith_visual.tscn" id="3_uvq7m"]
 
 [resource]
-script = ExtResource("1_qeg7u")
+script = ExtResource("2_hj60l")
 behavior = "SunScepter"
 tags = ["magic"]
 targeting = "random"
@@ -26,7 +26,7 @@ sfx = {
 "fire": "w_sun_warn",
 "hit": "w_sun_strike"
 }
-visual = ExtResource("2_onuy1")
+visual = ExtResource("3_uvq7m")
 visual_file = "zenith_visual.tscn"
 params = {
 "familiar": {

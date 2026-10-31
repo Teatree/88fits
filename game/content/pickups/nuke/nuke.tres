@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PickupDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/pickups/nuke/nuke_icon.png" id="1_0wmhw"]
-[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_q060c"]
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="2_bckdg"]
 
 [resource]
-script = ExtResource("1_q060c")
+script = ExtResource("2_bckdg")
 effect_kind = "nuke"
 value = 400.0
 lifetime = 40.0

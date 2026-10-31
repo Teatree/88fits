@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_d1mkt"]
-[ext_resource type="Texture2D" path="res://content/passives/ducktape/ducktape_icon_b.png" id="1_d7llp"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ff6ld"]
+[ext_resource type="Texture2D" path="res://content/passives/ducktape/ducktape_icon_b.png" id="1_ff6ld"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_d7llp"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_526gh"]
 
 [sub_resource type="Resource" id="Resource_ff6ld"]
-script = ExtResource("1_d1mkt")
+script = ExtResource("2_d7llp")
 stat = "debuff_duration"
 op = "mul"
 value = 0.15
 target = "player"
 
 [resource]
-script = ExtResource("2_ff6ld")
+script = ExtResource("3_526gh")
 line = true
 levels = [[SubResource("Resource_ff6ld")]]
 max_level = 4
@@ -56,7 +56,7 @@ id = "ducktape"
 display_name = "The Hourglass"
 flavour = "The Hourglass turns. What you hand out lingers."
 weight = 9.0
-icon = ExtResource("1_d7llp")
+icon = ExtResource("1_ff6ld")
 icon_file = "ducktape_icon.png"
 placeholder = {
 "color": "#A8B0B8",

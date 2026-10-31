@@ -1,24 +1,24 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tp2lg"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_8c12b"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8c12b"]
 [ext_resource type="Texture2D" path="res://content/mutations/accelerant/accelerant_icon.png" id="2_pqfwe"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_2mgrd"]
 
 [sub_resource type="Resource" id="Resource_8c12b"]
-script = ExtResource("1_tp2lg")
+script = ExtResource("1_8c12b")
 stat = "fire_damage"
 
 [sub_resource type="Resource" id="Resource_pqfwe"]
-script = ExtResource("1_tp2lg")
+script = ExtResource("1_8c12b")
 stat = "fire_duration"
 
 [sub_resource type="Resource" id="Resource_2mgrd"]
-script = ExtResource("1_tp2lg")
+script = ExtResource("1_8c12b")
 stat = "fire_spread"
 value = 0.4
 
 [resource]
-script = ExtResource("2_8c12b")
+script = ExtResource("3_2mgrd")
 weapon = "molotov"
 mutation_kind = "element"
 text = "Clouds last twice as long and burning creatures spread the fire when they die."

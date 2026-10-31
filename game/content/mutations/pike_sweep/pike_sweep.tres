@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0v1v4"]
-[ext_resource type="Texture2D" path="res://content/mutations/pike_sweep/pike_sweep_icon.png" id="1_h1b25"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_v0fd3"]
+[ext_resource type="Texture2D" path="res://content/mutations/pike_sweep/pike_sweep_icon.png" id="2_hn3df"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_owclg"]
 
 [sub_resource type="Resource" id="Resource_0v1v4"]
 script = ExtResource("1_0v1v4")
@@ -11,7 +11,7 @@ op = "mul"
 value = -0.4
 
 [resource]
-script = ExtResource("1_v0fd3")
+script = ExtResource("3_owclg")
 weapon = "pike"
 text = "A 120° sweep like a sabre's, with less knockback."
 vfx = "the spear swings across the front, every spear of the volley sweeping together"
@@ -29,7 +29,7 @@ display_name = "Wide Sweep"
 flavour = "Everything in front of you."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("1_h1b25")
+icon = ExtResource("2_hn3df")
 icon_file = "pike_sweep_icon.png"
 placeholder = {
 "color": "#D8C8A0",

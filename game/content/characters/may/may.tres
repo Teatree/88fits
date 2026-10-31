@@ -1,24 +1,24 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_huik1"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_icon_p.png" id="2_yg02d"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_tlaal"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_88hbp"]
+[ext_resource type="Texture2D" path="res://content/characters/may/may_icon_p.png" id="2_oq0di"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_ycwds"]
 
 [sub_resource type="Resource" id="Resource_88hbp"]
-script = ExtResource("1_huik1")
+script = ExtResource("1_88hbp")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
 [sub_resource type="Resource" id="Resource_oq0di"]
-script = ExtResource("1_huik1")
+script = ExtResource("1_88hbp")
 stat = "cooldown"
 op = "mul"
 value = -0.015
 target = "player"
 
 [resource]
-script = ExtResource("3_tlaal")
+script = ExtResource("3_ycwds")
 level_trait = [SubResource("Resource_oq0di")]
 order = 8
 trait_name = "No Time"
@@ -276,7 +276,7 @@ variant = "MAY-P"
 id = "may"
 display_name = "May"
 flavour = "Now you see her. Now you don't."
-icon = ExtResource("2_yg02d")
+icon = ExtResource("2_oq0di")
 icon_file = "may_icon_g.png"
 placeholder = {
 "color": "#141418",

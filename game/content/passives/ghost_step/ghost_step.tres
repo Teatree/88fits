@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/ghost_step/ghost_step_icon_b.png" id="1_e2k5o"]
+[ext_resource type="Texture2D" path="res://content/passives/ghost_step/ghost_step_icon_b.png" id="1_mp14y"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_e2k5o"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_l2e50"]
 
@@ -62,7 +62,7 @@ display_name = "The Ghost Risen"
 flavour = "The Ghost takes your place. You were never there."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_e2k5o")
+icon = ExtResource("1_mp14y")
 icon_file = "ghost_step_icon.png"
 placeholder = {
 "color": "#FFB84A",

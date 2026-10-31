@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_162xy"]
 [ext_resource type="Texture2D" path="res://content/mutations/second_sting/second_sting_icon.png" id="1_s5xxu"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_oleps"]
 
 [resource]
-script = ExtResource("1_162xy")
+script = ExtResource("2_oleps")
 weapon = "hornet_nest"
 text = "A bee that kills turns and dives at the next creature, once."
 vfx = "the bee loops round and stings again"

@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_pqa5u"]
-[ext_resource type="Texture2D" path="res://content/enemies/saiga_sniper/saiga_sniper_icon_a.png" id="5_m25ee"]
+[ext_resource type="Texture2D" path="res://content/enemies/saiga_sniper/saiga_sniper_icon_a.png" id="1_ukk4d"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_3d0on"]
 
 [resource]
-script = ExtResource("2_pqa5u")
+script = ExtResource("2_3d0on")
 archetype = "spitter"
 doc = "Garry's picture (pass 73): a saiga antelope in a long fringed poncho with a long scoped rifle. A special (gear badge), never an Elite, one at a time. He comes in at the map's edge (26 m off) and walks towards the hero like the Spit Cactus, a bit faster, until he is within 16 m; there he holds and aims, and he never runs away (pass 81). Aiming, he stands frozen in his aiming pose: thin red lines sweep in from the sides of his aim and gather on the hero, more and faster, following him for 2 s; then they lock, hold 1 s, and a laser crosses the whole map along the locked line, leaving red sparks. It hits the hero for 0.7 x the Vulture Raider's rocket at the same stage and shoves him, and it nicks the creatures on its line (5% of their health) and pushes them aside. A shot every 9 s or so. A hit spoils his aim (no shot)."
 brain = "sniper"
@@ -149,7 +149,7 @@ variance = {
 id = "saiga_sniper"
 display_name = "Saiga Sniper"
 flavour = "He saw you three ridges ago. The red lines mean he has stopped waiting."
-icon = ExtResource("5_m25ee")
+icon = ExtResource("1_ukk4d")
 icon_file = "saiga_sniper_icon.png"
 placeholder = {
 "color": "#7A4A2A",

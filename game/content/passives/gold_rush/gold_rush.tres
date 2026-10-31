@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon_b.png" id="1_m8uhn"]
+[ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon_b.png" id="1_f2dl5"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_m8uhn"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_afda2"]
 
@@ -63,7 +63,7 @@ display_name = "The King Risen"
 flavour = "The King's purse is a war chest. Money talks; yours shouts."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_m8uhn")
+icon = ExtResource("1_f2dl5")
 icon_file = "gold_rush_icon.png"
 placeholder = {
 "color": "#FFB84A",

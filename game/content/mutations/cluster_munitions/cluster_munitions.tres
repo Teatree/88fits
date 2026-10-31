@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/mutations/cluster_munitions/cluster_munitions_icon.png" id="1_2o63h"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_yqdlo"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_scghv"]
 
 [resource]
-script = ExtResource("1_yqdlo")
+script = ExtResource("2_scghv")
 weapon = "rocket_pod"
 mutation_kind = "volume"
 text = "30% of blasts scatter five bomblets: step on one and it pops for a quarter of the rocket's damage."

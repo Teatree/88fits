@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5og8m"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_db2ui"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_db2ui"]
 [ext_resource type="Texture2D" path="res://content/mutations/incendiary/incendiary_icon.png" id="2_v0id7"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_058h1"]
 
 [sub_resource type="Resource" id="Resource_db2ui"]
-script = ExtResource("1_5og8m")
+script = ExtResource("1_db2ui")
 stat = "fire_damage"
 value = 4.0
 
 [sub_resource type="Resource" id="Resource_v0id7"]
-script = ExtResource("1_5og8m")
+script = ExtResource("1_db2ui")
 stat = "fire_duration"
 value = 1.8
 
 [sub_resource type="Resource" id="Resource_058h1"]
-script = ExtResource("1_5og8m")
+script = ExtResource("1_db2ui")
 stat = "fire_spread"
 value = 0.4
 
 [resource]
-script = ExtResource("2_db2ui")
+script = ExtResource("3_058h1")
 weapon = "lob_grenade"
 mutation_kind = "element"
 text = "Leaves a burning patch."

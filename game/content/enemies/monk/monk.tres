@@ -194,7 +194,7 @@ squad = {
 "up": 1.8
 },
 "hold": 3.0,
-"keep_distance": 4.0,
+"keep_distance": 8.0,
 "orb": {
 "aim": "cloud",
 "color": "#2F7BFF",
@@ -204,7 +204,7 @@ squad = {
 "lead": 0.0,
 "pulse": 0.12,
 "pulse_hz": 3.0,
-"range": 26.25,
+"range": 52.5,
 "size": 0.5,
 "speed": 5.0,
 "trail": {
@@ -214,7 +214,7 @@ squad = {
 "size": 0.6
 }
 },
-"range": 6.0,
+"range": 12.0,
 "release": 1.0,
 "rise": 0.5,
 "sizes": [10.0, 20.0, 30.0],

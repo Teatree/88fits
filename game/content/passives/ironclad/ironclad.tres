@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/ironclad/ironclad_icon_b.png" id="1_kj73p"]
+[ext_resource type="Texture2D" path="res://content/passives/ironclad/ironclad_icon_b.png" id="1_71v1f"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_kj73p"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_qet7a"]
 
@@ -63,7 +63,7 @@ display_name = "The Giant Risen"
 flavour = "The Giant in iron. Built like a stove."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_kj73p")
+icon = ExtResource("1_71v1f")
 icon_file = "ironclad_icon.png"
 placeholder = {
 "color": "#FFB84A",

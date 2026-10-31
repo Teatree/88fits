@@ -224,7 +224,11 @@ func mutations_of(weapon_id: String) -> Array:
 	for m: MutationDef in mutations.values():
 		if m.weapon == weapon_id and not m.is_hero() and not m.hidden:
 			out.append(m)
-	out.sort_custom(func(a, b): return int(MUTATION_ORDER.get(a.mutation_kind, 9)) < int(MUTATION_ORDER.get(b.mutation_kind, 9)))
+	# pass 116 (lane REPLAY): ties by id (sort_custom is not stable: the scan's order must never pick the order)
+	out.sort_custom(func(a, b) -> bool:
+		var ka := int(MUTATION_ORDER.get(a.mutation_kind, 9))
+		var kb := int(MUTATION_ORDER.get(b.mutation_kind, 9))
+		return ka < kb or (ka == kb and a.id < b.id))
 	return out
 
 
@@ -673,7 +677,11 @@ func sorted_maps() -> Array:
 
 
 func elites_list() -> Array:
-	return elites.values()
+	# pass 116 (lane REPLAY): by id, so a random Elite modifier is the same draw on every device and build (the folder
+	# scan's order is the file system's)
+	var out: Array = elites.values()
+	out.sort_custom(func(a, b): return a.id < b.id)
+	return out
 
 
 ## The Mirror's talents in board order.

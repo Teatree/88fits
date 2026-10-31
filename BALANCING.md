@@ -8315,3 +8315,109 @@ tools/dl/p115/BOSS/shots/ (king_s1, gila_s2 Nightfall, brander_s3 Blood Moon, ki
   the attack begins only with the hero within about 13 m of the boss, and every bullet stops at the wall's inner face,
   so the 2x range of pass 114 now matters only if he sets `radius_mode` back to "range" (Level Editor, Boss attacks,
   Barrier: "Where it stands").
+
+## 59. Pass 116: lanes' rules
+
+### 59.RESULTS
+
+- **Endless with a Wanted poster open** (Garry: "If Player is playing the Endless Mode and they have a Wanted Task to
+  finish this stat increase on enemies is only 33% as effective as it normally is. The moment Player manages to
+  complete the task the stat increase picks up from there at a normal regular pace."). Map key
+  `timeline_data.endless.open_task_growth` (default 0.33; Level Editor, Endless: "Growth with a Wanted poster open").
+  While the run's poster is open (taken, neither done nor failed) each new Endless wave adds only 0.33 of a growth step:
+  HP (hp_growth, compounding), attack (atk_growth) and speed (speed_growth, also on the creatures already alive) use
+  the steps reached, not the wave number; Endless's knock resistance climbs at 0.33 of its pace. Once the poster is
+  done (or failed: it can no longer be finished) every wave adds a whole step again from where the growth stands, so
+  nothing jumps; what the open poster held back is never made up. The wave count, the wave sizes, the XP and coin rules
+  are unchanged. Code: WaveDirector.endless_growth_share, Run.endless_growth_steps / endless_growth_seconds,
+  WaveTimeline.endless_mults_steps. If Endless ever feels oddly gentle, an open poster is the reason.
+- **Results, the bounty** (show only, no new numbers paid): after the banked gold counts, the poster's panel fades in, its
+  bar counts from 0 to how far the run came (1.1 s of BOUNTY_TIME 1.6 s), a stamp lands (PAID / FAILED / NOT DONE), the
+  reward shows as a coin and a gold "+N"; a paid one then flies 6 coins into the Banked count, which ticks up by N
+  (BOUNTY_PAY_TIME 1.1 s). The reward is still paid once, at the run's end (WantedRun.settle); a tap hurries or skips it
+  like the rest of the show.
+- **Dragon's Breath ready sign**: when its cooldown runs out a small spiky ring of flame collapses into the hero's face
+  in 0.45 s (blue with Blue Flame). A look only; `params.breath.ready_sign: false` turns it off.
+
+### 59.REPLAY What a replay shows is what was played (no gameplay number changed)
+
+Garry: "the Replay watch tool still randomizes the Elites that spawn ... I got a different Elite while playing from the
+one that I saw when watching the replay".
+- **The cause**: the wave director drew everything from one stream of dice: the Elite's modifier, the specials, and
+  the power-up roll on every single kill. One kill more or less in the replay (the phone's ARM and the PC's x86 work
+  floats a hair differently, so late in a run a shot can miss in one and hit in the other) moved every later draw,
+  so the next Elite came with another modifier.
+- **Now**: the director has four streams, all from the run's seed: the spawns' own, the **Elites'** (modifier and
+  roster creature), the **specials'** (when and which), and the **per-kill power-up drops'**. Kills only move the drop
+  stream, so the n-th Elite of a run is the same Elite in its replay, whatever the crowd did. Its spot (a ring round
+  the hero) still follows where the hero and the crowd are.
+- **Random Elite modifiers** are drawn from the modifiers sorted by id (before: the order the content folders were
+  read in, which can differ between a phone build and the PC); the structures' shuffle the same; a weapon's mutations
+  tie-break by id.
+- **Each run its own seed** (a bug found on the way): every run after the first in one sitting reused the first run's
+  seed (the dice repeated) until the app closed. A tool's seed (the run sim, the Watch) is now kept apart.
+- **Replay checks** also compare a digest of the run's events (Elites, modifiers, specials, totem offers, bosses, the
+  Stranger: `ev`) and the director's dice (`wd`); recordings from 0.97/0.98 have neither and are compared as before.
+
+### 59.FIGHT Monks, charges, the Gila's warning, the Invisible Box
+- **Monks** (content/enemies/monk `squad`): they stand with their near edge between `keep_distance` 8 m (was 4) and
+  `range` 12 m (was 6) from the hero and shoot from there; the spheres fly `orb.range` 52.5 m (was 26.25). On a
+  portrait phone the view reaches about 6-7 m to each side of the hero and about 9-12 m up/down, so a squad standing
+  at 8-12 m is at or just past the screen's edge to the side, and its spheres cross the whole screen.
+- **Bull Beetle** `charge.trigger_range` 9.0 m (Garry's 7.5 x 1.2); **Dune Scorpion** (the Scorpion Elite) 9.9 m (the
+  Beetle's x 1.1; was 8.0).
+- **The Gila's eruption warning**: her burrow's `warn` 3.0 s (was 0.5): that many seconds (x 1/pace: 3.7 s at Red
+  Canyon's 0.81) before she comes up a red ring the size of the real hit (`radius` 5 m) lies on the spot, which is
+  locked at the warning's start where the hero will be `predict` (0.6) s on; inside it a red disc fills out to the ring
+  at the moment she erupts, and the ring pulses (`warn_pulse_hz` 2 a second, quickening to 4). `warn_fill: false` on a
+  burrow row brings back the old fading ring. Her whole time in the sand is unchanged (wind-up 4.85 s less the 0.6 s
+  sink = 4.25 s, pass 115's x1.25 of pass 114's 3.4 s, which was already in the game); the unmarked wait before the
+  warning is now 1.25 s.
+- **May's Invisible Box** (content/perks/invisible_box, `special` "box", her second perk, rare, weight 6): after
+  `first` 10 s, then every `every` 25 s, a see-through box with white edges rises round her for `seconds` 3 s
+  (stretched by buff duration like every buff), turning `spin` 0.35 rad a second. While it stands every hit is blocked
+  as the Shield power-up blocks it: no damage, no shove ("BLOCK"); each blocked hit flashes the box and sends a white
+  ripple over the face it struck. Its size is `width` 2 m x `height` 2.4 m; while the Shield power-up's bubble is up too
+  the box grows to stand round it (2.94 m wide, 2.52 m high) and draws after it, so both read. The card text is
+  written from these numbers (TextGen.perk_text).
+
+### 59.MAP Three barrel kinds, painted; every stage run its own map
+- Three barrel kinds (Garry's "Barrel Variant Terrain Comparison Board"), painted billboards cut straight from it
+  (tools/cut_barrels.py -> game/art/sprites/barrels/barrel_exp|coins|powerup.png; core/systems/BarrelField.gd):
+  - **EXP** (brown wood, iron hoops): 8 small gems, no coins, never a power-up. Weight 0.648 (~65% of barrels).
+  - **EXP + Coins** (gold hoops and studs; pass 87's black barrel): 10 small + 4 medium gems, 1-5 coins, never a
+    power-up. Weight 0.22 (~22%); the map's last two start spots are always this kind (pass 87 EXTRA_DARK).
+  - **Power-up** (iron hoops, a white stripe): no gems, no coins, a power-up thrown out the pass 112 way (powerup_chance
+    1.0, the old black barrel's list heart 6 / rage 3 / sprint 3 / shield 2 / magnet_pulse 2 / nuke 2, 5-7 m). Weight
+    0.132 = 0.6 x the EXP + Coins weight (Garry: "about 60% of the amount of the EXP+Coins").
+  - The weights pick each start barrel's kind and each respawned barrel's kind (the respawn's old `black_chance` is
+    ignored). Keys: `timeline_data.barrels.exp|coins|powerup` {weight, gems_small, gems_medium, coins; powerup only:
+    powerup_chance, powerups, throw_distance}; the old `brown`/`black` blocks are read as exp/coins (their power-up keys
+    dropped, the powerup kind takes the old black list when it has none). Level Editor: Settings, Barrels card.
+  - Heights (the square picture's side): EXP 1.06 m, EXP + Coins 1.15 m, Power-up 1.12 m (the board's relative sizes).
+    They draw on the structures' stencil (5): outlines behind them and the stage filters as before.
+  - Splinters: wood for all, gold bits from the EXP + Coins one, white stripe bits from the Power-up one. "A GOOD
+    BARREL" toast and the bigger kick stay with the EXP + Coins one. The bot treats both rarer kinds as the good barrel.
+- Every stage run rolls its own map (river, oases, props, totems, teleports, barrels): `Run.map_seed` comes from the run's
+  own seed, and since lane REPLAY's fix this pass every run (each stage start included) gets a fresh seed; before it, every
+  run in one app session reused the first run's seed, so stages 2 and 3 replayed stage 1's layout. A replay forces the
+  run's seed and gets the same map. The fort wall and cliffs are a full ring round the map, so they look the same on every
+  map by design.
+
+### 59.STAGE Stage 3 (Blood Moon) rewritten: paced, themed, a fair ramp
+
+- Every roster row of stage 3's window (map clock 1031..1810, the Blood Moon's 0:00..13:00) was replaced; stages 1 and
+  2, the events (the Elite at 6:30 = 1420, the Brander at 13:00 = 1810), the boss fight window and every map-wide number
+  (cap curve, hell_cap, HP/ATK curves, stage_mults) are unchanged. The old rows are kept in
+  tools/dl/p116/STAGE/old_stage3_rows.json; the rewrite is tools/dl/p116/STAGE/stage3_rows.py.
+- Why: the old stage opened on three continuous rows (imps on the hell channel, skeletons, fire ants) that filled the
+  cap (about 320 alive) within 10 s; a fresh hero with half the board died at 0:20 (median of 8 sims), all 8 before 0:50.
+- The new rule of the stage: mostly waves and set pieces in Garry's stage 1-2 style, continuous rows only with a
+  `max_alive` (imps 18 -> 35 -> 50, hellhounds 10 -> 16 -> 22 alive at most, by phase), something new every 40-90 s.
+  Theme: the dead wake (red-tinted skeletons and KN-E knights), hell leaks through (imps and hellhounds on the hell
+  channel, ANT-E/ANT-B fire ants, RG-B red goblins and runts), a cult's rite (a dark MK-C monk squad, dust shamans),
+  the mummies rise (DM-G, one shielded Cyclopean Mummy), hell's heavies (HG-C giants, red gunmen, bombers), and at
+  9:35 the Blood Moon rises: a red werewolf pack (banner BLOOD MOON!) and werewolf waves to 12:20; 12:20..13:00 is a
+  breather before the Brander. Early rows hit softer (damage_mult 0.6-0.7) and creature HP is set per row (hp_mult
+  0.06-0.6, rising by phase).
+- Rows with no end (imps, hellhounds, knights, shaman, giant, plus fire ants and werewolves from 13:01, once the Brander is up) feed Endless.

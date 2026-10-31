@@ -1,36 +1,36 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5a83v"]
-[ext_resource type="Texture2D" path="res://content/passives/steady_hand/steady_hand_icon.png" id="1_gxlqm"]
 [ext_resource type="Texture2D" path="res://content/passives/steady_hand/steady_hand_icon_evolved.png" id="1_wftx0"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_gxlqm"]
+[ext_resource type="Texture2D" path="res://content/passives/steady_hand/steady_hand_icon.png" id="2_20cc1"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_4obgf"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_g5ole"]
 
 [sub_resource type="Resource" id="Resource_wftx0"]
-script = ExtResource("1_5a83v")
+script = ExtResource("3_4obgf")
 stat = "still_might"
 value = 0.13
 target = "player"
 
 [sub_resource type="Resource" id="Resource_20cc1"]
-script = ExtResource("1_5a83v")
+script = ExtResource("3_4obgf")
 stat = "still_might"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_4obgf"]
-script = ExtResource("1_5a83v")
+script = ExtResource("3_4obgf")
 stat = "still_might"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_g5ole"]
-script = ExtResource("1_5a83v")
+script = ExtResource("3_4obgf")
 stat = "still_might"
 value = 0.05
 target = "player"
 
 [resource]
-script = ExtResource("2_gxlqm")
+script = ExtResource("4_g5ole")
 levels = [[SubResource("Resource_wftx0")], [SubResource("Resource_20cc1")], [SubResource("Resource_4obgf")], [SubResource("Resource_g5ole")]]
 max_level = 4
 text = "The longer you stand still, the harder you hit: +13% attack damage a second (faster each rung), up to +100%. Moving drops it."
@@ -40,7 +40,7 @@ display_name = "Steady Hand"
 flavour = "Breathe out. Squeeze."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("1_gxlqm")
+icon = ExtResource("2_20cc1")
 icon_file = "steady_hand_icon.png"
 placeholder = {
 "color": "#C0C8D0",

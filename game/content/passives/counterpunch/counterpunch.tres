@@ -1,114 +1,114 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/counterpunch/counterpunch_icon.png" id="1_08xkr"]
 [ext_resource type="Texture2D" path="res://content/passives/counterpunch/counterpunch_icon_evolved.png" id="1_iciby"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_iciby"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_skifw"]
+[ext_resource type="Texture2D" path="res://content/passives/counterpunch/counterpunch_icon.png" id="2_skifw"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_7fd1h"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_ps1a8"]
 
 [sub_resource type="Resource" id="Resource_iciby"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_damage"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_skifw"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_haste"
 value = 0.25
 target = "player"
 
 [sub_resource type="Resource" id="Resource_7fd1h"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_speed"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ps1a8"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_seconds"
 value = 2.5
 target = "player"
 
 [sub_resource type="Resource" id="Resource_lq4tp"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_haste"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_heprc"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_speed"
 value = 0.025
 target = "player"
 
 [sub_resource type="Resource" id="Resource_asfs1"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_seconds"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_j87jc"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_haste"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_i73q2"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_speed"
 value = 0.025
 target = "player"
 
 [sub_resource type="Resource" id="Resource_88wu7"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_seconds"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_d8ggf"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_haste"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_fui1u"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_speed"
 value = 0.025
 target = "player"
 
 [sub_resource type="Resource" id="Resource_52rvb"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_seconds"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_vjgqh"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_damage"
 value = 0.5
 target = "player"
 
 [sub_resource type="Resource" id="Resource_nph7p"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_haste"
 value = 0.06
 target = "player"
 
 [sub_resource type="Resource" id="Resource_762bt"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_speed"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_gqakd"]
-script = ExtResource("2_iciby")
+script = ExtResource("3_7fd1h")
 stat = "counter_seconds"
 value = 0.3
 target = "player"
 
 [resource]
-script = ExtResource("3_skifw")
+script = ExtResource("4_ps1a8")
 levels = [[SubResource("Resource_iciby"), SubResource("Resource_skifw"), SubResource("Resource_7fd1h"), SubResource("Resource_ps1a8")], [SubResource("Resource_lq4tp"), SubResource("Resource_heprc"), SubResource("Resource_asfs1")], [SubResource("Resource_j87jc"), SubResource("Resource_i73q2"), SubResource("Resource_88wu7")], [SubResource("Resource_d8ggf"), SubResource("Resource_fui1u"), SubResource("Resource_52rvb")], [SubResource("Resource_vjgqh"), SubResource("Resource_nph7p"), SubResource("Resource_762bt"), SubResource("Resource_gqakd")]]
 max_level = 5
 text = "After an evade, your next attack deals double damage, and for 2.5 s you attack 25% faster and move 20% faster. Evolved: 2.5 times."
@@ -118,7 +118,7 @@ display_name = "Counterpunch"
 flavour = "Duck. Then swing."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_08xkr")
+icon = ExtResource("2_skifw")
 icon_file = "counterpunch_icon.png"
 placeholder = {
 "color": "#E0503C",

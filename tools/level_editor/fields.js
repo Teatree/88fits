@@ -91,8 +91,8 @@ const FIELDS = (() => {
     { key: 'role', label: 'Role', type: 'select', group: 'Creature', options: [{ v: '', label: '(untagged)', help: 'no role: drawn neutral grey' }, { v: 'fodder', label: 'fodder', help: 'the plain crowd' }, { v: 'swarm', label: 'swarm', help: 'a burst of many at once' }, { v: 'tank', label: 'tank', help: 'slow and tough' }, { v: 'ranged', label: 'ranged', help: 'shoots from a distance' }, { v: 'elite', label: 'elite', help: 'wears an elite modifier' }, { v: 'special', label: 'special', help: 'comes as its coloured special' }], def: '', help: 'what this row is for, in your words: it colours and groups the bar on the Timeline (Spawn rows: colour by role, group by role). The game ignores it' },
     { key: 'elite', label: 'Elite modifier', type: 'elite', def: '', group: 'Creature', help: 'every creature of the row wears this elite modifier: none, random (a fresh one each creature), or one by name; they wait for Colour after kills (Settings -> Spawning) like the coloured-elite events did, and never roll the coloured special' },
     { key: 'special', label: 'Special', type: 'bool', def: false, group: 'Creature', help: 'on: every creature of the row comes as its coloured special for sure (its Special block on the Enemies tab: size, HP x, ATK x, XP x, colour, glow), even before Colour after kills: the special Goblin at 2:00 is a once row of 1 with this on. A creature with no variance block comes plain' },
-    { key: 't', label: 'From', type: 'seconds', int: true, min: 0, required: true, help: 'the run second the row starts being drawn (the clock stands still through boss fights and portals)' },
-    { key: 'until', label: 'Until', type: 'seconds', int: true, min: 0, help: 'the run second the row stops; empty = to the end of the run' },
+    { key: 't', label: 'From', type: 'seconds', clock: true, int: true, min: 0, required: true, help: 'the run second the row starts being drawn (the clock stands still through boss fights and portals)' },
+    { key: 'until', label: 'Until', type: 'seconds', clock: true, int: true, min: 0, help: 'the run second the row stops; empty = to the end of the run' },
     { key: 'weights', label: 'Presence', type: 'weights', help: 'the row\'s draw weight over the run clock as [time, weight] points: linear between them, flat before the first and after the last; its share of a burst is its weight against the other open rows of its channel (10 against 4 = 71% / 29%). Drag the points on the bar; double-click the bar to add one, a point to remove it. A row paced as Waves (Pacing) is not in that draw: its presence only switches its waves on and off (a wave due while the weight is 0 does not come; the weight\'s size does not change the wave, Per wave does), unless it is Also continuous' },
     { key: 'channel', label: 'Channel', type: 'select', options: CHANNELS, def: 'regular', help: 'regular crowd, or the hell channel with its own cap' },
     { key: 'pack', label: 'Pack', type: 'int', min: 1, help: 'how many spawn together; empty = the creature\'s own pack size' },
@@ -122,8 +122,8 @@ const FIELDS = (() => {
   const wave = [
     { key: 'name', label: 'Name', type: 'text', help: 'a label for the editor and the hand-back notes; the game never shows it' },
     { key: 'id', label: 'Id', type: 'text', help: 'a short unique id (the editor fills one in)' },
-    { key: 't', label: 'From', type: 'seconds', int: true, min: 0, required: true, help: 'the run second of the first burst' },
-    { key: 'until', label: 'Until', type: 'seconds', int: true, min: 0, help: 'no burst after this run second; empty = no end (the count ends it, or nothing does)' },
+    { key: 't', label: 'From', type: 'seconds', clock: true, int: true, min: 0, required: true, help: 'the run second of the first burst' },
+    { key: 'until', label: 'Until', type: 'seconds', clock: true, int: true, min: 0, help: 'no burst after this run second; empty = no end (the count ends it, or nothing does)' },
     { key: 'count', label: 'Total count', type: 'int', min: 0, def: 20, help: 'how many creatures in all; 0 = no total (runs until `until`)' },
     { key: 'burst', label: 'Per burst', type: 'int', min: 1, def: 5, help: 'how many spawn together in each burst' },
     { key: 'every', label: 'Every (s)', type: 'number', min: 0, step: 0.5, def: 2, help: 'seconds between bursts' },
@@ -154,7 +154,7 @@ const FIELDS = (() => {
   const event = [
     { key: 'type', label: 'Type', type: 'select', options: Object.keys(EVENT_TYPES).map((k) => ({ v: k, label: EVENT_TYPES[k].label, help: EVENT_TYPES[k].help })), required: true, help: 'what happens' },
     { key: 'name', label: 'Name', type: 'text', help: 'a label for the editor; the game shows the creature\'s own name' },
-    { key: 't', label: 'At', type: 'seconds', int: true, min: 0, required: true, help: 'the run second it fires' },
+    { key: 't', label: 'At', type: 'seconds', clock: true, int: true, min: 0, required: true, help: 'the run second it fires' },
     { key: 'enemy', label: 'Creature(s)', type: 'enemies', help: 'one creature, or a list drawn at random with optional weights; empty on a coloured elite = a random roster creature, on a swarm = the map\'s walker' },
     { key: 'mod', label: 'Modifier', type: 'elite', def: '', only: ['elite'], help: 'the elite modifier; empty = a random one' },
     { key: 'interval', label: 'Interval (s)', type: 'interval', only: ['elite_every'], def: 90, help: 'seconds between coloured elites: one number, or min and max for a fresh random interval each time' },
@@ -376,6 +376,8 @@ const FIELDS = (() => {
     { key: 'endless.atk_growth', group: 'Endless', label: 'ATK growth a wave', type: 'number', min: 0, step: 0.01, def: 0.1, help: 'each wave × (1 + this) on the last: compounding' },
     { key: 'endless.speed', group: 'Endless', label: 'Wave 1 speed ×', type: 'number', min: 0, step: 0.05, def: 1.15, help: 'wave 1\'s creatures walk this much faster' },
     { key: 'endless.speed_growth', group: 'Endless', label: 'Speed growth a wave', type: 'number', min: 0, step: 0.01, def: 0.02, help: 'linear: wave k = speed × (1 + growth × (k − 1)) ("a lil bit in Speed")' },
+    // pass 116 (lane RESULTS): WaveDirector.endless_growth_share
+    { key: 'endless.open_task_growth', group: 'Endless', label: 'Growth with a Wanted poster open', type: 'percent', def: 0.33, help: 'while the run\'s Wanted poster is still open (taken, not done, not failed) each Endless wave adds only this share of its HP, attack and speed growth, and the knock resistance climbs at this share of its pace; once the poster is done the growth goes on at full pace from where it stands (Garry: 33%). 100% = no difference' },
     { key: 'endless.speed_max', group: 'Endless', label: 'Speed at most ×', type: 'number', min: 0, step: 0.05, def: 1.6, help: 'the speed never grows past this' },
     { key: 'endless.xp_share', group: 'Endless', label: 'XP share', type: 'number', min: 0, max: 1, step: 0.05, def: 0.35, help: 'a kill in Endless drops this share of its XP ("modest amounts")' },
     { key: 'endless.coin_chance', group: 'Endless', label: 'Coin chance', type: 'number', min: 0, max: 1, step: 0.01, def: 0.05, help: 'a creature\'s coin roll happens only this share of the time ("very very rarely")' },
@@ -416,23 +418,28 @@ const FIELDS = (() => {
     { key: 'barrels.respawn.max_per_stage', group: 'Barrels', label: 'Most a stage', type: 'int', min: 0, step: 1, def: 0, help: 'the most barrels that come back in one stage; 0 = no limit (empty = the game\'s 0)' },
     { key: 'barrels.respawn.min_dist', group: 'Barrels', label: 'Distance from (m)', type: 'number', min: 0, step: 1, def: 20, help: 'how far from the hero one comes back, at least (flat metres). The screen shows about 6.5 m to the sides and 20 m up and down early in a run; the game checks the camera\'s real view every time, so this only says how far to start looking (empty = the game\'s 20)' },
     { key: 'barrels.respawn.max_dist', group: 'Barrels', label: 'Distance to (m)', type: 'number', min: 0, step: 1, def: 40, help: 'how far at most; when every spot that near is on the screen (the camera pulls out later in a run) the game looks up to 1.5 × this (empty = the game\'s 40)' },
-    { key: 'barrels.respawn.black_chance', group: 'Barrels', label: 'Black barrel chance', type: 'percent', def: 0.22, help: 'the chance one that comes back is the black kind (the good one: more gems, coins, a better power-up chance). The start\'s own share is 22% plus two that are always black (empty = the game\'s 22%)' },
     { key: 'barrels.respawn.view_margin', group: 'Barrels', label: 'Keep off screen by (m)', type: 'number', min: 0, step: 0.5, def: 2, help: 'metres past the edge of the camera\'s view the barrel and its shadow must keep when it appears, so a step or a turn of the camera does not show it popping in (empty = the game\'s 2)' },
     { key: 'barrels.respawn.in_boss', group: 'Barrels', label: 'During the boss fight', type: 'bool', def: true, help: 'on: barrels keep coming back while the boss is alive (empty = the game\'s: on)' },
     { key: 'barrels.respawn.in_portal', group: 'Barrels', label: 'During the portal countdown', type: 'bool', def: false, help: 'on: barrels keep coming back in the minute the portal counts down to Endless (empty = the game\'s: off)' },
     { key: 'barrels.respawn.in_endless', group: 'Barrels', label: 'In Endless', type: 'bool', def: false, help: 'on: barrels keep coming back in Endless (empty = the game\'s: off)' },
-    ...['brown', 'black'].flatMap((ty) => {
-      const name = ty === 'black' ? 'Black barrel' : 'Brown barrel';
-      const who = ty === 'black' ? 'a black barrel (the rare good one with brass hoops)' : 'a brown barrel (the common one)';
-      const gd = ty === 'black' ? { small: 10, medium: 4, coins: 1 } : { small: 8, medium: 0, coins: 0 };
-      return [
-        { key: `barrels.${ty}.powerup_chance`, group: 'Barrels', label: `${name}: power-up chance`, type: 'percent', def: 0, block: 'barrel_contents', help: `the chance smashing ${who} also throws out a power-up, on top of its gems and coins. The power-up hops out on a visible arc and lands Throw distance away, away from the hero and on the screen where it can; it is never taken in the air, never pulled in by a magnet, and lies there its own time (Heart 22 s, most others 40 s), so walking to it is the player's choice. 0 = never (empty = the game's 0)` },
-        { key: `barrels.${ty}.powerups`, group: 'Barrels', label: `${name}: which power-up`, type: 'barrel_powerups', def: [], block: 'barrel_contents', help: 'which power-up comes out, each with its weight (its share of the weights is shown beside it). Empty = the same mix as the Power-up drops card (what kills drop)' },
-        { key: `barrels.${ty}.throw_distance`, group: 'Barrels', label: `${name}: throw distance (m)`, type: 'interval', unit: 'm', def: 5, block: 'barrel_contents', help: 'how far from the barrel the power-up lands: one number or a range (empty = the game\'s 5 to 7 m). Under about 2 m the hero, who stands at the barrel, may pick it up at once' },
+    // pass 116 (lane MAP; Garry: three kinds, "One of them produces only power ups ... about 60% of the amount of the
+    // EXP+Coins ... the other barrels don't give any power-up anymore"): exp, coins, powerup (BarrelSpawns.CONTENT_DEFAULTS)
+    ...['exp', 'coins', 'powerup'].flatMap((ty) => {
+      const name = { exp: 'EXP barrel', coins: 'EXP + Coins barrel', powerup: 'Power-up barrel' }[ty];
+      const who = { exp: 'the EXP barrel (brown wood, iron hoops)', coins: 'the EXP + Coins barrel (gold hoops and studs)', powerup: 'the Power-up barrel (iron hoops, a white stripe)' }[ty];
+      const gd = { exp: { w: 0.648, small: 8, medium: 0, coins: 0 }, coins: { w: 0.22, small: 10, medium: 4, coins: 1 }, powerup: { w: 0.132, small: 0, medium: 0, coins: 0 } }[ty];
+      const rows = [
+        { key: `barrels.${ty}.weight`, group: 'Barrels', label: `${name}: weight`, type: 'number', min: 0, step: 0.01, def: gd.w, block: 'barrel_contents', help: `how common ${who} is: its weight against the other two kinds' (its share is its weight over the three weights' sum), for the map's start barrels (two more are always EXP + Coins) and for the ones that come back. The game's: EXP 0.648, EXP + Coins 0.22, Power-up 0.132 (60% of EXP + Coins) (empty = the game's ${gd.w})` },
+      ];
+      if (ty === 'powerup') rows.push(
+        { key: 'barrels.powerup.powerup_chance', group: 'Barrels', label: `${name}: power-up chance`, type: 'percent', def: 1, block: 'barrel_contents', help: 'the chance smashing it throws out a power-up (the only kind that does). The power-up hops out on a visible arc and lands Throw distance away, away from the hero and on the screen where it can; it is never taken in the air, never pulled in by a magnet, and lies there its own time (Heart 22 s, most others 40 s), so walking to it is the player\'s choice (empty = the game\'s 100%)' },
+        { key: 'barrels.powerup.powerups', group: 'Barrels', label: `${name}: which power-up`, type: 'barrel_powerups', def: [], block: 'barrel_contents', help: 'which power-up comes out, each with its weight (its share of the weights is shown beside it). Empty = the same mix as the Power-up drops card (what kills drop)' },
+        { key: 'barrels.powerup.throw_distance', group: 'Barrels', label: `${name}: throw distance (m)`, type: 'interval', unit: 'm', def: 5, block: 'barrel_contents', help: 'how far from the barrel the power-up lands: one number or a range (empty = the game\'s 5 to 7 m). Under about 2 m the hero, who stands at the barrel, may pick it up at once' });
+      rows.push(
         { key: `barrels.${ty}.gems_small`, group: 'Barrels', label: `${name}: small gems`, type: 'int', min: 0, step: 1, def: gd.small, block: 'barrel_contents', help: `the small XP gems it bursts into (each worth 1 + 15% a hero level) (empty = the game's ${gd.small})` },
         { key: `barrels.${ty}.gems_medium`, group: 'Barrels', label: `${name}: medium gems`, type: 'int', min: 0, step: 1, def: gd.medium, block: 'barrel_contents', help: `the medium XP gems it bursts into (each worth 4 small) (empty = the game's ${gd.medium})` },
-        { key: `barrels.${ty}.coins`, group: 'Barrels', label: `${name}: coins`, type: 'interval', unit: 'coins', def: gd.coins, block: 'barrel_contents', help: ty === 'black' ? 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s 1 to 5). The start\'s black barrels\' coins are held back from the creatures\' first coins of the run (pass 87: smashing them all pays what the kills paid before); one that came back pays its coins on top' : 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s none). Coins in the start\'s brown barrels are held back from the creatures\' first coins like the black ones\'; one that came back pays on top' },
-      ];
+        { key: `barrels.${ty}.coins`, group: 'Barrels', label: `${name}: coins`, type: 'interval', unit: 'coins', def: gd.coins, block: 'barrel_contents', help: ty === 'coins' ? 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s 1 to 5). The start\'s barrels\' coins are held back from the creatures\' first coins of the run (pass 87: smashing them all pays what the kills paid before); one that came back pays its coins on top' : 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s none)' });
+      return rows;
     }),
     // pass 113 (lane TWISTER; Garry: "Tornadoes still don't look like tornadoes and are quite confusing. Make them rarer
     // too"): DustDevils.DEFAULTS (game/core/systems/DustDevils.gd) are the game's numbers, the def here; dustdevil_card.js

@@ -1710,7 +1710,12 @@ const Jobs = (() => {
     body.appendChild(fieldLine('Candidates', n, help('seeds', CANDIDATES_HELP)));
     const fs = el('input', { type: 'number', class: 'num', step: 1, value: Number(spec.job.first_seed) || 0 });
     fs.addEventListener('change', () => { const v = Math.round(Number(fs.value) || 0); setKey(spec.job, 'first_seed', v || null); fs.value = String(v); });
-    body.appendChild(fieldLine('First seed', fs, help('first_seed', FIRST_SEED_HELP)));
+    // pass 116 (lane EDITOR): a fresh set from the same words in one click
+    const rnd = el('button', { type: 'button', class: 'btn small ghost', text: 'Random seeds', title: 'a random first seed: the same words, new pictures' });
+    rnd.addEventListener('click', () => { const v = 1 + Math.floor(Math.random() * 2000000000); setKey(spec.job, 'first_seed', v); fs.value = String(v); });
+    const line = fieldLine('First seed', fs, help('first_seed', FIRST_SEED_HELP));
+    line.appendChild(rnd);
+    body.appendChild(line);
   }
 
   /** A control for one recipe field of methods.json ({key, type, default, help, options}). */
@@ -2111,6 +2116,8 @@ const Jobs = (() => {
       if (!dlg.isConnected || !state.defaults || state.defaults.jk !== jk) return;
       state.defaults = d;
       const sj = state.spec.job || (state.spec.job = {});
+      // pass 116 (lane EDITOR): a look's own style words fill the Style box too
+      if (!job && jk === 'icon_cands' && d.fields && d.fields.style && !sj.style) sj.style = d.fields.style;
       if (!job) for (const f of CAND_FIELDS[jk] || []) { const v = d.fields[f.key]; if (v != null && v !== '' && (sj[f.key] == null || sj[f.key] === '')) sj[f.key] = v; }
       c.draw();
     });
@@ -2143,6 +2150,35 @@ const Jobs = (() => {
       retag();
       body.appendChild(line);
     }
+    if (jk === 'icon_cands' && d && !d.loading) body.appendChild(iconWordsPreview(body, spec, d, kind));
+  }
+
+  /** Pass 116 (lane EDITOR): the words the icon painter gets, joined as gen_icon_cands.icon_words joins them (the
+   *  reference's sentence, the subject, the style, the screen), live as the fields change, and the seed the shown look
+   *  was painted on. */
+  function iconWordsPreview(body, spec, d, kind) {
+    const w = d.words || {};
+    const box = el('details', { class: 'jwords', open: true });
+    const out = el('pre', { class: 'small', style: 'white-space:pre-wrap;max-height:9em;overflow:auto;margin:4px 0' });
+    box.appendChild(el('summary', { text: 'Words sent to the painter (live)' }));
+    const pick = (k) => { const v = spec.job[k]; return v != null && v !== '' ? String(v) : (d.fields && d.fields[k] != null ? String(d.fields[k]) : ''); };
+    const paint = () => {
+      let subj = pick('subject').trim();
+      if (subj.endsWith('.')) subj = subj.slice(0, -1).trim();
+      const ref = pick('ref').trim();
+      const creature = kind === 'enemy' || kind === 'boss';
+      const lead = ref && !subj.toLowerCase().includes('reference image') ? (creature ? (w.ref_creature || '') : (w.copy || '')) : '';
+      const style = pick('style').trim() || w.style || '(gen_art ICON_STYLE)';
+      const bg = pick('screen') === 'blue' ? w.bg_blue : w.bg_green;
+      out.textContent = `${lead}${subj ? subj + '. ' : ''}${style}. ${bg || ''}.`;
+    };
+    paint();
+    body.addEventListener('input', paint);
+    body.addEventListener('change', paint);
+    box.appendChild(out);
+    const pt = d.painted;
+    if (pt && pt.seed) box.appendChild(el('p', { class: 'help', text: `The icon shown was painted on seed ${pt.seed} (job ${pt.job || '?'}, pick ${pt.pick || '?'}, ${pt.model || 'klein'}). New candidates paint on new seeds; Random seeds below gives a fresh set.` }));
+    return box;
   }
 
   /** A picture field (pass 68, D6/D11): the thumbnail (click to zoom), the path (editable: repo-relative, tools/dl-relative

@@ -1,57 +1,57 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/flare_gun/flare_gun_icon.png" id="1_18vub"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_dvusc"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_18vub"]
-[ext_resource type="PackedScene" path="res://content/weapons/flare_gun/flare_gun_visual.tscn" id="3_8qibb"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_8qibb"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_guh2n"]
+[ext_resource type="PackedScene" path="res://content/weapons/flare_gun/flare_gun_visual.tscn" id="4_qqy6i"]
 
 [sub_resource type="Resource" id="Resource_18vub"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_8qibb"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "cooldown"
 op = "mul"
 value = -0.1913
 
 [sub_resource type="Resource" id="Resource_guh2n"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "fire_spread"
 value = 0.1
 
 [sub_resource type="Resource" id="Resource_qqy6i"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_2oi1r"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "cooldown"
 op = "mul"
 value = -0.0751
 
 [sub_resource type="Resource" id="Resource_ox6w3"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_qrisg"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "fire_duration"
 value = 0.6
 
 [sub_resource type="Resource" id="Resource_5nxhb"]
-script = ExtResource("1_dvusc")
+script = ExtResource("2_8qibb")
 stat = "fire_damage"
 op = "mul"
 value = 0.25
 
 [resource]
-script = ExtResource("2_18vub")
+script = ExtResource("3_guh2n")
 targeting = "healthy"
 base = {
 "amount": 1.0,
@@ -72,7 +72,7 @@ sfx = {
 "fire": "w_flare_fire",
 "hit": "w_flare_hit"
 }
-visual = ExtResource("3_8qibb")
+visual = ExtResource("4_qqy6i")
 visual_file = "flare_gun_visual.tscn"
 params = {
 "familiar": {

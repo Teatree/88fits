@@ -1,23 +1,23 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_21ik7"]
-[ext_resource type="Texture2D" path="res://content/passives/eagle_eye/eagle_eye_icon_b.png" id="1_f83e4"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_s8a58"]
+[ext_resource type="Texture2D" path="res://content/passives/eagle_eye/eagle_eye_icon_b.png" id="1_s8a58"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_f83e4"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_bfitr"]
 
 [sub_resource type="Resource" id="Resource_s8a58"]
-script = ExtResource("1_21ik7")
+script = ExtResource("2_f83e4")
 stat = "crit_chance"
 value = 0.45
 target = "player"
 
 [sub_resource type="Resource" id="Resource_f83e4"]
-script = ExtResource("1_21ik7")
+script = ExtResource("2_f83e4")
 stat = "crit_damage"
 value = 0.5
 target = "player"
 
 [resource]
-script = ExtResource("2_s8a58")
+script = ExtResource("3_bfitr")
 line = true
 levels = [[SubResource("Resource_s8a58"), SubResource("Resource_f83e4")]]
 repeat_last_level = false
@@ -62,7 +62,7 @@ display_name = "The Eye Risen"
 flavour = "The Eye sees the soft spot from a mile off."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_f83e4")
+icon = ExtResource("1_s8a58")
 icon_file = "eagle_eye_icon.png"
 placeholder = {
 "color": "#FFB84A",

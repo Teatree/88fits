@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/armadillo/armadillo_icon.png" id="1_8squx"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_556uc"]
+[ext_resource type="Texture2D" path="res://content/enemies/armadillo/armadillo_icon_f.png" id="1_ow7vr"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_8squx"]
 
 [resource]
-script = ExtResource("1_556uc")
+script = ExtResource("2_8squx")
 doc = "Arrives in the second half of stage 1 in packs of six like the goblins, but armoured: twenty HP and it takes a quarter less from everything, slower than a goblin and harder to cut down, so a pack of them holds a line while the fodder dies around it. Counts as half a creature against the crowd cap."
 hp = 20.0
 speed = 1.6
@@ -19,24 +19,30 @@ drops = {
 }
 anims = {
 "attack": 2.0,
-"die": 5.0,
+"die": 8.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
 "run": 12.0,
-"run_b": 12.0
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
 }
-sprite_path = "res://content/enemies/armadillo/armadillo_sprite.png"
-sprite_file = "armadillo_sprite.png"
+sprite_path = "res://content/enemies/armadillo/armadillo_sprite_f.png"
+sprite_file = "armadillo_sprite_f.png"
 frame_px = 160
-strip_cols = 40
+strip_cols = 91
 fps = {
-"die": 8.0,
-"run": 15.0
+"die": 12.0,
+"run": 20.0
 }
 damage_reduction = 0.25
 knockback = 3.8
-head = 0.894
+head = 0.519
 shadow = {
 "drop": 0.065,
 "scale": [1.35, 1.5],
@@ -187,7 +193,7 @@ variants = {
 "strip_cols": 91
 }
 }
-variant = "ARM-0"
+variant = "ARM-F"
 cap_share = 0.5
 sfx = {
 "die": "en_lizard_die",
@@ -212,7 +218,7 @@ variance = {
 id = "armadillo"
 display_name = "Armadillo"
 flavour = "Built like a helmet. Walks like one."
-icon = ExtResource("1_8squx")
+icon = ExtResource("1_ow7vr")
 icon_file = "armadillo_icon.png"
 placeholder = {
 "color": "#B08A5A",

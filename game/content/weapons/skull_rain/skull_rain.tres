@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/skull_rain/skull_rain_icon.png" id="1_gstfg"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_gstfg"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_rfens"]
-[ext_resource type="PackedScene" path="res://content/weapons/skull_rain/skull_rain_visual.tscn" id="3_rfens"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_e3akl"]
+[ext_resource type="PackedScene" path="res://content/weapons/skull_rain/skull_rain_visual.tscn" id="4_swffb"]
 
 [sub_resource type="Resource" id="Resource_gstfg"]
 script = ExtResource("2_rfens")
@@ -50,7 +50,7 @@ stat = "area"
 value = 0.5
 
 [resource]
-script = ExtResource("2_gstfg")
+script = ExtResource("3_e3akl")
 behavior = "Lobber"
 targeting = "densest_healthy"
 base = {
@@ -72,7 +72,7 @@ sfx = {
 "fire": "w_skull_throw",
 "hit": "w_skull_boom"
 }
-visual = ExtResource("3_rfens")
+visual = ExtResource("4_swffb")
 visual_file = "skull_rain_visual.tscn"
 params = {
 "cloud_seconds": 4.0

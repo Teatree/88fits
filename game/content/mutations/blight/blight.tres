@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_d0b6e"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_70sy4"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_70sy4"]
 [ext_resource type="Texture2D" path="res://content/mutations/blight/blight_icon.png" id="2_gyvt0"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_4h447"]
 
 [sub_resource type="Resource" id="Resource_70sy4"]
-script = ExtResource("1_d0b6e")
+script = ExtResource("1_70sy4")
 stat = "poison_stacks"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_gyvt0"]
-script = ExtResource("1_d0b6e")
+script = ExtResource("1_70sy4")
 stat = "poison_pass"
 value = 1.0
 target = "player"
 
 [resource]
-script = ExtResource("2_70sy4")
+script = ExtResource("3_4h447")
 weapon = "poison_dart"
 mutation_kind = "element"
 text = "+2 poison stacks, and a creature that dies poisoned passes it to the nearest one."

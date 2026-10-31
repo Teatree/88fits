@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_j7jg7"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_c6wth"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_c6wth"]
 [ext_resource type="Texture2D" path="res://content/mutations/tracer_rounds/tracer_rounds_icon.png" id="2_usvhu"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_t4xbd"]
 
 [sub_resource type="Resource" id="Resource_c6wth"]
-script = ExtResource("1_j7jg7")
+script = ExtResource("1_c6wth")
 stat = "fire_damage"
 value = 3.0
 
 [sub_resource type="Resource" id="Resource_usvhu"]
-script = ExtResource("1_j7jg7")
+script = ExtResource("1_c6wth")
 stat = "fire_duration"
 value = 1.5
 
 [sub_resource type="Resource" id="Resource_t4xbd"]
-script = ExtResource("1_j7jg7")
+script = ExtResource("1_c6wth")
 stat = "fire_spread"
 value = 0.3
 
 [resource]
-script = ExtResource("2_c6wth")
+script = ExtResource("3_t4xbd")
 weapon = "tommy_gun"
 mutation_kind = "element"
 text = "The rounds ignite."

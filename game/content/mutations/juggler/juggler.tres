@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_t6u8h"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xw4t6"]
 [ext_resource type="Texture2D" path="res://content/mutations/juggler/juggler_icon.png" id="2_dqsv7"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_xw4t6"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_1pro8"]
 
 [sub_resource type="Resource" id="Resource_xw4t6"]
-script = ExtResource("1_t6u8h")
+script = ExtResource("1_xw4t6")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_dqsv7"]
-script = ExtResource("1_t6u8h")
+script = ExtResource("1_xw4t6")
 stat = "damage"
 op = "mul"
 value = -0.3
 
 [resource]
-script = ExtResource("2_xw4t6")
+script = ExtResource("3_1pro8")
 weapon = "gravity_gun"
 mutation_kind = "volume"
 text = "Picks up two more at once, −30% damage."

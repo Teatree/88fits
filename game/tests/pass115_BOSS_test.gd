@@ -237,8 +237,10 @@ func test_the_gila_stays_under_a_quarter_longer_and_her_warning_with_it() -> voi
 	var under := float(b["windup"]) - float(b["sink"]) - float(b["warn"])
 	# the sink (seen) as it was; the wait under the sand and the ring before she erupts x1.25
 	assert_float(float(b["sink"])).is_equal_approx(float(old["sink"]), 0.0001)
-	assert_float(under).is_equal_approx(under0 * 1.25, 0.0001)
-	assert_float(float(b["warn"])).is_equal_approx(float(old["warn"]) * 1.25, 0.0001)
+	# pass 116 (lane FIGHT re-pin): the red warning is at least 3 s of her time in the ground now (Garry), so the unmarked
+	# wait shrank; the time in the ground as a whole keeps pass 115's x1.25
+	assert_float(under).is_less(under0 * 1.25)
+	assert_float(float(b["warn"])).is_greater_equal(3.0)
 	# everything she spends in the ground (the wait and the warning) x1.25
 	assert_float(float(b["windup"]) - float(b["sink"])).is_equal_approx((float(old["windup"]) - float(old["sink"])) * 1.25, 0.0001)
 

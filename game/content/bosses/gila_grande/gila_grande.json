@@ -44,7 +44,7 @@
         "sink": 0.6,
         "rise": 0.6,
         "predict": 0.6,
-        "warn": 0.5,
+        "warn": 3.0,
         "throw_up": 2.5,
         "throw_out": 4.0,
         "creature_up": 2.5,

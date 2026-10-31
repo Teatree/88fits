@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_07ndq"]
-[ext_resource type="Texture2D" path="res://content/enemies/rocketeer/rocketeer_icon.png" id="1_rscen"]
+[ext_resource type="Texture2D" path="res://content/enemies/rocketeer/rocketeer_icon.png" id="1_mtjia"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_rscen"]
 
 [resource]
-script = ExtResource("1_07ndq")
+script = ExtResource("2_rscen")
 archetype = "spitter"
 doc = "A vulture with a rocket launcher (Garry's picture): keeps 28 m off and sends one slow homing rocket at the hero, then reloads; kill him and the rocket goes loose and dives on the crowd. Every hit on him shakes his rocket and halves its speed, back to full over 3 s (pass 73)."
 brain = "artillery"
@@ -85,7 +85,7 @@ variance = {
 id = "rocketeer"
 display_name = "Vulture Raider"
 flavour = "He waits for you to tire. Then he waits a little less."
-icon = ExtResource("1_rscen")
+icon = ExtResource("1_mtjia")
 icon_file = "rocketeer_icon.png"
 placeholder = {
 "color": "#C0342B",

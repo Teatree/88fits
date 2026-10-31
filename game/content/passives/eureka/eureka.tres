@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon_b.png" id="1_ku7b0"]
+[ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon_b.png" id="1_02jab"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ku7b0"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_2i0ta"]
 
@@ -62,7 +62,7 @@ display_name = "The Miner Risen"
 flavour = "The Miner strikes the vein. Every claim pays; some pay all at once."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_ku7b0")
+icon = ExtResource("1_02jab")
 icon_file = "eureka_icon.png"
 placeholder = {
 "color": "#FFB84A",

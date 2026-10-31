@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon_b.png" id="1_xb37h"]
+[ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon_b.png" id="1_exuag"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_xb37h"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_jpw3f"]
 
@@ -63,7 +63,7 @@ display_name = "The Magnet Risen"
 flavour = "The Magnet pulls the earth open. Every gem in sight comes home."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_xb37h")
+icon = ExtResource("1_exuag")
 icon_file = "mother_lode_icon.png"
 placeholder = {
 "color": "#FFB84A",

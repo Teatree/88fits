@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/slow_burn/slow_burn_icon_b.png" id="1_llrda"]
+[ext_resource type="Texture2D" path="res://content/passives/slow_burn/slow_burn_icon_b.png" id="1_sy8i5"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_llrda"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_idwsr"]
 
@@ -56,7 +56,7 @@ id = "slow_burn"
 display_name = "The Ember"
 flavour = "The Ember never quite goes out. Patience is a kind of fire."
 weight = 9.0
-icon = ExtResource("1_llrda")
+icon = ExtResource("1_sy8i5")
 icon_file = "slow_burn_icon.png"
 placeholder = {
 "color": "#E07030",

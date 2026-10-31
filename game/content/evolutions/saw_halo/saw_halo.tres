@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/evolutions/saw_halo/saw_halo_icon.png" id="1_eho87"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_x6msc"]
-[ext_resource type="PackedScene" path="res://content/evolutions/saw_halo/saw_halo_visual.tscn" id="2_utuoa"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_iqjkn"]
+[ext_resource type="PackedScene" path="res://content/evolutions/saw_halo/saw_halo_visual.tscn" id="3_prr44"]
 
 [resource]
-script = ExtResource("1_x6msc")
+script = ExtResource("2_iqjkn")
 behavior = "Orbiter"
 targeting = "orbit"
 base = {
@@ -24,7 +24,7 @@ sfx = {
 "hit": "w_saw_hit",
 "loop": "w_saw_loop"
 }
-visual = ExtResource("2_utuoa")
+visual = ExtResource("3_prr44")
 visual_file = "saw_halo_visual.tscn"
 params = {
 "rust_patina": {

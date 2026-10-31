@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_dun48"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_5rjsx"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_ow22m"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_dun48"]
 
 [resource]
-script = ExtResource("2_5rjsx")
+script = ExtResource("2_dun48")
 archetype = "elite"
 doc = "The debug arena's Elite dummy (pass 49): a bigger training dummy with the Elites' crown, an Elite by its kind (Big Game Hunter, Giant Slayer, the priority aim, never grabbed or bounced), standing apart from the field; its health and behaviour (stand, patrol, melee for 20, ranged for 14) are the arena's settings, and it stands up again 5 s after it falls and pays nothing."
 brain = "dummy"
@@ -69,7 +69,7 @@ id = "training_dummy_elite"
 display_name = "Elite Dummy"
 flavour = "Crowned, and it knows it."
 hidden = true
-icon = ExtResource("1_dun48")
+icon = ExtResource("1_ow22m")
 icon_file = "res://content/enemies/training_dummy/training_dummy_icon.png"
 placeholder = {
 "color": "#C8A060",

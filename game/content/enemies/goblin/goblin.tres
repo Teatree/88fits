@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_2x7it"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_icon_d.png" id="9_klujv"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin/goblin_icon_d.png" id="1_wm4bo"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_h5rwn"]
 
 [resource]
-script = ExtResource("1_2x7it")
+script = ExtResource("2_h5rwn")
 doc = "The crowd. Everything else is measured against it."
 hp = 6.0
 speed = 1.8
@@ -173,7 +173,7 @@ variance = {
 id = "goblin"
 display_name = "Goblin"
 flavour = "Green. Greedy. Many."
-icon = ExtResource("9_klujv")
+icon = ExtResource("1_wm4bo")
 icon_file = "goblin_icon.png"
 placeholder = {
 "color": "#6FA84A",

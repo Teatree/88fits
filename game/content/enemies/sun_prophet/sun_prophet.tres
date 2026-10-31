@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/sun_prophet/sun_prophet_icon.png" id="1_2mbl5"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_tukm8"]
+[ext_resource type="Texture2D" path="res://content/enemies/sun_prophet/sun_prophet_icon.png" id="1_m03kx"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_2mbl5"]
 
 [resource]
-script = ExtResource("1_tukm8")
+script = ExtResource("2_2mbl5")
 archetype = "elite"
 doc = "The Elite that fights at range: a long-necked lizard prophet in a torn black toga who walks to a spot eight metres up the screen from the hero, where he can be seen, and flings a fan of five golden sun-shards from his staff straight down the lines of its wedge, each one knocking the hero back. Every other attack he calls six pillars of light down around the hero, one every 0.7 s, each marked by a red ring and a column of gold that brightens for most of a second before it lands. He slams the hero's spot, then blinks to a fresh spot on the other side of the screen."
 brain = "caster"
@@ -125,7 +125,7 @@ variance = {
 id = "sun_prophet"
 display_name = "Sun Prophet"
 flavour = "He has seen the light. So will you."
-icon = ExtResource("1_2mbl5")
+icon = ExtResource("1_m03kx")
 icon_file = "sun_prophet_icon.png"
 placeholder = {
 "color": "#5A7A3A",

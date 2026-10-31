@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon_b.png" id="1_ndof0"]
+[ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon_b.png" id="1_ldvml"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ndof0"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_5i8ic"]
 
@@ -54,7 +54,7 @@ variant_base = "A"
 id = "stride"
 display_name = "The Chariot"
 flavour = "The Chariot runs with you. Longer legs, somehow."
-icon = ExtResource("1_ndof0")
+icon = ExtResource("1_ldvml")
 icon_file = "stride_icon.png"
 placeholder = {
 "color": "#70D0FF",

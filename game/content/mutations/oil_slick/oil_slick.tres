@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_g4sbb"]
 [ext_resource type="Texture2D" path="res://content/mutations/oil_slick/oil_slick_icon.png" id="1_xuxoe"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_5e8qy"]
 
 [resource]
-script = ExtResource("1_g4sbb")
+script = ExtResource("2_5e8qy")
 weapon = "molotov"
 text = "The bottle leaks as it flies: a trail of small burning spills drips along the throw, and they slow."
 vfx = "drops of burning oil fall from the bottle in flight; a line of small fires lands behind it, one after another"

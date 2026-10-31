@@ -1,47 +1,47 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0mvx0"]
 [ext_resource type="Texture2D" path="res://content/passives/venom/venom_icon_evolved.png" id="1_1yohc"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="1_jq6mk"]
-[ext_resource type="Texture2D" path="res://content/passives/venom/venom_icon.png" id="1_s6rgr"]
+[ext_resource type="Texture2D" path="res://content/passives/venom/venom_icon.png" id="2_i3mfu"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_5x7nj"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_4ofo6"]
 
 [sub_resource type="Resource" id="Resource_1yohc"]
-script = ExtResource("1_0mvx0")
+script = ExtResource("3_5x7nj")
 stat = "poison_damage"
 op = "mul"
 value = 0.2
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_i3mfu"]
-script = ExtResource("1_0mvx0")
+script = ExtResource("3_5x7nj")
 stat = "poison_damage"
 op = "mul"
 value = 0.12
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_5x7nj"]
-script = ExtResource("1_0mvx0")
+script = ExtResource("3_5x7nj")
 stat = "poison_damage"
 op = "mul"
 value = 0.12
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_4ofo6"]
-script = ExtResource("1_0mvx0")
+script = ExtResource("3_5x7nj")
 stat = "poison_damage"
 op = "mul"
 value = 0.12
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_40l3p"]
-script = ExtResource("1_0mvx0")
+script = ExtResource("3_5x7nj")
 stat = "poison_damage"
 op = "mul"
 value = 0.18
 target = "all_weapons"
 
 [resource]
-script = ExtResource("1_jq6mk")
+script = ExtResource("4_4ofo6")
 levels = [[SubResource("Resource_1yohc")], [SubResource("Resource_i3mfu")], [SubResource("Resource_5x7nj")], [SubResource("Resource_4ofo6")], [SubResource("Resource_40l3p")]]
 max_level = 5
 pairs_with = "poison_dart"
@@ -52,7 +52,7 @@ flavour = "Everything you poison, poisons harder."
 rarity = "uncommon"
 element = "poison"
 weight = 8.0
-icon = ExtResource("1_s6rgr")
+icon = ExtResource("2_i3mfu")
 icon_file = "venom_icon.png"
 placeholder = {
 "color": "#7FD07A",

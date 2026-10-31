@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_n0q3u"]
-[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_icon.png" id="1_ngdcv"]
+[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_icon.png" id="1_q5rqq"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_ngdcv"]
 
 [resource]
-script = ExtResource("1_n0q3u")
+script = ExtResource("2_ngdcv")
 archetype = "brute"
 doc = "The charger: it crouches and shakes, legs scrabbling, while a red line shows where it will run, then runs it in a trail of dust, shoving the crowd aside. Eight directions of sprite so the line is readable."
 brain = "charge"
@@ -53,7 +53,7 @@ charge = {
 "shove": 2.8,
 "shove_walk": 1.0,
 "speed": 11.0,
-"trigger_range": 7.5,
+"trigger_range": 9.0,
 "windup": 0.8
 }
 knockback = 6.8
@@ -313,7 +313,7 @@ variance = {
 id = "bull_beetle"
 display_name = "Bull Beetle"
 flavour = "One horn. Zero patience."
-icon = ExtResource("1_ngdcv")
+icon = ExtResource("1_q5rqq")
 icon_file = "bull_beetle_icon.png"
 placeholder = {
 "color": "#5A3A2E",

@@ -279,7 +279,8 @@ func test_barrels_throw_out_a_power_up_half_as_often() -> void:
 	var shipped := {"brown": 0.08, "black": 0.3}
 	assert_float(float(brown["powerup_chance"])).is_less_equal(shipped["brown"] * 0.5 + 1e-6)
 	assert_float(float(black["powerup_chance"])).is_less_equal(shipped["black"] * 0.5 + 1e-6)
-	assert_float(float(black["powerup_chance"])).is_greater(0.0)
+	# pass 116 (lane MAP): the brown / black barrels throw none now; the power-up barrel does
+	assert_float(float(BarrelSpawns.contents_of(raw, "powerup")["powerup_chance"])).is_greater(0.0)
 
 
 # ---------------------------------------------------------------- 4. the Pollen flowers

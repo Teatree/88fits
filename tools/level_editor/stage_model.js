@@ -371,7 +371,39 @@ const StageModel = (() => {
     return out;
   }
 
-  const api = { FILTER_DEF, FILTER_PRESETS, PER_STAGE, filterOf, bossEventOf, bossOf, ensureList, newStageId, mapTimes, lengthPreview,
+  // ---------------------------------------------------------------- pass 116 (lane EDITOR): stage clocks, row numbers
+  // Garry: "When viewing Timeline for a specific Stage let's display time from start of the run instead of total from
+  // Stage 1 + 2, etc." and "Add an index indicator (count of the rows in the timeline) for each Stage". The file keeps
+  // the one run clock; a stage tab shows and takes times from its window's start (0:00 = that stage's run start).
+
+  /** A map-clock second as the stage tab shows it (off = the stage's start; null off = the whole map: unchanged). */
+  function toStageClock(t, off) {
+    if (t == null || t === '' || !isFinite(Number(t))) return t;
+    return off == null ? Number(t) : Number(t) - Number(off);
+  }
+  /** A second typed on a stage tab back on the map clock. */
+  function fromStageClock(v, off) {
+    if (v == null || v === '' || !isFinite(Number(v))) return v;
+    return off == null ? Number(v) : Number(v) + Number(off);
+  }
+  /** The stage a row belongs to: the window its start falls in (the last one past the end). */
+  function stageOfT(windows, t) {
+    const x = Number(t) || 0;
+    for (let k = 0; k < windows.length; k++) if (x < windows[k].end) return k;
+    return Math.max(0, windows.length - 1);
+  }
+  /** Every roster row's number within its stage: {byRow: [{stage, n}], counts: [rows a stage]}; inside a stage by start
+   *  second, then the file's order. `windows` = [{start, end}] (Model.stageList). */
+  function rowNumbers(rows, windows) {
+    const W = windows && windows.length ? windows : [{ start: 0, end: Infinity }];
+    const list = (rows || []).map((r, i) => ({ i, t: Number(r && r.t) || 0, stage: stageOfT(W, r && r.t) }));
+    const counts = W.map(() => 0);
+    const byRow = new Array(list.length);
+    list.slice().sort((a, b) => a.stage - b.stage || a.t - b.t || a.i - b.i).forEach((x) => { counts[x.stage] += 1; byRow[x.i] = { stage: x.stage, n: counts[x.stage] }; });
+    return { byRow, counts };
+  }
+
+  const api = { toStageClock, fromStageClock, stageOfT, rowNumbers, FILTER_DEF, FILTER_PRESETS, PER_STAGE, filterOf, bossEventOf, bossOf, ensureList, newStageId, mapTimes, lengthPreview,
     setLength, addStage, removePreview, removeStage, setBoss, setField, describe, issues };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

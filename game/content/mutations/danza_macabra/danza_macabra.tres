@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_l8uru"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_lcku6"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_lcku6"]
 [ext_resource type="Texture2D" path="res://content/mutations/danza_macabra/danza_macabra_icon.png" id="2_vpan0"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ane3q"]
 
 [sub_resource type="Resource" id="Resource_lcku6"]
-script = ExtResource("1_l8uru")
+script = ExtResource("1_lcku6")
 stat = "cooldown"
 op = "mul"
 value = -0.35
 
 [resource]
-script = ExtResource("2_lcku6")
+script = ExtResource("3_ane3q")
 weapon = "skull_rain"
 mutation_kind = "hero"
 hero = "calavera"

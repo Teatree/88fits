@@ -285,10 +285,11 @@ static func _task_context(ctx: Dictionary, tl: WaveTimeline, k: int, weapons: Ar
 	for r in tl.pickups.get("roster", []):
 		if r is Dictionary and float((r as Dictionary).get("weight", 0.0)) > 0.0:
 			pick_ids.append(str((r as Dictionary).get("id", "")))
-	for kind_key in ["brown", "black"]:
-		var bk = tl.barrels.get(kind_key) if tl.barrels is Dictionary else null
-		if bk is Dictionary and float((bk as Dictionary).get("powerup_chance", 0.0)) > 0.0:
-			for r in (bk as Dictionary).get("powerups", []):
+	# pass 116 (lane MAP): only the power-up barrel throws power-ups
+	for kind_key in ["powerup"]:
+		var bk: Dictionary = BarrelSpawns.contents_of(tl.barrels, kind_key)
+		if float(bk.get("powerup_chance", 0.0)) > 0.0:
+			for r in bk.get("powerups", []):
 				if r is Dictionary and float((r as Dictionary).get("weight", 0.0)) > 0.0:
 					pick_ids.append(str((r as Dictionary).get("id", "")))
 	for pid in pick_ids:

@@ -1,0 +1,24 @@
+{
+  "id": "invisible_box",
+  "name": "Invisible Box",
+  "flavour": "There is a wall. There was always a wall.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "may",
+  "text": "",
+  "effects": [],
+  "special": "box",
+  "params": {
+    "every": 25.0,
+    "first": 10.0,
+    "seconds": 3.0,
+    "width": 2.0,
+    "height": 2.4,
+    "spin": 0.35
+  },
+  "art_prompt": "a mime's invisible glass box drawn as clean white outlines, a white-gloved hand pressed flat against one pane",
+  "placeholder": {
+    "color": "#BFE6FF",
+    "glyph": "shield"
+  }
+}

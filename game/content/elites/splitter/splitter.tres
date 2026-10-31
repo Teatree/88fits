@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="EliteModDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2qml0"]
-[ext_resource type="Script" path="res://core/data/EliteModDef.gd" id="2_2qml0"]
 [ext_resource type="Texture2D" path="res://content/elites/splitter/splitter_icon.png" id="2_crljd"]
+[ext_resource type="Script" path="res://core/data/EliteModDef.gd" id="3_3fwpg"]
 
 [sub_resource type="Resource" id="Resource_2qml0"]
 script = ExtResource("1_2qml0")
@@ -11,7 +11,7 @@ op = "mul"
 value = 1.5
 
 [resource]
-script = ExtResource("2_2qml0")
+script = ExtResource("3_3fwpg")
 effects = [SubResource("Resource_2qml0")]
 outline = Color(0.27450982, 0.827451, 0.6039216, 1)
 scale_mult = 1.6

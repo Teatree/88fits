@@ -1,36 +1,36 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/brimstone_brand/brimstone_brand_icon_evolved.png" id="1_3be8t"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_gqp1y"]
-[ext_resource type="Texture2D" path="res://content/passives/brimstone_brand/brimstone_brand_icon.png" id="1_xly7f"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_xly7f"]
+[ext_resource type="Texture2D" path="res://content/passives/brimstone_brand/brimstone_brand_icon.png" id="2_msfmj"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_34mj7"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_stpmq"]
 
 [sub_resource type="Resource" id="Resource_3be8t"]
-script = ExtResource("1_gqp1y")
+script = ExtResource("3_34mj7")
 stat = "brand_chance"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_msfmj"]
-script = ExtResource("1_gqp1y")
+script = ExtResource("3_34mj7")
 stat = "brand_chance"
 value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_34mj7"]
-script = ExtResource("1_gqp1y")
+script = ExtResource("3_34mj7")
 stat = "brand_chance"
 value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_stpmq"]
-script = ExtResource("1_gqp1y")
+script = ExtResource("3_34mj7")
 stat = "brand_chance"
 value = 0.15
 target = "player"
 
 [resource]
-script = ExtResource("2_xly7f")
+script = ExtResource("4_stpmq")
 levels = [[SubResource("Resource_3be8t")], [SubResource("Resource_msfmj")], [SubResource("Resource_34mj7")], [SubResource("Resource_stpmq")]]
 max_level = 4
 evolved_icon = ExtResource("1_3be8t")
@@ -40,7 +40,7 @@ flavour = "Hell keeps what it kills. Briefly."
 rarity = "rare"
 weight = 7.0
 from_stage = 3
-icon = ExtResource("1_xly7f")
+icon = ExtResource("2_msfmj")
 icon_file = "brimstone_brand_icon.png"
 placeholder = {
 "color": "#FF6A2A",

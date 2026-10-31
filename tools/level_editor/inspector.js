@@ -139,7 +139,7 @@ const Inspector = (() => {
       case 'overrides':
         return overridesBlock(obj, def.key, ctx.enemyId, (ctx && ctx.pathPrefix ? ctx.pathPrefix + '.' : '') + def.key, ctx);
       default:
-        return Forms.fieldRow(def, obj, { pathPrefix: ctx && ctx.pathPrefix, placeholder: ctx && ctx.placeholders ? ctx.placeholders[def.key] : undefined, allowRandom: def.type === 'elite', note: ctx && ctx.note });
+        return Forms.fieldRow(def, obj, { pathPrefix: ctx && ctx.pathPrefix, placeholder: ctx && ctx.placeholders ? ctx.placeholders[def.key] : undefined, allowRandom: def.type === 'elite', note: ctx && ctx.note, stageClock: !(ctx && ctx.from === 'fight') });
     }
   }
 
@@ -833,7 +833,8 @@ const Inspector = (() => {
     const rows = env.rows;
     const pace = TimelineModel.paceOf(r);
     const clockWord = env.boss ? ' on the fight clock' : '';
-    const title = () => `${r.name ? r.name + ': ' : ''}${Timeline.enemyWords(r)} · ${fmtT(r.t)} → ${r.until == null || r.until === '' ? env.untilWord : fmtT(r.until)}${clockWord}`;
+    const sc = (t) => (env.boss ? fmtT(t) : App.fmtClock(t));   // pass 116: a stage tab's own clock
+    const title = () => `${r.name ? r.name + ': ' : ''}${Timeline.enemyWords(r)} · ${sc(r.t)} → ${r.until == null || r.until === '' ? env.untilWord : sc(r.until)}${clockWord}`;
     const cutT = Timeline.cursorT;
     const tEnd = r.until == null || r.until === '' ? App.viewEnd() : Number(r.until);
     const canSplit = env.split && cutT != null && cutT > (Number(r.t) || 0) && cutT < tEnd;

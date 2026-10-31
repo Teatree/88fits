@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_cwssh"]
 [ext_resource type="Texture2D" path="res://content/mutations/drum_roll/drum_roll_icon.png" id="1_nlulx"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_vkldb"]
 
 [resource]
-script = ExtResource("1_cwssh")
+script = ExtResource("2_vkldb")
 weapon = "tommy_gun"
 mutation_kind = "hero"
 hero = "buck"

@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_r56ng"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_4k11m"]
 [ext_resource type="Texture2D" path="res://content/mutations/dragons_breath/dragons_breath_icon.png" id="2_3ebtw"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_4k11m"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_4huya"]
 
 [sub_resource type="Resource" id="Resource_4k11m"]
-script = ExtResource("1_r56ng")
+script = ExtResource("1_4k11m")
 stat = "fire_damage"
 value = 4.0
 
 [sub_resource type="Resource" id="Resource_3ebtw"]
-script = ExtResource("1_r56ng")
+script = ExtResource("1_4k11m")
 stat = "fire_duration"
 value = 1.8
 
 [sub_resource type="Resource" id="Resource_4huya"]
-script = ExtResource("1_r56ng")
+script = ExtResource("1_4k11m")
 stat = "fire_spread"
 value = 0.4
 
 [resource]
-script = ExtResource("2_4k11m")
+script = ExtResource("3_4huya")
 weapon = "boomstick"
 mutation_kind = "element"
 text = "Pellets set 60% of the enemies they hit on fire."

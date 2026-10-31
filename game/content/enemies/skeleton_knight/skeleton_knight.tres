@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_s7gip"]
-[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_icon_a.png" id="5_xb2ja"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_icon_a.png" id="1_0sh0w"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_e2gww"]
 
 [resource]
-script = ExtResource("1_s7gip")
+script = ExtResource("2_e2gww")
 doc = "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, a quarter off every hit and half again a plain skeleton's HP, a little slower, one to every two and a half skeletons from the thirtieth second. Falls over backwards with its armour on."
 hp = 15.0
 speed = 1.5
@@ -200,7 +200,7 @@ variance = {
 id = "skeleton_knight"
 display_name = "Skeleton Knight"
 flavour = "Someone buried it in its armour. It kept the armour."
-icon = ExtResource("5_xb2ja")
+icon = ExtResource("1_0sh0w")
 icon_file = "skeleton_knight_icon.png"
 placeholder = {
 "color": "#B8C0C8",

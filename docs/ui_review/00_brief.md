@@ -1,92 +1,89 @@
-# 88fits UI redesign: the brief
+# Outlaw Survivors (88fits) UI review: the brief
 
 **For:** Claude Design
 
 **From:** the 88fits team (Garry, who designs and plays it, and Claude Code, who builds it)
 
-**What is attached:** 17 screens and states in 25 screenshots at the game's real size, 1080×1920, one page per screen, and two pages of the game's painted art.
+**What is attached:** {NSCREENS} screens and states in {NSHOTS} screenshots at the game's real size, 1080×1920, one page per screen, and two pages of the game's painted art. Captured from version 0.99 (pass 116, 2026-10-31).
 
 ## What we are asking for
 
-Redesign the UI of 88fits from the ground up. Today's UI is the thing under review: it is here to be judged and replaced, not to set the style.
+Review the UI of Outlaw Survivors from the ground up. Today's UI is the thing under review: it is here to be judged, and replaced where it falls short, not to set the style.
 
-- **Start from zero on the look.** Our colours, fonts, corner radii, borders, panels, icon frames and layouts are all open. Nothing in today's UI survives because it exists; keep a thing only if you would have chosen it yourself.
+- **The look is open.** Today's screens use one kit, the "Wanted" design (aged paper, ink outlines, brass, slab type). It went in at pass 39 after the first review. Keep what earns its place; nothing survives only because it exists.
 - **Critique first, and be tough.** Look at every screen the way a senior UI and art lead for mobile games would. Say what does not work and why, even if it is a whole screen.
 - **Compare with the genre.** Put each screen next to how the best games in the genre handle the same moment (see "Compare it with the genre"), and say what they do better and what we should take.
-- **Then design the alternative:** a new visual direction for the whole game, with every screen and every piece under "The pieces" redone in it, as mock-ups at 1080×1920.
-- **Strip it down.** If an element, a line of text, a button or a screen does not earn its place, cut it, merge it or move it. Fewer, bigger, clearer things beat many small ones. You do not need our permission; tell us why.
-- **Art counts as much as layout.** Backgrounds, framing, materials, colour, type, icon treatment and motion are all part of the redesign.
+- **Then design the alternative** where one is needed: mock-ups at 1080×1920 for the screens and pieces you would change.
+- **Strip it down.** If an element, a line of text, a button or a screen does not earn its place, cut it, merge it or move it. Fewer, bigger, clearer things beat many small ones. Tell us why.
+- **Art counts as much as layout.** Backgrounds, framing, materials, colour, type, icon treatment and motion are all part of the review.
 
 ## The game in one minute
 
-- 88fits is a portrait, one-thumb survivor shooter for Android phones, in the mould of Vampire Survivors, Megabonk and Survivor.io. The hero fires by himself; the player only steers, with a floating joystick, through a crowd that grows to 150 to 240 creatures.
-- A run lasts up to 15 minutes: three stages of five minutes on one map, Red Canyon, a sunlit desert of sand, cacti and red rock. After each stage's boss the player chooses: extract (bank the run's gold at ×1.25) or continue into a harder stage.
-- Every level-up pauses the run for a card pick: weapons, passives, lines (run-long traits with a trade-off), and hero perks. At set times a weapon's path (three mutations) is offered. Chests spin a one-item reel. On the map: a travelling shop, the Stranger (a strong item for a slice of max HP), healing wells, a strongbox that banks gold.
-- Between runs: The Mirror (eight talents, two forms each, three ranks, paid in gold), the Collection, Settings.
+- Outlaw Survivors (the project and its files are called 88fits) is a portrait, one-thumb survivor shooter for Android phones (and a PC build), in the mould of Vampire Survivors, Megabonk and Survivor.io. The hero fires by himself; the player only steers, with a floating joystick, through a crowd of a few hundred creatures.
+- One map, **Red Canyon**: a sunlit desert of sand, cacti, red rock, a dry river, oases and a sandstone fort wall. It has three **stages**, and each stage is its own run, chosen from the Stages menu: Sundown (about 7 minutes to the Tumbleweed King), Nightfall (10 minutes, a blue night, to the Gila Grande) and Blood Moon (13 minutes, a red hell, to the Brander). After a stage's boss a portal opens for 60 seconds: extract with the run's gold, or stay and fight **Endless** waves until you fall.
+- At the start of a run the hero falls down a beam of light, then three **Wanted posters** float in: take one bounty (kill so many, use a weapon, open barrels...) and it pays coins at the end if done.
+- Every level-up pauses the run for a pick of three cards (weapons, Cards, passive items, hero perks). At set times the next level-up is a **mutation offer** instead (a weapon's path). Chests spin a slot-machine reel. On the map: a travelling shop, the Stranger (a strong item for a slice of max HP), 10-12 Totem Poles (a small gift each), the War Drum (a 15-second boost), barrels with coins and power-ups.
+- Between runs: the **Upgrade board** (eight talents, two forms each, six ranks, paid in gold), the **Collection**, **Settings**, and the heroes on the title: nine heroes, the Drifter free, the others bought with gold once their unlock quest is done; heroes have **skins** (looks) bought or earned.
 - Art: anime-style painted heroes and creatures (cel shading, thick dark outline) standing as camera-facing cut-outs in a 3D desert. Item icons are in a Shop Titans style: one bold object, thick black outline, flat cel shading, painted at 256 px.
-- Heroes today: Astro, a spacewoman in a white suit, and the Drifter, a cowboy in a long duster.
-- Tone: short, dry, frontier humour. Names out of a western (the Drifter, the Stranger, High Noon, WANTED) and one-line jokes for flavour: "Pick one. Throw it at the rest." (the Gravity Gun), "Everything looks like a nail." (the Hammer).
+- Heroes: the Drifter (a cowboy, Revolver), Astro (a spacewoman, Gravity Gun), Calavera (a mariachi skeleton, Guitarra), Ironwood (Spear), Solenne (Sun Scepter), Fadeaway (a basketball player), Jeżyk (a bald blue Slav in a tracksuit, Frisbee), May (Tommy Gun) and Mira.
+- Tone: short, dry, frontier humour. Names out of a western (the Drifter, the Stranger, WANTED, Stakes) and one-line jokes for flavour: "Pick one. The desert waits." (the level-up), "A piece of you, for a piece of the world." (the Stranger).
 
 ## Who plays, and how
 
 - One hand, portrait, short sessions, often on the move.
-- In a run the thumb steers from anywhere in the lower two thirds of the screen: a floating joystick appears where it lands. So in-run information has to live where the thumb is not. Today that is a strip across the top 250 px, the hero's own bars and modal screens that pause the game; where it goes in your design is open, as long as the thumb's area and the crowd around the hero stay clear.
+- In a run the thumb steers from anywhere below the top strip: a floating joystick appears where it lands. So in-run information has to live where the thumb is not: today a strip across the top (XP rail, level, clock and kill counter, gold, pause, ten item slots, power-up plates), the hero's own bars, banners, toasts, and screens that pause the game.
 - Menus are tapped with the same thumb, so the lower half of the screen is the easy reach.
-- Tested on a Pixel 8 Pro. The game draws a 1080×1920 canvas; taller phones get extra height, and the width stays 1080.
+- Tested on a Pixel 8 Pro. The game draws a 1080×1920 canvas; taller phones get extra height, and the width stays 1080. Every screen keeps clear of a camera cutout.
 
 ## Compare it with the genre
 
-88fits is made in the mould of these games. For each screen, look at how they handle the same moment and say what to take, adapted to a portrait, one-thumb phone game rather than copied:
+For each screen, look at how these games handle the same moment and say what to take, adapted to a portrait, one-thumb phone game rather than copied:
 
 - **Vampire Survivors:** the original. A minimal HUD, a fast level-up list, a chest opening with a fanfare, a collection grid.
-- **Survivor.io** and **Archero 2:** portrait, one thumb, built for phones. Chunky skill cards, levels shown as stars, big reward moments, polished menus between runs.
-- **Megabonk:** the closest to our 3D camera. Upgrades coloured by rarity, chests, a character select.
+- **Survivor.io** and **Archero 2:** portrait, one thumb, built for phones. Chunky skill cards, levels shown as stars, big reward moments, polished menus between runs, stage select.
+- **Megabonk:** the closest to our 3D camera. Upgrades coloured by rarity, chests, shrines, a character select.
 - **Brotato:** the shop between waves, item rarity tiers, a stats panel people actually read.
-- **20 Minutes Till Dawn** and **HoloCure:** leaner and cuter takes on the same loop.
+- **20 Minutes Till Dawn** and **HoloCure:** leaner and cuter takes on the same loop; HoloCure's stamps and quests.
 
 ## The pieces
 
-Every piece below is in the screenshots, most of them on several screens. Redesign each once, show it in use, and show the states that matter (pressed, disabled, selected, locked, empty).
+Every piece below is in the screenshots, most of them on several screens. Review each once, and the states that matter (pressed, disabled, selected, locked, empty).
 
-- **Buttons:** the main call to action (PLAY, GO, Resume, Take it), secondary buttons, small rows of buttons (Reroll, Skip, Banish), back, on/off switches and two-way choices.
-- **The item card:** icon, name, what kind of item it is, its level now and after the pick, what it does (generated text, up to three lines), a flavour line. Used by level-ups, path offers, the chest, the shop and the Stranger.
-- **Icon framing by kind:** weapon, evolution, mutation, passive, line, perk, hero, creature.
-- **Level and progress marks:** an item's level out of its maximum, a weapon's path picks (up to three), a talent's ranks, and rarity: every item is common, rare or epic, which decides how often it is offered and what it costs, and today's UI never shows it.
-- **List rows:** the collection and the pause screen's build list, open and closed, locked and unlocked.
-- **Tabs, sliders and switches.**
-- **Numbers:** gold (six digits and more, e.g. 102682), kills, the run clock, costs.
-- **The in-run HUD:** level and XP, the run clock, the stage, kills, gold, pause, and the build: up to six weapons and six passives with their levels, path picks, and slots locked until a later stage.
-- **Health and threats:** the hero's health and shield bars; a boss's name and health; pointers to an off-screen boss, Elite or portal.
-- **Messages:** toasts (+22 HP, Boomstick Lv 5, HOOKED!), banners (BOSS DOWN, EVOLVED: Earthshaker), the +5 XP pop-ups, first-play hints.
-- **The floating joystick.**
-- **The modal frame:** every screen that pauses the run (level-up, path offer, chest, shop, the Stranger, stage clear, down) and the tap-to-continue gate.
-- **The menu frame:** back, a title, a scrolling page.
-- **One-offs:** the Mirror's talent cards, the hero and map cards in Play setup, the chest's reel, the results summary with its damage bars.
+- **Buttons:** the main call to action (PLAY, TAKE IT, DEAL, RESUME), secondary buttons, the REROLL · SKIP · BANISH row with its counts, the back square, switches, sliders and two-way choices.
+- **The item card:** plate (kind by colour, a corner glyph), kind word, name, level stars, an UPGRADE / NEW / EVOLUTION tag, one effect line or "Damage 12 → 15" rows, the favourite's heart. Used by level-ups, mutation offers, the chest, the shop and the Stranger.
+- **Plates by kind and level:** weapons, Cards (lines), passive items on a rarity ladder (common to legendary, then evolved), mutations, perks, creatures with danger badges (Elite crown, boss skull, special gear).
+- **Marks:** level stars, a weapon's mutation rivets, a talent's six rank slots, progress bars on quests and posters, stamps (BEATEN, PAID, TAKEN, BANISHED, UNLOCKED).
+- **Lists and grids:** the Collection's tiles and pages, the pause Build rows and Stats cells with their sources card.
+- **Numbers:** gold (e.g. 102,682), kills, the run clock, costs and prices.
+- **The in-run HUD:** see its page. **Health and threats:** the hero's HP and shield bars, a boss's name and HP, edge pointers to an off-screen boss, Elite or the portal.
+- **Messages:** toasts, banners (BOSS DOWN, EVOLVED, ENDLESS, PHOENIX FEATHER), +XP / +gold pop-ups, floating damage numbers, first-play hints.
+- **The modal frame:** every screen that pauses the run, the TAP TO GO gate after a pick, and the one "Hold on" question card for deeds that cannot be undone.
+- **One-offs:** the hero carousel and plaque, the hero drawer, the hero's Wanted-poster sheet, the stage cards, the mirror's talent tiles, the chest's reel, the Spirit Pole, the floating Wanted posters, the drum moment, the Results' charts and count-ups.
 
 ## Words the game uses
 
-- **Weapon:** fires by itself, up to 8 levels. Four slots in stage 1, six from stage 2.
-- **Passive:** a stat boost for the run, up to 5 levels.
-- **Line:** a run-long trait of the hero, often with a trade-off, taken in ranks; three or four a run; a maxed line can evolve.
-- **Perk:** a one-off power that only one hero is offered.
-- **Path and mutation:** at set times a weapon offers its three mutations (an element, more of it, or a new motion). The player takes one; the others come back next stage.
-- **Evolution:** a weapon with two mutations can turn into its evolved form at a chest.
-- **Chest:** dropped by Elites, bosses and some creatures; a reel lands on one item to take or sell.
-- **Elite and boss:** an Elite is a named, crowned creature stronger than the crowd; a boss ends each stage.
-- **Portal and extract:** after a stage's boss a portal opens: extract (bank the run's gold at ×1.25) or continue into a harder stage.
-- **The Mirror:** permanent talents bought with gold between runs.
-- **The Stranger:** a hooded figure on the map who trades a strong item for a slice of max HP.
-- **Travelling shop, healing well, strongbox:** stalls on the map to buy an item, heal, or bank gold mid-run.
-- **Reroll, skip, banish:** redraw the level-up cards, pass for gold, or strike one card out of the run.
+- **Weapon:** fires by itself, 5 levels, 5 slots.
+- **Card (a "line" in code):** a run-long trait named after a tarot card, 5 slots, 4 levels; a maxed Card can evolve ("<card> Risen").
+- **Passive item:** a stat item, no slot cap, climbs a rarity ladder as it levels; not on the HUD (the pause Build tab lists them).
+- **Perk:** a one-off power only one hero is offered.
+- **Mutation:** each weapon has three paths; a mutation offer at set times gives one. All three plus level 5 = its **evolution** at a chest.
+- **Chest:** dropped by Elites, specials and bosses; a reel lands on one item.
+- **Elite, special and boss:** an Elite is a crowned, stronger creature; a special a rare glowing one with a sure chest; a boss ends each stage.
+- **Portal, extract, Endless:** after the boss, 60 seconds to walk into the portal and extract; then Endless waves until death. Every end of a run banks the purse.
+- **Bounty / Wanted poster:** an optional task taken at the start of a run, paid in coins at the end if done.
+- **Totem Pole, the Stranger, the shop, the War Drum, barrels:** things on the map that pause for a choice or give a boost.
+- **Upgrade board ("the Mirror" in code):** permanent talents bought with gold between runs; **Stakes** is the talent that makes runs harder for more XP and coins.
+- **Reroll, skip, banish:** redraw the cards (per run), pass on an offer (per stage), strike an item out of the run (per stage).
 
 ## The art it has to sit with
 
-The painted art stays for now; the UI around it is what we want redone. The two art pages (right after this brief in the PDF; art_items.jpg and art_more.jpg in the pack) show every item icon, the heroes, the creatures and the badges that float over them; the screenshots show the world, a sunlit 3D desert of sand, cacti and red rock. Your UI frames this art. If you think the icons' style fights your direction, say so.
+The painted art stays; the UI around it is what we review. The two art pages (right after this brief in the PDF; art_items.jpg and art_more.jpg in the pack) show every item icon, the heroes, the creatures and the badges that float over them; the screenshots show the world. Your UI frames this art. If you think the icons' style fights your direction, say so.
 
 ## What the UI must do (how is open)
 
-- Portrait 1080×1920, one thumb.
-- The game pauses behind every screen that asks for a choice, and play resumes only on a tap, so a pick never drops the player straight into a hit. How that gate looks is up to you.
+- Portrait 1080×1920, one thumb, clear of a camera cutout.
+- The game pauses behind every screen that asks for a choice, and after a pick play resumes only on a tap, so a pick never drops the player straight into a hit.
+- One paused screen at a time (death wins); whatever else is due waits its turn.
 - Every item's icon, name and generated numbers can be found somewhere.
 - Each screen's "Must still do" list. How it looks, where it sits and whether it shares a screen with something else is open.
 
@@ -97,52 +94,58 @@ The painted art stays for now; the UI around it is what we want redone. The two 
 - Any open font (TTF) and new sounds.
 - Card text is generated from the game's data, so its length varies: names up to about 20 characters, descriptions up to three lines. A design has to survive that.
 
-## Today's UI, for reference only
+## Today's UI, for reference
 
-So you know what you are looking at. None of it has to stay.
+So you know what you are looking at.
 
-- Built in code in Godot 4.7 from a small kit: panels and cards with rounded corners (18 to 30 px) and 2 to 4 px borders, bevelled buttons, chips, icon tiles framed in their kind's colour, progress bars, level pips, sliders, tabs and scrolling lists.
-- Colour: navy grounds with lighter navy lines, white and grey-blue text, gold for the main button and the selected state, violet for XP, red for danger, green for good. Cards are coloured by kind: weapons gold, passives violet, mutations magenta, lines orange, perks green.
-- Type: Lilita One for headings and buttons, Baloo 2 for body text.
+- The "Wanted" kit (ui/wanted/), built in code in Godot 4.7: hard-edged paper panels with ink borders and hard ink shadows, brass rivets and stars, slab-serif titles, nailed paper tags, stamps, item plates coloured by kind and level. Every screen is built from the same components.
+- Colour: paper #f3e6c8, ink #241b14, brass #c9932f (the primary button, the coin), rock red #b4472b (danger, bosses), sage #6e8b5e (health, good), mutation plum, XP purple; dims are sepia.
+- Type: Alfa Slab One for titles, numbers and buttons, Bitter (and its italic) for body text, JetBrains Mono only in the developer menu.
+- The world behind the menus: the title stands the hero in the map itself (the "live" title).
 
 ## The screens
 
 | # | Screen | When the player sees it | Shots |
 |---|---|---|---|
-| 01 | Title | on launch, and after every run | 1 |
-| 02 | Play setup | from the title's hero chip | 1 |
-| 03 | The Mirror | between runs, from the title and from the results | 2 |
-| 04 | Collection | between runs, from the title | 2 |
-| 05 | Settings | from the title | 2 |
-| 06 | In-run HUD | the whole run | 3 |
-| 07 | Level-up cards | every level-up (every 20 to 40 seconds early in a run) | 2 |
-| 08 | Path offer | at set times in each stage, once per weapon | 1 |
-| 09 | Tap to continue | after every pick and every chest | 1 |
-| 10 | Chest | opening a chest (from creatures, bosses and Elites) | 1 |
-| 11 | Travelling shop | stepping into the shop's ring on the map (once per shop) | 1 |
-| 12 | The Stranger | stepping into the hooded figure's ring on the map | 1 |
-| 13 | Pause | the pause button, or a tap on the top strip | 3 |
-| 14 | Down! (revive) | the hero's health reaches zero | 1 |
-| 15 | Stage clear | after each stage's boss, stepping into the portal | 1 |
-| 16 | Results | after a run ends (death, giving up or extracting) | 1 |
-| 17 | Debug arena (developer only) | only for us: Debug · Arena on the title | 1 |
+| 01 | Title | on launch, and back from every hub screen and from Results | 3 |
+| 02 | Hero drawer | the square left of the title's hero plaque | 1 |
+| 03 | Hero sheet and looks | a tap on the title's hero plaque | 4 |
+| 04 | Stages | PLAY on the title, once the map's first stage has been beaten | 2 |
+| 05 | Upgrade board | the title's Upgrade button, or Results' Upgrade button | 3 |
+| 06 | Collection | the title's Collection button | 4 |
+| 07 | Settings | the title's Settings button | 2 |
+| 08 | In-run HUD | the whole run | 6 |
+| 09 | Wanted posters (the bounty) | the start of a run, right after the hero lands from the spawn beam | 3 |
+| 10 | Level-up cards | every level-up | 2 |
+| 11 | Mutation offer | at set times in each stage, in place of the next level-up's cards | 2 |
+| 12 | Tap to go | after a level-up pick, a mutation pick or a chest | 1 |
+| 13 | Chest | touching a chest (Elites, specials, bosses) | 3 |
+| 14 | The shop | standing in the travelling shop's ring on the map (once a stall) | 1 |
+| 15 | The Stranger | standing in the hooded figure's ring on the map | 1 |
+| 16 | Spirit Pole (Totem gifts) | standing at one of the map's 10-12 Totem Poles | 1 |
+| 17 | War Drum moment | using the War Drum on the map | 2 |
+| 18 | Pause | a tap on the HUD's top strip or pause disc, or the app leaving the screen | 4 |
+| 19 | Down! | the hero's health reaches zero | 1 |
+| 20 | Stage clear (the portal) | walking into the portal after a stage's boss | 2 |
+| 21 | Results | after any run ends (extract, staying down, abandoning, falling in Endless) | 4 |
+| 22 | Play-data question and surveys | the first launch (over the title), and now and then after a run (over Results) | 2 |
+| 23 | Developer menu and debug arena (testers only) | only for us: the developer menu (hold Settings' version line) and ARENA in debug mode | 2 |
 
 ## What to send back
 
 1. **The critique:** the ten biggest problems across the whole UI, most important first, one line each with why. Then, per screen, a verdict (keep, rework, merge or cut) and how the genre's best handle the same moment.
-2. **Three visual directions**, clearly different from each other and from today's UI. Each one as a style tile (palette, type, shapes and materials, icon framing, a button, an item card) applied to two screens: the level-up cards and the in-run HUD. We pick one.
-3. **Everything in the chosen direction:** every screen and every piece under "The pieces", mocked at 1080×1920 with their states.
-4. **The flow:** which screens to merge, remove or reorder, and how a new player gets from launch to the first run.
+2. **Directions:** where the Wanted kit should go next, or up to three alternatives if you think it should be replaced. Each as a style tile (palette, type, shapes and materials, icon framing, a button, an item card) applied to the level-up cards and the in-run HUD.
+3. **The screens you would change**, mocked at 1080×1920 with their states.
+4. **The flow:** which screens to merge, remove or reorder, and how a new player gets from launch to the first run and the first bounty.
 5. **Notes for the build:** sizes in px on the 1080×1920 canvas, colours in hex, fonts, and which pieces repeat, so we build each once.
 
 ## What we already suspect
 
 These are our own doubts. Confirm them, overrule them, and don't stop at them.
 
-- The menus look like a generic dark app. Nothing in them says sunlit desert, anime, cowboys and a spacewoman: the painted art mostly stays inside the run.
-- There is too much small text. A level-up card carries a kind tag, a name, a level chip, pips, a stat line and a flavour line. The Mirror and Play setup read like forms.
-- Developer tools show on player screens: "Debug · Arena" on the title; "Last run's last second", "Recent system pauses" and the save file's path in Settings; "Debug panel" in the pause options; a small "debug" button on the level-up screen; a "dbg revive" on the Down! screen. They should move to one hidden developer menu.
-- The in-run top strip is crowded: level, XP bar, stage and map, kills and alive count, the timer, gold, the pause button, six weapon slots and six passive slots with level badges and stage locks.
-- Players meet Lines, Paths, Mutations, Evolutions and Perks. That may be too many named systems.
-- The modal screens (level-up, path, chest, shop, the Stranger, stage clear) each look a little different. They could share one frame.
-- The title's version label reads v0.4 (the game is at v0.27), and gold shows as a raw number (102682).
+- There is a lot of small text: card effect lines, the hero plaque's numbers, the hero sheet, the Upgrade board's tiles, the pause Stats tab.
+- The run start has stacked up: the beam, then the bounty posters, then the first-play hints, then the first level-up.
+- Players meet many named systems: Cards, passive items, mutations, evolutions, perks, Totem gifts, bounties, the Stranger, the War Drum, power-ups, Stakes.
+- The HUD top strip is full: XP rail, level, clock with the kill counter and Endless states, gold, pause, ten slots, power-up plates, the bounty plate and build-up words.
+- The Results screen plays a long show (banked gold, the chart, damage sources, the bounty, unlocks): is the order right, and is it too long?
+- Rarity is shown on passive items only; weapons and Cards show levels by colour. Does a player read that?

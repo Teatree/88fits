@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_83nuw"]
 [ext_resource type="Texture2D" path="res://content/mutations/boomerang/boomerang_icon.png" id="1_bcbaj"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_pdfy8"]
 
 [resource]
-script = ExtResource("1_83nuw")
+script = ExtResource("2_pdfy8")
 weapon = "tumbleweed"
 text = "Rolls out and comes back through the crowd."
 vfx = "the weed turns at its far point and rolls home, hitting everything twice"

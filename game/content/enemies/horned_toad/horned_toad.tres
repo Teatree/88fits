@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/horned_toad/horned_toad_icon.png" id="1_2enp4"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_rlttu"]
+[ext_resource type="Texture2D" path="res://content/enemies/horned_toad/horned_toad_icon.png" id="1_w8epq"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_2enp4"]
 
 [resource]
-script = ExtResource("1_rlttu")
+script = ExtResource("2_2enp4")
 archetype = "tank"
 doc = "Armoured and slow; it takes 40% less from everything, so a pea does five instead of eight. Two seconds after it dies the body bursts in a red ring, so standing on a kill is a habit it breaks."
 hp = 45.0
@@ -68,7 +68,7 @@ variance = {
 id = "horned_toad"
 display_name = "Horned Toad"
 flavour = "Sits like a rock. Bites like one too."
-icon = ExtResource("1_2enp4")
+icon = ExtResource("1_w8epq")
 icon_file = "horned_toad_icon.png"
 placeholder = {
 "color": "#A88050",

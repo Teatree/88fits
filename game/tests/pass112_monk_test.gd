@@ -210,7 +210,8 @@ func test_the_monk_is_a_squad_of_10_20_or_30_with_the_cactus_band_and_half_its_r
 	var wj = JSON.parse_string(FileAccess.get_file_as_string("res://content/weapons/revolver/revolver.json"))
 	var rev_range := float(wj["base"]["range"])
 	assert_float(rev_range).is_equal_approx(14.0, 0.0001)
-	assert_float(float(cfg["orb"]["range"])).is_equal_approx(rev_range * 1.25 * 1.5, 0.0001)
+	# pass 116 (lane FIGHT, Garry: "Double the range of projectiles as well"): x2
+	assert_float(float(cfg["orb"]["range"])).is_equal_approx(rev_range * 1.25 * 1.5 * 2.0, 0.0001)
 	assert_float(float(cfg["orb"]["speed"])).is_less_equal(5.0)
 	var col := Color(str(cfg["orb"]["color"]))
 	assert_float(col.b).is_greater(col.r + 0.4)

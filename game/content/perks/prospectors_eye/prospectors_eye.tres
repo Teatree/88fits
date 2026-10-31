@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_lnvdg"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_3c38b"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3c38b"]
 [ext_resource type="Texture2D" path="res://content/perks/prospectors_eye/prospectors_eye_icon.png" id="2_6umac"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="3_epwgi"]
 
 [sub_resource type="Resource" id="Resource_3c38b"]
-script = ExtResource("1_lnvdg")
+script = ExtResource("1_3c38b")
 stat = "magnet"
 op = "mul"
 value = 1.0
 target = "player"
 
 [resource]
-script = ExtResource("2_3c38b")
+script = ExtResource("3_epwgi")
 hero = "mira"
 text = "Coins, bones and relics pull from twice the range; Elites drop one more bone."
 effects = [SubResource("Resource_3c38b")]

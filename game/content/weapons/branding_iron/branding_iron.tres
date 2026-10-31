@@ -1,50 +1,50 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/branding_iron/branding_iron_icon.png" id="1_4igqv"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jo5fm"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_4igqv"]
-[ext_resource type="PackedScene" path="res://content/weapons/branding_iron/branding_iron_visual.tscn" id="3_yr8lg"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_yr8lg"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_8ncl0"]
+[ext_resource type="PackedScene" path="res://content/weapons/branding_iron/branding_iron_visual.tscn" id="4_w7rou"]
 
 [sub_resource type="Resource" id="Resource_4igqv"]
-script = ExtResource("1_jo5fm")
+script = ExtResource("2_yr8lg")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_yr8lg"]
-script = ExtResource("1_jo5fm")
+script = ExtResource("2_yr8lg")
 stat = "orbit_radius"
 value = 0.3
 
 [sub_resource type="Resource" id="Resource_8ncl0"]
-script = ExtResource("1_jo5fm")
+script = ExtResource("2_yr8lg")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_w7rou"]
-script = ExtResource("1_jo5fm")
+script = ExtResource("2_yr8lg")
 stat = "fire_spread"
 value = 0.1
 
 [sub_resource type="Resource" id="Resource_oncv0"]
-script = ExtResource("1_jo5fm")
+script = ExtResource("2_yr8lg")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_58pm5"]
-script = ExtResource("1_jo5fm")
+script = ExtResource("2_yr8lg")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [sub_resource type="Resource" id="Resource_ug712"]
-script = ExtResource("1_jo5fm")
+script = ExtResource("2_yr8lg")
 stat = "fire_duration"
 value = 0.6
 
 [resource]
-script = ExtResource("2_4igqv")
+script = ExtResource("3_8ncl0")
 behavior = "Orbiter"
 targeting = "orbit"
 base = {
@@ -64,7 +64,7 @@ evolves_into = "ring_of_fire"
 sfx = {
 "hit": "w_iron_hit"
 }
-visual = ExtResource("3_yr8lg")
+visual = ExtResource("4_w7rou")
 visual_file = "branding_iron_visual.tscn"
 params = {
 "blade": "iron"

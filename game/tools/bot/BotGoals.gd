@@ -363,7 +363,8 @@ func candidates(game: Node, run, c: Dictionary) -> Array:
 			var key := "barrel:%d" % i
 			if float(resting.get(key, -1.0)) > t or not reach.call(pos[i], far):
 				continue
-			var black: bool = bf.light[i] == 1
+			# pass 116 (lane MAP): the coins barrel (1) and the power-up barrel (2) are the good ones
+			var black: bool = bf.light[i] >= 1
 			var v := (V_BARREL_BLACK if black else V_BARREL) * (BARREL_RUSH_MULT if rush else 1.0)
 			out.append(_with(_cand(c, "barrel", "barrel", key, pos[i], v, ("a black barrel" if black else "a barrel") + (" (Barrel Rush)" if rush else "")),
 				{"index": i}))

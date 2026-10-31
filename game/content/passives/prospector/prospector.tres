@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/prospector/prospector_icon_b.png" id="1_prg4k"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xgn1l"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ra7c3"]
+[ext_resource type="Texture2D" path="res://content/passives/prospector/prospector_icon_b.png" id="1_ra7c3"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_prg4k"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_vg03w"]
 
 [sub_resource type="Resource" id="Resource_ra7c3"]
-script = ExtResource("1_xgn1l")
+script = ExtResource("2_prg4k")
 stat = "xp_drop_chance"
 value = 0.06
 target = "player"
 
 [resource]
-script = ExtResource("2_ra7c3")
+script = ExtResource("3_vg03w")
 line = true
 levels = [[SubResource("Resource_ra7c3")]]
 max_level = 4
@@ -55,7 +55,7 @@ id = "prospector"
 display_name = "The Miner"
 flavour = "The Miner digs where they fall. There's always more in the ground."
 weight = 9.0
-icon = ExtResource("1_prg4k")
+icon = ExtResource("1_ra7c3")
 icon_file = "prospector_icon.png"
 placeholder = {
 "color": "#8A69F2",

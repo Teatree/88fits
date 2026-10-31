@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/characters/calavera/calavera_icon.png" id="1_dwhhe"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="1_ecvu3"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_3ja4l"]
+[ext_resource type="Texture2D" path="res://content/characters/calavera/calavera_icon.png" id="1_3ja4l"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_dwhhe"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_o2my1"]
 
 [sub_resource type="Resource" id="Resource_3ja4l"]
-script = ExtResource("2_3ja4l")
+script = ExtResource("2_dwhhe")
 stat = "might"
 op = "mul"
 value = 0.01
 target = "player"
 
 [resource]
-script = ExtResource("1_ecvu3")
+script = ExtResource("3_o2my1")
 level_trait = [SubResource("Resource_3ja4l")]
 order = 4
 trait_name = "Last Dance"
@@ -56,7 +56,7 @@ fps = {
 id = "calavera"
 display_name = "Calavera"
 flavour = "He plays. They dance. Briefly."
-icon = ExtResource("1_dwhhe")
+icon = ExtResource("1_3ja4l")
 icon_file = "calavera_icon.png"
 placeholder = {
 "color": "#1A1A22",

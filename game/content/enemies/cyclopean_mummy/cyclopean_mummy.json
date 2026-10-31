@@ -55,12 +55,32 @@
   "doc": "A squat goblin wrapped head to belly in bandages, one big green slit-pupilled eye staring out of the wrappings; it plods after the hero with a spiked mace held up at its shoulder.",
   "back_hint": "Seen from behind: the bandaged round back of its head and body, the two pointed ears and the mace poking out at the sides, no eye visible.",
   "dead_hint": "a collapsed heap of loose cream-white bandages lying on the ground, the big green eye shut on top, the spiked mace lying across the heap",
-  "variant_base": "CM-0",
+  "variant_base": "CM-F",
   "variant": "CM-F",
+  "sprite": "cyclopean_mummy_sprite_f.png",
+  "icon": "cyclopean_mummy_icon_f.png",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4,
+    "idle_l": 4,
+    "run_l": 12,
+    "attack_l": 2,
+    "hit_l": 1,
+    "run_bl": 12,
+    "idle_bl": 4
+  },
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "head": 0.983,
   "variants": {
-    "CM-0": {
-      "note": "the top-level strip, before the Level Editor's looks"
-    },
     "CM-A": {
       "note": "Pass 108: Garry's turnaround as the front and back stills; a run on a Mixamo stride fitted to its body with the mace held at the shoulder (cmummy_run_hold)",
       "recipe": {

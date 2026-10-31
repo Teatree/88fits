@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/evolutions/hiwa_kai/hiwa_kai_icon.png" id="1_pq8fy"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_nojm4"]
-[ext_resource type="PackedScene" path="res://content/weapons/salt/salt_visual.tscn" id="3_nojm4"]
+[ext_resource type="Texture2D" path="res://content/evolutions/hiwa_kai/hiwa_kai_icon.png" id="1_nojm4"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_k75dd"]
+[ext_resource type="PackedScene" path="res://content/weapons/salt/salt_visual.tscn" id="3_ensoh"]
 
 [resource]
-script = ExtResource("2_nojm4")
+script = ExtResource("2_k75dd")
 behavior = "SaltShaker"
 tags = ["salt", "ground"]
 targeting = "ground"
@@ -23,7 +23,7 @@ evolved_from = "salt"
 sfx = {
 "fire": "w_salt_shake"
 }
-visual = ExtResource("3_nojm4")
+visual = ExtResource("3_ensoh")
 visual_file = "res://content/weapons/salt/salt_visual.tscn"
 params = {
 "final": {
@@ -68,7 +68,7 @@ id = "hiwa_kai"
 display_name = "Hiwa Kai"
 flavour = "Black lava salt. It bites back."
 rarity = "uncommon"
-icon = ExtResource("1_pq8fy")
+icon = ExtResource("1_nojm4")
 icon_file = "hiwa_kai_icon.png"
 placeholder = {
 "color": "#2A2A2E",

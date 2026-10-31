@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" path="res://content/evolutions/hive_queen/hive_queen_icon.png" id="1_n0p74"]
 [ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_0um1n"]
-[ext_resource type="PackedScene" path="res://content/evolutions/hive_queen/hive_queen_visual.tscn" id="3_n0p74"]
+[ext_resource type="PackedScene" path="res://content/evolutions/hive_queen/hive_queen_visual.tscn" id="3_6nk3w"]
 
 [resource]
 script = ExtResource("2_0um1n")
@@ -26,7 +26,7 @@ sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("3_n0p74")
+visual = ExtResource("3_6nk3w")
 visual_file = "hive_queen_visual.tscn"
 params = {
 "familiar": {

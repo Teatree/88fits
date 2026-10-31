@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/field_notes/field_notes_icon_b.png" id="1_486kj"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_g8ili"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_f1vgw"]
+[ext_resource type="Texture2D" path="res://content/passives/field_notes/field_notes_icon_b.png" id="1_f1vgw"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_486kj"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_hbobu"]
 
 [sub_resource type="Resource" id="Resource_f1vgw"]
-script = ExtResource("1_g8ili")
+script = ExtResource("2_486kj")
 stat = "xp_gain"
 op = "mul"
 value = 0.08
 target = "player"
 
 [resource]
-script = ExtResource("2_f1vgw")
+script = ExtResource("3_hbobu")
 line = true
 levels = [[SubResource("Resource_f1vgw")]]
 max_level = 4
@@ -55,7 +55,7 @@ id = "field_notes"
 display_name = "The Sage"
 flavour = "The Sage reads the sand: more XP from every gem, a lesson in every kill."
 weight = 9.0
-icon = ExtResource("1_486kj")
+icon = ExtResource("1_f1vgw")
 icon_file = "field_notes_icon.png"
 placeholder = {
 "color": "#8A69F2",

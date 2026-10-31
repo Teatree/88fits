@@ -1,30 +1,30 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0tgxu"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_dcv5b"]
 [ext_resource type="Texture2D" path="res://content/mutations/white_phosphorus/white_phosphorus_icon.png" id="2_0811i"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_dcv5b"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_qjymp"]
 
 [sub_resource type="Resource" id="Resource_dcv5b"]
-script = ExtResource("1_0tgxu")
+script = ExtResource("1_dcv5b")
 stat = "fire_damage"
 
 [sub_resource type="Resource" id="Resource_0811i"]
-script = ExtResource("1_0tgxu")
+script = ExtResource("1_dcv5b")
 stat = "fire_duration"
 
 [sub_resource type="Resource" id="Resource_qjymp"]
-script = ExtResource("1_0tgxu")
+script = ExtResource("1_dcv5b")
 stat = "fire_spread"
 value = 0.4
 
 [sub_resource type="Resource" id="Resource_ddmwa"]
-script = ExtResource("1_0tgxu")
+script = ExtResource("1_dcv5b")
 stat = "fire_vuln"
 value = 0.5
 target = "player"
 
 [resource]
-script = ExtResource("2_dcv5b")
+script = ExtResource("3_qjymp")
 weapon = "flare_gun"
 mutation_kind = "element"
 text = "Burning creatures take +50% fire damage and spread the fire when they die."

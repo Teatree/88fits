@@ -1,72 +1,72 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3reom"]
-[ext_resource type="Texture2D" path="res://content/passives/adrenaline/adrenaline_icon.png" id="1_sr6b7"]
 [ext_resource type="Texture2D" path="res://content/passives/adrenaline/adrenaline_icon_evolved.png" id="1_wnmcc"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_sr6b7"]
+[ext_resource type="Texture2D" path="res://content/passives/adrenaline/adrenaline_icon.png" id="2_bswoi"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_e6a1t"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_eb6ve"]
 
 [sub_resource type="Resource" id="Resource_wnmcc"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_speed"
 value = 0.0055
 target = "player"
 
 [sub_resource type="Resource" id="Resource_bswoi"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_might"
 value = 0.004
 target = "player"
 
 [sub_resource type="Resource" id="Resource_e6a1t"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_speed"
 value = 0.003
 target = "player"
 
 [sub_resource type="Resource" id="Resource_eb6ve"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_might"
 value = 0.0025
 target = "player"
 
 [sub_resource type="Resource" id="Resource_utomb"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_speed"
 value = 0.003
 target = "player"
 
 [sub_resource type="Resource" id="Resource_rk2ev"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_might"
 value = 0.0025
 target = "player"
 
 [sub_resource type="Resource" id="Resource_1hk1t"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_speed"
 value = 0.003
 target = "player"
 
 [sub_resource type="Resource" id="Resource_m1paq"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_might"
 value = 0.0025
 target = "player"
 
 [sub_resource type="Resource" id="Resource_tnoga"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_speed"
 value = 0.005
 target = "player"
 
 [sub_resource type="Resource" id="Resource_eoolh"]
-script = ExtResource("1_3reom")
+script = ExtResource("3_e6a1t")
 stat = "adrenaline_might"
 value = 0.0035
 target = "player"
 
 [resource]
-script = ExtResource("2_sr6b7")
+script = ExtResource("4_eb6ve")
 levels = [[SubResource("Resource_wnmcc"), SubResource("Resource_bswoi")], [SubResource("Resource_e6a1t"), SubResource("Resource_eb6ve")], [SubResource("Resource_utomb"), SubResource("Resource_rk2ev")], [SubResource("Resource_1hk1t"), SubResource("Resource_m1paq")], [SubResource("Resource_tnoga"), SubResource("Resource_eoolh")]]
 max_level = 5
 evolved_icon = ExtResource("1_wnmcc")
@@ -75,7 +75,7 @@ display_name = "Adrenaline"
 flavour = "Every kill is a stack for 4 s, twenty at most: faster and harder while the streak holds."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_sr6b7")
+icon = ExtResource("2_bswoi")
 icon_file = "adrenaline_icon.png"
 placeholder = {
 "color": "#EE4A5C",

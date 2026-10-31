@@ -304,7 +304,8 @@ func test_two_more_black_barrels_on_top_of_the_random_ones() -> void:
 			assert_int(f.light[k]).is_equal(1)
 		var n := 0
 		for k in range(f.pos.size()):
-			n += f.light[k]
+			# pass 116: kind 1 is the coins barrel (2 the power-up one)
+			n += 1 if f.light[k] == 1 else 0
 		assert_int(n).is_greater_equal(BarrelField.EXTRA_DARK)
 		blacks += n
 	# about 33 x 0.22 + 2 = 9.3 a map

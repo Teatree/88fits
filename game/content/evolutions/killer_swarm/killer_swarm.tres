@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/evolutions/killer_swarm/killer_swarm_icon.png" id="1_66rwv"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_sl7tq"]
-[ext_resource type="PackedScene" path="res://content/evolutions/killer_swarm/killer_swarm_visual.tscn" id="2_66rwv"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_btmsm"]
+[ext_resource type="PackedScene" path="res://content/evolutions/killer_swarm/killer_swarm_visual.tscn" id="3_be8v5"]
 
 [resource]
-script = ExtResource("1_sl7tq")
+script = ExtResource("2_btmsm")
 behavior = "MissilePod"
 tags = ["homing"]
 targeting = "priority"
@@ -26,7 +26,7 @@ sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("2_66rwv")
+visual = ExtResource("3_be8v5")
 visual_file = "killer_swarm_visual.tscn"
 params = {
 "familiar": {

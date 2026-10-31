@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/perks/sunburn/sunburn_icon.png" id="1_kicgm"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_y21dp"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_7mqa1"]
 
 [resource]
-script = ExtResource("1_y21dp")
+script = ExtResource("2_7mqa1")
 hero = "solenne"
 text = "A burning or poisoned enemy takes 20% more from everything she does."
 special = "sunburn"

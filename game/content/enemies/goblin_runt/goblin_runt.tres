@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_jat44"]
-[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_icon_d.png" id="9_3asum"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_icon_d.png" id="1_skicy"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_jb5bl"]
 
 [resource]
-script = ExtResource("1_jat44")
+script = ExtResource("2_jb5bl")
 doc = "Keeps the crowd moving: smaller, faster, more of them, so a slow build cannot walk away."
 hp = 6.0
 speed = 2.3
@@ -170,7 +170,7 @@ variance = {
 id = "goblin_runt"
 display_name = "Goblin Runt"
 flavour = "Smaller. Meaner. Faster."
-icon = ExtResource("9_3asum")
+icon = ExtResource("1_skicy")
 icon_file = "goblin_runt_icon.png"
 placeholder = {
 "color": "#8CC46A",

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/brawn/brawn_icon_b.png" id="1_ly3ca"]
+[ext_resource type="Texture2D" path="res://content/passives/brawn/brawn_icon_b.png" id="1_qbltm"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ly3ca"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_mwkl6"]
 
@@ -54,7 +54,7 @@ variant_base = "A"
 id = "brawn"
 display_name = "The Sun"
 flavour = "The Sun stands over you. Your blows land like noon."
-icon = ExtResource("1_ly3ca")
+icon = ExtResource("1_qbltm")
 icon_file = "brawn_icon.png"
 placeholder = {
 "color": "#FF8040",

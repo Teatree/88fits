@@ -1,16 +1,16 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_g472g"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_su0p5"]
 [ext_resource type="Texture2D" path="res://content/mutations/mouth_arch/mouth_arch_icon.png" id="2_28qbh"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_su0p5"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_uofra"]
 
 [sub_resource type="Resource" id="Resource_su0p5"]
-script = ExtResource("1_g472g")
+script = ExtResource("1_su0p5")
 stat = "duration"
 value = 0.4
 
 [resource]
-script = ExtResource("2_su0p5")
+script = ExtResource("3_uofra")
 weapon = "big_mouth"
 text = "The beam pans 15° across while it fires, so it cuts through a crowd."
 vfx = "the beam sweeps slowly sideways as it burns"

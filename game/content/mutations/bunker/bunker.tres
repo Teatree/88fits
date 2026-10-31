@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vifv3"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_itak6"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_itak6"]
 [ext_resource type="Texture2D" path="res://content/mutations/bunker/bunker_icon.png" id="2_omuuo"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_hm1n1"]
 
 [sub_resource type="Resource" id="Resource_itak6"]
-script = ExtResource("1_vifv3")
+script = ExtResource("1_itak6")
 stat = "damage"
 op = "mul"
 value = 0.4
 
 [sub_resource type="Resource" id="Resource_omuuo"]
-script = ExtResource("1_vifv3")
+script = ExtResource("1_itak6")
 stat = "knockback"
 value = 4.0
 
 [resource]
-script = ExtResource("2_itak6")
+script = ExtResource("3_hm1n1")
 weapon = "turret_buddy"
 text = "The buddy digs in behind sandbags: twin barrels, +40% damage, shots knock back, it turns slowly."
 vfx = "a low sandbag bunker with two barrels"

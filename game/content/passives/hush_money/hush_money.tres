@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/hush_money/hush_money_icon.png" id="1_3noeg"]
 [ext_resource type="Texture2D" path="res://content/passives/hush_money/hush_money_icon_evolved.png" id="1_qywe3"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_qywe3"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_hiw3h"]
+[ext_resource type="Texture2D" path="res://content/passives/hush_money/hush_money_icon.png" id="2_hiw3h"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_n0v25"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_rbuej"]
 
 [sub_resource type="Resource" id="Resource_qywe3"]
-script = ExtResource("2_qywe3")
+script = ExtResource("3_n0v25")
 stat = "gold_on_hit"
 value = 3.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_hiw3h"]
-script = ExtResource("2_qywe3")
+script = ExtResource("3_n0v25")
 stat = "gold_on_hit"
 value = 2.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_n0v25"]
-script = ExtResource("2_qywe3")
+script = ExtResource("3_n0v25")
 stat = "gold_on_hit"
 value = 2.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_rbuej"]
-script = ExtResource("2_qywe3")
+script = ExtResource("3_n0v25")
 stat = "gold_on_hit"
 value = 2.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_rof6y"]
-script = ExtResource("2_qywe3")
+script = ExtResource("3_n0v25")
 stat = "gold_on_hit"
 value = 3.0
 target = "player"
 
 [resource]
-script = ExtResource("3_hiw3h")
+script = ExtResource("4_rbuej")
 levels = [[SubResource("Resource_qywe3")], [SubResource("Resource_hiw3h")], [SubResource("Resource_n0v25")], [SubResource("Resource_rbuej")], [SubResource("Resource_rof6y")]]
 max_level = 5
 evolved_icon = ExtResource("1_qywe3")
@@ -45,7 +45,7 @@ display_name = "Hush Money"
 flavour = "Every bruise has a price."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_3noeg")
+icon = ExtResource("2_hiw3h")
 icon_file = "hush_money_icon.png"
 placeholder = {
 "color": "#C9932F",

@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_d33ct"]
-[ext_resource type="Texture2D" path="res://content/passives/deadeye/deadeye_icon_b.png" id="1_u8w7l"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ks1js"]
+[ext_resource type="Texture2D" path="res://content/passives/deadeye/deadeye_icon_b.png" id="1_ks1js"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_u8w7l"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_meiav"]
 
 [sub_resource type="Resource" id="Resource_ks1js"]
-script = ExtResource("1_d33ct")
+script = ExtResource("2_u8w7l")
 stat = "crit_chance"
 value = 0.08
 target = "player"
 
 [resource]
-script = ExtResource("2_ks1js")
+script = ExtResource("3_meiav")
 line = true
 levels = [[SubResource("Resource_ks1js")]]
 max_level = 4
@@ -55,7 +55,7 @@ display_name = "The Eye"
 flavour = "The Eye opens. It sees where to strike, and some hits land for double."
 rarity = "rare"
 weight = 6.0
-icon = ExtResource("1_u8w7l")
+icon = ExtResource("1_ks1js")
 icon_file = "deadeye_icon.png"
 placeholder = {
 "color": "#FFD23B",

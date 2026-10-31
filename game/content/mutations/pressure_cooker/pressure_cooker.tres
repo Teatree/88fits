@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_j336g"]
 [ext_resource type="Texture2D" path="res://content/mutations/pressure_cooker/pressure_cooker_icon.png" id="1_u5obo"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_hv5t2"]
 
 [resource]
-script = ExtResource("1_j336g")
+script = ExtResource("2_hv5t2")
 weapon = "rocket_pod"
 text = "Standing still builds pressure: the pod fires faster every second, up to +200% after 15 s. Moving lets it out; a hit vents half."
 vfx = "the pod's tubes and body glow orange as the pressure builds, a puff of steam when a hit vents it"

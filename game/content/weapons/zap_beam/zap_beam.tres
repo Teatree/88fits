@@ -1,57 +1,57 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/zap_beam/zap_beam_icon.png" id="1_r8tns"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_r8tns"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_w1c17"]
-[ext_resource type="PackedScene" path="res://content/weapons/zap_beam/zap_beam_visual.tscn" id="3_w1c17"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_y1fi3"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_7u84o"]
+[ext_resource type="PackedScene" path="res://content/weapons/zap_beam/zap_beam_visual.tscn" id="4_887o3"]
 
 [sub_resource type="Resource" id="Resource_r8tns"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "chains"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_y1fi3"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_7u84o"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_887o3"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "cooldown"
 op = "mul"
 value = -0.1675
 
 [sub_resource type="Resource" id="Resource_0g86e"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "chains"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_qrq2d"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_s7ecw"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "chains"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_baajs"]
-script = ExtResource("2_r8tns")
+script = ExtResource("2_y1fi3")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [resource]
-script = ExtResource("2_w1c17")
+script = ExtResource("3_7u84o")
 behavior = "Beam"
 targeting = "random"
 base = {
@@ -69,7 +69,7 @@ sfx = {
 "fire": "w_zap_fire",
 "hit": "w_zap_hit"
 }
-visual = ExtResource("3_w1c17")
+visual = ExtResource("4_887o3")
 visual_file = "zap_beam_visual.tscn"
 id = "zap_beam"
 display_name = "Zap Beam"

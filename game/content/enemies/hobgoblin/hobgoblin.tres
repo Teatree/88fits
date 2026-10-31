@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/hobgoblin/hobgoblin_icon.png" id="1_34cu8"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_ubojs"]
+[ext_resource type="Texture2D" path="res://content/enemies/hobgoblin/hobgoblin_icon.png" id="1_iht4x"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_34cu8"]
 
 [resource]
-script = ExtResource("1_ubojs")
+script = ExtResource("2_34cu8")
 doc = "Retired in pass 44 (too many goblins): the Blue Slime took its stage-2 hell row. Stage 2's hell crowd: four times a goblin's health and twice its bite, in packs of four that come on top of the regular roster. It walks like a goblin and dies like one, slower."
 hp = 24.0
 speed = 1.75
@@ -62,7 +62,7 @@ variance = {
 id = "hobgoblin"
 display_name = "Hobgoblin"
 flavour = "The goblin's big brother. He brought a cleaver."
-icon = ExtResource("1_34cu8")
+icon = ExtResource("1_iht4x")
 icon_file = "hobgoblin_icon.png"
 placeholder = {
 "color": "#6A8E3A",

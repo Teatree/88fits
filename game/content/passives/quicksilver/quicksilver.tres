@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/quicksilver/quicksilver_icon_b.png" id="1_veqn8"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_w7evw"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ymai2"]
+[ext_resource type="Texture2D" path="res://content/passives/quicksilver/quicksilver_icon_b.png" id="1_ymai2"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_veqn8"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_73nsr"]
 
 [sub_resource type="Resource" id="Resource_ymai2"]
-script = ExtResource("1_w7evw")
+script = ExtResource("2_veqn8")
 stat = "cooldown"
 op = "mul"
 value = -0.4
 target = "player"
 
 [resource]
-script = ExtResource("2_ymai2")
+script = ExtResource("3_73nsr")
 line = true
 levels = [[SubResource("Resource_ymai2")]]
 repeat_last_level = false
@@ -57,7 +57,7 @@ display_name = "The Tower Risen"
 flavour = "The Tower is all lightning now, faster than the clock that holds it."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_veqn8")
+icon = ExtResource("1_ymai2")
 icon_file = "quicksilver_icon.png"
 placeholder = {
 "color": "#FFB84A",

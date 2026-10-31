@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_1dbhp"]
 [ext_resource type="Texture2D" path="res://content/mutations/echo_zap/echo_zap_icon.png" id="1_qervc"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_0maup"]
 
 [resource]
-script = ExtResource("1_1dbhp")
+script = ExtResource("2_0maup")
 weapon = "zap_beam"
 mutation_kind = "element"
 text = "20% of hits zap the same enemy 3 more times for 40% damage each."

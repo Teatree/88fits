@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_yh6rv"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_v6fr0"]
 [ext_resource type="Texture2D" path="res://content/mutations/flare_volley/flare_volley_icon.png" id="2_p6b6x"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_v6fr0"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_336w6"]
 
 [sub_resource type="Resource" id="Resource_v6fr0"]
-script = ExtResource("1_yh6rv")
+script = ExtResource("1_v6fr0")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_p6b6x"]
-script = ExtResource("1_yh6rv")
+script = ExtResource("1_v6fr0")
 stat = "damage"
 op = "mul"
 value = -0.35
 
 [resource]
-script = ExtResource("2_v6fr0")
+script = ExtResource("3_336w6")
 weapon = "flare_gun"
 mutation_kind = "volume"
 text = "Three flares a shot, −35% damage."

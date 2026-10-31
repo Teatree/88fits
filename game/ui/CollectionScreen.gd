@@ -475,7 +475,7 @@ func _full_text(def: ContentDef) -> String:
 		s += TextGen.passive_description(pd, 1)
 		return s + (" The trade: %s." % pd.trade.trim_suffix(".") if pd.trade != "" else "")
 	if def is PerkDef:
-		return (def as PerkDef).text
+		return TextGen.perk_text(def as PerkDef)
 	if def is MutationDef:
 		return (def as MutationDef).text
 	if def is CharacterDef:

@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/vulture/vulture_icon.png" id="1_0hbiv"]
 [ext_resource type="Texture2D" path="res://content/passives/vulture/vulture_icon_evolved.png" id="1_c10v8"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_c10v8"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_7lqve"]
+[ext_resource type="Texture2D" path="res://content/passives/vulture/vulture_icon.png" id="2_7lqve"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_q72no"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_h3fo2"]
 
 [sub_resource type="Resource" id="Resource_c10v8"]
-script = ExtResource("2_c10v8")
+script = ExtResource("3_q72no")
 stat = "crit_heal_chance"
 value = 0.06
 target = "player"
 
 [sub_resource type="Resource" id="Resource_7lqve"]
-script = ExtResource("2_c10v8")
+script = ExtResource("3_q72no")
 stat = "crit_heal_chance"
 value = 0.03
 target = "player"
 
 [sub_resource type="Resource" id="Resource_q72no"]
-script = ExtResource("2_c10v8")
+script = ExtResource("3_q72no")
 stat = "crit_heal_chance"
 value = 0.03
 target = "player"
 
 [sub_resource type="Resource" id="Resource_h3fo2"]
-script = ExtResource("2_c10v8")
+script = ExtResource("3_q72no")
 stat = "crit_heal_chance"
 value = 0.03
 target = "player"
 
 [sub_resource type="Resource" id="Resource_cgqni"]
-script = ExtResource("2_c10v8")
+script = ExtResource("3_q72no")
 stat = "crit_heal_chance"
 value = 0.05
 target = "player"
 
 [resource]
-script = ExtResource("3_7lqve")
+script = ExtResource("4_h3fo2")
 levels = [[SubResource("Resource_c10v8")], [SubResource("Resource_7lqve")], [SubResource("Resource_q72no")], [SubResource("Resource_h3fo2")], [SubResource("Resource_cgqni")]]
 max_level = 5
 text = "A critical hit may heal you for 2% of your max health. 6% of crits at level 1, 20% once Evolved."
@@ -46,7 +46,7 @@ display_name = "Vulture"
 flavour = "Feeds on a good shot."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_0hbiv")
+icon = ExtResource("2_7lqve")
 icon_file = "vulture_icon.png"
 placeholder = {
 "color": "#B04A3A",

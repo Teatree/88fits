@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/invisible_box/invisible_box_icon.png" id="1_kyanm"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_66eni"]
+
+[resource]
+script = ExtResource("2_66eni")
+hero = "may"
+special = "box"
+params = {
+"every": 25.0,
+"first": 10.0,
+"height": 2.4,
+"seconds": 3.0,
+"spin": 0.35,
+"width": 2.0
+}
+id = "invisible_box"
+display_name = "Invisible Box"
+flavour = "There is a wall. There was always a wall."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_kyanm")
+icon_file = "invisible_box_icon.png"
+placeholder = {
+"color": "#BFE6FF",
+"glyph": "shield"
+}

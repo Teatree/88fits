@@ -1,47 +1,47 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_a8dro"]
-[ext_resource type="Texture2D" path="res://content/passives/kindling/kindling_icon.png" id="1_opko1"]
 [ext_resource type="Texture2D" path="res://content/passives/kindling/kindling_icon_evolved.png" id="1_sbqp5"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_opko1"]
+[ext_resource type="Texture2D" path="res://content/passives/kindling/kindling_icon.png" id="2_aggem"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_bh3xc"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_3jfl5"]
 
 [sub_resource type="Resource" id="Resource_sbqp5"]
-script = ExtResource("1_a8dro")
+script = ExtResource("3_bh3xc")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_aggem"]
-script = ExtResource("1_a8dro")
+script = ExtResource("3_bh3xc")
 stat = "fire_damage"
 op = "mul"
 value = 0.12
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_bh3xc"]
-script = ExtResource("1_a8dro")
+script = ExtResource("3_bh3xc")
 stat = "fire_damage"
 op = "mul"
 value = 0.12
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_3jfl5"]
-script = ExtResource("1_a8dro")
+script = ExtResource("3_bh3xc")
 stat = "fire_damage"
 op = "mul"
 value = 0.12
 target = "all_weapons"
 
 [sub_resource type="Resource" id="Resource_4k1sj"]
-script = ExtResource("1_a8dro")
+script = ExtResource("3_bh3xc")
 stat = "fire_damage"
 op = "mul"
 value = 0.18
 target = "all_weapons"
 
 [resource]
-script = ExtResource("2_opko1")
+script = ExtResource("4_3jfl5")
 levels = [[SubResource("Resource_sbqp5")], [SubResource("Resource_aggem")], [SubResource("Resource_bh3xc")], [SubResource("Resource_3jfl5")], [SubResource("Resource_4k1sj")]]
 max_level = 5
 pairs_with = "flare_gun"
@@ -52,7 +52,7 @@ flavour = "Everything you light, burns hotter."
 rarity = "uncommon"
 element = "fire"
 weight = 8.0
-icon = ExtResource("1_opko1")
+icon = ExtResource("2_aggem")
 icon_file = "kindling_icon.png"
 placeholder = {
 "color": "#FF9A4A",

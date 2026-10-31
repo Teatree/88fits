@@ -80,6 +80,7 @@
   "head": 0.894,
   "damage_reduction": 0.25,
   "variant_base": "ARM-0",
+  "variant": "ARM-F",
   "variants": {
     "ARM-0": {
       "note": "the top-level strip, before the Level Editor's looks"

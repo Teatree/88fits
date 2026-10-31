@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_icon.png" id="1_6nfm6"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_1go7i"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_jilq0"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_1go7i"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_jilq0"]
 
 [sub_resource type="Resource" id="Resource_6nfm6"]
-script = ExtResource("3_jilq0")
+script = ExtResource("2_1go7i")
 stat = "debuff_duration"
 op = "mul"
 value = 0.015
 target = "player"
 
 [resource]
-script = ExtResource("2_1go7i")
+script = ExtResource("3_jilq0")
 level_trait = [SubResource("Resource_6nfm6")]
 order = 5
 trait_name = "Magic Hour"

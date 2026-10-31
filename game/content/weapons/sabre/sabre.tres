@@ -1,58 +1,58 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/sabre/sabre_icon.png" id="1_cxtc7"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xab5y"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_cxtc7"]
-[ext_resource type="PackedScene" path="res://content/weapons/sabre/sabre_visual.tscn" id="3_d2vsb"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_d2vsb"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_wqb54"]
+[ext_resource type="PackedScene" path="res://content/weapons/sabre/sabre_visual.tscn" id="4_t272n"]
 
 [sub_resource type="Resource" id="Resource_cxtc7"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_d2vsb"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "range"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_wqb54"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_t272n"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "cooldown"
 op = "mul"
 value = -0.186
 
 [sub_resource type="Resource" id="Resource_wdn7y"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_o08gb"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_26381"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "range"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_a2173"]
-script = ExtResource("1_xab5y")
+script = ExtResource("2_d2vsb")
 stat = "amount"
 value = 1.0
 
 [resource]
-script = ExtResource("2_cxtc7")
+script = ExtResource("3_wqb54")
 behavior = "Thruster"
 tags = ["blade"]
 targeting = "priority"
@@ -71,7 +71,7 @@ sfx = {
 "fire": "w_saw_hit",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("3_d2vsb")
+visual = ExtResource("4_t272n")
 visual_file = "sabre_visual.tscn"
 params = {
 "fire_forward": true,

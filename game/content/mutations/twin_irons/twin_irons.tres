@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_l8vth"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_v56ev"]
 [ext_resource type="Texture2D" path="res://content/mutations/twin_irons/twin_irons_icon.png" id="2_krmmb"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_v56ev"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_1om7c"]
 
 [sub_resource type="Resource" id="Resource_v56ev"]
-script = ExtResource("1_l8vth")
+script = ExtResource("1_v56ev")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_krmmb"]
-script = ExtResource("1_l8vth")
+script = ExtResource("1_v56ev")
 stat = "damage"
 op = "mul"
 value = -0.3
 
 [resource]
-script = ExtResource("2_v56ev")
+script = ExtResource("3_1om7c")
 weapon = "branding_iron"
 mutation_kind = "volume"
 text = "+2 irons, −30% damage."

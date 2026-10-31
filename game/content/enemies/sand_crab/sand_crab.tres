@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/sand_crab/sand_crab_icon.png" id="1_n8j3c"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_ssxd3"]
+[ext_resource type="Texture2D" path="res://content/enemies/sand_crab/sand_crab_icon.png" id="1_sc30s"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_n8j3c"]
 
 [resource]
-script = ExtResource("1_ssxd3")
+script = ExtResource("2_n8j3c")
 archetype = "swarmer"
 doc = "A crab with a live mine on its back, and it arrives alone rather than in a pack. Fast, two hits kill it, and it goes off either way: a blast at the hero when it reaches him, marked by a red ring, or a smaller one on its own death that throws whatever stands beside it. From the fourth minute, and a swarm late."
 brain = "kamikaze"
@@ -74,7 +74,7 @@ variance = {
 id = "sand_crab"
 display_name = "Mine Crab"
 flavour = "It is not the claws you should worry about."
-icon = ExtResource("1_n8j3c")
+icon = ExtResource("1_sc30s")
 icon_file = "sand_crab_icon.png"
 placeholder = {
 "color": "#E08040",

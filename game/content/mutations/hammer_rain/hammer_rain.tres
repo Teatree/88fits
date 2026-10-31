@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ccmnq"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_spf20"]
 [ext_resource type="Texture2D" path="res://content/mutations/hammer_rain/hammer_rain_icon.png" id="2_kj7lg"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_spf20"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ntnxs"]
 
 [sub_resource type="Resource" id="Resource_spf20"]
-script = ExtResource("1_ccmnq")
+script = ExtResource("1_spf20")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_kj7lg"]
-script = ExtResource("1_ccmnq")
+script = ExtResource("1_spf20")
 stat = "damage"
 op = "mul"
 value = -0.35
 
 [resource]
-script = ExtResource("2_spf20")
+script = ExtResource("3_ntnxs")
 weapon = "hammer"
 mutation_kind = "volume"
 text = "Two more hammers a stroke, −35% damage."

@@ -1,58 +1,58 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_75rcb"]
 [ext_resource type="Texture2D" path="res://content/weapons/sun_scepter/sun_scepter_icon.png" id="1_nq0oe"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_nq0oe"]
-[ext_resource type="PackedScene" path="res://content/weapons/sun_scepter/sun_scepter_visual.tscn" id="3_gth1u"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_gth1u"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_mj521"]
+[ext_resource type="PackedScene" path="res://content/weapons/sun_scepter/sun_scepter_visual.tscn" id="4_1f3mh"]
 
 [sub_resource type="Resource" id="Resource_nq0oe"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_gth1u"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "area"
 op = "mul"
 value = 0.15
 
 [sub_resource type="Resource" id="Resource_mj521"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_1f3mh"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "cooldown"
 op = "mul"
 value = -0.186
 
 [sub_resource type="Resource" id="Resource_klltv"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_agpiq"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_gltro"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "area"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_j08gi"]
-script = ExtResource("1_75rcb")
+script = ExtResource("2_gth1u")
 stat = "amount"
 value = 1.0
 
 [resource]
-script = ExtResource("2_nq0oe")
+script = ExtResource("3_mj521")
 behavior = "SunScepter"
 tags = ["magic"]
 targeting = "random"
@@ -72,7 +72,7 @@ sfx = {
 "fire": "w_sun_warn",
 "hit": "w_sun_strike"
 }
-visual = ExtResource("3_gth1u")
+visual = ExtResource("4_1f3mh")
 visual_file = "sun_scepter_visual.tscn"
 params = {
 "familiar": {

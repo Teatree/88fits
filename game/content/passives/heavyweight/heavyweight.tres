@@ -1,36 +1,36 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/heavyweight/heavyweight_icon.png" id="1_gh40n"]
 [ext_resource type="Texture2D" path="res://content/passives/heavyweight/heavyweight_icon_evolved.png" id="1_gwbko"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_gwbko"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_xhxj1"]
+[ext_resource type="Texture2D" path="res://content/passives/heavyweight/heavyweight_icon.png" id="2_xhxj1"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_4w18q"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_0v5d5"]
 
 [sub_resource type="Resource" id="Resource_gwbko"]
-script = ExtResource("2_gwbko")
+script = ExtResource("3_4w18q")
 stat = "heavyweight"
 value = 0.012
 target = "player"
 
 [sub_resource type="Resource" id="Resource_xhxj1"]
-script = ExtResource("2_gwbko")
+script = ExtResource("3_4w18q")
 stat = "heavyweight"
 value = 0.0015
 target = "player"
 
 [sub_resource type="Resource" id="Resource_4w18q"]
-script = ExtResource("2_gwbko")
+script = ExtResource("3_4w18q")
 stat = "heavyweight"
 value = 0.0015
 target = "player"
 
 [sub_resource type="Resource" id="Resource_0v5d5"]
-script = ExtResource("2_gwbko")
+script = ExtResource("3_4w18q")
 stat = "heavyweight"
 value = 0.0025
 target = "player"
 
 [resource]
-script = ExtResource("3_xhxj1")
+script = ExtResource("4_0v5d5")
 levels = [[SubResource("Resource_gwbko")], [SubResource("Resource_xhxj1")], [SubResource("Resource_4w18q")], [SubResource("Resource_0v5d5")]]
 max_level = 4
 text = "+1.2% attack damage for every 10 max HP you have (+0.15% a rung, Evolved +0.25%)."
@@ -40,7 +40,7 @@ display_name = "Heavyweight"
 flavour = "The bigger they are, the harder they hit."
 rarity = "rare"
 weight = 7.0
-icon = ExtResource("1_gh40n")
+icon = ExtResource("2_xhxj1")
 icon_file = "heavyweight_icon.png"
 placeholder = {
 "color": "#8C3A2E",

@@ -1,30 +1,30 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon_evolved.png" id="1_b230n"]
-[ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon.png" id="1_yl05g"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_b230n"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_lwsnv"]
+[ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon.png" id="2_lwsnv"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_akrha"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_kygyd"]
 
 [sub_resource type="Resource" id="Resource_b230n"]
-script = ExtResource("2_b230n")
+script = ExtResource("3_akrha")
 stat = "overheal"
 value = 0.25
 target = "player"
 
 [sub_resource type="Resource" id="Resource_lwsnv"]
-script = ExtResource("2_b230n")
+script = ExtResource("3_akrha")
 stat = "overheal"
 value = 0.06
 target = "player"
 
 [sub_resource type="Resource" id="Resource_akrha"]
-script = ExtResource("2_b230n")
+script = ExtResource("3_akrha")
 stat = "overheal"
 value = 0.1
 target = "player"
 
 [resource]
-script = ExtResource("3_lwsnv")
+script = ExtResource("4_kygyd")
 levels = [[SubResource("Resource_b230n")], [SubResource("Resource_lwsnv")], [SubResource("Resource_akrha")]]
 repeat_last_level = false
 max_level = 3
@@ -35,7 +35,7 @@ display_name = "Snake Oil"
 flavour = "Cures what ails you. And then some."
 rarity = "epic"
 weight = 5.0
-icon = ExtResource("1_yl05g")
+icon = ExtResource("2_lwsnv")
 icon_file = "snake_oil_icon.png"
 placeholder = {
 "color": "#E86AA8",

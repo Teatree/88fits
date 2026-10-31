@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/perks/bounty_hunter/bounty_hunter_icon.png" id="1_ei3ir"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_rvb7h"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_2dvj3"]
 
 [resource]
-script = ExtResource("1_rvb7h")
+script = ExtResource("2_2dvj3")
 hero = "drifter"
 text = "Every 60 kills a creature near him is WANTED: it glows, has four times its health, and pays 40 gold and a chest when it drops."
 special = "bounty_hunter"

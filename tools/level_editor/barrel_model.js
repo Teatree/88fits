@@ -8,14 +8,19 @@
 const BarrelModel = (() => {
   const RESPAWN_DEFAULTS = {
     enabled: false, first: 45, every: [40, 60], max_lying: 35, max_per_stage: 0,
-    min_dist: 20, max_dist: 40, black_chance: 0.22, view_margin: 2,
+    min_dist: 20, max_dist: 40, view_margin: 2,
     in_boss: true, in_portal: false, in_endless: false,
   };
+  // pass 116 (lane MAP): three kinds (Garry's board): exp, coins, powerup; only powerup throws power-ups; `weight` is each
+  // kind's share of the start's barrels and of the respawns. pass 112's brown / black are read as exp / coins.
   const CONTENT_DEFAULTS = {
-    brown: { powerup_chance: 0, powerups: [], throw_distance: [5, 7], gems_small: 8, gems_medium: 0, coins: 0 },
-    black: { powerup_chance: 0, powerups: [], throw_distance: [5, 7], gems_small: 10, gems_medium: 4, coins: [1, 5] },
+    exp: { weight: 0.648, gems_small: 8, gems_medium: 0, coins: 0 },
+    coins: { weight: 0.22, gems_small: 10, gems_medium: 4, coins: [1, 5] },
+    powerup: { weight: 0.132, powerup_chance: 1, powerups: [], throw_distance: [5, 7], gems_small: 0, gems_medium: 0, coins: 0 },
   };
-  const TYPES = ['brown', 'black'];
+  const TYPES = ['exp', 'coins', 'powerup'];
+  const LEGACY = { exp: 'brown', coins: 'black', powerup: '' };
+  const NAMES = { exp: 'EXP barrel', coins: 'EXP + Coins barrel', powerup: 'Power-up barrel' };
   const EVERY_MIN = 5;
   const FAR_BAND = 1.5;
   /** The map's barrels at the start (game/core/systems/BarrelField.gd COUNT, EXTRA_DARK, LIGHT_FRAC). */
@@ -46,7 +51,7 @@ const BarrelModel = (() => {
     o.max_per_stage = Math.max(Math.trunc(num(o.max_per_stage, 0)), 0);
     o.min_dist = Math.max(num(o.min_dist, 20), 0);
     o.max_dist = Math.max(num(o.max_dist, 40), o.min_dist);
-    o.black_chance = clamp(num(o.black_chance, 0.22), 0, 1);
+    delete o.black_chance;
     o.view_margin = Math.max(num(o.view_margin, 2), 0);
     for (const k of ['in_boss', 'in_portal', 'in_endless']) o[k] = bool(o[k]);
     return o;
@@ -68,9 +73,18 @@ const BarrelModel = (() => {
 
   /** One barrel kind's contents, every key filled and in range (BarrelSpawns.contents_of; coins as [min, max]). */
   function contentsOf(block, type) {
-    const own = isObj(block) && isObj(block[type]) ? block[type] : {};
+    if (type === 'brown') type = 'exp';
+    if (type === 'black') type = 'coins';
+    const b = isObj(block) ? block : {};
+    const own = isObj(b[type]) ? b[type] : (LEGACY[type] && isObj(b[LEGACY[type]]) ? b[LEGACY[type]] : {});
     const o = Object.assign(JSON.parse(JSON.stringify(CONTENT_DEFAULTS[type])), own);
-    o.powerup_chance = clamp(num(o.powerup_chance, 0), 0, 1);
+    if (type === 'powerup') {
+      if (!('powerups' in own) && isObj(b.black)) o.powerups = b.black.powerups || [];
+      o.powerup_chance = clamp(num(o.powerup_chance, 1), 0, 1);
+    } else {
+      o.powerup_chance = 0; o.powerups = []; o.throw_distance = [5, 7];
+    }
+    o.weight = Math.max(num(o.weight, 0), 0);
     const td = rangeOf(o.throw_distance, [5, 7]);
     o.throw_distance = [Math.max(td[0], 0), Math.max(td[1], Math.max(td[0], 0))];
     o.gems_small = Math.max(Math.trunc(num(o.gems_small, 8)), 0);
@@ -79,6 +93,13 @@ const BarrelModel = (() => {
     o.coins = [Math.max(Math.trunc(co[0]), 0), Math.max(Math.trunc(co[1]), Math.max(Math.trunc(co[0]), 0))];
     o.powerups = weightList(o.powerups);
     return o;
+  }
+
+  /** Each kind's share of the barrels (0..1) in TYPES order, from the kinds' weights. */
+  function kindShares(block) {
+    const w = TYPES.map((t) => contentsOf(block, t).weight);
+    const tot = w.reduce((a, x) => a + x, 0);
+    return w.map((x, k) => (tot > 0 ? x / tot : (k === 0 ? 1 : 0)));
   }
 
   /** The list a barrel kind draws from: its own, else the map's power-up drops roster (`tl.pickups.roster`). */
@@ -113,8 +134,11 @@ const BarrelModel = (() => {
     const warn = (msg) => out.push({ level: 'warn', msg });
     const b = tl ? tl.barrels : undefined;
     if (b == null) return out;
-    if (!isObj(b)) { err('barrels must be a block {respawn, brown, black}'); return out; }
-    for (const k of Object.keys(b)) if (!['respawn', ...TYPES].includes(k)) warn(`"${k}" is not respawn, brown or black: the game ignores it`);
+    if (!isObj(b)) { err('barrels must be a block {respawn, exp, coins, powerup}'); return out; }
+    for (const k of Object.keys(b)) {
+      if (k === 'brown' || k === 'black') { if (!isObj(b[k === 'brown' ? 'exp' : 'coins'])) warn(`"${k}" is pass 112's name: read as the ${k === 'brown' ? 'EXP' : 'EXP + Coins'} barrel (its power-up keys ignored)`); continue; }
+      if (!['respawn', ...TYPES].includes(k)) warn(`"${k}" is not respawn, exp, coins or powerup: the game ignores it`);
+    }
     const rs = b.respawn;
     if (rs != null && !isObj(rs)) err('respawn must be a block {enabled, first, every, ...}');
     else if (isObj(rs)) {
@@ -122,7 +146,7 @@ const BarrelModel = (() => {
         if (rs[k] != null && !(typeof rs[k] === 'number' && rs[k] >= 0)) err(`respawn: ${k} must be a number 0 or more (got ${JSON.stringify(rs[k])})`);
       }
       if (rs.every != null && !okRange(rs.every)) err('respawn: every is seconds, one number or [min, max] with max at least min');
-      if (rs.black_chance != null && !(typeof rs.black_chance === 'number' && rs.black_chance >= 0 && rs.black_chance <= 1)) err('respawn: the black barrel chance is between 0 and 100%');
+      if (rs.black_chance != null) warn('respawn: the black barrel chance is gone since pass 116 (the kinds\' weights decide): the game ignores it');
       const c = respawnOf(b);
       if (c.enabled) {
         if (c.every[0] < 10) warn(`respawn: a barrel back every ${c.every[0]} s is a lot of free XP`);
@@ -134,8 +158,10 @@ const BarrelModel = (() => {
     for (const ty of TYPES) {
       const k = b[ty];
       if (k == null) continue;
-      const name = ty === 'black' ? 'black barrel' : 'brown barrel';
+      const name = NAMES[ty];
       if (!isObj(k)) { err(`${name}: must be a block`); continue; }
+      if (k.weight != null && !(typeof k.weight === 'number' && k.weight >= 0)) err(`${name}: the weight must be 0 or more`);
+      if (ty !== 'powerup' && (k.powerup_chance != null || k.powerups != null)) warn(`${name}: only the Power-up barrel throws power-ups: these keys are ignored`);
       if (k.powerup_chance != null && !(typeof k.powerup_chance === 'number' && k.powerup_chance >= 0 && k.powerup_chance <= 1)) err(`${name}: the power-up chance is between 0 and 100%`);
       if (k.powerups != null && !Array.isArray(k.powerups) && !isObj(k.powerups)) err(`${name}: powerups must be a list of {id, weight}`);
       if (Array.isArray(k.powerups)) {
@@ -154,12 +180,12 @@ const BarrelModel = (() => {
       if (k.coins != null && !okRange(k.coins)) err(`${name}: coins are one number or [min, max] with max at least min`);
       const con = contentsOf(b, ty);
       if (con.powerup_chance > 0 && !con.powerups.length && !weightList(((tl && tl.pickups) || {}).roster || []).length) warn(`${name}: a power-up chance but no power-up listed and no drops roster: nothing comes out`);
-      if (con.powerup_chance > 0.5) warn(`${name}: a power-up from over half of them makes power-ups common (the crowd drops about 17 a Sundown run)`);
     }
+    if (!kindShares(b).some((x, k) => k > 0 && x > 0) && TYPES.every((t) => contentsOf(b, t).weight <= 0)) warn('every barrel kind weighs 0: all barrels are EXP barrels');
     return out;
   }
 
-  const api = { RESPAWN_DEFAULTS, CONTENT_DEFAULTS, TYPES, EVERY_MIN, FAR_BAND, START_COUNT, rangeOf, respawnOf, weightList, contentsOf, drawList, shares, turnsIn, issues };
+  const api = { RESPAWN_DEFAULTS, CONTENT_DEFAULTS, TYPES, LEGACY, NAMES, kindShares, EVERY_MIN, FAR_BAND, START_COUNT, rangeOf, respawnOf, weightList, contentsOf, drawList, shares, turnsIn, issues };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;
 })();

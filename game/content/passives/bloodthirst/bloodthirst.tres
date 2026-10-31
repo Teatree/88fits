@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/bloodthirst/bloodthirst_icon_b.png" id="1_fqly5"]
+[ext_resource type="Texture2D" path="res://content/passives/bloodthirst/bloodthirst_icon_b.png" id="1_kv2ue"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_fqly5"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_xfjl4"]
 
@@ -71,7 +71,7 @@ display_name = "Death Risen"
 flavour = "Death is never full. It was never enough."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_fqly5")
+icon = ExtResource("1_kv2ue")
 icon_file = "bloodthirst_icon.png"
 placeholder = {
 "color": "#FFB84A",

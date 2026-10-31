@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vl60p"]
-[ext_resource type="Texture2D" path="res://content/mutations/big_peas/big_peas_icon.png" id="2_vl60p"]
+[ext_resource type="Texture2D" path="res://content/mutations/big_peas/big_peas_icon.png" id="2_0yuoi"]
 [ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_bji7s"]
 
 [sub_resource type="Resource" id="Resource_vl60p"]
@@ -32,7 +32,7 @@ display_name = "Big Peas"
 flavour = "Eat your greens."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_vl60p")
+icon = ExtResource("2_0yuoi")
 icon_file = "big_peas_icon.png"
 placeholder = {
 "color": "#7CC64A",

@@ -170,8 +170,7 @@ func test_every_mummy_look_carries_its_left_sets_after_its_old_frames() -> void:
 		assert_int(v.frame_offset("run_l")).is_equal(44)
 		assert_int(v.frame_offset("run_bl")).is_equal(59)
 		assert_int(v.total_frames()).is_equal(75)
-	# the base strip CM-0 (a placeholder) has none
-	assert_bool(def.variant_def("CM-0").has_left_sets()).is_false()
+	# (pass 116 re-pin: Garry removed the CM-0 placeholder strip)
 	# any other creature has none
 	assert_bool(Registry.enemy("skeleton").has_left_sets()).is_false()
 
@@ -259,11 +258,7 @@ func test_every_other_creature_still_mirrors_as_before() -> void:
 	em.flip[s] = 0
 	assert_int(em.drawn_frame(s).y).is_equal(0)
 	assert_int(em._lr_strip(s, t, EnemyManager.A_RUN)).is_equal(EnemyManager.A_RUN)
-	# the mummy's placeholder base strip (no left sets) mirrors too
-	var m0 := _put(em, "cyclopean_mummy", Vector3(-3, 0, 0), "CM-0")
-	em.vel[m0] = Vector3(-1, 0, 0)
-	em.flip[m0] = 1
-	assert_int(em.drawn_frame(m0).y).is_equal(1)
+	# (pass 116 re-pin: Garry removed the mummy's CM-0 placeholder strip)
 	# the hellhound's inverted front (front_faces "left") is kept: as painted heading left
 	var h := _put(em, "hellhound", Vector3(0, 0, 3))
 	em.vel[h] = Vector3(-1, 0, 0)

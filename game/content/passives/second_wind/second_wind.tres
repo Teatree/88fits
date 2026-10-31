@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/second_wind/second_wind_icon_b.png" id="1_po12p"]
+[ext_resource type="Texture2D" path="res://content/passives/second_wind/second_wind_icon_b.png" id="1_1q1jq"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_po12p"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_w0yoc"]
 
@@ -63,7 +63,7 @@ display_name = "Temperance Risen"
 flavour = "Temperance overflows. Up again before the dust settles."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_po12p")
+icon = ExtResource("1_1q1jq")
 icon_file = "second_wind_icon.png"
 placeholder = {
 "color": "#FFB84A",

@@ -1,27 +1,27 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xng6k"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_51tcq"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_51tcq"]
 [ext_resource type="Texture2D" path="res://content/mutations/needle_rain/needle_rain_icon.png" id="2_fqbsl"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_bd77f"]
 
 [sub_resource type="Resource" id="Resource_51tcq"]
-script = ExtResource("1_xng6k")
+script = ExtResource("1_51tcq")
 stat = "area"
 value = 1.2
 
 [sub_resource type="Resource" id="Resource_fqbsl"]
-script = ExtResource("1_xng6k")
+script = ExtResource("1_51tcq")
 stat = "speed"
 op = "set"
 value = 11.0
 
 [sub_resource type="Resource" id="Resource_bd77f"]
-script = ExtResource("1_xng6k")
+script = ExtResource("1_51tcq")
 stat = "range"
 value = 2.0
 
 [resource]
-script = ExtResource("2_51tcq")
+script = ExtResource("3_bd77f")
 weapon = "poison_dart"
 text = "The darts arc over everything and fall from above, leaving a poison cloud where they land."
 vfx = "darts arcing high, a green cloud on landing"

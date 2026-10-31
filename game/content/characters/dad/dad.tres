@@ -1,37 +1,37 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_uodur"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_h2uaj"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_h2uaj"]
 [ext_resource type="Texture2D" path="res://content/characters/dad/dad_icon.png" id="2_uodur"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_1x8k2"]
 
 [sub_resource type="Resource" id="Resource_h2uaj"]
-script = ExtResource("1_uodur")
+script = ExtResource("1_h2uaj")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_uodur"]
-script = ExtResource("1_uodur")
+script = ExtResource("1_h2uaj")
 stat = "might"
 op = "mul"
 value = 0.25
 target = "player"
 
 [sub_resource type="Resource" id="Resource_1x8k2"]
-script = ExtResource("1_uodur")
+script = ExtResource("1_h2uaj")
 stat = "area"
 op = "mul"
 value = 0.15
 target = "player"
 
 [sub_resource type="Resource" id="Resource_5excv"]
-script = ExtResource("1_uodur")
+script = ExtResource("1_h2uaj")
 stat = "move_speed"
 op = "mul"
 value = -0.1
 target = "player"
 
 [resource]
-script = ExtResource("2_h2uaj")
+script = ExtResource("3_1x8k2")
 trait_effects = [SubResource("Resource_uodur"), SubResource("Resource_1x8k2"), SubResource("Resource_5excv")]
 trait_name = "Dad Strength"
 trait_text = "+25% attack damage and +15% area of effect, but −10% move speed. His Boomstick fires two extra pellets."

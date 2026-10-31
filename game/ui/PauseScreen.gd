@@ -233,7 +233,7 @@ func _one_line(def: ContentDef, level: int, inst: WeaponInstance) -> String:
 		if not names.is_empty():
 			s += " · " + " · ".join(names)
 	elif def is PerkDef:
-		s = (def as PerkDef).text.split(". ")[0].trim_suffix(".")
+		s = TextGen.perk_text(def as PerkDef).split(". ")[0].trim_suffix(".")
 	elif Run.item_spent(def):
 		s = "Used: it stood you up once this run"
 	elif def is PassiveDef:
@@ -289,7 +289,7 @@ func _item_row(def: ContentDef, level: int, max_level: int, inst: WeaponInstance
 		else:
 			var desc := ""
 			if def is PerkDef:
-				desc = (def as PerkDef).text
+				desc = TextGen.perk_text(def as PerkDef)
 			elif def is PassiveDef:
 				desc = passive_now(def, level)
 			var nxt := TextGen.next_level_text(def, level) if not def is PerkDef else ""

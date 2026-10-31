@@ -1,34 +1,34 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_6ncsb"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_v3jod"]
 [ext_resource type="Texture2D" path="res://content/mutations/slug/slug_icon.png" id="2_sb6un"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_v3jod"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_rkpsp"]
 
 [sub_resource type="Resource" id="Resource_v3jod"]
-script = ExtResource("1_6ncsb")
+script = ExtResource("1_v3jod")
 stat = "amount"
 op = "set"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_sb6un"]
-script = ExtResource("1_6ncsb")
+script = ExtResource("1_v3jod")
 stat = "damage"
 op = "mul"
 value = 3.0
 
 [sub_resource type="Resource" id="Resource_rkpsp"]
-script = ExtResource("1_6ncsb")
+script = ExtResource("1_v3jod")
 stat = "pierce"
 value = 5.0
 
 [sub_resource type="Resource" id="Resource_tc2by"]
-script = ExtResource("1_6ncsb")
+script = ExtResource("1_v3jod")
 stat = "knockback"
 op = "mul"
 value = 1.0
 
 [resource]
-script = ExtResource("2_v3jod")
+script = ExtResource("3_rkpsp")
 weapon = "boomstick"
 text = "One pellet: ×4 damage, pierces 5, double knockback. A rifle."
 vfx = "a single fat tracer with a long trail and a heavy shove on everything it passes"

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/energy_shield/energy_shield_icon_b.png" id="1_87rwo"]
+[ext_resource type="Texture2D" path="res://content/passives/energy_shield/energy_shield_icon_b.png" id="1_mvh5s"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_87rwo"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_iwg13"]
 
@@ -56,7 +56,7 @@ display_name = "The Guardian"
 flavour = "The Guardian stands before you. It hums. It holds."
 rarity = "rare"
 weight = 9.0
-icon = ExtResource("1_87rwo")
+icon = ExtResource("1_mvh5s")
 icon_file = "energy_shield_icon.png"
 placeholder = {
 "color": "#5AB8FF",

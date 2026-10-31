@@ -1,23 +1,23 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8nmcb"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_kqy6h"]
 [ext_resource type="Texture2D" path="res://content/mutations/long_spear/long_spear_icon.png" id="2_1cwvj"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_kqy6h"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_6fhpt"]
 
 [sub_resource type="Resource" id="Resource_kqy6h"]
-script = ExtResource("1_8nmcb")
+script = ExtResource("1_kqy6h")
 stat = "range"
 op = "mul"
 value = 0.4
 
 [sub_resource type="Resource" id="Resource_1cwvj"]
-script = ExtResource("1_8nmcb")
+script = ExtResource("1_kqy6h")
 stat = "cooldown"
 op = "mul"
 value = 0.15
 
 [resource]
-script = ExtResource("2_kqy6h")
+script = ExtResource("3_6fhpt")
 weapon = "pike"
 mutation_kind = "volume"
 text = "+40% reach, strokes 15% slower."

@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_epmdh"]
 [ext_resource type="Texture2D" path="res://content/perks/ram/ram_icon.png" id="1_jx2ts"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_10fsu"]
 
 [resource]
-script = ExtResource("1_epmdh")
+script = ExtResource("2_10fsu")
 hero = "buck"
 text = "At full charge he is the wall: creatures he touches are shoved back and take 12 (+2 a level) plus three times his thorns instead of hurting him. Bosses and charging creatures still hit him."
 special = "ram"

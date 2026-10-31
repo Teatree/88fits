@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xe52b"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_x4773"]
 [ext_resource type="Texture2D" path="res://content/mutations/salvo/salvo_icon.png" id="2_6sfhl"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_x4773"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_xvc3a"]
 
 [sub_resource type="Resource" id="Resource_x4773"]
-script = ExtResource("1_xe52b")
+script = ExtResource("1_x4773")
 stat = "amount"
 value = 3.0
 
 [sub_resource type="Resource" id="Resource_6sfhl"]
-script = ExtResource("1_xe52b")
+script = ExtResource("1_x4773")
 stat = "damage"
 op = "mul"
 value = -0.35
 
 [resource]
-script = ExtResource("2_x4773")
+script = ExtResource("3_xvc3a")
 weapon = "rocket_pod"
 mutation_kind = "volume"
 text = "+3 rockets a volley, −35% damage."

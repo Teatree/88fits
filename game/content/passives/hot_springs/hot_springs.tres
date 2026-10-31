@@ -1,54 +1,54 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/hot_springs/hot_springs_icon.png" id="1_5yket"]
 [ext_resource type="Texture2D" path="res://content/passives/hot_springs/hot_springs_icon_evolved.png" id="1_ocfnj"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ocfnj"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_mi7cd"]
+[ext_resource type="Texture2D" path="res://content/passives/hot_springs/hot_springs_icon.png" id="2_mi7cd"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_pifp8"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_ryked"]
 
 [sub_resource type="Resource" id="Resource_ocfnj"]
-script = ExtResource("2_ocfnj")
+script = ExtResource("3_pifp8")
 stat = "max_hp"
 value = 26.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_mi7cd"]
-script = ExtResource("2_ocfnj")
+script = ExtResource("3_pifp8")
 stat = "regen"
 value = 0.65
 target = "player"
 
 [sub_resource type="Resource" id="Resource_pifp8"]
-script = ExtResource("2_ocfnj")
+script = ExtResource("3_pifp8")
 stat = "heal_pulse"
 value = 5.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ryked"]
-script = ExtResource("2_ocfnj")
+script = ExtResource("3_pifp8")
 stat = "max_hp"
 value = 6.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_e0vyj"]
-script = ExtResource("2_ocfnj")
+script = ExtResource("3_pifp8")
 stat = "regen"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_8wjg6"]
-script = ExtResource("2_ocfnj")
+script = ExtResource("3_pifp8")
 stat = "max_hp"
 value = 10.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ijy3b"]
-script = ExtResource("2_ocfnj")
+script = ExtResource("3_pifp8")
 stat = "regen"
 value = 0.35
 target = "player"
 
 [resource]
-script = ExtResource("3_mi7cd")
+script = ExtResource("4_ryked")
 levels = [[SubResource("Resource_ocfnj"), SubResource("Resource_mi7cd"), SubResource("Resource_pifp8")], [SubResource("Resource_ryked"), SubResource("Resource_e0vyj")], [SubResource("Resource_8wjg6"), SubResource("Resource_ijy3b")]]
 repeat_last_level = false
 max_level = 3
@@ -59,7 +59,7 @@ display_name = "Hot Springs"
 flavour = "A long soak. A short temper."
 rarity = "epic"
 weight = 5.0
-icon = ExtResource("1_5yket")
+icon = ExtResource("2_mi7cd")
 icon_file = "hot_springs_icon.png"
 placeholder = {
 "color": "#5FC9B0",

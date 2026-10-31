@@ -39,12 +39,13 @@ const StageTabs = (() => {
     clear(host);
     const L = App.stageList();
     const vs = App.viewStage();
+    const counts = StageModel.rowNumbers(App.tl().roster || [], L.map((w) => ({ start: w.start, end: w.end }))).counts;   // pass 116
     host.appendChild(el('span', { class: 'stg-label', text: 'Stages' }));
     host.appendChild(el('button', { class: 'stg-tab' + (vs == null ? ' active' : ''), type: 'button', title: 'the whole map: every stage\'s window on the one run clock (each stage is its own run: the estimate starts a fresh hero at each window)', onclick: () => open(null) }, el('b', { text: 'All' }), el('small', { text: fmtT(App.runEnd()) })));
     for (const w of L) {
       const iss = App.issuesFor(`stage:${w.i}`);
       host.appendChild(el('button', { class: 'stg-tab' + (vs === w.i ? ' active' : '') + (iss ? ' ' + iss.level : ''), type: 'button', title: `Stage ${w.i + 1}: ${w.name}, ${fmtT(w.start)}–${fmtT(w.end)} on the map, ${fmtT(w.length)} to its boss${iss ? '\n' + iss.msgs.join('\n') : ''}`, onclick: () => open(w.i) },
-        swatchDot(w.entry), el('b', { text: `Stage ${w.i + 1}` }), el('span', { class: 'stg-name', text: w.name !== `Stage ${w.i + 1}` ? w.name : '' }), el('small', { text: fmtT(w.length) }), iss ? el('span', { class: 'stg-iss', text: '!' }) : null));
+        swatchDot(w.entry), el('b', { text: `Stage ${w.i + 1}` }), el('span', { class: 'stg-count', title: 'pass 116: the spawn rows that start in this stage (each row number is in the Spawn rows gutter)', text: `${counts[w.i] || 0} rows` }), el('span', { class: 'stg-name', text: w.name !== `Stage ${w.i + 1}` ? w.name : '' }), el('small', { text: fmtT(w.length) }), iss ? el('span', { class: 'stg-iss', text: '!' }) : null));
     }
     host.appendChild(el('button', { class: 'stg-tab add', type: 'button', title: 'append a stage after the last one: its settings copied from the last, no rows yet, its boss at its end', onclick: () => addStage() }, el('b', { text: '+ Stage' })));
     if (!Model.hasStageList(App.tl())) host.appendChild(el('span', { class: 'stg-note', text: `no stage list in the file yet: ${L.length} stages of ${fmtT(App.stageLength())} (stage_length); the first stage edit writes one` }));

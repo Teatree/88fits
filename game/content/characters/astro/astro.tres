@@ -1,23 +1,23 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_bgsxw"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_dewj2"]
 [ext_resource type="Texture2D" path="res://content/characters/astro/astro_icon.png" id="2_bgsxw"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_dewj2"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_nv1wx"]
 
 [sub_resource type="Resource" id="Resource_dewj2"]
-script = ExtResource("1_bgsxw")
+script = ExtResource("1_dewj2")
 stat = "area"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_bgsxw"]
-script = ExtResource("1_bgsxw")
+script = ExtResource("1_dewj2")
 stat = "max_hp"
 value = 2.0
 target = "player"
 
 [resource]
-script = ExtResource("2_dewj2")
+script = ExtResource("3_nv1wx")
 level_trait = [SubResource("Resource_bgsxw")]
 order = 3
 trait_name = "Space Suit"

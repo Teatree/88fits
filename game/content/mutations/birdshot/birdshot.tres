@@ -1,28 +1,28 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_rmk1e"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xcw2h"]
 [ext_resource type="Texture2D" path="res://content/mutations/birdshot/birdshot_icon.png" id="2_qe0cj"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_xcw2h"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_7bxq6"]
 
 [sub_resource type="Resource" id="Resource_xcw2h"]
-script = ExtResource("1_rmk1e")
+script = ExtResource("1_xcw2h")
 stat = "amount"
 value = 5.0
 
 [sub_resource type="Resource" id="Resource_qe0cj"]
-script = ExtResource("1_rmk1e")
+script = ExtResource("1_xcw2h")
 stat = "spread_deg"
 op = "set"
 value = 60.0
 
 [sub_resource type="Resource" id="Resource_7bxq6"]
-script = ExtResource("1_rmk1e")
+script = ExtResource("1_xcw2h")
 stat = "damage"
 op = "mul"
 value = -0.45
 
 [resource]
-script = ExtResource("2_xcw2h")
+script = ExtResource("3_7bxq6")
 weapon = "boomstick"
 mutation_kind = "volume"
 text = "Twice the pellets in a 60° cone, −45% damage."

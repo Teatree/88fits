@@ -285,6 +285,11 @@ func _store_recording(rr: Node) -> void:
 	if f:
 		f.store_string(json)
 		f.close()
+	# pass 116 (lane REPLAY): the run's events as the recording met them (the Elites, their modifiers, the specials, ...)
+	var ef := FileAccess.open(_out + ".events.json", FileAccess.WRITE)
+	if ef:
+		ef.store_string(JSON.stringify(rr.get("event_log")))
+		ef.close()
 	var h = JSON.parse_string(json)
 	var wall := float(Time.get_ticks_msec() - _t0_ms) / 1000.0
 	_say("RECORDED %s: %d frames, play %.1f s, %d decisions, %d taps, %d checks, %d KB (frames %d runs, stick %d changes) wall %.1f s" % [
@@ -303,6 +308,7 @@ func _end_report(why: String) -> void:
 		rep["drift_what"] = rr.get("drift_what")
 		rep["dropped"] = rr.get("dropped_decisions")
 		rep["notes"] = rr.get("notes")
+		rep["events"] = rr.get("event_log")
 	if _out != "":
 		var f := FileAccess.open(_out, FileAccess.WRITE)
 		if f:

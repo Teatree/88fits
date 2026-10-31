@@ -1,60 +1,60 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/skedaddle/skedaddle_icon.png" id="1_83buf"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_iprfb"]
 [ext_resource type="Texture2D" path="res://content/passives/skedaddle/skedaddle_icon_evolved.png" id="1_tk04s"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_83buf"]
+[ext_resource type="Texture2D" path="res://content/passives/skedaddle/skedaddle_icon.png" id="2_cns2q"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_esmtn"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_05rq7"]
 
 [sub_resource type="Resource" id="Resource_tk04s"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed"
 value = 0.25
 target = "player"
 
 [sub_resource type="Resource" id="Resource_cns2q"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed_seconds"
 value = 2.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_esmtn"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed"
 value = 0.03
 target = "player"
 
 [sub_resource type="Resource" id="Resource_05rq7"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed_seconds"
 value = 0.3
 target = "player"
 
 [sub_resource type="Resource" id="Resource_pm8ev"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed"
 value = 0.03
 target = "player"
 
 [sub_resource type="Resource" id="Resource_h47y5"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed_seconds"
 value = 0.3
 target = "player"
 
 [sub_resource type="Resource" id="Resource_udfm2"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed"
 value = 0.05
 target = "player"
 
 [sub_resource type="Resource" id="Resource_vhxao"]
-script = ExtResource("1_iprfb")
+script = ExtResource("3_esmtn")
 stat = "hurt_speed_seconds"
 value = 0.5
 target = "player"
 
 [resource]
-script = ExtResource("2_83buf")
+script = ExtResource("4_05rq7")
 levels = [[SubResource("Resource_tk04s"), SubResource("Resource_cns2q")], [SubResource("Resource_esmtn"), SubResource("Resource_05rq7")], [SubResource("Resource_pm8ev"), SubResource("Resource_h47y5")], [SubResource("Resource_udfm2"), SubResource("Resource_vhxao")]]
 max_level = 4
 text = "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s)."
@@ -64,7 +64,7 @@ display_name = "Skedaddle"
 flavour = "When the lead flies, so do you."
 rarity = "rare"
 weight = 7.0
-icon = ExtResource("1_83buf")
+icon = ExtResource("2_cns2q")
 icon_file = "skedaddle_icon.png"
 placeholder = {
 "color": "#D0453A",

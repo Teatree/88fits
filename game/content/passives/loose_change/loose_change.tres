@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/loose_change/loose_change_icon.png" id="1_l6emd"]
 [ext_resource type="Texture2D" path="res://content/passives/loose_change/loose_change_icon_evolved.png" id="1_q2uoc"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_und4n"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_l6emd"]
+[ext_resource type="Texture2D" path="res://content/passives/loose_change/loose_change_icon.png" id="2_hw03k"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_22gtg"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_qotnv"]
 
 [sub_resource type="Resource" id="Resource_q2uoc"]
-script = ExtResource("1_und4n")
+script = ExtResource("3_22gtg")
 stat = "coin_on_hit"
 value = 0.32
 target = "player"
 
 [sub_resource type="Resource" id="Resource_hw03k"]
-script = ExtResource("1_und4n")
+script = ExtResource("3_22gtg")
 stat = "coin_on_hit"
 value = 0.08
 target = "player"
 
 [sub_resource type="Resource" id="Resource_22gtg"]
-script = ExtResource("1_und4n")
+script = ExtResource("3_22gtg")
 stat = "coin_on_hit"
 value = 0.08
 target = "player"
 
 [sub_resource type="Resource" id="Resource_qotnv"]
-script = ExtResource("1_und4n")
+script = ExtResource("3_22gtg")
 stat = "coin_on_hit"
 value = 0.08
 target = "player"
 
 [sub_resource type="Resource" id="Resource_a18cu"]
-script = ExtResource("1_und4n")
+script = ExtResource("3_22gtg")
 stat = "coin_on_hit"
 value = 0.12
 target = "player"
 
 [resource]
-script = ExtResource("2_l6emd")
+script = ExtResource("4_qotnv")
 levels = [[SubResource("Resource_q2uoc")], [SubResource("Resource_hw03k")], [SubResource("Resource_22gtg")], [SubResource("Resource_qotnv")], [SubResource("Resource_a18cu")]]
 max_level = 5
 text = "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it."
@@ -46,7 +46,7 @@ display_name = "Loose Change"
 flavour = "Every bruise shakes something loose."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_l6emd")
+icon = ExtResource("2_hw03k")
 icon_file = "loose_change_icon.png"
 placeholder = {
 "color": "#E0B030",

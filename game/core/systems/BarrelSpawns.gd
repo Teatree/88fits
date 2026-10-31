@@ -16,11 +16,11 @@
 ##     max_per_stage  respawns a stage at most (0 = no limit).
 ##     min_dist, max_dist  how far from the hero (flat) one is laid; when every spot of that band is on the screen the
 ##                    band past it, up to FAR_BAND x max_dist, is tried.
-##     black_chance   the chance a respawned barrel is the black kind (the start's own share, BarrelField.LIGHT_FRAC).
+##     (pass 116: a respawned barrel's kind is drawn by the kinds' `weight`s; the old black_chance is ignored)
 ##     view_margin    metres past the camera's view the barrel and its shadow must keep when it appears.
 ##     in_boss, in_portal, in_endless  whether the clock runs (and barrels come back) in the boss fight, the portal's
 ##                    countdown and Endless; it counts only the seconds of the phases it runs in.
-##   brown, black  what each barrel type holds (CONTENT_DEFAULTS fill gaps: today's):
+##   exp, coins, powerup (pass 116; pass 112's brown, black)  what each barrel type holds (CONTENT_DEFAULTS fill gaps: today's):
 ##     powerup_chance  the chance smashing it throws a power-up out, on top of its gems and coins.
 ##     powerups        [{id, weight}, ...]: which power-up (empty = the map's power-up drops roster, `pickups.roster`).
 ##     throw_distance  metres from the barrel the power-up lands: a number or [min, max] (PickupManager.throw_powerup:
@@ -38,16 +38,30 @@ extends RefCounted
 
 const RESPAWN_DEFAULTS := {
 	"enabled": false, "first": 45.0, "every": [40.0, 60.0], "max_lying": 35, "max_per_stage": 0,
-	"min_dist": 20.0, "max_dist": 40.0, "black_chance": 0.22, "view_margin": 2.0,
+	"min_dist": 20.0, "max_dist": 40.0, "view_margin": 2.0,
 	"in_boss": true, "in_portal": false, "in_endless": false,
 }
+## Pass 116 (lane MAP; Garry: "3 kinds now. One of them produces only power ups. This 3rd barrel is about 60% of the
+## amount of the EXP+Coins. Make it so the other barrels don't give any power-up anymore"): three kinds, painted from his
+## board (art/sprites/barrels/barrel_<kind>.png): `exp` (brown wood, iron hoops: gems), `coins` (gold hoops and studs: gems
+## and coins; pass 87's black barrel), `powerup` (iron hoops, a white stripe: a power-up only, thrown out as pass 112's
+## were). `weight` is each kind's share of the start's barrels and of the respawns (powerup 0.6 x coins). Only the powerup
+## kind reads powerup_chance / powerups / throw_distance; the other two never throw one. The old keys migrate on read:
+## `brown` -> exp, `black` -> coins (their power-up keys ignored; the powerup kind takes the old black list when it has
+## none of its own); the old respawn `black_chance` is ignored (the weights decide).
 const CONTENT_DEFAULTS := {
-	"brown": {"powerup_chance": 0.0, "powerups": [], "throw_distance": [5.0, 7.0], "gems_small": 8, "gems_medium": 0,
-		"coins": 0},
-	"black": {"powerup_chance": 0.0, "powerups": [], "throw_distance": [5.0, 7.0], "gems_small": 10, "gems_medium": 4,
-		"coins": [1, 5]},
+	"exp": {"weight": 0.648, "gems_small": 8, "gems_medium": 0, "coins": 0},
+	"coins": {"weight": 0.22, "gems_small": 10, "gems_medium": 4, "coins": [1, 5]},
+	"powerup": {"weight": 0.132, "powerup_chance": 1.0, "powerups": [], "throw_distance": [5.0, 7.0], "gems_small": 0,
+		"gems_medium": 0, "coins": 0},
 }
-const TYPES := ["brown", "black"]
+const TYPES := ["exp", "coins", "powerup"]
+## Kind numbers (BarrelField.light holds them since pass 116: 0 exp, 1 coins, 2 powerup).
+const EXP := 0
+const COINS := 1
+const POWERUP := 2
+## The pass 112 keys each kind reads when its own is missing.
+const LEGACY := {"exp": "brown", "coins": "black", "powerup": ""}
 ## The least seconds between two respawns (an `every` under it reads as this).
 const EVERY_MIN := 5.0
 ## A turn whose search found no spot tries again this many seconds later.
@@ -110,22 +124,49 @@ static func respawn_of(block) -> Dictionary:
 	out["max_per_stage"] = maxi(int(_num(out["max_per_stage"], 0.0)), 0)
 	out["min_dist"] = maxf(_num(out["min_dist"], 20.0), 0.0)
 	out["max_dist"] = maxf(_num(out["max_dist"], 40.0), float(out["min_dist"]))
-	out["black_chance"] = clampf(_num(out["black_chance"], 0.22), 0.0, 1.0)
+	out.erase("black_chance")
 	out["view_margin"] = maxf(_num(out["view_margin"], 2.0), 0.0)
 	for k in ["in_boss", "in_portal", "in_endless"]:
 		out[k] = _bool(out[k])
 	return out
 
 
-## One barrel type's contents (`black` the black kind), every key filled and in range (`block` the map's `barrels`).
-static func contents_of(block, black: bool) -> Dictionary:
-	var key := "black" if black else "brown"
+## A kind as its key: "exp" / "coins" / "powerup", a kind number (EXP, COINS, POWERUP) or pass 112's bool (true = the
+## black barrel, now coins).
+static func kind_key(kind) -> String:
+	if kind is bool:
+		return "coins" if kind else "exp"
+	if kind is int or kind is float:
+		return TYPES[clampi(int(kind), 0, TYPES.size() - 1)]
+	var k := str(kind)
+	if k == "brown":
+		return "exp"
+	if k == "black":
+		return "coins"
+	return k if k in TYPES else "exp"
+
+
+## One barrel kind's contents (`kind`: see kind_key), every key filled and in range (`block` the map's `barrels`). Only the
+## powerup kind keeps a power-up chance; exp and coins read 0 whatever the block says.
+static func contents_of(block, kind) -> Dictionary:
+	var key := kind_key(kind)
 	var out: Dictionary = (CONTENT_DEFAULTS[key] as Dictionary).duplicate(true)
-	var own = (block as Dictionary).get(key) if block is Dictionary else null
+	var b: Dictionary = block if block is Dictionary else {}
+	var own = b.get(key)
+	if not (own is Dictionary) and str(LEGACY[key]) != "":
+		own = b.get(LEGACY[key])
 	if own is Dictionary:
 		for k in (own as Dictionary):
 			out[k] = own[k]
-	out["powerup_chance"] = clampf(_num(out["powerup_chance"], 0.0), 0.0, 1.0)
+	if key == "powerup":
+		if not (own is Dictionary and (own as Dictionary).has("powerups")) and b.get("black") is Dictionary:
+			out["powerups"] = (b["black"] as Dictionary).get("powerups", [])
+		out["powerup_chance"] = clampf(_num(out["powerup_chance"], 1.0), 0.0, 1.0)
+	else:
+		out["powerup_chance"] = 0.0
+		out["powerups"] = []
+		out["throw_distance"] = [5.0, 7.0]
+	out["weight"] = maxf(_num(out.get("weight", 0.0), 0.0), 0.0)
 	var td := range_of(out["throw_distance"], Vector2(5.0, 7.0))
 	out["throw_distance"] = Vector2(maxf(td.x, 0.0), maxf(td.y, maxf(td.x, 0.0)))
 	out["gems_small"] = maxi(int(_num(out["gems_small"], 8.0)), 0)
@@ -134,6 +175,30 @@ static func contents_of(block, black: bool) -> Dictionary:
 	out["coins"] = Vector2i(maxi(int(co.x), 0), maxi(int(co.y), maxi(int(co.x), 0)))
 	out["powerups"] = weight_list(out["powerups"])
 	return out
+
+
+## Each kind's weight (exp, coins, powerup) in TYPES order, from the map's `barrels` block.
+static func kind_weights(block) -> Array:
+	var out: Array = []
+	for k in TYPES:
+		out.append(float(contents_of(block, k)["weight"]))
+	return out
+
+
+## A kind number drawn by the weights (`dice`); exp when every weight is 0.
+static func pick_kind(block, dice: RandomNumberGenerator) -> int:
+	var w := kind_weights(block)
+	var total := 0.0
+	for x: float in w:
+		total += x
+	if total <= 0.0:
+		return EXP
+	var r := dice.randf() * total
+	for i in w.size():
+		r -= float(w[i])
+		if r < 0.0:
+			return i
+	return w.size() - 1
 
 
 ## A power-up list as [{id, weight}] with every weight above 0: [{id, weight}, ...] or {id: weight}.
@@ -257,7 +322,7 @@ func spawn_now(host) -> bool:
 	var at := find_spot(host)
 	if at == Vector3.INF:
 		return false
-	if not bool(host.respawn_at(at, rng.randf() < float(cfg.get("black_chance", 0.22)))):
+	if not bool(host.respawn_at(at, pick_kind(host.call("_block") if host.has_method("_block") else {}, rng))):
 		return false
 	spawned += 1
 	return true

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/bucking_bronco/bucking_bronco_icon_b.png" id="1_4iaav"]
+[ext_resource type="Texture2D" path="res://content/passives/bucking_bronco/bucking_bronco_icon_b.png" id="1_7xlfu"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_4iaav"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_588p5"]
 
@@ -63,7 +63,7 @@ display_name = "The Storm Risen"
 flavour = "The Storm bucks. Eight seconds is a long time up there."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_4iaav")
+icon = ExtResource("1_7xlfu")
 icon_file = "bucking_bronco_icon.png"
 placeholder = {
 "color": "#FFB84A",

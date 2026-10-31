@@ -1,28 +1,28 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_l63mr"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_yea1a"]
 [ext_resource type="Texture2D" path="res://content/mutations/bar_fight/bar_fight_icon.png" id="2_k6s0v"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_yea1a"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_f4vvb"]
 
 [sub_resource type="Resource" id="Resource_yea1a"]
-script = ExtResource("1_l63mr")
+script = ExtResource("1_yea1a")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_k6s0v"]
-script = ExtResource("1_l63mr")
+script = ExtResource("1_yea1a")
 stat = "damage"
 op = "mul"
 value = -0.3
 
 [sub_resource type="Resource" id="Resource_f4vvb"]
-script = ExtResource("1_l63mr")
+script = ExtResource("1_yea1a")
 stat = "area"
 op = "mul"
 value = -0.3
 
 [resource]
-script = ExtResource("2_yea1a")
+script = ExtResource("3_f4vvb")
 weapon = "molotov"
 mutation_kind = "volume"
 text = "Three bottles, smaller clouds, −30% damage."

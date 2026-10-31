@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/evade/evade_icon_b.png" id="1_8m5kp"]
+[ext_resource type="Texture2D" path="res://content/passives/evade/evade_icon_b.png" id="1_lqhih"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_8m5kp"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_cbwdu"]
 
@@ -75,7 +75,7 @@ display_name = "The Ghost"
 flavour = "The Ghost walks beside you. Not there. Never was."
 rarity = "rare"
 weight = 9.0
-icon = ExtResource("1_8m5kp")
+icon = ExtResource("1_lqhih")
 icon_file = "evade_icon.png"
 placeholder = {
 "color": "#C8E0FF",

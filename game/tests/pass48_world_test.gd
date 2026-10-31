@@ -770,8 +770,9 @@ func _material_of(bf: BarrelField, mm: MultiMesh) -> Material:
 	return null
 
 
-func test_the_rare_barrels_are_black_with_brass_hoops() -> void:
-	assert_bool(BarrelField.LIGHT.is_equal_approx(Color(0.05, 0.05, 0.06))).is_true()
+## Pass 116 (lane MAP): the three barrel kinds are paintings now (Garry's board), one billboard MultiMesh a kind with its
+## own picture; the old black-and-brass model is gone from play.
+func test_the_barrel_kinds_are_painted_billboards() -> void:
 	var w := _world()
 	var mnode := Node3D.new()
 	mnode.set_script(_script(FLAT_MAP))
@@ -781,28 +782,21 @@ func test_the_rare_barrels_are_black_with_brass_hoops() -> void:
 	add_child(bf)
 	bf.setup(w["g"], map)
 	assert_int(bf.pos.size()).is_equal(BarrelField.COUNT)
-	var light_n := 0
+	var n := [0, 0, 0]
 	for k in range(bf.pos.size()):
-		light_n += bf.light[k]
-	# a hoop MultiMesh for each kind: the common ones' iron (the model's own), the rare ones' brass
-	assert_int(bf._hoops.visible_instance_count).is_equal(bf.pos.size() - light_n)
-	assert_int(bf._hoops_light.visible_instance_count).is_equal(light_n)
-	assert_object(_material_of(bf, bf._hoops)).is_null()
-	var brass: StandardMaterial3D = _material_of(bf, bf._hoops_light)
-	assert_bool(brass.albedo_color.is_equal_approx(Color(0.85, 0.62, 0.22))).is_true()
-	assert_float(brass.metallic).is_equal_approx(0.4, 0.001)
-	# matte black bodies; the common wood unchanged
-	var black: StandardMaterial3D = _material_of(bf, bf._body_light)
-	assert_bool(black.albedo_color.is_equal_approx(Color(0.05, 0.05, 0.06))).is_true()
-	assert_float(black.metallic).is_equal(0.0)
-	assert_float(black.roughness).is_greater(0.9)
-	var wood: StandardMaterial3D = _material_of(bf, bf._body_dark)
-	assert_bool(wood.albedo_color.is_equal_approx(BarrelField.DARK)).is_true()
+		n[bf.light[k]] += 1
+	for t in 3:
+		var mm: MultiMesh = bf._mm_of(t)
+		assert_int(mm.visible_instance_count).is_equal(n[t])
+		var m: ShaderMaterial = _material_of(bf, mm)
+		assert_str((m.get_shader_parameter("sprite") as Texture2D).resource_path).is_equal(BarrelField.SPRITES[t])
 	# breaking one of each kind
-	for k in range(bf.pos.size()):
-		if bf.alive[k] == 1 and (bf.light[k] == 1 or k == 0):
-			bf._break(k)
-			assert_int(bf.alive[k]).is_equal(0)
+	for t in 3:
+		for k in range(bf.pos.size()):
+			if bf.alive[k] == 1 and bf.light[k] == t:
+				bf._break(k)
+				assert_int(bf.alive[k]).is_equal(0)
+				break
 
 
 func test_the_kings_tumbleweeds_are_jet_black() -> void:

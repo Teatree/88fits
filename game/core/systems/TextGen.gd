@@ -1525,3 +1525,15 @@ static func player_effect(e: Effect) -> String:
 		if e.op == "add":
 			return _signed(e.value * 100.0, "%")
 	return describe_effect(e, false)
+
+
+## A perk's card text (pass 116): written from its params for a mechanism TextGen knows (the Invisible Box, special
+## "box"), else the perk's own `text`.
+static func perk_text(def: PerkDef) -> String:
+	if def == null:
+		return ""
+	if def.special == "box":
+		var p: Dictionary = def.params
+		return "Every %s s an invisible box rises round her for %s s: it blocks every hit, like the Shield power-up (no damage, no shove)." % [
+			_plain(float(p.get("every", 25.0))), _plain(float(p.get("seconds", 3.0)))]
+	return def.text

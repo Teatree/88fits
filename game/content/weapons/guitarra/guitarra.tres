@@ -1,58 +1,58 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/guitarra/guitarra_icon.png" id="1_6cl7l"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jn410"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_5gs8j"]
-[ext_resource type="PackedScene" path="res://content/weapons/guitarra/guitarra_visual.tscn" id="3_5gs8j"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_mwhn6"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_7nws2"]
+[ext_resource type="PackedScene" path="res://content/weapons/guitarra/guitarra_visual.tscn" id="4_qlwr3"]
 
 [sub_resource type="Resource" id="Resource_6cl7l"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_mwhn6"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "cooldown"
 op = "mul"
 value = -0.173
 
 [sub_resource type="Resource" id="Resource_7nws2"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "range"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_qlwr3"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_whrww"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "cooldown"
 op = "mul"
 value = -0.075
 
 [sub_resource type="Resource" id="Resource_8lf3n"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
 [sub_resource type="Resource" id="Resource_jkpjm"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "range"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_tx4t5"]
-script = ExtResource("1_jn410")
+script = ExtResource("2_mwhn6")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [resource]
-script = ExtResource("2_5gs8j")
+script = ExtResource("3_7nws2")
 behavior = "ConeWave"
 tags = ["melody"]
 base = {
@@ -69,7 +69,7 @@ sfx = {
 "fire": "w_guitarra_strum",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("3_5gs8j")
+visual = ExtResource("4_qlwr3")
 visual_file = "guitarra_visual.tscn"
 params = {
 "cone": {

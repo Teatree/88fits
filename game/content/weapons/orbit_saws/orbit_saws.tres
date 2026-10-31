@@ -1,51 +1,51 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/orbit_saws/orbit_saws_icon.png" id="1_shtm4"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_ik2tv"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_shtm4"]
-[ext_resource type="PackedScene" path="res://content/weapons/orbit_saws/orbit_saws_visual.tscn" id="3_ik2tv"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_o1ibo"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_lakte"]
+[ext_resource type="PackedScene" path="res://content/weapons/orbit_saws/orbit_saws_visual.tscn" id="4_xaqcr"]
 
 [sub_resource type="Resource" id="Resource_shtm4"]
-script = ExtResource("2_shtm4")
+script = ExtResource("2_o1ibo")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_o1ibo"]
-script = ExtResource("2_shtm4")
+script = ExtResource("2_o1ibo")
 stat = "damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_lakte"]
-script = ExtResource("2_shtm4")
+script = ExtResource("2_o1ibo")
 stat = "orbit_radius"
 op = "mul"
 value = 0.15
 
 [sub_resource type="Resource" id="Resource_xaqcr"]
-script = ExtResource("2_shtm4")
+script = ExtResource("2_o1ibo")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_uwa1h"]
-script = ExtResource("2_shtm4")
+script = ExtResource("2_o1ibo")
 stat = "damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_wby7v"]
-script = ExtResource("2_shtm4")
+script = ExtResource("2_o1ibo")
 stat = "area"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_y8jrs"]
-script = ExtResource("2_shtm4")
+script = ExtResource("2_o1ibo")
 stat = "amount"
 value = 1.0
 
 [resource]
-script = ExtResource("2_ik2tv")
+script = ExtResource("3_lakte")
 behavior = "Orbiter"
 targeting = "orbit"
 base = {
@@ -63,7 +63,7 @@ sfx = {
 "hit": "w_saw_hit",
 "loop": "w_saw_loop"
 }
-visual = ExtResource("3_ik2tv")
+visual = ExtResource("4_xaqcr")
 visual_file = "orbit_saws_visual.tscn"
 params = {
 "spin_speed": 2.6

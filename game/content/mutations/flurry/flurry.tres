@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_rkt8b"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_s0q3o"]
 [ext_resource type="Texture2D" path="res://content/mutations/flurry/flurry_icon.png" id="2_fc3mf"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_s0q3o"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_2k04t"]
 
 [sub_resource type="Resource" id="Resource_s0q3o"]
-script = ExtResource("1_rkt8b")
+script = ExtResource("1_s0q3o")
 stat = "amount"
 op = "mul"
 value = 1.0
 
 [resource]
-script = ExtResource("2_s0q3o")
+script = ExtResource("3_2k04t")
 weapon = "sabre"
 mutation_kind = "volume"
 text = "Twice the slices a stroke."

@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0hke2"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_2ck5i"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2ck5i"]
 [ext_resource type="Texture2D" path="res://content/mutations/ember_chord/ember_chord_icon.png" id="2_pmqll"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_15e7o"]
 
 [sub_resource type="Resource" id="Resource_2ck5i"]
-script = ExtResource("1_0hke2")
+script = ExtResource("1_2ck5i")
 stat = "fire_damage"
 value = 4.0
 
 [sub_resource type="Resource" id="Resource_pmqll"]
-script = ExtResource("1_0hke2")
+script = ExtResource("1_2ck5i")
 stat = "fire_duration"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_15e7o"]
-script = ExtResource("1_0hke2")
+script = ExtResource("1_2ck5i")
 stat = "fire_spread"
 value = 0.3
 
 [resource]
-script = ExtResource("2_2ck5i")
+script = ExtResource("3_15e7o")
 weapon = "guitarra"
 mutation_kind = "element"
 text = "Every chord sets what it lifts alight."

@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_fvpcc"]
-[ext_resource type="Texture2D" path="res://content/enemies/jackalope/jackalope_icon.png" id="1_q3geb"]
+[ext_resource type="Texture2D" path="res://content/enemies/jackalope/jackalope_icon.png" id="1_ctg85"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_q3geb"]
 
 [resource]
-script = ExtResource("1_fvpcc")
+script = ExtResource("2_q3geb")
 archetype = "runner"
 doc = "Stage 2's runner: faster than the lizard, half the health, wider packs; a swarm of them at 8:30."
 brain = "flock"
@@ -63,7 +63,7 @@ variance = {
 id = "jackalope"
 display_name = "Jackalope"
 flavour = "Half rabbit. Half antler. All rude."
-icon = ExtResource("1_q3geb")
+icon = ExtResource("1_ctg85")
 icon_file = "jackalope_icon.png"
 placeholder = {
 "color": "#C8A878",

@@ -1,31 +1,31 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_fg1hg"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_jchtx"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jchtx"]
 [ext_resource type="Texture2D" path="res://content/characters/mira/mira_icon.png" id="2_ndgrd"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_w8apu"]
 
 [sub_resource type="Resource" id="Resource_jchtx"]
-script = ExtResource("1_fg1hg")
+script = ExtResource("1_jchtx")
 stat = "cooldown"
 op = "mul"
 value = -0.2
 
 [sub_resource type="Resource" id="Resource_ndgrd"]
-script = ExtResource("1_fg1hg")
+script = ExtResource("1_jchtx")
 stat = "greed"
 op = "mul"
 value = 0.3
 target = "player"
 
 [sub_resource type="Resource" id="Resource_w8apu"]
-script = ExtResource("1_fg1hg")
+script = ExtResource("1_jchtx")
 stat = "might"
 op = "mul"
 value = -0.1
 target = "player"
 
 [resource]
-script = ExtResource("2_jchtx")
+script = ExtResource("3_w8apu")
 trait_effects = [SubResource("Resource_ndgrd"), SubResource("Resource_w8apu")]
 order = 9
 trait_name = "Motherlode"

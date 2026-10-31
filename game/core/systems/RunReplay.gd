@@ -78,6 +78,10 @@ var decisions: Array = []
 var taps: Array = []
 var checks: Array = []
 var marks: Array = []
+## Pass 116 (lane REPLAY): the run's events so far, in both modes: a count, a hash and the list [clock, kind, id].
+var ev_n := 0
+var ev_hash := 0
+var event_log: Array = []
 var _track := StreamPeerBuffer.new()
 var _track_n := 0
 ## the hero's exact place after each of his slides (Player.hero_moved): float32 bits, second differences, zigzag varints
@@ -328,9 +332,18 @@ static func note(kind: String, args: Dictionary = {}) -> void:
 
 
 ## A mark for the reel (RunAnalytics.event forwards the run's events: level-ups, chests, totems, bosses, ...).
-static func mark(kind: String, id: String = "", level: int = 0) -> void:
+static func mark(kind: String, id: String = "", level: int = 0, detail: String = "") -> void:
 	var rr := I
-	if rr == null or rr.mode != RECORD or rr._closed:
+	if rr == null or rr._closed:
+		return
+	# pass 116 (lane REPLAY): the run's events (the Elites and their modifiers, the specials, the totems' offers, the
+	# bosses, the Stranger, ...) in a digest both a recording and its replay keep, so a check names an Elite that came
+	# differently even while the numbers still agree (`ev` in check_values; a recording without it is never compared on it)
+	if rr.mode == RECORD or rr.mode == REPLAY:
+		rr.ev_n += 1
+		rr.ev_hash = hash([rr.ev_hash, kind, id, detail])
+		rr.event_log.append([snappedf(Run.play_clock, 0.01), kind, id, detail])
+	if rr.mode != RECORD:
 		return
 	rr.marks.append([maxi(rr.frame, 0), snappedf(Run.play_clock, 0.01), kind, id, level])
 
@@ -566,6 +579,10 @@ func check_values() -> Dictionary:
 	var exact: Array = [Run.play_clock, Run.level, Run.xp, Run.kills, Run.run_gold, Dice.r.state]
 	var c := {"t": snappedf(Run.play_clock, 0.001), "lv": Run.level, "xp": snappedf(Run.xp, 0.01), "kills": Run.kills,
 		"gold": Run.run_gold, "dice": str(Dice.r.state)}
+	c["ev"] = "%d:%d" % [ev_n, ev_hash]
+	var wd = game.get("director") if game else null
+	if wd != null and wd.has_method("dice_digest"):
+		c["wd"] = str(wd.dice_digest())
 	if p:
 		var pos: Vector3 = p.global_position
 		c["x"] = snappedf(pos.x, 0.001)

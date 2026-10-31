@@ -1,60 +1,60 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/weapons/molotov/molotov_icon.png" id="1_8ub66"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_s1w3i"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_8ub66"]
-[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual.tscn" id="3_ltqcv"]
-[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual_bottle.tscn" id="4_84lem"]
-[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual_bottle_trail.tscn" id="5_keo0u"]
+[ext_resource type="Texture2D" path="res://content/weapons/molotov/molotov_icon.png" id="1_84lem"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_keo0u"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_p7bql"]
+[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual_bottle.tscn" id="4_g0sfe"]
+[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual_bottle_trail.tscn" id="5_u8543"]
+[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual.tscn" id="6_c3fjh"]
 
 [sub_resource type="Resource" id="Resource_84lem"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_keo0u"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "area"
 op = "mul"
 value = 0.15
 
 [sub_resource type="Resource" id="Resource_p7bql"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_g0sfe"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "cooldown"
 op = "mul"
 value = -0.186
 
 [sub_resource type="Resource" id="Resource_u8543"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "fire_spread"
 value = 0.1
 
 [sub_resource type="Resource" id="Resource_c3fjh"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_wsy06"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "area"
 op = "mul"
 value = 0.15
 
 [sub_resource type="Resource" id="Resource_fc1na"]
-script = ExtResource("1_s1w3i")
+script = ExtResource("2_keo0u")
 stat = "fire_duration"
 value = 0.6
 
 [resource]
-script = ExtResource("2_8ub66")
+script = ExtResource("3_p7bql")
 behavior = "Lobber"
 targeting = "densest_healthy"
 base = {
@@ -76,7 +76,7 @@ sfx = {
 "fire": "w_molotov_throw",
 "hit": "w_molotov_boom"
 }
-visual = ExtResource("3_ltqcv")
+visual = ExtResource("6_c3fjh")
 visual_file = "molotov_visual.tscn"
 params = {
 "cloud_seconds": 3.0
@@ -102,7 +102,7 @@ variants = {
 "tumble": 1.0
 }
 },
-"visual": ExtResource("4_84lem"),
+"visual": ExtResource("4_g0sfe"),
 "visual_file": "molotov_visual_bottle.tscn"
 },
 "C": {
@@ -122,7 +122,7 @@ variants = {
 "tail": 0.12
 }
 },
-"visual": ExtResource("5_keo0u"),
+"visual": ExtResource("5_u8543"),
 "visual_file": "molotov_visual_bottle_trail.tscn"
 },
 "D": {
@@ -144,7 +144,7 @@ variants = {
 "tumble": 1.0
 }
 },
-"visual": ExtResource("4_84lem"),
+"visual": ExtResource("4_g0sfe"),
 "visual_file": "molotov_visual_bottle.tscn"
 }
 }
@@ -155,7 +155,7 @@ display_name = "Molotov"
 flavour = "Bottle. Rag. Regret, for them."
 rarity = "rare"
 weight = 6.0
-icon = ExtResource("1_8ub66")
+icon = ExtResource("1_84lem")
 icon_file = "molotov_icon.png"
 placeholder = {
 "color": "#FF9A2E",

@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jovyy"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_uapga"]
 [ext_resource type="Texture2D" path="res://content/mutations/thermobaric/thermobaric_icon.png" id="2_7fla4"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_uapga"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_mmbod"]
 
 [sub_resource type="Resource" id="Resource_uapga"]
-script = ExtResource("1_jovyy")
+script = ExtResource("1_uapga")
 stat = "fire_damage"
 value = 5.0
 
 [sub_resource type="Resource" id="Resource_7fla4"]
-script = ExtResource("1_jovyy")
+script = ExtResource("1_uapga")
 stat = "fire_duration"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_mmbod"]
-script = ExtResource("1_jovyy")
+script = ExtResource("1_uapga")
 stat = "fire_spread"
 value = 0.5
 
 [resource]
-script = ExtResource("2_uapga")
+script = ExtResource("3_mmbod")
 weapon = "rocket_pod"
 mutation_kind = "element"
 text = "The blast ignites."

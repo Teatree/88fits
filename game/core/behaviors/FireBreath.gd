@@ -52,6 +52,9 @@ var _breath_t := 0.0
 var _breath_len := 0.0
 ## This breath: a full ring (Held Breath), its tick multiplier, its clock from 0.
 var _ring := false
+## Pass 116 (lane RESULTS): the ready sign (made at its first showing) and how many times it has shown.
+var _ready_sign: BreathReady
+var ready_signs := 0
 var _dmg_mult := 1.0
 var _clock := 0.0
 ## When each creature in the fire takes its next tick, by its spawn serial (a slot handed to a new creature starts over).
@@ -242,6 +245,9 @@ func _tick(delta: float) -> void:
 		# the wait's clock: how long the cooldown has been ready (the base retries a refused fire every 0.15 s, so
 		# "ready" is any cooldown that short); a cooldown that still runs resets it
 		if cooldown_left <= 0.2:
+			# pass 116 (lane RESULTS): the ready sign the moment the cooldown runs out (BreathReady)
+			if _ready_for <= 0.0:
+				_sign_ready()
 			_ready_for += delta
 		else:
 			_ready_for = 0.0
@@ -346,6 +352,16 @@ func _show(delta: float) -> void:
 			tg.wash(g, d, reach, deg, WASH_EVERY * 2.2, col, 0.28 * minf(k, 1.6) * fade * (0.55 if _ring else 1.0))
 
 
+## Pass 116 (lane RESULTS): the spiky ring that collapses into his face when the next breath is ready (a look only).
+func _sign_ready() -> void:
+	if Run.sim_mode or game == null or player == null or not bool(breath().get("ready_sign", true)):
+		return
+	if _ready_sign == null or not is_instance_valid(_ready_sign):
+		_ready_sign = BreathReady.make(game)
+	_ready_sign.play(origin, blue())
+	ready_signs += 1
+
+
 ## Pass 109: the particles start with the breath (made the first time), fitted to its reach, width, colour and look.
 func _flames_start() -> void:
 	if Run.sim_mode or game == null:
@@ -407,6 +423,9 @@ func _process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	_loop_stop()
+	if _ready_sign and is_instance_valid(_ready_sign):
+		_ready_sign.queue_free()
+	_ready_sign = null
 	if _flames and is_instance_valid(_flames):
 		_flames.queue_free()
 	_flames = null

@@ -1,48 +1,48 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/pickpocket/pickpocket_icon.png" id="1_ejx7o"]
 [ext_resource type="Texture2D" path="res://content/passives/pickpocket/pickpocket_icon_evolved.png" id="1_rjbvw"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_wrnsf"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ejx7o"]
+[ext_resource type="Texture2D" path="res://content/passives/pickpocket/pickpocket_icon.png" id="2_jxpjg"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_jewim"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_7sfe8"]
 
 [sub_resource type="Resource" id="Resource_rjbvw"]
-script = ExtResource("1_wrnsf")
+script = ExtResource("3_jewim")
 stat = "coin_drop"
 value = 0.005
 target = "player"
 
 [sub_resource type="Resource" id="Resource_jxpjg"]
-script = ExtResource("1_wrnsf")
+script = ExtResource("3_jewim")
 stat = "coin_drop"
 value = 0.003
 target = "player"
 
 [sub_resource type="Resource" id="Resource_jewim"]
-script = ExtResource("1_wrnsf")
+script = ExtResource("3_jewim")
 stat = "coin_drop"
 value = 0.003
 target = "player"
 
 [sub_resource type="Resource" id="Resource_7sfe8"]
-script = ExtResource("1_wrnsf")
+script = ExtResource("3_jewim")
 stat = "coin_drop"
 value = 0.003
 target = "player"
 
 [sub_resource type="Resource" id="Resource_1trtt"]
-script = ExtResource("1_wrnsf")
+script = ExtResource("3_jewim")
 stat = "coin_drop"
 value = 0.003
 target = "player"
 
 [sub_resource type="Resource" id="Resource_yd6ui"]
-script = ExtResource("1_wrnsf")
+script = ExtResource("3_jewim")
 stat = "coin_drop"
 value = 0.005
 target = "player"
 
 [resource]
-script = ExtResource("2_ejx7o")
+script = ExtResource("4_7sfe8")
 levels = [[SubResource("Resource_rjbvw")], [SubResource("Resource_jxpjg")], [SubResource("Resource_jewim")], [SubResource("Resource_7sfe8")], [SubResource("Resource_1trtt")], [SubResource("Resource_yd6ui")]]
 max_level = 6
 evolved_icon = ExtResource("1_rjbvw")
@@ -50,7 +50,7 @@ id = "pickpocket"
 display_name = "Pickpocket"
 flavour = "Finders, keepers."
 weight = 9.0
-icon = ExtResource("1_ejx7o")
+icon = ExtResource("2_jxpjg")
 icon_file = "pickpocket_icon.png"
 placeholder = {
 "color": "#E8B840",

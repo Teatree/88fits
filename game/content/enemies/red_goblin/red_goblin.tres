@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/red_goblin/red_goblin_icon.png" id="1_w8i1a"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_m5rih"]
+[ext_resource type="Texture2D" path="res://content/enemies/red_goblin/red_goblin_icon.png" id="1_yylln"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_twtmw"]
 
 [resource]
-script = ExtResource("2_m5rih")
+script = ExtResource("2_twtmw")
 doc = "The green goblin's red cousin: the skeleton's numbers in a goblin's body, in packs. Placed by the Level Editor."
 speed = 1.6
 damage = 3.0
@@ -124,7 +124,7 @@ variance = {
 id = "red_goblin"
 display_name = "Red Goblin"
 flavour = "Same goblin. Angrier skin."
-icon = ExtResource("1_w8i1a")
+icon = ExtResource("1_yylln")
 icon_file = "red_goblin_icon.png"
 placeholder = {
 "color": "#C8352A",

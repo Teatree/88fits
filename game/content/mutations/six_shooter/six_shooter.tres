@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_khk1l"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_qynrj"]
 [ext_resource type="Texture2D" path="res://content/mutations/six_shooter/six_shooter_icon.png" id="2_nyosx"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_qynrj"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_xojs6"]
 
 [sub_resource type="Resource" id="Resource_qynrj"]
-script = ExtResource("1_khk1l")
+script = ExtResource("1_qynrj")
 stat = "amount"
 value = 3.0
 
 [sub_resource type="Resource" id="Resource_nyosx"]
-script = ExtResource("1_khk1l")
+script = ExtResource("1_qynrj")
 stat = "damage"
 op = "mul"
 value = -0.4
 
 [resource]
-script = ExtResource("2_qynrj")
+script = ExtResource("3_xojs6")
 weapon = "revolver"
 mutation_kind = "volume"
 text = "Three more rounds a pull, fired in a quick string, −40% damage."

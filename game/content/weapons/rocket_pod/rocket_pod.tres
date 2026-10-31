@@ -1,57 +1,57 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/rocket_pod/rocket_pod_icon.png" id="1_crxc3"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_neawg"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_crxc3"]
-[ext_resource type="PackedScene" path="res://content/weapons/rocket_pod/rocket_pod_visual.tscn" id="3_bvome"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_bvome"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_ogjuu"]
+[ext_resource type="PackedScene" path="res://content/weapons/rocket_pod/rocket_pod_visual.tscn" id="4_bafhi"]
 
 [sub_resource type="Resource" id="Resource_crxc3"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_bvome"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_ogjuu"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_bafhi"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "cooldown"
 op = "mul"
 value = -0.186
 
 [sub_resource type="Resource" id="Resource_vpfp2"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "area"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_jtqd0"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_ia05c"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_ut5d7"]
-script = ExtResource("1_neawg")
+script = ExtResource("2_bvome")
 stat = "amount"
 value = 2.0
 
 [resource]
-script = ExtResource("2_crxc3")
+script = ExtResource("3_ogjuu")
 behavior = "MissilePod"
 tags = ["homing", "explosive"]
 base = {
@@ -70,7 +70,7 @@ sfx = {
 "fire": "w_lob_throw",
 "hit": "w_lob_boom"
 }
-visual = ExtResource("3_bvome")
+visual = ExtResource("4_bafhi")
 visual_file = "rocket_pod_visual.tscn"
 params = {
 "familiar": {

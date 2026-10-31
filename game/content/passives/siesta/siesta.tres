@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/siesta/siesta_icon.png" id="1_0gpd0"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_b5a0q"]
 [ext_resource type="Texture2D" path="res://content/passives/siesta/siesta_icon_evolved.png" id="1_nohap"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_0gpd0"]
+[ext_resource type="Texture2D" path="res://content/passives/siesta/siesta_icon.png" id="2_23b52"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_2y26d"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_s6x25"]
 
 [sub_resource type="Resource" id="Resource_nohap"]
-script = ExtResource("1_b5a0q")
+script = ExtResource("3_2y26d")
 stat = "still_regen"
 value = 1.4
 target = "player"
 
 [sub_resource type="Resource" id="Resource_23b52"]
-script = ExtResource("1_b5a0q")
+script = ExtResource("3_2y26d")
 stat = "still_regen"
 value = 0.8
 target = "player"
 
 [sub_resource type="Resource" id="Resource_2y26d"]
-script = ExtResource("1_b5a0q")
+script = ExtResource("3_2y26d")
 stat = "still_regen"
 value = 0.8
 target = "player"
 
 [sub_resource type="Resource" id="Resource_s6x25"]
-script = ExtResource("1_b5a0q")
+script = ExtResource("3_2y26d")
 stat = "still_regen"
 value = 0.8
 target = "player"
 
 [sub_resource type="Resource" id="Resource_u5pdl"]
-script = ExtResource("1_b5a0q")
+script = ExtResource("3_2y26d")
 stat = "still_regen"
 value = 1.2
 target = "player"
 
 [resource]
-script = ExtResource("2_0gpd0")
+script = ExtResource("4_s6x25")
 levels = [[SubResource("Resource_nohap")], [SubResource("Resource_23b52")], [SubResource("Resource_2y26d")], [SubResource("Resource_s6x25")], [SubResource("Resource_u5pdl")]]
 max_level = 5
 text = "Standing still heals you: +1.4 health a second, more each rung."
@@ -46,7 +46,7 @@ display_name = "Siesta"
 flavour = "Sit a while. The desert can wait."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_0gpd0")
+icon = ExtResource("2_23b52")
 icon_file = "siesta_icon.png"
 placeholder = {
 "color": "#E8D080",

@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8j8e8"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_f5m2l"]
 [ext_resource type="Texture2D" path="res://content/mutations/drum_mag/drum_mag_icon.png" id="2_8c6b7"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_f5m2l"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_a54hp"]
 
 [sub_resource type="Resource" id="Resource_f5m2l"]
-script = ExtResource("1_8j8e8")
+script = ExtResource("1_f5m2l")
 stat = "amount"
 value = 6.0
 
 [sub_resource type="Resource" id="Resource_8c6b7"]
-script = ExtResource("1_8j8e8")
+script = ExtResource("1_f5m2l")
 stat = "damage"
 op = "mul"
 value = -0.35
 
 [resource]
-script = ExtResource("2_f5m2l")
+script = ExtResource("3_a54hp")
 weapon = "tommy_gun"
 mutation_kind = "volume"
 text = "Twice the burst, −35% a round."

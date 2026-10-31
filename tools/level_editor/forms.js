@@ -488,7 +488,14 @@ const Forms = (() => {
         const over = typeof value === 'number' && ((lim.max != null && value > lim.max) || (lim.min != null && value < lim.min));
         return el('span', { class: 'with-hint' }, box, el('span', { class: 'hint' + (over ? ' bad' : ''), text: over ? `${lim.hint}: ${value} is out of range` : lim.hint, 'data-limits': def.key }));
       }
-      case 'seconds': return secondsInput(def, value, write, ctl);
+      case 'seconds': {
+        // pass 116 (lane EDITOR): a run-clock second (def.clock) on a stage tab reads and writes from the stage's start
+        const off = def.clock && o.stageClock !== false && typeof App !== 'undefined' && typeof App.stageOffset === 'function' ? App.stageOffset() : null;
+        if (off == null || typeof StageModel === 'undefined') return secondsInput(def, value, write, ctl);
+        const box = secondsInput(def, StageModel.toStageClock(value, off), (v) => write(v == null ? v : Math.round(StageModel.fromStageClock(v, off))), Object.assign({}, ctl, { placeholder: ctl.placeholder }));
+        return el('span', { class: 'with-hint', title: `stage clock: 0:00 = this stage's start (${fmtT(off)} on the map clock); saved as the map clock` }, box,
+          el('span', { class: 'hint muted', text: value == null || value === '' ? '' : `map ${fmtT(value)}` }));
+      }
       case 'text': return textInput(def, value, write, ctl);
       case 'textarea': return textareaInput(def, value, write, Object.assign({ rows: o.rows }, ctl));
       case 'select': return select(def.options, value == null ? (def.def == null ? '' : def.def) : value, (v) => write(v == null ? def.def : v), { path: ctl.path });

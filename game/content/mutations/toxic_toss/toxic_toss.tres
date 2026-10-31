@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3506b"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_ns3d0"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ns3d0"]
 [ext_resource type="Texture2D" path="res://content/mutations/toxic_toss/toxic_toss_icon.png" id="2_pmx46"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_q8iqj"]
 
 [sub_resource type="Resource" id="Resource_ns3d0"]
-script = ExtResource("1_3506b")
+script = ExtResource("1_ns3d0")
 stat = "poison_damage"
 value = 5.0
 
 [sub_resource type="Resource" id="Resource_pmx46"]
-script = ExtResource("1_3506b")
+script = ExtResource("1_ns3d0")
 stat = "poison_stacks"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_q8iqj"]
-script = ExtResource("1_3506b")
+script = ExtResource("1_ns3d0")
 stat = "poison_duration"
 value = 8.0
 
 [resource]
-script = ExtResource("2_ns3d0")
+script = ExtResource("3_q8iqj")
 weapon = "gravity_gun"
 mutation_kind = "element"
 text = "The landing poisons everything in the blast."

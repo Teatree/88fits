@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_85nhh"]
-[ext_resource type="Texture2D" path="res://content/bosses/tumbleweed_king/tumbleweed_king_icon.png" id="1_j64tb"]
+[ext_resource type="Texture2D" path="res://content/bosses/tumbleweed_king/tumbleweed_king_icon.png" id="1_xi1k6"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_j64tb"]
 
 [resource]
-script = ExtResource("1_85nhh")
+script = ExtResource("2_j64tb")
 archetype = "boss"
 doc = "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a volley of twelve tumbleweeds rolled out in every direction (each throws you), a ring of tumbleweed minions, a jump and three stomps (pass 95: each a wave over the sand, a ring before every landing; the tumbleweeds leave a dust trail)."
 brain = "boss"
@@ -100,7 +100,7 @@ xp_mult = 30.0
 id = "tumbleweed_king"
 display_name = "The Tumbleweed King"
 flavour = "Wears a crown. Rolls anyway."
-icon = ExtResource("1_j64tb")
+icon = ExtResource("1_xi1k6")
 icon_file = "tumbleweed_king_icon.png"
 placeholder = {
 "color": "#B8863E",

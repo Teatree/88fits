@@ -1,39 +1,39 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_clb8a"]
-[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_lsivf"]
-[ext_resource type="Texture2D" path="res://content/talents/stride/stride_0_icon.png" id="2_qdg8m"]
-[ext_resource type="Texture2D" path="res://content/talents/stride/stride_icon.png" id="2_wteqb"]
-[ext_resource type="Texture2D" path="res://content/talents/stride/stride_1_icon.png" id="3_5qlh6"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_qdg8m"]
+[ext_resource type="Texture2D" path="res://content/talents/stride/stride_0_icon.png" id="2_5qlh6"]
+[ext_resource type="Texture2D" path="res://content/talents/stride/stride_1_icon.png" id="3_5wcsk"]
+[ext_resource type="Texture2D" path="res://content/talents/stride/stride_icon.png" id="4_7paip"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="5_70rlp"]
 
 [sub_resource type="Resource" id="Resource_qdg8m"]
-script = ExtResource("1_clb8a")
+script = ExtResource("1_qdg8m")
 stat = "move_speed"
 op = "mul"
 value = 0.05
 target = "player"
 
 [sub_resource type="Resource" id="Resource_5qlh6"]
-script = ExtResource("1_clb8a")
+script = ExtResource("1_qdg8m")
 stat = "magnet"
 op = "mul"
 value = 0.18
 target = "player"
 
 [resource]
-script = ExtResource("2_lsivf")
+script = ExtResource("5_70rlp")
 order = 7
 ranks = 6
 cost = [425.0, 1700.0, 3825.0, 6800.0, 10625.0, 15300.0]
 forms = [{
 "effects": [SubResource("Resource_qdg8m")],
-"icon": ExtResource("2_qdg8m"),
+"icon": ExtResource("2_5qlh6"),
 "icon_file": "stride_0_icon.png",
 "name": "Boots",
 "text": "+5% move speed a rank."
 }, {
 "effects": [SubResource("Resource_5qlh6")],
-"icon": ExtResource("3_5qlh6"),
+"icon": ExtResource("3_5wcsk"),
 "icon_file": "stride_1_icon.png",
 "name": "Lodestone",
 "text": "+18% pickup reach a rank."
@@ -41,7 +41,7 @@ forms = [{
 id = "stride"
 display_name = "Stride"
 flavour = "Cover the ground, or pull it to you."
-icon = ExtResource("2_wteqb")
+icon = ExtResource("4_7paip")
 icon_file = "stride_icon.png"
 placeholder = {
 "color": "#C9A227",

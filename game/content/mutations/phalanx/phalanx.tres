@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_odhhb"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_2q6ph"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2q6ph"]
 [ext_resource type="Texture2D" path="res://content/mutations/phalanx/phalanx_icon.png" id="2_3yeus"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ecnw2"]
 
 [sub_resource type="Resource" id="Resource_2q6ph"]
-script = ExtResource("1_odhhb")
+script = ExtResource("1_2q6ph")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_3yeus"]
-script = ExtResource("1_odhhb")
+script = ExtResource("1_2q6ph")
 stat = "damage"
 op = "mul"
 value = -0.35
 
 [resource]
-script = ExtResource("2_2q6ph")
+script = ExtResource("3_ecnw2")
 weapon = "pike"
 mutation_kind = "volume"
 text = "Three spears fanned, −35% damage."

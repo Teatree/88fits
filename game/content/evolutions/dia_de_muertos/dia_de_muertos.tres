@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_ee7ke"]
 [ext_resource type="Texture2D" path="res://content/evolutions/dia_de_muertos/dia_de_muertos_icon.png" id="1_qae70"]
-[ext_resource type="PackedScene" path="res://content/evolutions/dia_de_muertos/dia_de_muertos_visual.tscn" id="2_qae70"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_kd6y3"]
+[ext_resource type="PackedScene" path="res://content/evolutions/dia_de_muertos/dia_de_muertos_visual.tscn" id="3_t0qyf"]
 
 [resource]
-script = ExtResource("1_ee7ke")
+script = ExtResource("2_kd6y3")
 behavior = "Lobber"
 targeting = "densest_healthy"
 base = {
@@ -27,7 +27,7 @@ sfx = {
 "fire": "w_skull_throw",
 "hit": "w_skull_boom"
 }
-visual = ExtResource("2_qae70")
+visual = ExtResource("3_t0qyf")
 visual_file = "dia_de_muertos_visual.tscn"
 params = {
 "cloud_seconds": 6.0

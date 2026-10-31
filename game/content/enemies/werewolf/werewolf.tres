@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_25ufe"]
-[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_icon_d.png" id="1_nolt5"]
+[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_icon_d.png" id="1_5oa8k"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_qgsna"]
 
 [resource]
-script = ExtResource("1_25ufe")
+script = ExtResource("2_qgsna")
 doc = "A beast that walks like a skeleton (the skeleton's numbers) in threes; three looks from a real wolf to a cartoon (WW-A, WW-B, WW-C), walked on the Orc Walk retargeted to its long arms. Placed by the Level Editor."
 speed = 1.6
 damage = 3.0
@@ -157,7 +157,7 @@ xp_mult = 1.5
 id = "werewolf"
 display_name = "Werewolf"
 flavour = "Something howls where the skeletons walked."
-icon = ExtResource("1_nolt5")
+icon = ExtResource("1_5oa8k")
 icon_file = "werewolf_icon_a.png"
 placeholder = {
 "color": "#3A3238",

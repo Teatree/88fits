@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_h6e4h"]
-[ext_resource type="Texture2D" path="res://content/bosses/gila_grande/gila_grande_icon.png" id="1_h7b5o"]
+[ext_resource type="Texture2D" path="res://content/bosses/gila_grande/gila_grande_icon.png" id="1_ghqe3"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_h7b5o"]
 
 [resource]
-script = ExtResource("1_h6e4h")
+script = ExtResource("2_h7b5o")
 archetype = "boss"
 doc = "Stage 2's boss: a lunge, a rain of red cactus spikes over a huge area round it (the custom attack cactus_rain: every circle lights at once, then it spews; stand in a gap), a burrow (it sinks out of sight, waits three seconds and erupts where the hero is heading, throwing him and the crowd), a ring of lizards (never specials). Pays two chests and seventy-five coins (pass 110: half of pass 70's 150)."
 brain = "boss"
@@ -63,7 +63,7 @@ boss = {
 "telegraph": "none",
 "throw_out": 4.0,
 "throw_up": 2.5,
-"warn": 0.5,
+"warn": 3.0,
 "windup": 4.85
 }, {
 "count": 12.0,
@@ -87,7 +87,7 @@ xp_mult = 60.0
 id = "gila_grande"
 display_name = "Gila Grande"
 flavour = "Slow to anger. You have angered it."
-icon = ExtResource("1_h7b5o")
+icon = ExtResource("1_ghqe3")
 icon_file = "gila_grande_icon.png"
 placeholder = {
 "color": "#F08030",

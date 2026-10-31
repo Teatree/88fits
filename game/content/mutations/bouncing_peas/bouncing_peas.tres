@@ -1,22 +1,22 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0645n"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_72boi"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_72boi"]
 [ext_resource type="Texture2D" path="res://content/mutations/bouncing_peas/bouncing_peas_icon.png" id="2_vigoo"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_rewce"]
 
 [sub_resource type="Resource" id="Resource_72boi"]
-script = ExtResource("1_0645n")
+script = ExtResource("1_72boi")
 stat = "ricochet"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_vigoo"]
-script = ExtResource("1_0645n")
+script = ExtResource("1_72boi")
 stat = "ricochet_damage"
 op = "set"
 value = 1.0
 
 [resource]
-script = ExtResource("2_72boi")
+script = ExtResource("3_rewce")
 weapon = "peashooter"
 text = "Every pea bounces to a second creature at full damage."
 vfx = "a gold spark at every bounce and a second pea trail"

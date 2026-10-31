@@ -46,28 +46,6 @@ knockback = 6.36
 head = 0.983
 blood = Color(0.60784316, 0.20392157, 0.9098039, 1)
 variants = {
-"CM-0": {
-"anims": {
-"attack": 2,
-"die": 1,
-"hit": 1,
-"idle": 2,
-"run": 2
-},
-"attack_throw": false,
-"attack_views": "",
-"back_faces": "right",
-"fps": {},
-"front_faces": "right",
-"head": 0.86,
-"icon": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_icon.png",
-"note": "the top-level strip, before the Level Editor's looks",
-"shadow": {},
-"shelved": false,
-"sprite": "res://content/enemies/cyclopean_mummy/cyclopean_mummy_sprite.png",
-"sprite_file": "cyclopean_mummy_sprite.png",
-"strip_cols": 0
-},
 "CM-A": {
 "anims": {
 "attack": 2.0,
@@ -325,7 +303,7 @@ id = "cyclopean_mummy"
 display_name = "Cyclopean Mummy"
 flavour = "One eye, one mace, no patience."
 icon = ExtResource("1_cw5ok")
-icon_file = "cyclopean_mummy_icon.png"
+icon_file = "cyclopean_mummy_icon_f.png"
 placeholder = {
 "color": "#D8CBA8",
 "ears": "none",

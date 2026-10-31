@@ -1,36 +1,36 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/desperado/desperado_icon.png" id="1_hjmtm"]
 [ext_resource type="Texture2D" path="res://content/passives/desperado/desperado_icon_evolved.png" id="1_pcxv7"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_pcxv7"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_qhifx"]
+[ext_resource type="Texture2D" path="res://content/passives/desperado/desperado_icon.png" id="2_qhifx"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_roiau"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_wdtau"]
 
 [sub_resource type="Resource" id="Resource_pcxv7"]
-script = ExtResource("2_pcxv7")
+script = ExtResource("3_roiau")
 stat = "desperado"
 value = 0.16
 target = "player"
 
 [sub_resource type="Resource" id="Resource_qhifx"]
-script = ExtResource("2_pcxv7")
+script = ExtResource("3_roiau")
 stat = "desperado"
 value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_roiau"]
-script = ExtResource("2_pcxv7")
+script = ExtResource("3_roiau")
 stat = "desperado"
 value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_wdtau"]
-script = ExtResource("2_pcxv7")
+script = ExtResource("3_roiau")
 stat = "desperado"
 value = 0.15
 target = "player"
 
 [resource]
-script = ExtResource("3_qhifx")
+script = ExtResource("4_wdtau")
 levels = [[SubResource("Resource_pcxv7")], [SubResource("Resource_qhifx")], [SubResource("Resource_roiau")], [SubResource("Resource_wdtau")]]
 max_level = 4
 text = "The more you are hurt, the harder you hit: +1.6% attack damage for every 10% of health you are missing at level 1 (+16% near death), up to +51% once Evolved."
@@ -40,7 +40,7 @@ display_name = "Desperado"
 flavour = "Nothing to lose. Everything to hit."
 rarity = "rare"
 weight = 6.0
-icon = ExtResource("1_hjmtm")
+icon = ExtResource("2_qhifx")
 icon_file = "desperado_icon.png"
 placeholder = {
 "color": "#B4472B",

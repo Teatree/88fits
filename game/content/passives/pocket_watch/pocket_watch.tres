@@ -1,60 +1,60 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/pocket_watch/pocket_watch_icon_evolved.png" id="1_32ob6"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_pjd6r"]
-[ext_resource type="Texture2D" path="res://content/passives/pocket_watch/pocket_watch_icon.png" id="1_ptss0"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ptss0"]
+[ext_resource type="Texture2D" path="res://content/passives/pocket_watch/pocket_watch_icon.png" id="2_pefko"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_7nksm"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_ohskb"]
 
 [sub_resource type="Resource" id="Resource_32ob6"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_duration"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_pefko"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_chance"
 value = 0.05
 target = "player"
 
 [sub_resource type="Resource" id="Resource_7nksm"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_duration"
 value = 0.12
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ohskb"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_duration"
 value = 0.12
 target = "player"
 
 [sub_resource type="Resource" id="Resource_rn84r"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_chance"
 value = 0.04
 target = "player"
 
 [sub_resource type="Resource" id="Resource_n0yo6"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_duration"
 value = 0.12
 target = "player"
 
 [sub_resource type="Resource" id="Resource_84vum"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_duration"
 value = 0.2
 target = "player"
 
 [sub_resource type="Resource" id="Resource_n2pmo"]
-script = ExtResource("1_pjd6r")
+script = ExtResource("3_7nksm")
 stat = "powerup_chance"
 value = 0.05
 target = "player"
 
 [resource]
-script = ExtResource("2_ptss0")
+script = ExtResource("4_ohskb")
 levels = [[SubResource("Resource_32ob6"), SubResource("Resource_pefko")], [SubResource("Resource_7nksm")], [SubResource("Resource_ohskb"), SubResource("Resource_rn84r")], [SubResource("Resource_n0yo6")], [SubResource("Resource_84vum"), SubResource("Resource_n2pmo")]]
 repeat_last_level = false
 max_level = 5
@@ -65,7 +65,7 @@ display_name = "Pocket Watch"
 flavour = "Borrowed time. Keep it wound."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_ptss0")
+icon = ExtResource("2_pefko")
 icon_file = "pocket_watch_icon.png"
 placeholder = {
 "color": "#C8CCD4",

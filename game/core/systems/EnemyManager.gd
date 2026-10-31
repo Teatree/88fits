@@ -3106,7 +3106,8 @@ func endless_knock_resist() -> float:
 	var m: MapDef = Run.map
 	if m == null or m.timeline == null:
 		return 0.0
-	return m.timeline.endless_knock_resist(Run.endless_time, Run.stage)
+	# pass 116 (lane RESULTS): Endless's seconds at the growth's pace (a third while a Wanted poster is open)
+	return m.timeline.endless_knock_resist(Run.endless_growth_seconds(), Run.stage)
 
 
 ## The share of a hero-side push from `source` (a weapon id, a named source, "") with hit `flags` a creature still takes
@@ -7348,6 +7349,8 @@ var erupt_hero_throws := 0
 var last_erupt: Dictionary = {}
 ## The burrows under way: creature -> {serial, atk, warned, spray, from, erupted, closed}; _tick_burrows (_update_boss).
 var _burrows: Dictionary = {}
+## Eruption warnings shown as held, filling rings (pass 116; tests).
+var warn_shown := 0
 ## A rain that lights its circles all at once or spews them (pass 73): creature -> {serial, def, spots, shown, t}, laid
 ## out at the wind-up's start (_custom_lit_start), ticked by _tick_custom_lit until the spew takes the spots.
 var _custom_lit: Dictionary = {}
@@ -7511,6 +7514,7 @@ func _tick_burrows(delta: float, ppos: Vector3) -> void:
 		var i: int = key
 		var b: Dictionary = _burrows[i]
 		if alive[i] == 0 or serial[i] != int(b["serial"]) or state[i] == STATE_DYING:
+			_burrow_warn_release(b)
 			_burrows.erase(i)
 			continue
 		# its attack is over (it erupted), or dropped or replaced (another started) before it erupted: back up if it was
@@ -7519,6 +7523,7 @@ func _tick_burrows(delta: float, ppos: Vector3) -> void:
 			if not bool(b["erupted"]) and (hidden[i] == 1 or rise_v[i] < 0.0):
 				hidden[i] = 0
 				rise_v[i] = 1.0 / RISE_TIME
+			_burrow_warn_release(b)
 			_burrows.erase(i)
 			continue
 		var atk: Dictionary = b["atk"]
@@ -7537,6 +7542,8 @@ func _tick_burrows(delta: float, ppos: Vector3) -> void:
 			var warn := maxf(float(atk.get("warn", 0.4)), 0.0) / maxf(pace, 0.05)
 			if timer[i] <= warn:
 				_burrow_warn(i, atk, b, ppos)
+		elif bool(b["warned"]):
+			_burrow_warn_tick(i, atk, b)
 
 
 ## A predicting burrow's warning (pass 73): its spot fixed where the hero will be, a red ring there for what is left of
@@ -7545,8 +7552,51 @@ func _burrow_warn(i: int, atk: Dictionary, b: Dictionary, ppos: Vector3) -> void
 	b["warned"] = true
 	var spot := predict_spot(ppos, float(atk.get("predict", 0.0)))
 	atk_target[i] = spot
-	if game:
-		game.telegraph_ring(spot, float(atk.get("radius", 5.0)), maxf(timer[i], 0.05), Color(0.93, 0.29, 0.36))
+	if game == null:
+		return
+	var rb := float(atk.get("radius", 5.0))
+	var tg = game.get("telegraphs")
+	# pass 116 (lane FIGHT, Garry: "before the pop-out from the ground Player gets a red circle warning for at least 3
+	# seconds"): a held red ring the size of the real hit (radius) at the locked spot, pulsing, and a disc inside it that
+	# fills out to the ring at the moment it erupts (_burrow_warn_tick); `warn_fill` false keeps pass 73's fading ring
+	if bool(atk.get("warn_fill", true)) and tg != null and tg.has_method("hold_ring"):
+		b["warn_total"] = maxf(timer[i], 0.05)
+		b["warn_ring"] = tg.hold_ring(spot, rb, Color(0.93, 0.18, 0.2, 0.9))
+		b["warn_disc"] = tg.hold_disc(spot, 0.05, Color(0.93, 0.18, 0.2, 0.32))
+		warn_shown += 1
+	else:
+		game.telegraph_ring(spot, rb, maxf(timer[i], 0.05), Color(0.93, 0.29, 0.36))
+
+
+## The eruption's warning a tick (pass 116): the disc grows with the share of the warning gone (full at the eruption),
+## the ring pulses `warn_pulse_hz` (2) a second, quickening to the end; read off the wind-up's own timer (deterministic).
+func _burrow_warn_tick(i: int, atk: Dictionary, b: Dictionary) -> void:
+	if not b.has("warn_ring") or game == null:
+		return
+	var tg = game.get("telegraphs")
+	if tg == null or not tg.has_method("move_held"):
+		return
+	var total := float(b["warn_total"])
+	var f := clampf(1.0 - timer[i] / total, 0.0, 1.0)
+	var rb := float(atk.get("radius", 5.0))
+	var spot: Vector3 = atk_target[i]
+	tg.move_held(int(b["warn_disc"]), spot, maxf(rb * f, 0.05))
+	var hz := float(atk.get("warn_pulse_hz", 2.0)) * (1.0 + f)
+	var ph := (total - timer[i]) * hz * TAU
+	tg.set_alpha(int(b["warn_ring"]), 0.6 + 0.35 * (0.5 + 0.5 * sin(ph)))
+	tg.set_alpha(int(b["warn_disc"]), 0.18 + 0.22 * f)
+
+
+## Takes the eruption's held warning off the ground (the eruption, a dropped attack, a death).
+func _burrow_warn_release(b: Dictionary) -> void:
+	if not b.has("warn_ring") or game == null:
+		return
+	var tg = game.get("telegraphs")
+	if tg != null:
+		tg.release(int(b["warn_ring"]))
+		tg.release(int(b["warn_disc"]))
+	b.erase("warn_ring")
+	b.erase("warn_disc")
 
 
 ## The burrow's eruption (pass 73; the runner's fire step calls it): up it comes at its spot (atk_target: the ring at the
@@ -7561,6 +7611,7 @@ func _burrow_erupt(i: int, atk: Dictionary, ppos: Vector3) -> void:
 		b["erupted"] = true
 		if float(atk.get("predict", 0.0)) > 0.0 and not bool(b["warned"]):
 			_burrow_warn(i, atk, b, ppos)
+		_burrow_warn_release(b)
 	hidden[i] = 0
 	rise_t[i] = 0.0
 	var rs := float(atk.get("rise", 0.0))

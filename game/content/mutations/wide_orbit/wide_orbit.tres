@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/mutations/wide_orbit/wide_orbit_icon.png" id="1_fyobl"]
 [ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_jp66f"]
-[ext_resource type="Texture2D" path="res://content/mutations/wide_orbit/wide_orbit_icon.png" id="2_lybhb"]
 
 [resource]
 script = ExtResource("2_jp66f")
@@ -24,7 +24,7 @@ display_name = "Wide Orbit"
 flavour = "In, out, and out of the way."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_lybhb")
+icon = ExtResource("1_fyobl")
 icon_file = "wide_orbit_icon.png"
 placeholder = {
 "color": "#E0E8F0",

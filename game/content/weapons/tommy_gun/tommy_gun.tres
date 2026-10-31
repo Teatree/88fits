@@ -1,63 +1,63 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/tommy_gun/tommy_gun_icon.png" id="1_1elit"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ih4tt"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_conqo"]
-[ext_resource type="PackedScene" path="res://content/weapons/tommy_gun/tommy_gun_visual.tscn" id="4_gvh8r"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_gvh8r"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_jwkvf"]
+[ext_resource type="PackedScene" path="res://content/weapons/tommy_gun/tommy_gun_visual.tscn" id="4_wy63a"]
 
 [sub_resource type="Resource" id="Resource_1elit"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_gvh8r"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_jwkvf"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_wy63a"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_jyo58"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_32bit"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "cooldown"
 op = "mul"
 value = -0.075
 
 [sub_resource type="Resource" id="Resource_6gotf"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "amount"
 value = 2.0
 
 [sub_resource type="Resource" id="Resource_g60dv"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
 [sub_resource type="Resource" id="Resource_7vefo"]
-script = ExtResource("1_ih4tt")
+script = ExtResource("2_gvh8r")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [resource]
-script = ExtResource("2_conqo")
+script = ExtResource("3_jwkvf")
 targeting = "priority"
 base = {
 "amount": 6.0,
@@ -76,7 +76,7 @@ sfx = {
 "fire": "w_tommy_fire",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("4_gvh8r")
+visual = ExtResource("4_wy63a")
 visual_file = "tommy_gun_visual.tscn"
 params = {
 "burst": true,

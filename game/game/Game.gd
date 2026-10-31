@@ -1593,6 +1593,8 @@ func _tick_perks(delta: float) -> void:
 	_tick_periodic_buffs(delta)
 	# pass 69 (lane HERO): May's Inflatable May (a perk whose special is "decoy")
 	_tick_decoy(delta)
+	# pass 116 (lane FIGHT): May's Invisible Box (a perk whose special is "box")
+	_tick_box(delta)
 	# pass 70 (lane TRAMP): Fadeaway's Hang Time (a perk whose special is "trampoline"; it replaced the Timeout)
 	_tick_trampoline(delta)
 	if not Run.has_perk("trail_dust"):
@@ -1620,6 +1622,23 @@ func _tick_decoy(delta: float) -> void:
 		add_child(decoy)
 		decoy.setup(self)
 	decoy.tick(delta)
+
+
+## Pass 116 (lane FIGHT): May's Invisible Box, its own node (core/systems/MimeBox.gd, by path) made the first time a box
+## perk is held: the clock, the see-through box round her, the blocked hits on it.
+const MIME_BOX_SCRIPT := preload("res://core/systems/MimeBox.gd")
+var mime_box: Node3D = null
+
+
+func _tick_box(delta: float) -> void:
+	if mime_box == null:
+		if not MIME_BOX_SCRIPT.active():
+			return
+		mime_box = MIME_BOX_SCRIPT.new()
+		mime_box.name = "MimeBox"
+		add_child(mime_box)
+		mime_box.call("setup", self)
+	mime_box.call("tick", delta)
 
 
 ## Pass 70 (lane TRAMP): Hang Time's trampoline, its own node (core/systems/Trampoline.gd, by path so Game never waits on

@@ -1,64 +1,64 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/gravity_gun/gravity_gun_icon.png" id="1_na40a"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xvvhp"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_na40a"]
-[ext_resource type="PackedScene" path="res://content/weapons/gravity_gun/gravity_gun_visual.tscn" id="3_7woj8"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_7woj8"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_t2o1m"]
+[ext_resource type="PackedScene" path="res://content/weapons/gravity_gun/gravity_gun_visual.tscn" id="4_goj63"]
 
 [sub_resource type="Resource" id="Resource_na40a"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_7woj8"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_t2o1m"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_goj63"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "area"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_ubfqj"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "cooldown"
 op = "mul"
 value = -0.2137
 
 [sub_resource type="Resource" id="Resource_s3ldp"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [sub_resource type="Resource" id="Resource_anvs1"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_f34kp"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "area"
 op = "mul"
 value = 0.2
 
 [sub_resource type="Resource" id="Resource_buev6"]
-script = ExtResource("1_xvvhp")
+script = ExtResource("2_7woj8")
 stat = "range"
 op = "mul"
 value = 0.15
 
 [resource]
-script = ExtResource("2_na40a")
+script = ExtResource("3_t2o1m")
 behavior = "GravityGun"
 tags = ["gun"]
 base = {
@@ -77,7 +77,7 @@ sfx = {
 "hit": "w_grav_throw",
 "land": "w_grav_land"
 }
-visual = ExtResource("3_7woj8")
+visual = ExtResource("4_goj63")
 visual_file = "gravity_gun_visual.tscn"
 params = {
 "familiar": {

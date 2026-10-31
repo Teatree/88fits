@@ -1,28 +1,28 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_p7i30"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_lge45"]
 [ext_resource type="Texture2D" path="res://content/mutations/swarm/swarm_icon.png" id="2_2akv1"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_lge45"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ipn8l"]
 
 [sub_resource type="Resource" id="Resource_lge45"]
-script = ExtResource("1_p7i30")
+script = ExtResource("1_lge45")
 stat = "amount"
 value = 6.0
 
 [sub_resource type="Resource" id="Resource_2akv1"]
-script = ExtResource("1_p7i30")
+script = ExtResource("1_lge45")
 stat = "damage"
 op = "mul"
 value = -0.6
 
 [sub_resource type="Resource" id="Resource_ipn8l"]
-script = ExtResource("1_p7i30")
+script = ExtResource("1_lge45")
 stat = "cooldown"
 op = "mul"
 value = -0.3
 
 [resource]
-script = ExtResource("2_lge45")
+script = ExtResource("3_ipn8l")
 weapon = "hornet_nest"
 mutation_kind = "volume"
 text = "+6 bees, −60% damage each, cooldown −30%."

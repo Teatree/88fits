@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_atuyo"]
-[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon.png" id="1_stcdf"]
-[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_b.png" id="3_ao7sr"]
-[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_c.png" id="4_m7g0s"]
-[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_d.png" id="5_0qdje"]
+[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon.png" id="1_ao7sr"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_m7g0s"]
+[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_b.png" id="3_0qdje"]
+[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_c.png" id="4_tdvgd"]
+[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_d.png" id="5_58ybs"]
 
 [resource]
-script = ExtResource("1_atuyo")
+script = ExtResource("2_m7g0s")
 weapon = "lob_grenade"
 text = "Sticks to the first creature it lands by and rides it into its pack before it blows."
 vfx = "the grenade rides on a creature's back, blinking, then blows"
@@ -36,7 +36,7 @@ variants = {
 },
 "B": {
 "fresh": true,
-"icon": ExtResource("3_ao7sr"),
+"icon": ExtResource("3_0qdje"),
 "icon_file": "sticky_icon_b.png",
 "note": "B · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
 "params": {
@@ -46,7 +46,7 @@ variants = {
 },
 "C": {
 "fresh": true,
-"icon": ExtResource("4_m7g0s"),
+"icon": ExtResource("4_tdvgd"),
 "icon_file": "sticky_icon_c.png",
 "note": "C · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
 "params": {
@@ -56,7 +56,7 @@ variants = {
 },
 "D": {
 "fresh": true,
-"icon": ExtResource("5_0qdje"),
+"icon": ExtResource("5_58ybs"),
 "icon_file": "sticky_icon_d.png",
 "note": "D · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
 "params": {
@@ -71,7 +71,7 @@ display_name = "Sticky"
 flavour = "It goes where they go."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("1_stcdf")
+icon = ExtResource("1_ao7sr")
 icon_file = "sticky_icon.png"
 placeholder = {
 "color": "#E0D060",

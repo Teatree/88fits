@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_72jwi"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jc7mc"]
 [ext_resource type="Texture2D" path="res://content/mutations/venom_rounds/venom_rounds_icon.png" id="2_f1wmw"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_jc7mc"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_oohnu"]
 
 [sub_resource type="Resource" id="Resource_jc7mc"]
-script = ExtResource("1_72jwi")
+script = ExtResource("1_jc7mc")
 stat = "poison_damage"
 value = 5.0
 
 [sub_resource type="Resource" id="Resource_f1wmw"]
-script = ExtResource("1_72jwi")
+script = ExtResource("1_jc7mc")
 stat = "poison_stacks"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_oohnu"]
-script = ExtResource("1_72jwi")
+script = ExtResource("1_jc7mc")
 stat = "poison_duration"
 value = 8.0
 
 [resource]
-script = ExtResource("2_jc7mc")
+script = ExtResource("3_oohnu")
 weapon = "revolver"
 mutation_kind = "element"
 text = "Every round poisons what it hits."

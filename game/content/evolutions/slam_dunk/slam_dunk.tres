@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/evolutions/slam_dunk/slam_dunk_icon.png" id="1_3lqih"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_0q43i"]
+[ext_resource type="Texture2D" path="res://content/evolutions/slam_dunk/slam_dunk_icon.png" id="1_0q43i"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_0x3qh"]
-[ext_resource type="PackedScene" path="res://content/weapons/basketball/basketball_visual.tscn" id="3_0x3qh"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_ns7rn"]
+[ext_resource type="PackedScene" path="res://content/weapons/basketball/basketball_visual.tscn" id="4_7i1t1"]
 
 [sub_resource type="Resource" id="Resource_0q43i"]
 script = ExtResource("2_0x3qh")
@@ -12,7 +12,7 @@ op = "mul"
 value = 0.5
 
 [resource]
-script = ExtResource("2_0q43i")
+script = ExtResource("3_ns7rn")
 tags = ["ball"]
 targeting = "priority"
 base = {
@@ -33,7 +33,7 @@ sfx = {
 "fire": "w_ball_throw",
 "hit": "w_ball_bounce"
 }
-visual = ExtResource("3_0x3qh")
+visual = ExtResource("4_7i1t1")
 visual_file = "res://content/weapons/basketball/basketball_visual.tscn"
 params = {
 "amount_mode": "bounces",
@@ -105,7 +105,7 @@ id = "slam_dunk"
 display_name = "Slam Dunk"
 flavour = "He catches. He dunks. The floor remembers."
 rarity = "rare"
-icon = ExtResource("1_3lqih")
+icon = ExtResource("1_0q43i")
 icon_file = "slam_dunk_icon.png"
 placeholder = {
 "color": "#FFB347",

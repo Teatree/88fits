@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8eslr"]
-[ext_resource type="Texture2D" path="res://content/mutations/silver_bullet/silver_bullet_icon.png" id="2_8eslr"]
+[ext_resource type="Texture2D" path="res://content/mutations/silver_bullet/silver_bullet_icon.png" id="2_xie0m"]
 [ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_6scr3"]
 
 [sub_resource type="Resource" id="Resource_8eslr"]
@@ -36,7 +36,7 @@ display_name = "Silver Bullet"
 flavour = "For the things that do not stay dead."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_8eslr")
+icon = ExtResource("2_xie0m")
 icon_file = "silver_bullet_icon.png"
 placeholder = {
 "color": "#C8D8F0",

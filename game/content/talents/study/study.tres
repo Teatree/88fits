@@ -1,38 +1,38 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tvfai"]
-[ext_resource type="Texture2D" path="res://content/talents/study/study_icon.png" id="2_8e0p8"]
-[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_befde"]
-[ext_resource type="Texture2D" path="res://content/talents/study/study_0_icon.png" id="2_lpptv"]
-[ext_resource type="Texture2D" path="res://content/talents/study/study_1_icon.png" id="3_2x1rr"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_lpptv"]
+[ext_resource type="Texture2D" path="res://content/talents/study/study_0_icon.png" id="2_2x1rr"]
+[ext_resource type="Texture2D" path="res://content/talents/study/study_1_icon.png" id="3_bbbaa"]
+[ext_resource type="Texture2D" path="res://content/talents/study/study_icon.png" id="4_v45r0"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="5_4kr66"]
 
 [sub_resource type="Resource" id="Resource_lpptv"]
-script = ExtResource("1_tvfai")
+script = ExtResource("1_lpptv")
 stat = "xp_gain"
 op = "mul"
 value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_2x1rr"]
-script = ExtResource("1_tvfai")
+script = ExtResource("1_lpptv")
 stat = "regen"
 value = 0.3
 target = "player"
 
 [resource]
-script = ExtResource("2_befde")
+script = ExtResource("5_4kr66")
 order = 6
 ranks = 6
 cost = [400.0, 1600.0, 3600.0, 6400.0, 10000.0, 14400.0]
 forms = [{
 "effects": [SubResource("Resource_lpptv")],
-"icon": ExtResource("2_lpptv"),
+"icon": ExtResource("2_2x1rr"),
 "icon_file": "study_0_icon.png",
 "name": "Field Notes",
 "text": "+10% XP a rank."
 }, {
 "effects": [SubResource("Resource_2x1rr")],
-"icon": ExtResource("3_2x1rr"),
+"icon": ExtResource("3_bbbaa"),
 "icon_file": "study_1_icon.png",
 "name": "Poultice",
 "text": "+0.3 regen a rank (it still waits after a hit)."
@@ -40,7 +40,7 @@ forms = [{
 id = "study"
 display_name = "Study"
 flavour = "Learn faster, or mend slower."
-icon = ExtResource("2_8e0p8")
+icon = ExtResource("4_v45r0")
 icon_file = "study_icon.png"
 placeholder = {
 "color": "#C9A227",

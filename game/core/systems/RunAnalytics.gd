@@ -591,7 +591,7 @@ func _on_offer_chosen(card: Dictionary) -> void:
 ## waits for its est_after (the next build_changed) or the next event, whichever comes first.
 func event(kind: String, id: String = "", level: int = 0, extra: Dictionary = {}) -> void:
 	# pass 114 (lane REPLAY): the replay's reel marks the same moments
-	RunReplay.mark(kind, id, level)
+	RunReplay.mark(kind, id, level, str(extra.get("mod", "")))
 	var e := {"t": snappedf(play_t, 0.1), "clock": snappedf(Run.elapsed, 0.1), "kind": kind}
 	if id != "":
 		e["id"] = id

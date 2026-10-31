@@ -564,7 +564,10 @@ func test_the_gila_hides_three_seconds_then_erupts_where_the_hero_is_heading() -
 	# (pass 115, lane BOSS: the wait under the sand is the file's wind-up less the sink and the warning: 3.0 s, x1.25 since
 	# pass 115 = 3.75 s, Garry's "increase the time it takes for the Gila to pop out of the ground by 25%")
 	assert_float(hidden_t + 2.0 * DT).is_between(wind - sink - warn - 0.1, wind - sink - warn + 0.1)
-	assert_float(float(atk["windup"]) - float(atk["sink"]) - float(atk["warn"])).is_equal_approx(3.75, 0.0001)
+	# pass 116 (lane FIGHT): the time under the sand stays the pass 115 wind-up's (4.85 - 0.6 sink = 4.25 s), and the
+	# warning before the eruption is at least 3 s of it (Garry: "a red circle warning for at least 3 seconds")
+	assert_float(float(atk["windup"]) - float(atk["sink"])).is_equal_approx(4.25, 0.0001)
+	assert_float(float(atk["warn"])).is_greater_equal(3.0)
 	# the warning: where he will be `predict` seconds on, for what is left of the wind-up
 	var ring: Dictionary = g.rings[0]
 	var want: Vector3 = hero.global_position + hero.velocity * float(atk["predict"])
@@ -574,6 +577,9 @@ func test_the_gila_hides_three_seconds_then_erupts_where_the_hero_is_heading() -
 	# a crowd round that spot; he keeps going
 	var spot: Vector3 = ring["at"]
 	var c1 := _standing(em, "skeleton_knight", spot + Vector3(0, 0, 3.5))
+	# pass 116 (lane FIGHT): the warning is 3 s long now; one who keeps walking is long gone, so he stops where he is
+	# (inside the ring) to take the hit this test is about
+	hero.velocity = Vector3.ZERO
 	while em.state[i] == EnemyManager.STATE_ATTACK and t < 9.0:
 		hero.global_position += hero.velocity * DT
 		em._physics_process(DT)

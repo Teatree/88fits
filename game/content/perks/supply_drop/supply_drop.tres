@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/perks/supply_drop/supply_drop_icon.png" id="1_a8hon"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_gjw5r"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_o6rre"]
 
 [resource]
-script = ExtResource("1_gjw5r")
+script = ExtResource("2_o6rre")
 hero = "astro"
 text = "Every 40 s a supply pod crashes near her: a red ring, then the pod hits, hurting and throwing creatures, and leaves a magnet pulse (a heart when she is hurt)."
 special = "supply_drop"

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/roadrunner/roadrunner_icon_b.png" id="1_kxjjx"]
+[ext_resource type="Texture2D" path="res://content/passives/roadrunner/roadrunner_icon_b.png" id="1_d1sxw"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_kxjjx"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_ba0uh"]
 
@@ -63,7 +63,7 @@ display_name = "The Chariot Risen"
 flavour = "The Chariot takes wing. Meep meep."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_kxjjx")
+icon = ExtResource("1_d1sxw")
 icon_file = "roadrunner_icon.png"
 placeholder = {
 "color": "#FFB84A",

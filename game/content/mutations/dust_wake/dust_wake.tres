@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_57hhp"]
 [ext_resource type="Texture2D" path="res://content/mutations/dust_wake/dust_wake_icon.png" id="1_glh24"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_b47ws"]
 
 [resource]
-script = ExtResource("1_57hhp")
+script = ExtResource("2_b47ws")
 weapon = "tumbleweed"
 mutation_kind = "volume"
 text = "A faint dust wake: enemies within 1.6 m are slowed a little."

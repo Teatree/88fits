@@ -2256,3 +2256,58 @@ server route: page files only (a reload shows it). Rules: docs/waves_schema.md "
   fight** under the preview shows when the first three can start and end, earliest to latest. The how-to is the tab's
   **How do I change it?** fold and docs/howto/boss_bullet_heaven.md.
 - The Level Editor server needs a restart for the Save changes (server.py); the page files reload by themselves.
+
+## Pass 116 (lane EDITOR): the Mirror tab, icon re-rolls, stage clocks, row numbers
+
+### Walking through "a card's icon has a defect: re-roll it" (as Garry, before this pass)
+
+1. Items tab -> the card (say Aegis) -> Edit -> Art. The icon preview shows the card look the game plays (B).
+2. The only action was "+ Icon candidates…". It opened the job form for the **base** icon unless I first pressed
+   "Show" on look B (not obvious).
+3. Even with B shown, the Subject box was filled with the item's **base art_prompt** ("a glowing blue energy shield
+   dome…"), not the tarot-card words that painted B, and the Style box was empty (the plain Shop Titans words). A re-roll
+   from there paints a plain object, not a card: this is why "the method doesn't allow the actual prompt". The card's
+   own words sat in `variants.B.recipe.subject/style` and nothing read them.
+4. Seeds: "Candidates" and "First seed" existed, but no one-click "new seeds", and no word of which seed made the icon
+   now (it is recorded in `variants.B.painted.seed`).
+5. Nothing showed the whole sentence the painter gets (reference sentence + subject + style + screen words).
+6. After the job: the pick grid on the item's Art section and Install (pass 69/76) work, and the old icon is kept (a
+   new file name, Revert icon and the icon history: pass 76). Compare old vs new: the icon gallery shows both.
+7. Missing still (not built): a separate "fix words" box (type the fix at the end of Subject instead); a negative
+   prompt (Klein has none); a style-anchor picture for icons (icon_cands takes one reference picture only); talents'
+   (Mirror) icons have no re-roll job (the jobs know no `talent` kind).
+
+### What was built
+
+- **Re-roll icon…**: the main button under every item icon (weapon, card/line, passive, mutation, evolution) now
+  opens the icon candidates form for the look the game plays (a card's `variant`) or the look shown; every look tile in
+  an item's Looks has its own "Re-roll icon…". Enemies keep "Icon candidates…" on each look card, heroes "Badge
+  candidates…" (both already filled from the look).
+- The form's Subject and Style come from the **look's own recipe** when it has them (`jobs.candidate_defaults`, tagged
+  "from the look's recipe"), else the item's art_prompt; Screen and Icon file as before; Reference picture optional.
+- **Words sent to the painter (live)**: the joined sentence, updated as you type; and "the icon shown was painted on
+  seed N (job, pick, model)".
+- **Random seeds** beside First seed: same words, new pictures. Candidates N 1-12.
+- Proof: a dry run (`tools/dl/p116/EDITOR/dryjob/dry_run.json`: the card words + typed fix words, 3 seeds from first
+  seed 777123) and one real job for Aegis B (`tools/dl/icons_le_p116-editor-dry/review_aegis.png`, three card
+  candidates, nothing installed).
+
+Methods that take a prompt in the look form: hero_pose5, creature_free2, creature_pose2, creature_free8, creature_proc,
+creature_pictures (art_prompt), creature_ctl and front_from_picture (prompt), item_icon (art_prompt), icon_cands
+(subject, style), hero_badge (character, prompt), hero_title (character, pose, holds, camera, extra words). hero_fit,
+hero_puppet and recolour reuse paintings and take no prompt.
+
+### Mirror tab
+
+The Upgrade board's talents (`game/content/talents`), in the board's order (first rank's price, then `order`): the
+talent's picture, both forms with their pictures, words and effects (stat, op, value a rank), the six ranks' prices
+with running totals and what each form holds at each rank. Save (Ctrl+S) writes only the changed keys of each changed
+talent (backup first) and imports its .tres (`talents_io.py`, `/api/talents`). **Needs a server restart** (new route).
+
+### Timeline per stage
+
+On a stage tab the row inspector's From / Until (rows, waves, events: fields marked `clock: true`) read from that
+stage's start (0:00 = its run start) with the map time beside them ("map 7:11"); typing writes back with the offset.
+The row hover card and the inspector title read the same way. All keeps the map clock. Boss-fight rows keep the fight
+clock. Each row's number within its stage (1..N by start second) sits in the Spawn rows gutter (on All: "2.5" =
+stage 2, row 5); each stage tab shows how many rows start in it.

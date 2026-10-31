@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/mutations/stunning_thrust/stunning_thrust_icon.png" id="1_dsrix"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_hcyne"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_r3s1v"]
 
 [resource]
-script = ExtResource("1_hcyne")
+script = ExtResource("2_r3s1v")
 weapon = "pike"
 mutation_kind = "element"
 text = "Every hit has a 15% chance to stun for a second."

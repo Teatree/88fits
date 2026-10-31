@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="QuestDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_rccuh"]
 [ext_resource type="Texture2D" path="res://content/quests/unlock_lob_grenade/unlock_lob_grenade_icon.png" id="1_urjes"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_cys48"]
 
 [resource]
-script = ExtResource("1_rccuh")
+script = ExtResource("2_cys48")
 condition = {
 "count": 200.0,
 "enemy": "fire_ant",

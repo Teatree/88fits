@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_kekjt"]
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_3n5jm"]
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_c.png" id="7_hc3nu"]
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_c.png" id="1_4s7ql"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_34e7o"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_kekjt"]
 
 [sub_resource type="Resource" id="Resource_4s7ql"]
-script = ExtResource("2_kekjt")
+script = ExtResource("2_34e7o")
 stat = "evade"
 value = 0.005
 target = "player"
 
 [resource]
-script = ExtResource("3_3n5jm")
+script = ExtResource("3_kekjt")
 level_trait = [SubResource("Resource_4s7ql")]
 order = 6
 trait_name = "Footwork"
@@ -254,7 +254,7 @@ variant = "FAD-E"
 id = "fadeaway"
 display_name = "Fadeaway"
 flavour = "You cannot guard what you cannot catch."
-icon = ExtResource("7_hc3nu")
+icon = ExtResource("1_4s7ql")
 icon_file = "fadeaway_icon.png"
 placeholder = {
 "color": "#6B4AAE",

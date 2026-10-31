@@ -362,7 +362,7 @@ static func card_description(card: Dictionary) -> String:
 	if def is MutationDef:
 		return (def as MutationDef).text
 	if def is PerkDef:
-		return (def as PerkDef).text
+		return TextGen.perk_text(def as PerkDef)
 	if def is PassiveDef and bool(card.get("evolve", false)):
 		# the evolution (pass 33.2): the whole of what the maxed passive becomes, in place of its levels
 		var ed := def as PassiveDef

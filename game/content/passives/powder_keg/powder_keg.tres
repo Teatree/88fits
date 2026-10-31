@@ -1,42 +1,42 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/powder_keg/powder_keg_icon_evolved.png" id="1_jnkjt"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_pr7ni"]
-[ext_resource type="Texture2D" path="res://content/passives/powder_keg/powder_keg_icon.png" id="1_wwjp8"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_wwjp8"]
+[ext_resource type="Texture2D" path="res://content/passives/powder_keg/powder_keg_icon.png" id="2_5eyj0"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_1jj7u"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_owgul"]
 
 [sub_resource type="Resource" id="Resource_jnkjt"]
-script = ExtResource("1_pr7ni")
+script = ExtResource("3_1jj7u")
 stat = "powder_keg_chance"
 value = 0.065
 target = "player"
 
 [sub_resource type="Resource" id="Resource_5eyj0"]
-script = ExtResource("1_pr7ni")
+script = ExtResource("3_1jj7u")
 stat = "powder_keg_chance"
 value = 0.02
 target = "player"
 
 [sub_resource type="Resource" id="Resource_1jj7u"]
-script = ExtResource("1_pr7ni")
+script = ExtResource("3_1jj7u")
 stat = "powder_keg_chance"
 value = 0.02
 target = "player"
 
 [sub_resource type="Resource" id="Resource_owgul"]
-script = ExtResource("1_pr7ni")
+script = ExtResource("3_1jj7u")
 stat = "powder_keg_chance"
 value = 0.02
 target = "player"
 
 [sub_resource type="Resource" id="Resource_gmsdr"]
-script = ExtResource("1_pr7ni")
+script = ExtResource("3_1jj7u")
 stat = "powder_keg_chance"
 value = 0.03
 target = "player"
 
 [resource]
-script = ExtResource("2_wwjp8")
+script = ExtResource("4_owgul")
 levels = [[SubResource("Resource_jnkjt")], [SubResource("Resource_5eyj0")], [SubResource("Resource_1jj7u")], [SubResource("Resource_owgul")], [SubResource("Resource_gmsdr")]]
 max_level = 5
 text = "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a twelfth of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow."
@@ -46,7 +46,7 @@ display_name = "Powder Keg"
 flavour = "Handle with care. Or don't."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_wwjp8")
+icon = ExtResource("2_5eyj0")
 icon_file = "powder_keg_icon.png"
 placeholder = {
 "color": "#D08A3A",

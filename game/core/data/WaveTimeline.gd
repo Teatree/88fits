@@ -914,6 +914,13 @@ static func boss_fight_open(rows: Array, ct: float) -> Array:
 ##                   at all)"): every creature resists a push from the hero's side LINEARLY from 0 at Endless's start to
 ##                   knock_resist_max at knock_resist_seconds of Endless, then holds (endless_knock_resist; max 0 = off,
 ##                   the default, so a map that names neither plays as before); EnemyManager.endless_knock_share
+##   open_task_growth   pass 116 (lane RESULTS, Garry: "If Player is playing the Endless Mode and they have a Wanted Task
+##                   to finish this stat increase on enemies is only 33% as effective as it normally is. The moment Player
+##                   manages to complete the task the stat increase picks up from there at a normal regular pace."): while
+##                   the run's Wanted poster is open (taken, not done, not failed: WantedRun.current) every Endless wave
+##                   adds only this share of a growth step (hp_growth, atk_growth, speed_growth) and Endless's knock
+##                   resistance climbs at this share of its pace; once it is done the steps are whole again, from where
+##                   they stand (WaveDirector._tick_endless: Run.endless_growth_lag, endless_time_lag; endless_mults_steps)
 ##   knock_resist_exempt_tag      a weapon carrying this tag (WeaponDef.tags, "explosive") pushes as before
 ##   knock_resist_exempt_sources  hit sources that are blasts without a weapon ("nuke", "revive", "powder_keg", ...):
 ##                   an Array of ids or one comma-separated String (the Level Editor's text field)
@@ -921,7 +928,7 @@ static func boss_fight_open(rows: Array, ct: float) -> Array:
 const ENDLESS_DEFAULTS := {"portal_seconds": 60.0, "every": 10.0, "first_wave": 120.0, "wave_size": 30.0,
 	"wave_growth": 2.0, "cap": 1.0, "hp": 1.5, "atk": 1.2, "speed": 1.15, "hp_growth": 0.15, "atk_growth": 0.1,
 	"speed_growth": 0.02, "speed_max": 1.6, "xp_share": 0.35, "coin_chance": 0.05, "roster_window": 60.0,
-	"knock_resist_seconds": 90.0, "knock_resist_max": 0.0}
+	"knock_resist_seconds": 90.0, "knock_resist_max": 0.0, "open_task_growth": 0.33}
 ## pass 103 (lane PLAY): the exempt keys' defaults (not numbers, so not in ENDLESS_DEFAULTS)
 const ENDLESS_KNOCK_EXEMPT_TAG := "explosive"
 const ENDLESS_KNOCK_EXEMPT_SOURCES := ["nuke", "revive", "powder_keg", "loose_rocket", "blast"]
@@ -944,7 +951,13 @@ func portal_seconds(i: int = -1) -> float:
 
 ## Endless wave `wave`'s (1-based) multipliers on the creatures after stage `i`: {hp, atk, speed}.
 func endless_mults(wave: int, i: int = -1) -> Dictionary:
-	var w := float(maxi(wave, 1) - 1)
+	return endless_mults_steps(float(maxi(wave, 1) - 1), i)
+
+
+## Pass 116 (lane RESULTS): the multipliers after `steps` growth steps (wave k of a plain Endless = k - 1 steps; a wave
+## played with a Wanted poster open adds only open_task_growth of a step, so steps can be fractional).
+func endless_mults_steps(steps: float, i: int = -1) -> Dictionary:
+	var w := maxf(steps, 0.0)
 	var hp := maxf(endless_value("hp", i), 0.0) * pow(maxf(1.0 + endless_value("hp_growth", i), 0.0), w)
 	var atk := maxf(endless_value("atk", i), 0.0) * pow(maxf(1.0 + endless_value("atk_growth", i), 0.0), w)
 	var sp0 := maxf(endless_value("speed", i), 0.0)

@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/weapons/tumbleweed/tumbleweed_icon.png" id="1_4evnd"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_4evnd"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_7vev6"]
-[ext_resource type="PackedScene" path="res://content/weapons/tumbleweed/tumbleweed_visual.tscn" id="3_7vev6"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_iccdk"]
+[ext_resource type="PackedScene" path="res://content/weapons/tumbleweed/tumbleweed_visual.tscn" id="4_on5nm"]
 
 [sub_resource type="Resource" id="Resource_4evnd"]
 script = ExtResource("2_7vev6")
@@ -52,7 +52,7 @@ stat = "amount"
 value = 1.0
 
 [resource]
-script = ExtResource("2_4evnd")
+script = ExtResource("3_iccdk")
 targeting = "priority"
 base = {
 "amount": 1.0,
@@ -70,7 +70,7 @@ sfx = {
 "fire": "w_tumble_roll",
 "hit": "w_tumble_hit"
 }
-visual = ExtResource("3_7vev6")
+visual = ExtResource("4_on5nm")
 visual_file = "tumbleweed_visual.tscn"
 params = {
 "fire_forward": true,

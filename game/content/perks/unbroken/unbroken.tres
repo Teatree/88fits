@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/perks/unbroken/unbroken_icon.png" id="1_0g0ko"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_xefja"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_s72ab"]
 
 [resource]
-script = ExtResource("1_xefja")
+script = ExtResource("2_s72ab")
 hero = "ironwood"
 text = "Hits no longer pause his regen: he keeps healing while they land."
 special = "unbroken"

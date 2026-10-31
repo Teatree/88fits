@@ -2428,7 +2428,7 @@ const Timeline = (() => {
     const shownN = lay.items.filter((it) => it.type === 'row').length + lay.items.filter((it) => it.type === 'group' && it.collapsed).reduce((a, it) => a + it.g.rows.length, 0);
     lanes.roster.label.querySelector('.lane-sub').textContent = App.viewStage() == null
       ? `${plural(rows.length, 'row')}${hell ? ` · ${hell} hell` : ''}`
-      : `${shownN} of ${plural(rows.length, 'row')} in stage ${App.viewStage() + 1}${hell ? ` · ${hell} hell` : ''}`;
+      : `${shownN} of ${plural(rows.length, 'row')} in stage ${App.viewStage() + 1} (${rowNumbersNow(rows).counts[App.viewStage()] || 0} start in it)${hell ? ` · ${hell} hell` : ''}`;
     renderGutter(rows, lay);
   }
 
@@ -2508,6 +2508,12 @@ const Timeline = (() => {
   /** The roster's gutter in the sticky label column (pass 84: grouped): a bar per group (its chevron, name and count; a
    *  click folds or opens it), per row a grip to drag it up or down (with no groups), ▲ / ▼ (within its group), its icon
    *  and name (a click selects the row). The order is for this page only: the game draws by weight. */
+  /** Pass 116 (lane EDITOR): every row's number within its stage and each stage's count (StageModel.rowNumbers). */
+  function rowNumbersNow(rows) {
+    const W = (App.stageList ? App.stageList() : []).map((w) => ({ start: w.start, end: w.end }));
+    return StageModel.rowNumbers(rows || App.tl().roster || [], W);
+  }
+
   function renderGutter(rows, lay) {
     const gut = lanes.roster.label.querySelector('.gutter');
     clear(gut);
@@ -2515,6 +2521,7 @@ const Timeline = (() => {
     const grouped = L.mode !== 'none';
     // the visible order inside each group, for ▲ / ▼
     const order = L.items.filter((it) => it.type === 'row').map((it) => it.i);
+    const nums = rowNumbersNow(rows);
     for (const it of L.items) {
       if (it.type === 'group') {
         const gcol = it.g.role != null ? TimelineModel.roleColor(it.g.role) : '';
@@ -2536,8 +2543,11 @@ const Timeline = (() => {
       const pick = () => App.select({ kind: 'roster', i }, { scroll: true });
       const role = TimelineModel.roleOf(r);
       const fid = firstEnemy(r);
+      // pass 116 (lane EDITOR): the row's number within its stage (1..N, by start second)
+      const rn = nums.byRow[i];
+      const idx = rn ? el('span', { class: 'gut-idx', text: (App.viewStage() == null && nums.counts.length > 1 ? `${rn.stage + 1}.` : '') + rn.n, title: `row ${rn.n} of ${nums.counts[rn.stage]} in stage ${rn.stage + 1} (by start time)` }) : null;
       gut.appendChild(el('div', { class: 'gut-row' + (sel ? ' selected' : '') + (r.channel === 'hell' ? ' hell' : ''), style: `top:${it.y}px;height:${ROW_H}px;box-shadow:inset 3px 0 0 ${TimelineModel.roleColor(role)}` },
-        grip,
+        grip, idx,
         el('button', { class: 'gut-btn', type: 'button', text: '▲', title: grouped ? 'move up within its group (the file\'s order changes; the game ignores it)' : 'move up (Alt+↑)', disabled: grouped ? up < 0 : i === 0, onclick: (e) => { e.stopPropagation(); if (grouped) App.moveRowTo(i, up); else App.moveRow(i, -1); } }),
         el('button', { class: 'gut-btn', type: 'button', text: '▼', title: grouped ? 'move down within its group' : 'move down (Alt+↓)', disabled: grouped ? down < 0 : i === rows.length - 1, onclick: (e) => { e.stopPropagation(); if (grouped) App.moveRowTo(i, down); else App.moveRow(i, 1); } }),
         fid ? el('img', { src: App.iconFor(fid, r.variant), width: 18, height: 18, alt: '', onclick: pick }) : el('span', { class: 'gut-ico', text: '★', onclick: pick }),
@@ -3159,7 +3169,7 @@ const Timeline = (() => {
     if (!r) return null;
     const open = App.rosterAt(t).find((o) => o.i === i);
     const share = open ? `${Math.round(open.norm * 100)}% of the ${r.channel === 'hell' ? 'hell channel\'s' : 'regular'} draw` : 'not drawn at this second';
-    const box = el('div', {}, cardHead(r.name ? `Spawn row: ${r.name}` : 'Spawn row', t, `${fmtT(r.t)} → ${r.until == null || r.until === '' ? 'end' : fmtT(r.until)}${r.id ? ` · ${r.id}` : ''}`));
+    const box = el('div', {}, cardHead(r.name ? `Spawn row: ${r.name}` : 'Spawn row', t, `${App.fmtClock(r.t)} → ${r.until == null || r.until === '' ? 'end' : App.fmtClock(r.until)}${r.id ? ` · ${r.id}` : ''}`));
     // pass 84 (lane TIMELINE): how many, how often, who and what it wears, in one line; the creature (the first of a list)
     const c84 = App.creature(firstEnemy(r));
     const pace84 = TimelineModel.paceOf(r);

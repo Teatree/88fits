@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/lodestone/lodestone_icon_b.png" id="1_1ne84"]
+[ext_resource type="Texture2D" path="res://content/passives/lodestone/lodestone_icon_b.png" id="1_s6epg"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_1ne84"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_42oup"]
 
@@ -54,7 +54,7 @@ variant_base = "A"
 id = "lodestone"
 display_name = "The Magnet"
 flavour = "The Magnet calls, and everything shiny answers."
-icon = ExtResource("1_1ne84")
+icon = ExtResource("1_s6epg")
 icon_file = "lodestone_icon.png"
 placeholder = {
 "color": "#8A69F2",

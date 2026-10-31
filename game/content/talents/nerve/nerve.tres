@@ -1,37 +1,37 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_o5dor"]
-[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_0_icon.png" id="2_0i6lo"]
-[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_icon.png" id="2_6pkpp"]
-[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_es87a"]
-[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_1_icon.png" id="3_jphhs"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0i6lo"]
+[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_0_icon.png" id="2_jphhs"]
+[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_1_icon.png" id="3_fhb1o"]
+[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_icon.png" id="4_05wi3"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="5_5hqst"]
 
 [sub_resource type="Resource" id="Resource_0i6lo"]
-script = ExtResource("1_o5dor")
+script = ExtResource("1_0i6lo")
 stat = "skips"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_jphhs"]
-script = ExtResource("1_o5dor")
+script = ExtResource("1_0i6lo")
 stat = "revive_hp"
 value = 0.1
 target = "player"
 
 [resource]
-script = ExtResource("2_es87a")
+script = ExtResource("5_5hqst")
 order = 2
 ranks = 6
 cost = [150.0, 600.0, 1350.0, 2400.0, 3750.0, 5400.0]
 forms = [{
 "effects": [SubResource("Resource_0i6lo")],
-"icon": ExtResource("2_0i6lo"),
+"icon": ExtResource("2_jphhs"),
 "icon_file": "nerve_0_icon.png",
 "name": "Skip",
 "text": "+1 skip a stage, a rank."
 }, {
 "effects": [SubResource("Resource_jphhs")],
-"icon": ExtResource("3_jphhs"),
+"icon": ExtResource("3_fhb1o"),
 "icon_file": "nerve_1_icon.png",
 "name": "Second Wind",
 "text": "+10% health on revive a rank: 40% up to 100%."
@@ -42,7 +42,7 @@ base_stats = {
 id = "nerve"
 display_name = "Nerve"
 flavour = "Pass on one more, or get back up."
-icon = ExtResource("2_6pkpp")
+icon = ExtResource("4_05wi3")
 icon_file = "nerve_icon.png"
 placeholder = {
 "color": "#C9A227",

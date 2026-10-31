@@ -71,7 +71,8 @@ func _script(src: String) -> GDScript:
 ## in its own 540 x 1200 viewport), a fake director running stage time with its own timeline (its `barrels` block), no
 ## map (the sand flat at 0), a real PickupManager and a real BarrelField holding `brown` brown and `black` black barrels
 ## on a ring 30 m out (none near the hero), each kind's MultiMeshes with BarrelField.SPARE spare instances.
-func _game(barrels: Dictionary = {}, brown: int = 4, black: int = 2) -> Dictionary:
+## Pass 116 (lane MAP): `power` power-up barrels too (kind 2), after the black (coins) ones.
+func _game(barrels: Dictionary = {}, brown: int = 4, black: int = 2, power: int = 0) -> Dictionary:
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	var g: Node = auto_free(Node.new())
 	g.set_script(_script(FAKE_GAME))
@@ -111,9 +112,9 @@ func _game(barrels: Dictionary = {}, brown: int = 4, black: int = 2) -> Dictiona
 	var bf: BarrelField = auto_free(BarrelField.new())
 	bf.game = g
 	add_child(bf)
-	var n := [brown, black]
-	var names := [["_body_dark", "_hoops"], ["_body_light", "_hoops_light"]]
-	for t in range(2):
+	var n := [brown, black, power]
+	var names := [["_body_dark"], ["_body_light"], ["_body_power"]]
+	for t in range(3):
 		for name in names[t]:
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -121,9 +122,9 @@ func _game(barrels: Dictionary = {}, brown: int = 4, black: int = 2) -> Dictiona
 			mm.visible_instance_count = int(n[t])
 			bf.set(name, mm)
 	var k := 0
-	for t in range(2):
+	for t in range(3):
 		for j in range(int(n[t])):
-			var a := TAU * float(k) / float(brown + black)
+			var a := TAU * float(k) / float(brown + black + power)
 			bf.pos.append(Vector3(cos(a) * 30.0, 0, sin(a) * 30.0))
 			bf.light.append(t)
 			bf.alive.append(1)
@@ -287,6 +288,7 @@ func test_slots_reuse_a_broken_one_then_a_spare_then_the_other_kind() -> void:
 	assert_int(bf.light[2]).is_equal(1)
 	# nothing left: no slot
 	(bf._body_light as MultiMesh).visible_instance_count = (bf._body_light as MultiMesh).instance_count
+	(bf._body_power as MultiMesh).visible_instance_count = (bf._body_power as MultiMesh).instance_count
 	assert_bool(bf.respawn_at(Vector3(0, 0, -45), true)).is_false()
 
 
@@ -330,11 +332,12 @@ func test_max_per_stage_stops_them_and_a_range_every_rolls_between_its_ends() ->
 
 # ---------------------------------------------------------------- 3. what a barrel holds, the power-up thrown out
 
-const RAGE_6 := {"black": {"powerup_chance": 1.0, "powerups": [{"id": "rage", "weight": 1}], "throw_distance": 6}}
+## pass 116 (lane MAP): only the power-up barrel throws one
+const RAGE_6 := {"powerup": {"powerup_chance": 1.0, "powerups": [{"id": "rage", "weight": 1}], "throw_distance": 6}}
 
 
 func test_a_smashed_barrel_throws_its_powerup_at_the_set_distance_away_from_the_hero() -> void:
-	var w := _game(RAGE_6, 1, 1)
+	var w := _game(RAGE_6, 1, 0, 1)
 	var bf: BarrelField = w["bf"]
 	var pm: PickupManager = w["pm"]
 	var hero: Node3D = w["hero"]
@@ -374,7 +377,7 @@ func test_a_smashed_barrel_throws_its_powerup_at_the_set_distance_away_from_the_
 
 
 func test_a_thrown_powerup_is_never_pulled_by_a_magnet_or_a_vacuum() -> void:
-	var w := _game({"brown": {"powerup_chance": 1.0, "powerups": [{"id": "coin_bag", "weight": 1}], "throw_distance": 5}}, 1, 0)
+	var w := _game({"powerup": {"powerup_chance": 1.0, "powerups": [{"id": "coin_bag", "weight": 1}], "throw_distance": 5}}, 0, 0, 1)
 	var bf: BarrelField = w["bf"]
 	var pm: PickupManager = w["pm"]
 	var hero: Node3D = w["hero"]
@@ -396,13 +399,14 @@ func test_a_thrown_powerup_is_never_pulled_by_a_magnet_or_a_vacuum() -> void:
 
 
 func test_each_kind_has_its_own_chance_and_an_empty_list_draws_the_drops_roster() -> void:
-	var w := _game({"brown": {"powerup_chance": 0.0}, "black": {"powerup_chance": 0.5}}, 30, 0)
+	# pass 116 (lane MAP): the EXP and the EXP + Coins barrels never throw one, whatever the block says
+	var w := _game({"exp": {"powerup_chance": 1.0}, "coins": {"powerup_chance": 1.0}}, 15, 15)
 	var bf: BarrelField = w["bf"]
 	var pm: PickupManager = w["pm"]
 	for i in range(30):
 		bf._break(i)
 	assert_int(pm.specials.size()).is_equal(0)
-	var w2 := _game({"black": {"powerup_chance": 0.5}}, 0, 160)
+	var w2 := _game({"powerup": {"powerup_chance": 0.5}}, 0, 0, 160)
 	var bf2: BarrelField = w2["bf"]
 	var pm2: PickupManager = w2["pm"]
 	for i in range(160):

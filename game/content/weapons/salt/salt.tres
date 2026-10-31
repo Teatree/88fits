@@ -1,64 +1,64 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/weapons/salt/salt_icon.png" id="1_ey85m"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_vi8j1"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_vh0ws"]
-[ext_resource type="PackedScene" path="res://content/weapons/salt/salt_visual.tscn" id="4_vi8j1"]
+[ext_resource type="Texture2D" path="res://content/weapons/salt/salt_icon.png" id="1_vi8j1"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_vh0ws"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_ci38h"]
+[ext_resource type="PackedScene" path="res://content/weapons/salt/salt_visual.tscn" id="4_7bp80"]
 
 [sub_resource type="Resource" id="Resource_vi8j1"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_vh0ws"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "area"
 op = "mul"
 value = 0.1
 
 [sub_resource type="Resource" id="Resource_ci38h"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_7bp80"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_73b60"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "cooldown"
 op = "mul"
 value = -0.075
 
 [sub_resource type="Resource" id="Resource_xlc6w"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
 [sub_resource type="Resource" id="Resource_5bvn5"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "damage"
 op = "mul"
 value = 0.25
 
 [sub_resource type="Resource" id="Resource_euntq"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_twceo"]
-script = ExtResource("2_vi8j1")
+script = ExtResource("2_vh0ws")
 stat = "area"
 op = "mul"
 value = 0.15
 
 [resource]
-script = ExtResource("3_vh0ws")
+script = ExtResource("3_ci38h")
 behavior = "SaltShaker"
 tags = ["salt", "ground"]
 targeting = "ground"
@@ -75,7 +75,7 @@ evolves_into = "hiwa_kai"
 sfx = {
 "fire": "w_salt_shake"
 }
-visual = ExtResource("4_vi8j1")
+visual = ExtResource("4_7bp80")
 visual_file = "salt_visual.tscn"
 params = {
 "salt": {
@@ -102,7 +102,7 @@ display_name = "Salt"
 flavour = "A pinch for luck. A trail for the rest."
 rarity = "uncommon"
 weight = 8.0
-icon = ExtResource("1_ey85m")
+icon = ExtResource("1_vi8j1")
 icon_file = "salt_icon.png"
 placeholder = {
 "color": "#F4F4F0",

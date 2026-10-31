@@ -1,21 +1,21 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_7iedq"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_uipts"]
 [ext_resource type="Texture2D" path="res://content/mutations/mouth_burn/mouth_burn_icon.png" id="2_sxc5q"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_uipts"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_k6tyb"]
 
 [sub_resource type="Resource" id="Resource_uipts"]
-script = ExtResource("1_7iedq")
+script = ExtResource("1_uipts")
 stat = "fire_damage"
 value = 5.0
 
 [sub_resource type="Resource" id="Resource_sxc5q"]
-script = ExtResource("1_7iedq")
+script = ExtResource("1_uipts")
 stat = "fire_duration"
 value = 3.0
 
 [resource]
-script = ExtResource("2_uipts")
+script = ExtResource("3_k6tyb")
 weapon = "big_mouth"
 mutation_kind = "element"
 text = "Whatever the beam touches catches fire for 3 s."

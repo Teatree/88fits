@@ -1,57 +1,57 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_e2c5j"]
 [ext_resource type="Texture2D" path="res://content/weapons/hornet_nest/hornet_nest_icon.png" id="1_yuxcn"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_yuxcn"]
-[ext_resource type="PackedScene" path="res://content/weapons/hornet_nest/hornet_nest_visual.tscn" id="3_buk75"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_buk75"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_ro7go"]
+[ext_resource type="PackedScene" path="res://content/weapons/hornet_nest/hornet_nest_visual.tscn" id="4_bn5we"]
 
 [sub_resource type="Resource" id="Resource_yuxcn"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_buk75"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [sub_resource type="Resource" id="Resource_ro7go"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "cooldown"
 op = "mul"
 value = -0.0811
 
 [sub_resource type="Resource" id="Resource_bn5we"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "cooldown"
 op = "mul"
 value = -0.1675
 
 [sub_resource type="Resource" id="Resource_88tw7"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_c3twh"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "damage"
 op = "mul"
 value = 0.3
 
 [sub_resource type="Resource" id="Resource_rejie"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "amount"
 value = 1.0
 
 [sub_resource type="Resource" id="Resource_402lm"]
-script = ExtResource("1_e2c5j")
+script = ExtResource("2_buk75")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
 [resource]
-script = ExtResource("2_yuxcn")
+script = ExtResource("3_ro7go")
 behavior = "MissilePod"
 tags = ["homing"]
 targeting = "priority"
@@ -71,7 +71,7 @@ sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
 }
-visual = ExtResource("3_buk75")
+visual = ExtResource("4_bn5we")
 visual_file = "hornet_nest_visual.tscn"
 params = {
 "familiar": {

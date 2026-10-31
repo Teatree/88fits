@@ -1,23 +1,23 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_n480u"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_r1srg"]
 [ext_resource type="Texture2D" path="res://content/mutations/flicker/flicker_icon.png" id="2_exvxj"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_r1srg"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_qenba"]
 
 [sub_resource type="Resource" id="Resource_r1srg"]
-script = ExtResource("1_n480u")
+script = ExtResource("1_r1srg")
 stat = "cooldown"
 op = "mul"
 value = -0.3
 
 [sub_resource type="Resource" id="Resource_exvxj"]
-script = ExtResource("1_n480u")
+script = ExtResource("1_r1srg")
 stat = "damage"
 op = "mul"
 value = -0.25
 
 [resource]
-script = ExtResource("2_r1srg")
+script = ExtResource("3_qenba")
 weapon = "sun_scepter"
 mutation_kind = "volume"
 text = "Strikes 30% sooner for 25% less damage. The pillars burn thinner and yellower."

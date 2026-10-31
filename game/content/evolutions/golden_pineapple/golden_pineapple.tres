@@ -1,14 +1,14 @@
 [gd_resource type="Resource" script_class="WeaponDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon.png" id="1_klqd4"]
-[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_prud7"]
-[ext_resource type="PackedScene" path="res://content/evolutions/golden_pineapple/golden_pineapple_visual.tscn" id="3_klqd4"]
-[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon_b.png" id="3_wtojk"]
-[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon_c.png" id="4_n64iy"]
-[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon_d.png" id="5_c3bf2"]
+[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon.png" id="1_wtojk"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_n64iy"]
+[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon_b.png" id="3_c3bf2"]
+[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon_c.png" id="4_dityl"]
+[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon_d.png" id="5_gruus"]
+[ext_resource type="PackedScene" path="res://content/evolutions/golden_pineapple/golden_pineapple_visual.tscn" id="6_2rrca"]
 
 [resource]
-script = ExtResource("2_prud7")
+script = ExtResource("2_n64iy")
 behavior = "Lobber"
 tags = ["explosive"]
 targeting = "densest"
@@ -29,7 +29,7 @@ sfx = {
 "fire": "w_lob_throw",
 "hit": "w_lob_boom"
 }
-visual = ExtResource("3_klqd4")
+visual = ExtResource("6_2rrca")
 visual_file = "golden_pineapple_visual.tscn"
 params = {
 "blast_fx": {
@@ -91,7 +91,7 @@ variants = {
 "B": {
 "flavour": "A gold-trimmed crate of dynamite that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 coffin nails and 4 small sticky crates.",
 "fresh": true,
-"icon": ExtResource("3_wtojk"),
+"icon": ExtResource("3_c3bf2"),
 "icon_file": "golden_pineapple_icon_b.png",
 "name": "Boomtown",
 "note": "B · Boomtown: a gold-trimmed wooden crate packed with nine red sticks (stands up when it lies); its bomblets are small copies of it",
@@ -110,7 +110,7 @@ variants = {
 "C": {
 "flavour": "A powder keg strapped with dynamite that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 coffin nails and 4 small sticky kegs.",
 "fresh": true,
-"icon": ExtResource("4_n64iy"),
+"icon": ExtResource("4_dityl"),
 "icon_file": "golden_pineapple_icon_c.png",
 "name": "Boomtown",
 "note": "C · Boomtown: a powder keg in four gold hoops, four red sticks strapped round it; its bomblets are small copies of it",
@@ -129,7 +129,7 @@ variants = {
 "D": {
 "flavour": "A gilded bundle of dynamite under a brass cap that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 coffin nails and 4 small sticky bundles.",
 "fresh": true,
-"icon": ExtResource("5_c3bf2"),
+"icon": ExtResource("5_gruus"),
 "icon_file": "golden_pineapple_icon_d.png",
 "name": "Boomtown",
 "note": "D · Boomtown: a gilded bundle of seven red sticks under a brass cap, a gold band and a gold star; its bomblets are small copies of it",
@@ -152,7 +152,7 @@ id = "golden_pineapple"
 display_name = "Golden Pineapple"
 flavour = "A big golden grenade that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 steel spikes and 4 small sticky golden bomblets."
 rarity = "rare"
-icon = ExtResource("1_klqd4")
+icon = ExtResource("1_wtojk")
 icon_file = "golden_pineapple_icon.png"
 placeholder = {
 "color": "#5C7A3A",

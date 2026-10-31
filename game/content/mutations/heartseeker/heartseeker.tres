@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_c3cxn"]
 [ext_resource type="Texture2D" path="res://content/mutations/heartseeker/heartseeker_icon.png" id="1_ceegi"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_c2qx5"]
 
 [resource]
-script = ExtResource("1_c3cxn")
+script = ExtResource("2_c2qx5")
 weapon = "pike"
 mutation_kind = "hero"
 hero = "ironwood"

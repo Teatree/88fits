@@ -1,23 +1,23 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="1_6xkvr"]
-[ext_resource type="Texture2D" path="res://content/characters/ironwood/ironwood_icon.png" id="1_gdcmj"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_w74pe"]
+[ext_resource type="Texture2D" path="res://content/characters/ironwood/ironwood_icon.png" id="1_w74pe"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_gdcmj"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_ccyo4"]
 
 [sub_resource type="Resource" id="Resource_w74pe"]
-script = ExtResource("2_w74pe")
+script = ExtResource("2_gdcmj")
 stat = "regen"
 value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_gdcmj"]
-script = ExtResource("2_w74pe")
+script = ExtResource("2_gdcmj")
 stat = "regen_delay"
 value = -0.05
 target = "player"
 
 [resource]
-script = ExtResource("1_6xkvr")
+script = ExtResource("3_ccyo4")
 level_trait = [SubResource("Resource_w74pe"), SubResource("Resource_gdcmj")]
 order = 2
 trait_name = "Enduring"
@@ -61,7 +61,7 @@ fps = {
 id = "ironwood"
 display_name = "Ironwood"
 flavour = "He has outlasted worse than you."
-icon = ExtResource("1_gdcmj")
+icon = ExtResource("1_w74pe")
 icon_file = "ironwood_icon.png"
 placeholder = {
 "color": "#8A5A3A",

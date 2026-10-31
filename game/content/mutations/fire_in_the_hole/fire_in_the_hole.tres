@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon.png" id="1_i3jnj"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_f3frc"]
-[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon_b.png" id="3_ilywd"]
-[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon_c.png" id="4_1cw1o"]
-[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon_d.png" id="5_ccupn"]
+[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon.png" id="1_ilywd"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_1cw1o"]
+[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon_b.png" id="3_ccupn"]
+[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon_c.png" id="4_ncou1"]
+[ext_resource type="Texture2D" path="res://content/mutations/fire_in_the_hole/fire_in_the_hole_icon_d.png" id="5_u0ans"]
 
 [resource]
-script = ExtResource("2_f3frc")
+script = ExtResource("2_1cw1o")
 weapon = "lob_grenade"
 mutation_kind = "hero"
 hero = "drifter"
@@ -24,19 +24,19 @@ variants = {
 },
 "B": {
 "fresh": true,
-"icon": ExtResource("3_ilywd"),
+"icon": ExtResource("3_ccupn"),
 "icon_file": "fire_in_the_hole_icon_b.png",
 "note": "B · the icon only"
 },
 "C": {
 "fresh": true,
-"icon": ExtResource("4_1cw1o"),
+"icon": ExtResource("4_ncou1"),
 "icon_file": "fire_in_the_hole_icon_c.png",
 "note": "C · the icon only"
 },
 "D": {
 "fresh": true,
-"icon": ExtResource("5_ccupn"),
+"icon": ExtResource("5_u0ans"),
 "icon_file": "fire_in_the_hole_icon_d.png",
 "note": "D · the icon only"
 }
@@ -47,7 +47,7 @@ display_name = "Fire in the Hole"
 flavour = "The Drifter waits for a crowd worth the noise."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("1_i3jnj")
+icon = ExtResource("1_ilywd")
 icon_file = "fire_in_the_hole_icon.png"
 placeholder = {
 "color": "#E0A040",

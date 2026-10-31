@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_7jayh"]
-[ext_resource type="Texture2D" path="res://content/enemies/harpoon_troglodyte/harpoon_troglodyte_icon.png" id="1_s5wcd"]
+[ext_resource type="Texture2D" path="res://content/enemies/harpoon_troglodyte/harpoon_troglodyte_icon.png" id="1_phnb2"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_s5wcd"]
 
 [resource]
-script = ExtResource("1_7jayh")
+script = ExtResource("2_s5wcd")
 archetype = "brute"
 doc = "Blind, hardy and alone: never more than one on the map. It keeps twelve metres off and throws a bright red harpoon on a rope along a red line aimed at where you are going, not where you are. A hit ropes you to it for five seconds: it stays where it stood with its outline pulsing red and reels in any slack. Walking towards it costs nothing; walking away is 30% slower and drags it along behind you, digging in and kicking up sand. Kill it, or wait the rope out. A special from stage 2: specials come one at a time, the next 45 to 60 seconds after the last one dies."
 brain = "kite"
@@ -116,7 +116,7 @@ variance = {
 id = "harpoon_troglodyte"
 display_name = "Harpoon Troglodyte"
 flavour = "It cannot see you. It does not need to."
-icon = ExtResource("1_s5wcd")
+icon = ExtResource("1_phnb2")
 icon_file = "harpoon_troglodyte_icon.png"
 placeholder = {
 "color": "#8A3A30",

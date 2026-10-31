@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/barrage/barrage_icon_b.png" id="1_shvom"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vc2m8"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ntotk"]
+[ext_resource type="Texture2D" path="res://content/passives/barrage/barrage_icon_b.png" id="1_ntotk"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_shvom"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_5fwsv"]
 
 [sub_resource type="Resource" id="Resource_ntotk"]
-script = ExtResource("1_vc2m8")
+script = ExtResource("2_shvom")
 stat = "amount"
 value = 6.0
 target = "player"
 
 [resource]
-script = ExtResource("2_ntotk")
+script = ExtResource("3_5fwsv")
 line = true
 levels = [[SubResource("Resource_ntotk")]]
 repeat_last_level = false
@@ -56,7 +56,7 @@ display_name = "The Hydra Risen"
 flavour = "Every head awake. More things flying. A lot more."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_shvom")
+icon = ExtResource("1_ntotk")
 icon_file = "barrage_icon.png"
 placeholder = {
 "color": "#FFB84A",

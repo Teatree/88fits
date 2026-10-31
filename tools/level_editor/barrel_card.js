@@ -9,26 +9,32 @@ const BarrelCard = (() => {
   /** One line: about how many barrels can come back a stage, or that none do. */
   function summary(tl) {
     const c = BarrelModel.respawnOf(tl.barrels);
-    if (!c.enabled) return `Broken barrels do not come back: the map has only its ${BarrelModel.START_COUNT} start barrels (brown, a few black).`;
+    if (!c.enabled) return `Broken barrels do not come back: the map has only its ${BarrelModel.START_COUNT} start barrels (${mix(tl)}).`;
     const per = App.stageList().map((w) => `${w.name} ${BarrelModel.turnsIn(c, w.length)}`);
     const every = c.every[0] === c.every[1] ? `${c.every[0]} s` : `${c.every[0]} to ${c.every[1]} s`;
-    return `At most ${per.join(', ')} barrels come back in a stage's own time (the first at ${fmtT(c.first)}, then one every ${every})${c.in_boss ? ', and more while the boss fight lasts' : ''}; ${c.max_lying ? `only while fewer than ${c.max_lying} stand (${c.max_lying === BarrelModel.START_COUNT ? 'the start\'s count: only smashed ones come back' : `the start has ${BarrelModel.START_COUNT}`})` : 'with no limit on how many stand'}. ${Math.round(c.black_chance * 100)}% of them black.`;
+    return `At most ${per.join(', ')} barrels come back in a stage's own time (the first at ${fmtT(c.first)}, then one every ${every})${c.in_boss ? ', and more while the boss fight lasts' : ''}; ${c.max_lying ? `only while fewer than ${c.max_lying} stand (${c.max_lying === BarrelModel.START_COUNT ? 'the start\'s count: only smashed ones come back' : `the start has ${BarrelModel.START_COUNT}`})` : 'with no limit on how many stand'}. Kinds: ${mix(tl)}.`;
+  }
+
+  /** The kinds' shares in words (pass 116). */
+  function mix(tl) {
+    const sh = BarrelModel.kindShares(tl.barrels);
+    return BarrelModel.TYPES.map((t, k) => `${BarrelModel.NAMES[t]} ${Math.round(sh[k] * 100)}%`).join(', ');
   }
 
   /** The two barrel kinds' contents (the rows with block 'barrel_contents'). */
   function block(tl) {
     const wrap = el('div', { class: 'block-form barrel-card' });
     wrap.appendChild(el('h3', { class: 'block-title', text: 'What a barrel holds' }));
-    wrap.appendChild(el('p', { class: 'muted small', text: 'Smashing a barrel bursts it into gems (and a black one into coins). On top of that a power-up may hop out of it and land a few metres away: the player chooses whether to walk over for it.' }));
+    wrap.appendChild(el('p', { class: 'muted small', text: 'Three kinds (pass 116, Garry\'s board). The EXP barrel bursts into gems, the EXP + Coins barrel into gems and coins, the Power-up barrel only throws out a power-up that lands a few metres away (the player chooses whether to walk over for it). Weight = each kind\'s share of the barrels, at the start and when they come back.' }));
     for (const ty of BarrelModel.TYPES) wrap.appendChild(typeBlock(tl, ty));
     return wrap;
   }
 
   function typeBlock(tl, ty) {
     const box = el('div', { class: 'barrel-type', style: 'margin:8px 0 12px;padding-top:6px;border-top:1px solid var(--line, #3334)' });
-    box.appendChild(el('h4', { text: ty === 'black' ? 'Black barrel (rare, brass hoops)' : 'Brown barrel', style: 'margin:4px 0 6px' }));
+    box.appendChild(el('h4', { text: `${BarrelModel.NAMES[ty]} (${Math.round(BarrelModel.kindShares(tl.barrels)[BarrelModel.TYPES.indexOf(ty)] * 100)}% of barrels)`, style: 'margin:4px 0 6px' }));
     for (const def of FIELDS.SCALARS.filter((d) => d.block === 'barrel_contents' && d.key.startsWith(`barrels.${ty}.`))) {
-      const bare = def.label.replace(/^(Black|Brown) barrel: /, '');
+      const bare = def.label.replace(/^(EXP \+ Coins|EXP|Power-up) barrel: /, '');
       const short = Object.assign({}, def, { label: bare.charAt(0).toUpperCase() + bare.slice(1) });
       // the list takes the card's whole width (the power-ups' names are cut short beside the label)
       if (def.type === 'barrel_powerups') { box.appendChild(Forms.row(short, powerupsTable(tl, ty), { cls: 'wide-ctl' })); continue; }

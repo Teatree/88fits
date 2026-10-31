@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/shackles/shackles_icon_b.png" id="1_dsgwq"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_w57p4"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_7xnpo"]
+[ext_resource type="Texture2D" path="res://content/passives/shackles/shackles_icon_b.png" id="1_7xnpo"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_dsgwq"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_st066"]
 
 [sub_resource type="Resource" id="Resource_7xnpo"]
-script = ExtResource("1_w57p4")
+script = ExtResource("2_dsgwq")
 stat = "debuff_duration"
 op = "mul"
 value = 1.0
 target = "player"
 
 [resource]
-script = ExtResource("2_7xnpo")
+script = ExtResource("3_st066")
 line = true
 levels = [[SubResource("Resource_7xnpo")]]
 repeat_last_level = false
@@ -57,7 +57,7 @@ display_name = "The Hourglass Risen"
 flavour = "The Hourglass in chains. Nobody leaves early."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_dsgwq")
+icon = ExtResource("1_7xnpo")
 icon_file = "shackles_icon.png"
 placeholder = {
 "color": "#FFB84A",

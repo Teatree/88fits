@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="PerkDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/perks/lingering_light/lingering_light_icon.png" id="1_3bsq4"]
-[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_thybv"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_awjlt"]
 
 [resource]
-script = ExtResource("1_thybv")
+script = ExtResource("2_awjlt")
 hero = "solenne"
 text = "Her burns and poison tick 30% harder and last 30% longer."
 special = "lingering_light"

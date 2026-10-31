@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/mutations/sun_cocktail/sun_cocktail_icon.png" id="1_2g66h"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_btfra"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_n2ldg"]
 
 [resource]
-script = ExtResource("1_btfra")
+script = ExtResource("2_n2ldg")
 weapon = "molotov"
 mutation_kind = "hero"
 hero = "solenne"

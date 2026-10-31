@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/haste/haste_icon_b.png" id="1_to75h"]
+[ext_resource type="Texture2D" path="res://content/passives/haste/haste_icon_b.png" id="1_wacgh"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_to75h"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_wacgh"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_tlt6i"]
 
 [sub_resource type="Resource" id="Resource_wacgh"]
 script = ExtResource("2_to75h")
@@ -12,7 +12,7 @@ value = -0.08
 target = "player"
 
 [resource]
-script = ExtResource("2_wacgh")
+script = ExtResource("3_tlt6i")
 line = true
 levels = [[SubResource("Resource_wacgh")]]
 max_level = 4
@@ -55,7 +55,7 @@ variant_base = "A"
 id = "haste"
 display_name = "The Tower"
 flavour = "The Tower is struck again and again. Everything fires sooner."
-icon = ExtResource("1_to75h")
+icon = ExtResource("1_wacgh")
 icon_file = "haste_icon.png"
 placeholder = {
 "color": "#FFD166",

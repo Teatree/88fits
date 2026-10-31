@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_fnlxo"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_xaj0m"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_1m8gu"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_fnlxo"]
 
 [resource]
-script = ExtResource("2_xaj0m")
+script = ExtResource("2_fnlxo")
 archetype = "brute"
 doc = "The debug arena's melee attacker (pass 49): a bigger training dummy (the training dummy's painting) that chases the hero while he is within 12 m of its spot and hits on a touch like a creature; one that falls stands up again 5 s later and pays nothing."
 brain = "dummy"
@@ -44,7 +44,7 @@ id = "training_dummy_melee"
 display_name = "Melee Dummy"
 flavour = "It hugs back."
 hidden = true
-icon = ExtResource("1_fnlxo")
+icon = ExtResource("1_1m8gu")
 icon_file = "res://content/enemies/training_dummy/training_dummy_icon.png"
 placeholder = {
 "color": "#C8A060",

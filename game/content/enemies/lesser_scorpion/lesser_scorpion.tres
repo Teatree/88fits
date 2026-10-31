@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/lesser_scorpion/lesser_scorpion_icon_b.png" id="1_1hpew"]
-[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_t0yq8"]
+[ext_resource type="Texture2D" path="res://content/enemies/lesser_scorpion/lesser_scorpion_icon_b.png" id="1_e07bm"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_qfptp"]
 
 [resource]
-script = ExtResource("1_t0yq8")
+script = ExtResource("2_qfptp")
 doc = "The second thing the hero meets: a small black scorpion with the skeleton's numbers, in fours. Three looks (LS-A plain, LS-B plates, LS-C detailed) walked on the Dune Scorpion's 3D model at half its size."
 speed = 1.6
 damage = 3.0
@@ -246,7 +246,7 @@ xp_mult = 1.5
 id = "lesser_scorpion"
 display_name = "Lesser Scorpion"
 flavour = "Half the scorpion. All of the sting."
-icon = ExtResource("1_1hpew")
+icon = ExtResource("1_e07bm")
 icon_file = "lesser_scorpion_icon_b.png"
 placeholder = {
 "color": "#1A1418",
