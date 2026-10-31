@@ -47,3 +47,6 @@ docs/ui_review/totem/art/garry_reference_*
 # pass 114 (lane REPLAY): the kept PC builds replays play on (tools/builds.py) and the build stamp ship.sh writes
 /builds/
 game/config/build.json
+
+# the Google Play build (tools/ship_play.sh): the Gradle template Godot installs and its outputs (1.5 GB), made again when missing
+game/android/
