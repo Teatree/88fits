@@ -379,7 +379,8 @@ func test_the_cards_say_what_the_sceptre_does() -> void:
 	assert_str(t).contains("pillar of sunlight")
 	assert_str(t).contains("you can see")
 	assert_str(t).contains("14 damage in 1.3 m")
-	assert_str(t).contains("Solenne only.")
+	# pass 118 (lane ITEMS): anyone may find it; the card says whose own it is
+	assert_str(t).contains("Solenne's own.")
 	assert_str(_inst("sun_scepter", [], 3).description()).contains("2 pillars a strike.")
 	var z := _inst("zenith", ["heat_stroke", "flicker", "gold_dust"]).description()
 	assert_str(z).contains("Every 10th strike hits every enemy on the screen at 80%.")

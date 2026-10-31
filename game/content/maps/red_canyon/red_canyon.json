@@ -1657,35 +1657,6 @@
         "interval": 4
       },
       {
-        "id": "r61",
-        "t": 981,
-        "until": 1005,
-        "enemy": "blue_slime",
-        "weights": [
-          [
-            981,
-            1.0
-          ],
-          [
-            1121,
-            1.4
-          ]
-        ],
-        "pack": 60,
-        "pattern": "ring",
-        "stats": {
-          "hp_mult": 1.66,
-          "max_alive": 4,
-          "size": [
-            1.2,
-            1.8
-          ],
-          "speed_mult": 0.6
-        },
-        "pace": "once",
-        "count": 60
-      },
-      {
         "id": "r32",
         "t": 911,
         "until": 1030,
@@ -2955,6 +2926,11 @@
       "chest_chance": 1.0,
       "max_alive": 1,
       "damage": 3.5
+    },
+    "boss_chest": {
+      "fast": 1.5,
+      "slow": 4.0,
+      "max_mult": 2.0
     },
     "dust_devils": {
       "enabled": true,

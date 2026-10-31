@@ -119,7 +119,8 @@ So you know what you are looking at.
 | 10 | Level-up cards | every level-up | 2 |
 | 11 | Mutation offer | at set times in each stage, in place of the next level-up's cards | 2 |
 | 12 | Tap to go | after a level-up pick, a mutation pick or a chest | 1 |
-| 13 | Chest | touching a chest (Elites, specials, bosses) | 3 |
+| 13 | Chest | touching a chest (crowned Elites: the purple one; specials and the odd creature: the gold one) | 3 |
+| 13b | Boss chest | touching the chest a boss leaves (pass 118: each boss its own) | 6 |
 | 14 | The shop | standing in the travelling shop's ring on the map (once a stall) | 1 |
 | 15 | The Stranger | standing in the hooded figure's ring on the map | 1 |
 | 16 | Spirit Pole (Totem gifts) | standing at one of the map's 10-12 Totem Poles | 1 |

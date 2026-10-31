@@ -31,7 +31,7 @@
       "note": "the icon before the cards (passes 47-72): an object, not a card"
     },
     "B": {
-      "icon": "multishot_icon_b.png",
+      "icon": "multishot_icon_b_c60d_c0.png",
       "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
       "icon_picked": true,
       "recipe": {
@@ -44,7 +44,18 @@
         "pick": "c0",
         "seed": 692744623411,
         "model": "klein"
-      }
+      },
+      "icon_history": [
+        {
+          "icon": "multishot_icon_b.png",
+          "picked": true,
+          "shown": "multishot_icon_b.png",
+          "backup": "tools/level_editor/backups/multishot/multishot_icon_b_20261031-223359.png",
+          "to": "multishot_icon_b_c60d_c0.png",
+          "at": "2026-10-31 22:34:01",
+          "why": "install c0 of #c60d"
+        }
+      ]
     },
     "C": {
       "icon": "multishot_icon_c.png",

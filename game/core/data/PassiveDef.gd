@@ -58,6 +58,10 @@ const EVOLVED_RUNG := "evolved"
 ## offered again once held (its max_level is 1). Any future one-shot item sets the same key.
 @export var single: bool = false
 
+## Pass 118 (lane ITEMS): rules an item carries beside its stats (the Grindstone's `grind` table: the bonuses a weapon
+## level-up may grind into the weapon, Run._grind). Empty for most items.
+@export var params: Dictionary = {}
+
 
 func kind() -> String:
 	return "passive"

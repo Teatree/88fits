@@ -30,6 +30,9 @@ var structures: StructureManager
 var barrels: BarrelField
 var structure_shop: StructureShop
 var chest_screen: ChestScreen
+## pass 118 (lane BOSSCHEST): the boss chest's pop-up (ui/BossChestScreen.gd, by path: a new script's class name is unknown
+## until the next import)
+var boss_chest_screen: Control
 var resume_gate: ResumeGate
 var revive_screen: ReviveScreen
 var stranger_screen: StrangerScreen
@@ -243,6 +246,7 @@ func _ready() -> void:
 	Run.build_changed.connect(_sync_weapons)
 	Run.hero_sheet_changed.connect(_on_hero_sheet_changed)
 	Run.weapon_evolved.connect(_on_evolved)
+	Run.weapon_ground.connect(_on_weapon_ground)   # pass 118 (lane ITEMS): the Grindstone's toast
 	# the run recorder (pass 45): a row a second for analytics/dashboard.html; the arena never records, and a tool's
 	# launch file may say "analytics": false (perf_late's A/B of the recorder's cost)
 	if not arena and bool(debug_launch.get("analytics", true)): RunAnalytics.create(self, debug_launch)
@@ -276,6 +280,9 @@ func _ready() -> void:
 	chest_screen = ChestScreen.new()
 	ui.add_child(chest_screen)
 	chest_screen.closed.connect(_on_chest_closed)
+	boss_chest_screen = preload("res://ui/BossChestScreen.gd").new()
+	ui.add_child(boss_chest_screen)
+	boss_chest_screen.claimed.connect(_on_boss_chest_claimed)
 	revive_screen = ReviveScreen.new()
 	ui.add_child(revive_screen)
 	revive_screen.decided.connect(_on_revive_decided)
@@ -1112,8 +1119,9 @@ func close_pause() -> void:
 ## pass 73 (lane STRUCT): TOTEM, the Totem Pole's gifts, waits with the shop and the Stranger
 ## pass 106 (lane DRUM): DRUM, the War Drum's moment (time stands still while it plays), before the level cards
 ## pass 112 (lane WANTED): BOUNTY, the floating Wanted posters after the landing, after the level cards, before a path offer
-enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM, DRUM, BOUNTY}
-const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10, Modal.DRUM: 35, Modal.BOUNTY: 25}
+## pass 118 (lane BOSSCHEST): BOSSCHEST, a boss's own chest's pop-up, where a boss's purple chest stood (a chest bumped)
+enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM, DRUM, BOUNTY, BOSSCHEST}
+const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10, Modal.DRUM: 35, Modal.BOUNTY: 25, Modal.BOSSCHEST: 45}
 ## a boss's chest goes before an ordinary one that fell beside it
 const BOSS_CHEST_BUMP := 5
 ## the beat between one screen closing and the next opening (the run paused meanwhile), and the longer one after the
@@ -1243,7 +1251,7 @@ func visible_modals() -> Array:
 	var out: Array = []
 	for pair in [["cards", cards], ["chest", chest_screen], ["portal", portal_dialog], ["revive", revive_screen],
 			["shop", structure_shop], ["stranger", stranger_screen], ["totem", totem_screen], ["pause", pause_screen],
-			["drum", drum_moment], ["bounty", bounty_posters]]:
+			["drum", drum_moment], ["bounty", bounty_posters], ["boss_chest", boss_chest_screen]]:
 		var n = pair[1]
 		if n != null and is_instance_valid(n) and (n as CanvasItem).visible:
 			# pass 95 (lead): the Spirit Pole plays a 0.42 s close after its pick (`_done`) while the next screen may
@@ -1470,6 +1478,13 @@ func _on_evolved(id: String) -> void:
 	Audio.play("w_evo_reveal")
 	hud.banner("EVOLVED · " + (def.display_name if def else id).to_upper(), UiKit.TYPE_COLORS["evolution"], def.icon if def else null)
 	camera.shake(1.2)
+
+
+## Pass 118 (lane ITEMS): a Grindstone ground bonuses into a weapon at its level-up (Run._grind): a toast names them.
+func _on_weapon_ground(id: String, words: String) -> void:
+	var def := Registry.weapon(id)
+	if hud:
+		hud.toast("GRINDSTONE: %s %s" % [def.display_name if def else id, words], UiKit.ACCENT)
 
 
 # ---------------------------------------------------------------- run flow
@@ -2074,12 +2089,23 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 	if cut > 0.0:
 		for b in _behaviors.values():
 			b.cooldown_left = maxf(b.cooldown_left - cut, 0.0)
+	# pass 118 (lane BOSSCHEST; Garry: "it's the same gold and EXP that Players already get from killing the boss, now
+	# packaged into this chest"): a boss's kill drops none of its gold and XP on the sand: what it would drop is caught
+	# (PickupManager.capture_swap) and packed with its purse into its chest (_pack_boss_chest). Every kill swaps the catch
+	# round itself, so a creature that dies inside a boss's kill (Grand Finale) drops its own as ever.
+	var catching: bool = pickups != null and pickups.has_method("capture_swap")
+	var packs: bool = catching and def.archetype == "boss" and def.brain != "dummy"
+	var catch_was = pickups.capture_swap({"gold": 0.0, "xp": 0.0} if packs else null) if catching else null
 	# a training dummy (pass 48, the arena) drops nothing at all: no gem, no power-up, no small pickup, no chest. What a
 	# kill sets off (Trigger Happy above, Powder Keg and Brimstone Brand below) still goes, so the items can be tried on it
 	if def.brain != "dummy":
 		_drop_from_kill(def, at, elite)
 	# what the kill sets off and pays, a dummy's too
 	_kill_effects(def, at, elite, _weapon_id)
+	if catching:
+		var caught = pickups.capture_swap(catch_was)
+		if packs:
+			_pack_boss_chest(def, at, caught)
 
 
 ## What a kill drops (out of _on_enemy_died, pass 48, so a training dummy can skip it): its gems at its XP scale,
@@ -2107,9 +2133,13 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 			var pd: PickupDef = Registry.pickup(str(pair[1]))
 			if pd:
 				pickups.spawn_special(pd, at + Vector3(Dice.r.randf_range(-0.4, 0.4), 0, Dice.r.randf_range(-0.4, 0.4)), true)
-	# chests: every elite variant and the mini-boss, the odd regular creature (drops.chest in its JSON)
+	# chests: every elite variant and the mini-boss, the odd regular creature (drops.chest in its JSON). Pass 118 (Garry:
+	# "Elites Should drop the `Purple Chest` now. I mean the enemies with crowns over their heads. These chests function
+	# exactly the same"): a crowned Elite (archetype elite, EnemyDef.badge_for's crown) drops the purple chest, the one the
+	# bosses dropped until pass 118 (a mutation reel that calls everything in, Chest.boss); an elite-modded creature keeps
+	# the ordinary chest
 	if elite != null or def.archetype == "elite" or (not no_random_chests and Dice.r.randf() < float(def.drops.get("chest", 0.0))):
-		pickups.spawn_chest(at)
+		pickups.spawn_chest(at, def.archetype == "elite")
 	# a creature's own power-up (pass 43: the giant drops a Berserk one time in three, drops.pickup {id, chance})
 	var own = def.drops.get("pickup", {})
 	if own is Dictionary and Dice.r.randf() < float(own.get("chance", 0.0)):
@@ -2198,8 +2228,13 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		hud.toast("+%d GOLD" % purse, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		var chest_gold := int(boss_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty"))
-		Run.add_gold(chest_gold, "boss_purse")
-		hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
+		# pass 118 (lane BOSSCHEST): the purse goes into the boss's chest (the kill's catch), no longer straight in
+		var c = pickups.get("_capture") if pickups else null
+		if c is Dictionary:
+			c["gold"] = float(c.get("gold", 0.0)) + float(chest_gold)
+		else:
+			Run.add_gold(chest_gold, "boss_purse")
+			hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		_end_ring()
 		_hell_lines.clear()
@@ -2208,7 +2243,8 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(Dice.r.randf_range(-2.5, 2.5), 0, Dice.r.randf_range(-2.5, 2.5)), 5.0), "boss_coins")
 		for k in range(int(def.drops.get("chests", 1)) - 1):
 			pickups.spawn_chest(at + Vector3(-2.0 - 1.6 * k, 0, 1.5))
-		hud.toast("A BOSS CHEST: open it to call everything in", Color(1.0, 0.82, 0.35))
+		# pass 118 (lane BOSSCHEST): its own chest now (WaveDirector._on_boss_died), its gold and XP inside
+		hud.toast("%s: OPEN IT FOR THE SPOILS" % str(BossChest.look(def.id)["name"]).to_upper(), Color(1.0, 0.82, 0.35))
 		fx.burst(at + Vector3(0, 1, 0), Color(1.0, 0.75, 0.3), 5.0)
 		camera.shake(1.5)
 		hud.banner("BOSS DOWN", Color(1.0, 0.8, 0.3))
@@ -2741,6 +2777,105 @@ func _apply_magnet_pickup(def: PickupDef) -> void:
 	telegraphs.flash_ring(player.global_position, r, def.color, 0.5)
 
 
+# ---------------------------------------------------------------- the boss's own chest (pass 118, lane BOSSCHEST)
+
+## Garry: "Each Boss now drops a unique chest and inside it is a whole bunch of EXP and Gold ... Each Boss Chest unlocks
+## with a visual sequence presented in a pop-up ... At the end of the sequence Player has to tap a Claim button ...
+## Picking up these chests also results in all the of stuff flying in towards the Player." The kill packs (_on_enemy_died,
+## _pack_boss_chest), WaveDirector._on_boss_died lays the chest (take_boss_pack), its touch opens the pop-up
+## (open_boss_chest: a request of its own kind, BOSSCHEST), and CLAIM pays it out as pickups that fly in with everything
+## else on the map (_on_boss_chest_claimed). Rules and numbers: core/systems/BossChest.gd, BALANCING.md 60.BOSSCHEST.
+## the pack the last boss's kill made, until its chest takes it, and where the boss fell
+var _boss_pack: Dictionary = {}
+var _boss_pack_at := Vector3.ZERO
+## the boss chest open now: {at, pack (with its net amounts)}
+var _boss_chest_open: Dictionary = {}
+
+
+## A boss's kill's pack: what its kill would have dropped and paid (`caught`: {gold, xp}) times the speed bonus for the
+## fight the director timed (WaveDirector.boss_fight_seconds, from its arrival) against its boss_hp_scaling seconds. A
+## pack no chest took by the frame's end (a boss that fell outside the director's boss phase) gets its chest there.
+func _pack_boss_chest(def: EnemyDef, at: Vector3, caught) -> void:
+	var c: Dictionary = caught if caught is Dictionary else {}
+	var tl = Run.map.timeline if Run.map else null
+	var fight: float = float(director.boss_fight_seconds()) if director and director.has_method("boss_fight_seconds") else -1.0
+	var secs: float = float(tl.boss_seconds(def.id)) if tl != null else 0.0
+	_boss_pack = BossChest.make_pack(def.id, float(c.get("gold", 0.0)), float(c.get("xp", 0.0)), fight, secs, BossChest.config(tl), Run.stage)
+	_boss_pack_at = at
+	call_deferred("_boss_pack_left")
+
+
+## The pack for the boss's chest (WaveDirector._on_boss_died), taken: {} when no boss's kill packed one.
+func take_boss_pack() -> Dictionary:
+	var p := _boss_pack
+	_boss_pack = {}
+	return p
+
+
+func _boss_pack_left() -> void:
+	if _boss_pack.is_empty() or pickups == null:
+		return
+	var p := take_boss_pack()
+	pickups.spawn_boss_chest(_boss_pack_at + Vector3(2.0, 0, 0), str(p.get("boss", "")), p)
+
+
+## A boss's chest on the ground was touched: its pop-up takes its turn (where the boss's purple chest took its own).
+func open_boss_chest(at: Vector3, boss_id: String, pack: Dictionary) -> void:
+	Audio.play("pk_chest_open", at)
+	fx.burst(at + Vector3(0, 0.8, 0), BossChest.look(boss_id)["shine"], 2.0)
+	if _ended:
+		return
+	# lane ITEMS' "a chest was opened" (the keys bank at it), a boss's chest too
+	if Run.has_method("chest_opened"):
+		Run.chest_opened()
+	_request_modal(Modal.BOSSCHEST, func() -> bool: return _open_boss_chest_now(at, boss_id, pack))
+
+
+## The pop-up itself (the opener): the pack turned into what the hero gains now (greed, Field Notes: BossChest.net),
+## the counters it counts up and exactly what the pickups pay.
+func _open_boss_chest_now(at: Vector3, boss_id: String, pack: Dictionary) -> bool:
+	var greed: float = Run.player_sheet.get_stat("greed", 1.0)
+	var gain: float = Run.player_sheet.get_stat("xp_gain", 1.0)
+	var p := BossChest.net(pack, greed, gain)
+	_boss_chest_open = {"at": at, "pack": p, "boss": boss_id}
+	_modal = Modal.BOSSCHEST
+	set_paused(true)
+	if RunAnalytics.I:
+		RunAnalytics.I.via = "boss_chest"
+		RunAnalytics.I.event("boss_chest", boss_id, Run.stage + 1, {"gold": int(p.get("gold_net", 0)), "xp": int(round(float(p.get("xp_net", 0.0)))),
+			"mult": snappedf(float(p.get("mult", 1.0)), 0.01), "fight": snappedf(float(p.get("fight", -1.0)), 0.1)})
+	boss_chest_screen.open(boss_id, p)
+	return true
+
+
+## CLAIM: exactly the counters are paid now (the gold as it was counted, greed already in: Run.add_gold_net; the XP
+## divided back by Field Notes so add_xp gives exactly the count), then the gold and the XP burst out of where the chest
+## stood as pickups (PickupManager.boss_chest_payout, the show: they pay nothing when they land) and fly to the hero
+## with everything else on the map (vacuum_all, the coins and the chests too, as the boss's purple chest did); the run
+## goes on straight, with its second of grace. A second call (the screen's claim is one-shot) does nothing.
+func _on_boss_chest_claimed() -> void:
+	var o := _boss_chest_open
+	_boss_chest_open = {}
+	var p: Dictionary = o.get("pack", {})
+	var at: Vector3 = o.get("at", player.global_position if player else Vector3.ZERO)
+	if not p.is_empty():
+		var gold := int(p.get("gold_net", 0))
+		var xp := float(p.get("xp_net", 0.0))
+		var greed: float = Run.player_sheet.get_stat("greed", 1.0)
+		var gain: float = Run.player_sheet.get_stat("xp_gain", 1.0)
+		if gold > 0:
+			Run.add_gold_net(gold, "boss_chest", gold - int(round(float(gold) / maxf(greed, 0.0001))))
+		if xp > 0.0:
+			Run.add_xp(xp / maxf(gain, 0.0001))
+		if pickups:
+			pickups.boss_chest_payout(at, gold, xp)
+			pickups.vacuum_all(true, true)
+	Audio.play("pk_vacuum")
+	if _pending_levels > 0:
+		_request_modal(Modal.CARDS, _show_next_level_cards, 0, true)
+	_modal_done({}, false)
+
+
 ## A chest on the ground was touched: the game pauses and the reel decides in front of the player. One reel at a time
 ## (pass 60: a request each; a boss drops two chests and both fly in together, his first), and none while he is down.
 func open_chest(at: Vector3, boss: bool = false) -> void:
@@ -2748,6 +2883,8 @@ func open_chest(at: Vector3, boss: bool = false) -> void:
 	fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.85, 0.4), 1.5)
 	if _ended:
 		return
+	# pass 118 (lane ITEMS): the one "a chest was opened" event (the keys bank at it, Run.chest_opened)
+	Run.chest_opened()
 	_request_modal(Modal.CHEST, func() -> bool: return _open_chest_now(boss), BOSS_CHEST_BUMP if boss else 0)
 
 

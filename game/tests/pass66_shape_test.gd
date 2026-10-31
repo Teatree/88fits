@@ -7,7 +7,8 @@ extends GdUnitTestSuite
 ## is whole; the editor's Items and Heroes tabs say the same rules in words.
 
 const PATH_KINDS := ["element", "volume", "motion"]
-const ITEM_RARITIES := ["common", "uncommon", "rare", "epic"]
+## pass 118 (lane ITEMS): the Grindstone is the first legendary passive item
+const ITEM_RARITIES := ["common", "uncommon", "rare", "epic", "legendary"]
 
 
 func _json(path: String) -> Dictionary:
@@ -107,9 +108,8 @@ func test_passive_items_span_common_to_epic_and_none_is_legendary() -> void:
 	var rarities: Dictionary = {}
 	for p: PassiveDef in Registry.sorted_passives_only():
 		assert_bool(ITEM_RARITIES.has(p.rarity)).override_failure_message("%s is %s" % [p.id, p.rarity]).is_true()
-		# W.rarity_of knows it (the plate colour follows), and it is never the legendary plate
+		# W.rarity_of knows it (the plate colour follows); a legendary one since pass 118 (the Grindstone)
 		assert_str(W.rarity_of(p)).is_equal(p.rarity)
-		assert_str(p.rarity).is_not_equal("legendary")
 		rarities[p.rarity] = true
 	assert_int(rarities.size()).is_between(1, ITEM_RARITIES.size())
 	assert_bool(rarities.has("common")).is_true()

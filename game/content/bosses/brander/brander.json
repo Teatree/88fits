@@ -21,6 +21,12 @@
   "frame_px": 256,
   "xp_mult": 90,
   "boss": {
+    "chest": {
+      "name": "Brander's Coffer",
+      "shine": "#ff4a24",
+      "model": "res://art/props/meta/boss_chest_brander.glb",
+      "art": "res://art/ui/wanted/bosschest/brander_%s.png"
+    },
     "hp_mult_per_stage": 2.0,
     "ring": {
       "radius": 21.0,

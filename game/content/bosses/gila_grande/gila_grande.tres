@@ -74,6 +74,12 @@ boss = {
 }, {
 "name": "venom_monsoon"
 }],
+"chest": {
+"art": "res://art/ui/wanted/bosschest/gila_grande_%s.png",
+"model": "res://art/props/meta/boss_chest_gila_grande.glb",
+"name": "Gila's Hoard",
+"shine": "#ff8a3d"
+},
 "cooldown_between": 2.2,
 "hp_mult_per_stage": 2.0
 }

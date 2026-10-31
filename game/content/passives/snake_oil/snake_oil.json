@@ -37,5 +37,16 @@
     "color": "#E86AA8",
     "glyph": "heart"
   },
-  "repeat_last_level": false
+  "repeat_last_level": false,
+  "icon": "snake_oil_icon_8aa2_c2.png",
+  "icon_history": [
+    {
+      "icon": "",
+      "shown": "snake_oil_icon.png",
+      "backup": "tools/level_editor/backups/snake_oil/snake_oil_icon_20261031-232939.png",
+      "to": "snake_oil_icon_8aa2_c2.png",
+      "at": "2026-10-31 23:29:40",
+      "why": "install c2 of #8aa2"
+    }
+  ]
 }

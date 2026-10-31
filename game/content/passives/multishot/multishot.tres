@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/multishot/multishot_icon_b.png" id="1_h1hc5"]
+[ext_resource type="Texture2D" path="res://content/passives/multishot/multishot_icon_b_c60d_c0.png" id="1_h1hc5"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_oqepf"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_rj2of"]
 
@@ -25,8 +25,8 @@ variants = {
 "shelved": false
 },
 "B": {
-"icon": "res://content/passives/multishot/multishot_icon_b.png",
-"icon_file": "multishot_icon_b.png",
+"icon": "res://content/passives/multishot/multishot_icon_b_c60d_c0.png",
+"icon_file": "multishot_icon_b_c60d_c0.png",
 "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
 "shelved": false
 },

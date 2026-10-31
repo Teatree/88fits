@@ -633,22 +633,6 @@ roster = [{
 "until": 1030.0,
 "weights": [[901.0, 1.0], [1041.0, 1.4]]
 }, {
-"count": 60.0,
-"enemy": "blue_slime",
-"id": "r61",
-"pace": "once",
-"pack": 60.0,
-"pattern": "ring",
-"stats": {
-"hp_mult": 1.66,
-"max_alive": 4.0,
-"size": [1.2, 1.8],
-"speed_mult": 0.6
-},
-"t": 981.0,
-"until": 1005.0,
-"weights": [[981.0, 1.0], [1121.0, 1.4]]
-}, {
 "count": 5.0,
 "enemy": "hammer_giant",
 "every": 20.0,
@@ -1631,6 +1615,11 @@ dust_devils = {
 "up": 9.5
 },
 "wander": "cross"
+}
+boss_chest = {
+"fast": 1.5,
+"max_mult": 2.0,
+"slow": 4.0
 }
 rock_color = "#785C5E"
 wall_colors = {

@@ -113,6 +113,7 @@ params = {
 "roll_radius": 0.22
 }
 hero = "fadeaway"
+guest_weight = 0.45
 id = "basketball"
 display_name = "Basketball"
 flavour = "It always comes back. Usually through somebody."

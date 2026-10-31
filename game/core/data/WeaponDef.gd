@@ -27,8 +27,14 @@ extends ContentDef
 @export var visual_file: String = ""
 ## Extra behaviour parameters that are not stats, e.g. {"orbit_radius": 2.0}
 @export var params: Dictionary = {}
-## One hero's own weapon (pass 35: the Drifter's Revolver): offered to nobody else, by cards, chests, shops or the Stranger.
+## One hero's own weapon (pass 35: the Drifter's Revolver): the one he lands with (Registry.start_weapon_for). Pass 118
+## (lane ITEMS; Garry: "add them all to the pull as well. Making it possible for other heroes to get those weapons"):
+## every hero may find it now; another hero's level-up offers it as a new card at `guest_weight`.
 @export var hero: String = ""
+## Pass 118 (lane ITEMS; Garry: "the same kind of probability of getting a weapon item +5-10% likelihood not more"): the
+## new-weapon card of another hero's own weapon weighs this much of its plain weight (CardPool.weight_of); 1 = no cut.
+## Only read when `hero` names someone other than the run's hero; once taken, its upgrades weigh as any weapon's.
+@export var guest_weight: float = 1.0
 ## Pass 76 (lane LOOKS): the family's looks (ItemLooks): code -> the JSON entry resolved (only the keys it has: name,
 ## flavour, icon a Texture2D, visual a PackedScene, params, noun, nouns, note, shelved, fresh), `variant_base` the code
 ## the top-level fields are, `variant` on a base weapon the code its whole family plays (Registry.played_item_look: a

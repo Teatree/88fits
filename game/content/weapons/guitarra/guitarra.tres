@@ -88,6 +88,7 @@ params = {
 }
 }
 hero = "calavera"
+guest_weight = 0.45
 id = "guitarra"
 display_name = "Guitarra"
 flavour = "A cone of melody: whatever stands in it is lifted and dropped."

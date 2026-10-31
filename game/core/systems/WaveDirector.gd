@@ -443,6 +443,8 @@ func _start_boss(id: String, where: Vector3 = Vector3.INF, variant := "", stats 
 	# pass 83 (lane SCALE): the seconds mode's floor on its HP (boss_seconds_target; 0 = none), held around the spawn too
 	em.set("boss_hp_target", boss_seconds_target(id, variant, en["stats"]))
 	em.spawn_boss(id, at, variant, en["stats"], en["src"])
+	# pass 118 (lane BOSSCHEST): the fight's clock starts (the boss chest's speed bonus, boss_fight_seconds)
+	boss_t0 = Run.rule_seconds()
 	em.set("boss_hp_scale", 1.0)
 	em.set("boss_hp_target", 0.0)
 	if not last_boss_scale.is_empty() and em.boss_index >= 0:
@@ -891,16 +893,33 @@ func elite_position() -> Vector3:
 	return Vector3.INF
 
 
+## Pass 118 (lane BOSSCHEST): when the boss fight began (Run.rule_seconds at _start_boss; NAN before any), and how long
+## the boss now dying took from its arrival (-1 when no fight was timed): the boss chest's speed bonus (BossChest).
+var boss_t0 := NAN
+
+
+func boss_fight_seconds() -> float:
+	return -1.0 if is_nan(boss_t0) else maxf(Run.rule_seconds() - boss_t0, 0.0)
+
+
 func _on_boss_died(_def: EnemyDef, at: Vector3) -> void:
-	# pass 87 (lane SGAME): a boss that falls in Endless (the arena, a tool) changes nothing
+	# pass 87 (lane SGAME): a boss that falls in Endless (the arena, a tool) changes nothing (pass 118: its chest is laid by
+	# Game, whose pack no one took here)
 	if phase == Phase.ENDLESS:
 		return
 	phase = Phase.PORTAL
 	# pass 110 (lane BOSS): the fight is over, so is its window
 	boss_window.stop()
 	_portal_t = 0.0
-	# the boss's own chest: it holds a mutation, and opening it is what calls every gem, coin and chest in (pass 30)
-	game.pickups.spawn_chest(at + Vector3(2.0, 0, 0), true)
+	# pass 118 (lane BOSSCHEST; Garry: "Each Boss now drops a unique chest"): the boss's own chest, holding the gold and the
+	# XP its kill paid (Game packed them: take_boss_pack); the purple chest (a mutation reel that calls everything in, pass
+	# 30) is the crowned Elites' now, and stays only where no boss's kill packed anything (a stage that ended with no
+	# boss, a training dummy)
+	var pack: Dictionary = game.take_boss_pack() if _def != null and game.has_method("take_boss_pack") else {}
+	if not pack.is_empty() and game.pickups.has_method("spawn_boss_chest"):
+		game.pickups.spawn_boss_chest(at + Vector3(2.0, 0, 0), _def.id, pack)
+	else:
+		game.pickups.spawn_chest(at + Vector3(2.0, 0, 0), true)
 	Save.mark_once("boss_%s_%d" % [map.id, Run.stage + 1])
 	# pass 87: the stage is beaten (the next one unlocks: Save.stage_unlocked), and the portal's countdown to Endless begins
 	Run.stage_beaten = true

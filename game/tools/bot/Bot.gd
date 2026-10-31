@@ -406,6 +406,11 @@ func _screens() -> void:
 				_note_pick(pick, cs._offer, CARDS.card_tier(pick))
 				cs._pick(pick)
 		return
+	# pass 118 (lane BOSSCHEST): a boss's chest: CLAIM at once (its claim finishes the count first; RunReplay records it)
+	var bc = g.get("boss_chest_screen")
+	if bc and bc.visible and not bool(bc.get("_claiming")):
+		bc.claim()
+		return
 	var ch = g.chest_screen
 	if ch and ch.visible:
 		if ch._spinning:

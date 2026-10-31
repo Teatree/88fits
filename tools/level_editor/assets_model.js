@@ -35,6 +35,8 @@ const AssetsModel = (() => {
     bronco_chance: 0, debuff_jump: 0, star_block_every: 0, gem_sweep_every: 0, vein_chance: 0, gold_might: 0,
     // pass 88 (lane MIRROR): the Upgrade board's Stakes
     danger_hp: 0, danger_attack: 0, danger_speed: 0, danger_bounty: 0, boss_danger_hp: 0, boss_danger_attack: 0, boss_danger_speed: 0, boss_danger_bounty: 0, phoenix_hp: 0,
+    // pass 118 (lane ITEMS): the keys' per-chest stats and the Grindstone's rolls
+    chest_luck: 0, chest_might: 0, grind_rolls: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -75,6 +77,9 @@ const AssetsModel = (() => {
     boss_danger_hp: ['boss and Elite HP', 'pct'], boss_danger_attack: ['boss and Elite attack', 'pct'], boss_danger_speed: ['boss and Elite speed', 'pct'],
     boss_danger_bounty: ['', 'hidden'],
     phoenix_hp: ['', 'hidden'],
+    // pass 118 (lane ITEMS)
+    chest_luck: ['luck per chest opened', 'pct'], chest_might: ['attack damage per chest opened', 'pct'],
+    grind_rolls: ['bonus rolls on every weapon upgrade', 'count'],
   };
   // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
   const STAT_HELP = {
@@ -95,6 +100,10 @@ const AssetsModel = (() => {
     gem_sweep_every: 'Mother Lode: every this many seconds every XP gem on the screen flies to the hero (the first 1 s after it is taken); 0 = none',
     vein_chance: 'Eureka: the chance a kill bursts into 5 more XP gems of its size (rolled with Prospector\'s extra gem, so it needs xp_drop_chance above 0)',
     gold_might: 'Gold Rush: attack damage for every 100 gold gained while held (after coin gain), up to +50% in all; spending takes nothing back',
+    // pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> at every chest opened (Run.chest_opened)
+    chest_luck: 'Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it',
+    chest_might: 'Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it',
+    grind_rolls: 'Grindstone: every level-up of a held weapon grinds this many different bonuses from the item params.grind table into that weapon for the rest of the run (never a new weapon, a mutation or an evolution)',
   };
   /** A stat's help line: the server's (vocab.stat_help) else this file's, else '' */
   function statHelp(stat, vocab) {

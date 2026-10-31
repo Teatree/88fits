@@ -207,13 +207,17 @@ func test_crowd_spots_find_each_crowd() -> void:
 
 # ---------------------------------------------------------------- the Revolver
 
-func test_the_revolver_is_the_drifters_alone() -> void:
+## re-pinned in pass 118 (lane ITEMS; Garry: "add them all to the pull as well"): the Revolver is still the Drifter's
+## own, but any hero may find it (another hero at its guest_weight, pass118_ITEMS_test)
+func test_the_revolver_is_the_drifters_own_and_anyone_may_find_it() -> void:
 	var r: WeaponDef = Registry.weapon("revolver")
 	assert_str(r.hero).is_equal("drifter")
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
-	assert_bool(Registry.unlocked_weapons().map(func(w): return w.id).has("revolver")).is_false()
+	assert_bool(Registry.unlocked_weapons().map(func(w): return w.id).has("revolver")).is_true()
+	assert_bool(Registry.is_guest_weapon(r)).is_true()
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	assert_bool(Registry.unlocked_weapons().map(func(w): return w.id).has("revolver")).is_true()
+	assert_bool(Registry.is_guest_weapon(r)).is_false()
 	Run.end()
 
 

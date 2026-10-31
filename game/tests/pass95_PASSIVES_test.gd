@@ -8,8 +8,9 @@
 ## (cards) are untouched, and Phoenix Feather climbs to a second life.
 extends GdUnitTestSuite
 
-## re-pinned in pass 100 (lane SMALL): Phoenix Feather left the ladder (a one-shot item, `single`): 33 items climb it
-const ITEMS := 33
+## re-pinned in pass 100 (lane SMALL): Phoenix Feather left the ladder (a one-shot item, `single`): 33 items climb it;
+## pass 118 (lane ITEMS): the Jade Key, the Ruby Key and the Grindstone join (36)
+const ITEMS := 36
 const LADDER := {"common": 6, "uncommon": 5, "rare": 4, "epic": 3, "legendary": 2}
 
 
@@ -129,11 +130,11 @@ func test_every_item_climbs_its_ladder_and_the_lines_keep_theirs() -> void:
 			assert_bool(p.is_item()).is_false()
 			assert_int(p.max_level).override_failure_message(p.id).is_equal(1 if p.is_evolved() else 4)
 			assert_object(p.evolved_icon).is_null()
-	# the rarities among the items are still the four (pass 47 pins it): legendary stays unused
+	# the rarities among the items: the four, and since pass 118 (lane ITEMS) the Grindstone's legendary
 	var seen := {}
 	for p: PassiveDef in items:
 		seen[p.rarity] = true
-	assert_array(seen.keys()).contains_exactly_in_any_order(["common", "uncommon", "rare", "epic"])
+	assert_array(seen.keys()).contains_exactly_in_any_order(["common", "uncommon", "rare", "epic", "legendary"])
 	# the first level is higher than the old one (Garry: "stats on the 1st level will be higher"): spot checks against
 	# the committed numbers
 	assert_float(float((Registry.passive("skedaddle").effects_at_level(1)[0] as Effect).value)).is_equal_approx(0.25, 0.0001)

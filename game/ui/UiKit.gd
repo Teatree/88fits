@@ -384,8 +384,8 @@ static func card_description(card: Dictionary) -> String:
 		var s := TextGen.describe_effects(pd.effects_at_level(lv)) + (" a level" if pd.repeat_last_level else "")
 		if pd.trade != "":
 			s += " (the trade: %s)" % pd.trade
-		if int(card.get("level_from", 0)) == 0 and pd.text != "":
-			s = pd.text + " " + s
+		if int(card.get("level_from", 0)) == 0 and TextGen.passive_text(pd) != "":
+			s = TextGen.passive_text(pd) + " " + s
 		return ("Next: " + s) if int(card.get("level_from", 0)) > 0 else s
 	return ""
 

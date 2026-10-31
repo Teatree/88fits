@@ -1049,6 +1049,19 @@ func _apply(d: Dictionary) -> bool:
 				return false
 			ch._finish(bool(d.get("take", true)))
 			return true
+		"bosschest_hurry":
+			# pass 118 (lane BOSSCHEST): a tap on the boss chest's pop-up
+			var bc = g.get("boss_chest_screen")
+			if bc == null or not bc.visible:
+				return false
+			bc.hurry()
+			return true
+		"bosschest_claim":
+			var bc = g.get("boss_chest_screen")
+			if bc == null or not bc.visible or bool(bc.get("_claiming")):
+				return false
+			bc.claim()
+			return true
 		"chest_banish":
 			var ch = g.get("chest_screen")
 			if ch == null or not ch.visible or bool(ch._spinning):
@@ -1185,7 +1198,7 @@ static func _kind_words(k: String) -> String:
 	return {"card": "a card pick", "gate": "TAP TO GO", "totem": "a totem gift", "stranger": "the Stranger's deal", "chest_finish": "a chest",
 		"chest_intro": "a chest's opening", "chest_hurry": "a chest's reel", "shop_buy": "a purchase", "shop_leave": "leaving the shop",
 		"revive": "the Down! choice", "bounty": "the Wanted posters", "reel_skip": "the mutation reel", "portal_extract": "EXTRACT",
-		"portal_decline": "Not yet"}.get(k, k)
+		"portal_decline": "Not yet", "bosschest_hurry": "the boss chest's count", "bosschest_claim": "the boss chest's CLAIM"}.get(k, k)
 
 
 static func item_name(id: String) -> String:

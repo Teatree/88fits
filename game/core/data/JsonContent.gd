@@ -174,6 +174,8 @@ static func _weapon(d: Dictionary, dir: String, is_evo: bool) -> WeaponDef:
 	w.visual_file = str(d.get("visual", str(d.get("id", "")) + "_visual.tscn"))
 	w.visual = resolve_scene(dir, w.visual_file)
 	w.hero = str(d.get("hero", ""))
+	# pass 118 (lane ITEMS): another hero's own weapon offered at this share of its weight
+	w.guest_weight = float(d.get("guest_weight", 1.0))
 	# pass 76 (lane LOOKS): the base look's thing words for TextGen ("" = the behaviour's own)
 	w.noun = str(d.get("noun", ""))
 	w.nouns = str(d.get("nouns", ""))
@@ -195,6 +197,9 @@ static func _passive(d: Dictionary, dir: String) -> PassiveDef:
 	p.line = bool(d.get("line", false))
 	# pass 100 (lane SMALL): a one-shot item (one level, off the rarity ladder, never offered again once held)
 	p.single = bool(d.get("single", false))
+	# pass 118 (lane ITEMS): rules beside the stats (the Grindstone's grind table)
+	var pp = d.get("params", {})
+	p.params = pp if pp is Dictionary else {}
 	# pass 73 (lane CARDS): its looks (the cards' A-E)
 	_passive_variants(p, d, dir)
 	# pass 95 (lane PASSIVES): the icon of an item's Evolved rung (`icon_evolved`, else <id>_icon_evolved.png; none = base)
@@ -818,6 +823,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 113 (lane TWISTER): the dust devils' clock and numbers (DustDevils.DEFAULTS fill gaps)
 	var ddv = t.get("dust_devils", {})
 	w.dust_devils = ddv if ddv is Dictionary else {}
+	# pass 118 (lane BOSSCHEST): the boss chest's speed bonus (BossChest.DEFAULTS fill gaps)
+	var bch = t.get("boss_chest", {})
+	w.boss_chest = bch if bch is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

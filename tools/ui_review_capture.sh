@@ -10,4 +10,5 @@ run bounty --script res://tools/_p112_wanted_shots.gd -- out=$D/bounty
 run skins --script res://tools/_p111_skins_shot.gd -- out=$D/skins
 run results --script res://tools/_p116_RESULTS_shots.gd -- out=$D/results only=results
 run meta --script res://tools/_p115_META_shots.gd -- out=$D/meta
+run bosschest --fixed-fps 60 --script res://tools/_p118_BOSSCHEST_shots.gd -- out=$D/bosschest
 echo ALLDONE

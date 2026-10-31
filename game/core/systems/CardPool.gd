@@ -13,6 +13,8 @@
 ##                                                  one 0.88 times as likely (Garry: "every consecutive Upgrade of an
 ##                                                  item slightly less likely to drop in Chests or Level Ups")
 ##          x EVOLVE_WEIGHT (3)                     on a maxed line's evolution card (its source's weight and level)
+##          x guest_weight (0.45)                   pass 118: a new card of another hero's own weapon (WeaponDef.hero;
+##                                                  the weapon's JSON, Registry.is_guest_weapon)
 ##   A perk's card is weighed x4 on top (at most one in five offers, Run.perk_gap). An offer draws its cards one at a
 ##   time in proportion to these weights, without putting a drawn card back (_pick).
 class_name CardPool
@@ -101,6 +103,9 @@ static func weight_of(def: ContentDef, level_from: int = 0, evolve: bool = false
 	if def == null:
 		return 0.0
 	var w := float(def.weight) * float(RARITY_W.get(def.rarity, 1.0)) * luck_boost(def.rarity)
+	# pass 118 (lane ITEMS): another hero's own weapon as a new card, at its guest_weight
+	if level_from <= 0 and def is WeaponDef and Registry.is_guest_weapon(def as WeaponDef):
+		w *= maxf((def as WeaponDef).guest_weight, 0.0)
 	if level_from > 0:
 		w *= HELD_WEIGHT * pow(LEVEL_DECAY, float(level_from - 1))
 	if evolve:

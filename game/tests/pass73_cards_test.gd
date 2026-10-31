@@ -146,8 +146,12 @@ func test_every_card_has_its_old_icon_as_a_and_the_four_card_framings() -> void:
 			assert_int(t.get_width()).is_equal(256)
 		# A is the icon it had before the cards (<id>_icon.png), B-E their own files
 		assert_str((p.variants["A"] as Dictionary)["icon_file"]).is_equal(p.id + "_icon.png")
+		# (pass 118: or a later one of its own that the Level Editor installed for that look, <id>_icon_<code>_<job>.png:
+		# Garry's Multishot B)
 		for code in ["B", "C", "D", "E"]:
-			assert_str((p.variants[code] as Dictionary)["icon_file"]).is_equal("%s_icon_%s.png" % [p.id, code.to_lower()])
+			var f := str((p.variants[code] as Dictionary)["icon_file"])
+			var own := "%s_icon_%s" % [p.id, code.to_lower()]
+			assert_bool(f == own + ".png" or (f.begins_with(own + "_") and f.ends_with(".png"))).override_failure_message("%s %s: %s" % [p.id, code, f]).is_true()
 		# the look it plays is the JSON's, and its icon is the def's own (every screen draws def.icon)
 		assert_str(p.variant).override_failure_message(p.id).is_equal(PLAYED)
 		assert_object(p.icon).is_same(p.look_icon(PLAYED))

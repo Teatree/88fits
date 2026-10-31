@@ -81,6 +81,12 @@ boss = {
 }, {
 "name": "hellbrand_mandala"
 }],
+"chest": {
+"art": "res://art/ui/wanted/bosschest/brander_%s.png",
+"model": "res://art/props/meta/boss_chest_brander.glb",
+"name": "Brander's Coffer",
+"shine": "#ff4a24"
+},
 "cooldown_between": 2.0,
 "hp_mult_per_stage": 2.0,
 "ring": {

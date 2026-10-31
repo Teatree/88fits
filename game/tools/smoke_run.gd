@@ -33,6 +33,9 @@ var _screen_i := -1
 var _screen_t := 0.0
 var _cards_picked := 0
 var _chests := 0
+## pass 118 (lane BOSSCHEST): boss chests claimed, and the count hurried once
+var _boss_chests := 0
+var _bc_hurried := false
 var _errors: Array = []
 var _last_clear := -1
 var _start_unix := 0.0
@@ -165,6 +168,24 @@ func _tick_run(dt: float) -> void:
 			var take: bool = _chests % 2 == 1 or _run.skips_left <= 0
 			cs._finish(take)
 			print("smoke_run: chest %d -> %s (%s, skips left %d)" % [_chests, "take" if take else "skip", str(cs.result().get("id", "gold")), _run.skips_left])
+	# pass 118 (lane BOSSCHEST): the boss's chest: its count runs a moment (a tap hurries it), then CLAIM pays the pickups
+	var bcs = _game.get("boss_chest_screen")
+	if bcs and bcs.visible and not bool(bcs.get("_claiming")):
+		if bcs.ready_to_claim():
+			var cn: Array = bcs.counters()
+			_boss_chests += 1
+			# CLAIM pays the counters at once (the pickups that fly in are the show): the purse grows by exactly the count
+			var gold0: int = _run.run_gold
+			bcs.claim()
+			var got: int = _run.run_gold - gold0
+			print("smoke_run: boss chest %s claimed: %d gold (+%d in the purse), %d XP (x%.2f, fight %.0f s)" % [bcs.boss_id, int(cn[0]), got, int(cn[1]), float(bcs.pack.get("mult", 1.0)), float(bcs.pack.get("fight", -1.0))])
+			if got != int(cn[0]):
+				_errors.append("the boss chest paid %d gold for a counter of %d" % [got, int(cn[0])])
+			if bcs.visible or int(_game.current_modal()) != 0:
+				_errors.append("the boss chest's CLAIM did not give the turn back")
+		elif not _bc_hurried:
+			_bc_hurried = true
+			bcs.hurry()
 	if _game.get("resume_gate") and _game.resume_gate and _game.resume_gate.visible:
 		_game.resume_gate.tap()
 	# pass 60 (the one-screen rule): the Stranger's and the shop's overlays close through their own path, so the
@@ -376,7 +397,16 @@ func _tick_run(dt: float) -> void:
 	if _boss_forced and int(_t) % 3 == 0 and int(_t) != _last_clear and em:
 		_last_clear = int(_t)
 		em.kill_all(true)
-	if _game.portal and is_instance_valid(_game.portal) and _game.portal.armed and not _game.paused:
+	# pass 118 (lane BOSSCHEST): the boss's chest is walked into before the portal (its pop-up, its count, CLAIM, the
+	# payout flying in)
+	var bc_waiting := false
+	if not _game.paused and _game.get("pickups") and _game.player:
+		for c in _game.pickups.chests:
+			if is_instance_valid(c) and str(c.get("boss_id")) != "" and not c.opened:
+				bc_waiting = true
+				_game.player.global_position = c.global_position + Vector3(0.3, 0.5, 0)
+				break
+	if not bc_waiting and _game.portal and is_instance_valid(_game.portal) and _game.portal.armed and not _game.paused:
 		_game.player.global_position = _game.portal.global_position + Vector3(0.2, 0.5, 0)
 	# pass 87 (lane SGAME): Endless's waves, a few seconds of each, then the run is abandoned (Endless ends only so)
 	if _endless_at >= 0.0:
@@ -393,8 +423,10 @@ func _tick_run(dt: float) -> void:
 			var m: Dictionary = _game.director.timeline.endless_mults(w, _run.stage)
 			_endless_hp.append(float(m["hp"]))
 			print("smoke_run: Endless wave %d, %d alive, %d rows fixed, hp x %.2f, speed x %.2f" % [w, _game.enemies.alive_count(), srcs, float(m["hp"]), float(_game.enemies.stage_speed_mult)])
-		# the waves come every `every` seconds of Endless: the tool hurries Endless's clock along
-		_run.endless_time += dt * 4.0
+		# the waves come every `every` seconds of Endless: the tool hurries Endless's clock along (pass 118: only while the
+		# run runs; a chest's reel that held the run had let waves "come" that the paused director never spawned)
+		if not _game.paused:
+			_run.endless_time += dt * 4.0
 		if _endless_waves >= 3 and not _game.paused:
 			if _endless_hp.size() >= 3 and not (float(_endless_hp[2]) > float(_endless_hp[1]) and float(_endless_hp[1]) > float(_endless_hp[0])):
 				_errors.append("Endless's waves did not grow tougher: %s" % str(_endless_hp))
@@ -457,6 +489,8 @@ func _finish(problem: String) -> void:
 		_errors.append("the portal never asked again after Not yet")
 	if not _perf and not _bounty_checked:
 		_errors.append("the floating Wanted posters never came after the landing (or their contract was not looked at)")
+	if _run.bosses_killed > 0 and _boss_chests == 0 and not _perf:
+		_errors.append("a boss died but no boss chest was opened and claimed")
 	var ok: bool = problem == "" and _errors.is_empty() and _portal_decided >= 1 and _cards_picked >= 3
 	if problem != "":
 		_errors.append(problem)

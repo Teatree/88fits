@@ -47,6 +47,8 @@ python tools/pose_shoulders.py tools/dl/drivers/run tools/dl/drivers/run_lvl [le
 python tools/puppet.py may [--stage apose|shape|rig|anim|guides|looks|compare] [--from-blend] [--from-fbx <file>]   # the Puppet trial (2026-10-13): May painted arms-out, Hunyuan3D 2 multi-view on the AI server (built-in ComfyUI nodes, weights in models/checkpoints; its license excludes the EU, Garry accepted the risk), rigged in Blender with Mixamo names (tools/puppet_blender.py), running.fbx retargeted -> tools/dl/puppet/may/may_puppet.glb/.blend, guides tools/dl/drivers/may_puppet_run (+ _depth), looks MAY-P (stick figures) and MAY-Q (depth, gen_art recipe `ctl_drivers`); RIG_HOWTO.md for hand edits
 "$BLENDER" -b --python tools/blender_salt.py   # pass 69: art/props/salt_shaker.glb (Body, Contents that a mutation tints, Cap, Holes, Spout) + the icon references tools/dl/salt_ref.png, sea_salt_ref.png, hiwa_kai_ref.png
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_hold frames=12 arms=hold_r   # a walk whose right hand holds something up at the shoulder (the Vulture Raider's launcher, pass 48)
+python tools/make_loading_wallpaper.py [--review-only] [--mock out.png] [--sheet <dir>]   # pass 118: the loading screen's wallpaper strips (silhouettes from the game's icons + drawn ones) and title plate -> game/art/ui/loading/; capture: GODOT_TIMEOUT=300 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --fixed-fps 60 --path D:/_projects/88fits/game --script res://tools/load_shots.gd -- out=<dir>
+"$BLENDER" -b --python tools/blender_boss_chests.py && python tools/gen_boss_chests.py   # pass 118: the three bosses' chests (art/props/meta/boss_chest_<boss>.glb + renders in tools/dl/bosschest/) and their painted closed/cracked/open frames (Klein over the renders, picked by eye) -> game/art/ui/wanted/bosschest/; captures game/tools/_p118_BOSSCHEST_shots.gd
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
 python tools/migrate_timeline.py --map red_canyon [--check | --write]   # pass 84: an old map's swarm / elite / elite_every events and waves[] turned into roster rows (the same converter as the Level Editor's model.js convertLegacy; layout kept, a backup first)
@@ -265,7 +267,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-31, pass 117, version 1.00)
+## Status (2026-10-31, pass 118, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -527,6 +529,18 @@ the Watch's Weapon DPS tab (F, game/tools/watch/WatchWeaponDps.gd; the dashboard
 Garry's Gemini picture (tools/make_app_icon.py, also game/icon_512.png for the Play listing); check_scripts skips .gdignore
 folders (game/android/build). Google Play: `tools/ship_play.sh` (Internal testing, com.outlawsurvivors.game), the privacy
 policy docs/privacy/ (GitHub Pages), feature graphics docs/store/feature/.
+Pass 118: the **loading screen** is saloon wallpaper and a title drop (game/ui/Boot.gd: no icon, no bar; the boot splash is plain
+paper, art/ui/splash.png gone, the Android splash icon transparent; tools/make_loading_wallpaper.py -> art/ui/loading/; six strips
+scroll up and down in turn and drift right, the OUTLAW / SURVIVORS plate lands, the title is built after it, never before 1.2 s);
+crowned Elites drop the **purple chest** (mutation reel + call-in); each **boss drops its own chest** holding its purse, coins and
+XP x a speed bonus (`timeline_data.boss_chest`; 3D boss_chest_<boss>.glb by tools/blender_boss_chests.py, painted frames by
+tools/gen_boss_chests.py in art/ui/wanted/bosschest/, the boss JSON's `boss.chest`), opened in game/ui/BossChestScreen.gd (a jackpot
+spew into GOLD and EXP counters, ui_bosschest_tune, CLAIM pays the counters exactly); the chest's beam and sunburst stand behind it,
+its glint a soft sparkle, the lid back on top; creatures outside a standing boss barrier watch and never attack
+(EnemyManager.onlook); new items Jade Key / Ruby Key (epic: every chest opened banks luck / damage, `chest_<stat>`,
+Run.chest_opened) and the Grindstone (the first legendary passive item: extra random bonuses on weapon level-ups, its JSON's
+`params.grind`); Beer shows as Ghost Pepper (id beer); every hero's own weapon may be found by anyone (`guest_weight` 0.45);
+twelve legendary item proposals at https://claude.ai/artifact/Tr7hkvsLQd1wZuHS4XCGp7; the app icon from Gemini_Generated_Image_in0heein0heein0h.jfif.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

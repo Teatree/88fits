@@ -104,6 +104,7 @@ params = {
 }
 }
 hero = "solenne"
+guest_weight = 0.45
 id = "sun_scepter"
 display_name = "Sun Scepter"
 flavour = "Noon, wherever she points it."

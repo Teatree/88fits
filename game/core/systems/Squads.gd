@@ -425,7 +425,7 @@ func intent_of(i: int, desired: Vector3) -> Vector3:
 func free_to_act(i: int) -> bool:
 	return em.alive[i] == 1 and em.state[i] == EnemyManager.STATE_MOVE and em.stun_t[i] <= 0.0 and em.freeze_t[i] <= 0.0 \
 		and em.held[i] == 0 and em.hidden[i] == 0 and em.lift_t[i] <= 0.0 and em.rise_t[i] >= 1.0 and em.spin_t[i] <= 0.0 \
-		and not em.is_fleeing(i)
+		and not em.is_fleeing(i) and not em.is_onlooker(i)
 
 
 func _attack_start(sq: Dictionary, cfg: Dictionary) -> void:
@@ -476,7 +476,7 @@ func hands_at(i: int, cfg: Dictionary, u: float, ppos: Vector3) -> Vector3:
 
 func _held(i: int) -> bool:
 	return em.state[i] == EnemyManager.STATE_ATTACK and em.stun_t[i] <= 0.0 and em.freeze_t[i] <= 0.0 and em.held[i] == 0 \
-		and em.lift_t[i] <= 0.0 and em.hidden[i] == 0
+		and em.lift_t[i] <= 0.0 and em.hidden[i] == 0 and not em.is_onlooker(i)
 
 
 func _glows(sq: Dictionary, cfg: Dictionary, ppos: Vector3, u: float) -> void:

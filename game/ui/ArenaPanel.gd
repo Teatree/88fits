@@ -1428,12 +1428,28 @@ func _drops_tab() -> void:
 	_grid(defs, 3, func(def: PickupDef) -> Control:
 		return _tile(def, "pickup", "", func(): _act(def.display_name, func() -> void: _drop_pickup(def)); close()))
 	_section("Chests")
+	# pass 118 (lane BOSSCHEST): the purple chest is the crowned Elites' now; each boss has its own chest (a sample of what
+	# its kill pays on this stage after a fast fight: BossChest.sample_pack)
 	_buttons([["A chest", func(): _act("chest", func() -> void: game.pickups.spawn_chest(_drop_point(3.0))); close()],
-		["A boss chest", func(): _act("boss chest", func() -> void: game.pickups.spawn_chest(_drop_point(3.0), true)); close()]])
+		["A purple chest", func(): _act("purple chest", func() -> void: game.pickups.spawn_chest(_drop_point(3.0), true)); close()]])
+	var boss_rows: Array = []
+	for bid: String in ["tumbleweed_king", "gila_grande", "brander"]:
+		if Registry.enemy(bid) == null:
+			continue
+		var nm := str(BossChest.look(bid)["name"])
+		boss_rows.append([nm, func(): _act(nm, func() -> void: _drop_boss_chest(bid)); close()])
+	if not boss_rows.is_empty():
+		_buttons(boss_rows)
 	_section("Showers")
 	_buttons([["40 gems", func(): _act("gems", func() -> void: _shower(PickupManager.KIND_GEM_M, 40, 5.0)); close()],
 		["40 coins", func(): _act("coins", func() -> void: _shower(PickupManager.KIND_COIN, 40, 1.0)); close()],
 		["Pull it all in", func(): game.pickups.vacuum_all(true, true); close()]])
+
+
+## Pass 118 (lane BOSSCHEST): boss `bid`'s own chest by the hero, holding what its kill pays on this stage after a fight
+## of 30 s (BossChest.sample_pack).
+func _drop_boss_chest(bid: String) -> void:
+	game.pickups.spawn_boss_chest(_drop_point(3.0), bid, BossChest.sample_pack(bid, Run.stage, 30.0))
 
 
 func _drop_point(dist: float) -> Vector3:

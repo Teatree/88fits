@@ -769,6 +769,35 @@ JOBS = {
                    "subject": "a burning wooden torch and a round glass cologne bottle crossed like an X, a huge roaring plume "
                               "of orange and yellow fire bursting up out of them, a few sharp green cactus spines sticking "
                               "out of the bottle's sides"},
+    # pass 118 (set 118, lane ITEMS; Garry: Megabonk's Credit Cards as "Keys instead. Different coloured Keys", the Anvil
+    # as "something else", Beer as something not alcoholic): two keys that read apart at a glance (the jade one green
+    # all over with a round clover bow, the ruby one red crystal and gold with a pointed flame bow), a grindstone, a ghost
+    # pepper (the item keeps the id beer); green subjects on the blue screen
+    "jade_key": {"set": "118", "screen": "blue", "kind": "passives", "id": "jade_key",
+                 "subject": "one big ornate old skeleton key carved from polished bright jade-green stone, its round looped "
+                            "bow shaped like a four-leaf clover with a small gold rivet in the middle, a long thick green "
+                            "shaft and a chunky notched bit at the end, lying diagonally from the top left to the bottom "
+                            "right, a soft green shine on its edges, a few tiny gold sparkles"},
+    "ruby_key": {"set": "118", "kind": "passives", "id": "ruby_key",
+                 "subject": "one big ornate old skeleton key made of glowing deep-red ruby crystal set in polished gold "
+                            "fittings, its bow a pointed gold flame shape holding a big faceted red ruby, a long gold-banded "
+                            "red shaft and a chunky gold notched bit at the end, lying diagonally from the top left to the "
+                            "bottom right, a hot red glint on the ruby"},
+    "grindstone": {"set": "118", "kind": "passives", "id": "grindstone",
+                   "subject": "an old round sandstone grinding wheel standing upright in a sturdy wooden frame with an iron "
+                              "crank handle on its side, a steel blade pressed against the wheel's rim throwing a bright "
+                              "fan of orange and yellow sparks to the right"},
+    # the first batch pressed the blade through the wheel's axle; here the edge meets the rim on top
+    "grindstone2": {"set": "118", "kind": "passives", "id": "grindstone",
+                    "subject": "an old round grey-brown sandstone grinding wheel standing upright in a sturdy wooden frame "
+                               "with an iron crank handle on its side, seen from the front at a slight angle; a short steel "
+                               "knife blade lies flat on the very top of the wheel's outer rim, its edge touching the stone, "
+                               "and a bright fan of orange and yellow sparks sprays up and to the right from that point of "
+                               "contact; nothing passes through the middle of the wheel"},
+    "ghost_pepper": {"set": "118", "screen": "blue", "kind": "passives", "id": "beer",
+                     "subject": "one big wrinkled glossy bright red ghost pepper chilli, its skin bumpy and crinkled, a short "
+                                "curled green stem on top, a few small orange flames and pale wisps of heat curling off it, a "
+                                "single drop of sweat-like shine on its side"},
 }
 
 

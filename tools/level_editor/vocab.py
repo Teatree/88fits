@@ -231,6 +231,8 @@ PLAYER_DEFAULTS = {
     "boss_danger_hp": 0.0, "boss_danger_attack": 0.0, "boss_danger_speed": 0.0, "boss_danger_bounty": 0.0,
     # pass 115 (lane META): the Phoenix Feather's least revive health (Player.revive_share)
     "phoenix_hp": 0.0,
+    # pass 118 (lane ITEMS): the keys' per-chest stats and the Grindstone's rolls
+    "chest_luck": 0.0, "chest_might": 0.0, "grind_rolls": 0.0,
 }
 # player stats the code reads that are not in PLAYER_DEFAULTS (default 0 from get_stat); content uses them all
 PLAYER_STATS_EXTRA = {"brand_chance": 0.0, "fire_vuln": 0.0, "poison_slow": 0.0, "poison_pass": 0.0}
@@ -293,6 +295,9 @@ STAT_NAMES = {
     "boss_danger_attack": ["boss and Elite attack", "pct"], "boss_danger_speed": ["boss and Elite speed", "pct"],
     "boss_danger_bounty": ["", "hidden"],
     "phoenix_hp": ["", "hidden"],
+    # pass 118 (lane ITEMS)
+    "chest_luck": ["luck per chest opened", "pct"], "chest_might": ["attack damage per chest opened", "pct"],
+    "grind_rolls": ["bonus rolls on every weapon upgrade", "count"],
 }
 # pass 69: what each new stat does, in a line (the effect pickers show it); lane PAS's help texts
 STAT_HELP = {
@@ -323,6 +328,10 @@ STAT_HELP = {
     "boss_danger_attack": "Stakes (Boss): bosses' and Elites' attack",
     "boss_danger_speed": "Stakes (Boss): bosses' and Elites' walking speed",
     "boss_danger_bounty": "Stakes (Boss): bosses' and Elites' XP, coins and purses (never written in the game)",
+    # pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> (Run.chest_opened)
+    "chest_luck": "Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it",
+    "chest_might": "Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it",
+    "grind_rolls": "Grindstone: every level-up of a held weapon grinds this many different bonuses from the item params.grind table into that weapon for the rest of the run (never a new weapon, a mutation or an evolution)",
 }
 # the weapon stats WeaponInstance.rebuild seeds before `def.base` (defaults), then the ones systems read with no seed
 WEAPON_STATS = {"damage": 5.0, "cooldown": 1.0, "amount": 1.0, "pierce": 0.0, "area": 1.0, "speed": 10.0, "duration": 2.0,

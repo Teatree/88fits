@@ -131,25 +131,26 @@ func test_items_know_their_hero() -> void:
 func test_a_heros_items_are_hidden_until_he_is_owned() -> void:
 	var cs: CollectionScreen = auto_free(load("res://ui/CollectionScreen.tscn").instantiate())
 	var ball := Registry.weapon("basketball")
-	# a clean save owns only the Drifter: his Revolver shows, Fadeaway's ball, Calavera's own mutation and Astro's perks
-	# do not (not even as a silhouette)
+	# a clean save owns only the Drifter: his Revolver shows, Calavera's own mutation and Astro's perks do not (not even
+	# as a silhouette). Re-pinned in pass 118 (lane ITEMS): every hero's own weapon is anyone's to find now, so Fadeaway's
+	# ball shows too
 	assert_bool(CollectionScreen.hero_item_hidden(Registry.weapon("revolver"))).is_false()
-	assert_bool(CollectionScreen.hero_item_hidden(ball)).is_true()
-	assert_bool(cs._items(0).has(ball)).is_false()
+	assert_bool(CollectionScreen.hero_item_hidden(ball)).is_false()
+	assert_bool(cs._items(0).has(ball)).is_true()
 	assert_bool(cs._items(0).has(Registry.weapon("revolver"))).is_true()
 	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "astro")).is_false()
 	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "drifter")).is_true()
 	var rain: Array = CollectionScreen.page_mutations(Registry.weapon("skull_rain")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(rain.has("danza_macabra")).is_false()
-	# the tab's count leaves them out too
-	var tally := cs._tally(0)
+	# the perks' tab's count leaves them out too
+	var tally := cs._tally(3)
 	# bought: they come back
 	Save.heroes_owned().append("fadeaway")
 	Save.heroes_owned().append("calavera")
 	Save.heroes_owned().append("astro")
 	assert_bool(CollectionScreen.hero_item_hidden(ball)).is_false()
 	assert_bool(cs._items(0).has(ball)).is_true()
-	assert_int(cs._tally(0).y).is_greater(tally.y)
+	assert_int(cs._tally(3).y).is_greater(tally.y)
 	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "astro")).is_true()
 	rain = CollectionScreen.page_mutations(Registry.weapon("skull_rain")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(rain.has("danza_macabra")).is_true()

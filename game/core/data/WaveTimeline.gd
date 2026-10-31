@@ -283,6 +283,9 @@ func far_speed_cfg() -> Dictionary:
 ## (core/systems/DustDevils.gd; read as it is, DustDevils.DEFAULTS fill gaps; no block = the defaults: one every two to
 ## three minutes from 1:30 of a stage, each 20 to 30 s).
 @export var dust_devils: Dictionary = {}
+## Pass 118 (lane BOSSCHEST; Garry: "The faster the Boss was killed the more Gold and Exp flies out"): the boss chest's
+## speed bonus {fast, slow, max_mult} (core/systems/BossChest.gd; read as it is, BossChest.DEFAULTS fill gaps).
+@export var boss_chest: Dictionary = {}
 
 
 ## One number of despawn (pass 95): the map's, else DESPAWN_DEFAULTS' ("enabled" as 1 / 0).

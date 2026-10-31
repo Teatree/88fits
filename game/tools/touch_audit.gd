@@ -1533,6 +1533,8 @@ func _in_game() -> void:
 		g.modal_reset()
 		g.set_paused(false)
 		await _wait(0.3)
+	if _want("boss_chest"):
+		await _boss_chest(g)
 	if _want("portal"):
 		g.portal_dialog.open(1, true, false)
 		await _wait(0.8)
@@ -2702,6 +2704,71 @@ func _path_choices(g) -> void:
 
 
 ## Waits out the mutation offer's pre-reel (pass 54), at most 4 s.
+## Pass 118 (lane BOSSCHEST): the boss chest's pop-up, opened through Game's own touch (open_boss_chest) on a pack made
+## here: a tap while the chest knocks goes straight to the burst, a tap during the spew hurries it, CLAIM is a touch
+## target once the count is done (the audit's muted tap), and its real tap closes the screen and pays out.
+func _boss_chest(g) -> void:
+	var pack := {"boss": "tumbleweed_king", "stage": 0, "gold": 420, "xp": 1500.0, "gold_base": 280.0, "xp_base": 1000.0,
+		"mult": 1.5, "fight": 50.0, "secs": 40.0}
+	# the claim pays real gold: the purse goes back as it was after it (pass 118, the lead: with 420 more the Shop's
+	# audit afterwards could afford a card, its first tap bought it and closed the Shop, and its other prices "did nothing")
+	var run_node = root.get_node("Run")
+	var gold0: int = int(run_node.run_gold)
+	g.open_boss_chest(g.player.global_position + Vector3(1, 0, 0), "tumbleweed_king", pack)
+	await _wait(0.4)
+	var bs = g.get("boss_chest_screen")
+	if bs == null or not bs.visible:
+		_fail("boss_chest", "the boss chest", "its pop-up did not open")
+		return
+	var burst: float = float(load("res://ui/BossChestScreen.gd").BURST)
+	var opening: bool = float(bs.get("_t")) < burst - 0.1
+	await _tap(root.get_visible_rect().get_center())
+	await _wait(0.1)
+	var jumped: bool = float(bs.get("_t")) >= burst - 0.1
+	_count("boss_chest", opening and jumped)
+	if not opening:
+		_fail("boss_chest", "the boss chest", "it was past its opening before the first tap")
+	elif not jumped:
+		_fail("boss_chest", "the tap on the chest", "a tap while it knocked did not go to the burst")
+	await _wait(0.6)
+	var sp0: float = float(bs.get("_speed"))
+	await _tap(root.get_visible_rect().get_center())
+	await _wait(0.1)
+	var hurried: bool = float(bs.get("_speed")) > sp0 or bs.is_done()
+	_count("boss_chest", hurried)
+	if not hurried:
+		_fail("boss_chest", "the tap on the spew", "a tap while the coins flew did not hurry the count")
+	var waited := 0.0
+	while waited < 10.0 and not bs.ready_to_claim():
+		await _wait(0.25)
+		waited += 0.25
+	await _wait(0.5)
+	var cn: Array = bs.counters()
+	var counted: bool = int(cn[0]) == int(bs.gold_total) and int(cn[1]) == int(round(float(bs.xp_total)))
+	_count("boss_chest", counted)
+	if not counted:
+		_fail("boss_chest", "the counters", "they ended on %s, not on %d gold and %d XP" % [str(cn), int(bs.gold_total), int(round(float(bs.xp_total)))])
+	await _audit("boss_chest", bs)
+	var at: Vector2 = await _spot(bs._claim_btn)
+	if at != Vector2.INF:
+		await _tap(at)
+	await _wait(0.6)
+	_count("boss_chest", not bs.visible)
+	if bs.visible:
+		_fail("boss_chest", "CLAIM", "its tap did not close the pop-up")
+		bs.claim()
+		await _wait(0.4)
+	# the claim's 1,500 XP banks level-ups whose cards would come up over every screen this audit opens after it (pass
+	# 118, the lead: "two screens up at once: cards,shop" and the Shop's and the drum plate's failures): dropped here
+	await _wait(0.6)
+	g._pending_levels = 0
+	g.cards.visible = false
+	run_node.run_gold = gold0
+	g.modal_reset()
+	g.set_paused(false)
+	await _wait(0.3)
+
+
 func _wait_reel(g) -> void:
 	var waited := 0.0
 	while waited < 4.0 and g.cards.has_method("reel_running") and g.cards.reel_running():

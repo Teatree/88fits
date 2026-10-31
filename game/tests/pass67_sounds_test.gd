@@ -194,7 +194,8 @@ func test_the_chest_is_chilled() -> void:
 	var game := FileAccess.get_file_as_string("res://game/Game.gd")
 	assert_str(game).contains("Audio.play(\"ui_chest_take\")")
 	assert_int(game.count("Audio.play(\"w_evo_reveal\")")).is_equal(1)
-	assert_int(game.count("Audio.play(\"pk_chest_open\", at)")).is_equal(2)   # the touch and a structure's use
+	# the touch, a structure's use and (pass 118) a boss chest's touch (Game.open_boss_chest)
+	assert_int(game.count("Audio.play(\"pk_chest_open\", at)")).is_equal(3)
 	var closed := game.find("func _on_chest_closed(")
 	assert_int(closed).is_greater(0)
 	var next_func := game.find("\nfunc ", closed + 1)

@@ -128,7 +128,8 @@ func test_item_level_passive_item_by_rung() -> void:
 	Run.add_or_level_passive("beer")
 	assert_bool(QuestTracker._satisfied(by_level, true)).is_true()
 	assert_str(TextGen.quest_text(q)).is_equal("Get a passive item to Legendary in one run.")
-	assert_str(TextGen.quest_text(by_level)).is_equal("Get Beer to level 3 in one run.")
+	# pass 118 (lane ITEMS): Beer is the Ghost Pepper (the id stays beer)
+	assert_str(TextGen.quest_text(by_level)).is_equal("Get Ghost Pepper to level 3 in one run.")
 	assert_int(QuestTracker.stage_hint(q)).is_equal(1)
 	q.condition["rung"] = "evolved"
 	assert_int(QuestTracker.stage_hint(q)).is_equal(2)

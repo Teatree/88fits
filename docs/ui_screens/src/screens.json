@@ -1,24 +1,28 @@
 [
  {
   "id": "boot_loading",
-  "name": "Loading screen (LOADING bar)",
+  "name": "Loading screen (wallpaper and title drop)",
   "file": "game/ui/Boot.gd",
-  "when": "The first scene at app start. Godot's boot splash (art/ui/splash.png; on Android the system splash first) covers the engine start and the autoloads; Boot.gd then draws the same picture in the same place and fills the bar while the title loads on a thread, then dissolves (0.25 s) into the title. Nothing pauses; no input.",
-  "purpose": "Show load progress between the engine's splash and the title so there is no visible jump.",
+  "when": "The first scene at app start (pass 118). Godot's boot splash is plain paper (no picture; on Android the system splash shows the paper with a transparent icon), and Boot.gd's first frame is the same paper. The saloon wallpaper fades in over 0.3 s, the OUTLAW / SURVIVORS plate drops in and lands with a thud and a dust puff, while the title loads on a thread; once the plate has settled (never before 1.2 s) the title is built under the screen and the screen dissolves (0.25 s) into it. Nothing pauses; no input.",
+  "purpose": "Show that the game is loading, without an icon or a bar: the moving wallpaper is the progress indicator.",
   "controls": [],
   "shows": [
-   "The splash picture: badge disc, title, tag line, the empty bar with the word LOADING (baked into the picture by tools/make_splash.py)",
-   "A brass fill painted into the bar's track (to 65% during the threaded load, 95% after the title's build, full at its first frame)"
+   "Six vertical strips of saloon wallpaper in two tones with pinstripes and beads, printed tone-on-tone with silhouettes of revolvers, sheriff stars, bombs, boots and other western and game items (tools/make_loading_wallpaper.py -> art/ui/loading/wallpaper.png)",
+   "The strips scroll in turn up and down at 46 px/s while the whole set drifts right at 15 px/s",
+   "The title plate (art/ui/loading/title_plate.png): OUTLAW / SURVIVORS on paper with an ink border, a hard shadow and brass nails, dropping from above to 46% of the screen's height"
   ],
   "rules": [
-   "The bar never goes back; it creeps between the loader's few real steps (CREEP_TAU / CREEP_STOP, Boot.gd:62-67).",
-   "If the threaded load stalls for 10 s the title is loaded directly (STALL, Boot.gd:79); if it cannot load at all a rock-red line says 'The title screen did not load. Please close the game and start it again.' and the screen stays (Boot.gd:336).",
+   "The plate drops at 0.3 s, lands at 0.64 s (squash, the ui_stamp thud, a dust cloud) and settles after one bounce at 1.01 s; the title is built only after that, and the dissolve never starts before 1.2 s (BALANCING.md 60.LOAD).",
+   "If the threaded load stalls for 10 s the title is loaded directly; if it cannot load at all a rock-red line says 'The title screen did not load. Please close the game and start it again.', the wallpaper stops moving and the screen stays.",
+   "Everything is one shader over one full-screen rect, so the dissolve fades every pixel evenly.",
    "The camera-cutout ink band (CutoutBand autoload) waits while this shows and fades in with the title."
   ],
   "debug_only": false,
   "states": [
-   "loading (bar filling)",
-   "failed load (error line)"
+   "the wallpaper fading in",
+   "the title dropping",
+   "landed, loading",
+   "failed load (error line, wallpaper still)"
   ]
  },
  {
@@ -811,7 +815,7 @@
   "id": "chest",
   "name": "CHEST (★ LOOT ★) / MUTATION CHEST (★ A PATH OPENS ★)",
   "file": "game/ui/ChestScreen.gd",
-  "when": "Touching a chest on the ground (Elite and special drops, the boss's chest, Dice ambush) -> Game.open_chest (Modal.CHEST, priority 40, a boss's +5; Game.gd:2604). The run pauses. A boss chest also vacuums every pickup on the map in ('THE SPOILS COME TO YOU'). Closes on TAKE IT or SKIP, then the gate.",
+  "when": "Touching a chest on the ground (special drops, the crowned Elites' purple chest since pass 118 (bosses leave their own: boss_chest), Dice ambush) -> Game.open_chest (Modal.CHEST, priority 40, a boss's +5; Game.gd:2604). The run pauses. A boss chest also vacuums every pickup on the map in ('THE SPOILS COME TO YOU'). Closes on TAKE IT or SKIP, then the gate.",
   "purpose": "The run's reward moment: a slot-machine reel lands on one item.",
   "controls": [
    {
@@ -855,6 +859,49 @@
    "landed on an evolution",
    "after a banish respin",
    "no skips left"
+  ]
+ },
+ {
+  "id": "boss_chest",
+  "name": "BOSS CHEST (★ BOSS CHEST ★, KING'S CHEST / GILA'S HOARD / BRANDER'S COFFER)",
+  "file": "game/ui/BossChestScreen.gd",
+  "when": "Touching the chest a boss leaves where it fell (pass 118: each boss its own; core/systems/BossChest.gd) -> Game.open_boss_chest (Modal.BOSSCHEST, priority 45). The run pauses. Closes on CLAIM, straight back to the run (no gate).",
+  "purpose": "Pay out everything the boss's kill is worth in gold and XP, times a bonus for a fast kill, as one big celebration.",
+  "controls": [
+   {
+    "name": "Tap before the burst",
+    "does": "Skips the knocks to the lid bursting open."
+   },
+   {
+    "name": "Tap during the spew",
+    "does": "Finishes the count in 0.9 s."
+   },
+   {
+    "name": "CLAIM",
+    "does": "Shows once every piece has landed. Pays exactly the two counters (gold with greed in, XP with Field Notes in), closes; back in the world the coins and gems burst out of the chest's spot and fly to the hero with everything else on the map."
+   }
+  ],
+  "shows": [
+   "Star line 'Boss chest' and the chest's name in brass",
+   "SPEED BONUS plate: the multiplier (x1 to x2), 'Killed in m:ss' ('· faster pays more' at x1), a gauge from x1 to the map's top with this kill's mark",
+   "The boss's painted chest dropping in, knocking four times, cracking on a light, bursting open with a white flash, a screen shake, rays in the boss's colour and gold, confetti and 'BOSS LOOT!'",
+   "Coins and XP gems arcing out of it into GOLD and EXP counters at the bottom, slowly then faster and faster, each landing with a ding and a sparkle; the banner climbing BIG WIN!, HUGE WIN!, MEGA WIN!; coins raining down; JACKPOT! with bursts over the counters",
+   "CLAIM"
+  ],
+  "rules": [
+   "The faster the kill, the more it holds and the longer it spews (BALANCING 60.BOSSCHEST: x2 up to 1.5 x the boss's least fight, x1 from 4 x).",
+   "A jackpot slot-machine tune loops all the while, its pitch climbing with the spew; the run's music steps back under it.",
+   "The purple chest (a mutation reel) is the crowned Elites' since pass 118; a stage that ends with no boss still leaves it.",
+   "The HUD steps aside."
+  ],
+  "debug_only": false,
+  "states": [
+   "the chest knocking",
+   "the burst",
+   "the spew",
+   "JACKPOT and CLAIM",
+   "x1 (slow kill)",
+   "x2 (fast kill)"
   ]
  },
  {

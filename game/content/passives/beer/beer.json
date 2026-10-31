@@ -1,7 +1,7 @@
 {
   "id": "beer",
-  "name": "Beer",
-  "flavour": "Liquid courage. Paid for in blood.",
+  "name": "Ghost Pepper",
+  "flavour": "Burns going down. Keeps burning all the way to the trigger.",
   "rarity": "common",
   "weight": 9,
   "max_level": 6,
@@ -93,9 +93,9 @@
   ],
   "repeat_last_level": true,
   "trade": "−4 to −5% max HP a level",
-  "art_prompt": "a big wooden beer tankard with two brass bands and a handle, full of golden beer with thick white foam overflowing down its side",
+  "art_prompt": "one big wrinkled glossy bright red ghost pepper chilli, its skin bumpy and crinkled, a short curled green stem on top, a few small orange flames and pale wisps of heat curling off it",
   "placeholder": {
-    "color": "#E8B840",
+    "color": "#D8282A",
     "glyph": "star"
   }
 }

@@ -68,6 +68,10 @@ const PLAYER_DEFAULTS := {
 	# pass 115 (lane META): the least health share a Phoenix Feather revive stands him up with (the feather's own 50%, now
 	# that a plain revive starts at Nerve's 40%; Player.revive_share takes the larger of it and revive_hp)
 	"phoenix_hp": 0.0,
+	# pass 118 (lane ITEMS): the Jade Key's luck and the Ruby Key's attack damage banked at every chest opened
+	# (Run.chest_opened: the `chest_` prefix names the stat banked), the Grindstone's bonuses ground into a weapon at its
+	# level-up (Run._grind)
+	"chest_luck": 0.0, "chest_might": 0.0, "grind_rolls": 0.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

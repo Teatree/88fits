@@ -29,6 +29,12 @@
   "frame_px": 256,
   "xp_mult": 30,
   "boss": {
+    "chest": {
+      "name": "King's Chest",
+      "shine": "#d4e64e",
+      "model": "res://art/props/meta/boss_chest_tumbleweed_king.glb",
+      "art": "res://art/ui/wanted/bosschest/tumbleweed_king_%s.png"
+    },
     "hp_mult_per_stage": 2.0,
     "attacks": [
       {

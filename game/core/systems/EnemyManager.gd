@@ -27,6 +27,16 @@ const FREEZE_OFF := 0
 const FREEZE_WALK := 1
 const FREEZE_POSE := 2
 var crowd_freeze := FREEZE_OFF
+## Pass 118 (the lead; Garry: "When I am in the barrier with the Boss all other enemies outside the barrier should stop
+## and look at me. They do not attack. Only ones that are inside the barrier with the hero actually attack."): 1 = an
+## onlooker, outside a standing boss barrier with the hero inside it: it stands where it is turned to the hero, its idle
+## playing, and attacks nothing (no steer, no bite, no shot, its wind-up dropped; hits, burns and poisons go on: _onlook_tick).
+## BossPatterns._wall_onlookers sets the flags every tick its barrier stands and stamps onlook_tick; flags not refreshed
+## for ONLOOK_STALE ticks are cleared (a barrier that went without saying so frees its crowd). onlookers counts them.
+var onlook := PackedByteArray()
+var onlookers := 0
+var onlook_tick := -100
+const ONLOOK_STALE := 2
 const CELL := 2.5
 const STATE_MOVE := 0
 const STATE_WINDUP := 1
@@ -538,7 +548,7 @@ func _size_slots(from: int) -> void:
 	pos.resize(n); vel.resize(n); kb.resize(n); hp.resize(n); max_hp.resize(n)
 	speed.resize(n); dmg.resize(n); radius.resize(n); size.resize(n); dr.resize(n); blown.resize(n)
 	hidden.resize(n); held.resize(n); atk_i.resize(n); atk_t.resize(n); atk_target.resize(n); frenzy_t.resize(n)
-	freeze_t.resize(n); stun_t.resize(n); onscreen.resize(n)
+	freeze_t.resize(n); stun_t.resize(n); onscreen.resize(n); onlook.resize(n)
 	# pass 101 (lane CROWD): the draw flags and the steer clocks
 	drawn_vis.resize(n); _vis_hold.resize(n); _st_last.resize(n)
 	serial.resize(n); hamper_t.resize(n); hamper_f.resize(n); status_tint.resize(n); status_t.resize(n)
@@ -1595,6 +1605,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	frenzy_t[i] = 0.0
 	freeze_t[i] = 0.0
 	stun_t[i] = 0.0
+	onlook[i] = 0
 	slow_t[i] = 0.0; slow_f[i] = 0.0; mark_t[i] = 0.0; mark_mult[i] = 1.0; spin_t[i] = 0.0; hold_t[i] = 0.0
 	hamper_t[i] = 0.0; hamper_f[i] = 0.0; status_t[i] = 0.0; fire_blue[i] = 0; undying[i] = 0
 	home[i] = pos[i]
@@ -4047,6 +4058,14 @@ func _frozen_tick(i: int, ti: int, delta: float) -> void:
 	_tick_fire(i, delta)
 
 
+## An onlooker's tick (pass 118): the arena freeze's tick (it stands, turns to the hero, a wind-up or an attack it was in
+## dropped, burns and poisons on) with its idle frames playing at ATTACK_FPS, as a creature standing still plays them.
+func _onlook_tick(i: int, ti: int, delta: float) -> void:
+	_frozen_tick(i, ti, delta)
+	if alive[i] == 1 and state[i] != STATE_SPAWN:
+		anim_t[i] += delta * ATTACK_FPS
+
+
 ## Creature `i` (of type `ti`) turned to face along `face` (pass 110, the arena's freeze): the physics tick's own choice
 ## of view and mirror for a heading (an eight-direction creature's five views with their hysteresis and VIEW_MIN, the
 ## mirror's dead band, a plain one's back set), kept apart so a run's tick is untouched.
@@ -4138,6 +4157,11 @@ func _physics_process(delta: float) -> void:
 	var crowd_hp := 0.0
 	var crowd_n := 0
 	var poisoned := 0
+	# pass 118: a boss barrier's onlookers, only while the barrier keeps saying so
+	if onlookers > 0 and _ticks - onlook_tick > ONLOOK_STALE:
+		onlook.fill(0)
+		onlookers = 0
+	var watching := onlookers > 0
 	for i in range(pool_max):
 		if alive[i] == 0:
 			continue
@@ -4170,6 +4194,10 @@ func _physics_process(delta: float) -> void:
 		if crowd_freeze != 0:
 			# pass 110 (lane ARENA): the arena's freeze, a tick of its own (_frozen_tick)
 			_frozen_tick(i, ti, delta)
+			continue
+		if watching and onlook[i] == 1 and lift_t[i] <= 0.0:
+			# pass 118: outside a boss's barrier it stands and watches the fight (a thrown one lands first)
+			_onlook_tick(i, ti, delta)
 			continue
 		if lift_t[i] > 0.0 and _launch_of(i):
 			# pass 69: Alley-Oop's launch, its own flight (no brain, no bite) and its landing's damage
@@ -6443,6 +6471,11 @@ func flee_start(i: int, def: EnemyDef = null) -> bool:
 ## Whether creature `i` is running from a hit right now (pass 73).
 func is_fleeing(i: int) -> bool:
 	return _flee.has(i) and int((_flee[i] as Dictionary)["serial"]) == serial[i] and alive[i] == 1
+
+
+## Whether creature `i` stands watching a boss's barrier from outside it now (pass 118, onlook).
+func is_onlooker(i: int) -> bool:
+	return onlookers > 0 and i >= 0 and i < onlook.size() and onlook[i] == 1 and _ticks - onlook_tick <= ONLOOK_STALE
 
 
 ## A wind-up or aim under way is dropped (pass 73, flee on hit's `interrupts`), as a stun drops one: the shot, charge or

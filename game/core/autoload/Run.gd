@@ -13,6 +13,8 @@ signal gold_changed(run_gold: int)
 signal kills_changed(kills: int)
 signal stage_changed(stage: int)
 signal weapon_evolved(weapon_id: String)
+## Pass 118 (lane ITEMS): a Grindstone ground bonuses into a weapon at its level-up (_grind), `words` "+8% damage".
+signal weapon_ground(weapon_id: String, words: String)
 ## Gold the run just gained, after greed (pass 47: the HUD's coin pop); only for an amount above 0.
 signal gold_gained(amount: int)
 ## pass 79 (lane MUT): a mutation offer fell due or was taken by a level-up (the HUD's mark reads mutlvl_pending)
@@ -177,6 +179,12 @@ var stranger_cost := 0.0
 ## pass 73 (lane STRUCT): the Totem Poles' gifts taken this run (TotemBoons.roll dictionaries), each on the sheet for
 ## the rest of the run (_apply_totem_boons)
 var totem_boons: Array = []
+## Pass 118 (lane ITEMS; Garry: the Jade Key "should start from +1% Luck from each Chest Open, and when Player Upgrades
+## it it doesn't affect previous Luck increases, only the subsequent ones"): what the keys banked this run, passive id ->
+## {"chests": chests banked, "stats": {stat: amount}}. Every chest opened (chest_opened) adds each held passive's
+## `chest_<stat>` values at its level then to its bank; a level taken later changes only the chests after it. On the
+## sheet for the rest of the run (_apply_chest_banks), one source a key; empty at every run's start.
+var chest_bank: Dictionary = {}
 ## The level-up's choices (pass 47, Garry: "only two skips per Stage, and those skips work for both Level Ups and
 ## Chests ... the same treatment for Banish, but initially Players only get 1 Banish"): skips and banishes are a stage's,
 ## refill_choices() puts them back to the sheet's `skips` (2) and `banishes` (1) at the run's start and at every stage,
@@ -340,6 +348,9 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	run_materials = {"bones": 0, "relics": 0}
 	stranger_cost = 0.0
 	totem_boons = []
+	# pass 118 (lane ITEMS): the keys bank from nothing
+	chest_bank = {}
+	_grind_rng = null
 	adrenaline = 0
 	adrenaline_until = 0.0
 	crescendo = 0
@@ -461,6 +472,8 @@ func _build_player_sheet() -> void:
 		player_sheet.add_effects([sc], "The Stranger's cut", "stranger")
 	# pass 73 (lane STRUCT): the Totem Poles' gifts, before the passives (Heavyweight reads the max HP they give)
 	_apply_totem_boons()
+	# pass 118 (lane ITEMS): what the keys banked from the chests opened
+	_apply_chest_banks()
 	_apply_passives_to_sheet()
 	# pass 95 (lane BREATH): a held weapon's level effects aimed at the hero (the Fire Eater's thorns)
 	_apply_weapon_player_effects()
@@ -1740,6 +1753,18 @@ func add_gold(n: int, source: String = "other") -> void:
 		gold_gained.emit(gained)
 
 
+## Pass 118 (lane BOSSCHEST): gold already through greed (the boss chest's counter showed it, so its coins pay exactly
+## that, whatever greed is when they land); `greed_part` is the share greed added, for the recorder. As add_gold else.
+func add_gold_net(gained: int, source: String = "other", greed_part: int = 0) -> void:
+	run_gold += gained
+	if gained > 0 and not arena:
+		Save.add_total("gold_earned", gained)
+	if gained > 0 and RunAnalytics.I: RunAnalytics.I.gold_in(source, gained, greed_part)
+	gold_changed.emit(run_gold)
+	if gained > 0:
+		gold_gained.emit(gained)
+
+
 func add_kill(enemy_id: String, weapon_id: String) -> void:
 	kills += 1
 	if player_sheet.get_stat("adrenaline_speed", 0.0) > 0.0 or player_sheet.get_stat("adrenaline_might", 0.0) > 0.0:
@@ -1883,7 +1908,30 @@ func stranger_offer() -> Dictionary:
 			cands.append({"type": "passive", "id": p.id, "def": p, "level_from": lv, "level_to": mini(lv + 2, p.max_level), "is_new": false})
 	if cands.is_empty():
 		return {}
-	return cands[Dice.r.randi() % cands.size()]
+	# pass 118 (lane ITEMS): another hero's own weapon as a new item counts its guest_weight of one candidate (the rest
+	# one each, as before), so the heroes' weapons joining the pool add little to the Stranger's weapons either
+	var total := 0.0
+	var guests := false
+	for c: Dictionary in cands:
+		var g := _stranger_share(c)
+		guests = guests or g < 1.0
+		total += g
+	if not guests:
+		return cands[Dice.r.randi() % cands.size()]
+	var r := Dice.r.randf() * total
+	for c: Dictionary in cands:
+		r -= _stranger_share(c)
+		if r <= 0.0:
+			return c
+	return cands[cands.size() - 1]
+
+
+## A Stranger candidate's share of a pick (pass 118): a new card of another hero's own weapon its guest_weight, else 1.
+func _stranger_share(c: Dictionary) -> float:
+	var d = c.get("def")
+	if str(c.get("type", "")) == "weapon" and bool(c.get("is_new", false)) and d is WeaponDef and Registry.is_guest_weapon(d):
+		return maxf((d as WeaponDef).guest_weight, 0.0)
+	return 1.0
 
 
 ## The deal: the item to its offered level, and the cut off the hero's max HP.
@@ -1898,13 +1946,15 @@ func stranger_take(offer: Dictionary, hp_cost: float) -> String:
 		rebuild_sheets()
 		return def.display_name
 	if offer["type"] == "weapon":
-		if weapon_instance(def.id) == null:
+		# pass 118 (lane ITEMS): a new weapon handed over above level 1 grinds nothing (only a held one's level-up does)
+		var was_new := weapon_instance(def.id) == null
+		if was_new:
 			var fresh := add_weapon(def, 1)
 			# the hero's favourite brings its bonus whoever hands it over (pass 62, as a level-up's card does)
 			if fresh and character and character.favourite_weapon == def.id:
 				CardPool.apply_favourite(fresh)
 		while weapon_instance(def.id) and weapon_instance(def.id).level < to:
-			level_weapon(def.id)
+			level_weapon(def.id, not was_new)
 	else:
 		while int(passives.get(def.id, 0)) < to:
 			if not add_or_level_passive(def.id):
@@ -1943,6 +1993,124 @@ func _apply_totem_boons() -> void:
 		player_sheet.add_effects([TOTEM_BOONS.effect_of(b)], TOTEM_BOONS.source(b), "totem:" + str(b.get("id", b.get("stat", ""))))
 
 
+# ---------------------------------------------------------------- the keys and the Grindstone (pass 118, lane ITEMS)
+
+## A per-chest stat (pass 118): `chest_<stat>` on an item's levels banks <stat> at every chest opened (the Jade Key's
+## chest_luck, the Ruby Key's chest_might).
+const CHEST_PREFIX := "chest_"
+
+
+## One chest opened (pass 118, lane ITEMS: the one event for it; Game.open_chest calls it for every chest the hero
+## touches, the Elites' and the bosses' too): every held item's per-chest values at its level now go into its bank
+## (chest_bank) and the sheets follow. A level taken later raises only the chests after it.
+func chest_opened() -> void:
+	var any := false
+	for pid in passives.keys():
+		var def: PassiveDef = Registry.passive(str(pid))
+		var per := chest_values(def, int(passives[pid]))
+		if per.is_empty():
+			continue
+		var b: Dictionary = chest_bank.get(str(pid), {"chests": 0, "stats": {}})
+		var st: Dictionary = b["stats"]
+		for s in per.keys():
+			st[s] = float(st.get(s, 0.0)) + float(per[s])
+		b["chests"] = int(b["chests"]) + 1
+		chest_bank[str(pid)] = b
+		any = true
+	if any:
+		rebuild_sheets()
+
+
+## What one chest banks for item `def` at `level`: banked stat -> amount, its `chest_<stat>` effects summed up to that
+## level ({} for an item with none).
+static func chest_values(def: PassiveDef, level: int) -> Dictionary:
+	var out := {}
+	if def == null or level <= 0:
+		return out
+	for e in def.effects_for_level(level):
+		var x: Effect = e
+		if x.stat.begins_with(CHEST_PREFIX) and x.op == "add":
+			var s := x.stat.trim_prefix(CHEST_PREFIX)
+			out[s] = float(out.get(s, 0.0)) + x.value
+	return out
+
+
+## How a banked stat lands on the sheet: a multiplier stat (1 at its start: attack damage) as "mul" (+2% a chest = +2%
+## attack damage, the chests summed, never compounded), any other (luck from 0) as "add".
+static func chest_op(stat: String) -> String:
+	return "mul" if absf(float(StatSheet.PLAYER_DEFAULTS.get(stat, 0.0)) - 1.0) < 0.0001 else "add"
+
+
+## The banks on the sheet, each key its own source ("chest:<id>": "Jade Key · 7 chests" on the pause Stats tab).
+func _apply_chest_banks() -> void:
+	for pid in chest_bank.keys():
+		var b: Dictionary = chest_bank[pid]
+		var fx: Array = []
+		var st: Dictionary = b.get("stats", {})
+		for s in st.keys():
+			fx.append(Effect.make(str(s), chest_op(str(s)), float(st[s]), "player"))
+		if fx.is_empty():
+			continue
+		var def: PassiveDef = Registry.passive(str(pid))
+		var n := int(b.get("chests", 0))
+		player_sheet.add_effects(fx, "%s · %d chest%s" % [def.display_name if def else str(pid), n, "" if n == 1 else "s"], "chest:" + str(pid))
+
+
+## The Grindstone's own dice (pass 118): seeded from the run's seed with their own salt at the first grind (Dice.rng_for),
+## so a grind never moves another rule's roll and a replay grinds the same bonuses.
+var _grind_rng: RandomNumberGenerator = null
+
+
+## The held item that grinds (its `params.grind` table, a list of {stat, op, value, weight?, rows?, min?}): [id, table],
+## [] when none is held.
+func grind_source() -> Array:
+	for pid in passives.keys():
+		var def: PassiveDef = Registry.passive(str(pid))
+		if def and def.params.get("grind") is Array and not (def.params["grind"] as Array).is_empty():
+			return [str(pid), def.params["grind"]]
+	return []
+
+
+## A weapon level-up's grind (pass 118, lane ITEMS; Garry: the Anvil's equivalent): with a Grindstone held, `grind_rolls`
+## (its levels: 1, 2 at Evolved) different bonuses from its table that fit the weapon (WeaponInstance.grind_fits),
+## drawn by their weights, onto the weapon for the rest of the run. Only level_weapon calls it: a new weapon, a mutation
+## or an evolution grinds nothing. Returns the bonuses' words ([] for none); weapon_ground tells the HUD.
+func _grind(w: WeaponInstance) -> Array:
+	var n := player_sheet.get_int("grind_rolls")
+	if w == null or n <= 0:
+		return []
+	var src := grind_source()
+	if src.is_empty():
+		return []
+	var pool: Array = (src[1] as Array).filter(func(e) -> bool: return e is Dictionary and w.grind_fits(e))
+	if pool.is_empty():
+		return []
+	if _grind_rng == null:
+		_grind_rng = Dice.rng_for("grindstone")
+	var words: Array = []
+	for _k in range(n):
+		if pool.is_empty():
+			break
+		var total := 0.0
+		for e: Dictionary in pool:
+			total += maxf(float(e.get("weight", 1.0)), 0.0)
+		var r := _grind_rng.randf() * total
+		var pick: Dictionary = pool[pool.size() - 1]
+		for e: Dictionary in pool:
+			r -= maxf(float(e.get("weight", 1.0)), 0.0)
+			if r <= 0.0:
+				pick = e
+				break
+		pool.erase(pick)
+		var g := {"stat": str(pick.get("stat", "")), "op": str(pick.get("op", "mul")), "value": float(pick.get("value", 0.0)), "src": str(src[0])}
+		w.ground.append(g)
+		words.append(TextGen.describe_effect(Effect.make(g["stat"], g["op"], g["value"])))
+	if not words.is_empty():
+		_note("grind", w.def.id, w.level, {"bonus": ", ".join(PackedStringArray(words))})
+		weapon_ground.emit(w.def.id, ", ".join(PackedStringArray(words)))
+	return words
+
+
 func has_weapon(id: String) -> bool:
 	for w in weapons:
 		if w.def.id == id:
@@ -1973,11 +2141,15 @@ func add_weapon(def: WeaponDef, level_override: int = 1) -> WeaponInstance:
 	return inst
 
 
-func level_weapon(id: String) -> void:
+## A held weapon one level up (a level-up card, a chest, the Stranger). Pass 118 (lane ITEMS): a Grindstone held grinds
+## its bonuses in (_grind) unless `grind` is false (the Stranger handing over a new weapon above level 1).
+func level_weapon(id: String, grind: bool = true) -> void:
 	var w := weapon_instance(id)
 	if w and w.level < w.def.max_level:
 		w.level += 1
 		_note("weapon", id, w.level, {"new": false})
+		if grind:
+			_grind(w)
 		w.rebuild(player_sheet, weapons)
 		_weapon_player_effects_changed(w)   # pass 95 (lane BREATH)
 		build_changed.emit()
@@ -2069,6 +2241,7 @@ func evolve(w: WeaponInstance) -> WeaponInstance:
 	inst.kills = w.kills
 	inst.damage = w.damage
 	inst.mutations = w.mutations   # the path stays on the evolved form
+	inst.ground = w.ground.duplicate(true)   # pass 118 (lane ITEMS): and the Grindstone's bonuses
 	if idx >= 0:
 		weapons[idx] = inst
 	else:

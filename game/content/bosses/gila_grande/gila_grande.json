@@ -21,6 +21,12 @@
   "frame_px": 256,
   "xp_mult": 60,
   "boss": {
+    "chest": {
+      "name": "Gila's Hoard",
+      "shine": "#ff8a3d",
+      "model": "res://art/props/meta/boss_chest_gila_grande.glb",
+      "art": "res://art/ui/wanted/bosschest/gila_grande_%s.png"
+    },
     "hp_mult_per_stage": 2.0,
     "attacks": [
       {

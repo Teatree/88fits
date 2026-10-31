@@ -149,6 +149,7 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_start.wav" id="147_ouml1"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_spin.wav" id="148_2kdr1"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_stop.wav" id="149_6v42d"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_bosschest_tune.wav" id="149_i00ay"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_buzzer.wav" id="150_sm84a"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_card.wav" id="151_p2k6f"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_breath_start.wav" id="152_mgwug"]
@@ -865,6 +866,15 @@ entries = {
 "stream": ExtResource("110_votkx"),
 "voices": 1,
 "volume_db": -2.0
+},
+"ui_bosschest_tune": {
+"category": "ui",
+"file": "real/ui_bosschest_tune.wav",
+"loop": true,
+"pitch_spread": 0.0,
+"stream": ExtResource("149_i00ay"),
+"voices": 1,
+"volume_db": -7.0
 },
 "ui_buy": {
 "category": "ui",

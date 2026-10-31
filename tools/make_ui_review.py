@@ -307,14 +307,29 @@ S.append({"id": "12_tap_to_go", "name": "Tap to go", "when": "after a level-up p
         "'TAP TO GO' and 'Still paused. They'll wait.' low on the screen; any touch resumes (with a second of blinking safety) and can start the joystick at once."],
  "keep": ["No pick drops the player straight into a hit."], "suspect": [], "ask": []})
 
-S.append({"id": "13_chest", "name": "Chest", "when": "touching a chest (Elites, specials, bosses)",
+S.append({"id": "13_chest", "name": "Chest", "when": "touching a chest (crowned Elites: the purple one; specials and the odd creature: the gold one)",
  "shots": [("10c-chest-opening", "wanted"), ("10-chest", "wanted"), ("10b-chest-boss", "wanted")],
  "job": "The run's reward moment: a slot-machine reel lands on one item.",
- "on": ["Star line 'Loot' and CHEST in brass (a boss's: 'A path opens', MUTATION CHEST in purple).",
+ "on": ["Star line 'Loot' and CHEST in brass (the purple chest's: 'A path opens', MUTATION CHEST in purple).",
         "The chest drops in, knocks three times and throws its lid open; its light rises into the reel's row; slot-machine sounds.",
         "The reel of plates runs for about four seconds and lands; the landed plate grows with a brass glow; under it the kind, tag, name, stars and effect (gold: 'Straight into the purse').",
-        "SKIP ×N · BANISH ×N (the reel spins again) · TAKE IT. Taps hurry the opening and the spin. A boss chest also pulls every pickup on the map in."],
+        "SKIP ×N · BANISH ×N (the reel spins again) · TAKE IT. Taps hurry the opening and the spin. The purple chest also pulls every pickup on the map in. Since pass 118 the purple chest is the crowned Elites'; each boss drops its own chest (next page)."],
  "keep": ["A reward with a fanfare, what it is, take or pass."], "suspect": [], "ask": []})
+
+S.append({"id": "13b_boss_chest", "name": "Boss chest", "when": "touching the chest a boss leaves (pass 118: each boss its own)",
+ "shots": [("popup_tumbleweed_king_b_knock", "bosschest"), ("popup_tumbleweed_king_d_burst", "bosschest"),
+           ("popup_tumbleweed_king_f_spew_late", "bosschest"), ("popup_tumbleweed_king_h_claim", "bosschest"),
+           ("popup_brander_e_spew_early", "bosschest"), ("world_solo_gila_grande", "bosschest")],
+ "job": "Pay out the boss's gold and XP as one big celebration, faster kills paying more.",
+ "on": ["Star line 'Boss chest' and the chest's name (KING'S CHEST, GILA'S HOARD, BRANDER'S COFFER) in brass.",
+        "SPEED BONUS plate: the multiplier big (x1 to x2), 'Killed in m:ss' (at x1 '· faster pays more') and a gauge from x1 to the map's top with this kill's mark.",
+        "The boss's own painted chest drops in, knocks four times harder each time, cracks on a line of light, then bursts open: a white flash, the screen shakes, rays in the boss's colour and gold, confetti, 'BOSS LOOT!'; a jackpot slot-machine tune starts.",
+        "Coins and XP gems arc out of the chest into two counters at the bottom (GOLD with the coin, EXP with a gem), slowly at first, faster and faster; each counter bumps and sparkles as they land; the banner climbs BIG WIN!, HUGE WIN!, MEGA WIN!, coins rain down the screen; JACKPOT! when the last lands, bursts over both counters.",
+        "CLAIM (one button) pays exactly the counters; back in the world the gold and gems burst out of the chest's spot and fly to the hero with everything else on the map. A tap before the burst skips to it; a tap during the spew hurries it.",
+        "In the world each boss's chest is its own 3D model (straw, crown and rope; beaded gila scales and cacti; black iron, brands and chains) in its boss's light."],
+ "keep": ["The amounts in two big counters, the bonus for a fast kill said in plain numbers, one tap to claim."],
+ "suspect": ["About 8 seconds at a stage's end; the tap that hurries it is not announced."],
+ "ask": ["Should the speed bonus also show the time to beat for the next tier?"]})
 
 S.append({"id": "14_shop", "name": "The shop", "when": "standing in the travelling shop's ring on the map (once a stall)",
  "shots": [("11-shop", "wanted")],

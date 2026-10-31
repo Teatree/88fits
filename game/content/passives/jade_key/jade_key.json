@@ -1,0 +1,40 @@
+{
+  "id": "jade_key",
+  "name": "Jade Key",
+  "flavour": "Every lock it turns, the odds turn with it.",
+  "rarity": "epic",
+  "weight": 6,
+  "max_level": 3,
+  "levels": [
+    [
+      {
+        "stat": "chest_luck",
+        "op": "add",
+        "value": 0.01,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "chest_luck",
+        "op": "add",
+        "value": 0.005,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "chest_luck",
+        "op": "add",
+        "value": 0.005,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "art_prompt": "one big ornate old skeleton key carved from polished bright jade-green stone, its round looped bow shaped like a four-leaf clover with a small gold rivet in the middle",
+  "placeholder": {
+    "color": "#3FAF5A",
+    "glyph": "clover"
+  }
+}

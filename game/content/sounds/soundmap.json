@@ -1080,6 +1080,14 @@
       "loop": true,
       "file": "real/ui_slot_spin.wav"
     },
+    "ui_bosschest_tune": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -7,
+      "loop": true,
+      "file": "real/ui_bosschest_tune.wav"
+    },
     "ui_slot_stop": {
       "category": "ui",
       "voices": 2,

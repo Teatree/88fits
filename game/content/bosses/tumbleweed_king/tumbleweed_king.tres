@@ -87,6 +87,12 @@ boss = {
 }, {
 "name": "royal_dust_devil"
 }],
+"chest": {
+"art": "res://art/ui/wanted/bosschest/tumbleweed_king_%s.png",
+"model": "res://art/props/meta/boss_chest_tumbleweed_king.glb",
+"name": "King's Chest",
+"shine": "#d4e64e"
+},
 "cooldown_between": 2.0,
 "hp_mult_per_stage": 2.0
 }

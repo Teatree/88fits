@@ -447,7 +447,107 @@ def boss_pattern_warn():
     return fade_out(y, 25)
 
 
+# ------------------------------------------------------------------ pass 118 (lane BOSSCHEST): the jackpot tune
+def _midi(m):
+    return 440.0 * 2.0 ** ((m - 69) / 12.0)
+
+
+def _bell(t, at, f, amp, tau=0.35):
+    """A bright slot-machine bell: a strike on f with the bell's sharp upper partials, each dying quicker."""
+    y = partial(t, f, amp, tau, 0.001, at)
+    y += partial(t, f * 2.0, amp * 0.45, tau * 0.6, 0.001, at)
+    y += partial(t, f * 3.01, amp * 0.28, tau * 0.35, 0.001, at)
+    y += partial(t, f * 4.2, amp * 0.16, tau * 0.2, 0.001, at)
+    return y
+
+
+def _pluck(t, at, f, amp, tau=0.18):
+    """The bass: a round square-ish pluck (odd harmonics, a short fall)."""
+    y = np.zeros_like(t)
+    for h, a in ((1, 1.0), (3, 0.33), (5, 0.16), (7, 0.08)):
+        y += partial(t, f * h, amp * a, tau / (1.0 + 0.4 * (h - 1)), 0.003, at)
+    return y
+
+
+def _lead(t, at, f, amp, length):
+    """The fanfare's brass: a pulse with a little vibrato, held `length` s."""
+    tt = t - at
+    on = (tt >= 0) & (tt < length + 0.08)
+    y = np.zeros_like(t)
+    ph = 2 * np.pi * f * tt[on] + 0.25 * np.sin(2 * np.pi * 5.5 * tt[on])
+    wave_ = 0.6 * np.sin(ph) + 0.25 * np.sin(2 * ph) + 0.15 * square(ph) * 0.5
+    env = np.clip(tt[on] / 0.012, 0, 1) * np.where(tt[on] < length, 1.0 - 0.25 * tt[on] / max(length, 1e-3), np.exp(-(tt[on] - length) / 0.03) * 0.75)
+    y[on] = amp * wave_ * env
+    return y
+
+
+def _hat(t, at, amp):
+    tt = t - at
+    on = (tt >= 0) & (tt < 0.06)
+    y = np.zeros_like(t)
+    n = rng.standard_normal(on.sum())
+    n = np.diff(np.concatenate([[0.0], n]))
+    y[on] = amp * n * np.exp(-tt[on] / 0.012)
+    return y
+
+
+def _kaching(t, at, amp):
+    """The till's ka-ching on the bar: a bright metal cluster and a coin shower's hiss."""
+    y = np.zeros_like(t)
+    for f, a, tau in ((2637.0, 0.5, 0.28), (3951.0, 0.35, 0.2), (5274.0, 0.25, 0.12), (3322.0, 0.3, 0.22)):
+        y += partial(t, f, amp * a, tau, 0.001, at)
+        y += partial(t, f * 1.003, amp * a * 0.6, tau, 0.001, at + 0.07)
+    tt = t - at
+    on = (tt >= 0) & (tt < 0.3)
+    n = rng.standard_normal(on.sum())
+    n = np.diff(np.concatenate([[0.0], n]))
+    y[on] += amp * 0.25 * n * np.exp(-tt[on] / 0.08)
+    return y
+
+
+def jackpot_tune():
+    """Pass 118 (lane BOSSCHEST; Garry: "All the while a jackpot like slot machine tune plays"): a 3 s loop at 160 bpm, two
+    bars of G - C - D - D7, for the boss chest's pop-up (ui/BossChestScreen.gd climbs its pitch with the spew): bells
+    running up and down the chord in sixteenths, a plucked bass on the beat, a short brassy fanfare line, hi-hats on the
+    eighths, a ka-ching on each bar and the winner's bell trilling over the last two beats. Every tail is folded round to
+    the start, so the loop has no seam."""
+    beat = 60.0 / 160.0
+    sec = beat * 8
+    n = int(SR * sec)
+    t = t_of(sec + 1.2)
+    y = np.zeros_like(t)
+    chords = [[67, 71, 74], [67, 71, 74], [60, 64, 67], [60, 64, 67], [62, 66, 69], [62, 66, 69], [62, 66, 69, 72], [62, 66, 69, 72]]
+    bass = [43, 50, 48, 43, 50, 45, 50, 45]
+    lead = [79, 83, 86, 91, 90, 88, 86, 81]
+    for b in range(8):
+        at = b * beat
+        ch = chords[b]
+        tones = [m + 12 for m in ch] + [ch[0] + 24]
+        up = tones + tones[-2:0:-1]
+        for k in range(4):
+            m = up[(b % 2 * 4 + k) % len(up)]
+            y += _bell(t, at + k * beat / 4.0, _midi(m), 0.32 if k == 0 else 0.22, 0.28)
+        y += _pluck(t, at, _midi(bass[b]), 0.9)
+        y += _lead(t, at, _midi(lead[b]), 0.16, beat * 0.78)
+        y += _hat(t, at, 0.12)
+        y += _hat(t, at + beat * 0.5, 0.2)
+    for bar in range(2):
+        y += _kaching(t, bar * beat * 4, 0.55)
+    # the winner's bell over the last two beats: G6 and B6 in thirty-seconds
+    k = 0
+    at = beat * 6
+    while at < sec - 0.01:
+        y += _bell(t, at, _midi(91 if k % 2 == 0 else 95), 0.16, 0.08)
+        at += beat / 8.0
+        k += 1
+    tail = y[n:]
+    y = y[:n].copy()
+    y[:len(tail)] += tail
+    return y
+
+
 SOUNDS = {
+    "ui_bosschest_tune": jackpot_tune,
     "en_boss_pattern_warn": boss_pattern_warn,
     "st_war_drum_beat": war_drum_beat,
     "en_sniper_aim": sniper_aim,

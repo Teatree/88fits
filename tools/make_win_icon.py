@@ -27,8 +27,9 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SIZES = [16, 20, 24, 32, 40, 48, 64, 96, 128, 256]
 # the subject in the 1024 px picture, the crops centred on it: pass 73 the hat; pass 116 (tools/make_app_icon.py, Garry's
-# gunslinger picture) the revolver in his fist and his face, measured by eye
-HAT_BOX = (90, 40, 910, 600)
+# gunslinger picture) the revolver in his fist and his face, measured by eye; pass 118 the same for Garry's new picture
+# (Gemini_Generated_Image_in0heein0heein0h.jfif: the revolver top left, his face right of centre)
+HAT_BOX = (40, 20, 950, 590)
 # how much of the tile's width the hat takes at each band of sizes (None = the whole picture)
 FILL = {16: 0.88, 20: 0.88, 24: 0.86, 32: 0.84, 40: 0.70, 48: 0.68, 64: 0.66, 96: None, 128: None, 256: None}
 CORNER = 0.14       # corner radius, a fraction of the side

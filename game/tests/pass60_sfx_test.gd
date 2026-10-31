@@ -16,7 +16,8 @@ const MUSIC := {"mu_title": 2016044, "mu_run_1": 1282952, "mu_run_2": 1282952, "
 const SILENCED := ["pl_jump"]   # pl_hurt has its chiptune hit since pass 65
 const REPLACED := ["ui_levelup", "ui_unlock", "wd_extract", "en_elite_spawn", "en_boss_roar", "en_boss_die", "pl_revive",
 	"pl_death"]
-const LOOPS := ["w_saw_loop", "w_snake_rattle", "wd_ambient", "wd_portal_open", "wd_dust_devil"]
+## pass 118 (lane BOSSCHEST): ui_bosschest_tune, the boss chest's jackpot tune, a 3 s loop under its pop-up
+const LOOPS := ["w_saw_loop", "w_snake_rattle", "wd_ambient", "wd_portal_open", "wd_dust_devil", "ui_bosschest_tune"]
 const SFX_IDS := ["ui_tap", "ui_card_pick", "ui_levelup", "ui_pause", "ui_resume", "ui_buy", "ui_locked", "ui_unlock",
 	"pl_step_sand", "pl_jump", "pl_land", "pl_spawn_beam", "pl_spawn_land", "pl_hurt", "pl_death", "pl_revive",
 	"w_pea_fire", "w_pea_hit", "w_boom_fire", "w_boom_hit", "w_saw_loop", "w_saw_hit", "w_lob_throw", "w_lob_boom",

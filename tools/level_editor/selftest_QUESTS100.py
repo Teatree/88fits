@@ -103,7 +103,7 @@ WANT = [
     "Get the Orbit Saws to level 5 in one run.",
     "Get a card to level 4 in one run.",
     "Get a passive item to Legendary in one run.",
-    "Get Beer to level 3 in one run.",
+    "Get Ghost Pepper to level 3 in one run.",   # pass 118: Beer is the Ghost Pepper (id beer)
     "Evolve the Salt into the Hiwa Kai.",
     "Evolve Temperance into Temperance Risen.",
     "Get Gas Mask to Evolved in one run.",

@@ -1,0 +1,67 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/grindstone/grindstone_icon_evolved.png" id="1_yw8dx"]
+[ext_resource type="Texture2D" path="res://content/passives/grindstone/grindstone_icon.png" id="2_j2vhx"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_74d68"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_jce71"]
+
+[sub_resource type="Resource" id="Resource_yw8dx"]
+script = ExtResource("3_74d68")
+stat = "grind_rolls"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_j2vhx"]
+script = ExtResource("3_74d68")
+stat = "grind_rolls"
+value = 1.0
+target = "player"
+
+[resource]
+script = ExtResource("4_jce71")
+levels = [[SubResource("Resource_yw8dx")], [SubResource("Resource_j2vhx")]]
+repeat_last_level = false
+max_level = 2
+evolved_icon = ExtResource("1_yw8dx")
+params = {
+"grind": [{
+"op": "mul",
+"stat": "damage",
+"value": 0.08,
+"weight": 1.5
+}, {
+"op": "mul",
+"stat": "cooldown",
+"value": -0.06
+}, {
+"op": "mul",
+"rows": ["area", "radius", "cone_deg"],
+"stat": "area",
+"value": 0.08
+}, {
+"op": "mul",
+"stat": "speed",
+"value": 0.1
+}, {
+"op": "mul",
+"stat": "duration",
+"value": 0.1
+}, {
+"min": 1.0,
+"op": "add",
+"stat": "pierce",
+"value": 1.0,
+"weight": 0.5
+}]
+}
+id = "grindstone"
+display_name = "Grindstone"
+flavour = "Every edge it touches comes away keener."
+rarity = "legendary"
+weight = 6.0
+icon = ExtResource("2_j2vhx")
+icon_file = "grindstone_icon.png"
+placeholder = {
+"color": "#9A8C7A",
+"glyph": "star"
+}

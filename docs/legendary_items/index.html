@@ -1,0 +1,322 @@
+<title>Legendary Item Proposals</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a single reading column of Wanted-style item bills, two across on wide screens, a ledger table on top. */
+:root {
+  --paper: #f3e6c8;
+  --aged: #e2cfa4;
+  --ink: #241b14;
+  --ink2: #5a4a3a;
+  --brass: #c9932f;
+  --brass-dark: #8a5f1c;
+  --rock: #b4472b;
+  --sage: #55704a;
+  --ground: #ead9b2;
+  --legend: #c46a1a;
+  --line: rgba(36, 27, 20, 0.22);
+  --f-slab: "Alfa Slab One", "Rockwell", "Georgia", serif;
+  --f-body: "Bitter", "Georgia", "Times New Roman", serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Consolas", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #2b221b; --aged: #3a2e24; --ink: #f1e3c4; --ink2: #c9b593; --brass: #d9a443; --brass-dark: #e6b85c;
+    --rock: #e07055; --sage: #95b884; --ground: #1d1712; --legend: #f08f3a; --line: rgba(241, 227, 196, 0.2);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #2b221b; --aged: #3a2e24; --ink: #f1e3c4; --ink2: #c9b593; --brass: #d9a443; --brass-dark: #e6b85c;
+  --rock: #e07055; --sage: #95b884; --ground: #1d1712; --legend: #f08f3a; --line: rgba(241, 227, 196, 0.2);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 16px/1.55 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: grid; gap: 12px; max-width: 72ch; }
+.eyebrow { font: 500 12px/1.2 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass-dark); }
+h1 { font: 400 clamp(30px, 6vw, 48px)/1.05 var(--f-slab); margin: 0; text-wrap: balance; }
+h2 { font: 400 22px/1.2 var(--f-slab); margin: 0; text-wrap: balance; }
+h3 { font: 400 21px/1.15 var(--f-slab); margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lede { font-size: 17px; color: var(--ink2); }
+.panel { background: var(--paper); border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.fact { display: grid; gap: 4px; }
+.fact b { font: 400 26px/1 var(--f-slab); font-variant-numeric: tabular-nums; color: var(--legend); }
+.fact span { font-size: 14px; color: var(--ink2); }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 11px/1.2 var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink2); }
+td.name { font-family: var(--f-slab); font-size: 15px; white-space: nowrap; }
+.chip { display: inline-block; font: 500 11px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 7px; border: 1.5px solid var(--ink); white-space: nowrap; }
+.chip.content { background: var(--sage); color: var(--paper); border-color: var(--sage); }
+.chip.small { background: var(--brass); color: var(--ink); border-color: var(--brass); }
+.chip.new { background: var(--rock); color: var(--paper); border-color: var(--rock); }
+.bills { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 24px; }
+.bill { background: var(--paper); border: 2px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); padding: 22px 20px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; position: relative; }
+.bill::before { content: "LEGENDARY"; position: absolute; top: -11px; left: 16px; font: 500 10px/1 var(--f-mono); letter-spacing: 0.18em; background: var(--legend); color: var(--paper); padding: 5px 8px; border: 2px solid var(--ink); }
+.flavour { font-style: italic; color: var(--ink2); }
+.rungs { display: grid; gap: 8px; }
+.rung { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: baseline; }
+.rung dt { font: 500 11px/1.4 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--legend); }
+.rung dd { margin: 0; }
+.rung.evo dt { color: var(--rock); }
+.notes { display: grid; gap: 10px; border-top: 1.5px dashed var(--line); padding-top: 12px; }
+.note { display: grid; gap: 2px; }
+.note h4 { margin: 0; font: 500 11px/1.4 var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass-dark); }
+.note p { font-size: 15px; }
+.foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--ink2); }
+.num { font-family: var(--f-mono); font-size: 0.92em; }
+ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+a { color: var(--rock); }
+:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Outlaw Survivors · design proposal · pass 118</div>
+    <h1>Twelve legendary items</h1>
+    <p class="lede">Ideas for the first legendary passive items, borrowed in spirit from Megabonk, Vampire Survivors, Survivor.io and Lonely Survivor, and dressed for the frontier. Each one climbs the ladder once: Legendary when found, Evolved on its one upgrade. Nothing here is built yet; pick the ones you like and they become content folders.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="rare">
+    <h2 id="rare">How rare a legendary card is today</h2>
+    <p>The card pool already weighs legendaries at <span class="num">0.15</span> of a common (CardPool <span class="num">RARITY_W</span>), and luck lifts them by <span class="num">1 + 2 × luck</span>. Against the 79 weapons, cards and passive items in the pool now, one legendary item of weight 5 would show up on:</p>
+    <div class="facts">
+      <div class="fact"><b>1 in 208</b><span>level-up offers with no luck</span></div>
+      <div class="fact"><b>1 in 130</b><span>with +30% luck (three ranks of Clover)</span></div>
+      <div class="fact"><b>1 in 95</b><span>with +60% luck</span></div>
+      <div class="fact"><b>~1 run in 6</b><span>sees one at all (about 35 offers a stage, no luck)</span></div>
+    </div>
+    <p>That rarity is what lets them be loud. Each bill below says why its numbers hold anyway, so that the one run that finds it feels special without being won on the spot. Suggested weights are 4 to 6, and none offered before minute 2 of a stage.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="ledger">
+    <h2 id="ledger">The ledger</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Item</th><th>In one line</th><th>The build it pulls toward</th><th>To build it</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Dead Man's Hand</td><td>Every 8th hit of a weapon deals ×5</td><td>Fast-hitting weapons, crits</td><td><span class="chip small">small primitive</span></td></tr>
+          <tr><td class="name">High Noon Bell</td><td>Time stops for 3 s every minute; you keep shooting</td><td>Positioning, boss burns</td><td><span class="chip small">small primitive</span></td></tr>
+          <tr><td class="name">The Iron Horse</td><td>A ghost train charges through your line every 20 s</td><td>Herding the crowd into a lane</td><td><span class="chip new">new behaviour</span></td></tr>
+          <tr><td class="name">Pocket Bible</td><td>No hit takes more than 12% of your health</td><td>Glass cannons that need to survive</td><td><span class="chip small">small primitive</span></td></tr>
+          <tr><td class="name">Two-Headed Coin</td><td>Every chest's reel lands twice</td><td>Chest hunting, the Keys</td><td><span class="chip small">UI work</span></td></tr>
+          <tr><td class="name">Fool's Gold</td><td>The gold in your purse is damage</td><td>Saving instead of shopping</td><td><span class="chip small">small primitive</span></td></tr>
+          <tr><td class="name">Undertaker's Shovel</td><td>Graves raise ghost gunslingers that fight beside you</td><td>Summoner, kill counts</td><td><span class="chip content">content + trigger</span></td></tr>
+          <tr><td class="name">Lightning in a Bottle</td><td>Crits arc to three more creatures</td><td>Crit builds that clear crowds</td><td><span class="chip small">small primitive</span></td></tr>
+          <tr><td class="name">Bounty on Your Head</td><td>More crowd, harder hits, ×1.6 XP and coins</td><td>Greed and risk</td><td><span class="chip content">content + knobs</span></td></tr>
+          <tr><td class="name">Dust Devil in a Jar</td><td>Running grows a whirlwind behind you</td><td>Kiting, never standing still</td><td><span class="chip content">reuses dust devils</span></td></tr>
+          <tr><td class="name">Gunslinger's Shadow</td><td>A mirrored twin fires your first weapon</td><td>Crossfires, two bodies to place</td><td><span class="chip new">new behaviour</span></td></tr>
+          <tr><td class="name">Treasure Map</td><td>An X on the map: dig 3 s for a purple chest and gold</td><td>Exploration under pressure</td><td><span class="chip small">small structure</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="bills" aria-label="The items">
+
+    <article class="bill">
+      <h3>Dead Man's Hand</h3>
+      <p class="flavour">Aces and eights. Somebody's not walking out.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>Every 8th hit of each weapon is a Dead Man's Shot: ×5 damage, and it can still crit. A black card with aces and eights flicks over the target.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>Every 6th hit, still ×5.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Megabonk's Big Bonk, which rolls a small chance of ×20 damage. A count instead of a dice roll makes it something you can plan around.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>It pulls you toward weapons that hit often (the Tommy Gun, the Orbit Saws, the Salt) over slow heavy ones, and pairs with crit items. On a boss you can feel the rhythm of the big numbers coming.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>It averages +50% damage at Legendary and +67% Evolved, which is in line with a maxed Ghost Pepper (+69% might) and has no build of its own behind it. Bosses already scale their HP to your recent DPS, so it can't delete them.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>One counter per weapon, read on a hit that is already being dealt. The flick reuses the damage-number layer, which already merges and thins past 40 on screen.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>High Noon Bell</h3>
+      <p class="flavour">When it tolls, the whole town holds its breath.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>Every 60 s the bell tolls and time stops for 3 s: creatures, their shots and the spawns freeze. The hero walks, picks up and keeps firing.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>Every 45 s for 4 s, and kills during the stop drop double XP.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Vampire Survivors' Orologion, which freezes every enemy on screen.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>Each toll is a window you decide how to spend: break out of a ring, sweep a field of gems, or stand in a boss's face and empty every gun. Players will start counting the seconds to the next one.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>It stops about 5% of the run (9% Evolved). The stage clock and the spawns stop with the crowd, so it never skips the hard parts of the timeline. Boss HP follows your DPS, so a burn window speeds a fight up a little and doesn't trivialise it.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>A frozen crowd costs less than a moving one: it reuses the arena's crowd freeze, so nothing steers for those seconds.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>The Iron Horse</h3>
+      <p class="flavour">The 4:10 doesn't stop for anybody.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>Every 20 s a whistle blows and a track lights up across the screen through you, along the way you face. One second later a ghost train charges down it. Everything on the rails takes 25% of its max HP (Elites and bosses 5%) plus might-scaled damage, and is thrown aside.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>Every 15 s, and two trains in a cross.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Vampire Survivors' Pentagram screen wipes, made directional so you aim them.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>The whistle is a promise: in that second you turn to line the crowd up on the rails. Done well it's the most satisfying clear in the game, and it's a spectacle other players will want to see.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>It hits one line, not the screen, and it's capped against Elites and bosses. It clears about as much as the Nuke power-up, on a fixed timer.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>One moving mesh and one line query through the existing creature grid for under a second; the warning is the Telegraphs line the bosses already use.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Pocket Bible</h3>
+      <p class="flavour">Stopped a slug meant for a better man.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>No single hit takes more than 12% of your max HP. Once every 20 s a hit is stopped outright, and the HUD icon shows a fresh bullet hole.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>9%, and a hit stopped every 15 s.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Vampire Survivors' Crimson Shroud, which caps the damage you take.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>It lets glass cannons (Ghost Pepper, Last Stand) survive the big hits. It also fights Desperado, which wants you low, so it is a real fork in the build.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>Crowds hurt you with many small bites, which it barely touches. It removes one-shots (the Gila's slam, the Sniper's beam, the Raider's rocket, a dynamite blast), not the slow bleed that actually ends runs.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>One comparison in the hero's damage intake.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Two-Headed Coin</h3>
+      <p class="flavour">Heads I win. Tails, also heads.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>Every chest's reel lands twice and you take both. The second spin is free and can't be skipped by mistake.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>Purple chests and the bosses' chests also pay 50% more gold.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Vampire Survivors' chests that open three or five items at once, and Megabonk's chest economy.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>Chests become worth crossing the map for. It pairs with the new Jade and Ruby Keys: one chest is still one key tick, but twice the loot.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>Chests are rare now (regular creatures drop one at 0.02%; specials and Elites are the main source), so it is worth four to eight extra levels a stage. Strong for a legendary, not a win.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>The chest screen spins its reel a second time. Nothing in the world changes.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Fool's Gold</h3>
+      <p class="flavour">It ain't gold till you spend it.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>+1% damage for every 50 gold in this run's purse, up to +60%. Spending at the Shop or with the Stranger lowers it.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>+1% for every 40 gold, and +1% max HP for every 100.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Vampire Survivors' Stone Mask and the gold-for-power items in Megabonk.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>A real tension every time a shop opens: buy the upgrade now, or keep the purse heavy for damage. The bosses' new jackpot chests make it swing hard late in a stage.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>It's capped. It counts only this run's purse, never banked gold. It starts weak and peaks late, which is when legendary items should peak.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>It is recomputed when the gold changes (a signal the HUD already listens to), never every frame.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Undertaker's Shovel</h3>
+      <p class="flavour">Every grave's a job. Every job's a hand.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>One kill in 25 leaves a grave. Two seconds later a ghost gunslinger climbs out and fights where it stands for 8 s, firing your first weapon's shots at 40% damage. At most 4 at once.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>One kill in 15, at most 6 ghosts, 12 s each.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>The summoner items of Survivor.io and Lonely Survivor.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>A summoner build in a game that has none. Ghosts stay by their graves, so where you fight decides where your army stands, and holding a choke point becomes a plan.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>It's capped at 4 or 6, and each ghost deals 40% of one weapon, so it scales with your build and doesn't replace it.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>At most 6 extra shooters, built on the Turret Buddy's Spawner and Turret behaviour that already ships.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Lightning in a Bottle</h3>
+      <p class="flavour">Caught it once. It's been sore about it since.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>Every critical hit throws an arc to up to 3 creatures within 5 m, for 35% of the hit. Arcs never chain again.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>5 creatures, 50%, and each arc stuns for 0.3 s.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Megabonk's Lightning Orb and Vampire Survivors' Lightning Ring.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>It turns crit builds, which are great against single targets, into crowd clearers. Arcs that jump across a packed ring look and sound like a jackpot.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>It needs crits to work, it never chains, and each arc is a share of a hit you already landed.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>Arcs are capped at 12 per tenth of a second. Lookups go through the existing 2.5 m grid, and the visuals reuse the Zap Beam's lines.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Bounty on Your Head</h3>
+      <p class="flavour">Every gun in the territory wants a piece of you.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>Creatures arrive 35% faster, up to the map's cap, and hit 10% harder. Every kill pays ×1.6 XP and coins.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>50% faster, ×2 XP and coins.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Vampire Survivors' Curse and Skull O'Maniac, and Megabonk's difficulty-for-reward items.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>A pure risk dial. Greedy players grab it early and race the curve; careful ones leave it. It's a different flavour of risk from Hot Sauce, which brings tougher variants rather than more of everything.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>The map's cap stays, so it can't flood the screen. The harder hits keep the reward earned, and it pays only for kills you actually make.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>There are never more bodies than the map's hard cap allows; the cap just stays full more often.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Dust Devil in a Jar</h3>
+      <p class="flavour">Uncork it at a dead run.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>While you run, a whirlwind grows behind you and reaches full size after 3 s. It pulls gems and coins in from 6 m and tosses the creatures it touches. When you stand still, it shrinks away.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>Full size in 2 s, wider, and it hurts what it tosses.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Megabonk's movement items, where speed itself is a weapon.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>It forks the build between running and standing. Siesta and Steady Hand reward standing still; this rewards never stopping. You can't have both.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>Its value is mostly pickup range and crowd control, not damage. It needs constant motion, and a ring of creatures stops that.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>One tornado on the map's existing Dust Devils look, plus one radius query a tick.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Gunslinger's Shadow</h3>
+      <p class="flavour">He's always one step behind you. Or ahead.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>Your shadow peels off and moves as your mirror image across the spot where it rose, firing your first weapon at 50% damage. It can't be hurt.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>It fires your first two weapons and picks up gems and coins it walks over.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Vampire Survivors' mirrored familiars (Peachone and Ebony Wings) and Lonely Survivor's clone.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>Two bodies to steer with one thumb: walk so that the crowd ends up between you and the twin, in a crossfire. It's the kind of trick players show their friends.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>It's 50% of one weapon (two Evolved), and it can't tank or block anything.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>One more billboard and one weapon emitter, which is less than a single extra weapon slot.</p></div>
+      </div>
+    </article>
+
+    <article class="bill">
+      <h3>Treasure Map</h3>
+      <p class="flavour">X marks the spot. The spot is surrounded.</p>
+      <dl class="rungs">
+        <div class="rung"><dt>Legendary</dt><dd>An X appears on the sand 40 to 60 m away, with a pointer at the screen's edge. Stand on it for 3 s to dig up a purple chest and 200 gold. A new X appears 90 s after one is dug.</dd></div>
+        <div class="rung evo"><dt>Evolved</dt><dd>Dug in 1.5 s, and the treasure also holds a power-up.</dd></div>
+      </dl>
+      <div class="notes">
+        <div class="note"><h4>Inspired by</h4><p>Megabonk's shrines and chests worth hunting across the map.</p></div>
+        <div class="note"><h4>The choice and the fun</h4><p>It pulls you out of your safe loop and makes you stand still under pressure while you dig. It pairs with the Keys and the Two-Headed Coin into a whole "treasure hunter" run.</p></div>
+        <div class="note"><h4>Why it won't break balance</h4><p>At most one chest every 90 s or so plus modest gold, and the dig costs you the safety of moving.</p></div>
+        <div class="note"><h4>Why it won't hurt performance</h4><p>One ground marker and one edge pointer; the pointer is the kit's existing WPointer.</p></div>
+      </div>
+    </article>
+
+  </section>
+
+  <section class="panel" aria-labelledby="next">
+    <h2 id="next">What building them takes</h2>
+    <ul class="plain">
+      <li>Each item is a content folder like any passive item: <span class="num">rarity: "legendary"</span>, so the ladder gives it two levels, Legendary and Evolved, plus an icon and an Evolved icon.</li>
+      <li>Six need a small new primitive (a hit counter, a periodic freeze, a damage cap, a gold-to-stat link, a crit proc, a dig site). Two need a new behaviour (the train, the shadow twin). The rest reuse what ships: dust devils, the Spawner and Turret, the spawn knobs, the chest screen.</li>
+      <li>This pass adds the first legendary to the game, the Grindstone (every weapon upgrade grinds in an extra bonus). How it plays will tell us how loud the rest can be.</li>
+    </ul>
+    <p class="foot">Numbers are starting points for the Level Editor, not tuned values.</p>
+  </section>
+</div>

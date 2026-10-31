@@ -96,12 +96,12 @@ max_level = 6
 trade = "−4 to −5% max HP a level"
 evolved_icon = ExtResource("1_nrwge")
 id = "beer"
-display_name = "Beer"
-flavour = "Liquid courage. Paid for in blood."
+display_name = "Ghost Pepper"
+flavour = "Burns going down. Keeps burning all the way to the trigger."
 weight = 9.0
 icon = ExtResource("2_34vbs")
 icon_file = "beer_icon.png"
 placeholder = {
-"color": "#E8B840",
+"color": "#D8282A",
 "glyph": "star"
 }

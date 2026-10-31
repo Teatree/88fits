@@ -5,6 +5,7 @@
   "rarity": "rare",
   "weight": 7,
   "hero": "astro",
+  "guest_weight": 0.45,
   "behavior": "GravityGun",
   "targeting": "nearest",
   "tags": [

@@ -1,0 +1,70 @@
+{
+  "id": "grindstone",
+  "name": "Grindstone",
+  "flavour": "Every edge it touches comes away keener.",
+  "rarity": "legendary",
+  "weight": 6,
+  "max_level": 2,
+  "levels": [
+    [
+      {
+        "stat": "grind_rolls",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "grind_rolls",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "params": {
+    "grind": [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.08,
+        "weight": 1.5
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.06
+      },
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.08,
+        "rows": ["area", "radius", "cone_deg"]
+      },
+      {
+        "stat": "speed",
+        "op": "mul",
+        "value": 0.1
+      },
+      {
+        "stat": "duration",
+        "op": "mul",
+        "value": 0.1
+      },
+      {
+        "stat": "pierce",
+        "op": "add",
+        "value": 1,
+        "min": 1,
+        "weight": 0.5
+      }
+    ]
+  },
+  "art_prompt": "an old round grey-brown sandstone grinding wheel in a sturdy wooden frame with an iron crank, a knife on its rim throwing orange sparks",
+  "placeholder": {
+    "color": "#9A8C7A",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/jade_key/jade_key_icon_evolved.png" id="1_jssqx"]
+[ext_resource type="Texture2D" path="res://content/passives/jade_key/jade_key_icon.png" id="2_uq6hq"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_pspal"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_j6e0e"]
+
+[sub_resource type="Resource" id="Resource_jssqx"]
+script = ExtResource("3_pspal")
+stat = "chest_luck"
+value = 0.01
+target = "player"
+
+[sub_resource type="Resource" id="Resource_uq6hq"]
+script = ExtResource("3_pspal")
+stat = "chest_luck"
+value = 0.005
+target = "player"
+
+[sub_resource type="Resource" id="Resource_pspal"]
+script = ExtResource("3_pspal")
+stat = "chest_luck"
+value = 0.005
+target = "player"
+
+[resource]
+script = ExtResource("4_j6e0e")
+levels = [[SubResource("Resource_jssqx")], [SubResource("Resource_uq6hq")], [SubResource("Resource_pspal")]]
+repeat_last_level = false
+max_level = 3
+evolved_icon = ExtResource("1_jssqx")
+id = "jade_key"
+display_name = "Jade Key"
+flavour = "Every lock it turns, the odds turn with it."
+rarity = "epic"
+weight = 6.0
+icon = ExtResource("2_uq6hq")
+icon_file = "jade_key_icon.png"
+placeholder = {
+"color": "#3FAF5A",
+"glyph": "clover"
+}

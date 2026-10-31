@@ -20,6 +20,11 @@ uniform vec2 slope = vec2(0.0);
 // the ground"): world heights (x below y) over which the beam fades in, nothing at x, whole at y, so its bright foot never
 // meets the sand in a hard line; y <= x = no fade (the chest's beam, which stands on the chest)
 uniform vec2 fade_y = vec2(0.0, 0.0);
+// mode 1 (pass 118; Garry: "Chests have a bug where one of the rays of shine shines through the middle of them"): the beam
+// stood on the chest's own centre, so from the camera's 46 degrees its brightest part, its foot, was drawn over the lid's
+// middle; it stands this far behind the chest (m, away from the camera along the ground) so the chest hides its foot and
+// it rises from behind the lid. 0 = on its origin (the spawn beam)
+uniform float beam_back = 0.0;
 
 varying float v_wy;
 
@@ -33,7 +38,7 @@ void vertex() {
 		vec3 flat_back = vec3(cam_back.x, 0.0, cam_back.z);
 		flat_back = length(flat_back) > 0.001 ? normalize(flat_back) : vec3(0.0, 0.0, 1.0);
 		vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), flat_back));
-		world = origin + right * VERTEX.x * sx + vec3(0.0, VERTEX.y * sy, 0.0);
+		world = origin - flat_back * beam_back + right * VERTEX.x * sx + vec3(0.0, VERTEX.y * sy, 0.0);
 	} else if (mode == 2) {
 		float px = VERTEX.x * sx;
 		float pz = VERTEX.y * sy;

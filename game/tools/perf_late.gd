@@ -115,6 +115,10 @@ func _tick() -> void:
 		_game.cards._pick(_game.cards._offer[0])
 	if _game.get("chest_screen") and _game.chest_screen and _game.chest_screen.visible and not _game.chest_screen._spinning:
 		_game.chest_screen._finish(false)
+	# pass 118 (lane BOSSCHEST): a boss's chest claims at once (its claim finishes the count)
+	var bcs = _game.get("boss_chest_screen")
+	if bcs and bcs.visible and not bool(bcs.get("_claiming")):
+		bcs.claim()
 	if _game.get("resume_gate") and _game.resume_gate and _game.resume_gate.visible:
 		_game.resume_gate.tap()
 	if _game.portal_dialog and _game.portal_dialog.visible:

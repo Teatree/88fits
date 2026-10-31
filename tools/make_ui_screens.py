@@ -26,11 +26,12 @@ EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 W = "tools/dl/uidoc/wanted/"
 X = "tools/dl/uidoc/extra/"
 U = "tools/dl/onepager/shots/ui/"
+BCH = "tools/dl/p116/UIREVIEW/bosschest/"
 B = "docs/design/img/"
 
 # screen id -> [(capture, caption)]
 SHOTS = {
-    "boot_loading": [("game/art/ui/splash.png", "the splash and its LOADING bar")],
+    "boot_loading": [(X + "boot_loading_drop.png", "the title dropping in (0.5 s)"), (X + "boot_loading.png", "landed: the strips scroll while the title loads")],
     "consent_card": [(W + "19-consent.png", "first launch")],
     "title": [(W + "01-title.png", "an owned hero"), (W + "02-title-astro.png", "a hero on sale: BUY"),
               (W + "01c-title-locked-hero.png", "a locked hero: the requirement")],
@@ -53,6 +54,10 @@ SHOTS = {
                        (W + "08b-path-no-skips.png", "no skips left")],
     "chest": [(W + "10c-chest-opening.png", "the chest opening"), (W + "10-chest.png", "landed"),
               (W + "10b-chest-boss.png", "the boss's mutation chest"), (W + "10e-chest-gold.png", "landed on gold")],
+    # pass 118 (lane BOSSCHEST): game/tools/_p118_BOSSCHEST_shots.gd -> tools/dl/p116/UIREVIEW/bosschest/
+    "boss_chest": [(BCH + "popup_tumbleweed_king_b_knock.png", "the King's chest knocking (x2)"), (BCH + "popup_tumbleweed_king_d_burst.png", "the burst"),
+                   (BCH + "popup_tumbleweed_king_f_spew_late.png", "the spew, BIG WIN!"), (BCH + "popup_tumbleweed_king_h_claim.png", "JACKPOT! and CLAIM"),
+                   (BCH + "popup_brander_h_claim.png", "the Brander's, a slow kill (x1)"), (BCH + "world_solo_gila_grande.png", "the Gila's chest in the world")],
     "shop": [(W + "11-shop.png", "short of gold"), (W + "11b-shop-22.png", "a long build")],
     "stranger": [(W + "12-stranger.png", "an item for max HP"), (U + "26_stranger_deal.png", "a weapon offer")],
     "totem": [(U + "ui_totem.png", "three gifts")],
@@ -72,7 +77,7 @@ GROUPS = [
     ("Before the game", ["boot_loading", "consent_card"]),
     ("The hub", ["title", "hero_drawer", "hero_sheet", "stages_menu", "upgrade_board", "collection", "settings"]),
     ("In a run: always on", ["spawn_beam", "hud", "hints", "damage_numbers", "last_stand_fx"]),
-    ("In a run: screens that pause", ["level_up", "mutation_offer", "chest", "resume_gate", "shop", "stranger", "totem", "drum_moment", "pause", "down_revive"]),
+    ("In a run: screens that pause", ["level_up", "mutation_offer", "chest", "boss_chest", "resume_gate", "shop", "stranger", "totem", "drum_moment", "pause", "down_revive"]),
     ("The end of a stage", ["portal", "endless", "results", "survey"]),
     ("Shared pieces", ["confirm"]),
     ("For testers only", ["player_debug_mode", "dev_menu", "debug_arena", "debug_panel", "debug_hand", "shop_screen_legacy"]),
@@ -81,7 +86,7 @@ CODE = re.compile(r"\s*\((?:[^()]|\(\w*\))*?(?:\.gd|\b[A-Z][a-z]+[A-Z][A-Za-z]+\
 # the names the doc shows (the records keep the screens' own titles)
 NAMES = {"boot_loading": "Loading", "consent_card": "Play data question", "title": "Title", "hero_drawer": "Hero drawer",
          "hero_sheet": "Hero sheet", "stages_menu": "Stages", "upgrade_board": "Upgrade board", "level_up": "Level-up cards",
-         "resume_gate": "Tap to go", "mutation_offer": "Mutation offer", "chest": "Chest", "shop": "The Shop",
+         "resume_gate": "Tap to go", "mutation_offer": "Mutation offer", "chest": "Chest", "boss_chest": "Boss chest", "shop": "The Shop",
          "stranger": "The Stranger", "totem": "Totem (Spirit Pole)", "pause": "Pause", "down_revive": "Down!",
          "portal": "Stage clear (the portal)", "results": "Results", "survey": "Survey card", "confirm": "Question card",
          "dev_menu": "Developer menu", "shop_screen_legacy": "Old meta shop (unused)", "player_debug_mode": "Player debug mode",
@@ -99,6 +104,10 @@ def e(t):
 def shot(src, key):
     os.makedirs(os.path.join(OUT, "screens"), exist_ok=True)
     dst = os.path.join(OUT, "screens", key + ".jpg")
+    if not os.path.exists(os.path.join(REPO, src)):
+        # pass 118 (lane BOSSCHEST): a capture another lane is still remaking is left out with a word, not a crash
+        print("make_ui_screens: no capture", src, "(left out)")
+        return None
     im = Image.open(os.path.join(REPO, src)).convert("RGB")
     s = 540 / im.width
     im = im.resize((540, round(im.height * s)), Image.LANCZOS)
@@ -127,6 +136,8 @@ def render():
             imgs = []
             for k, (src, cap) in enumerate(shots):
                 rel = shot(src, "%02d_%s_%d" % (num, sid, k + 1))
+                if rel is None:
+                    continue
                 n_shots += 1
                 imgs.append('<figure><img src="%s" alt="%s" loading="lazy"><figcaption>%s</figcaption></figure>'
                             % (rel, html.escape(s["name"] + ": " + cap), html.escape(cap)))

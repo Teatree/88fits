@@ -420,18 +420,27 @@ func base_weapons() -> Array:
 	return out
 
 
-## The base weapons a run may be offered: not hidden, unlocked, and not another hero's own (WeaponDef.hero).
+## The base weapons a run may be offered: not hidden, unlocked (pass 118: another hero's own among them, CardPool weighs
+## its new card at its guest_weight).
 func unlocked_weapons() -> Array:
 	return base_weapons().filter(func(w): return not w.hidden and is_unlocked("weapon", w.id) and hero_may_use(w))
 
 
-## Whether the hero of the run may take `w` (pass 35: the Revolver is the Drifter's alone); outside a run, anyone may.
+## Whether the hero of the run may take `w`. Pass 35 kept a hero's own weapon (WeaponDef.hero) to him; pass 118 (lane
+## ITEMS; Garry: "add them all to the pull as well. Making it possible for other heroes to get those weapons"): anyone
+## may, at a cut weight (is_guest_weapon). Kept as the one place the rule lives.
 func hero_may_use(w: WeaponDef) -> bool:
+	return w != null
+
+
+## Whether `w` is another hero's own weapon in this run (pass 118): its new card weighs WeaponDef.guest_weight of its
+## weight (CardPool.weight_of). False outside a run and for the run hero's own.
+func is_guest_weapon(w: WeaponDef) -> bool:
 	if w == null or w.hero == "":
-		return true
+		return false
 	var run := get_node_or_null("/root/Run")
 	var c = run.get("character") if run else null
-	return c == null or str(c.id) == w.hero
+	return c != null and str(c.id) != w.hero
 
 
 ## The weapon a hero lands with (pass 45): `start_weapon`, else the first base weapon that is his alone (WeaponDef.hero),

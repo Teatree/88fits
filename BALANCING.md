@@ -8421,3 +8421,203 @@ one that I saw when watching the replay".
   breather before the Brander. Early rows hit softer (damage_mult 0.6-0.7) and creature HP is set per row (hp_mult
   0.06-0.6, rising by phase).
 - Rows with no end (imps, hellhounds, knights, shaman, giant, plus fire ants and werewolves from 13:01, once the Brander is up) feed Endless.
+
+
+## 60. Pass 118: the loading screen, the bosses' chests, Elites' purple chests, the barrier's onlookers, new items
+
+### 60.LEAD
+
+**Elites drop the purple chest** (Garry: "Elites Should drop the `Purple Chest` now. I mean the enemies with crowns over
+their heads. These chests function exactly the same"). A crowned Elite (`archetype: "elite"`: the Scorpion Elite and the
+rest that wear the crown, EnemyDef.badge_for) drops the purple chest where it falls (Game.gd's kill drops,
+`spawn_chest(at, true)`). The chest is unchanged: a mutation reel (Run.chest_roll(true), else an evolution or an ordinary
+roll when no mutation is open), and opening it calls every gem, coin and chest on the map in. A creature wearing an elite
+modifier (no crown) still drops the ordinary chest. The bosses no longer drop it (60.BOSSCHEST).
+
+**The barrier's onlookers** (Garry: "When I am in the barrier with the Boss all other enemies outside the barrier should
+stop and look at me. They do not attack. Only ones that are inside the barrier with the hero actually attack."). While a
+boss's barrier stands (a bullet-heaven pattern's `barrier`) and the hero is inside its ring:
+- Every living creature but the boss whose middle is outside the ring is an onlooker (BossPatterns._wall_onlookers, every
+  tick; EnemyManager.onlook). It stands where it is, turned to the hero, playing its idle. It steers, bites, shoots,
+  throws, aims and charges at nothing: a wind-up or an aim it was in is dropped, and a Monk squad's member sits out the
+  volley.
+- It can still be hit, burnt, poisoned and killed. One that spawns outside meanwhile watches too.
+- One inside fights as ever.
+- When the barrier falls, however it ends, the crowd goes on. The flags clear within ONLOOK_STALE (2) ticks once no
+  barrier refreshes them.
+- Shots already in the air when the barrier rose fly on.
+
+**The chests' light** (Garry: "Chests have a bug where one of the rays of shine shines through the middle of them. See
+if you can fix that without making the Chests less visible"). Three pieces of the shine were drawn over the chest's middle:
+- The tall beam stood on the chest's own centre, so from the 46-degree camera its brightest part, its foot, lay over the
+  lid. It now stands Chest.BEAM_BACK 0.75 m behind the chest (x1.35 for the purple one; shine_aura.gdshader
+  `beam_back`).
+- The sunburst's plane, 0.35 m behind the middle, cut through the lid's back, so its rays were drawn across the lid; the
+  purple chest's showed most. It now stands Chest.SUN_BACK 0.75 m behind the middle (x1.35), at Chest.SUN_Y 0.9 m up
+  (was 1.0) so it still frames the chest.
+- The lock's glint was two hard white bars 0.55 m long that flared into a white cross over the front. It is now the
+  shine's own soft four-point sparkle, Chest.GLINT 0.5 m across at its flare.
+
+The pool on the sand, the sparkles, the glow under the lid and the light are unchanged, and so is the shine's strength.
+
+### 60.LOAD
+
+**The loading screen** (Garry: "No icon, No progress bar. Title Drop sequence at the start and an animation of
+silhuettes of revolvers, stars, bombs, boots and other western(y) and not so western(y) item silhouettes ... strips of
+saloon wallpaper and each strip moves slowly up-and a bit to the right, down-and a bit to the right ... This is meant to
+be the new progress bar replacement showing that the game is loading"). game/ui/Boot.gd; pictures from
+tools/make_loading_wallpaper.py.
+- The splash before it is the paper alone: Godot's boot splash shows no picture (`application/boot_splash/show_image`
+  false, `bg_color` W.PAPER) and Android's system splash shows a clear icon on the same paper (art/ui/splash_icon.png,
+  tools/make_splash.py). The screen's first frame is that paper on any screen shape; its clock does not count that frame.
+- **The wallpaper** fades in from the paper over FADE_IN 0.3 s (sine). Strips STRIP_W 180 canvas px wide (six across),
+  two tones alternating (the paper; the paper 55% of the way to AGED), a pinstripe on each edge, a line of beads inside
+  each edge, and a tone-on-tone print: 28 silhouettes (KEEP in the tool; the revolver, the sheriff star, the bomb and the
+  boot twice as often), 180 px apart, staggered left and right, leaning up to 9 degrees, card suits and little stars
+  between them; the print repeats every PERIOD 1440 px; each strip starts at a phase of its own. Colours: the print the
+  paper 26% of the way to ROCK, the fillers 20%, the pinstripe 40% of the way to INK_SOFT, the corners up to 35% of a warm
+  shade (a vignette).
+- **The motion** (the loading indicator): even strips scroll up and odd ones down at SCROLL 46 px/s, and the whole set
+  drifts right at DRIFT 15 px/s and wraps; upright (TILT_DEG 0). It runs the whole time the screen shows and stops only
+  when the title cannot be loaded (the failure card says so).
+- **The title drop**: at DROP_AT 0.3 s the plate (OUTLAW in the slab over SURVIVORS, on paper in an ink border with a hard
+  ink shadow and brass nails) falls from above the screen to rest with its middle at REST_Y 46% of the screen's height:
+  FALL 0.34 s, accelerating (y = h(1-u^2)), stretched up to 7% along the fall; it lands at 0.64 s with a squash
+  (SQUASH 0.08 s: 15% shorter, 8% wider about its foot), a thud (ui_stamp, else ui_chest_knock) and a puff of dust
+  (sixteen sandy puffs rolling out from under its foot, behind it, DUST 0.6 s); bounces BOUNCE_H 34 px over BOUNCE 0.22 s,
+  a last small squash (SETTLE 0.07 s), and has settled at 1.01 s.
+- **The hand-over**: the title loads on a thread from the first frame; it is built only once the plate has settled (the
+  build holds a frame for a few hundred ms and would freeze the drop), drawn once under the screen, and the dissolve
+  (DISSOLVE 0.25 s) starts no earlier than MIN_SHOW 1.2 s of the screen's clock, even when the load was done sooner.
+  The clock counts each frame at most MAX_STEP 1/30 s, so a long frame pauses the motion instead of skipping it.
+  The stall rule (STALL 10 s of no progress: load at once) and the failure text are as in pass 58.
+
+### 60.BOSSCHEST
+
+Garry: "Each Boss now drops a unique chest and inside it is a whole bunch of EXP and Gold (it's the same gold and EXP that
+Players already get from killing the boss, now packaged into this chest) ... The faster the Boss was killed the more Gold
+and Exp flies out ... At the end of the sequence Player has to tap a Claim button ... Picking up these chests also results
+in all the of stuff flying in towards the Player." Code: core/systems/BossChest.gd (the rules and numbers), Game
+(_on_enemy_died, _pack_boss_chest, open_boss_chest, _on_boss_chest_claimed), ui/BossChestScreen.gd (the pop-up).
+
+**What the chest holds.** A boss's kill pays nothing at the kill any more: everything it paid in gold and XP is caught
+while the kill is handled (PickupManager.capture_swap: every gem or coin the kill would have dropped is counted instead)
+and packed into its chest with its purse. So the pack's gold (before greed) is its purse (Game.boss_purse(stage) x
+Motherlode x the Stakes' bounty, as before) + its drops.coins coins of 5 x the stage's coin factor (round(stage_mult), as a
+coin pays when taken) + its own coin (drops.gold: 1-3 x BIG_COIN_MULT, after the black barrels' bill and the bounty's
+chance, as before) + Gold Dust's coins from the killing weapon; its XP (before Field Notes) is its large gem (25 x its XP
+scale x Endless's share x the stage's xp_mult, as before) + Prospector's and Eureka's gems when they roll. A creature that
+dies inside the boss's kill (Grand Finale) drops its own as ever. Power-ups, cake slices and coin bags still land on the
+sand. A training dummy pays nothing (it leaves the purple chest, as before). The extra chests (drops.chests - 1) stay.
+
+**The speed bonus** (timeline_data.boss_chest, read with BossChest.DEFAULTS for what it leaves out; on Red Canyon
+`{"fast": 1.5, "slow": 4.0, "max_mult": 2.0}`): the fight's length F = from the boss's arrival (WaveDirector._start_boss)
+to its death on the rule clock (Run.rule_seconds: the frames' clock, stopped while a screen holds the run); S = that boss's
+boss_hp_scaling seconds (its least fight at the hero's full DPS: 40 / 60 / 80 on Garry's map today). The pack's gold and XP
+x mult, mult = max_mult when F <= fast x S, 1 when F >= slow x S, a straight line between (King with S 40: x2 up to 60 s,
+x1.5 at 110 s, x1 from 160 s). No S or no timed fight (a boss outside the director): x1. Gold rounds to whole coins.
+
+**The numbers shown and paid.** When the pop-up opens, the pack becomes what the hero gains: gold_net = round(gold x
+greed), xp_net = xp x Field Notes (BossChest.net). The counters count up to exactly those, and CLAIM pays exactly those at
+once (Run.add_gold_net with source "boss_chest", Run.add_xp divided back by Field Notes); the coins and gems that then burst
+out of the chest's spot and fly in (with everything else on the map: vacuum_all, coins and chests too) are the show and pay
+nothing when they land (the lead's review: pieces still flying when the run ended had cost gold). Their count: one coin per
+12 gold and one gem per 45 XP, 10 to 70 of each (BossChest.GOLD_PER_PIECE, XP_PER_PIECE, PIECES_MIN, PIECES_MAX).
+
+**The chest in the world.** The boss's own model (art/props/meta/boss_chest_<boss>.glb, tools/blender_boss_chests.py) at
+1.3 x its model's size (Chest.BOSS_SCALE), its shine 1.4 x the gold chest's (BOSS_SHINE) in its boss's colour (the boss
+JSON's boss.chest {name, shine, model, art}), laid where the purple chest was (2 m from where the boss fell); it waits like
+the purple chest did. Opening it is a "chest opened" for the items that count chests (Run.chest_opened). A stage that ends
+with no boss still leaves the purple chest. The purple chest itself is the crowned Elites' (60.LEAD).
+
+**The pop-up** (Modal BOSSCHEST, priority 45 = a chest's 40 + BOSS_CHEST_BUMP; the beats in BossChestScreen): drop 0.32 s,
+four knocks to 1.28 s, the crack at 1.44 s, the burst at 1.9 s, the spew from 2.05 s for 3.4 s (x1) to 5.4 s (the whole
+bonus), pieces on screen one per 8 gold and one per 22 XP (18 to 130 of each), out at a rate that swells (by u of the spew,
+0.12 u + 0.88 u^3 of them are out), each flying 1.0 s at the start to 0.62 s at the end; the banner climbs BOSS LOOT!,
+BIG WIN! (30% landed), HUGE WIN! (60%), MEGA WIN! (88%), JACKPOT! when the last lands; CLAIM 0.75 s after it. A tap before
+the burst goes to it; a tap during the spew finishes it in 0.9 s. The jackpot tune (ui_bosschest_tune, a 3 s loop,
+tools/synth_sfx.py) climbs from pitch 1.0 to 1.12 over the spew; the run's music is ducked 14 dB under it.
+
+### 60.ITEMS
+
+Garry: "Credit Card (Green) ... Our version will be Epic therefore have fewer upgrades, and will not have any drawbacks.
+Should start from +1% Luck from each Chest Open, and when Player Upgrades it it doesn't affect previous Luck increases,
+only the subsequent ones", the Red one "something similar", "Keys instead", the Anvil "not an Anvil but something else",
+Beer "not an Alcoholic thing", and the heroes' own weapons "add them all to the pull ... +5-10% likelihood not more".
+Megabonk's Green Card is +2% luck a chest and its Red Card +2.5% damage a chest, both raising the chests' price (ours are
+free, so there is no drawback); its Anvil (legendary) adds a stat roll to every weapon upgrade.
+
+**The Jade Key** (content/passives/jade_key, epic, weight 6, 3 levels: Epic, Legendary, Evolved). Every chest the hero
+opens while he holds it banks luck at the key's per-chest value then: +1% luck at level 1, +1.5% at level 2, +2% Evolved
+(the JSON's `chest_luck`: 0.01, +0.005, +0.005; luck 0.01 is what the Stats tab shows as +1%). A level taken later raises
+only the chests after it; what is banked stays. No drawback.
+
+**The Ruby Key** (content/passives/ruby_key, epic, weight 6, 3 levels): the same banking with attack damage: +2% a chest at
+level 1, +3% at level 2, +4% Evolved (`chest_might` 0.02, +0.01, +0.01). The chests' attack damage is summed, never
+compounded (ten chests at +2% = +20%), and it lands on every weapon as all attack damage does.
+
+The keys' rules (one primitive, Run.chest_opened / chest_bank):
+- **A chest opened** is one touched by the hero: every chest on the ground goes through Game.open_chest (the ordinary
+  chests, the Elites' purple ones; lane BOSSCHEST calls Run.chest_opened for the bosses' new chests). It banks when it is
+  touched, before its reel spins, so a skipped chest (a stage skip) still banks, and the chest's own roll already sees the
+  luck it banked.
+- **Any item** with a `chest_<stat>` effect (op add) banks `<stat>` at every chest: a multiplier stat (one that starts at 1,
+  attack damage) lands as "mul", any other (luck) as "add" (Run.chest_op). Each key is its own source on the sheet
+  ("Jade Key · 7 chests" on the pause Stats tab, with the key's icon).
+- **Per run**: the banks start empty at every run's start (a new stage is a new run since pass 87). The run record keeps
+  them (`chest_banks`: id -> {chests, stats}).
+
+**The Grindstone** (content/passives/grindstone, the first legendary passive item, weight 6, 2 levels: Legendary,
+Evolved). While held, every level-up of a held weapon (a level-up card, a chest, the Stranger's extra level of a weapon
+already held) also grinds `grind_rolls` different random bonuses into that weapon for the rest of the run: one at
+Legendary, two once Evolved. Never on a new weapon (the Stranger's new weapon handed over at level 2 grinds nothing), a
+mutation, an evolution or a debug level. The table is the item's `params.grind`, each entry {stat, op, value, weight,
+rows, min}:
+
+| bonus | weight | fits a weapon whose pause rows show |
+|---|---|---|
+| +8% damage | 1.5 | damage (every weapon) |
+| −6% cooldown (6.4% faster attacks) | 1 | cooldown (not the orbiters) |
+| +8% area of effect | 1 | area, a pillar's radius or a cone's width |
+| +10% projectile speed | 1 | projectile speed (guns, the Frisbee) |
+| +10% duration | 1 | duration (the laser, the breath, the salt) |
+| +1 pierce | 0.5 | pierce, and only when the weapon already pierces (`min` 1) |
+
+Never +projectiles. A bonus fits a weapon only when its stat is among the stats its behaviour shows on the pause screen
+(WeaponInstance.grind_fits, stat_rows). Two bonuses of one level-up are different entries; later level-ups may roll the
+same one again (two +8% damage = +16.6%: the sheet compounds "mul"). The rolls are the Grindstone's own dice, seeded from
+the run's seed (Dice.rng_for("grindstone")), so a grind never moves another rule's roll and a replay grinds the same.
+The bonuses stay on the weapon through every rebuild and pass to its evolution (WeaponInstance.ground), each on the
+weapon's sheet as the Grindstone's source ("grind:grindstone"; the dashboard's weapon sources name it). A toast says what
+was ground in ("GRINDSTONE: Revolver +8% damage"). Strength: a weapon has four level-ups (levels 1 to 5), so a Grindstone
+found early adds about four bonuses a weapon (eight Evolved); on a gun such as the Revolver (damage, cooldown, projectile
+speed, pierce fit) four rolls average 1.5 damage rolls (+12%), one −6% cooldown, one +10% projectile speed and half a
+pierce. Found late it adds little.
+
+**The Ghost Pepper** (was Beer; the id stays `beer` for saves, quests and analytics): the same numbers (+15% attack damage
+and −5% max HP at level 1 ... a common item's six levels), a ghost pepper's icon and Evolved icon, "Burns going down"
+flavour. Not "The Devil Risen", the card whose id is `ghost_pepper` (Hot Sauce's evolution), which keeps its name.
+
+**Every hero's own weapon in every hero's pool** (Registry.hero_may_use is true for everyone; WeaponDef.hero still names
+whose own it is: the hero lands with it, its card says "Drifter's own.", the hero sheet calls it his signature weapon).
+Another hero's own weapon comes as a new card at its JSON's `guest_weight` of its weight (0.45 on the Revolver, the
+Gravity Gun, the Guitarra, the Sun Scepter and the Basketball; the old Throwing Spear stays hidden). Once taken its
+upgrades weigh as any weapon's. The Stranger counts such a weapon as 0.45 of one candidate (his pick is otherwise one in
+N). The Bounty Board's posters still never ask for another hero's weapon (they would be unfair tasks: it comes rarely).
+
+How much more often an offer holds a weapon card (new or an upgrade; three cards; a weapon slot free; over the Drifter,
+Astro, Calavera, Solenne, Fadeaway, Ironwood, Jeżyk and May; tools/dl/p118/ITEMS/weapon_share.py on CardPool's formula,
+40,000 offers a hero and state):
+
+| save | state | before | after | relative |
+|---|---|---|---|---|
+| fresh (no unlock quest done) | first offers | 41.2% | 45.3% | +9.9% |
+| fresh | mid run (2 weapons, 4 items) | 43.1% | 47.2% | +9.4% |
+| fresh | late (4 weapons, 9 items) | 41.3% | 45.2% | +9.5% |
+| every weapon unlocked | first offers | 53.3% | 55.8% | +4.7% |
+| every weapon unlocked | mid run | 54.7% | 57.1% | +4.5% |
+| every weapon unlocked | late | 53.9% | 56.3% | +4.5% |
+
+0.45 keeps the worst case (a fresh save, the fewest weapons to share the pool with) under Garry's 10%; with every weapon
+unlocked the rise is a little under 5%. At 0.5 a fresh save passes 10% (+10.6%); at 1.0 (no cut) it would be +21%.
+pass118_ITEMS_test draws the real CardPool in Godot and pins the rise between 4% and 10.5%.

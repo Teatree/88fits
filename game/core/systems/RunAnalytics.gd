@@ -50,7 +50,8 @@ const KEEP_FILES := 50
 const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
 ## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
 const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents",
-	"talent_forms", "totems", "stat_names", "build_text", "heat", "tasks", "board", "weapon_sources", "weapon_family", "icons"]
+	"talent_forms", "totems", "stat_names", "build_text", "heat", "tasks", "board", "weapon_sources", "weapon_family", "icons",
+	"chest_banks"]
 ## Pass 115 (lane DASH): the hero's stats every weapon's numbers fold in (WeaponInstance.rebuild: attack damage, cooldown,
 ## Berserk's weapon speed, area, projectile speed, duration, extra projectiles) and the ones its hits read (crits, damage
 ## to Elites and bosses, ricochet, overkill, execute, debuff duration): a source of one of these shaped every weapon.
@@ -89,10 +90,11 @@ const HEAT_MIN_SECS := 5
 ## purse; chest = a chest's gold (its gold roll, or gold when the build changed under the reel); coin_bag = Pickpocket's
 ## bag; hush_money = a hit's pay; bounty = Bounty Hunter; dice = the dice shrine; empty_offer, stranger_empty,
 ## shop_empty = something with nothing left to give; debug = the developer buttons (boards leave it out); other = a call
-## that named nothing (none should: pass61_an_test).
+## that named nothing (none should: pass61_an_test). Pass 118 (lane BOSSCHEST): boss_chest = a boss chest's coins (its
+## boss's purse, coins and own coin, packed and paid when they land; boss_purse and boss_coins no longer come in play).
 const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot_cache", "blasting_cap", "barrel", "elite_purse",
 	"boss_purse", "chest", "coin_bag", "hush_money", "bounty", "dice", "empty_offer", "stranger_empty", "shop_empty",
-	"debug", "other"]
+	"debug", "other", "boss_chest"]
 ## Where a run's gold goes (Run.spend_gold's `sink`): the shop structure, the Down! revive. The Strongbox is not a
 ## spend: it banks the purse (run_end's gold_banked, the save's gold_meta "strongbox").
 const GOLD_SINKS := ["shop", "revive", "other"]
@@ -1088,6 +1090,9 @@ func _fill_end(with_log: bool, banked: int = 0) -> void:
 	# the gold's end block (run_end's), the frame rate (a window's only)
 	header["trait"] = _trait()
 	header["totems"] = _totems()
+	# pass 118 (lane ITEMS): what the keys banked from the chests (Run.chest_bank: id -> {chests, stats}), only with one
+	if not Run.chest_bank.is_empty():
+		header["chest_banks"] = Run.chest_bank.duplicate(true)
 	header["timeline"] = _timeline()
 	header["quests"] = _quests()
 	header["crowd"] = _crowd()
@@ -1863,7 +1868,8 @@ static func weapon_sources_of(w: WeaponInstance, player: StatSheet) -> Array:
 		RunAnalytics._ws_add(acc, order, str(en.get("sid", en["source"])), str(en["source"]), e)
 	for en in w.sheet.entries:
 		var src := str(en["source"])
-		if src == "bonus" or src.begins_with("mutation:"):
+		# pass 118 (lane ITEMS): a Grindstone's bonuses ("grind:<id>") are the weapon's own too
+		if src == "bonus" or src.begins_with("mutation:") or src.begins_with("grind:"):
 			RunAnalytics._ws_add(acc, order, src, src, en["effect"])
 	var out: Array = []
 	for sid in order:

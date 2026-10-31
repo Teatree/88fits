@@ -27,7 +27,9 @@ const TIERS := {
 	"uncommon": ["kindling", "siesta", "ricochet", "overkill", "adrenaline", "hush_money", "vulture", "reach", "venom", "big_game_hunter",
 		"phoenix_feather", "powder_keg", "loose_change", "pocket_watch", "counterpunch"],
 	"rare": ["steady_hand", "guillotine", "desperado", "brimstone_brand", "skedaddle", "hot_streak", "heavyweight"],
-	"epic": ["sinners_greed", "gas_mask", "magnet", "snake_oil", "hot_springs", "last_stand"],
+	"epic": ["sinners_greed", "gas_mask", "magnet", "snake_oil", "hot_springs", "last_stand", "jade_key", "ruby_key"],
+	# pass 118 (lane ITEMS): the Jade Key and the Ruby Key epic, the Grindstone the first legendary item
+	"legendary": ["grindstone"],
 }
 const NEW_ITEMS := ["barrel_rush", "beer", "siesta", "steady_hand", "prospector", "big_game_hunter"]
 const SAVE_DIR := "user://test_saves/pass47_rules"

@@ -1316,3 +1316,16 @@ in Sundown, 4 in Nightfall, 5 in Blood Moon.
   "tornado" 0.01, on the PC); draw calls +6 (the tornado's 4, the ring, the creature outlines through it).
 - Tests: game/tests/pass113_TWISTER_test.gd, game/tests/pass87_slook_test.gd (test_draw_order),
   tools/level_editor/selftest_TWISTER113.py. Captures: game/tools/_p113_TWISTER_shots.gd.
+
+#### timeline_data.boss_chest (Object, optional; no block = the defaults below; pass 118)
+The boss chest's speed bonus (game/core/systems/BossChest.gd; BALANCING.md 60.BOSSCHEST). A boss's kill packs the gold
+and XP it paid into its own chest; the fight's length F (from its arrival to its death, the frames' clock) against
+S = its `boss_hp_scaling.seconds` sets the chest's multiplier.
+
+| key | type [default] | meaning |
+|---|---|---|
+| `fast` | number [1.5] | F at or under fast x S: the whole bonus |
+| `slow` | number [4.0] | F at or over slow x S: no bonus (x1); between, a straight line |
+| `max_mult` | number [2.0] | the whole bonus: the chest's gold and XP x this (never under 1) |
+
+The Level Editor's Settings tab shows them as the "Boss chest" card (tools/level_editor/fields.js).

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon_evolved.png" id="1_b230n"]
-[ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon.png" id="2_lwsnv"]
+[ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon_8aa2_c2.png" id="2_b230n"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="3_akrha"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_kygyd"]
 
@@ -35,8 +35,8 @@ display_name = "Snake Oil"
 flavour = "Cures what ails you. And then some."
 rarity = "epic"
 weight = 5.0
-icon = ExtResource("2_lwsnv")
-icon_file = "snake_oil_icon.png"
+icon = ExtResource("2_b230n")
+icon_file = "snake_oil_icon_8aa2_c2.png"
 placeholder = {
 "color": "#E86AA8",
 "glyph": "heart"

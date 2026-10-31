@@ -135,6 +135,11 @@ static func item_hero(def: ContentDef) -> String:
 static func hero_item_hidden(def: ContentDef) -> bool:
 	if hidden_only or def == null:
 		return false
+	# pass 118 (lane ITEMS; Garry: "add them all to the pull ... Making it possible for other heroes to get those
+	# weapons"): a hero's own weapon and its evolution are anyone's to find now, so they show whoever is owned; his
+	# mutations and perks stay his
+	if def is WeaponDef:
+		return false
 	var h := item_hero(def)
 	if h == "":
 		return false
@@ -471,7 +476,9 @@ func _full_text(def: ContentDef) -> String:
 		# an evolved passive has one level: all it is, its trade said once (the card's words)
 		if pd.is_evolved():
 			return WItem.effect({"def": pd, "level_from": 0, "level_to": 1, "evolve": true})
-		var s := pd.text + " " if pd.text != "" else ""
+		# pass 118 (lane ITEMS): written from its params when it has no text (the Grindstone)
+		var own := TextGen.passive_text(pd)
+		var s := own + " " if own != "" else ""
 		s += TextGen.passive_description(pd, 1)
 		return s + (" The trade: %s." % pd.trade.trim_suffix(".") if pd.trade != "" else "")
 	if def is PerkDef:

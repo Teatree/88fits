@@ -5,6 +5,7 @@
   "rarity": "rare",
   "weight": 8,
   "hero": "fadeaway",
+  "guest_weight": 0.45,
   "behavior": "ProjectileEmitter",
   "targeting": "priority",
   "tags": [

@@ -5,6 +5,7 @@
   "rarity": "rare",
   "weight": 8,
   "hero": "calavera",
+  "guest_weight": 0.45,
   "behavior": "ConeWave",
   "targeting": "nearest",
   "tags": [

@@ -286,6 +286,10 @@ func _item_row(def: ContentDef, level: int, max_level: int, inst: WeaponInstance
 			var note := _evolve_note(inst)
 			if not names.is_empty() or note != "":
 				row.body.add_child(WRow.path_chips(names, note))
+			# pass 118 (lane ITEMS): what a Grindstone ground into it
+			var gw := inst.ground_words()
+			if gw != "":
+				row.body.add_child(W.serif_text("Grindstone: " + gw, 22, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 		else:
 			var desc := ""
 			if def is PerkDef:

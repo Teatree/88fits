@@ -65,7 +65,13 @@ const STATS := {
 	"danger_bounty": ["", "hidden"], "boss_danger_hp": ["boss and Elite HP", "pct"],
 	"boss_danger_attack": ["boss and Elite attack", "pct"], "boss_danger_speed": ["boss and Elite speed", "pct"],
 	"boss_danger_bounty": ["", "hidden"],
+	# pass 118 (lane ITEMS): the keys' per-chest stats (Run.chest_opened) and the Grindstone's rolls (Run._grind)
+	"chest_luck": ["luck per chest opened", "pct"], "chest_might": ["attack damage per chest opened", "pct"],
+	"grind_rolls": ["bonus rolls on every weapon upgrade", "count"],
 }
+## A count stat's name for exactly one (pass 118: _singular cuts only a last "s", "bonus rolls on every weapon upgrade"
+## has its plural inside).
+const SINGULAR := {"grind_rolls": "bonus roll on every weapon upgrade"}
 ## The words of a "rule" stat (pass 70, lane LINES: the evolved lines' twists), {n} its amount, then the unit its number
 ## carries on a pause row or a change row.
 const RULE_TEXT := {
@@ -158,7 +164,7 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 					var n := int(round(e.value))
 					out = _signed(float(n))
 					if with_name:
-						out += " " + (name if n != 1 and n != -1 else _singular(name))
+						out += " " + (name if n != 1 and n != -1 else str(SINGULAR.get(e.stat, _singular(name))))
 				"sec":
 					out = _signed(e.value, " s") + (" " + name if with_name else "")
 				"m":
@@ -634,9 +640,10 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 	if sheet.get_stat("knockback", 0.0) > 0.0:
 		extras.append("Knocks enemies back.")
 	if def.hero != "":
+		# pass 118 (lane ITEMS): anyone may find it now; the card still says whose own it is
 		var reg := _registry()
 		var owner = reg.character(def.hero) if reg else null
-		extras.append("%s only." % (str(owner.display_name) if owner else def.hero.capitalize()))
+		extras.append("%s's own." % (str(owner.display_name) if owner else def.hero.capitalize()))
 	if def.is_evolution:
 		extras.append("Evolved: cannot level further.")
 	if not extras.is_empty():
@@ -1525,6 +1532,56 @@ static func player_effect(e: Effect) -> String:
 		if e.op == "add":
 			return _signed(e.value * 100.0, "%")
 	return describe_effect(e, false)
+
+
+## A passive item's own sentence (pass 118, lane ITEMS): its `text`, else one written from its params for a rule TextGen
+## knows (the Grindstone's grind table, grind_text); "" for an item with neither.
+static func passive_text(def: PassiveDef) -> String:
+	if def == null:
+		return ""
+	if def.text != "":
+		return def.text
+	var g = def.params.get("grind")
+	if g is Array and not (g as Array).is_empty():
+		return grind_text(g)
+	return chest_text(def)
+
+
+## The keys' rule in words (pass 118) from their first level's `chest_<stat>` effects: "Every chest you open banks +1%
+## luck for the rest of the run; a later level raises only the chests after it." "" without such an effect. A banked
+## multiplier stat (attack damage) is said as Run.chest_op lands it.
+static func chest_text(def: PassiveDef) -> String:
+	var fx: Array = []
+	for e in def.effects_at_level(1):
+		var x: Effect = e
+		if x.stat.begins_with("chest_") and x.op == "add":
+			var s := x.stat.trim_prefix("chest_")
+			var mul := absf(float(StatSheet.PLAYER_DEFAULTS.get(s, 0.0)) - 1.0) < 0.0001
+			fx.append(Effect.make(s, "mul" if mul else "add", x.value, "player"))
+	if fx.is_empty():
+		return ""
+	return "Every chest you open banks %s for the rest of the run; a later level raises only the chests after it." % describe_effects(fx)
+
+
+## The Grindstone's rule in words (pass 118) from its table ({stat, op, value, min?}): "Each weapon level-up grinds in a
+## random bonus for the rest of the run: +8% damage, −6% cooldown, ... or +1 pierce (piercing shots)."
+static func grind_text(table: Array) -> String:
+	var parts: Array = []
+	for e in table:
+		if not e is Dictionary:
+			continue
+		var d: Dictionary = e
+		var s := describe_effect(Effect.make(str(d.get("stat", "")), str(d.get("op", "mul")), float(d.get("value", 0.0))))
+		if s == "":
+			continue
+		if d.has("min"):
+			s += " (piercing shots)" if str(d.get("stat", "")) == "pierce" else " (from %s)" % _plain(float(d["min"]))
+		parts.append(s)
+	if parts.is_empty():
+		return ""
+	var list := ", ".join(PackedStringArray(parts.slice(0, parts.size() - 1))) + " or " + str(parts[parts.size() - 1]) if parts.size() > 1 else str(parts[0])
+	# a card line stays short (pass 69's rule): only the bonuses a weapon uses are drawn (WeaponInstance.grind_fits)
+	return "Each weapon level-up grinds in a random bonus for the rest of the run: %s." % list
 
 
 ## A perk's card text (pass 116): written from its params for a mechanism TextGen knows (the Invisible Box, special

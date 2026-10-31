@@ -408,7 +408,8 @@ func _items() -> void:
 		v.add_child(_item(fav, "favourite", word, _level_of(fav), _bonus_words(fav), sheet))
 	for w: WeaponDef in own_weapons(hero):
 		if w != start and w != fav:
-			v.add_child(_item(w, "own", "Only %s finds it" % _pronoun(), 1, "", sheet))
+			# pass 118 (lane ITEMS): anyone may find a hero's own weapon now
+			v.add_child(_item(w, "own", "Signature weapon", 1, "", sheet))
 	for m: MutationDef in Registry.hero_mutations(hero.id):
 		var on := Registry.weapon(m.weapon)
 		v.add_child(_item(m, "mutation", "Hero mutation · " + (on.display_name if on else m.weapon), 1, "", sheet))

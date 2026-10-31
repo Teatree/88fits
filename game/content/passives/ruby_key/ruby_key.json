@@ -1,0 +1,40 @@
+{
+  "id": "ruby_key",
+  "name": "Ruby Key",
+  "flavour": "Blood-red, and it remembers every lock.",
+  "rarity": "epic",
+  "weight": 6,
+  "max_level": 3,
+  "levels": [
+    [
+      {
+        "stat": "chest_might",
+        "op": "add",
+        "value": 0.02,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "chest_might",
+        "op": "add",
+        "value": 0.01,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "chest_might",
+        "op": "add",
+        "value": 0.01,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "art_prompt": "one big ornate old skeleton key made of glowing deep-red ruby crystal set in polished gold fittings, its bow a pointed gold flame shape holding a big faceted red ruby",
+  "placeholder": {
+    "color": "#C8283A",
+    "glyph": "star"
+  }
+}

@@ -5,6 +5,7 @@
   "rarity": "rare",
   "weight": 7,
   "hero": "solenne",
+  "guest_weight": 0.45,
   "behavior": "SunScepter",
   "targeting": "random",
   "tags": [

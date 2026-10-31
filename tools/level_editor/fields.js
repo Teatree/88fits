@@ -469,6 +469,11 @@ const FIELDS = (() => {
     { key: 'dust_devils.in_boss', group: 'Dust devils', label: 'During the boss fight', type: 'bool', def: false, help: 'on: they keep coming while the boss is alive; off: one standing when the boss comes fades away (empty = the game\'s: off)' },
     { key: 'dust_devils.in_portal', group: 'Dust devils', label: 'During the portal countdown', type: 'bool', def: false, help: 'on: they keep coming in the minute the portal counts down (empty = the game\'s: off)' },
     { key: 'dust_devils.in_endless', group: 'Dust devils', label: 'In Endless', type: 'bool', def: false, help: 'on: they keep coming in Endless (empty = the game\'s: off)' },
+    // pass 118 (lane BOSSCHEST; Garry: "The faster the Boss was killed the more Gold and Exp flies out"): the boss chest's
+    // speed bonus (timeline_data.boss_chest; BossChest.DEFAULTS in game/core/systems/BossChest.gd are the def here)
+    { key: 'boss_chest.fast', group: 'Boss chest', label: 'Whole bonus up to (× S)', type: 'number', min: 0, step: 0.1, def: 1.5, help: "a boss killed within this many times S (its \"Boss HP\" seconds: the least fight at the hero's full DPS) gives the whole bonus: its chest's gold and XP × the top bonus (empty = the game's 1.5)" },
+    { key: 'boss_chest.slow', group: 'Boss chest', label: 'No bonus from (× S)', type: 'number', min: 0, step: 0.1, def: 4, help: "a fight this many times S or longer gives no bonus (× 1); between the two the bonus falls in a straight line (empty = the game's 4)" },
+    { key: 'boss_chest.max_mult', group: 'Boss chest', label: 'Top bonus ×', type: 'number', min: 1, step: 0.1, def: 2, help: "the gold and XP a fast kill's chest holds, × what the boss paid (empty = the game's 2: twice); the pop-up's gauge runs from × 1 to this" },
     { key: 'structures.count', group: 'World', label: 'Structures', type: 'int', min: 0, def: 0, help: 'structures scattered at the run\'s start' },
     { key: 'structures.min_spacing', group: 'World', label: 'Structure spacing (m)', type: 'number', min: 0, step: 1, def: 16, help: 'the least metres between two structures' },
     // pass 80 (lane OASIS; Garry: "make the water slow everyone down when they walk though it, not by a lot, just 10%. And
@@ -530,7 +535,7 @@ const FIELDS = (() => {
     { key: 'spawn_rise.targetable', group: 'Spawning', label: 'Targetable from', type: 'number', min: 0, max: 1, step: 0.05, def: 0.7, help: 'the share of the way up from which a weapon may choose a rising creature as its target (below it no weapon picks it, nothing aims at it; area damage, blasts, patches, beams and rings still hit it); a burrower sinking out of sight is passed over below it too. It bites and attacks only once it is all the way up' },
     { key: 'spawn_rise.dust', group: 'Spawning', label: 'Rise dust ×', type: 'number', min: 0, step: 0.1, def: 1, help: 'the size of the dust puff a rising creature throws up, × its size (0 = none; only drawn on the screen)' },
   ];
-  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'XP per level', 'Coloured specials', 'Boss HP', 'Hero power', 'Targeting', 'Endless', 'Items', 'World', 'Barrels', 'Dust devils'];
+  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'XP per level', 'Coloured specials', 'Boss HP', 'Hero power', 'Targeting', 'Endless', 'Items', 'World', 'Barrels', 'Dust devils', 'Boss chest'];
 
   // the two curves' own fields (the HP x / ATK x inspectors and the Settings block)
   const CURVE = [

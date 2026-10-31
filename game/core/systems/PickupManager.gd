@@ -282,6 +282,13 @@ var coins := 0                 # coins on the ground (pass 54)
 ## Pass 61 (the gold board): where a coin came from when it is not a creature's drop, {slot: source} (mark_coin;
 ## RunAnalytics.GOLD_SOURCES), read when it is taken (a big pull's unseen take too) and dropped when its slot frees.
 var coin_from: Dictionary = {}
+## Pass 118 (lane BOSSCHEST): the boss chest's pickups, {slot: its share of the counters}: what the pop-up counted is paid
+## at CLAIM (Game._on_boss_chest_claimed), so these fly in for the show and pay nothing when they land (_pay_exact): a
+## piece cut short (the run ended, the hero stepped through the portal) never loses the hero a coin.
+var exact_pay: Dictionary = {}
+## Pass 118 (lane BOSSCHEST): while a boss's kill is handled, what it would drop is packed here instead of spawned
+## ({gold, xp}: capture_swap, _captured); null the rest of the time.
+var _capture = null
 ## Pass 56: the idle hops' and glints' own dice, so these looks never move the run's shared random sequence.
 var _rng := RandomNumberGenerator.new()
 var _glint_mm: MultiMesh        # the glints' four-point stars (GLINT_*)
@@ -1039,6 +1046,10 @@ func _make_glint_mm() -> MultiMesh:
 ## its float and spin are timed by, phase_of; the coin's too) is written now, once, and falls in the active list until
 ## it lands.
 func spawn(p_kind: int, at: Vector3, v: float) -> int:
+	# pass 118 (lane BOSSCHEST): a boss's kill packs its drops into its chest instead (capture_swap): nothing lands, -1
+	if _capture != null:
+		_captured(p_kind, v)
+		return -1
 	if free_list.is_empty():
 		_grow()
 	var i: int = free_list.pop_back()
@@ -1076,6 +1087,24 @@ func spawn(p_kind: int, at: Vector3, v: float) -> int:
 	custom_writes += 1
 	_act_add(i)
 	return i
+
+
+## Pass 118 (lane BOSSCHEST): `c` ({gold, xp} or null) catches every spawn from now on instead of the sand; the catch
+## that was on comes back (Game sets one round a boss's kill and puts the old one back after; a creature that dies while
+## it is on, killed by the boss's own fall, drops its own as ever: Game swaps null in round its kill).
+func capture_swap(c):
+	var old = _capture
+	_capture = c
+	return old
+
+
+## A spawn the catch took: a coin's gold as _collect would pay it before greed (its value x the stage's coin factor), a
+## gem's XP before Field Notes. A vacuum gem packs nothing (only Elites drop one).
+func _captured(k: int, v: float) -> void:
+	if k == KIND_COIN:
+		_capture["gold"] = float(_capture.get("gold", 0.0)) + v * float(maxi(int(round(Run.stage_mult())), 1))
+	elif k <= KIND_GEM_L:
+		_capture["xp"] = float(_capture.get("xp", 0.0)) + v
 
 
 ## The coin in slot `i` (a spawn's answer; -1 does nothing) came from `source` (pass 61: gold_dust, boss_coins, ...); the
@@ -1703,6 +1732,7 @@ func _free(i: int) -> void:
 	if kind[i] == KIND_COIN:
 		coins -= 1
 		coin_from.erase(i)
+	exact_pay.erase(i)
 
 
 ## Everything on the field goes at once (pass 61: in one sweep of the pools, no instance written; the next draw shows
@@ -1744,6 +1774,7 @@ func clear_all() -> void:
 	count = 0
 	coins = 0
 	coin_from.clear()
+	exact_pay.clear()
 
 
 ## true while the hero is down (pass 60): see _physics_process
@@ -2069,6 +2100,10 @@ func _drop_here(i: int, map) -> void:
 ## Pickup `i` is the hero's. `quiet` (pass 61: one a big pull takes unseen, off the screen): no sound and no mote, a
 ## gem's XP is gathered and handed to the run once at the end of the tick (_credit_xp), and a vacuum gem starts nothing.
 func _collect(i: int, quiet: bool = false) -> void:
+	# pass 118 (lane BOSSCHEST): a boss chest's piece pays what the pop-up counted for it
+	if exact_pay.has(i):
+		_pay_exact(i, quiet)
+		return
 	if quiet:
 		match kind[i]:
 			KIND_COIN:
@@ -2115,6 +2150,61 @@ func spawn_chest(at: Vector3, boss: bool = false) -> void:
 	add_child(c)
 	c.global_position = at
 	chests.append(c)
+
+
+## Pass 118 (lane BOSSCHEST; Garry: "Each Boss now drops a unique chest"): boss `boss_id`'s own chest at `at`, holding
+## `pack` (BossChest.make_pack: the gold and XP its kill paid, times the speed bonus). It waits on the sand like the
+## purple chest; touched, Game.open_boss_chest plays the pop-up.
+func spawn_boss_chest(at: Vector3, boss_id: String, pack: Dictionary) -> Chest:
+	var c := Chest.new()
+	c.boss_id = boss_id
+	c.pack = pack
+	add_child(c)
+	c.global_position = at
+	chests.append(c)
+	return c
+
+
+## Pass 118 (lane BOSSCHEST; Garry: "Picking up these chests also results in all the of stuff flying in towards the
+## Player"): after CLAIM the chest's gold and XP burst out of `at` as pickups in a fountain (the manager's own dice):
+## BossChest.piece_counts coins marked "boss_chest" and gems, each holding its share of `gold_net` and `xp_net`
+## (exact_pay; BossChest.split_int / split_float) for the record; the counters themselves were paid at CLAIM, so these
+## pay nothing when they land (the lead's review: pieces still flying when the run ended had cost the hero gold). Game
+## then calls everything in (vacuum_all), these first. Returns how many pieces.
+func boss_chest_payout(at: Vector3, gold_net: int, xp_net: float) -> int:
+	var n := BossChest.piece_counts(gold_net, xp_net)
+	var golds := BossChest.split_int(gold_net, n.x)
+	var xps := BossChest.split_float(xp_net, n.y)
+	var made := 0
+	for k in range(golds.size() + xps.size()):
+		var is_coin := k < golds.size()
+		var gk: int = KIND_COIN if is_coin else int([KIND_GEM_S, KIND_GEM_M, KIND_GEM_L][(k - golds.size()) % 3])
+		var i := spawn(gk, at + Vector3(0, 0.6, 0), 0.0)
+		if i < 0:
+			continue
+		if is_coin:
+			mark_coin(i, "boss_chest")
+			exact_pay[i] = int(golds[k])
+			value[i] = float(golds[k])
+		else:
+			exact_pay[i] = float(xps[k - golds.size()])
+			value[i] = float(xps[k - golds.size()])
+		var a := _rng.randf() * TAU
+		var out := _rng.randf_range(1.5, 4.5)
+		vel[i] = Vector3(cos(a) * out, _rng.randf_range(6.0, 10.0), sin(a) * out)
+		made += 1
+	return made
+
+
+## A boss chest's piece lands (pass 118): already paid at CLAIM, so only its ding and its glint (unless taken unseen).
+func _pay_exact(i: int, quiet: bool) -> void:
+	if not quiet:
+		if kind[i] == KIND_COIN:
+			Audio.play("pk_coin")
+		else:
+			Audio.play(str(["pk_gem_s", "pk_gem_m", "pk_gem_l"][clampi(kind[i], 0, 2)]))
+		_glint(i)
+	_free(i)
 
 
 ## `quiet`: no fanfare (the drop passives' cake slices and coin bags fall often).
@@ -2176,7 +2266,11 @@ func _check_chests(player: Node3D, delta: float = 0.0) -> void:
 			c.global_position.y = lerpf(c.global_position.y, player.global_position.y, clampf(delta * 6.0, 0.0, 1.0))
 		if d.length() < 1.3 and not c.opened:
 			c.opened = true
-			game.open_chest(c.global_position, c.boss)
+			# pass 118 (lane BOSSCHEST): a boss's own chest plays its pop-up with what it holds
+			if c.boss_id != "" and game.has_method("open_boss_chest"):
+				game.open_boss_chest(c.global_position, c.boss_id, c.pack)
+			else:
+				game.open_chest(c.global_position, c.boss)
 			c.open_anim()
 		else:
 			keep.append(c)

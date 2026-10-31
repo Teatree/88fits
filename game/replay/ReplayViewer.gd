@@ -616,6 +616,8 @@ func _on_decision(d: Dictionary, late: int) -> void:
 			words = "Chest: took it" if bool(d.get("take", true)) else "Chest: skipped"
 		"chest_banish":
 			words = "Chest: banished"
+		"bosschest_claim":
+			words = "Boss chest: claimed"
 		"shop_buy":
 			words = "Shop: bought " + _item_name(str(d.get("id", "")))
 		"shop_leave":
@@ -644,7 +646,7 @@ func _on_decision(d: Dictionary, late: int) -> void:
 			words = "Setting %s = %s" % [str(d.get("key", "")), str(d.get("value", ""))]
 		"god":
 			words = "God mode " + ("on" if bool(d.get("on", false)) else "off")
-		"reel_skip", "chest_intro", "chest_hurry", "spawn_hurry":
+		"reel_skip", "chest_intro", "chest_hurry", "spawn_hurry", "bosschest_hurry":
 			return
 	_note(("%s  %s" % [mmss(_now_wall()), words]) + ("  (%d frames late)" % late if late > 0 else ""))
 

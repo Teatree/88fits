@@ -366,6 +366,8 @@ func tick(delta: float, ppos: Vector3) -> void:
 		_draw(i, run)
 		# pass 115 (lane BOSS): the crowd kept on its side of the barrier
 		_wall_hold_crowd(i, run)
+		# pass 118: the crowd outside it watches
+		_wall_onlookers(i, run, ppos)
 	last_us = Time.get_ticks_usec() - t0
 	Perf.add("boss.pattern", t0)
 
@@ -943,6 +945,36 @@ func _wall_hold_crowd(bi: int, run: Dictionary) -> void:
 				wall_holds += 1
 	w["side"] = side
 	w["ser"] = ser
+
+
+## Pass 118 (the lead; Garry: "When I am in the barrier with the Boss all other enemies outside the barrier should stop
+## and look at me. They do not attack. Only ones that are inside the barrier with the hero actually attack."): while the
+## barrier stands and the hero at `ppos` is inside it, every living creature but the boss whose middle is outside its ring
+## is an onlooker (EnemyManager.onlook: it stands turned to him and attacks nothing); one inside fights as ever. Set every
+## tick and stamped (EnemyManager.onlook_tick), so the flags go when the barrier does, however it ends.
+func _wall_onlookers(bi: int, run: Dictionary, ppos: Vector3) -> void:
+	var w = run.get("wall")
+	if not (w is Dictionary) or not bool((w as Dictionary)["up"]):
+		return
+	var c: Vector3 = w["c"]
+	var r := float(w["r"])
+	var inside := Vector2(ppos.x - c.x, ppos.z - c.z).length() < r
+	var ol: PackedByteArray = em.onlook
+	var al: PackedByteArray = em.alive
+	var ps: PackedVector3Array = em.pos
+	var n := 0
+	for j in range(mini(em.pool_max, ol.size())):
+		var watch := 0
+		if inside and al[j] == 1 and j != bi and em.state[j] != EnemyManager.STATE_DYING:
+			var p: Vector3 = ps[j]
+			if Vector2(p.x - c.x, p.z - c.z).length() >= r:
+				watch = 1
+		if ol[j] != watch:
+			ol[j] = watch
+		n += watch
+	em.onlook = ol
+	em.onlookers = n
+	em.onlook_tick = em._ticks
 
 
 ## A bullet hits the barrier at (x, z): a small spark in its colour where the hero can see it, at most one every

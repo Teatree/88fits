@@ -81,6 +81,7 @@ every pick marked under the weapons); its CSV has no `hp_min` column.
 | `stat_names` *(2)* | `{stat: the pause screen's words}` (TextGen) for every stat a snapshot carries |
 | `trait` *(2)* | the hero's trait as the run ended: `name`, `text` (its line), `level`, `stats` {stat: value at that level}, `words` (those numbers in words) |
 | `totems` *(2)* | the Totem Poles' gifts taken: `[{id, name, stat, op, value, quality (1-3), words}]` |
+| `chest_banks` | (pass 118, only when one banked) what the keys banked from the chests opened (`Run.chest_bank`, BALANCING.md 60.ITEMS): `{item id: {chests, stats: {stat: amount}}}` (the Jade Key's `luck`, the Ruby Key's `might`) |
 | `build` | `{weapons: [{id, level, mutations: [ids]}], passives: {id: level}, perks: [ids]}`; *(2)* `lines: {id: level}`, the line items (the fortune cards, `PassiveDef.is_line`) apart from `passives`. A record from before pass 46 also has `lines` (the old lines) |
 | `build_text` *(2)* | the build in one line, in the order it was taken (`Revolver 5 +3 · Peashooter 2 \| Clover 2 · Brawn 1 \| Afterglow`) |
 | `totals` | `Run`'s `damage_by_weapon`, `kills_by_weapon`, `kills_by_enemy` |
@@ -209,6 +210,7 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `stranger_decline` *(2)* | his deal turned down: `id`, `type`, `level`, `cost` |
 | `totem_offer` *(2)* | a Totem Pole's menu closed: `id` (the gift taken; absent when none was), `offered` / `stats` / `values` / `quality` / `words` (the gifts offered: ids, stats, amounts, quality 1-3, in words) |
 | `totem` | (pass 73) a gift taken: `id`, `level` (gifts taken so far), `stat`, `value` |
+| `grind` | (pass 118) a Grindstone ground bonuses into a weapon at its level-up: `id` (the weapon), `level` (its new level), `bonus` (the words: "+8% damage, −6% cooldown") |
 | `mutation_due` | (pass 79) a mutation offer fell due on the stage clock and waits for the next level-up: `level` (the hero's), `due` (offers waiting after it), `slot`; `dropped: true` when it was spent with no weapon open (at its slot), at the level-up that took it (`at_level_up`) or as its screen opened (`at_screen`). A mutation level-up's own `offer` keeps `route: "path"` |
 | `pickup` | `id`, `small` (cake slices, coin bags), `effect` |
 | `portal_wait` | (pass 48) the boss is down and the portal waits: `level` = the stage |
@@ -254,7 +256,8 @@ Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)". Eve
 | `coins` | a coin a creature dropped (the stage multiplies every coin) |
 | `loose_change`, `gold_dust`, `boss_coins`, `loot_cache`, `blasting_cap`, `barrel` | coins of those origins (`PickupManager.mark_coin`): Loose Change's tossed coin, the Sun Scepter's Gold Dust, the boss's shower, the Loot Cache's coins (and its purse), Mira's Blasting Cap mine, a black barrel's 1-5 coins (pass 87); a merged coin counts as `coins` |
 | `coin_bag` | Pickpocket's bag (a pickup with `effect: gold`, named by its id) |
-| `elite_purse`, `boss_purse` | the purse an Elite's or a boss's death pays |
+| `elite_purse`, `boss_purse` | the purse an Elite's or a boss's death pays (`boss_purse` until pass 118) |
+| `boss_chest` | pass 118: a boss chest's coins: the boss's purse, its coins and its own coin packed into its chest at the kill (times the speed bonus) and paid as each coin lands; also the event `boss_chest` (id = the boss, level = the stage, extra `gold`, `xp`, `mult`, `fight`) when its pop-up opens |
 | `chest` | a chest's gold (its gold roll, or gold when the build changed under the reel) |
 | `hush_money`, `bounty`, `dice` | Hush Money's pay for a hit, Bounty Hunter's bounty, the dice shrine |
 | `empty_offer`, `stranger_empty`, `shop_empty` | gold instead of a level-up, a Stranger or a shop with nothing left to offer |

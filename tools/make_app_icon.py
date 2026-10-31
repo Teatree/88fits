@@ -15,6 +15,8 @@ The pass 115 icons are kept in tools/dl/backup/app_icon_v098/.
 Pass 117 (Garry: "Change the icon from what it is now to Gemini_Generated_Image_4y8c2i4y8c2i4y8c.jfif"): that picture is
 the source now, a 2048 px square already framed as an icon, used whole (CROPS names each source's boxes); also
 game/icon_512.png, the Play Store listing's icon (512 px, uploaded by hand in the Play Console).
+Pass 118 (Garry: "change the App Icon to be Gemini_Generated_Image_in0heein0heein0h.jfif"): that picture now, used whole
+the same way; the pass 117 icons are kept in tools/dl/backup/app_icon_v100/.
 """
 import argparse
 import os
@@ -23,12 +25,13 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "_REFERENCES", "2d", "Gemini_Generated_Image_4y8c2i4y8c2i4y8c.jfif")
+SRC = os.path.join(ROOT, "_REFERENCES", "2d", "Gemini_Generated_Image_in0heein0heein0h.jfif")
 GAME = os.path.join(ROOT, "game")
 # square crops in the source's pixels (x0, y0, side): CROP for the big icons, SMALL a tighter one for launcher sizes
 CROPS = {
     "Desert Gunslinger Battles Scorpion Swarm.png": ((100, 30, 900), (170, 60, 780)),
     "Gemini_Generated_Image_4y8c2i4y8c2i4y8c.jfif": ((0, 0, 2048), (60, 40, 1880)),
+    "Gemini_Generated_Image_in0heein0heein0h.jfif": ((0, 0, 2048), (40, 0, 1880)),
 }
 CROP, SMALL = CROPS[os.path.basename(SRC)]
 SAFE = 0.66

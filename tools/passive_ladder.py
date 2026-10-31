@@ -96,6 +96,11 @@ LADDER = {
     "magnet": [[E("xp_pull_radius", 6.0)], [E("xp_pull_radius", 1.0), E("xp_pull_rate", 0.5)], [E("xp_pull_radius", 1.5), E("xp_pull_rate", 0.5)]],
     "sinners_greed": [[E("greed", 0.4), E("xp_gain", 0.2)], [E("greed", 0.2), E("xp_gain", 0.1)], [E("greed", 0.3), E("xp_gain", 0.15)]],
     "snake_oil": [[E("overheal", 0.25)], [E("overheal", 0.06)], [E("overheal", 0.1)]],
+    # pass 118 (lane ITEMS): the keys (what one chest banks at each rung) and the first legendary item, the Grindstone
+    # (2 levels: legendary, Evolved)
+    "jade_key": [[E("chest_luck", 0.01)], [E("chest_luck", 0.005)], [E("chest_luck", 0.005)]],
+    "ruby_key": [[E("chest_might", 0.02)], [E("chest_might", 0.01)], [E("chest_might", 0.01)]],
+    "grindstone": [[E("grind_rolls", 1)], [E("grind_rolls", 1)]],
 }
 
 # the hand-written card lines that named the old numbers (a new card shows `text` verbatim; the upgrades read the rungs)

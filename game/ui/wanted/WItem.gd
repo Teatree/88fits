@@ -161,8 +161,9 @@ static func _passive_effect(card: Dictionary, pd: PassiveDef) -> String:
 	var lt := maxi(int(card.get("level_to", 1)), 1)
 	var whole := bool(card.get("evolve", false)) or pd.is_evolved()
 	var ranked := not whole and not (lf == 0 and lt > 1)
-	if lf == 0 and pd.text != "" and not whole:
-		return pd.text
+	# pass 118 (lane ITEMS): the item's own sentence, written from its params when it has none (the Grindstone)
+	if lf == 0 and TextGen.passive_text(pd) != "" and not whole:
+		return TextGen.passive_text(pd)
 	var effs: Array = pd.effects_at_level(lt) if ranked else TextGen._sum_effects(pd.effects_for_level(1 if whole else lt))
 	var good: Array = []
 	var ceiling := false
