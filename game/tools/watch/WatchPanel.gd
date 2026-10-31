@@ -15,6 +15,8 @@ const STRIP := preload("res://tools/watch/WatchStrip.gd")
 const DATA := preload("res://tools/watch/WatchData.gd")
 const CLOCK := preload("res://tools/watch/WatchClock.gd")
 const HURT := preload("res://tools/watch/WatchHurt.gd")
+## pass 117 (lane WATCHDPS): the Weapon DPS tab beside the damage share chart
+const WDPS := preload("res://tools/watch/WatchWeaponDps.gd")
 
 const BG := Color(0.082, 0.09, 0.11)
 const CARD := Color(0.105, 0.115, 0.14)
@@ -37,6 +39,10 @@ const PICKUP_MARKS := [["chests", "Chests", Color(0.98, 0.8, 0.3), "square", 2],
 	["totems", "Totems", Color(0.95, 0.55, 0.8), "triangle", 0]]
 ## pass 90: the Damage taken table's share of the charts' column against a chart's 1
 const HURT_STRETCH := 1.9
+## pass 117 (lane WATCHDPS): the Weapon DPS tab's share of the charts' column (its chart, icon strip and weapon rows want
+## the room: about 60% of the column, so four weapon rows show in a 1000 px window; the other three charts keep their
+## own share, at least 72 px each)
+const WDPS_STRETCH := 5.0
 ## pass 90: a pickup mark's name in the charts' hover
 const PICKUP_ONE := {"chests": "Chest", "powerups": "Power-up", "totems": "Totem gift"}
 ## the decision log shows at most this many entries, newest first
@@ -85,6 +91,16 @@ var _down_text: Label
 var _win_label: Label
 var _win_btns: Dictionary = {}
 var _hp_block_box: VBoxContainer
+## pass 117 (lane WATCHDPS): the damage share chart's tabs (Damage share | Weapon DPS, the F key), the Weapon DPS view
+## (WatchWeaponDps.gd), its window chips, and the icons it shows (by kind and id, and by file)
+var show_wdps := false
+var _share_tab: Button
+var _wdps_tab: Button
+var _wdps
+var _wdps_win_label: Label
+var _wdps_win_btns: Dictionary = {}
+var _share_block_box: VBoxContainer
+var _icon_cache: Dictionary = {}
 
 
 func build(w: Node) -> void:
@@ -153,6 +169,9 @@ func build(w: Node) -> void:
 		# pass 90: the HP chart shares its place with the Damage taken tab
 		if t.begins_with("HP"):
 			a.add_child(_hp_block(c))
+		# pass 117: the damage share chart shares its place with the Weapon DPS tab
+		elif t.begins_with("Damage share"):
+			a.add_child(_share_block(c))
 		else:
 			a.add_child(c)
 	# 4: the decision log
@@ -443,13 +462,23 @@ func check_hover(spec: String) -> void:
 	if bits.size() != 3:
 		return
 	var c: Control = _hurt if bits[0] == "hurt" else (_charts[clampi(int(bits[0]), 0, _charts.size() - 1)] as Control)
+	# pass 117: "wdps/<m|s|r><k>/" (the Weapon DPS tab's k-th mark, "shaped by" icon or row) or "wdps/<x>/<y>";
+	# "wdpschart/<x>/<y>" its chart
+	if bits[0] == "wdps" or bits[0] == "wdpschart":
+		c = _wdps if bits[0] == "wdps" else (_wdps.chart if _wdps != null else null)
 	if c == null:
 		return
 	# (one pointer: the others' hover goes, as when the mouse leaves them)
-	for o in _charts + [_hurt]:
+	for o in _charts + [_hurt, _wdps, _wdps.chart if _wdps != null else null]:
 		if o != c and o != null:
-			o.set("hover", Vector2(-1, -1))
-			o.queue_redraw()
+			if o == _wdps:
+				_wdps.set_hover(Vector2(-1, -1))
+			else:
+				o.set("hover", Vector2(-1, -1))
+				o.queue_redraw()
+	if c == _wdps:
+		_wdps.set_hover(_wdps.point_for(bits[1] if not bits[1].is_valid_float() else bits[1] + "/" + bits[2]))
+		return
 	# (x as "t<play seconds>" on a chart: that moment's place)
 	var x := float(bits[1]) * c.size.x
 	if bits[1].begins_with("t") and c.has_method("to_px"):
@@ -467,6 +496,255 @@ func _refresh_hurt() -> void:
 	var data = watch.data
 	var now: float = watch.play_t()
 	_hurt.set_rows(data.hurt_rows(-1.0), data.hurt_rows(now - float(_hurt.window_s)), now)
+
+
+## Pass 117 (lane WATCHDPS): the damage share chart's place: a row of two tabs (Damage share | Weapon DPS, the F key)
+## and, with the Weapon DPS tab, its rolling mean's chips (5, 10, 30 s), over the chart or the Weapon DPS view
+## (WatchWeaponDps.gd), one shown at a time. The Weapon DPS view takes WDPS_STRETCH of the column while it shows.
+func _share_block(c) -> Control:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 2)
+	v.add_child(tabs)
+	_share_tab = _tab_button("Damage share", "each source's share of the damage, stacked to 100% (F switches)", func() -> void: set_wdps_tab(false))
+	_wdps_tab = _tab_button("Weapon DPS", "each weapon's real DPS over time, with every item, boost and upgrade that changed it, and what shapes each weapon's numbers now (F switches)", func() -> void: set_wdps_tab(true))
+	tabs.add_child(_share_tab)
+	tabs.add_child(_wdps_tab)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tabs.add_child(sp)
+	_wdps_win_label = Label.new()
+	_wdps_win_label.text = "mean over"
+	_wdps_win_label.add_theme_font_size_override("font_size", 12)
+	_wdps_win_label.add_theme_color_override("font_color", DIM)
+	tabs.add_child(_wdps_win_label)
+	for s in WDPS.WINDOWS:
+		var secs := int(s)
+		var wb := _tab_button("%d s" % secs, "each line a rolling mean over %d s of play" % secs, func() -> void: set_wdps_window(secs))
+		tabs.add_child(wb)
+		_wdps_win_btns[secs] = wb
+	_share_block_box = v
+	v.add_child(c)
+	_wdps = WDPS.new()
+	_wdps.custom_minimum_size = Vector2(0, 72)
+	_wdps.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_wdps.visible = false
+	v.add_child(_wdps)
+	_show_wdps_tab()
+	return v
+
+
+## Pass 117: the damage share's place shows the Weapon DPS view (`on`) or the share chart.
+func set_wdps_tab(on: bool) -> void:
+	show_wdps = on
+	_show_wdps_tab()
+	if on and watch != null:
+		update_charts()
+
+
+## Pass 117: the Weapon DPS lines' rolling mean (5, 10 or 30 s).
+func set_wdps_window(secs: int) -> void:
+	if _wdps == null:
+		return
+	_wdps.set_window(secs)
+	_show_wdps_tab()
+
+
+func _show_wdps_tab() -> void:
+	if _wdps == null:
+		return
+	_wdps.visible = show_wdps
+	(_charts[3] as Control).visible = not show_wdps
+	_share_tab.set_pressed_no_signal(not show_wdps)
+	_wdps_tab.set_pressed_no_signal(show_wdps)
+	_wdps_win_label.visible = show_wdps
+	for s in _wdps_win_btns:
+		var wb: Button = _wdps_win_btns[s]
+		wb.visible = show_wdps
+		wb.set_pressed_no_signal(int(s) == int(_wdps.window_s))
+	if _share_block_box != null:
+		_share_block_box.size_flags_stretch_ratio = WDPS_STRETCH if show_wdps else 1.0
+
+
+## Pass 117: the Weapon DPS view's model now (WatchWeaponDps.set_model), when it shows: the weapons (held now in slot
+## order, then every weapon the events or the damage named), their families (an evolution's base weapon), the lines
+## (WatchWeaponDps.fold of the rows' damage by source), each weapon's sources now (RunAnalytics.weapon_sources_of on the
+## hero's sheet), the marks (WatchWeaponDps.dps_marks) with their icons, and each line's row: its colour (the damage
+## share chart's for a weapon), icon, name, level and mutations, and its "shaped by" icons with their hints.
+func _refresh_wdps(x0: float, x1: float, base_marks: Array) -> void:
+	if _wdps == null or not show_wdps or watch == null:
+		return
+	var w := watch
+	var data = w.data
+	var run: Node = w.run_node()
+	var reg: Node = w.get_node_or_null("/root/Registry")
+	var ids: Array = []
+	if run != null:
+		for wi in run.weapons:
+			if not ids.has(str(wi.def.id)):
+				ids.append(str(wi.def.id))
+	for e in data.events:
+		if str(e.get("kind", "")) in ["weapon", "evolution"] and str(e.get("id", "")) != "" and not ids.has(str(e["id"])):
+			ids.append(str(e["id"]))
+	if reg != null:
+		for k in data.dmg_total:
+			if not ids.has(str(k)) and reg.weapon(str(k)) != null:
+				ids.append(str(k))
+	var fam := {}
+	if reg != null:
+		for id in ids:
+			var d = reg.weapon(str(id))
+			if d != null and bool(d.is_evolution) and str(d.evolved_from) != "":
+				fam[str(id)] = str(d.evolved_from)
+	var f: Dictionary = WDPS.fold(data.dmg_rows, ids, fam)
+	# the sources that shape each weapon held now
+	var ws := {}
+	if run != null and run.get("player_sheet") != null:
+		var ra_script = load("res://core/systems/RunAnalytics.gd")
+		for wi in run.weapons:
+			var l: Array = ra_script.weapon_sources_of(wi, run.player_sheet)
+			if not l.is_empty():
+				ws[str(wi.def.id)] = l
+	var by_sid: Dictionary = WDPS.sources_by_sid(ws)
+	# the names the marks need (a Totem gift's from its source's words) and the stats' words
+	var tg = load("res://core/systems/TextGen.gd")
+	var names: Dictionary = {}
+	for e in data.events:
+		for key in ["id", "from", "weapon"]:
+			var v := str(e.get(key, ""))
+			if v != "" and not names.has(v):
+				names[v] = w.name_of(v)
+		if str(e.get("kind", "")) == "totem":
+			var tid := str(e.get("id", ""))
+			var tsrc: Array = by_sid.get("totem:" + tid, [])
+			names[tid] = str(tsrc[0]["n"]) if not tsrc.is_empty() and str(tsrc[0]["n"]) != "" else tid.replace("_", " ").capitalize()
+			var st := str(e.get("stat", ""))
+			if st != "":
+				names["stat:" + st] = str(tg.stat_name(st))
+	for id in ids:
+		names[str(id)] = w.name_of(str(id))
+	var marks: Array = WDPS.dps_marks(data.events, by_sid, names)
+	for m in marks:
+		m["icon"] = _icon_of(str(m["key"]), str(m["kind"]))
+	# each line's row
+	var info := {}
+	var used: Array = []
+	for fm in f["fams"]:
+		var col: Color = _share_cols[fm] if _share_cols.has(fm) else _share_colour(str(fm))
+		used.append(col)
+		var end_w = null
+		var end_ids: Array = []
+		if run != null:
+			for wi in run.weapons:
+				if WDPS.family_of(str(wi.def.id), fam) == str(fm):
+					end_w = wi
+					end_ids.append(str(wi.def.id))
+		var nm: String = w.name_of(str(fm))
+		var sub := "not held now"
+		var icon = _icon_of(str(fm), "weapon")
+		if end_w != null:
+			if str(end_w.def.id) != str(fm):
+				nm += " → " + w.name_of(str(end_w.def.id))
+			var ms := PackedStringArray()
+			for m in end_w.mutations:
+				ms.append(str(m.display_name))
+			sub = "Lv %d%s" % [int(end_w.level), (" · " + ", ".join(ms)) if not ms.is_empty() else ""]
+			icon = end_w.def.icon if end_w.def.icon is Texture2D else _icon_of(str(end_w.def.id), "weapon")
+		var srcs: Array = []
+		var seen := {}
+		for wid in end_ids:
+			for x in ws.get(wid, []):
+				var sid := str(x.get("s", ""))
+				if sid == "" or seen.has(sid):
+					continue
+				seen[sid] = true
+				srcs.append(_source_entry(x, data.events, reg))
+		var note := "nothing changes its numbers" if end_w != null else "not held now: no sources"
+		info[fm] = {"name": nm, "sub": sub, "color": col, "weapon": true, "icon": icon, "sources": srcs, "note": note}
+	var free: Array = []
+	for c in SHARE_COLS.slice(0, SHARE_COLS.size() - 1):
+		if not used.has(c):
+			free.append(c)
+	for o in f["own"]:
+		var ocol: Color = free.pop_front() if not free.is_empty() else GREY
+		info[o] = {"name": w.name_of(str(o)), "sub": "its own damage, not a weapon", "color": ocol,
+			"weapon": false, "icon": _icon_of(str(o), ""), "sources": [], "note": "its own item: no weapon's numbers"}
+	if not (f["folded"] as Array).is_empty():
+		var fn := PackedStringArray()
+		for o in f["folded"]:
+			fn.append(w.name_of(str(o)))
+		info["__other"] = {"name": "other sources", "sub": ", ".join(fn) + " (each under 2%)", "color": SHARE_COLS[SHARE_COLS.size() - 1],
+			"weapon": false, "icon": null, "sources": [], "note": ""}
+	_wdps.set_model({"t": data.t, "keys": f["keys"], "raw": f["raw"], "total": f["total"], "info": info, "marks": marks,
+		"x0": x0, "x1": x1, "base_marks": base_marks})
+
+
+## Pass 117: one "shaped by" icon of a weapon's row from a weapon_sources_of entry `x`: its icon, name, the hint's lines
+## (its name; its kind and what it does; when it was taken, or "there from the start") and the times it lights.
+func _source_entry(x: Dictionary, events: Array, reg: Node) -> Dictionary:
+	var sid := str(x.get("s", ""))
+	var k := str(x.get("k", ""))
+	var key := sid.substr(sid.find(":") + 1).get_slice(":", 0) if sid.contains(":") else sid
+	var times: Array = WDPS.source_times(events, sid)
+	var when := ""
+	if not times.is_empty():
+		var at := PackedStringArray()
+		for t in times:
+			at.append(DATA.mmss(float(t)))
+		when = "taken at " + ", ".join(at)
+	elif k in ["talent", "hero", "trait", "bonus", "momentum"]:
+		when = "there from the start"
+	var kw: String = str(WDPS.SRC_KIND_WORDS.get(k, k if k != "" else "a source"))
+	var kcol := k
+	if k == "passive":
+		var pd = reg.passive(key) if reg != null else null
+		var line: bool = pd != null and pd.has_method("is_line") and bool(pd.is_line())
+		kw = "card" if line else "passive item"
+		kcol = "card" if line else "passive"
+	var icon = _tex(str(x.get("i", "")))
+	if icon == null:
+		icon = _icon_of(key, kcol)
+	var lines: Array = [str(x.get("n", sid)), "%s: %s" % [kw, str(x.get("w", ""))]]
+	if when != "":
+		lines.append(when)
+	return {"icon": icon, "name": str(x.get("n", sid)), "lines": lines, "times": times, "kind_col": kcol}
+
+
+## Pass 117: an id's icon (a texture, or null) by the kind of mark it is (a weapon, an evolution, a mutation, a card or a
+## passive item, a perk, a power-up, a structure, a Totem gift's carved face); kept for the run's view.
+func _icon_of(id: String, kind: String):
+	var ck := kind + "|" + id
+	if _icon_cache.has(ck):
+		return _icon_cache[ck]
+	var tex = null
+	var reg: Node = watch.get_node_or_null("/root/Registry") if watch != null else null
+	if reg != null and id != "" and kind != "totem":
+		var order: Array = {"weapon": ["weapon"], "evolution": ["weapon"], "mutation": ["mutation"], "passive": ["passive"],
+			"card": ["passive"], "perk": ["perk"], "pickup": ["pickup"], "structure": ["structure"]}.get(kind,
+			["weapon", "passive", "perk", "mutation", "pickup", "structure"])
+		for fn in order:
+			var d = reg.call(str(fn), id)
+			if d != null and d.get("icon") is Texture2D:
+				tex = d.get("icon")
+				break
+	if tex == null and kind == "totem":
+		tex = _tex("art/ui/totem/spirit_%s.png" % id)
+	_icon_cache[ck] = tex
+	return tex
+
+
+## Pass 117: a picture by its path (res:// or as the record keeps it, without the prefix); null when there is none.
+func _tex(p: String):
+	if p == "":
+		return null
+	var full := p if p.begins_with("res://") else "res://" + p
+	if _icon_cache.has(full):
+		return _icon_cache[full]
+	var t = load(full) if ResourceLoader.exists(full) else null
+	_icon_cache[full] = t if t is Texture2D else null
+	return _icon_cache[full]
 
 
 ## Pass 90: the box that says the bot is down and waits (Watch.down_wait): Revive (R), Revive with a blast (B), End run
@@ -510,6 +788,10 @@ func take_draw_us() -> int:
 	if _strip:
 		us += int(_strip.draw_us)
 		_strip.draw_us = 0
+	if _wdps != null:
+		us += int(_wdps.draw_us) + int(_wdps.chart.draw_us)
+		_wdps.draw_us = 0
+		_wdps.chart.draw_us = 0
 	return us
 
 
@@ -522,6 +804,10 @@ func reset_run() -> void:
 	if _hurt != null:
 		_hurt.scroll = 0
 		_hurt.set_rows([], [], 0.0)
+	if _wdps != null:
+		_wdps.scroll = 0
+		_wdps.hidden_lines = {}
+		_wdps.set_model({})
 	if _build_box != null:
 		for c in _build_box.get_children():
 			_build_box.remove_child(c)
@@ -1080,6 +1366,8 @@ func update_charts() -> void:
 	_share_chart(_charts[3], data, x0, x1, mini(cols, 240))
 	for c in _charts:
 		c.queue_redraw()
+	# pass 117: the Weapon DPS tab, when it shows
+	_refresh_wdps(x0, x1, marks)
 
 
 ## Pass 90: the falls as the charts' marks: a red line each, named for the hover ("Fell to Goblin (melee) at 3:12"), a

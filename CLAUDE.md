@@ -265,7 +265,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-31, pass 116, version 0.99)
+## Status (2026-10-31, pass 117, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -275,7 +275,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~2,623 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.99). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (1.00). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
 skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
@@ -522,6 +522,11 @@ red ring 3 s on a locked spot; May's Invisible Box (perk special `box`, MimeBox.
 four streams (spawn, Elite, special, drop) and a fresh seed every run (the stages' "same map"); stage 3 rows s3a1..s3g2;
 Results pays the bounty in coins on screen; the app icon is Garry's gunslinger picture (tools/make_app_icon.py); Level
 Editor Mirror tab, Re-roll icon, stage-relative times; docs/ui_review rebuilt (tools/make_ui_review.py, ui_review_capture.sh).
+Pass 117: a smashed barrel's painting comes apart (core/systems/BarrelDebris.gd: a stump, a lid and staves that lie 6 s);
+the Watch's Weapon DPS tab (F, game/tools/watch/WatchWeaponDps.gd; the dashboard's card since pass 115); the app icon from
+Garry's Gemini picture (tools/make_app_icon.py, also game/icon_512.png for the Play listing); check_scripts skips .gdignore
+folders (game/android/build). Google Play: `tools/ship_play.sh` (Internal testing, com.outlawsurvivors.game), the privacy
+policy docs/privacy/ (GitHub Pages), feature graphics docs/store/feature/.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

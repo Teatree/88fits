@@ -84,7 +84,8 @@ def main() -> int:
         parts = (want.split(".") + ["0", "0", "0", "0"])[:4]
         full = ".".join(str(int(p)) if p.isdigit() else p for p in parts)
         got = s.get("FileVersion", "")
-        if got not in (want, full):
+        # (Godot keeps the version's own digits: "1.00" is written 1.00.0.0, not 1.0.0.0)
+        if got not in (want, full, ".".join(parts)):
             print("exe_info: FileVersion %s is not the game's version %s" % (got or "(none)", want))
             return 1
     return 0

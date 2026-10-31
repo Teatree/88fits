@@ -1247,6 +1247,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				panel.set_hurt_tab(not panel.show_hurt)
 		KEY_T:
 			toggle_hand()
+		KEY_F:
+			# pass 117 (lane WATCHDPS): the damage share's place: the share chart or the Weapon DPS tab (F is free in
+			# "You play": WASD and the arrows steer)
+			panel.set_wdps_tab(not panel.show_wdps)
 		_:
 			handled = false
 	if handled:
@@ -1605,6 +1609,11 @@ func _run_actions() -> void:
 			panel.set_hurt_tab(true)
 		"hpchart":
 			panel.set_hurt_tab(false)
+		# pass 117 (lane WATCHDPS): the Weapon DPS tab, the share chart, the tab's rolling mean (wdpswin=<5|10|30>)
+		"wdps":
+			panel.set_wdps_tab(true)
+		"share":
+			panel.set_wdps_tab(false)
 		# pass 106 (checks): you play / the bot plays (the button's own call); key=, hold=, circle=, card= below
 		"hand":
 			set_hand(true)
@@ -1619,6 +1628,8 @@ func _run_actions() -> void:
 				panel.check_hover(what.substr(6))
 			elif what.begins_with("setup.") and setup != null and setup.visible:
 				setup_action(what.substr(6))
+			elif what.begins_with("wdpswin="):
+				panel.set_wdps_window(int(what.substr(8)))
 			elif what.begins_with("speed="):
 				set_speed(float(what.substr(6)))
 			elif what.begins_with("shot="):

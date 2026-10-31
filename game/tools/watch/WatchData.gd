@@ -71,6 +71,9 @@ var hurt: Array = []
 ## the Watch's revives (the recorder's "revive" events): {t, clock, via ("watch", "phoenix", "debug"...), blast}
 var revives: Array = []
 var _hurt_last = null
+## pass 117 (lane WATCHDPS): every event the recorder logged, as it logged it (the same dictionaries: an item's est_after
+## lands in them later), for the Weapon DPS tab's marks
+var events: Array = []
 
 var _rows_read := 0
 var _events_read := 0
@@ -138,6 +141,8 @@ func read_events(events: Array, last_hits: Array = []) -> int:
 		_events_read += 1
 		if not (e is Dictionary):
 			continue
+		# (self: the parameter is called events too; appending to it grew the recorder's list without end)
+		self.events.append(e)
 		var kind := str(e.get("kind", ""))
 		if kind in ITEM_KINDS:
 			arrivals.append({"t": float(e.get("t", 0.0)), "clock": float(e.get("clock", 0.0)), "kind": kind,

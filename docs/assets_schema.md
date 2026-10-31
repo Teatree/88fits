@@ -3419,3 +3419,37 @@ skins_io); server.py item_top_level, references_to by `condition.item`; wanted_m
 own factors, Min level, Max), wanted_io.py TYPES (+7), GET /api/wanted/sources, GET /api/wanted/structure_icon/<id>,
 art folder `sources`. Tests: game/tests/pass113_TASKS_test.gd, tools/level_editor/selftest_TASKS113.py.
 Capture: game/tools/_p113_TASKS_shots.gd (`-- out=<dir>`).
+
+## Pass 117: the Watch's Weapon DPS tab, barrel debris
+
+### The Watch: Weapon DPS (lane WATCHDPS)
+
+The damage share chart's place has two tabs, **Damage share** and **Weapon DPS** (key `F`, free while you play: WASD and
+the arrows steer). Weapon DPS is the dashboard's "Each weapon's real DPS" card, live (game/tools/watch/WatchWeaponDps.gd):
+one line a weapon family (a mutation and an evolution count as their weapon) as a rolling mean of 5, 10 or 30 s (the
+chips beside the tabs), the other damage sources dashed, the small ones folded into "other sources"; a strip of icons at
+their seconds in three rows (weapons: taken, levelled, mutation, evolution; items: the cards, passive items and perks
+that changed a weapon's numbers, Totem gifts of a weapon stat, the Stranger's deals; boosts: power-ups, the War Drum);
+each line's row (icon, name, level and mutations, damage dealt and share, DPS since its first hit and peak, and "shaped
+by": every item, talent, perk, gift, hero trait and running boost that changes its numbers now, from
+RunAnalytics.weapon_sources_of). The pointer on an icon gives its hint and lights its time(s) on the chart; a click on a
+row's name hides or shows its line; the wheel scrolls the rows. The tab takes about 60% of the charts' column
+(WatchPanel.WDPS_STRETCH 5.0).
+
+| Key / action | What |
+|---|---|
+| F | the share chart's place: Damage share / Weapon DPS |
+| `actions=` `wdps`, `share` | the same, in a check |
+| `actions=` `wdpswin=<5\|10\|30>` | the lines' rolling mean |
+| `actions=` `hover=wdps/m<k>/`, `hover=wdps/s<k>/`, `hover=wdps/r<k>/` | the pointer on the k-th mark, "shaped by" icon or row |
+
+WatchData `events` (every recorder event as logged). Tests: game/tests/pass117_WATCHDPS_test.gd (family folding, the
+lines, the marks, the sources' times). Captures: tools/dl/p117/WATCHDPS/shots2/.
+
+### Barrel debris
+
+core/systems/BarrelDebris.gd + core/shaders/barrel_piece.gdshader: a smashed barrel's own painting cut where it stood
+into a stump (stays, jolts), a lid and COLS (4) staves (fly out and away from the hero, spin, bounce, settle on their
+long side; GROW 1.15), splintered on their cut edges (COLOR.rgb flags), lying LINGER 6 s then dissolving over FADE
+0.9 s; one MultiMesh a barrel kind, a ring of POOL 72 pieces; looks only (its own dice, nothing in the sim's fast mode).
+Tests: game/tests/pass117_DEBRIS_test.gd. Capture: game/tools/_barrel_debris_shots.gd (`-- out=<dir>`).

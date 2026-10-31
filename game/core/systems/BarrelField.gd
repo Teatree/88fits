@@ -65,6 +65,8 @@ var coins: PackedByteArray = PackedByteArray()
 var _body_dark: MultiMesh
 var _body_light: MultiMesh
 var _body_power: MultiMesh
+## The pieces a smashed barrel's painting breaks into (2026-10-31, BarrelDebris).
+var debris: BarrelDebris
 ## pass 116: each kind's painting and its height on the ground (metres the square picture stands; the painted barrel's
 ## own height is a little under it). Heights keep the board's sizes: the coins barrel a touch bigger.
 const SPRITES := ["res://art/sprites/barrels/barrel_exp.png", "res://art/sprites/barrels/barrel_coins.png",
@@ -113,6 +115,11 @@ func setup(p_game: Node, p_map: MapBase) -> void:
 	_body_dark = _billboards(0, n[0], SPARE)
 	_body_light = _billboards(1, n[1], SPARE)
 	_body_power = _billboards(2, n[2], SPARE)
+	# 2026-10-31 (Garry: "the breaking isn't clear"): a smashed barrel's painting comes apart (BarrelDebris)
+	debris = BarrelDebris.new()
+	debris.name = "BarrelDebris"
+	add_child(debris)
+	debris.setup(game, map, SPRITES)
 	var k := [0, 0, 0]
 	for i in pos.size():
 		var t: int = light[i]
@@ -365,6 +372,9 @@ func _break(i: int) -> void:
 	if i < shadows.size() and shadows[i] >= 0 and map and map.get("props") is PropField:
 		(map.get("props") as PropField).hide_shadow(shadows[i])
 	var wood := DARK
+	if debris != null:
+		var from: Vector3 = game.player.global_position if game.player != null else at
+		debris.burst(t, at, float(QUAD_M[clampi(t, 0, 2)]), from)
 	if game.fx:
 		# staves, hoop pieces and a cloud of dust, big enough to read from the camera's height (pass 116: the wood of the
 		# board's barrels, gold hoop bits from the coins one, white stripe bits from the power-up one)

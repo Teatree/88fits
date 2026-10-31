@@ -11,6 +11,10 @@ Then python tools/make_win_icon.py (its SUBJECT box is CROP's face and gun) and 
 The pass 115 icons are kept in tools/dl/backup/app_icon_v098/.
 
   python tools/make_app_icon.py [--src <picture>] [--review out.png]
+
+Pass 117 (Garry: "Change the icon from what it is now to Gemini_Generated_Image_4y8c2i4y8c2i4y8c.jfif"): that picture is
+the source now, a 2048 px square already framed as an icon, used whole (CROPS names each source's boxes); also
+game/icon_512.png, the Play Store listing's icon (512 px, uploaded by hand in the Play Console).
 """
 import argparse
 import os
@@ -19,11 +23,14 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "_REFERENCES", "2d", "Desert Gunslinger Battles Scorpion Swarm.png")
+SRC = os.path.join(ROOT, "_REFERENCES", "2d", "Gemini_Generated_Image_4y8c2i4y8c2i4y8c.jfif")
 GAME = os.path.join(ROOT, "game")
-# square crops in the source's pixels (x0, y0, side)
-CROP = (100, 30, 900)
-SMALL = (170, 60, 780)
+# square crops in the source's pixels (x0, y0, side): CROP for the big icons, SMALL a tighter one for launcher sizes
+CROPS = {
+    "Desert Gunslinger Battles Scorpion Swarm.png": ((100, 30, 900), (170, 60, 780)),
+    "Gemini_Generated_Image_4y8c2i4y8c2i4y8c.jfif": ((0, 0, 2048), (60, 40, 1880)),
+}
+CROP, SMALL = CROPS[os.path.basename(SRC)]
 SAFE = 0.66
 
 
@@ -50,7 +57,10 @@ def main():
     ap.add_argument("--review", default="")
     a = ap.parse_args()
     src = Image.open(a.src).convert("RGB")
+    global CROP, SMALL
+    CROP, SMALL = CROPS.get(os.path.basename(a.src), ((0, 0, min(src.size)), (0, 0, min(src.size))))
     crop(src, CROP, 1024).save(os.path.join(GAME, "icon.png"))
+    crop(src, CROP, 512).save(os.path.join(GAME, "icon_512.png"))
     crop(src, SMALL, 192).save(os.path.join(GAME, "icon_192.png"))
     x, y, s = CROP
     fg = padded(src, x + s / 2, y + s / 2, s / SAFE).resize((432, 432), Image.LANCZOS)

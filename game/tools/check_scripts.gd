@@ -24,6 +24,10 @@ func _walk(path: String) -> void:
 	for sub in dir.get_directories():
 		if sub.begins_with(".") or sub == "addons":
 			continue
+		# a folder Godot itself ignores (2026-10-31: the Android build template in android/build carries its own test
+		# scripts, which never load in the game)
+		if FileAccess.file_exists(path.path_join(sub).path_join(".gdignore")):
+			continue
 		_walk(path.path_join(sub))
 	for f in dir.get_files():
 		var p := path.path_join(f)
