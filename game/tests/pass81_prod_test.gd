@@ -38,7 +38,7 @@ func _kept(def) -> bool:
 
 
 const DEBUG_ON := {"debug_mode": true, "debug_panel": true, "debug_modal_buttons": true, "free_revive_button": true,
-	"hit_log": true, "preview_locked_heroes": true, "menu_style": "painted", "ranged_on_screen": false, "pierce_falloff": false}
+	"hit_log": true, "preview_locked_heroes": true, "menu_style": "live", "ranged_on_screen": false, "pierce_falloff": false}
 
 
 # ---------------------------------------------------------------- the switch
@@ -49,7 +49,8 @@ func test_the_dev_build_is_not_prod_and_keeps_its_switches() -> void:
 	Settings.from_dict(DEBUG_ON)
 	assert_bool(Settings.debug_mode).is_true()
 	assert_bool(Settings.hit_log).is_true()
-	assert_str(Settings.menu_style).is_equal("painted")
+	# (pass 119: painted is the default and prod's lock, so the dev switch under test is live)
+	assert_str(Settings.menu_style).is_equal("live")
 
 
 func test_prod_locks_every_developer_switch_at_the_players_default() -> void:

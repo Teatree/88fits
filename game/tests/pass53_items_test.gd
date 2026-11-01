@@ -180,19 +180,21 @@ func test_a_narrow_row_splits_into_a_left_weapon_row_and_a_right_line_row() -> v
 
 # ---------------------------------------------------------------- the live menu
 
-func test_the_live_menu_is_the_default_and_a_pass_52_save_steps_to_it_once() -> void:
-	# Garry: "By default set the Main Menu to be the new one - the one with the live heroes"
+func test_a_pass_52_save_steps_to_the_default_menu_once() -> void:
+	# Garry (pass 53): "By default set the Main Menu to be the new one - the one with the live heroes"; pass 119 (lane
+	# LOADUI; Garry: "Let's set the "Painted" option as default for now") made painted the default and switched every
+	# save to it once more (Save._migrate_painted; tests/pass119_LOADUI_test.gd). What stays pinned here: the version
+	# 5 step writes the default, and the rest of an old save comes through it untouched.
 	var script: GDScript = load("res://core/autoload/Settings.gd")
 	var s: Node = auto_free(script.new())
-	assert_str(s.menu_style).is_equal("live")
-	assert_str(Settings.MENU_STYLE_DEFAULT).is_equal("live")
+	assert_str(s.menu_style).is_equal(Settings.MENU_STYLE_DEFAULT)
 	s.from_dict({})
+	assert_str(s.menu_style).is_equal(Settings.MENU_STYLE_DEFAULT)
+	s.from_dict({"menu_style": "live"})
 	assert_str(s.menu_style).is_equal("live")
-	s.from_dict({"menu_style": "painted"})
-	assert_str(s.menu_style).is_equal("painted")
 	s.from_dict({"menu_style": "fancy"})
-	assert_str(s.menu_style).is_equal("live")
-	# a save written under pass 52 (version 4) carries "painted": version 5 sets it to live, once
+	assert_str(s.menu_style).is_equal(Settings.MENU_STYLE_DEFAULT)
+	# a save written under pass 52 (version 4): version 5 sets the default, once
 	assert_int(Save.VERSION).is_equal(5)
 	# (pass 69, lane UI: Calavera is a hero to buy; this save bought him, so he stays its last hero)
 	_write(Save.path(), JSON.stringify({"version": 4, "gold": 12, "once": ["seen_migrated", "hero_astro"], "last_character": "calavera",
@@ -200,8 +202,8 @@ func test_the_live_menu_is_the_default_and_a_pass_52_save_steps_to_it_once() -> 
 	Save.load_save()
 	assert_str(Save.loaded_from).is_equal("save")
 	assert_int(int(Save.data["version"])).is_equal(5)
-	assert_str(str(Save.data["settings"]["menu_style"])).is_equal("live")
-	assert_str(Settings.menu_style).is_equal("live")
+	assert_str(str(Save.data["settings"]["menu_style"])).is_equal(Settings.MENU_STYLE_DEFAULT)
+	assert_str(Settings.menu_style).is_equal(Settings.MENU_STYLE_DEFAULT)
 	# the other settings and the rest of the save as they were, and the stepped-up file asked onto the disk
 	assert_float(Settings.music_volume).is_equal_approx(0.4, 0.0001)
 	assert_int(Save.gold()).is_equal(12)
@@ -210,14 +212,14 @@ func test_the_live_menu_is_the_default_and_a_pass_52_save_steps_to_it_once() -> 
 	# a save from before the setting existed steps the same way
 	_write(Save.path(), JSON.stringify({"version": 3, "once": ["seen_migrated"], "settings": {"music_volume": 0.2}}))
 	Save.load_save()
-	assert_str(str(Save.data["settings"]["menu_style"])).is_equal("live")
+	assert_str(str(Save.data["settings"]["menu_style"])).is_equal(Settings.MENU_STYLE_DEFAULT)
 	assert_bool(bool(Save.data["settings"]["damage_numbers"])).is_true()
-	assert_str(Settings.menu_style).is_equal("live")
-	# from here on the developer menu's pick sticks: a version-5 file with painted stays painted
-	_write(Save.path(), JSON.stringify({"version": 5, "once": ["seen_migrated"], "settings": {"menu_style": "painted"}}))
+	assert_str(Settings.menu_style).is_equal(Settings.MENU_STYLE_DEFAULT)
+	# from here on the developer menu's pick sticks: a version-5 file past pass 119's step keeps its own (live here)
+	_write(Save.path(), JSON.stringify({"version": 5, "once": ["seen_migrated", Save.PAINTED_ONCE], "settings": {"menu_style": "live"}}))
 	Save.load_save()
-	assert_str(str(Save.data["settings"]["menu_style"])).is_equal("painted")
-	assert_str(Settings.menu_style).is_equal("painted")
+	assert_str(str(Save.data["settings"]["menu_style"])).is_equal("live")
+	assert_str(Settings.menu_style).is_equal("live")
 
 
 # ---------------------------------------------------------------- the Drifter

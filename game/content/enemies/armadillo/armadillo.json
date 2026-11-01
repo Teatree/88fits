@@ -212,7 +212,7 @@
           "back": "seen from behind there is no face, no eyes, no nostrils and no markings on the rear of the shell: the back of the shell is plain smooth armour bands, only the ear tips of the head show beyond it"
         },
         "view_drivers": {
-          "front": "armadillo_walk_toon_v2z"
+          "front": "armadillo_walk_toon_v2fz"
         },
         "fit_ref": [
           "front"
@@ -228,6 +228,9 @@
             "armadillo_armf_bd",
             "armadillo_armf_back"
           ]
+        },
+        "walk_seeds": {
+          "front": 1
         }
       },
       "sprite": "armadillo_sprite_f.png",
@@ -248,7 +251,7 @@
         "idle_fd": 4
       },
       "strip_cols": 91,
-      "head": 0.519,
+      "head": 0.525,
       "fps": {
         "run": 20,
         "die": 12
@@ -293,7 +296,7 @@
           "bd": "its whole shell banded in strongly contrasting stripes, light cream-yellow bands alternating with dark chocolate-brown bands exactly like the side painting, the same pale cream and dark brown, not tan, not orange"
         },
         "view_drivers": {
-          "front": "armadillo_walk_toon_v2z"
+          "front": "armadillo_walk_toon_v2fz"
         },
         "fit_ref": [
           "front"
@@ -309,6 +312,9 @@
             "armadillo_armg_bd",
             "armadillo_armg_back"
           ]
+        },
+        "walk_seeds": {
+          "front": 1
         }
       },
       "sprite": "armadillo_sprite_g.png",
@@ -330,6 +336,596 @@
       },
       "strip_cols": 91,
       "head": 0.531,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-H": {
+      "note": "Pass 119: the zombie armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3b (a bigger head and shorter legs than v2, blue screen: the look is green) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein; its fd painted again (fd c0: the first had a second armadillo in the picture)",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the two front legs at both sides of the head, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a tail under the head",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "outline_frac": 0.014,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "fit_ref": [
+          "front"
+        ],
+        "look_ref": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_side.png",
+        "look_refs": {
+          "front": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_front.png",
+          "bd": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_bd.png",
+          "back": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_back.png"
+        },
+        "drivers": "armadillo_walk_toon_v3b",
+        "clay_drivers": {
+          "front": "armadillo_walk_toon_v3fb"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v3fzb"
+        },
+        "screen": "blue",
+        "no_green": false,
+        "remap_hues": {
+          "ranges": [
+            [
+              160,
+              265
+            ]
+          ],
+          "to": 95,
+          "sat": 0.9,
+          "min_sat": 0.03
+        },
+        "prompt": "a cartoon anime zombie armadillo, undead and rotting: a big round domed shell of overlapping olive-green and moss-green armour bands, decayed with dark brown rot stains, scratches and a few dark holes, sickly grey-green skin, two glowing yellow-green eyes under heavy angry brows, a snarling mouth with small crooked teeth and a drip of drool from its long snout, ragged pink-grey ears, sturdy clawed grey-green legs, a long banded grey-green tail",
+        "detail": "a cartoon zombie face with glowing yellow-green eyes on the front of its head, the rotting stained shell much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
+        "keep": "its olive-green rotting shell with dark brown rot stains and holes, its grey-green skin and its glowing yellow-green eyes",
+        "view_words": {
+          "front": "its zombie face seen straight from the front: two glowing yellow-green eyes under angry brows on either side of the long snout, the snout pointing down towards the viewer between the two front feet, the tail completely hidden behind the body, nothing hanging below the snout",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings of a face on the rear of the shell: only the back of the shell, the tail and the ear tips of the head beyond it"
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "reused",
+          "reused": [
+            "armadillo_armh_side",
+            "armadillo_armh_front",
+            "armadillo_armh_fd",
+            "armadillo_armh_bd",
+            "armadillo_armh_back"
+          ]
+        },
+        "side_seeds": 6
+      },
+      "sprite": "armadillo_sprite_h.png",
+      "icon": "armadillo_icon_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.512,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-I": {
+      "note": "Pass 119: the zombie armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3b (a bigger head and shorter legs than v2, blue screen: the look is green) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein (another side candidate than ARM-H); its front, fd and bd painted again (front c2: a tail beside it; fd c0: a forked tail; bd c1: two heads)",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the two front legs at both sides of the head, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a tail under the head",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "outline_frac": 0.014,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "fit_ref": [
+          "front"
+        ],
+        "look_ref": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_side.png",
+        "look_refs": {
+          "front": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_front.png",
+          "bd": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_bd.png",
+          "back": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_back.png"
+        },
+        "drivers": "armadillo_walk_toon_v3b",
+        "clay_drivers": {
+          "front": "armadillo_walk_toon_v3fb"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v3fzb"
+        },
+        "screen": "blue",
+        "no_green": false,
+        "remap_hues": {
+          "ranges": [
+            [
+              160,
+              265
+            ]
+          ],
+          "to": 95,
+          "sat": 0.9,
+          "min_sat": 0.03
+        },
+        "prompt": "a cartoon anime zombie armadillo, undead and rotting: a big round domed shell of overlapping olive-green and moss-green armour bands, decayed with dark brown rot stains, scratches and a few dark holes, sickly grey-green skin, two glowing yellow-green eyes under heavy angry brows, a snarling mouth with small crooked teeth and a drip of drool from its long snout, ragged pink-grey ears, sturdy clawed grey-green legs, a long banded grey-green tail",
+        "detail": "a cartoon zombie face with glowing yellow-green eyes on the front of its head, the rotting stained shell much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
+        "keep": "its olive-green rotting shell with dark brown rot stains and holes, its grey-green skin and its glowing yellow-green eyes",
+        "view_words": {
+          "front": "its zombie face seen straight from the front: two glowing yellow-green eyes under angry brows on either side of the long snout, the snout pointing down towards the viewer between the two front feet, the tail completely hidden behind the body, nothing hanging below the snout",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings of a face on the rear of the shell: only the back of the shell, the tail and the ear tips of the head beyond it"
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "reused",
+          "reused": [
+            "armadillo_armi_side",
+            "armadillo_armi_front",
+            "armadillo_armi_fd",
+            "armadillo_armi_bd",
+            "armadillo_armi_back"
+          ]
+        },
+        "side_seeds": 6
+      },
+      "sprite": "armadillo_sprite_i.png",
+      "icon": "armadillo_icon_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.512,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-J": {
+      "note": "Pass 119: the zombie armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3b (a bigger head and shorter legs than v2, blue screen: the look is green) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Flux.2 dev (its side 40 steps, the other views 28)",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the two front legs at both sides of the head, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a tail under the head",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "outline_frac": 0.014,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "fit_ref": [
+          "front"
+        ],
+        "look_ref": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_side.png",
+        "look_refs": {
+          "front": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_front.png",
+          "bd": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_bd.png",
+          "back": "tools/dl/uploads/2d/armadillo_p119/zombie_ref_back.png"
+        },
+        "drivers": "armadillo_walk_toon_v3b",
+        "clay_drivers": {
+          "front": "armadillo_walk_toon_v3fb"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v3fzb"
+        },
+        "screen": "blue",
+        "no_green": false,
+        "remap_hues": {
+          "ranges": [
+            [
+              160,
+              265
+            ]
+          ],
+          "to": 95,
+          "sat": 0.9,
+          "min_sat": 0.03
+        },
+        "prompt": "a cartoon anime zombie armadillo, undead and rotting: a big round domed shell of overlapping olive-green and moss-green armour bands, decayed with dark brown rot stains, scratches and a few dark holes, sickly grey-green skin, two glowing yellow-green eyes under heavy angry brows, a snarling mouth with small crooked teeth and a drip of drool from its long snout, ragged pink-grey ears, sturdy clawed grey-green legs, a long banded grey-green tail",
+        "detail": "a cartoon zombie face with glowing yellow-green eyes on the front of its head, the rotting stained shell much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
+        "keep": "its olive-green rotting shell with dark brown rot stains and holes, its grey-green skin and its glowing yellow-green eyes",
+        "view_words": {
+          "front": "its zombie face seen straight from the front: two glowing yellow-green eyes under angry brows on either side of the long snout, the snout pointing down towards the viewer between the two front feet, the tail completely hidden behind the body, nothing hanging below the snout",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings of a face on the rear of the shell: only the back of the shell, the tail and the ear tips of the head beyond it"
+        },
+        "painter": {
+          "model": "dev",
+          "steps": 28,
+          "guidance": 4.0,
+          "turbo": false,
+          "stills": "2 of 5 painted",
+          "reused": [
+            "armadillo_armj_side",
+            "armadillo_armj_front",
+            "armadillo_armj_bd"
+          ]
+        },
+        "side_seeds": 2,
+        "walk_seeds": {
+          "bd": 1
+        }
+      },
+      "sprite": "armadillo_sprite_j.png",
+      "icon": "armadillo_icon_j.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.512,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-K": {
+      "note": "Pass 119: the devil armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3 (a bigger head and shorter legs than v2) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein; its front a Klein edit of a candidate with the spread wings and the tail beside it taken out (front c3), its fd painted again (fd c1: the first had a second armadillo)",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the two front legs at both sides of the head, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a tail under the head",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "outline_frac": 0.014,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "fit_ref": [
+          "front"
+        ],
+        "look_ref": "tools/dl/uploads/2d/armadillo_p119/devil_ref_side.png",
+        "look_refs": {
+          "front": "tools/dl/uploads/2d/armadillo_p119/devil_ref_front.png",
+          "bd": "tools/dl/uploads/2d/armadillo_p119/devil_ref_bd.png",
+          "back": "tools/dl/uploads/2d/armadillo_p119/devil_ref_back.png"
+        },
+        "drivers": "armadillo_walk_toon_v3",
+        "clay_drivers": {
+          "front": "armadillo_walk_toon_v3f"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v3fz"
+        },
+        "screen": "green",
+        "prompt": "a cartoon anime devil armadillo from hell: a big round domed shell of glossy crimson-red and black armour bands with glowing orange ember cracks, short sharp black spikes along the shell's bands, dark charcoal skin, two curved dark-red devil horns on its head, two glowing yellow eyes under heavy angry brows, a snarling grin with sharp white fangs, two small black bat wings on its back, sturdy black clawed legs with orange claws, a long black banded tail ending in a red arrow-shaped spade tip",
+        "detail": "a cartoon devil face with glowing yellow eyes and two curved horns on its head, the crimson shell much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
+        "extras": "two curved devil horns on its head, short spikes along the shell's bands, two small bat wings on its back and an arrow-shaped spade tip at the end of its tail",
+        "keep": "its crimson-red and black shell with glowing orange cracks, its two curved devil horns and its glowing yellow eyes",
+        "view_words": {
+          "front": "its devil face seen straight from the front: two glowing yellow eyes under angry brows on either side of the long snout, the two curved horns above them, the snout pointing down towards the viewer between the two front feet, the two small bat wings folded tight on top of the shell so they do not stick out past the shell's sides, not spread out, the tail completely hidden behind the body, no tail showing on either side, nothing hanging below the snout",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings of a face on the rear of the shell: only the back of the shell, the tail and the ear tips of the head beyond it, the two curved horn tips and the small bat wings showing, the tail straight down the middle exactly as the 3D model's, the red spade at its very tip",
+          "side": "its long tail stretched out straight behind it to the left exactly like the 3D model's tail, not curled and not looped under the body, the red arrow-shaped spade at the very end of the tail on the far left",
+          "fd": "its tail straight out behind it exactly as the 3D model's, the red spade at its very tip",
+          "bd": "its tail straight out towards the lower left exactly as the 3D model's, not curled, the red spade at its very tip"
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "side_seeds": 6,
+        "ctl_soft": {
+          "radius": 10,
+          "body": true,
+          "views": [
+            "front"
+          ]
+        },
+        "walk_seeds": {
+          "front": 1
+        }
+      },
+      "sprite": "armadillo_sprite_k.png",
+      "icon": "armadillo_icon_k.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.531,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-L": {
+      "note": "Pass 119: the devil armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3 (a bigger head and shorter legs than v2) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein (another side candidate than ARM-K); its front a Klein edit of a candidate with the spread wings and the tail beside it taken out (front c3)",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the two front legs at both sides of the head, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a tail under the head",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "outline_frac": 0.014,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "fit_ref": [
+          "front"
+        ],
+        "look_ref": "tools/dl/uploads/2d/armadillo_p119/devil_ref_side.png",
+        "look_refs": {
+          "front": "tools/dl/uploads/2d/armadillo_p119/devil_ref_front.png",
+          "bd": "tools/dl/uploads/2d/armadillo_p119/devil_ref_bd.png",
+          "back": "tools/dl/uploads/2d/armadillo_p119/devil_ref_back.png"
+        },
+        "drivers": "armadillo_walk_toon_v3",
+        "clay_drivers": {
+          "front": "armadillo_walk_toon_v3f"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v3fz"
+        },
+        "screen": "green",
+        "prompt": "a cartoon anime devil armadillo from hell: a big round domed shell of glossy crimson-red and black armour bands with glowing orange ember cracks, short sharp black spikes along the shell's bands, dark charcoal skin, two curved dark-red devil horns on its head, two glowing yellow eyes under heavy angry brows, a snarling grin with sharp white fangs, two small black bat wings on its back, sturdy black clawed legs with orange claws, a long black banded tail ending in a red arrow-shaped spade tip",
+        "detail": "a cartoon devil face with glowing yellow eyes and two curved horns on its head, the crimson shell much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
+        "extras": "two curved devil horns on its head, short spikes along the shell's bands, two small bat wings on its back and an arrow-shaped spade tip at the end of its tail",
+        "keep": "its crimson-red and black shell with glowing orange cracks, its two curved devil horns and its glowing yellow eyes",
+        "view_words": {
+          "front": "its devil face seen straight from the front: two glowing yellow eyes under angry brows on either side of the long snout, the two curved horns above them, the snout pointing down towards the viewer between the two front feet, the two small bat wings folded tight on top of the shell so they do not stick out past the shell's sides, not spread out, the tail completely hidden behind the body, no tail showing on either side, nothing hanging below the snout",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings of a face on the rear of the shell: only the back of the shell, the tail and the ear tips of the head beyond it, the two curved horn tips and the small bat wings showing, the tail straight down the middle exactly as the 3D model's, the red spade at its very tip",
+          "side": "its long tail stretched out straight behind it to the left exactly like the 3D model's tail, not curled and not looped under the body, the red arrow-shaped spade at the very end of the tail on the far left",
+          "fd": "its tail straight out behind it exactly as the 3D model's, the red spade at its very tip",
+          "bd": "its tail straight out towards the lower left exactly as the 3D model's, not curled, the red spade at its very tip"
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "1 of 5 painted",
+          "reused": [
+            "armadillo_arml_side",
+            "armadillo_arml_fd",
+            "armadillo_arml_bd",
+            "armadillo_arml_back"
+          ]
+        },
+        "side_seeds": 6
+      },
+      "sprite": "armadillo_sprite_l.png",
+      "icon": "armadillo_icon_l.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.512,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "fresh": true
+    },
+    "ARM-M": {
+      "note": "Pass 119: the devil armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3 (a bigger head and shorter legs than v2) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Flux.2 dev (28 steps); its side a Klein edit of the dev side candidate k0 with the tail straightened (k2: the dev painting curled the tail down by the hind feet; the walk follows the model's straight tail)",
+      "recipe": {
+        "method": "creature_ctl",
+        "noun": "an armadillo",
+        "blockout": "a smooth plain clay 3D model of a nine-banded armadillo: a long pointed snout, two upright ears, a domed shell of banded armour plates over its back, four short legs with clawed feet and a long thin tapering tail",
+        "anatomy": "exactly four legs, two on each side, each leg one single continuous limb ending in one clawed foot, exactly one head with one long pointed snout and two ears, exactly one long tapering tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the pointed snout at the right end, the domed banded shell in the middle, the long tail at the left, the four short legs below",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the pointed snout at the bottom middle, nearest the viewer, the domed shell behind and above it, the two front legs at both sides of the head, its tail hidden behind the shell, not visible, the whole body narrow and compact, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and snout at the lower right, nearest the viewer, the domed shell at the upper left, farther away, the tail behind",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: the back of the shell and the tail nearest the viewer at the lower left, the head farther away at the upper right, mostly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: the round back of the shell nearest the viewer in the middle, the tail pointing straight down the middle of the picture towards the viewer, not curling to the side, the head hidden beyond it, the ear tips showing, the whole body narrow and compact, not turned sideways"
+        },
+        "motion": "trotting in place on its four short legs like a real armadillo: the legs step in diagonal pairs, each foot lifting, swinging forward and planting again, the domed shell level and rigid, the tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second armadillo, standing upright, ghost legs, transparent legs, smeared legs, blurry legs, a tail under the head",
+        "death_drivers": "armadillo_ball_v1",
+        "death_motion": "it rears up, tucks its head and tail in and curls up tight into a round armoured ball",
+        "fps": 20,
+        "directions": 8,
+        "outline_frac": 0.014,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "fit_ref": [
+          "front",
+          "fd"
+        ],
+        "look_ref": "tools/dl/uploads/2d/armadillo_p119/devil_ref_side.png",
+        "look_refs": {
+          "front": "tools/dl/uploads/2d/armadillo_p119/devil_ref_front.png",
+          "bd": "tools/dl/uploads/2d/armadillo_p119/devil_ref_bd.png",
+          "back": "tools/dl/uploads/2d/armadillo_p119/devil_ref_back.png"
+        },
+        "drivers": "armadillo_walk_toon_v3",
+        "clay_drivers": {
+          "front": "armadillo_walk_toon_v3f"
+        },
+        "view_drivers": {
+          "front": "armadillo_walk_toon_v3fz"
+        },
+        "screen": "green",
+        "prompt": "a cartoon anime devil armadillo from hell: a big round domed shell of glossy crimson-red and black armour bands with glowing orange ember cracks, short sharp black spikes along the shell's bands, dark charcoal skin, two curved dark-red devil horns on its head, two glowing yellow eyes under heavy angry brows, a snarling grin with sharp white fangs, two small black bat wings on its back, sturdy black clawed legs with orange claws, a long black banded tail ending in a red arrow-shaped spade tip",
+        "detail": "a cartoon devil face with glowing yellow eyes and two curved horns on its head, the crimson shell much bigger than the head, chunky exaggerated cartoon proportions, the legs clearly visible below the shell",
+        "extras": "two curved devil horns on its head, short spikes along the shell's bands, two small bat wings on its back and an arrow-shaped spade tip at the end of its tail",
+        "keep": "its crimson-red and black shell with glowing orange cracks, its two curved devil horns and its glowing yellow eyes",
+        "view_words": {
+          "front": "its devil face seen straight from the front: two glowing yellow eyes under angry brows on either side of the long snout, the two curved horns above them, the snout pointing down towards the viewer between the two front feet, the two small bat wings folded tight on top of the shell so they do not stick out past the shell's sides, not spread out, the tail completely hidden behind the body, no tail showing on either side, nothing hanging below the snout",
+          "back": "seen from behind there is no face, no eyes, no nostrils and no markings of a face on the rear of the shell: only the back of the shell, the tail and the ear tips of the head beyond it, the two curved horn tips and the small bat wings showing, the tail straight down the middle exactly as the 3D model's, the red spade at its very tip",
+          "side": "its long tail stretched out straight behind it to the left exactly like the 3D model's tail, not curled and not looped under the body, the red arrow-shaped spade at the very end of the tail on the far left",
+          "fd": "its tail straight out behind it exactly as the 3D model's, the red spade at its very tip",
+          "bd": "its tail straight out towards the lower left exactly as the 3D model's, not curled, the red spade at its very tip"
+        },
+        "painter": {
+          "model": "dev",
+          "steps": 28,
+          "guidance": 4.0,
+          "turbo": false,
+          "stills": "reused",
+          "reused": [
+            "armadillo_armm_side",
+            "armadillo_armm_front",
+            "armadillo_armm_fd",
+            "armadillo_armm_bd",
+            "armadillo_armm_back"
+          ]
+        },
+        "side_seeds": 2,
+        "ctl_soft": {
+          "radius": 10,
+          "body": true,
+          "views": [
+            "front"
+          ]
+        }
+      },
+      "sprite": "armadillo_sprite_m.png",
+      "icon": "armadillo_icon_m.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.512,
       "fps": {
         "run": 20,
         "die": 12

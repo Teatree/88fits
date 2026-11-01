@@ -94,7 +94,9 @@ func _breath(stage: int) -> void:
 	fb.cooldown_left = 0.5
 	fb._ready_for = 0.0
 	var guard := 0
-	while guard < 300 and (fb._ready_sign == null or not fb._ready_sign.playing()):
+	# pass 119 (lane LEGEND_B): the ready sign is gone; the mouthful's splash (FireBreath.mouthfuls) plays in its place
+	var m0: int = int(fb.mouthfuls)
+	while guard < 300 and int(fb.mouthfuls) == m0:
 		fb.cooldown_left = maxf(fb.cooldown_left, 0.0)
 		await process_frame
 		guard += 1

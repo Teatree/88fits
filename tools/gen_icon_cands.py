@@ -798,6 +798,37 @@ JOBS = {
                      "subject": "one big wrinkled glossy bright red ghost pepper chilli, its skin bumpy and crinkled, a short "
                                 "curled green stem on top, a few small orange flames and pale wisps of heat curling off it, a "
                                 "single drop of sweat-like shine on its side"},
+    # pass 119 (set 119, lane LEGEND_B; Garry picked four legendary items off docs/legendary_items/index.html): a bottle with
+    # a bolt inside, the undertaker's spade in a fresh grave, pyrite spilling from a purse, a pocket bible that took a slug
+    "lightning_in_a_bottle": {"set": "119", "kind": "passives", "id": "lightning_in_a_bottle",
+                              "subject": "one old round glass medicine bottle with a cork stopper tied down with twine, a bright "
+                                         "crackling blue and white lightning bolt trapped inside it, small blue sparks arcing out "
+                                         "through the glass, the bottle standing upright and tilted a little"},
+    "undertakers_shovel": {"set": "119", "kind": "passives", "id": "undertakers_shovel",
+                           "subject": "an old undertaker's spade with a long worn wooden handle and a dented dark iron blade, stuck "
+                                      "upright in a small mound of dug-up brown earth, a small weathered wooden grave cross "
+                                      "leaning beside the mound, a faint pale white ghostly wisp curling up out of the dirt"},
+    "fools_gold": {"set": "119", "kind": "passives", "id": "fools_gold",
+                   "subject": "a small open worn brown leather money pouch tipped over, spilling a heap of chunky cube-shaped "
+                              "pyrite crystals with flat brassy yellow-gold mirror faces and sharp square edges, glinting too "
+                              "brightly, a few loose cubes in front"},
+    "pocket_bible": {"set": "119", "kind": "passives", "id": "pocket_bible",
+                     "subject": "a small worn black leather pocket bible with a gold cross on its cover and gilded page edges, "
+                                "standing at a slight angle, a flattened silver-grey lead bullet stuck deep in a dent in the "
+                                "middle of the cover with small cracks round it"},
+    # pass 119 (set 119, lane LEGEND_A): the two legendary items. The Iron Horse painted from the ghost train's engine
+    # (tools/blender_iron_horse.py renders tools/dl/iron_horse_ref.png from the Railway Kit's locomotive) on the blue
+    # screen (a green ghost); Personal Storm a storm cloud and its bolt on the green screen
+    "iron_horse": {"set": "119", "screen": "blue", "kind": "passives", "id": "iron_horse", "ref": "iron_horse_ref.png",
+                   "subject": "The reference image shows the shape of this steam locomotive seen from the front at three quarters: "
+                              "keep its silhouette, boiler, smokestack, cab and wheels, but paint it as a ghost train: its whole "
+                              "body glowing translucent pale spectral green, brighter pale mint-white edges, a big round headlight "
+                              "on its front blazing white, thick wisps of pale green ghost smoke billowing from its smokestack and "
+                              "trailing back over it, charging forward"},
+    "personal_storm": {"set": "119", "kind": "passives", "id": "personal_storm",
+                       "subject": "one small round dark slate-grey storm cloud with a deep purple underside, puffy and "
+                                  "menacing, and one big jagged bright yellow-white lightning bolt striking straight down out "
+                                  "of it, a few short slanted blue rain streaks beside the bolt"},
 }
 
 
@@ -912,6 +943,14 @@ def _halo(img, color, blur):
     return out
 
 
+def _lean(v):
+    """A job's `lean` as degrees, or None (empty or not a number: the card as painted)."""
+    try:
+        return None if v is None or str(v).strip() == "" else float(v)
+    except ValueError:
+        return None
+
+
 def pick(pairs):
     for pair in pairs:
         key, n = pair.split("=")
@@ -947,7 +986,9 @@ def pick(pairs):
                     d = {}
                 if not ga.has_look(d, code):
                     raise SystemExit("gen_icon_cands: %s has no look %s" % (job["id"], code))
-            icon, _ = ga.finish(img, 256, 0.92, False, None, 0.006)
+            # pass 119 (the lead): a card look's `lean` (degrees) turns the card to it, as pass 73's install did
+            lean = _lean(job.get("lean"))
+            icon, _ = ga.finish(img, 256, 0.92, False, None, 0.006, lean=lean)
             # a job may name its file (pass 61: a talent form's <id>_<form>_icon.png beside the talent's own icon); a look
             # has its own (pass 68: the pick had overwritten the base creature's icon)
             name = job.get("file") or (("%s_icon_%s.png" % (job["id"], ga.look_letter(code))) if code else job["id"] + "_icon.png")

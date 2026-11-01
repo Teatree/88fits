@@ -199,6 +199,10 @@ func _build(game: Node) -> void:
 	game.ui.add_child(_labels)
 	# the level-up's and the chest's turning shine (pass 58): its shader compiles here, under the spawn beam
 	preload("res://ui/wanted/WShine.gd").warm(_labels)
+	# pass 119 (lane LEGEND_A): the Iron Horse's ghost train (its model's first load too), rails and lights, Personal
+	# Storm's cloud shadows and overcast: the first whistle or storm never stalls on a compile
+	preload("res://core/systems/IronHorse.gd").warm(self)
+	preload("res://core/systems/PersonalStorm.gd").warm(self, _labels)
 	var y := 0.0
 	for size in [22, 24, 26, 28, 30, 32, 34, 36, 40, 44, 46, 56, 64, 84, 96]:
 		var l := UiKit.outline(UiKit.label("ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 +%→·!?", size, UiKit.INK), 6)

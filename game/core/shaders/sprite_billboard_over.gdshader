@@ -38,6 +38,12 @@ uniform vec4 water = vec4(0.0, -1000.0, 0.0, 0.0);
 uniform float water_thick = 0.08;
 // pass 87 (lane FIXES): the hero's evade: this pass alone draws him, at this alpha (his first pass steps aside below 1)
 uniform float fade_alpha = 1.0;
+// pass 119 (lane LEGEND_B): drained of colour as the first pass is (BillboardSprite.set_desat): the Undertaker's Shovel's
+// ghosts are drawn by this pass alone
+uniform float desat : hint_range(0.0, 1.0) = 0.0;
+// pass 119 (lane LEGEND_B): a ghost's colour (BillboardSprite.set_ghost): with alpha above 0 the painting's lightness is
+// redrawn in this colour, dark parts dim and light parts bright, mixed in by its alpha (0 = the painting as it is)
+uniform vec4 ghost = vec4(0.0);
 
 varying vec2 v_uv;
 // the point on his painting in the world, before the pull: the very point his first pass draws at this pixel
@@ -98,7 +104,11 @@ void fragment() {
 	if (c.a < alpha_cut) {
 		discard;
 	}
-	vec3 col = c.rgb * tint.rgb;
+	vec3 col = mix(c.rgb, vec3(dot(c.rgb, vec3(0.299, 0.587, 0.114))), desat) * tint.rgb;
+	if (ghost.a > 0.0) {
+		float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+		col = mix(col, ghost.rgb * (0.45 + 0.75 * l), ghost.a);
+	}
 	col = mix(col, vec3(1.0), flash);
 	ALBEDO = col;
 	ALPHA = fade_alpha;

@@ -56,13 +56,15 @@ CHESTS = {
                    "bands over it and a small golden king's crown set with green and red jewels sitting on top of the lid",
     },
     "gila_grande": {
-        "screen": "blue",
-        "subject": "the treasure chest of the Gila Grande, a giant gila monster: its body and its rounded lid covered all over in "
-                   "small beaded hexagonal scales in the gila monster's pattern of black with bright orange and salmon-pink "
-                   "bands and blotches, bone-white bands down its corners and over the lid, a copper lock plate shaped like a "
-                   "lizard's head with two black bead eyes, a curved green cactus-arm handle on its side, a small green "
-                   "saguaro cactus with two arms growing out of the top of the lid and little round green cacti with pink "
-                   "flowers on the lid's front corners",
+        # pass 119 (Garry: "make it all white and with lizard eyes on the front of it"): white, so the green screen (its
+        # spill held down to red at install: nothing on it is green)
+        "screen": "green",
+        "subject": "the treasure chest of the Gila Grande, a giant gila monster, all in white: its body and its rounded lid "
+                   "covered all over in small beaded hexagonal scales in ivory white with the gila monster's banded pattern "
+                   "in pale cream and light warm grey, pale bone bands down its corners and over the lid, two big round "
+                   "glossy amber-yellow lizard eyes with black vertical slit pupils on the front of the chest, each under a "
+                   "heavy scaly white brow that frowns, a small bone lock plate with a dark keyhole between the eyes under "
+                   "the lid, curved bone handles on its sides and a row of short white spines along the top of the lid",
     },
     "brander": {
         "screen": "green",
@@ -77,9 +79,14 @@ CHESTS = {
 POSE_WORDS = {
     "cracked": "Its lid is now lifted open just a crack, exactly as in the pose of the other reference image, a bright warm "
                "golden light shining out through the thin gap under the lid, a few small sparkles round the gap",
-    "open": "Its lid is now thrown wide open and stands up at the back, exactly as in the pose of the other reference image, the "
-            "chest overflowing with a heap of shiny gold coins and glowing purple, blue and pink crystal gems, bright golden "
-            "light bursting up out of it",
+    # pass 119: the box is open and deep (the Brander's coins had been painted lying on a flat top) and the open lid shows
+    # its own empty inside (the Gila's had been a grey ribbed panel)
+    "open": "Its lid is now thrown wide open and stands up at the back, exactly as in the pose of the other reference image: "
+            "the open lid's inside faces us, the empty hollow underside of the lid lined in a dark colour with its rim round it. "
+            "The box is open at the top like a deep box: its dark lined inner walls show, and a heap of shiny gold coins and "
+            "glowing purple, blue and pink crystal gems sits down inside the box, behind the box's front wall and inside its "
+            "rim, piled up to a hump over the rim in the middle, a few coins tipped over the front edge, warm golden light "
+            "glowing up out of it",
 }
 
 

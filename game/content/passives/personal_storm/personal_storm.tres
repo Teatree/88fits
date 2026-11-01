@@ -1,0 +1,79 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ablla"]
+[ext_resource type="Texture2D" path="res://content/passives/personal_storm/personal_storm_icon_evolved.png" id="1_g5ndm"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_7qccl"]
+[ext_resource type="Texture2D" path="res://content/passives/personal_storm/personal_storm_icon.png" id="2_u4lry"]
+
+[sub_resource type="Resource" id="Resource_g5ndm"]
+script = ExtResource("1_ablla")
+stat = "storm_every"
+op = "set"
+value = 30.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_u4lry"]
+script = ExtResource("1_ablla")
+stat = "storm_seconds"
+op = "set"
+value = 8.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_p1wnc"]
+script = ExtResource("1_ablla")
+stat = "storm_every"
+op = "set"
+value = 24.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_i0gxx"]
+script = ExtResource("1_ablla")
+stat = "storm_seconds"
+op = "set"
+value = 10.0
+target = "player"
+
+[resource]
+script = ExtResource("2_7qccl")
+levels = [[SubResource("Resource_g5ndm"), SubResource("Resource_u4lry")], [SubResource("Resource_p1wnc"), SubResource("Resource_i0gxx")]]
+repeat_last_level = false
+max_level = 2
+evolved_icon = ExtResource("1_g5ndm")
+params = {
+"storm": {
+"apart": 2.0,
+"big_knock": 0.4,
+"big_mult": 0.5,
+"clear": 1.6,
+"crowd_share": 0.75,
+"damage": 40.0,
+"darkness": 0.4,
+"dim": 0.3,
+"first": 4.0,
+"follow": 1.2,
+"gather": 1.6,
+"hero_clear": 1.6,
+"knock": 34.0,
+"mark_fade": 4.0,
+"mark_hold": 2.0,
+"radius": 9.0,
+"rate": 2.0,
+"samples": 6.0,
+"shadow_scale": 1.6,
+"stage_scaled": 1.0,
+"strike_r": 2.0,
+"tell": 0.3
+}
+}
+excludes = ["iron_horse"]
+id = "personal_storm"
+display_name = "Personal Storm"
+flavour = "Some folks carry an umbrella. You carry the weather."
+rarity = "legendary"
+weight = 5.0
+icon = ExtResource("2_u4lry")
+icon_file = "personal_storm_icon.png"
+placeholder = {
+"color": "#6F86C8",
+"glyph": "bolt"
+}

@@ -150,7 +150,10 @@ def content_checks(check):
             continue
         for code in [c for c in "BCDE" if c in vs]:
             f = str(vs[code].get("icon", ""))
-            if f != "%s_icon_%s.png" % (cid, code.lower()) or not os.path.isfile(os.path.join(folder, cid, f)):
+            # pass 119 (the lead): or a later one of its own the editor installed for that look, <id>_icon_<x>_<job>.png
+            # (Garry's Multishot B; the icon guard never overwrites the painted file)
+            own = "%s_icon_%s" % (cid, code.lower())
+            if not (f == own + ".png" or (f.startswith(own + "_") and f.endswith(".png"))) or not os.path.isfile(os.path.join(folder, cid, f)):
                 bad.append("%s %s: %s" % (cid, code, f))
         if d.get("variant") not in vs:
             bad.append("%s plays %s" % (cid, d.get("variant")))

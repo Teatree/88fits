@@ -483,8 +483,16 @@ func test_the_star_waits_on_an_evade_and_the_shield_power_up() -> void:
 	Run.player_sheet.add_effects([Effect.make("evade", "add", 5.0, "player")], "test")
 	p.refresh_stats()
 	# evade is capped at 90% (Player.take_damage): a fixed seed whose first roll is under it, so the evade is certain
-	# (the lead: the full suite failed this one time in ten)
-	seed(1)
+	# (the lead: the full suite failed this one time in ten). Pass 119 (lane LEGEND_B): the roll is the rule dice's
+	# (Dice.r, pass 114), so they are seeded, on the first seed whose first roll is under the cap (seed() moved only the
+	# looks' stream, and the test passed or failed with the suites run before it)
+	var probe := RandomNumberGenerator.new()
+	var s := 1
+	probe.seed = s
+	while probe.randf() >= 0.9:
+		s += 1
+		probe.seed = s
+	Dice.r.seed = s
 	_hit(p, 40.0)
 	assert_str(p.last_outcome).is_equal("evaded")
 	assert_int(p.star_guard.blocks).is_equal(0)

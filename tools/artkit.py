@@ -724,3 +724,37 @@ def contact_sheet(images, cols, cell, bg=(40, 40, 48, 255), labels=None):
         t.thumbnail((cell - 8, cell - 8))
         sheet.alpha_composite(t, ((i % cols) * cell + (cell - t.width) // 2, (i // cols) * cell + (cell - t.height) // 2))
     return sheet
+
+
+# ---------------------------------------------------------------- pass 119 (the lead): a card's lean
+# Pass 73's B cards were all turned to one 10-degree lean at install (tools/dl/p73/CARDS/cardkit.py: Klein leans a
+# "tilted about 12 degrees" card anywhere from 8 degrees left to 12 right); the Level Editor's installs skipped that step,
+# so a re-rolled card kept Klein's lean (Garry's Hydra stood upright among 41 cards at 10). Moved here so every finish
+# can take it: gen_art.finish(..., lean=deg), the icon jobs' `lean` field.
+
+def _bbox_area(mask, ang):
+    m = mask.rotate(ang, resample=Image.NEAREST, expand=True)
+    b = m.getbbox()
+    return (b[2] - b[0]) * (b[3] - b[1]) if b else 0
+
+
+def card_tilt(rgba):
+    """The clockwise lean of the card in a keyed RGBA picture, in degrees (-30..30): rotating it this many degrees
+    counter-clockwise (PIL's sense) stands it upright. The turn that makes its bounding box smallest, coarse to fine."""
+    a = rgba.split()[3].point(lambda v: 255 if v > 127 else 0)
+    small = a.resize((max(1, a.width // 4), max(1, a.height // 4)), Image.NEAREST)
+    best = min(range(-30, 31, 2), key=lambda d: _bbox_area(small, d))
+    fine = [best + x / 4.0 for x in range(-8, 9)]
+    return float(min(fine, key=lambda d: _bbox_area(small, d)))
+
+
+def lean_to(keyed, lean):
+    """The keyed RGBA picture turned so its card leans `lean` degrees clockwise (its top to the right), on the full
+    picture before it is fitted, so no line goes soft; the edge's smeared alpha made crisp again."""
+    turn = card_tilt(keyed) - float(lean)
+    if abs(turn) <= 0.4:
+        return keyed
+    out = keyed.rotate(turn, resample=Image.BICUBIC, expand=True)
+    r, g, b, al = out.split()
+    al = al.point(lambda v: 0 if v < 24 else (255 if v > 232 else v))
+    return Image.merge("RGBA", (r, g, b, al))

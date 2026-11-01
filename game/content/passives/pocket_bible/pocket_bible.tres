@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/pocket_bible/pocket_bible_icon_evolved.png" id="1_qlipk"]
+[ext_resource type="Texture2D" path="res://content/passives/pocket_bible/pocket_bible_icon.png" id="2_rt1w0"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_l1jnc"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_wk07a"]
+
+[sub_resource type="Resource" id="Resource_qlipk"]
+script = ExtResource("3_l1jnc")
+stat = "hit_cap_pct"
+op = "set"
+value = 12.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_rt1w0"]
+script = ExtResource("3_l1jnc")
+stat = "boss_hit_cap_pct"
+op = "set"
+value = 35.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_l1jnc"]
+script = ExtResource("3_l1jnc")
+stat = "hit_block_every"
+op = "set"
+value = 20.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_wk07a"]
+script = ExtResource("3_l1jnc")
+stat = "hit_cap_pct"
+op = "set"
+value = 9.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_a2dmc"]
+script = ExtResource("3_l1jnc")
+stat = "boss_hit_cap_pct"
+op = "set"
+value = 30.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_uh3qu"]
+script = ExtResource("3_l1jnc")
+stat = "hit_block_every"
+op = "set"
+value = 15.0
+target = "player"
+
+[resource]
+script = ExtResource("4_wk07a")
+levels = [[SubResource("Resource_qlipk"), SubResource("Resource_rt1w0"), SubResource("Resource_l1jnc")], [SubResource("Resource_wk07a"), SubResource("Resource_a2dmc"), SubResource("Resource_uh3qu")]]
+repeat_last_level = false
+max_level = 2
+evolved_icon = ExtResource("1_qlipk")
+params = {
+"bible": {
+"plate": true
+}
+}
+id = "pocket_bible"
+display_name = "Pocket Bible"
+flavour = "Stopped a slug meant for a better man."
+rarity = "legendary"
+weight = 5.0
+icon = ExtResource("2_rt1w0")
+icon_file = "pocket_bible_icon.png"
+placeholder = {
+"color": "#3A3030",
+"glyph": "shield"
+}

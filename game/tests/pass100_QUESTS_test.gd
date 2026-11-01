@@ -383,7 +383,8 @@ func test_the_quest_locked_band_and_stage_spread_still_hold() -> void:
 		var q := Registry.quest_for("weapon" if d is WeaponDef else "passive", d.id)
 		if q:
 			locked.append(q)
-	assert_float(float(locked.size()) / float(items.size())).is_between(0.28, 0.56)
+	# pass 119: 0.28 -> 0.25 as in pass44_test (the six legendary items, the keys and the Grindstone come unlocked)
+	assert_float(float(locked.size()) / float(items.size())).is_between(0.25, 0.56)
 	var by_stage := {1: 0, 2: 0, 3: 0}
 	for q in locked:
 		by_stage[clampi(QuestTracker.stage_hint(q), 1, 3)] += 1

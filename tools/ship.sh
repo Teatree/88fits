@@ -6,6 +6,7 @@
 #   bash tools/ship.sh --quick    # skip tests and the smoke run (export + verify + install only)
 #   bash tools/ship.sh --no-install
 #   bash tools/ship.sh --no-pc      # skip the PC build (88fits.exe), which otherwise follows the APK into the Drive folder
+#   bash tools/ship.sh --no-aab     # skip the Google Play bundle (outlaw_survivors.aab), built last since pass 119
 #   bash tools/ship.sh --debug-key  # allow a debug-keystore build when tools/keys/keystore.env is missing (on purpose only)
 #
 # The PC build (pass 73): its icon is game/icon.ico (tools/make_win_icon.py, made again when game/icon.png changes), its
@@ -25,12 +26,13 @@ ADB="${LOCALAPPDATA:-}/Android/Sdk/platform-tools/adb.exe"
 APKSIGNER="${LOCALAPPDATA:-}/Android/Sdk/build-tools/34.0.0/apksigner.bat"
 APK="$ROOT/game/export/88fits-debug.apk"
 PKG="$(grep -m1 'package/unique_name' "$ROOT/game/export_presets.cfg" | sed 's/.*="\(.*\)"/\1/')"
-QUICK=0; INSTALL=1; DEBUG_KEY=0; NO_PC=0
+QUICK=0; INSTALL=1; DEBUG_KEY=0; NO_PC=0; NO_AAB=0
 for a in "$@"; do
   [ "$a" = "--quick" ] && QUICK=1
   [ "$a" = "--no-install" ] && INSTALL=0
   [ "$a" = "--debug-key" ] && DEBUG_KEY=1
   [ "$a" = "--no-pc" ] && NO_PC=1
+  [ "$a" = "--no-aab" ] && NO_AAB=1
 done
 
 # pass 114 (lane EDITOR): every step is written on the Godot lock (locks.py note), so the Level Editor's Save can say what
@@ -143,4 +145,19 @@ if [ "$NO_PC" = "0" ]; then
     done
   fi
 fi
-step "done"; echo "APK: $APK"; [ "$NO_PC" = "0" ] && echo "EXE: $EXE"
+# pass 119 (Garry: "Make sure that the .aab is built with the .apk from now on"): the Google Play bundle, after the
+# checks this run passed: tools/ship_play.sh (the "Android Play" preset's version code +1, game/export/
+# outlaw_survivors.aab, signed, copied beside the APK in Drive), run under this script's Godot lock (LOCK_HELD_GODOT);
+# --no-aab skips it. A failed bundle is said, never fatal: the APK and the exe are already in Drive.
+AAB="$ROOT/game/export/outlaw_survivors.aab"
+if [ "$NO_AAB" = "0" ]; then
+  step "play bundle"
+  T0=$(date +%s)
+  LOCK_HELD_GODOT=1 bash tools/ship_play.sh 2>&1 | sed 's/^/  /'
+  if [ "${PIPESTATUS[0]}" = "0" ]; then
+    echo "play bundle: $(( $(date +%s) - T0 )) s"
+  else
+    echo "WARNING: the Play bundle failed after $(( $(date +%s) - T0 )) s (the APK and the exe are in Drive)"; AAB=""
+  fi
+fi
+step "done"; echo "APK: $APK"; [ "$NO_PC" = "0" ] && echo "EXE: $EXE"; [ "$NO_AAB" = "0" ] && [ -n "$AAB" ] && echo "AAB: $AAB"

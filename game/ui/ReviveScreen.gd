@@ -379,7 +379,8 @@ func _row(e: Dictionary, t_ref: float) -> PanelContainer:
 		"evaded":
 			what = "evaded"
 			tone = W.AGED
-		"power-up":
+		"power-up", "bible":
+			# pass 119 (lane LEGEND_B): the Pocket Bible's block reads as blocked too
 			what = "blocked"
 			tone = SHIELD_BLUE
 		"shield", "broke":

@@ -1,0 +1,71 @@
+{
+  "id": "personal_storm",
+  "name": "Personal Storm",
+  "flavour": "Some folks carry an umbrella. You carry the weather.",
+  "rarity": "legendary",
+  "weight": 5,
+  "max_level": 2,
+  "levels": [
+    [
+      {
+        "stat": "storm_every",
+        "op": "set",
+        "value": 30,
+        "target": "player"
+      },
+      {
+        "stat": "storm_seconds",
+        "op": "set",
+        "value": 8,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "storm_every",
+        "op": "set",
+        "value": 24,
+        "target": "player"
+      },
+      {
+        "stat": "storm_seconds",
+        "op": "set",
+        "value": 10,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "excludes": ["iron_horse"],
+  "params": {
+    "storm": {
+      "first": 4.0,
+      "gather": 1.6,
+      "clear": 1.6,
+      "radius": 9.0,
+      "follow": 1.2,
+      "rate": 2.0,
+      "crowd_share": 0.75,
+      "samples": 6,
+      "strike_r": 2.0,
+      "tell": 0.3,
+      "damage": 40.0,
+      "stage_scaled": 1,
+      "big_mult": 0.5,
+      "knock": 34.0,
+      "big_knock": 0.4,
+      "hero_clear": 1.6,
+      "apart": 2.0,
+      "mark_hold": 2.0,
+      "mark_fade": 4.0,
+      "dim": 0.3,
+      "darkness": 0.4,
+      "shadow_scale": 1.6
+    }
+  },
+  "art_prompt": "a small dark swirling storm cloud with a jagged bright yellow-white lightning bolt striking down out of it, a few raindrops",
+  "placeholder": {
+    "color": "#6F86C8",
+    "glyph": "bolt"
+  }
+}

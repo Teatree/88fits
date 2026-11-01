@@ -178,6 +178,8 @@ func load_save() -> void:
 	_migrate_stakes()
 	# pass 115 (lane META): Nerve's ranks cost less now; what an older save paid over the new price comes back, once
 	_migrate_nerve()
+	# pass 119 (lane LOADUI): the painted title, once
+	_migrate_painted()
 	_survey_counted_from_runs()
 	Settings.from_dict(data.get("settings", {}))
 	last_saved_unix = int(data.get("saved_at", 0))
@@ -291,6 +293,22 @@ func _migrate_4_to_5() -> void:
 	if not (data.get("settings") is Dictionary):
 		data["settings"] = {}
 	(data["settings"] as Dictionary)["menu_style"] = Settings.MENU_STYLE_DEFAULT
+
+
+## Pass 119 (lane LOADUI; Garry: "Let's set the "Painted" option as default for now, while keeping the buttons in the
+## Settings for the Debug version of course"): every save on the painted title once. A save written since pass 53 holds
+## "live" (to_dict wrote the old default), so the new default alone would not reach a phone; the once-flag is set on
+## every save, a new one too, so the debug panel's pick sticks from here on. Runs before load_save hands the settings on.
+const PAINTED_ONCE := "menu_painted_v119"
+
+
+func _migrate_painted() -> void:
+	if once(PAINTED_ONCE):
+		return
+	if not (data.get("settings") is Dictionary):
+		data["settings"] = {}
+	(data["settings"] as Dictionary)["menu_style"] = Settings.MENU_STYLE_DEFAULT
+	mark_once(PAINTED_ONCE)
 
 
 ## A save from before pass 44 has no "seen" record: what its totals prove was met counts as seen (the creatures it

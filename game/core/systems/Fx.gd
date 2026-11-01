@@ -411,6 +411,36 @@ static func blood_size(size: float) -> float:
 	return BLOOD_SOFT * sqrt(size / BLOOD_SOFT)
 
 
+## Pass 119 (lane LEGEND_B): a splash of liquid at `at`, `delay` s from now: the Dragon's Breath's tell that the next
+## breath is coming (Garry: "The indication of the attack being ready is terrible. Remove that completely. Instead let's
+## just play some cheap splash of water particle effect burst or two. This shows like 'Hero took a mouth full of the
+## liquid to spit flame with'"; FireBreath._mouthful). A small pale splat that pops and breaks up and SPLASH_DROPS drops
+## flung out across the screen that fall, in `col`: pieces of the blood pool (its own ring and shader, no node, no new
+## material), so it costs a few instance writes. `size` scales it (1 = about a mouth's width). Only a look: its rolls are
+## the pool's own dice, never a rule's.
+const SPLASH_WATER := Color(0.62, 0.86, 1.0)
+const SPLASH_DROPS := 9
+
+
+func water_splash(at: Vector3, size: float = 1.0, delay: float = 0.0, col: Color = SPLASH_WATER) -> void:
+	if Run.sim_mode or _blood_mm == null:
+		return
+	var right := Vector3.RIGHT
+	var up := Vector3.UP
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam:
+		right = cam.global_transform.basis.x.normalized()
+		up = cam.global_transform.basis.y.normalized()
+	var w := 0.34 * size
+	for j in range(SPLASH_DROPS):
+		var a: float = TAU * (float(j) + _blood_rng.randf() * 0.8) / float(SPLASH_DROPS)
+		var dir: Vector3 = right * cos(a) + up * sin(a) * 0.85
+		var v: Vector3 = dir * _blood_rng.randf_range(1.6, 3.0) * size + Vector3(0.0, _blood_rng.randf_range(1.1, 2.3), 0.0)
+		var d: float = _blood_rng.randf_range(0.06, 0.1) * size
+		_blood_piece(at + dir * w * 0.2, v, d, d * 0.45, BLOOD_GRAV, _blood_rng.randf_range(0.24, 0.36), delay + _blood_rng.randf_range(0.0, 0.03), 0.06, col, _blood_rng.randf(), 1.0, 0.4)
+	_blood_piece(at, Vector3(0, 0.25, 0), w * 0.3, w, 0.0, 0.26, delay, 0.0, col, _blood_rng.randf(), 0.0, 0.4)
+
+
 ## How many pieces of blood are showing or about to (tests: a splash shows, then is gone within a second).
 func blood_count() -> int:
 	var n := 0

@@ -56,6 +56,10 @@ const HIT_CRIT := 2
 ## HIT_BLAST (pass 103, lane PLAY): the hit is an explosion's (a Last Stand turret's boom, an `explosive` land blast, the
 ## revive's wave): its push is never resisted by Endless's knock resistance (endless_knock_share)
 const HIT_BLAST := 4
+## HIT_NO_CRIT (pass 119): the hit never crits and takes no Counterpunch, Vulture or Cold Snap roll (Lightning in a
+## Bottle's arcs: a share of a crit already landed, never one of its own; the Iron Horse's train and Personal Storm's
+## lightning: a share of max HP must not double on a crit)
+const HIT_NO_CRIT := 8
 ## Whether the last hit damage() landed was a full crit (pass 61, lane WP2: the Sabre's Critical Thinking streak and the
 ## Whirlwind's refund read it right after their own call); false when the hit did not land.
 var last_crit := false
@@ -652,6 +656,8 @@ func _pstats() -> void:
 	_pstats_lines(s)
 	# pass 88 (lane MIRROR): the Upgrade board's Stakes
 	_pstats_mirror()
+	# pass 119 (lane LEGEND_B): Lightning in a Bottle's arcs
+	_pstats_arcs(s)
 
 
 ## Reads the hero's numbers again now (a test or a tool that edits Run.player_sheet by hand).
@@ -2198,7 +2204,7 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 					kb[i] += tow.normalized() * pl * _t_kbt[type_idx[i]]
 	# Deadeye: a weapon hit (never a poison or fire tick) can crit for crit_damage times the damage
 	var crit := false
-	if weapon_id != "" and not green and not hot:
+	if weapon_id != "" and not green and not hot and (flags & HIT_NO_CRIT) == 0:
 		# Counterpunch (pass 69): the attack after an evade hits double (Run.counterpunch_mult, 1 otherwise)
 		dealt *= Run.counterpunch_mult(weapon_id)
 		# pass 102 (lane HITS): the hero's crit numbers as this tick read them (_hit_stats)
@@ -2208,7 +2214,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		var tpm: float = Run.trick_proc_mult(weapon_id)
 		cc *= tpm
 		# HIT_CRIT (pass 62): a forced crit needs no roll
-		if (flags & HIT_CRIT) != 0 or (cc > 0.0 and Dice.r.randf() < cc):
+		# pass 119 (lane LEGEND_B): HIT_NO_CRIT (Lightning in a Bottle's arcs) never crits
+		if (flags & HIT_NO_CRIT) == 0 and ((flags & HIT_CRIT) != 0 or (cc > 0.0 and Dice.r.randf() < cc)):
 			dealt *= _hs_critd
 			crit = true
 			# Vulture (pass 47c): a crit may heal the hero a little
@@ -2285,12 +2292,19 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 			_splashing = false
 			if game:
 				game.fx.burst(pos[i] + Vector3(0, 0.5, 0), Color(1.0, 0.6, 0.25), 1.6)
+		# pass 119 (lane LEGEND_B): a crit throws Lightning in a Bottle's arcs off the body (crit_arc)
+		if crit:
+			crit_arc(i, dealt, weapon_id)
 		# the death and the overkill splash may have landed hits of their own since
 		last_crit = crit
 		return true
 	# pass 73 (lane SNIPER): flee on hit, and a hit Vulture Raider's rockets shake and slow
 	_on_hit_reactions(i, def, dealt, green or hot)
 	_hit_sound(i, crit)
+	# pass 119 (lane LEGEND_B): a crit throws Lightning in a Bottle's arcs (crit_arc); their hits leave last_crit as this one's
+	if crit:
+		crit_arc(i, dealt, weapon_id)
+		last_crit = crit
 	return false
 
 
@@ -9175,3 +9189,103 @@ func _hit_stats() -> void:
 	_hs_crit = s.get_stat("crit_chance", 0.0)
 	_hs_critd = s.get_stat("crit_damage", 2.0)
 	_hs_exec = s.get_stat("execute_frac", 0.0)
+
+
+# ---------------------------------------------------------------- pass 119 (lane LEGEND_B): Lightning in a Bottle
+## Garry: "Lightning in a bottle - Let's do this one, but considering that our crits can sometimes be hard, let's reduce
+## the % of damage a bit". With the hero's `crit_arcs` above 0 (the item's levels), every full crit a weapon lands (never
+## a burn's or a poison's tick, which never crit, never a hostile push, never an arc's own hit) throws an arc from the
+## creature it struck to the `crit_arcs` nearest other creatures within the item's params.arc.radius (5 m) of it, each
+## taking `crit_arc_pct` % of the crit's damage as dealt (after the hit's own multipliers), recorded as the item's own
+## source (its id: the Results screen, the run record), and from the Evolved rung stunned for `crit_arc_stun` s
+## (EnemyManager.stun: never a boss or an Elite). Arcs never chain: an arc's hit cannot crit (HIT_NO_CRIT) nor throw an
+## arc of its own (_arcing). At most params.arc.cap arcs (12) leave in any params.arc.window (0.1 s) of the buffs' clock,
+## and at most twice that many crits look for targets in it, so a crit storm costs a bounded number of hits and grid
+## queries (indices_in_radius, the 2.5 m grid). Each arc is the Zap Beam's bolt, thin (Fx.lightning at ARC_WIDTH); one
+## zap sound a window. No dice: the targets are the nearest, ties by slot.
+const ARC_WIDTH := 0.5
+const ARC_DEFAULTS := {"radius": 5.0, "cap": 12, "window": 0.1, "color": "#8cc4ff"}
+var _arc_n := 0
+var _arc_share := 0.0
+var _arc_stun := 0.0
+var _arc_params: Dictionary = {}
+var _arc_source := "crit_arc"
+var _arc_win_start := -INF
+var _arc_win_arcs := 0
+var _arc_win_looks := 0
+var _arcing := false
+## Arcs thrown this run and crits that threw at least one (tests, the capture).
+var arcs_thrown := 0
+var arc_crits := 0
+
+
+## The hero's arc numbers (_pstats: once a tick at most, and on a build change): the item's stats, and the params and
+## the id of the held item that carries `params.arc` (Run.item_params).
+func _pstats_arcs(s: StatSheet) -> void:
+	_arc_n = maxi(int(round(s.get_stat("crit_arcs", 0.0))), 0)
+	_arc_share = maxf(s.get_stat("crit_arc_pct", 0.0), 0.0) / 100.0
+	_arc_stun = maxf(s.get_stat("crit_arc_stun", 0.0), 0.0)
+	_arc_params = {}
+	_arc_source = "crit_arc"
+	if _arc_n > 0:
+		var src: Array = Run.item_params("arc")
+		if not src.is_empty():
+			_arc_source = str(src[0])
+			_arc_params = src[1]
+
+
+func _arc_num(key: String) -> float:
+	return float(_arc_params.get(key, ARC_DEFAULTS[key]))
+
+
+## A crit landed on creature `i` for `dealt` by `weapon_id`: its arcs, if the hero has any (see above). damage() calls it
+## after the hit is done with (the struck one dead or alive); returns how many arcs left.
+func crit_arc(i: int, dealt: float, weapon_id: String) -> int:
+	if _arcing or weapon_id == "" or weapon_id in HOSTILE_PUSH_IDS:
+		return 0
+	_pstats()
+	if _arc_n <= 0 or _arc_share <= 0.0 or weapon_id == _arc_source or dealt <= 0.0:
+		return 0
+	var now: float = Run.buff_clock()
+	if now - _arc_win_start >= _arc_num("window") or now < _arc_win_start:
+		_arc_win_start = now
+		_arc_win_arcs = 0
+		_arc_win_looks = 0
+	var cap := maxi(int(_arc_num("cap")), 1)
+	var room := cap - _arc_win_arcs
+	if room <= 0 or _arc_win_looks >= cap * 2:
+		return 0
+	_arc_win_looks += 1
+	var at: Vector3 = pos[i]
+	var near: Array = []
+	for j in indices_in_radius(at, _arc_num("radius")):
+		if j == i or alive[j] == 0 or state[j] == STATE_DYING or hidden[j] == 1 or held[j] == 1:
+			continue
+		near.append([Vector2(pos[j].x - at.x, pos[j].z - at.z).length_squared(), j])
+	if near.is_empty():
+		return 0
+	near.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]) or (float(a[0]) == float(b[0]) and int(a[1]) < int(b[1])))
+	var n := mini(mini(_arc_n, room), near.size())
+	var hit := dealt * _arc_share
+	var first_in_window := _arc_win_arcs == 0
+	_arc_win_arcs += n
+	var col := Color(str(_arc_params.get("color", ARC_DEFAULTS["color"])))
+	var from := at + Vector3(0, size[i] * 0.6 + lift_h[i], 0)
+	var fx = game.get("fx") if game else null
+	_arcing = true
+	for k in range(n):
+		var j: int = near[k][1]
+		if alive[j] == 0 or state[j] == STATE_DYING:
+			continue
+		if fx != null and fx.has_method("lightning"):
+			fx.lightning([from, pos[j] + Vector3(0, size[j] * 0.55 + lift_h[j], 0)], col, ARC_WIDTH)
+		var away := Vector3(pos[j].x - at.x, 0.0, pos[j].z - at.z)
+		var killed := damage(j, hit, _arc_source, away.normalized() if away.length_squared() > 0.0001 else Vector3.ZERO, 0.0, false, false, HIT_NO_CRIT)
+		if not killed and _arc_stun > 0.0:
+			stun(j, _arc_stun)
+		arcs_thrown += 1
+	_arcing = false
+	arc_crits += 1
+	if first_in_window and not Run.sim_mode:
+		Audio.play("w_zap_hit", at)
+	return n

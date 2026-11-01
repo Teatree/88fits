@@ -1,0 +1,53 @@
+{
+  "id": "fools_gold",
+  "name": "Fool's Gold",
+  "flavour": "It ain't gold till you spend it.",
+  "rarity": "legendary",
+  "weight": 5,
+  "max_level": 2,
+  "levels": [
+    [
+      {
+        "stat": "purse_might_per",
+        "op": "set",
+        "value": 50,
+        "target": "player"
+      },
+      {
+        "stat": "purse_might_cap",
+        "op": "set",
+        "value": 60,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "purse_might_per",
+        "op": "set",
+        "value": 40,
+        "target": "player"
+      },
+      {
+        "stat": "purse_hp_per",
+        "op": "set",
+        "value": 100,
+        "target": "player"
+      },
+      {
+        "stat": "purse_hp_cap",
+        "op": "set",
+        "value": 30,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "params": {
+    "purse": {}
+  },
+  "art_prompt": "a small open worn brown leather money pouch tipped over, spilling a heap of chunky cube-shaped pyrite crystals with brassy gold mirror faces",
+  "placeholder": {
+    "color": "#E0B030",
+    "glyph": "coin"
+  }
+}

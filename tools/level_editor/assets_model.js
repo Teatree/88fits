@@ -35,8 +35,11 @@ const AssetsModel = (() => {
     bronco_chance: 0, debuff_jump: 0, star_block_every: 0, gem_sweep_every: 0, vein_chance: 0, gold_might: 0,
     // pass 88 (lane MIRROR): the Upgrade board's Stakes
     danger_hp: 0, danger_attack: 0, danger_speed: 0, danger_bounty: 0, boss_danger_hp: 0, boss_danger_attack: 0, boss_danger_speed: 0, boss_danger_bounty: 0, phoenix_hp: 0,
-    // pass 118 (lane ITEMS): the keys' per-chest stats and the Grindstone's rolls
-    chest_luck: 0, chest_might: 0, grind_rolls: 0,
+    // pass 118 (lane ITEMS): the keys' per-chest stats; pass 119 (lane LEGEND_B): the Grindstone's levels, the legendaries
+    chest_luck: 0, chest_might: 0, grind_levels: 0,
+    crit_arcs: 0, crit_arc_pct: 0, crit_arc_stun: 0, grave_every: 0, grave_max: 0, grave_seconds: 0, grave_damage_pct: 0,
+    train_every: 0, train_cross: 0, storm_every: 0, storm_seconds: 0,
+    purse_might_per: 0, purse_might_cap: 0, purse_hp_per: 0, purse_hp_cap: 0, hit_cap_pct: 0, boss_hit_cap_pct: 0, hit_block_every: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -79,7 +82,24 @@ const AssetsModel = (() => {
     phoenix_hp: ['', 'hidden'],
     // pass 118 (lane ITEMS)
     chest_luck: ['luck per chest opened', 'pct'], chest_might: ['attack damage per chest opened', 'pct'],
-    grind_rolls: ['bonus rolls on every weapon upgrade', 'count'],
+    // pass 119 (lane LEGEND_B)
+    grind_levels: ["levels for your weakest weapons", "count"],
+    crit_arcs: ["creatures a crit arcs to", "rule"],
+    crit_arc_pct: ["of a crit in each arc", "rule"],
+    crit_arc_stun: ["arc stun", "rule"],
+    grave_every: ["kills a grave", "rule"],
+    train_every: ["seconds between ghost trains", "rule"], train_cross: ["crossing train", "rule"],
+    storm_every: ["seconds between storms", "rule"], storm_seconds: ["storm strikes for", "rule"],
+    grave_max: ["ghosts at once", "rule"],
+    grave_seconds: ["ghost fights for", "rule"],
+    grave_damage_pct: ["ghost damage", "rule"],
+    purse_might_per: ["gold per 1% attack damage", "rule"],
+    purse_might_cap: ["purse attack damage cap", "rule"],
+    purse_hp_per: ["gold per 1% max HP", "rule"],
+    purse_hp_cap: ["purse max HP cap", "rule"],
+    hit_cap_pct: ["most a hit takes", "rule"],
+    boss_hit_cap_pct: ["most a boss's hit takes", "rule"],
+    hit_block_every: ["seconds between blocks", "rule"],
   };
   // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
   const STAT_HELP = {
@@ -103,7 +123,26 @@ const AssetsModel = (() => {
     // pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> at every chest opened (Run.chest_opened)
     chest_luck: 'Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it',
     chest_might: 'Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it',
-    grind_rolls: 'Grindstone: every level-up of a held weapon grinds this many different bonuses from the item params.grind table into that weapon for the rest of the run (never a new weapon, a mutation or an evolution)',
+    // pass 119 (lane LEGEND_B)
+    grind_levels: "Grindstone (pass 119): one per level taken; each level raises the weakest weapon a level (fewest levels, then least damage this run), or evolves a ready one once all are maxed (Run._grindstone). The number is only said on the cards, never read",
+    crit_arcs: "Lightning in a Bottle: every full crit a weapon lands throws an arc to this many of the nearest other creatures within params.arc.radius m (\"set\" per level); arcs never chain or crit",
+    crit_arc_pct: "Lightning in a Bottle: each arc deals this percent of the crit as dealt (25 = 25%; \"set\" per level)",
+    crit_arc_stun: "Lightning in a Bottle: each arc stuns its creature this many seconds (never a boss or an Elite); 0 = none",
+    train_every: "Iron Horse: seconds between ghost trains charging down the hero's line (params.train: warning, damage shares, push); 0 = none",
+    train_cross: "Iron Horse (Evolved): 1 = a second train crosses the first from the hero's left",
+    storm_every: "Personal Storm: seconds between storms gathering over the hero (params.storm: strikes a second, damage, push, marks); 0 = none",
+    storm_seconds: "Personal Storm: how long a storm's lightning strikes",
+    grave_every: "Undertaker's Shovel: every this-many-th kill digs a grave where the body fell (a count, no dice); 0 = none",
+    grave_max: "Undertaker's Shovel: the most graves (and their ghosts) standing at once; a grave due past it is not dug",
+    grave_seconds: "Undertaker's Shovel: how long a ghost fights once it has climbed out (params.grave.rise s after the dig)",
+    grave_damage_pct: "Undertaker's Shovel: a ghost round's damage, this percent of the hero's first weapon's damage (40 = 40%)",
+    purse_might_per: "Fool's Gold: 1% attack damage for every this-many gold in the run's purse (spending lowers it); 0 = none",
+    purse_might_cap: "Fool's Gold: the most attack damage the purse gives, in percent (60 = +60%; 0 = no cap)",
+    purse_hp_per: "Fool's Gold (Evolved): 1% max HP for every this-many gold in the run's purse; 0 = none",
+    purse_hp_cap: "Fool's Gold (Evolved): the most max HP the purse gives, in percent (30 = +30%; 0 = no cap)",
+    hit_cap_pct: "Pocket Bible: no single hit takes more than this percent of max HP (after damage reduction); 0 = no cap",
+    boss_hit_cap_pct: "Pocket Bible: the cap on a boss's hit (its touch, its attacks, its bullet heaven), in percent of max HP",
+    hit_block_every: "Pocket Bible: once every this many seconds the next hit is stopped outright, never a boss's (it waits for another); 0 = none",
   };
   /** A stat's help line: the server's (vocab.stat_help) else this file's, else '' */
   function statHelp(stat, vocab) {
@@ -557,7 +596,8 @@ const AssetsModel = (() => {
   /** The quest-locked share of the base items pass44_test.gd:48-79 pins (pass 69: 0.28-0.56, re-pinned when the Salt, the
    *  Frisbee and five passive items came unlocked): non-hidden base weapons and base passives (no `evolves_from`) over
    *  those with an unlock quest. */
-  const BAND = { lo: 0.28, hi: 0.56 };
+  // pass 119 (lane LEGEND_B): the floor 0.25, the legendary items came unlocked (23 of 88)
+  const BAND = { lo: 0.25, hi: 0.56 };
   function bandOf(weapons, passives, quests) {
     const base = [];
     for (const w of weapons || []) if (!w.hidden && !w.is_evolution) base.push({ id: w.id, kind: 'weapon' });

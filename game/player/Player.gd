@@ -1088,10 +1088,23 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	# Marshal's Star (pass 70, lane LINES): a ready star takes the whole hit
 	if _star_block(amount, info):
 		return
+	# Pocket Bible (pass 119, lane LEGEND_B): a ready block stops the hit outright, never a boss's (Run.bible_try_block)
+	var boss_hit := role_of(info) == "boss"
+	if Run.bible_try_block(boss_hit):
+		invuln = maxf(invuln, sheet.get_stat("hit_invuln", 0.25))
+		_log_hit(amount, 0.0, 0.0, info, "bible")
+		last_outcome = "shield"
+		if DamageNumbers.I: DamageNumbers.I.hero_block()
+		return
 	# damage reduction (pass 43): a share of every hit, capped so nothing makes him immune; Gas Mask (pass 48) adds a
 	# point for every poisoned creature alive, up to its cap (Run.gas_mask_dr), under the same cap
 	var dr := clampf(sheet.get_stat("damage_reduction", 0.0) + Run.gas_mask_dr(), 0.0, 0.8)
 	var dealt: float = amount * (1.0 - dr)
+	# Pocket Bible (pass 119): no single hit takes more than its share of max HP, a boss's a bigger share (Run.hit_cap_share)
+	var cap_share := Run.hit_cap_share(boss_hit)
+	if cap_share > 0.0 and dealt > max_hp * cap_share:
+		dealt = max_hp * cap_share
+		Run.bible_capped += 1
 	invuln = sheet.get_stat("hit_invuln", 0.25)
 	# Unbroken (pass 46, Ironwood): a hit never stops his healing (Siesta's either, pass 47)
 	if not Run.has_perk("unbroken"):
@@ -1290,6 +1303,9 @@ static func log_text(rows: Array) -> String:
 			"star":
 				# pass 73 (lane CARDS): the card's own name (Tin Star's evolution is a fortune card now)
 				what = "blocked by %s (%d)" % [PassiveDef.display_name_of("marshals_star", "Marshal's Star"), roundi(raw)]
+			"bible":
+				# pass 119 (lane LEGEND_B): the Pocket Bible's block
+				what = "blocked by %s (%d)" % [PassiveDef.display_name_of("pocket_bible", "Pocket Bible"), roundi(raw)]
 			"shield":
 				what = "−%d shield" % roundi(float(e.get("shield", 0.0)))
 			"broke":

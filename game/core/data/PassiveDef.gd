@@ -58,9 +58,18 @@ const EVOLVED_RUNG := "evolved"
 ## offered again once held (its max_level is 1). Any future one-shot item sets the same key.
 @export var single: bool = false
 
-## Pass 118 (lane ITEMS): rules an item carries beside its stats (the Grindstone's `grind` table: the bonuses a weapon
-## level-up may grind into the weapon, Run._grind). Empty for most items.
+## Pass 118 (lane ITEMS): rules an item carries beside its stats. Pass 119 (lane LEGEND_B): the Grindstone's `grind` (a
+## level raises the weakest weapon, Run._grindstone), Lightning in a Bottle's `arc`, the Undertaker's Shovel's `grave`,
+## Fool's Gold's `purse`, the Pocket Bible's `bible` (Run.item_params finds the held item carrying one). Empty for most
+## items.
 @export var params: Dictionary = {}
+
+## Pass 119 (lane LEGEND_A, Garry: the Iron Horse and Personal Storm are "quietly mutually exclusive. If Player had chosen
+## one over the other than they won't get the other offered to them again (anywhere)"): the ids of the items this one
+## shuts out. Either side naming the other is enough (shuts_out); once the hero holds one, no offer holds the other
+## (Run.shut_out: the level-up cards, the Shop and the Stranger through CardPool.offer_passives, the chests through
+## Run.chest_candidates, the chest reel's filler), and no word is said about it.
+@export var excludes: Array = []
 
 
 func kind() -> String:
@@ -72,6 +81,13 @@ func kind() -> String:
 static func ladder_levels(p_rarity: String) -> int:
 	var i := LADDER.find(p_rarity)
 	return LADDER.size() - 1 - maxi(i, 0) + 2
+
+
+## Whether this item and `other` shut each other out (pass 119: either one's `excludes` names the other); never itself.
+func shuts_out(other: PassiveDef) -> bool:
+	if other == null or other.id == id:
+		return false
+	return excludes.has(other.id) or other.excludes.has(id)
 
 
 ## Whether this is a passive item on the ladder: not a line (a card), not an evolved form.

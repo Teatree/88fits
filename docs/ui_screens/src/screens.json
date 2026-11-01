@@ -1,18 +1,19 @@
 [
  {
   "id": "boot_loading",
-  "name": "Loading screen (wallpaper and title drop)",
+  "name": "Loading screen (wallpaper and title slam)",
   "file": "game/ui/Boot.gd",
-  "when": "The first scene at app start (pass 118). Godot's boot splash is plain paper (no picture; on Android the system splash shows the paper with a transparent icon), and Boot.gd's first frame is the same paper. The saloon wallpaper fades in over 0.3 s, the OUTLAW / SURVIVORS plate drops in and lands with a thud and a dust puff, while the title loads on a thread; once the plate has settled (never before 1.2 s) the title is built under the screen and the screen dissolves (0.25 s) into it. Nothing pauses; no input.",
+  "when": "The first scene at app start (pass 118). Godot's boot splash is plain paper (no picture; on Android the system splash shows the paper with a transparent icon), and Boot.gd's first frame is the same paper. The saloon wallpaper fades in over 0.3 s, then the OUTLAW / SURVIVORS plate slams in (pass 119: an action game's title hit, no bounce), while the title loads on a thread; once the slam has settled (about 1.02 s) the title is built under the screen and the screen dissolves (0.25 s) into it, never before 1.15 s. Nothing pauses; no input.",
   "purpose": "Show that the game is loading, without an icon or a bar: the moving wallpaper is the progress indicator.",
   "controls": [],
   "shows": [
    "Six vertical strips of saloon wallpaper in two tones with pinstripes and beads, printed tone-on-tone with silhouettes of revolvers, sheriff stars, bombs, boots and other western and game items (tools/make_loading_wallpaper.py -> art/ui/loading/wallpaper.png)",
    "The strips scroll in turn up and down at 46 px/s while the whole set drifts right at 15 px/s",
-   "The title plate (art/ui/loading/title_plate.png): OUTLAW / SURVIVORS on paper with an ink border, a hard shadow and brass nails, dropping from above to 46% of the screen's height"
+   "The title plate (art/ui/loading/title_plate.png): OUTLAW / SURVIVORS on paper with an ink border, a hard shadow and brass nails, resting with its middle at 46% of the screen's height",
+   "The slam: the plate punching in from 2.6 times its size, zoom-blurred, with ink speed lines closing in on it; a white impact frame; the screen shaking; a shockwave ring bending the wallpaper; dust and ink, brass and paper chips flying off its edges; a brass glint across the letters"
   ],
   "rules": [
-   "The plate drops at 0.3 s, lands at 0.64 s (squash, the ui_stamp thud, a dust cloud) and settles after one bounce at 1.01 s; the title is built only after that, and the dissolve never starts before 1.2 s (BALANCING.md 60.LOAD).",
+   "The plate slams in at 0.3 s and hits its rest at 0.42 s (0.12 s, faster and faster, never past its size and never back: no squash, no bounce). The hit: the flash held 0.05 s (the hit-stop), then fading; a 22 px shake dying out over 0.3 s; from the end of the hit-stop the ring runs 0.42 s, the dust 0.5 s and the chips 0.55 s; the ui_stamp thud over a low boom (w_lob_boom, 8 dB down); the glint 0.18 s after the hit for 0.38 s. Everything is over at 1.02 s; the title is built only after that, and the dissolve never starts before 1.15 s (BALANCING.md 60.LOAD, 61.LOADUI).",
    "If the threaded load stalls for 10 s the title is loaded directly; if it cannot load at all a rock-red line says 'The title screen did not load. Please close the game and start it again.', the wallpaper stops moving and the screen stays.",
    "Everything is one shader over one full-screen rect, so the dissolve fades every pixel evenly.",
    "The camera-cutout ink band (CutoutBand autoload) waits while this shows and fades in with the title."
@@ -20,8 +21,9 @@
   "debug_only": false,
   "states": [
    "the wallpaper fading in",
-   "the title dropping",
-   "landed, loading",
+   "the title punching in",
+   "the hit (impact frame, shake, ring, chips)",
+   "settled, loading",
    "failed load (error line, wallpaper still)"
   ]
  },

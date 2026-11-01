@@ -11,4 +11,6 @@ run skins --script res://tools/_p111_skins_shot.gd -- out=$D/skins
 run results --script res://tools/_p116_RESULTS_shots.gd -- out=$D/results only=results
 run meta --script res://tools/_p115_META_shots.gd -- out=$D/meta
 run bosschest --fixed-fps 60 --script res://tools/_p118_BOSSCHEST_shots.gd -- out=$D/bosschest
+# pass 119 (lane LOADUI): the loading screen's title slam, frame by frame (file names load_t<ms>.png)
+run loading --fixed-fps 60 --script res://tools/load_shots.gd -- out=$D/loading tag=load
 echo ALLDONE

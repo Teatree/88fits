@@ -1,0 +1,80 @@
+{
+  "id": "undertakers_shovel",
+  "name": "Undertaker's Shovel",
+  "flavour": "Every grave's a job. Every job's a hand.",
+  "rarity": "legendary",
+  "weight": 5,
+  "max_level": 2,
+  "levels": [
+    [
+      {
+        "stat": "grave_every",
+        "op": "set",
+        "value": 25,
+        "target": "player"
+      },
+      {
+        "stat": "grave_max",
+        "op": "set",
+        "value": 4,
+        "target": "player"
+      },
+      {
+        "stat": "grave_seconds",
+        "op": "set",
+        "value": 8,
+        "target": "player"
+      },
+      {
+        "stat": "grave_damage_pct",
+        "op": "set",
+        "value": 40,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "grave_every",
+        "op": "set",
+        "value": 15,
+        "target": "player"
+      },
+      {
+        "stat": "grave_max",
+        "op": "set",
+        "value": 6,
+        "target": "player"
+      },
+      {
+        "stat": "grave_seconds",
+        "op": "set",
+        "value": 12,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "params": {
+    "grave": {
+      "rise": 2.0,
+      "stone_up": 0.45,
+      "stone_down": 0.6,
+      "climb": 0.7,
+      "vanish": 0.6,
+      "height": 1.25,
+      "sprite": "undertakers_shovel_grave.png",
+      "ghost_tint": "#7fe6ff",
+      "ghost_alpha": 0.85,
+      "fire_min": 0.25,
+      "fire_max": 1.5,
+      "range_min": 6.0,
+      "range_max": 12.0,
+      "round": "#bff6ff"
+    }
+  },
+  "art_prompt": "an old undertaker's spade stuck upright in a small mound of dug-up earth beside a weathered wooden grave cross, a faint ghostly wisp curling up out of the dirt",
+  "placeholder": {
+    "color": "#8A7A66",
+    "glyph": "skull"
+  }
+}

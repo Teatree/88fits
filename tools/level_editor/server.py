@@ -122,7 +122,8 @@ SCRIPT_KEYS = ("name", "windup", "duration", "count", "enemy", "interval", "warn
 NEW_WEAPON_STARTS_HIDDEN = True
 # pass44_test.gd's quest-locked band of the base items (pass 69 re-pinned its floor to 0.28: the Salt, the Frisbee and
 # five passive items came unlocked; selftest_L69 reads the bounds from the test file)
-BAND_LO, BAND_HI = 0.28, 0.56
+# pass 119 (lane LEGEND_B): the floor 0.25, the legendary items came unlocked (23 of 88)
+BAND_LO, BAND_HI = 0.25, 0.56
 # tools/dl roots the page may read through /dl/<rel> (plus any root whose name starts with "icons")
 DL_ROOTS = ("jobs", "drivers", "ai_raw_anime", "ai_anim", "review", "title_heroes", "uploads", "puppet", "frames")   # pass 95: the frames store
 DL_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".json", ".txt", ".glb")

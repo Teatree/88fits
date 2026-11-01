@@ -1384,9 +1384,13 @@ def pick_anchor(k):
 
 # ---------------------------------------------------------------- finishing
 
-def finish(img_rgb, cell, fill, bottom, scale=None, outline_frac=0.009, target_h=None, outline_color=(38, 24, 30, 255)):
-    """Key, lift, fit into the cell, outline. target_h (cell px) fits the figure to that height instead of the fill."""
+def finish(img_rgb, cell, fill, bottom, scale=None, outline_frac=0.009, target_h=None, outline_color=(38, 24, 30, 255),
+           lean=None):
+    """Key, lift, fit into the cell, outline. target_h (cell px) fits the figure to that height instead of the fill.
+    lean (pass 119): a card's lean in degrees, clockwise; the keyed card is turned to it first (artkit.lean_to)."""
     keyed = artkit.punch(artkit.key_background(img_rgb))
+    if lean is not None:
+        keyed = artkit.lean_to(keyed, lean)
     if target_h is not None:
         crop = artkit.crop_alpha(keyed)
         scale = float(target_h) / max(1, crop.height)

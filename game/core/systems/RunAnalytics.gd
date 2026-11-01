@@ -1868,8 +1868,7 @@ static func weapon_sources_of(w: WeaponInstance, player: StatSheet) -> Array:
 		RunAnalytics._ws_add(acc, order, str(en.get("sid", en["source"])), str(en["source"]), e)
 	for en in w.sheet.entries:
 		var src := str(en["source"])
-		# pass 118 (lane ITEMS): a Grindstone's bonuses ("grind:<id>") are the weapon's own too
-		if src == "bonus" or src.begins_with("mutation:") or src.begins_with("grind:"):
+		if src == "bonus" or src.begins_with("mutation:"):
 			RunAnalytics._ws_add(acc, order, src, src, en["effect"])
 	var out: Array = []
 	for sid in order:

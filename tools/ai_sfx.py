@@ -393,6 +393,17 @@ _row("Weapons", "it_keg_boom", "Powder Keg", "boom", 1.2, -3,
      "A barrel of gunpowder exploding with a deep boom and wooden staves clattering down.")
 _row("Player", "it_phoenix", "Phoenix Feather", "whoosh", 1.5, 0,
      "A roar of flames swelling up with a deep whoosh and the heavy beat of huge wings rising.")
+# pass 119 (lane LEGEND_A): the Iron Horse's ghost train and Personal Storm (core/systems/IronHorse.gd, PersonalStorm.gd)
+_row("Weapons", "it_train_rumble", "the Iron Horse: the rumble before the whistle", "texture", 2.0, 0,
+     "A distant steam train approaching fast: a low-mid rumble of iron wheels on rails swelling louder, rhythmic metallic clacking of the track, the ground trembling.")
+_row("Weapons", "it_train_whistle", "the Iron Horse's whistle (the line locks)", "sting", 1.4, 0,
+     "An old steam locomotive whistle blowing one long eerie wail, hollow and haunting, slightly echoing across a desert, a ghost train.")
+_row("Weapons", "it_train_pass", "the ghost train charges past", "whoosh", 1.8, 0,
+     "A steam train thundering past at speed close by: a roaring rush of air, pounding wheels and rapid track clatter, a hiss of steam, fading away.")
+_row("Weapons", "it_storm_gather", "Personal Storm: the clouds roll in", "texture", 2.2, 0,
+     "Storm clouds rolling in: a cold gust of wind rising with a long low-mid roll of distant thunder.")
+_row("Weapons", "it_storm_strike", "Personal Storm: a lightning strike", "boom", 0.9, -2,
+     "A close lightning strike: a sharp electric crack splitting into a heavy thunder boom with crackling.")
 
 # ---------------------------------------------------------------- pass 64: three new ids (casino spots)
 _row("UI", "ui_stamp", "the BANISHED stamp on a card", "impact", 0.35, 0,
@@ -515,6 +526,13 @@ _hype("st_portal_wait", "jingle", 0.9, ["medium", "app"],
 _hype("wd_portal_open", "jingle", 2.5, ["medium", "app"],
       "A magical portal opening in a western arcade game: a swelling airy whoosh into a bright shimmering chord of"
       " bells and twinkling sparkles, inviting." + _END)
+
+# pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's sounds on Stable Audio 3 (the medium model only: the
+# app on this PC was not running), their own kinds kept (a world sound, not the hype family's brightness bands)
+for _sid in ("it_train_rumble", "it_train_whistle", "it_train_pass", "it_storm_gather", "it_storm_strike"):
+    _r = P[_sid]
+    HYPE[_sid] = {"kind": _r["kind"], "seconds": _r["seconds"], "pitch": _r["pitch"], "models": ["medium"],
+                  "prompt": _r["prompt"] + _END}
 
 PROMPTS = P
 

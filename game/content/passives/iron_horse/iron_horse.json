@@ -1,0 +1,60 @@
+{
+  "id": "iron_horse",
+  "name": "Iron Horse",
+  "flavour": "The 4:10 doesn't stop for anybody.",
+  "rarity": "legendary",
+  "weight": 5,
+  "max_level": 2,
+  "levels": [
+    [
+      {
+        "stat": "train_every",
+        "op": "set",
+        "value": 20,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "train_every",
+        "op": "set",
+        "value": 15,
+        "target": "player"
+      },
+      {
+        "stat": "train_cross",
+        "op": "set",
+        "value": 1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "excludes": ["personal_storm"],
+  "params": {
+    "train": {
+      "first": 4.0,
+      "rumble": 1.2,
+      "warn": 1.0,
+      "assemble": 0.55,
+      "speed": 30.0,
+      "half_length": 24.0,
+      "width": 1.8,
+      "share": 0.25,
+      "big_share": 0.05,
+      "damage": 35.0,
+      "stage_scaled": 1,
+      "knock": 30.0,
+      "big_knock": 0.35,
+      "forward": 0.35,
+      "cross_delay": 0.35,
+      "scale": 0.9,
+      "car_gap": 0.5
+    }
+  },
+  "art_prompt": "a translucent ghostly pale blue-green steam locomotive charging forward out of a wisp of spectral smoke, its round headlight glowing white",
+  "placeholder": {
+    "color": "#7FE3CF",
+    "glyph": "star"
+  }
+}

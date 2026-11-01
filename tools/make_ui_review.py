@@ -38,7 +38,7 @@ BRIEF = """# Outlaw Survivors (88fits) UI review: the brief
 
 **From:** the 88fits team (Garry, who designs and plays it, and Claude Code, who builds it)
 
-**What is attached:** {NSCREENS} screens and states in {NSHOTS} screenshots at the game's real size, 1080×1920, one page per screen, and two pages of the game's painted art. Captured from version 0.99 (pass 116, 2026-10-31).
+**What is attached:** {NSCREENS} screens and states in {NSHOTS} screenshots at the game's real size, 1080×1920, one page per screen, and two pages of the game's painted art. Captured from version 0.99 (pass 116, 2026-10-31); the loading screen, the title and the boss chests from pass 119 (2026-11-01).
 
 ## What we are asking for
 
@@ -135,7 +135,7 @@ So you know what you are looking at.
 - The "Wanted" kit (ui/wanted/), built in code in Godot 4.7: hard-edged paper panels with ink borders and hard ink shadows, brass rivets and stars, slab-serif titles, nailed paper tags, stamps, item plates coloured by kind and level. Every screen is built from the same components.
 - Colour: paper #f3e6c8, ink #241b14, brass #c9932f (the primary button, the coin), rock red #b4472b (danger, bosses), sage #6e8b5e (health, good), mutation plum, XP purple; dims are sepia.
 - Type: Alfa Slab One for titles, numbers and buttons, Bitter (and its italic) for body text, JetBrains Mono only in the developer menu.
-- The world behind the menus: the title stands the hero in the map itself (the "live" title).
+- The world behind the menus: since pass 119 the default is the "Painted" look (the hero's painted cut-out over a still of the desert), as the title's screenshots here show; the "Live" look (the hero standing in the map itself) is a tester's option.
 
 ## The screens
 
@@ -165,13 +165,28 @@ These are our own doubts. Confirm them, overrule them, and don't stop at them.
 
 S = []
 
+# pass 119 (lane LOADUI): the loading screen, captured by game/tools/load_shots.gd (tools/ui_review_capture.sh, set "loading")
+S.append({"id": "00b_loading", "name": "Loading screen", "when": "on launch, before the title (about 1.2 s on a PC; it waits longer while a slow phone loads)",
+ "shots": [("load_t0400", "loading"), ("load_t0433", "loading"), ("load_t0550", "loading"), ("load_t1100", "loading")],
+ "job": "Show that the game is loading, with no icon and no progress bar, and introduce the game's name with a hit.",
+ "on": [
+  "Godot's splash and Android's are the plain paper; the first frame here is the same paper.",
+  "Saloon wallpaper (pass 118): six vertical strips in two paper tones with pinstripes and beads, printed tone-on-tone with silhouettes (revolvers, sheriff stars, bombs, boots and other western and game items). The strips scroll in turn up and down while the whole set drifts right: that motion is the loading indicator, and it stops only if the title cannot load.",
+  "The title slam (pass 119; it replaced pass 118's drop, squash and bounce): at 0.3 s the OUTLAW / SURVIVORS plate punches in from 2.6 times its size to its own in 0.12 s, faster and faster, zoom-blurred, with ink speed lines closing in on it, and stops dead.",
+  "The hit: a white impact frame held 0.05 s (a hit-stop) with the plate dark on it, then a 0.3 s screen shake, a shockwave ring bending the wallpaper, dust and ink, brass and paper chips knocked off the plate's edges, and a stamp thud over a low boom.",
+  "A brass glint sweeps across the letters; once it is over the title is built under the screen, which dissolves into it (0.25 s), never before 1.15 s."],
+ "keep": ["Something moves the whole time the game loads.", "The game's name, once.",
+          "A failed load says so: 'The title screen did not load. Please close the game and start it again.'"],
+ "suspect": ["The plate's OUTLAW rests mid-screen and the title's own logo near the top: two OUTLAWs cross-fade during the dissolve."],
+ "ask": ["Should the slam land where the title's logo sits, so the hand-over keeps one logo?"]})
+
 S.append({"id": "01_title", "name": "Title", "when": "on launch, and back from every hub screen and from Results",
  "shots": [("01-title", "wanted"), ("02-title-astro", "wanted"), ("01c-title-locked-hero", "wanted")],
  "job": "Pick a hero and start a run in one tap; reach the Upgrade board, the Collection and Settings.",
  "on": [
   "Top left the purse: a gold plate with a coin and the banked gold.",
   "The star line 'Wanted', the logo OUTLAW / SURVIVORS (the game's name on screen since pass 115) and 'Drag · Dodge · Survive'.",
-  "The hero standing in the map itself, drawn as a run draws him, his start weapon's companion circling him; arrow squares either side and a swipe change hero (he runs in from the side the finger went); a dot per hero under him.",
+  "The hero's painted cut-out over a still of the desert (the Painted look, the default since pass 119; testers can switch to the Live look: the hero standing in the map itself, drawn as a run draws him, his start weapon's companion circling him); arrow squares either side and a swipe change hero (he runs in from the side the finger went); a dot per hero under him.",
   "The hero plaque: his name, a two-line flavour, up to three trait numbers (HP, SPEED, CRIT / LV ...), the START weapon and FAVOURITE item plates. A tap opens his Wanted-poster sheet; the square at its left opens the hero drawer.",
   "A hero on sale (his quest done, not bought): a BUY · <price> column over him; a tap asks 'Buy this hero?'.",
   "A locked hero: a black silhouette named 'Unknown', '?' for every number and plate, a padlock, and a 'To unlock' card with his quest and a progress bar; PLAY reads LOCKED.",

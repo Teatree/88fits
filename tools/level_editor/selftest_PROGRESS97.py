@@ -911,9 +911,10 @@ def _group_ops(check, server):
                                       for k, r in enumerate(recs[:5])]
         jobs._measured["t"] = 0.0
         check(jobs._eta(jqi) == 80 and jqi["eta_source"] == "measured", "a candidate set is measured per seed (4 seeds x 20 s = 80 s)")
-        # the HTTP route on today's shape, its time
+        # the HTTP route on today's shape, its time; the route reads the real clock, so the same 50 records are stamped
+        # from now (pass 119: the fixed 2026-10-20 clock above fell out of the route's 7-day window a week later)
         with jobs._lock:
-            jobs._state["jobs"][:] = recs
+            jobs._state["jobs"][:] = _synthetic_queue(jobs.JOBS_DIR, time.time())
         httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
         httpd.daemon_threads = True
         threading.Thread(target=httpd.serve_forever, daemon=True).start()

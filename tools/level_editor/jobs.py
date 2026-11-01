@@ -188,6 +188,8 @@ SPECS = {
                                      "tools/dl path or an absolute one); empty = the creature look's own front still, an item's 3D render"),
         "screen": _f("enum", "", False, "the screen colour; empty = the target's own (its `screen`, else as gen_art picks it)", ("", "green", "blue")),
         "style": _f("str", "", False, "words in place of gen_art's ICON_STYLE"),
+        "lean": _f("str", "", False, "a card's lean in degrees, clockwise: the picked card is turned to it at install so every "
+                                      "card leans alike (empty = as painted; a card's B look: its recipe's lean, 10)"),
         "file": _f("str", "", False, "the icon file the pick installs (<id>_icon.png, or a look's <id>_icon_<x>.png; empty = from the target)"),
         "key": _f("str", "", False, "the candidates' key (default: the target id)"),
         "seeds": _f("int", 4, False, CANDIDATES_HELP), "first_seed": _f("int", 0, False, FIRST_SEED_HELP),
@@ -279,6 +281,9 @@ SPECS = {
         "raise": _f("float", 0.12, False, "gait: step track: how high a foot rises mid-step, a share of the creature's length (the spider: 0.15)"),
         "crouch": _f("float", 0.1, False, "gait: step track: the feet's tracks pulled in towards the hips by this share of the reach, so straight legs have bend to give (the spider: 0.15)"),
         "knee": _f("enum", "up", False, "gait: step track: up (the knee above the hip-to-foot line: spiders, insects) | down", ("up", "down")),
+        # pass 119 (lane ART): the feet stepped out sideways (the armadillo's front feet beside its head, not under its chin)
+        "splay": _f("float", 0.0, False, "gait: step track: every foot's track moved out sideways, away from the body's middle, by this share of the creature's length"),
+        "splay_front": _f("float", 0.0, False, "gait: step track: as splay, for the front pair only (the armadillo's front view: 0.05, with stride 0.12, raise 0.05, knee down)"),
         "seconds": _f("float", 1.2, False, "flip_curl: how long the clip is (its total frames spread over it)"),
         "roll_axis": _f("enum", "side", False, "flip_curl: side (rolls over sideways, a spider) | front (flips end over end)", ("side", "front")),
         "roll": _f("float", 180.0, False, "flip_curl: degrees it turns over (170: tipped a little to one side)"),
@@ -1134,7 +1139,7 @@ def _plan(job):
     elif kind == "icon_cands":
         key = str(spec.get("key") or cid)
         icon_job = {"kind": tf or "", "id": cid, "subject": str(spec.get("subject", "")).strip(), "set": _icon_set(job)}
-        for k in ("ref", "screen", "style", "file"):
+        for k in ("ref", "screen", "style", "file", "lean"):
             v = str(spec.get(k) or "").strip()
             if v:
                 icon_job[k] = v
@@ -2541,6 +2546,9 @@ def candidate_defaults(kind, target):
         put("subject", str(doc.get("art_prompt") or "").strip(), "art_prompt" if doc.get("art_prompt") else "")
     if kind == "icon_cands" and is_look and str(recipe.get("style") or "").strip():
         put("style", str(recipe["style"]).strip(), "the look's recipe (style)")
+    if kind == "icon_cands" and is_look and str(recipe.get("lean") if recipe.get("lean") is not None else "").strip():
+        # pass 119 (the lead): a card look's lean, so a re-rolled card leans as the others do
+        put("lean", str(recipe["lean"]).strip(), "the look's recipe (lean)")
     put("ref", ref or "", ref_src)
     variant = code if is_look else ""
     if kind == "hero_badge":
@@ -3406,7 +3414,9 @@ SCALE_KEYS = (("body_scale", 1.0), ("head_scale", 1.0), ("leg_scale", 1.0), ("sc
 GAIT_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("gait", "alternate"), ("swing", 14.0), ("lift", 18.0), ("flex", 14.0), ("duty", 0.55),
              ("bob", 0.04), ("sway", 2.5),
              # pass 93 (lane LEGS): step=track and its settings
-             ("step", "swing"), ("stride", 0.22), ("raise", 0.12), ("crouch", 0.1), ("knee", "up"))
+             ("step", "swing"), ("stride", 0.22), ("raise", 0.12), ("crouch", 0.1), ("knee", "up"),
+             # pass 119 (lane ART)
+             ("splay", 0.0), ("splay_front", 0.0))
 DEATH_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("seconds", 1.2), ("roll_axis", "side"), ("roll", 180.0), ("roll_dir", 1.0), ("roll_start", 0.08),
               ("roll_time", 0.4), ("curl", 70.0), ("curl_root", 40.0), ("curl_start", 0.05), ("curl_end", 0.75), ("bounce", 0.12),
               ("twitch", 6.0), ("spasm_deg", 22.0), ("hold", 0.85))

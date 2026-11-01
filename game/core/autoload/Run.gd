@@ -13,8 +13,11 @@ signal gold_changed(run_gold: int)
 signal kills_changed(kills: int)
 signal stage_changed(stage: int)
 signal weapon_evolved(weapon_id: String)
-## Pass 118 (lane ITEMS): a Grindstone ground bonuses into a weapon at its level-up (_grind), `words` "+8% damage".
-signal weapon_ground(weapon_id: String, words: String)
+## Pass 119 (lane LEGEND_B): a Grindstone level raised or evolved a weapon (_grindstone): the weapon now held (the
+## evolution's id when it evolved), `words` what happened ("level 3", "evolved"); "" and "" when no weapon could take it.
+signal grindstone_worked(weapon_id: String, words: String)
+## Pass 119 (lane LEGEND_B): the Pocket Bible stopped a hit outright (bible_try_block).
+signal bible_blocked
 ## Gold the run just gained, after greed (pass 47: the HUD's coin pop); only for an amount above 0.
 signal gold_gained(amount: int)
 ## pass 79 (lane MUT): a mutation offer fell due or was taken by a level-up (the HUD's mark reads mutlvl_pending)
@@ -350,7 +353,14 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	totem_boons = []
 	# pass 118 (lane ITEMS): the keys bank from nothing
 	chest_bank = {}
-	_grind_rng = null
+	# pass 119 (lane LEGEND_B): the Pocket Bible starts ready, the purse's percents from nothing
+	bible_ready_at = -INF
+	bible_blocks = 0
+	bible_capped = 0
+	_purse_might_pct = 0
+	_purse_hp_pct = 0
+	_purse_sources.clear()
+	_purse_hook()
 	adrenaline = 0
 	adrenaline_until = 0.0
 	crescendo = 0
@@ -710,6 +720,121 @@ func _gold_rush_reset() -> void:
 		gold_gained.connect(_gold_rush_gain)
 
 
+# ---------------------------------------------------------------- pass 119 (lane LEGEND_B): Fool's Gold
+## Garry: "Fool's gold - This one is good also" (docs/legendary_items: "+1% damage for every 50 gold in this run's purse, up
+## to +60%. Spending at the Shop or with the Stranger lowers it. Evolved +1% for every 40 gold, and +1% max HP for every
+## 100"). With the hero's `purse_might_per` above 0, the purse (run_gold: this run's own, never the banked gold) gives 1%
+## attack damage for every whole `purse_might_per` gold in it, `purse_might_cap` % at most, and with `purse_hp_per` above 0
+## 1% max HP for every whole `purse_hp_per` gold, `purse_hp_cap` % at most (a cap of 0: none); each its own source on the
+## sheet ("Fool's Gold +12%", the pause Stats tab names it). gold_changed (every gain and every spend) works the whole
+## percents out again and the sheets are rebuilt only when one of them moves: never a frame's work.
+var _purse_might_pct := 0
+var _purse_hp_pct := 0
+var _purse_sources: Array = []
+
+
+## The whole percent `gold` gives at 1% for every `per` gold, `cap` at most (0 = no cap); 0 for a `per` of 0.
+static func purse_percent(gold: int, per: float, cap: float) -> int:
+	if per <= 0.0 or gold <= 0:
+		return 0
+	var pct := floori(float(gold) / per + 0.0001)
+	if cap > 0.0:
+		pct = mini(pct, floori(cap + 0.0001))
+	return pct
+
+
+## The purse's attack damage and max HP percents now (x and y), from run_gold and the hero's sheet.
+func purse_bonus() -> Vector2i:
+	if player_sheet == null:
+		return Vector2i.ZERO
+	return Vector2i(purse_percent(run_gold, player_sheet.get_stat("purse_might_per", 0.0), player_sheet.get_stat("purse_might_cap", 0.0)),
+		purse_percent(run_gold, player_sheet.get_stat("purse_hp_per", 0.0), player_sheet.get_stat("purse_hp_cap", 0.0)))
+
+
+## The purse moved (gold_changed): the sheets follow when a whole percent did.
+func _purse_moved(_gold: int) -> void:
+	if player_sheet == null or (player_sheet.get_stat("purse_might_per", 0.0) <= 0.0 and player_sheet.get_stat("purse_hp_per", 0.0) <= 0.0 and _purse_sources.is_empty()):
+		return
+	var b := purse_bonus()
+	if b.x != _purse_might_pct or b.y != _purse_hp_pct:
+		rebuild_sheets()
+
+
+## The purse's bonus on the sheet as its own sources, redone from run_gold (_apply_passives_to_sheet calls it).
+func _apply_purse() -> void:
+	for src in _purse_sources:
+		player_sheet.remove_source(str(src))
+	_purse_sources.clear()
+	var b := purse_bonus()
+	_purse_might_pct = b.x
+	_purse_hp_pct = b.y
+	if b.x <= 0 and b.y <= 0:
+		return
+	var src_item: Array = item_params("purse")
+	var item_name := PassiveDef.display_name_of(str(src_item[0]) if not src_item.is_empty() else "fools_gold", "Fool's Gold")
+	if b.x > 0:
+		var s1 := "%s +%d%%" % [item_name, b.x]
+		player_sheet.add_effects([Effect.make("might", "mul", float(b.x) / 100.0, "player")], s1, _ramp_sid("purse_might_per"))
+		_purse_sources.append(s1)
+	if b.y > 0:
+		var s2 := "%s +%d%% HP" % [item_name, b.y]
+		player_sheet.add_effects([Effect.make("max_hp", "mul", float(b.y) / 100.0, "player")], s2, _ramp_sid("purse_hp_per"))
+		_purse_sources.append(s2)
+
+
+## The purse's gold_changed is heard from a run's start (start() calls it).
+func _purse_hook() -> void:
+	if not gold_changed.is_connected(_purse_moved):
+		gold_changed.connect(_purse_moved)
+
+
+# ---------------------------------------------------------------- pass 119 (lane LEGEND_B): the Pocket Bible
+## Garry: "Pocket Bible - This seems very good, but maybe a bit too powerful when considering Boss Attacks". With the
+## hero's `hit_cap_pct` above 0 no single hit takes more than that share of his max HP (Player.take_damage, after damage
+## reduction, before the Energy Shield and his health), a boss's hit (Player.role_of "boss": its touch, its attacks, its
+## bullet heaven, its ring of fire) the bigger `boss_hit_cap_pct`; and once every `hit_block_every` seconds of the buffs'
+## clock the next hit that would land is stopped outright (no damage, no shove of its own, BLOCK over him), never a
+## boss's: a boss's hit passes the ready block by, capped, and the block waits for the next other hit. It starts ready.
+## The HUD shows its plate among the power-ups (ready: lit; spent: dim with its seconds).
+var bible_ready_at := -INF
+var bible_blocks := 0
+var bible_capped := 0
+
+
+## The share of max HP one hit may take at most (0: no cap), a boss's or another's.
+func hit_cap_share(boss: bool) -> float:
+	if player_sheet == null:
+		return 0.0
+	var pct := player_sheet.get_stat("boss_hit_cap_pct" if boss else "hit_cap_pct", 0.0)
+	if boss and pct <= 0.0 and player_sheet.get_stat("hit_cap_pct", 0.0) > 0.0:
+		pct = 100.0
+	return clampf(pct / 100.0, 0.0, 1.0)
+
+
+## Seconds between the Bible's blocks (0 without it).
+func bible_every() -> float:
+	return maxf(player_sheet.get_stat("hit_block_every", 0.0), 0.0) if player_sheet else 0.0
+
+
+## Seconds until the block is ready: 0 ready, -1 without the item.
+func bible_left() -> float:
+	var e := bible_every()
+	if e <= 0.0:
+		return -1.0
+	return maxf(bible_ready_at - buff_clock(), 0.0)
+
+
+## A hit would land (Player.take_damage asks, past the shield power-up, the blink after a hit, an evade and Marshal's
+## Star): a ready block stops it, unless it is a boss's. True when it did (the block spent, bible_blocked told).
+func bible_try_block(boss: bool) -> bool:
+	if boss or bible_left() != 0.0:
+		return false
+	bible_ready_at = buff_clock() + bible_every()
+	bible_blocks += 1
+	bible_blocked.emit()
+	return true
+
+
 ## Skedaddle (pass 48, a passive item: "After a hit, run 20% faster for 1.5 s"): a landed hit gives a hero holding it
 ## (`hurt_speed` above 0) that much more move speed for `hurt_speed_seconds`, a quiet timed boost; another hit starts the
 ## clock again, at the new speed when a level was taken since. True when it started or refreshed the boost (Game shows
@@ -1009,6 +1134,8 @@ func _apply_passives_to_sheet() -> void:
 	_apply_streak()
 	# Gold Rush (pass 70) reads the `gold_might` the passives just put on the sheet
 	_apply_gold_rush()
+	# pass 119 (lane LEGEND_B): Fool's Gold reads the purse and the `purse_*` the passives just put on the sheet
+	_apply_purse()
 	# Heavyweight (pass 69) reads the max HP everything above put on the sheet
 	_apply_heavyweight()
 	# pass 95 (lane PASSIVES): Phoenix Feather's lives follow its rungs
@@ -1231,6 +1358,22 @@ func add_mutation(id: String, force: bool = false) -> bool:
 ## The level a passive is held at (0 = not held).
 func passive_level(id: String) -> int:
 	return int(passives.get(id, 0))
+
+
+## Pass 119 (lane LEGEND_A): whether the passive `id` is shut out of every offer this run: not held, and an item the hero
+## holds names it in its `excludes` or is named in its own (PassiveDef.shuts_out: the Iron Horse and Personal Storm). No
+## offer holds it (CardPool.offer_passives, chest_candidates, the chest reel's filler) and nothing says why.
+func shut_out(id: String) -> bool:
+	if passives.has(id):
+		return false
+	var def: PassiveDef = Registry.passive(id)
+	if def == null:
+		return false
+	for pid in passives.keys():
+		var held: PassiveDef = Registry.passive(str(pid))
+		if held != null and held.shuts_out(def):
+			return true
+	return false
 
 
 ## The level a passive arrives at when it is new: 1, or for the hero's favourite passive (pass 46: Ironwood's Cake; pass
@@ -1628,12 +1771,17 @@ func debug_set_item(kind: String, id: String, n: int) -> int:
 			if pd == null:
 				return 0
 			n = clampi(n, 0, pd.max_level)
+			var had := int(passives.get(id, 0))
 			if n == 0:
 				passives.erase(id)
 			elif passives.has(id) or not pd.is_line() or held_lines().size() < maxi(line_cap(), MAX_LINES):
 				passives[id] = n
 			else:
 				return 0
+			# pass 119 (lane LEGEND_B): the arena's + on a Grindstone works as taking the level does
+			if pd.params.get("grind") is Dictionary:
+				for _k in range(maxi(n - had, 0)):
+					_grindstone()
 		"perk":
 			if n <= 0:
 				perks.erase(id)
@@ -1946,7 +2094,6 @@ func stranger_take(offer: Dictionary, hp_cost: float) -> String:
 		rebuild_sheets()
 		return def.display_name
 	if offer["type"] == "weapon":
-		# pass 118 (lane ITEMS): a new weapon handed over above level 1 grinds nothing (only a held one's level-up does)
 		var was_new := weapon_instance(def.id) == null
 		if was_new:
 			var fresh := add_weapon(def, 1)
@@ -1954,7 +2101,7 @@ func stranger_take(offer: Dictionary, hp_cost: float) -> String:
 			if fresh and character and character.favourite_weapon == def.id:
 				CardPool.apply_favourite(fresh)
 		while weapon_instance(def.id) and weapon_instance(def.id).level < to:
-			level_weapon(def.id, not was_new)
+			level_weapon(def.id)
 	else:
 		while int(passives.get(def.id, 0)) < to:
 			if not add_or_level_passive(def.id):
@@ -2056,59 +2203,77 @@ func _apply_chest_banks() -> void:
 		player_sheet.add_effects(fx, "%s · %d chest%s" % [def.display_name if def else str(pid), n, "" if n == 1 else "s"], "chest:" + str(pid))
 
 
-## The Grindstone's own dice (pass 118): seeded from the run's seed with their own salt at the first grind (Dice.rng_for),
-## so a grind never moves another rule's roll and a replay grinds the same bonuses.
-var _grind_rng: RandomNumberGenerator = null
-
-
-## The held item that grinds (its `params.grind` table, a list of {stat, op, value, weight?, rows?, min?}): [id, table],
-## [] when none is held.
-func grind_source() -> Array:
+## A held item's params block (pass 119, lane LEGEND_B): [the item's id, its params[`key`]] for the first held passive
+## whose params carry a Dictionary under `key` (Lightning in a Bottle's "arc", the Undertaker's Shovel's "grave", the
+## Pocket Bible's "bible", Fool's Gold's "purse", the Grindstone's "grind"), [] when no held item does. The systems read
+## their knobs here, so a second item made from the same block works the same way.
+func item_params(key: String) -> Array:
 	for pid in passives.keys():
 		var def: PassiveDef = Registry.passive(str(pid))
-		if def and def.params.get("grind") is Array and not (def.params["grind"] as Array).is_empty():
-			return [str(pid), def.params["grind"]]
+		if def != null and def.params.get(key) is Dictionary:
+			return [str(pid), def.params[key]]
 	return []
 
 
-## A weapon level-up's grind (pass 118, lane ITEMS; Garry: the Anvil's equivalent): with a Grindstone held, `grind_rolls`
-## (its levels: 1, 2 at Evolved) different bonuses from its table that fit the weapon (WeaponInstance.grind_fits),
-## drawn by their weights, onto the weapon for the rest of the run. Only level_weapon calls it: a new weapon, a mutation
-## or an evolution grinds nothing. Returns the bonuses' words ([] for none); weapon_ground tells the HUD.
-func _grind(w: WeaponInstance) -> Array:
-	var n := player_sheet.get_int("grind_rolls")
-	if w == null or n <= 0:
-		return []
-	var src := grind_source()
-	if src.is_empty():
-		return []
-	var pool: Array = (src[1] as Array).filter(func(e) -> bool: return e is Dictionary and w.grind_fits(e))
-	if pool.is_empty():
-		return []
-	if _grind_rng == null:
-		_grind_rng = Dice.rng_for("grindstone")
-	var words: Array = []
-	for _k in range(n):
-		if pool.is_empty():
-			break
-		var total := 0.0
-		for e: Dictionary in pool:
-			total += maxf(float(e.get("weight", 1.0)), 0.0)
-		var r := _grind_rng.randf() * total
-		var pick: Dictionary = pool[pool.size() - 1]
-		for e: Dictionary in pool:
-			r -= maxf(float(e.get("weight", 1.0)), 0.0)
-			if r <= 0.0:
-				pick = e
-				break
-		pool.erase(pick)
-		var g := {"stat": str(pick.get("stat", "")), "op": str(pick.get("op", "mul")), "value": float(pick.get("value", 0.0)), "src": str(src[0])}
-		w.ground.append(g)
-		words.append(TextGen.describe_effect(Effect.make(g["stat"], g["op"], g["value"])))
-	if not words.is_empty():
-		_note("grind", w.def.id, w.level, {"bonus": ", ".join(PackedStringArray(words))})
-		weapon_ground.emit(w.def.id, ", ".join(PackedStringArray(words)))
-	return words
+## Pass 119 (lane LEGEND_B; Garry on the Grindstone: "Actually I don't like that, let's not add extra stats to weapons.
+## Just Upgrade or Evolve the weakest one. Let's change the rarity accordingly"): the weapon a Grindstone level works on.
+## The weakest held weapon still below its top level: the fewest levels, ties going to the one that has dealt the least
+## damage this run (damage_by_weapon), then the one held first. When every held weapon is at its top, the one ready to
+## evolve (evolution_ready: its whole path and its top level; the chest it would need is skipped) that has dealt the least
+## damage. null when no weapon can be raised or evolved (CardPool then offers no Grindstone: grind_can_work).
+func grind_target() -> WeaponInstance:
+	var best: WeaponInstance = null
+	for w: WeaponInstance in weapons:
+		if w.def.is_evolution or w.level >= w.def.max_level:
+			continue
+		if best == null or w.level < best.level or (w.level == best.level and _dealt(w) < _dealt(best)):
+			best = w
+	if best != null:
+		return best
+	for w: WeaponInstance in weapons:
+		if evolution_ready(w) and (best == null or _dealt(w) < _dealt(best)):
+			best = w
+	return best
+
+
+func _dealt(w: WeaponInstance) -> float:
+	return float(damage_by_weapon.get(w.def.id, 0.0))
+
+
+## Whether a Grindstone level would do something now (a weapon to raise or to evolve).
+func grind_can_work() -> bool:
+	return grind_target() != null
+
+
+## Whether `def` is a Grindstone (params.grind) that no held weapon could take a level from now: no offer holds it then
+## (CardPool.offer_passives, chest_candidates), so its card never promises what it cannot do.
+func grind_idle(def: PassiveDef) -> bool:
+	return def != null and def.params.get("grind") is Dictionary and not grind_can_work()
+
+
+## One Grindstone level taken (add_or_level_passive, and the arena's ITEMS tab): the weakest weapon one level up, or,
+## with every held weapon at its top, the weakest ready one evolved (evolve: the path stays, the chest is not needed).
+## grindstone_worked tells the HUD; with no weapon to take it nothing changes and the signal carries "" (the offers keep
+## the item out then: CardPool, grind_can_work). Returns the weapon now held, null for none.
+func _grindstone() -> WeaponInstance:
+	var w := grind_target()
+	if w == null:
+		_note("grind", "", 0, {"none": true})
+		grindstone_worked.emit("", "")
+		return null
+	if w.level < w.def.max_level:
+		level_weapon(w.def.id)
+		_note("grind", w.def.id, w.level, {"level": w.level})
+		grindstone_worked.emit(w.def.id, "level %d" % w.level)
+		return w
+	var from_id := w.def.id
+	var evo := evolve(w)
+	if evo == null:
+		grindstone_worked.emit("", "")
+		return null
+	_note("grind", evo.def.id, 1, {"evolved_from": from_id})
+	grindstone_worked.emit(evo.def.id, "evolved")
+	return evo
 
 
 func has_weapon(id: String) -> bool:
@@ -2141,15 +2306,13 @@ func add_weapon(def: WeaponDef, level_override: int = 1) -> WeaponInstance:
 	return inst
 
 
-## A held weapon one level up (a level-up card, a chest, the Stranger). Pass 118 (lane ITEMS): a Grindstone held grinds
-## its bonuses in (_grind) unless `grind` is false (the Stranger handing over a new weapon above level 1).
-func level_weapon(id: String, grind: bool = true) -> void:
+## A held weapon one level up (a level-up card, a chest, the Stranger, a Grindstone level). Pass 119 (lane LEGEND_B):
+## pass 118's grind of random bonuses is gone (the Grindstone raises the weakest weapon instead: _grindstone).
+func level_weapon(id: String) -> void:
 	var w := weapon_instance(id)
 	if w and w.level < w.def.max_level:
 		w.level += 1
 		_note("weapon", id, w.level, {"new": false})
-		if grind:
-			_grind(w)
 		w.rebuild(player_sheet, weapons)
 		_weapon_player_effects_changed(w)   # pass 95 (lane BREATH)
 		build_changed.emit()
@@ -2163,6 +2326,8 @@ func add_or_level_passive(id: String) -> bool:
 	var def: PassiveDef = Registry.passive(id)
 	if def == null:
 		return false
+	# pass 119 (lane LEGEND_B): the levels this call adds (the Grindstone works once for each)
+	var before := int(passives.get(id, 0))
 	if passives.has(id):
 		if int(passives[id]) >= def.max_level:
 			return false
@@ -2185,6 +2350,10 @@ func add_or_level_passive(id: String) -> bool:
 	for w in weapons:
 		w.rebuild(player_sheet, weapons)
 	build_changed.emit()
+	# pass 119 (lane LEGEND_B): a Grindstone level raises (or evolves) the weakest weapon, once for every level it gained
+	if def.params.get("grind") is Dictionary:
+		for _k in range(maxi(int(passives.get(id, 0)) - before, 0)):
+			_grindstone()
 	return true
 
 
@@ -2241,7 +2410,6 @@ func evolve(w: WeaponInstance) -> WeaponInstance:
 	inst.kills = w.kills
 	inst.damage = w.damage
 	inst.mutations = w.mutations   # the path stays on the evolved form
-	inst.ground = w.ground.duplicate(true)   # pass 118 (lane ITEMS): and the Grindstone's bonuses
 	if idx >= 0:
 		weapons[idx] = inst
 	else:
@@ -2321,12 +2489,18 @@ func chest_candidates() -> Array:
 	for pid in passives.keys():
 		var def: PassiveDef = Registry.passive(str(pid))
 		var lv := int(passives[pid])
-		if def == null or lv >= def.max_level or banished.has(str(pid)):
+		if def == null or lv >= def.max_level or banished.has(str(pid)) or grind_idle(def):
 			continue
 		out.append({"type": "passive", "id": str(pid), "def": def, "level_from": lv, "level_to": lv + 1, "is_new": false,
 			"weight": CardPool.weight_of(def, lv)})
 	for p: PassiveDef in Registry.unlocked_passives():
 		if p.is_line() or passives.has(p.id) or banished.has(p.id) or not CardPool.stage_open(p):
+			continue
+		# pass 119 (lane LEGEND_A): an item the hero's own shuts out (the Iron Horse / Personal Storm) never comes
+		if shut_out(p.id):
+			continue
+		# pass 119 (lane LEGEND_B): nor a Grindstone with no weapon to work on
+		if grind_idle(p):
 			continue
 		if p.evolves_into != "" and passives.has(p.evolves_into):
 			continue

@@ -47,8 +47,10 @@ python tools/pose_shoulders.py tools/dl/drivers/run tools/dl/drivers/run_lvl [le
 python tools/puppet.py may [--stage apose|shape|rig|anim|guides|looks|compare] [--from-blend] [--from-fbx <file>]   # the Puppet trial (2026-10-13): May painted arms-out, Hunyuan3D 2 multi-view on the AI server (built-in ComfyUI nodes, weights in models/checkpoints; its license excludes the EU, Garry accepted the risk), rigged in Blender with Mixamo names (tools/puppet_blender.py), running.fbx retargeted -> tools/dl/puppet/may/may_puppet.glb/.blend, guides tools/dl/drivers/may_puppet_run (+ _depth), looks MAY-P (stick figures) and MAY-Q (depth, gen_art recipe `ctl_drivers`); RIG_HOWTO.md for hand edits
 "$BLENDER" -b --python tools/blender_salt.py   # pass 69: art/props/salt_shaker.glb (Body, Contents that a mutation tints, Cap, Holes, Spout) + the icon references tools/dl/salt_ref.png, sea_salt_ref.png, hiwa_kai_ref.png
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_hold frames=12 arms=hold_r   # a walk whose right hand holds something up at the shoulder (the Vulture Raider's launcher, pass 48)
-python tools/make_loading_wallpaper.py [--review-only] [--mock out.png] [--sheet <dir>]   # pass 118: the loading screen's wallpaper strips (silhouettes from the game's icons + drawn ones) and title plate -> game/art/ui/loading/; capture: GODOT_TIMEOUT=300 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --fixed-fps 60 --path D:/_projects/88fits/game --script res://tools/load_shots.gd -- out=<dir>
-"$BLENDER" -b --python tools/blender_boss_chests.py && python tools/gen_boss_chests.py   # pass 118: the three bosses' chests (art/props/meta/boss_chest_<boss>.glb + renders in tools/dl/bosschest/) and their painted closed/cracked/open frames (Klein over the renders, picked by eye) -> game/art/ui/wanted/bosschest/; captures game/tools/_p118_BOSSCHEST_shots.gd
+python tools/make_loading_wallpaper.py [--review-only] [--mock out.png] [--sheet <dir>]   # pass 118: the loading screen's wallpaper strips (silhouettes from the game's icons + drawn ones) and title plate -> game/art/ui/loading/; capture: GODOT_TIMEOUT=300 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --fixed-fps 60 --path D:/_projects/88fits/game --script res://tools/load_shots.gd -- out=<dir> [entrance=punch|split] [tag=<name>]
+"$BLENDER" -b --python tools/blender_iron_horse.py   # pass 119: the Iron Horse's ghost train (art/props/iron_horse.glb: Engine, Tender, Coach + Chimney/Lamp empties, from Garry's Railway Kit unzipped in tools/dl/railway_kit/, CC BY 4.0) + the icon reference tools/dl/iron_horse_ref.png
+python tools/gen_grave.py [--seeds 4] [--force] && python tools/gen_grave.py --pick N   # pass 119: the Undertaker's Shovel's painted headstone -> content/passives/undertakers_shovel/undertakers_shovel_grave.png
+"$BLENDER" -b --python tools/blender_boss_chests.py [-- export=gila_grande,brander] && python tools/gen_boss_chests.py   # pass 118 (pass 119: the Gila's and Brander's hollow, the Gila's white with lizard eyes; export= writes only those GLBs): the three bosses' chests (art/props/meta/boss_chest_<boss>.glb + renders in tools/dl/bosschest/) and their painted closed/cracked/open frames (Klein over the renders, picked by eye) -> game/art/ui/wanted/bosschest/; captures game/tools/_p118_BOSSCHEST_shots.gd
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
 python tools/migrate_timeline.py --map red_canyon [--check | --write]   # pass 84: an old map's swarm / elite / elite_every events and waves[] turned into roster rows (the same converter as the Level Editor's model.js convertLegacy; layout kept, a backup first)
@@ -84,7 +86,7 @@ python tools/wanted_compare.py <dir>/<state>.png <mock-name> [--diff] [--crop=x,
 "$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/screenshot_run.gd -- out=<dir>   # windowed, silent, ~60 PNGs for the bible (make_bible.py --shots=<dir>); without --resolution the window override gives 432x768
 "$GODOT" --path D:/_projects/88fits/game -e                     # open the editor
 JAVA_HOME=D:/_projects/88fits/tools/jdk17/jdk-17.0.20.1+1 "$GODOT" $P --export-debug "Android" export/88fits-debug.apk   # signed debug APK
-bash tools/ship.sh [--quick] [--no-install]                       # checks -> signed APK -> install + launch on the phone (adb over USB or Wi-Fi)
+bash tools/ship.sh [--quick] [--no-install] [--no-pc] [--no-aab]   # checks -> signed APK -> install + launch on the phone (adb over USB or Wi-Fi) -> PC exe -> (pass 119) the Google Play .aab (ship_play.sh: version code +1), all three to Drive
 bash tools/ship_prod.sh [--no-drive] [--quick] [--no-pc] [--no-android]   # pass 81: the PRODUCTION build, ONLY when Garry asks (skill ship-prod): a pruned, optimised staging copy (tools/dl/prod/stage/game; tools/prod_stage.py, game/tools/prod_plan.gd + prod_reach.gd, tools/prod_prune.py [--selftest], tools/prod_optimise.py), its checks (game/tools/prod_check.gd, smoke_run, prod_run_check.gd), presets "Android Prod" (com.eightyeightfits.game.prod) + "Windows Desktop Prod" (feature `prod` -> Settings.is_prod(): no debug surfaces), tools/prod_probe.py (the exe's cold start), report tools/dl/prod/out/report.md, Drive 88fits-prod.apk/.exe
 bash tools/ship_play.sh [--no-drive] [--keep-code]   # 2026-10-31: the Google Play upload, the dev game as an .aab (preset "Android Play": package com.outlawsurvivors.game, permanent; label "Outlaw Survivors"; Gradle build in git-ignored game/android/, target SDK 36; upload key = the project keystore); raises version/code each run -> game/export/outlaw_survivors.aab + Drive; Internal testing track only for now
 bash tools/release.sh "note"                                      # upload the APK as the next GitHub release in the private builds repo (needs gh auth login once)
@@ -267,7 +269,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-31, pass 118, version 1.00)
+## Status (2026-11-01, pass 119, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -541,6 +543,17 @@ its glint a soft sparkle, the lid back on top; creatures outside a standing boss
 Run.chest_opened) and the Grindstone (the first legendary passive item: extra random bonuses on weapon level-ups, its JSON's
 `params.grind`); Beer shows as Ghost Pepper (id beer); every hero's own weapon may be found by anyone (`guest_weight` 0.45);
 twelve legendary item proposals at https://claude.ai/artifact/Tr7hkvsLQd1wZuHS4XCGp7; the app icon from Gemini_Generated_Image_in0heein0heein0h.jfif.
+Pass 119: the loading plate **punches** in (2.6x to its size in 0.12 s, a hit-stop flash, shake, shockwave, chips; Boot.entrance
+keeps a `split` option); the menus are **Painted** by default (Save._migrate_painted once; the debug panel's switch outside prod);
+after a pause the stick **carries its push** if the thumb comes back within 1 s (PlayerInput CARRY_WINDOW / CARRY_FADE), movement keys
+resume the PC's tap-to-go gate; card icons lean by the job field `lean` (every line card's B recipe 10 degrees); ship.sh builds the
+**.aab** too (`--no-aab`); six legendary passive items: the **Iron Horse** (core/systems/IronHorse.gd, a ghost train down the hero's
+line) and **Personal Storm** (core/systems/PersonalStorm.gd), mutually exclusive by PassiveDef `excludes`; **Lightning in a Bottle**
+(crit arcs, EnemyManager.crit_arc), the **Undertaker's Shovel** (core/systems/Graveyard.gd: graves and ghost gunmen), **Fool's Gold**
+(the purse as damage), the **Pocket Bible** (a hit cap, bosses 35%, a block); the Grindstone is rare and levels the weakest weapon
+or evolves one; EnemyManager.HIT_NO_CRIT; the Dragon's Breath's ready ring gone (a mouthful splash); armadillo looks ARM-H..M (zombie,
+devil; fresh) and ARM-F/G's front walk without the leg-tail (blender_gait `splay_front`); gen_ctl `look_refs`, `extras`; the Gila's
+chest white with lizard eyes, both bosses' chests hollow, the chest pop-up's loot party.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

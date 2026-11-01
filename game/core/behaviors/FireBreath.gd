@@ -26,6 +26,11 @@
 ## his mouth, fast there and slowing down the cone, white-hot to orange to red to smoke, and a bright core at the mouth),
 ## pointed along his facing every frame of the breath and left to burn out when it ends; Fx.breath_jet is no longer
 ## called. The wash on the sand and the scorch stay.
+## Pass 119 (lane LEGEND_B; Garry: "The indication of the attack being ready is terrible. Remove that completely. Instead
+## let's just play some cheap splash of water particle effect burst or two. This shows like 'Hero took a mouth full of
+## the liquid to spit flame with'"): pass 116's spiky ring (BreathReady) is gone. MOUTHFUL_LEAD s before the cooldown
+## runs out, two quick splashes of liquid burst at his face (Fx.water_splash, MOUTHFUL_GAP s apart: pieces of the blood
+## pool, no node of their own), once a cooldown; `params.breath.mouthful: false` turns them off. Only a look.
 class_name FireBreath
 extends WeaponBehavior
 
@@ -52,9 +57,15 @@ var _breath_t := 0.0
 var _breath_len := 0.0
 ## This breath: a full ring (Held Breath), its tick multiplier, its clock from 0.
 var _ring := false
-## Pass 116 (lane RESULTS): the ready sign (made at its first showing) and how many times it has shown.
-var _ready_sign: BreathReady
-var ready_signs := 0
+## Pass 119 (lane LEGEND_B): the mouthful's splashes: how many have played, and whether this cooldown's has.
+const MOUTHFUL_LEAD := 0.3
+const MOUTHFUL_GAP := 0.14
+## The splash's size, a little above his face and in front of it (m).
+const MOUTHFUL_SIZE := 1.15
+const MOUTHFUL_UP := 0.05
+const MOUTHFUL_FORWARD := 0.15
+var mouthfuls := 0
+var _mouthful_done := false
 var _dmg_mult := 1.0
 var _clock := 0.0
 ## When each creature in the fire takes its next tick, by its spawn serial (a slot handed to a new creature starts over).
@@ -222,6 +233,8 @@ func _start(still: bool, ring: bool) -> void:
 		_dmg_mult = maxf(still_value("damage_mult"), 0.0)
 		still_breaths += 1
 	_breath_t = _breath_len
+	# pass 119 (lane LEGEND_B): the next cooldown takes its own mouthful
+	_mouthful_done = false
 	last_len = _breath_len
 	_clock = 0.0
 	_next_tick.clear()
@@ -242,12 +255,16 @@ func _start(still: bool, ring: bool) -> void:
 
 func _tick(delta: float) -> void:
 	if not burning():
+		# pass 119 (lane LEGEND_B): the mouthful of liquid just before the cooldown runs out, once a cooldown
+		if cooldown_left <= MOUTHFUL_LEAD:
+			if not _mouthful_done:
+				_mouthful_done = true
+				_mouthful()
+		else:
+			_mouthful_done = false
 		# the wait's clock: how long the cooldown has been ready (the base retries a refused fire every 0.15 s, so
 		# "ready" is any cooldown that short); a cooldown that still runs resets it
 		if cooldown_left <= 0.2:
-			# pass 116 (lane RESULTS): the ready sign the moment the cooldown runs out (BreathReady)
-			if _ready_for <= 0.0:
-				_sign_ready()
 			_ready_for += delta
 		else:
 			_ready_for = 0.0
@@ -352,14 +369,18 @@ func _show(delta: float) -> void:
 			tg.wash(g, d, reach, deg, WASH_EVERY * 2.2, col, 0.28 * minf(k, 1.6) * fade * (0.55 if _ring else 1.0))
 
 
-## Pass 116 (lane RESULTS): the spiky ring that collapses into his face when the next breath is ready (a look only).
-func _sign_ready() -> void:
-	if Run.sim_mode or game == null or player == null or not bool(breath().get("ready_sign", true)):
+## Pass 119 (lane LEGEND_B): the next breath is coming: two quick splashes of liquid at his face, as if he took a mouthful
+## to spit it through the flame (a look only; Fx.water_splash, the second MOUTHFUL_GAP s after the first).
+func _mouthful() -> void:
+	if Run.sim_mode or game == null or player == null or not bool(breath().get("mouthful", true)):
 		return
-	if _ready_sign == null or not is_instance_valid(_ready_sign):
-		_ready_sign = BreathReady.make(game)
-	_ready_sign.play(origin, blue())
-	ready_signs += 1
+	var fx = game.get("fx")
+	if fx == null or not fx.has_method("water_splash"):
+		return
+	var at := origin() + Vector3(0, MOUTHFUL_UP, 0) + dir() * MOUTHFUL_FORWARD
+	fx.water_splash(at, MOUTHFUL_SIZE)
+	fx.water_splash(at, MOUTHFUL_SIZE * 0.75, MOUTHFUL_GAP)
+	mouthfuls += 1
 
 
 ## Pass 109: the particles start with the breath (made the first time), fitted to its reach, width, colour and look.
@@ -423,9 +444,6 @@ func _process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	_loop_stop()
-	if _ready_sign and is_instance_valid(_ready_sign):
-		_ready_sign.queue_free()
-	_ready_sign = null
 	if _flames and is_instance_valid(_flames):
 		_flames.queue_free()
 	_flames = null

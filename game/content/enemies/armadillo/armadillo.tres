@@ -42,7 +42,7 @@ fps = {
 }
 damage_reduction = 0.25
 knockback = 3.8
-head = 0.519
+head = 0.525
 shadow = {
 "drop": 0.065,
 "scale": [1.35, 1.5],
@@ -142,7 +142,7 @@ variants = {
 "run": 20.0
 },
 "front_faces": "right",
-"head": 0.519,
+"head": 0.525,
 "icon": "res://content/enemies/armadillo/armadillo_icon_f.png",
 "note": "Pass 109 (painted again): cartoon / anime, angry eyes, exaggerated proportions with the body bigger than the head and longer legs (made trot armadillo_walk_toon_v2: body x1.35, head x0.72 of it, legs x1.9, a longer stride), every view repainted on the model's clay so the diagonals are true three-quarter views, the curl into a ball as the death",
 "shadow": {
@@ -190,6 +190,228 @@ variants = {
 "shelved": false,
 "sprite": "res://content/enemies/armadillo/armadillo_sprite_g.png",
 "sprite_file": "armadillo_sprite_g.png",
+"strip_cols": 91
+},
+"ARM-H": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.512,
+"icon": "res://content/enemies/armadillo/armadillo_icon_h.png",
+"note": "Pass 119: the zombie armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3b (a bigger head and shorter legs than v2, blue screen: the look is green) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein; its fd painted again (fd c0: the first had a second armadillo in the picture)",
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_h.png",
+"sprite_file": "armadillo_sprite_h.png",
+"strip_cols": 91
+},
+"ARM-I": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.512,
+"icon": "res://content/enemies/armadillo/armadillo_icon_i.png",
+"note": "Pass 119: the zombie armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3b (a bigger head and shorter legs than v2, blue screen: the look is green) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein (another side candidate than ARM-H); its front, fd and bd painted again (front c2: a tail beside it; fd c0: a forked tail; bd c1: two heads)",
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_i.png",
+"sprite_file": "armadillo_sprite_i.png",
+"strip_cols": 91
+},
+"ARM-J": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.512,
+"icon": "res://content/enemies/armadillo/armadillo_icon_j.png",
+"note": "Pass 119: the zombie armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3b (a bigger head and shorter legs than v2, blue screen: the look is green) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Flux.2 dev (its side 40 steps, the other views 28)",
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_j.png",
+"sprite_file": "armadillo_sprite_j.png",
+"strip_cols": 91
+},
+"ARM-K": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.531,
+"icon": "res://content/enemies/armadillo/armadillo_icon_k.png",
+"note": "Pass 119: the devil armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3 (a bigger head and shorter legs than v2) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein; its front a Klein edit of a candidate with the spread wings and the tail beside it taken out (front c3), its fd painted again (fd c1: the first had a second armadillo)",
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_k.png",
+"sprite_file": "armadillo_sprite_k.png",
+"strip_cols": 91
+},
+"ARM-L": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.512,
+"icon": "res://content/enemies/armadillo/armadillo_icon_l.png",
+"note": "Pass 119: the devil armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3 (a bigger head and shorter legs than v2) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Klein (another side candidate than ARM-K); its front a Klein edit of a candidate with the spread wings and the tail beside it taken out (front c3)",
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_l.png",
+"sprite_file": "armadillo_sprite_l.png",
+"strip_cols": 91
+},
+"ARM-M": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.512,
+"icon": "res://content/enemies/armadillo/armadillo_icon_m.png",
+"note": "Pass 119: the devil armadillo from Garry's reference sheet (_REFERENCES/2d/a8ba8332-...jfif), each view repainted on the model's clay with the reference's own view as its look picture, on armadillo_walk_toon_v3 (a bigger head and shorter legs than v2) with the front on its own driver (v3fz: the front feet step out beside the head; on v2 a foot reaching ahead under the snout was painted as a tail hanging below it); painted on Flux.2 dev (28 steps); its side a Klein edit of the dev side candidate k0 with the tail straightened (k2: the dev painting curled the tail down by the hind feet; the walk follows the model's straight tail)",
+"shadow": {
+"drop": 0.065,
+"scale": [1.35, 1.5],
+"up": 0.3
+},
+"shelved": false,
+"sprite": "res://content/enemies/armadillo/armadillo_sprite_m.png",
+"sprite_file": "armadillo_sprite_m.png",
 "strip_cols": 91
 }
 }

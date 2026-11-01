@@ -8337,7 +8337,8 @@ tools/dl/p115/BOSS/shots/ (king_s1, gila_s2 Nightfall, brander_s3 Blood Moon, ki
   (BOUNTY_PAY_TIME 1.1 s). The reward is still paid once, at the run's end (WantedRun.settle); a tap hurries or skips it
   like the rest of the show.
 - **Dragon's Breath ready sign**: when its cooldown runs out a small spiky ring of flame collapses into the hero's face
-  in 0.45 s (blue with Blue Flame). A look only; `params.breath.ready_sign: false` turns it off.
+  in 0.45 s (blue with Blue Flame). A look only; `params.breath.ready_sign: false` turns it off. (Gone since pass 119:
+  a splash of liquid at his face instead, 61.LEGEND_B.)
 
 ### 59.REPLAY What a replay shows is what was played (no gameplay number changed)
 
@@ -8568,7 +8569,7 @@ The keys' rules (one primitive, Run.chest_opened / chest_bank):
   them (`chest_banks`: id -> {chests, stats}).
 
 **The Grindstone** (content/passives/grindstone, the first legendary passive item, weight 6, 2 levels: Legendary,
-Evolved). While held, every level-up of a held weapon (a level-up card, a chest, the Stranger's extra level of a weapon
+Evolved; reworked in pass 119: a level raises the weakest weapon, rare, 61.LEGEND_B). While held, every level-up of a held weapon (a level-up card, a chest, the Stranger's extra level of a weapon
 already held) also grinds `grind_rolls` different random bonuses into that weapon for the rest of the run: one at
 Legendary, two once Evolved. Never on a new weapon (the Stranger's new weapon handed over at level 2 grinds nothing), a
 mutation, an evolution or a debug level. The table is the item's `params.grind`, each entry {stat, op, value, weight,
@@ -8621,3 +8622,275 @@ Astro, Calavera, Solenne, Fadeaway, Ironwood, Jeżyk and May; tools/dl/p118/ITEM
 0.45 keeps the worst case (a fresh save, the fewest weapons to share the pool with) under Garry's 10%; with every weapon
 unlocked the rise is a little under 5%. At 0.5 a fresh save passes 10% (+10.6%); at 1.0 (no cut) it would be +21%.
 pass118_ITEMS_test draws the real CardPool in Godot and pins the rise between 4% and 10.5%.
+
+
+## 61. Pass 119: the action title drop, Painted by default, no lost step after a level-up, armadillo looks, boss chest art, five legendary items, the Grindstone and the breath reworked
+
+### 61.LEAD
+
+**No lost step after a level-up** (Garry: "when I return from the level up screen I often end up loosing a bit of momentum
+because of a tiny delay between the tap being registered and the move actually starting ... a solution that works for
+both PC and Mobile").
+
+The cause: the hero has no acceleration, but a fresh touch starts the floating stick at rest. After TAP TO GO the hero
+crept until the thumb had dragged past the dead zone and then half the stick's reach for full speed, about 80 px on a
+1080 px phone.
+
+On the phone (player/PlayerInput.gd):
+- When a pause takes the stick away (Game.set_paused -> force_release), the push it had is kept.
+- The first touch that starts the stick within PlayerInput.CARRY_WINDOW (1.0 s) of the run going on starts it pushed as
+  it was: the same way, the same throttle. Usually that touch is the gate's own tap.
+- The thumb's own drag takes over as it grows: the carried push fades out linearly and is gone once the drag reaches
+  CARRY_FADE (0.6) of the stick's reach.
+- A small wiggle keeps the old way. A drag the other way turns him round within that 0.6 of the reach.
+- A lift drops the carried push. A touch later than the window, or a pause taken while the thumb was still, carries
+  nothing.
+
+On the PC (ui/ResumeGate.gd):
+- A movement key (move_left / move_right / move_up / move_down) goes on as a tap does.
+- A movement key held through the screen goes on by itself as soon as the gate's guard has passed, and the hero moves
+  from the next frame.
+
+The gate's guard (no tap or key counts before it, so a touch landing with the pick cannot skip it) is ResumeGate.GUARD
+0.15 s, down from 0.25 s.
+
+**Every card leans alike** (Garry, on his re-rolled Hydra: "how do I make it so the angles are all the same?"):
+- Pass 73 turned every B card (the single tilted card) to one 10-degree lean when it installed them. Klein leans a card
+  "tilted about 12 degrees" anywhere from 8 degrees left to 12 right; the Level Editor's installs skipped that step.
+- Now an icon job's `lean` field (degrees, clockwise) turns the picked card to that lean before it is fitted:
+  artkit.lean_to, gen_art.finish(lean=), gen_icon_cands. The turn is measured from the keyed card's smallest bounding box.
+- Every card's B recipe carries `"lean": 10`, and the job form fills it in from the look's recipe.
+- The Hydra's B card was re-finished from its candidate at 10 degrees. It was 0; the other 41 stand at 9.2-10.9.
+
+### 61.LOADUI
+
+**The loading screen's title slam** (Garry: "The title drop style sucks. Make something more action game like, less
+bouncy and stuff"). game/ui/Boot.gd; replaces 60.LOAD's title drop (FALL, SQUASH, BOUNCE, SETTLE, STRETCH, BOUNCE_H and
+DROP_AT are gone). The wallpaper, its motion, the splash, the stall rule, the failure text and the dissolve are 60.LOAD's.
+- **The punch** (ENTRANCE "punch"): at SLAM_AT 0.3 s (the wallpaper's fade-in done) the plate appears at PUNCH_FROM 2.6x
+  its size and shrinks to its own in PUNCH 0.12 s, faster and faster (scale = 2.6 - 1.6 u^2), clear at first and solid
+  from PUNCH_FADE 35% of the way in; it is drawn smeared over its last BLUR_LAG 0.025 s of motion (a zoom blur, 16
+  samples jittered per pixel). Ink speed lines (84 radial cells, about 60% drawn, the paper 55% to INK) close in on it
+  while it comes and fade out LINES_OUT 0.12 s after the hit. It stops dead: its scale is exactly 1 from the hit on,
+  never under it and never back over it (no squash, no bounce).
+- **The hit** at 0.42 s: a flash of FLASH 85% (white 25% to PAPER) over the screen, held through HITSTOP 0.05 s (the
+  hit-stop: nothing else moves yet), then falling as e^(-t / FLASH_TAU 0.035 s); the plate takes only PLATE_FLASH 25% of
+  it, so it stands dark on the white (an impact frame). After the hit-stop: the whole picture shakes SHAKE 0.3 s, SHAKE_PX
+  22 px at first, falling as (1 - k)^2; a shockwave ring (an ellipse round the plate) runs RING_PX 900 px out in RING
+  0.42 s, bending the wallpaper up to 30 px and lighting it; 20 dust puffs roll out from under the plate's edges for DUST
+  0.5 s; CHIPS 26 chips (ink, brass and paper splinters, 16-42 px long) fly out from its edges, spinning and falling, for
+  DEBRIS 0.55 s, in front of it. Sound: ui_stamp (else ui_chest_knock) as before, over w_lob_boom at BOOM_DB -8 dB (the
+  stamp alone is a bright 0.1 s click; the boom gives it weight).
+- **The glint**: GLINT_AT 0.18 s after the hit a band of pale brass (BRASS 62% to white) sweeps across the plate left to
+  right in GLINT 0.38 s, leaning right, strongest on the ink and brass of the letters (20% on the paper).
+- **The hand-over**: the slam is over (settled) at 1.02 s, the latest of the shake, ring, dust, chips and glint; the title
+  is built only then (its build holds a frame that would freeze the slam), and the dissolve starts no earlier than
+  MIN_SHOW 1.15 s (was 1.2 s after a drop that settled at 1.01 s).
+- **The entrance not kept**: "split" (OUTLAW, the plate's rows above PLATE_CUT 0.64, from off the left edge and
+  SURVIVORS from off the right in SLIDE 0.13 s, locking together into the same hit) stays behind `Boot.entrance` for
+  captures (game/tools/load_shots.gd `entrance=split`); the punch read stronger (tools/dl/p119/LOADUI/).
+- Everything is still one shader over one full-screen rect (the shake moves the picture inside it), so the dissolve
+  stays even.
+
+**The title's look: Painted by default** (Garry: "Let's set the "Painted" option as default for now, while keeping the
+buttons in the Settings for the Debug version of course"). Settings.MENU_STYLE_DEFAULT "painted" (was "live" since pass
+53): a fresh save is painted, and every existing save is switched to painted once at load (Save._migrate_painted, the
+once-flag `menu_painted_v119`, set on every save, a new one too); after that the debug panel's Painted / Live choice
+sticks. The production build has no choice and is always painted (PROD_LOCKED holds the default; the Settings debug
+panel builds no Main menu row when Settings.is_prod(); the title never builds the live look there). The dev build's
+debug panel keeps both buttons.
+
+### 61.ART
+
+**The boss chests' party** (Garry: "All Boss Chest sequences need more coins floating and other floating stuff"). The pop-up
+(ui/BossChestScreen.gd) adds loot that only celebrates. It is counted nowhere and pays nothing; the counters, CLAIM and
+the pack are as in 60.BOSSCHEST. It is drawn over the chest and under the title, the speed bonus, the banner, the counters
+and CLAIM, so it never hides what the player reads. It has its own dice (seeded by the boss and the gold), so the counted
+pieces and the coin rain fall as before.
+- **The fountain**: FOUNTAIN_N 120 pieces, plus FOUNTAIN_BONUS 60 more at the top speed bonus (in between by the bonus).
+  The first FOUNTAIN_POP 36 fly in the burst itself. The rest leave through the spew at the counted pieces' swelling rate
+  (RATE_LIN). Each is thrown up out of the mouth (900-1550 px/s, up to 54 degrees off upright) and falls under
+  FOUNTAIN_G 2300 px/s² until it is 260 px under the chest's foot, fading over its last 0.25 s. From the finale until
+  CLAIM, FOUNTAIN_LOOP 16 more are thrown again and again, each once every FOUNTAIN_LOOP_S 1.6 s. The mix: coins 50%,
+  gems 25%, poker chips 10%, brass stars 10%, banknotes 5%.
+- **The drift**: DRIFT_N 40 pieces rise from around the chest's foot to the top of the screen at 120-230 px/s, swaying
+  24-60 px, from the burst until CLAIM, round and round. Three in four go up the sides, past the chest. The mix: banknotes
+  22%, poker chips 20%, Wanted-poster scraps 18%, brass stars 15%, coins 15%, gems 10%.
+- **Sizes** (px on the 1080-wide screen): coins 48-72, gems 24-36, chips 44-60, banknotes 84-108, scraps 72-94, stars
+  40-58; the drift's at 0.9 of these.
+- **The twinkles**: TWINKLE_N 14 four-point sparkles round the open chest, each pulsing on its own 0.7-1.3 s.
+
+**The armadillo's front walk** (Garry: "the tail would be clearly visible at the bottom of the creature"). The new looks'
+front view walks on its own driver: the front feet step out beside the head (blender_gait `splay_front` 0.05), with a
+short stride (0.12) and a low lift (0.05), knees down. On armadillo_walk_toon_v2 (ARM-F, ARM-G) a front foot reached
+0.12 of the creature's length (its long tail included) ahead of the shoulder; seen head-on from 25 degrees above, the
+long thin leg hung below the snout, and Wan painted it as a tail. ARM-F and ARM-G keep their stills; only their front was
+walked again, on armadillo_walk_toon_v2fz (v2's proportions with the same front fix).
+
+### 61.LEGEND_A
+
+Two legendary passive items Garry picked from docs/legendary_items/index.html ("Iron horse - This one is our most
+powerful one yet. I like everything about the idea"; "Personal Storm - ... darkens the area with 'clouds moving in' and
+for a period of time lighting strikes randomly ... with a preference for enemy groups"). Both rarity **legendary**
+(two levels on the passive ladder: Legendary, then Evolved), **weight 5** (about one offer in 200 with no luck, ~1 run in
+6 sees one of the legendaries at all), every number in the item's JSON (`params.train`, `params.storm`, the levels'
+`train_*` / `storm_*` stats), the code in core/systems/IronHorse.gd and PersonalStorm.gd, ticked by Game._tick_legends.
+
+**Quietly mutually exclusive** (PassiveDef `excludes`, both sides naming the other; Run.shut_out). Once the hero holds
+one, the other is in no offer for the rest of that run (each stage is its own run): not a level-up's cards (nor a
+reroll's or a banish's redraw), not the Shop, not the Stranger (all through CardPool.offer_passives), not a chest
+(Run.chest_candidates), not even as a picture spinning past on the chest's reel (ChestScreen's filler). Nothing says
+so. The held one keeps levelling as usual. (A Wanted poster made at the run's start could still name the other; see
+the open issue in tools/dl/p119/LEGEND_A/STATUS.md.)
+
+**The Iron Horse** ("The 4:10 doesn't stop for anybody.").
+- Clock: `train_every` 20 s at Legendary, **15 s Evolved** (a "set" stat, the card's words), the first one `first` 4 s
+  after it is taken; the clock runs from one cycle's start to the next, and waits while the hero is down.
+- One cycle: the **rumble** `rumble` 1.2 s (a growing rumble, `it_train_rumble`; the camera shakes from 0.06 to 0.4; the
+  sand hops and ripples round the hero; a ghost headlight glimmers at the screen's edge behind him and throws a beam of
+  light up the line to his feet, following him as he turns: where the rails will lie); the **whistle**
+  (`it_train_whistle`): the line locks through him along the way he faces, `half_length` 24 m each way x the camera's
+  zoom; a thin strip of light along it (Telegraphs.line, `warn` + 0.3 s), the ghost rails and sleepers rise out of the
+  sand from the back end to the front in `assemble` 0.55 s, dust lifting at the wave, glowing as the train comes; `warn`
+  **1.0 s after the whistle the engine's nose reaches the hero's spot**, the train charging at `speed` 30 m/s
+  (`it_train_pass` as it comes into sight, a camera shake as it passes him); the wake: ghost smoke from its stack,
+  sparks at its wheels, sand thrown up behind it, the rails sinking away in wisps behind its tail, the train fading out
+  past the far end.
+- **Evolved**: a second line across the first (turned 90 degrees: its train comes from his left and runs to his right), its train
+  `cross_delay` 0.35 s behind the first (the two never meet at his spot in the same frame).
+- **The hit**: everything within `width` 1.8 m of the line (half a body's radius more) between the train's tail and nose,
+  once per train: `share` **25% of its max HP** (`big_share` **5%** for an Elite, an elite-modded creature or a boss:
+  EnemyManager.is_big_game) + `damage` 35 x attack damage (might) x the stage multiplier (`stage_scaled` 1: 1 / 2.2 /
+  3.34, so the flat part keeps up with the creatures' HP in Nightfall and Blood Moon; the share already does). A
+  variance special takes the full 25%. **Never a crit** (EnemyManager.HIT_NO_CRIT, new: no crit, mini crit, Counterpunch,
+  Vulture or Cold Snap roll on that hit), so the share never doubles; Big Game Hunter's bonus still applies (on the 5%).
+  Recorded as the source `iron_horse` (the Results' rows, the dashboard, the Watch).
+- **The throw**: `knock` 30 off the rails to the side the creature stood on (an exact middle picks a side on the item's
+  own dice) and `forward` 0.35 of that along the way the train runs, x `big_knock` 0.35 for an Elite or a boss (and the
+  boss's own 0.15 on top, as every push); x the map's hero_knockback_mult (0.5) like every hero push; an explosive push
+  (HIT_BLAST), so Endless's knock resistance leaves it whole. A regular creature is thrown about 2.5 m aside; a killed one's
+  body flies the same way (pass 82's corpse throw).
+- **The hero is never hit** and never pushed. Strength: one lane, not the screen; 5% against Elites and bosses; about the
+  Nuke's clear every 20 s if the crowd is on the line, which turning to face it at the rumble is the skill of.
+- The train: art/props/iron_horse.glb (tools/blender_iron_horse.py: the Railway Kit's steam locomotive, a tender and a
+  western coach, CC BY 4.0 heyheythere), drawn at `scale` 0.9 (about 2.6 m wide, 3.5 m tall, 22 m long), three cars of
+  one mesh each (three draw calls; its wheels turn and its rods work in core/shaders/ghost_train.gdshader).
+
+**Personal Storm** ("Some folks carry an umbrella. You carry the weather.").
+- Clock: `storm_every` 30 s at Legendary, **24 s Evolved**; it strikes for `storm_seconds` 8 s, **10 s Evolved**; the first
+  `first` 4 s after it is taken; the clock runs from one storm's start to the next and waits while the hero is down.
+- One storm: the clouds **gather** `gather` 1.6 s (their shadows sweep in from upwind over a circle of `radius` 9 m x
+  `shadow_scale` 1.6 round him, drifting with the wind, the screen dimming under an overcast that sweeps in the same way,
+  `dim` 0.3, the shadows' `darkness` 0.4; `it_storm_gather`); then lightning for its seconds; then the clouds **clear**
+  `clear` 1.6 s, passing on downwind. The storm follows him (`follow` 1.2 a second).
+- Strikes: about `rate` **2 a second** (each gap 1/rate give or take 30%, on the item's own dice). A strike's spot:
+  with `crowd_share` **75%** the creature in the circle with the most others within `strike_r` of it, of `samples` 6
+  drawn (a little jitter round it); else any spot on the ground in the circle (uniform by area). Never within
+  `hero_clear` 1.6 m of the hero (pushed out to it), and kept `apart` 2 m from the last 3 strikes (a few tries, then as
+  it is). Each spot glows `tell` 0.3 s (a pale blue ring), then the bolt (a fork half the time, a flash, sparks, sand, a
+  light shake, the overcast lifting for a moment, `it_storm_strike`).
+- **The hit**: everything within `strike_r` **2 m** (a body's radius more): `damage` **40** x attack damage x the stage
+  multiplier (`stage_scaled`), x `big_mult` **0.5** for an Elite or a boss; never a crit (HIT_NO_CRIT); thrown **outwards**
+  from the bolt, `knock` 34 (x `big_knock` 0.4 for an Elite or a boss), an explosive push. Source `personal_storm`.
+- **The mark**: a scorch on the sand that holds `mark_hold` 2 s and fades over `mark_fade` 4 s (Telegraphs.scorch, pooled:
+  one draw call for every mark).
+- **The hero is never hit** and never pushed. Strength: 16 strikes a storm (20 Evolved), each a small blast; a storm is up
+  about 37% of the time (46% Evolved).
+
+### 61.LEGEND_B
+
+Garry picked four of the twelve legendary items proposed in docs/legendary_items/index.html ("Lightning in a bottle -
+Let's do this one, but considering that our crits can sometimes be hard, let's reduce the % of damage a bit"; "Undertaker's
+shovel - This is cool, let's make it as you described. The tombstones should spawn and despawn with an animation, not just
+pop in an out"; "Fool's gold - This one is good also"; "Pocket Bible - This seems very good, but maybe a bit too powerful
+when considering Boss Attacks"), reworked the Grindstone ("let's not add extra stats to weapons. Just Upgrade or Evolve the
+weakest one. Let's change the rarity accordingly") and replaced the Dragon's Breath's ready sign ("Remove that completely.
+Instead let's just play some cheap splash of water particle effect burst or two").
+
+**The four legendary items** are passive items of rarity "legendary": two levels (Legendary, then Evolved on its one
+upgrade), weight 5 (a legendary card is 0.15 of a common's weight before luck: about one level-up offer in 200 holds one
+of them, one run in six sees one), no unlock quest, an icon and an Evolved icon. Each level of their JSON "sets" its
+numbers (op `set`), so the Evolved card names the Evolved numbers. Every number below is in the item's JSON.
+
+**Lightning in a Bottle** (content/passives/lightning_in_a_bottle; EnemyManager.crit_arc). Every full crit a weapon lands
+throws an arc from the creature it struck to the `crit_arcs` nearest other creatures within `params.arc.radius` (5 m), each
+taking `crit_arc_pct` of the crit's damage as dealt (after the hit's own multipliers: the crit, Big Game Hunter, a mark):
+- Legendary: 3 creatures, **25%** (the proposal's 35% cut for Garry's "reduce the % of damage a bit": a crit is 2x or more,
+  so one arc is half a plain hit or more); Evolved: 5 creatures, **35%** (was 50%), and each arc stuns 0.3 s
+  (`crit_arc_stun`; EnemyManager.stun: never a boss or an Elite; Ducktape and Slow Burn stretch it as every stun).
+- Arcs never chain: an arc's hit cannot crit (the new hit flag HIT_NO_CRIT) nor throw an arc. A mini crit (the Tommy Gun's)
+  is not a full crit and throws none; a burn's or poison's tick never crits, so never arcs.
+- At most `params.arc.cap` 12 arcs leave in any `params.arc.window` 0.1 s of the buffs' clock (and at most 24 crits look
+  for targets in it), so a crit storm costs a bounded number of hits. The nearest are found through the creature grid; no
+  dice (ties go to the lower slot).
+- Recorded as the item's own damage source (`lightning_in_a_bottle`: the Results screen, the run record, PostHog). Each arc
+  is the Zap Beam's thin blue bolt (Fx.lightning), one zap sound a window.
+- Strength: with c the crit chance, the arcs add about c x 2 (crit damage) x 0.25 x 3 = 1.5c of a plain hit per hit in a
+  crowd (c = 20%: +30% of the weapon's damage spread over three neighbours; Evolved 3.5c). It needs crits and a crowd,
+  and does nothing to a lone boss.
+
+**The Undertaker's Shovel** (content/passives/undertakers_shovel; core/systems/Graveyard.gd). A count, no dice: every
+`grave_every`-th kill made while it is held digs a grave where the body fell.
+- Legendary: one kill in **25**, at most **4** graves (and their ghosts) at once, a ghost fights **8 s**; Evolved: one in
+  **15**, at most **6**, **12 s**. A grave due while the cap stands is not dug and the count starts again (no queue); a
+  body in the water digs none. Every kill counts: the ghosts' and the arcs' kills too (the cap keeps that in check).
+- The grave (a painted headstone on a mound, `params.grave.sprite`, 1.25 m) rises out of the sand in 0.45 s with a ring of
+  dust and a little overshoot; `params.grave.rise` **2 s** after the dig a ghost climbs out of the sand in front of it in
+  0.7 s, fading in; it fights where it stands; then it drifts up and fades out in 0.6 s and the grave sinks back into the
+  sand in 0.6 s with dust. Nothing pops in or out.
+- The ghost is the hero's own look (his painting, his frames), its lightness redrawn in pale cyan (BillboardSprite.set_ghost), 85% opaque, beside its grave, bobbing a
+  little. It shoots the nearest creature within the hero's **first weapon's** range (6-12 m): one round every cooldown /
+  projectiles of that weapon (0.25-1.5 s), each for **40%** of that weapon's damage (with might and every bonus in it),
+  at its projectile speed and pierce. A gun lends its own rounds' look; a weapon that is not a gun (an orbiter, a beam, the
+  breath) gives pale ghost rounds at 18 m/s with no pierce. Nothing but the shots: no knockback, no mutation effects.
+- The rounds are the item's own source (`undertakers_shovel`), never the copied weapon's; their kills count for the item.
+- Strength: each ghost is about 40% of the first weapon's single-target damage; late in a stage, when kills come fast,
+  the cap is full most of the time (four ghosts: about 1.6 first weapons, Evolved six: 2.4), standing where they rose:
+  holding ground near the graves pays, running away leaves them behind.
+
+**Fool's Gold** (content/passives/fools_gold; Run._apply_purse). The run's purse (`run_gold`: this run's, never the banked
+gold) is attack damage: **+1% for every 50 gold** (`purse_might_per`), **up to +60%** (`purse_might_cap`); Evolved +1% for
+every **40** gold (the same cap) and **+1% max HP for every 100 gold, up to +30%** (`purse_hp_per`, `purse_hp_cap`; the
+proposal named no cap for the health, 30% is this lane's: 3,000 gold). Whole percents only. Spending (the Shop, the
+Stranger, the revive) lowers it at once; picking gold up raises it. Each part is its own source on the pause Stats tab
+("Fool's Gold +12%"). A rise in max HP brings the same health with it, a fall keeps the share (as every max HP change).
+Worked out again on every purse change (Run.gold_changed), the sheets rebuilt only when a whole percent moves.
+
+**The Pocket Bible** (content/passives/pocket_bible; Player.take_damage, Run.bible_try_block, Run.hit_cap_share).
+- **The cap**: no single hit takes more than **12%** of max HP (Evolved **9%**: `hit_cap_pct`), after damage reduction,
+  before the Energy Shield and the health. **A boss's hit** (anything from a boss: its touch, its attacks, its bullet
+  heaven, its ring of fire; Player.role_of "boss") is capped at **35%** instead (Evolved **30%**: `boss_hit_cap_pct`), so a
+  boss's big hits still take a third of the bar (Garry: "maybe a bit too powerful when considering Boss Attacks"). Elites,
+  specials (the Saiga Sniper's beam, the Raider's rocket) and the crowd take the 12%.
+- **The block**: once every **20 s** (Evolved **15 s**: `hit_block_every`, on the buffs' clock) the next hit that would
+  land (past the Shield power-up, the blink after a hit, an evade and Marshal's Star) is stopped outright: no damage, no
+  shove of its own, BLOCK over the hero, the blink after a hit, a puff of pages and a thud. It starts ready. **A boss's hit
+  never takes it**: it passes the ready block by (capped at 35%) and the block waits for the next other hit.
+- The HUD shows it: the item's plate sits among the power-ups' plates while it is held, lit while the block is ready, dim
+  with its seconds to go while it fills again, and it jumps when it is spent (`params.bible.plate`).
+- Strength: crowds hurt with many small bites, which the cap barely touches; it removes one-shots (dynamite, rockets, the
+  Sniper's beam) and a bite every 20 s.
+
+**The Grindstone** (content/passives/grindstone; Run._grindstone; pass 118's random bonuses, `grind_rolls`, the grind table,
+WeaponInstance.ground and its pause line are gone). Every level of it the hero takes (its first too; the Stranger's, a
+chest's, the arena's +) **raises his weakest weapon one level**: the held weapon below its top level with the fewest
+levels, ties to the one that has dealt the least damage this run, then the one held first. **With every held weapon at
+its top level** it **evolves** the ready one (the whole path on it, `Run.evolution_ready`) that has dealt the least damage,
+without the chest an evolution needs. **When neither can happen** no level-up, chest, Shop or Stranger offers it (Run.
+grind_idle), so its card never promises what it cannot do; given anyway (the arena) it does nothing and says so. A toast
+names what it did ("GRINDSTONE: BOOMSTICK TO LEVEL 2", "GRINDSTONE: EVOLVED INTO ..."). Its card: "Every level you take
+raises your weakest weapon a level (lowest level first, then least damage dealt). Once all are maxed, it evolves one that
+is ready." (`grind_levels` counts the levels, only for the words.)
+- **Rarity rare** (was legendary): four levels on the ladder (Rare, Epic, Legendary, Evolved), weight 5. One level of it is
+  one weapon level, a card's worth: no better than taking that weapon's own upgrade card, except that it reaches a weapon
+  whose card is not on the table and can evolve one without a chest. A legendary's rarity (one offer in 200) and two
+  levels would make it a lottery ticket for one free level; a common's six levels would make it a second weapon-upgrade
+  card in every other offer. Rare (0.55 of a common's weight before luck) with four levels is four free levels or
+  evolutions over a run, found about as often as the other rare items.
+
+**The Dragon's Breath's tell** (FireBreath._mouthful, Fx.water_splash). Pass 116's spiky ring (BreathReady, its shader) is
+gone. 0.3 s before the breath's cooldown runs out (MOUTHFUL_LEAD), two quick splashes of pale liquid burst at the hero's
+face, 0.14 s apart (MOUTHFUL_GAP): a small splat that pops and breaks up and nine drops flung out that fall, pieces of the
+blood pool's ring (no new node, shader or material), as if he took a mouthful to spit through the flame. Once a cooldown;
+a look only (its rolls are the pool's own dice). `params.breath.mouthful: false` turns it off (pass 116's `ready_sign` key
+is gone).

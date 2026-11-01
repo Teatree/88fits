@@ -34,11 +34,14 @@ var top_inset: int = -1
 ## between those 2 Main Menu versions"): "painted", the hero's painted cut-out over the still of the desert, or "live",
 ## the level itself behind the title with the hero standing in it as a run draws him and his weapon circling him
 ## (ui/TitleStage.gd). Settings shows the choice only while debug_mode is on; the title reads it each time it is built.
-## "live" is the default since pass 53 (Garry: "By default set the Main Menu to be the new one - the one with the live
-## heroes"); a save from before it carries "painted" written by to_dict, so Save's version 5 migration sets it to live
-## once, and anything but the two names reads as live.
+## "live" was the default from pass 53 (Garry: "By default set the Main Menu to be the new one - the one with the live
+## heroes"). Pass 119 (lane LOADUI; Garry: "Let's set the "Painted" option as default for now, while keeping the buttons
+## in the Settings for the Debug version of course"): "painted" is the default; every save is switched to it once
+## (Save._migrate_painted, the once-flag Save.PAINTED_ONCE: a save holds "live", written by to_dict under the old
+## default), the debug panel's pick sticks after that, and anything but the two names reads as painted. The production
+## build has no choice: PROD_LOCKED holds it at the default and the title never builds the live look there.
 const MENU_STYLES := ["painted", "live"]
-const MENU_STYLE_DEFAULT := "live"
+const MENU_STYLE_DEFAULT := "painted"
 var menu_style: String = MENU_STYLE_DEFAULT:
 	set(v):
 		menu_style = str(v) if MENU_STYLES.has(str(v)) else MENU_STYLE_DEFAULT

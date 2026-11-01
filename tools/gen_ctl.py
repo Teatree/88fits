@@ -28,7 +28,9 @@ motion (the walk's words), death_drivers (a folder under tools/dl/drivers), deat
 8 of the death clip's frames to keep, picked by eye; re-picking needs no render), remap_hues (artkit.remap_hues on every
 frame, a colour one view drifted into), dead (the dead
 painting's words when there is no death driver), fps, directions, screen ("green"/"blue"), outline_frac, outline_color,
-side_seeds, ctl_soft / death_soft (pass 92: {radius, body, views}: the depth's body softened so a painted face survives).
+side_seeds, ctl_soft / death_soft (pass 92: {radius, body, views}: the depth's body softened so a painted face survives),
+look_refs (pass 119: {view: picture}, a picture of the look seen from that view, for the four views painted from the side),
+extras (pass 119: the parts a repaint may add that the model lacks: "two curved devil horns on its head, ...").
 Pass 70 (lane LE): the side and view candidates' seeds are the job's own (tools/cand_seeds.py: the Level Editor job id and
 its attempt move them, candidate k a prime past a million from k-1); the plain views keep their seeds.
 """
@@ -290,9 +292,15 @@ def repaint_anchor(recipe):
     return bool(recipe.get("anchor"))
 
 
-def repaint_prompt(recipe, view, bg, with_side):
+ORD = ["first", "second", "third", "fourth", "fifth"]
+
+
+def repaint_prompt(recipe, view, bg, with_side, look=False):
     """The repaint wording (pass 94): the clay first, its shapes kept exactly, the look's words, the recipe's own style
-    ("style") or the house style line; with "anchor" the style anchor is the last reference (repaint_anchor)."""
+    ("style") or the house style line; with "anchor" the style anchor is the last reference (repaint_anchor).
+    look (pass 119): a picture of the look (look_ref for the side, look_refs[view] for the others) follows the clay and
+    the side painting; before pass 119 a repaint's look_ref went in unnamed and the anchor sentence called it the style
+    picture."""
     noun = recipe.get("noun", "a creature")
     words = dict(recipe.get("words", {}))
     vw = words.get(view) or ("in side profile facing right" if view == "side" else "seen from another angle")
@@ -301,8 +309,17 @@ def repaint_prompt(recipe, view, bg, with_side):
     style = recipe.get("style") or g.STYLE
     second = (" The second reference image is the finished painting of the same creature seen from the side: copy its colours, "
               "markings, hair and finish exactly, but not its pose or camera angle.") if with_side else ""
+    n = 2 if with_side else 1
+    pic = ""
+    if look:
+        pic = (" The " + ORD[n] + " reference image is a drawing of what this creature looks like" + (" from this side" if view != "side" else "")
+               + ": copy its colours, markings, face, eyes and every feature it has, but keep the 3D model's pose, proportions and "
+               "camera angle.")
+        n += 1
     anchor = repaint_anchor(recipe)
-    art = (" The " + ("third" if with_side else "second") + " reference image shows the art style only; do not copy its subjects.") if anchor else ""
+    art = (" The " + ORD[n] + " reference image shows the art style only; do not copy its subjects.") if anchor else ""
+    # pass 119: "extras": what the repaint may add that the model does not have (a devil's horns, spikes and wings)
+    extras = str(recipe.get("extras", "") or "")
     what = ("Repaint this exact 3D model as a finished, detailed anime game creature illustration of " if anchor else "Repaint this exact model as ")
     surface = ("It must not look like a plain 3D model. " if anchor else
                "Only the surface changes: the flat polygons become the creature's real body. ")
@@ -310,10 +327,10 @@ def repaint_prompt(recipe, view, bg, with_side):
     # three-quarter views painted again with "stronger violet ..." without touching the shared prompt)
     extra = str((recipe.get("view_words") or {}).get(view, "") or "")
     return ("The first reference image is a rough 3D model of " + noun + " (" + recipe.get("blockout", "a plain clay 3D model") + "), "
-            + vw + "." + second + art + " " + what + recipe["prompt"] + (", " + extra if extra else "") + (", with " + detail if detail else "") +
+            + vw + "." + second + pic + art + " " + what + recipe["prompt"] + (", " + extra if extra else "") + (", with " + detail if detail else "") +
             ". Keep the model's silhouette, its pose and the camera angle exactly: " + anatomy + "; every leg stays where it is, at "
             "the same angle and length, bending at the same joints, the body and head the same size and in the same place; nothing "
-            "is added that the model does not have. " + surface + style + ". " + bg + ".")
+            "is added that the model does not have" + ((", except " + extras) if extras else "") + ". " + surface + style + ". " + bg + ".")
 
 
 def refine(img, key, recipe, refs, seed, bg, prompt=""):
@@ -387,7 +404,7 @@ def paint(cid, code, recipe, drv, seed, bg):
                  "illustration of " + recipe["prompt"] + (", with " + detail if detail else "") + ", in side profile facing right, "
                  + anatomy + ". It must not look like a plain 3D model. " + g.STYLE + ". " + bg + ".")
             if rp:
-                p = repaint_prompt(recipe, "side", bg, False)
+                p = repaint_prompt(recipe, "side", bg, False, bool(look))
             raw = os.path.join(g.RAW, ck + ".png")
             if not os.path.exists(raw):
                 s = side_seeds[k]
@@ -406,8 +423,8 @@ def paint(cid, code, recipe, drv, seed, bg):
         return None
     side = Image.open(os.path.join(g.RAW, side_key + ".png")).convert("RGB")
     if rp:
-        side = refine(side, side_key, recipe, [comfy.upload_pil(clay_for(recipe, drv, "side")[0], key + "_clay_side.png")] +
-                      (list(g.ensure_anchor_uploaded()) if repaint_anchor(recipe) else []), seed + 7, bg, repaint_prompt(recipe, "side", bg, False))
+        side = refine(side, side_key, recipe, [comfy.upload_pil(clay_for(recipe, drv, "side")[0], key + "_clay_side.png")] + look +
+                      (list(g.ensure_anchor_uploaded()) if repaint_anchor(recipe) else []), seed + 7, bg, repaint_prompt(recipe, "side", bg, False, bool(look)))
     out = {"side": side}
     keep = (" It keeps " + recipe["keep"] + ", seen from this angle.") if recipe.get("keep") else ""
     words = recipe.get("words", {})
@@ -440,8 +457,11 @@ def paint(cid, code, recipe, drv, seed, bg):
              " It must not look like a plain 3D model. " + g.STYLE + ". " + bg + ".")
         vrefs = [side_ref, clay]
         if rp:
-            p = repaint_prompt(recipe, view, bg, True)
-            vrefs = [clay, side_ref] + (list(g.ensure_anchor_uploaded()) if repaint_anchor(recipe) else [])
+            # pass 119: "look_refs" {view: picture}: that view's own picture of the look, after the side painting
+            lr = (recipe.get("look_refs") or {}).get(view)
+            vlook = [comfy.upload_pil(Image.open(os.path.join(REPO, lr)).convert("RGB"), "%s_look_%s.png" % (key, view))] if lr else []
+            p = repaint_prompt(recipe, view, bg, True, bool(vlook))
+            vrefs = [clay, side_ref] + vlook + (list(g.ensure_anchor_uploaded()) if repaint_anchor(recipe) else [])
         if view in cands:
             ks = ["%s_%s_c%d" % (key, view, c) for c in range(int(opt("seeds", "3")))]
             # pass 70: the job's own seeds, CAND_STEP past the plain view's own

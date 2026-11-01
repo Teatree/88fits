@@ -14,7 +14,7 @@ const START := "start"
 const RUN := "run"
 ## The order "This run" lists its sources in, by the kind of source id (lower first, the sheet's order within one): the
 ## hero's own growth, the items taken, the map's gifts, what runs by itself, then what wears off.
-const RUN_ORDER := {"trait": 0, "passive": 1, "favourite": 1, "chest": 1, "grind": 1, "perk": 2, "mutation": 2, "totem": 3,
+const RUN_ORDER := {"trait": 0, "passive": 1, "favourite": 1, "chest": 1, "perk": 2, "mutation": 2, "totem": 3,
 	"stranger": 3, "momentum": 4, "buff": 6}
 ## The source ids whose rows belong to the start (a "trait:" one splits: its level-1 step is the start's).
 const START_KINDS := ["base", "hero", "talent"]
@@ -234,18 +234,15 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 					out["name"] = "%s · favourite" % p.display_name
 				else:
 					out["name"] = p.display_name + (" · Lv %d" % lv if p.max_level > 1 and lv > 0 else "")
-		"chest", "grind":
-			# pass 118 (lane ITEMS): what a key banked from the chests ("Jade Key · 7 chests"), what a Grindstone ground
-			# into a weapon (its own sheet's source)
+		"chest":
+			# pass 118 (lane ITEMS): what a key banked from the chests ("Jade Key · 7 chests"); pass 119 (lane LEGEND_B): the
+			# Grindstone's "grind:" sources are gone with its bonuses
 			var cp: PassiveDef = Registry.passive(id)
 			if cp:
 				out["def"] = cp
 				out["icon"] = cp.icon
-				if kind == "chest":
-					var n := int((Run.chest_bank.get(id, {}) as Dictionary).get("chests", 0))
-					out["name"] = "%s · %d chest%s" % [cp.display_name, n, "" if n == 1 else "s"]
-				else:
-					out["name"] = "%s · ground in" % cp.display_name
+				var n := int((Run.chest_bank.get(id, {}) as Dictionary).get("chests", 0))
+				out["name"] = "%s · %d chest%s" % [cp.display_name, n, "" if n == 1 else "s"]
 		"perk":
 			var pk: PerkDef = Registry.perk(id)
 			if pk:

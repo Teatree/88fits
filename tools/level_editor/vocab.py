@@ -231,8 +231,13 @@ PLAYER_DEFAULTS = {
     "boss_danger_hp": 0.0, "boss_danger_attack": 0.0, "boss_danger_speed": 0.0, "boss_danger_bounty": 0.0,
     # pass 115 (lane META): the Phoenix Feather's least revive health (Player.revive_share)
     "phoenix_hp": 0.0,
-    # pass 118 (lane ITEMS): the keys' per-chest stats and the Grindstone's rolls
-    "chest_luck": 0.0, "chest_might": 0.0, "grind_rolls": 0.0,
+    # pass 118 (lane ITEMS): the keys' per-chest stats; pass 119 (lane LEGEND_B): the Grindstone's levels (its rolls are
+    # gone) and the four legendary items' rules
+    "chest_luck": 0.0, "chest_might": 0.0, "grind_levels": 0.0,
+    "train_every": 0.0, "train_cross": 0.0, "storm_every": 0.0, "storm_seconds": 0.0,
+    "crit_arcs": 0.0, "crit_arc_pct": 0.0, "crit_arc_stun": 0.0, "grave_every": 0.0, "grave_max": 0.0, "grave_seconds": 0.0,
+    "grave_damage_pct": 0.0, "purse_might_per": 0.0, "purse_might_cap": 0.0, "purse_hp_per": 0.0, "purse_hp_cap": 0.0,
+    "hit_cap_pct": 0.0, "boss_hit_cap_pct": 0.0, "hit_block_every": 0.0,
 }
 # player stats the code reads that are not in PLAYER_DEFAULTS (default 0 from get_stat); content uses them all
 PLAYER_STATS_EXTRA = {"brand_chance": 0.0, "fire_vuln": 0.0, "poison_slow": 0.0, "poison_pass": 0.0}
@@ -297,7 +302,24 @@ STAT_NAMES = {
     "phoenix_hp": ["", "hidden"],
     # pass 118 (lane ITEMS)
     "chest_luck": ["luck per chest opened", "pct"], "chest_might": ["attack damage per chest opened", "pct"],
-    "grind_rolls": ["bonus rolls on every weapon upgrade", "count"],
+    # pass 119 (lane LEGEND_B): the Grindstone's levels and the legendary items' rules
+    "grind_levels": ["levels for your weakest weapons", "count"],
+    "crit_arcs": ["creatures a crit arcs to", "rule"],
+    "crit_arc_pct": ["of a crit in each arc", "rule"],
+    "crit_arc_stun": ["arc stun", "rule"],
+    "grave_every": ["kills a grave", "rule"],
+    "train_every": ["seconds between ghost trains", "rule"], "train_cross": ["crossing train", "rule"],
+    "storm_every": ["seconds between storms", "rule"], "storm_seconds": ["storm strikes for", "rule"],
+    "grave_max": ["ghosts at once", "rule"],
+    "grave_seconds": ["ghost fights for", "rule"],
+    "grave_damage_pct": ["ghost damage", "rule"],
+    "purse_might_per": ["gold per 1% attack damage", "rule"],
+    "purse_might_cap": ["purse attack damage cap", "rule"],
+    "purse_hp_per": ["gold per 1% max HP", "rule"],
+    "purse_hp_cap": ["purse max HP cap", "rule"],
+    "hit_cap_pct": ["most a hit takes", "rule"],
+    "boss_hit_cap_pct": ["most a boss's hit takes", "rule"],
+    "hit_block_every": ["seconds between blocks", "rule"],
 }
 # pass 69: what each new stat does, in a line (the effect pickers show it); lane PAS's help texts
 STAT_HELP = {
@@ -331,7 +353,26 @@ STAT_HELP = {
     # pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> (Run.chest_opened)
     "chest_luck": "Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it",
     "chest_might": "Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it",
-    "grind_rolls": "Grindstone: every level-up of a held weapon grinds this many different bonuses from the item params.grind table into that weapon for the rest of the run (never a new weapon, a mutation or an evolution)",
+    # pass 119 (lane LEGEND_B): the Grindstone's levels and the four legendary items (BALANCING 61.LEGEND_B)
+    "grind_levels": "Grindstone (pass 119): one per level taken; each level raises the weakest weapon a level (fewest levels, then least damage this run), or evolves a ready one once all are maxed (Run._grindstone). The number is only said on the cards, never read",
+    "crit_arcs": "Lightning in a Bottle: every full crit a weapon lands throws an arc to this many of the nearest other creatures within params.arc.radius m (\"set\" per level); arcs never chain or crit",
+    "crit_arc_pct": "Lightning in a Bottle: each arc deals this percent of the crit as dealt (25 = 25%; \"set\" per level)",
+    "crit_arc_stun": "Lightning in a Bottle: each arc stuns its creature this many seconds (never a boss or an Elite); 0 = none",
+    "train_every": "Iron Horse: seconds between ghost trains charging down the hero's line (params.train: warning, damage shares, push); 0 = none",
+    "train_cross": "Iron Horse (Evolved): 1 = a second train crosses the first from the hero's left",
+    "storm_every": "Personal Storm: seconds between storms gathering over the hero (params.storm: strikes a second, damage, push, marks); 0 = none",
+    "storm_seconds": "Personal Storm: how long a storm's lightning strikes",
+    "grave_every": "Undertaker's Shovel: every this-many-th kill digs a grave where the body fell (a count, no dice); 0 = none",
+    "grave_max": "Undertaker's Shovel: the most graves (and their ghosts) standing at once; a grave due past it is not dug",
+    "grave_seconds": "Undertaker's Shovel: how long a ghost fights once it has climbed out (params.grave.rise s after the dig)",
+    "grave_damage_pct": "Undertaker's Shovel: a ghost round's damage, this percent of the hero's first weapon's damage (40 = 40%)",
+    "purse_might_per": "Fool's Gold: 1% attack damage for every this-many gold in the run's purse (spending lowers it); 0 = none",
+    "purse_might_cap": "Fool's Gold: the most attack damage the purse gives, in percent (60 = +60%; 0 = no cap)",
+    "purse_hp_per": "Fool's Gold (Evolved): 1% max HP for every this-many gold in the run's purse; 0 = none",
+    "purse_hp_cap": "Fool's Gold (Evolved): the most max HP the purse gives, in percent (30 = +30%; 0 = no cap)",
+    "hit_cap_pct": "Pocket Bible: no single hit takes more than this percent of max HP (after damage reduction); 0 = no cap",
+    "boss_hit_cap_pct": "Pocket Bible: the cap on a boss's hit (its touch, its attacks, its bullet heaven), in percent of max HP",
+    "hit_block_every": "Pocket Bible: once every this many seconds the next hit is stopped outright, never a boss's (it waits for another); 0 = none",
 }
 # the weapon stats WeaponInstance.rebuild seeds before `def.base` (defaults), then the ones systems read with no seed
 WEAPON_STATS = {"damage": 5.0, "cooldown": 1.0, "amount": 1.0, "pierce": 0.0, "area": 1.0, "speed": 10.0, "duration": 2.0,
@@ -437,7 +478,7 @@ PERK_SPECIALS = {
                                                "launch_height": 4.0, "launch_distance": 8.0, "air_time": 1.1, "air_control": 0.35},
                    "help": "Hang Time: after `first` s, then `every` s after the last one folded, a 3D trampoline drops `side` m beside the hero and stands `lifetime` s; walking onto it (within `radius` m of its middle) throws him `launch_height` m up and `launch_distance` m along the way he walked, `air_time` s in the air, the stick steering at `air_control` of his walking speed, untouchable up there; it folds after `uses` jumps"},
     # pass 116 (lane FIGHT): May's Invisible Box (core/systems/MimeBox.gd)
-    "box": {"by": "special", "params": {"every": 25.0, "first": 10.0, "seconds": 3.0, "width": 2.0, "height": 2.4, "spin": 0.35},
+    "box": {"by": "special", "params": {"every": 20.0, "first": 8.0, "seconds": 3.0, "width": 2.0, "height": 2.4, "spin": 0.35},
             "help": "Invisible Box: after `first` s, then every `every` s, a see-through box `width` x `height` m with white edges stands round the hero for `seconds` s, turning `spin` turns a second; it blocks every hit like the Shield power-up and drawn over its bubble"},
     "overdrive": {"by": "id", "params": {"every": 5.0, "step": 0.05, "max": 0.25},
                   "help": "Jeżyk's Overdrive: every `every` s at full momentum is one gear of `step` attack damage, up to `max`; a hit that lands drops every gear"},
@@ -796,7 +837,7 @@ def check_against_source(game_dir):
             problems.append("STAT_HELP names %s, which TextGen.STATS does not" % s)
     perk_src = "\n".join(_read(game_dir, p) for p in ("game/Game.gd", "core/autoload/Run.gd", "player/Player.gd",
                                                        "core/systems/EnemyManager.gd", "core/systems/Decoy.gd",
-                                                       "core/systems/Trampoline.gd"))
+                                                       "core/systems/Trampoline.gd", "core/systems/MimeBox.gd"))
     decoy = _read(game_dir, "core/systems/Decoy.gd")
     for sp, spec in PERK_SPECIALS.items():
         if not sp:
@@ -815,6 +856,9 @@ def check_against_source(game_dir):
                 pats.append(r'\bparam\("%s", ([-0-9.]+)\)' % key)
             if sp == "periodic_buff":
                 pats.append(r'params\.get\("%s", ([-0-9.]+)\)' % key)
+            if sp == "box":
+                # pass 119 (the lead): May's Invisible Box reads its numbers through MimeBox.param(key, default)
+                pats.append(r'\bparam\("%s", ([-0-9.]+)\)' % key)
             found = [float(v) for pat in pats for v in re.findall(pat, decoy if sp == "decoy" and "param(" in pat and "perk_" not in pat else perk_src)]
             if not found:
                 problems.append("perk special %s: %s is not read with a default" % (sp, key))

@@ -31,6 +31,10 @@ The walk (mode=gait), one stride over `frames` poses:
   crouch=0.1       track: each foot's track pulled in towards its hip by this share of its reach, so a leg that rests
                    straight has bend to give (without it a front or back leg reaching out straightens and lies flat)
   knee=up          track: up keeps every knee above the hip-to-foot line (spiders, insects); down below it
+  splay=0          track (pass 119): every foot's track moved out sideways, away from the body's middle, by this share of
+                   the same length (0.04: an armadillo's front feet step out beside its head instead of under its chin;
+                   seen head-on, a foot reaching forward under the snout read as a tail hanging below it)
+  splay_front=0    track (pass 119): as splay, for the frontmost pair of legs only, on top of splay
 The death (mode=flip_curl), over the clip's `total` frames, a timeline in seconds over `seconds`:
   seconds=1.2      how long the whole clip is (frames are spread evenly over it)
   spasm=0.12       seconds of the hit: the legs splay up and the body jumps a little (spasm_deg=22)
@@ -64,7 +68,7 @@ except ImportError:  # importable outside Blender for the selftest (only the pur
 LEG_WORDS = r"(?i)leg|thigh|calf|shin|foot|toe|tarsus|femur|tibia"
 
 GAIT_DEFAULTS = {"gait": "alternate", "swing": 14.0, "lift": 18.0, "flex": 14.0, "duty": 0.55, "bob": 0.04, "sway": 2.5,
-                 "step": "swing", "stride": 0.22, "raise": 0.12, "crouch": 0.1, "knee": "up"}
+                 "step": "swing", "stride": 0.22, "raise": 0.12, "crouch": 0.1, "knee": "up", "splay": 0.0, "splay_front": 0.0}
 SCALE_DEFAULTS = {"body_scale": 1.0, "head_scale": 1.0, "leg_scale": 1.0, "scale_bones": "", "head_pitch": 0.0}
 DEATH_DEFAULTS = {"seconds": 1.2, "spasm": 0.12, "spasm_deg": 22.0, "roll_axis": "side", "roll": 180.0, "roll_dir": 1.0,
                   "roll_start": 0.08, "roll_time": 0.4, "curl": 70.0, "curl_root": 40.0, "curl_start": 0.05, "curl_end": 0.75,
@@ -399,14 +403,15 @@ class Legs:
             j1 = self.world(c[1].head) if len(c) > 1 else None
             self.track.append((j0, j1, foot.copy()))
 
-    def pose_track(self, c, rest, along, up_, knee_up, crouch=0.0):
+    def pose_track(self, c, rest, along, up_, knee_up, crouch=0.0, out=0.0):
         """One leg posed so its foot reaches rest foot + forward x along + up x up_ (world units): the hip turns round the
         vertical (the foot's bearing), then the hip and the knee bend in the leg's vertical plane (two_bone). crouch: the
         foot's track is pulled in towards the hip by this share of its flat reach, so a leg that rests straight has bend to
-        give when its foot reaches forward or back (else it straightens and lies flat)."""
+        give when its foot reaches forward or back (else it straightens and lies flat). out (pass 119, splay): the track moved
+        that far (world units) along `right` (signed: the leg's own side outwards)."""
         j0, j1, foot = rest
         flat0 = Vector((foot.x - j0.x, foot.y - j0.y, 0.0))
-        T = foot - flat0 * crouch + self.fwd * along + self.up * up_
+        T = foot - flat0 * crouch + self.fwd * along + self.up * up_ + self.right * out
         u0 = Vector((foot.x - j0.x, foot.y - j0.y, 0.0))
         u1 = Vector((T.x - j0.x, T.y - j0.y, 0.0))
         if u0.length < 1e-9 or u1.length < 1e-9:
@@ -436,9 +441,11 @@ class Legs:
             self.reset()
             offs = phase_offsets(self.sides, self.order, o["gait"])
             L = self.length
-            for c, off, rest in zip(self.chains, offs, self.track):
+            for c, off, rest, side, order in zip(self.chains, offs, self.track, self.sides, self.order):
                 along, h = track_offset(phase + off, float(o["duty"]), float(o["stride"]), float(o["raise"]))
-                self.pose_track(c, rest, along * L, h * L, str(o.get("knee", "up")) != "down", float(o.get("crouch", 0.0)))
+                sp = float(o.get("splay", 0.0) or 0.0) + (float(o.get("splay_front", 0.0) or 0.0) if order == 0 else 0.0)
+                self.pose_track(c, rest, along * L, h * L, str(o.get("knee", "up")) != "down", float(o.get("crouch", 0.0)),
+                                side * sp * L)
             self.body_motion(phase, o)
             return
         self.reset()

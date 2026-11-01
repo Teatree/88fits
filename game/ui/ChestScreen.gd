@@ -317,7 +317,9 @@ func _pool_for(kind: String, def: ContentDef) -> Array:
 		for w in Registry.unlocked_weapons():
 			pool.append(w)
 		for p in Registry.unlocked_passives():
-			pool.append(p)
+			# pass 119 (lane LEGEND_A): not even as filler, an item the hero's own shuts out
+			if not Run.shut_out((p as PassiveDef).id):
+				pool.append(p)
 		for wi in Run.weapons:
 			pool.append(wi.def)
 		pool.shuffle()

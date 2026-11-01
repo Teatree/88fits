@@ -197,12 +197,15 @@ func _debug_panel() -> PanelContainer:
 	p.set_meta("debug_panel", true)
 	var col: VBoxContainer = p.get_child(0)
 	col.add_child(W.label("Debug", 22, W.INK_SOFT, 0.15))
-	col.add_child(W.serif_text("Main menu", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
-	var style := WChoice.make([["Painted", "the hero's portrait"], ["Live", "the level, the hero in it"]],
-		1 if Settings.menu_style == "live" else 0, 30, 20, 14.0, HORIZONTAL_ALIGNMENT_CENTER, 0)
-	style.name = "MenuStyle"
-	style.chosen.connect(func(i: int): Settings.set_value("menu_style", "live" if i == 1 else "painted"))
-	col.add_child(style)
+	# the title's look: Painted (the default since pass 119) or Live; never in the production build (pass 119, lane
+	# LOADUI: it is always painted there; the panel itself only shows in debug mode, which prod locks off)
+	if not Settings.is_prod():
+		col.add_child(W.serif_text("Main menu", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+		var style := WChoice.make([["Painted", "the hero's portrait"], ["Live", "the level, the hero in it"]],
+			1 if Settings.menu_style == "live" else 0, 30, 20, 14.0, HORIZONTAL_ALIGNMENT_CENTER, 0)
+		style.name = "MenuStyle"
+		style.chosen.connect(func(i: int): Settings.set_value("menu_style", "live" if i == 1 else "painted"))
+		col.add_child(style)
 	# the ranged weapons' aim (pass 54, Garry: they shoot only at what is on the screen; a switch to compare, debug only)
 	if "ranged_on_screen" in Settings:
 		var r := _row("Ranged weapons aim only on screen")

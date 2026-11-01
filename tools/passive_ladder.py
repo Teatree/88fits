@@ -100,7 +100,17 @@ LADDER = {
     # (2 levels: legendary, Evolved)
     "jade_key": [[E("chest_luck", 0.01)], [E("chest_luck", 0.005)], [E("chest_luck", 0.005)]],
     "ruby_key": [[E("chest_might", 0.02)], [E("chest_might", 0.01)], [E("chest_might", 0.01)]],
-    "grindstone": [[E("grind_rolls", 1)], [E("grind_rolls", 1)]],
+    # pass 119 (lane LEGEND_B): the Grindstone is rare (4 levels), each level a level for the weakest weapon (Run._grindstone;
+    # grind_levels only counts them for the words); the four legendaries "set" their numbers at each rung
+    "grindstone": [[E("grind_levels", 1)], [E("grind_levels", 1)], [E("grind_levels", 1)], [E("grind_levels", 1)]],
+    "lightning_in_a_bottle": [[E("crit_arcs", 3, "set"), E("crit_arc_pct", 25, "set")],
+                              [E("crit_arcs", 5, "set"), E("crit_arc_pct", 35, "set"), E("crit_arc_stun", 0.3, "set")]],
+    "undertakers_shovel": [[E("grave_every", 25, "set"), E("grave_max", 4, "set"), E("grave_seconds", 8, "set"), E("grave_damage_pct", 40, "set")],
+                           [E("grave_every", 15, "set"), E("grave_max", 6, "set"), E("grave_seconds", 12, "set")]],
+    "fools_gold": [[E("purse_might_per", 50, "set"), E("purse_might_cap", 60, "set")],
+                   [E("purse_might_per", 40, "set"), E("purse_hp_per", 100, "set"), E("purse_hp_cap", 30, "set")]],
+    "pocket_bible": [[E("hit_cap_pct", 12, "set"), E("boss_hit_cap_pct", 35, "set"), E("hit_block_every", 20, "set")],
+                     [E("hit_cap_pct", 9, "set"), E("boss_hit_cap_pct", 30, "set"), E("hit_block_every", 15, "set")]],
 }
 
 # the hand-written card lines that named the old numbers (a new card shows `text` verbatim; the upgrades read the rungs)

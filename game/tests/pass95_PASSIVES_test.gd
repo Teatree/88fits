@@ -9,8 +9,10 @@
 extends GdUnitTestSuite
 
 ## re-pinned in pass 100 (lane SMALL): Phoenix Feather left the ladder (a one-shot item, `single`): 33 items climb it;
-## pass 118 (lane ITEMS): the Jade Key, the Ruby Key and the Grindstone join (36)
-const ITEMS := 36
+## pass 118 (lane ITEMS): the Jade Key, the Ruby Key and the Grindstone join (36); pass 119: lane LEGEND_B's four
+## legendaries (Lightning in a Bottle, the Undertaker's Shovel, Fool's Gold, the Pocket Bible) and lane LEGEND_A's two
+## (the Iron Horse, Personal Storm) join (42)
+const ITEMS := 42
 const LADDER := {"common": 6, "uncommon": 5, "rare": 4, "epic": 3, "legendary": 2}
 
 

@@ -23,6 +23,17 @@ var enabled := true
 var ui_blocking := false
 ## True while WASD / the arrow keys drive the hero (PC only; phones never set it).
 var keyboard := false
+## Pass 119 (the lead; Garry: "when I return from the level up screen I often end up loosing a bit of momentum because of
+## a tiny delay between the tap being registered and the move actually starting"): a fresh touch starts the stick at
+## rest, so after TAP TO GO the hero crept until the thumb had dragged half the stick's reach (about 80 px on a phone).
+## Now the stick a pause took away (force_release) is carried: the first touch that starts the stick within
+## CARRY_WINDOW s of the run going on starts it pushed as it was (the same way, the same throttle), and the thumb's own
+## drag takes over as it grows: the carried push fades out over CARRY_FADE of the stick's reach. A lift drops it.
+const CARRY_WINDOW := 1.0
+const CARRY_FADE := 0.6
+var carry := Vector2.ZERO
+var _carry_ready := Vector2.ZERO
+var _resumed_ms := -100000
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -35,6 +46,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				origin = event.position
 				touch_pos = event.position
 				wants_move = true
+				# pass 119: the push the pause took away, if this is the first touch since the run went on
+				if _carry_ready.length() > 0.05 and Time.get_ticks_msec() - _resumed_ms <= int(CARRY_WINDOW * 1000.0):
+					carry = _carry_ready
+				_carry_ready = Vector2.ZERO
 				touch_started.emit(event.position)
 		else:
 			if event.index == active_index:
@@ -48,13 +63,22 @@ func _release() -> void:
 	active_index = -1
 	wants_move = false
 	stick_dir = Vector2.ZERO
+	carry = Vector2.ZERO
 	lifted_once = true
 	touch_ended.emit()
 
 
 func force_release() -> void:
 	if active_index != -1:
+		# pass 119: the push it had, carried to the first touch after the pause (CARRY_WINDOW)
+		var had := stick_dir
 		_release()
+		_carry_ready = had
+
+
+## The run went on after a pause (Game.set_paused(false)): the carried push waits CARRY_WINDOW s for a touch (pass 119).
+func resumed() -> void:
+	_resumed_ms = Time.get_ticks_msec()
 
 
 func _in_thumb_zone(p: Vector2) -> bool:
@@ -96,10 +120,18 @@ func _process(_delta: float) -> void:
 	var vp := get_viewport().get_visible_rect().size
 	var px_scale: float = vp.x / 432.0 if vp.x > 0.0 else 1.0
 	var v := touch_pos - origin
-	if v.length() < DEADZONE_PX * px_scale:
+	# pass 119: the carried push, fading as the thumb's own drag grows (CARRY_FADE of the reach), then gone for good
+	var pushed := v
+	if carry != Vector2.ZERO:
+		var w := clampf(1.0 - v.length() / maxf(r * CARRY_FADE, 1.0), 0.0, 1.0)
+		if w <= 0.0:
+			carry = Vector2.ZERO
+		else:
+			pushed = v + carry * r * w
+	if pushed.length() < DEADZONE_PX * px_scale:
 		stick_dir = Vector2.ZERO
 	else:
-		stick_dir = (v / r).limit_length(1.0)
+		stick_dir = (pushed / r).limit_length(1.0)
 	# the base follows a long drag, so a thumb that wandered still steers from where it is
 	if v.length() > r:
 		origin = touch_pos - v.normalized() * r

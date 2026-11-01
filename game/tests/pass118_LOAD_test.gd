@@ -73,12 +73,15 @@ func test_the_splash_colour_is_the_first_frames_ground() -> void:
 	assert_float(float(mat.get_shader_parameter("fade"))).is_equal(0.0)
 	assert_bool(_same8(mat.get_shader_parameter("paper"), bg)).is_true()
 	assert_float(float(mat.get_shader_parameter("plate_on"))).is_equal(0.0)
-	assert_float(float(mat.get_shader_parameter("dust_t"))).is_less(0.0)
-	# the wallpaper fades in from it over FADE_IN, then the plate is drawn (from above the screen)
+	# (pass 119: the slam's hit clock, not yet started; no flash, no shake)
+	assert_float(float(mat.get_shader_parameter("hit_t"))).is_less(0.0)
+	assert_float(float(mat.get_shader_parameter("flash"))).is_equal(0.0)
+	assert_bool((mat.get_shader_parameter("shake") as Vector2).is_zero_approx()).is_true()
+	# the wallpaper fades in from it over FADE_IN, then the plate is drawn (pass 119: slamming in)
 	assert_float(BootScript.fade_at(0.0)).is_equal(0.0)
 	assert_float(BootScript.fade_at(BootScript.FADE_IN * 0.5)).is_between(0.3, 0.7)
 	assert_float(BootScript.fade_at(BootScript.FADE_IN)).is_equal_approx(1.0, 0.00001)
-	assert_float(BootScript.DROP_AT).is_greater_equal(BootScript.FADE_IN - 0.0001)
+	assert_float(BootScript.SLAM_AT).is_greater_equal(BootScript.FADE_IN - 0.0001)
 	boot.free()
 
 
@@ -223,44 +226,7 @@ func _row_step(img: Image, x0: int, w: int, ya: int, yb: int) -> float:
 
 # ---------------------------------------------------------------- the title drop
 
-## The plate falls from above the screen, faster and faster, squashes on its rest, bounces once and settles; no frame
-## jumps it.
-func test_the_drop_falls_squashes_bounces_and_settles() -> void:
-	var fall := 1300.0
-	assert_float(BootScript.drop_pose(-0.1, fall).x).is_equal(fall)
-	var prev := BootScript.drop_pose(0.0, fall)
-	assert_float(prev.x).is_equal(fall)
-	var squashed := false
-	var bounced := false
-	var t := 0.0
-	var speed_prev := 0.0
-	while t < 1.2:
-		t += 1.0 / 240.0
-		var p := BootScript.drop_pose(t, fall)
-		if t < BootScript.FALL:
-			# falling: always lower, always faster, stretched along the fall
-			var speed := prev.x - p.x
-			assert_float(speed).is_greater(speed_prev - 0.0001)
-			speed_prev = speed
-			assert_float(p.z).is_greater_equal(1.0)
-		elif t - 1.0 / 240.0 < BootScript.FALL:
-			# the landing frame: it arrives at full speed onto its rest, and the squash begins from its own size
-			assert_float(p.x).is_equal_approx(0.0, 0.0001)
-			assert_float(absf(p.z - 1.0)).is_less(0.05)
-		else:
-			# after the landing every frame follows on from the last
-			assert_float(absf(p.x - prev.x)).is_less(BootScript.BOUNCE_H * 0.2)
-			assert_float(absf(p.y - prev.y)).is_less(0.05)
-			assert_float(absf(p.z - prev.z)).is_less(0.08)
-		if p.z < 1.0 - BootScript.SQUASH_Y * 0.8 and p.y > 1.0:
-			squashed = true
-		if t > BootScript.FALL + BootScript.SQUASH and p.x > BootScript.BOUNCE_H * 0.8:
-			bounced = true
-		assert_float(p.x).is_greater_equal(0.0)
-		prev = p
-	assert_bool(squashed).is_true()
-	assert_bool(bounced).is_true()
-	assert_bool(prev.is_equal_approx(Vector3(0.0, 1.0, 1.0))).is_true()
+## (Pass 119, lane LOADUI: the drop, its squash and its bounce are gone; tests/pass119_LOADUI_test.gd holds the slam.)
 
 
 ## The title has landed (and settled) before the dissolve, which never starts before MIN_SHOW even when the load was done
@@ -277,7 +243,7 @@ func test_the_title_lands_before_the_dissolve() -> void:
 	var landed: float = boot.event_time("landed")
 	var dissolve: float = boot.event_time("dissolve")
 	assert_float(boot.event_time("loaded")).is_greater_equal(0.0)
-	assert_float(landed).is_between(BootScript.DROP_AT + BootScript.FALL, BootScript.DROP_AT + BootScript.FALL + 0.1)
+	assert_float(landed).is_between(boot.impact_time(), boot.impact_time() + 0.1)
 	assert_float(boot.event_time("settled")).is_less_equal(boot.event_time("built"))
 	assert_float(landed).is_less(dissolve)
 	assert_float(dissolve).is_greater_equal(BootScript.MIN_SHOW)
@@ -286,7 +252,11 @@ func test_the_title_lands_before_the_dissolve() -> void:
 	assert_bool(boot.plate_pose().is_equal_approx(Vector3(0.0, 1.0, 1.0))).is_true()
 	var mat := (boot.get_node("Wallpaper") as CanvasItem).material as ShaderMaterial
 	assert_float(float(mat.get_shader_parameter("plate_on"))).is_equal(1.0)
-	assert_bool((mat.get_shader_parameter("plate_foot") as Vector2).is_equal_approx(boot.plate_rest_foot())).is_true()
+	assert_bool((mat.get_shader_parameter("plate_mid") as Vector2).is_equal_approx(boot.plate_rest_mid())).is_true()
+	# pass 119: the slam is over: no shake, no flash, no smear
+	assert_bool((mat.get_shader_parameter("shake") as Vector2).is_zero_approx()).is_true()
+	assert_float(float(mat.get_shader_parameter("flash"))).is_equal(0.0)
+	assert_float(float(mat.get_shader_parameter("scale_prev"))).is_equal(1.0)
 	assert_float(float(mat.get_shader_parameter("fade"))).is_equal(1.0)
 	assert_bool(boot._thud_done).is_true()
 	await await_millis(int(BootScript.DISSOLVE * 1000.0) + 400)

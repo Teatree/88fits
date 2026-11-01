@@ -10,10 +10,6 @@ var kills: int = 0
 var damage: float = 0.0
 ## Extra effects granted for this instance only (character favourite bonus).
 var bonus_effects: Array = []
-## Pass 118 (lane ITEMS; Garry: the Anvil's equivalent): the bonuses a Grindstone ground into this weapon at its
-## level-ups (Run._grind), [{"stat", "op", "value", "src": the item's id}], each folded into the sheet as the item's
-## source ("grind:<id>") at every rebuild; Run.evolve hands them to the evolution.
-var ground: Array = []
 ## The mutations this weapon carries (MutationDef), set by Run; their effects fold into the sheet below, their params
 ## merge into `params`, and the last one naming a behaviour or a visual replaces the weapon's.
 var mutations: Array = []
@@ -117,10 +113,6 @@ func rebuild(player: StatSheet, all_weapons: Array) -> void:
 	sheet.add_effects(bonus_effects, "bonus")
 	for m in mutations:
 		sheet.add_effects(m.weapon_effects(), "mutation:" + m.id)
-	# pass 118 (lane ITEMS): the Grindstone's bonuses, for the rest of the run
-	for g in ground:
-		if g is Dictionary:
-			sheet.add_effect(Effect.make(str(g.get("stat", "")), str(g.get("op", "mul")), float(g.get("value", 0.0))), "grind:" + str(g.get("src", "")))
 	params = fold_params()
 	# player-side multipliers that every weapon inherits
 	var might := player.get_stat("might", 1.0)
@@ -190,49 +182,6 @@ func stat(name: String, default: float = 0.0) -> float:
 
 func stat_int(name: String, default: int = 0) -> int:
 	return sheet.get_int(name, default)
-
-
-## Pass 118 (lane ITEMS): whether a Grindstone table entry fits this weapon: one of its `rows` (default: its own stat)
-## is among the stats the weapon's behaviour shows (stat_rows: only what the behaviour uses, so an orbiter is never
-## ground a cooldown, a gun without a blast never an area), and the weapon's stat is at least `min` (the pierce entry's
-## 1: piercing shots only). Never `amount`.
-func grind_fits(entry: Dictionary) -> bool:
-	var st := str(entry.get("stat", ""))
-	if st == "" or st == "amount":
-		return false
-	var want = entry.get("rows", [st])
-	var shown: Array = stat_rows().map(func(r: Dictionary) -> String: return str(r.get("stat", "")))
-	var any := false
-	for r in (want if want is Array else [want]):
-		if shown.has(str(r)):
-			any = true
-			break
-	if not any:
-		return false
-	return not entry.has("min") or sheet.get_stat(st, 0.0) >= float(entry["min"])
-
-
-## The Grindstone's bonuses on this weapon in words, summed per stat ("+16% damage, −6% cooldown"); "" with none.
-func ground_words() -> String:
-	if ground.is_empty():
-		return ""
-	var acc := {}
-	var order: Array = []
-	for g in ground:
-		if not g is Dictionary:
-			continue
-		var key := "%s|%s" % [str(g.get("stat", "")), str(g.get("op", "mul"))]
-		if not acc.has(key):
-			acc[key] = 0.0
-			order.append(key)
-		var v := float(g.get("value", 0.0))
-		# a "mul" compounds as the sheet folds it (two +8% damage = +16.6%), an "add" sums
-		acc[key] = (1.0 + float(acc[key])) * (1.0 + v) - 1.0 if str(g.get("op", "mul")) == "mul" else float(acc[key]) + v
-	var fx: Array = []
-	for key in order:
-		var parts := str(key).split("|")
-		fx.append(Effect.make(parts[0], parts[1], float(acc[key])))
-	return TextGen.describe_effects(fx)
 
 
 func dps_estimate() -> float:

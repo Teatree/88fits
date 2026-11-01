@@ -8,6 +8,10 @@ extends Control
 
 signal resumed
 
+## Seconds after it opens before a touch or a key goes on (a touch landing with the pick must not skip it). Pass 119: 0.25
+## -> 0.15, and a movement key still held from before the screen goes on as soon as this has passed (_process).
+const GUARD := 0.15
+
 var hud: HUD
 var _dim: ColorRect
 var _go: WText
@@ -128,6 +132,10 @@ func _process(delta: float) -> void:
 	if not visible:
 		return
 	_t += delta
+	# pass 119: a movement key held through the screen (the PC) goes on as soon as the guard has passed
+	if _t >= GUARD and not Lockstep.replaying and Input.get_vector("move_left", "move_right", "move_up", "move_down").length() > 0.1:
+		tap()
+		return
 	_go.pivot_offset = _go.size * 0.5
 	_go.scale = Vector2.ONE * (1.0 + 0.03 * sin(_t * 4.0))
 
@@ -149,7 +157,12 @@ func tap() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not visible or _t < 0.25:
+	if not visible or _t < GUARD:
+		return
+	# pass 119 (the lead; Garry's lost step after a level-up, "a solution that works for both PC and Mobile"): on the PC a
+	# movement key goes on too, and the hero moves at once (PlayerInput reads the keys from the next frame)
+	if event is InputEventKey and event.pressed and not event.echo and _move_key(event):
+		tap()
 		return
 	if (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed):
 		tap()
@@ -157,6 +170,14 @@ func _input(event: InputEvent) -> void:
 		# just let go (the pause menu opened on the tap to go); lower down it goes on and can start the stick
 		if on_strip(event.position, get_viewport_rect().size):
 			get_viewport().set_input_as_handled()
+
+
+## Whether a key event is one of the hero's movement keys (the Input Map's move_* actions).
+static func _move_key(event: InputEvent) -> bool:
+	for a in ["move_left", "move_right", "move_up", "move_down"]:
+		if InputMap.has_action(a) and event.is_action(a):
+			return true
+	return false
 
 
 ## Whether a finger at `p` (canvas px, the visible canvas `vp` across) is on the HUD's strip, where a tap pauses: what

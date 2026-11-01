@@ -1000,8 +1000,9 @@ def sheet(folder):
         rows = (len(thumbs) + cols - 1) // cols
         sh = Image.new("RGB", (cols * 380 + 20, 70 + rows * (h + 60)), (36, 27, 20))
         d = ImageDraw.Draw(sh)
-        d.text((20, 16), "Loading screen %s%s" % (tag, (" tilt %g" % data["tilt"]) if data.get("tilt") else ""), font=fb,
-               fill=(243, 230, 200))
+        d.text((20, 16), "Loading screen %s%s%s" % (tag, (" tilt %g" % data["tilt"]) if data.get("tilt") else "",
+                                                     ("  entrance: %s" % data["entrance"]) if data.get("entrance") else ""),
+               font=fb, fill=(243, 230, 200))
         for i, (row, th) in enumerate(thumbs):
             x = 20 + (i % cols) * 380
             y = 70 + (i // cols) * (h + 60)
@@ -1010,11 +1011,18 @@ def sheet(folder):
             d.text((x, y + th.height + 8), label, font=f, fill=(243, 230, 200))
         out = os.path.join(folder, "%s_contact.png" % tag)
         sh.save(out)
-        # the motion between the frame at 0.5 s and the one at 1.2 s, above the plate
+        # the motion between the frame at 0.5 s and the one at 1.2 s, above the plate (pass 119: the slam's marks; the
+        # first still frame from 0.8 s on, after the shake, and the last before the dissolve)
         by = {r["file"].rsplit("_", 1)[-1].split(".")[0]: r for r in shots}
         rep = {"tag": tag, "sheet": out}
+        still = [r for r in shots if r["dissolve"] < 0 and r["clock"] >= 0.8 - 1e-3]
         if "t0500" in by and "t1200" in by:
             ra, rb = by["t0500"], by["t1200"]
+        elif len(still) >= 2:
+            ra, rb = still[0], still[-1]
+        else:
+            ra = rb = None
+        if ra is not None:
             a = Image.open(os.path.join(folder, ra["file"]))
             b = Image.open(os.path.join(folder, rb["file"]))
             # below the plate's rest (in the 0.5 s frame the plate is still falling through the top half)

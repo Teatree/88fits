@@ -3453,3 +3453,24 @@ into a stump (stays, jolts), a lid and COLS (4) staves (fly out and away from th
 long side; GROW 1.15), splintered on their cut edges (COLOR.rgb flags), lying LINGER 6 s then dissolving over FADE
 0.9 s; one MultiMesh a barrel kind, a ring of POOL 72 pieces; looks only (its own dice, nothing in the sim's fast mode).
 Tests: game/tests/pass117_DEBRIS_test.gd. Capture: game/tools/_barrel_debris_shots.gd (`-- out=<dir>`).
+
+## Pass 119 (lane ART): gen_ctl's look pictures, the splayed step, the boss chests' new keys
+
+- gen_ctl recipe `look_ref` in repaint mode: the picture now follows the clay and is named in the prompt ("a drawing of
+  what this creature looks like ... keep the 3D model's pose, proportions and camera angle"); before, a repaint passed it
+  unnamed and the anchor's line called it the style picture.
+- gen_ctl recipe `look_refs` ({front, fd, bd, back: a picture under the repo}, default {}): that view's own picture of the
+  look, after the side painting (the armadillo's zombie and devil looks, cut from Garry's eight-direction sheet into
+  tools/dl/uploads/2d/armadillo_p119/). Leave fd out: its picture came back as a second, smaller armadillo beside the
+  painted one.
+- gen_ctl recipe `extras` (text, default ""): what a repaint may add that the model lacks, read as "nothing is added
+  that the model does not have, except <extras>" (the devil's horns, spikes, wings and spade tip). Wan walks on the
+  model's depth, so a part outside the model's silhouette (a horn seen head-on) fades in the walk.
+- blender_depth_drivers / blender_gait `splay` and `splay_front` (step=track, default 0): every foot's track (or the front
+  pair's) moved out sideways by that share of the creature's length. The armadillo's front-only drivers
+  armadillo_walk_toon_v2f/v2fz (ARM-F, ARM-G), v3f/v3fz and the blue-screen v3fb/v3fzb (ARM-H..M): stride 0.12, raise
+  0.05, knee down, splay_front 0.05; the walk for the other views armadillo_walk_toon_v3 / v3b (body 1.35, head 0.9,
+  legs 1.7, stride 0.24). Level Editor: driver_depth's `splay`, `splay_front`.
+- tools/blender_boss_chests.py `export=<boss,...>`: only these GLBs are written (the others are only rendered). A chest
+  built `hollow` (the Gila's, the Brander's) has walls, a floor, a lid shell and dark linings; its open render heaps the
+  treasure inside the box.

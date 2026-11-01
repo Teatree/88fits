@@ -3,8 +3,9 @@
 ## similar", "Keys instead", the Blacksmith's Anvil "not an Anvil but something else", Beer "not an Alcoholic thing",
 ## "the Hero Weapons ... add them all to the pull ... +5-10% likelihood not more"): the Jade Key and the Ruby Key bank
 ## luck and attack damage at every chest opened (Run.chest_opened, chest_bank), at the key's level when the chest opens;
-## the Grindstone grinds bonuses into a weapon at its level-ups (Run._grind, WeaponInstance.ground) on its own seeded
-## dice, kept through rebuilds and the evolution; every hero's own weapon is in every hero's pool at its guest_weight,
+## the Grindstone grinds bonuses into a weapon at its level-ups (pass 119, lane LEGEND_B: Garry "let's not add extra stats
+## to weapons. Just Upgrade or Evolve the weakest one": the grind is gone, the Grindstone is rare and pinned in
+## pass119_LEGEND_B_test.gd); every hero's own weapon is in every hero's pool at its guest_weight,
 ## and the weapon-card share of a level-up rises within Garry's 5-10%; Beer is the Ghost Pepper.
 extends GdUnitTestSuite
 
@@ -52,9 +53,10 @@ func test_the_items_are_there_available_and_on_the_ladder() -> void:
 		assert_object(p.evolved_icon).is_not_null()
 	assert_str(Registry.passive("jade_key").rarity).is_equal("epic")
 	assert_str(Registry.passive("ruby_key").rarity).is_equal("epic")
-	assert_str(Registry.passive("grindstone").rarity).is_equal("legendary")
+	# pass 119 (lane LEGEND_B): the Grindstone raises the weakest weapon now, a rare item of four levels
+	assert_str(Registry.passive("grindstone").rarity).is_equal("rare")
 	assert_int(Registry.passive("jade_key").max_level).is_equal(3)
-	assert_int(Registry.passive("grindstone").max_level).is_equal(2)
+	assert_int(Registry.passive("grindstone").max_level).is_equal(4)
 
 
 func test_a_chest_banks_luck_at_the_keys_level_then_and_a_level_up_never_changes_the_bank() -> void:
@@ -135,109 +137,8 @@ func test_the_keys_say_what_they_do() -> void:
 
 
 # ---------------------------------------------------------------- the Grindstone
-
-## Every bonus the Grindstone ground into the weapon.
-func _ground(w: WeaponInstance) -> Array:
-	return w.ground.map(func(g: Dictionary) -> String: return "%s|%s|%s" % [g["stat"], g["op"], str(g["value"])])
-
-
-func test_the_grindstone_grinds_only_on_a_weapon_level_up() -> void:
-	_start()
-	Dice.reseed(4242)
-	var rev := Run.weapon_instance("revolver")
-	# without it nothing is ground
-	Run.level_weapon("revolver")
-	assert_int(rev.ground.size()).is_equal(0)
-	Run.add_or_level_passive("grindstone")
-	Run.level_weapon("revolver")
-	assert_int(rev.ground.size()).is_equal(1)
-	var g: Dictionary = rev.ground[0]
-	# a gun's table: damage, cooldown, projectile speed or (a piercing shot) pierce; never area, duration or amount
-	assert_bool(["damage", "cooldown", "speed", "pierce"].has(str(g["stat"]))).override_failure_message(str(g)).is_true()
-	assert_str(str(g["src"])).is_equal("grindstone")
-	# it is on the weapon's sheet as the Grindstone's source
-	var on_sheet := false
-	for en in rev.sheet.entries:
-		if str(en["source"]) == "grind:grindstone":
-			on_sheet = true
-	assert_bool(on_sheet).is_true()
-	# a new weapon and a mutation grind nothing
-	var saws := Run.add_weapon(Registry.weapon("orbit_saws"), 1)
-	assert_int(saws.ground.size()).is_equal(0)
-	var m: MutationDef = Registry.mutations_of("orbit_saws")[0]
-	Run.add_mutation(m.id, true)
-	assert_int(saws.ground.size()).is_equal(0)
-	# its level-up does, from what an orbiter uses (no cooldown, no projectile speed, no pierce)
-	Run.level_weapon("orbit_saws")
-	assert_int(saws.ground.size()).is_equal(1)
-	assert_bool(["damage", "area"].has(str((saws.ground[0] as Dictionary)["stat"]))).is_true()
-
-
-func test_the_evolved_grindstone_grinds_two_different_bonuses() -> void:
-	_start()
-	Dice.reseed(77)
-	Run.add_or_level_passive("grindstone")
-	Run.add_or_level_passive("grindstone")
-	assert_int(Run.player_sheet.get_int("grind_rolls")).is_equal(2)
-	Run.level_weapon("revolver")
-	var rev := Run.weapon_instance("revolver")
-	assert_int(rev.ground.size()).is_equal(2)
-	assert_str(str((rev.ground[0] as Dictionary)["stat"])).is_not_equal(str((rev.ground[1] as Dictionary)["stat"]))
-
-
-func test_the_grind_is_the_same_on_the_same_seed() -> void:
-	var runs: Array = []
-	for _r in range(2):
-		_start()
-		Dice.reseed(9001)
-		Run.add_or_level_passive("grindstone")
-		Run.add_or_level_passive("grindstone")
-		for _k in range(4):
-			Run.level_weapon("revolver")
-		runs.append(_ground(Run.weapon_instance("revolver")))
-	assert_int((runs[0] as Array).size()).is_equal(8)
-	assert_array(runs[1]).is_equal(runs[0])
-
-
-func test_the_ground_bonuses_survive_rebuilds_and_the_evolution() -> void:
-	_start()
-	Dice.reseed(31)
-	Run.add_or_level_passive("grindstone")
-	while Run.weapon_instance("revolver").level < Run.weapon_instance("revolver").def.max_level:
-		Run.level_weapon("revolver")
-	var rev := Run.weapon_instance("revolver")
-	var before := _ground(rev)
-	assert_int(before.size()).is_equal(rev.def.max_level - 1)
-	var dmg := rev.stat("damage")
-	Run.rebuild_sheets()
-	assert_array(_ground(rev)).is_equal(before)
-	assert_float(rev.stat("damage")).is_equal_approx(dmg, 0.001)
-	for m: MutationDef in Registry.mutations_of("revolver"):
-		Run.add_mutation(m.id, true)
-	assert_bool(Run.evolution_ready(rev)).is_true()
-	var evo := Run.evolve(rev)
-	assert_object(evo).is_not_null()
-	assert_array(_ground(evo)).is_equal(before)
-	var n := 0
-	for en in evo.sheet.entries:
-		if str(en["source"]) == "grind:grindstone":
-			n += 1
-	assert_int(n).is_equal(before.size())
-	# the pause screen and the record name them under the Grindstone
-	assert_str(evo.ground_words()).is_not_empty()
-	var src := StatSources.describe_source("grind:grindstone")
-	assert_str(str(src["name"])).contains("Grindstone")
-
-
-func test_the_grindstone_says_what_it_does() -> void:
-	var t := TextGen.passive_text(Registry.passive("grindstone"))
-	assert_str(t).contains("+8% damage")
-	assert_str(t).contains("−6% cooldown")
-	assert_str(t).contains("+1 pierce (piercing shots)")
-	# a card line stays short
-	assert_int(t.length()).is_less_equal(190)
-	assert_str(TextGen.passive_description(Registry.passive("grindstone"), 1)).contains("+1 bonus roll on every weapon upgrade")
-	assert_str(TextGen.passive_description(Registry.passive("grindstone"), 2)).contains("+2 bonus rolls on every weapon upgrade")
+# pass 119 (lane LEGEND_B): pass 118's grind of random bonuses (Run._grind, WeaponInstance.ground, its seeded dice) is
+# gone; a Grindstone level raises the weakest weapon or evolves a ready one (pass119_LEGEND_B_test.gd pins it)
 
 
 # ---------------------------------------------------------------- the heroes' own weapons in every pool

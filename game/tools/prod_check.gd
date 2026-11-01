@@ -108,12 +108,13 @@ func _run() -> void:
 			_fail("sound %s (%s) has no stream" % [sid, row.get("file", "")])
 		elif str(row.get("category", "")) == "music" and not (row["stream"] is AudioStreamOggVorbis):
 			_fail("music %s is not Ogg Vorbis" % sid)
-	# the production switch, forced: every developer surface off and staying off
+	# the production switch, forced: every developer surface off and staying off (pass 119: the title's look offered as
+	# live, the dev switch, since painted is the default prod holds)
 	settings.call("from_dict", {"debug_mode": true, "debug_panel": true, "debug_modal_buttons": true, "free_revive_button": true,
-		"hit_log": true, "preview_locked_heroes": true, "menu_style": "painted"})
+		"hit_log": true, "preview_locked_heroes": true, "menu_style": "live"})
 	settings.call("force_prod", true)
 	settings.call("from_dict", {"debug_mode": true, "debug_panel": true, "debug_modal_buttons": true, "free_revive_button": true,
-		"hit_log": true, "preview_locked_heroes": true, "menu_style": "painted"})
+		"hit_log": true, "preview_locked_heroes": true, "menu_style": "live"})
 	settings.call("set_value", "debug_mode", true)
 	for k: String in settings.get("PROD_LOCKED"):
 		if settings.get(k) != settings.get("PROD_LOCKED")[k]:

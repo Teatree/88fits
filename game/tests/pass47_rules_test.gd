@@ -26,10 +26,13 @@ const TIERS := {
 	"common": ["cake", "beer", "barrel_rush", "pickpocket", "quickdraw", "cold_snap"],
 	"uncommon": ["kindling", "siesta", "ricochet", "overkill", "adrenaline", "hush_money", "vulture", "reach", "venom", "big_game_hunter",
 		"phoenix_feather", "powder_keg", "loose_change", "pocket_watch", "counterpunch"],
-	"rare": ["steady_hand", "guillotine", "desperado", "brimstone_brand", "skedaddle", "hot_streak", "heavyweight"],
+	# pass 119 (lane LEGEND_B): the Grindstone reworked to a free weapon level a rung, rare
+	"rare": ["steady_hand", "guillotine", "desperado", "brimstone_brand", "skedaddle", "hot_streak", "heavyweight", "grindstone"],
 	"epic": ["sinners_greed", "gas_mask", "magnet", "snake_oil", "hot_springs", "last_stand", "jade_key", "ruby_key"],
 	# pass 118 (lane ITEMS): the Jade Key and the Ruby Key epic, the Grindstone the first legendary item
-	"legendary": ["grindstone"],
+	# pass 119 (lanes LEGEND_A and LEGEND_B): the Iron Horse and Personal Storm, Lightning in a Bottle, the Undertaker's
+	# Shovel, Fool's Gold and the Pocket Bible
+	"legendary": ["iron_horse", "personal_storm", "lightning_in_a_bottle", "undertakers_shovel", "fools_gold", "pocket_bible"],
 }
 const NEW_ITEMS := ["barrel_rush", "beer", "siesta", "steady_hand", "prospector", "big_game_hunter"]
 const SAVE_DIR := "user://test_saves/pass47_rules"

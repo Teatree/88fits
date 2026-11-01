@@ -137,9 +137,14 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_mine_spring.wav" id="135_fgj1d"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_keg_boom.wav" id="136_au2mm"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_phoenix.wav" id="137_0s7ku"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_train_rumble.wav" id="137_4y466"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_train_whistle.wav" id="138_5kk5y"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_last_stand.wav" id="138_mdwtf"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_train_pass.wav" id="139_c0ydf"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_heal_pulse.wav" id="139_nm38x"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_xp_pull.wav" id="140_dm53k"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_storm_gather.wav" id="140_f0f0k"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_storm_strike.wav" id="141_50wug"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_counterpunch.wav" id="141_g65o1"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_coin_drop.wav" id="142_f0dx3"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_flower.wav" id="143_v01nv"]
@@ -520,6 +525,51 @@ entries = {
 "stream": ExtResource("137_0s7ku"),
 "voices": 1,
 "volume_db": -2.0
+},
+"it_storm_gather": {
+"category": "weapon",
+"file": "real/it_storm_gather.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("140_f0f0k"),
+"voices": 1,
+"volume_db": -6.0
+},
+"it_storm_strike": {
+"category": "weapon",
+"file": "real/it_storm_strike.wav",
+"loop": false,
+"pitch_spread": 0.1,
+"stream": ExtResource("141_50wug"),
+"voices": 3,
+"volume_db": -6.0
+},
+"it_train_pass": {
+"category": "weapon",
+"file": "real/it_train_pass.wav",
+"loop": false,
+"pitch_spread": 0.04,
+"stream": ExtResource("139_c0ydf"),
+"voices": 2,
+"volume_db": -4.0
+},
+"it_train_rumble": {
+"category": "weapon",
+"file": "real/it_train_rumble.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("137_4y466"),
+"voices": 1,
+"volume_db": -6.0
+},
+"it_train_whistle": {
+"category": "weapon",
+"file": "real/it_train_whistle.wav",
+"loop": false,
+"pitch_spread": 0.03,
+"stream": ExtResource("138_5kk5y"),
+"voices": 1,
+"volume_db": -4.0
 },
 "it_xp_pull": {
 "category": "pickup",

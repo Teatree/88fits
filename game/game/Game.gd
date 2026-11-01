@@ -246,7 +246,9 @@ func _ready() -> void:
 	Run.build_changed.connect(_sync_weapons)
 	Run.hero_sheet_changed.connect(_on_hero_sheet_changed)
 	Run.weapon_evolved.connect(_on_evolved)
-	Run.weapon_ground.connect(_on_weapon_ground)   # pass 118 (lane ITEMS): the Grindstone's toast
+	# pass 119 (lane LEGEND_B): the Grindstone's toast, the Pocket Bible's block
+	Run.grindstone_worked.connect(_on_grindstone_worked)
+	Run.bible_blocked.connect(_on_bible_blocked)
 	# the run recorder (pass 45): a row a second for analytics/dashboard.html; the arena never records, and a tool's
 	# launch file may say "analytics": false (perf_late's A/B of the recorder's cost)
 	if not arena and bool(debug_launch.get("analytics", true)): RunAnalytics.create(self, debug_launch)
@@ -1074,6 +1076,9 @@ func set_paused(v: bool) -> void:
 		player.input.ui_blocking = v
 		if v:
 			player.input.force_release()
+		else:
+			# pass 119: the push the pause took away waits for the next touch (PlayerInput.carry)
+			player.input.resumed()
 
 
 func open_pause() -> void:
@@ -1480,11 +1485,35 @@ func _on_evolved(id: String) -> void:
 	camera.shake(1.2)
 
 
-## Pass 118 (lane ITEMS): a Grindstone ground bonuses into a weapon at its level-up (Run._grind): a toast names them.
-func _on_weapon_ground(id: String, words: String) -> void:
-	var def := Registry.weapon(id)
-	if hud:
-		hud.toast("GRINDSTONE: %s %s" % [def.display_name if def else id, words], UiKit.ACCENT)
+## Pass 119 (lane LEGEND_B): a Grindstone level raised the weakest weapon or evolved it (Run._grindstone): a toast with the
+## weapon's icon names what it did ("GRINDSTONE: REVOLVER TO LEVEL 3", "GRINDSTONE: EVOLVED INTO ..."); one that found
+## no weapon to work on says so.
+func _on_grindstone_worked(id: String, words: String) -> void:
+	if hud == null:
+		return
+	var def := Registry.weapon(id) if id != "" else null
+	var stone := PassiveDef.display_name_of("grindstone", "Grindstone").to_upper()
+	if def == null:
+		hud.toast("%s: NO WEAPON TO SHARPEN" % stone, UiKit.ACCENT)
+	elif words == "evolved":
+		hud.toast("%s: EVOLVED INTO %s" % [stone, def.display_name.to_upper()], UiKit.ACCENT, def.icon)
+	else:
+		hud.toast("%s: %s TO %s" % [stone, def.display_name.to_upper(), words.to_upper()], UiKit.ACCENT, def.icon)
+
+
+## Pass 119 (lane LEGEND_B): the Pocket Bible stopped a hit (Run.bible_try_block; BLOCK over him is Player's): a pale
+## puff of torn pages at his chest, the slug's thud, the HUD's plate dims to its seconds.
+const BIBLE_PAGE := Color(0.96, 0.92, 0.8)
+
+
+func _on_bible_blocked() -> void:
+	if player == null or Run.sim_mode:
+		return
+	var at: Vector3 = player.global_position + Vector3(0, 1.1, 0)
+	fx.burst(at, BIBLE_PAGE, 0.55)
+	if fx.has_method("splinters"):
+		fx.splinters(at, BIBLE_PAGE, 8, 0.12)
+	Audio.play("w_iron_hit", at)
 
 
 # ---------------------------------------------------------------- run flow
@@ -1508,6 +1537,7 @@ func _process(delta: float) -> void:
 	for label in Run.tick_timed():
 		hud.toast("%s wore off" % label, UiKit.INK3)
 	_tick_perks(delta)
+	_tick_legends(delta)   # pass 119 (lane LEGEND_A): the Iron Horse, Personal Storm
 	_tick_tether(delta)
 	_tick_breadcrumb(delta)
 	_drape_hero_shadow()
@@ -1612,6 +1642,9 @@ func _tick_perks(delta: float) -> void:
 	_tick_box(delta)
 	# pass 70 (lane TRAMP): Fadeaway's Hang Time (a perk whose special is "trampoline"; it replaced the Timeout)
 	_tick_trampoline(delta)
+	# pass 119 (lane LEGEND_B): the Undertaker's Shovel's graves and ghosts
+	if graveyard != null:
+		graveyard.tick(delta)
 	if not Run.has_perk("trail_dust"):
 		return
 	if player.velocity.length() < 0.8:
@@ -1626,6 +1659,18 @@ func _tick_perks(delta: float) -> void:
 ## Pass 69 (lane HERO): May's Inflatable May, its own node (core/systems/Decoy.gd) made the first time a decoy perk is
 ## held: the throw, the circle, the fooled creatures and their "?" marks, the pop.
 var decoy: Decoy = null
+## Pass 119 (lane LEGEND_B): the Undertaker's Shovel's graves and ghosts (core/systems/Graveyard.gd), made at the first kill
+## while the item is held.
+var graveyard: Graveyard = null
+
+
+func _graveyard() -> Graveyard:
+	if graveyard == null:
+		graveyard = Graveyard.new()
+		graveyard.name = "Graveyard"
+		add_child(graveyard)
+		graveyard.setup(self)
+	return graveyard
 
 
 func _tick_decoy(delta: float) -> void:
@@ -1643,6 +1688,32 @@ func _tick_decoy(delta: float) -> void:
 ## perk is held: the clock, the see-through box round her, the blocked hits on it.
 const MIME_BOX_SCRIPT := preload("res://core/systems/MimeBox.gd")
 var mime_box: Node3D = null
+
+
+## Pass 119 (lane LEGEND_A): the Iron Horse's ghost trains and Personal Storm's lightning, each its own node
+## (core/systems/IronHorse.gd, PersonalStorm.gd, by path) made the first time its item is held; each runs its own clock
+## (and idles while the item is not held, the arena's minus).
+const IRON_HORSE_SCRIPT := preload("res://core/systems/IronHorse.gd")
+const PERSONAL_STORM_SCRIPT := preload("res://core/systems/PersonalStorm.gd")
+var iron_horse: Node3D = null
+var personal_storm: Node3D = null
+
+
+func _tick_legends(delta: float) -> void:
+	if iron_horse == null and IRON_HORSE_SCRIPT.active():
+		iron_horse = IRON_HORSE_SCRIPT.new()
+		iron_horse.name = "IronHorse"
+		add_child(iron_horse)
+		iron_horse.call("setup", self)
+	if iron_horse:
+		iron_horse.call("tick", delta)
+	if personal_storm == null and PERSONAL_STORM_SCRIPT.active():
+		personal_storm = PERSONAL_STORM_SCRIPT.new()
+		personal_storm.name = "PersonalStorm"
+		add_child(personal_storm)
+		personal_storm.call("setup", self)
+	if personal_storm:
+		personal_storm.call("tick", delta)
 
 
 func _tick_box(delta: float) -> void:
@@ -2187,6 +2258,9 @@ static func boss_purse(stage: int) -> int:
 ## What a kill sets off and pays (out of _on_enemy_died, pass 48): Powder Keg, Brimstone Brand, Grand Finale, an Elite's
 ## purse and a boss's reward, and the burst where it fell. A training dummy sets everything off and pays nothing (pass 49).
 func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
+	# pass 119 (lane LEGEND_B): the Undertaker's Shovel counts the kill (a grave every grave_every-th; Graveyard)
+	if Graveyard.active() or graveyard != null:
+		_graveyard().note_kill(at)
 	# Powder Keg (pass 48, a passive item): a kill may blow the body up; a keg's own kills never roll again (no chains)
 	var keg: float = Run.player_sheet.get_stat("powder_keg_chance", 0.0)
 	if keg > 0.0 and _weapon_id != POWDER_KEG and Dice.r.randf() < keg:

@@ -1060,6 +1060,11 @@ func _refresh_buffs() -> void:
 			ends[k] = float(tb["until"])
 		else:
 			ends[k] = maxf(float(ends[k]), float(tb["until"]))
+	# pass 119 (lane LEGEND_B): the Pocket Bible's plate while it is held: lit while its block is ready, dim with its
+	# seconds while it fills again (bible_plate)
+	var bible := bible_plate_key()
+	if bible != "":
+		keys.append(bible)
 	var key := ",".join(keys)
 	if key != _buffs_key:
 		_buffs_key = key
@@ -1073,6 +1078,9 @@ func _refresh_buffs() -> void:
 			var p := WPlate.new().for_def(def, BUFF_PX)
 			# pass 106 (lane DRUM): a structure's boost (the War Drum) on the drum's red, the power-ups on sage
 			p.fill = W.ROCK if k.begins_with("structure:") else W.SAGE
+			# pass 119 (lane LEGEND_B): an item's own plate (the Pocket Bible) on paper
+			if k.begins_with("passive:"):
+				p.fill = W.PAPER
 			p.icon_frac = 0.66
 			p.level_size = 20
 			p.name = "buff"
@@ -1097,6 +1105,39 @@ func _refresh_buffs() -> void:
 			if p.level_text != s:
 				p.level_text = s
 				p.queue_redraw()
+		elif k.begins_with("passive:"):
+			_bible_plate(p)
+
+
+## Pass 119 (lane LEGEND_B): the Pocket Bible's plate key ("passive:<id>" of the held item whose params carry `bible`
+## with `plate`), "" while none is held.
+static func bible_plate_key() -> String:
+	if Run.bible_left() < 0.0:
+		return ""
+	var src: Array = Run.item_params("bible")
+	if src.is_empty() or not bool((src[1] as Dictionary).get("plate", true)):
+		return ""
+	return "passive:" + str(src[0])
+
+
+## The Bible's plate now: whole while the block is ready, at BIBLE_DIM with the seconds to go while it fills again.
+const BIBLE_DIM := 0.4
+
+
+func _bible_plate(p: WPlate) -> void:
+	var left := Run.bible_left()
+	var s := "" if left <= 0.0 else "%d" % maxi(int(ceil(left)), 1)
+	var a := 1.0 if left <= 0.0 else BIBLE_DIM
+	if p.level_text != s or absf(p.modulate.a - a) > 0.01:
+		# the moment it is spent the plate jumps, as the hit bounces off
+		if left > 0.0 and p.level_text == "":
+			p.pivot_offset = p.size * 0.5
+			var tw := p.create_tween()
+			tw.tween_property(p, "scale", Vector2(1.25, 1.25), 0.08)
+			tw.tween_property(p, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		p.level_text = s
+		p.modulate.a = a
+		p.queue_redraw()
 
 
 ## The plate a timed buff shows on (pass 49): a pickup's under its own id, every weapon's Pollen buff under
@@ -1121,6 +1162,9 @@ static func plate_def(k: String) -> ContentDef:
 		return m if m != null else Registry.pickup(str(FlowerField.KINDS[0]))
 	if k.begins_with("structure:"):
 		return Registry.structure(k.trim_prefix("structure:"))
+	# pass 119 (lane LEGEND_B): an item's own plate (the Pocket Bible)
+	if k.begins_with("passive:"):
+		return Registry.passive(k.trim_prefix("passive:"))
 	return Registry.pickup(k)
 
 

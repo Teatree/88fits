@@ -1,0 +1,61 @@
+{
+  "id": "pocket_bible",
+  "name": "Pocket Bible",
+  "flavour": "Stopped a slug meant for a better man.",
+  "rarity": "legendary",
+  "weight": 5,
+  "max_level": 2,
+  "levels": [
+    [
+      {
+        "stat": "hit_cap_pct",
+        "op": "set",
+        "value": 12,
+        "target": "player"
+      },
+      {
+        "stat": "boss_hit_cap_pct",
+        "op": "set",
+        "value": 35,
+        "target": "player"
+      },
+      {
+        "stat": "hit_block_every",
+        "op": "set",
+        "value": 20,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "hit_cap_pct",
+        "op": "set",
+        "value": 9,
+        "target": "player"
+      },
+      {
+        "stat": "boss_hit_cap_pct",
+        "op": "set",
+        "value": 30,
+        "target": "player"
+      },
+      {
+        "stat": "hit_block_every",
+        "op": "set",
+        "value": 15,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "params": {
+    "bible": {
+      "plate": true
+    }
+  },
+  "art_prompt": "a small worn black leather pocket bible with a gold cross on its cover and gilded page edges, a flattened lead bullet stuck in a dent in its cover",
+  "placeholder": {
+    "color": "#3A3030",
+    "glyph": "shield"
+  }
+}

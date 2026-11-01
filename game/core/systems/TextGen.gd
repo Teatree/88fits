@@ -65,19 +65,52 @@ const STATS := {
 	"danger_bounty": ["", "hidden"], "boss_danger_hp": ["boss and Elite HP", "pct"],
 	"boss_danger_attack": ["boss and Elite attack", "pct"], "boss_danger_speed": ["boss and Elite speed", "pct"],
 	"boss_danger_bounty": ["", "hidden"],
-	# pass 118 (lane ITEMS): the keys' per-chest stats (Run.chest_opened) and the Grindstone's rolls (Run._grind)
+	# pass 118 (lane ITEMS): the keys' per-chest stats (Run.chest_opened)
 	"chest_luck": ["luck per chest opened", "pct"], "chest_might": ["attack damage per chest opened", "pct"],
-	"grind_rolls": ["bonus rolls on every weapon upgrade", "count"],
+	# pass 119 (lane LEGEND_B): the Grindstone's levels taken, each a level for the weakest weapon (Run._grindstone)
+	"grind_levels": ["levels for your weakest weapons", "count"],
+	# pass 119 (lane LEGEND_B): the four legendary items' rules, said in their RULE_TEXT words with their number inside
+	# (each level "set"s its number, so the Evolved card names the Evolved numbers)
+	"crit_arcs": ["creatures a crit arcs to", "rule"], "crit_arc_pct": ["of a crit in each arc", "rule"],
+	"crit_arc_stun": ["arc stun", "rule"], "grave_every": ["kills a grave", "rule"], "grave_max": ["ghosts at once", "rule"],
+	"grave_seconds": ["ghost fights for", "rule"], "grave_damage_pct": ["ghost damage", "rule"],
+	"purse_might_per": ["gold per 1% attack damage", "rule"], "purse_might_cap": ["purse attack damage cap", "rule"],
+	"purse_hp_per": ["gold per 1% max HP", "rule"], "purse_hp_cap": ["purse max HP cap", "rule"],
+	"hit_cap_pct": ["most a hit takes", "rule"], "boss_hit_cap_pct": ["most a boss's hit takes", "rule"],
+	"hit_block_every": ["seconds between blocks", "rule"],
+	# pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's clocks, said in their RULE_TEXT words
+	"train_every": ["seconds between ghost trains", "rule"], "train_cross": ["crossing train", "rule"],
+	"storm_every": ["seconds between storms", "rule"], "storm_seconds": ["storm strikes for", "rule"],
 }
-## A count stat's name for exactly one (pass 118: _singular cuts only a last "s", "bonus rolls on every weapon upgrade"
-## has its plural inside).
-const SINGULAR := {"grind_rolls": "bonus roll on every weapon upgrade"}
+## A count stat's name for exactly one (pass 118: _singular cuts only a last "s", and a name with its plural inside says
+## its singular here; pass 119: the Grindstone's levels).
+const SINGULAR := {"grind_levels": "level for your weakest weapon"}
 ## The words of a "rule" stat (pass 70, lane LINES: the evolved lines' twists), {n} its amount, then the unit its number
 ## carries on a pause row or a change row.
 const RULE_TEXT := {
 	"debuff_jump": ["a burn or poison that ends jumps to the nearest enemy, up to {n} times", ""],
 	"star_block_every": ["a star blocks a whole hit every {n} s", " s"],
 	"gem_sweep_every": ["every gem on the screen flies to you every {n} s", " s"],
+	# pass 119 (lane LEGEND_B): Lightning in a Bottle, the Undertaker's Shovel, Fool's Gold, the Pocket Bible
+	"crit_arcs": ["a crit arcs to up to {n} more enemies", ""],
+	"crit_arc_pct": ["each arc deals {n}% of the crit", "%"],
+	"crit_arc_stun": ["each arc stuns for {n} s", " s"],
+	"grave_every": ["one kill in {n} leaves a grave", ""],
+	"grave_max": ["at most {n} ghosts at once", ""],
+	"grave_seconds": ["a ghost fights for {n} s", " s"],
+	"grave_damage_pct": ["at {n}% of your first weapon's damage", "%"],
+	"purse_might_per": ["+1% attack damage for every {n} gold in your purse", " gold"],
+	"purse_might_cap": ["up to +{n}% attack damage from the purse", "%"],
+	"purse_hp_per": ["+1% max HP for every {n} gold in your purse", " gold"],
+	"purse_hp_cap": ["up to +{n}% max HP from the purse", "%"],
+	"hit_cap_pct": ["no hit takes more than {n}% of your max HP", "%"],
+	"boss_hit_cap_pct": ["a boss's hit no more than {n}%", "%"],
+	"hit_block_every": ["a hit is stopped outright every {n} s (never a boss's)", " s"],
+	# pass 119 (lane LEGEND_A)
+	"train_every": ["a ghost train charges down your line every {n} s", " s"],
+	"train_cross": ["a second train crosses it", ""],
+	"storm_every": ["a lightning storm gathers over you every {n} s", " s"],
+	"storm_seconds": ["its lightning strikes for {n} s", " s"],
 }
 ## Who a weapon with priority targeting goes for (pass 48: peashooter, revolver, tommy gun, tumbleweed, pike, sabre,
 ## turret, the Killer Bees and their evolutions), in its description.
@@ -706,7 +739,9 @@ static func _passive_lines(def: PassiveDef, level: int) -> String:
 	var lv: int = max(level, 1)
 	var per := describe_effects(def.effects_at_level(lv))
 	if per == "":
-		return def.display_name + "."
+		# pass 119 (lane LEGEND_B): an item whose levels say nothing in numbers says its own rule
+		var own := passive_text(def)
+		return own.trim_suffix(".") + "." if own != "" else def.display_name + "."
 	var total := describe_effects(_sum_effects(def.effects_for_level(lv)))
 	# an evolved line has one level: all it is (pass 47); so has an item of one level (pass 48: Phoenix Feather)
 	if def.max_level <= 1:
@@ -716,7 +751,8 @@ static func _passive_lines(def: PassiveDef, level: int) -> String:
 	if def.on_ladder():
 		if lv <= 1:
 			return total + "."
-		return "Level %d (%s): %s total." % [lv, rung_name(def, lv), total]
+		# pass 119 (lane LEGEND_A): a rule said in words has no "total" (the Iron Horse's "every 15 s")
+		return "Level %d (%s): %s%s." % [lv, rung_name(def, lv), total, "" if _all_rules(def.effects_for_level(lv)) else " total"]
 	if _same_every_level(def):
 		return "%s per level. Level %d: %s total." % [per, lv, total]
 	# a first level of its own, then the same step (pass 47: Barrel Rush, Steady Hand; pass 48: Skedaddle, Powder Keg,
@@ -726,6 +762,14 @@ static func _passive_lines(def: PassiveDef, level: int) -> String:
 		return s + (" Level %d: %s total." % [lv, total] if lv > 1 else "")
 	# levels that differ (Evade, Vigour): what this level holds in all
 	return "Level %d: %s total." % [lv, total]
+
+
+## Whether every effect in `list` is a "rule" stat (pass 119, lane LEGEND_A: said in its own words, never summed).
+static func _all_rules(list: Array) -> bool:
+	for e in list:
+		if e is Effect and stat_kind((e as Effect).stat) != "rule":
+			return false
+	return not list.is_empty()
 
 
 ## `s` with its first letter a capital.
@@ -809,7 +853,9 @@ const CHANGE_ROWS := 4
 const CHANGE_SKIP := ["dps", "blast", "blast_hit"]
 ## Stats whose smaller number is the better one (a shorter cooldown or wait): a rise in one of them is a loss.
 ## Pass 70 (lane LINES): the waits between Marshal's Star's blocks and Mother Lode's sweeps.
-const LOWER_BETTER := ["cooldown", "shield_delay", "regen_delay", "star_block_every", "gem_sweep_every"]
+const LOWER_BETTER := ["cooldown", "shield_delay", "regen_delay", "star_block_every", "gem_sweep_every", "train_every", "storm_every",
+	# pass 119 (lane LEGEND_B): fewer kills a grave, fewer gold a percent, a smaller share a hit may take, a shorter wait
+	"grave_every", "purse_might_per", "purse_hp_per", "hit_cap_pct", "boss_hit_cap_pct", "hit_block_every"]
 
 
 ## What a weapon's step from `level_from` to `level_to` changes: its rows (WeaponInstance.stat_rows, the pause screen's
@@ -1535,15 +1581,29 @@ static func player_effect(e: Effect) -> String:
 
 
 ## A passive item's own sentence (pass 118, lane ITEMS): its `text`, else one written from its params for a rule TextGen
-## knows (the Grindstone's grind table, grind_text); "" for an item with neither.
+## knows (pass 119: the Grindstone's grind_text, the legendaries' arc_text, grave_text, purse_text, bible_text); "" for
+## an item with neither.
 static func passive_text(def: PassiveDef) -> String:
 	if def == null:
 		return ""
 	if def.text != "":
 		return def.text
-	var g = def.params.get("grind")
-	if g is Array and not (g as Array).is_empty():
-		return grind_text(g)
+	# pass 119 (lane LEGEND_B): the Grindstone and the four legendary items, from their first level and params
+	if def.params.get("grind") is Dictionary:
+		return grind_text(def)
+	if def.params.get("arc") is Dictionary:
+		return arc_text(def)
+	if def.params.get("grave") is Dictionary:
+		return grave_text(def)
+	if def.params.get("purse") is Dictionary:
+		return purse_text(def)
+	if def.params.get("bible") is Dictionary:
+		return bible_text(def)
+	# pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's rules from their params and first level
+	if def.params.get("train") is Dictionary:
+		return train_text(def)
+	if def.params.get("storm") is Dictionary:
+		return storm_text(def)
 	return chest_text(def)
 
 
@@ -1563,25 +1623,111 @@ static func chest_text(def: PassiveDef) -> String:
 	return "Every chest you open banks %s for the rest of the run; a later level raises only the chests after it." % describe_effects(fx)
 
 
-## The Grindstone's rule in words (pass 118) from its table ({stat, op, value, min?}): "Each weapon level-up grinds in a
-## random bonus for the rest of the run: +8% damage, −6% cooldown, ... or +1 pierce (piercing shots)."
-static func grind_text(table: Array) -> String:
-	var parts: Array = []
-	for e in table:
-		if not e is Dictionary:
+## The Grindstone's rule in words (pass 119, lane LEGEND_B; Garry: "Just Upgrade or Evolve the weakest one"): what one
+## level of it does (Run._grindstone). The card is offered only while a weapon can take it (CardPool, Run.grind_can_work).
+static func grind_text(_def: PassiveDef = null) -> String:
+	return "Every level you take raises your weakest weapon a level (lowest level first, then least damage dealt). Once all are maxed, it evolves one that is ready."
+
+
+## Lightning in a Bottle's rule (pass 119, lane LEGEND_B) from its first level (crit_arcs, crit_arc_pct) and params.arc
+## (radius): "Every critical hit throws an arc to up to 3 more enemies within 5 m for 25% of the hit. Arcs never chain."
+static func arc_text(def: PassiveDef) -> String:
+	var arc: Dictionary = def.params.get("arc", {})
+	return "Every critical hit throws an arc to up to %s more enemies within %s m for %s%% of the hit. Arcs never chain." % [
+		_plain(first_level_value(def, "crit_arcs", 3.0)), _plain(float(arc.get("radius", 5.0))), _plain(first_level_value(def, "crit_arc_pct", 25.0))]
+
+
+## The Undertaker's Shovel's rule (pass 119, lane LEGEND_B) from its first level and params.grave (rise): "One kill in 25
+## leaves a grave; 2 s later a ghost gunslinger climbs out and fights where it stands for 8 s, firing your first weapon's
+## shots at 40% damage. At most 4 at once."
+static func grave_text(def: PassiveDef) -> String:
+	var g: Dictionary = def.params.get("grave", {})
+	return "One kill in %s leaves a grave; %s s later a ghost gunslinger climbs out and fights where it stands for %s s, firing your first weapon's shots at %s%% damage. At most %s at once." % [
+		_plain(first_level_value(def, "grave_every", 25.0)), _plain(float(g.get("rise", 2.0))), _plain(first_level_value(def, "grave_seconds", 8.0)),
+		_plain(first_level_value(def, "grave_damage_pct", 40.0)), _plain(first_level_value(def, "grave_max", 4.0))]
+
+
+## Fool's Gold's rule (pass 119, lane LEGEND_B) from its first level: "+1% attack damage for every 50 gold in this run's
+## purse, up to +60%. Spending lowers it." (and the max HP part when its first level has one)
+static func purse_text(def: PassiveDef) -> String:
+	var s := "+1%% attack damage for every %s gold in this run's purse" % _plain(first_level_value(def, "purse_might_per", 50.0))
+	var cap := first_level_value(def, "purse_might_cap", 0.0)
+	if cap > 0.0:
+		s += ", up to +%s%%" % _plain(cap)
+	var hp := first_level_value(def, "purse_hp_per", 0.0)
+	if hp > 0.0:
+		s += "; +1%% max HP for every %s gold" % _plain(hp)
+	return s + ". Spending lowers it."
+
+
+## The Pocket Bible's rule (pass 119, lane LEGEND_B) from its first level: "No single hit takes more than 12% of your max
+## HP (35% from a boss). Once every 20 s a hit is stopped outright, never a boss's."
+static func bible_text(def: PassiveDef) -> String:
+	var s := "No single hit takes more than %s%% of your max HP" % _plain(first_level_value(def, "hit_cap_pct", 12.0))
+	var boss := first_level_value(def, "boss_hit_cap_pct", 0.0)
+	if boss > 0.0:
+		s += " (%s%% from a boss)" % _plain(boss)
+	var every := first_level_value(def, "hit_block_every", 0.0)
+	if every > 0.0:
+		s += ". Once every %s s a hit is stopped outright, never a boss's" % _plain(every)
+	return s + "."
+
+
+## Pass 119 (lane LEGEND_A): the value a passive's first level sets `stat` to (its "set" effect, else the sum of its
+## adds), `fallback` without one: the clocks the Iron Horse's and Personal Storm's words name.
+static func first_level_value(def: PassiveDef, stat: String, fallback: float) -> float:
+	var v := fallback
+	var adds := 0.0
+	var any_add := false
+	for e in def.effects_at_level(1):
+		var x: Effect = e
+		if x == null or x.stat != stat:
 			continue
-		var d: Dictionary = e
-		var s := describe_effect(Effect.make(str(d.get("stat", "")), str(d.get("op", "mul")), float(d.get("value", 0.0))))
-		if s == "":
-			continue
-		if d.has("min"):
-			s += " (piercing shots)" if str(d.get("stat", "")) == "pierce" else " (from %s)" % _plain(float(d["min"]))
-		parts.append(s)
-	if parts.is_empty():
-		return ""
-	var list := ", ".join(PackedStringArray(parts.slice(0, parts.size() - 1))) + " or " + str(parts[parts.size() - 1]) if parts.size() > 1 else str(parts[0])
-	# a card line stays short (pass 69's rule): only the bonuses a weapon uses are drawn (WeaponInstance.grind_fits)
-	return "Each weapon level-up grinds in a random bonus for the rest of the run: %s." % list
+		if x.op == "set":
+			v = x.value
+		elif x.op == "add":
+			adds += x.value
+			any_add = true
+	return adds if any_add else v
+
+
+## The Iron Horse's rule in words (pass 119, lane LEGEND_A) from its first level (`train_every`) and params.train {share,
+## big_share, damage}: "Every 20 s a whistle blows and a ghost train charges down a track through you, the way you face.
+## Everything on the rails takes 25% of its max HP (Elites and bosses 5%) + 35 damage and is thrown aside."
+static func train_text(def: PassiveDef) -> String:
+	var t: Dictionary = def.params.get("train", {})
+	var every := first_level_value(def, "train_every", float(t.get("every", 20.0)))
+	return "Every %s s a whistle blows and a ghost train charges down a track through you, the way you face. Everything on the rails takes %s%% of its max HP (Elites and bosses %s%%) + %s damage and is thrown aside." % [
+		_plain(every), _plain(float(t.get("share", 0.25)) * 100.0), _plain(float(t.get("big_share", 0.05)) * 100.0),
+		_plain(roundf(scaled_damage(float(t.get("damage", 35.0)), float(t.get("stage_scaled", 1.0)) > 0.5)))]
+
+
+## Pass 119 (lane LEGEND_A): a legendary item's flat damage as the run would deal it now: x the hero's attack damage, x the
+## stage multiplier when `stage` (the Run by path: tools compile TextGen before the autoloads exist); the number itself
+## outside a run.
+static func scaled_damage(base: float, stage: bool) -> float:
+	var ml := Engine.get_main_loop()
+	var run: Node = (ml as SceneTree).root.get_node_or_null("Run") if ml is SceneTree else null
+	if run == null:
+		return base
+	var sheet = run.get("player_sheet")
+	var d := base * (float(sheet.call("get_stat", "might", 1.0)) if sheet != null else 1.0)
+	if stage and run.has_method("stage_mult"):
+		d *= float(run.call("stage_mult"))
+	return d
+
+
+## Personal Storm's rule in words (pass 119, lane LEGEND_A) from its first level (`storm_every`, `storm_seconds`) and
+## params.storm {rate, damage, big_mult}: "Every 30 s storm clouds gather over you and for 8 s lightning strikes about 2
+## times a second, mostly where enemies crowd: 40 damage and a hard shove (half to Elites and bosses)."
+static func storm_text(def: PassiveDef) -> String:
+	var st: Dictionary = def.params.get("storm", {})
+	var every := first_level_value(def, "storm_every", float(st.get("every", 30.0)))
+	var secs := first_level_value(def, "storm_seconds", float(st.get("seconds", 8.0)))
+	var big := float(st.get("big_mult", 0.5))
+	var big_words := "half" if absf(big - 0.5) < 0.001 else _plain(big * 100.0) + "%"
+	return "Every %s s storm clouds gather over you and for %s s lightning strikes about %s times a second, mostly where enemies crowd: %s damage and a hard shove (%s to Elites and bosses)." % [
+		_plain(every), _plain(secs), _plain(float(st.get("rate", 2.0))), _plain(roundf(scaled_damage(float(st.get("damage", 40.0)), float(st.get("stage_scaled", 1.0)) > 0.5))), big_words]
 
 
 ## A perk's card text (pass 116): written from its params for a mechanism TextGen knows (the Invisible Box, special

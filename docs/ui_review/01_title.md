@@ -12,7 +12,7 @@
 
 - Top left the purse: a gold plate with a coin and the banked gold.
 - The star line 'Wanted', the logo OUTLAW / SURVIVORS (the game's name on screen since pass 115) and 'Drag · Dodge · Survive'.
-- The hero standing in the map itself, drawn as a run draws him, his start weapon's companion circling him; arrow squares either side and a swipe change hero (he runs in from the side the finger went); a dot per hero under him.
+- The hero's painted cut-out over a still of the desert (the Painted look, the default since pass 119; testers can switch to the Live look: the hero standing in the map itself, drawn as a run draws him, his start weapon's companion circling him); arrow squares either side and a swipe change hero (he runs in from the side the finger went); a dot per hero under him.
 - The hero plaque: his name, a two-line flavour, up to three trait numbers (HP, SPEED, CRIT / LV ...), the START weapon and FAVOURITE item plates. A tap opens his Wanted-poster sheet; the square at its left opens the hero drawer.
 - A hero on sale (his quest done, not bought): a BUY · <price> column over him; a tap asks 'Buy this hero?'.
 - A locked hero: a black silhouette named 'Unknown', '?' for every number and plate, a padlock, and a 'To unlock' card with his quest and a progress bar; PLAY reads LOCKED.

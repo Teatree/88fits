@@ -31,7 +31,9 @@ B = "docs/design/img/"
 
 # screen id -> [(capture, caption)]
 SHOTS = {
-    "boot_loading": [(X + "boot_loading_drop.png", "the title dropping in (0.5 s)"), (X + "boot_loading.png", "landed: the strips scroll while the title loads")],
+    # pass 119 (lane LOADUI): the title slam, from game/tools/load_shots.gd (tools/dl/p116/UIREVIEW/loading/load_t*.png)
+    "boot_loading": [(X + "boot_loading_slam.png", "the title punching in (0.40 s)"), (X + "boot_loading_hit.png", "the hit (0.43 s): the impact frame"),
+                     (X + "boot_loading_after.png", "after the hit (0.55 s): ring, dust, chips"), (X + "boot_loading.png", "settled: the strips scroll while the title loads")],
     "consent_card": [(W + "19-consent.png", "first launch")],
     "title": [(W + "01-title.png", "an owned hero"), (W + "02-title-astro.png", "a hero on sale: BUY"),
               (W + "01c-title-locked-hero.png", "a locked hero: the requirement")],

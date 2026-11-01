@@ -35,6 +35,7 @@
       "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
       "icon_picked": true,
       "recipe": {
+        "lean": 10,
         "subject": "One single fortune-teller tarot card standing upright and tilted about 12 degrees clockwise, filling the picture from top to bottom, seen straight on. The card has a thick cream parchment border with rounded corners and a thin dark brown line just inside it and a deep red face. One huge bold symbol fills almost the whole face: a gold king's crown sitting on a heap of big gold coins, in gold, cream and black. The symbol is so big it overlaps the border a little. Nothing else on the card: no stars, no landscape, no corner ornaments, no frame lines inside",
         "style": "Mobile game item icon in the cel-shaded anime style of an action RPG mobile game: crisp confident black line art, a thick clean black outline round the whole silhouette, flat colours with two-tone cel shadows and one sharp highlight, simple chunky shapes, only two or three bold saturated colours plus black and the card's border, high contrast, readable at thumbnail size, centred and filling the frame with a small margin. Nothing is written anywhere: no title banner, no letters, no numbers, no roman numerals",
         "screen": "green"

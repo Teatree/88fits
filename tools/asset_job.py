@@ -160,7 +160,7 @@ def icon_spec(job, job_dir=""):
     screen) and the target's look as "variant" (its pick goes to the look's own icon and entry)."""
     out = dict(job.get("icon_job") or {})
     s = _spec(job)
-    for k in ("subject", "ref", "style", "file"):
+    for k in ("subject", "ref", "style", "file", "lean"):
         if not out.get(k) and s.get(k):
             out[k] = s[k]
     if not out.get("screen") and s.get("screen") and s.get("screen") != "green":

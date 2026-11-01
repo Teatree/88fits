@@ -41,24 +41,25 @@ func _title(style: String) -> Control:
 
 # ---------------------------------------------------------------- the setting
 
-func test_the_menu_style_is_live_until_chosen_and_saved_like_the_others() -> void:
+func test_the_menu_style_is_painted_until_chosen_and_saved_like_the_others() -> void:
 	var script: GDScript = load("res://core/autoload/Settings.gd")
 	var s: Node = auto_free(script.new())
-	# pass 53 (Garry: "By default set the Main Menu to be the new one - the one with the live heroes"): live
-	assert_str(s.menu_style).is_equal("live")
-	assert_str(script.MENU_STYLE_DEFAULT).is_equal("live")
+	# pass 53 (Garry: "By default set the Main Menu to be the new one - the one with the live heroes") made it live;
+	# pass 119 (Garry: "Let's set the "Painted" option as default for now"): painted (tests/pass119_LOADUI_test.gd)
+	assert_str(s.menu_style).is_equal("painted")
+	assert_str(script.MENU_STYLE_DEFAULT).is_equal("painted")
 	assert_array(script.MENU_STYLES).contains_exactly(["painted", "live"])
 	# a save from before pass 52 has no key: the default
 	s.from_dict({})
-	assert_str(s.menu_style).is_equal("live")
-	s.menu_style = "painted"
-	assert_str(str(s.to_dict()["menu_style"])).is_equal("painted")
+	assert_str(s.menu_style).is_equal("painted")
+	s.menu_style = "live"
+	assert_str(str(s.to_dict()["menu_style"])).is_equal("live")
 	var back: Node = auto_free(script.new())
 	back.from_dict(s.to_dict())
-	assert_str(back.menu_style).is_equal("painted")
+	assert_str(back.menu_style).is_equal("live")
 	# anything else reads as the default
 	back.from_dict({"menu_style": "fancy"})
-	assert_str(back.menu_style).is_equal("live")
+	assert_str(back.menu_style).is_equal("painted")
 
 
 func test_the_menu_style_reaches_the_save_file() -> void:

@@ -69,9 +69,19 @@ const PLAYER_DEFAULTS := {
 	# that a plain revive starts at Nerve's 40%; Player.revive_share takes the larger of it and revive_hp)
 	"phoenix_hp": 0.0,
 	# pass 118 (lane ITEMS): the Jade Key's luck and the Ruby Key's attack damage banked at every chest opened
-	# (Run.chest_opened: the `chest_` prefix names the stat banked), the Grindstone's bonuses ground into a weapon at its
-	# level-up (Run._grind)
-	"chest_luck": 0.0, "chest_might": 0.0, "grind_rolls": 0.0,
+	# (Run.chest_opened: the `chest_` prefix names the stat banked); pass 119 (lane LEGEND_B): the Grindstone's levels
+	# taken, each one a level for the weakest weapon (Run._grindstone; the count is only said, never read)
+	"chest_luck": 0.0, "chest_might": 0.0, "grind_levels": 0.0,
+	# pass 119 (lane LEGEND_A): the Iron Horse's seconds between ghost trains and its crossing second train, Personal
+	# Storm's seconds between storms and how long one strikes (core/systems/IronHorse.gd, PersonalStorm.gd; 0 = not held)
+	"train_every": 0.0, "train_cross": 0.0, "storm_every": 0.0, "storm_seconds": 0.0,
+	# pass 119 (lane LEGEND_B), each read by the system it names (0 = not held): Lightning in a Bottle's arcs off a crit
+	# (EnemyManager.crit_arc), the Undertaker's Shovel's graves and ghosts (core/systems/Graveyard.gd), Fool's Gold's gold
+	# per percent and its caps (Run._apply_purse), the Pocket Bible's caps on a hit and its block's seconds (Player.take_damage,
+	# Run.bible_try_block); the percents are whole numbers (25 = 25%)
+	"crit_arcs": 0.0, "crit_arc_pct": 0.0, "crit_arc_stun": 0.0, "grave_every": 0.0, "grave_max": 0.0, "grave_seconds": 0.0,
+	"grave_damage_pct": 0.0, "purse_might_per": 0.0, "purse_might_cap": 0.0, "purse_hp_per": 0.0, "purse_hp_cap": 0.0,
+	"hit_cap_pct": 0.0, "boss_hit_cap_pct": 0.0, "hit_block_every": 0.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

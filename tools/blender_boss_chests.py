@@ -5,13 +5,21 @@ origin on the back top edge, so a rotation about X opens it), exported as GLB, a
 the three-quarter view the 2D paintings are made from (tools/gen_boss_chests.py paints over them with Klein, so the 2D
 chest and the 3D one are one thing).
 
-  "$BLENDER" -b --python tools/blender_boss_chests.py [-- only=tumbleweed_king,brander] [renders=0]
-      -> game/art/props/meta/boss_chest_<boss>.glb
+  "$BLENDER" -b --python tools/blender_boss_chests.py [-- only=tumbleweed_king,brander] [renders=0] [export=gila_grande]
+      -> game/art/props/meta/boss_chest_<boss>.glb (export=: only these GLBs are written; the others only rendered)
       -> tools/dl/bosschest/<boss>_<pose>.png (closed, cracked, open: 1024 px, transparent film)
 
   tumbleweed_king  woven straw and rope, gold corners, a golden crown on the lid with a green gem, tumbleweed tufts
-  gila_grande      beaded scales in the gila monster's black and orange, bone bands, saguaro cacti on the lid
+  gila_grande      pass 119 (Garry: "make it all white and with lizard eyes on the front of it"): beaded scales in white,
+                   cream and pale grey in the gila monster's bands, bone bands, two big amber lizard eyes with slit pupils
+                   on the front under scaly brows, a ridge of white spines along the lid (the cacti are gone)
   brander          black iron plates and rivets, red-hot brands glowing on the front and the lid, chains, spikes
+
+Pass 119: a chest with `hollow` (the Gila's and the Brander's) has a box with walls, a floor and a dark lining, and a lid
+that is a shell (a half pipe over a frame, lined inside), so the open render shows an empty box the treasure sits down in
+and the open lid's underside as the inside of a lid; before, the body was a solid block, the treasure lay on its top and a
+glowing slab covered the mouth (the Brander's painted coins lay on a flat top), and the lid's flat underside was painted
+as a grey ribbed panel (the Gila's).
 
 Units are metres, +Z up in Blender (+Y in Godot), the front (the lock) faces -Y (Godot +Z). Every part is built in one
 bmesh per object with a material slot each, so a chest is a handful of surfaces however many beads or rivets it has.
@@ -202,7 +210,11 @@ def rounded_rect_loop(w, d, z, rad, n_side=6, n_corner=5):
 
 def barrel(part, r, width, x, m, segs=36):
     """A half cylinder along X over the lid's slab (the barrel top, a band or a strap round it): a whole one whose lower
-    half is squashed flat just inside the slab, so nothing hangs under the lid line or swings out when it opens."""
+    half is squashed flat just inside the slab, so nothing hangs under the lid line or swings out when it opens. On a
+    hollow chest (pass 119) a band is a half pipe that stops at the lid's shell, so it never fills the lid's inside."""
+    if HOLLOW["on"] and r > BARREL_R - LID_T:
+        half_pipe(part, r, BARREL_R - LID_T + 0.004, width, x, m, m, segs)
+        return []
     verts = part.cyl(r, width, (x, 0, H + SLAB), m, rot=(0, math.pi * 0.5, 0), segs=segs)
     for v in verts:
         if v.co.z < H + SLAB:
@@ -210,17 +222,84 @@ def barrel(part, r, width, x, m, segs=36):
     return verts
 
 
-def lid_shell(lid, m_wood, m_rim):
-    """The lid every chest shares: a slab and the barrel top over it (a half cylinder, its flat side down), a rim."""
-    lid.box((W + 0.04, D + 0.04, SLAB), (0, 0, H + SLAB * 0.5), m_wood)
-    barrel(lid, BARREL_R, W + 0.04, 0.0, m_wood)
-    lid.box((W + 0.08, D + 0.08, 0.05), (0, 0, H + 0.025), m_rim)
+# pass 119: the walls' and the lid shell's thickness when a chest is hollow, and whether the one being built is
+WALL = 0.06
+LID_T = 0.05
+HOLLOW = {"on": False}
 
 
-def body_shell(body, m_wood, m_trim):
-    body.box((W, D, H), (0, 0, H * 0.5), m_wood)
+def half_pipe(part, r_out, r_in, width, x, m_out, m_in, segs=36):
+    """A half tube along X over the lid's slab line (pass 119): the outer face m_out, the inner face m_in, the ends and the
+    two flat feet m_out. A hollow lid's barrel and the bands round it."""
+    bm = part.bm
+    z0 = H + SLAB
+    rings = []
+    for xe in (x - width * 0.5, x + width * 0.5):
+        outer = [bm.verts.new((xe, -math.cos(math.pi * i / segs) * r_out, z0 + math.sin(math.pi * i / segs) * r_out)) for i in range(segs + 1)]
+        inner = [bm.verts.new((xe, -math.cos(math.pi * i / segs) * r_in, z0 + math.sin(math.pi * i / segs) * r_in)) for i in range(segs + 1)]
+        rings.append((outer, inner))
+    (o0, i0), (o1, i1) = rings
+    mo, mi = part._mi(m_out), part._mi(m_in)
+    for i in range(segs):
+        bm.faces.new((o0[i], o0[i + 1], o1[i + 1], o1[i])).material_index = mo
+        bm.faces.new((i0[i + 1], i0[i], i1[i], i1[i + 1])).material_index = mi
+        bm.faces.new((o0[i + 1], o0[i], i0[i], i0[i + 1])).material_index = mo
+        bm.faces.new((o1[i], o1[i + 1], i1[i + 1], i1[i])).material_index = mo
+    for k in (0, segs):
+        bm.faces.new((o0[k], i0[k], i1[k], o1[k])).material_index = mo
+
+
+def frame(part, w, d, t, z, h, m):
+    """A rectangular frame of band width t round w x d at height z (its middle), h tall: four boxes."""
+    part.box((w, t, h), (0, -(d - t) * 0.5, z), m)
+    part.box((w, t, h), (0, (d - t) * 0.5, z), m)
+    part.box((t, d - 2 * t, h), (-(w - t) * 0.5, 0, z), m)
+    part.box((t, d - 2 * t, h), ((w - t) * 0.5, 0, z), m)
+
+
+def squash_half(verts):
+    """A whole cylinder's lower half pressed flat onto the slab line (barrel()'s trick, for a plate)."""
+    for v in verts:
+        if v.co.z < H + SLAB:
+            v.co.z = H + SLAB - 0.004
+    return verts
+
+
+def lid_shell(lid, m_wood, m_rim, m_inner=None):
+    """The lid every chest shares: a slab and the barrel top over it (a half cylinder, its flat side down), a rim.
+    With m_inner (pass 119, hollow): the slab and the rim are frames, the barrel a shell lined with m_inner, its two ends
+    closed by plates lined inside, so the open lid shows its own empty inside."""
+    if m_inner is None:
+        lid.box((W + 0.04, D + 0.04, SLAB), (0, 0, H + SLAB * 0.5), m_wood)
+        barrel(lid, BARREL_R, W + 0.04, 0.0, m_wood)
+        lid.box((W + 0.08, D + 0.08, 0.05), (0, 0, H + 0.025), m_rim)
+        return
+    frame(lid, W + 0.04, D + 0.04, 0.075, H + SLAB * 0.5, SLAB, m_wood)
+    # the slab frame's inner faces lined
+    frame(lid, W + 0.04 - 0.148, D + 0.04 - 0.148, 0.004, H + SLAB * 0.5, SLAB, m_inner)
+    half_pipe(lid, BARREL_R, BARREL_R - LID_T, W + 0.04, 0.0, m_wood, m_inner)
+    for sx in (-1, 1):
+        xe = sx * ((W + 0.04) * 0.5 - 0.02)
+        squash_half(lid.cyl(BARREL_R - LID_T + 0.002, 0.04, (xe, 0, H + SLAB), m_wood, rot=(0, math.pi * 0.5, 0), segs=36))
+        squash_half(lid.cyl(BARREL_R - LID_T + 0.001, 0.006, (xe - sx * 0.023, 0, H + SLAB), m_inner, rot=(0, math.pi * 0.5, 0), segs=36))
+    frame(lid, W + 0.08, D + 0.08, 0.09, H + 0.025, 0.05, m_rim)
+
+
+def body_shell(body, m_wood, m_trim, m_inner=None):
+    """The body: a box, a trim band at its foot and one at its top. With m_inner (pass 119, hollow): four walls WALL thick
+    and a floor, lined inside with m_inner, the top band a frame, so the box is open when the lid is."""
+    if m_inner is None:
+        body.box((W, D, H), (0, 0, H * 0.5), m_wood)
+        body.box((W + 0.05, D + 0.05, 0.06), (0, 0, 0.03), m_trim)
+        body.box((W + 0.05, D + 0.05, 0.05), (0, 0, H - 0.025), m_trim)
+        return
+    body.box((W, D, 0.07), (0, 0, 0.035), m_wood)
+    frame(body, W, D, WALL, H * 0.5, H, m_wood)
+    iw, idp = W - 2 * WALL, D - 2 * WALL
+    frame(body, iw + 0.002, idp + 0.002, 0.004, (H + 0.07) * 0.5, H - 0.07, m_inner)
+    body.box((iw, idp, 0.006), (0, 0, 0.073), m_inner)
     body.box((W + 0.05, D + 0.05, 0.06), (0, 0, 0.03), m_trim)
-    body.box((W + 0.05, D + 0.05, 0.05), (0, 0, H - 0.025), m_trim)
+    frame(body, W + 0.05, D + 0.05, WALL + 0.025, H - 0.025, 0.05, m_trim)
 
 
 def corner_caps(body, m, s=0.11):
@@ -306,27 +385,35 @@ def king():
 
 # ---------------------------------------------------------------- the Gila Grande's
 def gila():
-    black = mat("gila_black", (34, 26, 30), 0.6)
-    orange = mat("gila_orange", (240, 120, 60), 0.5)
-    pink = mat("gila_pink", (236, 150, 120), 0.5)
-    bone = mat("gila_bone", (232, 216, 180), 0.7)
-    copper = mat("gila_copper", (200, 110, 60), 0.35, 0.8)
-    cactus = mat("gila_cactus", (70, 150, 70), 0.8)
-    cactus_dk = mat("gila_cactus_dark", (44, 110, 56), 0.8)
-    flower = mat("gila_flower", (255, 110, 160), 0.6)
+    """Pass 119 (Garry: "Gila's Chest look weird. Both 2d and 3d. Since it appears in the Stage 2 make it all white and with
+    lizard eyes on the front of it"): the gila monster's beaded scales and bands kept, in white, cream and a pale warm
+    grey (the pattern still reads under Nightfall's blue filter), bone bands, two big amber lizard eyes with slit pupils
+    under heavy scaly brows on the front, a bone lock between them, a ridge of white spines along the lid, bone handles
+    curled like a lizard's toes. Hollow: a dark red lining inside the box and the lid."""
+    HOLLOW["on"] = True
+    white = mat("gila_white", (240, 235, 222), 0.6)
+    cream = mat("gila_cream", (222, 206, 178), 0.6)
+    pale = mat("gila_pale", (164, 152, 138), 0.6)
+    bone = mat("gila_bone", (210, 198, 176), 0.7)
+    bone_dk = mat("gila_bone_dark", (150, 136, 118), 0.7)
+    inner = mat("gila_inner", (96, 30, 36), 0.9)
+    amber = mat("gila_eye", (246, 176, 34), 0.25)
+    amber_dk = mat("gila_eye_rim", (196, 104, 20), 0.35)
+    pupil = mat("gila_pupil", (16, 12, 14), 0.3)
+    glint = mat("gila_glint", (255, 255, 250), 0.2)
     body = Part("Body")
-    body_shell(body, black, bone)
+    body_shell(body, white, bone, inner)
 
     def blotch(x, y, z):
-        # the gila monster's pattern: orange bands and blotches over black, from a few crossed waves
+        # the gila monster's pattern, in pale tones: cream bands and pale grey blotches over white, from a few crossed waves
         v = math.sin(x * 9.0 + z * 4.0) + math.sin(y * 8.0 - z * 6.5) * 0.8 + math.sin((x + y) * 5.0 + z * 11.0) * 0.6
         if v > 0.75:
-            return pink
+            return pale
         if v > 0.05:
-            return orange
-        return black
+            return cream
+        return white
 
-    # beaded scales: hexagonal beads in rows, every face
+    # beaded scales: hexagonal beads in rows, every face (the front's middle left clear for the eyes)
     step = 0.072
     for ny in (-1, 1):
         for r in range(int((H - 0.12) / (step * 0.86))):
@@ -346,25 +433,47 @@ def gila():
                 x = nx * (W * 0.5 + 0.008)
                 body.cyl(step * 0.46, 0.03, (x, y, z), blotch(x, y, z), rot=(0, math.pi * 0.5, 0), segs=6)
                 y += step
-    # bone bands down the corners and copper studs
+    # bone bands down the corners, bone studs along the foot
     for x in (-1, 1):
         for y in (-1, 1):
             body.box((0.07, 0.07, H), (x * (W * 0.5 + 0.005), y * (D * 0.5 + 0.005), H * 0.5), bone)
     for x in (-0.45, -0.15, 0.15, 0.45):
-        body.ball(0.025, (x, -D * 0.5 - 0.035, 0.03), copper, 8, 5)
-    # the lock: a copper plate shaped like a gila's head, two bead eyes
-    body.box((0.24, 0.04, 0.2), (0, -D * 0.5 - 0.035, H - 0.14), copper)
-    body.cyl(0.07, 0.04, (0, -D * 0.5 - 0.035, H - 0.27), copper, rot=(math.pi * 0.5, 0, 0), segs=12)
-    for ex in (-0.06, 0.06):
-        body.ball(0.025, (ex, -D * 0.5 - 0.06, H - 0.12), black, 8, 5)
-    # cactus-arm handles on the sides
+        body.ball(0.025, (x, -D * 0.5 - 0.035, 0.03), bone_dk, 8, 5)
+    # the eyes: an amber ball half sunk in each side of the front, a dark rim, a slit pupil, a glint, and a heavy scaly
+    # brow over the top of each (a reptile's hooded look); the outer brow ends lower, so they look a little cross
+    fy = -D * 0.5
+    for sx in (-1, 1):
+        ex, ez = sx * 0.3, H * 0.46
+        body.cyl(0.158, 0.05, (ex, fy - 0.02, ez), bone_dk, rot=(math.pi * 0.5, 0, 0), segs=20)
+        body.ball(0.14, (ex, fy - 0.03, ez), amber_dk, 18, 12, (1.0, 0.62, 1.0))
+        body.ball(0.124, (ex, fy - 0.044, ez), amber, 18, 12, (1.0, 0.62, 1.0))
+        # the pupil: a lens-shaped vertical slit, well inside the iris
+        body.ball(0.08, (ex, fy - 0.112, ez), pupil, 12, 10, (0.24, 0.3, 1.0))
+        body.ball(0.026, (ex - 0.052, fy - 0.126, ez + 0.055), glint, 8, 5)
+        # a ring of scales round the eye (the lizard's eyelid), pale grey beads
+        for k in range(16):
+            a = 2.0 * math.pi * k / 16
+            body.cyl(0.028, 0.03, (ex + math.cos(a) * 0.165, fy - 0.05, ez + math.sin(a) * 0.165), pale if k % 2 else cream,
+                     rot=(math.pi * 0.5, 0, 0), segs=6)
+        # the brow: a slim scaly ridge over the top of the eye, its inner end drawn down (a cross, hooded reptile look)
+        for k in range(7):
+            u = (k - 3) / 3.0
+            bx = ex + u * 0.17
+            bz = ez + 0.16 + 0.03 * (1.0 - u * u) - max(0.0, -u * sx) * 0.07
+            body.ball(0.05, (bx, fy - 0.075, bz), pale if k % 2 == 0 else bone_dk, 8, 6, (1.0, 0.7, 0.75))
+    # the lock: a bone plate between the eyes, under the lid line, with a dark keyhole
+    body.box((0.17, 0.05, 0.17), (0, fy - 0.03, H - 0.13), bone)
+    body.box((0.2, 0.03, 0.03), (0, fy - 0.035, H - 0.04), bone_dk)
+    body.cyl(0.022, 0.02, (0, fy - 0.06, H - 0.115), pupil, rot=(math.pi * 0.5, 0, 0), segs=10)
+    body.box((0.018, 0.02, 0.05), (0, fy - 0.06, H - 0.145), pupil)
+    # bone handles on the sides, curled like a lizard's toes
     for sx in (-1, 1):
         body.sweep([(sx * (W * 0.5 + 0.0), -0.16, H * 0.55), (sx * (W * 0.5 + 0.13), -0.16, H * 0.55),
                     (sx * (W * 0.5 + 0.16), -0.05, H * 0.62), (sx * (W * 0.5 + 0.16), 0.08, H * 0.62),
                     (sx * (W * 0.5 + 0.13), 0.16, H * 0.55), (sx * (W * 0.5 + 0.0), 0.16, H * 0.55)],
-                   0.045, lambda i, j: cactus_dk if j % 2 else cactus, 8, closed=False)
+                   0.045, lambda i, j: bone_dk if j % 2 else bone, 8, closed=False)
     lid = Part("Lid")
-    lid_shell(lid, black, bone)
+    lid_shell(lid, white, bone, inner)
     # beads over the barrel
     rows = 15
     for r in range(rows):
@@ -372,27 +481,17 @@ def gila():
         off = step * 0.5 if r % 2 else 0.0
         x = -W * 0.5 + 0.06 + off
         while x < W * 0.5 - 0.04:
-            p = barrel_point(x, ang, BARREL_R + 0.008)
-            lid.cyl(step * 0.46, 0.03, p, blotch(p[0], p[1], p[2]), rot=(math.pi * 0.5 - ang, 0, 0), segs=6)
+            pt = barrel_point(x, ang, BARREL_R + 0.008)
+            lid.cyl(step * 0.46, 0.03, pt, blotch(pt[0], pt[1], pt[2]), rot=(math.pi * 0.5 - ang, 0, 0), segs=6)
             x += step
     for x in (-0.38, 0.38):
         barrel(lid, BARREL_R + 0.03, 0.07, x, bone)
-    # a saguaro on top, two arms up; barrel cacti with a pink flower at the front corners
+    # a ridge of white spines along the top of the lid, the gila's own back
     top = H + SLAB + BARREL_R
-    lid.cyl(0.075, 0.5, (0, 0, top + 0.22), cactus, segs=10)
-    lid.ball(0.075, (0, 0, top + 0.47), cactus, 10, 6)
-    for sx in (-1, 1):
-        lid.cyl(0.05, 0.14, (sx * 0.12, 0, top + 0.2), cactus_dk, rot=(0, math.pi * 0.5, 0), segs=8)
-        lid.cyl(0.05, 0.2, (sx * 0.19, 0, top + 0.29), cactus, segs=8)
-        lid.ball(0.05, (sx * 0.19, 0, top + 0.39), cactus, 8, 5)
-    for k in range(10):
-        a = 2 * math.pi * k / 10
-        lid.cyl(0.006, 0.03, (math.cos(a) * 0.08, math.sin(a) * 0.08, top + 0.1 + (k % 3) * 0.12), bone,
-                rot=(0, math.pi * 0.5, a), segs=3)
-    for sx in (-1, 1):
-        c = barrel_point(sx * 0.48, 0.55, BARREL_R + 0.05)
-        lid.ball(0.085, c, cactus, 10, 7, (1.0, 1.0, 0.85))
-        lid.ball(0.035, (c[0], c[1], c[2] + 0.08), flower, 8, 5)
+    for k in range(9):
+        x = -0.48 + k * 0.12
+        h = 0.11 if k % 2 == 0 else 0.08
+        lid.cyl(0.042, h, (x, 0, top + h * 0.5 - 0.01), bone if k % 2 == 0 else cream, segs=6, r2=0.0)
     return body, lid, {"shine": (255, 140, 50)}
 
 
@@ -406,8 +505,11 @@ def brander():
     hot = mat("brand_hot", (255, 70, 20), 0.4, 0.0, (255, 60, 10), 1.4)
     glow = mat("brand_glow", (255, 170, 60), 0.4, 0.0, (255, 150, 40), 1.8)
     chain = mat("brand_chain", (70, 68, 76), 0.45, 0.5)
+    # pass 119: hollow, lined in charcoal (the open render's treasure sits down in the box)
+    HOLLOW["on"] = True
+    lining = mat("brand_inner", (40, 26, 26), 0.9)
     body = Part("Body")
-    body_shell(body, iron, iron_dk)
+    body_shell(body, iron, iron_dk, lining)
     # plates: raised panels and rivets round every face's edge
     for ny in (-1, 1):
         for x in (-0.3, 0.3):
@@ -451,7 +553,7 @@ def brander():
     body.torus(0.07, 0.018, (0, -D * 0.5 - 0.09, H - 0.12), rivet, rot=(math.pi * 0.5, 0, 0), segs=12, sides=6)
     body.box((0.035, 0.02, 0.07), (0, -D * 0.5 - 0.135, H - 0.25), glow)
     lid = Part("Lid")
-    lid_shell(lid, iron, iron_dk)
+    lid_shell(lid, iron, iron_dk, lining)
     # iron straps over the barrel with rivets, a glowing seam under the lid's edge, a brand on top
     for x in (-0.42, 0.0, 0.42):
         barrel(lid, BARREL_R + 0.03, 0.08, x, iron_dk)
@@ -504,17 +606,31 @@ def treasure():
     gems = [mat("t_gem_s", (124, 96, 200), 0.2, 0.0, (124, 96, 230), 0.8), mat("t_gem_m", (90, 170, 200), 0.2, 0.0, (90, 190, 230), 0.8),
             mat("t_gem_l", (200, 110, 170), 0.2, 0.0, (230, 110, 180), 0.8)]
     rnd = random.Random(7)
-    for k in range(120):
-        x = rnd.uniform(-W * 0.42, W * 0.42)
-        y = rnd.uniform(-D * 0.38, D * 0.38)
-        hump = 0.16 * (1.0 - (x / (W * 0.5)) ** 2) * (1.0 - (y / (D * 0.5)) ** 2)
-        z = H - 0.03 + hump + rnd.uniform(0.0, 0.05)
+    inside = HOLLOW["on"]
+    for k in range(260 if inside else 120):
+        if inside:
+            # pass 119: a heap down in the box, inside its walls: level with the rim at the walls, rising to a hump a
+            # little over it in the middle, so the front wall stands in front of the pile and the lining shows round it
+            x = rnd.uniform(-(W * 0.5 - WALL - 0.05), W * 0.5 - WALL - 0.05)
+            y = rnd.uniform(-(D * 0.5 - WALL - 0.05), D * 0.5 - WALL - 0.05)
+            hump = 0.3 * (1.0 - (x / (W * 0.5 - WALL)) ** 2) * (1.0 - (y / (D * 0.5 - WALL)) ** 2)
+            z = H * 0.8 + hump - rnd.uniform(0.0, 0.05)
+        else:
+            x = rnd.uniform(-W * 0.42, W * 0.42)
+            y = rnd.uniform(-D * 0.38, D * 0.38)
+            hump = 0.16 * (1.0 - (x / (W * 0.5)) ** 2) * (1.0 - (y / (D * 0.5)) ** 2)
+            z = H - 0.03 + hump + rnd.uniform(0.0, 0.05)
         if k % 5 == 0:
             g = gems[k % 3]
             p.cyl(0.05, 0.1, (x, y, z + 0.04), g, rot=(rnd.uniform(-0.5, 0.5), rnd.uniform(-0.5, 0.5), 0), segs=4, r2=0.0)
             p.cyl(0.05, 0.06, (x, y, z - 0.03), g, rot=(math.pi, 0, 0), segs=4, r2=0.0)
         else:
             p.cyl(0.05, 0.014, (x, y, z), gold, rot=(rnd.uniform(-0.6, 0.6), rnd.uniform(-0.6, 0.6), 0), segs=14)
+    if inside:
+        # a few coins tipped over the front rim, half in, half out
+        for k in range(6):
+            x = -0.4 + k * 0.16 + rnd.uniform(-0.04, 0.04)
+            p.cyl(0.05, 0.014, (x, -D * 0.5 + WALL * 0.4, H + 0.02), gold, rot=(-0.7 + rnd.uniform(-0.2, 0.2), rnd.uniform(-0.3, 0.3), 0), segs=14)
     return p.to_object()
 
 
@@ -553,7 +669,10 @@ def render_poses(name, body, lid, info):
     lightbox = None
     for pose, rx in poses.items():
         lid.rotation_euler = (rx, 0.0, 0.0)
-        if pose != "closed" and lightbox is None:
+        if pose == "open" and lightbox is not None and HOLLOW["on"]:
+            bpy.data.objects.remove(lightbox, do_unlink=True)
+            lightbox = None
+        if pose == "cracked" and lightbox is None or (pose == "open" and lightbox is None and not HOLLOW["on"]):
             # the light inside: a glowing slab just under the lid line (seen through the crack, behind the heap)
             g = mat("inner_glow", (255, 236, 160), 0.5, 0.0, (255, 220, 120), 8.0)
             pl = Part("Glow")
@@ -577,20 +696,26 @@ def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     only = []
     renders = True
+    exports = None
     for a in args:
         if a.startswith("only="):
             only = [x for x in a[5:].split(",") if x]
         elif a.startswith("renders="):
             renders = a[8:] not in ("0", "false", "no")
+        elif a.startswith("export="):
+            # pass 119: only these GLBs are written (the Brander's 3D chest is fine as it is; its renders change)
+            exports = [x for x in a[7:].split(",") if x]
     for name, fn in BOSSES.items():
         if only and name not in only:
             continue
         clear()
         MATS.clear()
+        HOLLOW["on"] = False
         b, l, info = fn()
         body = b.to_object()
         lid = l.to_object(HINGE)
-        export([body, lid], "boss_chest_" + name)
+        if exports is None or name in exports:
+            export([body, lid], "boss_chest_" + name)
         if renders:
             render_poses(name, body, lid, info)
     clear()

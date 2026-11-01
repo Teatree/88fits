@@ -265,19 +265,8 @@ func test_the_stranger_and_the_structures_have_painted_icons() -> void:
 
 
 # ---------------------------------------------------------------- the breath's ready sign
-
-func test_the_ready_sign_plays_and_hides() -> void:
-	var holder: Node3D = auto_free(Node3D.new())
-	add_child(holder)
-	var b := BreathReady.make(holder)
-	assert_bool(b.visible).is_false()
-	b.play(func(): return Vector3(1, 2, 3))
-	assert_bool(b.playing()).is_true()
-	assert_bool(b.visible).is_true()
-	assert_vector(b.global_position).is_equal_approx(Vector3(1, 2, 3), Vector3.ONE * 0.001)
-	b._process(BreathReady.TIME + 0.01)
-	assert_bool(b.playing()).is_false()
-	assert_bool(b.visible).is_false()
+# pass 119 (lane LEGEND_B): the ready sign is gone (Garry: "Remove that completely"); the mouthful's splash that replaced
+# it is pinned in pass119_LEGEND_B_test.gd
 
 
 # ---------------------------------------------------------------- the Results' bounty

@@ -313,6 +313,18 @@ func set_tint(c: Color) -> void:
 func set_desat(v: float) -> void:
 	_ensure()
 	_mat.set_shader_parameter("desat", clampf(v, 0.0, 1.0))
+	# pass 119 (lane LEGEND_B): the see-through pass too (a ghost is drawn by it alone)
+	if _over:
+		_over.set_shader_parameter("desat", clampf(v, 0.0, 1.0))
+
+
+## Pass 119 (lane LEGEND_B): a ghost of the painting (the Undertaker's Shovel's ghosts): its lightness redrawn in `c`'s
+## colour, mixed in by `c.a` (0: the painting as it is). Only the see-through pass (enable_over_trails) has it, and only
+## that pass draws a faded sprite (set_fade below 1).
+func set_ghost(c: Color) -> void:
+	_ensure()
+	if _over:
+		_over.set_shader_parameter("ghost", c)
 
 
 ## How opaque the painting is, 0..1 (pass 87, lane FIXES: the hero's evade turns him see-through for a second). Below 1

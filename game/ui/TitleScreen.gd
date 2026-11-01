@@ -168,7 +168,8 @@ func _ready() -> void:
 	get_tree().paused = false
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# the look (pass 52): the painted cut-out over the still of the desert, or the level itself with the hero standing in it
-	_live = str(Settings.menu_style) == "live"
+	# pass 119 (lane LOADUI): the production build is always painted (it offers no choice)
+	_live = str(Settings.menu_style) == "live" and not Settings.is_prod()
 	if not _live:
 		ScreenBase.add_backdrop(self)
 		# a live title's world kept for the way back from a menu is not wanted any more

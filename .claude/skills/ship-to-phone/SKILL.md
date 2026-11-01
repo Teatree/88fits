@@ -14,7 +14,10 @@ can tap exists. The route in use is Google Drive: Drive for Desktop is signed in
    the touch audit (every control on every screen driven by a simulated finger), exports the
    signed **release** APK (`game/export/88fits.apk`, keystore in `tools/keys/`, git-ignored), verifies the signature,
    installs and launches on any phone adb can see, and overwrites `E:/My Drive/88fits builds/88fits.apk`.
-   `--quick` skips tests and smoke run when only art changed; `--no-install` skips adb.
+   `--quick` skips tests and smoke run when only art changed; `--no-install` skips adb. Then the PC build
+   (`88fits.exe`) and, since pass 119, the Google Play bundle (`outlaw_survivors.aab`, `tools/ship_play.sh`: the
+   "Android Play" preset's version code +1, commit `game/export_presets.cfg` with the pass) land beside it in Drive;
+   `--no-pc` / `--no-aab` skip them. The .aab is for the Play Console upload only: a phone cannot install it.
 2. Confirm the sync with the Google Drive connector: search `title contains '88fits.apk'` and check `modifiedTime`
    is within the last few minutes and `fileSize` matches the local file. If the modified time is stale, Drive for
    Desktop is not running: start `C:\Program Files\Google\Drive File Stream\<version>\GoogleDriveFS.exe` and wait a

@@ -147,7 +147,11 @@ static func offer_passives() -> Array:
 		var fav: PassiveDef = Registry.passive(Run.character.favourite_passive)
 		if fav and not fav.hidden and not fav.is_evolved() and not out.has(fav):
 			out.append(fav)
-	return out
+	# pass 119 (lane LEGEND_B): never a Grindstone while no weapon can take its level (Run.grind_idle)
+	out = out.filter(func(p: PassiveDef) -> bool: return not Run.grind_idle(p))
+	# pass 119 (lane LEGEND_A): never an item the hero's own shuts out (Run.shut_out: the Iron Horse / Personal Storm),
+	# so no level-up, Shop or Stranger holds it
+	return out.filter(func(p: PassiveDef) -> bool: return not Run.shut_out(p.id))
 
 
 ## The cards of an offer that may be banished (pass 58, Garry: "Banish option should not allow Banishing items that

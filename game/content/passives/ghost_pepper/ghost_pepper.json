@@ -37,7 +37,8 @@
       "recipe": {
         "subject": "One single fortune-teller tarot card standing upright and tilted about 12 degrees clockwise, filling the picture from top to bottom, seen straight on. The card has a thick gilded gold border with rounded corners, small ornate gold corner pieces and a thin dark line just inside it and a black face. One huge bold symbol fills almost the whole face: one huge horned red devil face breathing a burst of fire, a red chili pepper clenched in its teeth, in red, ember orange and black. The symbol is so big it overlaps the border a little. Nothing else on the card: no stars, no landscape, no corner ornaments, no frame lines inside",
         "style": "Mobile game item icon in the cel-shaded anime style of an action RPG mobile game: crisp confident black line art, a thick clean black outline round the whole silhouette, flat colours with two-tone cel shadows and one sharp highlight, simple chunky shapes, only two or three bold saturated colours plus black and the card's border, high contrast, readable at thumbnail size, centred and filling the frame with a small margin. Nothing is written anywhere: no title banner, no letters, no numbers, no roman numerals",
-        "screen": "green"
+        "screen": "green",
+        "lean": 10
       },
       "painted": {
         "job": "j20261014-014615-8a5c",

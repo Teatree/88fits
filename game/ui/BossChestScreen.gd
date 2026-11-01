@@ -72,6 +72,29 @@ const COIN_PX := 64.0
 ## the run's music under the tune (dB)
 const MUSIC_DUCK := -14.0
 const GEM_PX := 30.0
+## Pass 119, the party (Garry: "All Boss Chest sequences need more coins floating and other floating stuff"): loot that only
+## celebrates, counted nowhere, drawn under the title, the speed bonus, the banner, the counters and CLAIM (never over them).
+## The fountain: loot thrown up out of the mouth from the burst to the last landing, falling past the chest; FOUNTAIN_N
+## pieces, FOUNTAIN_BONUS more at the top speed bonus, the first FOUNTAIN_POP of them in the burst itself; after the last
+## landing FOUNTAIN_LOOP pieces keep it going until CLAIM, each thrown again every FOUNTAIN_LOOP_S seconds.
+const FOUNTAIN_N := 120
+const FOUNTAIN_BONUS := 60
+const FOUNTAIN_POP := 36
+const FOUNTAIN_LOOP := 16
+const FOUNTAIN_LOOP_S := 1.6
+const FOUNTAIN_G := 2300.0
+## The drift: DRIFT_N pieces rising slowly up the screen with a sway from the burst on, round and round until CLAIM.
+const DRIFT_N := 40
+## The twinkles round the open chest.
+const TWINKLE_N := 14
+## The loot's kinds: a coin, an XP gem, a poker chip, a banknote, a scrap of a Wanted poster, a brass star.
+enum Loot { COIN, GEM, CHIP, NOTE, SCRAP, STAR }
+## the fountain's and the drift's mixes, by Loot
+const FOUNTAIN_MIX := [0.5, 0.25, 0.1, 0.05, 0.0, 0.1]
+const DRIFT_MIX := [0.15, 0.1, 0.2, 0.22, 0.18, 0.15]
+const CHIP_COLOURS := [Color("b4472b"), Color("3e6e9e"), Color("241b14"), Color("6e8b5e")]
+const NOTE_GREEN := Color("b9cf98")
+const NOTE_INK := Color("4e6b3a")
 
 var boss_id := ""
 var pack: Dictionary = {}
@@ -102,6 +125,13 @@ var _word_t := -10.0
 var _sparks: Array = []
 ## the coins raining at the end: [t0, x, speed, spin, size]
 var _rain: Array = []
+## pass 119, the party: the fountain [t0, x0, y0, vx, vy, spin, spin_v, size, kind, sub, life, loop (s, 0: once)], the drift [t0, x0, y0,
+## speed, sway, freq, phase, size, kind, sub, period, spin_v] and the twinkles [x, y, period, phase, size]
+var _fountain: Array = []
+var _drift: Array = []
+var _twinkles: Array = []
+var _party: Control
+var _party_rng := RandomNumberGenerator.new()
 var _shake := 0.0
 var _done := false
 var _claiming := false
@@ -140,6 +170,8 @@ func _ready() -> void:
 	_shine.visible = false
 	_rays = _layer(_stage, _draw_rays)
 	_chest = _layer(_stage, _draw_chest)
+	# pass 119: the party over the chest and under everything that reads (the title, the meter, the banner, the counters)
+	_party = _layer(self, _draw_party)
 	build_header("Boss chest", "CHEST", "", 128, W.BRASS)
 	_meter = _layer(self, _draw_meter)
 	_banner = _layer(self, _draw_banner)
@@ -214,6 +246,7 @@ func open(id: String, p: Dictionary) -> void:
 	buttons.visible = false
 	_build_pieces()
 	_build_rain()
+	_build_party()
 	enter()
 	set_process(true)
 	_redraw()
@@ -304,6 +337,80 @@ func _build_rain() -> void:
 			_rng.randf_range(820.0, 1350.0), _rng.randf() * TAU, _rng.randf_range(0.55, 1.0)])
 
 
+## Pass 119, the party (its own dice, so the counted pieces and the rain stay as they were): the fountain out of the mouth
+## through the spew, the drift rising up the screen until CLAIM, the twinkles round the chest.
+func _build_party() -> void:
+	_fountain.clear()
+	_drift.clear()
+	_twinkles.clear()
+	_party_rng.seed = hash([boss_id, "party", gold_total])
+	var floor_y := _foot.y + 260.0
+	var n := FOUNTAIN_N + int(round(float(FOUNTAIN_BONUS) * _bonus_k))
+	for k in range(n + FOUNTAIN_LOOP):
+		var t0 := BURST + _party_rng.randf_range(0.0, 0.15)
+		var loop := 0.0
+		if k >= n:
+			# the finale's fountain, round and round until CLAIM
+			loop = FOUNTAIN_LOOP_S
+			t0 = _end_t + FINALE + FOUNTAIN_LOOP_S * float(k - n) / float(FOUNTAIN_LOOP)
+		elif k >= FOUNTAIN_POP:
+			t0 = SPEW_AT + _rate_inverse((float(k - FOUNTAIN_POP) + 0.5) / float(maxi(n - FOUNTAIN_POP, 1))) * _spew_len
+		var ang := -PI * 0.5 + _party_rng.randf_range(-0.95, 0.95)
+		var sp := _party_rng.randf_range(900.0, 1550.0) * (1.15 if k < FOUNTAIN_POP else 1.0)
+		var v := Vector2.from_angle(ang) * sp
+		var x0 := _mouth.x + _party_rng.randf_range(-120.0, 120.0)
+		var y0 := _mouth.y + _party_rng.randf_range(-10.0, 40.0)
+		# its life: until it has fallen past the chest's foot
+		var life := (-v.y + sqrt(v.y * v.y + 2.0 * FOUNTAIN_G * (floor_y - y0))) / FOUNTAIN_G
+		var kind := _pick_kind(FOUNTAIN_MIX)
+		_fountain.append([t0, x0, y0, v.x, v.y, _party_rng.randf() * TAU, _party_rng.randf_range(-9.0, 9.0),
+			_loot_size(kind), kind, _party_rng.randi_range(0, 3), minf(life, loop) if loop > 0.0 else life, loop])
+	var top := W.safe_top() + 60.0
+	var low := minf(_gold_rect.position.y - 30.0, _foot.y + 220.0)
+	for k in range(DRIFT_N):
+		# most of them up the sides, past the chest rather than over it
+		var x0 := _party_rng.randf_range(40.0, 250.0)
+		if k % 2 == 1:
+			x0 = _vp.x - x0
+		if k % 4 == 3:
+			x0 = _party_rng.randf_range(60.0, _vp.x - 60.0)
+		var y0 := _party_rng.randf_range(_foot.y - 60.0, low)
+		var speed := _party_rng.randf_range(120.0, 230.0)
+		var kind := _pick_kind(DRIFT_MIX)
+		_drift.append([BURST + 0.15 + float(k) * 0.11, x0, y0, speed, _party_rng.randf_range(24.0, 60.0),
+			_party_rng.randf_range(0.35, 0.8), _party_rng.randf() * TAU, _loot_size(kind) * 0.9, kind,
+			_party_rng.randi_range(0, 3), (y0 - top) / speed, _party_rng.randf_range(-1.6, 1.6)])
+	for k in range(TWINKLE_N):
+		var a := _party_rng.randf() * TAU
+		var r := sqrt(_party_rng.randf())
+		_twinkles.append([_mouth.x + cos(a) * r * 330.0, _mouth.y - 60.0 + sin(a) * r * 230.0, _party_rng.randf_range(0.7, 1.3),
+			_party_rng.randf(), _party_rng.randf_range(18.0, 34.0)])
+
+
+func _pick_kind(mix: Array) -> int:
+	var u := _party_rng.randf()
+	for i in range(mix.size()):
+		u -= float(mix[i])
+		if u <= 0.0:
+			return i
+	return Loot.COIN
+
+
+func _loot_size(kind: int) -> float:
+	match kind:
+		Loot.COIN:
+			return _party_rng.randf_range(48.0, 72.0)
+		Loot.GEM:
+			return _party_rng.randf_range(24.0, 36.0)
+		Loot.CHIP:
+			return _party_rng.randf_range(44.0, 60.0)
+		Loot.NOTE:
+			return _party_rng.randf_range(84.0, 108.0)
+		Loot.SCRAP:
+			return _party_rng.randf_range(72.0, 94.0)
+	return _party_rng.randf_range(40.0, 58.0)
+
+
 func _process(delta: float) -> void:
 	if not visible or _claiming:
 		return
@@ -350,7 +457,7 @@ static func _roll(shown: float, target: float, dt: float) -> float:
 
 
 func _redraw() -> void:
-	for c: Control in [_rays, _chest, _meter, _banner, _counters, _fx]:
+	for c: Control in [_rays, _chest, _party, _meter, _banner, _counters, _fx]:
 		c.queue_redraw()
 
 
@@ -870,6 +977,118 @@ func _draw_gem(host: Control, at: Vector2, px: float, kind: int, a: float, rot: 
 	var loop := pts.duplicate()
 	loop.append(pts[0])
 	host.draw_polyline(loop, Color(W.INK, a), maxf(px * 0.09, 2.0), true)
+
+
+## Pass 119, the party: the fountain's loot in its arcs, the drift rising and swaying (round and round, fading in at the
+## bottom and out near the top), the twinkles round the open chest. All a function of the clock, so a seek lands on it.
+func _draw_party() -> void:
+	if not visible or _t < BURST:
+		return
+	for f: Array in _fountain:
+		var age := _t - float(f[0])
+		var life := float(f[10])
+		if age >= 0.0 and float(f[11]) > 0.0:
+			age = fmod(age, float(f[11]))
+		if age < 0.0 or age > life:
+			continue
+		var pos := Vector2(float(f[1]) + float(f[3]) * age, float(f[2]) + float(f[4]) * age + 0.5 * FOUNTAIN_G * age * age)
+		var a := clampf((life - age) / 0.25, 0.0, 1.0) * clampf(age / 0.06, 0.0, 1.0)
+		_loot(int(f[8]), int(f[9]), pos, float(f[7]), float(f[5]) + float(f[6]) * age, a)
+	for d: Array in _drift:
+		var since := _t - float(d[0])
+		if since < 0.0:
+			continue
+		var period := maxf(float(d[10]), 0.5)
+		var age := fmod(since, period)
+		var u := age / period
+		var pos := Vector2(float(d[1]) + float(d[4]) * sin(float(d[5]) * TAU * since + float(d[6])), float(d[2]) - float(d[3]) * age)
+		var a := clampf(age / 0.4, 0.0, 1.0) * clampf((1.0 - u) / 0.18, 0.0, 1.0) * 0.92
+		_loot(int(d[8]), int(d[9]), pos, float(d[7]), float(d[6]) + float(d[11]) * since, a)
+	var fade_in := clampf((_t - BURST) / 0.3, 0.0, 1.0)
+	for tw: Array in _twinkles:
+		var ph := fmod(_t / float(tw[2]) + float(tw[3]), 1.0)
+		var k := sin(ph * PI)
+		if k <= 0.05:
+			continue
+		_twinkle(Vector2(float(tw[0]), float(tw[1])), float(tw[4]) * k, fade_in * k)
+	_party.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## One piece of the party's loot at `pos`, about `px` across, turned by `spin`, at alpha `a`.
+func _loot(kind: int, sub: int, pos: Vector2, px: float, spin: float, a: float) -> void:
+	if a <= 0.01:
+		return
+	match kind:
+		Loot.COIN:
+			_draw_coin(_party, pos, px, spin, a)
+		Loot.GEM:
+			_draw_gem(_party, pos, px, sub % 3, a, sin(spin) * 0.6)
+		Loot.CHIP:
+			# a poker chip flipping: its face squashed by the flip, an ink rim, six white notches, an inner ring
+			_party.draw_set_transform(pos, 0.0, Vector2(maxf(absf(cos(spin)), 0.18), 1.0))
+			var col: Color = CHIP_COLOURS[sub % CHIP_COLOURS.size()]
+			var r := px * 0.5
+			_party.draw_circle(Vector2.ZERO, r, Color(W.INK, a))
+			_party.draw_circle(Vector2.ZERO, r - 3.0, Color(col, a))
+			for i in 6:
+				var d := Vector2.from_angle(TAU * float(i) / 6.0)
+				_party.draw_line(d * (r - 9.0), d * (r - 3.0), Color(W.PAPER, a), 6.0)
+			_party.draw_arc(Vector2.ZERO, r * 0.56, 0.0, TAU, 20, Color(W.PAPER, a * 0.9), 2.5)
+			_party.draw_circle(Vector2.ZERO, r * 0.4, Color(col.lightened(0.15), a))
+			_party.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		Loot.NOTE:
+			# a greenback fluttering: pale green paper, an ink frame, an oval medallion and a dollar sign
+			_party.draw_set_transform(pos, sin(spin) * 0.6, Vector2(1.0, maxf(absf(cos(spin * 0.7)), 0.25)))
+			var w := px
+			var h := px * 0.46
+			var rr := Rect2(-w * 0.5, -h * 0.5, w, h)
+			_party.draw_rect(rr.grow(2.0), Color(W.INK, a))
+			_party.draw_rect(rr, Color(NOTE_GREEN, a))
+			_party.draw_rect(rr.grow(-4.0), Color(NOTE_INK, a * 0.8), false, 2.0)
+			_party.draw_circle(Vector2.ZERO, h * 0.32, Color(NOTE_INK, a * 0.85))
+			_party.draw_string(W.slab(), Vector2(-w * 0.5, h * 0.17), "$", HORIZONTAL_ALIGNMENT_CENTER, w, int(h * 0.5), Color(NOTE_GREEN, a))
+			_party.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		Loot.SCRAP:
+			# a torn scrap of a Wanted poster: aged paper with a jagged edge, two ink lines and a red stamp
+			_party.draw_set_transform(pos, sin(spin) * 0.8, Vector2(maxf(absf(cos(spin * 0.6)), 0.3), 1.0))
+			var w2 := px
+			var h2 := px * 0.7
+			var pts := PackedVector2Array([Vector2(-w2 * 0.5, -h2 * 0.5), Vector2(w2 * 0.1, -h2 * 0.56), Vector2(w2 * 0.5, -h2 * 0.44),
+				Vector2(w2 * 0.42, -h2 * 0.05), Vector2(w2 * 0.52, h2 * 0.5), Vector2(-w2 * 0.05, h2 * 0.42),
+				Vector2(-w2 * 0.3, h2 * 0.55), Vector2(-w2 * 0.52, h2 * 0.1)])
+			var ink := pts.duplicate()
+			ink.append(pts[0])
+			_party.draw_colored_polygon(pts, Color(W.PAPER, a))
+			_party.draw_polyline(ink, Color(W.INK, a), 3.0, true)
+			_party.draw_line(Vector2(-w2 * 0.34, -h2 * 0.22), Vector2(w2 * 0.3, -h2 * 0.22), Color(W.INK, a * 0.85), 5.0)
+			_party.draw_line(Vector2(-w2 * 0.34, -h2 * 0.02), Vector2(w2 * 0.12, -h2 * 0.02), Color(W.INK_SOFT, a * 0.8), 3.0)
+			_party.draw_arc(Vector2(w2 * 0.16, h2 * 0.22), h2 * 0.17, 0.0, TAU, 14, Color(W.ROCK, a * 0.9), 3.0)
+			_party.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		_:
+			# a brass star (the sheriff's), turning
+			_party.draw_set_transform(pos, spin * 0.5, Vector2(maxf(absf(cos(spin * 0.8)), 0.3), 1.0))
+			var star := PackedVector2Array()
+			for i in 10:
+				var rad := px * (0.5 if i % 2 == 0 else 0.23)
+				star.append(Vector2.from_angle(-PI * 0.5 + TAU * float(i) / 10.0) * rad)
+			var loop := star.duplicate()
+			loop.append(star[0])
+			_party.draw_colored_polygon(star, Color(W.BRASS, a))
+			_party.draw_colored_polygon(PackedVector2Array([star[0], Vector2.ZERO, star[8], star[9]]), Color(W.LINE_YELLOW, a))
+			_party.draw_polyline(loop, Color(W.INK, a), 3.0, true)
+			_party.draw_circle(Vector2.ZERO, px * 0.09, Color(W.INK, a))
+			_party.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## A four-point twinkle: two crossed slivers, white at the heart.
+func _twinkle(at: Vector2, size: float, a: float) -> void:
+	var s := size
+	var t := size * 0.16
+	_party.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -s), at + Vector2(t, 0), at + Vector2(0, s), at + Vector2(-t, 0)]),
+		Color(W.LINE_YELLOW, a))
+	_party.draw_colored_polygon(PackedVector2Array([at + Vector2(-s * 0.8, 0), at + Vector2(0, -t), at + Vector2(s * 0.8, 0), at + Vector2(0, t)]),
+		Color(W.LINE_YELLOW, a))
+	_party.draw_circle(at, t * 1.3, Color(1, 1, 1, a))
 
 
 ## Over everything: the pieces in flight, the sparkles where they landed, the coins raining.

@@ -197,9 +197,13 @@ static func _passive(d: Dictionary, dir: String) -> PassiveDef:
 	p.line = bool(d.get("line", false))
 	# pass 100 (lane SMALL): a one-shot item (one level, off the rarity ladder, never offered again once held)
 	p.single = bool(d.get("single", false))
-	# pass 118 (lane ITEMS): rules beside the stats (the Grindstone's grind table)
+	# pass 118 (lane ITEMS): rules beside the stats (pass 119: the Grindstone's `grind`, the legendaries' arc, grave,
+	# purse and bible blocks)
 	var pp = d.get("params", {})
 	p.params = pp if pp is Dictionary else {}
+	# pass 119 (lane LEGEND_A): the items it shuts out (the Iron Horse and Personal Storm, PassiveDef.excludes)
+	var ex = d.get("excludes", [])
+	p.excludes = (ex as Array).map(func(x) -> String: return str(x)) if ex is Array else []
 	# pass 73 (lane CARDS): its looks (the cards' A-E)
 	_passive_variants(p, d, dir)
 	# pass 95 (lane PASSIVES): the icon of an item's Evolved rung (`icon_evolved`, else <id>_icon_evolved.png; none = base)
