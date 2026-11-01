@@ -1028,6 +1028,13 @@
       "volume_db": -6,
       "file": "real/it_storm_strike.wav"
     },
+    "it_ghost_volley": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.12,
+      "volume_db": -12,
+      "file": "real/it_ghost_volley.wav"
+    },
     "it_phoenix": {
       "category": "player",
       "voices": 1,

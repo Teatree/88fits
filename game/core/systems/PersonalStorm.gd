@@ -2,7 +2,7 @@
 ## the area with 'clouds moving in' and for a period of time lighting strikes randomly at various spots causing damage
 ## and significant knockback to enemies (it strikes not just enemies but all around the ground, with a preference for
 ## enemy groups). Strikes leave a mark on the ground that fades away after some time"). Every `storm_every` s (the
-## item's stat: 30 at Legendary, 24 Evolved) one storm:
+## item's stat: 45 at Legendary, 36 Evolved since pass 120; 30 and 24 before) one storm:
 ##   1. the clouds gather (params.storm.gather s): cloud shadows roll in over a circle of `radius` m round the hero and
 ##      drift with the wind (core/shaders/storm_shadow.gdshader, laid on the sand), the screen dims under an overcast
 ##      that creeps in from its edges (storm_dim.gdshader on a canvas layer under the HUD), thunder rolls;
@@ -30,7 +30,7 @@ const SCORCH_IN := Color(0.07, 0.07, 0.11, 0.85)
 const SCORCH_OUT := Color(0.22, 0.18, 0.2, 0.0)
 ## Every rule number's default (the item's params.storm names each; BALANCING 61.LEGEND_A).
 const DEFAULTS := {
-	"every": 30.0, "seconds": 8.0, "first": 4.0, "gather": 1.6, "clear": 1.6, "radius": 9.0, "follow": 1.2,
+	"every": 45.0, "seconds": 8.0, "first": 4.0, "gather": 1.6, "clear": 1.6, "radius": 9.0, "follow": 1.2,
 	"rate": 2.0, "crowd_share": 0.75, "samples": 6.0, "strike_r": 2.0, "tell": 0.3, "damage": 40.0,
 	"stage_scaled": 1.0, "big_mult": 0.5, "knock": 34.0, "big_knock": 0.4, "hero_clear": 1.6, "apart": 2.0,
 	"mark_hold": 2.0, "mark_fade": 4.0, "dim": 0.3, "darkness": 0.4, "shadow_scale": 1.6,
@@ -88,7 +88,7 @@ static func active() -> bool:
 	return Run.passives.has(ID)
 
 
-## Seconds between two storms now (the item's storm_every: 30 Legendary, 24 Evolved).
+## Seconds between two storms now (the item's storm_every: 45 Legendary, 36 Evolved).
 static func every() -> float:
 	return maxf(Run.player_sheet.get_stat("storm_every", param("every")), 1.0)
 

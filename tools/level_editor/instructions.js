@@ -762,6 +762,13 @@ const Instructions = (() => {
       '<b>Move</b>: drag its star along the lane (it snaps to the ends of rows and waves; hold Alt to drag freely), or type its time in the inspector; the arrow keys nudge it a second (Shift: ten).',
       '<b>Delete</b>: click it, then the Delete key or the inspector\'s <b>Delete</b>. <b>Save</b> (Ctrl+S) writes the map.'));
 
+    // pass 120 (lane EDITOR; Garry: "I wanted to make the 4th Spider Row a guaranteed specials with a Split modifier")
+    how('Make a row of guaranteed specials, with an Elite modifier too', 'Pass 120: a row set to <b>Special</b> brings every creature as its coloured special, whatever its chance; with an <b>Elite modifier</b> as well, each one is both (the special\'s numbers, the modifier\'s HP, scale, powers and colour on top; it drops what an Elite drops). A creature with no variance block (the Desert Spider) takes Settings → <b>Coloured specials</b>.', ol(
+      'Timeline → the row → the inspector\'s Creature group: tick <b>Special</b>, pick the <b>Elite modifier</b>. The note under Special says what each one comes with.',
+      'A row with <b>Special</b> ticked never waits for colour: its creatures come at their second, each wearing its modifier, even before Colour after kills. An elite row WITHOUT Special waits for colour (Settings → Spawning → <b>Colour after kills</b>: that many kills in the stage\'s run): a wave due before then waits, and one whose window closes first never comes. Hover the row: its card says when it comes in the estimate after waiting, or says in red that it would bring nothing; the Warnings section lists it too. Give such a row a later or longer window (Until), or lower Colour after kills.',
+      'Every creature\'s Max alive counts every row of that creature: a once row of a creature another row is still bringing may find no room (its card names the row that holds it).',
+      'Spawned so far splits the elite-modified into what rows always bring and what the roster draw (Elites every) brings by chance, and the coloured into Special rows and chance.'));
+
     how('Set a hero\'s price and unlock requirement', null, ol(
       'Heroes tab → the hero → <b>Availability</b> → Availability <b>to buy</b> → <b>Price</b> (whole gold) → Currency gold → <b>Save asset</b>.',
       '<b>Requirement</b> (under it) → <b>+ Add a requirement</b> (or <b>Edit requirement</b>) → Condition (kill the stage boss, kills in all, survive minutes, reach a level, extract after a stage, ...) and its numbers → <b>Create requirement</b>. It writes <code>content/quests/unlock_&lt;hero&gt;</code> at once (unlocks {type character}) and shows the words the title will show ("Kill 2,500 creatures, all time.").',

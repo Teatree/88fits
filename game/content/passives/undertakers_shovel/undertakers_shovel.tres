@@ -28,26 +28,19 @@ target = "player"
 
 [sub_resource type="Resource" id="Resource_booyn"]
 script = ExtResource("3_w5oi1")
-stat = "grave_damage_pct"
-op = "set"
-value = 40.0
-target = "player"
-
-[sub_resource type="Resource" id="Resource_ytfa1"]
-script = ExtResource("3_w5oi1")
 stat = "grave_every"
 op = "set"
 value = 15.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_rn83k"]
+[sub_resource type="Resource" id="Resource_ytfa1"]
 script = ExtResource("3_w5oi1")
 stat = "grave_max"
 op = "set"
 value = 6.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_c74fl"]
+[sub_resource type="Resource" id="Resource_rn83k"]
 script = ExtResource("3_w5oi1")
 stat = "grave_seconds"
 op = "set"
@@ -56,26 +49,48 @@ target = "player"
 
 [resource]
 script = ExtResource("4_booyn")
-levels = [[SubResource("Resource_72g8c"), SubResource("Resource_3mcc7"), SubResource("Resource_w5oi1"), SubResource("Resource_booyn")], [SubResource("Resource_ytfa1"), SubResource("Resource_rn83k"), SubResource("Resource_c74fl")]]
+levels = [[SubResource("Resource_72g8c"), SubResource("Resource_3mcc7"), SubResource("Resource_w5oi1")], [SubResource("Resource_booyn"), SubResource("Resource_ytfa1"), SubResource("Resource_rn83k")]]
 repeat_last_level = false
 max_level = 2
 evolved_icon = ExtResource("1_72g8c")
 params = {
 "grave": {
+"bolt_color": "#7fe0ff",
+"bolt_core": "#f2fdff",
+"bolt_life": 2.4,
+"bolt_rim": "#6a4ccc",
+"bolt_size": 0.55,
+"bolt_speed": 8.0,
+"bolt_turn": 5.0,
+"bolts_exp": 0.6,
+"bolts_max": 6.0,
+"bolts_mult": 1.0,
+"circle_radius": 1.5,
 "climb": 0.7,
-"fire_max": 1.5,
-"fire_min": 0.25,
+"curve": 14.0,
+"damage": 3.2,
+"damage_exp": 0.9,
+"fan": 32.0,
+"first_volley": 0.35,
 "ghost_alpha": 0.85,
+"ghost_back": "undertakers_shovel_ghost_back.png",
+"ghost_front": "undertakers_shovel_ghost_front.png",
+"ghost_height": 1.55,
+"ghost_mix": 0.45,
 "ghost_tint": "#7fe6ff",
 "height": 1.25,
-"range_max": 12.0,
-"range_min": 6.0,
+"hover": 0.35,
+"lap_seconds": 4.0,
+"lift": 0.35,
+"range": 9.0,
 "rise": 2.0,
-"round": "#bff6ff",
+"sound": "it_ghost_volley",
+"spiral": 0.8,
 "sprite": "undertakers_shovel_grave.png",
 "stone_down": 0.6,
 "stone_up": 0.45,
-"vanish": 0.6
+"vanish": 0.6,
+"volley_every": 1.0
 }
 }
 id = "undertakers_shovel"

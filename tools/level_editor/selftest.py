@@ -755,6 +755,8 @@ def spawn_estimate(tl, creatures, opts=None):
                            "pack": max(trunc(numv(r.get("pack"), d["pack"] if d else 1)), 1), "single": r.get("pattern") == "single",
                            "one": one, "picks": picks, "mix": row_in_mix_py(r), "once": str(r.get("pace")) == "once", "timer": row_timer_py(r),
                            "elite": row_elite_py(r), "special": bool(r.get("special")), "next": None,
+                           # pass 120 (lane EDITOR): the "roster" creature (its elites drawn, not named by the row)
+                           "draw": r.get("enemy") == ROW_ENEMY_ROSTER,
                            "p": min(max(numv(r.get("chance"), 1), 0), 1) if row_paced_py(r) else 1,
                            # pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves
                            "paced": row_paced_py(r), "drawn": row_drawn_py(r), "wk": -1, "owed": 0,
@@ -769,7 +771,8 @@ def spawn_estimate(tl, creatures, opts=None):
          "boss_alive": None, "kills": 0.0, "colour_at": None, "ev_i": 0, "held_retry": 0.0, "sp_left": -1}
     cum, col, mod = {}, {}, {}
     src_cum = {}
-    cat = {"reg": 0.0, "col": 0.0, "mod": 0.0, "elite": 0.0, "special": 0.0, "boss": 0.0, "minion": 0.0}
+    # pass 120 (lane EDITOR): colForced (from Special rows), modRow (named by their row), both (Special + an Elite modifier)
+    cat = {"reg": 0.0, "col": 0.0, "mod": 0.0, "elite": 0.0, "special": 0.0, "boss": 0.0, "minion": 0.0, "colForced": 0.0, "modRow": 0.0, "both": 0.0}
     S["col_alive"] = 0.0
     marks, fights = [], []
 
@@ -825,7 +828,17 @@ def spawn_estimate(tl, creatures, opts=None):
     def bump(m, cid, n):
         m[cid] = m.get(cid, 0) + n
 
-    def add(d, n, kind):
+    def colour_open_for(x):
+        # pass 120 (the lead, WaveDirector.colour_open_for): a row set to Special is colour-open from the start
+        return colour_open() or bool(x and x.get("special"))
+
+    def row_kind(x, open_):
+        # pass 120 (lane EDITOR): Special on = every one its coloured special, with an Elite modifier (colour open) both
+        if x["special"]:
+            return "forced_mod" if x["elite"] and open_ else "forced"
+        return "mod" if x["elite"] and open_ else "reg"
+
+    def add(d, n, kind, draw=False):
         if not n > 0 or not d:
             return
         key = d["id"] + "|" + repr(float(d["share"]))
@@ -839,16 +852,22 @@ def spawn_estimate(tl, creatures, opts=None):
             cat["elite"] += n
             return
         cat["reg"] += n
-        if kind == "mod":
+        if kind in ("mod", "forced_mod"):
             cat["mod"] += n
             bump(mod, d["id"], n)
+            if not draw:
+                cat["modRow"] += n
+        if kind == "mod":
             return
-        if kind == "forced":
-            # pass 69 (lane EN): a swarm set to special: every one coloured, colour or not
+        if kind in ("forced", "forced_mod"):
+            # pass 69 (lane EN): a swarm set to special: every one coloured, colour or not; pass 120: both with a modifier
             if d["arch"] == "regular":
                 cat["col"] += n
+                cat["colForced"] += n
                 bump(col, d["id"], n)
                 S["col_alive"] += n
+                if kind == "forced_mod":
+                    cat["both"] += n
             return
         if d["arch"] == "regular" and d["chance"] > 0 and colour_open():
             c = min(n * d["chance"], max(sp_col_cap - S["col_alive"], 0))
@@ -1000,9 +1019,9 @@ def spawn_estimate(tl, creatures, opts=None):
             n = min(n, max(math.ceil(room / max(picks_share(picks), 0.05)), 1))
         if not n > 0:
             return
-        kind = "forced" if x["special"] else ("mod" if x["elite"] and colour_open() else "reg")
+        kind = row_kind(x, colour_open_for(x))
         for pk in picks:
-            add(pk["d"], n * pk["share"], kind)
+            add(pk["d"], n * pk["share"], kind, x["draw"])
         bump(src_cum, x["key"], n)
         x["owed"] = max(x["owed"] - n, 0)
         if x["once"]:
@@ -1046,7 +1065,7 @@ def spawn_estimate(tl, creatures, opts=None):
                     x["next"] = start
                 if t < x["next"]:
                     continue
-                if x["elite"] and not colour_open():
+                if x["elite"] and not colour_open_for(x):
                     x["next"] = t + 1
                     continue
                 i, wt = x["wk"] + 1, t
@@ -1061,7 +1080,10 @@ def spawn_estimate(tl, creatures, opts=None):
                 continue
             if x["elite"] and "pattern" not in x["r"]:
                 en = "" if x["r"].get("enemy") == ROW_ENEMY_ROSTER else x["r"].get("enemy")
-                spawn_elite(en, x["r"].get("enemy_weights"), x["r"]["stats"] if is_obj(x["r"].get("stats")) else {}, x["p"] * max(trunc(numv(x["r"].get("count"), 1)), 1))
+                got = spawn_elite(en, x["r"].get("enemy_weights"), x["r"]["stats"] if is_obj(x["r"].get("stats")) else {}, x["p"] * max(trunc(numv(x["r"].get("count"), 1)), 1), x["special"])
+                # pass 120 (lane EDITOR): filed under the row too
+                if got > 0:
+                    bump(src_cum, x["key"], got)
                 continue
             x["owed"] = max(trunc(numv(x["r"].get("count"), x["pack"])), 1) * x["p"]
             row_wave_spawn(x)
@@ -1080,10 +1102,11 @@ def spawn_estimate(tl, creatures, opts=None):
 
     held, timers = [], []
 
-    def spawn_elite(enemy, weights, stats, p):
-        if not colour_open():
+    def spawn_elite(enemy, weights, stats, p, forced=False):
+        if not colour_open() and not forced:
             held.append({"enemy": enemy, "weights": weights, "stats": stats, "p": p})
-            return
+            return 0
+        kind = "forced_mod" if forced else "mod"
         st = stats if is_obj(stats) else {}
         n, cid = 0.0, ""
         picks = pick_shares(enemy, weights)
@@ -1098,7 +1121,7 @@ def spawn_estimate(tl, creatures, opts=None):
                     continue
                 pack = max(trunc(numv(c["x"]["r"].get("pack"), d["pack"])), 1)
                 m = p * (c["x"]["d"]["eliteWeight"] / s) * elite_count(d["formats"], pack)
-                add(d, m, "mod")
+                add(d, m, kind, True)
                 n += m
                 if not cid:
                     cid = d["id"]
@@ -1108,12 +1131,13 @@ def spawn_estimate(tl, creatures, opts=None):
                 if not d:
                     continue
                 m = p * pk["share"] * elite_count(d["formats"], d["pack"])
-                add(d, m, "mod")
+                add(d, m, kind)
                 n += m
                 if not cid:
                     cid = d["id"]
         if n > 0:
             marks.append({"t": clock(), "kind": "mod", "id": cid, "n": n})
+        return n
 
     def spawn_elite_boss(enemy, weights, stats, p):
         n, cid = 0.0, ""
@@ -1286,12 +1310,12 @@ def spawn_estimate(tl, creatures, opts=None):
         for i, c in enumerate(lst):
             n = got[i] * scale
             x = c["x"]
-            kind = "forced" if x["special"] else ("mod" if x["elite"] else "reg")
+            kind = row_kind(x, True)
             if x["one"]:
                 add(x["d"], n, kind)
             else:
                 for q in pk[i]:
-                    add(q["d"], n * q["share"], kind)
+                    add(q["d"], n * q["share"], kind, x["draw"])
             bump(src_cum, x["key"], n)
             used += n
         return left - used
@@ -1327,7 +1351,7 @@ def spawn_estimate(tl, creatures, opts=None):
             return
 
         def drawn_now(c):
-            return c["x"]["drawn"] and (not c["x"]["elite"] or colour_open())
+            return c["x"]["drawn"] and (not c["x"]["elite"] or colour_open_for(c["x"]))
         if due is None:
             starve_check(tr, room, left, hell_frac() * cap - hl)
         regular, rf = interval_part([c for c in open_rows(rows_at(tr, False)) if drawn_now(c)], due)
@@ -1461,7 +1485,7 @@ def spawn_estimate(tl, creatures, opts=None):
         if not room > 0 or not left > 0:
             return
         t = now()
-        lst = [c for c in open_rows(rows_at(tr, False)) if c["x"]["drawn"] and (not c["x"]["elite"] or colour_open())]
+        lst = [c for c in open_rows(rows_at(tr, False)) if c["x"]["drawn"] and (not c["x"]["elite"] or colour_open_for(c["x"]))]
         ws = [roster_weight(c["x"]["r"], t, late_t) for c in lst]
         W = 0.0
         for w in ws:
@@ -1481,12 +1505,12 @@ def spawn_estimate(tl, creatures, opts=None):
             if not n > 0 or not pk[i]:
                 continue
             x = c["x"]
-            kind = "forced" if x["special"] else ("mod" if x["elite"] else "reg")
+            kind = row_kind(x, True)
             if x["one"]:
                 add(x["d"], n, kind)
             else:
                 for q in pk[i]:
-                    add(q["d"], n * q["share"], kind)
+                    add(q["d"], n * q["share"], kind, x["draw"])
             bump(src_cum, x["key"], n)
 
     points = []
@@ -1502,7 +1526,8 @@ def spawn_estimate(tl, creatures, opts=None):
         starve = {key: (T["starve"][key] / T["checks"] if T["checks"] > 0 else 0) for key in T["starve"]}
         hl = load_of(hell_ids(rows_at(now() if S["phase"] == 0 else now() - 1, True)))
         points.append({"t": SR["end"] + S["sr_after"] if SR is not None and S["sr_after"] > 0 else clock(), "after": after, "all": total(), "reg": cat["reg"], "col": cat["col"], "mod": cat["mod"],
-                       "elite": cat["elite"], "special": cat["special"], "boss": cat["boss"], "minion": cat["minion"], "kills": S["kills"], "alive": bodies(), "by": by,
+                       "elite": cat["elite"], "special": cat["special"], "boss": cat["boss"], "minion": cat["minion"],
+                       "colForced": cat["colForced"], "modRow": cat["modRow"], "both": cat["both"], "kills": S["kills"], "alive": bodies(), "by": by,
                        "src": dict(src_cum), "cap": cap_now(), "load": load_all() - hl,
                        "floor": sample_points(floor_curve, now()) if floor_curve else 0,
                        "full": T["full"] / T["checks"] if T["checks"] > 0 else 0, "aliveBy": alive_by, "starve": starve})
@@ -2144,7 +2169,8 @@ def estimate_diff(js, py):
         if pj["t"] != pp["t"] or pj["after"] != pp["after"]:
             out.append("point at %s/%s after %s/%s" % (pj["t"], pp["t"], pj["after"], pp["after"]))
             break
-        for k in ("all", "reg", "col", "mod", "elite", "special", "boss", "minion", "kills", "alive"):
+        # pass 120 (lane EDITOR): the coloured from Special rows, the elite-modified named by their row, the both
+        for k in ("all", "reg", "col", "mod", "elite", "special", "boss", "minion", "kills", "alive", "colForced", "modRow", "both"):
             if not est_close(pj[k], pp[k]):
                 out.append("%s at %s: js %s py %s" % (k, pj["t"], pj[k], pp[k]))
         if set(pj["by"]) != set(pp["by"]):

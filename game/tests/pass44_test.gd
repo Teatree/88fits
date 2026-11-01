@@ -74,12 +74,18 @@ func test_half_the_items_sit_behind_quests_spread_over_the_stages() -> void:
 	# pass 54: 57 / 39 / 4. The map's timeline (the Level Editor's placement) brings the fire ants at 9:19, the mummies
 	# at 7:10 and the armadillos at 12:11 of a 7:10 stage, so the Land Mine, the Lob Grenade, Thirst, Big Mouth and
 	# Killer Bees are stage-2 quests now: 13 / 9 / 1 of 23
+	# (pass 120: a quest whose creature comes in no stage, stage_hint 0, is left out of the spread: Big Mouth's armadillos
+	# since Garry's r23 brings blue slimes; pass100_QUESTS names it)
 	var by_stage := {1: 0, 2: 0, 3: 0}
+	var placed := 0
 	for q in locked:
+		if QuestTracker.stage_hint(q) <= 0:
+			continue
 		var s: int = clampi(QuestTracker.stage_hint(q), 1, 3)
 		by_stage[s] += 1
-	assert_float(float(by_stage[1]) / float(locked.size())).is_between(0.48, 0.66)
-	assert_float(float(by_stage[2]) / float(locked.size())).is_between(0.30, 0.48)
+		placed += 1
+	assert_float(float(by_stage[1]) / float(placed)).is_between(0.48, 0.66)
+	assert_float(float(by_stage[2]) / float(placed)).is_between(0.30, 0.48)
 	assert_int(by_stage[3]).is_between(1, 2)
 	# the quests name real things, and every locked passive is kept out of the offers
 	for q in locked:

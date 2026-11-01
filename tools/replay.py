@@ -154,7 +154,43 @@ def viewer_args(a, path):
             v.append("demo_seek=" + str(a.demo_seek))
     if a.quit_after:
         v.append("quit_after=%g" % a.quit_after)
+    if getattr(a, "code_note", ""):
+        v.append("code_note=" + a.code_note)
     return v
+
+
+def code_changes(h):
+    """Pass 120 (lane REPLAY): for a run recorded from the editor binary, the commits that changed game/ since it was
+    recorded (newest first, [(hash, subject)]), or None when git cannot tell. A recording from before pass 120 names no
+    files of its own, so this is how the replay can say the game changed since (the viewer's header shows it)."""
+    utc = int(h.get("recorded_utc") or 0)
+    if utc <= 0:
+        return None
+    try:
+        out = subprocess.run(["git", "log", "--since=@%d" % utc, "--format=%h %s", "--", "game"], cwd=ROOT,
+                             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    rows = []
+    for ln in out.stdout.splitlines():
+        if ln.strip():
+            hh, _, subj = ln.partition(" ")
+            rows.append((hh, subj))
+    return rows
+
+
+def code_words(h):
+    """The plain words for code_changes (empty when nothing changed or git cannot tell)."""
+    rows = code_changes(h)
+    if not rows:
+        return ""
+    subj = rows[0][1].split(":")[0]
+    if len(subj) > 40:
+        subj = subj[:37] + "..."
+    return "%d commit%s changed the game since this run (newest %s, %s): it goes out of step because the code changed, not through a fault in the replay." % (
+        len(rows), "" if len(rows) == 1 else "s", rows[0][0], subj)
 
 
 ## Builds stamped before this one draw the phone's camera-cutout band (CutoutBand) across the top of the whole replay
@@ -291,6 +327,12 @@ def play(a, path, h):
     if bid.startswith("editor-") or bid.startswith("dev-"):
         say("recorded from the editor binary, not a shipped build: it replays on the repo AS IT IS NOW (if the code or "
             "the content changed since the run, the replay may go out of step; the viewer's light says so)")
+        # pass 120 (lane REPLAY): say whether it did (the viewer's header says it too). A recording from pass 120 on names
+        # its files (build.code) and the viewer compares them exactly; an older one is told by git's commits since
+        words = "" if (h.get("build") or {}).get("code") else code_words(h)
+        if words:
+            say(words)
+            a.code_note = words
         return run_editor(a, path, a.wait)
     b, exact = B.find(bid)
     if b is not None and exact and b["exe"]:

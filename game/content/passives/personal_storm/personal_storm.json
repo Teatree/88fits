@@ -10,7 +10,7 @@
       {
         "stat": "storm_every",
         "op": "set",
-        "value": 30,
+        "value": 45,
         "target": "player"
       },
       {
@@ -24,7 +24,7 @@
       {
         "stat": "storm_every",
         "op": "set",
-        "value": 24,
+        "value": 36,
         "target": "player"
       },
       {

@@ -9,7 +9,7 @@
 script = ExtResource("3_l1jnc")
 stat = "hit_cap_pct"
 op = "set"
-value = 12.0
+value = 35.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_rt1w0"]
@@ -30,7 +30,7 @@ target = "player"
 script = ExtResource("3_l1jnc")
 stat = "hit_cap_pct"
 op = "set"
-value = 9.0
+value = 30.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_a2dmc"]

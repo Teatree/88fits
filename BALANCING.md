@@ -8894,3 +8894,251 @@ face, 0.14 s apart (MOUTHFUL_GAP): a small splat that pops and breaks up and nin
 blood pool's ring (no new node, shader or material), as if he took a mouthful to spit through the flame. Once a cooldown;
 a look only (its rolls are the pool's own dice). `params.breath.mouthful: false` turns it off (pass 116's `ready_sign` key
 is gone).
+
+## 62. Pass 120: the Undertaker's ghost, the revolver wipe into a run, the legendaries retuned, a special that wears a modifier, the editor's row card, replays with a revive
+
+### 62.LEAD
+
+- **Personal Storm** (Garry: "Make it so it appears every 45s instead of every 30s"): `storm_every` 45 at Legendary (was
+  30), 36 Evolved (was 24; my decision: the same 0.8 of the base as before). PersonalStorm.DEFAULTS.every 45.
+- **Pocket Bible** (Garry: "Make it so every attack doesn't take more than 35% of heroes' Max HP"): one cap for every hit,
+  `hit_cap_pct` 35 and `boss_hit_cap_pct` 35 at Legendary (were 12 and 35); Evolved 30 and 30 (were 9 and 30; my decision:
+  the evolution keeps its 5 points under the base). The block every 20 s (15 Evolved) is unchanged and still never takes a
+  boss's hit. The card names the boss's share only when it differs (TextGen.bible_text).
+- **Iron Horse** (Garry: "every 30s at the start and make it so the foreshadowing (the warning of the light showing) is
+  double the time, and the train moves at 75% of the current speed"): `train_every` 30 at Legendary (was 20), 22 Evolved
+  (was 15; my decision: about the same 0.75 of the base); `params.train.rumble` 2.4 s (was 1.2: the rumble, the shake and
+  the headlight glimmer at the screen's edge) and `warn` 2.0 s (was 1.0: the whistle to the engine's nose at the hero, the
+  rails' glow and the headlight's beam); `speed` 22.5 m/s (was 30). The engine now comes onto the rails about 0.93 s
+  after the whistle (2.0 - 24 / 22.5; was 0.2 s) and takes about 3.3 s over the 48 m of rails (was 2.5 s). The rumble's
+  sound is 2.0 s long, so the last 0.4 s of the longer rumble is the shake and the light alone. IronHorse.DEFAULTS follow.
+- **A forced special can wear an elite modifier** (Garry: "I wanted to make the 4th Spider Row a guaranteed specials with
+  a Split modifier, but I can't tell if I made it so they are guaranteed to spawn as specials. I set the Spider to
+  isSpecial = TRUE, but it's giving me a warning"). A roster row or event with `"special": true` (EnemyManager.force_special)
+  brings every creature of it as its coloured special, as before whatever its chance, colour_after_kills and the specials'
+  max alive, and now also:
+  - when it wears the row's `elite` modifier: it is both. The modifier's numbers first (its effects: the Splitter's HP
+    "mul" 1.5 = x2.5, its scale x1.6), then the special's on top (x15 HP, x3.5 damage on Red Canyon, x2 XP, x1.5 size,
+    the glow); it is drawn in the modifier's colour (tint_of: an elite's outline colour wins the tint), so its glowing rim
+    is that colour; its powers are the modifier's (the Splitter's four children are plain creatures at 0.6 size, never
+    specials). It drops what an elite-modded creature drops (the ordinary chest, always); the special's own chest is not
+    added on top (EnemyManager._special_chest_drop skips an elite-modded one, as before). It counts as a special for the
+    max alive (specials_alive) like any forced one.
+  - when its creature has no variance block (the Desert Spider has none): its numbers come from the map's
+    `special_defaults`, else EnemyDef.SPECIAL_DEFAULTS (size x1.5, HP x15, damage x2, XP x2, glow 0.6, tint strength 0.6),
+    and its colour from the creature's `variance.special.tint`, else the map's `special_defaults.tint`, else
+    EnemyDef.SPECIAL_TINT #8A1428 (the Goblins' crimson). Before pass 120 such a row brought plain creatures.
+  - a random special roll (special_chance) still never lands on an elite-modded creature: only `special: true` makes both.
+
+### 62.EDITOR
+
+The Level Editor reads the rules above; nothing here changes the game (docs/level_editor.md "Pass 120 (lane EDITOR)").
+- **SPD on a row's card** (Garry: "we should also surface SPD (Speed) at the same level of visual priority"): the walk
+  speed in m/s at spawn, as EnemyManager.spawn makes it: the row's `stats.speed` (m/s, replacing the creature's own) or
+  the creature's `speed`, x `stats.speed_mult`, x (1 + `speed_per_stage` x the stage), x `move_pace` (at least 0.05) x
+  `creature_speed_mult`. Red Canyon's r68: 2.1 x 1.1 x 0.9 x 0.9 = 1.87 m/s. Not in the number (named on the card's
+  factor line): the variance spread per spawn, an elite modifier's speed effect, far_speed, Endless, the Stakes.
+- **The estimate's split** (Garry: "estimates the number of Elitted Regular enemies with the accounting for our
+  guaranteed Elitted Regular enemies"): elite-modified = from rows that always bring one (a row, wave or event with an
+  Elite modifier naming its creature) + by chance (the roster draw: Elites every, an elite event naming none, Endless's);
+  coloured specials = from Special rows (every one) + by chance (special_chance after colour_after_kills, under Max
+  alive); a row with both counts in both. My decision: colour is modelled as before, at the step the expected kills
+  reach colour_after_kills; an elite row's wave due before that waits a second at a time (the game's timer) and brings
+  nothing when its window closes first. A row set to Special never waits (the lead's WaveDirector.colour_open_for,
+  mirrored in the estimate as `colourOpenFor`): its elites and specials count as guaranteed from its first wave, so r68
+  now counts its 3 spiders, both, at 7:49 (it had counted 0: colour ≈8:31 in Nightfall's run).
+
+### 62.STARTGO
+
+The way into a run (ui/RunCurtain.gd, UiFx.go_run; Garry: "When tapping Start let's make a smooth transition animation with
+like a Revolver cut out thing collapsing in on the center of the screen. - Proper loading screen (just reuse the same one we
+already have) for loading the game should follow as well."). Every number below is my decision.
+
+- **One entry point.** The title's PLAY (stage 1, before stage 1 is beaten) and ARENA, a Stages card, Results' PLAY AGAIN and
+  the developer menu's Arena all call UiFx.go_run; UiFx.go of res://game/Game.tscn goes there too. Tools (smoke_run,
+  arena_check, touch_audit's own launches, the sim, the Watch, the shots) and the replay viewer start Game.tscn themselves
+  and never see the curtain.
+- **The wipe** (WIPE 0.5 s from the tap). The screen being left is seen through a revolver's cylinder seen end-on, ink
+  (W.INK) round it: chambers 0.58 of its radius out and 0.24 round, flutes cut into the rim by circles 0.15 round 1.03 out
+  between them, the pin's hole 0.08 round. Its middle is the screen's middle under the cutout's band (x 0.5, y between
+  W.safe_top() and the bottom). Its radius is e^(-2.5 k) x (1 - k^6) of the one that hides nothing (the flutes' deepest
+  point 4 px past the farthest corner) at k (0..1) of the wipe: the same share smaller every frame, the whole cylinder on a
+  portrait screen from about a third of the way, a snap at the end. The chambers open over the first 35%, the pin's hole
+  between 15% and 45%, an ink shade 0.35 strong inside the rim (a hole's edge, falling off over 6% of the radius) over the
+  first 20%. It turns 240 degrees clockwise (30 - 240 (1 - k)^1.5: slowing to a stop) and stops with a chamber at 12
+  o'clock. The cylinder's spin w_hip_spin plays from the tap (its clicks slowing down; its loudest at 0.43-0.48 s, as it
+  snaps). The screen left is freed at the snap, under the ink; the ink holds SNAP_HOLD 0.05 s.
+- **The loading screen** is Boot's own (the wallpaper, the plate's punch, its timings, its clock capped at 1/30 s a frame),
+  with no paper: it comes out of the ink through the same cylinder opening from the same middle (REVEAL 0.3 s = SLAM_AT,
+  the close played backwards, turning 60 degrees more), so the plate punches in as it is fully open. Game.tscn loads on a
+  thread from the tap; the Game is built once the slam has settled (1.02 s) and no sooner than BUILD_LEAD 1/30 s before
+  MIN_SHOW (1.15 s), so its long _ready never freezes the slam and its first frame is drawn under the curtain.
+- **The open** (OPEN 0.4 s), from MIN_SHOW and once the Game has drawn a frame: the cylinder opens a third time, from where
+  the spawn beam stands on the screen (the hero's landing spot unprojected; the hero without a beam (the arena); kept 120 px
+  inside the edges; the middle when there is no camera), turning 60 degrees more, the run seen through it, a 6 px ink line
+  round the cut-out on the loading screen's side (thinning with the chambers as they close up). The curtain then goes.
+- **The curtain** is a CanvasLayer at 120 on the root (over the cutout's band 110 and UiFx's fade 100), so it survives the
+  scene change. While it wipes and loads it is the root's last child and marks every input event handled (no tap, drag,
+  key or click reaches the screen under it or the run being built), its rect stops the GUI's, and UiFx.go drops any other
+  scene change asked meanwhile (a second tap, the back gesture of the screen being left); a second go_run returns the
+  curtain already up. From the open on, input reaches the run (a press hurries the landing as before). If someone changes
+  the scene under it before the run is built (a tool) it goes and builds nothing; if Game.tscn cannot be loaded at all it
+  goes back to the title once the screen is ink.
+- **The landing counts a long frame as one step** (Game.SPAWN_MAX_STEP 1/30 s in _tick_spawn): the run's first frames carry
+  its build and its first draw; counted whole they threw the beam forward (before this pass a slow phone's first frame
+  could eat the beam's 0.5 s alone and half the descent). Every run, tools' and replays' alike (a replay reads the recorded
+  frame through Lockstep.dt, so it caps the same). Under the curtain the landing now runs about 0.05 s before the open.
+- **Boot at the app's start is unchanged**: the cylinder is in its one draw but off (iris_mode 0); its paper, fade, slam,
+  dissolve, band handling, replay hand-off and failure line are as in pass 119.
+
+### 62.GHOST
+
+The Undertaker's Shovel's ghost reworked (content/passives/undertakers_shovel; core/systems/Graveyard.gd, GhostBolts.gd,
+core/shaders/ghost_bolt.gdshader). Garry: "Currently the ghost rises and stands there looking rather weird. Let's make him
+run in a circle around the grave (or where the grave was) instead ... Also, the weapons don't show up on the ghost at the
+moment. Actually instead of the ghost being Player's hero let's make it an actual floating ghost. It still 'runs' around
+instead of standing still, but it's the same visual for every hero. It's a 2 sided sprite and it's mostly staying still.
+Also attacks, instead of being the same as the ones the hero has should be kind of ghostly projectiles like ones in
+Warcraft 3 ziggurat attack. The count of those projectiles as well as the damage scale with hero power. The higher the
+hero power the more projectiles fly in different directions from the ghost and the more damage they do. Cap is 6
+projectiles at the same time. The attacks carry no knockback to the enemies." Every number below is in the item's
+`params.grave` (code defaults in Graveyard.DEFAULTS) unless named as a constant.
+
+**Unchanged from 61.LEGEND_B**: one kill in 25 digs a grave (Evolved 15), at most 4 graves (Evolved 6), a ghost's fight 8 s
+(Evolved 12), the grave's rise (0.45 s) and sink (0.6 s), the ghost out `rise` 2 s after the dig, climbing out in `climb`
+0.7 s and vanishing upward in `vanish` 0.6 s; a count, no dice. The level effect `grave_damage_pct` (40% of the first
+weapon) is gone: nothing of the hero's weapons is used any more.
+
+**The ghost** is one painted floating ghost for every hero (a round head and sheet body trailing into a curling tail,
+little arms, a battered brown hat and a red bandana: `ghost_front` undertakers_shovel_ghost_front.png, `ghost_back`
+undertakers_shovel_ghost_back.png, painted by tools/gen_ghost.py: Klein with the style anchor, six fronts, the back a Klein
+edit of the chosen front, both 256 px), `ghost_height` 1.55 m, `hover` 0.35 m over the sand, its lightness drawn towards
+`ghost_tint` #7fe6ff by `ghost_mix` 0.45 (the hat and bandana keep some colour), `ghost_alpha` 0.85 see-through.
+- It climbs out CLIMB_R 0.35 m in front of its grave (towards the camera), then **circles the grave** for the whole fight:
+  `circle_radius` **1.5 m** (widening from 0.35 m over the first `spiral` 0.8 s), one lap every `lap_seconds` **4 s**
+  (2.4 m/s), the way round alternating grave by grave (the first anticlockwise seen from above); it keeps circling as it
+  vanishes upward. The circle's centre is the grave's spot (the grave stands until the ghost is gone).
+- **Front and back** (my decision): its front while its way round comes across or towards the camera, its back while it
+  goes away; it turns only once its way is FACE_HYST 0.22 (about 13 degrees) past sideways, so a ghost moving across never
+  flickers: two turns a lap. A turn is a paper turn: in TURN 0.26 s it narrows to an edge and opens out on the other side,
+  the painting swapped at the edge (no pop). The front is painted straight on (symmetric), so left and right need no
+  mirror; it leans into its sideways motion (LEAN 0.16 rad) instead.
+- "Mostly staying still": no run cycle; it bobs BOB 0.08 m at BOB_HZ 0.9, sways SWAY 0.05 rad at SWAY_HZ 0.55, and squashes
+  (+12% wide, -9% tall) and glows (flash +0.4) for FIRE_KICK 0.16 s when it fires. All looks: none of them change a rule.
+
+**The volley** (the Warcraft 3 Ziggurat's spirit bolt): every `volley_every` **1 s** while it circles (the first
+`first_volley` 0.35 s after it is out), from its chest (hover + 0.55 of its height):
+- **bolts** = clamp(round(`bolts_mult` 1 x power ^ `bolts_exp` 0.6), 1, `bolts_max` **6**): 1 bolt below power 2, 2 from
+  2, 3 from 4.6, 4 from 8.1, 5 from 12.3, **6 from 17.2** (Garry's cap of 6; my reading: at most 6 in one volley; a bolt's flight
+  is under a second up to about 8 m, so that is nearly always also at most 6 in the air per ghost; a cap on bolts in the
+  air would make a volley at far creatures smaller than one at near ones).
+- **damage per bolt** = `damage` 3.2 x power ^ `damage_exp` 0.9 x max(1, power ^ 0.6 / 6): past power 19.8 (where power ^ 0.6
+  passes 6) the bolts the cap holds back are paid as damage on the six (so the volley keeps growing with power). Every bolt and every volley grows with power.
+- power = HeroPower.measure(the run's weapons, the hero's sheet) at the volley (1.0 = a fresh level-1 Drifter), worked out
+  then rather than read from its per-frame cache (a replay's frames read the build each has). **No stage multiplier, no
+  might**: the power already is the hero's own measure (my decision; the Iron Horse and Personal Storm scale their flat
+  numbers by might and the stage because those numbers do not grow with the hero).
+- **Targets**: the N nearest distinct creatures within `range` **9 m** of the ghost (alive, up out of the sand, not buried
+  or held; ties to the lower slot; no priority for specials or Elites), one bolt each. **Fewer creatures than bolts** (my
+  decision): every bolt still flies, the rest go round the same creatures again, so a lone boss takes the whole volley; each
+  bolt leaves along the flat way to its creature turned by its own angle: the first round `curve` 14 degrees out to
+  alternate sides, each round after `fan` 32 degrees wider (14, -14, 46, -46, 78, -78 with two creatures), lifted `lift`
+  0.35, and curves in. None in range: it looks again every RETRY 0.15 s.
+- **A bolt** flies at `bolt_speed` **8 m/s**, turning towards its creature's body (half its size up, 0.3-1.2 m) at up to
+  `bolt_turn` 5 rad/s x (1 + TURN_GROW 2.5 x its age), so it curves in and always lands; it hits when within the creature's
+  radius + HIT_PAD 0.3 m on the flat. **No knockback** (force 0, no HIT_BLAST: Endless's knock resistance does not matter)
+  and **never a crit** (HIT_NO_CRIT, my decision: the power already holds the hero's average crit, and a crit would throw
+  Lightning in a Bottle's arcs off a passive's bolts; no Counterpunch, Vulture or Cold Snap either). Recorded as the item's
+  own source `undertakers_shovel` (Results, the run record, the damage numbers; its kills count for the item and dig
+  graves). Big Game Hunter, marks and Sunburn still apply (they are the creature's, in EnemyManager.damage). A creature it
+  kills falls along the bolt's way (pass 82's corpse throw, a look). Its creature gone (dead, or its slot reused:
+  EnemyManager.serial), it flies on to the spot it last aimed at and pops there (GONE_REACH 0.45 m), landing on the first
+  creature it touches on the way; after `bolt_life` 2.4 s it fizzles (a pop, no damage). At most GhostBolts.MAX 48 in the
+  air (6 ghosts x 6 bolts, with room).
+- **The look**: an orb `bolt_size` 0.55 m (a white heart `bolt_core` #f2fdff, the body `bolt_color` #7fe0ff, a violet rim
+  `bolt_rim` #6a4ccc that reads on the sand) with a wavering wispy tail TAIL_LEN 2.8 head widths along its flight across the
+  screen, shedding a bead every 0.035 s that drifts up and fades from cyan to violet in 0.3 s; a soft pop of ghost-light
+  where it lands (0.3 s) and a small one at the ghost's chest when it fires. One MultiMesh for every bolt, bead and pop (one
+  draw call; mixed, not additive, fog_disabled), its shader warmed under the spawn beam (Warmup). In the run sim nothing is
+  drawn and no node is made; the bolts still fly and hit.
+- **Sound**: `sound` it_ghost_volley (new: a soft eerie breathy whoosh, Stable Audio 3 medium on the AI server, 4
+  candidates, auto-picked by ai_sfx's score: centroid 323 Hz; not listened to by ear), volume -12 dB, at most one every
+  SOUND_GAP 0.3 s across all the ghosts.
+
+**Strength** (target: one ghost about 10-20% of the hero's full DPS while it fights, at any power). One ghost's damage a
+second = bolts x damage per bolt / 1 s. Against the full DPS of 27,000 one-second samples of played runs (analytics/runs and
+analytics/remote, tool runs left out), the median share by power: 0.5-1: 20%, 1-1.5: 16%, 1.5-2: 10%, 2-3: 14%, 3-4: 13%,
+4-6: 16%, 6-8: 14%, 8-12: 15%, 12-16: 16%, 16-24: 20%; past 24 only glass-cannon runs (a small effective HP, so a power
+far below their DPS): 5-6%. Measured in the game (game/tools/_p120_GHOST_probe.gd: the build, a god hero, 14 very tough
+skeletons walking in, one grave, its whole 8 s fight):
+
+| build | power | full DPS | bolts | per bolt | ghost DPS | share |
+|---|---|---|---|---|---|---|
+| Drifter fresh | 1.23 | 25 | 1 | 3.8 | 4 | 15.6% |
+| Drifter b1 | 5.65 | 381 | 3 | 15.2 | 46 | 12.0% |
+| Drifter b2 | 17.5 | 3,120 | 6 | 42.0 | 247 | 7.9% |
+| Drifter b3 | 32.1 | 8,110 | 6 | 97.2 | 583 | 7.2% |
+| Calavera b1 | 3.41 | 143 | 2 | 9.7 | 19 | 13.5% |
+| Calavera b2 | 5.05 | 256 | 3 | 13.7 | 41 | 16.1% |
+| Calavera b3 | 9.11 | 733 | 4 | 23.4 | 94 | 12.8% |
+| Jeżyk b1 | 4.44 | 232 | 2 | 12.2 | 44 | 19.0% |
+| Jeżyk b2 | 8.63 | 712 | 4 | 22.3 | 104 | 14.5% |
+| Jeżyk b3 | 21.4 | 3,850 | 6 | 52.8 | 404 | 10.5% |
+
+(difficulty_probe's builds carry no Upgrade board, so their effective HP and power are low for their DPS: the Drifter's
+b2/b3 sit under 10%. Jeżyk's measured share is above the formula's: the Salt makes creatures take more.) Every hit lands
+on a crowd that walks in; against a lone boss all the bolts converge on it. With the cap full (4 ghosts, Evolved 6) the
+graves together add about 50-80% of the hero's DPS (Evolved 75-120%) late in a stage, where they stand: holding ground near
+them pays.
+
+**Evolved** keeps 61.LEGEND_B's numbers (one kill in 15, at most 6, 12 s each) and adds nothing new (my decision: no
+surprise rule; the Evolved ghost fires the same power-made volleys, and twice the ghost-seconds is already the jump).
+
+### 62.REPLAY A replay never drags a dead hero, never ends the run where the player's went on, and keeps step at any frame rate (no gameplay number changed)
+
+Garry: "Replay Watch - Bug: At some point when watching my previous game my guy died and in the game I used a Debug Revive
+and in the Replay I just see the dead body running around not being able to interact with objects of any kind." Code:
+core/systems/RunReplay.gd, ui/ReviveScreen.gd, game/Game.gd (`_revive`), ui/ResumeGate.gd, ui/DebugHand.gd, ui/DebugPanel.gd,
+game/replay/ReplayViewer.gd, tools/replay.py; tests game/tests/pass120_REPLAY_test.gd; how-to analytics/howto/04_replays.md.
+
+**What it was.** His recording (20261101_002005, Ironwood stage 2, from the editor binary at 00:20) replays on the repo as
+it is now, and passes 118 and 119 changed the game after it was recorded: the replay parts at its first check (5 s, the
+crowd). From there the replay's hero went down where the player's had not; Down!'s count ran out (8 s) and ended the run,
+while the recording went on for 13 more minutes, every slide of the dead hero put on the place the player's hero walked
+(the hero's place is locked to the recording's): the corpse running around, nothing touching anything (the run was over).
+A new recording with the free revive, the ad revive and the Phoenix Feather replays exactly (every check equal).
+
+**The rules (all only in a replay, except the two recording fixes at the end):**
+- **A hero down in a replay stays where he fell** when the recorded place walks away from him (more than
+  `CORPSE_SLACK` 0.05 m flat: the player's hero was up, the replay had parted); nearer than that he still takes the
+  recorded place (the same spot in other last bits). The log says so once a fall; the light turns red there.
+- **Down!'s count ends the run only where the recording ends** (within `END_SLACK` 60 frames of its last frame: his own
+  count ran out there, or he stayed down). Anywhere else the replay has parted, and: with the safety net on (A, the
+  default) he is **stood up** ("SAFETY NET", kind `replay`: no revive chance spent, the revive blast as any revive) at the
+  HP the player's hero had at that frame (the recorded track; else the revive's own share); with it off the screen
+  **waits at 0** for the player's next Down! choice. Said in the log, the light red from that moment. (my decision)
+- **The run ended in the replay while the recording goes on** (any other way): the viewer pauses there and says in red
+  how much longer the player's run went on; Space plays on (the body lies still). (my decision)
+- **A screen the player's run has no choice for** (after a drift, safety net on): when nothing waits for it and the
+  recording has no choice of its kind due within `SCREEN_LOOK` 600 frames (~10 s), the net answers it after
+  `SCREEN_WAIT` 180 frames (~3 s on screen) with its plain choice: the first card (a mutation reel skipped first), the
+  chest taken, the boss chest claimed, the shop and the Stranger left, the first totem gift, the portal "not yet", no
+  Wanted poster, TAP TO GO. The log says which. Before, a parted replay could stand on a chest for half a minute or more
+  waiting for a tap the player made elsewhere. (my decision; the card swap of 57.REPLAY is the same idea)
+- **Tweens keep the recorded delta exactly**: in a frame where the world ran, the Tail steps every running tween by the
+  recorded frame delta itself (`custom_step`, at its own speed, after the nodes and the run's timers, where the engine
+  steps them) and holds it at speed 0 through the engine's own step. Pass 114's stretch (speed x d / eng) missed d in the
+  last bits (the engine keeps a tween's speed in 32 bits) and a tween a rule reads (the turret's pop-in scale places its
+  muzzles) parted every run recorded at another rate than 60 frames a second (a 47 fps run parted at 22 s, an uneven one
+  at 48 s; both now equal to the end). A frame already paused at its end keeps the stretch (only screens' tweens run).
+- **The level-up's debug hand** ("any item on level-up") is recorded (`debug_give`: [kind, id, levels] rows) and handed
+  over again on the replay's card screen; **the in-run debug panel's buttons** are recorded by their words (`debug`) and
+  run again (God mode was already kept by Game.set_god; Hide is not a decision); "Give random weapon" rolls the rule dice.
+- **The PC's held movement key on TAP TO GO** (pass 119) goes on as an input event between frames (`resume_gate_key_go`),
+  a frame after the guard, so the recording keeps it as a tap and its replay takes it at the same moment (from _process
+  it was neither kept nor replayed: the replay waited at the gate).
+- **A run from the editor binary names its files** (`build.code`: 12 hex of an md5 over every script and scene of core,
+  game, player, ui, world, replay, project.godot and every content JSON and .tres; and `build.git`, the repo's commit).
+  The viewer's header compares them: "played on the same game files ✓", or red "the game changed since this run, so the
+  replay goes out of step: that is the code changing, not a fault in the replay". An older recording has no print: the
+  header says it cannot tell, and tools/replay.py adds the commits that changed game/ since it was recorded.

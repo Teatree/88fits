@@ -139,6 +139,10 @@ func test_the_armadillo_arrives_half_way_through_stage_one() -> void:
 	if arrives >= 0.0:
 		assert_float(arrives).is_greater_equal(200.0)
 		return
+	# pass 120 (re-pinned): Garry's r23 brings big blue slimes now (2026-11-01, the Level Editor): no row and no swarm
+	# brings the armadillo, so none comes before half way through stage 1 either
+	if not tl.events.any(func(ev: Dictionary) -> bool: return str(ev.get("enemy", "")) == "armadillo"):
+		return
 	# half way through stage 1: 2:30 before pass 46 stretched the stage from 300 s to 430 s, 3:35 since; pass 54: Garry's
 	# placement in the Level Editor (2026-10-06) brings it in the 12:11 swarm instead of a roster row
 	var swarm := false

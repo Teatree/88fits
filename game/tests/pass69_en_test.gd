@@ -276,7 +276,9 @@ func _special_events() -> Array:
 	# pass 84 (lane SPAWN, re-pinned): the special Goblin is a "once" row with `special` now (an old map's event still counts)
 	var out: Array = (tl["events"] as Array).filter(func(e: Dictionary) -> bool: return bool(e.get("special", false)))
 	out.append_array((tl["roster"] as Array).filter(func(r: Dictionary) -> bool: return bool(r.get("special", false)) and str(r.get("pace", "")) == "once"))
-	return out
+	# pass 120 (re-pinned): Garry's own forced-special rows of other creatures (stage 2's split spiders, r68) are his; the
+	# moment pinned here is the Goblin's
+	return out.filter(func(e: Dictionary) -> bool: return str(e.get("enemy", "")).contains("goblin"))
 
 
 ## The director's events and its rows' waves (an event or a once row), at the clock as it stands.
@@ -301,6 +303,8 @@ func test_red_canyon_has_one_special_goblin_at_the_end_of_the_first_wave() -> vo
 	# the .tres the game plays carries it
 	var played: Array = Registry.map("red_canyon").timeline.events.filter(func(e: Dictionary) -> bool: return bool(e.get("special", false)))
 	played.append_array(Registry.map("red_canyon").timeline.roster.filter(func(r: Dictionary) -> bool: return bool(r.get("special", false)) and str(r.get("pace", "")) == "once"))
+	# (pass 120: the Goblin's moment; Garry's other forced-special rows are his)
+	played = played.filter(func(e: Dictionary) -> bool: return str(e.get("enemy", "")).contains("goblin"))
 	assert_int(played.size()).is_equal(1)
 
 

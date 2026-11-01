@@ -603,7 +603,7 @@
       "formula": {
         "kind": "power",
         "a": 0.0977,
-        "b": 1.25
+        "b": 1.35
       },
       "points": [
         [
@@ -649,7 +649,7 @@
         ],
         [
           1030,
-          0.8
+          1.09
         ],
         [
           1030,
@@ -1186,7 +1186,8 @@
         "stats": {
           "hp_mult": 0.4,
           "max_alive": 3,
-          "damage_mult": 3
+          "damage_mult": 3,
+          "can_be_elite": false
         },
         "pace": "waves",
         "every": 10,
@@ -1194,16 +1195,16 @@
       },
       {
         "id": "r22",
-        "t": 453,
-        "until": 606,
+        "t": 480,
+        "until": 623,
         "enemy": "desert_spider",
         "weights": [
           [
-            453,
+            480,
             8.0
           ],
           [
-            521,
+            548,
             8.0
           ]
         ],
@@ -1215,23 +1216,24 @@
             2.0
           ],
           "hp_mult": 0.2,
-          "speed": 2
+          "speed": 2,
+          "can_be_elite": false
         },
         "pace": "waves",
         "every": 5
       },
       {
         "id": "r68",
-        "t": 527,
-        "until": 530,
+        "t": 469,
+        "until": 471,
         "enemy": "desert_spider",
         "weights": [
           [
-            527,
+            469,
             8.0
           ],
           [
-            595,
+            537,
             8.0
           ]
         ],
@@ -1247,14 +1249,14 @@
         },
         "pace": "once",
         "count": 3,
-        "special": false,
+        "special": true,
         "elite": "splitter"
       },
       {
         "id": "r23",
         "t": 575,
         "until": 667,
-        "enemy": "armadillo",
+        "enemy": "blue_slime",
         "weights": [
           [
             575,
@@ -1271,7 +1273,8 @@
           "size": [
             2,
             3.5
-          ]
+          ],
+          "damage_mult": 2
         },
         "pattern": "scatter",
         "interval": 10.0

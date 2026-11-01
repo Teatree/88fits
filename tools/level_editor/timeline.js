@@ -31,7 +31,7 @@ const Timeline = (() => {
   const SPAWN_H = 132;
   // pass 83 (lane TIMELINE): what the window box and the readout's shares mean
   const WIN_HELP = 'The window (seconds) of the readout and the hover cards: hovering the timeline, each roster row and wave shows its share of all the creatures spawned in the past N seconds before the pointer (a wave\'s tick: in the N seconds from it). It is read off the Spawned so far estimate, which plays the director\'s rules second by second: the cap and its room, each row\'s weight, the spawn check and the rows\' own Draw every, the waves and what they owe, the kill rate. So a row paced as waves counts what its waves bring, and a row the cap starves counts little. Roster bars that spawned nothing in the window dim on the lane. 5 s by default; the browser remembers it.';
-  const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the hero kills, so it assumes the hero kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers.';
+  const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the hero kills, so it assumes the hero kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers: the elite-modified split into what rows with an Elite modifier always bring and what the roster draw (Elites every) brings by chance, and the coloured into what Special rows bring and what comes by chance (pass 120).';
   let spp = 1.0;                       // seconds per pixel
   let root = null, scrollBox = null, content = null, cursorEl = null, readout = null, card = null, menu = null;
   // pass 87 (lane STOOLS): the strip of stage tabs above the sections (stage_tabs.js draws it)
@@ -938,7 +938,10 @@ const Timeline = (() => {
       const st = U.isObj(stats) ? stats : {};
       const at = App.creatureAt(c, st, t, t0 == null ? t : t0);
       const vs = Model.varianceSpecial(c, st, dflt);
-      const x = { hp: at.hp, atk: at.atk, bite: Number(st.contact_cd != null ? st.contact_cd : (c.contact_cd != null ? c.contact_cd : 0.6)) || 0.6, boss: at.arch === 'boss', spHp: vs.chance > 0 ? Model.specialValue(vs.sp, dflt, 'hp') : 1 };
+      // pass 120 (lane EDITOR): a Special row's coloured take their special HP even with no variance block (the map's
+      // Coloured specials, else the game's)
+      const forced = parts[0] === 'roster' && !!rows[Number(parts[1])] && rows[Number(parts[1])].special === true;
+      const x = { hp: at.hp, atk: at.atk, bite: Number(st.contact_cd != null ? st.contact_cd : (c.contact_cd != null ? c.contact_cd : 0.6)) || 0.6, boss: at.arch === 'boss', spHp: forced ? Model.forcedSpecial(c, st, dflt).hp : vs.chance > 0 ? Model.specialValue(vs.sp, dflt, 'hp') : 1 };
       cache.set(ck, x);
       return x;
     }
@@ -1426,15 +1429,28 @@ const Timeline = (() => {
             short: `cap full ${fmtT(r.a)}–${fmtT(r.b)}` });
         }
         // rows the estimate never draws, and rows that never make 1% of what spawns
-        const last = est.points[est.points.length - 1];
+        // pass 120 (lane EDITOR): what each row brought, the most of any stage's run (on All every stage is its own run, so
+        // the last point holds the last stage's rows only); an elite row's elites are filed under the row now, so it is
+        // judged too, and one whose window closed while it waited for colour says so
+        const maxSrc = {};
+        for (const p of est.points) { const s = p.src || {}; for (const k of Object.keys(s)) if (!(s[k] <= (maxSrc[k] || 0))) maxSrc[k] = s[k]; }
+        const missed = new Map();
+        for (const w of est.colourWaits || []) if (w.at == null && !missed.has(w.key)) missed.set(w.key, w);
+        const cak = Number(tl.colour_after_kills) || 0;
+        // (pass 120: a stage tab's estimate is that stage's run only: a row outside its span is not judged there)
+        const [span0, span1] = estSpan(est);
         rows.forEach((r, i) => {
           const key = `roster:${i}`;
-          // a row the estimate files under no source of its own (an elite or roster-draw row: counted with the
-          // elite-modified) is not judged here
-          if (!(key in ((last || {}).src || {})) && (r.elite || r.enemy === 'roster' || Array.isArray(r.enemy))) return;
-          const n = Number(((last || {}).src || {})[key]) || 0;
+          // a stage tab judges the rows that start in its window (an earlier stage's row is judged on its own tab)
+          const rt0 = TimelineModel.paceOf(r) === 'once' ? Model.rowWaveStart(r) : Number(r.t) || 0;
+          if (rt0 >= span1 || rt0 < span0 - 2) return;
+          const n = Number(maxSrc[key]) || 0;
           if (n < 0.5) {
-            out.push({ level: 'warn', kind: 'never spawns', t: Number(r.t) || 0, key, text: `${srcWords(key)} spawns nothing in the estimate (its presence, the cap, Max alive or its schedule hold it back).`, short: `${enemyWords(r)} never spawns` });
+            const w = missed.get(key);
+            const ca = w ? colourAtOf(est, w.stage) : null;
+            const why = w ? `: due at ${fmtT(w.from)}, an elite row waits for colour (Colour after kills ${cak}${ca != null ? `, ≈${fmtT(ca)} in that stage's run` : ', not reached in that stage\'s run'}) and ${w.until != null ? `its window closes at ${fmtT(w.until)}` : 'the stage ends'} first`
+              : Model.rowPaced(r) ? `: ${neverReason(i, r)}` : ' (its presence, the cap, Max alive or its schedule hold it back)';
+            out.push({ level: 'warn', kind: w ? 'waits for colour' : 'never spawns', t: Number(r.t) || 0, key, text: `${srcWords(key)} spawns nothing in the estimate${why}.`, short: `${enemyWords(r)} never spawns` });
             return;
           }
           const t0 = Number(r.t) || 0, t1 = Math.min(r.until == null || r.until === '' ? App.viewEnd() : Number(r.until), App.viewEnd());
@@ -1847,9 +1863,11 @@ const Timeline = (() => {
     }
     // the stacked layers, bottom up: plain, coloured, elite-modified, then the Elites, specials and bosses
     const xs = pts.map((p) => x(p.t));
+    // (pass 120: a creature both coloured and elite-modified, a row with Special and an Elite modifier, sits in the
+    // elite-modified layer only)
     const bounds = [
       pts.map(() => 0),
-      pts.map((p) => Math.max(p.reg - p.col - p.mod, 0)),
+      pts.map((p) => Math.max(p.reg - p.col - p.mod + (p.both || 0), 0)),
       pts.map((p) => Math.max(p.reg - p.mod, 0)),
       pts.map((p) => p.reg),
       pts.map((p) => p.all),
@@ -1901,6 +1919,27 @@ const Timeline = (() => {
     return 'regular';
   }
 
+  /** Pass 120 (lane EDITOR): an estimate point's elite-modified and coloured, each split in two: "Elite-modified ≈ 14: 9
+   *  from rows that always bring one, 5 by chance". Rows that always bring one = a row, wave or event with an Elite
+   *  modifier that names its creature (every creature of it wears one, once colour has come: an elite row waits for it);
+   *  by chance = the roster draw (Elites every: a creature drawn by Elite weight, alone, a pack or a ring by its Elite
+   *  formats). The coloured: from rows or swarms set to Special (every one) and by chance (Special chance once colour has
+   *  come, under Max alive). `long` (the lane's card) says where each comes from. */
+  function splitLines(p, long) {
+    const n = (v) => fmtCount(Math.max(Number(v) || 0, 0));
+    const modRow = Number(p.modRow) || 0, colF = Number(p.colForced) || 0, both = Number(p.both) || 0;
+    const sm = (txt) => el('small', { text: txt });
+    return [
+      el('div', { class: long ? 'sp-cat' : 'ro-line' }, long ? el('i', { class: 'sw sp-mod' }) : null, el('b', { text: `Elite-modified ≈ ${n(p.mod)}` }),
+        `: ${n(modRow)} from rows that always bring one, ${n(p.mod - modRow)} by chance`,
+        long ? sm(' (always: a row, wave or event with an Elite modifier naming its creature, once colour has come; by chance: the roster draw, Elites every)') : sm(' (the roster draw)')),
+      el('div', { class: long ? 'sp-cat' : 'ro-line' }, long ? el('i', { class: 'sw sp-col' }) : null, el('b', { text: `Coloured specials ≈ ${n(p.col)}` }),
+        `: ${n(colF)} from Special rows, ${n(p.col - colF)} by chance`,
+        both > 0.05 ? `; ${n(both)} of them elite-modified too` : '',
+        long ? sm(' (Special rows: every one, colour or not; by chance: Special chance once colour has come, under Max alive)') : null),
+    ];
+  }
+
   /** The hover card: the time, every creature spawned by then (the total, each creature largest first with its coloured
    *  share), the Elites, specials and bosses by name, the coloured and elite-modified totals, and the assumptions. */
   function spawnedCard(t) {
@@ -1920,7 +1959,11 @@ const Timeline = (() => {
     box.appendChild(el('div', { class: 'sp-cat' }, swatch('plain'), el('b', { text: `Regular ${fmtCount(regular)}` }),
       ' · ', swatch('col'), `coloured ≈ ${fmtCount(p.col)}${regular > 0 ? ` (${fmtN((p.col / regular) * 100, 1)} %)` : ''}`,
       ' · ', swatch('mod'), `elite-modified ≈ ${fmtCount(p.mod)}`, p.minion > 0 ? ` · bosses' minions ${fmtCount(p.minion)}` : ''));
-    const others = [['elite', 'Elites', p.elite], ['special', 'Specials', p.special], ['boss', 'Bosses', p.boss]];
+    // pass 120 (lane EDITOR; Garry: "estimates the number of Elitted Regular enemies with the accounting for our
+    // guaranteed Elitted Regular enemies"): the elite-modified and the coloured, each split into what rows always bring
+    // and what comes by chance
+    for (const ln of splitLines(p, true)) box.appendChild(ln);
+    const others = [['elite', 'Elite bosses (crowned)', p.elite], ['special', 'Specials (gear)', p.special], ['boss', 'Bosses', p.boss]];
     for (const [grp, label, n] of others) {
       const list = named(grp);
       box.appendChild(el('div', { class: 'sp-cat' }, swatch('top'), el('b', { text: `${label} ${fmtCount(n)}` }), list.length ? `: ${list.join(', ')}` : ''));
@@ -1952,7 +1995,7 @@ const Timeline = (() => {
       tvTxt = `${o.turnover.map((v, k) => `${fmtN(v * 100, 1)} % in stage ${k + 1}`).join(', ')} of the living crowd a second (${App.turnoverSource()})`;
     } else tvTxt = `${fmtN(o.turnover * 100, 1)} % of the living crowd a second (${App.turnoverSource()})`;
     box.appendChild(el('div', { class: 'sp-note', text: `alive now ≈ ${fmtCount(p.alive)} · killed ≈ ${fmtCount(p.kills)}` }));
-    box.appendChild(el('div', { class: 'sp-note', text: `Assumes the hero kills ${tvTxt}, boss fights of ${fmtN(o.bossSeconds, 1)} s and portal waits of ${fmtN(o.portalSeconds, 1)} s; the director refills to the cap under every rule of the timeline. Coloured = the variance specials, once colour_after_kills kills are made.` }));
+    box.appendChild(el('div', { class: 'sp-note', text: `Assumes the hero kills ${tvTxt}, boss fights of ${fmtN(o.bossSeconds, 1)} s and portal waits of ${fmtN(o.portalSeconds, 1)} s; the director refills to the cap under every rule of the timeline. Coloured = the variance specials, once colour_after_kills kills are made. Colour comes when the expected kills reach colour_after_kills (${colourAtOf(est, App.stageAt(p.t)) != null ? `≈${fmtT(colourAtOf(est, App.stageAt(p.t)))} in this stage's run` : 'not in this stage\'s run'}); an elite row waits for it a second at a time, and one whose window closes first brings nothing (its row card says so).` }));
     return box;
   }
 
@@ -3103,6 +3146,107 @@ const Timeline = (() => {
     return line;
   }
 
+  // pass 120 (lane EDITOR): the row card's speed, schedule, forced special and colour wait (Garry, 2026-11-01)
+
+  /** A roster row's schedule for its card (Model.rowSchedule): [its pacing with the seconds, its pattern with the pack
+   *  (both at the HP / ATK line's weight), the notes on a muted line (null when there are none)]. `c` its creature (the
+   *  first of a list; null for the roster draw). */
+  function scheduleLines(r, c) {
+    const s = Model.rowSchedule(r, c, spawnCheck());
+    const tag = (txt, title) => el('small', { class: 'hc-dflt', text: txt, title: title || '' });
+    const packTag = s.pack == null || !s.packText.includes(String(s.pack)) ? null
+      : s.packFrom === 'creature' ? tag(' (default)', `the creature's own pack size: the row sets no Pack`)
+      : s.packFrom === 'override' ? tag(' (override)', 'the row\'s Overrides → Pack') : null;
+    const pacing = el('div', { class: 'hc-stats hc-sched', title: 'Pacing (the inspector\'s Schedule)' }, s.pacing);
+    const pattern = el('div', { class: 'hc-stats hc-sched', title: 'Pattern and Pack (the inspector\'s Where)' }, s.pattern, s.patternDefault ? tag(' (default)', 'the row sets no Pattern: Pack') : null, ' · ', s.packText, packTag);
+    const notes = [s.pacingNote, s.patternNote].filter(Boolean).join(' · ');
+    return [pacing, pattern, notes ? el('div', { class: 'hc-line muted', text: notes }) : null];
+  }
+
+  /** "SPD 2.1 the row's × stage 1.1 × move_pace 0.9 × creature 0.9 m/s · each ±8%": how the card's SPD is made. */
+  function speedWords(spd, st, o) {
+    const bits = [spd.set === 'row' ? `${fmtN(Number(st.speed), 2)} the row's` : `${fmtN(spd.own, 2)} its own`];
+    if (spd.mult !== 1) bits.push(`speed × ${fmtN(spd.mult, 2)}`);
+    bits.push(`stage ${fmtN(spd.stageMult, 2)}`, `move_pace ${fmtN(spd.movePace, 2)}`, `creature ${fmtN(spd.creatureMult, 2)}`);
+    const tail = [spd.jitter > 0 && !o.modded ? `each ±${Math.round(spd.jitter * 100)}%` : '', o.modded ? 'plus its elite modifier\'s speed effect, if it has one' : ''].filter(Boolean);
+    return `SPD ${bits.join(' × ')} m/s${tail.length ? ' · ' + tail.join(' · ') : ''}`;
+  }
+
+  /** A row or swarm set to Special (EnemyManager.spawn's force_special, the game's rule since pass 120): every one its
+   *  coloured special, also with no variance block (the map's Coloured specials, else the game's) and also wearing an
+   *  elite modifier (both). The card's lines. */
+  function forcedLines(c, st, at, o) {
+    const dflt = U.isObj(App.tl().special_defaults) ? App.tl().special_defaults : {};
+    const fs = Model.forcedSpecial(c, st, dflt);
+    const er = o.elite && o.elite !== 'random' ? App.elite(o.elite) : null;
+    const mod = o.elite ? (o.elite === 'random' ? 'a random elite modifier' : ((er || {}).name || String(o.elite))) : '';
+    // the wash: the special's colour, but an elite-modified creature is drawn in its modifier's colour
+    // (EnemyManager.tint_of: the outline at 0.7 wins over the special's tint, its rim glows in it too)
+    const wash = mod ? (er && er.outline ? er.outline : '') : fs.tint;
+    const out = [el('div', { class: 'hc-line fixed' },
+      mod ? `every one comes as its coloured special AND wears ${mod}: ` : 'every one comes as its coloured special: ',
+      el('b', { text: `HP ${fmtN(at.hp * fs.hp, 1)} · ATK ${fmtN(at.atk * fs.damage, 1)}` }),
+      ` · size ×${fmtN(fs.size, 2)} · XP ×${fmtN(fs.xp, 2)} · glow ${fmtN(fs.glow, 2)}`,
+      wash ? ' · ' : '', wash ? el('span', { class: 'sw-chip', style: `background:${wash}`, title: wash }) : null, wash ? ` ${wash}${mod ? ` (${mod}'s colour)` : ''}` : '',
+      ', for sure, even before colour_after_kills')];
+    if (mod) out.push(el('div', { class: 'hc-line muted', text: `a Special row never waits for colour, so ${mod} comes at once too (pass 120); the special's numbers, then ${mod}'s own HP, scale and powers on top; drawn in the modifier's colour (it wins over the special's ${fs.tint}), the special's rim glowing in it; it drops what an Elite drops (no special chest on top). A random special roll never lands on an elite-modified one: only Special makes both.` }));
+    if (!fs.hasVar) {
+      const words = { hp: 'HP ×', damage: 'ATK ×', size: 'size ×', xp: 'XP ×', glow: 'glow ' };
+      const by = (src) => Object.keys(words).filter((k) => fs.from[k] === src).map((k) => `${words[k]}${fmtN(fs[k], 2)}`);
+      const fromMap = by('map'), fromGame = by('game');
+      out.push(el('div', { class: 'hc-line muted', text: `${c.name} has no variance block, so its special takes the map's Coloured specials${fromMap.length ? ` (${fromMap.join(', ')})` : ''}${fromGame.length ? `${fromMap.length ? ', else' : ': none set, so'} the game's (${fromGame.join(', ')})` : ''}; its colour ${fs.tintFrom === 'map' ? 'the map\'s' : 'the game\'s crimson'} (Settings → Coloured specials).` }));
+    }
+    return out;
+  }
+
+  /** Colour came at this second in the estimate's run of stage s (null: never). */
+  function colourAtOf(est, s) {
+    if (Array.isArray(est.colourAts) && s >= 0 && s < est.colourAts.length) return est.colourAts[s];
+    return est.colourAt;
+  }
+  /** An elite row's waves wait for colour (Colour after kills, WaveDirector._tick_row84): when the estimate had one wait,
+   *  when it came, or that its window closed first and it brought nothing (a red line). */
+  function colourWaitLines(i, r) {
+    const est = lastSpawn ? lastSpawn.est : null;
+    if (!est || !Array.isArray(est.colourWaits) || !Model.rowElite(r)) return [];
+    const cak = Number(App.tl().colour_after_kills) || 0;
+    return est.colourWaits.filter((w) => w.key === `roster:${i}`).slice(0, 2).map((w) => {
+      const ca = colourAtOf(est, w.stage);
+      if (w.at != null) return el('div', { class: 'hc-line muted', text: `waits for colour: due at ${fmtT(w.from)}, it comes ≈${fmtT(w.at)} in the estimate, at the run's ${cak}th kill (Colour after kills)` });
+      return el('div', { class: 'hc-line bad-line', text: `It never comes in the estimate: due at ${fmtT(w.from)}, an elite row waits for colour (Colour after kills: the run's ${cak}th kill${ca != null ? `, ≈${fmtT(ca)} in this stage's run` : ', not reached in this stage\'s run'}) and ${w.until != null ? `its window closes at ${fmtT(w.until)}` : 'the stage ends'} first. Give it a later or longer window, or lower Colour after kills.` });
+    });
+  }
+
+  /** The run seconds the estimate plays rows in: a stage tab's run its window (its clock is held at the end through the
+   *  portal and Endless, so no later row opens), All every point's. */
+  function estSpan(est) {
+    if (est.stage && est.stage.start != null) return [est.stage.start, est.stage.end];
+    return est.points.length ? [est.points[0].t, est.points[est.points.length - 1].t] : [0, 0];
+  }
+  /** What row i brought in the estimate, the most of any stage's run (on All every stage is its own run). */
+  function rowBrought(est, i) {
+    let n = 0;
+    for (const p of est.points) { const v = Number((p.src || {})[`roster:${i}`]) || 0; if (v > n) n = v; }
+    return n;
+  }
+  /** Why a once or waves row brought nothing in the estimate, when it was not the colour (pass 120, Garry's "guaranteed"
+   *  rows): its creature's Max alive held by other rows of the same creature open then (EnemyManager.alive_of counts
+   *  every row's), else the cap's room (Respect the cap), else its presence or schedule. */
+  function neverReason(i, r) {
+    const tl = App.tl();
+    const id = firstEnemy(r);
+    const c = App.creature(id);
+    const st = U.isObj(r.stats) ? r.stats : {};
+    const ma = st.max_alive != null && st.max_alive !== '' ? Number(st.max_alive) : c ? Number(c.max_alive) || 0 : 0;
+    const t0 = Number(r.t) || 0, t1 = r.until == null || r.until === '' ? Infinity : Number(r.until);
+    if (ma > 0 && c) {
+      const others = (tl.roster || []).map((x, k) => ({ x, k })).filter(({ x, k }) => k !== i && firstEnemy(x) === id && (Number(x.t) || 0) <= t1 && (x.until == null || x.until === '' || Number(x.until) > t0));
+      if (others.length) return `Max alive ${ma} (the ${c.name}'s limit counts every row's) is held by ${others.slice(0, 3).map(({ x, k }) => x.id || `row ${k + 1}`).join(', ')}, open then; in a run it comes only if one of theirs dies before ${Number.isFinite(t1) ? fmtT(t1) : 'the end'}`;
+    }
+    if (r.respect_cap !== false) return 'the cap has no room for it before its window closes (Respect the cap is on)';
+    return 'its presence or its schedule hold it back';
+  }
+
   function creatureBlock(id, variant, stats, t, opts) {
     const o = opts || {};
     const c = App.creature(id);
@@ -3114,16 +3258,24 @@ const Timeline = (() => {
     const at = App.creatureAt(c, st, t, o.t0, given && given.joined ? given : null);
     const setHp = st.hp != null || st.hp_mult != null || (at.arch === 'elite' && U.getPath(st, 'elite.hp_mult_per_stage') != null) || (at.arch === 'boss' && U.getPath(st, 'boss.hp_mult_per_stage') != null);
     const setAtk = st.damage != null || st.damage_mult != null;
+    // pass 120 (lane EDITOR; Garry: "we should also surface SPD (Speed) at the same level of visual priority"): the walk
+    // speed in m/s as the row brings it (Model.speedOf), its dot when the row sets speed or speed_mult
+    const spd = Model.speedOf(App.tl(), c, st, t);
+    const sched = o.schedule ? scheduleLines(o.schedule, c) : null;
     const others = Model.otherOverrides(st).filter((s) => !(at.arch === 'elite' && s.startsWith('elite.hp_mult_per_stage')) && !(at.arch === 'boss' && s.startsWith('boss.hp_mult_per_stage'))
-      && !/^size\b/.test(s) && !/^tint\b/.test(s));
+      && !/^size\b/.test(s) && !/^tint\b/.test(s) && !s.startsWith('speed ') && !s.startsWith('speed_mult '));
     const dot = (on) => (on ? el('span', { class: 'hc-dot', title: 'an override changes this number' }) : null);
     const code = App.playCode(id, variant);
     const head = el('div', { class: 'hc-creature' },
       el('img', { src: App.iconFor(id, variant), width: o.small ? 24 : 36, height: o.small ? 24 : 36, alt: '' }),
       el('div', { class: 'hc-who' },
         el('div', { class: 'hc-name' }, el('b', { text: c.name }), code ? el('span', { class: 'hc-chip', text: variant ? code : `${code} · default`, title: variant ? 'this row\'s own look' : 'the creature\'s default look (the Creatures tab sets it)' }) : null, at.arch !== 'regular' ? el('span', { class: 'hc-chip ' + at.arch, text: at.arch === 'boss' ? 'boss' : 'Elite' }) : null, o.share ? el('span', { class: 'hc-share', text: o.share }) : null),
-        el('div', { class: 'hc-stats' }, dot(setHp), `HP ${fmtN(at.hp, 1)}`, ' · ', dot(setAtk), `ATK ${fmtN(at.atk, 1)}`, others.length ? el('span', { class: 'hc-star', text: ' *', title: 'other stats are overridden' }) : null)));
+        el('div', { class: 'hc-stats' }, dot(setHp), `HP ${fmtN(at.hp, 1)}`, ' · ', dot(setAtk), `ATK ${fmtN(at.atk, 1)}`, ' · ', dot(spd.over), `SPD ${fmtN(spd.spd, 2)}`, el('small', { class: 'hc-unit', text: 'm/s' }), others.length ? el('span', { class: 'hc-star', text: ' *', title: 'other stats are overridden' }) : null),
+        // pass 120 (lane EDITOR; Garry: "the Schedule `Pacing` (with the seconds next to it) and the `Pattern` of spawning
+        // (with the Pack param next to it as well)"): a roster row's, at the same weight as the numbers
+        ...(sched ? sched.slice(0, 2) : [])));
     const box = el('div', { class: 'hc-block' }, head);
+    if (sched && sched[2] && !o.small) box.appendChild(sched[2]);
     if (others.length && !o.small) box.appendChild(el('div', { class: 'hc-line others', text: `* also: ${others.slice(0, 8).join(', ')}${others.length > 8 ? ' …' : ''}` }));
     const ranges = rangeLine(st, c);
     if (ranges) box.appendChild(ranges);
@@ -3133,6 +3285,7 @@ const Timeline = (() => {
       const parts = (ps) => ps.map(([k, v], n) => (n === 0 ? fmtN(v, 2) : `${k === 'time' && fixed ? `time@${fmtT(at.t0)}` : k} ${fmtN(v, 2)}`)).join(' × ');
       box.appendChild(el('div', { class: 'hc-line muted', text: `HP ${parts(at.hpParts)}` }));
       box.appendChild(el('div', { class: 'hc-line muted', text: `ATK ${parts(at.atkParts)} · knock ${fmtN(App.knockbackOf(c, st), 2)} m/s` }));
+      box.appendChild(el('div', { class: 'hc-line muted', text: speedWords(spd, st, o) }));
       const joinedTo = given && given.joined ? App.sourceName(given.joined) : '';
       const halves = given && given.joined ? (given.hpJoined && given.dmgJoined ? 'its HP and ATK' : given.hpJoined ? 'its HP (the damage is the one the event sets, at this second)' : 'its ATK (the HP is the one the event sets, at this second)') : '';
       if (fixed && o.eachFiring) {
@@ -3148,14 +3301,13 @@ const Timeline = (() => {
         const why = [at.row.hpOver ? 'its own HP takes no curve' : '', at.row.dmgOver ? 'its own damage takes no curve' : ''].filter(Boolean).join(', ');
         box.appendChild(el('div', { class: 'hc-line fixed', text: `Fixed from ${fmtT(at.t0)}, the ${o.from || 'row'}'s start: every creature of it has these numbers wherever it spawns in ${App.stageName(at.stage)}${why ? ` (${why})` : ''}; only the stage steps them up, and the hero level at its first spawn.` }));
       }
-      // an elite-modified creature (a coloured-elite event, a wave with a modifier) never rolls the variance special
-      // pass 69 (lane EN): a swarm set to Special brings every one as its special, for sure
-      if (o.forced) {
-        const dflt = U.isObj(App.tl().special_defaults) ? App.tl().special_defaults : {};
-        const vs = Model.varianceSpecial(c, st, dflt);
-        const hasVar = U.isObj(c.variance) && Object.keys(c.variance).length > 0;
-        box.appendChild(el('div', { class: 'hc-line fixed', text: hasVar ? `every one comes as its coloured special: HP ${fmtN(at.hp * Model.specialValue(vs.sp, dflt, 'hp'), 1)} · ATK ${fmtN(at.atk * Model.specialValue(vs.sp, dflt, 'damage'), 1)} · size ×${fmtN(vs.size, 2)} · glow ${fmtN(vs.glow, 2)}, even before colour_after_kills` : `${c.name} has no variance block: it comes plain` }));
-      } else if (at.special && !o.modded) box.appendChild(el('div', { class: 'hc-line muted', text: `a coloured special (${Math.round(at.special.chance * 100)}% after colour_after_kills${Model.tintRange(st.tint) ? ', a darker shade of the hue it rolled' : ''}): HP ${fmtN(at.special.hp, 1)} · ATK ${fmtN(at.special.atk, 1)}` }));
+      // an elite-modified creature (a coloured-elite event, a wave with a modifier) never rolls the variance special by
+      // chance; pass 69 (lane EN): a swarm set to Special brings every one as its special, for sure; pass 120 (lane EDITOR,
+      // the game's new rule): also one whose creature has no variance block (the map's Coloured specials, else the
+      // game's) and one wearing an elite modifier (both)
+      if (o.forced) for (const ln of forcedLines(c, st, at, o)) box.appendChild(ln);
+      else if (at.special && !o.modded) box.appendChild(el('div', { class: 'hc-line muted', text: `a coloured special (${Math.round(at.special.chance * 100)}% after colour_after_kills${Model.tintRange(st.tint) ? ', a darker shade of the hue it rolled' : ''}): HP ${fmtN(at.special.hp, 1)} · ATK ${fmtN(at.special.atk, 1)}` }));
+      else if (at.special && o.modded) box.appendChild(el('div', { class: 'hc-line muted', text: `never its coloured special by chance (a plain one rolls it at ${Math.round(at.special.chance * 100)}%): wearing a modifier, it is one only when Special is on, then both` }));
     }
     return box;
   }
@@ -3175,13 +3327,29 @@ const Timeline = (() => {
     const pace84 = TimelineModel.paceOf(r);
     const flags84 = [r.elite ? `every one wears ${r.elite === 'random' ? 'a random elite modifier' : r.elite}` : '', r.special ? 'every one its coloured special' : '', r.banner ? `banner "${r.banner}"` : '', r.channel === 'hell' ? 'hell channel' : '', r.respect_cap === false && pace84 !== 'continuous' ? 'on top of the cap' : '', TimelineModel.roleOf(r) ? `role ${TimelineModel.roleOf(r)}` : ''].filter(Boolean);
     box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: TimelineModel.quantityText(r, Model.rowWaveCount(r, c84), pace84 === 'continuous' ? perMinute(i, r) : null) }), ` · ${enemyWords(r)}${Array.isArray(r.enemy) && r.enemy.length > 1 ? ` (one of ${r.enemy.map((id) => App.creatureName(id)).join(', ')})` : ''}${flags84.length ? ' · ' + flags84.join(' · ') : ''}`));
-    if (r.enemy === 'roster') box.appendChild(el('div', { class: 'hc-line muted', text: 'each creature drawn from the rows open then by their Elite weight, with that row\'s HP and ATK' }));
-    else box.appendChild(creatureBlock(firstEnemy(r), r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row', modded: !!r.elite, forced: !!r.special }));
-    // pass 81 (lane PACE): a row paced as waves: its waves, the next one, whether it is in the draw at all
+    if (r.enemy === 'roster') {
+      box.appendChild(el('div', { class: 'hc-line muted', text: 'each creature drawn from the rows open then by their Elite weight, with that row\'s HP and ATK' }));
+      // pass 120 (lane EDITOR): the schedule at the numbers' weight, as a creature's card has it
+      const sl = scheduleLines(r, null);
+      box.appendChild(el('div', { class: 'hc-block' }, sl[0], sl[1], sl[2]));
+    } else box.appendChild(creatureBlock(firstEnemy(r), r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row', modded: !!r.elite, forced: !!r.special, elite: r.elite || '', schedule: r }));
+    // pass 120 (lane EDITOR): an elite row that waited for colour in the estimate, or never came because of it
+    const cw = colourWaitLines(i, r);
+    for (const ln of cw) box.appendChild(ln);
+    // ... and a once or waves row that brought nothing for another reason (Max alive held by another row, the cap)
+    const est120 = lastSpawn ? lastSpawn.est : null;
+    if (est120 && est120.points.length && Model.rowPaced(r) && !cw.some((ln) => ln.classList.contains('bad-line'))) {
+      const rt = Model.rowWaveStart(r);
+      const [s0, s1] = estSpan(est120);
+      if (rt >= s0 - 2 && rt < s1 && rowBrought(est120, i) < 0.5) {
+        box.appendChild(el('div', { class: 'hc-line bad-line', text: `It never comes in the estimate: ${neverReason(i, r)}.` }));
+      }
+    }
+    // pass 81 (lane PACE): a row paced as waves: its waves, the next one, whether it is in the draw at all (pass 120: its
+    // pacing is the schedule line above; here the next wave)
     if (Model.rowPaced(r)) {
-      const pc = paceChip(r, App.creature(r.enemy));
       const nx = nextRowWave(r, t);
-      box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: pc.title }), nx != null ? ` · next wave ${fmtT(nx)}${nx > t ? ` (in ${fmtT(nx - t)})` : ''}` : ' · no wave to come'));
+      box.appendChild(el('div', { class: 'hc-line' }, nx != null ? `next wave ${fmtT(nx)}${nx > t ? ` (in ${fmtT(nx - t)})` : ''}` : 'no wave to come'));
       const gap = Model.rowWaveEvery(r) / Math.max(spp, 1e-9);
       if (Model.rowWaveEvery(r) > 0 && gap < Model.ETCH_MIN_PX) box.appendChild(el('div', { class: 'hc-line muted', text: `its waves are ${fmtN(gap, 1)} px apart at this zoom: every ${Math.ceil(Model.ETCH_MIN_PX / gap)}th tick is drawn; zoom in to see each` }));
     }
@@ -3198,6 +3366,16 @@ const Timeline = (() => {
     const end = App.waveEnd(wv);
     const flags = [wv.respect_cap === false ? 'no cap' : '', wv.elite ? `elite ${wv.elite}` : '', wv.channel === 'hell' ? 'hell' : '', wv.toast ? `"${wv.toast}"` : ''].filter(Boolean).join(' · ');
     const box = el('div', {}, cardHead(waveHead(wv), t, `${fmtT(wv.t)} → ${end === Infinity ? 'no end' : fmtT(end)}${flags ? ' · ' + flags : ''}`));
+    // pass 120 (lane EDITOR): its bursts and its pattern at the numbers' weight, as a row's card has them
+    {
+      const cnt = Number(wv.count) || 0, burst = wv.burst == null ? 5 : wv.burst, every = wv.every == null ? 2 : wv.every;
+      const pat = wv.pattern ? String(wv.pattern) : 'pack';
+      const dflt = el('small', { class: 'hc-dflt', text: ' (default)' });
+      box.appendChild(el('div', { class: 'hc-block' },
+        el('div', { class: 'hc-stats hc-sched' }, `Bursts of ${burst} every ${fmtN(every, 2)} s${cnt > 0 ? ` · ${cnt} in all` : ''}`),
+        el('div', { class: 'hc-stats hc-sched' }, pat === 'ring' ? `Ring ${fmtN(Model.ROW_RING_RADIUS, 2)} m` : (Model.PATTERN_WORDS[pat] || pat), wv.pattern ? null : dflt,
+          pat === 'single' ? ' · one at a time' : wv.pack != null && wv.pack !== '' ? ` · pack ${wv.pack}` : ' · each creature\'s own pack')));
+    }
     for (const a of App.waveAlts(wv).slice(0, 6)) box.appendChild(creatureBlock(a.alt.enemy, a.alt.variant, a.alt.stats, t, { small: true, share: `${Math.round(a.share * 100)}%`, t0: Number(wv.t) || 0, from: 'wave' }));
     // pass 83 (lane TIMELINE): what the wave made of everything spawned in the past N seconds
     box.appendChild(windowLine(winAt(t), `wave:${i}:`, 'this wave'));
@@ -3225,6 +3403,13 @@ const Timeline = (() => {
     const info = FIELDS.EVENT_TYPES[ev.type];
     const bits = [ev.chance != null && Number(ev.chance) < 1 ? `${Math.round(Number(ev.chance) * 100)}% chance` : '', ev.t_jitter ? `± ${ev.t_jitter} s` : '', ev.type === 'swarm' ? `${ev.count || 40} at once` : '', ev.type === 'swarm' && ev.special ? 'every one its coloured special, no banner' : '', ev.mod ? `modifier ${ev.mod}` : ''].filter(Boolean).join(' · ');
     const box = el('div', {}, cardHead(App.eventLabel(ev), t, (info ? info.label : ev.type) + (bits ? ' · ' + bits : '')));
+    // pass 120 (lane EDITOR): a swarm's schedule and pattern at the numbers' weight, as a row's card has them
+    if (ev.type === 'swarm') {
+      const pat = ev.pattern ? String(ev.pattern) : 'ring';
+      box.appendChild(el('div', { class: 'hc-block' },
+        el('div', { class: 'hc-stats hc-sched' }, `Once at ${fmtT(t)} · ${ev.count || 40} at once`),
+        el('div', { class: 'hc-stats hc-sched' }, pat === 'ring' ? `Ring ${fmtN(Model.SWARM_RING_RADIUS, 2)} m` : (Model.PATTERN_WORDS[pat] || pat), ev.pattern ? null : el('small', { class: 'hc-dflt', text: ' (default)' }), ' · on top of the cap')));
+    }
     const shares = App.eventShares(ev);
     if (shares.length) for (const s of shares.slice(0, 4)) box.appendChild(creatureBlock(s.id, ev.variant, ev.stats, t, { small: shares.length > 1, share: shares.length > 1 ? `${Math.round(s.share * 100)}%` : '', t0: t, from: 'event', event: true, eachFiring: ev.type === 'elite_every' ? ev : null, modded: ev.type === 'elite' || ev.type === 'elite_every', forced: ev.type === 'swarm' && !!ev.special }));
     else if (ev.type === 'elite' || ev.type === 'elite_every') box.appendChild(el('div', { class: 'hc-line muted', text: 'a creature drawn from the roster rows open then, by their Elite weight, wearing a modifier, with that row\'s HP and ATK' }));
@@ -3447,7 +3632,12 @@ const Timeline = (() => {
     readout.appendChild(el('div', { class: 'ro-line' }, `cap ${cap} load${capMaxNote(App.capRawAt(t), cap)}`, hell > 0 ? ` + hell ${Math.floor(hell)}` : '',
       LL ? ` ≈ ${fmtCount(LL.capBodies)} bodies at the mix · hard cap ${isFinite(LL.hard) ? fmtCount(LL.hard) : 'none'} · limit ${fmtCount(view.lim[lj])} bodies (the ${LL.binds === 'hard' ? 'hard cap' : 'cap'} binds)` : ''));
     const sp = lastSpawn ? Model.estimateAt(lastSpawn.est, t) : null;
-    if (sp) readout.appendChild(el('div', { class: 'ro-line' }, `spawned so far ≈ ${fmtCount(sp.all)}`, el('small', { text: ` (estimate; ${fmtCount(sp.col)} coloured, ${fmtCount(sp.elite + sp.special + sp.boss)} Elites, specials and bosses)` })));
+    if (sp) {
+      // pass 120 (lane EDITOR): the elite-modified and the coloured with what rows always bring and what comes by chance
+      const mk = [sp.elite > 0 ? `${fmtCount(sp.elite)} Elite boss${sp.elite >= 1.5 ? 'es' : ''}` : '', sp.special > 0 ? `${fmtCount(sp.special)} gear special${sp.special >= 1.5 ? 's' : ''}` : '', sp.boss > 0 ? `${fmtCount(sp.boss)} boss${sp.boss >= 1.5 ? 'es' : ''}` : ''].filter(Boolean);
+      readout.appendChild(el('div', { class: 'ro-line' }, `spawned so far ≈ ${fmtCount(sp.all)}`, el('small', { text: ` (an estimate${mk.length ? `; ${mk.join(', ')}` : ''})` })));
+      for (const ln of splitLines(sp, false)) readout.appendChild(ln);
+    }
     readout.appendChild(el('div', { class: 'ro-line' }, `HP ×${fmtN(hp.total, 2)}`, el('small', { text: ` (a row starting now: time ${fmtN(hp.time, 2)} × stage ${fmtN(hp.stage, 2)} × level ${fmtN(hp.level, 2)} × creature ${fmtN(hp.creature, 2)})` })));
     readout.appendChild(el('div', { class: 'ro-line' }, `ATK ×${fmtN(dm.total, 2)}`, el('small', { text: ` (time ${fmtN(dm.time, 2)} × stage ${fmtN(dm.stage, 2)} × level ${fmtN(dm.level, 2)} × creature ${fmtN(dm.creature, 2)})` })));
     // pass 58: what the rows spawning now really carry (each fixed from its own start)
@@ -3483,7 +3673,8 @@ const Timeline = (() => {
       const o = open.find((x) => x.i === i);
       if (!(n > 1e-6) && !o) return;
       seen.add(i);
-      items.push({ n, id: r.enemy, variant: r.variant, hell: r.channel === 'hell', paced: Model.rowPaced(r), r, label: App.creatureName(r.enemy) });
+      // (pass 120: an elite row's elites are filed under it now, the roster draw too: its words, not a creature's name)
+      items.push({ n, id: firstEnemy(r), variant: r.variant, hell: r.channel === 'hell', paced: Model.rowPaced(r), r, label: enemyWords(r) });
     });
     (App.tl().waves || []).forEach((wv, i) => {
       const n = winCount(win, `wave:${i}:`);

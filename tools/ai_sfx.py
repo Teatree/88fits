@@ -405,6 +405,11 @@ _row("Weapons", "it_storm_gather", "Personal Storm: the clouds roll in", "textur
 _row("Weapons", "it_storm_strike", "Personal Storm: a lightning strike", "boom", 0.9, -2,
      "A close lightning strike: a sharp electric crack splitting into a heavy thunder boom with crackling.")
 
+# pass 120 (lane GHOST): the Undertaker's ghost sends a volley of ghost bolts (core/systems/Graveyard.gd)
+_row("Weapons", "it_ghost_volley", "the Undertaker's ghost fires a volley of ghost bolts", "whoosh", 0.7, 0,
+     "A soft eerie ghostly whoosh: a breathy hollow spectral swish of spirits flying out, a faint airy wail with a light "
+     "shimmering glassy tail, gentle and short, mid-pitched.")
+
 # ---------------------------------------------------------------- pass 64: three new ids (casino spots)
 _row("UI", "ui_stamp", "the BANISHED stamp on a card", "impact", 0.35, 0,
      "A rubber stamp slammed hard onto paper on a wooden desk, a punchy thump with a papery slap.")
@@ -529,7 +534,7 @@ _hype("wd_portal_open", "jingle", 2.5, ["medium", "app"],
 
 # pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's sounds on Stable Audio 3 (the medium model only: the
 # app on this PC was not running), their own kinds kept (a world sound, not the hype family's brightness bands)
-for _sid in ("it_train_rumble", "it_train_whistle", "it_train_pass", "it_storm_gather", "it_storm_strike"):
+for _sid in ("it_train_rumble", "it_train_whistle", "it_train_pass", "it_storm_gather", "it_storm_strike", "it_ghost_volley"):
     _r = P[_sid]
     HYPE[_sid] = {"kind": _r["kind"], "seconds": _r["seconds"], "pitch": _r["pitch"], "models": ["medium"],
                   "prompt": _r["prompt"] + _END}

@@ -24,12 +24,6 @@
         "op": "set",
         "value": 8,
         "target": "player"
-      },
-      {
-        "stat": "grave_damage_pct",
-        "op": "set",
-        "value": 40,
-        "target": "player"
       }
     ],
     [
@@ -63,13 +57,35 @@
       "vanish": 0.6,
       "height": 1.25,
       "sprite": "undertakers_shovel_grave.png",
+      "ghost_front": "undertakers_shovel_ghost_front.png",
+      "ghost_back": "undertakers_shovel_ghost_back.png",
+      "ghost_height": 1.55,
       "ghost_tint": "#7fe6ff",
+      "ghost_mix": 0.45,
       "ghost_alpha": 0.85,
-      "fire_min": 0.25,
-      "fire_max": 1.5,
-      "range_min": 6.0,
-      "range_max": 12.0,
-      "round": "#bff6ff"
+      "hover": 0.35,
+      "circle_radius": 1.5,
+      "lap_seconds": 4.0,
+      "spiral": 0.8,
+      "volley_every": 1.0,
+      "first_volley": 0.35,
+      "range": 9.0,
+      "bolts_mult": 1.0,
+      "bolts_exp": 0.6,
+      "bolts_max": 6,
+      "damage": 3.2,
+      "damage_exp": 0.9,
+      "bolt_speed": 8.0,
+      "bolt_turn": 5.0,
+      "bolt_life": 2.4,
+      "bolt_size": 0.55,
+      "curve": 14.0,
+      "fan": 32.0,
+      "lift": 0.35,
+      "bolt_core": "#f2fdff",
+      "bolt_color": "#7fe0ff",
+      "bolt_rim": "#6a4ccc",
+      "sound": "it_ghost_volley"
     }
   },
   "art_prompt": "an old undertaker's spade stuck upright in a small mound of dug-up earth beside a weathered wooden grave cross, a faint ghostly wisp curling up out of the dirt",

@@ -110,7 +110,7 @@ func _refresh() -> void:
 		c.queue_free()
 	_list.add_child(_row("Arena", "›", func():
 		Run.arena_next = true
-		UiFx.go(get_tree(), "res://game/Game.tscn")))
+		UiFx.go_run(get_tree())))
 	_list.add_child(_switch("Debug mode (the player's: 10 taps on the hints switch)", "debug_mode"))
 	_list.add_child(_switch("Debug panel in run", "debug_panel"))
 	_list.add_child(_switch("Debug buttons on modals", "debug_modal_buttons"))

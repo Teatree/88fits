@@ -10,7 +10,7 @@
       {
         "stat": "train_every",
         "op": "set",
-        "value": 20,
+        "value": 30,
         "target": "player"
       }
     ],
@@ -18,7 +18,7 @@
       {
         "stat": "train_every",
         "op": "set",
-        "value": 15,
+        "value": 22,
         "target": "player"
       },
       {
@@ -34,10 +34,10 @@
   "params": {
     "train": {
       "first": 4.0,
-      "rumble": 1.2,
-      "warn": 1.0,
+      "rumble": 2.4,
+      "warn": 2.0,
       "assemble": 0.55,
-      "speed": 30.0,
+      "speed": 22.5,
       "half_length": 24.0,
       "width": 1.8,
       "share": 0.25,

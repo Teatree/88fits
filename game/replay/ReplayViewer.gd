@@ -96,6 +96,8 @@ var _notes_seen := 0
 var _fps_warned := false
 var _check_t0 := 0
 var _assist_seen := 0
+## pass 120 (lane REPLAY): what RunReplay said when the replay's run ended before the player's (the light keeps it)
+var _ended_words := ""
 
 
 # ---------------------------------------------------------------- set up
@@ -349,6 +351,9 @@ func _add_game() -> void:
 		return
 	rr.checkpoint_compared.connect(_on_check)
 	rr.decision_applied.connect(_on_decision)
+	# pass 120 (lane REPLAY): the replay's run ended where the player's went on: held there, said in red
+	if rr.has_signal("run_ended_early"):
+		rr.run_ended_early.connect(_on_ended_early)
 	rr.finished_frames.connect(func(): _note("The recording ends here."))
 	if _check_mode:
 		_check_t0 = Time.get_ticks_msec()
@@ -433,6 +438,7 @@ func _restart_and_seek(target: int) -> void:
 	rr = null
 	_log_lines.clear()
 	_drift_text = ""
+	_ended_words = ""
 	_tap_i = 0
 	_highlight = Rect2()
 	_highlight_until = 0.0
@@ -576,6 +582,12 @@ func _now_wall() -> float:
 # ---------------------------------------------------------------- the driver's news
 
 func _on_check(i: int, ok: bool, diffs: Dictionary) -> void:
+	# pass 120 (lane REPLAY): parted between two checks (RunReplay._parted): the hero down only here, the run over only here
+	if i < 0 and not ok and _drift_text == "":
+		var what := "the hero went down here but not in the player's run" if diffs.has("down") else "the run ended here but not in the player's run"
+		_drift_text = "Out of step from %s: %s" % [mmss(_now_wall()), what]
+		_note("[color=#f05048]" + _drift_text + "[/color]")
+		return
 	if not ok and _drift_text == "":
 		var parts: Array = []
 		for k in diffs:
@@ -594,7 +606,16 @@ func _on_check(i: int, ok: bool, diffs: Dictionary) -> void:
 static func _field_name(k: String) -> String:
 	return {"x": "hero x", "z": "hero z", "hp": "HP", "lv": "level", "xp": "XP", "kills": "kills", "gold": "gold", "alive": "creatures",
 		"crowd": "the creatures' places", "cx": "the crowd's middle", "cz": "the crowd's middle", "dice": "the dice", "t": "clock",
-		"bits": "the last digits", "shots": "shots in the air", "picks": "pickups lying"}.get(k, k)
+		"bits": "the last digits", "shots": "shots in the air", "picks": "pickups lying", "down": "the hero down", "end": "the run's end"}.get(k, k)
+
+
+## Pass 120 (lane REPLAY): the replay's run ended while the player's went on (the replay had parted): the viewer pauses
+## there and says so; Space plays on (the body lies where it fell, nothing more happens in the run).
+func _on_ended_early(_f: int, words: String) -> void:
+	_note("[color=#f05048]%s  %s[/color]" % [mmss(_now_wall()), words])
+	_ended_words = words
+	if _seek_target < 0 and not _check_mode:
+		set_paused(true)
 
 
 func _on_decision(d: Dictionary, late: int) -> void:
@@ -646,6 +667,15 @@ func _on_decision(d: Dictionary, late: int) -> void:
 			words = "Setting %s = %s" % [str(d.get("key", "")), str(d.get("value", ""))]
 		"god":
 			words = "God mode " + ("on" if bool(d.get("on", false)) else "off")
+		# pass 120 (lane REPLAY): the debug helps a run may use, replayed like any tap
+		"debug":
+			words = "Debug panel: " + str(d.get("what", ""))
+		"debug_give":
+			var names: Array = []
+			for row in d.get("items", []):
+				if row is Array and (row as Array).size() >= 3:
+					names.append("%s x%d" % [_item_name(str(row[1])), int(row[2])])
+			words = "Debug hand: gave " + ", ".join(PackedStringArray(names))
 		"reel_skip", "chest_intro", "chest_hurry", "spawn_hurry", "bosschest_hurry":
 			return
 	_note(("%s  %s" % [mmss(_now_wall()), words]) + ("  (%d frames late)" % late if late > 0 else ""))
@@ -905,7 +935,8 @@ func _refresh_ui(f: int) -> void:
 	if rr:
 		var bad := int(rr.get("checks_bad"))
 		var ok := int(rr.get("checks_ok"))
-		if bad == 0:
+		# pass 120 (lane REPLAY): parted between checks counts too (the hero down only here, the run over only here)
+		if bad == 0 and int(rr.get("drift_frame")) < 0:
 			light_dot.color = GOOD
 			light.add_theme_color_override("font_color", GOOD)
 			light.text = "In step with the recording: %d of %d checks equal." % [ok, ok]
@@ -916,6 +947,8 @@ func _refresh_ui(f: int) -> void:
 			if bool(rr.get("assist")) and int(rr.get("assisted")) > 0:
 				extra = "  Safety net ON: the hero is pulled to where the player really was (%d times)." % int(rr.get("assisted"))
 			light.text = "%s  (%d checks equal, %d different).%s" % [_drift_text, ok, bad, extra]
+			if _ended_words != "":
+				light.text += "\n" + _ended_words + "."
 	if _seek_target >= 0 or _restart_pending:
 		seek_box.visible = true
 		var tgt := _seek_target
@@ -988,13 +1021,32 @@ func _refresh_header() -> void:
 	var rec := _build_words(b)
 	var here := _build_words(mine)
 	var line2 := ""
-	if same:
+	if str(b.get("id", "")).begins_with("editor-") and same:
+		# pass 120 (lane REPLAY): the editor binary's id is the same whatever the code: its files decide (RunReplay.code_print)
+		line2 = _editor_words(b, rec)
+	elif same:
 		line2 = "Recorded on build %s  ·  played on the same build [color=#59d873]✓[/color]  ·  %s" % [rec, str(plan.get("device", ""))]
 	else:
 		line2 = "[color=#f05048]Recorded on build %s  ·  played on build %s: NOT the same build, the replay may go out of step.[/color]" % [rec, here]
 	if not problems.is_empty():
 		line2 += "\n[color=#f05048]%s[/color]" % " ".join(PackedStringArray(problems))
 	header.text = line1 + "\n" + line2
+
+
+## Pass 120 (lane REPLAY): a run recorded from the editor binary plays on the repo's files as they are now: the same
+## files (the recording's code print equals this one's) replay exactly; changed files part it, and the header says so
+## before the light turns red (an older recording has no print: it says it cannot tell, and what tools/replay.py found).
+func _editor_words(b: Dictionary, rec: String) -> String:
+	var note := str(args.get("code_note", ""))
+	var had := str(b.get("code", ""))
+	if had == "":
+		if note != "":
+			return "[color=#f5c040]Recorded from the editor (%s), played on the game's files as they are now. %s[/color]" % [rec, note]
+		return "[color=#f5c040]Recorded from the editor (%s), before runs named their files: played on the game's files as they are now, it goes out of step if the game changed since (the light shows when).[/color]" % rec
+	var now := RunReplay.code_print()
+	if had == now:
+		return "Recorded from the editor (%s)  ·  played on the same game files [color=#59d873]✓[/color] (%s)" % [rec, now]
+	return "[color=#f05048]Recorded from the editor (%s) on other game files (%s, here %s): the game changed since this run, so the replay goes out of step. That is the code changing, not a fault in the replay.[/color]" % [rec, had, now]
 
 
 static func _build_words(b: Dictionary) -> String:

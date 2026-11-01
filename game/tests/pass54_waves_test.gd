@@ -634,12 +634,17 @@ func test_red_canyon_in_the_pass_54_shape() -> void:
 		assert_int(int(tl.spawn_sides.get(s, 0))).is_equal(int(sides.get(s, 0)))
 	# the HP curve's formula is the old ramp (the pair is kept beside it), and its points agree at the stage marks
 	assert_str(str(tl.hp_curve.get("mode", ""))).is_equal("formula")
+	# (pass 120, re-pinned: Garry set the formula's exponent to 1.35 in the Level Editor on 2026-11-01; the curve plays the
+	# formula's own a and b, the old hp_growth / hp_power pair beside it no longer has to agree)
+	var fa := float((tl.hp_curve.get("formula", {}) as Dictionary).get("a", tl.hp_growth))
+	var fb := float((tl.hp_curve.get("formula", {}) as Dictionary).get("b", tl.hp_power))
 	for t: float in [0.0, 300.0, 430.0, 900.0, 1290.0]:
-		assert_float(tl.hp_mult_at(t)).is_equal_approx(pow(1.0 + tl.hp_growth * t / 60.0, tl.hp_power), 0.00001)
+		assert_float(tl.hp_mult_at(t)).is_equal_approx(pow(1.0 + fa * t / 60.0, fb), 0.00001)
 	var pts: Array = tl.hp_curve.get("points", [])
 	assert_int(pts.size()).is_equal(4)
 	for p in pts:
 		var at := float(p[0])
+		# (the points stay as the pass 54 ramp drew them: they play only in "points" mode)
 		assert_float(float(p[1])).is_equal_approx(pow(1.0 + 0.0977 * at / 60.0, 1.25), 0.0001)
 	# every roster row is in the new shape: presence keyframes and a label of its own
 	var ids: Dictionary = {}

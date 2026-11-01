@@ -185,7 +185,8 @@ func test_the_menus_go_straight_into_the_run() -> void:
 	for path in ["res://ui/TitleScreen.gd", "res://ui/StagesScreen.gd", "res://ui/ResultsScreen.gd"]:
 		var src := FileAccess.get_file_as_string(path)
 		assert_bool(src.contains("run_scene")).override_failure_message(path).is_false()
-		assert_bool(src.contains("res://game/Game.tscn")).override_failure_message(path).is_true()
+		# (pass 120, lane STARTGO: through the run's curtain, UiFx.go_run)
+		assert_bool(src.contains("res://game/Game.tscn") or src.contains("UiFx.go_run(")).override_failure_message(path).is_true()
 
 
 func test_a_reroll_when_the_config_gives_one() -> void:

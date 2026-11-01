@@ -222,7 +222,8 @@ func _ready() -> void:
 	_arena_btn.pressed.connect(func():
 		Run.arena_next = true
 		_leave_for_a_run()
-		UiFx.go(get_tree(), "res://game/Game.tscn"))
+		# pass 120 (lane STARTGO): the revolver wipe and the loading screen into the run (ui/RunCurtain.gd)
+		UiFx.go_run(get_tree()))
 	add_child(_arena_btn)
 	# the name stack
 	var stack := VBoxContainer.new()
@@ -913,7 +914,8 @@ func _on_play() -> void:
 		return
 	Run.choose_stage(0)
 	_leave_for_a_run()
-	UiFx.go(get_tree(), "res://game/Game.tscn")
+	# pass 120 (lane STARTGO): the revolver wipe and the loading screen into the run (ui/RunCurtain.gd)
+	UiFx.go_run(get_tree())
 
 
 ## A run starting lets the live look's world go (pass 52): the run builds its own map, and never carries two.

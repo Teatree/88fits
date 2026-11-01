@@ -168,15 +168,17 @@ func test_the_cards_say_the_numbers_of_their_json() -> void:
 	assert_str(g).contains("One kill in 25 leaves a grave")
 	assert_str(g).contains("2 s later")
 	assert_str(g).contains("8 s")
-	assert_str(g).contains("40% damage")
+	# pass 120 (lane GHOST): ghost bolts that grow with power, up to 6, in place of the first weapon's shots at 40%
+	assert_str(g).contains("up to 6")
 	assert_str(g).contains("At most 4")
 	var f := TextGen.passive_text(Registry.passive("fools_gold"))
 	assert_str(f).contains("every 50 gold")
 	assert_str(f).contains("up to +60%")
 	assert_str(f).contains("Spending lowers it")
 	var b := TextGen.passive_text(Registry.passive("pocket_bible"))
-	assert_str(b).contains("12% of your max HP")
-	assert_str(b).contains("35% from a boss")
+	# pass 120: one cap for every hit (Garry: "every attack doesn't take more than 35% of heroes' Max HP"), so no boss share
+	assert_str(b).contains("35% of your max HP")
+	assert_str(b).not_contains("from a boss")
 	assert_str(b).contains("every 20 s")
 	assert_str(b).contains("never a boss's")
 
@@ -335,19 +337,16 @@ func test_a_grave_rises_a_ghost_climbs_out_fights_then_both_go() -> void:
 	assert_int(gy.raised).is_equal(1)
 
 
-func test_the_ghost_copies_the_first_weapons_damage_share_and_pace() -> void:
+## Pass 120 (lane GHOST): the ghost no longer copies the first weapon (its bolts and their numbers: pass120_GHOST_test);
+## what stays from pass 119 is that they are the item's own source.
+func test_the_ghosts_bolts_are_the_items_own_source() -> void:
 	_start()
 	Run.add_or_level_passive("undertakers_shovel")
 	var gy: Graveyard = auto_free(Graveyard.new())
 	add_child(gy)
 	gy.setup(null)
-	var w := Run.weapons[0] as WeaponInstance
-	assert_float(gy.round_damage(w)).is_equal_approx(w.stat("damage") * 0.4, 0.0001)
-	var per := maxf(w.stat("cooldown"), 0.05) / float(maxi(w.stat_int("amount"), 1))
-	assert_float(gy.fire_every(w)).is_equal_approx(clampf(per, 0.25, 1.5), 0.0001)
-	# the rounds are the item's own source, never the copied weapon's
-	assert_str(gy._shooter_for().def.id).is_equal("undertakers_shovel")
 	assert_str(gy.source_id()).is_equal("undertakers_shovel")
+	assert_str(gy.bolts.source).is_equal("undertakers_shovel")
 
 
 # ---------------------------------------------------------------- Fool's Gold
@@ -433,9 +432,9 @@ func test_the_bible_caps_a_hit_blocks_one_every_20_s_and_never_a_bosss() -> void
 	assert_str(p.last_outcome).is_equal("shield")
 	assert_bool(p.damage_log_text().contains("Pocket Bible")).is_true()
 	assert_float(Run.bible_left()).is_equal_approx(20.0, 0.01)
-	# spent: a huge hit takes 12% of max HP, no more
+	# spent: a huge hit takes 35% of max HP, no more (pass 120, Garry: "every attack doesn't take more than 35% of heroes' Max HP")
 	_hit(p, 500.0)
-	assert_float(p.max_hp - p.hp).is_equal_approx(p.max_hp * 0.12, 0.01)
+	assert_float(p.max_hp - p.hp).is_equal_approx(p.max_hp * 0.35, 0.01)
 	# a small one is untouched
 	p.hp = p.max_hp
 	_hit(p, 3.0)
@@ -453,10 +452,10 @@ func test_the_bible_caps_a_hit_blocks_one_every_20_s_and_never_a_bosss() -> void
 	assert_int(Run.bible_blocks).is_equal(2)
 
 
-func test_the_evolved_bible_caps_at_9_and_30_and_blocks_every_15_s() -> void:
+func test_the_evolved_bible_caps_at_30_and_blocks_every_15_s() -> void:
 	_start("astro")
 	_evolve("pocket_bible")
-	assert_float(Run.hit_cap_share(false)).is_equal_approx(0.09, 0.0001)
+	assert_float(Run.hit_cap_share(false)).is_equal_approx(0.30, 0.0001)
 	assert_float(Run.hit_cap_share(true)).is_equal_approx(0.30, 0.0001)
 	assert_float(Run.bible_every()).is_equal_approx(15.0, 0.0001)
 	# without the item: no cap, no block, no plate

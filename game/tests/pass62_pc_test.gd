@@ -90,6 +90,10 @@ func test_the_curves_before_seven_ten_are_untouched() -> void:
 	var want: Dictionary = JSON.parse_string(STAGE1)
 	var hc := WaveTimeline.new()
 	hc.hp_curve = want["scalars"]["hp_curve"]
+	# (pass 120, re-pinned: Garry's own retune of the HP formula's exponent, 1.25 -> 1.35, in the Level Editor on 2026-11-01;
+	# the rest of his stage 1 stands as pinned)
+	hc.hp_curve = (hc.hp_curve as Dictionary).duplicate(true)
+	hc.hp_curve["formula"]["b"] = 1.35
 	for k in range(0, 431):
 		var t := float(k)
 		assert_float(tl.hp_mult_at(t)).is_equal_approx(hc.hp_mult_at(t), 0.000001)

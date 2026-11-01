@@ -1179,6 +1179,8 @@ const Model = (() => {
       if (SR && String(r.pace) === 'once' && rowWaveStart(r) < SR.start - 2) return;
       if (d || (!one && (r.enemy === ROW_ENEMY_ROSTER || picks.length))) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d ? d.pack : 1)), 1), single: r.pattern === 'single',
         one, picks, mix: rowInMix(r), once: String(r.pace) === 'once', timer: rowTimer(r), elite: rowElite(r), special: !!r.special, next: null,
+        // pass 120 (lane EDITOR): the "roster" creature (its elites drawn, not named by the row)
+        draw: r.enemy === ROW_ENEMY_ROSTER,
         p: rowPaced(r) ? clamp(num(r.chance, 1), 0, 1) : 1,
         // pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves' state
         paced: rowPaced(r), drawn: rowDrawn(r), wk: -1, owed: 0,
@@ -1192,8 +1194,13 @@ const Model = (() => {
     let bossAlive = null;              // {share} while a boss fight runs
     const cum = {}, col = {}, mod = {};
     const srcCum = {};                 // pass 58: what each roster row ('roster:<i>') and wave alternative ('wave:<i>:<k>') spawned
-    const cat = { reg: 0, col: 0, mod: 0, elite: 0, special: 0, boss: 0, minion: 0 };
+    // pass 120 (lane EDITOR): of the coloured, `colForced` came from a row or swarm set to Special (the rest by chance);
+    // of the elite-modified, `modRow` came from a row, wave or event that names its creature (the rest drawn from the
+    // roster: Elites every, an elite event naming none, Endless's); `both` are coloured AND elite-modified (Special and an
+    // Elite modifier on one row)
+    const cat = { reg: 0, col: 0, mod: 0, elite: 0, special: 0, boss: 0, minion: 0, colForced: 0, modRow: 0, both: 0 };
     let colAlive = 0;                  // pass 72: the coloured specials alive (expected), kept under spColCap
+    const colourWaits = [];            // pass 120: an elite row's wave that waited for colour: {key, stage, from, at, until}
     let kills = 0, colourAt = null;
     const marks = [], fights = [];
     const aliveOf = (id) => { let n = 0; for (const a of alive.values()) if (a.id === id) n += a.n; return n; };
@@ -1208,11 +1215,19 @@ const Model = (() => {
     const total = () => cat.reg + cat.elite + cat.special + cat.boss;
     const colourOpen = () => kills >= colourAfter;
     const bump = (m, id, n) => { m[id] = (m[id] || 0) + n; };
+    /** How a row's creatures join (pass 120): Special on = every one its coloured special ('forced'), and with an Elite
+     *  modifier while colour is open both ('forced_mod'); else the modifier ('mod') or plain ('reg'). */
+    const rowKind = (x, open) => (x.special ? (x.elite && open ? 'forced_mod' : 'forced') : x.elite && open ? 'mod' : 'reg');
+    /** WaveDirector.colour_open_for (pass 120, the lead): colour is open for a row once the run's colour_after_kills kills
+     *  are made, and always for a row set to Special (a forced special ignores the wait, its elite modifier too). */
+    const colourOpenFor = (x) => colourOpen() || !!(x && x.special);
 
     /** `n` (expected) bodies of `d` join the crowd as `kind`: 'reg' (a roster, wave, swarm or portal creature, coloured by
      *  its variance special's chance once colour is open), 'forced' (pass 69: a special swarm's, every one coloured),
-     *  'mod' (wearing an elite modifier: never coloured) or 'elite' (an Elite mini-boss). */
-    function add(d, n, kind) {
+     *  'mod' (wearing an elite modifier: never coloured by chance), 'forced_mod' (pass 120: a row with Special and an
+     *  Elite modifier, every one both) or 'elite' (an Elite mini-boss). `draw` (pass 120): an elite-modified one drawn
+     *  from the roster (Elites every) rather than named by its row. */
+    function add(d, n, kind, draw) {
       if (!(n > 0) || !d) return;
       const key = d.id + '|' + d.share;
       const a = alive.get(key);
@@ -1220,9 +1235,14 @@ const Model = (() => {
       bump(cum, d.id, n);
       if (kind === 'elite') { cat.elite += n; return; }
       cat.reg += n;
-      if (kind === 'mod') { cat.mod += n; bump(mod, d.id, n); return; }
-      // pass 69 (lane EN): a swarm event set to special brings every one as its coloured special, colour or not
-      if (kind === 'forced') { if (d.arch === 'regular') { cat.col += n; bump(col, d.id, n); colAlive += n; } return; }
+      if (kind === 'mod' || kind === 'forced_mod') { cat.mod += n; bump(mod, d.id, n); if (!draw) cat.modRow += n; }
+      if (kind === 'mod') return;
+      // pass 69 (lane EN): a swarm event set to special brings every one as its coloured special, colour or not; pass 120:
+      // one wearing an elite modifier too (both), and one whose creature has no variance block (the map's defaults)
+      if (kind === 'forced' || kind === 'forced_mod') {
+        if (d.arch === 'regular') { cat.col += n; cat.colForced += n; bump(col, d.id, n); colAlive += n; if (kind === 'forced_mod') cat.both += n; }
+        return;
+      }
       // pass 72 (lane SPEC): a roll past the cap comes plain (a forced one above still comes)
       if (d.arch === 'regular' && d.chance > 0 && colourOpen()) {
         const c = Math.min(n * d.chance, Math.max(spColCap - colAlive, 0));
@@ -1374,8 +1394,8 @@ const Model = (() => {
         n = Math.min(n, Math.max(Math.ceil(room / Math.max(picksShare(picks), 0.05)), 1));
       }
       if (!(n > 0)) return;
-      const kind = x.special ? 'forced' : x.elite && colourOpen() ? 'mod' : 'reg';
-      for (const pk of picks) add(pk.d, n * pk.share, kind);
+      const kind = rowKind(x, colourOpenFor(x));
+      for (const pk of picks) add(pk.d, n * pk.share, kind, x.draw);
       bump(srcCum, x.key, n);
       x.owed = Math.max(x.owed - n, 0);
       if (x.once) marks.push({ t: clock(), kind: 'swarm', id: picks[0].d.id, n });
@@ -1411,7 +1431,13 @@ const Model = (() => {
         if (x.timer) {
           if (x.next == null) x.next = start;
           if (t < x.next) continue;
-          if (x.elite && !colourOpen()) { x.next = t + 1; continue; }
+          if (x.elite && !colourOpenFor(x)) {
+            // pass 120 (lane EDITOR): the wave waits a second at a time; remembered so the card can say when it came, or
+            // that its window closed first
+            if (!x.cw) { x.cw = { key: x.key, stage, from: t, at: null, until: x.until < 1e9 ? x.until : null }; colourWaits.push(x.cw); }
+            x.next = t + 1; continue;
+          }
+          if (x.cw) { x.cw.at = t; x.cw = null; }
           i = x.wk + 1; wt = t;
           x.next = every > 0 ? t + every : Infinity;
         } else {
@@ -1424,7 +1450,11 @@ const Model = (() => {
         if (x.elite && !('pattern' in x.r)) {
           // the coloured-elite arrivals (WaveDirector._row_elite_wave -> _spawn_elite), `count` of them x the chance
           const en = x.r.enemy === ROW_ENEMY_ROSTER ? '' : x.r.enemy;
-          spawnElite(en, x.r.enemy_weights, isObj(x.r.stats) ? x.r.stats : {}, x.p * Math.max(trunc(num(x.r.count, 1)), 1));
+          // pass 120 (the lead's WaveDirector._row_elite_wave): a Special row's arrivals come at once, never held, each
+          // its coloured special wearing the modifier
+          const got = spawnElite(en, x.r.enemy_weights, isObj(x.r.stats) ? x.r.stats : {}, x.p * Math.max(trunc(num(x.r.count, 1)), 1), x.special);
+          // pass 120 (lane EDITOR): filed under the row too, so its card and the warnings see what it brought
+          if (got > 0) bump(srcCum, x.key, got);
           continue;
         }
         x.owed = Math.max(trunc(num(x.r.count, x.pack)), 1) * x.p;
@@ -1447,9 +1477,11 @@ const Model = (() => {
     let heldRetry = 0;
     const timers = [];                 // elite_every: {next, mean, enemy, weights, stats, p}
     /** WaveDirector._spawn_elite: the named creature, or a roster row's by its elite_weight, wearing a modifier, arriving
-     *  as the formats say; held until colour comes. */
-    function spawnElite(enemy, weights, stats, p) {
-      if (!colourOpen()) { held.push({ enemy, weights, stats, p }); return; }
+     *  as the formats say; held until colour comes. Returns how many came (pass 120; 0 when held). `forced` (pass 120,
+     *  a Special row: WaveDirector._spawn_elite's `now` with force_special held round it): never held, every one both. */
+    function spawnElite(enemy, weights, stats, p, forced) {
+      if (!colourOpen() && !forced) { held.push({ enemy, weights, stats, p }); return 0; }
+      const kind = forced ? 'forced_mod' : 'mod';
       const st = isObj(stats) ? stats : {};
       let n = 0, id = '';
       const picks = pickShares(enemy, weights);
@@ -1462,17 +1494,18 @@ const Model = (() => {
           if (!d) continue;
           const pack = Math.max(trunc(num(c.x.r.pack, d.pack)), 1);
           const m = p * (c.x.d.eliteWeight / sum) * eliteCount(d.formats, pack);
-          add(d, m, 'mod'); n += m; if (!id) id = d.id;
+          add(d, m, kind, true); n += m; if (!id) id = d.id;
         }
       } else {
         for (const pk of picks) {
           const d = defOf(pk.id, st);
           if (!d) continue;
           const m = p * pk.share * eliteCount(d.formats, d.pack);
-          add(d, m, 'mod'); n += m; if (!id) id = d.id;
+          add(d, m, kind); n += m; if (!id) id = d.id;
         }
       }
       if (n > 0) marks.push({ t: clock(), kind: 'mod', id, n });
+      return n;
     }
     function spawnEliteBoss(enemy, weights, stats, p) {
       let n = 0, id = '';
@@ -1628,8 +1661,8 @@ const Model = (() => {
       for (let i = 0; i < list.length; i++) {
         const n = got[i] * scale;
         const x = list[i].x;
-        const kind = x.special ? 'forced' : x.elite ? 'mod' : 'reg';
-        if (x.one) add(x.d, n, kind); else for (const q of pk[i]) add(q.d, n * q.share, kind);
+        const kind = rowKind(x, true);
+        if (x.one) add(x.d, n, kind); else for (const q of pk[i]) add(q.d, n * q.share, kind, x.draw);
         bump(srcCum, x.key, n); used += n;
       }
       return left - used;
@@ -1659,7 +1692,7 @@ const Model = (() => {
       const room = cap - (loadAll() - hl);
       let left = hard - bodies();
       if (left <= 0) { if (!due) starveCheck(tr, room, left, hellFrac() * cap - hl); return; }
-      const drawnNow = (c) => c.x.drawn && (!c.x.elite || colourOpen());
+      const drawnNow = (c) => c.x.drawn && (!c.x.elite || colourOpenFor(c.x));
       // pass 84 (lane SPAWN): the director's spawn check (not an own-interval draw) is counted: full when the regular
       // channel has no room, and each open drawn row weighing above 0 on a full channel starves
       if (!due) starveCheck(tr, room, left, hellFrac() * cap - hl);
@@ -1777,7 +1810,7 @@ const Model = (() => {
       const left = hard - bodies();
       if (!(room > 0) || !(left > 0)) return;
       const t = now();
-      const list = openRows(rowsAt(tr, false)).filter((c) => c.x.drawn && (!c.x.elite || colourOpen()));
+      const list = openRows(rowsAt(tr, false)).filter((c) => c.x.drawn && (!c.x.elite || colourOpenFor(c.x)));
       const ws = list.map((c) => rowWeight(c.x.r, t, lateT));
       let W = 0;
       for (const w of ws) W += w;
@@ -1790,8 +1823,8 @@ const Model = (() => {
         const n = want[i] * scale;
         if (!(n > 0) || !pk[i].length) continue;
         const x = list[i].x;
-        const kind = x.special ? 'forced' : x.elite ? 'mod' : 'reg';
-        if (x.one) add(x.d, n, kind); else for (const q of pk[i]) add(q.d, n * q.share, kind);
+        const kind = rowKind(x, true);
+        if (x.one) add(x.d, n, kind); else for (const q of pk[i]) add(q.d, n * q.share, kind, x.draw);
         bump(srcCum, x.key, n);
       }
     }
@@ -1809,7 +1842,8 @@ const Model = (() => {
       const starve = {};
       for (const key of Object.keys(starveN)) starve[key] = checks > 0 ? starveN[key] / checks : 0;
       const hl = loadOf(hellIds(rowsAt(phase === 0 ? now() : now() - 1, true)));
-      points.push({ t: SR && srAfter > 0 ? SR.end + srAfter : clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion, kills, alive: bodies(), by, src: Object.assign({}, srcCum),
+      points.push({ t: SR && srAfter > 0 ? SR.end + srAfter : clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion,
+        colForced: cat.colForced, modRow: cat.modRow, both: cat.both, kills, alive: bodies(), by, src: Object.assign({}, srcCum),
         cap: capNow(), load: loadAll() - hl, floor: floorCurve.length ? samplePoints(floorCurve, now()) : 0, full: checks > 0 ? fullChecks / checks : 0, aliveBy, starve });
       checks = 0; fullChecks = 0; starveN = {};
     }
@@ -1911,7 +1945,9 @@ const Model = (() => {
     const last = points[points.length - 1].by;
     const ids = Object.keys(last).sort((a, b) => last[b][0] - last[a][0] || (a < b ? -1 : a > b ? 1 : 0));
     return { points, ids, marks, fights, colourAt, assume: { turnover: tvCurve || tvStages || tvFlat, bossSeconds: bossSteps / EST_HZ, portalSeconds: portalSteps / EST_HZ, end },
-      stage: SR ? { i: SR.i, start: SR.start, end: SR.end, portal: srPortalSteps / EST_HZ, endless: srEndlessSteps / EST_HZ, waves: enWave } : null };
+      stage: SR ? { i: SR.i, start: SR.start, end: SR.end, portal: srPortalSteps / EST_HZ, endless: srEndlessSteps / EST_HZ, waves: enWave } : null,
+      // pass 120 (lane EDITOR): every elite row's wave that waited for colour (at null: its window closed first)
+      colourWaits };
   }
 
   /** Pass 87 (lane STOOLS): the estimates of every stage run stitched on the map's clock (the Timeline's "All" tab): each
@@ -1919,7 +1955,7 @@ const Model = (() => {
    *  last stage's portal after the run's end. `opts` as spawnEstimate's (its `stage` ignored). */
   function stagesEstimate(tl, creatures, opts) {
     const L = stageList(tl);
-    const out = { points: [], ids: [], marks: [], fights: [], colourAt: null, assume: null, stages: [] };
+    const out = { points: [], ids: [], marks: [], fights: [], colourAt: null, assume: null, stages: [], colourWaits: [], colourAts: [] };
     const idSeen = new Set();
     L.forEach((w, i) => {
       // an earlier stage's run is cut at its window's end (the next window shows the next run), so it needs no Endless
@@ -1930,6 +1966,9 @@ const Model = (() => {
       for (const p of est.points) if (last || p.t < w.end || (p.t === w.end && !p.after)) out.points.push(p);
       out.marks.push(...est.marks);
       out.fights.push(...est.fights);
+      out.colourWaits.push(...est.colourWaits);
+      // pass 120 (lane EDITOR): each stage run's second colour came (null: never)
+      out.colourAts.push(est.colourAt);
       if (out.colourAt == null && est.colourAt != null) out.colourAt = est.colourAt;
       if (!out.assume) out.assume = est.assume;
       for (const id of est.ids) if (!idSeen.has(id)) { idSeen.add(id); out.ids.push(id); }
@@ -2612,6 +2651,148 @@ const Model = (() => {
     return out;
   }
 
+  // ------------------------------------------------------------------ pass 120 (lane EDITOR): a row's card
+  //
+  // Garry (2026-11-01): "upon highlight we surface the HP and ATK stats at the top, but I think we should also surface SPD
+  // (Speed) at the same level of visual priority. Also, let's surface the Schedule `Pacing` (with the seconds next to it)
+  // and the `Pattern` of spawning (with the Pack param next to it as well)", and "I wanted to make the 4th Spider Row a
+  // guaranteed specials with a Split modifier, but I can't tell if I made it so they are guaranteed to spawn as specials".
+
+  /** A creature's walk speed in m/s as a row brings it at run second t (EnemyManager.spawn): the row's `speed` (m/s, in
+   *  place of the creature's own; EnemyDef.with_overrides, a list or a block there is skipped as the game skips it), then
+   *  × `speed_mult`; × the stage's speed multiplier (WaveTimeline.speed_mult: 1 + speed_per_stage × the 0-based stage);
+   *  × the creatures' pace (Run.move_pace, at least 0.05, × creature_speed_mult). A size-range row's creatures all walk at
+   *  it (the size never changes the speed). On top in a run: each spawn ± the variance's `speed` share (`jitter`; never an
+   *  elite-modified one), an elite modifier's own speed effect (Speedy), far_speed while far from the hero, Endless's
+   *  wave factor and the Stakes. {spd, base, own, set ('row' | 'creature'), mult, over, stage, stageMult, movePace,
+   *  creatureMult, pace, jitter}. */
+  function speedOf(tl, c, stats, t) {
+    const d = isObj(tl) ? tl : {};
+    const st = isObj(stats) ? stats : {};
+    const own = num(c && c.speed, 0);
+    const sv = st.speed;
+    const setRow = sv != null && sv !== '' && !Array.isArray(sv) && !isObj(sv) && isFinite(Number(sv));
+    const hasMult = st.speed_mult != null && st.speed_mult !== '' && isFinite(Number(st.speed_mult));
+    const mult = hasMult ? Number(st.speed_mult) : 1;
+    const base = (setRow ? Number(sv) : own) * mult;
+    const s = stageAt(d, num(t, 0));
+    const stageM = 1 + num(d.speed_per_stage, 0) * s;
+    const movePace = Math.max(num(d.move_pace, 1), 0.05);
+    const creatureM = num(d.creature_speed_mult, 1);
+    const pace = movePace * creatureM;
+    const vr = c && isObj(c.variance) ? c.variance : {};
+    const vo = isObj(st.variance) ? st.variance : {};
+    const jitter = Math.max(num(vo.speed, num(vr.speed, 0)), 0);
+    return { spd: base * stageM * pace, base, own, set: setRow ? 'row' : 'creature', mult, over: setRow || hasMult, stage: s, stageMult: stageM, movePace, creatureMult: creatureM, pace, jitter };
+  }
+
+  /** The colour a forced special takes when neither its creature's Special block nor the map's special_defaults names one
+   *  (EnemyDef.SPECIAL_TINT, pass 120: the Goblins' crimson). */
+  const SPECIAL_COLOUR = '#8A1428';
+  /** A forced special's numbers (a row or swarm with `special: true`: EnemyManager.spawn's force_special, pass 120): every
+   *  one comes as its coloured special whatever its chance, colour_after_kills and the specials' max alive, ALSO when its
+   *  creature has no variance block (each number from the map's special_defaults, else the game's SPECIAL_DEFAULTS; its
+   *  colour special_defaults.tint, else SPECIAL_COLOUR) and ALSO when it wears an elite modifier (both: the special's size,
+   *  HP, damage, XP, glow and colour, the modifier's HP, scale and powers on top, its outline; it drops what an Elite
+   *  drops, the special's own chest not on top). A random special roll still never lands on an elite-modified one.
+   *  {hasVar, sp, hp, damage, size, xp, glow, tint_strength, chest_chance, from: {key: 'own' | 'map' | 'game'}, tint,
+   *  tintFrom}. */
+  function forcedSpecial(c, stats, defaults) {
+    const st = isObj(stats) ? stats : {};
+    const vr = c && isObj(c.variance) ? c.variance : {};
+    const vo = isObj(st.variance) ? st.variance : {};
+    const sp = Object.assign({}, isObj(vr.special) ? vr.special : {}, isObj(vo.special) ? vo.special : {});
+    const dflt = isObj(defaults) ? defaults : {};
+    const out = { hasVar: Object.keys(vr).length > 0 || Object.keys(vo).length > 0, sp, from: {} };
+    for (const k of ['hp', 'damage', 'size', 'xp', 'glow', 'tint_strength', 'chest_chance']) {
+      out[k] = specialValue(sp, dflt, k);
+      out.from[k] = specialSource(sp, dflt, k);
+    }
+    const hex = (v) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : '');
+    out.tint = hex(sp.tint) || hex(dflt.tint) || SPECIAL_COLOUR;
+    out.tintFrom = hex(sp.tint) ? 'own' : hex(dflt.tint) ? 'map' : 'game';
+    return out;
+  }
+
+  /** The names the card gives the patterns (fields.js PATTERNS' labels). */
+  const PATTERN_WORDS = { pack: 'Pack', scatter: 'Scatter', single: 'Single', ring: 'Ring', in_front: 'In front' };
+  /** WaveDirector.RING_RADIUS: a row's ring without its own ring_radius (the arena's 9 m × 1.3). */
+  const ROW_RING_RADIUS = 11.7;
+  const fmtS = (v) => String(round(Number(v), 2));
+
+  /** A roster row's schedule in words for its card (pass 120): how it paces, with its seconds, and its pattern, with its
+   *  pack. `c` the row's creature (the first of a list; null for the roster draw), `si` the map's spawn check in seconds.
+   *  Pacing: "Continuous · drawn every 0.7 s" (the spawn check, or "its own draw every 3 s": `interval`), "Waves every 5 s ·
+   *  15 a wave" (every [min, max]: "every 8–12 s"; offset, Also continuous and an elite row's timer in the note), "Once at
+   *  7:49 · 3 in it". Pattern: the row's (no key = Pack, marked default), its pack the row's `pack`, else the overrides'
+   *  `pack`, else the creature's pack size (marked default); Ring with its radius; a paced elite row without a pattern
+   *  brings its arrivals the coloured-elite way (alone, a pack or a ring by the creature's Elite formats).
+   *  {pace, pacing, pacingNote, pattern, patternDefault, packText, pack, packFrom ('row' | 'override' | 'creature' |
+   *  'draw'), patternNote}. */
+  function rowSchedule(r, c, si) {
+    const row = isObj(r) ? r : {};
+    const st = isObj(row.stats) ? row.stats : {};
+    const p = String(row.pace == null ? '' : row.pace);
+    const pace = p === 'waves' || p === 'once' ? p : 'continuous';
+    const n = rowWaveCount(row, c);
+    const notes = [];
+    const ch = row.chance != null && row.chance !== '' && isFinite(Number(row.chance)) ? Number(row.chance) : 1;
+    if (pace !== 'continuous' && ch < 1) notes.push(`${Math.round(ch * 100)}% of runs`);
+    if (pace !== 'continuous' && num(row.t_jitter, 0) > 0) notes.push(`± ${fmtS(row.t_jitter)} s`);
+    const elite = rowElite(row);
+    let pacing;
+    if (pace === 'continuous') {
+      const own = rowHasInterval(row);
+      pacing = own ? `Continuous · its own draw every ${fmtS(rowDrawInterval(row, si))} s` : `Continuous · drawn every ${fmtS(num(si, 0.5))} s`;
+      notes.unshift(own ? 'a burst on its own clock, by its weight' : 'at the spawn check, by its weight');
+    } else {
+      const e = row.every;
+      let lo, hi;
+      if (Array.isArray(e) && e.length) { lo = num(e[0], 30); hi = num(e[e.length - 1], lo); if (hi < lo) { const x = lo; lo = hi; hi = x; } } else { lo = hi = num(e, ROW_WAVE_EVERY_DEF); }
+      const start = rowWaveStart(row);
+      const off = Math.max(num(row.offset, 0), 0);
+      const at = off > 0 ? `${clockText(start)} (${clockText(num(row.t, 0))} + ${fmtS(off)} s)` : clockText(start);
+      if (pace === 'once' || !(hi > 0)) pacing = `Once at ${at} · ${n} in it`;
+      else {
+        pacing = `Waves every ${lo === hi ? fmtS(lo) : `${fmtS(lo)}–${fmtS(hi)}`} s · ${n} a wave`;
+        if (off > 0) notes.push(`the first at ${at}`);
+        if (lo !== hi) notes.push('a fresh gap each wave');
+        if (row.trickle) notes.push('also drawn between waves');
+      }
+      // pass 120 (the lead, WaveDirector.colour_open_for): an elite row waits for colour, a Special one never does
+      const wait = row.special === true ? 'Special: it never waits for colour, its modifier too' : 'it waits for colour (Colour after kills)';
+      if (elite) notes.push(pace === 'once' || !(hi > 0) ? wait : `each wave timed from the last; ${wait}`);
+      if (row.respect_cap === false) notes.push('on top of the cap');
+    }
+    // the pattern and its pack (WaveDirector._spawn_pick84: pattern default "pack", pack = the row's, else the def's)
+    const draw = row.enemy === ROW_ENEMY_ROSTER;
+    let pack, packFrom;
+    if (row.pack != null && row.pack !== '' && isFinite(Number(row.pack))) { pack = Math.max(Math.trunc(Number(row.pack)), 1); packFrom = 'row'; }
+    else if (st.pack != null && st.pack !== '' && isFinite(Number(st.pack))) { pack = Math.max(Math.trunc(Number(st.pack)), 1); packFrom = 'override'; }
+    else if (draw) { pack = null; packFrom = 'draw'; }
+    else { pack = Math.max(Math.trunc(num(c && c.pack_size, 1)), 1); packFrom = 'creature'; }
+    const packWord = pack == null ? 'the drawn row\'s pack' : `pack ${pack}`;
+    const hasPattern = row.pattern != null && row.pattern !== '';
+    const pat = hasPattern ? String(row.pattern) : 'pack';
+    let pattern, packText, patternNote = '';
+    if (elite && pace !== 'continuous' && !hasPattern) {
+      pattern = 'As Elites';
+      packText = pack == null ? 'alone, a pack or a ring' : `alone, a pack of ${pack} or a ring`;
+      patternNote = 'by the creature\'s Elite formats (the coloured-elite arrivals)';
+    } else {
+      pattern = PATTERN_WORDS[pat] || pat;
+      if (pat === 'single') { packText = 'one at a time'; patternNote = 'the pack is not read'; }
+      else if (pat === 'ring') {
+        const rr = row.ring_radius != null && row.ring_radius !== '' && isFinite(Number(row.ring_radius)) ? Math.max(Number(row.ring_radius), 1) : null;
+        pattern = `Ring ${fmtS(rr == null ? ROW_RING_RADIUS : rr)} m`;
+        packText = packWord;
+        if (rr == null) patternNote = 'the rows\' ring (no Ring radius)';
+      } else if (pat === 'pack') packText = pack == null ? 'packs of the drawn row\'s pack' : `packs of ${pack}`;
+      else packText = packWord;
+    }
+    return { pace, pacing, pacingNote: notes.join(' · '), pattern, patternDefault: !hasPattern && !(elite && pace !== 'continuous'), packText, pack, packFrom, patternNote };
+  }
+
   const api = {
     DEF, FORMULA_DEF, isObj, num, clamp, round, samplePoints, formulaAt, curveMode, curveMult, hasCurve, hpTimeMult, dmgTimeMult,
     stageLength, stages, runEnd, stageAt, stageMult, rowWeight, keyframesOf, convertRow, normaliseRoster, newRowId,
@@ -2641,6 +2822,8 @@ const Model = (() => {
   Object.assign(api, { FAR_SPEED_DEFAULTS, farSpeedCfg, farSpeedMult, farSpeedIssues });
   // pass 115 (lane POLISH): the far-speed curve's shapes
   Object.assign(api, { FAR_CURVES, farCurve });
+  // pass 120 (lane EDITOR): a row's walk speed and schedule for its card, a forced special's numbers
+  Object.assign(api, { speedOf, SPECIAL_COLOUR, forcedSpecial, PATTERN_WORDS, ROW_RING_RADIUS, rowSchedule });
   // pass 110 (lane BOSS): the boss fight windows (stage_list[k].boss_fight)
   Object.assign(api, {
     BOSS_FIGHT_DEF, BOSS_FIGHT_KEYS, BOSS_CYCLE_HZ, bossFightEntry, bossFight, bossFightOn, bossFightLen, bossFightMax, bossFightRows,

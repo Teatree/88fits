@@ -68,8 +68,36 @@ static func leave(c: Control, dur: float = OUT) -> void:
 	tw.tween_callback(func(): c.visible = false; c.modulate.a = 1.0)
 
 
+## Pass 120 (lane STARTGO): the run's scene, and the curtain every way into it plays (ui/RunCurtain.gd: a revolver's
+## cylinder closes on the screen, the loading screen comes out of the ink while the run loads, the cylinder opens on the
+## run). The curtain is loaded when it is needed, so nothing compiled before the autoloads (a tool) names it.
+const RUN_SCENE := "res://game/Game.tscn"
+const RUN_CURTAIN := "res://ui/RunCurtain.gd"
+const CURTAIN_GROUP := &"run_curtain"
+
+
+## Into a run: the title's PLAY and ARENA, a Stages card, PLAY AGAIN and the developer menu's Arena all come here.
+static func go_run(tree: SceneTree, scene: String = RUN_SCENE) -> void:
+	var script = load(RUN_CURTAIN)
+	if script == null:
+		_fade_to(tree, scene)
+		return
+	script.launch(tree, scene)
+
+
 ## Cross-fade through black into another scene. The overlay lives on the root so it survives the scene change.
+## Pass 120: the run's scene always goes through the curtain (go_run), and while a curtain closes on a screen and loads a
+## run no other scene change is taken (a second tap, the back gesture of the screen being left).
 static func go(tree: SceneTree, path: String) -> void:
+	if path == RUN_SCENE:
+		go_run(tree)
+		return
+	if tree.get_first_node_in_group(CURTAIN_GROUP) != null:
+		return
+	_fade_to(tree, path)
+
+
+static func _fade_to(tree: SceneTree, path: String) -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 100
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS

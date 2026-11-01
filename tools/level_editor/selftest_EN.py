@@ -110,6 +110,9 @@ def checks(check, run_node, server):
         check(res["override"] == {"group": "Elite", "min": 0, "max": 1}, "fields.js: a row's Special glow override in the Elite group, 0..1: %s" % res["override"])
         got = {k.split(".", 1)[1]: (g, dv) for k, g, dv in res["scalars"]}
         cap_row = got.pop("max_alive", None)
+        # (pass 120, lane EDITOR: the forced special's fallback colour, EnemyDef.SPECIAL_TINT; selftest_EDITOR120 pins it)
+        tint_row = got.pop("tint", None)
+        check(tint_row == ("Coloured specials", "#8A1428"), "fields.js: Settings → Coloured specials holds Colour, the game's crimson (pass 120): %s" % (tint_row,))
         check(set(got) == set(GAME_DEFAULTS) and all(g == "Coloured specials" and abs(float(dv) - GAME_DEFAULTS[k]) < 1e-9 for k, (g, dv) in got.items()),
               "fields.js: Settings → Coloured specials holds the seven map defaults, each greyed with the game's number: %s" % res["scalars"])
         check(cap_row == ("Coloured specials", GAME_MAX_ALIVE), "fields.js: Settings → Coloured specials holds Max alive, the game's 3 (pass 72): %s" % (cap_row,))
@@ -150,13 +153,21 @@ def checks(check, run_node, server):
     sp_events = [e for e in tl.get("events", []) if e.get("special")]
     # pass 84 (lane SPAWN, re-pinned): the special Goblin is a "once" row with `special` now (an old map's event still counts)
     sp_events += [r for r in tl.get("roster", []) if r.get("special") and r.get("pace") == "once"]
-    check(len(sp_events) == 1 and (sp_events[0].get("type") == "swarm" or sp_events[0].get("pace") == "once") and int(sp_events[0].get("count", 0)) == 1,
-          "Red Canyon: one special swarm event of one creature: %s" % sp_events)
-    if sp_events:
-        ev = sp_events[0]
+    # (pass 120, lane EDITOR, re-pinned: Garry added r68, three Desert Spiders forced special with the Splitter modifier at
+    # 7:49; the map is his, so the special Goblin is found by its creature, and every special once row is checked for
+    # what it can be: a creature with a special block, or (the game's pass 120 rule) one with no variance block that
+    # takes the map's Coloured specials)
+    goblins = [e for e in sp_events if e.get("enemy") == "red_goblin" and int(e.get("count", 0)) == 1]
+    check(len(goblins) == 1 and (goblins[0].get("type") == "swarm" or goblins[0].get("pace") == "once"),
+          "Red Canyon: one special Goblin, a once row of one creature: %s" % goblins)
+    for ev in sp_events:
         with open(os.path.join(CONTENT, "enemies", ev["enemy"], ev["enemy"] + ".json"), encoding="utf-8") as f:
             cdef = json.load(f)
-        check(isinstance(cdef.get("variance"), dict) and cdef["variance"].get("special"), "the special event's creature (%s) has a special block" % ev["enemy"])
+        vr = cdef.get("variance")
+        check((isinstance(vr, dict) and vr.get("special")) or not vr,
+              "a special row's creature (%s) has a special block, or no variance block at all (the map's defaults)" % ev["enemy"])
+    if goblins:
+        ev = goblins[0]
         # (pass 72, lane SPEC, re-pinned: Garry rebuilt stage 1 in the Level Editor (the red goblins' row now 2:03-4:05)
         # and kept the special Goblin at 2:00; where it stands is his to drag, so only that it comes in stage 1 is pinned)
         check(0 <= float(ev["t"]) <= float(tl.get("stage_length", 430)),

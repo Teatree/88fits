@@ -516,6 +516,9 @@ static func tint_special_color(range_: Dictionary, u: float, special_strength: f
 ## dropping a box ... higher HP"): size 1.25 -> 1.5, hp 10 -> 15, and `chest_chance` 0.35, the chance its death drops a
 ## chest (EnemyManager._special_chest_drop).
 const SPECIAL_DEFAULTS := {"size": 1.5, "hp": 15.0, "damage": 2.0, "xp": 2.0, "tint_strength": 0.6, "glow": 0.6, "chest_chance": 0.35}
+## Pass 120: the colour a variance special takes when neither its own block nor the map's special_defaults names a `tint`
+## (a creature with no variance block brought as its special by a row's "special": true): the Goblins' crimson.
+const SPECIAL_TINT := "#8A1428"
 ## Pass 72 (lane SPEC; Garry: "There should be a limit to how many of them are there"): at most this many variance
 ## specials alive at once when the map's `timeline_data.special_defaults.max_alive` names none (0 there = no limit, as a
 ## creature's own max_alive). A roll past it makes a plain creature; a forced special (a Special swarm) still comes.

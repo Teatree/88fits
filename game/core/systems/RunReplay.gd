@@ -34,6 +34,15 @@ const TRACK_EVERY := 0.5
 const WAIT_FRAMES := 900
 ## after a drift a recorded card that is not offered waits this many frames, then the like one is taken (_card_like)
 const OFFER_WAIT := 60
+## pass 120 (lane REPLAY): a recording that ends within this many frames of a replay's moment ends "here" (Down!'s count
+## running out ends the run only there: down_ran_out), and a dead hero in a replay is never moved further than this
+## (metres, flat) to the recorded place (_lock_hero: a body is not dragged along a track the player's hero walked)
+const END_SLACK := 60
+const CORPSE_SLACK := 0.05
+## pass 120 (lane REPLAY): after a drift, with the safety net on, a screen up in the replay for which the recording has no
+## choice due within SCREEN_LOOK frames is answered by the net after SCREEN_WAIT frames (its plain choice: _screen_net)
+const SCREEN_WAIT := 180
+const SCREEN_LOOK := 600
 ## the save keys whose values a replay needs nothing of: kept (the game reads them) but blanked (never sent)
 const SAVE_BLANK := {"install_id": "", "survey": {}}
 enum { OFF, RECORD, REPLAY }
@@ -48,6 +57,8 @@ static var _build: Dictionary = {}
 signal checkpoint_compared(i: int, ok: bool, diffs: Dictionary)
 signal decision_applied(dec: Dictionary, late: int)
 signal finished_frames
+## pass 120 (lane REPLAY): the replay's run ended (Game._ended) while the recording goes on: the replay had parted
+signal run_ended_early(frame: int, words: String)
 
 var mode := OFF
 var game: Node
@@ -129,6 +140,20 @@ var dropped_decisions: Array = []
 var assisted := 0
 ## frames with a recorded decision the replay could not apply, and the debug actions it cannot replay
 var notes: Array = []
+## pass 120 (lane REPLAY): the editor recording's code print, read on a worker thread (code_print)
+var _code_task := -1
+var _code_out := ""
+## pass 120 (lane REPLAY): the slides a hero down in the replay was kept where he fell (the recording's hero walked on),
+## the times Down!'s count ran out where the recording goes on (the safety net stood him up, or the screen waited), the
+## frame the replay's run ended while the recording goes on (-1: never)
+var corpse_holds := 0
+var down_parts := 0
+var ended_early := -1
+var _corpse_said := false
+var _down_said := false
+## the screens the safety net answered, and the one it is watching ([name, since frame])
+var screens_netted := 0
+var _screen_wait := ["", -1]
 ## a seek (the viewer): frames run without drawing until this frame
 var seek_to := -1
 ## the safety net after a drift (the viewer's switch): the hero pulled to his recorded track (_assist)
@@ -214,6 +239,10 @@ func _exit_tree() -> void:
 	# a run left without an end (the window closed, back to the title through a tool): what was recorded is still kept
 	if mode == RECORD and not _closed and frame > 0:
 		finish("quit")
+	# pass 120: never leave the code print's worker running past its recorder
+	if _code_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_code_task)
+		_code_task = -1
 	Lockstep.ticking = maxi(Lockstep.ticking - 1, 0)
 	if Lockstep.ticking == 0:
 		Lockstep.clear_timers()
@@ -263,8 +292,92 @@ static func build_info() -> Dictionary:
 		b["unstamped"] = true
 	b["engine"] = Engine.get_version_info().get("string", "")
 	b["editor"] = OS.has_feature("editor")
+	# pass 120 (lane REPLAY): the editor binary's id is the same whatever the code ("editor-1.00"), so it names the repo's
+	# commit too (the files may still differ from it: code_print says whether they do)
+	if OS.has_feature("editor") and not b.has("git"):
+		var g := _git_head()
+		if g != "":
+			b["git"] = g
 	_build = b
 	return b
+
+
+## The repo's commit (the editor binary: res:// is the repo's game/), 7 characters; "" when there is no .git.
+static func _git_head() -> String:
+	var git := ProjectSettings.globalize_path("res://").trim_suffix("/").get_base_dir().path_join(".git")
+	var head := FileAccess.get_file_as_string(git.path_join("HEAD")).strip_edges()
+	if head.begins_with("ref: "):
+		var ref := head.substr(5)
+		var h := FileAccess.get_file_as_string(git.path_join(ref)).strip_edges()
+		if h == "":
+			for ln in FileAccess.get_file_as_string(git.path_join("packed-refs")).split("\n"):
+				if ln.ends_with(" " + ref):
+					h = ln.get_slice(" ", 0)
+		head = h
+	return head.substr(0, 7) if head.length() >= 7 else ""
+
+
+## Pass 120 (lane REPLAY): the game's files as they are now: an md5 over the path and md5 of every script and scene the
+## run's code is made of (core, game, player, ui, world, replay), project.godot and every content JSON and .tres. A run
+## recorded from the editor keeps it (header build.code), so its replay can say whether the files are the same or changed
+## since (the editor's build id alone cannot). Read once a process (a few hundred ms on the PC).
+const CODE_DIRS := ["core", "game", "player", "ui", "world", "replay"]
+static var _code := ""
+static func code_print() -> String:
+	if _code == "":
+		_code = _code_compute()
+	return _code
+
+
+func _code_bg() -> void:
+	_code_out = _code_compute()
+
+
+## The recording's print once its worker is done (finish, _exit_tree): into the header's build.
+func _code_done() -> void:
+	if _code_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_code_task)
+		_code_task = -1
+		if _code == "" and _code_out != "":
+			_code = _code_out
+	if _code_out != "" and header.get("build") is Dictionary:
+		var bc: Dictionary = (header["build"] as Dictionary).duplicate()
+		bc["code"] = _code_out
+		header["build"] = bc
+
+
+static func _code_compute() -> String:
+	var lines := PackedStringArray()
+	for d in CODE_DIRS:
+		_print_dir("res://" + d, [".gd", ".tscn"], lines)
+	_print_dir("res://content", [".json", ".tres"], lines)
+	lines.append("project.godot " + _project_md5())
+	lines.sort()
+	return "\n".join(lines).md5_text().substr(0, 12)
+
+
+## project.godot without its user folder lines (the Watch's snapshot of game/, where an editor run replays, names its own
+## user folder: tools/sim_batch.py patch_project)
+static func _project_md5() -> String:
+	var keep := PackedStringArray()
+	for ln in FileAccess.get_file_as_string("res://project.godot").split("\n"):
+		var t := ln.strip_edges()
+		if t == "" or t.begins_with("config/use_custom_user_dir") or t.begins_with("config/custom_user_dir_name"):
+			continue
+		keep.append(t)
+	return "\n".join(keep).strip_edges().md5_text()
+
+
+static func _print_dir(dir: String, exts: Array, lines: PackedStringArray) -> void:
+	for f in DirAccess.get_files_at(dir):
+		for e in exts:
+			if f.ends_with(e):
+				var path := dir.path_join(f)
+				lines.append(path.trim_prefix("res://") + " " + FileAccess.get_md5(path))
+				break
+	for sub in DirAccess.get_directories_at(dir):
+		if not sub.begins_with("."):
+			_print_dir(dir.path_join(sub), exts, lines)
 
 
 # ---------------------------------------------------------------- recording
@@ -300,6 +413,13 @@ func _begin_record(launch: Dictionary, snap: Dictionary) -> void:
 		"check_every": CHECK_EVERY, "track_every": TRACK_EVERY,
 	}
 	memory_only = bool(launch.get("analytics_memory", false))
+	# pass 120 (lane REPLAY): a run from the editor binary names its files (code_print), so its replay can tell a code
+	# change from a replay that parted by itself; read on a worker thread (about a second of file reads), kept at the end
+	if OS.has_feature("editor") and (not memory_only or bool(launch.get("replay_code", false))):
+		if _code != "":
+			_code_out = _code
+		else:
+			_code_task = WorkerThreadPool.add_task(_code_bg, false, "replay code print")
 	_check_every = float(launch.get("replay_check", CHECK_EVERY))
 	_next_check = _check_every
 	header["check_every"] = _check_every
@@ -565,7 +685,19 @@ func _lock_hero(p: Node3D) -> void:
 		return
 	var want := Vector3(_hero_pos[_hero_i * 3], _hero_pos[_hero_i * 3 + 1], _hero_pos[_hero_i * 3 + 2])
 	_hero_i += 1
+	var down := bool(p.get("dead"))
+	if not down:
+		_corpse_said = false
 	if p.global_position != want:
+		# pass 120 (lane REPLAY; Garry: "in the Replay I just see the dead body running around"): a hero down in the
+		# replay whose recorded place walks away (the player's hero was up: the replay had parted) stays where he fell
+		if down and Vector2(want.x - p.global_position.x, want.z - p.global_position.z).length() > CORPSE_SLACK:
+			corpse_holds += 1
+			if not _corpse_said:
+				_corpse_said = true
+				notes.append("The hero is down here, but in the player's run he was up and walking (the replay had parted): his body stays where it fell")
+				_parted({"down": ["up", "down"]})
+			return
 		hero_fixes += 1
 		p.global_position = want
 
@@ -636,6 +768,7 @@ func finish(reason: String = "end") -> String:
 		return ""
 	_closed = true
 	_flush_run()
+	_code_done()
 	var p = game.get("player") if game and is_instance_valid(game) else null
 	if reason != "quit" or (p != null and is_instance_valid(p) and p.is_inside_tree()):
 		var c := check_values()
@@ -891,8 +1024,13 @@ static func _phys_order(a: Node, b: Node) -> bool:
 	return b.is_greater_than(a)
 
 
-## In a frame whose engine delta is pd (the world ran) every tween is stretched to the recorded d (its speed x d / pd,
-## put back in the next frame's head).
+## In a frame whose engine delta is pd (the world ran) the tweens must still see the recorded d. Pass 114 stretched them
+## (speed x d / eng, set at the head); pass 120 (lane REPLAY) found that inexact: the engine keeps a tween's speed in 32 bits,
+## so eng x speed missed d in the last bits, and a tween a rule reads (a turret's pop-in scale, which places its muzzles)
+## parted every recording made at another rate than 60 frames a second. Now the Tail steps every running tween by d itself
+## (custom_step at its own speed, in the engine's order, where the engine would step it next: after the nodes and the run's
+## timers) and holds it at speed 0 through the engine's own step; its speed comes back in the next frame's head. A frame
+## paused by its end keeps the stretch (only the screens' own tweens run then, and those only draw).
 var _stretched: Array = []
 func _tween_stretch() -> void:
 	for pair in _stretched:
@@ -900,22 +1038,53 @@ func _tween_stretch() -> void:
 		if tw != null and tw.is_valid():
 			tw.set_speed_scale(float(pair[1]))
 	_stretched.clear()
+
+
+## The Tail's part (see above): true when it stepped the tweens itself.
+func _tween_step_tail() -> bool:
 	var f := frame
-	if _fk[f] <= 0 or _fran[f] == 0 or _fpd[f] <= 0.0:
-		return
+	if f < 0 or f >= frames_n or _fk[f] <= 0 or _fran[f] == 0 or _fpd[f] <= 0.0:
+		return false
 	# the engine's process delta in such a frame is k x pd
 	var eng := _fpd[f] * float(clampi(int(_fk[f]), 1, Lockstep.PHYS_PER_FRAME))
 	if eng == _fd[f]:
-		return
-	var k := _fd[f] / eng
-	for tw: Tween in get_tree().get_processed_tweens():
-		if tw.is_valid():
-			var sp := 1.0
-			# Tween has no speed getter: a tween a screen hurried keeps its own speed in a meta of ours
-			if tw.has_meta(&"speed"):
-				sp = float(tw.get_meta(&"speed"))
-			_stretched.append([tw, sp])
-			tw.set_speed_scale(sp * k)
+		return false
+	if get_tree().paused:
+		var k := _fd[f] / eng
+		for tw: Tween in get_tree().get_processed_tweens():
+			if tw.is_valid():
+				var sp0 := _tween_speed(tw)
+				_stretched.append([tw, sp0])
+				tw.set_speed_scale(sp0 * k)
+		return false
+	var seen := {}
+	var more := true
+	while more:
+		more = false
+		for tw: Tween in get_tree().get_processed_tweens():
+			var id := tw.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			# a tween its callback made in this step is stepped too (the engine's own step would reach it in the same pass)
+			more = true
+			if not tw.is_valid() or not tw.is_running():
+				continue
+			var sp := _tween_speed(tw)
+			tw.set_speed_scale(sp)
+			if not tw.custom_step(_fd[f]):
+				# done: the tree drops it at its own step, as it would have
+				tw.kill()
+				continue
+			if tw.is_valid():
+				tw.set_speed_scale(0.0)
+				_stretched.append([tw, sp])
+	return true
+
+
+## A tween's own speed (Tween has no speed getter: a tween a screen hurried keeps its speed in a meta of ours).
+static func _tween_speed(tw: Tween) -> float:
+	return float(tw.get_meta(&"speed")) if tw.has_meta(&"speed") else 1.0
 
 
 func _apply_stick() -> void:
@@ -1176,7 +1345,20 @@ func _apply(d: Dictionary) -> bool:
 				g.set_god(bool(d.get("on", false)))
 			return true
 		"debug":
+			# pass 120 (lane REPLAY): the in-run debug panel's button, run again by its words
+			var dp = g.get("debug_panel")
+			if dp != null and dp.has_method("run_action") and dp.run_action(str(d.get("what", ""))):
+				return true
 			notes.append("debug action '%s' at %.1f s is not replayed" % [str(d.get("what", "")), float(d.get("t", 0.0))])
+			return true
+		"debug_give":
+			# pass 120 (lane REPLAY): the level-up's debug hand ("any item on level-up"), handed over again on its screen
+			var cs = g.get("cards")
+			if cs == null or not cs.visible:
+				return false
+			DebugHand.give_items(d.get("items", []))
+			if cs.has_method("_rebuild"):
+				cs._rebuild()
 			return true
 	notes.append("unknown decision '%s'" % k)
 	return true
@@ -1198,7 +1380,8 @@ static func _kind_words(k: String) -> String:
 	return {"card": "a card pick", "gate": "TAP TO GO", "totem": "a totem gift", "stranger": "the Stranger's deal", "chest_finish": "a chest",
 		"chest_intro": "a chest's opening", "chest_hurry": "a chest's reel", "shop_buy": "a purchase", "shop_leave": "leaving the shop",
 		"revive": "the Down! choice", "bounty": "the Wanted posters", "reel_skip": "the mutation reel", "portal_extract": "EXTRACT",
-		"portal_decline": "Not yet", "bosschest_hurry": "the boss chest's count", "bosschest_claim": "the boss chest's CLAIM"}.get(k, k)
+		"portal_decline": "Not yet", "bosschest_hurry": "the boss chest's count", "bosschest_claim": "the boss chest's CLAIM",
+		"debug_give": "the debug hand's items", "revive_hold": "Down!'s hold"}.get(k, k)
 
 
 static func item_name(id: String) -> String:
@@ -1243,6 +1426,17 @@ func _replay_tail() -> void:
 		_check_i += 1
 	if assist and drift_frame >= 0:
 		_assist()
+		_screen_net()
+	# pass 120 (lane REPLAY): the replay's run is over while the recording goes on (the replay had parted): said once, and
+	# the viewer holds there (nothing after it is the player's run)
+	if ended_early < 0 and game and is_instance_valid(game) and bool(game.get("_ended")) and frame < frames_n - 1 - END_SLACK:
+		ended_early = frame
+		var left := maxf(float(plan.get("play_s", 0.0)) - Run.play_clock, 0.0)
+		var words := "The run ended here in the replay, but the player's run went on for another %d:%02d (the replay had parted from the recording): what follows is not the player's run" % [int(left) / 60, int(left) % 60]
+		notes.append(words)
+		_parted({"end": ["going on", "ended"]})
+		run_ended_early.emit(frame, words)
+	_tween_step_tail()
 	_set_scale_for(frame + 1)
 	if frame >= frames_n - 1 or _hold_req == 1 or (_rehold_at >= 0 and frame >= _rehold_at):
 		_hold()
@@ -1351,6 +1545,198 @@ func _assist() -> void:
 	var hp := _track_hp[_track_i]
 	if absf(float(p.get("hp")) - hp) > 0.5 and hp > 0.0:
 		p.set("hp", hp)
+
+
+## Pass 120 (lane REPLAY): the replay has parted from the recording although no checkpoint has said so yet (the hero went
+## down only here, the run ended only here): the drift light turns red from this frame with what parted.
+func _parted(what: Dictionary) -> void:
+	if drift_frame >= 0:
+		return
+	drift_frame = frame
+	drift_what = what
+	checkpoint_compared.emit(-1, false, what)
+
+
+## Pass 120 (lane REPLAY; Garry: "in the game I used a Debug Revive and in the Replay I just see the dead body running
+## around"): Down!'s count ran out in a replay (ReviveScreen._process). "timeout" ends the run as the count does in play,
+## but only where the recording ends too (within END_SLACK frames: its own count ran out, or it was the last frame); anywhere
+## else the player's run goes on, so the replay has parted and the run must not end here: with the safety net on the hero
+## is stood up (kind "replay": no revive spent) at the HP the player's hero had then (the track), else the screen waits
+## at 0 for a recorded choice. "" = the screen stays. Outside a replay always "timeout".
+static func down_ran_out(rs: Node) -> String:
+	var rr := I
+	if rr == null or rr.mode != REPLAY:
+		return "timeout"
+	return rr._down_ran_out(rs)
+
+
+func _down_ran_out(rs: Node) -> String:
+	if frame >= frames_n - 1 - END_SLACK:
+		return "timeout"
+	if not _down_said:
+		_down_said = true
+		down_parts += 1
+		_parted({"down": ["up", "down"]})
+		if not assist:
+			notes.append("Down!'s count ran out here, but the player's run goes on (the replay had parted): the screen waits for the player's next choice (A: the safety net stands him up)")
+	if not assist:
+		return ""
+	_down_said = false
+	var hp := -1.0
+	var i := _track_index(frame)
+	if i >= 0:
+		hp = _track_hp[i]
+	notes.append("Down!'s count ran out here, but the player's run goes on (the replay had parted): the safety net stood the hero up%s" % (
+		(" at the player's HP (%d)" % int(roundf(hp))) if hp > 0.0 else ""))
+	if rs != null and rs.has_method("_decide"):
+		rs._decide("replay")
+	var p = game.get("player") if game else null
+	if p != null and hp > 0.0 and not bool(p.get("dead")):
+		p.set("hp", minf(hp, float(p.get("max_hp"))))
+		if p.has_signal("damaged"):
+			p.damaged.emit(p.hp, p.max_hp)
+	return ""
+
+
+## Pass 120 (lane REPLAY): the screen the replay shows and the decisions that answer it ("" none; Down! has its own rule).
+func _screen_up() -> Array:
+	var g := game
+	if g == null or not is_instance_valid(g) or bool(g.get("_ended")):
+		return ["", []]
+	var cs = g.get("cards")
+	if cs != null and cs.visible:
+		return ["cards", ["card", "card_skip", "card_reroll", "card_banish_mode", "reel_skip", "debug_give"]]
+	var ch = g.get("chest_screen")
+	if ch != null and ch.visible:
+		return ["chest", ["chest_intro", "chest_hurry", "chest_finish", "chest_banish"]]
+	var bc = g.get("boss_chest_screen")
+	if bc != null and bc.visible:
+		return ["boss chest", ["bosschest_hurry", "bosschest_claim"]]
+	var sh = g.get("structure_shop")
+	if sh != null and sh.visible:
+		return ["shop", ["shop_buy", "shop_leave"]]
+	var ss = g.get("stranger_screen")
+	if ss != null and ss.visible:
+		return ["Stranger", ["stranger"]]
+	var ts = g.get("totem_screen")
+	if ts != null and ts.visible and not bool(ts.get("_done")):
+		return ["totem", ["totem"]]
+	var pd = g.get("portal_dialog")
+	if pd != null and pd.visible:
+		return ["portal", ["portal_extract", "portal_decline"]]
+	var bp = g.get("bounty_posters")
+	if bp != null and bp.visible and not bp.is_done():
+		return ["Wanted posters", ["bounty", "bounty_reroll"]]
+	var gt = g.get("resume_gate")
+	if gt != null and gt.visible:
+		return ["TAP TO GO", ["gate"]]
+	return ["", []]
+
+
+## Pass 120 (lane REPLAY): after a drift, with the safety net on: a screen up in the replay that the player's run has no
+## choice for (none waiting, none due within SCREEN_LOOK frames) is answered after SCREEN_WAIT frames with its plain choice
+## (the first card, the chest taken, the shop and the Stranger left, the first gift, the portal not yet, no poster, TAP TO
+## GO), and the log says so, so a replay that parted never stands on a screen for minutes.
+func _screen_net() -> void:
+	var up := _screen_up()
+	var name := str(up[0])
+	if name == "":
+		_screen_wait = ["", -1]
+		return
+	var kinds: Array = up[1]
+	for d: Dictionary in _pending:
+		if kinds.has(str(d["k"])):
+			_screen_wait = ["", -1]
+			return
+	var decs: Array = plan.get("decisions", [])
+	var j := _dec_i
+	while j < decs.size() and int((decs[j] as Dictionary)["f"]) <= frame + SCREEN_LOOK:
+		if kinds.has(str((decs[j] as Dictionary)["k"])):
+			_screen_wait = ["", -1]
+			return
+		j += 1
+	if str(_screen_wait[0]) != name:
+		_screen_wait = [name, frame]
+		return
+	if frame - int(_screen_wait[1]) < SCREEN_WAIT:
+		return
+	var did := _screen_answer(name)
+	if did == "":
+		return
+	_screen_wait = ["", -1]
+	screens_netted += 1
+	notes.append("The %s waited for a choice the player's run does not make here (the replay had parted): the safety net %s" % [name, did])
+
+
+## The plain choice on screen `name` ("" when it cannot be made yet: a reel still spinning, a claim under way).
+func _screen_answer(name: String) -> String:
+	var g := game
+	match name:
+		"cards":
+			var cs = g.get("cards")
+			var reel = cs.get("_reel")
+			if reel != null and is_instance_valid(reel) and reel.is_visible_in_tree():
+				reel.skip()
+				return ""
+			if bool(cs._picking) or (cs._offer as Array).is_empty():
+				return ""
+			var card := _card_like(cs._offer, {})
+			if card.is_empty():
+				return ""
+			cs._pick(card)
+			return "took %s" % item_name(str(card.get("id", "")))
+		"chest":
+			var ch = g.get("chest_screen")
+			if bool(ch._spinning):
+				ch.skip_intro()
+				ch.hurry()
+				return ""
+			ch._finish(true)
+			return "took it"
+		"boss chest":
+			var bc = g.get("boss_chest_screen")
+			if bool(bc.get("_claiming")):
+				return ""
+			bc.claim()
+			return "claimed it"
+		"shop":
+			g.get("structure_shop")._finish(false)
+			return "left it"
+		"Stranger":
+			g.get("stranger_screen")._finish(false)
+			return "walked away"
+		"totem":
+			var ts = g.get("totem_screen")
+			var rows: Array = ts.planks()
+			if rows.is_empty():
+				return ""
+			ts._pick(rows[0])
+			return "took the first gift"
+		"portal":
+			g.get("portal_dialog").decline()
+			return "said not yet"
+		"Wanted posters":
+			g.get("bounty_posters").choose(-1)
+			return "took no poster"
+		"TAP TO GO":
+			g.get("resume_gate").tap()
+			return "went on"
+	return ""
+
+
+## The track point at or before frame `f` (-1: none yet).
+func _track_index(f: int) -> int:
+	if _track_f.is_empty() or _track_f[0] > f:
+		return -1
+	var lo := 0
+	var hi := _track_f.size() - 1
+	while lo < hi:
+		var mid := (lo + hi + 1) >> 1
+		if _track_f[mid] <= f:
+			lo = mid
+		else:
+			hi = mid - 1
+	return lo
 
 
 ## The recorded hero's place at frame `f` (the track), for the viewer's map and the assist.

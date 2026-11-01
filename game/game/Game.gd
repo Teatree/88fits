@@ -850,6 +850,10 @@ const SPAWN_LAND_SHAKE := 0.3   # the touchdown's camera shake (1.2 before pass 
 const SPAWN_FLASH := 0.35       # how lit the hero is at the top of the beam (1 = white: he vanished in the beam)
 const SPAWN_BEAM_PRIORITY := -6  # pass 100: drawn over the stage's filter (StageLook.PRIORITY), under the hero
 const SPAWN_BEAM_BACK := 2.2    # metres the beam stands behind him as the camera sees it (his sprite leans back towards the camera: its top passes 1.7 m back)
+## Pass 120 (lane STARTGO): the longest frame the landing's clock counts (s). The run's first frames carry its build and its
+## first draw (under the loading screen, ui/RunCurtain.gd); counted whole they threw the beam forward, the hero half way
+## down before the curtain opened. The same rule in a replay (Lockstep.dt gives the recorded frame).
+const SPAWN_MAX_STEP := 1.0 / 30.0
 var spawning := false
 var _spawn_t := 0.0
 var _spawn_land := Vector3.ZERO
@@ -961,6 +965,7 @@ static func spawn_beam_fade_y(ground_top: float) -> Vector2:
 
 
 func _tick_spawn(delta: float) -> void:
+	delta = minf(delta, SPAWN_MAX_STEP)
 	_spawn_speed = move_toward(_spawn_speed, spawn_rate, delta * SPAWN_HURRY_RAMP)
 	_spawn_t += delta * _spawn_speed
 	_spawn_spark_t -= delta
@@ -3209,7 +3214,8 @@ func _revive(kind: String) -> void:
 	if kind == "gold":
 		# a flat price, spent like the shop's (pass 61: the run recorder counts it under "revive"); never below 0
 		Run.spend_gold(mini(ReviveScreen.GOLD_COST, Run.run_gold), "revive")
-	if kind != "debug" and kind != "phoenix":
+	# pass 120 (lane REPLAY): "replay" is a replay's safety net standing him up where the player's run went on (no chance spent)
+	if kind != "debug" and kind != "phoenix" and kind != "replay":
 		Run.revives_used += 1
 	# pass 115: a Phoenix Feather's revive keeps its own floor (Player.revive_share)
 	player.revive(kind == "phoenix")
@@ -3234,7 +3240,7 @@ func _revive(kind: String) -> void:
 	else:
 		telegraphs.flash_ring(player.global_position, 6.0, UiKit.GOOD, 0.6)
 		hud.show_player_bar()
-		hud.banner("REVIVED" if kind != "debug" else "DEBUG REVIVE", UiKit.GOOD)
+		hud.banner({"debug": "DEBUG REVIVE", "replay": "SAFETY NET"}.get(kind, "REVIVED"), UiKit.GOOD)
 	Perf.context = "revived " + kind
 	# what came while he was down (pass 60): the banked level-ups, a chest, a path offer, one after another, once his
 	# blast has read (he blinks for two seconds, so nothing bites him in the beat)

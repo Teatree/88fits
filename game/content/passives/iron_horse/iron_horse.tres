@@ -9,14 +9,14 @@
 script = ExtResource("1_hqc1l")
 stat = "train_every"
 op = "set"
-value = 20.0
+value = 30.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_o5mad"]
 script = ExtResource("1_hqc1l")
 stat = "train_every"
 op = "set"
-value = 15.0
+value = 22.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_4jlc2"]
@@ -44,12 +44,12 @@ params = {
 "forward": 0.35,
 "half_length": 24.0,
 "knock": 30.0,
-"rumble": 1.2,
+"rumble": 2.4,
 "scale": 0.9,
 "share": 0.25,
-"speed": 30.0,
+"speed": 22.5,
 "stage_scaled": 1.0,
-"warn": 1.0,
+"warn": 2.0,
 "width": 1.8
 }
 }

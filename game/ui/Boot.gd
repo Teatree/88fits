@@ -36,6 +36,12 @@
 ##
 ## The camera cutout's ink band (CutoutBand) waits while this screen shows (the boot splash cannot draw it, so it would
 ## pop in over the paper) and fades in with the title.
+##
+## Pass 120 (lane STARTGO): the same screen plays between a tap on Start and the run (ui/RunCurtain.gd extends this one:
+## its drawing, its slam and its threaded load, with a revolver's cylinder seen end-on cut out of ink round them). The one
+## draw carries that cylinder too (the iris_* uniforms, cylinder_sd); at the app's start it is off (iris_mode 0) and this
+## screen draws exactly what it did. The hooks a curtain changes: _hold_band, _report_content, _may_build, _place_scene,
+## _report, fail_line.
 extends Control
 
 const TITLE := "res://ui/TitleScreen.tscn"
@@ -114,6 +120,8 @@ const DISSOLVE := 0.25
 ## How long the title's threaded load may sit still (in progress, its progress not moving) before this screen stops
 ## waiting for it and loads the title at once (s).
 const STALL := 10.0
+## What the screen says on a paper card under the plate when nothing could bring the title up.
+const FAIL_LINE := "The title screen did not load. Please close the game and start it again."
 
 ## The thud as the plate hits: the first of these the sound map binds (pass 118's), and under it a low boom for weight
 ## (pass 119: the stamp alone is a bright 0.1 s click; the grenade's boom, BOOM_DB quieter, is the map's deepest short hit).
@@ -181,6 +189,21 @@ uniform vec4 chip_brass = vec4(1.0);
 uniform vec4 chip_paper = vec4(1.0);
 uniform float glint_t = -1.0;
 uniform vec4 glint_color = vec4(1.0);
+// pass 120 (lane STARTGO): the revolver's cylinder seen end-on, a cut-out in ink (RunCurtain.gd). iris_mode: 0 off (the
+// app's start), 1 the wipe (ink round it, the screen under seen through it), 2 the reveal (ink round it, this screen
+// through it), 3 the open (this screen round it, the run under seen through it). iris_shape: the chambers' distance and
+// radius, the flutes' distance and radius, as shares of the cylinder's radius iris_r.
+uniform int iris_mode = 0;
+uniform vec2 iris_mid = vec2(540.0, 960.0);
+uniform float iris_r = 0.0;
+uniform float iris_turn = 0.0;
+uniform float iris_chamber = 1.0;
+uniform float iris_pin = 1.0;
+uniform float iris_shade = 0.0;
+uniform vec4 iris_ink = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 iris_shape = vec4(0.58, 0.24, 1.03, 0.15);
+uniform float iris_pin_r = 0.08;
+uniform float iris_border = 0.0;
 
 varying vec2 pos;
 
@@ -243,8 +266,31 @@ vec4 edge_at(float u) {
 	return vec4(-hs.x, hs.y - s, -1.0, 0.0);
 }
 
-void fragment() {
-	vec2 p = pos - shake;
+// the cylinder as signed distances (px; below 0 inside its metal, the cut-out): x the whole shape, y its rim alone (the
+// round with its flutes, for the shade). A round of radius iris_r turned by iris_turn, six flutes cut into its rim between
+// six chambers, and the pin's hole in its middle; a shut chamber or pin (size 0) is 1.5 px under nothing, so it leaves no
+// pixel. The angle is folded into the 30 degrees between a chamber and the next flute, so one chamber and one flute are
+// measured (RunCurtain.cylinder_sd is the same in GDScript).
+vec2 cylinder_sd(vec2 at) {
+	float R = max(iris_r, 0.0001);
+	vec2 q = at - iris_mid;
+	float r = length(q);
+	float a = r > 0.001 ? atan(q.y, q.x) - iris_turn : 0.0;
+	float sector = 1.0471976;
+	a = abs(mod(a + sector * 0.5, sector) - sector * 0.5);
+	vec2 f = vec2(cos(a), sin(a)) * r;
+	// shut (radius 0): nothing is metal, not even its middle
+	float body = iris_r > 0.0 ? r - R : 1.0e5;
+	float chamber = length(f - vec2(iris_shape.x * R, 0.0)) - (iris_shape.y * R * iris_chamber - 1.5);
+	float flute = length(f - vec2(0.8660254, 0.5) * iris_shape.z * R) - iris_shape.w * R;
+	float pin = r - (iris_pin_r * R * iris_pin - 1.5);
+	float rim = max(body, -flute);
+	return vec2(max(rim, max(-chamber, -pin)), rim);
+}
+
+// this screen at canvas px `at`: the wallpaper, the slam and the plate (the one draw before pass 120's cylinder)
+vec3 loading_screen(vec2 at) {
+	vec2 p = at - shake;
 	vec2 mid = canvas * 0.5;
 	vec2 d = p - plate_mid;
 	float r = length(d);
@@ -316,7 +362,7 @@ void fragment() {
 		vec4 acc = vec4(0.0);
 		int n = 1;
 		// a sample's place along the smear is jittered per pixel, so the copies blend into a blur instead of stepping
-		float jit = hash(dot(floor(pos), vec2(1.0, 157.0)) * 0.013);
+		float jit = hash(dot(floor(at), vec2(1.0, 157.0)) * 0.013);
 		if (entrance < 0.5) {
 			n = abs(scale_prev - plate_scale) > 0.0005 ? 16 : 1;
 			for (int i = 0; i < n; i++) {
@@ -384,7 +430,40 @@ void fragment() {
 	}
 	// and the flash over all of it (the plate keeps its shape through it)
 	col = mix(col, flash_color.rgb, flash * plate_flash);
-	COLOR = vec4(col, 1.0) * COLOR;
+	return col;
+}
+
+void fragment() {
+	vec3 col = iris_ink.rgb;
+	float a = 1.0;
+	// the cylinder's cut-out (im 1 inside its metal, smoothed over one screen pixel at any size) and an ink shade inside
+	// its edges, as a hole's rim (ish)
+	float im = 0.0;
+	float ish = 0.0;
+	float sdx = 1.0;
+	float w = 1.0;
+	if (iris_mode > 0) {
+		vec2 sd = cylinder_sd(pos);
+		sdx = sd.x;
+		w = max(fwidth(sd.x), 0.0001);
+		im = clamp(0.5 - sd.x / w, 0.0, 1.0);
+		ish = iris_shade * exp(-max(-sd.y, 0.0) / (iris_r * 0.06 + 1.5));
+	}
+	if (iris_mode == 1) {
+		a = (1.0 - im) + im * ish;
+	} else {
+		col = loading_screen(pos);
+		if (iris_mode == 2) {
+			col = mix(iris_ink.rgb, col, im * (1.0 - ish));
+		} else if (iris_mode == 3) {
+			// an ink line iris_border wide round the cut-out on this screen's side, so it reads over any run
+			float ob = clamp(0.5 - (sdx - iris_border) / w, 0.0, 1.0) * (1.0 - im);
+			col = mix(col, iris_ink.rgb, ob);
+			a = (1.0 - im) + im * ish;
+			col = ((1.0 - im) * col + im * ish * iris_ink.rgb) / max(a, 0.0001);
+		}
+	}
+	COLOR = vec4(col, a) * COLOR;
 }
 """
 
@@ -401,6 +480,8 @@ var title: Node = null
 var title_path := TITLE
 ## STALL for this screen (tests).
 var stall_limit := STALL
+## FAIL_LINE for this screen (a curtain says its own).
+var fail_line := FAIL_LINE
 ## The title could not be loaded at all: the screen says so under the plate, its wallpaper stops (it never waits
 ## silently, and never moves as if it were still loading).
 var failed := false
@@ -440,12 +521,8 @@ func _ready() -> void:
 	_build()
 	get_viewport().size_changed.connect(_place)
 	_place()
-	_band = get_node_or_null("/root/CutoutBand") as CanvasLayer
-	if _band:
-		_band.visible = false
-	if not Registry.problems.is_empty():
-		for p in Registry.problems:
-			push_warning("Content: " + str(p))
+	_hold_band()
+	_report_content()
 	if not ResourceLoader.exists(title_path):
 		print("Boot: no title screen at %s; registry loaded %d weapons" % [title_path, Registry.weapons.size()])
 		_fail()
@@ -455,6 +532,20 @@ func _ready() -> void:
 		_recover("the threaded request was refused", false)
 		return
 	_loading = true
+
+
+## The cutout's band waits while this screen shows (a curtain over a screen leaves it alone: ui/RunCurtain.gd).
+func _hold_band() -> void:
+	_band = get_node_or_null("/root/CutoutBand") as CanvasLayer
+	if _band:
+		_band.visible = false
+
+
+## The content's problems, said once at the app's start.
+func _report_content() -> void:
+	if not Registry.problems.is_empty():
+		for p in Registry.problems:
+			push_warning("Content: " + str(p))
 
 
 const REPLAY_VIEWER := "res://replay/ReplayViewer.gd"
@@ -581,9 +672,14 @@ func _process(delta: float) -> void:
 		return
 	if _loading:
 		_watch(delta)
-	if _scene != null and not _handing and is_settled():
+	if _scene != null and not _handing and _may_build():
 		_handing = true
 		_hand_over(_scene)
+
+
+## Whether the loaded scene may be built now: once the slam has settled (a curtain may wait a little longer).
+func _may_build() -> bool:
+	return is_settled()
 
 
 # ---------------------------------------------------------------- the sequence
@@ -878,7 +974,7 @@ func _fail() -> void:
 	card.add_theme_stylebox_override("panel", W.box(W.PAPER, 4, 6))
 	card.name = "Error"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var line := W.serif_text("The title screen did not load. Please close the game and start it again.", 30, W.ROCK,
+	var line := W.serif_text(fail_line, 30, W.ROCK,
 		600, false, HORIZONTAL_ALIGNMENT_CENTER, 40.0, true, false)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.position = Vector2(24.0, 18.0)
@@ -901,11 +997,7 @@ func _hand_over(scene: PackedScene) -> void:
 	if host:
 		host.add_child(title)
 	else:
-		var root := get_tree().root
-		root.add_child(title)
-		# this screen stays over the title until it has drawn
-		root.move_child(self, -1)
-		get_tree().current_scene = title
+		_place_scene(title)
 	# this screen dissolves into the title: its own fade-in (from the window's clear colour) would show through
 	if title is CanvasItem:
 		(title as CanvasItem).modulate.a = 1.0
@@ -920,11 +1012,24 @@ func _hand_over(scene: PackedScene) -> void:
 		await get_tree().process_frame
 	if not is_inside_tree():
 		return
+	_report()
+	_dissolve()
+	handed_over.emit(title)
+
+
+## The built scene under the root as the current scene, this screen over it until it has drawn.
+func _place_scene(scene: Node) -> void:
+	var root := get_tree().root
+	root.add_child(scene)
+	root.move_child(self, -1)
+	get_tree().current_scene = scene
+
+
+## Where the time went, once, as the screen begins to leave.
+func _report() -> void:
 	print("Boot: engine and autoloads %d ms, title loaded in %d ms, built in %d ms, first frame %d ms, dissolve at %.2f s" % [
 		int(timings.get("engine", 0)), int(timings.get("load", 0)), int(timings.get("build", 0)),
 		int(timings.get("first_frame", 0)), _clock])
-	_dissolve()
-	handed_over.emit(title)
 
 
 ## Starts fading this screen away over the title (and the cutout's band in): _process steps it.

@@ -13,8 +13,7 @@ any speed, with the taps drawn as rings. Runs from older builds have no recordin
 
 1. **Play a run on the phone** with the build in Drive (0.97 or later). Play data must be on (the card at the first
    start, or Settings). Play as you like; end the run any way (die, extract, or quit from the pause screen).
-2. **Double-click `tools
-eplay.cmd`** on the PC. A small menu asks what to do:
+2. **Double-click `tools\replay.cmd`** on the PC. A small menu asks what to do:
    - **1) Download new runs from the phone, then list them** (fetches the replays from PostHog; wait a minute after
      the run, or open the game on the phone again for a few seconds if it does not show),
    - **2) List the runs on this PC** (newest first, numbered),
@@ -38,6 +37,13 @@ and `tools\replay.cmd` finds it without any download. A run from the editor bina
   light the **safety net** also sets his HP to the recorded HP every half second (the light says so and how often), and
   a card the replay does not offer is swapped for the like one (the log says which, in amber). What you see then stays
   close to what the player did, but the creatures are no longer exactly his. `A` turns the safety net off and on.
+- **When the hero goes down only in the replay** (pass 120; it had parted): his body stays where it fell (it is never
+  dragged along the player's path), and when Down!'s count runs out the run does **not** end there, because the player's
+  run went on: with the safety net on he is stood up ("SAFETY NET", no chance spent) at the HP the player had then; with
+  it off Down! waits for the player's next choice. The log says which, and the light is red from that moment. If the
+  replay's run ends anyway while the player's went on, the viewer pauses there and says how much longer the real run
+  lasted; Space plays on. With the safety net on, a screen the player never saw (a chest, cards, a totem, TAP TO GO ...)
+  is answered after 3 seconds with its plain choice (the first card, the chest taken, ...), and the log says so.
 - **The rings**: every finger touch shows as a yellow ring where it touched, fading over half a second. The stick shows
   as a ghost under the thumb (the base and the knob).
 - **The screens** (cards, chests, the shop, the Stranger, totems, the portal, Down!) appear as they did, and the choice
@@ -78,7 +84,8 @@ again from the beginning and runs to the point. How long it takes depends on the
 ## Numbers (measured on this PC, pass 114)
 
 - **Exact:** a 12-minute run replayed with every one of its 720 checks equal, in the replay window and in the PC exe;
-  runs recorded at 30, 47 and 60 frames a second and at a PC's own uneven frame rate replay exactly too.
+  runs recorded at 30, 47 and 60 frames a second and at a PC's own uneven frame rate replay exactly too (pass 120 fixed
+  a timing slip that had crept in: a run not at 60 frames a second parted after 20 to 50 seconds).
 - **Jumping:** to 2:30 about 30 seconds, to 5:00 about 70 seconds, to 12:00 about 2 minutes 50 seconds (the game runs
   undrawn at 4 to 5 times its speed). Back = from the start again.
 - **Size:** about 0.5 MB for a 15-minute run (sent in 5 pieces with the play data).
@@ -110,3 +117,9 @@ A recording plays exactly only on the build that recorded it, so every PC build 
   big crowd can grow that into a different run after a while. The light shows when it happens; the choices and the stick
   are still the player's to the end, and the safety net keeps the hero on the player's path.
 - **Your own runs on the PC exe** replay exactly (tested: every check equal over long runs).
+- **Runs played from the editor** (`editor-1.00` in the header) replay on the game's files as they are now. From pass 120
+  such a run names its files, and the header says either "played on the same game files ✓" or, in red, that the game
+  changed since the run (then the replay goes out of step: the code changed, the replay is not at fault). An older run
+  cannot tell; `tools\replay.cmd` then lists the commits that changed the game since it was recorded.
+- **Debug help in a run** (pass 120): the free revive, the level-up's debug hand and the debug panel's buttons are
+  recorded and replayed like any other tap.

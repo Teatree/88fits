@@ -9,7 +9,7 @@
 script = ExtResource("1_ablla")
 stat = "storm_every"
 op = "set"
-value = 30.0
+value = 45.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_u4lry"]
@@ -23,7 +23,7 @@ target = "player"
 script = ExtResource("1_ablla")
 stat = "storm_every"
 op = "set"
-value = 24.0
+value = 36.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_i0gxx"]

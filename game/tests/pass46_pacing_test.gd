@@ -185,8 +185,10 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 			prev = float(t)
 	assert_float(float(tl.path_times_at(0)[0])).is_equal(79.0)
 	# the health ramp is divided by the same factor, so a stretched moment is as tough as the old one was
+	# (pass 120, re-pinned: the exponent is Garry's, 1.35 since his Level Editor retune of 2026-11-01: read from the map)
+	var b := float((tl.hp_curve.get("formula", {}) as Dictionary).get("b", 1.25))
 	for m in [1.0, 2.0, 3.0]:
-		var old: float = pow(1.0 + 0.14 * 5.0 * m, 1.25)
+		var old: float = pow(1.0 + 0.14 * 5.0 * m, b)
 		assert_float(tl.hp_mult_at(tl.stage_length * m)).is_equal_approx(old, old * 0.005)
 	# what does not run on the clock stays: the bursts, the drops, the level scaling
 	assert_float(tl.spawn_interval).is_equal_approx(0.7, 0.0001)

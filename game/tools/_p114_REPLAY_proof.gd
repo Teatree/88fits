@@ -5,7 +5,10 @@
 ##              out=<file> hero=drifter stage=1 seed=7 limit=600 [res=504x1122] [board=0.5] [unlocks=all] [check=1] [bot.<k>=v]
 ##           (no --fixed-fps: the frames come as the machine gives them, irregular deltas and 0, 1 or 2 world steps)
 ##   replay: bash tools/godot.sh --headless --fixed-fps 64 --path game --script res://tools/_p114_REPLAY_proof.gd -- \
-##              mode=replay file=<file> out=<report.json> [res=504x1122] [seek=0]
+##              mode=replay file=<file> out=<report.json> [res=504x1122] [seek=0] [assist=1]
+## Pass 120 (lane REPLAY): record options downs=debug,ad,... (Down! answered in turn by these taps after down_wait=<s> of
+## its count, then give_up), give=<id,id> (handed over by the level-up's debug hand at the first card screen: the Phoenix
+## Feather); the report adds the replay's downs and revives (events), corpse_holds, down_parts, ended_early, dead, hp.
 ## The report: checkpoints equal / different, the first frame that differed and what, decisions late or dropped, the
 ## wall time. Autoloads are reached through the tree (a SceneTree script compiles before they exist); RunReplay is not
 ## named (it names autoloads): its plan goes in through the launch (`replay_plan`).
@@ -37,6 +40,21 @@ var _finger := false
 var _god := false
 ## write=1: the recording also goes to its files as a played run's does (user://analytics/replays/ and the repo's mirror)
 var _write_files := false
+## pass 120 (lane REPLAY): Down!'s answers in turn (then give_up), after this many seconds of its count; the debug hand's
+## items at the first card screen; a replay with the safety net on (assist=1)
+var _downs: Array = []
+var _down_wait := 0.0
+var _down_t := -1.0
+var _give := ""
+var _given := false
+var _assist := false
+## stakes=<ranks>: the Upgrade board's Stakes in its Difficulty form (talent "spite", form 0) in the recorded save, so the
+## hero goes down sooner (the replay reads the same save)
+var _stakes := 0
+## down_tap=1: Down!'s debug and ad answers are real finger taps on its buttons (pressed, then lifted: a tap between frames,
+## as the player's are), with the developer menu's free revive button shown
+var _down_tap := false
+var _tap_at := Vector2.INF
 var _finger_down := false
 var _finger_at := Vector2.ZERO
 var _bot_raw := {}
@@ -78,6 +96,12 @@ func _init() -> void:
 			"finger": _finger = v == "1"
 			"god": _god = v == "1"
 			"write": _write_files = v == "1"
+			"downs": _downs = Array(v.split(",", false))
+			"down_wait": _down_wait = float(v)
+			"give": _give = v
+			"assist": _assist = v == "1"
+			"stakes": _stakes = int(v)
+			"down_tap": _down_tap = v == "1"
 			"check": _check = float(v)
 			"no_tumble": _no_tumble = v == "1"
 			"trace":
@@ -162,14 +186,21 @@ func _start() -> void:
 				for _r in range(rank):
 					picks.append(int(PROBE.FORMS[id]))
 				talents[id] = {"picks": picks, "rank": rank, "form": int(PROBE.FORMS[id])}
+		if _stakes > 0:
+			var sp: Array = []
+			for _r in range(_stakes):
+				sp.append(0)
+			talents["spite"] = {"picks": sp, "rank": _stakes, "form": 0}
 		_save.data["talents"] = talents
 		if settings:
 			settings.camera_mode = 0
 			settings.show_hints = false
 			settings.damage_numbers = true
 			settings.debug_mode = false
+			settings.set("free_revive_button", _down_tap)
+		# pass 120 (lane REPLAY): replay_code: the recording names its files as a played run from the editor does
 		_run.launch_override = {"character": _hero, "stage": _stage, "spawn": true, "replay_record": true, "analytics_memory": not _write_files,
-			"run_seed": _seed}
+			"run_seed": _seed, "replay_code": true}
 		if _check > 0.0:
 			_run.launch_override["replay_check"] = _check
 		if not _trace.is_empty():
@@ -217,7 +248,9 @@ func _tick() -> void:
 			_game.set_god(true)
 		var inp = _game.player.input if _game.get("player") else null
 		var was := [inp.wants_move, inp.origin, inp.touch_pos] if (inp and _finger) else []
-		_bot.tick(dt)
+		_give_once()
+		if not _answer_down():
+			_bot.tick(dt)
 		if _finger and inp:
 			_finger_from_bot(inp, was)
 		var pc := float(_run.get("play_clock"))
@@ -233,15 +266,90 @@ func _tick() -> void:
 			if _game != null and not is_instance_valid(_game):
 				_end_report("the game ended before the recording did")
 			return
-		# the proof measures the game alone: no safety net
-		rr.set("assist", false)
+		# the proof measures the game alone: no safety net (assist=1: with it, as the viewer starts)
+		rr.set("assist", _assist)
 		var f := int(rr.get("frame"))
 		var n := int(rr.get("frames_n"))
 		if f - _last_say >= 3600:
 			_last_say = f
 			_say("  frame %d / %d  checks ok %d bad %d" % [f, n, int(rr.get("checks_ok")), int(rr.get("checks_bad"))])
-		if f >= n - 1:
+		# pass 120 (lane REPLAY): after the last frame's tail (the driver holds there), so its last check is compared too
+		if f >= n - 1 and bool(rr.call("is_held")):
 			_end_report("frames")
+
+
+## Pass 120 (lane REPLAY): Down! answered by `downs` in turn once its count has run `down_wait` s (true while it is up:
+## the bot is not ticked then); "ad" only while the ad is on offer.
+func _answer_down() -> bool:
+	if _downs.is_empty() and _down_wait <= 0.0:
+		return false
+	var rs = _game.get("revive_screen")
+	if rs == null or not rs.visible:
+		if _tap_at != Vector2.INF:
+			var u := InputEventScreenTouch.new()
+			u.index = 1
+			u.pressed = false
+			u.position = _tap_at
+			Input.parse_input_event(u)
+			_tap_at = Vector2.INF
+		_down_t = -1.0
+		return false
+	if _down_t < 0.0:
+		_down_t = _t
+	if _tap_at != Vector2.INF:
+		# the finger lifts a frame after it pressed (the tap's handler runs between frames)
+		var u := InputEventScreenTouch.new()
+		u.index = 1
+		u.pressed = false
+		u.position = _tap_at
+		Input.parse_input_event(u)
+		_tap_at = Vector2.INF
+		return true
+	if _t - _down_t < _down_wait:
+		return true
+	var kind := str(_downs[0]) if not _downs.is_empty() else "give_up"
+	if kind == "ad" and not BOT.ad_offered(rs):
+		kind = "give_up"
+	var btn = rs.get("_debug_btn2") if kind == "debug" else (rs.get("_ad_btn") if kind == "ad" else null)
+	if _down_tap and btn is Control and (btn as Control).is_visible_in_tree():
+		var r: Rect2 = (btn as Control).get_global_rect()
+		var k := float(root.size.x) / maxf(root.get_visible_rect().size.x, 1.0)
+		_tap_at = r.get_center() * k
+		var e := InputEventScreenTouch.new()
+		e.index = 1
+		e.pressed = true
+		e.position = _tap_at
+		Input.parse_input_event(e)
+		_say("  Down! at %.1f s: %s (a tap)" % [float(_run.get("play_clock")), kind])
+		_downs.pop_front()
+		_down_t = -1.0
+		return true
+	if not _downs.is_empty():
+		_downs.pop_front()
+	_down_t = -1.0
+	_say("  Down! at %.1f s: %s" % [float(_run.get("play_clock")), kind])
+	rs._decide(kind)
+	return true
+
+
+## `give` handed over by the level-up's debug hand at the first card screen (a decision the recording keeps).
+func _give_once() -> void:
+	if _give == "" or _given:
+		return
+	var cs = _game.get("cards")
+	if cs == null or not cs.visible or (cs.get("_offer") as Array).is_empty():
+		return
+	_given = true
+	var reg := root.get_node_or_null("Registry")
+	var items: Array = []
+	for id in _give.split(",", false):
+		var kind := "passive"
+		if reg != null and reg.weapon(id) != null:
+			kind = "weapon"
+		items.append([kind, id, 1])
+	cs._open_debug()
+	cs.get("_debug").give_list(items)
+	_say("  gave %s at %.1f s" % [_give, float(_run.get("play_clock"))])
 
 
 ## The bot wrote the thumb it wants into PlayerInput (BotLegs: wants_move, origin, touch_pos); that is put back and sent as
@@ -303,8 +411,14 @@ func _end_report(why: String) -> void:
 	var rr := _rr()
 	var rep := {"why": why, "wall_s": float(Time.get_ticks_msec() - _t0_ms) / 1000.0}
 	if rr:
-		for k in ["frame", "frames_n", "checks_ok", "checks_bad", "drift_frame", "late_decisions", "assisted", "hero_fixes"]:
+		for k in ["frame", "frames_n", "checks_ok", "checks_bad", "drift_frame", "late_decisions", "assisted", "hero_fixes",
+				"corpse_holds", "down_parts", "ended_early", "screens_netted"]:
 			rep[k] = rr.get(k)
+		var pl = _game.get("player") if _game != null and is_instance_valid(_game) else null
+		if pl != null:
+			rep["dead"] = bool(pl.get("dead"))
+			rep["hp"] = float(pl.get("hp"))
+		rep["revives_used"] = int(_run.get("revives_used"))
 		rep["drift_what"] = rr.get("drift_what")
 		rep["dropped"] = rr.get("dropped_decisions")
 		rep["notes"] = rr.get("notes")

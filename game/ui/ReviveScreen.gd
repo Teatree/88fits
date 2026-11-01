@@ -10,7 +10,7 @@
 class_name ReviveScreen
 extends WModal
 
-signal decided(kind: String)   # "ad" | "give_up" | "timeout" | "debug" ("gold" is no longer offered, pass 77)
+signal decided(kind: String)   # "ad" | "give_up" | "timeout" | "debug" | "replay" (pass 120: a replay's safety net) ("gold" is no longer offered, pass 77)
 
 const SECONDS := 8.0
 const GOLD_COST := 150
@@ -452,7 +452,9 @@ func _process(delta: float) -> void:
 		if n <= 3:
 			Audio.play("ui_tap")
 	if left <= 0.0:
-		_decide("timeout")
+		# pass 120 (lane REPLAY): in a replay the count ends the run only where the recording ends too (RunReplay.down_ran_out)
+		if RunReplay.down_ran_out(self) == "timeout":
+			_decide("timeout")
 
 
 ## Staying down ends the run (pass 45): the question, with the count held while it is up.

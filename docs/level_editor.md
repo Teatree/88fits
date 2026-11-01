@@ -2311,3 +2311,50 @@ stage's start (0:00 = its run start) with the map time beside them ("map 7:11");
 The row hover card and the inspector title read the same way. All keeps the map clock. Boss-fight rows keep the fight
 clock. Each row's number within its stage (1..N by start second) sits in the Spawn rows gutter (on All: "2.5" =
 stage 2, row 5); each stage tab shows how many rows start in it.
+
+## Pass 120 (lane EDITOR): SPD and the schedule on a row's card, Special with an Elite modifier, the estimate's split
+
+Garry (2026-11-01): "upon highlight we surface the HP and ATK stats at the top, but I think we should also surface SPD
+(Speed) at the same level of visual priority. Also, let's surface the Schedule `Pacing` (with the seconds next to it) and
+the `Pattern` of spawning (with the Pack param next to it as well)"; "I wanted to make the 4th Spider Row a guaranteed
+specials with a Split modifier, but I can't tell if I made it so they are guaranteed to spawn as specials"; "`Spawned so
+far` is an estimate yes, but let's make it so it estimates the number of Elitted Regular enemies with the accounting for
+our guaranteed Elitted Regular enemies".
+
+- **A row's card** (every stage, every row; waves[] and swarm events get the same two lines): under the name,
+  `HP · ATK · SPD m/s` at one size and weight, an orange dot before each number the row's overrides change (SPD: the
+  row's `speed` or `speed_mult`); then **Pacing** with its seconds ("Continuous · drawn every 0.7 s" at the spawn
+  check, "Continuous · its own draw every 3 s", "Waves every 5 s · 15 a wave", "Waves every 8–12 s", "Once at 7:49 ·
+  3 in it", "Once at 7:52 (7:49 + 3 s)") and **Pattern** with its pack ("Scatter · pack 15", "Ring 16 m · pack 6",
+  "Pack (default) · packs of 3 (default)", "Single · one at a time", "As Elites · alone, a pack of 6 or a ring" for an
+  elite row with no pattern); "(default)" where the row sets none and the creature's own pack or the Pack pattern
+  apply. A muted line gives the notes (chance, jitter, offset, a fresh gap, on top of the cap, waits for colour) and the
+  SPD factors (`model.js` `speedOf`, `rowSchedule`; card code `timeline.js` `scheduleLines`, `speedWords`).
+- **SPD** = the row's `speed` (m/s, in place of the creature's own) or the creature's, × `speed_mult`, × the stage's
+  1 + `speed_per_stage` × the stage, × `move_pace` (at least 0.05) × `creature_speed_mult` (EnemyManager.spawn). A
+  size range never changes it. On top in a run: each one ± the variance's speed spread (never an elite-modified one),
+  an elite modifier's own speed effect (Speedy), far_speed, Endless and the Stakes.
+- **Special with an Elite modifier** (the game's rule from pass 120): each creature is both, its coloured special
+  (size, HP, ATK, XP, glow) wearing the modifier (HP, scale, powers on top), drawn in the modifier's colour; a creature
+  with no variance block comes as its special too, its numbers from Settings → Coloured specials, else the game's,
+  its colour the new **Colour** there (`special_defaults.tint`), else crimson #8A1428. The old warning is gone; the
+  card's forced line, the inspector's Special note, the Enemies tab's Special block and the help texts say so
+  (`model.js` `forcedSpecial`).
+- **An elite row waits for colour** (Colour after kills, as the game's director does) **unless it is set to Special**
+  (the lead's follow-up, WaveDirector.colour_open_for: a Special row is colour-open from the start, its modifier too, so
+  Garry's r68 now comes at 7:49 as 3 coloured specials wearing Splitter; the estimate's `colourOpenFor` and its Python
+  twin follow, in the timer waves, the pattern-less elite arrivals (never held), the continuous draw and the floor). The
+  estimate records each wait of an elite row without Special (`colourWaits`), and the card says when the row came, or in
+  red that its window closed first. A once or waves row that brings nothing for another reason says
+  why (`neverReason`: its creature's Max alive held by another row of it, as r67's Hammer Giant by r60, or the cap).
+  The Warnings section lists both; a row is judged by the most it brought in any stage's run, and a stage tab judges
+  only the rows that start in that stage (before, every row was judged against the last run in view, so the rows of
+  the other stages read "never spawns").
+- **Spawned so far**: `colForced`, `modRow` and `both` per point (`spawnEstimate`; the Python twin in selftest.py
+  agrees). The readout and the lane's card read "Elite-modified ≈ N: a from rows that always bring one, b by chance
+  (the roster draw)" and "Coloured specials ≈ M: c from Special rows, d by chance; e of them elite-modified too";
+  the crowned Elites, the gear specials and the bosses on the first line. Always = a row, wave or event with an Elite
+  modifier that names its creature (once colour has come); by chance = the roster draw (Elites every, an elite event
+  naming none, Endless's). An elite row's elites are filed under the row now, so its card, the readout's shares and the
+  warnings see what it brought. A creature both coloured and modified sits in the purple layer only.
+- Checks: `tools/level_editor/selftest_EDITOR120.py`; the page reloads to take it (no server change).

@@ -213,6 +213,14 @@ func colour_open() -> bool:
 	return Run.arena or timeline == null or Run.kills >= timeline.colour_after_kills
 
 
+## Whether roster row `r` may bring its elite modifier now (pass 120, the lead): once colour is open, or at once for a row
+## with "special": true (a forced special comes whatever the kills, pass 69, and since pass 120 it wears the row's modifier
+## too, so the modifier no longer holds it back: Garry's split specials, r68, stood 39 s into Nightfall, before its
+## colour_after_kills kills, and never came).
+func colour_open_for(r: Dictionary) -> bool:
+	return colour_open() or bool(r.get("special", false))
+
+
 ## Hot Sauce (pass 47, Garry: "how likely Player is to get coloured enemies"): the coloured Elites' clocks (the
 ## timeline's elite_every timers and endless's) run 1 + 0.5 x the hero's `difficulty` times as fast.
 func elite_pace() -> float:
@@ -1293,8 +1301,9 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 	# pass 81 (lane PACE): a row paced as waves is not in the continuous draw unless it trickles
 	roster = roster.filter(func(r) -> bool: return not (r is Dictionary) or WaveTimeline.row_drawn(r))
 	# pass 84 (lane SPAWN): a continuous elite row waits for colour (colour_after_kills), as every coloured Elite does
+	# (pass 120: not a forced-special row, colour_open_for)
 	if not colour_open():
-		roster = roster.filter(func(r) -> bool: return not (r is Dictionary) or WaveTimeline.row_elite(r) == "")
+		roster = roster.filter(func(r) -> bool: return not (r is Dictionary) or WaveTimeline.row_elite(r) == "" or colour_open_for(r))
 	# pass 83 (lane TIMELINE): a row with its own `interval` draws on its own clock (`due`), the others at the spawn check;
 	# either way the burst is cut to the drawing rows' share of the channel's weight (_interval_part)
 	var frac := 1.0
@@ -2163,8 +2172,9 @@ func _spawn_elite_ring(id: String, n: int, mod: EliteModDef, variant: String, st
 ## whole pack every one wearing the modifier, or as a ring of `pack` of them round the hero; one toast whichever way.
 ## Before the run's `colour_after_kills`-th kill it is held, not dropped (pass 46): _process_events lets it out once
 ## colour is open.
-func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}) -> void:
-	if not colour_open():
+func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}, now := false) -> void:
+	# `now` (pass 120): a forced-special row's elite wave comes at once, never held (colour_open_for)
+	if not colour_open() and not now:
 		_elite_held.append({"enemy": enemy_id, "mod": mod_id, "variant": variant, "stats": stats})
 		return
 	var em: EnemyManager = game.enemies
@@ -2336,7 +2346,7 @@ func _tick_row84(r: Dictionary, k: int, t: float) -> void:
 			st["next"] = WaveTimeline.row_wave_start(r)
 		if rt < float(st["next"]):
 			return
-		if elite != "" and not colour_open():
+		if elite != "" and not colour_open_for(r):
 			st["next"] = rt + 1.0
 			return
 		st["k"] = int(st["k"]) + 1
@@ -2396,13 +2406,17 @@ func _row_elite_wave(r: Dictionary, st: Dictionary) -> void:
 	var el := WaveTimeline.row_elite(r)
 	var mod_id := "" if el == "random" else el
 	var e = r.get("enemy", "")
+	# pass 120: a row with "special": true brings each one as its coloured special wearing the modifier, at once
+	var forced := bool(r.get("special", false))
+	game.enemies.force_special = forced
 	for a in range(n):
 		var id := ""
 		if e is Array:
 			id = _pick_id(e, r.get("enemy_weights", []))
 		elif str(e) != WaveTimeline.ROW_ENEMY_ROSTER:
 			id = str(e)
-		_spawn_elite(id, mod_id, str(r.get("variant", "")), _stats_of(r))
+		_spawn_elite(id, mod_id, str(r.get("variant", "")), _stats_of(r), forced)
+	game.enemies.force_special = false
 	st["came"] = int(st["came"]) + n
 	_row_banner84(r, st)
 
@@ -2525,7 +2539,7 @@ func _spawn_pick84(r: Dictionary, pick: Dictionary, n: int) -> int:
 		return 0
 	var mod: EliteModDef = null
 	var el := WaveTimeline.row_elite(r)
-	if el != "" and colour_open():
+	if el != "" and colour_open_for(r):
 		mod = Registry.elites.get(el) if el != "random" else null
 		if mod == null:
 			var list := Registry.elites_list()
@@ -2634,7 +2648,7 @@ func _floor_fill() -> void:
 	var cap := current_cap()
 	var room: float = float(cap) - (em.cap_load() - _hell_load(hell))
 	var bodies: int = timeline.hard_cap - em.alive_count()
-	var rows: Array = _roster_open(all.filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) != "hell" and WaveTimeline.row_drawn(r) and (WaveTimeline.row_elite(r) == "" or colour_open())))
+	var rows: Array = _roster_open(all.filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) != "hell" and WaveTimeline.row_drawn(r) and (WaveTimeline.row_elite(r) == "" or colour_open_for(r))))
 	var guard := 0
 	var brought := 0
 	while lack > 0 and room > 0.0 and bodies > 0 and brought < FLOOR_FILL_MAX and guard < 32 and not rows.is_empty():

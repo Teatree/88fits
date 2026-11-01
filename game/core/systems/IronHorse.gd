@@ -1,7 +1,7 @@
 ## Pass 119 (lane LEGEND_A): the Iron Horse, a legendary passive item (content/passives/iron_horse; Garry: "our most
 ## powerful one yet ... There should be some visual foreshadowing that the Train is about to come, not just the whistle
 ## ... Each part of this sequence should be accompanied by animation. Start to Finish ... There should be knockback from
-## the Train running over enemies"). Every `train_every` s (the item's stat: 20 at Legendary, 15 Evolved) one cycle:
+## the Train running over enemies"). Every `train_every` s (the item's stat: 30 at Legendary, 22 Evolved since pass 120; 20 and 15 before) one cycle:
 ##   1. the rumble (params.train.rumble s): a low rumble grows, the camera starts to shake, dust hops on the sand round
 ##      the hero and a ghost headlight glimmers at the screen's edge behind him (where the train will come from);
 ##   2. the whistle: the line locks through the hero along the way he faces (`train_cross` 1: a second line across it,
@@ -37,7 +37,7 @@ const STRIP := Color(0.35, 1.0, 0.85)
 const SMOKE := Color(0.8, 0.98, 0.93, 0.5)
 ## Every rule number's default (the item's params.train names each; BALANCING 61.LEGEND_A).
 const DEFAULTS := {
-	"every": 20.0, "first": 4.0, "rumble": 1.2, "warn": 1.0, "assemble": 0.55, "speed": 30.0, "half_length": 24.0,
+	"every": 30.0, "first": 4.0, "rumble": 2.4, "warn": 2.0, "assemble": 0.55, "speed": 22.5, "half_length": 24.0,
 	"width": 1.8, "share": 0.25, "big_share": 0.05, "damage": 35.0, "stage_scaled": 1.0, "knock": 30.0,
 	"big_knock": 0.35, "forward": 0.35, "cross_delay": 0.35, "scale": 0.9, "car_gap": 0.5,
 }

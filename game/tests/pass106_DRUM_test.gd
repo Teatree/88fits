@@ -170,7 +170,9 @@ func test_time_stops_for_the_moment_and_goes_on_after() -> void:
 	assert_float(Run.elapsed).is_greater(clock0)
 	# (headless the run's track plays on the dummy driver: it held at mus0 through the moment and went on from there)
 	if mus0 >= 0.0:
-		assert_float(mus1 - mus0).is_between(0.0, 0.1)
+		# (pass 120: up to 0.25 s: the end is noticed by a 0.05 s poll, and on a loaded machine (the full suite) the music
+		# had run 0.104 s by then; held through the 2.2 s moment, it would read about 2.2 s ahead)
+		assert_float(mus1 - mus0).is_between(0.0, 0.25)
 		assert_float(Audio.music_position()).is_greater(mus1 + 0.1)
 	# the HUD's plate: the drum's icon with its seconds
 	var plate: WPlate = null

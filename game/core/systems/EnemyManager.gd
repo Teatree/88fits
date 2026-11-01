@@ -235,7 +235,8 @@ var vspecial := PackedByteArray()  # 1 = rolled its variance special (the dark, 
 ## enemy_billboard.gdshader draws round it in its tint's colour; 0 for everyone else. `special_defaults` is the map's
 ## timeline_data.special_defaults (the director sets it): a special's numbers the creature's own block does not name.
 ## `force_special`, held true by the director around a spawn (a swarm event with "special": true), makes that spawn its
-## variance special whatever its chance and before colour_after_kills.
+## variance special whatever its chance and before colour_after_kills (pass 120: an elite-modded one too, and one whose
+## creature has no variance block).
 var vglow := PackedFloat32Array()
 var special_defaults: Dictionary = {}
 var force_special := false
@@ -1541,24 +1542,30 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	var vsize := 1.0
 	vspecial[i] = 0
 	vglow[i] = 0.0
-	if elite == null and not def.variance.is_empty():
+	# pass 120 (the lead; Garry: "I wanted to make the 4th Spider Row a guaranteed specials with a Split modifier"): a
+	# forced special (force_special: a row or event with "special": true) comes as its coloured special also when it wears
+	# an elite modifier (it is both: the special's numbers on top of the modifier's, the modifier's colour and powers) and
+	# when its creature has no variance block (the map's special_defaults, else EnemyDef.SPECIAL_DEFAULTS); a random roll
+	# still never lands on an elite-modded one
+	if (elite == null and not def.variance.is_empty()) or (force_special and not force_plain):
 		# every spawn is a little different: size, speed, a tint from the palette, and the odd special one
 		var vr: Dictionary = def.variance
-		# a size-range row's size was rolled above: no jitter on top (pass 58)
-		var jit := 0.0 if ranged_size else float(vr.get("size", 0.0))
-		vsize = 1.0 + _rng.randf_range(-jit, jit)
-		esp *= 1.0 + _rng.randf_range(-float(vr.get("speed", 0.0)), float(vr.get("speed", 0.0)))
+		if elite == null:
+			# a size-range row's size was rolled above: no jitter on top (pass 58)
+			var jit := 0.0 if ranged_size else float(vr.get("size", 0.0))
+			vsize = 1.0 + _rng.randf_range(-jit, jit)
+			esp *= 1.0 + _rng.randf_range(-float(vr.get("speed", 0.0)), float(vr.get("speed", 0.0)))
 		# the tint and the special are colour, and colour comes after the run's first kills (pass 46); the size and
 		# speed jitter above is not colour and is always on
 		# (pass 69: a forced special, force_special, comes whatever the kills)
 		if Run.kills >= colour_after_kills or force_special:
 			var tints: Array = vr.get("tints", [])
-			if not tints.is_empty() and not row_tint:
+			if elite == null and not tints.is_empty() and not row_tint:
 				var c := Color(str(tints[_rng.randi() % tints.size()]))
 				vt = Color(c.r, c.g, c.b, float(vr.get("tint_strength", 0.35)))
 			# Hot Sauce (pass 47): the dark special comes (1 + difficulty) times as often
 			_pstats()
-			var sp_roll: bool = force_special or _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty)
+			var sp_roll: bool = force_special or (elite == null and _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty))
 			# pass 72 (lane SPEC): at most special_max_alive at once; a roll past it comes plain, a forced one still comes
 			if sp_roll and not force_special and not _special_room():
 				sp_roll = false
@@ -1586,8 +1593,10 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 					# hue this one rolled, so it still reads as the special one of that wave (its own wine tint had read as
 					# "lost the colour"); its size factor above stays
 					vt = EnemyDef.tint_special_color(def.tint_range, tint_u, EnemyDef.special_value(sp, spd, "tint_strength"))
-				elif sp.has("tint"):
-					var sc := Color(str(sp["tint"]))
+				else:
+					# its own special colour, else the map's (special_defaults.tint), else SPECIAL_TINT (pass 120: a creature
+					# with no variance block forced special)
+					var sc := Color(str(sp.get("tint", spd.get("tint", EnemyDef.SPECIAL_TINT))))
 					vt = Color(sc.r, sc.g, sc.b, EnemyDef.special_value(sp, spd, "tint_strength"))
 		esz *= vsize
 	vtint[i] = vt

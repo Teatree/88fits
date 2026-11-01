@@ -356,7 +356,9 @@ along, one added while the page was open too); the page does not edit it.
 - `swarm.special` (bool, default false): every creature the swarm brings comes as its **variance special** for sure
   (`EnemyManager.force_special`, held by `WaveDirector._run_event` around the spawn): whatever its `special_chance`,
   before `colour_after_kills`, with no SWARM! banner. Its numbers are the creature's Special block (below). A creature
-  with no `variance` block has no special and comes plain. Red Canyon's special Goblin (Garry: "a single 'Special'
+  with no `variance` block had no special and came plain until pass 120; since then it comes as its special too, its
+  numbers from `special_defaults`, else the game's, its colour `special_defaults.tint`, else crimson `#8A1428` (see
+  "Pass 120" at the end). Red Canyon's special Goblin (Garry: "a single 'Special'
   regular Goblin appears at the end of the first wave"):
   `{"t": 120, "type": "swarm", "enemy": "red_goblin", "variant": "RG-B", "count": 1, "pattern": "in_front",
   "special": true, "name": "Special Goblin"}`: the first roster row (r1, the red goblins, RG-B) runs 0:00-2:02, so the
@@ -1329,3 +1331,21 @@ S = its `boss_hp_scaling.seconds` sets the chest's multiplier.
 | `max_mult` | number [2.0] | the whole bonus: the chest's gold and XP x this (never under 1) |
 
 The Level Editor's Settings tab shows them as the "Boss chest" card (tools/level_editor/fields.js).
+
+## Pass 120: Special with an Elite modifier, a Special creature with no variance block (the game: the lead; the editor: lane EDITOR)
+
+- A row (or swarm event) with `"special": true` brings every creature as its coloured special whatever its
+  `special_chance`, `colour_after_kills` and `special_defaults.max_alive` (as since pass 69), now also when the creature
+  has no `variance` block: its numbers from `timeline_data.special_defaults`, else EnemyDef.SPECIAL_DEFAULTS (size x1.5,
+  HP x15, damage x2, XP x2, glow 0.6, tint strength 0.6, chest 0.35), its colour `special_defaults.tint`, else
+  EnemyDef.SPECIAL_TINT `#8A1428`.
+- With `"elite"` too, each is both: the coloured special's size, HP, damage, XP and glow, wearing the modifier (its HP,
+  scale and powers on top); EnemyManager.tint_of draws an elite-modified creature in the modifier's outline colour, so
+  that colour shows, not the special's. It drops what an Elite drops (no special chest on top). A random special roll
+  never lands on an elite-modified creature.
+- `timeline_data.special_defaults.tint` (colour string, optional): the colour above. The Level Editor's Settings →
+  Coloured specials → Colour.
+- A paced row with `elite` is a timer row (WaveTimeline.row_timer) and waits for colour a second at a time; past its
+  `until` it never comes. Since pass 120 a row with `"special": true` never waits (WaveDirector.colour_open_for): its
+  waves, its pattern-less elite arrivals (never held), its continuous draw and the floor fill take it before
+  `colour_after_kills`, each creature wearing its modifier. Every creature's `max_alive` counts every row's creatures of it.

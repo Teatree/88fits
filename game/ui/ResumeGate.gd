@@ -17,6 +17,8 @@ var _dim: ColorRect
 var _go: WText
 var _sub: WText
 var _t := 0.0
+## pass 120 (lane REPLAY): the held key's go is on its way (an input event, see _process)
+var _key_sent := false
 var _slot_id := ""
 var _flyer: Control
 var _streaks: Array = []
@@ -51,6 +53,7 @@ func _ready() -> void:
 ## 48: the flying plate's colour; the level held when the pick does not say) (empty for a skip).
 func open(pick: Dictionary = {}) -> void:
 	_t = 0.0
+	_key_sent = false
 	visible = true
 	_go.modulate.a = 0.0
 	_sub.modulate.a = 0.0
@@ -133,8 +136,14 @@ func _process(delta: float) -> void:
 		return
 	_t += delta
 	# pass 119: a movement key held through the screen (the PC) goes on as soon as the guard has passed
-	if _t >= GUARD and not Lockstep.replaying and Input.get_vector("move_left", "move_right", "move_up", "move_down").length() > 0.1:
-		tap()
+	if _t >= GUARD and not Lockstep.replaying and not _key_sent and Input.get_vector("move_left", "move_right", "move_up", "move_down").length() > 0.1:
+		# pass 120 (lane REPLAY): it goes on as an input event (between frames, as a finger's tap does), so the recording
+		# keeps it and its replay takes it at the same moment (a tap from _process was neither kept nor replayed)
+		_key_sent = true
+		var e := InputEventAction.new()
+		e.action = KEY_GO
+		e.pressed = true
+		Input.parse_input_event(e)
 		return
 	_go.pivot_offset = _go.size * 0.5
 	_go.scale = Vector2.ONE * (1.0 + 0.03 * sin(_t * 4.0))
@@ -156,8 +165,17 @@ func tap() -> void:
 	resumed.emit()
 
 
+const KEY_GO := &"resume_gate_key_go"
+
+
 func _input(event: InputEvent) -> void:
-	if not visible or _t < GUARD:
+	if not visible:
+		return
+	if event is InputEventAction and (event as InputEventAction).action == KEY_GO:
+		tap()
+		get_viewport().set_input_as_handled()
+		return
+	if _t < GUARD:
 		return
 	# pass 119 (the lead; Garry's lost step after a level-up, "a solution that works for both PC and Mobile"): on the PC a
 	# movement key goes on too, and the hero moves at once (PlayerInput reads the keys from the next frame)

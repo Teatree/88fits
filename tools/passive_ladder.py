@@ -105,12 +105,14 @@ LADDER = {
     "grindstone": [[E("grind_levels", 1)], [E("grind_levels", 1)], [E("grind_levels", 1)], [E("grind_levels", 1)]],
     "lightning_in_a_bottle": [[E("crit_arcs", 3, "set"), E("crit_arc_pct", 25, "set")],
                               [E("crit_arcs", 5, "set"), E("crit_arc_pct", 35, "set"), E("crit_arc_stun", 0.3, "set")]],
-    "undertakers_shovel": [[E("grave_every", 25, "set"), E("grave_max", 4, "set"), E("grave_seconds", 8, "set"), E("grave_damage_pct", 40, "set")],
+    # pass 120 (lane GHOST): the ghost's bolts grow with the hero's power (params.grave), grave_damage_pct is gone
+    "undertakers_shovel": [[E("grave_every", 25, "set"), E("grave_max", 4, "set"), E("grave_seconds", 8, "set")],
                            [E("grave_every", 15, "set"), E("grave_max", 6, "set"), E("grave_seconds", 12, "set")]],
     "fools_gold": [[E("purse_might_per", 50, "set"), E("purse_might_cap", 60, "set")],
                    [E("purse_might_per", 40, "set"), E("purse_hp_per", 100, "set"), E("purse_hp_cap", 30, "set")]],
-    "pocket_bible": [[E("hit_cap_pct", 12, "set"), E("boss_hit_cap_pct", 35, "set"), E("hit_block_every", 20, "set")],
-                     [E("hit_cap_pct", 9, "set"), E("boss_hit_cap_pct", 30, "set"), E("hit_block_every", 15, "set")]],
+    # pass 120 (Garry: "every attack doesn't take more than 35% of heroes' Max HP"): one cap, 35 / Evolved 30
+    "pocket_bible": [[E("hit_cap_pct", 35, "set"), E("boss_hit_cap_pct", 35, "set"), E("hit_block_every", 20, "set")],
+                     [E("hit_cap_pct", 30, "set"), E("boss_hit_cap_pct", 30, "set"), E("hit_block_every", 15, "set")]],
 }
 
 # the hand-written card lines that named the old numbers (a new card shows `text` verbatim; the upgrades read the rungs)

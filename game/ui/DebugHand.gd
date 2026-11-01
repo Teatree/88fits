@@ -99,28 +99,49 @@ func _rebuild() -> void:
 
 
 func _give() -> void:
+	var items: Array = []
 	for id in _picked.keys():
 		var e: Dictionary = _picked[id]
-		var n: int = int(e["n"])
+		if int(e["n"]) > 0:
+			items.append([str(e["kind"]), str(id), int(e["n"])])
+	give_list(items)
+
+
+## Pass 120 (lane REPLAY): what "Give" hands over, as [kind, id, levels] rows: kept by a recording ("debug_give") and
+## handed over again by its replay (RunReplay._apply calls give_items), so a run that used the debug hand replays.
+func give_list(items: Array) -> void:
+	RunReplay.note("debug_give", {"items": items})
+	give_items(items)
+	visible = false
+	given.emit()
+
+
+static func give_items(items: Array) -> void:
+	for row in items:
+		if not (row is Array) or (row as Array).size() < 3:
+			continue
+		var kind := str(row[0])
+		var id := str(row[1])
+		var n := int(row[2])
 		if n <= 0:
 			continue
-		match str(e["kind"]):
+		match kind:
 			"weapon", "evolution":
-				var w: WeaponDef = e["def"]
+				var w: WeaponDef = Registry.weapon(id)
+				if w == null:
+					continue
 				if Run.weapon_instance(w.id) == null:
 					Run.add_weapon(w, 1)
 				for k in range(n - 1):
 					Run.level_weapon(w.id)
 			"passive", "line":
 				for k in range(n):
-					Run.add_or_level_passive(str(id))
+					Run.add_or_level_passive(id)
 			"perk":
-				Run.add_perk(str(id))
+				Run.add_perk(id)
 			"mutation":
-				Run.add_mutation(str(id), true)
+				Run.add_mutation(id, true)
 	Run.rebuild_sheets()
-	visible = false
-	given.emit()
 
 
 func _input(event: InputEvent) -> void:

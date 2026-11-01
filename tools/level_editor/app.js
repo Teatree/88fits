@@ -1032,12 +1032,13 @@ const App = (() => {
 
   /** Pass 84 (lane TIMELINE; INTERFACES.md): a row's elite, special, banner, ring radius and role. An unknown modifier and a
    *  ring radius under 1 m block Save; a banner or the wave keys on a continuous row, a ring radius without a ring, an
-   *  unknown role and an elite special are warnings (the game ignores or overrides them). */
+   *  unknown role are warnings (the game ignores or overrides them). Pass 120 (lane EDITOR): Special with an Elite
+   *  modifier is no longer one: the game brings each as its coloured special AND wearing the modifier (the row's card and
+   *  the inspector's Special note say so). */
   function rowKeyIssues(r, key, mark) {
     const pace = String(r.pace || 'continuous');
     if (r.elite != null && r.elite !== '' && r.elite !== 'random' && !elite(r.elite)) mark(key, 'error', `unknown elite modifier "${r.elite}"`);
     if (r.special != null && typeof r.special !== 'boolean') mark(key, 'error', 'special is on or off (true / false)');
-    if (r.special === true && r.elite) mark(key, 'warn', 'special and an elite modifier: an elite-modified creature never comes as its special');
     if (r.banner != null && pace !== 'waves' && pace !== 'once') mark(key, 'warn', 'a banner shows only when a wave fires: this row is continuous');
     if (r.ring_radius != null) {
       if (!(Number(r.ring_radius) >= 1)) mark(key, 'error', 'the ring radius is at least 1 m');

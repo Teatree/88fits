@@ -448,8 +448,9 @@ const Enemies = (() => {
     const defaults = tl && M.isObj(tl.special_defaults) ? tl.special_defaults : {};
     const wrap = el('div', { class: 'tintprev-wrap', 'data-key': 'variance.special' });
     const chance = M.num(vr.special_chance, 0);
-    if (!Object.keys(vr).length) wrap.appendChild(el('p', { class: 'muted small', text: 'No variance block: this creature never comes as a coloured special (a special swarm brings it plain).' }));
-    else wrap.appendChild(el('p', { class: 'muted small', text: chance > 0 ? `Chance ${fmtN(chance * 100, 2)} % = about one in ${Math.round(1 / chance)} once ${mapId}'s Colour after kills (${tl ? M.num(tl.colour_after_kills, 0) : '…'}) is reached.` : 'Chance 0: it never rolls its special on its own; a swarm event set to Special still brings one.' }));
+    // pass 120 (lane EDITOR, the game's new rule): a row or swarm set to Special brings one even with no variance block
+    if (!Object.keys(vr).length) wrap.appendChild(el('p', { class: 'muted small', text: `No variance block: this creature never rolls a coloured special by chance, but a row or swarm set to Special brings every one as its special, with the numbers below (${mapId}'s Coloured specials, else the game's) and the colour ${(defaults && typeof defaults.tint === 'string' && defaults.tint) || '#8A1428'}.` }));
+    else wrap.appendChild(el('p', { class: 'muted small', text: chance > 0 ? `Chance ${fmtN(chance * 100, 2)} % = about one in ${Math.round(1 / chance)} once ${mapId}'s Colour after kills (${tl ? M.num(tl.colour_after_kills, 0) : '…'}) is reached.` : 'Chance 0: it never rolls its special on its own; a row or swarm set to Special still brings one.' }));
     const tbl = el('table', { class: 'kv ctable' });
     tbl.appendChild(el('tr', {}, el('th'), el('th', { text: 'in play' }), el('th', { text: 'from' })));
     const where = { own: 'this creature', map: `${mapId}'s Coloured specials (Settings)`, game: 'the game\'s default' };
@@ -459,7 +460,9 @@ const Enemies = (() => {
     // pass 72 (lane SPEC): the map's cap on how many live at once (Settings → Coloured specials; the game's 3)
     const capN = Model.specialMaxAlive(defaults);
     tbl.appendChild(el('tr', {}, el('td', { text: 'Max alive (map)' }), el('td', { class: 'mine', text: isFinite(capN) ? String(capN) : 'no limit' }), el('td', { class: 'muted small', text: (M.isObj(defaults) && defaults.max_alive != null && defaults.max_alive !== '' ? `${mapId}'s Coloured specials (Settings)` : 'the game\'s default') + ': past it a roll comes plain; a Special swarm still comes' })));
-    tbl.appendChild(el('tr', {}, el('td', { text: 'Colour' }), el('td', { class: 'mine' }, sp.tint ? el('span', { class: 'sw-chip', style: `background:${sp.tint}`, title: sp.tint }) : '—'), el('td', { class: 'muted small', text: sp.tint ? 'this creature' : 'none: it keeps a plain one\'s tint (a row\'s colour range gives it a darker shade)' })));
+    // pass 120 (lane EDITOR, the game's new rule): no colour of its own = the map's Coloured specials Colour, else crimson
+    const spCol = Model.forcedSpecial({ variance: vr }, null, defaults);
+    tbl.appendChild(el('tr', {}, el('td', { text: 'Colour' }), el('td', { class: 'mine' }, el('span', { class: 'sw-chip', style: `background:${spCol.tint}`, title: spCol.tint })), el('td', { class: 'muted small', text: spCol.tintFrom === 'own' ? 'this creature' : `${spCol.tintFrom === 'map' ? `${mapId}'s Coloured specials (Settings)` : 'the game\'s crimson'}: it names none (a row's colour range gives it a darker shade of its own hue instead)` })));
     wrap.appendChild(tbl);
     const rec = App.creature(doc.id);
     if (!rec) return wrap;

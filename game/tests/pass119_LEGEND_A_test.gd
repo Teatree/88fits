@@ -177,22 +177,22 @@ func test_both_are_legendary_items_of_two_rungs_weighted_five_that_shut_each_oth
 func test_the_cards_say_the_rules_from_the_numbers() -> void:
 	var ih: PassiveDef = Registry.passive("iron_horse")
 	var t := TextGen.passive_text(ih)
-	assert_str(t).contains("Every 20 s")
+	assert_str(t).contains("Every 30 s")
 	assert_str(t).contains("25% of its max HP")
 	assert_str(t).contains("Elites and bosses 5%")
 	assert_str(t).contains("thrown aside")
 	var evo := TextGen.passive_description(ih, 2)
 	assert_str(evo).contains("Evolved")
-	assert_str(evo).contains("every 15 s")
+	assert_str(evo).contains("every 22 s")
 	assert_str(evo).contains("a second train crosses it")
 	assert_str(evo).not_contains("total")
 	var ps: PassiveDef = Registry.passive("personal_storm")
 	var s := TextGen.passive_text(ps)
-	assert_str(s).contains("Every 30 s")
+	assert_str(s).contains("Every 45 s")
 	assert_str(s).contains("for 8 s")
 	assert_str(s).contains("crowd")
 	var sevo := TextGen.passive_description(ps, 2)
-	assert_str(sevo).contains("every 24 s")
+	assert_str(sevo).contains("every 36 s")
 	assert_str(sevo).contains("10 s")
 
 
@@ -209,17 +209,19 @@ func test_the_cards_name_the_damage_the_run_would_deal() -> void:
 
 func test_the_stats_follow_the_rungs() -> void:
 	Run.add_or_level_passive("iron_horse")
-	assert_float(IronHorse.every()).is_equal(20.0)
+	# pass 120 (Garry: "every 30s at the start"): 30, Evolved 22
+	assert_float(IronHorse.every()).is_equal(30.0)
 	assert_bool(IronHorse.crossing()).is_false()
 	Run.add_or_level_passive("iron_horse")
-	assert_float(IronHorse.every()).is_equal(15.0)
+	assert_float(IronHorse.every()).is_equal(22.0)
 	assert_bool(IronHorse.crossing()).is_true()
 	Run.debug_set_item("passive", "iron_horse", 0)
 	Run.add_or_level_passive("personal_storm")
-	assert_float(PersonalStorm.every()).is_equal(30.0)
+	# pass 120 (Garry: "every 45s instead of every 30s"): 45, Evolved 36
+	assert_float(PersonalStorm.every()).is_equal(45.0)
 	assert_float(PersonalStorm.seconds()).is_equal(8.0)
 	Run.add_or_level_passive("personal_storm")
-	assert_float(PersonalStorm.every()).is_equal(24.0)
+	assert_float(PersonalStorm.every()).is_equal(36.0)
 	assert_float(PersonalStorm.seconds()).is_equal(10.0)
 
 
@@ -286,7 +288,7 @@ func _horse(w: Dictionary) -> IronHorse:
 	return ih
 
 
-func test_the_horse_rumbles_after_first_then_whistles_then_comes_every_twenty_seconds() -> void:
+func test_the_horse_rumbles_after_first_then_whistles_then_comes_every_thirty_seconds() -> void:
 	var w := _world()
 	Run.add_or_level_passive("iron_horse")
 	var ih := _horse(w)
@@ -310,7 +312,7 @@ func test_the_horse_rumbles_after_first_then_whistles_then_comes_every_twenty_se
 	while ih.rumbles == 1 and t < 60.0:
 		ih.tick(DT)
 		t += DT
-	assert_float(t - t1).is_equal_approx(20.0, 0.05)
+	assert_float(t - t1).is_equal_approx(30.0, 0.05)
 
 
 func test_the_evolved_horse_comes_every_fifteen_seconds_with_a_second_train_across() -> void:
@@ -332,7 +334,7 @@ func test_the_evolved_horse_comes_every_fifteen_seconds_with_a_second_train_acro
 	while ih.whistles == 1 and t < 60.0:
 		ih.tick(DT)
 		t += DT
-	assert_float(t - t1).is_equal_approx(15.0, 0.05)
+	assert_float(t - t1).is_equal_approx(22.0, 0.05)
 
 
 func test_the_train_takes_its_share_of_max_hp_plus_the_flat_part_and_less_from_big_ones() -> void:
@@ -456,7 +458,7 @@ func test_the_storm_gathers_strikes_for_its_seconds_about_twice_a_second_and_cle
 	while ps.storms == 1 and t < 80.0:
 		ps.tick(DT)
 		t += DT
-	assert_float(t - t0).is_equal_approx(30.0, 0.05)
+	assert_float(t - t0).is_equal_approx(45.0, 0.05)
 
 
 func test_the_strikes_seek_the_crowd_most_of_the_time_and_bare_ground_sometimes() -> void:

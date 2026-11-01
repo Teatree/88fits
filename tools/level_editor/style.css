@@ -556,7 +556,11 @@ input.sw-color.ph { opacity: 0.45; }
 .hc-chip.boss { background: rgba(230,103,103,0.35); }
 .hc-chip.elite { background: rgba(230,160,74,0.35); }
 .hc-share { color: var(--s4); font-weight: 600; margin-left: auto; }
-.hc-stats { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 4px; }
+.hc-stats { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+/* pass 120 (lane EDITOR): SPD's unit, a row's pacing and pattern lines under the numbers, "(default)" where the row sets none */
+.hc-unit { font-size: 10.5px; font-weight: 500; color: var(--muted); margin-left: -2px; }
+.hc-stats.hc-sched { display: block; margin-top: 1px; }
+.hc-dflt { font-size: 10.5px; font-weight: 500; color: var(--muted); }
 .hc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff8c1a; box-shadow: 0 0 4px #ff8c1a; }
 .hc-star { color: #ff8c1a; }
 .hc-line { color: var(--ink-2); margin-top: 3px; }

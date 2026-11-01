@@ -268,7 +268,8 @@ func test_stranger_sells_a_closed_mutation() -> void:
 	_give("sabre", 3)
 	Run.add_mutation("flurry")
 	var found := false
-	for k in range(60):
+	# (pass 120: 400 tries: two mutations among some 70 items is about 3% a draw, so 60 tries missed one run in six)
+	for k in range(400):
 		var o := Run.stranger_offer()
 		if not o.is_empty() and o["type"] == "mutation":
 			assert_str((o["def"] as MutationDef).weapon).is_equal("sabre")

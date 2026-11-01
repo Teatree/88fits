@@ -303,7 +303,8 @@ func build() -> void:
 	var again := WButton.make(["PLAY AGAIN"], 72, WButton.PRIMARY, 6, 10, 24.0, 0.0, 72.0)
 	# pass 87 (lane SUI): the same stage again (Game plays stage 1 unless a stage was chosen)
 	var again_stage := Run.stage
-	again.pressed.connect(func(): Run.choose_stage(again_stage); go("res://game/Game.tscn"))
+	# pass 120 (lane STARTGO): through the revolver wipe and the loading screen (UiFx.go_run, ui/RunCurtain.gd)
+	again.pressed.connect(func(): Run.choose_stage(again_stage); UiFx.go_run(get_tree()))
 	col.add_child(again)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)

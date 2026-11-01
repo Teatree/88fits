@@ -1637,14 +1637,15 @@ static func arc_text(def: PassiveDef) -> String:
 		_plain(first_level_value(def, "crit_arcs", 3.0)), _plain(float(arc.get("radius", 5.0))), _plain(first_level_value(def, "crit_arc_pct", 25.0))]
 
 
-## The Undertaker's Shovel's rule (pass 119, lane LEGEND_B) from its first level and params.grave (rise): "One kill in 25
-## leaves a grave; 2 s later a ghost gunslinger climbs out and fights where it stands for 8 s, firing your first weapon's
-## shots at 40% damage. At most 4 at once."
+## The Undertaker's Shovel's rule (pass 119, lane LEGEND_B; pass 120, lane GHOST: a floating ghost circling its grave and
+## firing ghost bolts that grow with the hero's power) from its first level and params.grave (rise, bolts_max): "One kill
+## in 25 leaves a grave; 2 s later a ghost rises and circles it for 8 s, firing ghost bolts at the nearest enemies. The
+## stronger you are, the more bolts (up to 6) and the harder they hit; no knockback. At most 4 at once."
 static func grave_text(def: PassiveDef) -> String:
 	var g: Dictionary = def.params.get("grave", {})
-	return "One kill in %s leaves a grave; %s s later a ghost gunslinger climbs out and fights where it stands for %s s, firing your first weapon's shots at %s%% damage. At most %s at once." % [
+	return "One kill in %s leaves a grave; %s s later a ghost rises and circles it for %s s, firing ghost bolts at the nearest enemies. The stronger you are, the more bolts (up to %s) and the harder they hit; no knockback. At most %s at once." % [
 		_plain(first_level_value(def, "grave_every", 25.0)), _plain(float(g.get("rise", 2.0))), _plain(first_level_value(def, "grave_seconds", 8.0)),
-		_plain(first_level_value(def, "grave_damage_pct", 40.0)), _plain(first_level_value(def, "grave_max", 4.0))]
+		_plain(float(g.get("bolts_max", 6.0))), _plain(first_level_value(def, "grave_max", 4.0))]
 
 
 ## Fool's Gold's rule (pass 119, lane LEGEND_B) from its first level: "+1% attack damage for every 50 gold in this run's
@@ -1665,7 +1666,8 @@ static func purse_text(def: PassiveDef) -> String:
 static func bible_text(def: PassiveDef) -> String:
 	var s := "No single hit takes more than %s%% of your max HP" % _plain(first_level_value(def, "hit_cap_pct", 12.0))
 	var boss := first_level_value(def, "boss_hit_cap_pct", 0.0)
-	if boss > 0.0:
+	# pass 120 (one cap for every hit, 35%): the boss's share named only when it differs
+	if boss > 0.0 and not is_equal_approx(boss, first_level_value(def, "hit_cap_pct", 12.0)):
 		s += " (%s%% from a boss)" % _plain(boss)
 	var every := first_level_value(def, "hit_block_every", 0.0)
 	if every > 0.0:

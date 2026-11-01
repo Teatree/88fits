@@ -50,6 +50,7 @@ python tools/puppet.py may [--stage apose|shape|rig|anim|guides|looks|compare] [
 python tools/make_loading_wallpaper.py [--review-only] [--mock out.png] [--sheet <dir>]   # pass 118: the loading screen's wallpaper strips (silhouettes from the game's icons + drawn ones) and title plate -> game/art/ui/loading/; capture: GODOT_TIMEOUT=300 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --fixed-fps 60 --path D:/_projects/88fits/game --script res://tools/load_shots.gd -- out=<dir> [entrance=punch|split] [tag=<name>]
 "$BLENDER" -b --python tools/blender_iron_horse.py   # pass 119: the Iron Horse's ghost train (art/props/iron_horse.glb: Engine, Tender, Coach + Chimney/Lamp empties, from Garry's Railway Kit unzipped in tools/dl/railway_kit/, CC BY 4.0) + the icon reference tools/dl/iron_horse_ref.png
 python tools/gen_grave.py [--seeds 4] [--force] && python tools/gen_grave.py --pick N   # pass 119: the Undertaker's Shovel's painted headstone -> content/passives/undertakers_shovel/undertakers_shovel_grave.png
+python tools/gen_ghost.py front [--seeds 2] && python tools/gen_ghost.py back --front N [--seeds 4] && python tools/gen_ghost.py --pick-front N --pick-back M   # pass 120: the Shovel's floating ghost, front by Klein and its back as a Klein edit of it -> undertakers_shovel_ghost_front/back.png
 "$BLENDER" -b --python tools/blender_boss_chests.py [-- export=gila_grande,brander] && python tools/gen_boss_chests.py   # pass 118 (pass 119: the Gila's and Brander's hollow, the Gila's white with lizard eyes; export= writes only those GLBs): the three bosses' chests (art/props/meta/boss_chest_<boss>.glb + renders in tools/dl/bosschest/) and their painted closed/cracked/open frames (Klein over the renders, picked by eye) -> game/art/ui/wanted/bosschest/; captures game/tools/_p118_BOSSCHEST_shots.gd
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
@@ -269,7 +270,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-01, pass 119, version 1.00)
+## Status (2026-11-01, pass 120, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -554,6 +555,15 @@ line) and **Personal Storm** (core/systems/PersonalStorm.gd), mutually exclusive
 or evolves one; EnemyManager.HIT_NO_CRIT; the Dragon's Breath's ready ring gone (a mouthful splash); armadillo looks ARM-H..M (zombie,
 devil; fresh) and ARM-F/G's front walk without the leg-tail (blender_gait `splay_front`); gen_ctl `look_refs`, `extras`; the Gila's
 chest white with lizard eyes, both bosses' chests hollow, the chest pop-up's loot party.
+Pass 120: the Undertaker's ghost is one painted floating ghost (front/back, circling its grave) firing ghost bolts
+(core/systems/GhostBolts.gd) whose count (up to 6) and damage grow with HeroPower, no knockback; Personal Storm every 45 s,
+the Pocket Bible one 35% cap, the Iron Horse every 30 s with twice the warning at 22.5 m/s; a row's `special: true` makes a
+creature with no variance block its special (map `special_defaults.tint`, else EnemyDef.SPECIAL_TINT) and with an `elite`
+both at once, never waiting for colour (WaveDirector.colour_open_for); every way into a run plays the revolver-cylinder
+wipe and Boot's loading screen (game/ui/RunCurtain.gd, UiFx.go_run; Game.SPAWN_MAX_STEP); the Level Editor's row card
+shows SPD, Pacing and Pattern, Spawned so far counts guaranteed Elites and specials; replays never drag a fallen hero
+(safety net, a red line when the run ended early), keep step at any frame rate (tweens stepped by the recorded delta),
+record the debug hand/panel and TAP TO GO keys, and name the game files' fingerprint ("the game changed since").
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =

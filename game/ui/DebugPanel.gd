@@ -5,6 +5,9 @@ extends Control
 var game: Node
 var _box: VBoxContainer
 var _fps: Label
+## pass 120 (lane REPLAY): the buttons' actions by their words, so a recording keeps a tap as a "debug" decision and its
+## replay runs the same action (run_action); God mode is kept by Game.set_god itself, Hide is only the panel
+var _actions: Dictionary = {}
 
 
 func _ready() -> void:
@@ -28,20 +31,35 @@ func _ready() -> void:
 	_btn("Spawn boss", func(): if game and Run.map: game.director._start_boss(Run.map.boss))
 	_btn("Level up", func(): Run.add_xp(Run.xp_to_next() - Run.xp + 0.1))
 	_btn("+500 gold", func(): Run.add_gold(500, "debug"))
-	_btn("God mode", func(): if game: game.set_god(not game.player.god))
+	_btn("God mode", func(): if game: game.set_god(not game.player.god), false)
 	_btn("Kill all", func(): if game: game.enemies.kill_all(true))
 	_btn("Vacuum", func(): if game: game.pickups.vacuum_all())
 	_btn("Chest here", func(): if game: game.pickups.spawn_chest(game.player.global_position + game.player.forward() * 2.0))
 	_btn("Skip 60 s", func(): Run.elapsed += 60.0)
 	_btn("Give random weapon", _give_weapon)
 	_btn("Max all held", _max_all)
-	_btn("Hide (F1)", toggle)
+	_btn("Hide (F1)", toggle, false)
 
 
-func _btn(text: String, cb: Callable) -> void:
+func _btn(text: String, cb: Callable, record: bool = true) -> void:
 	var b := UiKit.button(text, 22, false, 56)
-	b.pressed.connect(cb)
+	if record:
+		_actions[text] = cb
+		b.pressed.connect(func():
+			RunReplay.note("debug", {"what": text})
+			cb.call())
+	else:
+		b.pressed.connect(cb)
 	_box.add_child(b)
+
+
+## A replay's "debug" decision: the action of the button with these words (false: no such button on this build).
+func run_action(what: String) -> bool:
+	var cb: Callable = _actions.get(what, Callable())
+	if not cb.is_valid():
+		return false
+	cb.call()
+	return true
 
 
 func toggle() -> void:
@@ -61,7 +79,8 @@ func _give_weapon() -> void:
 	var list := Registry.base_weapons().filter(func(w): return not Run.has_weapon(w.id))
 	if list.is_empty():
 		return
-	Run.add_weapon(list[randi() % list.size()], 1)
+	# pass 120 (lane REPLAY): on the rule dice, so its replay hands over the same weapon
+	Run.add_weapon(list[Dice.r.randi() % list.size()], 1)
 
 
 func _max_all() -> void:

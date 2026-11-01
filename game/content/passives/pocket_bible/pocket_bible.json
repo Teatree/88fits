@@ -10,7 +10,7 @@
       {
         "stat": "hit_cap_pct",
         "op": "set",
-        "value": 12,
+        "value": 35,
         "target": "player"
       },
       {
@@ -30,7 +30,7 @@
       {
         "stat": "hit_cap_pct",
         "op": "set",
-        "value": 9,
+        "value": 30,
         "target": "player"
       },
       {
