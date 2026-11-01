@@ -12,6 +12,7 @@ out), index.html (the same pack as one page), 88fits_ui_review.pdf (the one file
 brief, the two art pages, then a page per screen with its screenshots beside its notes; printed by headless Edge from
 print.html) and 88fits_ui_review.zip (all of it, plus the icons one by one under art/).
 """
+import io
 import json
 import os
 import subprocess
@@ -706,7 +707,7 @@ def _art_sheet(sections, path, cols=16, cell=150, label=30):
                 t = t.rstrip() + "…"
             dr.text((x0 + (cell - dr.textlength(t, font=f)) / 2, y0 + cell - 4), t, fill=(60, 60, 60), font=f)
         y += rows(len(items)) * (cell + label) + 10
-    img.save(path, "JPEG", quality=86, optimize=True)
+    img.save(path, "JPEG", quality=80, optimize=True, progressive=True)
 
 
 def write_art():
@@ -714,6 +715,16 @@ def write_art():
     _art_sheet(items, os.path.join(OUT, "art_items.jpg"))
     _art_sheet(more, os.path.join(OUT, "art_more.jpg"))
     return items + more
+
+
+def _small_png(src):
+    """An icon at most 512 px on a 256-colour palette with its alpha (a fifth of the size, the same to the eye)."""
+    im = Image.open(src).convert("RGBA")
+    if max(im.size) > 512:
+        im.thumbnail((512, 512), Image.LANCZOS)
+    b = io.BytesIO()
+    im.quantize(256, method=Image.FASTOCTREE, dither=Image.FLOYDSTEINBERG).save(b, "PNG", optimize=True)
+    return b.getvalue()
 
 
 def main():
@@ -729,8 +740,10 @@ def main():
         rows.append("| %s | %s | %s | %d |" % (s["id"].split("_")[0], s["name"], s["when"], len(s["shots"])))
         for k, (shot, src) in enumerate(s["shots"]):
             im = Image.open(os.path.join(CAPS, src, shot + ".png")).convert("RGB")
+            # 720x1280 keeps every word readable and the zip under Claude Design's 20 MB
+            im = im.resize((720, round(im.height * 720 / im.width)), Image.LANCZOS)
             fn = "%s_%d.jpg" % (s["id"], k + 1)
-            im.save(os.path.join(OUT, "screens", fn), "JPEG", quality=88, optimize=True)
+            im.save(os.path.join(OUT, "screens", fn), "JPEG", quality=82, optimize=True, progressive=True)
             shot_files.append(fn)
     brief = BRIEF.replace("{TABLE}", "\n".join(rows))
     open(os.path.join(OUT, "00_brief.md"), "w", encoding="utf-8", newline="\n").write(brief)
@@ -758,7 +771,7 @@ def main():
     write_html(brief, allin)
     write_pdf(brief)
     zp = os.path.join(OUT, "88fits_ui_review.zip")
-    with zipfile.ZipFile(zp, "w", zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(zp, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         if os.path.exists(os.path.join(OUT, "88fits_ui_review.pdf")):
             z.write(os.path.join(OUT, "88fits_ui_review.pdf"), "88fits_ui_review/88fits_ui_review.pdf")
         for fn in ["README.md", "00_brief.md", "ALL_IN_ONE.md"] + [s["id"] + ".md" for s in SCREENS]:
@@ -772,7 +785,7 @@ def main():
                 # a folder per kind, named after where the icon lives (content/<kind>/, the badges, the app icon)
                 norm = src.replace("\\", "/")
                 folder = norm.split("/content/")[1].split("/")[0] if "/content/" in norm else ("badges" if "/badges/" in norm else "app_icon")
-                z.write(src, "88fits_ui_review/art/%s/%s.png" % (folder, cid))
+                z.writestr("88fits_ui_review/art/%s/%s.png" % (folder, cid), _small_png(src))
     print("ui review pack: %d screens, %d shots, %s (%.1f MB)" % (len(SCREENS), len(shot_files), zp, os.path.getsize(zp) / 1048576.0))
 
 
