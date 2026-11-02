@@ -100,9 +100,8 @@ LADDER = {
     # (2 levels: legendary, Evolved)
     "jade_key": [[E("chest_luck", 0.01)], [E("chest_luck", 0.005)], [E("chest_luck", 0.005)]],
     "ruby_key": [[E("chest_might", 0.02)], [E("chest_might", 0.01)], [E("chest_might", 0.01)]],
-    # pass 119 (lane LEGEND_B): the Grindstone is rare (4 levels), each level a level for the weakest weapon (Run._grindstone;
-    # grind_levels only counts them for the words); the four legendaries "set" their numbers at each rung
-    "grindstone": [[E("grind_levels", 1)], [E("grind_levels", 1)], [E("grind_levels", 1)], [E("grind_levels", 1)]],
+    # pass 119 (lane LEGEND_B): the four legendaries "set" their numbers at each rung. (Pass 121, lane GRIND: the
+    # Grindstone left the ladder: a one-shot item, `single` in its JSON, one level, as Phoenix Feather in pass 100)
     "lightning_in_a_bottle": [[E("crit_arcs", 3, "set"), E("crit_arc_pct", 25, "set")],
                               [E("crit_arcs", 5, "set"), E("crit_arc_pct", 35, "set"), E("crit_arc_stun", 0.3, "set")]],
     # pass 120 (lane GHOST): the ghost's bolts grow with the hero's power (params.grave), grave_damage_pct is gone

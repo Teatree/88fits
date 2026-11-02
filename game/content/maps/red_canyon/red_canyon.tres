@@ -1624,6 +1624,10 @@ boss_chest = {
 "max_mult": 2.0,
 "slow": 4.0
 }
+legendary = {
+"from": 270.0,
+"guarantee_at": 0.0
+}
 rock_color = "#785C5E"
 wall_colors = {
 "beams": "#4F3626",

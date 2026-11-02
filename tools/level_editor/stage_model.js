@@ -339,6 +339,14 @@ const StageModel = (() => {
     // pass 107 (lane XPT): the stage's XP multiplier on every kill (WaveTimeline.stage_xp_mult): a number >= 0, rounded to
     // 0.001; empty or 1 removes the key (1 is the game's default)
     else if (key === 'xp_mult') { const v = value === '' || value == null ? 1 : Math.max(0, num(value, 1)); if (Math.abs(v - 1) < 1e-9) delete e.xp_mult; else e.xp_mult = Math.round(v * 1000) / 1000; }
+    // pass 121 (lane LEGEND): the stage's own legendary hold / guarantee (WaveTimeline.legendary_value; stage-clock seconds,
+    // whole, >= 0): empty removes the key (the map's number again), an emptied block goes
+    else if (key === 'legendary.from' || key === 'legendary.guarantee_at') {
+      const sub = key.split('.')[1];
+      const v = value === '' || value == null ? null : num(value, null);
+      if (v == null) { if (isObj(e.legendary)) { delete e.legendary[sub]; if (!Object.keys(e.legendary).length) delete e.legendary; } }
+      else { if (!isObj(e.legendary)) e.legendary = {}; e.legendary[sub] = Math.max(0, Math.round(v)); }
+    }
     else if (value === '' || value == null) { if (key === 'name') e.name = `Stage ${k + 1}`; else e[key] = ''; }
     else e[key] = String(value);
     return e;
@@ -366,6 +374,9 @@ const StageModel = (() => {
       if (f && f.color != null && !HEX.test(String(f.color))) out.push({ i, level: 'warn', msg: `stage ${i + 1}: the filter colour ${f.color} is not #rrggbb` });
       if (f && f.strength != null && !(num(f.strength, -1) >= 0 && num(f.strength, 2) <= 1)) out.push({ i, level: 'warn', msg: `stage ${i + 1}: the filter strength must be 0 to 1` });
       if (e.xp_mult != null && !(typeof e.xp_mult === 'number' && isFinite(e.xp_mult) && e.xp_mult >= 0)) out.push({ i, level: 'warn', msg: `stage ${i + 1}: XP from kills (xp_mult) must be a number of 0 or more` });
+      // pass 121 (lane LEGEND): a stage's own legendary numbers must be seconds of 0 or more
+      if (e.legendary != null && !isObj(e.legendary)) out.push({ i, level: 'warn', msg: `stage ${i + 1}: legendary must be an object {from, guarantee_at}` });
+      else if (isObj(e.legendary)) for (const k of ['from', 'guarantee_at']) { const v = e.legendary[k]; if (v != null && !(typeof v === 'number' && isFinite(v) && v >= 0)) out.push({ i, level: 'warn', msg: `stage ${i + 1}: legendary.${k} must be seconds of 0 or more` }); }
       if (!bossOf(tl, i)) out.push({ i, level: 'warn', msg: `stage ${i + 1} has no boss at its end (${M.clockText(M.stageEnd(tl, i))}): a stage run ends at its boss` });
     });
     return out;
@@ -403,8 +414,37 @@ const StageModel = (() => {
     return { byRow, counts };
   }
 
+  // ---------------------------------------------------------------- pass 121 (lane LEGEND): the legendary hold
+  // Garry: "up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary"; "No guarantee, just the
+  // hold". The map's timeline_data.legendary {from, guarantee_at} (seconds of a stage's own clock), a stage entry's own
+  // `legendary` block key by key over it, the game's LEGENDARY_DEF for what neither names (WaveTimeline.LEGENDARY_DEFAULTS,
+  // selftest_LEGEND121.py keeps them equal).
+  const LEGENDARY_DEF = { from: 270, guarantee_at: 0 };
+  const okSecs = (v) => typeof v === 'number' && isFinite(v) && v >= 0;
+  /** Stage s's legendary numbers as the game plays them (s < 0: the map's alone): {from, guarantee_at, src: {from,
+   *  guarantee_at} each 'stage' | 'map' | 'game'}. */
+  function legendaryOf(tl, s) {
+    const map = isObj(tl && tl.legendary) ? tl.legendary : {};
+    const list = Array.isArray(tl && tl.stage_list) ? tl.stage_list.filter(isObj) : [];
+    const own = s != null && s >= 0 && list.length ? (isObj(list[Math.min(Math.max(0, Math.floor(s)), list.length - 1)].legendary) ? list[Math.min(Math.max(0, Math.floor(s)), list.length - 1)].legendary : {}) : {};
+    const out = { src: {} };
+    for (const k of ['from', 'guarantee_at']) {
+      if (okSecs(own[k])) { out[k] = own[k]; out.src[k] = 'stage'; }
+      else if (okSecs(map[k])) { out[k] = map[k]; out.src[k] = 'map'; }
+      else { out[k] = LEGENDARY_DEF[k]; out.src[k] = 'game'; }
+    }
+    return out;
+  }
+  /** The words for stage s's numbers: "no legendary before 4:30 · guarantee off" (the guarantee waits for the hold). */
+  function legendaryText(tl, s) {
+    const L = legendaryOf(tl, s);
+    const clock = (t) => (M && M.clockText ? M.clockText(t) : `${t} s`);
+    const g = L.guarantee_at > 0 ? `one guaranteed by ${clock(Math.max(L.guarantee_at, L.from))}${L.guarantee_at < L.from ? ' (it waits for the hold)' : ''}` : 'guarantee off';
+    return `${L.from > 0 ? `no legendary before ${clock(L.from)}` : 'legendaries from the start'} · ${g}`;
+  }
+
   const api = { toStageClock, fromStageClock, stageOfT, rowNumbers, FILTER_DEF, FILTER_PRESETS, PER_STAGE, filterOf, bossEventOf, bossOf, ensureList, newStageId, mapTimes, lengthPreview,
-    setLength, addStage, removePreview, removeStage, setBoss, setField, describe, issues };
+    setLength, addStage, removePreview, removeStage, setBoss, setField, describe, issues, LEGENDARY_DEF, legendaryOf, legendaryText };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;
 })();

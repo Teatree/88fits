@@ -148,6 +148,7 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_counterpunch.wav" id="141_g65o1"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_ghost_volley.wav" id="142_5kk5y"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/it_coin_drop.wav" id="142_f0dx3"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_grind.wav" id="143_c0ydf"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_flower.wav" id="143_v01nv"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_nuke.wav" id="144_0ehdt"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/st_portal_wait.wav" id="145_8engn"]
@@ -498,6 +499,15 @@ entries = {
 "stream": ExtResource("142_5kk5y"),
 "voices": 2,
 "volume_db": -12.0
+},
+"it_grind": {
+"category": "ui",
+"file": "real/it_grind.wav",
+"loop": true,
+"pitch_spread": 0.0,
+"stream": ExtResource("143_c0ydf"),
+"voices": 1,
+"volume_db": -8.0
 },
 "it_heal_pulse": {
 "category": "player",

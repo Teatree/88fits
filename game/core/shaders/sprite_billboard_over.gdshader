@@ -44,13 +44,21 @@ uniform float desat : hint_range(0.0, 1.0) = 0.0;
 // pass 119 (lane LEGEND_B): a ghost's colour (BillboardSprite.set_ghost): with alpha above 0 the painting's lightness is
 // redrawn in this colour, dark parts dim and light parts bright, mixed in by its alpha (0 = the painting as it is)
 uniform vec4 ghost = vec4(0.0);
+// pass 121 (lane GHOST2; Garry: "make it more ghost looking"): the ghost's tail fades out. Above 0 the painting's alpha
+// falls from full at this share of its frame's height above the frame's bottom to `ghost_fade_min` at the bottom
+// (smoothstep), so the wispy tail thins into the air. 0 = off (the hero's pass and everything else).
+uniform float ghost_fade = 0.0;
+uniform float ghost_fade_min = 0.0;
 
 varying vec2 v_uv;
 // the point on his painting in the world, before the pull: the very point his first pass draws at this pixel
 varying vec3 v_world;
+// the height in its own frame, 0 at the top, 1 at the bottom (pass 121: the ghost's tail fade)
+varying float v_fy;
 
 void vertex() {
 	vec2 uv = UV;
+	v_fy = UV.y;
 	if (flip > 0.5) {
 		uv.x = 1.0 - uv.x;
 	}
@@ -111,5 +119,9 @@ void fragment() {
 	}
 	col = mix(col, vec3(1.0), flash);
 	ALBEDO = col;
-	ALPHA = fade_alpha;
+	float a = fade_alpha;
+	if (ghost_fade > 0.0) {
+		a *= mix(ghost_fade_min, 1.0, smoothstep(0.0, ghost_fade, 1.0 - v_fy));
+	}
+	ALPHA = a;
 }

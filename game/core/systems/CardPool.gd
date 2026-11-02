@@ -17,6 +17,8 @@
 ##                                                  the weapon's JSON, Registry.is_guest_weapon)
 ##   A perk's card is weighed x4 on top (at most one in five offers, Run.perk_gap). An offer draws its cards one at a
 ##   time in proportion to these weights, without putting a drawn card back (_pick).
+## Pass 121 (lane LEGEND): no NEW legendary card before the stage clock reaches the map's `legendary.from` (4:30), in any
+## offer; after it the weights above, unchanged (core/systems/LegendaryHold.gd, BALANCING.md 63.LEGEND).
 class_name CardPool
 extends RefCounted
 
@@ -42,8 +44,14 @@ static var rng: RandomNumberGenerator = null
 ## is levelled whatever its unlock quest (Ironwood lands with the Spear, the pike, which may still be locked). A base
 ## weapon whose evolution is held is never offered (pass 58 review: it came back as NEW, so banishable, and taken it was
 ## a second copy that already carried the whole path, a second evolution one chest later).
-static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
-	var out := _pick(candidates(exclude), count, {"weapon_new": 1, "perk": 1})
+## Pass 121 (lane LEGEND): `level_up` (Game's level-up screen) lets the legendary guarantee (LegendaryHold, off by default)
+## put one among the cards; every offer marks a legendary card as shown (Run.legendary_shown).
+static func level_up_offer(count: int = 3, exclude: Array = [], level_up: bool = false) -> Array:
+	var cands := candidates(exclude)
+	var out := _pick(cands, count, {"weapon_new": 1, "perk": 1})
+	if level_up and exclude.is_empty():
+		out = LegendaryHold.guarantee(out, cands, count)
+	LegendaryHold.note_shown(out)
 	if exclude.is_empty():
 		Run.note_offer(out)
 	return out
@@ -92,7 +100,8 @@ static func candidates(exclude: Array = []) -> Array:
 				cands.append(ec)
 	if Run.character and Run.perk_gap >= 5:
 		for pk: PerkDef in Registry.perks_of(Run.character.id):
-			if not Run.perks.has(pk.id) and not Run.banished.has(pk.id) and not exclude.has(pk.id):
+			# pass 121 (lane LEGEND): a perk of the held rarity waits for the hold too (LegendaryHold)
+			if not Run.perks.has(pk.id) and not Run.banished.has(pk.id) and not exclude.has(pk.id) and not LegendaryHold.held(pk):
 				cands.append(_card("perk", pk, 0, 1, weight_of(pk, 0) * 4.0))
 	return cands
 
@@ -131,7 +140,8 @@ static func offer_weapons() -> Array:
 		var fav: WeaponDef = Registry.weapon(Run.character.favourite_weapon)
 		if fav and not fav.hidden and not fav.is_evolution and Registry.hero_may_use(fav) and not out.has(fav):
 			out.append(fav)
-	return out
+	# pass 121 (lane LEGEND): no new legendary before the stage clock reaches the map's `legendary.from` (LegendaryHold)
+	return out.filter(func(w: WeaponDef) -> bool: return Run.weapon_instance(w.id) != null or not LegendaryHold.held(w))
 
 
 ## The base lines and passive items an offer may hold: the unlocked ones (Registry.unlocked_passives), every base one
@@ -149,6 +159,9 @@ static func offer_passives() -> Array:
 			out.append(fav)
 	# pass 119 (lane LEGEND_B): never a Grindstone while no weapon can take its level (Run.grind_idle)
 	out = out.filter(func(p: PassiveDef) -> bool: return not Run.grind_idle(p))
+	# pass 121 (lane LEGEND): nor a new legendary item before the stage clock reaches `legendary.from` (LegendaryHold);
+	# one held keeps its levels
+	out = out.filter(func(p: PassiveDef) -> bool: return Run.passives.has(p.id) or not LegendaryHold.held(p))
 	# pass 119 (lane LEGEND_A): never an item the hero's own shuts out (Run.shut_out: the Iron Horse / Personal Storm),
 	# so no level-up, Shop or Stranger holds it
 	return out.filter(func(p: PassiveDef) -> bool: return not Run.shut_out(p.id))
@@ -164,6 +177,8 @@ static func banishable(offer: Array) -> Array:
 ## One card drawn from `cands` in proportion to their "weight" ({} when there is none): a chest's roll (Run.chest_roll).
 static func pick_one(cands: Array) -> Dictionary:
 	var one := _pick(cands, 1)
+	# pass 121 (lane LEGEND): a chest's legendary counts as shown
+	LegendaryHold.note_shown(one)
 	return one[0] if not one.is_empty() else {}
 
 

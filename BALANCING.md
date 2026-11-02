@@ -9142,3 +9142,101 @@ A new recording with the free revive, the ad revive and the Phoenix Feather repl
   The viewer's header compares them: "played on the same game files ✓", or red "the game changed since this run, so the
   replay goes out of step: that is the code changing, not a fault in the replay". An older recording has no print: the
   header says it cannot tell, and tools/replay.py adds the commits that changed game/ since it was recorded.
+
+## 63. Pass 121: the Grindstone used once with its show, a ghost that looks like a ghost, legendaries kept back and then guaranteed
+
+### 63.GHOST2 The Undertaker's ghost painted again as a plain sheet ghost, see-through, its tail fading out (no gameplay number changed)
+
+Garry (2026-11-02): "Ghost is awful looking. Make it more ghost looking. No clothing. Like a regular ghost with minimal
+facial features." The ghost's circling, size (`ghost_height` 1.55 m), bolts and every number of 62.GHOST stay.
+- **The paintings** (`ghost_front` / `ghost_back`, tools/gen_ghost.py): no hat, no bandana, nothing worn; a round head
+  flowing into a sheet that thins into one curling wispy tail, no legs, no arms; two dark hollow eyes, no mouth (front c4
+  of twelve); the back is the same ghost with no face (back c3 of four Klein edits), mirrored so its tail curls to the
+  other side as a ghost turned round would (my decision). The painted glow round it (it lay on the green screen) is
+  turned from pale green to pale cyan inside the outline (gen_ghost `cool_halo`).
+- **Its colour**: `ghost_mix` 0.45 -> **0.35** (whiter: with no hat or bandana there is no colour to keep, and a whiter
+  ghost stands out on the sand; still tinted towards `ghost_tint` #7fe6ff). My decision.
+- **See-through**: `ghost_alpha` 0.85 -> **0.8** (the sand shows through). My decision.
+- **Its tail fades out** (new): `ghost_fade` **0.4**: over the bottom 40% of its picture its alpha falls (smoothstep) to
+  `ghost_fade_min` **0.1** of `ghost_alpha` at the picture's bottom, so the tail thins into the air and its tip stays
+  just visible. Code default 0 = off (Graveyard DEFAULTS); the shader uniform (sprite_billboard_over `ghost_fade`) is
+  off for every other painting. My decision (the brief's "a fade towards the tail").
+
+### 63.LEGEND No legendary item before 4:30 of a stage, then as before; a guarantee switch, off
+
+Garry (2026-11-02): "Make it so that up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary and
+after 4:30 there is some (small) chance of getting it (so whatever it is now)." Asked whether a long run should also be
+sure of one: "No guarantee, just the hold" (the lead built the switch anyway, off).
+- **The hold** (core/systems/LegendaryHold.gd): no NEW item of rarity "legendary" is offered while the stage's own clock
+  (Run.stage_clock: the HUD's, 0:00 at the stage's start, in every stage's run: Sundown, Nightfall, Blood Moon) is under
+  `legendary.from` **270 s (4:30)**. Today that is the six legendary passive items (Fool's Gold, the Iron Horse, Lightning
+  in a Bottle, Personal Storm, the Pocket Bible, the Undertaker's Shovel); the rule reads the rarity, so a weapon, perk or
+  item made legendary later is held too. From 4:30 on the draw is exactly the old one (CardPool.weight_of unchanged:
+  def.weight x RARITY_W 0.15 x the luck lift). After the stage's boss falls (the portal's countdown) and in Endless the
+  clock counts as past it (my decision: the stage clock stands still there). Every offer: the level-up cards, a reroll and
+  a banish's redraw, the first-run Dynamite screen's two companions, the Shop, the Stranger, a chest's roll (ordinary,
+  crowned Elite's and a boss chest's fallback when no path is open; a chest banish's new roll) and the chest reel's filler
+  plates. Never held (my decisions): an item the hero already holds keeps its level cards (only the debug arena's ITEMS
+  tab can hand one over before 4:30), and an evolution of something held (a weapon's at a chest, a maxed line's card).
+  The debug arena plays the hold at its own clock (its minute slider); its ITEMS tab and the developer tools are no offers.
+  A passive item climbing its rarity ladder to its Legendary rung is a level of a common/uncommon/rare/epic item and is
+  not held (the rule is about legendary items).
+- **The guarantee switch** `legendary.guarantee_at` **0 = off** (Garry: "No guarantee"). Above 0: a run whose stage clock
+  reaches it (and `from`: the hold wins when it is set earlier) without having been shown a legendary card gets one among
+  its next level-up's three cards (Game's level-up screen only, not the Shop or the first-run Dynamite screen), drawn by
+  the cards' own weights on the cards' dice from the legendary cards the hero can take (CardPool.candidates: not banished,
+  not shut out by `excludes`, not maxed), in place of the last card drawn; once a run. "Shown" (Run.legendary_shown) is
+  any legendary card from any offer above (a chest's roll, the Stranger's item, a Shop's card count too). Nothing the hero
+  can take: no change.
+- **Where the numbers live**: the map's `timeline_data.legendary` {from, guarantee_at} (Red Canyon: 270, 0), a stage
+  entry's own `stage_list[k].legendary` key by key over it (none today), WaveTimeline.LEGENDARY_DEFAULTS {270, 0} for what
+  neither names. The Level Editor: Settings -> Legendary items, and each stage's card on the Timeline.
+- **Measured** (run sim, pass 120's settings and seeds: Drifter, bot explorer, 8 runs each, Stage 1 a quarter board,
+  Stage 2 half): 9 of 16 runs were shown a legendary, none before 4:30 (earliest 4:30.7 in Stage 1, 5:26 in Stage 2);
+  pass 120 had 6 such offers before 4:30, the earliest at 0:05 (tools/dl/p121/LEGEND/STATUS.md).
+
+### 63.GRIND The Grindstone works once a run, and a show tells it
+
+Garry (2026-11-02): "**Grindstone** - should be a 1 time use item. And there should be an animation sequence showing a
+weapon being upgraded. It's one time use, no upgrades, player gets only one ever." Garry confirmed through the lead:
+one a run, like the Phoenix Feather (never offered again in that run).
+
+- **A one-shot item** (content/passives/grindstone/grindstone.json): `single` true (PassiveDef.single, pass 100's rule):
+  `max_level` 1, one level (`grind_levels` +1, only said), off the rarity ladder (no rungs, no Evolved rung or icon;
+  tools/passive_ladder.py no longer lists it). Its rarity (rare) and weight (5) are kept. What it does is pass 119's
+  (Run.grind_target): the weakest held weapon below its top one level up (the fewest levels, ties to the least damage
+  dealt this run, then the one held first); with every weapon at its top, the ready one (whole path, top level) that has
+  dealt the least evolves, without a chest. It is still never offered while no weapon could take it.
+- **Once a run, from every source**: taking it works once (Run._grindstone, recorded in `Run.grind_used` {id, from,
+  level_from, level_to, evolved}); held at its one level it is never offered again, and a used one stays out of every
+  offer even if it left the build (Run.grind_idle: the level-up cards, the Shop and the Stranger through
+  CardPool.offer_passives, the chests through chest_candidates). A new run offers it again. The debug arena's ITEMS tab
+  stops at its one level (its - then + works it again: a tool's hand, not an offer). (my decision on the arena)
+- **Its words**: the card "Once: your weakest weapon goes up a level (lowest level first, then least damage dealt); with
+  every weapon maxed, one that is ready evolves. One per run; it never levels up." (TextGen.grind_text for a `single`
+  Grindstone); after use the pause screen's Build row is in its used look with "(used)" and "Used: it ground the
+  Boomstick to level 3" or "Used: it evolved the Revolver into the Golden Revolver" (Run.item_spent, Run.spent_words; the
+  Phoenix Feather keeps "Used: it stood you up once this run"). (my decision on the words)
+- **The show** (ui/GrindMoment.gd, Game.Modal.GRIND, priority 55: after Down! 70 and the stage clear 60, before a boss's
+  chest 45, a chest 40, the War Drum 35 and the level cards 30, so it plays right after the screen that gave the item and
+  before anything that waited behind it). Time stops as for the War Drum (the run paused, every sound effect stopped, the
+  music held where it is and given back after). Its numbers are `params.grind.moment` with code defaults: `seconds` 3.0
+  (a level), `evolve_seconds` 3.5 (an evolution), `fade_in` 0.28, `fade_out` 0.35, `press_at` 0.62 (the weapon's icon,
+  flown in from its HUD slot, meets the wheel), `reveal_at` 1.8 (the wheel gives way to the weapon's plate),
+  `stamp_after` 0.28 (a level: the new star stamps in, the plate takes the new level's colour, "LEVEL 2 > 3"),
+  `evolve_after` 0.6 (an evolution: the old plate flashes five times, faster, then bursts into the evolved one,
+  "EVOLVED", its name, "from the Revolver"), `sparks_per_second` 140 (while the blade is on the stone),
+  `hurry_guard` 0.3. Sounds: `sound_press` w_saw_hit (the blade meets the stone), `sound_grind` it_grind looped while it
+  grinds (new, Stable Audio 3; `sound_grind_fallback` w_saw_loop if it is missing), `sound_stamp` ui_stamp and
+  `sound_level` ui_levelup (a level), `sound_flash` ui_chest_knock on the evolution's last three flashes and
+  `sound_evolve` w_evo_reveal at its burst; a hurried show skips the beats it jumps over in silence; the evolution's own EVOLVED banner and
+  sting (Game._on_evolved) give way to the show. Its shake follows the player's screen-shake setting. (my decisions:
+  every timing and look)
+- **A tap hurries it**: before the reveal straight to it, then to the stamp (the burst), then, `hurry_guard` after it, to
+  the fade; every touch while it plays is swallowed (the pause disc opens nothing). Each tap that moved it is recorded
+  for replays as `grind_hurry` (RunReplay._apply calls GrindMoment.hurry on the same frame); the show counts its seconds
+  on the recorded frame delta (Lockstep.dt), so a replay plays it frame for frame. (my decision)
+- **It ends through the gate**: the run comes back through TAP TO GO, the weapon's plate flying from the show into its
+  HUD slot, whichever screen gave the item (the cards, a chest, the Stranger, the Shop). In the debug arena the show
+  plays over the open ITEMS tab and the tab keeps the run paused. Where no show can play (the run sim, a run already
+  over) pass 119's toast says it ("GRINDSTONE: BOOMSTICK TO LEVEL 3"). (my decision)

@@ -228,6 +228,8 @@ func test_the_stats_follow_the_rungs() -> void:
 # ---------------------------------------------------------------- the exclusion, in every offer path
 
 func test_with_neither_held_both_can_be_offered() -> void:
+	# pass 121 (lane LEGEND): a legendary waits for the stage clock to reach `legendary.from` (pass121_LEGEND_test)
+	Run.elapsed = Run.map.timeline.stage_start(Run.stage) + LegendaryHold.from_seconds()
 	var ids := _ids(CardPool.offer_passives())
 	assert_array(ids).contains(["iron_horse", "personal_storm"])
 	var chest := _ids(Run.chest_candidates())

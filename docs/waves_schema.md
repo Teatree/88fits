@@ -1349,3 +1349,27 @@ The Level Editor's Settings tab shows them as the "Boss chest" card (tools/level
   `until` it never comes. Since pass 120 a row with `"special": true` never waits (WaveDirector.colour_open_for): its
   waves, its pattern-less elite arrivals (never held), its continuous draw and the floor fill take it before
   `colour_after_kills`, each creature wearing its modifier. Every creature's `max_alive` counts every row's creatures of it.
+
+## Pass 121: the legendary items' hold and the guarantee switch (lane LEGEND)
+
+Garry (2026-11-02): "Make it so that up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary and
+after 4:30 there is some (small) chance of getting it (so whatever it is now)"; asked about a guarantee: "No guarantee,
+just the hold". The game: game/core/systems/LegendaryHold.gd (BALANCING.md 63.LEGEND).
+
+#### timeline_data.legendary (Object, optional; no block = the defaults below)
+
+| key | type [default] | meaning |
+|---|---|---|
+| `from` | seconds [270] | no NEW item of rarity "legendary" (today the six legendary passive items; a weapon or perk of that rarity later too) is offered before the stage's own clock (0:00 at the stage's start, the HUD's) reaches this; after it the draw is the old one. After the stage's boss falls and in Endless they are always open. Every offer: level-up cards, a banish's redraw, a reroll, the Shop, the Stranger, a chest's roll and its reel's filler plates |
+| `guarantee_at` | seconds [0 = off] | when above 0: a run whose stage clock reaches it (and `from`) without ever having been shown a legendary card gets one among its next level-up's cards (one it can take: not banished, not shut out by `excludes`, not maxed), in place of the last card, once |
+
+#### stage_list[k].legendary (Object, optional)
+
+The same two keys for stage k's runs only, key by key over the map's block (WaveTimeline.legendary_value: the stage's
+key, then the map's, then WaveTimeline.LEGENDARY_DEFAULTS {from 270, guarantee_at 0}; a key that is not a number counts
+as unset). Red Canyon's stages carry none today.
+
+The Level Editor: Settings → "Legendary items" (the map's two numbers, with a line saying what each stage plays) and each
+stage's card on the Timeline (its own two numbers; an empty box plays the map's). tools/level_editor/fields.js,
+stage_model.js (setField `legendary.from` / `legendary.guarantee_at`, legendaryOf, legendaryText, issues), stage_tabs.js,
+settings.js; checked by selftest_LEGEND121.py.

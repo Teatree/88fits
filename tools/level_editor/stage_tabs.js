@@ -224,6 +224,18 @@ const StageTabs = (() => {
     // pass 107 (lane XPT): the stage's XP from kills (stage_list entry `xp_mult`, WaveTimeline.stage_xp_mult)
     form.appendChild(fieldRow('XP from kills', 'every kill\'s XP in this stage times this (`xp_mult`, 1 when unset; it holds through the boss, the portal and Endless). Each stage is a fresh level-1 run, so a stage whose creatures are rich in XP levels the hero much faster: lower it to slow the levels (0.5 = half the XP); empty = 1',
       Forms.numberInput({ key: 'stage.xp_mult', def: 1, min: 0, step: 0.05 }, e.xp_mult != null ? e.xp_mult : null, (v) => set('xp_mult', v, `Stage ${i + 1}'s XP from kills: x${v == null ? 1 : v}`), { path: 'stage.xp_mult', placeholder: 1 })));
+    // pass 121 (lane LEGEND; Garry: "up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary"): this
+    // stage's own legendary hold and guarantee (stage_list entry `legendary`, key by key over the map's Settings →
+    // Legendary items; the game's WaveTimeline.legendary_value). Seconds of the stage's own clock; empty = the map's.
+    const lgMap = StageModel.legendaryOf(tl, -1);
+    const lgOwn = U.isObj(e.legendary) ? e.legendary : {};
+    const offWord = (t) => (t > 0 ? fmtT(t) : 'off');
+    form.appendChild(el('div', { class: 'fsection' }, el('h3', { text: 'Legendary items', title: "pass 121: when this stage's runs may be offered a legendary item (Fool's Gold, the Iron Horse, Lightning in a Bottle, Personal Storm, the Pocket Bible, the Undertaker's Shovel, any later one)" })));
+    form.appendChild(fieldRow('No legendary before', `seconds of this stage's own clock (0:00 at its start; mm:ss works) before which no level-up, chest, Shop or Stranger offers a new legendary item; after it they come as often as before (after the boss and in Endless always). Empty = the map's ${fmtT(lgMap.from)} (Settings → Legendary items)`,
+      Forms.secondsInput({ key: 'stage.legendary.from', def: lgMap.from }, lgOwn.from != null ? lgOwn.from : null, (v) => set('legendary.from', v, `Stage ${i + 1}: no legendary before ${v == null ? `the map's ${fmtT(lgMap.from)}` : fmtT(v)}`), { path: 'stage.legendary.from', placeholder: lgMap.from, emptyText: `the map's ${fmtT(lgMap.from)}` })));
+    form.appendChild(fieldRow('Guarantee one by', `0 = off (Garry: no guarantee, just the hold). A stage-clock time: a run of this stage that reaches it without ever being shown a legendary item gets one among its next level-up's cards, once (never before the hold above). Empty = the map's (${offWord(lgMap.guarantee_at)})`,
+      Forms.secondsInput({ key: 'stage.legendary.guarantee_at', def: lgMap.guarantee_at, zeroText: 'off' }, lgOwn.guarantee_at != null ? lgOwn.guarantee_at : null, (v) => set('legendary.guarantee_at', v, `Stage ${i + 1}: legendary guarantee ${v == null ? `the map's (${offWord(lgMap.guarantee_at)})` : offWord(v)}`), { path: 'stage.legendary.guarantee_at', placeholder: lgMap.guarantee_at, emptyText: `the map's: ${offWord(lgMap.guarantee_at)}` })));
+    form.appendChild(el('div', { class: 'muted small', 'data-legendary': String(i), text: `This stage plays: ${StageModel.legendaryText(tl, i)}.` }));
     // the look
     form.appendChild(el('div', { class: 'fsection' }, el('h3', { text: 'Its look', title: 'lane SLOOK\'s filter: the world multiplied by the colour at this strength; the creatures and the hero by their share of it, so they stay brighter; telegraphs, gems and coins are drawn over it untinted' })));
     const f = StageModel.filterOf(e);

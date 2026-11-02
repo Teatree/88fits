@@ -476,6 +476,12 @@ const FIELDS = (() => {
     { key: 'boss_chest.fast', group: 'Boss chest', label: 'Whole bonus up to (× S)', type: 'number', min: 0, step: 0.1, def: 1.5, help: "a boss killed within this many times S (its \"Boss HP\" seconds: the least fight at the hero's full DPS) gives the whole bonus: its chest's gold and XP × the top bonus (empty = the game's 1.5)" },
     { key: 'boss_chest.slow', group: 'Boss chest', label: 'No bonus from (× S)', type: 'number', min: 0, step: 0.1, def: 4, help: "a fight this many times S or longer gives no bonus (× 1); between the two the bonus falls in a straight line (empty = the game's 4)" },
     { key: 'boss_chest.max_mult', group: 'Boss chest', label: 'Top bonus ×', type: 'number', min: 1, step: 0.1, def: 2, help: "the gold and XP a fast kill's chest holds, × what the boss paid (empty = the game's 2: twice); the pop-up's gauge runs from × 1 to this" },
+    // pass 121 (lane LEGEND; Garry: "up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary and
+    // after 4:30 there is some (small) chance of getting it (so whatever it is now)"; "No guarantee, just the hold"): the
+    // legendary items' hold and the guarantee switch (timeline_data.legendary; WaveTimeline.LEGENDARY_DEFAULTS are the def
+    // here; a stage's own `legendary` block, set on its stage card on the Timeline, wins key by key)
+    { key: 'legendary.from', group: 'Legendary items', label: 'No legendary item before', type: 'seconds', min: 0, def: 270, help: "seconds of the stage's own clock (0:00 at the stage's start, mm:ss works) before which no level-up, chest, Shop or Stranger ever offers a new legendary item (Fool's Gold, the Iron Horse, Lightning in a Bottle, Personal Storm, the Pocket Bible, the Undertaker's Shovel, and any item made legendary later); from then on they come as often as before. After the boss and in Endless they are always open (empty = the game's 270, 4:30)" },
+    { key: 'legendary.guarantee_at', group: 'Legendary items', label: 'Guarantee one by', type: 'seconds', min: 0, def: 0, zeroText: 'off', help: "off at 0 (Garry: no guarantee, just the hold). Set to a stage-clock time and a run that has reached it without ever being shown a legendary item gets one among its next level-up's three cards (one it can take: not banished, not shut out by the Iron Horse / Personal Storm), once; never before No legendary item before (empty or 0 = the game's: off)" },
     { key: 'structures.count', group: 'World', label: 'Structures', type: 'int', min: 0, def: 0, help: 'structures scattered at the run\'s start' },
     { key: 'structures.min_spacing', group: 'World', label: 'Structure spacing (m)', type: 'number', min: 0, step: 1, def: 16, help: 'the least metres between two structures' },
     // pass 80 (lane OASIS; Garry: "make the water slow everyone down when they walk though it, not by a lot, just 10%. And
@@ -537,7 +543,7 @@ const FIELDS = (() => {
     { key: 'spawn_rise.targetable', group: 'Spawning', label: 'Targetable from', type: 'number', min: 0, max: 1, step: 0.05, def: 0.7, help: 'the share of the way up from which a weapon may choose a rising creature as its target (below it no weapon picks it, nothing aims at it; area damage, blasts, patches, beams and rings still hit it); a burrower sinking out of sight is passed over below it too. It bites and attacks only once it is all the way up' },
     { key: 'spawn_rise.dust', group: 'Spawning', label: 'Rise dust ×', type: 'number', min: 0, step: 0.1, def: 1, help: 'the size of the dust puff a rising creature throws up, × its size (0 = none; only drawn on the screen)' },
   ];
-  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'XP per level', 'Coloured specials', 'Boss HP', 'Hero power', 'Targeting', 'Endless', 'Items', 'World', 'Barrels', 'Dust devils', 'Boss chest'];
+  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'XP per level', 'Coloured specials', 'Boss HP', 'Hero power', 'Targeting', 'Endless', 'Items', 'Legendary items', 'World', 'Barrels', 'Dust devils', 'Boss chest'];
 
   // the two curves' own fields (the HP x / ATK x inspectors and the Settings block)
   const CURVE = [

@@ -67,7 +67,8 @@ func test_phoenix_is_one_level_off_the_ladder() -> void:
 	assert_int(line.ladder_top()).is_equal(4)
 	# every other passive item stays on the ladder
 	for p: PassiveDef in Registry.sorted_passives_only():
-		if p.id != "phoenix_feather":
+		# (pass 121, lane GRIND: the Grindstone is a one-shot item too: pass121_GRIND_test)
+		if p.id != "phoenix_feather" and p.id != "grindstone":
 			assert_bool(p.on_ladder()).override_failure_message(p.id).is_true()
 
 

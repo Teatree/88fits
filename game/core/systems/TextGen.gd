@@ -1626,6 +1626,9 @@ static func chest_text(def: PassiveDef) -> String:
 ## The Grindstone's rule in words (pass 119, lane LEGEND_B; Garry: "Just Upgrade or Evolve the weakest one"): what one
 ## level of it does (Run._grindstone). The card is offered only while a weapon can take it (CardPool, Run.grind_can_work).
 static func grind_text(_def: PassiveDef = null) -> String:
+	# pass 121 (lane GRIND; Garry: "a 1 time use item ... no upgrades"): a one-shot Grindstone (`single`) works once
+	if _def != null and _def.single:
+		return "Once: your weakest weapon goes up a level (lowest level first, then least damage dealt); with every weapon maxed, one that is ready evolves. One per run; it never levels up."
 	return "Every level you take raises your weakest weapon a level (lowest level first, then least damage dealt). Once all are maxed, it evolves one that is ready."
 
 

@@ -4,32 +4,9 @@
   "flavour": "Every edge it touches comes away keener.",
   "rarity": "rare",
   "weight": 5,
-  "max_level": 4,
+  "max_level": 1,
+  "single": true,
   "levels": [
-    [
-      {
-        "stat": "grind_levels",
-        "op": "add",
-        "value": 1,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "grind_levels",
-        "op": "add",
-        "value": 1,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "grind_levels",
-        "op": "add",
-        "value": 1,
-        "target": "player"
-      }
-    ],
     [
       {
         "stat": "grind_levels",
@@ -42,7 +19,26 @@
   "repeat_last_level": false,
   "params": {
     "grind": {
-      "pick": "weakest"
+      "pick": "weakest",
+      "moment": {
+        "seconds": 3.0,
+        "evolve_seconds": 3.5,
+        "fade_in": 0.28,
+        "fade_out": 0.35,
+        "press_at": 0.62,
+        "reveal_at": 1.8,
+        "stamp_after": 0.28,
+        "evolve_after": 0.6,
+        "sparks_per_second": 140,
+        "hurry_guard": 0.3,
+        "sound_grind": "it_grind",
+        "sound_grind_fallback": "w_saw_loop",
+        "sound_press": "w_saw_hit",
+        "sound_stamp": "ui_stamp",
+        "sound_level": "ui_levelup",
+        "sound_flash": "ui_chest_knock",
+        "sound_evolve": "w_evo_reveal"
+      }
     }
   },
   "art_prompt": "an old round grey-brown sandstone grinding wheel in a sturdy wooden frame with an iron crank, a knife on its rim throwing orange sparks",

@@ -286,6 +286,13 @@ func far_speed_cfg() -> Dictionary:
 ## Pass 118 (lane BOSSCHEST; Garry: "The faster the Boss was killed the more Gold and Exp flies out"): the boss chest's
 ## speed bonus {fast, slow, max_mult} (core/systems/BossChest.gd; read as it is, BossChest.DEFAULTS fill gaps).
 @export var boss_chest: Dictionary = {}
+## Pass 121 (lane LEGEND; Garry: "up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary and after
+## 4:30 there is some (small) chance of getting it (so whatever it is now)"; "No guarantee, just the hold"): {from,
+## guarantee_at}, seconds of a stage's own clock (core/systems/LegendaryHold.gd): no new legendary item is offered before
+## `from`; `guarantee_at` > 0 puts one among the first level-up's cards at or after it in a run that has seen none (0 =
+## off). A stage entry's own `legendary` block wins key by key (legendary_value); LEGENDARY_DEFAULTS fill what neither names.
+@export var legendary: Dictionary = {}
+const LEGENDARY_DEFAULTS := {"from": 270.0, "guarantee_at": 0.0}
 
 
 ## One number of despawn (pass 95): the map's, else DESPAWN_DEFAULTS' ("enabled" as 1 / 0).
@@ -935,6 +942,17 @@ const ENDLESS_DEFAULTS := {"portal_seconds": 60.0, "every": 10.0, "first_wave": 
 ## pass 103 (lane PLAY): the exempt keys' defaults (not numbers, so not in ENDLESS_DEFAULTS)
 const ENDLESS_KNOCK_EXEMPT_TAG := "explosive"
 const ENDLESS_KNOCK_EXEMPT_SOURCES := ["nuke", "revive", "powder_keg", "loose_rocket", "blast"]
+
+
+## Pass 121 (lane LEGEND): one legendary number for stage `i` (-1 = the map's): the stage's own `legendary` block, then
+## the map's, then LEGENDARY_DEFAULTS (a key that is not a number counts as unset).
+func legendary_value(key: String, i: int = -1) -> float:
+	var own = _stage_raw(i).get("legendary", {}) if i >= 0 else {}
+	if own is Dictionary and ((own as Dictionary).get(key) is float or (own as Dictionary).get(key) is int):
+		return float(own[key])
+	if legendary.get(key) is float or legendary.get(key) is int:
+		return float(legendary[key])
+	return float(LEGENDARY_DEFAULTS.get(key, 0.0))
 
 
 ## One Endless number for stage `i` (-1 = the map's): the stage's own `endless` block, then the map's, then the default.

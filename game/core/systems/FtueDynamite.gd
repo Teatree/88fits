@@ -47,6 +47,8 @@ static func offer(count: int = 3) -> Array:
 		card["ftue"] = true
 		out.insert(_rand_index(out.size() + 1), card)
 	Run.ftue_dynamite_shown = true
+	# pass 121 (lane LEGEND): a legendary among its two cards counts as shown
+	LegendaryHold.note_shown(out)
 	Run.note_offer(out)
 	return out
 

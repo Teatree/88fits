@@ -1,7 +1,7 @@
 ## Pass 120 lane GHOST capture: the Undertaker's Shovel's floating ghost circling its grave and firing ghost bolts, at a
 ## low power (one bolt a volley) and a high one (six), several frames each so its front and its back both show. Windowed,
 ## bounded (WATCHDOG_S), the save in the sandbox. The hero holds no weapon (only the ghost's bolts fly) and is a god.
-## Run: GODOT_TIMEOUT=300 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/_p120_GHOST_shots.gd -- out=<dir> [only=low|high] [frames=8] [gap=0.12] (gap: seconds of the run's clock after a volley)
+## Run: GODOT_TIMEOUT=300 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/_p120_GHOST_shots.gd -- out=<dir> [only=low|high] [frames=8] [gap=0.12] [zoom=Z] [set=key:value,...] (gap: seconds of the run's clock after a volley; zoom (pass 121): the camera held that far out, 1 = a run's start, about 1.5 late, 2.12 the most; set (pass 121): params.grave values tried in memory, the JSON untouched)
 extends SceneTree
 
 const WATCHDOG_S := 200.0
@@ -12,6 +12,8 @@ var _out := "user://p120_ghost"
 var _only := ""
 var _frames := 8
 var _gap := 0.12
+var _zoom := 0.0
+var _set := {}
 var _save
 var _run
 
@@ -26,6 +28,13 @@ func _initialize() -> void:
 			_frames = int(a.substr(7))
 		elif a.begins_with("gap="):
 			_gap = float(a.substr(4))
+		elif a.begins_with("zoom="):
+			_zoom = float(a.substr(5))
+		elif a.begins_with("set="):
+			for kv in a.substr(4).split(",", false):
+				var parts: PackedStringArray = kv.split(":")
+				if parts.size() == 2:
+					_set[parts[0]] = float(parts[1]) if parts[1].is_valid_float() else parts[1]
 	DirAccess.make_dir_recursive_absolute(_out)
 	create_timer(WATCHDOG_S, true, false, true).timeout.connect(func():
 		print("p120_ghost: watchdog, quitting")
@@ -75,6 +84,8 @@ func _launch() -> Node:
 	var g = current_scene
 	if g != null and g.get("player") != null:
 		g.player.god = true
+	if g != null and _zoom > 0.0 and g.get("camera") != null:
+		g.camera.zoom_override = _zoom
 	return g
 
 
@@ -98,6 +109,12 @@ func _scene(tag: String, power: float) -> void:
 	# only the ghost's bolts fly: the hero holds nothing
 	_run.debug_clear_items()
 	_run.add_or_level_passive("undertakers_shovel")
+	if not _set.is_empty():
+		var pdef = root.get_node("Registry").passive("undertakers_shovel")
+		var gp: Dictionary = pdef.params.get("grave", {})
+		for k in _set.keys():
+			gp[k] = _set[k]
+		print("p120_ghost: params.grave set ", _set)
 	_run.rebuild_sheets()
 	# by name only through the scene (a tool compiles before the autoloads: naming Graveyard here would break it)
 	var gy = g._graveyard()

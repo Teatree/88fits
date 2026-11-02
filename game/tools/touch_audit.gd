@@ -84,6 +84,10 @@
 ## Pass 106 (lane DRUM): drum: the War Drum used in the run stops time for its moment; real taps on the drum, the dim and
 ## the pause disc while it plays are swallowed (nothing opens, the moment plays on, the run stays paused); it ends by
 ## itself and the run goes on; the HUD shows the boost's plate with its seconds (a finger on it opens nothing).
+## Pass 121 (lane GRIND): grind: the Grindstone taken in the run stops time for its show (ui/GrindMoment.gd); a real tap
+## on the pause disc while it plays opens nothing and hurries it to the reveal, a second real tap to the stamp, a third
+## (after its guard) to the fade; it closes into the gate, a real tap there lets the run go; the weapon went up one
+## level, once.
 ## Pass 111 (lane SKINS): hero_skins (run with title, or alone with only=hero_skins): the hero sheet of a hero who sells a
 ## look, owned, its goal done and the gold for it: every control on it answers a finger (muted; a swipe that starts on a
 ## Looks tile scrolls the sheet and presses nothing), the buy question is audited
@@ -1567,6 +1571,8 @@ func _in_game() -> void:
 		await _totem(g)
 	if _want("drum"):
 		await _drum(g)
+	if _want("grind"):
+		await _grind(g)
 	if _want("revive"):
 		# the player's debug mode shows the last hits on Down! (pass 46: they moved there from Results), so its list and
 		# buttons are tapped too; put back after and written back, since a save in between keeps the settings it saw
@@ -1704,6 +1710,72 @@ func _drum(g) -> void:
 		_fail("drum_plate", "the boost's plate", "a tap on it opened something or paused the run")
 		if g.pause_screen.visible:
 			g.close_pause()
+	await _wait(0.2)
+
+
+## The Grindstone's show under real fingers (pass 121, lane GRIND): see the header. The run's Grindstone is taken by the
+## tool's hand (as a card would), its weapon the run's first.
+func _grind(g) -> void:
+	var run = root.get_node("Run")
+	var reg = root.get_node("Registry")
+	if reg.passive("grindstone") == null or run.weapons.is_empty():
+		_count("grind", false)
+		_fail("grind", "content/passives/grindstone", "no Grindstone or no weapon in the run")
+		return
+	if run.passives.has("grindstone"):
+		# a run that already holds it (a whole audit's earlier screens): taken out so it can be taken again
+		run.passives.erase("grindstone")
+		run.grind_used = {}
+	var w = run.grind_target()
+	if w == null:
+		_count("grind", false)
+		_fail("grind", "the Grindstone", "no weapon it could work on")
+		return
+	var id: String = w.def.id
+	var lv0: int = w.level
+	run.add_or_level_passive("grindstone")
+	await _frames(2)
+	var gm = g.get("grind_moment")
+	var up: bool = gm != null and gm.visible and bool(gm.playing) and g.paused
+	_count("grind", up)
+	if not up:
+		_fail("grind", "the show", "taking the Grindstone did not stop time for its show")
+		return
+	var pb: Control = g.hud.get("_pause_btn")
+	var at: Vector2 = pb.get_global_rect().get_center() if pb else Vector2(540, 900)
+	# a tap on the pause disc: swallowed (no pause menu), the show on to its reveal
+	await _tap(at)
+	var to_reveal: bool = bool(gm.playing) and not g.pause_screen.visible and str(gm.phase()) == "reveal" and int(gm.hurries) == 1
+	_count("grind", to_reveal)
+	if not to_reveal:
+		_fail("grind", "the show", "a tap did not hurry it to the reveal (or opened the pause menu): phase %s" % str(gm.phase()))
+	await _tap(Vector2(540, 1500))
+	var to_stamp: bool = bool(gm.playing) and bool(gm.stamped)
+	_count("grind", to_stamp)
+	if not to_stamp:
+		_fail("grind", "the show", "a second tap did not hurry it to the stamp")
+	await _wait(0.45)
+	await _tap(Vector2(540, 1500))
+	var w2 := 0.0
+	while w2 < 2.0 and bool(gm.playing):
+		await _wait(0.05)
+		w2 += 0.05
+	var gate: bool = not bool(gm.playing) and not gm.visible and g.resume_gate.visible and g.paused
+	_count("grind", gate)
+	if not gate:
+		_fail("grind", "the show", "it did not end into the gate")
+		gm.skip()
+	await _wait(0.3)
+	await _tap(Vector2(540, 1500))
+	await _frames(2)
+	var w3 = run.weapon_instance(id)
+	var lv1: int = w3.level if w3 != null else -1
+	var ran: bool = not g.paused and not g.resume_gate.visible and (lv1 == lv0 + 1 or (w3 == null and run.grind_used.get("evolved", false)))
+	_count("grind", ran)
+	if not ran:
+		_fail("grind", "the gate", "the run did not go on, or the weapon did not go up exactly once (%d -> %d)" % [lv0, lv1])
+		if g.resume_gate.visible:
+			g.resume_gate.tap()
 	await _wait(0.2)
 
 

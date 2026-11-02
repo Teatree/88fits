@@ -471,17 +471,18 @@ func test_the_evolved_bible_caps_at_30_and_blocks_every_15_s() -> void:
 
 # ---------------------------------------------------------------- the Grindstone
 
+# re-pinned in pass 121 (lane GRIND, Garry: "a 1 time use item ... no upgrades"): one level, one a run
+# (pass121_GRIND_test pins the rest)
 func test_the_grindstone_is_rare_with_four_levels_and_no_bonus_table() -> void:
 	var g: PassiveDef = Registry.passive("grindstone")
 	assert_str(g.rarity).is_equal("rare")
-	assert_int(g.max_level).is_equal(4)
+	assert_int(g.max_level).is_equal(1)
 	assert_bool(g.params.get("grind") is Dictionary).is_true()
 	var t := TextGen.passive_text(g)
 	assert_str(t).contains("weakest weapon")
 	assert_str(t).contains("evolves")
 	assert_int(t.length()).is_less_equal(190)
-	assert_str(WItem.effect({"def": g, "level_from": 1, "level_to": 2})).contains("+1 level for your weakest weapon")
-	assert_bool(TextGen.passive_description(g, 3).contains("+3 levels for your weakest weapons")).is_true()
+	assert_str(TextGen.passive_description(g, 1)).contains("weakest weapon")
 
 
 func test_a_grindstone_level_raises_the_lowest_weapon_ties_to_the_least_damage() -> void:
@@ -502,9 +503,10 @@ func test_a_grindstone_level_raises_the_lowest_weapon_ties_to_the_least_damage()
 	assert_int(saws.level).is_equal(1)
 	assert_int(rev.level).is_equal(3)
 	assert_array(told[0]).is_equal(["boomstick", "level 2"])
-	# then the saws (the only level 1)
-	Run.add_or_level_passive("grindstone")
-	assert_int(saws.level).is_equal(2)
+	# pass 121 (lane GRIND): it works once; a second take changes nothing (it was the saws' level before)
+	assert_bool(Run.add_or_level_passive("grindstone")).is_false()
+	assert_int(saws.level).is_equal(1)
+	assert_int(told.size()).is_equal(1)
 	Run.grindstone_worked.disconnect(cb)
 	# no random bonus anywhere on the sheets
 	for w: WeaponInstance in Run.weapons:
@@ -536,8 +538,9 @@ func test_with_every_weapon_maxed_it_evolves_a_ready_one_else_it_is_not_offered(
 func test_the_arena_plus_works_the_grindstone_too() -> void:
 	_start()
 	var rev := Run.weapon_instance("revolver")
+	# pass 121 (lane GRIND): one level at most (it was 2 levels before)
 	Run.debug_set_item("passive", "grindstone", 2)
-	assert_int(rev.level).is_equal(3)
+	assert_int(rev.level).is_equal(2)
 
 
 # ---------------------------------------------------------------- the Dragon's Breath

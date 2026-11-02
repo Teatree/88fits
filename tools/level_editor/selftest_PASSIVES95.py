@@ -76,8 +76,8 @@ def content_checks(check):
     items = [(d, j) for d, j in _items() if not j.get("line") and not j.get("evolves_from") and not j.get("single")]
     cards = [(d, j) for d, j in _items() if j.get("line")]
     # pass 118 (lane ITEMS): + the Jade Key, the Ruby Key and the Grindstone (36); pass 119: + lane LEGEND_B's four
-    # legendaries and lane LEGEND_A's two (42)
-    check(len(items) == 42, "PASSIVES95 content: 42 passive items on the ladder (%d)" % len(items))
+    # legendaries and lane LEGEND_A's two (42); pass 121 (lane GRIND): the Grindstone one-shot, off the ladder (41)
+    check(len(items) == 41, "PASSIVES95 content: 41 passive items on the ladder (%d)" % len(items))
     bad = []
     for d, j in items:
         want = LADDER.get(str(j.get("rarity", "common")), 6)
@@ -130,7 +130,7 @@ def tool_checks(check):
         inside = out.getpixel((32, 32))
         check(out.size == im.size and rim[3] > 200 and rim[0] > 240 and rim[1] > 240 and far[3] == 0 and inside[:3] == (200, 40, 40),
               "PASSIVES95 tools: evolved_icon draws a white rim round the subject, keeps it, leaves the far ground clear (rim %s, far %s, inside %s)" % (rim, far, inside))
-        check(len(evolved_icons.items()) == 42, "PASSIVES95 tools: evolved_icons.items lists the 42 items on the ladder (pass 100: not the one-shot Phoenix; pass 118: + the keys and the Grindstone; pass 119: + six legendaries)")
+        check(len(evolved_icons.items()) == 41, "PASSIVES95 tools: evolved_icons.items lists the 41 items on the ladder (pass 100: not the one-shot Phoenix; pass 118: + the keys and the Grindstone; pass 119: + six legendaries; pass 121: the Grindstone one-shot)")
     finally:
         sys.path[:] = saved
 

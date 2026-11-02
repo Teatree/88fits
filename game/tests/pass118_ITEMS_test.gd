@@ -53,10 +53,11 @@ func test_the_items_are_there_available_and_on_the_ladder() -> void:
 		assert_object(p.evolved_icon).is_not_null()
 	assert_str(Registry.passive("jade_key").rarity).is_equal("epic")
 	assert_str(Registry.passive("ruby_key").rarity).is_equal("epic")
-	# pass 119 (lane LEGEND_B): the Grindstone raises the weakest weapon now, a rare item of four levels
+	# pass 119 (lane LEGEND_B): the Grindstone raises the weakest weapon now, a rare item (pass 121, lane GRIND: of one
+	# level, a one-shot item off the ladder: pass121_GRIND_test)
 	assert_str(Registry.passive("grindstone").rarity).is_equal("rare")
 	assert_int(Registry.passive("jade_key").max_level).is_equal(3)
-	assert_int(Registry.passive("grindstone").max_level).is_equal(4)
+	assert_int(Registry.passive("grindstone").max_level).is_equal(1)
 
 
 func test_a_chest_banks_luck_at_the_keys_level_then_and_a_level_up_never_changes_the_bank() -> void:

@@ -1225,6 +1225,13 @@ func _apply(d: Dictionary) -> bool:
 				return false
 			bc.hurry()
 			return true
+		"grind_hurry":
+			# pass 121 (lane GRIND): a tap on the Grindstone's show
+			var gm = g.get("grind_moment")
+			if gm == null or not is_instance_valid(gm) or not bool(gm.get("playing")):
+				return false
+			gm.hurry()
+			return true
 		"bosschest_claim":
 			var bc = g.get("boss_chest_screen")
 			if bc == null or not bc.visible or bool(bc.get("_claiming")):
@@ -1381,7 +1388,7 @@ static func _kind_words(k: String) -> String:
 		"chest_intro": "a chest's opening", "chest_hurry": "a chest's reel", "shop_buy": "a purchase", "shop_leave": "leaving the shop",
 		"revive": "the Down! choice", "bounty": "the Wanted posters", "reel_skip": "the mutation reel", "portal_extract": "EXTRACT",
 		"portal_decline": "Not yet", "bosschest_hurry": "the boss chest's count", "bosschest_claim": "the boss chest's CLAIM",
-		"debug_give": "the debug hand's items", "revive_hold": "Down!'s hold"}.get(k, k)
+		"debug_give": "the debug hand's items", "revive_hold": "Down!'s hold", "grind_hurry": "a tap on the Grindstone's show"}.get(k, k)
 
 
 static func item_name(id: String) -> String:

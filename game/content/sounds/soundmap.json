@@ -1035,6 +1035,14 @@
       "volume_db": -12,
       "file": "real/it_ghost_volley.wav"
     },
+    "it_grind": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -8,
+      "loop": true,
+      "file": "real/it_grind.wav"
+    },
     "it_phoenix": {
       "category": "player",
       "voices": 1,

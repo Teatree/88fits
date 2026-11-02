@@ -213,6 +213,9 @@ var perk_gap := 5                     # offers since a perk card was shown (a pe
 var path_slot := 0                    # the next path slot of the stage (WaveTimeline.path_times)
 ## Pass 109: the first-run Dynamite offer (FtueDynamite) has had its card screen this run (once a run at most).
 var ftue_dynamite_shown := false
+## Pass 121 (lane LEGEND): an offer has put a legendary card in front of the player this run (LegendaryHold.note_shown;
+## the guarantee switch reads it).
+var legendary_shown := false
 ## pass 79 (lane MUT): the mutation offers that fell due on the stage's path_times and wait for a level-up (each makes
 ## the hero's next level-up a mutation level-up; mutlvl_*), the mutation level-ups whose screen has not opened yet, and
 ## the level-ups that were mutation offers
@@ -260,6 +263,11 @@ var play_clock := 0.0
 var poisoned_alive := 0
 ## Phoenix Feather (pass 48): its one free revive this run is spent (phoenix_ready / use_phoenix).
 var phoenix_used := false
+## Pass 121 (lane GRIND; Garry: the Grindstone "should be a 1 time use item ... no upgrades, player gets only one ever",
+## one a run): what the Grindstone did this run ({} until it worked): {id: the weapon now held, from: the weapon it
+## worked on, level_from, level_to (the new weapon's level), evolved}. _grindstone writes it; Game's show reads it
+## (ui/GrindMoment.gd), item_spent marks the item used, grind_idle keeps it out of every offer once it is set.
+var grind_used: Dictionary = {}
 ## Counterpunch (pass 69, a passive item): an evade arms the next attack (counter_armed); the first weapon to fire after
 ## it (counterpunch_fired) deals 1 + `counter_damage` times its damage with every hit until it fires again or
 ## COUNTER_HIT_WINDOW seconds of the buffs' clock pass (counterpunch_mult).
@@ -310,6 +318,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	revives_used = 0
 	phoenix_used = false
 	phoenix_spent = 0
+	grind_used = {}
 	# pass 69: Counterpunch's armed attack, Last Stand's window and its hidden cooldown start clear
 	counter_armed = false
 	counter_weapon = ""
@@ -343,6 +352,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	perks = []
 	perk_gap = 5
 	ftue_dynamite_shown = false
+	legendary_shown = false
 	path_slot = 0
 	mutlvl_due = 0
 	mutlvl_ready = 0
@@ -1026,12 +1036,31 @@ func _refresh_phoenix_used() -> void:
 ## Whether a passive item held has done its one job this run (pass 48: Phoenix Feather once its revive is spent; the
 ## item stays held, so it is never offered again), for the UI's SPENT mark.
 func item_spent(def: ContentDef) -> bool:
-	if def == null or not phoenix_used or not def is PassiveDef:
+	if def == null or not def is PassiveDef:
+		return false
+	# pass 121 (lane GRIND): the Grindstone once it has worked (grind_used)
+	if (def as PassiveDef).params.get("grind") is Dictionary:
+		return not grind_used.is_empty()
+	if not phoenix_used:
 		return false
 	for e in (def as PassiveDef).effects_for_level(1):
 		if e is Effect and (e as Effect).stat == "phoenix_revive":
 			return true
 	return false
+
+
+## The pause screen's line for a used item (pass 121, lane GRIND): what its one deed was ("Used: it stood you up once this
+## run", "Used: it ground the Revolver to level 3", "Used: it evolved the Revolver into the Golden Revolver").
+func spent_words(def: ContentDef) -> String:
+	if def is PassiveDef and (def as PassiveDef).params.get("grind") is Dictionary and not grind_used.is_empty():
+		var now: WeaponDef = Registry.weapon(str(grind_used.get("id", "")))
+		var was: WeaponDef = Registry.weapon(str(grind_used.get("from", "")))
+		var now_name := now.display_name if now else str(grind_used.get("id", ""))
+		var was_name := was.display_name if was else now_name
+		if bool(grind_used.get("evolved", false)):
+			return "Used: it evolved the %s into the %s" % [was_name, now_name]
+		return "Used: it ground the %s to level %d" % [now_name, int(grind_used.get("level_to", 0))]
+	return "Used: it stood you up once this run"
 
 
 ## The map's pace knob (pass 48, WaveTimeline.move_pace): the hero, the creatures and their shots move at this fraction,
@@ -2064,14 +2093,15 @@ func stranger_offer() -> Dictionary:
 		var g := _stranger_share(c)
 		guests = guests or g < 1.0
 		total += g
+	# pass 121 (lane LEGEND): the Stranger's legendary counts as shown (LegendaryHold.noted)
 	if not guests:
-		return cands[Dice.r.randi() % cands.size()]
+		return LegendaryHold.noted(cands[Dice.r.randi() % cands.size()])
 	var r := Dice.r.randf() * total
 	for c: Dictionary in cands:
 		r -= _stranger_share(c)
 		if r <= 0.0:
-			return c
-	return cands[cands.size() - 1]
+			return LegendaryHold.noted(c)
+	return LegendaryHold.noted(cands[cands.size() - 1])
 
 
 ## A Stranger candidate's share of a pick (pass 118): a new card of another hero's own weapon its guest_weight, else 1.
@@ -2248,7 +2278,13 @@ func grind_can_work() -> bool:
 ## Whether `def` is a Grindstone (params.grind) that no held weapon could take a level from now: no offer holds it then
 ## (CardPool.offer_passives, chest_candidates), so its card never promises what it cannot do.
 func grind_idle(def: PassiveDef) -> bool:
-	return def != null and def.params.get("grind") is Dictionary and not grind_can_work()
+	if def == null or not def.params.get("grind") is Dictionary:
+		return false
+	# pass 121 (lane GRIND): a one-shot Grindstone (`single`) that has worked this run is never offered again, from any
+	# source (the level-up, the shop and the Stranger through CardPool.offer_passives, the chests through chest_candidates)
+	if def.single and not grind_used.is_empty():
+		return true
+	return not grind_can_work()
 
 
 ## One Grindstone level taken (add_or_level_passive, and the arena's ITEMS tab): the weakest weapon one level up, or,
@@ -2262,18 +2298,31 @@ func _grindstone() -> WeaponInstance:
 		grindstone_worked.emit("", "")
 		return null
 	if w.level < w.def.max_level:
+		var lv0 := w.level
 		level_weapon(w.def.id)
 		_note("grind", w.def.id, w.level, {"level": w.level})
+		# pass 121 (lane GRIND): what it did, for the show and the pause screen's "Used:" line
+		grind_used = {"id": w.def.id, "from": w.def.id, "level_from": lv0, "level_to": w.level, "evolved": false}
 		grindstone_worked.emit(w.def.id, "level %d" % w.level)
 		return w
 	var from_id := w.def.id
+	var from_level := w.level
+	# pass 121 (lane GRIND): the evolution's own banner and sting wait for the Grindstone's show (Game._on_evolved)
+	grind_working = true
 	var evo := evolve(w)
+	grind_working = false
 	if evo == null:
 		grindstone_worked.emit("", "")
 		return null
 	_note("grind", evo.def.id, 1, {"evolved_from": from_id})
+	grind_used = {"id": evo.def.id, "from": from_id, "level_from": from_level, "level_to": evo.level, "evolved": true}
 	grindstone_worked.emit(evo.def.id, "evolved")
 	return evo
+
+
+## Pass 121 (lane GRIND): true while the Grindstone evolves a weapon (_grindstone), so the evolution's own banner and sting
+## (Game._on_evolved) give way to the Grindstone's show.
+var grind_working := false
 
 
 func has_weapon(id: String) -> bool:
@@ -2501,6 +2550,9 @@ func chest_candidates() -> Array:
 			continue
 		# pass 119 (lane LEGEND_B): nor a Grindstone with no weapon to work on
 		if grind_idle(p):
+			continue
+		# pass 121 (lane LEGEND): nor a legendary before the stage clock reaches `legendary.from` (LegendaryHold)
+		if LegendaryHold.held(p):
 			continue
 		if p.evolves_into != "" and passives.has(p.evolves_into):
 			continue

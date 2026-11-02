@@ -33,7 +33,8 @@
 ## - then the ghost drifts up as it keeps circling and fades away in `vanish` s and the grave sinks back into the sand in
 ##   `stone_down` s with dust.
 ## The look: one painted floating ghost for every hero (params.grave `ghost_front` / `ghost_back`, `ghost_height` m),
-## tinted towards `ghost_tint` by `ghost_mix`, see-through at `ghost_alpha`. It shows its front while it moves across or
+## tinted towards `ghost_tint` by `ghost_mix`, see-through at `ghost_alpha`, its tail fading out over the bottom
+## `ghost_fade` of its picture down to `ghost_fade_min` of that (pass 121; 0 = off). It shows its front while it moves across or
 ## towards the camera and its back while it moves away (a paper turn between them: it narrows to an edge and opens on
 ## the other side in TURN s, the switch held off by FACE_HYST so it never flickers), bobs and sways, leans into its motion
 ## (LEAN rad at full sideways speed), and squashes and glows for a blink when it fires. Numbers: BALANCING.md 62.GHOST.
@@ -43,7 +44,7 @@ extends Node3D
 const DEFAULTS := {"rise": 2.0, "stone_up": 0.45, "stone_down": 0.6, "climb": 0.7, "vanish": 0.6, "height": 1.25,
 	"sprite": "undertakers_shovel_grave.png", "ghost_front": "undertakers_shovel_ghost_front.png",
 	"ghost_back": "undertakers_shovel_ghost_back.png", "ghost_height": 1.55, "ghost_tint": "#7fe6ff", "ghost_mix": 0.45,
-	"ghost_alpha": 0.85, "hover": 0.35, "circle_radius": 1.5, "lap_seconds": 4.0, "spiral": 0.8, "volley_every": 1.0,
+	"ghost_alpha": 0.85, "ghost_fade": 0.0, "ghost_fade_min": 0.0, "hover": 0.35, "circle_radius": 1.5, "lap_seconds": 4.0, "spiral": 0.8, "volley_every": 1.0,
 	"first_volley": 0.35, "range": 9.0, "bolts_mult": 1.0, "bolts_exp": 0.6, "bolts_max": 6.0, "damage": 3.2,
 	"damage_exp": 0.9, "bolt_speed": 8.0, "bolt_turn": 5.0, "bolt_life": 2.4, "bolt_size": 0.55, "curve": 14.0,
 	"fan": 32.0, "lift": 0.35, "bolt_core": "#f2fdff", "bolt_color": "#7fe0ff", "bolt_rim": "#6a4ccc",
@@ -486,6 +487,7 @@ func _make_ghost() -> BillboardSprite:
 	s.setup(ghost_texture(0), {"idle": 1}, ["idle"], num("ghost_height"))
 	var tint := Color(_str("ghost_tint"))
 	s.set_ghost(Color(tint.r, tint.g, tint.b, clampf(num("ghost_mix"), 0.0, 1.0)))
+	s.set_ghost_fade(num("ghost_fade"), num("ghost_fade_min"))
 	s.set_flash(GHOST_WASH)
 	s.set_fade(0.0)
 	return s

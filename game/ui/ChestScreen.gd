@@ -317,8 +317,10 @@ func _pool_for(kind: String, def: ContentDef) -> Array:
 		for w in Registry.unlocked_weapons():
 			pool.append(w)
 		for p in Registry.unlocked_passives():
-			# pass 119 (lane LEGEND_A): not even as filler, an item the hero's own shuts out
-			if not Run.shut_out((p as PassiveDef).id):
+			# pass 119 (lane LEGEND_A): not even as filler, an item the hero's own shuts out; pass 121 (lane LEGEND): nor a
+			# legendary the hold keeps out of the chest (LegendaryHold)
+			# pass 121 (lane GRIND): nor a Grindstone used this run (or with nothing to work on: Run.grind_idle)
+			if not Run.shut_out((p as PassiveDef).id) and not LegendaryHold.held(p as PassiveDef) and not Run.grind_idle(p as PassiveDef):
 				pool.append(p)
 		for wi in Run.weapons:
 			pool.append(wi.def)

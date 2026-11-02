@@ -235,7 +235,8 @@ func _one_line(def: ContentDef, level: int, inst: WeaponInstance) -> String:
 	elif def is PerkDef:
 		s = TextGen.perk_text(def as PerkDef).split(". ")[0].trim_suffix(".")
 	elif Run.item_spent(def):
-		s = "Used: it stood you up once this run"
+		# pass 121 (lane GRIND): the item's own deed (the Grindstone's weapon and level, the feather's revive)
+		s = Run.spent_words(def)
 	elif def is PassiveDef:
 		# what it gives at the level held, in total ("+56% pickup radius")
 		s = TextGen.describe_effects(TextGen._sum_effects((def as PassiveDef).effects_for_level(maxi(level, 1))))

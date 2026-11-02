@@ -74,9 +74,11 @@ const Forms = (() => {
   /** A run-clock time: seconds in the box, "mm:ss" accepted, the clock shown beside it. */
   function secondsInput(def, value, onChange, opts) {
     const o = opts || {};
-    const hint = el('span', { class: 'hint', text: value == null || value === '' ? (o.emptyText || '') : fmtT(value) });
+    // pass 121 (lane LEGEND): `def.zeroText` words a 0 that means "off" (the legendary guarantee)
+    const words = (v) => (def.zeroText && Number(v) === 0 ? def.zeroText : fmtT(v));
+    const hint = el('span', { class: 'hint', text: value == null || value === '' ? (o.emptyText || '') : words(value) });
     const inp = el('input', { type: 'text', class: 'num secs', value: value == null ? '' : value, placeholder: o.placeholder != null ? String(o.placeholder) : (def.def != null ? String(def.def) : 'seconds'), 'data-path': o.path || def.key, title: 'seconds, or mm:ss' });
-    inp.addEventListener('input', () => { const v = parseT(inp.value); hint.textContent = v == null ? (o.emptyText || '') : fmtT(v); });
+    inp.addEventListener('input', () => { const v = parseT(inp.value); hint.textContent = v == null ? (o.emptyText || '') : words(v); });
     inp.addEventListener('change', () => { const v = parseT(inp.value); onChange(v == null ? null : (def.int === false ? v : Math.round(v))); });
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
     return el('span', { class: 'with-hint' }, inp, hint);

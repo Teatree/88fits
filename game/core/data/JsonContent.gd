@@ -830,6 +830,10 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 118 (lane BOSSCHEST): the boss chest's speed bonus (BossChest.DEFAULTS fill gaps)
 	var bch = t.get("boss_chest", {})
 	w.boss_chest = bch if bch is Dictionary else {}
+	# pass 121 (lane LEGEND): the legendary items' hold and guarantee (LEGENDARY_DEFAULTS fill gaps; a stage entry's own
+	# `legendary` rides in stage_list)
+	var lgd = t.get("legendary", {})
+	w.legendary = lgd if lgd is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

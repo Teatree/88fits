@@ -45,6 +45,9 @@ var bounty_posters: BountyPosters
 ## pass 106 (lane DRUM): the War Drum's moment (made on its first use, over every screen) and its boost on the hero
 var drum_moment: DrumMoment = null
 var drum_boost: DrumBoost = null
+## pass 121 (lane GRIND): the Grindstone's show (ui/GrindMoment.gd by path, made on its first use, over every screen)
+const GRIND_MOMENT := preload("res://ui/GrindMoment.gd")
+var grind_moment: GRIND_MOMENT = null
 var paused := false
 var hud: HUD
 ## the floating damage numbers (pass 46, DamageNumbers): on the UI layer under the HUD
@@ -1130,8 +1133,10 @@ func close_pause() -> void:
 ## pass 106 (lane DRUM): DRUM, the War Drum's moment (time stands still while it plays), before the level cards
 ## pass 112 (lane WANTED): BOUNTY, the floating Wanted posters after the landing, after the level cards, before a path offer
 ## pass 118 (lane BOSSCHEST): BOSSCHEST, a boss's own chest's pop-up, where a boss's purple chest stood (a chest bumped)
-enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM, DRUM, BOUNTY, BOSSCHEST}
-const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10, Modal.DRUM: 35, Modal.BOUNTY: 25, Modal.BOSSCHEST: 45}
+## pass 121 (lane GRIND): GRIND, the Grindstone's show, right after the screen that gave it (before any chest or level
+## that waits), after the stage clear and Down!
+enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM, DRUM, BOUNTY, BOSSCHEST, GRIND}
+const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10, Modal.DRUM: 35, Modal.BOUNTY: 25, Modal.BOSSCHEST: 45, Modal.GRIND: 55}
 ## a boss's chest goes before an ordinary one that fell beside it
 const BOSS_CHEST_BUMP := 5
 ## the beat between one screen closing and the next opening (the run paused meanwhile), and the longer one after the
@@ -1261,7 +1266,7 @@ func visible_modals() -> Array:
 	var out: Array = []
 	for pair in [["cards", cards], ["chest", chest_screen], ["portal", portal_dialog], ["revive", revive_screen],
 			["shop", structure_shop], ["stranger", stranger_screen], ["totem", totem_screen], ["pause", pause_screen],
-			["drum", drum_moment], ["bounty", bounty_posters], ["boss_chest", boss_chest_screen]]:
+			["drum", drum_moment], ["bounty", bounty_posters], ["boss_chest", boss_chest_screen], ["grind", grind_moment]]:
 		var n = pair[1]
 		if n != null and is_instance_valid(n) and (n as CanvasItem).visible:
 			# pass 95 (lead): the Spirit Pole plays a 0.42 s close after its pick (`_done`) while the next screen may
@@ -1484,15 +1489,20 @@ func _tell_behaviors(method: String) -> void:
 
 
 func _on_evolved(id: String) -> void:
+	# pass 121 (lane GRIND): an evolution by the Grindstone is told by its show (GrindMoment), not the banner
+	if Run.grind_working:
+		return
 	var def := Registry.weapon(id)
 	Audio.play("w_evo_reveal")
 	hud.banner("EVOLVED · " + (def.display_name if def else id).to_upper(), UiKit.TYPE_COLORS["evolution"], def.icon if def else null)
 	camera.shake(1.2)
 
 
-## Pass 119 (lane LEGEND_B): a Grindstone level raised the weakest weapon or evolved it (Run._grindstone): a toast with the
-## weapon's icon names what it did ("GRINDSTONE: REVOLVER TO LEVEL 3", "GRINDSTONE: EVOLVED INTO ..."); one that found
-## no weapon to work on says so.
+## Pass 119 (lane LEGEND_B): a Grindstone level raised the weakest weapon or evolved it (Run._grindstone). Pass 121 (lane
+## GRIND; Garry: "there should be an animation sequence showing a weapon being upgraded"): its show tells it
+## (_open_grind, ui/GrindMoment.gd) through the one-screen rule, right after the screen that gave it (Modal.GRIND); the
+## toast ("GRINDSTONE: REVOLVER TO LEVEL 3", "GRINDSTONE: EVOLVED INTO ...") is left only where no show plays (the run
+## sim, a run over), and one that found no weapon to work on (the arena) says so.
 func _on_grindstone_worked(id: String, words: String) -> void:
 	if hud == null:
 		return
@@ -1500,10 +1510,47 @@ func _on_grindstone_worked(id: String, words: String) -> void:
 	var stone := PassiveDef.display_name_of("grindstone", "Grindstone").to_upper()
 	if def == null:
 		hud.toast("%s: NO WEAPON TO SHARPEN" % stone, UiKit.ACCENT)
+	elif not Run.sim_mode and not _ended and not Run.grind_used.is_empty():
+		_request_modal(Modal.GRIND, _open_grind.bind(Run.grind_used.duplicate()))
 	elif words == "evolved":
 		hud.toast("%s: EVOLVED INTO %s" % [stone, def.display_name.to_upper()], UiKit.ACCENT, def.icon)
 	else:
 		hud.toast("%s: %s TO %s" % [stone, def.display_name.to_upper(), words.to_upper()], UiKit.ACCENT, def.icon)
+
+
+## Pass 121 (lane GRIND): the Grindstone's show (the opener of Modal.GRIND): time stops (the run paused, every sound
+## effect stopped, the music held where it is, as the War Drum's moment), the show plays what it did (`info`,
+## Run.grind_used) with the item's params.grind.moment, the weapon's icon flying in from its HUD slot; when it ends the
+## music goes on and the run comes back through the gate, the weapon's plate flying from the show into its slot. In the
+## arena the show plays over the open ITEMS tab and the tab keeps the run paused.
+func _open_grind(info: Dictionary) -> bool:
+	if hud == null or info.is_empty():
+		return false
+	_modal = Modal.GRIND
+	if grind_moment == null or not is_instance_valid(grind_moment):
+		grind_moment = GRIND_MOMENT.new()
+		grind_moment.name = "GrindMoment"
+		ui.add_child(grind_moment)
+	var held := Run.item_params("grind")
+	var moment: Dictionary = {}
+	if held.size() >= 2 and held[1] is Dictionary and (held[1] as Dictionary).get("moment") is Dictionary:
+		moment = (held[1] as Dictionary)["moment"]
+	Audio.stop_effects()
+	Audio.hold_music(true)
+	set_paused(true)
+	grind_moment.open(info, moment, hud.slot_rect(str(info.get("id", ""))))
+	var arena_open: bool = arena_panel != null and is_instance_valid(arena_panel) and arena_panel.is_open()
+	grind_moment.finished.connect(func() -> void:
+		Audio.hold_music(false)
+		var def := Registry.weapon(str(info.get("id", "")))
+		if arena_open:
+			# the ITEMS tab paused the run and keeps it paused until it closes
+			_modal = Modal.NONE
+			if not _modal_queue.is_empty():
+				_open_next_modal_soon(MODAL_BEAT)
+			return
+		_modal_done({"def": def, "rect": grind_moment.result_rect(), "level": int(info.get("level_to", 1))} if def else {}), CONNECT_ONE_SHOT)
+	return true
 
 
 ## Pass 119 (lane LEGEND_B): the Pocket Bible stopped a hit (Run.bible_try_block; BLOCK over him is Player's): a pale
@@ -2100,7 +2147,8 @@ func _show_next_level_cards() -> bool:
 		if _mutlvl_open():
 			return true
 		# pass 109: the first-run Dynamite offer takes the first card screen of level 4 or later (FtueDynamite)
-		var offer: Array = FtueDynamite.offer(3) if FtueDynamite.due(Run.level - _pending_levels) else CardPool.level_up_offer(3)
+		# pass 121 (lane LEGEND): a level-up's cards (`level_up`: the legendary guarantee may put one among them, off by default)
+		var offer: Array = FtueDynamite.offer(3) if FtueDynamite.due(Run.level - _pending_levels) else CardPool.level_up_offer(3, [], true)
 		if offer.is_empty():
 			Run.add_gold(10, "empty_offer")
 			hud.toast("Nothing left to pick. +10 gold", UiKit.INK2)

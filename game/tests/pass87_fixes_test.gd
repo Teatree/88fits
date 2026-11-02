@@ -256,7 +256,9 @@ func test_the_heros_two_passes_carry_the_fade() -> void:
 	# the first pass stays opaque (it writes no ALPHA): the see-through is the second pass's
 	assert_bool(first.contains("ALPHA")).is_false()
 	assert_str(over).contains("uniform float fade_alpha = 1.0;")
-	assert_str(over).contains("ALPHA = fade_alpha;")
+	# pass 121 (lane GHOST2): the alpha goes through `a` (the ghost's tail fade multiplies it; off = fade_alpha alone)
+	assert_str(over).contains("float a = fade_alpha;")
+	assert_str(over).contains("ALPHA = a;")
 	# a sprite with the second pass takes it on both; one without stays whole
 	var s: BillboardSprite = auto_free(BillboardSprite.new())
 	add_child(s)

@@ -2935,6 +2935,10 @@
       "slow": 4.0,
       "max_mult": 2.0
     },
+    "legendary": {
+      "from": 270,
+      "guarantee_at": 0
+    },
     "dust_devils": {
       "enabled": true,
       "first": 90,

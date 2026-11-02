@@ -410,6 +410,11 @@ _row("Weapons", "it_ghost_volley", "the Undertaker's ghost fires a volley of gho
      "A soft eerie ghostly whoosh: a breathy hollow spectral swish of spirits flying out, a faint airy wail with a light "
      "shimmering glassy tail, gentle and short, mid-pitched.")
 
+# pass 121 (lane GRIND): the Grindstone's show, a blade held to the turning wheel (ui/GrindMoment.gd, looped while it grinds)
+_row("Weapons", "it_grind", "the Grindstone's show: a blade held to the turning grinding wheel", "loop", 2.0, 0,
+     "A steel blade pressed to a spinning sandstone grinding wheel: a steady gritty metallic scraping hiss, crackling "
+     "sparks, the low-mid rumble of the turning stone and its wooden crank, close, continuous.")
+
 # ---------------------------------------------------------------- pass 64: three new ids (casino spots)
 _row("UI", "ui_stamp", "the BANISHED stamp on a card", "impact", 0.35, 0,
      "A rubber stamp slammed hard onto paper on a wooden desk, a punchy thump with a papery slap.")
@@ -534,7 +539,7 @@ _hype("wd_portal_open", "jingle", 2.5, ["medium", "app"],
 
 # pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's sounds on Stable Audio 3 (the medium model only: the
 # app on this PC was not running), their own kinds kept (a world sound, not the hype family's brightness bands)
-for _sid in ("it_train_rumble", "it_train_whistle", "it_train_pass", "it_storm_gather", "it_storm_strike", "it_ghost_volley"):
+for _sid in ("it_train_rumble", "it_train_whistle", "it_train_pass", "it_storm_gather", "it_storm_strike", "it_ghost_volley", "it_grind"):
     _r = P[_sid]
     HYPE[_sid] = {"kind": _r["kind"], "seconds": _r["seconds"], "pitch": _r["pitch"], "models": ["medium"],
                   "prompt": _r["prompt"] + _END}

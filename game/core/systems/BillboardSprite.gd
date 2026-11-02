@@ -327,6 +327,15 @@ func set_ghost(c: Color) -> void:
 		_over.set_shader_parameter("ghost", c)
 
 
+## Pass 121 (lane GHOST2): the ghost's tail fades out over the bottom `span` of its frame's height down to `floor_a` of its
+## alpha (sprite_billboard_over's ghost_fade); a span of 0 is off.
+func set_ghost_fade(span: float, floor_a: float) -> void:
+	_ensure()
+	if _over:
+		_over.set_shader_parameter("ghost_fade", maxf(span, 0.0))
+		_over.set_shader_parameter("ghost_fade_min", clampf(floor_a, 0.0, 1.0))
+
+
 ## How opaque the painting is, 0..1 (pass 87, lane FIXES: the hero's evade turns him see-through for a second). Below 1
 ## the first pass steps aside and the second pass (enable_over_trails, already in the see-through queue) draws him at
 ## this alpha; a sprite without that pass stays opaque (it has nothing to draw him with).
