@@ -1,0 +1,1054 @@
+<title>Royale UI Picks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=Ultra&family=Rubik:wght@500;700&family=Alfa+Slab+One&family=Bitter:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of screen cards; on wide screens each card puts today | mock on the left and the
+   choices on the right, on phones they stack. One deliberate dark look: screenshots of both kits read best on it. */
+:root {
+  --bg: #121419;
+  --panel: #1a1d24;
+  --panel-2: #20242d;
+  --line: #2d323d;
+  --fg: #ebe8e2;
+  --muted: #a2a6b0;
+  --gold: #e8b24a;
+  --gold-ink: #1b1406;
+  --pick: #86bdff;
+  --warn: #f08e72;
+  --warn-bg: rgba(240, 142, 114, .08);
+  --sel-bg: rgba(232, 178, 74, .09);
+  /* the two kits, for the samples only */
+  --paper: #efe3c8;
+  --ink: #2a1c10;
+  --navy: #0e1f4a;
+  --slate-a: #3a4661;
+  --slate-b: #1f2840;
+  --cream: #fff6dc;
+  --kgold: #ffdc73;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --f-label: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 15px/1.5 var(--f-body);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--panel);
+}
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+a { color: var(--pick); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--pick); outline-offset: 2px; }
+
+/* sticky progress bar */
+.bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.bar .wrap { display: flex; align-items: center; gap: 14px; padding-block: 10px; }
+.bar b { font: 700 17px/1 var(--f-label); letter-spacing: .04em; white-space: nowrap; }
+.prog { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.prog-track { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.prog-fill { height: 100%; width: 0; background: var(--gold); transition: width .25s; }
+.prog span { font: 600 13px/1 var(--f-label); letter-spacing: .06em; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--panel-2);
+  border-radius: 7px; padding: 8px 14px; cursor: pointer;
+  font: 700 14px/1.1 var(--f-label); letter-spacing: .07em; text-transform: uppercase;
+  text-decoration: none; color: var(--fg); white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.gold { background: var(--gold); color: var(--gold-ink); border-color: var(--gold); }
+.btn.small { padding: 6px 10px; font-size: 12.5px; }
+
+/* intro */
+.intro { padding-block: 34px 10px; display: grid; gap: 22px; }
+.eyebrow { font: 700 13px/1 var(--f-label); letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+.intro h1 { font: 700 clamp(34px, 6vw, 54px)/1 var(--f-label); letter-spacing: .01em; }
+.lede { max-width: 66ch; color: var(--fg); font-size: 16.5px; }
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.how div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.how h3 { font: 700 15px/1.2 var(--f-label); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.setup { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.setup .lbl { font: 700 13px/1 var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg label { padding: 7px 12px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { background: var(--gold); color: var(--gold-ink); }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--pick); outline-offset: -2px; }
+
+/* concerns index */
+.concerns { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.concerns summary { cursor: pointer; font: 700 16px/1.2 var(--f-label); letter-spacing: .06em; text-transform: uppercase; }
+.concerns summary span { color: var(--warn); }
+.concerns ol { margin: 12px 0 0; padding-left: 22px; columns: 2 300px; column-gap: 28px; }
+.concerns li { break-inside: avoid; margin-bottom: 6px; color: var(--muted); }
+.concerns li a { color: var(--fg); text-decoration: none; border-bottom: 1px solid var(--line); }
+.concerns li a:hover { border-color: var(--fg); }
+.concerns .st { font: 600 12px/1 var(--f-label); letter-spacing: .08em; text-transform: uppercase; margin-left: 6px; }
+.st.done { color: var(--gold); }
+
+/* sections */
+.section { padding-block: 34px 6px; display: grid; gap: 18px; }
+.section > header { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 26px; }
+.section > header h2 { font: 700 30px/1.05 var(--f-label); letter-spacing: .02em; }
+.section > header p { color: var(--muted); max-width: 70ch; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  display: grid;
+  gap: 18px;
+  scroll-margin-top: 70px;
+}
+@media (min-width: 1000px) {
+  .card.has-shots { grid-template-columns: minmax(0, 560px) minmax(0, 1fr); align-items: start; }
+  .card.has-shots .visual { position: sticky; top: 64px; }
+}
+.card-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+.card-h h3 { font: 700 24px/1.1 var(--f-label); letter-spacing: .02em; }
+.chip { font: 700 11.5px/1 var(--f-label); letter-spacing: .12em; text-transform: uppercase; padding: 4px 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+.chip.layout { color: var(--gold); border-color: rgba(232, 178, 74, .45); }
+.chip.none { color: var(--warn); border-color: rgba(240, 142, 114, .45); }
+.body { display: grid; gap: 16px; min-width: 0; }
+.changes { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.changes li::marker { color: var(--muted); }
+.read { display: grid; gap: 4px; }
+.read b, .q-ask .k, .concern b { font: 700 12px/1 var(--f-label); letter-spacing: .14em; text-transform: uppercase; }
+.read b { color: var(--muted); }
+
+/* the comparison */
+.visual { display: grid; gap: 10px; min-width: 0; }
+.cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cmp.one { grid-template-columns: minmax(0, 270px); }
+.col { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.col-h { font: 700 12.5px/1 var(--f-label); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.col-h.mock { color: var(--pick); }
+.shot { margin: 0; display: grid; gap: 4px; min-width: 0; }
+.shot button { padding: 0; border: 1px solid var(--line); background: #000; border-radius: 8px; overflow: hidden; cursor: zoom-in; display: block; width: 100%; }
+.shot img { display: block; width: 100%; height: auto; max-width: 100%; }
+.shot figcaption { font-size: 12.5px; color: var(--muted); }
+.wideshot { overflow-x: auto; }
+.wideshot .shot button { min-width: 560px; }
+.hint { font-size: 12.5px; color: var(--muted); }
+
+/* questions */
+.q { display: grid; gap: 10px; padding-top: 14px; border-top: 1px dashed var(--line); scroll-margin-top: 70px; }
+.q-ask { display: grid; gap: 4px; }
+.q-ask .k { color: var(--gold); }
+.q-ask h4 { margin: 0; font: 600 17px/1.3 var(--f-body); }
+.why { color: var(--muted); font-size: 14px; max-width: 70ch; }
+.concern { background: var(--warn-bg); border: 1px solid rgba(240, 142, 114, .3); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; font-size: 14px; }
+.concern b { color: var(--warn); }
+.opts { display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; background: var(--panel-2); }
+.opt:hover { border-color: #444b59; }
+.opt:has(input:checked) { border-color: var(--gold); background: var(--sel-bg); }
+.opt input { accent-color: var(--gold); margin: 3px 0 0; width: 16px; height: 16px; }
+.opt .t { font-weight: 600; }
+.opt .d { display: block; color: var(--muted); font-size: 14px; }
+.mine { display: inline-block; margin-left: 6px; font: 700 11px/1 var(--f-label); letter-spacing: .1em; text-transform: uppercase; color: var(--pick); border: 1px solid rgba(134, 189, 255, .5); border-radius: 4px; padding: 3px 5px; vertical-align: 2px; }
+.note-row { display: flex; gap: 8px; align-items: center; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--pick); cursor: pointer; font-size: 14px; }
+textarea { width: 100%; min-height: 64px; resize: vertical; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 14px/1.45 var(--f-body); box-sizing: border-box; }
+
+/* rules */
+.rules { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+
+/* type and gold samples, drawn in each kit's own fonts and colours */
+.sample { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.kit { border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; }
+.kit .fs-h { font: 700 11.5px/1 var(--f-label); letter-spacing: .16em; text-transform: uppercase; opacity: .75; }
+.kit.paper { background: var(--paper); color: var(--ink); border: 3px solid var(--ink); }
+.kit.slate { background: linear-gradient(180deg, var(--slate-a), var(--slate-b)); color: #fff; border: 3px solid var(--navy); box-shadow: 0 5px 0 var(--navy); }
+.alfa { font-family: "Alfa Slab One", Georgia, serif; }
+.bitter { font-family: "Bitter", Georgia, serif; }
+.ultra { font-family: "Ultra", "Alfa Slab One", Georgia, serif; }
+.rubik { font-family: "Rubik", "Segoe UI", sans-serif; }
+.k-big { font-size: 34px; line-height: 1; }
+.k-name { font-size: 21px; line-height: 1.1; }
+.k-body { font-size: 14px; line-height: 1.4; }
+.edge { -webkit-text-stroke: 1.6px var(--navy); paint-order: stroke fill; text-shadow: 0 2px 0 var(--navy); }
+.goldtxt { color: var(--kgold); text-shadow: 0 .045em #b7780a, 0 .075em var(--navy); }
+.creamtxt { color: var(--cream); }
+.tags { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.tags small { font: 500 12px/1.2 var(--f-body); opacity: .8; }
+.tg { font-size: 8px; line-height: 1; padding: 3px 4px; border-radius: 3px; letter-spacing: .06em; }
+.tg.alfa { background: var(--ink); color: var(--paper); }
+.tg.ultra { background: #2b3550; color: #fff; -webkit-text-stroke: 1.3px var(--navy); paint-order: stroke fill; border: 1.5px solid var(--navy); }
+.tg.rubik { background: #2b3550; color: #cfe3ff; font-weight: 700; letter-spacing: .14em; border: 1.5px solid var(--navy); }
+.tg.new.ultra, .tg.new.rubik { background: var(--kgold); color: var(--navy); }
+.tg.new.alfa { background: #8a5a12; }
+.rb { display: inline-block; font-family: "Ultra", Georgia, serif; font-size: 15px; padding: 7px 14px 6px; border-radius: 6px; border: 3px solid var(--navy); color: var(--navy); background: linear-gradient(180deg, #ffdc73 0 44%, #f5b82a 44%); box-shadow: 0 4px 0 #a86d06, 0 7px 0 var(--navy); justify-self: start; margin-bottom: 6px; }
+.coin { display: inline-flex; align-items: center; gap: 6px; background: rgba(8, 10, 18, .56); border-radius: 6px; padding: 4px 9px; font-family: "Ultra", Georgia, serif; font-size: 15px; color: #fff; justify-self: start; }
+.coin i { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(#ffeaa6, #f3bd3a 55%, #b07612); border: 2px solid var(--navy); }
+.stars { color: var(--kgold); letter-spacing: 2px; }
+
+/* prompt */
+.prompt { padding-block: 34px 60px; display: grid; gap: 14px; scroll-margin-top: 60px; }
+.prompt h2 { font: 700 30px/1.05 var(--f-label); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.status { color: var(--muted); font-size: 14px; }
+.mdbox { background: #0c0d11; border: 1px solid var(--line); border-radius: 10px; max-height: 70vh; overflow: auto; }
+.mdbox pre { margin: 0; padding: 16px; font: 13px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; color: #d8d6d0; }
+.confirm-clear { display: inline-flex; gap: 8px; align-items: center; color: var(--warn); font-size: 14px; }
+
+/* lightbox */
+.lb { position: fixed; inset: 0; z-index: 20; background: rgba(6, 7, 10, .94); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: calc(10px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); gap: 10px; }
+.lb-top { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.lb-top .ttl { font: 700 15px/1.2 var(--f-label); letter-spacing: .06em; text-transform: uppercase; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-stage { display: grid; place-items: center; min-height: 0; overflow: auto; }
+.lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+.lb-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.lb-chips button { flex: none; border: 1px solid var(--line); background: var(--panel-2); border-radius: 6px; padding: 6px 10px; font: 600 13px/1.1 var(--f-body); cursor: pointer; }
+.lb-chips button.on { border-color: var(--gold); color: var(--gold); }
+.lb-chips button .w { font: 700 11px/1 var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-right: 5px; }
+.lb-chips button.mock .w { color: var(--pick); }
+
+@media (max-width: 520px) {
+  .card { padding: 14px; }
+  .bar b { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .prog-fill { transition: none; } }
+</style>
+
+<div class="bar">
+  <div class="wrap gutter">
+    <b>Royale UI Picks</b>
+    <div class="prog"><div class="prog-track"><div class="prog-fill" id="progFill"></div></div><span id="progText">0 of 0</span></div>
+    <a class="btn small gold" href="#prompt">Prompt</a>
+  </div>
+</div>
+
+<main class="wrap gutter">
+  <section class="intro">
+    <div class="eyebrow">Outlaw Survivors · Claude Design's "Royale, refined" handoff</div>
+    <h1>Royale UI Picks</h1>
+    <p class="lede">The handoff reskins every screen from today's Wanted paper kit to a Clash Royale-style kit and gives four screens new layouts. Each card shows today's screen beside the mock, what changes, my read, and the choices. I marked my pick on every question. My concerns are the red boxes, all listed just below.</p>
+    <div class="how">
+      <div><h3>Compare</h3><p>Tap any picture to open it large, then flip between today and the mock with the buttons under it.</p></div>
+      <div><h3>Pick</h3><p>Choose an option per question; add a note where my options miss what you want. Your answers stay in this browser.</p></div>
+      <div><h3>Send</h3><p>The prompt at the bottom writes itself as you go. Copy it (or save it as a .md) and paste it to me.</p></div>
+    </div>
+    <div class="setup">
+      <span class="lbl">Questions you leave blank</span>
+      <div class="seg" role="radiogroup" aria-label="Questions you leave blank">
+        <label><input type="radio" name="blank" id="blank-rec" value="rec" checked>Use Claude's pick</label>
+        <label><input type="radio" name="blank" id="blank-ask" value="ask">Ask me first</label>
+      </div>
+      <button class="btn small" type="button" id="fillMine">Fill blanks with my picks</button>
+    </div>
+    <details class="concerns" open>
+      <summary>My concerns <span id="concernCount"></span></summary>
+      <ol id="concernList"></ol>
+    </details>
+  </section>
+
+  <div id="sections"></div>
+
+  <section class="section" id="notes-section">
+    <header><div class="eyebrow">Last</div><h2>Anything else</h2><p>Goes into the prompt as it is.</p></header>
+    <div class="card"><textarea id="freeNotes" rows="4" placeholder="Anything the questions missed"></textarea></div>
+  </section>
+
+  <section class="prompt" id="prompt">
+    <div class="eyebrow">Your prompt</div>
+    <h2>Copy this to Claude</h2>
+    <div class="actions">
+      <button class="btn gold" type="button" id="copyBtn">Copy prompt</button>
+      <button class="btn" type="button" id="saveBtn" hidden>Save as .md</button>
+      <span class="status" id="status" role="status"></span>
+      <span style="flex:1"></span>
+      <button class="btn small" type="button" id="clearBtn">Clear answers</button>
+      <span class="confirm-clear" id="clearAsk" hidden>Clear every answer and note? <button class="btn small" type="button" id="clearYes">Clear</button><button class="btn small" type="button" id="clearNo">Keep</button></span>
+    </div>
+    <div class="mdbox"><pre id="md" tabindex="0"></pre></div>
+  </section>
+</main>
+
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Screenshot">
+  <div class="lb-top"><span class="ttl" id="lbTitle"></span><span style="display:flex;gap:6px"><button class="btn small" type="button" id="lbPrev" aria-label="Previous picture">‹</button><button class="btn small" type="button" id="lbNext" aria-label="Next picture">›</button><button class="btn small" type="button" id="lbClose">Close</button></span></div>
+  <div class="lb-stage" id="lbStage"><img id="lbImg" alt=""></div>
+  <div class="lb-chips" id="lbChips"></div>
+</div>
+
+<script>
+// ---- pictures: [today|mock, caption, width, height] (540 x 960 unless given) ----
+const IMG = {
+  b_loading: ["Today", "Loading screen"], a_boot: ["Mock", "Boot"],
+  b_title: ["Today", "Title"], a_main_menu: ["Mock", "Main menu"],
+  b_drawer: ["Today", "Hero drawer"], b_sheet: ["Today", "Wanted-poster sheet"], a_heroes: ["Mock", "Heroes"],
+  b_sheet_stats: ["Today", "Sheet, stats"], a_hero_details: ["Mock", "Hero details"],
+  b_upgrade: ["Today", "Upgrade board"], b_upgrade_choice: ["Today", "Choosing a form"], a_upgrade: ["Mock", "Upgrade"],
+  b_stages: ["Today", "Stages"], a_stages: ["Mock", "Stages"],
+  b_collection: ["Today", "Collection"], b_item: ["Today", "Item page"], a_collection: ["Mock", "Collection"], a_item_detail: ["Mock", "Item page"],
+  b_settings: ["Today", "Settings"], b_confirm: ["Today", "Wipe pop-up"], a_settings: ["Mock", "Settings"], a_confirm: ["Mock", "Confirm pop-up"],
+  hud_strip_b: ["Today", "HUD, top strip", 720, 175], hud_strip_a: ["Mock", "HUD, top strip", 720, 175],
+  b_hud: ["Today", "HUD in a boss fight"], a_hud: ["Mock", "HUD in a boss fight"],
+  b_levelup: ["Today", "Level-up"], a_level_up: ["Mock", "Level-up"],
+  b_mutation: ["Today", "Mutation offer"], a_mutation_offer: ["Mock", "Mutation offer"],
+  b_chest: ["Today", "Chest (the reel behind)"], a_chest: ["Mock", "Chest"],
+  b_bosschest: ["Today", "Boss chest"], a_boss_chest: ["Mock", "Boss chest"],
+  b_shop: ["Today", "Shop"], a_shop_24_gold: ["Mock", "Shop, 24 gold"], a_shop_300_gold: ["Mock", "Shop, 300 gold"],
+  b_stranger: ["Today", "Stranger"], a_stranger: ["Mock", "Stranger"],
+  b_totem: ["Today", "Totem gifts"], a_totem: ["Mock", "Totem gifts"],
+  b_pause_build: ["Today", "Pause, build"], b_pause_stats: ["Today", "Pause, stats"], b_pause_options: ["Today", "Pause, options"],
+  a_pause_build: ["Mock", "Pause, build"], a_pause_stats: ["Mock", "Pause, stats"], a_pause_options: ["Mock", "Pause, options"],
+  b_down: ["Today", "Down!"], a_down: ["Mock", "Down!"],
+  b_stageclear: ["Today", "Stage clear"], a_stage_clear: ["Mock", "Stage clear"],
+  b_results: ["Today", "Results"], a_results: ["Mock", "Results"],
+  b_consent: ["Today", "Play data"], b_survey: ["Today", "Survey"], a_consent: ["Mock", "Play data"], a_survey: ["Mock", "Survey"],
+  b_bounty: ["Today", "Bounty posters"], b_drum: ["Today", "War Drum"], b_grind: ["Today", "Grindstone, a level"], b_grind_evo: ["Today", "Grindstone, evolved"],
+  b_taptogo: ["Today", "TAP TO GO"],
+  kit_sheet: ["Mock", "The handoff's system sheet", 1760, 606], kit_buttons: ["Mock", "Button colours", 1144, 108], kit_frames: ["Mock", "Item frames", 825, 298],
+};
+
+// option helpers for the screens whose layout stays and only the look changes
+const LOOK = (id, topic, md) => ({ id, topic, ask: "Take the new look for this screen?", rec: "take", opts: [
+  { v: "take", label: "Take it", md },
+  { v: "keep", label: "Leave this screen as it is today", md: "Leave this screen in today's Wanted look." },
+] });
+
+// ---- the questionnaire ----
+const SECTIONS = [
+{ id: "kit", eyebrow: "General", title: "The whole kit", intro: "The decisions that apply to every screen.", md: "The whole kit", blocks: [
+  { id: "c-kit", title: "The new kit", kind: "kit", wide: "kit_sheet",
+    changes: [
+      "Navy outlines, slate panels with a hard navy base, 6 px corners.",
+      "Glossy buttons whose colour says what they do.",
+      "Black see-through plates for run info: the HUD, the wallet, run summaries.",
+      "Item frames with a rarity rim; an evolved item is black with a rainbow rim.",
+      "Ultra, a fat poster slab, for titles and buttons; Rubik for what an item does.",
+      "A flat sunset with mesas behind the menus.",
+      "Four screens get new layouts (Main menu, Heroes, Hero details, Upgrade). Every other screen keeps its layout and words and only changes its look.",
+    ],
+    read: "A full reskin, from paper and brass to a Clash Royale look. The run gets clearer where white type sits on black plates; most menus only look different. It suits the Clash-style painted sprites better than paper does.",
+    qs: [
+      { id: "g_dir", topic: "Direction", ask: "How far should the reskin go?", rec: "west",
+        ctitle: "Losing the western look",
+        concern: "Paper, ink and brass are what make today's screens read as a Wanted poster. The Royale kit keeps the west only in the slab font and the sunset. That is a taste call, not a clarity one: genre leaders like Survivor.io and Archero look like this. I'd still keep a few western pieces the mock doesn't cover (see Not in the mock).",
+        opts: [
+          { v: "west", label: "Royale everywhere, keep a few western pieces", desc: "The new kit on every screen; what you mark under Not in the mock stays western (my pick there: the paper Bounty posters).", md: "Reskin every screen with the Royale kit. Keep the western pieces chosen under \"Not in the mock\" as they are." },
+          { v: "all", label: "Royale everywhere", desc: "Replace the Wanted look completely, posters included.", md: "Reskin every screen with the Royale kit, the Bounty posters included; no Wanted paper left on the player's screens." },
+          { v: "clarity", label: "Only the clarity pieces", desc: "Keep today's paper look. Borrow the black HUD plates, the boss bar, the Evolved rainbow rim, the button colours, the Shop's shortfall and the Stranger's price bar.", md: "Do not reskin. Keep the Wanted kit and port only these pieces into it: HUD info on black plates, the bigger boss name and bar, the Evolved black face with a rainbow rim, button colour meanings, the Shop's grey button with the red shortfall, the Stranger's price bar. Read the screen answers below as applying to those pieces only." },
+          { v: "later", label: "Not now", desc: "Park the handoff.", md: "Do not build the Royale UI now. Keep these picks for later." },
+        ] },
+      { id: "g_roll", topic: "Rollout", ask: "How should it arrive on your phone?", rec: "switch",
+        why: "A switch lets you flip between both looks on the phone. It costs extra code to keep two kits alive until you choose.",
+        opts: [
+          { v: "switch", label: "Behind a switch, Wanted stays the default", desc: "Royale is a second theme you turn on in the developer menu; it becomes the default when you say so.", md: "Build Royale as a second theme behind a switch in the developer menu and the debug panel (like the Painted/Live menu switch). Wanted stays the default until I say otherwise; prod follows the default." },
+          { v: "switch_on", label: "Behind a switch, Royale the default at once", desc: "Same switch, but players see Royale straight away.", md: "Build Royale as a second theme behind a developer switch, with Royale the default from the first build." },
+          { v: "replace", label: "Replace Wanted outright", desc: "No switch and less code to carry; going back means git.", md: "Replace the Wanted kit outright, no switch." },
+        ] },
+      { id: "g_check", topic: "First checkpoint", ask: "When do you want to see it first?", rec: "run",
+        why: "The handoff asks to stop after the kit, Main menu, HUD and Level-up. I'd swap the Main menu for the Chest: the in-run screens are where the clarity gains are.",
+        opts: [
+          { v: "run", label: "After the kit, HUD, Level-up and Chest", desc: "Captures of each beside the mock, then a build in Drive.", md: "Build the kit first (tokens, fonts, components), then the HUD, Level-up and Chest. Stop there: captures beside the mock and a build in Drive before going on." },
+          { v: "handoff", label: "After the kit, Main menu, HUD and Level-up", desc: "The handoff's own checkpoint.", md: "Build the kit first, then the Main menu, HUD and Level-up. Stop there: captures beside the mock and a build in Drive before going on." },
+          { v: "end", label: "Build it all, one review at the end", desc: "Fastest, but a wrong turn in the kit shows up late.", md: "Build everything, then one review with captures and a build." },
+        ] },
+    ] },
+  { id: "c-buttons", title: "Button colours", kind: "kit", wide: "kit_buttons",
+    changes: [
+      "Gold: happens now (START, TAKE IT, DEAL, CLAIM).",
+      "Green: buys. Blue: opens something (DETAILS, CHOOSE, NEXT).",
+      "Slate: everything else (SKIP, LEAVE, CLOSE). Red: danger (WIPE, ABANDON, STAY DOWN).",
+    ],
+    read: "A clear gain for the menus. Today one brass style does most jobs, so the colour tells you nothing. Nothing in the run gets harder to read.",
+    qs: [
+      { id: "g_btn", topic: "Button colours", ask: "Give buttons fixed colour meanings?", rec: "take", opts: [
+        { v: "take", label: "Take the five meanings", md: "Buttons carry fixed colour meanings: gold happens now, green buys, blue opens something, slate for everything else, red for danger." },
+        { v: "fewer", label: "Fewer colours: gold, slate and red", desc: "Gold for the one main action, red for danger, slate for the rest.", md: "Use only three button colours: gold for the main action, red for danger, slate for everything else (no green, no blue)." },
+        { v: "keep", label: "Keep today's buttons", md: "Keep today's button styles." },
+      ] },
+    ] },
+  { id: "c-type", title: "Type", kind: "kit", sample: "fonts",
+    changes: [
+      "Ultra (a fat wood-type poster slab) for titles, names, numbers, buttons and tags, always with a navy outline.",
+      "Rubik for effect lines, stats and labels.",
+      "Today: Alfa Slab One and Bitter.",
+    ],
+    qs: [
+      { id: "g_font", topic: "Fonts", ask: "Which fonts?", rec: "mix",
+        ctitle: "Ultra at small sizes",
+        concern: "The mock sets small tags like NEW and PASSIVE · EPIC in Ultra at 18 px with a 3 px outline. A fat slab with a thick outline clogs at that size on a phone; Rubik bold stays crisp. The tags in the sample are drawn at about the size a phone shows them.",
+        opts: [
+          { v: "mix", label: "Ultra for big type, Rubik bold for small tags", desc: "Titles, names, big numbers and buttons in Ultra; tags and small labels in Rubik bold.", md: "Ultra for titles, names, big numbers and buttons; Rubik bold for tags and small labels (no Ultra under about 28 px in 1080 space); Rubik for body text." },
+          { v: "mock", label: "Ultra wherever the mock uses it", desc: "Small tags included.", md: "Use Ultra and Rubik exactly as the mock does, small tags in Ultra included." },
+          { v: "keep", label: "Keep today's fonts", desc: "Alfa Slab One and Bitter inside the new kit.", md: "Keep today's fonts (Alfa Slab One, Bitter) inside the new kit." },
+        ] },
+    ] },
+  { id: "c-gold", title: "Gold", kind: "kit", sample: "gold",
+    changes: [ "The mock uses gold for actions, coins, titles, stars, Legendary rims and EXP numbers." ],
+    qs: [
+      { id: "g_gold", topic: "Gold", ask: "Where should gold go?", rec: "cream",
+        ctitle: "Gold on everything",
+        concern: "When every title is gold too, gold stops meaning \"tap this, it happens now\". The mock's own main menu already uses cream for its wordmark.",
+        opts: [
+          { v: "cream", label: "Cream titles; gold for actions, coins and Legendary", md: "Screen titles in cream with the navy edge; keep gold for buttons that act at once, coins, stars and Legendary." },
+          { v: "mock", label: "Gold titles, as the mock", md: "Gold titles with the bevel, as the mock." },
+        ] },
+    ] },
+  { id: "c-frames", title: "Item frames", kind: "kit", wide: "kit_frames",
+    changes: [
+      "Every item icon sits in a frame: Common grey, Rare blue, Epic purple, Legendary thick bevelled gold.",
+      "Evolved: a black face, a rainbow rim and an EVO plaque.",
+      "A blue level plaque hangs off the bottom.",
+    ],
+    qs: [
+      { id: "g_rarity", topic: "Rarity frames", ask: "Which items get a rarity rim?", rec: "passives",
+        ctitle: "Rarity on weapons and Cards",
+        concern: "Only passive items have a rarity in the game. The mock gives the Golden Revolver a Legendary rim and labels Orbit Saws \"Weapon Legendary\". A made-up rarity on a weapon teaches the player a rule that doesn't exist; the handoff's README admits as much (§6).",
+        opts: [
+          { v: "passives", label: "Passive items only", desc: "Weapons and Cards get a plain frame with their kind colour; any evolved item stays rainbow.", md: "Rarity rims only on passive items. Weapons and Cards get the plain frame, with their kind colour on the kind label; any evolved item gets the black face and rainbow rim." },
+          { v: "all", label: "Give weapons and Cards a rarity too", desc: "A new game rule: someone has to decide which weapon is Legendary.", md: "Give weapons and Cards a rarity too (a new rule: propose the tiers to me before building)." },
+          { v: "none", label: "No rarity rims anywhere", desc: "Kind colours only.", md: "No rarity rims anywhere; frames use the kind colour only." },
+        ] },
+      { id: "g_evo", topic: "Evolved look", ask: "Evolved items as a black face with a rainbow rim?", rec: "take", opts: [
+        { v: "take", label: "Take it", desc: "Easy to spot in the HUD, the build list and on cards.", md: "Evolved items: black face, rainbow rim, EVO plaque, everywhere an item frame shows." },
+        { v: "keep", label: "Keep today's evolved look", md: "Keep today's look for evolved items." },
+      ] },
+    ] },
+  { id: "c-rules", title: "Rules that hold everywhere", kind: "fixed", rules: [
+      "Every number, price, time and line comes from the game's data, never from the mock. The mock has Stage 3 as \"12:00 to the boss\", guessed upgrade effects and \"109 / 109 found\".",
+      "Where the mock shows a dashed tile or a stand-in icon, use the game's own icon.",
+      "Keep today's timings and animations (README §5).",
+      "Nothing informational is removed.",
+      "\"per Level\", never \"/ LV\"; START, not PLAY.",
+      "The camera cutout and the phone's gesture bar stay clear; every control is proven by touch_audit.",
+      "The debug arena and the developer menu stay as they are.",
+    ], read: "These go into the prompt whatever you pick. No choice needed." },
+] },
+
+{ id: "menus", eyebrow: "Screens", title: "Menus", intro: "Four of these get new layouts; the rest only change their look.", md: "Menus", blocks: [
+  { id: "m-boot", title: "Loading screen", kind: "look", cmp: [["b_loading"], ["a_boot"]],
+    changes: [ "A sunset with the wordmark, a gold loading bar on a black plate, a status line and the version." ],
+    read: "Today's loading screen is the saloon wallpaper, the OUTLAW / SURVIVORS plate that punches in, and the revolver-cylinder wipe into every run. You asked for those in passes 118 to 120, without a bar.",
+    qs: [
+      { id: "s_boot", topic: "Loading screen", ask: "Which loading screen?", rec: "keep",
+        ctitle: "A loading bar over the punch",
+        concern: "The mock swaps your new loading screen for a generic progress bar. A bar adds little when loading takes a couple of seconds.",
+        opts: [
+          { v: "keep", label: "Keep today's, exactly as it is", md: "Keep today's loading screen (saloon wallpaper, the punching plate) and the cylinder wipe exactly as they are." },
+          { v: "plate", label: "Keep today's, restyle the plate", desc: "Same animation; the OUTLAW / SURVIVORS plate matches the new wordmark.", md: "Keep today's loading screen and wipe; restyle only the OUTLAW / SURVIVORS plate to match the new wordmark." },
+          { v: "mock", label: "Take the mock", desc: "Sunset, wordmark, gold bar.", md: "Replace the loading screen with the mock's: sunset, wordmark, gold loading bar on a black plate." },
+        ] },
+    ] },
+  { id: "m-menu", title: "Main menu", kind: "layout", cmp: [["b_title"], ["a_main_menu"]],
+    changes: [
+      "OUTLAW / SURVIVORS wordmark in the sky.",
+      "The hero in the middle with ‹ ›, his name, one trait pill and DETAILS (opens the hero pop-up).",
+      "One gold START, which opens Select Stage as today.",
+      "A docked bottom bar: HEROES · BATTLE · UPGRADE · COLLECTIONS, plus a locked STORE.",
+      "Settings behind ≡ top left, the wallet top right.",
+      "Gone: the hero-drawer button, the Upgrade / Collection / Settings buttons, the run-history line.",
+    ],
+    read: "Cleaner than today and closer to what players know from the genre. What it loses is small and fixable: the run-history line and the painted desert.",
+    qs: [
+      { id: "s_menu", topic: "Layout", ask: "Take the new main menu layout?", rec: "take", opts: [
+        { v: "take", label: "Take it", md: "Main menu in the new layout: wordmark, hero with ‹ ›, name, trait pill, DETAILS (opens Hero details), gold START to Select Stage, docked bottom bar, Settings behind ≡, wallet top right." },
+        { v: "keep", label: "Keep today's layout in the new kit", md: "Keep today's title layout; reskin it only." },
+      ] },
+      { id: "s_menu_bg", topic: "Backdrop", ask: "What stands behind the hero?", rec: "painted",
+        ctitle: "The flat vector sunset",
+        concern: "The mock's sunset and mesas are generic and throw away the world the game already has. Today's Painted menus show the map's own sand, props and hero.",
+        opts: [
+          { v: "painted", label: "Today's painted desert", desc: "The new chrome over today's Painted menu scene.", md: "Keep today's Painted title scene behind the new chrome (and today's backgrounds on the other menus)." },
+          { v: "sunset", label: "A sunset painting of the same desert", desc: "An art job: today's title scene repainted at dusk.", md: "Paint a sunset version of today's title scene (same desert, props and hero) and use it behind the menus." },
+          { v: "vector", label: "The mock's flat sunset and mesas", md: "Use the mock's vector sunset with mesas, the sand disc and the light pool; its night variant on Upgrade." },
+        ] },
+      { id: "s_menu_store", topic: "STORE tab", ask: "Show a locked STORE tab?", rec: "out",
+        ctitle: "A dead STORE tab",
+        concern: "There is no store. A tab that never opens teaches players to ignore the bar.",
+        opts: [
+          { v: "out", label: "Leave it out until there is a store", md: "No STORE tab; the bar holds HEROES, BATTLE, UPGRADE, COLLECTIONS." },
+          { v: "locked", label: "Show it locked, as the mock", md: "Show STORE as a locked tab, as the mock." },
+        ] },
+      { id: "s_menu_hist", topic: "Run history line", ask: "Where does today's \"Red Canyon · best 16:35 · Lv 32 · stage 3 · 4,864 kills\" go?", rec: "stages",
+        ctitle: "Run history dropped",
+        concern: "The handoff says nothing informational may be removed, yet the mock drops this line without a word.",
+        opts: [
+          { v: "stages", label: "Move it to the Stages screen's header", md: "Move the run-history line (map, best time, level, stage, kills) to the Stages screen's header." },
+          { v: "menu", label: "Keep it on the main menu, under START", md: "Keep the run-history line on the main menu, under START, on a black plate." },
+          { v: "drop", label: "Drop it", md: "Drop the run-history line." },
+        ] },
+      { id: "s_menu_tabs", topic: "Tab bar", ask: "Should the tab bar stay on the other hub screens?", rec: "menu",
+        ctitle: "A tab bar that disappears",
+        concern: "In the mock the bar lives only on the main menu: tap UPGRADE and the bar is gone, with a back arrow instead. A docked bar usually stays put, as in Clash Royale. Keeping it costs about a tenth of the screen, which would push the 2×4 Upgrade board into scrolling, so I'd still go with the mock.",
+        opts: [
+          { v: "menu", label: "Only on the main menu, as the mock", md: "The tab bar shows on the main menu only; Heroes, Upgrade and Collection open with a back arrow, as the mock." },
+          { v: "all", label: "On every hub screen", desc: "Heroes, Battle, Upgrade and Collections switch without going back.", md: "Keep the tab bar on all four hub screens (Heroes, Battle, Upgrade, Collections), the open one gold; fit the Upgrade board above it." },
+        ] },
+      { id: "s_menu_flanks", topic: "Empty sides", ask: "The mock keeps the menu's sides empty \"for live-ops and offers\". Build anything there?", rec: "empty",
+        ctitle: "Space kept for live-ops",
+        concern: "There are no live-ops. Empty space is fine, but nothing should be built for events and offers that don't exist.",
+        opts: [
+          { v: "empty", label: "Leave them empty, build nothing", md: "Leave the main menu's sides empty; build nothing for live-ops." },
+          { v: "use", label: "Put something there (say what in a note)", md: "Put something on the main menu's sides (see the note)." },
+        ] },
+    ] },
+  { id: "m-heroes", title: "Heroes screen", kind: "layout", cmp: [["b_drawer", "b_sheet"], ["a_heroes"]],
+    changes: [
+      "One screen from the HEROES tab replaces the hero drawer and the Wanted-poster sheet.",
+      "Top left: the hero, his trait and DETAILS · ALL STATS (opens the pop-up).",
+      "Top right: his items with full text: start weapon, favourite, two perks, evolution.",
+      "SELECT, then a LOOKS strip of skins: worn, owned, buyable (green price), locked (a silhouette with its quest).",
+      "The grid of heroes: owned, buyable, locked; tapping one swaps the top half.",
+    ],
+    read: "Clearer than today, where the drawer and the sheet are two screens for one job. The mock's hero and skins are stand-ins (a crop of the title capture and hue-shifted portraits).",
+    qs: [
+      { id: "s_heroes", topic: "Heroes screen", ask: "Take the Heroes screen?", rec: "take", opts: [
+        { v: "take", label: "Take it, with the real looks and icons", md: "Build the Heroes screen as the mock (hero, trait, items with full text, SELECT, LOOKS strip, hero grid) with the real looks, skins and icons from data. It replaces the hero drawer and the Wanted-poster sheet; DETAILS opens the new Hero details pop-up." },
+        { v: "keep_sheet", label: "Take it, but keep the Wanted-poster sheet for details", md: "Build the Heroes screen as the mock, but DETAILS opens today's Wanted-poster sheet instead of a new pop-up." },
+        { v: "keep", label: "Keep today's drawer and sheet in the new kit", md: "Keep today's hero drawer and Wanted-poster sheet; reskin them only." },
+      ] },
+      { id: "s_heroes_fav", topic: "Favourite item", ask: "Keep the hero's favourite item row?", rec: "keep",
+        ctitle: "The favourite dropped",
+        concern: "The README keeps the favourite (\"finding it gives a bonus level\"), but one of the mock's captions says it was dropped. It's a real rule the player should know about.",
+        opts: [
+          { v: "keep", label: "Keep it", md: "Keep the favourite item row with \"finding it gives a bonus level\"." },
+          { v: "drop", label: "Drop it", md: "Drop the favourite item row." },
+        ] },
+    ] },
+  { id: "m-details", title: "Hero details pop-up", kind: "layout", cmp: [["b_sheet_stats"], ["a_hero_details"]],
+    changes: [
+      "A pop-up from the Heroes screen or the main menu's DETAILS.",
+      "Trait pills; every stat a run starts with, in two columns; the signature stat in green; CLOSE.",
+      "The trait's per-level milestone row (LV 1 / 10 / 20 / 40) is dropped.",
+    ],
+    qs: [
+      { id: "s_details_mile", topic: "Level milestones", ask: "Keep the trait's per-level milestones (LV 1 / 10 / 20 / 40)?", rec: "keep",
+        ctitle: "Level milestones dropped",
+        concern: "The mock drops them (\"the rule in words is enough\"). It's the only place a player sees what +0.5% per level adds up to, and the handoff's own rule says nothing informational goes.",
+        opts: [
+          { v: "keep", label: "Keep the milestone row", md: "Hero details keeps the trait's milestone row (values at LV 1 / 10 / 20 / 40)." },
+          { v: "drop", label: "Drop it, as the mock", md: "Hero details drops the milestone row; the trait rule in words only." },
+        ] },
+    ] },
+  { id: "m-upgrade", title: "Upgrade board", kind: "layout", cmp: [["b_upgrade", "b_upgrade_choice"], ["a_upgrade"]],
+    changes: [
+      "No mirror.",
+      "YOU HOLD and TAKE IT ALL BACK (with its refund line) share the header.",
+      "All eight upgrades on one screen as 2×4 tiles: name, rank, both options with icons and effect lines, a six-pip track.",
+      "A blue price · CHOOSE button opens the choice: a pop-up with two green BUY buttons.",
+    ],
+    read: "More information with fewer taps: today you open each upgrade to see its two forms. The per-rank effect lines in the mock are guesses; they'd come from data.",
+    qs: [
+      { id: "s_up", topic: "Layout", ask: "Take the 2×4 board on one screen?", rec: "take", opts: [
+        { v: "take", label: "Take it (the mirror goes)", md: "Upgrade board as the mock: no mirror, YOU HOLD and TAKE IT ALL BACK with the refund line in the header, 2×4 tiles with both options and their effect lines from data, a blue price · CHOOSE opening a pop-up with two green BUY buttons." },
+        { v: "keep", label: "Keep today's board with the mirror", md: "Keep today's Upgrade board with the mirror; reskin it only." },
+      ] },
+      { id: "s_up_pips", topic: "Rank pips", ask: "What shows in a filled rank pip?", rec: "icon",
+        ctitle: "Letters in the pips",
+        concern: "The mock puts the option's initial (\"S\", \"P\") on a gold pip. An initial is a code to learn; today's pips show the chosen option's icon.",
+        opts: [
+          { v: "icon", label: "The chosen option's icon, as today", md: "Filled rank pips show the chosen option's icon." },
+          { v: "letter", label: "The option's initial, as the mock", md: "Filled rank pips show the option's initial on gold." },
+        ] },
+    ] },
+  { id: "m-stages", title: "Stages", kind: "look", cmp: [["b_stages"], ["a_stages"]],
+    changes: [
+      "Slate cards with today's paintings, a difficulty tag, time to the boss, the boss's icon once met, the BEATEN stamp.",
+      "A gold START on each open card.",
+      "The locked card darkened, saying what opens it.",
+    ],
+    read: "The card being a button is no longer a guess. The mock's times are wrong (Stage 3 shows 12:00); they come from data.",
+    qs: [ LOOK("s_stages", "Stages", "Stages as the mock: slate cards, a gold START on each open card, the locked card saying what opens it; times and bosses from data.") ] },
+  { id: "m-coll", title: "Collection and item page", kind: "look", cmp: [["b_collection", "b_item"], ["a_collection", "a_item_detail"]],
+    changes: [
+      "Tabs with counts docked onto one sheet; tiles four wide.",
+      "Found items in their frame with the name; unfound ones as dark silhouettes with their quest and a progress bar.",
+      "The item page as slate cards: levels, the three mutations with full text, the evolution.",
+    ],
+    read: "A clear gain: the progress bar shows how close an unlock is.",
+    qs: [ LOOK("s_coll", "Collection", "Collection as the mock: docked tabs with counts, framed tiles, unfound items as silhouettes with their quest and a progress bar; the item page as slate cards (levels, mutations, evolution).") ] },
+  { id: "m-settings", title: "Settings and pop-ups", kind: "look", cmp: [["b_settings", "b_confirm"], ["a_settings", "a_confirm"]],
+    changes: [
+      "The same groups in slate panels: camera as a two-way switch, sliders with value knobs, toggles.",
+      "One \"Hold on\" pop-up for every confirmation: the safe answer slate, the destructive one red, a purchase green.",
+    ],
+    read: "Look only; the same settings.",
+    qs: [ LOOK("s_settings", "Settings and pop-ups", "Settings in slate panels as the mock; one shared confirm pop-up (safe answer slate, destructive red, buying green).") ] },
+] },
+
+{ id: "run", eyebrow: "Screens", title: "In a run", intro: "Where clarity matters most: these are read in a second, mid-fight.", md: "In a run", blocks: [
+  { id: "r-hud", title: "HUD", kind: "look", cmp: [["hud_strip_b", "b_hud"], ["hud_strip_a", "a_hud"]],
+    changes: [
+      "Level, clock and gold on black see-through plates with white type.",
+      "The kill count as bare outlined type; pause is the only button.",
+      "Ten item frames with level plaques; an evolved item black with a rainbow rim.",
+      "The boss name bigger, in gold, over a thick red bar.",
+      "Buffs and the BOSS / ELITE / PORTAL pointers on black plates.",
+      "Unchanged: the hero's bars, damage numbers, the joystick.",
+    ],
+    read: "The biggest clarity gain in the handoff. White on black reads on bright sand, on Nightfall blue and on Blood Moon red alike; today's paper plates fight the sand.",
+    qs: [
+      { id: "s_hud", topic: "HUD", ask: "Take the new HUD?", rec: "take", opts: [
+        { v: "take", label: "Take it", md: "HUD as the mock on today's footprint: level, clock and gold on black 56% plates with white type, kill count as bare outlined type, pause the only button, item frames with level plaques, the boss name in gold over a thick red bar, buffs and pointers on black plates. Hero bars, damage numbers and the joystick unchanged." },
+        { v: "keep", label: "Keep today's HUD", md: "Keep today's HUD." },
+      ] },
+      { id: "s_hud_rar", topic: "Item slot colours", ask: "Rarity colours on the ten item slots?", rec: "try",
+        ctitle: "Colour noise in the HUD",
+        concern: "Ten coloured frames are the busiest part of the new HUD, right where your eye goes for the clock and the boss bar.",
+        opts: [
+          { v: "try", label: "Try them on the phone, decide then", md: "Put rarity colours on the HUD's item slots behind a debug switch, so I can compare them with plain frames on the phone before choosing." },
+          { v: "take", label: "Take them, as the mock", md: "HUD item slots use their rarity colours, as the mock." },
+          { v: "plain", label: "Plain frames in the HUD", desc: "Rarity only on cards and in menus.", md: "HUD item slots use plain frames; rarity colours only on cards and in menus (evolved items keep their evolved look)." },
+        ] },
+    ] },
+  { id: "r-level", title: "Level-up cards", kind: "look", cmp: [["b_levelup"], ["a_level_up"]],
+    changes: [
+      "Dark slate cards instead of paper, with the same text and layout.",
+      "The touched card lights up gold with rays behind its icon.",
+      "REROLL · SKIP in slate, BANISH greyed at 0.",
+    ],
+    read: "Dark cards over the dimmed run stand out more than paper over a paper-coloured desert.",
+    qs: [
+      LOOK("s_lvl", "Level-up", "Level-up cards as the mock: slate cards, same text and layout, the touched card gold-lit with rays, REROLL · SKIP · BANISH in slate."),
+      { id: "s_lvl_tap", topic: "Picking a card", ask: "How does a card get picked?", rec: "one",
+        ctitle: "Select, then confirm",
+        concern: "The mock's lit \"pressed\" card could be read as tap to select, tap again to confirm. That's a second tap on every level-up, dozens of times a run.",
+        opts: [
+          { v: "one", label: "One tap picks, as today", md: "One tap on a card picks it, as today; the gold-lit state with rays is press feedback only." },
+          { v: "two", label: "Tap to light a card, tap again to take it", md: "The first tap lights a card (gold edge, rays); a second tap on it takes it." },
+        ] },
+    ] },
+  { id: "r-mut", title: "Mutation offer", kind: "look", cmp: [["b_mutation"], ["a_mutation_offer"]],
+    changes: [
+      "The weapon in a big frame over rays, its name in gold.",
+      "The ●○○ count and \"the others come back next stage\" as plates.",
+      "Three slate cards with purple-rimmed frames and the full text; SKIP with its count.",
+    ],
+    read: "Look only; the same choice.",
+    qs: [ LOOK("s_mut", "Mutation offer", "Mutation offer as the mock: the weapon framed over rays, the count plates, three slate cards with purple-rimmed frames and full text.") ] },
+  { id: "r-chest", title: "Chest", kind: "look", cmp: [["b_chest"], ["a_chest"]],
+    changes: [
+      "The item in a big frame over rays.",
+      "A slate name card with the stat row; SKIP · BANISH · TAKE IT.",
+      "The reel of items that spins behind is not in the mock (see Not in the mock).",
+    ],
+    read: "Look only. The mock's \"Weapon Legendary\" on Orbit Saws follows your rarity pick under Item frames.",
+    qs: [ LOOK("s_chest", "Chest", "Chest as the mock: the item framed over rays, a slate name card with the stat row, SKIP · BANISH · TAKE IT.") ] },
+  { id: "r-boss", title: "Boss chest", kind: "look", cmp: [["b_bosschest"], ["a_boss_chest"]],
+    changes: [
+      "The speed bonus as one slate panel.",
+      "The painted chest over rays; BOSS LOOT / BIG WIN / JACKPOT in gold.",
+      "GOLD and EXP panels with big numbers; CLAIM. The chest art and the loot party stay.",
+    ],
+    read: "Look only.",
+    qs: [ LOOK("s_boss", "Boss chest", "Boss chest as the mock: speed bonus panel, the painted chest and loot party kept, GOLD and EXP panels, CLAIM in gold.") ] },
+  { id: "r-shop", title: "Shop", kind: "look", cmp: [["b_shop"], ["a_shop_24_gold", "a_shop_300_gold"]],
+    changes: [
+      "Green price · BUY buttons.",
+      "An item you can't afford keeps its card and text; its button goes grey with \"25 short\" in red.",
+      "YOU HOLD as framed icons; LEAVE in slate.",
+    ],
+    read: "Clearer than today's small \"166 short\".",
+    qs: [ LOOK("s_shop", "Shop", "Shop as the mock: green price · BUY, an unaffordable offer keeps its card with a grey button and the shortfall in red, YOU HOLD as framed icons.") ] },
+  { id: "r-stranger", title: "Stranger", kind: "look", cmp: [["b_stranger"], ["a_stranger"]],
+    changes: [
+      "One card carries the whole deal.",
+      "THE PRICE as a bar with the lost part hatched red (95 → 81).",
+      "WALK AWAY slate, DEAL gold.",
+    ],
+    read: "Shows the cost instead of telling it.",
+    qs: [ LOOK("s_stranger", "Stranger", "Stranger as the mock: one deal card, THE PRICE as a bar with the lost part hatched red, WALK AWAY slate, DEAL gold.") ] },
+  { id: "r-totem", title: "Totem gifts", kind: "look", cmp: [["b_totem"], ["a_totem"]],
+    changes: [ "The pole stays.", "The three gift cards become slate: the gain in gold, the spirit's name, the three-rank track." ],
+    read: "Look only.",
+    qs: [ LOOK("s_totem", "Totem gifts", "Totem gifts as the mock: the pole kept, three slate gift cards with the gain in gold, the spirit's name and the rank track.") ] },
+  { id: "r-pause", title: "Pause", kind: "look", cmp: [["b_pause_build", "b_pause_stats", "b_pause_options"], ["a_pause_build", "a_pause_stats", "a_pause_options"]],
+    changes: [
+      "PAUSED with the run clock on a black plate.",
+      "BUILD · STATS · OPTIONS docked onto one sheet; the same rows and data.",
+      "Abandon as a red button.",
+    ],
+    read: "Look only.",
+    qs: [ LOOK("s_pause", "Pause", "Pause as the mock: docked BUILD · STATS · OPTIONS tabs on one sheet, the same rows and data, Abandon in red, RESUME in gold.") ] },
+] },
+
+{ id: "end", eyebrow: "Screens", title: "End of a run", intro: "Down, cleared, and the results.", md: "End of a run", blocks: [
+  { id: "e-down", title: "Down!", kind: "look", cmp: [["b_down"], ["a_down"]],
+    changes: [
+      "A red dim, DOWN! in red-gold, a cream countdown disc.",
+      "Who put you down, the run pills.",
+      "The last 30 seconds of hits as a slate panel.",
+      "GET UP · WATCH AN AD in gold, STAY DOWN in red.",
+    ],
+    read: "Mostly look. Two things in it need a decision.",
+    qs: [
+      LOOK("s_down", "Down!", "Down! as the mock: red dim, cream countdown disc, who put you down, run pills, GET UP in gold, STAY DOWN in red."),
+      { id: "s_down_ad", topic: "GET UP · WATCH AN AD", ask: "Today this button revives for free; no ad plays. What should it say?", rec: "getup",
+        ctitle: "An ad button with no ad",
+        concern: "The reskin would dress a stand-in up as finished, and testers learn that the ad button is a free revive.",
+        opts: [
+          { v: "getup", label: "Just GET UP, until ads exist", md: "Label the revive button GET UP until ads exist (it revives for free today)." },
+          { v: "keep", label: "Keep GET UP · WATCH AN AD", md: "Keep the GET UP · WATCH AN AD label." },
+        ] },
+      { id: "s_down_log", topic: "Hit log", ask: "Who sees the last-30-seconds hit log?", rec: "debug",
+        ctitle: "The hit log for everyone",
+        concern: "The mock shows the hit log on every Down! screen. Today it shows only with the developer menu's hit log or the player's debug mode. It helps you learn what killed you, but it's a wall of numbers at a tense moment.",
+        opts: [
+          { v: "debug", label: "Debug only, as today", md: "The last-30-seconds hit log on Down! stays debug-only (developer hit log or debug mode)." },
+          { v: "all", label: "Every player", md: "Show the last-30-seconds hit log on every Down! screen." },
+        ] },
+    ] },
+  { id: "e-clear", title: "Stage clear", kind: "look", cmp: [["b_stageclear"], ["a_stage_clear"]],
+    changes: [ "Two slate cards: Extract (safe, the banked gold, EXTRACT in gold) and Endless (the countdown, NOT YET in slate)." ],
+    read: "Look only.",
+    qs: [ LOOK("s_clear", "Stage clear", "Stage clear as the mock: Extract and Endless as two slate cards, EXTRACT in gold, NOT YET in slate.") ] },
+  { id: "e-results", title: "Results", kind: "look", cmp: [["b_results"], ["a_results"]],
+    changes: [
+      "Same order: time, run pills, BANKED, the performance chart, every damage source, unlocks.",
+      "PLAY AGAIN gold, UPGRADE blue, MAIN MENU slate.",
+    ],
+    read: "Look only; nothing dropped.",
+    qs: [ LOOK("s_results", "Results", "Results as the mock, same order and content; PLAY AGAIN gold, UPGRADE blue, MAIN MENU slate.") ] },
+  { id: "e-consent", title: "Play data and surveys", kind: "look", cmp: [["b_consent", "b_survey"], ["a_consent", "a_survey"]],
+    changes: [ "The pop-up shell: NO THANKS slate · OK gold; the 1 to 5 buttons slate with the pick gold, NEXT blue." ],
+    read: "Look only.",
+    qs: [ LOOK("s_consent", "Play data and surveys", "Consent and survey pop-ups in the shared pop-up shell, as the mock.") ] },
+] },
+
+{ id: "uncovered", eyebrow: "Decide", title: "Not in the mock", intro: "Pieces the handoff doesn't draw. Each needs a call before building.", md: "Not in the mock", blocks: [
+  { id: "n-bounty", title: "Bounty posters", kind: "none", cmp: [["b_bounty"], []],
+    read: "The paper Wanted posters that float in over the run. They're the game's own idea, and they look like things in the world rather than menus.",
+    qs: [ { id: "n_bounty", topic: "Bounty posters", ask: "What happens to them?", rec: "paper", opts: [
+      { v: "paper", label: "Keep them paper", md: "Keep the in-run Bounty posters as paper Wanted posters." },
+      { v: "royale", label: "Restyle them in the new kit", md: "Restyle the Bounty posters as slate cards in the new kit." },
+    ] } ] },
+  { id: "n-drum", title: "War Drum moment", kind: "none", cmp: [["b_drum"], []],
+    qs: [ { id: "n_drum", topic: "War Drum moment", ask: "What happens to it?", rec: "title", opts: [
+      { v: "title", label: "Keep the painted drum, restyle its title", md: "War Drum moment: keep the drum art; set its title in the new kit's type." },
+      { v: "leave", label: "Leave it as it is", md: "Leave the War Drum moment as it is." },
+    ] } ] },
+  { id: "n-grind", title: "Grindstone moment", kind: "none", cmp: [["b_grind", "b_grind_evo"], []],
+    read: "New in pass 121, after the handoff was made.",
+    qs: [ { id: "n_grind", topic: "Grindstone moment", ask: "What happens to it?", rec: "title", opts: [
+      { v: "title", label: "Keep the wheel, restyle the text and frame", desc: "The weapon in the new item frame, the title and LEVEL / EVOLVED in the new type.", md: "Grindstone moment: keep the wheel and sparks; the weapon in the new item frame, its title and LEVEL / EVOLVED stamp in the new kit's type." },
+      { v: "leave", label: "Leave it as it is", md: "Leave the Grindstone moment as it is." },
+    ] } ] },
+  { id: "n-reel", title: "Chest reel", kind: "none",
+    read: "The strip of items that spins behind the chest before it stops (the Chest card above shows it).",
+    qs: [ { id: "n_reel", topic: "Chest reel", ask: "What happens to it?", rec: "frames", opts: [
+      { v: "frames", label: "Use the new item frames on the reel", md: "The chest reel's tiles use the new item frames." },
+      { v: "leave", label: "Leave it as it is", md: "Leave the chest reel as it is." },
+    ] } ] },
+  { id: "n-small", title: "Toasts, banners, hints, TAP TO GO", kind: "none", cmp: [["b_taptogo"], []],
+    read: "The README keeps TAP TO GO as bare text, in Ultra cream with the navy edge. Toasts, banners and hint bubbles aren't drawn.",
+    qs: [ { id: "n_small", topic: "Toasts, banners, hints, TAP TO GO", ask: "What happens to them?", rec: "kit", opts: [
+      { v: "kit", label: "Restyle them with the kit", desc: "Black plates; TAP TO GO in Ultra cream.", md: "Restyle toasts, banners, hint bubbles and TAP TO GO with the new kit (black plates, white or cream type; TAP TO GO in Ultra cream with the navy edge)." },
+      { v: "leave", label: "Leave them as they are", md: "Leave toasts, banners, hints and TAP TO GO as they are." },
+    ] } ] },
+] },
+];
+
+// ---- state, kept in this browser only ----
+const KEY = "royale-ui-picks-v1";
+let state = { a: {}, n: {}, open: {}, blank: "rec", free: "" };
+const QS = [];
+for (const s of SECTIONS) for (const b of s.blocks) for (const q of (b.qs || [])) { q.block = b; q.section = s; QS.push(q); }
+
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) state = Object.assign(state, JSON.parse(raw)); } catch (e) {}
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+
+function shot(k, group) {
+  const m = IMG[k];
+  const w = m[2] || 540, h = m[3] || 960;
+  return `<figure class="shot"><button type="button" data-zoom="${k}" data-group="${group}" aria-label="Open ${esc(m[0] + ": " + m[1])} large"><img src="img/${k}.jpg" width="${w}" height="${h}" loading="lazy" alt="${esc(m[0] + ": " + m[1])}"></button><figcaption>${esc(m[1])}</figcaption></figure>`;
+}
+
+function visual(b) {
+  if (b.wide) return `<div class="visual"><div class="wideshot">${shot(b.wide, b.id)}</div><div class="hint">Tap to open it large.</div></div>`;
+  if (b.sample === "fonts") return `<div class="visual">${fontSample()}</div>`;
+  if (b.sample === "gold") return `<div class="visual">${goldSample()}</div>`;
+  if (!b.cmp) return "";
+  const [bef, aft] = b.cmp;
+  if (!aft.length) return `<div class="visual"><div class="cmp one"><div class="col"><div class="col-h">Today</div>${bef.map((k) => shot(k, b.id)).join("")}</div></div><div class="hint">Not drawn in the mock.</div></div>`;
+  return `<div class="visual"><div class="cmp"><div class="col"><div class="col-h">Today</div>${bef.map((k) => shot(k, b.id)).join("")}</div><div class="col"><div class="col-h mock">Mock</div>${aft.map((k) => shot(k, b.id)).join("")}</div></div></div>`;
+}
+
+function fontSample() {
+  return `<div class="sample">
+    <div class="kit paper"><div class="fs-h">Today · Alfa Slab One + Bitter</div>
+      <div class="alfa k-big">LEVEL 3</div><div class="alfa k-name">The Thorn</div>
+      <p class="bitter k-body">+8 thorns damage a level. Trade: cooldowns 4% longer.</p>
+      <div class="tags"><span class="tg alfa">PASSIVE · EPIC</span><span class="tg alfa new">NEW</span><small>tags, about phone size</small></div></div>
+    <div class="kit slate"><div class="fs-h">Mock · Ultra + Rubik</div>
+      <div class="ultra k-big goldtxt edge">LEVEL 3</div><div class="ultra k-name creamtxt edge">The Thorn</div>
+      <p class="rubik k-body">+8 thorns damage a level. Trade: cooldowns 4% longer.</p>
+      <div class="tags"><span class="tg ultra">PASSIVE · EPIC</span><span class="tg ultra new">NEW</span><small>Ultra tags, as the mock</small></div>
+      <div class="tags"><span class="tg rubik">PASSIVE · EPIC</span><span class="tg rubik new">NEW</span><small>Rubik bold tags, my pick</small></div></div>
+  </div>`;
+}
+
+function goldSample() {
+  const panel = (head, cls) => `<div class="kit slate"><div class="fs-h">${head}</div>
+      <div class="ultra k-big edge ${cls}">THE SHOP</div>
+      <span class="coin"><i></i>312</span>
+      <div class="ultra k-name edge ${cls}">Golden Revolver</div>
+      <div class="stars">★★★☆☆</div>
+      <span class="rb">TAKE IT</span></div>`;
+  return `<div class="sample">${panel("As the mock: gold titles", "goldtxt")}${panel("My pick: cream titles", "creamtxt")}</div>`;
+}
+
+function question(q) {
+  const opts = q.opts.map((o) => `<label class="opt"><input type="radio" name="${q.id}" id="q-${q.id}-${o.v}" value="${o.v}"${state.a[q.id] === o.v ? " checked" : ""}><span><span class="t">${esc(o.label)}</span>${o.v === q.rec ? '<span class="mine">My pick</span>' : ""}${o.desc ? `<span class="d">${esc(o.desc)}</span>` : ""}</span></label>`).join("");
+  const note = state.n[q.id] || "";
+  const open = state.open[q.id] || note;
+  return `<div class="q" id="q-${q.id}">
+    <div class="q-ask"><span class="k">${esc(q.topic)}</span><h4>${esc(q.ask)}</h4></div>
+    ${q.why ? `<p class="why">${esc(q.why)}</p>` : ""}
+    ${q.concern ? `<div class="concern"><b>My concern</b><p>${esc(q.concern)}</p></div>` : ""}
+    <div class="opts" role="radiogroup" aria-label="${esc(q.ask)}">${opts}</div>
+    <div class="note-row"><button type="button" class="linkbtn" data-note="${q.id}" aria-expanded="${open ? "true" : "false"}">${open ? "Note" : "+ Add a note"}</button></div>
+    <textarea id="n-${q.id}" data-noteinput="${q.id}" placeholder="What you want instead, or anything I should know"${open ? "" : " hidden"}>${esc(note)}</textarea>
+  </div>`;
+}
+
+function block(b) {
+  const chip = { layout: '<span class="chip layout">New layout</span>', look: '<span class="chip">Look only</span>', kit: '<span class="chip">Every screen</span>', none: '<span class="chip none">Not in the mock</span>', fixed: '<span class="chip">No choice needed</span>' }[b.kind] || "";
+  const vis = visual(b);
+  const parts = [];
+  if (b.changes) parts.push(`<ul class="changes">${b.changes.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>`);
+  if (b.rules) parts.push(`<ul class="rules">${b.rules.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>`);
+  if (b.read) parts.push(`<div class="read"><b>${b.kind === "fixed" ? "Note" : "My read"}</b><p>${esc(b.read)}</p></div>`);
+  for (const q of (b.qs || [])) parts.push(question(q));
+  return `<article class="card${vis ? " has-shots" : ""}" id="${b.id}">
+    ${vis}
+    <div class="body"><div class="card-h"><h3>${esc(b.title)}</h3>${chip}</div>${parts.join("")}</div>
+  </article>`;
+}
+
+function render() {
+  document.getElementById("sections").innerHTML = SECTIONS.map((s) => `<section class="section" id="${s.id}">
+    <header><div class="eyebrow">${esc(s.eyebrow)}</div><h2>${esc(s.title)}</h2><p>${esc(s.intro)}</p></header>
+    ${s.blocks.map(block).join("")}
+  </section>`).join("");
+  const cq = QS.filter((q) => q.concern);
+  document.getElementById("concernCount").textContent = `(${cq.length + 1})`;
+  document.getElementById("concernList").innerHTML = cq.map((q) => `<li><a href="#q-${q.id}">${esc(q.ctitle)}</a> <span class="st" data-cst="${q.id}"></span><br>${esc(q.block.title)}</li>`).join("") +
+    `<li><a href="#c-rules">The mock's numbers</a> <span class="st done">In the rules</span><br>Stage 3's time, the upgrade effects and the counts in the mock are made up; every number comes from data.</li>`;
+  document.getElementById(state.blank === "ask" ? "blank-ask" : "blank-rec").checked = true;
+  document.getElementById("freeNotes").value = state.free || "";
+  refresh();
+}
+
+// ---- the prompt ----
+function lineFor(q) {
+  const rec = q.opts.find((o) => o.v === q.rec);
+  const v = state.a[q.id];
+  let o, tag = "";
+  if (v) {
+    o = q.opts.find((x) => x.v === v);
+    if (v !== q.rec) tag = ` *(Claude suggested: ${rec.label})*`;
+  } else if (state.blank === "rec") {
+    o = rec; tag = " *(left blank: Claude's pick)*";
+  } else return null;
+  let s = `- **${q.topic}:** ${o.md}${tag}`;
+  const n = (state.n[q.id] || "").trim();
+  if (n) s += `\n  - Garry's note: ${n.replace(/\s*\n\s*/g, " ")}`;
+  return s;
+}
+
+function buildMd() {
+  const answered = QS.filter((q) => state.a[q.id]).length;
+  const differ = QS.filter((q) => state.a[q.id] && state.a[q.id] !== q.rec).length;
+  const date = new Date().toISOString().slice(0, 10);
+  const out = [];
+  out.push("# Royale UI: build brief", "");
+  out.push(`Garry's picks from the Royale UI Picks page (${date}): ${answered} of ${QS.length} questions answered, ${differ} different from Claude's suggestion.`, "");
+  out.push("Build the Royale UI for Outlaw Survivors (88fits) with the choices below.", "");
+  out.push("- Handoff: `Design critique and verdict.zip` at the repo root (`design_handoff_88fits_royale/`: README.md for tokens and components, the mock `88fits Revamp.dc.html`).");
+  out.push("- Claude's read of it: `docs/ui_review/royale_assessment.md`.");
+  out.push("- Where a choice below differs from the handoff, the choice wins.");
+  out.push(state.blank === "rec" ? "- Questions I left blank: use Claude's suggestion (marked)." : "- Questions I left blank: ask me before building those parts (listed at the end).");
+  const asks = [];
+  for (const s of SECTIONS) {
+    const sec = [];
+    for (const b of s.blocks) {
+      if (!b.qs) continue;
+      const lines = [];
+      for (const q of b.qs) { const l = lineFor(q); if (l) lines.push(l); else asks.push(`- ${b.title} · ${q.topic}: ${q.ask}`); }
+      if (!lines.length) continue;
+      if (s.id === "kit") sec.push(...lines);
+      else sec.push("", `### ${b.title}`, ...lines);
+    }
+    if (sec.length) out.push("", `## ${s.md}`, ...(s.id === "kit" ? [""] : []), ...sec);
+  }
+  out.push("", "## Rules that hold everywhere", "");
+  for (const r of SECTIONS[0].blocks.find((b) => b.id === "c-rules").rules) out.push(`- ${r}`);
+  if (asks.length) out.push("", "## Ask me first", "", ...asks);
+  const free = (state.free || "").trim();
+  if (free) out.push("", "## Other notes from Garry", "", free);
+  return out.join("\n") + "\n";
+}
+
+function refresh() {
+  const n = QS.filter((q) => state.a[q.id]).length;
+  document.getElementById("progText").textContent = `${n} of ${QS.length}`;
+  document.getElementById("progFill").style.width = `${(100 * n / QS.length).toFixed(1)}%`;
+  for (const el of document.querySelectorAll("[data-cst]")) {
+    const q = QS.find((x) => x.id === el.dataset.cst);
+    const v = state.a[q.id];
+    el.className = "st" + (v ? " done" : "");
+    el.textContent = !v ? "Open" : v === q.rec ? "Agreed" : "Your way";
+  }
+  document.getElementById("md").textContent = buildMd();
+}
+
+// ---- events ----
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.name === "blank") { state.blank = t.value; save(); refresh(); return; }
+  if (t.type === "radio" && QS.some((q) => q.id === t.name)) { state.a[t.name] = t.value; save(); refresh(); }
+});
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.noteinput) { state.n[t.dataset.noteinput] = t.value; save(); refresh(); }
+  else if (t.id === "freeNotes") { state.free = t.value; save(); refresh(); }
+});
+document.addEventListener("click", (e) => {
+  const nb = e.target.closest("[data-note]");
+  if (nb) {
+    const id = nb.dataset.note, ta = document.getElementById("n-" + id);
+    const show = ta.hidden;
+    ta.hidden = !show; state.open[id] = show; save();
+    nb.textContent = show ? "Note" : "+ Add a note"; nb.setAttribute("aria-expanded", String(show));
+    if (show) ta.focus();
+    return;
+  }
+  const z = e.target.closest("[data-zoom]");
+  if (z) openLb(z.dataset.group, z.dataset.zoom);
+});
+
+document.getElementById("fillMine").addEventListener("click", () => {
+  let k = 0;
+  for (const q of QS) if (!state.a[q.id]) { state.a[q.id] = q.rec; k++; const el = document.getElementById(`q-${q.id}-${q.rec}`); if (el) el.checked = true; }
+  save(); refresh();
+  setStatus(k ? `Filled ${k} blank question${k === 1 ? "" : "s"} with my picks.` : "Nothing was blank.");
+});
+
+let statusTimer = 0;
+function setStatus(t) {
+  const s = document.getElementById("status");
+  s.textContent = t; clearTimeout(statusTimer); statusTimer = setTimeout(() => { s.textContent = ""; }, 5000);
+}
+function selectMd() {
+  const r = document.createRange(); r.selectNodeContents(document.getElementById("md"));
+  const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+}
+document.getElementById("copyBtn").addEventListener("click", () => {
+  const text = buildMd();
+  const fail = () => { selectMd(); setStatus("Couldn't reach the clipboard here: the prompt is selected, copy it by hand."); };
+  try { navigator.clipboard.writeText(text).then(() => setStatus("Copied. Paste it to Claude."), fail); } catch (err) { fail(); }
+});
+
+let downloads = null;
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  if (!downloads) return;
+  try { await downloads.save({ filename: "royale_ui_brief.md", data: buildMd() }); setStatus("Saved royale_ui_brief.md."); }
+  catch (err) {
+    const c = err && err.code;
+    if (c === "declined") setStatus("Not saved.");
+    else if (c === "rate_limited") setStatus("A save prompt is already open.");
+    else { document.getElementById("saveBtn").hidden = true; setStatus("Saving isn't available here; use Copy prompt."); }
+  }
+});
+try {
+  const u = window.claude && window.claude.use ? window.claude.use("downloads") : null;
+  if (u && u.then) u.then((d) => { if (d) { downloads = d; document.getElementById("saveBtn").hidden = false; } }, () => {});
+} catch (e) {}
+
+document.getElementById("clearBtn").addEventListener("click", () => { document.getElementById("clearAsk").hidden = false; document.getElementById("clearBtn").hidden = true; });
+document.getElementById("clearNo").addEventListener("click", () => { document.getElementById("clearAsk").hidden = true; document.getElementById("clearBtn").hidden = false; });
+document.getElementById("clearYes").addEventListener("click", () => {
+  state = { a: {}, n: {}, open: {}, blank: state.blank, free: "" };
+  save(); render();
+  document.getElementById("clearAsk").hidden = true; document.getElementById("clearBtn").hidden = false;
+  setStatus("Every answer cleared.");
+});
+
+// ---- lightbox: one card's pictures, today and mock side by side in the chips ----
+let lbList = [], lbAt = 0, lbFrom = null;
+function openLb(group, key) {
+  const b = SECTIONS.flatMap((s) => s.blocks).find((x) => x.id === group);
+  lbList = b.wide ? [b.wide] : b.cmp[0].concat(b.cmp[1]);
+  lbAt = Math.max(0, lbList.indexOf(key));
+  lbFrom = document.activeElement;
+  document.getElementById("lbChips").innerHTML = lbList.map((k, i) => `<button type="button" data-lb="${i}" class="${IMG[k][0] === "Mock" ? "mock" : ""}"><span class="w">${IMG[k][0]}</span>${esc(IMG[k][1])}</button>`).join("");
+  document.getElementById("lb").hidden = false;
+  document.body.style.overflow = "hidden";
+  showLb();
+  document.getElementById("lbClose").focus();
+}
+function showLb() {
+  const k = lbList[lbAt], m = IMG[k];
+  const img = document.getElementById("lbImg");
+  img.src = `img/${k}.jpg`; img.alt = `${m[0]}: ${m[1]}`;
+  document.getElementById("lbTitle").textContent = `${m[0]} · ${m[1]}`;
+  for (const c of document.querySelectorAll("[data-lb]")) c.classList.toggle("on", Number(c.dataset.lb) === lbAt);
+  document.getElementById("lbPrev").disabled = lbList.length < 2;
+  document.getElementById("lbNext").disabled = lbList.length < 2;
+}
+function closeLb() {
+  document.getElementById("lb").hidden = true;
+  document.body.style.overflow = "";
+  if (lbFrom) lbFrom.focus();
+}
+const step = (d) => { lbAt = (lbAt + d + lbList.length) % lbList.length; showLb(); };
+document.getElementById("lbChips").addEventListener("click", (e) => { const c = e.target.closest("[data-lb]"); if (c) { lbAt = Number(c.dataset.lb); showLb(); } });
+document.getElementById("lbPrev").addEventListener("click", () => step(-1));
+document.getElementById("lbNext").addEventListener("click", () => step(1));
+document.getElementById("lbClose").addEventListener("click", closeLb);
+document.getElementById("lbStage").addEventListener("click", (e) => { if (e.target.id === "lbStage") closeLb(); });
+document.addEventListener("keydown", (e) => {
+  if (document.getElementById("lb").hidden) return;
+  if (e.key === "Escape") closeLb();
+  else if (e.key === "ArrowLeft") step(-1);
+  else if (e.key === "ArrowRight") step(1);
+});
+let touchX = null;
+document.getElementById("lbStage").addEventListener("touchstart", (e) => { touchX = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+document.getElementById("lbStage").addEventListener("touchend", (e) => {
+  if (touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX; touchX = null;
+  if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+});
+
+// ---- start (an open view keeps its answers across a republish) ----
+function start(data) {
+  if (data && data.state) state = Object.assign(state, data.state); else load();
+  render();
+}
+try { window.claude?.hot?.snapshot?.(() => ({ state })); } catch (e) {}
+if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
+</script>
