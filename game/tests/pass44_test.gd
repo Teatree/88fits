@@ -207,8 +207,9 @@ func test_the_skeletons_carry_four_variants_and_stay_out() -> void:
 		for code in variants.keys():
 			var recipe: Dictionary = variants[code].get("recipe", {})
 			# a painted look names its paintings; a tinted one (pass 54: SK-E / KN-E, the dark-blue bones) names the look
-			# whose strip it recolours frame by frame (tools/recolour_strip.py --mode tint)
-			var made_from := str(recipe.get("stills", "")) + str(recipe.get("tint_of", ""))
+			# whose strip it recolours frame by frame (tools/recolour_strip.py --mode tint); a lifted one (pass 122: KN-F, the
+			# ice-blue bones) names it as recolour_of (pass 107's key)
+			var made_from := str(recipe.get("stills", "")) + str(recipe.get("tint_of", "")) + str(recipe.get("recolour_of", ""))
 			assert_str(made_from).override_failure_message("%s %s says nothing of how it was made" % [id, code]).is_not_empty()
 			assert_bool(str(recipe.get("art_prompt", "")).find("stretched straight out") >= 0).is_false()
 

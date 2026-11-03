@@ -550,7 +550,13 @@ var _hell_tween: Tween
 ## the fort wall's material (pass 80): stage 3's hell tints it as it tints the ground (the wall is unshaded, so the hell's
 ## light alone would leave it pale)
 var _wall_mat: StandardMaterial3D
-const HELL_WALL := Color(0.97, 0.79, 0.72)
+## Pass 122 (lane S3WORLD; Garry: the Blood Moon's ground "not as dark"): the wall's hell tint, the ambient light and the
+## haze at hell, all a little lighter and greyer than pass 43's (wall 0.97, 0.79, 0.72; ambient 0.92, 0.70, 0.60; fog
+## 0.86, 0.54, 0.38): the stage's red filter does the reddening, the light under it stays open enough for dark and red
+## creatures to read against the sand (terrain_painted.gdshader hell_mul / hell_add carry the sand's own tint).
+const HELL_WALL := Color(0.98, 0.84, 0.78)
+const HELL_AMBIENT := Color(0.95, 0.78, 0.70)
+const HELL_FOG := Color(0.90, 0.64, 0.50)
 
 
 func _stone() -> StandardMaterial3D:
@@ -844,8 +850,8 @@ func _apply_hell(f: float) -> void:
 	if _wall_mat:
 		_wall_mat.albedo_color = Color.WHITE.lerp(HELL_WALL, f)
 	if _env:
-		_env.ambient_light_color = Color(0.95, 0.80, 0.66).lerp(Color(0.92, 0.70, 0.60), f)
-		_env.fog_light_color = Color(0.93, 0.66, 0.42).lerp(Color(0.86, 0.54, 0.38), f)
+		_env.ambient_light_color = Color(0.95, 0.80, 0.66).lerp(HELL_AMBIENT, f)
+		_env.fog_light_color = Color(0.93, 0.66, 0.42).lerp(HELL_FOG, f)
 
 
 func _build_movers() -> void:

@@ -45,6 +45,17 @@ const MENU_STYLE_DEFAULT := "painted"
 var menu_style: String = MENU_STYLE_DEFAULT:
 	set(v):
 		menu_style = str(v) if MENU_STYLES.has(str(v)) else MENU_STYLE_DEFAULT
+## The UI theme (pass 122, lane UIKIT_A; Garry's build brief of 2026-11-02: Claude Design's "Royale, refined" as a SECOND
+## THEME behind a switch, Wanted the default): "wanted", today's paper, ink and brass kit, or "royale", the slate, navy
+## and gold kit the Wanted components switch to while W.royale() is true (ui/wanted/R.gd holds its tokens). Shown in
+## the developer menu, in Settings' Debug panel beside the Painted / Live choice and in the in-run debug panel; saved
+## with the other settings; anything but the two names reads as wanted. A change takes effect on the next screen built
+## (Settings rebuilds itself at once). The production build has no choice: PROD_LOCKED holds it at the default.
+const UI_THEMES := ["wanted", "royale"]
+const UI_THEME_DEFAULT := "wanted"
+var ui_theme: String = UI_THEME_DEFAULT:
+	set(v):
+		ui_theme = str(v) if UI_THEMES.has(str(v)) else UI_THEME_DEFAULT
 ## The player's own debug switch (pass 44): ten taps on the first-play hints switch in Settings flip it (and ten more
 ## on the next visit flip it back). On: the arena on the title, the debug hand on the pick screens, holding the
 ## clock, a free respawn and the last hits on Down! (pass 46: the hits moved there from the Results screen).
@@ -74,6 +85,13 @@ var hero_knockback: bool = false
 ## Basketball thrown with nobody to bounce off drops to the sand). Off, every one aims as before. Settings shows the
 ## switch only in debug mode (the Debug panel) and in the developer menu; the production build holds it off.
 var fire_forward: bool = false
+## The HUD's item slots in their colours under the Royale theme (pass 122, lane UIHUD; Garry: "Put rarity colours on the
+## HUD's item slots behind a debug switch, so I can compare them with plain frames on the phone before choosing"): off
+## (the default), every slot is the plain common frame; on, a weapon's or Card's level colour (W.level_fill, pass 48's
+## rule) or a passive item's rarity, as the mock. An evolved item is the black face in the rainbow rim either way. Only
+## the Royale HUD reads it (the Wanted plates keep their level colours); the in-run debug panel's button flips it; the
+## production build holds it off.
+var hud_slot_rarity: bool = false
 ## The debug arena's training dummies (pass 48, the developer menu and the arena's WORLD tab; lane L5 lays them out):
 ## how many stand in the field (never fewer than 10), and their health: 0 = undying (a hit refills them), else that much
 ## HP, and one that dies comes back.
@@ -141,7 +159,8 @@ var frame_cap: int = default_frame_cap(OS.has_feature("mobile")):
 ## force_prod(). The dev build never changes.
 const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_buttons": false, "free_revive_button": false,
 	"hit_log": false, "preview_locked_heroes": false, "menu_style": MENU_STYLE_DEFAULT, "ranged_on_screen": true,
-	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false}
+	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false, "ui_theme": UI_THEME_DEFAULT,
+	"hud_slot_rarity": false}
 var _prod_forced := -1
 
 
@@ -210,7 +229,8 @@ func to_dict() -> Dictionary:
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 		"menu_style": menu_style, "ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
-		"hero_knockback": hero_knockback, "fire_forward": fire_forward,
+		"hero_knockback": hero_knockback, "fire_forward": fire_forward, "ui_theme": ui_theme,
+		"hud_slot_rarity": hud_slot_rarity,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
@@ -244,6 +264,8 @@ func from_dict(d: Dictionary) -> void:
 	pierce_falloff = bool(d.get("pierce_falloff", pierce_falloff))
 	hero_knockback = bool(d.get("hero_knockback", hero_knockback))
 	fire_forward = bool(d.get("fire_forward", fire_forward))
+	ui_theme = str(d.get("ui_theme", ui_theme))
+	hud_slot_rarity = bool(d.get("hud_slot_rarity", hud_slot_rarity))
 	dummy_count = int(d.get("dummy_count", dummy_count))
 	dummy_hp = int(d.get("dummy_hp", dummy_hp))
 	dummy_patrol = bool(d.get("dummy_patrol", dummy_patrol))

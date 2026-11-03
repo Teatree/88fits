@@ -2,6 +2,8 @@
 ## range, in thirds, with both ends written so a full gauge on one gift never outranks an empty one on another. One line,
 ## vertically centred: the low end in Bitter 600 18, `count` notches (56 x 18, a 3 px ink border, 8 px apart; brass when
 ## filled, aged when not), the high end. No feathers, no stars, no rarity colour: the gifts have no rarity.
+## Pass 122 (lane UIKIT_B), under Royale (W.royale()): navy-edged notches, gold when filled and the dim slate when not,
+## the ends in the secondary blue (Rubik 700 by W.serif).
 class_name WNotches
 extends Control
 
@@ -80,12 +82,17 @@ func _draw() -> void:
 	var lh := line_h()
 	# the text centred in the line as CSS centres an inline box: half-leading round the face's own ascent and descent
 	var base := (lh - (f.get_ascent(PX) + f.get_descent(PX))) * 0.5 + f.get_ascent(PX)
+	var royale := W.royale()
+	var ink := R.NAVY if royale else W.INK
+	var tc := R.text_colour(text_color) if royale else text_color
+	var on: Color = R.role("gold")["bottom"] if (royale and fill_color.is_equal_approx(W.BRASS)) else fill_color
+	var off: Color = R.SLATE_DIM if (royale and empty_color.is_equal_approx(W.AGED)) else empty_color
 	if low != "":
-		draw_string(f, Vector2(0, base), low, HORIZONTAL_ALIGNMENT_LEFT, -1, PX, text_color)
+		draw_string(f, Vector2(0, base), low, HORIZONTAL_ALIGNMENT_LEFT, -1, PX, tc)
 	for i in count:
 		var r := notch_rect(i)
-		draw_rect(r, W.INK)
-		draw_rect(r.grow(-NOTCH_BORDER), fill_color if i < filled else empty_color)
+		draw_rect(r, ink)
+		draw_rect(r.grow(-NOTCH_BORDER), on if i < filled else off)
 	if high != "":
 		var hx := notch_rect(count - 1).end.x + GAP
-		draw_string(f, Vector2(hx, base), high, HORIZONTAL_ALIGNMENT_LEFT, -1, PX, text_color)
+		draw_string(f, Vector2(hx, base), high, HORIZONTAL_ALIGNMENT_LEFT, -1, PX, tc)

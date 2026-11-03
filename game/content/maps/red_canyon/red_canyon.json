@@ -384,7 +384,7 @@
         "difficulty": "Hard",
         "filter": {
           "color": "#6A1A28",
-          "strength": 0.6
+          "strength": 0.42
         },
         "hell": true,
         "shot": "res://art/ui/stages/red_canyon_s3.jpg",
@@ -398,6 +398,7 @@
               "name": "Imp trickle",
               "t": 0,
               "enemy": "imp",
+              "variant": "IMP-A",
               "weights": [
                 [
                   0,
@@ -444,7 +445,7 @@
               "name": "Knight trickle",
               "t": 0,
               "enemy": "skeleton_knight",
-              "variant": "KN-E",
+              "variant": "KN-F",
               "weights": [
                 [
                   0,
@@ -477,6 +478,7 @@
               "name": "Buckshot pair",
               "t": 10,
               "enemy": "buckshot_dwarf",
+              "variant": "BD-B",
               "weights": [
                 [
                   0,
@@ -502,6 +504,7 @@
               "name": "Beetle charge",
               "t": 40,
               "enemy": "bull_beetle",
+              "variant": "BB-F",
               "weights": [
                 [
                   0,
@@ -527,7 +530,7 @@
               "name": "Ant ring",
               "t": 75,
               "enemy": "fire_ant",
-              "variant": "ANT-B",
+              "variant": "ANT-G",
               "weights": [
                 [
                   0,
@@ -1824,6 +1827,7 @@
         "t": 1031,
         "until": 1180,
         "enemy": "imp",
+        "variant": "IMP-A",
         "weights": [
           [
             1031,
@@ -1845,7 +1849,7 @@
         "t": 1070,
         "until": 1075,
         "enemy": "red_goblin",
-        "variant": "RG-B",
+        "variant": "RG-C",
         "weights": [
           [
             1070,
@@ -1870,6 +1874,7 @@
         "t": 1090,
         "until": 1180,
         "enemy": "red_goblin_runt",
+        "variant": "RR-C",
         "weights": [
           [
             1090,
@@ -1892,7 +1897,7 @@
         "t": 1120,
         "until": 1190,
         "enemy": "fire_ant",
-        "variant": "ANT-E",
+        "variant": "ANT-G",
         "weights": [
           [
             1120,
@@ -1959,7 +1964,7 @@
         "t": 1210,
         "until": 1215,
         "enemy": "monk",
-        "variant": "MK-C",
+        "variant": "MK-B",
         "weights": [
           [
             1210,
@@ -2002,7 +2007,7 @@
         "t": 1225,
         "until": 1300,
         "enemy": "skeleton_knight",
-        "variant": "KN-E",
+        "variant": "KN-F",
         "weights": [
           [
             1225,
@@ -2065,7 +2070,7 @@
         "t": 1300,
         "until": 1410,
         "enemy": "dust_mummy",
-        "variant": "DM-G",
+        "variant": "DM-J",
         "weights": [
           [
             1300,
@@ -2138,7 +2143,7 @@
         "t": 1300,
         "until": 1400,
         "enemy": "red_goblin",
-        "variant": "RG-B",
+        "variant": "RG-C",
         "weights": [
           [
             1300,
@@ -2161,6 +2166,7 @@
         "t": 1380,
         "until": 1385,
         "enemy": "imp",
+        "variant": "IMP-A",
         "weights": [
           [
             1380,
@@ -2186,6 +2192,7 @@
         "t": 1420,
         "until": 1600,
         "enemy": "imp",
+        "variant": "IMP-A",
         "weights": [
           [
             1420,
@@ -2228,7 +2235,7 @@
         "t": 1450,
         "until": 1600,
         "enemy": "hammer_giant",
-        "variant": "HG-C",
+        "variant": "HG-E",
         "weights": [
           [
             1450,
@@ -2252,7 +2259,7 @@
         "t": 1440,
         "until": 1560,
         "enemy": "fire_ant",
-        "variant": "ANT-B",
+        "variant": "ANT-G",
         "weights": [
           [
             1440,
@@ -2275,7 +2282,7 @@
         "t": 1500,
         "until": 1505,
         "enemy": "skeleton_knight",
-        "variant": "KN-E",
+        "variant": "KN-F",
         "weights": [
           [
             1500,
@@ -2309,6 +2316,7 @@
         "t": 1460,
         "until": 1600,
         "enemy": "buckshot_dwarf",
+        "variant": "BD-B",
         "weights": [
           [
             1460,
@@ -2340,6 +2348,7 @@
         "t": 1570,
         "until": 1575,
         "enemy": "fire_ant",
+        "variant": "ANT-G",
         "weights": [
           [
             1570,
@@ -2437,6 +2446,7 @@
         "name": "Imps (hell)",
         "t": 1605,
         "enemy": "imp",
+        "variant": "IMP-A",
         "weights": [
           [
             1605,
@@ -2477,7 +2487,7 @@
         "name": "Knights",
         "t": 1650,
         "enemy": "skeleton_knight",
-        "variant": "KN-E",
+        "variant": "KN-F",
         "weights": [
           [
             1650,
@@ -2524,7 +2534,7 @@
         "name": "Hell giant",
         "t": 1660,
         "enemy": "hammer_giant",
-        "variant": "HG-C",
+        "variant": "HG-E",
         "weights": [
           [
             1660,
@@ -2567,7 +2577,7 @@
         "t": 1730,
         "until": 1735,
         "enemy": "skeleton_knight",
-        "variant": "KN-E",
+        "variant": "KN-F",
         "weights": [
           [
             1730,
@@ -2600,7 +2610,7 @@
         "name": "Endless ants",
         "t": 1811,
         "enemy": "fire_ant",
-        "variant": "ANT-B",
+        "variant": "ANT-G",
         "weights": [
           [
             1811,
@@ -2964,7 +2974,13 @@
       "lift": 1.7,
       "lift_height": 4.5,
       "size": 1.25,
-      "opacity": 0.7
+      "opacity": 0.7,
+      "hell": {
+        "color": "#FF7A1E",
+        "wisps": "#FFD66A",
+        "ring": "#FF9A3C",
+        "glow": 1.0
+      }
     },
     "barrels": {
       "respawn": {

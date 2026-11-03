@@ -17,6 +17,15 @@ uniform sampler2D sprite : source_color, filter_linear_mipmap, repeat_disable;
 uniform float alpha_cut = 0.5;
 uniform float mute : hint_range(0.0, 1.0) = 0.12;
 uniform float face_camera : hint_range(0.0, 1.0) = 1.0;
+// Pass 122 (lane S3WORLD; Garry: barrels "more visible on all that red"): a pale rim light round the painting. `rim`
+// 0..1 is how far it is on (0, the default: the shader is as before, every prop unchanged, no extra tap); on, a line
+// rim_width (of the painting's square, times `rim`) wide in rim_color is drawn just outside the painted edge and the
+// painted edge itself lightens a little towards it (eight alpha taps round the pixel). Only the barrels' materials set
+// it (BarrelField.set_hell: it comes in with the Blood Moon's hell), so a barrel reads on the red ground as a moonlit
+// edge, the way a creature behind a cactus reads through its outline.
+uniform float rim : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 rim_color : source_color = vec4(1.0, 0.94, 0.82, 1.0);
+uniform float rim_width = 0.03;
 
 varying vec2 v_uv;
 varying vec3 v_roll;
@@ -99,14 +108,35 @@ void vertex() {
 
 void fragment() {
 	vec4 c = texture(sprite, v_uv);
-	if (c.a < alpha_cut) {
+	// pass 122: the rim light (rim > 0 only): a pixel just outside the painted edge, or a painted one at the edge
+	float rim_out = 0.0;
+	float rim_in = 0.0;
+	if (rim > 0.0) {
+		float w = rim_width * rim;
+		float hi = 0.0;
+		float lo = 1.0;
+		for (int k = 0; k < 8; k++) {
+			float ang = float(k) * TAU / 8.0;
+			float a = texture(sprite, v_uv + vec2(cos(ang), sin(ang)) * w).a;
+			hi = max(hi, a);
+			lo = min(lo, a);
+		}
+		rim_out = (c.a < alpha_cut && hi >= alpha_cut) ? 1.0 : 0.0;
+		rim_in = (c.a >= alpha_cut && lo < alpha_cut) ? 1.0 : 0.0;
+	}
+	if (c.a < alpha_cut && rim_out < 0.5) {
 		discard;
 	}
-	if (tint_v_0.w > 0.5) {
-		vec3 hsv = rgb2hsv(c.rgb);
-		vec3 rgb = tint_part(c.rgb, hsv, tint_hue_0, tint_hs_0, tint_v_0, v_roll);
-		c.rgb = tint_v_1.w > 0.5 ? tint_part(rgb, rgb2hsv(rgb), tint_hue_1, tint_hs_1, tint_v_1, v_roll) : rgb;
+	if (rim_out > 0.5) {
+		ALBEDO = rim_color.rgb;
+	} else {
+		if (tint_v_0.w > 0.5) {
+			vec3 hsv = rgb2hsv(c.rgb);
+			vec3 rgb = tint_part(c.rgb, hsv, tint_hue_0, tint_hs_0, tint_v_0, v_roll);
+			c.rgb = tint_v_1.w > 0.5 ? tint_part(rgb, rgb2hsv(rgb), tint_hue_1, tint_hs_1, tint_v_1, v_roll) : rgb;
+		}
+		float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
+		vec3 albedo = mix(c.rgb, vec3(lum), mute) * (1.0 - mute * 0.3);
+		ALBEDO = mix(albedo, rim_color.rgb, rim_in * rim * 0.45);
 	}
-	float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
-	ALBEDO = mix(c.rgb, vec3(lum), mute) * (1.0 - mute * 0.3);
 }

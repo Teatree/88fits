@@ -19,6 +19,10 @@ uniform float band = 0.5;
 uniform float alpha = 1.0;
 uniform float t = 0.0;
 uniform float spin = 0.9;
+// Pass 122 (lane S3WORLD): `fire` 0..1 draws the reach in fire colours (0: pass 113's dust): the arcs deep embers, the
+// edge line the hot wisp_color. Only colours.
+uniform float fire : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 wisp_color : source_color = vec4(1.0, 0.93, 0.8, 1.0);
 
 varying float v_r;
 
@@ -58,8 +62,9 @@ void fragment() {
 	// dark arcs of dust turning round with the funnel, broken by the noise
 	float n = texture(noise_tex, vec2(u * 6.0 - t * spin * 1.2, r * 0.35 - t * 0.2)).r;
 	float arcs = smoothstep(0.35, 0.55, sin(u * TAU * 7.0 - t * spin * TAU * 0.8 + r * 2.5) * 0.5 + 0.5 + (n - 0.5) * 0.6);
-	vec3 dark = color.rgb * vec3(0.42, 0.34, 0.3);
-	vec3 pale = mix(color.rgb, vec3(0.99, 0.88, 0.7), 0.6);
+	// burning: the arcs are the fire's own orange (not a dark shade), the edge line the hot yellow, the inside a warm haze
+	vec3 dark = mix(color.rgb * vec3(0.42, 0.34, 0.3), mix(color.rgb, wisp_color.rgb, 0.2), fire);
+	vec3 pale = mix(mix(color.rgb, vec3(0.99, 0.88, 0.7), 0.6), mix(color.rgb, wisp_color.rgb, 0.75), fire);
 	// the outer edge line, pale, so the reach reads on dark and light sand alike
 	float edge = smoothstep(r_out - 0.16, r_out - 0.09, r) * (1.0 - smoothstep(r_out - 0.05, r_out, r));
 	vec3 c = mix(dark, pale, edge);

@@ -16,24 +16,24 @@
   "forms": [
     {
       "name": "Muscle",
-      "text": "+6% attack damage a rank.",
+      "text": "+8% attack damage a rank.",
       "effects": [
         {
           "stat": "might",
           "op": "mul",
-          "value": 0.06,
+          "value": 0.08,
           "target": "player"
         }
       ]
     },
     {
       "name": "Tempo",
-      "text": "-5% cooldown a rank.",
+      "text": "-6% cooldown a rank.",
       "effects": [
         {
           "stat": "cooldown",
           "op": "mul",
-          "value": -0.05,
+          "value": -0.06,
           "target": "player"
         }
       ]

@@ -68,7 +68,9 @@ func _init() -> void:
 	_skull.pivot_offset = _skull.size * 0.5
 	_skull.draw.connect(_draw_skull)
 	add_child(_skull)
-	_num = W.text("0", W.slab(), NUM_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, NUM_PX * 1.15)
+	# pass 122 (the review of lane UIHUD; Garry: "keep the kill counter exactly as it is now"): the Wanted face and
+	# paper under both themes (W.wanted_text)
+	_num = W.wanted_text("0", NUM_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, NUM_PX * 1.15)
 	_num.name = "Kills"
 	_num.stroke = 4
 	_num.shadow = 3

@@ -253,6 +253,33 @@
       },
       "strip_cols": 43,
       "head": 0.963
+    },
+    "KN-F": {
+      "note": "Pass 122 recolour of KN-E for the Blood Moon: the dark-blue bones lifted to ice blue (hue 208, saturation 0.34, value 0.60-0.97), the steel, the leather and the outline as they are (tools/recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "KN-E",
+        "recolour_passes": [
+          "--mode lift --ranges 212-238 --hue-soft 2 --to 208 --set-sat 0.34 --v-lo 0.60 --v-hi 0.97 --gamma 0.85 --min-sat 0.40 --min-val 0.20 --src-hi 0.62 --soft 0.05"
+        ]
+      },
+      "sprite": "skeleton_knight_sprite_f.png",
+      "icon": "skeleton_knight_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.963,
+      "fps": {
+        "run": 15,
+        "die": 12
+      }
     }
   },
   "variant": "KN-A"

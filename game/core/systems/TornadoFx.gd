@@ -14,6 +14,12 @@
 ## radius_bottom), lean (the top's share of
 ## the height it leans, wandering slowly, and against the node's own motion when its parent moves), snake (the share of
 ## the height its middle waves), debris (how many bits ride it, set before add_child), debris_size.
+## Pass 122 (lane S3WORLD; Garry: "maybe make fire tornadoes for the tornadoes?"): `fire` 0..1 turns the dust into
+## flame in every shader (0, the default: pass 113's look to the pixel; the King's shell and a Sundown dust devil are
+## untouched): the dark bands deep embers, the pale streaks `wisp_color`, the funnel lit by itself and flickering, the
+## bank at its foot a bed of embers, the debris glowing embers; `glow` > 0 adds a warm OmniLight3D in `color` (its
+## energy x the strength, flickering) only where Fx.want_lights() (never on a phone). The shape, the timing and the
+## behaviour are the same; nothing burns.
 ##
 ## What draws (four draw calls, nothing rebuilt per frame: every shape is made in the shaders from a few numbers):
 ##   Funnel  one tube mesh (core/shaders/tornado_funnel.gdshader, layer 0): helical bands of dust climbing round it (dark
@@ -38,6 +44,10 @@ const NOISE := preload("res://art/fx/fire_noise.png")
 ## Before the stage's filter (-7), after the water (-10): the funnel, the wisps and the skirt sort among themselves by
 ## SORT (the skirt first, then the funnel, the wisps last).
 const PRIORITY := StageLook.PRIORITY - 1
+## Pass 122 (lane S3WORLD): a burning one (fire > 0) is drawn AFTER the stage's filter, so the red glass never dims the
+## flames (a fire tornado under the Blood Moon's filter read as a dark brown funnel); still before the ground marks that
+## matter (Telegraphs' bands at -1) and the pickups (-2). Its ring (DustDevil) takes PRIORITY_FIRE - 1.
+const PRIORITY_FIRE := StageLook.PRIORITY + 2
 const SORT := {"Skirt": 0.0, "Funnel": 0.5, "Wisps": 1.0}
 ## The mesh's rings up the funnel and segments round it.
 const RINGS := 22
@@ -99,6 +109,23 @@ const LEAN_MAX := 0.25
 	set(v):
 		debris_size = v
 		_dirty = true
+## Pass 122 (lane S3WORLD): how far it burns (0 dust .. 1 fire), the colour of its hot streaks, the warm glow's energy.
+@export var fire := 0.0:
+	set(v):
+		fire = clampf(v, 0.0, 1.0)
+		_dirty = true
+@export var wisp_color := Color(1.0, 0.93, 0.8):
+	set(v):
+		wisp_color = v
+		_dirty = true
+@export var glow := 0.0:
+	set(v):
+		glow = maxf(v, 0.0)
+		_dirty = true
+## The glow's height up the funnel (x height), its reach (x height) and how fast it flickers.
+const GLOW_AT := 0.4
+const GLOW_RANGE := 1.1
+const GLOW_FLICKER := 0.12
 
 ## 0..1 as last set (set_strength).
 var strength := 1.0
@@ -117,6 +144,8 @@ var _funnel: MeshInstance3D
 var _wisps: MeshInstance3D
 var _skirt: MeshInstance3D
 var _debris: MultiMeshInstance3D
+## Pass 122: the warm glow (null until `glow` > 0 where lights are wanted).
+var _light: OmniLight3D
 var _mats: Array = []
 var _last_pos := Vector3.INF
 var _vel := Vector3.ZERO
@@ -126,6 +155,9 @@ var _wander := 0.0
 static var _tube: ArrayMesh
 static var _ring: ArrayMesh
 static var _quad: QuadMesh
+## Pass 122: the debris shader writing the shots' stencil (StageStencil.CLEAR, 3): the embers of a burning one are opaque
+## (no render priority can move them past the filter), so they write the value the filter never darkens.
+static var _debris_fire: Shader
 
 
 func _ready() -> void:
@@ -328,6 +360,14 @@ func _apply_all() -> void:
 		m.set_shader_parameter("r_bottom", radius_bottom)
 		m.set_shader_parameter("r_top", radius_top)
 		m.set_shader_parameter("snake", snake * height)
+		# pass 122 (lane S3WORLD): the fire look, drawn after the stage's filter when it burns
+		m.set_shader_parameter("fire", fire)
+		m.set_shader_parameter("wisp_color", wisp_color)
+		m.render_priority = draw_priority()
+	var dsh := debris_fire_shader() if fire > 0.0 else DEBRIS_SHADER
+	if (_debris.material_override as ShaderMaterial).shader != dsh:
+		(_debris.material_override as ShaderMaterial).shader = dsh
+	_apply_glow()
 	(_funnel.material_override as ShaderMaterial).set_shader_parameter("alpha_max", opacity)
 	(_wisps.material_override as ShaderMaterial).set_shader_parameter("alpha_max", opacity)
 	var sm := _skirt.material_override as ShaderMaterial
@@ -343,6 +383,21 @@ func _apply_all() -> void:
 	for gi: GeometryInstance3D in [_funnel, _wisps, _skirt, _debris]:
 		gi.custom_aabb = box
 	_apply_live()
+
+
+## Where it is drawn (pass 122): before the stage's filter as dust, after it burning.
+func draw_priority() -> int:
+	return PRIORITY_FIRE if fire > 0.0 else PRIORITY
+
+
+## The debris shader for a burning one (pass 122): DEBRIS_SHADER's code writing the shots' stencil (never darkened by
+## the stage's filter), made once and shared.
+static func debris_fire_shader() -> Shader:
+	if _debris_fire == null:
+		_debris_fire = Shader.new()
+		var line := "stencil_mode write, compare_always, %d;" % StageStencil.CLEAR
+		_debris_fire.code = DEBRIS_SHADER.code.replace("shader_type spatial;", "shader_type spatial;\n" + line)
+	return _debris_fire
 
 
 ## The numbers that change every frame: the clock, the strength's shares, the lean, the puff.
@@ -362,6 +417,37 @@ func _apply_live() -> void:
 	sm.set_shader_parameter("burst", burst_t)
 	dm.set_shader_parameter("amount", minf(grow, thin) if strength > 0.0 else 0.0)
 	dm.set_shader_parameter("burst", burst_t)
+	if _light != null:
+		# pass 122: the glow follows the strength and flickers a little
+		var e := glow * strength * (1.0 + GLOW_FLICKER * sin(_t * 13.0) * sin(_t * 7.3 + 1.0))
+		_light.light_energy = maxf(e, 0.0)
+		_light.visible = e > 0.001
+
+
+## Pass 122 (lane S3WORLD): the warm glow, made once `glow` is above 0 where lights are wanted (Fx.want_lights: never on
+## a phone), in the dust's colour, GLOW_AT up the funnel, reaching GLOW_RANGE x the height.
+func _apply_glow() -> void:
+	if glow <= 0.0:
+		if _light != null:
+			_light.visible = false
+		return
+	if _light == null:
+		if not Fx.want_lights():
+			return
+		_light = OmniLight3D.new()
+		_light.name = "Glow"
+		_light.shadow_enabled = false
+		_light.light_specular = 0.0
+		add_child(_light)
+	_light.light_color = color
+	_light.position = Vector3(0.0, height * GLOW_AT, 0.0)
+	_light.omni_range = maxf(height * GLOW_RANGE, 1.0)
+	_light.omni_attenuation = 1.3
+
+
+## The glow light (tests, tools): null when none is wanted.
+func glow_light() -> OmniLight3D:
+	return _light
 
 
 # ---------------------------------------------------------------- tools

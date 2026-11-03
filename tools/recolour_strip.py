@@ -23,6 +23,11 @@ gives the darkest shades their own hue (gold with amber shadows); `--mass 3 [--g
 least 7 px thick (pixels of the hue, value and saturation >= `--mass-sat`, default 0.4 x min-sat), grown back
 5 px (the shell, not the thin legs of the same red); `--keep-edge 4` leaves the figure's outer 4 px as they are (an
 icon's grey outer stroke). Ranges wrap by listing two (340-360,0-40).
+`--cells 18[,61]` (pass 122, the Blood Moon's cool looks): the pass runs on those frames of the strip grid alone (frame k at
+`((k % cols) * cell, (k // cols) * cell)`, the cell `--cell-px` or the image's height, cols = width // cell), every other
+pixel copied as it is: a creature's `hit` frame (idle + run + attack frames in) is a white-washed flash of the material whose
+saturation falls under the strip pass's `--min-sat`, so it takes a second pass of its own with a lower one. A cell outside the
+grid (the icon, one frame) is skipped with a note, so a look's passes apply to its strip and its icon alike, in turn.
 """
 import os
 import sys
@@ -54,24 +59,41 @@ def main():
     min_sat = float(opt("min-sat", "0.2"))
     max_sat = float(opt("max-sat", "1.01"))
     img = Image.open(src).convert("RGBA")
-    if opt("mode", "hue") == "lift":
-        # pass 107: a material made lighter (white shells, bright ants, a bone scorpion); value remapped onto [v-lo, v-hi]
-        ss = opt("set-sat")
-        out = artkit.lift_range(img, ranges, to, None if ss is None else float(ss), sat, float(opt("v-lo", "0.5")),
-                                float(opt("v-hi", "1.0")), float(opt("gamma", "1.0")), min_sat, max_sat,
-                                float(opt("min-val", "0.0")), float(opt("src-hi", "1.0")), float(opt("soft", "0.04")),
-                                float(opt("hue-soft", "0")), None if opt("to-dark") is None else float(opt("to-dark")),
-                                int(opt("mass", "0")), None if opt("grow") is None else int(opt("grow")),
-                                None if opt("mass-sat") is None else float(opt("mass-sat")), int(opt("keep-edge", "0")))
-    elif opt("mode", "hue") == "tint":
-        # pass 54: a pale material to a dark saturated one (the dark-blue skeletons); value is scaled, saturation set
-        out = artkit.tint_range(img, ranges, to, float(opt("set-sat", "0.55")), float(opt("value", "0.6")), min_sat, max_sat,
-                                float(opt("min-val", "0.3")))
+
+    def _apply(im):
+        if opt("mode", "hue") == "lift":
+            # pass 107: a material made lighter (white shells, bright ants, a bone scorpion); value remapped onto [v-lo, v-hi]
+            ss = opt("set-sat")
+            return artkit.lift_range(im, ranges, to, None if ss is None else float(ss), sat, float(opt("v-lo", "0.5")),
+                                     float(opt("v-hi", "1.0")), float(opt("gamma", "1.0")), min_sat, max_sat,
+                                     float(opt("min-val", "0.0")), float(opt("src-hi", "1.0")), float(opt("soft", "0.04")),
+                                     float(opt("hue-soft", "0")), None if opt("to-dark") is None else float(opt("to-dark")),
+                                     int(opt("mass", "0")), None if opt("grow") is None else int(opt("grow")),
+                                     None if opt("mass-sat") is None else float(opt("mass-sat")), int(opt("keep-edge", "0")))
+        if opt("mode", "hue") == "tint":
+            # pass 54: a pale material to a dark saturated one (the dark-blue skeletons); value is scaled, saturation set
+            return artkit.tint_range(im, ranges, to, float(opt("set-sat", "0.55")), float(opt("value", "0.6")), min_sat, max_sat,
+                                     float(opt("min-val", "0.3")))
+        return artkit.remap_hues(im, ranges, to, sat, min_sat, max_sat)
+
+    cells = [int(v) for v in opt("cells", "").split(",") if v.strip() != ""]
+    if cells:
+        # pass 122: the pass on these frames of the strip grid alone (a creature's hit frame), the rest copied as it is
+        cell = int(opt("cell-px", str(img.height)))
+        cols, rows = max(img.width // cell, 1), max(img.height // cell, 1)
+        out = img.copy()
+        for k in cells:
+            if k < 0 or k >= cols * rows:
+                print("recolour_strip: cell %d is outside the %dx%d grid of %s: skipped" % (k, cols, rows, src))
+                continue
+            x, y = (k % cols) * cell, (k // cols) * cell
+            out.paste(_apply(img.crop((x, y, x + cell, y + cell))), (x, y))
     else:
-        out = artkit.remap_hues(img, ranges, to, sat, min_sat, max_sat)
+        out = _apply(img)
     os.makedirs(os.path.dirname(os.path.abspath(dst)), exist_ok=True)
     out.save(dst)
-    print("recolour_strip: %s -> %s (%dx%d, hues %s -> %.0f, sat x%.2f)" % (src, dst, out.width, out.height, ranges, to, sat))
+    print("recolour_strip: %s -> %s (%dx%d, hues %s -> %.0f, sat x%.2f%s)" % (src, dst, out.width, out.height, ranges, to, sat,
+                                                                         (", cells %s" % cells) if cells else ""))
     prev = opt("preview")
     if prev:
         cell = img.height

@@ -17,6 +17,10 @@ uniform float bank = 0.9;
 uniform float amount = 1.0;
 uniform float burst = 0.0;
 uniform float alpha_max = 0.92;
+// Pass 122 (lane S3WORLD): `fire` 0..1 makes the bank a bed of embers (0: pass 113's look): the shade deep ember red,
+// the billows wisp_color's yellow-orange. Only colours.
+uniform float fire : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 wisp_color : source_color = vec4(1.0, 0.93, 0.8, 1.0);
 
 void vertex() {
 	float s = UV.y;
@@ -39,9 +43,13 @@ void fragment() {
 	vec3 base = color.rgb;
 	vec3 light = mix(base, vec3(0.99, 0.88, 0.7), 0.6);
 	vec3 shade = mix(base, light, 0.15) * vec3(0.84, 0.8, 0.77);
+	// pass 122: burning, the shade is deep embers and the billows the hot yellow-orange
+	light = mix(light, mix(base, wisp_color.rgb, 0.55), fire);
+	shade = mix(shade, base * vec3(0.55, 0.22, 0.08), fire);
 	vec3 c = mix(shade, light, puff);
-	// the inside of the bank, by the foot, in the funnel's shadow
-	c *= mix(0.78, 1.0, smoothstep(0.0, 0.45, s));
+	// the inside of the bank, by the foot, in the funnel's shadow (burning: lit by the fire above it)
+	c *= mix(mix(0.78, 1.0, smoothstep(0.0, 0.45, s)), mix(1.05, 0.95, smoothstep(0.0, 0.45, s)), fire);
+	c *= 1.0 + fire * 0.12 * sin(t * 9.0 + u * TAU * 4.0) * sin(t * 5.7 + s * 8.0);
 	// a ragged outer rim, a soft inner edge under the funnel's foot
 	float rim = (1.0 - s) + (n1 - 0.5) * 0.55;
 	float a = alpha_max * smoothstep(0.02, 0.16, rim) * smoothstep(0.0, 0.12, s + n2 * 0.08);

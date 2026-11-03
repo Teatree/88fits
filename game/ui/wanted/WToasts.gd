@@ -54,10 +54,12 @@ func clear_hint() -> void:
 
 
 func _make(t: String, c: Color) -> WText:
-	var w := W.text(t, W.slab(), PX, c, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	# pass 122 (the review of lane UIHUD; Garry: "Toasts, banners, hints and TAP TO GO stay as they are"): the Wanted
+	# face, colour and edge under both themes (W.wanted_text)
+	var w := W.wanted_text(t, PX, c, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	w.stroke = 2
 	w.shadow = 3
-	w.size = Vector2(size.x, W.normal_height(W.slab(), PX))
+	w.size = Vector2(size.x, W.normal_height(W.wanted_slab(), PX))
 	return w
 
 
@@ -93,7 +95,7 @@ func tick(delta: float) -> void:
 
 
 func _layout() -> void:
-	var lh := W.normal_height(W.slab(), PX)
+	var lh := W.normal_height(W.wanted_slab(), PX)
 	var y := 0.0
 	if _hint and _hint.visible:
 		_hint.position = Vector2(0, y)
@@ -131,11 +133,11 @@ func _add_icon(w: WText, icon: Texture2D) -> void:
 ## Where the middle of an icon toast's icon lands when a toast saying `t` is pushed now (in this node's coordinates):
 ## the newest toast is always the top line, under a hint while one shows. The Totem screen flies the face there.
 func icon_spot(t: String) -> Vector2:
-	var lh := W.normal_height(W.slab(), PX)
+	var lh := W.normal_height(W.wanted_slab(), PX)
 	var y := 0.0
 	if _hint and _hint.visible:
 		y += lh + 6.0
-	var tw := W.slab().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, PX).x
+	var tw := W.wanted_slab().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, PX).x
 	var shift := (ICON + ICON_GAP) * 0.5
 	var x := shift + (size.x - tw) * 0.5 - ICON_GAP - ICON * 0.5
 	return Vector2(x, y + maxf(lh, ICON) * 0.5)

@@ -27,6 +27,20 @@
 ## brightest middle), banish mode's star line names its moment instead of LEVEL UP, a refused REROLL or SKIP in banish
 ## mode says so for a moment and the mode's words come back, a reroll takes the struck card's ghost with the old table,
 ## and the mutation offer's shine reaches as far as the level-up's.
+## Pass 122 (lane UILEVELUP), under Royale (W.royale(); Garry's build brief of 2026-11-02 on Claude Design's "Royale,
+## refined": "Level-up cards as the mock: slate cards, same text and layout, the touched card gold-lit with rays, REROLL
+## · SKIP · BANISH in slate"; "One tap on a card picks it, as today; the gold-lit state with rays is press feedback
+## only"; "keep the Level N and Level Up text white"): the 80 % black dim (the kit's); LEVEL UP and LEVEL N in cream
+## Ultra with the navy edge (star_colour: the kit's WStarLine would set the star line in gold), the dry line and banish
+## mode's note with a navy drop straight down (_drop); the shine in the kit's gold and cream (shine_colours); the rail's
+## track navy (rail_track_colour); the cards the kit's slate cards (WCard) with the mock's 200 px frame 34 px from the
+## words (ROYALE_PLATE_PX, ROYALE_GAP; today's 180 and 28 under Wanted), and the held card in its place on its base with
+## a 5 px gold inner edge (_royale_held; the kit adds the pulsing glow and the rays behind its item, ROYALE_RAYS times
+## the frame); REROLL, SKIP and BANISH in slate with their counts as the kit's navy pills (count_parts: a gold number,
+## grey at 0; locked at 0 by WTap); the mutation offer's head follows (its star line cream, its name cream, the rays
+## behind its weapon plate, its SKIP pill) and banish mode's marks wear the kit's red, cream and navy (BanishMark). The
+## head and the dim's colour are set in the theme on at the time and set again when a later offer finds the theme
+## flipped (the debug panel's switch; _rebuild_head). Wanted is built and drawn exactly as before while the switch is off.
 class_name CardScreen
 extends WModal
 
@@ -79,6 +93,8 @@ var _banish_text := ""
 var _note_tw: Tween
 ## Struck cards' ghosts so far (each ghost's name is its own).
 var _struck_n := 0
+## The theme the head was built in (pass 122): an offer that finds it flipped builds the head again (_rebuild_head).
+var _built_royale := false
 
 ## The rail's thickness and its fill's inset are the HUD's (pass 56, Garry: "Make the EXP bar twice as thick": one pair of
 ## constants for both rails, 36 px and 6, so the level-up screen's can never differ from the run's), and the paper glint
@@ -151,6 +167,17 @@ const NOTE_HOLD := 2.2
 const STRIKE_SLAM := 0.18
 const STRIKE_HOLD := 0.42
 const STRIKE_FADE := 0.22
+## The level-up's cards under Royale (pass 122, the mock's level-up): the item frame's side and its gap to the words
+## (WItem.options gives 180 and 28, kept under Wanted), the held card's gold inner edge (the mock's 5 px; the Wanted
+## brass band is 6) and the rays behind its item as a share of the frame: the mock's 300 px box round a 200 frame, whose
+## CSS mask (30 % to 70 %) is sized to the box's farthest corner, where the kit's disc (ui_rays.gdshader) masks at 30 %
+## to 70 % of its own radius, so the same ring (64 to 148 px from the centre, out past the frame's sides) takes a disc
+## 300 x sqrt 2 = 424 px, 2.12 times the frame (at 1.5 the rays hid behind the frame); the kit's R.RAYS_SCALE 2.2 is the
+## chest's and the mutation offer's.
+const ROYALE_PLATE_PX := 200.0
+const ROYALE_GAP := 34
+const ROYALE_EDGE := 5
+const ROYALE_RAYS := 2.12
 
 
 func _ready() -> void:
@@ -161,14 +188,7 @@ func _ready() -> void:
 	_shine.put(self)
 	_shine.visible = false
 	_build_rail()
-	# build_header's header with a larger star line (STAR_LINE_PX: LEVEL UP)
-	header = WModalHeader.make(LEVEL_UP_WORDS, "LEVEL 1", PICK_LINE, 150, W.PAPER, STAR_LINE_PX, HEADER_TOP)
-	add_child(header)
-	# the star line and the dry line are read over the shine's rays (pass 58): the kit's hard ink shadow under both, as
-	# under the title
-	header.shadow_star(STAR_LINE_SHADOW)
-	header.line.shadow = 2
-	_build_banish_note()
+	_build_head()
 	_list = VBoxContainer.new()
 	_list.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_list.offset_left = 48
@@ -194,13 +214,112 @@ func _ready() -> void:
 	_path_skip.offset_top = -90 - 108
 	_path_skip.pressed.connect(_skip)
 	add_child(_path_skip)
-	_path_note = W.serif_text("", 30, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 39.0)
-	_path_note.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_path_note.offset_bottom = -90 - 108 - 24
-	_path_note.offset_top = -90 - 108 - 24 - 40
-	_path_note.visible = false
+	_path_note = _make_path_note()
 	add_child(_path_note)
 	build_debug_button(_open_debug)
+
+
+## The header (LEVEL UP over LEVEL N over the dry line, with banish mode's note) in the theme on now (pass 122): the
+## star line in paper, or in cream under Royale (star_colour); read over the shine's rays with the kit's hard ink shadow
+## under the star line and the dry line under Wanted (pass 58), and under Royale with the kit's navy edge on the words
+## and the stars (W.text, WStarLine) and a navy drop straight down under the dry line.
+func _build_head() -> void:
+	_built_royale = W.royale()
+	# build_header's header with a larger star line (STAR_LINE_PX: LEVEL UP)
+	header = WModalHeader.make(LEVEL_UP_WORDS, "LEVEL 1", PICK_LINE, 150, W.PAPER, STAR_LINE_PX, HEADER_TOP, star_colour())
+	add_child(header)
+	if _built_royale:
+		_drop(header.line, 2)
+	else:
+		# the star line and the dry line are read over the shine's rays (pass 58): the kit's hard ink shadow under both, as
+		# under the title
+		header.shadow_star(STAR_LINE_SHADOW)
+		header.line.shadow = 2
+	_build_banish_note()
+
+
+## The mutation offer's own line under its head ("No skips left this stage."; it has no header line), in the theme's face.
+func _make_path_note() -> WText:
+	var n := W.serif_text("", 30, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 39.0)
+	n.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	n.offset_bottom = -90 - 108 - 24
+	n.offset_top = -90 - 108 - 24 - 40
+	n.visible = false
+	return n
+
+
+## The head built again in the theme on now (pass 122: the screen lives as long as the run and the in-run debug panel
+## flips the theme): the header (its star line, title, line and banish note) and the mutation offer's own line, at the
+## same places in the tree, so they draw over and under what they did; and the dim's colour, which build_dim baked in
+## the first theme (the kit's 80 % black under Royale, the sepia under Wanted): enter() tweens the dim to it on this
+## offer, a screen already up takes it at once.
+func _rebuild_head() -> void:
+	_stop_note_hold()
+	var at := header.get_index()
+	var note_at := _path_note.get_index()
+	remove_child(header)
+	header.queue_free()
+	remove_child(_path_note)
+	_path_note.queue_free()
+	_build_head()
+	move_child(header, at)
+	_path_note = _make_path_note()
+	add_child(_path_note)
+	move_child(_path_note, note_at)
+	dim_color = W.themed_dim(W.DIM)
+	if dim and visible:
+		dim.color = dim_color
+
+
+## The star lines' colour (LEVEL UP, banish mode's kicker, the mutation offer's): paper under Wanted; cream under Royale
+## (pass 122, Garry: "keep the Level N and Level Up text white"; the kit's WStarLine sets paper in gold, and cream it
+## keeps as given).
+static func star_colour() -> Color:
+	return R.CREAM if W.royale() else W.PAPER
+
+
+## The kit's hard ink shadow `px` under a line read over the shine (pass 58); under Royale (pass 122) a navy drop straight
+## down, as under every Royale word.
+static func _drop(t: WText, px: int) -> void:
+	t.shadow = px
+	if W.royale():
+		t.shadow_color = R.NAVY
+		t.shadow_straight = true
+
+
+## The shine's two colours (the wide rays and the glow, the narrow rays): brass and paper, or under Royale (pass 122) the
+## kit's gold and cream, as WShine.make maps them.
+static func shine_colours() -> Array:
+	if W.royale():
+		return [R.role("gold")["bottom"], R.CREAM]
+	return [W.BRASS, W.PAPER]
+
+
+## The rail's track: ink, or navy under Royale (pass 122: the mock's rail sits on a navy edge).
+static func rail_track_colour() -> Color:
+	return R.NAVY if W.royale() else W.INK
+
+
+## A row button's words with its count: today's two runs ("REROLL ×1", the count in brass dark) under Wanted; under
+## Royale (pass 122) the word and the kit's count pill ({"count": n}: a navy pill with a gold number, grey at 0).
+static func count_parts(word: String, n: int) -> Array:
+	if W.royale():
+		return [word, {"count": n}]
+	return [word + " ", ["×%d" % n, W.BRASS_DARK]]
+
+
+## The held card under Royale (pass 122, the mock's pressed card): it stays in its place on its base (a button moves down,
+## a card does not) with a ROYALE_EDGE px gold inner edge; the kit's WCard adds the pulsing gold glow and the rays behind
+## its item (ROYALE_RAYS times the frame). The kit's own pressed copy (HardBox.pressed) would sit the card 8 px down on a
+## 6 px band, the way the Wanted card sits on its shadow.
+func _royale_held(c: WCard) -> void:
+	var b: HardBox = c.box
+	var down := W.box(b.fill, b.border, b.shadow, b.radius).pad(b.content_margin_left, b.content_margin_top, b.content_margin_right, b.content_margin_bottom)
+	down.role = b.role
+	down.inner = ROYALE_EDGE
+	down.inner_color = W.BRASS
+	c.box_down = down
+	c.plate.rays_scale = ROYALE_RAYS
 
 
 ## The rail along the top edge where the HUD's sits (W.safe_top() .. + RAIL_H): the ink track, then the fill as
@@ -218,7 +337,7 @@ func _build_rail() -> void:
 
 func _draw_rail() -> void:
 	var w := _rail.size.x
-	_rail.draw_rect(Rect2(0, 0, w, RAIL_H), W.INK)
+	_rail.draw_rect(Rect2(0, 0, w, RAIL_H), rail_track_colour())
 	var fw := w * clampf(_rail_frac, 0.0, 1.0)
 	if fw <= 0.0 or w <= 0.0:
 		return
@@ -271,7 +390,7 @@ func _build_banish_note() -> void:
 	_banish_wrap.add_theme_constant_override("margin_right", 60)
 	_banish_wrap.add_theme_constant_override("margin_top", 10)
 	_banish_note = W.serif_text("", 30, W.PAPER, 600, false, HORIZONTAL_ALIGNMENT_CENTER, 39.0, true)
-	_banish_note.shadow = 3
+	_drop(_banish_note, 3)
 	_banish_wrap.add_child(_banish_note)
 	_banish_wrap.visible = false
 	header.add_child(_banish_wrap)
@@ -300,9 +419,11 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	for c in _path_head.get_children():
 		_path_head.remove_child(c)
 		c.queue_free()
-	var star := WStarLine.make(mutlvl_line(path_level), 30, W.PAPER)
-	# read over the shine once the reel lands (pass 58 review): the kit's ink shadow, as LEVEL UP's
-	WModalHeader.shadow_line(star, STAR_LINE_SHADOW, 30)
+	var star := WStarLine.make(mutlvl_line(path_level), 30, star_colour())
+	# read over the shine once the reel lands (pass 58 review): the kit's ink shadow, as LEVEL UP's (pass 122: under
+	# Royale the kit's navy edge on the words and the stars does that)
+	if not W.royale():
+		WModalHeader.shadow_line(star, STAR_LINE_SHADOW, 30)
 	_path_head.add_child(star)
 	var cc := CenterContainer.new()
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -312,6 +433,8 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	p.radius = 18
 	p.shadow = 10
 	p.icon_frac = 0.74
+	# pass 122: the mock's rays turn behind the weapon's frame under Royale (the kit's WPlate.rays)
+	p.rays = W.royale()
 	cc.add_child(p)
 	_path_head.add_child(cc)
 	_path_plate = p
@@ -328,7 +451,7 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# the row's words are read over the shine's rays too (pass 58 review): the dry line's 2 px ink shadow
 	var word := W.serif_text("Mutation", 28, W.AGED, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	word.shadow = 2
+	_drop(word, 2)
 	row.add_child(word)
 	# a rivet per mutation of the weapon's path (pass 48: the real count, Registry.mutations_of; three on every path)
 	var fam: String = (def as WeaponDef).evolved_from if def is WeaponDef and (def as WeaponDef).is_evolution and (def as WeaponDef).evolved_from != "" else def.id
@@ -342,7 +465,7 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	r.next_fill = W.AGED
 	row.add_child(r)
 	var rest := W.serif_text(leave_line(offered), 28, W.AGED, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	rest.shadow = 2
+	_drop(rest, 2)
 	row.add_child(rest)
 	_path_head.add_child(row)
 	_path_row = row
@@ -357,6 +480,9 @@ static func leave_line(offered: int) -> String:
 
 func show_offer(offer: Array, title: String, with_hints: bool, path: bool = false) -> void:
 	_stop_reel()
+	# pass 122: the head was built in a theme; flipped since (the debug panel's switch), it is built again
+	if W.royale() != _built_royale:
+		_rebuild_head()
 	# the last offer's confetti, still falling when a new offer comes quickly, goes (pass 54; a struck card's ghost goes
 	# with the old table in _rebuild)
 	for c in get_children():
@@ -418,8 +544,9 @@ func show_offer(offer: Array, title: String, with_hints: bool, path: bool = fals
 func _shine_at(at: Vector2, r: float) -> void:
 	_shine.center = at
 	_shine.radius = r
-	_shine.color = W.BRASS
-	_shine.color2 = W.PAPER
+	var cols := shine_colours()
+	_shine.color = cols[0]
+	_shine.color2 = cols[1]
 	_shine.strength = 1.0
 	_shine.visible = true
 	_shine.pop_in()
@@ -432,7 +559,7 @@ func shine() -> Control:
 
 ## The level-up's header: LEVEL UP on the star line, the title LEVEL N in paper.
 func _say_level_up() -> void:
-	header.set_star(LEVEL_UP_WORDS, W.PAPER)
+	header.set_star(LEVEL_UP_WORDS, star_colour())
 	header.set_title_fit(_title_text, 150, W.PAPER, get_viewport_rect().size.x - 80.0)
 
 
@@ -540,11 +667,11 @@ func skip_reel() -> void:
 
 func _refresh_buttons() -> void:
 	# spent buttons stay tappable but locked-looking, so the tap can say why
-	_set_button(_reroll_btn, ["REROLL ", ["×%d" % Run.rerolls_left, W.BRASS_DARK]])
+	_set_button(_reroll_btn, count_parts("REROLL", Run.rerolls_left))
 	_reroll_btn.locked = Run.rerolls_left <= 0
 	# a skip pays nothing since pass 47: it is one of the stage's skips, shared with the chests
 	for b: WButton in [_skip_btn, _path_skip]:
-		_set_button(b, ["SKIP ", ["×%d" % Run.skips_left, W.BRASS_DARK]])
+		_set_button(b, count_parts("SKIP", Run.skips_left))
 		b.locked = Run.skips_left <= 0
 	# pass 58: in banish mode the button takes it back (CANCEL); outside it, it locks with no banish left or nothing on the
 	# table that may go (every card an upgrade of something the hero has)
@@ -552,7 +679,7 @@ func _refresh_buttons() -> void:
 		_set_button(_banish_btn, ["CANCEL"])
 		_banish_btn.locked = false
 	else:
-		_set_button(_banish_btn, ["BANISH ", ["×%d" % Run.banishes_left, W.BRASS_DARK]])
+		_set_button(_banish_btn, count_parts("BANISH", Run.banishes_left))
 		_banish_btn.locked = Run.banishes_left <= 0 or CardPool.banishable(_offer).is_empty()
 	_banish_btn.show_held(_banish_mode)
 
@@ -694,6 +821,9 @@ func _make_card(card: Dictionary) -> WCard:
 	var extra := {}
 	if path_mode:
 		extra = {"plate_px": 170.0, "name_size": 56, "rarity": "", "pad": [30, 32, 30, 32], "stars": [], "icon_frac": 0.72}
+	elif W.royale():
+		# pass 122: the mock's 200 px frame, 34 px from the words (today's 180 and 28 under Wanted)
+		extra = {"plate_px": ROYALE_PLATE_PX, "gap": ROYALE_GAP}
 	# the hero's favourite wears its heart and says FAVOURITE by its tag (pass 62: WItem.options, WCard; it said
 	# " · FAVOURITE" after its word before)
 	var o := WItem.options(card, extra)
@@ -701,6 +831,8 @@ func _make_card(card: Dictionary) -> WCard:
 	var box: HardBox = c.box
 	# the card's own band (an evolution's ember), put back when banish mode ends
 	c.set_meta("band", [box.inner, box.inner_color])
+	if W.royale():
+		_royale_held(c)
 	c.pressed.connect(func(): _pick(card, c))
 	return c
 
@@ -714,7 +846,7 @@ func _mark(c: WCard, mark: BanishMark, card: Dictionary) -> void:
 	var box: HardBox = c.box
 	if _banish_mode and why == "":
 		box.inner = 6
-		box.inner_color = W.ROCK
+		box.inner_color = BanishMark.rock()
 	else:
 		box.inner = int(band[0])
 		box.inner_color = band[1]
@@ -1008,7 +1140,7 @@ func _set_banish(on: bool) -> void:
 	if on:
 		# the first time it says a little more (the "banish" hint, pass 58)
 		var first := not Save.hint_seen("banish")
-		header.set_star(BANISH_KICKER, W.PAPER)
+		header.set_star(BANISH_KICKER, star_colour())
 		header.set_title_fit(BANISH_TITLE, 150, W.ROCK, vw - 80.0)
 		header.set_line("")
 		_stop_note_hold()
@@ -1061,6 +1193,16 @@ class BanishMark extends Control:
 	## The card it marks: the stamp and the tag sit where the card's own tag (NEW, UPGRADE) is.
 	var card: Control
 
+	## The mark's colours: red-rock ink, paper and ink; under Royale (pass 122) the kit's red, cream and navy.
+	static func rock() -> Color:
+		return (R.role("red")["bottom"] as Color) if W.royale() else W.ROCK
+
+	static func paper() -> Color:
+		return R.CREAM if W.royale() else W.PAPER
+
+	static func ink() -> Color:
+		return R.NAVY if W.royale() else W.INK
+
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		visible = false
@@ -1077,7 +1219,7 @@ class BanishMark extends Control:
 			"banished":
 				var k := clampf(slam, 0.0, 1.2)
 				var mid := size * 0.5
-				draw_line(Vector2(24.0, mid.y + 6.0), Vector2(size.x - 24.0, mid.y - 6.0), Color(W.ROCK, 0.85 * minf(k, 1.0)), 8.0, true)
+				draw_line(Vector2(24.0, mid.y + 6.0), Vector2(size.x - 24.0, mid.y - 6.0), Color(rock(), 0.85 * minf(k, 1.0)), 8.0, true)
 				_stamp("BANISHED", mid, 64, deg_to_rad(-6.0), lerpf(1.8, 1.0, minf(k, 1.0)), minf(k, 1.0))
 
 	## A rubber stamp in red-rock ink: a double frame round tracked slab capitals, turned `angle`, at `at`.
@@ -1091,10 +1233,10 @@ class BanishMark extends Control:
 		var h := asc + desc
 		var pad := Vector2(px * 0.6, px * 0.32)
 		var box := Rect2(-w * 0.5 - pad.x, -h * 0.5 - pad.y, w + pad.x * 2.0, h + pad.y * 2.0)
-		var ink := Color(W.ROCK, alpha)
+		var ink := Color(rock(), alpha)
 		draw_set_transform(at, angle, Vector2(scale_k, scale_k))
 		# a pale wash under the ink, so the stamp reads over a card's own words
-		draw_rect(box, Color(W.PAPER, 0.78 * alpha))
+		draw_rect(box, Color(paper(), 0.78 * alpha))
 		draw_rect(box, ink, false, maxf(4.0, px * 0.14))
 		draw_rect(box.grow(-px * 0.2), ink, false, maxf(2.0, px * 0.06))
 		draw_string(f, Vector2(-w * 0.5, -h * 0.5 + asc), t, HORIZONTAL_ALIGNMENT_LEFT, -1, px, ink)
@@ -1118,6 +1260,6 @@ class BanishMark extends Control:
 		var desc := f.get_descent(px)
 		var h := asc + desc + 16.0
 		var r := Rect2(at.end.x - (w + 32.0), at.get_center().y - h * 0.5, w + 32.0, h)
-		draw_rect(Rect2(r.position + Vector2(4, 4), r.size), Color(W.INK, 0.5))
-		draw_rect(r, W.INK)
-		draw_string(f, Vector2(r.position.x + 16.0, r.position.y + 8.0 + asc), t, HORIZONTAL_ALIGNMENT_LEFT, -1, px, W.PAPER)
+		draw_rect(Rect2(r.position + Vector2(4, 4), r.size), Color(ink(), 0.5))
+		draw_rect(r, ink())
+		draw_string(f, Vector2(r.position.x + 16.0, r.position.y + 8.0 + asc), t, HORIZONTAL_ALIGNMENT_LEFT, -1, px, paper())

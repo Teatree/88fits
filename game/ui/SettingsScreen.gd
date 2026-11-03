@@ -206,6 +206,19 @@ func _debug_panel() -> PanelContainer:
 		style.name = "MenuStyle"
 		style.chosen.connect(func(i: int): Settings.set_value("menu_style", "live" if i == 1 else "painted"))
 		col.add_child(style)
+	# the UI theme (pass 122, lane UIKIT_A; Garry's build brief: Claude Design's "Royale, refined" as a second theme
+	# behind a switch, Wanted the default): Wanted or Royale; the next screen built wears it, and this one is rebuilt
+	# at once; never in the production build (PROD_LOCKED holds it at wanted)
+	if not Settings.is_prod() and "ui_theme" in Settings:
+		col.add_child(W.serif_text("UI theme", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+		var theme := WChoice.make([["Wanted", "paper, ink and brass"], ["Royale", "slate, navy and gold"]],
+			1 if str(Settings.ui_theme) == "royale" else 0, 30, 20, 14.0, HORIZONTAL_ALIGNMENT_CENTER, 0)
+		theme.name = "UiTheme"
+		theme.chosen.connect(func(i: int):
+			Settings.set_value("ui_theme", "royale" if i == 1 else "wanted")
+			W.theme_changed()
+			_refresh.call_deferred())
+		col.add_child(theme)
 	# the ranged weapons' aim (pass 54, Garry: they shoot only at what is on the screen; a switch to compare, debug only)
 	if "ranged_on_screen" in Settings:
 		var r := _row("Ranged weapons aim only on screen")

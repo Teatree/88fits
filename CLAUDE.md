@@ -270,7 +270,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-02, pass 121, version 1.00)
+## Status (2026-11-03, pass 122, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -571,6 +571,15 @@ icon held to it with sparks, LEVEL n -> n+1 or EVOLVED; taps recorded as `grind_
 fading out; sprite_billboard_over.gdshader `ghost_fade`); **no legendary item is offered before 4:30** of any stage's clock
 from any source (core/systems/LegendaryHold.gd, map `timeline_data.legendary` {from 270, guarantee_at 0 = off}, per stage
 `stage_list[k].legendary`; the Level Editor's Settings card "Legendary items" and the stage cards).
+Pass 122: **Stage 3 reads**: the Blood Moon's sand lighter (filter strength 0.42, terrain `hell_mul` / `hell_add`, RedCanyon
+HELL_*), barrels with a pale rim light on a hell stage (BarrelField.set_hell, prop_billboard `rim`), **fire tornadoes** (map
+`dust_devils.hell`, TornadoFx `fire`), seven recolour looks played by the stage-3 rows (IMP-A, RG-C, RR-C, HG-E, KN-F, DM-J,
+BD-B, fresh; plus ANT-G, MK-B, BB-F; recolour_strip `--cells`); the Phoenix revive shows the feather (Run.phoenix_item); the
+Explosive Elite's boom is a real blast (Fx.BLAST_ELITE, Game.ELITE_WARN); the **Royale theme**, first checkpoint, behind
+`Settings.ui_theme` (wanted default, prod-locked; ui/wanted/R.gd, Ultra + Rubik, the item-frame shaders ui_radial_fill /
+ui_rays / ui_rainbow_rim, `W.royale()`): the kit, the HUD (`Settings.hud_slot_rarity`), the level-up and the chest; toasts,
+banners, TAP TO GO, the kill counter and the boss bar stay Wanted (`W.wanted_text`, `HardBox.themed`); pictures in
+docs/ui_review/royale_p122/; the weapon/Card rarity tiers are a proposal for Garry (tools/dl/p122/LEAD/rarity_tiers.md).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =
@@ -623,7 +632,8 @@ Gold: every end of a run banks the purse (pass 70: a death too; only quitting th
 2.5x pass 69's, Elites and bosses pay 5x; the Strongbox (`gold_bank`) is hidden, out of play. Unlock quests gate half the
 items; the Collection shows only what was met.
 
-**UI.** The Wanted kit (`ui/wanted/`, see Architecture); one paused screen at a time with death winning
+**UI.** The Wanted kit (`ui/wanted/`, see Architecture; since pass 122 a second theme, Royale, behind the developer switch
+`Settings.ui_theme`: every component asks `W.royale()`, pieces Garry keeps as they are use `W.wanted_text` / `HardBox.themed = false`); one paused screen at a time with death winning
 (`Game._request_modal`); the camera cutout is respected everywhere (`W.safe_top()`); touch is raw ScreenTouch, never
 mouse emulation (`TouchScroll`, `TouchSlider`); prove UI with `touch_audit.gd`. The developer menu (hold the Settings
 version line 2 s) and the player's debug mode (10 taps on the hints switch) hold the test switches; the debug arena is on

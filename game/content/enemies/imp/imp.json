@@ -76,5 +76,39 @@
   },
   "doc": "Stage 3's fodder: faster than a runt, twice its health, six to a pack, on top of the regular roster. The Brander calls rings of them.",
   "strip_cols": 40,
-  "head": 0.961
+  "head": 0.961,
+  "variant_base": "IMP-0",
+  "variant": "IMP-0",
+  "variants": {
+    "IMP-0": {
+      "note": "the top-level strip, before the Level Editor's looks"
+    },
+    "IMP-A": {
+      "note": "Pass 122 recolour of the imp's own strip (IMP-0): a green imp for the Blood Moon's rose-red ground, painted strong (hue 145, blue-green shadows at 162, saturation 0.78 x its own, value lifted onto 0.44..0.98) so the stage's warm haze lands it at a light mint on screen (a pastel cut went grey-green there); the horns, eyes, teeth, loincloth and outline as they are (tools/recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "IMP-0",
+        "recolour_passes": [
+          "--mode lift --ranges 335-360,0-32 --to 145 --to-dark 162 --sat 0.78 --v-lo 0.44 --v-hi 0.98 --gamma 0.8 --min-sat 0.3 --min-val 0.16 --src-hi 0.92 --soft 0.05"
+        ]
+      },
+      "sprite": "imp_sprite_a.png",
+      "icon": "imp_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.961
+    }
+  }
 }

@@ -65,16 +65,23 @@ func set_right(n: Control) -> void:
 	n.offset_bottom = n.get_combined_minimum_size().y * 0.5
 
 
-## The gold plate: a coin and the number in slab on paper with a 5 px border and a hard shadow.
+## The gold plate: a coin and the number in slab on paper with a 5 px border and a hard shadow. Pass 122 (lane
+## UIKIT_A), under Royale: the wallet is a black info plate (HardBox.role "plate": 56 % black, no edge, no base) with
+## the number in white Ultra.
 static func gold_plate(gold: int, px: int = 44, coin_px: float = 40.0, shadow: int = 6, border: int = 5) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_theme_stylebox_override("panel", W.box(W.PAPER, border, shadow).pad(22.0 + border, 6.0 + border, 22.0 + border, 6.0 + border))
+	var hb := W.box(W.PAPER, border, shadow).pad(22.0 + border, 6.0 + border, 22.0 + border, 6.0 + border)
+	if W.royale():
+		hb.role = "plate"
+	p.add_theme_stylebox_override("panel", hb)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(WCoin.make(coin_px))
 	var n := W.slab_text(W.num(gold), px, W.INK, HORIZONTAL_ALIGNMENT_LEFT, px * 1.369)
+	if W.royale():
+		n.color = R.WHITE
 	n.name = "Amount"
 	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(n)

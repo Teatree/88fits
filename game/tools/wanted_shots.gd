@@ -30,6 +30,12 @@ var _out := "user://wanted_shots"
 var _only: Array = []
 var _white := false
 var _inset := -1
+## theme=wanted|royale (pass 122, lane UIKIT_A): the UI theme every screen is built in (Settings.ui_theme, set before
+## the first one); "" leaves the save's.
+var _theme := ""
+## slot_rarity=1 (pass 122, lane UIHUD): the Royale HUD's slots in their level / rarity colours (Settings.hud_slot_rarity;
+## off, the default, is the plain common frame on every slot).
+var _slot_rarity := false
 var _run
 var _reg
 var _save
@@ -46,6 +52,10 @@ func _initialize() -> void:
 			_white = true
 		elif a.begins_with("inset="):
 			_inset = int(a.substr(6))
+		elif a.begins_with("theme="):
+			_theme = a.substr(6)
+		elif a == "slot_rarity=1":
+			_slot_rarity = true
 	DirAccess.make_dir_recursive_absolute(_out)
 	process_frame.connect(_main, CONNECT_ONE_SHOT)
 
@@ -77,6 +87,14 @@ func _touch(at: Vector2, pressed: bool) -> void:
 func _main() -> void:
 	if _inset >= 0:
 		root.get_node("Settings").top_inset = _inset
+	if _theme != "":
+		# pass 122: before any screen is built; the kit reads it fresh each frame
+		root.get_node("Settings").set("ui_theme", _theme)
+		print("wanted_shots: theme ", root.get_node("Settings").get("ui_theme"))
+	if _slot_rarity:
+		# pass 122 (lane UIHUD): the Royale slots in their colours (in memory only; the save goes back at the end)
+		root.get_node("Settings").set("hud_slot_rarity", true)
+		print("wanted_shots: slot_rarity ", root.get_node("Settings").get("hud_slot_rarity"))
 	_run = root.get_node("Run")
 	_reg = root.get_node("Registry")
 	_save = root.get_node("Save")
@@ -705,6 +723,10 @@ func _chest() -> void:
 	g.chest_screen._tw.custom_step(0.86)
 	await _wait(0.05)
 	await _shot("10c-chest-opening")
+	# 10f (pass 122, lane UICHEST): the reel running, its tiles passing the landing cell (the kit's frames under Royale)
+	g.chest_screen._tw.custom_step(1.1)
+	await _wait(0.05)
+	await _shot("10f-chest-reel")
 	g.chest_screen._tw.set_speed_scale(8.0)
 	await _wait(1.6)
 	await _shot("10-chest")

@@ -181,6 +181,34 @@
       },
       "head": 1.0
     },
+    "HG-E": {
+      "note": "Pass 122 recolour of HG-C for the Blood Moon: the oxblood skin lifted to a pale lavender-white (hue 262, the deepest shades 250, saturation 0.17), the loincloth, rope, hammer, tusks, eyes and the outline as they are; the hit frame (cell 18, a white-washed flash) by a second pass with a lower --min-sat (tools/recolour_strip.py --mode lift, the passes in turn on the strip and the icon; --cells 18)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "HG-C",
+        "recolour_passes": [
+          "--mode lift --ranges 334-360,0-26 --hue-soft 3 --to 262 --to-dark 250 --set-sat 0.17 --v-lo 0.58 --v-hi 0.97 --gamma 0.85 --min-sat 0.55 --min-val 0.12 --src-hi 0.70 --soft 0.03",
+          "--mode lift --ranges 334-360,0-26 --hue-soft 3 --to 262 --to-dark 250 --set-sat 0.17 --v-lo 0.58 --v-hi 0.97 --gamma 0.85 --min-sat 0.12 --min-val 0.12 --src-hi 0.70 --soft 0.03 --cells 18"
+        ]
+      },
+      "sprite": "hammer_giant_sprite_e.png",
+      "icon": "hammer_giant_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 1.0,
+      "fps": {
+        "run": 15,
+        "die": 12
+      }
+    },
     "HG-D": {
       "note": "Mossy grey-green skin, the hammer held low in front",
       "recipe": {

@@ -175,6 +175,12 @@ func _build(game: Node) -> void:
 	# pass 113 (lane TWISTER): a small tornado (the funnel, skirt and debris shaders: the map's dust devils and the King's
 	# Royal Dust Devil) and a dust devil's ring on the ground
 	add_child(TornadoFx.warm_instance())
+	# pass 122: a burning one too (the Blood Moon's fire tornado): its embers draw with their own copy of the debris
+	# shader (TornadoFx.debris_fire_shader, the shots' stencil), which would otherwise compile at the first one
+	var fire_warm := TornadoFx.warm_instance()
+	fire_warm.name = "TornadoWarmFire"
+	fire_warm.fire = 1.0
+	add_child(fire_warm)
 	var ring_m := ShaderMaterial.new()
 	ring_m.shader = DustDevil.RING_SHADER
 	ring_m.set_shader_parameter("alpha", 0.5)

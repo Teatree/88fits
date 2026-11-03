@@ -100,6 +100,33 @@
         "die": 12
       },
       "head": 1.0
+    },
+    "RG-C": {
+      "note": "Pass 122 recolour of RG-B: a bright gold goblin for the Blood Moon's rose-red ground (hue 50, amber shadows at 34, the brick red lifted brighter); the loincloth, club, eyes, teeth and outline as they are (tools/recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "RG-B",
+        "recolour_passes": [
+          "--mode lift --ranges 350-360,0-22 --hue-soft 3 --to 50 --to-dark 34 --sat 1.0 --v-lo 0.30 --v-hi 1.0 --gamma 0.75 --min-sat 0.3 --min-val 0.16 --src-hi 0.9 --soft 0.05"
+        ]
+      },
+      "sprite": "red_goblin_sprite_c.png",
+      "icon": "red_goblin_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
     }
   }
 }

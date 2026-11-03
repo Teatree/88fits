@@ -40,11 +40,14 @@ func _ready() -> void:
 	col.offset_top = 1500
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(col)
-	_go = W.text("TAP TO GO", W.slab(), 64, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	# pass 122 (the review of lane UIHUD; Garry: "Toasts, banners, hints and TAP TO GO stay as they are"): the Wanted
+	# faces and paper under both themes (W.wanted_text; the line in Bitter italic, its paper put back after W.text)
+	_go = W.wanted_text("TAP TO GO", 64, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	_go.stroke = 2
 	_go.shadow = 5
 	col.add_child(_go)
-	_sub = W.text("Still paused. They'll wait.", W.serif(400, true), 28, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	_sub = W.text("Still paused. They'll wait.", W.wanted_serif(400, true), 28, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	_sub.color = W.PAPER
 	_sub.shadow = 2
 	col.add_child(_sub)
 

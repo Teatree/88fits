@@ -34,6 +34,12 @@
 ## lift_height 3.2 -> 4.5 m.
 ##   in_boss, in_portal, in_endless   whether the clock runs (and they come) in the boss fight, the portal's countdown and
 ##                  Endless; one standing when its phase ends fades away.
+##   hell           pass 122 (lane S3WORLD; Garry: "maybe make fire tornadoes for the tornadoes?"): how one looks on a
+##                  hell stage (the Blood Moon), where it burns: {color: the fire's orange (the funnel's bands, the bank
+##                  at its foot, the glow), wisps: the yellow of the streaks and the hot edge, ring: the ring on the
+##                  ground, glow: the warm point light's energy at full strength (0 = none; only where Fx.want_lights(),
+##                  never on a phone)}. HELL_DEFAULTS fill what the block leaves out, so a map without the key burns too.
+##                  Only the look: it throws, lifts and times as the dust one does, and burns nothing.
 ## The clock counts only the seconds of the phases it runs in; the debug arena runs no clock (its WORLD tab calls one in).
 class_name DustDevils
 extends Node3D
@@ -47,6 +53,10 @@ const DEFAULTS := {
 	"warn": true, "in_boss": false, "in_portal": false, "in_endless": false,
 }
 const WANDERS := ["cross", "drift", "loop"]
+## Pass 122 (lane S3WORLD): the fire look on a hell stage (the block's `hell`; kept out of DEFAULTS, whose keys the Level
+## Editor's card mirrors field by field: config_of carries the sub-block as it is and hell_look reads it).
+const HELL_DEFAULTS := {"color": "#FF7A1E", "wisps": "#FFD66A", "ring": "#FF9A3C", "glow": 1.0}
+const HELL_GLOW_MAX := 4.0
 ## The least seconds between two (an `every` under it reads as this).
 const EVERY_MIN := 10.0
 ## A due one that found no spot on the screen tries again this many seconds later.
@@ -121,6 +131,38 @@ static func config_of(block) -> Dictionary:
 	for k in ["warn", "in_boss", "in_portal", "in_endless"]:
 		out[k] = _bool(out[k])
 	return out
+
+
+## Pass 122 (lane S3WORLD): the fire look of a block or a config_of result (`hell`, HELL_DEFAULTS filling gaps):
+## {color, wisps, ring: Colors; glow: 0..HELL_GLOW_MAX}. A bad colour reads as its default.
+static func hell_look(c) -> Dictionary:
+	var h = c.get("hell") if c is Dictionary else null
+	var src: Dictionary = h if h is Dictionary else {}
+	var out: Dictionary = {}
+	for key: String in ["color", "wisps", "ring"]:
+		var fb: Color = WaveTimeline.color_of(str(HELL_DEFAULTS[key]), Color.WHITE)
+		var v = src.get(key, HELL_DEFAULTS[key])
+		out[key] = WaveTimeline.color_of(v, fb)   # a Color, "#rrggbb" or [r, g, b], as the timeline reads colours
+	out["glow"] = clampf(_num(src.get("glow", HELL_DEFAULTS["glow"]), float(HELL_DEFAULTS["glow"])), 0.0, HELL_GLOW_MAX)
+	return out
+
+
+## Pass 122 (lane S3WORLD): whether the dust devils burn now: the stage shown is hell (the game's StageLook and the
+## run's timeline: StageLook.hell_of), else the map's own red (`_hell` at half or more; the arena, an old map), else no.
+static func hell_now(p_game: Node) -> bool:
+	if p_game == null or not is_instance_valid(p_game):
+		return false
+	var sl = p_game.get_node_or_null(StageLook.NODE_NAME)
+	if sl is StageLook and (sl as StageLook).stage >= 0:
+		var tree := Engine.get_main_loop() as SceneTree
+		var run: Node = tree.root.get_node_or_null("Run") if tree else null
+		var md = run.get("map") if run else null
+		var tl: WaveTimeline = md.timeline if md != null and md.get("timeline") is WaveTimeline else null
+		return StageLook.hell_of(tl, (sl as StageLook).stage)
+	var map = p_game.get("map")
+	if map is Object and is_instance_valid(map) and map.get("_hell") != null:
+		return float(map.get("_hell")) >= 0.5
+	return false
 
 
 ## The clock for a stage from the map's block (`seed_v` the run's seed, 0 = random dice).

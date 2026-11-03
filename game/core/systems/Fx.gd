@@ -1742,6 +1742,10 @@ const BLAST_FIRE := Color(1.0, 0.36, 0.06)
 const BLAST_POISON := Color(0.42, 0.85, 0.2)
 const BLAST_BLUE := Color(0.28, 0.56, 1.0)
 const BLAST_GOLD := Color(1.0, 0.76, 0.12)
+## Pass 122 (lane BUGS): a hostile blast's (the Explosive Elite's, a body's death burst, the walking bomb's;
+## Game.elite_explosion): a hot red-orange, redder than the hero's plain blast, so his and theirs tell apart (checked by
+## eye on the pale sand and on Stage 3's red ground, tools/dl/p122/BUGS/shots).
+const BLAST_ELITE := Color(1.0, 0.4, 0.1)
 const BLAST_SMOKE := Color(0.4, 0.35, 0.31)
 const BLAST_CLOD := Color(0.3, 0.2, 0.12)
 ## The fireball's width against the blast's radius (its lumpy edge sits at about 0.88 of it: the ball shows about 0.62 r

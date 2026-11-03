@@ -2,7 +2,8 @@
 ## a release within SLOP of each other; the list it sits in taking the drag (NOTIFICATION_SCROLL_BEGIN) cancels it.
 ## Pressed, it sits on its shadow (the HardBox moves by the shadow offset, content with it, in 60 ms; back in 90 ms),
 ## a primary darkens to brass dark, and a card shows its brass inner outline. Locked pieces show aged at 45 % and still
-## emit `pressed`, so the screen can say why (a spent Reroll, a price that is 8 short).
+## emit `pressed`, so the screen can say why (a spent Reroll, a price that is 8 short). Pass 122, under Royale: a locked
+## piece is the grey role on the box's own base (HardBox.copy keeps its border, shadow and corners) at 75 %.
 class_name WTap
 extends PanelContainer
 
@@ -39,15 +40,26 @@ func _restyle() -> void:
 	if box == null:
 		return
 	var b: HardBox = box
+	var royale := W.royale()
 	if locked:
-		b = box.duplicate()
-		b.fill = locked_fill
-		b.shadow = 0
-		b.inner = 0
+		if royale:
+			# pass 122 (lane UIKIT_A): the locked face is the grey role on its base (the kit sheet's LOCKED), at 75 %;
+			# copy() carries the box's border, shadow, radius and corners (duplicate() keeps no HardBox field)
+			b = box.copy()
+			b.role = "locked"
+			b.inner = 0
+		else:
+			b = box.duplicate()
+			b.fill = locked_fill
+			b.shadow = 0
+			b.inner = 0
 	elif _held_look:
 		b = box_down if box_down else box.pressed()
 	add_theme_stylebox_override("panel", b)
-	modulate.a = locked_alpha if locked else 1.0
+	var a := locked_alpha
+	if royale and locked and is_equal_approx(a, 0.45):
+		a = R.LOCKED_ALPHA
+	modulate.a = a if locked else 1.0
 
 
 func _gui_input(e: InputEvent) -> void:

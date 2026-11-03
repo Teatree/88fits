@@ -20,9 +20,11 @@ func _init() -> void:
 	add_to_group("wanted_modal")
 
 
+## Pass 122 (lane UIKIT_A): under Royale the kit's dim a screen passes reads as Royale's (W.themed_dim: 80 % black
+## behind a modal, Down!'s red cast, the gate's lighter one); a colour of the screen's own is kept.
 func build_dim(c: Color = W.DIM) -> ColorRect:
-	dim_color = c
-	dim = W.dim(c, true)
+	dim_color = W.themed_dim(c)
+	dim = W.dim(dim_color, true)
 	add_child(dim)
 	return dim
 

@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_2enp4")
 archetype = "tank"
-doc = "Armoured and slow; it takes 40% less from everything, so a pea does five instead of eight. Two seconds after it dies the body bursts in a red ring, so standing on a kill is a habit it breaks."
+doc = "Armoured and slow; it takes 40% less from everything, so a pea does five instead of eight. Two seconds after it dies the body bursts in an orange ring, so standing on a kill is a habit it breaks."
 hp = 45.0
 speed = 1.0
 damage = 12.0

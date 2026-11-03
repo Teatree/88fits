@@ -316,6 +316,36 @@ variants = {
 "sprite": "res://content/enemies/dust_mummy/dust_mummy_sprite_i.png",
 "sprite_file": "dust_mummy_sprite_i.png",
 "strip_cols": 43
+},
+"DM-J": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.977,
+"icon": "res://content/enemies/dust_mummy/dust_mummy_icon_j.png",
+"note": "Pass 122 recolour of DM-G for the Blood Moon: the khaki bandages lifted to ice blue (hue 200, saturation 0.28, value 0.58-0.97), the red eyes, the wrap lines and the outline as they are; the hit frame (cell 18, a white-washed flash) by a second pass with a lower --min-sat (tools/recolour_strip.py --mode lift, the passes in turn on the strip and the icon; --cells 18)",
+"shadow": {
+"drop": 0.05,
+"up": 0.3
+},
+"shelved": false,
+"sprite": "res://content/enemies/dust_mummy/dust_mummy_sprite_j.png",
+"sprite_file": "dust_mummy_sprite_j.png",
+"strip_cols": 43
 }
 }
 variant = "DM-G"

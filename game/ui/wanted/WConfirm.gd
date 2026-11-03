@@ -24,16 +24,19 @@ var _on_cancel: Callable
 var _done := false
 
 
-## `host` is the screen or modal that asks (the card is its last child, over everything it holds).
+## `host` is the screen or modal that asks (the card is its last child, over everything it holds). `kind` (pass 122,
+## lane UIKIT_A): what the deed is, for the confirm button's colour: "danger" (the default: rock, Royale red), "buy"
+## (a purchase: brass, Royale green) or "act" (the one thing that happens now: brass, Royale gold); the way out is
+## always paper / slate.
 static func open(host: Control, title: String, body: String, confirm_label: String, cancel_label: String,
-		on_confirm: Callable, on_cancel: Callable = Callable()) -> WConfirm:
+		on_confirm: Callable, on_cancel: Callable = Callable(), kind: String = "danger") -> WConfirm:
 	var old := current(host)
 	if old:
 		old._finish(false, true)
 	var c := WConfirm.new()
 	c._on_confirm = on_confirm
 	c._on_cancel = on_cancel
-	c._build(title, body, confirm_label, cancel_label)
+	c._build(title, body, confirm_label, cancel_label, kind)
 	host.add_child(c)
 	c._enter()
 	return c
@@ -68,10 +71,11 @@ func _init() -> void:
 	add_to_group("wanted_modal")
 
 
-func _build(title: String, body: String, confirm_label: String, cancel_label: String) -> void:
+func _build(title: String, body: String, confirm_label: String, cancel_label: String, kind: String = "danger") -> void:
+	var royale := W.royale()
 	dim = WTap.new()
 	dim.name = "Dim"
-	var db := W.box(W.DIM_ASK, 0, 0)
+	var db := W.box(W.dim_color("ask"), 0, 0)
 	dim.box = db
 	dim.box_down = db
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -93,7 +97,8 @@ func _build(title: String, body: String, confirm_label: String, cancel_label: St
 	v.add_theme_constant_override("separation", 24)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(v)
-	v.add_child(WStarLine.make("Hold on", 24, W.INK_SOFT))
+	# the star line: ink-soft on paper; gold on the Royale slate (pass 122)
+	v.add_child(WStarLine.make("Hold on", 24, R.GOLD_TEXT if royale else W.INK_SOFT))
 	var t := W.text(title.to_upper(), W.slab(), 64, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 64.0, true)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(t)
@@ -101,8 +106,8 @@ func _build(title: String, body: String, confirm_label: String, cancel_label: St
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(b)
 	var rule := ColorRect.new()
-	rule.color = W.INK
-	rule.custom_minimum_size.y = 4
+	rule.color = Color(1, 1, 1, 0.12) if royale else W.INK
+	rule.custom_minimum_size.y = 2 if royale else 4
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(rule)
 	var row := HBoxContainer.new()
@@ -114,7 +119,17 @@ func _build(title: String, body: String, confirm_label: String, cancel_label: St
 	cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cancel_btn.pressed.connect(cancel)
 	row.add_child(cancel_btn)
-	confirm_btn = WButton.make([confirm_label.to_upper()], 34, WButton.DANGER, 5, 8, 26.0, 0.0)
+	# the deed's button by kind (pass 122): a buy is brass (Royale green), the one thing that happens now brass (gold),
+	# anything that cannot be undone rock (red)
+	var variant := WButton.DANGER
+	var role := ""
+	match kind:
+		"buy":
+			variant = WButton.PRIMARY
+			role = WButton.GREEN
+		"act":
+			variant = WButton.PRIMARY
+	confirm_btn = WButton.make([confirm_label.to_upper()], 34, variant, 5, 8, 26.0, 0.0, 0.0, role)
 	confirm_btn.name = "Confirm"
 	confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	confirm_btn.pressed.connect(confirm)

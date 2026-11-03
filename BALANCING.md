@@ -9240,3 +9240,82 @@ one a run, like the Phoenix Feather (never offered again in that run).
   HUD slot, whichever screen gave the item (the cards, a chest, the Stranger, the Shop). In the debug arena the show
   plays over the open ITEMS tab and the tab keeps the run paused. Where no show can play (the run sim, a run already
   over) pass 119's toast says it ("GRINDSTONE: BOOMSTICK TO LEVEL 3"). (my decision)
+
+## 64. Pass 122: Stage 3 readable, two bugs, the Royale theme's first checkpoint
+
+Garry (2026-11-03): "Stage 3 can't see": red creatures on red sand; coloured variants for the creatures that have none
+"that actually look visible on red", the sand "not as dark", the barrels "more visible on all that red", "maybe make fire
+tornadoes for the tornadoes?". Two bugs: the revive showed the Grindstone's icon, the Exploding Elites had no explosion.
+And the Royale build brief's first checkpoint (the kit, then the HUD, Level-up and Chest), behind a switch.
+
+### 64.BUGS The Phoenix plate is the feather's; the Elite's boom is a real blast (no gameplay number changed)
+
+- **Phoenix plate and banner**: the item shown leaving the hero on a Phoenix revive is the held item carrying
+  `phoenix_revive` (Run.phoenix_item), else the Registry's Phoenix Feather; never another spent one-shot item (a used
+  Grindstone, whose icon had shown on the PHOENIX FEATHER banner since pass 121). Run.gd `phoenix_item`, `carries_phoenix`;
+  Game.gd `_on_player_died`.
+- **Hostile blast look**: an Explosive Elite's boom, a creature's `death_burst` (the Horned Toad) and the walking bomb's
+  blast are drawn by Fx.blast (pass 110's fireball, smoke, sparks and clods) in `Fx.BLAST_ELITE` (1.0, 0.4, 0.1), redder
+  than the hero's orange, full style, power clamp(radius x 0.5, 1, 2) (`Game.ELITE_BLAST_POWER_PER_M`; the Elite's 3 m
+  draws at 1.5), with the hero's scorch for a radius of 1.2 m or more, under a warning ring and a flash ring in
+  `Game.ELITE_WARN` (1.0, 0.55, 0.25) instead of red (red on Stage 3's ground). The damage, radius, delay, push, the
+  crowd's fifth, the shake (0.6) and the sound (`w_lob_boom`) are as before; the run sim draws nothing.
+
+### 64.S3WORLD The Blood Moon's ground lighter, barrels with a rim light, fire tornadoes (no gameplay number changed)
+
+- **The sand**: Garry's filter colour `#6A1A28` stays, its strength 0.6 -> **0.42** (`stage_list[2].filter.strength`, the
+  Level Editor's stage card). Under it the ground's hell tint lifts the sand (terrain_painted.gdshader `hell_mul`
+  (1.0, 0.92, 1.0), `hell_add` (0.16, 0.10, 0.18); pass 43: (0.97, 0.79, 0.72), (0.02, 0, 0)); the water
+  (1.0, 0.84, 0.80) + (0.08, 0.03, 0.03) at 0.7 of the hell; the wall RedCanyon.HELL_WALL (0.98, 0.84, 0.78); the ambient
+  light HELL_AMBIENT (0.95, 0.78, 0.70), the haze HELL_FOG (0.90, 0.64, 0.50). Open sand on screen (0.667, 0.382, 0.357)
+  sRGB, a dusty rose-red, where it was (0.477, 0.144, 0.100).
+- **Barrels on a hell stage** wear a pale rim light: BarrelField RIM_HELL 1.0, RIM_COLOR (1.0, 0.94, 0.82), RIM_WIDTH 0.03
+  of the painting's square (about 3 px), fading in with the stage's hell (StageLook.show_stage -> BarrelField.set_hell;
+  prop_billboard.gdshader `rim`, 0 for every prop). Every other stage draws them as before.
+- **Fire tornadoes**: on a hell stage a dust devil burns (DustDevils.hell_now when it forms): the map's
+  `timeline_data.dust_devils.hell` {color #FF7A1E, wisps #FFD66A, ring #FF9A3C, glow 1.0} (DustDevils.HELL_DEFAULTS when
+  a map has none; glow 0..4, a light only on the PC through Fx.want_lights; colours as "#rrggbb" or [r, g, b]). It is
+  drawn after the stage's filter (TornadoFx.PRIORITY_FIRE; its embers write the shots' stencil). Its toss, lift, timing,
+  radius and damage are the dust devil's: it burns nothing. No Level Editor field yet: the JSON window edits it.
+- Found and left: the stage filter's sand quad darkens the sand by the square of its factor on screen (a black filter at
+  0.5 leaves the sand at 0.25); both filtered stages were tuned by eye on it, so it stays.
+
+### 64.S3LOOKS The Blood Moon's rows play looks that read on its ground (art only)
+
+New recolour looks (tools/recolour_strip.py --mode lift over the played strip, the same frames, lines and alpha; all
+`fresh` until Garry approves them in the look grid or the arena): imp **IMP-A** (green, a light mint on screen; the imp's
+first looks block, base IMP-0), Red Goblin **RG-C** (bright gold), Red Goblin Runt **RR-C** (pale peach-white), Hell
+Giant **HG-E** (lavender-white skin), Skeleton Knight **KN-F** (ice-blue bones), Dust Mummy **DM-J** (ice-blue
+bandages, red eyes kept), Buckshot Dwarf **BD-B** (pale-cyan poncho). A pass may end in `--cells k` (the strip's `hit`
+frame alone: its white-washed flash needs its own pass).
+Which stage-3 row plays which (red_canyon.json, each row's `variant`, Garry's to change in the row inspector): imps IMP-A
+on s3a2, s3d5, s3e1, s3f3, bf3-1; Red Goblins RG-C on s3a3, s3d4; runts RR-C on s3a4; Fire Ants ANT-G (pass 107's gold)
+on s3b1, s3e4, s3e7, s3g1, bf3-6; monks MK-B (the white monk, pass 112) on s3c1 "Dark monks"; knights KN-F on s3c3,
+s3e5, s3f5, s3f9, bf3-3; mummies DM-J on s3d1; giants HG-E on s3e3, s3f7; gunmen BD-B on s3e6, bf3-4; beetles BB-F (pass
+107's pearl) on bf3-5. Skeletons SK-A, hellhounds, horned toads, the dust shaman, the cyclops CM-F, the Bombmakers SC-B
+and werewolves WW-D as they were (they read). No HP, damage, speed, size, count, timing, blood or drop moved, and no
+creature's own `variant` (the stage-1/2 rows see nothing).
+
+### 64.ROYALE A second UI theme behind a developer switch (no gameplay number changed)
+
+- `Settings.ui_theme` "wanted" (the default) | "royale": the developer menu's row, Settings' Debug panel ("UI theme",
+  beside Painted / Live) and the in-run debug panel's button. Held at wanted in the production build (PROD_LOCKED, and
+  W.royale() is false there whatever the save says). A change takes effect on the next screen built; the HUD restyles
+  itself at once.
+- `Settings.hud_slot_rarity` (default off, held off in prod; the in-run debug panel's "HUD slot rarity"): the Royale HUD's
+  slots in pass 48's level colour / a passive item's rarity; off, every slot frame is the plain common one (an evolved
+  item keeps its black face, rainbow rim and EVO plaque either way).
+- Under Royale the kit (ui/wanted/R.gd, Ultra + Rubik, the item frame shaders ui_radial_fill / ui_rainbow_rim / ui_rays)
+  draws the HUD, the level-up cards and the chest; every other screen follows the kit's components where they reach it.
+  Kept exactly as today under both themes (Garry): the kill counter, the boss's name and bar, the hero's bars, the
+  damage numbers, the joystick, the toasts, banners, hint lines and TAP TO GO (W.wanted_text, HardBox.themed false).
+- One tap on a card picks it under both themes; the gold-lit card with rays is press feedback only. Rerolls, skips,
+  banishes and the chest's rolls count as before; the button rects are the same under both themes, so replays and the
+  touch audit tap where they did.
+- No new rarity rule: a weapon's or Card's frame shows its level's colour (pass 48), a passive item its rarity or rung.
+  The tier proposal for weapons and Cards waits for Garry (tools/dl/p122/LEAD/rarity_tiers.md).
+
+### 64.LEAD Garry's own tuning kept
+
+- Drive's Muscle +6% -> **+8%** attack damage a rank and Tempo -5% -> **-6%** cooldown a rank (content/talents/drive,
+  Garry's edit of 2026-11-03); pass110_econ_test pins only the Muscle's shape now.

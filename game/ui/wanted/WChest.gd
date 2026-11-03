@@ -189,18 +189,23 @@ func _draw() -> void:
 
 ## The light out of the open chest: a fan of brass rays fading upwards, turning a little, and a paper glow at the mouth.
 ## The rays grow from the mouth to their full reach over RAYS_GROW (pass 47: the light rises into the reel above).
+## Pass 122 (lane UICHEST): the kit's gold and cream under Royale (brass reads dull on the black dim); the paintings and
+## the beats are the same under both themes.
 func _draw_light(mouth: Vector2) -> void:
 	var turn := t * 0.6
 	var grow := clampf((t - OPEN) / RAYS_GROW, 0.0, 1.0)
 	grow = 0.12 + 0.88 * (1.0 - pow(1.0 - grow, 3.0))
+	var royale := W.royale()
+	var brass: Color = R.role("gold")["bottom"] if royale else W.BRASS
+	var paper: Color = R.CREAM if royale else W.PAPER
 	for k in 9:
 		var ang := -PI * 0.5 + (float(k) - 4.0) * 0.19 + sin(turn + k * 1.3) * 0.03
 		var half := 0.05 + 0.02 * sin(k * 1.7)
 		var reach := (760.0 + 160.0 * sin(k * 2.3)) * grow
 		draw_polygon(PackedVector2Array([mouth, mouth + Vector2.from_angle(ang - half) * reach, mouth + Vector2.from_angle(ang + half) * reach]),
-			PackedColorArray([Color(W.BRASS, 0.55 * light), Color(W.BRASS, 0.0), Color(W.BRASS, 0.0)]))
+			PackedColorArray([Color(brass, 0.55 * light), Color(brass, 0.0), Color(brass, 0.0)]))
 	for k in 6:
-		draw_circle(mouth, 130.0 - k * 20.0, Color(W.PAPER, 0.07 * light), true, -1.0, true)
+		draw_circle(mouth, 130.0 - k * 20.0, Color(paper, 0.07 * light), true, -1.0, true)
 
 
 ## The chest in the kit's look, for as long as it is not painted: walnut (the boss's violet) in an ink outline, brass

@@ -81,7 +81,9 @@ void fragment() {
 	float f = texture(noise_tex, wp * glint_scale + vec2(t * 3.1, -t * 2.3)).b;
 	float glint = smoothstep(glint_from, glint_from + 0.05, f) * smoothstep(0.45, 0.75, a.b) * (1.0 - thin);
 	col += foam_color * glint * glint_strength;
-	col = mix(col, col * vec3(1.05, 0.72, 0.66) + vec3(0.06, 0.0, 0.0), hell * 0.7);
+	// pass 122 (lane S3WORLD): the ground's hell tint is paler now (terrain_painted hell_mul / hell_add); the water
+	// keeps step: a little lift, less green and blue lost (was 1.05, 0.72, 0.66 + 0.06, 0, 0)
+	col = mix(col, col * vec3(1.0, 0.84, 0.80) + vec3(0.08, 0.03, 0.03), hell * 0.7);
 	ALBEDO = col;
 	// clear at the shore, deep in the middle; the edge fades over the last stretch
 	float alpha = mix(shallow_alpha, deep_alpha, smoothstep(0.0, 0.6, depth));

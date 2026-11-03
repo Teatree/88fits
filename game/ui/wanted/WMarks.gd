@@ -4,8 +4,17 @@
 ##           48, bigger everywhere: 40 on a card, 48 on the chest, 34 on a pause row);
 ##   rivets  paths /3: brass circles held, aged the rest, 3 px ink;
 ##   notches ranks /3: 44 x 16 bars, brass owned, aged the rest, 3 px ink.
+## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the held stars gold (Garry: "stars more visible": the kit's gold
+## text colour, as big as today's) in a navy stroke, the empty ones slate grey, the "this pick" ones cream warming to
+## gold as they pulse; rivets and notches the same colours in navy; the glow gold.
 class_name WMarks
 extends Control
+
+## The Royale colours: a held mark, an empty one, the "this pick" one, the ink round them.
+const ROYALE_HELD := Color("ffdc73")
+const ROYALE_EMPTY := Color("5b6680")
+const ROYALE_NEXT := Color("fff6dc")
+const ROYALE_WARM := Color("f5b82a")
 
 var mode := "stars"
 var total := 8
@@ -109,10 +118,18 @@ func _get_minimum_size() -> Vector2:
 func _draw() -> void:
 	var h := _get_minimum_size().y
 	var k := pulse_amount()
+	# pass 122: the Royale colours (the Wanted ones as before while the switch is off)
+	var royale := W.royale()
+	var ink := R.NAVY if royale else W.INK
+	var c_held := ROYALE_HELD if royale else W.BRASS
+	var c_empty := ROYALE_EMPTY if royale else W.AGED
+	var c_next := ROYALE_NEXT if royale else W.PAPER
+	var c_warm := ROYALE_WARM if royale else W.BRASS
+	var held_stroke := stroke if royale else 0.0
 	if mode == "stars" and pulse and k > 0.0:
 		# the new stars' glow first (pass 58), under every star, so it never veils a neighbour
 		for i in range(maxi(held, 0), mini(upto, total)):
-			glow(self, Vector2(_step() * (i + 0.5), h * 0.52), mark * PULSE_GLOW * (0.8 + 0.2 * k), Color(W.BRASS, PULSE_GLOW_ALPHA * k))
+			glow(self, Vector2(_step() * (i + 0.5), h * 0.52), mark * PULSE_GLOW * (0.8 + 0.2 * k), Color(c_warm, PULSE_GLOW_ALPHA * k))
 	for i in total:
 		var is_held := i < held
 		var is_next := not is_held and upto > 0 and i < upto
@@ -121,20 +138,23 @@ func _draw() -> void:
 				# a pulsing new star is drawn after the rest (below), on top of the neighbours it swells over
 				if not (is_next and pulse):
 					var c := Vector2(_step() * (i + 0.5), h * 0.52)
-					star(self, c, mark * 0.41, W.BRASS if is_held else (W.PAPER if is_next else W.AGED), 0.0 if is_held else stroke)
+					star(self, c, mark * 0.41, c_held if is_held else (c_next if is_next else c_empty), held_stroke if is_held else stroke, ink)
 			"rivets":
 				var c := Vector2(i * _step() + mark * 0.5, h * 0.5)
-				draw_circle(c, mark * 0.5, W.INK, true, -1.0, true)
-				draw_circle(c, mark * 0.5 - rivet_border, rivet_fill if is_held else (next_fill if is_next else rivet_empty), true, -1.0, true)
+				var rf := rivet_fill if is_held else (next_fill if is_next else rivet_empty)
+				if royale:
+					rf = c_held if is_held else (c_next if is_next else c_empty)
+				draw_circle(c, mark * 0.5, ink, true, -1.0, true)
+				draw_circle(c, mark * 0.5 - rivet_border, rf, true, -1.0, true)
 			_:
 				var r := Rect2(Vector2(i * _step(), 0), notch)
-				draw_rect(r, W.INK)
-				draw_rect(r.grow(-notch_border), W.BRASS if is_held else W.AGED)
+				draw_rect(r, ink)
+				draw_rect(r.grow(-notch_border), c_held if is_held else c_empty)
 	if mode == "stars" and pulse:
 		# the new stars breathe (pass 58): swollen and warmed towards brass at the swell, the ink stroke a little bolder
 		for i in range(maxi(held, 0), mini(upto, total)):
 			var c := Vector2(_step() * (i + 0.5), h * 0.52)
-			star(self, c, mark * 0.41 * pulse_scale(), W.PAPER.lerp(W.BRASS, PULSE_WARM * k), stroke + 1.0 * k)
+			star(self, c, mark * 0.41 * pulse_scale(), c_next.lerp(c_warm, PULSE_WARM * k), stroke + 1.0 * k, ink)
 
 
 ## A soft round glow (pass 58): `col` at its alpha in the middle, fading to nothing at `r`, a fan of GLOW_SEGMENTS

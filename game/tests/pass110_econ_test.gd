@@ -345,14 +345,17 @@ func test_every_talents_rank_k_costs_k_squared_times_its_first() -> void:
 		assert_int(int(td.cost[0])).override_failure_message(td.id + " first rank").is_equal(int(FIRST_RANK[td.id]))
 		for k in range(td.ranks):
 			assert_int(td.cost_of_rank(k)).override_failure_message("%s rank %d" % [td.id, k + 1]).is_equal(int(td.cost[0]) * (k + 1) * (k + 1))
-	# the increases stay: Grit's Padding is still +10% max HP a rank, Drive's Muscle +6% damage
+	# the increases stay: Grit's Padding is still +10% max HP a rank; Drive's Muscle is a damage increase (pass 122: its
+	# number is Garry's to tune in drive.json, +6% -> +8% on 2026-11-03, so only its shape is pinned)
 	var grit: TalentDef = Registry.talent("grit")
 	var e: Effect = (grit.forms[0] as Dictionary)["effects"][0]
 	assert_str(e.stat).is_equal("max_hp")
 	assert_float(e.value).is_equal_approx(0.1, 0.0001)
 	assert_int(grit.effects_for(0, 3).size()).is_equal(3)
 	var mu: Effect = (Registry.talent("drive").forms[0] as Dictionary)["effects"][0]
-	assert_float(mu.value).is_equal_approx(0.06, 0.0001)
+	assert_str(mu.stat).is_equal("might")
+	assert_str(mu.op).is_equal("mul")
+	assert_bool(mu.value > 0.0).is_true()
 
 
 func test_ranks_bought_at_the_old_prices_stay_and_refund_half_of_what_was_paid() -> void:

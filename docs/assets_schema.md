@@ -57,6 +57,7 @@ A **look** is one painted strip (and, for a creature, its icon) of an asset. The
 | `.recipe.run_fit` | entry (heroes) | path, or `{view: ratio}` | absent | **pass 71**: each view's walk sized by its MEDIAN frame at this ratio of the standing figure (gen_art `run_fit_of`, `clip_scale`; clamped 0.6..1.4) instead of its tallest frame at the standing height; a path names a `silhouette.json` (or a guide folder holding one: the 3D puppet's own run/idle screen height per view, through the guides' 25-degree cameras). `run_scale` still multiplies on top. A puppet look's job writes its guides' silhouette here unless *run size from the puppet* is off |
 | `.recipe.fringe_remap` | entry (heroes) | `true` or `{min_sat, sat}` | absent | **pass 71**: the clips' hues the view's own painting does not have (gen_art's 24 hue bins: own = 0.3 % of the figure, or a neighbour) moved to the painting's nearest own hue, saturation x `sat` (0.85), value and alpha kept, only pixels saturated past `min_sat` (0.2): the rainbow fringes Wan leaves on sleeves. Off unless named |
 | `.recipe.method` `hero_puppet` | entry (heroes) | | | **pass 71**: the Puppet method (`tools/puppet.py`): the look's walks guided by the hero's own rigged 3D puppet; its recipe starts as the source look's (stills, seeds, words; never its `run_scale` or drivers), then the job writes `pose_drivers`, `ctl_drivers` and `run_fit` from the guides |
+| `.recipe.recolour_of`, `.recipe.recolour_passes` | entry (creatures) | code, [argv strings] | absent | **pass 107** (BB-E/F, ANT-G/H, LS-D/E; pass 122 HG-E, KN-F, DM-J, BD-B): a recolour look, no method: the look whose strip and icon were recoloured frame by frame, and the `tools/recolour_strip.py` argument strings applied in turn to the strip and to the icon (each pass's output the next one's input; a pass ending in `--cells k` runs on those frames of the grid alone, pass 122's second pass on the `hit` frame). The game never reads them; the Level Editor's `recolour` job method knows only the hue/tint modes, so a redo is the tool by hand. Details in the pass 107 and pass 122 sections below |
 | `.recipe.puppet` | entry (heroes) | object | absent | **pass 71 follow-up**: a puppet look's settings as it ran (`jobs.PUPPET_SETTINGS`): `run_fit` (Size from the 3D model, default true), `frame` (`soles` \| `ankles`, default soles), `fringe` (Clean colour fringes, default true), `face` (`nose` \| `head`, Keep the face angle, default nose), `depth_views` (list or comma text, default fd, side, bd, back), `source`, `stills` (`reuse` \| `repaint`), `refs`, `painter`, `steps`, `turbo`, `seeds`, `words`, `screen`, `tries`, `faces`, `reuse` (`auto` \| `fresh` \| `blend` \| `fbx`), `fbx`, `clip`, `idle`. Written by the job at Queue and Edit, shown in Recipe (typed); a re-queue runs what it holds. Tool-only: the game never reads it |
 
 **Codes.** `PREFIX-SUFFIX`. PREFIX = the most common prefix of the existing `variants` keys, else `variant_base`'s, else
@@ -3216,6 +3217,14 @@ Look entry recipe of a recolour look (no method; like SK-E's `tint_of`): `recolo
 `recolour_passes` (the recolour_strip.py argument strings, applied in turn to the strip and the icon),
 `recolour_icon_extra` (optional: extra args for the icon only). Not a Level Editor job method: the LE's `recolour`
 method stays hue/tint; a lift rerun is `python tools/dl/p107/RECOLOUR/make.py --final`.
+**Pass 122** (the Blood Moon's cool looks HG-E, KN-F, DM-J, BD-B): a pass may end in `--cells 18[,61]`, the frame
+indices of the strip grid it runs on (every other pixel copied as it is; `--cell-px` names the cell when the strip has
+more than one row, else the image's height): a creature's `hit` frame (idle + run + attack frames in) is a white-washed
+flash of the material whose saturation falls under the strip pass's `--min-sat`, so HG-E, DM-J and BD-B carry a second
+pass on cell 18 alone with a lower one. On the icon (one frame) such a pass finds no cell 18 and changes nothing, so the
+strings still apply to the strip and the icon alike. A redo needs no other tool: each pass's output is the next one's
+input, `python tools/recolour_strip.py --src <source strip> --dst <look's strip> <pass>` in turn, then the icon the same
+way (game/tests/pass122_S3LOOKS_B_test.gd pins the shape).
 
 ### Stage 2's XP near Stage 1's pace; the Tumbleweed pale at night (lane XPT)
 

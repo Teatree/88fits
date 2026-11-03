@@ -137,10 +137,17 @@ const SCRIPT_PATH := "res://ui/wanted/WShine.gd"
 
 
 ## A shine at `at` reaching `r`, in `col` (the wide rays and the glow) and `col2` (the narrow rays); put() it somewhere.
+## Pass 122 (lane UIKIT_B), under Royale: the kit's gold and cream stand in for brass and paper (the drawing, the
+## timings and the breath are today's).
 static func make(at: Vector2, r: float = 480.0, col: Color = W.BRASS, col2: Color = W.PAPER) -> Control:
 	var s = (load(SCRIPT_PATH) as GDScript).new()
 	s.center = at
 	s.radius = r
+	if W.royale():
+		if col.is_equal_approx(W.BRASS):
+			col = R.role("gold")["bottom"]
+		if col2.is_equal_approx(W.PAPER):
+			col2 = R.CREAM
 	s.color = col
 	s.color2 = col2
 	return s
@@ -200,7 +207,7 @@ func put(host: Node, index: int = -1) -> Control:
 ## purple; brass is the default).
 func tint(col: Color) -> void:
 	color = col
-	color2 = col.lerp(W.PAPER, 0.62)
+	color2 = col.lerp(R.CREAM if W.royale() else W.PAPER, 0.62)
 
 
 ## Grows in from nothing with a little overshoot over `seconds`, fading in.

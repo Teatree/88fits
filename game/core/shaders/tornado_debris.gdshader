@@ -24,6 +24,10 @@ uniform float rise = 0.16;
 uniform float size = 1.0;
 uniform float amount = 1.0;
 uniform float burst = 0.0;
+// Pass 122 (lane S3WORLD): `fire` 0..1 draws every bit as a glowing ember (0: pass 113's clods and twigs): the fire's
+// colour towards wisp_color, each at its own heat, pulsing. Only colours: the shapes and the ride are the same.
+uniform float fire : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 wisp_color : source_color = vec4(1.0, 0.93, 0.8, 1.0);
 
 varying float v_kind;
 varying float v_seed;
@@ -111,5 +115,11 @@ void fragment() {
 	if (!on) {
 		discard;
 	}
-	ALBEDO = c * mix(vec3(1.0), color.rgb * 1.25, 0.25);
+	vec3 dust = c * mix(vec3(1.0), color.rgb * 1.25, 0.25);
+	// pass 122: an ember: the fire's colour to the hot yellow by its own heat, pulsing, a dark crust at its heart
+	float heat = fract(v_seed * 0.37);
+	float pulse = 0.75 + 0.35 * (0.5 + 0.5 * sin(t * 9.0 + v_seed * 7.0));
+	vec3 ember = mix(color.rgb, wisp_color.rgb, 0.3 + 0.7 * heat) * pulse;
+	ember = mix(ember, color.rgb * 0.35, smoothstep(0.1, 0.0, length(p) - 0.16 * heat));
+	ALBEDO = mix(dust, ember, fire);
 }

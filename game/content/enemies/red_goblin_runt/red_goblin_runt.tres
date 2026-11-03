@@ -90,6 +90,33 @@ variants = {
 "sprite": "res://content/enemies/red_goblin_runt/red_goblin_runt_sprite_b.png",
 "sprite_file": "red_goblin_runt_sprite_b.png",
 "strip_cols": 43
+},
+"RR-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": "res://content/enemies/red_goblin_runt/red_goblin_runt_icon_c.png",
+"note": "Pass 122 recolour of RR-A (the base strip): a pale peach-white runt for the Blood Moon's rose-red ground (hue 26, saturation 0.30, rosy shadows at 10, the blood red lifted to 0.68..1.0); the grey tunic, knife, eyes and outline as they are (tools/recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/red_goblin_runt/red_goblin_runt_sprite_c.png",
+"sprite_file": "red_goblin_runt_sprite_c.png",
+"strip_cols": 43
 }
 }
 variant = "RR-A"

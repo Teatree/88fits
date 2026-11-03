@@ -29,7 +29,20 @@
 ##   advance=<s>           game seconds run before the shot (1.0); speed=<x> the game's speed meanwhile (1)
 ##   fire=0                the hero's weapons hold their fire (no shots, no hits)
 ##   perf=<frames>         frame times measured over that many frames once the crowd stands (120; 0 = none)
+##   theme=wanted|royale   (pass 122, lane UIKIT_A) the UI theme the HUD is built in (Settings.ui_theme, set before the
+##                         arena opens; with hide_hud=0 the HUD shows under each stage look); default the save's
 ##   watchdog=<s>          the wall-clock limit (150 s), frames=<n> the frame cap (20000): past either it quits with code 2
+## Pass 122 (lane S3WORLD), tuning the Blood Moon:
+##   hell_mul=r,g,b hell_add=r,g,b   the terrain shader's hell tint (terrain_painted.gdshader hell_mul / hell_add) set
+##                         on the map's material after the stage's look; hell_ambient=r,g,b the ambient light at hell
+##   filter=#rrggbb,k      the stage's filter colour and strength in place of the map's (the entry patched in memory
+##                         only); filter_actors= filter_structures= filter_items= its shares
+##   barrels=<n>           n barrels of each kind laid in three rows below the hero (BarrelField.respawn_at), on the
+##                         screen; barrel_rim=0 leaves their rim light off
+##   tornado=1             a dust devil called in (DustDevils.call_one: on the screen by the map's rules, or at
+##                         tornado_at=<dx,dz> metres from the hero, east and south); formed by advance=4
+##   quads=<names>         only these of the stage filter's quads stay drawn (sand, scenery, actors, structures, items;
+##                         StageLook.all_quads), the others hidden: a probe of which quad lands on what
 ## Prints "store_shots: saved <path> (WxH)" and "store_shots: perf ..." ; the save in memory goes back as it was (the arena's
 ## sandbox keeps it off the disk; tools/godot.sh puts the PC save file back too).
 ## Autoloads and the game's classes are reached through the tree (SceneTree scripts compile before the autoloads exist).
@@ -80,6 +93,16 @@ func _b(k: String, d: bool) -> bool:
 	return str(A[k]) in ["1", "true", "yes", "on"]
 
 
+## "r,g,b" as a Vector3 (pass 122), `d` when the argument is missing or malformed.
+func _v3(k: String, d: Vector3) -> Vector3:
+	if not A.has(k):
+		return d
+	var parts: PackedStringArray = str(A[k]).split(",")
+	if parts.size() != 3:
+		return d
+	return Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
+
+
 func _log(s: String) -> void:
 	print("store_shots: " + s)
 
@@ -127,6 +150,10 @@ func _main() -> void:
 	for k in ["debug_modal_buttons", "free_revive_button", "hit_log", "debug_panel"]:
 		if settings.get(k) != null:
 			settings.set(k, false)
+	# pass 122: the UI theme, before the arena (and its HUD) is built
+	if A.has("theme"):
+		settings.set("ui_theme", _s("theme", "wanted"))
+		_log("theme %s" % str(settings.get("ui_theme")))
 	_log("window %s, args %s" % [str(DisplayServer.window_get_size()), str(A)])
 	# the arena by the launch the tools hand over in memory (Run.launch_override: no file left behind)
 	var launch := {"arena": true, "analytics": false}
@@ -156,6 +183,20 @@ func _main() -> void:
 	# the stage's look and the arena clock at its window's start
 	var stage := int(A.get("stage", 1)) - 1
 	var tl = run.map.timeline if run.map else null
+	# pass 122 (lane S3WORLD): the stage's filter patched in memory for a tuning capture (the file is never written)
+	if stage >= 0 and tl != null and A.has("filter") and tl.stage_list.size() > stage and tl.stage_list[stage] is Dictionary:
+		var entry: Dictionary = tl.stage_list[stage]
+		var fd: Dictionary = (entry.get("filter", {}) as Dictionary).duplicate() if entry.get("filter") is Dictionary else {}
+		var fs: PackedStringArray = _s("filter", "").split(",")
+		if fs.size() >= 1 and fs[0] != "":
+			fd["color"] = fs[0]
+		if fs.size() >= 2:
+			fd["strength"] = float(fs[1])
+		for key in ["actors", "structures", "items"]:
+			if A.has("filter_" + key):
+				fd[key] = _f("filter_" + key, 0.0)
+		entry["filter"] = fd
+		_log("filter patched to %s" % str(fd))
 	if stage >= 0 and tl != null:
 		panel.call("set_clock", float(tl.stage_start(stage)) / 60.0 + 0.05)
 		load("res://core/systems/StageLook.gd").call("of", g).show_stage(stage, 0.0)
@@ -194,6 +235,27 @@ func _main() -> void:
 	var fz := _s("freeze", "walk")
 	panel.call("set_freeze", 1 if fz == "walk" else (2 if fz == "pose" else 0))
 	await _frames_wait(4)
+	# pass 122 (lane S3WORLD): the hell tint's knobs, after the map's own hell has landed
+	if A.has("hell_mul") or A.has("hell_add"):
+		var tm = g.map.get("_terrain_mat") if g.map else null
+		if tm is ShaderMaterial:
+			if A.has("hell_mul"):
+				tm.set_shader_parameter("hell_mul", _v3("hell_mul", Vector3.ONE))
+			if A.has("hell_add"):
+				tm.set_shader_parameter("hell_add", _v3("hell_add", Vector3.ZERO))
+			_log("hell tint %s + %s" % [str(tm.get_shader_parameter("hell_mul")), str(tm.get_shader_parameter("hell_add"))])
+	if A.has("hell_ambient"):
+		var env = g.map.get("_env") if g.map else null
+		if env is Environment:
+			var v := _v3("hell_ambient", Vector3.ONE)
+			env.ambient_light_color = Color(v.x, v.y, v.z)
+	if A.has("quads"):
+		var keep: PackedStringArray = _s("quads", "").split(",")
+		var sl0 = g.get_node_or_null("StageLook")
+		var all: Dictionary = sl0.all_quads() if sl0 != null else {}
+		for key in all:
+			(all[key] as MeshInstance3D).visible = (all[key] as MeshInstance3D).visible and keep.has(str(key))
+		_log("quads kept %s of %s" % [str(keep), str(all.keys())])
 	# the crowd
 	if A.has("crowd"):
 		var entries: Array = []
@@ -242,6 +304,40 @@ func _main() -> void:
 			_log("boss %s, index %d" % [bd.id, bi])
 		else:
 			_log("no boss '%s'" % _s("boss", ""))
+	# pass 122 (lane S3WORLD): barrels of every kind laid in rows below the hero, and a dust devil called in
+	if A.has("barrels"):
+		var bf = g.get("barrels")
+		var nb := int(A.get("barrels", 2))
+		if bf != null and bf.has_method("respawn_at") and nb > 0:
+			var hp0: Vector3 = g.player.global_position
+			var laid := 0
+			for kind in range(3):
+				for i in range(nb):
+					var bx: float = hp0.x + (-3.6 + 7.2 * float(i) / float(nb - 1) if nb > 1 else 0.0)
+					var bz: float = hp0.z + 2.4 + 1.5 * float(kind)
+					if bf.respawn_at(Vector3(bx, g.map.height_at(bx, bz), bz), kind):
+						laid += 1
+			if not _b("barrel_rim", true) and bf.has_method("set_hell"):
+				bf.set_hell(0.0, 0.0)
+			_log("barrels: %d laid, rim %.2f" % [laid, float(bf.get("rim"))])
+	if _b("tornado", false):
+		var dds = g.map.get_node_or_null("DustDevils") if g.map else null
+		if dds != null and dds.has_method("call_one"):
+			var at := Vector3.INF
+			if A.has("tornado_at"):
+				var dxz: PackedStringArray = _s("tornado_at", "0,-6").split(",")
+				if dxz.size() == 2:
+					var hp1: Vector3 = g.player.global_position
+					var tx := hp1.x + float(dxz[0])
+					var tz := hp1.z + float(dxz[1])
+					at = Vector3(tx, g.map.height_at(tx, tz), tz)
+			var dd = dds.call_one(at)
+			if dd != null:
+				_log("tornado at %s, burning %s" % [str(dd.position), str(dd.get("burning"))])
+			else:
+				_log("tornado: no spot")
+		else:
+			_log("tornado: the map has no DustDevils")
 	# the frame times with the crowd standing
 	var perf_n := int(A.get("perf", 120))
 	if perf_n > 0:

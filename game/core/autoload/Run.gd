@@ -1043,10 +1043,30 @@ func item_spent(def: ContentDef) -> bool:
 		return not grind_used.is_empty()
 	if not phoenix_used:
 		return false
+	return carries_phoenix(def)
+
+
+## Whether a passive item's first level carries the free revive (the stat `phoenix_revive`): the Phoenix Feather, whatever
+## it is called (pass 122, lane BUGS; the shape item_spent read since pass 48).
+func carries_phoenix(def: ContentDef) -> bool:
+	if def == null or not def is PassiveDef:
+		return false
 	for e in (def as PassiveDef).effects_for_level(1):
 		if e is Effect and (e as Effect).stat == "phoenix_revive":
 			return true
 	return false
+
+
+## The item standing the hero up (pass 122, lane BUGS; Garry: "It shows the Grindstone icon instead of Phoenix"): the held
+## passive item that carries the free revive (carries_phoenix), else the Registry's Phoenix Feather. Never "any spent
+## item": item_spent is true of a used Grindstone too (pass 121), and the fall (Game._on_player_died) used to take the
+## first spent item held as the feather, so a run with a used Grindstone flew the stone's plate and banner.
+func phoenix_item() -> ContentDef:
+	for pid in passives.keys():
+		var pd: ContentDef = Registry.passive(str(pid))
+		if carries_phoenix(pd):
+			return pd
+	return Registry.passive("phoenix_feather")
 
 
 ## The pause screen's line for a used item (pass 121, lane GRIND): what its one deed was ("Used: it stood you up once this

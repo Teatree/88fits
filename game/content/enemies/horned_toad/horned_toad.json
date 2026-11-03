@@ -64,7 +64,7 @@
     "run": 15,
     "die": 8
   },
-  "doc": "Armoured and slow; it takes 40% less from everything, so a pea does five instead of eight. Two seconds after it dies the body bursts in a red ring, so standing on a kill is a habit it breaks.",
+  "doc": "Armoured and slow; it takes 40% less from everything, so a pea does five instead of eight. Two seconds after it dies the body bursts in an orange ring, so standing on a kill is a habit it breaks.",
   "death_burst": {
     "delay": 2.0,
     "radius": 2.4,

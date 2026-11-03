@@ -97,6 +97,33 @@
         "die": 12
       },
       "head": 1.0
+    },
+    "RR-C": {
+      "note": "Pass 122 recolour of RR-A (the base strip): a pale peach-white runt for the Blood Moon's rose-red ground (hue 26, saturation 0.30, rosy shadows at 10, the blood red lifted to 0.68..1.0); the grey tunic, knife, eyes and outline as they are (tools/recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "RR-A",
+        "recolour_passes": [
+          "--mode lift --ranges 340-360,0-12 --to 26 --to-dark 10 --set-sat 0.30 --v-lo 0.68 --v-hi 1.0 --gamma 0.85 --min-sat 0.3 --min-val 0.16 --src-hi 0.9 --soft 0.05"
+        ]
+      },
+      "sprite": "red_goblin_runt_sprite_c.png",
+      "icon": "red_goblin_runt_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "head": 1.0
     }
   }
 }

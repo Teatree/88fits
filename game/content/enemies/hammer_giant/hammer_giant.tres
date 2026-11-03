@@ -179,6 +179,33 @@ variants = {
 "sprite": "res://content/enemies/hammer_giant/hammer_giant_sprite_d.png",
 "sprite_file": "hammer_giant_sprite_d.png",
 "strip_cols": 43
+},
+"HG-E": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": "res://content/enemies/hammer_giant/hammer_giant_icon_e.png",
+"note": "Pass 122 recolour of HG-C for the Blood Moon: the oxblood skin lifted to a pale lavender-white (hue 262, the deepest shades 250, saturation 0.17), the loincloth, rope, hammer, tusks, eyes and the outline as they are; the hit frame (cell 18, a white-washed flash) by a second pass with a lower --min-sat (tools/recolour_strip.py --mode lift, the passes in turn on the strip and the icon; --cells 18)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/hammer_giant/hammer_giant_sprite_e.png",
+"sprite_file": "hammer_giant_sprite_e.png",
+"strip_cols": 43
 }
 }
 variant = "HG-A"

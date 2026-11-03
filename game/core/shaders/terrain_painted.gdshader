@@ -29,6 +29,14 @@ uniform vec3 sand_flat : source_color = vec3(0.90, 0.78, 0.58);
 uniform vec3 cracked_flat : source_color = vec3(0.80, 0.67, 0.50);
 // hell (pass 43): stage 3 turns the ground a shade redder and darker; the map tweens it in over a few seconds
 uniform float hell : hint_range(0.0, 1.0) = 0.0;
+// Pass 122 (lane S3WORLD; Garry: the Blood Moon's sand "not as dark", the creatures lost on it): the hell tint is
+// col * hell_mul + hell_add in linear light (pass 43's was 0.97, 0.79, 0.72 and 0.02, 0, 0: the stage's red filter
+// over that left the sand a deep saturated red the red creatures sank into). Now a lifted, paler tint: the filter
+// (stage_list[2].filter, its strength 0.6 -> 0.42 in the same pass) does the reddening, the ground under it keeps its
+// green and gains a little blue, so under the red glass it lands a dusty rose instead of a deep red and dark and red
+// creatures both stand out. Uniforms, so a tuning capture (tools/store_shots.gd hell_mul= hell_add=) can try others.
+uniform vec3 hell_mul = vec3(1.0, 0.92, 1.0);
+uniform vec3 hell_add = vec3(0.16, 0.1, 0.18);
 // pass 81: the sand's large-scale variation: the noise tiles every 1 / macro_scale metres and moves the light that much
 // either way
 uniform float macro_scale = 0.019;
@@ -87,7 +95,7 @@ void fragment() {
 	col = mix(col, oasis_grass * (0.75 + 0.5 * fine.g), grass * oasis_grass_amount);
 	col = mix(col, vec3(dot(col, vec3(0.299, 0.587, 0.114))), wet * oasis_wet_grey);
 	col *= mix(vec3(1.0), oasis_wet, wet);
-	col = mix(col, col * vec3(0.97, 0.79, 0.72) + vec3(0.02, 0.0, 0.0), hell);
+	col = mix(col, col * hell_mul + hell_add, hell);
 	ALBEDO = col;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.1;

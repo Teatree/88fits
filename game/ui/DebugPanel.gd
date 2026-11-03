@@ -38,6 +38,15 @@ func _ready() -> void:
 	_btn("Skip 60 s", func(): Run.elapsed += 60.0)
 	_btn("Give random weapon", _give_weapon)
 	_btn("Max all held", _max_all)
+	# pass 122 (lane UIKIT_A): the UI theme flipped from inside a run (the pause screen built next wears it; the switch
+	# itself is a setting, so a replay already keeps it)
+	_btn("UI theme: wanted / royale", func():
+		Settings.set_value("ui_theme", "royale" if str(Settings.ui_theme) == "wanted" else "wanted")
+		W.theme_changed(), false)
+	# pass 122 (lane UIHUD): the Royale HUD's item slots plain or in their level / rarity colours (Settings.hud_slot_rarity;
+	# the HUD lays its slots out again on the change)
+	_btn("HUD slot rarity: off / on", func():
+		Settings.set_value("hud_slot_rarity", not bool(Settings.hud_slot_rarity)), false)
 	_btn("Hide (F1)", toggle, false)
 
 

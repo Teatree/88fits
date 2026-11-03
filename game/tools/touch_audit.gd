@@ -102,13 +102,26 @@ var _only: Array = []
 var _fails: Array = []       # [screen, what, why]
 var _counts: Dictionary = {} # screen -> {tapped, ok}
 var _game = null
+## theme=wanted|royale (pass 122, lane UIKIT_A): the UI theme every screen is built in (Settings.ui_theme, set before
+## the first one); "" leaves the save's.
+var _theme := ""
 
 
 func _initialize() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("only="):
 			_only = a.substr(5).split(",")
+		elif a.begins_with("theme="):
+			_theme = a.substr(6)
+	process_frame.connect(_apply_theme, CONNECT_ONE_SHOT)
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
+
+
+## Pass 122: the theme into Settings on the first frame, before _run builds anything (connected first, so it runs first).
+func _apply_theme() -> void:
+	if _theme != "":
+		root.get_node("Settings").set("ui_theme", _theme)
+		print("touch_audit: theme ", root.get_node("Settings").get("ui_theme"))
 
 
 func _want(name: String) -> bool:
@@ -193,26 +206,30 @@ func _visible_in_tree(c: Control) -> bool:
 
 ## Brings `c` into its list's view and returns the middle of the part of it on screen (Vector2.INF when it cannot be).
 func _spot(c: Control) -> Vector2:
-	var n: Node = c.get_parent()
-	while n:
-		if n is ScrollContainer:
-			(n as ScrollContainer).ensure_control_visible(c)
-			break
-		n = n.get_parent()
-	await _frames(2)
-	var r := c.get_global_rect()
-	# the part of the canvas the window shows (taller than 1920 on a long phone: the stretch keeps the width)
-	var screen := root.get_visible_rect()
-	n = c.get_parent()
-	while n:
-		if n is ScrollContainer:
-			screen = screen.intersection((n as ScrollContainer).get_global_rect())
-			break
-		n = n.get_parent()
-	var vis := r.intersection(screen)
-	if vis.size.x < 4.0 or vis.size.y < 4.0:
-		return Vector2.INF
-	return vis.get_center()
+	# pass 122: up to three tries: a ScrollContainer whose list was just laid out (the developer menu's, one row longer)
+	# can take the first ensure_control_visible before its scroll range has grown, leaving the row just under the screen
+	var vis := Rect2()
+	for _try in range(3):
+		var n: Node = c.get_parent()
+		while n:
+			if n is ScrollContainer:
+				(n as ScrollContainer).ensure_control_visible(c)
+				break
+			n = n.get_parent()
+		await _frames(2)
+		var r := c.get_global_rect()
+		# the part of the canvas the window shows (taller than 1920 on a long phone: the stretch keeps the width)
+		var screen := root.get_visible_rect()
+		n = c.get_parent()
+		while n:
+			if n is ScrollContainer:
+				screen = screen.intersection((n as ScrollContainer).get_global_rect())
+				break
+			n = n.get_parent()
+		vis = r.intersection(screen)
+		if vis.size.x >= 4.0 and vis.size.y >= 4.0:
+			return vis.get_center()
+	return Vector2.INF
 
 
 func _name_of(c: Control) -> String:

@@ -78,6 +78,17 @@ const GOLD := Color(0.86, 0.66, 0.2)
 const IRON := Color(0.36, 0.36, 0.38)
 static var _shader_5: Shader = null
 var _index_in: PackedInt32Array = PackedInt32Array()   # a barrel's instance index inside its body (and hoop) MultiMesh
+## Pass 122 (lane S3WORLD; Garry: barrels "more visible on all that red"): on a hell stage (the Blood Moon) every barrel
+## wears a pale rim light (prop_billboard.gdshader `rim`, `rim_color`, `rim_width`; the shader's own default rim 0 is
+## pass 116's look, so no prop changes). StageLook hands the hell in with the stage (set_hell): the rim fades in with the
+## red ground, RIM_HELL strong at full hell; every other stage draws them as before. The three kinds' materials, the rim
+## drawn now, its tween.
+const RIM_HELL := 1.0
+const RIM_COLOR := Color(1.0, 0.94, 0.82)
+const RIM_WIDTH := 0.03
+var _mats: Array = []
+var rim := 0.0
+var _rim_tween: Tween
 ## Pass 83 (lane SCENE; Garry: "barrels, signs, and structures too. Want them to feel like they are part of the world"):
 ## each barrel stands on a ground shadow in the scenery's shadow MultiMesh (PropField.add_shadow, the map's props), this
 ## wide and deep (metres), this dark, shifted by the sun for a thing SHADOW_TALL high; gone when the barrel breaks.
@@ -177,9 +188,39 @@ func _billboards(t: int, n: int, spare: int = 0) -> MultiMesh:
 	mat.shader = barrel_shader()
 	mat.set_shader_parameter("sprite", load(SPRITES[t]))
 	mat.set_shader_parameter("mute", 0.04)
+	# pass 122 (lane S3WORLD): the rim light, off until a hell stage says otherwise (set_hell)
+	mat.set_shader_parameter("rim", rim)
+	mat.set_shader_parameter("rim_color", RIM_COLOR)
+	mat.set_shader_parameter("rim_width", RIM_WIDTH)
+	_mats.append(mat)
 	var quad := QuadMesh.new()
 	quad.size = Vector2(1, 1)
 	return _multimesh(quad, n, mat, spare, true)
+
+
+## Pass 122 (lane S3WORLD): the stage's hell `f` (0..1; StageLook.show_stage, with the map's set_hell): the barrels' rim
+## light goes to RIM_HELL x f over `seconds` (0: at once).
+func set_hell(f: float, seconds: float = 0.0) -> void:
+	if _rim_tween:
+		_rim_tween.kill()
+		_rim_tween = null
+	var want := RIM_HELL * clampf(f, 0.0, 1.0)
+	if seconds <= 0.0 or not is_inside_tree():
+		_apply_rim(want)
+		return
+	_rim_tween = create_tween()
+	_rim_tween.tween_method(_apply_rim, rim, want, seconds)
+
+
+func _apply_rim(v: float) -> void:
+	rim = v
+	for m: ShaderMaterial in _mats:
+		m.set_shader_parameter("rim", v)
+
+
+## The barrels' materials (tests): one a kind, in SPRITES' order.
+func materials() -> Array:
+	return _mats
 
 
 ## Where `node` stands inside the model whose root is `root`: its own transform under every Node3D above it, the root's

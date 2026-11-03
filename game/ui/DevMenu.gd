@@ -143,6 +143,14 @@ func _refresh() -> void:
 	var ff_row := _switch("Fire forward (Sabre, Spear, Hammer, Frisbee, Tumbleweed, Basketball)", "fire_forward")
 	ff_row.name = "FireForwardRow"
 	_list.add_child(ff_row)
+	# pass 122 (lane UIKIT_A): the UI theme, Wanted (the default) or Royale (also in Settings' Debug panel and the in-run
+	# debug panel); the next screen built wears it
+	var th_row := _row("UI theme · Wanted or Royale (the next screen built wears it)", str(Settings.ui_theme).to_upper(), func():
+		Settings.set_value("ui_theme", "royale" if str(Settings.ui_theme) == "wanted" else "wanted")
+		W.theme_changed()
+		_refresh())
+	th_row.name = "UiThemeRow"
+	_list.add_child(th_row)
 	# pass 101 (lane FPS): the frame cap (Settings.frame_cap): 60 (a phone's default) or MAX (the screen's own rate)
 	var fc_row := _row("Frame rate · 60 or the screen's max (%s Hz)" % _refresh_hz(), Settings.frame_cap_label(), func():
 		Settings.set_value("frame_cap", Settings.next_frame_cap(Settings.frame_cap))

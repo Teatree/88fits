@@ -11,6 +11,16 @@
 ## gold (pass 47, with the coin) rising from him, and the floating joystick. A banner pops in at 38 % of the screen's
 ## height for 2 s (pass 45: on the top row it went unseen). A tap anywhere on the top strip pauses. Nothing interactive
 ## lives between y 700 and 1600.
+## Pass 122 (lane UIHUD), under the Royale theme (W.royale(); Garry's build brief of 2026-11-02: "HUD as the mock on
+## today's footprint ... Keep the height of the EXP bar as fat as ours is, keep the overall sizes the same for just about
+## every element in that HUD as we have them now, only change the Style of indicators and buttons and such"): the same
+## layout to the pixel (every box measured against the Wanted capture), the rail a black trough with the kit's bright
+## purple band, LV / clock / gold on black 56 % info plates in white Ultra, the pause button a slate Royale button, the
+## slots the kit's item frames with a level plaque under each (plain common frames unless the debug switch
+## Settings.hud_slot_rarity puts the level's colour on them; an evolved item black in its rainbow rim either way), the
+## power-ups on black plates, the pointers the kit's black plates; the kill counter, the boss's name and bar, the hero's
+## bars, the floating numbers and the joystick exactly as under Wanted (Garry). The Wanted drawing is untouched while the
+## switch is off (_apply_theme restyles the HUD's own pieces in place, so the in-run debug panel's switch takes at once).
 class_name HUD
 extends Control
 
@@ -84,6 +94,14 @@ const TOAST_UNDER_BOSS := 20.0
 const TOAST_UNDER_WORDS := 10.0
 ## A pointer on the screen's edge keeps its middle this far under all of them (pass 56: half a pointer and a gap).
 const POINTER_CLEAR := 40.0
+## Pass 122 (lane UIHUD), the HUD under Royale: the strip above the rail and the rail's trough in the kit's plate black
+## (R.PLATE's colour), opaque, since the rail is the top of the screen (pass 47d); the LV number in the kit's epic light
+## (R.RARITY epic light) while a mutation offer is due, the plate staying black (the rail's MUTATION NEXT is the mark);
+## the clock's digits in the kit's soft red (R.ROLES red top) while the portal counts down, white otherwise; the pause
+## button's base the kit's button base (R.BUTTON_BASE) under a 78 px slate square with 6 px corners.
+const ROYALE_RAIL_BLACK := Color(8 / 255.0, 10 / 255.0, 18 / 255.0)
+const ROYALE_MUT_TEXT := Color("de9fff")
+const ROYALE_WARN_TEXT := Color("ff7d6a")
 
 var game: Node
 var _band: Control
@@ -98,6 +116,8 @@ var _timer: WText
 var _kills: WKillCount
 var _gold_plate: PanelContainer
 var _gold: WText
+## pass 122 (the review of lane UIHUD): the gold plate's coin, drawn again when the theme flips (_apply_theme)
+var _coin: WCoin
 var _pause_btn: WTap
 var _slots: Control
 var _slot_nodes: Dictionary = {}   # item id -> WPlate
@@ -136,6 +156,13 @@ var _mut_word: WText
 var _mut_on := false
 var _lv_box_paper: StyleBox
 var _lv_box_plum: StyleBox
+## pass 122 (lane UIHUD): the theme and the slot-rarity switch the HUD's own pieces were last styled for (_apply_theme),
+## and the top plates' text holders (the Wanted face's box whatever the theme, _fit_holders)
+var _theme_applied := ""
+var _slot_rarity_applied := false
+var _lv_hold: Control
+var _timer_hold: Control
+var _gold_hold: Control
 
 
 func _ready() -> void:
@@ -158,6 +185,10 @@ func _ready() -> void:
 	Run.mutation_due_changed.connect(_refresh_mut_mark)
 	Run.build_changed.connect(_refresh_mut_mark)
 	Run.stage_changed.connect(func(_s): _refresh_mut_mark())
+	# pass 122 (lane UIHUD): the HUD's own pieces in the theme, and again whenever the UI theme or the slot-rarity
+	# switch flips in a run (the in-run debug panel; Settings.changed)
+	_apply_theme(true)
+	Settings.changed.connect(func(): _apply_theme())
 	if game and game.player:
 		game.player.input.touch_started.connect(func(p): _ring_pos = p; _ring_alpha = 1.0)
 		game.player.input.touch_ended.connect(func(): _ring_alpha = 0.0)
@@ -192,10 +223,13 @@ func _process(_delta: float) -> void:
 		visible = not covered
 
 
+## A top-row plate: paper with an ink border and a hard shadow; pass 122, under Royale the kit's black info plate (56 %
+## black, no edge, no base: W.plate_box, the same HardBox with the role "plate", which Wanted ignores), the border's
+## room kept in the padding so the words sit where they did.
 func _plate(border: int = 4, shadow: int = 5, pad := Vector2(18, 4)) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_theme_stylebox_override("panel", W.box(W.PAPER, border, shadow).pad(pad.x + border, pad.y + border, pad.x + border, pad.y + border))
+	p.add_theme_stylebox_override("panel", W.plate_box(border, shadow).pad(pad.x + border, pad.y + border, pad.x + border, pad.y + border))
 	return p
 
 
@@ -228,10 +262,7 @@ func _build_band() -> void:
 	_rail.offset_top = W.safe_top()
 	_rail.offset_bottom = W.safe_top() + RAIL_H
 	_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_rail.draw.connect(func():
-		_rail.draw_rect(Rect2(0, 0, _rail.size.x, RAIL_H), W.INK)
-		if _xp_frac > 0.0:
-			_rail.draw_rect(Rect2(0, RAIL_INSET, _rail.size.x * _xp_frac, RAIL_H - 2.0 * RAIL_INSET), W.EPIC))
+	_rail.draw.connect(_draw_rail)
 	add_child(_rail)
 	_top = Control.new()
 	_top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -239,14 +270,17 @@ func _build_band() -> void:
 	_top.offset_bottom = W.safe_top() + SLOT_Y - 10.0
 	_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_top)
+	# (pass 122: each plate's words sit in a holder that keeps the Wanted face's box whatever the theme, _hold)
 	_lv_plate = _plate()
 	_lv = W.text("LV 1", W.slab(), PLATE_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_lv_plate.add_child(_lv)
+	_lv_hold = _hold(_lv)
+	_lv_plate.add_child(_lv_hold)
 	_lv_plate.position = Vector2(36, TOP_Y)
 	_top.add_child(_lv_plate)
 	_timer_plate = _plate(4, 5, Vector2(32, 0))
 	_timer = W.text("00:00", W.slab(), TIMER_PX, W.INK, HORIZONTAL_ALIGNMENT_CENTER, TIMER_PX * 1.15)
-	_timer_plate.add_child(_timer)
+	_timer_hold = _hold(_timer)
+	_timer_plate.add_child(_timer_hold)
 	_timer_plate.position = Vector2(400, TOP_Y)
 	_top.add_child(_timer_plate)
 	# pass 109: the kill counter, centred under the clock (under its tag while one hangs there; _place_kills)
@@ -257,17 +291,17 @@ func _build_band() -> void:
 	var gr := HBoxContainer.new()
 	gr.add_theme_constant_override("separation", 10)
 	gr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gr.add_child(WCoin.make(32.0))
+	_coin = WCoin.make(32.0)
+	gr.add_child(_coin)
 	_gold = W.text("0", W.slab(), PLATE_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_gold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	gr.add_child(_gold)
+	_gold_hold = _hold(_gold)
+	_gold_hold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gr.add_child(_gold_hold)
 	_gold_plate.add_child(gr)
 	_top.add_child(_gold_plate)
-	# the brass pause disc: a 4 px border, two ink bars
+	# the brass pause disc: a 4 px border, two ink bars (pass 122: a slate Royale square under Royale, _style_pause)
 	_pause_btn = WTap.new()
-	var pb := W.box(W.BRASS, 4, 5, int(DISC * 0.5))
-	_pause_btn.box = pb
-	_pause_btn.box_down = pb.pressed(W.BRASS_DARK)
+	_style_pause(false)
 	_pause_btn.custom_minimum_size = Vector2(DISC, DISC)
 	_pause_btn.size = Vector2(DISC, DISC)
 	var bars := HBoxContainer.new()
@@ -276,11 +310,13 @@ func _build_band() -> void:
 	bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for i in 2:
 		var b := ColorRect.new()
+		b.name = "Bar%d" % i
 		b.color = W.INK
 		b.custom_minimum_size = Vector2(10, 30)
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bars.add_child(b)
+	bars.name = "PauseBars"
 	_pause_btn.add_child(bars)
 	_pause_btn.pressed.connect(func(): pause_requested.emit())
 	_top.add_child(_pause_btn)
@@ -304,6 +340,7 @@ func _build_band() -> void:
 ## Place the top row on TOP_Y: LV at left 36, the clock centred, gold just left of the disc, the disc at right 36.
 func _fit_top() -> void:
 	var w := get_viewport_rect().size.x
+	_fit_holders()
 	for p in [_lv_plate, _timer_plate, _gold_plate]:
 		(p as Control).reset_size()
 	_lv_plate.position = Vector2(36, TOP_Y)
@@ -345,16 +382,22 @@ func mutation_mark_on() -> bool:
 	return _mut_on
 
 
-func _refresh_mut_mark() -> void:
+## `force` (pass 122): the mark styled again for the theme even when nothing about it changed (_apply_theme). Under
+## Royale the LV plate stays the black plate and its number turns the epic light while the mark is on.
+func _refresh_mut_mark(force: bool = false) -> void:
 	if _mut_word == null:
 		return
 	var on := Run.mutlvl_pending()
-	if on == _mut_on and _mut_word.visible == on:
+	if not force and on == _mut_on and _mut_word.visible == on:
 		return
 	_mut_on = on
 	_mut_word.visible = on
-	_lv_plate.add_theme_stylebox_override("panel", _lv_box_plum if on else _lv_box_paper)
-	_lv.color = W.PAPER if on else W.INK
+	if W.royale():
+		_lv_plate.add_theme_stylebox_override("panel", _lv_box_paper)
+		_lv.color = ROYALE_MUT_TEXT if on else R.WHITE
+	else:
+		_lv_plate.add_theme_stylebox_override("panel", _lv_box_plum if on else _lv_box_paper)
+		_lv.color = W.PAPER if on else W.INK
 	_lv.queue_redraw()
 	_fit_top()
 
@@ -395,12 +438,17 @@ func _build_boss() -> void:
 	_boss_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_boss_icon)
 	_boss_name = W.text("", W.slab(W.em(BOSS_NAME_PX, 0.06)), BOSS_NAME_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	# pass 122 (lane UIHUD; Garry: "keep ... the boss name as well because the mock doesn't look good"): the name and
+	# its bar are today's piece under both themes: the Wanted face and ink edge, the bar's Wanted drawing (WBar.themed)
+	keep_wanted(_boss_name, W.em(BOSS_NAME_PX, 0.06))
+	_boss_name.color = W.PAPER
 	_boss_name.stroke = 5
 	_boss_name.shadow = 4
 	_boss_name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_boss_name)
 	_boss_box.add_child(row)
 	_boss_bar = WBar.make(1.0, W.ROCK, 30.0, 4, 4)
+	_boss_bar.themed = false
 	_boss_box.add_child(_boss_bar)
 	add_child(_boss_box)
 
@@ -617,6 +665,13 @@ func _refresh_rows() -> void:
 					p.icon_frac = 0.66
 					p.level_text = str(it[1])
 					p.level_size = int(round(19 * maxf(k, 0.8)))
+					# pass 122 (lane UIHUD): under Royale the kit draws the level as the plaque under the frame, and the
+					# frame is the plain common one for every slot unless the debug switch Settings.hud_slot_rarity puts
+					# the level's colour (or a passive's rarity) on it, as the mock (Garry compares the two on the
+					# phone); an evolved item keeps its black face and rainbow rim either way (for_def's own flag). The
+					# row is laid out again when the switch or the theme flips (_apply_theme).
+					if W.royale() and not Settings.hud_slot_rarity:
+						p.fill = W.RARITY_PLATE["common"]
 					if is_w and it.size() > 5 and int(it[5]) > 0:
 						p.dot_px = roundf(20.0 * k)
 						p.set_dots(Vector2i(int(it[3]), int(it[5])), it.size() > 6 and bool(it[6]))
@@ -854,7 +909,9 @@ func banner(text: String, color: Color = W.INK, icon: Texture2D = null) -> void:
 	var y := maxf(vp.y * BANNER_FRAC, _toasts.position.y + 200.0 + 24.0)
 	_banner.play(t, ember, icon, y)
 	if icon != null and not t.begins_with("EVOLVED") and not t.begins_with("UNLOCKED"):
-		_banner.add_theme_stylebox_override("panel", W.box(color, 4, 5).pad(52, 14, 52, 14))
+		var hb := W.box(color, 4, 5).pad(52, 14, 52, 14)
+		hb.themed = false   # pass 122: the banner stays as it is under both themes (Garry)
+		_banner.add_theme_stylebox_override("panel", hb)
 
 
 ## The banner's words now (upper case) and whether it is up.
@@ -1075,14 +1132,7 @@ func _refresh_buffs() -> void:
 			var def := plate_def(k)
 			if def == null:
 				continue
-			var p := WPlate.new().for_def(def, BUFF_PX)
-			# pass 106 (lane DRUM): a structure's boost (the War Drum) on the drum's red, the power-ups on sage
-			p.fill = W.ROCK if k.begins_with("structure:") else W.SAGE
-			# pass 119 (lane LEGEND_B): an item's own plate (the Pocket Bible) on paper
-			if k.begins_with("passive:"):
-				p.fill = W.PAPER
-			p.icon_frac = 0.66
-			p.level_size = 20
+			var p := _buff_plate(def, k)
 			p.name = "buff"
 			p.set_meta("buff", k)
 			_buffs.add_child(p)
@@ -1096,17 +1146,39 @@ func _refresh_buffs() -> void:
 			_adren.visible = not parts.is_empty()
 			_layout_toasts()
 	for c in _buffs.get_children():
-		var p := c as WPlate
-		if p == null:
+		# (pass 122: a WPlate under Wanted, a RoyaleBuffPlate under Royale; both carry `level_text`)
+		var p := c as Control
+		if p == null or p.get("level_text") == null:
 			continue
 		var k := str(p.get_meta("buff", ""))
 		if ends.has(k):
 			var s := "%d" % maxi(int(ceil(float(ends[k]) - now)), 0)
-			if p.level_text != s:
-				p.level_text = s
+			if str(p.get("level_text")) != s:
+				p.set("level_text", s)
 				p.queue_redraw()
 		elif k.begins_with("passive:"):
 			_bible_plate(p)
+
+
+## A power-up's plate for `def` under its key `k` (pass 122, lane UIHUD): the WPlate of pass 47 under Wanted (pass 106:
+## a structure's boost, the War Drum, on the drum's red; pass 119: an item's own plate, the Pocket Bible, on paper; the
+## power-ups on sage), the black RoyaleBuffPlate under Royale (Garry: "buffs and pointers on black plates").
+func _buff_plate(def: ContentDef, k: String) -> Control:
+	var f := W.SAGE
+	if k.begins_with("structure:"):
+		f = W.ROCK
+	if k.begins_with("passive:"):
+		f = W.PAPER
+	if W.royale():
+		var rp := RoyaleBuffPlate.new(BUFF_PX)
+		rp.tex = W.icon_at(def, 0)
+		rp.fill = f
+		return rp
+	var p := WPlate.new().for_def(def, BUFF_PX)
+	p.fill = f
+	p.icon_frac = 0.66
+	p.level_size = 20
+	return p
 
 
 ## Pass 119 (lane LEGEND_B): the Pocket Bible's plate key ("passive:<id>" of the held item whose params carry `bible`
@@ -1124,18 +1196,19 @@ static func bible_plate_key() -> String:
 const BIBLE_DIM := 0.4
 
 
-func _bible_plate(p: WPlate) -> void:
+func _bible_plate(p: Control) -> void:
 	var left := Run.bible_left()
 	var s := "" if left <= 0.0 else "%d" % maxi(int(ceil(left)), 1)
 	var a := 1.0 if left <= 0.0 else BIBLE_DIM
-	if p.level_text != s or absf(p.modulate.a - a) > 0.01:
+	var shown := str(p.get("level_text"))
+	if shown != s or absf(p.modulate.a - a) > 0.01:
 		# the moment it is spent the plate jumps, as the hit bounces off
-		if left > 0.0 and p.level_text == "":
+		if left > 0.0 and shown == "":
 			p.pivot_offset = p.size * 0.5
 			var tw := p.create_tween()
 			tw.tween_property(p, "scale", Vector2(1.25, 1.25), 0.08)
 			tw.tween_property(p, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		p.level_text = s
+		p.set("level_text", s)
 		p.modulate.a = a
 		p.queue_redraw()
 
@@ -1201,6 +1274,7 @@ func tick(delta: float) -> void:
 	# pass 87 (lane SUI): the stage's clock, the portal's count or Endless's time (_tick_stage_clock)
 	_tick_stage_clock()
 	_kills.tick(delta, Run.kills)
+	_fit_holders()
 	if _timer_plate.size.x > 0.0 and absf(_timer_plate.get_combined_minimum_size().x - _timer_plate.size.x) > 1.0:
 		_fit_top()
 	_refresh_buffs()
@@ -1391,7 +1465,9 @@ func _tick_stage_clock() -> void:
 ## The ENDLESS banner, in rock (pass 87).
 func endless_banner() -> void:
 	banner("ENDLESS")
-	_banner.add_theme_stylebox_override("panel", W.box(W.ROCK, 4, 5).pad(52, 14, 52, 14))
+	var hb := W.box(W.ROCK, 4, 5).pad(52, 14, 52, 14)
+	hb.themed = false   # pass 122: the banner stays as it is under both themes (Garry)
+	_banner.add_theme_stylebox_override("panel", hb)
 
 
 func _build_stage_tag() -> void:
@@ -1405,30 +1481,34 @@ func _build_stage_tag() -> void:
 	_top.add_child(_stage_tag)
 
 
-## Paper for the stage's clock, rock for the portal's count, ink for Endless; the tag under it says which.
+## Paper for the stage's clock, rock for the portal's count, ink for Endless; the tag under it says which. Pass 122,
+## under Royale: the clock stays on its black plate, its digits the kit's soft red while the portal counts down and white
+## otherwise; ENDLESS IN a black pill in that red, WAVE n a red tag (the kit's tag: a 3 px navy edge, 4 px corners) in
+## cream. `_apply_theme` calls it again with the mode it is in when the theme flips.
 func _set_clock_mode(mode: String) -> void:
 	_clock_mode = mode
 	_tag_pulse_at = -1
+	var royale := W.royale()
 	match mode:
 		"portal":
-			_timer_plate.add_theme_stylebox_override("panel", W.box(W.ROCK, 4, 5).pad(36, 4, 36, 4))
-			_timer.color = W.PAPER
+			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper if royale else W.box(W.ROCK, 4, 5).pad(36, 4, 36, 4))
+			_timer.color = ROYALE_WARN_TEXT if royale else W.PAPER
 			_stage_tag_text.text = "ENDLESS IN"
-			_stage_tag_text.color = W.ROCK
-			_stage_tag.add_theme_stylebox_override("panel", W.box(W.PAPER, 3, 3).pad(14, 3, 14, 4))
+			_stage_tag_text.color = ROYALE_WARN_TEXT if royale else W.ROCK
+			_stage_tag.add_theme_stylebox_override("panel", W.plate_box(3, 3).pad(14, 3, 14, 4) if royale else W.box(W.PAPER, 3, 3).pad(14, 3, 14, 4))
 			_stage_tag.visible = true
 		"endless":
-			_timer_plate.add_theme_stylebox_override("panel", W.box(W.INK, 4, 5).pad(36, 4, 36, 4))
-			_timer.color = W.PAPER
+			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper if royale else W.box(W.INK, 4, 5).pad(36, 4, 36, 4))
+			_timer.color = R.WHITE if royale else W.PAPER
 			_stage_tag_text.text = "WAVE %d" % maxi(endless_wave(), 1)
-			_stage_tag_text.color = W.PAPER
-			_stage_tag.add_theme_stylebox_override("panel", W.box(W.ROCK, 3, 3).pad(14, 3, 14, 4))
+			_stage_tag_text.color = R.CREAM if royale else W.PAPER
+			_stage_tag.add_theme_stylebox_override("panel", W.box(R.TAG_RED, R.TAG_EDGE, 0, R.RADIUS_TAG).pad(14, 3, 14, 4) if royale else W.box(W.ROCK, 3, 3).pad(14, 3, 14, 4))
 			_stage_tag.visible = true
 			_endless_wave_seen = endless_wave()
 		_:
 			if _clock_box_paper:
 				_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper)
-			_timer.color = W.INK
+			_timer.color = R.WHITE if royale else W.INK
 			_stage_tag.visible = false
 	_fit_top()
 	_place_stage_tag()
@@ -1537,3 +1617,256 @@ func on_endless_wave(w: int) -> void:
 	if w > _endless_wave_seen and _endless_wave_seen > 0:
 		_pulse_stage_tag()
 	_endless_wave_seen = maxi(w, _endless_wave_seen)
+
+
+# ---------------------------------------------------------------- pass 122 (lane UIHUD): the HUD under the Royale theme
+
+## The HUD's own pieces styled for the theme (W.royale()), at build (`initial`: _ready lays the rows out itself) and
+## again when the UI theme or the slot-rarity switch flips in a run (Settings.changed; the in-run debug panel's two
+## buttons): the strip above the rail and the rail's trough, the top row's words (white Ultra with the navy edge on
+## the black plates, or ink slab on paper), the pause button, MUTATION NEXT, the words under the slots, the clock's
+## mode, and the slots and the power-ups laid out again (their frames read the theme and the switch as they are
+## built). The kit's own pieces (the plates' boxes, the item frames, the pointers, the coin) read the theme as they draw,
+## so the three plates and the coin are queued to draw again here (the review of lane UIHUD: a plate's words keep their
+## Wanted box, so _fit_top gives it no new size and no redraw, and the coin redraws only on its own setters; a flip in a
+## run left the gold plate paper with its ink border and the coin brass until the purse changed its digit count or a
+## modal hid and showed the HUD). The pointers queue their own redraw every tick (_sync_pointers).
+func _apply_theme(initial: bool = false) -> void:
+	# (Settings.changed reaches W's own listener and this one in connection order: the frame's cached answer is
+	# dropped here too, so the theme just set is the one read)
+	W.theme_changed()
+	var royale := W.royale()
+	var theme := "royale" if royale else "wanted"
+	var rarity := bool(Settings.hud_slot_rarity)
+	if not initial and theme == _theme_applied and rarity == _slot_rarity_applied:
+		return
+	_theme_applied = theme
+	_slot_rarity_applied = rarity
+	_cutout.color = ROYALE_RAIL_BLACK if royale else W.INK
+	_style_text(_lv, PLATE_PX, royale, R.WHITE, W.INK, -1, -1, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_style_text(_timer, TIMER_PX, royale, R.WHITE, W.INK, -1, -1, HORIZONTAL_ALIGNMENT_CENTER, TIMER_PX * 1.15)
+	_style_text(_gold, PLATE_PX, royale, R.WHITE, W.INK, -1, -1, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_style_text(_mut_word, MUT_WORD_PX, royale, R.WHITE, W.PAPER, 4, 0, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	_style_text(_adren, 28, royale, R.WHITE, W.PAPER, 2, 3, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_style_pause(royale)
+	for p in [_lv_plate, _timer_plate, _gold_plate]:
+		(p as Control).queue_redraw()
+	if _coin != null:
+		_coin.queue_redraw()
+	_refresh_mut_mark(true)
+	if _stage_tag != null:
+		_set_clock_mode(_clock_mode)
+	_rail.queue_redraw()
+	if not initial:
+		_buffs_key = ""
+		_refresh_rows()
+		_refresh_buffs()
+
+
+## The theme the HUD's own pieces wear now ("wanted" | "royale"; tests and tools).
+func theme_applied() -> String:
+	return _theme_applied
+
+
+## A WText of the HUD's own in the theme: under Royale the display face (Ultra from 28 px, Rubik 700 under it, as
+## W.slab_for), `royale_col`, a navy stroke and a straight navy drop (`stroke` / `shadow` px as the HUD sets them, or
+## the kit's edge when both are -1), the Wanted face's line box so a plate keeps its height (the words centred in it,
+## as CSS half-leading does); under Wanted the Alfa Slab face, `wanted_col`, ink, the drop down-right, `line_h` as
+## built: exactly what W.text built, so a theme put back leaves no trace.
+func _style_text(t: WText, px: int, royale: bool, royale_col: Color, wanted_col: Color, stroke: int, shadow: int,
+		align: int, line_h: float, track: int = 0) -> void:
+	if t == null:
+		return
+	t.align = align
+	if royale:
+		t.font = W.slab_for(px, track)
+		t.color = royale_col
+		t.line_height = line_h if line_h > 0.0 else W.normal_height(wanted_slab(track), px)
+		if stroke < 0:
+			R.edge(t, px)
+		else:
+			t.stroke = stroke
+			t.shadow = shadow
+			t.stroke_color = R.NAVY
+			t.shadow_color = R.NAVY
+			t.shadow_straight = true
+			t.bevel = 0
+	else:
+		t.font = wanted_slab(track)
+		t.color = wanted_col
+		t.line_height = line_h
+		t.stroke = maxi(stroke, 0)
+		t.shadow = maxi(shadow, 0)
+		t.stroke_color = W.INK
+		t.shadow_color = W.INK
+		t.shadow_straight = false
+		t.bevel = 0
+	t.queue_redraw()
+
+
+## The pause button's boxes for the theme: the brass disc on its ink shadow (pass 41) under Wanted; under Royale a
+## slate Royale button, the same 78 px square with the kit's 6 px corners on the kit's base (pressed it moves 8 px down
+## with no base, as every Royale button), the two bars in the slate role's cream.
+func _style_pause(royale: bool) -> void:
+	var pb: HardBox
+	if royale:
+		pb = W.box(W.PAPER, R.BUTTON_EDGE, R.BUTTON_BASE, R.RADIUS)
+		pb.role = "slate"
+		_pause_btn.box_down = pb.pressed()
+	else:
+		pb = W.box(W.BRASS, 4, 5, int(DISC * 0.5))
+		_pause_btn.box_down = pb.pressed(W.BRASS_DARK)
+	_pause_btn.box = pb
+	var bars := _pause_btn.get_node_or_null("PauseBars")
+	if bars:
+		for b in bars.get_children():
+			(b as ColorRect).color = R.role("slate")["text"] if royale else W.INK
+
+
+## The XP rail (pass 56 / 61: RAIL_H of ink, the purple fill RAIL_INSET in from its top and bottom). Pass 122, under
+## Royale: the trough in the kit's plate black (opaque: the rail is the top of the screen, pass 47d), the fill the
+## kit's bright purple two-tone band with its lip (WBar.kind_fill "xp": brighter than the mock's, Garry), the same
+## height and inset, its right end rounded by the kit's 6 px (the band starts off screen so its left end stays square).
+func _draw_rail() -> void:
+	var w := _rail.size.x
+	if not W.royale():
+		_rail.draw_rect(Rect2(0, 0, w, RAIL_H), W.INK)
+		if _xp_frac > 0.0:
+			_rail.draw_rect(Rect2(0, RAIL_INSET, w * _xp_frac, RAIL_H - 2.0 * RAIL_INSET), W.EPIC)
+		return
+	_rail.draw_rect(Rect2(0, 0, w, RAIL_H), ROYALE_RAIL_BLACK)
+	if _xp_frac > 0.0:
+		var fl: Array = WBar.kind_fill("xp")
+		var rad := R.RADIUS
+		WBar.fill_band(_rail, Rect2(-rad, RAIL_INSET, w * _xp_frac + rad, RAIL_H - 2.0 * RAIL_INSET), fl[0], fl[1], rad)
+
+
+## A top plate's words in a holder: a plain Control whose minimum size is the Wanted face's box for the words
+## (_fit_holders), so the plate's rect is the same under both themes (Garry: the same sizes), the words centred in it
+## (the Royale face is 5-10 % wider at the same size and reaches a few px into the plate's padding).
+func _hold(t: WText) -> Control:
+	var h := Control.new()
+	h.name = "Hold"
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(t)
+	h.resized.connect(func(): _center_held(t, h))
+	return h
+
+
+## The three holders sized to the Wanted face's box for their words now, the words centred (every frame from tick,
+## and from _fit_top: the words change with the level, the clock and the purse).
+func _fit_holders() -> void:
+	for trio in [[_lv, _lv_hold, PLATE_PX], [_timer, _timer_hold, TIMER_PX], [_gold, _gold_hold, PLATE_PX]]:
+		var t: WText = trio[0]
+		var h: Control = trio[1]
+		if t == null or h == null:
+			continue
+		var box := _wanted_box(t, int(trio[2]))
+		if not h.custom_minimum_size.is_equal_approx(box):
+			h.custom_minimum_size = box
+		_center_held(t, h)
+
+
+## The Wanted face's box for `t`'s words at `px`: the WText's own minimum size under Wanted; under Royale the same
+## measure taken with the Wanted face (a TextParagraph's width, as WText shapes it, and the line box WText uses),
+## remembered per words and size (the clock's words change every second; the table is emptied past WANTED_BOXES_MAX).
+var _wanted_boxes: Dictionary = {}
+const WANTED_BOXES_MAX := 128
+
+
+func _wanted_box(t: WText, px: int) -> Vector2:
+	if not W.royale():
+		return t.get_combined_minimum_size()
+	var key := "%s|%d|%.2f" % [t.text, px, t.line_height]
+	if _wanted_boxes.has(key):
+		return _wanted_boxes[key]
+	var p := TextParagraph.new()
+	p.add_string(t.text, wanted_slab(), px)
+	var lh := t.line_height if t.line_height > 0.0 else W.normal_height(wanted_slab(), px)
+	var box := Vector2(ceilf(p.get_size().x), ceilf(lh))
+	if _wanted_boxes.size() >= WANTED_BOXES_MAX:
+		_wanted_boxes.clear()
+	_wanted_boxes[key] = box
+	return box
+
+
+## `t` at its own size, centred in its holder `h` (at 0, 0 under Wanted, where the two boxes are one).
+func _center_held(t: WText, h: Control) -> void:
+	var s := t.get_combined_minimum_size()
+	t.size = s
+	t.position = Vector2(roundf((h.size.x - s.x) * 0.5), roundf((h.size.y - s.y) * 0.5))
+
+
+## The Wanted slab face (Alfa Slab One, tracked `track` px) whatever the theme: for the pieces Garry keeps exactly as
+## they are (the kill counter's number, the boss's name) and for the Wanted box the top plates keep.
+static func wanted_slab(track: int = 0) -> Font:
+	return W.wanted_slab(track)
+
+
+## A slab WText held to the Wanted face and its ink edge whatever the theme (Garry: "keep the kill counter exactly as
+## it is now, and the boss name as well"): W.text had set the theme's face and edge at construction; this puts the
+## Wanted ones back (the face, ink for the stroke and the shadow, the shadow down-right, no bevel). The caller's own
+## stroke and shadow sizes and its colour are left to it.
+static func keep_wanted(t: WText, track: int = 0) -> WText:
+	t.font = wanted_slab(track)
+	t.stroke_color = W.INK
+	t.shadow_color = W.INK
+	t.shadow_straight = false
+	t.bevel = 0
+	return t
+
+
+## A power-up's plate under Royale (Garry: "buffs ... on black plates"): the Wanted plate's 72 px footprint, the kit's
+## black info plate (R.plate: 56 % black, the white inset, 6 px corners, no edge, no base), the icon at ICON_FRAC with
+## a hard drop, and the seconds (or the Bible's wait) as white Rubik 700 (TAG_PX, under the kit's Ultra minimum) in a
+## navy pill over the bottom-right corner, where the Wanted tag sits (TAG_OVER past the corner, as the tag's 10 px).
+## `tex`, `level_text`, `fill` and `modulate` are what _refresh_buffs and _bible_plate set on a WPlate, so both plates
+## are driven alike (the row is built again when the theme flips: _apply_theme).
+class RoyaleBuffPlate extends Control:
+	const ICON_FRAC := 0.66
+	const TAG_PX := 20
+	const TAG_PAD := 8.0
+	const TAG_OVER := 10.0
+	var tex: Texture2D
+	var level_text := "":
+		set(v):
+			level_text = v
+			queue_redraw()
+	var fill := W.SAGE
+	var side := 72.0
+
+
+	func _init(px: float = 72.0) -> void:
+		side = px
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = Vector2(px, px)
+
+
+	## The seconds pill's box (its bottom-right corner TAG_OVER past the plate's); an empty rect without a text.
+	func tag_rect() -> Rect2:
+		if level_text == "":
+			return Rect2()
+		var f := W.slab_for(TAG_PX)
+		var tw := f.get_string_size(level_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TAG_PX).x
+		var h := ceilf(f.get_height(TAG_PX)) + 4.0
+		var w := ceilf(tw) + TAG_PAD * 2.0
+		return Rect2(Vector2(side - w + TAG_OVER, side - h + TAG_OVER), Vector2(w, h))
+
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, Vector2(side, side))
+		R.plate(get_canvas_item(), r, R.RADIUS)
+		if tex:
+			var inner := side * ICON_FRAC
+			var ts := tex.get_size()
+			var k := inner / maxf(ts.x, ts.y)
+			var sz := ts * k
+			var at := (Vector2(side, side) - sz) * 0.5
+			draw_texture_rect(tex, Rect2(at + Vector2(0.0, 2.0), sz), false, R.FRAME_ICON_DROP)
+			draw_texture_rect(tex, Rect2(at, sz), false, Color.WHITE)
+		if level_text != "":
+			var f := W.slab_for(TAG_PX)
+			var rect := tag_rect()
+			R.flat(R.NAVY, R.RADIUS_TAG).draw(get_canvas_item(), rect)
+			var base := rect.position.y + (rect.size.y - f.get_height(TAG_PX)) * 0.5 + f.get_ascent(TAG_PX)
+			draw_string(f, Vector2(rect.position.x + TAG_PAD, base), level_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TAG_PX, R.WHITE)

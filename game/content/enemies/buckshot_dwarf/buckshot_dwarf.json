@@ -127,6 +127,34 @@
       },
       "head": 0.943,
       "fresh": true
+    },
+    "BD-B": {
+      "note": "Pass 122 recolour of BD-A for the Blood Moon: the maroon poncho and bandana lifted to pale cyan (hue 182, saturation 0.30, value 0.62-0.97), the cream zigzag and fringe, the sombrero, the skin, the gun and the outline as they are; the hit frame (cell 18, a white-washed flash of the maroon) by a second pass with a lower --min-sat (tools/recolour_strip.py --mode lift, the passes in turn on the strip and the icon; --cells 18)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "BD-A",
+        "recolour_passes": [
+          "--mode lift --ranges 325-360,0-6 --hue-soft 2 --to 182 --set-sat 0.30 --v-lo 0.62 --v-hi 0.97 --gamma 0.85 --min-sat 0.55 --min-val 0.20 --src-hi 0.66 --soft 0.05",
+          "--mode lift --ranges 325-360,0-6 --hue-soft 2 --to 182 --set-sat 0.30 --v-lo 0.62 --v-hi 0.97 --gamma 0.85 --min-sat 0.12 --min-val 0.20 --src-hi 0.66 --soft 0.02 --cells 18"
+        ]
+      },
+      "sprite": "buckshot_dwarf_sprite_b.png",
+      "icon": "buckshot_dwarf_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "head": 0.943,
+      "fps": {
+        "run": 15,
+        "die": 8
+      }
     }
   }
 }

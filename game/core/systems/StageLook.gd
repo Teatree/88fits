@@ -24,6 +24,9 @@
 ## run's first stage takes its look at once, a later one (the old flow, endless) over FADE_SECONDS.
 ## Pass 100 (lane SMALL): Game shows the run's stage before the spawn beam's landing (Game._show_stage_look_now, at
 ## once), so the intro plays in the stage's light; the stage_started that follows finds it shown.
+## Pass 122 (lane S3WORLD; Garry: the Blood Moon's sand "not as dark", the barrels "more visible on all that red"): the
+## hell a stage carries also lights the barrels' rim (BarrelField.set_hell, with the map's set_hell); the ground's own
+## hell tint lives in terrain_painted.gdshader (hell_mul, hell_add) and RedCanyon's HELL_* constants.
 class_name StageLook
 extends Node
 
@@ -98,8 +101,13 @@ func show_stage(s: int, seconds: float = -1.0) -> void:
 	var mults: Array = filter_mults(entry)
 	set_mults(mults[0], mults[1], fade, mults[2], mults[3])
 	var map: Node = game.get("map") if game else null
+	var hell := hell_of(tl, s)
 	if map and map.has_method("set_hell"):
-		map.set_hell(1.0 if hell_of(tl, s) else 0.0, maxf(fade, 0.01))
+		map.set_hell(1.0 if hell else 0.0, maxf(fade, 0.01))
+	# pass 122 (lane S3WORLD): the barrels' rim light comes and goes with the hell (BarrelField.set_hell)
+	var barrels: Node = game.get("barrels") if game else null
+	if barrels != null and barrels.has_method("set_hell"):
+		barrels.set_hell(1.0 if hell else 0.0, maxf(fade, 0.01))
 
 
 ## The run's timeline (Run.map's).

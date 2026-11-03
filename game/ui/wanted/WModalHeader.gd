@@ -26,7 +26,10 @@ static func make(star: String, t: String, italic: String = "", title_px: int = 1
 		h.star_line = WStarLine.make(star, star_px, star_color)
 		h.add_child(h.star_line)
 	h.title = W.slab_text(t, title_px, title_color, HORIZONTAL_ALIGNMENT_CENTER, title_px * 1.0)
-	h.title.shadow = 8
+	# pass 122 (lane UIKIT_A): under Royale W.text gave the title its navy edge (cream by the colour map, Garry's rule;
+	# a gold title its bevel); the Wanted title keeps its 8 px ink shadow
+	if not W.royale():
+		h.title.shadow = 8
 	h.add_child(h.title)
 	h.line = W.serif_text(italic, 30, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 39.0)
 	h.line.visible = italic != ""
@@ -44,7 +47,8 @@ func set_title(t: String) -> void:
 ## the line box keeps its height, so nothing under it moves. `max_w` 0 = no limit.
 func set_title_fit(t: String, px: int, col: Color, max_w: float = 0.0) -> void:
 	title.text = t
-	title.color = col
+	# pass 122: a kit colour (paper, ink) reads as Royale's (cream) while the theme is on; a screen's own is kept
+	title.color = R.text_colour(col) if W.royale() else col
 	var f: Font = title.font if title.font else W.slab()
 	var w := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
 	var fit := px

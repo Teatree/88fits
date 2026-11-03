@@ -97,6 +97,35 @@ variants = {
 "sprite": "res://content/enemies/red_goblin/red_goblin_sprite_b.png",
 "sprite_file": "red_goblin_sprite_b.png",
 "strip_cols": 43
+},
+"RG-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": "res://content/enemies/red_goblin/red_goblin_icon_c.png",
+"note": "Pass 122 recolour of RG-B: a bright gold goblin for the Blood Moon's rose-red ground (hue 50, amber shadows at 34, the brick red lifted brighter); the loincloth, club, eyes, teeth and outline as they are (tools/recolour_strip.py --mode lift)",
+"shadow": {
+"die_drop": 0.2
+},
+"shelved": false,
+"sprite": "res://content/enemies/red_goblin/red_goblin_sprite_c.png",
+"sprite_file": "red_goblin_sprite_c.png",
+"strip_cols": 43
 }
 }
 variant = "RG-A"

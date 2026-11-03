@@ -36,6 +36,11 @@ uniform float wisp_scale = 1.22;
 uniform float alpha_max = 0.94;
 // helical bands up its height
 uniform float bands = 4.0;
+// Pass 122 (lane S3WORLD): `fire` 0..1 turns the dust into flame (0: pass 113's look to the pixel): the dark bands deep
+// embers, the pale streaks wisp_color (yellow), the wisps that colour, lit by itself, brightest at the foot, flickering.
+// Only colours: the shape, the alpha and the depth are the dust's.
+uniform float fire : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 wisp_color : source_color = vec4(1.0, 0.93, 0.8, 1.0);
 
 varying float v_rim;
 
@@ -84,12 +89,15 @@ void fragment() {
 	vec3 dark = base * vec3(0.55, 0.47, 0.42);
 	// the pale dust keeps the sand's hue, so a stage's filter tints it as it tints the sand
 	vec3 light = mix(base, vec3(0.99, 0.88, 0.7), 0.7);
+	// pass 122: burning, the dark bands are deep embers and the pale streaks orange going to the wisps' yellow
+	dark = mix(dark, base * vec3(0.5, 0.2, 0.08), fire);
+	light = mix(light, mix(base, wisp_color.rgb, 0.6), fire);
 	vec3 n = normalize(NORMAL);
 	float a;
 	vec3 c;
 	if (layer == 1) {
 		// the wisps: thin pale streaks winding round outside, gone high up
-		c = mix(light, vec3(1.0, 0.93, 0.8), 0.3);
+		c = mix(mix(light, vec3(1.0, 0.93, 0.8), 0.3), wisp_color.rgb, fire);
 		a = smoothstep(0.78, 0.9, sin(TAU * (ph * 1.5 + 0.1)) * 0.5 + 0.5 + (n2 - 0.5) * 0.5) * 0.85;
 		a *= smoothstep(0.05, 0.2, v) * (1.0 - smoothstep(grow * 0.55, grow * 0.9, v));
 	} else {
@@ -97,16 +105,20 @@ void fragment() {
 		c = mix(c, light, hl * 0.7);
 		if (FRONT_FACING) {
 			// round: the screen's upper left lit, the other side shaded, the silhouette inked a touch darker
+			// (pass 122: a burning one is lit by itself, so its shading is shallower)
 			float lit = dot(normalize(n.xy + vec2(0.0001)), normalize(vec2(-0.75, 0.55))) * 0.5 + 0.5;
-			c *= 0.76 + 0.36 * lit;
+			c *= mix(0.76 + 0.36 * lit, 0.92 + 0.16 * lit, fire);
 			float facing = abs(dot(n, normalize(VIEW)));
-			c *= mix(0.52, 1.0, smoothstep(0.05, 0.5, facing));
+			float side = smoothstep(0.05, 0.5, facing);
+			c *= mix(mix(0.52, 1.0, side), mix(0.8, 1.0, side), fire);
 		} else {
 			// the far wall seen through the open top: the same bands, in its own shadow
-			c *= 0.8;
+			c *= mix(0.8, 0.9, fire);
 		}
-		// darker at the foot (in its own dust), paler higher up
-		c *= mix(0.84, 1.05, smoothstep(0.0, 0.55, v));
+		// darker at the foot (in its own dust), paler higher up; burning, hottest at the foot, smoke higher up
+		c *= mix(mix(0.84, 1.05, smoothstep(0.0, 0.55, v)), mix(1.15, 0.85, smoothstep(0.0, 0.75, v)), fire);
+		// pass 122: the flames flicker
+		c *= 1.0 + fire * 0.14 * sin(t * 11.0 + v * 21.0 + u * TAU * 3.0) * sin(t * 6.3 - v * 9.0);
 		// the top breaks up along the bands into the air (and, while forming, the rising edge); the foot melts into the skirt
 		float edge = grow - v + wave * 0.12 + (n2 - 0.5) * 0.2;
 		a = alpha_max * smoothstep(0.02, 0.3, edge) * smoothstep(0.0, 0.06, v);

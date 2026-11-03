@@ -10,6 +10,10 @@
 ## Its look is a TornadoFx (core/systems/TornadoFx.gd) and the ring (core/shaders/dust_devil_ring.gdshader, laid over the
 ## sand from the map's height grid like Telegraphs' marks), both drawn before the stage's filter so a stage's look tints
 ## them like the sand.
+## Pass 122 (lane S3WORLD; Garry: "maybe make fire tornadoes for the tornadoes?"): on a hell stage (DustDevils.hell_now
+## when it forms) it burns: the block's `hell` colours (DustDevils.hell_look) on the funnel, the wisps, the bank at its
+## foot, the debris as embers, the ring in fire colours, and a warm glow where lights are wanted (TornadoFx.fire, .glow).
+## Only the look: it throws, lifts and times as the dust one does, and burns nothing (`burning` says which it is).
 class_name DustDevil
 extends Node3D
 
@@ -55,6 +59,8 @@ var tosses := 0
 var lifted := 0
 var fx: TornadoFx
 var ring: MeshInstance3D
+## Pass 122: true when it formed on a hell stage and wears the fire look.
+var burning := false
 var _player_cd := 0.0
 var _burst := false
 var _seed := 0
@@ -101,6 +107,14 @@ func _ready() -> void:
 	fx.spin = SPIN
 	# the skirt of dust reaches nearly to its grab radius, so the cloud at its foot is what grabs
 	fx.skirt_radius = radius * 0.92
+	# pass 122 (lane S3WORLD): on a hell stage it burns (the block's `hell` look; the dust look everywhere else)
+	burning = DustDevils.hell_now(game)
+	var look: Dictionary = DustDevils.hell_look(cfg)
+	if burning:
+		fx.color = look["color"]
+		fx.wisp_color = look["wisps"]
+		fx.fire = 1.0
+		fx.glow = float(look["glow"])
 	add_child(fx)
 	fx.set_strength(0.0)
 	ring = MeshInstance3D.new()
@@ -108,11 +122,14 @@ func _ready() -> void:
 	ring.mesh = _ring()
 	_ring_mat = ShaderMaterial.new()
 	_ring_mat.shader = RING_SHADER
-	_ring_mat.render_priority = TornadoFx.PRIORITY - 1
+	# pass 122: a burning one's ring is drawn after the stage's filter with its fire (TornadoFx.PRIORITY_FIRE)
+	_ring_mat.render_priority = (TornadoFx.PRIORITY_FIRE if burning else TornadoFx.PRIORITY) - 1
 	_ring_mat.set_shader_parameter("noise_tex", TornadoFx.NOISE)
 	_ring_mat.set_shader_parameter("r_out", reach())
 	_ring_mat.set_shader_parameter("band", RING_BAND)
-	_ring_mat.set_shader_parameter("color", COLOR)
+	_ring_mat.set_shader_parameter("color", look["ring"] if burning else COLOR)
+	_ring_mat.set_shader_parameter("fire", 1.0 if burning else 0.0)
+	_ring_mat.set_shader_parameter("wisp_color", look["wisps"] if burning else Color(1.0, 0.93, 0.8))
 	_ring_mat.set_shader_parameter("alpha", 0.0)
 	var tg = game.get("telegraphs") if game != null else null
 	if tg != null and tg.has_method("_ground_uniforms"):

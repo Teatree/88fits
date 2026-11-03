@@ -1277,9 +1277,10 @@ forms where the player can see it, crosses the view and goes again, and it is dr
 | `opacity` | 0.5..1 [0.7] | pass 115: how solid the funnel is (TornadoFx.opacity; pass 113's 0.94), its skirt of dust 0.98 of it |
 | `warn` | bool [true] | the first one of a run toasts "DUST DEVIL: keep out of its ring" (never again that run) |
 | `in_boss`, `in_portal`, `in_endless` | bool [false, false, false] | whether the clock runs (and they come) in the boss fight, the portal's countdown, Endless; one standing when its phase ends fades away |
+| `hell` | {color, wisps, ring, glow} [{"#FF7A1E", "#FFD66A", "#FF9A3C", 1.0}] | pass 122: how one looks on a hell stage (the Blood Moon, `stage_list[k].hell`), where it burns: the fire's orange (the funnel's bands, the bank at its foot, the glow), the yellow of its hot streaks and edges, the ring on the sand, the warm point light's energy at full strength (0 = none; PC only, never on a phone). Only the look: it throws, lifts and times as the dust one does, and burns nothing. A map without the key burns too (DustDevils.HELL_DEFAULTS); the Level Editor's card has no row for it (edit it in the JSON window) |
 
 Red Canyon writes the defaults out (enabled, first 90, every [120, 180], life [60, 90], max_alive 1, radius 3.0, speed
-1.4, cross, form 2.5, fade 2, toss {9.5, 3.6, 1.2}, lift 1.7, lift_height 4.5, size 1.25, opacity 0.7; pass 115): about 3
+1.4, cross, form 2.5, fade 2, toss {9.5, 3.6, 1.2}, lift 1.7, lift_height 4.5, size 1.25, opacity 0.7; pass 115; hell {#FF7A1E, #FFD66A, #FF9A3C, 1.0}, pass 122): about 3
 in Sundown, 4 in Nightfall, 5 in Blood Moon.
 
 #### The rules (game/core/systems/DustDevils.gd, game/world/features/DustDevil.gd)
@@ -1295,6 +1296,10 @@ in Sundown, 4 in Nightfall, 5 in Blood Moon.
 - It grabs only while standing: the hero within radius + 0.5 m is thrown (`Player.launch`, `toss`); every grounded
   creature within `radius` is lifted (`EnemyManager.lift_radius(pos, radius, lift)`) and the ones in the air swirl round
   it (`swirl`, also through its fade).
+- Pass 122 (lane S3WORLD): one that forms on a hell stage burns (DustDevils.hell_now at forming: the stage shown by the
+  game's StageLook is `hell`, else the map's own red ground is up): the block's `hell` colours on its funnel, wisps,
+  bank, embers and ring, drawn after the stage's filter so the fire is not dimmed by the red glass (TornadoFx.fire,
+  PRIORITY_FIRE), and a warm point light where Fx.want_lights(). Behaviour unchanged; nothing burns.
 - Its sound `wd_dust_devil` loops while one stands: the row's volume, less 1.1 dB a metre past 6 m from the hero (the
   nearest one), scaled by its strength; stopped when the game pauses or none stands; silent in the sim's fast mode.
 

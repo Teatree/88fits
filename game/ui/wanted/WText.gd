@@ -16,7 +16,9 @@ var text := "":
 			queue_redraw()
 var runs: Array = []:
 	set(v):
-		runs = v
+		# pass 122 (lane UIKIT_A): under Royale a run's Wanted ink colour reads as the kit's (R.text_colour), as `color`
+		# does through W.text; the caller's array is left as it is
+		runs = _themed_runs(v) if W.royale() else v
 		_dirty = true
 		update_minimum_size()
 		queue_redraw()
@@ -47,6 +49,12 @@ var shadow := 0
 var shadow_color := W.INK
 var stroke := 0
 var stroke_color := W.INK
+## Pass 122 (lane UIKIT_A, the Royale edge: R.edge sets these): the shadow straight down (`shadow` px) instead of
+## down-right, and a bevel `bevel` px straight down in `bevel_color` between the shadow and the stroke (a big gold
+## title's 0 .045em B7780A over its 0 .075em navy drop).
+var shadow_straight := false
+var bevel := 0
+var bevel_color := W.INK
 ## A line drawn through the text (the struck "312" on the stage-clear card).
 var strike := false
 var underline := false
@@ -91,7 +99,18 @@ func _lh() -> float:
 
 
 func _f() -> Font:
-	return font if font else W.slab()
+	return font if font else W.slab_for(font_size)
+
+
+## `v` with each run's Wanted ink colour mapped to Royale's (pass 122); a run with no colour keeps none.
+static func _themed_runs(v: Array) -> Array:
+	var out: Array = []
+	for r in v:
+		var run: Array = (r as Array).duplicate()
+		if run.size() > 1 and run[1] != null and run[1] is Color:
+			run[1] = R.text_colour(run[1])
+		out.append(run)
+	return out
 
 
 func _shape() -> void:
@@ -243,12 +262,18 @@ func _x_for(w: float) -> float:
 	return 0.0
 
 
-## Shadow, then stroke, then the fill: the mock's text-shadow and -webkit-text-stroke in draw order.
+## Shadow, then stroke, then the fill: the mock's text-shadow and -webkit-text-stroke in draw order. Pass 122: the
+## shadow straight down when `shadow_straight`, and the bevel (a second, nearer drop) after it.
 func _paint(fn: Callable, pos: Vector2, col: Color) -> void:
 	if shadow > 0:
+		var off := Vector2(0.0 if shadow_straight else shadow, shadow)
 		if stroke > 0:
-			fn.call(pos + Vector2(shadow, shadow), shadow_color, stroke * 2)
-		fn.call(pos + Vector2(shadow, shadow), shadow_color, 0)
+			fn.call(pos + off, shadow_color, stroke * 2)
+		fn.call(pos + off, shadow_color, 0)
+	if bevel > 0:
+		if stroke > 0:
+			fn.call(pos + Vector2(0, bevel), bevel_color, stroke * 2)
+		fn.call(pos + Vector2(0, bevel), bevel_color, 0)
 	if stroke > 0:
 		fn.call(pos, stroke_color, stroke * 2)
 	fn.call(pos, col, 0)

@@ -83,6 +83,32 @@ static func tag_color(t: String) -> Color:
 	return TAG_COLORS.get(t, W.BRASS)
 
 
+## Pass 122 (lane UIKIT_B), the Royale tag table (README section 3, Garry's brief): NEW gold, UPGRADE (and BEATEN,
+## UNLOCKED, SAFE) green, LOCKED and a price short red, EVOLUTION / EVOLVED and the mutations purple; anything else slate.
+const TAG_ROYALE := {"NEW": "gold", "UPGRADE": "green", "BEATEN": "green", "UNLOCKED": "green", "SAFE": "green",
+	"LOCKED": "red", "EVOLUTION": "purple", "EVOLVED": "purple", "MUTATION": "purple"}
+
+
+## The tag's fill under Royale.
+static func tag_fill(t: String) -> Color:
+	match str(TAG_ROYALE.get(t.to_upper(), "slate")):
+		"gold":
+			return R.TAG_GOLD
+		"green":
+			return R.TAG_GREEN
+		"red":
+			return R.TAG_RED
+		"purple":
+			return R.TAG_PURPLE
+	return R.role("slate")["top"]
+
+
+## The tag's type colour under Royale: navy on gold and green, cream on the rest.
+static func tag_text(t: String) -> Color:
+	var k := str(TAG_ROYALE.get(t.to_upper(), "slate"))
+	return R.NAVY if k == "gold" or k == "green" else R.CREAM
+
+
 ## What this pick changes (pass 58): an upgrade of a weapon, a line or a passive item lists the stats it moves, before
 ## and after (TextGen.weapon_changes on the hero's own copy of the weapon and his sheet, TextGen.passive_changes), at most
 ## four rows; a new item, an evolution, a mutation and a perk list none and keep their one line.

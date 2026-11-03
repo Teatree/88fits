@@ -5,6 +5,9 @@
 ## one (18 rays and 64 scraps for the 14 and 42 of 1), the rays can take another colour (the boss's chest: purple), and
 ## `sunburst` is a brass badge of a sun that pops up behind the LEVEL N title for SUN_LIFE seconds; `level_up` plays
 ## the lot: the badge, a strong burst and a second one BURST_GAP later, all done inside LIFE (under 2 s).
+## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the same reveal in the kit's colours: gold rays and sun where
+## they were brass, cream for paper, navy for the ink outlines, confetti in cream, gold, red, green and the secondary
+## blue (royale_colour); the timings are today's.
 class_name WCelebrate
 extends Control
 
@@ -41,9 +44,29 @@ static func burst(host: Control, at: Vector2, index: int = 1, strength: float = 
 	var k := clampf(strength - 1.0, 0.0, 1.0)
 	c._rays = int(round(lerpf(RAYS, RAYS_STRONG, k)))
 	c._bits_n = int(round(lerpf(BITS, BITS_STRONG, k)))
-	c._ray_color = ray_color
+	c._ray_color = royale_colour(ray_color)
 	host.add_child(c)
 	host.move_child(c, clampi(index, 0, host.get_child_count() - 1))
+	return c
+
+
+## A Wanted colour as the Royale reveal shows it (brass -> gold, paper -> cream, ink -> navy, rock -> red, sage -> green,
+## aged -> the secondary blue); the colour itself under Wanted or when it is a screen's own.
+static func royale_colour(c: Color) -> Color:
+	if not W.royale():
+		return c
+	if c.is_equal_approx(W.BRASS) or c.is_equal_approx(W.BRASS_DARK):
+		return R.role("gold")["bottom"]
+	if c.is_equal_approx(W.PAPER):
+		return R.CREAM
+	if c.is_equal_approx(W.INK):
+		return R.NAVY
+	if c.is_equal_approx(W.ROCK):
+		return R.role("red")["top"]
+	if c.is_equal_approx(W.SAGE):
+		return R.role("green")["top"]
+	if c.is_equal_approx(W.AGED):
+		return R.SECONDARY
 	return c
 
 
@@ -57,7 +80,7 @@ static func sunburst(host: Control, at: Vector2, index: int = 1, radius: float =
 	c._sun_r = radius
 	c._life = SUN_LIFE
 	c._bits_n = 0
-	c._ray_color = color
+	c._ray_color = royale_colour(color)
 	host.add_child(c)
 	host.move_child(c, clampi(index, 0, host.get_child_count() - 1))
 	return c
@@ -91,6 +114,8 @@ func _ready() -> void:
 	_ray_phase = randf() * TAU
 	var vp := get_viewport_rect().size
 	var cols := [W.PAPER, W.BRASS, W.BRASS, W.ROCK, W.SAGE, W.AGED]
+	if W.royale():
+		cols = cols.map(func(c: Color) -> Color: return royale_colour(c))
 	for k in _bits_n:
 		var x := randf_range(vp.x * 0.1, vp.x * 0.9)
 		var star := randf() < 0.35
@@ -128,9 +153,11 @@ func _draw() -> void:
 			var pts := PackedVector2Array([_at, _at + Vector2.from_angle(a - half) * reach, _at + Vector2.from_angle(a + half) * reach])
 			draw_colored_polygon(pts, Color(_ray_color, ray_a))
 	# the dust ring: a paper ring that snaps out and thins
+	var paper := royale_colour(W.PAPER)
+	var ink := royale_colour(W.INK)
 	if _t < 0.55:
 		var r := 60.0 + 520.0 * (1.0 - pow(1.0 - _t / 0.55, 2.5))
-		draw_arc(_at, r, 0.0, TAU, 64, Color(W.PAPER, 0.5 * (1.0 - _t / 0.55)), 14.0 * (1.0 - _t / 0.55) + 2.0, true)
+		draw_arc(_at, r, 0.0, TAU, 64, Color(paper, 0.5 * (1.0 - _t / 0.55)), 14.0 * (1.0 - _t / 0.55) + 2.0, true)
 	# the confetti: paper scraps and brass stars
 	var bit_a := clampf((LIFE - _t) / 0.5, 0.0, 1.0)
 	for b in _bits:
@@ -147,10 +174,10 @@ func _draw() -> void:
 				var rr := s if i % 2 == 0 else s * 0.45
 				star.append(Vector2.from_angle(-PI * 0.5 + TAU * i / 10.0) * rr)
 			draw_colored_polygon(star, col)
-			draw_polyline(star + PackedVector2Array([star[0]]), Color(W.INK, bit_a), 2.0, true)
+			draw_polyline(star + PackedVector2Array([star[0]]), Color(ink, bit_a), 2.0, true)
 		else:
 			draw_rect(Rect2(-s * 0.5, -s * 0.3, s, s * 0.6), col)
-			draw_rect(Rect2(-s * 0.5, -s * 0.3, s, s * 0.6), Color(W.INK, bit_a), false, 2.0)
+			draw_rect(Rect2(-s * 0.5, -s * 0.3, s, s * 0.6), Color(ink, bit_a), false, 2.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -169,5 +196,5 @@ func _draw_sun() -> void:
 		var rr := _sun_r * s * (1.0 if i % 2 == 0 else 0.8)
 		pts.append(_at + Vector2.from_angle(rot + PI * float(i) / SUN_POINTS) * rr)
 	draw_colored_polygon(pts, Color(_ray_color, a))
-	draw_arc(_at, _sun_r * s * 0.72, 0.0, TAU, 72, Color(W.INK, a * 0.55), 6.0, true)
-	draw_arc(_at, _sun_r * s * 0.64, 0.0, TAU, 72, Color(W.PAPER, a * 0.5), 3.0, true)
+	draw_arc(_at, _sun_r * s * 0.72, 0.0, TAU, 72, Color(royale_colour(W.INK), a * 0.55), 6.0, true)
+	draw_arc(_at, _sun_r * s * 0.64, 0.0, TAU, 72, Color(royale_colour(W.PAPER), a * 0.5), 3.0, true)

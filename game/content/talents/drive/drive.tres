@@ -10,14 +10,14 @@
 script = ExtResource("1_7ekha")
 stat = "might"
 op = "mul"
-value = 0.06
+value = 0.08
 target = "player"
 
 [sub_resource type="Resource" id="Resource_wrwip"]
 script = ExtResource("1_7ekha")
 stat = "cooldown"
 op = "mul"
-value = -0.05
+value = -0.06
 target = "player"
 
 [resource]
@@ -30,13 +30,13 @@ forms = [{
 "icon": ExtResource("2_wrwip"),
 "icon_file": "drive_0_icon.png",
 "name": "Muscle",
-"text": "+6% attack damage a rank."
+"text": "+8% attack damage a rank."
 }, {
 "effects": [SubResource("Resource_wrwip")],
 "icon": ExtResource("3_1ld2p"),
 "icon_file": "drive_1_icon.png",
 "name": "Tempo",
-"text": "-5% cooldown a rank."
+"text": "-6% cooldown a rank."
 }]
 id = "drive"
 display_name = "Drive"

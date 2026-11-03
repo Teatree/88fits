@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Royale checkpoint 1 (pass 122)</title>
+<style>
+  :root { --navy: #0e1f4a; --slate: #27314a; --cream: #fff6dc; --blue: #cfe3ff; --gold: #f5b82a; --muted: #9aa7c4; }
+  body { margin: 0; background: #141c33; color: var(--cream); font: 16px/1.5 Rubik, "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  h2 { font-size: 20px; margin: 36px 0 8px; color: var(--gold); }
+  p, li { color: var(--blue); }
+  .lead { margin: 0 0 20px; }
+  figure { margin: 0 0 28px; background: var(--slate); border: 2px solid var(--navy); border-radius: 6px; padding: 10px; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  figcaption { padding: 10px 4px 2px; }
+  figcaption b { color: var(--cream); }
+  code { color: var(--cream); background: var(--navy); padding: 1px 5px; border-radius: 3px; font-size: 14px; }
+  ul { padding-left: 20px; }
+  .small { color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Royale checkpoint 1 (pass 122): HUD, Level-up, Chest, the kit</h1>
+<p class="lead">Every picture is three phones side by side: <b>today's Wanted</b> on the left, the <b>Royale theme</b> in the middle
+(the same screen with <code>Settings.ui_theme = royale</code>; Wanted stays the default), and <b>Claude Design's mock</b> on the right
+(<code>.playwright-mcp/rq_after/</code>, scaled to the phones). Captures from <code>game/tools/wanted_shots.gd</code> at 1080 x 1920, shown at half size.
+Flip the theme on the phone: Settings, the Debug panel (ten taps on the hints switch), <b>UI theme</b>; or the developer menu's row; or the in-run
+debug panel's <b>UI theme</b> button. The HUD restyles itself at once, every other screen when it is next built.</p>
+
+<figure><img src="hud.jpg" alt="HUD: Wanted, Royale, mock">
+<figcaption><b>hud.jpg</b> (06-hud): the HUD as the mock on today's footprint (Garry). On purpose: the EXP bar as fat as today's (65 px; the mock's is a thin line),
+the kill counter exactly as it is now, the plates, slots and pause button at today's sizes; slot colours plain unless the switch is on (hud_slots.jpg).</figcaption></figure>
+
+<figure><img src="hud_boss.jpg" alt="HUD in a boss fight: Wanted, Royale, mock">
+<figcaption><b>hud_boss.jpg</b> (06b-hud-boss-banner): the boss's name and bar kept as today in both themes (Garry: "the mock doesn't look good");
+the BOSS / ELITE pointers on black plates as the mock; the evolved slot black in its rainbow rim with the EVO plaque.</figcaption></figure>
+
+<figure><img src="hud_full.jpg" alt="HUD with a full build: Wanted, Royale, mock">
+<figcaption><b>hud_full.jpg</b> (06c-hud-full-build): ten slots filled, three evolved; LV, clock and gold on black 56% plates in white Ultra at today's 36 / 56 px;
+the level plaques hang under the slots; the BOSS INCOMING banner and the "+22 HP" toasts exactly as today (Garry: they stay as they are).</figcaption></figure>
+
+<figure><img src="hud_slots.jpg" alt="HUD slots: Wanted, Royale switch off, Royale switch on">
+<figcaption><b>hud_slots.jpg</b> (06d-hud-levels): the slot colours behind a debug switch (Garry: "try them on the phone, decide then"). Left: today, always in the
+level's colour. Middle: Royale with the switch off, plain frames (the default). Right: <code>HUD slot rarity: on</code> in the in-run debug panel: pass 48's level colour
+on weapons and Cards, a passive item's rarity, the legendary with its bevel and glow, as the mock.</figcaption></figure>
+
+<figure><img src="levelup.jpg" alt="Level-up: Wanted, Royale, mock">
+<figcaption><b>levelup.jpg</b> (07-level-up): slate cards, the same text and layout, the touched card gold-lit with rays, REROLL · SKIP · BANISH in slate with their counts
+as pills, one tap picks (Garry). On purpose: LEVEL UP and LEVEL 3 white (the mock: gold); the rarity word only on passive items (the mock's CARD RARE / WEAPON COMMON
+wait for Garry's tier pick, tools/dl/p122/LEAD/rarity_tiers.md); the dry line in the kit's secondary blue (the mock: white); today's shine and confetti kept.</figcaption></figure>
+
+<figure><img src="chest.jpg" alt="Chest: Wanted, Royale, mock">
+<figcaption><b>chest.jpg</b> (10-chest): the item framed over rays with its LV plaque, a slate name card with the stat row, SKIP · BANISH · TAKE IT (Garry); the stars kept
+as visible as today (48 px gold with a navy stroke, the new one pulsing; the mock's are 18 px) and the header white (CHEST in cream; the mock: gold). On purpose: the
+frame epic by its level 4 where the mock painted a legendary rim and wrote WEAPON LEGENDARY; the reel's tiles still pass either side; today's sunburst and confetti.</figcaption></figure>
+
+<figure><img src="chest_reel.jpg" alt="Chest reel running: Wanted, Royale, mock">
+<figcaption><b>chest_reel.jpg</b> (10f-chest-reel, a new capture state): the reel running past the landing cell; Garry's pick: the reel's tiles use the new item frames
+(the mock shows no reel). The pale title is the capture's moment (the screen is still fading in), the same under Wanted.</figcaption></figure>
+
+<figure><img src="kit.jpg" alt="The Royale kit sheet beside the mock's system sheet">
+<figcaption><b>kit.jpg</b>: the kit's component sheet (<code>game/tools/_p122_UIKIT_sheet.gd</code>, two pages) beside the mock's system sheet. Garry's choices in it:
+cream titles with gold only for what acts at once, coins, stars and Legendary; Rubik for tags and small labels (no Ultra under 28 px); the bars brighter than the
+mock's ("rather dim"); button colours by meaning; the Evolved black face with the rainbow rim and EVO plaque; Ultra for display with the navy edge.</figcaption></figure>
+
+<h2>Read with</h2>
+<ul>
+  <li>Kept as today in both themes on purpose: the kill counter, the boss's name and bar, the hero's HP and shield bars, the floating damage numbers, the joystick,
+      the level-up's shine and confetti, the chest's reel motion, sunburst and confetti.</li>
+  <li>Also kept exactly as today under Royale (Garry: "Toasts, banners, hints and TAP TO GO stay as they are"): the toasts ("+22 HP", "Boomstick Lv 5"),
+      the banners ("BOSS INCOMING", "EVOLVED · KILLER SWARM", "ENDLESS") with their boxes, the hint lines and TAP TO GO with its line (the kit's
+      <code>W.wanted_text</code> and <code>HardBox.themed = false</code>).</li>
+  <li>The rarity word sits on passive items only until the weapon and Card tiers are picked (the proposal: <code>tools/dl/p122/LEAD/rarity_tiers.md</code>).</li>
+  <li>The mock's gold loading bar, STORE tab, sunset backdrop, the Heroes screen and the Upgrade board are later checkpoints; nothing of them is in these pictures.</li>
+</ul>
+<p class="small">Sources: tools/dl/p122/UICAPTURE/ (wanted/, royale/, royale_rarity/, the sheets, build_review.py), captured again after the review's fixes. Pass 122.</p>
+</main>
+</body>
+</html>

@@ -3207,13 +3207,9 @@ func _on_player_died() -> void:
 	if Run.phoenix_ready():
 		Run.use_phoenix()
 		# the feather leaves him while he lies there (pass 54): its plate rises off him in embers and its banner (with
-		# its icon, in its colour) says what is standing him up; the one held is the spent one (Run.item_spent)
-		var feather: ContentDef = Registry.passive("phoenix_feather")
-		for pid in Run.passives.keys():
-			var pd: ContentDef = Registry.passive(str(pid))
-			if pd and Run.item_spent(pd):
-				feather = pd
-				break
+		# its icon, in its colour) says what is standing him up: the held item carrying the revive (pass 122, lane BUGS,
+		# Run.phoenix_item; "the first spent item held" flew a used Grindstone's plate here)
+		var feather: ContentDef = Run.phoenix_item()
 		if feather and camera and camera.camera and player:
 			var wp: Vector3 = player.global_position + Vector3(0, 1.2, 0)
 			if not camera.camera.is_position_behind(wp):
@@ -3449,13 +3445,31 @@ func shockwave(center: Vector3, r: float) -> void:
 	camera.shake(1.0)
 
 
+## The hot orange of the warning ring and the flash ring (the colour the flash ring had since pass 30).
+const ELITE_WARN := Color(1.0, 0.55, 0.25)
+## The blast's power by its radius: ELITE_BLAST_POWER_PER_M a metre, 1 (a plain blast) at most below 2 m, 2 (the Heavy
+## Warhead's) from 4 m (the Elite's 3 m blast draws at 1.5: a wider ball and flash, more sparks and clods).
+const ELITE_BLAST_POWER_PER_M := 0.5
+
+
+static func elite_blast_power(r: float) -> float:
+	return clampf(r * ELITE_BLAST_POWER_PER_M, 1.0, 2.0)
+
+
 ## A body going off: the hero takes `damage` inside `r`, and so does the crowd, for a fifth of it, thrown outwards
-## (pass 30: a mine crab clears a path through its own pack). `delay` 0 fires at once, anything else draws a red ring
+## (pass 30: a mine crab clears a path through its own pack). `delay` 0 fires at once, anything else draws a warning ring
 ## and waits on a pause-respecting clock (pass 60: a blast scheduled before a level-up waits until the cards close, with
 ## its ring, instead of going off under them while his invulnerability stood still).
+## Pass 122 (lane BUGS; Garry: "There doesn't seem to be an exploding effect to the Exploding enemies"): the boom was
+## Fx.burst's pale see-through ball, the one pass 110 replaced for every hero blast because it barely read, and on Stage
+## 3's red ground a red puff on red was nothing. Now it is a real blast (Fx.blast: the white-hot flash, the lumpy
+## fireball, smoke, sparks and clods, in the hostile red-orange Fx.BLAST_ELITE, its power growing with the radius:
+## elite_blast_power) that leaves a scorch like the hero's full blasts (Fx.BLAST_SCORCH_*), under a warning ring and a
+## flash ring in ELITE_WARN (UiKit.DANGER's red was red on red there); the shake and the sound stay. The sim draws
+## nothing (Fx.blast returns BLAST_NONE in Run.sim_mode) and the ring and the damage are as before.
 func elite_explosion(center: Vector3, r: float, damage: float, delay: float, knockback: float = 0.0, friendly_frac: float = 0.2, info: Dictionary = {}) -> void:
 	if delay > 0.0:
-		telegraphs.ring(center, r, delay, UiKit.DANGER, true)
+		telegraphs.ring(center, r, delay, ELITE_WARN, true)
 	var boom := func():
 		if _ended or player == null:
 			return
@@ -3471,8 +3485,14 @@ func elite_explosion(center: Vector3, r: float, damage: float, delay: float, kno
 				player.special_push(d.normalized() * knockback)
 		if friendly_frac > 0.0:
 			enemies.damage_radius(center, r, damage * friendly_frac, "blast", knockback * 0.8)
-		fx.burst(center + Vector3(0, 0.6, 0), UiKit.DANGER, r * 0.7)
-		telegraphs.flash_ring(center, r, Color(1.0, 0.55, 0.25), 0.35)
+		# pass 122 (lane BUGS): the real blast, its foot on the ground, and its scorch
+		var ground := center
+		if map:
+			ground.y = map.height_at(center.x, center.z)
+		var how: int = fx.blast(ground, r, Fx.BLAST_ELITE, Fx.BLAST_FULL, elite_blast_power(r))
+		if how != Fx.BLAST_NONE and how != Fx.BLAST_MERGED and r >= Fx.BLAST_SCORCH_FROM:
+			telegraphs.scorch(ground, r * Fx.BLAST_SCORCH_SHARE, Fx.BLAST_SCORCH_IN, Fx.BLAST_SCORCH_OUT, Fx.BLAST_SCORCH_HOLD, Fx.BLAST_SCORCH_FADE)
+		telegraphs.flash_ring(center, r, ELITE_WARN, 0.35)
 		camera.shake(0.6)
 		Audio.play("w_lob_boom", center)
 	if delay <= 0.0:
