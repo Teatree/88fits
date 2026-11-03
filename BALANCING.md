@@ -9269,9 +9269,9 @@ And the Royale build brief's first checkpoint (the kit, then the HUD, Level-up a
   (1.0, 0.84, 0.80) + (0.08, 0.03, 0.03) at 0.7 of the hell; the wall RedCanyon.HELL_WALL (0.98, 0.84, 0.78); the ambient
   light HELL_AMBIENT (0.95, 0.78, 0.70), the haze HELL_FOG (0.90, 0.64, 0.50). Open sand on screen (0.667, 0.382, 0.357)
   sRGB, a dusty rose-red, where it was (0.477, 0.144, 0.100).
-- **Barrels on a hell stage** wear a pale rim light: BarrelField RIM_HELL 1.0, RIM_COLOR (1.0, 0.94, 0.82), RIM_WIDTH 0.03
-  of the painting's square (about 3 px), fading in with the stage's hell (StageLook.show_stage -> BarrelField.set_hell;
-  prop_billboard.gdshader `rim`, 0 for every prop). Every other stage draws them as before.
+- **Barrels on a hell stage**: pass 122 gave them a pale rim light; pass 123 took it off (Garry: "it looks bad"):
+  BarrelField RIM_HELL **0** (the mechanism stays: RIM_COLOR (1.0, 0.94, 0.82), RIM_WIDTH 0.03, StageLook.show_stage ->
+  BarrelField.set_hell, prop_billboard.gdshader `rim`). Every stage draws them as before pass 122.
 - **Fire tornadoes**: on a hell stage a dust devil burns (DustDevils.hell_now when it forms): the map's
   `timeline_data.dust_devils.hell` {color #FF7A1E, wisps #FFD66A, ring #FF9A3C, glow 1.0} (DustDevils.HELL_DEFAULTS when
   a map has none; glow 0..4, a light only on the PC through Fx.want_lights; colours as "#rrggbb" or [r, g, b]). It is

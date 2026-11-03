@@ -336,7 +336,6 @@
     },
     "BB-F": {
       "note": "Pass 107 recolour of BB-C: a pearl shell (cool blue-white, hue 205), everything else as BB-C; the same lift as BB-E with a cool cast (tools/recolour_strip.py --mode lift)",
-      "fresh": true,
       "recipe": {
         "recolour_of": "BB-C",
         "recolour_passes": [

@@ -381,7 +381,6 @@
     },
     "DM-J": {
       "note": "Pass 122 recolour of DM-G for the Blood Moon: the khaki bandages lifted to ice blue (hue 200, saturation 0.28, value 0.58-0.97), the red eyes, the wrap lines and the outline as they are; the hit frame (cell 18, a white-washed flash) by a second pass with a lower --min-sat (tools/recolour_strip.py --mode lift, the passes in turn on the strip and the icon; --cells 18)",
-      "fresh": true,
       "recipe": {
         "recolour_of": "DM-G",
         "recolour_passes": [

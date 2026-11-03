@@ -382,7 +382,6 @@
     },
     "ANT-G": {
       "note": "Pass 107 recolour of ANT-E: a bright golden ant (hue 50, amber shadows at 34), its reds and oranges lifted brighter, the dark plates and outline as they are (tools/recolour_strip.py --mode lift)",
-      "fresh": true,
       "recipe": {
         "recolour_of": "ANT-E",
         "recolour_passes": [

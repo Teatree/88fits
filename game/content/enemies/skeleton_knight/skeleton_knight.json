@@ -256,7 +256,6 @@
     },
     "KN-F": {
       "note": "Pass 122 recolour of KN-E for the Blood Moon: the dark-blue bones lifted to ice blue (hue 208, saturation 0.34, value 0.60-0.97), the steel, the leather and the outline as they are (tools/recolour_strip.py --mode lift)",
-      "fresh": true,
       "recipe": {
         "recolour_of": "KN-E",
         "recolour_passes": [

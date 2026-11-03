@@ -293,9 +293,9 @@ func test_the_barrels_rim_light_is_off_by_default_and_comes_with_the_hell() -> v
 	field.set_hell(0.0, 0.05)
 	await await_millis(200)
 	assert_float(field.rim).is_equal(0.0)
-	# the rim is pale (a moonlit edge), and the hell rim is on
+	# the rim is pale (a moonlit edge); pass 123: Garry took it off ("it looks bad"), so a hell stage draws none
 	assert_float(BarrelField.RIM_COLOR.get_luminance()).is_greater(0.8)
-	assert_float(BarrelField.RIM_HELL).is_greater(0.0)
+	assert_float(BarrelField.RIM_HELL).is_equal(0.0)
 	assert_float(BarrelField.RIM_WIDTH).is_between(0.005, 0.1)
 
 

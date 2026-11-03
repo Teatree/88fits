@@ -82,8 +82,9 @@ var _index_in: PackedInt32Array = PackedInt32Array()   # a barrel's instance ind
 ## wears a pale rim light (prop_billboard.gdshader `rim`, `rim_color`, `rim_width`; the shader's own default rim 0 is
 ## pass 116's look, so no prop changes). StageLook hands the hell in with the stage (set_hell): the rim fades in with the
 ## red ground, RIM_HELL strong at full hell; every other stage draws them as before. The three kinds' materials, the rim
-## drawn now, its tween.
-const RIM_HELL := 1.0
+## drawn now, its tween. Pass 123 (Garry, 2026-11-03: "Remove the white outline on the barrel cz it looks bad"): RIM_HELL
+## 0, so no stage draws the rim; the mechanism stays one number away.
+const RIM_HELL := 0.0
 const RIM_COLOR := Color(1.0, 0.94, 0.82)
 const RIM_WIDTH := 0.03
 var _mats: Array = []

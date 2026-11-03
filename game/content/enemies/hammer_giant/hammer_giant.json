@@ -183,7 +183,6 @@
     },
     "HG-E": {
       "note": "Pass 122 recolour of HG-C for the Blood Moon: the oxblood skin lifted to a pale lavender-white (hue 262, the deepest shades 250, saturation 0.17), the loincloth, rope, hammer, tusks, eyes and the outline as they are; the hit frame (cell 18, a white-washed flash) by a second pass with a lower --min-sat (tools/recolour_strip.py --mode lift, the passes in turn on the strip and the icon; --cells 18)",
-      "fresh": true,
       "recipe": {
         "recolour_of": "HG-C",
         "recolour_passes": [

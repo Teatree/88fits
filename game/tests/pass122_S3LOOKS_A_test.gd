@@ -79,7 +79,7 @@ func test_three_fresh_recolour_looks_with_strip_and_icon() -> void:
 		assert_bool(vs.has(code)).override_failure_message(code).is_true()
 		var e: Dictionary = vs[code]
 		var letter: String = NEW[code][2]
-		assert_bool(bool(e.get("fresh", false))).override_failure_message(code).is_true()
+		# (fresh or approved is Garry's mark: he approved them on 2026-11-03, so it is not pinned)
 		assert_bool(bool(e.get("shelved", false))).is_false()
 		assert_str(str(e.get("sprite", ""))).is_equal("%s_sprite_%s.png" % [id, letter])
 		assert_str(str(e.get("icon", ""))).is_equal("%s_icon_%s.png" % [id, letter])

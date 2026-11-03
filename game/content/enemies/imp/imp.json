@@ -85,7 +85,6 @@
     },
     "IMP-A": {
       "note": "Pass 122 recolour of the imp's own strip (IMP-0): a green imp for the Blood Moon's rose-red ground, painted strong (hue 145, blue-green shadows at 162, saturation 0.78 x its own, value lifted onto 0.44..0.98) so the stage's warm haze lands it at a light mint on screen (a pastel cut went grey-green there); the horns, eyes, teeth, loincloth and outline as they are (tools/recolour_strip.py --mode lift)",
-      "fresh": true,
       "recipe": {
         "recolour_of": "IMP-0",
         "recolour_passes": [

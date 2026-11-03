@@ -100,7 +100,6 @@
     },
     "RR-C": {
       "note": "Pass 122 recolour of RR-A (the base strip): a pale peach-white runt for the Blood Moon's rose-red ground (hue 26, saturation 0.30, rosy shadows at 10, the blood red lifted to 0.68..1.0); the grey tunic, knife, eyes and outline as they are (tools/recolour_strip.py --mode lift)",
-      "fresh": true,
       "recipe": {
         "recolour_of": "RR-A",
         "recolour_passes": [
