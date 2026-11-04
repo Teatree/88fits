@@ -50,3 +50,12 @@ game/config/build.json
 
 # the Google Play build (tools/ship_play.sh): the Gradle template Godot installs and its outputs (1.5 GB), made again when missing
 game/android/
+
+# pass 125: the compiled crowd's build leftovers (the libraries in game/bin are committed)
+native/.sconsign*
+native/src/*.obj
+native/src/*.os
+native/src/*.o
+game/bin/*.lib
+game/bin/*.exp
+!game/bin/crowd.windows.x86_64.dll

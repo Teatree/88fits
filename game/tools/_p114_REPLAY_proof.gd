@@ -48,6 +48,8 @@ var _down_t := -1.0
 var _give := ""
 var _given := false
 var _assist := false
+## pass 125: native=0|1: the crowd's compiled loops off or on for this run (_p125_NATIVE_proof.gd); empty: as Settings says
+var _native := ""
 ## stakes=<ranks>: the Upgrade board's Stakes in its Difficulty form (talent "spite", form 0) in the recorded save, so the
 ## hero goes down sooner (the replay reads the same save)
 var _stakes := 0
@@ -104,6 +106,7 @@ func _init() -> void:
 			"down_tap": _down_tap = v == "1"
 			"check": _check = float(v)
 			"no_tumble": _no_tumble = v == "1"
+			"native": _native = v
 			"trace":
 				var tr := v.split("-")
 				_trace = [int(tr[0]), int(tr[1])]
@@ -154,6 +157,8 @@ func _start() -> void:
 		Engine.physics_jitter_fix = 0.0
 		_save.set("data", (plan["save"] as Dictionary).duplicate(true))
 		settings.from_dict(plan["settings"])
+		if _native != "":
+			settings.set("native_crowd", _native == "1")
 		var lo: Dictionary = (plan["launch"] as Dictionary).duplicate()
 		lo["replay_plan"] = plan
 		if not _trace.is_empty():
@@ -198,6 +203,8 @@ func _start() -> void:
 			settings.damage_numbers = true
 			settings.debug_mode = false
 			settings.set("free_revive_button", _down_tap)
+			if _native != "":
+				settings.set("native_crowd", _native == "1")
 		# pass 120 (lane REPLAY): replay_code: the recording names its files as a played run from the editor does
 		_run.launch_override = {"character": _hero, "stage": _stage, "spawn": true, "replay_record": true, "analytics_memory": not _write_files,
 			"run_seed": _seed, "replay_code": true}

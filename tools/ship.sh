@@ -140,6 +140,8 @@ if [ "$NO_PC" = "0" ]; then
         # the Drive drive marks every file as downloaded from the Internet (SmartScreen asks about each new build):
         # a copy on a local disk carries no mark and starts without the warning (docs/pc_build_trust.md)
         cp -f "$EXE" "$D/88fits builds/88fits.exe" && echo "copied to Google Drive: $D/88fits builds/88fits.exe (copy it to a local folder, e.g. the Desktop, and run it there)"
+        # pass 125: the crowd's compiled library sits beside the exe; without it the exe runs the same game on the script, slower
+        cp -f "$ROOT/game/export/crowd.windows.x86_64.dll" "$D/88fits builds/crowd.windows.x86_64.dll" && echo "copied to Google Drive: crowd.windows.x86_64.dll (keep it beside the exe)"
         break
       fi
     done

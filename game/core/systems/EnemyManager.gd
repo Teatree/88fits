@@ -140,6 +140,10 @@ var _vis_cam_turn := 0.0
 ## Each steer's clocks run for the ticks since its last steer (_steer_dt). `_st_last` = that tick, -1 for none yet.
 var steer_far_every := 4
 var _st_last := PackedInt32Array()
+## Pass 125 (Garry: "move the crowd less often"): every creature steers every `steer_every` ticks, its share of the crowd by
+## its index (`i % steer_every`): 2 as since pass 33.8, more spares the work. The map's timeline_data.crowd.steer_every and
+## steer_far_every set both (WaveDirector._apply_mults); a longer steer's push is held at 2/steer_every (far_push_scale).
+var steer_every := 2
 ## The push (crowd and rocks) a far steer bakes into the velocity is held for its 4 ticks at 2/4 of the rate, so a
 ## body is pushed as far a second as when it steered every 2nd tick (the sim A/B: dense packs off the screen spread
 ## wider without it). A tool may clear it (A/B). `_steer_k` is that share for the steer running now (1 otherwise).
@@ -539,6 +543,7 @@ func _ready() -> void:
 	Lockstep.join(self)
 	_size_slots(0)
 	elites = Registry.elites_list()
+	_nat_start()
 	_build_shadows()
 	if not Run.build_changed.is_connected(_on_build_changed):
 		Run.build_changed.connect(_on_build_changed)
@@ -617,6 +622,8 @@ func grow_pool(n: int) -> int:
 	_gw = 0
 	_sw = 0
 	_bg_n = 0
+	_nat_ok = false
+	_nat_bound_tick = -1
 	for td in types:
 		var mm: MultiMesh = (td as Dictionary)["mm"]
 		mm.visible_instance_count = 0
@@ -829,6 +836,10 @@ func refresh_drawn(parity: int = -1) -> void:
 	var cam_b := _vis_cam_move * VIS_LOOK_TICKS
 	var cam_t := _vis_cam_turn * VIS_LOOK_TICKS
 	var step := 1 if parity < 0 else 2
+	# pass 125: the compiled crowd's pass of the same
+	if _nat_bound():
+		_nat.refresh_drawn(pf, cam_up, cpos, scf, look_s, cam_b, cam_t, BADGE_SIZE * _badge_scale * 1.3, parity)
+		return
 	for i in range(pool_max):
 		if alive[i] == 0 or (parity >= 0 and (i & 1) != parity):
 			continue
@@ -980,10 +991,10 @@ func _vis_bounds_into(i: int, cam_up: Vector3, scf: Vector3) -> void:
 ## Whether creature `i` steers this tick (pass 101, lane CROWD): its half of the crowd (`parity`), every 2nd tick as
 ## before while it is drawn, a boss, an Elite or elite-modded, or near an obstacle; off the screen every
 ## `steer_far_every`-th tick.
-func _steer_due(i: int, parity: int) -> bool:
-	if (i & 1) != parity:
+func _steer_due(i: int, phase: int) -> bool:
+	if (i % steer_every) != phase:
 		return false
-	if steer_far_every <= 2 or drawn_vis[i] == 1 or i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
+	if steer_far_every <= steer_every or drawn_vis[i] == 1 or i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
 		return true
 	# pass 101 review: a special (the Saiga Sniper, the Raider: off the screen at their stand-off most of the time) and
 	# anything winding up or charging keep the full rate, so a shot never lands after its telegraph has faded
@@ -1003,7 +1014,7 @@ func _steer_dt(i: int, delta: float, sdt: float) -> float:
 	var last := _st_last[i]
 	_st_last[i] = _tick
 	var n := _tick - last
-	if last < 0 or n == 2 or n > maxi(steer_far_every, 2):
+	if last < 0 or n == steer_every or n > maxi(steer_far_every, steer_every):
 		return sdt
 	return delta * float(n)
 
@@ -1400,6 +1411,21 @@ func register_type(def: EnemyDef) -> int:
 	_t_sh.append_array(shadow_numbers(def))
 	_t_ddrop.append(die_drop_of(def))
 	_t_cv.append_array(charge_numbers(def))
+	# pass 125: what the compiled crowd reads per type (_nat_arrays): 1 a chaser, 2 a flock (the brains it walks itself; a
+	# charger that shoves as it walks is the script's), the gear badge and any badge, the head's height
+	var plain := 0
+	if _t_cv[(types.size() - 1) * CV_N + 6] <= 0.0:
+		plain = 1 if def.brain == "chase" else (2 if def.brain == "flock" else 0)
+	_t_plain.append(plain)
+	_t_gear.append(1 if str(t["badge"]) == "gear" else 0)
+	_t_badge_on.append(1 if str(t["badge"]) != "" else 0)
+	_t_head.append(float(t["head"]))
+	_t_scripted.append(1 if def.brain == "caster" or not (def.boss.get("attacks", []) as Array).is_empty() else 0)
+	if _nat != null:
+		_nat.set_type_mm(types.size() - 1, mm.get_rid())
+		# the per-type arrays just grew and may have moved: a creature spawned in the middle of the library's pass keeps it safe
+		if _nat_ok:
+			_nat_bind()
 	return types.size() - 1
 
 
@@ -3451,6 +3477,9 @@ func _rebuild_grid() -> void:
 	_g_head.fill(-1)
 	# pass 101 (lane CROWD): the separation's grid, on the same rule (_sep_grid_size)
 	_sep_grid_size()
+	# pass 125: the compiled crowd's build of the same
+	if _nat_grid():
+		return
 	_s_head.fill(-1)
 	_big.clear()
 	_grid_max_r = 0.0
@@ -3595,6 +3624,8 @@ func _obstacle_cells() -> void:
 				var arr: PackedInt32Array = _obst_cells.get(key, PackedInt32Array())
 				arr.append(k)
 				_obst_cells[key] = arr
+	if _nat != null:
+		_nat.set_obstacles(obstacles, OBST_CELL, _obst_margin)
 
 
 ## The creature a priority weapon takes (pass 48: the single-target weapons with `"targeting": "priority"`,
@@ -4155,6 +4186,8 @@ func _physics_process(delta: float) -> void:
 	# every creature steers every other tick, as before, but half of the crowd on each tick (pass 33.8: all of them on
 	# the even ticks made every other frame three times the cost of the one between)
 	var parity := _tick & 1
+	# pass 125: which share of the crowd steers this tick (steer_every; 2 is the half above)
+	var phase := _tick % steer_every
 	# pass 95 (lane WORLD): regular creatures far from the hero and off the screen go, before the grid is built, so none
 	# of them sits in this tick's cells (the screen flags are last tick's: at 40 m none is near the screen's edge)
 	_tick_despawn(delta, player.global_position)
@@ -4173,7 +4206,9 @@ func _physics_process(delta: float) -> void:
 	# High Noon slows the whole crowd's clock: steering, attacks, animations
 	delta *= time_scale
 	var ppos: Vector3 = player.global_position
-	var sdt := delta * 2.0
+	var sdt := delta * float(steer_every)
+	# the steer every 2nd tick the crowd's push is tuned for (_steer_k)
+	var sdt_base := delta * 2.0
 	tether_drag_t = maxf(tether_drag_t - delta, 0.0)
 	_glow_clock += delta
 	_hot_chest_cd = maxf(_hot_chest_cd - delta, 0.0)
@@ -4194,10 +4229,28 @@ func _physics_process(delta: float) -> void:
 		onlook.fill(0)
 		onlookers = 0
 	var watching := onlookers > 0
-	for i in range(pool_max):
+	# pass 125: the compiled crowd runs every creature it can whole and hands back the others one by one (CrowdCore.advance;
+	# _nat_loop_flags): the script's body below runs for those, in the same order, so a run plays the same either way
+	var nat := _nat_tick_begin(delta, sdt, sdt_base, ppos, phase)
+	var i := -1
+	while true:
+		i += 1
+		var nat_code := 0
+		if nat:
+			var nr: int = _nat.advance(i, boss_index, _nat_loop_flags(watching))
+			i = nr >> 2
+			nat_code = nr & 3
+		if i >= pool_max:
+			break
 		if alive[i] == 0:
 			continue
 		var ti := type_idx[i]
+		if nat_code == NAT_TAIL:
+			_tick_tail(i, ti, _nat.last_v(), delta, ppos)
+			continue
+		if nat_code == NAT_BITE:
+			_tick_bite(i, ti, ppos)
+			continue
 		if state[i] == STATE_DYING:
 			# the death plays through its frames (the fall, then the painted body), holds, and sinks away at the end
 			timer[i] -= delta
@@ -4213,10 +4266,12 @@ func _physics_process(delta: float) -> void:
 			if timer[i] <= 0.0:
 				_free(i)
 			continue
-		crowd_hp += max_hp[i]
-		crowd_n += 1
-		if not (poison_src[i] as Dictionary).is_empty():
-			poisoned += 1
+		# (the compiled pass counted this one on its way past)
+		if not nat:
+			crowd_hp += max_hp[i]
+			crowd_n += 1
+			if not (poison_src[i] as Dictionary).is_empty():
+				poisoned += 1
 		if held[i] == 1:
 			# in the Gravity Gun's grip: its legs go, nothing else (the gun places it)
 			anim_t[i] += delta * 20.0
@@ -4306,11 +4361,11 @@ func _physics_process(delta: float) -> void:
 			view_t[i] -= delta
 		# pass 101 (lane CROWD): one off the screen every 4th tick (_steer_due), its clocks for the ticks since its last
 		# steer (_steer_dt: sdt for one on the screen, as before)
-		if _steer_due(i, parity):
+		if _steer_due(i, phase):
 			var sdt_i := _steer_dt(i, delta, sdt)
 			# the crowd's and the rocks' push is held for the ticks until its next steer: a far steer's held half as hard
 			# per tick, so it moves a body as far a second as before (far_push_scale)
-			_steer_k = sdt / sdt_i if far_push_scale and sdt_i > sdt else 1.0
+			_steer_k = sdt_base / sdt_i if far_push_scale and sdt_i > sdt_base else 1.0
 			_steer(i, decoy_target(i, ppos), sdt_i)
 			_steer_k = 1.0
 		# integrate (pass 80: its own move wades at water_slow slower, a push never)
@@ -4388,83 +4443,12 @@ func _physics_process(delta: float) -> void:
 			if face.length_squared() > 0.04:
 				var cf := _cf_tick
 				away[i] = 1 if face.dot(cf) > face.length() * 0.2 else (0 if face.dot(cf) < -face.length() * 0.2 else away[i])
-		_tick_poison(i, delta)
-		if alive[i] == 0:
-			continue
-		_tick_fire(i, delta)
-		if alive[i] == 0:
-			continue
-		# walk cycles cut from video clips carry their own frame rate (EnemyDef.fps); the old six-frame walks run at 10. A
-		# creature standing to attack (a wind-up, a scripted attack) plays its frames at ATTACK_FPS whatever shoves it
-		# (pass 47: the crowd pressing on the Tumbleweed King made every other tick a walking one, so the two frames of
-		# his wind-up before the minion ring flicked at 9 a second instead of 3). The walk plays at the pace knob too (pass
-		# 48): a creature that covers 0.8 of the ground a second takes 0.8 of the steps, so its feet keep to the sand
-		var run_fps: float = _t_run_fps[ti]
-		# a creature that fights at range walks when its brain walks it (pass 60, intent), not when the crowd shoves it
-		var mv: Vector3 = intent[i] if _t_faces[ti] == 1 else v
-		var walking: bool = mv.length() > 0.2 and state[i] != STATE_ATTACK and state[i] != STATE_WINDUP
-		var steps: float = (run_fps if run_fps > 0.0 else 10.0) * pace if walking else ATTACK_FPS
-		# a charger's legs (pass 50, charge.legs): they scrabble in place through the wind-up, from the walk's speed up to
-		# `legs` times it by the launch, and run at `legs` times it through the charge (at the walk's speed the beetle's
-		# feet slid over the sand at seven times their pace)
-		var legs: float = _t_cv[ti * CV_N + 2]
-		if legs > 1.0 and (state[i] == STATE_WINDUP or state[i] == STATE_CHARGE):
-			var lf: float = legs if state[i] == STATE_CHARGE else lerpf(1.0, legs, windup_progress(i))
-			steps = (run_fps if run_fps > 0.0 else 10.0) * pace * lf
-		anim_t[i] += delta * steps
-		# pass 69 (lane HERO): a creature fooled by May's inflatable double bites the doll, never her (bites do nothing)
-		if decoy_on and is_fooled(i):
-			_decoy_bite(i)
-			continue
-		# contact damage
-		var d := ppos - pos[i]
-		d.y = 0.0
-		var reach := radius[i] + 0.45
-		# a training dummy's touch never reaches the hero (pass 48: even a 0 would be a hit, a flash and a shake), but a
-		# melee one's does (pass 49: the arena's attackers, an Elite or Boss dummy set to melee)
-		# (pass 60: one still rising out of the sand bites nobody until it is up)
-		if d.length_squared() < reach * reach and contact_cd[i] <= 0.0 and hidden[i] == 0 and rise_t[i] >= 1.0 and freeze_t[i] <= 0.0 and stun_t[i] <= 0.0 and (_t_dummy[ti] == 0 or dummy_mode[i] == DUMMY_MELEE):
-			# the bite's cadence is the creature's own (pass 53, EnemyDef.contact_cd; 0.6 for everyone before)
-			contact_cd[i] = _t_ccd[ti]
-			var extra := 1.0
-			var cfx: Array = []
-			if state[i] == STATE_CHARGE:
-				extra = 1.5
-				cfx.append("charge")
-				# a charge that connects throws him aside (once a second, whatever else is landing)
-				var kn := float((types[type_idx[i]]["def"] as EnemyDef).charge.get("knockback", 0.0))
-				if kn > 0.0:
-					cfx.append("knocked back")
-				if kn > 0.0 and player and player.has_method("shove"):
-					var away2 := ppos - pos[i]
-					away2.y = 0.0
-					if away2.length_squared() > 0.01:
-						player.shove(away2.normalized() * kn)
-			# Ram: at full momentum Buck is the wall; the creature is shoved (a resisting one by its share, pass 67) and
-			# spiked, he is not touched. Pass 67: from the perk's `from` charge (0.99), the spikes `per_level` more a level
-			if Run.has_perk("ram") and Run.momentum >= Run.perk_param("ram", "from", 0.99) and state[i] != STATE_CHARGE and i != boss_index:
-				var away := pos[i] - ppos
-				away.y = 0.0
-				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti] * hero_knock_mult() * endless_knock_share("ram")
-				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0) + Run.perk_param("ram", "per_level", 0.0) * float(Run.card_level())
-				damage(i, th, "", away, 0.0)
-				if game:
-					game.fx_burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.95, 0.75, 0.4), 1.0)
-				continue
-			var touch: float = dmg[i] * extra
-			# no touch takes more than contact_cap of his health (pass 46: a ring of brutes could land a one-shot); a
-			# boss's weight is its own. A stand-in hero without max_hp (the headless tests) is not capped.
-			if contact_cap > 0.0 and i != boss_index and (types[ti]["def"] as EnemyDef).archetype != "boss":
-				var mhp = player.get("max_hp")
-				if mhp != null:
-					touch = minf(touch, float(mhp) * contact_cap)
-			# the bite shoves him by the creature's own number (pass 54, bite_knock); Player.take_damage applies it to a hit
-			# or a shield's catch, never to an evaded or an immune one
-			var binfo := hit_info(i, "melee", cfx)
-			binfo["knock"] = bite_knock(i)
-			# pass 89: a bite is a regular attack, a boss's too: it no longer pushes him (Player.knock_share)
-			binfo["special_knock"] = false
-			player.take_damage(touch, pos[i], binfo)
+		_tick_tail(i, ti, v, delta, ppos)
+	if nat:
+		var nst: PackedFloat64Array = _nat.tick_stats()
+		crowd_hp = nst[0]
+		crowd_n = int(nst[1])
+		poisoned = int(nst[2])
 	_mean_max_hp = crowd_hp / float(crowd_n) if crowd_n > 0 else 0.0
 	Run.poisoned_alive = poisoned
 	# pass 110 (lane ARENA): a frozen crowd's scripts, aims and beams wait with it
@@ -4480,6 +4464,255 @@ func _physics_process(delta: float) -> void:
 	# pass 102 (lane HITS): the burning count the flames' pace reads next tick, and the probe's timings
 	_hits_tick_end()
 	Perf.add("enemies.sim", t0)
+
+
+# ---------------------------------------------------------------- pass 125: the compiled crowd (native/, CrowdCore)
+## Garry (pass 125, the performance report's options C and D): "I want to have lots of enemies on the screen at the same time".
+## The crowd's hottest loops run compiled when the library is there (game/bin, class CrowdCore): the two grids
+## (_rebuild_grid), who is drawn (refresh_drawn), a plain walker's whole tick, every other creature's push (_steer) and the
+## draw (_render). This script stays the rules' only owner: the library reads and writes these arrays in place, follows
+## this file's sums exactly (types kept: a GDScript float is a double, a Vector3's parts floats) and hands back anything else,
+## in index order, so a run plays the same with it or without it: game/tools/_p125_NATIVE_proof.gd replays a run recorded by
+## the script through the library and compares every checkpoint. Without the library (or with Settings.native_crowd off, the
+## developer menu's switch for comparing on the phone) everything runs here as before. Change a rule in the plain walker's
+## path here and in native/src/crowd_core.cpp together (python tools/build_native.py); the proof catches a difference.
+const NAT_TAIL := 1
+const NAT_BITE := 2
+const NAT_F_FREEZE := 1
+const NAT_F_WATCH := 2
+const NAT_F_FLEE := 4
+const NAT_F_CORPSE_AIR := 8
+const NAT_F_BURST := 16
+var _nat: Object = null
+## the library's pointers and its separation grid hold (the last _rebuild_grid went through it)
+var _nat_ok := false
+var _nat_bound_tick := -1
+var _nat_hmode := 0
+var _nat_map: MapBase = null
+## per type, for the library: 1 a chaser, 2 a flock (the brains it walks), 0 the script's; the gear badge; any badge; the head
+var _t_plain := PackedByteArray()
+var _t_gear := PackedByteArray()
+var _t_badge_on := PackedByteArray()
+var _t_head := PackedFloat64Array()
+## per type: 1 for a caster or one with a `boss.attacks` list (_update_boss runs its script)
+var _t_scripted := PackedByteArray()
+## the elite modifiers' outline colours, by index in `elites` (the draw's tint)
+var _elite_outline := PackedColorArray()
+## the draw's own numbers while it runs (_draw_one)
+var _dr_nat := false
+var _dr_scf := Vector3.ZERO
+var _dr_scr := Vector3.ZERO
+var _dr_cam_up := Vector3.ZERO
+var _dr_ppos := Vector3.ZERO
+var _dr_lake := false
+var _dr_eye_cam: Camera3D = null
+var _dr_eye := Vector3.INF
+var _dr_shadow_all := false
+var _dr_shadow_n := 0
+var _dr_badge_n: Dictionary = {}
+var _nat_vis_last := PackedInt32Array()
+
+
+func _nat_start() -> void:
+	_elite_outline.clear()
+	for e: EliteModDef in elites:
+		_elite_outline.append(e.outline)
+	# (native=0 on a tool's command line: the A/B of any tool)
+	if Settings.native_crowd and ClassDB.class_exists(&"CrowdCore") and not OS.get_cmdline_user_args().has("native=0"):
+		_nat = ClassDB.instantiate(&"CrowdCore")
+		for t in range(types.size()):
+			_nat.set_type_mm(t, (_t_mm[t] as MultiMesh).get_rid())
+
+
+## Whether the compiled crowd runs this manager (a tool's or the run recorder's question).
+func native_on() -> bool:
+	return _nat != null
+
+
+## The library's pass so far (tools): creatures it ran whole, dying bodies it ran, and those it handed back (whole, tail, bite,
+## dying), or empty without it.
+func native_counts() -> PackedInt64Array:
+	return _nat.pass_counts() if _nat != null else PackedInt64Array()
+
+
+## The arrays in the order CrowdCore.bind reads them. A packed array in a Variant is shared by reference, so these are the
+## very arrays above.
+func _nat_arrays() -> Array:
+	return [pool_max, pos, vel, kb, intent, alive, hidden, held, flip, away, view, drawn_vis, vspecial, flash_hot, onlook, _vis_hold,
+		type_idx, elite_idx, state, _st_last, timer, anim_t, flash, squash, max_hp, speed, radius, size, contact_cd, cooldown, hamper_t,
+		hamper_f, status_t, shove_t, ign_t, rise_t, rise_v, view_t, frenzy_t, freeze_t, stun_t, slow_t, mark_t, spin_t, lift_t, lift_cd,
+		lift_h, _wade_k, _nat_map.heights if _nat_map != null else PackedFloat32Array(), _g_head, _g_next, _s_head, _s_next, _bg_head, _bg_j,
+		_bg_next, _t_faces, _t_eight, _t_big, _t_plain, _t_gear, _t_far, _t_badge_on, _t_run_fps, _t_die_fps, _t_cv, _t_sh, _t_ddrop, _t_head,
+		poison_src, fire_src, _flee, _corpse_air, _burst_bodies]
+
+
+## How often the crowd steers (pass 125, the map's timeline_data.crowd): ticks between a creature's steers on the screen and off it.
+func set_cadence(every: int, far_every: int) -> void:
+	steer_every = maxi(every, 1)
+	steer_far_every = maxi(far_every, steer_every)
+
+
+## Takes the arrays' pointers (after anything that may resize them). False: the script does this tick's work itself (a tool's
+## own height function, an array not sized yet).
+func _nat_bind() -> bool:
+	if _nat == null:
+		return false
+	if _wade_k.size() != pool_max:
+		_wade_k.resize(pool_max)
+		_wade_k.fill(1.0)
+	_nat_hmode = 0
+	_nat_map = null
+	if height_fn.is_valid():
+		var o = height_fn.get_object()
+		if o is MapBase and height_fn.get_method() == &"height_at":
+			_nat_map = o
+			_nat_hmode = 1
+		else:
+			_nat_hmode = -1
+	_nat_ok = _nat_hmode >= 0 and _nat.bind(_nat_arrays())
+	_nat_bound_tick = _tick
+	return _nat_ok
+
+
+func _nat_bound() -> bool:
+	if _nat == null:
+		return false
+	return _nat_ok if _nat_bound_tick == _tick else _nat_bind()
+
+
+## The grids through the library (after their sizes are set). False: the script builds them.
+func _nat_grid() -> bool:
+	if _nat == null:
+		return false
+	if _bg_head.size() != _sw * _sw:
+		_bg_head.resize(_sw * _sw)
+	if not _nat_bind():
+		return false
+	var n: int = _nat.rebuild_grid(_gw, _g_half, _sw, _s_half, sep_cell, _big_r)
+	if n < 0:
+		_bg_j.resize(-n * 2 + 64)
+		_bg_next.resize(-n * 2 + 64)
+		if not _nat_bind():
+			return false
+		n = _nat.rebuild_grid(_gw, _g_half, _sw, _s_half, sep_cell, _big_r)
+	_grid_max_r = _nat.grid_max_r()
+	_big = _nat.big_list()
+	_bg_n = n
+	return true
+
+
+## This tick's numbers for the library's pass over the crowd. False: the script's loop runs every creature.
+func _nat_tick_begin(delta: float, sdt: float, sdt_base: float, ppos: Vector3, phase: int) -> bool:
+	if _nat == null or not _nat_ok or _nat_bound_tick != _tick:
+		return false
+	_nat.set_scalars(PackedFloat64Array([delta, sdt, sdt_base, _tick, phase, steer_every, steer_far_every, 1.0 if far_push_scale else 0.0,
+		ppos.x, ppos.y, ppos.z, pace, _poison_slow, 1.0 if far_speed_on else 0.0, _far_d, _far_ramp, _far_max, _far_curve, _far_cap,
+		1.0 if _far_bosses else 0.0, arena_radius, _cf_tick.x, _cf_tick.y, _cf_tick.z, _nat_hmode,
+		_nat_map.size_m if _nat_map != null else 0.0, _nat_map.resolution if _nat_map != null else 1.0, _nat_map.grid_n if _nat_map != null else 0]))
+	return true
+
+
+## What the script holds that can change between two of the library's calls (CrowdCore.Flags).
+func _nat_loop_flags(watching: bool) -> int:
+	var fl := 0
+	if crowd_freeze != 0 or decoy_on:
+		fl |= NAT_F_FREEZE
+	if watching:
+		fl |= NAT_F_WATCH
+	if not _flee.is_empty():
+		fl |= NAT_F_FLEE
+	if not _corpse_air.is_empty():
+		fl |= NAT_F_CORPSE_AIR
+	if not _burst_bodies.is_empty():
+		fl |= NAT_F_BURST
+	return fl
+
+
+## The end of a creature's tick (pass 125: out of _physics_process's loop, for the compiled crowd's hand-back): its poison and
+## its fire, its walk's clock, and its bite. `v` is what it moved by this tick.
+func _tick_tail(i: int, ti: int, v: Vector3, delta: float, ppos: Vector3) -> void:
+	_tick_poison(i, delta)
+	if alive[i] == 0:
+		return
+	_tick_fire(i, delta)
+	if alive[i] == 0:
+		return
+	# walk cycles cut from video clips carry their own frame rate (EnemyDef.fps); the old six-frame walks run at 10. A
+	# creature standing to attack (a wind-up, a scripted attack) plays its frames at ATTACK_FPS whatever shoves it
+	# (pass 47: the crowd pressing on the Tumbleweed King made every other tick a walking one, so the two frames of
+	# his wind-up before the minion ring flicked at 9 a second instead of 3). The walk plays at the pace knob too (pass
+	# 48): a creature that covers 0.8 of the ground a second takes 0.8 of the steps, so its feet keep to the sand
+	var run_fps: float = _t_run_fps[ti]
+	# a creature that fights at range walks when its brain walks it (pass 60, intent), not when the crowd shoves it
+	var mv: Vector3 = intent[i] if _t_faces[ti] == 1 else v
+	var walking: bool = mv.length() > 0.2 and state[i] != STATE_ATTACK and state[i] != STATE_WINDUP
+	var steps: float = (run_fps if run_fps > 0.0 else 10.0) * pace if walking else ATTACK_FPS
+	# a charger's legs (pass 50, charge.legs): they scrabble in place through the wind-up, from the walk's speed up to
+	# `legs` times it by the launch, and run at `legs` times it through the charge (at the walk's speed the beetle's
+	# feet slid over the sand at seven times their pace)
+	var legs: float = _t_cv[ti * CV_N + 2]
+	if legs > 1.0 and (state[i] == STATE_WINDUP or state[i] == STATE_CHARGE):
+		var lf: float = legs if state[i] == STATE_CHARGE else lerpf(1.0, legs, windup_progress(i))
+		steps = (run_fps if run_fps > 0.0 else 10.0) * pace * lf
+	anim_t[i] += delta * steps
+	# pass 69 (lane HERO): a creature fooled by May's inflatable double bites the doll, never her (bites do nothing)
+	if decoy_on and is_fooled(i):
+		_decoy_bite(i)
+		return
+	# contact damage
+	var d := ppos - pos[i]
+	d.y = 0.0
+	var reach := radius[i] + 0.45
+	# a training dummy's touch never reaches the hero (pass 48: even a 0 would be a hit, a flash and a shake), but a
+	# melee one's does (pass 49: the arena's attackers, an Elite or Boss dummy set to melee)
+	# (pass 60: one still rising out of the sand bites nobody until it is up)
+	if d.length_squared() < reach * reach and contact_cd[i] <= 0.0 and hidden[i] == 0 and rise_t[i] >= 1.0 and freeze_t[i] <= 0.0 and stun_t[i] <= 0.0 and (_t_dummy[ti] == 0 or dummy_mode[i] == DUMMY_MELEE):
+		_tick_bite(i, ti, ppos)
+
+
+## Creature `i` bites the hero (pass 125: out of the loop; its reach and its clocks are checked by the caller).
+func _tick_bite(i: int, ti: int, ppos: Vector3) -> void:
+	# the bite's cadence is the creature's own (pass 53, EnemyDef.contact_cd; 0.6 for everyone before)
+	contact_cd[i] = _t_ccd[ti]
+	var extra := 1.0
+	var cfx: Array = []
+	if state[i] == STATE_CHARGE:
+		extra = 1.5
+		cfx.append("charge")
+		# a charge that connects throws him aside (once a second, whatever else is landing)
+		var kn := float((types[type_idx[i]]["def"] as EnemyDef).charge.get("knockback", 0.0))
+		if kn > 0.0:
+			cfx.append("knocked back")
+		if kn > 0.0 and player and player.has_method("shove"):
+			var away2 := ppos - pos[i]
+			away2.y = 0.0
+			if away2.length_squared() > 0.01:
+				player.shove(away2.normalized() * kn)
+	# Ram: at full momentum Buck is the wall; the creature is shoved (a resisting one by its share, pass 67) and
+	# spiked, he is not touched. Pass 67: from the perk's `from` charge (0.99), the spikes `per_level` more a level
+	if Run.has_perk("ram") and Run.momentum >= Run.perk_param("ram", "from", 0.99) and state[i] != STATE_CHARGE and i != boss_index:
+		var away := pos[i] - ppos
+		away.y = 0.0
+		kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti] * hero_knock_mult() * endless_knock_share("ram")
+		var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0) + Run.perk_param("ram", "per_level", 0.0) * float(Run.card_level())
+		damage(i, th, "", away, 0.0)
+		if game:
+			game.fx_burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.95, 0.75, 0.4), 1.0)
+		return
+	var touch: float = dmg[i] * extra
+	# no touch takes more than contact_cap of his health (pass 46: a ring of brutes could land a one-shot); a
+	# boss's weight is its own. A stand-in hero without max_hp (the headless tests) is not capped.
+	if contact_cap > 0.0 and i != boss_index and (types[ti]["def"] as EnemyDef).archetype != "boss":
+		var mhp = player.get("max_hp")
+		if mhp != null:
+			touch = minf(touch, float(mhp) * contact_cap)
+	# the bite shoves him by the creature's own number (pass 54, bite_knock); Player.take_damage applies it to a hit
+	# or a shield's catch, never to an evaded or an immune one
+	var binfo := hit_info(i, "melee", cfx)
+	binfo["knock"] = bite_knock(i)
+	# pass 89: a bite is a regular attack, a boss's too: it no longer pushes him (Player.knock_share)
+	binfo["special_knock"] = false
+	player.take_damage(touch, pos[i], binfo)
 
 
 ## The draw runs once per shown frame, and only when a tick has moved something since the last one (pass 33.8: it ran
@@ -4795,6 +5028,15 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	elif state[i] == STATE_MOVE and _t_cv[cvb + 6] > 0.0 and desired.length_squared() > 0.01:
 		shove = _t_cv[cvb + 6]
 		head = desired.normalized()
+	# pass 125: the compiled crowd's sum of the same (no shove to hand out, no ghost walking through)
+	if _nat_ok and not ghost and shove <= 0.0:
+		var sep_n: Vector3 = _nat.sep_push(i, 0.0)
+		var sep_wn := 4.0 if state[i] != STATE_CHARGE else 0.5
+		vel[i] = desired + sep_n * (sep_wn * _steer_k)
+		intent[i] = desired
+		if squads != null and state[i] == STATE_MOVE and _t_squad[type_idx[i]] == 1:
+			intent[i] = squads.intent_of(i, desired)
+		return
 	# the cells round it: 3 x 3, more for a body so wide that a neighbour past the next cell can still touch it (the fix
 	# round of pass 58: a size range's giants)
 	var reach := 1
@@ -5386,7 +5628,10 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 		patterns.tick(delta, ppos)
 	if boss_index >= 0:
 		_update_attacks(boss_index, delta, ppos)
-	for i in range(pool_max):
+	# pass 125: the creatures with an attack script, gathered first by their type's flag (_t_scripted; asking every creature's
+	# def cost more than the rest of the crowd's tick); one spawned by a script below starts on the next tick
+	var scripted := _scripted_alive()
+	for i: int in scripted:
 		if alive[i] == 1 and i != boss_index:
 			var adef: EnemyDef = types[type_idx[i]]["def"]
 			# casters live by their script; any other Elite with one runs it between whatever its brain does. The script
@@ -5403,6 +5648,17 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 					rise_t[i] = 0.0
 	# pass 73 (lane GROUND): the burrows under way (the sink's sand, the predicted spot and its warning)
 	_tick_burrows(delta, ppos)
+
+
+## The alive creatures whose type has an attack script (pass 125), in index order.
+func _scripted_alive() -> PackedInt32Array:
+	if _nat_ok:
+		return _nat.alive_of_flag(_t_scripted)
+	var out := PackedInt32Array()
+	for i in range(pool_max):
+		if alive[i] == 1 and _t_scripted[type_idx[i]] == 1:
+			out.append(i)
+	return out
 
 
 ## The attack runner: a creature with a `boss.attacks` list (the bosses, the casters) cycles through them, each with a
@@ -6201,28 +6457,31 @@ func drawn_frame(i: int) -> Vector2i:
 
 func _render() -> void:
 	_update_mark()
+	# with a big crowd only the creatures around the hero cast a shadow: the far ones are a metre of dark quad each
+	# and they overlap into a wall of blending on a phone
+	_dr_shadow_all = count_alive <= SHADOW_BUDGET
+	_dr_shadow_n = 0
+	_dr_badge_n = {}
+	_dr_ppos = player.global_position if player else Vector3.ZERO
+	# the shadow's axes follow the camera (screen-right, towards the camera on the ground), and a painting that sinks
+	# (EnemyDef.shadow "drop", pass 47) slides down the billboard's own plane, the camera's up
+	_dr_scf = _cf_tick
+	_dr_scr = Vector3(-_dr_scf.z, 0, _dr_scf.x)
+	_dr_cam_up = _cam_up()
+	# a creature wading in the lake casts no shadow (pass 54, in_lake), nor one the drawn water covers any of from the
+	# camera (pass 56, shadow_wet); only those near the lake are asked (pass 80: near any lake, _near_water)
+	_dr_lake = _lake_refresh()
+	var vp := get_viewport()
+	_dr_eye_cam = vp.get_camera_3d() if vp else null
+	_dr_eye = _dr_eye_cam.global_position if _dr_eye_cam else Vector3.INF
+	# pass 125: the compiled crowd's draw (the warm-up's pit and the arena's freeze stay here)
+	if _warm_at == Vector3.INF and crowd_freeze == 0 and _render_native():
+		_badges_end()
+		return
 	# compact instances per type
 	var counters := PackedInt32Array()
 	counters.resize(types.size())
-	var shadow_n := 0
-	# with a big crowd only the creatures around the hero cast a shadow: the far ones are a metre of dark quad each
-	# and they overlap into a wall of blending on a phone
-	var shadow_all: bool = count_alive <= SHADOW_BUDGET
-	var shadow_r2 := 100.0
-	var badge_n: Dictionary = {}
-	var ppos2: Vector3 = player.global_position if player else Vector3.ZERO
-	var cam_x := 0.0
-	# the shadow's axes follow the camera (screen-right, towards the camera on the ground), and a painting that sinks
-	# (EnemyDef.shadow "drop", pass 47) slides down the billboard's own plane, the camera's up
-	var scf := _cf_tick
-	var scr := Vector3(-scf.z, 0, scf.x)
-	var cam_up := _cam_up()
-	# a creature wading in the lake casts no shadow (pass 54, in_lake), nor one the drawn water covers any of from the
-	# camera (pass 56, shadow_wet); only those near the lake are asked (pass 80: near any lake, _near_water)
-	var lake := _lake_refresh()
-	var vp := get_viewport()
-	var eye_cam: Camera3D = vp.get_camera_3d() if vp else null
-	var eye: Vector3 = eye_cam.global_position if eye_cam else Vector3.INF
+	_nat_vis_last.clear()
 	for i in range(pool_max):
 		if alive[i] == 0 or hidden[i] == 1:
 			continue
@@ -6230,105 +6489,8 @@ func _render() -> void:
 		if drawn_vis[i] == 0:
 			continue
 		var t := type_idx[i]
-		var mm: MultiMesh = _t_mm[t]
-		var k := counters[t]
-		var s := size[i]
-		var st := state[i]
-		var strip := _strip_of(i, t)
-		# pass 111 (lane ENEMY): heading left, a look's own left-heading copy of the strip (_lr_strip; the strip itself else)
-		var shown := _lr_strip(i, t, strip)
-		var n := _t_cnt[t * N_ANIMS + shown]
-		var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
-		if strip == A_ATTACK and _t_atkv[t] == 1:
-			# pass 73 (lane SNIPER): the front or the back half of an attack strip painted both ways (the sniper's aim)
-			frame = _attack_view_frame(i, t, shown)
-		if strip == A_ATTACK and _t_throw[t] == 1:
-			# pass 85 (lane BANDIT): a throw's wind-up or release frames (_throw_frame)
-			frame = _throw_frame(i, t, shown)
-		if strip == A_ATTACK and _t_squad[t] == 1 and squads != null:
-			# pass 112 (lane MONK): a squad's hands rising, then held up (Squads.attack_frame)
-			frame = squads.attack_frame(i, t, shown)
-		var sq := squash[i]
-		# procedural bob while moving
-		if strip == A_RUN:
-			sq += sin(anim_t[i] * 1.5) * 0.05
-		# a charger's carriage through its wind-up and charge (pass 50, charge_pose): crouch, shake and rock, then bounce,
-		# rumble and lean
-		var cp := Vector4(0.0, 0.0, 1.0, 0.0)
-		if st == STATE_WINDUP or st == STATE_CHARGE:
-			cp = charge_pose(i, scr)
-			sq *= cp.z
-		# the painting sinks by its tuning's share of the cell (pass 47): the empty cell under painted legs goes under the
-		# sand, and the legs stand on the foot point
-		var drop: float = _t_sh[t * 4 + 3]
-		var at := pos[i] + Vector3(0, lift_h[i] + cp.y, 0) + scr * cp.x
-		if drop != 0.0:
-			at -= sprite_sink(i, sq, cam_up)
-		if strip == A_DIE and _t_ddrop[t] != 0.0:
-			# pass 88 (lane TWEAKS): the death strip sinks onto its shadow frame by frame (EnemyDef.shadow "die_drop")
-			at -= die_sink(i, float(mini(int(anim_t[i]), n - 1)) / float(maxi(n - 1, 1)), sq, cam_up)
-		# rising out of the sand (pass 60): the painting sits down the billboard's up by the part still under, the terrain
-		# hiding it; quick at first and settling (an ease-out), the figure's top (`head`) reaching the ground at 0
-		var rise: float = rise_t[i]
-		var rise_k := rise_ease(rise)
-		if rise < 1.0:
-			at -= rise_sink(i, sq, cam_up)
-		var xb: Basis = Basis().scaled(Vector3(s, s, s)) if cp.w == 0.0 else roll_basis(s, cp.w)
-		if rise < 1.0:
-			# pass 73 (lane GROUND): the ground-clip, the share of the quad under the sand (the shader reads basis.z.y)
-			xb.z = Vector3(xb.z.x, ground_clip(i), xb.z.z)
-		mm.set_instance_transform(k, Transform3D(xb, at))
-		# the flash: white, green for a poison tick (negative), orange for a fire tick (2 + flash)
-		var fl: float = flash[i]
-		if i == bounty_i and fl < 0.4:
-			# the bounty: a strong warm pulse, brighter than the rocketeer's, so it stands out of a crowd
-			fl = 0.4 + 0.25 * sin(_glow_clock * 3.0)
-			flash_hot[i] = 1
-		if flash_green[i] == 1:
-			fl = -fl
-		elif flash_hot[i] == 1:
-			fl = 2.0 + fl
-		var fy := _face_bit(flip[i], t, _face_strip(i, t, strip))
-		if i == tethered_i and st != STATE_DYING:
-			# the red outline of the creature holding the rope (levels 0..16 on top of the flip bit)
-			fy += 2.0 * roundf(tether_glow() * 16.0)
-		if vglow[i] > 0.0 and st != STATE_DYING:
-			# pass 69: a variance special's rim in its tint's colour (special_glow_code: levels 0..16 above the rest)
-			fy += special_glow_code(vglow[i])
-		# (the frame carries RISE_FLAG in its fraction while the figure rises: no silhouette of the part under the sand)
-		mm.set_instance_custom_data(k, Color(frame_code(frame, rise), fy, fl, sq))
-		mm.set_instance_color(k, tint_of(i))
-		counters[t] = k + 1
-		# the badge over its head: from the feet up the screen past the top of the figure, then half the badge
-		var bk: String = _t_badge[t]
-		if bk != "" and st != STATE_DYING:
-			var bmm := _badge_mm(bk)
-			if bmm:
-				var bn: int = int(badge_n.get(bk, 0))
-				if bn < BADGE_MAX:
-					var td: Dictionary = types[t]
-					var def: EnemyDef = td["def"]
-					# a skull is a boss's, and drawn at a boss's size wherever it hangs (pass 49: the arena's Boss dummy is an
-					# Elite by its kind)
-					var bs: float = BADGE_SIZE * _badge_scale * (1.3 if i == boss_index or def.archetype == "boss" or bk == "skull" else 1.0)
-					bmm.set_instance_transform(bn, Transform3D(Basis(), pos[i] + Vector3(0, lift_h[i], 0)))
-					# (pass 60: riding up with a rising figure's top)
-					bmm.set_instance_custom_data(bn, Color(s * maxf(float(td["head"]) * rise_k - drop, 0.0) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
-					badge_n[bk] = bn + 1
-		# shadow (stays on the ground and shrinks while the creature is in the air; none over the water, pass 54 and 56)
-		# pass 84 (the lead; Garry: "The shadows on the enemies ... at certain angles and at certain distances they don't
-		# render"): with a crowd over SHADOW_BUDGET only the first 70 within 10 m of the hero had a shadow, so the creatures
-		# up the portrait screen lost theirs; now every creature the camera sees (or within 10 m) casts one, its draped
-		# transform reused until it moves (_shadow_xform_cached)
-		if shadow_all or pos[i].distance_squared_to(ppos2) < shadow_r2 or (eye_cam != null and eye_cam.is_position_in_frustum(pos[i])):
-			var sxf := _shadow_xform_cached(i, scf, scr)
-			if rise < 1.0:
-				# the shadow grows in under a figure rising out of the sand (pass 60; the blob has no alpha of its own)
-				var sk := lerpf(0.35, 1.0, rise_k)
-				sxf.basis = sxf.basis.scaled(Vector3(sk, 1.0, sk))
-			if not (lake and _near_water(pos[i]) and shadow_wet(i, sxf, eye)):
-				_shadow_mm.set_instance_transform(shadow_n, sxf)
-				shadow_n += 1
+		_draw_one(i, t, counters[t])
+		counters[t] += 1
 	for t in range(types.size()):
 		if _warm_at != Vector3.INF:
 			var mm: MultiMesh = types[t]["mm"]
@@ -6337,20 +6499,200 @@ func _render() -> void:
 			mm.set_instance_color(counters[t], Color(1, 1, 1, 0))
 			counters[t] += 1
 		types[t]["mm"].visible_instance_count = counters[t]
-	if _warm_at != Vector3.INF and shadow_n < pool_max:
+	if _warm_at != Vector3.INF and _dr_shadow_n < pool_max:
 		# one shadow in the warm-up pit too, so its blend shader compiles behind the spawn beam (pass 47)
-		_shadow_mm.set_instance_transform(shadow_n, Transform3D(Basis().scaled(Vector3(0.5, 1, 0.3)), _warm_at))
-		shadow_n += 1
-	_shadow_mm.visible_instance_count = shadow_n
+		_shadow_mm.set_instance_transform(_dr_shadow_n, Transform3D(Basis().scaled(Vector3(0.5, 1, 0.3)), _warm_at))
+		_dr_shadow_n += 1
+	_shadow_mm.visible_instance_count = _dr_shadow_n
+	_badges_end()
+
+
+## The badges' counts, at the end of a draw.
+func _badges_end() -> void:
 	for bk in _badges.keys():
 		var bmm2: MultiMesh = _badges[bk]
 		if bmm2:
-			var bn2: int = int(badge_n.get(bk, 0))
+			var bn2: int = int(_dr_badge_n.get(bk, 0))
 			if _warm_at != Vector3.INF and bn2 < BADGE_MAX:
 				bmm2.set_instance_transform(bn2, Transform3D(Basis(), _warm_at))
 				bmm2.set_instance_custom_data(bn2, Color(1.0, 0.3, 0.0, 0.0))
 				bn2 += 1
 			bmm2.visible_instance_count = bn2
+
+
+## One creature's picture in instance `k` of its type (pass 125: out of _render's loop; the compiled draw asks it for the creatures
+## it leaves to the script, CrowdCore.render).
+func _draw_one(i: int, t: int, k: int) -> void:
+	var cam_up := _dr_cam_up
+	var scr := _dr_scr
+	var s := size[i]
+	var st := state[i]
+	var strip := _strip_of(i, t)
+	# pass 111 (lane ENEMY): heading left, a look's own left-heading copy of the strip (_lr_strip; the strip itself else)
+	var shown := _lr_strip(i, t, strip)
+	var n := _t_cnt[t * N_ANIMS + shown]
+	var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
+	if strip == A_ATTACK and _t_atkv[t] == 1:
+		# pass 73 (lane SNIPER): the front or the back half of an attack strip painted both ways (the sniper's aim)
+		frame = _attack_view_frame(i, t, shown)
+	if strip == A_ATTACK and _t_throw[t] == 1:
+		# pass 85 (lane BANDIT): a throw's wind-up or release frames (_throw_frame)
+		frame = _throw_frame(i, t, shown)
+	if strip == A_ATTACK and _t_squad[t] == 1 and squads != null:
+		# pass 112 (lane MONK): a squad's hands rising, then held up (Squads.attack_frame)
+		frame = squads.attack_frame(i, t, shown)
+	var sq := squash[i]
+	# procedural bob while moving
+	if strip == A_RUN:
+		sq += sin(anim_t[i] * 1.5) * 0.05
+	# a charger's carriage through its wind-up and charge (pass 50, charge_pose): crouch, shake and rock, then bounce,
+	# rumble and lean
+	var cp := Vector4(0.0, 0.0, 1.0, 0.0)
+	if st == STATE_WINDUP or st == STATE_CHARGE:
+		cp = charge_pose(i, scr)
+		sq *= cp.z
+	# the painting sinks by its tuning's share of the cell (pass 47): the empty cell under painted legs goes under the
+	# sand, and the legs stand on the foot point
+	var drop: float = _t_sh[t * 4 + 3]
+	var at := pos[i] + Vector3(0, lift_h[i] + cp.y, 0) + scr * cp.x
+	if drop != 0.0:
+		at -= sprite_sink(i, sq, cam_up)
+	if strip == A_DIE and _t_ddrop[t] != 0.0:
+		# pass 88 (lane TWEAKS): the death strip sinks onto its shadow frame by frame (EnemyDef.shadow "die_drop")
+		at -= die_sink(i, float(mini(int(anim_t[i]), n - 1)) / float(maxi(n - 1, 1)), sq, cam_up)
+	# rising out of the sand (pass 60): the painting sits down the billboard's up by the part still under, the terrain
+	# hiding it; quick at first and settling (an ease-out), the figure's top (`head`) reaching the ground at 0
+	var rise: float = rise_t[i]
+	var rise_k := rise_ease(rise)
+	if rise < 1.0:
+		at -= rise_sink(i, sq, cam_up)
+	var xb: Basis = Basis().scaled(Vector3(s, s, s)) if cp.w == 0.0 else roll_basis(s, cp.w)
+	if rise < 1.0:
+		# pass 73 (lane GROUND): the ground-clip, the share of the quad under the sand (the shader reads basis.z.y)
+		xb.z = Vector3(xb.z.x, ground_clip(i), xb.z.z)
+	var ixf := Transform3D(xb, at)
+	# the flash: white, green for a poison tick (negative), orange for a fire tick (2 + flash)
+	var fl: float = flash[i]
+	if i == bounty_i and fl < 0.4:
+		# the bounty: a strong warm pulse, brighter than the rocketeer's, so it stands out of a crowd
+		fl = 0.4 + 0.25 * sin(_glow_clock * 3.0)
+		flash_hot[i] = 1
+	if flash_green[i] == 1:
+		fl = -fl
+	elif flash_hot[i] == 1:
+		fl = 2.0 + fl
+	var fy := _face_bit(flip[i], t, _face_strip(i, t, strip))
+	if i == tethered_i and st != STATE_DYING:
+		# the red outline of the creature holding the rope (levels 0..16 on top of the flip bit)
+		fy += 2.0 * roundf(tether_glow() * 16.0)
+	if vglow[i] > 0.0 and st != STATE_DYING:
+		# pass 69: a variance special's rim in its tint's colour (special_glow_code: levels 0..16 above the rest)
+		fy += special_glow_code(vglow[i])
+	# (the frame carries RISE_FLAG in its fraction while the figure rises: no silhouette of the part under the sand)
+	var icu := Color(frame_code(frame, rise), fy, fl, sq)
+	var icl := tint_of(i)
+	if _dr_nat:
+		_nat.put_instance(t, k, PackedFloat32Array([ixf.basis.x.x, ixf.basis.y.x, ixf.basis.z.x, ixf.origin.x, ixf.basis.x.y, ixf.basis.y.y, ixf.basis.z.y, ixf.origin.y,
+			ixf.basis.x.z, ixf.basis.y.z, ixf.basis.z.z, ixf.origin.z, icl.r, icl.g, icl.b, icl.a, icu.r, icu.g, icu.b, icu.a]))
+	else:
+		var mm: MultiMesh = _t_mm[t]
+		mm.set_instance_transform(k, ixf)
+		mm.set_instance_custom_data(k, icu)
+		mm.set_instance_color(k, icl)
+	# the badge over its head: from the feet up the screen past the top of the figure, then half the badge
+	var bk: String = _t_badge[t]
+	if bk != "" and st != STATE_DYING:
+		var bmm := _badge_mm(bk)
+		if bmm:
+			var bn: int = int(_dr_badge_n.get(bk, 0))
+			if bn < BADGE_MAX:
+				var td: Dictionary = types[t]
+				var def: EnemyDef = td["def"]
+				# a skull is a boss's, and drawn at a boss's size wherever it hangs (pass 49: the arena's Boss dummy is an
+				# Elite by its kind)
+				var bs: float = BADGE_SIZE * _badge_scale * (1.3 if i == boss_index or def.archetype == "boss" or bk == "skull" else 1.0)
+				bmm.set_instance_transform(bn, Transform3D(Basis(), pos[i] + Vector3(0, lift_h[i], 0)))
+				# (pass 60: riding up with a rising figure's top)
+				bmm.set_instance_custom_data(bn, Color(s * maxf(float(td["head"]) * rise_k - drop, 0.0) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
+				_dr_badge_n[bk] = bn + 1
+	_draw_shadow(i)
+
+
+## Creature `i`'s shadow, the next free one (pass 125: out of _render's loop).
+func _draw_shadow(i: int) -> void:
+	var scf := _dr_scf
+	var scr := _dr_scr
+	var rise: float = rise_t[i]
+	var rise_k := rise_ease(rise)
+	# shadow (stays on the ground and shrinks while the creature is in the air; none over the water, pass 54 and 56)
+	# pass 84 (the lead; Garry: "The shadows on the enemies ... at certain angles and at certain distances they don't
+	# render"): with a crowd over SHADOW_BUDGET only the first 70 within 10 m of the hero had a shadow, so the creatures
+	# up the portrait screen lost theirs; now every creature the camera sees (or within 10 m) casts one, its draped
+	# transform reused until it moves (_shadow_xform_cached)
+	if _dr_shadow_all or pos[i].distance_squared_to(_dr_ppos) < 100.0 or (_dr_eye_cam != null and _dr_eye_cam.is_position_in_frustum(pos[i])):
+		var sxf := _shadow_xform_cached(i, scf, scr)
+		if rise < 1.0:
+			# the shadow grows in under a figure rising out of the sand (pass 60; the blob has no alpha of its own)
+			var sk := lerpf(0.35, 1.0, rise_k)
+			sxf.basis = sxf.basis.scaled(Vector3(sk, 1.0, sk))
+		if not (_dr_lake and _near_water(pos[i]) and shadow_wet(i, sxf, _dr_eye)):
+			if _dr_nat:
+				_nat.put_shadow(0, PackedFloat32Array([sxf.basis.x.x, sxf.basis.y.x, sxf.basis.z.x, sxf.origin.x, sxf.basis.x.y, sxf.basis.y.y, sxf.basis.z.y, sxf.origin.y,
+					sxf.basis.x.z, sxf.basis.y.z, sxf.basis.z.z, sxf.origin.z]))
+			else:
+				_shadow_mm.set_instance_transform(_dr_shadow_n, sxf)
+				_dr_shadow_n += 1
+
+
+## The draw through the library: its buffers for the plain creatures, this script's _draw_one for the others, one upload a type.
+## False: the script draws this frame.
+func _render_native() -> bool:
+	if not _nat_bind():
+		return false
+	var lakes := PackedFloat32Array()
+	if _dr_lake:
+		for l: Vector4 in _lakes_wet:
+			lakes.append(l.x)
+			lakes.append(l.y)
+			lakes.append(l.w)
+	var fr := PackedFloat32Array()
+	if _dr_eye_cam != null:
+		for pl: Plane in _dr_eye_cam.get_frustum():
+			fr.append(pl.normal.x)
+			fr.append(pl.normal.y)
+			fr.append(pl.normal.z)
+			fr.append(pl.d)
+	_nat.render([_t_off, _t_cnt, _t_ok, _t_okb, _t_hit_ok, _t_lsets, _t_face_fix, _t_atkv, _t_throw, _t_squad, vtint, status_tint, _elite_outline, fire_blue, flash_green, vglow, lakes, fr],
+		PackedFloat64Array([_dr_scf.x, _dr_scf.y, _dr_scf.z, _dr_cam_up.x, _dr_cam_up.y, _dr_cam_up.z, _dr_ppos.x, _dr_ppos.y, _dr_ppos.z, 1.0 if _dr_shadow_all else 0.0, 100.0,
+			1.0 if _dr_eye_cam != null else 0.0, bounty_i, tethered_i, _glow_clock, 1.0 if _dr_lake else 0.0, types.size(), _nat_hmode,
+			_nat_map.size_m if _nat_map != null else 0.0, _nat_map.resolution if _nat_map != null else 1.0, _nat_map.grid_n if _nat_map != null else 0]))
+	var esc: PackedInt32Array = _nat.render_escapes()
+	_dr_nat = true
+	var e := 0
+	while e < esc.size():
+		var i := esc[e]
+		var k := esc[e + 1]
+		e += 2
+		if k >= 0:
+			_draw_one(i, type_idx[i], k)
+		else:
+			_draw_shadow(i)
+	_dr_nat = false
+	_nat.render_finish(_shadow_mm.get_rid(), 0, 0)
+	var counts: PackedInt32Array = _nat.render_counts()
+	if _nat_vis_last.size() != types.size():
+		_nat_vis_last.resize(types.size())
+		_nat_vis_last.fill(-1)
+	for t in range(types.size()):
+		var c: int = counts[t] if t < counts.size() else 0
+		if c != _nat_vis_last[t]:
+			_nat_vis_last[t] = c
+			(_t_mm[t] as MultiMesh).visible_instance_count = c
+	var sn: int = _nat.render_shadow_n()
+	if sn != _dr_shadow_n or sn != _shadow_mm.visible_instance_count:
+		_shadow_mm.visible_instance_count = sn
+	_dr_shadow_n = sn
+	return true
 
 
 # ---------------------------------------------------------------- pass 73 (lane SNIPER): target priority, flee on hit, the Saiga Sniper

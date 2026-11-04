@@ -1,0 +1,10 @@
+[configuration]
+
+entry_symbol = "crowd_core_init"
+compatibility_minimum = "4.5"
+reloadable = false
+
+[libraries]
+
+windows.x86_64 = "res://bin/crowd.windows.x86_64.dll"
+android.arm64 = "res://bin/libcrowd.android.arm64.so"

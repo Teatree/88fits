@@ -58,6 +58,7 @@ every pick marked under the weapons); its CSV has no `hp_min` column.
 | `hero_look` *(2)* | the art look he was played in (`Registry.played_look`, e.g. `SOL-B`; "" for his own) |
 | `map` | the map id |
 | `map_rev` | (pass 57) a short hash of the map's `timeline_data` as loaded: the Level Editor version the run played |
+| `native`, `steer_every` | (pass 125) whether the crowd's compiled library ran this run (no library, or the developer menu's Compiled crowd off: false), and the ticks between a creature's steers on the screen |
 | `seed` | `Run.map_seed` (the layout roll; combat randomness is not seeded per run) |
 | `started` | local time the run started, `2026-10-01T18:05:11` |
 | `stamp` | `started` with `:` as `-`: the file name |
@@ -384,7 +385,7 @@ binary also mirrors it to the repo's `analytics/runs/replays/`). `tools/replay.p
 | `hero`, `look`, `stage`, `map`, `map_seed`, `run_seed` | the run: hero id, the hero's look code from the save (`hero_look`), 1-based stage, map id, the map's layout seed, the run's seed (every rule's dice: Dice) |
 | `launch` | what the game started from: character, map, map_seed, stage, spawn (the beam), plus a tool's own plain keys |
 | `save` | the whole save as the run began (the Upgrade board, owned heroes and looks, quests, wanted board, skins, ...), `install_id` and `survey` blanked |
-| `settings` | `Settings.to_dict()` as the run began (camera, shake, frame cap, hero_knockback, fire_forward, pierce_falloff, ...) |
+| `settings` | `Settings.to_dict()` as the run began (camera, shake, frame cap, hero_knockback, fire_forward, native_crowd, pierce_falloff, ...) |
 | `canvas`, `vp_px`, `safe_top` | the game's canvas in design pixels, its viewport in real pixels, the camera cutout's inset: a replay draws the same view (what is on screen is a rule: weapons and the crowd read it) |
 | `d_ready`, `hz`, `check_every`, `track_every` | the delta of the frame the game was made in, the physics rate, the seconds between checks (5) and track points (0.5) |
 | `frames_n`, `frames`, `frames_runs` | the engine frames recorded and their timing: run-length coded runs of `[u32 count][u8 k + 16 x ran][f64 pd][f64 d][f64 ts]` (k = 60 Hz world steps that frame, ran = the run's world was not paused, pd = their delta, d = the frame's delta, ts = the game's time scale), gzip + base64 + `:<raw bytes>` |

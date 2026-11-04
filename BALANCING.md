@@ -9382,3 +9382,9 @@ Royale is the only design; there is nothing to choose in Settings, the developer
 - **Down! in debug mode**: REVIVE, solid green, top right under the cutout; the hold top left.
 - **The loading screen** is dark (Boot.palette): the same strips and print on the kit's navy, the wordmark instead of the paper plate; the engine's splash and Android's are the same dark colour (Boot.DARK), so no flash of paper.
 
+## 67. Pass 125: the crowd in compiled code (no gameplay number changed)
+
+- **The compiled crowd** (`Settings.native_crowd`, on; the developer menu's Compiled crowd, read as a run starts; game/bin): plays a run exactly as the script does, checkpoint for checkpoint, only cheaper. It is not a rule. Without the library the script runs and the run is the same.
+- **A creature with an attack script** (`_t_scripted`: a caster or a `boss.attacks` list) spawned by another's script starts running its own on the next tick, not later in the same tick. It is the one order that changed, in both paths.
+- **How often the crowd steers** is now a map setting: `timeline_data.crowd` `{steer_every, steer_far_every}`, absent on Red Canyon, so 2 and 4 as before (WaveTimeline.CROWD_DEFAULTS). A longer cadence holds the crowd's push at 2 / steer_every a tick. Every 3rd / 6th tick was measured and left off: about 0.03-0.05 ms a frame saved, 18-26% more overlap.
+- **The pool** stays `EnemyManager.MAX` 320, so the map's `hard_cap` 500 still can't be reached. Raising it is one number and makes the stages harder: left for Garry to choose once the phone's numbers are in.

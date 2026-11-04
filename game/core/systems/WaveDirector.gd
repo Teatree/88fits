@@ -197,6 +197,9 @@ func _apply_mults() -> void:
 	# pass 95 (lane WORLD): regular creatures far from the hero and off the screen despawn (EnemyManager.set_despawn,
 	# the map's timeline_data.despawn); never in the arena, where creatures are spawned to be looked at
 	em.set_despawn({} if Run.arena else timeline.despawn_cfg())
+	# pass 125: how often the crowd steers (the map's timeline_data.crowd)
+	if em.has_method("set_cadence"):
+		em.set_cadence(int(timeline.crowd.get("steer_every", WaveTimeline.CROWD_DEFAULTS["steer_every"])), int(timeline.crowd.get("steer_far_every", WaveTimeline.CROWD_DEFAULTS["steer_far_every"])))
 	# pass 111 (lane ENEMY): regular creatures and bosses far from the hero walk faster (EnemyManager.set_far_speed, the
 	# map's timeline_data.far_speed), the arena included (it is where the walks are looked at, as creature_speed_mult)
 	if em.has_method("set_far_speed"):

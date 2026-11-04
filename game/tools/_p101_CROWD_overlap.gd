@@ -41,6 +41,8 @@ var _out: Array = []
 var _rows: Array = []
 var _C: Dictionary = {}
 var _walk_t := 0.0
+## pass 125: how often the crowd steers on the screen (EnemyManager.steer_every)
+var _every := 2
 
 
 func _init() -> void:
@@ -58,6 +60,7 @@ func _init() -> void:
 			"seeds": _seeds = Array(kv[1].split(",")).map(func(x): return int(x))
 			"tag": _tag = kv[1]
 			"far": _far = int(kv[1])
+			"every": _every = int(kv[1])
 	for m in MIX:
 		for k in range(int(m[1])):
 			_pool.append(m[0])
@@ -105,6 +108,7 @@ func _tick() -> void:
 		_game.enemies.kill_all(false)
 		if _far > 0 and "steer_far_every" in _game.enemies:
 			_game.enemies.steer_far_every = _far
+		_game.enemies.steer_every = _every
 		_log("setup: clock %.0f, director held, no weapons, n %d, settle %.0f s, hold %.0f s, seed %d, far every %s" % [_run.elapsed, _n, _settle, _hold, _seed, str(_game.enemies.get("steer_far_every"))])
 		return
 	_keep_playing(dt)

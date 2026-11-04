@@ -295,6 +295,13 @@ func far_speed_cfg() -> Dictionary:
 const LEGENDARY_DEFAULTS := {"from": 270.0, "guarantee_at": 0.0}
 
 
+## Pass 125 (Garry: "try moving the crowd less often"): how often the crowd steers: `steer_every` (ticks between a creature's
+## steers on the screen, 2 as since pass 33.8) and `steer_far_every` (off the screen, 4 since pass 101). Read by
+## WaveDirector._apply_mults into EnemyManager.set_cadence. Empty: those two.
+@export var crowd: Dictionary = {}
+const CROWD_DEFAULTS := {"steer_every": 2, "steer_far_every": 4}
+
+
 ## One number of despawn (pass 95): the map's, else DESPAWN_DEFAULTS' ("enabled" as 1 / 0).
 func despawn_value(key: String) -> float:
 	var v = despawn.get(key, DESPAWN_DEFAULTS.get(key, 0.0))

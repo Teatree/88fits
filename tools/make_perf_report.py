@@ -292,6 +292,40 @@ def speed_chart(series, samples):
     return "".join(o)
 
 
+# Pass 125: game/tools/_p125_CROWD_bench.gd on the PC (tools/dl/p125/NATIVE/step2.txt): creatures, the crowd's own ms a frame
+# (enemies.sim + enemies.render) and the whole frame, by the script (None: not run) and compiled
+BENCH = [(300, 4.22, 7.08, 0.66, 3.10), (500, 6.33, 8.98, 0.85, 3.33), (800, 10.60, 13.77, 1.22, 3.87), (1200, None, None, 1.70, 4.49), (2000, None, None, 2.70, 5.76)]
+
+
+def bench_chart():
+    """The whole frame on the PC by crowd size, script against compiled."""
+    W, H = 900, 300
+    L, R, T, B = 52, 20, 18, 42
+    nmax, ymax = 2000.0, 15.0
+    X = lambda n: L + (W - L - R) * n / nmax
+    Y = lambda v: H - B - (H - T - B) * min(v, ymax) / ymax
+    o = ['<svg viewBox="0 0 %d %d" role="img" aria-label="Frame time by crowd size, script against compiled">' % (W, H)]
+    for v in (0, 5, 10, 15):
+        o.append('<line x1="%d" x2="%d" y1="%.1f" y2="%.1f" stroke="%s"/>' % (L, W - R, Y(v), Y(v), C_GRID))
+        o.append('<text x="%d" y="%.1f" fill="%s" font-size="12" text-anchor="end">%d</text>' % (L - 8, Y(v) + 4, C_DIM, v))
+    for n in (300, 500, 800, 1200, 2000):
+        o.append('<text x="%.1f" y="%d" fill="%s" font-size="12" text-anchor="middle">%d</text>' % (X(n), H - B + 20, C_DIM, n))
+    o.append('<text x="%.1f" y="%d" fill="%s" font-size="12" text-anchor="middle">creatures alive</text>' % ((L + W - R) / 2, H - 6, C_DIM))
+    scr = [(r[0], r[2]) for r in BENCH if r[2] is not None]
+    nat = [(r[0], r[4]) for r in BENCH]
+    for pts, col, name in ((scr, C_CROWD, "the script"), (nat, C_OK, "compiled")):
+        d = "M" + " L".join("%.1f %.1f" % (X(n), Y(v)) for n, v in pts)
+        o.append('<path d="%s" fill="none" stroke="%s" stroke-width="3"/>' % (d, col))
+        for n, v in pts:
+            o.append('<circle cx="%.1f" cy="%.1f" r="4.5" fill="%s"/>' % (X(n), Y(v), col))
+            o.append('<text x="%.1f" y="%.1f" fill="%s" font-size="12.5" text-anchor="middle">%.1f</text>' % (X(n), Y(v) - 10, C_INK, v))
+        n, v = pts[-1]
+        o.append('<text x="%.1f" y="%.1f" fill="%s" font-size="13" text-anchor="%s">%s</text>' % (X(n) + (10 if name == "the script" else -4), Y(v) - (0 if name == "the script" else 24), col, "start" if name == "the script" else "end", name))
+    o.append('<text x="%d" y="%d" fill="%s" font-size="12" text-anchor="middle" transform="rotate(-90 %d %d)">ms a frame, PC</text>' % (14, (T + H - B) // 2, C_DIM, 14, (T + H - B) // 2))
+    o.append("</svg>")
+    return "".join(o)
+
+
 def budget_lines():
     """Phone cost by crowd size, cool and warm: straight lines fitted to its runs (see the numbers under the chart)."""
     W, H = 900, 300
@@ -361,23 +395,23 @@ SOLUTIONS = [
          work="Tiny as a fixed cap (map data). Small as the automatic version",
          risk="Balance: fewer kills means slightly less XP in that stretch",
          note="Better automatic: hold new spawns only while recent frames run over budget. Then it also reacts to a hot phone, and a cool phone and the PC keep the full crowd. That's a small rule, and it would be named in BALANCING."),
-    dict(k="C", name="Rewrite the crowd's loops in compiled code (GDExtension, C++)", gain="Largest long-term for big crowds",
-         ms="In Stage 2 the crowd is 80% of the named work: frames at 233 creatures from 38 ms to about 17, and 500 creatures become possible. In Stage 1 the crowd is only about 40% of the scripts, so its slow windows would go from about 20 ms of scripts to about 13. That helps, but doesn't remove the windows on its own.",
-         lose="Nothing visual at all. Content stays data and the Level Editor doesn't change.",
-         work="Large: a pass or two. A compiled library for Android and for Windows in the build, and a careful move of the crowd's hot loops",
-         risk="Moderate: every new build must keep replays exact, and a crash can no longer be read as easily from the phone. I would first do a one-pass trial on the separation loop only and measure it on your phone",
-         note="I found no trustworthy public benchmark for this exact case: the 5x to 20x figures around are marketing. The trial is what gives you a real number."),
+    dict(k="C", name="Rewrite the crowd's loops in compiled code (GDExtension, C++): BUILT", gain="Built, in your Drive build. Largest for big crowds",
+         ms="Measured on the PC at 300 creatures: the crowd's own cost from 4.2 ms to 0.7 ms a frame, the whole frame from 7.1 ms to 3.1 ms. 800 creatures now cost about what 300 did. Stage 1 as you played it gains less: script work down by about 30% early, 25% later and 9% in the boss fight.",
+         lose="Nothing. The pictures match to within 1/255 of a colour channel.",
+         work="Done. The library is in game/bin, and tools/build_native.py rebuilds it",
+         risk="Not measured on your phone yet. If the library doesn't load, the game runs the script instead and plays the same",
+         note="Five full runs replayed the other way round matched at all 1,726 checkpoints. The developer menu's Compiled crowd switch compares the two on your phone, and each run record says which ran."),
     dict(k="I", name="Trim the smaller costs the replay found", gain="Small to medium",
          ms="From the PC's timers during Stage 1: the wave director 0.3-0.4 ms a frame, drawing the shots 0.4 ms late in the stage, the hero 0.45 ms. On a slow phone that's 3 to 4 times as much: perhaps 2-4 ms together.",
          lose="Nothing, if each turns out to be wasted work. I haven't looked at why yet.",
          work="Small to medium, one at a time", risk="Low",
          note="The first report couldn't see these: its PC probe used a different build and no boss fight. The director stands out. It's the code that decides spawns, and it's worth checking why it costs a third of a millisecond every frame."),
-    dict(k="D", name="Move the crowd less often", gain="Medium for big crowds, small in Stage 1",
-         ms="Moving and colliding the crowd down by about 35-45%: Stage 2's warm frames down by 6-8 ms. In Stage 1, about 1-2 ms",
-         lose="The crowd's spacing gets a bit looser: creatures push apart 30 times a second rather than 60, so tight clumps can overlap slightly more. Their walking stays smooth, as position still moves every step.",
-         work="Medium: the far-away logic from pass 101 extended to creatures on screen",
-         risk="Low. Rules change slightly, so old replays need their own build, which they already have",
-         note="Today creatures on screen steer every 2nd tick and those off screen every 4th, but every creature still moves and separates every tick."),
+    dict(k="D", name="Move the crowd less often: BUILT, LEFT OFF", gain="Measured: not worth it now",
+         ms="Steering every 3rd tick instead of every 2nd saves about 0.03-0.05 ms a frame at 300-800 creatures, now that steering is compiled",
+         lose="The crowd overlaps about 18-26% more.",
+         work="Done. A map setting, timeline_data.crowd, with today's numbers as the default",
+         risk="None while it's off",
+         note="It would have helped the script's version more. See the section at the top."),
     dict(k="E", name="Draw far-away creatures half as often", gain="Small to medium",
          ms="Writing the crowd to the GPU down by about 30-40%: Stage 2's frames down by 2-3 ms, Stage 1's by under 1 ms",
          lose="Creatures at the screen's edge update 30 times a second. On a slow walker that's hard to see; on a fast creature at the edge you may see a very slight step if you look for it.",
@@ -438,7 +472,10 @@ def page(d):
         for day, stage, _hero, played, n, secs, small, least, first, longest in window_rows())
     boss = prow[2]
     first = prow[0]
+    bench_rows = "".join('<tr><td><b>%d</b></td><td>%s</td><td>%.2f ms</td><td>%s</td><td>%.2f ms</td></tr>' % (
+        n, ("%.2f ms" % a) if a is not None else "not run", c, ("%.2f ms" % b) if b is not None else "not run", d) for n, a, b, c, d in BENCH)
     rep = {
+        "@@BENCH@@": bench_chart(), "@@BENCHROWS@@": bench_rows,
         "@@T1@@": timeline1(s1), "@@SAME@@": same_svg, "@@SPEED@@": speed_chart(series, s1), "@@PHASEROWS@@": phase_rows, "@@WINROWS@@": win_rows,
         "@@BOSSSLOW@@": "%d%%" % round(100 * boss[5]), "@@BOSSX@@": "%.1f" % (boss[6] / first[6]),
         "@@S0@@": "%.1f" % (same[0][3] + same[0][4]), "@@S1@@": "%.1f" % (same[1][3] + same[1][4]), "@@S2@@": "%.0f" % (same[2][3] + same[2][4]),
@@ -500,8 +537,39 @@ code { font-size:.92em; color:var(--gold); }
 <header>
 <div class="eyebrow">Performance report, updated after your Stage 1 run, for your decision</div>
 <h1>Why the game slows down on your Pixel 8 Pro</h1>
-<p class="lead">The first version of this report put the crowd first. Your Stage 1 run this evening (Drifter, 13:06, into Endless) shows that the bigger cause is the phone itself slowing down, and that the game's catch-up rule makes each slowdown about twice as bad. The crowd still matters in Stage 2 and Endless. I haven't changed anything in the game yet. The re-ranked options are in the middle of this page.</p>
+<p class="lead">The first version of this report put the crowd first. Your Stage 1 run this evening (Drifter, 13:06, into Endless) shows that the bigger cause is the phone itself slowing down, and that the game's catch-up rule makes each slowdown about twice as bad. The crowd still matters in Stage 2 and Endless. You chose options C and D: C, the compiled crowd, is built and in your Drive build, and D is built but left off, because it turned out to cost more than it gives. The results come first below.</p>
 </header>
+
+<section>
+<h2>Built: the crowd in compiled code (C)</h2>
+<p>The crowd's busiest loops now run as compiled C++ instead of GDScript: both grids, deciding who is drawn, a walking creature's whole tick, every creature's push, a dying body's tick and most of the draw. Everything else, such as other brains, attacks, damage and bosses, stays in the script.</p>
+<figure>
+@@BENCH@@
+<figcaption>The whole frame on the PC with a hero who has no weapons, walking through a mix of seven creatures. These aren't phone numbers. Your phone did the same work about 2.2 times slower at the start of your run and about 3.7 times slower in the boss fight.</figcaption>
+</figure>
+<div class="tablewrap" style="margin-top:16px"><table>
+<thead><tr><th>Creatures</th><th>The crowd's own cost, script</th><th>The crowd's own cost, compiled</th><th>Whole frame, script</th><th>Whole frame, compiled</th></tr></thead>
+<tbody>@@BENCHROWS@@</tbody>
+</table></div>
+<div class="causes" style="margin-top:16px">
+<div class="cause"><h3>Nothing about the game changed</h3><p>Five full bot-played runs across all three stages, recorded one way and replayed the other, in both directions: all 1,726 checkpoints were identical. In 152 busy frames, the pictures matched to within 1/255 of a colour channel, the rounding of overlapping shadows.</p></div>
+<div class="cause second"><h3>What to expect on your phone</h3><p>Big crowds gain the most. At 300 creatures the crowd's own cost falls from 4.2 ms to 0.7 ms on the PC, which I'd estimate saves about 8 ms a frame on a cool phone and about 13 ms on a slowed one. <b>Stage 1 gains less, because its crowd is small.</b> Replaying your own run, the PC's script work a frame fell from 2.5 to 1.8 ms in the first 3:30, from 4.1 to 3.1 ms from 3:30 to 7:10, and from 2.7 to 2.5 ms in the boss fight. So the slow stretches should shrink, not vanish: the phone still slows down, and the cliff still doubles the damage. None of this has been measured on your phone yet.</p></div>
+<div class="cause third"><h3>How to compare on your phone</h3><p>The developer menu has a <b>Compiled crowd</b> switch, read when a run starts. Play the same stage with it on and off, and every run record now says which it was. If the library ever fails to load, the game runs the script instead and plays the same.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Built and left off: moving the crowd less often (D)</h2>
+<p>I built it as a map setting (<code>timeline_data.crowd</code>: <code>steer_every</code>, <code>steer_far_every</code>) and measured it against today's. With steering now compiled, it isn't worth what it costs, so the game stays at every 2nd tick on screen and every 4th off it.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Steering on screen / off it</th><th>The crowd's script time at 300 / 800 creatures</th><th>Overlapping pairs per creature, standing / walking</th><th>How deep they overlap, standing / walking</th></tr></thead>
+<tbody>
+<tr><td><b>Every 2nd / 4th tick (today)</b></td><td>0.51 / 0.95 ms</td><td>5.44 / 4.00</td><td>1.48 / 1.02</td></tr>
+<tr><td><b>Every 3rd / 6th tick</b></td><td>0.48 / 0.90 ms</td><td>6.43 / 4.77</td><td>1.85 / 1.29</td></tr>
+</tbody>
+</table></div>
+<p style="margin-top:12px">So it saves about 0.03-0.05 ms a frame and makes the crowd overlap about 18-26% more. It would help the script's version more, but the script's version is now only the fallback. If you'd like to see it anyway, it's those two numbers in the map's JSON.</p>
+</section>
 
 <section>
 <h2>What your Stage 1 run shows</h2>
@@ -565,7 +633,7 @@ code { font-size:.92em; color:var(--gold); }
 
 <section>
 <h2>Your options, re-ranked</h2>
-<p>Ranked again with both runs in mind. The letters are the same as in the first version, so you can still refer to them; I is new. The numbers are my estimates from the measurements above, not tests of the changes.</p>
+<p>Ranked again with both runs in mind. The letters are the same as in the first version, so you can still refer to them; I is new. C and D are now built, and their rows say what was measured. For the others, the numbers are my estimates from the measurements above, not tests of the changes.</p>
 <div class="tablewrap"><table>
 <thead><tr><th></th><th>Option</th><th>Effect</th><th>What you lose visually</th><th>Work</th></tr></thead>
 <tbody>@@SOLROWS@@</tbody>
@@ -636,11 +704,11 @@ code { font-size:.92em; color:var(--gold); }
 
 <section class="pick">
 <h2>My recommendation, updated</h2>
-<p><b>B now.</b> It's small, costs nothing you can see, and helps every slow stretch on every stage. Stage 1's slow windows should go from about 30 fps to about 45, and Stage 2's worst stretch from 26 to about 37.</p>
-<p><b>G next, as a small Android plugin.</b> First it writes the phone's heat into the run record, so we know rather than guess. Then it tells Android each frame's deadline, and eases the game off when the phone is close to slowing down. Treat the first version as a trial: if the hint alone keeps your phone faster for longer, that's the cheapest win of all.</p>
-<p><b>A as the automatic budget</b>, for Stage 2 and Endless: hold new spawns while frames run late. <b>I along the way</b>, since it costs nothing visually. <b>Then a trial of C</b> if you want 500 creatures on the phone.</p>
-<p><b>Two questions that would help:</b> were you charging the phone while you played this evening? And is Battery Saver on? Both change how a Pixel slows down.</p>
-<p style="margin:0"><b>Tell me which letters you want</b> and I'll build them. For option A, also tell me whether to lower the Stage 2 cap by hand, or make the budget automatic, or both.</p>
+<p><b>First, play the new build.</b> C is in it. Try Stage 2 or Endless, where the crowd is big. The next report can then use real numbers from your phone, because each run record says whether the compiled crowd ran.</p>
+<p><b>Next, B.</b> It's small, costs nothing you can see, and helps every slow stretch on every stage, which C can't fully do for a small crowd. Stage 1's slow windows should go from about 30 fps to about 45, and more with C on top.</p>
+<p><b>Then G, as a small Android plugin</b>, which goes after the main cause. First it writes the phone's heat into the run record, so we know rather than guess. Then it tells Android each frame's deadline, and eases the game off when the phone is close to slowing down.</p>
+<p><b>Then more creatures.</b> The pool still stops at 320, so the map's cap of 500 can't be reached. Raising it is one number, but it changes how hard the stages are, so I'd rather you see the phone's numbers first and choose. A automatic budget and I are still there if you want them.</p>
+<p style="margin:0"><b>Two questions that would help:</b> were you charging the phone during this evening's Stage 1 run? And is Battery Saver on? Both change how a Pixel slows down.</p>
 </section>
 </main>
 """

@@ -242,6 +242,10 @@ func begin(p_game: Node) -> void:
 	# rows in PostHog find each other; map_rev is the Level Editor version of the map the run played
 	header["run_id"] = Analytics.uuid7()
 	header["map_rev"] = Analytics.map_rev(mapdef)
+	# pass 125: whether the crowd's compiled library ran this run (EnemyManager.native_on), and the steering's cadence
+	var em_n = game.get("enemies") if game != null else null
+	header["native"] = bool(em_n.native_on()) if em_n != null and em_n.has_method("native_on") else false
+	header["steer_every"] = int(em_n.get("steer_every")) if em_n != null and em_n.has_method("native_on") else 2
 	# the saved gold as the run began (pass 61: run_end's gold_before; gold_after - gold_before = what the run banked)
 	header["gold_before"] = Save.gold()
 	# pass 74 (schema 2): a tool's run or a played one, the look he wears, the Upgrade board, the switches, the map's numbers

@@ -1125,6 +1125,12 @@ Garry (2026-10-28): "Regular Enemies should walk considerably faster when they a
 option that I can control and switch off if I don't like it. This should also apply to Bosses, but not to Elites or
 Special Enemies."
 
+#### timeline_data.crowd (Object, optional; pass 125)
+
+How often the crowd steers: `steer_every` (ticks between a creature's steers on the screen, default 2) and `steer_far_every`
+(off the screen, default 4). A longer cadence holds the crowd's push at 2 / steer_every a tick. Measured at 3 / 6: about 0.03-0.05 ms
+a frame saved with the compiled crowd, 18-26% more overlap between creatures, so Red Canyon doesn't set it.
+
 #### timeline_data.far_speed (Object, optional)
 | key | type [default] | meaning |
 |---|---|---|

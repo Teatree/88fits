@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+# Pass 125: the crowd's compiled library (see native/README.md and tools/build_native.py, which runs this).
+#   scons platform=windows|android arch=x86_64|arm64 target=template_release
+import os
+
+CPP = os.environ.get("GODOT_CPP_DIR", os.path.join("..", "tools", "dl", "native", "godot-cpp"))
+env = SConscript(os.path.join(CPP, "SConstruct"))
+
+env.Append(CPPPATH=["src/"])
+# The same arithmetic on every machine: a replay recorded on the phone plays on the PC. On arm64 clang would fuse a * b + c
+# into one rounding step, which x86 without FMA never does; no fast-math either.
+if env["platform"] == "android":
+    env.Append(CCFLAGS=["-ffp-contract=off", "-fno-fast-math"])
+    # its C++ runtime inside the library: nothing it needs but the system's libc, libm and libdl
+    env.Append(LINKFLAGS=["-s", "-static-libstdc++"])
+elif env.get("is_msvc", False):
+    env.Append(CCFLAGS=["/fp:precise"])
+
+sources = Glob("src/*.cpp")
+out = os.path.join("..", "game", "bin")
+if env["platform"] == "android":
+    lib = env.SharedLibrary(os.path.join(out, "libcrowd.android.%s.so" % env["arch"]), source=sources)
+else:
+    lib = env.SharedLibrary(os.path.join(out, "crowd.%s.%s%s" % (env["platform"], env["arch"], env["SHLIBSUFFIX"])), source=sources)
+Default(lib)

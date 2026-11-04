@@ -104,6 +104,10 @@ def cmd_keep(a):
     else:
         os.makedirs(dst, exist_ok=True)
         shutil.copy2(exe, os.path.join(dst, EXE_NAME))
+        # pass 125: the crowd's compiled library, which the export puts beside the exe
+        for f in os.listdir(os.path.dirname(exe)):
+            if f.lower().endswith(".dll"):
+                shutil.copy2(os.path.join(os.path.dirname(exe), f), os.path.join(dst, f))
         with open(os.path.join(dst, "build.json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(s, f, indent=2)
             f.write("\n")

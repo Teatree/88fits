@@ -821,6 +821,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 95 (lane WORLD): far creatures despawn out of view (read as it is; WaveTimeline.DESPAWN_DEFAULTS fill gaps)
 	var dsp = t.get("despawn", {})
 	w.despawn = dsp if dsp is Dictionary else {}
+	# pass 125: how often the crowd steers (WaveTimeline.crowd)
+	var crw = t.get("crowd", {})
+	w.crowd = crw if crw is Dictionary else {}
 	# pass 111 (lane ENEMY): far creatures walk faster (read as it is; WaveTimeline.FAR_SPEED_DEFAULTS fill gaps)
 	var fsp = t.get("far_speed", {})
 	w.far_speed = fsp if fsp is Dictionary else {}

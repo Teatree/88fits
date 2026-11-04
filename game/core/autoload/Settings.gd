@@ -59,6 +59,10 @@ var hero_knockback: bool = false
 ## Basketball thrown with nobody to bounce off drops to the sand). Off, every one aims as before. Settings shows the
 ## switch only in debug mode (the Debug panel) and in the developer menu; the production build holds it off.
 var fire_forward: bool = false
+## Pass 125 (the performance report's option C): the crowd's hot loops run compiled where the library is (EnemyManager._nat,
+## game/bin). On by default; off, the script runs them as before, the same run to the last digit: the developer menu's switch
+## for comparing the two on a phone (a run reads it as it starts). The run record says which ran (`native`).
+var native_crowd: bool = true
 ## The HUD's item slots in their colours under the Royale theme (pass 122, lane UIHUD; Garry: "Put rarity colours on the
 ## HUD's item slots behind a debug switch, so I can compare them with plain frames on the phone before choosing"): off
 ## (the default), every slot is the plain common frame; on, a weapon's or Card's level colour (W.level_fill, pass 48's
@@ -133,7 +137,7 @@ var frame_cap: int = default_frame_cap(OS.has_feature("mobile")):
 ## force_prod(). The dev build never changes.
 const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_buttons": false, "free_revive_button": false,
 	"hit_log": false, "preview_locked_heroes": false, "ranged_on_screen": true,
-	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false,
+	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false, "native_crowd": true,
 	"hud_slot_rarity": true}
 var _prod_forced := -1
 
@@ -203,7 +207,7 @@ func to_dict() -> Dictionary:
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 		"ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
-		"hero_knockback": hero_knockback, "fire_forward": fire_forward,
+		"hero_knockback": hero_knockback, "fire_forward": fire_forward, "native_crowd": native_crowd,
 		"hud_slot_rarity2": hud_slot_rarity,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
@@ -237,6 +241,7 @@ func from_dict(d: Dictionary) -> void:
 	pierce_falloff = bool(d.get("pierce_falloff", pierce_falloff))
 	hero_knockback = bool(d.get("hero_knockback", hero_knockback))
 	fire_forward = bool(d.get("fire_forward", fire_forward))
+	native_crowd = bool(d.get("native_crowd", native_crowd))
 	# pass 123 (Garry: "Weapon Rarity isn't displayed at the top left"): on by default; a new key, so a save written with
 	# pass 122's default (off) plays the new one
 	hud_slot_rarity = bool(d.get("hud_slot_rarity2", hud_slot_rarity))

@@ -967,6 +967,13 @@ def sync_snapshot(src=None, dst=None, log=print):
             log("sim: sync: a new snapshot: its .godot seeded from the real one (the imported files; a one-time copy)")
             shutil.copytree(sg, os.path.join(dst, ".godot"), ignore=shutil.ignore_patterns("shader_cache", "exported"), dirs_exist_ok=True)
         reasons.append("a new snapshot")
+    # pass 125: which compiled libraries Godot loads (game/bin): an older snapshot's .godot has not heard of them
+    el = os.path.join(src, ".godot", "extension_list.cfg")
+    if os.path.isfile(el) and os.path.isdir(os.path.join(dst, ".godot")):
+        try:
+            shutil.copy2(el, os.path.join(dst, ".godot", "extension_list.cfg"))
+        except OSError as e:
+            log("sim: sync: extension_list.cfg: %s" % e)
     have = _walk(src)
     old = _walk(dst)
     for rel, (size, mtime) in sorted(have.items()):

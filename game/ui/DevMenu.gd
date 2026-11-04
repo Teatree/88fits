@@ -143,6 +143,10 @@ func _refresh() -> void:
 	var ff_row := _switch("Fire forward (Sabre, Spear, Hammer, Frisbee, Tumbleweed, Basketball)", "fire_forward")
 	ff_row.name = "FireForwardRow"
 	_list.add_child(ff_row)
+	# pass 125: the crowd's compiled loops (off: the script's, the same run, slower), read as a run starts
+	var nc_row := _switch("Compiled crowd (off: the script's, slower)", "native_crowd")
+	nc_row.name = "NativeCrowdRow"
+	_list.add_child(nc_row)
 	# pass 101 (lane FPS): the frame cap (Settings.frame_cap): 60 (a phone's default) or MAX (the screen's own rate)
 	var fc_row := _row("Frame rate · 60 or the screen's max (%s Hz)" % _refresh_hz(), Settings.frame_cap_label(), func():
 		Settings.set_value("frame_cap", Settings.next_frame_cap(Settings.frame_cap))
