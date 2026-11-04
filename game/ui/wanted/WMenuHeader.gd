@@ -20,39 +20,7 @@ var _title_px := 0
 
 
 static func make(t: String, right_node: Control = null) -> WMenuHeader:
-	if W.royale():
-		return _make_royale(t, right_node)
-	var h := WMenuHeader.new()
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	h.offset_left = 36
-	h.offset_right = -36
-	h.offset_top = 44 + W.safe_top()
-	h.offset_bottom = 44 + W.safe_top() + 114
-	h.back_button = WTap.new()
-	var bb := W.box(W.PAPER, 5, 6)
-	h.back_button.box = bb
-	h.back_button.box_down = bb.pressed()
-	h.back_button.position = Vector2.ZERO
-	h.back_button.size = Vector2(106, 114)
-	h.back_button.custom_minimum_size = Vector2(106, 114)
-	var arrow := W.slab_text("‹", 60, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 60.0)
-	arrow.valign = VERTICAL_ALIGNMENT_CENTER
-	# the glyph sits 8 px high in the mock (padding-bottom 8)
-	var m := MarginContainer.new()
-	m.add_theme_constant_override("margin_bottom", 8)
-	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	m.add_child(arrow)
-	h.back_button.add_child(m)
-	h.back_button.pressed.connect(func(): h.back.emit())
-	h.add_child(h.back_button)
-	h.title = W.slab_text(t, 72, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 72.0)
-	h.title.position = Vector2(106 + 24, (114 - 72) * 0.5)
-	h.title.size = Vector2(700, 72)
-	h.add_child(h.title)
-	if right_node:
-		h.set_right(right_node)
-	return h
+	return _make_royale(t, right_node)
 
 
 ## The Royale header (pass 123, lane KIT2): see the class comment.
@@ -102,9 +70,6 @@ static func _make_royale(t: String, right_node: Control) -> WMenuHeader:
 ## The screen's name (pass 123): under Royale in capitals, fitted to the room left of the top-right piece; under Wanted
 ## the text as given, as ScreenBase.set_title always set it.
 func set_title(t: String) -> void:
-	if not W.royale():
-		title.text = t
-		return
 	title.text = t.to_upper()
 	if _title_px <= 0:
 		_title_px = R.HEADER_TITLE_PX
@@ -114,7 +79,7 @@ func set_title(t: String) -> void:
 ## Royale (pass 123): the name back at its size, or smaller until it fits between the back square and the top-right
 ## piece (R.HEADER_TITLE_MIN at least); a header whose name no one set through make or set_title is left alone.
 func _fit_title() -> void:
-	if _title_px <= 0 or title == null or not W.royale():
+	if _title_px <= 0 or title == null:
 		return
 	var w := size.x if size.x > 1.0 else 1080.0 - 2.0 * R.HEADER_POS.x
 	var room := w - title.position.x
@@ -144,50 +109,23 @@ func set_right(n: Control) -> void:
 			right.queue_free()
 	right = n
 	add_child(n)
-	if W.royale():
-		# pass 123: the mock's top-right piece, R.HEADER_RIGHT_Y down the screen (the header's top is R.HEADER_POS.y)
-		var ms := n.get_combined_minimum_size()
-		n.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		n.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		n.offset_right = 0
-		n.offset_left = -ms.x
-		n.offset_top = R.HEADER_RIGHT_Y - R.HEADER_POS.y
-		n.offset_bottom = n.offset_top + ms.y
-		_fit_title()
-		return
-	n.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	# pass 123: the mock's top-right piece, R.HEADER_RIGHT_Y down the screen (the header's top is R.HEADER_POS.y)
+	var ms := n.get_combined_minimum_size()
+	n.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	n.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	n.grow_vertical = Control.GROW_DIRECTION_BOTH
 	n.offset_right = 0
-	n.offset_left = -n.get_combined_minimum_size().x
-	n.offset_top = -n.get_combined_minimum_size().y * 0.5
-	n.offset_bottom = n.get_combined_minimum_size().y * 0.5
+	n.offset_left = -ms.x
+	n.offset_top = R.HEADER_RIGHT_Y - R.HEADER_POS.y
+	n.offset_bottom = n.offset_top + ms.y
+	_fit_title()
+	return
 
 
 ## The gold plate: a coin and the number in slab on paper with a 5 px border and a hard shadow. Pass 122 (lane
 ## UIKIT_A), under Royale: the wallet is a black info plate (HardBox.role "plate": 56 % black, no edge, no base) with
 ## the number in white Ultra.
 static func gold_plate(gold: int, px: int = 44, coin_px: float = 40.0, shadow: int = 6, border: int = 5) -> PanelContainer:
-	if W.royale():
-		return _wallet_royale(gold, px, coin_px)
-	var p := PanelContainer.new()
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hb := W.box(W.PAPER, border, shadow).pad(22.0 + border, 6.0 + border, 22.0 + border, 6.0 + border)
-	if W.royale():
-		hb.role = "plate"
-	p.add_theme_stylebox_override("panel", hb)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(WCoin.make(coin_px))
-	var n := W.slab_text(W.num(gold), px, W.INK, HORIZONTAL_ALIGNMENT_LEFT, px * 1.369)
-	if W.royale():
-		n.color = R.WHITE
-	n.name = "Amount"
-	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(n)
-	p.add_child(row)
-	return p
+	return _wallet_royale(gold, px, coin_px)
 
 
 ## The Royale wallet (pass 123, lane KIT2; the mocks 5_Main_menu, 5_Upgrade): a black info plate R.WALLET_H (72) tall,

@@ -520,7 +520,7 @@ func test_the_boot_splash_is_ours() -> void:
 	# pass 118 (lane LOAD; Garry: "No icon, No progress bar"): the plain paper, no picture; the loading screen fades its
 	# wallpaper in from it (tests/pass118_LOAD_test.gd)
 	var bg: Color = ProjectSettings.get_setting("application/boot_splash/bg_color")
-	assert_bool(bg.is_equal_approx(W.PAPER)).is_true()
+	assert_bool(bg.is_equal_approx(load("res://ui/Boot.gd").DARK)).is_true()
 	assert_bool(bool(ProjectSettings.get_setting("application/boot_splash/show_image"))).is_false()
 	assert_int(int(ProjectSettings.get_setting("application/boot_splash/minimum_display_time"))).is_equal(0)
 	# Android: Godot's own boot splash off, the system splash in paper with a clear icon
@@ -528,10 +528,10 @@ func test_the_boot_splash_is_ours() -> void:
 	assert_int(cfg.load("res://export_presets.cfg")).is_equal(OK)
 	assert_bool(bool(cfg.get_value("preset.0.options", "splash_screen/disable_godot_boot_splash", false))).is_true()
 	var sbg: Color = cfg.get_value("preset.0.options", "splash_screen/background_color", Color())
-	assert_bool(sbg.is_equal_approx(W.PAPER)).is_true()
+	assert_bool(sbg.is_equal_approx(load("res://ui/Boot.gd").DARK)).is_true()
 	var icon := str(cfg.get_value("preset.0.options", "splash_screen/icon", ""))
 	assert_bool(FileAccess.file_exists(icon)).override_failure_message(icon).is_true()
 	# the first scene after it is paper too, so nothing flashes dark between them
 	var boot: Node = load("res://ui/Boot.tscn").instantiate()
-	assert_bool((boot.get_node("ColorRect") as ColorRect).color.is_equal_approx(W.PAPER)).is_true()
+	assert_bool((boot.get_node("ColorRect") as ColorRect).color.is_equal_approx(load("res://ui/Boot.gd").DARK)).is_true()
 	boot.free()

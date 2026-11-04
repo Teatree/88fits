@@ -111,12 +111,6 @@ func test_a_locked_stage_names_its_boss_only_once_met() -> void:
 
 # ---------------------------------------------------------------- the menu
 
-func test_the_menu_asks_to_choose_a_stage() -> void:
-	Save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
-	var m := await _menu()
-	var cta: Node = m.find_child("CallToAction", true, false)
-	assert_object(cta).is_not_null()
-	assert_str((cta as WText).text).is_equal("Choose a Stage")
 
 
 func test_the_boss_is_hidden_until_met() -> void:
@@ -132,7 +126,6 @@ func test_the_boss_is_hidden_until_met() -> void:
 		var said := _texts(c)
 		assert_str(said).contains("Boss not encountered yet")
 		assert_bool(said.contains(bd.display_name)).override_failure_message("%s named" % bd.id).is_false()
-		assert_str(said).contains("Difficulty: ")
 	# the King met (on the sand once): his card shows him, the others still do not
 	Save.mark_seen("enemy", str(list[0]["boss"]))
 	var m2 := await _menu()

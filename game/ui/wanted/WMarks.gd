@@ -4,7 +4,7 @@
 ##           48, bigger everywhere: 40 on a card, 48 on the chest, 34 on a pause row);
 ##   rivets  paths /3: brass circles held, aged the rest, 3 px ink;
 ##   notches ranks /3: 44 x 16 bars, brass owned, aged the rest, 3 px ink.
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the held stars gold (Garry: "stars more visible": the kit's gold
+## Pass 122 (lane UIKIT_B), under Royale: the held stars gold (Garry: "stars more visible": the kit's gold
 ## text colour, as big as today's) in a navy stroke, the empty ones slate grey, the "this pick" ones cream warming to
 ## gold as they pulse; rivets and notches the same colours in navy; the glow gold.
 class_name WMarks
@@ -119,13 +119,12 @@ func _draw() -> void:
 	var h := _get_minimum_size().y
 	var k := pulse_amount()
 	# pass 122: the Royale colours (the Wanted ones as before while the switch is off)
-	var royale := W.royale()
-	var ink := R.NAVY if royale else W.INK
-	var c_held := ROYALE_HELD if royale else W.BRASS
-	var c_empty := ROYALE_EMPTY if royale else W.AGED
-	var c_next := ROYALE_NEXT if royale else W.PAPER
-	var c_warm := ROYALE_WARM if royale else W.BRASS
-	var held_stroke := stroke if royale else 0.0
+	var ink := R.NAVY
+	var c_held := ROYALE_HELD
+	var c_empty := ROYALE_EMPTY
+	var c_next := ROYALE_NEXT
+	var c_warm := ROYALE_WARM
+	var held_stroke := stroke
 	if mode == "stars" and pulse and k > 0.0:
 		# the new stars' glow first (pass 58), under every star, so it never veils a neighbour
 		for i in range(maxi(held, 0), mini(upto, total)):
@@ -142,8 +141,7 @@ func _draw() -> void:
 			"rivets":
 				var c := Vector2(i * _step() + mark * 0.5, h * 0.5)
 				var rf := rivet_fill if is_held else (next_fill if is_next else rivet_empty)
-				if royale:
-					rf = c_held if is_held else (c_next if is_next else c_empty)
+				rf = c_held if is_held else (c_next if is_next else c_empty)
 				draw_circle(c, mark * 0.5, ink, true, -1.0, true)
 				draw_circle(c, mark * 0.5 - rivet_border, rf, true, -1.0, true)
 			_:

@@ -1,12 +1,12 @@
 ## Settings (Wanted 05): one screen, no debug. The camera as a two-way choice (Fixed / Follow), the joystick size, screen
 ## shake, sound and music as sliders, the damage numbers (a switch, pass 46), the first-play hints (a switch, and a reset
 ## for next run), and wiping the save, which a pop-up asks about first. The version line at the foot opens the developer
-## menu when held for 2 s. Pass 52: while the player's debug mode is on, a Debug panel above the wipe holds the title's
-## look (Painted or Live, Settings.menu_style); pass 54 adds a switch for the ranged weapons' aim (on screen only, or
+## menu when held for 2 s. Pass 52: while the player's debug mode is on, a Debug panel above the wipe; pass 54 adds to it a
+## switch for the ranged weapons' aim (on screen only, or
 ## anywhere in reach: Settings.ranged_on_screen). Pass 57: "Anonymous play data" (Settings.analytics, the PostHog client
 ## in core/autoload/Analytics.gd), a switch with one line under it saying what goes, or that this build's key file is
 ## empty and nothing does.
-## Pass 123 (lane STAGES_SETTINGS), under Royale (W.royale(); Wanted is built and drawn exactly as before): the mock
+## Pass 123 (lane STAGES_SETTINGS), under Royale: the mock
 ## 10_Settings (Garry: "Settings in slate panels as the mock; one shared confirm pop-up (safe answer slate, destructive
 ## red, buying green)"): today's groups, in today's order and words, as slate panels 990 wide 30 apart: the camera's
 ## two-way choice under its CAMERA label (gold the chosen, the sublines kept), the four sliders in 96 px rows, the
@@ -62,53 +62,24 @@ var _foot_dot: WText
 
 
 func board_top() -> float:
-	return R_TOP if W.royale() else 200.0
+	return R_TOP
 
 
 func board_bottom() -> float:
-	if W.royale():
-		# the board ends 20 px over the foot line
-		return R_FOOT_UP + 20.0
-	return 50.0 + 29.0 + 28.0 + 20.0
+	# the board ends 20 px over the foot line
+	return R_FOOT_UP + 20.0
 
 
 func board_side() -> float:
-	return R_SIDE if W.royale() else super.board_side()
+	return R_SIDE
 
 
 func build() -> void:
 	set_title("Settings")
-	if W.royale():
-		_build_foot_royale()
-		Save.saved.connect(_on_saved)
-		_refresh()
-		return
-	_version = W.serif_text(version_line(), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
-	_version.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_version.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_version.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_version.offset_bottom = -50
-	_version.offset_left = -460
-	_version.offset_right = 460
-	_version.offset_top = -50 - 29
-	_version.mouse_filter = Control.MOUSE_FILTER_STOP
-	_version.gui_input.connect(_on_version_input)
-	add_child(_version)
-	# the save's last write, so the player can see progress is kept (red when the disk refused)
-	_saved_line = W.serif_text(_saved_text(), 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
-	_saved_line.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_saved_line.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_saved_line.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_saved_line.offset_bottom = -50 - 29 - 2
-	_saved_line.offset_top = _saved_line.offset_bottom - 26
-	_saved_line.offset_left = -300
-	_saved_line.offset_right = 300
-	_saved_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if Save.last_error != "":
-		_saved_line.color = W.ROCK
-	add_child(_saved_line)
+	_build_foot_royale()
 	Save.saved.connect(_on_saved)
 	_refresh()
+	return
 
 
 ## "saved just now", "saved 3 min ago", "saved 2 h ago", "saved 2026-10-01 14:02:11", "saved ... · from the backup",
@@ -139,120 +110,21 @@ func _on_saved(_ok: bool) -> void:
 ## The foot's colours in the theme (pass 123): the soft line (ink soft; Royale's secondary blue), the refused save
 ## (rock; Royale's red) and the held line's warning (brass dark; Royale's gold).
 static func _soft_ink() -> Color:
-	return R.SECONDARY if W.royale() else W.INK_SOFT
+	return R.SECONDARY
 
 
 static func _bad_ink() -> Color:
-	return R.ROLES["red"]["top"] if W.royale() else W.ROCK
+	return R.ROLES["red"]["top"]
 
 
 static func _held_ink() -> Color:
-	return R.GOLD_TEXT if W.royale() else W.BRASS_DARK
+	return R.GOLD_TEXT
 
 
 func _refresh() -> void:
 	clear_content()
-	if W.royale():
-		_refresh_royale()
-		return
-	# the camera
-	var cam := _panel(18)
-	cam.get_child(0).add_child(W.label("Camera", 22, W.INK_SOFT, 0.15))
-	var choice := WChoice.make([["Fixed", "north stays up"], ["Follow", "swings behind the hero"]], Settings.camera_mode, 36, 24, 20.0,
-		HORIZONTAL_ALIGNMENT_CENTER, 0)
-	choice.chosen.connect(func(i: int): Settings.set_value("camera_mode", i))
-	cam.get_child(0).add_child(choice)
-	content.add_child(cam)
-	# the sliders
-	var sl := _panel(40)
-	var box: VBoxContainer = sl.get_child(0)
-	box.add_child(_slider_row("Joystick size", Settings.stick_size, 0.6, 1.4, func(v): Settings.set_value("stick_size", v), 100.0))
-	box.add_child(_slider_row("Screen shake", Settings.screen_shake, 0.0, 1.5, func(v): Settings.set_value("screen_shake", v), 100.0))
-	box.add_child(_slider_row("Sound", Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v), 0.0, 5))
-	box.add_child(_slider_row("Music", Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v), 0.0, 5))
-	content.add_child(sl)
-	# the floating text (pass 46 damage, pass 47b a switch per kind and three sizes)
-	var ft := _panel(24)
-	for spec in [["Damage numbers", "damage_numbers", "DamageNumbers"], ["Heal numbers", "float_heal", "HealNumbers"],
-			["XP numbers", "float_xp", "XpNumbers"], ["Coin numbers", "float_coins", "CoinNumbers"]]:
-		var r := _row(str(spec[0]))
-		var key: String = spec[1]
-		var s := WSwitch.make(bool(Settings.get(key)))
-		s.name = str(spec[2])
-		s.toggled.connect(func(on: bool): Settings.set_value(key, on))
-		r.add_child(s)
-		ft.get_child(0).add_child(r)
-	var size_choice := WChoice.make([["Small"], ["Normal"], ["Large"]], Settings.float_size, 30, 20, 14.0,
-		HORIZONTAL_ALIGNMENT_CENTER, 0)
-	size_choice.name = "FloatSize"
-	size_choice.chosen.connect(func(i: int): Settings.set_value("float_size", i))
-	ft.get_child(0).add_child(W.label("Floating text size", 20, W.INK_SOFT))
-	ft.get_child(0).add_child(size_choice)
-	content.add_child(ft)
-	# the hints
-	var hp := _panel(24)
-	var hints := _row("First-play hints")
-	var sw := WSwitch.make(Settings.show_hints)
-	sw.toggled.connect(func(on: bool):
-		Settings.set_value("show_hints", on)
-		_count_hint_tap())
-	hints.add_child(sw)
-	hp.get_child(0).add_child(hints)
-	var again := _row("Show the hints again next run")
-	var reset := WButton.make(["Reset"], 26, WButton.SECONDARY, 4, 5, 10.0, 24.0)
-	reset.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	reset.pressed.connect(func():
-		Save.reset_hints()
-		reset.set_parts(["Done"])
-		var tw := reset.create_tween()
-		tw.tween_interval(1.2)
-		tw.tween_callback(func(): reset.set_parts(["Reset"])))
-	again.add_child(reset)
-	hp.get_child(0).add_child(again)
-	content.add_child(hp)
-	# anonymous play data (pass 57): the switch, and one line under it (what goes, or that the key file is empty); off
-	# deletes what waits to be sent
-	var ap := _panel(10)
-	ap.name = "AnalyticsPanel"
-	var arow := _row("Anonymous play data")
-	var asw := WSwitch.make(Settings.analytics)
-	asw.name = "AnalyticsSwitch"
-	asw.toggled.connect(func(on: bool): Settings.set_value("analytics", on))
-	arow.add_child(asw)
-	ap.get_child(0).add_child(arow)
-	var aline := W.serif_text(Analytics.settings_line(), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
-	aline.name = "AnalyticsLine"
-	aline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ap.get_child(0).add_child(aline)
-	# the end-of-run questions (pass 59): off sends survey_opt_out, so Garry sees it in PostHog
-	var srow := _row("Questions after a run")
-	var ssw := WSwitch.make(Settings.surveys)
-	ssw.name = "SurveySwitch"
-	ssw.toggled.connect(func(on: bool): Analytics.set_surveys(on, "settings"))
-	srow.add_child(ssw)
-	ap.get_child(0).add_child(srow)
-	content.add_child(ap)
-	# the player's debug options (pass 52): only while the debug mode is on
-	if Settings.debug_mode:
-		content.add_child(_debug_panel())
-	# wiping the save: a pop-up asks first (pass 45)
-	var wp := ScreenBase.board(Vector2(30, 30), 8, 5)
-	var wr := HBoxContainer.new()
-	wr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wp.add_child(wr)
-	var tv := VBoxContainer.new()
-	tv.add_theme_constant_override("separation", 0)
-	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tv.add_child(W.serif_text("Wipe the save", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
-	tv.add_child(W.serif_text("gold, unlocks, everything · asks twice", 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
-	wr.add_child(tv)
-	_wipe = WButton.make(["Wipe"], 26, WButton.DANGER, 4, 5, 10.0, 24.0)
-	_wipe.name = "Wipe"
-	_wipe.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_wipe.pressed.connect(_ask_wipe)
-	wr.add_child(_wipe)
-	content.add_child(wp)
+	_refresh_royale()
+	return
 
 
 ## The debug options panel (pass 52, Garry: "a button in the Settings that's only available if the Debug mode is on ...
@@ -264,32 +136,7 @@ func _debug_panel() -> PanelContainer:
 	p.set_meta("debug_panel", true)
 	var col: VBoxContainer = p.get_child(0)
 	# pass 123 (Royale): the mock's label, sub-heads and choices (capitals in Ultra 28, sublines Rubik 18)
-	var royale := W.royale()
-	col.add_child(W.label("Debug", R_LABEL_PX if royale else 22, W.INK_SOFT, -1.0 if royale else 0.15))
-	# the title's look: Painted (the default since pass 119) or Live; never in the production build (pass 119, lane
-	# LOADUI: it is always painted there; the panel itself only shows in debug mode, which prod locks off)
-	if not Settings.is_prod():
-		col.add_child(_sub_head("Main menu"))
-		var style := WChoice.make(_choice_words([["Painted", "the hero's portrait"], ["Live", "the level, the hero in it"]]),
-			1 if Settings.menu_style == "live" else 0, R_CHOICE_PX if royale else 30, R_CHOICE_SUB_PX if royale else 20,
-			R_CAMERA_PAD if royale else 14.0, HORIZONTAL_ALIGNMENT_CENTER, 4 if royale else 0)
-		style.name = "MenuStyle"
-		style.chosen.connect(func(i: int): Settings.set_value("menu_style", "live" if i == 1 else "painted"))
-		col.add_child(style)
-	# the UI theme (pass 122, lane UIKIT_A; Garry's build brief: Claude Design's "Royale, refined" as a second theme
-	# behind a switch, Wanted the default): Wanted or Royale; the next screen built wears it, and this one is rebuilt
-	# at once; never in the production build (PROD_LOCKED holds it at wanted)
-	if not Settings.is_prod() and "ui_theme" in Settings:
-		col.add_child(_sub_head("UI theme"))
-		var theme := WChoice.make(_choice_words([["Wanted", "paper, ink and brass"], ["Royale", "slate, navy and gold"]]),
-			1 if str(Settings.ui_theme) == "royale" else 0, R_CHOICE_PX if royale else 30, R_CHOICE_SUB_PX if royale else 20,
-			R_CAMERA_PAD if royale else 14.0, HORIZONTAL_ALIGNMENT_CENTER, 4 if royale else 0)
-		theme.name = "UiTheme"
-		theme.chosen.connect(func(i: int):
-			Settings.set_value("ui_theme", "royale" if i == 1 else "wanted")
-			W.theme_changed()
-			_rebuild_for_theme.call_deferred())
-		col.add_child(theme)
+	col.add_child(W.label("Debug", R_LABEL_PX, W.INK_SOFT, -1.0))
 	# the ranged weapons' aim (pass 54, Garry: they shoot only at what is on the screen; a switch to compare, debug only)
 	if "ranged_on_screen" in Settings:
 		var r := _row("Ranged weapons aim only on screen")
@@ -352,46 +199,13 @@ func _sync_debug_panel() -> void:
 ## A menu panel (paper, 5 px ink, an 8 px shadow, 30 px in) holding a column `gap` apart. Pass 123: under Royale the
 ## mock's slate panel (_panel_royale; the Debug panel's rows sit 0 apart, each with its line under it).
 func _panel(gap: int) -> PanelContainer:
-	if W.royale():
-		return _panel_royale(R_PAD_Y + 10, 12)
-	var p := ScreenBase.board(Vector2(30, 30), 8, 5)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", gap)
-	v.mouse_filter = Control.MOUSE_FILTER_PASS
-	p.add_child(v)
-	return p
+	return _panel_royale(R_PAD_Y + 10, 12)
 
 
 ## A line of the panel: its words in Bitter 30 on the left, the control on the right. Pass 123: under Royale the mock's
 ## 74 px row (_row_royale).
 func _row(t: String) -> HBoxContainer:
-	if W.royale():
-		return _row_royale(t)
-	var h := HBoxContainer.new()
-	h.mouse_filter = Control.MOUSE_FILTER_PASS
-	var l := W.serif_text(t, 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(l)
-	return h
-
-
-## A setting as a slider row: the name (260 px), then the slider with its number on the thumb (`mult` x the value, or
-## the fill as 0-100).
-func _slider_row(t: String, value: float, lo: float, hi: float, on_change: Callable, mult: float = 0.0, levels: int = 0) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 30)
-	h.mouse_filter = Control.MOUSE_FILTER_PASS
-	var l := W.serif_text(t, 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	l.custom_minimum_size.x = 260
-	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(l)
-	var s := WSlider.make_levels(value, levels, lo, hi) if levels > 1 else WSlider.make(value, lo, hi)
-	if mult > 0.0:
-		s.shown = func(v: float) -> float: return v * mult
-	s.value_changed.connect(func(x): on_change.call(x))
-	h.add_child(s)
-	return h
+	return _row_royale(t)
 
 
 func _count_hint_tap() -> void:
@@ -575,15 +389,6 @@ func _foot_message(on: bool) -> void:
 	_foot.offset_top = -R_FOOT_UP - (roundf(R_FOOT_PX * 1.3) if on else 0.0)
 
 
-## The UI theme flipped in the Debug panel (pass 123): the whole screen again in the new theme (its header, backdrop and
-## foot are the theme's too), or, when this screen is not the scene (a test), its board as before.
-func _rebuild_for_theme() -> void:
-	if is_inside_tree() and get_tree().current_scene == self:
-		get_tree().change_scene_to_file(scene_file_path if scene_file_path != "" else "res://ui/SettingsScreen.tscn")
-		return
-	_refresh()
-
-
 ## The mock's slate panel: the slate role (4 px navy edge, 8 px navy base, the lip), `pad_v` over and under, 28 px at the
 ## sides, holding a column `gap` apart (`column` false: the panel holds a single row itself, the wipe's).
 func _panel_royale(pad_v: int, gap: int, column: bool = true) -> PanelContainer:
@@ -673,23 +478,9 @@ func _small_button(t: String, variant: String, role: String) -> WButton:
 	return b
 
 
-## A sub-head in the Debug panel: Bitter 30 ink (Wanted, as before); Royale the row's white Rubik 500 26.
-func _sub_head(t: String) -> WText:
-	if W.royale():
-		var w := W.serif_text(t, R_ROW_PX, R.WHITE, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
-		w.name = "SubHead"
-		# room over it (a choice's base hangs over the gap above), the words at its foot
-		w.custom_minimum_size.y = roundf(R_ROW_PX * 1.3) + 16.0
-		w.valign = VERTICAL_ALIGNMENT_BOTTOM
-		return w
-	return W.serif_text(t, 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-
-
 ## A choice's words: as given (Wanted); the titles in capitals under Royale (the mock's FIXED / FOLLOW, SMALL / NORMAL /
 ## LARGE), the sublines as they are.
 static func _choice_words(options: Array) -> Array:
-	if not W.royale():
-		return options
 	var out: Array = []
 	for o: Array in options:
 		var c := o.duplicate()

@@ -33,6 +33,7 @@ const PROP_SHADER := "res://core/shaders/ui_backdrop_prop.gdshader"
 const SUN_SHADER := "res://core/shaders/ui_backdrop_sun.gdshader"
 const DISC_SHADER := "res://core/shaders/ui_backdrop_disc.gdshader"
 const MOTES_SHADER := "res://core/shaders/ui_backdrop_motes.gdshader"
+const SHADOW_SHADER := "res://core/shaders/ui_backdrop_shadow.gdshader"
 
 ## the canvas the menus are laid out on, and the plate's (a taller phone shows more of it)
 const CANVAS := Vector2(1080, 1920)
@@ -53,6 +54,8 @@ const TUMBLE_FIRST_MAX := 16.0
 const TUMBLE_SIZE_M := 0.95
 const TUMBLE_SPEED := Vector2(1.8, 2.8)
 const TUMBLE_LEFTWARD := 0.3
+## pass 124 (Garry: "the same kind of shadow but bigger"): how much bigger its round shadow is than the plain rule
+const WEED_SHADOW := 1.9
 
 ## the README's sunset sky (the fallback drawing), top to the sun's glow, and the ground under it
 const SKY := [Color("120c3a"), Color("2d1a5a"), Color("7a2a5a"), Color("d8513f"), Color("f7a33a"), Color("ffd27a")]
@@ -89,7 +92,6 @@ var _disc_set := false
 var _prop_mats: Array[ShaderMaterial] = []
 var _shadow_tex: GradientTexture2D
 var _shadow_root: Node2D
-var _caster: Sprite2D
 var _rng := RandomNumberGenerator.new()
 # the tumbleweed's pass: rolling, or waiting for the session's next pass (_next_pass_ms: one clock for every backdrop, so
 # a new screen's backdrop waits out the rest of the wait instead of sending its own: Garry's "every minute or so")
@@ -335,23 +337,66 @@ func _build_props() -> void:
 				pm.set_shader_parameter(str(k), grade[k])
 			by_sway[sway] = pm
 			_prop_mats.append(pm)
-		# its shadow, the one way every shadow here falls (_cast)
+		# the picture's own empty rows under its foot: `base` is where the foot stands (pass 124: they made it hover)
+		var foot_up := float(d.get("foot_up", 0.0)) * th * sc
+		var flip := bool(d.get("flip", false))
 		if float(d.get("shadow_a", 0.5)) > 0.0:
-			var sh_s := _cast(base, float(d.get("height_px", th)))
-			sh_s.name = "Shadow_" + str(d.get("look", ""))
-			shadows.append(sh_s)
-		var p := _sprite(tex, base, sc, bool(d.get("flip", false)))
+			_prop_shadow(tex, d, base, sc, sway, flip)
+		var p := _sprite(tex, base + Vector2(0.0, foot_up), sc, flip)
 		p.name = "Prop_" + str(d.get("look", ""))
 		p.material = by_sway[sway]
+		var dark := float(d.get("dark", 1.0))
+		if dark < 1.0:
+			p.modulate = Color(dark, dark, dark)
 		stage.add_child(p)
 		props.append(p)
 	if not placed_weed:
 		_build_tumble()
 
 
-## One object's shadow on the sand: a soft ellipse from its foot `base` (plate px) straight away from the sun, as long as
-## `h` x the manifest's shadow.length, as wide as `h` x shadow.width (a painting's square holds air, so a share of it),
-## flattened by shadow.flat as the ground is. Every object's, the hero's and the tumbleweed's are this one.
+## Pass 124: a prop's shadow is its own picture on the sand: flipped at its foot and thrown away from the sun (figure_axis), blurred
+## and fading along its length (ui_backdrop_shadow.gdshader), with a small dark contact under the foot so it stands on the ground.
+func _prop_shadow(tex: Texture2D, d: Dictionary, base: Vector2, sc: float, sway: float, flip: bool) -> void:
+	var sh: Dictionary = _m.get("shadow", {})
+	var th := float(tex.get_height())
+	var tw := float(tex.get_width())
+	var foot_up := float(d.get("foot_up", 0.0))
+	var s := Sprite2D.new()
+	s.name = "Shadow_" + str(d.get("look", ""))
+	s.texture = tex
+	s.centered = false
+	s.offset = Vector2(-tw * 0.5, -th)
+	s.flip_h = flip
+	# the picture's point at the foot lands on `base`, its top runs along the axis
+	var axis := shadow_axis(base)
+	var x_axis := Vector2(sc, 0.0)
+	var y_axis := -axis * sc
+	s.transform = Transform2D(x_axis, y_axis, base + y_axis * (foot_up * th))
+	var mat := ShaderMaterial.new()
+	mat.shader = load(SHADOW_SHADER)
+	mat.set_shader_parameter("shadow_color", Color(str(sh.get("color", "#1a0c24"))))
+	mat.set_shader_parameter("strength", float(sh.get("alpha", 0.6)))
+	mat.set_shader_parameter("foot_v", 1.0 - foot_up)
+	mat.set_shader_parameter("blur_near", float(sh.get("blur_near", 0.006)))
+	mat.set_shader_parameter("blur_far", float(sh.get("blur_far", 0.05)))
+	mat.set_shader_parameter("sway", -sway)
+	s.material = mat
+	_shadow_root.add_child(s)
+	shadows.append(s)
+	# the contact: a small dark pool under the foot's own width
+	var fw := float(d.get("foot_w", 0.4)) * tw * sc
+	var fx := float(d.get("foot_x", 0.0)) * tw * sc * (-1.0 if flip else 1.0)
+	var c := _cast(base, 1.0)
+	c.name = "Contact_" + str(d.get("look", ""))
+	c.position = base + Vector2(fx, 0.0)
+	c.rotation = 0.0
+	c.scale = Vector2(fw * 1.25, fw * 0.3) / 96.0
+	c.modulate = Color(1, 1, 1, float(sh.get("contact", 0.7)))
+
+
+## One round soft shadow on the sand: a soft ellipse from its foot `base` (plate px) straight away from the sun, as long as
+## `h` x the manifest's shadow.length, as wide as `h` x shadow.width, flattened by shadow.flat as the ground is. The tumbleweed
+## has this one (Garry: "For the tumbleweed you can still use the same kind of shadow"), and a prop's contact.
 func _cast(base: Vector2, h: float) -> Sprite2D:
 	var sh: Dictionary = _m.get("shadow", {})
 	if _shadow_tex == null:
@@ -399,15 +444,25 @@ func shadow_dir(base: Vector2) -> Vector2:
 	return d.normalized()
 
 
-## The figure standing on the scene (the main menu's hero): his foot in this control's px and his height; his shadow falls
-## the way every other falls. The title calls it when it lays him out.
-func set_caster(foot: Vector2, h: float) -> void:
-	if stage == null or _shadow_root == null:
-		return
-	if _caster == null:
-		_caster = _cast(Vector2.ZERO, h)
-		_caster.name = "Shadow_hero"
-	_lay_cast(_caster, (foot - stage.position) / _scale, h / _scale)
+## Where a picture's height goes on the sand from a foot at `base` (plate px): away from the sun, flattened as the ground is, as long
+## as the manifest's shadow.length of the height (a vector per px of height).
+func shadow_axis(base: Vector2) -> Vector2:
+	var sh: Dictionary = _m.get("shadow", {})
+	var d := shadow_dir(base)
+	var dir := Vector2(d.x, d.y * float(sh.get("flat", 0.42))).normalized()
+	return dir * float(sh.get("length", 0.62))
+
+
+## The same for a figure standing on the scene (the main menu's hero, running or still): his foot in this control's px.
+func figure_axis(foot: Vector2) -> Vector2:
+	if stage == null:
+		return Vector2(0.15, 0.3)
+	return shadow_axis((foot - stage.position) / _scale)
+
+
+## The shadow's look for a figure's own shadow shader (the manifest's colour and strength), {} before the plate is built.
+func shadow_style() -> Dictionary:
+	return _m.get("shadow", {})
 
 
 func _sprite(tex: Texture2D, base: Vector2, sc: float, flip: bool) -> Sprite2D:
@@ -429,7 +484,7 @@ func _build_tumble() -> void:
 	tumble.name = "Tumbleweed"
 	tumble.visible = false
 	stage.add_child(tumble)
-	_weed_shadow = _cast(Vector2.ZERO, 100.0)
+	_weed_shadow = _cast(Vector2.ZERO, 100.0 * WEED_SHADOW)
 	_weed_shadow.name = "Shadow"
 	_weed_shadow.get_parent().remove_child(_weed_shadow)
 	tumble.add_child(_weed_shadow)
@@ -565,7 +620,7 @@ func _start_roll() -> void:
 	var tex_w := float(_weed.texture.get_width()) if _weed.texture else 256.0
 	_weed.scale = Vector2.ONE * (_size / maxf(tex_w * 0.92, 1.0))
 	# its shadow falls the way every other falls (at the lane's middle: the roll's own x would swing it past the sun)
-	_lay_cast(_weed_shadow, Vector2(540.0, _ground), _size)
+	_lay_cast(_weed_shadow, Vector2(540.0, _ground), _size * WEED_SHADOW)
 	_weed_shadow.position -= Vector2(540.0, _ground)
 	_rolling = true
 	_passes += 1

@@ -12,13 +12,11 @@ extends GdUnitTestSuite
 const Stage := preload("res://ui/TitleStage.gd")
 
 var _keep_debug := false
-var _keep_style := ""
 
 
 func before_test() -> void:
 	Save.data = Save._default()
 	_keep_debug = Settings.debug_mode
-	_keep_style = Settings.menu_style
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 
 
@@ -28,7 +26,6 @@ func after_test() -> void:
 	Save.data = Save._default()
 	Save._dirty = false
 	Settings.debug_mode = _keep_debug
-	Settings.menu_style = _keep_style
 	Stage.forget()
 	Run.arena = false
 	Run.debug_clear_items()
@@ -271,24 +268,6 @@ func test_bucks_momentum_comes_and_goes_with_him() -> void:
 
 # ---------------------------------------------------------------- the title
 
-func test_the_live_title_draws_the_kept_look() -> void:
-	Settings.menu_style = "live"
-	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
-	add_child(t)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var stage = t._stage
-	var c := _two_looks()
-	Save.set_hero_look("solenne", "B")
-	stage.show_hero(c, false, 0)
-	await get_tree().process_frame
-	var mat := stage.hero_sprite().material_override as ShaderMaterial
-	assert_object(mat.get_shader_parameter("sprite")).is_same(Registry.character("drifter").sprite)
-	Save.set_hero_look("solenne", "")
-	stage.show_hero(c, false, 0)
-	await get_tree().process_frame
-	mat = stage.hero_sprite().material_override as ShaderMaterial
-	assert_object(mat.get_shader_parameter("sprite")).is_same(Registry.character("solenne").sprite)
 
 
 # ---------------------------------------------------------------- the HERO tab

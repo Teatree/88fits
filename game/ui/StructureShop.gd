@@ -9,7 +9,7 @@
 ## (price_of). One card a visit and one shop a run, as before. A stack that would run over LEAVE (the cards are taller
 ## than the mock's since pass 58's change rows, and a cutout pushes everything down) fits itself the way the level-up
 ## screen's does (_fit): the cards' gap squeezes, the plates step down to TRAY_PX_MIN, and the list shrinks last.
-## Pass 123 (lane RUN_B), under Royale (W.royale(); Wanted is drawn exactly as before): the mocks 8_Shop_24_gold and
+## Pass 123 (lane RUN_B), under Royale: the mocks 8_Shop_24_gold and
 ## 8_Shop_300_gold with Garry's notes ("Shop as the mock: green price · BUY, an unaffordable offer keeps its card with a
 ## grey button and the shortfall in red, YOU HOLD as framed icons"; "Header Text white, Leave button is an action that
 ## will make the shop not accessible anymore so let's make it red. Put gold amount at the top right where it always is"):
@@ -43,7 +43,6 @@ const PRICE_MIN := 40
 const TRAY_PX := 76.0
 const TRAY_PX_SMALL := 60.0
 const TRAY_PX_MIN := 48.0
-const TRAY_SMALL_FROM := 13
 const TRAY_GAP := 10
 ## The column's gap under the header, between the tray and the cards, and between the cards and LEAVE.
 const BODY_GAP := 24.0
@@ -87,27 +86,18 @@ var _plate_px := TRAY_PX
 
 
 func _ready() -> void:
-	var royale := W.royale()
 	build_dim(W.DIM)
 	build_header("One visit only", "THE SHOP", "", 120)
 	header.line.visible = false
-	if royale:
-		# pass 123: the wallet at the top right, where the purse always is (the menus' wallet, the HUD's corner)
-		_gold_plate = WMenuHeader.gold_plate(0, ROYALE_WALLET_PX, ROYALE_WALLET_COIN)
-		_gold_plate.anchor_left = 1.0
-		_gold_plate.anchor_right = 1.0
-		_gold_plate.offset_right = -float(R.HEADER_POS.x)
-		_gold_plate.offset_left = -float(R.HEADER_POS.x)
-		_gold_plate.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		_gold_plate.offset_top = float(R.HEADER_RIGHT_Y) + W.safe_top()
-		add_child(_gold_plate)
-	else:
-		var gc := CenterContainer.new()
-		gc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		gc.custom_minimum_size.y = 16 + 88
-		_gold_plate = WMenuHeader.gold_plate(0, 56, 50.0, 6, 5)
-		gc.add_child(_gold_plate)
-		header.add_child(gc)
+	# pass 123: the wallet at the top right, where the purse always is (the menus' wallet, the HUD's corner)
+	_gold_plate = WMenuHeader.gold_plate(0, ROYALE_WALLET_PX, ROYALE_WALLET_COIN)
+	_gold_plate.anchor_left = 1.0
+	_gold_plate.anchor_right = 1.0
+	_gold_plate.offset_right = -float(R.HEADER_POS.x)
+	_gold_plate.offset_left = -float(R.HEADER_POS.x)
+	_gold_plate.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_gold_plate.offset_top = float(R.HEADER_RIGHT_Y) + W.safe_top()
+	add_child(_gold_plate)
 	# the body (pass 60): one column under the header, its top set on open from the header's real foot; a plain Control,
 	# not a box, so the cards' list may shrink (a container resets a child's scale on every sort)
 	_body = Control.new()
@@ -120,30 +110,24 @@ func _ready() -> void:
 	add_child(_body)
 	# YOU HOLD: the label on its own row, left, then the plates in a flow that wraps (pass 123, Royale: the label beside
 	# the frames, the mock's, the flow wrapping under the first frame)
-	if royale:
-		_tray = HBoxContainer.new()
-		_tray.add_theme_constant_override("separation", int(ROYALE_TRAY_LABEL_GAP))
-	else:
-		_tray = VBoxContainer.new()
-		_tray.add_theme_constant_override("separation", TRAY_GAP)
+	_tray = HBoxContainer.new()
+	_tray.add_theme_constant_override("separation", int(ROYALE_TRAY_LABEL_GAP))
 	_tray.name = "Tray"
 	_tray.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_body.add_child(_tray)
 	_hold_label = W.label("You hold", 20, W.AGED)
 	_hold_label.name = "HoldLabel"
-	if royale:
-		# centred on the first row of frames
-		_hold_label.valign = VERTICAL_ALIGNMENT_CENTER
-		_hold_label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	# centred on the first row of frames
+	_hold_label.valign = VERTICAL_ALIGNMENT_CENTER
+	_hold_label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_tray.add_child(_hold_label)
 	_hold_flow = HFlowContainer.new()
 	_hold_flow.name = "HoldFlow"
 	_hold_flow.add_theme_constant_override("h_separation", TRAY_GAP)
-	_hold_flow.add_theme_constant_override("v_separation", TRAY_GAP + (int(ROYALE_TRAY_BASE) if royale else 0))
+	_hold_flow.add_theme_constant_override("v_separation", TRAY_GAP + (int(ROYALE_TRAY_BASE)))
 	_hold_flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if royale:
-		_hold_flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_hold_flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tray.add_child(_hold_flow)
 	_list = VBoxContainer.new()
 	_list.name = "Cards"
@@ -153,12 +137,9 @@ func _ready() -> void:
 	_body.add_child(_list)
 	var leave_btn: WButton
 	var half := 215.0
-	if royale:
-		# pass 123 (Garry): leaving spends the stall for good, so LEAVE is the kit's red (danger), the mock's width
-		leave_btn = WButton.make(["LEAVE"], ROYALE_LEAVE_PX, WButton.DANGER, R.BUTTON_EDGE, R.BUTTON_BASE, 26.0, 0.0, 0.0, WButton.RED)
-		half = ROYALE_LEAVE_W * 0.5
-	else:
-		leave_btn = WButton.make(["LEAVE"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
+	# pass 123 (Garry): leaving spends the stall for good, so LEAVE is the kit's red (danger), the mock's width
+	leave_btn = WButton.make(["LEAVE"], ROYALE_LEAVE_PX, WButton.DANGER, R.BUTTON_EDGE, R.BUTTON_BASE, 26.0, 0.0, 0.0, WButton.RED)
+	half = ROYALE_LEAVE_W * 0.5
 	leave_btn.name = "Leave"
 	leave_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	leave_btn.offset_left = -half
@@ -205,14 +186,12 @@ static func held_items() -> Array:
 ## The tray's plate size for `count` items: the handoff's 76 px, 60 px for a long build (pass 123, Royale: the mock's
 ## 56 px frames whatever the count).
 static func tray_px(count: int) -> float:
-	if W.royale():
-		return ROYALE_TRAY_PX
-	return TRAY_PX_SMALL if count >= TRAY_SMALL_FROM else TRAY_PX
+	return ROYALE_TRAY_PX
 
 
 ## The cards' gap as designed (pass 123: ROYALE_CARD_GAP under Royale, the mock's).
 static func _card_gap() -> float:
-	return ROYALE_CARD_GAP if W.royale() else CARD_GAP
+	return ROYALE_CARD_GAP
 
 
 ## How many rows `count` plates of `px` take in a flow `width` wide with TRAY_GAP between them.
@@ -391,13 +370,7 @@ func _make_card(card: Dictionary) -> WCard:
 	var def: ContentDef = card["def"]
 	var price := price_of(card)
 	var short := maxi(price - Run.run_gold, 0)
-	if W.royale():
-		return _make_card_royale(card, def, price, short)
-	var o := WItem.options(card, {"plate_px": 160.0, "name_size": 54, "effect_size": 28, "pad": [30, 32, 30, 32],
-		"seal_px": 92.0, "icon_frac": 0.72, "stars": [], "price": price, "short": short, "locked": short > 0})
-	var c := WCard.make(def, o)
-	c.pressed.connect(func(): _buy(card, price, c))
-	return c
+	return _make_card_royale(card, def, price, short)
 
 
 ## Pass 123 (lane RUN_B): the mock's offer under Royale. The slate card at the mock's sizes, the tag straight after the

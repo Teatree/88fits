@@ -62,7 +62,6 @@ func _start() -> void:
 	# a fresh stage 1: PLAY starts the run (with stage 1 beaten it opens the Stages menu)
 	_save.data["stages_beaten"] = {}
 	_save.data["last_map"] = "red_canyon"
-	root.get_node("Settings").menu_style = _style
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	if _tag.is_empty():
 		var s := root.get_visible_rect().size

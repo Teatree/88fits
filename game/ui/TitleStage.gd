@@ -191,11 +191,6 @@ static func forget() -> void:
 	_kept_key = ""
 
 
-## Whether a world is waiting for the next title (tests).
-static func has_kept() -> bool:
-	return _kept != null and is_instance_valid(_kept)
-
-
 func _key() -> String:
 	return "%s:%d" % [map_id, layout_seed]
 
@@ -211,15 +206,6 @@ func _rescale() -> void:
 	var canvas := get_viewport_rect().size
 	var ratio := float(root.size.y) / canvas.y if canvas.y > 0.0 else 1.0
 	viewport.scaling_3d_scale = clampf(root.scaling_3d_scale * ratio, 0.25, 2.0)
-
-
-## Shows another map (the title's map line steps through them when there are several).
-func set_map(id: String) -> void:
-	if id == map_id and map != null:
-		return
-	map_id = id
-	if is_inside_tree():
-		_build_map()
 
 
 ## The map, rolled from `layout_seed` (Run.map_seed for the length of its _ready, then the run's own value again).

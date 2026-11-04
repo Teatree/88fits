@@ -30,9 +30,6 @@ var _out := "user://wanted_shots"
 var _only: Array = []
 var _white := false
 var _inset := -1
-## theme=wanted|royale (pass 122, lane UIKIT_A): the UI theme every screen is built in (Settings.ui_theme, set before
-## the first one); "" leaves the save's.
-var _theme := ""
 ## slot_rarity=1 (pass 122, lane UIHUD): the Royale HUD's slots in their level / rarity colours (Settings.hud_slot_rarity;
 ## off, the default, is the plain common frame on every slot).
 var _slot_rarity := false
@@ -52,8 +49,6 @@ func _initialize() -> void:
 			_white = true
 		elif a.begins_with("inset="):
 			_inset = int(a.substr(6))
-		elif a.begins_with("theme="):
-			_theme = a.substr(6)
 		elif a == "slot_rarity=1":
 			_slot_rarity = true
 	DirAccess.make_dir_recursive_absolute(_out)
@@ -87,10 +82,6 @@ func _touch(at: Vector2, pressed: bool) -> void:
 func _main() -> void:
 	if _inset >= 0:
 		root.get_node("Settings").top_inset = _inset
-	if _theme != "":
-		# pass 122: before any screen is built; the kit reads it fresh each frame
-		root.get_node("Settings").set("ui_theme", _theme)
-		print("wanted_shots: theme ", root.get_node("Settings").get("ui_theme"))
 	if _slot_rarity:
 		# pass 122 (lane UIHUD): the Royale slots in their colours (in memory only; the save goes back at the end)
 		root.get_node("Settings").set("hud_slot_rarity", true)
@@ -100,7 +91,7 @@ func _main() -> void:
 	_save = root.get_node("Save")
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
-	var in_run := ["backdrop", "backdrop_arena", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results", "hud_stage", "hud_kills"]
+	var in_run := ["hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results", "hud_stage", "hud_kills"]
 	# pass 123 (lane RUN_B): the shop's held card, the Totem gifts, the boss's own chest (BossChestScreen)
 	in_run.append_array(["shop_held", "totem", "bosschest"])
 	# pass 123 (lane RUN_C): the War Drum's moment and the Grindstone's show, frozen on their beats
@@ -123,58 +114,6 @@ func _main() -> void:
 		f.store_string(kept)
 		f.close()
 	quit()
-
-
-## The still of the desert behind every menu (art/ui/wanted/menu_backdrop.jpg): the arena with no HUD and no hero.
-## Pass 83 (lane SCENE): the still is the live title's composed scene now, written by tools/menu_backdrop.gd; this
-## writes the old arena still only when asked by name (only=backdrop_arena), so a full run no longer overwrites it.
-func _backdrop() -> void:
-	if not _only.has("backdrop_arena"):
-		print("wanted_shots: backdrop is tools/menu_backdrop.gd since pass 83 (only=backdrop_arena for the old still)")
-		return
-	var was_white := false
-	for c in g.get_children():
-		if c is CanvasLayer and (c as CanvasLayer).layer == g.ui.layer - 1:
-			c.visible = false
-			was_white = true
-	g.ui.visible = false
-	# no weapons (their familiars float by the hero), and the camera over the thickest stand of cacti and shrubs
-	_run.debug_clear_items()
-	_run.build_changed.emit()
-	var best := Vector3.ZERO
-	var best_n := -1.0
-	var placed: Array = g.map.props.placed if g.map and g.map.get("props") else []
-	for a in placed:
-		var pa: Vector3 = a["pos"]
-		if g.map.has_method("in_water") and g.map.in_water(pa):
-			continue
-		var n := 0.0
-		for b in placed:
-			var pb: Vector3 = b["pos"]
-			if Vector2(pa.x - pb.x, pa.z - pb.z).length() < 8.0:
-				n += 2.0 if str(b["id"]).begins_with("saguaro") or str(b["id"]) in ["ocotillo", "yucca", "prickly_pear"] else 1.0
-		if n > best_n:
-			best_n = n
-			best = pa
-	if best_n > 0.0:
-		g.player.global_position = best + Vector3(0.0, 0.0, 2.5)
-		g.player.velocity = Vector3.ZERO
-		g.camera.snap_to(g.player)
-	g.player.visible = false
-	await _wait(1.2)
-	await process_frame
-	var img := root.get_viewport().get_texture().get_image()
-	img.convert(Image.FORMAT_RGB8)
-	var path := ProjectSettings.globalize_path("res://art/ui/wanted/menu_backdrop.jpg")
-	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
-	img.save_jpg(path, 0.85)
-	print("wanted_shots: backdrop -> ", path)
-	g.ui.visible = true
-	g.player.visible = true
-	if was_white:
-		for c in g.get_children():
-			if c is CanvasLayer and (c as CanvasLayer).layer == g.ui.layer - 1:
-				c.visible = true
 
 
 ## 19, 19b (pass 60): the play-data card over the title with its plainer words, and the survey card on its text question
@@ -229,9 +168,6 @@ func _scene(path: String) -> void:
 			if c is ColorRect and (c as ColorRect).color == Color("f3e6c8"):
 				(c as ColorRect).color = Color.WHITE
 				break
-		for c in current_scene.get_children():
-			if c is TextureRect and str((c as TextureRect).texture.resource_path).ends_with("menu_backdrop.jpg"):
-				c.visible = false
 
 
 ## 18 (pass 87): the Stages menu for the Drifter on Red Canyon: stage 1 beaten (its stamp), stage 2 open, stage 3
@@ -300,8 +236,12 @@ func _menus() -> void:
 		await _scene("res://ui/TitleScreen.tscn")
 		await _shot("01-title")
 		# Astro comes after the Drifter since pass 61 (Garry's order: Drifter, Astro, Calavera, Ironwood, Solenne)
+		await _wait(0.8)
+		await _shot("01b-title-rest")
 		current_scene._step(1)
-		await _wait(0.5)
+		await _wait(0.28)
+		await _shot("02r-title-swap")
+		await _wait(1.0)
 		await _shot("02-title-astro")
 		# pass 43: Calavera, the third hero, with his favourite and his own weapon on the plaque
 		var tc = current_scene
@@ -309,14 +249,14 @@ func _menus() -> void:
 			if (tc._heroes[i] as Resource).get("id") == "calavera":
 				tc._index = i
 				tc._show_hero(1)
-		await _wait(0.5)
+		await _wait(1.0)
 		await _shot("02b-title-calavera")
 		# pass 47: Ironwood, his favourite a line (Brawn) on the plaque and no weapon of his own
 		for i in (tc._heroes as Array).size():
 			if (tc._heroes[i] as Resource).get("id") == "ironwood":
 				tc._index = i
 				tc._show_hero(1)
-		await _wait(0.5)
+		await _wait(1.0)
 		await _shot("02c-title-ironwood")
 		# the developer's preview: the hidden heroes ride the carousel, locked (Dad has an unlock quest, with a bar)
 		root.get_node("Settings").preview_locked_heroes = true
@@ -483,8 +423,6 @@ func _in_run() -> void:
 	# the arena opens with its own banner: let it pass
 	g.set_paused(false)
 	await _wait(3.2)
-	if _want("backdrop") or _want("backdrop_arena"):
-		await _backdrop()
 	if _want("hud"):
 		await _hud_basic()
 	if _want("hud_boss"):
@@ -1264,7 +1202,6 @@ func tab_bar() -> String:
 	var hub = current_scene
 	var W_: GDScript = load("res://ui/wanted/W.gd")
 	var R_: GDScript = load("res://ui/wanted/R.gd")
-	var royale: bool = W_.royale()
 	hub.set_title("Upgrade")
 	var sheet: PanelContainer = hub.solid_sheet(Vector2(24, 24))
 	var v := VBoxContainer.new()
@@ -1374,7 +1311,7 @@ func tab_bar() -> String:
 		await _shot("k2e-shell-choice")
 		ch.cancel()
 		await _wait(0.4)
-	print("wanted_shots: kit2 theme ", "royale" if royale else "wanted", " tab bar ", hub.tab_bar_node != null, " R ", R_ != null)
+	print("wanted_shots: kit2 theme ", "royale", " tab bar ", hub.tab_bar_node != null, " R ", R_ != null)
 
 
 ## 30 / 30b (pass 123, lane RUN_C): the War Drum's moment frozen on its beats (its clock stepped by hand at 60 fps): the
@@ -1497,9 +1434,8 @@ func _heroes_shots() -> void:
 		var v = _save.data.get(k)
 		keep[k] = v.duplicate(true) if (v is Array or v is Dictionary) else v
 	var W_: GDScript = load("res://ui/wanted/W.gd")
-	var royale: bool = W_.royale()
 	var path := "res://ui/HeroesScreen.tscn"
-	var on_screen: bool = royale and ResourceLoader.exists(path)
+	var on_screen: bool = ResourceLoader.exists(path)
 	_save.data["gold"] = 104711
 	_save.data["last_character"] = "drifter"
 	_save.data["hero_look"] = {}

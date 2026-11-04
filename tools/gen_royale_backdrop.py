@@ -56,7 +56,19 @@ SUN_R = 118.0
 SKY = ["120c3a", "2d1a5a", "7a2a5a", "d8513f", "f7a33a", "ffd27a"]
 SEED = 12301
 # pass 123, Garry: "Make the environment art a bit Sparser": the paintings of the preset the backdrop keeps
-PROPS_KEEP = ("joshua_tree_b", "saguaro_big", "ocotillo_b", "dead_shrub_b", "rock_small")
+# Pass 124 (Garry: "look at the bg critically ... see if when it comes to rules of composition there is room for improvement"). The
+# capture's five props stood in one flat row at one depth, a rock and a bush level with the hero like dumb-bells, the two tall plants
+# the same size either side. Laid out by hand now, in three depths: a dark near saguaro cut by the right edge against the sun on the
+# left (one big shape balancing the bright one, a line that leads the eye down to the hero); a smaller Joshua tree and a far hazy
+# ocotillo to the left that step back into the distance; a near bush in the bottom-left corner closing the frame. The middle stays
+# clear for the hero. (look, base x, base y on the 1080 x 2400 plate, picture height px, wind, how dark, flip.)
+PROPS_LAYOUT = [
+    ("ocotillo_b", 322.0, 1136.0, 120.0, 0.03, 0.96, False),
+    ("joshua_tree_b", 118.0, 1236.0, 300.0, 0.02, 0.9, False),
+    ("rock_small", 262.0, 1352.0, 66.0, 0.0, 0.92, False),
+    ("saguaro_big", 988.0, 1500.0, 660.0, 0.012, 0.62, False),
+    ("dead_shrub_b", 40.0, 1668.0, 330.0, 0.03, 0.5, False),
+]
 
 PROMPTS = {
     "sunset": (
@@ -343,6 +355,19 @@ def keep_sources():
             Image.open(p).convert("RGB").save(os.path.join(ART_SRC, name[:-4] + ".jpg"), quality=88)
 
 
+def foot_of(look):
+    """Where a picture's foot really is: its empty rows under the foot (a share of the height), the foot's middle from the picture's
+    middle and its width (shares of the width), from the lowest eighth of what is painted."""
+    im = Image.open(os.path.join(REPO, "game", "art", "sprites", "props", look + ".png")).convert("RGBA")
+    a = np.array(im)[:, :, 3] > 128
+    ys = np.where(a.any(axis=1))[0]
+    y0, y1 = int(ys.min()), int(ys.max())
+    band = a[max(y1 - (y1 - y0) // 8, 0): y1 + 1]
+    xs = np.where(band.any(axis=0))[0]
+    return dict(foot_up=round((im.height - 1 - y1) / im.height, 4), foot_x=round((float(xs.mean()) - im.width * 0.5) / im.width, 4),
+                foot_w=round((int(xs.max()) - int(xs.min()) + 1) / im.width, 4))
+
+
 def manifest():
     src = REF_DIR if os.path.exists(os.path.join(REF_DIR, "ref_props.json")) else ART_SRC
     info = json.load(open(os.path.join(src, "ref_props.json"), encoding="utf-8"))
@@ -361,16 +386,9 @@ def manifest():
     os.makedirs(OUT_DIR, exist_ok=True)
     sky_mask_out(os.path.join(OUT_DIR, "backdrop_sky.png"))
     props = []
-    for p in info["props"]:
-        look = p["look"]
-        if look not in PROPS_KEEP:
-            continue
-        base = p["base"]
-        hpx = base[1] - p["top"][1]
-        props.append({
-            "id": p["id"], "look": look, "texture": "res://art/sprites/props/%s.png" % look,
-            "base": [round(base[0], 1), round(base[1], 1)], "height_px": round(hpx, 1), "flip": p["flip"],
-            "sway": p["sway"], "shadow_a": float(p.get("shadow", {}).get("a", 0.5)), "depth_m": round(p["depth"], 2)})
+    for look, bx, by, hpx, sway, dark, flip in PROPS_LAYOUT:
+        props.append(dict(id=look, look=look, texture="res://art/sprites/props/%s.png" % look, base=[bx, by], height_px=hpx, flip=flip,
+                          sway=sway, dark=dark, shadow_a=0.5, **foot_of(look)))
     feet = info["feet_px"]
     out = {
         "_doc": "Pass 123 (lane BACKDROP): the Royale menu backdrop's layers (game/ui/wanted/RoyaleBackdrop.gd), written by "
@@ -387,7 +405,8 @@ def manifest():
         "tumble_lane": [1290.0, 1335.0],
         "preset": info["preset"],
         "props": props,
-        "grade": {}, "shadow": {"color": "#1a0c24", "alpha": 0.5, "length": 0.62, "width": 0.34, "flat": 0.42},
+        "grade": {}, "shadow": {"color": "#1a0c24", "alpha": 0.62, "length": 0.62, "width": 0.34, "flat": 0.42, "contact": 0.7,
+                                "blur_near": 0.008, "blur_far": 0.055},
         "sun": {}, "motes": {"rect": [0, 760, 1080, 760]},
         "source": {"capture": "game/tools/_p123_BACKDROP_ref.gd horizon=%s feet=%s hero_px=%s" % (
             info["horizon"], info["feet_y"], info["hero_px"]), "picks": picks},
@@ -395,7 +414,7 @@ def manifest():
     if os.path.exists(MANIFEST):
         old = json.load(open(MANIFEST, encoding="utf-8"))
         # hand-tuned numbers survive a rewrite
-        for k in ("grade", "shadow", "sun", "motes", "tumble_lane", "disc_center"):
+        for k in ("grade", "sun", "motes", "tumble_lane", "disc_center"):
             if k in old:
                 out[k] = old[k]
     json.dump(out, open(MANIFEST, "w", encoding="utf-8", newline="\n"), indent=1)

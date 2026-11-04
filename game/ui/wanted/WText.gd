@@ -18,7 +18,7 @@ var runs: Array = []:
 	set(v):
 		# pass 122 (lane UIKIT_A): under Royale a run's Wanted ink colour reads as the kit's (R.text_colour), as `color`
 		# does through W.text; the caller's array is left as it is
-		runs = _themed_runs(v) if W.royale() else v
+		runs = _themed_runs(v)
 		_dirty = true
 		update_minimum_size()
 		queue_redraw()

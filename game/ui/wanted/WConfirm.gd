@@ -121,43 +121,31 @@ static func dismiss(host: Node) -> bool:
 ## The card's box: under Royale the slate panel (a 4 px navy edge, the 8 px navy base, R.MODAL_PAD inside); under Wanted
 ## the paper card (6 px ink, a 12 px shadow, 50 / 44 inside).
 static func card_box() -> HardBox:
-	if W.royale():
-		var e := R.PANEL_EDGE
-		return W.box(W.PAPER, e, R.PANEL_BASE).pad(R.MODAL_PAD.x + e, R.MODAL_PAD.y + e, R.MODAL_PAD.x + e, R.MODAL_PAD.y + e)
-	return W.box(W.PAPER, 6, 12).pad(50, 44, 50, 44)
+	var e := R.PANEL_EDGE
+	return W.box(W.PAPER, e, R.PANEL_BASE).pad(R.MODAL_PAD.x + e, R.MODAL_PAD.y + e, R.MODAL_PAD.x + e, R.MODAL_PAD.y + e)
 
 
 ## The star line ("★ HOLD ON ★"): gold Ultra 30 tracked .3em under Royale, ink-soft Bitter 24 under Wanted.
 static func make_star(t: String) -> WStarLine:
-	if W.royale():
-		return WStarLine.make(t, R.MODAL_STAR_PX, R.GOLD_TEXT, R.MODAL_STAR_EM)
-	return WStarLine.make(t, 24, W.INK_SOFT)
+	return WStarLine.make(t, R.MODAL_STAR_PX, R.GOLD_TEXT, R.MODAL_STAR_EM)
 
 
 ## The title: cream Ultra (R.MODAL_TITLE_PX) with the navy edge under Royale (Garry: "White header"; Rubik 700 under 28
 ## px), wrapped; the ink slab 64 under Wanted. `px` 0 = the theme's size.
 static func make_title(t: String, px: int = 0, align: int = HORIZONTAL_ALIGNMENT_CENTER) -> WText:
-	if W.royale():
-		var tpx := px if px > 0 else R.MODAL_TITLE_PX
-		var w := W.text(t, W.slab_for(tpx), tpx, R.CREAM, align, float(tpx), true)
-		w.name = "Title"
-		w.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		return w
-	var wt := W.text(t, W.slab(), px if px > 0 else 64, W.INK, align, float(px if px > 0 else 64), true)
-	wt.name = "Title"
-	wt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	return wt
+	var tpx := px if px > 0 else R.MODAL_TITLE_PX
+	var w := W.text(t, W.slab_for(tpx), tpx, R.CREAM, align, float(tpx), true)
+	w.name = "Title"
+	w.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return w
 
 
 ## The body line: white Rubik 500 (R.MODAL_BODY_PX) at R.MODAL_BODY_LH under Royale, ink-soft Bitter 30 under Wanted;
 ## wrapped, numbers bold.
 static func make_body(t: String, px: int = 0, align: int = HORIZONTAL_ALIGNMENT_CENTER) -> WText:
 	var b: WText
-	if W.royale():
-		var bpx := px if px > 0 else R.MODAL_BODY_PX
-		b = W.serif_text(t, bpx, R.WHITE, 400, false, align, roundf(bpx * R.MODAL_BODY_LH), true)
-	else:
-		b = W.serif_text(t, px if px > 0 else 30, W.INK_SOFT, 400, false, align, 39.0, true)
+	var bpx := px if px > 0 else R.MODAL_BODY_PX
+	b = W.serif_text(t, bpx, R.WHITE, 400, false, align, roundf(bpx * R.MODAL_BODY_LH), true)
 	b.name = "Body"
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return b
@@ -173,12 +161,10 @@ static func make_button(parts: Array, role: String, h: float = 0.0, px: int = 0)
 			variant = WButton.UPGRADE
 		WButton.RED:
 			variant = WButton.DANGER
-	if W.royale():
-		var bh := h if h > 0.0 else float(R.MODAL_BUTTON_H)
-		var bpx := px if px > 0 else R.MODAL_BUTTON_PX
-		var e := R.BUTTON_EDGE
-		return WButton.make(parts, bpx, variant, e, R.BUTTON_BASE, maxf((bh - 2.0 * e - bpx) * 0.5, 0.0), 0.0, float(bpx), role)
-	return WButton.make(parts, px if px > 0 else 34, variant, 5, 8, 26.0, 0.0, 0.0, role)
+	var bh := h if h > 0.0 else float(R.MODAL_BUTTON_H)
+	var bpx := px if px > 0 else R.MODAL_BUTTON_PX
+	var e := R.BUTTON_EDGE
+	return WButton.make(parts, bpx, variant, e, R.BUTTON_BASE, maxf((bh - 2.0 * e - bpx) * 0.5, 0.0), 0.0, float(bpx), role)
 
 
 func _init() -> void:
@@ -207,77 +193,21 @@ func _on_dim() -> void:
 
 
 func _build(title: String, body: String, confirm_label: String, cancel_label: String, kind: String = "danger") -> void:
-	var royale := W.royale()
-	if royale:
-		# pass 123 (lane KIT2): the mock's shell; the deed's role by kind (buy green, act gold, the rest red)
-		var role := WButton.RED
-		match kind:
-			"buy":
-				role = WButton.GREEN
-			"act":
-				role = WButton.GOLD
-		_build_shell({"star": "Hold on", "title": title, "body": body, "min_h": R.MODAL_MIN_H,
-			"buttons": [{"id": "cancel", "text": cancel_label, "role": WButton.SLATE},
-				{"id": "confirm", "text": confirm_label, "role": role}]})
-		return
-	_make_dim()
-	card = PanelContainer.new()
-	card.name = "Card"
-	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(50, 44, 50, 44))
-	# anchored across the screen like the talent sheet (never in a Container, which would reset the tweened offset):
-	# the height is its content's, the top is set once it has laid out
-	card.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	card.offset_left = WIDTH_INSET
-	card.offset_right = -WIDTH_INSET
-	card.offset_top = 700
-	add_child(card)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 24)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(v)
-	# the star line: ink-soft on paper; gold on the Royale slate (pass 122)
-	v.add_child(WStarLine.make("Hold on", 24, R.GOLD_TEXT if royale else W.INK_SOFT))
-	var t := W.text(title.to_upper(), W.slab(), 64, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 64.0, true)
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(t)
-	var b := W.serif_text(body, 30, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 39.0, true)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(b)
-	var rule := ColorRect.new()
-	rule.color = Color(1, 1, 1, 0.12) if royale else W.INK
-	rule.custom_minimum_size.y = 2 if royale else 4
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(rule)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(row)
-	cancel_btn = WButton.make([cancel_label.to_upper()], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
-	cancel_btn.name = "Cancel"
-	cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cancel_btn.pressed.connect(cancel)
-	row.add_child(cancel_btn)
-	# the deed's button by kind (pass 122): a buy is brass (Royale green), the one thing that happens now brass (gold),
-	# anything that cannot be undone rock (red)
-	var variant := WButton.DANGER
-	var role := ""
+	# pass 123 (lane KIT2): the mock's shell; the deed's role by kind (buy green, act gold, the rest red)
+	var role := WButton.RED
 	match kind:
 		"buy":
-			variant = WButton.PRIMARY
 			role = WButton.GREEN
 		"act":
-			variant = WButton.PRIMARY
-	confirm_btn = WButton.make([confirm_label.to_upper()], 34, variant, 5, 8, 26.0, 0.0, 0.0, role)
-	confirm_btn.name = "Confirm"
-	confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	confirm_btn.pressed.connect(confirm)
-	row.add_child(confirm_btn)
+			role = WButton.GOLD
+	_build_shell({"star": "Hold on", "title": title, "body": body, "min_h": R.MODAL_MIN_H,
+		"buttons": [{"id": "cancel", "text": cancel_label, "role": WButton.SLATE},
+			{"id": "confirm", "text": confirm_label, "role": role}]})
+	return
 
 
 ## The shell's card (pass 123): see shell(). WConfirm.open under Royale lays its card out here too.
 func _build_shell(o: Dictionary) -> void:
-	var royale := W.royale()
 	_cancel_id = str(o.get("cancel_id", "cancel"))
 	_dim_cancels = bool(o.get("dim_cancels", true))
 	_keep_open = bool(o.get("keep_open", false))
@@ -289,7 +219,7 @@ func _build_shell(o: Dictionary) -> void:
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	card.add_theme_stylebox_override("panel", card_box())
 	card.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	var inset := (1080.0 - float(o.get("width", R.MODAL_W))) * 0.5 if royale else WIDTH_INSET
+	var inset := (1080.0 - float(o.get("width", R.MODAL_W))) * 0.5
 	card.offset_left = inset
 	card.offset_right = -inset
 	card.offset_top = 700
@@ -297,7 +227,7 @@ func _build_shell(o: Dictionary) -> void:
 	add_child(card)
 	var v := VBoxContainer.new()
 	v.name = "Stack"
-	v.add_theme_constant_override("separation", R.MODAL_GAP if royale else 24)
+	v.add_theme_constant_override("separation", R.MODAL_GAP)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(v)
 	var star := str(o.get("star", ""))
@@ -324,17 +254,14 @@ func _build_shell(o: Dictionary) -> void:
 	var body := str(o.get("body", ""))
 	if body != "":
 		var bb := make_body(body, int(o.get("body_px", 0)), align)
-		if royale:
-			# the mock's 22 px either side of the line (the confirm's 40, the play data's 20)
-			var m := MarginContainer.new()
-			m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var side := int(o.get("body_margin", 20 if body.length() > 160 else 40))
-			m.add_theme_constant_override("margin_left", side)
-			m.add_theme_constant_override("margin_right", side)
-			m.add_child(bb)
-			v.add_child(m)
-		else:
-			v.add_child(bb)
+		# the mock's 22 px either side of the line (the confirm's 40, the play data's 20)
+		var m := MarginContainer.new()
+		m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var side := int(o.get("body_margin", 20 if body.length() > 160 else 40))
+		m.add_theme_constant_override("margin_left", side)
+		m.add_theme_constant_override("margin_right", side)
+		m.add_child(bb)
+		v.add_child(m)
 	body_box = VBoxContainer.new()
 	body_box.name = "Rows"
 	body_box.add_theme_constant_override("separation", 12)
@@ -346,15 +273,9 @@ func _build_shell(o: Dictionary) -> void:
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap)
-	if not royale:
-		var rule := ColorRect.new()
-		rule.color = W.INK
-		rule.custom_minimum_size.y = 4
-		rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.add_child(rule)
 	buttons_row = HBoxContainer.new()
 	buttons_row.name = "Buttons"
-	buttons_row.add_theme_constant_override("separation", R.MODAL_BUTTON_GAP if royale else 24)
+	buttons_row.add_theme_constant_override("separation", R.MODAL_BUTTON_GAP)
 	buttons_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(buttons_row)
 	var bh := float(o.get("button_h", 0.0))
@@ -378,7 +299,7 @@ func _build_shell(o: Dictionary) -> void:
 		var lb := W.box(Color(0, 0, 0, 0), 0, 0).pad(20, 12, 20, 12)
 		link_btn.box = lb
 		link_btn.box_down = lb
-		var lt := W.serif_text(link, R.MODAL_LINK_PX if royale else 24, R.SECONDARY if royale else W.INK_SOFT, 400, false,
+		var lt := W.serif_text(link, R.MODAL_LINK_PX, R.SECONDARY, 400, false,
 			HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
 		lt.underline = true
 		link_btn.add_child(lt)
@@ -450,8 +371,7 @@ func _enter() -> void:
 	var h := maxf(card.size.y, card.get_combined_minimum_size().y)
 	var vh := get_viewport_rect().size.y
 	var at := 0.5
-	if W.royale():
-		at = R.MODAL_TOP_AT_TALL if h > R.MODAL_TALL else R.MODAL_TOP_AT
+	at = R.MODAL_TOP_AT_TALL if h > R.MODAL_TALL else R.MODAL_TOP_AT
 	var y := (vh - h) * at
 	card.offset_top = y + 60.0
 	var tw := create_tween().set_parallel(true)

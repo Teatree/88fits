@@ -55,7 +55,8 @@ def splash_icon():
 
 
 def check():
-    paper = w_color("PAPER")
+    # pass 124: the dark loading screen's colour (ui/Boot.gd's DARK), not the paper any more
+    paper = (11, 16, 32)
     bad = []
     proj = open(os.path.join(GAME, "project.godot"), encoding="utf-8").read()
     m = re.search(r"^boot_splash/bg_color=(.*)$", proj, re.M)

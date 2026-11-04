@@ -26,7 +26,6 @@ func before() -> void:
 func after() -> void:
 	Settings.force_prod(false)
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func before_test() -> void:
@@ -37,19 +36,12 @@ func after_test() -> void:
 	if not _hints_had_banish:
 		(Save.data["hints_seen"] as Array).erase("banish")
 	Settings.force_prod(false)
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 	Run.end()
 
 
 ## A colour's rgb at full alpha: the dim's entry tween moves its alpha, its rgb is set at once.
 func _rgb(c: Color) -> Color:
 	return Color(c.r, c.g, c.b, 1.0)
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _frames(n: int) -> void:
@@ -76,7 +68,6 @@ func _table() -> Array:
 
 
 func _open(royale: bool, title: String = "LEVEL 3!") -> CardScreen:
-	_royale(royale)
 	var cs: CardScreen = auto_free(CardScreen.new())
 	add_child(cs)
 	cs.show_offer(_table(), title, false)
@@ -117,76 +108,13 @@ func _pill(b: WButton) -> WText:
 
 # ---------------------------------------------------------------- 1. the head
 
-func test_the_head_is_cream_under_royale_and_paper_under_wanted() -> void:
-	_start()
-	var w: CardScreen = await _open(false)
-	assert_str(w.header.title.text).is_equal("LEVEL 3")
-	assert_bool(w.header.title.color.is_equal_approx(W.PAPER)).is_true()
-	assert_int(w.header.title.shadow).is_equal(8)
-	assert_int(w.header.title.stroke).is_equal(0)
-	assert_bool(w.header.title.shadow_straight).is_false()
-	assert_str(_base_path(w.header.title.font)).is_equal(W.SLAB_PATH)
-	assert_bool(w.header.star_line.color.is_equal_approx(W.PAPER)).is_true()
-	assert_str(w.header.star_line.text()).is_equal("LEVEL UP")
-	# pass 58's ink shadows under the star line's stars and the dry line
-	assert_object((w.header.star_line.get_child(0) as Control).get_node_or_null("Shadow")).is_not_null()
-	assert_int(w.header.line.shadow).is_equal(2)
-	assert_bool(w.header.line.shadow_straight).is_false()
-	assert_str(w.header.line.text).is_equal(CardScreen.PICK_LINE)
-	assert_bool(w.dim_color.is_equal_approx(W.DIM)).is_true()
-	assert_bool((w.shine().color as Color).is_equal_approx(W.BRASS)).is_true()
-	assert_bool((w.shine().color2 as Color).is_equal_approx(W.PAPER)).is_true()
-	assert_bool(CardScreen.rail_track_colour().is_equal_approx(W.INK)).is_true()
-	assert_bool(CardScreen.star_colour().is_equal_approx(W.PAPER)).is_true()
-	assert_bool(w._built_royale).is_false()
-	w.visible = false
-	var r: CardScreen = await _open(true)
-	assert_bool(r._built_royale).is_true()
-	assert_str(r.header.title.text).is_equal("LEVEL 3")
-	# cream, never gold (Garry), in Ultra with the kit's navy edge: a stroke, a hard drop straight down, no bevel
-	assert_bool(r.header.title.color.is_equal_approx(R.CREAM)).is_true()
-	assert_bool(r.header.title.color.is_equal_approx(R.GOLD_TEXT)).is_false()
-	assert_bool(R.is_display(r.header.title.font)).is_true()
-	assert_int(r.header.title.stroke).is_greater_equal(1)
-	assert_bool(r.header.title.stroke_color.is_equal_approx(R.NAVY)).is_true()
-	assert_int(r.header.title.shadow).is_greater_equal(1)
-	assert_bool(r.header.title.shadow_straight).is_true()
-	assert_bool(r.header.title.shadow_color.is_equal_approx(R.NAVY)).is_true()
-	assert_int(r.header.title.bevel).is_equal(0)
-	assert_bool(r.header.star_line.color.is_equal_approx(R.CREAM)).is_true()
-	assert_str(r.header.star_line.text()).is_equal("LEVEL UP")
-	assert_object((r.header.star_line.get_child(0) as Control).get_node_or_null("Shadow")).is_null()
-	assert_str(r.header.line.text).is_equal(CardScreen.PICK_LINE)
-	assert_int(r.header.line.shadow).is_equal(2)
-	assert_bool(r.header.line.shadow_straight).is_true()
-	assert_bool(r.header.line.shadow_color.is_equal_approx(R.NAVY)).is_true()
-	assert_bool(r.dim_color.is_equal_approx(R.DIM)).is_true()
-	assert_bool((r.shine().color as Color).is_equal_approx(R.role("gold")["bottom"])).is_true()
-	assert_bool((r.shine().color2 as Color).is_equal_approx(R.CREAM)).is_true()
-	assert_bool(CardScreen.rail_track_colour().is_equal_approx(R.NAVY)).is_true()
-	assert_bool(CardScreen.star_colour().is_equal_approx(R.CREAM)).is_true()
-	# banish mode: its kicker cream too, its title in the kit's red; back to cream after
-	Run.banishes_left = 1
-	r._refresh_buttons()
-	r._toggle_banish()
-	await _frames(1)
-	assert_bool(r.banish_mode()).is_true()
-	assert_bool(r.header.star_line.color.is_equal_approx(R.CREAM)).is_true()
-	assert_bool(r.header.title.color.is_equal_approx(R.role("red")["top"])).is_true()
-	assert_bool(r._banish_note.shadow_straight).is_true()
-	assert_bool(r._banish_note.shadow_color.is_equal_approx(R.NAVY)).is_true()
-	r._set_banish(false)
-	assert_bool(r.header.title.color.is_equal_approx(R.CREAM)).is_true()
-	r.visible = false
-	# the buttons' old words are queued for deletion by set_parts: a frame, so the test leaves no orphan behind
-	await _frames(1)
 
 
 # ---------------------------------------------------------------- 2. the press and the pick
 
 func test_a_press_lights_the_card_and_a_release_picks_it() -> void:
 	_start()
-	for royale in [false, true]:
+	for royale in [true]:
 		var cs: CardScreen = await _open(royale)
 		assert_int(cs._cards.size()).is_equal(3)
 		var card: WCard = cs._cards[1]
@@ -229,53 +157,6 @@ func test_a_press_lights_the_card_and_a_release_picks_it() -> void:
 
 # ---------------------------------------------------------------- 3. the counts
 
-func test_the_counts_are_pills_under_royale_and_runs_under_wanted() -> void:
-	_start()
-	var w: CardScreen = await _open(false)
-	assert_array(CardScreen.count_parts("REROLL", 1)).is_equal(["REROLL ", ["×1", W.BRASS_DARK]])
-	assert_str(w._reroll_btn.label_text()).is_equal("REROLL ×1")
-	assert_str(w._skip_btn.label_text()).is_equal("SKIP ×2")
-	assert_str(w._banish_btn.label_text()).is_equal("BANISH ×0")
-	assert_str(w._path_skip.label_text()).is_equal("SKIP ×2")
-	assert_bool(w._banish_btn.locked).is_true()
-	assert_bool(w._reroll_btn.locked).is_false()
-	assert_object(_pill(w._reroll_btn)).is_null()
-	w.visible = false
-	var r: CardScreen = await _open(true)
-	assert_array(CardScreen.count_parts("REROLL", 1)).is_equal(["REROLL", {"count": 1}])
-	assert_str(r._reroll_btn.label_text()).is_equal("REROLL×1")
-	assert_str(r._skip_btn.label_text()).is_equal("SKIP×2")
-	assert_str(r._banish_btn.label_text()).is_equal("BANISH×0")
-	assert_str(r._path_skip.label_text()).is_equal("SKIP×2")
-	assert_bool(r._banish_btn.locked).is_true()
-	assert_bool(r._reroll_btn.locked).is_false()
-	for b: WButton in [r._reroll_btn, r._skip_btn, r._banish_btn, r._path_skip]:
-		assert_str(b.role).is_equal(WButton.SLATE)
-		assert_str(b.variant).is_equal(WButton.SECONDARY)
-		assert_object(_pill(b)).is_not_null()
-	assert_bool(_pill(r._reroll_btn).color.is_equal_approx(R.GOLD_TEXT)).is_true()
-	assert_bool(_pill(r._skip_btn).color.is_equal_approx(R.GOLD_TEXT)).is_true()
-	assert_bool(_pill(r._banish_btn).color.is_equal_approx(R.MUTED)).is_true()
-	# a spent skip: the pill's number goes grey and the button locks (a tap still says why, as today)
-	Run.skips_left = 0
-	r._refresh_buttons()
-	await _frames(1)
-	assert_str(r._skip_btn.label_text()).is_equal("SKIP×0")
-	assert_bool(r._skip_btn.locked).is_true()
-	assert_bool(_pill(r._skip_btn).color.is_equal_approx(R.MUTED)).is_true()
-	r._skip()
-	assert_bool(r.visible).is_true()
-	assert_str(r.header.line.text).is_equal("No skips left this stage.")
-	# banish mode's CANCEL has no count
-	Run.banishes_left = 1
-	r._refresh_buttons()
-	r._toggle_banish()
-	await _frames(1)
-	assert_str(r._banish_btn.label_text()).is_equal("CANCEL")
-	assert_object(_pill(r._banish_btn)).is_null()
-	r._set_banish(false)
-	r.visible = false
-	await _frames(1)
 
 
 # ---------------------------------------------------------------- 4. the layout
@@ -331,8 +212,7 @@ func test_the_mutation_offer_follows_the_theme() -> void:
 	_start()
 	var w: WeaponInstance = Run.weapon_instance("boomstick")
 	assert_object(w).is_not_null()
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var cs: CardScreen = auto_free(CardScreen.new())
 		add_child(cs)
 		cs.show_offer(CardPool.path_offer(w), "MUTATION", false, true)
@@ -373,66 +253,17 @@ func test_the_mutation_offer_follows_the_theme() -> void:
 
 # ---------------------------------------------------------------- 6. a theme flip between offers
 
-func test_a_theme_flip_between_offers_rebuilds_the_head() -> void:
-	_start()
-	var cs: CardScreen = await _open(false)
-	# the head keeps its place among the screen's lasting pieces (right after the rail; the note right after the
-	# mutation offer's skip): the reveal's bursts come and go before the rail, so a plain child index moves with them
-	assert_int(cs.header.get_index()).is_equal(cs._rail.get_index() + 1)
-	assert_int(cs._path_note.get_index()).is_equal(cs._path_skip.get_index() + 1)
-	var old_id := cs.header.get_instance_id()
-	assert_str(_base_path(cs.header.title.font)).is_equal(W.SLAB_PATH)
-	_royale(true)
-	cs.show_offer(_table(), "LEVEL 4!", false)
-	await _frames(3)
-	assert_bool(cs.header.get_instance_id() != old_id).is_true()
-	assert_int(cs.header.get_index()).is_equal(cs._rail.get_index() + 1)
-	assert_int(cs._path_note.get_index()).is_equal(cs._path_skip.get_index() + 1)
-	assert_bool(cs._built_royale).is_true()
-	assert_bool(R.is_display(cs.header.title.font)).is_true()
-	assert_bool(cs.header.title.color.is_equal_approx(R.CREAM)).is_true()
-	assert_str(cs.header.title.text).is_equal("LEVEL 4")
-	assert_bool(cs.header.star_line.color.is_equal_approx(R.CREAM)).is_true()
-	assert_bool(cs._banish_wrap.is_inside_tree()).is_true()
-	assert_object(cs._banish_wrap.get_parent()).is_same(cs.header)
-	assert_bool(cs._banish_wrap.visible).is_false()
-	# the dim follows the head (the lane's review): the kit's black, not the sepia the screen was built with
-	assert_bool(cs.dim_color.is_equal_approx(R.DIM)).is_true()
-	assert_bool(_rgb(cs.dim.color).is_equal_approx(_rgb(R.DIM))).is_true()
-	# and back
-	_royale(false)
-	cs.show_offer(_table(), "LEVEL 5!", false)
-	await _frames(3)
-	assert_bool(cs._built_royale).is_false()
-	assert_str(_base_path(cs.header.title.font)).is_equal(W.SLAB_PATH)
-	assert_bool(cs.header.title.color.is_equal_approx(W.PAPER)).is_true()
-	assert_int(cs.header.title.shadow).is_equal(8)
-	assert_int(cs.header.get_index()).is_equal(cs._rail.get_index() + 1)
-	assert_int(cs._path_note.get_index()).is_equal(cs._path_skip.get_index() + 1)
-	assert_bool(cs.dim_color.is_equal_approx(W.DIM)).is_true()
-	assert_bool(_rgb(cs.dim.color).is_equal_approx(_rgb(W.DIM))).is_true()
-	# nothing rebuilt while the theme stands
-	var same_id := cs.header.get_instance_id()
-	cs.show_offer(_table(), "LEVEL 6!", false)
-	await _frames(2)
-	assert_bool(cs.header.get_instance_id() == same_id).is_true()
-	cs.visible = false
 
 
 # ---------------------------------------------------------------- 7. banish mode's marks
 
 func test_banish_marks_wear_the_kits_colours() -> void:
 	_start()
-	_royale(false)
-	assert_bool(CardScreen.BanishMark.rock().is_equal_approx(W.ROCK)).is_true()
-	assert_bool(CardScreen.BanishMark.paper().is_equal_approx(W.PAPER)).is_true()
-	assert_bool(CardScreen.BanishMark.ink().is_equal_approx(W.INK)).is_true()
-	_royale(true)
 	assert_bool(CardScreen.BanishMark.rock().is_equal_approx(R.role("red")["bottom"])).is_true()
 	assert_bool(CardScreen.BanishMark.paper().is_equal_approx(R.CREAM)).is_true()
 	assert_bool(CardScreen.BanishMark.ink().is_equal_approx(R.NAVY)).is_true()
 	# a strike card's band in banish mode: the kit's red under Royale, rock under Wanted (pass 58's pin)
-	for royale in [false, true]:
+	for royale in [true]:
 		var cs: CardScreen = await _open(royale)
 		Run.banishes_left = 1
 		cs._refresh_buttons()

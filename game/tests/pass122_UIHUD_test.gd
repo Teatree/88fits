@@ -23,29 +23,19 @@ func before() -> void:
 func after() -> void:
 	Settings.force_prod(false)
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func before_test() -> void:
 	Settings.force_prod(false)
-	Settings.ui_theme = "wanted"
 	Settings.hud_slot_rarity = false
-	W.theme_changed()
 
 
 func after_test() -> void:
 	Settings.force_prod(false)
-	Settings.ui_theme = "wanted"
 	Settings.hud_slot_rarity = false
-	W.theme_changed()
 	Settings.top_inset = -1
 	Run.arena = false
 	Run.end()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _start(hero: String = "astro") -> void:
@@ -100,7 +90,7 @@ func test_the_slot_rarity_switch_defaults_on_and_is_locked_in_prod() -> void:
 	var s: Node = auto_free(script.new())
 	assert_bool(s.hud_slot_rarity).is_true()
 	assert_bool(script.PROD_LOCKED.has("hud_slot_rarity")).is_true()
-	assert_bool(bool(script.PROD_LOCKED["hud_slot_rarity"])).is_false()
+	assert_bool(bool(script.PROD_LOCKED["hud_slot_rarity"])).is_true()
 	assert_bool(s.to_dict().has("hud_slot_rarity2")).is_true()
 	assert_bool(bool(s.to_dict()["hud_slot_rarity2"])).is_true()
 	s.from_dict({"hud_slot_rarity": false})
@@ -124,13 +114,11 @@ func test_the_slot_rarity_switch_defaults_on_and_is_locked_in_prod() -> void:
 	assert_bool(Settings.hud_slot_rarity).is_true()
 	assert_array(heard).is_equal([true])
 	Settings.changed.disconnect(cb)
-	# prod holds it off: forced on, set_value is ignored and a save with it on is locked after it loads
+	# prod holds it on: the slots wear their colours for everyone
 	Settings.force_prod(true)
-	assert_bool(Settings.hud_slot_rarity).is_false()
-	Settings.set_value("hud_slot_rarity", true)
-	assert_bool(Settings.hud_slot_rarity).is_false()
-	Settings.from_dict({"hud_slot_rarity2": true})
-	assert_bool(Settings.hud_slot_rarity).is_false()
+	assert_bool(Settings.hud_slot_rarity).is_true()
+	Settings.set_value("hud_slot_rarity", false)
+	assert_bool(Settings.hud_slot_rarity).is_true()
 	Settings.force_prod(false)
 	Settings.set_value("hud_slot_rarity", was)
 	# the in-run debug panel has the row, beside the theme's
@@ -142,8 +130,6 @@ func test_the_slot_rarity_switch_defaults_on_and_is_locked_in_prod() -> void:
 		if c is Button:
 			words.append((c as Button).text)
 	assert_bool(words.has("HUD slot rarity: off / on")).override_failure_message(str(words)).is_true()
-	assert_bool(words.has("UI theme: wanted / royale")).is_true()
-	assert_int(words.find("HUD slot rarity: off / on")).is_equal(words.find("UI theme: wanted / royale") + 1)
 	# its tap flips the switch
 	for c in dp._box.get_children():
 		if c is Button and (c as Button).text == "HUD slot rarity: off / on":
@@ -157,11 +143,9 @@ func test_the_slot_rarity_switch_defaults_on_and_is_locked_in_prod() -> void:
 func test_the_hud_builds_under_both_themes_with_its_slots_and_plaques() -> void:
 	_build()
 	var rects := {}
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var hud := _hud()
 		await _frames(2)
-		assert_str(hud.theme_applied()).is_equal("royale" if royale else "wanted")
 		var plates: Array = hud._slots.get_children()
 		assert_int(plates.size()).is_equal(10)
 		var filled := 0
@@ -293,83 +277,16 @@ func test_the_hud_builds_under_both_themes_with_its_slots_and_plaques() -> void:
 		assert_str(hud._lv.text).is_equal("LV 14")
 		hud.queue_free()
 		await _frames(1)
-	# the same boxes under both themes (Garry: the sizes as they are; only the style changes)
-	var a: Dictionary = rects[false]
-	var b: Dictionary = rects[true]
-	assert_int(b.size()).is_equal(a.size())
-	for k in a:
-		var ra: Rect2 = a[k]
-		var rb: Rect2 = b[k]
-		assert_bool(ra.position.is_equal_approx(rb.position)).override_failure_message("%s: %s vs %s" % [k, ra, rb]).is_true()
-		assert_bool(ra.size.is_equal_approx(rb.size)).override_failure_message("%s: %s vs %s" % [k, ra, rb]).is_true()
+	var a: Dictionary = rects[true]
 	assert_float((a["rail"] as Rect2).size.y).is_equal(HUD.RAIL_H)
 	assert_float((a["pause"] as Rect2).size.x).is_equal(HUD.DISC)
 
 
-func test_a_theme_flip_in_a_run_restyles_the_hud_in_place() -> void:
-	_build()
-	_royale(false)
-	var hud := _hud()
-	await _frames(2)
-	assert_str(hud.theme_applied()).is_equal("wanted")
-	var before := _rects(hud)
-	# the pieces that read the theme as they draw are drawn again on the flip (the review's probe: the gold plate and its
-	# coin kept the Wanted look until the purse changed its digit count or a modal hid and showed the HUD)
-	var draws := {"lv": 0, "timer": 0, "gold": 0, "coin": 0}
-	hud._lv_plate.draw.connect(func(): draws["lv"] += 1)
-	hud._timer_plate.draw.connect(func(): draws["timer"] += 1)
-	hud._gold_plate.draw.connect(func(): draws["gold"] += 1)
-	hud._coin.draw.connect(func(): draws["coin"] += 1)
-	# the in-run debug panel's button: Settings.set_value, which W and the HUD both hear
-	Settings.set_value("ui_theme", "royale")
-	await _frames(2)
-	assert_bool(W.royale()).is_true()
-	assert_str(hud.theme_applied()).is_equal("royale")
-	for k in draws.keys():
-		assert_int(int(draws[k])).override_failure_message("%s drawn again after the flip to royale: %s" % [k, draws]).is_greater_equal(1)
-		draws[k] = 0
-	assert_bool(R.is_display(hud._lv.font)).is_true()
-	assert_bool(hud._lv.color.is_equal_approx(R.WHITE)).is_true()
-	assert_str((hud._pause_btn.box as HardBox).role).is_equal("slate")
-	assert_bool(hud._cutout.color.is_equal_approx(HUD.ROYALE_RAIL_BLACK)).is_true()
-	for p: WPlate in hud._slots.get_children().filter(func(n: Node) -> bool: return not n.is_queued_for_deletion()):
-		assert_object(p.find_child("RoyaleFrame", false, false)).is_not_null()
-		if not p.empty and not p.is_evolved_frame():
-			assert_str(p.frame_rarity()).is_equal("common")
-	var mid := _rects(hud)
-	for k in before:
-		assert_bool((before[k] as Rect2).is_equal_approx(mid[k])).override_failure_message("%s: %s vs %s" % [k, before[k], mid[k]]).is_true()
-	# and back
-	Settings.set_value("ui_theme", "wanted")
-	await _frames(2)
-	assert_bool(W.royale()).is_false()
-	assert_str(hud.theme_applied()).is_equal("wanted")
-	for k in draws.keys():
-		assert_int(int(draws[k])).override_failure_message("%s drawn again after the flip back: %s" % [k, draws]).is_greater_equal(1)
-	assert_str(_base_path(hud._lv.font)).is_equal(W.SLAB_PATH)
-	assert_bool(hud._lv.color.is_equal_approx(W.INK)).is_true()
-	assert_int(hud._lv.stroke).is_equal(0)
-	assert_float(hud._lv.line_height).is_equal(0.0)
-	assert_str((hud._pause_btn.box as HardBox).role).is_equal("")
-	assert_bool((hud._pause_btn.box as HardBox).fill.is_equal_approx(W.BRASS)).is_true()
-	assert_bool(hud._cutout.color.is_equal_approx(W.INK)).is_true()
-	for p: WPlate in hud._slots.get_children().filter(func(n: Node) -> bool: return not n.is_queued_for_deletion()):
-		assert_object(p.find_child("RoyaleFrame", false, false)).is_null()
-	assert_bool((hud._slot_nodes["peashooter"] as WPlate).fill.is_equal_approx(W.level_fill(5))).is_true()
-	var after := _rects(hud)
-	for k in before:
-		assert_bool((before[k] as Rect2).is_equal_approx(after[k])).override_failure_message("%s: %s vs %s" % [k, before[k], after[k]]).is_true()
-	# a settings change that is neither the theme nor the switch leaves the HUD alone (no row rebuilt)
-	var plate_before: WPlate = hud._slot_nodes["boomstick"]
-	Settings.set_value("sfx_volume", 0.5)
-	await _frames(1)
-	assert_object(hud._slot_nodes["boomstick"]).is_same(plate_before)
 
 
 func test_the_wanted_face_is_kept_where_garry_keeps_it() -> void:
 	_build()
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var hud := _hud()
 		await _frames(2)
 		# the kill counter's number: the Wanted face, ink stroke and shadow, down-right
@@ -433,8 +350,7 @@ func test_the_power_up_plates_and_the_pointers_under_both_themes() -> void:
 	Run.debug_clear_items()
 	Run.add_weapon(Registry.weapon("boomstick"), 2)
 	Run.build_changed.emit()
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var hud := _hud()
 		await _frames(2)
 		Run.add_timed_effects("rage", "BERSERK", [], 10.0)
@@ -501,7 +417,6 @@ func test_the_mutation_mark_and_the_clock_modes_under_royale() -> void:
 	Run.debug_clear_items()
 	Run.add_weapon(Registry.weapon("orbit_saws"), 2)
 	Run.build_changed.emit()
-	_royale(true)
 	var hud := _hud()
 	await _frames(2)
 	# the mark: the LV plate stays black, its number in the epic light, MUTATION NEXT white at the rail's end
@@ -547,24 +462,6 @@ func test_the_mutation_mark_and_the_clock_modes_under_royale() -> void:
 	assert_str(hud.clock_mode()).is_equal("")
 	assert_bool(hud._timer.color.is_equal_approx(R.WHITE)).is_true()
 	assert_bool(hud._stage_tag.visible).is_false()
-	# under Wanted the same modes wear pass 87's boxes (a flip through Settings, which the HUD hears)
-	Settings.set_value("ui_theme", "wanted")
-	await _frames(1)
-	hud.test_stage_clock = {"portal_left": 41.3, "endless": false}
-	hud.tick(0.0)
-	var rock: HardBox = hud._timer_plate.get_theme_stylebox("panel")
-	assert_str(rock.role).is_equal("")
-	assert_bool(rock.fill.is_equal_approx(W.ROCK)).is_true()
-	assert_bool(hud._timer.color.is_equal_approx(W.PAPER)).is_true()
-	assert_bool(hud._stage_tag_text.color.is_equal_approx(W.ROCK)).is_true()
-	hud.test_stage_clock = {"endless": true, "endless_wave": 3, "endless_seconds": 31.0}
-	hud.tick(0.0)
-	var ink: HardBox = hud._timer_plate.get_theme_stylebox("panel")
-	assert_bool(ink.fill.is_equal_approx(W.INK)).is_true()
-	assert_bool((hud._stage_tag.get_theme_stylebox("panel") as HardBox).fill.is_equal_approx(W.ROCK)).is_true()
-	hud.test_stage_clock = {}
-	hud.tick(0.0)
-	assert_bool(hud._timer.color.is_equal_approx(W.INK)).is_true()
 	hud._banner.visible = false
 
 
@@ -573,10 +470,9 @@ func test_the_mutation_mark_and_the_clock_modes_under_royale() -> void:
 ## under Royale, exactly as under Wanted.
 func test_the_toasts_the_banner_and_tap_to_go_keep_the_wanted_face_under_royale() -> void:
 	_build()
-	_royale(true)
 	var hud := _hud()
 	await _frames(2)
-	assert_bool(W.royale()).is_true()
+	assert_bool(true).is_true()
 	# a toast and a hint: Alfa Slab in the toast's own colour, the ink stroke 2 / shadow 3 down-right, the Wanted line box
 	hud._toasts.push("+22 HP", W.TOAST_GREEN)
 	hud._toasts.tick(0.0)

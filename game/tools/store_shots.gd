@@ -29,8 +29,6 @@
 ##   advance=<s>           game seconds run before the shot (1.0); speed=<x> the game's speed meanwhile (1)
 ##   fire=0                the hero's weapons hold their fire (no shots, no hits)
 ##   perf=<frames>         frame times measured over that many frames once the crowd stands (120; 0 = none)
-##   theme=wanted|royale   (pass 122, lane UIKIT_A) the UI theme the HUD is built in (Settings.ui_theme, set before the
-##                         arena opens; with hide_hud=0 the HUD shows under each stage look); default the save's
 ##   watchdog=<s>          the wall-clock limit (150 s), frames=<n> the frame cap (20000): past either it quits with code 2
 ## Pass 122 (lane S3WORLD), tuning the Blood Moon:
 ##   hell_mul=r,g,b hell_add=r,g,b   the terrain shader's hell tint (terrain_painted.gdshader hell_mul / hell_add) set
@@ -150,10 +148,6 @@ func _main() -> void:
 	for k in ["debug_modal_buttons", "free_revive_button", "hit_log", "debug_panel"]:
 		if settings.get(k) != null:
 			settings.set(k, false)
-	# pass 122: the UI theme, before the arena (and its HUD) is built
-	if A.has("theme"):
-		settings.set("ui_theme", _s("theme", "wanted"))
-		_log("theme %s" % str(settings.get("ui_theme")))
 	_log("window %s, args %s" % [str(DisplayServer.window_get_size()), str(A)])
 	# the arena by the launch the tools hand over in memory (Run.launch_override: no file left behind)
 	var launch := {"arena": true, "analytics": false}

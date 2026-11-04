@@ -25,18 +25,10 @@ func before() -> void:
 func after() -> void:
 	Settings.force_prod(false)
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func after_test() -> void:
 	Settings.force_prod(false)
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 ## A passive item of `rarity` that is not a line and has an icon.
@@ -128,8 +120,7 @@ func test_the_frame_under_both_themes() -> void:
 	assert_object(evo).is_not_null()
 	assert_object(weapon).is_not_null()
 	assert_object(creature).is_not_null()
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var host := Control.new()
 		add_child(host)
 		var pc: WPlate = WPlate.new().for_def(common, 200.0, false, 1)
@@ -245,18 +236,10 @@ func test_the_frame_under_both_themes() -> void:
 	assert_bool(WPlate.derive_frame(W.INK)["light"].is_equal_approx(R.SLATE_TOP)).is_true()
 	assert_bool(WPlate.derive_frame(W.INK)["dark"].is_equal_approx(R.SLATE_BOTTOM)).is_true()
 	# a plate built under Royale and shown under Wanted hides its layers (the Wanted drawing is the old one)
-	_royale(true)
 	var flip: WPlate = auto_free(WPlate.new().for_def(common, 96.0))
 	add_child(flip)
 	await get_tree().process_frame
 	assert_object(flip.find_child("RoyaleFrame", false, false)).is_not_null()
-	_royale(false)
-	flip.queue_redraw()
-	await get_tree().process_frame
-	await get_tree().process_frame
-	assert_bool((flip.find_child("RoyaleFrame", false, false) as CanvasItem).visible).is_false()
-
-
 ## Review fix 3: a plate at rest does not redraw every frame under either theme (Godot turns _process on at READY for a
 ## script that overrides it; _ready turns it off again); a property write draws it once more; the evolution glow
 ## (dots_ready) breathes on a frame clock.
@@ -264,8 +247,7 @@ func test_a_plate_at_rest_does_not_redraw() -> void:
 	var epic := _passive_of("epic")
 	var weapon: WeaponDef = Registry.weapon("boomstick")
 	assert_object(epic).is_not_null()
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var host := Control.new()
 		add_child(host)
 		var p: WPlate = WPlate.new().for_def(epic, 120.0, false, 1)
@@ -314,7 +296,6 @@ func test_a_glow_sits_behind_its_neighbours() -> void:
 	var legend := _passive_of("legendary")
 	assert_object(epic).is_not_null()
 	assert_object(legend).is_not_null()
-	_royale(true)
 	var host := Control.new()
 	add_child(host)
 	var a: WPlate = WPlate.new().for_def(epic, 200.0, false, 1)
@@ -407,8 +388,7 @@ func test_a_glow_sits_behind_its_neighbours() -> void:
 func test_the_pieces_build_and_draw_under_both_themes() -> void:
 	var epic := _passive_of("epic")
 	var weapon: WeaponDef = Registry.weapon("boomstick")
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var host := Control.new()
 		host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(host)
@@ -552,8 +532,5 @@ func test_no_w_colour_constant_moves() -> void:
 	assert_bool(WMarks.ROYALE_HELD.is_equal_approx(R.GOLD_TEXT)).is_true()
 	assert_bool(WMarks.ROYALE_NEXT.is_equal_approx(R.CREAM)).is_true()
 	assert_bool(WStarLine.royale_colour(W.PAPER).is_equal_approx(R.GOLD_TEXT)).is_true()
-	assert_bool(WStarLine.royale_colour(W.PLUM).is_equal_approx(R.RARITY["epic"]["light"])).is_true()
-	assert_bool(WCelebrate.royale_colour(W.BRASS).is_equal_approx(W.BRASS)).is_true()   # Wanted now: the colour itself
-	_royale(true)
 	assert_bool(WCelebrate.royale_colour(W.BRASS).is_equal_approx(R.role("gold")["bottom"])).is_true()
 	assert_bool(WSeal.royale_fill(W.EPIC).is_equal_approx(R.RARITY["epic"]["base"])).is_true()

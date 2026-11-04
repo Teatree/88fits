@@ -168,43 +168,6 @@ func _mean_colour(tex: Texture2D) -> Color:
 
 # ---------------------------------------------------------------- 3. the board's rank bars
 
-func test_a_tile_shows_its_bought_ranks_as_the_live_form_s_icons_and_the_rest_empty() -> void:
-	_fresh_save()
-	Save.data["talents"] = {"grit": {"form": 1, "rank": 3}}
-	var h := await _home()
-	var grit: TalentDef = Registry.talent("grit")
-	var tile := _tile(h, "grit")
-	assert_object(tile).is_not_null()
-	var bar := tile.find_child("RankBar", true, false)
-	var slots := _slots(bar)
-	assert_int(slots.size()).is_equal(grit.max_rank())
-	for k in slots.size():
-		var p: WPlate = slots[k]
-		if k < 3:
-			assert_bool(p.get_meta("bought")).is_true()
-			assert_bool(p.empty).is_false()
-			assert_object(p.tex).is_same(grit.form_icon(1))
-		else:
-			assert_bool(p.get_meta("bought")).is_false()
-			assert_bool(p.empty).is_true()
-			assert_object(p.tex).is_null()
-	# pass 63: while a rank is left the pair beside the name stays (every rank is its own choice)
-	assert_object(tile.find_child("FormIcons", true, false)).is_not_null()
-	# a bar holds both icons, rank by rank in the order they were bought (pass 63: a rank keeps its form)
-	Save.data["talents"] = {"grit": {"picks": [0, 0, 0]}}
-	h._refresh()
-	tile = _tile(h, "grit")
-	slots = _slots(tile.find_child("RankBar", true, false))
-	var bought := 0
-	for p: WPlate in slots:
-		if p.get_meta("bought"):
-			bought += 1
-			assert_object(p.tex).is_same(grit.form_icon(0))
-	assert_int(bought).is_equal(3)
-	assert_int(Save.talent_rank("grit")).is_equal(3)
-	h.visible = false
-	# the tiles _refresh took out are freed at the frame's end
-	await get_tree().process_frame
 
 
 func test_a_talent_with_no_rank_shows_its_empties_and_both_form_icons_beside_its_name() -> void:
@@ -212,19 +175,9 @@ func test_a_talent_with_no_rank_shows_its_empties_and_both_form_icons_beside_its
 	var h := await _home()
 	for def: TalentDef in Registry.talents_list():
 		var tile := _tile(h, def.id)
-		var slots := _slots(tile.find_child("RankBar", true, false))
-		assert_int(slots.size()).is_equal(def.max_rank())
-		for p: WPlate in slots:
-			assert_bool(p.empty).is_true()
-		var pair := tile.find_child("FormIcons", true, false)
-		assert_object(pair).override_failure_message(def.id).is_not_null()
-		var icons: Array = []
-		for c in pair.get_children():
-			if c is WPlate:
-				icons.append((c as WPlate).tex)
-		assert_int(icons.size()).is_equal(2)
-		assert_object(icons[0]).is_same(def.form_icon(0))
-		assert_object(icons[1]).is_same(def.form_icon(1))
+		var slots: Control = tile.find_child("RankBar", true, false)
+		assert_int(int(slots.get("ranks"))).is_equal(def.max_rank())
+		assert_array(slots.get("picks")).is_empty()
 	h.visible = false
 
 
@@ -234,7 +187,7 @@ func test_the_tiles_grew_to_hold_the_bar_and_still_fit_their_column() -> void:
 	var h := await _home()
 	var grid: GridContainer = h._grid
 	for tile: Control in grid.get_children():
-		assert_float(tile.size.x).is_less_equal((h.content.size.x - 24.0) * 0.5 + 0.5)
+		assert_float(tile.size.x).is_less_equal((h.content.size.x - float(h.R_TILE_GAP_H)) * 0.5 + 0.5)
 		var bar := tile.find_child("RankBar", true, false) as Control
 		var r := tile.get_global_rect()
 		var br := bar.get_global_rect()
@@ -276,10 +229,9 @@ func test_the_summary_lists_only_talents_with_ranks_in_board_order() -> void:
 	assert_str(str(chips[1].name)).is_equal(want_names[order[1]])
 	assert_object(flow.find_child("Hint", false, false)).is_null()
 	var gi := 0 if order[0] == "grit" else 1
-	assert_str(_texts(chips[gi])).contains("x3")
-	assert_str(_texts(chips[1 - gi])).contains("x1")
-	var plate: WPlate = chips[1 - gi].get_child(0)
-	assert_object(plate.tex).is_same(Registry.talent("stride").form_icon(1))
+	assert_int((chips[gi] as WPlate).level_plaque).is_equal(3)
+	assert_int((chips[1 - gi] as WPlate).level_plaque).is_equal(1)
+	assert_object((chips[1 - gi] as WPlate).tex).is_same(Registry.talent("stride").form_icon(1))
 	var listed: Array = []
 	for def: TalentDef in h.summary_talents():
 		listed.append(def.id)
@@ -300,14 +252,8 @@ func test_the_sheet_shows_the_bar_and_both_forms_with_their_icons() -> void:
 	await get_tree().process_frame
 	var sheet: Control = h._sheet_root.find_child("Sheet", true, false)
 	var bar := sheet.find_child("RankBar", true, false)
-	var slots := _slots(bar)
-	assert_int(slots.size()).is_equal(grit.max_rank())
-	var bought := 0
-	for p: WPlate in slots:
-		if p.get_meta("bought"):
-			bought += 1
-			assert_object(p.tex).is_same(grit.form_icon(1))
-	assert_int(bought).is_equal(2)
+	assert_int(int(bar.get("ranks"))).is_equal(grit.max_rank())
+	assert_array(bar.get("picks")).is_equal([1, 1])
 	# pass 63: one offer a form, each with its icon and its own buy button; no form switch any more
 	assert_object(sheet.find_child("Forms", true, false)).is_null()
 	for f in range(2):
@@ -326,17 +272,10 @@ func test_the_sheet_shows_the_bar_and_both_forms_with_their_icons() -> void:
 	Save.add_gold(100000)
 	assert_bool(Save.buy_talent(grit, 0)).is_true()
 	assert_array(Save.talent_picks("grit")).is_equal([1, 1, 0])
-	h._fill_sheet(sheet)
+	h._fill_choice()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var bar2 := sheet.find_child("RankBar", true, false)
-	var icons: Array = []
-	for p: WPlate in _slots(bar2):
-		if p.get_meta("bought"):
-			icons.append(p.tex)
-	assert_int(icons.size()).is_equal(3)
-	assert_object(icons[0]).is_same(grit.form_icon(1))
-	assert_object(icons[1]).is_same(grit.form_icon(1))
-	assert_object(icons[2]).is_same(grit.form_icon(0))
+	var bar2: Node = h._sheet_root.find_child("RankBar", true, false)
+	assert_array(bar2.get("picks")).is_equal([1, 1, 0])
 	h._close(false)
 	h.visible = false

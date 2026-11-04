@@ -14,7 +14,7 @@
 ## none has come up), wears a brass ring while focused, the card rises so its foot (the SEND row) stays over the keyboard
 ## (keyboard_canvas_height / lift_for, polled in _process), and a finger anywhere outside the box lets the focus go, which
 ## hides the keyboard.
-## Pass 123 (lane RUN_C), under Royale (W.royale(); Garry: "Consent and survey pop-ups in the shared pop-up shell, as the
+## Pass 123 (lane RUN_C), under Royale (Garry: "Consent and survey pop-ups in the shared pop-up shell, as the
 ## mock", "White header"): the card is the kit's modal shell (WConfirm's pieces, the mock 10_Survey): the slate panel
 ## R.MODAL_W wide over the 80 % black dim, "★ A QUICK WORD ★" in gold Ultra at the left with "1 / 2" at the right, the
 ## question in cream Ultra QUESTION_PX at the left, the 1-5 cells slate with the pick gold (WButton roles; the choices
@@ -93,74 +93,8 @@ func questions() -> Array:
 
 
 func _build() -> void:
-	if W.royale():
-		_build_royale()
-		return
-	dim = ColorRect.new()
-	dim.name = "Dim"
-	dim.color = W.DIM_ASK
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(dim)
-	card = PanelContainer.new()
-	card.name = "Card"
-	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(44, 40, 44, 40))
-	card.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	card.offset_left = WIDTH_INSET
-	card.offset_right = -WIDTH_INSET
-	_base_top = CARD_TOP + W.safe_top()
-	card.offset_top = _base_top
-	add_child(card)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 26)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(v)
-	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var star := WStarLine.make("A quick word", 24, W.INK_SOFT)
-	star.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(star)
-	_progress = W.serif_text("", 24, W.INK_SOFT, 600, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, false, false)
-	_progress.name = "Progress"
-	head.add_child(_progress)
-	v.add_child(head)
-	_q_box = VBoxContainer.new()
-	_q_box.name = "Question"
-	_q_box.add_theme_constant_override("separation", 22)
-	_q_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(_q_box)
-	var rule := ColorRect.new()
-	rule.color = W.INK
-	rule.custom_minimum_size.y = 4
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(rule)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(row)
-	not_now_btn = WButton.make(["NOT NOW"], 32, WButton.SECONDARY, 5, 8, 24.0, 0.0)
-	not_now_btn.name = "NotNow"
-	not_now_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	not_now_btn.pressed.connect(dismiss)
-	row.add_child(not_now_btn)
-	next_btn = WButton.make(["NEXT"], 32, WButton.PRIMARY, 5, 8, 24.0, 0.0)
-	next_btn.name = "Next"
-	next_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	next_btn.pressed.connect(next)
-	row.add_child(next_btn)
-	# under the card: a plain line to stop the questions for good
-	never_btn = WTap.new()
-	never_btn.name = "NeverAsk"
-	var nb := W.box(Color(0, 0, 0, 0), 0, 0).pad(20, 16, 20, 16)
-	never_btn.box = nb
-	never_btn.box_down = nb
-	never_btn.add_child(W.serif_text("Don't ask me again", 26, W.PAPER, 600, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false))
-	never_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	never_btn.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	never_btn.pressed.connect(never_ask)
-	add_child(never_btn)
-	show_page(0)
+	_build_royale()
+	return
 
 
 ## The Royale card (pass 123): the kit's modal shell from WConfirm's pieces, keeping the survey's own names, pages,
@@ -254,11 +188,10 @@ func _enter() -> void:
 	await get_tree().process_frame
 	if _done or not is_inside_tree():
 		return
-	if W.royale():
-		# pass 123: the shell's place (R.MODAL_TOP_AT of the room), never higher than today's CARD_TOP under the cutout
-		var h := maxf(card.size.y, card.get_combined_minimum_size().y)
-		_base_top = maxf(CARD_TOP + W.safe_top(), (get_viewport_rect().size.y - h) * R.MODAL_TOP_AT)
-		_place_card()
+	# pass 123: the shell's place (R.MODAL_TOP_AT of the room), never higher than today's CARD_TOP under the cutout
+	var h := maxf(card.size.y, card.get_combined_minimum_size().y)
+	_base_top = maxf(CARD_TOP + W.safe_top(), (get_viewport_rect().size.y - h) * R.MODAL_TOP_AT)
+	_place_card()
 	_place_never()
 	_set_drop(60.0)
 	var tw := create_tween().set_parallel(true)
@@ -271,7 +204,7 @@ func _enter() -> void:
 ## under the foot).
 func _place_never() -> void:
 	var h := maxf(card.size.y, card.get_combined_minimum_size().y)
-	never_btn.offset_top = card.offset_top + h + (LINK_GAP - 22.0 + 8.0 if W.royale() else 30.0)
+	never_btn.offset_top = card.offset_top + h + (LINK_GAP - 22.0 + 8.0)
 	never_btn.offset_bottom = never_btn.offset_top + 70.0
 	never_btn.offset_left = -260
 	never_btn.offset_right = 260
@@ -291,11 +224,8 @@ func show_page(i: int) -> void:
 	var q: Dictionary = qs[i]
 	_progress.text = "%d / %d" % [i + 1, qs.size()]
 	var qt: WText
-	if W.royale():
-		# pass 123: the shell's title at the left, cream Ultra (Garry: "White header"), as it is written
-		qt = WConfirm.make_title(str(q.get("question", "")), QUESTION_PX, HORIZONTAL_ALIGNMENT_LEFT)
-	else:
-		qt = W.serif_text(str(q.get("question", "")), 38, W.INK, 700, false, HORIZONTAL_ALIGNMENT_LEFT, 48.0, true, false)
+	# pass 123: the shell's title at the left, cream Ultra (Garry: "White header"), as it is written
+	qt = WConfirm.make_title(str(q.get("question", "")), QUESTION_PX, HORIZONTAL_ALIGNMENT_LEFT)
 	qt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_q_box.add_child(qt)
 	var desc := str(q.get("description", ""))
@@ -329,7 +259,7 @@ func _rating(q: Dictionary) -> void:
 			row.add_theme_constant_override("separation", 14)
 			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			rows.add_child(row)
-		var b := _cell([str(k)], CELL_PX, CELL_H) if W.royale() else WButton.make([str(k)], 40, WButton.SECONDARY, 5, 6, 18.0, 0.0)
+		var b := _cell([str(k)], CELL_PX, CELL_H)
 		b.name = "Rate%d" % k
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var val := k
@@ -364,7 +294,7 @@ func _choice_list(q: Dictionary, many: bool) -> void:
 	var choices: Array = q.get("choices", [])
 	for k in choices.size():
 		var c := str(choices[k])
-		var b := _cell([c], CHOICE_PX, 0.0) if W.royale() else WButton.make([c], 30, WButton.SECONDARY, 5, 6, 18.0, 20.0)
+		var b := _cell([c], CHOICE_PX, 0.0)
 		b.name = "Choice%d" % k
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if many:
@@ -395,15 +325,14 @@ func _open_text(q: Dictionary) -> void:
 	# focused: paper in a brass ring, the kit's mark of the piece in hand (pass 60)
 	var focus := W.box(W.PAPER, 4, 0).pad(18, 14, 18, 14)
 	focus.border_color = W.BRASS
-	if W.royale():
-		# pass 123: a solid navy cell (W.cell_box), cream words, the placeholder in the secondary blue; focused, its edge
-		# in the kit's gold
-		box = W.cell_box(Vector2(18, 14))
-		focus = W.cell_box(Vector2(18, 14))
-		focus.border_color = R.GOLD_TEXT
-		_text.add_theme_color_override("font_color", R.CREAM)
-		_text.add_theme_color_override("font_placeholder_color", Color(R.SECONDARY, 0.6))
-		_text.add_theme_color_override("caret_color", R.CREAM)
+	# pass 123: a solid navy cell (W.cell_box), cream words, the placeholder in the secondary blue; focused, its edge
+	# in the kit's gold
+	box = W.cell_box(Vector2(18, 14))
+	focus = W.cell_box(Vector2(18, 14))
+	focus.border_color = R.GOLD_TEXT
+	_text.add_theme_color_override("font_color", R.CREAM)
+	_text.add_theme_color_override("font_placeholder_color", Color(R.SECONDARY, 0.6))
+	_text.add_theme_color_override("caret_color", R.CREAM)
 	_text.add_theme_stylebox_override("normal", box)
 	_text.add_theme_stylebox_override("focus", focus)
 	_text.text_changed.connect(_refresh_next)
@@ -540,25 +469,12 @@ func _toggle(b: WButton, val: String) -> void:
 
 
 func _mark(b: WButton, on: bool) -> void:
-	if W.royale():
-		# pass 123: the pick gold, the rest slate (the kit's button roles; a HardBox copy by duplicate() keeps none of its
-		# fields under Royale)
-		if b.role != (WButton.GOLD if on else WButton.SLATE):
-			b.set_role(WButton.GOLD if on else WButton.SLATE)
-		b.set_meta("on", on)
-		return
-	if not b.has_meta("paper"):
-		b.set_meta("paper", b.box)
-		b.set_meta("paper_down", b.box_down)
-	if on:
-		var hb: HardBox = (b.get_meta("paper") as HardBox).duplicate()
-		hb.fill = W.BRASS
-		b.box_down = hb.pressed(W.BRASS_DARK)
-		b.box = hb
-	else:
-		b.box_down = b.get_meta("paper_down")
-		b.box = b.get_meta("paper")
+	# pass 123: the pick gold, the rest slate (the kit's button roles; a HardBox copy by duplicate() keeps none of its
+	# fields under Royale)
+	if b.role != (WButton.GOLD if on else WButton.SLATE):
+		b.set_role(WButton.GOLD if on else WButton.SLATE)
 	b.set_meta("on", on)
+	return
 
 
 func is_marked(b: WButton) -> bool:

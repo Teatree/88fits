@@ -22,8 +22,6 @@ const X_RED := Color("ff3b2b")
 ## Which badge a row wears, by its role first (boss, elite, special), then by its kind (ranged, heal):
 ## art/ui/badges/<name>.png (bow and heart are painted in pass 46; a badge not painted yet shows nothing).
 const BADGES := {"boss": "skull", "elite": "crown", "special": "gear", "ranged": "bow", "heal": "heart"}
-## Where the list's panel starts; its bottom keeps 24 px above the buttons, so a taller phone shows more rows.
-const LOG_TOP := 1210.0
 
 static var _badges: Dictionary = {}
 
@@ -53,7 +51,6 @@ var _asking := false   # the stay-down question is up: the count holds, the log 
 var _touch: TouchScroll
 ## Pass 123 (lane RUN_A): the theme the screen was built in (a flip of the debug switch builds it again on the next
 ## open), and the Royale pieces: the block under the disc (moved with it), the run pills' row.
-var _built_royale := false
 var _who: VBoxContainer
 var _pills: HBoxContainer
 
@@ -96,132 +93,8 @@ func _ready() -> void:
 
 ## The screen's standing parts (pass 123: out of _ready, so a theme flip can build them again).
 func _build() -> void:
-	_built_royale = W.royale()
-	if _built_royale:
-		_build_royale()
-		return
-	build_dim(W.DIM_DOWN)
-	build_header("1 chance left", "DOWN!", "", 170)
-	header.line.visible = false
-	# the disc: 520 px of paper in a 10 px ink ring with a 14 px shadow, the count in 300 px slab
-	_disc = Control.new()
-	_disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_disc.size = Vector2(540, 540)
-	_disc.draw.connect(func():
-		var c := Vector2(270, 270)
-		_disc.draw_circle(c + Vector2(14, 14), 270, W.INK, true, -1.0, true)
-		_disc.draw_circle(c, 270, W.INK, true, -1.0, true)
-		_disc.draw_circle(c, 260, W.PAPER, true, -1.0, true))
-	add_child(_disc)
-	_count = W.slab_text("8", 300, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 270.0)
-	_count.position = Vector2(0, 110)
-	_count.size = Vector2(540, 270)
-	_disc.add_child(_count)
-	var gu := W.serif_text("get up", 30, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	gu.position = Vector2(0, 382)
-	gu.size = Vector2(540, 40)
-	_disc.add_child(gu)
-	# who did it
-	var who := VBoxContainer.new()
-	who.add_theme_constant_override("separation", 10)
-	who.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	who.offset_top = 1060
-	who.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(who)
-	_killer_row = HBoxContainer.new()
-	_killer_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_killer_row.add_theme_constant_override("separation", 16)
-	_killer_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	who.add_child(_killer_row)
-	_killer_icon = TextureRect.new()
-	_killer_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_killer_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_killer_icon.custom_minimum_size = Vector2(44, 44)
-	_killer_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_killer_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_killer_row.add_child(_killer_icon)
-	_killer = W.slab_text("", 34, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_killer.shadow = 3
-	_killer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_killer_row.add_child(_killer)
-	_stats = W.serif_text("", 26, W.AGED, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	who.add_child(_stats)
-	# what staying down means for the gold: since pass 70 it comes home with a dead hero too; the coin beside it (pass 46)
-	_gold_row = HBoxContainer.new()
-	_gold_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_gold_row.add_theme_constant_override("separation", 8)
-	_gold_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	who.add_child(_gold_row)
-	var pre := W.serif_text("Stay down and the", 26, W.PAPER, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	pre.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_gold_row.add_child(pre)
-	_gold_coin = WCoin.make(28)
-	_gold_row.add_child(_gold_coin)
-	_gold_line = W.serif_text("", 26, W.PAPER, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_gold_line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_gold_row.add_child(_gold_line)
-	# the last 30 seconds: a dark panel under the line, from LOG_TOP down to just above the buttons
-	_log_panel = PanelContainer.new()
-	_log_panel.name = "HitLog"
-	_log_panel.add_theme_stylebox_override("panel", W.box(W.INK, 4, 0).pad(20, 16, 20, 16))
-	_log_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_log_panel.offset_left = 48
-	_log_panel.offset_right = -48
-	_log_panel.offset_top = LOG_TOP
-	_log_panel.offset_bottom = -90 - 110 - 24 - 106 - 24
-	add_child(_log_panel)
-	var lv := VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 8)
-	_log_panel.add_child(lv)
-	var lh := HBoxContainer.new()
-	lh.add_theme_constant_override("separation", 12)
-	lv.add_child(lh)
-	var lt := W.text("THE LAST 30 SECONDS · NEWEST FIRST", W.mono(500), 20, W.AGED, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	lt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	lh.add_child(lt)
-	_hold_btn = WButton.make(["hold"], 20, WButton.SECONDARY, 3, 0, 4.0, 12.0)
-	_hold_btn.pressed.connect(_toggle_hold)
-	lh.add_child(_hold_btn)
-	_copy_btn = WButton.make(["copy"], 20, WButton.SECONDARY, 3, 0, 4.0, 12.0)
-	_copy_btn.pressed.connect(_copy)
-	lh.add_child(_copy_btn)
-	_log_scroll = ScrollContainer.new()
-	_log_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	lv.add_child(_log_scroll)
-	_list = VBoxContainer.new()
-	_list.name = "HitList"
-	_list.add_theme_constant_override("separation", 0)
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list.mouse_filter = Control.MOUSE_FILTER_PASS
-	_log_scroll.add_child(_list)
-	_touch = TouchScroll.new(_log_scroll, true)
-	# the ways up: an ad (full width) or staying down (pass 77: no gold)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 24)
-	col.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	col.offset_left = 48
-	col.offset_right = -48
-	col.offset_bottom = -90
-	col.offset_top = -90 - 110 - 24 - 106
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(col)
-	_ad_btn = WButton.make(["GET UP · WATCH AN AD"], 44, WButton.PRIMARY, 5, 8, 28.0, 0.0)
-	_ad_btn.pressed.connect(func(): _try("ad"))
-	col.add_child(_ad_btn)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(row)
-	_quit_btn = WButton.make(["STAY DOWN"], 34, WButton.DANGER, 5, 8, 26.0, 0.0)
-	_quit_btn.name = "StayDown"
-	_quit_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_quit_btn.pressed.connect(_ask_give_up)
-	row.add_child(_quit_btn)
-	# the developer's free revive (developer menu: "Free revive button"), top right; the player's debug mode (pass 44):
-	# the count held, top left, beside the free respawn
-	_build_debug_buttons()
+	_build_royale()
+	return
 
 
 ## Pass 123 (lane RUN_A): Down! under Royale (the mock 10_Down): the red dim; "★ 1 CHANCE LEFT ★" in gold over DOWN! in
@@ -358,22 +231,20 @@ func _build_royale() -> void:
 
 ## The developer's buttons (both themes): the free revive top right ("Free revive button"), the count held top left.
 func _build_debug_buttons() -> void:
-	_debug_btn2 = WButton.make(["free revive"], 20, WButton.SECONDARY, 3, 0, 6.0, 12.0)
+	# pass 124 (Garry: "Revive button disappeared from the down screen in debug mode"): slate at 70% on the dark top of the
+	# screen, up where a phone's status bar and cutout sit. A solid green button, under the cutout (open() places it)
+	_debug_btn2 = WButton.make(["REVIVE"], 28, WButton.PRIMARY, 3, 4, 10.0, 16.0, 28.0, WButton.GREEN)
+	_debug_btn2.name = "DebugRevive"
 	_debug_btn2.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_debug_btn2.offset_left = -220
 	_debug_btn2.offset_right = -24
-	_debug_btn2.offset_top = 24
-	_debug_btn2.offset_bottom = 74
-	_debug_btn2.modulate.a = 0.7
 	_debug_btn2.pressed.connect(func(): _decide("debug"))
 	add_child(_debug_btn2)
 	_hold_btn2 = WButton.make(["hold time"], 20, WButton.SECONDARY, 3, 0, 6.0, 12.0)
 	_hold_btn2.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	_hold_btn2.offset_left = 24
 	_hold_btn2.offset_right = 220
-	_hold_btn2.offset_top = 24
-	_hold_btn2.offset_bottom = 74
-	_hold_btn2.modulate.a = 0.7
+	_hold_btn2.name = "DebugHold"
 	_hold_btn2.pressed.connect(func():
 		_toggle_hold()
 		_hold_btn2.set_parts(["go on" if _held else "hold time"]))
@@ -423,26 +294,11 @@ func _draw_royale_disc() -> void:
 	_disc.draw_colored_polygon(_face_pts, Color.WHITE, _face_uvs, _face_tex)
 
 
-## A theme flipped since the screen was built (the debug panel's switch): its standing parts again, in the theme on now.
-func _rebuild_if_theme_changed() -> void:
-	if W.royale() == _built_royale:
-		return
-	if _touch:
-		_touch.reset()
-	for c in get_children():
-		remove_child(c)
-		c.queue_free()
-	dim = null
-	header = null
-	_who = null
-	_pills = null
-	_stats = null
-	_build()
 
 
 ## A button's word in the theme (capitals under Royale).
 func _word(t: String) -> String:
-	return t.to_upper() if _built_royale else t
+	return t.to_upper()
 
 
 ## `gold` is the run's gold, `chances` how many revives are left (0 leaves only staying down), `killer` the hit that
@@ -450,7 +306,6 @@ func _word(t: String) -> String:
 ## oldest first) for the list, and `log_text` the same as text for the copy button (Player.damage_log_text). An older
 ## caller that passes only the text sees it in the panel as it is.
 func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {}, rows: Array = []) -> void:
-	_rebuild_if_theme_changed()
 	_t = 0.0
 	_open = true
 	_held = false
@@ -484,8 +339,11 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 	_log_panel.visible = s != null and (bool(s.get("hit_log")) or bool(s.get("debug_mode")))
 	var debug: bool = s != null and (bool(s.get("free_revive_button")) or bool(s.get("debug_mode")))
 	_debug_btn2.visible = debug
-	_debug_btn2.set_parts(["respawn"])
 	_hold_btn2.visible = debug
+	var top := 24.0 + W.safe_top()
+	for b: WButton in [_debug_btn2, _hold_btn2]:
+		b.offset_top = top
+		b.offset_bottom = top + 72.0
 	_hold_btn2.set_parts(["hold time"])
 	_log_text = log_text if log_text != "" else Player.log_text(rows)
 	if _log_panel.visible:
@@ -493,11 +351,10 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 	_log_scroll.scroll_vertical = 0
 	var vp := get_viewport_rect().size
 	_disc.position = Vector2((vp.x - 540.0) * 0.5, 470)
-	if _built_royale:
-		# pass 123: the disc where the mock has it while the log shows, lower when it does not; the line under it follows
-		var cy := (ROYALE_DISC_Y_LOG if _log_panel.visible else ROYALE_DISC_Y) + W.safe_top()
-		_disc.position = Vector2((vp.x - 540.0) * 0.5, cy - 270.0)
-		_who.offset_top = cy + ROYALE_DISC_R + ROYALE_DROP + ROYALE_WHO_GAP
+	# pass 123: the disc where the mock has it while the log shows, lower when it does not; the line under it follows
+	var cy := (ROYALE_DISC_Y_LOG if _log_panel.visible else ROYALE_DISC_Y) + W.safe_top()
+	_disc.position = Vector2((vp.x - 540.0) * 0.5, cy - 270.0)
+	_who.offset_top = cy + ROYALE_DISC_R + ROYALE_DROP + ROYALE_WHO_GAP
 	modulate.a = 1.0
 	enter()
 	Audio.play("ui_pause")
@@ -560,7 +417,7 @@ func _fill_list(rows: Array) -> void:
 		_list.remove_child(c)
 		c.queue_free()
 	if rows.is_empty():
-		var msg := W.text(_log_text, R.body(R.BODY_WEIGHT) if _built_royale else W.mono(500), 22, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 30.0, true)
+		var msg := W.text(_log_text, R.body(R.BODY_WEIGHT), 22, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 30.0, true)
 		msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		msg.mouse_filter = Control.MOUSE_FILTER_PASS
 		_list.add_child(msg)
@@ -587,18 +444,17 @@ func _row(e: Dictionary, t_ref: float) -> PanelContainer:
 	box.border_color = X_RED if fatal else Color(W.AGED, 0.16)
 	if not fatal:
 		box.sides = [false, false, false, true]
-	if _built_royale:
-		# pass 123: the rows on thin light lines on the slate, the killing hit on a red band in a red edge (the mock's)
-		box = W.box(ROYALE_FATAL_FILL if fatal else Color(0, 0, 0, 0), 3 if fatal else 2, 0, R.RADIUS_TAG if fatal else 0)
-		box.pad(8, 10, 12, 10)
-		box.border_color = R.TAG_RED if fatal else ROYALE_RULE
-		if not fatal:
-			box.sides = [false, false, false, true]
-		box.themed = false
+	# pass 123: the rows on thin light lines on the slate, the killing hit on a red band in a red edge (the mock's)
+	box = W.box(ROYALE_FATAL_FILL if fatal else Color(0, 0, 0, 0), 3 if fatal else 2, 0, R.RADIUS_TAG if fatal else 0)
+	box.pad(8, 10, 12, 10)
+	box.border_color = R.TAG_RED if fatal else ROYALE_RULE
+	if not fatal:
+		box.sides = [false, false, false, true]
+	box.themed = false
 	row.add_theme_stylebox_override("panel", box)
 	# pass 123: the Royale log's faces (Rubik, Ultra for the amount) and colours (the kit's red, green, blue, secondary)
-	var mono := R.body(R.BODY_WEIGHT) if _built_royale else W.mono(500)
-	var soft := R.SECONDARY if _built_royale else W.AGED
+	var mono := R.body(R.BODY_WEIGHT)
+	var soft := R.SECONDARY
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -666,16 +522,15 @@ func _row(e: Dictionary, t_ref: float) -> PanelContainer:
 			else:
 				what = "−%d" % roundi(float(e.get("dealt", 0.0)))
 	var amount := W.text(what, W.mono(700), 24, tone, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-	if _built_royale:
-		var rt: Color = R.ROLES["red"]["top"]
-		if tone == W.AGED:
-			rt = R.SECONDARY
-		elif tone == SHIELD_BLUE:
-			rt = R.ROLES["blue"]["top"]
-		elif tone == HEAL_GREEN:
-			rt = R.ROLES["green"]["top"]
-		amount = W.text(what, R.display(), 28, rt, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-		R.edge(amount, 28)
+	var rt: Color = R.ROLES["red"]["top"]
+	if tone == W.AGED:
+		rt = R.SECONDARY
+	elif tone == SHIELD_BLUE:
+		rt = R.ROLES["blue"]["top"]
+	elif tone == HEAL_GREEN:
+		rt = R.ROLES["green"]["top"]
+	amount = W.text(what, R.display(), 28, rt, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	R.edge(amount, 28)
 	amount.name = "Amount"
 	amount.custom_minimum_size.x = 150
 	amount.size_flags_vertical = Control.SIZE_SHRINK_CENTER

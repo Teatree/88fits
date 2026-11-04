@@ -5,7 +5,7 @@
 ## answer from then on. Until it is answered nothing is sent or written to disk (`Analytics.awaiting_consent`); a tap on
 ## the dim does nothing (the card wants an answer); the back gesture leaves it unanswered, and it comes again next launch.
 ## No class_name: open it with preload("res://ui/wanted/WConsent.gd").open(host). Buttons "Decline" and "Accept".
-## Pass 123 (lane RUN_C), under Royale (W.royale(); Garry: "Consent and survey pop-ups in the shared pop-up shell, as the
+## Pass 123 (lane RUN_C), under Royale (Garry: "Consent and survey pop-ups in the shared pop-up shell, as the
 ## mock", "White header"): the card is the kit's modal shell (WConfirm's pieces, the mock 10_Consent): the slate panel
 ## R.MODAL_W wide over the 80 % black dim, "★ A QUICK WORD ★" in gold Ultra, PLAY DATA in cream Ultra 72, the words in
 ## white Rubik 500 28, no rule, NO THANKS slate · OK gold 106 tall on the card's foot, the card at least CONSENT_MIN_H
@@ -53,55 +53,8 @@ func _init() -> void:
 
 
 func _build() -> void:
-	if W.royale():
-		_build_royale()
-		return
-	dim = ColorRect.new()
-	dim.name = "Dim"
-	dim.color = W.DIM_ASK
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(dim)
-	card = PanelContainer.new()
-	card.name = "Card"
-	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(50, 44, 50, 44))
-	card.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	card.offset_left = WIDTH_INSET
-	card.offset_right = -WIDTH_INSET
-	card.offset_top = 700
-	add_child(card)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 24)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(v)
-	v.add_child(WStarLine.make("A quick word", 24, W.INK_SOFT))
-	var t := W.text("PLAY DATA", W.slab(), 64, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 64.0, true)
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(t)
-	var b := W.serif_text(body_text(Save.player_name()), 30, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 39.0, true, false)
-	b.name = "Body"
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(b)
-	var rule := ColorRect.new()
-	rule.color = W.INK
-	rule.custom_minimum_size.y = 4
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(rule)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(row)
-	decline_btn = WButton.make(["NO THANKS"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
-	decline_btn.name = "Decline"
-	decline_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	decline_btn.pressed.connect(func(): answer(false))
-	row.add_child(decline_btn)
-	accept_btn = WButton.make(["OK"], 34, WButton.PRIMARY, 5, 8, 26.0, 0.0)
-	accept_btn.name = "Accept"
-	accept_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	accept_btn.pressed.connect(func(): answer(true))
-	row.add_child(accept_btn)
+	_build_royale()
+	return
 
 
 ## The Royale card (pass 123): the kit's modal shell, built from WConfirm's pieces so the card keeps its own names, its
@@ -163,9 +116,7 @@ func _build_royale() -> void:
 ## Where the card's top rests once it has laid out `h` tall in a room `vh` tall: the middle under Wanted, the kit's
 ## R.MODAL_TOP_AT of the room above and below it under Royale (the mock's), never under the camera cutout.
 static func rest_top(h: float, vh: float) -> float:
-	if W.royale():
-		return maxf((vh - h) * R.MODAL_TOP_AT, W.safe_top() + 20.0)
-	return (vh - h) * 0.5
+	return maxf((vh - h) * R.MODAL_TOP_AT, W.safe_top() + 20.0)
 
 
 ## WConfirm's entry: the dim fades in, the card slides up 60 px and fades in, centred once its lines have laid out.

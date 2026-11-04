@@ -1,7 +1,7 @@
 ## The wax seal: rarity as a circle in its colour with an ink border, a darker inset ring and the word in tracked
 ## Bitter 600 paper (COMMON / RARE / EPIC). Also the NEW BEST seal (rock, two lines, turned). No word when `text_size`
 ## is 0 (the collection's 44 px seals).
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the same seal with a navy edge, its fill the kit's rarity base
+## Pass 122 (lane UIKIT_B), under Royale: the same seal with a navy edge, its fill the kit's rarity base
 ## (royale_fill: the Wanted seal colours map to R.RARITY, rock to the red role) and the word in cream Rubik 700.
 class_name WSeal
 extends Control
@@ -56,9 +56,8 @@ static func royale_fill(c: Color) -> Color:
 
 
 func _draw() -> void:
-	var royale := W.royale()
-	var ink := R.NAVY if royale else W.INK
-	var body := royale_fill(fill) if royale else fill
+	var ink := R.NAVY
+	var body := royale_fill(fill)
 	var c := Vector2(side, side) * 0.5
 	var r := side * 0.5
 	if glow > 0.0:
@@ -79,4 +78,4 @@ func _draw() -> void:
 		# letter spacing adds after the last glyph too: centre on the ink, not the advance
 		w -= W.em(text_size, track)
 		var base := y0 + i * lh + (lh - f.get_height(text_size)) * 0.5 + f.get_ascent(text_size)
-		draw_string(f, Vector2(c.x - w * 0.5, base), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, R.text_colour(text_color) if royale else text_color)
+		draw_string(f, Vector2(c.x - w * 0.5, base), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, R.text_colour(text_color))

@@ -333,16 +333,15 @@ func test_pollen_is_one_timed_plate_with_its_seconds_gone_at_zero() -> void:
 	assert_float(Run.boost_left(FlowerField.buff_id("hornet_nest"))).is_equal_approx(5.0, 0.001)
 	hud._refresh_buffs()
 	assert_int(hud._buffs.get_child_count()).is_equal(1)
-	var p: WPlate = hud._buffs.get_child(0)
+	var p = hud._buffs.get_child(0)
 	assert_str(str(p.get_meta("buff"))).is_equal(FlowerField.MUTATION)
 	assert_str(p.level_text).is_equal("5")
 	assert_object(p.tex).is_same(Registry.mutation("pollen").icon)
-	assert_bool(p.fill.is_equal_approx(W.SAGE)).is_true()
 	# a second weapon carrying it (the arena's hand can give both): still one plate, showing the longer of the two
 	Run.add_timed_effects(FlowerField.buff_id("hive_queen"), "Pollen", [], 3.0, true)
 	hud._refresh_buffs()
 	assert_int(hud._buffs.get_child_count()).is_equal(1)
-	assert_str((hud._buffs.get_child(0) as WPlate).level_text).is_equal("5")
+	assert_str(str(hud._buffs.get_child(0).level_text)).is_equal("5")
 	# beside a power-up's plate
 	Run.add_timed_effects("rage", "BERSERK", [], 10.0)
 	hud._refresh_buffs()
@@ -352,7 +351,7 @@ func test_pollen_is_one_timed_plate_with_its_seconds_gone_at_zero() -> void:
 	hud._refresh_buffs()
 	var pollen: Array = hud._buffs.get_children().filter(func(c: Node) -> bool: return str(c.get_meta("buff")) == FlowerField.MUTATION)
 	assert_int(pollen.size()).is_equal(1)
-	assert_str((pollen[0] as WPlate).level_text).is_equal("3")
+	assert_str(str(pollen[0].level_text)).is_equal("3")
 	# ...and goes at 0, before Run.tick_timed has taken the buff off
 	Run.held_time += 3.01
 	hud._refresh_buffs()

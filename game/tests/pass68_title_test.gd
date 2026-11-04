@@ -24,7 +24,7 @@ var _swapped: CharacterDef = null
 
 
 func before_test() -> void:
-	_keep = {"menu_style": Settings.menu_style, "top_inset": Settings.top_inset, "last": Save.data.get("last_character", "")}
+	_keep = {"top_inset": Settings.top_inset, "last": Save.data.get("last_character", "")}
 	Settings.top_inset = -1
 	Save.data = Save._default()
 
@@ -37,7 +37,6 @@ func after_test() -> void:
 	Save.data = Save._default()
 	Save._dirty = false
 	Save.data["last_character"] = _keep["last"]
-	Settings.menu_style = str(_keep["menu_style"])
 	Settings.top_inset = int(_keep["top_inset"])
 	Run.arena = false
 	Run.end()
@@ -177,35 +176,12 @@ func test_the_chosen_look_wins_over_the_json_variant() -> void:
 # ---------------------------------------------------------------- the screens
 
 func _title() -> Control:
-	Settings.menu_style = "painted"
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	await _frames(2)
 	return t
 
 
-func test_the_painted_title_draws_the_played_looks_cut_out() -> void:
-	var c := _built()
-	var t := await _title()
-	t._heroes = [c]
-	t._index = 0
-	t._show_hero(0)
-	# the JSON's look names Astro's cut-out
-	assert_object(t._art.tex).is_same(_tex(DIR + "hero_astro.png"))
-	# the kept look's own
-	Save.set_hero_look("solenne", "SOL-A")
-	t._show_hero(0)
-	assert_object(t._art.tex).is_same(_tex(DIR + "hero_drifter.png"))
-	# a kept look whose file is missing: her own hero_solenne.png
-	Save.set_hero_look("solenne", "SOL-D")
-	t._show_hero(0)
-	assert_object(t._art.tex).is_same(_tex(DIR + "hero_solenne.png"))
-	# a hero with one look: his own hero_<id>.png, as before
-	t._heroes = [_one_look()]
-	t._show_hero(0)
-	assert_object(t._art.tex).is_same(_tex(DIR + "hero_astro.png"))
-	t.visible = false
-	await _frames(1)
 
 
 func _portrait(s: Control) -> Texture2D:

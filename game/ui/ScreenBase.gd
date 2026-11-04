@@ -1,8 +1,7 @@
-## The menu frame (Wanted): a paper wash at 82 % over a still of the desert (art/ui/wanted/menu_backdrop.jpg; plain
-## paper when it is missing), the menu header (a 96 px back square at 36, 44, the name in 72 px slab, the gold plate or
+## The menu frame: the menu backdrop under a dark overlay (below), the menu header (a 96 px back square at 36, 44, the name in 72 px slab, the gold plate or
 ## a count top-right), and one board column from y ~200 that scrolls under a finger only when it has to. The wash fades
 ## in over 200 ms and the board slides up 40 px. Screens fill `content` in build().
-## Pass 123 (lane KIT2), under Royale (W.royale(); Wanted is drawn exactly as before): the menu backdrop (lane BACKDROP's
+## Pass 123 (lane KIT2), under Royale: the menu backdrop (lane BACKDROP's
 ## res://ui/wanted/RoyaleBackdrop.gd, kind backdrop_kind(); the README's sunset drawn plainly while that file is missing)
 ## under a dark overlay of backdrop_dim() in place of the paper wash (it fades in the same 200 ms); the header the mocks'
 ## (WMenuHeader: a slate back square, the name in cream Ultra 64 in capitals, the wallet a black plate); and, for a
@@ -13,7 +12,6 @@ class_name ScreenBase
 extends Control
 
 const TITLE := "res://ui/TitleScreen.tscn"
-const BACKDROP := "res://art/ui/wanted/menu_backdrop.jpg"
 ## Pass 123 (lane KIT2): the Royale backdrop (lane BACKDROP's; no class_name, loaded by path) and the tab bar.
 const ROYALE_BACKDROP := "res://ui/wanted/RoyaleBackdrop.gd"
 const TAB_BAR := "res://ui/wanted/WTabBar.gd"
@@ -44,14 +42,13 @@ func _ready() -> void:
 	# a hub screen never runs paused: a paused tree freezes the list's fade-in and the rows stay invisible
 	get_tree().paused = false
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var royale := W.royale()
 	backdrop = add_backdrop(self, backdrop_kind())
 	# pass 123 (lane KIT2): under Royale a dark overlay in place of the paper wash (the same fade in)
-	wash = W.dim(Color(0, 0, 0, backdrop_dim()) if royale else W.WASH, false)
+	wash = W.dim(Color(0, 0, 0, backdrop_dim()), false)
 	add_child(wash)
-	if royale and board_sheet():
+	if board_sheet():
 		_add_board_sheet()
-	if royale and tab_bar() != "" and ResourceLoader.exists(TAB_BAR):
+	if tab_bar() != "" and ResourceLoader.exists(TAB_BAR):
 		var bar_script = load(TAB_BAR)
 		tab_bar_node = bar_script.make(tab_bar())
 	if use_header():
@@ -102,31 +99,15 @@ func _ready() -> void:
 ## BACKDROP's RoyaleBackdrop, named "RoyaleBackdrop"; its set_dim darkens it) or, while that file is missing, the
 ## README's sunset drawn plainly.
 static func add_backdrop(to: Control, kind: String = "menu") -> Control:
-	if W.royale():
-		var bd: Control = null
-		if ResourceLoader.exists(ROYALE_BACKDROP):
-			var bd_script = load(ROYALE_BACKDROP)
-			bd = bd_script.make(kind)
-		if bd == null:
-			bd = sunset_backdrop()
-		bd.name = "RoyaleBackdrop"
-		to.add_child(bd)
-		return bd
-	var bg := ColorRect.new()
-	bg.color = W.PAPER
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	to.add_child(bg)
-	if ResourceLoader.exists(BACKDROP):
-		var t := TextureRect.new()
-		t.texture = load(BACKDROP)
-		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		t.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		to.add_child(t)
-		return t
-	return bg
+	var bd: Control = null
+	if ResourceLoader.exists(ROYALE_BACKDROP):
+		var bd_script = load(ROYALE_BACKDROP)
+		bd = bd_script.make(kind)
+	if bd == null:
+		bd = sunset_backdrop()
+	bd.name = "RoyaleBackdrop"
+	to.add_child(bd)
+	return bd
 
 
 ## The README's menu sunset as plain bands (pass 123): the fallback while lane BACKDROP's painted one is missing.
@@ -233,7 +214,7 @@ func sheet_insets() -> Rect2:
 
 ## Whether a tab bar sits at the foot (pass 123: Royale, a tab named).
 func has_tab_bar() -> bool:
-	return tab_bar_node != null or (W.royale() and tab_bar() != "" and ResourceLoader.exists(TAB_BAR))
+	return tab_bar_node != null or (tab_bar() != "" and ResourceLoader.exists(TAB_BAR))
 
 
 ## The tab bar's band over the screen's foot (its gesture-bar inset with it; 0 without a bar).

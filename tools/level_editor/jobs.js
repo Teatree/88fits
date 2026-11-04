@@ -33,7 +33,7 @@
 // unnumbered and unmovable, and ▲ / ▼ swap a card with its neighbour on screen (resuming picks among themselves, as the
 // server's jobs.move does); an edit
 // that clears a candidate field sends '' so the server fills it again; the badge and cut-out texts say where the game
-// shows the pick (the cut-out only on the Painted title).
+// shows the pick (the cut-out only on a hero's Wanted poster since pass 124: the main menu draws the strip).
 'use strict';
 
 const Jobs = (() => {
@@ -2328,8 +2328,8 @@ const Jobs = (() => {
     if (p.jk === 'hero_badge') return req + `Round badge candidates, a job of its own after the look with the same Model settings: the hero's words and the new look's front still as the reference. The pick becomes the look's own round icon (variants[CODE].icon)${whereShown('badge') ? ': ' + whereShown('badge') : ''}.`;
     return req + `Title cut-out candidates (660 × 888), a job of its own after the look with the same Model settings: the hero's words, the title pose and the new look's front still as the reference. The pick becomes the look's own cut-out (art/ui/wanted/hero_<id>_<letter>.png, variants[CODE].title)${whereShown('cutout') ? ': ' + whereShown('cutout') : ''}.`;
   }
-  /** Where the game shows a hero look's badge or cut-out (LookGrid.WHERE_SHOWN, looks.js): the cut-out only on the
-   *  Painted title, a debug choice; the default Live title draws the strip. */
+  /** Where the game shows a hero look's badge or cut-out (LookGrid.WHERE_SHOWN, looks.js): the cut-out only on a hero's
+   *  Wanted poster since pass 124; the main menu draws the strip. */
   function whereShown(k) { return typeof LookGrid !== 'undefined' && LookGrid.WHERE_SHOWN && LookGrid.WHERE_SHOWN[k] ? LookGrid.WHERE_SHOWN[k] : ''; }
 
   /** The re-roll modes (D3) of a re-roll form; a new look has nothing of its own to throw away. When the Model settings

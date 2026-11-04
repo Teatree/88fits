@@ -52,19 +52,15 @@ func aim_origin(d: Vector3) -> Vector3:
 """
 
 const DT := 1.0 / 60.0
-
-var _keep_style := ""
 var _keep_last := ""
 
 
 func before_test() -> void:
-	_keep_style = Settings.menu_style
 	_keep_last = str(Save.data.get("last_character", "astro"))
 
 
 func after_test() -> void:
 	Stage.forget()
-	Settings.menu_style = _keep_style
 	Save.data["last_character"] = _keep_last
 
 
@@ -235,7 +231,6 @@ func test_the_punch_comes_once_as_the_beam_starts() -> void:
 # ---------------------------------------------------------------- the title
 
 func _title() -> Control:
-	Settings.menu_style = "live"
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	await get_tree().process_frame
@@ -243,45 +238,3 @@ func _title() -> Control:
 	return t
 
 
-func test_the_title_mouth_faces_the_camera_tipped_back_with_its_glow_hidden_and_turns_smoothly() -> void:
-	var t := await _title()
-	var stage = t._stage
-	stage.show_hero(Registry.character("may"), false, 0)
-	var h = stage.hero
-	assert_str(h.kind).is_equal("LaserBeam")
-	var mouth: Node3D = h._mouth
-	assert_object(mouth).is_not_null()
-	for part in ["Glow", "Floor", "FloorBack"]:
-		assert_bool((mouth.find_child(part, true, false) as Node3D).visible).override_failure_message(part).is_false()
-	var cam: Camera3D = stage.camera
-	var back := cam.global_transform.basis.z
-	back = Vector3(back.x, 0.0, back.z).normalized()
-	var last := Vector3.INF
-	var last_rot := Vector3.INF
-	var steps: Array = []
-	# a whole circle and a bit, frame by frame
-	var frames := int(ceil(TAU / LaserBeam.ORBIT_DEFAULTS["speed"] / DT)) + 30
-	for k in range(frames):
-		h._fly(DT)
-		var fwd := -mouth.global_transform.basis.z.normalized()
-		var flat := Vector3(fwd.x, 0.0, fwd.z).normalized()
-		# facing the camera all the way round, lips tipped up by the run's pitch
-		assert_float(flat.dot(back)).override_failure_message("frame %d: not facing the camera" % k).is_greater(0.999)
-		assert_float(mouth.rotation.x).is_equal_approx(deg_to_rad(LaserBeam.REST_PITCH_DEG), 0.0001)
-		assert_float(h.familiar.rotation.length()).is_equal(0.0)
-		if last_rot != Vector3.INF:
-			assert_float(absf(mouth.rotation.y - last_rot.y)).is_less(0.0001)
-		last_rot = mouth.rotation
-		if last != Vector3.INF:
-			steps.append(h.fam_pos.distance_to(last))
-		last = h.fam_pos
-	# the circle runs at an even pace: no step more than half again the mean (a kick or a jump would be)
-	var total := 0.0
-	var most := 0.0
-	for s: float in steps:
-		total += s
-		most = maxf(most, s)
-	var mean := total / float(steps.size())
-	assert_float(most).is_less(mean * 1.5)
-	# the jaw chews as in play
-	assert_float(h._mouth_jaw.rotation.x).is_between(-deg_to_rad(LaserBeam.CHEW_DEG) - 0.0001, 0.0001)

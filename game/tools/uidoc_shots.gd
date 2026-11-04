@@ -6,28 +6,15 @@ extends SceneTree
 const WATCHDOG_S := 120.0
 var _out := "user://uidoc_shots"
 var _t0 := 0
-## theme=wanted|royale (pass 122, lane UIKIT_A): the UI theme every screen is built in (Settings.ui_theme, set before
-## the first one); "" leaves the save's.
-var _theme := ""
 
 
 func _initialize() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):
 			_out = a.trim_prefix("out=")
-		elif a.begins_with("theme="):
-			_theme = a.trim_prefix("theme=")
 	_t0 = Time.get_ticks_msec()
 	process_frame.connect(_watch)
-	process_frame.connect(_apply_theme, CONNECT_ONE_SHOT)
 	process_frame.connect(_main, CONNECT_ONE_SHOT)
-
-
-## Pass 122: the theme into Settings on the first frame, before _main builds anything (connected first, so it runs first).
-func _apply_theme() -> void:
-	if _theme != "":
-		root.get_node("Settings").set("ui_theme", _theme)
-		print("uidoc_shots: theme ", root.get_node("Settings").get("ui_theme"))
 
 
 func _watch() -> void:

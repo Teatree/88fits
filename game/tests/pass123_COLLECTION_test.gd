@@ -23,21 +23,13 @@ func before() -> void:
 
 func after() -> void:
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func after_test() -> void:
-	Settings.ui_theme = "wanted"
 	Settings.top_inset = int(_settings_before.get("top_inset", -1))
 	CollectionScreen.hidden_only = false
-	W.theme_changed()
 	if Save.sandboxed():
 		Save.end_sandbox()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 ## The screen in the tree, its board slid in (ScreenBase's 0.25 s entrance).
@@ -74,37 +66,11 @@ func _locked_counting(c: CollectionScreen) -> WeaponDef:
 
 # ---------------------------------------------------------------- Wanted is left as it was
 
-func test_wanted_builds_the_collection_as_before() -> void:
-	_royale(false)
-	var c := await _screen()
-	assert_object(c._sheet).is_null()
-	assert_object(c.tab_bar_node).is_null()
-	assert_object(c.find_child("Sheet", false, false)).is_null()
-	assert_bool(c._count_box == c._count).is_true()
-	assert_bool(c._foot_box == c._foot).is_true()
-	assert_str(c._count.text).ends_with(" found")
-	assert_str(c._foot.text).ends_with("kills all time")
-	assert_float(c._tabs.offset_top).is_equal(CollectionScreen.TAB_TOP + W.safe_top())
-	assert_float(c.scroll.offset_top).is_equal_approx(CollectionScreen.GRID_TOP + W.safe_top(), 0.5)
-	# the tiles: the clear WTaps on the paper board, no Royale pieces
-	assert_array(_tiles(c)).is_empty()
-	var taps := c.content.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n is WTap)
-	assert_bool(taps.is_empty()).is_false()
-	assert_float(((taps[0] as WTap).box as HardBox).fill.a).is_equal(0.0)
-	assert_array(c.content.find_children("Silhouette", "", true, false)).is_empty()
-	assert_str((c._tabs._tabs[0] as WTap).get_child(0).get("runs")[0][0]).is_equal("Weapons ")
-	# a page: the paper card at PAGE_TOP, the Wanted gaps
-	c._open_page(Registry.weapon("boomstick"))
-	await get_tree().process_frame
-	assert_float(c.scroll.offset_top).is_equal_approx(CollectionScreen.PAGE_TOP + W.safe_top(), 0.5)
-	assert_bool(c.content.get_child(0) is PanelContainer).is_true()
-	assert_object(c.content.find_child("Card", false, false)).is_null()
 
 
 # ---------------------------------------------------------------- the Royale grid
 
 func test_royale_grid_frame_tabs_plate_and_pill() -> void:
-	_royale(true)
 	var c := await _screen()
 	# the sheet frames the scroll: its edge just outside it, under it in the tree
 	var sheet: PanelContainer = c._sheet
@@ -169,7 +135,6 @@ func test_royale_grid_frame_tabs_plate_and_pill() -> void:
 
 
 func test_royale_tiles_found_and_unfound() -> void:
-	_royale(true)
 	Save.begin_sandbox()
 	Save.data["quests_done"] = []
 	var c := await _screen()
@@ -234,7 +199,6 @@ func test_royale_tiles_found_and_unfound() -> void:
 
 
 func test_royale_tab_switch_and_back() -> void:
-	_royale(true)
 	var c := await _screen()
 	(c._tabs._tabs[2] as WTap).pressed.emit()
 	await get_tree().process_frame
@@ -257,7 +221,6 @@ func test_royale_tab_switch_and_back() -> void:
 # ---------------------------------------------------------------- the Royale item page
 
 func test_royale_weapon_page_on_one_solid_sheet() -> void:
-	_royale(true)
 	var c := await _screen()
 	var w := Registry.weapon("boomstick")
 	c._open_page(w)
@@ -330,7 +293,6 @@ func test_royale_weapon_page_on_one_solid_sheet() -> void:
 
 
 func test_royale_locked_creature_and_passive_pages() -> void:
-	_royale(true)
 	Save.begin_sandbox()
 	Save.data["quests_done"] = []
 	var c := await _screen()
@@ -389,7 +351,6 @@ func test_royale_locked_creature_and_passive_pages() -> void:
 
 
 func test_royale_hidden_list_and_inset() -> void:
-	_royale(true)
 	CollectionScreen.hidden_only = true
 	var c := await _screen()
 	assert_object(c.tab_bar_node).is_null()
@@ -400,7 +361,6 @@ func test_royale_hidden_list_and_inset() -> void:
 	CollectionScreen.hidden_only = false
 	# a camera cutout: the tabs and the sheet move down with it, the back square stays clear
 	Settings.top_inset = 130
-	W.theme_changed()
 	var d := await _screen()
 	assert_float(d._tabs.offset_top).is_equal(CollectionScreen.RY_TAB_TOP + 130.0)
 	assert_float(d._sheet.offset_top).is_equal_approx(CollectionScreen.RY_SHEET_TOP + 130.0, 0.5)
@@ -411,7 +371,6 @@ func test_royale_hidden_list_and_inset() -> void:
 
 
 func test_silhouette_moves_the_icon_into_a_shape() -> void:
-	_royale(true)
 	var p: WPlate = auto_free(WPlate.new().for_def(Registry.weapon("revolver"), 120.0, true, 1))
 	var tex := p.tex
 	CollectionScreen.silhouette(p)

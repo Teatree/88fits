@@ -26,7 +26,6 @@ func before() -> void:
 
 func after() -> void:
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func before_test() -> void:
@@ -38,15 +37,8 @@ func before_test() -> void:
 func after_test() -> void:
 	Registry.character("may").variants = _keep_may
 	Registry.quests.erase(SOLD_QID)
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 	Save.data = Save._default()
 	Save._dirty = false
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _screen() -> Control:
@@ -98,7 +90,6 @@ func _labels(n: Node) -> Array:
 # ---------------------------------------------------------------- the screen
 
 func test_the_screen_builds_in_the_mocks_order_with_the_heroes_tab_open() -> void:
-	_royale(true)
 	Save.data["gold"] = 104711
 	var s := await _screen()
 	assert_object(s.get("tab_bar_node")).is_not_null()
@@ -145,7 +136,6 @@ func test_the_screen_builds_in_the_mocks_order_with_the_heroes_tab_open() -> voi
 
 
 func test_the_shown_hero_is_the_one_runs_start_with_and_his_trait_reads_per_level() -> void:
-	_royale(true)
 	Save.data["last_character"] = "drifter"
 	var s := await _screen()
 	assert_str((s.get("shown") as CharacterDef).id).is_equal("drifter")
@@ -166,7 +156,6 @@ func test_the_shown_hero_is_the_one_runs_start_with_and_his_trait_reads_per_leve
 
 
 func test_his_items_come_from_data_with_the_favourites_bonus_and_the_evolutions_rule() -> void:
-	_royale(true)
 	for c: CharacterDef in Registry.sorted_characters():
 		var list: Array = Sheet.items_of(c, true)
 		assert_str(str((list[0] as Dictionary)["role"])).override_failure_message(c.id).is_equal("start")
@@ -200,7 +189,6 @@ func test_his_items_come_from_data_with_the_favourites_bonus_and_the_evolutions_
 
 
 func test_the_grid_lists_every_hero_the_drawer_does_with_his_state() -> void:
-	_royale(true)
 	Save.data["gold"] = 1200
 	var s := await _screen()
 	var grid: GridContainer = s.find_child("HeroGrid", true, false)
@@ -243,7 +231,6 @@ func test_the_grid_lists_every_hero_the_drawer_does_with_his_state() -> void:
 
 
 func test_a_hero_on_sale_shows_buy_and_one_locked_shows_his_quest() -> void:
-	_royale(true)
 	Save.data["gold"] = 5000
 	var s := await _screen()
 	var iron := _hero("ironwood")
@@ -284,7 +271,6 @@ func test_a_hero_on_sale_shows_buy_and_one_locked_shows_his_quest() -> void:
 
 
 func test_select_makes_him_the_hero_runs_start_with() -> void:
-	_royale(true)
 	Save.data["last_character"] = "drifter"
 	Save.heroes_owned().append("astro")
 	var s := await _screen()
@@ -306,7 +292,6 @@ func test_select_makes_him_the_hero_runs_start_with() -> void:
 
 
 func test_buy_asks_in_green_and_buys_him_once() -> void:
-	_royale(true)
 	var iron := _hero("ironwood")
 	Save.data["gold"] = iron.price + 50
 	var s := await _screen()
@@ -336,7 +321,6 @@ func test_buy_asks_in_green_and_buys_him_once() -> void:
 
 
 func test_the_looks_pop_up_follows_the_sheets_rules() -> void:
-	_royale(true)
 	# the Drifter has one art: his one look, worn
 	Save.data["last_character"] = "drifter"
 	var s := await _screen()
@@ -396,7 +380,6 @@ func test_the_looks_pop_up_follows_the_sheets_rules() -> void:
 
 
 func test_a_hero_not_owned_has_no_looks_button_and_open_looks_does_nothing() -> void:
-	_royale(true)
 	var s := await _screen()
 	s.call("show_hero", _hero("fadeaway"))
 	await get_tree().process_frame
@@ -408,7 +391,6 @@ func test_a_hero_not_owned_has_no_looks_button_and_open_looks_does_nothing() -> 
 
 func test_the_sprite_runs_in_place_down_and_right() -> void:
 	# pass 123 (Garry: "make the live hero visual run in place, down and right")
-	_royale(true)
 	Save.data["last_character"] = "drifter"
 	var s := await _screen()
 	var art := Registry.played_look(_hero("drifter"))
@@ -436,7 +418,6 @@ func test_the_sprite_runs_in_place_down_and_right() -> void:
 
 
 func test_details_opens_the_pop_up_and_back_closes_it_first() -> void:
-	_royale(true)
 	var s := await _screen()
 	(s.find_child("Details", true, false) as WButton).pressed.emit()
 	await get_tree().process_frame
@@ -448,12 +429,6 @@ func test_details_opens_the_pop_up_and_back_closes_it_first() -> void:
 	assert_bool(bool(s.call("sheet_open"))).is_false()
 
 
-func test_the_screen_builds_under_wanted_too() -> void:
-	_royale(false)
-	var s := await _screen()
-	assert_object(s.find_child("HeroGrid", true, false)).is_not_null()
-	assert_object(s.get("tab_bar_node")).is_null()
-	assert_object(s.find_child("Disc", true, false)).is_null()
 
 
 # ---------------------------------------------------------------- the Hero details pop-up
@@ -469,7 +444,6 @@ func _sheet_on(c: CharacterDef, locked: bool) -> Control:
 
 
 func test_the_pop_up_is_the_mocks_shell_without_the_milestone_row() -> void:
-	_royale(true)
 	var dr := _hero("drifter")
 	var sh := await _sheet_on(dr, false)
 	var card: Control = sh.get("card")
@@ -504,7 +478,6 @@ func test_the_pop_up_is_the_mocks_shell_without_the_milestone_row() -> void:
 
 
 func test_the_pop_up_shows_his_looks_and_a_hero_not_owned_is_unknown() -> void:
-	_royale(true)
 	_sell_every_look("may")
 	Save.heroes_owned().append("may")
 	var may := _hero("may")
@@ -524,15 +497,6 @@ func test_the_pop_up_shows_his_looks_and_a_hero_not_owned_is_unknown() -> void:
 	assert_str(v.text).is_equal("?")
 
 
-func test_the_pop_up_under_wanted_is_as_before() -> void:
-	_royale(false)
-	var sh := await _sheet_on(_hero("drifter"), false)
-	assert_object(sh.find_child("Levels", true, false)).is_not_null()
-	var card: Control = sh.get("card")
-	assert_float(card.offset_left).is_equal(Sheet.SIDE)
-	assert_bool((sh.get("dim") as ColorRect).color.is_equal_approx(W.DIM)).is_true()
-	assert_object(sh.find_child("Pills", true, false)).is_null()
-	assert_bool(bool(sh.get("_royale"))).is_false()
 
 
 func test_the_capture_and_audit_tools_carry_the_heroes_states() -> void:

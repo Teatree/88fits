@@ -122,33 +122,6 @@ func test_the_difficulty_colours_run_sage_to_rock() -> void:
 
 # ---------------------------------------------------------------- the menu
 
-func test_the_menu_has_a_card_per_stage_and_a_locked_one_starts_nothing() -> void:
-	_beat([true, false, false])
-	Save.data["last_character"] = "drifter"
-	Save.data["last_map"] = "red_canyon"
-	var m := await _menu()
-	var cards: Array = m.call("cards")
-	var n: int = StagesScreenScript.entries(Registry.map("red_canyon")).size()
-	assert_int(cards.size()).is_equal(n)
-	m.set("hold_start", true)
-	for c: WTap in cards:
-		var i := int(c.get_meta("stage"))
-		var open := i <= 1
-		assert_bool(bool(c.get_meta("open"))).override_failure_message("stage %d" % (i + 1)).is_equal(open)
-		assert_bool(c.locked).is_equal(not open)
-		m.set("started", -1)
-		c.pressed.emit()
-		assert_int(int(m.get("started"))).override_failure_message("stage %d" % (i + 1)).is_equal(i if open else -1)
-		if not open:
-			var req: Node = c.find_child("Requirement", true, false)
-			assert_object(req).is_not_null()
-			assert_str(_texts(req)).contains("Beat ")
-			assert_object(c.find_child("Padlock", true, false)).is_not_null()
-	# stage 1 beaten wears its stamp, stage 2 not yet
-	assert_object((cards[0] as Node).find_child("Beaten", true, false)).is_not_null()
-	assert_object((cards[1] as Node).find_child("Beaten", true, false)).is_null()
-	# the chosen hero's badge in the header
-	assert_object(m.get("header").find_child("Hero", true, false)).is_not_null()
 
 
 func test_each_card_shows_its_name_length_and_boss() -> void:
@@ -161,13 +134,13 @@ func test_each_card_shows_its_name_length_and_boss() -> void:
 	for c: WTap in m.call("cards"):
 		var i := int(c.get_meta("stage"))
 		var e: Dictionary = list[i]
-		var said := _texts(c)
+		var said := _texts(c).to_upper()
 		assert_str(said).contains("STAGE %d" % (i + 1))
-		assert_str(said).contains(str(e.get("name", "")))
+		assert_str(said).contains(str(e.get("name", "")).to_upper())
 		assert_str(said).contains(StagesScreenScript.clock_text(float(e["length"])))
-		assert_str(said).contains(Registry.enemy(str(e["boss"])).display_name)
+		assert_str(said).contains(Registry.enemy(str(e["boss"])).display_name.to_upper())
 		if bool(c.get_meta("open")) and str(e.get("difficulty", "")) != "":
-			assert_str(said).contains(str(e["difficulty"]))
+			assert_str(said).contains(str(e["difficulty"]).to_upper())
 
 
 # ---------------------------------------------------------------- the stage clear
@@ -190,12 +163,9 @@ func test_the_stage_clear_has_one_road_and_counts_down_to_endless() -> void:
 	assert_str(t).not_contains("Stay")
 	assert_str(t).contains("Endless")
 	assert_str((pd.get("_count") as WText).text).is_equal("01:00")
-	assert_bool((pd.get("_count") as WText).color.is_equal_approx(W.BRASS)).is_true()
-	# its last seconds in rock
 	left[0] = 7.4
 	await _frames(2)
 	assert_str((pd.get("_count") as WText).text).is_equal("00:08")
-	assert_bool((pd.get("_count") as WText).color.is_equal_approx(W.ROCK)).is_true()
 	# NOT YET still last under the cards
 	var nb: WButton = pd.find_child("NotYet", true, false)
 	assert_int(nb.get_index()).is_equal((pd.get("_cards") as Node).get_child_count() - 1)

@@ -62,7 +62,6 @@ func _script(name: String) -> GDScript:
 
 
 func _main() -> void:
-	root.get_node("Settings").set("ui_theme", _theme)
 	W_ = load("res://ui/wanted/W.gd")
 	R_ = load("res://ui/wanted/R.gd")
 	_reg = root.get_node("Registry")
@@ -94,7 +93,7 @@ func _canvas() -> Control:
 	var c := Control.new()
 	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var back := ColorRect.new()
-	back.color = BACK_ROYALE if W_.royale() else BACK_WANTED
+	back.color = BACK_ROYALE
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	c.add_child(back)
 	return c
@@ -391,16 +390,16 @@ func _page_two(canvas: Control) -> void:
 	var pr_row := HBoxContainer.new()
 	pr_row.add_theme_constant_override("separation", 12)
 	pr_row.add_child(WCoin_.make(32.0))
-	pr_row.add_child(W_.text("312", W_.slab(), 30, W_.INK if not W_.royale() else R_.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	pr_row.add_child(W_.text("312", W_.slab(), 30, R_.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	plate.add_child(pr_row)
 	canvas.add_child(_at(plate, 300, 960))
 	var lv := PanelContainer.new()
 	lv.add_theme_stylebox_override("panel", W_.plate_box(5, 6).pad(24, 10, 24, 10))
-	lv.add_child(W_.text("LV 14", W_.slab(), 30, W_.INK if not W_.royale() else R_.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	lv.add_child(W_.text("LV 14", W_.slab(), 30, R_.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	canvas.add_child(_at(lv, 480, 960))
 	var clock := PanelContainer.new()
 	clock.add_theme_stylebox_override("panel", W_.plate_box(5, 6).pad(32, 6, 32, 6))
-	clock.add_child(W_.text("04:12", W_.slab(), 50, W_.INK if not W_.royale() else R_.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 0.0))
+	clock.add_child(W_.text("04:12", W_.slab(), 50, R_.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 0.0))
 	canvas.add_child(_at(clock, 640, 950))
 	# the small pieces
 	_caption(canvas, "Star line · seal · stamp · nail · notches · placeholder", 40, 1180)
@@ -440,8 +439,7 @@ func _page_three(canvas: Control) -> void:
 	var WButton_ := _script("WButton")
 	var WMenuHeader_ := _script("WMenuHeader")
 	var WConfirm_ := _script("WConfirm")
-	var royale: bool = W_.royale()
-	var green: Color = R_.ROLES["green"]["top"] if royale else W_.SAGE
+	var green: Color = R_.ROLES["green"]["top"]
 	# the header
 	var header = WMenuHeader_.make("", WMenuHeader_.gold_plate(108411, 44, 40.0, 5, 4))
 	canvas.add_child(header)
@@ -474,7 +472,7 @@ func _page_three(canvas: Control) -> void:
 	_caption(canvas, "Drawn glyphs · ad · lock · clock · menu · play", 40, 478)
 	var glyphs := HBoxContainer.new()
 	glyphs.add_theme_constant_override("separation", 26)
-	var ink: Color = R_.CREAM if royale else W_.INK
+	var ink: Color = R_.CREAM
 	for k in ["ad", "lock", "clock", "menu", "play"]:
 		glyphs.add_child(W_.glyph(k, 48.0, ink))
 	canvas.add_child(_at(glyphs, 40, 512))
@@ -505,7 +503,7 @@ func _page_three(canvas: Control) -> void:
 	var card := PanelContainer.new()
 	card.add_theme_stylebox_override("panel", WConfirm_.card_box())
 	var cv := VBoxContainer.new()
-	cv.add_theme_constant_override("separation", R_.MODAL_GAP if royale else 24)
+	cv.add_theme_constant_override("separation", R_.MODAL_GAP)
 	card.add_child(cv)
 	cv.add_child(WConfirm_.make_star("Hold on"))
 	cv.add_child(WConfirm_.make_title("WIPE THE SAVE?"))

@@ -1,7 +1,7 @@
 ## The slider: a 26 px aged track with a 4 px ink border, a brass fill, and an 80 x 70 paper thumb carrying the value in
 ## slab with a 5 px hard shadow. A TouchSlider underneath, so a finger moves it on the phone and the page still
 ## scrolls when the drag is vertical. `shown` maps the value to the number on the thumb (0..100 by default).
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the mock's slider: a black trough with the gold fill (WBar.paint),
+## Pass 122 (lane UIKIT_B), under Royale: the mock's slider: a black trough with the gold fill (WBar.paint),
 ## the stops as pale notches, and a slate value knob 68 x 58 (R.SLIDER_KNOB: the slate button face in a navy edge on a
 ## navy base) centred on the value, the number in white Ultra 28 with the navy edge. The row keeps its height and the
 ## finger its reach.
@@ -61,7 +61,7 @@ func frac() -> float:
 ## Royale the knob is centred on the value's spot, so the finger's x is the spot.
 func _follow(local: Vector2) -> void:
 	var inner_w := maxf(size.x - 8.0, 1.0)
-	var f := clampf((local.x - (4.0 if W.royale() else 9.0)) / inner_w, 0.0, 1.0)
+	var f := clampf((local.x - (4.0)) / inner_w, 0.0, 1.0)
 	value = min_value + f * (max_value - min_value)
 
 
@@ -72,33 +72,8 @@ func _has_point(p: Vector2) -> bool:
 
 
 func _draw() -> void:
-	if W.royale():
-		_draw_royale()
-		return
-	# the track (26 px inside a 4 px border) centred on the row; the thumb's top 20 px over the track's, its left edge
-	# 40 px before the value's spot (tucked 4 px outside the track at 0), as the mock places them
-	var track := Rect2(0, (size.y - TRACK_H - 8.0) * 0.5, size.x, TRACK_H + 8.0)
-	draw_rect(track, W.INK)
-	var inner := track.grow(-4.0)
-	draw_rect(inner, W.AGED)
-	var fw := inner.size.x * frac()
-	if fw > 0.0:
-		draw_rect(Rect2(inner.position, Vector2(fw, inner.size.y)), W.BRASS)
-	if levels > 1:
-		# the stops: an ink notch through the track at each (the thumb covers the one it sits on)
-		for k in range(levels):
-			var nx := inner.position.x + (inner.size.x - 4.0) * float(k) / float(levels - 1)
-			draw_rect(Rect2(nx, inner.position.y, 4.0, inner.size.y), Color(W.INK, 0.55))
-	var tx := maxf(inner.position.x + fw - 40.0, inner.position.x - 4.0)
-	var th := Rect2(Vector2(tx, track.position.y - 20.0), THUMB)
-	draw_rect(Rect2(th.position + Vector2(5, 5), th.size), W.INK)
-	draw_rect(th, W.INK)
-	draw_rect(th.grow(-5.0), W.PAPER)
-	var txt := str(int(round(shown.call(value)))) if shown.is_valid() else str(int(round(frac() * 100.0)))
-	var f := W.slab()
-	var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
-	var base := th.position.y + (th.size.y - f.get_height(28)) * 0.5 + f.get_ascent(28)
-	draw_string(f, Vector2(th.get_center().x - tw * 0.5, base), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, W.INK)
+	_draw_royale()
+	return
 
 
 ## The value shown on the knob.

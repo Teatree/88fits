@@ -290,9 +290,7 @@ func _migrate_3_to_4() -> void:
 ## live heroes". Every save written under pass 52 holds "painted" (to_dict wrote the default), so the new default alone
 ## would not reach a phone; from here on the developer menu's switch sticks. Runs before load_save hands the settings on.
 func _migrate_4_to_5() -> void:
-	if not (data.get("settings") is Dictionary):
-		data["settings"] = {}
-	(data["settings"] as Dictionary)["menu_style"] = Settings.MENU_STYLE_DEFAULT
+	pass
 
 
 ## Pass 119 (lane LOADUI; Garry: "Let's set the "Painted" option as default for now, while keeping the buttons in the
@@ -305,9 +303,6 @@ const PAINTED_ONCE := "menu_painted_v119"
 func _migrate_painted() -> void:
 	if once(PAINTED_ONCE):
 		return
-	if not (data.get("settings") is Dictionary):
-		data["settings"] = {}
-	(data["settings"] as Dictionary)["menu_style"] = Settings.MENU_STYLE_DEFAULT
 	mark_once(PAINTED_ONCE)
 
 

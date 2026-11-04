@@ -195,9 +195,8 @@ func _draw_light(mouth: Vector2) -> void:
 	var turn := t * 0.6
 	var grow := clampf((t - OPEN) / RAYS_GROW, 0.0, 1.0)
 	grow = 0.12 + 0.88 * (1.0 - pow(1.0 - grow, 3.0))
-	var royale := W.royale()
-	var brass: Color = R.role("gold")["bottom"] if royale else W.BRASS
-	var paper: Color = R.CREAM if royale else W.PAPER
+	var brass: Color = R.role("gold")["bottom"]
+	var paper: Color = R.CREAM
 	for k in 9:
 		var ang := -PI * 0.5 + (float(k) - 4.0) * 0.19 + sin(turn + k * 1.3) * 0.03
 		var half := 0.05 + 0.02 * sin(k * 1.7)

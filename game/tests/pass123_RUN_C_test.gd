@@ -27,7 +27,6 @@ func before() -> void:
 func after() -> void:
 	Settings.force_prod(false)
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func before_test() -> void:
@@ -35,17 +34,10 @@ func before_test() -> void:
 
 
 func after_test() -> void:
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 	get_tree().paused = false
 	Run.end()
 	if Save.sandboxed():
 		Save.end_sandbox()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _frames(n: int) -> void:
@@ -98,7 +90,6 @@ func _words(n: Node) -> String:
 
 func test_the_royale_mutation_offer_is_the_mocks_structure() -> void:
 	_start()
-	_royale(true)
 	var cs: CardScreen = auto_free(CardScreen.new())
 	add_child(cs)
 	await _path_offer(cs)
@@ -140,7 +131,7 @@ func test_the_royale_mutation_offer_is_the_mocks_structure() -> void:
 		assert_str(card.plate.frame_rarity()).is_equal("mutation")
 		var wl := card.find_child("WordLine", true, false)
 		var wt := wl.get_child(0) as WText
-		assert_bool((wt.runs[0][1] as Color).is_equal_approx(R.MUTATION["light"])).is_true()
+		assert_bool((wt.runs[0][1] as Color).is_equal_approx(R.MUTATION["word"])).is_true()
 		assert_int(card.effect_text.font_size).is_equal(CardScreen.ROYALE_PATH_TEXT_PX)
 		assert_float(card.size.y).is_equal_approx(h0, 1.0)
 		assert_float(card.size.y).is_less_equal(CardScreen.ROYALE_PATH_CARD_H + 0.5)
@@ -176,61 +167,16 @@ func test_the_royale_mutation_offer_is_the_mocks_structure() -> void:
 
 # ---------------------------------------------------------------- 2. Wanted keeps today's
 
-func test_the_wanted_mutation_offer_is_todays() -> void:
-	_start()
-	_royale(false)
-	var cs: CardScreen = auto_free(CardScreen.new())
-	add_child(cs)
-	await _path_offer(cs)
-	assert_float(cs._path_plate.side).is_equal(272.0)
-	assert_str(str(cs._path_row.name)).is_not_equal("CountPlates")
-	assert_object(cs._path_row.find_child("MutationPill", true, false)).is_null()
-	assert_float(cs._list.get_global_rect().position.x).is_equal_approx(48.0, 0.5)
-	assert_float(cs._path_skip.get_global_rect().size.x).is_equal_approx(430.0, 0.5)
-	assert_bool(cs._skips_box.visible).is_false()
-	assert_str(cs._path_skip.label_text()).is_equal("SKIP ×2")
-	for c in cs._cards:
-		assert_float((c as WCard).plate.side).is_equal(170.0)
-	# a spent skip says so under the head, as before
-	Run.skips_left = 0
-	cs._refresh_buttons()
-	cs._skip()
-	assert_bool(cs._path_note.visible).is_true()
-	assert_str(cs._path_note.text).is_equal("No skips left this stage.")
-	assert_bool(cs._skips_box.visible).is_false()
-	cs.visible = false
-	await _frames(1)
 
 
 # ---------------------------------------------------------------- 3. a theme flip rebuilds the skip in its place
 
-func test_a_theme_flip_rebuilds_the_mutation_skip_in_its_place() -> void:
-	_start()
-	_royale(false)
-	var cs: CardScreen = auto_free(CardScreen.new())
-	add_child(cs)
-	await _path_offer(cs)
-	assert_float(cs._path_skip.get_global_rect().size.x).is_equal_approx(430.0, 0.5)
-	assert_int(cs._path_note.get_index()).is_equal(cs._path_skip.get_index() + 1)
-	_royale(true)
-	await _path_offer(cs)
-	assert_float(cs._path_skip.get_global_rect().size.x).is_equal_approx(CardScreen.ROYALE_SKIP_W, 0.5)
-	assert_int(cs._path_note.get_index()).is_equal(cs._path_skip.get_index() + 1)
-	assert_str(cs._path_skip.label_text()).is_equal("SKIP×2")
-	assert_bool(cs._skips_box.visible).is_true()
-	_royale(false)
-	await _path_offer(cs)
-	assert_float(cs._path_skip.get_global_rect().size.x).is_equal_approx(430.0, 0.5)
-	assert_bool(cs._skips_box.visible).is_false()
-	cs.visible = false
-	await _frames(1)
 
 
 # ---------------------------------------------------------------- 4. the play-data card in the shell
 
 func test_the_play_data_card_is_the_shell_under_royale() -> void:
 	Save.data["consent"] = ""
-	_royale(true)
 	var host := _host()
 	var card: Control = CONSENT.open(host)
 	await _frames(3)
@@ -277,22 +223,11 @@ func test_the_play_data_card_is_the_shell_under_royale() -> void:
 	assert_bool(bool(card.call("is_done"))).is_false()
 
 
-func test_the_play_data_card_is_todays_under_wanted() -> void:
-	Save.data["consent"] = ""
-	_royale(false)
-	var host := _host()
-	var card: Control = CONSENT.open(host)
-	await _frames(3)
-	var panel: PanelContainer = card.get("card")
-	assert_float(panel.size.x).is_equal_approx(1080.0 - 2.0 * CONSENT.WIDTH_INSET, 0.5)
-	assert_bool((card.get("dim") as ColorRect).color.is_equal_approx(W.DIM_ASK)).is_true()
-	assert_float(CONSENT.rest_top(500.0, 1920.0)).is_equal_approx(710.0, 0.01)
 
 
 # ---------------------------------------------------------------- 5. the survey card in the shell
 
 func test_the_survey_is_the_shell_under_royale() -> void:
-	_royale(true)
 	var host := _host()
 	var card: Control = SURVEY.open(host, SV.duplicate(true))
 	await _frames(3)
@@ -352,19 +287,6 @@ func test_the_survey_is_the_shell_under_royale() -> void:
 	assert_str(nxt.label_text()).is_equal("SEND")
 
 
-func test_the_survey_is_todays_under_wanted() -> void:
-	_royale(false)
-	var host := _host()
-	var card: Control = SURVEY.open(host, SV.duplicate(true))
-	await _frames(3)
-	var panel: PanelContainer = card.get("card")
-	assert_float(panel.size.x).is_equal_approx(1080.0 - 2.0 * SURVEY.WIDTH_INSET, 0.5)
-	assert_float(float(card.get("_base_top"))).is_equal_approx(SURVEY.CARD_TOP + W.safe_top(), 0.5)
-	var r4: WButton = card.find_child("Rate4", true, false)
-	r4.pressed.emit()
-	assert_bool((r4.box as HardBox).fill.is_equal_approx(W.BRASS)).is_true()
-	var never: Control = card.find_child("NeverAsk", true, false)
-	assert_bool((never.get_child(0) as WText).underline).is_false()
 
 
 # ---------------------------------------------------------------- 6. the War Drum's moment
@@ -373,8 +295,7 @@ func test_the_drum_moment_plays_its_beats_under_both_themes() -> void:
 	var d: StructureDef = Registry.structure("war_drum")
 	assert_object(d).is_not_null()
 	var hits: int = (d.params["moment"]["hits"] as Array).size()
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var dm: DrumMoment = auto_free(DrumMoment.new())
 		add_child(dm)
 		dm.open(d, "x2 damage · 15 seconds")
@@ -400,8 +321,7 @@ func test_the_drum_moment_plays_its_beats_under_both_themes() -> void:
 
 func test_the_grind_moment_wears_the_kits_frame_under_royale() -> void:
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		# a level: the Boomstick 2 -> 3, stamped
 		var gm: Control = auto_free(GRIND.new())
 		add_child(gm)

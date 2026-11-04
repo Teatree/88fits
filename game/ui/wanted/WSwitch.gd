@@ -61,23 +61,16 @@ func _notification(what: int) -> void:
 
 func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, custom_minimum_size)
-	if W.royale():
-		var s := R.TOGGLE_SIZE
-		var o := Vector2(r.size.x - s.x, (r.size.y - s.y) * 0.5)
-		var ci := get_canvas_item()
-		var e := float(R.TOGGLE_EDGE)
-		R.flat(R.NAVY, R.RADIUS).draw(ci, Rect2(o, s))
-		var face: Color = R.role("gold")["bottom"] if on else R.role("slate")["bottom"]
-		R.flat(face, R.RADIUS - R.TOGGLE_EDGE).draw(ci, Rect2(o + Vector2(e, e), s - Vector2(2 * e, 2 * e)))
-		R.lip(ci, Rect2(o + Vector2(e, e), s - Vector2(2 * e, 2 * e)), R.BUTTON_LIP, 2)
-		var kn := float(R.TOGGLE_KNOB)
-		var inset := (s.y - kn) * 0.5
-		var k := Rect2(o + Vector2(s.x - inset - kn if on else inset, inset), Vector2(kn, kn))
-		R.flat(R.WHITE, R.RADIUS_TAG).draw(ci, k)
-		return
-	draw_rect(r, W.INK)
-	draw_rect(r.grow(-5.0), W.BRASS if on else W.AGED)
-	# the knob sits 5 px inside the 5 px border (the mock's right:5px / left:5px on the padding box)
-	var k := Rect2(Vector2(r.size.x - 10.0 - 50.0 if on else 10.0, 10.0), Vector2(50, 50))
-	draw_rect(k, W.INK)
-	draw_rect(k.grow(-5.0), W.PAPER)
+	var s := R.TOGGLE_SIZE
+	var o := Vector2(r.size.x - s.x, (r.size.y - s.y) * 0.5)
+	var ci := get_canvas_item()
+	var e := float(R.TOGGLE_EDGE)
+	R.flat(R.NAVY, R.RADIUS).draw(ci, Rect2(o, s))
+	var face: Color = R.role("gold")["bottom"] if on else R.role("slate")["bottom"]
+	R.flat(face, R.RADIUS - R.TOGGLE_EDGE).draw(ci, Rect2(o + Vector2(e, e), s - Vector2(2 * e, 2 * e)))
+	R.lip(ci, Rect2(o + Vector2(e, e), s - Vector2(2 * e, 2 * e)), R.BUTTON_LIP, 2)
+	var kn := float(R.TOGGLE_KNOB)
+	var inset := (s.y - kn) * 0.5
+	var k := Rect2(o + Vector2(s.x - inset - kn if on else inset, inset), Vector2(kn, kn))
+	R.flat(R.WHITE, R.RADIUS_TAG).draw(ci, k)
+	return

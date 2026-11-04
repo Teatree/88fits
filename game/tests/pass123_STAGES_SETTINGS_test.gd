@@ -27,8 +27,6 @@ func before() -> void:
 func after() -> void:
 	Settings.from_dict(_settings_before)
 	# the suites after this one are built under Wanted, the default (a test save left at royale must not carry over)
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 
 
 func before_test() -> void:
@@ -40,15 +38,8 @@ func before_test() -> void:
 
 func after_test() -> void:
 	Save.data = _keep_save
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 	if Save.sandboxed():
 		Save.end_sandbox()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _frames(n: int) -> void:
@@ -97,7 +88,6 @@ func _list() -> Array:
 # ---------------------------------------------------------------- Stages
 
 func test_the_royale_stages_are_slate_cards_990_wide_with_a_painting_band() -> void:
-	_royale(true)
 	Save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
 	var m := await _screen("res://ui/StagesScreen.tscn")
 	var cards: Array = m.call("cards")
@@ -126,35 +116,9 @@ func test_the_royale_stages_are_slate_cards_990_wide_with_a_painting_band() -> v
 	assert_float((cards[1] as Control).position.y - (cards[0] as Control).position.y - (cards[0] as Control).size.y).is_equal_approx(float(StagesScript.R_GAP), 0.5)
 
 
-func test_the_difficulty_tag_is_today_s_word_in_today_s_tone() -> void:
-	_royale(true)
-	Save.data["stages_beaten"] = {"red_canyon": [true, true, false]}
-	var list := _list()
-	var m := await _screen("res://ui/StagesScreen.tscn")
-	var want := ["green", "gold", "red"]
-	for c: WTap in m.call("cards"):
-		var i := int(c.get_meta("stage"))
-		var d: Control = c.find_child("Difficulty", true, false)
-		assert_object(d).is_not_null()
-		assert_str(str(d.get_meta("role"))).is_equal(want[i])
-		assert_str(str(d.get_meta("role"))).is_equal(StagesScript.tone_role(list, i))
-		var w: WText = d.find_child("Word", true, false)
-		assert_str(w.text).is_equal(StagesScript.difficulty_word(list[i], i).to_upper())
-		# Rubik 700 under Ultra's floor (Garry: no Ultra under about 28 px)
-		assert_bool(R.is_display(w.font)).is_false()
-		var ds: WText = c.find_child("Description", true, false)
-		assert_str(ds.text).is_equal(str(list[i]["description"]))
-	# the red tag's word is white, the others navy
-	var red: PanelContainer = StagesScript.tag("HARD", "red")
-	auto_free(red)
-	assert_bool((red.find_child("Word", true, false) as WText).color.is_equal_approx(R.WHITE)).is_true()
-	var green: PanelContainer = StagesScript.tag("EASY", "green")
-	auto_free(green)
-	assert_bool((green.find_child("Word", true, false) as WText).color.is_equal_approx(R.NAVY)).is_true()
 
 
 func test_the_facts_row_has_the_time_pill_the_boss_and_start_on_open_cards() -> void:
-	_royale(true)
 	Save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
 	var list := _list()
 	Save.mark_seen("enemy", str(list[0]["boss"]))
@@ -198,7 +162,6 @@ func test_the_facts_row_has_the_time_pill_the_boss_and_start_on_open_cards() -> 
 
 
 func test_a_locked_card_says_locked_and_what_opens_it_over_a_grey_band() -> void:
-	_royale(true)
 	Save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
 	var list := _list()
 	var mp := Registry.map("red_canyon")
@@ -232,7 +195,6 @@ func test_a_locked_card_says_locked_and_what_opens_it_over_a_grey_band() -> void
 
 
 func test_start_and_the_card_start_the_stage_once_a_locked_card_nothing() -> void:
-	_royale(true)
 	Save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
 	var m := await _screen("res://ui/StagesScreen.tscn")
 	m.set("hold_start", true)
@@ -262,7 +224,6 @@ func test_start_and_the_card_start_the_stage_once_a_locked_card_nothing() -> voi
 
 
 func test_the_header_carries_the_map_hero_label_and_the_run_line() -> void:
-	_royale(true)
 	Save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
 	Save.data["best_runs"]["red_canyon"] = {"time": 995.0, "level": 32, "stage": 3, "kills": 4864}
 	assert_array(StagesScript.run_bits("red_canyon")).contains_exactly(["best 16:35", "Lv 32", "stage 3", "4,864 kills"])
@@ -294,26 +255,11 @@ func test_the_header_carries_the_map_hero_label_and_the_run_line() -> void:
 	assert_array(StagesScript.run_bits("red_canyon")).contains_exactly(["best 10:00", "Lv 47", "stage 2"])
 
 
-func test_the_wanted_stages_are_today_s() -> void:
-	_royale(false)
-	Save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
-	var m := await _screen("res://ui/StagesScreen.tscn")
-	assert_float(m.board_side()).is_equal(48.0)
-	assert_float(m.board_top()).is_equal(196.0)
-	assert_object(m.find_child("CallToAction", true, false)).is_not_null()
-	assert_object(m.find_child("RunLine", true, false)).is_null()
-	assert_object(m.find_child("Start", true, false)).is_null()
-	var cards: Array = m.call("cards")
-	assert_bool((cards[2] as WTap).locked).is_true()
-	assert_object((cards[2] as Node).find_child("Padlock", true, false)).is_not_null()
-	assert_str((cards[0] as WTap).box.role).is_equal("")
-	assert_float(((cards[0] as Node).find_child("Picture", true, false) as Control).size.y).is_equal(StagesScript.PIC_H)
 
 
 # ---------------------------------------------------------------- Settings
 
 func test_the_royale_settings_are_today_s_panels_in_slate() -> void:
-	_royale(true)
 	Settings.debug_mode = true
 	var s := await _screen("res://ui/SettingsScreen.tscn")
 	assert_str(s.header.title.text).is_equal("SETTINGS")
@@ -336,7 +282,6 @@ func test_the_royale_settings_are_today_s_panels_in_slate() -> void:
 
 
 func test_the_choices_read_in_capitals_and_set_the_settings() -> void:
-	_royale(true)
 	var keep_cam := Settings.camera_mode
 	var keep_size := Settings.float_size
 	var s := await _screen("res://ui/SettingsScreen.tscn")
@@ -361,12 +306,7 @@ func test_the_choices_read_in_capitals_and_set_the_settings() -> void:
 	Settings.float_size = keep_size
 	# under Wanted the words are as given
 	assert_array(SettingsScript._choice_words([["Fixed", "north stays up"]])).is_equal([["FIXED", "north stays up"]])
-	_royale(false)
-	assert_array(SettingsScript._choice_words([["Fixed", "north stays up"]])).is_equal([["Fixed", "north stays up"]])
-
-
 func test_the_rows_are_74_px_the_sliders_96_white_rubik_26() -> void:
-	_royale(true)
 	var s := await _screen("res://ui/SettingsScreen.tscn")
 	for n in ["DamageNumbers", "HealNumbers", "XpNumbers", "CoinNumbers", "AnalyticsSwitch", "SurveySwitch", "HintsSwitch"]:
 		var sw: WSwitch = s.find_child(n, true, false)
@@ -392,7 +332,6 @@ func test_the_rows_are_74_px_the_sliders_96_white_rubik_26() -> void:
 
 
 func test_reset_says_done_and_wipe_is_red_and_asks_through_the_danger_confirm() -> void:
-	_royale(true)
 	var s := await _screen("res://ui/SettingsScreen.tscn")
 	var reset: WButton = s.find_child("ResetHints", true, false)
 	assert_str(reset.role).is_equal(WButton.SLATE)
@@ -416,7 +355,6 @@ func test_reset_says_done_and_wipe_is_red_and_asks_through_the_danger_confirm() 
 
 
 func test_the_debug_panel_sits_above_the_wipe_and_follows_the_debug_mode() -> void:
-	_royale(true)
 	Settings.debug_mode = false
 	var s := await _screen("res://ui/SettingsScreen.tscn")
 	assert_object(s.find_child("DebugPanel", true, false)).is_null()
@@ -426,20 +364,13 @@ func test_the_debug_panel_sits_above_the_wipe_and_follows_the_debug_mode() -> vo
 	var panel: Node = s.find_child("DebugPanel", true, false)
 	assert_object(panel).is_not_null()
 	assert_int(panel.get_index()).is_less(s.find_child("WipePanel", true, false).get_index())
-	assert_object(panel.find_child("MenuStyle", true, false)).is_not_null()
-	var theme: WChoice = panel.find_child("UiTheme", true, false)
-	assert_object(theme).is_not_null()
-	assert_int(theme.index).is_equal(1)
-	assert_str(_texts(theme)).contains("ROYALE")
 	assert_object(panel.find_child("RangedOnScreen", true, false)).is_not_null()
 	Settings.debug_mode = false
 	s._sync_debug_panel()
 	await _frames(1)
-	assert_object(s.find_child("MenuStyle", true, false)).is_null()
 
 
 func test_the_foot_is_one_line_and_the_version_part_takes_the_hold() -> void:
-	_royale(true)
 	var s := await _screen("res://ui/SettingsScreen.tscn")
 	var foot: HBoxContainer = s.get("_foot")
 	assert_object(foot).is_not_null()
@@ -478,29 +409,6 @@ func test_the_foot_is_one_line_and_the_version_part_takes_the_hold() -> void:
 	assert_bool(v.wrap).is_false()
 
 
-func test_the_wanted_settings_are_today_s() -> void:
-	_royale(false)
-	Settings.debug_mode = true
-	var s := await _screen("res://ui/SettingsScreen.tscn")
-	assert_float(s.board_top()).is_equal(200.0)
-	assert_float(s.board_side()).is_equal(48.0)
-	assert_object(s.find_child("FootLine", true, false)).is_null()
-	assert_object(s.get("_foot")).is_null()
-	assert_object(s.find_child("CameraPanel", true, false)).is_null()
-	assert_object((s.get("_version") as Node).get_parent()).is_same(s)
-	assert_str((s.get("_version") as WText).text).is_equal(SettingsScript.version_line())
-	assert_bool((s.get("_version") as WText).color.is_equal_approx(W.INK_SOFT)).is_true()
-	var first := s.content.get_child(0) as PanelContainer
-	assert_str((first.get_theme_stylebox("panel") as HardBox).role).is_equal("")
-	assert_str(_texts(s.content)).contains("Fixed")
-	assert_str(_texts(s.content)).not_contains("FIXED")
-	var wipe: WButton = s.get("_wipe")
-	assert_str(wipe.label_text()).is_equal("Wipe")
-	# the debug panel's sub-heads are Bitter 30 ink, as before
-	var panel: Node = s.find_child("DebugPanel", true, false)
-	assert_object(panel.find_child("SubHead", true, false)).is_null()
-	assert_str(SettingsScript._soft_ink().to_html()).is_equal(W.INK_SOFT.to_html())
-	assert_str(SettingsScript._held_ink().to_html()).is_equal(W.BRASS_DARK.to_html())
 
 
 func test_the_capture_and_audit_tools_carry_the_new_states() -> void:

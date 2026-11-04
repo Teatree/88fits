@@ -30,32 +30,6 @@ var hit_log: bool = false
 var preview_locked_heroes: bool = false
 ## The top inset the UI keeps clear of a camera cutout, in design px: -1 = what the phone reports (W.safe_top).
 var top_inset: int = -1
-## The title's look (pass 52, Garry: "a button in the Settings that's only available if the Debug mode is on ... switching
-## between those 2 Main Menu versions"): "painted", the hero's painted cut-out over the still of the desert, or "live",
-## the level itself behind the title with the hero standing in it as a run draws him and his weapon circling him
-## (ui/TitleStage.gd). Settings shows the choice only while debug_mode is on; the title reads it each time it is built.
-## "live" was the default from pass 53 (Garry: "By default set the Main Menu to be the new one - the one with the live
-## heroes"). Pass 119 (lane LOADUI; Garry: "Let's set the "Painted" option as default for now, while keeping the buttons
-## in the Settings for the Debug version of course"): "painted" is the default; every save is switched to it once
-## (Save._migrate_painted, the once-flag Save.PAINTED_ONCE: a save holds "live", written by to_dict under the old
-## default), the debug panel's pick sticks after that, and anything but the two names reads as painted. The production
-## build has no choice: PROD_LOCKED holds it at the default and the title never builds the live look there.
-const MENU_STYLES := ["painted", "live"]
-const MENU_STYLE_DEFAULT := "painted"
-var menu_style: String = MENU_STYLE_DEFAULT:
-	set(v):
-		menu_style = str(v) if MENU_STYLES.has(str(v)) else MENU_STYLE_DEFAULT
-## The UI theme (pass 122, lane UIKIT_A; Garry's build brief of 2026-11-02: Claude Design's "Royale, refined" as a SECOND
-## THEME behind a switch, Wanted the default): "wanted", today's paper, ink and brass kit, or "royale", the slate, navy
-## and gold kit the Wanted components switch to while W.royale() is true (ui/wanted/R.gd holds its tokens). Shown in
-## the developer menu, in Settings' Debug panel beside the Painted / Live choice and in the in-run debug panel; saved
-## with the other settings; anything but the two names reads as wanted. A change takes effect on the next screen built
-## (Settings rebuilds itself at once). The production build has no choice: PROD_LOCKED holds it at the default.
-const UI_THEMES := ["wanted", "royale"]
-const UI_THEME_DEFAULT := "wanted"
-var ui_theme: String = UI_THEME_DEFAULT:
-	set(v):
-		ui_theme = str(v) if UI_THEMES.has(str(v)) else UI_THEME_DEFAULT
 ## The player's own debug switch (pass 44): ten taps on the first-play hints switch in Settings flip it (and ten more
 ## on the next visit flip it back). On: the arena on the title, the debug hand on the pick screens, holding the
 ## clock, a free respawn and the last hits on Down! (pass 46: the hits moved there from the Results screen).
@@ -158,9 +132,9 @@ var frame_cap: int = default_frame_cap(OS.has_feature("mobile")):
 ## user://debug_launch.json is ignored. A headless check forces it with `prod=1` (or `--prod`) after `--`; a test with
 ## force_prod(). The dev build never changes.
 const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_buttons": false, "free_revive_button": false,
-	"hit_log": false, "preview_locked_heroes": false, "menu_style": MENU_STYLE_DEFAULT, "ranged_on_screen": true,
-	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false, "ui_theme": UI_THEME_DEFAULT,
-	"hud_slot_rarity": false}
+	"hit_log": false, "preview_locked_heroes": false, "ranged_on_screen": true,
+	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false,
+	"hud_slot_rarity": true}
 var _prod_forced := -1
 
 
@@ -228,8 +202,8 @@ func to_dict() -> Dictionary:
 		"float_heal": float_heal, "float_xp": float_xp, "float_coins": float_coins, "float_size": float_size,
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
-		"menu_style": menu_style, "ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
-		"hero_knockback": hero_knockback, "fire_forward": fire_forward, "ui_theme": ui_theme,
+		"ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
+		"hero_knockback": hero_knockback, "fire_forward": fire_forward,
 		"hud_slot_rarity2": hud_slot_rarity,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
@@ -259,12 +233,10 @@ func from_dict(d: Dictionary) -> void:
 	preview_locked_heroes = bool(d.get("preview_locked_heroes", preview_locked_heroes))
 	top_inset = int(d.get("top_inset", top_inset))
 	debug_mode = bool(d.get("debug_mode", debug_mode))
-	menu_style = str(d.get("menu_style", menu_style))
 	ranged_on_screen = bool(d.get("ranged_on_screen", ranged_on_screen))
 	pierce_falloff = bool(d.get("pierce_falloff", pierce_falloff))
 	hero_knockback = bool(d.get("hero_knockback", hero_knockback))
 	fire_forward = bool(d.get("fire_forward", fire_forward))
-	ui_theme = str(d.get("ui_theme", ui_theme))
 	# pass 123 (Garry: "Weapon Rarity isn't displayed at the top left"): on by default; a new key, so a save written with
 	# pass 122's default (off) plays the new one
 	hud_slot_rarity = bool(d.get("hud_slot_rarity2", hud_slot_rarity))

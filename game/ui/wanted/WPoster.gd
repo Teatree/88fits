@@ -11,8 +11,6 @@ extends WTap
 
 const W_PX := 316.0
 const H_PX := 760.0
-## The picture's box inside the poster (its share of the width, its height) and the badge in its corner.
-const PIC_W := 0.84
 const PIC_H := 350.0
 const BADGE_PX := 58.0
 const SKULL_PX := 34.0

@@ -17,19 +17,11 @@
 ## reads Unknown, "?" for his stats, his start weapon and favourite as black silhouettes with a "?" (WPlate.mystery), and
 ## PLAY is LOCKED. Locked (his quest not done): what unlocks him written over the plaque (the Requirement card, with how
 ## far along it is) and the padlock on his chest. On sale: a BUY button over him with his price; a tap asks (WConfirm),
-## spends the gold (Save.buy_hero), lifts the mask (TitleStage.reveal) with a burst (WCelebrate) and he is playable. Left
-## of the plaque the Hero Collections button (pass 70: a square as tall as the plaque, eight squares of a 3 x 3 grid)
-## opens the hero drawer over the preview (WHeroDrawer: every
-## hero as a badge tile, two rows); a tile selects that hero, a tap outside closes it, and while it is open the button
-## is a close X.
-## Pass 52, two looks (Settings.menu_style, chosen in Settings under the player's debug mode): "painted" as above, or
-## "live": the level itself behind the UI instead of the still, and in place of the cut-out the hero as a run draws him,
-## smaller, standing on the sand with his start weapon circling him (ui/TitleStage.gd); a locked one is a dark figure
-## with the same padlock. Everything else (the plaque, PLAY, the map line, the buttons, the swipe) is the same.
-## Pass 123 (lane MAINMENU), under the Royale theme (W.royale(); Garry: "Main menu in the new layout: wordmark, hero with
+## spends the gold (Save.buy_hero), lifts the mask with a burst (WCelebrate) and he is playable.
+## Pass 123 (lane MAINMENU), under the Royale theme (Garry: "Main menu in the new layout: wordmark, hero with
 ## ‹ ›, name, trait pill, DETAILS (opens Hero details), gold START to Select Stage, docked bottom bar, Settings behind ≡,
 ## wallet top right."; the mock 5_Main_menu): lane BACKDROP's painted sunset with its hero disc (RoyaleBackdrop "title",
-## in place of both Painted and Live: no TitleStage is built), ≡ top left (Settings), the wallet top right, OUTLAW over
+## no 3D stage is built), ≡ top left (Settings), the wallet top right, OUTLAW over
 ## "★ SURVIVORS ★", the hero small on the disc as a run draws him (his played look's idle frames, HeroFigure) between ‹ ›
 ## slate squares, his name, one black pill with his trait ("+1% CRIT per Level"), DETAILS (blue: his sheet), START (gold,
 ## today's PLAY flow) and the docked tab bar (WTabBar, BATTLE open). Gone under Royale: the plaque, the Hero Collections
@@ -41,37 +33,10 @@
 ## are as before. Wanted is built and drawn exactly as before.
 extends Control
 
-## The cut-out box: 520 × 700 inside a 4 px dashed border, 24 px under the label (the mock's box is content-box).
-const HERO_SIZE := Vector2(528, 732)
-## The hero row's top on a 1920 screen; a taller screen moves it down by half the extra height.
-const HERO_TOP := 560.0
-## Where the plaque, PLAY and the map line sit, measured up from the bottom edge (1330, 1560, 1720 on a 1920 screen).
-const PLAQUE_UP := 590.0
-const PLAY_UP := 360.0
-## The plaque's foot sits this far above PLAY (the mock's 1497 -> 1560); the plaque grows upwards from there.
-const PLAQUE_GAP := 63.0
-## Pass 73 (Garry: "The size of the hero plaque in the main menu keeps changing depending on which hero you're looking
-## at ... Make it so that it stays static ... The font size should be consistent for all the heroes"): one height for
-## every hero in every state (owned, on sale, locked), the Hero Collections button a square of it, the width what the
-## screen leaves; inside, the padding (border included) and one set of sizes: the name, the flavour (at most
-## LINE_MAX lines), the trait's numbers and every label. The longest hero decides them (pass73_uipc_test fits every
-## hero in every state); a hero whose words do not fit is cut at the plaque's edge rather than moving anything.
-const PLAQUE_H := 200.0
-const PLAQUE_PAD := Vector2(30, 19)
 const NAME_PX := 52
-const LINE_PX := 24
-const LINE_LH := 29.0
-const LINE_MAX := 2
 const VALUE_PX := 30
 const LABEL_PX := 18
 const PLATE_PX := 84.0
-## The plates' column on the right (two plates: START and FAVOURITE, the wider label's width each), and the gap
-## between it and the words.
-const ITEMS_W := 216.0
-const ITEMS_GAP := 20.0
-## The most item plates the plaque shows: the start weapon and the favourite (the hero's sheet lists any other).
-const PLATES_MAX := 2
-const MAP_UP := 200.0
 ## A finger that travels this far sideways over the hero changes it.
 const SWIPE := 90.0
 ## The game's big word in the slab (pass 115: OUTLAW, 953 px wide at 190, inside the 1080 px canvas with its 10 px
@@ -103,8 +68,6 @@ var _line: WText
 ## The item plates (START, FAVOURITE) on the plaque's right; the trait's numbers flow under the flavour (pass 73).
 var _stats: HBoxContainer
 var _trait: HFlowContainer
-## pass 111 (lane SKINS): the plaque's "Details ›" (reads "Looks · Details ›" for a hero with looks)
-var _details: WText
 var _play: WButton
 var _map_tap: WTap
 var _map_line: WText
@@ -114,7 +77,6 @@ const WHeroSheetScript := preload("res://ui/wanted/WHeroSheet.gd")
 var _sheet: Control
 var _swipe_id := -2   # -2 none, -1 the mouse, else a finger index
 var _swipe_from := Vector2.ZERO
-var _upgrade_btn: WButton
 var _glow: Control
 var _mark: Control
 var _halo := StyleBoxFlat.new()
@@ -130,29 +92,13 @@ const WConsentScript := preload("res://ui/wanted/WConsent.gd")
 ## The Stages menu (pass 87, lane SUI): PLAY opens it once the map's first stage is beaten.
 const StagesScreenScript := preload("res://ui/StagesScreen.gd")
 const CONSENT_DELAY := 0.8
-var _live := false
-var _stage: TitleStageScript
-var _lock: Control
 var _wash_rect: TextureRect
-var _wash_grad: Gradient
-## Pass 69: the gold plate (a purchase changes it on the title now), the Hero Collections button left of the plaque and
-## its glyph, the drawer it opens, the Requirement card over the plaque of a locked hero, the BUY button over a hero on
-## sale (in a column with the shortfall under it when the purse is short).
-const WHeroDrawerScript := preload("res://ui/wanted/WHeroDrawer.gd")
-const BOX_BTN := 104.0
-const BOX_GAP := 14.0
-const BOX_LEFT := 36.0
 var _gold_plate: PanelContainer
-var _drawer_btn: WTap
-var _drawer_glyph: Control
-var _drawer: Control
 var _req: PanelContainer
 var _req_text: WText
 var _buy_col: VBoxContainer
 var _buy: WButton
-var _buy_note: WText
-var _buy_note_box: PanelContainer
-## The title's top block (the name stack): the drawer stays under it.
+## The title's top block (the name stack).
 var _top_stack: Control
 ## A hero not owned on the painted title: his cut-out's fill, a full black (pass 69).
 const MASK := Color(0.03, 0.024, 0.02, 1.0)
@@ -177,6 +123,15 @@ const RY_TAG_DROP := 3
 ## the mock's figure is ~310): his figure (head to soles) RY_FIGURE_H tall, times the plate's scale on a wide screen, his
 ## soles RY_FEET_UP over the disc's centre (on the disc's dark patch, where the mock's stand).
 const RY_FIGURE_H := 300.0
+## Pass 124, the swap: how far up the sand and to the side a hero starts (and leaves), how far away he looks there and how near as he
+## leaves, the seconds in and out, and the beat he holds his three-quarter idle before he turns to face us.
+const RY_RUN_DX := 780.0
+const RY_RUN_DY := 165.0
+const RY_RUN_FAR := 0.8
+const RY_RUN_NEAR := 1.18
+const RY_RUN_IN := 0.62
+const RY_RUN_OUT := 0.44
+const RY_TURN_BEAT := 0.14
 const RY_FEET_UP := 10.0
 ## ‹ › 96 px slate squares, their outer edges RY_ARROW_X either side of the disc's centre, their tops RY_ARROW_UP above it
 ## (the mock's 200 and 784 at 930).
@@ -190,7 +145,8 @@ const RY_NAME_DOWN := 62.0
 const RY_NAME_PX := 60
 const RY_PILL_DOWN := 140.0
 const RY_PILL_GAP := 16
-const RY_DETAILS := Vector2(200, 64)
+const RY_DETAILS := Vector2(220, 60)
+const RY_DETAILS_GAP := 10.0
 const RY_DETAILS_PX := 22
 ## START: gold, 990 x 150, its top RY_START_UP over the screen's foot less the gesture bar (1500 on 1920), Ultra 84.
 const RY_START := Vector2(990, 150)
@@ -208,7 +164,6 @@ const RY_LOCK_CHEST := 0.32
 ## The hero's idle when his look names no speed for it (BillboardSprite.SPEEDS["idle"]).
 const RY_IDLE_FPS := 4.0
 const WTabBarScript := preload("res://ui/wanted/WTabBar.gd")
-var _royale := false
 var _backdrop: Control
 var _menu_btn: WButton
 var _details_btn: WButton
@@ -233,11 +188,8 @@ func _notification(what: int) -> void:
 			if not WConfirm.dismiss(_sheet):
 				_sheet.call("close")
 			return
-		# pass 69: the buy question, then the hero drawer, before the game goes
+		# pass 69: the buy question before the game goes
 		if WConfirm.dismiss(self):
-			return
-		if drawer_open():
-			close_drawer()
 			return
 		Save.flush()
 		get_tree().quit()
@@ -249,18 +201,8 @@ func _ready() -> void:
 	# the look (pass 52): the painted cut-out over the still of the desert, or the level itself with the hero standing in it
 	# pass 119 (lane LOADUI): the production build is always painted (it offers no choice)
 	# pass 123 (lane MAINMENU): under Royale the painted sunset with the hero's disc replaces both looks (no TitleStage)
-	_royale = W.royale()
-	_live = str(Settings.menu_style) == "live" and not Settings.is_prod() and not _royale
-	if _royale:
-		_backdrop = ScreenBase.add_backdrop(self, "title")
-		TitleStageScript.forget()
-	elif not _live:
-		ScreenBase.add_backdrop(self)
-		# a live title's world kept for the way back from a menu is not wanted any more
-		TitleStageScript.forget()
-	if not _royale:
-		_wash_rect = _wash()
-		add_child(_wash_rect)
+	_backdrop = ScreenBase.add_backdrop(self, "title")
+	TitleStageScript.forget()
 	# quests a save's totals already satisfy (pass 44 added many) complete here, quietly, instead of all at once five
 	# seconds into the next run; since pass 76 they are not listed again as "Unlocked this run" (only a run's own checks
 	# fill QuestTracker.just_completed)
@@ -277,24 +219,14 @@ func _ready() -> void:
 	# few); the live title keeps the strip of the hero it opens on (the painted title draws his cut-out, no strip)
 	var keep: Array = []
 	# (pass 123: the Royale title draws his strip too)
-	if (_live or _royale) and not _heroes.is_empty():
+	if not _heroes.is_empty():
 		keep.append(Registry.played_look(_heroes[_index]).strip_path())
 	LookArt.pin_only(keep)
-	_maps =Registry.sorted_maps().filter(func(m: MapDef) -> bool: return Registry.is_unlocked("map", m.id))
+	_maps = Registry.sorted_maps().filter(func(m: MapDef) -> bool: return Registry.is_unlocked("map", m.id))
 	_map_id = str(Save.data.get("last_map", ""))
 	if _maps.filter(func(m: MapDef) -> bool: return m.id == _map_id).is_empty():
 		_map_id = _maps[0].id if not _maps.is_empty() else "red_canyon"
-	if _live:
-		# behind everything: the map the line under PLAY names, laid out from the title's own roll
-		_stage = TitleStageScript.new()
-		_stage.name = "TitleStage"
-		_stage.map_id = _map_id
-		add_child(_stage)
-		move_child(_stage, 0)
-	if _royale:
-		_build_royale()
-	else:
-		_build_wanted()
+	_build_royale()
 	_show_hero(0)
 	get_viewport().size_changed.connect(_place)
 	_place()
@@ -307,55 +239,6 @@ func _ready() -> void:
 				WConsentScript.open(self))
 
 
-## The Wanted title's pieces (as built before pass 123): the gold plate, ARENA, the name stack, the hero row, the plaque,
-## PLAY, the map line, the menu row, the Requirement card and the BUY.
-func _build_wanted() -> void:
-	# the gold plate, top-left
-	var gold := WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
-	gold.position = Vector2(36, 44 + W.safe_top())
-	add_child(gold)
-	_gold_plate = gold
-	# the debug arena (pass 44: the player's debug mode, ten taps on the hints switch), top right
-	_arena_btn = WButton.make(["ARENA"], 24, WButton.SECONDARY, 4, 4, 10.0, 18.0)
-	_arena_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	_arena_btn.offset_left = -36 - 180
-	_arena_btn.offset_right = -36
-	_arena_btn.offset_top = 44 + W.safe_top()
-	_arena_btn.offset_bottom = 44 + W.safe_top() + 60
-	_arena_btn.visible = Settings.debug_mode and not Settings.is_prod()
-	_arena_btn.name = "ArenaButton"
-	_arena_btn.pressed.connect(_go_arena)
-	add_child(_arena_btn)
-	# the name stack
-	var stack := VBoxContainer.new()
-	_top_stack = stack
-	stack.add_theme_constant_override("separation", 0)
-	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	stack.offset_top = 150 + W.safe_top()
-	add_child(stack)
-	var wanted := WStarLine.make("Wanted", 26, W.INK, 0.4)
-	wanted.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	stack.add_child(wanted)
-	# pass 115 (Garry: "we just write 'Outlaw' with big fat text and the 'Drag Dodge Survive' is replaced with simply
-	# 'Survivors'"): OUTLAW in the slab at LOGO_PX (it is wider than "88fits" was, so it fits the 1080 px with room for its
-	# shadow) in the same 199.5 px line box, so nothing under it moves; SURVIVORS where the tagline was, in its style
-	var logo := W.slab_text(W.GAME_WORD.to_upper(), LOGO_PX, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 199.5)
-	logo.name = "Logo"
-	logo.shadow = 10
-	logo.shadow_color = W.BRASS
-	stack.add_child(logo)
-	var tag := W.label(W.GAME_LINE, 30, W.INK, 0.3)
-	tag.name = "Tagline"
-	tag.align = HORIZONTAL_ALIGNMENT_CENTER
-	tag.custom_minimum_size.y = 6.0 + 36.0
-	tag.valign = VERTICAL_ALIGNMENT_BOTTOM
-	stack.add_child(tag)
-	_build_hero_row()
-	_build_lower()
-	_build_unknown()
-
-
 ## The debug arena (pass 44: the player's debug mode, ten taps on the hints switch).
 func _go_arena() -> void:
 	Run.arena_next = true
@@ -364,252 +247,11 @@ func _go_arena() -> void:
 	UiFx.go_run(get_tree())
 
 
-## The title wash: warm at the top, clear through the middle where the hero stands, paper again at the foot. In the live
-## look (pass 52) the hero stands in the scene under it, so its clear middle runs on down past his feet and turns to
-## paper only between them and the plaque (_live_wash sets the stops from the layout).
-func _wash() -> TextureRect:
-	var g := Gradient.new()
-	if _live:
-		g.offsets = PackedFloat32Array([0.0, 0.3, 0.5, 0.68, 0.72, 1.0])
-		g.colors = PackedColorArray([Color8(233, 201, 160, 242), Color8(233, 201, 160, 102), Color8(243, 230, 200, 0),
-			Color8(243, 230, 200, 0), Color8(243, 230, 200, 205), Color8(243, 230, 200, 235)])
-	else:
-		g.offsets = PackedFloat32Array([0.0, 0.3, 0.5, 0.78, 1.0])
-		g.colors = PackedColorArray([Color8(233, 201, 160, 242), Color8(233, 201, 160, 102), Color8(243, 230, 200, 0),
-			Color8(243, 230, 200, 178), Color8(243, 230, 200, 235)])
-	_wash_grad = g
-	var t := GradientTexture2D.new()
-	t.gradient = g
-	t.fill_from = Vector2(0, 0)
-	t.fill_to = Vector2(0, 1)
-	t.width = 4
-	t.height = 256
-	var r := TextureRect.new()
-	r.texture = t
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return r
-
-
-func _build_hero_row() -> void:
-	_hero_row = Control.new()
-	_hero_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_hero_row)
-	_art_host = Control.new()
-	_art_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_art_host.size = HERO_SIZE
-	_hero_row.add_child(_art_host)
-	for side in [-1, 1]:
-		var a := WTap.new()
-		var b := W.box(W.PAPER, 4, 5).pad(4, 4, 4, 10)
-		a.box = b
-		var t := W.slab_text("‹" if side < 0 else "›", 48, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 48.0)
-		t.custom_minimum_size = Vector2(72, 72)
-		t.valign = VERTICAL_ALIGNMENT_CENTER
-		a.add_child(t)
-		a.size = Vector2(80, 86)
-		a.set_meta("side", side)
-		a.pressed.connect(func(): _step(side))
-		a.name = "Prev" if side < 0 else "Next"
-		_hero_row.add_child(a)
-	_dots = Control.new()
-	_dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_dots.draw.connect(_draw_dots)
-	add_child(_dots)
-
-
-## The plaque, PLAY, the map line and the three menu buttons. The plaque is a tap (pass 61, Garry: "make the character
-## name plaque clickable"): it opens the hero's sheet; a sideways swipe across it still changes the hero (_input).
-func _build_lower() -> void:
-	var tap := WTap.new()
-	tap.name = "Plaque"
-	tap.box = W.box(W.PAPER, 5, 8).pad(PLAQUE_PAD.x, PLAQUE_PAD.y, PLAQUE_PAD.x, PLAQUE_PAD.y)
-	tap.pressed.connect(open_sheet)
-	_plaque = tap
-	add_child(_plaque)
-	# pass 69: the Hero Collections button left of the plaque (a close X while the drawer is open); pass 70: a square as
-	# tall as the plaque, with the plaque's shadow, its glyph a grid of squares (_draw_drawer_glyph)
-	_drawer_btn = WTap.new()
-	_drawer_btn.name = "HeroesButton"
-	_drawer_btn.box = W.box(W.PAPER, 5, 8)
-	_drawer_btn.custom_minimum_size = Vector2(BOX_BTN, BOX_BTN)
-	_drawer_btn.size = Vector2(BOX_BTN, BOX_BTN)
-	_drawer_glyph = Control.new()
-	_drawer_glyph.name = "Glyph"
-	_drawer_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_drawer_glyph.draw.connect(_draw_drawer_glyph)
-	_drawer_btn.add_child(_drawer_glyph)
-	_drawer_btn.pressed.connect(toggle_drawer)
-	add_child(_drawer_btn)
-	# pass 73: the insides sit in a plain Control, so no hero's words can make the plaque grow; the name at the top left,
-	# the flavour under it, the trait's numbers along the foot (a second row when they need it), the item plates top
-	# right and "Details ›" (what a tap on the plaque does, pass 61) in the bottom-right corner
-	var body := Control.new()
-	body.name = "Body"
-	body.clip_contents = true
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_plaque.add_child(body)
-	var h := HBoxContainer.new()
-	h.name = "Columns"
-	h.add_theme_constant_override("separation", int(ITEMS_GAP))
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	body.add_child(h)
-	var left := VBoxContainer.new()
-	left.name = "Words"
-	left.add_theme_constant_override("separation", 4)
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_child(left)
-	_name = W.slab_text("", NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(NAME_PX))
-	_name.name = "Name"
-	left.add_child(_name)
-	_line = W.serif_text("", LINE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, LINE_LH, true)
-	_line.name = "Flavour"
-	_line.max_lines = LINE_MAX
-	left.add_child(_line)
-	var gap := Control.new()
-	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left.add_child(gap)
-	_trait = HFlowContainer.new()
-	_trait.name = "Trait"
-	_trait.add_theme_constant_override("h_separation", 22)
-	_trait.add_theme_constant_override("v_separation", 6)
-	_trait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	left.add_child(_trait)
-	var right := VBoxContainer.new()
-	right.name = "Items"
-	right.add_theme_constant_override("separation", 0)
-	right.custom_minimum_size = Vector2(ITEMS_W, 0)
-	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_child(right)
-	_stats = HBoxContainer.new()
-	_stats.name = "Plates"
-	_stats.add_theme_constant_override("separation", 12)
-	_stats.alignment = BoxContainer.ALIGNMENT_END
-	_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	right.add_child(_stats)
-	var gap2 := Control.new()
-	gap2.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gap2.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(gap2)
-	var more := W.label("Details ›", LABEL_PX, W.BRASS_DARK, 0.15)
-	more.name = "Details"
-	more.align = HORIZONTAL_ALIGNMENT_RIGHT
-	right.add_child(more)
-	_details = more
-	_play = WButton.make(["PLAY"], 84, WButton.PRIMARY, 6, 10, 22.0, 22.0, 84.0)
-	_play.pressed.connect(_on_play)
-	add_child(_play)
-	_map_tap = WTap.new()
-	var clear := W.box(Color(0, 0, 0, 0), 0, 0)
-	_map_tap.box = clear
-	_map_tap.box_down = clear
-	_map_line = W.serif_text("", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	_map_tap.add_child(_map_line)
-	_map_tap.pressed.connect(_next_map)
-	add_child(_map_tap)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	row.offset_left = 60
-	row.offset_right = -60
-	row.offset_bottom = -60
-	row.offset_top = -60 - 91
-	# Upgrade (the Mirror until pass 44) is the one button in colour (turquoise since pass 46: brass is for buying), with
-	# a pulsing glow and a mark when a rank can be bought: it is where the gold goes, and the row should say so. The glow
-	# sits under the row and the mark over it (pass 45: both drawn under it, the mark showed as a crescent)
-	_glow = Control.new()
-	_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_glow.draw.connect(_draw_glow)
-	add_child(_glow)
-	_halo.draw_center = false
-	_halo.set_border_width_all(0)
-	_halo.set_corner_radius_all(14)
-	_halo.shadow_offset = Vector2.ZERO
-	add_child(row)
-	_mark = Control.new()
-	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_mark.draw.connect(_draw_mark)
-	add_child(_mark)
-	for pair in [["Upgrade", "res://ui/HomesteadScreen.tscn"], ["Collection", "res://ui/CollectionScreen.tscn"], ["Settings", "res://ui/SettingsScreen.tscn"]]:
-		var primary: bool = pair[0] == "Upgrade"
-		var b := WButton.make([pair[0]], 30, WButton.UPGRADE if primary else WButton.SECONDARY, 5, 6, 20.0, 0.0)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var path: String = pair[1]
-		b.pressed.connect(func():
-			# the live look keeps its built world for the way back (pass 52)
-			if _stage:
-				_stage.keep_on_exit = true
-			UiFx.go(get_tree(), path))
-		row.add_child(b)
-		if primary:
-			_upgrade_btn = b
-	_lower = [_plaque, _drawer_btn, _play, _map_tap, row]
-	_refresh_map()
-
-
 ## Everything that depends on the screen's height: the lower block hangs from the bottom edge, the hero row takes the
 ## middle and shrinks when a short screen has no room for it.
 func _place() -> void:
-	if _royale:
-		_place_royale()
-		return
-	var vp := get_viewport_rect().size
-	# pass 69: the Hero Collections button takes the plaque's left end; the plaque keeps its right edge (PLAY's)
-	# pass 70: the button is a square as tall as the plaque; pass 73: both one size whatever the hero (PLAQUE_H)
-	var btn_side := drawer_side(vp)
-	var plaque_x := BOX_LEFT + btn_side + BOX_GAP
-	var plaque_h := btn_side
-	_plaque.size = Vector2(vp.x - 60.0 - plaque_x, plaque_h)
-	var plaque_top := vp.y - PLAY_UP - PLAQUE_GAP - plaque_h
-	_plaque.position = Vector2(plaque_x, plaque_top)
-	_drawer_btn.custom_minimum_size = Vector2(btn_side, btn_side)
-	_drawer_btn.size = Vector2(btn_side, btn_side)
-	_drawer_btn.position = Vector2(BOX_LEFT, plaque_top + (plaque_h - btn_side) * 0.5)
-	_drawer_glyph.queue_redraw()
-	_play.position = Vector2(60, vp.y - PLAY_UP)
-	_play.size = Vector2(vp.x - 120, 0)
-	_map_tap.position = Vector2(0, vp.y - MAP_UP)
-	_map_tap.size = Vector2(vp.x, 0)
-	var top := HERO_TOP + W.safe_top() + (vp.y - 1920.0) * 0.5
-	# the room between the title's words (440 on a 1920 screen, moved down by a camera cutout's inset: pass 73, the
-	# hero's hat reached the tag line on a short screen with a cutout) and the plaque
-	var room := plaque_top - 38.0 - 440.0 - W.safe_top()
-	var k := clampf(room / HERO_SIZE.y, 0.5, 1.0)
-	if top + HERO_SIZE.y * k > plaque_top - 38.0:
-		top = plaque_top - 38.0 - HERO_SIZE.y * k
-	_hero_row.position = Vector2(0, top)
-	_hero_row.size = Vector2(vp.x, HERO_SIZE.y * k)
-	var art_w := HERO_SIZE.x * k
-	_art_host.position = Vector2((vp.x - art_w) * 0.5, 0)
-	_art_host.scale = Vector2(k, k)
-	for a in _hero_row.get_children():
-		if a is WTap:
-			var side: int = a.get_meta("side")
-			var x := (vp.x - art_w) * 0.5 - 40.0 - 80.0 if side < 0 else (vp.x + art_w) * 0.5 + 40.0
-			a.position = Vector2(x, (HERO_SIZE.y * k - 86.0) * 0.5)
-	_dots.position = Vector2(0, top + HERO_SIZE.y * k - 12.0)
-	_dots.size = Vector2(vp.x, 26)
-	if _stage:
-		# the live hero stands in the same box the cut-out fills (pass 52)
-		_stage.frame(Rect2(_hero_row.position + _art_host.position, HERO_SIZE * k))
-		_live_wash(vp.y, plaque_top)
-		_place_lock()
-	_place_unknown(plaque_top)
-
-
-## The live look's wash stops (pass 52): clear to just under the hero's shadow, paper by a little past the plaque's top.
-func _live_wash(h: float, plaque_top: float) -> void:
-	if _wash_grad == null or _stage == null or h <= 0.0:
-		return
-	var clear_to := clampf((_stage.ground_px().y + 40.0) / h, 0.52, 0.95)
-	var paper_at := clampf((plaque_top + 40.0) / h, clear_to + 0.01, 0.98)
-	_wash_grad.offsets = PackedFloat32Array([0.0, 0.3, 0.5, clear_to, paper_at, 1.0])
+	_place_royale()
+	return
 
 
 ## Every hero the carousel shows (pass 69: Registry.heroes_for_drawer, the drawer's list too): the owned ones first,
@@ -641,104 +283,16 @@ func _show_hero(from_side: int) -> void:
 		return
 	var c: CharacterDef = _heroes[_index]
 	var locked := _is_locked(c)
-	if _live:
-		# the hero on the sand (pass 52): he runs in from the side the finger came from, the last one runs off; one not
-		# owned under a full black mask (pass 69), the padlock on his chest while his requirement is not met
-		_stage.show_hero(c, locked, from_side)
-		_show_lock(_state(c) == "locked", from_side)
-	elif _royale:
-		_show_figure(c, from_side)
-	else:
-		_show_art(c, from_side)
+	_show_figure(c, from_side)
 	_show_plaque(c)
-
-
-## The painted look's cut-out of `c`, sliding in from `from_side`: the look he is played in (pass 68,
-## Registry.played_look): the look's own `title` when that file is there, else hero_<id>.png, else the striped slot. A
-## hero not owned: the cut-out a black silhouette (pass 69: a full black mask), the padlock while he is locked.
-func _show_art(c: CharacterDef, from_side: int) -> void:
-	if _art:
-		_art.queue_free()
-	var who := ("the " + c.display_name) if c.id == "drifter" else c.display_name
-	_art = WPlaceholder.make(Registry.played_look(c).title_path(), "%s, full-body cut-out\nfacing camera · 520 × 700" % who, HERO_SIZE)
-	if _is_locked(c):
-		# painted: a black silhouette; not yet painted: the striped slot, faded
-		_art.silhouette = true
-		(_art.material as ShaderMaterial).set_shader_parameter("fill", MASK)
-		_art.modulate.a = 1.0 if _art.tex else 0.45
-		if _state(c) == "locked":
-			_art.add_child(_padlock())
-	_art_host.add_child(_art)
-	if from_side != 0:
-		_art.position.x = 90.0 * from_side
-		var a := _art.modulate.a
-		_art.modulate.a = 0.0
-		var tw := create_tween().set_parallel(true)
-		tw.tween_property(_art, "position:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_art, "modulate:a", a, 0.16)
 
 
 ## The dots, the plaque, PLAY, the Requirement card and the BUY for `c`. Pass 69 (Garry: "the name is simply 'unknown',
 ## stats are unknown, weapon is a black silhouette of the one with a question mark and so is the fav item"): a hero not
 ## owned reads Unknown, a "?" for each of his numbers, his start weapon and favourite as mystery plates.
 func _show_plaque(c: CharacterDef) -> void:
-	if _royale:
-		_show_royale(c)
-		return
-	var locked := _is_locked(c)
-	_dots.queue_redraw()
-	_name.text = ("The " + c.display_name) if c.id == "drifter" else c.display_name
-	# out of the rows at once: a queued plate still counts in its row's size
-	for row: Control in [_stats, _trait]:
-		for s in row.get_children():
-			row.remove_child(s)
-			s.queue_free()
-	_line.visible = not locked
-	if locked:
-		_name.text = "Unknown"
-		_line.text = ""
-		for st in _stats_of(c):
-			_trait.add_child(_stat("?", "???", true, true))
-		var start0 := Registry.start_weapon_for(c)
-		if start0:
-			_stats.add_child(_item_plate(start0, "Start", 1, true))
-		var fav0 := _favourite_of(c)
-		if fav0 and fav0 != start0:
-			_stats.add_child(_item_plate(fav0, "Favourite", 1, true))
-	else:
-		_line.font = W.serif(400, true)
-		_line.color = W.INK_SOFT
-		_line.text = c.flavour
-		for st in _stats_of(c):
-			_trait.add_child(_stat(st[0], st[1], bool(st[2])))
-		# the hero's items as plates: the weapon he lands with (pass 47b, Garry: Ironwood's Spear did not show), the
-		# favourite, then any other weapon only this hero can find while there is room (PLATES_MAX, pass 73)
-		var start := Registry.start_weapon_for(c)
-		if start:
-			_stats.add_child(_item_plate(start, "Start", start_level(c, start)))
-		var fav := _favourite_of(c)
-		if fav and fav != start:
-			_stats.add_child(_item_plate(fav, "Favourite", start_level(c, fav)))
-		for w: WeaponDef in _own_weapons(c):
-			if w != start and _stats.get_child_count() < PLATES_MAX:
-				_stats.add_child(_item_plate(w, "Special", 1))
-	_play.locked = locked
-	_play.set_parts(["LOCKED" if locked else "PLAY"])
-	if not locked:
-		Save.data["last_character"] = c.id
-	# pass 111 (lane SKINS): a hero with looks to wear or earn says so where the sheet is opened
-	if _details:
-		_details.text = ("Looks · Details ›" if not locked and not Registry.skins_of(c).is_empty() else "Details ›").to_upper()
-	_show_unknown(c)
-
-
-## The hero's favourite: his weapon, or when he has none, the line or passive he favours (pass 46: Ironwood's Cake; pass
-## 47: his Brawn, a line on its light yellow plate).
-func _favourite_of(c: CharacterDef) -> ContentDef:
-	var w: WeaponDef = Registry.weapon(c.favourite_weapon) if c.favourite_weapon != "" else null
-	if w:
-		return w
-	return Registry.passive(c.favourite_passive) if c.favourite_passive != "" else null
+	_show_royale(c)
+	return
 
 
 ## The level a hero has an item at when he finds it or lands with it (pass 48: the plaque's plates take its colour): a
@@ -758,33 +312,6 @@ static func start_level(c: CharacterDef, def: ContentDef) -> int:
 			"level":
 				return clampi(int(c.favourite_passive_bonus.get("value", 1)), 1, mx)
 	return 1
-
-
-## An item on the plaque: its plate (PLATE_PX) in the colour of the level he has it at and a tracked word under it
-## (START, FAVOURITE, SPECIAL) at the plaque's one label size (pass 73: 14 px before, too small to read on the phone).
-func _item_plate(def: ContentDef, word: String, level: int = 1, mystery: bool = false) -> VBoxContainer:
-	var col := _column()
-	col.name = word
-	col.set_meta("def", def)
-	col.set_meta("level", level)
-	var p := WPlate.new().for_def(def, PLATE_PX, false, level)
-	p.icon_frac = 68.0 / 92.0
-	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	# pass 69: a hero not owned yet shows only the item's black shape and a "?"
-	p.mystery = mystery
-	col.add_child(p)
-	var l := W.label(word, LABEL_PX, W.INK_SOFT, 0.1)
-	l.align = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(l)
-	return col
-
-
-## The weapons only this hero can find (`WeaponDef.hero`: the Drifter's Revolver, Astro's Gravity Gun).
-func _own_weapons(c: CharacterDef) -> Array:
-	var only: Array = Registry.weapons.values().filter(func(w: WeaponDef) -> bool:
-		return w.hero == c.id and not w.is_evolution and not Registry.is_hidden(w))
-	only.sort_custom(func(a, b): return a.id < b.id)
-	return only
 
 
 ## Up to three of the trait's numbers: its effects on the player, then the heal on every level. Each is [value, label,
@@ -810,14 +337,6 @@ func _stats_of(c: CharacterDef) -> Array:
 	return out.slice(0, 3)
 
 
-func _column() -> VBoxContainer:
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return v
-
-
 ## One of the trait's numbers on the plaque: sage slab (dark red for a debuff) and its tracked label beside it, on one
 ## baseline (pass 73: the numbers flow along the plaque's foot; they stood over their labels in a row that pushed the
 ## plaque wider and taller).
@@ -837,78 +356,6 @@ func _stat(value: String, what: String, good: bool = true, unknown: bool = false
 	l.valign = VERTICAL_ALIGNMENT_BOTTOM
 	v.add_child(l)
 	return v
-
-
-## The live look's padlock (pass 52): over a locked hero's chest as on the cut-out, showing once he has run in.
-func _show_lock(locked: bool, from_side: int) -> void:
-	if _lock:
-		_lock.queue_free()
-		_lock = null
-	if not locked:
-		return
-	_lock = _padlock()
-	_lock.name = "Padlock"
-	_art_host.add_child(_lock)
-	_place_lock()
-	if from_side != 0:
-		_lock.modulate.a = 0.0
-		var tw := _lock.create_tween()
-		tw.tween_interval(TitleStageScript.SWAP_TIME * 0.8)
-		tw.tween_property(_lock, "modulate:a", 1.0, 0.15)
-
-
-## The padlock on the live hero's chest, in the box's own (unscaled) units, three quarters of the cut-out's size since the
-## live figure is smaller.
-func _place_lock() -> void:
-	if _lock == null or _stage == null:
-		return
-	var k: float = _art_host.scale.y if _art_host.scale.y > 0.0 else 1.0
-	var origin := _hero_row.position + _art_host.position
-	var fig: Rect2 = _stage.figure_rect()
-	var s := 0.75
-	var chest := (fig.position.y + fig.size.y * 0.32 - origin.y) / k
-	_lock.scale = Vector2(s, s)
-	_lock.position = Vector2(HERO_SIZE.x * 0.5 - 60.0 * s, chest - 80.0 * s)
-
-
-## A padlock over a locked hero's chest: an ink shackle over a brass body with a keyhole.
-func _padlock() -> Control:
-	var l := Control.new()
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.position = Vector2(HERO_SIZE.x * 0.5 - 60.0, HERO_SIZE.y * 0.36)
-	l.size = Vector2(120, 140)
-	l.draw.connect(func():
-		var c := Vector2(60, 0)
-		l.draw_arc(c + Vector2(0, 58), 34.0, PI, TAU, 32, W.INK, 26.0, true)
-		l.draw_arc(c + Vector2(0, 58), 34.0, PI, TAU, 32, W.AGED, 12.0, true)
-		var body := Rect2(Vector2(4, 56), Vector2(112, 84))
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = W.BRASS
-		sb.border_color = W.INK
-		sb.set_border_width_all(6)
-		sb.set_corner_radius_all(14)
-		sb.anti_aliasing = true
-		l.draw_style_box(sb, body)
-		l.draw_circle(c + Vector2(0, 88), 11.0, W.INK, true, -1.0, true)
-		l.draw_rect(Rect2(c + Vector2(-5, 92), Vector2(10, 26)), W.INK))
-	return l
-
-
-## A dot per hero: brass for the one shown, paper for the rest, aged at half for a locked one.
-func _draw_dots() -> void:
-	var n := _heroes.size()
-	if n < 2:
-		return
-	var w := n * 26.0 + (n - 1) * 14.0
-	var x := (_dots.size.x - w) * 0.5 + 13.0
-	for i in n:
-		var c: CharacterDef = _heroes[i]
-		var locked := _is_locked(c)
-		var fill := W.BRASS if i == _index else (Color(W.AGED, 0.5) if locked else W.PAPER)
-		var ink := Color(W.INK, 0.5) if locked and i != _index else W.INK
-		_dots.draw_circle(Vector2(x, 13), 13.0, ink, true, -1.0, true)
-		_dots.draw_circle(Vector2(x, 13), 10.0, fill, true, -1.0, true)
-		x += 40.0
 
 
 func _step(dir: int) -> void:
@@ -937,32 +384,6 @@ func _refresh_map() -> void:
 	_map_line.text = " · ".join(bits)
 
 
-## The glow behind Upgrade: one smooth turquoise halo that breathes, the button's own colour (a StyleBoxFlat's feathered
-## shadow ring, nothing drawn inside the button; pass 45: six stepped rings had read as a staircase).
-func _draw_glow() -> void:
-	if _upgrade_btn == null or not _upgrade_btn.is_visible_in_tree():
-		return
-	var r := _upgrade_btn.get_global_rect()
-	r.position -= _glow.global_position
-	var pulse := 0.5 + 0.5 * sin(_glow_t * 2.6)
-	_halo.shadow_size = int(round(18.0 + 14.0 * pulse))
-	_halo.shadow_color = Color(GLOW, 0.42 + 0.22 * pulse)
-	_glow.draw_style_box(_halo, r)
-
-
-## The brass "!" on Upgrade's top-right corner when a rank can be bought, drawn over the row.
-func _draw_mark() -> void:
-	if _upgrade_btn == null or not _upgrade_btn.is_visible_in_tree() or not _affordable:
-		return
-	var r := _upgrade_btn.get_global_rect()
-	r.position -= _mark.global_position
-	var c := Vector2(r.end.x - 6.0, r.position.y + 6.0)
-	_mark.draw_circle(c, 22.0, W.INK, true, -1.0, true)
-	_mark.draw_circle(c, 17.0, W.BRASS, true, -1.0, true)
-	_mark.draw_rect(Rect2(c + Vector2(-3.0, -11.0), Vector2(6.0, 13.0)), W.INK)
-	_mark.draw_circle(c + Vector2(0.0, 7.5), 3.2, W.INK, true, -1.0, true)
-
-
 ## Whether the purse buys the next rank of any open talent (pass 111, lane SKINS: in the talent's own currency). Pass 123
 ## (lane MAINMENU): the rule lives once, in the tab bar's Upgrade mark (WTabBar.upgrade_mark, the same loop word for word).
 func _rank_affordable() -> bool:
@@ -977,20 +398,6 @@ func _process(delta: float) -> void:
 	# the row slides in (_enter): the mark follows the button
 	if _mark:
 		_mark.queue_redraw()
-
-
-## With more than one open map, the line under PLAY steps through them.
-func _next_map() -> void:
-	if _maps.size() < 2:
-		return
-	var i := 0
-	for j in _maps.size():
-		if _maps[j].id == _map_id:
-			i = j
-	_map_id = _maps[(i + 1) % _maps.size()].id
-	_refresh_map()
-	if _stage:
-		_stage.set_map(_map_id)
 
 
 func _on_play() -> void:
@@ -1009,8 +416,6 @@ func _on_play() -> void:
 	# pass 87 (lane SUI): once the map's first stage is beaten, PLAY opens the Stages menu (every time); the live look
 	# keeps its world for the way back, as for the other menus. Before that PLAY starts stage 1 as it always did.
 	if StagesScreenScript.opens_for(_map_id):
-		if _stage:
-			_stage.keep_on_exit = true
 		UiFx.go(get_tree(), "res://ui/StagesScreen.tscn")
 		return
 	Run.choose_stage(0)
@@ -1021,8 +426,6 @@ func _on_play() -> void:
 
 ## A run starting lets the live look's world go (pass 52): the run builds its own map, and never carries two.
 func _leave_for_a_run() -> void:
-	if _stage:
-		_stage.keep_on_exit = false
 	TitleStageScript.forget()
 
 
@@ -1032,56 +435,6 @@ func sheet_open() -> bool:
 
 
 # ---------------------------------------------------------------- heroes to buy (pass 69)
-
-## The Requirement card over the plaque (a hero whose requirement is not met: what unlocks him, how far along it is) and
-## the BUY column over the hero (one on sale: BUY with his price, and under it what the purse is short of). Built once,
-## shown and filled by _show_unknown, placed by _place_unknown. Names for tools: "Requirement", "BuyColumn", "Buy",
-## "BuyNote".
-func _build_unknown() -> void:
-	_req = PanelContainer.new()
-	_req.name = "Requirement"
-	_req.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_req.add_theme_stylebox_override("panel", W.box(W.AGED, 4, 6).pad(26, 14, 26, 18))
-	var v := VBoxContainer.new()
-	v.name = "Rows"
-	v.add_theme_constant_override("separation", 8)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_req.add_child(v)
-	v.add_child(W.label("To unlock", 18, W.ROCK, 0.15))
-	var line := HBoxContainer.new()
-	line.name = "Line"
-	line.add_theme_constant_override("separation", 20)
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(line)
-	_req_text = W.serif_text("", 28, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
-	_req_text.name = "Text"
-	_req_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_req_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	line.add_child(_req_text)
-	_req.visible = false
-	add_child(_req)
-	_buy_col = VBoxContainer.new()
-	_buy_col.name = "BuyColumn"
-	_buy_col.alignment = BoxContainer.ALIGNMENT_CENTER
-	_buy_col.add_theme_constant_override("separation", 12)
-	_buy_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_buy = WButton.make(["BUY"], 52, WButton.PRIMARY, 5, 8, 16.0, 30.0)
-	_buy.name = "Buy"
-	_buy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	# short of gold it stays whole over the black figure (aged, no shadow), the shortfall under it
-	_buy.locked_alpha = 1.0
-	_buy.pressed.connect(ask_buy)
-	_buy_col.add_child(_buy)
-	_buy_note_box = PanelContainer.new()
-	_buy_note_box.name = "BuyNote"
-	_buy_note_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_buy_note_box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_buy_note_box.add_theme_stylebox_override("panel", W.box(W.PAPER, 3, 4).pad(16, 6, 16, 8))
-	_buy_note = W.label("", 18, W.ROCK, 0.12)
-	_buy_note_box.add_child(_buy_note)
-	_buy_col.add_child(_buy_note_box)
-	_buy_col.visible = false
-	add_child(_buy_col)
 
 
 ## What the card and the BUY say for `c`, and which of them shows.
@@ -1108,157 +461,15 @@ func _show_unknown(c: CharacterDef) -> void:
 			bar.text = "%s / %s" % [W.num(mini(p.x, p.y)), W.num(p.y)]
 			bar.text_px = 20
 			line.add_child(bar)
-	elif st == "buyable" and not _royale:
-		# (pass 123: the Royale BUY is a price button made for each hero, _fill_buy_royale)
-		# pass 111 (lane SKINS): in his currency (Currency), its own icon on the button
-		var cur := Currency.of(c.currency_type)
-		var short := maxi(c.price, 0) - Currency.balance(cur)
-		_buy.set_parts(["BUY", {"coin": 46, "fill": W.PAPER, "currency": cur}, [W.num(maxi(c.price, 0)), null, 52]])
-		_buy.locked = short > 0
-		_buy_note_box.visible = short > 0
-		_buy_note.text = "%s more %s" % [W.num(short), Currency.word_of(cur)] if short > 0 else ""
-
-
-## The card over the plaque, its width, its foot just over the dots (it covers the black figure's feet); the BUY over the
-## middle of the hero's figure; the drawer in its room over the preview.
-func _place_unknown(_plaque_top: float) -> void:
-	if _req:
-		_req.size = Vector2(_plaque.size.x, 0)
-		_req.reset_size()
-		_req.size = Vector2(_plaque.size.x, 0)
-		var h := _req.get_combined_minimum_size().y
-		_req.position = Vector2(_plaque.position.x, _dots.position.y - 6.0 - h)
-	if _buy_col:
-		var fig := hero_figure_rect()
-		_buy_col.reset_size()
-		var cs := _buy_col.get_combined_minimum_size()
-		_buy_col.size = cs
-		_buy_col.position = Vector2(fig.get_center().x - cs.x * 0.5, fig.position.y + fig.size.y * 0.5 - _buy.get_combined_minimum_size().y * 0.5)
-	if drawer_open():
-		_drawer.call("frame", _drawer_area())
 
 
 ## The rect the shown hero's figure takes on the screen: the live hero's (TitleStage.figure_rect), else the cut-out's box.
 func hero_figure_rect() -> Rect2:
-	if _stage:
-		return _stage.figure_rect()
-	if _royale:
-		# pass 123: the figure inside the frame the Royale title draws (TitleStage's fractions of a strip's frame)
-		var box := Rect2(_hero_row.position + _art_host.position, _art_host.size)
-		var w := box.size.x * TitleStageScript.FIGURE_W
-		return Rect2(Vector2(box.get_center().x - w * 0.5, box.position.y + box.size.y * TitleStageScript.FIGURE_TOP),
-			Vector2(w, box.size.y * (TitleStageScript.FIGURE_FEET - TitleStageScript.FIGURE_TOP)))
-	return Rect2(_hero_row.position + _art_host.position, HERO_SIZE * _art_host.scale.x)
-
-
-## The drawer's room: under the title's top block, across the screen, its foot just over the hero's head (on a short
-## screen the drawer reaches down over him: WHeroDrawer.frame).
-func _drawer_area() -> Rect2:
-	var vp := get_viewport_rect().size
-	var top := 0.0
-	if _top_stack:
-		# its size can read 0 (anchored by its top edge only): its content's height counts
-		top = _top_stack.position.y + maxf(_top_stack.size.y, _top_stack.get_combined_minimum_size().y) + 14.0
-	var fig := hero_figure_rect()
-	var foot := fig.position.y - 10.0 if _stage else fig.position.y + fig.size.y * 0.42
-	return Rect2(Vector2(BOX_LEFT, top), Vector2(vp.x - BOX_LEFT * 2.0, maxf(foot - top, 0.0)))
-
-
-func drawer_open() -> bool:
-	return _drawer != null and is_instance_valid(_drawer) and not bool(_drawer.call("is_done"))
-
-
-## The Hero Collections button: opens the drawer, or closes it while it is open (its glyph is the close X then).
-func toggle_drawer() -> void:
-	if drawer_open():
-		close_drawer()
-	else:
-		open_drawer()
-
-
-## The drawer over the preview with every hero of the carousel, the shown one marked; the button moves over its catcher
-## so it can close it.
-func open_drawer() -> void:
-	if drawer_open() or _heroes.is_empty() or sheet_open():
-		return
-	_swipe_id = -2
-	var states := {}
-	for h: CharacterDef in _heroes:
-		states[h.id] = _state(h)
-	_drawer = WHeroDrawerScript.open(self, _heroes, _heroes[_index], _drawer_area(), states)
-	_drawer.connect("picked", _on_drawer_pick)
-	_drawer.connect("closed", func(): _drawer_glyph.queue_redraw())
-	move_child(_drawer_btn, -1)
-	_drawer_glyph.queue_redraw()
-
-
-func close_drawer() -> void:
-	if drawer_open():
-		_drawer.call("close")
-	_drawer_glyph.queue_redraw()
-
-
-## A tile tapped in the drawer: that hero is shown (he runs in from the side his tile lies on), the drawer stays open.
-func _on_drawer_pick(h: CharacterDef) -> void:
-	var i := _heroes.find(h)
-	if i < 0 or i == _index:
-		return
-	var dir := 1 if i > _index else -1
-	_index = i
-	_show_hero(dir)
-	_place()
-
-
-## Pass 70 (Garry: "make it the same height as the Hero plaque while maintaining square aspect ratio"): the Hero
-## Collections button's side, the plaque's height. Since pass 73 that height is PLAQUE_H for every hero (it followed
-## the hero's words before, and the button, the plaque and the hero above them moved with every swipe). `vp` is kept
-## for the callers.
-func drawer_side(_vp: Vector2) -> float:
-	return PLAQUE_H
-
-
-## The plaque's room inside its border and padding (pass 73): what the name, the flavour, the numbers and the plates
-## share, the same for every hero.
-func plaque_inner() -> Vector2:
-	return _plaque.size - PLAQUE_PAD * 2.0 if _plaque else Vector2.ZERO
-
-
-## The glyph's grid (pass 70): its squares span GLYPH_SPAN of the button's side, GLYPH_GAP of a square apart.
-const GLYPH_SPAN := 0.5
-const GLYPH_GAP := 0.28
-
-
-## The glyph's squares in a box of `box` (pass 70, Garry: "It should just be a matrix of squares. The 3x3 was the last
-## one at the bottom, missing."): a 3 x 3 grid, row by row from the top-left, the bottom-right one left out (eight
-## rects), whole pixels so every edge is crisp.
-static func glyph_cells(box: Vector2) -> Array:
-	var span := minf(box.x, box.y) * GLYPH_SPAN
-	var sq := floorf(span / (3.0 + 2.0 * GLYPH_GAP))
-	var gap := maxf(roundf(sq * GLYPH_GAP), 1.0)
-	var full := sq * 3.0 + gap * 2.0
-	var o := ((box - Vector2(full, full)) * 0.5).floor()
-	var out: Array = []
-	for row in 3:
-		for col in 3:
-			if row == 2 and col == 2:
-				continue
-			out.append(Rect2(o + Vector2(col, row) * (sq + gap), Vector2(sq, sq)))
-	return out
-
-
-## The button's glyph: eight plain ink squares (glyph_cells); while the drawer is open, pass 69's close X, grown with
-## the button so it reads as it did.
-func _draw_drawer_glyph() -> void:
-	var g := _drawer_glyph
-	var c := g.size * 0.5
-	if drawer_open():
-		var k := minf(g.size.x, g.size.y) / BOX_BTN
-		var r := 22.0 * k
-		g.draw_line(c + Vector2(-r, -r), c + Vector2(r, r), W.INK, 9.0 * k, true)
-		g.draw_line(c + Vector2(r, -r), c + Vector2(-r, r), W.INK, 9.0 * k, true)
-		return
-	for cell: Rect2 in glyph_cells(g.size):
-		g.draw_rect(cell, W.INK)
+	# pass 123: the figure inside the frame the Royale title draws (TitleStage's fractions of a strip's frame)
+	var box := Rect2(_hero_row.position + _art_host.position, _art_host.size)
+	var w := box.size.x * TitleStageScript.FIGURE_W
+	return Rect2(Vector2(box.get_center().x - w * 0.5, box.position.y + box.size.y * TitleStageScript.FIGURE_TOP),
+		Vector2(w, box.size.y * (TitleStageScript.FIGURE_FEET - TitleStageScript.FIGURE_TOP)))
 
 
 ## The BUY button: a hero on sale and a purse that holds his price asks first (WConfirm); short of it, it only says so.
@@ -1273,7 +484,7 @@ func ask_buy() -> void:
 		return
 	# pass 123 (lane MAINMENU): under Royale the shared confirm's buy (green; Wanted keeps its card as it was)
 	WConfirm.open(self, "Buy this hero?", "%s from your purse. Yours to play from then on." % Currency.price_words(c.currency_type, maxi(c.price, 0)),
-		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c), Callable(), "buy" if _royale else "danger")
+		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c), Callable(), "buy")
 
 
 ## The purchase: the gold spent (Save.buy_hero, the sink "hero"), the mask lifted with a burst, the plaque and PLAY his.
@@ -1289,13 +500,7 @@ func _buy_now(c: CharacterDef) -> void:
 	# the carousel's order follows what is owned: he moves up among the owned heroes and stays the one shown
 	_heroes = _roster()
 	_index = maxi(_heroes.find(c), 0)
-	if _live:
-		_stage.reveal()
-		_show_lock(false, 0)
-	elif _royale:
-		_reveal_figure()
-	else:
-		_show_art(c, 0)
+	_reveal_figure()
 	_show_plaque(c)
 	_place()
 	var fig := hero_figure_rect()
@@ -1338,11 +543,10 @@ func _on_sheet_look(c: CharacterDef) -> void:
 ## A sideways swipe over the hero changes it; the finger is read here so it works wherever it lands in the row, and
 ## (pass 61) across the plaque, whose tap opens the hero's sheet: a swipe travels past the tap's slop, so it never opens it.
 func _input(event: InputEvent) -> void:
-	# pass 69: with the drawer open its own list takes the sideways drags, and a tap outside it only closes it
-	if sheet_open() or drawer_open():
+	if sheet_open():
 		return
 	# pass 123: nothing moves under an open question (the buy's): the carousel stays on the hero it asks about
-	if _royale and WConfirm.is_open(self):
+	if WConfirm.is_open(self):
 		return
 	var pos := Vector2.ZERO
 	var id := -2
@@ -1465,7 +669,9 @@ func _build_royale() -> void:
 	_details_btn.custom_minimum_size = RY_DETAILS
 	_details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_details_btn.pressed.connect(open_sheet)
-	_trait_row.add_child(_details_btn)
+	# pass 124 (Garry: "Bring the Details button ... down from the stat summary. Because currently it flops around"): its own
+	# row under the trait, the same spot for every hero
+	add_child(_details_btn)
 	# START: gold, today's PLAY flow (_on_play); LOCKED for a hero not owned
 	var sv := (RY_START.y - 8.0 - float(RY_START_PX)) * 0.5
 	_play = WButton.make(["START"], RY_START_PX, WButton.PRIMARY, 4, 8, sv, 22.0, float(RY_START_PX))
@@ -1482,7 +688,7 @@ func _build_royale() -> void:
 			add_child(_run_pill)
 	# the docked tab bar, BATTLE open (lane KIT2's WTabBar), over everything above
 	_add_tab_bar()
-	_lower = [_name, _trait_row, _play]
+	_lower = [_name, _trait_row, _details_btn, _play]
 
 
 ## The tab bar (WTabBar, BATTLE open), added last; the HEROES tab wears the hero the title shows (the save's last hero).
@@ -1616,11 +822,11 @@ func _fill_buy_royale(c: CharacterDef) -> void:
 ## The hero on the disc, as a run draws him (his played look's strip, idling at its speed), sliding in from the side the
 ## finger went (the painted cut-out's 0.2 s); a hero not owned a black silhouette with the padlock while locked.
 func _show_figure(c: CharacterDef, from_side: int) -> void:
-	if _figure:
-		_figure.queue_free()
+	var old := _figure
 	_figure = HeroFigure.new()
 	_figure.name = "HeroFigure"
 	_figure.setup(Registry.played_look(c), c)
+	_figure.backdrop = _backdrop
 	_figure.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if _is_locked(c):
 		_figure.tint = MASK
@@ -1629,13 +835,67 @@ func _show_figure(c: CharacterDef, from_side: int) -> void:
 			lock.name = "Padlock"
 			_figure.add_child(lock)
 	_art_host.add_child(_figure)
+	_figure.size = _art_host.size
+	_figure.pivot_offset = _figure.feet()
 	_place_lock_royale()
-	if from_side != 0:
-		_figure.position.x = 90.0 * from_side
-		_figure.modulate.a = 0.0
-		var tw := create_tween().set_parallel(true)
-		tw.tween_property(_figure, "position:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_figure, "modulate:a", 1.0, 0.16)
+	if from_side == 0:
+		if old:
+			old.queue_free()
+		_figure.refresh_shadow()
+		return
+	if old:
+		_run_off(old, -from_side)
+	_run_in(_figure, from_side)
+
+
+## Pass 124 (Garry: "Let's make the hero run in and out like we had before. But let's make it so they run in diagonally because it
+## always looked weird how fast they turn from side to facing us. Make the sequence smooth"): the next hero comes from up the sand on
+## `side` down a straight diagonal in his three-quarter run (run_fd), growing as he nears, slowing as he arrives; he then stops in the
+## three-quarter idle for a beat and only then turns to face us. The one standing leaves down the same diagonal the other way,
+## starting slowly. A press in the middle of it just starts the next one from where things stand.
+func _run_in(f: HeroFigure, side: int) -> void:
+	f.flip = side > 0
+	f.play(["run_fd", "run_s", "run_f", "run"])
+	var from := Vector2(side * RY_RUN_DX, -RY_RUN_DY) * _fig_k
+	f.position = from
+	f.scale = Vector2.ONE * RY_RUN_FAR
+	f.refresh_shadow()
+	var tw := f.create_tween()
+	f.tween = tw
+	tw.tween_method(func(u: float) -> void:
+		var k := 1.0 - pow(1.0 - u, 2.4)
+		f.position = from.lerp(Vector2.ZERO, k)
+		f.scale = Vector2.ONE * lerpf(RY_RUN_FAR, 1.0, k)
+		f.anim_rate = lerpf(1.15, 0.55, u * u)
+		f.refresh_shadow(), 0.0, 1.0, RY_RUN_IN)
+	tw.tween_callback(func() -> void:
+		f.anim_rate = 1.0
+		f.play(["idle_fd", "idle_s", "idle_f", "idle"]))
+	tw.tween_interval(RY_TURN_BEAT)
+	tw.tween_callback(func() -> void:
+		f.flip = false
+		f.play(["idle_f", "idle_fd", "idle"])
+		f.tween = null)
+
+
+## The other half: `side` is where he is heading (-1 the left).
+func _run_off(f: HeroFigure, side: int) -> void:
+	if f.tween and f.tween.is_valid():
+		f.tween.kill()
+	f.flip = side < 0
+	f.anim_rate = 1.0
+	f.play(["run_fd", "run_s", "run_f", "run"])
+	var from := f.position
+	var from_s := f.scale.x
+	var to := Vector2(side * RY_RUN_DX, RY_RUN_DY) * _fig_k
+	var tw := f.create_tween()
+	f.tween = tw
+	tw.tween_method(func(u: float) -> void:
+		var k := pow(u, 1.8)
+		f.position = from.lerp(to, k)
+		f.scale = Vector2.ONE * lerpf(from_s, RY_RUN_NEAR, k)
+		f.refresh_shadow(), 0.0, 1.0, RY_RUN_OUT)
+	tw.tween_callback(f.queue_free)
 
 
 ## A hero just bought: the black mask lifts off his figure (TitleStage.REVEAL_TIME, the live look's reveal), the padlock
@@ -1722,14 +982,16 @@ func _place_royale() -> void:
 	var frame_h := fig_h / span
 	var frame_w := frame_h * (_figure.aspect() if _figure else 1.0)
 	var feet_y := _disc.y - RY_FEET_UP
-	if _backdrop and _backdrop.has_method("set_caster"):
-		_backdrop.call("set_caster", Vector2(_disc.x, feet_y), fig_h)
 	var band_top := feet_y - fig_h - 40.0
-	var band_bottom := _disc.y + RY_PILL_DOWN + maxf(R.PILL_H, RY_DETAILS.y) + 10.0
+	var band_bottom := _disc.y + RY_PILL_DOWN + R.PILL_H + 10.0
 	_hero_row.position = Vector2(0, band_top)
 	_hero_row.size = Vector2(vp.x, band_bottom - band_top)
 	_art_host.position = Vector2(_disc.x - frame_w * 0.5, feet_y - frame_h * TitleStageScript.FIGURE_FEET - band_top)
 	_art_host.size = Vector2(frame_w, frame_h)
+	if _figure:
+		_figure.size = _art_host.size
+		_figure.pivot_offset = _figure.feet()
+		_figure.refresh_shadow()
 	for a in _hero_row.get_children():
 		if a is WButton:
 			var side: int = a.get_meta("side")
@@ -1744,10 +1006,13 @@ func _place_royale() -> void:
 	var rs := _trait_row.get_combined_minimum_size()
 	_trait_row.size = rs
 	_trait_row.position = Vector2((vp.x - rs.x) * 0.5, _disc.y + RY_PILL_DOWN + (R.PILL_H - rs.y) * 0.5)
+	var details_y := _disc.y + RY_PILL_DOWN + R.PILL_H + RY_DETAILS_GAP
+	_details_btn.size = RY_DETAILS
+	_details_btn.position = Vector2((vp.x - RY_DETAILS.x) * 0.5, details_y)
 	if _run_pill:
 		var ps := _run_pill.get_combined_minimum_size()
 		_run_pill.size = ps
-		_run_pill.position = Vector2((vp.x - ps.x) * 0.5, _trait_row.position.y + rs.y + 22.0)
+		_run_pill.position = Vector2((vp.x - ps.x) * 0.5, details_y + RY_DETAILS.y + RY_DETAILS_GAP + 8.0)
 	# a locked hero's requirement over his feet, its foot just over the name; the BUY over the middle of his figure
 	if _req:
 		# its words wrap only once it has its width: it grows upwards from its foot when they take a second line
@@ -1780,7 +1045,15 @@ class HeroFigure extends Control:
 	var fps := 4.0
 	var frame := 0
 	var cell := Vector2(256, 256)
+	var flip := false
+	var anim_rate := 1.0
+	var tween: Tween
+	var backdrop: Control
+	var offsets := {}
+	var speeds := {}
 	var _t := 0.0
+	var _shadow: FigureShadow
+	var _contact: TextureRect
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1790,11 +1063,11 @@ class HeroFigure extends Control:
 		tex = look.sprite if look else null
 		var anims: Dictionary = look.anims if look else {}
 		var grid := look.strip_cols if look and tex else 0
-		var speeds: Dictionary = look.fps if look and tex else {}
+		speeds = look.fps if look and tex else {}
 		if tex == null:
 			tex = PlaceholderArt.character_strip(def)
 			anims = {"idle": 2, "run": 4, "turn": 1, "hit": 1, "die": 1, "cheer": 1}
-		var offsets := {}
+		offsets = {}
 		var k := 0
 		for a in TitleStageScript.ORDER:
 			var n := int(anims.get(a, 0))
@@ -1802,49 +1075,147 @@ class HeroFigure extends Control:
 				offsets[a] = [k, n]
 				k += n
 		var total := maxi(k, 1)
+		cols = grid if grid > 0 else total
+		var rows := int(ceil(float(total) / float(maxi(cols, 1))))
+		if tex:
+			cell = Vector2(float(tex.get_width()) / float(maxi(cols, 1)), float(tex.get_height()) / float(maxi(rows, 1)))
+		play(["idle_f", "idle_fd", "idle"])
+
+	## The first of `names` his strip has, from its first frame.
+	func play(names: Array) -> void:
 		var anim := "idle"
-		for want in ["idle_f", "idle_fd", "idle"]:
+		for want in names:
 			if offsets.has(want):
 				anim = want
 				break
 		var slot: Array = offsets.get(anim, [0, 1])
 		first = int(slot[0])
 		count = maxi(int(slot[1]), 1)
-		cols = grid if grid > 0 else total
-		var rows := int(ceil(float(total) / float(maxi(cols, 1))))
-		if tex:
-			cell = Vector2(float(tex.get_width()) / float(maxi(cols, 1)), float(tex.get_height()) / float(maxi(rows, 1)))
 		fps = speed_of(speeds, anim)
 		frame = 0
 		_t = 0.0
 		set_process(count > 1)
 		queue_redraw()
+		if _shadow:
+			_shadow.queue_redraw()
 
-	## The look's speed for `anim` (the first `fps` key it begins with, as BillboardSprite reads it), else RY_IDLE_FPS.
-	static func speed_of(speeds: Dictionary, anim: String) -> float:
-		for key in speeds.keys():
+	## The look's speed for `anim` (the first `fps` key it begins with, as BillboardSprite reads it), else BillboardSprite's own
+	## for a run and RY_IDLE_FPS for the rest.
+	static func speed_of(speed_map: Dictionary, anim: String) -> float:
+		for key in speed_map.keys():
 			if anim.begins_with(str(key)):
-				return float(speeds[key])
+				return float(speed_map[key])
+		if anim.begins_with("run"):
+			return float(BillboardSprite.SPEEDS.get("run", 10.0))
 		return RY_IDLE_FPS
 
 	## The frame's width over its height (the title sizes the box by it).
 	func aspect() -> float:
 		return cell.x / cell.y if cell.y > 0.0 else 1.0
 
+	## Where his soles stand, in this control's own px.
+	func feet() -> Vector2:
+		return Vector2(size.x * 0.5, size.y * TitleStageScript.FIGURE_FEET)
+
 	func set_tint(c: Color) -> void:
 		tint = c
 		queue_redraw()
 
+	## The part of the strip his frame takes.
+	func frame_rect() -> Rect2:
+		var i := first + frame
+		return Rect2(Vector2(float(i % cols), float(i / cols)) * cell, cell)
+
+	## His shadow again, for where he stands now (the backdrop says which way the sun throws it).
+	func refresh_shadow() -> void:
+		if backdrop == null or not is_inside_tree() or not backdrop.has_method("figure_axis"):
+			return
+		if _shadow == null:
+			_shadow = FigureShadow.new()
+			_shadow.figure = self
+			_shadow.setup(backdrop)
+			add_child(_shadow)
+			_contact = TextureRect.new()
+			_contact.name = "Contact"
+			_contact.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_contact.show_behind_parent = true
+			_contact.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			_contact.stretch_mode = TextureRect.STRETCH_SCALE
+			_contact.texture = _contact_texture()
+			_contact.modulate = Color(1, 1, 1, 0.75)
+			add_child(_contact)
+		_shadow.size = size
+		var cw := Vector2(size.x * 0.4, size.x * 0.11)
+		_contact.size = cw
+		_contact.position = feet() - cw * 0.5
+		var parent_xf := get_parent_control().get_global_transform() if get_parent_control() else Transform2D()
+		var foot_global: Vector2 = parent_xf * (position + pivot_offset)
+		_shadow.axis = backdrop.call("figure_axis", backdrop.get_global_transform().affine_inverse() * foot_global)
+		_shadow.queue_redraw()
+
+	## The soft pool under his soles.
+	static func _contact_texture() -> Texture2D:
+		var g := Gradient.new()
+		g.set_color(0, Color(0.08, 0.04, 0.11, 0.95))
+		g.set_color(1, Color(0.08, 0.04, 0.11, 0.0))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		t.width = 64
+		t.height = 64
+		return t
+
 	func _process(delta: float) -> void:
-		_t = fmod(_t + delta * fps, float(count))
+		_t = fmod(_t + delta * fps * anim_rate, float(count))
 		var f := int(_t)
 		if f != frame:
 			frame = f
 			queue_redraw()
+			if _shadow:
+				_shadow.queue_redraw()
 
 	func _draw() -> void:
 		if tex == null:
 			return
-		var i := first + frame
-		var src := Rect2(Vector2(float(i % cols), float(i / cols)) * cell, cell)
-		draw_texture_rect_region(tex, Rect2(Vector2.ZERO, size), src, tint)
+		var dst := Rect2(Vector2.ZERO, Vector2(-size.x, size.y)) if flip else Rect2(Vector2.ZERO, size)
+		draw_texture_rect_region(tex, dst, frame_rect(), tint)
+
+
+## Pass 124: a hero's shadow is his own frame on the sand: the picture flipped at his soles and thrown away from the sun, blurred along
+## its length (the shader the props' shadows use), redrawn when his frame changes.
+class FigureShadow extends Control:
+	var figure: HeroFigure
+	var axis := Vector2(0.15, 0.3)
+	var _mat: ShaderMaterial
+
+	func _init() -> void:
+		name = "FigureShadow"
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		show_behind_parent = true
+
+	func setup(bd: Control) -> void:
+		var sh: Dictionary = bd.call("shadow_style")
+		_mat = ShaderMaterial.new()
+		_mat.shader = load("res://core/shaders/ui_backdrop_shadow.gdshader")
+		_mat.set_shader_parameter("shadow_color", Color(str(sh.get("color", "#1a0c24"))))
+		_mat.set_shader_parameter("strength", float(sh.get("alpha", 0.6)))
+		_mat.set_shader_parameter("foot_v", TitleStageScript.FIGURE_FEET)
+		_mat.set_shader_parameter("blur_near", float(sh.get("blur_near", 0.006)))
+		_mat.set_shader_parameter("blur_far", float(sh.get("blur_far", 0.05)))
+		material = _mat
+
+	func _draw() -> void:
+		if figure == null or figure.tex == null:
+			return
+		var src := figure.frame_rect()
+		var ts := figure.tex.get_size()
+		_mat.set_shader_parameter("region", Vector4(src.position.x / ts.x, src.position.y / ts.y, src.size.x / ts.x, src.size.y / ts.y))
+		var foot := figure.feet()
+		# a point `h` px above his soles lands `h` x axis from them, across the sand
+		var ax := Vector2.RIGHT
+		var ay := -axis
+		draw_set_transform_matrix(Transform2D(ax, ay, foot - ax * foot.x - ay * foot.y))
+		var dst := Rect2(Vector2.ZERO, Vector2(-size.x, size.y)) if figure.flip else Rect2(Vector2.ZERO, size)
+		draw_texture_rect_region(figure.tex, dst, src)

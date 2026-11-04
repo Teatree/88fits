@@ -21,7 +21,7 @@
 ## seconds on the frame's delta as a replay records it (Lockstep.dt), so a replay plays it frame for frame. skip() ends
 ## it at once (tests, tools); seek(t) jumps the clock quietly (captures). Its sounds play on its own players (the run's
 ## are stopped and the music held while it plays: Game._open_grind).
-## Pass 123 (lane RUN_C), under Royale (W.royale(); Garry: "Grindstone moment: keep the wheel and sparks; the weapon in the
+## Pass 123 (lane RUN_C), under Royale (Garry: "Grindstone moment: keep the wheel and sparks; the weapon in the
 ## new item frame, its title and LEVEL / EVOLVED stamp in the new kit's type"): the dusk, the wheel, its crank and trough,
 ## the sparks, the flashes and every beat are today's; the weapon's plate is the kit's item frame (WPlate under Royale: its
 ## level's rarity, an evolution's black face, rainbow rim and EVO plaque); GRINDSTONE, the weapon's name and LEVEL n in
@@ -638,7 +638,7 @@ func _draw() -> void:
 		var sub := "SHARPENING THE %s" % from_def.display_name.to_upper()
 		var sa := a * (1.0 - clampf((t - _reveal_at) / 0.3, 0.0, 1.0))
 		# pass 123: under Royale the line under a title is the kit's secondary blue (gold is for what acts, coins, stars)
-		_outlined(self, font, sub, Vector2(vp.x * 0.5, ty + TITLE_PX * 0.72), _fit(font, sub, SUB_PX, vp.x - 80.0), R.SECONDARY if W.royale() else W.BRASS, sa, 10, 4.0)
+		_outlined(self, font, sub, Vector2(vp.x * 0.5, ty + TITLE_PX * 0.72), _fit(font, sub, SUB_PX, vp.x - 80.0), R.SECONDARY, sa, 10, 4.0)
 
 
 ## The grinding wheel face-on: its A-frame behind it, the stone (rim, face, grain that turns, a lit crown), the iron hub
@@ -716,9 +716,8 @@ func _draw_burst(c: Vector2, a: float) -> void:
 	var f := clampf(since / 0.25, 0.0, 1.0)
 	var big := evolved and stamped
 	var col := W.EMBER if big else W.BRASS
-	if W.royale():
-		# pass 123: the kit's gold, an evolution's purple
-		col = (R.RARITY["epic"]["base"] as Color) if big else (R.role("gold")["bottom"] as Color)
+	# pass 123: the kit's gold, an evolution's purple
+	col = (R.RARITY["epic"]["base"] as Color) if big else (R.role("gold")["bottom"] as Color)
 	var n := 18 if big else 14
 	var reach := size.x * (0.62 if big else 0.5) * (0.6 + 0.4 * f)
 	var turn := since * 0.35
@@ -772,10 +771,9 @@ func _draw_top() -> void:
 	var c := Vector2(vp.x * 0.5, vp.y * PLATE_Y)
 	var since := t - _reveal_at
 	var in_a := a * clampf(since / 0.15, 0.0, 1.0)
-	var royale := W.royale()
 	# pass 123: the kit's navy and cream under Royale
-	var ink: Color = R.NAVY if royale else W.INK
-	var paper: Color = R.CREAM if royale else W.PAPER
+	var ink: Color = R.NAVY
+	var paper: Color = R.CREAM
 	# ink burst lines round the plate at the reveal and at the stamp
 	var burst_t := (t - _stamp_at) if stamped else since
 	if burst_t < 0.2:
@@ -804,7 +802,7 @@ func _draw_top() -> void:
 				var ww := sf.get_string_size(was, HORIZONTAL_ALIGNMENT_LEFT, -1, 40).x
 				# pass 123: Rubik italic in the kit's secondary blue on its navy edge under Royale
 				_top.draw_string_outline(sf, Vector2(c.x - ww * 0.5, under_y + NAME_PX * 1.0 + 12.0), was, HORIZONTAL_ALIGNMENT_LEFT, -1, 40, 8, Color(ink, a))
-				_top.draw_string(sf, Vector2(c.x - ww * 0.5, under_y + NAME_PX * 1.0 + 12.0), was, HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(R.SECONDARY if royale else W.AGED, a))
+				_top.draw_string(sf, Vector2(c.x - ww * 0.5, under_y + NAME_PX * 1.0 + 12.0), was, HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(R.SECONDARY, a))
 		else:
 			var nm0 := from_def.display_name.to_upper() if from_def else ""
 			_outlined(_top, font, nm0, Vector2(c.x, name_y), _fit(font, nm0, NAME_PX, vp.x - 80.0), W.PAPER, in_a, 14, 6.0)
@@ -817,9 +815,9 @@ func _draw_top() -> void:
 	var x0 := c.x - step * float(total - 1) * 0.5
 	var sy := under_y + 6.0
 	# pass 123: the kit's stars under Royale (gold held, the new one cream, the rest slate, every one stroked navy)
-	var s_held: Color = WMarks.ROYALE_HELD if royale else W.BRASS
-	var s_next: Color = WMarks.ROYALE_NEXT if royale else W.PAPER
-	var s_empty: Color = WMarks.ROYALE_EMPTY if royale else W.AGED
+	var s_held: Color = WMarks.ROYALE_HELD
+	var s_next: Color = WMarks.ROYALE_NEXT
+	var s_empty: Color = WMarks.ROYALE_EMPTY
 	for i in total:
 		var sc2 := 1.0
 		var fill := s_empty
@@ -836,7 +834,7 @@ func _draw_top() -> void:
 				# the star to come breathes in paper
 				fill = s_next
 				sc2 = 1.0 + 0.12 * sin(since * 14.0)
-		var sw := 3.0 if royale else (0.0 if (held or (stamped and i < level_to)) else 3.0)
+		var sw := 3.0
 		WMarks.star(_top, Vector2(x0 + step * i, sy), STAR_PX * 0.5 * sc2, Color(fill, in_a), sw, Color(ink, in_a))
 	# "LEVEL 2", and from the stamp "LEVEL 2 > 3" with the new number in brass, slammed in
 	var ly := sy + STAR_PX * 1.45
@@ -859,7 +857,7 @@ func _draw_top() -> void:
 	var ay := ly - px * 0.36
 	var head := PackedVector2Array([Vector2(ax + px * 0.28, ay), Vector2(ax - px * 0.06, ay - px * 0.24), Vector2(ax - px * 0.06, ay + px * 0.24)])
 	# (pass 123: the kit's gold on navy under Royale)
-	var brass: Color = R.GOLD_TEXT if royale else W.BRASS
+	var brass: Color = R.GOLD_TEXT
 	_top.draw_line(Vector2(ax - px * 0.32, ay), Vector2(ax, ay), Color(ink, a), px * 0.16 + 8.0)
 	_top.draw_colored_polygon(_grow(head, 5.0), Color(ink, a))
 	_top.draw_line(Vector2(ax - px * 0.3, ay), Vector2(ax, ay), Color(brass, a), px * 0.16)
@@ -875,24 +873,19 @@ func _outlined(ci: CanvasItem, font: Font, s: String, at: Vector2, px: int, col:
 	var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
 	ci.draw_set_transform(at + Vector2(0.0, -px * 0.35), 0.0, Vector2(sc, sc))
 	var o := Vector2(-w * 0.5, px * 0.35)
-	if W.royale():
-		# pass 123: the kit's type (DrumMoment.kit_line): paper reads cream, brass the kit's gold with its bevel, ember
-		# (EVOLVED) the epic purple; a colour of the kit's own is kept
-		var gold := col.is_equal_approx(W.BRASS)
-		var kc := col
-		if col.is_equal_approx(W.PAPER):
-			kc = R.CREAM
-		elif gold:
-			kc = R.GOLD_TEXT
-		elif col.is_equal_approx(W.EMBER):
-			kc = R.RARITY["epic"]["light"]
-		DrumMoment.kit_line(ci, font, o, s, px, kc, a, gold)
-		ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
-	ci.draw_string_outline(font, o, s, HORIZONTAL_ALIGNMENT_LEFT, -1, px, outline, Color(W.INK, a))
-	ci.draw_string(font, o + Vector2(shadow, shadow), s, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Color(W.INK, a))
-	ci.draw_string(font, o, s, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Color(col, a))
+	# pass 123: the kit's type (DrumMoment.kit_line): paper reads cream, brass the kit's gold with its bevel, ember
+	# (EVOLVED) the epic purple; a colour of the kit's own is kept
+	var gold := col.is_equal_approx(W.BRASS)
+	var kc := col
+	if col.is_equal_approx(W.PAPER):
+		kc = R.CREAM
+	elif gold:
+		kc = R.GOLD_TEXT
+	elif col.is_equal_approx(W.EMBER):
+		kc = R.RARITY["epic"]["light"]
+	DrumMoment.kit_line(ci, font, o, s, px, kc, a, gold)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	return
 
 
 

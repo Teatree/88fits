@@ -25,7 +25,7 @@ var _keep: Dictionary = {}
 
 
 func before_test() -> void:
-	_keep = {"style": Settings.menu_style, "preview": Settings.preview_locked_heroes, "inset": Settings.top_inset}
+	_keep = {"preview": Settings.preview_locked_heroes, "inset": Settings.top_inset}
 	Settings.preview_locked_heroes = false
 	Settings.top_inset = -1
 	Save.data = Save._default()
@@ -35,7 +35,6 @@ func before_test() -> void:
 
 func after_test() -> void:
 	Stage.forget()
-	Settings.menu_style = str(_keep["style"])
 	Settings.preview_locked_heroes = bool(_keep["preview"])
 	Settings.top_inset = int(_keep["inset"])
 	get_tree().paused = false
@@ -142,7 +141,7 @@ func test_the_results_after_a_death_show_the_gold_banked() -> void:
 	for n in r.find_children("*", "", true, false):
 		if n is WText:
 			texts += (n as WText).text + " | "
-	assert_str(texts).contains("Banked")
+	assert_str(texts).contains("BANKED")
 	assert_str(texts).contains("100 → 130")
 	assert_str(texts).not_contains("Left in the sand")
 	assert_bool(r._count.strike).is_false()
@@ -279,7 +278,6 @@ func test_no_strongbox_stands_in_a_long_run() -> void:
 # ---------------------------------------------------------------- 5. the Collection button
 
 func _title(style: String) -> Control:
-	Settings.menu_style = style
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	await get_tree().process_frame
@@ -287,57 +285,5 @@ func _title(style: String) -> Control:
 	return t
 
 
-func test_the_hero_button_is_a_square_as_tall_as_the_plaque() -> void:
-	for style in ["painted", "live"]:
-		var t := await _title(style)
-		var btn: Control = t.find_child("HeroesButton", false, false)
-		assert_object(btn).is_not_null()
-		var plaque: Control = t._plaque
-		for i in (t._heroes as Array).size():
-			t._index = i
-			t._show_hero(0)
-			t._place()
-			await get_tree().process_frame
-			var who := "%s %s" % [style, (t._heroes[i] as CharacterDef).id]
-			assert_float(btn.size.x).override_failure_message(who).is_equal_approx(btn.size.y, 0.5)
-			assert_float(btn.size.y).override_failure_message(who).is_equal_approx(plaque.size.y, 1.0)
-			assert_float(btn.position.y).override_failure_message(who).is_equal_approx(plaque.position.y, 1.0)
-			# left of the plaque, the gap between them kept
-			assert_float(plaque.position.x - btn.position.x - btn.size.x).is_equal_approx(Title.BOX_GAP, 0.5)
-			assert_bool(btn.get_global_rect().end.x <= plaque.get_global_rect().position.x).is_true()
-		t.visible = false
-		Stage.forget()
 
 
-func test_the_glyph_is_eight_squares_of_a_three_by_three_grid() -> void:
-	for side in [104.0, 180.0, 233.0]:
-		var cells: Array = Title.glyph_cells(Vector2(side, side))
-		assert_int(cells.size()).is_equal(8)
-		var xs := {}
-		var ys := {}
-		for r: Rect2 in cells:
-			# plain squares, whole pixels
-			assert_float(r.size.x).is_equal(r.size.y)
-			assert_float(r.size.x).is_greater(4.0)
-			assert_float(r.position.x).is_equal(roundf(r.position.x))
-			assert_float(r.position.y).is_equal(roundf(r.position.y))
-			xs[r.position.x] = true
-			ys[r.position.y] = true
-		assert_int(xs.size()).is_equal(3)
-		assert_int(ys.size()).is_equal(3)
-		var cx: Array = xs.keys()
-		var cy: Array = ys.keys()
-		cx.sort()
-		cy.sort()
-		# the bottom-right one is the one missing
-		for r: Rect2 in cells:
-			assert_bool(r.position.x == cx[2] and r.position.y == cy[2]).is_false()
-		# even steps, inside the button, centred
-		assert_float(cx[1] - cx[0]).is_equal(cx[2] - cx[1])
-		assert_float(cy[1] - cy[0]).is_equal(cy[2] - cy[1])
-		var sq: float = (cells[0] as Rect2).size.x
-		var span: float = cx[2] + sq - cx[0]
-		assert_float(cx[0]).is_greater(0.0)
-		assert_float(absf(cx[0] - (side - (cx[2] + sq)))).is_less_equal(1.0)
-		assert_float(span).is_less_equal(side * Title.GLYPH_SPAN + 0.5)
-		assert_float(span).is_greater(side * Title.GLYPH_SPAN - 4.0)

@@ -10,15 +10,12 @@ const WATCHDOG_S := 120.0
 var _out := "user://p112_wanted"
 var _save
 var _reg
-var _theme := ""
 
 
 func _initialize() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):
 			_out = a.substr(4)
-		elif a.begins_with("theme="):
-			_theme = a.substr(6)
 	DirAccess.make_dir_recursive_absolute(_out)
 	create_timer(WATCHDOG_S, true, false, true).timeout.connect(func():
 		print("p112_wanted: watchdog, quitting")
@@ -58,8 +55,6 @@ func _run_to_posters(seed: int) -> Node:
 func _main() -> void:
 	_save = root.get_node("Save")
 	_reg = root.get_node("Registry")
-	if _theme != "":
-		root.get_node("Settings").set("ui_theme", _theme)
 	_save.begin_sandbox()
 	_save.data["totals"]["runs"] = 6
 	_save.data["stages_beaten"] = {"red_canyon": [true, false, false]}

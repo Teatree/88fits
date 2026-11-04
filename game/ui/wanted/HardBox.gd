@@ -2,7 +2,7 @@
 ## offset down-right with no blur. `press` draws the box sitting on its shadow (a pressed button), and `inner` draws a
 ## band just inside the border (the brass outline of a held card, the ember outline of an evolution). Corners are
 ## square unless `radius` is set (the icon plates), then the box is drawn through a StyleBoxFlat.
-## Pass 122 (lane UIKIT_A): while the Royale theme is on (W.royale()) the same box draws itself the Royale way
+## Pass 122 (lane UIKIT_A): while the Royale theme is on the same box draws itself the Royale way
 ## (_draw_royale), by what it is (royale_kind): a paper box is the slate panel (the gradient, a navy edge, a navy base
 ## straight down, the white lip, 6 px corners), an aged box the dimmer slate, a box with a button `role` ("gold", "green",
 ## "blue", "slate", "red", "locked") the two-tone button face on its coloured and navy base, "plate" the black info plate,
@@ -151,7 +151,7 @@ func _draw_royale_inner(ci: RID, inner_r: Rect2) -> void:
 
 
 func _draw(ci: RID, rect: Rect2) -> void:
-	if themed and W.royale():
+	if themed:
 		_draw_royale(ci, rect)
 		return
 	var r := rect
@@ -238,22 +238,14 @@ func copy() -> HardBox:
 ## R.PRESS_DOWN), the content with it, and the face shows its inset shadow (`held`) even with no base to lose; the copy is
 ## copy(), so a tab-shaped, rounded or thin-bordered box keeps its shape while held. Wanted keeps duplicate() as before.
 func pressed(fill_override: Color = Color(0, 0, 0, 0)) -> HardBox:
-	var royale := W.royale()
-	var p: HardBox = copy() if royale else duplicate()
+	var p: HardBox = copy()
 	p.role = role   # pass 122 (lane UIKIT_B): Wanted's duplicate() copies no script variable; the role is carried by hand (Wanted ignores it)
 	p.press = maxi(shadow, 0)
 	if fill_override.a > 0.0:
 		p.fill = fill_override
-	if royale:
-		p.press = mini(p.press, R.PRESS_DOWN)
-		p.held = true
-		p.content_margin_top = content_margin_top + p.press
-		p.content_margin_bottom = content_margin_bottom - p.press
-		return p
-	# the content moves with the box
-	p.content_margin_left = content_margin_left + p.press
+	p.press = mini(p.press, R.PRESS_DOWN)
+	p.held = true
 	p.content_margin_top = content_margin_top + p.press
-	p.content_margin_right = content_margin_right - p.press
 	p.content_margin_bottom = content_margin_bottom - p.press
 	return p
 

@@ -15,7 +15,7 @@
 ## one the HUD's dashed empty slot), a talent with no rank shows both forms' icons small beside its name, the tiles grew
 ## to hold the bar, the sheet shows the same bar large and the two forms with their icons, and a summary strip over the
 ## mirror lists every talent with ranks as its live form's icon and "x<rank>".
-## Pass 123 (lane UPGRADE), under Royale (W.royale(); Wanted is built and drawn exactly as before): the mock 5_Upgrade
+## Pass 123 (lane UPGRADE), under Royale: the mock 5_Upgrade
 ## (Garry: "Upgrade board as the mock: no mirror, YOU HOLD and TAKE IT ALL BACK with the refund line in the header, 2x4
 ## tiles with both options and their effect lines from data, a blue price · CHOOSE opening a pop-up with two green BUY
 ## buttons"; "the 'Your Upgrades' part ... needs to have enough space for all of them. Also, change the text 'Take it
@@ -33,26 +33,10 @@
 extends ScreenBase
 
 const MIRROR_ART := "res://art/ui/wanted/mirror.png"
-## The rank bar's slots (pass 61; the 28 x 20 notches beside the name before): on a tile six 60 px slots 8 apart (400
-## px of the tile's 422), the icon 49 px inside (WPlate.icon_frac), so it reads at the 44 px it was painted for; on the
-## sheet six 100 px slots 12 apart. A bought rank's plate is raised (a hard ink shadow) and paper; an unbought one aged
-## with the dashed line inside.
-const TILE_SLOT := 60.0
-const TILE_SLOT_GAP := 8.0
-const SHEET_SLOT := 100.0
-const SHEET_SLOT_GAP := 12.0
-const SLOT_SHADOW := 3
-## The two forms' icons beside a talent's name while it has no rank (the choice shows before the first buy), "or" between.
-const NAME_ICON := 46.0
-## The forms' icons in the sheet's choice, on a paper plate so they read on the chosen (ink) half too.
-const CHOICE_ICON := 76.0
-## The summary over the mirror: one chip per talent with ranks, its live form's icon on a plate and "x<rank>".
-const CHIP_PX := 60.0
 
 var _gold: PanelContainer
 var _grid: GridContainer
 var _refund: WTap
-var _refund_text: WText
 var _sheet_root: Control
 var _sheet_def: TalentDef
 ## The summary strip (pass 61) and the flow its chips (or the empty hint) sit in.
@@ -67,24 +51,17 @@ func header_right() -> Control:
 
 func board_top() -> float:
 	# pass 123: under Royale the YOU HOLD row starts the board (the mock's y 176)
-	if W.royale():
-		return R_TOP
-	return 190.0
+	return R_TOP
 
 
 func board_bottom() -> float:
 	# pass 123: under Royale the refund line sits under RESET UPGRADES at the top, and the tab bar is ScreenBase's
-	if W.royale():
-		return R_FOOT
-	# the refund link (31 px, 60 off the bottom) and a gap
-	return 60.0 + 32.0 + 20.0
+	return R_FOOT
 
 
 ## Pass 123: the mock's 40 px sides under Royale (two 490 px tiles and a 20 px gap); 48 under Wanted.
 func board_side() -> float:
-	if W.royale():
-		return R_SIDE
-	return super()
+	return R_SIDE
 
 
 ## Pass 123: the docked tab bar with UPGRADE open (ScreenBase lays it only under Royale).
@@ -94,226 +71,20 @@ func tab_bar() -> String:
 
 func build() -> void:
 	# pass 123 (lane UPGRADE): the mock's board under Royale
-	if W.royale():
-		_build_royale()
-		return
-	set_title("Upgrade")
-	content.add_theme_constant_override("separation", 0)
-	content.add_child(_make_summary())
-	var over := Control.new()
-	over.custom_minimum_size.y = 24
-	over.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(over)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 10)
-	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var mirror := _mirror()
-	mirror.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	stack.add_child(mirror)
-	var line := W.serif_text("Something looks back. It wants gold.", 26, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	stack.add_child(line)
-	content.add_child(stack)
-	var gap := Control.new()
-	gap.custom_minimum_size.y = 1
-	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(gap)
-	_grid = GridContainer.new()
-	_grid.columns = 2
-	_grid.add_theme_constant_override("h_separation", 24)
-	_grid.add_theme_constant_override("v_separation", 24)
-	_grid.mouse_filter = Control.MOUSE_FILTER_PASS
-	content.add_child(_grid)
-	# the footer link, under the board
-	_refund = WTap.new()
-	var clear := W.box(Color(0, 0, 0, 0), 0, 0).pad(20, 4, 20, 4)
-	_refund.box = clear
-	_refund.box_down = clear
-	_refund_text = W.text("", W.serif(600), 26, W.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	_refund_text.underline = true
-	_refund.add_child(_refund_text)
-	_refund.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_refund.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_refund.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_refund.offset_bottom = -60 + 4
-	_refund.pressed.connect(_take_back)
-	add_child(_refund)
-	_refresh()
-	# pass 88 (lane MIRROR): Spite's old ranks paid back, said once
-	_show_board_note()
-
-
-## The mirror: a brass frame in an ink ring round dark glass, and whatever lives in it looking back.
-func _mirror() -> Control:
-	var m := Control.new()
-	m.custom_minimum_size = Vector2(328, 328)
-	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if ResourceLoader.exists(MIRROR_ART):
-		var art := TextureRect.new()
-		art.texture = load(MIRROR_ART)
-		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		m.add_child(art)
-		return m
-	m.draw.connect(func():
-		var c := Vector2(164, 164)
-		m.draw_circle(c, 170.0, W.INK, true, -1.0, true)
-		m.draw_circle(c, 164.0, W.BRASS, true, -1.0, true))
-	var glass := Control.new()
-	glass.position = Vector2(14, 14)
-	glass.size = Vector2(300, 300)
-	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	glass.draw.connect(func(): _draw_glass(glass))
-	m.add_child(glass)
-	var ring := Control.new()
-	ring.position = Vector2(14, 14)
-	ring.size = Vector2(300, 300)
-	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ring.draw.connect(func(): ring.draw_arc(Vector2(150, 150), 147.0, 0.0, TAU, 96, W.INK, 6.0, true))
-	m.add_child(ring)
-	return m
-
-
-## Dark glass: ink soft at 40 % down, ink from 70 % of the way to the far corner (the mock's radial gradient), as a fan.
-func _draw_glass(ci: Control) -> void:
-	var c := Vector2(150, 150)
-	var focus := Vector2(150, 120)
-	var reach := Vector2(0, 300).distance_to(focus) * 0.7
-	var pts := PackedVector2Array([focus])
-	var cols := PackedColorArray([W.INK_SOFT])
-	for k in 97:
-		var p := c + Vector2.from_angle(TAU * k / 96.0) * 150.0
-		pts.append(p)
-		cols.append(W.INK_SOFT.lerp(W.INK, clampf(p.distance_to(focus) / reach, 0.0, 1.0)))
-	var idx := PackedInt32Array()
-	for k in 96:
-		idx.append_array([0, k + 1, k + 2])
-	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), idx, pts, cols)
-	# the glass catches the light along its upper left
-	ci.draw_arc(c, 124.0, deg_to_rad(198.0), deg_to_rad(252.0), 24, Color(W.PAPER, 0.16), 9.0, true)
-	ci.draw_arc(c, 108.0, deg_to_rad(212.0), deg_to_rad(232.0), 12, Color(W.PAPER, 0.10), 5.0, true)
-	# something looks back: two brass eyes low in the dark, each in a faint glow, with a thin slit of a pupil
-	for side in [-1.0, 1.0]:
-		var e := Vector2(150.0 + side * 36.0, 158.0)
-		for k in 7:
-			ci.draw_circle(e, 30.0 - k * 3.5, Color(W.BRASS, 0.045), true, -1.0, true)
-		var lid := PackedVector2Array()
-		for a in 28:
-			var t := TAU * a / 28.0
-			# an almond, its outer end tipped up
-			lid.append(e + Vector2(cos(t) * 15.0, sin(t) * 6.0 - cos(t) * side * 2.5))
-		ci.draw_colored_polygon(lid, W.BRASS)
-		ci.draw_colored_polygon(PackedVector2Array([e + Vector2(0, -5), e + Vector2(2.2, 0), e + Vector2(0, 5), e + Vector2(-2.2, 0)]), W.INK)
+	_build_royale()
+	return
 
 
 func _refresh() -> void:
 	# pass 123 (lane UPGRADE): the Royale board's tiles, YOU HOLD, the refund line and the wallet
-	if _royale_built:
-		_refresh_royale()
-		return
-	# out of the grid at once (a queued tile still counts and still lays out until the frame ends)
-	for c in _grid.get_children():
-		_grid.remove_child(c)
-		c.queue_free()
-	for def: TalentDef in Registry.talents_list():
-		_grid.add_child(_card(def))
-	_fill_summary()
-	var amount := _amount_of(_gold)
-	if amount:
-		amount.text = W.num(Save.gold())
-	var spent := Save.talent_spent()
-	# half comes back (pass 44): the refund is a loss, not a free respec
-	_refund_text.text = ("Take it all back · %s of the %s spent comes back" % [W.num(Save.talent_refund()), W.num(spent)]) if spent > 0 else "Nothing to take back"
-	_refund.modulate.a = 1.0 if spent > 0 else 0.45
+	_refresh_royale()
+	return
 
 
 func _amount_of(p: Control) -> WText:
 	for n in p.find_children("Amount", "", true, false):
 		return n as WText
 	return null
-
-
-## One talent on the board: its name (both forms' icons beside it while it has no rank), its rank bar, the live form
-## and what it does, the next rank's price.
-func _card(def: TalentDef) -> WTap:
-	var locked := not Registry.is_unlocked("talent", def.id)
-	var picks := Save.talent_picks(def.id)
-	var rank := picks.size()
-	var c := WTap.new()
-	c.name = "Talent_" + def.id
-	var b := W.box(W.PAPER, 5, 6).pad(29, 27, 29, 27)
-	c.box = b
-	c.box_down = b.pressed()
-	c.locked_alpha = 0.55
-	c.locked = locked
-	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 14)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.add_child(v)
-	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	head.custom_minimum_size.y = NAME_ICON
-	var n := W.slab_text(def.display_name, 44, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 44.0)
-	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(n)
-	# both forms beside the name while a rank is left to buy (pass 63: every rank is its own choice)
-	if rank < def.max_rank():
-		head.add_child(_form_pair(def))
-	v.add_child(head)
-	v.add_child(rank_bar(def, picks, TILE_SLOT, TILE_SLOT_GAP))
-	var line := "Each rank: %s or %s" % [def.form_name(0), def.form_name(1)]
-	if rank > 0:
-		line = held_line(def)
-	v.add_child(W.serif_text(line, 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	var tag: Control
-	if locked:
-		var q := Registry.quest_for("talent", def.id)
-		tag = _tag(TextGen.quest_text(q) if q else "Locked", W.PAPER, 0)
-	else:
-		var cost := def.cost_of_rank(rank)
-		if rank >= def.max_rank() or cost < 0:
-			tag = _tag("Full", W.AGED, 0)
-		else:
-			tag = _price(cost, Currency.can_afford(def.currency_type, cost), def.currency_type)
-	tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	v.add_child(tag)
-	c.pressed.connect(func():
-		if locked:
-			Audio.play("ui_locked")
-			return
-		_open(def))
-	return c
-
-
-## "+10% max HP a rank." -> "+10% max HP a rank" (the board's line has no full stop).
-func _short(t: String) -> String:
-	return t.strip_edges().trim_suffix(".")
-
-
-## The rank bar (pass 61): `def.max_rank()` slots `px` square, `gap` apart; the bought ones first, each the icon of the
-## form that rank was bought in (pass 63: `picks`, Save.talent_picks, so one bar can hold both icons) on a raised paper
-## plate (its initial in slab when the icon is missing), the rest dashed empties. The slots are named Rank1.. and carry
-## their state in the meta "bought" (and the plate its "form").
-static func rank_bar(def: TalentDef, picks: Array, px: float, gap: float) -> HBoxContainer:
-	var rank := picks.size()
-	var bar := HBoxContainer.new()
-	bar.name = "RankBar"
-	bar.add_theme_constant_override("separation", int(gap))
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for k in def.max_rank():
-		var slot: WPlate
-		if k < rank:
-			slot = form_plate(def, int(picks[k]), px)
-			slot.shadow = SLOT_SHADOW
-		else:
-			slot = WPlate.slot(px)
-		slot.name = "Rank%d" % (k + 1)
-		slot.set_meta("bought", k < rank)
-		bar.add_child(slot)
-	return bar
 
 
 ## A form's icon on a paper plate `px` square (the bar's bought slot, the choice's, the summary's chip, the pair beside a
@@ -331,74 +102,7 @@ static func form_plate(def: TalentDef, form: int, px: float) -> WPlate:
 	return p
 
 
-## Both forms' icons small beside a name with no rank yet: "[icon] or [icon]".
-func _form_pair(def: TalentDef) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.name = "FormIcons"
-	h.add_theme_constant_override("separation", 8)
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(form_plate(def, 0, NAME_ICON))
-	var o := W.serif_text("or", 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
-	o.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(o)
-	h.add_child(form_plate(def, 1, NAME_ICON))
-	return h
-
-
 # --- the summary -------------------------------------------------------------------------------------------------------
-
-## The summary strip over the mirror (pass 61, Garry: "Maybe as a summary also"): a paper strip, the build at a glance.
-func _make_summary() -> PanelContainer:
-	_summary = PanelContainer.new()
-	_summary.name = "Summary"
-	_summary.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_summary.add_theme_stylebox_override("panel", W.box(W.PAPER, 5, 6).pad(29, 20, 29, 22))
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 14)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(W.slab_text("YOUR UPGRADES", 28, W.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, 28.0))
-	_summary_flow = HFlowContainer.new()
-	_summary_flow.name = "Chips"
-	_summary_flow.alignment = FlowContainer.ALIGNMENT_CENTER
-	_summary_flow.add_theme_constant_override("h_separation", 26)
-	_summary_flow.add_theme_constant_override("v_separation", 14)
-	_summary_flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(_summary_flow)
-	_summary.add_child(v)
-	return _summary
-
-
-## The chips again: per talent with ranks, in board order, one chip a form it holds: the form's icon and "x<ranks of it>"
-## (pass 63: Grit with two Padding ranks and one Plate rank is two chips); nothing bought, a line that says where the
-## icons will come from.
-func _fill_summary() -> void:
-	if _summary_flow == null:
-		return
-	for c in _summary_flow.get_children():
-		_summary_flow.remove_child(c)
-		c.queue_free()
-	for def: TalentDef in summary_talents():
-		for form in range(2):
-			var n := Save.talent_count(def.id, form)
-			if n <= 0:
-				continue
-			var chip := HBoxContainer.new()
-			chip.name = "Chip_%s_%d" % [def.id, form]
-			chip.add_theme_constant_override("separation", 8)
-			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var plate := form_plate(def, form, CHIP_PX)
-			plate.shadow = SLOT_SHADOW
-			chip.add_child(plate)
-			var t := W.slab_text("x%d" % n, 32, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 32.0)
-			t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			chip.add_child(t)
-			_summary_flow.add_child(chip)
-	if _summary_flow.get_child_count() == 0:
-		var hint := W.serif_text("Nothing bought yet: every rank you buy shows here.", 26, W.INK_SOFT, 400, true,
-			HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
-		hint.name = "Hint"
-		_summary_flow.add_child(hint)
 
 
 ## What a talent's ranks give together (pass 63): each form's ranks summed, the first form's effects first.
@@ -467,128 +171,8 @@ func _tag(t: String, fill: Color, shadow: int) -> PanelContainer:
 ## A talent opened over a sepia dim: its two forms, what the ranks give, the next rank for gold, Close. Pass 123: under
 ## Royale the CHOOSE pop-up (_open_choice) in the shared modal shell.
 func _open(def: TalentDef) -> void:
-	if _royale_built:
-		_open_choice(def)
-		return
-	_close(false)
-	_sheet_def = def
-	_sheet_root = Control.new()
-	_sheet_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_sheet_root.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_sheet_root)
-	var dim := WTap.new()
-	var dim_box := W.box(Color8(48, 30, 14, 140), 0, 0)
-	dim.box = dim_box
-	dim.box_down = dim_box
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.pressed.connect(func(): _close(true))
-	# above the sheet: where a finger closes it (and where tools/touch_audit.gd taps it)
-	dim.set_meta("tap_at", Vector2(540, 250))
-	_sheet_root.add_child(dim)
-	var sheet := PanelContainer.new()
-	sheet.name = "Sheet"
-	sheet.mouse_filter = Control.MOUSE_FILTER_STOP
-	sheet.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(50, 46, 50, 46))
-	sheet.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	sheet.offset_left = 60
-	sheet.offset_right = -60
-	sheet.offset_top = 420
-	_sheet_root.add_child(sheet)
-	_fill_sheet(sheet)
-	dim.modulate.a = 0.0
-	create_tween().tween_property(dim, "modulate:a", 1.0, 0.2)
-	sheet.offset_top = 480
-	sheet.modulate.a = 0.0
-	var tw := create_tween().set_parallel(true)
-	tw.tween_property(sheet, "offset_top", 420.0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(sheet, "modulate:a", 1.0, 0.2)
-
-
-func _fill_sheet(sheet: PanelContainer) -> void:
-	for c in sheet.get_children():
-		c.queue_free()
-	var def := _sheet_def
-	var picks := Save.talent_picks(def.id)
-	var rank := picks.size()
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 26)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sheet.add_child(v)
-	var n := W.slab_text(def.display_name, 84, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 84.0)
-	v.add_child(n)
-	v.add_child(rank_bar(def, picks, SHEET_SLOT, SHEET_SLOT_GAP))
-	v.add_child(W.serif_text(def.flavour, 30, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	var now := "No ranks yet"
-	if rank > 0:
-		# the ranks summed by form (pass 45, pass 63), out of how many
-		now = "Rank %d of %d owned · %s" % [rank, def.max_rank(), TextGen.describe_effects(held_effects(def))]
-	# wrapping: a wrapped line's minimum width is nothing, so a long one breaks instead of widening the sheet
-	var status := W.serif_text(now, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
-	status.name = "Status"
-	v.add_child(status)
-	var cost := def.cost_of_rank(rank)
-	if rank >= def.max_rank() or cost < 0:
-		var full := WButton.make(["FULL"], 48, WButton.PRIMARY, 5, 8, 24.0, 24.0)
-		full.name = "Buy"
-		full.locked = true
-		full.pressed.connect(func(): Audio.play("ui_locked"))
-		v.add_child(full)
-	else:
-		# pass 63 (Garry: "Player makes a choice, Padding or Plate and that is added to the upgrades list with the icon
-		# that stands for it"): the next rank is bought in one form or the other, and it keeps that form
-		var note := W.serif_text("Rank %d: choose one. It stays; Take it all back is the only way to choose again." % (rank + 1),
-			26, W.INK, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
-		note.name = "ChoiceNote"
-		v.add_child(note)
-		for form in range(2):
-			v.add_child(_form_offer(def, form, cost, sheet))
-	var close := WTap.new()
-	var clear := W.box(Color(0, 0, 0, 0), 0, 0).pad(0, 4, 0, 4)
-	close.box = clear
-	close.box_down = clear
-	close.name = "Close"
-	close.add_child(W.slab_text("Close", 30, W.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, 0.0))
-	close.pressed.connect(func(): _close(true))
-	v.add_child(close)
-
-
-## One form's offer on the sheet (pass 63): its icon, name and what a rank gives, and its own buy button for the next
-## rank ("Buy0" / "Buy1"); locked when the purse is short.
-func _form_offer(def: TalentDef, form: int, cost: int, sheet: PanelContainer) -> VBoxContainer:
-	var box := VBoxContainer.new()
-	box.name = "Offer%d" % form
-	box.add_theme_constant_override("separation", 12)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 20)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var plate := form_plate(def, form, CHOICE_ICON)
-	plate.shadow = SLOT_SHADOW
-	plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(plate)
-	var words := VBoxContainer.new()
-	words.add_theme_constant_override("separation", 4)
-	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	words.add_child(W.slab_text(def.form_name(form), 40, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 40.0))
-	var held := Save.talent_count(def.id, form)
-	var t := _short(def.form_text(form)) + (" · %d owned" % held if held > 0 else "")
-	words.add_child(W.serif_text(t, 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	row.add_child(words)
-	box.add_child(row)
-	var buy := WButton.make([def.form_name(form).to_upper(), {"coin": 40, "fill": W.PAPER, "currency": Currency.of(def.currency_type)}, [W.num(cost), null, 40]], 44, WButton.PRIMARY, 5, 8, 24.0, 24.0)
-	buy.name = "Buy%d" % form
-	buy.locked = not Currency.can_afford(def.currency_type, cost)
-	buy.pressed.connect(func():
-		if buy.locked:
-			Audio.play("ui_locked")
-			return
-		if Save.buy_talent(def, form):
-			Audio.play("ui_buy")
-			_refresh()
-			_fill_sheet.call_deferred(sheet))
-	box.add_child(buy)
-	return box
+	_open_choice(def)
+	return
 
 
 func _close(animate: bool) -> void:
@@ -617,20 +201,13 @@ func _take_back() -> void:
 		return
 	# pass 123 (Garry: "change the text 'Take it all back' to just be 'Reset Upgrades'"): the Royale words, the same
 	# refund and the same red confirm
-	if _royale_built:
-		WConfirm.open(self, "Reset Upgrades?",
-			"Every rank on the board goes. %s of the %s gold spent comes back; the rest is gone." % [W.num(Save.talent_refund()), W.num(spent)],
-			"Reset", "Keep them", func():
-				Save.talent_refund_all()
-				Audio.play("ui_buy")
-				_refresh())
-		return
-	WConfirm.open(self, "Take it all back?",
+	WConfirm.open(self, "Reset Upgrades?",
 		"Every rank on the board goes. %s of the %s gold spent comes back; the rest is gone." % [W.num(Save.talent_refund()), W.num(spent)],
-		"Take it back", "Keep them", func():
+		"Reset", "Keep them", func():
 			Save.talent_refund_all()
 			Audio.play("ui_buy")
 			_refresh())
+	return
 
 
 ## The back gesture (or Esc) closes an open talent first.
@@ -714,17 +291,17 @@ const R_TOP := 168.0
 const R_FOOT := 12.0
 const R_SIDE := 40.0
 ## YOU HOLD: its label (Rubik 700 R_HOLD_PX, tracked), R_HOLD_GAP to the held options' frames (R_CHIP px, R_CHIP_GAP
-## apart, R_CHIPS_A_ROW to a row, R_CHIP_ROWS rows kept whatever is held: eight talents x two options = 16 always fit,
+## apart, R_CHIPS_A_ROW to a row; the rows grow with what is held, pass 124: no room kept for rows nobody has yet (Garry:
+## "a huge empty space at the top"),
 ## R_CHIP_ROW_GAP between the rows for the count plaque that hangs R_CHIP_HANG px under a frame); RESET UPGRADES R_RESET_H
 ## tall at R_RESET_PX (Rubik 700 by the Ultra minimum) with the refund line under it (Rubik 500 R_REFUND_PX, the numbers
 ## gold and bold).
 const R_HOLD_PX := 20
 const R_HOLD_GAP := 14
-const R_CHIP := 52.0
+const R_CHIP := 64.0
 const R_CHIP_GAP := 8
 const R_CHIP_ROW_GAP := 20
-const R_CHIPS_A_ROW := 8
-const R_CHIP_ROWS := 2
+const R_CHIPS_A_ROW := 6
 const R_CHIP_HANG := 15.0
 const R_RESET_H := 56.0
 const R_RESET_PX := 22
@@ -734,7 +311,7 @@ const R_REFUND_MIN_PX := 14
 const R_HINT_PX := 18
 ## The board: 2 x 4 slate tiles at least R_TILE_H tall, R_TILE_GAP_H / R_TILE_GAP_V apart (a tile's 8 px navy base sits
 ## in the latter), at least R_BOARD_GAP under YOU HOLD.
-const R_BOARD_GAP := 8.0
+const R_BOARD_GAP := 14.0
 const R_TILE_H := 300.0
 const R_TILE_GAP_H := 20
 const R_TILE_GAP_V := 16
@@ -753,8 +330,11 @@ const R_FORM_NAME_PX := 22
 const R_FORM_NAME_LH := 25.0
 const R_FORM_LINE_PX := 20
 const R_FORM_LINE_LH := 22.0
-const R_OR_PX := 18
-const R_PIP := Vector2(52, 34)
+## Pass 124 (Garry: "The chosen upgrade icons should be bigger. On the buy pop-up especially"): a tile's pips, and the
+## pop-up's much bigger ones.
+const R_PIP := Vector2(56, 54)
+const R_POP_PIP := Vector2(88, 84)
+const R_POP_PIP_GAP := 8.0
 const R_PIP_GAP := 6.0
 ## The gaps down a tile: under the name, over the pips (at least: a tile beside a taller one gives it the rest, so the
 ## pips and the buttons of a row line up), between the pips and CHOOSE.
@@ -772,7 +352,6 @@ const R_POP_FORM := 96.0
 const R_POP_NAME_PX := 40
 const R_POP_LINE_PX := 26
 const R_POP_BUY_W := 260.0
-const R_POP_BUY_SHORT_W := 200.0
 const R_POP_BUY_H := 64.0
 const R_POP_CLOSE_H := 96.0
 const R_POP_CLOSE_PX := 38
@@ -781,12 +360,10 @@ const R_POP_PURSE_COIN := 28.0
 ## An empty pip: the mock's see-through black in a 3 px navy edge, a 2 px dashed line 6 px in.
 const R_PIP_EDGE := 3
 const R_PIP_EMPTY := Color(8 / 255.0, 10 / 255.0, 18 / 255.0, 0.45)
-const R_PIP_DASH := Color(1, 1, 1, 0.25)
 ## The dark over the menu backdrop (ScreenBase.backdrop_dim): the mock draws the Upgrade board on its night sky.
 const R_DIM := 0.45
 
 ## Pass 123: the board was built the Royale way (fixed at build: a theme change reaches the next screen built).
-var _royale_built := false
 ## The CHOOSE pop-up while it shows (a WConfirm shell; `_sheet_root` points at it too, so the Wanted sheet's callers and
 ## the back gesture keep working), RESET UPGRADES and the refund line's box.
 var _choice: WConfirm
@@ -798,11 +375,10 @@ var _refund_w := 0.0
 
 
 func backdrop_dim() -> float:
-	return R_DIM if W.royale() else super()
+	return R_DIM
 
 
 func _build_royale() -> void:
-	_royale_built = true
 	set_title("Upgrade")
 	content.add_theme_constant_override("separation", 0)
 	# a taller screen: the board takes the room between YOU HOLD and the tab bar and the tiles sit in its middle (the two
@@ -810,7 +386,7 @@ func _build_royale() -> void:
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(_make_hold_row())
-	content.add_child(_spacer(R_BOARD_GAP, true))
+	content.add_child(_spacer(R_BOARD_GAP, false))
 	_grid = GridContainer.new()
 	_grid.name = "Board"
 	_grid.columns = 2
@@ -856,9 +432,14 @@ func _make_hold_row() -> Control:
 	_summary_flow.add_theme_constant_override("h_separation", R_CHIP_GAP)
 	_summary_flow.add_theme_constant_override("v_separation", R_CHIP_ROW_GAP)
 	_summary_flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_summary_flow.custom_minimum_size = Vector2(R_CHIPS_A_ROW * R_CHIP + (R_CHIPS_A_ROW - 1) * R_CHIP_GAP,
-		R_CHIP_ROWS * R_CHIP + (R_CHIP_ROWS - 1) * R_CHIP_ROW_GAP + R_CHIP_HANG)
-	left.add_child(_summary_flow)
+	_summary_flow.custom_minimum_size = Vector2(R_CHIPS_A_ROW * R_CHIP + (R_CHIPS_A_ROW - 1) * R_CHIP_GAP, R_CHIP)
+	# the last row's count plaques hang under it, however many rows there are
+	var hang := MarginContainer.new()
+	hang.name = "ChipsHang"
+	hang.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hang.add_theme_constant_override("margin_bottom", int(R_CHIP_HANG))
+	hang.add_child(_summary_flow)
+	left.add_child(hang)
 	row.add_child(left)
 	# what is left of the board's width for RESET UPGRADES and its line (the row never grows past the board)
 	var vw := get_viewport_rect().size.x if is_inside_tree() else 1080.0
@@ -1045,18 +626,8 @@ func _form_row(def: TalentDef, form: int) -> HBoxContainer:
 	return row
 
 
-## "or" between a tile's two options, under the words (the mock's 80 px in).
-func _or_row() -> MarginContainer:
-	var m := MarginContainer.new()
-	m.name = "Or"
-	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	m.add_theme_constant_override("margin_left", int(R_FORM) + R_FORM_GAP)
-	m.add_child(W.text("or", R.body(R.BODY_WEIGHT, true), R_OR_PX, R.MUTED, HORIZONTAL_ALIGNMENT_LEFT, float(R_OR_PX)))
-	return m
-
-
 ## A tile's button: the blue "● price · CHOOSE" (the next rank's price, Save.talent_picks' count); short of gold the kit's
-## short state (the locked grey with the price alone) with "n short" before it; MAXED at the last rank (a tap still opens
+## short state (pass 124, Garry: "we just show the grayed button with red text for coins amount"); MAXED at the last rank (a tap still opens
 ## what the ranks hold); LOCKED while the talent's quest is open (a tap says so). Named "Choose".
 func _choose_row(def: TalentDef, rank: int, locked: bool) -> HBoxContainer:
 	var row := HBoxContainer.new()
@@ -1082,15 +653,8 @@ func _choose_row(def: TalentDef, rank: int, locked: bool) -> HBoxContainer:
 		short = maxi(cost - Currency.balance(cur), 0)
 		b = WButton.price(cost, "CHOOSE", WButton.BLUE, R_CHOOSE_PX, short, cur, false, R_CHOOSE_H)
 		b.pressed.connect(_open.bind(def))
-		if short > 0:
-			var s := W.short_text(short)
-			s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			row.add_child(s)
 	b.name = "Choose"
-	if short > 0:
-		b.custom_minimum_size.x = R_POP_BUY_SHORT_W
-	else:
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(b)
 	return row
 
@@ -1161,7 +725,7 @@ func _fill_choice() -> void:
 	var pips := CenterContainer.new()
 	pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var track := PipTrack.new()
-	track.setup(def, picks, R_PIP, R_PIP_GAP)
+	track.setup(def, picks, R_POP_PIP, R_POP_PIP_GAP)
 	pips.add_child(track)
 	v.add_child(pips)
 	for form in range(2):
@@ -1199,7 +763,7 @@ func _fill_purse() -> void:
 
 
 ## One option in the pop-up, in a solid cell: its frame, its name, its line for one rank, how many it holds, and its
-## green BUY for the next rank ("Buy0" / "Buy1"; the kit's short state with "n short" under it; none at MAXED).
+## green BUY for the next rank ("Buy0" / "Buy1"; the kit's short state: grey with the price in red; none at MAXED).
 func _choice_row(def: TalentDef, form: int, rank: int, full: bool) -> PanelContainer:
 	var cell := PanelContainer.new()
 	cell.name = "Offer%d" % form
@@ -1242,12 +806,10 @@ func _choice_row(def: TalentDef, form: int, rank: int, full: bool) -> PanelConta
 		right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var b := WButton.price(cost, "BUY", WButton.GREEN, R.PRICE_PX, short, cur, false, R_POP_BUY_H)
 		b.name = "Buy%d" % form
-		b.custom_minimum_size.x = R_POP_BUY_SHORT_W if short > 0 else R_POP_BUY_W
+		b.custom_minimum_size.x = R_POP_BUY_W
 		b.size_flags_horizontal = Control.SIZE_SHRINK_END
 		b.pressed.connect(_buy_form.bind(def, form))
 		right.add_child(b)
-		if short > 0:
-			right.add_child(W.short_text(short))
 		row.add_child(right)
 	return cell
 

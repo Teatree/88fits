@@ -14,16 +14,13 @@ const RED_CANYON := preload("res://world/maps/red_canyon/RedCanyon.gd")
 const VARIANTS := {"agave_b": "agave", "barrel_cactus_b": "barrel_cactus", "ocotillo_b": "ocotillo", "boulder_b": "boulder",
 	"desert_bush_b": "desert_bush", "dead_shrub_b": "dead_shrub", "joshua_tree_b": "joshua_tree", "joshua_tree_c": "joshua_tree"}
 
-var _keep_style := ""
-
 
 func before_test() -> void:
-	_keep_style = Settings.menu_style
+	pass
 
 
 func after_test() -> void:
 	STAGE.forget()
-	Settings.menu_style = _keep_style
 	Run.forced_map_seed = 0
 	Run.end()
 
@@ -208,34 +205,3 @@ func test_barrels_signs_and_structures_stand_on_shadows() -> void:
 
 # ---------------------------------------------------------------- the title
 
-func test_the_title_scene_is_composed_round_the_hero() -> void:
-	Settings.menu_style = "live"
-	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
-	add_child(t)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var stage = t._stage
-	assert_object(stage).is_not_null()
-	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(STAGE.SCENE_FILE))
-	var sc: Dictionary = data["red_canyon"]
-	# every painting of the vignette laid (a variant by name too), each on its shadow (pass 85, re-pinned: the vignette
-	# is one of the map's presets, drawn at random each visit)
-	var laid_props: Array = STAGE.presets_of(sc)[stage.preset_index]["props"]
-	assert_int(stage.composed.size()).is_equal(laid_props.size())
-	var pf: PropField = stage.map.get("props")
-	var feet: Vector3 = stage.feet()
-	var bx: Array = sc["clear"]["x"]
-	var bz: Array = sc["clear"]["z"]
-	var laid := 0
-	for row: Dictionary in pf.placed:
-		var p: Vector3 = row["pos"]
-		var inside: bool = p.x - feet.x >= float(bx[0]) and p.x - feet.x <= float(bx[1]) and p.z - feet.z >= float(bz[0]) and p.z - feet.z <= float(bz[1])
-		if inside:
-			laid += 1
-			assert_int(int(row["s"])).is_greater_equal(0)
-	# inside the box only the vignette stands (the map's own scatter there is gone)
-	assert_int(laid).is_equal(stage.composed.size())
-	# the hero's spot is clear: nothing within 1.3 m of his feet
-	for pr: Dictionary in STAGE.presets_of(sc):
-		for e: Dictionary in pr["props"]:
-			assert_float(Vector2(float(e["x"]), float(e["z"])).length()).is_greater(1.3)

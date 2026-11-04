@@ -60,38 +60,30 @@ static func make(options: Array, p_index: int = 0, title_px: int = 36, sub_px: i
 func choose(i: int, emit: bool = false) -> void:
 	index = i
 	var n := _halves.size()
-	var royale := W.royale()
 	for k in n:
 		var on := k == i
 		var pad: float = _halves[k].get_meta("pad")
 		var b := W.box(W.INK if on else W.PAPER, 5, 0).pad(pad + (5.0 if k == 0 else 5.0), pad + 5.0, pad + (5.0 if k == n - 1 else 0.0), pad + 5.0)
 		# one strip: the halves share the middle line, and the strip carries the shadow
 		b.sides = [true, true, k == n - 1, true]
-		if royale:
-			b.role = "gold" if on else "slate"
-			b.corners = [k == 0, k == n - 1, k == n - 1, k == 0]
+		b.role = "gold" if on else "slate"
+		b.corners = [k == 0, k == n - 1, k == n - 1, k == 0]
 		(_halves[k] as WTap).box = b
 		(_halves[k] as WTap).box_down = b
 		for j in _texts[k].size():
 			var t: WText = _texts[k][j]
 			if t == null:
 				continue
-			if royale:
-				t.color = R.NAVY if on else (R.CREAM if j == 0 else R.SECONDARY)
-				if j == 0 and R.is_display(t.font) and not on:
-					R.edge(t, t.font_size)
-				else:
-					R.no_edge(t)
+			t.color = R.NAVY if on else (R.CREAM if j == 0 else R.SECONDARY)
+			if j == 0 and R.is_display(t.font) and not on:
+				R.edge(t, t.font_size)
 			else:
-				t.color = W.PAPER if on else W.INK_SOFT
+				R.no_edge(t)
 	if emit:
 		chosen.emit(i)
 
 
 func _draw() -> void:
-	if W.royale():
-		# the frame's navy base straight down (pass 122)
-		R.flat(R.NAVY, R.RADIUS).draw(get_canvas_item(), Rect2(Vector2(0, R.PANEL_BASE), size))
-		return
-	# the strip's hard shadow, behind both halves
-	draw_rect(Rect2(Vector2(6, 6), size), W.INK)
+	# the frame's navy base straight down (pass 122)
+	R.flat(R.NAVY, R.RADIUS).draw(get_canvas_item(), Rect2(Vector2(0, R.PANEL_BASE), size))
+	return

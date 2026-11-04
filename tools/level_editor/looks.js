@@ -18,7 +18,7 @@
 // is a draft, with a primary Generate… that opens the job form for that code as a new look (the document saved first).
 // A hero look offers badge and title cut-out candidates (a hero's icon is the round badge), a creature look icon
 // candidates; the painter line says when the stills were reused rather than painted (recipe.painter.stills). The review
-// fixes: the page says where the game shows a look's badge and cut-out (WHERE_SHOWN: the cut-out only on the Painted
+// fixes: the page says where the game shows a look's badge and cut-out (WHERE_SHOWN: the cut-out only on a hero's Wanted poster since pass 124; before, only on the Painted
 // title); a change in the job list redraws the grid only for the asset on screen and never under the open edit or
 // confirm box, and the edit box keeps what was typed through any redraw.
 // Pass 76 (lane ICON), the icon guard: installPick / iconOp ask before the look in play or the base changes its icon
@@ -78,13 +78,12 @@ const LookGrid = (() => {
   /** The recipe's bookkeeping keys, written by the jobs and Duplicate… rather than typed: the painter it ran with, the
    *  method, the look a draft was made from, the look's own seed offset (pass 68). */
   const BOOK_KEYS = ['painter', 'method', 'from', 'seed_offset'];
-  /** Where the game shows a hero look's own pictures (pass 68 review: the default Live title never shows a cut-out), said
-   *  wherever the page offers or explains badge and cut-out candidates (here, jobs.js, assets.js). The badge:
-   *  Registry.played_look / art_of (WHeroSheet, ResultsScreen, CollectionScreen, ArenaPanel); the cut-out: TitleScreen's
-   *  painted branch only (Settings.menu_style, "live" by default; the switch is in Settings' debug panel). */
+  /** Where the game shows a hero look's own pictures, said wherever the page offers or explains badge and cut-out
+   *  candidates (here, jobs.js, assets.js). The badge: Registry.played_look / art_of (WHeroSheet, ResultsScreen,
+   *  CollectionScreen, ArenaPanel); the cut-out: WPoster (a Wanted poster that names the hero) since pass 124; the main menu draws the look's strip. */
   const WHERE_SHOWN = {
     badge: 'the badge is what the hero sheet, the results, the Collection and the arena show for the look',
-    cutout: 'the cut-out shows on the Painted title only (Settings, debug mode: Main menu → Painted); the Live title, the default, draws the look\'s strip instead',
+    cutout: 'the cut-out shows only on a Wanted poster that names the hero; the main menu draws the look\'s strip instead',
   };
   /** The recipe's own keys apart from the bookkeeping ones. */
   function ownKeys(look) { return Object.keys(look.recipe && typeof look.recipe === 'object' ? look.recipe : {}).filter((k) => !BOOK_KEYS.includes(k)); }

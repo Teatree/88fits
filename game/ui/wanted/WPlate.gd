@@ -14,7 +14,7 @@
 ## card's plate (the level-up's, the chest's) carries its kind's corner glyph over the bottom-left corner (`kind_mark`:
 ## a revolver on a weapon (pass 56), a rolled scroll on a line, in a paper disc with an ink ring). Drawn in one pass, so a
 ## HUD row of ten (five weapons and five lines since pass 52) stays cheap.
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the same plate is the handoff's ITEM FRAME (README section 3; the
+## Pass 122 (lane UIKIT_B), under Royale: the same plate is the handoff's ITEM FRAME (README section 3; the
 ## Wanted drawing is untouched while the switch is off): a radial rarity fill with a white lip and a dark foot inside a
 ## rarity rim (7 px from 160 up, 5 below; the legendary's a thicker gold bevel with a dark line inside it and a glow, the
 ## epic's a glow), a navy outline (4 / 3 px), a navy base 8 px straight down, the icon at 86 % with a hard drop shadow,
@@ -262,14 +262,13 @@ func _ready() -> void:
 	set_process(dots_ready)
 	# pass 122: the Royale layers are made before the first draw (a plate is set up before it enters the tree); under
 	# Wanted nothing is added
-	if W.royale():
-		_ensure_royale()
+	_ensure_royale()
 
 
 func _enter_tree() -> void:
 	# a neighbour added, moved or taken away changes what a glow is cut round (review fix 4)
 	var parent := get_parent()
-	if W.royale() and parent and not parent.child_order_changed.is_connected(_neighbours_moved):
+	if parent and not parent.child_order_changed.is_connected(_neighbours_moved):
 		parent.child_order_changed.connect(_neighbours_moved)
 
 
@@ -415,82 +414,8 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	if W.royale():
-		_draw_royale()
-		return
-	_hide_royale()
-	_draw_wanted()
-
-
-## The Wanted plate, as it has been drawn since pass 48 (pass 122 moved it here whole).
-func _draw_wanted() -> void:
-	var r := Rect2(Vector2.ZERO, Vector2(side, side))
-	if dots_ready and not locked:
-		_glow(r)
-	var f := W.AGED if locked or empty or padlock or mystery else fill
-	f.a *= plate_alpha
-	var bc := Color(border_color, border_color.a * plate_alpha)
-	if shadow > 0:
-		_shape(Rect2(r.position + Vector2(shadow, shadow), r.size), Color(W.INK, plate_alpha), 0, W.INK)
-	_shape(r, f, border, bc)
-	if empty:
-		_dashes(r.grow(-(border + side * 0.1)))
-	if padlock:
-		_padlock()
-	if ring > 0 and not mystery:
-		var rc := Color(ring_color, ring_color.a * plate_alpha)
-		var rr := r.grow(-border)
-		if round_plate:
-			draw_arc(rr.get_center(), rr.size.x * 0.5 - ring * 0.5, 0.0, TAU, 64, rc, ring, true)
-		else:
-			var sb := StyleBoxFlat.new()
-			sb.draw_center = false
-			sb.set_corner_radius_all(maxi(radius - border, 2))
-			sb.set_border_width_all(ring)
-			sb.border_color = rc
-			sb.anti_aliasing = true
-			draw_style_box(sb, rr)
-	if tex:
-		var inner := side * icon_frac
-		var ts := tex.get_size()
-		var k := inner / maxf(ts.x, ts.y)
-		var sz := ts * k
-		var at := (Vector2(side, side) - sz) * 0.5
-		if round_plate:
-			# a portrait fills its disc
-			at = Vector2(border, border)
-			sz = Vector2(side - border * 2, side - border * 2)
-		draw_texture_rect(tex, Rect2(at, sz), false, Color(0, 0, 0, 1) if mystery else (Color(0.14, 0.106, 0.078, 0.3) if locked else Color.WHITE))
-	elif glyph != "" and not empty and not padlock:
-		var gf := W.slab()
-		var gpx := maxi(int(round(side * 0.56)), 8)
-		var gw := gf.get_string_size(glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, gpx).x
-		var gbase := side * 0.5 - gf.get_height(gpx) * 0.5 + gf.get_ascent(gpx)
-		draw_string(gf, Vector2((side - gw) * 0.5, gbase), glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, gpx, glyph_color)
-	if badge:
-		# over the corner: a third of it outside the plate, up and to the left
-		var bp := badge_px if badge_px > 0.0 else side * 0.34
-		var bs := badge.get_size()
-		var bk := bp / maxf(bs.x, bs.y)
-		draw_texture_rect(badge, Rect2(Vector2(-bp * 0.3, -bp * 0.3), bs * bk), false, Color(1, 1, 1, 0.6) if locked else Color.WHITE)
-	if mystery:
-		_mystery_mark()
-	if kind_mark != "" and not empty and not padlock and not mystery:
-		_kind_disc()
-	if dots.x > 0 and not locked:
-		_dots()
-	if level_text != "":
-		var fnt := W.slab()
-		var tw := fnt.get_string_size(level_text, HORIZONTAL_ALIGNMENT_LEFT, -1, level_size).x
-		var padx := 8.0 if level_size >= 22 else 7.0
-		var h := W.normal_height(fnt, level_size) + 6.0
-		var w := tw + padx * 2.0 + 6.0
-		# right:-10 / bottom:-10 on the padding box: 10 px past the inner edge of the border
-		var tag := Rect2(Vector2(side - border + 10.0 - w, side - border + 10.0 - h), Vector2(w, h))
-		draw_rect(tag, level_border_color)
-		draw_rect(tag.grow(-3.0), level_fill)
-		var base := tag.position.y + 3.0 + (h - 6.0 - fnt.get_height(level_size)) * 0.5 + fnt.get_ascent(level_size)
-		draw_string(fnt, Vector2(tag.position.x + 3.0 + padx, base), level_text, HORIZONTAL_ALIGNMENT_LEFT, -1, level_size, W.INK)
+	_draw_royale()
+	return
 
 
 ## The "?" over a mystery plate (pass 69): paper slab in an ink outline, a little over half the plate high.
@@ -544,28 +469,6 @@ func _kind_disc(ink: Color = W.INK, paper: Color = W.PAPER, straight: bool = fal
 		draw_string(gf, Vector2(c.x - gw * 0.5, gbase), t, HORIZONTAL_ALIGNMENT_LEFT, -1, gpx, ink)
 
 
-## The evolution-ready glow: soft brass in layers round the plate and a bright brass edge just outside its border,
-## breathing.
-func _glow(r: Rect2) -> void:
-	var breath := GLOW_LOW + (1.0 - GLOW_LOW) * (0.5 + 0.5 * sin(_glow_t / GLOW_PERIOD * TAU))
-	var reach := maxf(side * 0.17, 8.0)
-	var layers := 8
-	for i in layers:
-		var k := float(i) / float(layers)
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(W.BRASS.r, W.BRASS.g, W.BRASS.b, 0.08 * breath)
-		sb.set_corner_radius_all(int(radius + reach * (1.0 - k)))
-		sb.anti_aliasing = true
-		draw_style_box(sb, r.grow(reach * (1.0 - k)))
-	var edge := StyleBoxFlat.new()
-	edge.draw_center = false
-	edge.set_corner_radius_all(radius + 3)
-	edge.set_border_width_all(maxi(int(round(side * 0.035)), 2))
-	edge.border_color = Color(W.BRASS, 0.85 * breath)
-	edge.anti_aliasing = true
-	draw_style_box(edge, r.grow(3.0))
-
-
 ## The open slot's line: short ink dashes, half seen, round an inset square.
 func _dashes(rr: Rect2, c: Color = Color(W.INK_SOFT, 0.5)) -> void:
 	var w := maxf(side * 0.035, 2.0)
@@ -605,25 +508,6 @@ func _padlock(ink: Color = W.INK, paper: Color = W.PAPER, aged: Color = W.AGED) 
 		var kc := body.get_center()
 		draw_circle(kc - Vector2(0, bh * 0.1), bh * 0.14, aged, true, -1.0, true)
 		draw_rect(Rect2(kc.x - bh * 0.05, kc.y - bh * 0.05, bh * 0.1, bh * 0.28), aged)
-
-
-func _shape(r: Rect2, f: Color, b: int, bc: Color) -> void:
-	if round_plate:
-		var c := r.get_center()
-		var rad := r.size.x * 0.5
-		if b > 0:
-			draw_circle(c, rad, bc, true, -1.0, true)
-			draw_circle(c, rad - b, f, true, -1.0, true)
-		else:
-			draw_circle(c, rad, f, true, -1.0, true)
-		return
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = f
-	sb.set_corner_radius_all(radius)
-	sb.set_border_width_all(b)
-	sb.border_color = bc
-	sb.anti_aliasing = true
-	draw_style_box(sb, r)
 
 
 # --- Royale (pass 122, lane UIKIT_B) -----------------------------------------------------------------------------------
@@ -675,6 +559,8 @@ func frame_look() -> Dictionary:
 			t = R.MUTATION
 			out["glow"] = t["glow"]
 			out["glow_px"] = R.FRAME_GLOW_EPIC
+			out["cut"] = R.MUTATION_CUT
+			out["rim_b"] = t["rim_b"]
 		_:
 			t = R.RARITY[r]
 			if r == "legendary":
@@ -716,20 +602,6 @@ func frame_metrics() -> Dictionary:
 	var lip := maxi(int(round(side * R.FRAME_LIP_FRAC)), 2)
 	return {"edge": R.FRAME_EDGE_BIG if big else R.FRAME_EDGE_SMALL, "rim": rim, "lip": lip, "drop": lip,
 		"base": 0 if round_plate else R.PANEL_BASE}
-
-
-## The face's rect under Royale (inside the outline and the rim).
-func face_rect() -> Rect2:
-	var m := frame_metrics()
-	var inset := float(int(m["edge"]) + int(m["rim"]))
-	return Rect2(Vector2.ZERO, Vector2(side, side)).grow(-inset)
-
-
-func _hide_royale() -> void:
-	if _fill_node:
-		_fill_node.visible = false
-	if _rays_node:
-		_rays_node.visible = false
 
 
 ## The two layers drawn behind the plate: the rays, then the frame (both `show_behind_parent`, so the icon and the
@@ -790,7 +662,8 @@ func _sync_royale() -> void:
 		p.set_shader_parameter("pad", float(pad))
 		p.set_shader_parameter("base_px", float(m["base"]))
 		p.set_shader_parameter("radius", float(R.RADIUS))
-		p.set_shader_parameter("shape", 1 if round_plate else 0)
+		p.set_shader_parameter("shape", 1 if round_plate else (2 if look.has("cut") else 0))
+		p.set_shader_parameter("cut_px", float(look.get("cut", 0.0)) * side)
 		p.set_shader_parameter("edge_px", float(m["edge"]))
 		p.set_shader_parameter("edge_color", edge_col)
 		p.set_shader_parameter("rim_px", float(m["rim"]))
@@ -802,7 +675,7 @@ func _sync_royale() -> void:
 			p.set_shader_parameter("rim_d", R.RIM_BEVEL[3])
 		else:
 			p.set_shader_parameter("rim_a", look["rim"])
-			p.set_shader_parameter("rim_b", look["base"])
+			p.set_shader_parameter("rim_b", look.get("rim_b", look["base"]))
 		p.set_shader_parameter("inner_px", float(look["inner"]))
 		p.set_shader_parameter("inner_color", R.RARITY["legendary"]["inner"])
 		p.set_shader_parameter("face_radius", 0.0 if round_plate else R.FRAME_FACE_RADIUS)

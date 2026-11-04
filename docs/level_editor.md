@@ -683,8 +683,8 @@ schema; B: methods.json, the examples, every driver's meta.json). 17,023 checks 
   (a thumbnail; Change… picks from the library, Upload… adds one, ↺ goes back to the look's front still). Each field says
   where its value came from. A hero's icon is its round badge: "Icon candidates" on a hero are badge candidates.
 - **Where the pictures show**: a look's badge on the hero sheet, the results, the Collection and the arena (the look the
-  hero is played in); its cut-out on the Painted title only (Settings, debug mode: Main menu → Painted); the Live title,
-  the default, draws the look's strip.
+  hero is played in); its cut-out only on a Wanted poster that names the hero since pass 124 (the main menu draws the
+  look's strip).
 - **Re-roll does what it says**: repaint the stills (a look sharing its paintings forks them first; its walks are made
   again from the new stills), new seeds (stills and clips), keep the stills and redo the clips, redo one view (gen_ctl).
   A mode that cannot work for a method is refused with the reason. When the Model settings differ from the painter a look

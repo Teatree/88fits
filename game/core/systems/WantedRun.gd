@@ -370,10 +370,7 @@ func _refresh_plate() -> void:
 	if _plate_text.text != t:
 		_plate_text.text = t
 		_plate.reset_size()
-	if W.royale():
-		_plate_text.color = R.role("green")["top"] if done else (R.role("red")["top"] if failed else R.WHITE)
-	else:
-		_plate_text.color = W.SAGE if done else (W.ROCK if failed else W.INK)
+	_plate_text.color = R.role("green")["top"] if done else (R.role("red")["top"] if failed else R.WHITE)
 	_plate.modulate.a = 0.6 if failed else 1.0
 
 

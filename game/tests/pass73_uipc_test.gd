@@ -15,7 +15,7 @@ var _keep: Dictionary = {}
 
 
 func before_test() -> void:
-	_keep = {"style": Settings.menu_style, "preview": Settings.preview_locked_heroes, "inset": Settings.top_inset,
+	_keep = {"preview": Settings.preview_locked_heroes, "inset": Settings.top_inset,
 		"data": Save.data.duplicate(true)}
 	Settings.preview_locked_heroes = false
 	Settings.top_inset = -1
@@ -25,7 +25,6 @@ func before_test() -> void:
 
 func after_test() -> void:
 	Stage.forget()
-	Settings.menu_style = str(_keep["style"])
 	Settings.preview_locked_heroes = bool(_keep["preview"])
 	Settings.top_inset = int(_keep["inset"])
 	Save.data = _keep["data"]
@@ -33,7 +32,6 @@ func after_test() -> void:
 
 
 func _title(style: String) -> Control:
-	Settings.menu_style = style
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	await get_tree().process_frame
@@ -82,119 +80,16 @@ func _show(t: Control, i: int) -> void:
 
 # ---------------------------------------------------------------- one size, nothing moves
 
-func test_the_plaque_is_one_size_for_every_hero_in_every_state() -> void:
-	for style in ["painted", "live"]:
-		for which in ["owned", "buyable", "locked", "preview"]:
-			_state("locked" if which == "preview" else which)
-			Settings.preview_locked_heroes = which == "preview"
-			var t := await _title(style)
-			var vp: Vector2 = t.get_viewport_rect().size
-			var want_size := Vector2(vp.x - 60.0 - (Title.BOX_LEFT + Title.PLAQUE_H + Title.BOX_GAP), Title.PLAQUE_H)
-			var first := {}
-			for i in (t._heroes as Array).size():
-				_show(t, i)
-				await get_tree().process_frame
-				var who := "%s %s %s" % [style, which, (t._heroes[i] as CharacterDef).id]
-				assert_vector(t._plaque.size).override_failure_message(who).is_equal_approx(want_size, Vector2(0.5, 0.5))
-				var now := {"plaque": _rect(t._plaque), "button": _rect(t._drawer_btn), "play": _rect(t._play),
-					"hero": Rect2(t._hero_row.position, t._hero_row.size), "dots": _rect(t._dots), "map": _rect(t._map_tap)}
-				if first.is_empty():
-					first = now
-					continue
-				for k: String in now:
-					var a: Rect2 = now[k]
-					var b: Rect2 = first[k]
-					assert_bool(a.position.is_equal_approx(b.position) and a.size.is_equal_approx(b.size)) \
-						.override_failure_message("%s: the %s moved: %s -> %s" % [who, k, b, a]).is_true()
-			t.visible = false
-			Stage.forget()
 
 
-func test_swiping_through_every_hero_moves_nothing() -> void:
-	_state("buyable")
-	var t := await _title("painted")
-	var was := [_rect(t._plaque), _rect(t._drawer_btn), _rect(t._play), Rect2(t._hero_row.position, t._hero_row.size)]
-	for k in (t._heroes as Array).size():
-		t._step(1)
-		await get_tree().process_frame
-		var now := [_rect(t._plaque), _rect(t._drawer_btn), _rect(t._play), Rect2(t._hero_row.position, t._hero_row.size)]
-		for j in now.size():
-			assert_bool((now[j] as Rect2).is_equal_approx(was[j] as Rect2)) \
-				.override_failure_message("swipe %d: %s -> %s" % [k, was[j], now[j]]).is_true()
 
 
 # ---------------------------------------------------------------- everything fits, one set of sizes
 
-func test_every_heros_words_fit_inside_the_plaque_at_one_set_of_sizes() -> void:
-	for which in ["owned", "buyable", "locked", "preview"]:
-		_state("locked" if which == "preview" else which)
-		Settings.preview_locked_heroes = which == "preview"
-		var t := await _title("painted")
-		var body: Control = t._plaque.get_node("Body")
-		for i in (t._heroes as Array).size():
-			_show(t, i)
-			await get_tree().process_frame
-			var c: CharacterDef = t._heroes[i]
-			var who := "%s %s" % [which, c.id]
-			var room := _rect(body).grow(0.5)
-			# the insides never ask for more than the room inside the border and the padding
-			var cols: Control = body.get_node("Columns")
-			var need := cols.get_combined_minimum_size()
-			assert_bool(need.x <= body.size.x + 0.5 and need.y <= body.size.y + 0.5) \
-				.override_failure_message("%s needs %s in %s" % [who, need, body.size]).is_true()
-			for w: WText in _texts(body):
-				assert_bool(room.encloses(_rect(w))).override_failure_message("%s: '%s' at %s is outside %s" % [who, w.text, _rect(w), room]).is_true()
-				# one line unless it is the flavour; nothing wider than its box
-				if not w.wrap:
-					assert_float(w.text_width()).override_failure_message("%s: '%s'" % [who, w.text]).is_less_equal(w.size.x + 0.5)
-			# the flavour in at most LINE_MAX lines, none cut
-			if t._line.is_visible_in_tree():
-				t._line._shape()
-				assert_int(t._line._para.get_line_count()).override_failure_message("%s: the flavour wraps to more than %d lines" % [who, Title.LINE_MAX]).is_less_equal(Title.LINE_MAX)
-			# the sizes are the plaque's, whoever he is
-			assert_int(t._name.font_size).is_equal(Title.NAME_PX)
-			assert_int(t._line.font_size).is_equal(Title.LINE_PX)
-			for s in t._trait.get_children():
-				assert_int((s.get_node("Value") as WText).font_size).override_failure_message(who).is_equal(Title.VALUE_PX)
-				assert_int((s.get_node("Label") as WText).font_size).override_failure_message(who).is_equal(Title.LABEL_PX)
-			for col in t._stats.get_children():
-				for w: WText in _texts(col):
-					assert_int(w.font_size).override_failure_message(who).is_equal(Title.LABEL_PX)
-			assert_int((t._plaque.find_child("Details", true, false) as WText).font_size).is_equal(Title.LABEL_PX)
-			# at most two plates (START, FAVOURITE): the sheet lists the rest
-			assert_int(t._stats.get_child_count()).is_less_equal(Title.PLATES_MAX)
-		t.visible = false
 
 
-func test_the_labels_are_bigger_than_before_and_the_numbers_sit_on_their_baseline() -> void:
-	# pass 73: the labels under the plates and beside the numbers were 14 px; one size of 18 now
-	assert_int(Title.LABEL_PX).is_greater_equal(18)
-	assert_int(Title.LINE_PX).is_greater_equal(24)
-	_state("owned")
-	var t := await _title("painted")
-	for i in (t._heroes as Array).size():
-		if (t._heroes[i] as CharacterDef).id == "ironwood":
-			_show(t, i)
-	await get_tree().process_frame
-	# Ironwood's two numbers: a row each, each label on its number's line
-	var stats: Array = t._trait.get_children()
-	assert_int(stats.size()).is_greater_equal(1)
-	for s: Control in stats:
-		var v: WText = s.get_node("Value")
-		var l: WText = s.get_node("Label")
-		assert_float(l.size.y).is_equal_approx(v.size.y, 0.5)
-		assert_int(l.valign).is_equal(VERTICAL_ALIGNMENT_BOTTOM)
-	t.visible = false
 
 
-func test_the_hero_keeps_clear_of_the_title_words_under_a_camera_cutout() -> void:
-	Settings.top_inset = 130
-	_state("owned")
-	var t := await _title("painted")
-	# the title's words end 440 px down on a 1920 screen, plus the inset
-	assert_float(t._hero_row.position.y).is_greater_equal(440.0 + 130.0 - 0.5)
-	assert_float(t._hero_row.position.y + t._hero_row.size.y).is_less_equal(t._plaque.position.y - 38.0 + 0.5)
-	t.visible = false
 
 
 # ---------------------------------------------------------------- the PC build

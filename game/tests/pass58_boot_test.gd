@@ -30,15 +30,11 @@ class StuckBoot extends "res://ui/Boot.gd":
 		return ResourceLoader.THREAD_LOAD_IN_PROGRESS
 
 
-var _keep_style := ""
-
-
 func before_test() -> void:
-	_keep_style = Settings.menu_style
+	pass
 
 
 func after_test() -> void:
-	Settings.menu_style = _keep_style
 	Stage.forget()
 	if FileAccess.file_exists(STAND_IN):
 		DirAccess.remove_absolute(STAND_IN)
@@ -65,7 +61,7 @@ func _in_order(boot, names: Array) -> void:
 func test_boot_starts_on_the_paper() -> void:
 	var boot: Control = auto_free(load("res://ui/Boot.tscn").instantiate())
 	# the first scene after the boot splash is paper too, so nothing flashes dark between them (pass 54)
-	assert_bool((boot.get_node("ColorRect") as ColorRect).color.is_equal_approx(W.PAPER)).is_true()
+	assert_bool((boot.get_node("ColorRect") as ColorRect).color.is_equal_approx(load("res://ui/Boot.gd").DARK)).is_true()
 	assert_object(boot.get_node_or_null("Wallpaper")).is_null()   # built in _ready
 
 
@@ -106,7 +102,6 @@ func test_a_long_frame_does_not_eat_the_dissolve() -> void:
 
 
 func test_boot_hands_over_to_the_title_after_the_drop_and_dissolves() -> void:
-	Settings.menu_style = "live"
 	var host: Node = auto_free(Node.new())
 	add_child(host)
 	var boot: Control = load("res://ui/Boot.tscn").instantiate()

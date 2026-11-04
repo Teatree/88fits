@@ -63,7 +63,6 @@ func _initialize() -> void:
 func _start() -> void:
 	_save = root.get_node("Save")
 	_save.begin_sandbox()
-	root.get_node("Settings").menu_style = _style
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	if _tag.is_empty():
 		var s := root.get_visible_rect().size

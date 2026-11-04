@@ -1,7 +1,6 @@
 ## "Royale, refined" (design_handoff_88fits_royale, Claude Design, 2026-11-02; the lead's read in
-## docs/ui_review/royale_assessment.md; Garry's build brief of the same day): the second theme's tokens and the helpers
-## the Wanted components share when W.royale() is true (Settings.ui_theme "royale"; Wanted is the default and stays
-## pixel-identical while the switch is off). Navy on every edge, outline and base; slate panels on a hard navy base;
+## docs/ui_review/royale_assessment.md; Garry's build brief of the same day): the game's one design since pass 124, its
+## tokens and the helpers every component shares. Navy on every edge, outline and base; slate panels on a hard navy base;
 ## glossy two-tone buttons whose colour says what they do (gold = happens now, green = buys, blue = opens something,
 ## slate = everything else, red = danger, locked = grey at 75%); cream display text with a navy edge (Garry: titles in
 ## cream, gold only for what acts at once, coins, stars and Legendary); Ultra for display and Rubik for body. Pass 122
@@ -71,11 +70,6 @@ const DIM := Color(0, 0, 0, 0.8)
 const DIM_GATE := Color(0, 0, 0, 0.4)
 const DIM_DOWN := Color(60 / 255.0, 12 / 255.0, 8 / 255.0, 0.82)
 const WASH := Color(14 / 255.0, 31 / 255.0, 74 / 255.0, 0.6)
-## The coin: a radial FFEAA6 -> F3BD3A -> B07612 in a 3 px navy ring (WCoin draws it; the stops live here).
-const COIN_LIGHT := Color("ffeaa6")
-const COIN_MID := Color("f3bd3a")
-const COIN_DARK := Color("b07612")
-const COIN_RING := 3
 ## Corners: 6 px everywhere, 4 on tags and pips, 8 on docked tabs.
 const RADIUS := 6
 const RADIUS_TAG := 4
@@ -91,9 +85,17 @@ const TAG_PURPLE := Color("a650e8")
 ## Pass 123: the half-transparent sheet the menus' boards sit on (ScreenBase.board_sheet).
 const SHEET := Color(0.05, 0.075, 0.17, 0.72)
 const SHEET_EDGE := Color(0.055, 0.12, 0.29, 0.9)
-const MUTATION_FILL := Color("12a898")
-const TAG_MUTATION := Color("12a898")
-const MUTATION := {"light": Color("86f2e2"), "base": Color("12a898"), "dark": Color("0a665d"), "rim": Color("b9fff3"), "glow": Color(0.07, 0.8, 0.7, 0.75)}
+## Pass 124 (Garry: "Mutation Icons look the same as Perk items ... Choose a look that would make mutations look distinct from
+## other items"). Teal was the perks' own colour. What the craft says: tell categories apart by shape first, then by how dark or
+## light they are, and only then by hue (a colour-blind player, a small icon on a phone), and don't take a hue the rarity ladder
+## uses. So a mutation is the only frame with cut corners (WPlate's shape 2), it has a near-black face like the Evolved frame it
+## leads to (three mutations and level 5 evolve a weapon), and a hot rose rim no rarity or perk wears.
+const MUTATION_FILL := Color("d81b60")
+const TAG_MUTATION := Color("d81b60")
+const MUTATION := {"light": Color("5a1a3d"), "base": Color("2c0c22"), "dark": Color("120610"), "rim": Color("ff9dc0"), "rim_b": Color("e8286f"),
+	"word": Color("ff9dc0"), "glow": Color(0.95, 0.12, 0.42, 0.55)}
+## How far a mutation frame's corners are cut, a share of its side.
+const MUTATION_CUT := 0.2
 ## Pass 123 (Garry: "Make the highlighted numbers in the text be yellowish-white instead of just white"): the bold numbers
 ## in body text (WText.bold_color through W.serif_text).
 const NUMBER_HI := Color("ffe48a")
@@ -293,8 +295,8 @@ static func no_edge(t: WText) -> WText:
 	return t
 
 
-## The Wanted kit's text colours on paper, as Royale sets them on slate: W.text maps `color` through this while
-## W.royale(); a colour not in the table is kept as given (a screen's own colour survives).
+## The kit's old text colours on paper, as Royale sets them on slate: W.text maps `color` through this; a colour not
+## in the table is kept as given (a screen's own colour survives).
 static func text_colour(c: Color) -> Color:
 	if _text_map.is_empty():
 		_text_map = [[W.INK, CREAM], [W.INK_SOFT, SECONDARY], [W.PAPER, CREAM], [W.AGED, SECONDARY],
@@ -454,6 +456,8 @@ const PRICE_H := 64
 const PRICE_PX := 28
 const PRICE_COIN := 28.0
 const LOCKED_TEXT := Color("d2d7e0")
+## Pass 124 (Garry: "the grayed button with red text for coins amount"): the price on a button the purse can't pay.
+const SHORT_INK := Color("ff5a4a")
 const SHORT_PX := 22
 const SHORT_GAP := 16
 ## The modal shell (WConfirm, the mocks 10_Confirm / 10_Consent / 10_Survey / 5_Hero_details): MODAL_W wide (R.MODAL_W),

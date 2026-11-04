@@ -10,7 +10,7 @@
 ## Pass 62 (Garry: "When Player encounters their 'favorite' item during Gameplay it should be marked somehow in a subtle
 ## way"): the run hero's favourite (WItem.favourite) wears a small brass heart pinned over its plate's top-right corner
 ## (add_heart) and the word FAVOURITE in brass on its word line, just before the tag (favourite_word).
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the slate card of the handoff (HardBox's Royale panel: the
+## Pass 122 (lane UIKIT_B), under Royale: the slate card of the handoff (HardBox's Royale panel: the
 ## gradient, a navy edge, a navy base, the lip; no rivet), the word line in Rubik 700 tags (the kind in the secondary
 ## blue; a passive item's rarity or rung after it in the rarity's light colour, royale_word; the tag a pill by the tag
 ## table, WItem.tag_fill: NEW gold, UPGRADE green, EVOLUTION purple), the name in cream Ultra with the navy edge, the
@@ -21,6 +21,10 @@
 class_name WCard
 extends WTap
 
+## The widest a card may stand (1080 less the screen list's margins) and how small a long name may go.
+const LIST_W := 984.0
+const NAME_MIN_PX := 34
+
 ## The held glow under Royale: one swell every GLOW_PERIOD seconds (the mock's 1.1 s pulse), reaching GLOW_REACH px.
 const GLOW_PERIOD := 1.1
 const GLOW_REACH := 26.0
@@ -30,7 +34,6 @@ var def: ContentDef
 var plate: WPlate
 var seal: WSeal
 var rivet := true
-var rivet_px := 32.0
 var price_button: WButton
 var effect_text: WText
 ## The tag beside the word (pass 58), null when the card has none (a mutation, a perk).
@@ -77,10 +80,9 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 		# the item's content without a frame of its own (the Stranger's deal panel carries it)
 		c._shadow = 0
 		hb = W.box(Color(0, 0, 0, 0), 0, 0).pad(0, 0, 0, 0)
-	var royale := W.royale()
 	if bool(o.get("evolution", false)):
 		hb.inner = 6
-		hb.inner_color = R.TAG_PURPLE if royale else W.EMBER
+		hb.inner_color = R.TAG_PURPLE
 	var down := hb.pressed()
 	down.inner = 6
 	down.inner_color = W.BRASS
@@ -127,7 +129,7 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 		wl.name = "WordLine"
 		wl.add_theme_constant_override("separation", 14)
 		wl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var wlab := royale_word(word, int(o.get("word_size", 20)), p_def, c.plate) if royale else W.label(word, int(o.get("word_size", 20)), o.get("word_color", W.INK_SOFT))
+		var wlab := royale_word(word, int(o.get("word_size", 20)), p_def, c.plate)
 		wlab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		wlab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		wl.add_child(wlab)
@@ -139,7 +141,12 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 			wl.add_child(c.tag_node)
 		c._col.add_child(wl)
 	var name_px := int(o.get("name_size", 60))
-	c._col.add_child(W.slab_text(str(o.get("name", p_def.display_name if p_def else "")), name_px, W.INK))
+	var name_t := W.slab_text(str(o.get("name", p_def.display_name if p_def else "")), name_px, W.INK)
+	# pass 124: a long name ("The Guardian Risen") in Ultra would push the card past the screen's list (984 px): the name gives way
+	var name_room := LIST_W - float(pad[1]) - float(pad[3]) - 10.0 - float(o.get("plate_px", 170.0)) - float(o.get("gap", 28))
+	while name_t.font_size > NAME_MIN_PX and name_t.text_width() + float(name_t.stroke) * 2.0 > name_room:
+		name_t.font_size -= 2
+	c._col.add_child(name_t)
 	var st: Array = o.get("stars", [])
 	if st.size() >= 2:
 		c.marks = WMarks.new().setup("stars", int(st[0]), int(st[1]), int(st[2]) if st.size() > 2 else -1, float(o.get("star_px", STAR_PX)))
@@ -160,13 +167,13 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 		var pb: WButton
 		if short > 0:
 			# Royale: the grey (locked) face, the shortfall in red
-			pb = WButton.make([{"coin": 40, "fill": W.BRASS}, [W.num(price), W.INK]], 36, WButton.SECONDARY, 4, 0, 8.0, 26.0, 0.0, WButton.LOCKED if royale else "")
-			var sh := W.serif_text("· %d short" % short, 24, R.role("red")["top"] if royale else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 30.0)
+			pb = WButton.make([{"coin": 40, "fill": W.BRASS}, [W.num(price), W.INK]], 36, WButton.SECONDARY, 4, 0, 8.0, 26.0, 0.0, WButton.LOCKED)
+			var sh := W.serif_text("· %d short" % short, 24, R.role("red")["top"], 400, false, HORIZONTAL_ALIGNMENT_LEFT, 30.0)
 			sh.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			pb._row.add_child(sh)
 		else:
 			# Royale: green buys
-			pb = WButton.make([{"coin": 40, "fill": W.PAPER}, [W.num(price), W.INK]], 36, WButton.PRIMARY, 4, 5, 8.0, 26.0, 0.0, WButton.GREEN if royale else "")
+			pb = WButton.make([{"coin": 40, "fill": W.PAPER}, [W.num(price), W.INK]], 36, WButton.PRIMARY, 4, 5, 8.0, 26.0, 0.0, WButton.GREEN)
 		pb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		pb.size_flags_horizontal = Control.SIZE_SHRINK_END
 		c.price_button = pb
@@ -180,20 +187,13 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 
 
 func _held_offset() -> Vector2:
-	if W.royale():
-		return Vector2(0.0, float(box_down.press) if (box_down and _held_look and not locked) else 0.0)
-	return Vector2(_shadow, _shadow) if (_held_look and not locked) else Vector2.ZERO
+	return Vector2(0.0, float(box_down.press) if (box_down and _held_look and not locked) else 0.0)
 
 
 func _draw() -> void:
-	if W.royale():
-		if _held_look and not locked:
-			_draw_held_glow()
-		return
-	if rivet:
-		var rc := Vector2(size.x * 0.5, -18.0 + rivet_px * 0.5) + _held_offset()
-		draw_circle(rc, rivet_px * 0.5, W.INK, true, -1.0, true)
-		draw_circle(rc, rivet_px * 0.5 - 4.0, W.BRASS, true, -1.0, true)
+	if _held_look and not locked:
+		_draw_held_glow()
+	return
 
 
 ## The held card's glow under Royale: gold rings outside the card's face (the face sits box_down.press lower), fading out
@@ -233,7 +233,7 @@ func _notification(what: int) -> void:
 func _restyle() -> void:
 	super._restyle()
 	# pass 122: under Royale the held card's item sits on the rays and the card glows (a process while it does)
-	var glowing := W.royale() and _held_look and not locked
+	var glowing := _held_look and not locked
 	if plate:
 		plate.rays = glowing
 	set_process(glowing)
@@ -275,43 +275,21 @@ static func tag_pill(t: String, px: int = TAG_PX) -> PanelContainer:
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.size_flags_horizontal = Control.SIZE_SHRINK_END
 	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if W.royale():
-		var tpx := maxi(R.TAG_PX, int(round(px * 0.7)))
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = WItem.tag_fill(t)
-		sb.border_color = R.NAVY
-		sb.set_border_width_all(R.TAG_EDGE)
-		sb.set_corner_radius_all(R.RADIUS_TAG)
-		sb.anti_aliasing = true
-		sb.content_margin_left = 10.0 + R.TAG_EDGE
-		sb.content_margin_right = 10.0 + R.TAG_EDGE
-		sb.content_margin_top = 4.0 + R.TAG_EDGE
-		sb.content_margin_bottom = 4.0 + R.TAG_EDGE
-		p.add_theme_stylebox_override("panel", sb)
-		var rl := W.text(t.to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(tpx, 0.05)), tpx, WItem.tag_text(t), HORIZONTAL_ALIGNMENT_LEFT, roundf(tpx * 1.1))
-		rl.name = "Word"
-		p.add_child(rl)
-		return p
-	p.add_theme_stylebox_override("panel", W.box(WItem.tag_color(t), 3, 0).pad(12, 4, 13, 4))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(row)
-	if t == "UPGRADE":
-		var chev := Control.new()
-		chev.name = "Chevron"
-		chev.custom_minimum_size = Vector2(roundf(px * 0.7), roundf(px * 1.1))
-		chev.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chev.draw.connect(func():
-			var s := chev.size
-			var w := s.x
-			var h := s.x * 0.62
-			var y0 := (s.y - h) * 0.5
-			chev.draw_colored_polygon(PackedVector2Array([Vector2(w * 0.5, y0), Vector2(w, y0 + h), Vector2(0, y0 + h)]), W.INK))
-		row.add_child(chev)
-	var l := W.text(t, W.slab(W.em(px, 0.06)), px, W.INK, HORIZONTAL_ALIGNMENT_LEFT, roundf(px * 1.1))
-	l.name = "Word"
-	row.add_child(l)
+	var tpx := maxi(R.TAG_PX, int(round(px * 0.7)))
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = WItem.tag_fill(t)
+	sb.border_color = R.NAVY
+	sb.set_border_width_all(R.TAG_EDGE)
+	sb.set_corner_radius_all(R.RADIUS_TAG)
+	sb.anti_aliasing = true
+	sb.content_margin_left = 10.0 + R.TAG_EDGE
+	sb.content_margin_right = 10.0 + R.TAG_EDGE
+	sb.content_margin_top = 4.0 + R.TAG_EDGE
+	sb.content_margin_bottom = 4.0 + R.TAG_EDGE
+	p.add_theme_stylebox_override("panel", sb)
+	var rl := W.text(t.to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(tpx, 0.05)), tpx, WItem.tag_text(t), HORIZONTAL_ALIGNMENT_LEFT, roundf(tpx * 1.1))
+	rl.name = "Word"
+	p.add_child(rl)
 	return p
 
 
@@ -346,12 +324,11 @@ static func heart(px: float) -> Control:
 	var edge := maxf(roundf(px * 0.08), 2.0)
 	h.draw.connect(func():
 		# pass 122: a gold heart in a navy outline under Royale, its shadow straight down
-		var royale := W.royale()
-		var ink := R.NAVY if royale else W.INK
-		var body: Color = R.role("gold")["bottom"] if royale else W.BRASS
+		var ink := R.NAVY
+		var body: Color = R.role("gold")["bottom"]
 		var sh := PackedVector2Array()
 		for p in pts:
-			sh.append(p + (Vector2(0.0, edge) if royale else Vector2(edge, edge) * 0.8))
+			sh.append(p + (Vector2(0.0, edge)))
 		h.draw_colored_polygon(sh, Color(ink, 0.85))
 		h.draw_colored_polygon(pts, body)
 		var ring := pts.duplicate()
@@ -428,11 +405,10 @@ class ChangeRow extends Container:
 		values.name = "Values"
 		var after_col: Color = W.BAD_DARK if bool(row.get("worse", false)) else W.INK
 		# pass 122: Rubik has no arrow, so under Royale the arrow run keeps Bitter (the colours map through WText.runs)
-		var arrow_font: Font = W._variant(W.SERIF_PATH, 700, 0) if W.royale() else W.serif(700)
+		var arrow_font: Font = W._variant(W.SERIF_PATH, 700, 0)
 		values.runs = [[str(row.get("before", "")), W.INK_SOFT, W.serif(400), px], [" → ", W.BRASS_DARK, arrow_font, px],
 			[str(row.get("after", "")), after_col, W.serif(W.BOLD_WEIGHT), px]]
-		if W.royale():
-			leader_color = Color(R.SECONDARY, 0.5)
+		leader_color = Color(R.SECONDARY, 0.5)
 		add_child(values)
 		return self
 

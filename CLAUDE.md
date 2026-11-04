@@ -53,6 +53,8 @@ python tools/gen_grave.py [--seeds 4] [--force] && python tools/gen_grave.py --p
 python tools/gen_ghost.py front [--seeds 2] && python tools/gen_ghost.py back --front N [--seeds 4] && python tools/gen_ghost.py --pick-front N --pick-back M [--mirror-back]   # pass 120/121: the Shovel's floating ghost (pass 121: a plain sheet ghost, nothing worn), front by Klein and its back as a Klein edit of it -> undertakers_shovel_ghost_front/back.png
 "$BLENDER" -b --python tools/blender_boss_chests.py [-- export=gila_grande,brander] && python tools/gen_boss_chests.py   # pass 118 (pass 119: the Gila's and Brander's hollow, the Gila's white with lizard eyes; export= writes only those GLBs): the three bosses' chests (art/props/meta/boss_chest_<boss>.glb + renders in tools/dl/bosschest/) and their painted closed/cracked/open frames (Klein over the renders, picked by eye) -> game/art/ui/wanted/bosschest/; captures game/tools/_p118_BOSSCHEST_shots.gd
 python tools/gen_royale_backdrop.py --paint [--seeds 6] [--prompt k] && python tools/gen_royale_backdrop.py --pick <name> && python tools/gen_royale_backdrop.py --manifest   # pass 123: the Royale theme's menu backdrop -> game/art/ui/royale/ (its header has the capture, the guide and the tumbleweed steps; PROPS_KEEP picks the props, a hand-measured sun is kept)
+python tools/gen_ideas_art.py [--only a,b --force --seed N] [--sheet] && python tools/make_ideas_doc.py   # pass 124: the ideas book's concept art (Klein, prompts in docs/ideas/content.py) and its page
+python tools/make_perf_report.py   # pass 124: the performance report from a phone run (RUN in its header) -> docs/perf/stage2_slowdown.html
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
 python tools/migrate_timeline.py --map red_canyon [--check | --write]   # pass 84: an old map's swarm / elite / elite_every events and waves[] turned into roster rows (the same converter as the Level Editor's model.js convertLegacy; layout kept, a backup first)
@@ -82,7 +84,7 @@ python tools/recolour_strip.py --src <strip> --dst <strip> --mode tint --ranges 
 python tools/posthog_boards.py [--check]   # pass 59/60: (re)builds the eight PostHog dashboards from HogQL/Trends queries (personal phx_ key in tools/posthog_personal_key.txt, git-ignored; never in the game); a rerun keeps every board's id and replaces its tiles; every SQL tile gets PostHog's `{filters}` placeholder (`scoped()`), so a dashboard filter such as person property player_name reaches it (pass 62; how-tos for Garry's analytics questions live in analytics/howto/*.md)
 # analytics/dashboard.html: open in a browser after a run played from the editor binary (played runs land in analytics/runs/, tool runs in analytics/runs/tools/, each with latest.js + index.js; pass 74: record schema 2, CSV buttons); analytics/SCHEMA.md documents the record
 python tools/analytics_csv.py [--runs analytics/runs] [--tools] [--out <dir>]   # pass 74: every run file as CSVs (rows a second, events, the history) for Excel/Sheets; default out analytics/runs/csv/
-"$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/wanted_shots.gd -- out=<dir> [only=title,hud,...] [white=1] [inset=130]   # every Wanted screen state as the handoff's PNGs show it (only=backdrop_arena rewrites art/ui/wanted/menu_backdrop.jpg the old way; since pass 83 tools/menu_backdrop.gd makes it from the composed title scene; inset=N shows the screens under a camera cutout)
+"$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/wanted_shots.gd -- out=<dir> [only=title,hud,...] [white=1] [inset=130]   # every screen state (inset=N shows the screens under a camera cutout)
 python tools/wanted_compare.py <dir>/<state>.png <mock-name> [--diff] [--crop=x,y,w,h]   # a render beside its PNG in design_handoff_88fits_wanted/screens/
 "$GODOT" --audio-driver Dummy --resolution 504x1122 --fixed-fps 60 --path D:/_projects/88fits/game --script res://tools/perf_late.gd -- build=six   # late-game benchmark: ms per system and draw calls (--fixed-fps 30 = a phone at 30)
 "$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/screenshot_run.gd -- out=<dir>   # windowed, silent, ~60 PNGs for the bible (make_bible.py --shots=<dir>); without --resolution the window override gives 432x768
@@ -96,7 +98,7 @@ python tools/make_win_icon.py [--if-stale] && python tools/exe_info.py game/expo
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/sign_exe.ps1 -Exe game/export/88fits.exe   # pass 73: signs the PC exe only when tools/keys/codesign.env exists (git-ignored; a .pfx, a store certificate or a signing service); ship.sh calls it and keeps a failed signing out of Drive; why Windows warns and what fixes cost: docs/pc_build_trust.md
 python tools/gen_textures.py && python tools/gen_music.py && python tools/paint_pass.py   # art + music regeneration (see docs/RUNNING.md)
 python tools/gen_sand.py   # pass 82: the four new sands (Klein paintings, seam repainted in three passes, today's mean colour) -> game/art/env/sand_<id>.png, sources tools/art_src/sand_<id>_src.png; the map key timeline_data.sand picks one (default pass81 = sand.png), the Level Editor's World card and the arena's WORLD tab switch it
-python tools/gen_prop_variants.py && python tools/prop_shadows.py   # pass 83: painted prop variants (Klein, the style anchor + the original's raw render; props.json `variant_of`, `weight`; PropField picks by a hash of the spot) and every painting's ground shadow (props.json `shadow`: width, depth, offsets, strength); bash tools/godot.sh ... --script res://tools/menu_backdrop.gd rewrites art/ui/wanted/menu_backdrop.jpg from the composed title scene (art/ui/title_scene.json)
+python tools/gen_prop_variants.py && python tools/prop_shadows.py   # pass 83: painted prop variants (Klein, the style anchor + the original's raw render; props.json `variant_of`, `weight`; PropField picks by a hash of the spot) and every painting's ground shadow (props.json `shadow`: width, depth, offsets, strength)
 python tools/gen_totem_icons.py   # pass 83: the totem gifts' carved segments (a head painted on green in the pole's style, keyed and laid on one cedar block) and the crest -> game/art/ui/totem/spirit_<id>.png, crest.png (usage in its header)
 python tools/make_pipeline_figs.py && python tools/make_bible.py   # bible section 15b's step-by-step art pictures (from tools/dl/ intermediates), then the bible
 python tools/make_onepager.py [--pdf] [--force]   # the kick-off one pager (2026-10-26): docs/onepager/src/onepager.html + content.json + pictures.json -> docs/onepager/88fits_OnePager.html (self-contained) and, with --pdf, the PDF through headless Edge; pictures cut once into docs/onepager/img/
@@ -271,7 +273,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-04, pass 123, version 1.00)
+## Status (2026-11-04, pass 124, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -586,6 +588,13 @@ by tools/gen_royale_backdrop.py, ui/HeroesScreen.gd, WConfirm.shell, ScreenBase.
 red crumbs seen once tapped, save `crumbs`; Wanted still the default, prod held there); **a seventh Upgrade rank** (`ranks` 7, 49 x
 rank 1, TalentDef.top_mult, Save.talent_top; Second Wind past 100% buys untouchable time); the boss barrier 18.9 m; the Gila's Poison
 Rain; a `death_burst` body lies until its blast; the Shaman's green numbers (DamageNumbers.creature_heal). BALANCING 65.
+Pass 124: **the old UI is gone** (`Settings.ui_theme`, `menu_style`, `W.royale()` and every Wanted branch removed by tools/dl/p124/LEAD/strip_theme*.py and prune_dead.py;
+prod shows Royale too, `hud_slot_rarity` locked on); the hero runs in and out on a diagonal (TitleScreen `_run_in`, `_run_off`, HeroFigure, FigureShadow); prop and hero shadows are their
+own silhouettes (core/shaders/ui_backdrop_shadow.gdshader; `foot_up`, `foot_x`, `foot_w` in backdrop.json) and the backdrop's props are hand-placed (gen_royale_backdrop PROPS_LAYOUT); mutations have
+their own frame (cut corners, near-black face, rose rim: R.MUTATION, WPlate shape 2); a short price is grey with the amount in red (R.SHORT_INK); a dark loading screen with the new wordmark
+(Boot.palette, Boot.DARK, make_loading_wallpaper.plate; the same colour in project.godot, export_presets, Boot.tscn); the debug REVIVE on Down!. BALANCING 66. Waiting on Garry: his pick from
+the performance report docs/perf/stage2_slowdown.html (published https://claude.ai/artifact/QtndhuRSrhw7ym6wHQBZAN; `python tools/make_perf_report.py`) and the ideas book docs/ideas/outlaw_ideas.html
+(https://claude.ai/artifact/PNss4jA7mfqngzVbSZNpMH; words docs/ideas/content.py, art tools/gen_ideas_art.py, page tools/make_ideas_doc.py).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =
@@ -594,7 +603,7 @@ trampoline perk Hang Time, Buzzer Beater), Jeżyk (id `buck`: a bald blue Slav i
 Salt, momentum, Salt Flats), May (renamed from Mamy in pass 69: attack speed, Trigger Happy on the Tommy Gun, the
 Inflatable May decoy, thrown as a puck that inflates) and Mira (an unattainable requirement) are bought with gold after an unlock quest
 (`content/quests/unlock_<hero>`, `availability: "purchase"`, `price`; Save `heroes_owned`; Registry `hero_state`);
-Dad is `hidden`. No HUD gauge for any hero (pass 69). The title's hero drawer (`ui/wanted/WHeroDrawer.gd`) lists every
+Dad is `hidden`. No HUD gauge for any hero (pass 69). The Heroes screen (`ui/HeroesScreen.gd`, the tab bar) lists every
 hero; one not owned shows as a black silhouette, "Unknown", with his requirement or a BUY button. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
@@ -638,8 +647,7 @@ Gold: every end of a run banks the purse (pass 70: a death too; only quitting th
 2.5x pass 69's, Elites and bosses pay 5x; the Strongbox (`gold_bank`) is hidden, out of play. Unlock quests gate half the
 items; the Collection shows only what was met.
 
-**UI.** The Wanted kit (`ui/wanted/`, see Architecture; since pass 122 a second theme, Royale, behind the developer switch
-`Settings.ui_theme`: every component asks `W.royale()`, pieces Garry keeps as they are use `W.wanted_text` / `HardBox.themed = false`); one paused screen at a time with death winning
+**UI.** One design since pass 124, Royale: the kit in `ui/wanted/` (the folder and class names stayed: `W` the API, `R` the tokens, see Architecture); the old Wanted look, the theme switch and the Painted / Live title are gone from the code, what is kept of it on purpose (paper posters, toasts, banners, TAP TO GO, the kill counter, the boss bar) uses `W.wanted_text` / `HardBox.themed = false`; one paused screen at a time with death winning
 (`Game._request_modal`); the camera cutout is respected everywhere (`W.safe_top()`); touch is raw ScreenTouch, never
 mouse emulation (`TouchScroll`, `TouchSlider`); prove UI with `touch_audit.gd`. The developer menu (hold the Settings
 version line 2 s) and the player's debug mode (10 taps on the hints switch) hold the test switches; the debug arena is on

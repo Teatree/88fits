@@ -8,7 +8,7 @@
 ## item's page: the plate, what it does in full, its levels, for a weapon its mutations (the heroes' own among them,
 ## marked) and its evolution, for a line its evolution. Evolutions and mutations live on their item's page, heroes on
 ## the title. What is out of the game (hidden) is not here: the developer menu opens it (`hidden_only`).
-## Pass 123 (lane COLLECTION), under Royale (W.royale(); Wanted is built exactly as before), the mocks 10_Collection and
+## Pass 123 (lane COLLECTION), under Royale, the mocks 10_Collection and
 ## 10_Item_detail: the found total on a black plate top-right ("n / m FOUND"); the five tabs docked on one fixed slate
 ## sheet (the open one gold with its count in navy Ultra, the rest slate in cream Rubik 700, the five across the sheet);
 ## tiles four to a row, each a slate tile with a 120 px item frame (a weapon's or Card's level colour, a passive item's
@@ -24,9 +24,6 @@ extends ScreenBase
 
 ## pass 73 (lane CARDS): the line items are fortune cards to the player (the tab "Lines" before)
 const TABS := ["Weapons", "Cards", "Passives", "Perks", "Enemies"]
-## The tab strip's type and padding: five tabs, the open one with its count, fit across a 1080 px screen.
-const TAB_PX := 26
-const TAB_PAD := Vector2(18, 16)
 ## The danger marks (pass 47): a role's badge (art/ui/badges/<badge>.png) and its frame colour.
 const DANGER := {"boss": ["skull", W.ROCK], "elite": ["crown", W.EMBER], "special": ["gear", W.BRASS]}
 const BADGE_ART := "res://art/ui/badges/%s.png"
@@ -118,27 +115,20 @@ var _serial := 0
 
 
 func header_right() -> Control:
-	if W.royale():
-		# the found total on the mock's black plate: white Ultra (the words set in _show_grid)
-		var plate := W.pill([["", R.WHITE, R.display()]], RY_FOUND_PX, RY_FOUND_H)
-		plate.name = "Found"
-		_count = plate.get_node("Row").get_child(0) as WText
-		_count.shadow = R.WALLET_DROP
-		_count.shadow_color = R.WALLET_DROP_COLOR
-		_count.shadow_straight = true
-		plate.set_meta("keep", true)
-		_count_box = plate
-		return plate
-	_count = W.serif_text("", 30, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-	_count.set_meta("keep", true)
-	_count_box = _count
-	return _count
+	# the found total on the mock's black plate: white Ultra (the words set in _show_grid)
+	var plate := W.pill([["", R.WHITE, R.display()]], RY_FOUND_PX, RY_FOUND_H)
+	plate.name = "Found"
+	_count = plate.get_node("Row").get_child(0) as WText
+	_count.shadow = R.WALLET_DROP
+	_count.shadow_color = R.WALLET_DROP_COLOR
+	_count.shadow_straight = true
+	plate.set_meta("keep", true)
+	_count_box = plate
+	return plate
 
 
 func board_top() -> float:
-	if W.royale():
-		return (RY_PAGE_TOP if hidden_only else RY_SHEET_TOP) + float(R.PANEL_EDGE)
-	return PAGE_TOP if hidden_only else GRID_TOP
+	return (RY_PAGE_TOP if hidden_only else RY_SHEET_TOP) + float(R.PANEL_EDGE)
 
 
 func board_room() -> float:
@@ -146,15 +136,11 @@ func board_room() -> float:
 
 
 func board_side() -> float:
-	if W.royale():
-		return RY_SIDE + float(R.PANEL_EDGE) + RY_GRID_PAD.x
-	return 36.0
+	return RY_SIDE + float(R.PANEL_EDGE) + RY_GRID_PAD.x
 
 
 func board_bottom() -> float:
-	if W.royale():
-		return _royale_foot(hidden_only) + float(R.PANEL_EDGE) - tab_bar_height()
-	return 50.0 + 31.0 + 20.0
+	return _royale_foot(hidden_only) + float(R.PANEL_EDGE) - tab_bar_height()
 
 
 ## Pass 123 (Garry: "Keep the tab bar on all four hub screens"): the docked bar under Royale with COLLECTIONS open; none on
@@ -166,25 +152,9 @@ func tab_bar() -> String:
 func build() -> void:
 	set_title("Hidden" if hidden_only else "Collection")
 	content.add_theme_constant_override("separation", 0)
-	if W.royale():
-		_build_royale()
-		_show_grid()
-		return
-	_tabs = WTabs.make(TABS, TAB_PX, TAB_PAD)
-	_tabs.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_tabs.offset_left = 36
-	_tabs.offset_right = -36
-	_tabs.offset_top = TAB_TOP + W.safe_top()
-	_tabs.changed.connect(func(i: int): _tab = i; _show_grid())
-	_tabs.visible = not hidden_only
-	add_child(_tabs)
-	_foot = W.serif_text("%s kills all time" % W.num(Save.total("kills")), 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	_foot.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_foot.offset_bottom = -50
-	_foot.offset_top = -50 - 31
-	add_child(_foot)
-	_foot_box = _foot
+	_build_royale()
 	_show_grid()
+	return
 
 
 # --- Royale (pass 123, lane COLLECTION) ------------------------------------------------------------------------------
@@ -834,7 +804,7 @@ func _tally(tab: int) -> Vector2i:
 # --- the grid --------------------------------------------------------------------------------------------------------
 
 func _show_grid() -> void:
-	if W.royale() and _sheet:
+	if _sheet:
 		_show_grid_royale()
 		return
 	_page = null
@@ -932,7 +902,7 @@ func _open_locked(def: ContentDef) -> void:
 	_tabs.visible = false
 	_foot_box.visible = false
 	header.set_right(Control.new())
-	if W.royale() and _sheet:
+	if _sheet:
 		_royale_frame(true)
 		clear_content()
 		_open_locked_royale(def)
@@ -1001,7 +971,7 @@ func _open_page(def: ContentDef) -> void:
 	_tabs.visible = false
 	_foot_box.visible = false
 	header.set_right(Control.new())
-	if W.royale() and _sheet:
+	if _sheet:
 		_royale_frame(true)
 	else:
 		set_board(PAGE_TOP, PAGE_SIDE)
@@ -1027,7 +997,7 @@ func _open_page(def: ContentDef) -> void:
 
 ## The page's top card: the 272 px plate, the kind and its levels, what it does in full, the flavour, one tally.
 func _hero_card(def: ContentDef) -> PanelContainer:
-	if W.royale() and _sheet:
+	if _sheet:
 		return _hero_card_royale(def)
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1162,7 +1132,7 @@ func _tally_line(def: ContentDef) -> String:
 
 ## A labelled part of the page, `gap` under the one before.
 func _section(title: String, body: Control, gap: float) -> void:
-	if W.royale() and _sheet:
+	if _sheet:
 		_section_royale(title, body)
 		return
 	var g := Control.new()
@@ -1198,7 +1168,7 @@ func _level_grid(def: ContentDef) -> GridContainer:
 			continue
 		# pass 95 (lane PASSIVES): a passive item's cell names its rung and takes a wash of the rung's plate colour
 		if def is PassiveDef and (def as PassiveDef).on_ladder():
-			if W.royale() and _sheet:
+			if _sheet:
 				# pass 123: the solid cell washed with the rung's rarity
 				grid.add_child(_cell_royale(str(lv), "%s · %s" % [TextGen.rung_name(def as PassiveDef, lv), text], rung_tint(def as PassiveDef, lv)))
 				continue
@@ -1216,7 +1186,7 @@ static func rung_wash(def: PassiveDef, level: int) -> Color:
 
 
 func _cell(n: String, text: String, fill: Color = W.PAPER) -> PanelContainer:
-	if W.royale() and _sheet:
+	if _sheet:
 		return _cell_royale(n, text)
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1265,7 +1235,7 @@ static func hero_only_text(m: MutationDef) -> String:
 ## last row centred under the others (pass 46: a lone fourth sits in the middle, a fifth and sixth around it). A hero's
 ## own one says whose it is.
 func _paths(muts: Array) -> VBoxContainer:
-	if W.royale() and _sheet:
+	if _sheet:
 		return _paths_royale(muts)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", int(CELL_GAP))
@@ -1319,7 +1289,7 @@ func _first_sentence(t: String) -> String:
 ## The evolution: found, its plate and what it does; not yet, an aged card at 75 % with its shadow (a passive's says
 ## what it does either way).
 func _evolution(evo: ContentDef) -> PanelContainer:
-	if W.royale() and _sheet:
+	if _sheet:
 		return _evolution_royale(evo)
 	var found := false
 	if evo is WeaponDef:

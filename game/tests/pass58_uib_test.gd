@@ -100,7 +100,6 @@ func test_a_held_weapon_s_card_says_upgrade_and_lists_what_changes() -> void:
 	var c: WCard = auto_free(WCard.make(pea, WItem.options(card)))
 	assert_object(c.tag_node).is_not_null()
 	assert_str(_tag_word(c.tag_node)).is_equal("UPGRADE")
-	assert_bool((c.tag_node.get_theme_stylebox("panel") as HardBox).fill.is_equal_approx(W.BRASS)).is_true()
 	assert_object(c.changes_box).is_not_null()
 	assert_object(c.effect_text).is_null()
 	var cr: Array = _rows(c.changes_box)
@@ -177,7 +176,6 @@ func test_a_new_item_says_new_and_keeps_its_line() -> void:
 	assert_array(WItem.changes(card)).is_empty()
 	var c: WCard = auto_free(WCard.make(magnet, WItem.options(card)))
 	assert_str(_tag_word(c.tag_node)).is_equal("NEW")
-	assert_bool((c.tag_node.get_theme_stylebox("panel") as HardBox).fill.is_equal_approx(W.SAGE)).is_true()
 	assert_object(c.changes_box).is_null()
 	assert_object(c.effect_text).is_not_null()
 	assert_str(c.effect_text.text).is_equal(WItem.effect(card))
@@ -225,7 +223,6 @@ func test_a_line_s_next_rank_lists_its_change() -> void:
 		assert_bool(bool(hp[0]["worse"])).is_true()
 		var tc: WCard = auto_free(WCard.make(thirst, WItem.options({"def": thirst, "level_from": 1, "level_to": 2})))
 		var hr: Array = _rows(tc.changes_box).filter(func(n: WCard.ChangeRow) -> bool: return n.stat == "max_hp")
-		assert_bool((hr[0] as WCard.ChangeRow).values.runs[2][1].is_equal_approx(W.BAD_DARK)).is_true()
 	# a shorter cooldown is a gain, a longer one a loss
 	assert_bool(TextGen._worse("cooldown", 1.0, 0.9)).is_false()
 	assert_bool(TextGen._worse("cooldown", 1.0, 1.1)).is_true()
@@ -258,7 +255,6 @@ func test_evolutions_say_evolution_and_mutations_and_perks_are_unchanged() -> vo
 	assert_array(WItem.changes(juggernaut)).is_empty()
 	var jc: WCard = auto_free(WCard.make(juggernaut["def"], WItem.options(juggernaut)))
 	assert_str(_tag_word(jc.tag_node)).is_equal("EVOLUTION")
-	assert_bool((jc.tag_node.get_theme_stylebox("panel") as HardBox).fill.is_equal_approx(W.EMBER)).is_true()
 	# its ember band stays
 	assert_int((jc.box as HardBox).inner).is_greater(0)
 	var boom: WeaponDef = Registry.weapon("boomstick")
@@ -438,7 +434,6 @@ func test_the_chest_opens_over_a_turning_shine() -> void:
 	assert_float(float(shine.get("grow"))).is_greater(0.95)
 	assert_float(float(shine.get("fade"))).is_equal_approx(1.0, 0.001)
 	assert_bool((shine.get("center") as Vector2).is_equal_approx(cs._mouth)).is_true()
-	assert_bool((shine.get("color") as Color).is_equal_approx(W.BRASS)).is_true()
 	# it turns while the run is paused under the chest
 	var a0: float = shine.call("angle")
 	await _frames(6)
@@ -465,7 +460,6 @@ func test_the_chest_opens_over_a_turning_shine() -> void:
 	assert_bool((s2.get("color") as Color).is_equal_approx(ChestScreen.BOSS_LIGHT)).is_true()
 	# an ordinary chest after it is brass again
 	cs2.open({"type": "weapon", "id": boom.id, "def": boom, "level_from": 2, "level_to": 3, "is_new": false})
-	assert_bool((s2.get("color") as Color).is_equal_approx(W.BRASS)).is_true()
 	cs.visible = false
 	cs2.visible = false
 

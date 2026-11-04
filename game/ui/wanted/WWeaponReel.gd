@@ -4,7 +4,7 @@
 ## stops on the chosen weapon, which flashes brass in a sunburst to the jackpot. A single weapon only wobbles in the window
 ## for WOBBLE seconds and stops. A tap anywhere skips to the landing. `done` fires HOLD seconds after the landing (a
 ## second tap fires it at once). Runs while the game is paused.
-## Pass 122 (lane UICHEST): the tiles are WPlates, so under Royale (W.royale()) they are the kit's item frames by
+## Pass 122 (lane UICHEST): the tiles are WPlates, so under Royale they are the kit's item frames by
 ## themselves (Garry's pick: "the chest reel's tiles use the new item frames"); the window round the middle cell wears
 ## the kit's navy and gold with its 6 px corners, the landing's flash and pointers gold. Wanted is drawn as before.
 class_name WWeaponReel
@@ -265,11 +265,10 @@ func _input(event: InputEvent) -> void:
 ## 122: navy and the kit's gold with 6 px corners under Royale.
 func _draw_window() -> void:
 	var r := Rect2(center - Vector2(CELL, CELL) * 0.5, Vector2(CELL, CELL)).grow(16.0)
-	var royale := W.royale()
-	var ink: Color = R.NAVY if royale else W.INK
-	var brass: Color = R.role("gold")["bottom"] if royale else W.BRASS
-	var rad_out := R.RADIUS + 4 if royale else 20
-	var rad_in := R.RADIUS if royale else 16
+	var ink: Color = R.NAVY
+	var brass: Color = R.role("gold")["bottom"]
+	var rad_out := R.RADIUS + 4
+	var rad_in := R.RADIUS
 	if _flash > 0.0:
 		for i in 8:
 			var k := float(i) / 8.0

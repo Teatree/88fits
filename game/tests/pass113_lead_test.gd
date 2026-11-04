@@ -235,11 +235,10 @@ func test_a_locked_look_shows_as_a_dark_silhouette_and_its_colours_once_the_goal
 
 ## Whether a look tile's picture is drawn as a silhouette: its still under the silhouette shader, or its badge a mystery.
 func _silhouetted(tile: Control) -> bool:
-	var still: TextureRect = tile.find_child("Still", true, false)
-	if still:
-		return still.material is ShaderMaterial and (still.material as ShaderMaterial).shader == WPlaceholder.SILHOUETTE
-	var badge: WPlate = tile.find_child("Badge", true, false)
-	return badge != null and badge.mystery
+	for tr: Node in tile.find_children("*", "TextureRect", true, false):
+		if (tr as TextureRect).self_modulate.v < 0.05:
+			return true
+	return false
 
 
 func test_a_fallen_boss_has_the_game_check_and_announce_the_quests() -> void:

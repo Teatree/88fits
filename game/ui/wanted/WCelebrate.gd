@@ -5,7 +5,7 @@
 ## one (18 rays and 64 scraps for the 14 and 42 of 1), the rays can take another colour (the boss's chest: purple), and
 ## `sunburst` is a brass badge of a sun that pops up behind the LEVEL N title for SUN_LIFE seconds; `level_up` plays
 ## the lot: the badge, a strong burst and a second one BURST_GAP later, all done inside LIFE (under 2 s).
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the same reveal in the kit's colours: gold rays and sun where
+## Pass 122 (lane UIKIT_B), under Royale: the same reveal in the kit's colours: gold rays and sun where
 ## they were brass, cream for paper, navy for the ink outlines, confetti in cream, gold, red, green and the secondary
 ## blue (royale_colour); the timings are today's.
 class_name WCelebrate
@@ -53,8 +53,6 @@ static func burst(host: Control, at: Vector2, index: int = 1, strength: float = 
 ## A Wanted colour as the Royale reveal shows it (brass -> gold, paper -> cream, ink -> navy, rock -> red, sage -> green,
 ## aged -> the secondary blue); the colour itself under Wanted or when it is a screen's own.
 static func royale_colour(c: Color) -> Color:
-	if not W.royale():
-		return c
 	if c.is_equal_approx(W.BRASS) or c.is_equal_approx(W.BRASS_DARK):
 		return R.role("gold")["bottom"]
 	if c.is_equal_approx(W.PAPER):
@@ -114,8 +112,7 @@ func _ready() -> void:
 	_ray_phase = randf() * TAU
 	var vp := get_viewport_rect().size
 	var cols := [W.PAPER, W.BRASS, W.BRASS, W.ROCK, W.SAGE, W.AGED]
-	if W.royale():
-		cols = cols.map(func(c: Color) -> Color: return royale_colour(c))
+	cols = cols.map(func(c: Color) -> Color: return royale_colour(c))
 	for k in _bits_n:
 		var x := randf_range(vp.x * 0.1, vp.x * 0.9)
 		var star := randf() < 0.35

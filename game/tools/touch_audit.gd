@@ -28,9 +28,6 @@
 ## rows; arena_dummies also turns the patrol on, sets the Elite dummy's health and behaviour (melee turns god mode off),
 ## adds a melee dummy and removes the attackers, each by a finger on its named row; arena_stack opens a weapon's stack on
 ## the ITEMS tab by its toggle and audits the rows drawn under it.
-## Pass 52: title_live (run with title: the live title, the level behind the UI, every control again over the 3D view,
-## which must take no touch, and the swipe changing the hero in it) and settings_debug (run with settings: no Main menu
-## row without the player's debug mode; with it, the Debug panel audited and its Painted and Live halves tapped for real).
 ## Pass 54: pause_options (the pause Options' floating text: each of the four switches and the size choice under a real
 ## finger changes its setting, put back after; both volume thumbs sit whole inside the board's clip at the top value and
 ## at nothing), path_offer (the mutation offer's pre-reel: it runs, a tap skips it to the landing, the cards come and a
@@ -105,26 +102,13 @@ var _only: Array = []
 var _fails: Array = []       # [screen, what, why]
 var _counts: Dictionary = {} # screen -> {tapped, ok}
 var _game = null
-## theme=wanted|royale (pass 122, lane UIKIT_A): the UI theme every screen is built in (Settings.ui_theme, set before
-## the first one); "" leaves the save's.
-var _theme := ""
 
 
 func _initialize() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("only="):
 			_only = a.substr(5).split(",")
-		elif a.begins_with("theme="):
-			_theme = a.substr(6)
-	process_frame.connect(_apply_theme, CONNECT_ONE_SHOT)
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
-
-
-## Pass 122: the theme into Settings on the first frame, before _run builds anything (connected first, so it runs first).
-func _apply_theme() -> void:
-	if _theme != "":
-		root.get_node("Settings").set("ui_theme", _theme)
-		print("touch_audit: theme ", root.get_node("Settings").get("ui_theme"))
 
 
 func _want(name: String) -> bool:
@@ -509,15 +493,11 @@ func _run() -> void:
 		await _hero_drawer()
 	if _want("title") or _want("hero_skins"):
 		await _hero_skins()
-	if _want("title") or _want("title_live"):
-		await _title_live()
 	if _want("title") or _want("title_royale"):
 		await _title_royale()
 	await _screen("settings", "res://ui/SettingsScreen.tscn")
 	if _want("settings"):
 		await _confirm_audit("settings_confirm", current_scene, func(): current_scene._ask_wipe())
-	if _want("settings") or _want("settings_debug"):
-		await _settings_menu_style()
 	if _want("settings") or _want("settings_analytics"):
 		await _settings_analytics()
 	# the play-data card and the survey card on their own names too (pass 60: only=consent_card,survey_card)
@@ -684,207 +664,16 @@ func _title_swipe() -> void:
 ## it, and so does a real tap on CLOSE.
 func _hero_sheet() -> void:
 	# pass 123 (lane MAINMENU): the Royale title has no plaque (DETAILS opens the sheet there: title_royale)
-	if bool(load("res://ui/wanted/W.gd").royale()):
-		print("touch_audit: hero_sheet: the Royale title opens the sheet from DETAILS (title_royale)")
-		return
-	change_scene_to_file("res://ui/TitleScreen.tscn")
-	await _wait(1.2)
-	var t = current_scene
-	var plaque: Control = t.find_child("Plaque", false, false)
-	_count("hero_sheet", plaque != null)
-	if plaque == null:
-		_fail("hero_sheet", "the plaque", "no Plaque on the title")
-		return
-	if (t._heroes as Array).size() >= 2:
-		var i0: int = t._index
-		var mid := plaque.get_global_rect().get_center()
-		await _swipe(mid + Vector2(240, 0), mid - Vector2(240, 0), 10)
-		await _wait(0.3)
-		var swiped: bool = t._index != i0 and not t.sheet_open()
-		_count("hero_sheet", swiped)
-		if not swiped:
-			_fail("hero_sheet", "the plaque", "a sideways swipe across it did not change the hero (or opened the sheet)")
-	await _tap(plaque.get_global_rect().get_center())
-	await _wait(0.6)
-	var sheet: Control = t.find_child("HeroSheet", false, false)
-	var opened: bool = sheet != null and t.sheet_open() and sheet.get("hero") == t._heroes[t._index]
-	_count("hero_sheet", opened)
-	if not opened:
-		_fail("hero_sheet", "the plaque", "a tap did not open the shown hero's sheet")
-		return
-	await _audit("hero_sheet", sheet)
-	await _tap(Vector2(12, sheet.get_global_rect().get_center().y))
-	await _wait(0.4)
-	var dim_closes: bool = not t.sheet_open()
-	_count("hero_sheet", dim_closes)
-	if not dim_closes:
-		_fail("hero_sheet", "the dim", "a tap outside the card did not close the sheet")
-	await _wait(0.3)
-	t.open_sheet()
-	await _wait(0.6)
-	sheet = t.find_child("HeroSheet", false, false)
-	var close: Control = sheet.find_child("Close", true, false) if sheet else null
-	# (the button is freed with the sheet: read whether there was one before the tap)
-	var had_close := close != null
-	if had_close:
-		var at: Vector2 = await _spot(close)
-		await _tap(at)
-		await _wait(0.4)
-	var closed: bool = had_close and not t.sheet_open()
-	_count("hero_sheet", closed)
-	if not closed:
-		_fail("hero_sheet", "CLOSE", "a real tap did not close the sheet")
+	print("touch_audit: hero_sheet: the Royale title opens the sheet from DETAILS (title_royale)")
+	return
 
 
 ## The hero drawer and buying a hero (pass 69, see the header): real fingers on the Hero Collections button, the
 ## drawer's tiles, outside it, its close X, then BUY, the question's buttons and LOCKED.
 func _hero_drawer() -> void:
 	# pass 123 (lane MAINMENU): the Royale title has no drawer; its BUY and LOCKED are audited in title_royale
-	if bool(load("res://ui/wanted/W.gd").royale()):
-		print("touch_audit: hero_drawer: the Royale title has no drawer (its BUY and LOCKED: title_royale)")
-		return
-	var save = root.get_node("Save")
-	var reg = root.get_node("Registry")
-	var kept_gold: int = int(save.data.get("gold", 0))
-	var kept_owned: Array = (save.data.get("heroes_owned", []) as Array).duplicate()
-	var kept_last = save.data.get("last_character", "")
-	change_scene_to_file("res://ui/TitleScreen.tscn")
-	await _wait(1.4)
-	var t = current_scene
-	var btn: Control = t.find_child("HeroesButton", false, false)
-	_count("hero_drawer", btn != null)
-	if btn == null:
-		_fail("hero_drawer", "HeroesButton", "no Hero Collections button on the title")
-		return
-	# the button opens it
-	await _tap(btn.get_global_rect().get_center())
-	await _wait(0.5)
-	var opened: bool = t.drawer_open()
-	_count("hero_drawer", opened)
-	if not opened:
-		_fail("hero_drawer", "HeroesButton", "a real tap did not open the drawer")
-		return
-	var drawer: Control = t.find_child("HeroDrawer", false, false)
-	await _audit("hero_drawer", drawer)
-	# every hero not hidden has a tile
-	var listed := 0
-	for h in reg.characters.values():
-		if not h.hidden:
-			listed += 1
-			if drawer.call("tile_of", h.id) == null:
-				_fail("hero_drawer", "Tile_" + h.id, "the hero has no tile")
-	_count("hero_drawer", listed == (t._heroes as Array).size())
-	# a real tap on another hero's tile shows him, the drawer stays open
-	var other = null
-	for h in t._heroes:
-		if h != t._heroes[t._index]:
-			other = h
-			break
-	if other:
-		var tile: Control = drawer.call("tile_of", other.id)
-		var at: Vector2 = await _spot(tile)
-		await _tap(at)
-		await _wait(0.5)
-		var shown: bool = t._heroes[t._index] == other and t.drawer_open()
-		_count("hero_drawer", shown)
-		if not shown:
-			_fail("hero_drawer", "Tile_" + str(other.id), "a real tap did not show that hero (or closed the drawer)")
-	# sideways, when the tiles do not fit
-	if bool(drawer.call("scrolls")):
-		var sc: ScrollContainer = drawer.get("scroll")
-		var r := sc.get_global_rect()
-		sc.scroll_horizontal = 0
-		await _swipe(Vector2(r.position.x + r.size.x * 0.8, r.get_center().y), Vector2(r.position.x + r.size.x * 0.2, r.get_center().y), 12)
-		await _wait(0.3)
-		_count("hero_drawer", sc.scroll_horizontal > 20)
-		if sc.scroll_horizontal <= 20:
-			_fail("hero_drawer", "Scroll", "a sideways swipe did not scroll the tiles")
-	# a tap outside the panel closes it and does nothing behind it (the hero stays, no run starts)
-	var i_before: int = t._index
-	var panel: Control = drawer.get("panel")
-	var out := Vector2(panel.get_global_rect().get_center().x, panel.get_global_rect().end.y + 160.0)
-	await _tap(out)
-	await _wait(0.4)
-	var shut: bool = not t.drawer_open() and t._index == i_before and current_scene == t
-	_count("hero_drawer", shut)
-	if not shut:
-		_fail("hero_drawer", "the catcher", "a tap outside the drawer did not close it (or reached what is behind it)")
-	# the X closes it
-	await _tap(btn.get_global_rect().get_center())
-	await _wait(0.4)
-	var again: bool = t.drawer_open()
-	await _tap(btn.get_global_rect().get_center())
-	await _wait(0.4)
-	var x_closes: bool = again and not t.drawer_open()
-	_count("hero_drawer", x_closes)
-	if not x_closes:
-		_fail("hero_drawer", "HeroesButton", "the close X did not close the drawer")
-	# ---- buying: a hero on sale with the gold for him
-	var buyable = null
-	for h in t._heroes:
-		if reg.hero_state(h) == "buyable":
-			buyable = h
-			break
-	if buyable == null:
-		print("touch_audit: hero_buy: no hero on sale on this save, skipped")
-	else:
-		save.data["gold"] = maxi(kept_gold, int(buyable.price) + 100)
-		t._refresh_gold()
-		t._index = (t._heroes as Array).find(buyable)
-		t._show_hero(0)
-		t._place()
-		await _wait(0.6)
-		var buy: Control = t.find_child("Buy", true, false)
-		var seen: bool = buy != null and _visible_in_tree(buy)
-		_count("hero_buy", seen)
-		if not seen:
-			_fail("hero_buy", "Buy", "no BUY over a hero on sale")
-		else:
-			await _audit("hero_buy", t.find_child("BuyColumn", false, false))
-			await _confirm_audit("hero_buy_confirm", t, func(): t.ask_buy())
-			var gold0: int = save.gold()
-			await _tap(buy.get_global_rect().get_center())
-			await _wait(0.5)
-			var ask: Node = null
-			for n in t.get_children():
-				if _is_kit(n, "WConfirm") and not bool(n.get("_done")):
-					ask = n
-			_count("hero_buy", ask != null)
-			if ask == null:
-				_fail("hero_buy", "Buy", "a real tap did not ask")
-			else:
-				var deed: Control = ask.find_child("Confirm", true, false)
-				await _tap(deed.get_global_rect().get_center())
-				await _wait(0.8)
-				var bought: bool = save.owns_hero(buyable.id) and save.gold() == gold0 - int(buyable.price) and not t._play.locked
-				_count("hero_buy", bought)
-				if not bought:
-					_fail("hero_buy", "Confirm", "the deed did not buy the hero (owned %s, gold %d -> %d, PLAY locked %s)" % [str(save.owns_hero(buyable.id)), gold0, save.gold(), str(t._play.locked)])
-	# a locked hero: his requirement over the plaque, LOCKED starts nothing
-	var locked_h = null
-	for h in t._heroes:
-		if reg.hero_state(h) == "locked":
-			locked_h = h
-			break
-	if locked_h:
-		t._index = (t._heroes as Array).find(locked_h)
-		t._show_hero(0)
-		t._place()
-		await _wait(0.5)
-		var req: Control = t.find_child("Requirement", false, false)
-		var shows: bool = req != null and _visible_in_tree(req) and t._play.locked
-		_count("hero_buy", shows)
-		if not shows:
-			_fail("hero_buy", "Requirement", "a locked hero shows no requirement (or PLAY is open)")
-		await _tap(t._play.get_global_rect().get_center())
-		await _wait(0.6)
-		var stayed: bool = current_scene == t
-		_count("hero_buy", stayed)
-		if not stayed:
-			_fail("hero_buy", "LOCKED", "a real tap on LOCKED left the title")
-	save.data["gold"] = kept_gold
-	save.data["heroes_owned"] = kept_owned
-	save.data["last_character"] = kept_last
+	print("touch_audit: hero_drawer: the Royale title has no drawer (its BUY and LOCKED: title_royale)")
+	return
 
 
 ## The hero sheet's Looks (pass 111, lane SKINS; see the header): real fingers on the tiles, the buy question, the deed,
@@ -959,8 +748,7 @@ func _hero_skins() -> void:
 		_count("hero_skins", bought)
 		if not bought:
 			_fail("hero_skins", "Confirm", "the deed did not buy and wear %s (gold %d -> %d, worn %s)" % [code, gold0, save.gold(), str(worn)])
-		var drawn: bool = t._stage == null or (t._stage.hero_sprite() != null)
-		_count("hero_skins", drawn)
+		_count("hero_skins", t._figure != null and is_instance_valid(t._figure))
 	# a real tap on the look every player owns wears it again
 	var home: Control = sheet.find_child("Look_" + hero.home_look(), true, false)
 	if home:
@@ -1004,154 +792,6 @@ func _hero_skins() -> void:
 	await _wait(0.3)
 	for k in kept.keys():
 		save.data[k] = kept[k]
-
-
-## The live title (pass 52, Settings.menu_style "live": the level itself behind the UI, ui/TitleStage.gd): the 3D view
-## is built with the hero standing in it and takes no touch, every button and card answers a finger over it, and a
-## sideways swipe over the hero changes him in the 3D view too. The look goes back to what it was.
-func _title_live() -> void:
-	# pass 123 (lane MAINMENU): under Royale the backdrop replaces both looks (no TitleStage is built)
-	if bool(load("res://ui/wanted/W.gd").royale()):
-		print("touch_audit: title_live: the Royale title builds no live stage (title_royale)")
-		return
-	var st = root.get_node("Settings")
-	var was: String = st.menu_style
-	st.menu_style = "live"
-	change_scene_to_file("res://ui/TitleScreen.tscn")
-	await _wait(1.4)
-	var t = current_scene
-	var stage = t.get("_stage")
-	var built: bool = stage != null and stage.get("viewport") != null and stage.call("hero_sprite") != null
-	_count("title_live", built)
-	if not built:
-		_fail("title_live", "the 3D view", "the live look built no stage with the hero in it")
-	else:
-		var deaf: bool = int(stage.mouse_filter) == Control.MOUSE_FILTER_IGNORE and bool(stage.viewport.gui_disable_input)
-		_count("title_live", deaf)
-		if not deaf:
-			_fail("title_live", "the 3D view", "it takes touches (mouse_filter or the viewport's GUI input)")
-	await _audit("title_live", t)
-	if built and (t._heroes as Array).size() >= 2:
-		var i0: int = t._index
-		var h0 = stage.get("hero")
-		var y: float = (t._hero_row as Control).get_global_rect().get_center().y
-		await _swipe(Vector2(760, y), Vector2(320, y), 10)
-		await _wait(0.3)
-		var h1 = stage.get("hero")
-		var ok: bool = t._index != i0 and h1 != null and h1 != h0 and h1.get("def") == t._heroes[t._index]
-		_count("title_live", ok)
-		if not ok:
-			_fail("title_live", "the hero", "a sideways swipe did not change the hero in the 3D view")
-	st.menu_style = was
-
-
-## The title's look in Settings (pass 52): no row without the player's debug mode; with it, the Debug panel is audited,
-## then its Live and Painted halves are tapped for real and Settings.menu_style has to follow each. All put back after.
-func _settings_menu_style() -> void:
-	var st = root.get_node("Settings")
-	var keep_debug: bool = st.debug_mode
-	var keep_style: String = st.menu_style
-	st.debug_mode = false
-	change_scene_to_file("res://ui/SettingsScreen.tscn")
-	await _wait(1.2)
-	var none: bool = current_scene.find_child("MenuStyle", true, false) == null
-	_count("settings_debug", none)
-	if not none:
-		_fail("settings_debug", "MenuStyle", "the title's look is offered with the debug mode off")
-	st.debug_mode = true
-	change_scene_to_file("res://ui/SettingsScreen.tscn")
-	await _wait(1.2)
-	var choice: Control = current_scene.find_child("MenuStyle", true, false)
-	if choice == null:
-		_count("settings_debug", false)
-		_fail("settings_debug", "MenuStyle", "the debug mode is on and the row is not there")
-	else:
-		await _audit("settings_debug", current_scene.find_child("DebugPanel", true, false))
-		for want in ["live", "painted"]:
-			var half: Control = choice.get_child(1 if want == "live" else 0)
-			var at: Vector2 = await _spot(half)
-			if at == Vector2.INF:
-				_count("settings_debug", false)
-				_fail("settings_debug", "MenuStyle '%s'" % want, "not on the screen")
-				continue
-			await _tap(at)
-			await _wait(0.2)
-			var ok: bool = str(st.menu_style) == want
-			_count("settings_debug", ok)
-			if not ok:
-				_fail("settings_debug", "MenuStyle '%s'" % want, "a tap on it did not set the look (%s)" % str(st.menu_style))
-	# the ranged weapons' aim (pass 54), when the setting exists: a real tap flips it, put back after
-	if "ranged_on_screen" in st and st.debug_mode:
-		var ros: Control = current_scene.find_child("RangedOnScreen", true, false)
-		if ros == null:
-			_count("settings_debug", false)
-			_fail("settings_debug", "RangedOnScreen", "the debug mode is on and the switch is not there")
-		else:
-			var was_ros: bool = bool(st.get("ranged_on_screen"))
-			var at3: Vector2 = await _spot(ros)
-			await _tap(at3)
-			await _wait(0.2)
-			var ok3: bool = bool(st.get("ranged_on_screen")) != was_ros
-			_count("settings_debug", ok3)
-			if not ok3:
-				_fail("settings_debug", "RangedOnScreen", "a tap did not flip Settings.ranged_on_screen")
-			st.set("ranged_on_screen", was_ros)
-			(ros as Control).set("on", was_ros)
-	# the pierce drop-off (pass 62), when the setting exists: a real tap flips it, put back after
-	if "pierce_falloff" in st and st.debug_mode:
-		var pfs: Control = current_scene.find_child("PierceFalloff", true, false)
-		if pfs == null:
-			_count("settings_debug", false)
-			_fail("settings_debug", "PierceFalloff", "the debug mode is on and the switch is not there")
-		else:
-			var was_pf: bool = bool(st.get("pierce_falloff"))
-			var at4: Vector2 = await _spot(pfs)
-			await _tap(at4)
-			await _wait(0.2)
-			var ok4: bool = bool(st.get("pierce_falloff")) != was_pf
-			_count("settings_debug", ok4)
-			if not ok4:
-				_fail("settings_debug", "PierceFalloff", "a tap did not flip Settings.pierce_falloff")
-			st.set("pierce_falloff", was_pf)
-			(pfs as Control).set("on", was_pf)
-	# the hero's knockback (pass 88), when the setting exists: a real tap flips it, put back after
-	if "hero_knockback" in st and st.debug_mode:
-		var hks: Control = current_scene.find_child("HeroKnockback", true, false)
-		if hks == null:
-			_count("settings_debug", false)
-			_fail("settings_debug", "HeroKnockback", "the debug mode is on and the switch is not there")
-		else:
-			var was_hk: bool = bool(st.get("hero_knockback"))
-			var at5: Vector2 = await _spot(hks)
-			await _tap(at5)
-			await _wait(0.2)
-			var ok5: bool = bool(st.get("hero_knockback")) != was_hk
-			_count("settings_debug", ok5)
-			if not ok5:
-				_fail("settings_debug", "HeroKnockback", "a tap did not flip Settings.hero_knockback")
-			st.set("hero_knockback", was_hk)
-			(hks as Control).set("on", was_hk)
-	# "Fire forward" (pass 95, lane ITEMS), when the setting exists: a real tap flips it, put back after
-	if "fire_forward" in st and st.debug_mode:
-		var ffs: Control = current_scene.find_child("FireForward", true, false)
-		if ffs == null:
-			_count("settings_debug", false)
-			_fail("settings_debug", "FireForward", "the debug mode is on and the switch is not there")
-		else:
-			var was_ff: bool = bool(st.get("fire_forward"))
-			var at6: Vector2 = await _spot(ffs)
-			await _tap(at6)
-			await _wait(0.2)
-			var ok6: bool = bool(st.get("fire_forward")) != was_ff
-			_count("settings_debug", ok6)
-			if not ok6:
-				_fail("settings_debug", "FireForward", "a tap did not flip Settings.fire_forward")
-			st.set("fire_forward", was_ff)
-			(ffs as Control).set("on", was_ff)
-	st.debug_mode = keep_debug
-	st.menu_style = keep_style
-	root.get_node("Save").request_save()
-	root.get_node("Save").flush()
 
 
 ## Anonymous play data in Settings (pass 57): the line under the switch says something, and a real tap on the switch
@@ -2088,13 +1728,11 @@ func _tab_bar_audit() -> void:
 	change_scene_to_node(hub)
 	await _wait(1.2)
 	var scr: Control = current_scene
-	var royale: bool = load("res://ui/wanted/W.gd").royale()
 	if _want("tab_bar"):
 		var bar: Control = scr.get("tab_bar_node")
 		if bar == null:
-			_count("tab_bar", not royale)
-			if royale:
-				_fail("tab_bar", "TabBar", "a hub screen with tab_bar() under Royale has no bar")
+			_count("tab_bar", false)
+			_fail("tab_bar", "TabBar", "a hub screen with tab_bar() under Royale has no bar")
 		else:
 			await _audit("tab_bar", bar)
 			var asked: Array = []
@@ -3305,7 +2943,6 @@ func _results_rows(scene: Node) -> void:
 ## size, a real tap on WIPE asks (the pop-up closed again by its own cancel), and under Royale a real tap on the camera's
 ## FOLLOW sets Follow and one on RESET says DONE. Everything goes back as it was.
 func _stages_settings_p123() -> void:
-	var royale := str(root.get_node("Settings").get("ui_theme")) == "royale"
 	if _want("stages") or _want("stages_start"):
 		var save = root.get_node("Save")
 		var keep_beaten: Dictionary = (save.data.get("stages_beaten", {}) as Dictionary).duplicate(true)
@@ -3319,11 +2956,6 @@ func _stages_settings_p123() -> void:
 			var open := bool(c.get_meta("open", false))
 			var i := int(c.get_meta("stage", -1))
 			var sb: Control = c.find_child("Start", true, false)
-			if not royale:
-				_count("stages_start", sb == null)
-				if sb != null:
-					_fail("stages_start", _name_of(c), "a START under Wanted")
-				continue
 			if not open:
 				_count("stages_start", sb == null)
 				if sb != null:
@@ -3349,7 +2981,7 @@ func _stages_settings_p123() -> void:
 			_count("stages_start", ok)
 			if not ok:
 				_fail("stages_start", "START of stage %d" % (i + 1), "a real tap started %d, %d time(s)" % [got, int(menu.get("starts")) - before])
-		if royale and found != 2:
+		if found != 2:
 			_fail("stages_start", "cards", "stage 1 beaten should show two STARTs, %d found" % found)
 		menu.set("hold_start", false)
 		save.data["stages_beaten"] = keep_beaten
@@ -3391,28 +3023,27 @@ func _stages_settings_p123() -> void:
 			else:
 				c.call("cancel")
 				await _wait(0.3)
-		if royale:
-			var cam: Control = s.find_child("CameraChoice", true, false)
-			if cam == null:
-				_count("settings_rows", false)
-				_fail("settings_rows", "CameraChoice", "not on the screen")
-			else:
-				await _tap(await _spot(cam.get_child(1)))
-				await _wait(0.2)
-				_count("settings_rows", int(st.get("camera_mode")) == 1)
-				if int(st.get("camera_mode")) != 1:
-					_fail("settings_rows", "CameraChoice FOLLOW", "a real tap did not set Follow")
-			var reset: Control = s.find_child("ResetHints", true, false)
-			if reset == null:
-				_count("settings_rows", false)
-				_fail("settings_rows", "ResetHints", "not on the screen")
-			else:
-				await _tap(await _spot(reset))
-				await _wait(0.2)
-				var said: String = str(reset.call("label_text"))
-				_count("settings_rows", said == "DONE")
-				if said != "DONE":
-					_fail("settings_rows", "ResetHints", "a real tap did not say DONE (%s)" % said)
+		var cam: Control = s.find_child("CameraChoice", true, false)
+		if cam == null:
+			_count("settings_rows", false)
+			_fail("settings_rows", "CameraChoice", "not on the screen")
+		else:
+			await _tap(await _spot(cam.get_child(1)))
+			await _wait(0.2)
+			_count("settings_rows", int(st.get("camera_mode")) == 1)
+			if int(st.get("camera_mode")) != 1:
+				_fail("settings_rows", "CameraChoice FOLLOW", "a real tap did not set Follow")
+		var reset: Control = s.find_child("ResetHints", true, false)
+		if reset == null:
+			_count("settings_rows", false)
+			_fail("settings_rows", "ResetHints", "not on the screen")
+		else:
+			await _tap(await _spot(reset))
+			await _wait(0.2)
+			var said: String = str(reset.call("label_text"))
+			_count("settings_rows", said == "DONE")
+			if said != "DONE":
+				_fail("settings_rows", "ResetHints", "a real tap did not say DONE (%s)" % said)
 		st.set_value("float_size", keep_size)
 		st.set_value("camera_mode", keep_cam)
 
@@ -3441,9 +3072,6 @@ func _report() -> void:
 ## price spent once, owned, START open, his mask lifting); short of gold a real tap on the grey BUY asks nothing; a locked
 ## hero shows his requirement, START reads LOCKED and a real tap on it leaves nothing. The save goes back after.
 func _title_royale() -> void:
-	if not bool(load("res://ui/wanted/W.gd").royale()):
-		print("touch_audit: title_royale: the Wanted title (nothing to audit)")
-		return
 	var save = root.get_node("Save")
 	var reg = root.get_node("Registry")
 	var kept := {}
@@ -3654,7 +3282,6 @@ func _collection_royale_audit() -> void:
 	change_scene_to_file("res://ui/CollectionScreen.tscn")
 	await _wait(1.2)
 	var c = current_scene
-	var royale := str(root.get_node("Settings").get("ui_theme")) == "royale"
 	for t in c.TABS.size():
 		var tab: Control = c._tabs._tabs[t]
 		await _tap(tab.get_global_rect().get_center())
@@ -3697,13 +3324,13 @@ func _collection_royale_audit() -> void:
 		await _wait(0.3)
 		var opened: bool = c._page == items[i]
 		# pass 123 (Garry's brief: "Keep the tab bar on all four hub screens"): the bar stays on the page
-		if royale and opened:
+		if opened:
 			opened = (c.tab_bar_node as Control).visible
 		_count("collection_royale", opened)
 		if not opened:
 			_fail("collection_royale", "%s tile '%s'" % [kind, str(items[i].get("id"))], "a tap did not open its page (or the bar went)")
 			continue
-		if royale and kind == "found":
+		if kind == "found":
 			# a long page scrolls under a finger inside its sheet
 			var inner: Control = c.scroll.get_child(0)
 			if inner.size.y > c.scroll.size.y + 40.0:
@@ -3716,11 +3343,11 @@ func _collection_royale_audit() -> void:
 					_fail("collection_royale", "page", "a swipe did not scroll the page")
 		await _tap(c.header.back_button.get_global_rect().get_center())
 		await _wait(0.3)
-		var back: bool = c._page == null and (not royale or (c.tab_bar_node as Control).visible)
+		var back: bool = c._page == null and ((c.tab_bar_node as Control).visible)
 		_count("collection_royale", back)
 		if not back:
 			_fail("collection_royale", "back square", "a tap on it did not bring the grid (and the bar) back")
-	if royale and c.tab_bar_node:
+	if c.tab_bar_node:
 		var bar = c.tab_bar_node
 		var asked: Array = []
 		bar.set("navigate", func(path: String) -> void: asked.append(path))
@@ -3911,11 +3538,10 @@ func _heroes_tap_tile(s, id: String) -> void:
 	await _wait(0.45)
 
 
-## Pass 123 (lane UPGRADE): upgrade_buy (run alone with only=upgrade_buy, under theme=royale or wanted): the Upgrade board
-## under real fingers, the save's talents and purse lent in memory and put back after: a tap on Grit's opener (Royale: its
-## tile's CHOOSE; Wanted: the tile) opens its choice; BUY in each option buys the next rank in that option for its price
-## (Royale: the pop-up's green BUYs; Wanted: the sheet's Buy0 / Buy1); a tap on the dim closes the choice; RESET UPGRADES
-## (Wanted: the refund link) asks, its KEEP THEM keeps every rank, and asked again its deed takes the board back for half.
+## Pass 123 (lane UPGRADE): upgrade_buy (run alone with only=upgrade_buy): the Upgrade board under real fingers, the
+## save's talents and purse lent in memory and put back after: a tap on Grit's CHOOSE opens its choice; the pop-up's green
+## BUY in each option buys the next rank in that option for its price; a tap on the dim closes the choice; RESET UPGRADES
+## asks, its KEEP THEM keeps every rank, and asked again its deed takes the board back for half.
 func _upgrade_buy() -> void:
 	var save = root.get_node("Save")
 	var reg = root.get_node("Registry")
@@ -3931,11 +3557,10 @@ func _upgrade_buy() -> void:
 	change_scene_to_file("res://ui/HomesteadScreen.tscn")
 	await _wait(1.2)
 	var hs = current_scene
-	var royale: bool = bool(hs.get("_royale_built"))
 	var tile: Control = hs._grid.get_node_or_null("Talent_grit")
 	var opener: Control = null
 	if tile:
-		opener = tile.find_child("Choose", true, false) if royale else tile
+		opener = tile.find_child("Choose", true, false)
 	var at := Vector2.INF
 	if opener:
 		at = await _spot(opener)
@@ -3945,7 +3570,7 @@ func _upgrade_buy() -> void:
 	var opened: bool = hs._sheet_root != null and is_instance_valid(hs._sheet_root)
 	_count("upgrade_buy", opened)
 	if not opened:
-		_fail("upgrade_buy", "Grit's %s" % ("CHOOSE" if royale else "tile"), "a real tap did not open its choice")
+		_fail("upgrade_buy", "Grit's CHOOSE", "a real tap did not open its choice")
 	else:
 		for form in [0, 1]:
 			var gold_was := int(save.data["gold"])
@@ -3963,11 +3588,7 @@ func _upgrade_buy() -> void:
 			if not bought:
 				_fail("upgrade_buy", "Buy%d" % form, "a real tap did not buy rank %d in option %d (picks %s)" % [form + 1, form, str(picks)])
 		# the dim above the card closes the choice
-		var dim: Control = null
-		if royale:
-			dim = hs._sheet_root.find_child("Dim", true, false)
-		elif hs._sheet_root.get_child_count() > 0:
-			dim = hs._sheet_root.get_child(0) as Control
+		var dim: Control = hs._sheet_root.find_child("Dim", true, false)
 		if dim and dim.has_meta("tap_at"):
 			await _tap(dim.get_global_transform() * (dim.get_meta("tap_at") as Vector2))
 			await _wait(0.5)
@@ -3978,7 +3599,7 @@ func _upgrade_buy() -> void:
 			hs._close(false)
 			await _wait(0.3)
 	# RESET UPGRADES asks; KEEP THEM keeps; its deed refunds half
-	var reset: Control = hs.get("_reset") if royale else hs.get("_refund")
+	var reset: Control = hs.get("_reset")
 	for deed in [false, true]:
 		var back := int(save.talent_refund())
 		var gold_was2 := int(save.data["gold"])
@@ -3994,7 +3615,7 @@ func _upgrade_buy() -> void:
 				ask = n
 		_count("upgrade_buy", ask != null)
 		if ask == null:
-			_fail("upgrade_buy", "RESET UPGRADES" if royale else "the refund link", "a real tap did not ask")
+			_fail("upgrade_buy", "RESET UPGRADES", "a real tap did not ask")
 			break
 		var btn: Control = ask.find_child("Confirm" if deed else "Cancel", true, false)
 		if btn:
@@ -4013,7 +3634,6 @@ func _upgrade_buy() -> void:
 			ask.call("cancel")
 	for k in kept.keys():
 		save.data[k] = kept[k]
-	print("touch_audit: upgrade_buy theme %s" % ("royale" if royale else "wanted"))
 
 
 ## Pass 123 (lane RUN_C): the mutation offer with the stage's skips spent: a real finger on its SKIP is refused (the
@@ -4033,8 +3653,7 @@ func _path_spent(g) -> void:
 	await _wait(0.5)
 	await _tap(g.cards._path_skip.get_global_rect().get_center())
 	await _wait(0.3)
-	var royale: bool = str(root.get_node("Settings").get("ui_theme")) == "royale"
-	var words: String = str(g.cards.call("skips_pill_text")) if royale else str(g.cards._path_note.text)
+	var words: String = str(g.cards.call("skips_pill_text"))
 	var ok: bool = g.cards.visible and int(run.skips_left) == 0 and words.begins_with("No skips left this stage")
 	_count("path_spent", ok)
 	if not ok:

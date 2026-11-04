@@ -46,7 +46,6 @@ var _own_left := -1.0
 var _shown := -1
 ## Pass 123 (lane RUN_A): the theme the dialog was built in (a flip of the debug switch builds it again on the next
 ## open), and the Royale run pills' row (the time, kills, level and the line, as black pills).
-var _built_royale := false
 var _pills: HBoxContainer
 
 ## Pass 123 (lane RUN_A), the Royale look (the mock 10_Stage_clear; Garry: "Extract and Endless as two slate cards,
@@ -74,56 +73,8 @@ func _ready() -> void:
 
 ## The dialog's standing parts (pass 123: out of _ready, so a theme flip can build them again).
 func _build() -> void:
-	_built_royale = W.royale()
-	if _built_royale:
-		_build_royale()
-		return
-	build_dim(W.DIM)
-	build_header("", "STAGE 1 CLEAR", "05:00 · 0 kills · Lv 1. Bank it before the horde comes.", 108)
-	header.offset_top = 100 + W.safe_top()
-	# the BOSS DOWN tag over the title
-	_tag = PanelContainer.new()
-	_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tag.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_tag.add_theme_stylebox_override("panel", W.box(W.INK, 0, 0).pad(30, 8, 30, 8))
-	_tag.add_child(W.text("BOSS DOWN", W.slab(W.em(30, 0.08)), 30, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 0.0))
-	header.add_child(_tag)
-	header.move_child(_tag, 0)
-	header.add_theme_constant_override("separation", 8)
-	_cards = VBoxContainer.new()
-	_cards.add_theme_constant_override("separation", 40)
-	_cards.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_cards.offset_left = 48
-	_cards.offset_right = -48
-	_cards.offset_top = 470 + W.safe_top()
-	_cards.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_cards)
-	_extract = _road("Extract", "Safe · run ends", W.SAGE, "strongbox", "strongbox\nart")
-	_extract.name = "Extract"
-	_extract.pressed.connect(extract)
-	var ev: VBoxContainer = _extract.get_meta("body")
-	ev.add_child(W.serif_text("This run's gold, banked", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
-	var g := HBoxContainer.new()
-	g.add_theme_constant_override("separation", 14)
-	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var coin := WCoin.make(56.0, W.BRASS, 4.0)
-	g.add_child(coin)
-	_gold_to = W.slab_text("0", 96, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 96.0)
-	g.add_child(_gold_to)
-	ev.add_child(g)
-	_build_endless()
-	# NOT YET (pass 48), centred under the cards
-	_not_yet = WButton.make(["NOT YET"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
-	_not_yet.name = "NotYet"
-	_not_yet.custom_minimum_size.x = 420
-	_not_yet.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_not_yet.pressed.connect(decline)
-	_cards.add_child(_not_yet)
-	_foot = W.serif_text(FOOT, 28, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	_foot.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_foot.offset_bottom = -80
-	_foot.offset_top = -80 - 34
-	add_child(_foot)
+	_build_royale()
+	return
 
 
 ## Pass 123 (lane RUN_A): the stage clear under Royale (the mock 10_Stage_clear): "★ BOSS DOWN ★" in gold over STAGE n
@@ -282,62 +233,6 @@ static func _royale_tag(t: String, fill: Color) -> PanelContainer:
 	return tag
 
 
-## A theme flipped since the dialog was built (the debug panel's switch): its standing parts again, in the theme on now.
-func _rebuild_if_theme_changed() -> void:
-	if W.royale() == _built_royale:
-		return
-	for c in get_children():
-		remove_child(c)
-		c.queue_free()
-	dim = null
-	header = null
-	_pills = null
-	_build()
-
-
-## The Endless card (pass 87): ink, not a road (nothing to tap): ENDLESS IN over the count on the left, what it is on
-## the right; under them the gold line.
-func _build_endless() -> void:
-	_endless = PanelContainer.new()
-	_endless.name = "Endless"
-	_endless.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_endless.add_theme_stylebox_override("panel", W.box(W.INK, 6, 0).pad(46, 34, 46, 38))
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 16)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_endless.add_child(v)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 24)
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(head)
-	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 4)
-	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(left)
-	_cont_title = W.slab_text("Endless", 64, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 64.0)
-	_cont_title.name = "Title"
-	left.add_child(_cont_title)
-	_count_label = W.label("Starts in", 20, W.AGED, 0.15)
-	left.add_child(_count_label)
-	# the count in a plain holder: the row would reset its swell (a Container resets a child's scale when it sorts)
-	var holder := Control.new()
-	holder.name = "CountHolder"
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.custom_minimum_size = Vector2(ceilf(W.slab().get_string_size("00:00", HORIZONTAL_ALIGNMENT_LEFT, -1, 104).x) + 8.0, 104)
-	holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(holder)
-	_count = W.slab_text("01:00", 104, W.BRASS, HORIZONTAL_ALIGNMENT_RIGHT, 104.0)
-	_count.name = "Count"
-	_count.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	holder.add_child(_count)
-	_endless_lines = VBoxContainer.new()
-	_endless_lines.add_theme_constant_override("separation", 8)
-	_endless_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(_endless_lines)
-	_cards.add_child(_endless)
-
-
 ## Not now: the dialog closes with no decision (`declined`; Game unpauses and the portal re-arms once the hero is out).
 ## EXTRACT tapped (pass 114: a function of its own, so a replay calls the same): the dialog goes, the run ends banked.
 func extract() -> void:
@@ -380,49 +275,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		decline()
 
 
-## The road: a paper card (6 px ink, a 12 px shadow), its name in 64 px slab with a tracked tag on the right, the art
-## (a placeholder until painted) and a column of what it means.
-func _road(t: String, tag: String, tag_color: Color, slot: String, art_label: String) -> WTap:
-	var c := WTap.new()
-	var b := W.box(W.PAPER, 6, 12).pad(46, 42, 46, 42)
-	c.box = b
-	var down := b.pressed()
-	down.inner = 6
-	c.box_down = down
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 18)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.add_child(v)
-	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tt := W.slab_text(t, 64, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 64.0)
-	tt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(tt)
-	var tg := W.label(tag, 20, tag_color)
-	tg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(tg)
-	v.add_child(head)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 26)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var art := WPlaceholder.make(slot, art_label, Vector2(188, 188))
-	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	art.set_meta("small", true)
-	row.add_child(art)
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 10)
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(body)
-	v.add_child(row)
-	c.set_meta("title", tt)
-	c.set_meta("tag", tg)
-	c.set_meta("body", body)
-	_cards.add_child(c)
-	return c
-
-
 ## A line on the Endless card: a number in slab and what it means in Bitter, on ink.
 func _fact(n: String, col: Color, text: String) -> HBoxContainer:
 	var h := HBoxContainer.new()
@@ -443,7 +295,6 @@ func _fact(n: String, col: Color, text: String) -> HBoxContainer:
 ## Open after stage `stage_cleared` (1-based). The other two arguments are kept for the callers of the two-road dialog
 ## (pass 43-86); since pass 87 there is no road onward.
 func open(stage_cleared: int, _can_continue: bool = false, _final_stage: bool = false) -> void:
-	_rebuild_if_theme_changed()
 	var gold := Run.run_gold
 	W.sfx_first(["ui_stage_clear"])   # pass 64: the stage-clear jingle
 	header.set_title("STAGE %d CLEAR" % stage_cleared)
@@ -465,7 +316,7 @@ func open(stage_cleared: int, _can_continue: bool = false, _final_stage: bool = 
 	var every := _endless_every()
 	_endless_lines.add_child(_fact("", W.PAPER, "A huge wave, then a tougher one every %s, until you fall." % _secs(every)))
 	# pass 70: a death banks the purse too, so the gold is not the stake any more
-	_endless_lines.add_child(W.serif_text("The %s gold comes home either way." % W.num(gold), 24, W.INK_SOFT if _built_royale else W.AGED,
+	_endless_lines.add_child(W.serif_text("The %s gold comes home either way." % W.num(gold), 24, W.INK_SOFT,
 		400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false))
 	_own_left = DEFAULT_SECONDS if _own_left < 0.0 else _own_left
 	_shown = -1
@@ -525,12 +376,11 @@ func _tick_count(own: bool = true) -> void:
 		_shown = whole
 		_count.text = W.mmss(float(whole))
 		_count.color = W.ROCK if left <= ENDLESS_WARN else W.BRASS
-		if _built_royale:
-			# pass 123: the kit's gold with its bevel, the kit's red in the last seconds
-			var warn := left <= ENDLESS_WARN
-			_count.color = R.ROLES["red"]["top"] if warn else R.GOLD_TEXT
-			_count.bevel = 0
-			R.edge(_count, ROYALE_COUNT_PX, not warn)
+		# pass 123: the kit's gold with its bevel, the kit's red in the last seconds
+		var warn := left <= ENDLESS_WARN
+		_count.color = R.ROLES["red"]["top"] if warn else R.GOLD_TEXT
+		_count.bevel = 0
+		R.edge(_count, ROYALE_COUNT_PX, not warn)
 		if whole <= int(ENDLESS_WARN) and whole > 0 and visible:
 			_pulse()
 	if own and left <= 0.0 and visible and is_inside_tree():

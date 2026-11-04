@@ -9371,3 +9371,14 @@ Still behind `Settings.ui_theme` (Wanted the default, prod held there). What a p
   line 0 / 2 / 3 px and a soft glow 0 / 8 / 16 px (TotemScreen ROYALE_*_BY_THIRD).
 - **The menu backdrop**: a tumbleweed every 45-90 s on one clock for the session (the first 6-16 s after the first menu), one
   shadow rule for every object (RoyaleBackdrop._cast: a soft ellipse from the foot, away from the sun).
+
+## 66. Pass 124: one UI, no theme (no gameplay number changed)
+
+Royale is the only design; there is nothing to choose in Settings, the developer menu or the debug panel, and the production build shows it too.
+- **The hero on the main menu** runs in on a diagonal from up the sand on the side you tapped, in his three-quarter run: 0.62 s, growing from 0.8 to full size, slowing as he arrives. He holds his three-quarter idle for 0.14 s, then turns to face you. The hero leaving runs down the same line the other way in 0.44 s, growing to 1.18 (TitleScreen RY_RUN_*).
+- **Shadows on the menu**: a prop's and the hero's shadow is its own picture flipped at the foot, thrown away from the sun, blurred more the further from the foot and fading along it, over a small dark contact under the foot (ui_backdrop_shadow.gdshader, backdrop.json `shadow`). The tumbleweed keeps a round shadow, 1.9 x the plain rule (RoyaleBackdrop.WEED_SHADOW).
+- **A price the purse can't pay**: the grey button with the amount in red (R.SHORT_INK). On the Upgrade board nothing else is said. The Shop still says "n short" beside it, as the brief picked.
+- **Mutations**: their own frame everywhere (cut corners, near-black face, rose rim and glow; R.MUTATION, R.MUTATION_CUT), a rose tag and word. No rarity and no perk wears it.
+- **Down! in debug mode**: REVIVE, solid green, top right under the cutout; the hold top left.
+- **The loading screen** is dark (Boot.palette): the same strips and print on the kit's navy, the wordmark instead of the paper plate; the engine's splash and Android's are the same dark colour (Boot.DARK), so no flash of paper.
+

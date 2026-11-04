@@ -443,7 +443,7 @@ func test_the_game_opens_the_menu_and_the_pick_stays() -> void:
 		assert_str(p.stat.text).is_equal(BOONS.stat_text(b))
 		assert_str(p.spirit.text).is_equal(BOONS.title(b))
 		assert_bool(p.spirit.text.contains(",")).is_equal(str(b["animal"]) != "")
-		assert_int(p.gauge.filled).is_equal(int(b["quality"]))
+		assert_int(p.stars.held).is_equal(int(b["quality"]))
 		assert_int(p.feathers).is_equal(int(b["quality"]))
 	# a press on the second plank takes its gift; the run goes on
 	planks[1].pressed.emit()
@@ -489,6 +489,6 @@ func test_the_menu_fits_the_screen_with_and_without_a_cutout() -> void:
 			prev_bottom = r.end.y
 			# the words fit the tag
 			var tag: Rect2 = (p.tag as Control).get_global_rect()
-			for t in [p.stat, p.spirit, p.gauge]:
+			for t in [p.stat, p.spirit, p.stars]:
 				assert_float((t as Control).get_global_rect().end.x).is_less_equal(tag.end.x)
 		scr.visible = false

@@ -174,31 +174,6 @@ static func card(border: Color = LINE, border_w: int = 2, bg: Color = BG2, radiu
 	return c
 
 
-## Standard card body: icon on the left, a column of texts (each [text, size, colour]) on the right, generous
-## padding, everything mouse-transparent so the card itself takes the tap. Returns the text column.
-static func card_body(c: Control, def: ContentDef, kind: String, icon_size: int, texts: Array) -> VBoxContainer:
-	var m := MarginContainer.new()
-	m.add_theme_constant_override("margin_left", 26)
-	m.add_theme_constant_override("margin_right", 26)
-	m.add_theme_constant_override("margin_top", 20)
-	m.add_theme_constant_override("margin_bottom", 20)
-	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.add_child(m)
-	var h := hbox(24)
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	m.add_child(h)
-	if def:
-		h.add_child(icon_view(def, icon_size, kind))
-	var v := vbox(4)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	for t in texts:
-		var l := label(str(t[0]), int(t[1]), t[2] if t.size() > 2 else INK)
-		v.add_child(l)
-	h.add_child(v)
-	return v
-
-
 static func vbox(sep: int = 16) -> VBoxContainer:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", sep)
@@ -282,19 +257,6 @@ static func icon_view(def: ContentDef, size: int = 120, kind: String = "") -> Co
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		root.add_child(l)
 	return root
-
-
-static func pip_row(level: int, max_level: int, width: int = 120) -> Control:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 4)
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for i in range(max_level):
-		var p := ColorRect.new()
-		p.custom_minimum_size = Vector2(maxi(width / max_level - 4, 4), 8)
-		p.color = ACCENT if i < level else LINE
-		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		h.add_child(p)
-	return h
 
 
 ## A crisp anti-aliased disc as a texture (radial gradient): round plates and knobs without StyleBoxFlat's seam on
@@ -390,124 +352,9 @@ static func card_description(card: Dictionary) -> String:
 	return ""
 
 
-## A level pill: "LV 2 → 3" for an upgrade, "NEW · LV 1" for a fresh item, "MAX" when the step lands on the cap.
-static func level_chip(card: Dictionary) -> Control:
-	var def: ContentDef = card["def"]
-	var lf := int(card.get("level_from", 0))
-	var lt := int(card.get("level_to", 1))
-	var mx: int = def.max_level if (def is WeaponDef or def is PassiveDef) else 8
-	# a new item taken past level 1 in one go (the Stranger's, pass 34) says where it lands
-	var text := ("NEW · LV %d" % maxi(lt, 1) if lf == 0 else "LV %d → %d" % [lf, lt]) + (" · MAX" if lt >= mx and lf > 0 else "")
-	if def is MutationDef:
-		# the path's real count (pass 48: every mutation of it is needed to evolve), the held ones read off the weapon
-		var fam_w := Run.family_instance((def as MutationDef).weapon)
-		var fam_n: int = maxi(Registry.mutations_of((def as MutationDef).weapon).size(), 1)
-		var held_n: int = Run.path_progress(fam_w).x if fam_w else 0
-		text = "HERO" if (def as MutationDef).is_hero() else "MUTATION %d / %d" % [mini(held_n + 1, fam_n), fam_n]
-	elif bool(card.get("evolve", false)):
-		text = "EVOLVE"
-	elif def is PerkDef:
-		text = "ONCE"
-	var l := label(text, 24, ACCENT_INK, HORIZONTAL_ALIGNMENT_CENTER)
-	l.autowrap_mode = TextServer.AUTOWRAP_OFF
-	l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", stylebox(ACCENT, 14, Color(0, 0, 0, 0), 0, false, false, false))
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var m := MarginContainer.new()
-	m.add_theme_constant_override("margin_left", 14)
-	m.add_theme_constant_override("margin_right", 14)
-	m.add_theme_constant_override("margin_top", 4)
-	m.add_theme_constant_override("margin_bottom", 4)
-	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	m.add_child(l)
-	p.add_child(m)
-	p.size_flags_horizontal = Control.SIZE_SHRINK_END
-	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	return p
-
-
-## Level pips for a card: gold for the levels held, a white pip with a gold rim for the one this pick gives, grey
-## for the rest, so "where am I" and "what do I get" are one glance.
-static func level_pips(card: Dictionary, width: int = 320) -> Control:
-	var def: ContentDef = card["def"]
-	var lf := int(card.get("level_from", 0))
-	var lt := int(card.get("level_to", 1))
-	var mx: int = def.max_level if (def is WeaponDef or def is PassiveDef) else 8
-	if def is MutationDef:
-		# a weapon's mutations have three pips: the picks held on the weapon, this one, the rest
-		var held := Run.mutations_held((def as MutationDef).weapon).size()
-		if (def as MutationDef).is_hero():
-			return Control.new()
-		lf = held
-		lt = held + 1
-		mx = 3
-	elif def is PerkDef:
-		return Control.new()
-	if bool(card.get("evolve", false)):
-		# an evolution has no ranks to count
-		return Control.new()
-	var h := hbox(6)
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var w: int = maxi(width / maxi(mx, 1) - 6, 10)
-	for i in range(mx):
-		var p := Panel.new()
-		p.custom_minimum_size = Vector2(w, 20)
-		var col: Color = ACCENT if i < lf else (Color(1, 1, 1) if i < lt else BG3)
-		var rim: Color = ACCENT if i < lt else LINE
-		p.add_theme_stylebox_override("panel", stylebox(col, 6, rim, 2, false, false, false))
-		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		h.add_child(p)
-	return h
-
-
-## The top of an item card: the kind tag, the name with the level chip on the right, the pip row. Returns the column.
-static func item_header(v: VBoxContainer, card: Dictionary, kind_col: Color, name_size: int = 46, extra_tag: String = "") -> void:
-	var def: ContentDef = card["def"]
-	var kind := "WEAPON" if def is WeaponDef else "PASSIVE"
-	if def is WeaponDef and def.is_evolution:
-		kind = "EVOLUTION"
-	var tag_text := kind + (" · UPGRADE" if int(card.get("level_from", 0)) > 0 else " · NEW") + extra_tag
-	if def is MutationDef:
-		var md := def as MutationDef
-		var wname: String = Registry.weapon(md.weapon).display_name.to_upper() if Registry.weapon(md.weapon) else md.weapon.to_upper()
-		tag_text = ("HERO MUTATION · " if md.is_hero() else "MUTATION · ") + wname + ("" if md.is_hero() else " · " + md.mutation_kind.to_upper()) + extra_tag
-	elif def is PassiveDef and bool(card.get("evolve", false)):
-		var src: PassiveDef = Registry.passive((def as PassiveDef).evolves_from)
-		tag_text = "PASSIVE · EVOLUTION OF " + (src.display_name.to_upper() if src else "A PASSIVE") + extra_tag
-	elif def is PerkDef:
-		tag_text = "HERO PERK" + extra_tag
-	var tl := label(tag_text, 22, kind_col)
-	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(tl)
-	var row := hbox(16)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var nl := label(def.display_name, name_size, INK)
-	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(nl)
-	row.add_child(level_chip(card))
-	v.add_child(row)
-	v.add_child(level_pips(card))
-
-
 ## "Next level: +15% might" -> "Next: +15% might"; "Maxed." stays.
 static func _next_only(text: String) -> String:
 	if text.begins_with("Next level: "):
 		return "Next: " + text.trim_prefix("Next level: ")
 	return text
 
-
-static func card_tag(card: Dictionary) -> String:
-	var def: ContentDef = card["def"]
-	var t := "WEAPON" if def is WeaponDef else "PASSIVE"
-	if def is MutationDef:
-		return "MUTATION · " + (Registry.weapon((def as MutationDef).weapon).display_name.to_upper() if Registry.weapon((def as MutationDef).weapon) else "")
-	if def is PerkDef:
-		return "HERO PERK"
-	if bool(card.get("evolve", false)):
-		return t + " · EVOLUTION"
-	if card.get("is_new", false):
-		return t + " · NEW"
-	return t + " · LV %d → %d" % [int(card["level_from"]), int(card["level_to"])]

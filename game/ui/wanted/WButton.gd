@@ -3,7 +3,7 @@
 ## danger (rock with paper text), upgrade (turquoise with paper text, darker while held: the way to the Upgrade board,
 ## which wants to be seen without looking like a purchase), locked (aged at 45 %, still emits `pressed` so the screen can
 ## say why). The label is parts: text runs in their own colours and coins ("REROLL ×1", "SELL ○ +4", "RANK 2 ○ 252").
-## Pass 122 (lane UIKIT_A), under Royale (W.royale()): the same button wears a `role` (Garry: button colours mean
+## Pass 122 (lane UIKIT_A), under Royale: the same button wears a `role` (Garry: button colours mean
 ## something): gold = happens now (START, TAKE IT, RESUME, DEAL, CLAIM), green = buys, blue = opens something (DETAILS,
 ## CHOOSE, UPGRADE), slate = everything else, red = danger, locked = grey at 75 %. A screen that says nothing gets the
 ## variant's role (R.role_of: primary -> gold, danger -> red, upgrade -> blue, secondary -> slate); `make`'s `p_role` or
@@ -101,10 +101,8 @@ func set_parts(parts: Array) -> void:
 	for c in _row.get_children():
 		_row.remove_child(c)
 		c.queue_free()
-	var royale := W.royale()
 	var ink := W.PAPER if variant == DANGER or variant == UPGRADE else W.INK
-	if royale:
-		ink = R.role(role)["text"]
+	ink = R.role(role)["text"]
 	if ink_override.a > 0.0:
 		ink = ink_override
 	var runs: Array = []
@@ -113,10 +111,10 @@ func set_parts(parts: Array) -> void:
 			return
 		var t := W.text("", W.slab_for(font_size), font_size, ink, HORIZONTAL_ALIGNMENT_CENTER, line_h)
 		t.runs = runs.duplicate()
-		if royale and role == GOLD:
+		if role == GOLD:
 			# navy on gold: a navy edge would only fatten it
 			R.no_edge(t)
-		elif royale:
+		else:
 			# pass 123 (Garry: "add contour, or drop shadow to texts inside the buttons"): every label on a coloured face
 			# wears the navy contour and a drop straight down, Rubik labels under Ultra's minimum too
 			t.stroke = maxi(t.stroke, 2)
@@ -158,10 +156,6 @@ func set_parts(parts: Array) -> void:
 ## A count inside the button (pass 122): {"count": n} is "×n" as a navy pill with a gold number (grey at 0) under
 ## Royale; under Wanted the same "×n" in the label's ink (the screens' own "REROLL ×1" runs stay as they are).
 func _count_pill(n: int, ink: Color) -> Control:
-	if not W.royale():
-		var plain := W.text("×%d" % n, W.slab(), font_size, ink, HORIZONTAL_ALIGNMENT_CENTER, line_h)
-		plain.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		return plain
 	var px := maxi(int(round(font_size * 0.7)), R.TAG_PX)
 	var pc := PanelContainer.new()
 	pc.name = "Count"
@@ -205,10 +199,8 @@ func _label_of(n: Node) -> String:
 ## The colour cut into a drawn glyph on this face (pass 123): under Royale the face's own colour (the gold top under
 ## navy ink, the role's bottom under cream), under Wanted the box's fill.
 func _cut_colour(ink: Color) -> Color:
-	if W.royale():
-		var r := R.role(role)
-		return r["top"] if ink.is_equal_approx(R.NAVY) else r["bottom"]
-	return box.fill if box else W.PAPER
+	var r := R.role(role)
+	return r["top"] if ink.is_equal_approx(R.NAVY) else r["bottom"]
 
 
 ## A price button (pass 123, lane KIT2; the mocks 8_Shop_24_gold "● 230 · BUY", 5_Upgrade "● 100 · CHOOSE"): the coin
@@ -238,9 +230,8 @@ static func price(amount: int, word: String = "", p_role: String = GREEN, px: in
 		pad_v, 22.0, float(px), LOCKED if is_short else p_role)
 	b.name = "PriceButton"
 	if is_short:
-		if W.royale():
-			b.ink_override = R.LOCKED_TEXT
-			b.set_parts(b._parts)
+		b.ink_override = R.SHORT_INK
+		b.set_parts(b._parts)
 		b.locked = true
 		b.set_meta("short", short)
 	b.set_meta("price", amount)

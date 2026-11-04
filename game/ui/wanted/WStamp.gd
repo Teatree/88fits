@@ -1,7 +1,7 @@
 ## A rubber stamp (pass 72, the Results' unlocks): a word in slab inside a double frame, in one ink colour a little
 ## see-through, as a sheriff's office would stamp a poster. Turned by whoever hangs it (a free child, like the NEW BEST
 ## seal). `slam(t)` is its landing: from STAMP_FROM times its size and see-through down to its place over `t` seconds.
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): the same stamp in the display face (Ultra from 28 px) with its
+## Pass 122 (lane UIKIT_B), under Royale: the same stamp in the display face (Ultra from 28 px) with its
 ## colour read the kit's way (R.text_colour: sage -> the green role, rock -> red, soft ink -> the secondary blue).
 class_name WStamp
 extends Control
@@ -50,7 +50,7 @@ func slam(t: float) -> void:
 
 func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, size)
-	var ink := Color(R.text_colour(color) if W.royale() else color, 0.9)
+	var ink := Color(R.text_colour(color), 0.9)
 	draw_rect(r, ink, false, 6.0)
 	draw_rect(r.grow(-11.0), ink, false, 3.0)
 	var f := W.slab()

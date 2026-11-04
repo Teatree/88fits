@@ -110,6 +110,7 @@ var _chart_panel: PanelContainer
 var _pop_group: CanvasGroup
 var _perf_label: Control
 var _dmg_label: Control
+var _dmg_panel: PanelContainer
 var _popped := false
 ## How long the chart part lasts: JOINT_TIME, or a little more when the last source row comes in later (ROW_BEAT).
 var _joint_time := JOINT_TIME
@@ -280,8 +281,6 @@ class RoyaleStamp extends WStamp:
 
 ## A stamp in the theme (pass 123): WStamp, or under Royale the kit's tag (RoyaleStamp) built the way WStamp.make builds.
 static func make_stamp(t: String, col: Color, px: int) -> WStamp:
-	if not W.royale():
-		return WStamp.make(t, col, px)
 	var s := RoyaleStamp.new()
 	s.word = t
 	s.color = col
@@ -332,13 +331,11 @@ func build() -> void:
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# pass 87 (lane SUI): how the stage ended, the stage by its number and name, its own time, Endless's line when it ran
 	var story := stage_story()
-	var royale := W.royale()
 	head.add_child(WStarLine.make(str(story["star"]), 30, W.INK))
 	var stage_line := W.text(str(story["stage"]).to_upper(), W.slab(W.em(26, 0.06)), 26, story["tone"], HORIZONTAL_ALIGNMENT_CENTER, 40.0)
-	if royale:
-		# pass 123: the mock's stage line, the kit's tracked label in the secondary blue
-		stage_line = W.text(str(story["stage"]).to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(24, 0.12)), 24, R.SECONDARY,
-			HORIZONTAL_ALIGNMENT_CENTER, 40.0)
+	# pass 123: the mock's stage line, the kit's tracked label in the secondary blue
+	stage_line = W.text(str(story["stage"]).to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(24, 0.12)), 24, R.SECONDARY,
+		HORIZONTAL_ALIGNMENT_CENTER, 40.0)
 	stage_line.name = "StageLine"
 	head.add_child(stage_line)
 	head.add_child(W.slab_text(W.mmss(float(story["time"])), 120, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 120.0))
@@ -349,38 +346,33 @@ func build() -> void:
 		head.add_child(el)
 	var bits: Array = [W.lv(int(s["level"])), "%s kills" % W.num(int(s["kills"])),
 		"%d chest%s" % [int(s["chests"]), "" if int(s["chests"]) == 1 else "s"], "%d evolution%s" % [int(s["evolutions"]), "" if int(s["evolutions"]) == 1 else "s"]]
-	if royale:
-		# pass 123: the run's numbers as black pills (the mock's LV 47 · 934 kills · 3 chests · 0 evolutions)
-		var pills := HBoxContainer.new()
-		pills.name = "RunPills"
-		pills.alignment = BoxContainer.ALIGNMENT_CENTER
-		pills.add_theme_constant_override("separation", 10)
-		pills.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		for k in bits.size():
-			var pl := _pill(str(bits[k]))
-			if k == 1 and ResourceLoader.exists(ROYALE_SKULL):
-				# the mock's skull before the kills (the game's own badge)
-				var sk := TextureRect.new()
-				sk.name = "Skull"
-				sk.texture = load(ROYALE_SKULL) as Texture2D
-				sk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				sk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				sk.custom_minimum_size = Vector2(ROYALE_SKULL_PX, ROYALE_SKULL_PX)
-				sk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-				sk.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				var prow := pl.get_node_or_null("Row")
-				if prow:
-					prow.add_child(sk)
-					prow.move_child(sk, 0)
-			pills.add_child(pl)
-		head.add_child(_gap(10))
-		head.add_child(pills)
-	else:
-		var line := W.serif_text(" · ".join(bits), 30, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-		line.custom_minimum_size.y = 42
-		head.add_child(line)
+	# pass 123: the run's numbers as black pills (the mock's LV 47 · 934 kills · 3 chests · 0 evolutions)
+	var pills := HBoxContainer.new()
+	pills.name = "RunPills"
+	pills.alignment = BoxContainer.ALIGNMENT_CENTER
+	pills.add_theme_constant_override("separation", 10)
+	pills.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for k in bits.size():
+		var pl := _pill(str(bits[k]))
+		if k == 1 and ResourceLoader.exists(ROYALE_SKULL):
+			# the mock's skull before the kills (the game's own badge)
+			var sk := TextureRect.new()
+			sk.name = "Skull"
+			sk.texture = load(ROYALE_SKULL) as Texture2D
+			sk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			sk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			sk.custom_minimum_size = Vector2(ROYALE_SKULL_PX, ROYALE_SKULL_PX)
+			sk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			sk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var prow := pl.get_node_or_null("Row")
+			if prow:
+				prow.add_child(sk)
+				prow.move_child(sk, 0)
+		pills.add_child(pl)
+	head.add_child(_gap(10))
+	head.add_child(pills)
 	content.add_child(head)
-	content.add_child(_gap(ROYALE_HEAD_GAP if royale else 64.0))
+	content.add_child(_gap(ROYALE_HEAD_GAP))
 	# the hero and the gold: banked, whatever the end (pass 70, Garry: "Make Coins stay if Player dies": a death and an
 	# abandon bank the purse as an extraction does, Game.end_run); the Strongbox's line went with the Strongbox
 	var before := int(res.get("gold_before", Save.gold()))
@@ -394,7 +386,7 @@ func build() -> void:
 	hero.add_child(hr)
 	if Run.character:
 		# his badge in the look he was played in (pass 68, Registry.played_look)
-		var p := WPlate.new().for_def(Registry.played_look(Run.character), ROYALE_PORTRAIT if royale else 176.0)
+		var p := WPlate.new().for_def(Registry.played_look(Run.character), ROYALE_PORTRAIT)
 		p.border = 6
 		p.fill = W.AGED
 		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -404,12 +396,12 @@ func build() -> void:
 	gv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gv.add_child(W.label("Banked", 20, W.INK_SOFT) if royale else W.serif_text("Banked", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	gv.add_child(W.label("Banked", 20, W.INK_SOFT))
 	var gr := HBoxContainer.new()
 	gr.add_theme_constant_override("separation", 14)
 	gr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gr.add_child(WCoin.make(52.0 if royale else 60.0, W.BRASS, 4.0))
-	var banked_px := ROYALE_BANKED_PX if royale else 100
+	gr.add_child(WCoin.make(52.0, W.BRASS, 4.0))
+	var banked_px := ROYALE_BANKED_PX
 	_count = W.slab_text("+0", banked_px, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, float(banked_px))
 	_count.name = "Banked"
 	gr.add_child(_count)
@@ -419,9 +411,8 @@ func build() -> void:
 	# pass 116 (lane RESULTS): the purse line takes the bounty's coins only once they have flown in (_part_bounty_pay)
 	_gold_before = before
 	_after_line = W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	if royale:
-		# pass 123: the purse before and after in white Rubik 700, as the mock
-		_after_line = W.text(_after_line.text, R.body(R.LABEL_WEIGHT), 24, R.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	# pass 123: the purse before and after in white Rubik 700, as the mock
+	_after_line = W.text(_after_line.text, R.body(R.LABEL_WEIGHT), 24, R.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	_after_line.name = "PurseLine"
 	gv.add_child(_after_line)
 	if not Save.hint_seen("results"):
@@ -460,35 +451,36 @@ func build() -> void:
 	var dmg: Dictionary = s["damage_by_weapon"]
 	for id in dmg:
 		_dmg_total += float(dmg[id])
-	content.add_child(_gap(ROYALE_BLOCK_GAP if royale else 46.0))
+	content.add_child(_gap(ROYALE_BLOCK_GAP))
 	# pass 74: the block waits unseen in its place (nothing under it moves) until the gold is counted, then pops in
 	_perf_label = W.label("Run performance", 22, W.INK_SOFT)
 	_perf_label.modulate.a = 0.0
 	content.add_child(_perf_label)
-	content.add_child(_gap(ROYALE_LABEL_GAP if royale else 16.0))
+	content.add_child(_gap(ROYALE_LABEL_GAP))
 	_chart_panel = _kills_panel()
 	_chart_box = _pop_holder(_chart_panel)
 	_pop_group.self_modulate.a = 0.0
 	content.add_child(_chart_box)
 	# the damage dealt, by source, in the order each joined the run (pass 47: every row its plate, its name and its number)
 	if not dmg.is_empty():
-		content.add_child(_gap(ROYALE_BLOCK_GAP if royale else 46.0))
+		content.add_child(_gap(ROYALE_BLOCK_GAP))
 		_dmg_label = W.label("Damage dealt", 22, W.INK_SOFT)
 		_dmg_label.modulate.a = 0.0
 		content.add_child(_dmg_label)
-		content.add_child(_gap(ROYALE_LABEL_GAP if royale else 16.0))
+		content.add_child(_gap(ROYALE_LABEL_GAP))
 		var src_rows := _source_rows(dmg)
-		if royale:
-			# pass 123: the mock's "DAMAGE DEALT · 12 SOURCES" and every row on one slate panel
-			_dmg_label.text = ("Damage dealt · %d source%s" % [_rows.size(), "" if _rows.size() == 1 else "s"]).to_upper()
-			var dp := PanelContainer.new()
-			dp.name = "DamagePanel"
-			dp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			dp.add_theme_stylebox_override("panel", W.sheet_box(Vector2(22, 18)))
-			dp.add_child(src_rows)
-			content.add_child(dp)
-		else:
-			content.add_child(src_rows)
+		# pass 123: the mock's "DAMAGE DEALT · 12 SOURCES" and every row on one slate panel
+		_dmg_label.text = ("Damage dealt · %d source%s" % [_rows.size(), "" if _rows.size() == 1 else "s"]).to_upper()
+		var dp := PanelContainer.new()
+		dp.name = "DamagePanel"
+		dp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dp.add_theme_stylebox_override("panel", W.sheet_box(Vector2(22, 18)))
+		dp.add_child(src_rows)
+		# pass 124 (Garry: "Shows up from the start, empty and with nothing on it. It should only appear at the end"): the
+		# panel waits unseen with its label and rows, keeping its place, and pops in with the chart (_part_pop)
+		dp.modulate.a = 0.0
+		_dmg_panel = dp
+		content.add_child(dp)
 	# what the run unlocked, and what it brought closer
 	_build_unlocks()
 	# the buttons: PLAY AGAIN, then Upgrade and Main Menu
@@ -512,7 +504,7 @@ func build() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for spec in [["Upgrade", "res://ui/HomesteadScreen.tscn", WButton.UPGRADE], ["Main Menu", TITLE, WButton.SECONDARY]]:
 		# pass 123: the words in capitals under Royale (UPGRADE blue, MAIN MENU slate: the variants' roles)
-		var b := WButton.make([str(spec[0]).to_upper() if royale else spec[0]], 30, spec[2], 5, 6, 20.0, 0.0)
+		var b := WButton.make([str(spec[0]).to_upper()], 30, spec[2], 5, 6, 20.0, 0.0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var path: String = spec[1]
 		b.pressed.connect(func(): go(path))
@@ -581,7 +573,7 @@ func _kills_panel() -> PanelContainer:
 	p.add_child(h)
 	var side := 236.0
 	var chart_w := 1080.0 - 2.0 * board_side() - 70.0 - 28.0 - side
-	_chart = (RoyaleChart.new() if W.royale() else WKillChart.new()).setup(_tl, chart_w)
+	_chart = (RoyaleChart.new()).setup(_tl, chart_w)
 	_chart.name = "KillChart"
 	_chart.custom_minimum_size = Vector2(0, 306)
 	_chart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -594,12 +586,12 @@ func _kills_panel() -> PanelContainer:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(W.label("Kills", 20, W.INK_SOFT))
 	# pass 123: both counters in gold under Royale (the mock's KILLS 934, DAMAGE 19k)
-	_kills_num = W.slab_text("0", 66, W.BRASS if W.royale() else W.INK, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
+	_kills_num = W.slab_text("0", 66, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
 	_kills_num.name = "Kills"
 	v.add_child(_kills_num)
 	v.add_child(_gap(26))
 	v.add_child(W.label("Damage", 20, W.INK_SOFT))
-	_dmg_num = W.slab_text("0", 66, W.BRASS if W.royale() else W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
+	_dmg_num = W.slab_text("0", 66, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
 	_dmg_num.name = "Damage"
 	v.add_child(_dmg_num)
 	h.add_child(v)
@@ -612,7 +604,7 @@ func _kills_panel() -> PanelContainer:
 func _source_rows(dmg: Dictionary) -> VBoxContainer:
 	var rows := VBoxContainer.new()
 	rows.name = "DamageRows"
-	rows.add_theme_constant_override("separation", 14 if W.royale() else 18)
+	rows.add_theme_constant_override("separation", 14)
 	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var total := maxf(_dmg_total, 1.0)
 	var story := not _tl.sources.is_empty()
@@ -655,13 +647,13 @@ func _build_unlocks() -> void:
 	_unlock_box.name = "Unlocks"
 	_unlock_box.add_theme_constant_override("separation", 0)
 	_unlock_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(_gap(ROYALE_BLOCK_GAP + 8.0 if W.royale() else 66.0))
+	content.add_child(_gap(ROYALE_BLOCK_GAP + 8.0))
 	content.add_child(_unlock_box)
 	if not done.is_empty():
 		_unlock_label = W.label("Unlocked this run", 22, W.INK_SOFT)
 		_unlock_label.modulate.a = 0.0
 		_unlock_box.add_child(_unlock_label)
-		_unlock_box.add_child(_gap(ROYALE_LABEL_GAP if W.royale() else 40.0))
+		_unlock_box.add_child(_gap(ROYALE_LABEL_GAP))
 		for id in done:
 			var q: QuestDef = Registry.quests.get(id)
 			if q == null:
@@ -672,27 +664,19 @@ func _build_unlocks() -> void:
 			if plate:
 				plate.locked = true
 				plate.queue_redraw()
-			var royale_stamp := W.royale()
 			var stamp: WStamp = make_stamp("FOR SALE" if bool(panel.get_meta("on_sale", false)) else "UNLOCKED", W.SAGE,
-				ROYALE_STAMP_PX if royale_stamp else 30)
+				ROYALE_STAMP_PX)
 			stamp.visible = false
 			panel.add_child(stamp)
-			if royale_stamp:
-				# pass 123: the mock's UNLOCKED tag inside the card at its right (the card keeps room for it), tilted 6 degrees
-				var ps := panel.get_theme_stylebox("panel")
-				if ps:
-					ps.content_margin_right += stamp.stamp_size().x + 18.0
-				panel.sort_children.connect(func():
-					stamp.size = stamp.stamp_size()
-					stamp.pivot_offset = stamp.size * 0.5
-					stamp.rotation = deg_to_rad(-6.0)
-					stamp.position = Vector2(panel.size.x - stamp.size.x - 26.0, (panel.size.y - stamp.size.y) * 0.5))
-			else:
-				panel.sort_children.connect(func():
-					stamp.size = stamp.stamp_size()
-					stamp.pivot_offset = stamp.size * 0.5
-					stamp.rotation = deg_to_rad(-9.0)
-					stamp.position = Vector2(panel.size.x - stamp.size.x + 30.0, -stamp.size.y * 0.72))
+			# pass 123: the mock's UNLOCKED tag inside the card at its right (the card keeps room for it), tilted 6 degrees
+			var ps := panel.get_theme_stylebox("panel")
+			if ps:
+				ps.content_margin_right += stamp.stamp_size().x + 18.0
+			panel.sort_children.connect(func():
+				stamp.size = stamp.stamp_size()
+				stamp.pivot_offset = stamp.size * 0.5
+				stamp.rotation = deg_to_rad(-6.0)
+				stamp.position = Vector2(panel.size.x - stamp.size.x - 26.0, (panel.size.y - stamp.size.y) * 0.5))
 			_unlock_box.add_child(panel)
 			_unlock_box.add_child(_gap(44))
 			_unlocks.append({"panel": panel, "plate": plate, "stamp": stamp, "landed": false})
@@ -1048,6 +1032,8 @@ func _part_pop(f: float, live: bool) -> void:
 	_perf_label.modulate.a = a
 	if _dmg_label:
 		_dmg_label.modulate.a = a
+	if _dmg_panel:
+		_dmg_panel.modulate.a = a
 	for e: Dictionary in _rows:
 		if float(e["at"]) <= 0.0:
 			e["on"] = true
@@ -1493,42 +1479,7 @@ static func damage_rows(dmg: Dictionary) -> VBoxContainer:
 ## One source: its 96 px plate (the item's in its kind's colour; a paper plate with the source's picture, or a "?"),
 ## the name and the damage in slab over a bar of its share, and the percent at the end ("<1%" for a sliver).
 static func damage_row(src: Dictionary, frac: float) -> HBoxContainer:
-	if W.royale():
-		return _damage_row_royale(src, frac)
-	var h := HBoxContainer.new()
-	h.name = "Source"
-	h.set_meta("source", src)
-	h.add_theme_constant_override("separation", 20)
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_child(source_plate(src, 96.0))
-	var mid := VBoxContainer.new()
-	mid.add_theme_constant_override("separation", 6)
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 14)
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var nm := W.slab_text(str(src["name"]), 30, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	nm.name = "Name"
-	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(nm)
-	var num := W.slab_text(W.num(float(src["amount"])), 30, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-	num.name = "Amount"
-	top.add_child(num)
-	mid.add_child(top)
-	var bar := WBar.make(frac, W.BRASS, 26.0, 4, 0)
-	bar.name = "Bar"
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.add_child(bar)
-	h.add_child(mid)
-	var pct := roundf(frac * 100.0)
-	var pc := W.slab_text("<1%" if frac > 0.0 and pct < 1.0 else "%d%%" % int(pct), 28, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-	pc.name = "Share"
-	pc.custom_minimum_size.x = 96
-	pc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(pc)
-	return h
+	return _damage_row_royale(src, frac)
 
 
 ## Pass 123 (lane RUN_A): one source under Royale (the mock's DAMAGE DEALT row): a 72 px frame, the name in white Rubik
@@ -1631,7 +1582,7 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	if skin:
 		on_sale = Registry.skin_state(def as CharacterDef, (def as CharacterDef).look_code()) == "buyable"
 	if def:
-		var pl := WPlate.new().for_def(def, ROYALE_UNLOCK_PLATE if W.royale() else 96.0)
+		var pl := WPlate.new().for_def(def, ROYALE_UNLOCK_PLATE)
 		pl.name = "Plate"
 		pl.icon_frac = 0.7
 		pl.mystery = on_sale and not skin
@@ -1645,7 +1596,7 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	var title := "A new hero" if on_sale else (def.display_name if def else q.display_name)
 	if skin:
 		title = "%s · %s" % [def.display_name, (def as CharacterDef).skin_name((def as CharacterDef).look_code())]
-	var tpx := ROYALE_UNLOCK_PX if W.royale() else 36
+	var tpx := ROYALE_UNLOCK_PX
 	v.add_child(W.slab_text(title, tpx, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(tpx)))
 	h.add_child(v)
 	var why := W.serif_text(TextGen.quest_text(q), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, true)

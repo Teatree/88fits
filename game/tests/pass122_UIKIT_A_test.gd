@@ -21,19 +21,11 @@ func before() -> void:
 func after() -> void:
 	Settings.force_prod(false)
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func after_test() -> void:
 	Settings.force_prod(false)
-	Settings.ui_theme = "wanted"
 	Settings.debug_mode = bool(_settings_before.get("debug_mode", false))
-	W.theme_changed()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _base_path(f: Font) -> String:
@@ -52,125 +44,18 @@ func _weight(f: Font) -> int:
 
 # ---------------------------------------------------------------- the switch
 
-func test_the_setting_round_trips_and_defaults_to_wanted() -> void:
-	var script: GDScript = load("res://core/autoload/Settings.gd")
-	var s: Node = auto_free(script.new())
-	assert_str(s.ui_theme).is_equal("wanted")
-	assert_str(script.UI_THEME_DEFAULT).is_equal("wanted")
-	assert_array(script.UI_THEMES).contains_exactly(["wanted", "royale"])
-	assert_str(str(script.PROD_LOCKED["ui_theme"])).is_equal("wanted")
-	assert_bool(s.to_dict().has("ui_theme")).is_true()
-	assert_str(str(s.to_dict()["ui_theme"])).is_equal("wanted")
-	s.from_dict({})
-	assert_str(s.ui_theme).is_equal("wanted")
-	s.from_dict({"ui_theme": "royale"})
-	assert_str(s.ui_theme).is_equal("royale")
-	assert_str(str(s.to_dict()["ui_theme"])).is_equal("royale")
-	var back: Node = auto_free(script.new())
-	back.from_dict(s.to_dict())
-	assert_str(back.ui_theme).is_equal("royale")
-	s.from_dict({"ui_theme": "fancy"})
-	assert_str(s.ui_theme).is_equal("wanted")
-	s.ui_theme = "royale"
-	s.from_dict({"music_volume": 0.3})
-	assert_str(s.ui_theme).is_equal("royale")
 
 
-func test_the_setting_reaches_the_save_file() -> void:
-	# an earlier suite's arena may have left the save sandboxed (save_now writes nothing then)
-	if Save.sandboxed():
-		Save.end_sandbox()
-	Settings.set_value("ui_theme", "royale")
-	assert_bool(Save.save_now()).is_true()
-	var data = JSON.parse_string(FileAccess.get_file_as_string(Save.path()))
-	assert_str(str(data["settings"]["ui_theme"])).is_equal("royale")
-	Settings.set_value("ui_theme", "wanted")
-	assert_bool(Save.save_now()).is_true()
-	data = JSON.parse_string(FileAccess.get_file_as_string(Save.path()))
-	assert_str(str(data["settings"]["ui_theme"])).is_equal("wanted")
 
 
-func test_prod_holds_the_theme_at_wanted() -> void:
-	Settings.ui_theme = "royale"
-	Settings.force_prod(true)
-	assert_str(Settings.ui_theme).is_equal("wanted")
-	Settings.set_value("ui_theme", "royale")
-	assert_str(Settings.ui_theme).is_equal("wanted")
-	Settings.from_dict({"ui_theme": "royale"})
-	assert_str(Settings.ui_theme).is_equal("wanted")
-	W.theme_changed()
-	assert_bool(W.royale()).is_false()
-	Settings.force_prod(false)
-	Settings.set_value("ui_theme", "royale")
-	assert_str(Settings.ui_theme).is_equal("royale")
 
 
-func test_w_royale_follows_the_switch() -> void:
-	_royale(false)
-	assert_bool(W.royale()).is_false()
-	assert_str(W.theme_name()).is_equal("wanted")
-	_royale(true)
-	assert_bool(W.royale()).is_true()
-	assert_str(W.theme_name()).is_equal("royale")
-	# set_value emits Settings.changed, which the cache follows in the same frame
-	Settings.set_value("ui_theme", "wanted")
-	assert_bool(W.royale()).is_false()
-	Settings.set_value("ui_theme", "royale")
-	assert_bool(W.royale()).is_true()
-	# a direct assignment is read fresh the next frame
-	Settings.ui_theme = "wanted"
-	await get_tree().process_frame
-	assert_bool(W.royale()).is_false()
 
 
-func test_the_settings_screen_offers_the_choice_in_debug_mode_only() -> void:
-	Settings.debug_mode = true
-	_royale(false)
-	var dev: Control = auto_free(load(SETTINGS_SCENE).instantiate())
-	add_child(dev)
-	await get_tree().process_frame
-	var choice = dev.find_child("UiTheme", true, false)
-	assert_object(choice).is_not_null()
-	assert_int(choice.index).is_equal(0)
-	# beside the Painted / Live choice, in the same panel
-	assert_object(dev.find_child("MenuStyle", true, false)).is_not_null()
-	dev.visible = false
-	_royale(true)
-	var roy: Control = auto_free(load(SETTINGS_SCENE).instantiate())
-	add_child(roy)
-	await get_tree().process_frame
-	assert_int(roy.find_child("UiTheme", true, false).index).is_equal(1)
-	roy.visible = false
-	# the production build: no choice, and the theme is wanted whatever a save said
-	Settings.force_prod(true)
-	Settings.debug_mode = true
-	Settings.ui_theme = "royale"
-	W.theme_changed()
-	var prod: Control = auto_free(load(SETTINGS_SCENE).instantiate())
-	add_child(prod)
-	await get_tree().process_frame
-	assert_object(prod.find_child("UiTheme", true, false)).is_null()
-	assert_bool(W.royale()).is_false()
-	prod.visible = false
 
 
-func test_the_developer_menu_has_the_row() -> void:
-	_royale(false)
-	var menu: Node = auto_free(load(DEV_SCENE).instantiate())
-	add_child(menu)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var row: Node = menu.find_child("UiThemeRow", true, false)
-	assert_object(row).is_not_null()
-	var val: Node = row.find_child("Value", true, false)
-	assert_str(str(val.get("text"))).is_equal("WANTED")
 
 
-func test_the_capture_tools_take_a_theme_argument() -> void:
-	for p in ["res://tools/wanted_shots.gd", "res://tools/touch_audit.gd", "res://tools/uidoc_shots.gd", "res://tools/store_shots.gd"]:
-		var src := FileAccess.get_file_as_string(p)
-		assert_bool(src.contains("theme=")).override_failure_message(p).is_true()
-		assert_bool(src.contains("ui_theme")).override_failure_message(p).is_true()
 
 
 # ---------------------------------------------------------------- the type
@@ -192,7 +77,7 @@ func test_the_fonts_load() -> void:
 	assert_bool(R.is_display(d)).is_true()
 	assert_bool(R.is_display(R.display(3))).is_true()
 	assert_bool(R.is_display(b)).is_false()
-	assert_bool(R.is_display(W.slab())).is_false()
+	assert_bool(R.is_display(W.slab())).is_true()
 
 
 func test_normal_height_knows_the_two_faces() -> void:
@@ -203,23 +88,7 @@ func test_normal_height_knows_the_two_faces() -> void:
 	assert_float(W.normal_height(R.body(500), 100)).is_equal(119.0)
 	assert_float(W.normal_height(R.body(500, true), 100)).is_equal(119.0)
 	# the old faces as before
-	_royale(false)
-	assert_float(W.normal_height(W.slab(), 100)).is_equal(137.0)
-	assert_float(W.normal_height(W.serif(), 100)).is_equal(121.0)
-
-
 func test_w_faces_follow_the_theme() -> void:
-	_royale(false)
-	assert_str(_base_path(W.slab())).is_equal(W.SLAB_PATH)
-	assert_str(_base_path(W.slab(2))).is_equal(W.SLAB_PATH)
-	assert_str(_base_path(W.serif())).is_equal(W.SERIF_PATH)
-	assert_str(_base_path(W.serif(400, true))).is_equal(W.SERIF_ITALIC_PATH)
-	assert_int(_weight(W.serif(600))).is_equal(600)
-	assert_str(_base_path(W.slab_for(20))).is_equal(W.SLAB_PATH)
-	var lw: WText = auto_free(W.label("Camera", 22))
-	assert_str(_base_path(lw.font)).is_equal(W.SERIF_PATH)
-	assert_bool(lw.color.is_equal_approx(W.INK_SOFT)).is_true()
-	_royale(true)
 	assert_str(_base_path(W.slab())).is_equal(R.DISPLAY_PATH)
 	assert_str(_base_path(W.slab(2))).is_equal(R.DISPLAY_PATH)
 	assert_int((W.slab(2) as FontVariation).spacing_glyph).is_equal(2)
@@ -237,7 +106,6 @@ func test_w_faces_follow_the_theme() -> void:
 
 
 func test_the_ultra_minimum_rule() -> void:
-	_royale(true)
 	assert_bool(R.is_display(W.slab_for(R.ULTRA_MIN - 1))).is_false()
 	assert_str(_base_path(W.slab_for(R.ULTRA_MIN - 1))).is_equal(R.BODY_PATH)
 	assert_int(_weight(W.slab_for(R.ULTRA_MIN - 1))).is_equal(700)
@@ -266,16 +134,7 @@ func test_the_ultra_minimum_rule() -> void:
 	var direct_big: WText = auto_free(W.text("x", W.slab(), 40))
 	assert_bool(R.is_display(direct_big.font)).is_true()
 	# and under Wanted nothing of it
-	_royale(false)
-	var w: WText = auto_free(W.slab_text("Lv 3", 24))
-	assert_str(_base_path(w.font)).is_equal(W.SLAB_PATH)
-	assert_int(w.stroke).is_equal(0)
-	assert_int(w.shadow).is_equal(0)
-	assert_bool(w.color.is_equal_approx(W.INK)).is_true()
-
-
 func test_the_text_colours_map_on_slate() -> void:
-	_royale(true)
 	assert_bool(R.text_colour(W.INK).is_equal_approx(R.CREAM)).is_true()
 	assert_bool(R.text_colour(W.INK_SOFT).is_equal_approx(R.SECONDARY)).is_true()
 	assert_bool(R.text_colour(W.PAPER).is_equal_approx(R.CREAM)).is_true()
@@ -291,15 +150,6 @@ func test_the_text_colours_map_on_slate() -> void:
 	t.runs = [["REROLL ", null], ["×1", W.INK_SOFT]]
 	assert_bool((t.runs[1][1] as Color).is_equal_approx(R.SECONDARY)).is_true()
 	assert_bool(t.runs[0][1] == null).is_true()
-	_royale(false)
-	assert_bool(R.text_colour(W.INK).is_equal_approx(R.CREAM)).is_true()   # the table itself does not care
-	var wbody: WText = auto_free(W.serif_text("body", 30))
-	assert_bool(wbody.color.is_equal_approx(W.INK)).is_true()
-	var u: WText = auto_free(W.text("", W.slab(), 34))
-	u.runs = [["×1", W.INK_SOFT]]
-	assert_bool((u.runs[0][1] as Color).is_equal_approx(W.INK_SOFT)).is_true()
-
-
 # ---------------------------------------------------------------- buttons, boxes, dims
 
 func test_button_roles_and_their_colours() -> void:
@@ -323,7 +173,6 @@ func test_button_roles_and_their_colours() -> void:
 	assert_bool(R.ROLES["locked"]["top"].is_equal_approx(Color("8f98ab"))).is_true()
 	assert_bool(R.ROLES["red"]["text"].is_equal_approx(R.CREAM)).is_true()
 	assert_bool(R.role("nonsense") == R.ROLES["slate"]).is_true()
-	_royale(true)
 	var start := WButton.make(["START"], 34, WButton.PRIMARY)
 	auto_free(start)
 	assert_str(start.role).is_equal("gold")
@@ -357,17 +206,6 @@ func test_button_roles_and_their_colours() -> void:
 	assert_str(buy.box.role).is_equal("blue")
 	assert_str(buy.label_text()).is_equal("BUY")
 	# Wanted: the role is carried but the box is the brass paper button as before
-	_royale(false)
-	var w := WButton.make(["SKIP", {"count": 2}], 34, WButton.PRIMARY)
-	auto_free(w)
-	assert_str(w.role).is_equal("gold")
-	assert_bool(w.box.fill.is_equal_approx(W.BRASS)).is_true()
-	assert_str(w.label_text()).is_equal("SKIP×2")
-	assert_object(w.find_child("Count", true, false)).is_null()
-	assert_bool((w._row.get_child(0) as WText).color.is_equal_approx(W.INK)).is_true()
-	assert_int((w._row.get_child(0) as WText).stroke).is_equal(0)
-
-
 func test_the_hardbox_kinds_and_the_pressed_copy() -> void:
 	assert_str(W.box(W.PAPER, 5, 8).royale_kind()).is_equal("panel")
 	assert_str(W.box(W.AGED, 5, 0).royale_kind()).is_equal("panel_dim")
@@ -378,14 +216,6 @@ func test_the_hardbox_kinds_and_the_pressed_copy() -> void:
 	var g := W.box(W.PAPER, 5, 8)
 	g.role = "gold"
 	assert_str(g.royale_kind()).is_equal("button")
-	_royale(false)
-	var hb := W.box(W.PAPER, 5, 8).pad(10, 10, 10, 10)
-	var p := hb.pressed()
-	assert_int(p.press).is_equal(8)
-	assert_float(p.content_margin_left).is_equal(18.0)
-	assert_float(p.content_margin_top).is_equal(18.0)
-	assert_bool(p.held).is_false()
-	_royale(true)
 	var hr := W.box(W.PAPER, 5, 12).pad(10, 10, 10, 10)
 	var pr := hr.pressed()
 	assert_int(pr.press).is_equal(R.PRESS_DOWN)
@@ -436,7 +266,6 @@ func test_a_copy_carries_every_field_and_the_locked_tap_stands_on_its_base() -> 
 	assert_bool(src.sides[3]).is_false()
 	assert_bool(src.corners[2]).is_false()
 	# the Royale pressed copy keeps the box's shape: a docked tab (no bottom side, top corners, a 3 px edge) stays one
-	_royale(true)
 	var tab := W.box(W.PAPER, 3, 6, R.RADIUS_TAB)
 	tab.sides = [true, true, true, false]
 	tab.corners = [true, true, false, false]
@@ -476,37 +305,12 @@ func test_a_copy_carries_every_field_and_the_locked_tap_stands_on_its_base() -> 
 	assert_str((btn.get_theme_stylebox("panel") as HardBox).role).is_equal("slate")
 	assert_float(btn.modulate.a).is_equal_approx(1.0, 0.001)
 	# Wanted: as it has always been (aged, no shadow, 45 %; the pressed copy still a duplicate(): pixel-identical)
-	_royale(false)
-	tap.locked = false
-	tap.locked = true
-	var wb: HardBox = tap.get_theme_stylebox("panel")
-	assert_bool(wb.fill.is_equal_approx(W.AGED)).is_true()
-	assert_int(wb.shadow).is_equal(0)
-	assert_str(wb.role).is_equal("")
-	assert_float(tap.modulate.a).is_equal_approx(0.45, 0.001)
-	var wp := W.box(W.ROCK, 3, 8).pressed()
-	assert_bool(wp.fill.is_equal_approx(W.PAPER)).is_true()
-	assert_int(wp.border).is_equal(5)
-	assert_int(wp.press).is_equal(8)
-	assert_bool(wp.held).is_false()
-
-
 func test_the_dims_follow_the_theme_and_no_w_constant_moves() -> void:
 	# the kit's colours as the Wanted handoff set them: the theme never moves a constant
 	var pins := [[W.INK, Color("241b14")], [W.PAPER, Color("f3e6c8")], [W.AGED, Color("e2cfa4")], [W.BRASS, Color("c9932f")],
 		[W.ROCK, Color("b4472b")], [W.SAGE, Color("6e8b5e")], [W.INK_SOFT, Color("5a4a3a")],
 		[W.DIM, Color(48 / 255.0, 30 / 255.0, 14 / 255.0, 0.78)], [W.DIM_ASK, Color(36 / 255.0, 27 / 255.0, 20 / 255.0, 0.55)],
 		[W.WASH, Color(243 / 255.0, 230 / 255.0, 200 / 255.0, 0.82)]]
-	_royale(false)
-	assert_bool(W.dim_color("modal").is_equal_approx(W.DIM)).is_true()
-	assert_bool(W.dim_color("chest").is_equal_approx(W.DIM_CHEST)).is_true()
-	assert_bool(W.dim_color("down").is_equal_approx(W.DIM_DOWN)).is_true()
-	assert_bool(W.dim_color("stranger").is_equal_approx(W.DIM_STRANGER)).is_true()
-	assert_bool(W.dim_color("gate").is_equal_approx(W.DIM_GATE)).is_true()
-	assert_bool(W.dim_color("ask").is_equal_approx(W.DIM_ASK)).is_true()
-	assert_bool(W.dim_color("wash").is_equal_approx(W.WASH)).is_true()
-	assert_bool(W.themed_dim(W.DIM_DOWN).is_equal_approx(W.DIM_DOWN)).is_true()
-	_royale(true)
 	assert_bool(W.dim_color("modal").is_equal_approx(R.DIM)).is_true()
 	assert_bool(W.dim_color("chest").is_equal_approx(R.DIM)).is_true()
 	assert_bool(W.dim_color("ask").is_equal_approx(R.DIM)).is_true()
@@ -621,8 +425,7 @@ func _kit(host: Control) -> Dictionary:
 
 
 func test_every_component_builds_and_draws_under_both_themes() -> void:
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var host := Control.new()
 		host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(host)

@@ -20,8 +20,8 @@ var _keep: Dictionary = {}
 
 
 func before_test() -> void:
-	_keep = {"style": Settings.menu_style, "debug": Settings.debug_mode, "preview": Settings.preview_locked_heroes,
-		"inset": Settings.top_inset, "theme": Settings.ui_theme}
+	_keep = {"debug": Settings.debug_mode, "preview": Settings.preview_locked_heroes,
+		"inset": Settings.top_inset}
 	Settings.preview_locked_heroes = false
 	Settings.top_inset = -1
 	W.bottom_inset_override = 0.0
@@ -31,27 +31,17 @@ func before_test() -> void:
 
 func after_test() -> void:
 	Stage.forget()
-	Settings.menu_style = str(_keep["style"])
 	Settings.debug_mode = bool(_keep["debug"])
 	Settings.preview_locked_heroes = bool(_keep["preview"])
 	Settings.top_inset = int(_keep["inset"])
-	Settings.ui_theme = "wanted"
 	W.bottom_inset_override = -1.0
-	W.theme_changed()
 	Save.data = Save._default()
 	Save._dirty = false
 	if Save.sandboxed():
 		Save.end_sandbox()
 
 
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
-
-
 func _title(royale: bool, style: String = "painted") -> Control:
-	_royale(royale)
-	Settings.menu_style = style
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	# the lower block's entrance (up 40 px over 0.25 s) is over before anything is measured
@@ -149,7 +139,7 @@ func test_the_royale_title_is_the_mocks_new_layout() -> void:
 	assert_bool(nm.color.is_equal_approx(R.CREAM)).is_true()
 	var row: Control = t.find_child("TraitRow", false, false)
 	assert_float(row.get_global_rect().get_center().x).is_equal_approx(540.0, 1.0)
-	var det: WButton = row.find_child("Details", false, false)
+	var det: WButton = t.find_child("Details", false, false)
 	assert_str(det.role).is_equal(WButton.BLUE)
 	assert_vector(det.size).is_equal(Title.RY_DETAILS)
 	var start: WButton = t.find_child("Start", false, false)
@@ -185,32 +175,6 @@ func test_start_clears_the_gesture_bar_and_the_top_row_the_camera_cutout() -> vo
 	assert_float((t.find_child("Tagline", true, false) as Control).get_global_rect().end.y).is_less(t.hero_figure_rect().position.y)
 
 
-func test_wanteds_pieces_go_under_royale_and_stay_under_wanted() -> void:
-	var r := await _title(true, "live")
-	for n in ["Plaque", "HeroesButton"]:
-		assert_object(r.find_child(n, false, false)).override_failure_message(n).is_null()
-	assert_object(r._dots).is_null()
-	assert_object(r._map_tap).is_null()
-	assert_object(r._upgrade_btn).is_null()
-	assert_object(r._plaque).is_null()
-	assert_object(r._stage).override_failure_message("Live is Wanted's: no TitleStage under Royale").is_null()
-	# the run line: on the Stages header once that menu opens; until then a pill on the title (the best run has no other place)
-	Save.data["best_runs"]["red_canyon"] = {"time": 600.0, "level": 47, "stage": 2}
-	var r2 := await _title(true)
-	var opens: bool = load("res://ui/StagesScreen.gd").opens_for("red_canyon")
-	if opens:
-		assert_object(r2.find_child("RunLine", false, false)).is_null()
-	else:
-		assert_object(r2.find_child("RunLine", false, false)).is_not_null()
-	# Wanted: today's title
-	var w := await _title(false)
-	for n in ["Plaque", "HeroesButton"]:
-		assert_object(w.find_child(n, false, false)).override_failure_message(n).is_not_null()
-	for n in ["MenuButton", "TabBar", "Wordmark", "Start", "RoyaleBackdrop"]:
-		assert_object(w.find_child(n, false, false)).override_failure_message(n).is_null()
-	assert_object(w._upgrade_btn).is_not_null()
-	assert_str(w._play.label_text()).is_equal("PLAY")
-	assert_str(_texts(w._map_tap)).contains("best ")
 
 
 # ---------------------------------------------------------------- the hero

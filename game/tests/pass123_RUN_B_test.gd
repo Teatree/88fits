@@ -29,22 +29,14 @@ func before() -> void:
 func after() -> void:
 	Settings.force_prod(false)
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func after_test() -> void:
 	Run.arena = false
 	Run.end()
 	Settings.force_prod(false)
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 	if Save.sandboxed():
 		Save.end_sandbox()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _start(hero: String = "drifter") -> void:
@@ -96,7 +88,6 @@ func _open_shop() -> StructureShop:
 
 
 func test_the_shop_under_royale_is_the_mock() -> void:
-	_royale(true)
 	_start()
 	var s := await _open_shop()
 	var vp := s.get_viewport_rect().size
@@ -163,7 +154,6 @@ func test_the_shop_under_royale_is_the_mock() -> void:
 
 
 func test_a_short_card_takes_a_finger_without_the_held_look() -> void:
-	_royale(true)
 	_start()
 	var s := await _open_shop()
 	var short_c: WCard = null
@@ -214,25 +204,6 @@ func test_a_short_card_takes_a_finger_without_the_held_look() -> void:
 	s.queue_free()
 
 
-func test_the_shop_under_wanted_is_as_before() -> void:
-	_royale(false)
-	_start()
-	var s := await _open_shop()
-	assert_object(s.get_node_or_null("Wallet")).is_null()
-	assert_bool(s._gold_plate.get_parent() is CenterContainer).is_true()
-	assert_object(s._gold_plate.get_parent().get_parent()).is_same(s.header)
-	assert_bool(s._tray is VBoxContainer).is_true()
-	assert_float(s.plate_px()).is_equal(StructureShop.tray_px(StructureShop.held_items().size()))
-	var leave := s.find_child("Leave", true, false) as WButton
-	assert_str(leave.variant).is_equal(WButton.SECONDARY)
-	assert_float(leave.size.x).is_equal_approx(430.0, 1.0)
-	for i in s._cards.size():
-		var c: WCard = s._cards[i]
-		var short := maxi(StructureShop.price_of(s._offer[i]) - Run.run_gold, 0)
-		assert_object(c.find_child("Price", true, false)).is_null()
-		assert_object(c.price_button).is_not_null()
-		assert_bool(c.locked).is_equal(short > 0)
-	s.queue_free()
 
 
 func _stranger() -> StrangerScreen:
@@ -245,7 +216,6 @@ func _stranger() -> StrangerScreen:
 
 
 func test_the_stranger_under_royale_is_the_mock_bigger() -> void:
-	_royale(true)
 	_start()
 	var s := await _stranger()
 	var vp := s.get_viewport_rect().size
@@ -286,21 +256,6 @@ func test_the_stranger_under_royale_is_the_mock_bigger() -> void:
 	s.queue_free()
 
 
-func test_the_stranger_under_wanted_is_as_before() -> void:
-	_royale(false)
-	_start()
-	var s := await _stranger()
-	assert_int(s.header.title.font_size).is_equal(120)
-	var walk := s.find_child("WalkAway", true, false) as WButton
-	var deal := s.find_child("Deal", true, false) as WButton
-	assert_str(walk.variant).is_equal(WButton.SECONDARY)
-	assert_str(deal.variant).is_equal(WButton.PRIMARY)
-	assert_float(deal.size_flags_stretch_ratio).is_equal_approx(1.4, 0.001)
-	assert_float(s.buttons.size.y).is_greater_equal(114.0)
-	assert_bool(s._price_nums.runs.is_empty()).is_true()
-	assert_str(s._price_nums.text).contains(" → ")
-	assert_float(s._bar.size.y).is_equal_approx(48.0, 1.0)
-	s.queue_free()
 
 
 func _totem_offer() -> Array:
@@ -329,7 +284,6 @@ func _totem(index: int = 1, total: int = 10) -> TotemScreen:
 
 
 func test_the_totem_under_royale_keeps_the_pole_and_heads_the_screen() -> void:
-	_royale(true)
 	_start()
 	var ts := await _totem()
 	var vp := ts.get_viewport_rect().size
@@ -386,21 +340,6 @@ func test_the_totem_under_royale_keeps_the_pole_and_heads_the_screen() -> void:
 	ts2.queue_free()
 
 
-func test_the_totem_under_wanted_is_as_before() -> void:
-	_royale(false)
-	_start()
-	var ts := await _totem()
-	assert_str(ts.header_text()).is_equal("")
-	assert_object(ts._header_royale).is_null()
-	assert_bool(ts._label_text.visible).is_true()
-	for r in ts.planks():
-		var row := r as TotemScreen.GiftRow
-		assert_vector(row.tag_at).is_equal(TotemScreen.TAG_AT)
-		assert_vector(row.tag.size).is_equal(TotemScreen.TAG)
-		assert_bool(row.plate.visible).is_true()
-		assert_object(row.face).is_null()
-		assert_int(row.amount.font_size).is_equal(TotemScreen.AMOUNT_PX)
-	ts.queue_free()
 
 
 func _boss_chest() -> BossChestScreen:
@@ -414,7 +353,6 @@ func _boss_chest() -> BossChestScreen:
 
 
 func test_the_boss_chest_under_royale_is_the_mock() -> void:
-	_royale(true)
 	_start()
 	var bs := await _boss_chest()
 	var vp := bs.get_viewport_rect().size
@@ -445,20 +383,6 @@ func test_the_boss_chest_under_royale_is_the_mock() -> void:
 	bs.queue_free()
 
 
-func test_the_boss_chest_under_wanted_is_as_before() -> void:
-	_royale(false)
-	_start()
-	var bs := await _boss_chest()
-	var vp := bs.get_viewport_rect().size
-	bs.seek(BossChestScreen.SPEW_AT + 1.0)
-	await _frames(2)
-	assert_bool(bs.header.title.color.is_equal_approx(W.BRASS)).is_true()
-	assert_float(bs._meter_rect.size.x).is_equal(800.0)
-	assert_float(bs._meter_rect.position.x).is_equal(vp.x * 0.5 - 400.0)
-	assert_float(bs._gold_rect.size.x).is_equal(minf((vp.x - 48.0 * 2.0 - 28.0) * 0.5, 470.0))
-	assert_float(bs._meter.modulate.a).is_equal(1.0)
-	assert_float(bs._counters.modulate.a).is_equal(1.0)
-	bs.queue_free()
 
 
 func test_the_capture_tool_carries_the_new_states() -> void:

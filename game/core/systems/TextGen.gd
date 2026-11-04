@@ -488,7 +488,7 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 				text += " Every %s shot fires twice in quick succession." % ({2: "second", 3: "third", 4: "fourth"}.get(de, "%dth" % de))
 			var hs = pr.get("hip_shot")
 			if hs is Dictionary:
-				text += " Every %dth pull fires %d volleys in a row." % [int((hs as Dictionary).get("every", 5)), int((hs as Dictionary).get("volleys", 3))]
+				text += " Every %s pull fires %d volleys in a row." % [ordinal(int((hs as Dictionary).get("every", 5))), int((hs as Dictionary).get("volleys", 3))]
 			var rav = pr.get("ricochet_any")
 			if rav is Dictionary and not ball:
 				var ra := int((rav as Dictionary).get("count", 0))

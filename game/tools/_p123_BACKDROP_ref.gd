@@ -58,17 +58,18 @@ func _wait(s: float) -> void:
 func _main() -> void:
 	var save = root.get_node("Save")
 	save.begin_sandbox()
-	root.get_node("Settings").menu_style = "live"
 	var stage_script = load("res://ui/TitleStage.gd")
 	stage_script.force_preset = _preset
-	change_scene_to_file("res://ui/TitleScreen.tscn")
+	# pass 124: the title no longer builds this world, so the tool does (TitleStage stays for it)
+	var stage = stage_script.new()
+	stage.name = "TitleStage"
+	stage.map_id = "red_canyon"
+	var holder := Control.new()
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(holder)
+	holder.add_child(stage)
 	await _wait(1.6)
-	var t = current_scene
-	for c in t.get_children():
-		if c is CanvasItem and c.name != "TitleStage":
-			(c as CanvasItem).visible = false
-	var stage = t.get_node_or_null("TitleStage")
-	if stage == null or stage.hero == null:
+	if stage.hero == null:
 		push_error("_p123_BACKDROP_ref: no live title")
 		save.end_sandbox()
 		quit(2)

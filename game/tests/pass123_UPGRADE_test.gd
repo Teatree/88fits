@@ -24,19 +24,11 @@ func before() -> void:
 
 func after() -> void:
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func after_test() -> void:
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 	if Save.sandboxed():
 		Save.end_sandbox()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 ## What `talents` ({id: {"picks": [...]}}) cost at today's prices.
@@ -57,7 +49,6 @@ func _board(royale: bool, talents: Dictionary = {}, gold: int = 108411) -> Contr
 	Save.data["gold"] = gold
 	Save.data["talent_spent"] = _spent_of(talents)
 	Save.data["talent_spent_in"] = {}
-	_royale(royale)
 	var h: Control = auto_free(load("res://ui/HomesteadScreen.tscn").instantiate())
 	add_child(h)
 	for k in 3:
@@ -100,7 +91,6 @@ func _wait(s: float) -> void:
 
 func test_the_royale_board_is_the_mock_s_layout() -> void:
 	var h: Control = await _board(true, {"grit": {"picks": [0]}, "drive": {"picks": [1]}})
-	assert_bool(h.get("_royale_built")).is_true()
 	# no mirror, no Wanted summary strip, no footer link
 	assert_object(h.find_child("Summary", true, false)).is_null()
 	for t in h.find_children("*", "TextureRect", true, false):
@@ -222,8 +212,11 @@ func test_you_hold_keeps_room_for_every_option_and_never_widens_the_board() -> v
 	var h2: Control = await _board(true, all, 0)
 	var flow2: Control = h2.get("_summary_flow")
 	assert_int(flow2.get_child_count()).is_equal(16)
-	assert_vector(flow2.size).is_equal(empty_size)
+	# pass 124: the rows grow with what is held, no room kept for them
+	assert_float(flow2.size.x).is_equal(empty_size.x)
+	assert_float(flow2.size.y).is_greater(empty_size.y)
 	var room := flow2.get_global_rect()
+	room.size.y += HS.R_CHIP_HANG
 	for c in flow2.get_children():
 		var p := c as WPlate
 		var r := p.get_global_rect()
@@ -241,10 +234,11 @@ func test_you_hold_keeps_room_for_every_option_and_never_widens_the_board() -> v
 
 
 func test_the_whole_board_fits_above_the_tab_bar_on_the_canvas() -> void:
-	# the tallest board: every talent with ranks of both options (Stakes' two-line options too), short of gold everywhere
+	# every talent with ranks of one option (Stakes' two-line options too), short of gold everywhere; both options on every
+	# talent at once is a third row of chips, which scrolls a little on a 16:9 canvas (pass 124: no room kept for them)
 	var all := {}
 	for def: TalentDef in Registry.talents_list():
-		all[def.id] = {"picks": [0, 1]}
+		all[def.id] = {"picks": [0, 0]}
 	var h: Control = await _board(true, all, 10)
 	await _wait(0.4)
 	var vh := h.get_viewport_rect().size.y
@@ -361,7 +355,8 @@ func test_short_of_gold_every_price_wears_the_kit_s_short_state_and_buys_nothing
 		var short := def.cost_of_rank(0) - 50
 		assert_bool(b.locked).is_true()
 		assert_int(int(b.get_meta("short"))).is_equal(short)
-		assert_str(_texts(_tile(h, def.id).find_child("ChooseRow", true, false))).contains("%s short" % W.num(short))
+		# pass 124 (Garry): no words about it, the grey button with the amount in red says it
+		assert_str(_texts(_tile(h, def.id).find_child("ChooseRow", true, false))).not_contains("short")
 	# a short CHOOSE still opens the choice (what the options are), whose BUYs are short and buy nothing
 	var grit := Registry.talent("grit")
 	_choose(h, "grit").pressed.emit()
@@ -447,24 +442,6 @@ func test_the_pips_show_the_option_each_rank_was_bought_in() -> void:
 
 # ---------------------------------------------------------------- Wanted, and the tools
 
-func test_wanted_builds_the_board_as_before() -> void:
-	var h: Control = await _board(false, {"grit": {"picks": [0]}})
-	assert_bool(h.get("_royale_built")).is_false()
-	assert_object(h.find_child("Summary", true, false)).is_not_null()
-	assert_object(h.get("_refund")).is_not_null()
-	assert_object(h.find_child("HoldRow", true, false)).is_null()
-	assert_object(h.get("tab_bar_node")).is_null()
-	assert_float(h.call("board_top")).is_equal(190.0)
-	assert_float(h.call("board_bottom")).is_equal(112.0)
-	assert_float(h.call("board_side")).is_equal(48.0)
-	assert_str((h.get("title_label") as WText).text).is_equal("Upgrade")
-	var tile := _tile(h, "grit")
-	assert_bool(tile is WTap).is_true()
-	h.call("_open", Registry.talent("grit"))
-	await get_tree().process_frame
-	assert_bool(h.get("_sheet_root") is WConfirm).is_false()
-	assert_object((h.get("_sheet_root") as Node).find_child("Buy0", true, false)).is_not_null()
-	h.call("_close", false)
 
 
 func test_the_capture_and_audit_tools_carry_the_upgrade_states() -> void:

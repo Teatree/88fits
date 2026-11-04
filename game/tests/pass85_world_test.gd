@@ -35,7 +35,6 @@ func _manifest() -> Dictionary:
 
 
 func _title() -> Control:
-	Settings.menu_style = "live"
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	return t
@@ -43,17 +42,6 @@ func _title() -> Control:
 
 # ---------------------------------------------------------------- the title
 
-func test_the_title_wears_the_maps_own_sand() -> void:
-	Run.map = null
-	var t := _title()
-	await get_tree().process_frame
-	var stage = t._stage
-	assert_object(stage).is_not_null()
-	var def: MapDef = Registry.map("red_canyon")
-	var want: String = CANYON.sand_or_default(str(def.timeline.sand))
-	assert_str(str(stage.map.get("sand_id"))).is_equal(want)
-	# the map's def stood in only while the map was built
-	assert_object(Run.map).is_null()
 
 
 func test_the_presets_parse_and_stay_clear_of_the_hero() -> void:
@@ -79,32 +67,6 @@ func test_the_presets_parse_and_stay_clear_of_the_hero() -> void:
 	assert_int(STAGE.presets_of({"props": [{"id": "agave", "x": 2, "z": 2}]}).size()).is_equal(1)
 
 
-func test_a_preset_is_drawn_and_a_kept_world_lays_a_fresh_one_in_the_same_slots() -> void:
-	STAGE.force_preset = 2
-	var t := _title()
-	await get_tree().process_frame
-	var stage = t._stage
-	var presets := STAGE.presets_of(STAGE.scene_of("red_canyon"))
-	assert_int(stage.preset_index).is_equal(2)
-	assert_int(stage.composed.size()).is_equal((presets[2]["props"] as Array).size())
-	var pf: PropField = stage.map.get("props")
-	var base: int = pf.count() - int(stage.composed.size())
-	var shadows: int = pf.shadow_count() - int(stage.composed.size())
-	# again and again, as a kept world taken back does: the last preset comes off first
-	for k in range(presets.size() * 3):
-		STAGE.force_preset = k % presets.size()
-		stage.compose()
-		assert_int(stage.preset_index).is_equal(k % presets.size())
-		assert_int(pf.count()).is_equal(base + stage.composed.size())
-		assert_int(pf.shadow_count()).is_equal(shadows + stage.composed.size())
-	# random: every draw is one of the presets
-	STAGE.force_preset = -1
-	var seen := {}
-	for k in range(60):
-		stage.compose()
-		assert_int(stage.preset_index).is_between(0, presets.size() - 1)
-		seen[stage.preset_index] = true
-	assert_int(seen.size()).is_greater(2)
 
 
 # ---------------------------------------------------------------- the tints

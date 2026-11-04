@@ -1,6 +1,6 @@
 ## A bar: an aged track with an ink border and a hard shadow, and a flat fill. It can carry text inside the fill (the
 ## results' "Killer Swarm · 6,540") and show a loss hatched in rock and ink at its end (the Stranger's price).
-## Pass 122 (lane UIKIT_B), under Royale (W.royale()): a black trough (R.BAR_TROUGH, 6 px corners, no shadow) with the
+## Pass 122 (lane UIKIT_B), under Royale: a black trough (R.BAR_TROUGH, 6 px corners, no shadow) with the
 ## fill inset by `border` (at most 3 px) as a bright two-tone band (the top 44 % lifted towards its lip colour, a lip of
 ## it along the top), brighter and more saturated than the mock's (Garry: the mock's bars "look rather dim and
 ## unnoticeable"); the Wanted fills map to the kit's (royale_fill: rock -> the boss red, sage -> the HP green, brass ->
@@ -111,7 +111,7 @@ static func fill_band(ci: CanvasItem, fr: Rect2, p_fill: Color, lip: Color, rad:
 
 
 func _draw() -> void:
-	if themed and W.royale():
+	if themed:
 		_draw_royale()
 		return
 	var r := Rect2(Vector2.ZERO, size)

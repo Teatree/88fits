@@ -21,7 +21,7 @@ var _keep: Dictionary = {}
 
 
 func before_test() -> void:
-	_keep = {"style": Settings.menu_style, "preview": Settings.preview_locked_heroes, "inset": Settings.top_inset,
+	_keep = {"preview": Settings.preview_locked_heroes, "inset": Settings.top_inset,
 		"data": Save.data.duplicate(true)}
 	Settings.preview_locked_heroes = false
 	Settings.top_inset = -1
@@ -33,7 +33,6 @@ func after_test() -> void:
 	Run.arena = false
 	Run.end()
 	Stage.forget()
-	Settings.menu_style = str(_keep["style"])
 	Settings.preview_locked_heroes = bool(_keep["preview"])
 	Settings.top_inset = int(_keep["inset"])
 	Save.data = _keep["data"]
@@ -63,17 +62,16 @@ func _felled() -> Player:
 
 func test_the_title_reads_outlaw_and_survivors() -> void:
 	assert_str(W.GAME_NAME).is_equal("Outlaw Survivors")
-	Settings.menu_style = "painted"
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var logo: WText = t.find_child("Logo", true, false)
-	var tag: WText = t.find_child("Tagline", true, false)
+	var tag = t.find_child("Tagline", true, false)
 	assert_object(logo).is_not_null()
 	assert_object(tag).is_not_null()
 	assert_str(logo.text).is_equal("OUTLAW")
-	assert_str(tag.text).is_equal("SURVIVORS")
+	assert_str(tag.text()).is_equal("SURVIVORS")
 	# no "88fits" or "Drag · Dodge · Survive" left on the title
 	for n in t.find_children("*", "WText", true, false):
 		var s := str((n as WText).text)

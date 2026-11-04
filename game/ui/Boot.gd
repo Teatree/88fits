@@ -54,8 +54,7 @@ const STRIP_W := 180.0
 const PERIOD := 1440.0
 const VARIANTS := 4
 ## The plate's picture in canvas px (its hard shadow and a clear margin included) and its shadow's offset.
-const PLATE_SIZE := Vector2(930.0, 312.7)
-const PLATE_SHADOW := 14.0
+const PLATE_SIZE := Vector2(854.0, 218.0)
 
 ## The wallpaper's motion, canvas px a second: each strip's scroll (up, down, up ...) and the set's drift to the right.
 const SCROLL := 46.0
@@ -612,38 +611,45 @@ func _build() -> void:
 ## slam's: the speed lines (ink), the flash (a warm white), the chips (ink, brass and paper) and the glint (a pale brass).
 const PALETTE := ["paper", "ground_a", "ground_b", "motif_color", "accent_color", "line_color", "vignette_color",
 	"dust_color", "speed_color", "flash_color", "chip_ink", "chip_brass", "chip_paper", "glint_color"]
-const VIGNETTE := 0.35
+const VIGNETTE := 0.5
+## What the engine, Android's splash and this scene's first frame show before the wallpaper fades in (project.godot, export_presets.cfg,
+## Boot.tscn hold the same colour; tools/make_splash.py checks them).
+const DARK := Color("0b1020")
 
 
 static func palette(key: String) -> Color:
+	# pass 124 (Garry: "a dark version of the loading screen using the same design principles, but with a dark version of the
+	# wallpaper"): the same two-tone strips and tone-on-tone print, at night: the kit's navy, the print a little lighter
 	match key:
-		"paper", "ground_a":
-			return W.PAPER
+		"paper":
+			return DARK
+		"ground_a":
+			return Color("121a34")
 		"ground_b":
-			return W.PAPER.lerp(W.AGED, 0.55)
+			return Color("182242")
 		"motif_color":
-			return W.PAPER.lerp(W.ROCK, 0.26)
+			return Color("26335f")
 		"accent_color":
-			return W.PAPER.lerp(W.ROCK, 0.2)
+			return Color("212c54")
 		"line_color":
-			return W.PAPER.lerp(W.INK_SOFT, 0.4)
+			return Color("34416f")
 		"vignette_color":
-			return W.PAPER.lerp(W.ROCK, 0.3).lerp(W.INK, 0.12)
+			return Color("05070f")
 		"dust_color":
-			return W.AGED.lerp(W.ROCK, 0.3)
+			return Color("8d9ac2")
 		"speed_color":
-			return W.PAPER.lerp(W.INK, 0.55)
+			return Color("cdd8ff")
 		"flash_color":
-			return Color.WHITE.lerp(W.PAPER, 0.25)
+			return Color("fff6dc")
 		"chip_ink":
-			return W.INK
+			return R.NAVY
 		"chip_brass":
-			return W.BRASS
+			return R.GOLD_TEXT
 		"chip_paper":
-			return W.PAPER
+			return R.CREAM
 		"glint_color":
-			return W.BRASS.lerp(Color.WHITE, 0.62)
-	return W.PAPER
+			return Color("fff0c2")
+	return Color.WHITE
 
 
 ## Whether the wallpaper's atlas is there to draw (a capture may hand the shader the PNG itself).
@@ -778,11 +784,6 @@ func impact_time() -> float:
 func settle_time() -> float:
 	var after := HITSTOP + maxf(maxf(SHAKE, RING), maxf(DUST, DEBRIS))
 	return impact_time() + maxf(after, GLINT_AT + GLINT)
-
-
-## The plate has hit its rest / the slam has settled, on the screen's clock.
-func has_landed() -> bool:
-	return _clock >= impact_time()
 
 
 func is_settled() -> bool:

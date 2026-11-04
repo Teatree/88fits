@@ -11,7 +11,7 @@
 ## gold (pass 47, with the coin) rising from him, and the floating joystick. A banner pops in at 38 % of the screen's
 ## height for 2 s (pass 45: on the top row it went unseen). A tap anywhere on the top strip pauses. Nothing interactive
 ## lives between y 700 and 1600.
-## Pass 122 (lane UIHUD), under the Royale theme (W.royale(); Garry's build brief of 2026-11-02: "HUD as the mock on
+## Pass 122 (lane UIHUD), under the Royale theme (Garry's build brief of 2026-11-02: "HUD as the mock on
 ## today's footprint ... Keep the height of the EXP bar as fat as ours is, keep the overall sizes the same for just about
 ## every element in that HUD as we have them now, only change the Style of indicators and buttons and such"): the same
 ## layout to the pixel (every box measured against the Wanted capture), the rail a black trough with the kit's bright
@@ -158,7 +158,6 @@ var _lv_box_paper: StyleBox
 var _lv_box_plum: StyleBox
 ## pass 122 (lane UIHUD): the theme and the slot-rarity switch the HUD's own pieces were last styled for (_apply_theme),
 ## and the top plates' text holders (the Wanted face's box whatever the theme, _fit_holders)
-var _theme_applied := ""
 var _slot_rarity_applied := false
 var _lv_hold: Control
 var _timer_hold: Control
@@ -301,7 +300,7 @@ func _build_band() -> void:
 	_top.add_child(_gold_plate)
 	# the brass pause disc: a 4 px border, two ink bars (pass 122: a slate Royale square under Royale, _style_pause)
 	_pause_btn = WTap.new()
-	_style_pause(false)
+	_style_pause()
 	_pause_btn.custom_minimum_size = Vector2(DISC, DISC)
 	_pause_btn.size = Vector2(DISC, DISC)
 	var bars := HBoxContainer.new()
@@ -392,12 +391,8 @@ func _refresh_mut_mark(force: bool = false) -> void:
 		return
 	_mut_on = on
 	_mut_word.visible = on
-	if W.royale():
-		_lv_plate.add_theme_stylebox_override("panel", _lv_box_paper)
-		_lv.color = ROYALE_MUT_TEXT if on else R.WHITE
-	else:
-		_lv_plate.add_theme_stylebox_override("panel", _lv_box_plum if on else _lv_box_paper)
-		_lv.color = W.PAPER if on else W.INK
+	_lv_plate.add_theme_stylebox_override("panel", _lv_box_paper)
+	_lv.color = ROYALE_MUT_TEXT if on else R.WHITE
 	_lv.queue_redraw()
 	_fit_top()
 
@@ -670,7 +665,7 @@ func _refresh_rows() -> void:
 					# the level's colour (or a passive's rarity) on it, as the mock (Garry compares the two on the
 					# phone); an evolved item keeps its black face and rainbow rim either way (for_def's own flag). The
 					# row is laid out again when the switch or the theme flips (_apply_theme).
-					if W.royale() and not Settings.hud_slot_rarity:
+					if not Settings.hud_slot_rarity:
 						p.fill = W.RARITY_PLATE["common"]
 					if is_w and it.size() > 5 and int(it[5]) > 0:
 						p.dot_px = roundf(20.0 * k)
@@ -1169,16 +1164,10 @@ func _buff_plate(def: ContentDef, k: String) -> Control:
 		f = W.ROCK
 	if k.begins_with("passive:"):
 		f = W.PAPER
-	if W.royale():
-		var rp := RoyaleBuffPlate.new(BUFF_PX)
-		rp.tex = W.icon_at(def, 0)
-		rp.fill = f
-		return rp
-	var p := WPlate.new().for_def(def, BUFF_PX)
-	p.fill = f
-	p.icon_frac = 0.66
-	p.level_size = 20
-	return p
+	var rp := RoyaleBuffPlate.new(BUFF_PX)
+	rp.tex = W.icon_at(def, 0)
+	rp.fill = f
+	return rp
 
 
 ## Pass 119 (lane LEGEND_B): the Pocket Bible's plate key ("passive:<id>" of the held item whose params carry `bible`
@@ -1488,27 +1477,26 @@ func _build_stage_tag() -> void:
 func _set_clock_mode(mode: String) -> void:
 	_clock_mode = mode
 	_tag_pulse_at = -1
-	var royale := W.royale()
 	match mode:
 		"portal":
-			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper if royale else W.box(W.ROCK, 4, 5).pad(36, 4, 36, 4))
-			_timer.color = ROYALE_WARN_TEXT if royale else W.PAPER
+			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper)
+			_timer.color = ROYALE_WARN_TEXT
 			_stage_tag_text.text = "ENDLESS IN"
-			_stage_tag_text.color = ROYALE_WARN_TEXT if royale else W.ROCK
-			_stage_tag.add_theme_stylebox_override("panel", W.plate_box(3, 3).pad(14, 3, 14, 4) if royale else W.box(W.PAPER, 3, 3).pad(14, 3, 14, 4))
+			_stage_tag_text.color = ROYALE_WARN_TEXT
+			_stage_tag.add_theme_stylebox_override("panel", W.plate_box(3, 3).pad(14, 3, 14, 4))
 			_stage_tag.visible = true
 		"endless":
-			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper if royale else W.box(W.INK, 4, 5).pad(36, 4, 36, 4))
-			_timer.color = R.WHITE if royale else W.PAPER
+			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper)
+			_timer.color = R.WHITE
 			_stage_tag_text.text = "WAVE %d" % maxi(endless_wave(), 1)
-			_stage_tag_text.color = R.CREAM if royale else W.PAPER
-			_stage_tag.add_theme_stylebox_override("panel", W.box(R.TAG_RED, R.TAG_EDGE, 0, R.RADIUS_TAG).pad(14, 3, 14, 4) if royale else W.box(W.ROCK, 3, 3).pad(14, 3, 14, 4))
+			_stage_tag_text.color = R.CREAM
+			_stage_tag.add_theme_stylebox_override("panel", W.box(R.TAG_RED, R.TAG_EDGE, 0, R.RADIUS_TAG).pad(14, 3, 14, 4))
 			_stage_tag.visible = true
 			_endless_wave_seen = endless_wave()
 		_:
 			if _clock_box_paper:
 				_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper)
-			_timer.color = R.WHITE if royale else W.INK
+			_timer.color = R.WHITE
 			_stage_tag.visible = false
 	_fit_top()
 	_place_stage_tag()
@@ -1535,14 +1523,6 @@ func _pulse_stage_tag() -> void:
 	tw.tween_property(_stage_tag, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
-## Pass 109: the kill counter's row hangs KILLS_GAP under the clock plate's foot (its hard shadow included), or under the
-## ENDLESS IN / WAVE n tag while that shows, centred on the clock: over the gap between the weapons and the lines.
-## Pass 110 (lane VFX; Garry: "Move the Kill Counter so it's vertically centered to the vertical center of the Item
-## drawer"): its row's middle sits on the middle of the item slots' row (the first row when a long arena hand splits
-## them), still centred under the clock between the weapons and the lines: about 30 px lower than pass 109's spot. The
-## ENDLESS IN / WAVE n tag ends about 11 px above it; should a taller tag ever reach it, the counter stays KILLS_TAG_GAP
-## under the tag (a ding grows it 6 px up at most).
-const KILLS_GAP := 10.0
 const KILLS_TAG_GAP := 6.0
 
 
@@ -1621,7 +1601,7 @@ func on_endless_wave(w: int) -> void:
 
 # ---------------------------------------------------------------- pass 122 (lane UIHUD): the HUD under the Royale theme
 
-## The HUD's own pieces styled for the theme (W.royale()), at build (`initial`: _ready lays the rows out itself) and
+## The HUD's own pieces styled for the theme, at build (`initial`: _ready lays the rows out itself) and
 ## again when the UI theme or the slot-rarity switch flips in a run (Settings.changed; the in-run debug panel's two
 ## buttons): the strip above the rail and the rail's trough, the top row's words (white Ultra with the navy edge on
 ## the black plates, or ink slab on paper), the pause button, MUTATION NEXT, the words under the slots, the clock's
@@ -1632,23 +1612,17 @@ func on_endless_wave(w: int) -> void:
 ## run left the gold plate paper with its ink border and the coin brass until the purse changed its digit count or a
 ## modal hid and showed the HUD). The pointers queue their own redraw every tick (_sync_pointers).
 func _apply_theme(initial: bool = false) -> void:
-	# (Settings.changed reaches W's own listener and this one in connection order: the frame's cached answer is
-	# dropped here too, so the theme just set is the one read)
-	W.theme_changed()
-	var royale := W.royale()
-	var theme := "royale" if royale else "wanted"
 	var rarity := bool(Settings.hud_slot_rarity)
-	if not initial and theme == _theme_applied and rarity == _slot_rarity_applied:
+	if not initial and rarity == _slot_rarity_applied:
 		return
-	_theme_applied = theme
 	_slot_rarity_applied = rarity
-	_cutout.color = ROYALE_RAIL_BLACK if royale else W.INK
-	_style_text(_lv, PLATE_PX, royale, R.WHITE, W.INK, -1, -1, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_style_text(_timer, TIMER_PX, royale, R.WHITE, W.INK, -1, -1, HORIZONTAL_ALIGNMENT_CENTER, TIMER_PX * 1.15)
-	_style_text(_gold, PLATE_PX, royale, R.WHITE, W.INK, -1, -1, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_style_text(_mut_word, MUT_WORD_PX, royale, R.WHITE, W.PAPER, 4, 0, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-	_style_text(_adren, 28, royale, R.WHITE, W.PAPER, 2, 3, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_style_pause(royale)
+	_cutout.color = ROYALE_RAIL_BLACK
+	_style_text(_lv, PLATE_PX, R.WHITE, -1, -1, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_style_text(_timer, TIMER_PX, R.WHITE, -1, -1, HORIZONTAL_ALIGNMENT_CENTER, TIMER_PX * 1.15)
+	_style_text(_gold, PLATE_PX, R.WHITE, -1, -1, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_style_text(_mut_word, MUT_WORD_PX, R.WHITE, 4, 0, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	_style_text(_adren, 28, R.WHITE, 2, 3, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_style_pause()
 	for p in [_lv_plate, _timer_plate, _gold_plate]:
 		(p as Control).queue_redraw()
 	if _coin != null:
@@ -1663,43 +1637,27 @@ func _apply_theme(initial: bool = false) -> void:
 		_refresh_buffs()
 
 
-## The theme the HUD's own pieces wear now ("wanted" | "royale"; tests and tools).
-func theme_applied() -> String:
-	return _theme_applied
-
-
 ## A WText of the HUD's own in the theme: under Royale the display face (Ultra from 28 px, Rubik 700 under it, as
 ## W.slab_for), `royale_col`, a navy stroke and a straight navy drop (`stroke` / `shadow` px as the HUD sets them, or
 ## the kit's edge when both are -1), the Wanted face's line box so a plate keeps its height (the words centred in it,
 ## as CSS half-leading does); under Wanted the Alfa Slab face, `wanted_col`, ink, the drop down-right, `line_h` as
 ## built: exactly what W.text built, so a theme put back leaves no trace.
-func _style_text(t: WText, px: int, royale: bool, royale_col: Color, wanted_col: Color, stroke: int, shadow: int,
+func _style_text(t: WText, px: int, royale_col: Color, stroke: int, shadow: int,
 		align: int, line_h: float, track: int = 0) -> void:
 	if t == null:
 		return
 	t.align = align
-	if royale:
-		t.font = W.slab_for(px, track)
-		t.color = royale_col
-		t.line_height = line_h if line_h > 0.0 else W.normal_height(wanted_slab(track), px)
-		if stroke < 0:
-			R.edge(t, px)
-		else:
-			t.stroke = stroke
-			t.shadow = shadow
-			t.stroke_color = R.NAVY
-			t.shadow_color = R.NAVY
-			t.shadow_straight = true
-			t.bevel = 0
+	t.font = W.slab_for(px, track)
+	t.color = royale_col
+	t.line_height = line_h if line_h > 0.0 else W.normal_height(wanted_slab(track), px)
+	if stroke < 0:
+		R.edge(t, px)
 	else:
-		t.font = wanted_slab(track)
-		t.color = wanted_col
-		t.line_height = line_h
-		t.stroke = maxi(stroke, 0)
-		t.shadow = maxi(shadow, 0)
-		t.stroke_color = W.INK
-		t.shadow_color = W.INK
-		t.shadow_straight = false
+		t.stroke = stroke
+		t.shadow = shadow
+		t.stroke_color = R.NAVY
+		t.shadow_color = R.NAVY
+		t.shadow_straight = true
 		t.bevel = 0
 	t.queue_redraw()
 
@@ -1707,20 +1665,16 @@ func _style_text(t: WText, px: int, royale: bool, royale_col: Color, wanted_col:
 ## The pause button's boxes for the theme: the brass disc on its ink shadow (pass 41) under Wanted; under Royale a
 ## slate Royale button, the same 78 px square with the kit's 6 px corners on the kit's base (pressed it moves 8 px down
 ## with no base, as every Royale button), the two bars in the slate role's cream.
-func _style_pause(royale: bool) -> void:
+func _style_pause() -> void:
 	var pb: HardBox
-	if royale:
-		pb = W.box(W.PAPER, R.BUTTON_EDGE, R.BUTTON_BASE, R.RADIUS)
-		pb.role = "slate"
-		_pause_btn.box_down = pb.pressed()
-	else:
-		pb = W.box(W.BRASS, 4, 5, int(DISC * 0.5))
-		_pause_btn.box_down = pb.pressed(W.BRASS_DARK)
+	pb = W.box(W.PAPER, R.BUTTON_EDGE, R.BUTTON_BASE, R.RADIUS)
+	pb.role = "slate"
+	_pause_btn.box_down = pb.pressed()
 	_pause_btn.box = pb
 	var bars := _pause_btn.get_node_or_null("PauseBars")
 	if bars:
 		for b in bars.get_children():
-			(b as ColorRect).color = R.role("slate")["text"] if royale else W.INK
+			(b as ColorRect).color = R.role("slate")["text"]
 
 
 ## The XP rail (pass 56 / 61: RAIL_H of ink, the purple fill RAIL_INSET in from its top and bottom). Pass 122, under
@@ -1729,11 +1683,6 @@ func _style_pause(royale: bool) -> void:
 ## height and inset, its right end rounded by the kit's 6 px (the band starts off screen so its left end stays square).
 func _draw_rail() -> void:
 	var w := _rail.size.x
-	if not W.royale():
-		_rail.draw_rect(Rect2(0, 0, w, RAIL_H), W.INK)
-		if _xp_frac > 0.0:
-			_rail.draw_rect(Rect2(0, RAIL_INSET, w * _xp_frac, RAIL_H - 2.0 * RAIL_INSET), W.EPIC)
-		return
 	_rail.draw_rect(Rect2(0, 0, w, RAIL_H), ROYALE_RAIL_BLACK)
 	if _xp_frac > 0.0:
 		var fl: Array = WBar.kind_fill("xp")
@@ -1775,8 +1724,6 @@ const WANTED_BOXES_MAX := 128
 
 
 func _wanted_box(t: WText, px: int) -> Vector2:
-	if not W.royale():
-		return t.get_combined_minimum_size()
 	var key := "%s|%d|%.2f" % [t.text, px, t.line_height]
 	if _wanted_boxes.has(key):
 		return _wanted_boxes[key]

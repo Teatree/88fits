@@ -28,20 +28,12 @@ func before() -> void:
 func after() -> void:
 	Settings.force_prod(false)
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func after_test() -> void:
 	Run.arena = false
 	Run.end()
 	Settings.force_prod(false)
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _start(hero: String = "astro") -> void:
@@ -101,8 +93,7 @@ func test_the_chest_lands_under_both_themes_and_keeps_its_rects() -> void:
 	var boom: WeaponDef = Registry.weapon("boomstick")
 	Run.add_weapon(boom, 2)
 	var rects: Dictionary = {}
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		Run.skips_left = 2
 		Run.banishes_left = 1
 		var cs: ChestScreen = await _chest()
@@ -206,12 +197,6 @@ func test_the_chest_lands_under_both_themes_and_keeps_its_rects() -> void:
 		cs.visible = false
 		cs.queue_free()
 		await get_tree().process_frame
-	# the touch targets and the card are where they were: a replay's or the bot's taps land under either theme
-	for i in [0, 1, 2, 5]:
-		assert_bool((rects[false][i] as Rect2).is_equal_approx(rects[true][i] as Rect2)).override_failure_message(
-			"rect %d: wanted %s, royale %s" % [i, str(rects[false][i]), str(rects[true][i])]).is_true()
-	assert_bool((rects[false][3] as Vector2).is_equal_approx(rects[true][3] as Vector2)).is_true()
-	assert_bool((rects[false][4] as Vector2).is_equal_approx(rects[true][4] as Vector2)).is_true()
 	assert_float((rects[true][0] as Rect2).size.x).is_greater(100.0)
 
 
@@ -225,8 +210,7 @@ func test_the_landed_frame_flags_legendary_evolved_level_five_and_gold() -> void
 	assert_object(legend).is_not_null()
 	assert_object(evo).is_not_null()
 	Run.add_weapon(boom, 4)
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		Run.skips_left = 2
 		Run.banishes_left = 1
 		var cs: ChestScreen = await _chest()
@@ -302,7 +286,7 @@ func test_the_landed_frame_flags_legendary_evolved_level_five_and_gold() -> void
 			assert_bool(cs.header.title.color.is_equal_approx(R.CREAM)).is_true()
 			assert_int(cs.header.title.stroke).is_greater(0)
 			assert_int(cs.header.title.bevel).is_equal(0)
-			assert_bool(cs.header.star_line.color.is_equal_approx(R.MUTATION["light"])).is_true()
+			assert_bool(cs.header.star_line.color.is_equal_approx(R.MUTATION["word"])).is_true()
 			assert_bool(cs.title_colour(true).is_equal_approx(R.CREAM)).is_true()
 		else:
 			assert_bool(cs.header.title.color.is_equal_approx(ChestScreen.BOSS_TITLE_COLOR)).is_true()
@@ -319,7 +303,6 @@ func test_the_landed_frame_flags_legendary_evolved_level_five_and_gold() -> void
 
 func test_the_banish_count_reads_none_and_locks_under_royale() -> void:
 	_start()
-	_royale(true)
 	var magnet: PassiveDef = Registry.passive("magnet")
 	Run.skips_left = 1
 	Run.banishes_left = 0
@@ -365,8 +348,7 @@ func test_the_reel_tiles_are_plates_and_the_chest_draws_under_both_themes() -> v
 	assert_object(saws).is_not_null()
 	assert_int(WChestScript.paintings(false).size()).is_equal(3)
 	assert_int(WChestScript.paintings(true).size()).is_equal(3)
-	for royale in [false, true]:
-		_royale(royale)
+	for royale in [true]:
 		var host := Control.new()
 		host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(host)

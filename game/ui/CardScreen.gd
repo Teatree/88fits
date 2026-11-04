@@ -27,7 +27,7 @@
 ## brightest middle), banish mode's star line names its moment instead of LEVEL UP, a refused REROLL or SKIP in banish
 ## mode says so for a moment and the mode's words come back, a reroll takes the struck card's ghost with the old table,
 ## and the mutation offer's shine reaches as far as the level-up's.
-## Pass 122 (lane UILEVELUP), under Royale (W.royale(); Garry's build brief of 2026-11-02 on Claude Design's "Royale,
+## Pass 122 (lane UILEVELUP), under Royale (Garry's build brief of 2026-11-02 on Claude Design's "Royale,
 ## refined": "Level-up cards as the mock: slate cards, same text and layout, the touched card gold-lit with rays, REROLL
 ## · SKIP · BANISH in slate"; "One tap on a card picks it, as today; the gold-lit state with rays is press feedback
 ## only"; "keep the Level N and Level Up text white"): the 80 % black dim (the kit's); LEVEL UP and LEVEL N in cream
@@ -94,7 +94,6 @@ var _note_tw: Tween
 ## Struck cards' ghosts so far (each ghost's name is its own).
 var _struck_n := 0
 ## The theme the head was built in (pass 122): an offer that finds it flipped builds the head again (_rebuild_head).
-var _built_royale := false
 ## Pass 123 (lane RUN_C): under Royale, the mutation offer's skips left in words over its SKIP (a black pill in this
 ## holder, shown with the skip on a mutation offer only).
 var _skips_box: CenterContainer
@@ -261,22 +260,14 @@ func _ready() -> void:
 ## SKIP_FOOT over the screen's foot.
 func _make_path_skip() -> WButton:
 	var b: WButton
-	if W.royale():
-		b = WConfirm.make_button(["SKIP"], WButton.SLATE, ROYALE_SKIP_H, ROYALE_SKIP_PX)
-		b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-		b.grow_vertical = Control.GROW_DIRECTION_BEGIN
-		b.offset_left = -ROYALE_SKIP_W * 0.5
-		b.offset_right = ROYALE_SKIP_W * 0.5
-		b.offset_bottom = -SKIP_FOOT
-		# the face ROYALE_SKIP_H tall on its base: the whole button (face and base) ends on today's foot
-		b.offset_top = -SKIP_FOOT - maxf(ROYALE_SKIP_H, b.get_combined_minimum_size().y)
-	else:
-		b = WButton.make(["SKIP"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
-		b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-		b.offset_left = -215
-		b.offset_right = 215
-		b.offset_bottom = -90
-		b.offset_top = -90 - 108
+	b = WConfirm.make_button(["SKIP"], WButton.SLATE, ROYALE_SKIP_H, ROYALE_SKIP_PX)
+	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	b.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	b.offset_left = -ROYALE_SKIP_W * 0.5
+	b.offset_right = ROYALE_SKIP_W * 0.5
+	b.offset_bottom = -SKIP_FOOT
+	# the face ROYALE_SKIP_H tall on its base: the whole button (face and base) ends on today's foot
+	b.offset_top = -SKIP_FOOT - maxf(ROYALE_SKIP_H, b.get_combined_minimum_size().y)
 	b.name = "PathSkip"
 	b.pressed.connect(_skip)
 	return b
@@ -287,17 +278,10 @@ func _make_path_skip() -> WButton:
 ## under the star line and the dry line under Wanted (pass 58), and under Royale with the kit's navy edge on the words
 ## and the stars (W.text, WStarLine) and a navy drop straight down under the dry line.
 func _build_head() -> void:
-	_built_royale = W.royale()
 	# build_header's header with a larger star line (STAR_LINE_PX: LEVEL UP)
 	header = WModalHeader.make(LEVEL_UP_WORDS, "LEVEL 1", PICK_LINE, 150, W.PAPER, STAR_LINE_PX, HEADER_TOP, star_colour())
 	add_child(header)
-	if _built_royale:
-		_drop(header.line, 2)
-	else:
-		# the star line and the dry line are read over the shine's rays (pass 58): the kit's hard ink shadow under both, as
-		# under the title
-		header.shadow_star(STAR_LINE_SHADOW)
-		header.line.shadow = 2
+	_drop(header.line, 2)
 	_build_banish_note()
 
 
@@ -311,71 +295,36 @@ func _make_path_note() -> WText:
 	return n
 
 
-## The head built again in the theme on now (pass 122: the screen lives as long as the run and the in-run debug panel
-## flips the theme): the header (its star line, title, line and banish note) and the mutation offer's own line, at the
-## same places in the tree, so they draw over and under what they did; and the dim's colour, which build_dim baked in
-## the first theme (the kit's 80 % black under Royale, the sepia under Wanted): enter() tweens the dim to it on this
-## offer, a screen already up takes it at once.
-func _rebuild_head() -> void:
-	_stop_note_hold()
-	var at := header.get_index()
-	var note_at := _path_note.get_index()
-	remove_child(header)
-	header.queue_free()
-	remove_child(_path_note)
-	_path_note.queue_free()
-	_build_head()
-	move_child(header, at)
-	_path_note = _make_path_note()
-	add_child(_path_note)
-	move_child(_path_note, note_at)
-	# pass 123: the mutation offer's SKIP is the theme's too (its size and type), in its place right before the note
-	var skip_at := _path_skip.get_index()
-	remove_child(_path_skip)
-	_path_skip.queue_free()
-	_path_skip = _make_path_skip()
-	add_child(_path_skip)
-	move_child(_path_skip, skip_at)
-	dim_color = W.themed_dim(W.DIM)
-	if dim and visible:
-		dim.color = dim_color
-
-
 ## The star lines' colour (LEVEL UP, banish mode's kicker, the mutation offer's): paper under Wanted; cream under Royale
 ## (pass 122, Garry: "keep the Level N and Level Up text white"; the kit's WStarLine sets paper in gold, and cream it
 ## keeps as given).
 static func star_colour() -> Color:
-	return R.CREAM if W.royale() else W.PAPER
+	return R.CREAM
 
 
 ## The kit's hard ink shadow `px` under a line read over the shine (pass 58); under Royale (pass 122) a navy drop straight
 ## down, as under every Royale word.
 static func _drop(t: WText, px: int) -> void:
 	t.shadow = px
-	if W.royale():
-		t.shadow_color = R.NAVY
-		t.shadow_straight = true
+	t.shadow_color = R.NAVY
+	t.shadow_straight = true
 
 
 ## The shine's two colours (the wide rays and the glow, the narrow rays): brass and paper, or under Royale (pass 122) the
 ## kit's gold and cream, as WShine.make maps them.
 static func shine_colours() -> Array:
-	if W.royale():
-		return [R.role("gold")["bottom"], R.CREAM]
-	return [W.BRASS, W.PAPER]
+	return [R.role("gold")["bottom"], R.CREAM]
 
 
 ## The rail's track: ink, or navy under Royale (pass 122: the mock's rail sits on a navy edge).
 static func rail_track_colour() -> Color:
-	return R.NAVY if W.royale() else W.INK
+	return R.NAVY
 
 
 ## A row button's words with its count: today's two runs ("REROLL ×1", the count in brass dark) under Wanted; under
 ## Royale (pass 122) the word and the kit's count pill ({"count": n}: a navy pill with a gold number, grey at 0).
 static func count_parts(word: String, n: int) -> Array:
-	if W.royale():
-		return [word, {"count": n}]
-	return [word + " ", ["×%d" % n, W.BRASS_DARK]]
+	return [word, {"count": n}]
 
 
 ## The held card under Royale (pass 122, the mock's pressed card): it stays in its place on its base (a button moves down,
@@ -399,7 +348,7 @@ static func _purple_word(c: WCard) -> void:
 	if wl == null or wl.get_child_count() == 0 or not wl.get_child(0) is WText:
 		return
 	var wt := wl.get_child(0) as WText
-	var light: Color = R.MUTATION["light"]
+	var light: Color = R.MUTATION["word"]
 	var rr: Array = []
 	for r in wt.runs:
 		rr.append([str((r as Array)[0]), light])
@@ -465,7 +414,7 @@ func _process(delta: float) -> void:
 func _sync_skips_box() -> void:
 	if _skips_box == null:
 		return
-	var on := path_mode and W.royale() and _path_skip != null and _path_skip.visible
+	var on := path_mode and _path_skip != null and _path_skip.visible
 	if _skips_box.visible != on:
 		_skips_box.visible = on
 	# ROYALE_SKIPS_GAP over the SKIP's top, wherever its own height put it
@@ -520,14 +469,11 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	for c in _path_head.get_children():
 		_path_head.remove_child(c)
 		c.queue_free()
-	var royale := W.royale()
 	# pass 123: the mock's spacing under Royale (14 under Wanted)
 	_path_head.add_theme_constant_override("separation", path_sep())
-	var star := WStarLine.make(mutlvl_line(path_level), 30, star_colour(), R.MODAL_STAR_EM if royale else 0.35)
+	var star := WStarLine.make(mutlvl_line(path_level), 30, star_colour(), R.MODAL_STAR_EM)
 	# read over the shine once the reel lands (pass 58 review): the kit's ink shadow, as LEVEL UP's (pass 122: under
 	# Royale the kit's navy edge on the words and the stars does that)
-	if not royale:
-		WModalHeader.shadow_line(star, STAR_LINE_SHADOW, 30)
 	_path_head.add_child(star)
 	var cc := CenterContainer.new()
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -538,7 +484,7 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	p.shadow = 10
 	p.icon_frac = 0.74
 	# pass 122: the mock's rays turn behind the weapon's frame under Royale (the kit's WPlate.rays)
-	p.rays = W.royale()
+	p.rays = true
 	cc.add_child(p)
 	_path_head.add_child(cc)
 	_path_plate = p
@@ -546,54 +492,26 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	if Run.is_favourite(def):
 		WCard.add_heart(p)
 	var nm: WText
-	if royale:
-		# pass 123: cream Ultra (Garry: "The Header texts should all be white"), the mock's 100 px fitted to the screen, its
-		# 8 px navy drop
-		var npx := fit_px(def.display_name.to_upper(), ROYALE_PATH_NAME_PX, ROYALE_PATH_NAME_W, ROYALE_PATH_NAME_MIN)
-		nm = W.slab_text(def.display_name.to_upper(), npx, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, float(npx))
-	else:
-		nm = W.slab_text(def.display_name.to_upper(), 96, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
+	# pass 123: cream Ultra (Garry: "The Header texts should all be white"), the mock's 100 px fitted to the screen, its
+	# 8 px navy drop
+	var npx := fit_px(def.display_name.to_upper(), ROYALE_PATH_NAME_PX, ROYALE_PATH_NAME_W, ROYALE_PATH_NAME_MIN)
+	nm = W.slab_text(def.display_name.to_upper(), npx, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, float(npx))
 	nm.shadow = 8
 	_path_head.add_child(nm)
 	_path_name = nm
-	if royale:
-		_path_row = _royale_count_row(def, taken, offered)
-		_path_head.add_child(_path_row)
-		return
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 14)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# the row's words are read over the shine's rays too (pass 58 review): the dry line's 2 px ink shadow
-	var word := W.serif_text("Mutation", 28, W.AGED, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_drop(word, 2)
-	row.add_child(word)
-	# a rivet per mutation of the weapon's path (pass 48: the real count, Registry.mutations_of; three on every path)
-	var fam: String = (def as WeaponDef).evolved_from if def is WeaponDef and (def as WeaponDef).is_evolution and (def as WeaponDef).evolved_from != "" else def.id
-	var total := maxi(Registry.mutations_of(fam).size(), 1)
-	var r := WMarks.new().setup("rivets", total, mini(taken, total), mini(taken, total) + 1, 36.0)
-	r.rivet_fill = W.BRASS
-	r.rivet_empty = Color(W.AGED.r, W.AGED.g, W.AGED.b, 0.25)
-	r.gap = 8.0
-	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	# the next mutation is aged paper, the ones after it faint
-	r.next_fill = W.AGED
-	row.add_child(r)
-	var rest := W.serif_text(leave_line(offered), 28, W.AGED, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	_drop(rest, 2)
-	row.add_child(rest)
-	_path_head.add_child(row)
-	_path_row = row
+	_path_row = _royale_count_row(def, taken, offered)
+	_path_head.add_child(_path_row)
+	return
 
 
 ## The mutation offer's head under Royale (pass 123): its parts' spacing and the weapon frame's side by theme (today's 14
 ## and 272 under Wanted).
 static func path_sep() -> int:
-	return ROYALE_PATH_SEP if W.royale() else 14
+	return ROYALE_PATH_SEP
 
 
 static func path_plate_px() -> float:
-	return ROYALE_PATH_PLATE_PX if W.royale() else 272.0
+	return ROYALE_PATH_PLATE_PX
 
 
 ## The largest display size up to `px` (2 px steps, never under `floor_px`) at which `s` fits `width` in the theme's face.
@@ -644,7 +562,7 @@ static func skips_parts(n: int) -> Array:
 func _set_skips_pill(n: int) -> void:
 	if _skips_box == null:
 		return
-	var key := "%d:%s" % [n, W.theme_name()]
+	var key := str(n)
 	if str(_skips_box.get_meta("key", "")) == key and _skips_box.get_child_count() > 0:
 		return
 	_skips_box.set_meta("key", key)
@@ -687,8 +605,6 @@ static func leave_line(offered: int) -> String:
 func show_offer(offer: Array, title: String, with_hints: bool, path: bool = false) -> void:
 	_stop_reel()
 	# pass 122: the head was built in a theme; flipped since (the debug panel's switch), it is built again
-	if W.royale() != _built_royale:
-		_rebuild_head()
 	# the last offer's confetti, still falling when a new offer comes quickly, goes (pass 54; a struck card's ghost goes
 	# with the old table in _rebuild)
 	for c in get_children():
@@ -882,8 +798,7 @@ func _refresh_buttons() -> void:
 		_set_button(b, count_parts("SKIP", Run.skips_left))
 		b.locked = Run.skips_left <= 0
 	# pass 123: the Royale mutation offer says its skips left in words over its SKIP
-	if W.royale():
-		_set_skips_pill(Run.skips_left)
+	_set_skips_pill(Run.skips_left)
 	_sync_skips_box()
 	# pass 58: in banish mode the button takes it back (CANCEL); outside it, it locks with no banish left or nothing on the
 	# table that may go (every card an upgrade of something the hero has)
@@ -931,7 +846,7 @@ func _skip() -> void:
 ## A line under the header (under banish mode's title while it is on, for NOTE_HOLD seconds, then the mode's own words
 ## come back), or under the mutation offer's head (which has no header line).
 func _say(t: String) -> void:
-	if path_mode and W.royale() and _skips_box != null and _skips_box.visible:
+	if path_mode and _skips_box != null and _skips_box.visible:
 		# pass 123: under Royale the skips pill over the SKIP says it (its words are the refusal's: "No skips left this
 		# stage") and shakes; the note under the head would only say it twice
 		_path_note.text = t
@@ -984,7 +899,7 @@ func _rebuild() -> void:
 	_list.add_theme_constant_override("separation", int(list_gap()))
 	_list.offset_top = (PATH_LIST_TOP if path_mode else LIST_TOP) + W.safe_top()
 	# pass 123: the Royale mutation offer's cards are the mock's 990 wide (48 in from either side otherwise, as before)
-	var inset := ROYALE_PATH_INSET if (path_mode and W.royale()) else 48.0
+	var inset := ROYALE_PATH_INSET if (path_mode) else 48.0
 	_list.offset_left = inset
 	_list.offset_right = -inset
 	_fit.call_deferred()
@@ -993,7 +908,7 @@ func _rebuild() -> void:
 ## The cards' gap before _fit (44 on a level-up, 36 on a mutation offer; pass 123: ROYALE_PATH_GAP on a Royale one).
 func list_gap() -> float:
 	if path_mode:
-		return ROYALE_PATH_GAP if W.royale() else 36.0
+		return ROYALE_PATH_GAP
 	return 44.0
 
 
@@ -1049,14 +964,14 @@ func _drop_slot(slot: MarginContainer, delay: float) -> void:
 func _make_card(card: Dictionary) -> WCard:
 	var def: ContentDef = card["def"]
 	var extra := {}
-	if path_mode and W.royale():
+	if path_mode:
 		# pass 123: the mock's mutation cards: a 160 px frame in the mutations' teal (its rim and glow) 28 px from the words,
 		# the name 48, the full text 24
 		extra = {"plate_px": ROYALE_PATH_FRAME_PX, "name_size": ROYALE_PATH_CARD_NAME_PX, "rarity": "", "pad": [30, 32, 30, 32],
 			"stars": [], "gap": 28, "effect_size": ROYALE_PATH_TEXT_PX, "plate_fill": R.MUTATION_FILL}
 	elif path_mode:
 		extra = {"plate_px": 170.0, "name_size": 56, "rarity": "", "pad": [30, 32, 30, 32], "stars": [], "icon_frac": 0.72}
-	elif W.royale():
+	else:
 		# pass 122: the mock's 200 px frame, 34 px from the words (today's 180 and 28 under Wanted)
 		extra = {"plate_px": ROYALE_PLATE_PX, "gap": ROYALE_GAP}
 	# the hero's favourite wears its heart and says FAVOURITE by its tag (pass 62: WItem.options, WCard; it said
@@ -1066,10 +981,9 @@ func _make_card(card: Dictionary) -> WCard:
 	var box: HardBox = c.box
 	# the card's own band (an evolution's ember), put back when banish mode ends
 	c.set_meta("band", [box.inner, box.inner_color])
-	if W.royale():
-		_royale_held(c)
-		if path_mode:
-			_purple_word(c)
+	_royale_held(c)
+	if path_mode:
+		_purple_word(c)
 	c.pressed.connect(func(): _pick(card, c))
 	return c
 
@@ -1124,7 +1038,7 @@ func _fit() -> void:
 	var n := _cards.size()
 	var gap := 36.0 if path_mode else 44.0
 	var top := (PATH_LIST_TOP if path_mode else LIST_TOP) + W.safe_top()
-	var royale_path := path_mode and W.royale()
+	var royale_path := path_mode
 	if royale_path:
 		# pass 123: the mock's cards, as tall as the room under the head and over the skips pill lets them (up to
 		# ROYALE_PATH_CARD_H, never under their own words), ROYALE_PATH_GAP apart
@@ -1464,13 +1378,13 @@ class BanishMark extends Control:
 
 	## The mark's colours: red-rock ink, paper and ink; under Royale (pass 122) the kit's red, cream and navy.
 	static func rock() -> Color:
-		return (R.role("red")["bottom"] as Color) if W.royale() else W.ROCK
+		return (R.role("red")["bottom"] as Color)
 
 	static func paper() -> Color:
-		return R.CREAM if W.royale() else W.PAPER
+		return R.CREAM
 
 	static func ink() -> Color:
-		return R.NAVY if W.royale() else W.INK
+		return R.NAVY
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE

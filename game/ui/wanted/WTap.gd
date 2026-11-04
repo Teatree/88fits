@@ -23,7 +23,6 @@ var locked := false:
 		_restyle()
 ## The look while locked: aged fill, no shadow, the whole piece at this opacity.
 var locked_alpha := 0.45
-var locked_fill := W.AGED
 
 var _down := false
 var _from := Vector2.ZERO
@@ -40,24 +39,17 @@ func _restyle() -> void:
 	if box == null:
 		return
 	var b: HardBox = box
-	var royale := W.royale()
 	if locked:
-		if royale:
-			# pass 122 (lane UIKIT_A): the locked face is the grey role on its base (the kit sheet's LOCKED), at 75 %;
-			# copy() carries the box's border, shadow, radius and corners (duplicate() keeps no HardBox field)
-			b = box.copy()
-			b.role = "locked"
-			b.inner = 0
-		else:
-			b = box.duplicate()
-			b.fill = locked_fill
-			b.shadow = 0
-			b.inner = 0
+		# pass 122 (lane UIKIT_A): the locked face is the grey role on its base (the kit sheet's LOCKED), at 75 %;
+		# copy() carries the box's border, shadow, radius and corners (duplicate() keeps no HardBox field)
+		b = box.copy()
+		b.role = "locked"
+		b.inner = 0
 	elif _held_look:
 		b = box_down if box_down else box.pressed()
 	add_theme_stylebox_override("panel", b)
 	var a := locked_alpha
-	if royale and locked and is_equal_approx(a, 0.45):
+	if locked and is_equal_approx(a, 0.45):
 		a = R.LOCKED_ALPHA
 	modulate.a = a if locked else 1.0
 

@@ -657,24 +657,13 @@ def accents():
 # ============================================================================ palette (mirrors Boot.gd's uniforms)
 
 def palette():
-    """The colours Boot.gd's shader gives the masks, from the kit's tokens (Boot.gd mixes them the same way)."""
-    paper = np.array(w_color("PAPER"), np.float32)
-    aged = np.array(w_color("AGED"), np.float32)
-    rock = np.array(w_color("ROCK"), np.float32)
-    ink = np.array(w_color("INK"), np.float32)
-    ground_a = paper
-    ground_b = paper + (aged - paper) * 0.55
-    motif = paper + (rock - paper) * 0.26
-    accent = paper + (rock - paper) * 0.20
-    soft = np.array(w_color("INK_SOFT"), np.float32)
-    line = paper + (soft - paper) * 0.40
-    vig = paper + (rock - paper) * 0.30
-    vig = vig + (ink - vig) * 0.12
-    return {"paper": paper, "ground_a": ground_a, "ground_b": ground_b, "motif": motif, "accent": accent, "line": line,
-            "vignette": vig}
+    """The colours Boot.gd's shader gives the masks (pass 124: the dark wallpaper; Boot.gd's palette() holds the same)."""
+    c = lambda h: np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)], np.float32)
+    return {"paper": c("0b1020"), "ground_a": c("121a34"), "ground_b": c("182242"), "motif": c("26335f"), "accent": c("212c54"),
+            "line": c("34416f"), "vignette": c("05070f")}
 
 
-VIGNETTE = 0.35        # Boot.gd's VIGNETTE: how much of the warm shade the corners take
+VIGNETTE = 0.5        # Boot.gd's VIGNETTE: how much of the warm shade the corners take
 
 
 # ============================================================================ the review sheet
@@ -829,62 +818,49 @@ def tracked_width(text, font, track):
 
 
 def plate():
+    """Pass 124 (Garry: "use the new design of the Logo"): the main menu's wordmark on nothing: OUTLAW in Ultra, cream with the navy edge
+    and drop (ui/TitleScreen.gd's RY_LOGO_*), the gold star line under it. The shader slams it in as it did the paper plate."""
     k = PLATE_SCALE
-    paper, ink, brass = w_color("PAPER"), w_color("INK"), w_color("BRASS")
-    brass_dark = w_color("BRASS_DARK")
-    slab = ImageFont.truetype(os.path.join(FONTS, "AlfaSlabOne-Regular.ttf"), round(LOGO_PX * k))
-    tagf = ImageFont.truetype(os.path.join(FONTS, "Bitter.ttf"), round(TAG_PX * k))
-    tagf.set_variation_by_axes([600])
+    cream, navy, gold = (255, 246, 220), (14, 31, 74), (255, 220, 115)
+    ultra = os.path.join(FONTS, "Ultra-Regular.ttf")
+    slab = ImageFont.truetype(ultra, round(LOGO_PX * k))
+    tagf = ImageFont.truetype(ultra, round(TAG_PX * k))
     word, line = w_string("GAME_WORD").upper(), w_string("GAME_LINE").upper()
+    edge = round(7 * k)
+    drop = round(11 * k)
     d0 = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    l, t, r, b = d0.textbbox((0, 0), word, font=slab)
-    ww, wh = r - l, b - t
+    l, t_, r, b = d0.textbbox((0, 0), word, font=slab, stroke_width=edge)
+    ww, wh = r - l, b - t_
     track = round(TAG_PX * TAG_TRACK * k)
     tw = tracked_width(line, tagf, track)
     tl, tt, tr, tb = d0.textbbox((0, 0), "SURVIVORS", font=tagf, anchor="ls")
     th = tb - tt
-    inner_w = max(ww + LOGO_SHADOW * k, tw + 120 * k)
-    pw = round(inner_w + 2 * PLATE_PAD_X * k + 2 * BORDER * k)
-    ph = round(PLATE_PAD_TOP * k + wh + LOGO_SHADOW * k + GAP_TAG * k + th + PLATE_PAD_FOOT * k + 2 * BORDER * k)
-    sh = round(SHADOW * k)
-    img = Image.new("RGBA", (pw + sh, ph + sh), (0, 0, 0, 0))
+    star_room = 96 * k
+    pad = round(PLATE_PAD * k)
+    pw = round(max(ww, tw + 2 * star_room)) + 2 * pad
+    ph = round(wh + drop + GAP_TAG * k + th + round(5 * k) + round(3 * k)) + 2 * pad
+    img = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    bw = round(BORDER * k)
-    d.rectangle((sh, sh, pw - 1 + sh, ph - 1 + sh), fill=ink + (255,))
-    d.rectangle((0, 0, pw - 1, ph - 1), fill=ink + (255,))
-    d.rectangle((bw, bw, pw - 1 - bw, ph - 1 - bw), fill=paper + (255,))
-    # an inner rule, as the posters have
-    ir = round(bw + 10 * k)
-    d.rectangle((ir, ir, pw - 1 - ir, ph - 1 - ir), outline=brass_dark + (255,), width=max(2, round(2.5 * k)))
     cx = pw / 2
-    ty = bw + PLATE_PAD_TOP * k
     x = cx - ww / 2 - l
-    y = ty - t
-    s = round(LOGO_SHADOW * k)
-    d.text((x + s, y + s), word, font=slab, fill=brass + (255,))
-    d.text((x, y), word, font=slab, fill=ink + (255,))
-    base = ty + wh + LOGO_SHADOW * k + GAP_TAG * k - tt
-    tracked(d, line, tagf, track, cx - tw / 2, base, ink + (255,))
-    # little stars either side of SURVIVORS, as the title's "Wanted" line has them
+    y = pad - t_
+    d.text((x, y + drop), word, font=slab, fill=navy + (255,), stroke_width=edge, stroke_fill=navy + (255,))
+    d.text((x, y), word, font=slab, fill=cream + (255,), stroke_width=edge, stroke_fill=navy + (255,))
+    base = pad + wh + drop + GAP_TAG * k - tt
+    tag_edge = round(3 * k)
+    # the line's drop and edge first, then its letters
+    tx = cx - tw / 2
+    for ch in line:
+        d.text((tx, base + round(3 * k)), ch, font=tagf, fill=navy + (255,), anchor="ls", stroke_width=tag_edge, stroke_fill=navy + (255,))
+        d.text((tx, base), ch, font=tagf, fill=gold + (255,), anchor="ls", stroke_width=tag_edge, stroke_fill=navy + (255,))
+        tx += tagf.getlength(ch) + track
     mid_y = base + tt + th / 2
     for sgn in (-1, 1):
-        sx = cx + sgn * (tw / 2 + 44 * k)
-        d.polygon(star_pts(sx, mid_y, 15 * k, 6.5 * k, 5), fill=ink + (255,))
-    # brass nails in the corners
-    for nx in (ir + 26 * k, pw - 1 - ir - 26 * k):
-        for ny in (ir + 26 * k, ph - 1 - ir - 26 * k):
-            r_ = NAIL_R * k
-            d.ellipse((nx - r_ + 2 * k, ny - r_ + 2 * k, nx + r_ + 2 * k, ny + r_ + 2 * k), fill=ink + (255,))
-            d.ellipse((nx - r_, ny - r_, nx + r_, ny + r_), fill=brass + (255,))
-            d.ellipse((nx - r_ * 0.35 - 2 * k, ny - r_ * 0.35 - 2 * k, nx + r_ * 0.1 - 2 * k, ny + r_ * 0.1 - 2 * k),
-                      fill=(255, 236, 190, 255))
-    pad = round(PLATE_PAD * k)
-    out = Image.new("RGBA", (img.width + 2 * pad, img.height + 2 * pad), (0, 0, 0, 0))
-    out.paste(img, (pad, pad))
-    img = out
+        sx = cx + sgn * (tw / 2 + 52 * k)
+        d.polygon(star_pts(sx, mid_y + 2 * k, 21 * k, 9.5 * k, 5), fill=navy + (255,))
+        d.polygon(star_pts(sx, mid_y, 16 * k, 7 * k, 5), fill=gold + (255,))
     img.save(OUT_PLATE, optimize=True)
-    print("plate: %s %dx%d (%.1f x %.1f canvas px) %d KB" % (OUT_PLATE, img.width, img.height, img.width / k,
-                                                              img.height / k, os.path.getsize(OUT_PLATE) // 1024))
+    print("plate: %s %dx%d (%.1f x %.1f canvas px) %d KB" % (OUT_PLATE, img.width, img.height, img.width / k, img.height / k, os.path.getsize(OUT_PLATE) // 1024))
     return img
 
 

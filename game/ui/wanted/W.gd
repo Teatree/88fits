@@ -115,12 +115,10 @@ static func _variant(path: String, weight: int, track: int) -> Font:
 
 
 ## Alfa Slab One: every heading, number, button, card name, tab and stat value. `track` is extra px per letter.
-## Pass 122 (lane UIKIT_A): Ultra while the Royale theme is on (royale()); a size is not known here, so a caller that
+## Pass 122 (lane UIKIT_A): Ultra; a size is not known here, so a caller that
 ## sets small slab text goes through slab_for (text and slab_text do), which keeps Ultra off anything under R.ULTRA_MIN.
 static func slab(track: int = 0) -> Font:
-	if royale():
-		return R.display(track)
-	return _base(SLAB_PATH) if track == 0 else _variant(SLAB_PATH, 0, track)
+	return R.display(track)
 
 
 ## The Wanted slab face (Alfa Slab One, tracked `track` px) whatever the theme (pass 122, the review of lane UIHUD): for
@@ -180,7 +178,7 @@ static func wanted_label(t: String, size: int = 20, color: Color = INK_SOFT, em_
 ## The display face for text at `size` (pass 122): the slab, or under Royale Rubik 700 where Ultra would fill in (a size
 ## under R.ULTRA_MIN, 28 px: Garry, "NO Ultra under about 28 px in 1080 space").
 static func slab_for(size: int, track: int = 0) -> Font:
-	if royale() and size < R.ULTRA_MIN:
+	if size < R.ULTRA_MIN:
 		return R.body(R.LABEL_WEIGHT, false, track)
 	return slab(track)
 
@@ -188,9 +186,7 @@ static func slab_for(size: int, track: int = 0) -> Font:
 ## Bitter at 400 or 600, upright or italic: effect text, notes, labels and flavour lines. Pass 122: Rubik under Royale,
 ## 400 -> 500 (body), 600 -> 700 (labels), 800 -> 800 (bold numbers): R.body_weight.
 static func serif(weight: int = 400, italic: bool = false, track: int = 0) -> Font:
-	if royale():
-		return R.body(R.body_weight(weight), italic, track)
-	return _variant(SERIF_ITALIC_PATH if italic else SERIF_PATH, weight, track)
+	return R.body(R.body_weight(weight), italic, track)
 
 
 ## JetBrains Mono: the developer menu and the placeholders' labels.
@@ -214,13 +210,12 @@ static func text(t: String, font: Font, size: int, color: Color = INK, align: in
 	var f := font
 	var col := color
 	var edge := false
-	if royale():
-		col = R.text_colour(color)
-		if R.is_display(font):
-			if size < R.ULTRA_MIN:
-				f = R.body(R.LABEL_WEIGHT, false, (font as FontVariation).spacing_glyph if font is FontVariation else 0)
-			else:
-				edge = true
+	col = R.text_colour(color)
+	if R.is_display(font):
+		if size < R.ULTRA_MIN:
+			f = R.body(R.LABEL_WEIGHT, false, (font as FontVariation).spacing_glyph if font is FontVariation else 0)
+		else:
+			edge = true
 	w.font = f
 	w.font_size = size
 	w.color = col
@@ -249,8 +244,7 @@ static func serif_text(t: String, size: int, color: Color = INK, weight: int = 4
 	if bold:
 		w.bold_font = serif(BOLD_WEIGHT, italic)
 		w.bold_numbers = true
-		if royale():
-			w.bold_color = R.NUMBER_HI
+		w.bold_color = R.NUMBER_HI
 	return w
 
 
@@ -261,9 +255,7 @@ const BOLD_WEIGHT := 800
 ## The tracked uppercase labels (Bitter 600, letter-spacing +15 %). Pass 122: Rubik 700 at .2em in the secondary blue
 ## under Royale (R.label; a tracking passed in is kept, the default follows the theme).
 static func label(t: String, size: int = 20, color: Color = INK_SOFT, em_frac: float = -1.0) -> WText:
-	if royale():
-		return R.label(t, size, R.text_colour(color), R.LABEL_TRACK if em_frac < 0.0 else em_frac)
-	return text(t.to_upper(), serif(600, false, em(size, 0.15 if em_frac < 0.0 else em_frac)), size, color, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	return R.label(t, size, R.text_colour(color), R.LABEL_TRACK if em_frac < 0.0 else em_frac)
 
 
 # --- numbers ---------------------------------------------------------------------------------------------------------
@@ -446,16 +438,14 @@ static func dim(color: Color, blocks: bool = true) -> ColorRect:
 ## menus on R.WASH (a navy wash that keeps the painted scene). The kit's pieces take theirs here; a screen's own ColorRect
 ## follows in its lane.
 static func dim_color(kind: String) -> Color:
-	if royale():
-		match kind:
-			"gate":
-				return R.DIM_GATE
-			"down":
-				return R.DIM_DOWN
-			"wash":
-				return R.WASH
-		return R.DIM
-	return _wanted_dim(kind)
+	match kind:
+		"gate":
+			return R.DIM_GATE
+		"down":
+			return R.DIM_DOWN
+		"wash":
+			return R.WASH
+	return R.DIM
 
 
 static func _wanted_dim(kind: String) -> Color:
@@ -481,8 +471,6 @@ const DIM_KINDS := ["modal", "chest", "down", "stranger", "gate", "ask", "wash"]
 ## A Wanted dim constant as the theme shows it (pass 122): the kit's pieces map what a screen passed them (WModal's
 ## build_dim); a colour that is none of the kit's dims is kept, so a screen's own alpha (the Bounty posters') survives.
 static func themed_dim(c: Color) -> Color:
-	if not royale():
-		return c
 	for k: String in DIM_KINDS:
 		if _wanted_dim(k).is_equal_approx(c):
 			return dim_color(k)
@@ -490,38 +478,6 @@ static func themed_dim(c: Color) -> Color:
 
 
 # --- the theme ---------------------------------------------------------------------------------------------------------
-static var _royale_cache := false
-static var _royale_frame := -1
-static var _royale_wired := false
-
-
-## Whether the Royale theme is on (pass 122, lane UIKIT_A): Settings.ui_theme == "royale", read through the Settings
-## node and cached for the frame (like safe_top); false with no Settings (a tool, a bare test), and never in the
-## production build (it plays the default whatever a save says, as the title asks is_prod itself). Every component
-## branches on it at build and at draw, so Wanted (the default) is drawn exactly as before while it is off. The cache
-## follows Settings.changed (set_value, from_dict); a direct assignment in a test or a tool calls theme_changed() or
-## waits a frame.
-static func royale() -> bool:
-	var f := Engine.get_process_frames()
-	if f == _royale_frame:
-		return _royale_cache
-	var s := node("Settings")
-	_royale_frame = f
-	_royale_cache = s != null and str(s.get("ui_theme")) == "royale" and not bool(s.call("is_prod"))
-	if s != null and not _royale_wired and s.has_signal("changed"):
-		_royale_wired = true
-		s.connect("changed", W.theme_changed)
-	return _royale_cache
-
-
-## Forget the frame's cached theme (Settings.changed calls it; so does a tool or a test that assigns ui_theme directly).
-static func theme_changed() -> void:
-	_royale_frame = -1
-
-
-## The theme's name ("wanted" or "royale"), for a capture's file names and a status line.
-static func theme_name() -> String:
-	return "royale" if royale() else "wanted"
 
 
 ## A black info plate's box (pass 122): under Royale the 56 % black plate with no edge and no base (HardBox.role
@@ -700,14 +656,13 @@ static func draw_glyph(ci: CanvasItem, kind: String, r: Rect2, col: Color, accen
 ## Rubik 500 at `px` in `color` (white; a part's own colour wins), a "bold" part Rubik 700; consecutive text parts are one
 ## line (their own spaces between). Under Wanted the paper plate with ink Bitter, so a pill built there still reads.
 static func pill(parts, px: int = R.PILL_PX, h: float = R.PILL_H, color: Color = Color(0, 0, 0, 0)) -> PanelContainer:
-	var royale_on := royale()
-	var ink := color if color.a > 0.0 else (R.WHITE if royale_on else INK)
-	var body: Font = R.body(R.BODY_WEIGHT) if royale_on else serif(400)
-	var bold: Font = R.body(R.LABEL_WEIGHT) if royale_on else serif(BOLD_WEIGHT)
+	var ink := color if color.a > 0.0 else (R.WHITE)
+	var body: Font = R.body(R.BODY_WEIGHT)
+	var bold: Font = R.body(R.LABEL_WEIGHT)
 	var p := PanelContainer.new()
 	p.name = "Pill"
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_theme_stylebox_override("panel", plate_box(3, 0, R.PILL_RADIUS if royale_on else 0).pad(R.PILL_PAD, 0, R.PILL_PAD, 0))
+	p.add_theme_stylebox_override("panel", plate_box(3, 0, R.PILL_RADIUS).pad(R.PILL_PAD, 0, R.PILL_PAD, 0))
 	p.custom_minimum_size.y = h
 	var row := HBoxContainer.new()
 	row.name = "Row"
@@ -750,9 +705,8 @@ static func pill(parts, px: int = R.PILL_PX, h: float = R.PILL_H, color: Color =
 
 ## "n short" (pass 123; the mock 8_Shop_24_gold): what a price is short of the purse, Rubik 700 in red (ROCK under Wanted).
 static func short_text(n: int, px: int = R.SHORT_PX) -> WText:
-	var royale_on := royale()
-	var t := text("%s short" % num(n), R.body(R.LABEL_WEIGHT) if royale_on else serif(600), px,
-		R.ROLES["red"]["top"] if royale_on else ROCK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	var t := text("%s short" % num(n), R.body(R.LABEL_WEIGHT), px,
+		R.ROLES["red"]["top"], HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
 	t.name = "Short"
 	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return t
@@ -789,20 +743,17 @@ static func price_button_of(row: Control) -> WButton:
 ## hover in the air"): the slate panel (HardBox role "panel": the gradient, a 4 px navy edge, the 8 px navy base, the
 ## lip) as one sheet behind a whole page, `pad` inside its edge. Under Wanted ScreenBase.board's paper box.
 static func sheet_box(pad: Vector2 = Vector2(24, 24)) -> HardBox:
-	var royale_on := royale()
-	var e := R.PANEL_EDGE if royale_on else 5
+	var e := R.PANEL_EDGE
 	var b := box(PAPER, e, R.PANEL_BASE, 0).pad(pad.x + e, pad.y + e, pad.x + e, pad.y + e)
-	if royale_on:
-		b.role = "panel"
+	b.role = "panel"
 	return b
 
 
 ## A solid cell inside a sheet (pass 123): R.CELL, opaque, a 3 px navy edge, 6 px corners, no base (a level's cell, a
 ## mutation's column: the mock's see-through black made solid). Under Wanted an aged box with a 3 px ink edge.
 static func cell_box(pad: Vector2 = Vector2(16, 14)) -> HardBox:
-	var royale_on := royale()
 	var e := R.CELL_EDGE
-	var b := box(R.CELL if royale_on else AGED, e, 0, R.RADIUS if royale_on else 0)
+	var b := box(R.CELL, e, 0, R.RADIUS)
 	return b.pad(pad.x + e, pad.y + e, pad.x + e, pad.y + e)
 
 

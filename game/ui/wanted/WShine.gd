@@ -143,11 +143,10 @@ static func make(at: Vector2, r: float = 480.0, col: Color = W.BRASS, col2: Colo
 	var s = (load(SCRIPT_PATH) as GDScript).new()
 	s.center = at
 	s.radius = r
-	if W.royale():
-		if col.is_equal_approx(W.BRASS):
-			col = R.role("gold")["bottom"]
-		if col2.is_equal_approx(W.PAPER):
-			col2 = R.CREAM
+	if col.is_equal_approx(W.BRASS):
+		col = R.role("gold")["bottom"]
+	if col2.is_equal_approx(W.PAPER):
+		col2 = R.CREAM
 	s.color = col
 	s.color2 = col2
 	return s
@@ -207,7 +206,7 @@ func put(host: Node, index: int = -1) -> Control:
 ## purple; brass is the default).
 func tint(col: Color) -> void:
 	color = col
-	color2 = col.lerp(R.CREAM if W.royale() else W.PAPER, 0.62)
+	color2 = col.lerp(R.CREAM, 0.62)
 
 
 ## Grows in from nothing with a little overshoot over `seconds`, fading in.

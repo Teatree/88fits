@@ -2041,10 +2041,6 @@ func set_clean(on: bool) -> void:
 		_hint.visible = false
 
 
-func is_clean() -> bool:
-	return _clean
-
-
 ## A clean PNG of the screen (SAVE PNG, F12): the sheet shut, the HUD and the controls hidden for two drawn frames, the
 ## picture taken, everything as it was. `path` "" saves into user://screenshots (its place on this machine is noted on
 ## the tab and in the hint). Returns the file's path on the disk.

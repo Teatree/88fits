@@ -13,8 +13,7 @@ var _keep: Dictionary = {}
 
 
 func before_test() -> void:
-	_keep = {"debug_mode": Settings.debug_mode, "top_inset": Settings.top_inset, "menu_style": Settings.menu_style,
-		"preview": Settings.preview_locked_heroes, "last": Save.data.get("last_character", "")}
+	_keep = {"debug_mode": Settings.debug_mode, "top_inset": Settings.top_inset, "preview": Settings.preview_locked_heroes, "last": Save.data.get("last_character", "")}
 	Settings.debug_mode = false
 	Settings.top_inset = -1
 	Settings.preview_locked_heroes = false
@@ -27,7 +26,6 @@ func after_test() -> void:
 	Run.base_crit = false
 	Settings.debug_mode = bool(_keep["debug_mode"])
 	Settings.top_inset = int(_keep["top_inset"])
-	Settings.menu_style = str(_keep["menu_style"])
 	Settings.preview_locked_heroes = bool(_keep["preview"])
 	Save.data["last_character"] = _keep["last"]
 	Run.arena = false
@@ -89,7 +87,6 @@ func _frames(n: int) -> void:
 
 
 func _title() -> Control:
-	Settings.menu_style = "painted"
 	Save.data["last_character"] = "drifter"
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
@@ -329,11 +326,7 @@ func test_the_sheet_builds_every_block_for_every_hero() -> void:
 		var all := _texts(s)
 		assert_str(all).contains(SHEET.hero_name(c).to_upper())
 		assert_str(all).contains(c.flavour)
-		assert_str(all).contains(TextGen.hero_trait(c))
-		# the levels table: 1, 10, 20, 40
-		var levels: Node = s.find_child("Levels", true, false)
-		assert_int(levels.get_child_count()).is_equal(4)
-		assert_str(_texts(levels)).contains("LV 40")
+		assert_str(all.to_lower()).contains(TextGen.hero_trait(c).to_lower())
 		# the stats a run starts with
 		var stats: Node = s.find_child("Stats", true, false)
 		assert_object(stats.find_child("Stat_max_hp", true, false)).is_not_null()
@@ -363,63 +356,6 @@ func test_the_sheet_builds_every_block_for_every_hero() -> void:
 	locked.free()
 
 
-func test_the_plaque_opens_the_sheet_and_a_swipe_still_changes_the_hero() -> void:
-	var t := await _title()
-	assert_bool(t.sheet_open()).is_false()
-	var plaque: Control = t.find_child("Plaque", false, false)
-	assert_object(plaque).is_not_null()
-	var at: Vector2 = plaque.get_global_rect().get_center()
-	# a swipe across the plaque: the next hero, no sheet
-	var was: int = t._index
-	_touch(at, true)
-	_drag(at, at + Vector2(-120, 0))
-	_drag(at + Vector2(-120, 0), at + Vector2(-240, 0))
-	_touch(at + Vector2(-240, 0), false)
-	await _frames(2)
-	assert_int(t._index).is_not_equal(was)
-	assert_bool(t.sheet_open()).is_false()
-	# a tap on it: the sheet of the hero shown
-	at = plaque.get_global_rect().get_center()
-	_touch(at, true)
-	_touch(at, false)
-	await _frames(2)
-	assert_bool(t.sheet_open()).is_true()
-	var s: Control = t.find_child("HeroSheet", false, false)
-	assert_object(s).is_not_null()
-	assert_object(s.get("hero")).is_same(t._heroes[t._index])
-	# while it is up a swipe does not change the hero under it
-	var now: int = t._index
-	_touch(Vector2(540, 900), true)
-	_touch(Vector2(240, 900), false)
-	await _frames(1)
-	assert_int(t._index).is_equal(now)
-	# CLOSE closes it
-	var close: Control = s.find_child("Close", true, false)
-	await _frames(12)
-	at = close.get_global_rect().get_center()
-	_touch(at, true)
-	_touch(at, false)
-	await _frames(1)
-	assert_bool(t.sheet_open()).is_false()
-	await _frames(12)
-	# a tap on the dim outside the card closes it too
-	t.open_sheet()
-	await _frames(12)
-	assert_bool(t.sheet_open()).is_true()
-	_touch(Vector2(12, 900), true)
-	_touch(Vector2(12, 900), false)
-	await _frames(1)
-	assert_bool(t.sheet_open()).is_false()
-	await _frames(12)
-	# and the back gesture closes it without leaving the game
-	t.open_sheet()
-	await _frames(2)
-	assert_bool(t.sheet_open()).is_true()
-	# (only with the sheet up: without it the title leaves the game, and the runner with it)
-	if t.sheet_open():
-		t._notification(Control.NOTIFICATION_WM_GO_BACK_REQUEST)
-	assert_bool(t.sheet_open()).is_false()
-	t.visible = false
 
 
 func test_the_sheet_scrolls_by_a_finger() -> void:

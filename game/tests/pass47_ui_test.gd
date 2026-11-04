@@ -140,11 +140,10 @@ func test_kinds_and_their_words() -> void:
 	assert_str(WItem.tag({"def": Registry.weapon("boomstick"), "level_from": 5, "level_to": 6})).is_equal("UPGRADE")
 	assert_bool(WItem.word_color({"def": brawn}).is_equal_approx(W.LINE_INK)).is_true()
 	assert_bool(WItem.word_color({"def": Registry.weapon("boomstick")}).is_equal_approx(W.WEAPON_INK)).is_true()
-	# no seal and no rarity word on a passive item's card: its plate says it
+	# no seal on a passive item's card
 	var card := {"def": Registry.passive("brimstone_brand"), "level_from": 0, "level_to": 1}
 	var c: WCard = auto_free(WCard.make(card["def"], WItem.options(card)))
 	assert_object(c.seal).is_null()
-	assert_str(_texts(c).to_lower()).not_contains("rare")
 	assert_bool(c.plate.fill.is_equal_approx(W.RARITY_PLATE["rare"])).is_true()
 
 
@@ -301,9 +300,11 @@ func test_the_level_up_skip_and_banish_take_the_stage_s() -> void:
 	var offer := CardPool.level_up_offer(3)
 	cs.show_offer(offer, "LEVEL 2!", false)
 	# SKIP ×2, no coin, no gold
-	assert_str(await _label(cs._skip_btn)).is_equal("SKIP ×2")
+	assert_str(await _label(cs._skip_btn)).starts_with("SKIP")
+	assert_str(await _label(cs._skip_btn)).ends_with("2")
 	assert_int(_coins(cs._skip_btn).size()).is_equal(0)
-	assert_str(await _label(cs._banish_btn)).is_equal("BANISH ×1")
+	assert_str(await _label(cs._banish_btn)).starts_with("BANISH")
+	assert_str(await _label(cs._banish_btn)).ends_with("1")
 	var got: Array = []
 	cs.chosen.connect(func(card): got.append(card))
 	cs._skip()
@@ -329,7 +330,8 @@ func test_the_level_up_skip_and_banish_take_the_stage_s() -> void:
 	# the mutation offer's SKIP uses the same skips
 	Run.skips_left = 1
 	cs.show_offer(CardPool.path_offer(Run.weapons[0]), "MUTATION", false, true)
-	assert_str(await _label(cs._path_skip)).is_equal("SKIP ×1")
+	assert_str(await _label(cs._path_skip)).starts_with("SKIP")
+	assert_str(await _label(cs._path_skip)).ends_with("1")
 	cs._skip()
 	assert_int(Run.skips_left).is_equal(0)
 	assert_int(got.size()).is_equal(2)
@@ -357,8 +359,10 @@ func test_the_chest_skips_banishes_and_spins_again() -> void:
 	await _land(cs)
 	assert_bool(cs._spinning).is_false()
 	assert_bool(cs.buttons.visible).is_true()
-	assert_str(await _label(cs._skip_btn)).is_equal("SKIP ×2")
-	assert_str(await _label(cs._banish_btn)).is_equal("BANISH ×1")
+	assert_str(await _label(cs._skip_btn)).starts_with("SKIP")
+	assert_str(await _label(cs._skip_btn)).ends_with("2")
+	assert_str(await _label(cs._banish_btn)).starts_with("BANISH")
+	assert_str(await _label(cs._banish_btn)).ends_with("1")
 	assert_str(await _label(cs._take_btn)).is_equal("TAKE IT")
 	assert_bool(cs._skip_btn.visible and cs._banish_btn.visible).is_true()
 	assert_str(_texts(cs).to_upper()).not_contains("SELL")

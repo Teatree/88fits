@@ -20,6 +20,8 @@ uniform float pad = 0.0;
 uniform float base_px = 8.0;
 uniform float radius = 6.0;
 uniform int shape = 0;
+// shape 2 (pass 124, a mutation's frame): a box with its corners cut by this many px
+uniform float cut_px = 0.0;
 uniform float edge_px = 4.0;
 uniform vec4 edge_color : source_color = vec4(0.055, 0.122, 0.29, 1.0);
 uniform float rim_px = 7.0;
@@ -57,6 +59,12 @@ float sd_box(vec2 p, vec2 h, float r) {
 
 // The same for this frame's own shape: a disc when the shape asks for one.
 float sd(vec2 p, vec2 h, float r) {
+	if (shape == 2) {
+		// the corners cut straight: the box and a diamond that takes `cut_px` off each corner
+		vec2 q = abs(p);
+		float box = max(q.x - h.x, q.y - h.y);
+		return max(box, (q.x + q.y - (h.x + h.y - cut_px)) * 0.7071);
+	}
 	if (shape == 1) {
 		return length(p) - min(h.x, h.y);
 	}

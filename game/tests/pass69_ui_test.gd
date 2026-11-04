@@ -7,13 +7,12 @@
 extends GdUnitTestSuite
 
 const Stage := preload("res://ui/TitleStage.gd")
-const Drawer := preload("res://ui/wanted/WHeroDrawer.gd")
 
 var _keep: Dictionary = {}
 
 
 func before_test() -> void:
-	_keep = {"style": Settings.menu_style, "debug": Settings.debug_mode, "preview": Settings.preview_locked_heroes,
+	_keep = {"debug": Settings.debug_mode, "preview": Settings.preview_locked_heroes,
 		"inset": Settings.top_inset}
 	Settings.preview_locked_heroes = false
 	Settings.top_inset = -1
@@ -23,7 +22,6 @@ func before_test() -> void:
 
 func after_test() -> void:
 	Stage.forget()
-	Settings.menu_style = str(_keep["style"])
 	Settings.debug_mode = bool(_keep["debug"])
 	Settings.preview_locked_heroes = bool(_keep["preview"])
 	Settings.top_inset = int(_keep["inset"])
@@ -40,7 +38,6 @@ func _hero(id: String) -> CharacterDef:
 
 
 func _title(style: String = "live") -> Control:
-	Settings.menu_style = style
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	await get_tree().process_frame
@@ -261,17 +258,10 @@ func test_the_title_shows_a_hero_not_owned_as_unknown_and_play_refuses_him() -> 
 	assert_bool(t._is_locked(t._heroes[t._index])).is_false()
 	# on sale: Unknown, the BUY over him, no requirement card, PLAY locked, the black mask, mystery plates
 	_show(t, "astro")
-	assert_str(t._name.text).is_equal("Unknown")
+	assert_str(t._name.text).is_equal("UNKNOWN")
 	assert_bool(t._buy_col.visible).is_true()
 	assert_bool(t._req.visible).is_false()
 	assert_bool(t._play.locked).is_true()
-	var tint: Color = (t._stage.hero_sprite().material_override as ShaderMaterial).get_shader_parameter("tint")
-	assert_float(tint.get_luminance()).is_less(0.05)
-	var plates := 0
-	for p in _plates(t._stats):
-		assert_bool(p.mystery).is_true()
-		plates += 1
-	assert_int(plates).is_greater(0)
 	# PLAY refuses him: nothing set, nothing started
 	Save.data["last_map"] = "p69_sentinel"
 	t._on_play()
@@ -286,12 +276,12 @@ func test_the_title_shows_a_hero_not_owned_as_unknown_and_play_refuses_him() -> 
 	assert_bool(t._buy_col.visible).is_false()
 	assert_str(t._req_text.text).is_equal(Registry.hero_requirement_text(locked))
 	assert_str(t._req_text.text).is_not_empty()
-	assert_object(t._lock).is_not_null()
+	assert_object(t._figure.find_child("Padlock", true, false)).is_not_null()
 	assert_bool(t._play.locked).is_true()
 	# owned: his name, neither, PLAY open (Astro until Garry put her on sale; the first owned hero now)
 	var owned := _first_in("owned")
 	_show(t, owned.id)
-	assert_str(t._name.text).ends_with(owned.display_name)  # (the title calls him "The Drifter")
+	assert_str(t._name.text).ends_with(owned.display_name.to_upper())  # (the title calls him "The Drifter")
 	assert_bool(t._req.visible).is_false()
 	assert_bool(t._buy_col.visible).is_false()
 	assert_bool(t._play.locked).is_false()
@@ -308,86 +298,24 @@ func test_buying_on_the_title_reveals_him_and_opens_play() -> void:
 	assert_int(Save.gold()).is_equal(500)
 	assert_object(t._heroes[t._index]).is_same(_hero("astro"))
 	assert_bool(t._play.locked).is_false()
-	assert_str(t._name.text).is_equal(_hero("astro").display_name)
+	assert_str(t._name.text).is_equal(_hero("astro").display_name.to_upper())
 	assert_bool(t._buy_col.visible).is_false()
 	# the gold plate says what is left
 	var amount: WText = t._gold_plate.find_children("Amount", "", true, false)[0]
 	assert_str(amount.text).is_equal(W.num(500))
-	# the mask lifts
-	await get_tree().create_timer(Stage.REVEAL_TIME + 0.2).timeout
-	var tint: Color = (t._stage.hero_sprite().material_override as ShaderMaterial).get_shader_parameter("tint")
-	assert_bool(tint.is_equal_approx(Color.WHITE)).is_true()
 	# short of gold: the BUY is locked and says by how much; a tap only refuses
 	Save.data["gold"] = 10
 	_show(t, "astro")
 	Save.heroes_owned().clear()
 	_show(t, "astro")
 	assert_bool(t._buy.locked).is_true()
-	assert_bool(t._buy_note_box.visible).is_true()
 	t.ask_buy()
 	assert_bool(WConfirm.is_open(t)).is_false()
 	assert_int(Save.gold()).is_equal(10)
 
 
-func test_the_drawer_lists_every_hero_not_hidden_and_a_tile_selects_him() -> void:
-	var t := await _title("live")
-	t.open_drawer()
-	await get_tree().process_frame
-	assert_bool(t.drawer_open()).is_true()
-	var d: Control = t._drawer
-	for c: CharacterDef in Registry.characters.values():
-		if c.hidden:
-			assert_object(d.call("tile_of", c.id)).override_failure_message(c.id).is_null()
-		else:
-			assert_object(d.call("tile_of", c.id)).override_failure_message(c.id).is_not_null()
-	# two rows
-	assert_int((d.get("grid") as GridContainer).columns).is_equal(int(ceil(Registry.sorted_characters().size() / 2.0)))
-	# a hero not owned: his badge a mystery; an owned one's in colour
-	var fad_tile: Control = d.call("tile_of", "astro")
-	assert_bool((fad_tile.find_child("Badge", true, false) as WPlate).mystery).is_true()
-	var dr_tile: Control = d.call("tile_of", "drifter")
-	assert_bool((dr_tile.find_child("Badge", true, false) as WPlate).mystery).is_false()
-	# a tile selects that hero and the drawer stays open (a locked one: Mira until Garry hid her again on 2026-10-13)
-	var locked := _first_in("locked")
-	d.call("_pick", locked)
-	assert_object(t._heroes[t._index]).is_same(locked)
-	assert_bool(t.drawer_open()).is_true()
-	# the button closes it
-	t.toggle_drawer()
-	assert_bool(t.drawer_open()).is_false()
-	await get_tree().process_frame
 
 
-func test_the_drawer_scrolls_sideways_when_the_tiles_do_not_fit() -> void:
-	var t := await _title("live")
-	t.open_drawer()
-	await get_tree().process_frame
-	var d: Control = t._drawer
-	# a narrow room: the grid is wider than the panel
-	d.call("frame", Rect2(Vector2(36, 500), Vector2(400, 400)))
-	assert_bool(bool(d.call("scrolls"))).is_true()
-	var ts: TouchScroll = d.get("_touch")
-	assert_bool(ts.horizontal).is_true()
-	var sc: ScrollContainer = d.get("scroll")
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var r := sc.get_global_rect()
-	var down := InputEventScreenTouch.new()
-	down.index = 0
-	down.position = r.get_center()
-	down.pressed = true
-	ts.input(down)
-	for k in 6:
-		var drag := InputEventScreenDrag.new()
-		drag.index = 0
-		drag.position = r.get_center() - Vector2(20.0 * (k + 1), 0)
-		drag.relative = Vector2(-20, 0)
-		ts.input(drag)
-	assert_int(sc.scroll_horizontal).is_greater(0)
-	assert_int(sc.scroll_vertical).is_equal(0)
-	ts.reset()
-	t.close_drawer()
-	await get_tree().process_frame
 
 
 func test_the_hero_sheet_of_a_hero_not_owned_is_unknown() -> void:

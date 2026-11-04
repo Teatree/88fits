@@ -38,7 +38,7 @@ func _kept(def) -> bool:
 
 
 const DEBUG_ON := {"debug_mode": true, "debug_panel": true, "debug_modal_buttons": true, "free_revive_button": true,
-	"hit_log": true, "preview_locked_heroes": true, "menu_style": "live", "ranged_on_screen": false, "pierce_falloff": false}
+	"hit_log": true, "preview_locked_heroes": true, "ranged_on_screen": false, "pierce_falloff": false}
 
 
 # ---------------------------------------------------------------- the switch
@@ -49,8 +49,7 @@ func test_the_dev_build_is_not_prod_and_keeps_its_switches() -> void:
 	Settings.from_dict(DEBUG_ON)
 	assert_bool(Settings.debug_mode).is_true()
 	assert_bool(Settings.hit_log).is_true()
-	# (pass 119: painted is the default and prod's lock, so the dev switch under test is live)
-	assert_str(Settings.menu_style).is_equal("live")
+	assert_bool(Settings.preview_locked_heroes).is_true()
 
 
 func test_prod_locks_every_developer_switch_at_the_players_default() -> void:
@@ -153,7 +152,6 @@ func test_prod_developer_menu_builds_nothing_and_goes_back() -> void:
 func test_prod_title_never_shows_the_arena() -> void:
 	Settings.force_prod(true)
 	Settings.debug_mode = true   # as if a save had slipped it through: the title asks is_prod itself too
-	Settings.menu_style = "painted"
 	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
 	add_child(t)
 	await get_tree().process_frame

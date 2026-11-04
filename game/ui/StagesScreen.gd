@@ -12,7 +12,7 @@
 ## starts nothing. A tap on an open one starts that stage as a fresh run with the hero chosen on the title (Run's stage
 ## launch, lane SGAME). The header: the back square (back to the title, as Esc and the back gesture do), "Stages", the
 ## chosen hero's badge on the right.
-## Pass 123 (lane STAGES_SETTINGS), under Royale (W.royale(); Wanted is built and drawn exactly as before): the mock
+## Pass 123 (lane STAGES_SETTINGS), under Royale: the mock
 ## 7_Stages (Garry: "Stages as the mock: slate cards, a gold START on each open card, the locked card saying what opens
 ## it; times and bosses from data"). Under the header the map and hero label and, on a black pill, the map's best run
 ## (Garry: "Move the run-history line (map, best time, level, stage, kills) to the Stages screen's header": the title's
@@ -80,9 +80,6 @@ const SHAKE_PX := 14.0
 const SHAKE_TIME := 0.32
 ## The art the stage pictures are looked for in when a stage names none (`shot`).
 const SHOT_PATH := "res://art/ui/stages/%s_s%d.jpg"
-## Pass 88 (lane STAGEMENU, Garry): the call to action under the header, its size.
-const CALL_TO_ACTION := "Choose a Stage"
-const CTA_PX := 52
 ## The difficulty words by level (1 = the first stage's), and what an unmet boss's name says (pass 88).
 const DIFFICULTY_WORDS := ["Easy", "Medium", "Hard", "Extremely Hard"]
 const BOSS_UNMET := "Boss not encountered yet"
@@ -100,40 +97,8 @@ static var _lock_mat: ShaderMaterial
 
 
 func build() -> void:
-	if W.royale():
-		_build_royale()
-		return
-	set_title("Stages")
-	map_id = str(Save.data.get("last_map", "red_canyon"))
-	if Registry.map(map_id) == null:
-		map_id = "red_canyon"
-	hero = Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
-	if hero and header:
-		var p := WPlate.new().for_def(Registry.played_look(hero), 100.0)
-		p.border = 5
-		p.fill = W.AGED
-		p.name = "Hero"
-		header.set_right(p)
-	content.add_theme_constant_override("separation", CARD_GAP)
-	var m := Registry.map(map_id)
-	var top := W.label("%s · %s" % [m.display_name if m else map_id, hero.display_name if hero else ""], 22, W.INK_SOFT)
-	top.custom_minimum_size.y = 24
-	# pass 88 (Garry: 'Add a call to Action. "Choose a Stage"'): the screen's call under the map and hero line
-	var head := VBoxContainer.new()
-	head.name = "Head"
-	head.add_theme_constant_override("separation", 4)
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	head.add_child(top)
-	var cta := W.slab_text(CALL_TO_ACTION, CTA_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, CTA_PX * 1.1)
-	cta.name = "CallToAction"
-	head.add_child(cta)
-	content.add_child(head)
-	var list := entries(m)
-	for i in list.size():
-		var c := _card(m, list, i)
-		_cards.append(c)
-		content.add_child(c)
-	UiFx.stagger(content, 0.06)
+	_build_royale()
+	return
 
 
 func use_header() -> bool:
@@ -141,7 +106,7 @@ func use_header() -> bool:
 
 
 func board_top() -> float:
-	return R_TOP if W.royale() else 196.0
+	return R_TOP
 
 
 func board_bottom() -> float:
@@ -149,7 +114,7 @@ func board_bottom() -> float:
 
 
 func board_side() -> float:
-	return R_SIDE if W.royale() else super.board_side()
+	return R_SIDE
 
 
 ## The cards in order (tests and tools).

@@ -240,84 +240,17 @@ func test_the_thud_and_the_boom_are_bound() -> void:
 		for id in list:
 			bound = bound or not Registry.soundmap.entry(str(id)).is_empty()
 		assert_bool(bound).override_failure_message(str(list)).is_true()
-	assert_bool(BootScript.palette("chip_ink").is_equal_approx(W.INK)).is_true()
-	assert_bool(BootScript.palette("chip_brass").is_equal_approx(W.BRASS)).is_true()
+	assert_bool(BootScript.palette("chip_ink").is_equal_approx(R.NAVY)).is_true()
+	assert_bool(BootScript.palette("chip_brass").is_equal_approx(R.GOLD_TEXT)).is_true()
 
 
 # ---------------------------------------------------------------- the painted title
 
-func test_painted_is_the_default() -> void:
-	var script: GDScript = load("res://core/autoload/Settings.gd")
-	var s: Node = auto_free(script.new())
-	assert_str(s.menu_style).is_equal("painted")
-	assert_str(script.MENU_STYLE_DEFAULT).is_equal("painted")
-	assert_str(str(script.PROD_LOCKED["menu_style"])).is_equal("painted")
-	s.from_dict({})
-	assert_str(s.menu_style).is_equal("painted")
-	s.from_dict({"menu_style": "live"})
-	assert_str(s.menu_style).is_equal("live")
-	s.from_dict({"menu_style": "fancy"})
-	assert_str(s.menu_style).is_equal("painted")
-	assert_str(str(Save._default()["settings"].get("menu_style", "painted"))).is_equal("painted")
 
 
 ## Every save is switched to painted once (a save from before holds "live"); the flag goes on every save, a new one too,
 ## and after it the save's own pick sticks.
-func test_every_save_switches_to_painted_once() -> void:
-	Save.dir = DIR
-	_clear()
-	# a save that played the live title (pass 53's default)
-	_write(Save.path(), JSON.stringify({"version": Save.VERSION, "gold": 7, "once": ["seen_migrated"],
-		"settings": {"menu_style": "live", "music_volume": 0.3}}))
-	Save.load_save()
-	assert_str(Save.loaded_from).is_equal("save")
-	assert_str(str(Save.data["settings"]["menu_style"])).is_equal("painted")
-	assert_str(Settings.menu_style).is_equal("painted")
-	assert_bool(Save.once(Save.PAINTED_ONCE)).is_true()
-	assert_float(Settings.music_volume).is_equal_approx(0.3, 0.0001)
-	assert_int(Save.gold()).is_equal(7)
-	assert_bool(Save._dirty).is_true()
-	# Garry switches back to live in the dev build's debug panel: it sticks
-	_write(Save.path(), JSON.stringify({"version": Save.VERSION, "once": ["seen_migrated", Save.PAINTED_ONCE],
-		"settings": {"menu_style": "live"}}))
-	Save.load_save()
-	assert_str(Settings.menu_style).is_equal("live")
-	assert_str(str(Save.data["settings"]["menu_style"])).is_equal("live")
-	# a clean save: painted, and flagged so nothing moves it later
-	_clear()
-	Save.load_save()
-	assert_str(Save.loaded_from).is_equal("new")
-	assert_str(Settings.menu_style).is_equal("painted")
-	assert_bool(Save.once(Save.PAINTED_ONCE)).is_true()
 
 
 ## The production build: the title is painted whatever the save says, and Settings offers no choice even if the debug
 ## panel were shown; the dev build's debug panel keeps both buttons.
-func test_prod_is_always_painted_and_offers_no_choice() -> void:
-	Settings.debug_mode = true
-	Settings.menu_style = "painted"
-	var dev: Control = auto_free(load("res://ui/SettingsScreen.tscn").instantiate())
-	add_child(dev)
-	await get_tree().process_frame
-	var choice = dev.find_child("MenuStyle", true, false)
-	assert_object(choice).is_not_null()
-	assert_int(choice.index).is_equal(0)
-	dev.visible = false
-	Settings.force_prod(true)
-	assert_str(Settings.menu_style).is_equal("painted")
-	assert_bool(Settings.debug_mode).is_false()
-	Settings.set_value("menu_style", "live")
-	assert_str(Settings.menu_style).is_equal("painted")
-	# as if a save had slipped both past the lock: the screens ask is_prod themselves
-	Settings.debug_mode = true
-	Settings.menu_style = "live"
-	var s: Control = auto_free(load("res://ui/SettingsScreen.tscn").instantiate())
-	add_child(s)
-	await get_tree().process_frame
-	assert_object(s.find_child("MenuStyle", true, false)).is_null()
-	s.visible = false
-	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
-	add_child(t)
-	await get_tree().process_frame
-	assert_bool(t._live).is_false()
-	t.visible = false

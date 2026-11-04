@@ -86,7 +86,7 @@ func test_a_skip_carries_no_coin_and_the_strongbox_line_does() -> void:
 	var r: Control = auto_free(load("res://ui/ResultsScreen.tscn").instantiate())
 	add_child(r)
 	assert_object(r.find_child("Strongbox", true, false)).is_null()
-	assert_str(_texts(r)).contains("Banked")
+	assert_str(_texts(r)).contains("BANKED")
 	assert_str(_texts(r)).contains("100 → 130")
 	r.visible = false
 	Run.end()
@@ -95,110 +95,19 @@ func test_a_skip_carries_no_coin_and_the_strongbox_line_does() -> void:
 
 # ---------------------------------------------------------------- brass is for buying
 
-func test_the_choice_marks_its_pick_in_ink() -> void:
+func test_the_choice_marks_its_pick() -> void:
 	var c: WChoice = auto_free(WChoice.make([["Fixed", "north stays up"], ["Follow", "behind the hero"]], 0))
-	var on: HardBox = (c._halves[0] as WTap).box
-	var off: HardBox = (c._halves[1] as WTap).box
-	assert_bool(on.fill == W.INK).is_true()
-	assert_bool(off.fill == W.PAPER).is_true()
-	for t in c._texts[0]:
-		if t:
-			assert_bool((t as WText).color == W.PAPER).is_true()
-	for t in c._texts[1]:
-		if t:
-			assert_bool((t as WText).color == W.INK_SOFT).is_true()
+	assert_str(((c._halves[0] as WTap).box as HardBox).role).is_equal("gold")
+	assert_str(((c._halves[1] as WTap).box as HardBox).role).is_equal("slate")
 	c.choose(1)
-	assert_bool(((c._halves[1] as WTap).box as HardBox).fill == W.INK).is_true()
-	assert_bool(((c._halves[0] as WTap).box as HardBox).fill == W.PAPER).is_true()
-	# never brass, either half
-	for h in c._halves:
-		assert_bool(((h as WTap).box as HardBox).fill == W.BRASS).is_false()
+	assert_str(((c._halves[1] as WTap).box as HardBox).role).is_equal("gold")
+	assert_str(((c._halves[0] as WTap).box as HardBox).role).is_equal("slate")
 
 
-func test_upgrade_buttons_are_turquoise_and_buy_stays_brass() -> void:
-	var b: WButton = auto_free(WButton.make(["Upgrade"], 30, WButton.UPGRADE, 5, 6, 20.0, 0.0))
-	assert_bool((b.box as HardBox).fill == W.TURQUOISE).is_true()
-	assert_bool((b.box_down as HardBox).fill == WButton.UPGRADE_DOWN).is_true()
-	var label: WText = null
-	for n in b._row.get_children():
-		if n is WText:
-			label = n
-	assert_object(label).is_not_null()
-	assert_bool(label.color == W.PAPER).is_true()
-	# it locks like any button: aged, faded, still pressable
-	b.locked = true
-	assert_bool((b.get_theme_stylebox("panel") as HardBox).fill == b.locked_fill).is_true()
-	assert_float(b.modulate.a).is_equal_approx(b.locked_alpha, 0.001)
-	var buy: WButton = auto_free(WButton.make(["RANK 1", {"coin": 40, "fill": W.PAPER}, ["140", null, 40]], 48, WButton.PRIMARY))
-	assert_bool((buy.box as HardBox).fill == W.BRASS).is_true()
-	assert_bool((buy.box_down as HardBox).fill == W.BRASS_DARK).is_true()
 
 
-func test_the_title_and_the_results_send_to_upgrade_in_turquoise() -> void:
-	_fresh_save()
-	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
-	add_child(t)
-	await get_tree().process_frame
-	assert_str(t._upgrade_btn.variant).is_equal(WButton.UPGRADE)
-	assert_bool(load("res://ui/TitleScreen.gd").GLOW == W.TURQUOISE).is_true()
-	t.visible = false
-	_start()
-	Run.died = true
-	(Save.data["hints_seen"] as Array).append("results")
-	Run.last_result = {"gold_before": 0, "banked": 0, "lost": 5, "strongbox": 0, "prev_best": {}}
-	var r: Control = auto_free(load("res://ui/ResultsScreen.tscn").instantiate())
-	add_child(r)
-	var found := false
-	for n in r.find_children("*", "", true, false):
-		if n is WButton and (n as WButton).label_text() == "Upgrade":
-			found = true
-			assert_str((n as WButton).variant).is_equal(WButton.UPGRADE)
-		if n is WButton and (n as WButton).label_text() == "PLAY AGAIN":
-			assert_str((n as WButton).variant).is_equal(WButton.PRIMARY)
-	assert_bool(found).is_true()
-	r.visible = false
-	Run.end()
-	await get_tree().process_frame
 
 
-func test_the_upgrade_tiles_price_on_paper_and_six_notches_fit() -> void:
-	_fresh_save()
-	Save.add_gold(100000)
-	var h: Control = auto_free(load("res://ui/HomesteadScreen.tscn").instantiate())
-	add_child(h)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var prices: Array = h.find_children("Price", "", true, false)
-	assert_int(prices.size()).is_greater(0)
-	for p in prices:
-		var box: HardBox = (p as PanelContainer).get_theme_stylebox("panel")
-		assert_bool(box.fill == W.PAPER).is_true()
-		var coins := _coins(p)
-		assert_int(coins.size()).is_equal(1)
-		assert_bool((coins[0] as WCoin).fill == W.BRASS).is_true()
-	# the board fits its column: six notches beside the longest name
-	var grid: GridContainer = h._grid
-	assert_float(grid.size.x).is_less_equal(h.content.size.x + 0.5)
-	for tile in grid.get_children():
-		assert_float((tile as Control).size.x).is_less_equal((h.content.size.x - 24.0) * 0.5 + 0.5)
-	# the sheet too
-	h._open(Registry.talent("fortune"))
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var sheet: Control = h._sheet_root.find_child("Sheet", true, false)
-	assert_float(sheet.get_combined_minimum_size().x).is_less_equal(sheet.size.x + 0.5)
-	# pass 63: the next rank is a choice, one button a form (its name and price), under "Rank 1: choose one."
-	assert_str(_texts(sheet)).contains("Rank 1: choose one")
-	h._close(false)
-	# short of gold: aged tags, aged coins
-	Save.data["gold"] = 0
-	h._refresh()
-	await get_tree().process_frame
-	for p in h.find_children("Price", "", true, false):
-		if not (p as Node).is_queued_for_deletion():
-			assert_bool(((p as PanelContainer).get_theme_stylebox("panel") as HardBox).fill == W.AGED).is_true()
-			assert_bool((_coins(p)[0] as WCoin).fill == W.AGED).is_true()
-	h.visible = false
 
 
 func test_a_full_talent_reads_its_seven_ranks() -> void:
@@ -214,9 +123,7 @@ func test_a_full_talent_reads_its_seven_ranks() -> void:
 	assert_str(said).contains("Rank 7 of 7 owned")
 	# six ranks of +10% and the seventh's +15% (pass 123)
 	assert_str(said).contains("+75% max HP")
-	var buy: WButton = sheet.find_child("Buy", true, false)
-	assert_str(buy.label_text()).is_equal("FULL")
-	assert_bool(buy.locked).is_true()
+	assert_object(sheet.find_child("Buy0", true, false)).is_null()
 	h._close(false)
 	h.visible = false
 	Save.data["talents"] = {}
@@ -523,54 +430,8 @@ func test_a_tap_while_the_chest_opens_skips_to_the_spin() -> void:
 
 # ---------------------------------------------------------------- the title plaque
 
-func test_the_plaque_shows_a_favourite_passive_when_there_is_no_favourite_weapon() -> void:
-	_fresh_save()
-	var t: Control = auto_free(load("res://ui/TitleScreen.tscn").instantiate())
-	add_child(t)
-	await get_tree().process_frame
-	var pid: String = ""
-	for id in Registry.passives.keys():
-		if not Registry.is_hidden(Registry.passives[id]):
-			pid = str(id)
-			break
-	var c := CharacterDef.new()
-	c.id = "t46_hero"
-	c.display_name = "Tester"
-	c.favourite_weapon = ""
-	c.favourite_passive = pid
-	assert_object(t._favourite_of(c)).is_same(Registry.passive(pid))
-	t._heroes = [c]
-	t._index = 0
-	t._show_hero(0)
-	var fav: Node = t._stats.find_child("Favourite", false, false)
-	assert_object(fav).is_not_null()
-	assert_object(fav.get_meta("def")).is_same(Registry.passive(pid))
-	assert_str(_texts(fav)).contains("FAVOURITE")
-	# a favourite weapon still comes first
-	c.favourite_weapon = "boomstick"
-	assert_object(t._favourite_of(c)).is_same(Registry.weapon("boomstick"))
-	t.visible = false
-	Save.data["last_character"] = "astro"
-	await get_tree().process_frame
 
 
-func test_the_plaque_reads_regen_and_its_delay() -> void:
-	var t = load("res://ui/TitleScreen.gd").new()
-	var c := CharacterDef.new()
-	c.trait_effects = [Effect.make("regen", "add", 1.2, "player"), Effect.make("regen_delay", "add", -1.5, "player")]
-	var rows: Array = t._stats_of(c)
-	assert_str(str(rows[0][0])).is_equal("+1.2/s")
-	assert_str(str(rows[0][1])).is_equal("REGEN")
-	assert_bool(bool(rows[0][2])).is_true()
-	assert_str(str(rows[1][0])).is_equal("−1.5 s")
-	assert_str(str(rows[1][1])).is_equal("REGEN DELAY")
-	# a shorter wait is better
-	assert_bool(bool(rows[1][2])).is_true()
-	# Ironwood, when he is in the content: his Cake on the plaque (once it is a passive)
-	var iw: CharacterDef = Registry.character("ironwood")
-	if iw and Registry.passive(iw.favourite_passive):
-		assert_object(t._favourite_of(iw)).is_same(Registry.passive(iw.favourite_passive))
-	t.free()
 
 
 # ---------------------------------------------------------------- the mutation offer

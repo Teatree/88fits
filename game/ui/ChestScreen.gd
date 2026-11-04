@@ -20,8 +20,7 @@
 ## strikes only a new item (Run.banish_refusal: the next level of anything the hero holds and a path mutation of one of
 ## his weapons lock it) and a tap says why (Garry: "Banish option should not allow Banishing items that Player already
 ## has"); a turning shine (WShine) stands behind the chest as it opens and behind the landed plate after.
-## Pass 122 (lane UICHEST), under Royale (W.royale(); the Wanted screen is drawn exactly as before while the switch is
-## off; Garry's build brief on Claude Design's "Royale, refined": "Chest as the mock: the item framed over rays, a slate
+## Pass 122 (lane UICHEST; Garry's build brief on Claude Design's "Royale, refined": "Chest as the mock: the item framed over rays, a slate
 ## name card with the stat row, SKIP · BANISH · TAKE IT", "Make the Stars more visible though ... Also make the Header
 ## text white"): the 80 % black dim, the header's words in cream Ultra with the navy edge (the star line gold, the
 ## mutation chest's purple), the landed item a 320 px Royale frame (BIG_ROYALE, the mock's; a legendary's thick gold rim,
@@ -265,15 +264,13 @@ func light_colour() -> Color:
 	if boss_look:
 		return BOSS_LIGHT
 	var gold: Color = R.role("gold")["bottom"]
-	return gold if W.royale() else W.BRASS
+	return gold
 
 
 ## The title's colour (pass 122): brass, or the boss chest's purple, under Wanted; cream under Royale for both (Garry:
 ## "make the Header text white"; the brief: screen titles in cream with the navy edge, gold only for what acts at once).
 func title_colour(boss: bool) -> Color:
-	if W.royale():
-		return R.CREAM
-	return BOSS_TITLE_COLOR if boss else W.BRASS
+	return R.CREAM
 
 
 ## The star line's colour (pass 122): paper (gold under Royale, by the kit) for the loot chest; the boss chest's purple,
@@ -281,8 +278,8 @@ func title_colour(boss: bool) -> Color:
 func star_colour(boss: bool) -> Color:
 	if not boss:
 		return W.PAPER
-	var light: Color = R.MUTATION["light"]   # pass 123: the mutations' own colour
-	return light if W.royale() else BOSS_TITLE_COLOR
+	var light: Color = R.MUTATION["word"]   # pass 123: the mutations' own colour
+	return light
 
 
 ## The header for the chest about to open (pass 54): MUTATION CHEST in purple under "★ A PATH OPENS ★" for the boss's,
@@ -297,9 +294,8 @@ func style_header(boss: bool) -> void:
 	else:
 		header.set_title_fit("CHEST", 150, title_colour(false))
 		header.set_star("Loot", star_colour(false))
-	if W.royale():
-		R.edge(header.title, header.title.font_size, false)
-		header.title.bevel = 0
+	R.edge(header.title, header.title.font_size, false)
+	header.title.bevel = 0
 	_beam.queue_redraw()
 	_hero_glow.queue_redraw()
 
@@ -402,7 +398,7 @@ func _shine_reset(boss: bool) -> void:
 	else:
 		# pass 122: the kit's gold and cream under Royale (WShine.make maps them; a colour set by hand does not)
 		_shine.color = light_colour()
-		_shine.color2 = R.CREAM if W.royale() else W.PAPER
+		_shine.color2 = R.CREAM
 	_kill_shine_tween()
 	_shine.center = _mouth
 	_shine.radius = SHINE_CHEST_R
@@ -594,7 +590,6 @@ func _land() -> void:
 	# the landed plate: 420 px in brass (or its kind's colour), a 14 px shadow and the glow; pass 122, under Royale: the
 	# mock's 320 px frame on the same middle, the kit's rays behind it, its level plaque, the frame's own glow (the brass
 	# glow box stays hidden)
-	var royale := W.royale()
 	var big := landed_side()
 	_hero = WPlate.new()
 	if def:
@@ -603,7 +598,7 @@ func _land() -> void:
 		var pd := WPlate.path_of(def)
 		if pd.y > 0:
 			_hero.set_dots(pd)
-		if royale and (def is WeaponDef or def is PassiveDef):
+		if (def is WeaponDef or def is PassiveDef):
 			# "LV n" under a weapon, a Card or a passive item (an evolved one says EVO by itself); no kind disc on this
 			# frame: the plaque would clip it at 320 px, the card under it says WEAPON or CARD, and the mock has none (the
 			# reel's passing tiles keep theirs)
@@ -617,7 +612,7 @@ func _land() -> void:
 	_hero.radius = 24
 	_hero.shadow = 14
 	_hero.icon_frac = 0.78
-	_hero.rays = royale
+	_hero.rays = true
 	_hero.position = Vector2((w - big) * 0.5, REEL_Y + (BIG - big) * 0.5)
 	_hero.pivot_offset = Vector2(big, big) * 0.5
 	_reel.add_child(_hero)
@@ -628,7 +623,7 @@ func _land() -> void:
 		_hero.add_child(coin)
 	_hero_glow.position = _hero.position - Vector2(90, 90)
 	_hero_glow.size = Vector2(big + 180, big + 180)
-	_hero_glow.visible = not royale
+	_hero_glow.visible = false
 	_hero_glow.queue_redraw()
 	var tw := create_tween()
 	_hero.scale = Vector2.ONE * (SMALL / big)
@@ -674,12 +669,11 @@ func _show_result(kind: String, def: ContentDef) -> void:
 	_changes_host.visible = false
 	_effect.visible = true
 	# pass 122: the card laid out for the theme (the mock's left-aligned slate card under Royale; centred paper under Wanted)
-	var royale := W.royale()
-	_lay_card(royale)
+	_lay_card()
 	if def == null:
 		_word.text = "GOLD"
 		_word.color = W.BRASS_DARK
-		_word.runs = [["GOLD", R.GOLD_TEXT]] if royale else []
+		_word.runs = [["GOLD", R.GOLD_TEXT]]
 		_name.text = "+%s gold" % W.num(int(_result.get("gold", 50)))
 		_effect.text = "Straight into the purse."
 		return
@@ -687,7 +681,7 @@ func _show_result(kind: String, def: ContentDef) -> void:
 	_word.color = WItem.word_color(_result)
 	# under Royale the word line is the kit's (WCard.royale_word: the kind in the secondary blue, a passive item's rarity or
 	# rung after it in that rarity's light colour; a weapon or a Card says its kind alone)
-	_word.runs = _royale_word_runs(def) if royale else []
+	_word.runs = _royale_word_runs(def)
 	_name.text = def.display_name
 	# the hero's favourite (pass 62): FAVOURITE before the tag, a brass heart on the landed plate's corner
 	if WItem.favourite(_result):
@@ -717,22 +711,20 @@ func _show_result(kind: String, def: ContentDef) -> void:
 	_effect.visible = false
 	_changes = WCard.change_rows(rows, CHANGE_PX)
 	# the rows centred CHANGES_W wide; under Royale across the card, as the mock's "Damage ····· 9.6 → 11.5" (pass 122)
-	_changes.custom_minimum_size.x = card_inner_width() if royale else CHANGES_W
+	_changes.custom_minimum_size.x = card_inner_width()
 	_changes_host.add_child(_changes)
 	_changes_host.visible = true
 
 
 ## The landed plate's side: 436 under Wanted, the mock's 320 px frame under Royale (pass 122).
 func landed_side() -> float:
-	return BIG_ROYALE if W.royale() else BIG
+	return BIG_ROYALE
 
 
 ## A button's vertical padding for its face (pass 122): `wanted_pad` under Wanted; under Royale half of what Ultra's line
 ## box at `px` lacks against Alfa Slab's is added, so the button is as tall as its Wanted self and the row's rects hold
 ## (a replay's and the audit's taps land where they were).
 static func button_pad_v(px: int, wanted_pad: float) -> float:
-	if not W.royale():
-		return wanted_pad
 	var slab := W.normal_height(W._base(W.SLAB_PATH), px)
 	var ultra := W.normal_height(W.slab_for(px), px)
 	return wanted_pad + (slab - ultra) * 0.5
@@ -747,16 +739,16 @@ func card_inner_width() -> float:
 ## at 66, the stars and the effect line all from the left); under Wanted everything centred as _ready made it (set again
 ## here, so a theme switched during a run finds the card as its screen was built). The faces and colours stay those of
 ## the build (the kit's rule: a change takes effect on the next screen built).
-func _lay_card(royale: bool) -> void:
-	_word_row.alignment = BoxContainer.ALIGNMENT_BEGIN if royale else BoxContainer.ALIGNMENT_CENTER
-	var px := NAME_PX_ROYALE if royale else NAME_PX
+func _lay_card() -> void:
+	_word_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	var px := NAME_PX_ROYALE
 	_name.font_size = px
 	_name.line_height = float(px)
-	_name.align = HORIZONTAL_ALIGNMENT_LEFT if royale else HORIZONTAL_ALIGNMENT_CENTER
-	if royale and R.is_display(_name.font):
+	_name.align = HORIZONTAL_ALIGNMENT_LEFT
+	if R.is_display(_name.font):
 		R.edge(_name, px, false)
-	_marks_host.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if royale else Control.SIZE_FILL
-	_effect.align = HORIZONTAL_ALIGNMENT_LEFT if royale else HORIZONTAL_ALIGNMENT_CENTER
+	_marks_host.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_effect.align = HORIZONTAL_ALIGNMENT_LEFT
 
 
 ## The word line's runs under Royale (pass 122): WCard.royale_word's for the landed item (its frame's rarity read off the
@@ -772,12 +764,8 @@ func _royale_word_runs(def: ContentDef) -> Array:
 ## locked too on what cannot be banished (can_banish), SKIP on gold. Pass 122, under Royale: the count is the kit's navy
 ## pill with a gold number (grey at none) inside the slate button (the label reads the same, "SKIP ×2").
 func _refresh_buttons() -> void:
-	if W.royale():
-		_skip_btn.set_parts(["SKIP ", {"count": Run.skips_left}])
-		_banish_btn.set_parts(["BANISH ", {"count": Run.banishes_left}])
-	else:
-		_skip_btn.set_parts(["SKIP ", ["×%d" % Run.skips_left, W.BRASS_DARK]])
-		_banish_btn.set_parts(["BANISH ", ["×%d" % Run.banishes_left, W.BRASS_DARK]])
+	_skip_btn.set_parts(["SKIP ", {"count": Run.skips_left}])
+	_banish_btn.set_parts(["BANISH ", {"count": Run.banishes_left}])
 	_skip_btn.locked = Run.skips_left <= 0 or is_gold(_result)
 	_banish_btn.locked = Run.banishes_left <= 0 or not can_banish(_result)
 

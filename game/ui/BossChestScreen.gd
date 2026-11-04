@@ -19,7 +19,7 @@
 ## A tap before the burst goes straight to it; a tap during the spew hurries the rest into HURRY seconds (hurry); CLAIM
 ## (claim) closes and Game pays out. A tool claims at once (claim finishes the count first). Raw touch and the mouse both
 ## tap (the button is a WButton); RunReplay records the hurry and the claim.
-## Pass 123 (lane RUN_B), under Royale (W.royale(); Wanted is drawn exactly as before): the mock 8_Boss_chest with Garry's
+## Pass 123 (lane RUN_B), under Royale: the mock 8_Boss_chest with Garry's
 ## note ("Boss chest as the mock: speed bonus panel, the painted chest and loot party kept, GOLD and EXP panels, CLAIM in
 ## gold"; "Header text white"): "★ BOSS CHEST ★" in the kit's gold over the boss's chest's name in cream Ultra (fitted);
 ## the SPEED BONUS a slate panel across the screen (ROYALE_SIDE in, ROYALE_METER_Y down, ROYALE_METER_H tall): the label,
@@ -202,7 +202,7 @@ func _ready() -> void:
 	# pass 119: the party over the chest and under everything that reads (the title, the meter, the banner, the counters)
 	_party = _layer(self, _draw_party)
 	# pass 123, Royale: the header's words cream (Garry: "Header text white"), set again with the boss's name on open
-	build_header("Boss chest", "CHEST", "", 128, W.PAPER if W.royale() else W.BRASS)
+	build_header("Boss chest", "CHEST", "", 128, W.PAPER)
 	_meter = _layer(self, _draw_meter)
 	_banner = _layer(self, _draw_banner)
 	_counters = _layer(self, _draw_counters)
@@ -245,10 +245,9 @@ func open(id: String, p: Dictionary) -> void:
 	_frames = BossChest.paintings(id)
 	_vp = get_viewport_rect().size
 	_layout()
-	var royale := W.royale()
-	header.set_title_fit(str(look["name"]).to_upper(), 128, W.PAPER if royale else W.BRASS, _vp.x - 96.0)
+	header.set_title_fit(str(look["name"]).to_upper(), 128, W.PAPER, _vp.x - 96.0)
 	# (Royale: the star line the kit's gold, as every star line over a modal)
-	header.set_star("Boss chest", W.BRASS if royale else shine.lightened(0.3))
+	header.set_star("Boss chest", W.BRASS)
 	header.set_line("")
 	(_shine as WShineScript).tint(shine)
 	(_shine as WShineScript).color2 = W.LINE_YELLOW
@@ -296,12 +295,11 @@ func _layout() -> void:
 	_banner_y = (_foot.y + _gold_rect.position.y) * 0.5 + 6.0
 	var top := W.safe_top() + 110.0 + 230.0
 	_meter_rect = Rect2(cx - 400.0, top, 800.0, 156.0)
-	if W.royale():
-		# pass 123: the mock's panels: the meter across the screen under the header, GOLD and EXP as wide as it between them
-		var w2 := (_vp.x - 2.0 * ROYALE_SIDE - ROYALE_GAP) * 0.5
-		_gold_rect = Rect2(ROYALE_SIDE, bottom - COUNTER_H, w2, COUNTER_H)
-		_xp_rect = Rect2(_vp.x - ROYALE_SIDE - w2, bottom - COUNTER_H, w2, COUNTER_H)
-		_meter_rect = Rect2(ROYALE_SIDE, W.safe_top() + ROYALE_METER_Y, _vp.x - 2.0 * ROYALE_SIDE, ROYALE_METER_H)
+	# pass 123: the mock's panels: the meter across the screen under the header, GOLD and EXP as wide as it between them
+	var w2 := (_vp.x - 2.0 * ROYALE_SIDE - ROYALE_GAP) * 0.5
+	_gold_rect = Rect2(ROYALE_SIDE, bottom - COUNTER_H, w2, COUNTER_H)
+	_xp_rect = Rect2(_vp.x - ROYALE_SIDE - w2, bottom - COUNTER_H, w2, COUNTER_H)
+	_meter_rect = Rect2(ROYALE_SIDE, W.safe_top() + ROYALE_METER_Y, _vp.x - 2.0 * ROYALE_SIDE, ROYALE_METER_H)
 
 
 ## The pieces: the coins and the gems in one shuffled order (the screen's own dice: the run's never move), each sent out at
@@ -497,13 +495,9 @@ static func _roll(shown: float, target: float, dt: float) -> float:
 func _redraw() -> void:
 	for c: Control in [_rays, _chest, _party, _meter, _banner, _counters, _fx]:
 		c.queue_redraw()
-	if W.royale():
-		# pass 123: the Royale panels fade in by their layer's alpha (their boxes are the kit's shared ones, drawn opaque)
-		_meter.modulate.a = _meter_alpha()
-		_counters.modulate.a = _counters_alpha()
-	else:
-		_meter.modulate.a = 1.0
-		_counters.modulate.a = 1.0
+	# pass 123: the Royale panels fade in by their layer's alpha (their boxes are the kit's shared ones, drawn opaque)
+	_meter.modulate.a = _meter_alpha()
+	_counters.modulate.a = _counters_alpha()
 
 
 ## How far the speed bonus and the counters have come in (0..1), on the screen's clock.
@@ -909,43 +903,8 @@ func _draw_meter() -> void:
 	var a := clampf((_t - 0.15) / 0.3, 0.0, 1.0)
 	if a <= 0.0:
 		return
-	if W.royale():
-		_draw_meter_royale(a)
-		return
-	var r := _meter_rect
-	_meter.draw_set_transform(Vector2(0.0, 30.0 * (1.0 - a)), 0.0, Vector2.ONE)
-	_meter.draw_rect(Rect2(r.position + Vector2(8, 8), r.size), Color(W.INK, 0.9 * a))
-	_meter.draw_rect(r, Color(W.INK, a))
-	_meter.draw_rect(r.grow(-5.0), Color(W.PAPER, a))
-	var slab := W.slab()
-	var mult := float(pack.get("mult", 1.0))
-	var fight := float(pack.get("fight", -1.0))
-	_meter.draw_string(slab, r.position + Vector2(28, 50), "SPEED BONUS", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(W.INK_SOFT, a))
-	var mcol := W.EMBER if mult >= 1.5 else (W.BRASS_DARK if mult > 1.001 else W.INK_SOFT)
-	_meter.draw_string(slab, r.position + Vector2(28, 126), "×%s" % _mult_text(mult), HORIZONTAL_ALIGNMENT_LEFT, -1, 78, Color(mcol, a))
-	var line := ("Killed in %s" % W.mmss(fight)) if fight >= 0.0 else "Boss down"
-	if mult <= 1.001:
-		line += " · faster pays more"
-	var serif := W.serif(600)
-	var gx := 250.0
-	var gw := r.size.x - gx - 28.0
-	_meter.draw_string(serif, r.position + Vector2(gx, 48), line, HORIZONTAL_ALIGNMENT_RIGHT, gw, 28 if mult > 1.001 else 24, Color(W.INK, a))
-	# the gauge: x1 at the left, the map's top at the right, filled to this kill's bonus as the meter comes in
-	var tl = Run.map.timeline if Run.map else null
-	var top := float(BossChest.config(tl)["max_mult"])
-	var g := Rect2(r.position + Vector2(gx, 66), Vector2(gw, 34))
-	var fill := clampf((mult - 1.0) / maxf(top - 1.0, 0.0001), 0.0, 1.0) * clampf((_t - 0.3) / 0.6, 0.0, 1.0)
-	_meter.draw_rect(g, Color(W.INK, a))
-	_meter.draw_rect(g.grow(-4.0), Color(W.AGED, a))
-	if fill > 0.0:
-		_meter.draw_rect(Rect2(g.position + Vector2(4, 4), Vector2((g.size.x - 8.0) * fill, g.size.y - 8.0)), Color(mcol if mult > 1.001 else W.BRASS, a))
-	_meter.draw_string(serif, g.position + Vector2(0, 62), "×1", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(W.INK_SOFT, a))
-	_meter.draw_string(serif, g.position + Vector2(0, 62), "×%s" % _mult_text(top), HORIZONTAL_ALIGNMENT_RIGHT, g.size.x, 24, Color(W.INK_SOFT, a))
-	# this kill's mark on the gauge
-	if fill > 0.0:
-		var mx := g.position.x + 4.0 + (g.size.x - 8.0) * fill
-		_meter.draw_rect(Rect2(mx - 3.0, g.position.y - 6.0, 6.0, g.size.y + 12.0), Color(W.INK, a))
-	_meter.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_draw_meter_royale(a)
+	return
 
 
 ## Pass 123: the speed bonus as the mock's slate panel (its alpha is the layer's, _redraw): SPEED BONUS and "Killed in
@@ -1066,15 +1025,10 @@ func _draw_banner() -> void:
 	var w := _vp.x
 	_banner.draw_set_transform(Vector2(_vp.x * 0.5, _banner_y), rot, Vector2.ONE * pop)
 	var base := Vector2(-w * 0.5, BANNER_PX * 0.36)
-	if W.royale():
-		# pass 123: the headline in the kit's gold with the navy edge, the bevel and the drop (the mock's BIG WIN!)
-		ultra_string(_banner, base, _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, R.GOLD_TEXT, k, true)
-		_banner.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
-	_banner.draw_string_outline(slab, base + Vector2(6, 8), _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, 22, Color(W.INK, 0.8 * k))
-	_banner.draw_string_outline(slab, base, _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, 20, Color(W.INK, k))
-	_banner.draw_string(slab, base, _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, Color(col, k))
+	# pass 123: the headline in the kit's gold with the navy edge, the bevel and the drop (the mock's BIG WIN!)
+	ultra_string(_banner, base, _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, R.GOLD_TEXT, k, true)
 	_banner.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	return
 
 
 ## The two counters at the bottom: GOLD with the coin, EXP with a gem; each bumps as a piece lands and glows at the end.
@@ -1093,29 +1047,9 @@ func _counter(r: Rect2, label: String, value: String, coin: bool, bump: float, a
 	var s := 1.0 + 0.09 * bump * bump
 	_counters.draw_set_transform(c, 0.0, Vector2.ONE * s)
 	var rr := Rect2(-r.size * 0.5, r.size)
-	if W.royale():
-		_counter_royale(rr, label, value, coin, bump)
-		_counters.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
-	if _done:
-		var glow := 0.5 + 0.5 * sin(_t * 7.0)
-		for i in 4:
-			_counters.draw_rect(rr.grow(6.0 + i * 7.0), Color(W.BRASS if coin else GEM_COLOURS[0], 0.12 * glow), false, 8.0)
-	_counters.draw_rect(Rect2(rr.position + Vector2(10, 10), rr.size), Color(W.INK, a))
-	_counters.draw_rect(rr, Color(W.INK, a))
-	_counters.draw_rect(rr.grow(-6.0), Color(W.PAPER, a))
-	if bump > 0.0:
-		_counters.draw_rect(rr.grow(-6.0), Color(W.BRASS if coin else GEM_COLOURS[1], 0.18 * bump))
-	var slab := W.slab()
-	_counters.draw_string(slab, rr.position + Vector2(150, 50), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(W.INK_SOFT, a))
-	var icon_c := rr.position + Vector2(74, rr.size.y * 0.58)
-	if coin:
-		_draw_coin(_counters, icon_c, 92.0, 0.0, a)
-	else:
-		_draw_gem(_counters, icon_c, 44.0, 0, a)
-	var px := 76 if value.length() <= 5 else 62
-	_counters.draw_string(slab, rr.position + Vector2(150, rr.size.y - 34.0), value, HORIZONTAL_ALIGNMENT_LEFT, rr.size.x - 170.0, px, Color(W.INK, a))
+	_counter_royale(rr, label, value, coin, bump)
 	_counters.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	return
 
 
 ## Pass 123: a counter as the mock's slate panel (its alpha is the layer's, _redraw): the glow round it at the end, the

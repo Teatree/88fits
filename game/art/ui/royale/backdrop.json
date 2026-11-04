@@ -26,83 +26,101 @@
  "preset": "Saguaro stand",
  "props": [
   {
-   "id": "joshua_tree",
+   "id": "ocotillo_b",
+   "look": "ocotillo_b",
+   "texture": "res://art/sprites/props/ocotillo_b.png",
+   "base": [
+    322.0,
+    1136.0
+   ],
+   "height_px": 120.0,
+   "flip": false,
+   "sway": 0.03,
+   "dark": 0.96,
+   "shadow_a": 0.5,
+   "foot_up": 0.0586,
+   "foot_x": -0.0059,
+   "foot_w": 0.1797
+  },
+  {
+   "id": "joshua_tree_b",
    "look": "joshua_tree_b",
    "texture": "res://art/sprites/props/joshua_tree_b.png",
    "base": [
-    200.5,
-    1197.2
+    118.0,
+    1236.0
    ],
-   "height_px": 334.6,
+   "height_px": 300.0,
    "flip": false,
    "sway": 0.02,
-   "shadow_a": 0.48,
-   "depth_m": 19.01
-  },
-  {
-   "id": "saguaro_big",
-   "look": "saguaro_big",
-   "texture": "res://art/sprites/props/saguaro_big.png",
-   "base": [
-    890.3,
-    1215.8
-   ],
-   "height_px": 396.3,
-   "flip": false,
-   "sway": 0.02,
-   "shadow_a": 0.48,
-   "depth_m": 18.43
+   "dark": 0.9,
+   "shadow_a": 0.5,
+   "foot_up": 0.0573,
+   "foot_x": -0.0104,
+   "foot_w": 0.2057
   },
   {
    "id": "rock_small",
    "look": "rock_small",
    "texture": "res://art/sprites/props/rock_small.png",
    "base": [
-    382.7,
-    1259.6
+    262.0,
+    1352.0
    ],
-   "height_px": 77.4,
+   "height_px": 66.0,
    "flip": false,
    "sway": 0.0,
-   "shadow_a": 0.55,
-   "depth_m": 15.24
+   "dark": 0.92,
+   "shadow_a": 0.5,
+   "foot_up": 0.0547,
+   "foot_x": -0.0078,
+   "foot_w": 0.8359
   },
   {
-   "id": "ocotillo",
-   "look": "ocotillo_b",
-   "texture": "res://art/sprites/props/ocotillo_b.png",
+   "id": "saguaro_big",
+   "look": "saguaro_big",
+   "texture": "res://art/sprites/props/saguaro_big.png",
    "base": [
-    880.5,
-    1257.5
+    988.0,
+    1500.0
    ],
-   "height_px": 217.9,
+   "height_px": 660.0,
    "flip": false,
-   "sway": 0.04,
-   "shadow_a": 0.4,
-   "depth_m": 16.25
+   "sway": 0.012,
+   "dark": 0.62,
+   "shadow_a": 0.5,
+   "foot_up": 0.0573,
+   "foot_x": 0.0052,
+   "foot_w": 0.1432
   },
   {
-   "id": "dead_shrub",
+   "id": "dead_shrub_b",
    "look": "dead_shrub_b",
    "texture": "res://art/sprites/props/dead_shrub_b.png",
    "base": [
-    670.5,
-    1266.6
+    40.0,
+    1668.0
    ],
-   "height_px": 99.6,
+   "height_px": 330.0,
    "flip": false,
    "sway": 0.03,
-   "shadow_a": 0.4,
-   "depth_m": 15.55
+   "dark": 0.5,
+   "shadow_a": 0.5,
+   "foot_up": 0.0573,
+   "foot_x": 0.0156,
+   "foot_w": 0.8385
   }
  ],
  "grade": {},
  "shadow": {
   "color": "#1a0c24",
-  "alpha": 0.5,
+  "alpha": 0.62,
   "length": 0.62,
   "width": 0.34,
-  "flat": 0.42
+  "flat": 0.42,
+  "contact": 0.7,
+  "blur_near": 0.008,
+  "blur_far": 0.055
  },
  "sun": {},
  "motes": {
@@ -119,10 +137,5 @@
    "plate": "plate_evening_guide_s62301",
    "tumbleweed": "tumble_c3"
   }
- },
- "scene_tint": [
-  0.86,
-  0.82,
-  0.86
- ]
+ }
 }

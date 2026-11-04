@@ -61,7 +61,7 @@ func test_the_splash_colour_is_the_first_frames_ground() -> void:
 	assert_bool(bool(ProjectSettings.get_setting("application/boot_splash/show_image"))).is_false()
 	assert_str(str(ProjectSettings.get_setting("application/boot_splash/image", ""))).is_empty()
 	var bg: Color = ProjectSettings.get_setting("application/boot_splash/bg_color")
-	assert_bool(_same8(bg, W.PAPER) and is_equal_approx(bg.a, 1.0)).is_true()
+	assert_bool(_same8(bg, load("res://ui/Boot.gd").DARK) and is_equal_approx(bg.a, 1.0)).is_true()
 	assert_int(int(ProjectSettings.get_setting("application/boot_splash/minimum_display_time"))).is_equal(0)
 	# the loading screen's first frame, however long it took: the paper under, the one draw at nothing but the paper
 	var boot = _endless()
@@ -95,7 +95,7 @@ func test_the_android_splash_has_no_icon() -> void:
 			continue
 		androids += 1
 		assert_bool(bool(cfg.get_value(sec, "splash_screen/disable_godot_boot_splash", false))).is_true()
-		assert_bool(_same8(cfg.get_value(sec, "splash_screen/background_color", Color()), W.PAPER)).is_true()
+		assert_bool(_same8(cfg.get_value(sec, "splash_screen/background_color", Color()), load("res://ui/Boot.gd").DARK)).is_true()
 		assert_str(str(cfg.get_value(sec, "splash_screen/icon"))).is_equal(SPLASH_ICON)
 	assert_int(androids).is_greater_equal(1)
 	var icon := _image(SPLASH_ICON)

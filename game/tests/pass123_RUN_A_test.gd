@@ -34,18 +34,11 @@ func before_test() -> void:
 func after_test() -> void:
 	Settings.from_dict(_keep["settings"])
 	Settings.top_inset = int(_keep["inset"])
-	Settings.ui_theme = "wanted"
 	Settings.debug_mode = false
-	W.theme_changed()
 	QT.just_completed.clear()
 	Save.data = _keep["save"]
 	Save._dirty = false
 	Run.end()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _start(hero := "drifter") -> void:
@@ -91,11 +84,9 @@ func _texts(n: Node) -> String:
 
 func test_the_pause_frame_under_royale_and_under_wanted() -> void:
 	_build()
-	_royale(true)
 	var ps := _pause()
 	ps.open()
 	await _frames(3)
-	assert_bool(ps._built_royale).is_true()
 	var plate := ps.find_child("ClockPlate", true, false) as PanelContainer
 	assert_object(plate).is_not_null()
 	var pb := plate.get_theme_stylebox("panel") as HardBox
@@ -122,18 +113,8 @@ func test_the_pause_frame_under_royale_and_under_wanted() -> void:
 	assert_float(resume.get_global_rect().position.y - ps._board.get_global_rect().end.y).is_between(30.0, 60.0)
 	# a theme flip builds it again on the next open
 	ps.close()
-	_royale(false)
-	ps.open()
-	await _frames(2)
-	assert_bool(ps._built_royale).is_false()
-	assert_str(ps._clock.text).contains("Stage 1")
-	assert_str((ps.find_child("ClockPlate", true, false) as PanelContainer).get_theme_stylebox("panel").role).is_equal("")
-	assert_str(_texts(ps._tabs)).contains("Build")
-
-
 func test_the_build_rows_under_royale_have_bigger_stars_cells_and_tags() -> void:
 	_build()
-	_royale(true)
 	var ps := _pause()
 	ps._expanded = "turret_buddy"
 	ps._tab = 0
@@ -172,24 +153,10 @@ func test_the_build_rows_under_royale_have_bigger_stars_cells_and_tags() -> void
 	assert_float(plate.glow_reach).is_equal(float(PauseScreen.ROYALE_BUILD_INSET))
 
 
-func test_the_build_rows_under_wanted_are_todays() -> void:
-	_build()
-	_royale(false)
-	var ps := _pause()
-	ps._expanded = "turret_buddy"
-	ps.open()
-	await _frames(2)
-	var rows := ps._content.find_children("*", "WRow", true, false)
-	assert_bool(((rows[0] as WRow).box as HardBox).fill.is_equal_approx(W.PAPER)).is_true()
-	for m in ps._content.find_children("*", "WMarks", true, false):
-		assert_float((m as WMarks).mark).is_equal(PauseScreen.STAR_PX)
-	assert_object(ps._content.find_child("StatCells", true, false)).is_null()
-	assert_object(ps._content.find_child("PathTags", true, false)).is_null()
 
 
 func test_the_stats_under_royale_read_on_the_slate() -> void:
 	_build()
-	_royale(true)
 	var ps := _pause()
 	ps._tab = 1
 	ps._stat = "luck"
@@ -212,7 +179,6 @@ func test_the_stats_under_royale_read_on_the_slate() -> void:
 
 func test_the_options_under_royale() -> void:
 	_build()
-	_royale(true)
 	var ps := _pause()
 	ps._tab = 2
 	ps.open()
@@ -225,13 +191,6 @@ func test_the_options_under_royale() -> void:
 	# every switch is still found by its name (touch_audit's)
 	for n in ["ScreenShake", "DamageNumbers", "HealNumbers", "XpNumbers", "CoinNumbers"]:
 		assert_object(ps.find_child(n, true, false)).override_failure_message(n).is_not_null()
-	_royale(false)
-	ps.close()
-	ps.open()
-	await _frames(2)
-	assert_str((ps.find_child("Abandon", true, false) as WButton).label_text()).is_equal("Abandon")
-
-
 # ---------------------------------------------------------------- Down!
 
 func _revive() -> ReviveScreen:
@@ -245,13 +204,11 @@ func test_down_under_royale() -> void:
 	Settings.hit_log = false
 	Settings.debug_mode = false
 	Settings.free_revive_button = false
-	_royale(true)
 	var rs := _revive()
 	Run.kills = 123
 	rs.open(86, 1, "", {"by": "The Brander", "kind": "boss", "role": "boss"})
 	rs._held = true
 	await _frames(3)
-	assert_bool(rs._built_royale).is_true()
 	assert_bool(rs._count.color.is_equal_approx(R.NAVY)).is_true()
 	assert_str(rs.header.star_line.text()).is_equal("1 CHANCE LEFT")
 	assert_bool(rs.header.title.color.is_equal_approx(R.CREAM)).is_true()
@@ -287,18 +244,6 @@ func test_down_under_royale() -> void:
 	assert_str(rs.header.star_line.text()).is_equal("NO CHANCES LEFT")
 
 
-func test_down_under_wanted_keeps_its_words() -> void:
-	_start()
-	Settings.hit_log = false
-	Settings.debug_mode = false
-	_royale(false)
-	var rs := _revive()
-	rs.open(0, 1)
-	rs._held = true
-	await _frames(2)
-	assert_str(rs._ad_btn.label_text()).is_equal("GET UP · WATCH AN AD")
-	assert_object(rs.find_child("RunPills", true, false)).is_null()
-	assert_bool(rs._log_panel.visible).is_false()
 
 
 # ---------------------------------------------------------------- Stage clear
@@ -306,7 +251,6 @@ func test_down_under_wanted_keeps_its_words() -> void:
 func test_the_stage_clear_under_royale() -> void:
 	_start()
 	Run.run_gold = 312
-	_royale(true)
 	var pd: PortalDialog = auto_free(PortalDialog.new())
 	add_child(pd)
 	var left := [59.2]
@@ -346,18 +290,6 @@ func test_the_stage_clear_under_royale() -> void:
 	assert_bool(pd.visible).is_false()
 
 
-func test_the_stage_clear_under_wanted_keeps_its_road() -> void:
-	_start()
-	_royale(false)
-	var pd: PortalDialog = auto_free(PortalDialog.new())
-	add_child(pd)
-	pd.seconds_source = func() -> float: return 40.0
-	pd.open(1, true, false)
-	await _frames(2)
-	var ex := pd.find_child("Extract", true, false)
-	assert_bool(ex is WButton).is_false()
-	assert_bool(ex is WTap).is_true()
-	assert_object(pd.find_child("RunPills", true, false)).is_null()
 
 
 # ---------------------------------------------------------------- Results
@@ -373,7 +305,6 @@ func _results() -> Control:
 
 
 func test_the_results_under_royale() -> void:
-	_royale(true)
 	var r := _results()
 	await _frames(2)
 	r.skip_all()
@@ -405,24 +336,6 @@ func test_the_results_under_royale() -> void:
 	st.free()
 
 
-func test_the_results_under_wanted_are_todays() -> void:
-	_royale(false)
-	var r := _results()
-	await _frames(2)
-	r.skip_all()
-	await _frames(2)
-	assert_object(r.find_child("RunPills", true, false)).is_null()
-	assert_object(r.find_child("DamagePanel", true, false)).is_null()
-	var rows := r.find_child("DamageRows", true, false) as Control
-	assert_float((rows.get_child(0).get_child(0) as WPlate).side).is_equal(96.0)
-	assert_bool(r.get("_chart") is RESULTS.RoyaleChart).is_false()
-	var st: WStamp = RESULTS.make_stamp("UNLOCKED", W.SAGE, 30)
-	assert_bool(st is RESULTS.RoyaleStamp).is_false()
-	st.free()
-	var labels: Array = []
-	for b in r.find_children("*", "WButton", true, false):
-		labels.append((b as WButton).label_text())
-	assert_array(labels).contains(["Upgrade", "Main Menu"])
 
 
 # ---------------------------------------------------------------- the capture tool

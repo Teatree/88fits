@@ -559,7 +559,7 @@ async function main(Q) {
   check('new hero look: badge and title cut-out counts shown', !!badgeLine && !!titleLine);
   check('new hero look: both counts default to 3', badgeLine && titleLine && badgeLine.querySelector('input').value === 3 && titleLine.querySelector('input').value === 3, [badgeLine && badgeLine.querySelector('input').value, titleLine && titleLine.querySelector('input').value]);
   const fh = (line) => (line && line.querySelector('div.fh') ? line.querySelector('div.fh').textContent : '');
-  check('review: the counts say where the picks show (the badge on the hero sheet, the cut-out on the Painted title only)', fh(badgeLine).includes('the hero sheet, the results') && fh(titleLine).includes('Painted title only') && fh(titleLine).includes('the Live title, the default'), [fh(badgeLine).slice(-140), fh(titleLine).slice(-200)]);
+  check('review: the counts say where the picks show (the badge on the hero sheet, the cut-out on a poster)', fh(badgeLine).includes('the hero sheet, the results') && fh(titleLine).includes('Wanted poster') && fh(titleLine).includes('main menu draws'), [fh(badgeLine).slice(-140), fh(titleLine).slice(-200)]);
   check('new hero look: no re-roll radios', !dlg.querySelectorAll('input').some((i) => i.type === 'radio' && i.name === 'reroll'));
   check('new hero look: the 2D / 3D reference rows are gone', !dlg.textContent.includes('+ Add a reference') && !dlg.textContent.includes('+ From the driver library'));
   check('new hero look: hero looks say they take no picture', dlg.textContent.includes('Hero looks paint from words'));
@@ -656,7 +656,7 @@ async function main(Q) {
   dlg = lastDialog();
   check('title: Pose, Holds, Camera, Extra reference shown', ['Character', 'Pose', 'Holds', 'Camera', 'Reference picture', 'Extra reference', 'Extra reference words'].every((l) => !!lineOf(dlg, l)), ['Character', 'Pose', 'Holds', 'Camera', 'Reference picture', 'Extra reference', 'Extra reference words'].filter((l) => !lineOf(dlg, l)));
   check('title: the pose default filled', lineOf(dlg, 'Pose') && lineOf(dlg, 'Pose').querySelector('textarea').value === 'standing confidently in a heroic pose, full body');
-  check('review: the cut-out form says it shows on the Painted title only', dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent.startsWith('Where the pick shows: the cut-out shows on the Painted title only (Settings, debug mode: Main menu → Painted)'), dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent);
+  check('review: the cut-out form says it shows on a Wanted poster', dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent.startsWith('Where the pick shows: the cut-out shows only on a Wanted poster'), dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent);
   const det = dlg.querySelectorAll('details').find((d) => d.textContent.startsWith('Show the words'));
   if (det) { det.open = true; det.dispatch('toggle'); }
   check('title: the words put the character right after "this exact character"', det && det.querySelector('pre').textContent.includes('this exact character, a mime woman, for a mobile game'), det && det.querySelector('pre').textContent.slice(0, 400));
@@ -808,9 +808,9 @@ async function main(Q) {
 
   // 12. the look's facts and its candidate buttons say where the game shows the badge and the cut-out (review)
   const whereEl = grid.querySelector('div.lg-where');
-  check('review grid: the look\'s facts say where the badge and the cut-out show', !!whereEl && whereEl.textContent.includes('the hero sheet, the results') && whereEl.textContent.includes('Painted title only') && whereEl.textContent.includes('the Live title, the default'), whereEl && whereEl.textContent);
+  check('review grid: the look\'s facts say where the badge and the cut-out show', !!whereEl && whereEl.textContent.includes('the hero sheet, the results') && whereEl.textContent.includes('Wanted poster') && whereEl.textContent.includes('main menu draws'), whereEl && whereEl.textContent);
   const bcb = button(cardOf('MAM-B'), 'Badge candidates…'), ccb = button(cardOf('MAM-B'), 'Cut-out candidates…');
-  check('review grid: the badge and cut-out candidate buttons say where the pick shows', !!bcb && bcb.title.includes('the hero sheet, the results') && !!ccb && ccb.title.includes('Painted title only'), [bcb && bcb.title, ccb && ccb.title]);
+  check('review grid: the badge and cut-out candidate buttons say where the pick shows', !!bcb && bcb.title.includes('the hero sheet, the results') && !!ccb && ccb.title.includes('Wanted poster'), [bcb && bcb.title, ccb && ccb.title]);
   done();
 }
 """
@@ -896,7 +896,7 @@ def review_pure_checks(check, res):
     check(len(c) == 4 and c[3] == {"method": "hero_pose5", "recipe": {}}, "V68 review: a look job's edit gets no candidate keys: %s" % (c[3:],))
     w = res.get("where") or {}
     check("hero sheet" in w.get("badge", "") and "results" in w.get("badge", "") and "arena" in w.get("badge", ""), "V68 review: the badge is said to show on the hero sheet, the results and the arena: %s" % w.get("badge"))
-    check("Painted title only" in w.get("cutout", "") and "Main menu" in w.get("cutout", "") and "Live title, the default" in w.get("cutout", ""), "V68 review: the cut-out is said to show on the Painted title only, the default Live title drawing the strip: %s" % w.get("cutout"))
+    check("Wanted poster" in w.get("cutout", "") and "main menu draws" in w.get("cutout", ""), "V68 review: the cut-out is said to show on a hero's poster, the main menu drawing the strip: %s" % w.get("cutout"))
     move_checks(check, o or [])
 
 

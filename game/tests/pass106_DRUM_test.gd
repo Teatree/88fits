@@ -175,7 +175,7 @@ func test_time_stops_for_the_moment_and_goes_on_after() -> void:
 		assert_float(mus1 - mus0).is_between(0.0, 0.25)
 		assert_float(Audio.music_position()).is_greater(mus1 + 0.1)
 	# the HUD's plate: the drum's icon with its seconds
-	var plate: WPlate = null
+	var plate = null
 	for c in g.hud._buffs.get_children():
 		if str(c.get_meta("buff", "")) == "structure:" + DRUM:
 			plate = c

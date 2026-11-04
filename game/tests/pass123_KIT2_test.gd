@@ -18,20 +18,12 @@ func before() -> void:
 
 func after() -> void:
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func after_test() -> void:
-	Settings.ui_theme = "wanted"
 	W.bottom_inset_override = -1.0
-	W.theme_changed()
 	if Save.sandboxed():
 		Save.end_sandbox()
-
-
-func _royale(on: bool) -> void:
-	Settings.ui_theme = "royale" if on else "wanted"
-	W.theme_changed()
 
 
 func _bar(active: String) -> Control:
@@ -65,7 +57,6 @@ func _finger(c: Control, pressed: bool) -> void:
 # ---------------------------------------------------------------- the tab bar
 
 func test_the_tab_bar_has_five_tabs_the_open_one_gold_taller_and_wider() -> void:
-	_royale(true)
 	var bar := _bar("upgrade")
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -123,7 +114,6 @@ func test_the_tab_bar_has_five_tabs_the_open_one_gold_taller_and_wider() -> void
 
 
 func test_a_finger_on_a_tab_asks_for_its_scene_and_store_goes_nowhere() -> void:
-	_royale(true)
 	var bar := _bar("battle")
 	await get_tree().process_frame
 	var asked: Array = []
@@ -158,7 +148,6 @@ func test_a_finger_on_a_tab_asks_for_its_scene_and_store_goes_nowhere() -> void:
 
 
 func test_the_bottom_inset_lifts_the_tabs_over_the_gesture_bar() -> void:
-	_royale(true)
 	# headless there is no gesture bar; a phone's comes from the display's safe area
 	assert_float(W.safe_bottom()).is_equal(0.0)
 	W.bottom_inset_override = 48.0
@@ -178,7 +167,6 @@ func test_the_bottom_inset_lifts_the_tabs_over_the_gesture_bar() -> void:
 
 
 func test_the_upgrade_mark_is_the_titles_rule() -> void:
-	_royale(true)
 	Save.begin_sandbox()
 	var script: GDScript = load("res://ui/wanted/WTabBar.gd")
 	Save.data["gold"] = 0
@@ -203,7 +191,6 @@ func test_the_upgrade_mark_is_the_titles_rule() -> void:
 # ---------------------------------------------------------------- ScreenBase
 
 func test_screen_base_under_royale_with_a_tab_bar() -> void:
-	_royale(true)
 	var s := _hub("collections")
 	await get_tree().process_frame
 	var bar: Control = s.get("tab_bar_node")
@@ -242,37 +229,13 @@ func test_screen_base_under_royale_with_a_tab_bar() -> void:
 	assert_str((sheet.get_theme_stylebox("panel") as HardBox).royale_kind()).is_equal("panel")
 
 
-func test_screen_base_under_royale_without_a_bar_and_under_wanted() -> void:
-	_royale(true)
-	var s := _hub("")
-	await get_tree().process_frame
-	assert_object(s.get("tab_bar_node")).is_null()
-	assert_float(s.bottom_total()).is_equal(s.board_bottom())
-	_royale(false)
-	var w := _hub("collections")
-	await get_tree().process_frame
-	# Wanted: no bar, the paper wash, the desert still, the header where it always was
-	assert_object(w.get("tab_bar_node")).is_null()
-	assert_bool(w.has_tab_bar()).is_false()
-	assert_float(w.bottom_total()).is_equal(w.board_bottom())
-	var wash: ColorRect = w.get("wash")
-	assert_bool(wash.color.is_equal_approx(W.WASH)).is_true()
-	assert_str((w.get("backdrop") as Control).name).is_not_equal("RoyaleBackdrop")
-	var h: WMenuHeader = w.get("header")
-	assert_float(h.offset_left).is_equal(36.0)
-	assert_float(h.offset_top).is_equal(44.0)
-	assert_float(h.back_button.size.x).is_equal(106.0)
-	w.set_title("Settings")
-	assert_str(h.title.text).is_equal("Settings")
-	assert_int(h.title.font_size).is_equal(72)
 
 
 func test_every_screen_base_screen_builds_under_both_themes() -> void:
 	Save.begin_sandbox()
 	for scene: String in ["res://ui/SettingsScreen.tscn", "res://ui/StagesScreen.tscn", "res://ui/CollectionScreen.tscn",
 			"res://ui/HomesteadScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/ResultsScreen.tscn"]:
-		for on: bool in [false, true]:
-			_royale(on)
+		for on: bool in [true]:
 			var s: Control = auto_free(load(scene).instantiate())
 			add_child(s)
 			await get_tree().process_frame
@@ -292,7 +255,6 @@ func test_every_screen_base_screen_builds_under_both_themes() -> void:
 
 
 func test_the_header_fits_a_long_name_beside_the_wallet() -> void:
-	_royale(true)
 	var host: Control = auto_free(Control.new())
 	host.size = Vector2(1080, 1920)
 	add_child(host)
@@ -321,16 +283,9 @@ func test_the_header_fits_a_long_name_beside_the_wallet() -> void:
 	h.set_title("Upgrade")
 	assert_int(h.title.font_size).is_equal(R.HEADER_TITLE_PX)
 	# under Wanted the plate is today's, the number 44
-	_royale(false)
-	var wp := WMenuHeader.gold_plate(108411, 44, 40.0, 5, 4)
-	auto_free(wp)
-	assert_int((wp.find_child("Amount", true, false) as WText).font_size).is_equal(44)
-
-
 # ---------------------------------------------------------------- the small pieces
 
 func test_the_info_pill() -> void:
-	_royale(true)
 	var green: Color = R.ROLES["green"]["top"]
 	var p := W.pill([["+1%", green, "bold"], " CRIT per Level"])
 	auto_free(p)
@@ -363,14 +318,7 @@ func test_the_info_pill() -> void:
 	auto_free(p3)
 	assert_float(p3.custom_minimum_size.y).is_equal(40.0)
 	# under Wanted it still reads: ink type on the paper plate
-	_royale(false)
-	var pw := W.pill("01:01 · STAGE 1")
-	auto_free(pw)
-	assert_bool((pw.find_children("*", "WText", true, false)[0] as WText).color.is_equal_approx(W.INK)).is_true()
-
-
 func test_the_price_button_and_its_short_state() -> void:
-	_royale(true)
 	var buy := WButton.price(300, "BUY")
 	var host: Control = auto_free(Control.new())
 	add_child(host)
@@ -394,7 +342,7 @@ func test_the_price_button_and_its_short_state() -> void:
 	assert_str(short.label_text()).is_equal("190")
 	assert_int(int(short.get_meta("short"))).is_equal(166)
 	var lt: WText = short.find_children("*", "WText", true, false)[0]
-	assert_bool(lt.color.is_equal_approx(R.LOCKED_TEXT)).is_true()
+	assert_bool(lt.color.is_equal_approx(R.SHORT_INK)).is_true()
 	var kept := WButton.price(190, "BUY", WButton.GREEN, R.PRICE_PX, 166, "gold", true)
 	auto_free(kept)
 	assert_str(kept.label_text()).is_equal("190 · BUY")
@@ -412,15 +360,7 @@ func test_the_price_button_and_its_short_state() -> void:
 	assert_bool((ok_row.get_node("Short") as WText).visible).is_false()
 	assert_bool(W.price_button_of(ok_row).locked).is_false()
 	# under Wanted: brass for a buy, the same label
-	_royale(false)
-	var wb := WButton.price(300, "BUY")
-	auto_free(wb)
-	assert_str(wb.variant).is_equal(WButton.PRIMARY)
-	assert_str(wb.label_text()).is_equal("300 · BUY")
-
-
 func test_the_ad_icon_and_the_drawn_glyphs() -> void:
-	_royale(true)
 	var b := WButton.make(["GET UP · ", {"ad": 44}], 48, WButton.PRIMARY, 4, 8, 29.0, 30.0, 48.0)
 	auto_free(b)
 	var g: Control = b.find_child("Glyph_ad", true, false)
@@ -444,14 +384,7 @@ func test_the_ad_icon_and_the_drawn_glyphs() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	# Wanted builds it too
-	_royale(false)
-	var wb := WButton.make(["GET UP · ", {"ad": 44}], 48, WButton.PRIMARY)
-	auto_free(wb)
-	assert_object(wb.find_child("Glyph_ad", true, false)).is_not_null()
-
-
 func test_the_solid_sheet_and_cells() -> void:
-	_royale(true)
 	var sb := W.sheet_box(Vector2(24, 20))
 	assert_str(sb.royale_kind()).is_equal("panel")
 	assert_int(sb.border).is_equal(R.PANEL_EDGE)
@@ -463,16 +396,9 @@ func test_the_solid_sheet_and_cells() -> void:
 	assert_int(cb.border).is_equal(R.CELL_EDGE)
 	assert_int(cb.shadow).is_equal(0)
 	assert_int(cb.radius).is_equal(R.RADIUS)
-	_royale(false)
-	var wsb := W.sheet_box()
-	assert_bool(wsb.fill.is_equal_approx(W.PAPER)).is_true()
-	assert_int(wsb.border).is_equal(5)
-
-
 # ---------------------------------------------------------------- the modal shell
 
 func test_the_confirm_under_royale_is_the_mocks_shell() -> void:
-	_royale(true)
 	var host: Control = auto_free(Control.new())
 	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(host)
@@ -512,16 +438,7 @@ func test_the_confirm_under_royale_is_the_mocks_shell() -> void:
 	assert_str(act.confirm_btn.role).is_equal(WButton.GOLD)
 	assert_bool(WConfirm.dismiss(host)).is_true()
 	# under Wanted the paper card as before: 60 in, the ink rule
-	_royale(false)
-	var wc := WConfirm.open(host, "Wipe the save?", "Everything goes.", "Wipe", "Keep it", func() -> void: pass)
-	assert_float(wc.card.offset_left).is_equal(WConfirm.WIDTH_INSET)
-	assert_int(wc.card.find_children("*", "ColorRect", true, false).size()).is_equal(1)
-	assert_str(wc.confirm_btn.variant).is_equal(WButton.DANGER)
-	WConfirm.dismiss(host)
-
-
 func test_the_shell_answers_by_id() -> void:
-	_royale(true)
 	var host: Control = auto_free(Control.new())
 	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(host)
@@ -575,14 +492,6 @@ func test_the_shell_answers_by_id() -> void:
 	assert_bool(bool(a.get("_done"))).is_true()
 	WConfirm.dismiss(host)
 	# Wanted builds the same shell on paper
-	_royale(false)
-	var w := WConfirm.shell(host, {"star": "A quick word", "title": "Play data", "body": "Words.",
-		"buttons": [{"id": "cancel", "text": "No thanks"}, {"id": "confirm", "text": "OK", "role": "gold"}]})
-	assert_str(w.confirm_btn.variant).is_equal(WButton.PRIMARY)
-	assert_float(w.card.offset_left).is_equal(WConfirm.WIDTH_INSET)
-	WConfirm.dismiss(host)
-
-
 # ---------------------------------------------------------------- the tools
 
 func test_the_capture_tools_carry_the_kit2_pieces() -> void:

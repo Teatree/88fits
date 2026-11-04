@@ -49,16 +49,13 @@ func _main() -> void:
 	_settings = root.get_node("Settings")
 	_reg = root.get_node("Registry")
 	var kept := FileAccess.get_file_as_string("user://save.json")
-	var style: String = _settings.menu_style
 	_save.data["gold"] = 108411
 	_save.data["last_character"] = "drifter"
 	# the title in both looks
 	for st in ["live", "painted"]:
-		_settings.menu_style = st
 		await _scene("res://ui/TitleScreen.tscn")
 		await _wait(0.6)
 		await _shot("title_" + st)
-	_settings.menu_style = style
 	# the board: Nerve with a Skip and two Second Winds, Grit and Drive at a rank
 	_save.data["talents"] = {"nerve": {"picks": [0, 1, 1]}, "grit": {"picks": [0]}, "drive": {"picks": [1]}}
 	_save.data["talent_spent"] = 150 + 600 + 1350 + 450 + 375
@@ -84,7 +81,6 @@ func _main() -> void:
 	await _shot("board_toasts_c")
 	# the hero's sheet: the stats a run starts with, two Second Wind ranks in (60%)
 	_save.data["talents"] = {"nerve": {"picks": [1, 1]}}
-	_settings.menu_style = "painted"
 	await _scene("res://ui/TitleScreen.tscn")
 	var tc = current_scene
 	# the plaque's tap
@@ -97,7 +93,6 @@ func _main() -> void:
 		sc.scroll_vertical = 100000
 		await _wait(0.5)
 	await _shot("hero_sheet_stats")
-	_settings.menu_style = style
 	# Settings: the version line at its foot
 	await _scene("res://ui/SettingsScreen.tscn")
 	await _shot("settings")

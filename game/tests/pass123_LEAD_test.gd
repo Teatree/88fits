@@ -65,7 +65,6 @@ func before() -> void:
 
 func after() -> void:
 	Settings.from_dict(_settings_before)
-	W.theme_changed()
 
 
 func before_test() -> void:
@@ -74,8 +73,6 @@ func before_test() -> void:
 
 
 func after_test() -> void:
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
 	Save.data = Save._default()
 	Save._dirty = false
 
@@ -238,8 +235,6 @@ func test_a_new_look_crumbs_until_his_looks_are_opened() -> void:
 
 
 func test_the_tab_bars_crumbs_are_red_and_read_the_rules() -> void:
-	Settings.ui_theme = "royale"
-	W.theme_changed()
 	var script: GDScript = load("res://ui/wanted/WTabBar.gd")
 	Save.data["gold"] = 0
 	var bare: Control = auto_free(script.make("battle"))
@@ -336,17 +331,24 @@ func test_the_barrier_reaches_a_third_further_and_the_gilas_rain_is_poison() -> 
 
 # ---------------------------------------------------------------- the kit under Royale
 
-func test_the_mutation_colour_is_not_epics() -> void:
+func test_the_mutation_look_is_its_own() -> void:
+	# pass 124: a frame shape no other item has, a near-black face, a rim no rarity and no perk wears
 	assert_bool(R.MUTATION_FILL.is_equal_approx(R.RARITY["epic"]["base"])).is_false()
-	assert_bool((R.MUTATION["light"] as Color).is_equal_approx(R.RARITY["epic"]["light"])).is_false()
-	# green stronger than red, unlike epic's purple
-	assert_bool((R.MUTATION["light"] as Color).g > (R.MUTATION["light"] as Color).r).is_true()
+	assert_bool((R.MUTATION["rim_b"] as Color).is_equal_approx(R.RARITY["epic"]["rim"])).is_false()
+	assert_float((R.MUTATION["base"] as Color).v).is_less(0.25)
+	assert_float(R.MUTATION_CUT).is_greater(0.0)
+	var p: WPlate = auto_free(WPlate.new())
+	p.side = 120.0
+	p.fill = R.MUTATION_FILL
+	assert_str(p.frame_rarity()).is_equal("mutation")
+	assert_bool(p.frame_look().has("cut")).is_true()
+	var q: WPlate = auto_free(WPlate.new())
+	q.fill = W.RARE
+	assert_bool(q.frame_look().has("cut")).is_false()
 
 
 func test_the_coin_is_the_painting_under_both_themes() -> void:
-	for theme: String in ["wanted", "royale"]:
-		Settings.ui_theme = theme
-		W.theme_changed()
+	for theme: String in ["royale"]:
 		var c: WCoin = auto_free(WCoin.make(40.0))
 		add_child(c)
 		await get_tree().process_frame
@@ -354,19 +356,9 @@ func test_the_coin_is_the_painting_under_both_themes() -> void:
 
 
 func test_the_serif_texts_numbers_are_yellowish_under_royale_only() -> void:
-	Settings.ui_theme = "royale"
-	W.theme_changed()
 	var r: WText = auto_free(W.serif_text("+10% max HP", 24, W.INK))
 	assert_bool(r.bold_color.is_equal_approx(R.NUMBER_HI)).is_true()
-	Settings.ui_theme = "wanted"
-	W.theme_changed()
-	var w: WText = auto_free(W.serif_text("+10% max HP", 24, W.INK))
-	assert_float(w.bold_color.a).is_equal(0.0)
-
-
 func test_a_poster_keeps_the_wanted_faces_under_royale() -> void:
-	Settings.ui_theme = "royale"
-	W.theme_changed()
 	var t: WText = auto_free(W.wanted_serif_text("Kill 100 creatures.", 27, W.INK_SOFT, 600))
 	assert_bool(R.is_display(t.font)).is_false()
 	assert_float(t.color.get_luminance()).is_less(0.5)
