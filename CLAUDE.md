@@ -593,7 +593,7 @@ prod shows Royale too, `hud_slot_rarity` locked on); the hero runs in and out on
 own silhouettes (core/shaders/ui_backdrop_shadow.gdshader; `foot_up`, `foot_x`, `foot_w` in backdrop.json) and the backdrop's props are hand-placed (gen_royale_backdrop PROPS_LAYOUT); mutations have
 their own frame (cut corners, near-black face, rose rim: R.MUTATION, WPlate shape 2); a short price is grey with the amount in red (R.SHORT_INK); a dark loading screen with the new wordmark
 (Boot.palette, Boot.DARK, make_loading_wallpaper.plate; the same colour in project.godot, export_presets, Boot.tscn); the debug REVIVE on Down!. BALANCING 66. Waiting on Garry: his pick from
-the performance report docs/perf/stage2_slowdown.html (published https://claude.ai/artifact/QtndhuRSrhw7ym6wHQBZAN; `python tools/make_perf_report.py`) and the ideas book docs/ideas/outlaw_ideas.html
+the performance report docs/perf/stage2_slowdown.html (published https://claude.ai/artifact/QtndhuRSrhw7ym6wHQBZAN; `python tools/make_perf_report.py`; pass 125 re-ranked it from his Stage 1 run: the phone slowing to about two thirds, then 60%, is the main cause, proven against a PC replay of the run by game/tools/_p125_PERF_replay.gd; options B, G, A, C, I first) and the ideas book docs/ideas/outlaw_ideas.html
 (https://claude.ai/artifact/PNss4jA7mfqngzVbSZNpMH; words docs/ideas/content.py, art tools/gen_ideas_art.py, page tools/make_ideas_doc.py).
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement

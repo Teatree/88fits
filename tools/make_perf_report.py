@@ -1,17 +1,38 @@
 # -*- coding: utf-8 -*-
 """Pass 124: the Stage 2 performance report for Garry -> docs/perf/stage2_slowdown.html, charts drawn from his run record
 (analytics/remote/Hungry_Outlaw_94/2026-11-04T14-57-42_01a1a6a3.json) and the PC probes (tools/dl/p124/LEAD/probes.txt).
+Pass 125: updated with his Stage 1 run of the same evening (RUN1), its replay's frames (REPLAY1: each frame's delta and
+world steps) and the same replay played on the PC with its script work measured second by second (PC1), made by:
 
+    GODOT_TIMEOUT=1500 bash tools/godot.sh --audio-driver Dummy --fixed-fps 64 --disable-vsync --resolution 504x1122 \
+      --path D:/_projects/88fits/game --script res://tools/_p125_PERF_replay.gd -- mode=replay assist=1 \
+      file=<REPLAY1> out=tools/dl/p125/PERF/probe_full_report.json perf_out=<PC1> res=504x1122
+
+    python tools/posthog_runs.py --player "Hungry Outlaw 94" --since 2026-11-04   (the runs and replays, if missing)
     python tools/make_perf_report.py
 """
+import base64
+import gzip
 import html
 import json
 import os
 import statistics as st
+import struct
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 RUN = os.path.join(ROOT, "analytics", "remote", "Hungry_Outlaw_94", "2026-11-04T14-57-42_01a1a6a3.json")
 OUT = os.path.join(ROOT, "docs", "perf", "stage2_slowdown.html")
+# pass 125: Garry's Stage 1 run of the same evening (Drifter, 13:06, into Endless), its replay (every frame's delta and
+# world steps), the same run replayed on the PC (tools/dl/p125/PERF: the run record that replay wrote, its samples), and
+# the earlier long runs the slow windows are counted in
+REMOTE = os.path.join(ROOT, "analytics", "remote", "Hungry_Outlaw_94")
+RUN1 = os.path.join(REMOTE, "2026-11-04T19-26-26_01a1a799.json")
+REPLAY1 = os.path.join(REMOTE, "replays", "20261104_192627_replay.json")
+PC1 = os.path.join(ROOT, "tools", "dl", "p125", "PERF", "pc_replay_record.json")
+WINDOW_RUNS = [("27 Oct", "Stage 1", "2026-10-27T19-42-14_01a17e74.json"), ("31 Oct", "Stage 2", "2026-10-31T19-58-57_01a1931d.json"),
+               ("4 Nov, afternoon", "Stage 2", "2026-11-04T14-57-42_01a1a6a3.json"), ("4 Nov, evening", "Stage 1", "2026-11-04T19-26-26_01a1a799.json")]
+# Stage 1's phases in this run (run seconds): the stage, the King's fight, the portal's minute, Endless
+PHASES1 = [(0, 430, "Stage 1"), (430, 667, "Boss fight"), (667, 727, "Portal"), (727, 786, "Endless")]
 
 C_STEP = "#f5b82a"
 C_PROC = "#4a8ae0"
@@ -74,6 +95,203 @@ def timeline(samples):
     return "".join(o)
 
 
+def slow_windows(samples, ms=22.0, least=5):
+    """Runs of at least `least` seconds whose mean frame was over `ms`: [(first t, last t, [samples])]."""
+    s = [x for x in samples if x.get("frame_ms")]
+    out, cur = [], []
+    for x in s:
+        if x["frame_ms"] > ms:
+            cur.append(x)
+        else:
+            if len(cur) >= least:
+                out.append((cur[0]["t"], cur[-1]["t"], cur))
+            cur = []
+    if len(cur) >= least:
+        out.append((cur[0]["t"], cur[-1]["t"], cur))
+    return out
+
+
+def script_ms(x):
+    """A second's script work a frame: its world steps' share plus the per-frame scripts (ms)."""
+    fr = max(float(x.get("frames", 0) or 0), 1.0)
+    return float(x.get("steps", 0) or 0) * float(x.get("phys_ms", 0) or 0) / fr + float(x.get("proc_ms", 0) or 0)
+
+
+def timeline1(samples):
+    """Stage 1's run, frame stacked by what took it (3-second means), the crowd on its own scale, slow windows shaded."""
+    W, H = 900, 400
+    L, R, T, B = 52, 56, 44, 40
+    pts = []
+    for i in range(0, len(samples), 3):
+        w = [x for x in samples[i:i + 3] if x.get("frame_ms")]
+        if not w:
+            continue
+        def m(k):
+            v = [x[k] for x in w if isinstance(x.get(k), (int, float))]
+            return st.mean(v) if v else 0.0
+        fr = max(m("frames"), 1.0)
+        step = m("steps") * m("phys_ms") / fr
+        proc = m("proc_ms")
+        rest = max(m("frame_ms") - step - proc, 0.0)
+        pts.append((m("t"), step, proc, rest, m("alive")))
+    tmax, ymax, cmax = 790.0, 45.0, 350.0
+    X = lambda t: L + (W - L - R) * t / tmax
+    Y = lambda v: H - B - (H - T - B) * min(v, ymax) / ymax
+    YC = lambda v: H - B - (H - T - B) * min(v, cmax) / cmax
+    o = ['<svg viewBox="0 0 %d %d" role="img" aria-label="Frame time and crowd over the Stage 1 run">' % (W, H)]
+    for a, b, _w in slow_windows(samples):
+        o.append('<rect x="%.1f" y="%d" width="%.1f" height="%d" fill="#ff6b6b" opacity="0.13"/>' % (X(a - 0.5), T, max(X(b + 0.5) - X(a - 0.5), 2), H - T - B))
+    for a, b, name in PHASES1:
+        o.append('<line x1="%.1f" x2="%.1f" y1="%d" y2="%d" stroke="%s" stroke-dasharray="3 4"/>' % (X(a), X(a), T - 22, H - B, C_DIM))
+        o.append('<text x="%.1f" y="%d" fill="%s" font-size="13" text-anchor="middle">%s</text>' % ((X(a) + X(b)) / 2, T - 10, C_INK, name))
+    for v in (0, 10, 20, 30, 40):
+        o.append('<line x1="%d" x2="%d" y1="%.1f" y2="%.1f" stroke="%s"/>' % (L, W - R, Y(v), Y(v), C_GRID))
+        o.append('<text x="%d" y="%.1f" fill="%s" font-size="12" text-anchor="end">%d</text>' % (L - 8, Y(v) + 4, C_DIM, v))
+    for v in (0, 100, 200, 300):
+        o.append('<text x="%d" y="%.1f" fill="%s" font-size="12">%d</text>' % (W - R + 8, YC(v) + 4, C_CROWD, v))
+    for t in range(0, 781, 120):
+        o.append('<text x="%.1f" y="%d" fill="%s" font-size="12" text-anchor="middle">%d:%02d</text>' % (X(t), H - B + 20, C_DIM, t // 60, t % 60))
+    base = [0.0] * len(pts)
+    for idx, col in ((1, C_STEP), (2, C_PROC), (3, C_REST)):
+        top = [b + p[idx] for b, p in zip(base, pts)]
+        d = "M" + " L".join("%.1f %.1f" % (X(p[0]), Y(t)) for p, t in zip(pts, top))
+        d += " L" + " L".join("%.1f %.1f" % (X(p[0]), Y(b)) for p, b in zip(pts[::-1], base[::-1])) + " Z"
+        o.append('<path d="%s" fill="%s" opacity="0.92"/>' % (d, col))
+        base = top
+    o.append('<line x1="%d" x2="%d" y1="%.1f" y2="%.1f" stroke="%s" stroke-width="2" stroke-dasharray="6 5"/>' % (L, W - R, Y(16.7), Y(16.7), C_OK))
+    d = "M" + " L".join("%.1f %.1f" % (X(p[0]), YC(p[4])) for p in pts)
+    o.append('<path d="%s" fill="none" stroke="%s" stroke-width="2.5"/>' % (d, C_CROWD))
+    o.append('<text x="%d" y="%d" fill="%s" font-size="12" text-anchor="middle" transform="rotate(-90 %d %d)">milliseconds a frame</text>' % (14, (T + H - B) // 2, C_DIM, 14, (T + H - B) // 2))
+    o.append('<text x="%d" y="%d" fill="%s" font-size="12" text-anchor="middle" transform="rotate(90 %d %d)">creatures alive</text>' % (W - 12, (T + H - B) // 2, C_CROWD, W - 12, (T + H - B) // 2))
+    o.append("</svg>")
+    return "".join(o)
+
+
+def same_crowd(samples):
+    """About 77 creatures three ways: the first 3:30, later at full speed, later in a slow window (ms a frame)."""
+    groups = [("First 3:30 of the run", lambda x: x["t"] < 210 and x["frame_ms"] < 17.5),
+              ("3:30 to 7:10, full speed", lambda x: 210 <= x["t"] < 430 and x["frame_ms"] < 17.5),
+              ("3:30 to 7:10, in a slow window", lambda x: 210 <= x["t"] < 430 and x["frame_ms"] > 24)]
+    rows = []
+    for name, f in groups:
+        xs = [x for x in samples if x.get("frame_ms") and 60 <= (x.get("alive") or 0) <= 100 and f(x)]
+        fr = st.mean(max(float(x["frames"]), 1.0) for x in xs)
+        step = st.mean(float(x["steps"]) * x["phys_ms"] / max(float(x["frames"]), 1.0) for x in xs)
+        rows.append((name, len(xs), st.mean(x["alive"] for x in xs), step, st.mean(x["proc_ms"] for x in xs), st.mean(x["frame_ms"] for x in xs), fr))
+    W = 900
+    H = 70 * len(rows) + 34
+    L = 300
+    X = lambda v: L + (W - L - 210) * v / 31.0
+    o = ['<svg viewBox="0 0 %d %d" role="img" aria-label="The same crowd at three moments of the run">' % (W, H)]
+    o.append('<line x1="%.1f" x2="%.1f" y1="4" y2="%d" stroke="%s" stroke-width="2" stroke-dasharray="6 5"/>' % (X(16.7), X(16.7), H - 24, C_OK))
+    o.append('<text x="%.1f" y="%d" fill="%s" font-size="12" text-anchor="middle">16.7 ms = 60 fps</text>' % (X(16.7), H - 6, C_OK))
+    for i, (name, n, alive, step, proc, frame, fr) in enumerate(rows):
+        y = 10 + i * 70
+        o.append('<text x="%d" y="%d" fill="%s" font-size="15" text-anchor="end">%s</text>' % (L - 12, y + 20, C_INK, html.escape(name)))
+        o.append('<text x="%d" y="%d" fill="%s" font-size="12.5" text-anchor="end">%d seconds, %d creatures on average</text>' % (L - 12, y + 38, C_DIM, n, round(alive)))
+        o.append('<rect x="%d" y="%d" width="%.1f" height="30" fill="%s"/>' % (L, y + 6, X(step) - L, C_STEP))
+        o.append('<rect x="%.1f" y="%d" width="%.1f" height="30" fill="%s"/>' % (X(step), y + 6, X(step + proc) - X(step), C_PROC))
+        o.append('<rect x="%.1f" y="%d" width="%.1f" height="30" fill="%s" opacity="0.55"/>' % (X(step + proc), y + 6, max(X(frame) - X(step + proc), 0), C_REST))
+        o.append('<text x="%.1f" y="%d" fill="%s" font-size="13">scripts %.1f ms, frame %.1f ms</text>' % (X(max(frame, step + proc)) + 8, y + 26, C_DIM, step + proc, frame))
+    o.append("</svg>")
+    return "".join(o), rows
+
+
+def window_rows():
+    """Every slow window (5 s or longer over 22 ms) in four long phone runs: when, how long, the crowd in it."""
+    out = []
+    for day, stage, fn in WINDOW_RUNS:
+        r = json.load(open(os.path.join(REMOTE, fn), encoding="utf-8"))
+        s = [x for x in r["samples"] if x.get("frame_ms")]
+        ws = slow_windows(s)
+        secs = sum(len(w) for _a, _b, w in ws)
+        small = [w for _a, _b, w in ws if max(x.get("alive", 0) or 0 for x in w) < 150]
+        least = min((min(x.get("alive", 0) or 0 for x in w) for _a, _b, w in ws), default=0)
+        first = ws[0][0] if ws else 0
+        out.append((day, stage, r.get("hero_name") or r.get("hero"), len(s), len(ws), secs, len(small), least, first,
+                    max((len(w) for _a, _b, w in ws), default=0)))
+    return out
+
+
+def step_split(replay_path, windows):
+    """In the slow windows, a frame's own length (the next frame's delta) by the world steps it ran: (1-step ms, 2-step ms, share of frames with 2)."""
+    r = json.load(open(replay_path, encoding="utf-8"))
+    s = r["frames"]
+    raw = gzip.decompress(base64.b64decode(s[:s.rfind(":")]))
+    fr = []
+    o = 0
+    while o + 29 <= len(raw):
+        n, kr = struct.unpack_from("<IB", raw, o)
+        _pd, d, ts = struct.unpack_from("<ddd", raw, o + 5)
+        o += 29
+        fr.extend([(kr & 15, (kr >> 4) & 1, d, ts)] * n)
+    run, rt = [], 0.0
+    for k, ran, d, ts in fr:
+        if ran:
+            rt += d * ts
+        run.append(rt)
+    one, two = [], []
+    for i in range(len(fr) - 1):
+        if fr[i][1] and fr[i + 1][1] and any(a <= run[i] <= b + 1 for a, b in windows):
+            (one if fr[i][0] == 1 else two).append(fr[i + 1][2] * 1000.0)
+    return st.median(one), st.median(two), len(two) / max(len(one) + len(two), 1)
+
+
+def work_s(x):
+    """A second of play's script work (ms): its world steps' time plus its frames' per-frame time. The PC's replay runs
+    the phone's own frames and world steps, so the two seconds hold the same number of each."""
+    return float(x.get("steps", 0) or 0) * float(x.get("phys_ms", 0) or 0) + float(x.get("frames", 0) or 0) * float(x.get("proc_ms", 0) or 0)
+
+
+def pc_compare(ph, pc, tmax=700):
+    """The phone's speed against its own start: (the PC's work / the phone's) over 9-second windows, divided by the same
+    figure for the first 3:30. Plus phase rows: (name, creatures, PC ms a frame, phone ms a frame, phone fps, share of
+    seconds under 45 fps)."""
+    P = {int(x["t"]): x for x in ph if x.get("frame_ms")}
+    C = {int(x["t"]): x for x in pc if work_s(x) > 0}
+    ts = [t for t in range(1, tmax) if t in P and t in C]
+    base = sum(work_s(C[t]) for t in ts if t < 210) / sum(work_s(P[t]) for t in ts if t < 210)
+    series = []
+    for t in ts:
+        win = [u for u in ts if abs(u - t) <= 4]
+        series.append((t, sum(work_s(C[u]) for u in win) / sum(work_s(P[u]) for u in win) / base))
+    rows = []
+    for a, b, name in [(0, 210, "First 3:30"), (210, 430, "3:30 to 7:10"), (430, 667, "Boss fight")]:
+        u = [t for t in ts if a <= t < b]
+        fr = sum(float(P[t]["frames"]) for t in u)
+        rows.append((name, st.mean(P[t].get("alive", 0) or 0 for t in u), sum(work_s(C[t]) for t in u) / fr, sum(work_s(P[t]) for t in u) / fr,
+                     fr / len(u), sum(1 for t in u if P[t]["frame_ms"] > 22.2) / len(u), sum(work_s(P[t]) for t in u) / sum(work_s(C[t]) for t in u)))
+    return series, rows, 1.0 / base
+
+
+def speed_chart(series, samples):
+    """The phone's speed through the run (1 = as fast as in its first 3:30), slow windows shaded."""
+    W, H = 900, 300
+    L, R, T, B = 52, 20, 40, 40
+    tmax = 700.0
+    X = lambda t: L + (W - L - R) * t / tmax
+    Y = lambda v: H - B - (H - T - B) * min(max(v, 0.0), 1.25) / 1.25
+    o = ['<svg viewBox="0 0 %d %d" role="img" aria-label="The phone\'s speed through the run">' % (W, H)]
+    for a, b, _w in slow_windows(samples):
+        if a < tmax:
+            o.append('<rect x="%.1f" y="%d" width="%.1f" height="%d" fill="#ff6b6b" opacity="0.13"/>' % (X(a - 0.5), T, max(X(min(b, tmax) + 0.5) - X(a - 0.5), 2), H - T - B))
+    for a, b, name in PHASES1[:3]:
+        o.append('<line x1="%.1f" x2="%.1f" y1="%d" y2="%d" stroke="%s" stroke-dasharray="3 4"/>' % (X(a), X(a), T - 22, H - B, C_DIM))
+        o.append('<text x="%.1f" y="%d" fill="%s" font-size="13" text-anchor="middle">%s</text>' % ((X(a) + X(min(b, tmax))) / 2, T - 10, C_INK, name))
+    for v in (0.0, 0.25, 0.5, 0.75, 1.0):
+        o.append('<line x1="%d" x2="%d" y1="%.1f" y2="%.1f" stroke="%s"/>' % (L, W - R, Y(v), Y(v), C_GRID))
+        o.append('<text x="%d" y="%.1f" fill="%s" font-size="12" text-anchor="end">%d%%</text>' % (L - 8, Y(v) + 4, C_DIM, round(v * 100)))
+    for t in range(0, 700, 120):
+        o.append('<text x="%.1f" y="%d" fill="%s" font-size="12" text-anchor="middle">%d:%02d</text>' % (X(t), H - B + 20, C_DIM, t // 60, t % 60))
+    o.append('<line x1="%.1f" x2="%.1f" y1="%d" y2="%d" stroke="%s" stroke-width="1.5"/>' % (X(160), X(160), T, H - B, C_INK))
+    o.append('<text x="%.1f" y="%d" fill="%s" font-size="12">replay exact up to 2:40</text>' % (X(160) + 6, H - B - 8, C_DIM))
+    d = "M" + " L".join("%.1f %.1f" % (X(t), Y(v)) for t, v in series)
+    o.append('<path d="%s" fill="none" stroke="%s" stroke-width="2.5"/>' % (d, C_PROC))
+    o.append('<text x="%d" y="%d" fill="%s" font-size="12" text-anchor="middle" transform="rotate(-90 %d %d)">speed against its start</text>' % (14, (T + H - B) // 2, C_DIM, 14, (T + H - B) // 2))
+    o.append("</svg>")
+    return "".join(o)
+
+
 def budget_lines():
     """Phone cost by crowd size, cool and warm: straight lines fitted to its runs (see the numbers under the chart)."""
     W, H = 900, 300
@@ -125,20 +343,52 @@ def bars():
 
 
 SOLUTIONS = [
-    dict(k="A", name="Set a crowd budget for the phone", gain="Biggest and immediate", ms="Worst frames 38 ms to about 18-20 ms", lose="Fewer bodies at the worst moment: at most about 250 instead of 320 and rising. At 319 creatures their pictures cover 77% of a screen, so 250 still looks like a swarm. Rows may run a little thin, which the Level Editor shows as starving.",
-         work="Tiny: map data. The cap from 500 to about 250, or fewer than r22's 15 spiders every 5 s", risk="Balance: fewer kills means slightly less XP in that stretch", note="This can also be automatic: hold new spawns only while recent frames run over budget, so a cool phone and the PC keep the full crowd. That's a small rule, and it would be named in BALANCING."),
-    dict(k="B", name="Take away the cliff", gain="Large, and only on bad frames", ms="Worst frames 38 ms to about 25-28 ms (from 26 fps to about 37)", lose="Nothing you can see in a screenshot. When the phone is overloaded the world would run in slight slow motion, or take slightly bigger steps, rather than drop to half frame rate.",
-         work="Small to medium. One setting to try (one world step a frame), then a choice between slow motion and a longer step", risk="Replays record the steps, so they stay correct for new runs but need a re-test", note="With one world step a frame the extra 10 ms never lands. The world then runs at about 60% speed during the overload instead of stuttering at full speed, the same trade EVE Online makes with its time dilation."),
-    dict(k="C", name="Rewrite the crowd's loops in compiled code (GDExtension, C++)", gain="Largest long-term: 2x to 3x the crowd", ms="Crowd work down by perhaps 70-85%: warm frames at 233 creatures from 38 ms to about 17 ms, and 500 creatures become possible", lose="Nothing visual at all. Content stays data and the Level Editor doesn't change.",
-         work="Large: a pass or two. A compiled library for Android and for Windows in the build, and a careful move of the crowd's hot loops", risk="Moderate: every new build must keep replays exact, and a crash can no longer be read as easily from the phone. I would first do a one-pass trial on the separation loop only and measure it on your phone", note="I found no trustworthy public benchmark for this exact case: the 5x to 20x figures around are marketing. The trial is what gives you a real number."),
-    dict(k="D", name="Move the crowd less often", gain="Medium", ms="Moving and colliding the crowd down by about 35-45%: warm frames down by 6-8 ms", lose="The crowd's spacing gets a bit looser: creatures push apart 30 times a second rather than 60, so tight clumps can overlap slightly more. Their walking stays smooth, as position still moves every step.",
-         work="Medium: the far-away logic from pass 101 extended to creatures on screen", risk="Low. Rules change slightly, so old replays need their own build, which they already have", note="Today creatures on screen steer every 2nd tick and those off screen every 4th, but every creature still moves and separates every tick."),
-    dict(k="E", name="Draw far-away creatures half as often", gain="Medium", ms="Writing the crowd to the GPU down by about 30-40%: frames down by 2-3 ms", lose="Creatures at the screen's edge update 30 times a second. On a slow walker that's hard to see; on a fast creature at the edge you may see a very slight step if you look for it.",
-         work="Small to medium", risk="Low", note="The game writes every drawn creature's position and frame to the GPU every frame, one call at a time."),
-    dict(k="F", name="Fewer draw calls for scenery", gain="Small to medium", ms="1-2 ms off the part that sends draw calls", lose="Nothing.", work="Medium", risk="Low", note="The PC probe counts about 170 draw calls and 700-790 objects. Scenery, walls and shadows could merge further. It also lowers power use, which helps with heat."),
-    dict(k="G", name="Keep the phone cooler", gain="Delays the 2x slowdown rather than stops it", ms="Hard to promise: 1-2 ms directly, plus slower heating", lose="Lower world resolution: 3D scale 0.8 to 0.7 is 23% fewer pixels, so sand and creatures look a bit softer. The UI stays sharp. The Nightfall filter could also become part of each material instead of extra full-screen quads, with no visual loss but real work.",
-         work="Scale: tiny. Filter: medium", risk="Low", note="Android has a thermal API that tells a game how close it is to throttling (ADPF). NCSoft's Lineage W went from falling to 32 fps on a Pixel 6 to a steady 60 by lowering quality before heat hit. Godot has no support for it, so it needs a small Android plugin. It could drive option A's automatic budget."),
-    dict(k="H", name="Change the sprite sheets' file type or compression", gain="Doesn't fix this slowdown", ms="About 0-1 ms. Helps memory and loading instead", lose="If you use GPU compression (ETC2): small blocky artefacts along outlines and soft edges, most visible on hero close-ups and pale creatures. You'd want to check it by eye on 3 or 4 strips first.",
+    dict(k="B", name="Take away the cliff", gain="Now the biggest: it helps every slow stretch, on every stage",
+         ms="Stage 1's slow windows: a frame with one world step took 22 ms, a frame with two 31 ms, and two thirds of the frames ran two. One step a frame: about 30 fps to about 45. Stage 2's worst stretch: 38 ms to about 25-28.",
+         lose="Nothing you can see in a screenshot. While the phone runs slow, the world either moves in slight slow motion (about three quarters speed in those windows) or takes slightly bigger steps.",
+         work="Small to medium. One setting to try (one world step a frame), then a choice between slow motion and a longer step",
+         risk="Replays record the steps, so they stay correct for new runs but need a re-test",
+         note="Today the catch-up step doubles the world's work at exactly the moment the phone has least to give. With one step a frame, a phone at two thirds of its speed gives about two thirds of the frame rate, not half. EVE Online makes the same trade with its time dilation."),
+    dict(k="G", name="Work with the phone's heat: Android's ADPF", gain="Large if it works on your phone: it goes after the main cause. Unproven until tried",
+         ms="I can't promise a number before trying it. It has two parts. The performance hint tells Android each frame's deadline and how long the work took, so Android can pick clock speeds and cores. The heat warning (thermal headroom) says how close the phone is to slowing down, some seconds ahead.",
+         lose="Only while the phone is hot, and only what you choose. For example the 3D resolution from 0.8 to 0.7 (23% fewer pixels, slightly softer sand and creatures), fewer particles, or option A's crowd budget. On a cool phone, nothing.",
+         work="Medium: a small Android plugin (Kotlin) and the Gradle build the Play build already uses. No Godot plugin exists; Unity, Unreal and Defold have one",
+         risk="Low to moderate: it needs Android 12 or later (your Pixel has it), and a plugin is one more part of the build",
+         note="The same plugin would write the phone's heat into the run record every second, so the next report can show the cause as a measurement. Android also has a sustained performance mode (steady, lower clocks instead of swings). Whether a Pixel 8 Pro supports it is up to Google; the plugin can ask in one line, and we can try it."),
+    dict(k="A", name="Set a crowd budget for the phone", gain="Large for Stage 2 and Endless, little for Stage 1",
+         ms="Stage 2's worst frames: 38 ms to about 18-20 ms. Endless is similar (here 230-300 creatures at 29 fps). Stage 1's slow windows had 35-140 creatures, so a budget can't fix those.",
+         lose="Fewer bodies at the worst moment: at most about 250 instead of 320 and rising. At 319 creatures their pictures cover 77% of a screen, so 250 still looks like a swarm. Rows may run a little thin, which the Level Editor shows as starving.",
+         work="Tiny as a fixed cap (map data). Small as the automatic version",
+         risk="Balance: fewer kills means slightly less XP in that stretch",
+         note="Better automatic: hold new spawns only while recent frames run over budget. Then it also reacts to a hot phone, and a cool phone and the PC keep the full crowd. That's a small rule, and it would be named in BALANCING."),
+    dict(k="C", name="Rewrite the crowd's loops in compiled code (GDExtension, C++)", gain="Largest long-term for big crowds",
+         ms="In Stage 2 the crowd is 80% of the named work: frames at 233 creatures from 38 ms to about 17, and 500 creatures become possible. In Stage 1 the crowd is only about 40% of the scripts, so its slow windows would go from about 20 ms of scripts to about 13. That helps, but doesn't remove the windows on its own.",
+         lose="Nothing visual at all. Content stays data and the Level Editor doesn't change.",
+         work="Large: a pass or two. A compiled library for Android and for Windows in the build, and a careful move of the crowd's hot loops",
+         risk="Moderate: every new build must keep replays exact, and a crash can no longer be read as easily from the phone. I would first do a one-pass trial on the separation loop only and measure it on your phone",
+         note="I found no trustworthy public benchmark for this exact case: the 5x to 20x figures around are marketing. The trial is what gives you a real number."),
+    dict(k="I", name="Trim the smaller costs the replay found", gain="Small to medium",
+         ms="From the PC's timers during Stage 1: the wave director 0.3-0.4 ms a frame, drawing the shots 0.4 ms late in the stage, the hero 0.45 ms. On a slow phone that's 3 to 4 times as much: perhaps 2-4 ms together.",
+         lose="Nothing, if each turns out to be wasted work. I haven't looked at why yet.",
+         work="Small to medium, one at a time", risk="Low",
+         note="The first report couldn't see these: its PC probe used a different build and no boss fight. The director stands out. It's the code that decides spawns, and it's worth checking why it costs a third of a millisecond every frame."),
+    dict(k="D", name="Move the crowd less often", gain="Medium for big crowds, small in Stage 1",
+         ms="Moving and colliding the crowd down by about 35-45%: Stage 2's warm frames down by 6-8 ms. In Stage 1, about 1-2 ms",
+         lose="The crowd's spacing gets a bit looser: creatures push apart 30 times a second rather than 60, so tight clumps can overlap slightly more. Their walking stays smooth, as position still moves every step.",
+         work="Medium: the far-away logic from pass 101 extended to creatures on screen",
+         risk="Low. Rules change slightly, so old replays need their own build, which they already have",
+         note="Today creatures on screen steer every 2nd tick and those off screen every 4th, but every creature still moves and separates every tick."),
+    dict(k="E", name="Draw far-away creatures half as often", gain="Small to medium",
+         ms="Writing the crowd to the GPU down by about 30-40%: Stage 2's frames down by 2-3 ms, Stage 1's by under 1 ms",
+         lose="Creatures at the screen's edge update 30 times a second. On a slow walker that's hard to see; on a fast creature at the edge you may see a very slight step if you look for it.",
+         work="Small to medium", risk="Low",
+         note="The game writes every drawn creature's position and frame to the GPU every frame, one call at a time."),
+    dict(k="F", name="Fewer draw calls for scenery", gain="Small to medium",
+         ms="1-2 ms off the part that sends draw calls, more on a slow phone", lose="Nothing.", work="Medium", risk="Low",
+         note="The PC probe counts about 170 draw calls and 700-790 objects. Scenery, walls and shadows could merge further. It also lowers power use, which means a little less heat."),
+    dict(k="H", name="Change the sprite sheets' file type or compression", gain="Doesn't fix this slowdown",
+         ms="About 0-1 ms. Helps memory and loading instead",
+         lose="If you use GPU compression (ETC2): small blocky artefacts along outlines and soft edges, most visible on hero close-ups and pale creatures. You'd want to check it by eye on 3 or 4 strips first.",
          work="Small to test, medium to roll out", risk="Low. It's per file and easy to undo", note="See the section below."),
 ]
 
@@ -154,6 +404,11 @@ SOURCES = [
     ("Beebom: Tensor G3 benchmarks and thermals", "https://beebom.com/google-tensor-g3-benchmarks/", "A 15-minute CPU stress test lost about 60% of peak."),
     ("Notebookcheck: Pixel 8 stress tests", "https://www.notebookcheck.net/First-Pixel-8-and-Pixel-8-Pro-3D-Mark-stress-test-results-surface-paint-a-potentially-ugly-picture-for-Tensor-G3.757268.0.html", "A 58% CPU drop under sustained load. 2023 launch-era tests; updates may have changed this."),
     ("Android: ADPF story, NCSoft Lineage W", "https://developer.android.com/stories/games/lineagew-adpf", "60 fps fell to 32 on a Pixel 6 in 30 minutes; with thermal-aware quality it held 60."),
+    ("Android: ADPF overview", "https://developer.android.com/games/optimize/adpf", "Mobile chips change clock speed and core type as they heat. ADPF's Thermal API lets a game adjust before that, and its performance hint describes the game's frame work to Android."),
+    ("Android: best practices for ADPF", "https://developer.android.com/games/optimize/adpf/best-practices-adpf", "Scale individual settings (resolution, particles, effects) in small steps as heat rises, rather than whole presets, and test sessions of 15 minutes or more."),
+    ("Android: Thermal API", "https://developer.android.com/games/optimize/adpf/thermal", "Thermal headroom runs from 0 (no throttling) to 1 (heavy throttling), and a game can ask for it ahead of time."),
+    ("Android: sustained performance mode", "https://source.android.com/docs/core/power/performance", "A phone maker can offer steady, lower clocks instead of a fast start that throttles. Their example: a steady 45 fps instead of 60 falling to 30. Support depends on the device."),
+    ("Defold: ADPF extension", "https://defold.com/extension-adpf", "Another engine's wrapper for both APIs: a hint session for the main thread and a headroom forecast. The closest model for a Godot plugin; I found none for Godot."),
     ("Imagination: Do Not Use Discard", "https://docs.imgtec.com/starter-guides/powervr-architecture/html/topics/rules/do-not-use-discard.html", "Alpha test is costly on tile-based GPUs. This is PowerVR's guidance, not Mali's; I didn't find Arm numbers."),
 ]
 
@@ -169,10 +424,36 @@ def page(d):
             x["k"], html.escape(x["name"]), html.escape(x["note"]).replace("`", ""), html.escape(x["risk"]))
         for x in SOLUTIONS)
     src = "".join('<li><a href="%s">%s</a>: %s</li>' % (html.escape(u), html.escape(n), html.escape(w)) for n, u, w in SOURCES)
-    return TEMPLATE.replace("@@TIMELINE@@", timeline(s)).replace("@@BARS@@", bars()).replace("@@LINES@@", budget_lines()).replace("@@SOLROWS@@", sol_rows).replace("@@SOLCARDS@@", sol_cards).replace("@@SOURCES@@", src)
+    # pass 125: the Stage 1 run, its replay and the PC's replay of it
+    s1 = json.load(open(RUN1, encoding="utf-8"))["samples"]
+    pc = json.load(open(PC1, encoding="utf-8"))["samples"]
+    same_svg, same = same_crowd(s1)
+    series, prow, _base = pc_compare(s1, pc)
+    pre = [(a, b) for a, b, _w in slow_windows(s1) if b < 430]
+    one, two, share = step_split(REPLAY1, pre)
+    phase_rows = "".join('<tr><td><b>%s</b></td><td>%d</td><td>%.1f ms</td><td>%.1f ms</td><td>%d</td><td>%d%%</td></tr>' % (
+        name, round(alive), pcw, phw, round(fps), round(100 * under)) for name, alive, pcw, phw, fps, under, _x in prow)
+    win_rows = "".join('<tr><td><b>%s</b>, %s</td><td>%d:%02d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d:%02d</td><td>%d s</td></tr>' % (
+        day, stage, played // 60, played % 60, n, secs, small, least, int(first) // 60, int(first) % 60, longest)
+        for day, stage, _hero, played, n, secs, small, least, first, longest in window_rows())
+    boss = prow[2]
+    first = prow[0]
+    rep = {
+        "@@T1@@": timeline1(s1), "@@SAME@@": same_svg, "@@SPEED@@": speed_chart(series, s1), "@@PHASEROWS@@": phase_rows, "@@WINROWS@@": win_rows,
+        "@@BOSSSLOW@@": "%d%%" % round(100 * boss[5]), "@@BOSSX@@": "%.1f" % (boss[6] / first[6]),
+        "@@S0@@": "%.1f" % (same[0][3] + same[0][4]), "@@S1@@": "%.1f" % (same[1][3] + same[1][4]), "@@S2@@": "%.0f" % (same[2][3] + same[2][4]),
+        "@@F2@@": "%.0f" % same[2][5], "@@PCB@@": "%.1f" % boss[2], "@@PC0@@": "%.1f" % first[2], "@@PHB@@": "%.1f" % boss[3], "@@PH0@@": "%.1f" % first[3],
+        "@@ONE@@": "%.0f" % one, "@@TWO@@": "%.0f" % two, "@@TWOSHARE@@": "two thirds" if 0.6 <= share <= 0.72 else "%d%%" % round(100 * share),
+        "@@TIMELINE@@": timeline(s), "@@BARS@@": bars(), "@@LINES@@": budget_lines(), "@@SOLROWS@@": sol_rows, "@@SOLCARDS@@": sol_cards, "@@SOURCES@@": src,
+    }
+    out = TEMPLATE
+    for k, v in rep.items():
+        out = out.replace(k, v)
+    assert "@@" not in out, out[out.index("@@") - 40:out.index("@@") + 40]
+    return out
 
 
-TEMPLATE = """<title>Stage 2 Slowdown</title>
+TEMPLATE = """<title>Phone Slowdown Report</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Ultra&display=swap">
 <style>
@@ -217,31 +498,97 @@ code { font-size:.92em; color:var(--gold); }
 </style>
 <main>
 <header>
-<div class="eyebrow">Performance report, for your decision</div>
-<h1>Why Stage 2 got slow on your Pixel 8 Pro</h1>
-<p class="lead">In your run of 4 November (Drifter, Stage 2, 3:04 long) the game held 60 fps for 2:28, then fell to about 26 fps within 8 seconds. Three things stack up: too many creatures for the phone to run at 60 fps, a catch-up rule that turns a slightly late frame into a very late one, and the phone itself slowing down. I've changed nothing yet. Your options are in the middle of this page.</p>
+<div class="eyebrow">Performance report, updated after your Stage 1 run, for your decision</div>
+<h1>Why the game slows down on your Pixel 8 Pro</h1>
+<p class="lead">The first version of this report put the crowd first. Your Stage 1 run this evening (Drifter, 13:06, into Endless) shows that the bigger cause is the phone itself slowing down, and that the game's catch-up rule makes each slowdown about twice as bad. The crowd still matters in Stage 2 and Endless. I haven't changed anything in the game yet. The re-ranked options are in the middle of this page.</p>
 </header>
 
 <section>
-<h2>The three causes, biggest first</h2>
+<h2>What your Stage 1 run shows</h2>
 <div class="causes">
-<div class="cause"><h3>1. The crowd: 15 more spiders every 5 seconds, with nothing to stop it</h3><p>Stage 2's cap is 500 from the first second, and your row r22 sends 15 Desert Spiders every 5 s from 0:50. That's 3 a second against your level 9 hero's 1 kill a second, so the crowd hit 318 at 3:01, 241 of them spiders. Almost all the game's script time scales with this number: moving and colliding creatures and writing them to the GPU. A warm phone has room for about 210 at 60 fps.</p></div>
-<div class="cause second"><h3>2. The cliff: one late frame costs twice the work</h3><p>The world runs in fixed 1/60 s steps. When a frame takes longer than 16.7 ms, the next frame runs two steps to catch up, which adds 10 ms, which makes it later still. So the phone doesn't get slightly slower, it falls off a step: from 17 ms to 38 ms with only 27% more creatures. It's why it felt sudden. Pass 102 capped this at two steps so that it can't spiral further, but the drop to half speed remains.</p></div>
-<div class="cause third"><h3>3. The phone slows down when it's warm</h3><p>From 2:29 to 2:52, moving the crowd, drawing it and everything else all took about twice as long together, then all recovered together, with more creatures on screen than before. No game system behaves like that; a CPU changing speed does. Earlier runs show the same: the same crowd cost 2.4 ms a step at the start of a fresh run and 4.4 ms a few minutes in. Reviews measured the Pixel 8's chip losing 58-60% of its CPU speed under long load. This is my best reading, not a measurement: the record doesn't log the phone's temperature or clock speed. I'd like to add that.</p></div>
+<div class="cause"><h3>Slow with a small crowd</h3><p>Before the boss, Stage 1 never had more than 140 creatures. Still, from 3:35 the game fell to about 30 fps four times, for 9 to 38 seconds each time, and then came back with about the same crowd. In the boss fight, with 17 creatures on average, @@BOSSSLOW@@ of the seconds ran under 45 fps.</p></div>
+<div class="cause second"><h3>The same work, a slower phone</h3><p>I replayed your run on the PC, whose speed doesn't change. The boss fight asks for about the same work as the first three and a half minutes, when your phone ran a steady 60 fps with room to spare. On your phone it took @@BOSSX@@ times as long. So through the boss fight the phone ran at about 60% of the speed it started the run with, and at about two thirds in the slow windows before it.</p></div>
+<div class="cause third"><h3>Every long run has it</h3><p>It isn't this build. Your runs of 27 and 31 October show the same windows, some with only 2 or 3 creatures alive. They start 2:30 to 6 minutes into a run, which is how a phone that heats up behaves.</p></div>
 </div>
 </section>
 
 <section>
-<h2>The run, second by second</h2>
+<h2>Stage 1, second by second</h2>
 <figure>
-<div class="legend"><span><i style="background:#f5b82a"></i>World steps (moving the crowd, shots, hero)</span><span><i style="background:#4a8ae0"></i>Per-frame scripts (mostly writing the crowd to the GPU)</span><span><i style="background:#5b6780"></i>The rest (sending draw calls, waiting for the screen)</span><span><i style="background:#ff6b6b"></i>Creatures alive</span></div>
-@@TIMELINE@@
-<figcaption>Your phone's own numbers, averaged over 2 seconds. Up to 2:28 the "rest" is mostly idle waiting: there's spare time. In the red window the frame more than doubles while the crowd grows slowly. After 2:52 the crowd is bigger but the frame is much cheaper. That's cause 3 ending.</figcaption>
+<div class="legend"><span><i style="background:#f5b82a"></i>World steps (moving the crowd, shots, hero)</span><span><i style="background:#4a8ae0"></i>Per-frame scripts</span><span><i style="background:#5b6780"></i>The rest (drawing, waiting for the screen)</span><span><i style="background:#ff6b6b"></i>Creatures alive</span></div>
+@@T1@@
+<figcaption>Your phone's own numbers, averaged over 3 seconds. The red bands are the slow windows: 5 seconds or more at over 22 ms a frame. The crowd stays low until Endless, yet the frame jumps from about 17 ms to about 30 in each band.</figcaption>
 </figure>
 </section>
 
 <section>
-<h2>How many creatures fit</h2>
+<h2>The same crowd, three times</h2>
+<p>Three groups of seconds from this run, each with about 77 creatures alive.</p>
+<figure>
+<div class="legend"><span><i style="background:#f5b82a"></i>World steps</span><span><i style="background:#4a8ae0"></i>Per-frame scripts</span><span><i style="background:#5b6780;opacity:.55"></i>The rest of the frame</span></div>
+@@SAME@@
+<figcaption>At the start the scripts take @@S0@@ ms a frame. Later, with a bigger build, @@S1@@ ms, and the game still holds 60 fps. In a slow window the same crowd needs @@S2@@ ms of scripts and the frame takes @@F2@@ ms. Look at the yellow world steps: in a slow window almost every frame runs two of them. That's the cliff.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>The phone's speed, measured against the PC</h2>
+<p>For each second, I divided the work the PC needed by the time your phone took, and scaled the result so that the first 3:30 is 100%. The PC replays your phone's own frames and world steps, so both machines did the same work. The replay matched your run exactly up to 2:40. After that, small differences built up, so later it's a close copy with about the same crowd and build, not the identical run.</p>
+<figure>
+@@SPEED@@
+<figcaption>About 100% for the first three and a half minutes. Then it dips to about two thirds in each red band, and stays near 60% through the whole boss fight. The game didn't get heavier in the boss fight; the phone got slower.</figcaption>
+</figure>
+<div class="tablewrap" style="margin-top:16px"><table>
+<thead><tr><th>Stretch</th><th>Creatures</th><th>PC's script work a frame</th><th>Phone's script work a frame</th><th>Phone fps</th><th>Seconds under 45 fps</th></tr></thead>
+<tbody>@@PHASEROWS@@</tbody>
+</table></div>
+<p class="dim" style="margin-top:12px">Reading across: the boss fight needs about the same work from the PC as the first 3:30 (@@PCB@@ against @@PC0@@ ms a frame), yet your phone spent @@PHB@@ ms on it against @@PH0@@. From 3:30 to 7:10 the work really did grow, by about 60%: four, then five weapons and more shots. The phone's dips came on top of that.</p>
+</section>
+
+<section>
+<h2>Every long run on your phone has these windows</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Run</th><th>Played</th><th>Slow windows</th><th>Seconds in them</th><th>Windows with under 150 creatures</th><th>Fewest creatures in one</th><th>First one at</th><th>Longest</th></tr></thead>
+<tbody>@@WINROWS@@</tbody>
+</table></div>
+<p class="dim" style="margin-top:12px">A slow window here is 5 seconds or more at over 22 ms a frame. The afternoon Stage 2 run lasted only 3 minutes, and its one window came with 210-260 creatures alive: that one is the crowd and the phone together.</p>
+</section>
+
+<section>
+<h2>The causes, re-ranked</h2>
+<div class="causes">
+<div class="cause"><h3>1. The phone slows down</h3><p>Your phone runs at full speed for the first few minutes of a run, then dips to about two thirds for 10 to 40 seconds at a time, and later stays near 60%. Heat is the most likely reason. Reviews of the Tensor G3 measured its CPU losing 58-60% under long load, and the windows start 2:30 to 6 minutes into a run. It could also be battery saver or charging, which I can't see from here. The replay proves that the phone changed speed; it doesn't prove why. Option G's plugin would log the heat and settle it.</p></div>
+<div class="cause second"><h3>2. The cliff makes every dip about twice as bad</h3><p>When a frame runs over 16.7 ms, the next one runs two world steps to catch up, which makes it later still. In Stage 1's slow windows, a frame with one world step took @@ONE@@ ms and a frame with two took @@TWO@@ ms, and @@TWOSHARE@@ of the frames ran two. Without the cliff, a phone at two thirds of its speed would give about 45 fps, not 30.</p></div>
+<div class="cause third"><h3>3. The crowd, in Stage 2 and Endless</h3><p>Stage 2's 15 spiders every 5 seconds pushed the crowd to 318, and Endless in this run reached 300 at 29 fps. That's still too much for a warm phone at 60 fps, as the first version found. But it isn't what slowed Stage 1.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Your options, re-ranked</h2>
+<p>Ranked again with both runs in mind. The letters are the same as in the first version, so you can still refer to them; I is new. The numbers are my estimates from the measurements above, not tests of the changes.</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Option</th><th>Effect</th><th>What you lose visually</th><th>Work</th></tr></thead>
+<tbody>@@SOLROWS@@</tbody>
+</table></div>
+<div class="opts" style="margin-top:16px">@@SOLCARDS@@</div>
+</section>
+
+<section>
+<h2>The Stage 2 run in detail</h2>
+<p>This is the first version's analysis of your run of 4 November, afternoon (Drifter, Stage 2, 3:04 long). It held 60 fps for 2:28, then fell to about 26 fps within 8 seconds. The numbers are unchanged. The one thing the Stage 1 run changes is the room for creatures in the second chart: those lines fit the phone at normal speed, and in a slow window the room shrinks a lot. Stage 1 fell to 30 fps with 35-140 creatures.</p>
+</section>
+
+<section>
+<h3>The run, second by second</h3>
+<figure>
+<div class="legend"><span><i style="background:#f5b82a"></i>World steps (moving the crowd, shots, hero)</span><span><i style="background:#4a8ae0"></i>Per-frame scripts (mostly writing the crowd to the GPU)</span><span><i style="background:#5b6780"></i>The rest (sending draw calls, waiting for the screen)</span><span><i style="background:#ff6b6b"></i>Creatures alive</span></div>
+@@TIMELINE@@
+<figcaption>Your phone's own numbers, averaged over 2 seconds. Up to 2:28 the "rest" is mostly idle waiting: there's spare time. In the red window the frame more than doubles while the crowd grows slowly. After 2:52 the crowd is bigger but the frame is much cheaper: the phone back at full speed.</figcaption>
+</figure>
+</section>
+
+<section>
+<h3>How many creatures fit</h3>
 <figure>
 @@LINES@@
 <figcaption>Frame time on your phone by crowd size: straight lines fitted to two stretches of play. Warm: this run before 2:28. Cool: the first five minutes of your long run of 24 October (version 0.88). Above the dashed line you lose 60 fps, and then the cliff adds about 10 ms more. The fits are approximate and don't include heavy builds with many shots.</figcaption>
@@ -249,7 +596,7 @@ code { font-size:.92em; color:var(--gold); }
 </section>
 
 <section>
-<h2>Where the time goes</h2>
+<h3>Where the time goes</h3>
 <figure>
 @@BARS@@
 <figcaption>Milliseconds a frame with 288 creatures, measured on the PC with your run's creature mix and a stronger build so that gems pile up. Your phone runs the same work about 2 to 2.5 times slower when warm. Yellow is the crowd: 60% of the frame's total and 80% of the part we can name.</figcaption>
@@ -263,16 +610,6 @@ code { font-size:.92em; color:var(--gold); }
 <div><b>Your build</b>Two weapons at level 2 and 1. Few shots were flying (0-5).</div>
 <div><b>The new UI</b>The HUD costs 0.14 ms. I can't fully rule out the phone's GPU from here, but its load shows up in the "rest", which stayed at 5-6 ms outside the slow window.</div>
 </div>
-</section>
-
-<section>
-<h2>Your options, ranked</h2>
-<p>Ranked by how much they help for how little you lose. Times are for the worst stretch of your run, 233 creatures on a warm phone, 38 ms a frame. They're my estimates from the numbers above, not measurements, except where the section says so.</p>
-<div class="tablewrap"><table>
-<thead><tr><th></th><th>Option</th><th>Effect</th><th>What you lose visually</th><th>Work</th></tr></thead>
-<tbody>@@SOLROWS@@</tbody>
-</table></div>
-<div class="opts" style="margin-top:16px">@@SOLCARDS@@</div>
 </section>
 
 <section>
@@ -298,9 +635,11 @@ code { font-size:.92em; color:var(--gold); }
 </section>
 
 <section class="pick">
-<h2>My recommendation</h2>
-<p><b>A and B now.</b> Both are small and neither costs anything you can see in normal play. Together they should take the worst stretch from 26 fps to a steady 50-60 on your phone. I'd also add the phone's temperature to the run record, so the next report can show cause 3 as a fact.</p>
-<p><b>Then a trial of C</b> on your phone. If it gives the speed I expect, it's the option that lets you keep 500 creatures and removes the need for D, E and most of G. If you'd rather not take on compiled code, D and E give most of the same gain in smaller steps.</p>
+<h2>My recommendation, updated</h2>
+<p><b>B now.</b> It's small, costs nothing you can see, and helps every slow stretch on every stage. Stage 1's slow windows should go from about 30 fps to about 45, and Stage 2's worst stretch from 26 to about 37.</p>
+<p><b>G next, as a small Android plugin.</b> First it writes the phone's heat into the run record, so we know rather than guess. Then it tells Android each frame's deadline, and eases the game off when the phone is close to slowing down. Treat the first version as a trial: if the hint alone keeps your phone faster for longer, that's the cheapest win of all.</p>
+<p><b>A as the automatic budget</b>, for Stage 2 and Endless: hold new spawns while frames run late. <b>I along the way</b>, since it costs nothing visually. <b>Then a trial of C</b> if you want 500 creatures on the phone.</p>
+<p><b>Two questions that would help:</b> were you charging the phone while you played this evening? And is Battery Saver on? Both change how a Pixel slows down.</p>
 <p style="margin:0"><b>Tell me which letters you want</b> and I'll build them. For option A, also tell me whether to lower the Stage 2 cap by hand, or make the budget automatic, or both.</p>
 </section>
 </main>
