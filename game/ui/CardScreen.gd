@@ -95,6 +95,9 @@ var _note_tw: Tween
 var _struck_n := 0
 ## The theme the head was built in (pass 122): an offer that finds it flipped builds the head again (_rebuild_head).
 var _built_royale := false
+## Pass 123 (lane RUN_C): under Royale, the mutation offer's skips left in words over its SKIP (a black pill in this
+## holder, shown with the skip on a mutation offer only).
+var _skips_box: CenterContainer
 
 ## The rail's thickness and its fill's inset are the HUD's (pass 56, Garry: "Make the EXP bar twice as thick": one pair of
 ## constants for both rails, 36 px and 6, so the level-up screen's can never differ from the run's), and the paper glint
@@ -178,6 +181,38 @@ const ROYALE_PLATE_PX := 200.0
 const ROYALE_GAP := 34
 const ROYALE_EDGE := 5
 const ROYALE_RAYS := 2.12
+## The mutation offer under Royale (pass 123, lane RUN_C; Garry: "Mutation offer as the mock: the weapon framed over rays,
+## the count plates, three slate cards with purple-rimmed frames and full text", "The Header texts should all be white and
+## make the amount of Skips display better than what's on the mock"; the mock 8_Mutation_offer): the head's parts
+## ROYALE_PATH_SEP apart, the star line tracked like the mock's (R.MODAL_STAR_EM), the weapon's frame ROYALE_PATH_PLATE_PX
+## over the kit's rays, its name cream Ultra ROYALE_PATH_NAME_PX (fitted to ROYALE_PATH_NAME_W, never under
+## ROYALE_PATH_NAME_MIN), the count plates (the kit's black pills: "Mutation" with its rivets, "the others come back next
+## stage") ROYALE_PILL_GAP apart; the cards ROYALE_PATH_INSET in from either side (990 wide), as tall as the room lets them
+## up to ROYALE_PATH_CARD_H and ROYALE_PATH_GAP apart, each a slate card with a ROYALE_PATH_FRAME_PX frame in the epic purple
+## (rim and glow), the kind word in the epic light, the name ROYALE_PATH_CARD_NAME_PX, the full text ROYALE_PATH_TEXT_PX; the
+## SKIP slate ROYALE_SKIP_W x ROYALE_SKIP_H in Ultra ROYALE_SKIP_PX with its count pill, and over it, ROYALE_SKIPS_GAP up, a
+## black pill saying the skips left this stage in words ("2 skips left this stage", the number gold; "No skips left this
+## stage" at none, the button locked): the brief's "the skips left shown more clearly than the mock's small pill".
+const ROYALE_PATH_SEP := 26
+const ROYALE_PATH_PLATE_PX := 280.0
+const ROYALE_PATH_NAME_PX := 100
+const ROYALE_PATH_NAME_W := 990.0
+const ROYALE_PATH_NAME_MIN := 56
+const ROYALE_PILL_GAP := 12
+const ROYALE_RIVET_PX := 22.0
+const ROYALE_PATH_INSET := 45.0
+const ROYALE_PATH_CARD_H := 290.0
+const ROYALE_PATH_GAP := 30.0
+const ROYALE_PATH_FRAME_PX := 160.0
+const ROYALE_PATH_CARD_NAME_PX := 48
+const ROYALE_PATH_TEXT_PX := 24
+const ROYALE_SKIP_W := 590.0
+const ROYALE_SKIP_H := 106.0
+const ROYALE_SKIP_PX := 40
+const ROYALE_SKIPS_GAP := 18.0
+## The skip's foot over the screen's (today's 90, both themes) and the space kept between the cards and the skips pill.
+const SKIP_FOOT := 90.0
+const ROYALE_CARDS_CLEAR := 20.0
 
 
 func _ready() -> void:
@@ -205,18 +240,46 @@ func _ready() -> void:
 	_reroll_btn.pressed.connect(_reroll)
 	_skip_btn.pressed.connect(_skip)
 	_banish_btn.pressed.connect(_toggle_banish)
-	# the mutation offer's single skip, 420 px wide, centred
-	_path_skip = WButton.make(["SKIP"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
-	_path_skip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_path_skip.offset_left = -215
-	_path_skip.offset_right = 215
-	_path_skip.offset_bottom = -90
-	_path_skip.offset_top = -90 - 108
-	_path_skip.pressed.connect(_skip)
+	# the mutation offer's single skip, 420 px wide, centred (pass 123: the mock's 590 x 106 under Royale)
+	_path_skip = _make_path_skip()
 	add_child(_path_skip)
 	_path_note = _make_path_note()
 	add_child(_path_note)
+	_skips_box = CenterContainer.new()
+	_skips_box.name = "SkipsLeft"
+	_skips_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skips_box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_skips_box.offset_bottom = -SKIP_FOOT - ROYALE_SKIP_H - ROYALE_SKIPS_GAP
+	_skips_box.offset_top = _skips_box.offset_bottom - R.PILL_H
+	_skips_box.visible = false
+	add_child(_skips_box)
 	build_debug_button(_open_debug)
+
+
+## The mutation offer's SKIP in the theme on now: today's 430 x 108 slate-on-paper button under Wanted; under Royale (pass
+## 123) the mock's ROYALE_SKIP_W x ROYALE_SKIP_H slate button in Ultra ROYALE_SKIP_PX (WConfirm's shell button), both
+## SKIP_FOOT over the screen's foot.
+func _make_path_skip() -> WButton:
+	var b: WButton
+	if W.royale():
+		b = WConfirm.make_button(["SKIP"], WButton.SLATE, ROYALE_SKIP_H, ROYALE_SKIP_PX)
+		b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		b.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		b.offset_left = -ROYALE_SKIP_W * 0.5
+		b.offset_right = ROYALE_SKIP_W * 0.5
+		b.offset_bottom = -SKIP_FOOT
+		# the face ROYALE_SKIP_H tall on its base: the whole button (face and base) ends on today's foot
+		b.offset_top = -SKIP_FOOT - maxf(ROYALE_SKIP_H, b.get_combined_minimum_size().y)
+	else:
+		b = WButton.make(["SKIP"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
+		b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		b.offset_left = -215
+		b.offset_right = 215
+		b.offset_bottom = -90
+		b.offset_top = -90 - 108
+	b.name = "PathSkip"
+	b.pressed.connect(_skip)
+	return b
 
 
 ## The header (LEVEL UP over LEVEL N over the dry line, with banish mode's note) in the theme on now (pass 122): the
@@ -266,6 +329,13 @@ func _rebuild_head() -> void:
 	_path_note = _make_path_note()
 	add_child(_path_note)
 	move_child(_path_note, note_at)
+	# pass 123: the mutation offer's SKIP is the theme's too (its size and type), in its place right before the note
+	var skip_at := _path_skip.get_index()
+	remove_child(_path_skip)
+	_path_skip.queue_free()
+	_path_skip = _make_path_skip()
+	add_child(_path_skip)
+	move_child(_path_skip, skip_at)
 	dim_color = W.themed_dim(W.DIM)
 	if dim and visible:
 		dim.color = dim_color
@@ -322,6 +392,23 @@ func _royale_held(c: WCard) -> void:
 	c.plate.rays_scale = ROYALE_RAYS
 
 
+## A Royale mutation card's kind word in the mutations' own light teal (pass 123; Garry: "Mutation Icons looks too much like
+## Epic Rarity Items"); WCard sets it in the secondary blue.
+static func _purple_word(c: WCard) -> void:
+	var wl := c.find_child("WordLine", true, false)
+	if wl == null or wl.get_child_count() == 0 or not wl.get_child(0) is WText:
+		return
+	var wt := wl.get_child(0) as WText
+	var light: Color = R.MUTATION["light"]
+	var rr: Array = []
+	for r in wt.runs:
+		rr.append([str((r as Array)[0]), light])
+	if rr.is_empty():
+		wt.color = light
+	else:
+		wt.runs = rr
+
+
 ## The rail along the top edge where the HUD's sits (W.safe_top() .. + RAIL_H): the ink track, then the fill as
 ## RAIL_SLICES slices whose hues turn along it, (x / w + t * RAIL_SPEED) mod 1 at saturation 0.85, and a paper glint.
 func _build_rail() -> void:
@@ -365,12 +452,26 @@ func _process(delta: float) -> void:
 		return
 	_rail_t += delta
 	_rail.queue_redraw()
+	_sync_skips_box()
 	# banish mode's marks sit on each card's tag, wherever the card's layout puts it
 	if _banish_mode:
 		for slot in _slots:
 			var mark := (slot as Node).get_node_or_null("BanishMark") as CanvasItem
 			if mark and mark.visible:
 				mark.queue_redraw()
+
+
+## The skips pill shows with the mutation offer's SKIP (it waits out the reel with it), under Royale only (pass 123).
+func _sync_skips_box() -> void:
+	if _skips_box == null:
+		return
+	var on := path_mode and W.royale() and _path_skip != null and _path_skip.visible
+	if _skips_box.visible != on:
+		_skips_box.visible = on
+	# ROYALE_SKIPS_GAP over the SKIP's top, wherever its own height put it
+	if on and not is_equal_approx(_skips_box.offset_bottom, _path_skip.offset_top - ROYALE_SKIPS_GAP):
+		_skips_box.offset_bottom = _path_skip.offset_top - ROYALE_SKIPS_GAP
+		_skips_box.offset_top = _skips_box.offset_bottom - R.PILL_H
 
 
 func _row_button() -> WButton:
@@ -419,15 +520,18 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	for c in _path_head.get_children():
 		_path_head.remove_child(c)
 		c.queue_free()
-	var star := WStarLine.make(mutlvl_line(path_level), 30, star_colour())
+	var royale := W.royale()
+	# pass 123: the mock's spacing under Royale (14 under Wanted)
+	_path_head.add_theme_constant_override("separation", path_sep())
+	var star := WStarLine.make(mutlvl_line(path_level), 30, star_colour(), R.MODAL_STAR_EM if royale else 0.35)
 	# read over the shine once the reel lands (pass 58 review): the kit's ink shadow, as LEVEL UP's (pass 122: under
 	# Royale the kit's navy edge on the words and the stars does that)
-	if not W.royale():
+	if not royale:
 		WModalHeader.shadow_line(star, STAR_LINE_SHADOW, 30)
 	_path_head.add_child(star)
 	var cc := CenterContainer.new()
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var p := WPlate.new().for_def(def, 272.0, false, level)
+	var p := WPlate.new().for_def(def, path_plate_px(), false, level)
 	p.name = "WeaponPlate"
 	p.border = 6
 	p.radius = 18
@@ -441,10 +545,21 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	# the hero's favourite weapon on its way down its path keeps its heart (pass 62)
 	if Run.is_favourite(def):
 		WCard.add_heart(p)
-	var nm := W.slab_text(def.display_name.to_upper(), 96, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
+	var nm: WText
+	if royale:
+		# pass 123: cream Ultra (Garry: "The Header texts should all be white"), the mock's 100 px fitted to the screen, its
+		# 8 px navy drop
+		var npx := fit_px(def.display_name.to_upper(), ROYALE_PATH_NAME_PX, ROYALE_PATH_NAME_W, ROYALE_PATH_NAME_MIN)
+		nm = W.slab_text(def.display_name.to_upper(), npx, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, float(npx))
+	else:
+		nm = W.slab_text(def.display_name.to_upper(), 96, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
 	nm.shadow = 8
 	_path_head.add_child(nm)
 	_path_name = nm
+	if royale:
+		_path_row = _royale_count_row(def, taken, offered)
+		_path_head.add_child(_path_row)
+		return
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 14)
@@ -469,6 +584,97 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	row.add_child(rest)
 	_path_head.add_child(row)
 	_path_row = row
+
+
+## The mutation offer's head under Royale (pass 123): its parts' spacing and the weapon frame's side by theme (today's 14
+## and 272 under Wanted).
+static func path_sep() -> int:
+	return ROYALE_PATH_SEP if W.royale() else 14
+
+
+static func path_plate_px() -> float:
+	return ROYALE_PATH_PLATE_PX if W.royale() else 272.0
+
+
+## The largest display size up to `px` (2 px steps, never under `floor_px`) at which `s` fits `width` in the theme's face.
+static func fit_px(s: String, px: int, width: float, floor_px: int) -> int:
+	var p := px
+	while p > floor_px and W.slab_for(p).get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, p).x > width:
+		p -= 2
+	return p
+
+
+## The count plates under the weapon's name (pass 123, the mock's): two of the kit's black pills, ROYALE_PILL_GAP apart:
+## "Mutation" with a rivet per mutation of the weapon's path (taken gold, this one cream, the rest slate: WMarks' Royale
+## rivets), and what happens to the cards not taken ("the others come back next stage"; none with one card).
+func _royale_count_row(def: ContentDef, taken: int, offered: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "CountPlates"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", ROYALE_PILL_GAP)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var p1 := W.pill("Mutation")
+	p1.name = "MutationPill"
+	var fam: String = (def as WeaponDef).evolved_from if def is WeaponDef and (def as WeaponDef).is_evolution and (def as WeaponDef).evolved_from != "" else def.id
+	var total := maxi(Registry.mutations_of(fam).size(), 1)
+	var r := WMarks.new().setup("rivets", total, mini(taken, total), mini(taken, total) + 1, ROYALE_RIVET_PX)
+	r.name = "Rivets"
+	r.gap = 6.0
+	r.rivet_border = 2.0
+	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	p1.get_node("Row").add_child(r)
+	row.add_child(p1)
+	var rest := leave_line(offered).trim_prefix("· ")
+	if rest != "":
+		var p2 := W.pill(rest)
+		p2.name = "LeavePill"
+		row.add_child(p2)
+	return row
+
+
+## The skips left in words (pass 123; the black pill over the Royale mutation offer's SKIP): "2 skips left this stage"
+## with the number in the kit's gold, "1 skip left this stage", "No skips left this stage".
+static func skips_parts(n: int) -> Array:
+	if n <= 0:
+		return ["No skips left this stage"]
+	return [[str(n), R.GOLD_TEXT, "bold"], " skip left this stage" if n == 1 else " skips left this stage"]
+
+
+## The pill in its holder, built again when the count changes (or the theme: the holder is shown under Royale only).
+func _set_skips_pill(n: int) -> void:
+	if _skips_box == null:
+		return
+	var key := "%d:%s" % [n, W.theme_name()]
+	if str(_skips_box.get_meta("key", "")) == key and _skips_box.get_child_count() > 0:
+		return
+	_skips_box.set_meta("key", key)
+	for c in _skips_box.get_children():
+		_skips_box.remove_child(c)
+		c.queue_free()
+	var p := W.pill(skips_parts(n))
+	p.name = "SkipsPill"
+	_skips_box.add_child(p)
+
+
+## The pill's words now (tests and tools).
+func skips_pill_text() -> String:
+	if _skips_box == null or _skips_box.get_child_count() == 0:
+		return ""
+	return _words_in(_skips_box.get_child(0))
+
+
+static func _words_in(n: Node) -> String:
+	var out := ""
+	if n is WText:
+		var wt := n as WText
+		if wt.runs.is_empty():
+			out += wt.text
+		else:
+			for rr in wt.runs:
+				out += str(rr[0])
+	for c in n.get_children():
+		out += _words_in(c)
+	return out
 
 
 ## What happens to the cards not taken, true for three on the table or four (a hero's mutation makes it four).
@@ -589,6 +795,7 @@ func _start_reel(w: WeaponInstance) -> void:
 	_set_path_parts(false)
 	_list.visible = false
 	_path_skip.visible = false
+	_sync_skips_box()
 	_reel = WWeaponReelScript.new()
 	_reel.name = "WeaponReel"
 	add_child(_reel)
@@ -603,7 +810,7 @@ func path_plate_center_y() -> float:
 	var star_h := 38.0
 	if _path_head.get_child_count() > 0 and _path_head.get_child(0) is Control:
 		star_h = (_path_head.get_child(0) as Control).get_combined_minimum_size().y
-	return PATH_HEAD_TOP + W.safe_top() + star_h + 14.0 + 272.0 * 0.5
+	return PATH_HEAD_TOP + W.safe_top() + star_h + float(path_sep()) + path_plate_px() * 0.5
 
 
 ## The head's plate, name and rivets shown or held back (the star line stays).
@@ -626,7 +833,7 @@ func _after_reel() -> void:
 	_shine_at(Vector2(get_viewport_rect().size.x * 0.5, path_plate_center_y()), PATH_SHINE_R)
 	if is_instance_valid(_path_plate):
 		_path_plate.pivot_offset = _path_plate.custom_minimum_size * 0.5
-		_path_plate.scale = Vector2.ONE * (WWeaponReelScript.CELL / 272.0)
+		_path_plate.scale = Vector2.ONE * (WWeaponReelScript.CELL / path_plate_px())
 		var tp := _path_plate.create_tween()
 		tp.tween_property(_path_plate, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if is_instance_valid(_path_name):
@@ -637,6 +844,7 @@ func _after_reel() -> void:
 		tr.tween_property(_path_row, "modulate:a", 1.0, 0.25)
 	_list.visible = true
 	_path_skip.visible = true
+	_sync_skips_box()
 	_drop_cards()
 	# held back while the reel ran, the cards were never laid out (their text unwrapped, so they measured short and a long
 	# list ran over the skip): they are fitted now (pass 56)
@@ -673,6 +881,10 @@ func _refresh_buttons() -> void:
 	for b: WButton in [_skip_btn, _path_skip]:
 		_set_button(b, count_parts("SKIP", Run.skips_left))
 		b.locked = Run.skips_left <= 0
+	# pass 123: the Royale mutation offer says its skips left in words over its SKIP
+	if W.royale():
+		_set_skips_pill(Run.skips_left)
+	_sync_skips_box()
 	# pass 58: in banish mode the button takes it back (CANCEL); outside it, it locks with no banish left or nothing on the
 	# table that may go (every card an upgrade of something the hero has)
 	if _banish_mode:
@@ -719,6 +931,13 @@ func _skip() -> void:
 ## A line under the header (under banish mode's title while it is on, for NOTE_HOLD seconds, then the mode's own words
 ## come back), or under the mutation offer's head (which has no header line).
 func _say(t: String) -> void:
+	if path_mode and W.royale() and _skips_box != null and _skips_box.visible:
+		# pass 123: under Royale the skips pill over the SKIP says it (its words are the refusal's: "No skips left this
+		# stage") and shakes; the note under the head would only say it twice
+		_path_note.text = t
+		_path_note.visible = false
+		_shake_node(_skips_box)
+		return
 	if path_mode:
 		_path_note.text = t
 		_path_note.visible = t != ""
@@ -762,9 +981,20 @@ func _rebuild() -> void:
 		_list.add_child(slot)
 		_slots.append(slot)
 		_cards.append(_put_card(slot, card))
-	_list.add_theme_constant_override("separation", 36 if path_mode else 44)
+	_list.add_theme_constant_override("separation", int(list_gap()))
 	_list.offset_top = (PATH_LIST_TOP if path_mode else LIST_TOP) + W.safe_top()
+	# pass 123: the Royale mutation offer's cards are the mock's 990 wide (48 in from either side otherwise, as before)
+	var inset := ROYALE_PATH_INSET if (path_mode and W.royale()) else 48.0
+	_list.offset_left = inset
+	_list.offset_right = -inset
 	_fit.call_deferred()
+
+
+## The cards' gap before _fit (44 on a level-up, 36 on a mutation offer; pass 123: ROYALE_PATH_GAP on a Royale one).
+func list_gap() -> float:
+	if path_mode:
+		return ROYALE_PATH_GAP if W.royale() else 36.0
+	return 44.0
 
 
 ## Each card in a margin holder, so it can slide up inside its place without moving the others; banish mode's mark
@@ -819,7 +1049,12 @@ func _drop_slot(slot: MarginContainer, delay: float) -> void:
 func _make_card(card: Dictionary) -> WCard:
 	var def: ContentDef = card["def"]
 	var extra := {}
-	if path_mode:
+	if path_mode and W.royale():
+		# pass 123: the mock's mutation cards: a 160 px frame in the mutations' teal (its rim and glow) 28 px from the words,
+		# the name 48, the full text 24
+		extra = {"plate_px": ROYALE_PATH_FRAME_PX, "name_size": ROYALE_PATH_CARD_NAME_PX, "rarity": "", "pad": [30, 32, 30, 32],
+			"stars": [], "gap": 28, "effect_size": ROYALE_PATH_TEXT_PX, "plate_fill": R.MUTATION_FILL}
+	elif path_mode:
 		extra = {"plate_px": 170.0, "name_size": 56, "rarity": "", "pad": [30, 32, 30, 32], "stars": [], "icon_frac": 0.72}
 	elif W.royale():
 		# pass 122: the mock's 200 px frame, 34 px from the words (today's 180 and 28 under Wanted)
@@ -833,6 +1068,8 @@ func _make_card(card: Dictionary) -> WCard:
 	c.set_meta("band", [box.inner, box.inner_color])
 	if W.royale():
 		_royale_held(c)
+		if path_mode:
+			_purple_word(c)
 	c.pressed.connect(func(): _pick(card, c))
 	return c
 
@@ -887,6 +1124,16 @@ func _fit() -> void:
 	var n := _cards.size()
 	var gap := 36.0 if path_mode else 44.0
 	var top := (PATH_LIST_TOP if path_mode else LIST_TOP) + W.safe_top()
+	var royale_path := path_mode and W.royale()
+	if royale_path:
+		# pass 123: the mock's cards, as tall as the room under the head and over the skips pill lets them (up to
+		# ROYALE_PATH_CARD_H, never under their own words), ROYALE_PATH_GAP apart
+		gap = ROYALE_PATH_GAP
+		var room_top := maxf(top, PATH_HEAD_TOP + W.safe_top() + _path_head.get_combined_minimum_size().y + HEAD_CLEAR)
+		var h := clampf((royale_cards_bottom(vp.y) - room_top - gap * (n - 1)) / float(n), 0.0, ROYALE_PATH_CARD_H)
+		for c in _cards:
+			if is_instance_valid(c):
+				(c as Control).custom_minimum_size.y = h
 	var total := 0.0
 	for c in _cards:
 		if is_instance_valid(c):
@@ -894,7 +1141,7 @@ func _fit() -> void:
 	var bottom := vp.y - 90.0 - 108.0 - 40.0
 	var floor_y := maxf(LIST_FLOOR + W.safe_top(), header_foot() + 13.0)
 	if path_mode:
-		bottom = vp.y + _path_note.offset_top - 12.0
+		bottom = royale_cards_bottom(vp.y) if royale_path else vp.y + _path_note.offset_top - 12.0
 		floor_y = PATH_HEAD_TOP + W.safe_top() + _path_head.get_combined_minimum_size().y + HEAD_CLEAR
 	# never over the head (a weapon's name on two lines makes it taller)
 	top = maxf(top, floor_y)
@@ -916,6 +1163,12 @@ func _fit() -> void:
 	# shrunk about its top's middle, so it stays centred and starts where it did
 	_list.pivot_offset = Vector2(_list.size.x * 0.5, 0.0)
 	_list.scale = Vector2(k, k)
+
+
+## Where the Royale mutation offer's cards must end (pass 123): ROYALE_CARDS_CLEAR over the skips pill, which stands
+## ROYALE_SKIPS_GAP over the SKIP (its top SKIP_FOOT and its own height over the screen's foot).
+func royale_cards_bottom(vh: float) -> float:
+	return vh + _path_skip.offset_top - ROYALE_SKIPS_GAP - float(R.PILL_H) - ROYALE_CARDS_CLEAR
 
 
 ## The level-up header's foot (screen y) where it settles: its top, then its star line, title, line and banish mode's line.
@@ -1045,6 +1298,22 @@ func _strike(i: int) -> void:
 	tw.tween_interval(STRIKE_HOLD)
 	tw.tween_property(ghost, "modulate:a", 0.0, STRIKE_FADE)
 	tw.tween_callback(ghost.queue_free)
+
+
+## A refused piece shakes sideways in its place (pass 123: the skips pill; the cards' own shake below): 18 px, 0.32 s.
+func _shake_node(n: Control) -> void:
+	if n.has_meta("shaking"):
+		return
+	n.set_meta("shaking", true)
+	var x0 := n.position.x
+	var tw := n.create_tween()
+	tw.tween_method(func(v: float):
+		if is_instance_valid(n):
+			n.position.x = x0 + sin(v * TAU * 3.0) * 18.0 * (1.0 - v), 0.0, 1.0, 0.32)
+	tw.tween_callback(func():
+		if is_instance_valid(n):
+			n.position.x = x0
+			n.remove_meta("shaking"))
 
 
 ## A refused card shakes in its place (pass 58), its mark with it.

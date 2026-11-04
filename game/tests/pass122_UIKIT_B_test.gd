@@ -109,8 +109,10 @@ func test_the_shaders_load() -> void:
 	assert_float(R.RAYS_ON_DEG).is_equal_approx(8.0, 0.0001)
 	assert_float(R.RAYS_PERIOD_DEG).is_equal_approx(20.0, 0.0001)
 	assert_float(R.RAYS_TURN_S).is_equal_approx(30.0, 0.0001)
-	assert_bool(R.PLAQUE_TOP.is_equal_approx(Color("5a9cf5"))).is_true()
-	assert_bool(R.PLAQUE_BOTTOM.is_equal_approx(Color("2a62c4"))).is_true()
+	# pass 123 (Garry: "Change the number to be black text on white, cz white on blue doesn't read very well")
+	assert_bool(R.PLAQUE_TOP.is_equal_approx(Color("ffffff"))).is_true()
+	assert_bool(R.PLAQUE_BOTTOM.is_equal_approx(Color("e4e8ef"))).is_true()
+	assert_bool(R.PLAQUE_TEXT.is_equal_approx(Color("0b0d14"))).is_true()
 
 
 # ---------------------------------------------------------------- the item frame
@@ -479,8 +481,6 @@ func test_the_pieces_build_and_draw_under_both_themes() -> void:
 			assert_bool(WBar.royale_fill(W.BRASS)[1].is_equal_approx(R.BAR_GOLD_LIP)).is_true()
 			assert_bool(WBar.kind_fill("xp")[0].is_equal_approx(R.BAR_XP)).is_true()
 			assert_bool(WBar.kind_fill("boss")[1].is_equal_approx(R.BAR_BOSS_LIP)).is_true()
-			assert_bool(coin.is_royale_disc()).is_true()
-			assert_bool(aged.is_royale_disc()).is_true()
 			assert_bool(WPointer.royale_arrow(W.SAGE).is_equal_approx(R.role("green")["bottom"])).is_true()
 			assert_bool(WPointer.royale_arrow(W.ROCK).is_equal_approx(R.role("gold")["bottom"])).is_true()
 			assert_bool(line.color.is_equal_approx(R.GOLD_TEXT)).is_true()
@@ -515,7 +515,6 @@ func test_the_pieces_build_and_draw_under_both_themes() -> void:
 			assert_bool(sl.knob_rect().size.is_equal_approx(R.SLIDER_KNOB)).is_true()
 			assert_str(sl.shown_text()).is_equal("65")
 		else:
-			assert_bool(coin.is_royale_disc()).is_false()
 			assert_object(coin.material).is_null()
 			assert_bool(line.color.is_equal_approx(W.PAPER)).is_true()
 			assert_bool(ink_line.color.is_equal_approx(W.INK)).is_true()

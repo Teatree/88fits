@@ -25,6 +25,27 @@ const FLOAT_SWITCHES := [["Damage numbers", "damage_numbers", "DamageNumbers"], 
 	["XP numbers", "float_xp", "XpNumbers"], ["Coin numbers", "float_coins", "CoinNumbers"]]
 ## A spent item's word on its Build row (pass 54; SPENT in rock before).
 const USED := "(used)"
+## Pass 123 (lane RUN_A), the Royale look (the mocks 7_Pause_Build / _Stats / _Options on today's sizes): the clock's
+## black plate (its type, its padding, its top), the Build rows' bigger stars (Garry: "the Stars need to be bigger"; 34
+## today), the thin line between rows and its colour, a row's padding, the room over a group's head, the open row's stat
+## cells and the purple mutation tags.
+const ROYALE_CLOCK_PX := 36
+const ROYALE_CLOCK_PAD := Vector2(26, 10)
+const ROYALE_CLOCK_TOP := 86.0
+const ROYALE_STAR_PX := 44.0
+const ROYALE_RULE := Color(1, 1, 1, 0.1)
+const ROYALE_RULE_PX := 2
+const ROYALE_ROW_PAD := Vector2(6, 18)
+const ROYALE_GROUP_GAP := 26.0
+## How far in from the Build list's clip its words, frames and lines stand (the room an epic frame's glow takes).
+const ROYALE_BUILD_INSET := 24
+const ROYALE_CELL_LABEL_PX := 18
+const ROYALE_CELL_VALUE_PX := 32
+const ROYALE_TAG_PX := 20
+## The Stats tab under Royale: a stat that did not move reads in the secondary blue at this alpha (the Wanted ink-soft
+## faded to 62 % on the slate read as nothing), the open cell's light band, the change chips' ink.
+const ROYALE_DIM_ALPHA := 0.78
+const ROYALE_OPEN_FILL := Color(1, 1, 1, 0.1)
 
 var game: Node
 var _tabs: WTabs
@@ -36,31 +57,55 @@ var _board: PanelContainer
 var _scroll: ScrollContainer
 var _content: VBoxContainer
 var _touch: TouchScroll
+## Pass 123 (lane RUN_A): the theme the screen was built in (a flip of the debug switch builds it again on the next open).
+var _built_royale := false
 
 
 func _ready() -> void:
+	_build()
+
+
+## The screen's standing parts (pass 123: split out of _ready so a theme flip can build them again). Under Royale (Garry:
+## "Pause as the mock: docked BUILD · STATS · OPTIONS tabs on one sheet, the same rows and data, Abandon in red, RESUME
+## in gold", "I like our sizes, just change the style. Also the Stars need to be bigger"): PAUSED in cream with the navy
+## edge, the clock on a black plate in white capitals, the three tabs sharing the sheet's width and docked onto one
+## slate sheet that reaches down to RESUME; today's positions and sizes.
+func _build() -> void:
+	_built_royale = W.royale()
 	build_dim(W.DIM)
 	var paused := W.slab_text("PAUSED", 110, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
-	paused.shadow = 8
+	if not _built_royale:
+		paused.shadow = 8
 	var inset := W.safe_top()
 	paused.position = Vector2(48, 60 + inset)
 	paused.size = Vector2(600, 110)
 	add_child(paused)
 	var plate := PanelContainer.new()
+	plate.name = "ClockPlate"
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.add_theme_stylebox_override("panel", W.box(W.PAPER, 4, 5).pad(28, 10, 28, 10))
-	_clock = W.slab_text("00:00 · Stage 1", 40, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	if _built_royale:
+		plate.add_theme_stylebox_override("panel", W.plate_box(0, 0, R.RADIUS).pad(ROYALE_CLOCK_PAD.x, ROYALE_CLOCK_PAD.y,
+			ROYALE_CLOCK_PAD.x, ROYALE_CLOCK_PAD.y))
+		_clock = W.text("00:00 · STAGE 1", R.display(), ROYALE_CLOCK_PX, R.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	else:
+		plate.add_theme_stylebox_override("panel", W.box(W.PAPER, 4, 5).pad(28, 10, 28, 10))
+		_clock = W.slab_text("00:00 · Stage 1", 40, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_clock.name = "Clock"
 	plate.add_child(_clock)
 	plate.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	plate.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	plate.offset_right = -48
-	plate.offset_top = 84 + inset
+	plate.offset_top = (ROYALE_CLOCK_TOP if _built_royale else 84.0) + inset
 	add_child(plate)
-	_tabs = WTabs.make(["Build", "Stats", "Options"], 30)
+	_tabs = WTabs.make(["BUILD", "STATS", "OPTIONS"] if _built_royale else ["Build", "Stats", "Options"], 30)
 	_tabs.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_tabs.offset_left = 48
 	_tabs.offset_right = -48
 	_tabs.offset_top = 230 + inset
+	if _built_royale:
+		_share_tabs(_tabs)
+		# the shorter tabs' tops where today's stand, their feet tucked under the sheet's top edge (drawn over them)
+		_tabs.offset_top = 230.0 - float(R.TAB_H_ACTIVE - R.TAB_H) + float(R.PANEL_EDGE) + inset
 	# pass 76: another tab opens at its top (the Build list scrolled to its end left the Stats grid scrolled too)
 	_tabs.changed.connect(func(i): _tab = i; _scroll.scroll_vertical = 0; _refresh())
 	add_child(_tabs)
@@ -89,11 +134,48 @@ func _ready() -> void:
 	resume.offset_right = -48
 	resume.offset_bottom = -90
 	resume.offset_top = -90 - 124
+	resume.name = "Resume"
 	resume.pressed.connect(func(): if game: game.close_pause())
 	add_child(resume)
 
 
+## Pass 123: the three tabs share the sheet's width (the mock's 7_Pause_*), each its third less the kit's gaps; the
+## strip's trailing filler is hidden.
+static func _share_tabs(t: WTabs) -> void:
+	for c in t.get_children():
+		var ctl := c as Control
+		if ctl == null:
+			continue
+		if ctl is WTap:
+			ctl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			ctl.size_flags_stretch_ratio = 1.0
+			var lab := ctl.get_child(0) as WText
+			if lab:
+				lab.align = HORIZONTAL_ALIGNMENT_CENTER
+		else:
+			# the strip's trailing filler (Wanted's base line) takes no room and no gap
+			ctl.size_flags_horizontal = Control.SIZE_FILL
+			ctl.custom_minimum_size.x = 0.0
+			ctl.visible = false
+
+
+## A theme flipped since the screen was built (the debug panel's switch): its standing parts again, in the theme on now.
+func _rebuild_if_theme_changed() -> void:
+	if W.royale() == _built_royale:
+		return
+	if _touch:
+		_touch.reset()
+	for c in get_children():
+		remove_child(c)
+		c.queue_free()
+	dim = null
+	header = null
+	_open_card = null
+	_build()
+
+
 func open() -> void:
+	_rebuild_if_theme_changed()
 	_refresh()
 	modulate.a = 1.0
 	enter()
@@ -119,18 +201,30 @@ func _process(_delta: float) -> void:
 func _refresh() -> void:
 	# pass 87 (lane SGAME): the stage's own clock
 	_clock.text = "%s · %s" % [W.mmss(Run.stage_clock()), ("Endless" if Run.endless else "Stage %d" % (Run.stage + 1))]
+	if _built_royale:
+		# pass 123: the mock's "01:01 · STAGE 1" in capitals on its black plate
+		_clock.text = _clock.text.to_upper()
 	_tabs.select(_tab, false)
 	for c in _content.get_children():
 		c.queue_free()
-	_content.add_theme_constant_override("separation", 14)
+	# pass 123: the Royale Build list's rows meet at their thin lines (each row carries its own padding)
+	_content.add_theme_constant_override("separation", 0 if _built_royale and _tab == 0 else 14)
 	var pads: Array = [[24, 24], [30, 30], [30, 40]][_tab]
 	var b := WTabs.board()
+	if _built_royale:
+		# pass 123: one slate sheet under all three tabs (its top edge drawn over their feet), the kit's 4 px edge
+		b = W.sheet_box(Vector2.ZERO)
 	if _tab == 2:
 		# the Options list carries its own room for the thumbs inside the clip (OPT_TOP, OPT_BOTTOM): the board's padding
 		# gives it up, so the rows stay put
 		b.pad(pads[0] + 5, pads[1] - OPT_TOP, pads[0] + 5, pads[1] + 5 - OPT_BOTTOM)
 	else:
 		b.pad(pads[0] + 5, pads[1], pads[0] + 5, pads[1] + 5)
+	if _built_royale and _tab == 0:
+		# the Build list runs on to the sheet's edge and keeps its words ROYALE_BUILD_INSET in (each piece's own margin), so
+		# an epic or legendary frame's glow has room inside the list's clip
+		b.content_margin_left = float(R.PANEL_EDGE + pads[0] - ROYALE_BUILD_INSET) + 1.0
+		b.content_margin_right = b.content_margin_left
 	_board.add_theme_stylebox_override("panel", b)
 	match _tab:
 		0:
@@ -152,6 +246,9 @@ func _fit_board() -> void:
 	var st: StyleBox = _board.get_theme_stylebox("panel")
 	var pads: float = st.content_margin_top + st.content_margin_bottom if st else 0.0
 	var h := minf(want, room - pads)
+	if _built_royale:
+		# pass 123 (the mock): the sheet always reaches down to RESUME, whatever the tab holds (its own base under it)
+		h = room - pads - float(R.PANEL_BASE)
 	_scroll.custom_minimum_size.y = h
 	# anchored across the screen: its height is set by the bottom offset (reset_size would undo the anchors)
 	_board.offset_bottom = _board.offset_top + h + pads
@@ -168,9 +265,9 @@ func _build_tab() -> void:
 	var bounty := WantedRun.pause_row()
 	if bounty:
 		_group("Bounty", "")
-		_content.add_child(bounty)
+		_content.add_child(_build_inset(bounty))
 	if Run.weapons.is_empty() and Run.passives.is_empty():
-		_content.add_child(W.serif_text("Nothing yet.", 28, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+		_content.add_child(_build_inset(W.serif_text("Nothing yet.", 28, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)))
 	if not Run.weapons.is_empty():
 		_group("Weapons", "%d / %d" % [Run.weapons.size(), Run.weapon_cap()])
 	for w in Run.weapons:
@@ -201,8 +298,34 @@ func _build_tab() -> void:
 			_content.add_child(_item_row(pdef, 1, 1, null))
 
 
-## A group's head on the Build tab (pass 47): its word tracked in ink-soft, a count after it.
+## A piece of the Build list as far in as its words (pass 123, under Royale: the list runs on to the sheet's edge);
+## under Wanted the piece itself.
+func _build_inset(c: Control) -> Control:
+	if not _built_royale:
+		return c
+	var m := MarginContainer.new()
+	m.mouse_filter = Control.MOUSE_FILTER_PASS
+	m.add_theme_constant_override("margin_left", ROYALE_BUILD_INSET)
+	m.add_theme_constant_override("margin_right", ROYALE_BUILD_INSET)
+	m.add_child(c)
+	return m
+
+
+## A group's head on the Build tab (pass 47): its word tracked in ink-soft, a count after it. Pass 123, under Royale (the
+## mock's "WEAPONS · 4 / 5", "PASSIVES · 5 · NOT ON THE HUD"): one tracked label, the count after a dot, with room over it
+## when rows stand above it.
 func _group(title: String, count: String) -> void:
+	if _built_royale:
+		var m := MarginContainer.new()
+		m.name = "Group" + title
+		m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		m.add_theme_constant_override("margin_top", int(ROYALE_GROUP_GAP) if _content.get_child_count() > 0 else 4)
+		m.add_theme_constant_override("margin_bottom", 4)
+		m.add_theme_constant_override("margin_left", ROYALE_BUILD_INSET)
+		m.add_theme_constant_override("margin_right", ROYALE_BUILD_INSET)
+		m.add_child(W.label(title + (" · " + count if count != "" else ""), 20, W.INK_SOFT))
+		_content.add_child(m)
+		return
 	var h := HBoxContainer.new()
 	h.name = "Group" + title
 	h.add_theme_constant_override("separation", 14)
@@ -260,8 +383,9 @@ func _item_row(def: ContentDef, level: int, max_level: int, inst: WeaponInstance
 		# "(used)" in grey after its name (pass 54; SPENT in rock before), no stars, the plate in its locked look
 		pass
 	elif not def is PerkDef and max_level > 1:
-		# the stars, open or closed (pass 48: the mutations are dots on the plate, so the open row needs no rivets)
-		marks = WMarks.new().setup("stars", max_level, level, -1, STAR_PX)
+		# the stars, open or closed (pass 48: the mutations are dots on the plate, so the open row needs no rivets);
+		# pass 123: bigger under Royale (Garry: "the Stars need to be bigger")
+		marks = WMarks.new().setup("stars", max_level, level, -1, ROYALE_STAR_PX if _built_royale else STAR_PX)
 	# a weapon's plate carries its mutation dots and glows while it waits to evolve (pass 48)
 	var dots := Run.path_progress(inst) if inst else Vector2i.ZERO
 	var evo_ready := Run.evolution_ready(inst) if inst else false
@@ -272,6 +396,9 @@ func _item_row(def: ContentDef, level: int, max_level: int, inst: WeaponInstance
 	row.pressed.connect(func():
 		_expanded = "" if open else def.id
 		_refresh())
+	if _built_royale:
+		_royale_row(row, def, level, inst, open)
+		return row
 	if open:
 		if inst:
 			var cells: Array = []
@@ -306,6 +433,120 @@ func _item_row(def: ContentDef, level: int, max_level: int, inst: WeaponInstance
 			row.body.add_child(p)
 			cells2.clear()
 	return row
+
+
+## Pass 123 (lane RUN_A), a Build row under Royale (the mock 7_Pause_Build on today's sizes): no box of its own, the rows
+## meeting at a thin light line on the one sheet, the frame, the name, its line, the stars (bigger) at the name's height
+## and the chevron; open, the four stat cells as dark cells (a tracked label over the number) and the mutations as
+## purple tags with what evolving still needs after them, or a passive's words now and at its next level in one cell.
+func _royale_row(row: WRow, def: ContentDef, level: int, inst: WeaponInstance, open: bool) -> void:
+	var inset := float(ROYALE_BUILD_INSET)
+	var b := W.box(Color(0, 0, 0, 0), 0, 0).pad(inset + ROYALE_ROW_PAD.x, ROYALE_ROW_PAD.y, inset + ROYALE_ROW_PAD.x,
+		ROYALE_ROW_PAD.y + ROYALE_RULE_PX)
+	b.themed = false
+	var down := b.copy()
+	down.fill = Color(1, 1, 1, 0.05)
+	row.box = b
+	row.box_down = down
+	# the line under the row, as far in as the words (drawn over the row's box, under nothing)
+	row.draw.connect(func() -> void:
+		row.draw_rect(Rect2(inset, row.size.y - float(ROYALE_RULE_PX), row.size.x - inset * 2.0, float(ROYALE_RULE_PX)), ROYALE_RULE))
+	var plate := row.head.get_node_or_null("Plate") as WPlate
+	if plate:
+		plate.glow_reach = inset
+	for c in row.head.get_children():
+		if c is WMarks:
+			# the stars at the name's height, as the mock has them
+			(c as Control).size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	if not open:
+		return
+	if inst:
+		var cells: Array = []
+		for sr in inst.stat_rows():
+			if cells.size() >= 3:
+				break
+			cells.append([str(sr["name"]), _short_number(str(sr["value"]))])
+		cells.append(["this run", W.num(int(Run.damage_by_weapon.get(def.id, 0.0)))])
+		row.body.add_child(_royale_cells(cells))
+		var names: Array = []
+		for m in inst.mutations:
+			names.append((m as MutationDef).display_name)
+		var note := _evolve_note(inst)
+		if not names.is_empty() or note != "":
+			row.body.add_child(_royale_tags(names, note))
+		return
+	var desc := ""
+	if def is PerkDef:
+		desc = TextGen.perk_text(def as PerkDef)
+	elif def is PassiveDef:
+		desc = passive_now(def, level)
+	var nxt := TextGen.next_level_text(def, level) if not def is PerkDef else ""
+	var p := PanelContainer.new()
+	p.name = "NowCell"
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", W.cell_box(Vector2(18, 14)))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(W.serif_text(desc, 24, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	if nxt != "":
+		v.add_child(W.serif_text(nxt, 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	p.add_child(v)
+	row.body.add_child(p)
+
+
+## The open weapon row's numbers under Royale: one dark cell each (W.cell_box), a tracked label over the number.
+static func _royale_cells(cells: Array) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.name = "StatCells"
+	h.add_theme_constant_override("separation", 12)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for c in cells:
+		var p := PanelContainer.new()
+		p.name = "Cell"
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		p.add_theme_stylebox_override("panel", W.cell_box(Vector2(12, 10)))
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 2)
+		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var l := W.label(str(c[0]), ROYALE_CELL_LABEL_PX, W.INK_SOFT, 0.06)
+		v.add_child(l)
+		v.add_child(W.slab_text(str(c[1]), ROYALE_CELL_VALUE_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+		p.add_child(v)
+		h.add_child(p)
+	return h
+
+
+## The mutations held as purple tags (the kit's tag: 4 px corners, a 3 px navy edge, white capitals with a navy edge),
+## then what evolving still needs ("2/3 mutations · one more and it can evolve").
+static func _royale_tags(names: Array, note: String) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.name = "PathTags"
+	h.add_theme_constant_override("separation", 10)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in names.size():
+		var n: String = str(names[i])
+		var tag := PanelContainer.new()
+		tag.name = "Tag%d" % i
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var tb := W.box(R.TAG_MUTATION, R.TAG_EDGE, 0, R.RADIUS_TAG).pad(12 + R.TAG_EDGE, 3 + R.TAG_EDGE, 12 + R.TAG_EDGE, 3 + R.TAG_EDGE)
+		tb.border_color = R.NAVY
+		tb.themed = false
+		tag.add_theme_stylebox_override("panel", tb)
+		var t := W.text(n.to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(ROYALE_TAG_PX, 0.04)), ROYALE_TAG_PX, R.WHITE,
+			HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		R.edge(t, ROYALE_TAG_PX)
+		tag.add_child(t)
+		tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(tag)
+	if note != "":
+		var nt := W.serif_text(note, 22, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		nt.name = "EvolveNote"
+		nt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(nt)
+	return h
 
 
 ## "5.70 s" -> "5.7 s", "16.00 s" -> "16 s": the grid's numbers carry no trailing zeros.
@@ -444,6 +685,10 @@ func _stats_head(moved: int) -> Control:
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(W.label("Changed this run", 20, W.INK_SOFT))
 	var n := W.serif_text(str(moved) if moved > 0 else "none yet", 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	if _built_royale:
+		# pass 123: the mock's "CHANGED THIS RUN · 7", one tracked label
+		h.add_theme_constant_override("separation", 0)
+		n = W.label(" · " + (str(moved) if moved > 0 else "none yet"), 20, W.INK_SOFT)
 	n.name = "Moved"
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -468,6 +713,14 @@ func _stat_cell(sheet: StatSheet, stat: String) -> Control:
 	var b := W.box(W.AGED if is_open else Color(0, 0, 0, 0), 2, 0).pad(CELL_PAD, 12, CELL_PAD, 12)
 	b.sides = [false, false, false, not is_open]
 	b.border_color = W.AGED
+	if _built_royale:
+		# pass 123: a thin light line under each stat on the slate, the open one on a lighter band (the mock's Luck)
+		b = W.box(ROYALE_OPEN_FILL if is_open else Color(0, 0, 0, 0), ROYALE_RULE_PX, 0, R.RADIUS_TAG if is_open else 0)
+		b.pad(CELL_PAD, 12, CELL_PAD, 12)
+		b.sides = [false, false, false, not is_open]
+		b.border_color = ROYALE_RULE
+		b.border = 0 if is_open else ROYALE_RULE_PX
+		b.themed = false
 	cell.box = b
 	cell.box_down = b
 	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -475,6 +728,13 @@ func _stat_cell(sheet: StatSheet, stat: String) -> Control:
 	h.add_theme_constant_override("separation", 8)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var ink := W.INK if (moved or kills or is_open) else _dim_ink()
+	# pass 123: under Royale a stat that did not move reads in the secondary blue (its value in faded cream), one that
+	# moved in cream
+	var vink := ink
+	if _built_royale:
+		var lit := moved or kills or is_open
+		ink = R.CREAM if lit else Color(R.SECONDARY, ROYALE_DIM_ALPHA)
+		vink = R.CREAM if lit else Color(R.CREAM, ROYALE_DIM_ALPHA)
 	var l := W.serif_text("Kills" if kills else _cap(TextGen.stat_name(stat)), 28, ink, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	l.name = "Name"
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -484,7 +744,7 @@ func _stat_cell(sheet: StatSheet, stat: String) -> Control:
 		var pill := _change_pill(ch, 22)
 		pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(pill)
-	var v := W.slab_text(W.num(Run.kills) if kills else TextGen.player_value(stat, SOURCES.now(sheet, stat)), 30, ink,
+	var v := W.slab_text(W.num(Run.kills) if kills else TextGen.player_value(stat, SOURCES.now(sheet, stat)), 30, vink,
 		HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
 	v.name = "Value"
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -513,6 +773,18 @@ func _change_pill(ch: Dictionary, px: int) -> PanelContainer:
 	h.add_theme_constant_override("separation", 5)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(h)
+	if _built_royale:
+		# pass 123 (the mock's "▲ 20%" chip): the kit's tag, green with navy type when better, red with white when worse
+		var tb := W.box(R.TAG_RED if worse else R.TAG_GREEN, 2, 0, R.RADIUS_TAG).pad(9, 3, 10, 3)
+		tb.border_color = R.NAVY
+		tb.themed = false
+		p.add_theme_stylebox_override("panel", tb)
+		var ink := R.WHITE if worse else R.NAVY
+		h.add_child(_arrow(up, ink, float(px) * 0.55))
+		var rt := W.text(str(ch.get("text", "")), R.body(R.LABEL_WEIGHT), px, ink, HORIZONTAL_ALIGNMENT_LEFT, float(px) + 2.0)
+		rt.name = "Amount"
+		h.add_child(rt)
+		return p
 	h.add_child(_arrow(up, W.PAPER, float(px) * 0.55))
 	var t := W.slab_text(str(ch.get("text", "")), px, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(px) + 2.0)
 	t.name = "Amount"
@@ -549,6 +821,12 @@ func _sources_card(sheet: StatSheet, stat: String, col: int) -> Control:
 	card.name = "Card"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_theme_stylebox_override("panel", W.box(W.AGED, 4, 0).pad(26, 20, 26, 22))
+	if _built_royale:
+		# pass 123: the mock's sources card, a dark cell with a navy edge (W.cell_box's colours)
+		var cb := W.box(R.CELL, R.CELL_EDGE, 0, R.RADIUS).pad(26, 20, 26, 22)
+		cb.border_color = R.NAVY
+		cb.themed = false
+		card.add_theme_stylebox_override("panel", cb)
 	card.draw.connect(func(): _draw_pointer(card, col))
 	holder.add_child(card)
 	var v := VBoxContainer.new()
@@ -579,10 +857,13 @@ func _draw_pointer(card: Control, col: int) -> void:
 	var w := card.size.x
 	var cw := (w - float(COL_GAP)) * 0.5
 	var x := cw * 0.5 if col == 0 else w - cw * 0.5
-	card.draw_colored_polygon(PackedVector2Array([Vector2(x - POINTER_HW, 4.0), Vector2(x, -POINTER_H),
-		Vector2(x + POINTER_HW, 4.0)]), W.AGED)
-	card.draw_polyline(PackedVector2Array([Vector2(x - POINTER_HW - 4.0, 2.0), Vector2(x, -POINTER_H),
-		Vector2(x + POINTER_HW + 4.0, 2.0)]), W.INK, 4.0)
+	var fill := R.CELL if _built_royale else W.AGED
+	var ink := R.NAVY if _built_royale else W.INK
+	var e := float(R.CELL_EDGE) if _built_royale else 4.0
+	card.draw_colored_polygon(PackedVector2Array([Vector2(x - POINTER_HW, e), Vector2(x, -POINTER_H),
+		Vector2(x + POINTER_HW, e)]), fill)
+	card.draw_polyline(PackedVector2Array([Vector2(x - POINTER_HW - e, e * 0.5), Vector2(x, -POINTER_H),
+		Vector2(x + POINTER_HW + e, e * 0.5)]), ink, e)
 
 
 ## A group's head on the card: its word tracked in ink-soft, what stands at its right (a value, the change pill).
@@ -628,6 +909,9 @@ func _source_row(r: Dictionary, this_run: bool) -> Control:
 		col = WORSE_TEXT
 	elif this_run and str(r.get("op", "")) != "set":
 		col = BETTER_TEXT
+	if _built_royale:
+		# pass 123: on the dark cell the kit's green and red read where the aged card's dark ones did not
+		col = R.ROLES["red"]["top"] if worse else (R.ROLES["green"]["top"] if col == BETTER_TEXT else R.SECONDARY)
 	var a := W.slab_text(str(r.get("text", "")), 24, col, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
 	a.name = "Amount"
 	a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -754,7 +1038,7 @@ func _options_tab() -> void:
 	sw.name = "ScreenShake"
 	sw.toggled.connect(func(on): Settings.set_value("screen_shake", 1.0 if on else 0.0))
 	shake.add_child(sw)
-	opts.add_child(shake)
+	opts.add_child(_ruled(shake, 20))
 	opts.add_child(_floating_text_block())
 	# the rule, then abandoning the run: a pop-up asks first (pass 45)
 	var ab := VBoxContainer.new()
@@ -764,6 +1048,10 @@ func _options_tab() -> void:
 	rule.color = W.INK
 	rule.custom_minimum_size.y = 4
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _built_royale:
+		# pass 123: the kit's thin light line on the slate (the ink rule read as a black bar)
+		rule.color = ROYALE_RULE
+		rule.custom_minimum_size.y = ROYALE_RULE_PX
 	ab.add_child(rule)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -787,7 +1075,7 @@ func _options_tab() -> void:
 	purse.add_child(lost)
 	tv.add_child(purse)
 	row.add_child(tv)
-	var btn := WButton.make(["Abandon"], 28, WButton.DANGER, 4, 5, 12.0, 28.0)
+	var btn := WButton.make(["ABANDON" if _built_royale else "Abandon"], 28, WButton.DANGER, 4, 5, 12.0, 28.0)
 	btn.name = "Abandon"
 	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn.pressed.connect(_ask_abandon)
@@ -821,14 +1109,33 @@ func _floating_text_block() -> VBoxContainer:
 		s.name = str(spec[2])
 		s.toggled.connect(func(on: bool): Settings.set_value(key, on))
 		r.add_child(s)
-		v.add_child(r)
+		v.add_child(_ruled(r, 16))
 	var size_label := W.label("Floating text size", 20, W.INK_SOFT)
 	v.add_child(size_label)
-	var size_choice := WChoice.make([["Small"], ["Normal"], ["Large"]], Settings.float_size, 30, 20, 14.0,
+	var sizes: Array = [["SMALL"], ["NORMAL"], ["LARGE"]] if _built_royale else [["Small"], ["Normal"], ["Large"]]
+	var size_choice := WChoice.make(sizes, Settings.float_size, 30, 20, 14.0,
 		HORIZONTAL_ALIGNMENT_CENTER, 0)
 	size_choice.name = "FloatSize"
 	size_choice.chosen.connect(func(i: int): Settings.set_value("float_size", i))
 	v.add_child(size_choice)
+	return v
+
+
+## A row with the kit's thin light line `gap` px under it (pass 123, the mock's Options); under Wanted the row as it is.
+func _ruled(row: Control, gap: int) -> Control:
+	if not _built_royale:
+		return row
+	var v := VBoxContainer.new()
+	v.name = "Ruled" + str(row.name)
+	v.add_theme_constant_override("separation", gap)
+	v.mouse_filter = Control.MOUSE_FILTER_PASS
+	v.add_child(row)
+	var rule := ColorRect.new()
+	rule.name = "Rule"
+	rule.color = ROYALE_RULE
+	rule.custom_minimum_size.y = ROYALE_RULE_PX
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(rule)
 	return v
 
 

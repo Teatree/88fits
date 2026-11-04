@@ -101,13 +101,17 @@ func _main() -> void:
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
 	var in_run := ["backdrop", "backdrop_arena", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results", "hud_stage", "hud_kills"]
+	# pass 123 (lane RUN_B): the shop's held card, the Totem gifts, the boss's own chest (BossChestScreen)
+	in_run.append_array(["shop_held", "totem", "bosschest"])
+	# pass 123 (lane RUN_C): the War Drum's moment and the Grindstone's show, frozen on their beats
+	in_run.append_array(["drum", "grind"])
 	var any_run := false
 	for n in in_run:
 		if _want(n):
 			any_run = true
 	if any_run:
 		await _in_run()
-	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev", "consent", "survey", "stages"]
+	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev", "consent", "survey", "stages", "heroes", "collection_more", "mirror_more", "kit2"]
 	var any_menu := false
 	for n in menus:
 		if _want(n):
@@ -194,6 +198,12 @@ func _cards60() -> void:
 		var card: Control = load("res://ui/wanted/WSurvey.gd").open(current_scene, sv)
 		await _wait(0.7)
 		await _shot("19b-survey")
+		# pass 123 (lane RUN_C): 19d, a rating picked (the mock's 10_Survey: the pick lit, NEXT on)
+		var r4: Control = card.find_child("Rate4", true, false)
+		if r4:
+			r4.emit_signal("pressed")
+			await _wait(0.3)
+			await _shot("19d-survey-picked")
 		card.call("show_page", 1)
 		await _wait(0.4)
 		var answer: Control = card.find_child("Answer", true, false)
@@ -248,6 +258,33 @@ func _stages() -> void:
 	await _scene("res://ui/StagesScreen.tscn")
 	await _wait(0.6)
 	await _shot("18c-stages-all-beaten")
+	# pass 123 (lane STAGES_SETTINGS): 18d a first visit (nothing beaten or met, no best run: the run line is the map's
+	# name alone), 18e under a 130 px camera cutout with the first card's START held
+	var keep_best = _save.data["best_runs"].get("red_canyon", {}) if _save.data.get("best_runs") is Dictionary else {}
+	_save.data["stages_beaten"] = {"red_canyon": [false, false, false]}
+	_save.data["seen"] = {"enemy": []}
+	if _save.data.get("best_runs") is Dictionary:
+		_save.data["best_runs"].erase("red_canyon")
+	await _scene("res://ui/StagesScreen.tscn")
+	await _wait(0.6)
+	await _shot("18d-stages-first-visit")
+	if _save.data.get("best_runs") is Dictionary and not (keep_best as Dictionary).is_empty():
+		_save.data["best_runs"]["red_canyon"] = keep_best
+	_save.data["stages_beaten"] = {"red_canyon": [true, false, false]}
+	_save.data["seen"] = {"enemy": ["tumbleweed_king"]}
+	var stc18 := root.get_node("Settings")
+	var was18: int = stc18.top_inset
+	stc18.top_inset = 130
+	await _scene("res://ui/StagesScreen.tscn")
+	await _wait(0.6)
+	var c18: Array = current_scene.cards() if current_scene.has_method("cards") else []
+	if not c18.is_empty():
+		var sb18: Node = (c18[0] as Node).find_child("Start", true, false)
+		if sb18 and sb18.has_method("show_held"):
+			sb18.call("show_held", true)
+	await _wait(0.2)
+	await _shot("18e-stages-inset130-held")
+	stc18.top_inset = was18
 	_save.data["stages_beaten"] = keep
 	_save.data["seen"] = keep_seen
 	if _save.data.get("totals") is Dictionary:
@@ -292,6 +329,7 @@ func _menus() -> void:
 		await _wait(0.5)
 		await _shot("01c-title-locked-hero")
 		root.get_node("Settings").preview_locked_heroes = false
+		await _title_buy()
 	if _want("consent") or _want("survey"):
 		await _cards60()
 	if _want("stages"):
@@ -375,6 +413,8 @@ func _menus() -> void:
 		await _wait(0.5)
 		await _shot("04k-collection-page-inset130")
 		stc.top_inset = was
+	if _want("collection_more"):
+		await _collection_more()
 	if _want("settings"):
 		var st := root.get_node("Settings")
 		st.camera_mode = 0
@@ -391,6 +431,21 @@ func _menus() -> void:
 		await _shot("05b-settings-wipe-confirm")
 		_cancel_confirm(current_scene)
 		await _wait(0.3)
+		# pass 123 (lane STAGES_SETTINGS): 05c the foot (play data, the wipe, the version line); 05d the Debug panel of
+		# the player's debug mode (the UI theme row), scrolled to it
+		current_scene.scroll.scroll_vertical = 999999
+		await _wait(0.4)
+		await _shot("05c-settings-foot")
+		var dbg_was: bool = st.debug_mode
+		st.debug_mode = true
+		await _scene("res://ui/SettingsScreen.tscn")
+		var dp: Control = current_scene.find_child("DebugPanel", true, false)
+		if dp:
+			var sc: ScrollContainer = current_scene.scroll
+			sc.scroll_vertical = int(dp.get_global_rect().position.y - sc.get_global_rect().position.y - 40.0)
+		await _wait(0.4)
+		await _shot("05d-settings-debug")
+		st.debug_mode = dbg_was
 	if _want("dev"):
 		var st2 := root.get_node("Settings")
 		for k in ["debug_panel", "debug_modal_buttons", "free_revive_button", "hit_log", "debug_mode"]:
@@ -398,6 +453,12 @@ func _menus() -> void:
 		change_scene_to_file("res://ui/DevMenu.tscn")
 		await _wait(0.9)
 		await _shot("17-developer-menu")
+	if _want("kit2"):
+		await _kit2()
+	if _want("heroes"):
+		await _heroes_shots()
+	if _want("mirror_more"):
+		await _mirror_more()
 
 
 func _in_run() -> void:
@@ -440,6 +501,11 @@ func _in_run() -> void:
 		await _levelup()
 	if _want("path"):
 		await _path()
+	# pass 123 (lane RUN_C): 30 / 30b the War Drum's moment, 31 .. 31c the Grindstone's show
+	if _want("drum"):
+		await _drum_moment()
+	if _want("grind"):
+		await _grind_moment()
 	if _want("chest"):
 		await _chest()
 	if _want("chest_boss"):
@@ -448,6 +514,12 @@ func _in_run() -> void:
 		await _shop()
 	if _want("stranger"):
 		await _stranger()
+	if _want("shop_held"):
+		await _shop_held()
+	if _want("totem"):
+		await _totem()
+	if _want("bosschest"):
+		await _bosschest()
 	if _want("pause"):
 		await _pause()
 	if _want("down"):
@@ -787,6 +859,10 @@ func _shop() -> void:
 	for p in _reg.sorted_passives_only():
 		if n >= 12:
 			break
+		# pass 123 (lane KIT2): no one-shot item (`single`, the Grindstone since pass 121): handed over here it did its deed,
+		# and its show (GrindMoment) stayed up over every later capture (12-stranger, 13-pause-build ...)
+		if bool(p.get("single")):
+			continue
 		build.append(["passive", p.id, 1])
 		n += 1
 	_build(build)
@@ -809,6 +885,111 @@ func _stranger() -> void:
 	await _shot("12-stranger")
 	g.stranger_screen.visible = false
 	g.set_paused(false)
+
+
+## 11c (pass 123, lane RUN_B): the 300-gold shop of 11b with its first affordable card held down (the press look: the
+## Royale gold edge, glow and rays), the short card beside it as it stands.
+func _shop_held() -> void:
+	_clear_ui()
+	_build([["weapon", "hornet_nest", 3], ["weapon", "turret_buddy", 3], ["weapon", "big_mouth", 4], ["weapon", "molotov", 3],
+		["passive", "magnet", 2], ["passive", "energy_shield", 4]])
+	_run.run_gold = 300
+	g.set_paused(true)
+	var offer := [_card("weapon", _reg.weapon("hornet_nest"), 3, 4), _card("passive", _reg.passive("clover"), 0, 1),
+		_card("passive", _reg.passive("desperado"), 0, 1)]
+	g.structure_shop.open(offer)
+	await _wait(0.9)
+	var shop = g.structure_shop
+	for i in range(mini(shop._cards.size(), offer.size())):
+		if shop.price_of(offer[i]) <= int(_run.run_gold):
+			shop._cards[i].show_held(true)
+			break
+	await _wait(0.3)
+	await _shot("11c-shop-held")
+	g.structure_shop.visible = false
+	g.set_paused(false)
+
+
+## 30, 30b (pass 123, lane RUN_B): the Totem gifts with the mock's offer from the pole's own pool (Le-loo +2 %, Kuuma
+## +1 %, Chet-woot +2 %: the mock's 8_Totem), "TOTEM 1 OF 10"; 30b the middle gift held. 30c: a pole the map's count
+## does not know ("4TH TOTEM").
+func _totem() -> void:
+	_clear_ui()
+	var d = _reg.structure("totem_pole")
+	if d == null:
+		print("wanted_shots: no totem_pole structure")
+		return
+	var boons = load("res://core/systems/TotemBoons.gd")
+	var pool: Array = boons.pool_of(d)
+	var want := {"wolf": 0.02, "bullhead": 0.01, "bear": 0.02}
+	var offer: Array = []
+	for id in ["wolf", "bullhead", "bear"]:
+		for e: Dictionary in pool:
+			if str(e.get("id", "")) == id:
+				var b: Dictionary = {"id": id, "name": str(e.get("name", "")), "animal": str(e.get("animal", "")),
+					"stat": str(e.get("stat", "")), "op": str(e.get("op", "add")), "value": float(want[id]),
+					"min": float(e.get("min", 0.0)), "max": float(e.get("max", 0.0))}
+				b["quality"] = boons.quality(float(b["value"]), float(b["min"]), float(b["max"]))
+				offer.append(b)
+	g.set_paused(true)
+	var ts = g.totem_screen
+	ts.open(offer, d, 1, 10)
+	await _wait(1.0)
+	await _shot("30-totem")
+	var rows: Array = ts.planks()
+	if rows.size() >= 2:
+		rows[1].show_held(true)
+		await _wait(0.3)
+		await _shot("30b-totem-held")
+		rows[1].show_held(false)
+	ts._hide()
+	ts.open(offer, d, 4, 0)
+	await _wait(1.0)
+	await _shot("30c-totem-4th")
+	ts._hide()
+	g.set_paused(false)
+
+
+## 31, 31b, 31c (pass 123, lane RUN_B): the boss's own chest (BossChestScreen, pass 118) for the King after a 45 s fight
+## (BossChest.sample_pack, the speed bonus near its top): the spew under way (BIG WIN!), JACKPOT!, CLAIM up; a slower
+## Gila (31d, CLAIM) for a small bonus.
+func _bosschest() -> void:
+	_clear_ui()
+	var BC = load("res://core/systems/BossChest.gd")
+	var BCS = load("res://ui/BossChestScreen.gd")
+	for b: Array in [["tumbleweed_king", 0, 45.0, ["31-bosschest-spew", "31b-bosschest-jackpot", "31c-bosschest-claim"]],
+			["gila_grande", 1, 240.0, ["", "", "31d-bosschest-gila-claim"]]]:
+		var pack: Dictionary = BC.sample_pack(str(b[0]), int(b[1]), float(b[2]))
+		if pack.is_empty():
+			continue
+		g.open_boss_chest(g.player.global_position + Vector3(0.8, 0, -0.6), str(b[0]), pack)
+		await process_frame
+		await process_frame
+		var bs = g.boss_chest_screen
+		if bs == null or not bs.visible:
+			print("wanted_shots: the boss chest did not open")
+			continue
+		bs.set_process(false)
+		var spew: float = float(bs.get("_spew_len"))
+		var names: Array = b[3]
+		if str(names[0]) != "":
+			bs.seek(BCS.SPEW_AT + spew * 0.55)
+			await _wait(0.2)
+			await _shot(str(names[0]))
+		var end_t: float = float(bs.get("_end_t"))
+		if str(names[1]) != "":
+			bs.seek(end_t + BCS.FINALE + 0.1)
+			await _wait(0.2)
+			await _shot(str(names[1]))
+		bs.seek(end_t + BCS.CLAIM_AFTER + 0.6)
+		await _wait(0.3)
+		await _shot(str(names[2]))
+		bs.set_process(true)
+		bs.claim()
+		await _wait(0.5)
+		g.modal_reset()
+		g.set_paused(false)
+		await _wait(0.3)
 
 
 ## 13, 13b, 13c: the build with Turret Buddy open, the stats, the options. 13e (pass 47): the Build tab scrolled to its
@@ -875,6 +1056,24 @@ func _down() -> void:
 	await _wait(0.8)
 	await _shot("14b-down-hits")
 	stx.debug_mode = false
+	# 14c/14d (pass 123, lane RUN_A): Down! as a player sees it (no hit log, no developer buttons: both switches off, put
+	# back after), with gold to bank, then with no chance left (GET UP locked)
+	var was_log: bool = bool(stx.get("hit_log"))
+	var was_free: bool = bool(stx.get("free_revive_button"))
+	stx.set("hit_log", false)
+	stx.set("free_revive_button", false)
+	_run.run_gold = 86
+	g.revive_screen.open(86, 1, "", {"by": "Skeleton Knight", "kind": "melee", "role": "elite", "colour": "#ee4a5c"})
+	g.revive_screen._held = true
+	await _wait(0.8)
+	await _shot("14c-down-plain")
+	g.revive_screen.open(86, 0, "", {"by": "The Tumbleweed King", "kind": "boss", "role": "boss"})
+	g.revive_screen._held = true
+	await _wait(0.8)
+	await _shot("14d-down-no-chance")
+	stx.set("hit_log", was_log)
+	stx.set("free_revive_button", was_free)
+	_run.run_gold = 0
 	g.revive_screen._open = false
 	g.revive_screen.visible = false
 	g.set_paused(false)
@@ -1034,3 +1233,531 @@ func _sample_hits() -> Array:
 		{"t": 59.6, "by": "The Brander", "id": "brander", "kind": "boss", "role": "boss", "colour": "", "fx": ["slam"], "raw": 60.0,
 			"dealt": 44.0, "shield": 0.0, "note": "", "hp": 0.0, "fatal": true},
 	]
+
+
+## k2a..k2e (pass 123, lane KIT2): the kit's shared pieces on a hub screen made for the capture: a ScreenBase with the
+## Upgrade tab open in the docked tab bar, the wallet, and a solid sheet holding pills, price buttons and solid cells
+## (k2a); then the modal shell (WConfirm.shell) as the survey (k2b: a star line with its corner word, a left title, a
+## rating row, NOT NOW and a blue NEXT, the link under the card), the Hero details (k2c: a tall card, the corner word,
+## CLOSE), the play-data card (k2d: the game's own words, NO THANKS and a gold OK) and the Upgrade board's choice (k2e:
+## a talent's two forms from its data, each with a green price, NOT NOW). Every word and number is the game's.
+func _kit2() -> void:
+	_save.data["gold"] = 108411
+	_save.data["last_character"] = "drifter"
+	var src := "extends ScreenBase
+func tab_bar() -> String:
+	return \"upgrade\"
+"
+	src += "func header_right() -> Control:
+	return WMenuHeader.gold_plate(108411, 44, 40.0, 5, 4)
+"
+	src += "func on_back() -> void:
+	pass
+"
+	var gs := GDScript.new()
+	gs.source_code = src
+	gs.reload()
+	var scr: Control = gs.new()
+	scr.name = "KitHub"
+	change_scene_to_node(scr)
+	await _wait(0.9)
+	var hub = current_scene
+	var W_: GDScript = load("res://ui/wanted/W.gd")
+	var R_: GDScript = load("res://ui/wanted/R.gd")
+	var royale: bool = W_.royale()
+	hub.set_title("Upgrade")
+	var sheet: PanelContainer = hub.solid_sheet(Vector2(24, 24))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 22)
+	sheet.add_child(v)
+	var drifter = _reg.character("drifter")
+	v.add_child(W_.label("Pills", 18, W_.INK_SOFT))
+	var pills := HBoxContainer.new()
+	pills.add_theme_constant_override("separation", 14)
+	var rc = _reg.map("red_canyon")
+	var stage_list: Array = rc.timeline.stage_list if rc and rc.timeline else []
+	var boss_at := float((stage_list[0] as Dictionary).get("length", 430.0)) if not stage_list.is_empty() else 430.0
+	pills.add_child(W_.pill([{"glyph": "clock", "px": 24}, "%s to the boss" % W_.mmss(boss_at)]))
+	pills.add_child(W_.pill(drifter.display_name if drifter else "The Drifter"))
+	v.add_child(pills)
+	v.add_child(W_.label("Prices", 18, W_.INK_SOFT))
+	var grit = _reg.talent("grit")
+	var cost: int = grit.cost_of_rank(0) if grit else 100
+	var prices := HBoxContainer.new()
+	prices.add_theme_constant_override("separation", 20)
+	prices.add_child(W_.price_row(cost, "CHOOSE", "blue"))
+	prices.add_child(W_.price_row(cost, "BUY", "green"))
+	prices.add_child(W_.price_row(cost * 9, "BUY", "green", 28, cost * 9 - 300))
+	v.add_child(prices)
+	v.add_child(W_.label("Cells", 18, W_.INK_SOFT))
+	var cells := HBoxContainer.new()
+	cells.add_theme_constant_override("separation", 12)
+	var bs = _reg.weapon("boomstick")
+	for k in 3:
+		var cell := PanelContainer.new()
+		cell.add_theme_stylebox_override("panel", W_.cell_box())
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.add_child(W_.serif_text("Level %d" % (k + 2) if bs else "", 24, W_.INK))
+		cells.add_child(cell)
+	v.add_child(cells)
+	hub.content.add_child(sheet)
+	await _wait(0.6)
+	await _shot("k2a-hub-tabbar")
+	# k2b: the survey's shape
+	var WConfirm_: GDScript = load("res://ui/wanted/WConfirm.gd")
+	var sv = WConfirm_.shell(hub, {"star": "A quick word", "corner": "1 / 2", "title": "How much fun was that run?",
+		"title_px": 44, "title_align": "left", "title_upper": false, "min_h": 620, "keep_open": true,
+		"button_h": 96, "button_px": 34, "link": "Don't ask me again",
+		"buttons": [{"id": "cancel", "text": "Not now", "role": "slate"}, {"id": "next", "text": "Next", "role": "blue"}]})
+	var rate := HBoxContainer.new()
+	rate.add_theme_constant_override("separation", 14)
+	for k in 5:
+		var b = WConfirm_.make_button([str(k + 1)], "gold" if k == 3 else "slate", 96.0, 40)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rate.add_child(b)
+	sv.body_box.add_child(rate)
+	var ends := HBoxContainer.new()
+	var lo = W_.serif_text("Not fun", 20, W_.INK_SOFT, 400, true)
+	lo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ends.add_child(lo)
+	ends.add_child(W_.serif_text("Loved it", 20, W_.INK_SOFT, 400, true))
+	sv.body_box.add_child(ends)
+	await _wait(0.6)
+	await _shot("k2b-shell-survey")
+	sv.cancel()
+	await _wait(0.4)
+	# k2c: the Hero details' shape (a tall card, the corner word, CLOSE)
+	var hd = WConfirm_.shell(hub, {"title": drifter.display_name if drifter else "", "title_px": 56, "title_align": "left",
+		"corner": "Details", "min_h": 1080, "button_h": 96, "button_px": 40,
+		"buttons": [{"id": "cancel", "text": "Close", "role": "slate"}]})
+	var hp := HBoxContainer.new()
+	hp.add_theme_constant_override("separation", 12)
+	hp.add_child(W_.pill("TRAIT", 20, 40.0))
+	hp.add_child(W_.pill(drifter.flavour if drifter and str(drifter.get("flavour")) != "" else "", 22, 40.0))
+	hd.body_box.add_child(hp)
+	await _wait(0.6)
+	await _shot("k2c-shell-details")
+	hd.cancel()
+	await _wait(0.4)
+	# k2d: the play-data card's shape, its own words
+	var consent: GDScript = load("res://ui/wanted/WConsent.gd")
+	var cd = WConfirm_.shell(hub, {"star": "A quick word", "title": "Play data", "body": consent.body_text(_save.player_name()),
+		"min_h": 620, "dim_cancels": false,
+		"buttons": [{"id": "cancel", "text": "No thanks", "role": "slate"}, {"id": "confirm", "text": "OK", "role": "gold"}]})
+	await _wait(0.6)
+	await _shot("k2d-shell-consent")
+	cd.cancel()
+	await _wait(0.4)
+	# k2e: the Upgrade board's choice: Grit's two forms from its data, each a green price
+	if grit:
+		var ch = WConfirm_.shell(hub, {"star": "Rank %d of %d" % [1, int(grit.ranks)], "title": grit.display_name,
+			"buttons": [{"id": "cancel", "text": "Not now", "role": "slate"}]})
+		for fi in (grit.forms as Array).size():
+			var form: Dictionary = grit.forms[fi]
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 18)
+			var WPlate_: GDScript = load("res://ui/wanted/WPlate.gd")
+			var plate = WPlate_.new()
+			plate.side = 96.0
+			plate.tex = grit.form_icon(fi)
+			row.add_child(plate)
+			var col := VBoxContainer.new()
+			col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			col.add_child(W_.slab_text(str(form.get("name", "")), 40, W_.INK))
+			col.add_child(W_.serif_text(str(form.get("text", "")), 26, W_.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, -1.0, true))
+			row.add_child(col)
+			var pr = W_.price_row(cost, "BUY", "green")
+			pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(pr)
+			ch.body_box.add_child(row)
+		await _wait(0.6)
+		await _shot("k2e-shell-choice")
+		ch.cancel()
+		await _wait(0.4)
+	print("wanted_shots: kit2 theme ", "royale" if royale else "wanted", " tab bar ", hub.tab_bar_node != null, " R ", R_ != null)
+
+
+## 30 / 30b (pass 123, lane RUN_C): the War Drum's moment frozen on its beats (its clock stepped by hand at 60 fps): the
+## first slap (the drum squashed on its stand, its waves and slap lines, the title thumping) and the big slap with the
+## boost in words; then it ends and the boost it left is taken back, so no later state wears its plate.
+func _drum_moment() -> void:
+	_clear_ui()
+	var d = _reg.structure("war_drum")
+	if d == null:
+		print("wanted_shots: no war_drum structure")
+		return
+	g.set_paused(false)
+	g.use_structure(d, g.player.global_position)
+	var guard := 0
+	while guard < 90 and (g.get("drum_moment") == null or not bool(g.drum_moment.playing)):
+		await process_frame
+		guard += 1
+	var dm = g.get("drum_moment")
+	if dm == null or not bool(dm.playing):
+		print("wanted_shots: the drum's moment did not open")
+		return
+	dm.set_process(false)
+	for pair in [[0.4, "30-drum-slap"], [1.7, "30b-drum-words"]]:
+		var n := 0
+		while bool(dm.playing) and float(dm.t) < float(pair[0]) and n < 600:
+			dm.call("_process", 1.0 / 60.0)
+			n += 1
+		await _shot(str(pair[1]))
+	dm.set_process(true)
+	dm.skip()
+	await _wait(0.2)
+	for tb in _run.timed:
+		if str(tb["id"]).begins_with("structure:"):
+			tb["until"] = 0.0
+	g.set_paused(false)
+	await _wait(0.3)
+	# and its toast ("WAR DRUM: 15 s"), which would stand over the next states
+	_clear_toasts()
+
+
+## The HUD's toasts gone at once (pass 123, lane RUN_C: the drum's and the Grindstone's stood over the next captures):
+## each shown one aged past its fade (WToasts frees it on its next tick) and hidden now, the queue emptied.
+func _clear_toasts() -> void:
+	var t = g.hud.get("_toasts")
+	if t == null:
+		return
+	for s in t.get("_shown"):
+		s[1] = 1000.0
+		if is_instance_valid(s[0]):
+			(s[0] as CanvasItem).modulate.a = 0.0
+	(t.get("_queue") as Array).clear()
+
+
+## 31 .. 31c (pass 123, lane RUN_C): the Grindstone's show frozen on its beats (its clock stopped and stepped with seek,
+## as tools/_p121_GRIND_shots.gd does): the grind with its sparks and the level stamped (the Boomstick 2 -> 3, the
+## weakest beside the Revolver at 3), then an evolution's burst (the Revolver at 5 with its three mutations into the
+## Golden Revolver). The gate is tapped away and the Grindstone taken back after each, so no later state wears it (the
+## pass 121 artefact lane KIT2 removed from the shop's build).
+func _grind_moment() -> void:
+	_clear_ui()
+	if _reg.passive("grindstone") == null:
+		print("wanted_shots: no grindstone")
+		return
+	for tag in ["level", "evolve"]:
+		g.set_paused(false)
+		if tag == "level":
+			_build([["weapon", "revolver", 3], ["weapon", "boomstick", 2]])
+		else:
+			_build([["weapon", "revolver", 5]])
+			for m in _reg.mutations_of("revolver"):
+				_run.add_mutation(m.id, true)
+		_hud_common(6, 0.3, 40, 95.0)
+		_run.passives.erase("grindstone")
+		_run.grind_used = {}
+		await _wait(0.4)
+		_run.add_or_level_passive("grindstone")
+		var guard := 0
+		while guard < 120 and (g.get("grind_moment") == null or not bool(g.grind_moment.playing)):
+			await process_frame
+			guard += 1
+		var gm = g.get("grind_moment")
+		if gm == null or not bool(gm.playing):
+			print("wanted_shots: the Grindstone's show did not open (%s)" % tag)
+			continue
+		gm.set_process(false)
+		_clear_toasts()
+		var beats: Array = [[0.75, "31-grind-sparks"], [2.3, "31b-grind-level"]] if tag == "level" else [[2.75, "31c-grind-evolved"]]
+		for pair in beats:
+			gm.seek(float(pair[0]))
+			await _shot(str(pair[1]))
+		gm.set_process(true)
+		gm.skip()
+		await process_frame
+		await _wait(0.2)
+		if g.resume_gate.visible:
+			g.resume_gate.tap()
+		await _wait(0.3)
+	_run.passives.erase("grindstone")
+	_run.grind_used = {}
+	_run.build_changed.emit()
+	g.set_paused(false)
+	await _wait(0.2)
+	_clear_toasts()
+
+
+## 40-41 (pass 123, lane HEROES; only=heroes): the Heroes screen (ui/HeroesScreen.tscn, the Royale HEROES tab) and the
+## Hero details pop-up (ui/wanted/WHeroSheet.gd). The save: the Drifter owned and picked, Ironwood and Astro on sale (no
+## quest), Calavera's quest done (on sale), the rest locked; 104,711 gold. Under Royale: 40-heroes (the Drifter, the
+## mock's 5_Heroes), 40b-heroes-onsale (Ironwood: BUY), 40c-heroes-locked (Fadeaway: LOCKED and his quest),
+## 40d-heroes-short (Astro with 600 gold: the grey price and what it is short), 40e-heroes-buy-confirm (Ironwood's BUY
+## asked), 40f-heroes-looks (Fadeaway owned, Purple Reign on sale in the strip), 40g-heroes-scrolled (the page at its
+## foot: the grid over the tab bar); 41-hero-details (DETAILS · ALL STATS, the mock's 5_Hero_details), 41b-hero-details-items
+## (scrolled to the items), 41c-hero-details-looks (Fadeaway's, at its foot), 41d-hero-details-onsale and
+## 41e-hero-details-locked (a hero not owned). Under Wanted nothing reaches the screen: 40-heroes is today's way to the
+## heroes (the title, its hero drawer open), 40b/40c the title showing that hero, and the 41 states today's sheet over the
+## title. The save's heroes, quests, looks and gold go back after.
+func _heroes_shots() -> void:
+	var keep := {}
+	for k in ["gold", "heroes_owned", "quests_done", "skins_owned", "skin_worn", "hero_look", "last_character"]:
+		var v = _save.data.get(k)
+		keep[k] = v.duplicate(true) if (v is Array or v is Dictionary) else v
+	var W_: GDScript = load("res://ui/wanted/W.gd")
+	var royale: bool = W_.royale()
+	var path := "res://ui/HeroesScreen.tscn"
+	var on_screen: bool = royale and ResourceLoader.exists(path)
+	_save.data["gold"] = 104711
+	_save.data["last_character"] = "drifter"
+	_save.data["hero_look"] = {}
+	_save.data["skin_worn"] = {}
+	_save.data["skins_owned"] = []
+	_save.data["heroes_owned"] = ["drifter"]
+	var done: Array = (_save.data.get("quests_done", []) as Array).duplicate()
+	if not done.has("unlock_calavera"):
+		done.append("unlock_calavera")
+	for q in ["unlock_solenne", "unlock_fadeaway", "unlock_buck", "unlock_may", "skin_fadeaway_fad_b"]:
+		done.erase(q)
+	_save.data["quests_done"] = done
+	var host = null
+	if on_screen:
+		await _scene(path)
+		await _wait(0.8)
+		host = current_scene
+		await _shot("40-heroes")
+		host.show_hero(_reg.character("ironwood"))
+		await _wait(0.5)
+		await _shot("40b-heroes-onsale")
+		host.show_hero(_reg.character("fadeaway"))
+		await _wait(0.5)
+		await _shot("40c-heroes-locked")
+		_save.data["gold"] = 600
+		host.refresh()
+		host.show_hero(_reg.character("astro"))
+		await _wait(0.5)
+		await _shot("40d-heroes-short")
+		_save.data["gold"] = 104711
+		host.refresh()
+		host.show_hero(_reg.character("ironwood"))
+		await _wait(0.3)
+		host.ask_buy()
+		await _wait(0.7)
+		await _shot("40e-heroes-buy-confirm")
+		_cancel_confirm(host)
+		await _wait(0.4)
+	else:
+		await _scene("res://ui/TitleScreen.tscn")
+		await _wait(0.8)
+		host = current_scene
+		if host.has_method("open_drawer"):
+			host.open_drawer()
+			await _wait(0.6)
+			await _shot("40-heroes")
+			host.close_drawer()
+			await _wait(0.4)
+		for pair in [["ironwood", "40b-heroes-onsale"], ["fadeaway", "40c-heroes-locked"]]:
+			_heroes_title_to(host, str(pair[0]))
+			await _wait(0.7)
+			await _shot(str(pair[1]))
+		_heroes_title_to(host, "drifter")
+		await _wait(0.5)
+	var sheet_script: GDScript = load("res://ui/wanted/WHeroSheet.gd")
+	var dr = _reg.character("drifter")
+	var s: Control = sheet_script.open(host, dr, false)
+	await _wait(0.8)
+	await _shot("41-hero-details")
+	var items: Control = s.find_child("Items", true, false)
+	if items:
+		(s.get("scroll") as ScrollContainer).ensure_control_visible(items)
+		await _wait(0.4)
+		await _shot("41b-hero-details-items")
+	s.call("close")
+	await _wait(0.4)
+	for st in [["ironwood", "41d-hero-details-onsale"], ["fadeaway", "41e-hero-details-locked"]]:
+		var c = _reg.character(str(st[0]))
+		var s2: Control = sheet_script.open(host, c, _reg.hero_state(c) != "owned")
+		await _wait(0.8)
+		await _shot(str(st[1]))
+		s2.call("close")
+		await _wait(0.4)
+	# Fadeaway owned, his Purple Reign's goal done: the look on sale in the strip and on his sheet
+	var fad = _reg.character("fadeaway")
+	(_save.data["heroes_owned"] as Array).append("fadeaway")
+	for q in ["unlock_fadeaway", "skin_fadeaway_fad_b"]:
+		if not (_save.data["quests_done"] as Array).has(q):
+			(_save.data["quests_done"] as Array).append(q)
+	if on_screen:
+		host.refresh()
+		host.show_hero(fad)
+		await _wait(0.6)
+		await _shot("40f-heroes-looks")
+		# pass 123: the looks' pop-up behind the LOOKS button
+		if host.has_method("open_looks"):
+			host.call("open_looks")
+			await _wait(0.6)
+			await _shot("40h-heroes-looks-popup")
+			host.call("on_back")
+			await _wait(0.4)
+		host.show_hero(dr)
+		await _wait(0.4)
+		var sc: ScrollContainer = host.get("scroll")
+		sc.scroll_vertical = int(sc.get_v_scroll_bar().max_value)
+		await _wait(0.5)
+		await _shot("40g-heroes-scrolled")
+		sc.scroll_vertical = 0
+	var s3: Control = sheet_script.open(host, fad, false)
+	await _wait(0.8)
+	var looks: Control = s3.find_child("Looks", true, false)
+	if looks:
+		var sc3: ScrollContainer = s3.get("scroll")
+		sc3.scroll_vertical = int(sc3.get_v_scroll_bar().max_value)
+		await _wait(0.4)
+	await _shot("41c-hero-details-looks")
+	s3.call("close")
+	await _wait(0.4)
+	for k in keep.keys():
+		_save.data[k] = keep[k]
+
+
+## The title showing hero `id` (wanted_shots' Wanted pictures of the Heroes states).
+func _heroes_title_to(t, id: String) -> void:
+	for i in (t._heroes as Array).size():
+		if (t._heroes[i] as Resource).get("id") == id:
+			t._index = i
+			t._show_hero(1)
+			t._place()
+			return
+
+
+## 01d-01f (pass 123, lane MAINMENU): a hero on sale on the title (Calavera: his unlock quest done, not owned): his BUY
+## with the purse holding his price (01d), the purse short of it (01e, the grey price and "n short"), and the buy
+## question (01f). Under Royale the green price · BUY over his black figure and the shared confirm's buy; under Wanted
+## today's BUY and card. The save's heroes, quests and gold go back after.
+func _title_buy() -> void:
+	var hero = _reg.character("calavera")
+	if hero == null:
+		return
+	var keep_owned: Array = (_save.data.get("heroes_owned", []) as Array).duplicate()
+	var keep_quests: Array = (_save.data.get("quests_done", []) as Array).duplicate()
+	var keep_gold = _save.data.get("gold", 0)
+	var keep_last = _save.data.get("last_character", "")
+	(_save.data["heroes_owned"] as Array).erase(hero.id)
+	var q = _reg.quest_for("character", hero.id)
+	if q and not _save.quest_done(q.id):
+		(_save.data["quests_done"] as Array).append(q.id)
+	await _scene("res://ui/TitleScreen.tscn")
+	var t = current_scene
+	t._index = maxi((t._heroes as Array).find(hero), 0)
+	t._show_hero(1)
+	t._place()
+	await _wait(0.5)
+	await _shot("01d-title-buyable")
+	_save.data["gold"] = maxi(int(hero.price) - 166, 0)
+	t._refresh_gold()
+	t._show_hero(0)
+	t._place()
+	await _wait(0.4)
+	await _shot("01e-title-buy-short")
+	_save.data["gold"] = keep_gold
+	t._refresh_gold()
+	t._show_hero(0)
+	t._place()
+	t.ask_buy()
+	await _wait(0.7)
+	await _shot("01f-title-buy-ask")
+	_save.data["heroes_owned"] = keep_owned
+	_save.data["quests_done"] = keep_quests
+	_save.data["gold"] = keep_gold
+	_save.data["last_character"] = keep_last
+
+
+## 04l..04q (pass 123, lane COLLECTION; only=collection_more): the pages and states the Royale Collection rebuilt that
+## 04..04k do not show: a passive item on the rarity ladder (its rung cells), a Card with its evolution, a hero's perk, a
+## weapon's page scrolled to its evolution card, the grid scrolled to its foot (the sheet's foot, the kills pill, the tab
+## bar), and the developer's hidden list. The save's seen lists go back after.
+func _collection_more() -> void:
+	var keep_seen = _save.data.get("seen", {}).duplicate(true) if _save.data.get("seen") is Dictionary else {}
+	_save.data["totals"]["kills"] = 12480
+	for w in _reg.weapons.values():
+		_save.mark_seen("weapon", w.id)
+	for p in _reg.passives.values():
+		_save.mark_seen("passive", p.id)
+	for k in _reg.perks.values():
+		_save.mark_seen("perk", k.id)
+	await _scene("res://ui/CollectionScreen.tscn")
+	var c = current_scene
+	var item = null
+	for p in _reg.sorted_passives_only():
+		if p.on_ladder() and (item == null or str(p.rarity) == "rare"):
+			item = p
+			if str(p.rarity) == "rare":
+				break
+	if item:
+		c._open_page(item)
+		await _wait(0.5)
+		await _shot("04l-collection-passive-page")
+	var card = _reg.passive("brawn")
+	if card:
+		c._open_page(card)
+		await _wait(0.5)
+		await _shot("04m-collection-card-page")
+	var perks: Array = _reg.perks.values()
+	if not perks.is_empty():
+		c._open_page(perks[0])
+		await _wait(0.5)
+		await _shot("04n-collection-perk-page")
+	c._open_page(_reg.weapon("boomstick"))
+	await _wait(0.5)
+	c.scroll.scroll_vertical = 999999
+	await _wait(0.4)
+	await _shot("04o-collection-weapon-page-foot")
+	c._show_grid()
+	await _wait(0.5)
+	c.scroll.scroll_vertical = 999999
+	await _wait(0.4)
+	await _shot("04p-collection-grid-foot")
+	c.scroll.scroll_vertical = 0
+	var cs: GDScript = load("res://ui/CollectionScreen.gd")
+	cs.set("hidden_only", true)
+	await _scene("res://ui/CollectionScreen.tscn")
+	await _shot("04q-collection-hidden")
+	cs.set("hidden_only", false)
+	_save.data["seen"] = keep_seen
+
+
+## Pass 123 (lane UPGRADE), only=mirror_more: the Upgrade board's other states (under theme=royale the mock 5_Upgrade's
+## board, its CHOOSE pop-up and the reset's red confirm; under wanted the same saves on the Wanted board):
+## 03d-mirror-many-held (every talent holding both options: YOU HOLD's sixteen frames, Stride at six ranks, a 2,000 purse so
+## most CHOOSE are short), 03e-mirror-choose-short (Grit's pop-up with that purse: both BUYs short), 03f-mirror-choose-maxed
+## (Stride's at six ranks), 03g-mirror-reset-confirm (RESET UPGRADES asks), 03h-mirror-empty (nothing held, nothing to
+## take back).
+func _mirror_more() -> void:
+	var held := {"spite": [0, 1], "nerve": [1, 0, 1], "fortune": [0, 1], "choice": [1, 0], "drive": [0, 1, 1, 0],
+		"study": [1, 0], "stride": [0, 1, 0, 1, 0, 1], "grit": [0, 0, 1]}
+	var talents := {}
+	var spent := 0
+	for id in held.keys():
+		var picks: Array = held[id]
+		talents[id] = {"picks": picks, "rank": picks.size(), "form": int(picks.back())}
+		var def = _reg.talent(str(id))
+		for k in picks.size():
+			spent += maxi(int(def.cost_of_rank(k)), 0) if def else 0
+	_save.data["talents"] = talents
+	_save.data["talent_spent"] = spent
+	_save.data["gold"] = 2000
+	_save.data["last_character"] = "drifter"
+	await _scene("res://ui/HomesteadScreen.tscn")
+	await _shot("03d-mirror-many-held")
+	current_scene._open(_reg.talent("grit"))
+	await _wait(0.6)
+	await _shot("03e-mirror-choose-short")
+	current_scene._close(false)
+	await _wait(0.3)
+	current_scene._open(_reg.talent("stride"))
+	await _wait(0.6)
+	await _shot("03f-mirror-choose-maxed")
+	current_scene._close(false)
+	await _wait(0.3)
+	current_scene._take_back()
+	await _wait(0.6)
+	await _shot("03g-mirror-reset-confirm")
+	_cancel_confirm(current_scene)
+	await _wait(0.3)
+	_save.data["talents"] = {}
+	_save.data["talent_spent"] = 0
+	_save.data["gold"] = 108411
+	await _scene("res://ui/HomesteadScreen.tscn")
+	await _shot("03h-mirror-empty")

@@ -13,6 +13,10 @@
 ## hits by tools/synth_sfx.py) plays from the first frame, on its own player, so the hits and the slaps land together.
 ## Every touch is swallowed while it plays (touches_eaten); it counts its own real seconds (a hit-stop's slowed clock
 ## does not stretch it). `finished` when it is over; skip() ends it at once (tests, tools).
+## Pass 123 (lane RUN_C), under Royale (W.royale(); Garry: "War Drum moment: keep the drum art; set its title in the new
+## kit's type"): the drum, its glow, waves, slap lines and the red dusk are today's; the title is cream Ultra with the
+## kit's navy edge (the stroke and the hard drop straight down, kit_line) and the boost in words the kit's gold with its
+## bevel (the gain, as the Totem's gifts: "the gain in gold"). Wanted is drawn as before.
 class_name DrumMoment
 extends Control
 
@@ -314,10 +318,15 @@ func _draw() -> void:
 	var tsc := 1.0 + 0.12 * pulse
 	var tw := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_PX).x
 	var ty := r.position.y - vp.y * 0.035
+	var royale := W.royale()
 	draw_set_transform(Vector2(vp.x * 0.5, ty), 0.0, Vector2(tsc, tsc))
-	draw_string_outline(font, Vector2(-tw * 0.5, 0.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_PX, 18, Color(W.INK, a))
-	draw_string(font, Vector2(-tw * 0.5 + 6.0, 8.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_PX, Color(W.INK, a))
-	draw_string(font, Vector2(-tw * 0.5, 0.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_PX, Color(W.PAPER, a))
+	if royale:
+		# pass 123: the kit's type (cream Ultra, the navy stroke and drop)
+		kit_line(self, font, Vector2(-tw * 0.5, 0.0), title, TITLE_PX, R.CREAM, a)
+	else:
+		draw_string_outline(font, Vector2(-tw * 0.5, 0.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_PX, 18, Color(W.INK, a))
+		draw_string(font, Vector2(-tw * 0.5 + 6.0, 8.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_PX, Color(W.INK, a))
+		draw_string(font, Vector2(-tw * 0.5, 0.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_PX, Color(W.PAPER, a))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# the boost in words, from the big slap on: two lines (" · " halves)
 	if _words_t >= 0.0 and words != "":
@@ -336,7 +345,33 @@ func _draw() -> void:
 				px -= 2
 				ww = font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
 			draw_set_transform(Vector2(vp.x * 0.5, wy), 0.0, Vector2(wsc, wsc))
-			draw_string_outline(font, Vector2(-ww * 0.5, 0.0), ln, HORIZONTAL_ALIGNMENT_LEFT, -1, px, 14, Color(W.INK, wa))
-			draw_string(font, Vector2(-ww * 0.5, 0.0), ln, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Color(1.0, 0.86, 0.5, wa))
+			if royale:
+				# pass 123: the gain in the kit's gold, its bevel and navy edge
+				kit_line(self, font, Vector2(-ww * 0.5, 0.0), ln, px, R.GOLD_TEXT, wa, true)
+			else:
+				draw_string_outline(font, Vector2(-ww * 0.5, 0.0), ln, HORIZONTAL_ALIGNMENT_LEFT, -1, px, 14, Color(W.INK, wa))
+				draw_string(font, Vector2(-ww * 0.5, 0.0), ln, HORIZONTAL_ALIGNMENT_LEFT, -1, px, Color(1.0, 0.86, 0.5, wa))
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 			wy += px * 1.35
+
+
+## A line of display type drawn the kit's way (pass 123, as WText paints a Royale title: R.edge): the hard drop straight
+## down (R.drop_px; a gold one's R.GOLD_DROP_FRAC) with its stroke, a gold line's bevel (R.bevel_px in R.GOLD_BEVEL),
+## the navy stroke (twice R.stroke_px / R.STROKE_DIV wide, as WText's), then the face in `col`; `o` is the left end of
+## its baseline on `ci`'s current transform, `a` its alpha. The Grindstone's show draws its words with it too.
+static func kit_line(ci: CanvasItem, font: Font, o: Vector2, s: String, px: int, col: Color, a: float, gold: bool = false) -> void:
+	if s == "" or a <= 0.003:
+		return
+	var outline := 2 * maxi(int(round(R.stroke_px(px) / R.STROKE_DIV)), 1)
+	var drop := float(maxi(int(round(R.GOLD_DROP_FRAC * px)), 1)) if gold else float(R.drop_px(px))
+	var navy := Color(R.NAVY, a)
+	var at := HORIZONTAL_ALIGNMENT_LEFT
+	ci.draw_string_outline(font, o + Vector2(0.0, drop), s, at, -1, px, outline, navy)
+	ci.draw_string(font, o + Vector2(0.0, drop), s, at, -1, px, navy)
+	if gold:
+		var bv := float(R.bevel_px(px))
+		var bc := Color(R.GOLD_BEVEL, a)
+		ci.draw_string_outline(font, o + Vector2(0.0, bv), s, at, -1, px, outline, bc)
+		ci.draw_string(font, o + Vector2(0.0, bv), s, at, -1, px, bc)
+	ci.draw_string_outline(font, o, s, at, -1, px, outline, navy)
+	ci.draw_string(font, o, s, at, -1, px, Color(col, a))

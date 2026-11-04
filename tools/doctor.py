@@ -35,7 +35,7 @@ if HERE not in sys.path:
 
 LOCK_NAMES = ("comfy", "godot", "jobs", "sim")
 # tools/requirements.txt's names -> the module a tool imports; essential ones stop the art tools when missing
-IMPORT_NAMES = {"numpy": "numpy", "pillow": "PIL", "scipy": "scipy", "pefile": "pefile", "soundfile": "soundfile",
+IMPORT_NAMES = {"opencv-python": "cv2", "numpy": "numpy", "pillow": "PIL", "scipy": "scipy", "pefile": "pefile", "soundfile": "soundfile",
                 "librosa": "librosa", "gradio-client": "gradio_client", "gradio_client": "gradio_client",
                 "websocket-client": "websocket"}
 ESSENTIAL_PACKAGES = ("numpy", "pillow", "scipy")

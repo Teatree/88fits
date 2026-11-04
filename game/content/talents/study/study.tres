@@ -22,20 +22,22 @@ target = "player"
 [resource]
 script = ExtResource("5_4kr66")
 order = 6
-ranks = 6
-cost = [400.0, 1600.0, 3600.0, 6400.0, 10000.0, 14400.0]
+ranks = 7
+cost = [400.0, 1600.0, 3600.0, 6400.0, 10000.0, 14400.0, 19600.0]
 forms = [{
 "effects": [SubResource("Resource_lpptv")],
 "icon": ExtResource("2_2x1rr"),
 "icon_file": "study_0_icon.png",
 "name": "Field Notes",
-"text": "+10% XP a rank."
+"text": "+10% XP a rank, +15% at rank 7.",
+"top_mult": 1.5
 }, {
 "effects": [SubResource("Resource_2x1rr")],
 "icon": ExtResource("3_bbbaa"),
 "icon_file": "study_1_icon.png",
 "name": "Poultice",
-"text": "+0.3 regen a rank (it still waits after a hit)."
+"text": "+0.3 regen a rank, +0.45 at rank 7 (it still waits after a hit).",
+"top_mult": 1.5
 }]
 id = "study"
 display_name = "Study"

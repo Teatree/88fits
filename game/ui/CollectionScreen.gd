@@ -8,6 +8,17 @@
 ## item's page: the plate, what it does in full, its levels, for a weapon its mutations (the heroes' own among them,
 ## marked) and its evolution, for a line its evolution. Evolutions and mutations live on their item's page, heroes on
 ## the title. What is out of the game (hidden) is not here: the developer menu opens it (`hidden_only`).
+## Pass 123 (lane COLLECTION), under Royale (W.royale(); Wanted is built exactly as before), the mocks 10_Collection and
+## 10_Item_detail: the found total on a black plate top-right ("n / m FOUND"); the five tabs docked on one fixed slate
+## sheet (the open one gold with its count in navy Ultra, the rest slate in cream Rubik 700, the five across the sheet);
+## tiles four to a row, each a slate tile with a 120 px item frame (a weapon's or Card's level colour, a passive item's
+## rarity, the rainbow of an evolution) and its name, an unfound one a dark silhouette with its quest line and, where the
+## quest counts, a gold bar and its count under it; the kills all time on a black pill above the docked tab bar
+## ("collections"). The item page (Garry: "Make it sit on a more solid background, not just hover in the air") sits on
+## one solid slate sheet filling the screen under the header (the tab bar stands aside while it shows): the header card
+## (the 200 px frame, the kind, what it does in full, the flavour, the kills), LEVELS as solid cells, MUTATIONS as framed
+## columns with their full text, the EVOLUTION card; a locked item's quest, bar and WHAT IT DOES in the same shell; the
+## creature and boss pages likewise. Both sheets stay put while the board scrolls inside them.
 class_name CollectionScreen
 extends ScreenBase
 
@@ -32,21 +43,101 @@ const CELL_GAP := 20.0
 ## Set by the developer menu before it opens this screen: one board of everything hidden, no tabs.
 static var hidden_only := false
 
+## Pass 123 (lane COLLECTION), Royale only (canvas px; each `W.safe_top()` lower under a camera cutout, the feet
+## `W.safe_bottom()` higher over a gesture bar): the sheets' sides (the header's 40), the tabs' top and the grid sheet's
+## (the open tab's foot: 190 + 74), the page sheet's top (under the header), the sheets' inner padding, how far the grid
+## sheet's foot stands over the tab bar's band (the open tab's 24 px rise, 16, the 52 px kills pill, 20, the sheet's 8 px
+## base) and the page sheet's over the screen's foot.
+const RY_SIDE := 40.0
+const RY_TAB_TOP := 190.0
+const RY_SHEET_TOP := 264.0
+const RY_PAGE_TOP := 180.0
+const RY_GRID_PAD := Vector2(16, 20)
+const RY_PAGE_PAD := Vector2(24, 24)
+const RY_GRID_FOOT := 120.0
+const RY_PAGE_FOOT := 32.0
+const RY_OPEN_RISE := 24.0
+const RY_PILL_H := 52.0
+const RY_PILL_GAP := 16.0
+const RY_PILL_PX := 26
+## The found total's plate (the mock's 72 px black plate, white Ultra 30 with a soft drop).
+const RY_FOUND_PX := 30
+const RY_FOUND_H := 72.0
+## The docked tabs: the open one's words navy Ultra RY_TAB_ON_PX, the rest cream Rubik 700 RY_TAB_PX, every label RY_TAB_LH
+## tall; the boxes' padding makes the closed ones 62 tall and the open one 74 (R.TAB_H, R.TAB_H_ACTIVE).
+const RY_TAB_ON_PX := 28
+const RY_TAB_PX := 22
+const RY_TAB_LH := 30.0
+const RY_TAB_PAD := Vector2(10, 13.5)
+## The tiles: four to a row RY_TILE_GAP apart (RY_TILE_VGAP down, the 8 px base in it), RY_TILE_PAD inside their edge, the
+## frame RY_FRAME, the name Rubik 700 RY_NAME_PX white, an unfound one's line Rubik 500 RY_QUEST_PX in the secondary blue,
+## its bar RY_BAR_H tall and its count Rubik 700 RY_COUNT_PX.
+const RY_TILE_GAP := 16
+const RY_TILE_VGAP := 20
+const RY_TILE_PAD := Vector2(12, 16)
+const RY_FRAME := 120.0
+const RY_NAME_PX := 22
+const RY_QUEST_PX := 20
+const RY_BAR_H := 16.0
+const RY_COUNT_PX := 18
+## A silhouette's colour (the mock's brightness(0): the icon's shape in near-black over the locked frame).
+const RY_SILHOUETTE := Color(0.03, 0.04, 0.07, 1.0)
+## The item page: the header card's frame and padding, its text sizes (the kind label, what it does, the flavour and the
+## tally), the gap above each section, the level cells' number and words, the mutation columns' frame, name and words,
+## the evolution card's frame, name and words.
+const RY_PAGE_FRAME := 200.0
+const RY_CARD_PAD := Vector2(28, 24)
+const RY_KIND_PX := 20
+const RY_EFFECT_PX := 28
+const RY_FLAVOUR_PX := 22
+const RY_SECTION_GAP := 34.0
+const RY_CELL_NUM_PX := 30
+const RY_CELL_PX := 24
+const RY_COL_GAP := 14.0
+const RY_COL_FRAME := 96.0
+const RY_COL_NAME_PX := 28
+const RY_COL_PX := 24
+const RY_EVO_FRAME := 160.0
+const RY_EVO_NAME_PX := 44
+const RY_EVO_PX := 24
+
 var _tab := 0
 var _tabs: WTabs
 var _count: WText
 var _foot: WText
 var _page: ContentDef
 var _grid_scroll := 0
+## Pass 123: what is shown and hidden for the count and the kills line (the WText itself under Wanted; its black plate
+## and pill under Royale), and the fixed slate sheet the board scrolls in (Royale; null under Wanted).
+var _count_box: Control
+var _foot_box: Control
+var _sheet: PanelContainer
+## A running number for the Royale pieces' names (siblings that share a name are renamed by the tree; tools and tests
+## find "Tile_n", "Section_n", "Cell_n", "Mutation_n").
+var _serial := 0
 
 
 func header_right() -> Control:
+	if W.royale():
+		# the found total on the mock's black plate: white Ultra (the words set in _show_grid)
+		var plate := W.pill([["", R.WHITE, R.display()]], RY_FOUND_PX, RY_FOUND_H)
+		plate.name = "Found"
+		_count = plate.get_node("Row").get_child(0) as WText
+		_count.shadow = R.WALLET_DROP
+		_count.shadow_color = R.WALLET_DROP_COLOR
+		_count.shadow_straight = true
+		plate.set_meta("keep", true)
+		_count_box = plate
+		return plate
 	_count = W.serif_text("", 30, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
 	_count.set_meta("keep", true)
+	_count_box = _count
 	return _count
 
 
 func board_top() -> float:
+	if W.royale():
+		return (RY_PAGE_TOP if hidden_only else RY_SHEET_TOP) + float(R.PANEL_EDGE)
 	return PAGE_TOP if hidden_only else GRID_TOP
 
 
@@ -55,16 +146,30 @@ func board_room() -> float:
 
 
 func board_side() -> float:
+	if W.royale():
+		return RY_SIDE + float(R.PANEL_EDGE) + RY_GRID_PAD.x
 	return 36.0
 
 
 func board_bottom() -> float:
+	if W.royale():
+		return _royale_foot(hidden_only) + float(R.PANEL_EDGE) - tab_bar_height()
 	return 50.0 + 31.0 + 20.0
+
+
+## Pass 123 (Garry: "Keep the tab bar on all four hub screens"): the docked bar under Royale with COLLECTIONS open; none on
+## the developer's hidden list (it goes back to the developer menu).
+func tab_bar() -> String:
+	return "" if hidden_only else "collections"
 
 
 func build() -> void:
 	set_title("Hidden" if hidden_only else "Collection")
 	content.add_theme_constant_override("separation", 0)
+	if W.royale():
+		_build_royale()
+		_show_grid()
+		return
 	_tabs = WTabs.make(TABS, TAB_PX, TAB_PAD)
 	_tabs.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_tabs.offset_left = 36
@@ -78,7 +183,547 @@ func build() -> void:
 	_foot.offset_bottom = -50
 	_foot.offset_top = -50 - 31
 	add_child(_foot)
+	_foot_box = _foot
 	_show_grid()
+
+
+# --- Royale (pass 123, lane COLLECTION) ------------------------------------------------------------------------------
+
+## The fixed sheet behind the board (it follows the scroll's rect and fade: ScreenBase's slide up and every page's frame),
+## the docked tabs over its top edge, the kills pill above the tab bar.
+func _build_royale() -> void:
+	# pass 123: a tap on the open COLLECTIONS tab while an item's page shows goes back to the grid
+	if tab_bar_node:
+		tab_bar_node.connect("tab_pressed", func(id: String) -> void:
+			if id == "collections" and _page:
+				_show_grid())
+	_sheet = PanelContainer.new()
+	_sheet.name = "Sheet"
+	_sheet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sheet.add_theme_stylebox_override("panel", W.sheet_box(Vector2.ZERO))
+	_sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_sheet.offset_left = RY_SIDE
+	_sheet.offset_right = -RY_SIDE
+	add_child(_sheet)
+	move_child(_sheet, scroll.get_index())
+	scroll.item_rect_changed.connect(_follow_scroll)
+	margin.add_theme_constant_override("margin_top", int(RY_GRID_PAD.y))
+	margin.add_theme_constant_override("margin_bottom", int(RY_GRID_PAD.y))
+	_tabs = WTabs.make(TABS.map(func(t: String) -> String: return t.to_upper()), RY_TAB_PX, RY_TAB_PAD)
+	_tabs.name = "Tabs"
+	_tabs.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_tabs.offset_left = RY_SIDE
+	_tabs.offset_right = -RY_SIDE
+	_tabs.offset_top = RY_TAB_TOP + W.safe_top()
+	_tabs.offset_bottom = RY_SHEET_TOP + W.safe_top()
+	# the five tabs across the sheet (WTabs' spacer that fills the rest of a Wanted strip stands aside)
+	_tabs.get_child(_tabs.get_child_count() - 1).visible = false
+	_tabs.changed.connect(func(i: int): _tab = i; _show_grid())
+	_tabs.visible = not hidden_only
+	add_child(_tabs)
+	var kills := W.num(Save.total("kills"))
+	var pill := W.pill([[kills, R.WHITE, "bold"], " kills all time"], RY_PILL_PX, RY_PILL_H)
+	pill.name = "Kills"
+	_foot = pill.get_node("Row").get_child(0) as WText
+	var pw := pill.get_combined_minimum_size().x
+	pill.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	pill.offset_left = -roundf(pw * 0.5)
+	pill.offset_right = roundf(pw * 0.5)
+	pill.offset_bottom = -(tab_bar_height() + RY_OPEN_RISE + RY_PILL_GAP)
+	pill.offset_top = pill.offset_bottom - RY_PILL_H
+	add_child(pill)
+	_foot_box = pill
+	_follow_scroll()
+
+
+## How far the sheet's rect stands over the screen's foot: over the tab bar for the grid (its band, the open tab's rise,
+## the kills pill), over the gesture bar for a page and the developer's hidden list.
+func _royale_foot(page: bool) -> float:
+	# pass 123 (Garry: "Keep the tab bar on all four hub screens"): an item's page keeps the bar too; only the developer's
+	# hidden list has none
+	if page and not has_tab_bar():
+		return RY_PAGE_FOOT + float(R.PANEL_BASE) + W.safe_bottom()
+	return tab_bar_height() + RY_GRID_FOOT
+
+
+## The sheet is the scroll's frame: its edge just outside the scroll's rect, fading with it.
+func _follow_scroll() -> void:
+	if _sheet == null or scroll == null:
+		return
+	var e := float(R.PANEL_EDGE)
+	_sheet.offset_top = scroll.offset_top - e
+	_sheet.offset_bottom = scroll.offset_bottom + e
+	_sheet.modulate.a = scroll.modulate.a
+
+
+## The grid's frame or a page's (Royale): the scroll inside the sheet's edge, the board padded inside it; the tab bar and
+## the kills pill only with the grid.
+func _royale_frame(page: bool) -> void:
+	var p := page or hidden_only
+	var e := float(R.PANEL_EDGE)
+	var pad := RY_PAGE_PAD if page else RY_GRID_PAD
+	scroll.offset_top = (RY_PAGE_TOP if p else RY_SHEET_TOP) + e + W.safe_top()
+	scroll.offset_bottom = -(_royale_foot(p) + e)
+	margin.add_theme_constant_override("margin_left", int(RY_SIDE + e + pad.x))
+	margin.add_theme_constant_override("margin_right", int(RY_SIDE + e + pad.x))
+	margin.add_theme_constant_override("margin_top", int(pad.y))
+	margin.add_theme_constant_override("margin_bottom", int(pad.y))
+	scroll.scroll_vertical = 0
+	_follow_scroll()
+
+
+## The docked tabs' words (Royale): the open one navy Ultra with its count, the rest cream Rubik 700 with the mock's 2 px
+## navy drop, every tab sharing the sheet's width; the open words shrink when the five would not fit (the Ultra minimum
+## rule: Rubik 700 under 28 px).
+func _royale_tab_type() -> void:
+	var room := (get_viewport_rect().size.x if is_inside_tree() else 1080.0) - 2.0 * RY_SIDE
+	var on_px := RY_TAB_ON_PX
+	while true:
+		for k in _tabs._tabs.size():
+			var tab: WTap = _tabs._tabs[k]
+			tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var lab: WText = tab.get_child(0)
+			var on := k == _tab
+			var px := on_px if on else RY_TAB_PX
+			lab.font = R.display() if on and px >= R.ULTRA_MIN else R.body(R.LABEL_WEIGHT)
+			lab.font_size = px
+			lab.line_height = RY_TAB_LH
+			lab.color = R.NAVY if on else R.CREAM
+			R.no_edge(lab)
+			if not on:
+				lab.shadow = 2
+				lab.shadow_color = R.NAVY
+				lab.shadow_straight = true
+		if _tabs.get_combined_minimum_size().x <= room or on_px <= RY_TAB_PX:
+			break
+		on_px -= 2
+
+
+## The found total's words on its plate (Royale), the plate kept in the header's top-right corner at its new width.
+func _set_found(t: String) -> void:
+	_count.runs = [[t, R.WHITE, R.display()]]
+	if header.right != _count_box:
+		header.set_right(_count_box)
+	var ms := _count_box.get_combined_minimum_size()
+	_count_box.offset_left = -ms.x
+	_count_box.offset_bottom = _count_box.offset_top + ms.y
+
+
+func _show_grid_royale() -> void:
+	_page = null
+	var found := 0
+	var all := 0
+	for t in TABS.size():
+		var n := _tally(t)
+		found += n.x
+		all += n.y
+		_tabs.set_label(t, ("%s %d/%d" % [str(TABS[t]).to_upper(), n.x, n.y]) if t == _tab else str(TABS[t]).to_upper())
+	_tabs.select(_tab, false)
+	_royale_tab_type()
+	_set_found(("%d HIDDEN" % hidden_items().size()) if hidden_only else ("%d / %d FOUND" % [found, all]))
+	set_title("Hidden" if hidden_only else "Collection")
+	_tabs.visible = not hidden_only
+	_foot_box.visible = not hidden_only
+	_royale_frame(false)
+	clear_content()
+	var grid := GridContainer.new()
+	grid.name = _next_name("Grid")
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", RY_TILE_GAP)
+	grid.add_theme_constant_override("v_separation", RY_TILE_VGAP)
+	grid.mouse_filter = Control.MOUSE_FILTER_PASS
+	content.add_child(grid)
+	for def in (hidden_items() if hidden_only else _items(_tab)):
+		var tile := _tile_royale(def)
+		tile.name = "Tile_%d" % grid.get_child_count()
+		grid.add_child(tile)
+	scroll.set_deferred("scroll_vertical", _grid_scroll)
+
+
+## A fresh number for a Royale piece's name.
+func _next_name(base: String) -> String:
+	_serial += 1
+	return "%s_%d" % [base, _serial]
+
+
+## One tile (Royale): a slate tile, the item's frame and its name; still to find, the frame's silhouette and what it takes
+## (a gold bar and its count under it, at the tile's foot, when the quest counts). A tap does what it does under Wanted.
+func _tile_royale(def: ContentDef) -> WTap:
+	var locked := _locked(def)
+	var found := _found(def) and not locked
+	var t := WTap.new()
+	var e := float(R.PANEL_EDGE)
+	var b := W.box(W.PAPER, R.PANEL_EDGE, R.PANEL_BASE).pad(RY_TILE_PAD.x + e, RY_TILE_PAD.y + e, RY_TILE_PAD.x + e, RY_TILE_PAD.y + e)
+	t.box = b
+	t.box_down = b.pressed()
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.add_child(v)
+	var plate := WPlate.new().for_def(Registry.art_of(def), RY_FRAME, not found, 1)
+	plate.name = "Frame"
+	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	if def is EnemyDef:
+		mark_danger(plate, def as EnemyDef, roundf(RY_FRAME * 0.4))
+	if not found:
+		silhouette(plate)
+	v.add_child(plate)
+	# the frame's base (8 px straight down) and the mock's 6 px over the name
+	var gap := Control.new()
+	gap.custom_minimum_size.y = float(R.PANEL_BASE) - 4.0
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(gap)
+	var n: WText
+	if found:
+		n = W.text(def.display_name, R.body(R.LABEL_WEIGHT), RY_NAME_PX, R.WHITE, HORIZONTAL_ALIGNMENT_CENTER, RY_NAME_PX * 1.2, true)
+	else:
+		var line := _still_to_find(def) if locked else ("Not met yet" if def is EnemyDef else "Not found yet")
+		n = W.serif_text(line, RY_QUEST_PX, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, RY_QUEST_PX * 1.25, true)
+	n.name = "Name"
+	v.add_child(n)
+	if locked:
+		var q := Registry.quest_for(W.content_kind(def), def.id)
+		var p := QuestTracker.progress(q) if q else Vector2i.ZERO
+		if p.y > 0:
+			# the bar at the tile's foot (the mock's margin-top: auto)
+			var fill := Control.new()
+			fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(fill)
+			var foot := VBoxContainer.new()
+			foot.add_theme_constant_override("separation", 4)
+			foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var bar := WBar.make(clampf(float(p.x) / float(p.y), 0.0, 1.0), W.BRASS, RY_BAR_H, 2, 0)
+			bar.name = "Bar"
+			foot.add_child(bar)
+			var count := W.text("%s / %s" % [W.num(mini(p.x, p.y)), W.num(p.y)], R.body(R.LABEL_WEIGHT), RY_COUNT_PX, R.SECONDARY,
+				HORIZONTAL_ALIGNMENT_CENTER, RY_COUNT_PX * 1.2)
+			count.name = "Count"
+			foot.add_child(count)
+			v.add_child(foot)
+	t.pressed.connect(func():
+		if locked:
+			_grid_scroll = scroll.scroll_vertical
+			_open_locked(def)
+			return
+		if not found:
+			Audio.play("ui_locked")
+			return
+		_grid_scroll = scroll.scroll_vertical
+		_open_page(def))
+	return t
+
+
+## An unfound item's frame under Royale (the mock's dark silhouette): the icon's shape in near-black over the locked grey
+## frame, drawn behind the plate's own top (its badge and plaque stay over it); the plate keeps no icon of its own.
+static func silhouette(plate: WPlate) -> void:
+	var tex := plate.tex
+	if tex == null:
+		return
+	plate.tex = null
+	var s := Control.new()
+	s.name = "Silhouette"
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	s.show_behind_parent = true
+	s.size = Vector2(plate.side, plate.side)
+	s.set_meta("tex", tex)
+	s.draw.connect(func() -> void:
+		var side := plate.side
+		var ts := tex.get_size()
+		var k := side * R.FRAME_ICON / maxf(maxf(ts.x, ts.y), 1.0)
+		var sz := ts * k
+		var at := (Vector2(side, side) - sz) * 0.5 - Vector2(0.0, roundf(side * 0.019))
+		s.draw_texture_rect(tex, Rect2(at, sz), false, RY_SILHOUETTE))
+	plate.add_child(s)
+
+
+## The header card and the evolution card (Royale): a slate card on the sheet, `pad` inside its edge.
+static func _card_box(pad: Vector2) -> HardBox:
+	var e := float(R.PANEL_EDGE)
+	return W.box(W.PAPER, R.PANEL_EDGE, R.PANEL_BASE).pad(pad.x + e, pad.y + e, pad.x + e, pad.y + e)
+
+
+## The page's top card (Royale; the mock 10_Item_detail): the 200 px frame, the kind and its levels, what it does in full,
+## the flavour, the tally with its number in white.
+func _hero_card_royale(def: ContentDef, locked: bool = false) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "Card"
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	p.add_theme_stylebox_override("panel", _card_box(RY_CARD_PAD))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", int(RY_CARD_PAD.x))
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	var plate := WPlate.new().for_def(def if locked else Registry.art_of(def), RY_PAGE_FRAME, locked, 1)
+	plate.name = "Frame"
+	plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var danger: Array = []
+	if def is EnemyDef:
+		danger = mark_danger(plate, def as EnemyDef, roundf(RY_PAGE_FRAME * 104.0 / 272.0))
+	if locked:
+		silhouette(plate)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	col.add_child(plate)
+	# room for the frame's base under it
+	var base := Control.new()
+	base.custom_minimum_size.y = float(R.PANEL_BASE)
+	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(base)
+	h.add_child(col)
+	var v := VBoxContainer.new()
+	v.name = "Words"
+	v.add_theme_constant_override("separation", 8)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(v)
+	if locked:
+		return p
+	# the kind in the secondary blue (a dangerous creature's in its mark's colour)
+	var word_c: Color = W.INK_SOFT
+	if not danger.is_empty():
+		word_c = W.BRASS_DARK if danger[0] == "gear" else danger[1]
+	v.add_child(W.label(_kind_line(def), RY_KIND_PX, word_c))
+	var fx := W.serif_text(_full_text(def), RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
+	fx.name = "Effect"
+	fx.color = R.WHITE
+	v.add_child(fx)
+	if def.flavour != "" and not (def is EnemyDef and (def as EnemyDef).doc != ""):
+		var fl := W.serif_text(def.flavour, RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		fl.name = "Flavour"
+		v.add_child(fl)
+	var tally := _tally_royale(def)
+	if tally:
+		v.add_child(tally)
+	return p
+
+
+## The tally under Royale: today's words, the number bold white in the secondary line ("751 kills with it, all time").
+func _tally_royale(def: ContentDef) -> WText:
+	var line := _tally_line(def)
+	if line == "":
+		return null
+	var t := W.text("", R.body(R.BODY_WEIGHT), RY_FLAVOUR_PX, R.SECONDARY, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	t.name = "Tally"
+	var n := -1
+	if def is WeaponDef:
+		n = Save.keyed_total("kills_with_weapon", def.id)
+	elif def is EnemyDef:
+		n = Save.keyed_total("kills_of_enemy", def.id)
+	var num := W.num(n)
+	var at := line.find(num) if n > 0 or def is EnemyDef else -1
+	if at < 0:
+		t.text = line
+		return t
+	var runs: Array = []
+	if at > 0:
+		runs.append([line.substr(0, at), null])
+	runs.append([num, R.WHITE, R.body(R.LABEL_WEIGHT)])
+	runs.append([line.substr(at + num.length()), null])
+	t.runs = runs
+	return t
+
+
+## A labelled part of the page under Royale: RY_SECTION_GAP under the one before, the label, the body.
+func _section_royale(title: String, body: Control) -> void:
+	var g := Control.new()
+	g.custom_minimum_size.y = RY_SECTION_GAP
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(g)
+	var v := VBoxContainer.new()
+	v.name = _next_name("Section")
+	v.add_theme_constant_override("separation", 14)
+	v.mouse_filter = Control.MOUSE_FILTER_PASS
+	v.add_child(W.label(title, RY_KIND_PX, W.INK_SOFT))
+	v.add_child(body)
+	content.add_child(v)
+
+
+## A level's cell under Royale: a solid cell (W.cell_box; `fill` its own colour when given: a passive item's rung), the
+## level in gold Ultra, what it adds in white Rubik.
+func _cell_royale(n: String, text: String, fill: Color = Color(0, 0, 0, 0)) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = _next_name("Cell")
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var b := W.cell_box(Vector2(14, 12))
+	if fill.a > 0.0:
+		b.fill = fill
+	p.add_theme_stylebox_override("panel", b)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	if n != "":
+		var num := W.slab_text(n, RY_CELL_NUM_PX, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, float(RY_CELL_NUM_PX))
+		num.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		h.add_child(num)
+	var t := W.serif_text(text, RY_CELL_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_CELL_PX * 1.3, true)
+	t.color = R.WHITE
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# the first line beside the number (the mock's baseline row), however many lines follow
+	t.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if n != "" else Control.SIZE_SHRINK_CENTER
+	h.add_child(t)
+	return p
+
+
+## A passive item's rung under Royale: the solid cell washed with the rung's rarity (its frame's base colour), the
+## Evolved rung the cell darkened towards the evolved face's black.
+static func rung_tint(def: PassiveDef, level: int) -> Color:
+	if W.is_evolved_rung(def, level):
+		return R.CELL.lerp(R.RARITY["evolved"]["base"], 0.6)
+	var rung := W.rung_of(def, level)
+	var r: Dictionary = R.RARITY.get(rung, R.RARITY["common"])
+	return R.CELL.lerp(r["base"], 0.3)
+
+
+## A weapon's mutations under Royale: three framed columns of one width to a row (a short last row centred, as today).
+func _paths_royale(muts: Array) -> VBoxContainer:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", int(RY_COL_GAP))
+	col.mouse_filter = Control.MOUSE_FILTER_PASS
+	var w := (get_viewport_rect().size.x if is_inside_tree() else 1080.0) - 2.0 * (RY_SIDE + float(R.PANEL_EDGE) + RY_PAGE_PAD.x)
+	var cell_w := floorf((w - 2.0 * RY_COL_GAP) / 3.0)
+	var row: HBoxContainer = null
+	for i in muts.size():
+		if i % 3 == 0:
+			row = HBoxContainer.new()
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			row.add_theme_constant_override("separation", int(RY_COL_GAP))
+			row.mouse_filter = Control.MOUSE_FILTER_PASS
+			col.add_child(row)
+		row.add_child(_path_cell_royale(muts[i], cell_w))
+	return col
+
+
+## One mutation's column (Royale): a solid cell, the mutation's frame in the mutations' purple, whose own it is for a
+## hero's, its name, everything it does.
+func _path_cell_royale(m: MutationDef, cell_w: float) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = _next_name("Mutation")
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	p.custom_minimum_size.x = cell_w
+	p.add_theme_stylebox_override("panel", W.cell_box(Vector2(16, 16)))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(v)
+	var plate := WPlate.new().for_def(m, RY_COL_FRAME)
+	# the mutations' own teal (pass 123, Garry: "too much like Epic Rarity Items"), with no glow in a column
+	plate.fill = R.MUTATION_FILL
+	plate.glow_reach = 0.0
+	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(plate)
+	var base := Control.new()
+	base.custom_minimum_size.y = float(R.PANEL_BASE) - 4.0
+	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(base)
+	var only := hero_only_text(m)
+	if only != "":
+		var tag := W.label(only, 18, W.TURQUOISE)
+		tag.align = HORIZONTAL_ALIGNMENT_CENTER
+		tag.wrap = true
+		v.add_child(tag)
+	var n := W.slab_text(m.display_name, RY_COL_NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_CENTER, RY_COL_NAME_PX * 1.1)
+	n.wrap = true
+	v.add_child(n)
+	var t := W.serif_text(m.text.strip_edges(), RY_COL_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_CENTER, RY_COL_PX * 1.3, true)
+	t.color = R.WHITE
+	v.add_child(t)
+	return p
+
+
+## The evolution card (Royale): found, its evolved frame and what it does; not yet, the frame's silhouette and today's
+## line, the card at 75 % (a passive's says what it does either way).
+func _evolution_royale(evo: ContentDef) -> PanelContainer:
+	var found := false
+	if evo is WeaponDef:
+		found = Save.keyed_total("kills_with_weapon", evo.id) > 0 or Save.seen("weapon", evo.id)
+	elif evo is PassiveDef:
+		found = Save.seen("passive", evo.id)
+	var p := PanelContainer.new()
+	p.name = "Evolution"
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	p.add_theme_stylebox_override("panel", _card_box(RY_CARD_PAD))
+	p.modulate.a = 1.0 if found else 0.75
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", int(RY_CARD_PAD.x))
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var plate := WPlate.new().for_def(evo, RY_EVO_FRAME, not found)
+	plate.name = "Frame"
+	if not found:
+		silhouette(plate)
+	col.add_child(plate)
+	var base := Control.new()
+	base.custom_minimum_size.y = float(R.PANEL_BASE)
+	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(base)
+	h.add_child(col)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(v)
+	v.add_child(W.label("Evolution", RY_KIND_PX, W.BRASS))
+	var n := W.slab_text(evo.display_name, RY_EVO_NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(RY_EVO_NAME_PX))
+	n.wrap = true
+	v.add_child(n)
+	var line := "Not yet found. Open a chest with every mutation taken and the weapon at its top level."
+	if found or evo is PassiveDef:
+		line = _full_text(evo)
+	var t := W.serif_text(line, RY_EVO_PX, W.INK if found or evo is PassiveDef else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EVO_PX * 1.3, true)
+	if found or evo is PassiveDef:
+		t.color = R.WHITE
+	v.add_child(t)
+	return p
+
+
+## A locked item's page under Royale: the header card in the same shell, its frame the silhouette, what the quest asks
+## with its picture, the bar and its count, the stage that can do it; then WHAT IT DOES in a cell.
+func _open_locked_royale(def: ContentDef) -> void:
+	var q := Registry.quest_for(W.content_kind(def), def.id)
+	var p := _hero_card_royale(def, true)
+	var v: VBoxContainer = p.find_child("Words", true, false)
+	v.add_child(W.label("Locked · " + _kind_line(def), RY_KIND_PX, W.ROCK))
+	var words := W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
+	words.name = "Quest"
+	words.color = R.WHITE
+	v.add_child(WPoster.with_picture(q, words, 44.0))
+	if q:
+		var pr := QuestTracker.progress(q)
+		if pr.y > 0:
+			var row := HBoxContainer.new()
+			row.name = "Progress"
+			row.add_theme_constant_override("separation", 14)
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var bar := WBar.make(clampf(float(pr.x) / float(pr.y), 0.0, 1.0), W.BRASS, 20.0, 3, 0)
+			bar.name = "Bar"
+			bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(bar)
+			var count := W.text("%s / %s" % [W.num(mini(pr.x, pr.y)), W.num(pr.y)], R.body(R.LABEL_WEIGHT), RY_FLAVOUR_PX, R.SECONDARY,
+				HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+			count.name = "Count"
+			count.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(count)
+			v.add_child(row)
+		var st := QuestTracker.stage_hint(q)
+		var where := "Any stage will do"
+		if st == 1:
+			where = "Stage 1 can do it"
+		elif st > 1:
+			where = "Takes stage %d: keep going at the portal%s" % [st, "s" if st > 2 else ""]
+		v.add_child(W.serif_text(where + ". Once done, it joins every run's offers.", RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	content.add_child(p)
+	_section_royale("What it does", _cell_royale("", _full_text(def)))
 
 
 # --- what is in each tab ---------------------------------------------------------------------------------------------
@@ -189,11 +834,14 @@ func _tally(tab: int) -> Vector2i:
 # --- the grid --------------------------------------------------------------------------------------------------------
 
 func _show_grid() -> void:
+	if W.royale() and _sheet:
+		_show_grid_royale()
+		return
 	_page = null
 	set_title("Hidden" if hidden_only else "Collection")
-	header.set_right(_count)
+	header.set_right(_count_box)
 	_tabs.visible = not hidden_only
-	_foot.visible = not hidden_only
+	_foot_box.visible = not hidden_only
 	set_board(PAGE_TOP if hidden_only else GRID_TOP, 36.0)
 	clear_content()
 	var found := 0
@@ -282,8 +930,13 @@ func _open_locked(def: ContentDef) -> void:
 	_page = def
 	set_title(def.display_name)
 	_tabs.visible = false
-	_foot.visible = false
+	_foot_box.visible = false
 	header.set_right(Control.new())
+	if W.royale() and _sheet:
+		_royale_frame(true)
+		clear_content()
+		_open_locked_royale(def)
+		return
 	set_board(PAGE_TOP, PAGE_SIDE)
 	clear_content()
 	var q := Registry.quest_for(W.content_kind(def), def.id)
@@ -346,9 +999,12 @@ func _open_page(def: ContentDef) -> void:
 	_page = def
 	set_title(def.display_name)
 	_tabs.visible = false
-	_foot.visible = false
+	_foot_box.visible = false
 	header.set_right(Control.new())
-	set_board(PAGE_TOP, PAGE_SIDE)
+	if W.royale() and _sheet:
+		_royale_frame(true)
+	else:
+		set_board(PAGE_TOP, PAGE_SIDE)
 	clear_content()
 	content.add_child(_hero_card(def))
 	if def is WeaponDef:
@@ -371,6 +1027,8 @@ func _open_page(def: ContentDef) -> void:
 
 ## The page's top card: the 272 px plate, the kind and its levels, what it does in full, the flavour, one tally.
 func _hero_card(def: ContentDef) -> PanelContainer:
+	if W.royale() and _sheet:
+		return _hero_card_royale(def)
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
 	p.add_theme_stylebox_override("panel", W.box(W.PAPER, 5, 8).pad(35, 35, 35, 35))
@@ -504,6 +1162,9 @@ func _tally_line(def: ContentDef) -> String:
 
 ## A labelled part of the page, `gap` under the one before.
 func _section(title: String, body: Control, gap: float) -> void:
+	if W.royale() and _sheet:
+		_section_royale(title, body)
+		return
 	var g := Control.new()
 	g.custom_minimum_size.y = gap
 	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -537,6 +1198,10 @@ func _level_grid(def: ContentDef) -> GridContainer:
 			continue
 		# pass 95 (lane PASSIVES): a passive item's cell names its rung and takes a wash of the rung's plate colour
 		if def is PassiveDef and (def as PassiveDef).on_ladder():
+			if W.royale() and _sheet:
+				# pass 123: the solid cell washed with the rung's rarity
+				grid.add_child(_cell_royale(str(lv), "%s · %s" % [TextGen.rung_name(def as PassiveDef, lv), text], rung_tint(def as PassiveDef, lv)))
+				continue
 			grid.add_child(_cell(str(lv), "%s · %s" % [TextGen.rung_name(def as PassiveDef, lv), text], rung_wash(def as PassiveDef, lv)))
 			continue
 		grid.add_child(_cell(str(lv), text))
@@ -551,6 +1216,8 @@ static func rung_wash(def: PassiveDef, level: int) -> Color:
 
 
 func _cell(n: String, text: String, fill: Color = W.PAPER) -> PanelContainer:
+	if W.royale() and _sheet:
+		return _cell_royale(n, text)
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -598,6 +1265,8 @@ static func hero_only_text(m: MutationDef) -> String:
 ## last row centred under the others (pass 46: a lone fourth sits in the middle, a fifth and sixth around it). A hero's
 ## own one says whose it is.
 func _paths(muts: Array) -> VBoxContainer:
+	if W.royale() and _sheet:
+		return _paths_royale(muts)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", int(CELL_GAP))
 	col.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -650,6 +1319,8 @@ func _first_sentence(t: String) -> String:
 ## The evolution: found, its plate and what it does; not yet, an aged card at 75 % with its shadow (a passive's says
 ## what it does either way).
 func _evolution(evo: ContentDef) -> PanelContainer:
+	if W.royale() and _sheet:
+		return _evolution_royale(evo)
 	var found := false
 	if evo is WeaponDef:
 		found = Save.keyed_total("kills_with_weapon", evo.id) > 0 or Save.seen("weapon", evo.id)

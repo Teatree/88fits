@@ -3,7 +3,7 @@
   "name": "Study",
   "flavour": "Learn faster, or mend slower.",
   "order": 6,
-  "ranks": 6,
+  "ranks": 7,
   "currency_type": "gold",
   "cost": [
     400,
@@ -11,12 +11,14 @@
     3600,
     6400,
     10000,
-    14400
+    14400,
+    19600
   ],
   "forms": [
     {
       "name": "Field Notes",
-      "text": "+10% XP a rank.",
+      "text": "+10% XP a rank, +15% at rank 7.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "xp_gain",
@@ -28,7 +30,8 @@
     },
     {
       "name": "Poultice",
-      "text": "+0.3 regen a rank (it still waits after a hit).",
+      "text": "+0.3 regen a rank, +0.45 at rank 7 (it still waits after a hit).",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "regen",

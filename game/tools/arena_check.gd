@@ -249,9 +249,11 @@ func _dummy_checks() -> void:
 	if ids.size() != want or int(_game.dummies_standing()) != want:
 		_fail("%d dummies on the field, the menu says %d" % [ids.size(), want])
 	var hero: Vector3 = _game.player.global_position
-	for i: int in ids:
-		if em.pos[i].z > hero.z - 6.0:
-			_fail("a dummy stands less than 7 m north of the hero")
+	# where each was stood, not where it is now: the hero's own weapon may have moved it by this frame (Astro's Gravity Gun
+	# pulls the field towards him, and the check plays whoever the PC save last played)
+	for rec: Dictionary in _game.get("_dummies"):
+		if str(rec.get("role", "")) == "field" and (rec["at"] as Vector3).z > hero.z - 6.0:
+			_fail("a dummy was stood less than 7 m north of the hero: %s, the hero %s" % [str(rec["at"]), str(hero)])
 			break
 	_big_dummy_checks(em, ids)
 	_game.arena_dummies(10, 0)

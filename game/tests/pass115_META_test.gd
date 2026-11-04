@@ -13,7 +13,7 @@ const HS := preload("res://ui/HomesteadScreen.gd")
 const SettingsScreenScript := preload("res://ui/SettingsScreen.gd")
 
 ## Nerve's new prices, rank by rank (rank k = k x k x 150, the board's pass 110 ladder).
-const NERVE_COST := [150, 600, 1350, 2400, 3750, 5400]
+const NERVE_COST := [150, 600, 1350, 2400, 3750, 5400, 7350]
 ## The board top to bottom: by the first rank's price, `order` the same.
 const BOARD := ["spite", "nerve", "fortune", "choice", "drive", "study", "stride", "grit"]
 
@@ -177,8 +177,8 @@ func test_the_phoenix_feather_keeps_its_half_health() -> void:
 
 func test_nerve_costs_a_k_squared_ladder_from_150() -> void:
 	var nerve := _nerve()
-	assert_int(nerve.cost.size()).is_equal(6)
-	for k in range(6):
+	assert_int(nerve.cost.size()).is_equal(NERVE_COST.size())
+	for k in range(NERVE_COST.size()):
 		assert_int(int(nerve.cost[k])).is_equal(int(NERVE_COST[k]))
 		assert_int(int(nerve.cost[k])).is_equal((k + 1) * (k + 1) * 150)
 	# under every talent but the Stakes (the gold-and-challenge one)

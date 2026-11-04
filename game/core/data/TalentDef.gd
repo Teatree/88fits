@@ -55,6 +55,30 @@ func max_rank() -> int:
 	return ranks
 
 
+## Pass 123 (Garry: "Add 1 more upgrade slot to all. This should be added on top, so the extra slot, higher cost and higher
+## increase"): the board's last rank, in whichever form it is bought, gives that form's step x its `top_mult` (the form's
+## JSON; 1 without one). Save.talent_top says whether a form holds it.
+func top_mult(form: int) -> float:
+	if form < 0 or form >= forms.size():
+		return 1.0
+	return float((forms[form] as Dictionary).get("top_mult", 1.0))
+
+
+## The step of one rank of `form`, the top rank's when `top`.
+func step_effects(form: int, top: bool = false) -> Array:
+	if form < 0 or form >= forms.size():
+		return []
+	var base: Array = (forms[form] as Dictionary).get("effects", [])
+	var k := top_mult(form) if top else 1.0
+	if is_equal_approx(k, 1.0):
+		return base
+	var out: Array = []
+	for e in base:
+		if e is Effect:
+			out.append(Effect.make(e.stat, e.op, e.value * k, e.target))
+	return out
+
+
 ## The form's per-rank lists (pass 46), empty when every rank is the same step.
 func _rank_lists(form: int) -> Array:
 	var rl = (forms[form] as Dictionary).get("rank_effects", [])
@@ -62,8 +86,8 @@ func _rank_lists(form: int) -> Array:
 
 
 ## The effects of `form` at `rank` ranks: its rank lists 0..rank-1 together when it has them, else the form's own effects
-## repeated, so rank 3 is three times rank 1.
-func effects_for(form: int, rank: int) -> Array:
+## repeated, so rank 3 is three times rank 1; `top` (pass 123, Save.talent_top): the last of them is the board's top rank.
+func effects_for(form: int, rank: int, top: bool = false) -> Array:
 	var out: Array = []
 	if form < 0 or form >= forms.size() or rank <= 0:
 		return out
@@ -75,20 +99,21 @@ func effects_for(form: int, rank: int) -> Array:
 		return out
 	var base: Array = (forms[form] as Dictionary).get("effects", [])
 	for k in range(rank):
-		out.append_array(base)
+		out.append_array(step_effects(form) if not (top and k == rank - 1) else step_effects(form, true))
 	return out
 
 
 ## The ranks summed for reading (pass 45): one Effect per stat at the ranks' total ("+30% max HP" at rank 3). Text
 ## only; the sheet still folds effects_for.
-func summed_effects(form: int, rank: int) -> Array:
+func summed_effects(form: int, rank: int, top: bool = false) -> Array:
 	var out: Array = []
 	if form < 0 or form >= forms.size() or rank <= 0:
 		return out
 	if _rank_lists(form).is_empty():
+		var n := float(rank) + (top_mult(form) - 1.0 if top else 0.0)
 		for e in (forms[form] as Dictionary).get("effects", []):
 			if e is Effect:
-				out.append(Effect.make(e.stat, e.op, e.value * rank, e.target))
+				out.append(Effect.make(e.stat, e.op, e.value * n, e.target))
 		return out
 	# rank lists: one Effect per stat, op and target, in the order they first appear; a "set" keeps the last value
 	var at: Dictionary = {}

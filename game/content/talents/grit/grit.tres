@@ -22,20 +22,22 @@ target = "player"
 [resource]
 script = ExtResource("5_cwuin")
 order = 8
-ranks = 6
-cost = [450.0, 1800.0, 4050.0, 7200.0, 11250.0, 16200.0]
+ranks = 7
+cost = [450.0, 1800.0, 4050.0, 7200.0, 11250.0, 16200.0, 22050.0]
 forms = [{
 "effects": [SubResource("Resource_txh88")],
 "icon": ExtResource("2_pkr3m"),
 "icon_file": "grit_0_icon.png",
 "name": "Padding",
-"text": "+10% max HP a rank."
+"text": "+10% max HP a rank, +15% at rank 7.",
+"top_mult": 1.5
 }, {
 "effects": [SubResource("Resource_pkr3m")],
 "icon": ExtResource("3_wqxv2"),
 "icon_file": "grit_1_icon.png",
 "name": "Plate",
-"text": "+6% damage reduction a rank: every hit lands lighter."
+"text": "+6% damage reduction a rank, +9% at rank 7: every hit lands lighter.",
+"top_mult": 1.5
 }]
 id = "grit"
 display_name = "Grit"

@@ -1,0 +1,128 @@
+{
+ "_doc": "Pass 123 (lane BACKDROP): the Royale menu backdrop's layers (game/ui/wanted/RoyaleBackdrop.gd), written by tools/gen_royale_backdrop.py --manifest. Canvas px of the 1080 x 2400 plate. props: the title preset's paintings where the capture projected them (base = the foot's middle, height_px = the picture's square). grade / sun / motes: shader parameters laid over the shaders' defaults.",
+ "plate": "res://art/ui/royale/backdrop_plate.jpg",
+ "sky_mask": "res://art/ui/royale/backdrop_sky.png",
+ "tumbleweed": "res://art/ui/royale/tumbleweed.png",
+ "canvas": [
+  1080,
+  2400
+ ],
+ "horizon_y": 1040.0,
+ "feet_y": 1370.0,
+ "hero_px": 300.0,
+ "disc_center": [
+  540.0,
+  1400.0
+ ],
+ "sun_center": [
+  429.0,
+  789.0
+ ],
+ "sun_radius": 117.0,
+ "tumble_lane": [
+  1290.0,
+  1335.0
+ ],
+ "preset": "Saguaro stand",
+ "props": [
+  {
+   "id": "joshua_tree",
+   "look": "joshua_tree_b",
+   "texture": "res://art/sprites/props/joshua_tree_b.png",
+   "base": [
+    200.5,
+    1197.2
+   ],
+   "height_px": 334.6,
+   "flip": false,
+   "sway": 0.02,
+   "shadow_a": 0.48,
+   "depth_m": 19.01
+  },
+  {
+   "id": "saguaro_big",
+   "look": "saguaro_big",
+   "texture": "res://art/sprites/props/saguaro_big.png",
+   "base": [
+    890.3,
+    1215.8
+   ],
+   "height_px": 396.3,
+   "flip": false,
+   "sway": 0.02,
+   "shadow_a": 0.48,
+   "depth_m": 18.43
+  },
+  {
+   "id": "rock_small",
+   "look": "rock_small",
+   "texture": "res://art/sprites/props/rock_small.png",
+   "base": [
+    382.7,
+    1259.6
+   ],
+   "height_px": 77.4,
+   "flip": false,
+   "sway": 0.0,
+   "shadow_a": 0.55,
+   "depth_m": 15.24
+  },
+  {
+   "id": "ocotillo",
+   "look": "ocotillo_b",
+   "texture": "res://art/sprites/props/ocotillo_b.png",
+   "base": [
+    880.5,
+    1257.5
+   ],
+   "height_px": 217.9,
+   "flip": false,
+   "sway": 0.04,
+   "shadow_a": 0.4,
+   "depth_m": 16.25
+  },
+  {
+   "id": "dead_shrub",
+   "look": "dead_shrub_b",
+   "texture": "res://art/sprites/props/dead_shrub_b.png",
+   "base": [
+    670.5,
+    1266.6
+   ],
+   "height_px": 99.6,
+   "flip": false,
+   "sway": 0.03,
+   "shadow_a": 0.4,
+   "depth_m": 15.55
+  }
+ ],
+ "grade": {},
+ "shadow": {
+  "color": "#1a0c24",
+  "alpha": 0.5,
+  "length": 0.62,
+  "width": 0.34,
+  "flat": 0.42
+ },
+ "sun": {},
+ "motes": {
+  "rect": [
+   0,
+   760,
+   1080,
+   760
+  ]
+ },
+ "source": {
+  "capture": "game/tools/_p123_BACKDROP_ref.gd horizon=1040.0 feet=1370.0 hero_px=300.0",
+  "picks": {
+   "plate": "plate_evening_guide_s62301",
+   "tumbleweed": "tumble_c3"
+  }
+ },
+ "scene_tint": [
+  0.86,
+  0.82,
+  0.86
+ ]
+}

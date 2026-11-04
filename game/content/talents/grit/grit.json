@@ -3,7 +3,7 @@
   "name": "Grit",
   "flavour": "Thicker skin, or harder bones.",
   "order": 8,
-  "ranks": 6,
+  "ranks": 7,
   "currency_type": "gold",
   "cost": [
     450,
@@ -11,12 +11,14 @@
     4050,
     7200,
     11250,
-    16200
+    16200,
+    22050
   ],
   "forms": [
     {
       "name": "Padding",
-      "text": "+10% max HP a rank.",
+      "text": "+10% max HP a rank, +15% at rank 7.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "max_hp",
@@ -28,7 +30,8 @@
     },
     {
       "name": "Plate",
-      "text": "+6% damage reduction a rank: every hit lands lighter.",
+      "text": "+6% damage reduction a rank, +9% at rank 7: every hit lands lighter.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "damage_reduction",

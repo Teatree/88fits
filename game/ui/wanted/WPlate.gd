@@ -638,6 +638,9 @@ func frame_rarity() -> String:
 	# for_def's flag alone (review fix 1): W.EVOLVED_FILL is the ink every creature plate wears (W.KIND["enemy"])
 	if _evolved:
 		return "evolved"
+	# pass 123: a mutation's own colour, never a rarity's (W.KIND["mutation"], or a screen's R.MUTATION_FILL)
+	if fill.is_equal_approx(W.PLUM) or fill.is_equal_approx(R.MUTATION_FILL):
+		return "mutation"
 	for k: String in FRAME_RARITIES:
 		if fill.is_equal_approx(W.RARITY_PLATE[k]):
 			return k
@@ -668,6 +671,10 @@ func frame_look() -> Dictionary:
 			out["glow_px"] = R.FRAME_GLOW_EVOLVED
 		"custom":
 			t = derive_frame(fill)
+		"mutation":
+			t = R.MUTATION
+			out["glow"] = t["glow"]
+			out["glow_px"] = R.FRAME_GLOW_EPIC
 		_:
 			t = R.RARITY[r]
 			if r == "legendary":

@@ -20,3 +20,6 @@ gradio_client>=2.5.0
 
 # optional: exe_info.py (the PC build's version and icon check in ship.sh; skipped without it)
 pefile>=2023.2.7
+
+# optional: gen_royale_backdrop.py (cutting the Royale backdrop's props and finding its sun, pass 123)
+opencv-python>=4.5.0

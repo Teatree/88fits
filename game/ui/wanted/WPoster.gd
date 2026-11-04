@@ -65,22 +65,25 @@ func _build() -> void:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_theme_constant_override("separation", int(6 * k))
 	pad.add_child(v)
-	var head := W.text("WANTED", W.slab(W.em(int(48 * k), 0.03)), int(48 * k), W.INK, HORIZONTAL_ALIGNMENT_CENTER, 54.0 * k)
+	# pass 123 (Garry: "The text is blue-white over yellow-white bg, I can't see anything, fix it to be Black. Change all of
+	# the font colours on those elements to be what they were before"): a paper poster keeps its ink and faces under both
+	# themes (W.wanted_*), as he chose: "Keep the in-run Bounty posters as paper Wanted posters"
+	var head := W.wanted_text("WANTED", int(48 * k), W.INK, HORIZONTAL_ALIGNMENT_CENTER, 54.0 * k, W.em(int(48 * k), 0.03))
 	head.name = "Wanted"
 	v.add_child(head)
 	v.add_child(_rule(k))
 	v.add_child(_picture(k))
-	var nm := _fit_text(str(contract.get("name", "")).to_upper(), W.slab(), int(36 * k), int(22 * k), (W_PX - 48.0) * k)
+	var nm := _fit_text(str(contract.get("name", "")).to_upper(), W.wanted_slab(), int(36 * k), int(22 * k), (W_PX - 48.0) * k)
 	nm.name = "Name"
 	v.add_child(nm)
-	var task := W.serif_text(str(contract.get("text", "")), int(27 * k), W.INK_SOFT, 600, false, HORIZONTAL_ALIGNMENT_CENTER, 32.0 * k, true)
+	var task := W.wanted_serif_text(str(contract.get("text", "")), int(27 * k), W.INK_SOFT, 600, false, HORIZONTAL_ALIGNMENT_CENTER, 32.0 * k, true)
 	task.name = "Task"
 	v.add_child(task)
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(gap)
-	var rl := W.label("Reward", int(16 * k), W.INK_SOFT, 0.3)
+	var rl := W.wanted_label("Reward", int(16 * k), W.INK_SOFT, 0.3)
 	rl.align = HORIZONTAL_ALIGNMENT_CENTER
 	rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(rl)
@@ -104,7 +107,7 @@ func _build() -> void:
 		ci.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		ci.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rr.add_child(ci)
-	var amt := W.slab_text(W.num(int(contract.get("reward", 0))), int(52 * k), W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 54.0 * k)
+	var amt := W.wanted_text(W.num(int(contract.get("reward", 0))), int(52 * k), W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 54.0 * k)
 	amt.name = "Amount"
 	amt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	rr.add_child(amt)
@@ -117,6 +120,7 @@ func _build() -> void:
 	add_child(over)
 	var nail := WNail.new()
 	nail.name = "Nail"
+	nail.themed = false
 	nail.size = Vector2(30, 30) * k
 	nail.custom_minimum_size = nail.size
 	nail.position = Vector2(W_PX * 0.5 - 15.0, 6.0) * k
@@ -217,7 +221,9 @@ static func _fit_text(t: String, f: Font, px: int, min_px: int, width: float) ->
 	var fit := px
 	while fit > min_px and f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fit).x > width:
 		fit -= 1
-	return W.text(t, f, fit, W.INK, HORIZONTAL_ALIGNMENT_CENTER, fit * 1.05, true)
+	var w := W.wanted_text(t, fit, W.INK, HORIZONTAL_ALIGNMENT_CENTER, fit * 1.05)
+	w.wrap = true
+	return w
 
 
 # ---------------------------------------------------------------- the paper

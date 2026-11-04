@@ -52,6 +52,7 @@ python tools/make_loading_wallpaper.py [--review-only] [--mock out.png] [--sheet
 python tools/gen_grave.py [--seeds 4] [--force] && python tools/gen_grave.py --pick N   # pass 119: the Undertaker's Shovel's painted headstone -> content/passives/undertakers_shovel/undertakers_shovel_grave.png
 python tools/gen_ghost.py front [--seeds 2] && python tools/gen_ghost.py back --front N [--seeds 4] && python tools/gen_ghost.py --pick-front N --pick-back M [--mirror-back]   # pass 120/121: the Shovel's floating ghost (pass 121: a plain sheet ghost, nothing worn), front by Klein and its back as a Klein edit of it -> undertakers_shovel_ghost_front/back.png
 "$BLENDER" -b --python tools/blender_boss_chests.py [-- export=gila_grande,brander] && python tools/gen_boss_chests.py   # pass 118 (pass 119: the Gila's and Brander's hollow, the Gila's white with lizard eyes; export= writes only those GLBs): the three bosses' chests (art/props/meta/boss_chest_<boss>.glb + renders in tools/dl/bosschest/) and their painted closed/cracked/open frames (Klein over the renders, picked by eye) -> game/art/ui/wanted/bosschest/; captures game/tools/_p118_BOSSCHEST_shots.gd
+python tools/gen_royale_backdrop.py --paint [--seeds 6] [--prompt k] && python tools/gen_royale_backdrop.py --pick <name> && python tools/gen_royale_backdrop.py --manifest   # pass 123: the Royale theme's menu backdrop -> game/art/ui/royale/ (its header has the capture, the guide and the tumbleweed steps; PROPS_KEEP picks the props, a hand-measured sun is kept)
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
 python tools/migrate_timeline.py --map red_canyon [--check | --write]   # pass 84: an old map's swarm / elite / elite_every events and waves[] turned into roster rows (the same converter as the Level Editor's model.js convertLegacy; layout kept, a backup first)
@@ -270,7 +271,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-03, pass 122, version 1.00)
+## Status (2026-11-04, pass 123, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -279,7 +280,7 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~2,623 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+parse check, all gdUnit tests (~3,030 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
 `hell_check.gd` after stage-3 changes. Version in `application/config/version` (1.00). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
@@ -572,7 +573,7 @@ fading out; sprite_billboard_over.gdshader `ghost_fade`); **no legendary item is
 from any source (core/systems/LegendaryHold.gd, map `timeline_data.legendary` {from 270, guarantee_at 0 = off}, per stage
 `stage_list[k].legendary`; the Level Editor's Settings card "Legendary items" and the stage cards).
 Pass 122: **Stage 3 reads**: the Blood Moon's sand lighter (filter strength 0.42, terrain `hell_mul` / `hell_add`, RedCanyon
-HELL_*), barrels with a pale rim light on a hell stage (BarrelField.set_hell, prop_billboard `rim`), **fire tornadoes** (map
+HELL_*), barrels drawn as before (pass 122's pale rim off, `RIM_HELL` 0), **fire tornadoes** (map
 `dust_devils.hell`, TornadoFx `fire`), seven recolour looks played by the stage-3 rows (IMP-A, RG-C, RR-C, HG-E, KN-F, DM-J,
 BD-B, fresh; plus ANT-G, MK-B, BB-F; recolour_strip `--cells`); the Phoenix revive shows the feather (Run.phoenix_item); the
 Explosive Elite's boom is a real blast (Fx.BLAST_ELITE, Game.ELITE_WARN); the **Royale theme**, first checkpoint, behind
@@ -580,6 +581,11 @@ Explosive Elite's boom is a real blast (Fx.BLAST_ELITE, Game.ELITE_WARN); the **
 ui_rays / ui_rainbow_rim, `W.royale()`): the kit, the HUD (`Settings.hud_slot_rarity`), the level-up and the chest; toasts,
 banners, TAP TO GO, the kill counter and the boss bar stay Wanted (`W.wanted_text`, `HardBox.themed`); pictures in
 docs/ui_review/royale_p122/; the weapon/Card rarity tiers are a proposal for Garry (tools/dl/p122/LEAD/rarity_tiers.md).
+Pass 123: **every screen under Royale structurally as Garry's picks** (ui/wanted/WTabBar.gd, RoyaleBackdrop.gd + art/ui/royale/
+by tools/gen_royale_backdrop.py, ui/HeroesScreen.gd, WConfirm.shell, ScreenBase.board_sheet / tab_bar, core/systems/Crumbs.gd:
+red crumbs seen once tapped, save `crumbs`; Wanted still the default, prod held there); **a seventh Upgrade rank** (`ranks` 7, 49 x
+rank 1, TalentDef.top_mult, Save.talent_top; Second Wind past 100% buys untouchable time); the boss barrier 18.9 m; the Gila's Poison
+Rain; a `death_burst` body lies until its blast; the Shaman's green numbers (DamageNumbers.creature_heal). BALANCING 65.
 
 **Heroes** (title order; pass 83: the Drifter is free, Ironwood and Astro gold only at 300, every other one a requirement
 then gold): Drifter (Revolver), Astro (Gravity Gun); Calavera (Guitarra), Ironwood (the Spear =
@@ -627,7 +633,7 @@ until they are filled; a new line or passive item starts available; "locked" is 
 and a knockback, every playable hero a perk and one hero mutation).
 
 **Meta.** The **Upgrade board** (`ui/HomesteadScreen.gd`, still "the Mirror" in code; `content/talents`): eight talents,
-two forms, six ranks; every rank is bought in one form and keeps it (`Save.talent_picks`); Take it all back refunds half.
+two forms, seven ranks (the seventh dearer and stronger, pass 123); every rank is bought in one form and keeps it (`Save.talent_picks`); Take it all back refunds half.
 Gold: every end of a run banks the purse (pass 70: a death too; only quitting the app mid-run loses it); unlocks cost
 2.5x pass 69's, Elites and bosses pay 5x; the Strongbox (`gold_bank`) is hidden, out of play. Unlock quests gate half the
 items; the Collection shows only what was met.

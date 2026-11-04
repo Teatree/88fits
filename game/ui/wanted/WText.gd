@@ -72,6 +72,11 @@ var bold_font: Font:
 		_dirty = true
 		update_minimum_size()
 		queue_redraw()
+## Pass 123: the bold numbers in a colour of their own (alpha 0: the text's), drawn glyph by glyph over the line.
+var bold_color := Color(0, 0, 0, 0):
+	set(v):
+		bold_color = v
+		queue_redraw()
 
 ## A number with its sign and its unit: "+15%", "−20%", "×2", "1.5 s", "4 m", "90°", "3rd", "1,200"; not a digit
 ## glued to a word ("SK2", nor the tail of "v0.39"), and a unit only when no letter follows it ("3 seconds" bolds the 3
@@ -83,6 +88,8 @@ var _para: TextParagraph
 var _lines: Array = []   # for runs: [[TextLine, colour], ...]
 var _dirty := true
 var _shaped_w := -2.0
+var _ranges: Array = []
+var _ranges_of := ""
 
 
 func _init() -> void:
@@ -236,6 +243,8 @@ func _draw() -> void:
 		var pos := Vector2(x, y0 + i * lh + (lh - (asc + des)) * 0.5)
 		var li := i
 		_paint(func(p: Vector2, col: Color, outline: int): _draw_paraline(li, ci, p, col, outline), pos, color)
+		if bold_color.a > 0.0 and bold_numbers and bold_font != null:
+			_paint_numbers(li, ci, pos, asc)
 		if strike or underline:
 			var lx := pos.x
 			var ly := pos.y + (asc * 0.62 if strike else asc + 4.0)
@@ -277,6 +286,42 @@ func _paint(fn: Callable, pos: Vector2, col: Color) -> void:
 	if stroke > 0:
 		fn.call(pos, stroke_color, stroke * 2)
 	fn.call(pos, col, 0)
+
+
+## The numbers of paragraph line `i` over what _paint drew (pass 123, bold_color): the shaped line's glyphs whose characters
+## fall inside a number span, at their own places. Only at a redraw, and only for text that asks for it.
+func _paint_numbers(i: int, ci: RID, pos: Vector2, asc: float) -> void:
+	var ranges := _number_ranges()
+	if ranges.is_empty():
+		return
+	var ts := TextServerManager.get_primary_interface()
+	var x := pos.x
+	var base := pos.y + asc
+	for g: Dictionary in ts.shaped_text_get_glyphs(_para.get_line_rid(i)):
+		var start := int(g["start"])
+		var adv := float(g["advance"]) * int(g["repeat"])
+		for r: Vector2i in ranges:
+			if start >= r.x and start < r.y:
+				var off: Vector2 = g["offset"]
+				for k in int(g["repeat"]):
+					ts.font_draw_glyph(g["font_rid"], ci, int(g["font_size"]),
+						Vector2(x + float(g["advance"]) * k + off.x, base + off.y), int(g["index"]), bold_color)
+				break
+		x += adv
+
+
+## The character ranges of the number spans (start, end), cached per text.
+func _number_ranges() -> Array:
+	if _ranges_of != text:
+		_ranges_of = text
+		_ranges.clear()
+		var at := 0
+		for sp in number_spans(text):
+			var n := str(sp[0]).length()
+			if sp[1]:
+				_ranges.append(Vector2i(at, at + n))
+			at += n
+	return _ranges
 
 
 func _draw_textline(tl: TextLine, ci: RID, p: Vector2, col: Color, outline: int) -> void:

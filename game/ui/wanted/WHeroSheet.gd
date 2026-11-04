@@ -28,6 +28,17 @@
 ## words and how far along it is; pass 113: its still a dark silhouette until the goal is reached). Names: "Looks",
 ## "LookGrid", "Look_<CODE>" (meta "look" and "state": worn, owned, buyable, locked). `look_changed` tells the title to
 ## draw him in the new look.
+## Pass 123 (lane HEROES), under Royale (W.royale(); Wanted is built exactly as before): the Hero details pop-up (the mock
+## 5_Hero_details; Garry: "Hero details drops the milestone row; the trait rule in words only" and "I actually like our
+## detailed view. Make that, but with the new UI style"): today's content in the mock's shell. A slate card R.MODAL_W wide
+## (WConfirm.card_box) over the 80 % dim; at the top his badge round in a navy ring, his name in cream Ultra with DETAILS
+## in the corner, his slogan and the trait as black pills ("TRAIT · LONG ROAD", "+1% crit chance per Level"); SIGNATURE
+## STAT the rule in words (no level 1 / 10 / 20 / 40 row); STATS · A RUN'S START in two columns, his signature stats green,
+## a note under them; HIS ITEMS on their rarity frames with the level-up card's words (the favourite's bonus in Garry's
+## words, his weapon's evolution last); LOOKS as the Heroes screen's tiles; CLOSE slate on the card's foot. A hero not
+## owned keeps today's unknown version in the same style. It scrolls by finger as today. The pieces the Heroes screen
+## (ui/HeroesScreen.gd) shares are static here: trait_lines, trait_note, items_of, royale_item_row, royale_portrait,
+## royale_look_tile, royale_tag, look_state_of, bonus_line.
 extends Control
 
 signal closed
@@ -58,6 +69,45 @@ const MULTS := ["might", "cooldown", "area", "projectile_speed", "duration", "de
 const SLOP := 40.0
 ## The paper fade over the list's foot while more of it is below (so a row cut by the edge reads as "scroll on").
 const FADE_H := 56.0
+## Pass 123 (lane HEROES), Royale: the card's margins on the screen (its 8 px navy base under the foot), the portrait,
+## the name, the slogan, the trait pills, the section labels and the gap above each, the rule's words, a stat row (the
+## mock's 56 px rows, two columns 40 apart, the value in Ultra by Garry's 28 px rule), the note, an item (its frame, name,
+## words and label), the looks a row, and the slate the list's foot fades into (the panel's gradient near its foot).
+const R_TOP := 40.0
+const R_BOTTOM := 44.0
+const R_PORTRAIT := 200.0
+const R_NAME_PX := 56
+const R_SLOGAN_PX := 26
+const R_PILL_PX := 22
+const R_PILL_H := 40.0
+const R_LABEL_PX := 18
+const R_SECTION_GAP := 34.0
+const R_RULE_PX := 26
+const R_STAT_H := 56.0
+const R_STAT_NAME_PX := 24
+const R_STAT_VALUE_PX := 28
+const R_STAT_GAP := 40
+const R_NOTE_PX := 20
+const R_ITEM_FRAME := 112.0
+const R_ITEM_NAME_PX := 38
+const R_ITEM_TEXT_PX := 26
+const R_ITEM_LABEL_PX := 18
+const R_LOOK_COLS := 4
+const R_FADE := Color("212a42")
+## One look's tile (the Heroes screen's LOOKS strip and this sheet's grid; the mock's 200 x 210, taller for a goal's
+## words): its size, the still's height, the badge's side, the name's and the foot's type.
+const LOOK_TILE_R := Vector2(200, 236)
+const LOOK_STILL_R := 128.0
+const LOOK_BADGE_R := 100.0
+const LOOK_NAME_PX := 18
+const LOOK_FOOT_PX := 18
+const LOOK_GOAL_PX := 16
+## The round portrait's navy ring, the gold ring outside it on the one that is shown or worn, the dark disc behind a
+## hero not owned and his "?" (the mock's #141b2b and #4a5670).
+const RING_NAVY := 5.0
+const RING_GOLD := 4.0
+const UNKNOWN_DISC := Color("141b2b")
+const UNKNOWN_MARK := Color("4a5670")
 
 var hero: CharacterDef
 ## Not owned (pass 69): on sale or locked (TitleScreen._is_locked); the sheet reads Registry.hero_state for which.
@@ -75,6 +125,8 @@ var _portrait: TextureRect
 var _looks_v: VBoxContainer
 var _dim_down := false
 var _dim_from := Vector2.ZERO
+## Pass 123: built the Royale way (the theme when it opened).
+var _royale := false
 
 
 static func open(host: Control, c: CharacterDef, is_locked: bool = false) -> Control:
@@ -96,6 +148,9 @@ func _init() -> void:
 
 
 func _build() -> void:
+	if W.royale():
+		_build_royale()
+		return
 	dim = W.dim(W.DIM, true)
 	dim.name = "Dim"
 	dim.gui_input.connect(_on_dim_input)
@@ -151,7 +206,9 @@ func _build() -> void:
 func _foot_fade() -> TextureRect:
 	var g := Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 1.0])
-	g.colors = PackedColorArray([Color(W.PAPER, 0.0), Color(W.PAPER, 1.0)])
+	# pass 123: the slate near the card's foot under Royale
+	var fc := R_FADE if _royale else W.PAPER
+	g.colors = PackedColorArray([Color(fc, 0.0), Color(fc, 1.0)])
 	var t := GradientTexture2D.new()
 	t.gradient = g
 	t.fill_from = Vector2(0, 0)
@@ -529,6 +586,9 @@ func _looks() -> void:
 func _fill_looks() -> void:
 	if _looks_v == null:
 		return
+	if _royale:
+		_fill_looks_royale()
+		return
 	for k in range(_looks_v.get_child_count() - 1, 0, -1):
 		var c := _looks_v.get_child(k)
 		_looks_v.remove_child(c)
@@ -703,8 +763,9 @@ func ask_buy_look(code: String) -> void:
 	if not Currency.can_afford(cur, price):
 		Audio.play("ui_locked")
 		return
+	# pass 123: a purchase asks in green under Royale (Garry: "buying green"); Wanted's card as it was
 	WConfirm.open(self, "Buy this look?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price), hero_name(hero)],
-		"Buy · %s" % W.num(price), "Not now", func(): buy_look(code))
+		"Buy · %s" % W.num(price), "Not now", func(): buy_look(code), Callable(), "buy" if _royale else "danger")
 
 
 ## The purchase: paid through Currency (Save.buy_skin, the sink "skin"), worn at once, a burst over its tile.
@@ -762,6 +823,709 @@ func _spacer(h: float) -> Control:
 ## A signature step is good when it raises a stat a hero wants more of (or lowers his regen delay).
 static func _good(st: String, value: float) -> bool:
 	return (value >= 0.0) != (st in TextGen.HERO_LOWER)
+
+
+# ---------------------------------------------------------------- pass 123 (lane HEROES): the Royale pop-up
+
+## The Royale card (see the header): the 80 % dim, the slate card R.MODAL_W wide from the top margin to the foot's, the
+## list that scrolls by finger, CLOSE slate on the card's foot. Names as the Wanted sheet's.
+func _build_royale() -> void:
+	_royale = true
+	dim = W.dim(W.dim_color("modal"), true)
+	dim.name = "Dim"
+	dim.gui_input.connect(_on_dim_input)
+	add_child(dim)
+	card = PanelContainer.new()
+	card.name = "Card"
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.add_theme_stylebox_override("panel", WConfirm.card_box())
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var inset := (1080.0 - float(R.MODAL_W)) * 0.5
+	card.offset_left = inset
+	card.offset_right = -inset
+	card.offset_top = R_TOP + W.safe_top()
+	card.offset_bottom = -R_BOTTOM - float(R.PANEL_BASE)
+	add_child(card)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 24)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(v)
+	scroll = ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	v.add_child(scroll)
+	body = VBoxContainer.new()
+	body.name = "Body"
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 0)
+	body.mouse_filter = Control.MOUSE_FILTER_PASS
+	scroll.add_child(body)
+	body.add_child(_header_royale())
+	if locked:
+		body.add_child(_spacer(26.0))
+		body.add_child(_locked_box_royale())
+	_signature_royale()
+	_stats_royale()
+	_items_royale()
+	# his looks (pass 111: a hero not owned sells none; a hero with one look has nothing to choose)
+	if not locked and not Registry.skins_of(hero).is_empty():
+		_looks_v = _section_royale("Looks", "Looks")
+		_fill_looks_royale()
+	body.add_child(_spacer(12.0))
+	close_btn = WConfirm.make_button(["CLOSE"], WButton.SLATE, 96.0, 40)
+	close_btn.name = "Close"
+	close_btn.pressed.connect(close)
+	v.add_child(close_btn)
+	_touch = TouchScroll.new(scroll, true)
+	_fade = _foot_fade()
+	add_child(_fade)
+
+
+## The top: his badge round in a navy ring, beside it his name in cream Ultra with DETAILS in the corner (the mock's),
+## his slogan, and the trait as black pills ("TRAIT · LONG ROAD", "+1% crit chance per Level"); a hero not owned: his
+## black badge with a "?", UNKNOWN, a "?" for the slogan and a LOCKED or ON SALE tag.
+func _header_royale() -> Control:
+	var h := HBoxContainer.new()
+	h.name = "Head"
+	h.add_theme_constant_override("separation", 30)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var portrait := royale_portrait(Registry.played_look(hero).icon, R_PORTRAIT, false, locked)
+	portrait.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_portrait = portrait.get_node("Badge")
+	h.add_child(portrait)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(col)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 16)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(top)
+	var shown := "Unknown" if locked else hero_name(hero)
+	var nm := W.text(shown.to_upper(), W.slab(), R_NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(R_NAME_PX))
+	nm.name = "Name"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(nm)
+	var corner := W.label("Details", R_LABEL_PX, W.INK_SOFT)
+	corner.name = "Corner"
+	corner.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	top.add_child(corner)
+	# the room the name has: the card's inside less the portrait, the gap, the corner word and its gap
+	var room := float(R.MODAL_W) - 2.0 * (R.MODAL_PAD.x + float(R.PANEL_EDGE)) - R_PORTRAIT - 30.0 - corner.get_combined_minimum_size().x - 16.0
+	fit_text(nm, room, 36)
+	var sl := W.serif_text("?" if locked else hero.flavour, R_SLOGAN_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+	sl.name = "Slogan"
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(sl)
+	var pills := HFlowContainer.new()
+	pills.name = "Pills"
+	pills.add_theme_constant_override("h_separation", 12)
+	pills.add_theme_constant_override("v_separation", 10)
+	pills.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(pills)
+	if locked:
+		var on_sale := Registry.hero_state(hero) == "buyable"
+		pills.add_child(royale_tag("On sale" if on_sale else "Locked", "green" if on_sale else "red", 20))
+		return h
+	if hero.trait_name != "":
+		pills.add_child(W.pill(("Trait · " + hero.trait_name).to_upper(), 20, R_PILL_H))
+	for line: Array in trait_lines(hero):
+		pills.add_child(W.pill([[str(line[0]), R.ROLES["green"]["top"] if bool(line[2]) else R.ROLES["red"]["top"], "bold"], " " + str(line[1])], R_PILL_PX, R_PILL_H))
+	return h
+
+
+## A hero not owned (Royale): what unlocks him and how far along it is, or, on sale, his price.
+func _locked_box_royale() -> Control:
+	var p := PanelContainer.new()
+	p.name = "Locked"
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", W.cell_box(Vector2(26, 20)))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(v)
+	var q := Registry.quest_for("character", hero.id)
+	if Registry.hero_state(hero) == "buyable":
+		v.add_child(W.label("On sale", R_LABEL_PX, W.SAGE))
+		var row := HBoxContainer.new()
+		row.name = "Price"
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(WCoin.make(40.0, W.BRASS, 3.0, Currency.of(hero.currency_type)))
+		var pr := W.slab_text(W.num(maxi(hero.price, 0)), 40, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(pr)
+		v.add_child(row)
+		var said := ("Requirement met: %s " % TextGen.quest_text(q)) if q else ""
+		var t := W.serif_text(said + "Buy on the Heroes screen.", 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		t.color = R.WHITE
+		v.add_child(t)
+		return p
+	v.add_child(W.label("To unlock", R_LABEL_PX, W.ROCK))
+	var words := TextGen.quest_text(q) if q else "Not in the game yet."
+	var wt := W.serif_text(words, 28, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	wt.color = R.WHITE
+	v.add_child(WPoster.with_picture(q, wt, 40.0))
+	if q:
+		var pr2 := QuestTracker.progress(q)
+		if pr2.y > 0:
+			var bar := WBar.make(clampf(float(pr2.x) / float(pr2.y), 0.0, 1.0), W.BRASS, 36.0, 4, 0)
+			bar.name = "Progress"
+			bar.text = "%s / %s" % [W.num(mini(pr2.x, pr2.y)), W.num(pr2.y)]
+			bar.text_px = 22
+			v.add_child(bar)
+	return p
+
+
+## SIGNATURE STAT (Royale): the rule in words only (Garry: "the trait rule in words only"; no level 1 / 10 / 20 / 40 row).
+func _signature_royale() -> void:
+	var title := ("Signature stat · " + hero.trait_name) if hero.trait_name != "" and not locked else "Signature stat"
+	var v := _section_royale(title, "Signature")
+	if locked:
+		var u := W.text("?", W.slab(), 64, W.INK_SOFT)
+		u.name = "Unknown"
+		v.add_child(u)
+		return
+	var rule := W.serif_text(rule_words(hero), R_RULE_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	rule.color = R.WHITE
+	rule.name = "Rule"
+	rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(rule)
+
+
+## The rule in words as the sheet writes it ("per Level", Garry's wording).
+static func rule_words(c: CharacterDef) -> String:
+	return TextGen.hero_trait(c).replace(" per level", " per Level")
+
+
+## STATS · A RUN'S START (Royale): the mock's two columns of 56 px rows, his signature stats green, the note under them.
+func _stats_royale() -> void:
+	var ups := _has_upgrades()
+	var v := _section_royale("Stats · a run's start" + (", your upgrades in" if ups else ""), "Stats")
+	var sheet: StatSheet = Run.hero_sheet(hero, 1)
+	var mine := signature_stats(hero)
+	var grid := GridContainer.new()
+	grid.name = "Grid"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", R_STAT_GAP)
+	grid.add_theme_constant_override("v_separation", 0)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for st: String in STATS:
+		grid.add_child(_stat_cell_royale(st, "?" if locked else stat_value(st, sheet.get_stat(st)), st in mine and not locked))
+	v.add_child(grid)
+	var words := "Every number is unknown until this hero is yours." if locked else ("Signature stat in green. " + (
+		"Your Upgrade board ranks are counted in." if ups else "Ranks on the Upgrade board add to these."))
+	var note := W.serif_text(words, R_NOTE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+	note.name = "Note"
+	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(note)
+
+
+## The stats his signature raises (and max HP for a heal on every level-up): drawn green.
+static func signature_stats(c: CharacterDef) -> Array:
+	var mine: Array = []
+	for e in c.level_trait:
+		if e is Effect:
+			mine.append((e as Effect).stat)
+	if c.level_heal > 0.0:
+		mine.append("max_hp")
+	return mine
+
+
+## One stat row (Royale): its name in Rubik, its value in Ultra, white (green for a signature stat), a faint line under.
+func _stat_cell_royale(st: String, value: String, mine: bool) -> Control:
+	var p := PanelContainer.new()
+	p.name = "Stat_" + st
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	p.custom_minimum_size.y = R_STAT_H
+	var b := StyleBoxFlat.new()
+	b.bg_color = Color(0, 0, 0, 0)
+	b.border_width_bottom = 2
+	b.border_color = Color(1, 1, 1, 0.1)
+	p.add_theme_stylebox_override("panel", b)
+	var h := HBoxContainer.new()
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	var col: Color = R.ROLES["green"]["top"] if mine else R.WHITE
+	var words := TextGen.stat_name(st)
+	var n := W.serif_text(words.substr(0, 1).to_upper() + words.substr(1), R_STAT_NAME_PX, W.INK, 400, false,
+		HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+	n.color = col
+	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(n)
+	var val := W.slab_text(value, R_STAT_VALUE_PX, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, float(R_STAT_VALUE_PX))
+	R.no_edge(val)
+	val.color = col
+	val.name = "Value"
+	val.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(val)
+	return p
+
+
+## HIS ITEMS (Royale): every item of items_of on its frame with its kind, its name and its words.
+func _items_royale() -> void:
+	var v := _section_royale((TextGen.possessive(hero) + " items") if not locked else "Items", "Items")
+	v.add_theme_constant_override("separation", 26)
+	var sheet: StatSheet = Run.hero_sheet(hero, 1)
+	for it: Dictionary in items_of(hero, not locked):
+		v.add_child(royale_item_row(it, sheet, locked, R_ITEM_FRAME, R_ITEM_NAME_PX, R_ITEM_TEXT_PX, R_ITEM_LABEL_PX))
+
+
+## LOOKS (Royale): "LOOKS · n OF m OWNED", what he wears, and the Heroes screen's tiles, R_LOOK_COLS a row.
+func _fill_looks_royale() -> void:
+	if _looks_v == null:
+		return
+	for k in range(_looks_v.get_child_count() - 1, -1, -1):
+		var c := _looks_v.get_child(k)
+		_looks_v.remove_child(c)
+		c.queue_free()
+	var codes: Array = Registry.skins_of(hero)
+	var worn := worn_code()
+	var owned := 0
+	var to_earn := false
+	for code: String in codes:
+		var st := look_state(code)
+		if st == "worn" or st == "owned":
+			owned += 1
+		if Registry.skin_state(hero, code) != "owned":
+			to_earn = true
+	_looks_v.add_child(W.label("Looks · %d of %d owned" % [owned, codes.size()], R_LABEL_PX, W.INK_SOFT))
+	var how := "Reach a look's goal, then buy it." if to_earn else "Tap a look to wear it."
+	var line := W.serif_text("Wearing %s. %s" % [hero.skin_name(worn), how], 24, W.INK_SOFT, 400, true,
+		HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+	line.name = "Wearing"
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_looks_v.add_child(line)
+	var grid := GridContainer.new()
+	grid.name = "LookGrid"
+	grid.columns = R_LOOK_COLS
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 26)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for code: String in codes:
+		var t := royale_look_tile(hero, code, worn)
+		t.pressed.connect(func(): _on_look(code))
+		grid.add_child(t)
+	_looks_v.add_child(grid)
+
+
+## A labelled part of the Royale card: the gap, then a box with its label; returns the box its rows go in.
+func _section_royale(title: String, node_name: String) -> VBoxContainer:
+	body.add_child(_spacer(R_SECTION_GAP))
+	var v := VBoxContainer.new()
+	v.name = node_name
+	v.add_theme_constant_override("separation", 14)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(W.label(title, R_LABEL_PX, W.INK_SOFT))
+	body.add_child(v)
+	return v
+
+
+# ---------------------------------------------------------------- pass 123: the pieces the Heroes screen shares
+
+## The trait as lines (the Heroes screen's TRAIT panel, the pop-up's pills): [step, words, good] for each signature stat
+## ("+1%", "crit chance per Level") and for a heal on every level-up; [] for a hero without a level trait (trait_note
+## then carries his trait's words).
+static func trait_lines(c: CharacterDef) -> Array:
+	var out: Array = []
+	if c == null:
+		return out
+	for e in c.level_trait:
+		if e is Effect:
+			var x: Effect = e
+			out.append([TextGen.hero_step(x), TextGen.hero_word(x.stat) + " per Level", _good(x.stat, x.value)])
+	if c.level_heal > 0.0:
+		out.append(["+" + TextGen._plain(c.level_heal * 100.0) + "%", "max HP healed every level-up", true])
+	return out
+
+
+## What the rule adds to its lines (TextGen.hero_trait's brackets and a hero's own mechanism after it), "" when nothing;
+## a hero without a level trait: his trait's words whole.
+static func trait_note(c: CharacterDef) -> String:
+	if c == null:
+		return ""
+	if c.level_trait.is_empty():
+		return TextGen.hero_trait(c)
+	var notes: Array = []
+	for e in c.level_trait:
+		if e is Effect:
+			var x: Effect = e
+			var word := TextGen.hero_word(x.stat)
+			if StatSheet.STAT_FLOORS.has(x.stat):
+				notes.append("%s never under %s" % [word, TextGen.hero_amount(x.stat, "add", float(StatSheet.STAT_FLOORS[x.stat]))])
+			if TextGen.HERO_NOTES.has(x.stat):
+				notes.append(str(TextGen.HERO_NOTES[x.stat]).replace("{his}", TextGen.possessive(c)))
+	var s := ""
+	if not notes.is_empty():
+		var j := "; ".join(notes)
+		s = j.substr(0, 1).to_upper() + j.substr(1) + "."
+	if c.trait_text != "" and not c.specials.is_empty():
+		s = (s + " " + c.trait_text).strip_edges()
+	return s
+
+
+## The hero's favourite: his weapon, else the line or passive he favours.
+static func favourite_of(c: CharacterDef) -> ContentDef:
+	if c == null:
+		return null
+	var w: WeaponDef = Registry.weapon(c.favourite_weapon) if c.favourite_weapon != "" else null
+	if w:
+		return w
+	return Registry.passive(c.favourite_passive) if c.favourite_passive != "" else null
+
+
+## The level he has an item at when he lands with it or finds it (TitleScreen.start_level: a favourite's bonus level).
+static func level_of(c: CharacterDef, def: ContentDef) -> int:
+	var ts: Script = load("res://ui/TitleScreen.gd")
+	return int(ts.call("start_level", c, def))
+
+
+## What finding the favourite gives, in Garry's words for the Heroes screen ("finding it gives a bonus level"): "Finding
+## it in a run gives it a bonus level." (two levels: "2 bonus levels"; full: "every level at once"; effects: "... gives it
+## +20% area of effect.").
+static func bonus_line(c: CharacterDef, def: ContentDef) -> String:
+	var b: Dictionary = c.favourite_bonus if def is WeaponDef else c.favourite_passive_bonus
+	match str(b.get("type", "")):
+		"level":
+			var n := int(b.get("value", 1)) - 1
+			if n <= 0:
+				return ""
+			return "Finding it in a run gives it a bonus level." if n == 1 else "Finding it in a run gives it %d bonus levels." % n
+		"max":
+			return "Finding it in a run gives it every level at once."
+		"effects":
+			return "Finding it in a run gives it %s." % TextGen.describe_effects(b.get("effects", []))
+	return ""
+
+
+## What a weapon needs to evolve, in the Collection's words ("all 3 mutations at Lv 5").
+static func evolve_needs(w: WeaponDef) -> String:
+	var n := Registry.mutations_of(w.id).size()
+	var m := "all %d mutations" % n if n > 1 else ("its mutation" if n == 1 else "")
+	return ("%s at Lv %d" % [m, w.max_level]) if m != "" else "Lv %d" % w.max_level
+
+
+## His items as the Heroes screen and the pop-up list them: the weapon he lands with, his favourite and what finding it
+## gives, any other weapon only he finds, his hero mutations, his perks, and (`with_evolution`) the evolution of the
+## weapon he lands with when it is his own. Each {def, role (start, favourite, own, mutation, perk, evolution), word,
+## level, bonus, note}.
+static func items_of(c: CharacterDef, with_evolution: bool = true) -> Array:
+	var out: Array = []
+	if c == null:
+		return out
+	var start := Registry.start_weapon_for(c)
+	var fav: ContentDef = favourite_of(c)
+	if start:
+		out.append({"def": start, "role": "start", "word": "Start weapon" + (" · favourite" if start == fav else ""),
+			"level": level_of(c, start), "bonus": bonus_line(c, start) if start == fav else ""})
+	if fav and fav != start:
+		var word := "Favourite " + ("weapon" if fav is WeaponDef else ("card" if W.is_line(fav) else "item"))
+		out.append({"def": fav, "role": "favourite", "word": word, "level": level_of(c, fav), "bonus": bonus_line(c, fav)})
+	for w: WeaponDef in own_weapons(c):
+		if w != start and w != fav:
+			out.append({"def": w, "role": "own", "word": "Signature weapon", "level": 1})
+	for m: MutationDef in Registry.hero_mutations(c.id):
+		var on := Registry.weapon(m.weapon)
+		out.append({"def": m, "role": "mutation", "word": "Hero mutation · " + (on.display_name if on else m.weapon), "level": 1})
+	for pk: PerkDef in Registry.perks_of(c.id):
+		out.append({"def": pk, "role": "perk", "word": "Perk", "level": 1})
+	if with_evolution and start and start.hero == c.id and start.evolves_into != "":
+		var evo := Registry.weapon(start.evolves_into)
+		if evo:
+			out.append({"def": evo, "role": "evolution", "word": "Evolution", "level": 1,
+				"note": "The %s evolves: %s, then a chest." % [start.display_name, evolve_needs(start)]})
+	return out
+
+
+## One item (Royale): its frame (WPlate: the rarity or level colour), the kind over its name on one line, the level-up
+## card's words, the favourite's bonus in green, a note; a hero not owned: the item's black shape, its role and a "?".
+## `brief` (the Heroes screen, the mock's row): an evolution says only how it comes (its note) instead of its whole card.
+## Named "Item_<role>_<id>".
+static func royale_item_row(it: Dictionary, sheet: StatSheet, unknown: bool, frame_px: float, name_px: int, text_px: int,
+		label_px: int, brief: bool = false) -> Control:
+	var def: ContentDef = it["def"]
+	var role := str(it.get("role", ""))
+	var word := str(it.get("word", ""))
+	var level := int(it.get("level", 1))
+	var bonus := str(it.get("bonus", ""))
+	var note := str(it.get("note", ""))
+	var words := "Unknown until this hero is yours." if unknown else describe(def, level, sheet)
+	if brief and role == "evolution" and note != "":
+		words = note
+		note = ""
+	if unknown:
+		word = word.get_slice(" · ", 0)
+		level = 1
+		bonus = ""
+		note = ""
+	var h := HBoxContainer.new()
+	h.name = "Item_%s_%s" % [role, def.id]
+	h.add_theme_constant_override("separation", 16 if frame_px < 100.0 else 26)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var plate := WPlate.new().for_def(def, frame_px, false, level)
+	plate.name = "Frame"
+	plate.mystery = unknown
+	plate.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	h.add_child(plate)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(col)
+	var head := HFlowContainer.new()
+	head.name = "Head"
+	head.add_theme_constant_override("h_separation", 12)
+	head.add_theme_constant_override("v_separation", 0)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(head)
+	# the mock's kind words are all the secondary blue (gold is kept for what acts at once, coins, stars and Legendary)
+	var kind_col: Color = W.INK_SOFT if W.royale() else W.KIND_WORD.get(W.kind_of(def), W.INK_SOFT)
+	var lab := W.label(word + ((" · " + W.lv(level)) if level > 1 else ""), label_px, kind_col)
+	lab.name = "Kind"
+	lab.size_flags_vertical = Control.SIZE_SHRINK_END
+	head.add_child(lab)
+	var nm := W.text("?" if unknown else def.display_name, W.slab(), name_px, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(name_px))
+	nm.name = "ItemName"
+	nm.size_flags_vertical = Control.SIZE_SHRINK_END
+	head.add_child(nm)
+	var d := W.serif_text(words, text_px, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	d.name = "Text"
+	if W.royale():
+		d.color = R.WHITE
+	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(d)
+	if bonus != "":
+		var bw := W.serif_text(bonus, text_px - 2, W.SAGE, 600, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+		bw.name = "Bonus"
+		bw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_child(bw)
+	if note != "":
+		var nw := W.serif_text(note, text_px - 4, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+		nw.name = "Note"
+		nw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_child(nw)
+	return h
+
+
+## A hero's (or a look's) round badge `px` across in a navy ring (the mock's portraits), a gold ring outside it when
+## `gold` (the hero shown, the look worn); `unknown`: a black silhouette on the mock's dark disc, with a "?" when `mark`.
+## Named "Portrait" ("Badge" the picture, "Ring", "Mark"); the gold ring follows set_meta("gold", on) + queue_redraw on
+## "Ring".
+static func royale_portrait(tex: Texture2D, px: float, gold: bool = false, unknown: bool = false, mark: bool = true) -> Control:
+	var holder := Control.new()
+	holder.name = "Portrait"
+	holder.custom_minimum_size = Vector2(px, px)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.set_meta("gold", gold)
+	holder.set_meta("unknown", unknown)
+	if unknown:
+		holder.draw.connect(func() -> void:
+			holder.draw_circle(holder.size * 0.5, minf(holder.size.x, holder.size.y) * 0.5 - 1.0, UNKNOWN_DISC, true, -1.0, true))
+	var tr := TextureRect.new()
+	tr.name = "Badge"
+	tr.texture = tex
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if unknown:
+		tr.self_modulate = Color(0, 0, 0, 0.85)
+	holder.add_child(tr)
+	if unknown and mark:
+		var q := W.text("?", W.slab(), maxi(int(px * 0.54), R.ULTRA_MIN), UNKNOWN_MARK, HORIZONTAL_ALIGNMENT_CENTER)
+		R.no_edge(q)
+		q.name = "Mark"
+		q.valign = VERTICAL_ALIGNMENT_CENTER
+		q.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		holder.add_child(q)
+	var ring := Control.new()
+	ring.name = "Ring"
+	ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ring.draw.connect(func() -> void:
+		var c := ring.size * 0.5
+		var r := minf(ring.size.x, ring.size.y) * 0.5
+		ring.draw_arc(c, r - RING_NAVY * 0.5, 0.0, TAU, 64, R.NAVY, RING_NAVY, true)
+		if bool(holder.get_meta("gold", false)):
+			ring.draw_arc(c, r + RING_GOLD * 0.5, 0.0, TAU, 64, R.GOLD_TEXT, RING_GOLD, true))
+	holder.add_child(ring)
+	return holder
+
+
+## A small tag (Royale; README "Tag": a 4 px radius, a 3 px navy edge, Rubik 700 by Garry's 28 px rule): `kind` gold,
+## green, red, slate or locked (the grey of a price the purse cannot meet); a coin `coin` px before the word when > 0.
+## Named "Tag" ("Word" the text).
+static func royale_tag(t: String, kind: String, px: int = R.TAG_PX, coin: float = 0.0, currency: String = "gold") -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "Tag"
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var fill: Color = R.role("slate")["top"]
+	var ink: Color = R.CREAM
+	match kind:
+		"gold":
+			fill = R.TAG_GOLD
+			ink = R.NAVY
+		"green":
+			fill = R.TAG_GREEN
+			ink = R.NAVY
+		"red":
+			fill = R.TAG_RED
+		"locked":
+			fill = R.role("locked")["bottom"]
+			ink = R.LOCKED_TEXT
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.border_color = R.NAVY
+	sb.set_border_width_all(R.TAG_EDGE)
+	sb.set_corner_radius_all(R.RADIUS_TAG)
+	sb.anti_aliasing = true
+	sb.content_margin_left = 10.0 + R.TAG_EDGE
+	sb.content_margin_right = 10.0 + R.TAG_EDGE
+	sb.content_margin_top = 3.0 + R.TAG_EDGE
+	sb.content_margin_bottom = 3.0 + R.TAG_EDGE
+	p.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(row)
+	if coin > 0.0:
+		var cn := WCoin.make(coin, W.BRASS if kind != "locked" else W.AGED, 3.0, currency)
+		cn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(cn)
+	var w := W.text(t.to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(px, 0.05)), px, ink, HORIZONTAL_ALIGNMENT_LEFT, roundf(px * 1.15))
+	w.color = ink
+	w.name = "Word"
+	w.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(w)
+	return p
+
+
+## The look hero `c` wears in the sheet's terms (the worn skin, else the look every player owns; "" for one art).
+static func worn_of(c: CharacterDef) -> String:
+	var w := Registry.worn_skin(c)
+	return w if w != "" else c.home_look()
+
+
+## Where the player stands with look `code` of `c`: worn, owned, buyable or locked (look_state's rule, static).
+static func look_state_of(c: CharacterDef, code: String) -> String:
+	return "worn" if code == worn_of(c) else Registry.skin_state(c, code)
+
+
+## One look's tile (Royale; the mock 5_Heroes' LOOKS strip): the slate tile, the look's full-body still
+## (tools/skin_stills.py) or its badge round in a navy ring, its name, and where the player stands with it: WORN (the
+## gold edge and a gold tag), WEAR (slate), the price (a green tag with the coin; short of it the grey tag and "n short"
+## in red) or LOCKED (the still a black silhouette, the goal in the quests' words and how far along it is). Named
+## "Look_<CODE>" ("Look_base" for a hero with one art), metas "look" and "state"; "Picture" > "Still" / "Portrait",
+## "LookName", "Foot" > "Tag" / "Price" / "Short" / "Goal" / "Progress". The caller wires `pressed`.
+static func royale_look_tile(c: CharacterDef, code: String, worn: String, tile: Vector2 = LOOK_TILE_R) -> WTap:
+	var st := "worn" if code == worn else Registry.skin_state(c, code)
+	var t := WTap.new()
+	t.name = "Look_" + (code if code != "" else "base")
+	t.set_meta("look", code)
+	t.set_meta("state", st)
+	t.custom_minimum_size = tile
+	t.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var e := R.PANEL_EDGE
+	var b := W.box(W.PAPER, e, R.PANEL_BASE).pad(10 + e, 12 + e, 10 + e, 10 + e)
+	if st == "worn":
+		b.inner = 5
+		b.inner_color = W.BRASS
+	t.box = b
+	t.box_down = b.pressed()
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.add_child(v)
+	var pic := CenterContainer.new()
+	pic.name = "Picture"
+	pic.custom_minimum_size = Vector2(0, LOOK_STILL_R)
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(pic)
+	var still := c.look_still_path(code)
+	if still != "":
+		var tr := TextureRect.new()
+		tr.name = "Still"
+		tr.texture = load(still) as Texture2D
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.custom_minimum_size = Vector2(tile.x - 28.0, LOOK_STILL_R)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if st == "locked":
+			# pass 113 (Garry: "when the Skin is LOCKED it displays the Skin Icon as a Darkened Silhouette")
+			tr.self_modulate = Color(0, 0, 0, 0.9)
+		pic.add_child(tr)
+	else:
+		pic.add_child(royale_portrait(c.variant_def(code).icon, LOOK_BADGE_R, st == "worn", st == "locked", false))
+	var nm := W.text(c.skin_name(code).to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(LOOK_NAME_PX, 0.08)), LOOK_NAME_PX, W.INK,
+		HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	nm.color = R.WHITE
+	nm.name = "LookName"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fit_text(nm, tile.x - 28.0, 14)
+	v.add_child(nm)
+	var foot := VBoxContainer.new()
+	foot.name = "Foot"
+	foot.alignment = BoxContainer.ALIGNMENT_CENTER
+	foot.add_theme_constant_override("separation", 6)
+	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(foot)
+	match st:
+		"worn":
+			foot.add_child(royale_tag("Worn", "gold", LOOK_FOOT_PX))
+		"owned":
+			foot.add_child(royale_tag("Wear", "slate", LOOK_FOOT_PX))
+		"buyable":
+			var cur := Currency.of(c.skin_currency(code))
+			var price := c.skin_price(code)
+			var can := Currency.can_afford(cur, price)
+			var tag := royale_tag(W.num(price), "green" if can else "locked", LOOK_FOOT_PX, 20.0, cur)
+			tag.name = "Price"
+			foot.add_child(tag)
+			if not can:
+				var sh := W.short_text(price - Currency.balance(cur), 16)
+				sh.align = HORIZONTAL_ALIGNMENT_CENTER
+				sh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				foot.add_child(sh)
+		_:
+			var words := Registry.skin_requirement_text(c, code)
+			var g := W.serif_text(words if words != "" else "Not on sale yet.", LOOK_GOAL_PX, W.INK_SOFT, 400, false,
+				HORIZONTAL_ALIGNMENT_CENTER, roundf(LOOK_GOAL_PX * 1.25), true)
+			g.name = "Goal"
+			g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			foot.add_child(g)
+			var q := Registry.skin_quest(c, code)
+			var pr := QuestTracker.progress(q) if q else Vector2i.ZERO
+			if pr.y > 0:
+				var bar := WBar.make(clampf(float(pr.x) / float(pr.y), 0.0, 1.0), W.BRASS, 12.0, 2, 0)
+				bar.name = "Progress"
+				foot.add_child(bar)
+	return t
+
+
+## Shrinks a one-line WText until it fits `max_w`, never under `min_px` (a long name in a fixed room); the navy edge of
+## display type follows the size.
+static func fit_text(t: WText, max_w: float, min_px: int) -> void:
+	if max_w <= 0.0:
+		return
+	var px := t.font_size
+	while px > min_px and t.text_width() + float(t.stroke) * 2.0 > max_w:
+		# a line box at line-height 1 (display type) shrinks with the type; any other keeps its height
+		if is_equal_approx(t.line_height, float(px)):
+			t.line_height = float(px - 2)
+		px -= 2
+		t.font_size = px
+	if t.stroke > 0 and W.royale() and R.is_display(t.font) and px >= R.ULTRA_MIN:
+		R.edge(t, px, t.color.is_equal_approx(R.GOLD_TEXT))
 
 
 # ---------------------------------------------------------------- in and out

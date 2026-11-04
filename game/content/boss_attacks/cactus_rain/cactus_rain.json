@@ -1,12 +1,12 @@
 {
   "id": "cactus_rain",
-  "name": "Red Cactus Rain",
-  "doc": "Every landing spot round the Gila Grande lights up red at once; it crouches, rears up and spews a burst of big red cactus spikes out of its mouth, and they all come down together a moment later, on rings of wide circles with a narrow gap between every two. Find a gap before the spew.",
+  "name": "Poison Rain",
+  "doc": "Every landing spot round the Gila Grande lights up red at once; it crouches, rears up and spews a burst of big green poison globules out of its mouth, and they all come down together a moment later, on rings of wide circles with a narrow gap between every two. Find a gap before the spew.",
   "kind": "rain",
   "projectile": {
-    "look": "spike",
-    "tint": "#D0242F",
-    "size": 2.72,
+    "look": "spit",
+    "tint": "#7BD62B",
+    "size": 1.9,
     "glow": 1.2,
     "flight": 1.1,
     "arc": 7.0,

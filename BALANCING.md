@@ -9319,3 +9319,55 @@ creature's own `variant` (the stage-1/2 rows see nothing).
 
 - Drive's Muscle +6% -> **+8%** attack damage a rank and Tempo -5% -> **-6%** cooldown a rank (content/talents/drive,
   Garry's edit of 2026-11-03); pass110_econ_test pins only the Muscle's shape now.
+
+## 65. Pass 123: the whole Royale UI, a seventh Upgrade rank, a wider boss barrier, the Gila's poison rain, the frog that waits, the Shaman's numbers
+
+### 65.RANK7 Every talent has a seventh rank, on top
+
+Garry (2026-11-04): "Add 1 more upgrade slot to all. This should be added on top, so the extra slot, higher cost and higher
+increase."
+- **Ranks** 6 -> **7** on all eight talents (content/talents/*: `ranks`, a seventh `cost`).
+- **Its price**: 49 x rank 1, the board's k x k rule carried on (Stakes 4,900, Nerve 7,350, Fortune 14,700, Choice 15,925,
+  Drive 18,375, Study 19,600, Stride 20,825, Grit 22,050).
+- **Its increase**: the last rank, in whichever form it is bought, gives that form's step x the form's `top_mult`
+  (TalentDef.top_mult; Save.talent_top says which form holds it): **1.5** on every form, **2** on the whole-number ones
+  (Reroll, Banish, Skip: +2). So Muscle's seventh is +12%, Tempo's -9%, Padding's +15%, Plate's +9%, Omen's +0.18 and so on;
+  each form's `text` says it. The Level Editor's Mirror tab has the field ("top rank ... gives this many steps").
+- **Second Wind past 100%** (my decision, so the rank is never a dead one): revive health still stops at full; what the sheet
+  holds past 100% buys time untouchable after the revive, REVIVE_OVER_S 10 s for each 100% (115% = +1.5 s; Player.revive,
+  on top of the revive's 2 s). Damage reduction keeps Player's 80% ceiling.
+
+### 65.BOSS The barrier 35% wider; the Gila spits poison
+
+- **The bullet-heaven barrier** (Garry: "Increase the Boss Area of capture ... by 35%"): `barrier.radius` 14 -> **18.9** m on
+  royal_dust_devil, venom_monsoon and hellbrand_mandala (content/boss_attacks). The reach rule, the bullets' range and timings
+  are as they were.
+- **The Gila's Poison Rain** (Garry: "change the projectile ... to be either poison globules or lizard spikes"; the red
+  circles stay): content/boss_attacks/cactus_rain: name Poison Rain, `projectile.look` "spit" (a ball), `tint` #7BD62B, `size`
+  1.9; a globule bursts in its own colour where it lands (EnemyManager._custom_land). Damage, knockback, the circles, the
+  timings as they were.
+
+### 65.ENEMY The frog waits for its blast; the Shaman's mends show
+
+- **A body with a `death_burst`** (the Horned Toad "Exploding Frog", the Sand Crab; Garry: "stay and not disappear when it dies,
+  only after the explosion happens does it disappear"): it lies where it fell through its burst's delay, with no follow-through,
+  no toss and no sinking, and goes the moment the burst goes (EnemyManager._die, `_burst_bodies`). Damage and delay unchanged.
+- **The Dust Shaman's mend**: a green "+N" over every creature it heals, the health actually restored
+  (DamageNumbers.creature_heal), under the heal numbers' switch.
+
+### 65.ROYALE The Royale theme, every screen (no gameplay number changed)
+
+Still behind `Settings.ui_theme` (Wanted the default, prod held there). What a player of that theme meets that is a rule:
+- **The tab bar** on Heroes, Battle, Upgrade and Collections; STORE locked (a tap shakes it, nothing else).
+- **Crumbs** (core/systems/Crumbs.gd; Garry: red, and gone once tapped): the red "!" on UPGRADE shows while a rank the purse can
+  pay for has not been shown yet (`save.crumbs.upgrade`, "<talent>:<rank>"); opening the board (or buying on it) marks what is
+  affordable as seen, so it comes back only when coins reach a rank they had not reached. The red "!" on HEROES, the hero's tile
+  and LOOKS shows while a look of his is newly unlocked (`save.crumbs.looks`); opening LOOKS clears it. The Wanted title's glow
+  keeps its own older rule.
+- **HUD slots** show their level or rarity colour by default (`Settings.hud_slot_rarity`, saved as `hud_slot_rarity2`).
+- **Level plaques** black on white, EVO black on gold; bold numbers in body text NUMBER_HI #FFE48A; mutations' frames and tags teal
+  (R.MUTATION), no rarity wears it; the painted coin everywhere; blue buttons darker with a navy contour on every coloured label.
+- **Totem cards** by the roll's third: three stars instead of the notches and their numbers; the gain 52 / 56 / 62 px, a gold inner
+  line 0 / 2 / 3 px and a soft glow 0 / 8 / 16 px (TotemScreen ROYALE_*_BY_THIRD).
+- **The menu backdrop**: a tumbleweed every 45-90 s on one clock for the session (the first 6-16 s after the first menu), one
+  shadow rule for every object (RoyaleBackdrop._cast: a soft ellipse from the foot, away from the sun).

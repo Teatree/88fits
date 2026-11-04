@@ -317,7 +317,7 @@ func test_button_roles_and_their_colours() -> void:
 	assert_bool(R.ROLES["gold"]["base"].is_equal_approx(Color("a86d06"))).is_true()
 	assert_bool(R.ROLES["gold"]["text"].is_equal_approx(R.NAVY)).is_true()
 	assert_bool(R.ROLES["green"]["bottom"].is_equal_approx(Color("5fc43a"))).is_true()
-	assert_bool(R.ROLES["blue"]["bottom"].is_equal_approx(Color("3b7fe0"))).is_true()
+	assert_bool(R.ROLES["blue"]["bottom"].is_equal_approx(Color("2360bd"))).is_true()
 	assert_bool(R.ROLES["slate"]["base"].is_equal_approx(Color("141b2b"))).is_true()
 	assert_bool(R.ROLES["red"]["base"].is_equal_approx(Color("8c1f14"))).is_true()
 	assert_bool(R.ROLES["locked"]["top"].is_equal_approx(Color("8f98ab"))).is_true()

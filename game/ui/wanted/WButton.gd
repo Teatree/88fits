@@ -38,10 +38,13 @@ var _border := 5
 var _shadow := 8
 var _pad_v := 26.0
 var _pad_h := 22.0
+## Pass 123 (lane KIT2): the label's colour in place of the role's (alpha 0 = the role's): a short price's grey.
+var ink_override := Color(0, 0, 0, 0)
 
 
 ## parts: Array of items, each a String (ink), [text, colour], [text, colour, px], {"coin": px, "fill": colour} or
-## (pass 122) {"count": n}. `p_role` (pass 122): the Royale role; "" = the variant's.
+## (pass 122) {"count": n}, (pass 123) {"ad": px} (the drawn ad icon, W.glyph "ad") or {"glyph": kind, "px": n} (any
+## W.glyph). `p_role` (pass 122): the Royale role; "" = the variant's. WButton.price (pass 123) makes a price button.
 static func make(parts: Array, px: int = 34, p_variant: String = SECONDARY, border: int = 5, shadow: int = 8,
 		pad_v: float = 26.0, pad_h: float = 22.0, p_line_h: float = 0.0, p_role: String = "") -> WButton:
 	var b := WButton.new()
@@ -102,6 +105,8 @@ func set_parts(parts: Array) -> void:
 	var ink := W.PAPER if variant == DANGER or variant == UPGRADE else W.INK
 	if royale:
 		ink = R.role(role)["text"]
+	if ink_override.a > 0.0:
+		ink = ink_override
 	var runs: Array = []
 	var flush := func():
 		if runs.is_empty():
@@ -111,6 +116,14 @@ func set_parts(parts: Array) -> void:
 		if royale and role == GOLD:
 			# navy on gold: a navy edge would only fatten it
 			R.no_edge(t)
+		elif royale:
+			# pass 123 (Garry: "add contour, or drop shadow to texts inside the buttons"): every label on a coloured face
+			# wears the navy contour and a drop straight down, Rubik labels under Ultra's minimum too
+			t.stroke = maxi(t.stroke, 2)
+			t.stroke_color = R.NAVY
+			t.shadow = maxi(t.shadow, 3)
+			t.shadow_color = R.NAVY
+			t.shadow_straight = true
 		t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_row.add_child(t)
 		runs.clear()
@@ -122,6 +135,15 @@ func set_parts(parts: Array) -> void:
 		elif p is Dictionary and p.has("count"):
 			flush.call()
 			_row.add_child(_count_pill(int(p["count"]), ink))
+		elif p is Dictionary and p.has("ad"):
+			# pass 123 (lane KIT2): the ad icon (Garry, Down!'s GET UP: "instead of text let's use an icon. An icon that's
+			# usually used for ads buttons"), in the label's colour with the face's colour cut into it
+			flush.call()
+			_row.add_child(W.glyph("ad", float(p["ad"]), ink, _cut_colour(ink)))
+		elif p is Dictionary and p.has("glyph"):
+			# pass 123: any of W.glyph's drawn glyphs ({"glyph": "menu", "px": 40}), in the label's colour
+			flush.call()
+			_row.add_child(W.glyph(str(p["glyph"]), float(p.get("px", font_size)), p.get("color", ink), _cut_colour(ink)))
 		elif p is Array:
 			# [text, colour] or [text, colour, px] (a smaller number beside the word: "RANK 2 ○ 252")
 			if p.size() > 2:
@@ -178,3 +200,48 @@ func _label_of(n: Node) -> String:
 		elif c is PanelContainer:
 			s += _label_of(c)
 	return s
+
+
+## The colour cut into a drawn glyph on this face (pass 123): under Royale the face's own colour (the gold top under
+## navy ink, the role's bottom under cream), under Wanted the box's fill.
+func _cut_colour(ink: Color) -> Color:
+	if W.royale():
+		var r := R.role(role)
+		return r["top"] if ink.is_equal_approx(R.NAVY) else r["bottom"]
+	return box.fill if box else W.PAPER
+
+
+## A price button (pass 123, lane KIT2; the mocks 8_Shop_24_gold "● 230 · BUY", 5_Upgrade "● 100 · CHOOSE"): the coin
+## (or `currency`'s icon), the amount, and `word` after a " · ", in `p_role` (green buys, blue opens a choice, gold acts at
+## once), `height` tall (R.PRICE_H 64) with `px` type (R.PRICE_PX 28). `short` > 0 (the purse is that much short): the
+## locked grey with the price alone (`keep_word` keeps the word) in R.LOCKED_TEXT, `locked` (it still emits `pressed`, so
+## the screen can say why: WTap's rule) and the meta "short"; W.price_row puts "n short" beside it. The meta "price" holds
+## the amount. Under Wanted the brass (gold, green), turquoise (blue) or paper button with the same label.
+static func price(amount: int, word: String = "", p_role: String = GREEN, px: int = R.PRICE_PX, short: int = 0,
+		currency: String = "gold", keep_word: bool = false, height: float = R.PRICE_H) -> WButton:
+	var is_short := short > 0
+	var label := W.num(amount)
+	if word != "" and (not is_short or keep_word):
+		label += " · " + word
+	var coin := maxf(R.PRICE_COIN * float(px) / float(R.PRICE_PX), 16.0)
+	var variant := SECONDARY
+	match p_role:
+		GOLD, GREEN:
+			variant = PRIMARY
+		BLUE:
+			variant = UPGRADE
+		RED:
+			variant = DANGER
+	var border := R.BUTTON_EDGE
+	var pad_v := maxf((height - 2.0 * border - float(px)) * 0.5, 0.0)
+	var b := make([{"coin": coin, "fill": W.BRASS, "currency": currency}, label], px, variant, border, R.BUTTON_BASE,
+		pad_v, 22.0, float(px), LOCKED if is_short else p_role)
+	b.name = "PriceButton"
+	if is_short:
+		if W.royale():
+			b.ink_override = R.LOCKED_TEXT
+			b.set_parts(b._parts)
+		b.locked = true
+		b.set_meta("short", short)
+	b.set_meta("price", amount)
+	return b

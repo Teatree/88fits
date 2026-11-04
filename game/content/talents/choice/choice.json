@@ -3,7 +3,7 @@
   "name": "Choice",
   "flavour": "See another, or throw one away.",
   "order": 4,
-  "ranks": 6,
+  "ranks": 7,
   "currency_type": "gold",
   "cost": [
     325,
@@ -11,12 +11,14 @@
     2925,
     5200,
     8125,
-    11700
+    11700,
+    15925
   ],
   "forms": [
     {
       "name": "Reroll",
-      "text": "+1 reroll a run, a rank.",
+      "text": "+1 reroll a run, a rank; +2 at rank 7.",
+      "top_mult": 2,
       "effects": [
         {
           "stat": "rerolls",
@@ -28,7 +30,8 @@
     },
     {
       "name": "Banish",
-      "text": "+1 banish a stage, a rank.",
+      "text": "+1 banish a stage, a rank; +2 at rank 7.",
+      "top_mult": 2,
       "effects": [
         {
           "stat": "banishes",

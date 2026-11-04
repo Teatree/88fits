@@ -261,6 +261,26 @@ func _add(i: int, at: Vector3, amount: float, crit: bool, green: bool, hot: bool
 	_push(n)
 
 
+## A creature mended for `amount` (pass 123, the Dust Shaman): a green "+N" over it, under the heal numbers' switch.
+func creature_heal(i: int, at: Vector3, amount: float) -> void:
+	if amount <= 0.0 or suppressed or (_settings != null and not bool(_settings.get("float_heal"))):
+		return
+	if _merge(i, KIND_HEAL, amount, MERGE, false, false):
+		return
+	var cam := _camera()
+	if cam and not _on_screen(cam, at):
+		return
+	var n := _fresh(crowd_from if _live.size() >= crowd_from else CAP)
+	n.who = i
+	n.kind = KIND_HEAL
+	n.at = at
+	n.amount = amount
+	n.nudge = Vector2(_side * randf_range(SPREAD * 0.2, SPREAD), randf_range(-12.0, 8.0))
+	n.drift = _side * randf_range(SPREAD_DRIFT * 0.3, SPREAD_DRIFT)
+	_side = -_side
+	_push(n)
+
+
 ## The hero lost `amount` health to a hit (after his damage reduction): a red "−N" (pass 47).
 func hero_hurt(amount: float) -> void:
 	_hero(KIND_HURT, amount, MERGE)

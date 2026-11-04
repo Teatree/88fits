@@ -51,7 +51,9 @@ const LOCKED_ALPHA := 0.75
 const ROLES := {
 	"gold": {"top": Color("ffdc73"), "bottom": Color("f5b82a"), "base": Color("a86d06"), "text": Color("0e1f4a")},
 	"green": {"top": Color("a3ea74"), "bottom": Color("5fc43a"), "base": Color("2a7416"), "text": Color("fff6dc")},
-	"blue": {"top": Color("79b3ff"), "bottom": Color("3b7fe0"), "base": Color("173f8a"), "text": Color("fff6dc")},
+	# pass 123 (Garry: "The white text on the blue button doesn't read well at all, either go for a darker blue or add
+	# contour"): a darker blue, and every label on a coloured face wears a navy contour (WButton)
+	"blue": {"top": Color("4a8ae0"), "bottom": Color("2360bd"), "base": Color("123375"), "text": Color("ffffff")},
 	"slate": {"top": Color("4a5670"), "bottom": Color("2f3a50"), "base": Color("141b2b"), "text": Color("fff6dc")},
 	"red": {"top": Color("ff7d6a"), "bottom": Color("e2402f"), "base": Color("8c1f14"), "text": Color("fff6dc")},
 	"locked": {"top": Color("8f98ab"), "bottom": Color("6b7488"), "base": Color("363c4a"), "text": Color("fff6dc")},
@@ -84,11 +86,24 @@ const TAG_GOLD := Color("f5b82a")
 const TAG_GREEN := Color("5fc43a")
 const TAG_RED := Color("e2402f")
 const TAG_PURPLE := Color("a650e8")
+## Pass 123 (Garry: "Mutation Icons looks too much like Epic Rarity Items. Change that to be some other colour"): the
+## mutations' own teal, on frames, tags and their kind word; no rarity wears it.
+## Pass 123: the half-transparent sheet the menus' boards sit on (ScreenBase.board_sheet).
+const SHEET := Color(0.05, 0.075, 0.17, 0.72)
+const SHEET_EDGE := Color(0.055, 0.12, 0.29, 0.9)
+const MUTATION_FILL := Color("12a898")
+const TAG_MUTATION := Color("12a898")
+const MUTATION := {"light": Color("86f2e2"), "base": Color("12a898"), "dark": Color("0a665d"), "rim": Color("b9fff3"), "glow": Color(0.07, 0.8, 0.7, 0.75)}
+## Pass 123 (Garry: "Make the highlighted numbers in the text be yellowish-white instead of just white"): the bold numbers
+## in body text (WText.bold_color through W.serif_text).
+const NUMBER_HI := Color("ffe48a")
 const TAG_EDGE := 3
 const TAG_PX := 18
 ## The level plaque hanging off an item frame's bottom centre: blue, a navy edge, "LV n" (a plain "n" at 80 px).
-const PLAQUE_TOP := Color("5a9cf5")
-const PLAQUE_BOTTOM := Color("2a62c4")
+## Pass 123 (Garry: "Change the number to be black text on white, cz white on blue doesn't read very well"; "Evo can stay
+## on yellow(ish) bg"): a white plaque with black type.
+const PLAQUE_TOP := Color("ffffff")
+const PLAQUE_BOTTOM := Color("e4e8ef")
 ## The docked tabs: the active one gold and taller (74 against 62).
 const TAB_H := 62
 const TAB_H_ACTIVE := 74
@@ -158,7 +173,7 @@ const PLAQUE_PAD_FRAC := 0.54
 const PLAQUE_EDGE := 4
 const PLAQUE_EDGE_SMALL := 3
 const PLAQUE_PLAIN_AT := 80.0
-const PLAQUE_TEXT := Color("ffffff")
+const PLAQUE_TEXT := Color("0b0d14")
 const PLAQUE_EVO_TOP := Color("ffdc73")
 const PLAQUE_EVO_BOTTOM := Color("f5b82a")
 const PLAQUE_EVO_TEXT := NAVY
@@ -374,3 +389,95 @@ static func plate(ci: RID, rect: Rect2, radius: int = RADIUS) -> void:
 	RenderingServer.canvas_item_add_rect(ci, Rect2(Vector2(rect.position.x, rect.end.y - px), Vector2(rect.size.x, px)), PLATE_INSET)
 	RenderingServer.canvas_item_add_rect(ci, Rect2(rect.position, Vector2(px, rect.size.y)), PLATE_INSET)
 	RenderingServer.canvas_item_add_rect(ci, Rect2(Vector2(rect.end.x - px, rect.position.y), Vector2(px, rect.size.y)), PLATE_INSET)
+
+
+# --- pass 123 (lane KIT2): the pieces the remaining Royale screens share ------------------------------------------------
+## The docked bottom tab bar (the mock 5_Main_menu; ui/wanted/WTabBar.gd): a band DOCK_BAR_H tall at the foot (above the
+## phone's gesture bar, W.safe_bottom) in DOCK_BAR_TOP -> DOCK_BAR_BOTTOM under a 4 px navy top edge and a 10 % white
+## lip; five tabs DOCK_SIDE in from either side, DOCK_GAP apart, DOCK_TAB_H tall, the open one DOCK_TAB_H_ACTIVE tall and
+## DOCK_ACTIVE_FLEX times as wide; each the game's own icon (DOCK_ICON tall, the open one's DOCK_ICON_ACTIVE) over its
+## word (DOCK_WORD_PX: Rubik 700 by the Ultra minimum; the open one's DOCK_WORD_ACTIVE_PX Ultra in navy); a round
+## DOCK_BADGE badge (the STORE's lock, the Upgrade's "!") hanging DOCK_BADGE_OUT off the tab's top-right corner.
+const DOCK_BAR_H := 200
+const DOCK_BAR_TOP := Color("27314a")
+const DOCK_BAR_BOTTOM := Color("1a2238")
+const DOCK_BAR_EDGE := 4
+const DOCK_BAR_LIP := 0.1
+const DOCK_TAB_H := 176
+const DOCK_TAB_H_ACTIVE := 224
+const DOCK_ACTIVE_FLEX := 1.4
+const DOCK_SIDE := 24
+const DOCK_GAP := 10
+const DOCK_ICON := 84
+const DOCK_ICON_ACTIVE := 104
+## the HEROES tab's icon: the played hero's round badge DOCK_PORTRAIT px across in a DOCK_PORTRAIT_RING px navy ring
+const DOCK_PORTRAIT := 80
+const DOCK_PORTRAIT_RING := 4
+const DOCK_WORD_PX := 22
+const DOCK_WORD_ACTIVE_PX := 28
+const DOCK_BADGE := 46
+const DOCK_BADGE_RING := 4
+const DOCK_BADGE_OUT := Vector2(12, 16)
+const DOCK_BADGE_FILL := Color("2f3a50")
+## A refused tap on a locked tab: it shakes sideways DOCK_SHAKE_PX and settles in DOCK_SHAKE_S (the Stages' closed card's).
+const DOCK_SHAKE_PX := 14.0
+const DOCK_SHAKE_S := 0.32
+## The menu header (the mocks 5_Upgrade, 10_Collection, 10_Settings): the back square HEADER_BACK px at HEADER_POS, a slate
+## button on its base; the screen's name HEADER_TITLE_PX Ultra in cream at HEADER_TITLE_X, HEADER_TITLE_Y (shrunk to fit
+## the room to the wallet, never under HEADER_TITLE_MIN); whatever sits top-right HEADER_RIGHT_Y down, HEADER_POS.x in.
+const HEADER_POS := Vector2(40, 56)
+const HEADER_BACK := 96
+const HEADER_BACK_PX := 60
+const HEADER_TITLE_PX := 64
+const HEADER_TITLE_X := 160
+const HEADER_TITLE_Y := 70
+const HEADER_TITLE_MIN := 36
+const HEADER_RIGHT_Y := 68
+## The wallet: a black plate WALLET_H tall, WALLET_PAD (left, right) inside, the coin and the number WALLET_GAP apart, the
+## number white Ultra at WALLET_SCALE of the Wanted plate's size (44 -> 34) with a soft drop (WALLET_DROP px, 60 % black).
+const WALLET_H := 72
+const WALLET_PAD := Vector2(14, 20)
+const WALLET_GAP := 10
+const WALLET_SCALE := 34.0 / 44.0
+const WALLET_DROP := 2
+const WALLET_DROP_COLOR := Color(0, 0, 0, 0.6)
+## The black info pill (run summaries, the trait, "◷ 7:10 to the boss", "01:01 · STAGE 1"): PILL_H tall, PILL_PAD at
+## either side, PILL_RADIUS corners, Rubik 500 PILL_PX white (a bold part 700), pieces PILL_GAP apart.
+const PILL_H := 48
+const PILL_PX := 26
+const PILL_PAD := 16
+const PILL_RADIUS := 6
+const PILL_GAP := 8
+## A price button (the mocks 8_Shop_24_gold, 5_Upgrade): PRICE_H tall, PRICE_PX type, the coin PRICE_COIN; short of gold,
+## the locked grey with its label in LOCKED_TEXT and "n short" (SHORT_PX Rubik 700 in red) SHORT_GAP before it.
+const PRICE_H := 64
+const PRICE_PX := 28
+const PRICE_COIN := 28.0
+const LOCKED_TEXT := Color("d2d7e0")
+const SHORT_PX := 22
+const SHORT_GAP := 16
+## The modal shell (WConfirm, the mocks 10_Confirm / 10_Consent / 10_Survey / 5_Hero_details): MODAL_W wide (R.MODAL_W),
+## MODAL_PAD inside its edge, the star line MODAL_STAR_PX Ultra tracked MODAL_STAR_EM, the title MODAL_TITLE_PX cream (Garry:
+## "White header"), the body MODAL_BODY_PX Rubik 500 white at MODAL_BODY_LH, MODAL_GAP between them, the buttons
+## MODAL_BUTTON_H tall (MODAL_BUTTON_PX type) MODAL_BUTTON_GAP apart on the card's foot, the card at least MODAL_MIN_H
+## tall; its top MODAL_TOP_AT of the room above and below it (MODAL_TOP_AT_TALL for a card taller than MODAL_TALL).
+const MODAL_PAD := Vector2(36, 30)
+const MODAL_STAR_PX := 30
+const MODAL_STAR_EM := 0.3
+const MODAL_TITLE_PX := 72
+const MODAL_BODY_PX := 28
+const MODAL_BODY_LH := 1.35
+const MODAL_GAP := 22
+const MODAL_BUTTON_H := 106
+const MODAL_BUTTON_PX := 38
+const MODAL_BUTTON_GAP := 24
+const MODAL_MIN_H := 520
+const MODAL_TOP_AT := 0.4
+const MODAL_TOP_AT_TALL := 0.5
+const MODAL_TALL := 900.0
+const MODAL_LINK_PX := 20
+## The solid board under a page (Garry, the Collection's item page: "Make it sit on a more solid background, not just
+## hover in the air"): the slate panel as one sheet, with CELL cells inside it (a level, a mutation column) in place of
+## the mock's see-through black; CELL_EDGE px navy, corners RADIUS, no base.
+const CELL := Color("1b2339")
+const CELL_EDGE := 3

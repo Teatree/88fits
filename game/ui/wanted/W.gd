@@ -150,6 +150,33 @@ static func wanted_serif(weight: int = 400, italic: bool = false, track: int = 0
 	return _variant(SERIF_ITALIC_PATH if italic else SERIF_PATH, weight, track)
 
 
+## Body text held to the Wanted face and `color` whatever the theme, bold numbers as serif_text sets them (pass 123: the
+## paper posters; Garry: "Change all of the font colours on those elements to be what they were before").
+static func wanted_serif_text(t: String, size: int, color: Color = INK, weight: int = 400, italic: bool = false,
+		align: int = HORIZONTAL_ALIGNMENT_LEFT, line_h: float = -1.0, wrap: bool = false) -> WText:
+	var w := WText.new()
+	w.font = wanted_serif(weight, italic)
+	w.font_size = size
+	w.color = color
+	w.align = align
+	w.line_height = size * 1.3 if line_h < 0.0 else line_h
+	w.wrap = wrap
+	w.text = t
+	w.bold_font = wanted_serif(BOLD_WEIGHT, italic)
+	w.bold_numbers = true
+	return w
+
+
+## A tracked uppercase label held to the Wanted face whatever the theme (pass 123, the paper posters).
+static func wanted_label(t: String, size: int = 20, color: Color = INK_SOFT, em_frac: float = 0.15) -> WText:
+	var w := WText.new()
+	w.font = wanted_serif(600, false, em(size, em_frac))
+	w.font_size = size
+	w.color = color
+	w.text = t.to_upper()
+	return w
+
+
 ## The display face for text at `size` (pass 122): the slab, or under Royale Rubik 700 where Ultra would fill in (a size
 ## under R.ULTRA_MIN, 28 px: Garry, "NO Ultra under about 28 px in 1080 space").
 static func slab_for(size: int, track: int = 0) -> Font:
@@ -222,6 +249,8 @@ static func serif_text(t: String, size: int, color: Color = INK, weight: int = 4
 	if bold:
 		w.bold_font = serif(BOLD_WEIGHT, italic)
 		w.bold_numbers = true
+		if royale():
+			w.bold_color = R.NUMBER_HI
 	return w
 
 
@@ -548,6 +577,233 @@ static func safe_top() -> float:
 		return 0.0
 	_safe_cache = inset_px * ml.root.get_visible_rect().size.x / float(win.x)
 	return _safe_cache
+
+
+# --- the phone's bottom edge (pass 123, lane KIT2) ----------------------------------------------------------------------
+static var _safe_b_cache := 0.0
+static var _safe_b_frame := -1
+## A fixed bottom inset (design px) for tools and tests; -1 = the display's own (a phone's gesture bar).
+static var bottom_inset_override := -1.0
+
+
+## The bottom inset (design px) a docked bar keeps clear of the phone's gesture bar or navigation buttons: the window's
+## foot less the display's safe area's, converted to canvas pixels as safe_top does (a Settings `bottom_inset` >= 0, when
+## the setting exists, or bottom_inset_override wins). 0 on the PC (no gesture bar; a window taller than its screen would
+## read as one) and headless.
+static func safe_bottom() -> float:
+	if bottom_inset_override >= 0.0:
+		return bottom_inset_override
+	var s := node("Settings")
+	if s:
+		var fixed = s.get("bottom_inset")
+		if fixed != null and int(fixed) >= 0:
+			return float(fixed)
+	var f := Engine.get_process_frames()
+	if f == _safe_b_frame:
+		return _safe_b_cache
+	_safe_b_frame = f
+	_safe_b_cache = 0.0
+	var ml := Engine.get_main_loop() as SceneTree
+	if ml == null or ml.root == null or DisplayServer.get_name() == "headless":
+		return 0.0
+	# only a phone has a gesture bar: a desktop window taller than its screen (a 1080 x 1920 capture) would read the part
+	# below the taskbar as one
+	if not OS.has_feature("mobile"):
+		return 0.0
+	var win := DisplayServer.window_get_size()
+	if win.x <= 0 or win.y <= 0:
+		return 0.0
+	var safe := DisplayServer.get_display_safe_area()
+	var foot := float(DisplayServer.window_get_position().y + win.y)
+	var inset_px := foot - float(safe.position.y + safe.size.y)
+	# a desktop window sits a few pixels off its screen's safe area (or past it); only a real bar counts
+	if inset_px < 12.0:
+		return 0.0
+	_safe_b_cache = inset_px * ml.root.get_visible_rect().size.x / float(win.x)
+	return _safe_b_cache
+
+
+# --- pass 123 (lane KIT2): the small pieces the Royale screens share -----------------------------------------------------
+## A glyph drawn in code, for what Ultra and Rubik do not carry (no ● ◷ ▶ ≡ or padlock in either face): "ad" (a video
+## ad's icon, a rounded screen with a play triangle in it: Garry, "instead of text let's use an icon. An icon that's
+## usually used for ads buttons"), "play" (▶), "lock" (a padlock), "clock" (◷) and "menu" (≡). `px` is its height;
+## `col` its colour; `accent` the colour cut into it (the ad's triangle, the lock's keyhole), clear = navy on a light
+## glyph and cream on a dark one. Drawn only when it redraws (no work a frame). Named Glyph_<kind>, meta "glyph".
+static func glyph(kind: String, px: float, col: Color, accent: Color = Color(0, 0, 0, 0)) -> Control:
+	var c := Control.new()
+	c.name = "Glyph_%s" % kind
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.custom_minimum_size = glyph_size(kind, px)
+	c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	c.set_meta("glyph", kind)
+	c.draw.connect(func() -> void: draw_glyph(c, kind, Rect2(Vector2.ZERO, c.size), col, accent))
+	return c
+
+
+## A glyph's box at `px` tall (the ad's screen is wider than tall, the padlock narrower).
+static func glyph_size(kind: String, px: float) -> Vector2:
+	match kind:
+		"ad":
+			return Vector2(roundf(px * 1.36), px)
+		"lock":
+			return Vector2(roundf(px * 0.82), px)
+		"menu":
+			return Vector2(roundf(px * 1.1), px)
+	return Vector2(px, px)
+
+
+## Draws glyph `kind` into `r` on `ci` (any CanvasItem, in its _draw or draw signal).
+static func draw_glyph(ci: CanvasItem, kind: String, r: Rect2, col: Color, accent: Color = Color(0, 0, 0, 0)) -> void:
+	var cut := accent if accent.a > 0.0 else (R.NAVY if col.get_luminance() > 0.5 else R.CREAM)
+	var h := r.size.y
+	var w := r.size.x
+	match kind:
+		"ad":
+			var scr := Rect2(r.position + Vector2(0.0, h * 0.08), Vector2(w, h * 0.84))
+			ci.draw_style_box(R.flat(col, maxi(int(round(h * 0.2)), 2)), scr)
+			var c := scr.get_center() + Vector2(h * 0.04, 0.0)
+			var t := h * 0.25
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-t * 0.8, -t), c + Vector2(-t * 0.8, t), c + Vector2(t, 0.0)]), cut)
+		"play":
+			ci.draw_colored_polygon(PackedVector2Array([r.position + Vector2(w * 0.14, 0.0), r.position + Vector2(w * 0.14, h),
+				r.position + Vector2(w * 0.96, h * 0.5)]), col)
+		"lock":
+			var sw := maxf(h * 0.13, 2.0)
+			var sc := Vector2(r.position.x + w * 0.5, r.position.y + h * 0.38)
+			var sr := w * 0.3
+			ci.draw_arc(sc, sr, PI, TAU, 18, col, sw, true)
+			ci.draw_line(sc + Vector2(-sr, 0.0), sc + Vector2(-sr, h * 0.1), col, sw)
+			ci.draw_line(sc + Vector2(sr, 0.0), sc + Vector2(sr, h * 0.1), col, sw)
+			var body := Rect2(r.position + Vector2(0.0, h * 0.44), Vector2(w, h * 0.56))
+			ci.draw_style_box(R.flat(col, maxi(int(round(h * 0.1)), 1)), body)
+			var kc := body.get_center() + Vector2(0.0, -h * 0.05)
+			ci.draw_circle(kc, h * 0.075, cut, true, -1.0, true)
+			ci.draw_rect(Rect2(kc + Vector2(-h * 0.035, 0.0), Vector2(h * 0.07, h * 0.15)), cut)
+		"clock":
+			var cw := maxf(h * 0.12, 2.0)
+			var cc := r.get_center()
+			var rad := minf(w, h) * 0.5 - cw * 0.5
+			ci.draw_arc(cc, rad, 0.0, TAU, 32, col, cw, true)
+			ci.draw_line(cc, cc + Vector2(0.0, -rad * 0.62), col, cw, true)
+			ci.draw_line(cc, cc + Vector2(rad * 0.5, 0.0), col, cw, true)
+		"menu":
+			var bh := maxf(roundf(h * 0.17), 2.0)
+			for k in 3:
+				var y := r.position.y + h * 0.14 + (h * 0.72 - bh) * float(k) * 0.5
+				ci.draw_style_box(R.flat(col, maxi(int(bh * 0.5), 1)), Rect2(Vector2(r.position.x, y), Vector2(w, bh)))
+
+
+## The black info pill (pass 123; README "Info plate / pill", the mocks' run pills, the trait "+1% CRIT per Level",
+## "◷ 7:10 to the boss", "01:01 · STAGE 1"): R.PLATE (56 % black) with the 2 px white inset, no edge, no base, PILL_RADIUS
+## corners, PILL_PAD at either side, `h` tall, the pieces centred PILL_GAP apart. `parts` is a String or an Array of
+## String / [text, colour] / [text, colour, "bold" or a Font] / {"coin": px} / {"glyph": kind, "px": n}; the text is
+## Rubik 500 at `px` in `color` (white; a part's own colour wins), a "bold" part Rubik 700; consecutive text parts are one
+## line (their own spaces between). Under Wanted the paper plate with ink Bitter, so a pill built there still reads.
+static func pill(parts, px: int = R.PILL_PX, h: float = R.PILL_H, color: Color = Color(0, 0, 0, 0)) -> PanelContainer:
+	var royale_on := royale()
+	var ink := color if color.a > 0.0 else (R.WHITE if royale_on else INK)
+	var body: Font = R.body(R.BODY_WEIGHT) if royale_on else serif(400)
+	var bold: Font = R.body(R.LABEL_WEIGHT) if royale_on else serif(BOLD_WEIGHT)
+	var p := PanelContainer.new()
+	p.name = "Pill"
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", plate_box(3, 0, R.PILL_RADIUS if royale_on else 0).pad(R.PILL_PAD, 0, R.PILL_PAD, 0))
+	p.custom_minimum_size.y = h
+	var row := HBoxContainer.new()
+	row.name = "Row"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", R.PILL_GAP)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(row)
+	var list: Array = parts if parts is Array else [str(parts)]
+	var runs: Array = []
+	var flush := func() -> void:
+		if runs.is_empty():
+			return
+		var t := text("", body, px, ink, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		t.runs = runs.duplicate()
+		t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(t)
+		runs.clear()
+	for part in list:
+		if part is Dictionary:
+			flush.call()
+			var d := part as Dictionary
+			if d.has("coin"):
+				row.add_child(WCoin.make(float(d["coin"]), d.get("fill", BRASS), float(d.get("border", 3.0)), str(d.get("currency", "gold"))))
+			elif d.has("glyph"):
+				row.add_child(glyph(str(d["glyph"]), float(d.get("px", px)), d.get("color", ink)))
+		elif part is Array:
+			var a := part as Array
+			var col = a[1] if a.size() > 1 else null
+			var f = null
+			if a.size() > 2 and a[2] is Font:
+				f = a[2]
+			elif a.size() > 2 and str(a[2]) == "bold":
+				f = bold
+			runs.append([str(a[0]), col, f])
+		else:
+			runs.append([str(part), null, null])
+	flush.call()
+	return p
+
+
+## "n short" (pass 123; the mock 8_Shop_24_gold): what a price is short of the purse, Rubik 700 in red (ROCK under Wanted).
+static func short_text(n: int, px: int = R.SHORT_PX) -> WText:
+	var royale_on := royale()
+	var t := text("%s short" % num(n), R.body(R.LABEL_WEIGHT) if royale_on else serif(600), px,
+		R.ROLES["red"]["top"] if royale_on else ROCK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	t.name = "Short"
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return t
+
+
+## A price button with its shortfall (pass 123; the mocks 8_Shop_24_gold, 5_Upgrade): an HBox named "Price", right
+## aligned: "n short" (named "Short", shown only when `short` > 0) R.SHORT_GAP before the button (named "Button",
+## WButton.price: "● 300 · BUY" in `role`, or the locked grey with the price alone when short). Wire the button's
+## `pressed` (price_button_of(row)); a short button still emits it (WTap's locked rule), so the screen can say why.
+static func price_row(amount: int, word: String = "", p_role: String = "green", px: int = R.PRICE_PX, short: int = 0,
+		currency: String = "gold") -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "Price"
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", R.SHORT_GAP)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var s := short_text(maxi(short, 0))
+	s.visible = short > 0
+	row.add_child(s)
+	var b := WButton.price(amount, word, p_role, px, short, currency)
+	b.name = "Button"
+	row.add_child(b)
+	return row
+
+
+## The button inside a price_row.
+static func price_button_of(row: Control) -> WButton:
+	if row == null:
+		return null
+	return row.get_node_or_null("Button") as WButton
+
+
+## A solid slate board (pass 123; Garry on the Collection's item page: "Make it sit on a more solid background, not just
+## hover in the air"): the slate panel (HardBox role "panel": the gradient, a 4 px navy edge, the 8 px navy base, the
+## lip) as one sheet behind a whole page, `pad` inside its edge. Under Wanted ScreenBase.board's paper box.
+static func sheet_box(pad: Vector2 = Vector2(24, 24)) -> HardBox:
+	var royale_on := royale()
+	var e := R.PANEL_EDGE if royale_on else 5
+	var b := box(PAPER, e, R.PANEL_BASE, 0).pad(pad.x + e, pad.y + e, pad.x + e, pad.y + e)
+	if royale_on:
+		b.role = "panel"
+	return b
+
+
+## A solid cell inside a sheet (pass 123): R.CELL, opaque, a 3 px navy edge, 6 px corners, no base (a level's cell, a
+## mutation's column: the mock's see-through black made solid). Under Wanted an aged box with a 3 px ink edge.
+static func cell_box(pad: Vector2 = Vector2(16, 14)) -> HardBox:
+	var royale_on := royale()
+	var e := R.CELL_EDGE
+	var b := box(R.CELL if royale_on else AGED, e, 0, R.RADIUS if royale_on else 0)
+	return b.pad(pad.x + e, pad.y + e, pad.x + e, pad.y + e)
 
 
 # --- autoloads, looked up at run time (tool scripts compile before the autoloads exist) ---------------------------------

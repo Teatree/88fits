@@ -305,7 +305,12 @@ func test_the_layout_is_the_same_under_both_themes() -> void:
 	assert_bool(r.buttons.get_global_rect().is_equal_approx(w_buttons)).is_true()
 	assert_bool(r._rail.get_global_rect().is_equal_approx(w_rail)).is_true()
 	assert_float(r.header.offset_top).is_equal_approx(w_head, 0.5)
-	assert_bool(r._path_skip.get_global_rect().is_equal_approx(w_skip)).is_true()
+	# pass 123 (lane RUN_C, re-pinned): the mutation offer's SKIP is the mock's 590 x 106 under Royale (Garry: "Mutation
+	# offer as the mock"), on the same foot and middle as today's 430 x 108
+	var r_skip := r._path_skip.get_global_rect()
+	assert_float(r_skip.size.x).is_equal_approx(CardScreen.ROYALE_SKIP_W, 0.5)
+	assert_float(r_skip.end.y).is_equal_approx(w_skip.end.y, 0.5)
+	assert_float(r_skip.get_center().x).is_equal_approx(w_skip.get_center().x, 0.5)
 	assert_bool(r._list.scale.is_equal_approx(w_scale)).is_true()
 	assert_int(r._cards.size()).is_equal(3)
 	for i in r._cards.size():

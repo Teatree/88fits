@@ -86,7 +86,7 @@ static func tag_color(t: String) -> Color:
 ## Pass 122 (lane UIKIT_B), the Royale tag table (README section 3, Garry's brief): NEW gold, UPGRADE (and BEATEN,
 ## UNLOCKED, SAFE) green, LOCKED and a price short red, EVOLUTION / EVOLVED and the mutations purple; anything else slate.
 const TAG_ROYALE := {"NEW": "gold", "UPGRADE": "green", "BEATEN": "green", "UNLOCKED": "green", "SAFE": "green",
-	"LOCKED": "red", "EVOLUTION": "purple", "EVOLVED": "purple", "MUTATION": "purple"}
+	"LOCKED": "red", "EVOLUTION": "purple", "EVOLVED": "purple", "MUTATION": "teal"}
 
 
 ## The tag's fill under Royale.
@@ -100,6 +100,8 @@ static func tag_fill(t: String) -> Color:
 			return R.TAG_RED
 		"purple":
 			return R.TAG_PURPLE
+		"teal":
+			return R.TAG_MUTATION
 	return R.role("slate")["top"]
 
 

@@ -3,7 +3,7 @@
   "name": "Nerve",
   "flavour": "Pass on one more, or get back up.",
   "order": 2,
-  "ranks": 6,
+  "ranks": 7,
   "currency_type": "gold",
   "cost": [
     150,
@@ -11,7 +11,8 @@
     1350,
     2400,
     3750,
-    5400
+    5400,
+    7350
   ],
   "base_stats": {
     "revive_hp": 0.4
@@ -19,7 +20,8 @@
   "forms": [
     {
       "name": "Skip",
-      "text": "+1 skip a stage, a rank.",
+      "text": "+1 skip a stage, a rank; +2 at rank 7.",
+      "top_mult": 2,
       "effects": [
         {
           "stat": "skips",
@@ -31,7 +33,8 @@
     },
     {
       "name": "Second Wind",
-      "text": "+10% health on revive a rank: 40% up to 100%.",
+      "text": "+10% health on revive a rank, +15% at rank 7: 40% up to 100%, past that 1 s untouchable for each 10%.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "revive_hp",

@@ -201,9 +201,9 @@ func test_the_upgrade_tiles_price_on_paper_and_six_notches_fit() -> void:
 	h.visible = false
 
 
-func test_a_full_talent_reads_its_six_ranks() -> void:
+func test_a_full_talent_reads_its_seven_ranks() -> void:
 	_fresh_save()
-	Save.data["talents"] = {"grit": {"form": 0, "rank": 6}}
+	Save.data["talents"] = {"grit": {"form": 0, "rank": 7}}
 	var h: Control = auto_free(load("res://ui/HomesteadScreen.tscn").instantiate())
 	add_child(h)
 	await get_tree().process_frame
@@ -211,8 +211,9 @@ func test_a_full_talent_reads_its_six_ranks() -> void:
 	await get_tree().process_frame
 	var sheet: Control = h._sheet_root.find_child("Sheet", true, false)
 	var said := _texts(sheet)
-	assert_str(said).contains("Rank 6 of 6 owned")
-	assert_str(said).contains("+60% max HP")
+	assert_str(said).contains("Rank 7 of 7 owned")
+	# six ranks of +10% and the seventh's +15% (pass 123)
+	assert_str(said).contains("+75% max HP")
 	var buy: WButton = sheet.find_child("Buy", true, false)
 	assert_str(buy.label_text()).is_equal("FULL")
 	assert_bool(buy.locked).is_true()
@@ -224,23 +225,24 @@ func test_a_full_talent_reads_its_six_ranks() -> void:
 
 # ---------------------------------------------------------------- six ranks
 
-func test_every_talent_has_six_ranks_on_the_steepening_curve() -> void:
+func test_every_talent_has_seven_ranks_on_the_steepening_curve() -> void:
 	# (pass 110, lane ECON, re-pinned: Garry's "Mirror costs should be more exponential (Polynomial) ... Starting point
 	# prices should stay the same": rank k costs k x k times the first, was x1.8, x3, x4.5, x6.5, x9)
-	var mult := [1.0, 4.0, 9.0, 16.0, 25.0, 36.0]
+	# (pass 123: "Add 1 more upgrade slot to all ... the extra slot, higher cost and higher increase": 49 x the first)
+	var mult := [1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0]
 	assert_int(Registry.talents_list().size()).is_equal(8)
 	for td: TalentDef in Registry.talents_list():
-		assert_int(td.ranks).override_failure_message(td.id).is_equal(6)
-		assert_int(td.max_rank()).is_equal(6)
-		assert_int(td.cost.size()).override_failure_message(td.id + " prices").is_equal(6)
+		assert_int(td.ranks).override_failure_message(td.id).is_equal(7)
+		assert_int(td.max_rank()).is_equal(7)
+		assert_int(td.cost.size()).override_failure_message(td.id + " prices").is_equal(7)
 		var first := int(td.cost[0])
-		for k in range(6):
+		for k in range(7):
 			# every rank k x k times the first (pass 110; the first rank's price is pass 88's)
 			assert_int(int(td.cost[k])).override_failure_message("%s rank %d" % [td.id, k + 1]).is_equal(int(round(first * float(mult[k]))))
 			if k > 0:
 				assert_int(int(td.cost[k])).is_greater(int(td.cost[k - 1]))
-		assert_int(td.cost_of_rank(5)).is_equal(int(td.cost[5]))
-		assert_int(td.cost_of_rank(6)).is_equal(-1)
+		assert_int(td.cost_of_rank(6)).is_equal(int(td.cost[6]))
+		assert_int(td.cost_of_rank(7)).is_equal(-1)
 
 
 func test_second_wind_is_revive_health_a_rank() -> void:

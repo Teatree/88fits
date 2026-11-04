@@ -3,7 +3,7 @@
   "name": "Drive",
   "flavour": "Hit harder, or hit sooner.",
   "order": 5,
-  "ranks": 6,
+  "ranks": 7,
   "currency_type": "gold",
   "cost": [
     375,
@@ -11,12 +11,14 @@
     3375,
     6000,
     9375,
-    13500
+    13500,
+    18375
   ],
   "forms": [
     {
       "name": "Muscle",
-      "text": "+8% attack damage a rank.",
+      "text": "+8% attack damage a rank, +12% at rank 7.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "might",
@@ -28,7 +30,8 @@
     },
     {
       "name": "Tempo",
-      "text": "-6% cooldown a rank.",
+      "text": "-6% cooldown a rank, -9% at rank 7.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "cooldown",

@@ -91,7 +91,7 @@ var fire_forward: bool = false
 ## rule) or a passive item's rarity, as the mock. An evolved item is the black face in the rainbow rim either way. Only
 ## the Royale HUD reads it (the Wanted plates keep their level colours); the in-run debug panel's button flips it; the
 ## production build holds it off.
-var hud_slot_rarity: bool = false
+var hud_slot_rarity: bool = true
 ## The debug arena's training dummies (pass 48, the developer menu and the arena's WORLD tab; lane L5 lays them out):
 ## how many stand in the field (never fewer than 10), and their health: 0 = undying (a hit refills them), else that much
 ## HP, and one that dies comes back.
@@ -230,7 +230,7 @@ func to_dict() -> Dictionary:
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 		"menu_style": menu_style, "ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
 		"hero_knockback": hero_knockback, "fire_forward": fire_forward, "ui_theme": ui_theme,
-		"hud_slot_rarity": hud_slot_rarity,
+		"hud_slot_rarity2": hud_slot_rarity,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
@@ -265,7 +265,9 @@ func from_dict(d: Dictionary) -> void:
 	hero_knockback = bool(d.get("hero_knockback", hero_knockback))
 	fire_forward = bool(d.get("fire_forward", fire_forward))
 	ui_theme = str(d.get("ui_theme", ui_theme))
-	hud_slot_rarity = bool(d.get("hud_slot_rarity", hud_slot_rarity))
+	# pass 123 (Garry: "Weapon Rarity isn't displayed at the top left"): on by default; a new key, so a save written with
+	# pass 122's default (off) plays the new one
+	hud_slot_rarity = bool(d.get("hud_slot_rarity2", hud_slot_rarity))
 	dummy_count = int(d.get("dummy_count", dummy_count))
 	dummy_hp = int(d.get("dummy_hp", dummy_hp))
 	dummy_patrol = bool(d.get("dummy_patrol", dummy_patrol))

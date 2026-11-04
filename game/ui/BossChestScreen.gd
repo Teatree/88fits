@@ -19,6 +19,15 @@
 ## A tap before the burst goes straight to it; a tap during the spew hurries the rest into HURRY seconds (hurry); CLAIM
 ## (claim) closes and Game pays out. A tool claims at once (claim finishes the count first). Raw touch and the mouse both
 ## tap (the button is a WButton); RunReplay records the hurry and the claim.
+## Pass 123 (lane RUN_B), under Royale (W.royale(); Wanted is drawn exactly as before): the mock 8_Boss_chest with Garry's
+## note ("Boss chest as the mock: speed bonus panel, the painted chest and loot party kept, GOLD and EXP panels, CLAIM in
+## gold"; "Header text white"): "★ BOSS CHEST ★" in the kit's gold over the boss's chest's name in cream Ultra (fitted);
+## the SPEED BONUS a slate panel across the screen (ROYALE_SIDE in, ROYALE_METER_Y down, ROYALE_METER_H tall): the label,
+## "Killed in" with the time in bold white at its right, the multiplier gold Ultra with the bevel (secondary blue at x1),
+## the kit's gold bar from x1 to the map's top with its two ends under it; the chest, its light, the shine and the loot
+## party as before; the banner (BOSS LOOT! .. JACKPOT!) gold Ultra with the navy edge, the bevel and the drop; GOLD and
+## EXP slate panels (ROYALE_GAP apart, as wide as the meter between them) with the label, the kit's coin or the purple
+## gem, and the count big in gold Ultra; CLAIM the kit's gold. The beats, the counts and the timings are as before.
 class_name BossChestScreen
 extends WModal
 
@@ -93,6 +102,26 @@ enum Loot { COIN, GEM, CHIP, NOTE, SCRAP, STAR }
 const FOUNTAIN_MIX := [0.5, 0.25, 0.1, 0.05, 0.0, 0.1]
 const DRIFT_MIX := [0.15, 0.1, 0.2, 0.22, 0.18, 0.15]
 const CHIP_COLOURS := [Color("b4472b"), Color("3e6e9e"), Color("241b14"), Color("6e8b5e")]
+## Pass 123 (lane RUN_B), the Royale layout (the mock 8_Boss_chest, canvas px): the panels' side margin and the gap between
+## GOLD and EXP; the speed bonus panel's top (under the header, + the cutout) and height, its padding, where its bar starts
+## and how tall it is; the label, the time, the multiplier's and the bar ends' type; a counter's label, icon and number.
+const ROYALE_SIDE := 48.0
+const ROYALE_GAP := 30.0
+const ROYALE_METER_Y := 300.0
+const ROYALE_METER_H := 172.0
+const ROYALE_PAD := 32.0
+const ROYALE_BAR_X := 144.0
+const ROYALE_BAR := Vector2(62.0, 26.0)
+const ROYALE_LABEL_PX := 22
+const ROYALE_TIME_PX := 28
+const ROYALE_MULT_PX := 72
+const ROYALE_END_PX := 20
+const ROYALE_COUNT_PX := 76
+const ROYALE_COUNT_SMALL_PX := 60
+const ROYALE_COIN_PX := 76.0
+## the counter's icon (as the flying pieces aim at it: 74 px in, 58 % down) and its number's left edge
+const ROYALE_ICON_X := 74.0
+const ROYALE_NUM_X := 136.0
 const NOTE_GREEN := Color("b9cf98")
 const NOTE_INK := Color("4e6b3a")
 
@@ -172,7 +201,8 @@ func _ready() -> void:
 	_chest = _layer(_stage, _draw_chest)
 	# pass 119: the party over the chest and under everything that reads (the title, the meter, the banner, the counters)
 	_party = _layer(self, _draw_party)
-	build_header("Boss chest", "CHEST", "", 128, W.BRASS)
+	# pass 123, Royale: the header's words cream (Garry: "Header text white"), set again with the boss's name on open
+	build_header("Boss chest", "CHEST", "", 128, W.PAPER if W.royale() else W.BRASS)
 	_meter = _layer(self, _draw_meter)
 	_banner = _layer(self, _draw_banner)
 	_counters = _layer(self, _draw_counters)
@@ -215,8 +245,10 @@ func open(id: String, p: Dictionary) -> void:
 	_frames = BossChest.paintings(id)
 	_vp = get_viewport_rect().size
 	_layout()
-	header.set_title_fit(str(look["name"]).to_upper(), 128, W.BRASS, _vp.x - 96.0)
-	header.set_star("Boss chest", shine.lightened(0.3))
+	var royale := W.royale()
+	header.set_title_fit(str(look["name"]).to_upper(), 128, W.PAPER if royale else W.BRASS, _vp.x - 96.0)
+	# (Royale: the star line the kit's gold, as every star line over a modal)
+	header.set_star("Boss chest", W.BRASS if royale else shine.lightened(0.3))
 	header.set_line("")
 	(_shine as WShineScript).tint(shine)
 	(_shine as WShineScript).color2 = W.LINE_YELLOW
@@ -264,6 +296,12 @@ func _layout() -> void:
 	_banner_y = (_foot.y + _gold_rect.position.y) * 0.5 + 6.0
 	var top := W.safe_top() + 110.0 + 230.0
 	_meter_rect = Rect2(cx - 400.0, top, 800.0, 156.0)
+	if W.royale():
+		# pass 123: the mock's panels: the meter across the screen under the header, GOLD and EXP as wide as it between them
+		var w2 := (_vp.x - 2.0 * ROYALE_SIDE - ROYALE_GAP) * 0.5
+		_gold_rect = Rect2(ROYALE_SIDE, bottom - COUNTER_H, w2, COUNTER_H)
+		_xp_rect = Rect2(_vp.x - ROYALE_SIDE - w2, bottom - COUNTER_H, w2, COUNTER_H)
+		_meter_rect = Rect2(ROYALE_SIDE, W.safe_top() + ROYALE_METER_Y, _vp.x - 2.0 * ROYALE_SIDE, ROYALE_METER_H)
 
 
 ## The pieces: the coins and the gems in one shuffled order (the screen's own dice: the run's never move), each sent out at
@@ -459,6 +497,22 @@ static func _roll(shown: float, target: float, dt: float) -> float:
 func _redraw() -> void:
 	for c: Control in [_rays, _chest, _party, _meter, _banner, _counters, _fx]:
 		c.queue_redraw()
+	if W.royale():
+		# pass 123: the Royale panels fade in by their layer's alpha (their boxes are the kit's shared ones, drawn opaque)
+		_meter.modulate.a = _meter_alpha()
+		_counters.modulate.a = _counters_alpha()
+	else:
+		_meter.modulate.a = 1.0
+		_counters.modulate.a = 1.0
+
+
+## How far the speed bonus and the counters have come in (0..1), on the screen's clock.
+func _meter_alpha() -> float:
+	return clampf((_t - 0.15) / 0.3, 0.0, 1.0)
+
+
+func _counters_alpha() -> float:
+	return clampf((_t - 0.2) / 0.3, 0.0, 1.0)
 
 
 ## Once only: `key` the first time it is asked (a beat's sound and burst).
@@ -855,6 +909,9 @@ func _draw_meter() -> void:
 	var a := clampf((_t - 0.15) / 0.3, 0.0, 1.0)
 	if a <= 0.0:
 		return
+	if W.royale():
+		_draw_meter_royale(a)
+		return
 	var r := _meter_rect
 	_meter.draw_set_transform(Vector2(0.0, 30.0 * (1.0 - a)), 0.0, Vector2.ONE)
 	_meter.draw_rect(Rect2(r.position + Vector2(8, 8), r.size), Color(W.INK, 0.9 * a))
@@ -891,6 +948,105 @@ func _draw_meter() -> void:
 	_meter.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+## Pass 123: the speed bonus as the mock's slate panel (its alpha is the layer's, _redraw): SPEED BONUS and "Killed in
+## 0:45" on its top line, the multiplier big in gold (secondary at x1, where it says "faster pays more"), the kit's gold bar
+## from x1 to the map's top, filling as the panel comes in, its ends under it.
+func _draw_meter_royale(a: float) -> void:
+	var r := _meter_rect
+	_meter.draw_set_transform(Vector2(0.0, 30.0 * (1.0 - a)), 0.0, Vector2.ONE)
+	panel(_meter, r)
+	var mult := float(pack.get("mult", 1.0))
+	var fight := float(pack.get("fight", -1.0))
+	var label_f := _rfont("label")
+	_meter.draw_string(label_f, r.position + Vector2(ROYALE_PAD, 46.0), "SPEED BONUS", HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_LABEL_PX, R.SECONDARY)
+	# "Killed in" and the time in bold white, right-aligned on the label's line
+	var time_f := _rfont("bold")
+	var lead_f := _rfont("body")
+	var right := r.end.x - ROYALE_PAD
+	# "Killed in" (secondary), the time (bold white), and at x1 " · faster pays more" (secondary), right-aligned
+	var time := W.mmss(fight) if fight >= 0.0 else ""
+	var lead := "Killed in " if fight >= 0.0 else "Boss down"
+	var extra := " · faster pays more" if mult <= 1.001 else ""
+	var y := r.position.y + 46.0
+	var ew := lead_f.get_string_size(extra, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX).x if extra != "" else 0.0
+	var tw := time_f.get_string_size(time, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX).x if time != "" else 0.0
+	var lw := lead_f.get_string_size(lead, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX).x
+	_meter.draw_string(lead_f, Vector2(right - ew - tw - lw, y), lead, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX, R.SECONDARY)
+	if time != "":
+		_meter.draw_string(time_f, Vector2(right - ew - tw, y), time, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX, R.WHITE)
+	if extra != "":
+		_meter.draw_string(lead_f, Vector2(right - ew, y), extra, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX, R.SECONDARY)
+	var bonus := mult > 1.001
+	ultra_string(_meter, r.position + Vector2(ROYALE_PAD, 124.0), times() + _mult_text(mult), HORIZONTAL_ALIGNMENT_LEFT, -1,
+		ROYALE_MULT_PX, R.GOLD_TEXT if bonus else R.SECONDARY, 1.0, bonus)
+	# the bar: x1 at its left, the map's top at its right, filled to this kill's bonus as the panel comes in
+	var tl = Run.map.timeline if Run.map else null
+	var top := float(BossChest.config(tl)["max_mult"])
+	var g := Rect2(r.position + Vector2(ROYALE_BAR_X, ROYALE_BAR.x), Vector2(r.size.x - ROYALE_BAR_X - ROYALE_PAD, ROYALE_BAR.y))
+	var fill := clampf((mult - 1.0) / maxf(top - 1.0, 0.0001), 0.0, 1.0) * clampf((_t - 0.3) / 0.6, 0.0, 1.0)
+	WBar.paint(_meter, g, fill, R.BAR_GOLD, R.BAR_GOLD_LIP, 3.0)
+	var end_f := _rfont("end")
+	var ey := g.end.y + 30.0
+	_meter.draw_string(end_f, Vector2(g.position.x, ey), times() + "1", HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_END_PX, R.WHITE)
+	_meter.draw_string(end_f, Vector2(g.position.x, ey), times() + _mult_text(top), HORIZONTAL_ALIGNMENT_RIGHT, g.size.x, ROYALE_END_PX, R.WHITE)
+	_meter.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## The Royale faces this screen draws with by hand, looked up once (no lookups a frame): "label" (Rubik 700 tracked),
+## "bold", "body", "end" (Rubik 700).
+static var _rfonts: Dictionary = {}
+
+
+static func _rfont(k: String) -> Font:
+	if not _rfonts.has(k):
+		match k:
+			"label":
+				_rfonts[k] = R.body(R.LABEL_WEIGHT, false, W.em(ROYALE_LABEL_PX, R.LABEL_TRACK))
+			"bold":
+				_rfonts[k] = R.body(R.BOLD_WEIGHT)
+			"body":
+				_rfonts[k] = R.body(R.BODY_WEIGHT)
+			_:
+				_rfonts[k] = R.body(R.LABEL_WEIGHT)
+	return _rfonts[k]
+
+
+## The multiplication sign in the faces that have it ("×"), else an x (looked up once).
+static var _times := ""
+
+
+static func times() -> String:
+	if _times == "":
+		_times = "×" if R.display().has_char(0xD7) and R.body().has_char(0xD7) else "x"
+	return _times
+
+
+## A slate panel drawn by hand in `ci` (the kit's HardBox "panel" look: the navy base straight down, the navy edge,
+## the slate gradient and its lip) over `r` (its face; the base hangs R.PANEL_BASE under it).
+static func panel(ci: CanvasItem, r: Rect2) -> void:
+	ci.draw_style_box(R.flat(R.NAVY, R.RADIUS), Rect2(r.position + Vector2(0.0, R.PANEL_BASE), r.size))
+	ci.draw_style_box(R.flat(R.NAVY, R.RADIUS), r)
+	R.panel_fill(ci.get_canvas_item(), r.grow(-R.PANEL_EDGE))
+
+
+## Display type drawn by hand with the kit's edge (R.edge's numbers, WText's order): the navy drop straight down, the
+## gold bevel when `gold`, the navy stroke, the face; `a` its alpha.
+static func ultra_string(ci: CanvasItem, at: Vector2, t: String, align: HorizontalAlignment, w: float, px: int, col: Color,
+		a: float = 1.0, gold: bool = false) -> void:
+	var f := R.display()
+	var stroke := maxi(int(round(R.stroke_px(px) / R.STROKE_DIV)), 1) * 2
+	var drop := maxi(int(round(R.GOLD_DROP_FRAC * px)), 1) if gold else R.drop_px(px)
+	var navy := Color(R.NAVY, a)
+	ci.draw_string_outline(f, at + Vector2(0.0, drop), t, align, w, px, stroke, navy)
+	ci.draw_string(f, at + Vector2(0.0, drop), t, align, w, px, navy)
+	if gold:
+		var bev := Color(R.GOLD_BEVEL, a)
+		ci.draw_string_outline(f, at + Vector2(0.0, R.bevel_px(px)), t, align, w, px, stroke, bev)
+		ci.draw_string(f, at + Vector2(0.0, R.bevel_px(px)), t, align, w, px, bev)
+	ci.draw_string_outline(f, at, t, align, w, px, stroke, navy)
+	ci.draw_string(f, at, t, align, w, px, Color(col, a))
+
+
 static func _mult_text(m: float) -> String:
 	var s := "%.1f" % m
 	return s.trim_suffix(".0") if absf(m - roundf(m)) < 0.05 else s
@@ -910,6 +1066,11 @@ func _draw_banner() -> void:
 	var w := _vp.x
 	_banner.draw_set_transform(Vector2(_vp.x * 0.5, _banner_y), rot, Vector2.ONE * pop)
 	var base := Vector2(-w * 0.5, BANNER_PX * 0.36)
+	if W.royale():
+		# pass 123: the headline in the kit's gold with the navy edge, the bevel and the drop (the mock's BIG WIN!)
+		ultra_string(_banner, base, _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, R.GOLD_TEXT, k, true)
+		_banner.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
 	_banner.draw_string_outline(slab, base + Vector2(6, 8), _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, 22, Color(W.INK, 0.8 * k))
 	_banner.draw_string_outline(slab, base, _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, 20, Color(W.INK, k))
 	_banner.draw_string(slab, base, _word, HORIZONTAL_ALIGNMENT_CENTER, w, BANNER_PX, Color(col, k))
@@ -932,6 +1093,10 @@ func _counter(r: Rect2, label: String, value: String, coin: bool, bump: float, a
 	var s := 1.0 + 0.09 * bump * bump
 	_counters.draw_set_transform(c, 0.0, Vector2.ONE * s)
 	var rr := Rect2(-r.size * 0.5, r.size)
+	if W.royale():
+		_counter_royale(rr, label, value, coin, bump)
+		_counters.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
 	if _done:
 		var glow := 0.5 + 0.5 * sin(_t * 7.0)
 		for i in 4:
@@ -951,6 +1116,31 @@ func _counter(r: Rect2, label: String, value: String, coin: bool, bump: float, a
 	var px := 76 if value.length() <= 5 else 62
 	_counters.draw_string(slab, rr.position + Vector2(150, rr.size.y - 34.0), value, HORIZONTAL_ALIGNMENT_LEFT, rr.size.x - 170.0, px, Color(W.INK, a))
 	_counters.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Pass 123: a counter as the mock's slate panel (its alpha is the layer's, _redraw): the glow round it at the end, the
+## panel, a wash as a piece lands, the label in the kit's tracked Rubik, the kit's coin or the purple gem where the
+## pieces aim, the count big in gold Ultra with the bevel.
+func _counter_royale(rr: Rect2, label: String, value: String, coin: bool, bump: float) -> void:
+	if _done:
+		var glow := 0.5 + 0.5 * sin(_t * 7.0)
+		for i in 4:
+			_counters.draw_rect(rr.grow(6.0 + i * 7.0), Color(R.GOLD_TEXT if coin else GEM_COLOURS[0], 0.12 * glow), false, 8.0)
+	panel(_counters, rr)
+	if bump > 0.0:
+		_counters.draw_rect(rr.grow(-R.PANEL_EDGE), Color(R.GOLD_TEXT if coin else GEM_COLOURS[1], 0.16 * bump))
+	var label_f := _rfont("label")
+	_counters.draw_string(label_f, rr.position + Vector2(ROYALE_PAD, 48.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_LABEL_PX, R.SECONDARY)
+	var icon_c := rr.position + Vector2(ROYALE_ICON_X, rr.size.y * 0.58)
+	if coin:
+		_draw_coin(_counters, icon_c, ROYALE_COIN_PX, 0.0, 1.0)   # pass 123: the painted coin, as everywhere (Garry)
+	else:
+		_draw_gem(_counters, icon_c, 40.0, 0, 1.0)
+	var px := ROYALE_COUNT_PX if value.length() <= 5 else ROYALE_COUNT_SMALL_PX
+	var f := R.display()
+	var mid := icon_c.y + (f.get_ascent(px) - f.get_descent(px)) * 0.5 - px * 0.04
+	ultra_string(_counters, Vector2(rr.position.x + ROYALE_NUM_X, mid), value, HORIZONTAL_ALIGNMENT_LEFT, rr.size.x - ROYALE_NUM_X - 20.0,
+		px, R.GOLD_TEXT, 1.0, true)
 
 
 func _draw_coin(host: Control, at: Vector2, px: float, spin: float, a: float) -> void:

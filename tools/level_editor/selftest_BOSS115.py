@@ -130,7 +130,7 @@ def checks(check, run_node, server):
         check(r["on"] and r["look"] == look, "BOSS115: %s raises the %s" % (aid, look))
         check(not r["issues"]["errors"] and not r["issues"]["warnings"], "BOSS115: %s has no error and no warning: %s" % (aid, r["issues"]))
         # the lead (pass 115, 58.LEAD): the wall a fixed 14 m round the boss, well inside the range, where the phone shows it
-        check(r["reach"] < r["br"] < rng and _near(r["r"], 14.0), "BOSS115: %s's wall at 14 m inside its %.0f m range, the bullets stopped at it (%.2f), the reach inside (%.2f)" % (aid, rng, r["br"], r["reach"]))
+        check(r["reach"] < r["br"] < rng and _near(r["r"], 18.9), "BOSS115: %s's wall at 18.9 m inside its %.0f m range, the bullets stopped at it (%.2f), the reach inside (%.2f)" % (aid, rng, r["br"], r["reach"]))
         check(30 <= r["sim"]["peak"] < PEAK_114[aid], "BOSS115: %s has fewer bullets in the air than pass 114's %d: %d" % (aid, PEAK_114[aid], r["sim"]["peak"]))
         bj = json.load(open(os.path.join(CONTENT, "bosses", boss, boss + ".json"), encoding="utf-8"))
         check(aid in [x.get("name") for x in bj.get("boss", {}).get("attacks", []) if isinstance(x, dict)], "BOSS115: %s still names %s" % (boss, aid))

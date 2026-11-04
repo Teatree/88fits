@@ -550,7 +550,7 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 		for form in range(2):
 			var n := Save.talent_count(tdef.id, form)
 			if n > 0:
-				sheet.add_effects(tdef.effects_for(form, n), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), n], "talent:%s:%d" % [tdef.id, form])
+				sheet.add_effects(tdef.effects_for(form, n, Save.talent_top(tdef, form)), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), n], "talent:%s:%d" % [tdef.id, form])
 	return sheet
 
 

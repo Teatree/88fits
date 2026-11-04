@@ -61,7 +61,8 @@ func _ready() -> void:
 	_strings.draw.connect(_draw_strings)
 	add_child(_strings)
 	var top := W.safe_top()
-	_title = W.slab_text("WANTED", 92, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
+	# pass 123: the posters' pop-up keeps its Wanted words under both themes (Garry)
+	_title = W.wanted_text("WANTED", 92, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
 	_title.name = "Title"
 	_title.stroke = 7
 	_title.shadow = 7
@@ -69,7 +70,7 @@ func _ready() -> void:
 	_title.offset_top = 170.0 + top
 	_title.offset_bottom = 266.0 + top
 	add_child(_title)
-	_hint = W.serif_text("Take a bounty for this run. Done, it pays when the run ends.", 30, W.PAPER, 600, true, HORIZONTAL_ALIGNMENT_CENTER, 36.0, true)
+	_hint = W.wanted_serif_text("Take a bounty for this run. Done, it pays when the run ends.", 30, W.PAPER, 600, true, HORIZONTAL_ALIGNMENT_CENTER, 36.0, true)
 	_hint.name = "Hint"
 	_hint.stroke = 4
 	_hint.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)

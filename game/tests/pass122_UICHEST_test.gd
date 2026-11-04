@@ -302,7 +302,7 @@ func test_the_landed_frame_flags_legendary_evolved_level_five_and_gold() -> void
 			assert_bool(cs.header.title.color.is_equal_approx(R.CREAM)).is_true()
 			assert_int(cs.header.title.stroke).is_greater(0)
 			assert_int(cs.header.title.bevel).is_equal(0)
-			assert_bool(cs.header.star_line.color.is_equal_approx(R.RARITY["epic"]["light"])).is_true()
+			assert_bool(cs.header.star_line.color.is_equal_approx(R.MUTATION["light"])).is_true()
 			assert_bool(cs.title_colour(true).is_equal_approx(R.CREAM)).is_true()
 		else:
 			assert_bool(cs.header.title.color.is_equal_approx(ChestScreen.BOSS_TITLE_COLOR)).is_true()

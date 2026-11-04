@@ -207,13 +207,13 @@ func test_a_tile_shows_its_bought_ranks_as_the_live_form_s_icons_and_the_rest_em
 	await get_tree().process_frame
 
 
-func test_a_talent_with_no_rank_shows_six_empties_and_both_form_icons_beside_its_name() -> void:
+func test_a_talent_with_no_rank_shows_its_empties_and_both_form_icons_beside_its_name() -> void:
 	_fresh_save()
 	var h := await _home()
 	for def: TalentDef in Registry.talents_list():
 		var tile := _tile(h, def.id)
 		var slots := _slots(tile.find_child("RankBar", true, false))
-		assert_int(slots.size()).is_equal(6)
+		assert_int(slots.size()).is_equal(def.max_rank())
 		for p: WPlate in slots:
 			assert_bool(p.empty).is_true()
 		var pair := tile.find_child("FormIcons", true, false)
@@ -301,7 +301,7 @@ func test_the_sheet_shows_the_bar_and_both_forms_with_their_icons() -> void:
 	var sheet: Control = h._sheet_root.find_child("Sheet", true, false)
 	var bar := sheet.find_child("RankBar", true, false)
 	var slots := _slots(bar)
-	assert_int(slots.size()).is_equal(6)
+	assert_int(slots.size()).is_equal(grit.max_rank())
 	var bought := 0
 	for p: WPlate in slots:
 		if p.get_meta("bought"):

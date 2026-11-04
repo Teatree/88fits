@@ -12,6 +12,9 @@
 ## placeholder, and three cards (a new passive item, an upgrade with its change rows, one held). The kit's classes are
 ## loaded by path at run time (a --script compiles before the autoloads exist). Every wait is a fixed count of frames
 ## and a watchdog quits after WATCHDOG seconds.
+## Pass 123 (lane KIT2): page=3, the shared pieces of the remaining screens (the menu header and wallet, the info pills,
+## the price buttons, the drawn glyphs, the solid sheet and cells, the modal shell's card, the docked tab bar); without
+## page= all three pages are written ("_3" too).
 extends SceneTree
 
 const WATCHDOG := 90.0
@@ -65,12 +68,14 @@ func _main() -> void:
 	_reg = root.get_node("Registry")
 	await _frames(2)
 	print("kit_sheet: theme ", W_.theme_name())
-	var pages: Array = [1, 2] if _page <= 0 else [_page]
+	var pages: Array = [1, 2, 3] if _page <= 0 else [_page]
 	for p in pages:
 		var canvas := _canvas()
 		root.add_child(canvas)
 		if p == 1:
 			_page_one(canvas)
+		elif p == 3:
+			_page_three(canvas)
 		else:
 			_page_two(canvas)
 		await _frames(6)
@@ -425,3 +430,97 @@ func _page_two(canvas: Control) -> void:
 	canvas.add_child(_at(c2, 45, 1650, 990, 200))
 	var vline = W_.serif_text("theme=%s · pass 122 UIKIT_B · page 2" % W_.theme_name(), 22, W_.INK_SOFT)
 	canvas.add_child(_at(vline, 40, 1885))
+
+
+## Page 3 (pass 123, lane KIT2): the pieces the remaining Royale screens share. The menu header (the slate back square,
+## the cream name, the wallet), the black info pills, the price buttons (green buys, blue opens, short of gold), the
+## drawn glyphs (the ad icon on GET UP, the menu's three bars), the solid sheet with its cells, the modal shell's card
+## (WConfirm's pieces), and the docked tab bar at the foot (STORE locked, the open tab gold and taller).
+func _page_three(canvas: Control) -> void:
+	var WButton_ := _script("WButton")
+	var WMenuHeader_ := _script("WMenuHeader")
+	var WConfirm_ := _script("WConfirm")
+	var royale: bool = W_.royale()
+	var green: Color = R_.ROLES["green"]["top"] if royale else W_.SAGE
+	# the header
+	var header = WMenuHeader_.make("", WMenuHeader_.gold_plate(108411, 44, 40.0, 5, 4))
+	canvas.add_child(header)
+	header.set_title("Upgrade")
+	_caption(canvas, "Header · slate back · cream name · black wallet", 40, 186)
+	# pills
+	_caption(canvas, "Pills · black 56% · white Rubik", 40, 230)
+	var pills := HBoxContainer.new()
+	pills.add_theme_constant_override("separation", 16)
+	pills.add_child(W_.pill([["+1%", green, "bold"], " CRIT per Level"]))
+	pills.add_child(W_.pill([{"glyph": "clock", "px": 24}, "7:10 to the boss"]))
+	pills.add_child(W_.pill("01:01 · STAGE 1"))
+	pills.add_child(W_.pill("TRAIT · LONG ROAD", 20, 40.0))
+	canvas.add_child(_at(pills, 40, 262))
+	# price buttons
+	_caption(canvas, "Price · green buys · blue opens · short", 40, 340)
+	var prices := HBoxContainer.new()
+	prices.add_theme_constant_override("separation", 24)
+	var buy = W_.price_row(300, "BUY", "green")
+	buy.get_node("Button").custom_minimum_size.x = 260
+	prices.add_child(buy)
+	var choose = W_.price_row(100, "CHOOSE", "blue")
+	choose.get_node("Button").custom_minimum_size.x = 280
+	prices.add_child(choose)
+	var short = W_.price_row(190, "BUY", "green", 28, 166)
+	short.get_node("Button").custom_minimum_size.x = 200
+	prices.add_child(short)
+	canvas.add_child(_at(prices, 40, 374))
+	# glyphs and the buttons that wear them
+	_caption(canvas, "Drawn glyphs · ad · lock · clock · menu · play", 40, 478)
+	var glyphs := HBoxContainer.new()
+	glyphs.add_theme_constant_override("separation", 26)
+	var ink: Color = R_.CREAM if royale else W_.INK
+	for k in ["ad", "lock", "clock", "menu", "play"]:
+		glyphs.add_child(W_.glyph(k, 48.0, ink))
+	canvas.add_child(_at(glyphs, 40, 512))
+	var getup = WButton_.make(["GET UP · ", {"ad": 46}], 48, WButton_.PRIMARY, 4, 8, 29.0, 30.0, 48.0)
+	canvas.add_child(_at(getup, 460, 500, 400, 106))
+	var menu = WButton_.make([{"glyph": "menu", "px": 40}], 40, WButton_.SECONDARY, 4, 8, 24.0, 22.0, 40.0)
+	canvas.add_child(_at(menu, 880, 500, 96, 96))
+	# the solid sheet and its cells
+	_caption(canvas, "Solid sheet · solid cells inside", 40, 650)
+	var sheet := PanelContainer.new()
+	sheet.add_theme_stylebox_override("panel", W_.sheet_box(Vector2(24, 20)))
+	var sv := VBoxContainer.new()
+	sv.add_theme_constant_override("separation", 14)
+	sheet.add_child(sv)
+	sv.add_child(W_.label("Levels", 18, W_.INK_SOFT))
+	var cells := HBoxContainer.new()
+	cells.add_theme_constant_override("separation", 12)
+	for t in ["A cell", "on the sheet", "solid", "not see-through"]:
+		var cell := PanelContainer.new()
+		cell.add_theme_stylebox_override("panel", W_.cell_box())
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.add_child(W_.serif_text(t, 24, W_.INK))
+		cells.add_child(cell)
+	sv.add_child(cells)
+	canvas.add_child(_at(sheet, 45, 684, 990, 0))
+	# the modal shell's card, laid out flat (WConfirm.shell / open put it over the 80 % dim)
+	_caption(canvas, "Modal shell · star line · cream title · body · slate and red", 40, 880)
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", WConfirm_.card_box())
+	var cv := VBoxContainer.new()
+	cv.add_theme_constant_override("separation", R_.MODAL_GAP if royale else 24)
+	card.add_child(cv)
+	cv.add_child(WConfirm_.make_star("Hold on"))
+	cv.add_child(WConfirm_.make_title("WIPE THE SAVE?"))
+	cv.add_child(WConfirm_.make_body("Gold, unlocks, talents, quests and records: everything goes."))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", R_.MODAL_BUTTON_GAP)
+	for spec in [["KEEP IT", "slate"], ["WIPE", "red"]]:
+		var b = WConfirm_.make_button([spec[0]], spec[1])
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(b)
+	cv.add_child(row)
+	canvas.add_child(_at(card, 45, 914, 990, 0))
+	# the docked tab bar at the foot
+	_caption(canvas, "Docked tab bar · STORE locked · the open tab gold", 40, 1560)
+	var bar = load("res://ui/wanted/WTabBar.gd").make("battle")
+	canvas.add_child(bar)
+	var vline = W_.serif_text("theme=%s · pass 123 KIT2 · page 3" % W_.theme_name(), 22, W_.INK_SOFT)
+	canvas.add_child(_at(vline, 40, 1600))

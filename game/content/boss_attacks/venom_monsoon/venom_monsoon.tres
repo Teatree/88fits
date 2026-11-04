@@ -98,7 +98,7 @@ barrier = {
 "hold": "bullets",
 "inset": 1.0,
 "look": "cactus_fence",
-"radius": 14.0,
+"radius": 18.9,
 "radius_mode": "fixed",
 "rise_s": 0.8,
 "spread_s": 0.6,

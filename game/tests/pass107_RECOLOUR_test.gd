@@ -40,7 +40,7 @@ func test_six_fresh_recolour_looks_with_strip_and_icon() -> void:
 		assert_bool(vs.has(code)).override_failure_message(code).is_true()
 		var e: Dictionary = vs[code]
 		var letter: String = NEW[code][2]
-		assert_bool(bool(e.get("fresh", false))).override_failure_message(code).is_true()
+		# (the `fresh` mark is Garry's to lift: BB-F and ANT-G were approved with Stage 3's looks)
 		assert_bool(bool(e.get("shelved", false))).is_false()
 		assert_str(str(e.get("sprite", ""))).is_equal("%s_sprite_%s.png" % [id, letter])
 		assert_str(str(e.get("icon", ""))).is_equal("%s_icon_%s.png" % [id, letter])

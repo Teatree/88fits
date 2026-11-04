@@ -9,6 +9,15 @@
 ## Motion (the README's): open 460 ms (the in-world ring flashes first, Game/StructureManager), press 60 ms, a drag out
 ## cancels in 90 ms, close 420 ms: the chosen face flies to the toast slot and shrinks, the rest drops and fades, the run
 ## goes on at 300 ms (`closed`) with the toast "Le-loo · +2% move speed" carrying the face.
+## Pass 123 (lane RUN_B), under Royale (W.royale(); Wanted is drawn exactly as before): the mock 8_Totem with Garry's
+## notes ("Totem gifts as the mock: the pole kept, three slate gift cards with the gain in gold, the spirit's name and the
+## rank track"; "Make the Totem 1 of 10 more like a Header and make it white"): "★ TOTEM 1 OF 10 ★" a header, cream Ultra
+## (ROYALE_HEADER_PX, fitted to the screen) between gold stars, centred over the pole at ROYALE_HEADER_Y; the pole as it is
+## (the crest, the cedar post, the base, and each segment drawn as the carved Wanted plate, not as the kit's item frame);
+## the three gift cards the kit's slate panels where the mock puts them (ROYALE_TAG_X, ROYALE_TAG: centred on their
+## segments, the gold nail on their left edge), the gain gold Ultra ROYALE_AMOUNT_PX with the stat in white, the spirit in
+## italic, the rank track (WNotches: the range's floor and ceiling, the roll's third in gold); held, a card sits on its
+## navy base (straight down) with the gold inner edge, its segment steps right as today.
 class_name TotemScreen
 extends WModal
 
@@ -88,6 +97,28 @@ const NAIL_DX := 2.0
 const BASE_AT := Vector2(30, 1510)
 const BASE := Vector2(360, 64)
 const BASE_RADIUS := 6
+## Pass 123 (lane RUN_B), the Royale layout (the mock 8_Totem, canvas px): the header's type and its top (over the crest),
+## the most it may span; the gift card's left edge on the canvas and its size (the mock's 442..1038 x 225, centred on its
+## segment), its padding left, the gain's size; a held card's step (straight down by the panel's base).
+const ROYALE_HEADER_PX := 64
+const ROYALE_HEADER_Y := 214.0
+const ROYALE_HEADER_MAX_W := 1000.0
+const ROYALE_TAG_X := 440.0
+const ROYALE_TAG := Vector2(596, 226)
+const ROYALE_TAG_PAD_L := 34.0
+const ROYALE_AMOUNT_PX := 56
+## Pass 123 (Garry: "Bing back a visual different between weaker and stronger totem UI elements (not the faces). The stronger
+## the effect the more prominent the visuals. This effect should be subtle"; "Instead of rectangles to display the
+## 'strength' of the Upgrade use stars instead. Remove those numbers on the left and write of the stars"): by the roll's
+## third (TotemBoons.roll_third): the gain's size, a gold inner line on the card and a soft glow round it; the three stars
+## under the spirit's name say the same.
+const ROYALE_AMOUNT_BY_THIRD := [52, 56, 62]
+const ROYALE_INNER_BY_THIRD := [0, 2, 3]
+const ROYALE_INNER_A_BY_THIRD := [0.0, 0.4, 0.8]
+const ROYALE_GLOW_BY_THIRD := [0, 8, 16]
+const ROYALE_GLOW_A_BY_THIRD := [0.0, 0.14, 0.3]
+const ROYALE_STAR_PX := 46.0
+const ROYALE_PRESS_TAG := Vector2(0, 8)
 
 # --- states ------------------------------------------------------------------------------------------------------------
 const PRESS_SEG_X := 14.0
@@ -138,6 +169,8 @@ var _post: Control
 var _flyer: TextureRect
 var _held_row: GiftRow
 var _tweens: Array = []
+## pass 123: the Royale header ("★ TOTEM 1 OF 10 ★" cream between gold stars), null under Wanted
+var _header_royale: WStarLine
 var _dy := 0.0
 var _index := 0
 var _total := 0
@@ -171,8 +204,16 @@ class GiftRow:
 	var stat: WText
 	var spirit: WText
 	var gauge: WNotches
+	## pass 123: the Royale card's three stars in the gauge's place (null under Wanted)
+	var stars: WMarks
 	var seg_home := Vector2.ZERO
 	var tag_home := Vector2.ZERO
+	## pass 123: where the tag sits in the row and its size, and a held tag's step (TAG_AT, TAG, PRESS_TAG under Wanted;
+	## the Royale card's under Royale); the segment's face drawn as the carved Wanted plate under Royale (null under Wanted)
+	var tag_at := TAG_AT
+	var tag_size := TAG
+	var press_tag := PRESS_TAG
+	var face: Control
 	## taking a finger: set once its open motion has landed (a tap on a piece still moving is not a choice)
 	var arrived := false
 	## pass 83 (lane TOTEM): when its open motion should have landed (Time.get_ticks_msec), so a slow frame at the open
@@ -194,7 +235,7 @@ class GiftRow:
 		if Rect2(Vector2.ZERO, Vector2(SEG + PRESS_SEG_X, SEG)).has_point(p):
 			return true
 		var nail := WNail.SIDE * 0.5 - NAIL_DX
-		return Rect2(TAG_AT - Vector2(nail, 0), TAG + Vector2(TAG_SHADOW + nail, TAG_SHADOW)).has_point(p)
+		return Rect2(tag_at - Vector2(nail, 0), tag_size + Vector2(TAG_SHADOW + nail, TAG_SHADOW)).has_point(p)
 
 	func _gui_input(e: InputEvent) -> void:
 		var pos := Vector2.ZERO
@@ -280,7 +321,7 @@ class GiftRow:
 		_tw = create_tween().set_parallel(true)
 		_tw.tween_property(seg, "position", seg_home + (Vector2(PRESS_SEG_X, 0) if on else Vector2.ZERO), secs)
 		_tw.tween_property(glow_holder, "position", seg_home + (Vector2(PRESS_SEG_X, 0) if on else Vector2.ZERO), secs)
-		_tw.tween_property(tag, "position", tag_home + (PRESS_TAG if on else Vector2.ZERO), secs)
+		_tw.tween_property(tag, "position", tag_home + (press_tag if on else Vector2.ZERO), secs)
 		_tw.tween_property(glow, "modulate:a", 1.0 if on else 0.0, secs)
 
 
@@ -294,6 +335,14 @@ func _ready() -> void:
 	_label_text.name = "Words"
 	_label.add_child(_label_text)
 	_label.draw.connect(_draw_label_stars)
+	if W.royale():
+		# pass 123 (Garry: "Make the Totem 1 of 10 more like a Header and make it white"): the label as a header, cream
+		# Ultra with the navy edge between the kit's gold stars; a child of the label, so it fades with it
+		_label_text.visible = false
+		_header_royale = WStarLine.make("TOTEM", ROYALE_HEADER_PX, R.CREAM, 0.05)
+		_header_royale.name = "Header"
+		_header_royale.color = R.GOLD_TEXT
+		_label.add_child(_header_royale)
 	_post = Control.new()
 	_post.name = "Post"
 	_post.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -328,6 +377,21 @@ static func carved(ci: CanvasItem, rect: Rect2, radius: int) -> void:
 	inset.set_border_width_all(CARVE)
 	inset.border_color = CARVE_COLOR
 	ci.draw_style_box(inset, rect.grow(-SEG_BORDER))
+
+
+## Pass 123: a segment under Royale as the Wanted plate draws it (WPlate's own drawing turns into the kit's item frame):
+## the rock plate in its ink border with the carved inset, the face fitted at the plate's icon_frac, the inset and the
+## border again over it.
+static func _draw_face(ci: Control, plate: WPlate) -> void:
+	carved(ci, Rect2(Vector2.ZERO, Vector2(SEG, SEG)), SEG_RADIUS)
+	if plate == null or plate.tex == null:
+		return
+	var inner := SEG * plate.icon_frac
+	var ts := plate.tex.get_size()
+	var k := inner / maxf(maxf(ts.x, ts.y), 1.0)
+	var sz := ts * k
+	ci.draw_texture_rect(plate.tex, Rect2((Vector2(SEG, SEG) - sz) * 0.5, sz), false)
+	carved_over(ci, plate)
 
 
 ## Pass 83: the carved inset and the ink border drawn over a segment's face (only while it has one).
@@ -459,6 +523,8 @@ func _layout() -> void:
 	_label_text.size = _label_text.get_combined_minimum_size()
 	_label.size = Vector2(label_star_r().x + LABEL_STAR_R, 46)
 	_label.queue_redraw()
+	if _header_royale:
+		_layout_header()
 	var col_x := SEG_X + SEG * 0.5
 	_crest.size = crest_size()
 	# the pole's top: centred on the column, its foot CREST_SINK behind the top segment
@@ -470,7 +536,7 @@ func _layout() -> void:
 	for k in range(_rows.size()):
 		var row: GiftRow = _rows[k]
 		row.position = Vector2(SEG_X, float(SEG_Y[k]) + _dy)
-		row.size = Vector2(TAG_AT.x + TAG.x + TAG_SHADOW, SEG)
+		row.size = Vector2(row.tag_at.x + row.tag_size.x + TAG_SHADOW, SEG)
 	_base.position = BASE_AT + Vector2(0, _dy)
 	_base.size = BASE
 	_base.queue_redraw()
@@ -511,8 +577,35 @@ func label_star_r() -> Vector2:
 
 
 func _draw_label_stars() -> void:
+	if _header_royale:
+		return
 	WMarks.star(_label, LABEL_STAR_L, LABEL_STAR_R, W.PAPER)
 	WMarks.star(_label, label_star_r(), LABEL_STAR_R, W.PAPER)
+
+
+## Pass 123: the Royale header's words (the label's) at ROYALE_HEADER_PX, smaller when the line would pass
+## ROYALE_HEADER_MAX_W, centred on the screen at ROYALE_HEADER_Y (+ the cutout's push), in the label's coordinates.
+func _layout_header() -> void:
+	_header_royale.set_text(_label_text.text)
+	var words: WText = _header_royale.get("_text")
+	if words:
+		words.font_size = ROYALE_HEADER_PX
+	_header_royale.reset_size()
+	var w := _header_royale.get_combined_minimum_size().x
+	if words and w > ROYALE_HEADER_MAX_W:
+		var tw := words.get_combined_minimum_size().x
+		var room := ROYALE_HEADER_MAX_W - (w - tw)
+		words.font_size = maxi(int(floor(ROYALE_HEADER_PX * room / maxf(tw, 1.0))), R.ULTRA_MIN)
+		_header_royale.reset_size()
+		w = _header_royale.get_combined_minimum_size().x
+	_header_royale.size = _header_royale.get_combined_minimum_size()
+	var vw := get_viewport_rect().size.x
+	_header_royale.position = Vector2((vw - w) * 0.5, ROYALE_HEADER_Y + _dy) - _label.position
+
+
+## The Royale header's words as shown (tests, tools; "" under Wanted).
+func header_text() -> String:
+	return _header_royale.text() if _header_royale else ""
 
 
 func _make_row(b: Dictionary, k: int) -> GiftRow:
@@ -521,6 +614,11 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	row.boon = b
 	row.screen = self
 	row.feathers = BOONS.roll_third(b)
+	var royale := W.royale()
+	if royale:
+		row.tag_at = Vector2(ROYALE_TAG_X - SEG_X, (SEG - ROYALE_TAG.y) * 0.5)
+		row.tag_size = ROYALE_TAG
+		row.press_tag = ROYALE_PRESS_TAG
 	# the glow behind the segment while it is held: outside the group (a see-through glow drawn into the group's buffer
 	# came out darker), in a Node2D so the row (a container) leaves its size alone; it moves with the segment
 	var glow_holder := Node2D.new()
@@ -534,7 +632,7 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	row.group = group
 	var body := Control.new()
 	body.name = "Body"
-	body.size = Vector2(TAG_AT.x + TAG.x + TAG_SHADOW, SEG)
+	body.size = Vector2(row.tag_at.x + row.tag_size.x + TAG_SHADOW, SEG)
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	group.add_child(body)
 	row.body = body
@@ -571,6 +669,18 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	plate.tex = BOONS.icon_of(b)
 	seg.add_child(plate)
 	row.plate = plate
+	if royale:
+		# pass 123 (Garry: "the pole kept"): the segment drawn as the carved Wanted plate (rock, the ink border, the inset,
+		# the face), not as the kit's item frame the plate turns into under Royale; the plate stays (hidden) as the face's
+		# holder for the close's flight and the tools
+		plate.visible = false
+		var face := Control.new()
+		face.name = "Face"
+		face.size = Vector2(SEG, SEG)
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		face.draw.connect(func() -> void: _draw_face(face, plate))
+		seg.add_child(face)
+		row.face = face
 	var carve := Control.new()
 	carve.name = "Carve"
 	carve.size = Vector2(SEG, SEG)
@@ -593,18 +703,37 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	# the tag: the kit's paper box with its hard shadow; pressed it sits on its shadow with the brass inner outline
 	var tag := Panel.new()
 	tag.name = "Tag"
-	tag.size = TAG
+	tag.size = row.tag_size
 	row.tag_box = W.box(W.PAPER, TAG_BORDER, TAG_SHADOW)
 	var down := W.box(W.PAPER, TAG_BORDER, 0)
 	down.inner = PRESS_INNER
 	down.inner_color = W.BRASS
 	row.tag_box_down = down
 	tag.add_theme_stylebox_override("panel", row.tag_box)
+	if royale:
+		# pass 123: a stronger gift's card a little more prominent (ROYALE_*_BY_THIRD): a gold inner line, a soft glow round it
+		var third: int = clampi(row.feathers, 1, 3) - 1
+		row.tag_box.inner = int(ROYALE_INNER_BY_THIRD[third])
+		row.tag_box.inner_color = Color(R.GOLD_TEXT, float(ROYALE_INNER_A_BY_THIRD[third]))
+		if int(ROYALE_GLOW_BY_THIRD[third]) > 0:
+			var tg := Panel.new()
+			tg.name = "TagGlow"
+			var gsb := StyleBoxFlat.new()
+			gsb.bg_color = Color(0, 0, 0, 0)
+			gsb.shadow_color = Color(R.GOLD_TEXT, float(ROYALE_GLOW_A_BY_THIRD[third]))
+			gsb.shadow_size = int(ROYALE_GLOW_BY_THIRD[third])
+			gsb.set_corner_radius_all(R.RADIUS)
+			tg.add_theme_stylebox_override("panel", gsb)
+			tg.size = row.tag_size
+			tg.position = row.tag_at
+			tg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			body.add_child(tg)
+			row.set_meta("tag_glow", tg)
 	body.add_child(tag)
 	row.tag = tag
 	_fill_tag(row, b)
 	row.seg_home = Vector2.ZERO
-	row.tag_home = TAG_AT
+	row.tag_home = row.tag_at
 	seg.position = row.seg_home
 	tag.position = row.tag_home
 	W.pass_through(row)
@@ -617,36 +746,55 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 ## spirit, the gauge; and the nail on its left edge.
 func _fill_tag(row: GiftRow, b: Dictionary) -> void:
 	var top3 := BOONS.roll_third(b) >= 3
-	var amount := W.slab_text(BOONS.amount_text(b), AMOUNT_PX, W.BRASS_DARK if top3 else W.INK)
+	var royale := W.royale()
+	# pass 123, Royale: the gain in gold (the mock's), bigger; the gauge still says which third the roll landed in
+	var amount_px: int = int(ROYALE_AMOUNT_BY_THIRD[clampi(BOONS.roll_third(b), 1, 3) - 1]) if royale else AMOUNT_PX
+	var amount := W.slab_text(BOONS.amount_text(b), amount_px, W.BRASS if royale else (W.BRASS_DARK if top3 else W.INK))
 	amount.name = "Amount"
 	var stat := W.serif_text(BOONS.stat_text(b), STAT_PX, W.INK, 600, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
 	stat.name = "Stat"
 	var spirit := W.serif_text(BOONS.title(b), SPIRIT_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
 	spirit.name = "Spirit"
 	var ends := BOONS.range_texts(b)
-	var gauge := WNotches.make(str(ends[0]), str(ends[1]), BOONS.roll_third(b))
-	gauge.name = "Gauge"
-	for c in [amount, stat, spirit, gauge]:
-		row.tag.add_child(c)
+	var gauge: WNotches = null
+	var stars: WMarks = null
+	if royale:
+		stars = WMarks.new()
+		stars.name = "Gauge"
+		stars.mode = "stars"
+		stars.total = 3
+		stars.held = clampi(BOONS.roll_third(b), 0, 3)
+		stars.mark = ROYALE_STAR_PX
+		stars.gap = 6.0
+		row.tag.add_child(amount)
+		row.tag.add_child(stat)
+		row.tag.add_child(spirit)
+		row.tag.add_child(stars)
+	else:
+		gauge = WNotches.make(str(ends[0]), str(ends[1]), BOONS.roll_third(b))
+		gauge.name = "Gauge"
+		for c in [amount, stat, spirit, gauge]:
+			row.tag.add_child(c)
 	row.amount = amount
 	row.stat = stat
 	row.spirit = spirit
 	row.gauge = gauge
+	row.stars = stars
 	# the effect line: two faces on one baseline (CSS align-items: baseline); its box is the taller part above the
 	# baseline and the taller part below it
-	var a_up := _baseline_in(W.slab(), AMOUNT_PX, AMOUNT_PX)
-	var a_dn := float(AMOUNT_PX) - a_up
+	var a_up := _baseline_in(W.slab(), amount_px, amount_px)
+	var a_dn := float(amount_px) - a_up
 	var s_lh := W.normal_height(W.serif(600), STAT_PX)
 	var s_up := _baseline_in(W.serif(600), STAT_PX, s_lh)
 	var s_dn := s_lh - s_up
 	var up := maxf(a_up, s_up)
 	var effect_h := up + maxf(a_dn, s_dn)
 	var spirit_h := W.normal_height(W.serif(400, true), SPIRIT_PX)
-	var gauge_h := gauge.line_h()
+	var gauge_h: float = ROYALE_STAR_PX if royale else gauge.line_h()
 	var block := effect_h + LINE_GAP + spirit_h + LINE_GAP + gauge_h
-	var inner_h := TAG.y - 2.0 * TAG_BORDER
+	var inner_h := row.tag_size.y - 2.0 * TAG_BORDER
 	var y := TAG_BORDER + (inner_h - block) * 0.5
-	var x := TAG_BORDER + TAG_PAD_L
+	var x := TAG_BORDER + (ROYALE_TAG_PAD_L if royale else TAG_PAD_L)
 	amount.position = Vector2(x, y + up - a_up)
 	amount.size = amount.get_combined_minimum_size()
 	stat.position = Vector2(x + amount.text_width() + AMOUNT_GAP, y + up - s_up)
@@ -655,9 +803,13 @@ func _fill_tag(row: GiftRow, b: Dictionary) -> void:
 	spirit.position = Vector2(x, y)
 	spirit.size = spirit.get_combined_minimum_size()
 	y += spirit_h + LINE_GAP
-	gauge.position = Vector2(x, y)
-	gauge.size = gauge.get_combined_minimum_size()
-	var nail := WNail.at_center(Vector2(NAIL_DX, TAG.y * 0.5))
+	if royale:
+		stars.position = Vector2(x, y)
+		stars.size = stars.get_combined_minimum_size()
+	else:
+		gauge.position = Vector2(x, y)
+		gauge.size = gauge.get_combined_minimum_size()
+	var nail := WNail.at_center(Vector2(NAIL_DX, row.tag_size.y * 0.5))
 	nail.name = "Nail"
 	row.tag.add_child(nail)
 	row.nail = nail
@@ -796,6 +948,8 @@ func _close_motion(row: GiftRow) -> void:
 		row.plate.tex = null
 		row.plate.queue_redraw()
 		row.carve.queue_redraw()
+		if row.face:
+			row.face.queue_redraw()
 		var to_c := face_target(row.boon)
 		var to := Rect2(to_c - Vector2(FLY_TO, FLY_TO) * 0.5, Vector2(FLY_TO, FLY_TO))
 		var tf := _tw().set_parallel(true)

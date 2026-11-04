@@ -31,12 +31,14 @@ const Mirror = (() => {
   function fmt(x) { return String(Math.round(x * 1000) / 1000); }
   function sign(x) { const r = Math.round(x * 100) / 100; return (r >= 0 ? '+' : '') + r; }
   function fmt100(x, stat) { return Math.abs(x) <= 1 ? `${Math.round(x * 100)}%` : fmt(x); }
-  function rankLine(form, k, base) {
+  // pass 123: the board's last rank gives the form's step x top_mult (TalentDef.top_mult)
+  function rankLine(form, k, base, top) {
     if (Array.isArray(form.rank_effects) && form.rank_effects.length) {
       const list = form.rank_effects[Math.min(k, form.rank_effects.length) - 1] || [];
       return (Array.isArray(list) ? list : []).map((e) => effectAt(e, 1, base)).join(', ');
     }
-    return (form.effects || []).map((e) => effectAt(e, k, base)).join(', ');
+    const steps = top ? k - 1 + (Number(form.top_mult) || 1) : k;
+    return (form.effects || []).map((e) => effectAt(e, steps, base)).join(', ');
   }
   function totalCost(cost, ranks) { return (cost || []).slice(0, ranks).reduce((a, b) => a + (Number(b) || 0), 0); }
 
@@ -128,7 +130,7 @@ const Mirror = (() => {
     // the forms: each with its icon, words, effects and what it holds at each rank
     (d.forms || []).forEach((f, fi) => {
       const fr = el('tr', {}, el('th', {}, el('div', { class: 'mir-form' }, img(t.icons && t.icons.forms ? t.icons.forms[fi] : null, 40), el('b', { text: f.name || `form ${fi + 1}` }))));
-      for (let k = 1; k <= ranks; k++) fr.appendChild(el('td', { class: 'small', text: rankLine(f, k, base) }));
+      for (let k = 1; k <= ranks; k++) fr.appendChild(el('td', { class: 'small', text: rankLine(f, k, base, k === ranks) }));
       pr.appendChild(fr);
     });
     if (cost.length !== ranks) card.appendChild(el('p', { class: 'warn-text small', text: `${cost.length} prices for ${ranks} ranks: the board stops at whichever ends first (import_json warns)` }));
@@ -147,6 +149,8 @@ const Mirror = (() => {
           num(e.value, (v) => { e.value = v; mark(); }, { w: 70 }),
           el('span', { class: 'muted', text: ` · rank 1: ${effectAt(e, 1, base)}` })));
       });
+      box.appendChild(el('div', { class: 'mir-row small' }, el('span', { class: 'muted', text: 'top rank (the last one) gives this many steps: ' }),
+        num(f.top_mult == null ? 1 : f.top_mult, (v) => { f.top_mult = v; mark(); }, { w: 60, step: 0.5 })));
       if (Array.isArray(f.rank_effects) && f.rank_effects.length) box.appendChild(el('div', { class: 'muted small', text: 'this form has one effect list a rank (rank_effects): edit those in the JSON' }));
       forms.appendChild(box);
     });

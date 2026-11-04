@@ -690,8 +690,9 @@ func test_the_cactus_rain_lights_every_circle_and_spews_bigger_spikes_onto_wider
 	assert_float(float(rain.runner_entry({"name": "cactus_rain"})["windup"])).is_equal(rain.windup_seconds())
 	# the stagger is a moment: they land together
 	assert_float(rain.num("timing", "stagger")).is_less_equal(0.4)
-	# bigger spikes (x1.6 of pass 72's 1.7) and circles (pass 72's 0.9 m) with less room between them
-	assert_float(rain.num("projectile", "size")).is_greater_equal(1.7 * 1.6 - 0.01)
+	# big globules (pass 123: a spit reads bigger than a spike, 1.9 of a shot's size) and circles (pass 72's 0.9 m) with less
+	# room between them
+	assert_float(rain.num("projectile", "size")).is_greater_equal(1.5)
 	assert_float(rain.num("landing", "radius")).is_greater_equal(1.3)
 	var rng := RandomNumberGenerator.new()
 	var gaps: Array = []

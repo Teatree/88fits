@@ -1477,7 +1477,7 @@ func revive(phoenix: bool = false) -> void:
 	# the revive_hp share of his health (pass 115: Nerve's 40% base, +10% a Second Wind rank; a Phoenix Feather never less
 	# than its own 50%)
 	hp = clampf(max_hp * revive_share(phoenix), 1.0, max_hp)
-	invuln = 2.0
+	invuln = 2.0 + revive_overflow_seconds()
 	sprite.play("idle")
 	Audio.play("pl_revive")
 	damaged.emit(hp, max_hp)
@@ -1492,6 +1492,17 @@ func revive_share(phoenix: bool = false) -> float:
 	if phoenix:
 		s = maxf(s, sheet.get_stat("phoenix_hp", 0.0))
 	return clampf(s, 0.0, 1.0)
+
+
+## Pass 123: what Second Wind's top rank takes past full health buys time instead (the seventh rank never a dead one):
+## REVIVE_OVER_S seconds untouchable for each whole share of max HP over 100% (115% is 1.5 s more).
+const REVIVE_OVER_S := 10.0
+
+
+func revive_overflow_seconds() -> float:
+	if sheet == null:
+		return 0.0
+	return maxf(sheet.get_stat("revive_hp", 0.5) - 1.0, 0.0) * REVIVE_OVER_S
 
 
 func cheer() -> void:

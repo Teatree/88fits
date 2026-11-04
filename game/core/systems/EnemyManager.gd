@@ -3259,6 +3259,14 @@ func _die(i: int, weapon_id: String) -> void:
 	anim_t[i] = 0.0
 	# pass 79 (lane FX): the body keeps its push and follows through (a blast's kill flies); the boss's is zeroed
 	_corpse_begin(i)
+	# pass 123 (Garry: "Make the Exploding Frog stay and not disappear when it dies, only after the explosion happens does
+	# it disappear"): a body with a death_burst lies where it fell, no follow-through, no sinking, until its burst
+	if not def.death_burst.is_empty() and blown[i] == 0:
+		timer[i] = maxf(float(def.death_burst.get("delay", 2.0)) / maxf(pace, 0.01), 0.05)
+		kb[i] = Vector3.ZERO
+		lift_h[i] = 0.0
+		_corpse_air.erase(i)
+		_burst_bodies[i] = serial[i]
 	# pass 48: whoever listens reads the creature as it fell, its poisons and burns still on it (it is dying already, so a
 	# hit from a listener cannot kill it twice)
 	creature_dying.emit(i, weapon_id)
@@ -3378,6 +3386,7 @@ func _special_room() -> bool:
 func _free(i: int) -> void:
 	if alive[i] == 0:
 		return
+	_burst_bodies.erase(i)
 	if state[i] != STATE_DYING:
 		count_alive -= 1
 		if vspecial[i] == 1:
@@ -4194,7 +4203,7 @@ func _physics_process(delta: float) -> void:
 			timer[i] -= delta
 			anim_t[i] += delta * _t_die_fps[ti]
 			flash[i] = max(flash[i] - delta * 6.0, 0.0)
-			if timer[i] < DIE_SINK:
+			if timer[i] < DIE_SINK and int(_burst_bodies.get(i, -1)) != serial[i]:
 				squash[i] = maxf(timer[i] / DIE_SINK, 0.02)
 			# pass 69: a body killed up in a launch falls to the sand while its death plays
 			if lift_h[i] > 0.0 and _launch_of(i):
@@ -5088,7 +5097,11 @@ func _support_pulse(i: int, r: float, frac: float, frenzy_seconds: float) -> voi
 	for j in indices_in_radius(pos[i], r):
 		if j == i or j == boss_index:
 			continue
+		# pass 123 (Garry: "Make the Healing Numbers appear over enemies that are being healed by the enemy")
+		var mended := minf(max_hp[j] * frac, max_hp[j] - hp[j])
 		hp[j] = minf(hp[j] + max_hp[j] * frac, max_hp[j])
+		if mended > 0.0 and DamageNumbers.I:
+			DamageNumbers.I.creature_heal(j, pos[j] + Vector3(0, size[j] * 1.2 + lift_h[j], 0), mended)
 		frenzy_t[j] = frenzy_seconds
 		flash[j] = 0.7
 		flash_green[j] = 1
@@ -6882,6 +6895,8 @@ var custom_landed := 0
 var custom_fired := 0
 var custom_hits := 0
 var custom_last: Dictionary = {}
+## Pass 123: the bodies waiting for their death_burst, {index: serial}: they neither sink nor slide before it goes off.
+var _burst_bodies: Dictionary = {}
 ## How long a landed spike stays stuck in the sand, on the shot clock.
 const CUSTOM_STICK := 0.55
 ## Seconds of the shot clock between two of a rain's launch sounds.
@@ -7263,6 +7278,9 @@ func _custom_land(run: Dictionary, cdef: BossAttackDef, at: Vector3, lr: float, 
 		_custom_hit(run, cdef, at, ppos)
 	if game:
 		game.fx_sand(at + Vector3(0, 0.15, 0), 0.6)
+		# pass 123: a globule bursts where it lands (the Gila's Poison Rain), in its own colour
+		if cdef.text("projectile", "look") == "spit":
+			game.fx_burst(at + Vector3(0, 0.3, 0), cdef.tint(), 0.8)
 		var tg = game.get("telegraphs")
 		if tg and tg.has_method("flash_ring"):
 			tg.flash_ring(at, lr, cdef.tint(), 0.25)

@@ -2,11 +2,27 @@
 ## paper when it is missing), the menu header (a 96 px back square at 36, 44, the name in 72 px slab, the gold plate or
 ## a count top-right), and one board column from y ~200 that scrolls under a finger only when it has to. The wash fades
 ## in over 200 ms and the board slides up 40 px. Screens fill `content` in build().
+## Pass 123 (lane KIT2), under Royale (W.royale(); Wanted is drawn exactly as before): the menu backdrop (lane BACKDROP's
+## res://ui/wanted/RoyaleBackdrop.gd, kind backdrop_kind(); the README's sunset drawn plainly while that file is missing)
+## under a dark overlay of backdrop_dim() in place of the paper wash (it fades in the same 200 ms); the header the mocks'
+## (WMenuHeader: a slate back square, the name in cream Ultra 64 in capitals, the wallet a black plate); and, for a
+## screen whose tab_bar() names its tab, the docked tab bar at the foot (res://ui/wanted/WTabBar.gd), the board's scroll
+## ending above it (bottom_total() = board_bottom() + tab_bar_height()). solid_sheet() is the solid slate board a page
+## can sit on (Garry: "a more solid background, not just hover in the air").
 class_name ScreenBase
 extends Control
 
 const TITLE := "res://ui/TitleScreen.tscn"
 const BACKDROP := "res://art/ui/wanted/menu_backdrop.jpg"
+## Pass 123 (lane KIT2): the Royale backdrop (lane BACKDROP's; no class_name, loaded by path) and the tab bar.
+const ROYALE_BACKDROP := "res://ui/wanted/RoyaleBackdrop.gd"
+const TAB_BAR := "res://ui/wanted/WTabBar.gd"
+## The README's menu sunset (#120C3A -> #FFD27A over the sky, #2A1430 -> #0C0918 on the ground from 57 % down), drawn
+## while RoyaleBackdrop.gd is missing: [offset 0..1, colour].
+const SUNSET := [[0.0, Color("120c3a")], [0.28, Color("2d1a5a")], [0.48, Color("7a2a5a")], [0.57, Color("d8513f")]]
+const SUNSET_GROUND := [[0.57, Color("2a1430")], [1.0, Color("0c0918")]]
+## The dark overlay over the Royale backdrop behind a screen of panels (backdrop_dim()'s default).
+const ROYALE_DIM := 0.25
 
 var content: VBoxContainer
 var margin: MarginContainer
@@ -14,6 +30,11 @@ var header: WMenuHeader
 var title_label: WText
 var scroll: ScrollContainer
 var wash: ColorRect
+## Pass 123 (lane KIT2): the backdrop add_backdrop made (the Royale one, or the Wanted still / paper), and the tab bar
+## (Royale, when tab_bar() names a tab; else null).
+var backdrop: Control
+var tab_bar_node: Control
+var board_sheet_node: Panel
 # finger scrolling done by hand (TouchScroll): the drag is read at the viewport before any control can swallow it, so it
 # does not matter what the finger lands on (a label, an icon, a card, the gap between rows); a fling coasts and slows
 var _touch: TouchScroll
@@ -23,9 +44,16 @@ func _ready() -> void:
 	# a hub screen never runs paused: a paused tree freezes the list's fade-in and the rows stay invisible
 	get_tree().paused = false
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_backdrop(self)
-	wash = W.dim(W.WASH, false)
+	var royale := W.royale()
+	backdrop = add_backdrop(self, backdrop_kind())
+	# pass 123 (lane KIT2): under Royale a dark overlay in place of the paper wash (the same fade in)
+	wash = W.dim(Color(0, 0, 0, backdrop_dim()) if royale else W.WASH, false)
 	add_child(wash)
+	if royale and board_sheet():
+		_add_board_sheet()
+	if royale and tab_bar() != "" and ResourceLoader.exists(TAB_BAR):
+		var bar_script = load(TAB_BAR)
+		tab_bar_node = bar_script.make(tab_bar())
 	if use_header():
 		header = WMenuHeader.make("", header_right())
 		header.back.connect(on_back)
@@ -39,7 +67,7 @@ func _ready() -> void:
 	scroll.offset_left = 0
 	scroll.offset_right = 0
 	scroll.offset_top = board_top() - room + W.safe_top()
-	scroll.offset_bottom = -board_bottom()
+	scroll.offset_bottom = -bottom_total()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -63,11 +91,27 @@ func _ready() -> void:
 	# with a camera cutout): nothing ever covers the back button
 	if header:
 		move_child(header, get_child_count() - 1)
+	# pass 123: the tab bar over the board (it ends above the bar; the open tab rises over the board's foot)
+	if tab_bar_node:
+		add_child(tab_bar_node)
 	_enter()
 
 
-## The still of the desert behind every menu, covering the screen (plain paper until it exists).
-static func add_backdrop(to: Control) -> void:
+## The still of the desert behind every menu, covering the screen (plain paper until it exists). Pass 123 (lane KIT2):
+## returns what it laid last; under Royale the menu backdrop of `kind` ("menu", or "title" for the main menu: lane
+## BACKDROP's RoyaleBackdrop, named "RoyaleBackdrop"; its set_dim darkens it) or, while that file is missing, the
+## README's sunset drawn plainly.
+static func add_backdrop(to: Control, kind: String = "menu") -> Control:
+	if W.royale():
+		var bd: Control = null
+		if ResourceLoader.exists(ROYALE_BACKDROP):
+			var bd_script = load(ROYALE_BACKDROP)
+			bd = bd_script.make(kind)
+		if bd == null:
+			bd = sunset_backdrop()
+		bd.name = "RoyaleBackdrop"
+		to.add_child(bd)
+		return bd
 	var bg := ColorRect.new()
 	bg.color = W.PAPER
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -81,6 +125,25 @@ static func add_backdrop(to: Control) -> void:
 		t.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		to.add_child(t)
+		return t
+	return bg
+
+
+## The README's menu sunset as plain bands (pass 123): the fallback while lane BACKDROP's painted one is missing.
+static func sunset_backdrop() -> Control:
+	var c := Control.new()
+	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.draw.connect(func() -> void:
+		for stops: Array in [SUNSET, SUNSET_GROUND]:
+			for k in range(stops.size() - 1):
+				var a: Array = stops[k]
+				var b: Array = stops[k + 1]
+				var y0 := c.size.y * float(a[0])
+				var y1 := c.size.y * float(b[0])
+				c.draw_polygon(PackedVector2Array([Vector2(0, y0), Vector2(c.size.x, y0), Vector2(c.size.x, y1), Vector2(0, y1)]),
+					PackedColorArray([a[1], a[1], b[1], b[1]])))
+	return c
 
 
 ## The menu motion: the wash fades in over 200 ms, the board slides up 40 px.
@@ -94,7 +157,7 @@ func _enter() -> void:
 	scroll.modulate.a = 0.0
 	var ts := create_tween().set_parallel(true)
 	ts.tween_property(scroll, "offset_top", top, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	ts.tween_property(scroll, "offset_bottom", -board_bottom(), 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	ts.tween_property(scroll, "offset_bottom", -bottom_total(), 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	ts.tween_property(scroll, "modulate:a", 1.0, 0.2)
 
 
@@ -119,6 +182,93 @@ func board_bottom() -> float:
 	return 40.0
 
 
+## Pass 123 (lane KIT2), Royale only: the tab this screen opens in the docked tab bar ("heroes", "battle", "upgrade",
+## "collections"; "" = no bar, the default). Garry: "Keep the tab bar on all four hub screens".
+func tab_bar() -> String:
+	return ""
+
+
+## Pass 123, Royale only: the backdrop's kind ("menu"; the main menu's is "title") and the dark overlay over it (0 .. 1;
+## ROYALE_DIM for a screen of panels).
+func backdrop_kind() -> String:
+	return "menu"
+
+
+func backdrop_dim() -> float:
+	return ROYALE_DIM
+
+
+## Pass 123 (Garry on Results and the Collection: "needs the half transparent bg otherwise it looks like the whole thing is
+## hovering over air"; on Heroes: "Add a half transparent bg over the vista"): under Royale a half-transparent navy sheet
+## over the backdrop and under the board, from the board's top to its foot; false for a screen with none.
+func board_sheet() -> bool:
+	return true
+
+
+func _add_board_sheet() -> void:
+	board_sheet_node = Panel.new()
+	board_sheet_node.name = "BoardSheet"
+	board_sheet_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = R.SHEET
+	sb.border_color = R.SHEET_EDGE
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(R.RADIUS_TAB)
+	sb.anti_aliasing = true
+	board_sheet_node.add_theme_stylebox_override("panel", sb)
+	board_sheet_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var inset := sheet_insets()
+	board_sheet_node.offset_left = inset.position.x
+	board_sheet_node.offset_top = inset.position.y
+	board_sheet_node.offset_right = -inset.size.x
+	board_sheet_node.offset_bottom = -inset.size.y
+	add_child(board_sheet_node)
+
+
+## The sheet's margins (left, top, right, bottom in px; a Rect2 for the four): the board's rect and a little room.
+func sheet_insets() -> Rect2:
+	var side := maxf(board_side() - 20.0, 10.0)
+	return Rect2(side, board_top() + W.safe_top() - 18.0, side, bottom_total() - 8.0)
+
+
+## Whether a tab bar sits at the foot (pass 123: Royale, a tab named).
+func has_tab_bar() -> bool:
+	return tab_bar_node != null or (W.royale() and tab_bar() != "" and ResourceLoader.exists(TAB_BAR))
+
+
+## The tab bar's band over the screen's foot (its gesture-bar inset with it; 0 without a bar).
+func tab_bar_height() -> float:
+	if not has_tab_bar():
+		return 0.0
+	var bar_script = load(TAB_BAR)
+	return float(bar_script.height())
+
+
+## What the board's scroll keeps clear at the foot: board_bottom() and the tab bar's band.
+func bottom_total() -> float:
+	return board_bottom() + tab_bar_height()
+
+
+## The board's visible height: from its top (board_top, the cutout's inset with it) to the scroll's foot (pass 123).
+func visible_board_height() -> float:
+	var vh := get_viewport_rect().size.y if is_inside_tree() else 1920.0
+	var mb := float(margin.get_theme_constant("margin_bottom")) if margin else 20.0
+	return maxf(vh - board_top() - W.safe_top() - bottom_total() - mb - float(R.PANEL_BASE), 0.0)
+
+
+## A solid slate sheet a page sits on (pass 123, lane KIT2; Garry on the Collection's item page: "Make it sit on a more
+## solid background, not just hover in the air"): W.sheet_box(pad) at least the board's visible height, so a short page
+## still fills one sheet. Put the page's rows in it (a VBox of cards; W.cell_box for the cells inside) and add it to
+## `content`. Under Wanted the same box is ScreenBase.board's paper.
+func solid_sheet(pad: Vector2 = Vector2(24, 24)) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "Sheet"
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	p.add_theme_stylebox_override("panel", W.sheet_box(pad))
+	p.custom_minimum_size.y = visible_board_height()
+	return p
+
+
 ## Room over the board inside the scroll, for a shadow or a seal over the first panel; it starts no higher than the
 ## header's foot. A screen with a fixed strip over its board (the Collection's tabs) returns 0.
 func board_room() -> float:
@@ -140,8 +290,12 @@ func set_board(top: float, side: float) -> void:
 	scroll.scroll_vertical = 0
 
 
+## The screen's name in the header (pass 123: through WMenuHeader.set_title, which under Royale sets it in capitals and
+## shrinks it to the room left of the wallet; under Wanted it is the plain text as before).
 func set_title(t: String) -> void:
-	if title_label:
+	if header:
+		header.set_title(t)
+	elif title_label:
 		title_label.text = t
 
 

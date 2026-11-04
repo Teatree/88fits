@@ -882,6 +882,12 @@ func talent_count(id: String, form: int) -> int:
 	return n
 
 
+## Whether `form` holds the board's top rank (pass 123, TalentDef.top_mult): the last rank bought, in that form.
+func talent_top(def: TalentDef, form: int) -> bool:
+	var p := talent_picks(def.id)
+	return p.size() >= def.ranks and def.ranks > 0 and int(p[def.ranks - 1]) == form
+
+
 ## The form of the last rank bought (0 with none): what the analytics and old callers read.
 func talent_form(id: String) -> int:
 	var p := talent_picks(id)

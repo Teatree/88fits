@@ -698,7 +698,7 @@ def _check_requirements(check):
                 files.append(os.path.join(d, f))
                 local.add(f[:-3])
     blender = {"bpy", "bmesh", "mathutils", "bpy_extras"}
-    import_to_req = {"PIL": "pillow", "websocket": "websocket-client", "gradio_client": "gradio_client"}
+    import_to_req = {"PIL": "pillow", "websocket": "websocket-client", "gradio_client": "gradio_client", "cv2": "opencv-python"}
     missing = {}
     for p in files:
         try:

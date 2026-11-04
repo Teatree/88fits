@@ -207,10 +207,11 @@ func test_the_gila_rains_red_cactus_spikes_instead_of_its_rumble() -> void:
 	# a custom attack has no icon and is never listed as missing one
 	assert_bool(Registry.missing_icons.has("cactus_rain")).is_false()
 	assert_bool(JsonContent.TYPES.has("boss_attacks")).is_true()
-	# red, a cactus spike, a huge area, gaps, a telegraph before each landing (Garry's numbers may move: shapes only)
+	# pass 123 (Garry: "either poison globules or lizard spikes"): green globules; a huge area, gaps, a telegraph before each
+	# landing (Garry's numbers may move: shapes only)
 	var t := rain.tint()
-	assert_bool(t.r > t.g * 2.0 and t.r > t.b * 2.0).override_failure_message("the spikes are red").is_true()
-	assert_str(rain.text("projectile", "look")).is_equal("spike")
+	assert_bool(t.g > t.r and t.g > t.b * 2.0).override_failure_message("the globules are green").is_true()
+	assert_str(rain.text("projectile", "look")).is_equal("spit")
 	assert_float(rain.num("pattern", "radius_max")).is_greater_equal(10.0)
 	assert_float(rain.num("pattern", "gap")).is_greater(0.0)
 	assert_str(rain.text("telegraph", "kind")).is_equal("circles")

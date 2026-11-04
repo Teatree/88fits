@@ -9,6 +9,8 @@ const RING := 4.0
 
 var fill := W.BRASS
 var ring_color := W.INK
+## Pass 123: false keeps the brass under Royale too (the paper posters).
+var themed := true
 
 
 func _init() -> void:
@@ -28,7 +30,7 @@ static func at_center(c: Vector2, side: float = SIDE) -> WNail:
 func _draw() -> void:
 	var r := minf(size.x, size.y) * 0.5
 	var c := size * 0.5
-	var royale := W.royale()
+	var royale := themed and W.royale()
 	var rc: Color = R.NAVY if (royale and ring_color.is_equal_approx(W.INK)) else ring_color
 	var fc: Color = R.role("gold")["bottom"] if (royale and fill.is_equal_approx(W.BRASS)) else fill
 	draw_circle(c, r, rc, true, -1.0, true)

@@ -26,6 +26,19 @@
 ## "live": the level itself behind the UI instead of the still, and in place of the cut-out the hero as a run draws him,
 ## smaller, standing on the sand with his start weapon circling him (ui/TitleStage.gd); a locked one is a dark figure
 ## with the same padlock. Everything else (the plaque, PLAY, the map line, the buttons, the swipe) is the same.
+## Pass 123 (lane MAINMENU), under the Royale theme (W.royale(); Garry: "Main menu in the new layout: wordmark, hero with
+## ‹ ›, name, trait pill, DETAILS (opens Hero details), gold START to Select Stage, docked bottom bar, Settings behind ≡,
+## wallet top right."; the mock 5_Main_menu): lane BACKDROP's painted sunset with its hero disc (RoyaleBackdrop "title",
+## in place of both Painted and Live: no TitleStage is built), ≡ top left (Settings), the wallet top right, OUTLAW over
+## "★ SURVIVORS ★", the hero small on the disc as a run draws him (his played look's idle frames, HeroFigure) between ‹ ›
+## slate squares, his name, one black pill with his trait ("+1% CRIT per Level"), DETAILS (blue: his sheet), START (gold,
+## today's PLAY flow) and the docked tab bar (WTabBar, BATTLE open). Gone under Royale: the plaque, the Hero Collections
+## button and its drawer, the dots, the Upgrade · Collection · Settings row (the tabs and ≡ replace them) and the map's
+## run line (Garry: "Move the run-history line ... to the Stages screen's header"). A hero not owned keeps today's rules:
+## a black silhouette and UNKNOWN, START LOCKED; on sale a green price · BUY over him (the shared confirm, kind "buy");
+## locked, the requirement and its progress on a slate card over his feet, the padlock on his chest. The sides stay empty
+## (Garry: "Leave the main menu's sides empty"). The ARENA button (debug mode), the play-data card and the back gesture
+## are as before. Wanted is built and drawn exactly as before.
 extends Control
 
 ## The cut-out box: 520 × 700 inside a 4 px dashed border, 24 px under the label (the mock's box is content-box).
@@ -144,6 +157,72 @@ var _top_stack: Control
 ## A hero not owned on the painted title: his cut-out's fill, a full black (pass 69).
 const MASK := Color(0.03, 0.024, 0.02, 1.0)
 
+# ---------------------------------------------------------------- the Royale main menu (pass 123, lane MAINMENU)
+## The mock 5_Main_menu's numbers on the 1080 x 1920 canvas (README "Main menu"): ≡ a 96 px slate square at (40, 52), the
+## wallet 40 in from the right at 64, ARENA (debug mode) beside ≡, OUTLAW Ultra 170 at 150 over "★ SURVIVORS ★" (gold 40,
+## tracked .32em) at 330, all under the camera cutout.
+const RY_MENU_POS := Vector2(40, 52)
+const RY_MENU := 96.0
+const RY_WALLET := Vector2(40, 64)
+const RY_ARENA_POS := Vector2(160, 64)
+const RY_ARENA := Vector2(180, 72)
+const RY_LOGO_TOP := 150.0
+const RY_LOGO_PX := 170
+const RY_LOGO_DROP := 10
+const RY_TAG_TOP := 330.0
+const RY_TAG_PX := 40
+const RY_TAG_EM := 0.32
+const RY_TAG_DROP := 3
+## The hero on the backdrop's disc (lane BACKDROP: "his figure ~300 px tall", the scale its paintings were projected at;
+## the mock's figure is ~310): his figure (head to soles) RY_FIGURE_H tall, times the plate's scale on a wide screen, his
+## soles RY_FEET_UP over the disc's centre (on the disc's dark patch, where the mock's stand).
+const RY_FIGURE_H := 300.0
+const RY_FEET_UP := 10.0
+## ‹ › 96 px slate squares, their outer edges RY_ARROW_X either side of the disc's centre, their tops RY_ARROW_UP above it
+## (the mock's 200 and 784 at 930).
+const RY_ARROW := 96.0
+const RY_ARROW_X := 340.0
+const RY_ARROW_UP := 230.0
+const RY_ARROW_PX := 60
+## The name (Ultra 60, cream) RY_NAME_DOWN under the disc's centre, the trait pill and DETAILS (170 x 50, blue) RY_PILL_GAP
+## apart RY_PILL_DOWN under it (the mock's 1222 and 1300).
+const RY_NAME_DOWN := 62.0
+const RY_NAME_PX := 60
+const RY_PILL_DOWN := 140.0
+const RY_PILL_GAP := 16
+const RY_DETAILS := Vector2(200, 64)
+const RY_DETAILS_PX := 22
+## START: gold, 990 x 150, its top RY_START_UP over the screen's foot less the gesture bar (1500 on 1920), Ultra 84.
+const RY_START := Vector2(990, 150)
+const RY_START_UP := 420.0
+const RY_START_PX := 84
+## A locked hero's requirement card over his feet (its foot RY_REQ_GAP over the name) and the BUY of one on sale.
+const RY_REQ_W := 760.0
+const RY_REQ_GAP := 14.0
+const RY_BUY_PX := 34
+const RY_BUY_H := 84.0
+## The padlock on a not-owned figure's chest: this much of the painted cut-out's (the figure is smaller), its chest this
+## far down the figure.
+const RY_LOCK_SCALE := 0.6
+const RY_LOCK_CHEST := 0.32
+## The hero's idle when his look names no speed for it (BillboardSprite.SPEEDS["idle"]).
+const RY_IDLE_FPS := 4.0
+const WTabBarScript := preload("res://ui/wanted/WTabBar.gd")
+var _royale := false
+var _backdrop: Control
+var _menu_btn: WButton
+var _details_btn: WButton
+var _trait_row: HBoxContainer
+var _trait_pill: Control
+var _tab_bar: Control
+var _tab_hero := ""
+var _figure: HeroFigure
+## The run-history pill under the trait until the Stages menu opens (pass 123).
+var _run_pill: Control
+## The disc's centre and the hero's scale as last laid out (_place_royale).
+var _disc := Vector2.ZERO
+var _fig_k := 1.0
+
 
 ## Back on the title leaves the game, as it always did (quit_on_go_back is off so a run can ignore the gesture).
 func _notification(what: int) -> void:
@@ -169,13 +248,19 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# the look (pass 52): the painted cut-out over the still of the desert, or the level itself with the hero standing in it
 	# pass 119 (lane LOADUI): the production build is always painted (it offers no choice)
-	_live = str(Settings.menu_style) == "live" and not Settings.is_prod()
-	if not _live:
+	# pass 123 (lane MAINMENU): under Royale the painted sunset with the hero's disc replaces both looks (no TitleStage)
+	_royale = W.royale()
+	_live = str(Settings.menu_style) == "live" and not Settings.is_prod() and not _royale
+	if _royale:
+		_backdrop = ScreenBase.add_backdrop(self, "title")
+		TitleStageScript.forget()
+	elif not _live:
 		ScreenBase.add_backdrop(self)
 		# a live title's world kept for the way back from a menu is not wanted any more
 		TitleStageScript.forget()
-	_wash_rect = _wash()
-	add_child(_wash_rect)
+	if not _royale:
+		_wash_rect = _wash()
+		add_child(_wash_rect)
 	# quests a save's totals already satisfy (pass 44 added many) complete here, quietly, instead of all at once five
 	# seconds into the next run; since pass 76 they are not listed again as "Unlocked this run" (only a run's own checks
 	# fill QuestTracker.just_completed)
@@ -191,7 +276,8 @@ func _ready() -> void:
 	# pass 101 (lane LOOKS): no run is going, so the last run's pinned strips are let go (LookArt keeps the most recent
 	# few); the live title keeps the strip of the hero it opens on (the painted title draws his cut-out, no strip)
 	var keep: Array = []
-	if _live and not _heroes.is_empty():
+	# (pass 123: the Royale title draws his strip too)
+	if (_live or _royale) and not _heroes.is_empty():
 		keep.append(Registry.played_look(_heroes[_index]).strip_path())
 	LookArt.pin_only(keep)
 	_maps =Registry.sorted_maps().filter(func(m: MapDef) -> bool: return Registry.is_unlocked("map", m.id))
@@ -205,6 +291,25 @@ func _ready() -> void:
 		_stage.map_id = _map_id
 		add_child(_stage)
 		move_child(_stage, 0)
+	if _royale:
+		_build_royale()
+	else:
+		_build_wanted()
+	_show_hero(0)
+	get_viewport().size_changed.connect(_place)
+	_place()
+	_enter()
+	Audio.play_music(["mu_title"], 1)
+	# the play-data card (pass 59): once, the first time a build that can send starts, after the title has come in
+	if Analytics.consent_needed():
+		get_tree().create_timer(CONSENT_DELAY).timeout.connect(func():
+			if is_inside_tree() and Analytics.consent_needed() and get_node_or_null("Consent") == null:
+				WConsentScript.open(self))
+
+
+## The Wanted title's pieces (as built before pass 123): the gold plate, ARENA, the name stack, the hero row, the plaque,
+## PLAY, the map line, the menu row, the Requirement card and the BUY.
+func _build_wanted() -> void:
 	# the gold plate, top-left
 	var gold := WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
 	gold.position = Vector2(36, 44 + W.safe_top())
@@ -219,11 +324,7 @@ func _ready() -> void:
 	_arena_btn.offset_bottom = 44 + W.safe_top() + 60
 	_arena_btn.visible = Settings.debug_mode and not Settings.is_prod()
 	_arena_btn.name = "ArenaButton"
-	_arena_btn.pressed.connect(func():
-		Run.arena_next = true
-		_leave_for_a_run()
-		# pass 120 (lane STARTGO): the revolver wipe and the loading screen into the run (ui/RunCurtain.gd)
-		UiFx.go_run(get_tree()))
+	_arena_btn.pressed.connect(_go_arena)
 	add_child(_arena_btn)
 	# the name stack
 	var stack := VBoxContainer.new()
@@ -253,16 +354,14 @@ func _ready() -> void:
 	_build_hero_row()
 	_build_lower()
 	_build_unknown()
-	_show_hero(0)
-	get_viewport().size_changed.connect(_place)
-	_place()
-	_enter()
-	Audio.play_music(["mu_title"], 1)
-	# the play-data card (pass 59): once, the first time a build that can send starts, after the title has come in
-	if Analytics.consent_needed():
-		get_tree().create_timer(CONSENT_DELAY).timeout.connect(func():
-			if is_inside_tree() and Analytics.consent_needed() and get_node_or_null("Consent") == null:
-				WConsentScript.open(self))
+
+
+## The debug arena (pass 44: the player's debug mode, ten taps on the hints switch).
+func _go_arena() -> void:
+	Run.arena_next = true
+	_leave_for_a_run()
+	# pass 120 (lane STARTGO): the revolver wipe and the loading screen into the run (ui/RunCurtain.gd)
+	UiFx.go_run(get_tree())
 
 
 ## The title wash: warm at the top, clear through the middle where the hero stands, paper again at the foot. In the live
@@ -457,6 +556,9 @@ func _build_lower() -> void:
 ## Everything that depends on the screen's height: the lower block hangs from the bottom edge, the hero row takes the
 ## middle and shrinks when a short screen has no room for it.
 func _place() -> void:
+	if _royale:
+		_place_royale()
+		return
 	var vp := get_viewport_rect().size
 	# pass 69: the Hero Collections button takes the plaque's left end; the plaque keeps its right edge (PLAY's)
 	# pass 70: the button is a square as tall as the plaque; pass 73: both one size whatever the hero (PLAQUE_H)
@@ -544,6 +646,8 @@ func _show_hero(from_side: int) -> void:
 		# owned under a full black mask (pass 69), the padlock on his chest while his requirement is not met
 		_stage.show_hero(c, locked, from_side)
 		_show_lock(_state(c) == "locked", from_side)
+	elif _royale:
+		_show_figure(c, from_side)
 	else:
 		_show_art(c, from_side)
 	_show_plaque(c)
@@ -578,6 +682,9 @@ func _show_art(c: CharacterDef, from_side: int) -> void:
 ## stats are unknown, weapon is a black silhouette of the one with a question mark and so is the fav item"): a hero not
 ## owned reads Unknown, a "?" for each of his numbers, his start weapon and favourite as mystery plates.
 func _show_plaque(c: CharacterDef) -> void:
+	if _royale:
+		_show_royale(c)
+		return
 	var locked := _is_locked(c)
 	_dots.queue_redraw()
 	_name.text = ("The " + c.display_name) if c.id == "drifter" else c.display_name
@@ -856,16 +963,10 @@ func _draw_mark() -> void:
 	_mark.draw_circle(c + Vector2(0.0, 7.5), 3.2, W.INK, true, -1.0, true)
 
 
-## Whether the purse buys the next rank of any open talent.
+## Whether the purse buys the next rank of any open talent (pass 111, lane SKINS: in the talent's own currency). Pass 123
+## (lane MAINMENU): the rule lives once, in the tab bar's Upgrade mark (WTabBar.upgrade_mark, the same loop word for word).
 func _rank_affordable() -> bool:
-	for def: TalentDef in Registry.talents_list():
-		if not Registry.is_unlocked("talent", def.id):
-			continue
-		var cost := def.cost_of_rank(Save.talent_rank(def.id))
-		# pass 111 (lane SKINS): in the talent's own currency
-		if cost >= 0 and Currency.can_afford(def.currency_type, cost):
-			return true
-	return false
+	return WTabBarScript.upgrade_mark()
 
 
 func _process(delta: float) -> void:
@@ -1007,7 +1108,8 @@ func _show_unknown(c: CharacterDef) -> void:
 			bar.text = "%s / %s" % [W.num(mini(p.x, p.y)), W.num(p.y)]
 			bar.text_px = 20
 			line.add_child(bar)
-	elif st == "buyable":
+	elif st == "buyable" and not _royale:
+		# (pass 123: the Royale BUY is a price button made for each hero, _fill_buy_royale)
 		# pass 111 (lane SKINS): in his currency (Currency), its own icon on the button
 		var cur := Currency.of(c.currency_type)
 		var short := maxi(c.price, 0) - Currency.balance(cur)
@@ -1040,6 +1142,12 @@ func _place_unknown(_plaque_top: float) -> void:
 func hero_figure_rect() -> Rect2:
 	if _stage:
 		return _stage.figure_rect()
+	if _royale:
+		# pass 123: the figure inside the frame the Royale title draws (TitleStage's fractions of a strip's frame)
+		var box := Rect2(_hero_row.position + _art_host.position, _art_host.size)
+		var w := box.size.x * TitleStageScript.FIGURE_W
+		return Rect2(Vector2(box.get_center().x - w * 0.5, box.position.y + box.size.y * TitleStageScript.FIGURE_TOP),
+			Vector2(w, box.size.y * (TitleStageScript.FIGURE_FEET - TitleStageScript.FIGURE_TOP)))
 	return Rect2(_hero_row.position + _art_host.position, HERO_SIZE * _art_host.scale.x)
 
 
@@ -1163,8 +1271,9 @@ func ask_buy() -> void:
 	if not Currency.can_afford(c.currency_type, maxi(c.price, 0)):
 		Audio.play("ui_locked")
 		return
+	# pass 123 (lane MAINMENU): under Royale the shared confirm's buy (green; Wanted keeps its card as it was)
 	WConfirm.open(self, "Buy this hero?", "%s from your purse. Yours to play from then on." % Currency.price_words(c.currency_type, maxi(c.price, 0)),
-		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c))
+		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c), Callable(), "buy" if _royale else "danger")
 
 
 ## The purchase: the gold spent (Save.buy_hero, the sink "hero"), the mask lifted with a burst, the plaque and PLAY his.
@@ -1183,6 +1292,8 @@ func _buy_now(c: CharacterDef) -> void:
 	if _live:
 		_stage.reveal()
 		_show_lock(false, 0)
+	elif _royale:
+		_reveal_figure()
 	else:
 		_show_art(c, 0)
 	_show_plaque(c)
@@ -1199,6 +1310,9 @@ func _refresh_gold() -> void:
 		# fewer digits: the plate shrinks to them
 		_gold_plate.reset_size()
 	_affordable = _rank_affordable()
+	# pass 123: the Royale tab bar's Upgrade mark follows the purse too
+	if _tab_bar and is_instance_valid(_tab_bar):
+		_tab_bar.call("refresh")
 
 
 ## A tap on the plaque (pass 61): the shown hero's sheet, a locked one's with its quest.
@@ -1227,6 +1341,9 @@ func _input(event: InputEvent) -> void:
 	# pass 69: with the drawer open its own list takes the sideways drags, and a tap outside it only closes it
 	if sheet_open() or drawer_open():
 		return
+	# pass 123: nothing moves under an open question (the buy's): the carousel stays on the hero it asks about
+	if _royale and WConfirm.is_open(self):
+		return
 	var pos := Vector2.ZERO
 	var id := -2
 	var down := false
@@ -1248,7 +1365,8 @@ func _input(event: InputEvent) -> void:
 	pos = get_viewport().get_canvas_transform().affine_inverse() * pos
 	if down and _swipe_id == -2:
 		var band := Rect2(Vector2(0, _hero_row.position.y), Vector2(get_viewport_rect().size.x, _hero_row.size.y))
-		if band.has_point(pos) or _plaque.get_global_rect().has_point(pos):
+		# (pass 123: the Royale title has no plaque; its band runs from over the hero's hat to the trait pill's foot)
+		if band.has_point(pos) or (_plaque != null and _plaque.get_global_rect().has_point(pos)):
 			_swipe_id = id
 			_swipe_from = pos
 	elif up and id == _swipe_id:
@@ -1267,3 +1385,466 @@ func _enter() -> void:
 		var y := c.position.y
 		c.position.y = y + 40.0
 		create_tween().tween_property(c, "position:y", y, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+# ---------------------------------------------------------------- the Royale main menu (pass 123, lane MAINMENU)
+
+## The Royale title's pieces (the mock 5_Main_menu; see the header): ≡, the wallet, ARENA, the wordmark, the hero band
+## (the figure between ‹ ›), the requirement card and the BUY column, the name, the trait pill and DETAILS, START and the
+## tab bar. Names for tools and tests: "MenuButton", "Wallet" (with "Amount"), "ArenaButton", "Wordmark" ("Logo",
+## "Tagline"), "HeroRow" ("HeroBox" > "HeroFigure", "Prev", "Next"), "Requirement", "BuyColumn" ("Buy", "BuyNote"),
+## "Name", "TraitRow" ("Pill", "Details"), "Start", "TabBar".
+func _build_royale() -> void:
+	set_process(false)
+	# ≡: Settings (Garry: "Settings behind ≡")
+	_menu_btn = WButton.make([{"glyph": "menu", "px": 40}], 40, WButton.SECONDARY, 4, 8, 24.0, 22.0, 40.0)
+	_menu_btn.name = "MenuButton"
+	_menu_btn.custom_minimum_size = Vector2(RY_MENU, RY_MENU)
+	_menu_btn.pressed.connect(func(): UiFx.go(get_tree(), "res://ui/SettingsScreen.tscn"))
+	add_child(_menu_btn)
+	# the wallet, top right (WMenuHeader's Royale plate: the coin and the purse in white)
+	_gold_plate = WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
+	_gold_plate.name = "Wallet"
+	add_child(_gold_plate)
+	# the debug arena beside ≡ (the wallet holds the top right)
+	_arena_btn = WButton.make(["ARENA"], 28, WButton.SECONDARY, 4, 8, 18.0, 18.0, 28.0)
+	_arena_btn.custom_minimum_size = RY_ARENA
+	_arena_btn.visible = Settings.debug_mode and not Settings.is_prod()
+	_arena_btn.name = "ArenaButton"
+	_arena_btn.pressed.connect(_go_arena)
+	add_child(_arena_btn)
+	# the wordmark: OUTLAW over ★ SURVIVORS ★ (the words as today, W.GAME_NAME's)
+	var mark := Control.new()
+	mark.name = "Wordmark"
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_top_stack = mark
+	add_child(mark)
+	var logo := W.slab_text(W.GAME_WORD.to_upper(), RY_LOGO_PX, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, float(RY_LOGO_PX))
+	logo.name = "Logo"
+	logo.shadow = RY_LOGO_DROP
+	mark.add_child(logo)
+	var tag := WStarLine.make(W.GAME_LINE, RY_TAG_PX, W.BRASS, RY_TAG_EM)
+	tag.name = "Tagline"
+	# the mock's SURVIVORS: gold with the navy edge and a hard navy drop, no bevel (that is the big gold titles')
+	var words := tag.get("_text") as WText
+	if words:
+		words.bevel = 0
+		words.shadow = RY_TAG_DROP
+	mark.add_child(tag)
+	# the hero band: the figure on the disc between ‹ › (a swipe over it changes the hero, _input)
+	_hero_row = Control.new()
+	_hero_row.name = "HeroRow"
+	_hero_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hero_row)
+	_art_host = Control.new()
+	_art_host.name = "HeroBox"
+	_art_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hero_row.add_child(_art_host)
+	for side in [-1, 1]:
+		var pad_v := (RY_ARROW - 8.0 - float(RY_ARROW_PX)) * 0.5
+		var a := WButton.make(["‹" if side < 0 else "›"], RY_ARROW_PX, WButton.SECONDARY, 4, 8, pad_v, 18.0, float(RY_ARROW_PX))
+		a.custom_minimum_size = Vector2(RY_ARROW, RY_ARROW)
+		a.set_meta("side", side)
+		a.pressed.connect(func(): _step(side))
+		a.name = "Prev" if side < 0 else "Next"
+		_hero_row.add_child(a)
+	_build_unknown_royale()
+	# the name, the trait pill and DETAILS
+	_name = W.slab_text("", RY_NAME_PX, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, float(RY_NAME_PX))
+	_name.name = "Name"
+	add_child(_name)
+	_trait_row = HBoxContainer.new()
+	_trait_row.name = "TraitRow"
+	_trait_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_trait_row.add_theme_constant_override("separation", RY_PILL_GAP)
+	_trait_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_trait_row)
+	var dv := (RY_DETAILS.y - 8.0 - float(RY_DETAILS_PX)) * 0.5
+	_details_btn = WButton.make(["DETAILS"], RY_DETAILS_PX, WButton.UPGRADE, 4, 5, dv, 18.0, float(RY_DETAILS_PX), WButton.BLUE)
+	_details_btn.name = "Details"
+	_details_btn.custom_minimum_size = RY_DETAILS
+	_details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_details_btn.pressed.connect(open_sheet)
+	_trait_row.add_child(_details_btn)
+	# START: gold, today's PLAY flow (_on_play); LOCKED for a hero not owned
+	var sv := (RY_START.y - 8.0 - float(RY_START_PX)) * 0.5
+	_play = WButton.make(["START"], RY_START_PX, WButton.PRIMARY, 4, 8, sv, 22.0, float(RY_START_PX))
+	_play.name = "Start"
+	_play.pressed.connect(_on_play)
+	add_child(_play)
+	# the run-history line: on the Stages screen's header once that menu opens; until then here, under the trait (nothing
+	# informational is removed, the map's best run has no other place before stage 1 is beaten)
+	if not StagesScreenScript.opens_for(_map_id):
+		var best := Save.best_run(_map_id)
+		if not best.is_empty() and float(best.get("time", 0.0)) > 0.0:
+			_run_pill = W.pill(StagesScreenScript.run_line(_map_id), R.PILL_PX, R.PILL_H)
+			_run_pill.name = "RunLine"
+			add_child(_run_pill)
+	# the docked tab bar, BATTLE open (lane KIT2's WTabBar), over everything above
+	_add_tab_bar()
+	_lower = [_name, _trait_row, _play]
+
+
+## The tab bar (WTabBar, BATTLE open), added last; the HEROES tab wears the hero the title shows (the save's last hero).
+func _add_tab_bar() -> void:
+	var at := -1
+	if _tab_bar and is_instance_valid(_tab_bar):
+		at = _tab_bar.get_index()
+		remove_child(_tab_bar)
+		_tab_bar.queue_free()
+	_tab_bar = WTabBarScript.make("battle")
+	add_child(_tab_bar)
+	if at >= 0:
+		move_child(_tab_bar, at)
+	_tab_hero = _tab_key()
+
+
+## Which hero (and look) the HEROES tab shows: the save's last hero in his played look.
+func _tab_key() -> String:
+	var d = WTabBarScript.hero_def()
+	return "%s:%s" % [d.id, d.look_code()] if d != null else ""
+
+
+## The requirement card (a locked hero: what unlocks him and how far along it is, over his feet) and the BUY column (one
+## on sale: green price · BUY over his figure, "n short" under it when the purse is short), built once like Wanted's.
+func _build_unknown_royale() -> void:
+	_req = PanelContainer.new()
+	_req.name = "Requirement"
+	_req.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_req.add_theme_stylebox_override("panel", W.sheet_box(Vector2(26, 14)))
+	var v := VBoxContainer.new()
+	v.name = "Rows"
+	v.add_theme_constant_override("separation", 8)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_req.add_child(v)
+	v.add_child(W.label("To unlock", 18, W.ROCK))
+	var line := HBoxContainer.new()
+	line.name = "Line"
+	line.add_theme_constant_override("separation", 20)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(line)
+	_req_text = W.serif_text("", 26, R.WHITE, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	_req_text.name = "Text"
+	_req_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_req_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line.add_child(_req_text)
+	_req.visible = false
+	add_child(_req)
+	_buy_col = VBoxContainer.new()
+	_buy_col.name = "BuyColumn"
+	_buy_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	_buy_col.add_theme_constant_override("separation", 10)
+	_buy_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_buy_col.visible = false
+	add_child(_buy_col)
+
+
+## The name, the trait pill, START, the requirement or the BUY, and the HEROES tab for `c` (the Royale _show_plaque).
+## A hero not owned reads UNKNOWN with a "?" for each of his numbers (today's rule), START LOCKED.
+func _show_royale(c: CharacterDef) -> void:
+	var locked := _is_locked(c)
+	var shown := ("The " + c.display_name) if c.id == "drifter" else c.display_name
+	_name.text = ("Unknown" if locked else shown).to_upper()
+	if _trait_pill:
+		_trait_row.remove_child(_trait_pill)
+		_trait_pill.queue_free()
+		_trait_pill = null
+	var parts := trait_parts(c, locked)
+	if not parts.is_empty():
+		_trait_pill = W.pill(parts)
+		_trait_pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_trait_row.add_child(_trait_pill)
+		_trait_row.move_child(_trait_pill, 0)
+	_play.locked = locked
+	_play.set_parts(["LOCKED" if locked else "START"])
+	if not locked:
+		Save.data["last_character"] = c.id
+		# the HEROES tab wears the hero shown (its portrait is made once: a new bar when he changes)
+		if _tab_bar and _tab_key() != _tab_hero:
+			_add_tab_bar()
+	_show_unknown(c)
+	if _buy_col and _state(c) == "buyable":
+		_fill_buy_royale(c)
+
+
+## The trait's numbers as the pill's parts (README: "one pill with the trait '+1% CRIT per Level'"): each number bold in
+## green (red for a debuff), its stat's short name and "per Level" for what grows with his level (today's "/ LV"), a
+## " · " between two; a hero not owned "?" and "???" (today's plaque).
+func trait_parts(c: CharacterDef, locked: bool) -> Array:
+	var out: Array = []
+	var stats := _stats_of(c)
+	for i in stats.size():
+		var st: Array = stats[i]
+		if i > 0:
+			out.append("  ·  ")
+		if locked:
+			out.append(["?", R.SECONDARY, "bold"])
+			out.append(" ???")
+			continue
+		out.append([str(st[0]), R.ROLES["green"]["top"] if bool(st[2]) else R.ROLES["red"]["top"], "bold"])
+		out.append(" " + per_level(str(st[1])))
+	return out
+
+
+## "CRIT / LV" -> "CRIT per Level" (Garry: "per Level", never "/ LV").
+static func per_level(label: String) -> String:
+	return label.replace(" / LV", " per Level")
+
+
+## The BUY over a hero on sale: the green price button (WButton.price; short of it, the locked grey with the price alone
+## and "n short" in red under it), his currency's icon.
+func _fill_buy_royale(c: CharacterDef) -> void:
+	for n in _buy_col.get_children():
+		_buy_col.remove_child(n)
+		n.queue_free()
+	var cur := Currency.of(c.currency_type)
+	var price := maxi(c.price, 0)
+	var short := maxi(price - Currency.balance(cur), 0)
+	_buy = WButton.price(price, "BUY", WButton.GREEN, RY_BUY_PX, short, cur, true, RY_BUY_H)
+	_buy.name = "Buy"
+	_buy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_buy.pressed.connect(ask_buy)
+	_buy_col.add_child(_buy)
+	# "n short" in red on a black pill (it reads over the black figure), as the shops' shortfall
+	var note := W.pill([["%s short" % W.num(short), R.ROLES["red"]["top"], "bold"]], 24, 40.0)
+	note.name = "BuyNote"
+	note.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	note.visible = short > 0
+	_buy_col.add_child(note)
+
+
+## The hero on the disc, as a run draws him (his played look's strip, idling at its speed), sliding in from the side the
+## finger went (the painted cut-out's 0.2 s); a hero not owned a black silhouette with the padlock while locked.
+func _show_figure(c: CharacterDef, from_side: int) -> void:
+	if _figure:
+		_figure.queue_free()
+	_figure = HeroFigure.new()
+	_figure.name = "HeroFigure"
+	_figure.setup(Registry.played_look(c), c)
+	_figure.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if _is_locked(c):
+		_figure.tint = MASK
+		if _state(c) == "locked":
+			var lock := _padlock_royale()
+			lock.name = "Padlock"
+			_figure.add_child(lock)
+	_art_host.add_child(_figure)
+	_place_lock_royale()
+	if from_side != 0:
+		_figure.position.x = 90.0 * from_side
+		_figure.modulate.a = 0.0
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(_figure, "position:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_figure, "modulate:a", 1.0, 0.16)
+
+
+## A hero just bought: the black mask lifts off his figure (TitleStage.REVEAL_TIME, the live look's reveal), the padlock
+## goes.
+func _reveal_figure() -> void:
+	if _figure == null:
+		return
+	var lock := _figure.get_node_or_null("Padlock")
+	if lock:
+		lock.queue_free()
+	var f := _figure
+	create_tween().tween_method(func(k: float): f.set_tint(MASK.lerp(Color.WHITE, k)), 0.0, 1.0, TitleStageScript.REVEAL_TIME)
+
+
+## The padlock on the figure's chest, in the figure's own units.
+func _place_lock_royale() -> void:
+	if _figure == null:
+		return
+	var lock := _figure.get_node_or_null("Padlock") as Control
+	if lock == null:
+		return
+	var h := _art_host.size.y
+	var chest := h * (TitleStageScript.FIGURE_TOP + RY_LOCK_CHEST * (TitleStageScript.FIGURE_FEET - TitleStageScript.FIGURE_TOP))
+	var s := RY_LOCK_SCALE * _fig_k
+	lock.scale = Vector2(s, s)
+	lock.position = Vector2(_art_host.size.x * 0.5 - 60.0 * s, chest - 80.0 * s)
+
+
+## The padlock in the kit's colours: a navy shackle round a pale bar, a gold body in a navy edge, a navy keyhole.
+func _padlock_royale() -> Control:
+	var l := Control.new()
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.size = Vector2(120, 140)
+	l.draw.connect(func():
+		var c := Vector2(60, 0)
+		l.draw_arc(c + Vector2(0, 58), 34.0, PI, TAU, 32, R.NAVY, 26.0, true)
+		l.draw_arc(c + Vector2(0, 58), 34.0, PI, TAU, 32, R.MUTED, 12.0, true)
+		var sb := R.flat(R.GOLD_TEXT, 14)
+		sb.border_color = R.NAVY
+		sb.set_border_width_all(6)
+		l.draw_style_box(sb, Rect2(Vector2(4, 56), Vector2(112, 84)))
+		l.draw_circle(c + Vector2(0, 88), 11.0, R.NAVY, true, -1.0, true)
+		l.draw_rect(Rect2(c + Vector2(-5, 92), Vector2(10, 26)), R.NAVY))
+	return l
+
+
+## The Royale layout (the mock's numbers, see the constants): the top row and the wordmark under the camera cutout, START
+## over the tab bar and the gesture bar, the hero group round the backdrop's disc (half the extra height lower on a taller
+## screen, as the backdrop keeps its spot; the hero times the plate's scale on a wide one).
+func _place_royale() -> void:
+	var vp := get_viewport_rect().size
+	var top := W.safe_top()
+	_menu_btn.position = Vector2(RY_MENU_POS.x, RY_MENU_POS.y + top)
+	_menu_btn.size = Vector2(RY_MENU, RY_MENU)
+	_gold_plate.reset_size()
+	var ws := _gold_plate.get_combined_minimum_size()
+	_gold_plate.position = Vector2(vp.x - RY_WALLET.x - ws.x, RY_WALLET.y + top)
+	_gold_plate.size = ws
+	_arena_btn.position = Vector2(RY_ARENA_POS.x, RY_ARENA_POS.y + top)
+	_arena_btn.size = RY_ARENA
+	_top_stack.position = Vector2(0, top)
+	_top_stack.size = Vector2(vp.x, RY_TAG_TOP + RY_TAG_PX * 1.25)
+	var logo := _top_stack.get_node("Logo") as Control
+	logo.position = Vector2(0, RY_LOGO_TOP)
+	logo.size = Vector2(vp.x, RY_LOGO_PX)
+	var tag := _top_stack.get_node("Tagline") as Control
+	var ts := tag.get_combined_minimum_size()
+	tag.size = ts
+	# the star line's box is 1.25 of its size, the words in its middle: their top on the mock's 330
+	tag.position = Vector2((vp.x - ts.x) * 0.5, RY_TAG_TOP - (ts.y - RY_TAG_PX) * 0.5)
+	var start_top := vp.y - W.safe_bottom() - RY_START_UP
+	var sw := minf(RY_START.x, vp.x - 90.0)
+	_play.position = Vector2((vp.x - sw) * 0.5, start_top)
+	_play.size = Vector2(sw, RY_START.y)
+	# the disc: the backdrop's own spot (lower by half the extra height on a taller screen), told back to it
+	_disc = Vector2(vp.x * 0.5, 1160.0 + (vp.y - 1920.0) * 0.5)
+	_fig_k = 1.0
+	if _backdrop and _backdrop.has_method("disc_center"):
+		_backdrop.call("set_disc", _disc, float(_backdrop.call("disc_radius")))
+		_fig_k = maxf(float(_backdrop.call("plate_scale")), 1.0)
+	# the figure's frame: the strip's frame drawn so the figure inside it (TitleStage's fractions) is RY_FIGURE_H tall
+	var fig_h := RY_FIGURE_H * _fig_k
+	var span := TitleStageScript.FIGURE_FEET - TitleStageScript.FIGURE_TOP
+	var frame_h := fig_h / span
+	var frame_w := frame_h * (_figure.aspect() if _figure else 1.0)
+	var feet_y := _disc.y - RY_FEET_UP
+	if _backdrop and _backdrop.has_method("set_caster"):
+		_backdrop.call("set_caster", Vector2(_disc.x, feet_y), fig_h)
+	var band_top := feet_y - fig_h - 40.0
+	var band_bottom := _disc.y + RY_PILL_DOWN + maxf(R.PILL_H, RY_DETAILS.y) + 10.0
+	_hero_row.position = Vector2(0, band_top)
+	_hero_row.size = Vector2(vp.x, band_bottom - band_top)
+	_art_host.position = Vector2(_disc.x - frame_w * 0.5, feet_y - frame_h * TitleStageScript.FIGURE_FEET - band_top)
+	_art_host.size = Vector2(frame_w, frame_h)
+	for a in _hero_row.get_children():
+		if a is WButton:
+			var side: int = a.get_meta("side")
+			var x := _disc.x - RY_ARROW_X if side < 0 else _disc.x + RY_ARROW_X - RY_ARROW
+			a.position = Vector2(x, _disc.y - RY_ARROW_UP - band_top)
+			a.size = Vector2(RY_ARROW, RY_ARROW)
+	_place_lock_royale()
+	var name_y := _disc.y + RY_NAME_DOWN
+	_name.position = Vector2(0, name_y)
+	_name.size = Vector2(vp.x, RY_NAME_PX)
+	_trait_row.reset_size()
+	var rs := _trait_row.get_combined_minimum_size()
+	_trait_row.size = rs
+	_trait_row.position = Vector2((vp.x - rs.x) * 0.5, _disc.y + RY_PILL_DOWN + (R.PILL_H - rs.y) * 0.5)
+	if _run_pill:
+		var ps := _run_pill.get_combined_minimum_size()
+		_run_pill.size = ps
+		_run_pill.position = Vector2((vp.x - ps.x) * 0.5, _trait_row.position.y + rs.y + 22.0)
+	# a locked hero's requirement over his feet, its foot just over the name; the BUY over the middle of his figure
+	if _req:
+		# its words wrap only once it has its width: it grows upwards from its foot when they take a second line
+		var rw := minf(RY_REQ_W, vp.x - 80.0)
+		_req.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_req.size = Vector2(rw, 0)
+		_req.reset_size()
+		_req.size = Vector2(rw, 0)
+		var h := _req.get_combined_minimum_size().y
+		_req.position = Vector2((vp.x - rw) * 0.5, name_y - RY_REQ_GAP - R.PANEL_BASE - h)
+	if _buy_col:
+		var fig := hero_figure_rect()
+		_buy_col.reset_size()
+		var cs := _buy_col.get_combined_minimum_size()
+		_buy_col.size = cs
+		_buy_col.position = Vector2(fig.get_center().x - cs.x * 0.5, fig.position.y + fig.size.y * 0.5 - RY_BUY_H * 0.5)
+
+
+## The hero as a run draws him, flat on the title (pass 123, lane MAINMENU): one frame of his played look's strip at a
+## time (the grid the strip is: strip_cols a row, else one row), his front idle (idle_f, else idle_fd, else idle; the
+## order Player and TitleStage lay a strip out in) stepped at the look's own speed (its `fps` for "idle", else
+## BillboardSprite's 4 a second). A frame is drawn only when it changes; nothing is made a frame. `tint` multiplies it:
+## MASK is the black silhouette of a hero not owned.
+class HeroFigure extends Control:
+	var tex: Texture2D
+	var tint := Color.WHITE
+	var cols := 1
+	var first := 0
+	var count := 1
+	var fps := 4.0
+	var frame := 0
+	var cell := Vector2(256, 256)
+	var _t := 0.0
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	## The strip, its grid and the idle's frames from `look` (the def's played look; `def` for a drawn stand-in).
+	func setup(look: CharacterDef, def: CharacterDef) -> void:
+		tex = look.sprite if look else null
+		var anims: Dictionary = look.anims if look else {}
+		var grid := look.strip_cols if look and tex else 0
+		var speeds: Dictionary = look.fps if look and tex else {}
+		if tex == null:
+			tex = PlaceholderArt.character_strip(def)
+			anims = {"idle": 2, "run": 4, "turn": 1, "hit": 1, "die": 1, "cheer": 1}
+		var offsets := {}
+		var k := 0
+		for a in TitleStageScript.ORDER:
+			var n := int(anims.get(a, 0))
+			if n > 0:
+				offsets[a] = [k, n]
+				k += n
+		var total := maxi(k, 1)
+		var anim := "idle"
+		for want in ["idle_f", "idle_fd", "idle"]:
+			if offsets.has(want):
+				anim = want
+				break
+		var slot: Array = offsets.get(anim, [0, 1])
+		first = int(slot[0])
+		count = maxi(int(slot[1]), 1)
+		cols = grid if grid > 0 else total
+		var rows := int(ceil(float(total) / float(maxi(cols, 1))))
+		if tex:
+			cell = Vector2(float(tex.get_width()) / float(maxi(cols, 1)), float(tex.get_height()) / float(maxi(rows, 1)))
+		fps = speed_of(speeds, anim)
+		frame = 0
+		_t = 0.0
+		set_process(count > 1)
+		queue_redraw()
+
+	## The look's speed for `anim` (the first `fps` key it begins with, as BillboardSprite reads it), else RY_IDLE_FPS.
+	static func speed_of(speeds: Dictionary, anim: String) -> float:
+		for key in speeds.keys():
+			if anim.begins_with(str(key)):
+				return float(speeds[key])
+		return RY_IDLE_FPS
+
+	## The frame's width over its height (the title sizes the box by it).
+	func aspect() -> float:
+		return cell.x / cell.y if cell.y > 0.0 else 1.0
+
+	func set_tint(c: Color) -> void:
+		tint = c
+		queue_redraw()
+
+	func _process(delta: float) -> void:
+		_t = fmod(_t + delta * fps, float(count))
+		var f := int(_t)
+		if f != frame:
+			frame = f
+			queue_redraw()
+
+	func _draw() -> void:
+		if tex == null:
+			return
+		var i := first + frame
+		var src := Rect2(Vector2(float(i % cols), float(i / cols)) * cell, cell)
+		draw_texture_rect_region(tex, Rect2(Vector2.ZERO, size), src, tint)

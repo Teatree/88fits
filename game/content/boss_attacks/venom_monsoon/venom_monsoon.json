@@ -64,7 +64,7 @@
   "barrier": {
     "look": "cactus_fence",
     "radius_mode": "fixed",
-    "radius": 14.0,
+    "radius": 18.9,
     "inset": 1.0,
     "height": 1.8,
     "thickness": 0.8,

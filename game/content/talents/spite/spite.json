@@ -3,7 +3,7 @@
   "name": "Stakes",
   "flavour": "Raise the stakes: on the whole crowd, or on the big ones.",
   "order": 1,
-  "ranks": 6,
+  "ranks": 7,
   "currency_type": "gold",
   "cost": [
     100,
@@ -11,12 +11,14 @@
     900,
     1600,
     2500,
-    3600
+    3600,
+    4900
   ],
   "forms": [
     {
       "name": "Difficulty",
-      "text": "Creatures +10% HP and attack, +4% speed a rank.",
+      "text": "Creatures +10% HP and attack, +4% speed a rank; half as much again at rank 7.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "danger_hp",
@@ -46,7 +48,8 @@
     },
     {
       "name": "Boss",
-      "text": "Bosses and Elites +10% HP and attack, +4% speed a rank.",
+      "text": "Bosses and Elites +10% HP and attack, +4% speed a rank; half as much again at rank 7.",
+      "top_mult": 1.5,
       "effects": [
         {
           "stat": "boss_danger_hp",

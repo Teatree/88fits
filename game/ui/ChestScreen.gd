@@ -281,8 +281,8 @@ func title_colour(boss: bool) -> Color:
 func star_colour(boss: bool) -> Color:
 	if not boss:
 		return W.PAPER
-	var purple: Color = R.RARITY["epic"]["light"]
-	return purple if W.royale() else BOSS_TITLE_COLOR
+	var light: Color = R.MUTATION["light"]   # pass 123: the mutations' own colour
+	return light if W.royale() else BOSS_TITLE_COLOR
 
 
 ## The header for the chest about to open (pass 54): MUTATION CHEST in purple under "★ A PATH OPENS ★" for the boss's,

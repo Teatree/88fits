@@ -331,7 +331,9 @@ func _build_plate() -> void:
 	_plate = PanelContainer.new()
 	_plate.name = "BountyPlate"
 	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_plate.add_theme_stylebox_override("panel", W.box(W.PAPER, 4, 5).pad(10, 6, 16, 6))
+	# pass 123 (Garry: "Bounty UI Element features dark text over dark bg"): the HUD's black plate with white words under
+	# Royale (W.plate_box is the paper plate under Wanted)
+	_plate.add_theme_stylebox_override("panel", W.plate_box(4, 5).pad(10, 6, 16, 6))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -368,7 +370,10 @@ func _refresh_plate() -> void:
 	if _plate_text.text != t:
 		_plate_text.text = t
 		_plate.reset_size()
-	_plate_text.color = W.SAGE if done else (W.ROCK if failed else W.INK)
+	if W.royale():
+		_plate_text.color = R.role("green")["top"] if done else (R.role("red")["top"] if failed else R.WHITE)
+	else:
+		_plate_text.color = W.SAGE if done else (W.ROCK if failed else W.INK)
 	_plate.modulate.a = 0.6 if failed else 1.0
 
 

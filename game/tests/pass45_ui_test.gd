@@ -98,8 +98,8 @@ func test_the_sheet_sums_the_ranks_for_reading() -> void:
 	# pass 88 (lane MIRROR, re-pinned on purpose): Grit by name (the board's first talent is the cheapest since pass 88,
 	# Stakes, whose forms read three stats)
 	var def: TalentDef = Registry.talent("grit")
-	# all the ranks (six since pass 46), each the same step
-	var full := def.max_rank()
+	# the plain ranks (six; pass 123's seventh is dearer and stronger, see pass123_LEAD), each the same step
+	var full := def.max_rank() - 1
 	assert_int(full).is_equal(6)
 	var base: Array = def.effects_for(0, 1)
 	assert_int(def.effects_for(0, full).size()).is_equal(base.size() * full)

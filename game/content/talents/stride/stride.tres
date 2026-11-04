@@ -23,20 +23,22 @@ target = "player"
 [resource]
 script = ExtResource("5_70rlp")
 order = 7
-ranks = 6
-cost = [425.0, 1700.0, 3825.0, 6800.0, 10625.0, 15300.0]
+ranks = 7
+cost = [425.0, 1700.0, 3825.0, 6800.0, 10625.0, 15300.0, 20825.0]
 forms = [{
 "effects": [SubResource("Resource_qdg8m")],
 "icon": ExtResource("2_5qlh6"),
 "icon_file": "stride_0_icon.png",
 "name": "Boots",
-"text": "+5% move speed a rank."
+"text": "+5% move speed a rank, +7.5% at rank 7.",
+"top_mult": 1.5
 }, {
 "effects": [SubResource("Resource_5qlh6")],
 "icon": ExtResource("3_5wcsk"),
 "icon_file": "stride_1_icon.png",
 "name": "Lodestone",
-"text": "+18% pickup reach a rank."
+"text": "+18% pickup reach a rank, +27% at rank 7.",
+"top_mult": 1.5
 }]
 id = "stride"
 display_name = "Stride"

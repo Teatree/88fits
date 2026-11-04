@@ -21,20 +21,22 @@ target = "player"
 [resource]
 script = ExtResource("5_wes8p")
 order = 4
-ranks = 6
-cost = [325.0, 1300.0, 2925.0, 5200.0, 8125.0, 11700.0]
+ranks = 7
+cost = [325.0, 1300.0, 2925.0, 5200.0, 8125.0, 11700.0, 15925.0]
 forms = [{
 "effects": [SubResource("Resource_xi683")],
 "icon": ExtResource("2_mxoig"),
 "icon_file": "choice_0_icon.png",
 "name": "Reroll",
-"text": "+1 reroll a run, a rank."
+"text": "+1 reroll a run, a rank; +2 at rank 7.",
+"top_mult": 2.0
 }, {
 "effects": [SubResource("Resource_mxoig")],
 "icon": ExtResource("3_l7mfe"),
 "icon_file": "choice_1_icon.png",
 "name": "Banish",
-"text": "+1 banish a stage, a rank."
+"text": "+1 banish a stage, a rank; +2 at rank 7.",
+"top_mult": 2.0
 }]
 id = "choice"
 display_name = "Choice"

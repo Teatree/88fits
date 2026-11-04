@@ -4,14 +4,14 @@
 
 [resource]
 script = ExtResource("1_if6ng")
-doc = "Every landing spot round the Gila Grande lights up red at once; it crouches, rears up and spews a burst of big red cactus spikes out of its mouth, and they all come down together a moment later, on rings of wide circles with a narrow gap between every two. Find a gap before the spew."
+doc = "Every landing spot round the Gila Grande lights up red at once; it crouches, rears up and spews a burst of big green poison globules out of its mouth, and they all come down together a moment later, on rings of wide circles with a narrow gap between every two. Find a gap before the spew."
 projectile = {
 "arc": 7.0,
 "flight": 1.1,
 "glow": 1.2,
-"look": "spike",
-"size": 2.72,
-"tint": "#D0242F",
+"look": "spit",
+"size": 1.9,
+"tint": "#7BD62B",
 "trail": true
 }
 pattern = {
@@ -55,5 +55,5 @@ spew = {
 "stretch": 1.25
 }
 id = "cactus_rain"
-display_name = "Red Cactus Rain"
+display_name = "Poison Rain"
 icon_file = "cactus_rain_icon.png"

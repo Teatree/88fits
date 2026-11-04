@@ -616,6 +616,9 @@ static func _talent(d: Dictionary, dir: String) -> TalentDef:
 		var re = f.get("rank_effects", [])
 		if re is Array and not (re as Array).is_empty():
 			form["rank_effects"] = levels_list(re, "player")
+		# pass 123: the board's top rank gives this many steps (TalentDef.top_mult)
+		if f.has("top_mult"):
+			form["top_mult"] = float(f.get("top_mult", 1.0))
 		forms.append(form)
 	t.forms = forms
 	return t

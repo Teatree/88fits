@@ -93,24 +93,30 @@ func _rects(hud: HUD) -> Dictionary:
 
 # ---------------------------------------------------------------- the switch
 
-func test_the_slot_rarity_switch_defaults_off_and_is_locked_in_prod() -> void:
+func test_the_slot_rarity_switch_defaults_on_and_is_locked_in_prod() -> void:
+	# pass 123 (Garry: "Weapon Rarity isn't displayed at the top left it's only the number right now"): on by default, kept
+	# under a new key so a save that held the old default does not hold it off
 	var script: GDScript = load("res://core/autoload/Settings.gd")
 	var s: Node = auto_free(script.new())
-	assert_bool(s.hud_slot_rarity).is_false()
+	assert_bool(s.hud_slot_rarity).is_true()
 	assert_bool(script.PROD_LOCKED.has("hud_slot_rarity")).is_true()
 	assert_bool(bool(script.PROD_LOCKED["hud_slot_rarity"])).is_false()
-	assert_bool(s.to_dict().has("hud_slot_rarity")).is_true()
-	assert_bool(bool(s.to_dict()["hud_slot_rarity"])).is_false()
-	s.from_dict({"hud_slot_rarity": true})
-	assert_bool(s.hud_slot_rarity).is_true()
+	assert_bool(s.to_dict().has("hud_slot_rarity2")).is_true()
+	assert_bool(bool(s.to_dict()["hud_slot_rarity2"])).is_true()
+	s.from_dict({"hud_slot_rarity": false})
+	assert_bool(s.hud_slot_rarity).override_failure_message("the old key no longer speaks").is_true()
+	s.from_dict({"hud_slot_rarity2": false})
+	assert_bool(s.hud_slot_rarity).is_false()
 	var back: Node = auto_free(script.new())
 	back.from_dict(s.to_dict())
-	assert_bool(back.hud_slot_rarity).is_true()
+	assert_bool(back.hud_slot_rarity).is_false()
 	s.from_dict({"music_volume": 0.3})
-	assert_bool(s.hud_slot_rarity).is_true()
-	s.from_dict({"hud_slot_rarity": false})
 	assert_bool(s.hud_slot_rarity).is_false()
+	s.from_dict({"hud_slot_rarity2": true})
+	assert_bool(s.hud_slot_rarity).is_true()
 	# the live Settings: set_value flips it and tells the listeners
+	var was: bool = Settings.hud_slot_rarity
+	Settings.set_value("hud_slot_rarity", false)
 	var heard: Array = []
 	var cb := func(): heard.append(Settings.hud_slot_rarity)
 	Settings.changed.connect(cb)
@@ -123,9 +129,10 @@ func test_the_slot_rarity_switch_defaults_off_and_is_locked_in_prod() -> void:
 	assert_bool(Settings.hud_slot_rarity).is_false()
 	Settings.set_value("hud_slot_rarity", true)
 	assert_bool(Settings.hud_slot_rarity).is_false()
-	Settings.from_dict({"hud_slot_rarity": true})
+	Settings.from_dict({"hud_slot_rarity2": true})
 	assert_bool(Settings.hud_slot_rarity).is_false()
 	Settings.force_prod(false)
+	Settings.set_value("hud_slot_rarity", was)
 	# the in-run debug panel has the row, beside the theme's
 	var dp: DebugPanel = auto_free(DebugPanel.new())
 	add_child(dp)
@@ -313,7 +320,6 @@ func test_a_theme_flip_in_a_run_restyles_the_hud_in_place() -> void:
 	hud._timer_plate.draw.connect(func(): draws["timer"] += 1)
 	hud._gold_plate.draw.connect(func(): draws["gold"] += 1)
 	hud._coin.draw.connect(func(): draws["coin"] += 1)
-	assert_bool(hud._coin.is_royale_disc()).is_false()
 	# the in-run debug panel's button: Settings.set_value, which W and the HUD both hear
 	Settings.set_value("ui_theme", "royale")
 	await _frames(2)
@@ -322,7 +328,6 @@ func test_a_theme_flip_in_a_run_restyles_the_hud_in_place() -> void:
 	for k in draws.keys():
 		assert_int(int(draws[k])).override_failure_message("%s drawn again after the flip to royale: %s" % [k, draws]).is_greater_equal(1)
 		draws[k] = 0
-	assert_bool(hud._coin.is_royale_disc()).is_true()
 	assert_bool(R.is_display(hud._lv.font)).is_true()
 	assert_bool(hud._lv.color.is_equal_approx(R.WHITE)).is_true()
 	assert_str((hud._pause_btn.box as HardBox).role).is_equal("slate")
@@ -341,7 +346,6 @@ func test_a_theme_flip_in_a_run_restyles_the_hud_in_place() -> void:
 	assert_str(hud.theme_applied()).is_equal("wanted")
 	for k in draws.keys():
 		assert_int(int(draws[k])).override_failure_message("%s drawn again after the flip back: %s" % [k, draws]).is_greater_equal(1)
-	assert_bool(hud._coin.is_royale_disc()).is_false()
 	assert_str(_base_path(hud._lv.font)).is_equal(W.SLAB_PATH)
 	assert_bool(hud._lv.color.is_equal_approx(W.INK)).is_true()
 	assert_int(hud._lv.stroke).is_equal(0)
