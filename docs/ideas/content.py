@@ -1,0 +1,297 @@
+# -*- coding: utf-8 -*-
+"""The ideas document's words and its concept art's prompts (pass 124). Read by tools/gen_ideas_art.py (the art, Flux.2 Klein
+on the AI server) and tools/make_ideas_doc.py (the page). Every number is a starting point for the Level Editor, not a tuned
+value. `art` = the prompt's subject; `kind` = scene | creature | icon | card | portrait; `ref` = a game picture to repaint."""
+
+S1 = "game/art/ui/stages/red_canyon_s1.jpg"
+
+# ------------------------------------------------------------------ the last ideas Garry asked for (pass 122's 5 + 5)
+PAST_FEATURES = [
+    dict(id="spreads", name="Spreads", tag="Named two-Card combos",
+         what="Pairs of Cards form a named Spread with a bonus: The Sun + The Eye gives extra crit damage, The Tower + The Guardian a shield pulse. The Card screen marks a card that would complete one.",
+         adds="The fourth Card slot becomes a plan, not just the best stat on offer. Gives a reason to remember Cards between runs.",
+         kind="scene", art="two glowing ornate tarot cards laid side by side on a dark green saloon card table, a golden arc of light joining them, a sun on one card and an eye on the other, poker chips around"),
+    dict(id="got_you", name="The One That Got You", tag="A grudge from your last run",
+         what="Whatever killed you comes back early in your next run as a glowing special with a sure chest, and a small poster pays extra for the revenge.",
+         adds="A personal story from run to run, and a known threat in the quiet opening minutes.",
+         kind="scene", art="a torn western wanted poster nailed to a post showing a snarling red scorpion marked REVENGE, bullet holes in the paper, a glowing red aura round the poster, desert dusk"),
+    dict(id="daily_canyon", name="The Daily Canyon", tag="One seed for everyone, every day",
+         what="One stage, one hero, one poster a day, the same seed for all players, one attempt that counts. A short board shows friends' results.",
+         adds="A reason to open the app every day and something to compare. It uses the deterministic replays already in the game.",
+         kind="scene", art="a daily calendar page nailed to a saloon wall showing a desert canyon sketch, a sheriff star pinned on it, a small wooden scoreboard beside it with chalk tallies"),
+    dict(id="cover", name="Cover", tag="Rocks stop bullets",
+         what="Enemy straight shots stop at rocks and tall cacti; lobbed ones fly over. A small puff shows the hit.",
+         adds="Steering matters against ranged enemies, and map generation starts to matter for fights.",
+         kind="scene", art="a cowboy gunslinger crouching behind a big red desert boulder while a bright enemy bullet shatters against the rock in a puff of dust, top three quarter view of desert sand"),
+    dict(id="staked", name="Staked Posters", tag="Bet your gold on a bounty",
+         what="Put up half a hard poster's reward from your own gold before a run: double it if you finish, lose it if you don't.",
+         adds="A risk choice for experts and a gold sink for the greedy.",
+         kind="scene", art="a pile of gold coins and a wanted poster on a rough wooden table, a hand pushing the stack of coins forward, a revolver lying beside it, warm saloon light"),
+]
+PAST_CONTENT = [
+    dict(id="pack_rat", name="The Pack Rat", tag="A loot runner",
+         what="A fast creature carrying a huge sack. It never attacks and flees; catch it within 30 s for a sure chest and coins.",
+         adds="A sudden change of plan in the middle of a fight: chase it or stay safe?",
+         kind="creature", art="a fat desert pack rat running on its hind legs carrying a huge overstuffed burlap sack spilling gold coins on its back, panicked greedy face"),
+    dict(id="elite_mods", name="Four more Elite modifiers", tag="Brute, Colossus, Twin, Blasting Cap",
+         what="Brute hits twice as hard, Colossus is huge with triple HP, Twin splits in two on death, Blasting Cap explodes after a warning.",
+         adds="Elites stop repeating by run three.",
+         kind="creature", art="a huge crowned skeleton elite warrior with a glowing golden crown floating above its head, cracked armour, sticks of dynamite strapped to its chest with burning fuses, menacing pose"),
+    dict(id="skin_wave", name="A wave of skins", tag="Eight hero skins",
+         what="Eight hero skins, such as the Drifter's Black Hat, each earned by a quest and bought with gold.",
+         adds="A long goal on every hero sheet, using the skin system that already exists.",
+         kind="creature", art="a gunslinger cowboy in a long black duster coat, black wide brim hat and a silver skull belt buckle, red bandana, cool standing pose, full body"),
+    dict(id="bullwhip", name="The Bullwhip", tag="The western's missing weapon",
+         what="A long thin crack that throws what it hits, with fire, triple-crack and lasso-pull mutations.",
+         adds="A reach weapon with a shape no other weapon has: a long curved line.",
+         kind="icon", art="a coiled braided leather bullwhip with a wooden handle, the tip cracking with a spark"),
+    dict(id="dealer", name="The Dealer", tag="A hero built around luck",
+         what="A riverboat gambler who levels luck, the stat that improves card offers, and throws curving playing cards.",
+         adds="The first hero built around what you are offered rather than raw damage.",
+         kind="creature", art="an elegant riverboat gambler woman in a burgundy waistcoat and a small black top hat, fanning a hand of glowing playing cards, sly smile, full body"),
+]
+
+# ------------------------------------------------------------------ map variations
+VARIATIONS = [
+    dict(id="var_saltflat", name="Salt Flat Noon", tag="White, hot and blinding",
+         look="Sand becomes a cracked white salt crust in big hexagon plates. Hard, short blue-violet shadows. Bleached bones, rusted cars and salt pillars replace palms. Heat shimmer at the screen's top edge.",
+         apart="The brightest stage in the game; every creature reads as a dark silhouette, the exact opposite of Nightfall.",
+         play="The oases are brine pools. Salt crust crunches: a faint trail shows where you have walked.",
+         cost="Cheap: a new ground texture, a filter and 4 to 6 painted props.",
+         ref=S1, art="the same desert scene repainted as a blinding white salt flat: cracked hexagonal white salt crust ground, a turquoise brine pool in the middle, bleached bones and white salt pillars instead of palms, pale sky, short blue-violet shadows"),
+    dict(id="var_duststorm", name="The Dust Bowl", tag="A storm you can't see through",
+         look="Amber haze rolling across the map, soft-edged props fading into brown, a low orange sun as a disc through the dust.",
+         apart="Depth comes from fog bands, not colour. The world feels closed in.",
+         play="Gusts every 40 to 60 s push everything one way for a few seconds, and creatures arrive out of the haze.",
+         cost="Cheap to medium: scrolling fog layers on top of the ground. They must stay light on the phone's GPU.",
+         ref=S1, art="the same desert scene repainted inside a huge brown dust storm: thick amber haze bands rolling across, props half hidden as silhouettes, a dim orange sun disc, wind streaks of sand, an abandoned wagon"),
+    dict(id="var_superbloom", name="Superbloom", tag="The desert after the rain",
+         look="Sand under a carpet of purple, yellow and orange wildflowers, green-tinted saguaros, shallow streams everywhere, big white clouds.",
+         apart="The only colourful, happy stage. Violence on it reads as funny, and it sells screenshots.",
+         play="Flowers are flattened where you walk. Streams slow you as water does now, so routes change.",
+         cost="Medium: a bloom ground texture, flower-patch props, and the river rule run several times.",
+         ref=S1, art="the same desert scene repainted as a desert superbloom after rain: carpets of purple lupine yellow poppies and orange wildflowers over the sand, bright green saguaros, sparkling shallow streams, big white clouds, cheerful daylight"),
+    dict(id="var_burn", name="After the Fire", tag="Charcoal and embers",
+         look="Black and grey ash ground with glowing orange cracks, charred cactus skeletons, drifting embers, a smoke-brown sky.",
+         apart="Hell's opposite: Blood Moon is red on red; this is orange lights on black, so creatures pop strongly.",
+         play="Burnt patches flare up now and then (a short fire zone). Fire weapons leave longer flames here.",
+         cost="Cheap: a recolour of the ground, charred versions of props by the existing paint pipeline, and the embers Fx.",
+         ref=S1, art="the same desert scene repainted after a wildfire: black charcoal ash ground with glowing orange ember cracks, charred blackened cactus skeletons, drifting orange sparks, a brown smoky sky, a ruined burnt wagon"),
+    dict(id="var_sunset", name="Painted Desert", tag="Candy-striped strata",
+         look="The ground in bands of pink, cream and rust like the real Painted Desert; banded hoodoos and mesas; soft lilac shadows at golden hour.",
+         apart="Keeps the desert fantasy but makes it look like a postcard. The bands give the ground direction and shape.",
+         play="Pure look; the bands can follow the map's noise so every run's stripes differ.",
+         cost="Cheap: one ground shader using the height noise for stripes, plus hoodoo props.",
+         ref=S1, art="the same desert scene repainted as the Painted Desert of Arizona: ground in soft horizontal bands of pink cream and rust, striped hoodoo rock towers, a pale teal oasis, lilac shadows, golden hour light"),
+    dict(id="var_roswell", name="WILD: Roswell", tag="Something crashed last night",
+         look="Night desert under a huge teal aurora, a crashed silver saucer at the map's centre with glowing green goo, crop-circle patterns burnt into the sand, tin-foil scarecrows.",
+         apart="Sci-fi invading the western: instantly a different game on the store page.",
+         play="Creatures take a green rim and float a little. Goo pools hurt them and heal you. Alien tech chests hold a weapon look you can only earn here. Astro feels at home.",
+         cost="Medium: a set piece, a filter, goo pools (the Molotov's pool with other params), a few new props.",
+         ref=S1, art="the same desert scene repainted as a night in Roswell: dark blue sand under a teal green aurora sky, a crashed silver flying saucer half buried at the centre glowing green, crop circle patterns burnt into the sand, pools of glowing green goo"),
+    dict(id="var_seabed", name="WILD: The Dry Sea", tag="An ocean that left",
+         look="Sand turns teal and pale, with rippled seabed patterns. Whale skeletons, galleon wrecks on dunes, giant coral fossils, anchors and rusted chains. Faint light caustics drift over the ground as if the water never quite left.",
+         apart="A desert that is still a desert, but with a story nobody expects: the caustics alone make it read as somewhere else.",
+         play="Every couple of minutes a ghost tide rolls across: for 10 s everything moves as if under water, shots slow, and ghost fish swim past. A galleon wreck holds the stage's chest.",
+         cost="Medium: caustics in the ground shader (cheap), about 8 new props, the tide as a timed slow on the existing systems.",
+         ref=S1, art="the same desert scene repainted as a dried up ancient seabed: pale teal rippled sand, a huge whale skeleton, a wrecked wooden galleon lying on a dune, giant fossil coral, rusty anchor and chains, soft water caustic light patterns drifting over the sand"),
+]
+
+# ------------------------------------------------------------------ map generation
+GENERATION = [
+    dict(id="gen_landmarks", name="One big landmark a map", tag="The thing you remember",
+         what="Roll one large set piece per run from a list: a ghost town street, a wrecked train on a trestle, a mine head, a mission ruin, a giant dinosaur skeleton, a meteor crater. It sits somewhere off centre and holds the map's best chest.",
+         why="People describe a run by its landmark: \"the one with the train\". Today's scatter of props never gives you that.",
+         cost="Medium: each is a cluster of painted billboards and obstacle circles, content rather than code once the first exists.",
+         kind="scene", art="top three quarter view of a small abandoned western ghost town street in the desert: a crooked saloon, a sheriff's office, a water tower, wooden boardwalks and tumbleweeds, seen from above like a game map"),
+    dict(id="gen_biomes", name="Districts instead of one scatter", tag="Three neighbourhoods a map",
+         what="Split the map into 3 to 5 soft regions with their own prop mix and ground tint: a palm oasis belt, a dead cactus forest, a rocky badland, a dune sea, a salt pan. Which ones you get, and where, comes from the seed.",
+         why="This is the biggest single change for \"this map feels different\". Walking somewhere new would look new.",
+         cost="Low: PropField already picks by a hash of the spot. It gains a low-frequency noise that chooses the mix.",
+         kind="diagram", art=""),
+    dict(id="gen_hard", name="Real walls: canyons and mesas", tag="Terrain that changes your route",
+         what="Roll one big hard shape per run: a winding dry canyon, two mesas with a gap between them, a ring of rock with two exits, or a long fence line. Creatures path round them and hard walls stop ranged shots (see Cover).",
+         why="Today's obstacles are small circles, so you can run in any line on any map. A wall forces a route, which is what makes two runs play differently.",
+         cost="Medium to high: creature steering has to handle long walls. It needs a cheap flow field, which could also speed up the crowd.",
+         kind="diagram", art=""),
+    dict(id="gen_traits", name="Named map traits", tag="\"Rattler's Gulch: Dry Year, Many Barrels\"",
+         what="Each seed rolls 1 or 2 traits shown on the loading screen and the map's name: Dry Year (no water), Wet Year (four oases), Barrel Country (double barrels), Totem Grove (totems cluster), Boneyard (bones everywhere, more Skeletons), Windy (constant dust devils).",
+         why="Players notice a difference they can read. A name and a sentence make a seed feel chosen rather than random.",
+         cost="Low: the numbers already live in `timeline_data`. A trait is a small overlay on them.",
+         kind="scene", art="a weathered wooden trail signpost in the desert with several painted arrows and carved place names, a rattlesnake coiled at its foot, sunset"),
+    dict(id="gen_roads", name="Roads, rails and old tracks", tag="Lines that connect things",
+         what="Generate a dirt road or rail line that links the landmark to the fort gate and past the oases, with fence posts, telegraph poles and signs along it. Walking on the road gives a small speed boost.",
+         why="Lines across the map give the eye structure and turn a blank field into a place. A small boost makes them a choice.",
+         cost="Low to medium: the river's code already draws a curve onto the ground texture.",
+         kind="scene", art="a dusty dirt road winding across desert sand with old wooden telegraph poles and a broken fence along it, seen from high above at an angle, a lone wagon wheel by the road"),
+    dict(id="gen_pockets", name="Treasure pockets", tag="Small rewards to go and find",
+         what="Hide 3 to 6 small authored scenes per map: a camp with a chest, a cactus ring round a totem, a wrecked wagon with barrels, a skeleton holding a map. Each has a small visible clue from far away.",
+         why="Survivors are best when walking somewhere has a purpose. The rule of thumb: one thing worth finding within about 20 seconds of walking in any direction.",
+         cost="Low: scenes are short lists of existing props with a reward.",
+         kind="scene", art="a small abandoned desert camp seen from above: a tattered canvas tent, a dead campfire, a treasure chest half buried in sand, a ring of cactus around it"),
+    dict(id="gen_weather", name="Weather and hour rolled per run", tag="The same place, another day",
+         what="Roll the sky per run: clear noon, overcast, long golden hour, dusk haze. Shadows, tint and ambient sound follow. It stays within a stage's own colour rules.",
+         why="Two runs on the same stage stop looking identical. It costs almost nothing, because the stage filter already exists.",
+         cost="Very low: a few filter presets, and the shadows' direction as a shader value.",
+         kind="scene", art="split view of the same small desert hill with a saguaro cactus under four different skies: noon, overcast, golden hour and dusk, four vertical panels"),
+]
+
+# ------------------------------------------------------------------ the snow map
+SNOW_SCENES = [
+    dict(id="snow_overview", caption="The whole map's feel: an alpine valley seen from the game's camera", ref=S1,
+         art="the same game camera view repainted as a snowy Colorado alpine valley: white snow ground with blue shadows and exposed dark rock patches, a frozen blue lake in the middle, dark green snow-covered spruce trees in clusters, a small log cabin, wind drift patterns, crisp clear daylight"),
+    dict(id="snow_dusk", caption="The same valley at last light: this could be its Nightfall", ref=S1,
+         art="the same game camera view repainted as a snowy mountain valley at dusk: blue and violet snow, a frozen lake reflecting a pink sky, warm orange lights in a log cabin window, dark spruce trees, long soft shadows"),
+    dict(id="snow_props", caption="Prop sheet: what replaces cactus and palm", kind="scene",
+         art="a game prop sheet on plain pale blue background of snowy Colorado objects arranged in a neat grid: snow covered spruce tree, bare aspen tree, snow capped boulder, half buried wooden fence, a mine cart full of ore, a log cabin, a ski lift pylon, a frozen wagon, a wooden trail marker, a snow drift, a small ice crystal cluster, a steaming hot spring"),
+    dict(id="snow_lake", caption="The frozen lake, the map's big hard element", kind="scene",
+         art="a large frozen mountain lake seen from above at an angle: smooth pale blue ice with long white cracks, a small ice fishing shack and a hole in the ice, snow banks and dark spruce trees around the shore"),
+]
+SNOW_ENV = [
+    ("Trees", "Spruce in dense dark clusters (the map's main shapes), pale bare aspen groves as a lighter accent, fallen logs, stumps with snow caps."),
+    ("Rock", "Grey granite outcrops with snow on top, scree slopes, cliff faces along the map's north edge with the Rockies painted behind them, as the fort wall and red cliffs are today."),
+    ("Human traces", "Log cabins with lit windows, an old mine head with rails and ore carts, a ski lift whose pylons cross the map in a line, a half-buried wagon, split rail fences, trail markers, a lookout tower, a frozen water tower."),
+    ("Small life on the ground", "Dry yellow grass poking through snow, animal tracks painted on the ground, snow drifts, icicles on eaves, frost on rocks."),
+    ("What sells it most", "Footprints. Hero and creatures leave a trail in the snow that fades slowly. It is the single strongest cue that this is snow, and a cheap ring buffer of ground decals can do it. Add light falling snow and breath puffs on the hero."),
+]
+SNOW_LAND = [
+    "Flat, as you say, but not featureless: the top-down camera reads height through shadow, so wind-carved ridges and soft drifts in the ground texture do the work that dunes do in the desert. Blue shadows on white, warm rock accents, and pure white kept for highlights only, so that sprites stay readable.",
+    "White ground is the risk. A white snow field fights our white damage numbers and pale creatures and it blooms on the screen. I would keep the snow at a mid light blue-grey (around 75% brightness), with brighter wind streaks. The Nightfall filter and creature outlines can stay as they are.",
+    "A strong north: mountains painted behind a treeline at the map's top edge, the way the fort wall and cliffs close the desert. Colorado reads through the skyline more than through anything on the ground.",
+    "Stage arc: bright morning for Stage 1, a blue blizzard dusk for Stage 2, and for Stage 3 either an aurora night or a thawing mine fire. The stage filters already exist.",
+]
+SNOW_HARD = [
+    ("Frozen lake", "Big, near the centre. Ice is slippery: you keep your momentum for a moment when turning. Creatures slide too, and heavy ones can crack the ice and fall through. It is the map's memorable place, and it replaces the oasis."),
+    ("Deep snow", "Soft areas that slow everyone by 15 to 20% (as water does in the desert), with packed trails through them that are faster. It makes the hero's line matter."),
+    ("Ridgelines and rock walls", "Long hard shapes that block movement and straight shots, forming two or three natural pockets. This needs the wall steering from the generation ideas above. It is what makes this more than a reskin."),
+    ("Spruce belts", "Dense tree clusters you can't walk through but shots can pass, so they break up the crowd's line without blocking your guns."),
+    ("The ski lift", "A line of pylons across the map, with chairs moving above. Standing under it does nothing, but a rideable chair could be a moving safe spot for 6 s every so often: the map's signature risk-free moment."),
+    ("Hot springs", "Replace oases as the heal spot: stand in the steam and regain HP, but the crowd comes through it too. Heat melts deep snow around it, so it's also a fast zone."),
+    ("Avalanche chutes", "Marked slopes at the map's edge. Now and then one releases a moving wall of snow across part of the map (see Avalanche Caller below). It buries creatures too, so you can lure them in."),
+]
+
+# ------------------------------------------------------------------ snow enemies
+FODDER = [
+    dict(id="sn_miner", name="Frostbitten Miner", role="The basic walker (like the Skeleton)", text="A frozen dead miner with a dim headlamp, slow and steady, comes in large numbers. Its lamp makes a crowd of them read at night.", art="a frozen undead skeleton miner covered in frost with a dented helmet and a dim yellow headlamp, tattered coat, icicles, carrying a broken pickaxe, shuffling forward"),
+    dict(id="sn_marmot", name="Yellow-Belly Marmot", role="Tiny swarmer", text="Very small and low HP, comes in tight packs of 15 to 20. They die in one hit and feel great to mow down.", art="a chubby angry yellow-bellied marmot running on all fours with bared buck teeth and a snow-dusted back"),
+    dict(id="sn_hare", name="Snowshoe Hare", role="Fast hopper", text="White and quick, hopping in bursts with pauses between them. Only its dark eye and ear tips keep it readable on snow.", art="a fierce white snowshoe hare with black ear tips and huge furry feet, mid hop, mean red eyes"),
+    dict(id="sn_wolf", name="Frost Wolf", role="Pack runner", text="Comes in loose packs from one side and runs at about your speed, so they catch you if you stop. A mid-tier body.", art="a lean grey and white frost wolf with ice crystals on its back and glowing pale blue eyes, snarling, running"),
+    dict(id="sn_snowman", name="Snow Deputy", role="Comedy tank", text="A walking snowman with a tin star and a carrot nose. It loses its head when badly hurt and keeps walking. A kind of joke the game can carry.", art="a menacing three-ball walking snowman wearing a battered cowboy hat and a tin sheriff star, carrot nose, coal eyes, twig arms, scowling"),
+    dict(id="sn_yeti_cub", name="Yeti Cub", role="Chunky bruiser", text="Round and slow with high HP, wandering in small groups. Rewards area weapons.", art="a round fluffy white baby yeti with small blue horns and a toothy grumpy grin, waddling with big feet"),
+    dict(id="sn_skier", name="Lost Skier", role="Straight-line runner", text="A zombie skier who speeds up in a straight line and turns badly, so it's easy to sidestep but hits hard if you don't.", art="a zombie skier in a torn retro 1970s orange ski jacket with goggles and ski poles, skis on its feet, leaning forward at speed, undead grey skin"),
+    dict(id="sn_crawler", name="Rime Crawler", role="Ground-hugging swarm", text="A pale ice beetle low to the ground. Low HP and many of them; the Lesser Scorpion of this map.", art="a pale blue ice beetle crawler with a crystalline shell, six spiky legs and small glowing eyes, low to the ground"),
+    dict(id="sn_grizzly", name="Grizzly", role="Heavy walker", text="A big body with a wide hit area. It doesn't charge, it just keeps coming and knocks you back when it bites.", art="a huge angry brown grizzly bear with snow on its shoulders walking on all fours, open roaring mouth, big claws"),
+    dict(id="sn_goat", name="Mountain Goat", role="Steady pusher", text="White with a dark face and horns. It shoves other creatures aside, so it reaches you ahead of the pack.", art="a stocky white mountain goat with short black horns and a shaggy beard, lowered head, stubborn angry expression, walking forward"),
+]
+SPECIALS = [
+    dict(id="sn_thrower", name="Snowball Yeti", role="Lobber", uses="The Spit Cactus's lob, the Bombmaker's throw", text="Throws big snowballs at where you are going. They leave slush patches that slow you for a few seconds, so standing near them is bad.", art="a big white yeti with blue skin on its face hefting a huge snowball above its head with both arms, about to throw"),
+    dict(id="sn_ram", name="Bighorn Ram", role="Charger", uses="The Bull Beetle's charge", text="Paws the ground, then charges in a line, knocking creatures aside and stopping only at something hard. Lure it into a rock and it's dazed.", art="a massive bighorn ram with huge curled horns and snow on its back, lowered head, pawing the ground, steam from its nostrils"),
+    dict(id="sn_shaman", name="Frost Priestess", role="Healer", uses="The Dust Shaman's pulse (green numbers included)", text="Heals what's around her and wraps them in a brief ice armour that takes one hit. Kill her first.", art="a hooded frost priestess in pale blue robes holding a staff topped with a glowing ice crystal, long white hair, floating snowflakes, calm cold expression"),
+    dict(id="sn_nitro", name="Nitro Miner", role="Exploder", uses="The Mine Crab's walk, the Horned Toad's death burst", text="A miner hugging a crate of nitro who runs at you and blows up. The blast also freezes the ground for a moment. Kill him at range or use him on his friends.", art="a panicked undead miner running while hugging a wooden crate marked with a skull full of nitroglycerin bottles, lit fuse sparking, frost on his beard"),
+    dict(id="sn_sniper", name="Ski Patrol Marksman", role="Sniper", uses="The Saiga Sniper's line and lock", text="Stands far off on a ridge with a rifle. A thin red line gathers and locks; hit him to spoil his aim.", art="a ski patrol marksman in a red parka with a white cross armband and goggles, kneeling on skis and aiming a long old hunting rifle"),
+    dict(id="sn_choir", name="Frost Choir", role="Bullet heaven", uses="The Monk's squad brain and energy orbs", text="A squad of ten hooded singers who stop as one and release a slow ring of ice shards, so you weave through the gaps. Aurora light rises while they sing.", art="a hooded choir monk in deep blue robes with a pale glowing face and an open singing mouth, holding a floating ring of sharp ice shards around him"),
+    dict(id="sn_lurker", name="Drift Lurker", role="Burrower", uses="The Gila's and Scorpion Elite's burrowing", text="A long pale worm. A ridge in the snow moves toward you, then it erupts under your feet and throws everything near. Its ridge is the warning.", art="a giant pale snow worm erupting from the ground, ring-shaped toothy mouth wide open, chunks of snow flying, small black eyes"),
+]
+UNIQUE = [
+    dict(id="sn_avalanche", name="Avalanche Caller", role="NEW: a moving wall and terrain that changes",
+         how="A giant on the map's edge stamps its foot. A wide wall of snow then sweeps slowly across a band of the map. It pushes and buries everything it touches, creatures included, and leaves a line of snow banks behind it that you can't walk through for 20 s, cutting the map in two.",
+         counter="The band is marked well ahead, and you can run across it or shelter behind a rock. The fun is luring the crowd into it. The giant can be killed to stop it.",
+         build="New: a moving hazard (a wide capsule with a push, close to the boss slam's code) and temporary obstacle circles, which also need the wall steering.",
+         art="a colossal stone and ice giant with a mountain peak on its back stamping one huge foot, a wall of avalanche snow bursting up behind it, roaring"),
+    dict(id="sn_wendigo", name="Whiteout Wendigo", role="NEW: it takes away what you can see",
+         how="A tall thin figure wrapped in its own blizzard. Inside a wide circle around it the screen goes white at the edges, and creatures beyond a few metres become faint shapes. Only their shadows show. The damage it does is modest; the fear is the point.",
+         counter="Kill it and the fog lifts at once. Its position shows as a dark centre in the storm, and an arrow at the screen's edge points at it.",
+         build="New: a screen-space fog around the hero that creatures fade into. It needs a light shader, and it must stay cheap on the phone (one quad, no extra pass).",
+         art="a tall gaunt wendigo with a deer skull head and long antlers, skeletal arms and pale ragged fur, swirling blizzard wrapped around its body, glowing white eye sockets"),
+    dict(id="sn_hag", name="Rime Hag", role="NEW: she freezes one of your weapons",
+         how="Every few seconds she points at you and picks your strongest weapon. Its HUD icon ices over, a crack runs across it and the weapon stops firing for 4 s. Two at once can silence half a build. The first creature in the game that attacks your build rather than your health.",
+         counter="A hit from any other weapon breaks her focus, so a build with one big gun suffers and a varied one shrugs it off. The icon's ice cracks as the time runs down, so you can plan around it.",
+         build="New: a small per-weapon `jammed` timer read by every behaviour, plus the HUD's ice overlay. Low cost, high impact on build choices.",
+         art="an old ice witch with frostbitten blue skin, a long crooked nose and wild white hair, wearing a cloak of frozen rags, one bony finger pointing forward with cold mist curling from it"),
+]
+
+# ------------------------------------------------------------------ items: the ones not taken
+OLD_ITEMS = [
+    dict(id="old_deadmans", name="Dead Man's Hand", slot="Legendary", from_="Pass 118", text="Every 8th hit of each weapon deals x5 and can still crit. A black card with aces and eights flicks over the target. Evolved: every 6th.", choice="Pulls you toward weapons that hit often over slow heavy ones. You feel the rhythm of the big numbers coming.", art="a fanned poker hand of black aces and eights held in a skeletal hand, tiny red glow"),
+    dict(id="old_bell", name="High Noon Bell", slot="Legendary", from_="Pass 118", text="Every 60 s the bell tolls and time stops for 3 s: creatures, their shots and the spawns freeze while you walk, pick up and fire. Evolved: every 45 s for 4 s, and kills in the stop drop double XP. (It would need a new name: the Drifter's perk is called High Noon.)", choice="Each toll is a window to spend: break out of a ring, sweep the gems, or empty every gun into a boss.", art="a big old brass mission bell with a crack in it, ringing, golden sound waves around it"),
+    dict(id="old_coin", name="Two-Headed Coin", slot="Legendary", from_="Pass 118", text="Every chest's reel lands twice and you take both. Evolved: purple chests and bosses' chests also pay 50% more gold.", choice="Chests become worth crossing the map for. Pairs with the Jade and Ruby Keys.", art="a gold coin with a laughing skull head on it spinning, a second identical face visible, sparkle"),
+    dict(id="old_bounty", name="Bounty on Your Head", slot="Legendary", from_="Pass 118", text="Creatures arrive 35% faster, up to the map's cap, and hit 10% harder. Every kill pays x1.6 XP and coins. Evolved: 50% faster, x2.", choice="A pure risk dial: greedy players grab it early and race the curve. (Careful with your phone: the cap stays full more often.)", art="a torn wanted poster with a big red circle and skull target printed on it, pierced by a knife, gold coins falling"),
+    dict(id="old_jar", name="Dust Devil in a Jar", slot="Legendary", from_="Pass 118", text="While you run, a whirlwind grows behind you to full size in 3 s, pulls gems and coins from 6 m and tosses the creatures it touches. Standing still it shrinks. Evolved: 2 s, wider, and it hurts what it tosses.", choice="Forks the build between running and standing: Siesta and Steady Hand reward standing still, this rewards never stopping.", art="a corked glass mason jar with a tiny angry tornado swirling inside, sand grains, a small crack in the glass"),
+    dict(id="old_shadow", name="Gunslinger's Shadow", slot="Legendary", from_="Pass 118", text="Your shadow peels off and moves as your mirror image across the spot where it rose, firing your first weapon at 50% damage. It can't be hurt. Evolved: your first two weapons, and it picks up gems.", choice="Two bodies to steer with one thumb: walk so that the crowd ends up between you and the twin.", art="a black silhouette cowboy shadow peeling off the ground with a revolver raised, glowing white eyes, wisps of darkness"),
+    dict(id="old_map", name="Treasure Map", slot="Legendary", from_="Pass 118", text="An X appears 40 to 60 m away with a pointer at the screen's edge. Stand on it for 3 s to dig up a purple chest and 200 gold. A new X 90 s after one is dug. Evolved: 1.5 s, and it also holds a power-up.", choice="Pulls you out of your safe loop and makes you stand still under pressure.", art="a rolled out old parchment treasure map with a dotted trail and a big red X, a small shovel lying across it"),
+    dict(id="old_loader", name="Speed Loader", slot="Passive", from_="Pass 116", text="Every kill takes 0.4% off the time to every weapon's next shot, up to 4% a second; +0.2% a level. Evolved Gatling Chamber: cap 6%.", choice="Great with Tommy Gun, Orbit Saws and Salt; poor with Sun Scepter, Big Mouth and in boss fights.", art="a brass revolver speed loader with six bullets held in a round clip, gleaming, motion lines"),
+    dict(id="old_key", name="Skeleton Key", slot="Passive", from_="Pass 116", text="A chest offers one more choice to pick from; level 2: 5% of black barrels hold a small chest; level 3: +10%. Different from the Jade and Ruby Keys, which bank a stat per chest.", choice="A level-up spent on no power now for better chests later.", art="an ornate old iron skeleton key with a little skull as its handle, hanging from a loop of red string"),
+    dict(id="old_pup", name="Coyote Pup", slot="Passive", from_="Pass 116", text="A coyote runs at your side and bites the nearest creature for 8 damage every 0.8 s; +25% a level; a second pup at level 4. Evolved Pack Leader: three pups, and bites howl a short slow.", choice="Costs no weapon slot but is weak: safe damage or a stat that scales everything?", art="a cute scrappy coyote puppy with big ears wearing a small red bandana, mid-bark, tail up"),
+    dict(id="old_silver", name="Silver Bullets", slot="Passive", from_="Pass 116", text="Shots turn toward their target (40 degrees a second, +20 a level) and do +10% to specials and Elites. Evolved Pinkerton's Mark: crits on specials always.", choice="Loved by Revolver, Boomstick, Tommy Gun and Spear; useless to Hammer, Guitarra, Salt and Orbit Saws. On a phone you aim with your feet, so it's a real comfort.", art="three shining silver bullets standing upright with a moon glint on them, a faint blue glow"),
+    dict(id="old_saddle", name="Saddlebags", slot="Passive", from_="Pass 116", text="Level-ups show 4 cards instead of 3, but each level needs 8% more XP.", choice="Fewer, better level-ups: bad when you need raw levels fast, good when steering toward an evolution.", art="a pair of worn brown leather saddlebags with brass buckles, overflowing with playing cards"),
+    dict(id="old_smudge", name="Smudge Pot", slot="Weapon", from_="Pass 116", text="A ring of sage smoke round you, 2.2 m, 6 damage every 0.5 s, slowing what's in it by 15%. Paths: Thick Smoke, Burning Sage, Sweet Grass (heals). Evolution: Sweat Lodge, a larger ring that pulses a knockback.", choice="The one weapon type we still lack: an aura. Safe and steady, never kills bosses.", art="a small round iron smudge pot on three legs burning bundled sage, thick curling greenish smoke rising"),
+    dict(id="old_lasso", name="Lasso", slot="Weapon", from_="Pass 116", text="Every 4 s throws a loop at the densest group within 9 m, pulls everything inside 3 m to its centre and holds them 0.8 s. Paths: Long Rope, Hogtie, Dally. Evolution: Stampede Round-up.", choice="Almost no damage itself: only worth a slot with area weapons. Gathering is today only Astro's.", art="a coiled cowboy lasso rope spinning in a big loop with motion lines, a brass honda ring"),
+    dict(id="old_hermit", name="The Hermit", slot="Card", from_="Pass 116", text="+10% duration a level: Molotov pools, Salt patches, mines, beams, breath, fire and freeze. Risen: when a field ends, it gives one last pulse at full damage.", choice="Shines for field weapons, nearly nothing for guns: \"longer field\" against the Ember's \"longer poison\".", kind="card", art="a tarot card showing an old hooded hermit holding up a lantern with a star inside, on a snowy mountain top"),
+    dict(id="old_wheel", name="Wheel of Fortune", slot="Card", from_="Pass 116", text="+1 reroll a level; levels 2 and 4 also +1 skip. Risen: once a stage a banish refunds itself.", choice="A Card slot of no power for a better build later: strongest early, worthless once your build is set.", kind="card", art="a tarot card showing a great golden wooden wheel of fortune with strange symbols, stars around it"),
+]
+
+# ------------------------------------------------------------------ items: 15 new ones
+NEW_PASSIVES = [
+    dict(id="new_rod", name="Dowsing Rod", gap="Map knowledge (Megabonk's shrine and chest hunting; we have no way to find things)", text="An arrow points to the nearest unused chest, barrel, totem or structure. Level 2 and up: everything in reach gives +10% from it. Evolved: chests within 30 m show on the edge of the screen.", choice="A pick with no combat power that makes the map itself your build. Worthless on a boss rush, wonderful in a long Sundown.", art="a forked wooden dowsing rod glowing at the tip with blue water droplets, simple and bold"),
+    dict(id="new_spurs", name="Spurs", gap="Skill reward for risk (Hades-style near misses; nothing rewards close play)", text="Passing within 1 m of a creature without being hit gives a stack: +1% speed and attack speed for 5 s, up to 15 stacks. Getting hit loses them all.", choice="Hug the crowd for power, or stay safe and waste it. It rewards the one thumb more than any other item and fights Heavyweight's standing style.", art="a pair of silver cowboy boot spurs with spinning star rowels, sparks flying from the rowel"),
+    dict(id="new_warrant", name="Deputy's Warrant", gap="Target focus (VS has no marking, Survivor.io's bosses are hit evenly)", text="Every 10 s the toughest creature on screen is marked Wanted: it takes +50% damage from you and pays x3 XP and coins. Evolved: two at a time, and a kill resets the timer.", choice="Pulls your walking route toward the mark, away from safety. Slow-firing heavy weapons love it.", art="a folded legal warrant paper with a wax seal and a sheriff star pinned through it, a red target stamp"),
+    dict(id="new_rattle", name="Rattler's Tail", gap="Panic button (Survivor.io's shockwaves; a ring today is only broken by damage)", text="When you are hit at low HP, or surrounded by eight or more, the tail rattles and creatures within 5 m flee for 1.5 s; every 12 s. Levels shorten the wait. Evolved: they also take +25% damage while fleeing.", choice="A safety item you only notice when it saves you. It uses `flee_on_hit`, so it's small to build.", art="a rattlesnake's rattle tail curled up and shaking with sound lines, sandy brown and cream bands"),
+    dict(id="new_moonshine", name="Moonshine", gap="A heal-to-power conversion (Crimson Shroud-like trades; heals past full are wasted today)", text="Natural regen stops. Every heal past full HP turns into attack speed for 8 s, up to +40%. Levels raise the cap.", choice="A real trade: you give up regen, so it asks for a Cake or Hot Springs build. Terrible as a first pick, thrilling at level 25.", art="a brown clay moonshine jug marked XXX with a cork, purple-green bubbles and a little lightning crackle"),
+    dict(id="new_scale", name="Assayer's Scale", gap="Skip economy (VS pays XP for skipping; a Skip is just lost here)", text="Skipping a card or chest pays 25 coins and 5% of the next level's XP, and levels raise both. Evolved: a banish pays too.", choice="Makes a lean, focused build possible. The player who wants only three items finally has a reason to refuse the rest.", art="a small brass balance scale with gold nuggets on one pan and a playing card on the other"),
+    dict(id="new_canteen", name="Canteen", gap="Map synergy (water only slows you today)", text="Water no longer slows you, and leaving it gives +3 HP a second for 15 s. Evolved: enemies in water take +25% damage from you. On the Snow Map it would fill at hot springs.", choice="Turns the oases into your home base, which pairs well with the map generation ideas. Useless on a Dry Year map.", art="an old round felt-covered metal water canteen with a leather strap and a cork, droplets of water"),
+    dict(id="new_camp", name="Campfire Kit", gap="A place you make (Megabonk's zone tomes; every field today is a weapon)", text="Stand still for 2 s and a campfire lights at your feet. It heals you 2% a second while you're inside and burns what walks in; it lasts 8 s after you leave. Only one at a time.", choice="Different from Siesta: you choose where the fight will be, and the crowd comes through it. Weak for runners.", art="a small crackling campfire of crossed logs with a tin coffee pot hanging over it, warm orange flames and sparks"),
+]
+NEW_CARDS = [
+    dict(id="new_moon", name="The Moon", gap="Reach reward (nothing rewards killing from far away)", text="+6% damage a level to anything more than 6 m away. Risen: shots that have flown past 6 m also turn toward a target.", choice="The opposite of Heavyweight and Counterpunch: a build that kites and never lets anything near. Weak with Hammer, Sabre and Orbit Saws.", art="a tarot card showing a large pale crescent moon with a sleepy face above two howling coyotes and a winding path"),
+    dict(id="new_hanged", name="The Hanged Man", gap="Curse with a payoff (VS's Curse, Skull O'Maniac; we have Hot Sauce only for items)", text="-6% max HP a level, +12% XP a level. Risen: when you level up you heal 10%.", choice="An early pick that speeds up the whole run but makes you fragile for all of it. Experts will fight over it, new players will regret it, and the text is plain about the price.", art="a tarot card showing a cowboy hanging upside down by one boot from a dead desert tree, calm face, golden halo round his head"),
+]
+NEW_WEAPONS = [
+    dict(id="new_cart", name="Mine Cart", gap="A shot that follows your own trail: nothing uses the path you walked", text="A cart rolls along the path you walked in the last 6 s, hitting everything on it, then vanishes. Every 5 s. Paths: Twin Carts, Dynamite Load (it blows at the end), Long Rails. Evolution: Runaway Train, longer and throws what it hits.", choice="Your route is your aim: walk a loop round the crowd and let it close the circle. Poor if you stand still, which is exactly the point.", art="a rusty iron mine cart full of glowing gold ore on two short pieces of rail, rolling with sparks at the wheels"),
+    dict(id="new_snakes", name="Basket of Rattlers", gap="Summons on the ground (Survivor.io's drones and pets; we have bees in the air only)", text="Every 3 s two snakes slither to the nearest creatures and bite, leaving poison. They last 6 s. Paths: Bigger Nest, King Cobra (a large slow one that spits), Shed Skin (a dead snake leaves a poison patch). Evolution: Snake Pit.", choice="Low up-front damage but huge in crowds; pairs with Venom and the Ember. Bad against a lone boss early on.", art="a woven straw snake charmer's basket with its lid tilted, three cartoon rattlesnakes rising from inside, fangs out"),
+    dict(id="new_harpoon", name="Whaler's Harpoon", gap="Drag and pile-up (only Astro's pull exists, and it's a circle)", text="A slow heavy shot that pierces everything in a line and drags them along with it to where it stops, stacking them up. Paths: Barbed (they bleed), Reel In (it drags back toward you), Twin Barbs. Evolution: Moby's Wrath.", choice="Sets up the crowd for Dynamite and Molotov, but pulling toward you is dangerous if you take Reel In. Inspired by the Harpoon Troglodyte: you get to do it back.", art="a big iron whaling harpoon with a barbed head and a coil of thick rope, an old wooden shaft, water droplets"),
+    dict(id="new_pick", name="Prospector's Pick", gap="A high arc thrower (VS's Axe, the most copied weapon in the genre; we have no arc weapon)", text="Throws a pick high up and it falls back down, hitting on the way up and the way down. One in ten hits knocks out a gold nugget. Paths: Twin Picks, Heavy Head (bigger and it stuns), Rich Vein (nuggets are worth more). Evolution: Mother Lode.", choice="Pays for itself in coins, so the Shop is more interesting, but it does poor damage compared with a gun. Fool's Gold loves it.", art="a miner's steel pickaxe with a wooden handle spinning in the air, a gold nugget breaking off the tip with sparkles"),
+    dict(id="new_globe", name="Snow Globe", gap="Crowd stop as a weapon (VS's Clock Lancet; Cold Snap is only a passive)", text="Lobs a globe that shatters into a 4 m circle of still air: what's inside slows to a crawl for 3 s and takes +20% damage. Almost no damage of its own. Paths: Big Globe, Blizzard (hurts over time), Shatter (frozen creatures burst when killed). Evolution: Ice Age.", choice="A support weapon, a slot with no kills. Great with Dynamite and Big Mouth; the first weapon you'd take for your other weapons. Also the Snow Map's signature find.", art="a glass snow globe on a wooden base with a tiny desert cactus inside and swirling snow, an icy blue glow"),
+]
+
+# ------------------------------------------------------------------ time-limited events
+TLE_INTRO = [
+    "Today's meta is sparse on purpose: gold, the Upgrade board, hero purchases, looks, posters and the Collection. That shapes what an event can sell. There is no gear grid or gacha to feed, and I wouldn't add one: so an event can't lean on \"more power through dupes\". Its value has to come from three things that this game does have.",
+    "**Looks and heroes people can see.** Heroes are the game's most visible, most personal purchase, and looks already have a whole system. **Runs with a twist.** Our runs are short and our content is data, so a mutator is cheap to make and feels new. **Replays.** Every run can already be replayed exactly from a seed, which means scores can be verified and old runs can stand in for rivals. That last one is rare in this genre and is your best answer to a small population.",
+    "What's missing is a paying currency. The game has one currency (gold) and a currency layer ready for more. Every suggestion below assumes one small premium currency and a single-purchase pass. Survivor.io and Archero both earn on the pairing of pass and marquee event; GameRefinery reports that themed time-limited skins, characters and currencies are among the most profitable event revenue sources.",
+]
+TLE_PVE = [
+    dict(id="tle_rush", name="Gold Rush", length="Weekend, 3 days, monthly", what="Nuggets (an event currency) lie on the map and fall from creatures, with an event map trait (Barrel Country, a goldier ground). Nuggets buy from an event shop: a limited hero look, permanent gold, one chest token a day.",
+         why="Uses what we have and asks for no new code beyond a currency. It works because the Upgrade board's price curve (k squared) means gold is always wanted: late players have a genuine reason to care.",
+         money=["Nugget doubler for the weekend (a one-off, the classic driver)", "Direct bundle of nuggets that finishes the shop", "Rewarded ads for double nuggets at a run's end"],
+         art="a western gold rush scene icon: a prospector's pan full of shining gold nuggets, a pickaxe leaning on it, a banner, sparkles"),
+    dict(id="tle_season", name="Bounty Season", length="4 weeks, repeating", what="A pass built on the Wanted posters: each poster done gives season stars. Free track: gold, nuggets, a skin at the end. Paid track: a hero look each week, a unique weapon look, an extra poster slot, and the last reward, a season title and poster frame.",
+         why="Posters already exist, already float in over the run and already pay, so a pass adds a long goal without any new gameplay. Commitment grows every week as stars pile up. The risk is that it's content-hungry, but looks are the cheapest thing your pipeline makes.",
+         money=["The paid track itself (the main earner of the whole plan)", "Star skips near the end, when commitment is highest", "Time-limited looks people can see in the title's hero spot"],
+         art="a sheriff's season pass: an ornate gold badge in the centre of a long ribbon with stars along it, western style, wanted posters behind"),
+    dict(id="tle_debut", name="Hero Debut Trial", length="10 days, each new hero", what="A new hero (say The Dealer) can be played free for the event, on a special stage with a goal track. Finish the track and the hero is yours for less gold; or buy early. After the event the hero joins the normal roster at full price and a quest.",
+         why="Heroes are the main long-term goal of the meta. Letting people play one before buying is the best sales pitch there is, and it can't annoy anyone because the hero stays in the game afterwards: no permanent FOMO on power.",
+         money=["Launch bundle: the hero, a look and gold, once only, for the event's length", "Debut-only look that never returns at this price", "Replay with a shorter track for players who missed it"],
+         art="a riverboat gambler hero stepping onto a stage through theatre curtains with a spotlight and gold letters banner NEW HERO, playing cards flying"),
+    dict(id="tle_weird", name="Weird West Week", length="A week, every six weeks", what="One map variation from this document (Roswell, The Dry Sea) opens for a week with its own rules and a unique legendary item to earn: once you've won it, it stays in your pool for good. Next time the event returns, it offers another.",
+         why="This is where unique power fits: rare, optional, earned, and the map variation work pays twice. Legendaries are already rare and loud, so owning one more is exciting without breaking anything: it's only one more item in a big pool.",
+         money=["Revive tokens in the hard event (its difficulty is the sell)", "A pre-run boost: start with one extra card choice for currency or an ad", "Event look bundle in the variation's own theme"],
+         art="a crashed silver flying saucer in a western desert at night with a green glow, a cowboy with a revolver standing in front looking up in shock, aurora sky"),
+    dict(id="tle_drive", name="The Long Drive", length="2 weeks, all players together", what="A community goal: everyone's kills of one creature add up on a shared bar (Red Goblins, say, a billion of them). Tiers unlock rewards for everyone, even someone who played once. Your own share is shown beside the bar.",
+         why="It works better with a small population than a ranked event, because a target can be set to your real numbers and adjusted. A shared bar is the friendliest thing on the list, and it makes every run count for something.",
+         money=["Rewarded ads add to the bar and your own share", "A cosmetic trophy for the top contributors", "Low direct revenue on purpose: it's a retention event that makes the paying ones work better"],
+         art="a long cattle drive across a western plain at sunset, dozens of longhorn cattle in a line with cowboys riding beside them, a big progress banner in the sky"),
+]
+TLE_PVP = [
+    dict(id="tle_daily_board", name="The Daily Canyon Board", length="Every day, 1 scored attempt", what="One seed for everyone. Score from a simple formula: kills, level and time. Your board is 30 players: real ones first, then past players' real runs of earlier days as named ghosts (from the replay records), at scores just around yours. Top ten by the day's end get a small reward.",
+         small="This is the main trick. A board of 30 with 40 real players a day still feels full, because the fill is made of real recordings, not bots with random numbers. Tapping any name plays their run. And because a run replays exactly, a faked score can be caught by re-simulating it.",
+         money=["Extra attempts by ad or token (only the best counts)", "A premium board frame and a title for top placings", "A \"scout\" button: watch the current leader's replay"],
+         art="a chalkboard outside a saloon listing outlaw names and scores with a sheriff star on the top line, a dusty cowboy looking up at it, sunset"),
+    dict(id="tle_duel", name="Sheriff's Duel", length="Always on, 3 tickets a day", what="An asynchronous one-on-one: you're paired with another player's recorded run on the same seed. Beat their score. Winning takes a share of their stake of gold (paid by the system when they're offline) and moves your rating. You can watch the run that beat you.",
+         small="It needs nothing live: any recorded run can be an opponent for weeks. Ratings match people who are close; when nobody is close, an older run of yours or of someone similar serves. It's an honest way to fill a small pool, and the game can say that it's a past run.",
+         money=["Ticket refills (the classic async PvP driver)", "Rematch tokens: most people pay after a close loss", "Stake sizes as a gold sink, which helps the economy too"],
+         art="two cowboys in a dusty western street facing each other for a duel at high noon, seen from the side, long shadows, tumbleweed between them"),
+    dict(id="tle_league", name="Outlaw Leagues", length="Weekly seasons", what="Five leagues of 20: Tin, Copper, Silver, Gold, Legend. Weekly total score over any stages you play. Top five go up, bottom five go down. Each league's end reward grows, and a league badge sits beside your name.",
+         small="The same 20-person trick that language apps use: a player never sees the world rank, only their small group. Real players are grouped by activity, and filled up with recorded runs where needed. Empty top leagues just show fewer people until they fill.",
+         money=["Season pass stars for league placing (ties it to the main earner)", "A one-shot \"demotion shield\"", "League-only looks earned at Gold and up: seen by everyone, sold to nobody"],
+         art="five stacked ornate western sheriff badges in tin copper silver gold and glowing legendary colours, displayed like trophies on a dark wooden shelf"),
+]
