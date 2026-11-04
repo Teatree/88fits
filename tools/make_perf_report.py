@@ -400,7 +400,7 @@ SOLUTIONS = [
          lose="Nothing. The pictures match to within 1/255 of a colour channel.",
          work="Done. The library is in game/bin, and tools/build_native.py rebuilds it",
          risk="Not measured on your phone yet. If the library doesn't load, the game runs the script instead and plays the same",
-         note="Five full runs replayed the other way round matched at all 1,726 checkpoints. The developer menu's Compiled crowd switch compares the two on your phone, and each run record says which ran."),
+         note="Six full runs replayed the other way round matched at all 1,967 checkpoints. The developer menu's Compiled crowd switch compares the two on your phone, and each run record says which ran."),
     dict(k="I", name="Trim the smaller costs the replay found", gain="Small to medium",
          ms="From the PC's timers during Stage 1: the wave director 0.3-0.4 ms a frame, drawing the shots 0.4 ms late in the stage, the hero 0.45 ms. On a slow phone that's 3 to 4 times as much: perhaps 2-4 ms together.",
          lose="Nothing, if each turns out to be wasted work. I haven't looked at why yet.",
@@ -552,7 +552,7 @@ code { font-size:.92em; color:var(--gold); }
 <tbody>@@BENCHROWS@@</tbody>
 </table></div>
 <div class="causes" style="margin-top:16px">
-<div class="cause"><h3>Nothing about the game changed</h3><p>Five full bot-played runs across all three stages, recorded one way and replayed the other, in both directions: all 1,726 checkpoints were identical. In 152 busy frames, the pictures matched to within 1/255 of a colour channel, the rounding of overlapping shadows.</p></div>
+<div class="cause"><h3>Nothing about the game changed</h3><p>Six full bot-played runs across all three stages, recorded one way and replayed the other, in both directions: all 1,967 checkpoints were identical. In 152 busy frames, the pictures matched to within 1/255 of a colour channel, the rounding of overlapping shadows.</p></div>
 <div class="cause second"><h3>What to expect on your phone</h3><p>Big crowds gain the most. At 300 creatures the crowd's own cost falls from 4.2 ms to 0.7 ms on the PC, which I'd estimate saves about 8 ms a frame on a cool phone and about 13 ms on a slowed one. <b>Stage 1 gains less, because its crowd is small.</b> Replaying your own run, the PC's script work a frame fell from 2.5 to 1.8 ms in the first 3:30, from 4.1 to 3.1 ms from 3:30 to 7:10, and from 2.7 to 2.5 ms in the boss fight. So the slow stretches should shrink, not vanish: the phone still slows down, and the cliff still doubles the damage. None of this has been measured on your phone yet.</p></div>
 <div class="cause third"><h3>How to compare on your phone</h3><p>The developer menu has a <b>Compiled crowd</b> switch, read when a run starts. Play the same stage with it on and off, and every run record now says which it was. If the library ever fails to load, the game runs the script instead and plays the same.</p></div>
 </div>
