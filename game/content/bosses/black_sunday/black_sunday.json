@@ -8,8 +8,8 @@
   "speed": 1.5,
   "damage": 27,
   "knockback": 7.0,
-  "radius": 2.2,
-  "size": 5.6,
+  "radius": 1.65,
+  "size": 4.2,
   "blood": "#C9A15A",
   "pack_size": 1,
   "drops": {
@@ -30,19 +30,24 @@
     "hp_mult_per_stage": 2.0,
     "attacks": [
       {
-        "name": "roll",
-        "windup": 1.0,
-        "speed": 13.5,
-        "duration": 1.1,
-        "damage": 30,
-        "telegraph": "line"
+        "name": "come_here",
+        "windup": 0.5,
+        "telegraph": "rect",
+        "length": 17.0,
+        "width": 6.0,
+        "min_range": 4.5,
+        "max_range": 17.0
       },
       {
         "name": "spawn_ring",
         "windup": 0.8,
         "enemy": "straw_man",
         "count": 14,
-        "telegraph": "none"
+        "telegraph": "none",
+        "looks": [
+          "SM-A",
+          "SM-B"
+        ]
       },
       {
         "name": "whirl",
@@ -123,7 +128,7 @@
     "run": 15,
     "die": 8
   },
-  "doc": "The Dust Bowl's boss. A charge down a line, a ring of Straw Men, a volley of tumbleweeds, a rare black blizzard. His own attack is the whirl: he becomes a tornado for six seconds and hunts the hero, flinging his own crowd round him (it hurts them when they land) and throwing the hero; then he stumbles out dazed for two and a half seconds, taking half as much damage again. Pays two chests and forty-four coins.",
+  "doc": "The Dust Bowl's boss. Come Here: a quick wide rectangle, the dust stands up all over it and everyone in it leaps towards him, the further away the harder, never quite to him. A ring of Straw Men in both their looks, a volley of tumbleweeds, a rare black blizzard. His own attack is the whirl: he becomes a tornado for six seconds and hunts the hero, flinging his own crowd round him (it hurts them when they land) and throwing the hero; then he stumbles out dazed for two and a half seconds, taking half as much damage again. Pays two chests and forty-four coins.",
   "strip_cols": 40,
   "head": 0.996,
   "screen": "blue",

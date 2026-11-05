@@ -69,6 +69,9 @@ var _sprite: Texture2D = null
 ## rule (kb_force / max(size, 0.8)) and the boss's own 0.15 (a boss keeps 0 here). 1 = never moved. NOT the shove it
 ## deals the hero: that is `knockback` above. A roster row may set `stats.knockback_resist`; EnemyManager reads it per type.
 @export var knockback_resist: float = 0.0
+## Pass 127 (Garry on the Carrion Crow: "make it fly all the time"): it is in the air from its first frame, so it does not grow out of
+## the ground as a spawn (EnemyManager._emerge_start). The look's own strip does the flying (the Level Editor's walk Fly).
+@export var flies: bool = false
 ## never more than this many alive at once (0 = no limit): the director skips the row while the count holds
 @export var max_alive: int = 0
 ## The icon that floats over it (pass 33.3): "crown", "skull", "gear" (art/ui/badges/<badge>.png) or "none"; empty takes

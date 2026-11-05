@@ -1520,13 +1520,15 @@ def process(type_, folder, id_):
             info["screen"] = "blue" if bg == BG_BLUE else "green"
         img = picture_still(d, sk + "_front", d.get("front_ref"), "front", subject, bg, refs, seed, info) if d.get("front_ref") else None
         if img is None:
-            img, inf = render(sk + "_front", styled(subject, "Full body, front view, standing and facing the viewer.", bg), refs,
+            # pass 127: a flyer's front still is painted in the air, wings out (walk "fly")
+            fw = "Full body, front view, flying in the air, facing the viewer." if str(d.get("walk", "")) == "fly" else "Full body, front view, standing and facing the viewer."
+            img, inf = render(sk + "_front", styled(subject, fw, bg), refs,
                               {"subject": subject, "view": "front", "subjects_max": 1}, seed)
             info["renders"]["front"] = inf
         front_ref = comfy.upload_pil(img, sk + "_front.png")
         # a creature JSON may carry "back_hint" too: what the back view must keep (the centipede's coil at its base)
         back_prompt = ("Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same "
-                       "colors, proportions and art style, standing. " + str(d.get("back_hint", "")) + " " + bg + ".")
+                       "colors, proportions and art style, " + ("flying in the air" if str(d.get("walk", "")) == "fly" else "standing") + ". " + str(d.get("back_hint", "")) + " " + bg + ".")
         # or the JSON says the whole back prompt itself ("back_prompt"): a creature whose pose the generic wording undoes
         if d.get("back_prompt"):
             back_prompt = str(d["back_prompt"]) + " " + bg + "."
@@ -1552,6 +1554,8 @@ def process(type_, folder, id_):
         motion = str(d.get("motion", "walking in place with a steady stomping gait"))
         clip = str(d.get("pose", ""))
         run_f = run_b = None
+        fly_f = fly_b = None
+        fly_hover, fly_bob = 0.0, 0.0
         if str(d.get("walk", "")) == "hop":
             # a blob that hops instead of walking (pass 45, JSON "walk": "hop": the Blue Slime, the Tumbleweed Minion): the
             # painting itself squashes, stretches and leaves the ground (artkit.hop_cycle), so the face never moves, the
@@ -1587,6 +1591,43 @@ def process(type_, folder, id_):
             run_f = artkit.flap_cycle(flap_poses(img, base, sc, front_ref, "", 20), cell, hf)
             bsc = finish(back_img, cell, 0.86, True, None, CF, figure_height_cell(base), CO)[1]
             run_b = artkit.flap_cycle(flap_poses(back_img, back_cell, bsc, comfy.upload_pil(back_img, sk + "_back.png"), "b", 30), cell, hf)
+            clip = ""
+            kinds["front"] = kinds["back"] = "procedural"
+        elif str(d.get("walk", "")) == "fly":
+            # pass 127 (lane ART, the Carrion Crow; Garry: "make it fly all the time ... kind of like how bats in Vampire Survivors work"):
+            # it never touches the ground. The front and back paintings are the wings-level pose; JSON "fly": {"hover", "bob", "wing_up",
+            # "wing_down", "front": {body, pivots, max_y}, "back": {...}}: the wings are cut from each painting and turned about the shoulders
+            # under a body that never moves (artkit.wing_poses; Klein's edits kept wings already spread where they were). Or "hints"
+            # {up, down, upb, downb}: each edits that painting into a pose, laid on its body by the head (artkit.laid_cell, `head_box` the
+            # window it looks for). Every frame but the landed death is cut from the three poses (artkit.fly_cycle, fly_stand)
+            fl = d.get("fly") if isinstance(d.get("fly"), dict) else {}
+            fhints = fl.get("hints") or {}
+            fpx = max(1, int(round(cell * CF)))
+            fly_hover, fly_bob = float(fl.get("hover", 0.2)), float(fl.get("bob", 0.015))
+            hbox = tuple(fl.get("head_box", (0.4, 0.0, 0.6, 0.45)))
+
+            def fly_poses(stand_rgb, stand_cell, stand_scale, ref, suf, seedk):
+                cells = {"mid": stand_cell}
+                keyed_ref = artkit.punch(artkit.key_background(stand_rgb))
+                if not fhints:
+                    rig = fl.get("back" if suf else "front") or {}
+                    cut = artkit.wing_poses(keyed_ref, rig.get("body"), rig.get("pivots"), float(rig.get("max_y", 0.6)),
+                                            float(fl.get("wing_up", 42.0)), float(fl.get("wing_down", -72.0)))
+                    for nm in ("up", "down"):
+                        cells[nm] = artkit.laid_cell(cut[nm], keyed_ref, cell, stand_scale, fpx, CO, aligned=True)
+                    return cells
+                for j, nm in enumerate(("up", "down")):
+                    pim, inf = render(sk + "_" + nm + suf, str(fhints.get(nm + suf, "")) + " " + bg + ".", [ref],
+                                      {"subject": "the same creature", "view": None, "subjects_max": 1}, seed + seedk + j)
+                    info["renders"][nm + suf] = inf
+                    cells[nm] = artkit.laid_cell(artkit.punch(artkit.key_background(pim)), keyed_ref, cell, stand_scale, fpx, CO, box=hbox)
+                return cells
+
+            fly_f = fly_poses(img, base, sc, front_ref, "", 20)
+            bsc = finish(back_img, cell, 0.86, True, None, CF, figure_height_cell(base), CO)[1]
+            fly_b = fly_poses(back_img, back_cell, bsc, comfy.upload_pil(back_img, sk + "_back.png"), "b", 30)
+            run_f = artkit.fly_cycle(fly_f, cell, fly_hover, fly_bob)
+            run_b = artkit.fly_cycle(fly_b, cell, fly_hover, fly_bob)
             clip = ""
             kinds["front"] = kinds["back"] = "procedural"
         elif clip:
@@ -1679,6 +1720,8 @@ def process(type_, folder, id_):
             base = passing_frame(run_f)
             back_cell = passing_frame(run_b)
         frames = artkit.enemy_frames(base, cell, run_f, back_cell, run_b, views)
+        if fly_f:
+            frames.update(artkit.fly_stand(fly_f, fly_b, cell, fly_hover, fly_bob))
         # pass 73 (lane ART, the Saiga Sniper's aim): painted attack poses (aim_hint / aim_ref) instead of the leans
         atk = attack_stills(d, sk, subject, bg, front_ref, img, back_img, seed, info)
         if atk:
@@ -1713,7 +1756,8 @@ def process(type_, folder, id_):
         else:
             dead_img, inf = render(sk + "_dead", dead_prompt, [front_ref], dead_expect, seed + 9)
             info["renders"]["dead"] = inf
-            dead_cell = finish(dead_img, cell, 0.7, True, None, CF, None, CO)[0]
+            # pass 127: `dead_fill`, the dead still's share of the cell (a flyer's cell is much bigger than its body)
+            dead_cell = finish(dead_img, cell, float(d.get("dead_fill", 0.7)), True, None, CF, None, CO)[0]
         fall = None
         if death == "clip":
             fall = death_cycle(img, dead_img, ak + "_fall", seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
@@ -1726,6 +1770,9 @@ def process(type_, folder, id_):
             frames["die"] = fall
         elif shards:
             frames["die"] = [artkit.transform(base, sy=0.94, sx=1.04)] + shards
+        elif death == "fall" and fly_f:
+            # pass 127: shot out of the air, it tips over, drops and lands on the painted dead still (artkit.fly_fall)
+            frames["die"] = artkit.fly_fall(fly_f, dead_cell, cell, fly_hover, int(d.get("death_frames", 8)))
         elif death == "squash":
             # a creature that splats instead of falling over (the Blue Slime, pass 44): the standing painting squashes flatter
             # and wider over four frames into the painted puddle (the first-last-frame clip between the two grew it legs)

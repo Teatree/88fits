@@ -953,6 +953,7 @@ roster = [{
 },
 "t": 1360.0,
 "until": 1365.0,
+"variant": "DB-C",
 "weights": [[1360.0, 1.0]]
 }, {
 "banner": "DUST STORM!",
@@ -990,6 +991,7 @@ roster = [{
 },
 "t": 1412.0,
 "until": 1482.0,
+"variant": "DB-D",
 "weights": [[1412.0, 1.0]]
 }, {
 "count": 20.0,
@@ -1214,6 +1216,7 @@ roster = [{
 },
 "t": 1600.0,
 "until": 1810.0,
+"variant": "DB-C",
 "weights": [[1600.0, 1.0]]
 }, {
 "count": 1.0,
@@ -2692,6 +2695,7 @@ stage_list = [{
 "hp_mult": 0.46
 },
 "t": 90.0,
+"variant": "DB-D",
 "weights": [[0.0, 1.0], [120.0, 1.0]]
 }]
 },

@@ -3529,3 +3529,21 @@ The game's fog lifts blacks to a warm taupe, so a charcoal painting reads pale o
 - `variants[CODE].recipe.recolour` {`from`: a look's code, `passes`: [...]}: a look made by `tools/skin_recolour.py` from another look's strip, badge and cut-out (`mode` hue | tint | lift as artkit's; gates `max_val`, `only` strip|icon|title, `rects`, `keep_rects`). Run again it writes the same files.
 - `variants[CODE].recipe.polish`: passes run on a walked look's own strip (`skin_recolour.py --polish`): the hues the video model smeared on. **gen_art writes the strip afresh, so run the polish again after every walk of that look.**
 - `tools/gen_skin_views.py`: a look's paintings as Klein edits of the source look's own stills, view by view (pose from the source, clothes from the new front).
+
+## Pass 127: walk `fly` (lane ART; art pipeline only, the game never reads these keys)
+
+`tools/gen_art.py` + `tools/artkit.py`, all additive, off unless named; creature JSON top level or a look's `recipe`. Level Editor catalogue:
+`tools/level_editor/methods.json` creature_proc and creature_pictures, `assets_fields.js` walks and deaths.
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `walk: "fly"` | string | | Fly: the creature never touches the ground (artkit.fly_cycle, fly_stand). Idle, walk, attack and hit all hang in the air on a wing beat (up, mid, down, mid; no hop, no squash, a small body bob; a hover plays wings up, wings down, since a creature's idle runs at ATTACK_FPS 3). The front and back paintings are the wings-level pose; every frame but the landed death is cut from three poses, so no video model draws a frame |
+| `fly` | object | {} | `hover` (0.2: the share of the cell between its feet and the ground: the gap over its shadow is what says it flies), `bob` (0.015 of the cell), `wing_up` (42) and `wing_down` (-72) degrees; `front` and `back` {`body` [[cx, cy, rx, ry], ...] the ellipses that are the body, `pivots` [[lx, ly], [rx, ry]] the shoulders, `max_y` (0.6) nothing below is a wing; shares of the painting, estimated when left out}: the wings are cut from the painting and turned under a body that never moves (artkit.wing_poses). Or `hints` {up, down, upb, downb}: Klein edits of the painting, laid on it by the head (`head_box`); a painting whose wings are already spread kept them where they were for all eight seeds tried |
+| `death: "fall"` | string | | with `walk: fly`: shot out of the air it tips over, drops and lands on the painted dead still (`dead_hint`) with a small bounce (artkit.fly_fall); `death_frames` long |
+| `dead_fill` | number | 0.7 | the dead still's share of the cell (a flyer's cell is much bigger than its body) |
+| `death_bits.floor_last` | bool | false | the bits come to rest round the last frame's feet, not the first frame's, which are in the air |
+| `run_fps` | int | | three beats in the 12 walk frames: 16 is four beats a second |
+
+A look cannot carry its own `size` or cell (EnemyDef.apply_art, `frame_px` is the creature's): room for the hover and the wings raises the creature's `size` (the crow 1.5 -> 1.7, at `cell_fill` 0.8 its figure stands as tall as CC-A's). A look's `shadow` block is its own: a flyer's `{"scale": [..], "up": 0, "drop": 0.05}` keeps the blob straight under the body, `drop` the cell's foot line on the sand so the dead body lands on it. `recolour_strip.py --max-val 0.6` leaves what is brighter as it is (the Dust Bunny's white eyes on a body with no hue to tell them apart by).
+
+The cart: `cart_toppled` is painted over a model now (`tools/blender_cart.py` -> `tools/dl/cart_ref.png`; `gen_prop_variants.py` `FROM_RENDER` {ref, denoise}: the render is the last reference and the painting's start).

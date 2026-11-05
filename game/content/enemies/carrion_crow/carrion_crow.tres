@@ -1,18 +1,18 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/carrion_crow/carrion_crow_icon.png" id="1_8mdll"]
+[ext_resource type="Texture2D" path="res://content/enemies/carrion_crow/carrion_crow_icon_b.png" id="1_8mdll"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_355ej"]
 
 [resource]
 script = ExtResource("2_355ej")
 archetype = "runner"
-doc = "The Dust Bowl's runner: a big black crow that hops and flaps low over the ground in flocks of eight, fast and weak. A flock that arrives before the crowd does, gone at the first sweep."
+doc = "The Dust Bowl's runner: a big black crow that flies low over the ground in flocks of eight, its shadow on the sand under it, fast and weak. A flock that arrives before the crowd does, gone at the first sweep."
 brain = "flock"
 hp = 8.0
 speed = 3.0
 damage = 4.0
 radius = 0.4
-size = 1.5
+size = 1.7
 pack_size = 8
 drops = {
 "chest": 0.0002,
@@ -29,20 +29,21 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite_path = "res://content/enemies/carrion_crow/carrion_crow_sprite.png"
-sprite_file = "carrion_crow_sprite.png"
+sprite_path = "res://content/enemies/carrion_crow/carrion_crow_sprite_b.png"
+sprite_file = "carrion_crow_sprite_b.png"
 frame_px = 176
 strip_cols = 43
 fps = {
 "die": 12.0,
-"run": 24.0
+"run": 16.0
 }
 knockback = 3.4
-head = 0.915
+flies = true
+head = 0.943
 shadow = {
 "drop": 0.05,
-"scale": [0.72, 0.72],
-"up": 0.1
+"scale": [0.5, 0.5],
+"up": 0.0
 }
 blood = Color(0.6901961, 0.10980392, 0.23529412, 1)
 variants = {
@@ -76,9 +77,40 @@ variants = {
 "sprite": "res://content/enemies/carrion_crow/carrion_crow_sprite.png",
 "sprite_file": "carrion_crow_sprite.png",
 "strip_cols": 43
+},
+"CC-B": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 16.0
+},
+"front_faces": "right",
+"head": 0.943,
+"icon": "res://content/enemies/carrion_crow/carrion_crow_icon_b.png",
+"note": "It flies all the time (walk Fly: three wing beats in twelve frames, its painted wings turned about the shoulders under a still body, a small bob, no hop, no squash, its shadow on the sand well under it; idle hovers); plain black feathers, no blue (stills fb0d: picked fb0 with its greys darkened x0.55 by tools/dl/p126/BESTIARY/darken.py, the Dust Bowl's haze lifts blacks); shot out of the air it drops to the ground (death fall), feathers fall",
+"shadow": {
+"drop": 0.05,
+"scale": [0.5, 0.5],
+"up": 0.0
+},
+"shelved": false,
+"sprite": "res://content/enemies/carrion_crow/carrion_crow_sprite_b.png",
+"sprite_file": "carrion_crow_sprite_b.png",
+"strip_cols": 43
 }
 }
-variant = "CC-A"
+variant = "CC-B"
 cap_share = 0.5
 sfx = {
 "die": "en_lizard_die",

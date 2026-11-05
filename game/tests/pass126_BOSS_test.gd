@@ -27,7 +27,7 @@ func fx_sand(_a, _b = 1.0) -> void:
 	pass
 func hint_once(_a, _b) -> void:
 	pass
-func telegraph_line(_a, _b, _c, _d, _e) -> void:
+func telegraph_line(_a, _b, _c, _d, _e, _f = 1.2) -> void:
 	pass
 func telegraph_ring(a, b, c, _d, e = true) -> void:
 	rings.append({"at": a, "r": float(b), "dur": float(c), "filled": bool(e)})
@@ -175,13 +175,8 @@ func test_the_design_numbers_are_in_the_json() -> void:
 	var names: Array = []
 	for a in d.boss.get("attacks", []):
 		names.append(str((a as Dictionary).get("name", "")))
-	assert_array(names).contains(["roll", "spawn_ring", "tumbleweed_volley", "whirl", "black_blizzard"])
-	var roll := _row("roll")
-	assert_float(float(roll["windup"])).is_equal(1.0)
-	assert_float(float(roll["speed"])).is_equal(13.5)
-	assert_float(float(roll["duration"])).is_equal(1.1)
-	assert_float(float(roll["damage"])).is_equal(30.0)
-	assert_str(str(roll["telegraph"])).is_equal("line")
+	assert_array(names).contains(["come_here", "spawn_ring", "tumbleweed_volley", "whirl", "black_blizzard"])
+	assert_array(names).not_contains(["roll"])
 	assert_str(str(_row("spawn_ring")["enemy"])).is_equal("straw_man")
 	assert_int(int(_row("tumbleweed_volley")["count"])).is_equal(14)
 	assert_float(float(_row("tumbleweed_volley")["speed"])).is_equal(10.0)

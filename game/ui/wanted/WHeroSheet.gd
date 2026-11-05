@@ -375,7 +375,7 @@ func ask_buy_look(code: String) -> void:
 		Audio.play("ui_locked")
 		return
 	# pass 123: a purchase asks in green under Royale (Garry: "buying green"); Wanted's card as it was
-	WConfirm.open(self, "Buy this look?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price), hero_name(hero)],
+	WConfirm.open(self, "Buy this skin?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price), hero_name(hero)],
 		"Buy · %s" % W.num(price), "Not now", func(): buy_look(code), Callable(), "buy", WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
 
 
@@ -482,7 +482,7 @@ func _build_royale() -> void:
 	_items_royale()
 	# his looks (pass 111: a hero not owned sells none; a hero with one look has nothing to choose)
 	if not locked and not Registry.skins_of(hero).is_empty():
-		_looks_v = _section_royale("Looks", "Looks")
+		_looks_v = _section_royale("Skins", "Looks")
 		_fill_looks_royale()
 	body.add_child(_spacer(12.0))
 	close_btn = WConfirm.make_button(["CLOSE"], WButton.SLATE, 96.0, 40)
@@ -706,8 +706,8 @@ func _fill_looks_royale() -> void:
 			owned += 1
 		if Registry.skin_state(hero, code) != "owned":
 			to_earn = true
-	_looks_v.add_child(W.label("Looks · %d of %d owned" % [owned, codes.size()], R_LABEL_PX, W.INK_SOFT))
-	var how := "Reach a look's goal, then buy it." if to_earn else "Tap a look to wear it."
+	_looks_v.add_child(W.label("Skins · %d of %d owned" % [owned, codes.size()], R_LABEL_PX, W.INK_SOFT))
+	var how := "Reach a skin's goal, then buy it." if to_earn else "Tap a skin to wear it."
 	var line := W.serif_text("Wearing %s. %s" % [hero.skin_name(worn), how], 24, W.INK_SOFT, 400, true,
 		HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
 	line.name = "Wearing"

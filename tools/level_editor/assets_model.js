@@ -526,6 +526,7 @@ const AssetsModel = (() => {
         if (L <= 0) { if (String(a.name || '') === 'roll') L = num(a.speed, 12) * num(a.duration, 1.2) + r; else L = 22; approx = false; }
         return { kind: 'line', length: L, approx, words: `a line ${plain(L)} m ahead` };
       }
+      case 'rect': { const L = num(a.length, 17), W = num(a.width, 6); return { kind: 'line', length: L, width: W, words: `a rectangle ${plain(L)} x ${plain(W)} m ahead` }; }
       case 'ring': { const R = num(a.radius, 6); return { kind: 'ring', radius: R, atHero: false, words: `a ring of ${plain(R)} m round it` }; }
       case 'ring_at_hero': { const R = num(a.radius, 5); return { kind: 'ring', radius: R, atHero: true, words: `a ring of ${plain(R)} m on the hero` }; }
       case 'sector': { const R = num(a.radius, 6.5), deg = num(a.deg, 180); return { kind: 'sector', radius: R, deg, words: `a ${plain(deg)}° wedge ${plain(R)} m deep ahead` }; }

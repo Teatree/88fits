@@ -209,7 +209,8 @@ func _make_tab(id: String) -> WTap:
 	t.set_meta("tab", id)
 	t.set_meta("locked", lk)
 	var hb := W.box(W.PAPER, R.BUTTON_EDGE, 0).pad(6, 4, 6, 8)
-	hb.role = WButton.GOLD if on else WButton.SLATE
+	# pass 127: the closed tabs' own tint (R.DOCK_ROLE), apart from every tile and button above the bar
+	hb.role = WButton.GOLD if on else R.DOCK_ROLE
 	hb.sides = [true, true, true, false]
 	hb.radius = R.RADIUS_TAB
 	hb.corners = [true, true, false, false]

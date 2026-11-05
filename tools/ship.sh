@@ -45,7 +45,7 @@ SHELL_PID="$(cat /proc/$$/winpid 2>/dev/null || echo 0)"   # this bash's own Win
 python tools/locks.py acquire godot "the build (ship.sh $*)" --pid "$SHELL_PID" || exit 1
 python tools/locks.py keep > /dev/null
 trap 'python tools/locks.py restore > /dev/null; python tools/locks.py release godot --pid "$SHELL_PID" > /dev/null' EXIT
-step "import"; python tools/lossy_imports.py; "$GODOT" $P --import > /dev/null 2>&1
+step "import"; python tools/figure_soles.py; python tools/lossy_imports.py; "$GODOT" $P --import > /dev/null 2>&1
 step "json -> tres"; "$GODOT" $P --script res://tools/import_json.gd 2>&1 | tail -n 1; IMPORTED=1
 step "parse check"; "$GODOT" $P --script res://tools/check_scripts.gd 2>&1 | grep -E "checked|SCRIPT ERROR" | head -n 5
 if grep -q "SCRIPT ERROR" <("$GODOT" $P --script res://tools/check_scripts.gd 2>&1); then echo "STOP: script errors"; exit 1; fi

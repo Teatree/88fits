@@ -280,12 +280,12 @@ func _surveys_block() -> void:
 		for code in c.variants.keys():
 			if c.sells_skin(str(code)):
 				sold += 1
-	var skins_row := _row("Looks · own every one", "%d / %d" % [Save.skins_owned().size(), sold], func():
+	var skins_row := _row("Skins · own every one", "%d / %d" % [Save.skins_owned().size(), sold], func():
 		Save.own_every_skin()
 		_refresh())
 	skins_row.name = "OwnEverySkin"
 	_list.add_child(skins_row)
-	var forget_skins := _row("Looks · forget the bought ones", "›", func():
+	var forget_skins := _row("Skins · forget the bought ones", "›", func():
 		Save.forget_skins()
 		_refresh())
 	forget_skins.name = "ForgetSkins"

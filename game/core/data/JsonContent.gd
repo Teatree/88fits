@@ -309,6 +309,7 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	# pass 67: the share of the hero's knockback it shrugs off, 0..1 (the Hammer Giant 0.67); the other way round from the
 	# bite's shove above
 	e.knockback_resist = clampf(float(d.get("knockback_resist", 0.0)), 0.0, 1.0)
+	e.flies = bool(d.get("flies", false))
 	e.max_alive = int(d.get("max_alive", 0))
 	e.cap_share = float(d.get("cap_share", 1.0))
 	# pass 53 (the wave schema): the bite's cadence and the creature's own power-up roll

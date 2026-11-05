@@ -30,7 +30,7 @@ ARCHETYPES = ["walker", "swarmer", "spitter", "brute", "tank", "runner", "elite"
 ARCHETYPES_MEANINGFUL = ["elite", "boss"]
 BADGES = ["", "crown", "skull", "gear", "none"]
 FACES = ["right", "left", "straight"]
-TELEGRAPHS = ["line", "ring", "ring_at_hero", "sector", "fan", "spokes", "none"]
+TELEGRAPHS = ["line", "rect", "ring", "ring_at_hero", "sector", "fan", "spokes", "none"]
 # `ranged.shot` / `spit_volley.shot`: the projectile's look; anything else is the green spit; `harpoon: true` is its own kind
 SHOT_KINDS = ["", "pellet", "spike", "shard", "harpoon", "dynamite", "bomb"]  # pass 111 (lane ENEMY): the throwers' two
 # the keys every attack of a `boss.attacks` script shares, with the game's defaults (None = no default: absent means off)
@@ -40,7 +40,9 @@ ATTACK_COMMON = {"name": "", "windup": 1.0, "telegraph": "none", "reach": None, 
 # `atk_target` (set only by telegraph `ring_at_hero`: slam_at, burrow and boulder need it)
 ATTACKS = {
     "roll": {"keys": {"speed": 12.0, "duration": 1.2, "damage": 25.0, "length": None}, "telegraph": "line", "needs_ring_at_hero": False},
-    "spawn_ring": {"keys": {"enemy": "", "count": 10}, "telegraph": "none", "needs_ring_at_hero": False},
+    "spawn_ring": {"keys": {"enemy": "", "count": 10, "looks": None}, "telegraph": "none", "needs_ring_at_hero": False},
+    # pass 127: Black Sunday's pull (BossComeHere)
+    "come_here": {"keys": {"length": 17.0, "width": 6.0, "pull_near": 0.2, "pull_far": 0.7, "keep": 2.0, "hop_time": 0.42, "hop_time_per": 0.03, "hop_height": 1.1, "hop_height_per": 0.16, "sound": "wd_gust"}, "telegraph": "rect", "needs_ring_at_hero": False},
     "slam_at": {"keys": {"radius": 2.6, "damage": 18.0, "knockback": 6.0}, "telegraph": "ring_at_hero", "needs_ring_at_hero": True},
     "blink": {"keys": {"to": "", "distance": 8.0}, "telegraph": "none", "needs_ring_at_hero": False},
     # pass 73 (lane GROUND): the visible sink, the predicted spot and its warning, the throws (EnemyManager._burrow_*)
@@ -69,7 +71,7 @@ ATTACKS = {
               "telegraph": "ring", "needs_ring_at_hero": False},
 }
 # the telegraph keys each kind reads (EnemyManager.gd 3638-3676), with defaults
-TELEGRAPH_KEYS = {"line": {"length": None}, "ring": {"radius": 6.0}, "ring_at_hero": {"radius": 5.0},
+TELEGRAPH_KEYS = {"line": {"length": None}, "rect": {"length": 17.0, "width": 6.0}, "ring": {"radius": 6.0}, "ring_at_hero": {"radius": 5.0},
                   "sector": {"radius": 6.5, "deg": 180.0}, "fan": {"count": 7, "spread_deg": 90.0, "length": 14.0},
                   "spokes": {"count": 12, "spoke_length": None}, "none": {}}
 # the brain blocks and their keys with the game's defaults (None = read only when present)
@@ -138,7 +140,7 @@ ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s"
 ENEMY_ANIMS_DEFAULT = {"idle": 2, "run": 2, "attack": 2, "hit": 1, "die": 1}
 ENEMY_FPS_DEFAULT = {"run": 10.0, "die": 6.0}
 # the recipe keys gen_art reads from a creature JSON or a look's `recipe` (tools only)
-ENEMY_ART_KEYS = ["art_prompt", "screen", "back_hint", "back_prompt", "outline_frac", "outline_color", "cell_fill", "motion",
+ENEMY_ART_KEYS = ["fly", "dead_fill", "art_prompt", "screen", "back_hint", "back_prompt", "outline_frac", "outline_color", "cell_fill", "motion",
                   "pose", "pose_front", "walk", "hop_height", "anim_negative", "gait", "clip_fill", "directions", "view_hints",
                   "stand", "dead_hint", "death", "death_frames", "anim_seed", "run_fps", "grade", "key_sat", "key_min_value",
                   "key_cut_shadow", "key_clamp_screen", "remap_hues"]

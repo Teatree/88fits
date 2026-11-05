@@ -761,8 +761,8 @@ def vocab_checks(check, server):
     check(problems == [], "vocab.py matches the Godot sources: %s" % problems)
     t = vocab.table(server.CONTENT, server.GAME, {"chase|", "boss|boss"})
     # pass 95 (lane BOSS): 16 built-in attacks (stomp, tail_sniper); pass 126: whirl
-    check(t["ok"] and t["note"] == vocab.NOTE and t["brains"][0] == "chase" and len(t["attacks"]) == 17 and t["combos_seen"] == ["boss|boss", "chase|"],
-          "the vocab table: brains, 17 attacks, combos_seen sorted")
+    check(t["ok"] and t["note"] == vocab.NOTE and t["brains"][0] == "chase" and len(t["attacks"]) == 18 and t["combos_seen"] == ["boss|boss", "chase|"],
+          "the vocab table: brains, 18 attacks, combos_seen sorted")
     check(set(t["params_keys"]) == set(vocab.BEHAVIOURS) | {"*"}, "PARAMS_KEYS covers every behaviour")
     check("en" in t["sounds"] and "w" in t["sounds"] and "all" in t["sounds"] and len(t["sounds"]["all"]) >= 128, "sound ids grouped by prefix from soundmap.json: %s" % sorted(t["sounds"]))
     check(t["elites"] == ["explosive", "shielded", "speedy", "splitter"] and "heart" in t["pickups"], "elite modifier and pickup ids from the folders")

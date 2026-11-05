@@ -178,6 +178,10 @@ static func _brings(reg: Node, out: Array, v, seen: Dictionary) -> void:
 			if str(key) in BRINGS and (x is String or x is Array):
 				for id in (x if x is Array else [x]):
 					_add(reg, out, str(id), "")
+					# pass 127: a ring that wears several looks (`looks` beside its `enemy`) needs them all pinned
+					if (v as Dictionary).get("looks") is Array:
+						for lk in (v as Dictionary)["looks"]:
+							_add(reg, out, str(id), str(lk))
 			else:
 				_brings(reg, out, x, seen)
 	elif v is Array:

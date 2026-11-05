@@ -139,9 +139,10 @@ func _main() -> void:
 			break
 	var attacks: Array = bdef.boss.get("attacks", [])
 	var list: Array = em.custom_resolved(bdef, attacks)
-	if mode == "whirl":
+	if mode == "whirl" or mode == "come_here" or mode == "spawn_ring":
+		# pass 127: any row of his by its name (mode=come_here, mode=spawn_ring)
 		for k in range(list.size()):
-			if str((list[k] as Dictionary).get("name", "")) == "whirl":
+			if str((list[k] as Dictionary).get("name", "")) == mode:
 				em.atk_i[bi] = k
 		em.atk_t[bi] = 0.0
 	elif mode == "blizzard":
@@ -164,6 +165,7 @@ func _main() -> void:
 			if em.whirls != null:
 				ph = em.whirls.phase_of(bi)
 			_log("t %.2f whirl phase %d, pattern phase %d, alive %d, lifted now %d, hero %s, boss %s, hp %.0f" % [t, ph, em.patterns.phase_of(bi), em.alive_count(), _lifted(em), str(g.player.global_position), str(em.pos[bi]), em.hp[bi]])
+			_log("hero leaps %d airborne %s immune %s cinematic %s shield %s box %s" % [g.player.pull_leaps, str(g.player.airborne), str(g.player.knock_immune()), str(g.player.cinematic), str(g.player.shield_t), str(g.player.box_t)])
 			await _shot("%s/%s_%05.2f.png" % [out, tag, when])
 	_log("done; whirl %s" % ("started %d lifted %d tosses %d" % [em.whirls.started, em.whirls.lifted, em.whirls.tosses] if em.whirls != null else "none"))
 	_finish(0)

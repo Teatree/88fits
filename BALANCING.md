@@ -9594,3 +9594,64 @@ The figures are Garry's run of 2026-11-04 (analytics/remote/Hungry_Outlaw_94/202
 - 68.SKINS.6 `gen_art.py` no longer writes the launcher icon at the end of a run unless asked (`--app-icon`): since pass 117 tools/make_app_icon.py owns it, and every walk of a look had put the old picture back.
 
 Tests: game/tests/pass126_SKINS_test.gd; re-pinned pass123_HEROES_test (the Drifter has looks now) and selftest_PLE (a base look's paintings).
+
+## 69. Pass 127: Black Sunday pulls, the crow flies, skins are skins
+
+### 69.BOSS Come Here (replaces his charge), a quarter smaller, two looks of Straw Man
+- **Size.** `size` 5.6 -> 4.2, `radius` 2.2 -> 1.65 (x0.75). HP, damage and every other row unchanged. The whirl's numbers are its
+  own: funnel, reach and toss did not shrink with him.
+- **`come_here`** (core/systems/BossComeHere.gd, row in his `boss.attacks` in the charge's place; `roll` is gone from him only, the
+  King and others keep theirs). Wind-up `windup` 0.5 s / pace (0.62 s at the map's pace 0.81; the charge had 1.0). Mark: telegraph
+  `rect`, a filled red rectangle `length` 17 m (the charge's reach: 13.5 x 1.1 + his old 2.2) x `width` 6 m (the charge's line is
+  1.2 m), locked to his aim at the wind-up's start. Only tried with the hero between `min_range` 4.5 and `max_range` 17 m, else his
+  cycle goes on to the next row.
+- **The pull.** Everyone inside the rectangle when it fires, the hero and creatures. A body `d` metres from his middle is pulled
+  `d x lerp(pull_near 0.2, pull_far 0.7, d / length)` metres straight towards him, and always stops at least `radius + keep` (1.65 +
+  2.0 = 3.65 m) from his middle. So 17 m away: 11.9 m, landing 5.1 m off. 8.5 m: 3.8 m, landing 4.7 m off. 4 m: 0.35 m. Inside
+  3.65 m nothing moves. **No damage**: it only brings you to what comes next (Garry named no damage).
+- **The jump.** The hero: `Player.pull_leap`, a flight of `0.42 + 0.03 x pull` s, `1.1 + 0.16 x pull` m high, no air control, no
+  Hang Time landing, the camera rides up with it. Held by the Invincibility bubble and May's box (`knock_immune`), and not while he is already
+  in the air. Evade does not apply (no hit). Not scaled by `hero_special_knock`: it is a move, not a push. Creatures that can be
+  thrown leap on the same numbers (`EnemyManager.launch` with a drift), landing unhurt. Elites and big ones only slide (`kb`, about
+  the same distance), as they take any throw.
+- **The look.** About 24 clouds over the rectangle at once (`Fx.pull_dust`, every puff must play), `wd_gust`, a small camera shake.
+- **`spawn_ring` `looks`** (a new key on any ring): his ring is `["SM-A", "SM-B"]`. Each ring rolls its own split
+  (`EnemyManager.look_split`, the run's dice): 40% of rings all one look (20% each), the rest a random share, mixed round the ring.
+  His Boss-fight trickle rows (`bfd-1`) still wear the Straw Man's played look.
+
+### 69.UI The Heroes screen, the tab bar, the hero's feet, skins are skins (no gameplay number changed)
+- **Hero's feet on the main menu.** The painted idle frames squeeze about the figure's middle, so the soles rise and fall by up to
+  2% of the frame (about 8 px on the phone). `tools/figure_soles.py` measures each look's idle frames ->
+  `game/art/ui/figure_soles.json` (core/systems/FigureSoles.gd, ship.sh refreshes it); each frame is drawn so its paint ends on the
+  shadow's line (`TitleStage.FIGURE_SOLE`), his top alone moves, and the shadow flips at that frame's own sole. A run lifts its feet
+  on purpose and keeps the old line. A new look with no row yet plays as before until the next ship.
+- **Heroes screen.** A tile tapped for a different hero sets the page to its top at once (no tween); his own tile does nothing. The
+  page's sheet starts 24 px under the back button (`TOP` 200, was 176) and ends `PICK_GAP` 18 px over the picker, whose own
+  near-solid tray (`PICK_FILL`, edge `PICK_EDGE`) stands apart on the vista.
+- **Tab bar.** Closed tabs have their own deep indigo (`R.DOCK_ROLE`, band `DOCK_BAR_TOP`/`BOTTOM`), so they never share a tile's or
+  a button's slate. The locked STORE tab keeps its grey; the open tab its gold. Every screen with the bar has it.
+- **Skins.** The player reads "Skins" wherever a hero's look is on sale or worn: the SKINS button and pop-up, "Skins · n of m
+  owned", "Buy this skin?", "Tap a skin to wear it", "Reach a skin's goal", the run's "NEW SKIN" banners, the developer menu's rows.
+  Node names, save keys (`skins`, `looks` in crumbs) and code keep their old words. In the Level Editor and the arena a "look" is
+  still any art variant of any creature, item or hero, sold or not.
+
+### 69.ART The crow flies, the bunny's colours, a cart that is a cart (art; `size` the only number moved)
+- **Carrion Crow.** New walk **Fly** (`walk: "fly"`, recipe key `fly`; the Level Editor's walk select): the creature never touches the
+  ground. Plays look CC-B (`variant`): three wing beats in twelve frames at `run_fps` 16 (four beats a second), up, mid, down, mid, no hop
+  and no squash, a body bob of 1.5% of the cell, up on the downstroke; the figure hangs 24% of the cell over the ground (`fly.hover`), its
+  blob shadow straight under it (`shadow` scale 0.5, up 0, drop 0.05), and that gap is what says it flies. A hover plays wings up, wings
+  down (a creature's idle runs at `EnemyManager.ATTACK_FPS`, 3 frames a second, about 1.5 beats a second). Death `fall`: it tips over, drops
+  and lands on its painted dead still, feathers on the ground. Plain black, no blue (hue count over the strip: 17 faintly blue pixels of
+  304,571, all under value 0.1). The wings are cut from the painting and turned about the shoulders under a body that never moves
+  (`artkit.wing_poses`; Klein's edits of a painting with its wings spread left them where they were).
+- **`size` 1.5 -> 1.7** so its figure stands as tall as CC-A's in a cell that also holds the hover and the wings (figure 96 of 176 px against
+  109). `hp`, `speed`, `damage`, `radius` and the rest unchanged, so what it hits and what hits it are the same circle on the ground.
+- **Still walks up out of the sand.** A flyer's spawn plays the map's `spawn_rise` as every creature does (it grows out of the ground, then
+  hangs in the air). Not asked to change; tell the lead if it reads wrong.
+- **Dust Bunny.** Two colour looks of DB-A, `fresh`: DB-C sandy tan, DB-D rust red (`recolour_strip.py --mode lift`, new `--max-val`: white eyes
+  and teeth, pink ears and the black outline stay). The Dust Bowl's rows: d1b DB-A, d3f DB-C, d4b DB-D, d6d DB-C, boss fight bfd-6 DB-D. No number moved.
+- **The toppled cart.** Painted over a model now (`tools/blender_cart.py` -> `tools/dl/cart_ref.png`, Klein img2img at 0.84 in the map's style,
+  `gen_prop_variants.py` `FROM_RENDER`): a plank wagon on its long side, underside to the camera, one whole wheel and one broken wheel up in the
+  air, the tongue out to the left, no cloth. Same file, same height 3.54 m and collider radius 0.784 m (1.1 x the biggest boulder), shadow by hand
+  in props.json {w 0.98, d 0.46, x 0.02, z -0.2, a 0.44}. A wheel on the painting is new against pass 126's "no wheels on it"; the two lower wheels are
+  the ones MapDressing lays near it.

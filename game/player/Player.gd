@@ -1585,6 +1585,9 @@ var _air_g := 24.0
 var _air_v := Vector3.ZERO
 var _air_control := 0.35
 var _air_from_y := 0.0
+## Pass 127: this flight is a boss's pull (pull_leap); how many he has taken (tests, the probe).
+var _air_quiet := false
+var pull_leaps := 0
 
 
 ## Throws him (see above). False when he cannot fly now: down, in the spawn beam, or already in the air.
@@ -1614,6 +1617,19 @@ func trampoline_launch(dir: Vector3, height: float, distance: float, air_time: f
 	return true
 
 
+## Pass 127 (BossComeHere): pulled towards a boss as a leap he does not steer: the same flight as the trampoline's, with no air
+## control, and it is no flight of his own, so Hang Time's landing does not go off under it (`_air_quiet`). False while nothing can
+## move him (the bubble, May's box, already in the air, down, the spawn beam).
+func pull_leap(dir: Vector3, distance: float, height: float, seconds: float) -> bool:
+	if knock_immune() or not trampoline_launch(dir, height, distance, seconds, 0.0):
+		return false
+	air_flights -= 1
+	_air_quiet = true
+	pull_leaps += 1
+	Audio.play("pl_jump", global_position)
+	return true
+
+
 ## The flat speed in the air: the arc's own, plus the stick's walking speed (`planar`, as the ground would have moved
 ## him) at `air_control` of it; he turns to face the way he flies.
 func _air_planar(delta: float, planar: Vector3, prev_facing: float) -> Vector3:
@@ -1634,6 +1650,9 @@ func _tick_air(delta: float, on_floor: bool) -> void:
 func _air_land() -> void:
 	airborne = false
 	land_settle(0.32)
+	if _air_quiet:
+		_air_quiet = false
+		return
 	air_landed.emit(global_position)
 
 

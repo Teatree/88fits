@@ -1776,6 +1776,57 @@ func spawn_ring(def_id: String, count: int, center: Vector3, ring_radius: float,
 	return came
 
 
+## Pass 127 (Garry on Black Sunday's Straw Men: "Make him spawn 2 different looks ... The split should be always random. Sometimes
+## it's all 1 look and other times it's all the other."): a ring whose bodies wear `looks`, as look_split shares them out.
+func spawn_ring_looks(def_id: String, count: int, center: Vector3, ring_radius: float, looks: Array, overrides := {}, src := {}) -> int:
+	var came := 0
+	var slide := 0.1 / (TAU / float(maxi(count, 1)))
+	var mp: Node = game.get("map") if game else null
+	var worn := look_split(count, looks, _rng)
+	var k := 0
+	for p: Vector3 in ring_spots(center, ring_radius, count, arena_radius - 2.0, _rng, 0.0, slide, 0.0, mp):
+		var v := str(worn[k % worn.size()]) if not worn.is_empty() else ""
+		k += 1
+		if spawn(def_id, _clamp_arena(p), null, 1.0, 1.0, v, overrides, src) >= 0:
+			came += 1
+	return came
+
+
+## The share of look_split's rolls that go to one look outright (between them evenly); the rest are a random share between them.
+const LOOK_SPLIT_WHOLE := 0.4
+
+
+## `n` looks out of `looks`, mixed: LOOK_SPLIT_WHOLE of the time every body wears the same one; otherwise each look takes a random
+## share, so the split is different every time.
+static func look_split(n: int, looks: Array, rng: RandomNumberGenerator) -> Array:
+	var out: Array = []
+	if n <= 0 or looks.is_empty():
+		return out
+	if looks.size() == 1 or rng.randf() < LOOK_SPLIT_WHOLE:
+		var one = looks[rng.randi_range(0, looks.size() - 1)]
+		for _k in n:
+			out.append(one)
+		return out
+	var cuts: Array[float] = []
+	for _k in looks.size() - 1:
+		cuts.append(rng.randf())
+	cuts.sort()
+	cuts.append(1.0)
+	var from := 0
+	for l in looks.size():
+		var to := n if l == looks.size() - 1 else int(round(cuts[l] * float(n)))
+		for _k in range(from, to):
+			out.append(looks[l])
+		from = maxi(from, to)
+	# shuffled by the run's dice: the kinds stand mixed round the ring
+	for a in range(out.size() - 1, 0, -1):
+		var b := rng.randi_range(0, a)
+		var tmp = out[a]
+		out[a] = out[b]
+		out[b] = tmp
+	return out
+
+
 ## A boss (or whatever a boss event names): a boss or an Elite by its kind keeps its own rules whatever `src` says (pass 58).
 ## Pass 107 (fix): the boss always comes. With every one of the MAX slots taken (the map's hard_cap is above MAX, so a late
 ## crowd fills the pool, and a cleared field's bodies keep their slots while their deaths play), spawn() returned -1:
@@ -5771,6 +5822,9 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					if tl <= 0.0:
 						tl = float(atk.get("speed", 12.0)) * float(atk.get("duration", 1.2)) + radius[i] if str(atk.get("name", "")) == "roll" else 22.0
 					if game: game.telegraph_line(pos[i], dir, tl, timer[i], Color(0.93, 0.29, 0.36))
+				"rect":
+					# pass 127: a wide rectangle from him along his aim (Black Sunday's Come Here), `length` x `width` metres
+					if game: game.telegraph_line(pos[i], dir, float(atk.get("length", 17.0)), timer[i], Color(0.93, 0.29, 0.36), float(atk.get("width", 6.0)))
 				"ring":
 					if game: game.telegraph_ring(pos[i], float(atk.get("radius", 6.0)), timer[i], Color(0.93, 0.29, 0.36))
 				"ring_at_hero":
@@ -5831,8 +5885,17 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					# pass 73 (lane GROUND): a summon is never a variance special
 					force_plain = true
 					# pass 110 (lane BOSS): never past the map's hard cap (summon_count)
-					spawn_ring(bid, summon_count(int(atk.get("count", 10))), pos[i], 5.0, "", bn["stats"], bn["src"])
+					# pass 127: `looks` (Black Sunday's two Straw Men): each ring its own random split of them (look_split)
+					var ring_looks: Array = atk.get("looks", [])
+					if ring_looks.is_empty():
+						spawn_ring(bid, summon_count(int(atk.get("count", 10))), pos[i], 5.0, "", bn["stats"], bn["src"])
+					else:
+						spawn_ring_looks(bid, summon_count(int(atk.get("count", 10))), pos[i], 5.0, ring_looks, bn["stats"], bn["src"])
 					force_plain = false
+					state[i] = STATE_MOVE
+				"come_here":
+					# pass 127: Black Sunday's pull (BossComeHere: the dust and everyone's leap)
+					BossComeHere.fire(self, i, atk, ppos)
 					state[i] = STATE_MOVE
 				"slam_at":
 					# a rock on the marked spot: damage there, the caster stays where it is
@@ -7888,7 +7951,8 @@ func _point_on_screen(p: Vector3) -> bool:
 ## the way up), a small dust puff at its feet when the spot is on the screen. Nothing without the director's numbers
 ## (tests, tools), for one waiting buried (the ambush brain) or a rise of 0 s.
 func _emerge_start(i: int, def: EnemyDef) -> void:
-	if def == null or hidden[i] == 1 or alive[i] == 0:
+	# pass 127: a flyer is in the air from its first frame (EnemyDef.flies)
+	if def == null or def.flies or hidden[i] == 1 or alive[i] == 0:
 		return
 	var big := def.archetype == "boss" or def.archetype == "elite"
 	var secs: float = spawn_rise_big_s if big else spawn_rise_s

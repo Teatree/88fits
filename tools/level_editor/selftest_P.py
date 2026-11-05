@@ -315,8 +315,8 @@ def checks(check, run_node, server):
         check(t["rules"] > 0, "P %s has rules (%d)" % (kind, t["rules"]))
     check(not res["rulesBad"], "P every rule has key, level, when, msg: %s" % res["rulesBad"][:3])
     # pass 95 (lane BOSS): 16 built-ins (stomp, tail_sniper); pass 126: whirl
-    check(len(res["attacks"]) == 17 and all(a["bad"] == 0 for a in res["attacks"].values()), "P 17 attack names with well-formed key sets")
-    check(all(a["telegraph"] in ("line", "ring", "ring_at_hero", "sector", "fan", "spokes", "none") for a in res["attacks"].values()), "P every attack has a default telegraph")
+    check(len(res["attacks"]) == 18 and all(a["bad"] == 0 for a in res["attacks"].values()), "P 18 attack names with well-formed key sets")
+    check(all(a["telegraph"] in ("line", "rect", "ring", "ring_at_hero", "sector", "fan", "spokes", "none") for a in res["attacks"].values()), "P every attack has a default telegraph")
     # pass 73 (lane SNIPER): + the sniper brain's block and flee on hit (any creature)
     # pass 112 (lane MONK): + the squad brain's block (18 rows)
     check(len(res["blocks"]) == 13 and res["blocks"]["ranged"] == 24 and res["blocks"]["charge"] == 13 and res["blocks"]["flee_on_hit"] == 3 and res["blocks"]["squad"] == 18, "P 13 brain blocks (ranged 24 rows since pass 111: + release_hold, throw_jump, dynamite, bomb, harpoon_fx; charge 13, flee on hit 3; squad 18 since pass 112): %s" % res["blocks"])

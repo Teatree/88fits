@@ -91,6 +91,60 @@ variants = {
 "sprite": "res://content/enemies/dust_bunny/dust_bunny_sprite_b.png",
 "sprite_file": "dust_bunny_sprite_b.png",
 "strip_cols": 41
+},
+"DB-C": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.969,
+"icon": "res://content/enemies/dust_bunny/dust_bunny_icon_c.png",
+"note": "Pass 127 recolour of DB-A: sandy tan, so it reads pale on the Dust Bowl's brown haze (hue 36, saturation 0.36, value lifted onto 0.5..0.98); the black outline, the white eyes and teeth and the pink ears as they are (tools/recolour_strip.py --mode lift --max-val)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/dust_bunny/dust_bunny_sprite_c.png",
+"sprite_file": "dust_bunny_sprite_c.png",
+"strip_cols": 41
+},
+"DB-D": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.969,
+"icon": "res://content/enemies/dust_bunny/dust_bunny_icon_d.png",
+"note": "Pass 127 recolour of DB-A: rust red, the warm dark one against the haze (hue 14, saturation 0.72, value lifted onto 0.38..0.85); the black outline, the white eyes and teeth and the pink ears as they are (tools/recolour_strip.py --mode lift --max-val)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/dust_bunny/dust_bunny_sprite_d.png",
+"sprite_file": "dust_bunny_sprite_d.png",
+"strip_cols": 41
 }
 }
 variant = "DB-A"

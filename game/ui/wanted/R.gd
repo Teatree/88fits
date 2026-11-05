@@ -56,8 +56,13 @@ const ROLES := {
 	"slate": {"top": Color("4a5670"), "bottom": Color("2f3a50"), "base": Color("141b2b"), "text": Color("fff6dc")},
 	"red": {"top": Color("ff7d6a"), "bottom": Color("e2402f"), "base": Color("8c1f14"), "text": Color("fff6dc")},
 	"locked": {"top": Color("8f98ab"), "bottom": Color("6b7488"), "base": Color("363c4a"), "text": Color("fff6dc")},
+	"dock": {"top": Color("2c3f8a"), "bottom": Color("1f2c68"), "base": Color("0b1230"), "text": Color("fff6dc")},
 }
 const ROLE_NAMES := ["gold", "green", "blue", "slate", "red", "locked"]
+## Pass 127 (Garry: "The Heroes select area has the same exact tint of buttons as the very bottom buttons, this is more of an issue
+## with the very bottom buttons though"): the bar's closed tabs are their own deep indigo, never the slate of a tile or a button
+## (R.role reads it; not a button colour for anything else, so not in ROLE_NAMES).
+const DOCK_ROLE := "dock"
 ## The black info plate (HUD basics, the wallet, run summaries, stat cells, pills): 56 % black, a 2 px inset of white at
 ## 8 %, no edge, no base, white type.
 const PLATE := Color(8 / 255.0, 10 / 255.0, 18 / 255.0, 0.56)
@@ -402,8 +407,8 @@ static func plate(ci: RID, rect: Rect2, radius: int = RADIUS) -> void:
 ## shrinks to fit); a round DOCK_BADGE badge (the STORE's lock, the Upgrade's "!") hanging DOCK_BADGE_OUT off the tab's top-right
 ## corner.
 const DOCK_BAR_H := 200
-const DOCK_BAR_TOP := Color("27314a")
-const DOCK_BAR_BOTTOM := Color("1a2238")
+const DOCK_BAR_TOP := Color("151e48")
+const DOCK_BAR_BOTTOM := Color("0c1230")
 const DOCK_BAR_EDGE := 4
 const DOCK_BAR_LIP := 0.1
 const DOCK_TAB_H := 176

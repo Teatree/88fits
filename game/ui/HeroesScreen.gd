@@ -33,6 +33,11 @@
 ## the picker ("Heroes": its own panel on the sheet's foot, over the tab bar) shows PICK_ROWS rows whole in "HeroScroll" and moves
 ## only when the roster runs past them. A tile tapped shows that hero and brings the page back up to him; the picker stays put.
 ## No class_name (load by path). Names for tools: "Top", "Stage" ("Sprite", "Padlock"), "Trait", "Details", "LooksBtn",
+## Pass 127 (Garry: "the upper part of the canvas for the scrollable area has its borders touching the back button too closely. The
+## separation between Heroes select area and this scrollable area isn't very clear either"; "at the moment of selecting a different
+## hero, we reset the upper scroll section to be all the way to the top"): the page's sheet starts clear of the header and ends
+## PICK_GAP over the picker, whose own solid tray with its lighter edge stands apart on the vista; a tile tapped sets the page to its
+## top at once, with no tween that could read as a scroll, and the shown hero's own tile does nothing.
 ## "HeroName", "Slogan", "Items", "Item_<role>_<id>", "SelectRow" > "Select" (meta "action": select, selected, buy,
 ## locked), "LooksPop" > "LookGrid" > "Look_<CODE>", "Heroes" ("Label", "HeroScroll" > "HeroGrid", "Hero_<id>": metas "hero",
 ## "state"), "ScrollThumb", "PageFade", "Crumb".
@@ -40,7 +45,7 @@ extends ScreenBase
 
 const SHEET_SCRIPT := preload("res://ui/wanted/WHeroSheet.gd")
 ## The board: its top (the name's line in the mock) and side; the columns (the mock's 380 and 600, 20 apart).
-const TOP := 176.0
+const TOP := 200.0
 const SIDE := 40.0
 const COL_L := 340.0
 const COL_GAP := 20
@@ -95,7 +100,11 @@ const PICK_LABEL_GAP := 2.0
 const PICK_GRID_TOP := 14.0
 const PICK_GRID_FOOT := 6.0
 const PICK_FOOT := 34.0
-const PICK_FILL := Color(0.03, 0.05, 0.12, 0.62)
+const PICK_FILL := Color(0.03, 0.05, 0.12, 0.94)
+## Pass 127: the vista's gap between the page's sheet and the picker's tray, the tray's edge.
+const PICK_GAP := 18.0
+const PICK_EDGE := Color("46558c")
+const PICK_EDGE_PX := 3
 const PAGE_FADE_H := 70.0
 ## Pass 126: what the page gives up on its right for the thumb's gutter (the picker's tiles and SELECT end on the same line).
 const PAGE_GUTTER := 6
@@ -154,16 +163,10 @@ func board_side() -> float:
 	return SIDE
 
 
-## Pass 126: the page ends over the picker (ScreenBase keeps the tab bar's band clear on top of this) ...
+## Pass 126: the page ends over the picker (ScreenBase keeps the tab bar's band clear on top of this). Pass 127: its sheet ends with
+## it, PICK_GAP over the tray (ScreenBase's sheet runs 8 px past the board's foot).
 func board_bottom() -> float:
-	return PICK_FOOT + picker_height()
-
-
-## ... and the half-transparent sheet still runs on under the picker, down to the foot it always had.
-func sheet_insets() -> Rect2:
-	var r := super.sheet_insets()
-	r.size.y -= picker_height()
-	return r
+	return PICK_FOOT + picker_height() + PICK_GAP + 8.0
 
 
 ## The picker's whole height: its label's line and its list.
@@ -293,7 +296,7 @@ func _looks_button() -> Control:
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	holder.custom_minimum_size = Vector2(0.0, DETAILS_H)
 	holder.mouse_filter = Control.MOUSE_FILTER_PASS
-	var b := WButton.make(["LOOKS"], DETAILS_PX, WButton.UPGRADE, R.BUTTON_EDGE, R.BUTTON_BASE,
+	var b := WButton.make(["SKINS"], DETAILS_PX, WButton.UPGRADE, R.BUTTON_EDGE, R.BUTTON_BASE,
 		maxf((DETAILS_H - 2.0 * R.BUTTON_EDGE - DETAILS_PX) * 0.5, 0.0), 12.0, float(DETAILS_PX), WButton.BLUE)
 	b.name = "LooksBtn"
 	b.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -577,7 +580,7 @@ func _fill_looks_pop() -> void:
 	v.add_theme_constant_override("separation", 18)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(v)
-	v.add_child(WConfirm.make_star("Looks"))
+	v.add_child(WConfirm.make_star("Skins"))
 	v.add_child(WConfirm.make_title(SHEET_SCRIPT.hero_name(shown).to_upper(), 56))
 	var lab := W.label("%d of %d owned" % [n_owned, codes.size()], LABEL_PX, W.INK_SOFT)
 	lab.name = "Label"
@@ -617,17 +620,16 @@ func _build_picker() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = PICK_FILL
-	sb.border_color = R.NAVY
-	sb.border_width_top = 4
-	sb.corner_radius_bottom_left = R.RADIUS_TAB
-	sb.corner_radius_bottom_right = R.RADIUS_TAB
+	sb.border_color = PICK_EDGE
+	sb.set_border_width_all(PICK_EDGE_PX)
+	sb.set_corner_radius_all(R.RADIUS_TAB)
 	sb.anti_aliasing = true
 	panel.add_theme_stylebox_override("panel", sb)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# inside the sheet's 3 px edge, down to its foot
-	panel.offset_left = side + 3.0
-	panel.offset_right = -(side + 3.0)
-	panel.offset_bottom = foot - sheet_insets().size.y - 3.0
+	# pass 127: its own tray, as wide as the page's sheet, down to where that sheet's foot was
+	panel.offset_left = side
+	panel.offset_right = -side
+	panel.offset_bottom = 8.0
 	picker.add_child(panel)
 	grid_scroll = ScrollContainer.new()
 	grid_scroll.name = "HeroScroll"
@@ -672,7 +674,7 @@ func _build_page_marks() -> void:
 	_lay_thumb(page_thumb, TOP + W.safe_top() + 6.0, -foot - 6.0, Control.PRESET_RIGHT_WIDE)
 	var g := Gradient.new()
 	g.set_color(0, Color(PICK_FILL, 0.0))
-	g.set_color(1, Color(PICK_FILL, 0.92))
+	g.set_color(1, Color(PICK_FILL, 0.8))
 	var tex := GradientTexture2D.new()
 	tex.gradient = g
 	tex.fill_from = Vector2(0.0, 0.0)
@@ -689,8 +691,9 @@ func _build_page_marks() -> void:
 	var side := sheet_insets().position.x + 3.0
 	_page_fade.offset_left = side
 	_page_fade.offset_right = -side
+	# pass 127: down to the sheet's own foot, inside its edge and clear of its round corners
 	_page_fade.offset_top = -foot - PAGE_FADE_H
-	_page_fade.offset_bottom = -foot
+	_page_fade.offset_bottom = -foot + 5.0
 	add_child(_page_fade)
 	add_child(page_thumb)
 	var bar := scroll.get_v_scroll_bar()
@@ -809,15 +812,15 @@ func _draw_glow() -> void:
 
 ## Shows `c` in the top half (a tile tapped; tools): the page again, scrolled back up to him; the picker stays where it is.
 func show_hero(c: CharacterDef) -> void:
-	if c == null:
+	if c == null or c == shown:
 		return
 	shown = c
 	_fill()
-	# pass 126: a page still coasting from a flick must not carry on under the tween
+	# pass 126: a page still coasting from a flick stops. Pass 127: and it stands at its top at once
 	if _touch:
 		_touch.reset()
-	if scroll and scroll.scroll_vertical > 0:
-		create_tween().tween_property(scroll, "scroll_vertical", 0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if scroll:
+		scroll.scroll_vertical = 0
 
 
 ## The page and the wallet again (a purchase, a look worn, the purse changed under it).
@@ -925,7 +928,7 @@ func ask_buy_look(code: String) -> void:
 		_refuse(t)
 		return
 	_on_looks_answer("replaced")
-	WConfirm.open(self, "Buy this look?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price),
+	WConfirm.open(self, "Buy this skin?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price),
 		SHEET_SCRIPT.hero_name(c)], "Buy · %s" % W.num(price), "Not now", func(): buy_look(c, code), open_looks, "buy",
 		WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
 

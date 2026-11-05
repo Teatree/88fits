@@ -1060,6 +1060,12 @@ class HeroFigure extends Control:
 	var _t := 0.0
 	var _shadow: FigureShadow
 	var _contact: TextureRect
+	## Pass 127 (Garry: "Hero on the Main Menu still hovers above the drop shadow ... its idle animation is always squeezing him
+	## heightwise and that's causing him to kind of lift off"): the look's painted soles frame by frame (core/systems/FigureSoles.gd)
+	## and the row of the anim playing: he is drawn so the paint of his soles ends on the shadow's line in every idle frame, so only
+	## his top moves. A run lifts its feet on purpose and has no row.
+	var _sole_rows: Dictionary = {}
+	var _soles: Array = []
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1067,6 +1073,7 @@ class HeroFigure extends Control:
 	## The strip, its grid and the idle's frames from `look` (the def's played look; `def` for a drawn stand-in).
 	func setup(look: CharacterDef, def: CharacterDef) -> void:
 		tex = look.sprite if look else null
+		_sole_rows = FigureSoles.of(tex)
 		var anims: Dictionary = look.anims if look else {}
 		var grid := look.strip_cols if look and tex else 0
 		speeds = look.fps if look and tex else {}
@@ -1099,6 +1106,7 @@ class HeroFigure extends Control:
 		count = maxi(int(slot[1]), 1)
 		fps = speed_of(speeds, anim)
 		frame = 0
+		_soles = _sole_rows.get(anim, [])
 		_t = 0.0
 		set_process(count > 1)
 		queue_redraw()
@@ -1126,6 +1134,14 @@ class HeroFigure extends Control:
 	## Pass 126: where the paint of his soles really ends: his shadow and the pool under him start here, touching his feet.
 	func soles() -> Vector2:
 		return Vector2(size.x * 0.5, size.y * TitleStageScript.FIGURE_SOLE)
+
+	## Pass 127: where this frame's paint ends, top 0 .. foot 1 of the frame (TitleStage.FIGURE_SOLE when the table has no row).
+	func sole_v() -> float:
+		return float(_soles[frame]) if frame < _soles.size() else TitleStageScript.FIGURE_SOLE
+
+	## Pass 127: how far this frame is drawn down so that paint ends on the shadow's line.
+	func sole_shift() -> float:
+		return (TitleStageScript.FIGURE_SOLE - sole_v()) * size.y
 
 	func set_tint(c: Color) -> void:
 		tint = c
@@ -1189,7 +1205,8 @@ class HeroFigure extends Control:
 	func _draw() -> void:
 		if tex == null:
 			return
-		var dst := Rect2(Vector2.ZERO, Vector2(-size.x, size.y)) if flip else Rect2(Vector2.ZERO, size)
+		var dy := sole_shift()
+		var dst := Rect2(Vector2(0.0, dy), Vector2(-size.x, size.y)) if flip else Rect2(Vector2(0.0, dy), size)
 		draw_texture_rect_region(tex, dst, frame_rect(), tint)
 
 
@@ -1227,5 +1244,8 @@ class FigureShadow extends Control:
 		var ax := Vector2.RIGHT
 		var ay := -axis
 		draw_set_transform_matrix(Transform2D(ax, ay, foot - ax * foot.x - ay * foot.y))
-		var dst := Rect2(Vector2.ZERO, Vector2(-size.x, size.y)) if figure.flip else Rect2(Vector2.ZERO, size)
+		# pass 127: this frame's own sole on the line, the same shift as the figure's
+		_mat.set_shader_parameter("foot_v", figure.sole_v())
+		var dy := figure.sole_shift()
+		var dst := Rect2(Vector2(0.0, dy), Vector2(-size.x, size.y)) if figure.flip else Rect2(Vector2(0.0, dy), size)
 		draw_texture_rect_region(figure.tex, dst, src)

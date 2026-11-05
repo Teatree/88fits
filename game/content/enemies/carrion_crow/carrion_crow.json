@@ -4,12 +4,13 @@
   "flavour": "It has been circling for days. It got bored.",
   "archetype": "runner",
   "brain": "flock",
+  "flies": true,
   "hp": 8,
   "speed": 3.0,
   "damage": 4,
   "knockback": 3.4,
   "radius": 0.4,
-  "size": 1.5,
+  "size": 1.7,
   "blood": "#B01C3C",
   "pack_size": 8,
   "cap_share": 0.5,
@@ -71,7 +72,7 @@
     "run": 24,
     "die": 12
   },
-  "doc": "The Dust Bowl's runner: a big black crow that hops and flaps low over the ground in flocks of eight, fast and weak. A flock that arrives before the crowd does, gone at the first sweep.",
+  "doc": "The Dust Bowl's runner: a big black crow that flies low over the ground in flocks of eight, its shadow on the sand under it, fast and weak. A flock that arrives before the crowd does, gone at the first sweep.",
   "head": 0.915,
   "retired": false,
   "screen": "green",
@@ -106,10 +107,129 @@
     "length": 0.075
   },
   "variant_base": "CC-A",
-  "variant": "CC-A",
+  "variant": "CC-B",
   "variants": {
     "CC-A": {
       "note": "a fat crow with blue on its wings; hops with two wing beats from three painted poses a view (walk flap: no video model draws a frame, so no blur and never a third wing); falls on its side, feathers fly"
+    },
+    "CC-B": {
+      "note": "It flies all the time (walk Fly: three wing beats in twelve frames, its painted wings turned about the shoulders under a still body, a small bob, no hop, no squash, its shadow on the sand well under it; idle hovers); plain black feathers, no blue (stills fb0d: picked fb0 with its greys darkened x0.55 by tools/dl/p126/BESTIARY/darken.py, the Dust Bowl's haze lifts blacks); shot out of the air it drops to the ground (death fall), feathers fall",
+      "fresh": true,
+      "recipe": {
+        "art_prompt": "a big fat round cartoon black crow flying in the air towards the viewer, hovering, a huge round head on a fat round body, a thick pale ivory beak, an angry brow and two small pale yellow eyes, ragged plain matte black feathers, two short broad stubby black wings spread out level to the left and to the right at shoulder height, each wing no longer than the body is wide, the feathers fanned, its two short thin pale grey legs tucked up under its belly with small curled claws, a short ragged black tail below it, one single crow, exactly two wings, facing the viewer. All its feathers are plain matte black and very dark charcoal grey, with no blue, no teal, no purple, no sheen and no shine anywhere on them.",
+        "back_hint": "Both of its two wings spread straight out level to the left and right at shoulder height, the plain black feathered back of its head and body, its short ragged tail below, the head turned away so no beak and no eyes show, its two thin legs tucked up under it. Exactly two wings. All its feathers are plain matte black and very dark charcoal grey, with no blue, no teal, no purple, no sheen and no shine anywhere on them.",
+        "dead_hint": "lying flat on the ground on its side, dead: the black crow stretched out sideways across the picture with its head on the left and its tail on the right, one wing spread limp, its pale beak open, its eye shut as a small cross, legs curled up; it lies on nothing, with no ground, no sand and no shadow under it. All its feathers are plain matte black and very dark charcoal grey, with no blue, no teal, no purple, no sheen and no shine anywhere on them.",
+        "stills": "fb0d",
+        "walk": "fly",
+        "fly": {
+          "hover": 0.24,
+          "bob": 0.015,
+          "wing_up": 42,
+          "wing_down": -72,
+          "front": {
+            "body": [
+              [
+                0.498,
+                0.552,
+                0.19,
+                0.18
+              ],
+              [
+                0.498,
+                0.332,
+                0.155,
+                0.147
+              ]
+            ],
+            "pivots": [
+              [
+                0.337,
+                0.42
+              ],
+              [
+                0.66,
+                0.42
+              ]
+            ],
+            "max_y": 0.57
+          },
+          "back": {
+            "body": [
+              [
+                0.498,
+                0.547,
+                0.146,
+                0.165
+              ],
+              [
+                0.498,
+                0.293,
+                0.132,
+                0.112
+              ]
+            ],
+            "pivots": [
+              [
+                0.376,
+                0.42
+              ],
+              [
+                0.62,
+                0.42
+              ]
+            ],
+            "max_y": 0.57
+          }
+        },
+        "death": "fall",
+        "death_frames": 8,
+        "die_fps": 12,
+        "dead_fill": 0.5,
+        "run_fps": 16,
+        "cell_fill": 0.8,
+        "outline_frac": 0.012,
+        "death_bits": {
+          "kind": "feather",
+          "n": 9,
+          "colours": [
+            "#1D1D21",
+            "#2A2A2E",
+            "#17171A",
+            "#34343A"
+          ],
+          "start": 1,
+          "spread": 0.42,
+          "rise": 0.3,
+          "gravity": 0.8,
+          "length": 0.06,
+          "floor_last": true
+        }
+      },
+      "shadow": {
+        "scale": [
+          0.5,
+          0.5
+        ],
+        "up": 0.0,
+        "drop": 0.05
+      },
+      "sprite": "carrion_crow_sprite_b.png",
+      "icon": "carrion_crow_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 16,
+        "die": 12
+      },
+      "head": 0.943
     }
   },
   "outline_frac": 0.018,

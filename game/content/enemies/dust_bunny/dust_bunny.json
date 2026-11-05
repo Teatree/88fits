@@ -75,6 +75,60 @@
         "die": 12
       },
       "head": 0.758
+    },
+    "DB-C": {
+      "note": "Pass 127 recolour of DB-A: sandy tan, so it reads pale on the Dust Bowl's brown haze (hue 36, saturation 0.36, value lifted onto 0.5..0.98); the black outline, the white eyes and teeth and the pink ears as they are (tools/recolour_strip.py --mode lift --max-val)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "DB-A",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --min-sat 0 --max-sat 0.26 --min-val 0.09 --max-val 0.6 --src-hi 0.5 --soft 0.03 --gamma 0.7 --to 36 --set-sat 0.36 --v-lo 0.5 --v-hi 0.98"
+        ]
+      },
+      "sprite": "dust_bunny_sprite_c.png",
+      "icon": "dust_bunny_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.969
+    },
+    "DB-D": {
+      "note": "Pass 127 recolour of DB-A: rust red, the warm dark one against the haze (hue 14, saturation 0.72, value lifted onto 0.38..0.85); the black outline, the white eyes and teeth and the pink ears as they are (tools/recolour_strip.py --mode lift --max-val)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "DB-A",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --min-sat 0 --max-sat 0.26 --min-val 0.09 --max-val 0.6 --src-hi 0.5 --soft 0.03 --gamma 0.7 --to 14 --set-sat 0.72 --v-lo 0.38 --v-hi 0.85"
+        ]
+      },
+      "sprite": "dust_bunny_sprite_d.png",
+      "icon": "dust_bunny_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.969
     }
   },
   "variance": {

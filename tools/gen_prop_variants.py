@@ -9,6 +9,7 @@ props.json entry (`variant_of` names the original: PropField mixes it in whereve
   python tools/gen_prop_variants.py [--only agave_b,...] [--seeds 4] [--force]      # candidates + review sheets
   python tools/gen_prop_variants.py --pick agave_b=2 boulder_b=0 ...                  # the picks -> game/art/sprites/props
   python tools/gen_prop_variants.py --warm <src.png> <dst.png>                        # pass 126: grey wood made warm (warm_wood)
+  A kind in FROM_RENDER (pass 127, cart_toppled) is painted over a Blender render instead of from words alone.
 
 Candidates: tools/dl/p83/SCENE/variants/<id>_c<k>.png (finished cells), review sheets <id>_review.png (each candidate on
 sand-coloured ground at the size it shows in a run and twice that), raw renders in tools/dl/ai_raw_props/."""
@@ -86,15 +87,28 @@ VARIANTS = {
                       "a clump of three young joshua trees growing together from one spot, different heights, each a shaggy trunk "
                       "with one or two short arms ending in spiky round green leaf balls" + NO_FACE, 4.6, 0.22, 384, 8751, "blue"),
     # pass 126 (lane DRESS; Garry: "a random toppled over westerny cart"): a new kind the map places once in 75% of runs
-    # (core/systems/MapDressing.gd); its wheels are 3D and lie apart from it, so none painted on it; 3.54 m and 0.784 m
-    # are 1.1 x the biggest boulder a map places (2.8 m and 0.62 m x its largest scale 1.15). Six seeds into --cands
-    # tools/dl/p126/DRESS/cart; the pick is k = 5 (seed 17486) made warm wood: --warm <cands>/cart_toppled_c5.png
-    # game/art/sprites/props/cart_toppled.png (no --pick: the painter gave grey planks); its entry in props.json by hand.
+    # (core/systems/MapDressing.gd); 3.54 m and 0.784 m are 1.1 x the biggest boulder a map places (2.8 m and 0.62 m x its
+    # largest scale 1.15).
+    # pass 127 (lane ART; Garry: "doesn't look like any cart I've ever seen and it looks like it's supported by lying cloth"):
+    # painted over a model now (FROM_RENDER below: tools/blender_cart.py -> tools/dl/cart_ref.png), no cloth. To re-roll:
+    #   "$BLENDER" -b --python tools/blender_cart.py
+    #   python tools/gen_prop_variants.py --only cart_toppled --seeds 6 --cands tools/dl/p127/ART/cart/s3 [--force]
+    #   python tools/gen_prop_variants.py --cands tools/dl/p127/ART/cart/s3 --pick cart_toppled=N   (the pick: N = 5, seed 17586; then --import)
+    # props.json's `shadow` for it is by hand: prop_shadows measures the lowest band of the painting, and the cart's near edge runs up
+    # the picture, so it finds only the right end (no --force on it).
     "cart_toppled": (None, "st_shop_44.png",
-                     "a broken old western wooden wagon toppled over on its side, lying on the ground, seen from the side: the long plank "
-                     "wagon box tipped on its edge so its underside and one bare broken wooden axle stick out towards us, weathered grey-brown "
-                     "planks with dark iron bands, a few loose boards hanging off, a torn dirty canvas cover trailing on the ground, "
-                     "all the wheels gone, no wheels anywhere on it, wider than it is tall" + NO_FACE, 3.54, 0.784, 384, 12601, "blue"),
+                     "a plain old western wooden wagon toppled over on its long side, seen from a high three-quarter angle: the long box of "
+                     "warm brown wooden planks with dark iron straps, its underside turned towards us with two dark wooden axle beams and "
+                     "a long pole between them, two big wooden spoked wagon wheels with iron tyres still on their axles up in the air on top, "
+                     "the left one broken with a gap in its rim, the wooden tongue pole sticking out to the left, warm brown weathered wood, "
+                     "no cloth, no canvas, no cover, no bonnet, no rags, no drapes, nothing hanging, nothing else" + NO_FACE, 3.54, 0.784, 384, 12701, "blue"),
+}
+
+# pass 127: a kind the painter has to be shown: {id: {ref: a Blender render (repo-relative), denoise, grade}}: the render is the last
+# reference and the start of the painting (img2img at `denoise`), so the painter keeps the model's shapes and only paints them.
+# `grade` {gamma, sat} on the finished cell: the cart's wood came out as pale as the sand it lies on.
+FROM_RENDER = {
+    "cart_toppled": {"ref": "tools/dl/cart_ref.png", "denoise": 0.84, "grade": {"gamma": 1.3, "sat": 1.15}},
 }
 
 ARGS = sys.argv[1:]
@@ -115,10 +129,17 @@ if "--cands" in ARGS:
     CANDS = os.path.abspath(ARGS[ARGS.index("--cands") + 1])
 
 
-def finish(img, cell):
-    """gen_props' finish: the fit, the warm thin outline, the mute."""
+def finish(img, cell, grade=None):
+    """gen_props' finish: the fit, the warm thin outline, the mute; `grade` (pass 127) a darker, richer finish."""
     cell_img, _ = ga.finish(img, cell, 0.9, True, None, 0.007, None, (70, 46, 30, 230))
-    return gp.mute(cell_img)
+    out = gp.mute(cell_img)
+    if grade:
+        a = np.asarray(out).astype(float) / 255.0
+        rgb = np.clip(a[..., :3], 0.0, 1.0) ** float(grade.get("gamma", 1.0))
+        grey = rgb.mean(-1, keepdims=True)
+        a[..., :3] = np.clip(grey + (rgb - grey) * float(grade.get("sat", 1.0)), 0.0, 1.0)
+        out = Image.fromarray((a * 255.0).astype("uint8"), "RGBA")
+    return out
 
 
 def render(id_, row, k):
@@ -139,7 +160,17 @@ def render(id_, row, k):
         ref_img = Image.open(os.path.join(RAW, ref_raw)).convert("RGB")
         refs.append(comfy.upload_pil(ref_img, "p83_" + id_ + "_ref.png"))
     t0 = time.time()
-    imgs, _ = comfy.run(comfy.klein(prompt, s, 1024, 1024, refs=refs, prefix="88fits/prop_" + id_))
+    fr = FROM_RENDER.get(id_)
+    if fr:
+        # pass 127: the model's render, the last reference and the painting's start
+        shown = comfy.upload_pil(ga.on_screen(Image.open(os.path.join(REPO, fr["ref"])), screen == "blue"), "p127_" + id_ + "_render.png")
+        prompt = ("Using exactly the same art style, line art, cel shading, palette and level of detail as the first reference images, repaint the "
+                  "object of the last reference image as a painted desert prop for the same game: keep its silhouette, its proportions, every one of "
+                  "its parts and where each part is, seen from exactly the same high angle. " + subject + ". Thick clean dark outlines, flat cel "
+                  "shading, the planks and spokes drawn by hand. No ground patch, no cast shadow, nothing else in the frame. " + ga.STYLE + ". " + bg + ".")
+        imgs, _ = comfy.run(comfy.klein(prompt, s, 1024, 1024, refs=refs + [shown], prefix="88fits/prop_" + id_, init=shown, denoise=float(fr.get("denoise", 0.8))))
+    else:
+        imgs, _ = comfy.run(comfy.klein(prompt, s, 1024, 1024, refs=refs, prefix="88fits/prop_" + id_))
     img = Image.open(io.BytesIO(imgs[0])).convert("RGB")
     img.save(raw)
     ga.log("  render %-16s seed %-6d %5.0fs" % (id_, s, time.time() - t0))
@@ -178,7 +209,7 @@ def candidates():
         cands = []
         for k in range(SEEDS):
             img = render(id_, row, k)
-            c = finish(img, row[5])
+            c = finish(img, row[5], FROM_RENDER.get(id_, {}).get("grade"))
             c.save(os.path.join(CANDS, "%s_c%d.png" % (id_, k)))
             cands.append(c)
         review(id_, row, cands)

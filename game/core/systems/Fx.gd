@@ -767,6 +767,19 @@ func pop_dust(at: Vector3, size: float = 1.0) -> void:
 		_emit(at + Vector3(cos(ca) * 0.2 * w, 0.25, sin(ca) * 0.2 * w), cv, randf_range(0.5, 0.7), 0.1 * w, 0.07 * w, 1.0, 0.9, CLOD, 12.0, true, true)
 
 
+## Pass 127 (Black Sunday's Come Here): a cloud springing up off the sand and leaning along `pull` (flat, unit length): a column, a
+## low skirt and thrown grains, `k` bigger towards the far end of the rectangle. Every piece must play: the attack is its dust.
+func pull_dust(at: Vector3, pull: Vector3, k: float = 1.0) -> void:
+	for n in range(5):
+		var a := randf() * TAU
+		var o := at + Vector3(cos(a), 0.0, sin(a)) * randf_range(0.1, 0.7) + Vector3(0, 0.15 + 0.3 * float(n), 0)
+		var v := pull * randf_range(2.5, 5.0) + Vector3(randf_range(-0.5, 0.5), randf_range(1.2, 3.0), randf_range(-0.5, 0.5))
+		_emit_dust(o, v, randf_range(0.55, 0.85), 0.45 * k, randf_range(1.4, 2.0) * k, 0.72, DUST_PALE if n % 3 == 1 else DUST_TAN, true)
+	for n in range(5):
+		var g := pull * randf_range(3.0, 7.0) + Vector3(randf_range(-1.0, 1.0), randf_range(2.5, 5.0), randf_range(-1.0, 1.0))
+		_emit(at + Vector3(0, 0.1, 0), g, randf_range(0.35, 0.55), 0.11, 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true)
+
+
 ## The colour of a clod of packed sand (pass 60, pop_dust): the mound's, a shade deeper than the dust.
 const CLOD := Color(0.86, 0.68, 0.42)
 

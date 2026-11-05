@@ -83,7 +83,7 @@ func test_the_tab_bar_has_five_tabs_the_open_one_gold_taller_and_wider() -> void
 	assert_float(col.size.y).is_equal(float(R.DOCK_TAB_H))
 	assert_float(up.size.x / col.size.x).is_equal_approx(R.DOCK_ACTIVE_FLEX, 0.02)
 	assert_str((up.box as HardBox).role).is_equal("gold")
-	assert_str((col.box as HardBox).role).is_equal("slate")
+	assert_str((col.box as HardBox).role).is_equal(R.DOCK_ROLE)
 	# the side margins and the gaps
 	var store: WTap = bar.call("tab", "store")
 	assert_float(store.position.x).is_equal_approx(float(R.DOCK_SIDE), 0.6)

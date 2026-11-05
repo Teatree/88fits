@@ -246,7 +246,7 @@ def _smooth(e0, e1, x):
 
 
 def lift_range(img, ranges, to_hue, sat_set=None, sat_mult=1.0, v_lo=0.5, v_hi=1.0, gamma=1.0, min_sat=0.0, max_sat=1.01,
-               min_val=0.0, src_hi=1.0, soft=0.04, hue_soft=0.0, to_hue_dark=None, mass=0, grow=None, mass_sat=None, keep_edge=0):
+               min_val=0.0, src_hi=1.0, soft=0.04, hue_soft=0.0, to_hue_dark=None, mass=0, grow=None, mass_sat=None, keep_edge=0, max_val=1.01):
     """Recolour a material lighter (pass 107: the white beetle shells, the bright fire ants, the bone scorpion): a visible
     pixel whose hue is inside one of `ranges` (degrees; 340-360,0-40 for a red that wraps), whose saturation is between
     `min_sat` and `max_sat` and whose value is at least `min_val` takes hue `to_hue`, saturation `sat_set` (absolute) or
@@ -258,7 +258,9 @@ def lift_range(img, ranges, to_hue, sat_set=None, sat_mult=1.0, v_lo=0.5, v_hi=1
     not olive). `mass` (pixels) keeps only the material's areas (its hue, value and a saturation of at least `mass_sat`, default
     0.4 of `min_sat`, so its glints count) at least 2*mass+1 thick (a morphological opening: a beetle's shell, not its thin legs of the same red), grown back by `grow` pixels (default mass + 2) so the shell's rim comes
     with it. `keep_edge` (pixels) leaves the figure's outer band that wide as it is (an icon's grey outer stroke, as dark
-    as the body it surrounds). tint_range only scales value down, remap_hues keeps it: neither turns a red or black shell white."""
+    as the body it surrounds). `max_val` (pass 127, the Dust Bunny's looks) leaves what is brighter than this as it is (white eyes and
+    teeth on a body that has no hue to tell them apart by). tint_range only scales value down, remap_hues keeps it: neither turns a red
+    or black shell white."""
     a = np.asarray(img.convert("RGBA")).astype(np.float32) / 255.0
     h, s, v = _rgb_to_hsv(a[..., :3])
     deg = h * 360.0
@@ -283,6 +285,8 @@ def lift_range(img, ranges, to_hue, sat_set=None, sat_mult=1.0, v_lo=0.5, v_hi=1
         w = w * (1.0 - _smooth(max_sat - sf, max_sat + sf, s))
     if min_val > 0.0:
         w = w * _smooth(min_val - sf, min_val + sf, v)
+    if max_val < 1.0:
+        w = w * (1.0 - _smooth(max_val - sf, max_val + sf, v))
     if int(mass) > 0:
         k = 2 * int(mass) + 1
         g = 2 * int(int(mass) + 2 if grow is None else grow) + 1
@@ -752,10 +756,11 @@ def align_pose(ref, pose, box=(0.32, 0.0, 0.68, 0.40), scales=(0.72, 1.75, 0.01)
     return s, (tx0 - lx) * half, (ty0 - ly) * half
 
 
-def laid_cell(pose, ref, cell, scale, outline_px, outline_color, pad_bottom=0.06, box=(0.32, 0.0, 0.68, 0.40)):
+def laid_cell(pose, ref, cell, scale, outline_px, outline_color, pad_bottom=0.06, box=(0.32, 0.0, 0.68, 0.40), aligned=False):
     """Pass 126: a keyed pose as a cell on its reference's body: `scale` is what fit_cell gave the keyed reference, so the
-    head stays where the reference's head stands in its cell, whatever the wings reach."""
-    s, dx, dy = align_pose(ref, pose, box)
+    head stays where the reference's head stands in its cell, whatever the wings reach. `aligned` (pass 127): the pose already lies on
+    the reference, pixel for pixel (wing_poses)."""
+    s, dx, dy = (1.0, 0, 0) if aligned else align_pose(ref, pose, box)
     # the pose's neutrals brought to the reference's (one edit paints the same black warmer than another, and a wing beat would
     # flicker brown and blue-black): a gain per channel from the median of each picture's dark greys, its bright parts spared
     def neutrals(im):
@@ -824,6 +829,125 @@ def flap_cycle(cells, cell, height=0.12, beats=FLAP_BEATS):
     for name, up, sy in beats:
         sx = 1.0 + (1.0 - sy) * 0.7
         out.append(transform(cells[name], bob=up * height * cell, sx=sx, sy=sy))
+    return out
+
+
+# Pass 127 (lane ART, the Carrion Crow; Garry: "just go ahead and make it fly all the time. When it's idle it's flying. When it's
+# moving it's flying. Kind of like how bats in Vampire Survivors work."): walk `fly`. One wing beat, four frames.
+FLY_BEAT = ("up", "mid", "down", "mid")
+
+
+def wing_poses(keyed, body=None, pivots=None, max_y=0.6, up=42.0, down=-72.0):
+    """The wings-up and wings-down poses cut from one wings-level painting (Klein's edits of a painting whose wings are already spread
+    keep them where they are, however they are asked). The painting's opaque pixels outside the `body` ellipses [[cx, cy, rx, ry], ...]
+    and above `max_y` are its two wings; each turns about its own pivot, `pivots` [[lx, ly], [rx, ry]], `up` and `down` degrees, under
+    the body, which does not move by a pixel. All shares of the picture. Without `body` an ellipse is estimated from the columns the
+    figure fills, without `pivots` at its sides a share of the way down: look at the result. A dark disc at each pivot stays behind the
+    wing's root, so no gap opens between a turned wing and the shoulder. Returns {"up": RGBA, "down": RGBA} in the painting's frame."""
+    w, h = keyed.size
+    arr = np.asarray(keyed.convert("RGBA"))
+    fig = arr[..., 3] > 0
+    yy, xx = np.mgrid[0:h, 0:w]
+    ys, xs = np.nonzero(arr[..., 3] > 127)
+    cx = (xs.min() + xs.max()) * 0.5
+    if not body:
+        cov = (arr[..., 3] > 127).sum(axis=0).astype(np.float32)
+        thick = np.nonzero(cov > 0.6 * cov.max())[0]
+        rx = (thick.max() - thick.min()) * 0.56
+        ry = (ys.max() - ys.min()) * 0.52
+        body = [[cx / w, (ys.min() + (ys.max() - ys.min()) * 0.45) / h, rx / w, ry / h]]
+    if not pivots:
+        half = (xs.max() - xs.min()) * 0.5
+        ey = float(body[0][1]) - float(body[0][3]) * 0.3
+        pivots = [[(cx - half * 0.33) / w, ey], [(cx + half * 0.33) / w, ey]]
+    inside = np.zeros((h, w), dtype=bool)
+    for ex, ey, erx, ery in body:
+        inside |= ((xx - ex * w) / (erx * w)) ** 2 + ((yy - ey * h) / (ery * h)) ** 2 <= 1.0
+    wings = fig & ~inside & (yy < max_y * h)
+    # one wing a side: the largest solid piece, grown back over its soft edge; crumbs of the keying and bits of the ruff stay out of it
+    from scipy import ndimage
+    solid = wings & (arr[..., 3] > 60)
+    keep = np.zeros((h, w), dtype=bool)
+    for side in (xx < cx, xx >= cx):
+        lab, n = ndimage.label(solid & side)
+        if n:
+            sizes = ndimage.sum(solid & side, lab, range(1, n + 1))
+            keep |= lab == (int(np.argmax(sizes)) + 1)
+    wings = ndimage.binary_dilation(keep, iterations=3) & wings
+    body_px = arr.copy()
+    body_px[..., 3] = np.where(wings, 0, arr[..., 3])
+    body_im = Image.fromarray(body_px, "RGBA")
+    # the wing's own dark, for the disc behind its root
+    dark = arr[wings & (arr[..., 3] > 200)][..., :3]
+    dark_col = tuple(int(c) for c in np.percentile(dark, 35, axis=0)) if len(dark) else (30, 30, 34)
+    from PIL import ImageDraw
+
+    def pose(deg):
+        out = Image.new("RGBA", keyed.size, (0, 0, 0, 0))
+        for side, sign in ((xx < cx, -1.0), (xx >= cx, 1.0)):
+            px = arr.copy()
+            px[..., 3] = np.where(wings & side, arr[..., 3], 0)
+            wing = Image.fromarray(px, "RGBA")
+            p = pivots[0] if sign < 0 else pivots[1]
+            c = (p[0] * w, p[1] * h)
+            out.alpha_composite(wing.rotate(sign * deg, resample=Image.BICUBIC, center=c))
+            r = 0.042 * w
+            ImageDraw.Draw(out).ellipse((c[0] - r, c[1] - r, c[0] + r, c[1] + r), fill=dark_col + (255,))
+        out.alpha_composite(body_im)
+        return out
+
+    return {"up": pose(float(up)), "down": pose(float(down))}
+
+
+def fly_cycle(cells, cell, hover=0.2, bob=0.015, n=12, beats=3):
+    """A creature that never touches the ground: `beats` wing beats in `n` frames from the painted poses `cells` {up, mid, down}, each
+    laid on the mid pose's body (laid_cell), the whole figure held `hover` of the cell above the foot line and riding `bob` of the cell
+    up on the downstroke and down on the upstroke. No hop and no squash; the same pixels a beat, so no blur and never a third wing."""
+    out = []
+    for k in range(n):
+        t = k * beats / float(n)
+        pose = FLY_BEAT[int((t % 1.0) * len(FLY_BEAT))]
+        out.append(transform(cells[pose], bob=(hover - bob * math.cos(math.tau * t)) * cell))
+    return out
+
+
+def fly_stand(front, back, cell, hover=0.2, bob=0.015):
+    """What a flyer does when it is not going anywhere, all in the air. idle and idle_b: a hover, the wings up then down (a creature
+    plays its idle at EnemyManager.ATTACK_FPS, three frames a second, so two poses read as a beat where four would crawl); attack: up
+    and over, then a stab down; hit: the mid pose in white, not squashed."""
+    def up(c, pose, h=0.0):
+        return transform(c[pose], bob=(hover + h) * cell)
+
+    def idle(c):
+        return [up(c, "up", -bob), up(c, "down", bob), up(c, "up", -bob * 0.5), up(c, "down", bob * 0.5)]
+
+    return {"idle": idle(front), "idle_b": idle(back),
+            "attack": [up(front, "up", 0.02), up(front, "down", -0.03)],
+            "hit": [transform(front["mid"], bob=hover * cell, tint=(255, 255, 255))]}
+
+
+def _turned(cell_img, deg, up):
+    """A frame turned `deg` about its own figure's middle and moved `up` px up the cell."""
+    ys, xs = np.nonzero(np.asarray(cell_img)[..., 3] > 40)
+    cx, cy = (xs.min() + xs.max()) * 0.5, (ys.min() + ys.max()) * 0.5
+    im = cell_img.rotate(deg, resample=Image.BICUBIC, center=(cx, cy), expand=False)
+    canvas = Image.new("RGBA", cell_img.size, (0, 0, 0, 0))
+    canvas.alpha_composite(im, (0, -int(up)))
+    return canvas
+
+
+def fly_fall(cells, dead, cell, hover=0.2, n=8):
+    """A flyer's death: shot out of the air it tips over with its wings thrown up, drops under gravity and lands on the painted dead
+    still (`dead`, standing on the foot line) with one small bounce; the last frame is the one the game holds. Drawn from its own
+    paintings: no model paints a frame."""
+    fall = max(3, n - 3)
+    out = []
+    for k in range(fall):
+        t = k / float(fall)
+        out.append(_turned(cells["mid" if k == 0 else "up"], 10.0 + 150.0 * t * t, hover * cell * (1.0 - t * t)))
+    rest = n - fall
+    for k in range(rest):
+        out.append(transform(dead, bob=(0.035 * cell if k == 1 and rest > 2 else 0.0)))
     return out
 
 
@@ -965,11 +1089,12 @@ def _bit_stamp(kind, length, col, rot, outline):
 
 
 def death_bits(frames, seed=0, kind="straw", n=20, colours=("#F2C744", "#E3A92B", "#FFE27A"), start=1, spread=0.32, rise=0.34, gravity=1.0, length=0.075,
-               outline=(14, 8, 12, 255)):
+               outline=(14, 8, 12, 255), floor_last=False):
     """Pass 126 (lane BESTIARY; the Straw Man's "straw flies", the crow's feathers): loose bits thrown out of the body over a death
     strip, drawn on the frames: each flies from the figure's middle from frame `start` on a little arc, turns as it goes, and lies
     on the ground for the rest of the strip (the last frame is the one the game holds). `kind` straw (a thin stalk) or feather (a
-    leaf shape). No model paints anything. Sizes are shares of the cell; a higher `gravity` lands them sooner."""
+    leaf shape). No model paints anything. Sizes are shares of the cell; a higher `gravity` lands them sooner. `floor_last` (pass 127, a
+    flyer's fall): they come to rest round the last frame's feet, not the first frame's, which are in the air."""
     import random
     rng = random.Random(int(seed) * 13 + 126)
     if not frames:
@@ -980,6 +1105,9 @@ def death_bits(frames, seed=0, kind="straw", n=20, colours=("#F2C744", "#E3A92B"
     cx = float(xs.mean()) if len(xs) else cell / 2.0
     cy = float(ys.mean()) if len(ys) else cell / 2.0
     floor = float(ys.max()) if len(ys) else cell * 0.94
+    if floor_last:
+        ys2 = np.nonzero(np.asarray(frames[-1])[..., 3] > 40)[0]
+        floor = float(ys2.max()) if len(ys2) else floor
     cols = [tuple(int(str(c).lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)) + (255,) for c in colours]
     if isinstance(outline, str):
         outline = tuple(int(outline.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)) + (255,)

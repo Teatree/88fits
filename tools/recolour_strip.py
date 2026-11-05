@@ -22,7 +22,8 @@ edges of the selection are blended over +-`--soft`, the hue ranges' ends over `-
 gives the darkest shades their own hue (gold with amber shadows); `--mass 3 [--grow 5]` keeps only selected areas at
 least 7 px thick (pixels of the hue, value and saturation >= `--mass-sat`, default 0.4 x min-sat), grown back
 5 px (the shell, not the thin legs of the same red); `--keep-edge 4` leaves the figure's outer 4 px as they are (an
-icon's grey outer stroke). Ranges wrap by listing two (340-360,0-40).
+icon's grey outer stroke); `--max-val 0.6` (pass 127, the Dust Bunny's looks) leaves what is brighter as it is (white eyes on a
+body with no hue to tell them apart by). Ranges wrap by listing two (340-360,0-40).
 `--cells 18[,61]` (pass 122, the Blood Moon's cool looks): the pass runs on those frames of the strip grid alone (frame k at
 `((k % cols) * cell, (k // cols) * cell)`, the cell `--cell-px` or the image's height, cols = width // cell), every other
 pixel copied as it is: a creature's `hit` frame (idle + run + attack frames in) is a white-washed flash of the material whose
@@ -69,7 +70,8 @@ def main():
                                      float(opt("min-val", "0.0")), float(opt("src-hi", "1.0")), float(opt("soft", "0.04")),
                                      float(opt("hue-soft", "0")), None if opt("to-dark") is None else float(opt("to-dark")),
                                      int(opt("mass", "0")), None if opt("grow") is None else int(opt("grow")),
-                                     None if opt("mass-sat") is None else float(opt("mass-sat")), int(opt("keep-edge", "0")))
+                                     None if opt("mass-sat") is None else float(opt("mass-sat")), int(opt("keep-edge", "0")),
+                                     float(opt("max-val", "1.01")))
         if opt("mode", "hue") == "tint":
             # pass 54: a pale material to a dark saturated one (the dark-blue skeletons); value is scaled, saturation set
             return artkit.tint_range(im, ranges, to, float(opt("set-sat", "0.55")), float(opt("value", "0.6")), min_sat, max_sat,

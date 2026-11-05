@@ -1661,7 +1661,7 @@ func _announce_quests() -> void:
 			# pass 111 (lane SKINS): a look's goal done: on sale (or his at once when it is free), with its badge
 			var sc := def as CharacterDef
 			var free := Registry.skin_state(sc, sc.look_code()) == "owned"
-			hud.banner(("NEW LOOK: " if free else "NEW LOOK FOR SALE: ") + sc.skin_name(sc.look_code()), UiKit.GOOD, sc.icon)
+			hud.banner(("NEW SKIN: " if free else "NEW SKIN FOR SALE: ") + sc.skin_name(sc.look_code()), UiKit.GOOD, sc.icon)
 		elif def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable":
 			hud.banner("A NEW HERO IS FOR SALE", UiKit.GOOD, null)
 		else:
@@ -3452,8 +3452,8 @@ func telegraph_ring(center: Vector3, r: float, dur: float, color: Color, filled 
 	telegraphs.ring(center, r, dur, color, filled)
 
 
-func telegraph_line(from: Vector3, dir: Vector3, length: float, dur: float, color: Color) -> void:
-	telegraphs.line(from, dir, length, dur, color)
+func telegraph_line(from: Vector3, dir: Vector3, length: float, dur: float, color: Color, width := 1.2) -> void:
+	telegraphs.line(from, dir, length, dur, color, width)
 
 
 func shockwave(center: Vector3, r: float) -> void:

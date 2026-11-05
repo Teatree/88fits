@@ -86,7 +86,7 @@ def checks(check, run_node, server):
     # 4. the content
     d = json.loads(_read(CONTENT, "bosses", "black_sunday", "black_sunday.json"))
     rows = {a["name"]: a for a in d["boss"]["attacks"]}
-    check(set(("roll", "spawn_ring", "tumbleweed_volley", "whirl", "black_blizzard")) <= set(rows), "BOSS126: his five rows")
+    check(set(("come_here", "spawn_ring", "tumbleweed_volley", "whirl", "black_blizzard")) <= set(rows), "BOSS126: his five rows")
     check(all(k in KEYS or k in ("name", "windup", "telegraph", "max_range") for k in rows["whirl"]), "BOSS126: his whirl row names only keys the game reads: %s" % sorted(rows["whirl"]))
     check(d["boss"]["chest"]["name"] == "Collection Box" and d["boss"]["chest"]["shine"] == "#d9a35a", "BOSS126: the chest's name and light")
     bz = json.loads(_read(CONTENT, "boss_attacks", "black_blizzard", "black_blizzard.json"))
