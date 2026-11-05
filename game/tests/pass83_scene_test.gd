@@ -135,7 +135,8 @@ func test_every_painting_has_a_measured_shadow() -> void:
 		assert_float(float(sh["a"])).override_failure_message(id).is_between(0.15, 0.7)
 		# under the painted foot: not off to the side, and behind the quad's foot (it stands a little up its quad)
 		assert_float(absf(float(sh["x"]))).override_failure_message(id).is_less(0.12)
-		assert_float(float(sh["z"])).override_failure_message(id).is_between(-0.15, 0.0)
+		# (pass 127: the toppled cart lies on its side, its shadow set by eye under the whole of it)
+		assert_float(float(sh["z"])).override_failure_message(id).is_between(-0.25 if id == "cart_toppled" else -0.15, 0.0)
 
 
 func test_every_placed_prop_lies_on_one_shadow_on_the_ground() -> void:

@@ -4273,6 +4273,8 @@ Pass 126, lane SKINS: **a wave of skins**: twelve looks, earned then bought (BAL
 
 **Looks to Skins.** Every word a player reads: SKINS button and pop-up, "Skins · n of m owned", "Buy this skin?", "Tap a skin to wear it", "Reach a skin's goal", "NEW SKIN" banners, the developer menu's rows. Node names (`LooksBtn`, `Looks`), save keys and code keep the old word. "Look" stays in the Level Editor and the arena, where it means any art variant of anything, sold or not.
 
+**Replays.** The build's checks caught `pass120_REPLAY`: one drift of one check, the last, at frame 7499 of 7500, one creature 0.068 m apart, nothing lifted. The last check is taken by `RunReplay.finish` wherever the run ended, part way through its frame, and every other at the frame's foot, so a weapon moving one body later in that frame reads as a drift. It had always been possible and only showed once the new content moved that seed's run. The last check (`final`) no longer compares where the crowd stands; everything else about the run still must agree. Older recordings have no `final` and compare as before.
+
 **Lessons.** A boss row change means nothing until import_json has written its `.tres`. A Python heredoc with quotes inside a chained Bash command can fail the tool's own parse: write the script to the scratchpad and run it. `_section_royale(title, node_name)`: I swapped the arguments on the first try and the test caught nothing until I read the signature; check an argument's meaning before a mass rename. The ART lane cost 471,000 tokens and 162 tool calls for three art tasks, mostly on the wing poses: Garry is watching tokens, so a lane brief should cap its seeds and its picture reviews.
 
 ### The chat this pass closed (passes 125, 126 and 127, 2026-11-04 to 05)

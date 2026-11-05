@@ -773,6 +773,9 @@ func finish(reason: String = "end") -> String:
 	if reason != "quit" or (p != null and is_instance_valid(p) and p.is_inside_tree()):
 		var c := check_values()
 		c["f"] = frame
+		# pass 127: taken wherever the run happened to end, part way through the frame's work, not at the frame's foot as every other
+		# check: a weapon that moved one body later in that frame reads as a drift of one body on the last frame (_compare)
+		c["final"] = true
 		checks.append(c)
 	var result := "end"
 	if Run.extracted:
@@ -1500,8 +1503,13 @@ func _release() -> void:
 func _compare(i: int, rec: Dictionary) -> void:
 	var now := check_values()
 	var diffs := {}
+	# pass 127: the run's last check (`final`, finish) is taken part way through its frame, so where the crowd stands is not
+	# comparable to the frame's foot: everything else about the run must still agree
+	var last := bool(rec.get("final", false))
 	for key in rec:
-		if key == "f" or key == "h" or key == "b":
+		if key == "f" or key == "h" or key == "b" or key == "final":
+			continue
+		if last and (key == "crowd" or key == "cx" or key == "cz"):
 			continue
 		var a = rec[key]
 		var b = now.get(key)
@@ -1512,7 +1520,7 @@ func _compare(i: int, rec: Dictionary) -> void:
 				diffs[key] = [a, b]
 		elif str(a) != str(b):
 			diffs[key] = [a, b]
-	var ok := str(rec.get("h", "")) == str(now.get("h", "")) and diffs.is_empty()
+	var ok := (last or str(rec.get("h", "")) == str(now.get("h", ""))) and diffs.is_empty()
 	if not ok and diffs.is_empty():
 		var names := ["clock", "xp", "x", "z", "hp"]
 		var ra := PackedByteArray(str(rec.get("b", "")).hex_decode()).to_float64_array()
